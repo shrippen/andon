@@ -1,16 +1,18 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"andon/internal/enums"
 	"andon/internal/services/accounts"
 	"andon/internal/services/boards"
+	"andon/internal/services/themes"
 )
 
 // RegisterProfileRoutes wires the personal settings page (/me/profile):
-// name, locale, colour mode, start board, theme, search engine.
+// name, locale, colour mode, theme, start board, search engine.
 func (d Deps) RegisterProfileRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /me/profile", d.handleProfilePage)
 	mux.HandleFunc("POST /me/profile", d.handleProfileSave)
@@ -27,7 +29,12 @@ func (d Deps) profilePage(w http.ResponseWriter, ctx Ctx, status int, extra map[
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	values := map[string]any{"Profile": profile, "Boards": myBoards}
+	themeList, err := themes.Listing(d.DB, ctx.Who)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	values := map[string]any{"Profile": profile, "Boards": myBoards, "Themes": themeList}
 	for k, v := range extra {
 		values[k] = v
 	}
@@ -69,11 +76,45 @@ func (d Deps) handleProfileSave(w http.ResponseWriter, r *http.Request) {
 		changes.StartBoardID = ptr[*int64](nil)
 	}
 
+	if _, sent := r.PostForm["theme_id"]; sent {
+		themeID, err := d.usableTheme(ctx, r.FormValue("theme_id"))
+		if err != nil {
+			d.profilePage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
+			return
+		}
+		changes.ThemeID = ptr(themeID)
+	}
+
 	if err := accounts.UpdateProfile(d.DB, ctx.Who, changes); err != nil {
 		d.profilePage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
 	http.Redirect(w, r, "/me/profile", http.StatusSeeOther)
+}
+
+// errThemeNotUsable: the profile asked for a theme its user may not use.
+var errThemeNotUsable = errors.New("theme.not_usable")
+
+// usableTheme reads the profile's theme choice: "" is the default (nil),
+// anything else must be a theme ctx's user may use.
+func (d Deps) usableTheme(ctx Ctx, raw string) (*int64, error) {
+	if raw == "" {
+		return nil, nil
+	}
+	id, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return nil, errThemeNotUsable
+	}
+	list, err := themes.Listing(d.DB, ctx.Who)
+	if err != nil {
+		return nil, err
+	}
+	for _, t := range list {
+		if t.ID == id {
+			return &id, nil
+		}
+	}
+	return nil, errThemeNotUsable
 }
 
 // ptr is a small generic address-of helper for optional-field structs like

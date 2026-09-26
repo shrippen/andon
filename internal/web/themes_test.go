@@ -114,3 +114,46 @@ func TestThemeFromPreset(t *testing.T) {
 		t.Fatalf("unknown preset: %d", resp.StatusCode)
 	}
 }
+
+// TestProfileTheme: everyone picks their own theme in the profile; it wins
+// over the instance default, "Standard" goes back to it, and a theme one
+// may not use is refused.
+func TestProfileTheme(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+
+	list := mustGet(t, srv, client, "/themes")
+	space := regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(list)
+	resp := postForm(t, client, srv.URL+"/themes/preset", url.Values{"csrf": {csrf}, "preset": {"dracula"}, "space_id": {string(space[1])}})
+	id := strings.TrimPrefix(resp.Header.Get("Location"), "/themes/")
+
+	save := func(theme string) int {
+		r := postForm(t, client, srv.URL+"/me/profile", url.Values{"csrf": {csrf}, "name": {"Admin"}, "locale": {"de"}, "color_mode": {"auto"}, "theme_id": {theme}})
+		return r.StatusCode
+	}
+	themeLink := regexp.MustCompile(`href="/theme/(\d+)\.css`)
+
+	if got := save(id); got != http.StatusSeeOther {
+		t.Fatalf("save theme: %d", got)
+	}
+	profile := mustGet(t, srv, client, "/me/profile")
+	if m := themeLink.FindSubmatch(profile); m == nil || string(m[1]) != id {
+		t.Fatalf("personal theme not applied: %s", m)
+	}
+	if !strings.Contains(string(profile), `<option value="`+id+`" selected>`) {
+		t.Fatal("profile does not show the chosen theme")
+	}
+
+	if got := save(""); got != http.StatusSeeOther {
+		t.Fatalf("reset theme: %d", got)
+	}
+	if m := themeLink.FindSubmatch(mustGet(t, srv, client, "/me/profile")); m == nil || string(m[1]) == id {
+		t.Fatalf("theme not reset: %s", m)
+	}
+
+	if got := save("99999"); got != http.StatusBadRequest {
+		t.Fatalf("unknown theme accepted: %d", got)
+	}
+}

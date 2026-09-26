@@ -31,6 +31,13 @@
           <option value="light" {{if eq (print .Profile.ColorMode) "light"}}selected{{end}}>Light</option>
         </select>
 
+        <label for="theme_id">{{t "field.theme"}}</label>
+        <select id="theme_id" name="theme_id">
+          <option value="">{{t "theme.default"}}</option>
+          {{range .Themes}}<option value="{{.ID}}"{{if eqID $.Profile.ThemeID .ID}} selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+        <p class="small muted">{{t "field.theme_hint"}}</p>
+
         <label for="start_board_id">{{t "field.start_board"}}</label>
         <select id="start_board_id" name="start_board_id">
           <option value="">–</option>
