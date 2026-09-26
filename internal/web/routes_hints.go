@@ -21,6 +21,7 @@ import (
 // actions and the workflow (history, notes, assignment, work state).
 func (d Deps) RegisterHintRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /hints", d.handleHintsPage)
+	mux.HandleFunc("POST /hints/bulk", d.handleHintBulk)
 	mux.HandleFunc("POST /hints/{id}/ack", d.handleHintAct(hints.ActionAck))
 	mux.HandleFunc("POST /hints/{id}/snooze", d.handleHintAct(hints.ActionSnooze))
 	mux.HandleFunc("POST /hints/{id}/reopen", d.handleHintAct(hints.ActionReopen))
@@ -264,6 +265,31 @@ func (d Deps) handleHintAct(action hints.Action) http.HandlerFunc {
 		}
 		http.Redirect(w, r, backTo(r, "/hints"), http.StatusSeeOther)
 	}
+}
+
+// handleHintBulk acknowledges or pauses every hint of a group at once.
+func (d Deps) handleHintBulk(w http.ResponseWriter, r *http.Request) {
+	ctx, err := d.Require(r)
+	if err != nil {
+		d.handleAuthError(w, r, err)
+		return
+	}
+	action := hints.ActionAck
+	if r.FormValue("action") == string(hints.ActionSnooze) {
+		action = hints.ActionSnooze
+	}
+	for _, raw := range r.Form["id"] {
+		id, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil {
+			http.Error(w, "bad id", http.StatusBadRequest)
+			return
+		}
+		if err := hints.Act(d.DB, ctx.Who, id, action, defaultSnoozeDays, ""); err != nil {
+			d.handleBoardError(w, r, err)
+			return
+		}
+	}
+	http.Redirect(w, r, backTo(r, "/hints"), http.StatusSeeOther)
 }
 
 // handleHintDetail renders history, assignment and note forms of one

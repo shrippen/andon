@@ -34,8 +34,15 @@
     </nav>
     {{end}}
     {{range .Groups}}
-    <section class="hint-rule" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}">
-      {{if not $.Embed}}<h2 class="hint-group-head"><span class="sq" aria-hidden="true"></span>{{t (print "rule_name." .Rule)}}<span class="hint-group-count">{{.Count}}</span></h2>{{end}}
+    <section class="hint-rule" id="rule-{{.Rule}}" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}">
+      {{if not $.Embed}}<h2 class="hint-group-head"><span class="sq" aria-hidden="true"></span>{{t (print "rule_name." .Rule)}}<span class="hint-group-count">{{.Count}}</span></h2>
+      {{/* The whole group at once: all done, or all paused for 7 days. */}}
+      <form method="post" action="/hints/bulk" class="hint-bulk">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+        {{range .Shown}}<input type="hidden" name="id" value="{{.ID}}">{{end}}{{range .Rest}}<input type="hidden" name="id" value="{{.ID}}">{{end}}
+        <button type="submit" name="action" value="ack" class="ghost">{{t "hints.bulk_ack" "n" .Count}}</button>
+        <button type="submit" name="action" value="snooze" class="ghost">{{t "hints.bulk_snooze"}}</button>
+      </form>{{end}}
       <ul class="hints">
         {{range .Shown}}{{template "hint_item" dict "H" . "P" $}}{{end}}
       </ul>
@@ -106,26 +113,28 @@
             {{if ne (print .Work) "open"}}<span class="pill" data-state="{{if eq (print .Work) "done"}}ok{{else}}reviewing{{end}}">{{t (print "hints.work_" .Work)}}</span>{{end}}
             {{if .Flapping}}<span class="pill" data-state="warn" title="{{t "hints.flapping_hint"}}">{{t "hints.flapping"}}</span>{{end}}
           </p>{{end}}
-          <details><summary>{{t "hints.why"}}</summary><p>{{.Why}}</p>
-            <p class="muted small">{{.SpaceName}} · {{t "hints.since" "when" (ago .FirstSeen)}}{{if .Sources}} · {{range $i, $s := .Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}{{end}}</p></details>
+          <p class="hint-why">{{.Why}}</p>
+          <p class="hint-meta-line">{{.SpaceName}} · {{t "hints.since" "when" (ago .FirstSeen)}}{{if .Sources}} · {{range $i, $s := .Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}{{end}}</p>
           <div class="hint-actions">
-            {{if .ActionURL}}<a href="{{.ActionURL}}" target="_blank" rel="noopener noreferrer">{{if .ActionLabel}}{{.ActionLabel}}{{else}}{{t "action.open"}}{{end}}</a>{{end}}
+            {{if .ActionURL}}<a class="hint-go" href="{{.ActionURL}}" target="_blank" rel="noopener noreferrer">{{if .ActionLabel}}{{.ActionLabel}}{{else}}{{t "action.open"}}{{end}}</a>{{end}}
             {{if not $p.Embed}}
-            <form method="post" action="/hints/{{.ID}}/ack" class="hint-ack">
+            <form method="post" action="/hints/{{.ID}}/ack" class="hint-ack" id="ack-{{.ID}}">
               <input type="hidden" name="{{$p.CSRFField}}" value="{{$p.Ctx.CSRF}}">
               <input type="hidden" name="days" value="7">
-              <input name="note" maxlength="500" placeholder="{{t "hints.note_optional"}}" aria-label="{{t "hints.note"}}">
               <button type="submit" class="ghost">{{t "hints.ack"}}</button>
               <button type="submit" class="ghost" formaction="/hints/{{.ID}}/snooze">{{t "hints.snooze"}}</button>
             </form>
+            {{/* The note goes with "done" or "pause", but only when wanted. */}}
+            <details class="hint-note">
+              <summary>✎ {{t "hints.note"}}</summary>
+              <input name="note" form="ack-{{.ID}}" maxlength="500" placeholder="{{t "hints.note_optional"}}" aria-label="{{t "hints.note"}}">
+            </details>
+            <details class="hint-more">
+              <summary title="{{t "hints.more"}}" aria-label="{{t "hints.more"}}">⋯</summary>
+              <div hx-get="/hints/{{.ID}}/detail" hx-trigger="toggle from:closest details once" hx-swap="innerHTML"><span class="loading">{{t "widget.loading"}}</span></div>
+            </details>
             {{end}}
           </div>
-          {{if not $p.Embed}}
-          <details class="hint-more">
-            <summary>{{t "hints.more"}}</summary>
-            <div hx-get="/hints/{{.ID}}/detail" hx-trigger="toggle from:closest details once" hx-swap="innerHTML"><span class="loading">{{t "widget.loading"}}</span></div>
-          </details>
-          {{end}}
         </div>
         {{if .Due}}<span class="hint-due">{{day .Due}}</span>{{end}}
       </li>
