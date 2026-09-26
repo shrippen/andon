@@ -2,6 +2,7 @@ package svcdata_test
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -114,5 +115,42 @@ func TestCacheRowHoldsNoData(t *testing.T) {
 	}
 	if rows == 0 || withData != 0 {
 		t.Fatalf("cache rows=%d with data=%d", rows, withData)
+	}
+}
+
+type flakySource struct{ fail *bool }
+
+func (flakySource) Key() string                { return "test.flaky" }
+func (flakySource) TTL() time.Duration         { return time.Minute }
+func (flakySource) Service() enums.ServiceType { return "" }
+
+func (s flakySource) Fetch(context.Context, sources.Ctx) (any, error) {
+	if *s.fail {
+		return nil, errors.New("timeout")
+	}
+	return "stacks", nil
+}
+
+// TestFailedFetchKeepsLastData: one failed fetch still hands out the last
+// good data, marked as failed. Otherwise the analysis sees a service
+// vanish and resolves its hints, which reopen on the next good fetch.
+func TestFailedFetchKeepsLastData(t *testing.T) {
+	d, err := db.Open(filepath.Join(t.TempDir(), "test.db"), dbtest.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	fail := false
+	sources.Register(flakySource{&fail})
+
+	if first, _ := svcdata.Get(context.Background(), d, "test.flaky", nil, nil, nil, svcdata.Force); !first.Ok() {
+		t.Fatalf("first: %+v", first)
+	}
+	fail = true
+	for _, mode := range []svcdata.Freshness{svcdata.Force, svcdata.Cached} {
+		got, _ := svcdata.Get(context.Background(), d, "test.flaky", nil, nil, nil, mode)
+		if got.Ok() || got.Error == "" || got.Data != "stacks" || got.OkAt.IsZero() {
+			t.Fatalf("mode %v after failure: %+v", mode, got)
+		}
 	}
 }

@@ -283,8 +283,11 @@ func evaluate(d *sql.DB, r run, sc *scope, settings map[string]any, today time.T
 		return fresh, err
 	}
 
-	if err := snapshot(d, r.conn, r.owner, r.result.Data, today); err != nil {
-		slog.Error("analysis: snapshot failed", "connection", r.conn.Name, "err", err)
+	// Stale data (a failed fetch) keeps the hints but is no reading for today.
+	if r.result.Ok() {
+		if err := snapshot(d, r.conn, r.owner, r.result.Data, today); err != nil {
+			slog.Error("analysis: snapshot failed", "connection", r.conn.Name, "err", err)
+		}
 	}
 	findings, ids := apply(rules.ForScope(r.conn.Service), r.result.Data, env)
 	kept := findings[:0]

@@ -145,6 +145,11 @@ func connVersion(conn *model.Connection) string {
 // errorTTL caps how long a failed fetch is served before retrying.
 const errorTTL = time.Minute
 
+// staleFor is how long a failed fetch still hands out the last good data:
+// a service that fails once must not vanish from the analysis (its hints
+// would resolve and reopen), one that stays down eventually does.
+const staleFor = time.Hour
+
 type memEntry struct {
 	result  Result
 	connID  int64 // 0 without a connection
@@ -171,7 +176,9 @@ func remembered(key string, now time.Time) (Result, bool) {
 	return e.result, true
 }
 
-func remember(key string, connID int64, result Result, ttl time.Duration) {
+// remember caches a fetch and returns what callers get: after a failure
+// the last good data (Error set, so Ok stays false) for up to staleFor.
+func remember(key string, connID int64, result Result, ttl time.Duration) Result {
 	if !result.Ok() {
 		ttl = min(ttl, errorTTL)
 	}
@@ -184,13 +191,19 @@ func remember(key string, connID int64, result Result, ttl time.Duration) {
 			delete(mem, k)
 		}
 	}
-	mem[key] = memEntry{result: result, connID: connID, expires: now.Add(ttl)}
 
 	kept := result
 	if prev, ok := latest[key]; ok && !result.Ok() && prev.result.Data != nil {
 		kept.Data, kept.OkAt = prev.result.Data, prev.result.OkAt
 	}
 	latest[key] = memEntry{result: kept, connID: connID}
+
+	served := result
+	if kept.Data != nil && now.Sub(kept.OkAt) <= staleFor {
+		served = kept
+	}
+	mem[key] = memEntry{result: served, connID: connID, expires: now.Add(ttl)}
+	return served
 }
 
 func stored(key string) Result {
@@ -349,12 +362,12 @@ func fetch(ctx context.Context, d *sql.DB, key, sourceKey string, source sources
 	if conn != nil {
 		memConn = conn.ID
 	}
-	remember(key, memConn, result, source.TTL())
+	served := remember(key, memConn, result, source.TTL())
 	_ = persistCache(d, key, sourceKey, result) // best-effort; a cache write failure must not fail the fetch
 	if conn != nil {
 		_ = data.RecordFetch(d, conn.ID, now, took, result.Error) // best-effort, health view only
 	}
-	return result
+	return served
 }
 
 func pushedEvents(d *sql.DB, connID int64, since time.Time) ([]sources.Pushed, error) {
