@@ -21,7 +21,7 @@ nav:
   admin_settings: Instance
   audit: Audit log
   logout: Log out
-  space_settings: Set up analysis
+  space_settings: Space settings
 action:
   isp_report: 'Open report'
   book_payment: 'Book payment'
@@ -73,6 +73,7 @@ action:
   open_in_invoiceninja: Open in Invoice Ninja
   open_in_snipeit: Open in Snipe-IT
   open_in_dawarich: Open in Dawarich
+  backup: 'View backup'
 error:
   csrf: The request expired. Please reload the page.
   denied: Not allowed.
@@ -132,6 +133,7 @@ oidc:
   sub_taken: This authentik account is already linked to another user.
   unreachable: Identity provider unreachable.
 board:
+  delete_hint: 'The board is gone for everybody. Its tiles stay in the library.'
   kiosk: Wall display
   kiosk_hint: Fullscreen, next board every minute, dimmed 22–7. Adjust every and dim in the address.
   from_template: From template
@@ -591,6 +593,7 @@ wtype:
     name: Trend
     desc: Daily history of a metric (receivables, revenue, hours).
 widget:
+  delete_hint: 'The tile disappears from every board it is on.'
   pending: Loading with the next check …
   loading: loading …
   error: Error
@@ -629,6 +632,8 @@ sys:
   swap: Swap
   load: Load (5 min)
 hints:
+  bulk_ack: 'All {n} done'
+  bulk_snooze: 'Pause all for 7 days'
   filter: Filter
   all_levels: All
   all_sources: All services
@@ -689,6 +694,18 @@ history:
   sections: Sections
   restore: Restore
 conn:
+  personal_where: 'Personal: everybody stores their own token under'
+  tls: Certificate
+  tls_verify: Verify (recommended)
+  tls_skip: Don''t verify (self-signed)
+  advanced: 'Advanced: expiry, fetches per day, options'
+  delete_hint: 'The connection is gone for everybody using it. Tiles on it show no data afterwards.'
+  state_failing: failing
+  state_failing_one: Failing
+  state_shaky: shaky
+  state_ok: fine
+  state_unknown: not fetched yet
+  ok_since: fine again since
   options_hint_calendar: 'Public calendar: just the iCal address. Private calendar: the secret iCal address goes into “Private iCal address” (stored encrypted), above any address of the calendar. Events whose title names a Kimai customer or project are compared with the bookings.'
   about_calendar: 'Appointments against bookings'
   options_hint_tailscale: 'URL https://api.tailscale.com (token = API access token, admin console → settings → keys; expires after 90 days at most) or the Headscale URL (token = API key, headscale apikeys create). Options: tailnet: example.com (Tailscale, else the default tailnet).'
@@ -940,6 +957,11 @@ import:
   run: Import
   too_large: File too large.
   not_mapping: Unexpected YAML format.
+  check: Show preview
+  preview: Preview
+  would: 'Would take over: {boards} boards, {widgets} widgets, {connections} connections. Nothing is saved yet.'
+  board_names: Boards
+  confirm: Import now
 report:
   done: 'Imported: {boards} boards, {widgets} widgets, {connections} connections.'
   skipped: Not imported
@@ -1016,6 +1038,7 @@ security:
   days: Valid (days)
   boards_only: Only these boards (optional)
 cred:
+  replace: Replace
   lead: Connections with personal credentials. Only you see your token.
   state: State
   set: stored
@@ -1026,7 +1049,7 @@ credential:
   missing: No personal access stored.
 admin:
   backup: 'Andon backup'
-  backup_hint: 'A daily copy of the database in data/backups; each copy is test-opened (integrity, migrations, rows, credentials decryptable). The newest {keep} stay. Keep the master key separately.'
+  backup_hint: 'A daily copy of the database in data/backups; each copy is test-opened (integrity, migrations, rows, credentials decryptable). The newest {keep} stay. The copies sit on the same volume as the database: back the directory up elsewhere too and keep the master key separately.'
   backup_ok: 'Restore verified'
   backup_failed: 'Backup failed'
   backup_rows: '{users} users, {boards} boards, {widgets} widgets, {secrets} credentials readable.'
@@ -1106,6 +1129,10 @@ ack:
   per_user: per user
   team: for the whole team
 themes:
+  active: Active
+  instance_default: Instance default
+  mine: Your theme
+  delete_hint: 'Whoever uses this theme gets the default theme again.'
   preset: From Dashy preset
   preset_create: Create
   preset_hint: Dashy themes rebuilt on our color roles; both modes get the same palette. Adjust afterwards in the editor.
@@ -1475,8 +1502,8 @@ hint:
       title: '{count} unread articles'
       why: 'Largest sources: {feeds}. Unsubscribe, filter or mark as read.'
     stale:
-      title: 'Feed “{feed}” went silent'
-      why: 'Last article on {day}. Moved or discontinued?'
+      title: 'Silent feeds: {count} for over {days} days'
+      why: 'Longest ({oldest} days): {names}. Moved or discontinued? Unsubscribe or check.'
   gitea:
     review:
       title: 'Review waiting: {repo}#{number}'
@@ -1756,6 +1783,12 @@ hint:
     connector_down:
       title: '{name} unreachable'
       why: 'Last fetch failed: {error}. Widgets show the last data.'
+    backup_late:
+      title: 'Andon backup {hours} hours old'
+      why: 'The daily database copy did not happen. Check that the service runs and data/backups is writable.'
+    backup_failed:
+      title: 'Andon backup failed'
+      why: 'The last copy failed its restore test and was discarded.'
 info:
   tailscale:
     online: '{online}/{count} online'
@@ -1955,6 +1988,7 @@ deadline:
   prepayment: Income tax prepayment
   annual: Tax returns {year}
 rule_name:
+  system.connector_down: Connection failing
   system.unused_service: 'Unused service'
   energy.shift_jobs: 'Maintenance at expensive hours'
   snipe.replace_worth: 'Replacement pays back'
@@ -2109,6 +2143,7 @@ rule_name:
   kintsugi.run_failed: Kintsugi run failed
   kintsugi.budget: Kintsugi budget used up
   kintsugi.stale: Suggestions left waiting
+  system.backup: 'Andon backup'
 param:
   new_watts: 'New device (W)'
   new_cost: 'New device (€)'
@@ -2157,6 +2192,8 @@ param:
   date_window: Date window (days)
   notice_days: Notice (days)
 settings:
+  billing_internal: Internal customers
+  billing_internal_hint: 'Kimai customers whose time is never invoiced, comma separated. Customers at rate 0 always count as internal.'
   hourly_cost: 'Cost rate per hour (€)'
   hourly_cost_hint: 'For project margins. Empty: fixed costs ÷ 168 hours.'
   homelab: 'Homelab costs'
@@ -2182,8 +2219,8 @@ settings:
   page_nav_hint: 'One link per line: title | URL (https://… or /path).'
   page_footer: Footer
   fixed_monthly: Fixed costs per month
-  title: Analysis
-  lead: Goals, tax values and hint thresholds of this space.
+  title: Space settings
+  lead: 'Page header, goals and costs, tax and when hints appear, for this space.'
   goals: Goals
   revenue_year: Net revenue goal (year)
   hours_per_day: Target hours per workday
@@ -2203,8 +2240,9 @@ settings:
   rule: Rule
   params: Values
 notify:
+  min_level: From level
   sources: Only these sources
-  sources_hint: Nothing selected = all sources. Select several with Ctrl/Cmd.
+  sources_hint: Nothing selected = all sources.
   quiet_muted: Hold back critical hints during quiet hours too
   quiet_hint: Unchecked, critical hints arrive at night as well; everything else is sent after quiet hours.
   repeat: Repeat critical after (hours)
@@ -2340,6 +2378,13 @@ cashflow:
   prepayment: Tax prepayment
   relative_hint: Without a Sure connection it starts at 0 – the curve shows the change, not the balance.
 billing:
+  summary: Overview
+  sum_unbilled: 'unbilled · {n} customers'
+  sum_payments: incoming payments
+  sum_check: '{n} to check'
+  sum_mails: invoice mails
+  sum_sent: '{n} already in Paperless'
+  book_anyway: Book anyway
   payments: 'Match incoming payments'
   payments_hint: 'Incomes on the account (Sure) that fit open invoices. “Book” records the payment in Invoice Ninja, at most the open amount.'
   booked: 'Payment for {number} booked.'
@@ -2376,7 +2421,14 @@ mailfwd:
 palette:
   open: Search
   title: Command palette
-  hint: Board, link or page …
+  hint: Board, connection, hint or page …
+  group_board: Boards
+  group_link: Links
+  group_connection: Connections
+  group_hints: Hints
+  group_page: Pages
+  group_setting: Settings
+  hint_count: '{n} open'
   keys: '↑ ↓ select · Enter open · Esc close'
 keys:
   title: Keyboard shortcuts
@@ -2460,6 +2512,9 @@ assist:
   read_privacy: 'Sends this mails attachments to Anthropic (Claude).'
   read_line: '{vendor} · {number} · due {due} · {gross}'
 match:
+  name_amount: Name and amount
+  amount_only: 'Amount only, name differs'
+  check_hint: 'The amount fits, but the payer is not the invoice''s client. Check in Invoice Ninja first.'
   number: 'Invoice number'
   amount: 'Amount'
 risk:
@@ -2632,6 +2687,7 @@ vault:
   without: 'Without'
 
 gallery:
+  preview_loading: 'Loading preview …'
   existing_links: Links already set up
   title: Add tile
   topics: Topics
@@ -2861,9 +2917,25 @@ intro:
   library: 'The library holds all tiles of your spaces, including those not on any board right now. A tile can sit on several boards.'
   gallery: 'Pick what a new tile should show. The preview uses your connections, or demo data if none fits yet.'
   hints: 'Hints come from rules over your services'' data. Each says why it appears and where you resolve it.'
-  spaces: 'Settings of your space: name, theme, start board and what members may do.'
+  spaces: 'Here you set how Andon evaluates this space: page header, goals and costs, tax and the thresholds of hints.'
   teams: 'Teams share connections, tiles and boards. A member''s role decides what they may do with them.'
   themes: 'Themes set colours and fonts. Every change is checked for readability.'
   notify: 'Choose how important hints reach you: push through Apprise, quiet hours and an overview by mail.'
   billing: 'Open Kimai hours per customer. One click turns them into a draft invoice in Invoice Ninja.'
   timeline: 'The timeline lays out a day from all services side by side, such as location, bookings and events.'
+danger:
+  title: Delete
+boards:
+  title: Boards
+  lead: 'Every board you can see. Order and selection apply to your navigation only.'
+  order: Order
+  in_nav: Navigation
+  up: Move up
+  down: Move down
+  hide: Hide
+  show: Show
+  edit: Edit
+  settings: Settings
+  my_layout: My layout
+  start: Start
+  start_hint: 'Which board opens at “/” is set in your profile; without a choice it is the top one.'

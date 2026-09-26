@@ -540,6 +540,69 @@ button.ghost:hover, .link-btn:hover { color: var(--orange); border-color: var(--
 .hint-main details summary::-webkit-details-marker { display: none; }
 .hint-main details p { margin: .4rem 0 0; color: var(--fg2); font-size: .84rem; }
 .hint-actions a, .hint-actions button.ghost:not(:hover) { text-decoration: none; }
+/* Compact card: reason as text, note and history open on demand. */
+.hint-why { margin: 0; color: var(--fg2); font-size: .84rem; }
+.hint-meta-line { margin: 0; color: var(--fg3); font-size: .74rem; }
+.hint-note, .hint-more { display: inline-block; }
+.hint-note[open], .hint-more[open] { flex: 1 1 100%; }
+.hint-note input { display: block; width: 100%; margin: .3rem 0 0; }
+.hint-more > summary { font-size: 1rem; line-height: 1; padding: 0 .3rem; }
+/* Group actions sit under the group's heading, right-aligned. */
+.hint-bulk { display: flex; justify-content: flex-end; gap: .4rem; margin: -.3rem 0 .45rem; }
+.hint-bulk button { margin: 0; padding: .2rem .55rem; font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--fg3); }
+.hint-bulk button:hover { color: var(--fg0); }
+
+/* ── chips to tick (notification sources) ── */
+.chip-picks { border: 0; margin: .4rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip-picks legend { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--fg3); margin-bottom: .35rem; padding: 0; }
+.chip-pick { display: inline-flex; margin: 0; cursor: pointer; }
+.chip-pick input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chip-pick span { padding: .3rem .65rem; border: 1px solid var(--bg2); color: var(--fg1); font-family: var(--font-mono); font-size: .74rem; }
+.chip-pick:hover span { border-color: var(--fg3); }
+.chip-pick input:checked + span { border-color: var(--yellow); background: var(--bg-panel); color: var(--fg0); }
+.chip-pick input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* ── my credentials: replace on demand ── */
+.cred-table .row-actions { display: flex; flex-wrap: wrap; gap: .4rem .6rem; align-items: flex-start; }
+.cred-replace { flex: 1 1 100%; }
+.cred-replace:not([open]) { flex: 0 0 auto; }
+.cred-replace > summary { list-style: none; cursor: pointer; display: inline-block; }
+.cred-replace > summary::-webkit-details-marker { display: none; }
+.cred-replace[open] > summary { margin-bottom: .4rem; }
+
+/* ── deleting: apart, red, one sentence on what goes ── */
+.danger-zone { margin-top: 2.2rem; padding-top: 1rem; border-top: 1px solid var(--bg2); display: flex; flex-direction: column; gap: .5rem; }
+.danger-zone h2 { font-size: .95rem; color: var(--danger-text); margin: 0; }
+.danger-zone p { margin: 0; }
+.danger-zone form { margin: 0; }
+button.danger { background: none; color: var(--danger-text); border: 1px solid var(--red); }
+button.danger:hover { background: var(--red); color: var(--bg-void); }
+
+/* ── connection form: personal access lives under "Meine Zugänge" ── */
+.cred-personal { display: none; }
+form:has(#mode option[value="personal"]:checked) .cred-personal { display: block; }
+form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
+.advanced { margin: 1rem 0; }
+.advanced > summary { cursor: pointer; font-family: var(--font-mono); font-size: .78rem; letter-spacing: .04em; color: var(--fg2); }
+.advanced[open] > summary { margin-bottom: .6rem; }
+
+/* ── connections: state after the latest fetch ── */
+.conn-summary { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; font-family: var(--font-mono); font-size: .78rem; color: var(--fg2); }
+.conn-summary b { font-family: var(--font-heading); font-size: 1.1rem; color: var(--fg0); }
+.conn-summary [data-state="failing"], .conn-summary [data-state="failing"] b { color: var(--danger-text); }
+.conn-summary [data-state="shaky"] b { color: var(--warn-text); }
+.health { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .4rem; font-size: .85rem; }
+.health-dot { width: .55rem; height: .55rem; background: var(--aqua); flex: none; align-self: center; }
+.health[data-state="failing"] .health-dot { background: var(--red); }
+.health[data-state="failing"] b { color: var(--danger-text); font-weight: 600; }
+.health[data-state="shaky"] .health-dot { background: var(--yellow); }
+.health[data-state="unknown"] .health-dot { background: var(--bg2); }
+
+/* ── billing: what is waiting, as jump links ── */
+.billing-summary { display: flex; flex-wrap: wrap; gap: .5rem 1.4rem; margin: 1rem 0 1.4rem; padding: .7rem 1rem; background: var(--bg-panel); border-left: 3px solid var(--yellow); }
+.billing-summary a { color: var(--fg2); text-decoration: none; font-size: .88rem; }
+.billing-summary a:hover { color: var(--fg0); }
+.billing-summary b { font-family: var(--font-heading); font-size: 1.15rem; color: var(--fg0); margin-right: .2rem; }
 
 /* ── progress ── */
 .meters { display: flex; flex-direction: column; }
@@ -610,7 +673,9 @@ table.table tr:last-child td { border-bottom: 0; }
 #palette-list li a { color: var(--fg0); text-decoration: none; }
 #palette-list li small { color: var(--fg3); font-family: var(--font-mono); font-size: .7rem; }
 #palette-list li[data-kind="board"] a::before { content: "▦ "; color: var(--fg3); }
-#palette-list li[data-kind="page"] a::before { content: "› "; color: var(--fg3); }
+#palette-list li[data-kind="page"] a::before, #palette-list li[data-kind="setting"] a::before { content: "› "; color: var(--fg3); }
+#palette-list li.palette-group { display: block; padding: .6rem .5rem .15rem; color: var(--fg3); font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; border-left: 0; }
+#palette-list li.palette-group:first-child { padding-top: 0; }
 .shortcuts dl { display: grid; grid-template-columns: auto 1fr; gap: .4rem 1rem; }
 .shortcuts dd { margin: 0; }
 /* ── frequently used row, quick link, undo hint ── */
@@ -729,6 +794,17 @@ main .cm-s-default .cm-qualifier, main .cm-s-default .cm-builtin { color: var(--
 main .cm-s-default .cm-error { color: var(--danger-text); }
 .inline-details { display: inline-block; }
 .inline-details summary { cursor: pointer; color: var(--blue); display: inline; }
+.inline-details summary.link-btn { display: inline-block; list-style: none; }
+.inline-details summary.link-btn::-webkit-details-marker { display: none; }
+.inline-details[open] { display: block; margin-top: .3rem; }
+/* Library: one column grid for all groups. */
+.lib-table { table-layout: fixed; width: 100%; }
+.lib-table .lib-name { width: 38%; }
+.lib-table .lib-space { width: 14%; }
+.lib-table .lib-uses { width: 14%; }
+.lib-table .lib-actions { width: 34%; }
+.lib-table td { overflow-wrap: anywhere; }
+@media (max-width: 640px) { .lib-table { table-layout: auto; } .lib-table col { width: auto; } }
 .nowrap { white-space: nowrap; }
 .row-actions.nowrap { flex-wrap: nowrap; }
 main > * + h2 { margin-top: 1.8rem; }
@@ -769,7 +845,13 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .gal-preview::after { content: ""; position: absolute; inset: auto 0 0 0; height: 2.2rem; background: linear-gradient(transparent, var(--bg-hard)); }
 /* Rendered at 4/3 of the card width, shown at 3/4: wide tiles stay legible. */
 .gal-thumb { width: 133.33%; min-height: 133.33%; transform: scale(.75); transform-origin: top left; }
-.gal-thumb:empty { background: var(--bg1); opacity: .5; }
+.gal-thumb:empty { background: var(--bg1); opacity: .5; display: grid; place-items: center; }
+/* Until the preview arrives (live data may take a while on first load). */
+.gal-thumb:empty::after { content: attr(data-loading); font-family: var(--font-mono); font-size: 1rem; color: var(--fg2); }
+@media (prefers-reduced-motion: no-preference) {
+  .gal-thumb:empty { animation: gal-wait 1.4s ease-in-out infinite; }
+}
+@keyframes gal-wait { 50% { opacity: .25; } }
 .gal-compact .gal-preview { height: 4.8rem; }
 .gal-meta { display: flex; flex-direction: column; gap: .25rem; padding: .7rem .9rem 0; flex: 1; }
 .gal-meta .label { display: flex; gap: .5rem; align-items: center; justify-content: space-between; }
@@ -1012,3 +1094,8 @@ a.flow-node:hover { border-color: var(--accent); }
 .chapters summary { cursor: pointer; font-weight: 600; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .menu summary .nav-count, .menu-list .nav-count { margin-left: .35rem; }
+
+/* ── boards list ── */
+.boards-table tr.is-hidden td:first-child a { color: var(--fg3); }
+.boards-order form { display: inline-flex; gap: .25rem; }
+.boards-order button { padding: .1rem .5rem; }

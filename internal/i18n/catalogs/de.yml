@@ -21,7 +21,7 @@ nav:
   admin_settings: Instanz
   audit: Audit-Log
   logout: Abmelden
-  space_settings: Auswertung einstellen
+  space_settings: Bereich einstellen
 action:
   isp_report: 'Bericht öffnen'
   book_payment: 'Zahlung buchen'
@@ -73,6 +73,7 @@ action:
   open_in_invoiceninja: In Invoice Ninja öffnen
   open_in_snipeit: In Snipe-IT öffnen
   open_in_dawarich: In Dawarich öffnen
+  backup: 'Sicherung ansehen'
 error:
   csrf: Die Anfrage war abgelaufen. Bitte Seite neu laden.
   denied: Keine Berechtigung.
@@ -132,6 +133,7 @@ oidc:
   sub_taken: Dieses authentik-Konto ist bereits mit einem anderen Benutzer verknüpft.
   unreachable: Identity Provider nicht erreichbar.
 board:
+  delete_hint: 'Das Board verschwindet für alle. Die Kacheln bleiben in der Bibliothek.'
   kiosk: Wandanzeige
   kiosk_hint: Vollbild, wechselt jede Minute das Board, 22–7 Uhr gedimmt. Parameter every und dim in der Adresse anpassbar.
   from_template: Aus Vorlage
@@ -591,6 +593,7 @@ wtype:
     name: Verlauf
     desc: Täglicher Verlauf einer Kennzahl (offene Posten, Umsatz, Stunden).
 widget:
+  delete_hint: 'Die Kachel verschwindet von allen Boards, auf denen sie steht.'
   pending: Wird beim nächsten Prüflauf geladen …
   loading: lädt …
   error: Fehler
@@ -629,6 +632,8 @@ sys:
   swap: Swap
   load: Last (5 min)
 hints:
+  bulk_ack: 'Alle {n} erledigt'
+  bulk_snooze: 'Alle 7 Tage pausieren'
   filter: Filter
   all_levels: Alle
   all_sources: Alle Dienste
@@ -689,6 +694,18 @@ history:
   sections: Abschnitte
   restore: Wiederherstellen
 conn:
+  personal_where: 'Persönlich: Jede Person hinterlegt ihr eigenes Token unter'
+  tls: Zertifikat
+  tls_verify: Prüfen (empfohlen)
+  tls_skip: Nicht prüfen (selbst signiert)
+  advanced: 'Erweitert: Ablaufdatum, Abrufe je Tag, Optionen'
+  delete_hint: 'Die Verbindung verschwindet für alle, die sie nutzen. Kacheln darauf zeigen danach keine Daten mehr.'
+  state_failing: gestört
+  state_failing_one: Gestört
+  state_shaky: wackeln
+  state_ok: in Ordnung
+  state_unknown: noch nicht abgerufen
+  ok_since: seitdem wieder OK
   options_hint_calendar: 'Öffentlicher Kalender: nur die iCal-Adresse. Privater Kalender: die geheime iCal-Adresse ins Feld „Private iCal-Adresse“ (wird verschlüsselt), oben eine beliebige Adresse des Kalenders. Termine, deren Titel einen Kimai-Kunden oder ein Projekt nennt, werden mit den Buchungen verglichen.'
   about_calendar: 'Termine gegen Zeitbuchungen'
   options_hint_tailscale: 'URL https://api.tailscale.com (Token = API-Zugriffstoken, Admin-Konsole → Einstellungen → Schlüssel; läuft nach höchstens 90 Tagen ab) oder die Headscale-URL (Token = API-Schlüssel, headscale apikeys create). Optionen: tailnet: example.com (Tailscale, sonst Standard-Tailnet).'
@@ -940,6 +957,11 @@ import:
   run: Importieren
   too_large: Datei zu groß.
   not_mapping: Unerwartetes YAML-Format.
+  check: Vorschau zeigen
+  preview: Vorschau
+  would: 'Würde übernehmen: {boards} Boards, {widgets} Widgets, {connections} Verbindungen. Noch ist nichts gespeichert.'
+  board_names: Boards
+  confirm: Jetzt importieren
 report:
   done: 'Übernommen: {boards} Boards, {widgets} Widgets, {connections} Verbindungen.'
   skipped: Nicht übernommen
@@ -1016,6 +1038,7 @@ security:
   days: Gültig (Tage)
   boards_only: Nur diese Boards (optional)
 cred:
+  replace: Ersetzen
   lead: Verbindungen mit persönlichen Zugangsdaten. Dein Token sieht nur du.
   state: Status
   set: hinterlegt
@@ -1026,7 +1049,7 @@ credential:
   missing: Kein persönlicher Zugang hinterlegt.
 admin:
   backup: 'Sicherung von Andon'
-  backup_hint: 'Täglich eine Kopie der Datenbank nach data/backups; jede Kopie wird probeweise geöffnet (Integrität, Migrationen, Zeilen, Zugangsdaten entschlüsselbar). Die neuesten {keep} bleiben. Den Master-Schlüssel getrennt aufbewahren.'
+  backup_hint: 'Täglich eine Kopie der Datenbank nach data/backups; jede Kopie wird probeweise geöffnet (Integrität, Migrationen, Zeilen, Zugangsdaten entschlüsselbar). Die neuesten {keep} bleiben. Die Kopien liegen im selben Volume wie die Datenbank: das Verzeichnis zusätzlich extern sichern und den Master-Schlüssel getrennt aufbewahren.'
   backup_ok: 'Wiederherstellung geprüft'
   backup_failed: 'Sicherung fehlerhaft'
   backup_rows: '{users} Nutzer, {boards} Boards, {widgets} Widgets, {secrets} Zugangsdaten lesbar.'
@@ -1106,6 +1129,10 @@ ack:
   per_user: je Benutzer
   team: für das ganze Team
 themes:
+  active: Aktiv
+  instance_default: Instanz-Standard
+  mine: Dein Theme
+  delete_hint: 'Wer dieses Theme nutzt, bekommt wieder das Standard-Theme.'
   preset: Aus Dashy-Vorlage
   preset_create: Anlegen
   preset_hint: Nachbauten der Dashy-Themes auf den eigenen Farbrollen; beide Modi erhalten dieselbe Palette. Danach im Editor anpassbar.
@@ -1475,8 +1502,8 @@ hint:
       title: '{count} ungelesene Artikel'
       why: 'Größte Quellen: {feeds}. Abbestellen, filtern oder als gelesen markieren.'
     stale:
-      title: 'Feed „{feed}“ ist verstummt'
-      why: 'Letzter Artikel am {day}. Adresse geändert oder Seite eingestellt?'
+      title: 'Verstummte Feeds: {count} seit über {days} Tagen'
+      why: 'Am längsten ({oldest} Tage): {names}. Adresse geändert, Seite eingestellt? Abbestellen oder prüfen.'
   gitea:
     review:
       title: 'Review wartet: {repo}#{number}'
@@ -1757,6 +1784,12 @@ hint:
     connector_down:
       title: '{name} nicht erreichbar'
       why: 'Letzter Abruf fehlgeschlagen: {error}. Widgets zeigen den letzten Stand.'
+    backup_late:
+      title: 'Andon-Sicherung {hours} Stunden alt'
+      why: 'Die tägliche Kopie der Datenbank ist ausgeblieben. Prüfen, ob der Dienst läuft und data/backups beschreibbar ist.'
+    backup_failed:
+      title: 'Andon-Sicherung fehlerhaft'
+      why: 'Die letzte Kopie hat den Wiederherstellungstest nicht bestanden und wurde verworfen.'
 info:
   tailscale:
     online: '{online}/{count} online'
@@ -1956,6 +1989,7 @@ deadline:
   prepayment: ESt-Vorauszahlung
   annual: Steuererklärungen {year}
 rule_name:
+  system.connector_down: Verbindung gestört
   system.unused_service: 'Ungenutzter Dienst'
   energy.shift_jobs: 'Wartung zu teuren Zeiten'
   snipe.replace_worth: 'Austausch lohnt sich'
@@ -2110,6 +2144,7 @@ rule_name:
   kintsugi.run_failed: Kintsugi-Lauf fehlgeschlagen
   kintsugi.budget: Kintsugi-Budget aufgebraucht
   kintsugi.stale: Liegengebliebene Vorschläge
+  system.backup: 'Sicherung von Andon'
 param:
   new_watts: 'Neues Gerät (W)'
   new_cost: 'Neues Gerät (€)'
@@ -2158,6 +2193,8 @@ param:
   date_window: Datumsfenster (Tage)
   notice_days: Vorlauf (Tage)
 settings:
+  billing_internal: Interne Kunden
+  billing_internal_hint: 'Kimai-Kunden, deren Zeiten nie in Rechnung gehen, durch Komma getrennt. Kunden mit Stundensatz 0 zählen immer als intern.'
   hourly_cost: 'Kostensatz je Stunde (€)'
   hourly_cost_hint: 'Für Projektmargen. Leer: Fixkosten ÷ 168 Stunden.'
   homelab: 'Homelab-Kosten'
@@ -2183,8 +2220,8 @@ settings:
   page_nav_hint: 'Ein Link je Zeile: Titel | URL (https://… oder /pfad).'
   page_footer: Fußzeile
   fixed_monthly: Feste Ausgaben je Monat
-  title: Auswertung
-  lead: Ziele, Steuerwerte und Schwellwerte der Hinweise für diesen Bereich.
+  title: Bereich einstellen
+  lead: 'Kopf der Seite, Ziele und Kosten, Steuer und ab wann Hinweise erscheinen, für diesen Bereich.'
   goals: Ziele
   revenue_year: Umsatzziel netto (Jahr)
   hours_per_day: Soll-Stunden je Arbeitstag
@@ -2204,8 +2241,9 @@ settings:
   rule: Regel
   params: Werte
 notify:
+  min_level: Ab Stufe
   sources: Nur diese Quellen
-  sources_hint: Keine Auswahl = alle Quellen. Mehrfachauswahl mit Strg/Cmd.
+  sources_hint: Keine Auswahl = alle Quellen.
   quiet_muted: In der Ruhezeit auch Kritisches zurückhalten
   quiet_hint: Ohne Haken kommen Kritische Hinweise auch nachts; alles andere wird nach der Ruhezeit gesendet.
   repeat: Kritische wiederholen nach (Stunden)
@@ -2341,6 +2379,13 @@ cashflow:
   prepayment: Steuervorauszahlung
   relative_hint: Ohne Sure-Verbindung ab 0 gerechnet – die Kurve zeigt die Veränderung, nicht den Kontostand.
 billing:
+  summary: Überblick
+  sum_unbilled: 'nicht abgerechnet · {n} Kunden'
+  sum_payments: Zahlungseingänge
+  sum_check: '{n} prüfen'
+  sum_mails: Rechnungsmails
+  sum_sent: '{n} schon in Paperless'
+  book_anyway: Trotzdem buchen
   payments: 'Zahlungseingänge zuordnen'
   payments_hint: 'Eingänge auf dem Konto (Sure), die zu offenen Rechnungen passen. „Buchen“ legt die Zahlung in Invoice Ninja an, höchstens bis zum offenen Betrag.'
   booked: 'Zahlung zu {number} gebucht.'
@@ -2377,7 +2422,14 @@ mailfwd:
 palette:
   open: Suchen
   title: Befehlspalette
-  hint: Board, Link oder Seite …
+  hint: Board, Verbindung, Hinweis oder Seite …
+  group_board: Boards
+  group_link: Links
+  group_connection: Verbindungen
+  group_hints: Hinweise
+  group_page: Seiten
+  group_setting: Einstellungen
+  hint_count: '{n} offen'
   keys: '↑ ↓ wählen · Enter öffnen · Esc schließen'
 keys:
   title: Tastenkürzel
@@ -2461,6 +2513,9 @@ assist:
   read_privacy: 'Sendet die Anhänge dieser Mail an Anthropic (Claude).'
   read_line: '{vendor} · {number} · fällig {due} · {gross}'
 match:
+  name_amount: Name und Betrag
+  amount_only: 'Nur Betrag, Name passt nicht'
+  check_hint: 'Der Betrag stimmt, aber der Zahlende ist nicht der Kunde der Rechnung. Erst in Invoice Ninja prüfen.'
   number: 'Rechnungsnummer'
   amount: 'Betrag'
 risk:
@@ -2633,6 +2688,7 @@ vault:
   without: 'Ohne'
 
 gallery:
+  preview_loading: 'Vorschau lädt …'
   existing_links: Schon eingerichtete Links
   title: Kachel hinzufügen
   topics: Themen
@@ -2862,9 +2918,25 @@ intro:
   library: 'Die Bibliothek enthält alle Kacheln deiner Bereiche, auch die, die gerade auf keinem Board stehen. Eine Kachel kann auf mehreren Boards stehen.'
   gallery: 'Wähle, was eine neue Kachel zeigen soll. Die Vorschau nutzt deine Verbindungen oder Demo-Daten, wenn noch keine passende da ist.'
   hints: 'Hinweise entstehen aus Regeln über die Daten deiner Dienste. Jeder sagt, warum er erscheint und wo du ihn erledigst.'
-  spaces: 'Einstellungen deines Bereichs: Name, Theme, Start-Board und was Mitglieder dürfen.'
+  spaces: 'Hier stellst du ein, wie Andon diesen Bereich auswertet: Seitenkopf, Ziele und Kosten, Steuer und die Schwellwerte der Hinweise.'
   teams: 'Teams teilen Verbindungen, Kacheln und Boards. Die Rolle eines Mitglieds bestimmt, was es damit tun darf.'
   themes: 'Themes bestimmen Farben und Schriften. Jede Änderung wird auf Lesbarkeit geprüft.'
   notify: 'Lege fest, wie wichtige Hinweise dich erreichen: Push über Apprise, Ruhezeiten und ein Überblick per Mail.'
   billing: 'Offene Kimai-Stunden je Kunde. Mit einem Klick entsteht daraus ein Rechnungsentwurf in Invoice Ninja.'
   timeline: 'Die Zeitleiste legt einen Tag aus allen Diensten nebeneinander, etwa Standort, Buchungen und Termine.'
+danger:
+  title: Löschen
+boards:
+  title: Boards
+  lead: 'Alle Boards, die du siehst. Reihenfolge und Auswahl gelten nur für deine Navigation.'
+  order: Reihenfolge
+  in_nav: Navigation
+  up: Nach oben
+  down: Nach unten
+  hide: Ausblenden
+  show: Einblenden
+  edit: Bearbeiten
+  settings: Einstellungen
+  my_layout: Mein Layout
+  start: Start
+  start_hint: 'Welches Board sich bei „/“ öffnet, stellst du im Profil ein; ohne Wahl ist es das oberste.'

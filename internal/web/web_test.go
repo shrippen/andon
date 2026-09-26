@@ -1,6 +1,8 @@
 package web_test
 
 import (
+	"context"
+	"database/sql"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -9,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +21,7 @@ import (
 	"andon/internal/db"
 	"andon/internal/db/dbtest"
 	"andon/internal/outbound"
+	"andon/internal/services/analysis"
 	"andon/internal/services/auth"
 	"andon/internal/services/icons"
 	"andon/internal/services/mail"
@@ -43,6 +47,19 @@ func fakeKimaiServer(t *testing.T) *httptest.Server {
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	return srv
+}
+
+// testDBs maps a test server's URL to its database, for tests that run
+// background jobs (the analysis) directly.
+var testDBs sync.Map
+
+// runAnalysis runs one analysis pass for srv, as the scheduler would.
+func runAnalysis(t *testing.T, srv *httptest.Server) {
+	t.Helper()
+	database, _ := testDBs.Load(srv.URL)
+	if _, err := analysis.RunAll(context.Background(), database.(*sql.DB), time.Now().UTC()); err != nil {
+		t.Fatalf("analysis: %v", err)
+	}
 }
 
 func newTestServer(t *testing.T) (*httptest.Server, *http.Client, string) {
@@ -101,6 +118,7 @@ func newTestServer(t *testing.T) (*httptest.Server, *http.Client, string) {
 
 	srv := httptest.NewServer(deps.Secure(mux))
 	t.Cleanup(srv.Close)
+	testDBs.Store(srv.URL, database)
 
 	jar, err := cookiejar.New(nil)
 	if err != nil {
