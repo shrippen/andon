@@ -150,6 +150,7 @@ board:
   search_hint: Search or web search …
   no_match: No match. Enter starts a web search.
   untitled: Untitled
+  hidden_n: '{n} hidden'
   new: New board
   delete: Delete board
   full: Show all
@@ -183,6 +184,10 @@ edit:
   show: Show
   preview: Preview
   confirm_delete: Really delete?
+  board_menu: Board
+  selected: '{n} selected'
+  clear_selection: Clear selection
+  layout_hint: Changes apply only to you
 field:
   place: Place
   week_hours: Weekly target (hours)

@@ -276,10 +276,46 @@ button.ghost:hover, .link-btn:hover { color: var(--orange); border-color: var(--
 .tile-slot[data-rows="2"] { grid-row: span 2; }
 .tile-slot[data-rows="2"] > .card { height: 100%; }
 .tile-slot.is-hidden { opacity: .35; }
-.add-tile { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; padding: .6rem; border: 1px dashed var(--bg2); grid-column: 1 / -1; }
-.tile-tools { display: flex; gap: .7rem; padding: .3rem .2rem 0; font-family: var(--font-mono); font-size: .7rem; letter-spacing: .06em; }
-.board[data-mode="board"] .tile-slot, .board[data-mode="overlay"] .tile-slot { cursor: grab; }
-.sortable-ghost { outline: 2px dashed var(--yellow); outline-offset: -2px; }
+/* ── edit and layout mode: tile strip, "+" tile, dragging ──
+   The strip sits on the tile's top edge and shows on hover or focus
+   (always on touch screens, on hidden and on selected tiles). */
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.board[data-mode="board"] .tile-slot, .board[data-mode="overlay"] .tile-slot { cursor: grab; outline: 1px dashed var(--bg2); outline-offset: 2px; }
+.board[data-mode] .tile-slot:hover, .board[data-mode] .tile-slot:focus-within { outline-color: var(--yellow); }
+.tile-strip { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: .1rem;
+  padding: .15rem .25rem; background: var(--bg1); opacity: 0; pointer-events: none; transition: opacity .12s; }
+.tile-slot:hover > .tile-strip, .tile-slot:focus-within > .tile-strip, .tile-slot.is-hidden > .tile-strip,
+.tile-slot:has(.tile-check input:checked) > .tile-strip { opacity: 1; pointer-events: auto; }
+.tile-strip-gap { flex: 1; }
+.tile-grip { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; color: var(--fg3); cursor: grab; }
+.tile-grip svg, .tile-ico svg { width: .75rem; height: .75rem; }
+.tile-check { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; margin: 0; cursor: pointer; }
+.tile-check input { margin: 0; width: .85rem; height: .85rem; }
+.tile-ico { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; padding: 0; margin: 0; border: 0; background: none; color: var(--fg2); cursor: pointer; }
+.tile-ico:hover, .tile-ico:focus-visible { background: var(--bg2); color: var(--fg0); }
+.tile-ico[aria-pressed="true"] { color: var(--warn-text); }
+.tile-ico.is-danger:hover, .tile-ico.is-danger:focus-visible { color: var(--danger-text); }
+.tile-strip .inline-form { gap: 0; }
+@media (hover: none) {
+  .tile-strip { position: static; opacity: 1; pointer-events: auto; }
+}
+.add-tile { display: flex; flex-direction: column; justify-content: center; gap: .5rem; min-height: 4.5rem; padding: .6rem;
+  border: 1px dashed var(--bg2); color: var(--fg3); }
+.add-tile:hover, .add-tile:focus-within { border-color: var(--yellow); }
+.add-tile-main { display: flex; align-items: center; gap: .5rem; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--fg2); text-decoration: none; }
+.add-tile-main span { font-family: var(--font-heading); font-size: 1.5rem; line-height: 1; color: var(--fg1); }
+.add-tile-main:hover { color: var(--fg0); }
+.quick-link { display: flex; gap: .3rem; margin: 0; }
+.quick-link input { flex: 1; min-width: 0; width: auto; margin: 0; padding: .3rem .45rem; font-size: .78rem; }
+.quick-link button { margin: 0; padding: .3rem .6rem; }
+/* Dragging: the gap shows where the tile lands, the tile lifts. */
+.sortable-ghost { outline: 2px dashed var(--yellow); outline-offset: -2px; background: none; }
+.sortable-ghost > * { visibility: hidden; }
+.sortable-drag { transform: rotate(-1.2deg); box-shadow: 0 10px 24px var(--shadow); outline: 1px solid var(--yellow); opacity: .95; }
+.dsec-hidden { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .04em; color: var(--fg3); text-decoration: none; }
+.dsec-hidden:hover { color: var(--fg1); text-decoration: underline; }
+.size-pick { display: inline-flex; align-items: center; gap: .45rem; margin: 0; font-family: var(--font-mono); font-size: .68rem; letter-spacing: .06em; color: var(--fg3); }
+.size-pick select { width: auto; margin: 0; }
 
 /* ── launch tile (link widget): medium = row with description,
       small = compact row (two per section column), large = icon tile ── */
@@ -585,7 +621,7 @@ table.table tr:last-child td { border-bottom: 0; }
 .frequent a:hover { background: var(--bg1); color: var(--fg0); }
 .frequent img { width: 1.6rem; height: 1.6rem; object-fit: contain; flex: none; }
 .frequent .mono { flex: none; width: 1.6rem; height: 1.6rem; display: grid; place-items: center; background: var(--bg-hard); color: var(--accent); border-bottom: 2px solid currentColor; font-family: var(--font-heading); font-weight: 700; font-size: .78rem; }
-.quick-link input { width: 14rem; margin: 0; }
+
 .is-hint { outline: 2px solid var(--yellow); }
 .topic-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .4rem; font-size: .86rem; }
 .topic-list li { display: flex; flex-direction: column; border-left: 3px solid var(--blue); padding-left: .5rem; }
@@ -612,17 +648,37 @@ table.table tr:last-child td { border-bottom: 0; }
 .inline-form select, .inline-form input { width: auto; }
 .inline-form button { margin: 0; }
 
-/* ── editor ── */
-.editbar {
-  display: flex; align-items: center; gap: .8rem; flex-wrap: wrap;
-  padding: .6rem 1.2rem; background: var(--yellow); color: var(--bg-void);
-}
-.editbar b { font-family: var(--font-heading); text-transform: uppercase; font-size: .82rem; letter-spacing: .04em; }
-.editbar .sp { margin-left: auto; display: flex; gap: .6rem; }
-.editbar a, .editbar button {
-  font-family: var(--font-mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em;
-  background: var(--bg-void); color: var(--warn-text); border: 0; padding: .4rem .8rem; margin: 0; cursor: pointer; text-decoration: none;
-}
+/* ── mode bars: edit (yellow, for everybody) and "Mein Layout" (blue, only
+      for you); one line, the rest behind "Board" ── */
+.modebar { --bar: var(--yellow); display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  padding: .55rem 1rem; background: var(--bar); color: var(--bg-void); position: relative; z-index: 5; }
+.modebar.is-layout { --bar: var(--blue); }
+.modebar-title { font-family: var(--font-heading); text-transform: uppercase; font-size: .85rem; letter-spacing: .04em; }
+.modebar-hint { font-size: .82rem; }
+.modebar-gap { flex: 1; }
+.modebar a, .modebar button, .modebar summary {
+  font-family: var(--font-mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; list-style: none;
+  background: var(--bg-void); color: var(--fg0); border: 1px solid var(--bg-void); padding: .4rem .8rem; margin: 0; cursor: pointer; text-decoration: none; }
+.modebar summary::-webkit-details-marker { display: none; }
+.modebar a:hover, .modebar button:hover, .modebar summary:hover { color: var(--warn-text); }
+.modebar .modebar-main { background: none; color: var(--bg-void); border-color: var(--bg-void); }
+.modebar .modebar-main:hover { background: var(--bg-void); color: var(--warn-text); }
+.modebar-pop, .modebar-menu { position: relative; }
+.modebar-pop > form, .modebar-list { position: absolute; top: calc(100% + .35rem); z-index: 40; padding: .6rem; background: var(--bg-hard); border: 1px solid var(--bg2); border-top: 3px solid var(--bar); }
+.modebar-pop > form { left: 0; }
+.modebar-pop input { width: 14rem; margin: 0; }
+.modebar-list { right: 0; min-width: 14rem; display: flex; flex-direction: column; padding: .3rem 0; }
+.modebar-list form { margin: 0; }
+.modebar .modebar-list a, .modebar .modebar-list button { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--fg1);
+  font-family: var(--font-sans); font-size: .88rem; font-weight: 400; text-transform: none; letter-spacing: 0; padding: .5rem 1rem; }
+.modebar .modebar-list a:hover, .modebar .modebar-list button:hover { background: var(--bg1); color: var(--fg0); }
+/* Selection bar: only once tiles are selected. */
+.selbar { display: none; align-items: center; gap: .5rem; flex-wrap: wrap; margin: 0; padding: .5rem 1rem; background: var(--bg1); border-left: 3px solid var(--yellow);
+  position: sticky; top: 0; z-index: 4; }
+.board-page:has(.tile-check input:checked) .selbar { display: flex; }
+.selbar b { font-family: var(--font-mono); font-size: .75rem; font-weight: 500; color: var(--fg0); }
+.selbar select { width: auto; margin: 0; }
+.selbar button { margin: 0; }
 .dropzone { border: 2px dashed var(--bg2); padding: 1rem; display: flex; flex-wrap: wrap; gap: .7rem; background: var(--bg0); }
 
 /* ── segmented control (widget size etc.) ── */
@@ -754,7 +810,7 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .rule-params input[type=number] { width: 6rem; }
 
 /* Wall display: board only, dimmed at night. */
-.is-kiosk .board-nav, .is-kiosk .board-tools, .is-kiosk .search, .is-kiosk .editbar { display: none; }
+.is-kiosk .board-nav, .is-kiosk .board-tools, .is-kiosk .search, .is-kiosk .modebar, .is-kiosk .selbar { display: none; }
 .is-kiosk .board-page { padding-top: 1rem; }
 .is-kiosk.is-dim { filter: brightness(.35); }
 

@@ -31,15 +31,13 @@
       <kbd>/</kbd>
     </label>
     <div class="board-tools">
-      {{if .Board.CanEdit}}
-        {{if .Edit}}<a class="link-btn" href="/boards/{{.Board.ID}}">{{t "edit.done"}}</a>
-        {{else}}<a class="link-btn" href="/boards/{{.Board.ID}}?edit">{{t "edit.edit"}}</a>{{end}}
+      {{if not (or .Edit .LayerEdit)}}
+        {{if .Board.CanEdit}}<a class="link-btn" href="/boards/{{.Board.ID}}?edit">{{t "edit.edit"}}</a>{{end}}
+        <a class="link-btn" href="/boards/{{.Board.ID}}?layout">{{t "edit.my_layout"}}</a>
       {{end}}
-      {{if .LayerEdit}}<a class="link-btn" href="/boards/{{.Board.ID}}">{{t "edit.done"}}</a>
-      {{else if not .Edit}}<a class="link-btn" href="/boards/{{.Board.ID}}?layout">{{t "edit.my_layout"}}</a>{{end}}
       <a class="link-btn" href="/boards/{{.Board.ID}}?kiosk&amp;every=60&amp;dim=22-7" title="{{t "board.kiosk_hint"}}">{{t "board.kiosk"}}</a>
       <a class="link-btn" href="/boards/{{.Board.ID}}{{if not .Compact}}?view=compact{{end}}">{{if .Compact}}{{t "board.full"}}{{else}}{{t "board.compact"}}{{end}}</a>
-      {{if .Board.HasOverlay}}
+      {{if and .Board.HasOverlay (not .LayerEdit)}}
       <form method="post" action="/boards/{{.Board.ID}}/overlay/reset" class="inline-form">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <button type="submit" class="link-btn">{{t "edit.reset_layout"}}</button>
@@ -51,45 +49,73 @@
   {{with .Board.Page.Description}}<p class="page-desc">{{.}}</p>{{end}}
   {{with .Board.Page.Nav}}<nav class="page-links" aria-label="{{t "board.page_links"}}">{{range .}}<a href="{{.URL}}">{{.Title}}</a>{{end}}</nav>{{end}}
 
+  {{if or .Edit .LayerEdit}}{{template "edit_icons"}}{{end}}
   {{if .Edit}}
-  <div class="editbar">
-    <b>{{t "edit.mode"}} · {{.Board.Space.Name}} · v{{.Board.Version}}</b>
+  {{/* Edit bar: the everyday actions up front, the board's own settings
+       behind "Board"; bulk actions appear once tiles are selected. */}}
+  <div class="modebar is-edit">
+    <b class="modebar-title">{{t "edit.mode"}} · {{.Board.Space.Name}} · v{{.Board.Version}}</b>
     <form method="post" action="/boards/{{.Board.ID}}/undo" class="inline-form">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-      <button type="submit" class="ghost{{if .UndoHint}} is-hint{{end}}">↶ {{t "edit.undo"}}</button>
+      <button type="submit" class="{{if .UndoHint}}is-hint{{end}}">↶ {{t "edit.undo"}}</button>
     </form>
-    <form method="post" action="/boards/{{.Board.ID}}/sections" class="inline-form">
+    <details class="modebar-pop">
+      <summary>+ {{t "edit.section"}}</summary>
+      <form method="post" action="/boards/{{.Board.ID}}/sections" class="inline-form">
+        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+        <input type="hidden" name="version" value="{{.Board.Version}}">
+        <input name="title" placeholder="{{t "edit.section_title"}}" aria-label="{{t "edit.section_title"}}">
+        <button type="submit">{{t "edit.add_section"}}</button>
+      </form>
+    </details>
+    <span class="modebar-gap"></span>
+    <a class="modebar-main" href="/boards/{{.Board.ID}}/suggest">{{t "suggest.button"}}</a>
+    <span class="modebar-gap"></span>
+    <details class="modebar-menu">
+      <summary>{{t "edit.board_menu"}} ▾</summary>
+      <div class="modebar-list">
+        <a href="/boards/{{.Board.ID}}/settings">{{t "edit.board_settings"}}</a>
+        <form method="post" action="/boards/{{.Board.ID}}/duplicate">
+          <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+          <input type="hidden" name="name" value="{{.Board.Name}} 2">
+          <button type="submit">{{t "edit.duplicate"}}</button>
+        </form>
+        <a href="/boards/{{.Board.ID}}/history">{{t "edit.history"}}</a>
+        <a href="/shares/board/{{.Board.ID}}">{{t "edit.share"}}</a>
+        <a href="/spaces/{{.Board.Space.ID}}/code">{{t "edit.code"}}</a>
+        <a href="/spaces/{{.Board.Space.ID}}/settings">{{t "nav.space_settings"}}</a>
+      </div>
+    </details>
+    <a class="modebar-done" href="/boards/{{.Board.ID}}">{{t "edit.done"}}</a>
+  </div>
+  <form id="bulk" method="post" action="/boards/{{.Board.ID}}/bulk" class="selbar">
+    <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+    <input type="hidden" name="version" value="{{.Board.Version}}">
+    <b data-sel-count data-template="{{t "edit.selected"}}">{{t "edit.bulk"}}</b>
+    <select name="action" aria-label="{{t "edit.bulk"}}">
+      <option value="move">{{t "edit.bulk_move"}}</option>
+      <option value="color">{{t "edit.bulk_color"}}</option>
+      <option value="remove">{{t "edit.remove"}}</option>
+    </select>
+    <select name="section" aria-label="{{t "edit.section"}}">{{range .Board.Sections}}<option value="{{.ID}}">{{if .Title}}{{.Title}}{{else}}{{t "board.untitled"}}{{end}}</option>{{end}}</select>
+    <select name="color" aria-label="{{t "field.color"}}"><option value="">{{t "opt.none"}}</option>{{range .Colors}}<option value="{{.}}">{{t (print "opt." .)}}</option>{{end}}</select>
+    <button type="submit">{{t "edit.bulk_apply"}}</button>
+    <button type="button" class="ghost" data-sel-clear>{{t "edit.clear_selection"}}</button>
+  </form>
+  {{else if .LayerEdit}}
+  {{/* "Mein Layout": its own colour, so it never passes for the board
+       everybody sees. */}}
+  <div class="modebar is-layout">
+    <b class="modebar-title">{{t "edit.my_layout"}}</b>
+    <span class="modebar-hint">{{t "edit.layout_hint"}}</span>
+    <span class="modebar-gap"></span>
+    {{if .Board.HasOverlay}}
+    <form method="post" action="/boards/{{.Board.ID}}/overlay/reset" class="inline-form">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-      <input type="hidden" name="version" value="{{.Board.Version}}">
-      <input name="title" placeholder="{{t "edit.section_title"}}" aria-label="{{t "edit.section_title"}}">
-      <button type="submit">{{t "edit.add_section"}}</button>
+      <button type="submit">{{t "edit.reset_layout"}}</button>
     </form>
-    <form id="bulk" method="post" action="/boards/{{.Board.ID}}/bulk" class="inline-form bulk">
-      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-      <input type="hidden" name="version" value="{{.Board.Version}}">
-      <span class="small muted">{{t "edit.bulk"}}</span>
-      <select name="action" aria-label="{{t "edit.bulk"}}">
-        <option value="move">{{t "edit.bulk_move"}}</option>
-        <option value="color">{{t "edit.bulk_color"}}</option>
-        <option value="remove">{{t "edit.remove"}}</option>
-      </select>
-      <select name="section" aria-label="{{t "edit.section"}}">{{range .Board.Sections}}<option value="{{.ID}}">{{if .Title}}{{.Title}}{{else}}{{t "board.untitled"}}{{end}}</option>{{end}}</select>
-      <select name="color" aria-label="{{t "field.color"}}"><option value="">{{t "opt.none"}}</option>{{range .Colors}}<option value="{{.}}">{{t (print "opt." .)}}</option>{{end}}</select>
-      <button type="submit" class="ghost">{{t "edit.bulk_apply"}}</button>
-    </form>
-    <a class="link-btn" href="/boards/{{.Board.ID}}/suggest">{{t "suggest.button"}}</a>
-    <form method="post" action="/boards/{{.Board.ID}}/duplicate" class="inline-form">
-      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-      <input type="hidden" name="name" value="{{.Board.Name}} 2">
-      <button type="submit" class="ghost">{{t "edit.duplicate"}}</button>
-    </form>
-    <span class="sp">
-      <a href="/boards/{{.Board.ID}}/settings">{{t "edit.board_settings"}}</a>
-      <a href="/boards/{{.Board.ID}}/history">{{t "edit.history"}}</a>
-      <a href="/shares/board/{{.Board.ID}}">{{t "edit.share"}}</a>
-      <a href="/spaces/{{.Board.Space.ID}}/code">{{t "edit.code"}}</a>
-      <a href="/spaces/{{.Board.Space.ID}}/settings">{{t "nav.space_settings"}}</a>
-    </span>
+    {{end}}
+    <a class="modebar-done" href="/boards/{{.Board.ID}}">{{t "edit.done"}}</a>
   </div>
   {{end}}
   {{end}}
@@ -142,6 +168,7 @@
       <h2>{{if .Title}}{{.Title}}{{else}}{{t "board.untitled"}}{{end}}</h2>
       <span class="dsec-count">{{len .Tiles}}</span>
     </button>
+    {{if not (or $b.Edit $b.LayerEdit)}}{{with .HiddenCount}}<a class="dsec-hidden" href="/boards/{{$b.Board.ID}}?layout" title="{{t "edit.my_layout"}}">{{t "board.hidden_n" "n" .}}</a>{{end}}{{end}}
     {{if $b.Edit}}
     <details class="section-tools">
       <summary class="link-btn">{{t "edit.section"}}</summary>
@@ -172,7 +199,8 @@
     <form method="post" action="/boards/{{$b.Board.ID}}/size/{{.ID}}" class="inline-form section-tools">
       <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
       {{$size := .Size}}
-      <select name="value" data-autosubmit aria-label="{{t "field.size"}}">{{range $b.Sizes}}<option value="{{.}}"{{if eq . $size}} selected{{end}}>{{t (print "size." .)}}</option>{{end}}</select>
+      <label class="size-pick"><span>{{t "field.size"}}</span>
+        <select name="value" data-autosubmit>{{range $b.Sizes}}<option value="{{.}}"{{if eq . $size}} selected{{end}}>{{t (print "size." .)}}</option>{{end}}</select></label>
     </form>
     {{end}}
   </header>
@@ -181,14 +209,15 @@
       {{if or (not .Hidden) $b.LayerEdit}}{{template "tile" dict "T" . "B" $b}}{{end}}
     {{end}}
     {{if $b.Edit}}
+    {{/* The "+" tile ends every section: gallery or a pasted link. */}}
     <div class="add-tile" data-static>
-      <a class="link-btn" href="/widgets/new?space={{$b.Board.Space.ID}}&section={{.ID}}&board={{$b.Board.ID}}&version={{$b.Board.Version}}">+ {{t "gallery.title"}}</a>
-      <form method="post" action="/sections/{{.ID}}/quick-link" class="inline-form quick-link">
+      <a class="add-tile-main" href="/widgets/new?space={{$b.Board.Space.ID}}&section={{.ID}}&board={{$b.Board.ID}}&version={{$b.Board.Version}}"><span aria-hidden="true">+</span>{{t "gallery.title"}}</a>
+      <form method="post" action="/sections/{{.ID}}/quick-link" class="quick-link">
         <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
         <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
         <input type="hidden" name="version" value="{{$b.Board.Version}}">
-        <input name="url" inputmode="url" required placeholder="{{t "edit.quick_link"}}" aria-label="{{t "edit.quick_link"}}">
-        <button type="submit" class="ghost">+</button>
+        <input name="url" inputmode="url" required placeholder="https://…" aria-label="{{t "edit.quick_link"}}">
+        <button type="submit" aria-label="{{t "edit.quick_link"}}">+</button>
       </form>
     </div>
     {{end}}
@@ -236,41 +265,61 @@
       {{end}}
     </article>
   {{end}}
+  {{/* Tile strip: on the tile's top edge, shown on hover and focus; the
+       grip drags, the controls keep their forms. */}}
+  {{$tall := t "edit.tile_tall"}}{{if gt .Rows 1}}{{$tall = t "edit.tile_normal"}}{{end}}
   {{if $b.Edit}}
-  <div class="tile-tools" data-static>
-    <label class="check"><input type="checkbox" name="placement" value="{{.PlacementID}}" form="bulk" aria-label="{{t "edit.select"}} {{.Title}}"></label>
-    <a href="/widgets/{{.WidgetID}}/edit?board={{$b.Board.ID}}">{{t "action.edit"}}</a>
-    <a href="/shares/widget/{{.WidgetID}}">{{t "edit.share"}}</a>
-    <form method="post" action="/placements/{{.PlacementID}}/unplace" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
-      <input type="hidden" name="version" value="{{$b.Board.Version}}">
-      <button class="link-btn" type="submit">{{t "edit.remove"}}</button>
-    </form>
+  <div class="tile-strip">
+    <span class="tile-grip" aria-hidden="true"><svg><use href="#i-grip"/></svg></span>
+    <label class="tile-check"><input type="checkbox" name="placement" value="{{.PlacementID}}" form="bulk" aria-label="{{t "edit.select"}} {{.Title}}"></label>
+    <span class="tile-strip-gap"></span>
+    <a class="tile-ico" href="/widgets/{{.WidgetID}}/edit?board={{$b.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><svg><use href="#i-edit"/></svg></a>
+    <a class="tile-ico" href="/shares/widget/{{.WidgetID}}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><svg><use href="#i-share"/></svg></a>
     <form method="post" action="/placements/{{.PlacementID}}/rows" class="inline-form">
       <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
       <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
       <input type="hidden" name="version" value="{{$b.Board.Version}}">
       <input type="hidden" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}">
-      <button class="link-btn" type="submit" aria-pressed="{{gt .Rows 1}}">{{if gt .Rows 1}}{{t "edit.tile_normal"}}{{else}}{{t "edit.tile_tall"}}{{end}}</button>
+      <button class="tile-ico" type="submit" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><svg><use href="#i-height"/></svg></button>
+    </form>
+    <form method="post" action="/placements/{{.PlacementID}}/unplace" class="inline-form">
+      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
+      <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
+      <input type="hidden" name="version" value="{{$b.Board.Version}}">
+      <button class="tile-ico is-danger" type="submit" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><svg><use href="#i-x"/></svg></button>
     </form>
   </div>
   {{else if $b.LayerEdit}}
-  <div class="tile-tools" data-static>
+  {{$eye := t "edit.hide"}}{{if .Hidden}}{{$eye = t "edit.show"}}{{end}}
+  <div class="tile-strip">
+    <span class="tile-grip" aria-hidden="true"><svg><use href="#i-grip"/></svg></span>
+    <span class="tile-strip-gap"></span>
     <form method="post" action="/boards/{{$b.Board.ID}}/show/{{.PlacementID}}" class="inline-form">
       <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
       <input type="hidden" name="state" value="{{if .Hidden}}shown{{else}}hidden{{end}}">
-      <button class="link-btn" type="submit">{{if .Hidden}}{{t "edit.show"}}{{else}}{{t "edit.hide"}}{{end}}</button>
+      <button class="tile-ico" type="submit" aria-label="{{$eye}}" aria-pressed="{{.Hidden}}" title="{{$eye}}"><svg><use href="#i-eye"/></svg></button>
     </form>
     <form method="post" action="/boards/{{$b.Board.ID}}/rows/{{.PlacementID}}" class="inline-form">
       <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
       <input type="hidden" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}">
-      <button class="link-btn" type="submit" aria-pressed="{{gt .Rows 1}}">{{if gt .Rows 1}}{{t "edit.tile_normal"}}{{else}}{{t "edit.tile_tall"}}{{end}}</button>
+      <button class="tile-ico" type="submit" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><svg><use href="#i-height"/></svg></button>
     </form>
   </div>
   {{end}}
 </div>
 {{end}}
+{{end}}
+
+{{/* Icons of the tile strip, once per page in edit and layout mode. */}}
+{{define "edit_icons"}}
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-grip" viewBox="0 0 16 16"><path fill="currentColor" d="M5 2h2v2H5zm4 0h2v2H9zM5 7h2v2H5zm4 0h2v2H9zm-4 5h2v2H5zm4 0h2v2H9z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 16 16"><path fill="currentColor" d="M11.3 1.3a1 1 0 0 1 1.4 0l2 2a1 1 0 0 1 0 1.4L6 13.4 2 14l.6-4 8.7-8.7Z"/></symbol>
+  <symbol id="i-share" viewBox="0 0 16 16"><path fill="currentColor" d="M12 1a3 3 0 1 1-2.8 4l-3.4 1.8a3 3 0 0 1 0 2.4L9.2 11A3 3 0 1 1 9 12.4l-3.5-1.9a3 3 0 1 1 0-5L9 3.6A3 3 0 0 1 12 1Z"/></symbol>
+  <symbol id="i-height" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0 12 4H9v8h3l-4 4-4-4h3V4H4Z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 16 16"><path fill="currentColor" d="M3.4 2 8 6.6 12.6 2 14 3.4 9.4 8l4.6 4.6-1.4 1.4L8 9.4 3.4 14 2 12.6 6.6 8 2 3.4Z"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 16 16"><path fill="currentColor" d="M8 3c3.6 0 6.3 2.6 7.5 5-1.2 2.4-3.9 5-7.5 5S1.7 10.4.5 8C1.7 5.6 4.4 3 8 3Zm0 2.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z"/></symbol>
+</svg>
 {{end}}
 
 {{define "board_history"}}

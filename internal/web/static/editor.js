@@ -47,12 +47,50 @@
         group: shared ? { name: shared } : "section-" + list.getAttribute("data-sortable"),
         animation: 120,
         draggable: ".tile-slot[data-placement]",
-        filter: "[data-static], a, button, input, select",
+        filter: "[data-static], a, button, input, select, label",
         preventOnFilter: false,
+        // The fallback drag lets CSS lift the tile (.sortable-drag) while a
+        // dashed gap (.sortable-ghost) marks where it lands.
+        forceFallback: true,
+        fallbackClass: "sortable-drag",
         ghostClass: "sortable-ghost",
         onEnd: function () { save(board); }
       });
     });
+  });
+})();
+
+/* Selection bar: "3 markiert", and clearing the selection. CSS shows the
+   bar once a tile is checked. */
+(function () {
+  "use strict";
+
+  var d = document;
+
+  function boxes() {
+    return d.querySelectorAll('input[name="placement"][form="bulk"]');
+  }
+
+  function count() {
+    var label = d.querySelector("[data-sel-count]");
+    if (!label) {
+      return;
+    }
+    var n = [].filter.call(boxes(), function (b) { return b.checked; }).length;
+    label.textContent = label.getAttribute("data-template").replace("{n}", n);
+  }
+
+  d.addEventListener("change", function (e) {
+    if (e.target.matches && e.target.matches('input[name="placement"][form="bulk"]')) {
+      count();
+    }
+  });
+  d.addEventListener("click", function (e) {
+    if (!e.target.closest || !e.target.closest("[data-sel-clear]")) {
+      return;
+    }
+    [].forEach.call(boxes(), function (b) { b.checked = false; });
+    count();
   });
 })();
 

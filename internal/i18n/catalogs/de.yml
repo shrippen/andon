@@ -150,6 +150,7 @@ board:
   search_hint: Suchen oder Websuche …
   no_match: Keine Treffer. Enter startet die Websuche.
   untitled: Ohne Titel
+  hidden_n: '{n} ausgeblendet'
   new: Neues Board
   delete: Board löschen
   full: Alles zeigen
@@ -183,6 +184,10 @@ edit:
   show: Einblenden
   preview: Vorschau
   confirm_delete: Wirklich löschen?
+  board_menu: Board
+  selected: '{n} markiert'
+  clear_selection: Markierung aufheben
+  layout_hint: Änderungen gelten nur für dich
 field:
   place: Ort
   week_hours: Wochenziel (Stunden)

@@ -90,6 +90,18 @@ type SectionView struct {
 	Tiles     []Tile
 }
 
+// HiddenCount is how many of the section's tiles the viewer hid in their
+// own layout.
+func (s SectionView) HiddenCount() int {
+	n := 0
+	for _, t := range s.Tiles {
+		if t.Hidden {
+			n++
+		}
+	}
+	return n
+}
+
 // BoardView is a full board as rendered for one viewer.
 type BoardView struct {
 	ID          int64

@@ -95,6 +95,26 @@ func TestLinkTileAndLayout(t *testing.T) {
 		t.Fatal("layout mode should show hidden tiles dimmed")
 	}
 
+	// The editors' look: normal view names what is hidden; "Mein Layout"
+	// has its own bar, eye and height icons on the tile (the eye pressed on
+	// a hidden one) and a labelled size choice; edit mode has the strip on
+	// each tile, a selection bar, a "+" tile and a board menu.
+	expect := func(page, name string, wants ...string) {
+		t.Helper()
+		for _, want := range wants {
+			if !strings.Contains(page, want) {
+				t.Fatalf("%s lacks %q:\n%s", name, want, page)
+			}
+		}
+	}
+	expect(string(mustGet(t, srv, client, boardURL)), "board", `class="dsec-hidden"`, "1 ausgeblendet")
+	expect(string(mustGet(t, srv, client, boardURL+"?layout")), "layout mode",
+		`class="modebar is-layout"`, "Änderungen gelten nur für dich", `class="tile-strip"`,
+		`aria-label="Einblenden" aria-pressed="true"`, `aria-label="Doppelte Höhe"`, ">Kachelgröße<")
+	expect(string(mustGet(t, srv, client, boardURL+"?edit")), "edit mode",
+		`class="modebar is-edit"`, `class="tile-strip"`, `aria-label="Entfernen"`, `aria-label="Bearbeiten"`,
+		`id="bulk" method="post" action="`+boardURL+`/bulk" class="selbar"`, `class="add-tile"`, `class="modebar-menu"`)
+
 	version := regexp.MustCompile(`data-version="(\d+)"`).FindStringSubmatch(string(mustGet(t, srv, client, boardURL)))[1]
 	payload := []byte(`{"version":` + version + `,"layout":{"` + section + `":[` + placements[1][1] + `,` + placements[0][1] + `]}}`)
 	req, _ = http.NewRequest(http.MethodPost, srv.URL+boardURL+"/arrange", bytes.NewReader(payload))
