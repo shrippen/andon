@@ -74,3 +74,21 @@ func TestCatalogTilesRender(t *testing.T) {
 		}
 	}
 }
+
+// TestGreetingForecastShowsWeekdays: the four forecast columns are labelled
+// by weekday ("Sa"), the full date only as a tooltip, so narrow tiles do
+// not overlap the labels.
+func TestGreetingForecastShowsWeekdays(t *testing.T) {
+	view := map[string]any{"HasWeather": true, "Temp": 17.0, "Code": 3, "Wind": 1.0, "Timezone": "Europe/Berlin",
+		"Days": []widgets.ForecastDay{{Day: "2026-09-26", Max: 24, Min: 3, Height: 90}, {Day: "2026-09-27", Max: 20, Min: 5, Height: 70}}}
+	frag := &widgetlib.Fragment{Type: "greeting", View: view, Slots: map[string]widgetlib.Slot{"weather": {Data: &sources.WeatherResult{}}}}
+
+	rec := httptest.NewRecorder()
+	if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, "widgets/greeting", http.StatusOK, map[string]any{"ThemeURL": "", "Frag": frag}); err != nil {
+		t.Fatal(err)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `title="26.09.2026">Sa</small>`) || !strings.Contains(body, `>So</small>`) {
+		t.Fatalf("forecast labels:\n%s", body)
+	}
+}

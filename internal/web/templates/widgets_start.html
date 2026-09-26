@@ -152,7 +152,7 @@
     {{if $v.Days}}
     <div class="greet-now"><b>{{num $v.Temp 0}}°</b><span>{{t (printf "weather.%s" (weatherKind $v.Code))}} · {{t "greeting.wind" "n" (num $v.Wind 0)}}</span></div>
     <ol class="forecast">
-      {{range $v.Days}}<li><small>{{day .Day}}</small><span class="forecast-bar"><i style="--h:{{.Height}}%"></i></span><b>{{num .Max 0}}°</b><small>{{num .Min 0}}°</small></li>{{end}}
+      {{range $v.Days}}<li><small title="{{day .Day}}">{{weekday .Day}}</small><span class="forecast-bar"><i style="--h:{{.Height}}%"></i></span><b>{{num .Max 0}}°</b><small>{{num .Min 0}}°</small></li>{{end}}
     </ol>
     {{end}}
   </div>
