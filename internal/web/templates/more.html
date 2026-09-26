@@ -49,15 +49,17 @@
     <p class="muted">{{t "cred.lead"}}</p>
     {{if .Connected}}<p class="ok">{{t "connect.done"}}</p>{{end}}
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
-    <div class="table-wrap"><table class="table">
-      <tr><th>{{t "field.connection"}}</th><th>{{t "field.url"}}</th><th>{{t "cred.state"}}</th><th></th></tr>
+    {{/* One row per connection: state and age; a stored token is replaced
+         on demand, a missing one is asked for right away. */}}
+    <div class="table-wrap"><table class="table cred-table">
+      <tr><th>{{t "field.connection"}}</th><th>{{t "cred.state"}}</th><th></th></tr>
       {{range .Items}}
       <tr>
-        <td>{{.Name}} ({{t (print "service." .Service)}})</td>
-        <td><code>{{.URL}}</code></td>
-        <td>{{if .HasMine}}<span class="pill" data-state="ok">{{t "cred.set"}}</span>{{else}}<span class="pill" data-state="warn">{{t "cred.missing"}}</span>{{end}}</td>
+        <td>{{.Name}} <span class="muted">({{t (print "service." .Service)}})</span><br><small class="muted">{{.URL}}</small></td>
+        <td class="nowrap">{{if .HasMine}}<span class="pill" data-state="ok">{{t "cred.set"}}</span>{{if not .SecretAt.IsZero}}<br><small class="muted">{{ago .SecretAt}}</small>{{end}}{{else}}<span class="pill" data-state="warn">{{t "cred.missing"}}</span>{{end}}</td>
         <td class="row-actions">
-          <form method="post" action="/me/credentials/{{.ID}}" class="inline-form">
+          {{if .HasMine}}<details class="cred-replace"><summary class="link-btn">{{t "cred.replace"}}</summary>{{end}}
+          <form method="post" action="/me/credentials/{{.ID}}" class="inline-form cred-form">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
             {{$shape := credShape .Service}}
             {{if eq $shape "userpass"}}
@@ -75,6 +77,8 @@
             {{end}}
             <button type="submit" class="ghost">{{t "action.save"}}</button>
           </form>
+          <p class="small muted">{{t (print "conn.options_hint_" .Service)}}</p>
+          {{if .HasMine}}</details>{{end}}
           {{$item := .}}
           {{with index $.SignIn .ID}}
             {{if or (not .NeedsClient) .HasClient}}
@@ -85,9 +89,8 @@
             </form>
             {{else}}<p class="small muted">{{t "connect.client_missing"}}</p>{{end}}
           {{end}}
-          <p class="small muted">{{t (print "conn.options_hint_" .Service)}}</p>
           {{if .HasMine}}
-          <form method="post" action="/me/credentials/{{.ID}}/delete" class="inline-form">
+          <form method="post" action="/me/credentials/{{.ID}}/delete" class="inline-form" data-confirm="{{t "edit.confirm_delete"}}">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
             <button type="submit" class="link-btn">{{t "action.delete"}}</button>
           </form>

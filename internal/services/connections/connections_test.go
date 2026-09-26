@@ -16,6 +16,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/model"
 	"andon/internal/repos/content"
+	data "andon/internal/repos/data"
 	"andon/internal/repos/users"
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
@@ -228,5 +229,40 @@ func TestSwitchToPersonalKeepsEditorToken(t *testing.T) {
 	}
 	if result, err := connections.Test(context.Background(), d, who, id); err != nil || !result.Ok {
 		t.Fatalf("expected ok after switch, got %+v err=%v", result, err)
+	}
+}
+
+// TestHealthStateFollowsLastFetch: a connection whose last fetch worked
+// is not failing, however many fetches failed before; it is shaky.
+func TestHealthStateFollowsLastFetch(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c")
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	id, err := connections.Create(d, who, space.ID, enums.ServiceKimai, "Kimai", "https://kimai.example/",
+		enums.CredentialShared, "tok", connections.TLSVerify, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := func() connections.HealthState {
+		t.Helper()
+		c, err := connections.Get(d, who, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return c.Health.State()
+	}
+	now := time.Now().UTC()
+	for i := range 3 {
+		if err := data.RecordFetch(d, id, now.Add(time.Duration(i)*time.Minute), 10, "HTTP 502"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := state(); got != connections.HealthFailing {
+		t.Fatalf("after failures: %s", got)
+	}
+	data.RecordFetch(d, id, now.Add(5*time.Minute), 10, "")
+	if got := state(); got != connections.HealthShaky {
+		t.Fatalf("after a good test: %s", got)
 	}
 }

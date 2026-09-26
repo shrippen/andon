@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sort"
 	"strconv"
+	"strings"
 
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
@@ -49,9 +50,38 @@ func (d Deps) handleConnectionsList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	_ = d.Page(w, ctx, "connections", http.StatusOK, map[string]any{
-		"Connections": list, "Services": serviceOptions,
+	// Broken first, then shaky, not yet fetched, working; by name within.
+	sort.SliceStable(list, func(i, j int) bool {
+		return stateRank[list[i].Health.State()] < stateRank[list[j].Health.State()]
 	})
+	_ = d.Page(w, ctx, "connections", http.StatusOK, map[string]any{
+		"Connections": list, "Services": serviceOptions, "Summary": healthSummary(list),
+	})
+}
+
+// stateRank orders the connection list, what needs care first.
+var stateRank = map[connections.HealthState]int{
+	connections.HealthFailing: 0, connections.HealthShaky: 1, connections.HealthUnknown: 2, connections.HealthOK: 3,
+}
+
+// connSum counts connections by state for the line above the list.
+type connSum struct{ Failing, Shaky, OK, Unknown int }
+
+func healthSummary(list []connections.View) connSum {
+	var sum connSum
+	for _, c := range list {
+		switch c.Health.State() {
+		case connections.HealthFailing:
+			sum.Failing++
+		case connections.HealthShaky:
+			sum.Shaky++
+		case connections.HealthUnknown:
+			sum.Unknown++
+		default:
+			sum.OK++
+		}
+	}
+	return sum
 }
 
 var serviceOptions = enums.Services
@@ -219,6 +249,9 @@ func (d Deps) handleConnectionUpdate(w http.ResponseWriter, r *http.Request) {
 	if err == nil && mode == enums.CredentialShared && r.FormValue("share_mine") != "" {
 		err = connections.ShareMine(d.DB, ctx.Who, id)
 	}
+	if err == nil {
+		err = d.saveAdvanced(r, ctx, conn)
+	}
 	if err != nil {
 		_ = d.Page(w, ctx, "connection_form", http.StatusBadRequest, map[string]any{
 			"Conn": conn, "Services": serviceOptions, "IsNew": false,
@@ -227,6 +260,30 @@ func (d Deps) handleConnectionUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/connections", http.StatusSeeOther)
+}
+
+// saveAdvanced stores the form's "Erweitert" part: token expiry and
+// daily budget when changed, the YAML options when edited (they win over
+// the setup fields above).
+func (d Deps) saveAdvanced(r *http.Request, ctx Ctx, conn connections.View) error {
+	if _, sent := r.PostForm["budget"]; !sent {
+		return nil
+	}
+	budget, _ := strconv.Atoi(r.FormValue("budget"))
+	if expires := r.FormValue("expires"); expires != conn.SecretExpires || budget != conn.DailyBudget {
+		if err := connections.SetHygiene(d.DB, ctx.Who, conn.ID, expires, budget); err != nil {
+			return err
+		}
+	}
+	yaml := r.FormValue("options_yaml")
+	if strings.TrimSpace(yaml) == strings.TrimSpace(r.FormValue("options_before")) {
+		return nil
+	}
+	options, err := porting.Load(yaml)
+	if err != nil {
+		return err
+	}
+	return connections.SetOptions(d.DB, ctx.Who, conn.ID, options)
 }
 
 func (d Deps) handleConnectionDelete(w http.ResponseWriter, r *http.Request) {
@@ -346,7 +403,12 @@ func (d Deps) handleConnectionCheck(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		result = connections.TestResult{Message: errKey(err)}
 	}
-	_ = d.Page(w, ctx, "conn_check", http.StatusOK, map[string]any{"Result": result, "Name": name})
+	// The test counts as a fetch: its state replaces the list cell.
+	values := map[string]any{"Result": result, "Name": name}
+	if conn, err := connections.Get(d.DB, ctx.Who, id); err == nil {
+		values["Conn"] = conn
+	}
+	_ = d.Page(w, ctx, "conn_check", http.StatusOK, values)
 }
 
 // handlePlaces answers the place search of a setup form with matching

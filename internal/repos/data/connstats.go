@@ -8,24 +8,26 @@ import (
 
 // ConnHealth sums a connection's fetches over some days.
 type ConnHealth struct {
-	OK, Fail  int
-	MsSum     int64
-	LastOKAt  string // db time, "" = never
-	LastError string // of the newest day with a failure
+	OK, Fail   int
+	MsSum      int64
+	LastOKAt   string // db time, "" = never
+	LastFailAt string // db time, "" = never
+	LastError  string // of the newest day with a failure
 }
 
 // RecordFetch adds one fetch outcome to today's row.
 func RecordFetch(q db.Queryer, connID int64, at time.Time, ms int64, errMsg string) error {
-	ok, fail, lastOK := 1, 0, db.TimeStr(at)
+	ok, fail, lastOK, lastFail := 1, 0, db.TimeStr(at), ""
 	if errMsg != "" {
-		ok, fail, lastOK = 0, 1, ""
+		ok, fail, lastOK, lastFail = 0, 1, "", db.TimeStr(at)
 	}
-	_, err := q.Exec(`INSERT INTO conn_stats (connection_id, day, ok, fail, ms_sum, last_ok_at, last_error) VALUES (?,?,?,?,?,?,?)
+	_, err := q.Exec(`INSERT INTO conn_stats (connection_id, day, ok, fail, ms_sum, last_ok_at, last_fail_at, last_error) VALUES (?,?,?,?,?,?,?,?)
 		ON CONFLICT (connection_id, day) DO UPDATE SET ok = ok + excluded.ok, fail = fail + excluded.fail,
 			ms_sum = ms_sum + excluded.ms_sum,
 			last_ok_at = CASE WHEN excluded.last_ok_at = '' THEN last_ok_at ELSE excluded.last_ok_at END,
+			last_fail_at = CASE WHEN excluded.last_fail_at = '' THEN last_fail_at ELSE excluded.last_fail_at END,
 			last_error = CASE WHEN excluded.last_error = '' THEN last_error ELSE excluded.last_error END`,
-		connID, at.Format(time.DateOnly), ok, fail, ms, lastOK, errMsg)
+		connID, at.Format(time.DateOnly), ok, fail, ms, lastOK, lastFail, errMsg)
 	return err
 }
 
@@ -40,10 +42,10 @@ func Fetches(q db.Queryer, connID int64, day string) (int, error) {
 func HealthSince(q db.Queryer, connID int64, since string) (ConnHealth, error) {
 	var h ConnHealth
 	err := q.QueryRow(`SELECT COALESCE(SUM(ok), 0), COALESCE(SUM(fail), 0), COALESCE(SUM(ms_sum), 0),
-			COALESCE(MAX(last_ok_at), ''),
+			COALESCE(MAX(last_ok_at), ''), COALESCE(MAX(last_fail_at), ''),
 			COALESCE((SELECT last_error FROM conn_stats WHERE connection_id = ?1 AND day >= ?2 AND last_error != '' ORDER BY day DESC LIMIT 1), '')
 		FROM conn_stats WHERE connection_id = ?1 AND day >= ?2`, connID, since).
-		Scan(&h.OK, &h.Fail, &h.MsSum, &h.LastOKAt, &h.LastError)
+		Scan(&h.OK, &h.Fail, &h.MsSum, &h.LastOKAt, &h.LastFailAt, &h.LastError)
 	return h, err
 }
 

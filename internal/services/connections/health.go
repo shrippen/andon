@@ -31,8 +31,38 @@ type Health struct {
 	FailPct   int
 	AvgMS     int
 	LastOK    time.Time // zero = none in the window
+	LastFail  time.Time // zero = none in the window
 	LastError string
 	Today     int // fetches today, for the budget
+}
+
+// HealthState is how a connection stands now.
+type HealthState string
+
+const (
+	HealthUnknown HealthState = "unknown" // no fetch in the window
+	HealthOK      HealthState = "ok"
+	HealthShaky   HealthState = "shaky"   // works now, failed recently
+	HealthFailing HealthState = "failing" // the last fetch failed
+)
+
+// State follows the latest fetch: a successful test ends "failing" at
+// once, the failure rate only makes it "shaky".
+func (h Health) State() HealthState {
+	switch {
+	case h.Fetches == 0:
+		return HealthUnknown
+	case !h.LastFail.IsZero() && (h.LastOK.IsZero() || h.LastFail.After(h.LastOK)):
+		return HealthFailing
+	case h.FailPct > 0:
+		return HealthShaky
+	}
+	return HealthOK
+}
+
+// ErrorSettled tells that the last error is past: a success came after it.
+func (h Health) ErrorSettled() bool {
+	return !h.LastFail.IsZero() && h.LastOK.After(h.LastFail)
 }
 
 func healthOf(q db.Queryer, connID int64, now time.Time) (Health, error) {
@@ -53,6 +83,9 @@ func healthOf(q db.Queryer, connID int64, now time.Time) (Health, error) {
 	}
 	if raw.LastOKAt != "" {
 		h.LastOK, _ = db.ParseTime(raw.LastOKAt)
+	}
+	if raw.LastFailAt != "" {
+		h.LastFail, _ = db.ParseTime(raw.LastFailAt)
 	}
 	return h, nil
 }

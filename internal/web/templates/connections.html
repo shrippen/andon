@@ -13,6 +13,12 @@
     <h1>{{t "nav.connections"}}</h1>
     {{template "intro" dict "Page" "connections" "Chapter" "connections" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p><a class="link-btn" href="/connections/new">+ {{t "action.create"}}</a></p>
+    {{with .Summary}}<p class="conn-summary">
+      {{if .Failing}}<span data-state="failing"><b>{{.Failing}}</b> {{t "conn.state_failing"}}</span>{{end}}
+      {{if .Shaky}}<span data-state="shaky"><b>{{.Shaky}}</b> {{t "conn.state_shaky"}}</span>{{end}}
+      <span data-state="ok"><b>{{.OK}}</b> {{t "conn.state_ok"}}</span>
+      {{if .Unknown}}<span data-state="unknown"><b>{{.Unknown}}</b> {{t "conn.state_unknown"}}</span>{{end}}
+    </p>{{end}}
     <div class="table-wrap"><table class="table">
       <tr><th>{{t "field.name"}}</th><th>{{t "field.service"}}</th><th>{{t "field.url"}}</th><th>{{t "conn.health"}}</th><th>{{t "conn.token_age"}}</th><th></th></tr>
       {{range .Connections}}
@@ -20,7 +26,7 @@
         <td>{{.Name}}</td>
         <td>{{t (print "service." .Service)}}</td>
         <td class="small">{{.URL}}</td>
-        <td>{{template "conn_health" .Health}}</td>
+        <td>{{template "conn_health_cell" .}}</td>
         <td class="nowrap small">{{if not .SecretAt.IsZero}}{{ago .SecretAt}}{{else}}–{{end}}{{with .SecretExpires}}<br><small class="muted">{{t "conn.expires"}} {{day .}}</small>{{end}}</td>
         <td class="row-actions nowrap"><a class="link-btn" href="/connections/{{.ID}}/edit">{{t "action.edit"}}</a>
           <form method="post" action="/connections/{{.ID}}/test" class="inline-form" hx-post="/connections/{{.ID}}/check" hx-target="#toast">
@@ -106,9 +112,11 @@
       </select>
       <p class="small muted">{{t "conn.mode_hint"}} {{t "conn.shared_warning"}}</p>
 
+      {{/* Personal: everybody stores their own token under "Meine Zugänge". */}}
+      <p class="cred-personal small">{{t "conn.personal_where"}} <a href="/me/credentials">{{t "nav.credentials"}}</a></p>
       {{/* Two equal ways to give Andon access: a token, or signing in. */}}
       <div class="cred-ways">
-      <div class="cred-way">
+      <div class="cred-way cred-shared">
       <h3>{{t "connect.token"}}</h3>
       {{$keep := ""}}{{if .Conn}}{{if .Conn.HasSecret}}{{$keep = t "conn.secret_keep"}}{{end}}{{end}}
       {{if eq $shape "userpass"}}
@@ -157,13 +165,28 @@
       {{end}}{{end}}
       </div>
       {{end}}
-      {{if not .IsNew}}<p class="small muted">{{t (print "conn.options_hint_" .Conn.Service)}}</p>{{end}}
-
-      <label for="tls">TLS</label>
+      <label for="tls">{{t "conn.tls"}}</label>
       <select id="tls" name="tls">
-        <option value="verify" {{if .Conn}}{{if .Conn.VerifyTLS}}selected{{end}}{{end}}>✓</option>
-        <option value="skip" {{if .Conn}}{{if not .Conn.VerifyTLS}}selected{{end}}{{end}}>{{t "field.insecure"}}</option>
+        <option value="verify" {{if .Conn}}{{if .Conn.VerifyTLS}}selected{{end}}{{end}}>{{t "conn.tls_verify"}}</option>
+        <option value="skip" {{if .Conn}}{{if not .Conn.VerifyTLS}}selected{{end}}{{end}}>{{t "conn.tls_skip"}}</option>
       </select>
+
+      {{/* The rarely changed rest, saved with the same button. */}}
+      {{if not .IsNew}}
+      <details class="advanced">
+        <summary>{{t "conn.advanced"}}</summary>
+        <p class="small muted">{{t "conn.token_age"}}: {{if not .Conn.SecretAt.IsZero}}{{ago .Conn.SecretAt}}{{else}}–{{end}}</p>
+        <label for="expires">{{t "conn.expires"}}</label>
+        <input id="expires" name="expires" type="date" value="{{.Conn.SecretExpires}}">
+        <label for="budget">{{t "conn.budget"}}</label>
+        <input id="budget" name="budget" type="number" min="0" value="{{.Conn.DailyBudget}}">
+        <p class="small muted">{{t "conn.budget_hint"}}</p>
+        <label for="options_yaml">{{t "conn.options"}}</label>
+        <textarea id="options_yaml" class="code-area short" name="options_yaml" rows="6" spellcheck="false" data-code="yaml">{{.OptionsYAML}}</textarea>
+        <input type="hidden" name="options_before" value="{{.OptionsYAML}}">
+        <p class="small muted">{{t (print "conn.options_hint_" .Conn.Service)}}</p>
+      </details>
+      {{end}}
 
       <button type="submit">{{t "action.save"}}</button>
     </form>
@@ -196,38 +219,18 @@
     {{if not .IsNew}}
       <h2>{{t "conn.health"}}</h2>
       <div class="card">
-        <p>{{template "conn_health" .Conn.Health}}</p>
-        {{with .Conn.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}: {{.}}</p>{{end}}
+        <p>{{template "conn_health_cell" .Conn}}</p>
+        {{with .Conn.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}{{if not $.Conn.Health.LastFail.IsZero}} {{ago $.Conn.Health.LastFail}}{{end}}: {{.}}{{if $.Conn.Health.ErrorSettled}} <span class="pill" data-state="ok">{{t "conn.ok_since"}}</span>{{end}}</p>{{end}}
         {{if .Conn.DailyBudget}}<p class="small muted">{{t "conn.budget_today" "n" .Conn.Health.Today "max" .Conn.DailyBudget}}</p>{{end}}
       </div>
-      <h2>{{t "conn.hygiene"}}</h2>
-      <form method="post" action="/connections/{{.Conn.ID}}/hygiene" class="card">
-        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <p class="small muted">{{t "conn.token_age"}}: {{if not .Conn.SecretAt.IsZero}}{{ago .Conn.SecretAt}}{{else}}–{{end}}</p>
-        <label for="expires">{{t "conn.expires"}}</label>
-        <input id="expires" name="expires" type="date" value="{{.Conn.SecretExpires}}">
-        <label for="budget">{{t "conn.budget"}}</label>
-        <input id="budget" name="budget" type="number" min="0" value="{{.Conn.DailyBudget}}">
-        <p class="small muted">{{t "conn.budget_hint"}}</p>
-        <button type="submit">{{t "action.save"}}</button>
-      </form>
-      <h2>{{t "conn.options"}}</h2>
-      <form method="post" action="/connections/{{.Conn.ID}}/options" class="card">
-        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <textarea class="code-area short" name="options" rows="6" spellcheck="false" data-code="yaml" aria-label="{{t "conn.options"}}">{{.OptionsYAML}}</textarea>
-        <p class="small muted">{{t (print "conn.options_hint_" .Conn.Service)}}</p>
-        <button type="submit">{{t "action.save"}}</button>
-      </form>
-      <p><a class="link-btn" href="/shares/connection/{{.Conn.ID}}">{{t "share.title"}}</a></p>
-      <form method="post" action="/connections/{{.Conn.ID}}/test" style="display:inline" hx-post="/connections/{{.Conn.ID}}/check" hx-target="#toast">
-        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <button type="submit">{{t "conn.test"}}</button>
-      </form>
-      <form method="post" action="/connections/{{.Conn.ID}}/delete" style="display:inline"
-            data-confirm="{{t "edit.confirm_delete"}}">
-        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <button type="submit">{{t "conn.delete"}}</button>
-      </form>
+      <div class="row-actions">
+        <form method="post" action="/connections/{{.Conn.ID}}/test" class="inline-form" hx-post="/connections/{{.Conn.ID}}/check" hx-target="#toast">
+          <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+          <button type="submit" class="ghost">{{t "conn.test"}}</button>
+        </form>
+        <a class="link-btn" href="/shares/connection/{{.Conn.ID}}">{{t "share.title"}}</a>
+      </div>
+      {{template "danger_zone" dict "Action" (print "/connections/" .Conn.ID "/delete") "Text" (t "conn.delete_hint") "Button" (t "conn.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{end}}
   </main>
 </body>
@@ -235,7 +238,14 @@
 {{end}}
 
 {{/* One line of fetch health: 7 days, failure rate, mean time, last success. */}}
-{{define "conn_health"}}{{if .Fetches}}<span class="pill" data-state="{{if ge .FailPct 50}}fail{{else if .FailPct}}warn{{else}}ok{{end}}">{{.FailPct}} % {{t "conn.failed"}}</span> <small class="muted">{{.AvgMS}} ms · {{if not .LastOK.IsZero}}✓ {{ago .LastOK}}{{else}}{{t "conn.never_ok"}}{{end}}</small>{{else}}<small class="muted">{{t "conn.no_fetches"}}</small>{{end}}{{end}}
+{{/* A connection's state after its latest fetch: failing (the last one
+     failed), shaky (works, failed lately), ok, or not fetched yet. The id
+     lets a test swap the cell in place. */}}
+{{define "conn_health_cell"}}<span class="health" id="health-{{.ID}}" data-state="{{.Health.State}}">{{template "conn_health" .Health}}</span>{{end}}
+{{define "conn_health"}}{{$s := print .State}}<span class="health-dot" aria-hidden="true"></span>{{if eq $s "unknown"}}<small class="muted">{{t "conn.no_fetches"}}</small>
+{{else if eq $s "failing"}}<b>{{t "conn.state_failing_one"}}</b>{{with .LastError}} <small class="muted">{{.}}</small>{{end}}
+{{else if eq $s "shaky"}}{{.FailPct}} % {{t "conn.failed"}} <small class="muted">· {{.AvgMS}} ms · ✓ {{ago .LastOK}}</small>
+{{else}}{{.AvgMS}} ms <small class="muted">· ✓ {{ago .LastOK}}</small>{{end}}{{end}}
 
 {{define "connection_pick"}}
 <!doctype html>
@@ -337,10 +347,24 @@
 {{end}}
 
 {{/* Result of a connection test run from the overview. */}}
-{{define "conn_check"}}<div class="toast-msg" data-state="{{if .Result.Ok}}ok{{else}}error{{end}}"><b>{{.Name}}</b> {{if .Result.Ok}}✓ OK{{with .Result.Version}} ({{.}}){{end}}{{else}}✗ {{t .Result.Message}}{{end}}</div>{{end}}
+{{define "conn_check"}}<div class="toast-msg" data-state="{{if .Result.Ok}}ok{{else}}error{{end}}"><b>{{.Name}}</b> {{if .Result.Ok}}✓ OK{{with .Result.Version}} ({{.}}){{end}}{{else}}✗ {{t .Result.Message}}{{end}}</div>
+{{with .Conn}}<span class="health" id="health-{{.ID}}" data-state="{{.Health.State}}" hx-swap-oob="true">{{template "conn_health" .Health}}</span>{{end}}{{end}}
 
 {{/* What the service is, and where the project lives. */}}
 {{define "service_about"}}<p class="service-about">{{t (print "conn.what_" .)}}{{with projectURL .}} <a href="{{.}}" target="_blank" rel="noopener">{{t "conn.project_site"}} ↗</a>{{end}}{{range alsoLinks .}} · <a href="{{.URL}}" target="_blank" rel="noopener">{{.Name}} ↗</a>{{end}}</p>{{end}}
 
 {{/* Places matching the search, see /places. */}}
 {{define "place_results"}}{{range .Places}}<button type="button" class="place-hit" data-place="{{.Label}}" data-lat="{{.Lat}}" data-lon="{{.Lon}}">{{.Label}}</button>{{else}}{{if .Query}}<p class="small muted">{{t "conn.place_none"}}</p>{{end}}{{end}}{{end}}
+
+{{/* Deleting stands apart, red, with one sentence on what goes. */}}
+{{define "danger_zone"}}
+<section class="danger-zone">
+  <h2>{{t "danger.title"}}</h2>
+  <p class="small muted">{{.Text}}</p>
+  <form method="post" action="{{.Action}}" data-confirm="{{.Confirm}}">
+    <input type="hidden" name="{{.CSRFField}}" value="{{.CSRF}}">
+    {{with .Extra}}{{range $k, $v := .}}<input type="hidden" name="{{$k}}" value="{{$v}}">{{end}}{{end}}
+    <button type="submit" class="danger">{{.Button}} …</button>
+  </form>
+</section>
+{{end}}
