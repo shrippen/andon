@@ -194,7 +194,7 @@ const (
 // Weekdays are the digest weekday keys, Monday first (catalog "weekday.<key>").
 var Weekdays = []string{"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
 
-// levelColor colours a digest row by severity (shrippen blue/yellow/red).
+// levelColor colours a digest row by severity (Kante blue/yellow/red).
 var levelColor = map[enums.Severity]string{
 	enums.SeverityInfo: "#83a598", enums.SeverityWarn: "#fabd2f", enums.SeverityCritical: "#fb4934",
 }

@@ -272,6 +272,13 @@ func UpdateTheme(q db.Queryer, t *model.Theme) error {
 	return err
 }
 
+// SetThemeSlug renames a theme's slug, e.g. the built-in one after the
+// design system got a new name.
+func SetThemeSlug(q db.Queryer, themeID int64, slug string) error {
+	_, err := q.Exec("UPDATE themes SET slug = ? WHERE id = ?", slug, themeID)
+	return err
+}
+
 // RemoveTheme deletes a theme.
 func RemoveTheme(q db.Queryer, themeID int64) error {
 	_, err := q.Exec("DELETE FROM themes WHERE id = ?", themeID)

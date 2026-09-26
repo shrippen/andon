@@ -345,7 +345,7 @@ func TestThemeCSSRoute(t *testing.T) {
 	defer cssResp.Body.Close()
 	css, _ := io.ReadAll(cssResp.Body)
 	if cssResp.StatusCode != http.StatusOK || !strings.Contains(string(css), "--bg-void") {
-		t.Fatalf("expected shrippen tokens in theme css, got %d:\n%s", cssResp.StatusCode, css)
+		t.Fatalf("expected Kante tokens in theme css, got %d:\n%s", cssResp.StatusCode, css)
 	}
 }
 
@@ -377,7 +377,7 @@ func TestAnonymousPageLoadsThemeAndStyles(t *testing.T) {
 	defer cssResp.Body.Close()
 	css, _ := io.ReadAll(cssResp.Body)
 	if cssResp.StatusCode != http.StatusOK || !strings.Contains(string(css), "--bg-void") {
-		t.Fatalf("expected shrippen tokens in theme css, got %d:\n%s", cssResp.StatusCode, css)
+		t.Fatalf("expected Kante tokens in theme css, got %d:\n%s", cssResp.StatusCode, css)
 	}
 
 	dashboardCSS, err := client.Get(srv.URL + "/static/andon.css")

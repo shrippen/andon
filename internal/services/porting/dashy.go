@@ -77,7 +77,7 @@ func DashyToDoc(text string) (map[string]any, *Report, error) {
 
 	for _, key := range ignoredAppConfig {
 		if _, ok := appConfig[key]; ok {
-			report.Notes = append(report.Notes, "appConfig."+key+": ignored (theme stays shrippen)")
+			report.Notes = append(report.Notes, "appConfig."+key+": ignored (theme stays Kante)")
 		}
 	}
 	if appConfig["auth"] != nil {
@@ -413,7 +413,7 @@ func dashyTheme(d *sql.DB, who *access.Principal, spaceID int64, text string) (s
 	palette, ok := themes.DashyPalette(name, colors)
 	if !ok {
 		if name != "" {
-			return "appConfig.theme " + name + ": unknown, theme stays shrippen", nil
+			return "appConfig.theme " + name + ": unknown, theme stays Kante", nil
 		}
 		return "", nil
 	}

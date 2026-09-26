@@ -30,7 +30,7 @@ var tokenGroups = []struct {
 	{"background", []string{"--bg-void", "--bg-hard", "--bg0", "--bg-panel", "--bg1", "--bg2", "--nav-bg"}},
 	{"text", []string{"--fg0", "--fg1", "--fg2", "--fg3", "--accent"}},
 	{"semantic", []string{"--blue", "--blue-hover", "--aqua", "--green", "--yellow", "--orange", "--red", "--purple"}},
-	{"roles", []string{"--field", "--score", "--hl", "--scrim", "--shadow"}},
+	{"roles", []string{"--primary", "--on-primary", "--field", "--score", "--hl", "--scrim", "--shadow"}},
 	{"shape", []string{"--radius", "--chamfer", "--gutter", "--max-w", "--max-w-wide"}},
 	{"fonts", []string{"--font-heading", "--font-sans", "--font-mono"}},
 }

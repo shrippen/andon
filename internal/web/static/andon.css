@@ -1,14 +1,14 @@
 /* Local fonts (CSP: font-src 'self'; no third-party requests). */
-@font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url(/static/vendor/shrippen/fonts/Rajdhani-500.ttf) format("truetype"); }
-@font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url(/static/vendor/shrippen/fonts/Rajdhani-600.ttf) format("truetype"); }
-@font-face { font-family: "Rajdhani"; font-weight: 700; font-display: swap; src: url(/static/vendor/shrippen/fonts/Rajdhani-700.ttf) format("truetype"); }
-@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url(/static/vendor/shrippen/fonts/JetBrainsMono-400.ttf) format("truetype"); }
-@font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap; src: url(/static/vendor/shrippen/fonts/JetBrainsMono-500.ttf) format("truetype"); }
+@font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-500.ttf) format("truetype"); }
+@font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-600.ttf) format("truetype"); }
+@font-face { font-family: "Rajdhani"; font-weight: 700; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-700.ttf) format("truetype"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url(/static/vendor/kante/fonts/JetBrainsMono-400.ttf) format("truetype"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap; src: url(/static/vendor/kante/fonts/JetBrainsMono-500.ttf) format("truetype"); }
 
 /*
- * andon.css — app components on shrippen tokens only (var(--…)).
+ * andon.css — app components on Kante tokens only (var(--…)).
  * No hex values here; the active theme's stylesheet (linked before this
- * file) defines every token. See internal/services/themes/builtin/shrippen.
+ * file) defines every token. See internal/services/themes/builtin/kante.
  */
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -75,7 +75,7 @@ input, select, textarea {
   font-family: var(--font-sans);
 }
 input[type=checkbox], input[type=radio] { width: auto; flex: none; margin: 0; }
-input:focus, select:focus, textarea:focus { outline: 2px solid var(--yellow); outline-offset: 1px; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
 textarea { min-height: 8rem; font-family: var(--font-mono); resize: vertical; }
 button {
   margin-top: 1rem;
@@ -217,7 +217,7 @@ button.ghost:hover, .link-btn:hover { color: var(--orange); border-color: var(--
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .search { position: relative; flex: 1 1 18rem; max-width: 34rem; display: flex; align-items: center; margin: 0; }
 .search input { width: 100%; background: var(--bg-hard); border: 1px solid var(--bg1); color: var(--fg0); font-family: var(--font-sans); font-size: .88rem; padding: .5rem 2.6rem .5rem .8rem; margin: 0; }
-.search input:focus-visible { outline: 2px solid var(--yellow); outline-offset: 0; }
+.search input:focus-visible { outline: 2px solid var(--primary); outline-offset: 0; }
 .search kbd { position: absolute; right: .6rem; }
 .search-empty { color: var(--fg3); font-family: var(--font-mono); font-size: .8rem; }
 .board { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.4rem; align-items: start; }
@@ -285,7 +285,7 @@ button.ghost:hover, .link-btn:hover { color: var(--orange); border-color: var(--
       small = compact row (two per section column), large = icon tile ── */
 .launch { position: relative; display: flex; align-items: center; gap: .75rem; height: 100%; padding: .5rem .6rem; color: var(--fg1); text-decoration: none; background: none; border: 0; transition: background .12s; }
 .launch:hover { background: var(--bg1); color: var(--fg0); }
-.launch:focus-visible { outline: 2px solid var(--yellow); outline-offset: -2px; }
+.launch:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 .launch.is-first { outline: 1px solid var(--yellow); outline-offset: -1px; }
 .launch-icon { flex: 0 0 2.1rem; width: 2.1rem; height: 2.1rem; display: grid; place-items: center; }
 .launch-icon img { width: 100%; height: 100%; object-fit: contain; }
@@ -720,7 +720,7 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .gal-meta b { font-family: var(--font-heading); text-transform: uppercase; letter-spacing: .03em; color: var(--fg0); font-size: 1.02rem; }
 .gal-actions { display: flex; gap: .8rem; align-items: center; padding: .6rem .9rem .8rem; }
 .gal-actions button { margin: 0; padding: .35rem .8rem; }
-.gal-dialog { width: min(36rem, calc(100vw - 2rem)); background: var(--bg-hard); color: var(--fg1); border: 0; border-top: 4px solid var(--yellow); padding: 1.3rem 1.4rem; }
+.gal-dialog { width: min(36rem, calc(100vw - 2rem)); background: var(--bg-hard); color: var(--fg1); border: 0; border-top: 4px solid var(--primary); padding: 1.3rem 1.4rem; }
 .gal-dialog::backdrop { background: var(--scrim); }
 .gal-dialog h2 { font-size: 1.5rem; margin: .3rem 0 .6rem; }
 .gal-dialog form { margin: 0 0 .6rem; }

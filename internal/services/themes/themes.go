@@ -4,8 +4,8 @@
 //	theme = {dark: {--bg-void: #141312, ...}, light: {...overrides}, customCSS}
 //	css   = :root{dark} :root[data-theme=light]{light} @media(auto -> light)
 //
-// The token names of the shrippen design system are the theme contract.
-// Only shrippen ships; users duplicate it and change values.
+// The token names of the Kante design system are the theme contract.
+// Only Kante ships; users duplicate it and change values.
 package themes
 
 import (
@@ -35,11 +35,14 @@ import (
 	"andon/internal/services/util"
 )
 
-//go:embed builtin/shrippen/tokens.css builtin/shrippen/theme.json
+//go:embed builtin/kante/tokens.css builtin/kante/theme.json
 var builtinFiles embed.FS
 
 const (
-	builtinSlug    = "shrippen"
+	builtinSlug = "kante"
+	// legacySlug is the built-in theme's slug before the design system was
+	// named Kante; EnsureBuiltin renames that row.
+	legacySlug     = "shrippen"
 	contractVer    = 1
 	defaultSetting = "theme_default"
 	maxCSS         = 50_000
@@ -133,9 +136,9 @@ var (
 // plus the dashboard's own extras. Computed once and cached.
 func Contract() (map[string]string, map[string]string) {
 	if contractDark == nil {
-		raw, err := builtinFiles.ReadFile("builtin/shrippen/tokens.css")
+		raw, err := builtinFiles.ReadFile("builtin/kante/tokens.css")
 		if err != nil {
-			panic("themes: missing embedded shrippen tokens.css: " + err.Error())
+			panic("themes: missing embedded Kante tokens.css: " + err.Error())
 		}
 		dark, light := ParseCSS(string(raw))
 		contractDark, contractLight = merge(dark, extraDark), merge(light, extraLight)
@@ -269,7 +272,7 @@ func Ratio(fg, bg string) float64 {
 
 func round2(f float64) float64 { return math.Round(f*100) / 100 }
 
-// ContrastIssues checks the text pairs the shrippen contract cares about
+// ContrastIssues checks the text pairs the Kante contract cares about
 // and returns every pair failing WCAG AA (4.5:1) in either mode.
 func ContrastIssues(dark, light map[string]string) []ContrastIssue {
 	baseDark, baseLight := Contract()
@@ -360,12 +363,12 @@ func rgb(hex string) [3]int64 {
 
 // ── Builtin ──
 
-// EnsureBuiltin creates or refreshes the shipped shrippen theme from the
+// EnsureBuiltin creates or refreshes the shipped Kante theme from the
 // embedded tokens.css, and returns its id.
 func EnsureBuiltin(d *sql.DB) (int64, error) {
 	var id int64
 	err := db.WithTx(d, func(tx *sql.Tx) error {
-		metaRaw, err := builtinFiles.ReadFile("builtin/shrippen/theme.json")
+		metaRaw, err := builtinFiles.ReadFile("builtin/kante/theme.json")
 		if err != nil {
 			return err
 		}
@@ -375,7 +378,7 @@ func EnsureBuiltin(d *sql.DB) (int64, error) {
 		if err := json.Unmarshal(metaRaw, &meta); err != nil {
 			return err
 		}
-		tokensRaw, err := builtinFiles.ReadFile("builtin/shrippen/tokens.css")
+		tokensRaw, err := builtinFiles.ReadFile("builtin/kante/tokens.css")
 		if err != nil {
 			return err
 		}
@@ -384,9 +387,18 @@ func EnsureBuiltin(d *sql.DB) (int64, error) {
 		sum := sha256.Sum256(digestInput)
 		digest := fmt.Sprintf("%x", sum)[:12]
 
-		theme, err := misc.BuiltinTheme(tx, builtinSlug)
+		theme, err := builtinRow(tx)
 		if err != nil {
 			return err
+		}
+		if theme != nil && (theme.Slug != builtinSlug || theme.Name != meta.Name) {
+			theme.Slug, theme.Name = builtinSlug, meta.Name
+			if err := misc.SetThemeSlug(tx, theme.ID, builtinSlug); err != nil {
+				return err
+			}
+			if err := misc.UpdateTheme(tx, theme); err != nil {
+				return err
+			}
 		}
 		if theme == nil {
 			theme = &model.Theme{Slug: builtinSlug, Name: meta.Name, Builtin: true, Version: 1}
@@ -410,6 +422,15 @@ func EnsureBuiltin(d *sql.DB) (int64, error) {
 	return id, err
 }
 
+// builtinRow finds the built-in theme, also under its old slug.
+func builtinRow(q db.Queryer) (*model.Theme, error) {
+	theme, err := misc.BuiltinTheme(q, builtinSlug)
+	if err != nil || theme != nil {
+		return theme, err
+	}
+	return misc.BuiltinTheme(q, legacySlug)
+}
+
 func anyMap(m map[string]string) map[string]any {
 	out := make(map[string]any, len(m))
 	for k, v := range m {
@@ -421,7 +442,7 @@ func anyMap(m map[string]string) map[string]any {
 // ── Selection ──
 
 // Active resolves the theme that applies: board forces > personal choice >
-// team default > instance default > shrippen.
+// team default > instance default > Kante.
 func Active(d *sql.DB, who *access.Principal, boardTheme *int64, spaceID *int64) (int64, error) {
 	var id int64
 	err := db.WithTx(d, func(tx *sql.Tx) error {
@@ -474,7 +495,7 @@ func Active(d *sql.DB, who *access.Principal, boardTheme *int64, spaceID *int64)
 			return err
 		}
 		if builtin == nil {
-			return errors.New("themes: shrippen not seeded")
+			return errors.New("themes: Kante not seeded")
 		}
 		id = builtin.ID
 		return nil
@@ -482,7 +503,7 @@ func Active(d *sql.DB, who *access.Principal, boardTheme *int64, spaceID *int64)
 	return id, err
 }
 
-// DefaultID returns the instance default theme id, or nil for shrippen.
+// DefaultID returns the instance default theme id, or nil for Kante.
 func DefaultID(q db.Queryer) (*int64, error) { return defaultThemeID(q) }
 
 func defaultThemeID(q db.Queryer) (*int64, error) {
@@ -498,7 +519,7 @@ func defaultThemeID(q db.Queryer) (*int64, error) {
 }
 
 // Stylesheet returns a theme's rendered CSS and version (for cache
-// busting); an unknown id falls back to shrippen.
+// busting); an unknown id falls back to Kante.
 func Stylesheet(d *sql.DB, themeID int64) (string, int, error) {
 	var css string
 	var version int
@@ -513,7 +534,7 @@ func Stylesheet(d *sql.DB, themeID int64) (string, int, error) {
 				return err
 			}
 			if theme == nil {
-				return errors.New("themes: shrippen not seeded")
+				return errors.New("themes: Kante not seeded")
 			}
 		}
 		css, version = Render(theme), theme.Version

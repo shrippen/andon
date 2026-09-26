@@ -38,11 +38,11 @@ const (
 	maxAgentLen      = 120
 )
 
-// palette mirrors the shrippen dark tokens. Mail clients ignore CSS
+// palette mirrors the Kante dark tokens. Mail clients ignore CSS
 // variables, so the values are inlined here instead of linked from themes/.
 type palette struct{ Bg, Card, Fg, Text, Head, Accent, Line, Muted string }
 
-var shrippenDark = palette{
+var kanteDark = palette{
 	Bg: "#141312", Card: "#2a2826", Fg: "#ebdbb2", Text: "#d5c4a1",
 	Head: "#fbf1c7", Accent: "#fabd2f", Line: "#3c3836", Muted: "#a89984",
 }
@@ -111,7 +111,7 @@ func Render(to string, locale enums.Locale, subject string, paragraphs []string,
 	var html bytes.Buffer
 	err := base.Execute(&html, view{
 		Lang: string(locale), Title: subject, Paragraphs: paragraphs, Items: items,
-		Button: button, Footer: footer, C: shrippenDark,
+		Button: button, Footer: footer, C: kanteDark,
 	})
 	if err != nil {
 		return outbound.Mail{}, err

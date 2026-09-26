@@ -147,7 +147,7 @@ func clockDate(tz string, locale enums.Locale) string {
 }
 
 // Page renders a full page with the common translation/formatting helpers
-// bound to ctx.Locale, and the active shrippen theme's stylesheet (unless
+// bound to ctx.Locale, and the active theme's stylesheet (unless
 // the caller already set "ThemeURL" itself — the board page picks its own
 // board/space-scoped theme).
 func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, values map[string]any) error {

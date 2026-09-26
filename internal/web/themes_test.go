@@ -27,7 +27,7 @@ func postFile(t *testing.T, client *http.Client, target string, fields map[strin
 	return resp
 }
 
-// TestThemeDuplicateEditFontExportImport: duplicate shrippen, change a
+// TestThemeDuplicateEditFontExportImport: duplicate Kante, change a
 // token, upload a font, and round-trip it through the ZIP export.
 func TestThemeDuplicateEditFontExportImport(t *testing.T) {
 	srv, client, code := newTestServer(t)

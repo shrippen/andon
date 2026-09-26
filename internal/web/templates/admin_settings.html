@@ -51,7 +51,7 @@
         <p class="small muted">{{t "admin.iframe_hint"}}</p>
         <label for="default_theme">{{t "admin.default_theme"}}</label>
         <select id="default_theme" name="default_theme">
-          <option value="">shrippen</option>
+          <option value="">Kante</option>
           {{range .ThemeList}}{{if not .Builtin}}<option value="{{.ID}}"{{if eq .ID $.DefaultTheme}} selected{{end}}>{{.Name}}</option>{{end}}{{end}}
         </select>
         <label class="check"><input type="checkbox" name="force_admin_totp"{{if .ForceTOTP}} checked{{end}}> {{t "admin.force_totp"}}</label>

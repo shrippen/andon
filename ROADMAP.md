@@ -44,7 +44,7 @@ Das Projekt ist vollständig von Python auf **Go** umgestellt (Zielplattform: Ra
 - **Startseite wie bisher:** Die täglich genutzten Dashy-Funktionen (Links, Icons, Status, Suche, RSS, Uhr, Wetter) sind übernommen, sodass Dashy abgeschaltet werden kann.
 - **Mehrere Benutzer und Teams:** Benutzer arbeiten völlig getrennt voneinander oder teilen sich in Teams Verbindungen, Widgets und Boards. Rechte lassen sich bis auf einzelne Widgets vergeben, jeder hat sein eigenes Layout.
 - **Alles in der Oberfläche einstellbar:** Konfigurationseditor mit Formularen, Drag & Drop und Code-Ansicht, Versionsverlauf und Import/Export.
-- **Eigene Themes:** Themes lassen sich in der Oberfläche anlegen und bearbeiten. Mitgeliefert wird nur das shrippen-Theme (dunkel und „Leinen“).
+- **Eigene Themes:** Themes lassen sich in der Oberfläche anlegen und bearbeiten. Mitgeliefert wird nur das Kante-Theme (dunkel und „Leinen“).
 - **Eigene Anmeldung** im Dashboard, unabhängig vom Reverse Proxy.
 - Nur **lesender** Zugriff auf die Dienste. Das Dashboard verändert nichts in Kimai, Invoice Ninja usw.
 - Ein Container, ein Volume.
@@ -298,7 +298,7 @@ Alles, was vorher in `config.yml` stand, wird in der Oberfläche eingestellt. Be
 Ein Theme ist ein **Satz von Design-Tokens** für den dunklen und den hellen Modus, dazu optional Schriften und eigenes CSS. Alle Komponenten verwenden ausschließlich Tokens (`var(--…)`), daher funktioniert jedes Theme mit jedem Widget.
 
 - **Theme-Vertrag:** Die Token-Liste aus `tokens/variables.css` des Design Systems (Hintergründe, Text, Akzent, Semantik, Rollen wie `--field`, `--hl`, Radius, Schriften) ist die versionierte Theme-Schnittstelle. Neue Tokens bekommen Standardwerte, damit ältere Themes weiter funktionieren.
-- **Mitgeliefert:** nur **shrippen** (dunkel = Standard, hell = „Leinen“). Es ist schreibgeschützt; Änderungen beginnen mit „Duplizieren“.
+- **Mitgeliefert:** nur **Kante** (dunkel = Standard, hell = „Leinen“). Es ist schreibgeschützt; Änderungen beginnen mit „Duplizieren“.
 - **Format** für Import/Export als ZIP:
 
 ```
@@ -319,7 +319,7 @@ mein-theme.zip
 ### 6.3 Wo Themes gelten
 
 - Themes liegen in Bereichen: Instanz-Themes für alle, Team-Themes für Mitglieder, persönliche Themes nur für den Ersteller.
-- Auswahl in dieser Reihenfolge: **persönliche Wahl → Team-Standard → Instanz-Standard (shrippen)**. Team-Boards können optional ein Theme erzwingen (z. B. für einen Wandbildschirm).
+- Auswahl in dieser Reihenfolge: **persönliche Wahl → Team-Standard → Instanz-Standard (Kante)**. Team-Boards können optional ein Theme erzwingen (z. B. für einen Wandbildschirm).
 - **Sicherheit:** Normale Benutzer ändern nur Token-Werte, die serverseitig geprüft werden (Farben, Längen, Schriftnamen aus der Liste). Eigenes CSS und Schriften nur für Instanz-Admins. Die Content-Security-Policy (`img-src 'self' data:`, `font-src 'self'`, `connect-src 'self'`) verhindert, dass CSS Daten nach außen lädt.
 - Ein Stylelint-Check im Repo verbietet feste Farbwerte außerhalb der Token-Dateien, damit der Theme-Vertrag hält.
 
@@ -344,7 +344,7 @@ Das Dashboard übernimmt die Rolle von Dashy als Startseite. Migriert werden die
 | Widget `rss-feed` | Widget `rss`: Abruf und Bereinigung auf dem Server, Cache, Anzahl und Intervall einstellbar | Muss |
 | Widget `clock` | Widget `clock`: rein im Browser, Zeitzonen, Datum | Muss |
 | Widget `weather` / `weather-forecast` | Widget `weather` über Open-Meteo (kein API-Key); OpenWeatherMap optional | Muss |
-| Themes, Theme-Wechsler, Custom CSS | Theme-System mit Editor (Abschnitt 6); mitgeliefert nur shrippen | Muss |
+| Themes, Theme-Wechsler, Custom CSS | Theme-System mit Editor (Abschnitt 6); mitgeliefert nur Kante | Muss |
 | Konfigurations-Editor in der UI | Konfigurationseditor (Abschnitt 5), je Bereich, mit Verlauf | Muss |
 | Anmeldung, Gast-Sichtbarkeit (`hideForGuests`, `hideForUsers` …) | Eigene Anmeldung und Rechte je Widget (Abschnitt 4) | Muss |
 | Widget `iframe` | Widget `iframe`; erlaubte Ziele pflegt ein Instanz-Admin, sie landen in der Content-Security-Policy (`frame-src`) | Soll |
@@ -391,7 +391,7 @@ Im Editor (oder per `andon import-dashy conf.yml --space <bereich>`) wird eine D
 | `pageInfo` | Kopf-/Fußeinstellungen des Bereichs |
 | `appConfig.statusCheck`, `statusCheckInterval` | Standardwerte für `link.status` |
 | `appConfig.webSearch` | Suchmaschine des Bereichs |
-| `appConfig.theme`, `customColors` | bekannte Themes und eigene Farben werden als Theme des Bereichs angelegt und aktiviert; unbekannte bleiben shrippen |
+| `appConfig.theme`, `customColors` | bekannte Themes und eigene Farben werden als Theme des Bereichs angelegt und aktiviert; unbekannte bleiben Kante |
 | `customCss`, `layout` | ignoriert (im Bericht vermerkt) |
 | `appConfig.auth` (Benutzer, `hideForUsers`, `hideForGuests`) | nicht automatisch; der Bericht listet die Einschränkungen, damit sie als Rechte nachgezogen werden können |
 | `sections[].items[]` | Widgets `link` in der Bibliothek + Platzierungen (inkl. Icon, Status, Hotkey, Target) |
@@ -509,13 +509,13 @@ Alle Beträge, Sätze und Fristen werden im Editor je Bereich gepflegt, typische
 
 ---
 
-## 9. Design: shrippen Design Default
+## 9. Design: Kante (shrippen Design System)
 
 Das Dashboard ist eine **App** im Sinne des Design Systems und nutzt daher die App-Komponenten. Das Design System liefert zugleich das einzige mitgelieferte Theme (Abschnitt 6).
 
 **Einbindung**
 
-- `shrippen.css`, `shrippen.js` und die Schriften werden als **Kopie in dieses Repo** gelegt (`app/static/vendor/shrippen/`, Quelle und Stand in einer `VERSION`-Datei vermerkt). Die Token-Werte daraus bilden `themes/shrippen/`. Das Dashboard funktioniert so auch ohne Internet und wandert nicht ungeprüft mit dem CDN mit. Aktualisiert wird bewusst per Skript (`tools/sync-design.sh`).
+- `shrippen.css`, `shrippen.js` und die Schriften werden als **Kopie in dieses Repo** gelegt (`app/static/vendor/kante/`, Quelle und Stand in einer `VERSION`-Datei vermerkt). Die Token-Werte daraus bilden `themes/shrippen/`. Das Dashboard funktioniert so auch ohne Internet und wandert nicht ungeprüft mit dem CDN mit. Aktualisiert wird bewusst per Skript (`tools/sync-design.sh`).
 - Schriften (Rajdhani 500/600/700, JetBrains Mono 400/500) werden **lokal** ausgeliefert, nicht von Google Fonts (Datenschutz, offline).
 - Hell/dunkel über `<html data-theme="light">`; die Wahl wird im Benutzerprofil gespeichert, nicht nur im Browser.
 - Sprachumschaltung DE/EN mit dem `.lang`-Umschalter des Design Systems. Anders als auf den Landing Pages werden die Seiten aber auf dem Server in der gewählten Sprache gerendert (nicht beide Sprachen im HTML); die Wahl steht im Profil.
@@ -593,12 +593,12 @@ Die Komponenten nutzen ausschließlich Theme-Tokens (`var(--…)`), keine eigene
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Offen: UI auf shrippen-Tokens umstellen**
+**Offen: UI auf Kante-Tokens umstellen**
 
 Fachlich ist Phase 0–8 fast vollständig umgesetzt; die Lücke liegt allein in
 der Oberfläche. `internal/web/templates/base.html` rendert bisher mit
 `system-ui` und Browser-Standardstilen statt mit den Tokens aus
-`internal/services/themes/builtin/shrippen/tokens.css`; die in diesem
+`internal/services/themes/builtin/kante/tokens.css`; die in diesem
 Abschnitt vorgesehenen Komponenten (`.launch`, `.kpi`, `.hint`, `.pill`,
 `.progress` …) existieren nirgends im Code. Entwürfe für vier Bildschirme
 (Start, Übersicht, Editor, Anmeldung): <https://claude.ai/artifact/K1SEJhy4Pm4wyn4zDJ9vLH>.
@@ -689,7 +689,7 @@ Jede Phase endet mit einem lauffähigen, getaggten Image. Anmeldung und Bereichs
 ### Phase 0: Fundament (v0.1)
 
 - [x] Repo-Struktur, `pyproject.toml`, Ruff, Stylelint, Pytest, pre-commit *(Stylecheck-Skript statt Stylelint, kein pre-commit)*
-- [x] FastAPI-Grundgerüst, Jinja-Layout mit `shrippen.css`, lokale Schriften *(seither Go: `net/http`, `html/template`; Schriften unter `static/vendor/shrippen/fonts`, CSP wie in Python)*
+- [x] FastAPI-Grundgerüst, Jinja-Layout mit `shrippen.css`, lokale Schriften *(seither Go: `net/http`, `html/template`; Schriften unter `static/vendor/kante/fonts`, CSP wie in Python)*
 - [x] Übersetzung von Anfang an: alle Texte über gettext (DE/EN), Formatierung mit Babel, Sprache aus Profil bzw. `Accept-Language` beim ersten Besuch; CI prüft, dass keine Übersetzung fehlt *(YAML-Kataloge mit Schlüsseln statt gettext)*
 - [x] Datenbank mit SQLAlchemy + Alembic (SQLite im WAL-Modus)
 - [x] Datenmodell: Benutzer, Teams, Bereiche, Verbindungen, Widgets, Boards, Platzierungen, Freigaben, Revisionen
@@ -733,7 +733,7 @@ Jede Phase endet mit einem lauffähigen, getaggten Image. Anmeldung und Bereichs
 ### Phase 3: Themes (v0.4)
 
 - [x] Theme-Vertrag (Token-Liste, Version, Standardwerte) und Laden der Themes je Bereich
-- [x] shrippen als einziges mitgeliefertes, schreibgeschütztes Theme (dunkel + Leinen)
+- [x] Kante (früher „shrippen“) als einziges mitgeliefertes, schreibgeschütztes Theme (dunkel + Leinen)
 - [x] Theme-Editor mit Live-Vorschau, dunkel/hell nebeneinander, Kontrastprüfung WCAG AA *(Go: `/themes/{id}`)*
 - [x] Import/Export als ZIP; eigenes CSS und Schriften nur für Instanz-Admins *(Go: Schrift-Upload je Theme, Dateiname = Familie-Gewicht; Schriften reisen im ZIP mit)*
 - [x] Auswahlreihenfolge persönlich → Team → Instanz, optional erzwungenes Theme je Board
@@ -1090,15 +1090,15 @@ dashboard/
 │   ├── cli.py               ← import-dashy, backup, rotate-key, create-admin
 │   ├── templates/           ← Jinja-Seiten und Partials (HTMX)
 │   └── static/
-│       ├── vendor/shrippen/ ← Kopie von shrippen.css / shrippen.js / Schriften + VERSION
+│       ├── vendor/kante/    ← Kopie von shrippen.css / shrippen.js / Schriften + VERSION
 │       ├── vendor/sortable/ ← SortableJS (vorgebaut)
 │       ├── andon.js     ← Suche, Hotkeys, Uhr, Einklappen
 │       ├── editor.js        ← Drag & Drop, Vorschau (nur im Bearbeitungsmodus geladen)
 │       └── andon.css    ← nur neue Komponenten, ausschließlich mit Tokens
 ├── themes/
-│   └── shrippen/            ← einziges mitgeliefertes Theme (theme.json, tokens.css)
+│   └── kante/               ← einziges mitgeliefertes Theme (theme.json, tokens.css)
 ├── tools/
-│   └── sync-design.sh       ← holt eine bestimmte Version des Design Systems nach vendor/ und themes/shrippen/
+│   └── sync-design.sh       ← holt eine bestimmte Version des Design Systems nach vendor/ und themes/kante/
 └── tests/
     ├── fixtures/            ← anonymisierte API-Antworten je Dienst, Dashy-conf.yml, RSS-Beispiele
     ├── access/              ← Rechte-Matrix, Bereichstrennung je Route

@@ -1103,7 +1103,7 @@ themes:
   preset: Aus Dashy-Vorlage
   preset_create: Anlegen
   preset_hint: Nachbauten der Dashy-Themes auf den eigenen Farbrollen; beide Modi erhalten dieselbe Palette. Danach im Editor anpassbar.
-  lead: Mitgeliefert ist nur shrippen. Eigene Themes entstehen durch Duplizieren.
+  lead: Mitgeliefert ist nur Kante. Eigene Themes entstehen durch Duplizieren.
   builtin: mitgeliefert
   view: Ansehen
   duplicate: Duplizieren
@@ -2843,7 +2843,7 @@ welcome:
   c_freelance: 'Abrechnung und Zeitleiste'
   c_freelance_text: 'Mit Kimai und Invoice Ninja zeigt Andon offene Stunden, Rechnungen, Auslastung und eine Jahresprognose. Unter „Abrechnung“ wird aus offener Zeit mit einem Klick ein Rechnungsentwurf. Die Zeitleiste legt Tage aus allen Diensten nebeneinander, etwa Standort, Buchungen und Termine.'
   c_themes: 'Themes'
-  c_themes_text: 'Aussehen und Farben kommen aus Themes. Mitgeliefert ist shrippen in dunkel und hell; eigene Themes entstehen im Theme-Editor mit Kontrastprüfung und lassen sich pro Bereich oder Board wählen.'
+  c_themes_text: 'Aussehen und Farben kommen aus Themes. Mitgeliefert ist Kante in dunkel und hell; eigene Themes entstehen im Theme-Editor mit Kontrastprüfung und lassen sich pro Bereich oder Board wählen.'
   c_security: 'Sicherheit und Anmeldung'
   c_security_text: 'Andon hat eine eigene Anmeldung mit Passwort, Passkeys, TOTP und optional Single Sign-on über OIDC. Zugangsdaten der Dienste liegen verschlüsselt in einer verschlüsselten Datenbank und erreichen nie den Browser.'
 intro:

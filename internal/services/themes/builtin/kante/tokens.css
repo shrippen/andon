@@ -1,5 +1,5 @@
 /*
- * shrippen Design Default — CSS custom properties
+ * Kante — CSS custom properties (web). Apps: qml/Kante, same values via tokens/palette.json
  * https://github.com/shrippen/shrippen.github.io
  *
  * Gruvbox-inspired, warm, dark-first palette.
@@ -48,6 +48,8 @@
   --score:    var(--yellow);  /* scores, points, "how good is it" */
   --hl:       var(--orange);  /* active nav item, current selection */
   --scrim:    rgba(20,19,18,.62); /* dimmed area behind dialogs and outside a crop */
+  --primary:  var(--yellow);  /* primary action, pressed segment, switch on, focus ring */
+  --on-primary: var(--bg-void); /* text on --primary */
 
   /* ── Layout ── */
   --radius:   12px;

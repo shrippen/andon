@@ -1103,7 +1103,7 @@ themes:
   preset: From Dashy preset
   preset_create: Create
   preset_hint: Dashy themes rebuilt on our color roles; both modes get the same palette. Adjust afterwards in the editor.
-  lead: Only shrippen ships. Own themes are created by duplicating.
+  lead: Only Kante ships. Own themes are created by duplicating.
   builtin: shipped
   view: View
   duplicate: Duplicate
@@ -2842,7 +2842,7 @@ welcome:
   c_freelance: 'Billing and timeline'
   c_freelance_text: 'With Kimai and Invoice Ninja, Andon shows open hours, invoices, utilisation and a forecast for the year. Under “Billing” open time becomes a draft invoice in one click. The timeline lays out days from all services side by side, such as location, bookings and events.'
   c_themes: 'Themes'
-  c_themes_text: 'Look and colours come from themes. shrippen ships in dark and light; your own themes are made in the theme editor with a contrast check and can be chosen per space or board.'
+  c_themes_text: 'Look and colours come from themes. Kante ships in dark and light; your own themes are made in the theme editor with a contrast check and can be chosen per space or board.'
   c_security: 'Security and sign-in'
   c_security_text: 'Andon has its own sign-in with password, passkeys, TOTP and optional single sign-on via OIDC. Service credentials are stored encrypted in an encrypted database and never reach the browser.'
 intro:

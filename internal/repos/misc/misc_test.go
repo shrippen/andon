@@ -72,14 +72,14 @@ func TestDropSharesRemovesAllOnResource(t *testing.T) {
 
 func TestThemeRoundTrip(t *testing.T) {
 	q := openTestDB(t)
-	th := &model.Theme{Slug: "shrippen", Name: "Shrippen", Builtin: true, Contract: 1,
+	th := &model.Theme{Slug: "kante", Name: "Kante", Builtin: true, Contract: 1,
 		Dark: map[string]any{"bg": "#000"}, Light: map[string]any{"bg": "#fff"},
 		Fonts: []string{"Inter"}, Version: 1}
 	if err := misc.AddTheme(q, th); err != nil {
 		t.Fatalf("add theme: %v", err)
 	}
 
-	got, err := misc.BuiltinTheme(q, "shrippen")
+	got, err := misc.BuiltinTheme(q, "kante")
 	if err != nil || got == nil {
 		t.Fatalf("expected builtin theme, got %+v err=%v", got, err)
 	}

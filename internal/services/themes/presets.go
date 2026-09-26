@@ -1,6 +1,6 @@
 package themes
 
-// Dashy theme presets, rebuilt on the shrippen token contract. Dashy
+// Dashy theme presets, rebuilt on the Kante token contract. Dashy
 // themes have one mode, so a preset fills dark and light alike. The Nord,
 // Dracula, One Dark and Material palettes follow their published colors;
 // the Dashy-only ones (Callisto, Oblivion, Cyberpunk, Vaporware) are

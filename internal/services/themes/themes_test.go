@@ -11,6 +11,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/model"
 	"andon/internal/repos/content"
+	"andon/internal/repos/misc"
 	"andon/internal/repos/users"
 	"andon/internal/services/access"
 	"andon/internal/services/themes"
@@ -115,7 +116,7 @@ func TestEnsureBuiltinAndActiveFallback(t *testing.T) {
 	who, _ := access.Load(d, u.ID)
 	active, err := themes.Active(d, who, nil, nil)
 	if err != nil || active != id {
-		t.Fatalf("expected fallback to shrippen (%d), got %d err=%v", id, active, err)
+		t.Fatalf("expected fallback to Kante (%d), got %d err=%v", id, active, err)
 	}
 
 	css, version, err := themes.Stylesheet(d, active)
@@ -217,5 +218,28 @@ func TestDefaultCanBeReset(t *testing.T) {
 	}
 	if active, _ := themes.Active(d, who, nil, nil); active != builtinID {
 		t.Fatalf("expected built-in theme back, got %d", active)
+	}
+}
+
+// TestBuiltinRenamedToKante: an instance from before the rename keeps its
+// built-in theme row (users, boards and the default point at its id); it
+// is renamed from shrippen to Kante instead of getting a second one.
+func TestBuiltinRenamedToKante(t *testing.T) {
+	d := openTestDB(t)
+	old := &model.Theme{Slug: "shrippen", Name: "shrippen", Builtin: true, Contract: 1, Version: 1}
+	if err := misc.AddTheme(d, old); err != nil {
+		t.Fatal(err)
+	}
+
+	id, err := themes.EnsureBuiltin(d)
+	if err != nil || id != old.ID {
+		t.Fatalf("expected the old row %d, got %d err=%v", old.ID, id, err)
+	}
+	theme, err := misc.BuiltinTheme(d, "kante")
+	if err != nil || theme == nil || theme.ID != old.ID || theme.Name != "Kante" {
+		t.Fatalf("expected renamed builtin, got %+v err=%v", theme, err)
+	}
+	if legacy, _ := misc.BuiltinTheme(d, "shrippen"); legacy != nil {
+		t.Fatalf("old slug still there: %+v", legacy)
 	}
 }

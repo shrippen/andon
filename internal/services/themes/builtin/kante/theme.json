@@ -1,6 +1,6 @@
 {
-  "name": "shrippen",
-  "slug": "shrippen",
+  "name": "Kante",
+  "slug": "kante",
   "contract": 1,
   "modes": ["dark", "light"],
   "source": "https://github.com/shrippen/shrippen.github.io (tokens/variables.css)"

@@ -168,7 +168,7 @@ func TestBoardSettingsKeepTheme(t *testing.T) {
 	resp.Body.Close()
 	boardURL := resp.Request.URL.Path
 	settings := string(mustGet(t, srv, client, boardURL+"/settings"))
-	theme := regexp.MustCompile(`<option value="(\d+)"[^>]*>shrippen`).FindStringSubmatch(settings)
+	theme := regexp.MustCompile(`<option value="(\d+)"[^>]*>Kante`).FindStringSubmatch(settings)
 	if theme == nil {
 		t.Fatalf("no theme choice in board settings:\n%s", settings)
 	}

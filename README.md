@@ -5,7 +5,7 @@ Self-hosted, multi-user dashboard for an IT landscape and a freelance business. 
 - Own login (password, TOTP, API tokens, invitations)
 - Users and teams, permissions down to single widgets, personal layouts
 - Configuration editor with history
-- Theme system on top of the [shrippen Design Default](https://github.com/shrippen/shrippen.github.io); only the shrippen theme ships
+- Theme system on top of the [Kante design system](https://github.com/shrippen/shrippen.github.io); only the Kante theme ships
 - German and English
 - Push notifications through an existing Apprise API instance
 - One Docker container, SQLite in `/data`, pure Go (no cgo — runs on a Raspberry Pi without a C toolchain)
