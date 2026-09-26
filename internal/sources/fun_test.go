@@ -43,6 +43,17 @@ func publicAPIs(t *testing.T) {
 	t.Cleanup(restore)
 }
 
+// TestHolidaysTakeThreeLetterCodes: a Dashy import brings "DEU" and
+// "DEU-BY"; Nager.Date only knows "DE" and "DE-BY".
+func TestHolidaysTakeThreeLetterCodes(t *testing.T) {
+	publicAPIs(t)
+
+	days := fetch(t, "holidays", map[string]any{"country": "DEU", "state": "DEU-BY"}).(*sources.HolidaysResult).Days
+	if len(days) != 2 || days[0].Name != "Regional" {
+		t.Fatalf("holidays: %+v", days)
+	}
+}
+
 func TestHolidaysJokesCrypto(t *testing.T) {
 	publicAPIs(t)
 

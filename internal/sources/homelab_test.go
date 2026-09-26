@@ -184,6 +184,47 @@ func TestBorgDashboardAndClients(t *testing.T) {
 	}
 }
 
+// TestBorgClientBackupsFromSummary: /clients carries no backup times;
+// each client's newest successful backup and a failed last run come from
+// /summary (per backup plan). Without /summary (older servers) the times
+// stay unknown instead of failing the fetch.
+func TestBorgClientBackupsFromSummary(t *testing.T) {
+	summary := map[string]any{"clients": []any{
+		map[string]any{"id": 1, "name": "nas", "backup_plans": []any{
+			map[string]any{"name": "system", "enabled": true, "last_backup": map[string]any{"result": "completed", "completed_at": "2026-09-25 03:00:00"}},
+			map[string]any{"name": "fotos", "enabled": true, "last_backup": map[string]any{"result": "failed", "completed_at": "2026-09-25 04:00:00"}},
+			map[string]any{"name": "alt", "enabled": false, "last_backup": map[string]any{"result": "completed", "completed_at": "2026-09-26 05:00:00"}},
+		}},
+		map[string]any{"id": 2, "name": "laptop", "backup_plans": []any{}},
+	}}
+	routes := map[string]any{
+		"/api/v1/dashboard": map[string]any{},
+		"/api/v1/clients": map[string]any{"clients": []any{
+			map[string]any{"id": 1, "name": "nas", "status": "online"}, map[string]any{"id": 2, "name": "laptop", "status": "offline"}}},
+		"/api/v1/summary": summary,
+	}
+	srv := jsonServer(t, routes, func(*http.Request) bool { return true })
+
+	out, err := sources.BorgData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "bbs_tok_x", VerifyTLS: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := out.(*sources.BorgDataset)
+	nas, laptop := d.Clients[0], d.Clients[1]
+	if want := time.Date(2026, 9, 25, 3, 0, 0, 0, time.Local); !nas.LastBackup.Equal(want) || !nas.LastFailed {
+		t.Fatalf("nas: %+v", nas)
+	}
+	if !laptop.LastBackup.IsZero() || laptop.LastFailed {
+		t.Fatalf("laptop: %+v", laptop)
+	}
+
+	delete(routes, "/api/v1/summary")
+	old := jsonServer(t, routes, func(*http.Request) bool { return true })
+	if _, err := (sources.BorgData{}).Fetch(context.Background(), sources.Ctx{URL: old.URL, Secret: "bbs_tok_x", VerifyTLS: true}); err != nil {
+		t.Fatalf("server without /summary: %v", err)
+	}
+}
+
 func TestSureReadsAccountsTransactionsRecurring(t *testing.T) {
 	srv := jsonServer(t, map[string]any{
 		"/api/v1/balance_sheet": map[string]any{"currency": "EUR", "net_worth": map[string]any{"amount": "1234.5", "currency": "EUR"}},
@@ -191,7 +232,9 @@ func TestSureReadsAccountsTransactionsRecurring(t *testing.T) {
 		"/api/v1/transactions": map[string]any{"transactions": []any{map[string]any{"id": "t", "date": "2026-09-20", "name": "Kunde",
 			"signed_amount_cents": 50000, "account": map[string]any{"name": "Giro"}, "category": nil}}},
 		"/api/v1/recurring_transactions": map[string]any{"recurring_transactions": []any{map[string]any{"name": "Miete", "status": "active",
-			"amount_cents": 45000, "next_expected_date": "2026-10-01"}}},
+			"amount_cents": 45000, "next_expected_date": "2026-10-01"},
+			// Detected from a merchant: no name of its own.
+			map[string]any{"name": nil, "merchant": map[string]any{"name": "Stadtwerke"}, "status": "active", "amount_cents": 6300}}},
 		"/api/v1/syncs/latest": map[string]any{"data": map[string]any{"status": "failed", "syncable": map[string]any{"name": "Sparkasse"}}},
 	}, func(r *http.Request) bool { return r.Header.Get("X-Api-Key") == "k" })
 
@@ -201,7 +244,7 @@ func TestSureReadsAccountsTransactionsRecurring(t *testing.T) {
 	}
 	d := out.(*sources.SureDataset)
 	if d.NetWorth != 1234.5 || d.Accounts[0].Balance != 123.45 || d.Transactions[0].Amount != 500 ||
-		!d.Recurring[0].Expense || d.Recurring[0].Amount != 450 || d.SyncError != "Sparkasse" {
+		!d.Recurring[0].Expense || d.Recurring[0].Amount != 450 || d.Recurring[1].Name != "Stadtwerke" || d.SyncError != "Sparkasse" {
 		t.Fatalf("data: %+v", d)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"andon/internal/sources"
 )
@@ -73,6 +74,29 @@ func TestSonarr(t *testing.T) {
 	d := out.(*sources.ArrDataset)
 	if d.Queue != 2 || len(d.Stuck) != 1 || d.Missing != 7 || d.Health[0].Level != "error" || d.Upcoming[0].Title != "Dark 2x05" {
 		t.Fatalf("arr: %+v", d)
+	}
+}
+
+// TestRadarrShowsTheComingRelease: Radarr's calendar lists a film when
+// any of its releases falls in the window; the tile shows that coming
+// release, not the cinema start months ago.
+func TestRadarrShowsTheComingRelease(t *testing.T) {
+	now := time.Now().UTC()
+	cinema, digital := now.AddDate(0, -4, 0).Format(time.RFC3339), now.AddDate(0, 0, 3).Format(time.RFC3339)
+	srv := fake(t, "X-Api-Key", "k", map[string]string{
+		"GET /api/v3/system/status":  `{"appName": "Radarr", "version": "5.26.2"}`,
+		"GET /api/v3/health":         `[]`,
+		"GET /api/v3/queue":          `{"totalRecords": 0, "records": []}`,
+		"GET /api/v3/wanted/missing": `{"totalRecords": 0}`,
+		"GET /api/v3/calendar":       `[{"title": "Colony", "inCinemas": "` + cinema + `", "digitalRelease": "` + digital + `"}]`,
+	})
+	out, err := sources.ArrData{}.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "k"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := out.(*sources.ArrDataset)
+	if len(d.Upcoming) != 1 || d.Upcoming[0].At.Format(time.RFC3339) != digital {
+		t.Fatalf("upcoming: %+v, want %s", d.Upcoming, digital)
 	}
 }
 

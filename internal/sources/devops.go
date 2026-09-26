@@ -245,8 +245,12 @@ func latestFailedRun(ctx context.Context, api services.GiteaApi, repo string) st
 type BorgClient struct {
 	Name, Status string // online, offline, error, setup
 	LastSeen     time.Time
-	LastBackup   time.Time // zero when the server does not report it
+	LastBackup   time.Time // newest successful backup; zero when unknown
+	LastFailed   bool      // an enabled plan's latest run failed
 }
+
+// borgJobCompleted is a backup job's result when it succeeded.
+const borgJobCompleted = "completed"
 
 type BorgDataset struct {
 	URL            string
@@ -294,7 +298,50 @@ func (BorgData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	if err != nil {
 		return nil, fetchError(err)
 	}
-	return parseBorg(sctx.URL, dash, clients), nil
+	data := parseBorg(sctx.URL, dash, clients)
+
+	// Backup times per client exist only in /summary (per backup plan);
+	// older servers lack it, then the times stay unknown.
+	if summary, err := api.Get(ctx, "summary"); err == nil {
+		addBorgSummary(data, summary)
+	}
+	return data, nil
+}
+
+// addBorgSummary sets each client's newest successful backup over its
+// enabled plans, and LastFailed when a plan's latest run failed.
+func addBorgSummary(data *BorgDataset, summary any) {
+	for _, raw := range asList(asMap(summary)["clients"]) {
+		s := asMap(raw)
+		c := data.client(asStr(s["name"]))
+		if c == nil {
+			continue
+		}
+		for _, plan := range asList(s["backup_plans"]) {
+			p := asMap(plan)
+			last := asMap(p["last_backup"])
+			if !asBool(p["enabled"]) || last == nil {
+				continue
+			}
+			if asStr(last["result"]) != borgJobCompleted {
+				c.LastFailed = true
+				continue
+			}
+			if at := borgTime(last["completed_at"]); at.After(c.LastBackup) {
+				c.LastBackup = at
+			}
+		}
+	}
+}
+
+// client finds a client by name; nil if the server did not list it.
+func (d *BorgDataset) client(name string) *BorgClient {
+	for i := range d.Clients {
+		if d.Clients[i].Name == name {
+			return &d.Clients[i]
+		}
+	}
+	return nil
 }
 
 func parseBorg(base string, dash, clients any) *BorgDataset {

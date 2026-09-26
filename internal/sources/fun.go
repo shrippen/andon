@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/text/language"
+
 	"andon/internal/drivers/httpclient"
 	"andon/internal/enums"
 )
@@ -63,8 +65,11 @@ func (HolidaysSource) Service() enums.ServiceType { return "" }
 // Fetch reads this and next year: in December the next holidays are in
 // January. state ("DE-BY") adds regional holidays to the national ones.
 func (HolidaysSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
-	country := strings.ToUpper(asStr(sctx.Params["country"]))
+	country := isoAlpha2(asStr(sctx.Params["country"]))
 	state := strings.ToUpper(asStr(sctx.Params["state"]))
+	if code, sub, ok := strings.Cut(state, "-"); ok {
+		state = isoAlpha2(code) + "-" + sub
+	}
 	today := time.Now().UTC().Format(isoDay)
 	year := time.Now().UTC().Year()
 
@@ -85,6 +90,17 @@ func (HolidaysSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	sort.SliceStable(out.Days, func(i, j int) bool { return out.Days[i].Day < out.Days[j].Day })
 	return out, nil
+}
+
+// isoAlpha2 turns a country code into the two letters Nager.Date wants,
+// e.g. "DEU" (Dashy) or "de" -> "DE"; unknown codes stay as given.
+func isoAlpha2(code string) string {
+	code = strings.ToUpper(strings.TrimSpace(code))
+	region, err := language.ParseRegion(code)
+	if err != nil || !region.IsCountry() {
+		return code
+	}
+	return region.String()
 }
 
 // holidayApplies: national holidays always, regional ones for state only.

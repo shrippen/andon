@@ -45,7 +45,11 @@ func Backups(borg *sources.BorgDataset, pg *sources.PGBackDataset, nas *sources.
 
 	if borg != nil {
 		for _, c := range borg.Clients {
-			rows = append(rows, BackupRow{Tool: "borgbackup", Item: c.Name, Last: c.LastBackup, State: age(c.LastBackup)})
+			row := BackupRow{Tool: "borgbackup", Item: c.Name, Last: c.LastBackup, State: age(c.LastBackup)}
+			if c.LastFailed {
+				row.State = BackupFailed
+			}
+			rows = append(rows, row)
 		}
 	}
 	if pg != nil {

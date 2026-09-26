@@ -220,22 +220,28 @@ func loadArr(ctx context.Context, api services.KeyedApi, now time.Time) (*ArrDat
 		return nil, err
 	}
 	for _, raw := range asList(calendar) {
-		data.Upcoming = append(data.Upcoming, arrItem(asMap(raw), data.App))
+		data.Upcoming = append(data.Upcoming, arrItem(asMap(raw), data.App, now))
 	}
 	sort.Slice(data.Upcoming, func(i, j int) bool { return data.Upcoming[i].At.Before(data.Upcoming[j].At) })
 	return data, nil
 }
 
-// arrItem names an episode "Show 2x05" or a movie by its title and first
-// release date.
-func arrItem(m map[string]any, app string) ArrItem {
+// arrItem names an episode "Show 2x05" or a movie by its title and next
+// release (digital, disc or cinema) from today on; the calendar also lists
+// films whose cinema start lies months back.
+func arrItem(m map[string]any, app string, now time.Time) ArrItem {
 	if app == sonarrApp {
 		title := asStr(asMap(m["series"])["title"]) + " " + strconv.Itoa(int(asFloat(m["seasonNumber"]))) + "x" + pad2(int(asFloat(m["episodeNumber"])))
 		return ArrItem{Title: title, At: parseTime(m["airDateUtc"])}
 	}
+	today := now.Truncate(24 * time.Hour)
 	at := time.Time{}
 	for _, key := range []string{"digitalRelease", "physicalRelease", "inCinemas"} {
-		if t := parseTime(m[key]); !t.IsZero() && (at.IsZero() || t.Before(at)) {
+		t := parseTime(m[key])
+		if t.IsZero() || t.Before(today) {
+			continue
+		}
+		if at.IsZero() || t.Before(at) {
 			at = t
 		}
 	}
