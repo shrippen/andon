@@ -212,15 +212,19 @@ func Versions(datasets map[string]any) map[string]string {
 		case *sources.KomodoDataset:
 			// A stack whose pending image updates disappear was redeployed.
 			for _, s := range d.Stacks {
-				out[s.Name] = "pending:" + strings.Join(s.Updates, ",")
+				out[stackPrefix+s.Name] = pendingPrefix + strings.Join(s.Updates, ",")
 			}
 		}
 	}
 	return out
 }
 
-// pendingPrefix marks a Komodo stack's list of services with newer images.
-const pendingPrefix = "pending:"
+const (
+	// pendingPrefix marks a Komodo stack's list of services with newer images.
+	pendingPrefix = "pending:"
+	// stackPrefix keeps a stack apart from a service of the same name.
+	stackPrefix = "stack:"
+)
 
 // VersionEvent turns a version change into a timeline event; a first
 // sighting or a newly announced image is none.
@@ -232,7 +236,7 @@ func VersionEvent(subject, old, now string, at time.Time) (Event, bool) {
 		if now != pendingPrefix || old == pendingPrefix {
 			return Event{}, false
 		}
-		return Event{At: at, Kind: EventUpdate, Subject: subject, Detail: strings.TrimPrefix(old, pendingPrefix)}, true
+		return Event{At: at, Kind: EventUpdate, Subject: strings.TrimPrefix(subject, stackPrefix), Detail: strings.TrimPrefix(old, pendingPrefix)}, true
 	}
 	return Event{At: at, Kind: EventUpdate, Subject: subject, Detail: old + " → " + now}, true
 }

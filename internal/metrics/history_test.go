@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"andon/internal/metrics"
+	"andon/internal/sources"
 )
 
 func TestTrendAndVersionEvent(t *testing.T) {
@@ -33,5 +34,23 @@ func TestTrendAndVersionEvent(t *testing.T) {
 	}
 	if e, ok := metrics.VersionEvent("web", "pending:app", "pending:", now); !ok || e.Detail != "app" {
 		t.Fatalf("redeploy: %+v", e)
+	}
+}
+
+// TestVersionsKeepStackApart: a Komodo stack named like a service (both
+// "authentik") must not share its version slot; the greeting showed
+// "authentik 2026.8.3 → pending:".
+func TestVersionsKeepStackApart(t *testing.T) {
+	v := metrics.Versions(map[string]any{
+		"authentik": &sources.AuthentikDataset{Version: "2026.8.3"},
+		"komodo":    &sources.KomodoDataset{Stacks: []sources.KStack{{Name: "authentik"}}},
+	})
+	if v["authentik"] != "2026.8.3" || len(v) != 2 {
+		t.Fatalf("versions: %v", v)
+	}
+	for subject, version := range v {
+		if e, ok := metrics.VersionEvent(subject, version+"x", version, time.Now()); ok && e.Subject != "authentik" {
+			t.Fatalf("event subject %q", e.Subject)
+		}
 	}
 }
