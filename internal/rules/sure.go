@@ -138,6 +138,10 @@ func registerSureCross() {
 		}
 		var found []Finding
 		for _, m := range metrics.PaymentMatches(sure, ninja, env.Today, cfgInt(cfg, "days")) {
+			// An amount alone may be anybody's payment: no hint for it.
+			if !m.Sure() {
+				continue
+			}
 			found = append(found, Finding{
 				Fingerprint: fmt.Sprintf("paid:%d", m.Invoice.ID), Rule: "cross.invoice_paid", Severity: enums.SeverityWarn,
 				Message: "cross.invoice_paid", Params: map[string]any{"number": m.Invoice.Number, "client": m.Invoice.Client,

@@ -11,6 +11,7 @@ import (
 	"database/sql"
 	"errors"
 	"strconv"
+	"strings"
 
 	"andon/internal/db"
 	"andon/internal/enums"
@@ -112,11 +113,50 @@ func Candidates(ctx context.Context, d *sql.DB, who *access.Principal) ([]Candid
 		if err != nil || kimai == nil {
 			continue
 		}
-		for _, draft := range metrics.Drafts(kimai, ninja) {
+		settings, err := spaceSettings(d, p.space.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, draft := range billable(metrics.Drafts(kimai, ninja), settings) {
 			out = append(out, Candidate{SpaceID: p.space.ID, SpaceName: p.space.Name, Draft: draft})
 		}
 	}
 	return out, nil
+}
+
+// billable drops internal work: customers billed at rate 0 and those on
+// the space's internal list (settings billing.internal, comma separated).
+func billable(drafts []metrics.Draft, settings map[string]any) []metrics.Draft {
+	internal := map[string]bool{}
+	billing, _ := settings["billing"].(map[string]any)
+	list, _ := billing["internal"].(string)
+	for _, name := range strings.Split(list, ",") {
+		if name = strings.ToLower(strings.TrimSpace(name)); name != "" {
+			internal[name] = true
+		}
+	}
+	var out []metrics.Draft
+	for _, d := range drafts {
+		if d.Total == 0 || internal[strings.ToLower(strings.TrimSpace(d.Customer))] {
+			continue
+		}
+		out = append(out, d)
+	}
+	return out
+}
+
+// spaceSettings reads a space's settings (goals, billing, …).
+func spaceSettings(d *sql.DB, spaceID int64) (map[string]any, error) {
+	var settings map[string]any
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		sp, err := content.Space(tx, spaceID)
+		if err != nil || sp == nil {
+			return err
+		}
+		settings = sp.Settings
+		return nil
+	})
+	return settings, err
 }
 
 // Create writes one customer's draft to Invoice Ninja and returns its number.

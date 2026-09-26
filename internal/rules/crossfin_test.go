@@ -137,3 +137,18 @@ func TestBudgetRunsOutBeforeEnd(t *testing.T) {
 		t.Fatalf("budget: %+v", got)
 	}
 }
+
+// TestInvoicePaidNeedsNumberOrName: the right amount from a payer who is
+// not the invoice's client is no "invoice paid" hint.
+func TestInvoicePaidNeedsNumberOrName(t *testing.T) {
+	ninja := &sources.NinjaDataset{Currency: "EUR", Clients: []sources.NinjaClient{{ID: 1, Name: "Acme GmbH"}},
+		Invoices: []sources.NinjaInvoice{{ID: 7, Number: "RE-2026-007", ClientID: 1, Status: "sent", Date: "2026-09-01", Amount: 700, Balance: 700}}}
+	stranger := &sources.SureDataset{Currency: "EUR", Transactions: []sources.SureTxn{{ID: "x", Date: "2026-09-20", Name: "Fremde Firma GmbH", Amount: 700}}}
+	if got := run(t, "cross.invoice_paid", nil, crossEnv("2026-09-25", map[string]any{"sure": stranger, "invoiceninja": ninja})); len(got) != 0 {
+		t.Fatalf("stranger's payment reported: %+v", got)
+	}
+	client := &sources.SureDataset{Currency: "EUR", Transactions: []sources.SureTxn{{ID: "y", Date: "2026-09-20", Name: "ACME GMBH", Amount: 700}}}
+	if got := run(t, "cross.invoice_paid", nil, crossEnv("2026-09-25", map[string]any{"sure": client, "invoiceninja": ninja})); len(got) != 1 {
+		t.Fatalf("client's payment not reported: %+v", got)
+	}
+}

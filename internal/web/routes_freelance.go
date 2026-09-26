@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -120,7 +121,7 @@ func (d Deps) billingPage(w http.ResponseWriter, r *http.Request, ctx Ctx, statu
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	mails, err := mailfwd.List(r.Context(), d.DB, ctx.Who)
+	mails, sent, err := mailfwd.List(r.Context(), d.DB, ctx.Who)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -130,8 +131,10 @@ func (d Deps) billingPage(w http.ResponseWriter, r *http.Request, ctx Ctx, statu
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// Sure matches first; the rest wants a second look.
+	sort.SliceStable(payments, func(i, j int) bool { return payments[i].Sure() && !payments[j].Sure() })
 	year := time.Now().Year()
-	values := map[string]any{"Drafts": drafts, "Mails": mails, "Payments": payments, "Booked": r.URL.Query().Get("booked"), "Assist": assist.Enabled(), "Spaces": access.EditableSpaces(ctx.Who), "Years": []int{year, year - 1}}
+	values := map[string]any{"Drafts": drafts, "Mails": mails, "Payments": payments, "Summary": billingSummary(drafts, payments, len(mails), sent), "Booked": r.URL.Query().Get("booked"), "Assist": assist.Enabled(), "Spaces": access.EditableSpaces(ctx.Who), "Years": []int{year, year - 1}}
 	for k, v := range extra {
 		values[k] = v
 	}
@@ -217,4 +220,25 @@ func (d Deps) handleMailRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/billing#mail-"+strconv.FormatUint(uid, 10), http.StatusSeeOther)
+}
+
+// billingSum is the line above the billing page: what is waiting.
+type billingSum struct {
+	Unbilled             float64
+	Customers, Payments  int
+	PaymentsToCheck      int
+	Mails, MailsInLedger int
+}
+
+func billingSummary(drafts []billing.Candidate, payments []billing.Payment, mails, sent int) billingSum {
+	sum := billingSum{Customers: len(drafts), Payments: len(payments), Mails: mails, MailsInLedger: sent}
+	for _, d := range drafts {
+		sum.Unbilled += d.Total
+	}
+	for _, p := range payments {
+		if !p.Sure() {
+			sum.PaymentsToCheck++
+		}
+	}
+	return sum
 }

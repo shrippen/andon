@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"andon/internal/db"
 	"andon/internal/drivers/llm"
@@ -80,11 +81,33 @@ func mailboxes(d *sql.DB, who *access.Principal) (map[*model.Connection]*model.C
 	return out, err
 }
 
-// List returns the invoice mails of every usable mailbox.
-func List(ctx context.Context, d *sql.DB, who *access.Principal) ([]Item, error) {
+// forwardedKey marks a mail sent to Paperless from Andon in its stored
+// read fields, so the billing list can leave it out.
+const forwardedKey = "forwarded"
+
+// isForwarded reports whether a mail's stored fields mark it as sent.
+func isForwarded(fields map[string]any) bool {
+	_, ok := fields[forwardedKey]
+	return ok
+}
+
+// hasRead reports whether Claude read invoice fields from the mail
+// (fields beyond the forwarded mark).
+func hasRead(fields map[string]any) bool {
+	for k := range fields {
+		if k != forwardedKey {
+			return true
+		}
+	}
+	return false
+}
+
+// List returns the invoice mails of every usable mailbox, without the
+// ones already sent to Paperless; sent counts those.
+func List(ctx context.Context, d *sql.DB, who *access.Principal) (items []Item, sent int, err error) {
 	boxes, err := mailboxes(d, who)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	uid := who.UserID
 	var out []Item
@@ -99,17 +122,22 @@ func List(ctx context.Context, d *sql.DB, who *access.Principal) ([]Item, error)
 		}
 		reads, err := repodata.MailReads(d, mail.ID)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		for _, inv := range data.Invoices {
+			fields := reads[inv.UID]
+			if isForwarded(fields) {
+				sent++
+				continue
+			}
 			item := Item{MailConn: mail.ID, Mailbox: mail.Name, Paperless: paperless != nil, MailInvoice: inv}
-			if fields, ok := reads[inv.UID]; ok {
+			if hasRead(fields) {
 				item.Read = invoiceOf(fields)
 			}
 			out = append(out, item)
 		}
 	}
-	return out, nil
+	return out, sent, nil
 }
 
 // Forward sends the attachments of one mail to Paperless; returns how
@@ -144,8 +172,12 @@ func Forward(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID i
 		return 0, err
 	}
 	title := ""
+	fields := map[string]any{}
 	if reads, err := repodata.MailReads(d, mail.ID); err == nil && reads[uid] != nil {
-		title = invoiceOf(reads[uid]).Title()
+		fields = reads[uid]
+		if hasRead(fields) {
+			title = invoiceOf(fields).Title()
+		}
 	}
 	for _, f := range files {
 		if _, err := outbound.PaperlessUpload(ctx, outbound.Target{URL: paperless.URL, Token: token, VerifyTLS: paperless.VerifyTLS}, f.Name, title, f.Content); err != nil {
@@ -153,6 +185,10 @@ func Forward(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID i
 		}
 	}
 	svcdata.Forget(paperless.ID)
+	fields[forwardedKey] = time.Now().UTC().Format(time.RFC3339)
+	if err := db.WithTx(d, func(tx *sql.Tx) error { return repodata.SaveMailRead(tx, mail.ID, uid, fields) }); err != nil {
+		return 0, err
+	}
 	return len(files), auditsvc.Log(d, &who.UserID, "mail.to_paperless", fmt.Sprintf("%s#%d", mail.Name, uid), ip,
 		map[string]any{"files": len(files)})
 }

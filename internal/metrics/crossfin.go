@@ -164,6 +164,30 @@ type PaymentMatch struct {
 	Day     time.Time
 	Invoice NinjaOpenInvoice
 	Reason  string
+	// NameFits: the payer names the invoice's client. An amount alone
+	// may be anybody's payment.
+	NameFits bool
+}
+
+// Sure is whether the match needs no second look: the invoice number in
+// the booking text, or the right amount from the right client.
+func (m PaymentMatch) Sure() bool { return m.Reason == MatchNumber || m.NameFits }
+
+// legalForms are left out when comparing client and payer names.
+var legalForms = map[string]bool{"gmbh": true, "ag": true, "ug": true, "kg": true, "ohg": true, "gbr": true, "ev": true,
+	"mbh": true, "co": true, "ltd": true, "inc": true, "llc": true, "und": true}
+
+// namesClient reports whether a booking text names the client: one of
+// the client's words (no legal form, at least minNameLen letters) in it.
+func namesClient(text, client string) bool {
+	text = compact(text)
+	for _, word := range strings.Fields(strings.ToLower(client)) {
+		word = compact(word)
+		if len(word) >= minNameLen && !legalForms[word] && strings.Contains(text, word) {
+			return true
+		}
+	}
+	return false
 }
 
 // compact makes numbers comparable in booking texts: "RE-2026 041" → "re2026041".
@@ -196,7 +220,8 @@ func PaymentMatches(sure *sources.SureDataset, ninja *sources.NinjaDataset, toda
 					continue
 				}
 				usedTxn[t.ID], usedInv[inv.ID] = true, true
-				out = append(out, PaymentMatch{Txn: t, Day: paid, Invoice: inv, Reason: reason})
+				out = append(out, PaymentMatch{Txn: t, Day: paid, Invoice: inv, Reason: reason,
+					NameFits: namesClient(t.Name+" "+t.Merchant, inv.Client)})
 				break
 			}
 		}
@@ -207,7 +232,9 @@ func PaymentMatches(sure *sources.SureDataset, ninja *sources.NinjaDataset, toda
 	})
 	pass(MatchAmount, func(t sources.SureTxn, paid time.Time, inv NinjaOpenInvoice) bool {
 		issued, ok := ParseDay(inv.Date)
-		return ok && !paid.Before(issued) && (abs(t.Amount-inv.Balance) <= amountTol || abs(t.Amount-inv.Amount) <= amountTol)
+		// The open balance only: the full amount of a nearly paid invoice
+		// is somebody else's payment.
+		return ok && !paid.Before(issued) && abs(t.Amount-inv.Balance) <= amountTol
 	})
 	sort.Slice(out, func(a, b int) bool { return out[a].Day.After(out[b].Day) })
 	return out

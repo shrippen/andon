@@ -64,7 +64,7 @@ func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request) {
 	tax := asMap(settings["tax"])
 	_ = d.Page(w, ctx, "space_settings", http.StatusOK, map[string]any{
 		"SpaceID": id, "Goals": goals, "Tax": tax, "VAT": asMap(tax["vat"]), "Prepay": asMap(tax["prepayments"]),
-		"Costs": asMap(settings["costs"]), "Homelab": asMap(settings["homelab"]),
+		"Costs": asMap(settings["costs"]), "Homelab": asMap(settings["homelab"]), "Billing": asMap(settings["billing"]),
 		"Rules": spaces.RuleViews(settings), "Methods": vatMethods, "Intervals": vatIntervals,
 		"Saved": r.URL.Query().Has("saved"), "Page": spaces.PageOf(settings), "NavText": spaces.NavText(spaces.PageOf(settings)),
 		"Custom": spaces.CustomRows(settings), "Ops": rules.CustomOps, "Services": enums.Services, "Levels": severityLevels,
@@ -130,6 +130,8 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request) {
 			"income_tax_rate": number(r.FormValue("income_tax_rate"), defaultIncomeTaxRate),
 		},
 		"costs": map[string]any{"fixed_monthly": number(r.FormValue("fixed_monthly"), 0), "hourly_cost": number(r.FormValue("hourly_cost"), 0)},
+		// Customers whose time is never invoiced (own projects, clubs).
+		"billing": map[string]any{"internal": strings.TrimSpace(r.FormValue("billing_internal"))},
 		"homelab": map[string]any{
 			"power_entity":   strings.TrimSpace(r.FormValue("power_entity")),
 			"power_price":    number(r.FormValue("power_price"), 0),

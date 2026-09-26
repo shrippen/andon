@@ -40,6 +40,9 @@
         <label for="hourly_cost">{{t "settings.hourly_cost"}}</label>
         <input id="hourly_cost" name="hourly_cost" type="number" step="1" min="0" value="{{index .Costs "hourly_cost"}}">
         <p class="small muted">{{t "settings.hourly_cost_hint"}}</p>
+        <label for="billing_internal">{{t "settings.billing_internal"}}</label>
+        <input id="billing_internal" name="billing_internal" value="{{index .Billing "internal"}}" placeholder="Intern, Verein">
+        <p class="small muted">{{t "settings.billing_internal_hint"}}</p>
       </div>
 
       <h2>{{t "settings.homelab"}}</h2>
