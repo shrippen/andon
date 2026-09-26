@@ -30,22 +30,25 @@ func TestHTTPStatusUpWithinDefaultRange(t *testing.T) {
 	}
 }
 
-func TestHTTPStatusDownOutsideAcceptList(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	source, _ := sources.Get("http_status")
-	out, err := source.Fetch(context.Background(), sources.Ctx{Params: map[string]any{
-		"url": srv.URL, "accept": []int{201, 204},
-	}})
-	if err != nil {
-		t.Fatalf("fetch: %v", err)
-	}
-	status := out.(*sources.HTTPStatusResult)
-	if status.Up {
-		t.Fatalf("expected down (200 not in accept list), got %+v", status)
+// TestHTTPStatusAcceptAddsCodes: accepted codes count on top of 2xx/3xx,
+// as in Dashy's statusCheckAcceptCodes: with 401 accepted a login wall is
+// up, a plain 200 still is, a 502 is not.
+func TestHTTPStatusAcceptAddsCodes(t *testing.T) {
+	for code, want := range map[int]bool{http.StatusOK: true, http.StatusUnauthorized: true, http.StatusBadGateway: false} {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(code)
+		}))
+		source, _ := sources.Get("http_status")
+		out, err := source.Fetch(context.Background(), sources.Ctx{Params: map[string]any{
+			"url": srv.URL, "accept": []int{http.StatusUnauthorized},
+		}})
+		srv.Close()
+		if err != nil {
+			t.Fatalf("fetch: %v", err)
+		}
+		if status := out.(*sources.HTTPStatusResult); status.Up != want {
+			t.Errorf("HTTP %d: up=%v, want %v", code, status.Up, want)
+		}
 	}
 }
 
@@ -213,5 +216,28 @@ func TestIconCandidatesForNewSets(t *testing.T) {
 		if len(got) == 0 || !strings.HasSuffix(got[0], want) {
 			t.Errorf("%s: %v", spec, got)
 		}
+	}
+}
+
+// TestHTTPStatusAsksForAPage: a login proxy (Apache mod_auth_openidc)
+// answers requests that do not accept HTML with 401 instead of the login
+// redirect; the link check asks for a page like a browser does.
+func TestHTTPStatusAsksForAPage(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.Header.Get("Accept"), "text/html") {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	source, _ := sources.Get("http_status")
+	out, err := source.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"url": srv.URL}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status := out.(*sources.HTTPStatusResult); !status.Up {
+		t.Fatalf("expected up, got %+v", status)
 	}
 }

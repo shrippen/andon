@@ -254,7 +254,7 @@ field:
   target: Open in
   status: Status check
   status_url: Status URL (if different)
-  accept: Accepted HTTP codes
+  accept: Also accepted HTTP codes (e.g. 401)
   hotkey: Hotkey
   metric: Metric
   limit: Count

@@ -254,7 +254,7 @@ field:
   target: Öffnen in
   status: Statusprüfung
   status_url: Status-URL (falls abweichend)
-  accept: Gültige HTTP-Codes
+  accept: Zusätzlich gültige HTTP-Codes (z. B. 401)
   hotkey: Tastenkürzel
   metric: Kennzahl
   limit: Anzahl

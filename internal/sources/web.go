@@ -6,7 +6,9 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"andon/internal/drivers/httpclient"
@@ -23,6 +25,7 @@ const (
 
 	httpOKMin    = 200
 	httpOKMax    = 399
+	pageAccept   = "text/html,application/xhtml+xml,*/*;q=0.8"
 	feedLimitMax = 50
 	openMeteoURL = "https://api.open-meteo.com/v1/forecast"
 	publicIPURL  = "https://api.ipify.org"
@@ -62,6 +65,17 @@ func (HTTPStatusSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	insecure, _ := sctx.Params["insecure"].(bool)
 	headers, _ := sctx.Params["headers"].(map[string]string)
 
+	// Ask for a page like a browser: login proxies (mod_auth_openidc) answer
+	// other requests with 401 instead of the login redirect.
+	withAccept := map[string]string{"Accept": pageAccept}
+	for k, v := range headers {
+		if strings.EqualFold(k, "Accept") {
+			k = "Accept" // the link's own Accept wins
+		}
+		withAccept[k] = v
+	}
+	headers = withAccept
+
 	started := time.Now()
 	resp, err := httpclient.Request(ctx, "GET", target, httpclient.Options{SkipVerify: insecure, Headers: headers})
 	if err != nil {
@@ -76,16 +90,9 @@ func (HTTPStatusSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 
 	ms := int(time.Since(started).Milliseconds())
 	code := resp.StatusCode
-	up := code >= httpOKMin && code <= httpOKMax
-	if len(accept) > 0 {
-		up = false
-		for _, want := range accept {
-			if want == code {
-				up = true
-				break
-			}
-		}
-	}
+	// accept adds codes to 2xx/3xx, e.g. 401 for a login wall (Dashy's
+	// statusCheckAcceptCodes means the same).
+	up := code >= httpOKMin && code <= httpOKMax || slices.Contains(accept, code)
 	return &HTTPStatusResult{Up: up, Code: code, Ms: ms}, nil
 }
 
