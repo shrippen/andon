@@ -738,12 +738,17 @@ func Delete(d *sql.DB, who *access.Principal, themeID int64) error {
 }
 
 // SetDefault sets the instance-wide default theme. Admin only.
-func SetDefault(d *sql.DB, who *access.Principal, themeID int64) error {
+func SetDefault(d *sql.DB, who *access.Principal, themeID *int64) error {
 	if !who.IsAdmin() {
 		return ErrDenied
 	}
+	// nil: no instance default, the built-in theme applies.
+	value := map[string]any{}
+	if themeID != nil {
+		value["id"] = *themeID
+	}
 	return db.WithTx(d, func(tx *sql.Tx) error {
-		return misc.SetSetting(tx, defaultSetting, map[string]any{"id": themeID})
+		return misc.SetSetting(tx, defaultSetting, value)
 	})
 }
 

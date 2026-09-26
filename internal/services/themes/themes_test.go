@@ -191,3 +191,31 @@ func TestExportImportZipRoundTrip(t *testing.T) {
 		t.Fatalf("expected imported theme to carry the exported token, got %+v err=%v", got, err)
 	}
 }
+
+// TestDefaultCanBeReset: an admin who made a preset the instance default
+// gets back to the built-in theme by clearing it.
+func TestDefaultCanBeReset(t *testing.T) {
+	d := openTestDB(t)
+	builtinID, _ := themes.EnsureBuiltin(d)
+	u := addUser(t, d, "admin@b.c", enums.RoleAdmin)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+
+	nord, _, err := themes.FromPreset(d, who, space.ID, themes.Presets()[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := themes.SetDefault(d, who, &nord); err != nil {
+		t.Fatal(err)
+	}
+	if active, _ := themes.Active(d, who, nil, nil); active != nord {
+		t.Fatalf("default not applied: %d", active)
+	}
+
+	if err := themes.SetDefault(d, who, nil); err != nil {
+		t.Fatal(err)
+	}
+	if active, _ := themes.Active(d, who, nil, nil); active != builtinID {
+		t.Fatalf("expected built-in theme back, got %d", active)
+	}
+}

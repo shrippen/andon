@@ -160,15 +160,16 @@ func (d Deps) handleSettingsGeneral(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		// Empty = the built-in theme, no instance default.
 		raw := r.FormValue("default_theme")
 		if raw == "" {
-			return nil
+			return themes.SetDefault(d.DB, ctx.Who, nil)
 		}
 		id, err := strconv.ParseInt(raw, 10, 64)
 		if err != nil {
 			return err
 		}
-		return themes.SetDefault(d.DB, ctx.Who, id)
+		return themes.SetDefault(d.DB, ctx.Who, &id)
 	})
 }
 
