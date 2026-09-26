@@ -339,3 +339,38 @@ func TestOfflineWorker(t *testing.T) {
 		t.Fatalf("logout keeps offline copies: %v", resp.Header)
 	}
 }
+
+// TestHomeFollowsProfileStartBoard: "/" opens the start board chosen in
+// the profile, not simply the first board.
+func TestHomeFollowsProfileStartBoard(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+
+	noFollow := *client
+	noFollow.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	home := func() string {
+		t.Helper()
+		res, err := noFollow.Get(srv.URL + "/")
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		return res.Header.Get("Location")
+	}
+	first := home()
+
+	space := regexp.MustCompile(`<option value="(\d+)"`).FindSubmatch(mustGet(t, srv, client, "/boards/new"))[1]
+	res := postForm(t, client, srv.URL+"/boards/new", url.Values{"csrf": {csrf}, "name": {"Heute"}, "space_id": {string(space)}})
+	second := strings.TrimSuffix(res.Header.Get("Location"), "?edit")
+	if second == "" || second == first {
+		t.Fatalf("second board: %q (first %q)", second, first)
+	}
+
+	postForm(t, client, srv.URL+"/me/profile", url.Values{"csrf": {csrf}, "name": {"Admin"}, "locale": {"de"}, "color_mode": {"auto"},
+		"start_board_id": {strings.TrimPrefix(second, "/boards/")}})
+	if got := home(); got != second {
+		t.Fatalf("home goes to %q, want the profile's start board %q", got, second)
+	}
+}

@@ -1,3 +1,53 @@
+{{define "boards"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "boards.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <h1>{{t "boards.title"}}</h1>
+    <p class="muted">{{t "boards.lead"}}</p>
+    <p><a class="link-btn" href="/boards/new">+ {{t "board.new"}}</a></p>
+    <div class="table-wrap"><table class="table boards-table">
+      <thead><tr><th>{{t "field.name"}}</th><th>{{t "field.space"}}</th><th>{{t "boards.order"}}</th><th>{{t "boards.in_nav"}}</th><th></th></tr></thead>
+      <tbody>
+      {{range $i, $b := .Boards}}
+      <tr id="board-{{.ID}}"{{if .Hidden}} class="is-hidden"{{end}}>
+        <td><a href="/boards/{{.ID}}">{{.Name}}</a>{{if eq .ID $.Start}} <span class="pill">{{t "boards.start"}}</span>{{end}}</td>
+        <td class="small muted">{{.Space.Name}}</td>
+        <td class="boards-order">
+          <form method="post" action="/boards/{{.ID}}/nav">
+            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+            <button type="submit" name="move" value="up" class="ghost" aria-label="{{t "boards.up"}}" title="{{t "boards.up"}}"{{if eq $i 0}} disabled{{end}}>↑</button>
+            <button type="submit" name="move" value="down" class="ghost" aria-label="{{t "boards.down"}}" title="{{t "boards.down"}}"{{if eq $i $.Last}} disabled{{end}}>↓</button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="/boards/{{.ID}}/nav">
+            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+            <button type="submit" name="move" value="toggle" class="link-btn">{{if .Hidden}}{{t "boards.show"}}{{else}}{{t "boards.hide"}}{{end}}</button>
+          </form>
+        </td>
+        <td class="row-actions">
+          {{if .CanEdit}}<a href="/boards/{{.ID}}?edit">{{t "boards.edit"}}</a>
+          <a href="/boards/{{.ID}}/settings">{{t "boards.settings"}}</a>{{end}}
+          <a href="/boards/{{.ID}}?layout">{{t "boards.my_layout"}}</a>
+        </td>
+      </tr>
+      {{end}}
+      </tbody>
+    </table></div>
+    <p class="small muted">{{t "boards.start_hint"}} <a href="/me/profile">{{t "nav.profile"}}</a></p>
+  </main>
+</body>
+</html>
+{{end}}
+
 {{define "board_new"}}
 <!doctype html>
 <html lang="{{.Ctx.Locale}}">

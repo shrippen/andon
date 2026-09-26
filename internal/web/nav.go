@@ -15,7 +15,7 @@ func (d Deps) addNav(data map[string]any, who *access.Principal) {
 		data["CurBoard"] = int64(0)
 	}
 	if _, ok := data["NavBoards"]; !ok {
-		if list, err := boards.Visible(d.DB, who); err == nil {
+		if list, err := boards.Nav(d.DB, who); err == nil {
 			data["NavBoards"] = list
 		}
 	}

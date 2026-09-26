@@ -46,7 +46,14 @@ func (d Deps) handleHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := boards.StartBoard(d.DB, ctx.Who, nil)
+	// The profile's start board wins; StartBoard falls back to the first
+	// visible board when it is gone or no longer visible.
+	profile, err := accounts.GetProfile(d.DB, ctx.Who)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	id, err := boards.StartBoard(d.DB, ctx.Who, profile.StartBoardID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -101,7 +108,7 @@ func (d Deps) renderBoard(w http.ResponseWriter, r *http.Request, ctx Ctx, embed
 			searchEngine = profile.SearchEngine
 		}
 	}
-	navBoards, err := boards.Visible(d.DB, ctx.Who)
+	navBoards, err := boards.Nav(d.DB, ctx.Who)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

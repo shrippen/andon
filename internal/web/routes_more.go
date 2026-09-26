@@ -20,6 +20,8 @@ import (
 // new board, personal credentials, connection options, ending other
 // sessions, team space settings, widget copy and the language switch.
 func (d Deps) RegisterMoreRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /boards", d.handleBoardList)
+	mux.HandleFunc("POST /boards/{id}/nav", d.handleBoardNav)
 	mux.HandleFunc("GET /boards/new", d.handleBoardNewForm)
 	mux.HandleFunc("POST /boards/new", d.handleBoardCreate)
 	mux.HandleFunc("GET /me/credentials", d.handleCredentials)
@@ -30,6 +32,59 @@ func (d Deps) RegisterMoreRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /spaces/{id}/team-settings", d.handleTeamSpaceSettings)
 	mux.HandleFunc("POST /widgets/{id}/copy", d.handleWidgetCopy)
 	mux.HandleFunc("POST /me/locale", d.handleLocale)
+}
+
+// handleBoardList shows every board the viewer sees, in their own order,
+// to sort and hide in the header and to jump into editing.
+func (d Deps) handleBoardList(w http.ResponseWriter, r *http.Request) {
+	ctx, err := d.Require(r)
+	if err != nil {
+		d.handleAuthError(w, r, err)
+		return
+	}
+	list, err := boards.Listed(d.DB, ctx.Who)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	start := int64(0)
+	if profile, err := accounts.GetProfile(d.DB, ctx.Who); err == nil && profile.StartBoardID != nil {
+		start = *profile.StartBoardID
+	} else if len(list) > 0 {
+		start = list[0].ID
+	}
+	_ = d.Page(w, ctx, "boards", http.StatusOK, map[string]any{"Boards": list, "Start": start, "Last": len(list) - 1})
+}
+
+// handleBoardNav moves a board up or down in the viewer's order, or
+// shows/hides it in the header.
+func (d Deps) handleBoardNav(w http.ResponseWriter, r *http.Request) {
+	ctx, err := d.Require(r)
+	if err != nil {
+		d.handleAuthError(w, r, err)
+		return
+	}
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	switch r.FormValue("move") {
+	case "up":
+		err = boards.MoveNav(d.DB, ctx.Who, id, boards.MoveUp)
+	case "down":
+		err = boards.MoveNav(d.DB, ctx.Who, id, boards.MoveDown)
+	case "toggle":
+		err = boards.ToggleNav(d.DB, ctx.Who, id)
+	default:
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/boards#board-"+r.PathValue("id"), http.StatusSeeOther)
 }
 
 func (d Deps) handleBoardNewForm(w http.ResponseWriter, r *http.Request) {

@@ -125,6 +125,7 @@ type BoardRef struct {
 	Name    string
 	Space   access.SpaceRef
 	CanEdit bool
+	Hidden  bool // left out of the viewer's navigation
 }
 
 // ── Rights ──
@@ -255,10 +256,10 @@ func Visible(d *sql.DB, who *access.Principal) ([]BoardRef, error) {
 	return out, err
 }
 
-// StartBoard returns the user's start board id, creating an empty personal
-// one on first visit.
+// StartBoard returns the user's start board id (without a preference the
+// first in their own order), creating an empty personal one on first visit.
 func StartBoard(d *sql.DB, who *access.Principal, preferred *int64) (int64, error) {
-	listed, err := Visible(d, who)
+	listed, err := Listed(d, who)
 	if err != nil {
 		return 0, err
 	}
