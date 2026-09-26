@@ -33,3 +33,16 @@ func TestKintsugiRules(t *testing.T) {
 		t.Fatalf("fresh suggestions reported: %+v", got)
 	}
 }
+
+// TestKintsugiFingerprintsStay: the same state a few minutes later is the
+// same hint, not a resolved one and a new one.
+func TestKintsugiFingerprintsStay(t *testing.T) {
+	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	for _, id := range []string{"kintsugi.run_failed", "kintsugi.stale"} {
+		a := run(t, id, sources.DemoKintsugi(now), todayEnv(nil))
+		b := run(t, id, sources.DemoKintsugi(now.Add(10*time.Minute)), todayEnv(nil))
+		if len(a) != 1 || len(b) != 1 || a[0].Fingerprint != b[0].Fingerprint {
+			t.Errorf("%s: fingerprints %v then %v", id, a, b)
+		}
+	}
+}

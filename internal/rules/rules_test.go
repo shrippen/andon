@@ -259,3 +259,23 @@ func TestEveryRuleHasLabels(t *testing.T) {
 		}
 	}
 }
+
+// TestNinjaDunningMinimum: an overdue invoice below the minimum amount is
+// no critical reminder (0,50 € left open is no emergency).
+func TestNinjaDunningMinimum(t *testing.T) {
+	data := &sources.NinjaDataset{
+		Invoices: []sources.NinjaInvoice{
+			{ID: 1, ClientID: 1, Status: "sent", DueDate: "2026-01-01", Balance: 0.5},
+			{ID: 2, ClientID: 1, Status: "sent", DueDate: "2026-01-01", Balance: 500},
+		},
+		Clients: []sources.NinjaClient{{ID: 1, Name: "Acme"}},
+	}
+	env := rules.Env{Today: day("2026-02-01"), Settings: map[string]any{}}
+	levels := map[any]enums.Severity{}
+	for _, f := range run(t, "in.invoice_overdue", data, env) {
+		levels[f.Fingerprint] = f.Severity
+	}
+	if levels["overdue:1"] != enums.SeverityInfo || levels["overdue:2"] != enums.SeverityCritical {
+		t.Fatalf("levels: %+v", levels)
+	}
+}

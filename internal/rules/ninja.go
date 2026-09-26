@@ -50,7 +50,9 @@ func nData(data any) *sources.NinjaDataset {
 }
 
 func init() {
-	Register("in.invoice_overdue", string(enums.ServiceInvoiceNinja), map[string]any{"dunning_after_days": 14.0},
+	// Below min_amount an overdue invoice is no critical reminder (a few
+	// cents left open are no emergency).
+	Register("in.invoice_overdue", string(enums.ServiceInvoiceNinja), map[string]any{"dunning_after_days": 14.0, "min_amount": 5.0},
 		func(raw any, cfg map[string]any, env Env) []Finding {
 			data := nData(raw)
 			var found []Finding
@@ -62,6 +64,9 @@ func init() {
 				level, msg := enums.SeverityWarn, "in.overdue"
 				if dunning {
 					level, msg = enums.SeverityCritical, "in.overdue_dunning"
+				}
+				if inv.Balance < cfgFloat(cfg, "min_amount") {
+					level = enums.SeverityInfo
 				}
 				found = append(found, Finding{
 					Fingerprint: fmt.Sprintf("overdue:%d", inv.ID), Rule: "in.invoice_overdue",

@@ -3,7 +3,6 @@ package rules
 import (
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -182,7 +181,7 @@ func init() {
 	Register("snipe.unassigned_deployable", string(enums.ServiceSnipeIT), map[string]any{"days": 90.0},
 		func(raw any, cfg map[string]any, env Env) []Finding {
 			data := sData(raw)
-			var idle []idleAsset
+			var idle []aged
 			for _, a := range data.Assets {
 				if !a.Deployable || a.Assigned {
 					continue
@@ -195,7 +194,7 @@ func init() {
 				if age < cfgInt(cfg, "days") {
 					continue
 				}
-				idle = append(idle, idleAsset{a.Name, age})
+				idle = append(idle, aged{a.Name, age})
 			}
 			if len(idle) == 0 {
 				return nil
@@ -205,7 +204,7 @@ func init() {
 				Fingerprint: "unused", Rule: "snipe.unassigned_deployable",
 				Severity: enums.SeverityInfo, Message: "snipe.unused",
 				Params: map[string]any{"count": len(idle), "days": cfgInt(cfg, "days"), "oldest": idle[0].days,
-					"names": idleNames(idle)},
+					"names": agedNames(idle)},
 				ActionURL: snipeURL(data, "hardware?status=RTD"), ActionLabel: snipeOpen,
 				Sources: []string{snipeSource},
 			}}
@@ -237,38 +236,4 @@ func init() {
 			}
 			return found
 		})
-}
-
-// idleAsset is a ready, unassigned device and how long it has lain.
-type idleAsset struct {
-	name string
-	days int
-}
-
-// idleNames lists the longest idle names first, same names counted once:
-// "Akku, Patchkabel (10×), Stativ +4".
-func idleNames(idle []idleAsset) string {
-	count := map[string]int{}
-	var order []string
-	for _, a := range idle {
-		if count[a.name] == 0 {
-			order = append(order, a.name)
-		}
-		count[a.name]++
-	}
-	shown := make([]string, 0, listShown)
-	for _, name := range order {
-		if len(shown) == listShown {
-			break
-		}
-		if n := count[name]; n > 1 {
-			name += " (" + strconv.Itoa(n) + "×)"
-		}
-		shown = append(shown, name)
-	}
-	out := strings.Join(shown, ", ")
-	if rest := len(order) - len(shown); rest > 0 {
-		out += " +" + strconv.Itoa(rest)
-	}
-	return out
 }

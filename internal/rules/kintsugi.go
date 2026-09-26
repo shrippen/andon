@@ -18,13 +18,14 @@ func init() {
 func registerKintsugi() {
 	svc := string(enums.ServiceKintsugi)
 
+	// One hint per failed day: a failure after an acknowledged one reopens.
 	Register("kintsugi.run_failed", svc, nil, func(raw any, _ map[string]any, _ Env) []Finding {
 		data, _ := raw.(*sources.KintsugiDataset)
 		run := data.LastRun
 		if run == nil || run.Status != sources.KintsugiRunFailed {
 			return nil
 		}
-		return []Finding{svcFinding(svc, "kintsugi.run_failed", "run:"+run.At.UTC().Format(time.RFC3339), "kintsugi.run_failed",
+		return []Finding{svcFinding(svc, "kintsugi.run_failed", "run:"+run.At.Format(time.DateOnly), "kintsugi.run_failed",
 			enums.SeverityWarn, data.URL+"/vorschlaege", map[string]any{"detail": run.Detail})}
 	})
 
@@ -49,7 +50,7 @@ func registerKintsugi() {
 		if days < cfgInt(cfg, "days") {
 			return nil
 		}
-		return []Finding{svcFinding(svc, "kintsugi.stale", "stale:"+oldest.UTC().Format(time.RFC3339), "kintsugi.stale",
+		return []Finding{svcFinding(svc, "kintsugi.stale", "stale", "kintsugi.stale",
 			enums.SeverityInfo, data.URL+"/vorschlaege", map[string]any{"count": data.New, "days": days})}
 	})
 }

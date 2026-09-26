@@ -38,17 +38,24 @@ func registerFreshRSS() {
 			map[string]any{"count": data.Unread, "feeds": strings.Join(top, ", ")})}
 	})
 
+	// One hint for all silent feeds, longest silent first: one per feed
+	// buried every other hint.
 	Register("freshrss.stale_feed", svc, map[string]any{"days": 180.0}, func(raw any, cfg map[string]any, env Env) []Finding {
 		data, _ := raw.(*sources.FreshRSSDataset)
-		var found []Finding
+		var silent []aged
 		for _, f := range data.Feeds {
-			if f.Newest.IsZero() || env.Today.Sub(f.Newest).Hours()/hoursPerDay <= cfgFloat(cfg, "days") {
+			days := env.Today.Sub(f.Newest).Hours() / hoursPerDay
+			if f.Newest.IsZero() || days <= cfgFloat(cfg, "days") {
 				continue
 			}
-			found = append(found, svcFinding(svc, "freshrss.stale_feed", "stale:"+f.ID, "freshrss.stale", enums.SeverityInfo,
-				data.URL, map[string]any{"feed": f.Title, "day": Day(f.Newest)}))
+			silent = append(silent, aged{f.Title, int(days)})
 		}
-		return found
+		if len(silent) == 0 {
+			return nil
+		}
+		names := agedNames(silent)
+		return []Finding{svcFinding(svc, "freshrss.stale_feed", "stale", "freshrss.stale", enums.SeverityInfo, data.URL,
+			map[string]any{"count": len(silent), "days": cfgInt(cfg, "days"), "oldest": silent[0].days, "names": names})}
 	})
 }
 

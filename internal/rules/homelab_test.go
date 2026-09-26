@@ -58,7 +58,7 @@ func TestFreshRSSRules(t *testing.T) {
 	if len(got) != 1 || got[0].Params["feeds"] != "heise online (540), Selfhosted Weekly (260), Go Blog (12)" {
 		t.Fatalf("backlog: %+v", got)
 	}
-	if got := run(t, "freshrss.stale_feed", data, todayEnv(nil)); len(got) != 1 || got[0].Params["feed"] != "Altes Projektblog" {
+	if got := run(t, "freshrss.stale_feed", data, todayEnv(nil)); len(got) != 1 || got[0].Params["names"] != "Altes Projektblog" {
 		t.Fatalf("stale: %+v", got)
 	}
 }
@@ -189,5 +189,22 @@ func TestPGBackWebRules(t *testing.T) {
 	}
 	if got := run(t, "pgbackweb.silent", &sources.PGBackDataset{}, env); len(got) != 1 {
 		t.Fatalf("silent: %+v", got)
+	}
+}
+
+// TestFreshRSSStaleFeedsBundled: silent feeds are one hint, longest silent
+// first, not one hint per feed.
+func TestFreshRSSStaleFeedsBundled(t *testing.T) {
+	env := todayEnv(nil)
+	ago := func(days int) time.Time { return env.Today.AddDate(0, 0, -days) }
+	data := &sources.FreshRSSDataset{URL: "https://rss", Feeds: []sources.Feed{
+		{ID: "1", Title: "Blog A", Newest: ago(200)},
+		{ID: "2", Title: "Blog B", Newest: ago(400)},
+		{ID: "3", Title: "Fresh", Newest: ago(2)},
+		{ID: "4", Title: "Blog C", Newest: ago(190)},
+	}}
+	got := run(t, "freshrss.stale_feed", data, env)
+	if len(got) != 1 || got[0].Params["count"] != 3 || got[0].Params["names"] != "Blog B, Blog A, Blog C" || got[0].Params["oldest"] != 400 {
+		t.Fatalf("stale: %+v", got)
 	}
 }
