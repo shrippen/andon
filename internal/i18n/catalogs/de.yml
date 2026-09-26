@@ -226,6 +226,7 @@ field:
   locale: Sprache
   color_mode: Hell/Dunkel
   theme: Theme
+  theme_hint: 'Nur für dich. „Standard“ folgt dem Theme der Instanz (Einrichten → Instanz). Ein Board, das ein Theme erzwingt, behält seins.'
   theme_forced: Theme erzwingen
   start_board: Start-Board
   search_engine: Suchmaschine
@@ -1119,6 +1120,7 @@ themes:
 theme:
   none: – keins –
   default: Standard
+  not_usable: Dieses Theme steht dir nicht zur Verfügung.
   bad_value: Ungültiger Token-Wert.
   builtin: Mitgelieferte Themes sind schreibgeschützt.
   css_invalid: CSS ungültig oder zu lang.
@@ -1688,8 +1690,8 @@ hint:
       title: '{item}: nur noch {left}'
       why: Mindestbestand {min}.
     unused:
-      title: '{asset} seit {days} Tagen ungenutzt'
-      why: Einsatzbereit, aber niemandem zugewiesen. Verkaufen oder einsetzen?
+      title: 'Ungenutzte Geräte: {count} seit über {days} Tagen'
+      why: 'Einsatzbereit, aber niemandem zugewiesen; am längsten ({oldest} Tage): {names}. Verkaufen, einsetzen oder die Regel ausschalten, wenn das bei dir normal ist.'
     gwg:
       title: '{asset}: {net} netto'
       why: 'Über 800 € netto: Abschreibung statt Sofortabzug als GWG prüfen.'

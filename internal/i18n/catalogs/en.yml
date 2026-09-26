@@ -226,6 +226,7 @@ field:
   locale: Language
   color_mode: Light/dark
   theme: Theme
+  theme_hint: 'Just for you. “Default” follows the instance theme (Setup → Instance). A board that forces a theme keeps its own.'
   theme_forced: Force theme
   start_board: Start board
   search_engine: Search engine
@@ -1119,6 +1120,7 @@ themes:
 theme:
   none: – none –
   default: Default
+  not_usable: This theme is not available to you.
   bad_value: Invalid token value.
   builtin: Shipped themes are read-only.
   css_invalid: CSS invalid or too long.
@@ -1687,8 +1689,8 @@ hint:
       title: '{item}: only {left} left'
       why: Minimum stock {min}.
     unused:
-      title: '{asset} unused for {days} days'
-      why: Ready to deploy but not assigned. Sell or use it?
+      title: 'Unused devices: {count} for over {days} days'
+      why: 'Ready to deploy but not assigned; longest ({oldest} days): {names}. Sell, use, or switch the rule off if this is normal for you.'
     gwg:
       title: '{asset}: {net} net'
       why: 'Above 800 € net: check depreciation instead of immediate write-off (GWG).'
