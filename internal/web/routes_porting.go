@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -42,9 +43,12 @@ func (d Deps) handleImportForm(w http.ResponseWriter, r *http.Request) {
 	d.importPage(w, ctx, http.StatusOK, nil)
 }
 
+// handleImportRun previews an upload first (a dry run that shows what
+// would be created and skipped); the preview's confirm button sends the
+// same text back with confirm set to import it.
 func (d Deps) handleImportRun(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxImportSize+maxIconForm)
-	if err := r.ParseMultipartForm(maxImportSize); err != nil {
+	if err := r.ParseMultipartForm(maxImportSize); err != nil && !errors.Is(err, http.ErrNotMultipart) {
 		http.Error(w, "import.too_large", http.StatusRequestEntityTooLarge)
 		return
 	}
@@ -58,23 +62,40 @@ func (d Deps) handleImportRun(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad form", http.StatusBadRequest)
 		return
 	}
-	blob, err := uploaded(r)
-	if err != nil {
+	text := r.FormValue("text")
+	if blob, err := uploaded(r); err == nil {
+		text = string(blob)
+	}
+	if text == "" {
 		http.Error(w, "missing file", http.StatusBadRequest)
 		return
 	}
 
+	kind := r.FormValue("kind")
+	apply := porting.DryRun
+	if r.FormValue("confirm") != "" {
+		apply = porting.Commit
+	}
 	var report *porting.Report
-	if r.FormValue("kind") == importDashy {
-		report, err = porting.ImportDashy(d.DB, ctx.Who, space, string(blob))
-	} else {
-		report, err = porting.ImportSpace(d.DB, ctx.Who, space, string(blob), porting.Merge)
+	switch {
+	case kind == importDashy && apply == porting.Commit:
+		report, err = porting.ImportDashy(d.DB, ctx.Who, space, text)
+	case kind == importDashy:
+		report, err = porting.PreviewDashy(d.DB, ctx.Who, space, text)
+	case apply == porting.Commit:
+		report, err = porting.ImportSpace(d.DB, ctx.Who, space, text, porting.Merge)
+	default:
+		report, err = porting.PreviewSpace(d.DB, ctx.Who, space, text, porting.Merge)
 	}
 	if err != nil {
 		d.importPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	d.importPage(w, ctx, http.StatusOK, map[string]any{"Report": report})
+	if apply == porting.Commit {
+		d.importPage(w, ctx, http.StatusOK, map[string]any{"Report": report})
+		return
+	}
+	d.importPage(w, ctx, http.StatusOK, map[string]any{"Preview": report, "Text": text, "Kind": kind, "SpaceID": space})
 }
 
 func (d Deps) codePage(w http.ResponseWriter, ctx Ctx, space int64, status int, extra map[string]any) {

@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"html"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -20,8 +21,20 @@ func TestImportDashyAndCodeView(t *testing.T) {
 	resp := postFile(t, client, srv.URL+"/import", map[string]string{"csrf": csrf, "space_id": string(space), "kind": "dashy"}, "conf.yml", []byte(conf))
 	body := readAll(t, resp)
 	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK || !strings.Contains(body, "1 Boards, 1 Widgets") {
-		t.Fatalf("dashy import: %d\n%s", resp.StatusCode, body)
+	if resp.StatusCode != http.StatusOK || !strings.Contains(body, `import-preview`) || !strings.Contains(body, "1 Boards, 1 Widgets") {
+		t.Fatalf("dashy preview: %d\n%s", resp.StatusCode, body)
+	}
+	if strings.Contains(string(mustGet(t, srv, client, "/spaces/"+string(space)+"/code")), "si-gitea") {
+		t.Fatal("preview already imported")
+	}
+	text := regexp.MustCompile(`(?s)<textarea name="text" hidden>(.*?)</textarea>`).FindStringSubmatch(body)
+	if text == nil {
+		t.Fatalf("preview carries no file to confirm:\n%s", body)
+	}
+	resp = postForm(t, client, srv.URL+"/import", url.Values{"csrf": {csrf}, "space_id": {string(space)}, "kind": {"dashy"},
+		"text": {html.UnescapeString(text[1])}, "confirm": {"1"}})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("dashy import: %d", resp.StatusCode)
 	}
 
 	code2 := string(mustGet(t, srv, client, "/spaces/"+string(space)+"/code"))

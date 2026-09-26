@@ -318,3 +318,25 @@ func TestTemplatesApply(t *testing.T) {
 		t.Fatalf("unknown: %v", err)
 	}
 }
+
+// TestDashyPreview: the preview reports what an import would create,
+// board names included, and leaves the space untouched.
+func TestDashyPreview(t *testing.T) {
+	d := setup(t)
+	who, space := user(t, d, "a@x.de")
+
+	before, _ := widgetlib.Library(d, who)
+	report, err := porting.PreviewDashy(d, who, space, dashy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Boards != 1 || report.Widgets != 5 || len(report.BoardNames) != 1 || !contains(report.Skipped, "not-a-url") {
+		t.Fatalf("preview report: %+v", report)
+	}
+	if visible, _ := boards.Visible(d, who); len(visible) != 0 {
+		t.Fatalf("preview created boards: %+v", visible)
+	}
+	if after, _ := widgetlib.Library(d, who); len(after) != len(before) {
+		t.Fatalf("preview created widgets: %d → %d", len(before), len(after))
+	}
+}

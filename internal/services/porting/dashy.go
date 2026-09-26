@@ -371,6 +371,15 @@ func number(v any) (float64, bool) {
 
 // ImportDashy translates and merges a Dashy conf.yml into a space.
 func ImportDashy(d *sql.DB, who *access.Principal, spaceID int64, text string) (*Report, error) {
+	return importDashy(d, who, spaceID, text, Commit)
+}
+
+// PreviewDashy reports what ImportDashy would do, changing nothing.
+func PreviewDashy(d *sql.DB, who *access.Principal, spaceID int64, text string) (*Report, error) {
+	return importDashy(d, who, spaceID, text, DryRun)
+}
+
+func importDashy(d *sql.DB, who *access.Principal, spaceID int64, text string, apply Apply) (*Report, error) {
 	doc, pre, err := DashyToDoc(text)
 	if err != nil {
 		return nil, err
@@ -379,12 +388,15 @@ func ImportDashy(d *sql.DB, who *access.Principal, spaceID int64, text string) (
 	if err != nil {
 		return nil, err
 	}
-	report, err := ImportSpace(d, who, spaceID, yamlText, Merge)
+	report, err := importSpace(d, who, spaceID, yamlText, Merge, apply)
 	if err != nil {
 		return nil, err
 	}
 	report.Skipped = append(pre.Skipped, report.Skipped...)
 	report.Notes = append(pre.Notes, report.Notes...)
+	if apply == DryRun {
+		return report, nil
+	}
 
 	note, err := dashyTheme(d, who, spaceID, text)
 	if err != nil {

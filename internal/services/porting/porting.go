@@ -44,6 +44,17 @@ const (
 	Replace Mode = "replace"
 )
 
+// Apply decides whether an import is kept or only reported.
+type Apply int
+
+const (
+	Commit Apply = iota
+	DryRun       // run in a transaction that is rolled back
+)
+
+// errDryRun rolls a preview's transaction back.
+var errDryRun = errors.New("porting: dry run")
+
 // Errors carry catalog keys.
 var (
 	ErrTooLarge   = errors.New("import.too_large")
@@ -55,6 +66,7 @@ type Report struct {
 	Boards      int
 	Widgets     int
 	Connections int
+	BoardNames  []string
 	Skipped     []string
 	Notes       []string
 }
@@ -300,6 +312,15 @@ func intOf(v any) (int, bool) {
 
 // ImportSpace applies an import document to a space. Requires EDIT.
 func ImportSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, mode Mode) (*Report, error) {
+	return importSpace(d, who, spaceID, text, mode, Commit)
+}
+
+// PreviewSpace reports what ImportSpace would do, changing nothing.
+func PreviewSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, mode Mode) (*Report, error) {
+	return importSpace(d, who, spaceID, text, mode, DryRun)
+}
+
+func importSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, mode Mode, apply Apply) (*Report, error) {
 	doc, err := Load(text)
 	if err != nil {
 		return nil, err
@@ -336,8 +357,14 @@ func ImportSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, m
 				return err
 			}
 		}
+		if apply == DryRun {
+			return errDryRun
+		}
 		return nil
 	})
+	if errors.Is(err, errDryRun) {
+		err = nil
+	}
 	return report, err
 }
 
@@ -584,6 +611,7 @@ func importBoard(q db.Queryer, who *access.Principal, spaceID int64, item map[st
 		}
 	}
 	report.Boards++
+	report.BoardNames = append(report.BoardNames, name)
 	return nil
 }
 

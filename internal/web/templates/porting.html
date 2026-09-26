@@ -20,6 +20,23 @@
     <p class="muted">{{t "import.lead"}}</p>
     {{if .Error}}<p class="error">{{t "code.error"}}: <code>{{t .Error}}</code></p>{{end}}
     {{with .Report}}{{template "report" .}}{{end}}
+    {{with .Preview}}
+    <section class="card import-preview">
+      <h2>{{t "import.preview"}}</h2>
+      <p>{{t "import.would" "boards" .Boards "widgets" .Widgets "connections" .Connections}}</p>
+      {{if .BoardNames}}<p class="small">{{t "import.board_names"}}: {{range $i, $n := .BoardNames}}{{if $i}}, {{end}}<b>{{$n}}</b>{{end}}</p>{{end}}
+      {{if .Skipped}}<details open><summary>{{t "report.skipped"}} ({{len .Skipped}})</summary><ul>{{range .Skipped}}<li><code>{{.}}</code></li>{{end}}</ul></details>{{end}}
+      {{if .Notes}}<details><summary>{{t "report.notes"}} ({{len .Notes}})</summary><ul>{{range .Notes}}<li>{{.}}</li>{{end}}</ul></details>{{end}}
+      <form method="post" action="/import" class="row-actions">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+        <input type="hidden" name="space_id" value="{{$.SpaceID}}">
+        <input type="hidden" name="kind" value="{{$.Kind}}">
+        <textarea name="text" hidden>{{$.Text}}</textarea>
+        <button type="submit" name="confirm" value="1">{{t "import.confirm"}}</button>
+        <a class="link-btn" href="/import">{{t "action.cancel"}}</a>
+      </form>
+    </section>
+    {{else}}
     <form method="post" action="/import" enctype="multipart/form-data" class="card">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <label for="import_space">{{t "field.space"}}</label>
@@ -28,8 +45,9 @@
       <select id="import_kind" name="kind"><option value="dashy">Dashy conf.yml</option><option value="yaml">Andon YAML</option></select>
       <label for="import_file">{{t "import.file"}}</label>
       <input id="import_file" type="file" name="file" accept=".yml,.yaml" required>
-      <button type="submit">{{t "import.run"}}</button>
+      <button type="submit">{{t "import.check"}}</button>
     </form>
+    {{end}}
   </main>
 </body>
 </html>
