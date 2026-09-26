@@ -24,9 +24,12 @@ import (
 
 const (
 	// Keep is how many copies stay on disk.
-	Keep        = 7
-	JobName     = "selfbackup"
-	Interval    = 24 * time.Hour
+	Keep     = 7
+	JobName  = "selfbackup"
+	Interval = 24 * time.Hour
+	// Check is how often the job looks whether a copy is due; restarts
+	// then cannot keep pushing the daily copy out.
+	Check       = time.Hour
 	filePrefix  = "andon-"
 	fileExt     = ".db"
 	stampLayout = "20060102-150405"
@@ -93,6 +96,20 @@ func Run(d *sql.DB, dir string, now time.Time) (Status, error) {
 		return status, err
 	}
 	return status, save(d, status)
+}
+
+// RunDue runs a backup when the last one is at least Interval old (or
+// there is none) and reports whether it ran.
+func RunDue(d *sql.DB, dir string, now time.Time) (bool, error) {
+	last, err := Last(d)
+	if err != nil {
+		return false, err
+	}
+	if last != nil && now.Sub(last.At) < Interval {
+		return false, nil
+	}
+	_, err = Run(d, dir, now)
+	return true, err
 }
 
 // RunNow starts a backup on an admin's request.

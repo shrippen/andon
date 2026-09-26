@@ -98,6 +98,7 @@ func RunAll(ctx context.Context, d *sql.DB, today time.Time) (int, error) {
 		}
 		fresh += n
 	}
+	syncBackup(d, today)
 	return fresh, nil
 }
 

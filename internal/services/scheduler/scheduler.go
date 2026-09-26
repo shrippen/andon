@@ -5,6 +5,7 @@
 //	every 1 min   push notifications
 //	every 5 min   digest mails
 //	hourly        housekeeping (sessions, cache, hints, audit)
+//	hourly        own backup, when the last copy is a day old
 //	daily         retry icons that failed to download
 package scheduler
 

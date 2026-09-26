@@ -46,8 +46,8 @@ func backgroundJobs(database *sql.DB, cfg settings.Settings) []scheduler.Job {
 		{Name: "icons", Interval: day, Run: func(context.Context) error {
 			return icons.ForgetMisses()
 		}},
-		{Name: selfbackup.JobName, Interval: selfbackup.Interval, Run: func(context.Context) error {
-			_, err := selfbackup.Run(database, cfg.BackupsDir(), time.Now())
+		{Name: selfbackup.JobName, Interval: selfbackup.Check, Start: scheduler.AtStart, Run: func(context.Context) error {
+			_, err := selfbackup.RunDue(database, cfg.BackupsDir(), time.Now())
 			return err
 		}},
 		{Name: "housekeeping", Interval: hour, Run: func(context.Context) error {

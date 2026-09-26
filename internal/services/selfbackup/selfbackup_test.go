@@ -72,3 +72,30 @@ func TestRunVerifiesAndPrunes(t *testing.T) {
 		t.Fatalf("failed copy kept")
 	}
 }
+
+// TestRunDueSurvivesRestarts: a process restarted more often than once a
+// day still backs up, because the job checks the last copy's age instead
+// of waiting a day after start.
+func TestRunDueSurvivesRestarts(t *testing.T) {
+	crypto.Init("test-master-key")
+	d, err := db.Open(filepath.Join(t.TempDir(), "live.db"), dbtest.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	dir := filepath.Join(t.TempDir(), "backups")
+	start := time.Date(2026, 9, 1, 3, 0, 0, 0, time.UTC)
+
+	for _, step := range []struct {
+		after time.Duration
+		ran   bool
+	}{{0, true}, {time.Hour, false}, {selfbackup.Interval + time.Minute, true}} {
+		ran, err := selfbackup.RunDue(d, dir, start.Add(step.after))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ran != step.ran {
+			t.Fatalf("after %v: ran=%v, want %v", step.after, ran, step.ran)
+		}
+	}
+}
