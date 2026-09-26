@@ -2,6 +2,8 @@ package rules
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -175,10 +177,12 @@ func init() {
 			return found
 		})
 
+	// One hint for all ready but unassigned devices: own gear lies in the
+	// shelf as a matter of course, one hint per patch cable is noise.
 	Register("snipe.unassigned_deployable", string(enums.ServiceSnipeIT), map[string]any{"days": 90.0},
 		func(raw any, cfg map[string]any, env Env) []Finding {
 			data := sData(raw)
-			var found []Finding
+			var idle []idleAsset
 			for _, a := range data.Assets {
 				if !a.Deployable || a.Assigned {
 					continue
@@ -191,15 +195,20 @@ func init() {
 				if age < cfgInt(cfg, "days") {
 					continue
 				}
-				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("unused:%d", a.ID), Rule: "snipe.unassigned_deployable",
-					Severity: enums.SeverityInfo, Message: "snipe.unused",
-					Params:    map[string]any{"asset": a.Name, "days": age},
-					ActionURL: snipeURL(data, fmt.Sprintf("hardware/%d", a.ID)), ActionLabel: snipeOpen,
-					Sources: []string{snipeSource},
-				})
+				idle = append(idle, idleAsset{a.Name, age})
 			}
-			return found
+			if len(idle) == 0 {
+				return nil
+			}
+			sort.SliceStable(idle, func(i, j int) bool { return idle[i].days > idle[j].days })
+			return []Finding{{
+				Fingerprint: "unused", Rule: "snipe.unassigned_deployable",
+				Severity: enums.SeverityInfo, Message: "snipe.unused",
+				Params: map[string]any{"count": len(idle), "days": cfgInt(cfg, "days"), "oldest": idle[0].days,
+					"names": idleNames(idle)},
+				ActionURL: snipeURL(data, "hardware?status=RTD"), ActionLabel: snipeOpen,
+				Sources: []string{snipeSource},
+			}}
 		})
 
 	Register("snipe.gwg_hint", string(enums.ServiceSnipeIT), map[string]any{"cost_is_gross": true},
@@ -228,4 +237,38 @@ func init() {
 			}
 			return found
 		})
+}
+
+// idleAsset is a ready, unassigned device and how long it has lain.
+type idleAsset struct {
+	name string
+	days int
+}
+
+// idleNames lists the longest idle names first, same names counted once:
+// "Akku, Patchkabel (10×), Stativ +4".
+func idleNames(idle []idleAsset) string {
+	count := map[string]int{}
+	var order []string
+	for _, a := range idle {
+		if count[a.name] == 0 {
+			order = append(order, a.name)
+		}
+		count[a.name]++
+	}
+	shown := make([]string, 0, listShown)
+	for _, name := range order {
+		if len(shown) == listShown {
+			break
+		}
+		if n := count[name]; n > 1 {
+			name += " (" + strconv.Itoa(n) + "×)"
+		}
+		shown = append(shown, name)
+	}
+	out := strings.Join(shown, ", ")
+	if rest := len(order) - len(shown); rest > 0 {
+		out += " +" + strconv.Itoa(rest)
+	}
+	return out
 }
