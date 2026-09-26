@@ -1,6 +1,7 @@
 package web
 
 import (
+	"andon/internal/services/accounts"
 	"errors"
 	"io"
 	"net/http"
@@ -98,6 +99,23 @@ func (d Deps) themeListPage(w http.ResponseWriter, ctx Ctx, status int, extra ma
 		return
 	}
 	values := map[string]any{"Items": items, "Spaces": access.EditableSpaces(ctx.Who), "Presets": themes.Presets()}
+	// Which theme applies: the instance default, your own, and the one
+	// in use now (yours if set, else the default).
+	var builtin, instance, mine int64
+	for _, t := range items {
+		if t.Builtin {
+			builtin = t.ID
+		}
+	}
+	instance = builtin
+	if def, err := themes.DefaultID(d.DB); err == nil && def != nil {
+		instance = *def
+	}
+	if profile, err := accounts.GetProfile(d.DB, ctx.Who); err == nil && profile.ThemeID != nil {
+		mine = *profile.ThemeID
+	}
+	active, _ := themes.Active(d.DB, ctx.Who, nil, nil)
+	values["InstanceTheme"], values["MyTheme"], values["ActiveTheme"] = instance, mine, active
 	for k, v := range extra {
 		values[k] = v
 	}

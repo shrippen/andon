@@ -12,6 +12,7 @@ package web
 // connection (live) or demo data; /widgets/{id}/preview a library widget.
 
 import (
+	"andon/internal/services/icons"
 	"net/http"
 	"slices"
 	"strconv"
@@ -192,8 +193,17 @@ func (d Deps) renderPreview(w http.ResponseWriter, ctx Ctx, kind widgets.WidgetT
 		return
 	}
 	name := kind.Template
+	values := map[string]any{"Frag": frag, "Kind": kind, "ThemeURL": ""}
 	if kind.Key == linkType {
 		name = "widget_preview"
+		// The same icon the board shows: emoji, else an image.
+		if link, ok := frag.Config.(widgets.LinkConfig); ok {
+			icon := map[string]any{"Emoji": icons.Emoji(link.Icon), "Glyph": icons.Glyph(link.Icon)}
+			if icon["Emoji"] == "" {
+				icon["URL"] = icons.URL(link.Icon, link.URL)
+			}
+			values["Icon"] = icon
+		}
 	}
-	_ = d.Page(w, ctx, name, http.StatusOK, map[string]any{"Frag": frag, "Kind": kind, "ThemeURL": ""})
+	_ = d.Page(w, ctx, name, http.StatusOK, values)
 }

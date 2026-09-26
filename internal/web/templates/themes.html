@@ -24,12 +24,15 @@
       <tr><th>{{t "field.name"}}</th><th></th></tr>
       {{range .Items}}
       <tr>
-        <td>{{.Name}}{{if .Builtin}} <span class="pill">{{t "themes.builtin"}}</span>{{end}}</td>
+        <td>{{.Name}}{{if .Builtin}} <span class="pill">{{t "themes.builtin"}}</span>{{end}}
+          {{if eq .ID $.ActiveTheme}} <span class="pill" data-state="ok">{{t "themes.active"}}</span>{{end}}
+          {{if eq .ID $.InstanceTheme}} <span class="pill">{{t "themes.instance_default"}}</span>{{end}}
+          {{if eq .ID $.MyTheme}} <span class="pill">{{t "themes.mine"}}</span>{{end}}</td>
         <td class="row-actions">
           <a class="link-btn" href="/themes/{{.ID}}">{{if .CanEdit}}{{t "action.edit"}}{{else}}{{t "themes.view"}}{{end}}</a>
           <a class="link-btn" href="/themes/{{.ID}}/export">{{t "action.export"}}</a>
           {{if not .Builtin}}<a class="link-btn" href="/shares/theme/{{.ID}}">{{t "share.title"}}</a>{{end}}
-          <details class="inline-details"><summary>{{t "themes.duplicate"}}</summary>
+          <details class="inline-details"><summary class="link-btn">{{t "themes.duplicate"}}</summary>
             <form method="post" action="/themes/duplicate" class="inline-form">
               <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
               <input type="hidden" name="theme_id" value="{{.ID}}">
@@ -145,10 +148,7 @@
     {{end}}
 
     {{if .Editable}}
-    <form method="post" action="/themes/{{.Theme.ID}}/delete" data-confirm="{{t "edit.confirm_delete"}}">
-      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-      <button type="submit" class="ghost">{{t "action.delete"}}</button>
-    </form>
+    {{template "danger_zone" dict "Action" (print "/themes/" .Theme.ID "/delete") "Text" (t "themes.delete_hint") "Button" (t "action.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{end}}
   </main>
 </body>

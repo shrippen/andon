@@ -42,14 +42,14 @@
         <input id="name" name="name">
         <label for="url">{{t "field.url"}}</label>
         <input id="url" name="url" placeholder="ntfy://host/topic" required>
-        <label for="level">{{t "notify.timing"}}</label>
+        <label for="level">{{t "notify.min_level"}}</label>
         <select id="level" name="level">
           {{range .Levels}}<option value="{{.}}">{{if eq . 30}}{{t "severity.critical"}}{{else if eq . 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}</option>{{end}}
         </select>
-        <label for="sources">{{t "notify.sources"}}</label>
-        <select id="sources" name="sources" multiple size="6">
-          {{range .Services}}<option value="{{.}}">{{t (print "service." .)}}</option>{{end}}
-        </select>
+        <fieldset class="chip-picks">
+          <legend>{{t "notify.sources"}}</legend>
+          {{range .Services}}<label class="chip-pick"><input type="checkbox" name="sources" value="{{.}}"><span>{{t (print "service." .)}}</span></label>{{end}}
+        </fieldset>
         <p class="small muted">{{t "notify.sources_hint"}}</p>
         <button type="submit">{{t "action.create"}}</button>
       </form>

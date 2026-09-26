@@ -31,11 +31,7 @@
       <button type="submit">{{t "action.save"}}</button>
     </form>
     <p><a class="link-btn" href="/boards/{{.Board.ID}}/export">{{t "action.export"}}</a></p>
-    <form method="post" action="/boards/{{.Board.ID}}/delete" style="margin-top:1rem"
-          data-confirm="{{t "edit.confirm_delete"}}">
-      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-      <button type="submit">{{t "board.delete"}}</button>
-    </form>
+    {{template "danger_zone" dict "Action" (print "/boards/" .Board.ID "/delete") "Text" (t "board.delete_hint") "Button" (t "board.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
   </main>
 </body>
 </html>
@@ -64,7 +60,9 @@
     {{range .Groups}}
     <section class="gal-group lib-group">
       <h2>{{if .Topic}}{{t (print "topic." .Topic)}}{{else}}{{t "library.links"}}{{end}} <span class="hint-group-count">{{len .Tiles}}</span></h2>
-      <div class="table-wrap"><table class="table">
+      {{/* Same column widths in every group, so buttons line up. */}}
+      <div class="table-wrap"><table class="table lib-table">
+        <colgroup><col class="lib-name"><col class="lib-space"><col class="lib-uses"><col class="lib-actions"></colgroup>
         {{range .Tiles}}
         {{$type := t (print "wtype." .Type ".name")}}
         <tr data-q="{{.Name}} {{$type}} {{.Space.Name}}">
@@ -73,7 +71,7 @@
           <td class="small muted">{{if .Uses}}{{t "gallery.uses" "n" .Uses}}{{else}}{{t "gallery.unused"}}{{end}}</td>
           <td class="row-actions">{{if .CanEdit}}<a class="link-btn" href="/widgets/{{.ID}}/edit">{{t "action.edit"}}</a>{{end}}
             <a class="link-btn" href="/shares/widget/{{.ID}}">{{t "edit.share"}}</a>
-            <details class="inline-details"><summary>{{t "library.copy"}}</summary>
+            <details class="inline-details"><summary class="link-btn">{{t "library.copy"}}</summary>
               <form method="post" action="/widgets/{{.ID}}/copy" class="inline-form">
                 <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
                 <select name="space_id" aria-label="{{t "field.space"}}">{{range $.Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
@@ -148,7 +146,7 @@
         {{range .Cards}}
           {{$svc := ""}}{{with .Kind.Service}}{{$svc = t (print "service." .)}}{{end}}
           <article class="gal-card" data-q="{{.Name}} {{$svc}} {{.Desc}}"{{if or .ConnID (not .Kind.Service)}} data-mine{{end}}>
-            <div class="gal-preview" aria-hidden="true"><div class="gal-thumb" hx-get="/widget-sample/{{.Kind.Key}}?space={{$.Target.SpaceID}}{{with .ConnID}}&conn={{.}}{{end}}" hx-trigger="intersect once"></div></div>
+            <div class="gal-preview" aria-hidden="true"><div class="gal-thumb" data-loading="{{t "gallery.preview_loading"}}" hx-get="/widget-sample/{{.Kind.Key}}?space={{$.Target.SpaceID}}{{with .ConnID}}&conn={{.}}{{end}}" hx-trigger="intersect once"></div></div>
             <div class="gal-meta">
               {{if .Kind.Service}}<span class="label">{{$svc}}
                 {{if .ConnID}}<span class="pill" data-state="ok">{{t "gallery.live"}}</span>{{else}}<span class="pill" data-state="warn">{{t "gallery.sample"}}</span>{{end}}</span>{{end}}
@@ -183,7 +181,7 @@
 {{define "gal_tile"}}{{$p := .P}}{{with .T}}
           {{$type := t (print "wtype." .Type ".name")}}
           <article class="gal-card" data-q="{{.Name}} {{$type}}" data-mine>
-            <div class="gal-preview" aria-hidden="true"><div class="gal-thumb" hx-get="/widgets/{{.ID}}/preview" hx-trigger="intersect once"></div></div>
+            <div class="gal-preview" aria-hidden="true"><div class="gal-thumb" data-loading="{{t "gallery.preview_loading"}}" hx-get="/widgets/{{.ID}}/preview" hx-trigger="intersect once"></div></div>
             <div class="gal-meta">
               <span class="label">{{$type}} · {{.Space.Name}}</span>
               <b>{{.Name}}</b>
@@ -325,10 +323,7 @@
     </div>
 
     {{if .Widget}}
-      <form method="post" action="/widgets/{{.Widget.ID}}/delete" data-confirm="{{t "edit.confirm_delete"}}">
-        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <button type="submit" class="ghost">{{t "action.delete"}}</button>
-      </form>
+      {{template "danger_zone" dict "Action" (print "/widgets/" .Widget.ID "/delete") "Text" (t "widget.delete_hint") "Button" (t "action.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{end}}
   </main>
 </body>
@@ -339,7 +334,7 @@
      fragment template into the form's static preview card. */}}
 {{define "widget_preview"}}
 {{$c := .Frag.Config}}
-<a class="launch" href="#preview"><span class="launch-icon"><span class="mono">{{monogram .Frag.Title}}</span></span>
+<a class="launch" href="#preview"><span class="launch-icon">{{with .Icon}}{{if .Emoji}}<span class="emoji" aria-hidden="true">{{.Emoji}}</span>{{else if .URL}}<img src="{{.URL}}" alt=""{{if .Glyph}} class="is-glyph"{{end}}>{{else}}<span class="mono">{{monogram $.Frag.Title}}</span>{{end}}{{else}}<span class="mono">{{monogram .Frag.Title}}</span>{{end}}</span>
   <span class="launch-body"><b class="launch-title">{{.Frag.Title}}</b>{{if $c.Description}}<small class="launch-desc">{{$c.Description}}</small>{{end}}
   <span class="launch-live">{{template "widgets/link" .}}</span></span></a>
 {{end}}

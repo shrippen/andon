@@ -1,6 +1,7 @@
 package web
 
 import (
+	"andon/internal/services/connections"
 	"net/http"
 	"strconv"
 
@@ -35,7 +36,7 @@ func (d Deps) notifyPage(w http.ResponseWriter, r *http.Request, ctx Ctx, status
 	values := map[string]any{
 		"Channels": chans, "Prefs": prefs, "Levels": severityLevels,
 		"Weekdays": notify.Weekdays, "BaseURL": d.Settings.BaseURL, "SummaryAvailable": summary.Enabled(),
-		"Services": enums.Services,
+		"Services": d.usedServices(ctx),
 	}
 	for k, v := range extra {
 		values[k] = v
@@ -132,4 +133,24 @@ func (d Deps) handleNotifyPrefsSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/me/notify", http.StatusSeeOther)
+}
+
+// usedServices are the services the caller has a connection to, in form
+// order: the choices worth offering as notification sources.
+func (d Deps) usedServices(ctx Ctx) []enums.ServiceType {
+	conns, err := connections.Listing(d.DB, ctx.Who, enums.RightView)
+	if err != nil || len(conns) == 0 {
+		return enums.Services
+	}
+	used := map[enums.ServiceType]bool{}
+	for _, c := range conns {
+		used[c.Service] = true
+	}
+	var out []enums.ServiceType
+	for _, s := range enums.Services {
+		if used[s] {
+			out = append(out, s)
+		}
+	}
+	return out
 }

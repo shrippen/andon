@@ -145,6 +145,10 @@ func TestProfileTheme(t *testing.T) {
 	if !strings.Contains(string(profile), `<option value="`+id+`" selected>`) {
 		t.Fatal("profile does not show the chosen theme")
 	}
+	if list := string(mustGet(t, srv, client, "/themes")); !regexp.MustCompile(`Dracula[\s\S]{0,300}Aktiv[\s\S]{0,200}Dein Theme`).MatchString(list) ||
+		!strings.Contains(list, "Instanz-Standard") {
+		t.Fatalf("theme list does not mark the active, own and default theme:\n%s", list)
+	}
 
 	if got := save(""); got != http.StatusSeeOther {
 		t.Fatalf("reset theme: %d", got)
