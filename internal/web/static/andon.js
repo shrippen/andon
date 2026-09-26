@@ -221,15 +221,21 @@
   }
 
   // ── Command palette (Ctrl+K) and shortcut help (?) ──
-  var PALETTE_MAX = 12;
+  var PALETTE_PER_GROUP = 5;
   var paletteItems = null;
   var paletteSel = 0;
 
+  // paletteMatches keeps the server's grouped order and a few hits per group.
   function paletteMatches(q) {
     q = q.trim().toLowerCase();
+    var per = {};
     return (paletteItems || []).filter(function (it) {
-      return !q || (it.title + " " + (it.detail || "") + " " + it.url).toLowerCase().indexOf(q) >= 0;
-    }).slice(0, PALETTE_MAX);
+      if (q && (it.title + " " + (it.detail || "") + " " + it.url).toLowerCase().indexOf(q) < 0) {
+        return false;
+      }
+      per[it.kind] = (per[it.kind] || 0) + 1;
+      return per[it.kind] <= PALETTE_PER_GROUP;
+    });
   }
 
   function renderPalette() {
@@ -238,7 +244,16 @@
     var hits = paletteMatches(q);
     paletteSel = Math.min(paletteSel, Math.max(hits.length - 1, 0));
     list.innerHTML = "";
+    var group = null;
     hits.forEach(function (it, i) {
+      if (it.group && it.group !== group) {
+        group = it.group;
+        var head = d.createElement("li");
+        head.setAttribute("role", "presentation");
+        head.className = "palette-group";
+        head.textContent = group;
+        list.appendChild(head);
+      }
       var li = d.createElement("li");
       li.setAttribute("role", "option");
       li.setAttribute("aria-selected", String(i === paletteSel));
@@ -258,6 +273,10 @@
       }
       list.appendChild(li);
     });
+    var sel = list.querySelector('li[aria-selected="true"]');
+    if (sel && sel.scrollIntoView) {
+      sel.scrollIntoView({ block: "nearest" });
+    }
   }
 
   function openPalette() {
@@ -294,7 +313,7 @@
       renderPalette();
     });
     input.addEventListener("keydown", function (e) {
-      var count = d.getElementById("palette-list").children.length;
+      var count = d.querySelectorAll('#palette-list li[role="option"]').length;
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
         if (count) {

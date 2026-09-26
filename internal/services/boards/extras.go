@@ -123,9 +123,12 @@ func frequent(q db.Queryer, who *access.Principal, sections []SectionView) ([]Ti
 type PaletteKind string
 
 const (
-	PaletteBoard PaletteKind = "board"
-	PaletteLink  PaletteKind = "link"
-	PalettePage  PaletteKind = "page"
+	PaletteBoard      PaletteKind = "board"
+	PaletteLink       PaletteKind = "link"
+	PaletteConnection PaletteKind = "connection"
+	PaletteHints      PaletteKind = "hints"
+	PalettePage       PaletteKind = "page"
+	PaletteSetting    PaletteKind = "setting"
 )
 
 // PaletteItem is one entry of the command palette.
@@ -134,6 +137,7 @@ type PaletteItem struct {
 	Title  string      `json:"title"`
 	URL    string      `json:"url"`
 	Detail string      `json:"detail"`
+	Group  string      `json:"group"` // heading over the kind's entries
 }
 
 // Palette lists the boards and link tiles who can see.
