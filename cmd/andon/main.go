@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -47,6 +48,9 @@ func main() {
 	if err != nil {
 		slog.Error("database key", "err", err)
 		os.Exit(1)
+	}
+	if serving(os.Args) {
+		defer lockDB(cfg.DBPath()).Release()
 	}
 	database, err := db.Open(cfg.DBPath(), dbKey)
 	if err != nil {
@@ -142,4 +146,26 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 	_ = server.Shutdown(ctx)
+}
+
+// lockRetry is how often a second server looks whether the first is gone.
+const lockRetry = 2 * time.Second
+
+// lockDB waits until no other server uses the database; during a deploy
+// the new container starts once the old one has stopped.
+func lockDB(path string) *db.Held {
+	for logged := false; ; logged = true {
+		held, err := db.Lock(path)
+		if err == nil {
+			return held
+		}
+		if !errors.Is(err, db.ErrLocked) {
+			slog.Error("lock database", "err", err)
+			os.Exit(1)
+		}
+		if !logged {
+			slog.Warn("another Andon process uses this database; waiting until it stops", "path", path)
+		}
+		time.Sleep(lockRetry)
+	}
 }

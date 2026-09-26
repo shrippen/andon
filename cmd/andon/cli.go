@@ -18,6 +18,14 @@ const cliUsage = `usage:
   andon import --email <e> [--dashy] <file>
                                      import YAML or Dashy conf.yml into a personal space`
 
+// cliCommands are the arguments runCLI handles; anything else starts the server.
+var cliCommands = map[string]bool{"backup": true, "rotate-key": true, "import": true, "-h": true, "--help": true, "help": true}
+
+// serving tells whether argv starts the server rather than a command.
+func serving(argv []string) bool {
+	return len(argv) < 2 || !cliCommands[argv[1]]
+}
+
 // runCLI handles the operator subcommands (backup, rotate-key); ok=false
 // means argv wasn't one of them, so main should start the server instead.
 func runCLI(argv []string, database *sql.DB, dbPath, dataDir string) (ok bool, exitCode int) {
