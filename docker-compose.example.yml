@@ -1,7 +1,7 @@
 services:
   andon:
-    # latest = current development state (main); for production pin a
-    # release: 1.2.3 (exact), 1.2 (patches) or 1 (minor updates).
+    # latest = newest release, edge = development state (main); to pin a
+    # release line: 1.2.3 (exact), 1.2 (patches) or 1 (minor updates).
     image: ghcr.io/shrippen/andon:${ANDON_TAG:-latest}
     restart: unless-stopped
     volumes:
