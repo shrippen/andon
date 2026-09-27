@@ -1607,6 +1607,9 @@ hint:
     gap:
       title: '{count} services without a visible backup'
       why: '{names}. No backup entry (Borg client, PG Back Web backup, snapshot) carries their name.'
+    restore_untested:
+      title: '{system}: test a restore by {day}'
+      why: 'A backup only counts once it restores. Restore one file or database as a trial, then acknowledge. The reminder returns next quarter.'
   discovery:
     no_tile:
       title: '{count} services from {service} without a tile'
@@ -2496,6 +2499,7 @@ rule_name:
   github.stale_pr: 'Own PR idle (GitHub)'
   snipe.checkin_overdue: 'Return overdue'
   domains.mail_auth: 'Mail sender not protected'
+  backups.restore_untested: 'Test a restore'
 param:
   new_watts: 'New device (W)'
   new_cost: 'New device (€)'

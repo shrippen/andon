@@ -1607,6 +1607,9 @@ hint:
     gap:
       title: '{count} Dienste ohne erkennbares Backup'
       why: '{names}. Kein Backup-Eintrag (Borg-Client, PG-Back-Web-Sicherung, Snapshot) trägt ihren Namen.'
+    restore_untested:
+      title: '{system}: Wiederherstellung bis {day} testen'
+      why: 'Ein Backup zählt erst, wenn es sich zurückspielen lässt. Eine Datei oder Datenbank probeweise wiederherstellen, dann quittieren. Nächstes Quartal kommt die Erinnerung wieder.'
   discovery:
     no_tile:
       title: '{count} Dienste aus {service} ohne Kachel'
@@ -2497,6 +2500,7 @@ rule_name:
   github.stale_pr: 'Eigener PR ruht (GitHub)'
   snipe.checkin_overdue: 'Rückgabe überfällig'
   domains.mail_auth: 'Mail-Absender nicht abgesichert'
+  backups.restore_untested: 'Wiederherstellung testen'
 param:
   new_watts: 'Neues Gerät (W)'
   new_cost: 'Neues Gerät (€)'
