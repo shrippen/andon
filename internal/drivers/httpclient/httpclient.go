@@ -16,6 +16,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -42,13 +43,31 @@ func (e EgressDenied) Error() string { return "egress denied: " + e.Host }
 // A nil guard (the default) allows everything.
 type Guard func(host string, addrs []net.IP) bool
 
-var guard Guard
+var guard atomic.Pointer[Guard]
 
 // SetGuard installs the process-wide egress guard, or nil to allow all.
-func SetGuard(g Guard) { guard = g }
+// Safe while requests run: the admin changes the policy at any time.
+func SetGuard(g Guard) {
+	if g == nil {
+		guard.Store(nil)
+		return
+	}
+	guard.Store(&g)
+}
 
+func currentGuard() Guard {
+	if g := guard.Load(); g != nil {
+		return *g
+	}
+	return nil
+}
+
+// checkGuard rejects a URL early, before any connection. The binding
+// check happens again at dial time (dialGuarded), on the address
+// actually connected to.
 func checkGuard(rawURL string) error {
-	if guard == nil {
+	g := currentGuard()
+	if g == nil {
 		return nil
 	}
 	u, err := url.Parse(rawURL)
@@ -59,10 +78,71 @@ func checkGuard(rawURL string) error {
 	if err != nil {
 		return HttpError{"dns: " + u.Hostname()}
 	}
-	if !guard(u.Hostname(), addrs) {
+	if !g(u.Hostname(), addrs) {
 		return EgressDenied{u.Hostname()}
 	}
 	return nil
+}
+
+// Dial connects to addr ("host:port") through the egress guard. The host
+// is resolved once and the checked address is dialed, so neither a
+// redirect nor a DNS answer that changes in between (rebinding) reaches
+// a denied network:
+//
+//	resolve host → guard(host, ips) → dial ip:port
+func Dial(ctx context.Context, network, addr string) (net.Conn, error) {
+	dialer := &net.Dialer{Timeout: ConnectTimeout, KeepAlive: keepAlive}
+	g := currentGuard()
+	if g == nil {
+		return dialer.DialContext(ctx, network, addr)
+	}
+
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, HttpError{"bad host"}
+	}
+	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+	if err != nil || len(ips) == 0 {
+		return nil, HttpError{"dns: " + host}
+	}
+	if !g(host, ips) {
+		return nil, EgressDenied{host}
+	}
+
+	// Every address passed the guard; try them in order ("localhost" →
+	// ::1, then 127.0.0.1).
+	var last error
+	for _, ip := range ips {
+		conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+		if err == nil {
+			return conn, nil
+		}
+		last = err
+	}
+	return nil, last
+}
+
+// Shared transports, one per TLS mode: connections are kept alive and
+// reused instead of a handshake per request.
+const (
+	keepAlive       = 30 * time.Second
+	idleConnTimeout = 90 * time.Second
+	maxIdlePerHost  = 4
+)
+
+var transports = map[TLS]*http.Transport{
+	TLSVerify: newTransport(TLSVerify),
+	TLSSkip:   newTransport(TLSSkip),
+}
+
+func newTransport(mode TLS) *http.Transport {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.DialContext = Dial
+	t.TLSClientConfig = &tls.Config{InsecureSkipVerify: mode == TLSSkip} //nolint:gosec // opt-in per connection
+	t.TLSHandshakeTimeout = ConnectTimeout
+	t.IdleConnTimeout = idleConnTimeout
+	t.MaxIdleConnsPerHost = maxIdlePerHost
+	return t
 }
 
 // Options configure one Request call.
@@ -100,13 +180,7 @@ func Request(ctx context.Context, method, rawURL string, opts Options) (*http.Re
 	if timeout == 0 {
 		timeout = ReadTimeout
 	}
-	client := &http.Client{
-		Timeout: timeout,
-		Transport: &http.Transport{
-			TLSClientConfig:     &tls.Config{InsecureSkipVerify: opts.SkipVerify}, //nolint:gosec // opt-in per connection
-			TLSHandshakeTimeout: ConnectTimeout,
-		},
-	}
+	client := &http.Client{Timeout: timeout, Transport: transports[TLSOf(!opts.SkipVerify)]}
 	if opts.NoRedirect {
 		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	}
@@ -125,6 +199,10 @@ func Request(ctx context.Context, method, rawURL string, opts Options) (*http.Re
 	}
 
 	resp, err := client.Do(req)
+	var denied EgressDenied
+	if errors.As(err, &denied) {
+		return nil, denied
+	}
 	if err != nil {
 		return nil, transportError(err, u.Hostname())
 	}
@@ -231,37 +309,26 @@ func PeerCert(ctx context.Context, hostPort string) (*x509.Certificate, error) {
 		return nil, err
 	}
 
-	dialer := &tls.Dialer{
-		NetDialer: &net.Dialer{Timeout: ConnectTimeout},
-		Config:    &tls.Config{ServerName: host, InsecureSkipVerify: true}, //nolint:gosec // only reads the certificate
-	}
-	conn, err := dialer.DialContext(ctx, "tcp", hostPort)
+	raw, err := Dial(ctx, "tcp", hostPort)
 	if err != nil {
 		return nil, HttpError{"connect failed"}
 	}
+	conn := tls.Client(raw, &tls.Config{ServerName: host, InsecureSkipVerify: true}) //nolint:gosec // only reads the certificate
 	defer conn.Close()
+	if err := conn.HandshakeContext(ctx); err != nil {
+		return nil, HttpError{"connect failed"}
+	}
 
-	certs := conn.(*tls.Conn).ConnectionState().PeerCertificates
+	certs := conn.ConnectionState().PeerCertificates
 	if len(certs) == 0 {
 		return nil, HttpError{"no certificate"}
 	}
 	return certs[0], nil
 }
 
-// guardedTransport applies the egress guard to clients this package does
-// not build itself (e.g. an SDK's).
-type guardedTransport struct{ next http.RoundTripper }
-
-func (g guardedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if err := checkGuard(req.URL.String()); err != nil {
-		return nil, err
-	}
-	return g.next.RoundTrip(req)
-}
-
 // Client returns an http.Client whose requests pass the egress guard.
 func Client(timeout time.Duration) *http.Client {
-	return &http.Client{Timeout: timeout, Transport: guardedTransport{http.DefaultTransport}}
+	return &http.Client{Timeout: timeout, Transport: transports[TLSVerify]}
 }
 
 // TLS says whether a request checks the server's certificate.
@@ -283,9 +350,7 @@ func TLSOf(verify bool) TLS {
 // ClientTLS is Client with TLS verification switchable per connection
 // (self-signed homelab certificates).
 func ClientTLS(timeout time.Duration, mode TLS) *http.Client {
-	base := http.DefaultTransport.(*http.Transport).Clone()
-	base.TLSClientConfig = &tls.Config{InsecureSkipVerify: mode == TLSSkip} //nolint:gosec // opt-in per connection
-	return &http.Client{Timeout: timeout, Transport: guardedTransport{base}}
+	return &http.Client{Timeout: timeout, Transport: transports[mode]}
 }
 
 // CheckHost applies the egress guard to a non-HTTP connection (IMAP).

@@ -103,16 +103,19 @@ func open(ctx context.Context, cfg Config) (*client.Client, error) {
 		return nil, err
 	}
 	addr := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
-	dialer := &net.Dialer{Timeout: dialTimeout}
-	var conn net.Conn
-	var err error
-	if cfg.TLS {
-		conn, err = (&tls.Dialer{NetDialer: dialer, Config: &tls.Config{ServerName: cfg.Host, InsecureSkipVerify: cfg.SkipVerify}}).DialContext(ctx, "tcp", addr) //nolint:gosec // opt-in per connection
-	} else {
-		conn, err = dialer.DialContext(ctx, "tcp", addr)
-	}
+	dialCtx, cancel := context.WithTimeout(ctx, dialTimeout)
+	defer cancel()
+	conn, err := httpclient.Dial(dialCtx, "tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("connect failed")
+	}
+	if cfg.TLS {
+		tlsConn := tls.Client(conn, &tls.Config{ServerName: cfg.Host, InsecureSkipVerify: cfg.SkipVerify}) //nolint:gosec // opt-in per connection
+		if err := tlsConn.HandshakeContext(dialCtx); err != nil {
+			conn.Close()
+			return nil, fmt.Errorf("connect failed")
+		}
+		conn = tlsConn
 	}
 	c, err := client.New(conn)
 	if err != nil {
