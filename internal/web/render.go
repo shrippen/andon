@@ -6,6 +6,7 @@ import (
 	"embed"
 	"errors"
 	"html/template"
+	"log/slog"
 	"math"
 	"net/http"
 	"strconv"
@@ -256,7 +257,13 @@ func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, valu
 	}})
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
-	return page.ExecuteTemplate(w, name, data)
+	// Logged here: most callers ignore the error once headers are out, and
+	// a broken template would otherwise leave half a page and no trace.
+	if err := page.ExecuteTemplate(w, name, data); err != nil {
+		slog.Warn("render", "template", name, "err", err)
+		return err
+	}
+	return nil
 }
 
 // calmMark ends a tile body that has nothing to do and asks to be hidden

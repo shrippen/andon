@@ -260,9 +260,6 @@ func Get(ctx context.Context, d *sql.DB, sourceKey string, params map[string]any
 		return err
 	})
 	if err != nil {
-		if errors.Is(err, ErrMissingCredential) {
-			return Result{}, err
-		}
 		return Result{}, err
 	}
 
