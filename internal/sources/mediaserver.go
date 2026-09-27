@@ -2,7 +2,7 @@ package sources
 
 // Media servers and their download helpers:
 //
-//	mediaserver  Jellyfin (X-Emby-Token) or Plex (X-Plex-Token)   streams, library, updates
+//	mediaserver  Jellyfin (Authorization: MediaBrowser Token=…) or Plex (X-Plex-Token)   streams, library, updates
 //	arr          Sonarr or Radarr (X-Api-Key, detected)           health, queue, missing, upcoming
 
 import (
@@ -63,7 +63,8 @@ func (MediaServerData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	if asStr(sctx.Options["kind"]) == mediaPlex {
 		data, err = plex(ctx, services.HeaderApi(sctx.URL, "X-Plex-Token", secret, sctx.TLS()))
 	} else {
-		data, err = jellyfin(ctx, services.HeaderApi(sctx.URL, "X-Emby-Token", secret, sctx.TLS()))
+		// Jellyfin 10.11+ refuses the legacy X-Emby-Token header.
+		data, err = jellyfin(ctx, services.HeaderApi(sctx.URL, "Authorization", `MediaBrowser Token="`+secret+`"`, sctx.TLS()))
 	}
 	if err != nil {
 		return nil, fetchError(err)

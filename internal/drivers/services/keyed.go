@@ -7,7 +7,7 @@ package services
 //	opnsense                basic key:secret
 //	pfsense (REST package)  X-API-Key
 //	unifi (integration API) X-API-KEY
-//	jellyfin                X-Emby-Token
+//	jellyfin                Authorization: MediaBrowser Token="…"
 //	plex                    X-Plex-Token
 //	sonarr / radarr         X-Api-Key
 //	speedtest tracker       Authorization: Bearer

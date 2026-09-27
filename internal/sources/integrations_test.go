@@ -100,8 +100,10 @@ func TestRadarrShowsTheComingRelease(t *testing.T) {
 	}
 }
 
+// TestJellyfin: the token goes in the Authorization header; Jellyfin
+// 10.11 and later reject the legacy X-Emby-Token with 401.
 func TestJellyfin(t *testing.T) {
-	srv := fake(t, "X-Emby-Token", "k", map[string]string{
+	srv := fake(t, "Authorization", `MediaBrowser Token="k"`, map[string]string{
 		"GET /System/Info":  `{"Version": "10.10.7", "HasUpdateAvailable": true}`,
 		"GET /Items/Counts": `{"MovieCount": 12, "SeriesCount": 3, "EpisodeCount": 40}`,
 		"GET /Sessions":     `[{"UserName": "anna", "NowPlayingItem": {"Name": "E1", "SeriesName": "Dark"}}, {"UserName": "idle"}]`,
