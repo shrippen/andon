@@ -343,6 +343,26 @@ func Credentials(q db.Queryer, connID int64) ([]*model.UserCredential, error) {
 	return out, rows.Err()
 }
 
+// CredentialOwners maps every connection to the users who stored a
+// personal credential for it, in one query (the analysis run needs all).
+func CredentialOwners(q db.Queryer) (map[int64][]int64, error) {
+	rows, err := q.Query("SELECT connection_id, user_id FROM user_credentials ORDER BY connection_id, id")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := map[int64][]int64{}
+	for rows.Next() {
+		var connID, userID int64
+		if err := rows.Scan(&connID, &userID); err != nil {
+			return nil, err
+		}
+		out[connID] = append(out[connID], userID)
+	}
+	return out, rows.Err()
+}
+
 // SetCredential inserts or replaces one user's personal credential.
 func SetCredential(q db.Queryer, connID, userID int64, secretEnc []byte) error {
 	existing, err := Credential(q, connID, userID)

@@ -60,9 +60,9 @@ func newScope(spaceID int64, owner *int64, settings map[string]any) *scope {
 func RunAll(ctx context.Context, d *sql.DB, today time.Time) (int, error) {
 	var spaces []*model.Space
 	var conns []*model.Connection
-	owners := map[int64][]int64{}
+	var owners map[int64][]int64
 
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		spaces, err = content.AllSpaces(tx)
 		if err != nil {
@@ -72,18 +72,8 @@ func RunAll(ctx context.Context, d *sql.DB, today time.Time) (int, error) {
 		if err != nil {
 			return err
 		}
-		for _, c := range conns {
-			creds, err := content.Credentials(tx, c.ID)
-			if err != nil {
-				return err
-			}
-			ids := make([]int64, len(creds))
-			for i, cr := range creds {
-				ids[i] = cr.UserID
-			}
-			owners[c.ID] = ids
-		}
-		return nil
+		owners, err = content.CredentialOwners(tx)
+		return err
 	})
 	if err != nil {
 		return 0, err
