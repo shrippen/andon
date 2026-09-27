@@ -949,6 +949,31 @@
   applyStyles(d);
   d.addEventListener("htmx:load", function (e) { applyStyles(e.target); });
 
+  // Tiles poll ("every 300s") only while the tab is visible; a poll missed
+  // in the background runs once when the tab shows again ("wake"). A wall
+  // display keeps polling. Filters in hx-trigger would need eval, which
+  // the CSP forbids, hence the events.
+  d.addEventListener("htmx:beforeRequest", function (e) {
+    var el = e.detail.elt;
+    if (!d.hidden || d.body.classList.contains("is-kiosk")) {
+      return;
+    }
+    if ((el.getAttribute("hx-trigger") || "").indexOf("wake") < 0) {
+      return;
+    }
+    e.preventDefault();
+    el.setAttribute("data-missed", "");
+  });
+  d.addEventListener("visibilitychange", function () {
+    if (d.hidden) {
+      return;
+    }
+    [].forEach.call(d.querySelectorAll("[data-missed]"), function (el) {
+      el.removeAttribute("data-missed");
+      htmx.trigger(el, "wake");
+    });
+  });
+
   // Soft page changes for every same-origin link and form, except on a wall
   // display, which rotates by full page loads.
   if (!d.body.classList.contains("is-kiosk")) {
