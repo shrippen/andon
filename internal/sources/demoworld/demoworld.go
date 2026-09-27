@@ -1,7 +1,7 @@
 // Package demoworld holds Studio Weber, the demo world shared by all shrippen
 // projects (world.json is copied from shrippen.github.io/demo by
-// tools/sync-demo.py; do not edit it here). The demo:// datasets in package
-// sources take their names, places and receipts from it.
+// demo/tools/sync-demo.py there; do not edit it here). The demo:// datasets
+// in package sources take their names, places and receipts from it.
 package demoworld
 
 import (

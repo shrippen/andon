@@ -59,7 +59,7 @@ Names, places and receipts come from Studio Weber, the demo world shared by all 
 projects (`internal/sources/demoworld/world.json`, copied from `shrippen.github.io/demo`).
 Sign in as `mara@studio-weber.example.test` (own boards) or `lena@studio-weber.example.test`
 (admin), password `demo-password-1`. `demo/shots.json` lists the screenshots that
-`shrippen.github.io/tools/screenshots.py` takes.
+`shrippen.github.io/demo/tools/screenshots.py` takes.
 
 ## Operator CLI
 
