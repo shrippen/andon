@@ -59,7 +59,7 @@
 
     <h2>{{t "welcome.concepts_title"}}</h2>
     <div class="chapters">
-      {{range $c := list "spaces" "connections" "tiles" "boards" "hints" "notify" "freelance" "themes" "security"}}
+      {{range $c := list "spaces" "connections" "tiles" "boards" "hints" "notify" "freelance" "receipts" "themes" "security"}}
       <details id="c-{{$c}}">
         <summary>{{t (print "welcome.c_" $c)}}</summary>
         <p>{{t (print "welcome.c_" $c "_text")}}</p>

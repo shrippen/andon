@@ -45,7 +45,40 @@ var (
 	ErrNotFound = errors.New("receipts.err_not_found")
 	// ErrManage means the user may not change the connections' mapping.
 	ErrManage = errors.New("receipts.err_manage")
+	// ErrAmount means a new expense without an amount.
+	ErrAmount = errors.New("receipts.err_amount")
+	// ErrFieldTwice means one field chosen for two parts of the link.
+	ErrFieldTwice = errors.New("receipts.err_field_twice")
 )
+
+// LinkedElsewhere means a scan already names another expense; linking it
+// again would leave that expense pointing at it, one-sided.
+type LinkedElsewhere struct{ Number string }
+
+func (e LinkedElsewhere) Error() string { return "receipts.err_linked_elsewhere" }
+
+// checkFree refuses scans that name another expense than e.
+func checkFree(m Mapping, e sources.ReceiptExpense, docs []sources.ReceiptDoc) error {
+	for _, d := range docs {
+		owner := linkedTo(m, d)
+		if owner != "" && owner != e.Number && owner != e.Key {
+			return LinkedElsewhere{Number: owner}
+		}
+	}
+	return nil
+}
+
+// linkedTo is the expense number a scan names, "" if none.
+func linkedTo(m Mapping, d sources.ReceiptDoc) string {
+	if m.FieldExpense == 0 || !filled(d.Custom[m.FieldExpense]) {
+		return ""
+	}
+	v, ok := d.Custom[m.FieldExpense].(string)
+	if !ok {
+		return "?"
+	}
+	return strings.TrimSpace(v)
+}
 
 // FetchError is a service that could not be read, with its message.
 type FetchError struct{ Msg string }
@@ -66,17 +99,41 @@ const (
 const (
 	expenseSource = "ninja.expenses"
 	docSource     = "paperless.docs"
-	linkedShown   = 40
+	linkedShown   = 100
+	expensesShown = 10
 	urlSeparator  = " "
 )
 
 // ── connections ──
 
-// Choice is one connection the user may use here.
+// Choice is one connection the user may use here. Label is what the
+// page shows: the space alone when all of a kind share one name, else
+// the name, with the space where names repeat.
 type Choice struct {
-	ID          int64
-	Name, Space string
-	NeedsToken  bool // personal credentials, the user has not stored his
+	ID                 int64
+	Name, Space, Label string
+	NeedsToken         bool // personal credentials, the user has not stored his
+}
+
+// label names each choice within its list, without saying twice what
+// the list's heading says ("Paperless" under "Paperless-ngx").
+func label(list []Choice) {
+	same, count := true, map[string]int{}
+	for _, c := range list {
+		count[c.Name]++
+		same = same && c.Name == list[0].Name
+	}
+	for i := range list {
+		c := &list[i]
+		switch {
+		case same && c.Space != "":
+			c.Label = c.Space
+		case count[c.Name] > 1 && c.Space != "":
+			c.Label = c.Name + " · " + c.Space
+		default:
+			c.Label = c.Name
+		}
+	}
 }
 
 // Setup is what the user can pick from and what is picked.
@@ -109,6 +166,8 @@ func SetupOf(d *sql.DB, who *access.Principal) (Setup, error) {
 			out.Docs = append(out.Docs, c)
 		}
 	}
+	label(out.Ninjas)
+	label(out.Docs)
 	s, err := loadState(d, who)
 	if err != nil {
 		return Setup{}, err
@@ -284,18 +343,17 @@ type Suggestions struct {
 	Links
 	Mapping        Mapping
 	Year           int
-	Mode           ComboMode
 	Matches        []ExpenseMatch
 	Expenses, Docs int
 }
 
 // Suggest lists the year's unlinked expenses with their best scans.
-func Suggest(ctx context.Context, d *sql.DB, who *access.Principal, year int, mode ComboMode) (Suggestions, error) {
+func Suggest(ctx context.Context, d *sql.DB, who *access.Principal, year int) (Suggestions, error) {
 	p, err := openPair(d, who)
 	if err != nil {
 		return Suggestions{}, err
 	}
-	out := Suggestions{Links: p.links(), Mapping: p.mapping, Year: year, Mode: mode}
+	out := Suggestions{Links: p.links(), Mapping: p.mapping, Year: year}
 	if !p.mapping.Complete() {
 		return out, ErrMapping
 	}
@@ -304,7 +362,7 @@ func Suggest(ctx context.Context, d *sql.DB, who *access.Principal, year int, mo
 		return out, err
 	}
 	out.Expenses, out.Docs = len(expenses), len(docs)
-	out.Matches = p.matcher().Matches(expenses, docs, mode)
+	out.Matches = p.matcher().Matches(expenses, docs)
 	return out, nil
 }
 
@@ -420,32 +478,41 @@ func Queue(ctx context.Context, d *sql.DB, who *access.Principal, year int) (Que
 	if err != nil {
 		return out, err
 	}
-	docs = slices.DeleteFunc(docs, func(doc sources.ReceiptDoc) bool { return !slices.Contains(doc.Tags, tag) })
-	out.Docs, out.Expenses = len(docs), len(expenses)
-	out.Matches = p.matcher().Reverse(docs, expenses)
+	tagged := slices.DeleteFunc(slices.Clone(docs), func(doc sources.ReceiptDoc) bool { return !slices.Contains(doc.Tags, tag) })
+	out.Docs, out.Expenses = len(tagged), len(expenses)
+	out.Matches = p.matcher().Reverse(tagged, expenses, docs)
 	return out, nil
 }
 
-// LinkedRow is one expense with one of its scans (nil if gone).
+// LinkedRow is one expense with its scans.
 type LinkedRow struct {
 	Expense sources.ReceiptExpense
-	DocID   int64
-	Doc     *sources.ReceiptDoc
+	Docs    []LinkedDoc
 }
 
-// LinkedView lists the latest links.
+// LinkedDoc is one linked scan; Doc is nil if gone.
+type LinkedDoc struct {
+	ID  int64
+	Doc *sources.ReceiptDoc
+}
+
+// LinkedView lists a year's linked expenses, latest change first.
 type LinkedView struct {
 	Links
-	Rows []LinkedRow
+	Year         int
+	Query        string
+	Rows         []LinkedRow
+	Total, Shown int
 }
 
-// Linked lists the most recently changed linked expenses with their scans.
-func Linked(ctx context.Context, d *sql.DB, who *access.Principal) (LinkedView, error) {
+// Linked lists the year's linked expenses matching query (number,
+// vendor, note, invoice number, amount), latest change first.
+func Linked(ctx context.Context, d *sql.DB, who *access.Principal, year int, query string) (LinkedView, error) {
 	p, err := openPair(d, who)
 	if err != nil {
 		return LinkedView{}, err
 	}
-	out := LinkedView{Links: p.links()}
+	out := LinkedView{Links: p.links(), Year: year, Query: strings.TrimSpace(query)}
 	if !p.mapping.Complete() {
 		return out, ErrMapping
 	}
@@ -453,27 +520,44 @@ func Linked(ctx context.Context, d *sql.DB, who *access.Principal) (LinkedView, 
 	if err != nil {
 		return out, err
 	}
-	linked := slices.DeleteFunc(slices.Clone(set.Expenses), func(e sources.ReceiptExpense) bool {
-		return len(docIDs(e.Custom[p.mapping.LinkSlot-1])) == 0
+	linked := slices.DeleteFunc(inYear(set.Expenses, year), func(e sources.ReceiptExpense) bool {
+		return len(docIDs(e.Custom[p.mapping.LinkSlot-1])) == 0 || !matchesQuery(e, out.Query)
 	})
 	slices.SortStableFunc(linked, func(a, b sources.ReceiptExpense) int { return b.Updated.Compare(a.Updated) })
+	out.Total = len(linked)
 	linked = linked[:min(len(linked), linkedShown)]
+	out.Shown = len(linked)
 
 	var ids []int64
 	for _, e := range linked {
+		row := LinkedRow{Expense: e}
 		for _, id := range docIDs(e.Custom[p.mapping.LinkSlot-1]) {
-			out.Rows = append(out.Rows, LinkedRow{Expense: e, DocID: id})
+			row.Docs = append(row.Docs, LinkedDoc{ID: id})
 			ids = append(ids, id)
 		}
+		out.Rows = append(out.Rows, row)
 	}
 	docs, err := p.docsByID(ctx, d, who, ids)
 	if err != nil {
 		return out, err
 	}
-	for i := range out.Rows {
-		out.Rows[i].Doc = docs[out.Rows[i].DocID]
+	for _, row := range out.Rows {
+		for i := range row.Docs {
+			row.Docs[i].Doc = docs[row.Docs[i].ID]
+		}
 	}
 	return out, nil
+}
+
+// matchesQuery tells whether an expense's number, vendor, note, custom
+// values or amount ("89,70" or "89.70") contain the query.
+func matchesQuery(e sources.ReceiptExpense, query string) bool {
+	if query == "" {
+		return true
+	}
+	amount := strconv.FormatFloat(e.Amount, 'f', 2, 64)
+	hay := strings.ToLower(strings.Join(append([]string{e.Number, e.Vendor, e.Notes, amount, strings.ReplaceAll(amount, ".", ",")}, e.Custom[:]...), " "))
+	return strings.Contains(hay, strings.ToLower(query))
 }
 
 func (p pair) docsByID(ctx context.Context, d *sql.DB, who *access.Principal, ids []int64) (map[int64]*sources.ReceiptDoc, error) {
@@ -505,13 +589,15 @@ type IgnoredView struct {
 // IgnoredExpense is a hidden expense; Expense is nil if gone.
 type IgnoredExpense struct {
 	Key     string
+	Reason  Reason
 	Expense *sources.ReceiptExpense
 }
 
 // IgnoredDoc is a hidden scan; Doc is nil if gone.
 type IgnoredDoc struct {
-	ID  int64
-	Doc *sources.ReceiptDoc
+	ID     int64
+	Reason Reason
+	Doc    *sources.ReceiptDoc
 }
 
 // Ignored lists the hidden expenses and scans of the picked pair.
@@ -527,7 +613,7 @@ func Ignored(ctx context.Context, d *sql.DB, who *access.Principal) (IgnoredView
 			return out, err
 		}
 		for _, key := range keys {
-			row := IgnoredExpense{Key: key}
+			row := IgnoredExpense{Key: key, Reason: p.state.reason(KindExpense, p.ninja.ID, key)}
 			for i := range set.Expenses {
 				if set.Expenses[i].Key == key {
 					row.Expense = &set.Expenses[i]
@@ -547,13 +633,14 @@ func Ignored(ctx context.Context, d *sql.DB, who *access.Principal) (IgnoredView
 		return out, err
 	}
 	for _, id := range ids {
-		out.Docs = append(out.Docs, IgnoredDoc{ID: id, Doc: docs[id]})
+		out.Docs = append(out.Docs, IgnoredDoc{ID: id, Reason: p.state.reason(KindDoc, p.docs.ID, strconv.FormatInt(id, 10)), Doc: docs[id]})
 	}
 	return out, nil
 }
 
-// Ignore hides an expense or a scan, or shows it again.
-func Ignore(d *sql.DB, who *access.Principal, kind Kind, id string, hide Hide) error {
+// Ignore hides an expense or a scan, with an optional reason, or shows
+// it again.
+func Ignore(d *sql.DB, who *access.Principal, kind Kind, id string, hide Hide, why Reason) error {
 	p, err := openPair(d, who)
 	if err != nil {
 		return err
@@ -565,7 +652,10 @@ func Ignore(d *sql.DB, who *access.Principal, kind Kind, id string, hide Hide) e
 	if id = strings.TrimSpace(id); id == "" || (kind != KindExpense && kind != KindDoc) {
 		return ErrNotFound
 	}
-	return saveState(d, who, func(s *state) { s.setIgnored(kind, conn, id, hide) })
+	if !slices.Contains(Reasons, why) {
+		why = ReasonNone
+	}
+	return saveState(d, who, func(s *state) { s.setIgnored(kind, conn, id, hide, why) })
 }
 
 // ── writing ──
@@ -591,9 +681,9 @@ func Link(ctx context.Context, d *sql.DB, who *access.Principal, expenseKey stri
 	}
 	err = saveState(d, who, func(s *state) {
 		s.Aliases = learned
-		s.setIgnored(KindExpense, p.ninja.ID, expenseKey, Shown)
+		s.setIgnored(KindExpense, p.ninja.ID, expenseKey, Shown, ReasonNone)
 		for _, id := range ids {
-			s.setIgnored(KindDoc, p.docs.ID, strconv.FormatInt(id, 10), Shown)
+			s.setIgnored(KindDoc, p.docs.ID, strconv.FormatInt(id, 10), Shown, ReasonNone)
 		}
 	})
 	svcdata.Forget(p.ninja.ID)
@@ -678,6 +768,9 @@ func (p pair) writer(ctx context.Context, d *sql.DB, who *access.Principal, expe
 		}
 		w.docs = append(w.docs, found[i])
 	}
+	if err := checkFree(p.mapping, w.expense, w.docs); err != nil {
+		return writer{}, err
+	}
 	return w, nil
 }
 
@@ -693,15 +786,22 @@ func slotName(slot int) string { return "custom_value" + strconv.Itoa(slot) }
 
 func (w writer) link(ctx context.Context) error {
 	m := w.mapping
-	urls := make([]string, len(w.docs))
-	for i, doc := range w.docs {
-		urls[i] = w.DocURL(doc.ID)
+	// Scans already linked stay; the new ones join them.
+	var urls []string
+	had := docIDs(w.expense.Custom[m.LinkSlot-1])
+	for _, id := range had {
+		urls = append(urls, w.DocURL(id))
+	}
+	for _, doc := range w.docs {
+		if !slices.Contains(had, doc.ID) {
+			urls = append(urls, w.DocURL(doc.ID))
+		}
 	}
 	onExpense := map[string]string{slotName(m.LinkSlot): strings.Join(urls, urlSeparator)}
 
 	// One scan: the invoice number travels to whichever side lacks it.
 	invoice := ""
-	if len(w.docs) == 1 {
+	if len(urls) == 1 {
 		invoice = w.expense.Custom[m.InvoiceSlot-1]
 		if invoice == "" {
 			invoice, _ = w.docs[0].Custom[m.FieldInvoice].(string)
@@ -763,33 +863,47 @@ func (w writer) unlink(ctx context.Context, id int64) error {
 type Preset string
 
 const (
-	PresetDate     Preset = "around_date"
-	PresetAmount   Preset = "amount"
-	PresetVendor   Preset = "vendor"
-	PresetInvoice  Preset = "invoice"
-	PresetYear     Preset = "year"
-	PresetUnlinked Preset = "unlinked"
+	PresetDate    Preset = "around_date"
+	PresetAmount  Preset = "amount"
+	PresetVendor  Preset = "vendor"
+	PresetInvoice Preset = "invoice"
+	PresetYear    Preset = "year"
 )
 
-// Presets in the order the page offers them.
-var Presets = []Preset{PresetDate, PresetAmount, PresetVendor, PresetInvoice, PresetYear, PresetUnlinked}
+// Presets in the order the page offers them; "only without expense" is
+// the form's checkbox.
+var Presets = []Preset{PresetDate, PresetAmount, PresetVendor, PresetInvoice, PresetYear}
 
 const searchAround = 14 // days either side of the expense
 
-// SearchInput is the search form.
+// SearchInput is the search form; With is a scan already picked (from
+// "receipts first"), kept among the hits and ticked.
 type SearchInput struct {
 	Query, Correspondent, From, To string
 	Preset                         Preset
 	UnlinkedOnly                   bool
 	Year                           int
+	With                           int64
 }
 
-// SearchView is the search panel of one expense.
+// SearchView is the search panel of one expense; From and To is the
+// window searched.
 type SearchView struct {
 	Links
-	Expense sources.ReceiptExpense
-	Input   SearchInput
-	Hits    []sources.ReceiptDoc
+	Expense  sources.ReceiptExpense
+	Input    SearchInput
+	From, To string
+	Hits     []SearchHit
+}
+
+// SearchHit is a scan found by hand, scored against the expense;
+// LinkedTo names the expense it already belongs to, Own is the scan's
+// own amount for a combo put together by hand (0 = unknown).
+type SearchHit struct {
+	Candidate
+	LinkedTo string
+	Own      float64
+	Picked   bool
 }
 
 // Search looks for scans of one expense by hand.
@@ -810,7 +924,8 @@ func Search(ctx context.Context, d *sql.DB, who *access.Principal, expenseKey st
 	out.Expense = set.Expenses[i]
 
 	s := searchOf(out.Expense, in, p.mapping)
-	if (in.UnlinkedOnly || in.Preset == PresetUnlinked) && p.mapping.FieldExpense > 0 {
+	out.From, out.To = s.From, s.To
+	if in.UnlinkedOnly && p.mapping.FieldExpense > 0 {
 		docs, err := p.docSet(ctx, d, who, in.Year)
 		if err != nil {
 			return out, err
@@ -825,9 +940,38 @@ func Search(ctx context.Context, d *sql.DB, who *access.Principal, expenseKey st
 	if err != nil {
 		return out, err
 	}
-	if out.Hits, err = sources.PaperlessSearch(ctx, sctx, s); err != nil {
+	found, err := sources.PaperlessSearch(ctx, sctx, s)
+	if err != nil {
 		return out, FetchError{err.Error()}
 	}
+	if in.With > 0 && !slices.ContainsFunc(found, func(doc sources.ReceiptDoc) bool { return doc.ID == in.With }) {
+		if doc, err := p.doc(ctx, d, who, in.With); err == nil {
+			found = append(found, doc)
+		}
+	}
+	x := p.matcher()
+	for _, doc := range found {
+		hit := SearchHit{Candidate: x.score(out.Expense, doc), LinkedTo: linkedTo(p.mapping, doc), Picked: doc.ID == in.With}
+		if in.UnlinkedOnly && hit.LinkedTo != "" {
+			continue
+		}
+		if own, ok := x.comboAmount(doc); ok {
+			hit.Own = own
+		} else {
+			hit.Own = hit.Amount
+		}
+		out.Hits = append(out.Hits, hit)
+	}
+	// The scan brought along first, then by score.
+	slices.SortStableFunc(out.Hits, func(a, b SearchHit) int {
+		switch {
+		case a.Picked && !b.Picked:
+			return -1
+		case b.Picked && !a.Picked:
+			return 1
+		}
+		return b.Score - a.Score
+	})
 	return out, nil
 }
 

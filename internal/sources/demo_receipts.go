@@ -1,6 +1,8 @@
 package sources
 
 import (
+	"fmt"
+	"html"
 	"strconv"
 	"strings"
 	"time"
@@ -113,7 +115,7 @@ func DemoExpenses(now time.Time) *ExpenseSet {
 // DemoDocs is the demo Paperless' documents of one year (0 = all).
 func DemoDocs(now time.Time, year int) *DocSet {
 	today := demoDay(now)
-	set := &DocSet{URL: demoDocsURL, Tags: map[string]int64{strings.ToLower(DemoReceiptTag): 1},
+	set := &DocSet{URL: demoDocsURL, Tags: map[string]int64{strings.ToLower(DemoReceiptTag): 1}, TagNames: []string{DemoReceiptTag},
 		Fields: []DocField{{demoFieldInvoice, "Rechnungsnummer", "string"}, {demoFieldExpense, "Ausgabe", "string"},
 			{demoFieldLink, "Invoice Ninja", "url"}, {demoFieldAmount, "Betrag", "monetary"}}}
 	for _, r := range demoReceipts(today) {
@@ -147,6 +149,45 @@ func DemoReceiptOptions() (ninja, paperless map[string]any) {
 	return map[string]any{"receipt_invoice_slot": 1, "receipt_link_slot": 2},
 		map[string]any{"receipt_field_invoice": demoFieldInvoice, "receipt_field_expense": demoFieldExpense,
 			"receipt_field_link": demoFieldLink, "receipt_field_amount": demoFieldAmount, "receipt_queue_tag": DemoReceiptTag}
+}
+
+// demoThumb draws a demo scan as a small paper receipt (SVG): who,
+// what, when and how much, the way a thumbnail shows a real one.
+func demoThumb(now time.Time, id int64) ([]byte, string, error) {
+	for _, doc := range DemoDocs(now, 0).Docs {
+		if doc.ID != id {
+			continue
+		}
+		amount, _ := doc.Custom[demoFieldAmount].(string)
+		if amount = strings.Replace(strings.TrimPrefix(amount, "EUR"), ".", ",", 1); amount != "" {
+			amount += " €"
+		}
+		day := doc.Day
+		if t, err := time.Parse(time.DateOnly, doc.Day); err == nil {
+			day = t.Format("02.01.2006")
+		}
+		lines := ""
+		for i := range 4 {
+			lines += fmt.Sprintf(`<rect x="12" y="%d" width="%d" height="3" fill="#c9c3b3"/>`, 78+i*9, 76-i%2*18)
+		}
+		svg := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140" width="100" height="140">`+
+			`<rect width="100" height="140" fill="#fdfcf8"/><rect x=".5" y=".5" width="99" height="139" fill="none" stroke="#d8d2c4"/>`+
+			`<text x="12" y="24" font-family="sans-serif" font-size="9" font-weight="700" fill="#2b2b2b">%s</text>`+
+			`<text x="12" y="38" font-family="sans-serif" font-size="7" fill="#555">%s</text>`+
+			`<text x="12" y="50" font-family="sans-serif" font-size="7" fill="#555">%s</text>%s`+
+			`<rect x="12" y="116" width="76" height=".8" fill="#2b2b2b"/>`+
+			`<text x="88" y="130" font-family="sans-serif" font-size="10" font-weight="700" fill="#2b2b2b" text-anchor="end">%s</text></svg>`,
+			html.EscapeString(shortText(doc.Correspondent, 16)), html.EscapeString(shortText(doc.Title, 22)), day, lines, html.EscapeString(amount))
+		return []byte(svg), "image/svg+xml", nil
+	}
+	return nil, "", newSourceError("demo: no document %d", id)
+}
+
+func shortText(s string, n int) string {
+	if r := []rune(s); len(r) > n {
+		return string(r[:n-1]) + "…"
+	}
+	return s
 }
 
 func demoDocURL(id int64) string {

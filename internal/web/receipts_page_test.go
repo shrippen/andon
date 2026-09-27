@@ -57,21 +57,58 @@ func TestReceiptsPage(t *testing.T) {
 		t.Fatalf("raw key, or the linked expense suggested:\n%s", part)
 	}
 
-	combos := string(mustGet(t, srv, client, "/receipts/part?tab=match&combo=1"))
-	if !strings.Contains(combos, "2 Belege") {
-		t.Fatalf("no 1∶n combo for the two Mietwagen Nord receipts:\n%s", combos)
+	// The 1∶n combo comes by itself, the sure match is offered in bulk,
+	// the tab chips get their numbers.
+	for _, want := range []string{"2 Belege", "Sichere Treffer", `value="demo1:201" checked`, `id="receipts-tab-match" href="/receipts?tab=match&amp;year=`, `hx-swap-oob="true"`} {
+		if !strings.Contains(part, want) {
+			t.Fatalf("suggestions lack %q:\n%s", want, part)
+		}
 	}
 	queue := string(mustGet(t, srv, client, "/receipts/part?tab=queue"))
-	if !strings.Contains(queue, "Tankquittung") {
-		t.Fatalf("queue lacks the tagged scan:\n%s", queue)
+	if !strings.Contains(queue, "Tankquittung") || !strings.Contains(queue, "Zusammen mit weiteren Belegen") {
+		t.Fatalf("queue lacks the tagged scan or the combo:\n%s", queue)
+	}
+
+	// A search shows the linked Kabelwerk scan as taken, without a link button.
+	search := string(mustGet(t, srv, client, "/receipts/search?expense=demo1&preset=year"))
+	if !strings.Contains(search, "schon verknüpft mit EX-0042") || strings.Contains(search, `name="docs" value="202"`) {
+		t.Fatalf("taken scan offered:\n%s", search)
+	}
+	if search := string(mustGet(t, srv, client, "/receipts/search?expense=demo1&preset=year&unlinked=1")); strings.Contains(search, "Kabelwerk") {
+		t.Fatalf("taken scan despite unlinked only:\n%s", search)
 	}
 	linked := string(mustGet(t, srv, client, "/receipts/part?tab=linked"))
 	if !strings.Contains(linked, "EX-0042") || !strings.Contains(linked, "Rechnung Kabelwerk Studiobedarf") {
 		t.Fatalf("linked lacks Kabelwerk:\n%s", linked)
 	}
 	fields := string(mustGet(t, srv, client, "/receipts/part?tab=fields"))
-	if !regexp.MustCompile(`<option value="2" selected>custom_value2 · Paperless</option>`).MatchString(fields) {
+	if !regexp.MustCompile(`<option value="2" selected>Paperless \(Feld 2\) · bei 1 Ausgaben gefüllt</option>`).MatchString(fields) {
 		t.Fatalf("mapping form:\n%s", fields)
+	}
+	for _, dup := range []string{"Invoice Ninja · Invoice Ninja", "Paperless-ngx · Paperless", "(string)", "receipts."} {
+		if strings.Contains(fields, dup) {
+			t.Fatalf("mapping form repeats or leaks %q:\n%s", dup, fields)
+		}
+	}
+	if !strings.Contains(fields, "Invoice Ninja (Text)") && !strings.Contains(fields, "Invoice Ninja (URL)") {
+		t.Fatalf("field types not translated:\n%s", fields)
+	}
+
+	// B: a combo search on request; C: scans picked by hand, with a sum,
+	// linked together (the demo refuses the write, but only then).
+	combos := string(mustGet(t, srv, client, "/receipts/combos?expense=demo5"))
+	if !strings.Contains(combos, "2 Belege") || !strings.Contains(combos, "Summe 164,90") {
+		t.Fatalf("combo search:\n%s", combos)
+	}
+	picked := string(mustGet(t, srv, client, "/receipts/search?expense=demo5&preset=vendor&unlinked=1"))
+	for _, want := range []string{`name="doc" value="204"`, `data-amount="99"`, `data-target="164.9"`, "Ausgewählte verknüpfen"} {
+		if !strings.Contains(picked, want) {
+			t.Fatalf("hand-made combo lacks %q:\n%s", want, picked)
+		}
+	}
+	resp = postForm(t, client, srv.URL+"/receipts/link", url.Values{"csrf": {csrfToken(t, srv, client)}, "expense": {"demo5"}, "doc": {"204", "205"}})
+	if loc := resp.Header.Get("Location"); !strings.Contains(loc, "error=receipts.err_demo") {
+		t.Fatalf("hand-made combo: %s", loc)
 	}
 
 	// Demo connections take no writes; the page says so.
@@ -81,11 +118,11 @@ func TestReceiptsPage(t *testing.T) {
 	}
 
 	// Ignoring hides the expense from the suggestions until shown again.
-	postForm(t, client, srv.URL+"/receipts/ignore", url.Values{"csrf": {csrfToken(t, srv, client)}, "kind": {"expense"}, "id": {"demo1"}})
+	postForm(t, client, srv.URL+"/receipts/ignore", url.Values{"csrf": {csrfToken(t, srv, client)}, "kind": {"expense"}, "id": {"demo1"}, "reason": {"private"}})
 	if part := string(mustGet(t, srv, client, "/receipts/part?tab=match")); strings.Contains(part, "EX-0041") {
 		t.Fatal("ignored expense still suggested")
 	}
-	if ignored := string(mustGet(t, srv, client, "/receipts/part?tab=ignored")); !strings.Contains(ignored, "EX-0041") {
+	if ignored := string(mustGet(t, srv, client, "/receipts/part?tab=ignored")); !strings.Contains(ignored, "EX-0041") || !strings.Contains(ignored, "Privat") {
 		t.Fatalf("ignored list:\n%s", ignored)
 	}
 	postForm(t, client, srv.URL+"/receipts/ignore", url.Values{"csrf": {csrfToken(t, srv, client)}, "kind": {"expense"}, "id": {"demo1"}, "show": {"1"}})

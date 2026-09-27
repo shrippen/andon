@@ -659,18 +659,66 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .receipt-expense dt { color: var(--fg2); }
 .receipt-expense dd { margin: 0; }
 .receipt-actions { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin: .5rem 0 0; }
+.receipt-actions button, .receipt-ignore button, .receipts-note button, .receipts-concept-foot button { margin: 0; }
+.receipt-actions button.ghost, .receipt-ignore button.ghost, .receipts-note button.ghost { padding: .35rem .7rem; font-size: .82rem; }
 .receipt-candidates { display: flex; flex-direction: column; gap: .7rem; min-width: 0; }
 .receipt-cand { display: flex; gap: .8rem; padding: .6rem .7rem; border: 1px solid var(--bg2); background: var(--bg-hard); }
 .receipt-cand:focus, .receipt-cand:focus-within { outline: 2px solid var(--yellow); outline-offset: 1px; }
 .receipt-cand > div, .receipt-cand-body { flex: 1; min-width: 0; }
 .receipt-cand .receipt-cand-head { display: flex; justify-content: space-between; gap: .6rem; align-items: baseline; }
-.receipt-cand-head a { overflow-wrap: anywhere; }
+.receipt-cand-head a { overflow-wrap: anywhere; margin-right: auto; }
 .receipt-cand p { margin: .2rem 0; }
-.receipt-thumb { flex: 0 0 auto; align-self: flex-start; display: block; width: 4.5rem; min-height: 5.5rem; background: var(--bg-panel); border: 1px solid var(--bg2); }
+.receipt-thumb { flex: 0 0 auto; align-self: flex-start; display: block; width: 3.5rem; min-height: 4.5rem; background: var(--bg-panel); border: 1px solid var(--bg2); }
 .receipt-thumb img { display: block; width: 100%; height: auto; }
-.receipt-combo-thumbs { display: flex; gap: .4rem; margin: .4rem 0; }
-.receipt-score { font-family: var(--font-heading); font-size: 1.1rem; color: var(--fg2); }
-.receipt-score[data-score^="7"], .receipt-score[data-score^="8"], .receipt-score[data-score^="9"], .receipt-score[data-score="100"] { color: var(--ok-text); }
+.receipt-combo-thumbs { display: flex; flex-wrap: wrap; gap: .4rem; margin: .4rem 0; }
+/* Score as a pill whose colour says the band: high, mid, low. */
+.receipt-score { flex: 0 0 auto; font-family: var(--font-mono); font-size: .8rem; font-weight: 500; padding: .05rem .45rem; border: 1px solid var(--bg2); color: var(--fg3); font-variant-numeric: tabular-nums; }
+.receipt-score[data-level="high"] { color: var(--ok-text); border-color: var(--aqua); }
+.receipt-score[data-level="mid"] { color: var(--warn-text); border-color: var(--yellow); }
+/* The four signals at a glance. */
+.receipt-signals { list-style: none; padding: 0; margin: .35rem 0 .2rem; display: flex; flex-wrap: wrap; gap: .3rem; font-size: .74rem; }
+.receipt-signals li { padding: .05rem .4rem; border: 1px solid var(--bg2); color: var(--fg3); }
+.receipt-signals li[data-state="hit"] { color: var(--ok-text); border-color: var(--aqua); }
+.receipt-signals li[data-state="off"] { border-style: dashed; }
+.receipt-factors li[data-off] { opacity: .7; }
+.receipt-covered { margin-top: .2rem; }
+.receipt-covered > summary { cursor: pointer; color: var(--fg2); }
+.receipt-covered > .receipt-cand { margin-top: .5rem; }
+/* Queue: the scan on the left, thumbnail beside its title. */
+.receipt-doc { display: grid; grid-template-columns: auto 1fr; gap: .2rem .8rem; align-content: start; }
+.receipt-doc .receipt-actions { grid-column: 1 / -1; }
+.receipt-doc-title { font-family: var(--font-sans); font-size: 1rem; font-weight: 600; text-transform: none; letter-spacing: 0; margin: 0; }
+.receipt-doc p { margin: .2rem 0; }
+/* Ignoring asks why in a small menu. */
+.receipt-ignore { display: inline-block; }
+.receipt-ignore > summary { list-style: none; cursor: pointer; }
+.receipt-ignore > summary::-webkit-details-marker { display: none; }
+.receipt-ignore[open] > summary { color: var(--fg0); }
+.receipt-ignore form { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; margin-top: .3rem; }
+.receipt-sure ul { margin: .4rem 0 .8rem; display: flex; flex-direction: column; gap: .3rem; }
+.receipt-sure label.check { display: flex; gap: .6rem; align-items: baseline; margin: 0; font-family: var(--font-sans); font-size: .9rem; text-transform: none; letter-spacing: 0; color: var(--fg1); }
+.receipt-sure label.check span:not(.receipt-score) { flex: 1; min-width: 0; }
+.receipts-nav .chip[data-empty] { opacity: .55; }
+.receipts-note { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 0 0 1rem; }
+.receipts-note .pill { margin: 0; }
+.receipt-find { margin: 0 0 .6rem; max-width: 34rem; }
+.receipt-linked-docs { display: flex; flex-direction: column; gap: .4rem; }
+.receipt-linked-docs li { display: flex; gap: .6rem; align-items: flex-start; }
+.receipt-linked-docs li > span { flex: 1; min-width: 0; }
+.receipt-linked-docs .receipt-thumb { width: 2.4rem; min-height: 3rem; }
+.receipt-fields-read { display: grid; grid-template-columns: minmax(10rem, max-content) 1fr; gap: .3rem 1rem; font-size: .9rem; }
+.receipt-fields-read dt { color: var(--fg2); }
+.receipt-fields-read dd { margin: 0; }
+.receipt-fields-read .receipt-fields-head { grid-column: 1 / -1; margin-top: .5rem; font-weight: 600; color: var(--fg1); }
+.receipt-find button, .receipt-find input { margin: 0; }
+.receipt-draft-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: .4rem 1rem; }
+.receipt-draft-grid label small { display: block; margin-top: .2rem; font-family: var(--font-sans); text-transform: none; letter-spacing: 0; }
+.receipt-pick { display: flex; flex-wrap: wrap; gap: .4rem .8rem; align-items: center; padding-top: .5rem; border-top: 1px solid var(--bg2); }
+.receipt-pick p { margin: 0; display: flex; flex-wrap: wrap; gap: .4rem; align-items: baseline; }
+.receipt-pick button { margin: 0; }
+.receipt-pick button:disabled { opacity: .5; cursor: not-allowed; }
+.receipt-cand-head input[data-pick] { width: auto; margin: 0 .2rem 0 0; flex: 0 0 auto; align-self: center; }
+.receipts-concept-foot { display: flex; flex-wrap: wrap; gap: .4rem 1rem; align-items: center; margin: .5rem 0 0; }
 .receipt-factors { list-style: none; padding: 0; margin: .4rem 0; display: flex; flex-direction: column; gap: .45rem; font-size: .82rem; }
 .receipt-factors li { color: var(--fg2); }
 .receipt-factors li[data-hit] { color: var(--fg1); }
@@ -687,8 +735,18 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .receipt-ignored { display: flex; flex-wrap: wrap; gap: .3rem .8rem; align-items: center; padding: .35rem 0; border-bottom: 1px solid var(--bg2); }
 .receipt-fields fieldset { border: 0; padding: 0; margin: 0 0 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: .6rem 1rem; }
 .receipt-fields legend { font-weight: 600; margin-bottom: .4rem; }
+.receipt-fields .receipt-fields-setup { grid-column: 1 / -1; margin: 0; }
+.receipt-fields label small { display: block; margin-top: .25rem; font-size: .78rem; letter-spacing: 0; text-transform: none; font-family: var(--font-sans); }
+.receipts-concept { margin: 0 0 1rem; color: var(--fg2); }
+.receipts-concept summary { cursor: pointer; }
+.receipts-concept ul { margin: .5rem 0 0; padding-left: 1.2rem; display: grid; gap: .35rem; max-width: 70rem; }
 .receipts-keys { margin-top: 1.5rem; }
-@media (max-width: 760px) { .receipt-match { grid-template-columns: 1fr; } }
+@media (hover: none) { .receipts-keys { display: none; } }
+@media (max-width: 760px) {
+  .receipt-match { grid-template-columns: 1fr; }
+  .receipt-thumb { width: 2.8rem; min-height: 3.6rem; }
+  .receipt-cand { padding: .5rem; gap: .6rem; }
+}
 
 /* ── progress ── */
 .meters { display: flex; flex-direction: column; }

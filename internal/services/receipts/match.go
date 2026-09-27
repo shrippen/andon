@@ -7,7 +7,14 @@ package receipts
 //	vendor   20  fuzzy ≥ 85 % against correspondent or title; 10 at ≥ 60 %
 //	invoice  30  the expense's invoice number or number in field, title or OCR
 //
-// capped at 100; only suggestions from 40 on are shown. A 1∶n combo is a
+// capped at 100; only suggestions from 40 on are shown. A factor that
+// cannot apply (no invoice number) is left out and the score taken of
+// the points still reachable: amount, date and vendor alone reach 100.
+//
+// A 1∶n combo (2–4 scans adding up to the expense) is looked for when no
+// single scan has the exact amount; the scans it covers fold away. A
+// match is sure when its best scan has the exact amount, 90 points or
+// more and no second scan within 15. A 1∶n combo is a
 // set of 2–4 scans whose amounts add up to the expense.
 
 import (
@@ -46,6 +53,10 @@ const (
 	comboTop       = 3
 	nearTolFactor  = 10
 	nearTolMinimum = 1.0
+	sureScore      = 90
+	sureGap        = 15
+	levelHigh      = 80
+	levelMid       = 60
 )
 
 // Factor keys.
@@ -54,14 +65,6 @@ const (
 	FactorDate    = "date"
 	FactorVendor  = "vendor"
 	FactorInvoice = "invoice"
-)
-
-// ComboMode says whether 1∶n combos are searched too.
-type ComboMode bool
-
-const (
-	Singles    ComboMode = false
-	WithCombos ComboMode = true
 )
 
 // Mapping says where the link lives on both sides. Slots are Invoice
@@ -84,6 +87,7 @@ type Factor struct {
 	Key         string
 	Points, Max int
 	Hit         bool
+	Off         bool // cannot apply here, left out of the score
 	Text        string
 	Args        map[string]any
 }
@@ -94,8 +98,25 @@ func (f Factor) Width() int { return f.Points * full / max(f.Max, 1) }
 // Candidate is one scan suggested for an expense.
 type Candidate struct {
 	Doc     sources.ReceiptDoc
+	Amount  float64 // the scan's amount as found, 0 = none
 	Score   int
 	Factors []Factor
+}
+
+// Level is the score's band: "high" from 80, "mid" from 60, else "low".
+func (c Candidate) Level() string { return level(c.Score) }
+
+// Open tells whether the reasons unfold by themselves: weak scores only.
+func (c Candidate) Open() bool { return c.Score < levelHigh-10 }
+
+func level(score int) string {
+	switch {
+	case score >= levelHigh:
+		return "high"
+	case score >= levelMid:
+		return "mid"
+	}
+	return "low"
 }
 
 // Combo is a set of scans whose amounts add up to an expense.
@@ -107,6 +128,9 @@ type Combo struct {
 	Factors []Factor
 }
 
+// Level is the score's band, as for a single scan.
+func (c Combo) Level() string { return level(c.Score) }
+
 // IDs lists the combo's document ids, "11,12".
 func (c Combo) IDs() string {
 	ids := make([]string, len(c.Docs))
@@ -116,17 +140,45 @@ func (c Combo) IDs() string {
 	return strings.Join(ids, ",")
 }
 
-// ExpenseMatch is an unlinked expense with its best scans.
+// ExpenseMatch is an unlinked expense with its best scans; Covered are
+// single scans the best combo already holds.
 type ExpenseMatch struct {
 	Expense    sources.ReceiptExpense
 	Candidates []Candidate
 	Combos     []Combo
+	Covered    []Candidate
 }
 
-// DocMatch is an unlinked scan with its best expenses.
+// Sure tells whether the best scan leaves no doubt: exact amount, a high
+// score, no second scan close to it and no combo.
+func (m ExpenseMatch) Sure() bool {
+	if len(m.Candidates) == 0 || len(m.Combos) > 0 {
+		return false
+	}
+	top := m.Candidates[0]
+	if top.Score < sureScore || !exactAmount(top.Factors) {
+		return false
+	}
+	return len(m.Candidates) == 1 || m.Candidates[1].Score <= top.Score-sureGap
+}
+
+func exactAmount(factors []Factor) bool {
+	return slices.ContainsFunc(factors, func(f Factor) bool { return f.Key == FactorAmount && f.Points == amountMax })
+}
+
+// DocMatch is an unlinked scan with its best expenses, alone or as part
+// of a combo.
 type DocMatch struct {
-	Doc  sources.ReceiptDoc
-	Hits []ExpenseHit
+	Doc    sources.ReceiptDoc
+	Amount float64 // the scan's own amount, 0 = unknown
+	Hits   []ExpenseHit
+	Combos []ComboHit
+}
+
+// ComboHit is an expense a scan pays together with others.
+type ComboHit struct {
+	Expense sources.ReceiptExpense
+	Combo
 }
 
 // ExpenseHit is one expense suggested for a scan.
@@ -252,15 +304,24 @@ func datePoints(apart int) int {
 
 func (x matcher) score(e sources.ReceiptExpense, d sources.ReceiptDoc) Candidate {
 	factors := []Factor{x.amountFactor(e, d), dateFactor(e, d), x.vendorFactor(e, []sources.ReceiptDoc{d}, false), x.invoiceFactor(e, d)}
-	return Candidate{Doc: d, Score: total(factors), Factors: factors}
+	amount, _, _ := x.docAmount(e, d)
+	return Candidate{Doc: d, Amount: amount, Score: total(factors), Factors: factors}
 }
 
+// total adds the points, taken of the reachable ones: 100 at most, and
+// factors that are off do not count against it.
 func total(factors []Factor) int {
-	sum := 0
+	sum, reachable := 0, 0
 	for _, f := range factors {
 		sum += f.Points
+		if !f.Off {
+			reachable += f.Max
+		}
 	}
-	return min(sum, full)
+	if reachable = min(reachable, full); reachable == 0 {
+		return 0
+	}
+	return min(int(math.Round(float64(sum*full)/float64(reachable))), full)
 }
 
 // docAmount is the scan's amount: the amount field, else the first amount
@@ -395,12 +456,17 @@ func shorten(s string) string {
 }
 
 // invoiceFactor looks for the expense's invoice number, or its own
-// number, in the scan's invoice field, title and OCR text.
+// number, in the scan's invoice field, title and OCR text. Without an
+// invoice number the factor is off; the own number then only adds.
 func (x matcher) invoiceFactor(e sources.ReceiptExpense, d sources.ReceiptDoc) Factor {
 	f := Factor{Key: FactorInvoice, Max: invoiceMax}
+	invoice := ""
+	if x.mapping.InvoiceSlot > 0 {
+		invoice = e.Custom[x.mapping.InvoiceSlot-1]
+	}
 	var needles []string
-	if x.mapping.InvoiceSlot > 0 && e.Custom[x.mapping.InvoiceSlot-1] != "" {
-		needles = append(needles, e.Custom[x.mapping.InvoiceSlot-1])
+	if invoice != "" {
+		needles = append(needles, invoice)
 	}
 	if e.Number != "" {
 		needles = append(needles, e.Number)
@@ -425,11 +491,11 @@ func (x matcher) invoiceFactor(e sources.ReceiptExpense, d sources.ReceiptDoc) F
 			}
 		}
 	}
-	f.Text = "receipts.why_invoice_miss"
-	f.Args = map[string]any{"needles": strings.Join(needles, ", ")}
-	if len(needles) == 0 {
-		f.Text = "receipts.why_invoice_none"
+	if invoice == "" {
+		f.Off, f.Text = true, "receipts.why_invoice_none"
+		return f
 	}
+	f.Text, f.Args = "receipts.why_invoice_miss", map[string]any{"needles": invoice}
 	return f
 }
 
@@ -538,7 +604,7 @@ func (x matcher) scoreCombo(e sources.ReceiptExpense, members []pooled) Combo {
 		date.Hit, date.Text, date.Args = date.Points > 0, "receipts.why_combo_date", map[string]any{"count": len(c.Docs)}
 	}
 
-	invoice := Factor{Key: FactorInvoice, Max: invoiceMax, Text: "receipts.why_combo_invoice"}
+	invoice := Factor{Key: FactorInvoice, Max: invoiceMax, Off: true, Text: "receipts.why_combo_invoice"}
 	c.Factors = []Factor{amount, date, x.vendorFactor(e, c.Docs, true), invoice}
 	c.Score = total(c.Factors)
 	return c
@@ -547,24 +613,10 @@ func (x matcher) scoreCombo(e sources.ReceiptExpense, members []pooled) Combo {
 // ── lists ──
 
 // Matches suggests scans for each expense, best-matched expenses first.
-func (x matcher) Matches(expenses []sources.ReceiptExpense, docs []sources.ReceiptDoc, mode ComboMode) []ExpenseMatch {
+func (x matcher) Matches(expenses []sources.ReceiptExpense, docs []sources.ReceiptDoc) []ExpenseMatch {
 	out := make([]ExpenseMatch, 0, len(expenses))
 	for _, e := range expenses {
-		m := ExpenseMatch{Expense: e}
-		for _, d := range docs {
-			if !inWindow(e, d) {
-				continue
-			}
-			if c := x.score(e, d); c.Score >= minScore {
-				m.Candidates = append(m.Candidates, c)
-			}
-		}
-		sort.SliceStable(m.Candidates, func(i, j int) bool { return m.Candidates[i].Score > m.Candidates[j].Score })
-		m.Candidates = m.Candidates[:min(len(m.Candidates), topN)]
-		if mode == WithCombos {
-			m.Combos = x.combos(e, docs)
-		}
-		out = append(out, m)
+		out = append(out, x.match(e, docs))
 	}
 	best := func(m ExpenseMatch) (int, int) {
 		combo, single := -1, -1
@@ -587,16 +639,62 @@ func (x matcher) Matches(expenses []sources.ReceiptExpense, docs []sources.Recei
 	return out
 }
 
-// Reverse suggests expenses for each scan, best-matched scans first.
-func (x matcher) Reverse(docs []sources.ReceiptDoc, expenses []sources.ReceiptExpense) []DocMatch {
+// match scores the scans of one expense; combos only when no single
+// scan has the exact amount, and the scans of the best combo fold away.
+func (x matcher) match(e sources.ReceiptExpense, docs []sources.ReceiptDoc) ExpenseMatch {
+	m := ExpenseMatch{Expense: e}
+	exact := false
+	for _, d := range docs {
+		if !inWindow(e, d) {
+			continue
+		}
+		c := x.score(e, d)
+		exact = exact || exactAmount(c.Factors)
+		if c.Score >= minScore {
+			m.Candidates = append(m.Candidates, c)
+		}
+	}
+	sort.SliceStable(m.Candidates, func(i, j int) bool { return m.Candidates[i].Score > m.Candidates[j].Score })
+	if !exact {
+		m.Combos = x.combos(e, docs)
+	}
+	if len(m.Combos) > 0 {
+		inCombo := m.Combos[0].Docs
+		m.Candidates = slices.DeleteFunc(m.Candidates, func(c Candidate) bool {
+			if !slices.ContainsFunc(inCombo, func(d sources.ReceiptDoc) bool { return d.ID == c.Doc.ID }) {
+				return false
+			}
+			m.Covered = append(m.Covered, c)
+			return true
+		})
+	}
+	m.Candidates = m.Candidates[:min(len(m.Candidates), topN)]
+	return m
+}
+
+// Reverse suggests expenses for each scan, best-matched scans first; a
+// scan that pays an expense together with others of pool (the year's
+// unlinked scans) gets that combo.
+func (x matcher) Reverse(docs []sources.ReceiptDoc, expenses []sources.ReceiptExpense, pool []sources.ReceiptDoc) []DocMatch {
+	combos := map[int64][]ComboHit{}
+	for _, e := range expenses {
+		m := x.match(e, pool)
+		for _, c := range m.Combos[:min(len(m.Combos), 1)] {
+			for _, d := range c.Docs {
+				combos[d.ID] = append(combos[d.ID], ComboHit{Expense: e, Combo: c})
+			}
+		}
+	}
 	out := make([]DocMatch, 0, len(docs))
 	for _, d := range docs {
-		m := DocMatch{Doc: d}
+		m := DocMatch{Doc: d, Combos: combos[d.ID]}
+		m.Amount, _ = x.comboAmount(d)
 		for _, e := range expenses {
 			if !inWindow(e, d) {
 				continue
 			}
-			if c := x.score(e, d); c.Score >= minScore {
+			paid := slices.ContainsFunc(m.Combos, func(c ComboHit) bool { return c.Expense.Key == e.Key })
+			if c := x.score(e, d); c.Score >= minScore && !paid {
 				m.Hits = append(m.Hits, ExpenseHit{Expense: e, Candidate: c})
 			}
 		}
@@ -605,10 +703,14 @@ func (x matcher) Reverse(docs []sources.ReceiptDoc, expenses []sources.ReceiptEx
 		out = append(out, m)
 	}
 	top := func(m DocMatch) int {
-		if len(m.Hits) == 0 {
-			return -1
+		best := -1
+		if len(m.Hits) > 0 {
+			best = m.Hits[0].Score
 		}
-		return m.Hits[0].Score
+		if len(m.Combos) > 0 {
+			best = max(best, m.Combos[0].Score)
+		}
+		return best
 	}
 	sort.SliceStable(out, func(i, j int) bool { return top(out[i]) > top(out[j]) })
 	return out

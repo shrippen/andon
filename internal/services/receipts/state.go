@@ -15,6 +15,7 @@ import (
 //
 //	{"ninja": 3, "paperless": 5,                     the chosen connections
 //	 "ignored": {"n3": ["Kx9"], "p5": [44]},          hidden per connection
+//	 "reasons": {"n3/Kx9": "private"},                why, where given
 //	 "aliases": [["hetzner", "hetzner online gmbh"]], learned vendor names
 //	 "backfilled": ["3-5"]}                           pairs learned from once
 const prefKey = "receipts"
@@ -24,6 +25,7 @@ type state struct {
 	Ninja      int64               `json:"ninja,omitempty"`
 	Paperless  int64               `json:"paperless,omitempty"`
 	Ignored    map[string][]string `json:"ignored,omitempty"`
+	Reasons    map[string]Reason   `json:"reasons,omitempty"`
 	Aliases    Aliases             `json:"aliases,omitempty"`
 	Backfilled []string            `json:"backfilled,omitempty"`
 }
@@ -40,6 +42,9 @@ func stateOf(raw any) state {
 	}
 	if s.Ignored == nil {
 		s.Ignored = map[string][]string{}
+	}
+	if s.Reasons == nil {
+		s.Reasons = map[string]Reason{}
 	}
 	return s
 }
@@ -101,6 +106,23 @@ func (s state) ignored(kind Kind, connID int64) []string {
 	return s.Ignored[ignoreKey(kind, connID)]
 }
 
+// Reason says why something is hidden; "" = not said.
+type Reason string
+
+const (
+	ReasonNone      Reason = ""
+	ReasonPrivate   Reason = "private"
+	ReasonNoReceipt Reason = "no_receipt"
+	ReasonDuplicate Reason = "duplicate"
+)
+
+// Reasons in the order the page offers them.
+var Reasons = []Reason{ReasonPrivate, ReasonNoReceipt, ReasonDuplicate, ReasonNone}
+
+func (s state) reason(kind Kind, connID int64, id string) Reason {
+	return s.Reasons[ignoreKey(kind, connID)+"/"+id]
+}
+
 // Hide says whether an entry gets hidden or shown again.
 type Hide bool
 
@@ -109,11 +131,15 @@ const (
 	Shown  Hide = false
 )
 
-func (s *state) setIgnored(kind Kind, connID int64, id string, hide Hide) {
+func (s *state) setIgnored(kind Kind, connID int64, id string, hide Hide, why Reason) {
 	key := ignoreKey(kind, connID)
 	list := slices.DeleteFunc(slices.Clone(s.Ignored[key]), func(x string) bool { return x == id })
+	delete(s.Reasons, key+"/"+id)
 	if hide == Hidden {
 		list = append(list, id)
+		if why != ReasonNone {
+			s.Reasons[key+"/"+id] = why
+		}
 	}
 	if len(list) == 0 {
 		delete(s.Ignored, key)

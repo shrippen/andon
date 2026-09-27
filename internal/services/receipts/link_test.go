@@ -122,6 +122,19 @@ func TestLinkComboJoinsURLsAndRollsBack(t *testing.T) {
 	}
 }
 
+// Linking adds to the scans an expense has: an undone unlink of one part
+// of a combo brings it back next to the others.
+func TestLinkKeepsLinkedScans(t *testing.T) {
+	w, ninja, docs := fakes(t)
+	e := expense(func(e *sources.ReceiptExpense) { e.Custom[1] = "https://pl.example/documents/12/" })
+	if err := testWriter(ninja, docs, e, doc(func(d *sources.ReceiptDoc) { d.ID = 11 })).link(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if w.expense[0]["custom_value2"] != "https://pl.example/documents/12/ https://pl.example/documents/11/" || w.expense[0]["custom_value1"] != nil {
+		t.Fatalf("expense: %v", w.expense[0])
+	}
+}
+
 func TestUnlinkKeepsOtherScans(t *testing.T) {
 	w, ninja, docs := fakes(t)
 	e := expense(func(e *sources.ReceiptExpense) {
@@ -145,7 +158,7 @@ func TestDocIDs(t *testing.T) {
 }
 
 func TestSuggestMapping(t *testing.T) {
-	slots := []Slot{{1, "Rechnungsnummer"}, {2, "Paperless"}, {3, ""}}
+	slots := []Slot{{N: 1, Label: "Rechnungsnummer"}, {N: 2, Label: "Paperless"}, {N: 3}}
 	fields := []sources.DocField{{ID: 1, Name: "Rechnungsnummer", Type: "string"}, {ID: 2, Name: "Ausgabe", Type: "string"},
 		{ID: 3, Name: "Invoice Ninja", Type: "url"}, {ID: 4, Name: "Betrag", Type: "monetary"}}
 	want := Mapping{InvoiceSlot: 1, LinkSlot: 2, FieldInvoice: 1, FieldExpense: 2, FieldLink: 3, FieldAmount: 4}

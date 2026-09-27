@@ -171,8 +171,77 @@
       el.scrollIntoView({ block: "nearest" });
     }
 
+    // A search or form panel empties its slot on "close" or Esc; the
+    // focus goes back to the card.
+    function closeSearch(from) {
+      var page = d.querySelector("main.receipts");
+      var panel = from && from.closest ? from.closest(".receipt-search") : null;
+      panel = panel || (page && page.querySelector(".receipt-search"));
+      if (!panel || !panel.parentElement) {
+        return;
+      }
+      var card = panel.closest(".receipt-match");
+      panel.parentElement.innerHTML = "";
+      focusOn(card && (card.querySelector(".kb-item") || card));
+    }
+
+    d.addEventListener("click", function (e) {
+      var btn = e.target.closest && e.target.closest("[data-close-search]");
+      if (btn) {
+        closeSearch(btn);
+      }
+    });
+
+    // Scans ticked for a split receipt: their sum against the expense.
+    // The zero amount the server rendered ("0,00 €") gives the format.
+    function pickSum(form) {
+      var boxes = d.querySelectorAll('input[data-pick][form="' + form.id + '"]');
+      var sum = 0, count = 0;
+      Array.prototype.forEach.call(boxes, function (box) {
+        if (box.checked) {
+          sum += parseFloat(box.getAttribute("data-amount")) || 0;
+          count++;
+        }
+      });
+      var out = form.querySelector("[data-pick-sum]");
+      var lang = d.documentElement.lang || "de";
+      var number = sum.toLocaleString(lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      out.textContent = out.getAttribute("data-zero").replace(/[\d.,\s]*\d/, number);
+      var state = form.querySelector("[data-pick-state]");
+      var fits = Math.abs(sum - parseFloat(form.getAttribute("data-target"))) <= 0.02;
+      state.hidden = count === 0;
+      state.setAttribute("data-state", fits ? "ok" : "warn");
+      state.textContent = state.getAttribute(fits ? "data-ok" : "data-off");
+      form.querySelector("button[type=submit]").disabled = count === 0;
+    }
+
+    d.addEventListener("change", function (e) {
+      if (e.target.matches && e.target.matches("input[data-pick]")) {
+        var form = d.getElementById(e.target.getAttribute("form"));
+        if (form) {
+          pickSum(form);
+        }
+      }
+    });
+
+    d.addEventListener("htmx:afterSwap", function () {
+      Array.prototype.forEach.call(d.querySelectorAll("form.receipt-pick"), pickSum);
+    });
+
+    // A scan without thumbnail leaves no empty frame behind.
+    d.addEventListener("error", function (e) {
+      var frame = e.target && e.target.closest ? e.target.closest(".receipt-thumb") : null;
+      if (frame) {
+        frame.hidden = true;
+      }
+    }, true);
+
     d.addEventListener("keydown", function (e) {
       var page = d.querySelector("main.receipts");
+      if (page && e.key === "Escape" && e.target.closest && e.target.closest(".receipt-search")) {
+        closeSearch(e.target);
+        return;
+      }
       if (!page || e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target)) {
         return;
       }
@@ -202,6 +271,8 @@
         e.preventDefault();
         var next = cards[(cards.indexOf(card) + 1) % cards.length];
         focusOn(next.querySelector(".kb-item") || next);
+      } else if (e.key === "Escape") {
+        closeSearch(d.activeElement);
       } else if (e.key === "s" && card) {
         var search = card.querySelector("[data-search]");
         if (search) {

@@ -64,6 +64,7 @@ func mustParse() *template.Template {
 		"clockHands":  clockHands,
 		"dict":        dict,
 		"list":        func(items ...string) []string { return items },
+		"join":        strings.Join,
 		"monogram":    monogram,
 		"deref":       func(p *enums.TeamRole) enums.TeamRole { return *p },
 		"dataURI":     dataURI,

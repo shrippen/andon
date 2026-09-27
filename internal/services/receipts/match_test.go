@@ -69,7 +69,7 @@ func TestMatchesOrderByScore(t *testing.T) {
 	})
 	strong := doc(func(d *sources.ReceiptDoc) { d.ID = 2 })
 	far := doc(func(d *sources.ReceiptDoc) { d.ID, d.Day = 3, "2026-10-01" })
-	got := matcher{mapping: mapped}.Matches([]sources.ReceiptExpense{expense(nil)}, []sources.ReceiptDoc{weak, strong, far}, Singles)
+	got := matcher{mapping: mapped}.Matches([]sources.ReceiptExpense{expense(nil)}, []sources.ReceiptDoc{weak, strong, far})
 	if len(got) != 1 || len(got[0].Candidates) != 1 || got[0].Candidates[0].Doc.ID != 2 || got[0].Combos != nil {
 		t.Fatalf("matches: %+v", got)
 	}
@@ -118,7 +118,7 @@ func TestComboSumsTwoScans(t *testing.T) {
 		return doc(func(d *sources.ReceiptDoc) { d.ID, d.Title, d.Content, d.Custom[9] = id, title, "", amount })
 	}
 	scans := []sources.ReceiptDoc{part(1, "Teil A", 20), part(2, "Teil B", 22.5), part(3, "Unrelated", 5)}
-	got := x.Matches([]sources.ReceiptExpense{expense(nil)}, scans, WithCombos)
+	got := x.Matches([]sources.ReceiptExpense{expense(nil)}, scans)
 	if len(got[0].Combos) == 0 {
 		t.Fatal("no combo")
 	}
@@ -126,15 +126,57 @@ func TestComboSumsTwoScans(t *testing.T) {
 	if c.IDs() != "2,1" || c.Sum != 42.5 || c.Score < minScore || c.Factors[0].Text != "receipts.why_combo_amount" {
 		t.Fatalf("combo: %+v", c)
 	}
-	if got := x.Matches([]sources.ReceiptExpense{expense(nil)}, scans, Singles); got[0].Combos != nil {
-		t.Fatal("combos only when asked")
+	// The parts are no singles of their own any more, only folded away.
+	for _, cand := range got[0].Candidates {
+		if cand.Doc.ID == 1 || cand.Doc.ID == 2 {
+			t.Fatalf("part %d still a single", cand.Doc.ID)
+		}
+	}
+	if len(got[0].Covered) == 0 {
+		t.Fatal("covered singles lost")
+	}
+
+	// An exact single leaves no room for combos.
+	whole := doc(func(d *sources.ReceiptDoc) { d.ID, d.Custom[9] = 4, 42.5 })
+	if got := x.Matches([]sources.ReceiptExpense{expense(nil)}, append(scans, whole)); got[0].Combos != nil {
+		t.Fatal("combo next to an exact single")
+	}
+}
+
+// TestSureMatch: an exact amount with a high score and no close second
+// counts as sure; a close second or a combo does not.
+func TestSureMatch(t *testing.T) {
+	x := matcher{mapping: mapped}
+	e := expense(func(e *sources.ReceiptExpense) { e.Custom[0] = "RE-99" })
+	got := x.Matches([]sources.ReceiptExpense{e}, []sources.ReceiptDoc{doc(nil)})
+	if !got[0].Sure() {
+		t.Fatalf("not sure: %+v", got[0].Candidates)
+	}
+	twin := doc(func(d *sources.ReceiptDoc) { d.ID = 11 })
+	if got := x.Matches([]sources.ReceiptExpense{e}, []sources.ReceiptDoc{doc(nil), twin}); got[0].Sure() {
+		t.Fatal("two equal scans counted as sure")
+	}
+}
+
+// TestReverseCombo: each part of a 1∶n combo finds the expense as a combo.
+func TestReverseCombo(t *testing.T) {
+	x := matcher{mapping: withAmount}
+	part := func(id int64, amount float64) sources.ReceiptDoc {
+		return doc(func(d *sources.ReceiptDoc) { d.ID, d.Content, d.Custom[9] = id, "", amount })
+	}
+	scans := []sources.ReceiptDoc{part(1, 20), part(2, 22.5)}
+	got := x.Reverse(scans, []sources.ReceiptExpense{expense(nil)}, scans)
+	for _, m := range got {
+		if len(m.Combos) != 1 || m.Combos[0].Expense.Key != "abc" || len(m.Combos[0].Docs) != 2 || len(m.Hits) != 0 {
+			t.Fatalf("scan %d: %+v, hits %+v", m.Doc.ID, m.Combos, m.Hits)
+		}
 	}
 }
 
 // TestReverseQueue: a scan finds its expense.
 func TestReverseQueue(t *testing.T) {
 	other := expense(func(e *sources.ReceiptExpense) { e.Key, e.Amount, e.Vendor = "2", 999, "Else" })
-	got := matcher{mapping: mapped}.Reverse([]sources.ReceiptDoc{doc(nil)}, []sources.ReceiptExpense{other, expense(nil)})
+	got := matcher{mapping: mapped}.Reverse([]sources.ReceiptDoc{doc(nil)}, []sources.ReceiptExpense{other, expense(nil)}, nil)
 	if len(got[0].Hits) != 1 || got[0].Hits[0].Expense.Key != "abc" {
 		t.Fatalf("reverse: %+v", got)
 	}

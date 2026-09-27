@@ -73,6 +73,25 @@
         }
       ],
       "settle": 1500
+    },
+    {
+      "name": "receipts",
+      "url": "/receipts",
+      "actions": [
+        {
+          "eval": "(() => { const f = document.querySelector('form.receipts-pick'); if (f) { f.querySelector('input[name=paperless]').checked = true; f.submit(); } })()"
+        },
+        {
+          "sleep": 2500
+        },
+        {
+          "eval": "document.querySelectorAll('.receipts-concept').forEach(d => d.open = false)"
+        },
+        {
+          "sleep": 500
+        }
+      ],
+      "settle": 3000
     }
   ],
   "page": {

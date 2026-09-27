@@ -2,6 +2,7 @@ package outbound
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -13,6 +14,23 @@ import (
 func NinjaExpenseSet(ctx context.Context, to Target, key string, values map[string]string) error {
 	_, err := services.NinjaApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}.Put(ctx, "expenses", key, values)
 	return err
+}
+
+// NinjaExpenseCreate creates an expense and returns its key and number,
+// e.g. {"amount": 42.5, "date": "2026-08-01", "vendor_id": "Kx9"}.
+func NinjaExpenseCreate(ctx context.Context, to Target, body map[string]any) (string, string, error) {
+	res, err := services.NinjaApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}.Post(ctx, "expenses", body)
+	if err != nil {
+		return "", "", err
+	}
+	top, _ := res.(map[string]any)
+	data, _ := top["data"].(map[string]any)
+	key, _ := data["id"].(string)
+	number, _ := data["number"].(string)
+	if key == "" {
+		return "", "", errors.New("invoice ninja: no expense id in the answer")
+	}
+	return key, number, nil
 }
 
 // PaperlessFieldsSet writes custom field values of one document; fields

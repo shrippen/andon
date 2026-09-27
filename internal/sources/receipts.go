@@ -14,6 +14,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -66,10 +67,11 @@ type DocField struct {
 // DocSet is one year of Paperless documents plus the custom fields and
 // tags that exist.
 type DocSet struct {
-	URL    string
-	Docs   []ReceiptDoc
-	Fields []DocField
-	Tags   map[string]int64 // lower-case name → id
+	URL      string
+	Docs     []ReceiptDoc
+	Fields   []DocField
+	Tags     map[string]int64 // lower-case name → id
+	TagNames []string         // as written, sorted
 }
 
 const (
@@ -195,7 +197,9 @@ func (PaperlessDocs) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		for _, raw := range asList(asMap(tags)["results"]) {
 			tag := asMap(raw)
 			set.Tags[strings.ToLower(asStr(tag["name"]))] = asInt64(tag["id"])
+			set.TagNames = append(set.TagNames, asStr(tag["name"]))
 		}
+		slices.Sort(set.TagNames)
 	}
 	names := correspondentNames(ctx, api)
 	query := url.Values{
@@ -361,7 +365,7 @@ func PaperlessSearch(ctx context.Context, sctx Ctx, s DocSearch) ([]ReceiptDoc, 
 // PaperlessThumb reads a document's thumbnail image.
 func PaperlessThumb(ctx context.Context, sctx Ctx, id int64) ([]byte, string, error) {
 	if isDemo(sctx) {
-		return nil, "", newSourceError("demo: no thumbnails")
+		return demoThumb(time.Now(), id)
 	}
 	api, err := paperlessAPI(sctx)
 	if err != nil {
@@ -372,6 +376,28 @@ func PaperlessThumb(ctx context.Context, sctx Ctx, id int64) ([]byte, string, er
 		return nil, "", fetchError(err)
 	}
 	return body, kind, nil
+}
+
+// NinjaVendorKey finds a vendor by name (case-insensitive), "" if none.
+func NinjaVendorKey(ctx context.Context, sctx Ctx, name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" || isDemo(sctx) {
+		return "", nil
+	}
+	api, err := ninjaAPI(sctx)
+	if err != nil {
+		return "", err
+	}
+	list, err := api.Pages(ctx, "vendors", url.Values{"name": {name}})
+	if err != nil {
+		return "", fetchError(err)
+	}
+	for _, raw := range list {
+		if v := asMap(raw); strings.EqualFold(strings.TrimSpace(asStr(v["name"])), name) {
+			return idKey(v["id"]), nil
+		}
+	}
+	return "", nil
 }
 
 // IsDemo tells whether a connection URL is a demo:// one, which answers

@@ -11,11 +11,23 @@
   {{template "header" .}}
   <main class="receipts">
     <h1>{{t "nav.receipts"}}</h1>
-    {{template "intro" dict "Page" "receipts" "Chapter" "freelance" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
-    <p class="muted">{{t "receipts.lead"}}</p>
+    {{/* The concept in place of the intro box: open until "understood". */}}
+    {{$fresh := false}}{{with .Onboarding}}{{if not (index .Seen "receipts")}}{{$fresh = true}}{{end}}{{end}}
+    <details class="receipts-concept"{{if $fresh}} open{{end}}>
+      <summary>{{t "receipts.concept"}}</summary>
+      <ul>{{range list "why" "link" "state" "you"}}<li>{{t (print "receipts.concept_" .)}}</li>{{end}}</ul>
+      <p class="receipts-concept-foot"><a href="/welcome#c-receipts">{{t "intro.more"}}</a>
+        {{if $fresh}}<form method="post" action="/welcome/intro/receipts" hx-post="/welcome/intro/receipts" hx-target="this" hx-swap="outerHTML" class="inline-form">
+          <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><button type="submit" class="ghost">{{t "intro.close"}}</button></form>{{end}}</p>
+    </details>
     {{with .Done}}<p class="pill" data-state="ok">{{t "receipts.linked_note" "number" .}}</p>{{end}}
-    {{with .Note}}<p class="pill" data-state="ok">{{t .}}</p>{{end}}
-    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+    {{with .Linked}}<p class="pill" data-state="ok">{{t "receipts.linked_many" "n" .}}</p>{{end}}
+    {{with .Note}}<div class="receipts-note"><p class="pill" data-state="ok">{{t .}}</p>
+      {{if $.Undo.Expense}}<form method="post" action="/receipts/link" class="inline-form">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">{{template "receipt_back" $.Q}}
+        <input type="hidden" name="expense" value="{{$.Undo.Expense}}"><input type="hidden" name="docs" value="{{$.Undo.Doc}}">
+        <button type="submit" class="ghost">{{t "receipts.undo"}}</button></form>{{end}}</div>{{end}}
+    {{with .Error}}<p class="error">{{t . "number" $.Other}}</p>{{end}}
 
     {{$s := .Setup}}
     {{if or (not $s.Ninjas) (not $s.Docs)}}
@@ -28,7 +40,8 @@
     </section>
     {{else if or $s.Pick $s.Several}}
     {{/* Several connections of a kind: the user says which to work with.
-         First visit: a card that asks; later: a bar to switch. */}}
+         First visit: a card that asks; later: a bar to switch. Each
+         choice shows only what tells it apart (Choice.Label). */}}
     <form method="post" action="/receipts/pick" class="{{if $s.Pick}}card receipts-pick{{else}}receipts-switch{{end}}">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       {{range $k, $v := .Q.Values}}<input type="hidden" name="{{$k}}" value="{{index $v 0}}">{{end}}
@@ -36,12 +49,12 @@
       <fieldset>
         <legend>{{t "service.invoiceninja"}}</legend>
         {{range $s.Ninjas}}<label class="check"><input type="radio" name="ninja" value="{{.ID}}"{{if eq .ID $s.Ninja}} checked{{end}}{{if .NeedsToken}} disabled{{end}} required>
-          {{.Name}}{{with .Space}} <small class="muted">· {{.}}</small>{{end}}{{if .NeedsToken}} <a class="small" href="/me/credentials">{{t "receipts.needs_token"}}</a>{{end}}</label>{{end}}
+          {{.Label}}{{if .NeedsToken}} <a class="small" href="/me/credentials">{{t "receipts.needs_token"}}</a>{{end}}</label>{{end}}
       </fieldset>
       <fieldset>
         <legend>{{t "service.paperless"}}</legend>
         {{range $s.Docs}}<label class="check"><input type="radio" name="paperless" value="{{.ID}}"{{if eq .ID $s.Paperless}} checked{{end}}{{if .NeedsToken}} disabled{{end}} required>
-          {{.Name}}{{with .Space}} <small class="muted">· {{.}}</small>{{end}}{{if .NeedsToken}} <a class="small" href="/me/credentials">{{t "receipts.needs_token"}}</a>{{end}}</label>{{end}}
+          {{.Label}}{{if .NeedsToken}} <a class="small" href="/me/credentials">{{t "receipts.needs_token"}}</a>{{end}}</label>{{end}}
       </fieldset>
       <button type="submit"{{if not $s.Pick}} class="ghost"{{end}}>{{if $s.Pick}}{{t "receipts.pick_use"}}{{else}}{{t "receipts.pick_switch"}}{{end}}</button>
     </form>
@@ -49,11 +62,9 @@
 
     {{if $s.Ready}}
     <nav class="hint-filters receipts-nav" aria-label="{{t "receipts.views"}}">
-      <div class="chips">{{range .Tabs}}<a class="chip" href="{{$.Q.Link "tab" .}}"{{if eq . $.Q.Tab}} aria-current="true"{{end}}>{{t (print "receipts.tab_" .)}}</a>{{end}}</div>
-      {{if or (eq .Q.Tab "match") (eq .Q.Tab "queue")}}
-      <div class="chips">{{range .Years}}<a class="chip" href="{{$.Q.Link "year" (print .)}}"{{if eq . $.Q.Year}} aria-current="true"{{end}}>{{.}}</a>{{end}}
-        {{if eq .Q.Tab "match"}}<a class="chip" href="{{if .Q.Combo}}{{.Q.Link "combo" ""}}{{else}}{{.Q.Link "combo" "1"}}{{end}}"{{if .Q.Combo}} aria-current="true"{{end}} title="{{t "receipts.combo_help"}}">{{t "receipts.combo"}}</a>{{end}}
-      </div>{{end}}
+      <div class="chips">{{range .Tabs}}{{template "receipt_tab" dict "Q" $.Q "Tab" . "N" -1}}{{end}}</div>
+      {{if or (eq .Q.Tab "match") (eq .Q.Tab "queue") (eq .Q.Tab "linked")}}
+      <div class="chips">{{range .Years}}{{template "receipt_year" dict "Q" $.Q "Year" . "N" -1}}{{end}}</div>{{end}}
     </nav>
     <div id="receipts-part" hx-get="{{.Q.Part}}" hx-trigger="load" hx-swap="innerHTML" aria-live="polite">
       <p class="loading">{{if eq .Q.Tab "match"}}{{t "receipts.loading_year" "year" .Q.Year}}{{else}}{{t "widget.loading"}}{{end}}</p>
@@ -68,27 +79,48 @@
 </html>
 {{end}}
 
+{{/* A tab or year chip; the part swaps them in again with their numbers
+     (N −1 = not known yet). */}}
+{{define "receipt_tab"}}<a class="chip" id="receipts-tab-{{.Tab}}" href="{{.Q.Link "tab" .Tab}}"{{if eq .Tab .Q.Tab}} aria-current="true"{{end}}{{if .OOB}} hx-swap-oob="true"{{end}}>{{t (print "receipts.tab_" .Tab)}}{{if ge .N 0}} <span>{{.N}}</span>{{end}}</a>{{end}}
+
+{{define "receipt_year"}}<a class="chip" id="receipts-year-{{.Year}}" href="{{.Q.Link "year" (print .Year)}}"{{if eq .Year .Q.Year}} aria-current="true"{{end}}{{if eq .N 0}} data-empty{{end}}{{if .OOB}} hx-swap-oob="true"{{end}}>{{.Year}}{{if gt .N 0}} <span>{{.N}}</span>{{end}}</a>{{end}}
+
+{{/* The four signals at a glance: ✓ hit, – missed, dashed = does not apply. */}}
+{{define "receipt_chips"}}
+<ul class="receipt-signals">{{range .}}<li data-state="{{if .Off}}off{{else if .Hit}}hit{{else}}miss{{end}}" title="{{tt .Text .Args}}">{{if .Hit}}✓{{else}}–{{end}} {{t (print "receipts.factor_" .Key)}}</li>{{end}}</ul>
+{{end}}
+
 {{define "receipt_factors"}}
 <ul class="receipt-factors">
-  {{range .}}<li{{if .Hit}} data-hit{{end}}>
-    <div><b>{{t (print "receipts.factor_" .Key)}}</b><span>{{.Points}} / {{.Max}}</span></div>
+  {{range .}}<li{{if .Hit}} data-hit{{end}}{{if .Off}} data-off{{end}}>
+    <div><b>{{t (print "receipts.factor_" .Key)}}</b><span>{{if .Off}}{{t "receipts.factor_off"}}{{else}}{{.Points}} / {{.Max}}{{end}}</span></div>
     <p>{{tt .Text .Args}}</p>
-    <span class="receipt-bar" aria-hidden="true"><span style="width: {{.Width}}%"></span></span>
+    {{if not .Off}}<span class="receipt-bar" aria-hidden="true"><span style="width: {{.Width}}%"></span></span>{{end}}
   </li>{{end}}
 </ul>
 {{end}}
+
+{{define "receipt_score"}}<span class="receipt-score" data-level="{{.Level}}" title="{{t "receipts.score_title" "score" .Score}}">{{.Score}}</span>{{end}}
 
 {{define "receipt_thumb"}}<a class="receipt-thumb" href="{{.URL}}" target="_blank" rel="noopener" title="{{t "receipts.open_paperless"}}"><img src="/receipts/thumb/{{.ID}}" alt="" loading="lazy"></a>{{end}}
 
 {{define "receipt_back"}}{{range $k, $v := .Values}}<input type="hidden" name="{{$k}}" value="{{index $v 0}}">{{end}}{{end}}
 
+{{/* Ignoring asks why, in a small menu; showing again is one button. */}}
 {{define "receipt_ignore"}}
-<form method="post" action="/receipts/ignore" class="inline-form">
+{{if .Show}}<form method="post" action="/receipts/ignore" class="inline-form">
   <input type="hidden" name="{{.P.CSRFField}}" value="{{.P.Ctx.CSRF}}">{{template "receipt_back" .P.Q}}
-  <input type="hidden" name="kind" value="{{.Kind}}"><input type="hidden" name="id" value="{{.ID}}">
-  {{if .Show}}<input type="hidden" name="show" value="1"><button type="submit" class="ghost">{{t "receipts.show_again"}}</button>
-  {{else}}<button type="submit" class="ghost" title="{{t "receipts.ignore_help"}}">{{t "receipts.ignore"}}</button>{{end}}
-</form>
+  <input type="hidden" name="kind" value="{{.Kind}}"><input type="hidden" name="id" value="{{.ID}}"><input type="hidden" name="show" value="1">
+  <button type="submit" class="ghost">{{t "receipts.show_again"}}</button></form>
+{{else}}<details class="receipt-ignore">
+  <summary class="link-btn" title="{{t "receipts.ignore_help"}}">{{t "receipts.ignore"}}</summary>
+  <form method="post" action="/receipts/ignore">
+    <input type="hidden" name="{{.P.CSRFField}}" value="{{.P.Ctx.CSRF}}">{{template "receipt_back" .P.Q}}
+    <input type="hidden" name="kind" value="{{.Kind}}"><input type="hidden" name="id" value="{{.ID}}">
+    <span class="small muted">{{t "receipts.ignore_why"}}</span>
+    {{range list "private" "no_receipt" "duplicate" ""}}<button type="submit" name="reason" value="{{.}}" class="ghost">{{t (print "receipts.reason_" (or . "none"))}}</button>{{end}}
+  </form>
+</details>{{end}}
 {{end}}
 
 {{define "receipt_link"}}
@@ -99,53 +131,86 @@
 </form>
 {{end}}
 
+{{/* One scan suggested or found for an expense. */}}
+{{define "receipt_cand"}}{{$c := .C}}{{$d := $c.Doc}}
+<div class="receipt-cand kb-item" tabindex="-1">
+  {{template "receipt_thumb" dict "URL" (.V.DocURL $d.ID) "ID" $d.ID}}
+  <div class="receipt-cand-body">
+    <div class="receipt-cand-head">{{if and .Pick (not .Other)}}<input type="checkbox" name="doc" value="{{$d.ID}}" form="{{.Pick}}" data-pick data-amount="{{printf "%g" .Own}}"{{if .Picked}} checked{{end}} aria-label="{{t "receipts.pick_one"}}">{{end}}
+      <a href="{{.V.DocURL $d.ID}}" target="_blank" rel="noopener">{{or $d.Title (print "#" $d.ID)}}</a>{{template "receipt_score" $c}}</div>
+    <p class="small muted">{{or $d.Correspondent "–"}} · {{if $d.Day}}{{day $d.Day}}{{else}}–{{end}}{{if .Own}} · {{money .Own}}{{else if $c.Amount}} · {{money $c.Amount}}{{end}}</p>
+    {{template "receipt_chips" $c.Factors}}
+    <details{{if and $c.Open (not .Found)}} open{{end}}><summary>{{t "receipts.why" "score" $c.Score}}</summary>{{template "receipt_factors" $c.Factors}}</details>
+    <p class="receipt-actions">
+      {{if .Other}}<span class="pill" data-state="warn">{{t "receipts.linked_to" "number" .Other}}</span>
+      {{else}}{{template "receipt_link" dict "P" .P "Expense" .Expense "Docs" (print $d.ID) "Label" (t "receipts.link")}}{{end}}
+      {{if .Ignore}}{{template "receipt_ignore" dict "P" .P "Kind" "doc" "ID" (print $d.ID)}}{{end}}
+    </p>
+  </div>
+</div>
+{{end}}
+
+{{/* Several scans that pay one expense together. */}}
+{{define "receipt_combo"}}{{$c := .C}}
+<div class="receipt-cand receipt-combo kb-item" tabindex="-1">
+  <div class="receipt-cand-body">
+    <div class="receipt-cand-head"><span class="pill">{{t "receipts.combo_badge" "count" (len $c.Docs)}}</span>{{template "receipt_score" $c}}</div>
+    <div class="receipt-combo-thumbs">{{range $c.Docs}}{{template "receipt_thumb" dict "URL" ($.V.DocURL .ID) "ID" .ID}}{{end}}</div>
+    <ul class="plain-list small">{{range $i, $d := $c.Docs}}<li><a href="{{$.V.DocURL $d.ID}}" target="_blank" rel="noopener">{{or $d.Title (print "#" $d.ID)}}</a> <span class="muted">{{if $d.Day}}{{day $d.Day}} · {{end}}{{money (index $c.Amounts $i)}}</span></li>{{end}}
+      <li><b>{{t "receipts.combo_sum" "sum" (money $c.Sum)}}</b></li></ul>
+    {{template "receipt_chips" $c.Factors}}
+    <details><summary>{{t "receipts.why" "score" $c.Score}}</summary>{{template "receipt_factors" $c.Factors}}</details>
+    <p class="receipt-actions">{{template "receipt_link" dict "P" .P "Expense" .Expense "Docs" $c.IDs "Label" (t "receipts.link_all")}}</p>
+  </div>
+</div>
+{{end}}
+
 {{define "receipts_part"}}
 {{with .Error}}<p class="error">{{t .}}{{if $.Mapping}} <a href="{{$.Q.Link "tab" "fields"}}">{{t "receipts.open_fields"}}</a>{{end}}</p>{{end}}
+{{/* Numbers for the tab and year chips of the page. */}}
+{{if .Counts.Ready}}{{range .Tabs}}{{template "receipt_tab" dict "Q" $.Q "Tab" . "N" ($.Counts.Count .) "OOB" true}}{{end}}
+{{if or (eq .Q.Tab "match") (eq .Q.Tab "queue") (eq .Q.Tab "linked")}}{{range .Years}}{{template "receipt_year" dict "Q" $.Q "Year" . "N" (index $.Counts.Years .) "OOB" true}}{{end}}{{end}}{{end}}
 {{$v := .V}}
 {{if eq .Q.Tab "match"}}{{if not .Error}}
-  <p class="small muted">{{t "receipts.match_meta" "year" $v.Year "expenses" $v.Expenses "docs" $v.Docs}}</p>
+  <p class="small muted">{{t "receipts.match_meta" "year" $v.Year "expenses" $v.Expenses}}
+    {{if $v.Docs}}<a href="{{.Q.Link "tab" "queue"}}">{{t "receipts.match_meta_docs" "docs" $v.Docs}}</a>{{end}}</p>
+  {{$sure := 0}}{{range $v.Matches}}{{if .Sure}}{{$sure = 1}}{{end}}{{end}}
+  {{if $sure}}
+  {{/* Sure matches, to confirm in one go; each can be unticked. */}}
+  <form method="post" action="/receipts/link-many" class="card receipt-sure">
+    <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">{{template "receipt_back" .Q}}
+    <h2>{{t "receipts.sure_title"}}</h2>
+    <p class="small muted">{{t "receipts.sure_lead"}}</p>
+    <ul class="plain-list">{{range $v.Matches}}{{if .Sure}}{{$c := index .Candidates 0}}
+      <li><label class="check"><input type="checkbox" name="pair" value="{{.Expense.Key}}:{{$c.Doc.ID}}" checked>
+        <span><b>{{or .Expense.Number .Expense.Key}}</b> {{or .Expense.Vendor "–"}} · {{money .Expense.Amount}} → {{or $c.Doc.Title (print "#" $c.Doc.ID)}}</span>
+        {{template "receipt_score" $c}}</label></li>{{end}}{{end}}</ul>
+    <button type="submit">{{t "receipts.sure_link"}}</button>
+  </form>{{end}}
   {{range $v.Matches}}{{$e := .Expense}}
   <article class="card receipt-match">
     <div class="receipt-expense">
       <h3><a href="{{$v.ExpenseURL $e.Key}}" target="_blank" rel="noopener">{{or $e.Number $e.Key}}</a></h3>
       <dl>
         <div><dt>{{t "col.amount"}}</dt><dd>{{money $e.Amount}}</dd></div>
-        <div><dt>{{t "col.day"}}</dt><dd>{{if $e.Day}}{{day $e.Day}}{{else}}–{{end}}</dd></div>
+        <div><dt>{{t "receipts.date"}}</dt><dd>{{if $e.Day}}{{day $e.Day}}{{else}}–{{end}}</dd></div>
         <div><dt>{{t "receipts.vendor"}}</dt><dd>{{or $e.Vendor "–"}}</dd></div>
         {{with $e.Notes}}<div><dt>{{t "receipts.notes"}}</dt><dd>{{.}}</dd></div>{{end}}
       </dl>
       <p class="receipt-actions">
-        <button type="button" class="ghost" data-search hx-get="/receipts/search?expense={{$e.Key}}&amp;year={{$v.Year}}&amp;preset=around_date" hx-target="#search-{{$e.Key}}" hx-swap="innerHTML">{{t "receipts.search_open"}}</button>
+        <button type="button" class="ghost" data-search hx-get="/receipts/search?expense={{$e.Key}}&amp;year={{$v.Year}}&amp;preset=around_date&amp;unlinked=1" hx-target="#search-{{$e.Key}}" hx-swap="innerHTML">{{t "receipts.search_open"}}</button>
+        <button type="button" class="ghost" hx-get="/receipts/combos?expense={{$e.Key}}&amp;year={{$v.Year}}" hx-target="#search-{{$e.Key}}" hx-swap="innerHTML" title="{{t "receipts.combo_find_help"}}">{{t "receipts.combo_find"}}</button>
         {{template "receipt_ignore" dict "P" $ "Kind" "expense" "ID" $e.Key}}
       </p>
     </div>
     <div class="receipt-candidates">
-      <div id="search-{{$e.Key}}"></div>
-      {{range $c := .Combos}}
-      <div class="receipt-cand kb-item" tabindex="-1">
-        <div class="receipt-cand-head"><span class="pill">{{t "receipts.combo_badge" "count" (len $c.Docs)}}</span><span class="receipt-score" data-score="{{$c.Score}}">{{$c.Score}}</span></div>
-        <div class="receipt-combo-thumbs">{{range $c.Docs}}{{template "receipt_thumb" dict "URL" ($v.DocURL .ID) "ID" .ID}}{{end}}</div>
-        <ul class="plain-list small">{{range $i, $d := $c.Docs}}<li><a href="{{$v.DocURL $d.ID}}" target="_blank" rel="noopener">{{or $d.Title (print "#" $d.ID)}}</a> <span class="muted">{{money (index $c.Amounts $i)}}</span></li>{{end}}
-          <li><b>{{t "receipts.combo_sum" "sum" (money $c.Sum)}}</b></li></ul>
-        <details><summary>{{t "receipts.why" "score" $c.Score}}</summary>{{template "receipt_factors" $c.Factors}}</details>
-        {{template "receipt_link" dict "P" $ "Expense" $e.Key "Docs" $c.IDs "Label" (t "receipts.link_all")}}
-      </div>
-      {{end}}
-      {{range $i, $c := .Candidates}}{{$d := $c.Doc}}
-      <div class="receipt-cand kb-item" tabindex="-1">
-        {{template "receipt_thumb" dict "URL" ($v.DocURL $d.ID) "ID" $d.ID}}
-        <div class="receipt-cand-body">
-          <div class="receipt-cand-head"><a href="{{$v.DocURL $d.ID}}" target="_blank" rel="noopener">{{or $d.Title (print "#" $d.ID)}}</a><span class="receipt-score" data-score="{{$c.Score}}">{{$c.Score}}</span></div>
-          <p class="small muted">{{or $d.Correspondent "–"}} · {{if $d.Day}}{{day $d.Day}}{{else}}–{{end}}</p>
-          <details{{if not $i}} open{{end}}><summary>{{t "receipts.why" "score" $c.Score}}</summary>{{template "receipt_factors" $c.Factors}}</details>
-          <p class="receipt-actions">
-            {{template "receipt_link" dict "P" $ "Expense" $e.Key "Docs" (print $d.ID) "Label" (t "receipts.link")}}
-            {{template "receipt_ignore" dict "P" $ "Kind" "doc" "ID" (print $d.ID)}}
-          </p>
-        </div>
-      </div>
-      {{end}}
-      {{if and (not .Candidates) (not .Combos)}}<p class="small muted">{{t "receipts.no_candidates"}}</p>{{end}}
+      {{range .Combos}}{{template "receipt_combo" dict "P" $ "V" $v "C" . "Expense" $e.Key}}{{end}}
+      {{range .Candidates}}{{template "receipt_cand" dict "P" $ "V" $v "C" . "Expense" $e.Key "Ignore" true}}{{end}}
+      {{with .Covered}}<details class="receipt-covered"><summary class="small">{{t "receipts.covered" "n" (len .)}}</summary>
+        {{range .}}{{template "receipt_cand" dict "P" $ "V" $v "C" . "Expense" $e.Key}}{{end}}</details>{{end}}
+      {{if and (not .Candidates) (not .Combos)}}<p class="small muted">{{t "receipts.no_candidates"}}</p>
+      <div id="search-{{$e.Key}}" hx-get="/receipts/search?expense={{$e.Key}}&amp;year={{$v.Year}}&amp;preset=around_date&amp;unlinked=1" hx-trigger="load" hx-swap="innerHTML"></div>
+      {{else}}<div id="search-{{$e.Key}}"></div>{{end}}
     </div>
   </article>
   {{else}}<p class="pill" data-state="ok">{{t "receipts.match_empty" "year" $v.Year}}</p>{{end}}
@@ -158,23 +223,46 @@
   <p class="small muted">{{t "receipts.queue_meta" "year" $v.Year "tag" $v.Mapping.QueueTag "docs" $v.Docs "expenses" $v.Expenses}}</p>
   {{range $v.Matches}}{{$d := .Doc}}
   <article class="card receipt-match">
-    <div class="receipt-expense">
+    <div class="receipt-expense receipt-doc">
       {{template "receipt_thumb" dict "URL" ($v.DocURL $d.ID) "ID" $d.ID}}
-      <h3><a href="{{$v.DocURL $d.ID}}" target="_blank" rel="noopener">{{or $d.Title (print "#" $d.ID)}}</a></h3>
-      <p class="small muted">{{or $d.Correspondent "–"}} · {{if $d.Day}}{{day $d.Day}}{{else}}–{{end}}</p>
-      <p class="receipt-actions">{{template "receipt_ignore" dict "P" $ "Kind" "doc" "ID" (print $d.ID)}}</p>
+      <div>
+        <h3 class="receipt-doc-title"><a href="{{$v.DocURL $d.ID}}" target="_blank" rel="noopener">{{or $d.Title (print "#" $d.ID)}}</a></h3>
+        <p class="small muted">{{or $d.Correspondent "–"}} · {{if $d.Day}}{{day $d.Day}}{{else}}–{{end}}{{if .Amount}} · {{money .Amount}}{{end}}</p>
+      </div>
+      <p class="receipt-actions">
+        <button type="button" class="ghost" data-search hx-get="/receipts/expenses?doc={{$d.ID}}&amp;year={{$v.Year}}" hx-target="#panel-{{$d.ID}}" hx-swap="innerHTML">{{t "receipts.expenses_open"}}</button>
+        <button type="button" class="ghost" hx-get="/receipts/new-expense?doc={{$d.ID}}&amp;year={{$v.Year}}" hx-target="#panel-{{$d.ID}}" hx-swap="innerHTML">{{t "receipts.new_expense"}}</button>
+        {{template "receipt_ignore" dict "P" $ "Kind" "doc" "ID" (print $d.ID)}}
+      </p>
     </div>
     <div class="receipt-candidates">
+      {{range .Combos}}{{$e := .Expense}}{{$ch := .}}
+      <div class="receipt-cand receipt-combo kb-item" tabindex="-1">
+        <div class="receipt-cand-body">
+          <div class="receipt-cand-head"><a href="{{$v.ExpenseURL $e.Key}}" target="_blank" rel="noopener">{{or $e.Number $e.Key}}</a>{{template "receipt_score" .Combo}}</div>
+          <p class="small muted">{{or $e.Vendor "–"}} · {{if $e.Day}}{{day $e.Day}}{{else}}–{{end}} · {{money $e.Amount}}</p>
+          <p class="small">{{t "receipts.combo_with"}}</p>
+          <ul class="plain-list small">{{range $i, $x := .Docs}}<li>{{if eq $x.ID $d.ID}}<b>{{t "receipts.combo_this"}}</b>{{else}}<a href="{{$v.DocURL $x.ID}}" target="_blank" rel="noopener">{{or $x.Title (print "#" $x.ID)}}</a>{{end}}
+            <span class="muted">{{if $x.Day}}{{day $x.Day}} · {{end}}{{money (index $ch.Amounts $i)}}</span></li>{{end}}
+            <li><b>{{t "receipts.combo_sum" "sum" (money .Sum)}}</b></li></ul>
+          {{template "receipt_chips" .Factors}}
+          <p class="receipt-actions">{{template "receipt_link" dict "P" $ "Expense" $e.Key "Docs" .IDs "Label" (t "receipts.link_all")}}</p>
+        </div>
+      </div>
+      {{end}}
       {{range .Hits}}{{$e := .Expense}}
       <div class="receipt-cand kb-item" tabindex="-1">
         <div class="receipt-cand-body">
-          <div class="receipt-cand-head"><a href="{{$v.ExpenseURL $e.Key}}" target="_blank" rel="noopener">{{or $e.Number $e.Key}}</a><span class="receipt-score" data-score="{{.Score}}">{{.Score}}</span></div>
+          <div class="receipt-cand-head"><a href="{{$v.ExpenseURL $e.Key}}" target="_blank" rel="noopener">{{or $e.Number $e.Key}}</a>{{template "receipt_score" .Candidate}}</div>
           <p class="small muted">{{or $e.Vendor "–"}} · {{if $e.Day}}{{day $e.Day}}{{else}}–{{end}} · {{money $e.Amount}}</p>
-          <details><summary>{{t "receipts.why" "score" .Score}}</summary>{{template "receipt_factors" .Factors}}</details>
+          {{template "receipt_chips" .Factors}}
+          <details{{if .Open}} open{{end}}><summary>{{t "receipts.why" "score" .Score}}</summary>{{template "receipt_factors" .Factors}}</details>
           <p class="receipt-actions">{{template "receipt_link" dict "P" $ "Expense" $e.Key "Docs" (print $d.ID) "Label" (t "receipts.link")}}</p>
         </div>
       </div>
-      {{else}}<p class="small muted">{{t "receipts.no_expenses"}}</p>{{end}}
+      {{end}}
+      {{if and (not .Hits) (not .Combos)}}<p class="small muted">{{t "receipts.no_expenses"}}</p>{{end}}
+      <div id="panel-{{$d.ID}}"></div>
     </div>
   </article>
   {{else}}<p class="pill" data-state="ok">{{t "receipts.queue_empty"}}</p>{{end}}
@@ -182,87 +270,132 @@
 {{end}}{{end}}
 
 {{if eq .Q.Tab "linked"}}{{if not .Error}}
-  <p class="small muted">{{t "receipts.linked_lead"}}</p>
-  {{if $v.Rows}}<div class="table-wrap"><table class="table">
-    <tr><th>{{t "receipts.expense"}}</th><th>{{t "receipts.vendor"}}</th><th class="num">{{t "col.amount"}}</th><th>{{t "receipts.scan"}}</th><th></th></tr>
-    {{range $v.Rows}}<tr>
-      <td><a href="{{$v.ExpenseURL .Expense.Key}}" target="_blank" rel="noopener">{{or .Expense.Number .Expense.Key}}</a><br><small class="muted">{{if .Expense.Day}}{{day .Expense.Day}}{{end}}</small></td>
-      <td>{{or .Expense.Vendor "–"}}</td><td class="num">{{money .Expense.Amount}}</td>
-      <td><a href="{{$v.DocURL .DocID}}" target="_blank" rel="noopener">{{with .Doc}}{{or .Title (print "#" .ID)}}{{else}}#{{.DocID}} <small class="late">{{t "receipts.scan_gone"}}</small>{{end}}</a></td>
-      <td><form method="post" action="/receipts/unlink" class="inline-form">
-        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">{{template "receipt_back" $.Q}}
-        <input type="hidden" name="expense" value="{{.Expense.Key}}"><input type="hidden" name="doc" value="{{.DocID}}">
-        <button type="submit" class="ghost">{{t "receipts.unlink"}}</button></form></td>
+  <form method="get" action="/receipts" class="receipt-search-row receipt-find">
+    <input type="hidden" name="tab" value="linked"><input type="hidden" name="year" value="{{.Q.Year}}">
+    <input type="search" name="find" value="{{$v.Query}}" placeholder="{{t "receipts.find_placeholder"}}" aria-label="{{t "receipts.find"}}">
+    <button type="submit" class="ghost">{{t "receipts.find"}}</button>
+  </form>
+  <p class="small muted">{{t "receipts.linked_meta" "n" $v.Total "year" $v.Year}}{{if lt $v.Shown $v.Total}} {{t "receipts.linked_shown" "n" $v.Shown}}{{end}} {{t "receipts.linked_lead"}}</p>
+  {{if $v.Rows}}<div class="table-wrap"><table class="table receipt-linked">
+    <tr><th>{{t "receipts.expense"}}</th><th>{{t "receipts.vendor"}}</th><th class="num">{{t "col.amount"}}</th><th>{{t "receipts.scan"}}</th></tr>
+    {{range $v.Rows}}{{$e := .Expense}}<tr>
+      <td><a href="{{$v.ExpenseURL $e.Key}}" target="_blank" rel="noopener">{{or $e.Number $e.Key}}</a><br><small class="muted">{{if $e.Day}}{{day $e.Day}}{{end}}</small></td>
+      <td>{{or $e.Vendor "–"}}</td><td class="num">{{money $e.Amount}}</td>
+      <td><ul class="plain-list receipt-linked-docs">{{range .Docs}}<li>
+        {{template "receipt_thumb" dict "URL" ($v.DocURL .ID) "ID" .ID}}
+        <span><a href="{{$v.DocURL .ID}}" target="_blank" rel="noopener">{{with .Doc}}{{or .Title (print "#" .ID)}}{{else}}#{{.ID}}{{end}}</a>
+          <br><small class="muted">{{with .Doc}}{{if .Day}}{{day .Day}}{{end}}{{else}}<span class="late">{{t "receipts.scan_gone"}}</span>{{end}}</small></span>
+        <form method="post" action="/receipts/unlink" class="inline-form">
+          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">{{template "receipt_back" $.Q}}
+          <input type="hidden" name="expense" value="{{$e.Key}}"><input type="hidden" name="doc" value="{{.ID}}">
+          <button type="submit" class="ghost">{{t "receipts.unlink"}}</button></form>
+      </li>{{end}}</ul></td>
     </tr>{{end}}
   </table></div>
-  {{else}}<p class="muted">{{t "receipts.linked_none"}}</p>{{end}}
+  {{else}}<p class="muted">{{if $v.Query}}{{t "receipts.find_none"}}{{else}}{{t "receipts.linked_none"}}{{end}}</p>{{end}}
 {{end}}{{end}}
 
 {{if eq .Q.Tab "ignored"}}{{if not .Error}}
+  {{if and (not $v.Expenses) (not $v.Docs)}}<p class="muted">{{t "receipts.ignored_none"}}</p>
+  {{else}}
   <p class="small muted">{{t "receipts.ignored_lead"}}</p>
-  <h3>{{t "receipts.expenses"}}</h3>
-  {{range $v.Expenses}}<div class="receipt-ignored">
+  {{with $v.Expenses}}<h3>{{t "receipts.expenses"}}</h3>
+  {{range .}}<div class="receipt-ignored">
     {{with .Expense}}<a href="{{$v.ExpenseURL .Key}}" target="_blank" rel="noopener">{{or .Number .Key}}</a> <span class="small muted">{{or .Vendor "–"}} · {{money .Amount}}{{if .Day}} · {{day .Day}}{{end}}</span>
     {{else}}<span>{{.Key}}</span> <small class="late">{{t "receipts.gone"}}</small>{{end}}
+    {{with .Reason}}<span class="pill">{{t (print "receipts.reason_" .)}}</span>{{end}}
     {{template "receipt_ignore" dict "P" $ "Kind" "expense" "ID" .Key "Show" true}}
-  </div>{{else}}<p class="small muted">{{t "receipts.ignored_none"}}</p>{{end}}
-  <h3>{{t "receipts.scans"}}</h3>
-  {{range $v.Docs}}<div class="receipt-ignored">
+  </div>{{end}}{{end}}
+  {{with $v.Docs}}<h3>{{t "receipts.scans"}}</h3>
+  {{range .}}<div class="receipt-ignored">
     <a href="{{$v.DocURL .ID}}" target="_blank" rel="noopener">{{with .Doc}}{{or .Title (print "#" .ID)}}{{else}}#{{.ID}}{{end}}</a>
     {{with .Doc}}<span class="small muted">{{or .Correspondent "–"}}{{if .Day}} · {{day .Day}}{{end}}</span>{{else}}<small class="late">{{t "receipts.gone"}}</small>{{end}}
+    {{with .Reason}}<span class="pill">{{t (print "receipts.reason_" .)}}</span>{{end}}
     {{template "receipt_ignore" dict "P" $ "Kind" "doc" "ID" (print .ID) "Show" true}}
-  </div>{{else}}<p class="small muted">{{t "receipts.ignored_none"}}</p>{{end}}
+  </div>{{end}}{{end}}
+  {{end}}
 {{end}}{{end}}
 
 {{if eq .Q.Tab "fields"}}{{if not .Error}}
-  {{template "receipt_fields" dict "P" $ "V" $v}}
+  {{if $v.CanEdit}}{{template "receipt_fields" dict "P" $ "V" $v}}{{else}}{{template "receipt_fields_read" $v}}{{end}}
 {{end}}{{end}}
 {{end}}
+
+{{/* Who may not change the mapping sees it as text, and who could. */}}
+{{define "receipt_fields_read"}}{{$m := .Mapping}}
+<section class="card receipt-fields">
+  <p class="muted">{{t "receipts.fields_lead"}}</p>
+  <p class="small">{{t "receipts.fields_readonly"}}{{with .Managers}} {{t "receipts.fields_managers" "names" (join . ", ")}}{{end}}</p>
+  <dl class="receipt-fields-read">
+    <dt class="receipt-fields-head">{{t "receipts.fields_ninja"}}</dt>
+    <dt>{{t "receipts.map_invoice_slot"}}</dt><dd>{{template "receipt_slot_name" dict "N" $m.InvoiceSlot "Label" (.SlotName $m.InvoiceSlot)}}</dd>
+    <dt>{{t "receipts.map_link_slot"}}</dt><dd>{{template "receipt_slot_name" dict "N" $m.LinkSlot "Label" (.SlotName $m.LinkSlot)}}</dd>
+    <dt class="receipt-fields-head">{{t "receipts.fields_docs"}}</dt>
+    <dt>{{t "receipts.map_field_invoice"}}</dt><dd>{{or (.FieldName $m.FieldInvoice) "–"}}</dd>
+    <dt>{{t "receipts.map_field_expense"}}</dt><dd>{{or (.FieldName $m.FieldExpense) "–"}}</dd>
+    <dt>{{t "receipts.map_field_link"}}</dt><dd>{{or (.FieldName $m.FieldLink) "–"}}</dd>
+    <dt>{{t "receipts.map_field_amount"}}</dt><dd>{{or (.FieldName $m.FieldAmount) (t "receipts.map_none")}}</dd>
+    <dt>{{t "receipts.map_queue_tag"}}</dt><dd>{{or $m.QueueTag (t "receipts.map_none")}}</dd>
+  </dl>
+  {{range .Warnings}}<p class="pill" data-state="warn">{{tt .Key .Args}}</p>{{end}}
+</section>
+{{end}}
+
+{{define "receipt_slot_name"}}{{if not .N}}–{{else if .Label}}{{t "receipts.slot_named" "label" .Label "n" .N}}{{else}}{{t "receipts.slot_unnamed" "n" .N}}{{end}}{{end}}
 
 {{define "receipt_fields"}}{{$v := .V}}{{$m := $v.Mapping}}
 <form method="post" action="/receipts/fields" class="card receipt-fields">
   <input type="hidden" name="{{.P.CSRFField}}" value="{{.P.Ctx.CSRF}}">{{template "receipt_back" .P.Q}}
   <p class="muted">{{t "receipts.fields_lead"}}</p>
   {{if $v.Suggested}}<p class="pill" data-state="warn">{{t "receipts.fields_suggested"}}</p>{{end}}
-  {{if not $v.CanEdit}}<p class="small late">{{t "receipts.fields_readonly"}}</p>{{end}}
-  <fieldset{{if not $v.CanEdit}} disabled{{end}}>
-    <legend>{{t "service.invoiceninja"}} · {{$v.NinjaName}}</legend>
+  {{range $v.Warnings}}<p class="pill" data-state="warn">{{tt .Key .Args}}</p>{{end}}
+  <fieldset>
+    <legend>{{t "receipts.fields_ninja"}}</legend>
+    <p class="small muted receipt-fields-setup">{{t "receipts.fields_ninja_setup"}}</p>
     {{template "receipt_slot" dict "Name" "invoice_slot" "Label" "receipts.map_invoice_slot" "Slots" $v.Slots "Now" $m.InvoiceSlot}}
     {{template "receipt_slot" dict "Name" "link_slot" "Label" "receipts.map_link_slot" "Slots" $v.Slots "Now" $m.LinkSlot}}
   </fieldset>
-  <fieldset{{if not $v.CanEdit}} disabled{{end}}>
-    <legend>{{t "service.paperless"}} · {{$v.DocsName}}</legend>
+  <fieldset>
+    <legend>{{t "receipts.fields_docs"}}</legend>
+    <p class="small muted receipt-fields-setup">{{t "receipts.fields_docs_setup"}}</p>
     {{template "receipt_field" dict "Name" "field_invoice" "Label" "receipts.map_field_invoice" "Fields" $v.Fields "Now" $m.FieldInvoice "Required" true}}
     {{template "receipt_field" dict "Name" "field_expense" "Label" "receipts.map_field_expense" "Fields" $v.Fields "Now" $m.FieldExpense "Required" true}}
     {{template "receipt_field" dict "Name" "field_link" "Label" "receipts.map_field_link" "Fields" $v.Fields "Now" $m.FieldLink "Required" true}}
     {{template "receipt_field" dict "Name" "field_amount" "Label" "receipts.map_field_amount" "Fields" $v.Fields "Now" $m.FieldAmount}}
-    <label>{{t "receipts.map_queue_tag"}}<input name="queue_tag" value="{{$m.QueueTag}}" placeholder="{{t "receipts.map_queue_tag_hint"}}"></label>
+    <label>{{t "receipts.map_queue_tag"}}<select name="queue_tag">
+      <option value="">{{t "receipts.map_none"}}</option>
+      {{$found := false}}{{range $v.Tags}}<option value="{{.}}"{{if eq . $m.QueueTag}}{{$found = true}} selected{{end}}>{{.}}</option>{{end}}
+      {{if and $m.QueueTag (not $found)}}<option value="{{$m.QueueTag}}" selected>{{t "receipts.tag_unknown" "tag" $m.QueueTag}}</option>{{end}}
+    </select><small class="muted">{{t "receipts.map_queue_tag_help"}}</small></label>
   </fieldset>
-  {{if $v.CanEdit}}<button type="submit">{{t "receipts.fields_save"}}</button>{{end}}
+  <button type="submit">{{t "receipts.fields_save"}}</button>
 </form>
 {{end}}
 
 {{define "receipt_slot"}}
 <label>{{t .Label}}<select name="{{.Name}}" required>
   <option value="">–</option>
-  {{range .Slots}}<option value="{{.N}}"{{if eq .N $.Now}} selected{{end}}>custom_value{{.N}}{{with .Label}} · {{.}}{{end}}</option>{{end}}
-</select></label>
+  {{range .Slots}}<option value="{{.N}}"{{if eq .N $.Now}} selected{{end}}>{{template "receipt_slot_name" dict "N" .N "Label" .Label}}{{if .Used}} · {{t "receipts.slot_used" "n" .Used}}{{end}}</option>{{end}}
+</select><small class="muted">{{t (print .Label "_help")}}</small></label>
 {{end}}
 
 {{define "receipt_field"}}
 <label>{{t .Label}}<select name="{{.Name}}"{{if .Required}} required{{end}}>
   <option value="">{{if .Required}}–{{else}}{{t "receipts.map_none"}}{{end}}</option>
-  {{range .Fields}}<option value="{{.ID}}"{{if eq .ID $.Now}} selected{{end}}>{{.Name}} ({{.Type}})</option>{{end}}
-</select></label>
+  {{range .Fields}}<option value="{{.ID}}"{{if eq .ID $.Now}} selected{{end}}>{{.Name}} ({{t (print "receipts.ftype_" .Type)}})</option>{{end}}
+</select><small class="muted">{{t (print .Label "_help")}}</small></label>
 {{end}}
 
-{{define "receipts_search"}}{{$v := .S}}{{$e := $v.Expense}}
+{{define "receipts_search"}}{{$v := .S}}{{$e := $v.Expense}}{{$pick := print "pick-" .Slot}}
 <div class="receipt-search">
-  <form hx-get="/receipts/search" hx-target="#search-{{$e.Key}}" hx-swap="innerHTML">
+  <form hx-get="/receipts/search" hx-target="#{{.Slot}}" hx-swap="innerHTML">
     <input type="hidden" name="expense" value="{{$e.Key}}"><input type="hidden" name="year" value="{{.Q.Year}}">
+    <input type="hidden" name="slot" value="{{.Slot}}">{{with $v.Input.With}}<input type="hidden" name="with" value="{{.}}">
+    <p class="small"><b>{{t "receipts.pick_for" "number" (or $e.Number $e.Key) "amount" (money $e.Amount)}}</b></p>{{end}}
     <div class="receipt-search-row">
       <input type="search" name="q" value="{{$v.Input.Query}}" placeholder="{{t "receipts.search_placeholder"}}" aria-label="{{t "receipts.search_open"}}">
       <button type="submit">{{t "receipts.search_go"}}</button>
+      <button type="button" class="ghost" data-close-search title="Esc">{{t "receipts.close"}}</button>
     </div>
     <div class="chips">{{range .Presets}}<button type="submit" name="preset" value="{{.}}" class="chip"{{if eq . $v.Input.Preset}} aria-current="true"{{end}}>{{t (print "receipts.preset_" .)}}</button>{{end}}</div>
     <div class="receipt-search-row small">
@@ -271,17 +404,72 @@
       <label>{{t "receipts.search_to"}} <input type="date" name="to" value="{{$v.Input.To}}"></label>
       <label>{{t "receipts.search_correspondent"}} <input name="correspondent" value="{{$v.Input.Correspondent}}"></label>
     </div>
+    {{if $v.From}}<p class="small muted">{{t "receipts.search_range" "from" (day $v.From) "to" (day $v.To)}}</p>{{end}}
   </form>
   {{with .Error}}<p class="error">{{t .}}</p>{{end}}
-  {{range $v.Hits}}
+  {{range $v.Hits}}{{template "receipt_cand" dict "P" $ "V" $v "C" .Candidate "Expense" $e.Key "Other" .LinkedTo "Found" true "Pick" $pick "Own" .Own "Picked" .Picked}}
+  {{else}}{{if not .Error}}<p class="small muted">{{t "receipts.search_none"}}</p>{{end}}{{end}}
+  {{if $v.Hits}}
+  {{/* Ticked scans link together; the sum shows how close they come. */}}
+  <form method="post" action="/receipts/link" id="{{$pick}}" class="receipt-pick" data-target="{{printf "%g" $e.Amount}}">
+    <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">{{template "receipt_back" .Q}}
+    <input type="hidden" name="expense" value="{{$e.Key}}">
+    <p class="small">{{t "receipts.pick_sum"}} <b data-pick-sum data-zero="{{money 0}}">{{money 0}}</b> {{t "receipts.pick_of" "amount" (money $e.Amount)}}
+      <span class="pill" data-pick-state data-ok="{{t "receipts.pick_fits"}}" data-off="{{t "receipts.pick_differs"}}" hidden></span></p>
+    <button type="submit">{{t "receipts.pick_link"}}</button>
+  </form>{{end}}
+</div>
+{{end}}
+
+{{define "receipts_combos"}}{{$v := .S}}{{$e := $v.Expense}}
+<div class="receipt-search">
+  <div class="receipt-search-row"><b class="small">{{t "receipts.combo_find"}}</b>
+    <button type="button" class="ghost" data-close-search title="Esc">{{t "receipts.close"}}</button></div>
+  {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+  {{range $v.Combos}}{{template "receipt_combo" dict "P" $ "V" $v "C" . "Expense" $e.Key}}
+  {{else}}{{if not .Error}}<p class="small muted">{{t "receipts.combo_none"}}
+    <button type="button" class="ghost" hx-get="/receipts/search?expense={{$e.Key}}&amp;year={{$v.Year}}&amp;preset=around_date&amp;unlinked=1" hx-target="#search-{{$e.Key}}" hx-swap="innerHTML">{{t "receipts.combo_by_hand"}}</button></p>{{end}}{{end}}
+</div>
+{{end}}
+
+{{define "receipts_expenses"}}{{$v := .S}}{{$d := $v.Doc}}
+<div class="receipt-search">
+  <form hx-get="/receipts/expenses" hx-target="#panel-{{$d.ID}}" hx-swap="innerHTML">
+    <input type="hidden" name="doc" value="{{$d.ID}}"><input type="hidden" name="year" value="{{.Q.Year}}">
+    <div class="receipt-search-row">
+      <input type="search" name="q" value="{{$v.Query}}" placeholder="{{t "receipts.find_placeholder"}}" aria-label="{{t "receipts.expenses_open"}}">
+      <button type="submit">{{t "receipts.search_go"}}</button>
+      <button type="button" class="ghost" data-close-search title="Esc">{{t "receipts.close"}}</button>
+    </div>
+  </form>
+  {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+  {{range $v.Hits}}{{$e := .Expense}}
   <div class="receipt-cand kb-item" tabindex="-1">
-    {{template "receipt_thumb" dict "URL" ($v.DocURL .ID) "ID" .ID}}
     <div class="receipt-cand-body">
-      <div class="receipt-cand-head"><a href="{{$v.DocURL .ID}}" target="_blank" rel="noopener">{{or .Title (print "#" .ID)}}</a></div>
-      <p class="small muted">{{or .Correspondent "–"}} · {{if .Day}}{{day .Day}}{{else}}–{{end}}</p>
-      <p class="receipt-actions">{{template "receipt_link" dict "P" $ "Expense" $e.Key "Docs" (print .ID) "Label" (t "receipts.link")}}</p>
+      <div class="receipt-cand-head"><a href="{{$v.ExpenseURL $e.Key}}" target="_blank" rel="noopener">{{or $e.Number $e.Key}}</a>{{template "receipt_score" .Candidate}}</div>
+      <p class="small muted">{{or $e.Vendor "–"}} · {{if $e.Day}}{{day $e.Day}}{{else}}–{{end}} · {{money $e.Amount}}</p>
+      {{template "receipt_chips" .Factors}}
+      <p class="receipt-actions">{{template "receipt_link" dict "P" $ "Expense" $e.Key "Docs" (print $d.ID) "Label" (t "receipts.link")}}
+        <button type="button" class="ghost" hx-get="/receipts/search?expense={{$e.Key}}&amp;year={{$.Q.Year}}&amp;preset=around_date&amp;unlinked=1&amp;with={{$d.ID}}&amp;slot=panel-{{$d.ID}}" hx-target="#panel-{{$d.ID}}" hx-swap="innerHTML">{{t "receipts.pick_more"}}</button></p>
     </div>
   </div>
-  {{else}}{{if not .Error}}<p class="small muted">{{t "receipts.search_none"}}</p>{{end}}{{end}}
+  {{else}}{{if not .Error}}<p class="small muted">{{t "receipts.expenses_none"}}</p>{{end}}{{end}}
 </div>
+{{end}}
+
+{{define "receipts_draft"}}{{$v := .S}}
+<form method="post" action="/receipts/new-expense" class="receipt-search receipt-draft">
+  <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">{{template "receipt_back" .Q}}
+  <input type="hidden" name="doc" value="{{$v.Doc.ID}}">
+  <p class="small muted">{{t "receipts.new_expense_lead"}}</p>
+  {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+  <div class="receipt-draft-grid">
+    <label>{{t "col.amount"}}<input name="amount" inputmode="decimal" value="{{if $v.Amount}}{{printf "%.2f" $v.Amount}}{{end}}" required></label>
+    <label>{{t "receipts.date"}}<input type="date" name="day" value="{{$v.Day}}" required></label>
+    <label>{{t "receipts.vendor"}}<input name="vendor" value="{{$v.Vendor}}"><small class="muted">{{t "receipts.new_expense_vendor"}}</small></label>
+    <label>{{t "receipts.notes"}}<input name="notes" value="{{$v.Notes}}"></label>
+  </div>
+  <p class="receipt-actions"><button type="submit">{{t "receipts.new_expense_go"}}</button>
+    <button type="button" class="ghost" data-close-search>{{t "receipts.close"}}</button></p>
+</form>
 {{end}}

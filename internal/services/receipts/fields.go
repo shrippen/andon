@@ -1,10 +1,14 @@
 package receipts
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
+	"slices"
 	"strings"
 	"time"
+
+	"andon/internal/repos/users"
 
 	"andon/internal/enums"
 	"andon/internal/model"
@@ -13,22 +17,52 @@ import (
 	"andon/internal/sources"
 )
 
-// Slot is one Invoice Ninja expense custom value, e.g. 2 "Paperless".
+// Slot is one Invoice Ninja expense custom value, e.g. 2 "Paperless",
+// and how many expenses fill it.
 type Slot struct {
 	N     int
 	Label string // "" = unnamed
+	Used  int
+}
+
+// Warning is a doubt about the mapping, as i18n key and params.
+type Warning struct {
+	Key  string
+	Args map[string]any
 }
 
 // FieldSetup is the mapping form: what exists on both sides, what is
-// chosen (or suggested by name while nothing is), and who may change it.
+// chosen (or suggested by name while nothing is), who may change it and
+// who else could.
 type FieldSetup struct {
 	Mapping   Mapping
 	Suggested bool // Mapping is a guess from the field names
 	Slots     []Slot
 	Fields    []sources.DocField
-	CanEdit   bool // manage right on both connections
-	NinjaName string
-	DocsName  string
+	Tags      []string
+	Warnings  []Warning
+	CanEdit   bool     // manage right on both connections
+	Managers  []string // who else may, when the user may not
+}
+
+// SlotName is a slot's label for the read-only view.
+func (f FieldSetup) SlotName(n int) string {
+	for _, s := range f.Slots {
+		if s.N == n {
+			return s.Label
+		}
+	}
+	return ""
+}
+
+// FieldName is a Paperless field's name for the read-only view.
+func (f FieldSetup) FieldName(id int64) string {
+	for _, x := range f.Fields {
+		if x.ID == id {
+			return x.Name
+		}
+	}
+	return ""
 }
 
 // Fields reads the custom fields of both sides for the mapping form.
@@ -37,23 +71,91 @@ func Fields(ctx context.Context, d *sql.DB, who *access.Principal) (FieldSetup, 
 	if err != nil {
 		return FieldSetup{}, err
 	}
-	out := FieldSetup{Mapping: p.mapping, NinjaName: p.ninja.Name, DocsName: p.docs.Name, CanEdit: canManage(d, who, p.ninja) && canManage(d, who, p.docs)}
+	out := FieldSetup{Mapping: p.mapping, CanEdit: canManage(d, who, p.ninja) && canManage(d, who, p.docs)}
 	expenses, err := p.expenses(ctx, d, who)
 	if err != nil {
 		return out, err
 	}
 	for i, label := range expenses.Slots {
-		out.Slots = append(out.Slots, Slot{N: i + 1, Label: label})
+		slot := Slot{N: i + 1, Label: label}
+		for _, e := range expenses.Expenses {
+			if e.Custom[i] != "" {
+				slot.Used++
+			}
+		}
+		out.Slots = append(out.Slots, slot)
 	}
 	docs, err := p.docSet(ctx, d, who, time.Now().Year())
 	if err != nil {
 		return out, err
 	}
-	out.Fields = docs.Fields
+	out.Fields, out.Tags = docs.Fields, docs.TagNames
 	if out.Mapping == (Mapping{}) {
 		out.Mapping, out.Suggested = suggest(out.Slots, out.Fields), true
 	}
+	out.Warnings = warnings(out.Mapping, out.Fields)
+	if !out.CanEdit {
+		out.Managers = managers(d, who, p)
+	}
 	return out, nil
+}
+
+// Field types each part expects.
+var (
+	textTypes   = []string{"string", "longtext"}
+	amountTypes = []string{"monetary", "float", "string"}
+)
+
+// warnings lists chosen fields whose type does not fit their part.
+func warnings(m Mapping, fields []sources.DocField) []Warning {
+	var out []Warning
+	check := func(id int64, want []string, key string) {
+		for _, f := range fields {
+			if f.ID == id && id > 0 && !slices.Contains(want, f.Type) {
+				out = append(out, Warning{Key: key, Args: map[string]any{"field": f.Name}})
+			}
+		}
+	}
+	check(m.FieldInvoice, textTypes, "receipts.warn_text_type")
+	check(m.FieldExpense, textTypes, "receipts.warn_text_type")
+	check(m.FieldLink, []string{"url"}, "receipts.warn_link_type")
+	check(m.FieldAmount, amountTypes, "receipts.warn_amount_type")
+	return out
+}
+
+// twice tells whether one slot or field serves two parts of the link.
+func (m Mapping) twice() bool {
+	if m.InvoiceSlot > 0 && m.InvoiceSlot == m.LinkSlot {
+		return true
+	}
+	seen := map[int64]bool{}
+	for _, id := range []int64{m.FieldInvoice, m.FieldExpense, m.FieldLink, m.FieldAmount} {
+		if id > 0 && seen[id] {
+			return true
+		}
+		seen[id] = true
+	}
+	return false
+}
+
+// managers names the other active users who manage both connections.
+func managers(d *sql.DB, who *access.Principal, p pair) []string {
+	all, err := users.All(d)
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, u := range all {
+		if !u.IsActive || u.ID == who.UserID {
+			continue
+		}
+		them, err := access.Load(d, u.ID)
+		if err != nil || them == nil || !canManage(d, them, p.ninja) || !canManage(d, them, p.docs) {
+			continue
+		}
+		out = append(out, cmp.Or(u.Name, u.Email))
+	}
+	return out
 }
 
 func canManage(d *sql.DB, who *access.Principal, conn *model.Connection) bool {
@@ -115,6 +217,9 @@ func SaveFields(d *sql.DB, who *access.Principal, m Mapping) error {
 	}
 	if !canManage(d, who, p.ninja) || !canManage(d, who, p.docs) {
 		return ErrManage
+	}
+	if m.twice() {
+		return ErrFieldTwice
 	}
 	ninja := withOptions(p.ninja.Options, map[string]any{optInvoiceSlot: m.InvoiceSlot, optLinkSlot: m.LinkSlot})
 	docs := withOptions(p.docs.Options, map[string]any{optFieldInvoice: m.FieldInvoice, optFieldExpense: m.FieldExpense,
