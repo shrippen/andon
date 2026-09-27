@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"andon/internal/drivers/services"
@@ -265,10 +266,11 @@ func DemoMediaServer() *MediaServerDataset {
 }
 
 func DemoArr(now time.Time) *ArrDataset {
+	show := demoWorld.Project(demoProjectIDs[0]).Short
 	return &ArrDataset{URL: "https://sonarr.demo", App: sonarrApp, Version: "4.0.15", Queue: 3, Missing: 12,
-		Stuck:    []string{"Harbour.Lights.S02E04"},
+		Stuck:    []string{strings.ReplaceAll(show, " ", ".") + ".S02E04"},
 		Health:   []ArrHealth{{Level: arrWarning, Message: "Indexer Elbindex is unavailable"}},
-		Upcoming: []ArrItem{{Title: "Harbour Lights 2x05", At: now.Add(26 * time.Hour)}, {Title: "Harbour Lights 2x06", At: now.Add(80 * time.Hour)}}}
+		Upcoming: []ArrItem{{Title: show + " 2x05", At: now.Add(26 * time.Hour)}, {Title: show + " 2x06", At: now.Add(80 * time.Hour)}}}
 }
 
 func init() {

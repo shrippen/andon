@@ -2,6 +2,7 @@
 // projects (world.json is copied from shrippen.github.io/demo by
 // demo/tools/sync-demo.py there; do not edit it here). The demo:// datasets
 // in package sources take their names, places and receipts from it.
+// Release builds embed sample.json instead (raw_release.go).
 package demoworld
 
 import (
@@ -10,8 +11,8 @@ import (
 	"fmt"
 )
 
-//go:embed world.json
-var raw []byte
+// raw is world.json in normal builds (raw.go) and the neutral sample.json
+// in release builds (raw_release.go), which must not carry Studio Weber.
 
 // Text is a {de, en} value or a plain string.
 type Text map[string]string
@@ -43,9 +44,9 @@ type Customer struct {
 }
 
 type Project struct {
-	ID, Customer, Color string
-	Name                Text
-	HourlyRate          float64 `json:"hourly_rate"`
+	ID, Customer, Color, Short string
+	Name                       Text
+	HourlyRate                 float64 `json:"hourly_rate"`
 }
 
 type Activity struct {

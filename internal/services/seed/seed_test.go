@@ -1,3 +1,5 @@
+//go:build !release
+
 package seed_test
 
 import (

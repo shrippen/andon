@@ -157,7 +157,7 @@ func Load() Settings {
 		DataDir:              envStr("DATA_DIR", "/data"),
 		DatabaseURL:          envStr("DATABASE_URL", ""),
 		Dev:                  envBool("ANDON_DEV", false),
-		Demo:                 envBool("ANDON_DEMO", false),
+		Demo:                 demoMode(),
 		Testing:              envBool("ANDON_TESTING", false),
 		MasterKey:            envStr("MASTER_KEY", ""),
 		SMTPURL:              envStr("SMTP_URL", ""),

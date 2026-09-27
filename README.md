@@ -47,7 +47,7 @@ Tailscale needs an OAuth client with `devices:core:read`. Renewing tokens
 ```sh
 make run      # http://localhost:8080, data in ./data, dev master key
 make check    # gofmt, go vet, go test
-make build    # static binary in ./bin/andon
+make build    # release binary in ./bin/andon (-tags release, checked for demo data)
 ```
 
 Layers: `web → services → repos | sources | outbound → db | drivers`. See `agent.md`.
@@ -60,6 +60,10 @@ projects (`internal/sources/demoworld/world.json`, copied from `shrippen.github.
 Sign in as `mara@studio-weber.example.test` (own boards) or `lena@studio-weber.example.test`
 (admin), password `demo-password-1`. `demo/shots.json` lists the screenshots that
 `shrippen.github.io/demo/tools/screenshots.py` takes.
+
+Release builds (`-tags release`: Docker image, `make build`) leave the demo mode and
+Studio Weber out; gallery previews then use `sample.json`, which `demo/make-sample.py`
+derives from `world.json`. `scripts/release-check.sh` fails the build on any rest.
 
 ## Operator CLI
 

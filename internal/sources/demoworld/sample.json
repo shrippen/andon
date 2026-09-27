@@ -1,0 +1,665 @@
+{
+ "studio": {
+  "name": "Beispielbüro",
+  "hostname": "server",
+  "domain": "example.test",
+  "city": "Musterstadt"
+ },
+ "demo_password": "",
+ "people": [
+  {
+   "id": "mara",
+   "name": "Person A",
+   "alias": "Person A",
+   "email": "person-a@example.test"
+  },
+  {
+   "id": "jonas",
+   "name": "Person B",
+   "alias": "Person B",
+   "email": "person-b@example.test"
+  },
+  {
+   "id": "selin",
+   "name": "Person C",
+   "alias": "Person C",
+   "email": "person-c@example.test"
+  },
+  {
+   "id": "theo",
+   "name": "Person D",
+   "alias": "Person D",
+   "email": "person-d@example.test"
+  },
+  {
+   "id": "lena",
+   "name": "Person E",
+   "alias": "Person E",
+   "email": "person-e@example.test"
+  }
+ ],
+ "customers": [
+  {
+   "id": "northlight",
+   "name": "Kunde A GmbH",
+   "country": "DE",
+   "vat_id": "DE000000000"
+  },
+  {
+   "id": "elbgruen",
+   "name": "Kunde B GmbH",
+   "country": "DE",
+   "vat_id": ""
+  },
+  {
+   "id": "speiche",
+   "name": "Kunde C GmbH",
+   "country": "DE",
+   "vat_id": "DE000000000"
+  },
+  {
+   "id": "studio",
+   "name": "Kunde D GmbH",
+   "country": "DE",
+   "vat_id": ""
+  },
+  {
+   "id": "donaulicht",
+   "name": "Kunde E GmbH",
+   "country": "AT",
+   "vat_id": ""
+  },
+  {
+   "id": "sendehaus",
+   "name": "Kunde F GmbH",
+   "country": "DE",
+   "vat_id": "DE000000000"
+  }
+ ],
+ "projects": [
+  {
+   "id": "harbour",
+   "customer": "northlight",
+   "color": "#fe8019",
+   "hourly_rate": 85,
+   "name": {
+    "de": "Projekt 1",
+    "en": "Project 1"
+   },
+   "short": "Projekt 1"
+  },
+  {
+   "id": "tidenhub",
+   "customer": "elbgruen",
+   "color": "#8ec07c",
+   "hourly_rate": 90,
+   "name": {
+    "de": "Projekt 2",
+    "en": "Project 2"
+   },
+   "short": "Projekt 2"
+  },
+  {
+   "id": "spring",
+   "customer": "speiche",
+   "color": "#83a598",
+   "hourly_rate": 95,
+   "name": {
+    "de": "Projekt 3",
+    "en": "Project 3"
+   },
+   "short": "Projekt 3"
+  },
+  {
+   "id": "showreel",
+   "customer": "studio",
+   "color": "#d3869b",
+   "hourly_rate": 0,
+   "name": {
+    "de": "Projekt 4",
+    "en": "Project 4"
+   },
+   "short": "Projekt 4"
+  },
+  {
+   "id": "trailer",
+   "customer": "donaulicht",
+   "color": "#d79921",
+   "hourly_rate": 90,
+   "name": {
+    "de": "Projekt 5",
+    "en": "Project 5"
+   },
+   "short": "Projekt 5"
+  },
+  {
+   "id": "admin",
+   "customer": "studio",
+   "color": "#a89984",
+   "hourly_rate": 0,
+   "name": {
+    "de": "Projekt 6",
+    "en": "Project 6"
+   },
+   "short": "Projekt 6"
+  },
+  {
+   "id": "nachtwache",
+   "customer": "sendehaus",
+   "color": "#fb4934",
+   "hourly_rate": 90,
+   "name": {
+    "de": "Projekt 7",
+    "en": "Project 7"
+   },
+   "short": "Projekt 7"
+  }
+ ],
+ "activities": [
+  {
+   "id": "shoot",
+   "name": {
+    "de": "Tätigkeit 1",
+    "en": "Activity 1"
+   }
+  },
+  {
+   "id": "prep",
+   "name": {
+    "de": "Tätigkeit 2",
+    "en": "Activity 2"
+   }
+  },
+  {
+   "id": "edit",
+   "name": {
+    "de": "Tätigkeit 3",
+    "en": "Activity 3"
+   }
+  },
+  {
+   "id": "sound",
+   "name": {
+    "de": "Tätigkeit 4",
+    "en": "Activity 4"
+   }
+  },
+  {
+   "id": "travel",
+   "name": {
+    "de": "Tätigkeit 5",
+    "en": "Activity 5"
+   }
+  },
+  {
+   "id": "meeting",
+   "name": {
+    "de": "Tätigkeit 6",
+    "en": "Activity 6"
+   }
+  },
+  {
+   "id": "bookkeeping",
+   "name": {
+    "de": "Tätigkeit 7",
+    "en": "Activity 7"
+   }
+  }
+ ],
+ "places": [
+  {
+   "id": "studio",
+   "name": {
+    "de": "Ort 1",
+    "en": "Place 1"
+   },
+   "lat": 53.5537,
+   "lon": 9.9275
+  },
+  {
+   "id": "home-mara",
+   "name": {
+    "de": "Ort 2",
+    "en": "Place 2"
+   },
+   "lat": 53.5582,
+   "lon": 9.8849
+  },
+  {
+   "id": "harbour-pier",
+   "name": {
+    "de": "Ort 3",
+    "en": "Place 3"
+   },
+   "lat": 53.5456,
+   "lon": 9.9669
+  },
+  {
+   "id": "fishmarket",
+   "name": {
+    "de": "Ort 4",
+    "en": "Place 4"
+   },
+   "lat": 53.5454,
+   "lon": 9.9515
+  },
+  {
+   "id": "beach",
+   "name": {
+    "de": "Ort 5",
+    "en": "Place 5"
+   },
+   "lat": 53.5445,
+   "lon": 9.9106
+  },
+  {
+   "id": "ferry",
+   "name": {
+    "de": "Ort 6",
+    "en": "Place 6"
+   },
+   "lat": 53.5373,
+   "lon": 9.8763
+  },
+  {
+   "id": "speicherstadt",
+   "name": {
+    "de": "Ort 7",
+    "en": "Place 7"
+   },
+   "lat": 53.5437,
+   "lon": 9.9937
+  },
+  {
+   "id": "hafencity",
+   "name": {
+    "de": "Ort 8",
+    "en": "Place 8"
+   },
+   "lat": 53.5419,
+   "lon": 9.9888
+  },
+  {
+   "id": "northlight-office",
+   "name": {
+    "de": "Ort 9",
+    "en": "Place 9"
+   },
+   "lat": 53.5489,
+   "lon": 9.9362,
+   "customer": "northlight"
+  },
+  {
+   "id": "elbgruen-office",
+   "name": {
+    "de": "Ort 10",
+    "en": "Place 10"
+   },
+   "lat": 53.5413,
+   "lon": 9.9842,
+   "customer": "elbgruen"
+  },
+  {
+   "id": "speiche-workshop",
+   "name": {
+    "de": "Ort 11",
+    "en": "Place 11"
+   },
+   "lat": 53.5048,
+   "lon": 10.0027,
+   "customer": "speiche"
+  },
+  {
+   "id": "rental-station",
+   "name": {
+    "de": "Ort 12",
+    "en": "Place 12"
+   },
+   "lat": 53.5555,
+   "lon": 9.948
+  },
+  {
+   "id": "graufeld-lighthouse",
+   "name": {
+    "de": "Ort 13",
+    "en": "Place 13"
+   },
+   "lat": 53.8431,
+   "lon": 8.9024
+  },
+  {
+   "id": "kolk",
+   "name": {
+    "de": "Ort 14",
+    "en": "Place 14"
+   },
+   "lat": 53.8217,
+   "lon": 8.9391
+  },
+  {
+   "id": "moorhof",
+   "name": {
+    "de": "Ort 15",
+    "en": "Place 15"
+   },
+   "lat": 53.8302,
+   "lon": 8.9265
+  },
+  {
+   "id": "sendehaus",
+   "name": {
+    "de": "Ort 16",
+    "en": "Place 16"
+   },
+   "lat": 53.8365,
+   "lon": 8.9188,
+   "customer": "sendehaus"
+  }
+ ],
+ "vendors": [
+  {
+   "id": "elbnetz",
+   "name": "Lieferant 1",
+   "domain": "lieferant-1.example.test",
+   "kind": {
+    "de": "Mobilfunk",
+    "en": "Mobile network"
+   },
+   "contract": {
+    "de": "Mobilfunkvertrag",
+    "en": "Mobile contract"
+   },
+   "monthly": 39.95
+  },
+  {
+   "id": "nordhost",
+   "name": "Lieferant 2",
+   "domain": "lieferant-2.example.test",
+   "kind": {
+    "de": "Hosting",
+    "en": "Hosting"
+   },
+   "contract": {
+    "de": "Server-Miete",
+    "en": "Server rental"
+   },
+   "monthly": 41.65
+  },
+  {
+   "id": "farbraum",
+   "name": "Lieferant 3",
+   "domain": "lieferant-3.example.test",
+   "kind": {
+    "de": "Software",
+    "en": "Software"
+   },
+   "contract": {
+    "de": "Farbraum Grade, Abo",
+    "en": "Farbraum Grade subscription"
+   },
+   "monthly": 66.45
+  },
+  {
+   "id": "elbstrom",
+   "name": "Lieferant 4",
+   "domain": "lieferant-4.example.test",
+   "kind": {
+    "de": "Energie",
+    "en": "Energy"
+   },
+   "contract": {
+    "de": "Ökostrom Studio",
+    "en": "Green power for the studio"
+   },
+   "monthly": 72.0
+  },
+  {
+   "id": "wellenklang",
+   "name": "Lieferant 5",
+   "domain": "lieferant-5.example.test",
+   "kind": {
+    "de": "Unterhaltung",
+    "en": "Entertainment"
+   },
+   "contract": {
+    "de": "Musik-Streaming",
+    "en": "Music streaming"
+   },
+   "monthly": 10.99
+  }
+ ],
+ "receipts": [
+  {
+   "id": 1,
+   "vendor": "Lieferant 6",
+   "day": -18,
+   "amount": 342.0,
+   "number": "RE-2026-0917",
+   "category": {
+    "de": "Filmmaterial",
+    "en": "Film stock"
+   },
+   "note": {
+    "de": "",
+    "en": ""
+   }
+  },
+  {
+   "id": 2,
+   "vendor": "Lieferant 7",
+   "day": -15,
+   "amount": 89.7,
+   "number": "RE-55821",
+   "category": {
+    "de": "Technik",
+    "en": "Equipment"
+   },
+   "note": {
+    "de": "",
+    "en": ""
+   }
+  },
+  {
+   "id": 3,
+   "vendor": "Lieferant 8",
+   "day": -14,
+   "amount": 486.5,
+   "number": "2026-114",
+   "category": {
+    "de": "Catering",
+    "en": "Catering"
+   },
+   "note": {
+    "de": "",
+    "en": ""
+   }
+  },
+  {
+   "id": 4,
+   "vendor": "Lieferant 9",
+   "day": -15,
+   "amount": 164.9,
+   "number": "RE-7710-26",
+   "category": {
+    "de": "Fahrzeug",
+    "en": "Vehicle"
+   },
+   "note": {
+    "de": "",
+    "en": ""
+   }
+  },
+  {
+   "id": 5,
+   "vendor": "Lieferant 10",
+   "day": -9,
+   "amount": 72.14,
+   "number": "0048812",
+   "category": {
+    "de": "Kraftstoff",
+    "en": "Fuel"
+   },
+   "note": {
+    "de": "",
+    "en": ""
+   }
+  },
+  {
+   "id": 6,
+   "vendor": "Lieferant 11",
+   "day": -7,
+   "amount": 58.0,
+   "number": "RE-3391",
+   "category": {
+    "de": "Druck",
+    "en": "Printing"
+   },
+   "note": {
+    "de": "",
+    "en": ""
+   }
+  },
+  {
+   "id": 7,
+   "vendor": "Lieferant 8",
+   "day": -5,
+   "amount": 212.0,
+   "number": "2026-121",
+   "category": {
+    "de": "Catering",
+    "en": "Catering"
+   },
+   "note": {
+    "de": "",
+    "en": ""
+   }
+  },
+  {
+   "id": 8,
+   "vendor": "Lieferant 7",
+   "day": -2,
+   "amount": 129.0,
+   "number": "RE-56107",
+   "category": {
+    "de": "Technik",
+    "en": "Equipment"
+   },
+   "note": {
+    "de": "",
+    "en": ""
+   }
+  },
+  {
+   "id": 9,
+   "vendor": "Lieferant 12",
+   "day": -10,
+   "amount": 64.8,
+   "number": "RE-0313",
+   "category": {
+    "de": "Verpflegung",
+    "en": "Meals"
+   },
+   "note": {
+    "de": "",
+    "en": ""
+   }
+  },
+  {
+   "id": 10,
+   "vendor": "Lieferant 13",
+   "day": -10,
+   "amount": 95.0,
+   "number": "RE-26-118",
+   "category": {
+    "de": "Fahrzeug",
+    "en": "Vehicle"
+   },
+   "note": {
+    "de": "",
+    "en": ""
+   }
+  },
+  {
+   "id": 11,
+   "vendor": "Lieferant 7",
+   "day": -4,
+   "amount": 146.8,
+   "number": "RE-56244",
+   "category": {
+    "de": "Technik",
+    "en": "Equipment"
+   },
+   "note": {
+    "de": "",
+    "en": ""
+   }
+  }
+ ],
+ "inventory": {
+  "assets": [
+   {
+    "tag": "NB-001",
+    "name": "Gerät 1",
+    "model": "Modell 1",
+    "category": {
+     "de": "Notebook",
+     "en": "Notebook"
+    },
+    "cost": 1200
+   },
+   {
+    "tag": "SRV-002",
+    "name": "Gerät 2",
+    "model": "Modell 2",
+    "category": {
+     "de": "Server",
+     "en": "Server"
+    },
+    "cost": 650
+   },
+   {
+    "tag": "PH-003",
+    "name": "Gerät 3",
+    "model": "Modell 3",
+    "category": {
+     "de": "Smartphone",
+     "en": "Smartphone"
+    },
+    "cost": 599
+   },
+   {
+    "tag": "MO-004",
+    "name": "Gerät 4",
+    "model": "Modell 4",
+    "category": {
+     "de": "Monitor",
+     "en": "Monitor"
+    },
+    "cost": 890
+   }
+  ],
+  "licenses": [
+   {
+    "name": "Lizenz 1",
+    "vendor": "farbraum",
+    "seats": 1
+   },
+   {
+    "name": "Lizenz 2",
+    "vendor": "",
+    "seats": 5
+   }
+  ],
+  "disks": [
+   "Platte 1",
+   "Platte 2",
+   "Platte 3"
+  ]
+ },
+ "media": {
+  "album": {
+   "title": "Album",
+   "artist": "Künstler"
+  }
+ }
+}

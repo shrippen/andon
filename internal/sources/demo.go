@@ -30,6 +30,7 @@ const (
 	demoInvoiceMonth = 20
 	demoHomeCountry  = "276"
 	demoEUCountry    = "40"
+	demoGearReceipt  = 2 // a studio supplier's receipt, its vendor paid from the business account
 )
 
 var (
@@ -476,7 +477,7 @@ func DemoSure(now time.Time) *SureDataset {
 		Transactions: []SureTxn{
 			{ID: "t1", Date: day(-3), Name: fmt.Sprintf("%s RE-2026-017", demoCustomers[0].Name), Amount: 2380, Category: "Einnahmen", Account: "Geschäftskonto"},
 			{ID: "t2", Date: day(-5), Name: demoHosting.Name, Amount: -demoHosting.Monthly, Category: demoHosting.Kind.DE(), Merchant: demoHosting.Name, Account: "Geschäftskonto"},
-			{ID: "t3", Date: day(-8), Name: "Kabelwerk Studiobedarf", Amount: -899, Account: "Geschäftskonto"},
+			{ID: "t3", Date: day(-8), Name: demoWorld.Receipt(demoGearReceipt).Vendor, Amount: -899, Account: "Geschäftskonto"},
 			{ID: "t4", Date: day(-12), Name: "Bäckerei", Amount: -6.4, Account: "Tagesgeld"},
 			{ID: "t5", Date: day(-40), Name: demoHosting.Name, Amount: -demoHosting.Monthly, Category: demoHosting.Kind.DE(), Merchant: demoHosting.Name, Account: "Geschäftskonto"},
 		},
