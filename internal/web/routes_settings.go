@@ -96,6 +96,9 @@ func (d Deps) settingsPage(w http.ResponseWriter, ctx Ctx, status int, extra map
 	if run, ok := analysis.LastRun(); ok {
 		values["AnalysisRun"] = run
 	}
+	if health, err := system.Health(d.DB, ctx.Who); err == nil {
+		values["Health"] = health
+	}
 	if last, err := selfbackup.Last(d.DB); err == nil && last != nil {
 		values["Backup"] = last
 	}

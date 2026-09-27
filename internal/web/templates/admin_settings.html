@@ -26,6 +26,17 @@
       </form>
     </div>
 
+    {{with .Health}}
+    <h2 id="health">{{t "admin.health"}}</h2>
+    <div class="card">
+      <p class="small muted">{{t "admin.health_stats" "db" (num .DatabaseMB 1) "fresh" .CacheFresh "known" .CacheKnown "heap" (num .HeapMB 1) "goroutines" .Goroutines}}</p>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>{{t "admin.health_job"}}</th><th>{{t "admin.health_last"}}</th><th>{{t "admin.health_took"}}</th><th>{{t "admin.health_every"}}</th><th>{{t "admin.health_error"}}</th></tr></thead>
+        <tbody>{{range .Jobs}}<tr><td><code>{{.Name}}</code></td><td>{{ago .At}}</td><td>{{num .Duration.Seconds 1}} s</td><td>{{num .Every.Minutes 0}} min</td><td>{{with .Err}}<span class="error">{{.}}</span>{{end}}</td></tr>{{end}}</tbody>
+      </table></div>
+    </div>
+    {{end}}
+
     <h2 id="backup">{{t "admin.backup"}}</h2>
     <div class="card">
       <p class="small muted">{{t "admin.backup_hint" "keep" .BackupKeep}}</p>

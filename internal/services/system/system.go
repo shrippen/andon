@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync/atomic"
 
@@ -22,6 +23,8 @@ import (
 	"andon/internal/repos/misc"
 	"andon/internal/services/access"
 	"andon/internal/services/audit"
+	"andon/internal/services/scheduler"
+	"andon/internal/services/svcdata"
 	"andon/internal/sources"
 )
 
@@ -182,4 +185,40 @@ func stringList(v any) []string {
 		}
 	}
 	return out
+}
+
+const bytesPerMB = 1 << 20
+
+// InstanceHealth is what Admin → Instance shows about the running
+// process, e.g. to see why a Raspberry Pi is slow.
+type InstanceHealth struct {
+	Jobs       []scheduler.NamedRun
+	DatabaseMB float64
+	CacheFresh int // datasets within their TTL
+	CacheKnown int // last known dataset per key
+	HeapMB     float64
+	Goroutines int
+}
+
+// Health reports jobs, database size, cache and memory. Admin only.
+func Health(d *sql.DB, who *access.Principal) (InstanceHealth, error) {
+	if !who.IsAdmin() {
+		return InstanceHealth{}, ErrDenied
+	}
+	var h InstanceHealth
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		size, err := misc.DatabaseBytes(tx)
+		h.DatabaseMB = float64(size) / bytesPerMB
+		return err
+	})
+	if err != nil {
+		return h, err
+	}
+
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+	h.Jobs = scheduler.Runs()
+	h.CacheFresh, h.CacheKnown = svcdata.Sizes()
+	h.HeapMB, h.Goroutines = float64(mem.HeapAlloc)/bytesPerMB, runtime.NumGoroutine()
+	return h, nil
 }

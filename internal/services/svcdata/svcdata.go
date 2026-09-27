@@ -194,6 +194,14 @@ func evict(m map[string]memEntry, now time.Time) {
 	}
 }
 
+// Sizes reports how many results the caches hold: fresh ones (within
+// their TTL) and the last known per key.
+func Sizes() (fresh, known int) {
+	memMu.Lock()
+	defer memMu.Unlock()
+	return len(mem), len(latest)
+}
+
 // entries is the size of the larger cache.
 func entries() int {
 	memMu.Lock()

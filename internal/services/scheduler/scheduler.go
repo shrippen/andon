@@ -12,6 +12,8 @@ package scheduler
 import (
 	"context"
 	"log/slog"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 )
@@ -68,6 +70,25 @@ func LastRun(name string) (Run, bool) {
 	defer runsMu.Unlock()
 	r, ok := runs[name]
 	return r, ok
+}
+
+// NamedRun is a job's latest run with the job's name.
+type NamedRun struct {
+	Name string
+	Run
+}
+
+// Runs lists the latest run of every job that ran, by name.
+func Runs() []NamedRun {
+	runsMu.Lock()
+	defer runsMu.Unlock()
+
+	out := make([]NamedRun, 0, len(runs))
+	for name, r := range runs {
+		out = append(out, NamedRun{Name: name, Run: r})
+	}
+	slices.SortFunc(out, func(a, b NamedRun) int { return strings.Compare(a.Name, b.Name) })
+	return out
 }
 
 // Start runs every job on its own ticker until ctx is cancelled. Each job

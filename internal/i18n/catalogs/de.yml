@@ -1352,6 +1352,13 @@ admin:
   analysis_every: 'Alle {minutes} Minuten holt der Prüflauf die Daten aller Integrationen und leitet Hinweise ab. Seiten zeigen diesen Stand; live sind der Status-Ping der Kacheln und Widgets im Datenmodus „live“ (Vorgabe bei Home Assistant, Monitoren, Systemwerten).'
   analysis_last: 'Zuletzt {when}, Dauer {seconds} s.'
   analysis_none: Noch kein Lauf seit dem Start.
+  health: Zustand des Prozesses
+  health_stats: 'Datenbank {db} MB · Cache {fresh} aktuell, {known} bekannt · Speicher {heap} MB · {goroutines} Goroutinen'
+  health_job: Job
+  health_last: Letzter Lauf
+  health_took: Dauer
+  health_every: Intervall
+  health_error: Fehler
   analysis_run: Jetzt prüfen
   users_lead: Konten verwalten. Persönliche Inhalte sind für Admins nicht sichtbar.
   login: Letzte Anmeldung

@@ -39,3 +39,22 @@ func TestSettingsAdminOnly(t *testing.T) {
 		t.Fatalf("network: %+v %v", got, err)
 	}
 }
+
+// Health shows admins what the Pi is busy with: jobs, database, cache,
+// memory. Other users see nothing.
+func TestHealthAdminOnly(t *testing.T) {
+	d := testkit.DB(t)
+	admin, _ := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+	user, _ := testkit.User(t, d, "user@x.de", enums.RoleUser)
+
+	if _, err := system.Health(d, user); !errors.Is(err, system.ErrDenied) {
+		t.Fatalf("user: %v", err)
+	}
+	h, err := system.Health(d, admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h.DatabaseMB <= 0 || h.HeapMB <= 0 || h.Goroutines == 0 {
+		t.Fatalf("health: %+v", h)
+	}
+}

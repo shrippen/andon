@@ -1352,6 +1352,13 @@ admin:
   analysis_every: 'Every {minutes} minutes the check fetches all integrations and derives hints. Pages show this state; live are the tiles'' status ping and widgets in data mode “live” (default for Home Assistant, monitors, system stats).'
   analysis_last: 'Last run {when}, took {seconds} s.'
   analysis_none: No run since start.
+  health: Process health
+  health_stats: 'Database {db} MB · cache {fresh} fresh, {known} known · memory {heap} MB · {goroutines} goroutines'
+  health_job: Job
+  health_last: Last run
+  health_took: Took
+  health_every: Interval
+  health_error: Error
   analysis_run: Check now
   users_lead: Manage accounts. Personal content is not visible to admins.
   login: Last login

@@ -287,6 +287,13 @@ func RemoveTheme(q db.Queryer, themeID int64) error {
 
 // ── Instance settings ──
 
+// DatabaseBytes is the size of the database file (pages × page size).
+func DatabaseBytes(q db.Queryer) (int64, error) {
+	var n int64
+	err := q.QueryRow("SELECT page_count * page_size FROM pragma_page_count(), pragma_page_size()").Scan(&n)
+	return n, err
+}
+
 // Setting returns one instance setting value, or an empty map.
 func Setting(q db.Queryer, key string) (map[string]any, error) {
 	var value string
