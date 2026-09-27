@@ -1,11 +1,15 @@
 package web
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
 	"io/fs"
 	"net/http"
+	"path"
+	"strings"
 	"sync"
 )
 
@@ -15,7 +19,7 @@ var staticFiles embed.FS
 // RegisterStaticRoutes serves vendored assets (htmx, ...) so board pages
 // can lazy-load widget fragments without a CDN dependency.
 func (d Deps) RegisterStaticRoutes(mux *http.ServeMux) {
-	mux.Handle("GET /static/", cacheStatic(http.FileServerFS(staticFiles)))
+	mux.Handle("GET /static/", cacheStatic(gzipStatic(http.FileServerFS(staticFiles))))
 	mux.HandleFunc("GET /sw.js", handleWorker)
 }
 
@@ -69,4 +73,56 @@ func cacheStatic(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// compressible are the text assets worth gzipping; fonts and images are
+// compressed already.
+var compressible = map[string]string{
+	".css": "text/css; charset=utf-8",
+	".js":  "text/javascript; charset=utf-8",
+	".svg": "image/svg+xml",
+}
+
+// gzipped holds each compressed asset once; the files are embedded and
+// never change while the process runs.
+var gzipped sync.Map // path → []byte
+
+// gzipStatic answers CSS, JS and SVG gzipped when the browser accepts it
+// (andon.css: about 100 kB → 20 kB), compressing each file only once.
+func gzipStatic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		kind, ok := compressible[path.Ext(r.URL.Path)]
+		if !ok || !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		body, err := gzipOf(strings.TrimPrefix(r.URL.Path, "/"))
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		h := w.Header()
+		h.Set("Content-Type", kind)
+		h.Set("Content-Encoding", "gzip")
+		h.Set("Vary", "Accept-Encoding")
+		w.Write(body)
+	})
+}
+
+func gzipOf(name string) ([]byte, error) {
+	if cached, ok := gzipped.Load(name); ok {
+		return cached.([]byte), nil
+	}
+	raw, err := staticFiles.ReadFile(name)
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	zw, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	zw.Write(raw)
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	gzipped.Store(name, buf.Bytes())
+	return buf.Bytes(), nil
 }
