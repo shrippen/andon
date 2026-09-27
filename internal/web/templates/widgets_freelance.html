@@ -111,3 +111,65 @@
 {{if $v.Relative}}<p class="small muted">{{t "cashflow.relative_hint"}}</p>{{end}}
 {{end}}{{end}}
 {{end}}
+
+{{define "widgets/month_close"}}
+{{with $v := .Frag.View}}{{if $v.Steps}}
+<div class="row-between"><span class="kpi-label">{{t "close.title" "month" $v.Month}}</span><span class="store-when">{{$v.Done}} / {{len $v.Steps}}</span></div>
+<div class="store-bar"><i style="--w:{{$v.Pct}}%"></i></div>
+<ul class="close-steps">
+  {{range $v.Steps}}<li{{if .Done}} class="is-done"{{end}}><span class="close-box" aria-hidden="true"></span>
+    <span>{{if eq .Key "hours"}}{{if .Done}}{{t "close.hours_done"}}{{else}}{{t "close.hours" "hours" (num .Hours 1)}}{{end}}
+      {{else if eq .Key "drafts"}}{{if .Done}}{{t "close.drafts_done"}}{{else}}{{t "close.drafts" "n" .Count}}{{end}}
+      {{else if eq .Key "receipts"}}{{if .Done}}{{t "close.receipts_done"}}{{else if .Count}}{{t "close.receipts" "n" .Count}}{{else}}{{t "close.receipts_setup"}}{{end}}
+      {{else if eq .Key "inbox"}}{{if .Done}}{{t "close.inbox_done"}}{{else}}{{t "close.inbox" "n" .Count}}{{end}}
+      {{else if eq .Key "vat"}}{{t "close.vat" "day" (day .Due)}}{{end}}</span>
+    {{if and .URL (not .Done)}}<a href="{{.URL}}"{{if not (eq (slice .URL 0 1) "/")}} target="_blank" rel="noopener noreferrer"{{end}}>→</a>{{end}}</li>{{end}}
+</ul>
+{{else}}<p class="slot-note">{{t "close.none"}}</p>{{end}}{{end}}
+{{end}}
+
+{{define "widgets/today"}}
+{{with $v := .Frag.View}}{{if $v.Items}}
+<ol class="day-line">
+  {{range $v.Items}}<li data-kind="{{.Kind}}"{{if .Past}} class="is-past"{{end}}{{if .Now}} class="is-now"{{end}}>
+    <span class="day-at">{{if eq .Kind "deadline"}}{{.Left}} {{t "deadline.days_short"}}{{else if .At}}{{.At}}{{else}}{{t "today.all_day"}}{{end}}</span>
+    <i aria-hidden="true"></i>
+    <span>{{if eq .Kind "timer"}}{{t "today.timer" "what" .Text}}{{else if eq .Kind "deadline"}}{{if eq .Deadline "vat_return"}}{{t "deadline.vat_return" "period" .Period}}{{else if eq .Deadline "prepayment"}}{{t "deadline.prepayment"}}{{else}}{{t "deadline.annual" "year" .Year}}{{end}}{{else}}{{.Text}}{{end}}</span></li>{{end}}
+</ol>
+<p class="tile-foot"><span>{{t "today.now" "time" $v.Now}}</span></p>
+{{else}}<p class="slot-note">{{t "today.empty"}}</p>{{end}}{{end}}
+{{end}}
+
+{{define "widgets/receipts_missing"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}
+{{if $v.Setup}}<p class="slot-note">{{t "close.receipts_setup"}} <a href="/spaces/settings#rule-cross.expense_unrecorded">{{t "nav.space_settings"}}</a></p>
+{{else if $v.Rows}}
+<div class="tile-head"><b class="tile-value">{{money $v.Sum $v.Currency}}</b><span class="tile-sub">{{t "receipts.count" "n" $v.Count}}</span></div>
+<div class="table-wrap"><table class="table compact">
+  <tbody>{{range $v.Rows}}<tr><td>{{if .Search}}<a href="{{.Search}}" target="_blank" rel="noopener noreferrer" title="{{t "receipts.search"}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</td>
+    <td class="num">{{money .Amount $v.Currency}}</td><td class="num"><small class="muted">{{day .Date}}</small></td></tr>{{end}}</tbody>
+</table></div>
+{{else}}<p class="slot-note">{{t "receipts.none"}}</p>{{end}}{{end}}
+{{end}}
+
+{{define "widgets/travel"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if or $v.MonthKM $v.YearKM}}
+<div class="tile-head"><b class="tile-value">{{num $v.MonthKM 0}} km</b><span class="tile-sub">{{t "travel.month"}}{{if $v.PrevKM}} · {{t "travel.prev" "km" (num $v.PrevKM 0)}}{{end}}</span></div>
+{{if $v.PrevKM}}<div class="store-bar" title="{{t "travel.prev" "km" (num $v.PrevKM 0)}}"><i style="--w:{{$v.MonthBar}}%;background:var(--blue)"></i></div>{{end}}
+<p class="small">{{t "travel.year" "km" (num $v.YearKM 0) "countries" $v.Countries "cities" $v.Cities}}</p>
+{{if $v.Trips}}<p class="small">{{t "travel.trips" "n" $v.Trips "km" (num $v.TripKM 0)}}{{if $v.Rate}} · {{t "travel.amount" "amount" (money $v.TripAmount) "rate" (num $v.Rate 2)}}{{end}}</p>{{end}}
+{{else}}<p class="slot-note">{{t "travel.none"}}</p>{{end}}{{end}}
+{{end}}
+
+{{define "widgets/subscriptions"}}
+{{with $v := .Frag.View}}{{if $v.Source}}
+<div class="tile-head"><b class="tile-value">{{money $v.Monthly $v.Currency}}</b><span class="tile-sub">{{t "subs.per_month" "n" $v.Count}} · {{t (print "service." $v.Source)}}</span></div>
+{{with $v.Rows}}<ul class="sub-rows">
+  {{range .}}<li><span class="sub-name">{{.Name}}<small class="muted">{{with .Category}}{{.}} · {{end}}{{if .Next}}{{day .Next}}{{end}}</small></span><span class="sub-price">{{money .Price $v.Currency}}</span></li>{{end}}
+</ul>{{end}}
+{{with $v.Missing}}<p class="small warn-text">{{t "subs.missing" "names" .}}</p>{{end}}
+{{if $v.URL}}<p class="tile-foot"><span></span><a href="{{$v.URL}}" target="_blank" rel="noopener noreferrer">{{t "action.open_in_wallos"}} →</a></p>{{end}}
+{{else}}<p class="slot-note">{{t "subs.none"}}</p>{{end}}{{end}}
+{{end}}

@@ -23,6 +23,7 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServiceHomeAssistant: "https://www.home-assistant.io",
 	enums.ServiceSure:          "https://github.com/we-promise/sure",
 	enums.ServiceLinkwarden:    "https://linkwarden.app",
+	enums.ServiceWallos:        "https://github.com/ellite/Wallos",
 	enums.ServicePGBackWeb:     "https://github.com/eduardolat/pgbackweb",
 	enums.ServiceTrueNAS:       "https://www.truenas.com",
 	enums.ServiceKomodo:        "https://komo.do",

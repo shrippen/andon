@@ -234,6 +234,8 @@ func linkView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
 		parts = metrics.LinkwardenInfo(data)
 	case *sources.KintsugiDataset:
 		parts = metrics.KintsugiInfo(data)
+	case *sources.WallosDataset:
+		parts = metrics.WallosInfo(data)
 	case *sources.MailDataset:
 		parts = metrics.MailInfo(data)
 	case *sources.TrueNASDataset:

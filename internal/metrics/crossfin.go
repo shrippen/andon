@@ -673,3 +673,36 @@ func abs(f float64) float64 {
 	}
 	return f
 }
+
+// NotInWallos lists Sure's active recurring expenses that look like a
+// subscription (at most maxMonthly a month, name not in ignore) but have
+// no active Wallos entry of the same name.
+func NotInWallos(sure *sources.SureDataset, wallos *sources.WallosDataset, maxMonthly float64, ignore []string) []sources.SureRecurring {
+	var out []sources.SureRecurring
+	for _, r := range sure.Recurring {
+		if !r.Expense || r.Status == "inactive" || monthly(r) > maxMonthly || ignored(r.Name, ignore) {
+			continue
+		}
+		found := false
+		for _, s := range wallos.Subs {
+			if !s.Inactive && (sameThing(r.Name, s.Name) || sameThing(s.Name, r.Name)) {
+				found = true
+			}
+		}
+		if !found {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// ignored tells whether a name contains one of the ignore words.
+func ignored(name string, ignore []string) bool {
+	lower := strings.ToLower(name)
+	for _, w := range ignore {
+		if w = strings.ToLower(strings.TrimSpace(w)); w != "" && strings.Contains(lower, w) {
+			return true
+		}
+	}
+	return false
+}

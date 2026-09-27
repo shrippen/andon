@@ -595,6 +595,40 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		}
 		frag.Slots[widgets.ConnHealthSlot] = Slot{Data: connStrips(strips)}
 	}
+	if kind.Extra == widgets.ExtraHintBriefs {
+		hcfg := cfg.(widgets.HintSource).Hints()
+		found, err := hints.Filtered(d, who, hints.Filter{MinSeverity: enums.Severity(hcfg.MinSeverity), Sources: hcfg.Sources}, 0)
+		if err != nil {
+			return nil, err
+		}
+		briefs := make([]widgets.HintBrief, len(found))
+		for i, v := range found {
+			briefs[i] = widgets.HintBrief{ID: v.ID, Severity: v.Severity, Title: v.Title, Sources: v.Sources}
+		}
+		frag.Slots[widgets.HintsSlot] = Slot{Data: briefs}
+	}
+	if kind.Extra == widgets.ExtraNoise {
+		n, err := hints.Noise(d, who, time.Now().UTC(), widgets.NoiseDays)
+		if err != nil {
+			return nil, err
+		}
+		data := widgets.NoiseData{Daily: n.Daily}
+		for _, f := range n.Flapping {
+			data.Flaps = append(data.Flaps, widgets.Flap{Rule: f.Rule, Returns: f.Returns})
+		}
+		frag.Slots[widgets.NoiseSlot] = Slot{Data: data}
+	}
+	if kind.Extra == widgets.ExtraTimeline {
+		entries, err := history.Timeline(d, who, time.Now().UTC().AddDate(0, 0, -widgets.TimelineDays), timelineMax)
+		if err != nil {
+			return nil, err
+		}
+		items := make([]widgets.TimelineItem, len(entries))
+		for i, e := range entries {
+			items[i] = widgets.TimelineItem{At: e.At, Kind: e.Kind, Subject: e.Subject, Detail: e.Detail, HintID: e.HintID}
+		}
+		frag.Slots[widgets.TimelineSlot] = Slot{Data: items}
+	}
 	if kind.Extra == widgets.ExtraHistory {
 		h, err := history.Load(d, widget.SpaceID, 0, time.Now().UTC())
 		if err != nil {
@@ -626,7 +660,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 	}
 
 	if kind.Extra == widgets.ExtraHints {
-		hcfg := cfg.(widgets.HintsConfig)
+		hcfg := cfg.(widgets.HintSource).Hints()
 		filter := hints.Filter{MinSeverity: enums.Severity(hcfg.MinSeverity), Sources: hcfg.Sources, Rules: rules.RulesOf(hcfg.Topic)}
 		// All matching hints for the level bar, the first Limit for the list.
 		all, err := hints.Filtered(d, who, filter, 0)
@@ -780,6 +814,9 @@ func Demo(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64, 
 	w := &model.Widget{SpaceID: spaceID, Type: typeKey, Title: title, Config: config}
 	return load(ctx, d, who, w, svcdata.Cached, originDemo)
 }
+
+// timelineMax caps what the recent-timeline tile loads.
+const timelineMax = 50
 
 // HintGroup is one severity band of the hints widget, highest first.
 type HintGroup struct {

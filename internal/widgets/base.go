@@ -51,6 +51,15 @@ const (
 	// ExtraConnHealth hands the viewer's connection strips to the view as
 	// results["connhealth"] ([]ConnStrip).
 	ExtraConnHealth Extra = "connhealth"
+	// ExtraHintBriefs hands the open hints the config picks (HintSource)
+	// to the view as results["hints"] ([]HintBrief).
+	ExtraHintBriefs Extra = "hint_briefs"
+	// ExtraNoise hands the caller's hint traffic to the view as
+	// results["noise"] (NoiseData).
+	ExtraNoise Extra = "noise"
+	// ExtraTimeline hands the caller's recent timeline to the view as
+	// results["timeline"] ([]TimelineItem).
+	ExtraTimeline Extra = "timeline"
 )
 
 // Category groups widget types for the library UI.

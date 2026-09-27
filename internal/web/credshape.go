@@ -202,6 +202,7 @@ func optText(options map[string]any, key string) string {
 // wrong, e.g. MySpeed takes a password.
 var secretLabels = map[enums.ServiceType]string{
 	enums.ServiceSpeedtest: "conn.secret_speedtest",
+	enums.ServiceWallos:    "conn.secret_wallos",
 }
 
 func secretLabel(service enums.ServiceType) string {

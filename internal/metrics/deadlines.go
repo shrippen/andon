@@ -154,6 +154,18 @@ func TaxVATMethod(settings map[string]any) string {
 	return method
 }
 
+// VATReturnFor is the VAT return whose period holds the given day,
+// whether or not it is already due.
+func VATReturnFor(tax TaxSettings, day time.Time) (TaxDeadline, bool) {
+	start := MonthStart(day)
+	for _, d := range vatReturns(start, tax, start.AddDate(0, quarterMonths+2, 0)) {
+		if !day.Before(d.PeriodStart) && !day.After(d.PeriodEnd) {
+			return d, true
+		}
+	}
+	return TaxDeadline{}, false
+}
+
 // UpcomingDeadlines returns every tax deadline within `days`, soonest first.
 func UpcomingDeadlines(tax TaxSettings, today time.Time, days int) []TaxDeadline {
 	horizon := today.AddDate(0, 0, days)

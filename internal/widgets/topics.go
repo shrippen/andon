@@ -26,7 +26,19 @@ var Topics = []Topic{TopicOverview, TopicWork, TopicAnalysis, TopicHomelab, Topi
 
 // topicOf maps each type key to its topic; unlisted types land in overview.
 var topicOf = map[string]Topic{
-	"greeting": TopicOverview, "hints": TopicOverview, "week_story": TopicOverview, "conn_health": TopicOverview,
+	"subscriptions":    TopicAnalysis,
+	"timeline_recent":  TopicOverview,
+	"uptime_month":     TopicHomelab,
+	"hint_noise":       TopicOverview,
+	"status_light":     TopicOverview,
+	"exposure":         TopicSecurity,
+	"travel":           TopicWork,
+	"receipts_missing": TopicWork,
+	"today":            TopicOverview,
+	"month_close":      TopicWork,
+	"rate_trend":       TopicAnalysis,
+	"payment_days":     TopicWork,
+	"greeting":         TopicOverview, "hints": TopicOverview, "week_story": TopicOverview, "conn_health": TopicOverview,
 	"clock": TopicOverview, "calendar": TopicOverview, "note": TopicOverview, "list": TopicOverview,
 	"link": TopicOverview, "deadlines": TopicOverview,
 

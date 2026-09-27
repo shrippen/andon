@@ -13,6 +13,8 @@ connections:
   - {id: mail, type: mail, name: Postfach, url: "demo://mail", credentials: shared}
   - {id: paperless, type: paperless, name: Paperless, url: "demo://paperless", credentials: shared}
   - {id: kintsugi, type: kintsugi, name: Kintsugi, url: "demo://kintsugi", credentials: shared}
+  - {id: wallos, type: wallos, name: Wallos, url: "demo://wallos", credentials: shared}
+  - {id: calendar, type: calendar, name: Kalender, url: "demo://calendar", credentials: shared}
   - id: dawarich
     type: dawarich
     name: Dawarich
@@ -49,21 +51,33 @@ widgets:
   - {id: open-trend, type: trend, title: Offene Posten (Verlauf), connection: invoiceninja, config: {metric: open_amount, days: 90}}
   - {id: acquisition, type: kintsugi, title: Akquise, connection: kintsugi, config: {}}
   - {id: shares, type: table, title: Umsatz je Kunde, connection: invoiceninja, config: {table: client_shares}}
+  - {id: light, type: status_light, title: Lage, config: {}}
+  - {id: today, type: today, title: Heute, config: {}}
+  - {id: recent, type: timeline_recent, title: Zuletzt, config: {}}
+  - {id: noise, type: hint_noise, title: Hinweis-Lärm, config: {}}
+  - {id: close, type: month_close, title: Monatsabschluss, config: {}}
+  - {id: paydays, type: payment_days, title: Zahlungsdauer, connection: invoiceninja, config: {}}
+  - {id: rate, type: rate_trend, title: Stundensatz, connection: invoiceninja, config: {target: 90}}
+  - {id: receipts, type: receipts_missing, title: Belege fehlen, connection: sure, config: {}}
+  - {id: subs, type: subscriptions, title: Abos, config: {}}
+  - {id: travel, type: travel, title: Unterwegs, connection: dawarich, config: {}}
 boards:
   - name: Übersicht
     slug: start
     sections:
       - {title: Dienste, cols: 4, widgets: [kimai-link, in-link, snipe-link, dawarich-link, sure-link]}
       - {title: Kennzahlen, widgets: [kpi-revenue, kpi-open, kpi-hours, kpi-util, kpi-vat, kpi-reserve, kpi-cash]}
-      - {title: Hinweise, widgets: [hints]}
+      - {title: Hinweise, widgets: [hints, noise]}
+      - {title: Lage, area: side, widgets: [light, today, recent]}
       - {title: Fristen, area: side, widgets: [deadlines]}
       - {title: Ziele, area: side, widgets: [goal, budgets]}
   - name: Freelance
     slug: freelance
     sections:
-      - {title: Umsatz, widgets: [forecast, cash, revenue-chart, open-trend]}
+      - {title: Umsatz, widgets: [forecast, cash, rate, revenue-chart, open-trend]}
+      - {title: Abschluss, widgets: [close, receipts, subs]}
       - {title: Offene Posten, widgets: [open-invoices, unbilled]}
-      - {title: Kunden, widgets: [shares]}
+      - {title: Kunden, widgets: [shares, paydays]}
       - {title: Akquise, widgets: [acquisition]}
   - name: IT
     slug: it
@@ -72,4 +86,4 @@ boards:
   - name: Reisen
     slug: reisen
     sections:
-      - {title: Fahrten, widgets: [trips]}
+      - {title: Fahrten, widgets: [travel, trips]}

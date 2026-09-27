@@ -197,6 +197,31 @@ func registerSureCross() {
 			}
 			return found
 		})
+
+	// Sure sees a recurring payment that looks like a subscription, but
+	// Wallos (where subscriptions are kept) has no entry for it.
+	Register("cross.wallos_missing", Cross, map[string]any{"max_monthly": 100.0, "ignore_names": []any{}},
+		func(_ any, cfg map[string]any, env Env) []Finding {
+			sure, ok1 := env.Datasets[string(enums.ServiceSure)].(*sources.SureDataset)
+			wallos, ok2 := env.Datasets[string(enums.ServiceWallos)].(*sources.WallosDataset)
+			if !ok1 || !ok2 {
+				return nil
+			}
+			missing := metrics.NotInWallos(sure, wallos, cfgFloat(cfg, "max_monthly"), stringsSlice(cfg["ignore_names"]))
+			if len(missing) == 0 {
+				return nil
+			}
+			names := make([]string, len(missing))
+			for i, r := range missing {
+				names[i] = r.Name
+			}
+			return []Finding{{
+				Fingerprint: "missing", Rule: "cross.wallos_missing", Severity: enums.SeverityInfo, Message: "cross.wallos_missing",
+				Params:    map[string]any{"count": len(missing), "names": shortList(names)},
+				ActionURL: wallos.URL, ActionLabel: "open_in_wallos",
+				Sources: []string{string(enums.ServiceSure), string(enums.ServiceWallos)},
+			}}
+		})
 }
 
 // ReceiptInputsOf collects the receipt sources of a scope with the

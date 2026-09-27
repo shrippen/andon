@@ -25,32 +25,41 @@ func TestCatalogTilesRender(t *testing.T) {
 	}
 
 	cases := map[string]struct {
-		data any
-		want string
+		data  any
+		want  string
+		peers map[string]any // other datasets of the space, by query name
 	}{
-		"kimai_week":       {sources.DemoKimai(now), "weekcol"},
-		"kimai_split":      {sources.DemoKimai(now), "weekcol"},
-		"unbilled_age":     {sources.DemoKimai(now), "hbar"},
-		"disks":            {sources.DemoScrutiny(now), "legend-list"},
-		"komodo_stacks":    {sources.DemoKomodo(now), "strip"},
-		"truenas_pools":    {sources.DemoTrueNAS(), "hbar"},
-		"pihole":           {sources.DemoPihole(now), "progress-bar"},
-		"adguard":          {sources.DemoAdGuard(), "progress-bar"},
-		"vpn":              {sources.DemoGluetun(), "pill"},
-		"gateway":          {sources.DemoGateway(), "tile-value"},
-		"expiry":           {sources.DemoCerts(now), "hbar"},
-		"speed_history":    {&sources.SpeedtestDataset{Down: 240, Up: 40, ExpectDown: 250, At: now}, "bars-target"},
-		"sabnzbd":          {sources.DemoSabnzbd(now), "MB/s"},
-		"paperless_inbox":  {sources.DemoPaperless(now), "Posteingang"},
-		"mail_invoices":    {sources.DemoMail(now), "tile-value"},
-		"freshrss_feeds":   {sources.DemoFreshRSS(now), "hbar"},
-		"linkwarden":       {sources.DemoLinkwarden(), "hbar"},
-		"kintsugi":         {sources.DemoKintsugi(now), "Stadtwerke"},
-		"gitea_reviews":    {sources.DemoGitea(now), "Reviews offen"},
-		"dawarich_day":     {sources.DemoDawarich(now), "kl-day"},
-		"authentik_logins": {sources.DemoAuthentik(now), "Anmeldungen"},
-		"vaultwarden_2fa":  {sources.DemoVaultwarden(now), "progress-bar"},
-		"monitors":         {sources.DemoKuma(), "strip-lg"},
+		"kimai_week":       {data: sources.DemoKimai(now), want: "weekcol"},
+		"kimai_split":      {data: sources.DemoKimai(now), want: "weekcol"},
+		"unbilled_age":     {data: sources.DemoKimai(now), want: "hbar"},
+		"disks":            {data: sources.DemoScrutiny(now), want: "legend-list"},
+		"komodo_stacks":    {data: sources.DemoKomodo(now), want: "strip"},
+		"truenas_pools":    {data: sources.DemoTrueNAS(), want: "hbar"},
+		"pihole":           {data: sources.DemoPihole(now), want: "progress-bar"},
+		"adguard":          {data: sources.DemoAdGuard(), want: "progress-bar"},
+		"vpn":              {data: sources.DemoGluetun(), want: "pill"},
+		"gateway":          {data: sources.DemoGateway(), want: "tile-value"},
+		"expiry":           {data: sources.DemoCerts(now), want: "hbar"},
+		"speed_history":    {data: &sources.SpeedtestDataset{Down: 240, Up: 40, ExpectDown: 250, At: now}, want: "bars-target"},
+		"sabnzbd":          {data: sources.DemoSabnzbd(now), want: "MB/s"},
+		"paperless_inbox":  {data: sources.DemoPaperless(now), want: "Posteingang"},
+		"mail_invoices":    {data: sources.DemoMail(now), want: "tile-value"},
+		"freshrss_feeds":   {data: sources.DemoFreshRSS(now), want: "hbar"},
+		"linkwarden":       {data: sources.DemoLinkwarden(), want: "hbar"},
+		"kintsugi":         {data: sources.DemoKintsugi(now), want: "Stadtwerke"},
+		"gitea_reviews":    {data: sources.DemoGitea(now), want: "Reviews offen"},
+		"dawarich_day":     {data: sources.DemoDawarich(now), want: "kl-day"},
+		"authentik_logins": {data: sources.DemoAuthentik(now), want: "Anmeldungen"},
+		"vaultwarden_2fa":  {data: sources.DemoVaultwarden(now), want: "progress-bar"},
+		"monitors":         {data: sources.DemoKuma(), want: "strip-lg"},
+		"payment_days":     {data: sources.DemoNinja(now), want: "pay-scale"},
+		"month_close":      {want: "close-steps", peers: map[string]any{"kimai": sources.DemoKimai(now), "invoiceninja": sources.DemoNinja(now)}},
+		"today":            {want: "day-line", peers: map[string]any{"calendar": sources.DemoCalendar(now), "kimai": sources.DemoKimai(now)}},
+		"receipts_missing": {data: sources.DemoSure(now), want: "slot-note"},
+		"travel":           {data: sources.DemoDawarich(now), want: "412 km"},
+		"exposure":         {data: sources.DemoPangolin(), want: "expo-rows"},
+		"subscriptions":    {want: "Hetzner", peers: map[string]any{"wallos": sources.DemoWallos(now), "sure": sources.DemoSure(now)}},
+		"rate_trend":       {data: sources.DemoNinja(now), want: "spark", peers: map[string]any{"kimai": sources.DemoKimai(now)}},
 	}
 	for key, c := range cases {
 		kind, ok := widgets.Get(key)
@@ -59,6 +68,9 @@ func TestCatalogTilesRender(t *testing.T) {
 		}
 		cfg, _ := widgets.Decode(key, map[string]any{})
 		results := map[string]any{"data": c.data}
+		for name, peer := range c.peers {
+			results[name] = peer
+		}
 		if key == "speed_history" {
 			results[widgets.HistorySlot] = speed
 		}

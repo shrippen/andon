@@ -2,6 +2,7 @@ package sources
 
 import (
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -237,8 +238,14 @@ func DemoDawarich(now time.Time) *DawarichDataset {
 			{ID: 1, Name: "Home", Lat: demoHome[0], Lon: demoHome[1], Radius: 100},
 			{ID: 2, Name: "Muster GmbH Büro", Lat: lat, Lon: lon, Radius: 150},
 		},
-		Visits:    visits,
-		Stats:     map[string]any{"totalDistanceKm": 18450.0},
+		Visits: visits,
+		Stats: map[string]any{"totalDistanceKm": 18450.0, "yearlyStats": []any{map[string]any{
+			"year": float64(now.Year()), "totalDistanceKm": 3100.0, "totalCountriesVisited": 2.0, "totalCitiesVisited": 14.0,
+			"monthlyDistanceKm": map[string]any{
+				strings.ToLower(now.Month().String()):                   412.0,
+				strings.ToLower(now.AddDate(0, -1, 0).Month().String()): 530.0,
+			},
+		}}},
 		LastPoint: now.UTC().Add(-2 * time.Hour).Format(time.RFC3339),
 	}
 }
@@ -402,6 +409,7 @@ func DemoSure(now time.Time) *SureDataset {
 			{Name: "Hetzner Online", Status: "active", Amount: 41.65, Expense: true, Next: day(25), Last: day(-5)},
 			{Name: "Krankenversicherung", Status: "active", Amount: 612, Expense: true, Next: day(-9), Last: day(-39)},
 			{Name: "Miete Büro", Status: "active", Amount: 450, Expense: true, Next: day(6), Last: day(-24)},
+			{Name: "Adobe Creative Cloud", Status: "active", Amount: 66.45, Expense: true, Next: day(11), Last: day(-19)},
 		},
 	}
 }

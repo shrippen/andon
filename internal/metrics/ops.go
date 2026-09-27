@@ -130,7 +130,19 @@ func HassInfo(data *sources.HassDataset) []InfoPart {
 	return []InfoPart{part("hass.on", map[string]any{"count": on})}
 }
 
-// LinkwardenInfo: number of bookmarks compared.
+// WallosInfo: active subscriptions and what they cost a month.
+func WallosInfo(data *sources.WallosDataset) []InfoPart {
+	count, monthly := 0, 0.0
+	for _, s := range data.Subs {
+		if !s.Inactive {
+			count++
+			monthly += s.Monthly
+		}
+	}
+	return []InfoPart{part("wallos.subs", map[string]any{"count": count, "amount": map[string]any{"$money": round2(monthly), "currency": data.Currency}})}
+}
+
+// KintsugiInfo: open suggestions.
 func KintsugiInfo(data *sources.KintsugiDataset) []InfoPart {
 	return []InfoPart{part("kintsugi.open", map[string]any{"count": len(data.Open)})}
 }

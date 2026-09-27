@@ -40,10 +40,12 @@ func (CalendarData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	return &CalendarResult{Events: Occurrences(text, now.AddDate(0, 0, -calendarDays), now.AddDate(0, 0, calendarDays))}, nil
 }
 
-// DemoCalendar has one customer appointment two days ago.
+// DemoCalendar has a customer appointment two days ago, a call today and
+// a private one in three days.
 func DemoCalendar(now time.Time) *CalendarResult {
 	day := time.Date(now.Year(), now.Month(), now.Day(), 14, 0, 0, 0, time.UTC).AddDate(0, 0, -2)
-	return &CalendarResult{Events: []Event{{Start: day, Title: "Workshop Acme GmbH"}, {Start: day.AddDate(0, 0, 5), Title: "Zahnarzt"}}}
+	return &CalendarResult{Events: []Event{{Start: day, Title: "Workshop Acme GmbH"}, {Start: day.AddDate(0, 0, 2).Add(2 * time.Hour), Title: "Call Beispiel AG"},
+		{Start: day.AddDate(0, 0, 5), Title: "Zahnarzt"}}}
 }
 
 func init() {

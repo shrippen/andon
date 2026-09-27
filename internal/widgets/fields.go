@@ -56,6 +56,18 @@ func sel(key string, def string, options ...string) Field {
 }
 
 var fieldsByType = map[string][]Field{
+	"subscriptions":    {{Key: "limit", Input: InputNumber, Default: defaultSubRows}},
+	"timeline_recent":  {{Key: "limit", Input: InputNumber, Default: defaultRecent}},
+	"uptime_month":     {},
+	"hint_noise":       {},
+	"status_light":     {sel("red_from", "critical", "critical", "warn"), sel("yellow_from", "warn", "warn", "info", "off"), {Key: "sources", Input: InputList}},
+	"exposure":         {},
+	"travel":           {{Key: "km_rate", Input: InputNumber, Default: defaultKMRate}},
+	"receipts_missing": {{Key: "days", Input: InputNumber, Default: defaultReceiptDays}, {Key: "limit", Input: InputNumber, Default: defaultReceiptRows}},
+	"today":            {{Key: "timezone", Input: InputText, Default: defaultTimezone}, {Key: "stop", Input: InputText}, {Key: "days", Input: InputNumber, Default: todayDeadlineDays}},
+	"month_close":      {},
+	"rate_trend":       {{Key: "target", Input: InputNumber}},
+	"payment_days":     {{Key: "target", Input: InputNumber, Default: defaultPayTarget}, {Key: "limit", Input: InputNumber, Default: defaultPayRows}},
 	"link": {
 		{Key: "url", Input: InputText, Required: true},
 		{Key: "description", Input: InputArea},

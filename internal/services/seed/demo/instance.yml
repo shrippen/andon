@@ -50,6 +50,8 @@ widgets:
   - {id: authentik-apps, type: table, title: Anmeldungen je Anwendung, connection: authentik, config: {table: app_usage, limit: 5}}
   - {id: hass-panel, type: hass, title: Zuhause, connection: hass, config: {entities: [light.buero, switch.kaffeemaschine, sensor.wohnzimmer_temperatur, sensor.fenster_bad_batterie]}}
   - {id: monitors, type: monitors, title: Monitore, connection: kuma, config: {}}
+  - {id: uptime, type: uptime_month, title: Verfügbarkeit, connection: kuma, config: {}}
+  - {id: exposure, type: exposure, title: Öffentlich, connection: pangolin, config: {}}
   - {id: certs-link, type: link, title: Zertifikate, config: {url: "https://letsencrypt.org", icon: "hl-letsencrypt", description: TLS, status: "off", info: {connection: certs}}}
   - {id: clock, type: clock, title: Zeit, config: {timezones: [Europe/Berlin]}}
   - {id: kimai, type: link, title: Kimai, config: {url: "https://www.kimai.org", icon: "hl-kimai", description: Zeiterfassung}}
@@ -67,4 +69,5 @@ boards:
       - {title: Netz, cols: 4, span: 2, color: blue, widgets: [pihole-link, nextcloud-link, sabnzbd-link, gluetun-link, domains-link, blacklist-link]}
       - {title: News, area: side, widgets: [news]}
       - {title: Info, area: side, widgets: [clock, note]}
-      - {title: Status, area: side, widgets: [monitors, hass-panel, authentik-apps, updates, backups]}
+      - {title: Status, area: side, widgets: [monitors, uptime, hass-panel, authentik-apps, updates, backups]}
+      - {title: Sicherheit, widgets: [exposure]}
