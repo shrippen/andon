@@ -3,6 +3,7 @@ package sources
 import (
 	"net"
 	"strings"
+	"time"
 
 	"andon/internal/drivers/httpclient"
 )
@@ -102,4 +103,10 @@ func allowedAddr(addr net.IP, nets []*net.IPNet, policy NetworkPolicy) bool {
 // isGlobal: routable on the internet, not private, loopback or link-local.
 func isGlobal(ip net.IP) bool {
 	return ip.IsGlobalUnicast() && !ip.IsPrivate() && !ip.IsLoopback() && !ip.IsLinkLocalUnicast()
+}
+
+// ClockSkew is how far a service host's clock was off at its last answer
+// (negative: behind); ok=false before the first answer with a Date header.
+func ClockSkew(host string) (time.Duration, bool) {
+	return httpclient.ClockSkew(host)
 }

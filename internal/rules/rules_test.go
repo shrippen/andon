@@ -290,3 +290,15 @@ func TestRegisterRejectsDuplicates(t *testing.T) {
 	}()
 	rules.Register("kimai.timer_running_long", "kimai", nil, nil)
 }
+
+// A host whose clock is off by more than a minute breaks TOTP,
+// certificates and backup schedules; a few seconds are normal.
+func TestClockSkew(t *testing.T) {
+	env := rules.Env{Datasets: map[string]any{rules.ClockDataset: []rules.Clock{
+		{Name: "NAS", Host: "nas.lan", Seconds: -300}, {Name: "Kimai", Host: "kimai.lan", Seconds: 3},
+	}}}
+	found := run(t, "system.clock_skew", nil, env)
+	if len(found) != 1 || found[0].Fingerprint != "clock:nas.lan" {
+		t.Fatalf("findings: %+v", found)
+	}
+}

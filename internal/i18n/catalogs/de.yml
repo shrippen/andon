@@ -2094,6 +2094,9 @@ hint:
     backup_failed:
       title: 'Andon-Sicherung fehlerhaft'
       why: 'Die letzte Kopie hat den Wiederherstellungstest nicht bestanden und wurde verworfen.'
+    clock_skew:
+      title: 'Uhr von {name} weicht {seconds} s ab'
+      why: 'Der Host {host} hat eine falsche Uhrzeit. Das bricht Zwei-Faktor-Codes, Zertifikatsprüfungen und Zeitpläne. NTP auf dem Host prüfen.'
   glances:
     disk_full:
       title: '{mount} ist zu {percent} % belegt'
@@ -2472,6 +2475,7 @@ rule_name:
   glances.disk_full: 'Dateisystem fast voll'
   glances.load_high: 'Rechner dauerhaft ausgelastet'
   glances.swap_high: 'Auslagerung hoch'
+  system.clock_skew: 'Uhr eines Dienstes geht falsch'
 param:
   new_watts: 'Neues Gerät (W)'
   new_cost: 'Neues Gerät (€)'
@@ -2523,6 +2527,7 @@ param:
   ignore_names: Ausnehmen (Namensteile)
   per_core: 'Last je Kern'
   percent: 'Prozent'
+  seconds: 'Sekunden'
 settings:
   billing_internal: Interne Kunden
   billing_internal_hint: 'Kimai-Kunden, deren Zeiten nie in Rechnung gehen, durch Komma getrennt. Kunden mit Stundensatz 0 zählen immer als intern.'

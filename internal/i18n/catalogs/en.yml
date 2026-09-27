@@ -2093,6 +2093,9 @@ hint:
     backup_failed:
       title: 'Andon backup failed'
       why: 'The last copy failed its restore test and was discarded.'
+    clock_skew:
+      title: '{name}''s clock is off by {seconds} s'
+      why: 'Host {host} has the wrong time. That breaks two-factor codes, certificate checks and schedules. Check NTP on the host.'
   glances:
     disk_full:
       title: '{mount} is {percent} % full'
@@ -2471,6 +2474,7 @@ rule_name:
   glances.disk_full: 'File system almost full'
   glances.load_high: 'Host constantly busy'
   glances.swap_high: 'Heavy swapping'
+  system.clock_skew: 'Service clock is off'
 param:
   new_watts: 'New device (W)'
   new_cost: 'New device (€)'
@@ -2522,6 +2526,7 @@ param:
   ignore_names: Exclude (name parts)
   per_core: 'Load per core'
   percent: 'Percent'
+  seconds: 'Seconds'
 settings:
   billing_internal: Internal customers
   billing_internal_hint: 'Kimai customers whose time is never invoiced, comma separated. Customers at rate 0 always count as internal.'

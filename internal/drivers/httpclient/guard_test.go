@@ -10,6 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"andon/internal/drivers/httpclient"
 )
@@ -86,4 +87,22 @@ func TestSetGuardWhileRequesting(t *testing.T) {
 		httpclient.SetGuard(nil)
 	}
 	wg.Wait()
+}
+
+// TestClockSkewFromDateHeader: every answer carries the server's time;
+// a clock 5 minutes behind shows as about -5 minutes.
+func TestClockSkewFromDateHeader(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Date", time.Now().Add(-5*time.Minute).UTC().Format(http.TimeFormat))
+		w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	if _, _, err := httpclient.GetJSON(context.Background(), srv.URL, httpclient.Options{}); err != nil {
+		t.Fatal(err)
+	}
+	skew, ok := httpclient.ClockSkew("127.0.0.1")
+	if !ok || skew > -4*time.Minute || skew < -6*time.Minute {
+		t.Fatalf("skew %v ok=%v", skew, ok)
+	}
 }

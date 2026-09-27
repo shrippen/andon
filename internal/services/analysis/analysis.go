@@ -188,8 +188,10 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 			}
 		}
 	}
+	clocks := clocksOf(mine)
 	for _, sc := range scopes {
 		sc.datasets[rules.LinksDataset] = links
+		sc.datasets[rules.ClockDataset] = clocks
 	}
 	if err := addSecrets(d, mine, owners, scopeOf); err != nil {
 		slog.Error("analysis: secrets failed", "space", sp.ID, "err", err)
@@ -219,6 +221,26 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 		fresh += n
 	}
 	return fresh, nil
+}
+
+// clocksOf lists the clock skew of every host the space's connections
+// answered from, one entry per host.
+func clocksOf(conns []*model.Connection) []rules.Clock {
+	seen := map[string]bool{}
+	var out []rules.Clock
+	for _, conn := range conns {
+		host := rules.HostOf(conn.URL)
+		if host == "" || seen[host] {
+			continue
+		}
+		skew, ok := sources.ClockSkew(host)
+		if !ok {
+			continue
+		}
+		seen[host] = true
+		out = append(out, rules.Clock{Name: conn.Name, Host: host, Seconds: skew.Seconds()})
+	}
+	return out
 }
 
 // addSecrets lists each scope's stored secrets for the token rule: the

@@ -16,6 +16,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -198,6 +200,7 @@ func Request(ctx context.Context, method, rawURL string, opts Options) (*http.Re
 		req.Header.Set(k, v)
 	}
 
+	sent := time.Now()
 	resp, err := client.Do(req)
 	var denied EgressDenied
 	if errors.As(err, &denied) {
@@ -206,7 +209,41 @@ func Request(ctx context.Context, method, rawURL string, opts Options) (*http.Re
 	if err != nil {
 		return nil, transportError(err, u.Hostname())
 	}
+	noteClock(u.Hostname(), resp.Header.Get("Date"), sent, time.Now())
 	return resp, nil
+}
+
+// ── Clock skew ──
+//
+// Every HTTP answer carries the server's time (Date header, 1 s steps).
+// Compared with the middle of the request it shows a host whose clock is
+// off, which breaks TOTP, certificates and schedules:
+//
+//	sent 10:00:00.0 · Date 09:55:00 · received 10:00:00.4  →  skew ≈ -5 min
+
+var (
+	clockMu sync.Mutex
+	clocks  = map[string]time.Duration{}
+)
+
+func noteClock(host, date string, sent, received time.Time) {
+	at, err := http.ParseTime(date)
+	if err != nil {
+		return
+	}
+	mid := sent.Add(received.Sub(sent) / 2)
+	clockMu.Lock()
+	clocks[strings.ToLower(host)] = at.Sub(mid).Truncate(time.Second)
+	clockMu.Unlock()
+}
+
+// ClockSkew is how far host's clock was off at the last answer: negative
+// when it runs behind. ok=false if the host never sent a Date header.
+func ClockSkew(host string) (time.Duration, bool) {
+	clockMu.Lock()
+	defer clockMu.Unlock()
+	skew, ok := clocks[strings.ToLower(host)]
+	return skew, ok
 }
 
 // transportError names why a request failed without the raw error, which
