@@ -222,7 +222,7 @@ type Filter struct {
 // Filtered is Active with a rule filter too (topic widgets).
 func Filtered(d *sql.DB, who *access.Principal, f Filter, limit int) ([]View, error) {
 	var views []View
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		found, err := visible(tx, who)
 		if err != nil {
 			return err
@@ -332,7 +332,7 @@ func viewOf(h *model.Hint, who *access.Principal) View {
 func CountFor(d *sql.DB, who *access.Principal, connID int64) (int, enums.Severity, error) {
 	var count int
 	var top enums.Severity
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		found, err := visible(tx, who)
 		if err != nil {
 			return err
@@ -370,7 +370,7 @@ func ForConnection(d *sql.DB, who *access.Principal, connID int64) ([]View, erro
 // Summary counts open hints per severity level.
 func Summary(d *sql.DB, who *access.Principal) (map[enums.Severity]int, error) {
 	counts := map[enums.Severity]int{enums.SeverityInfo: 0, enums.SeverityWarn: 0, enums.SeverityCritical: 0}
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		found, err := visible(tx, who)
 		if err != nil {
 			return err

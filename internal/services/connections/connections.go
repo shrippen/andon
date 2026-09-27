@@ -104,7 +104,7 @@ func Listing(d *sql.DB, who *access.Principal, minimum enums.Right) ([]View, err
 		minimum = enums.RightUse
 	}
 	var out []View
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		spaceIDs := make([]int64, 0, len(who.Spaces))
 		for id := range who.Spaces {
 			spaceIDs = append(spaceIDs, id)
