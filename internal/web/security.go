@@ -10,6 +10,7 @@ import (
 const (
 	embedPrefix = "/embed/"
 	iconPrefix  = "/icons/"
+	tokenParam  = "token"
 )
 
 // hsts keeps browsers on HTTPS for a year once they saw Andon over TLS.
@@ -49,6 +50,12 @@ func (d Deps) Secure(next http.Handler) http.Handler {
 		h.Set("Cross-Origin-Opener-Policy", "same-origin")
 		if d.Settings.SecureCookies() {
 			h.Set("Strict-Transport-Security", hsts)
+		}
+		// A token in the URL (iframes, calendar clients) must not end up in
+		// a cache or another site's referrer.
+		if r.URL.Query().Has(tokenParam) {
+			h.Set("Cache-Control", "no-store")
+			h.Set("Referrer-Policy", "no-referrer")
 		}
 		next.ServeHTTP(w, r)
 	})

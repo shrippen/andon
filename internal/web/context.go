@@ -181,7 +181,7 @@ func (d Deps) Viewer(r *http.Request) (Ctx, error) {
 
 func (d Deps) tokenPrincipal(r *http.Request, scope enums.TokenScope) (*access.Principal, error) {
 	header := r.Header.Get("Authorization")
-	secret := r.URL.Query().Get("token")
+	secret := r.URL.Query().Get(tokenParam)
 	if strings.HasPrefix(header, bearer) {
 		secret = strings.TrimPrefix(header, bearer)
 	}

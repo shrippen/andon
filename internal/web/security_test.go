@@ -45,3 +45,22 @@ func TestSecureHeadersOverHTTPS(t *testing.T) {
 		t.Error("HSTS over plain HTTP")
 	}
 }
+
+// TestTokenURLsAreNotCached: a response to a ?token= URL (iframes and
+// calendar clients cannot send headers) is neither cached nor passed on
+// as referrer.
+func TestTokenURLsAreNotCached(t *testing.T) {
+	crypto.Init("test-master-key")
+	database, err := db.Open(filepath.Join(t.TempDir(), "test.db"), dbtest.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { database.Close() })
+
+	d := Deps{DB: database}
+	rec := httptest.NewRecorder()
+	d.Secure(http.NotFoundHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/embed/hints?token=secret", nil))
+	if rec.Header().Get("Cache-Control") != "no-store" || rec.Header().Get("Referrer-Policy") != "no-referrer" {
+		t.Fatalf("headers: %v", rec.Header())
+	}
+}
