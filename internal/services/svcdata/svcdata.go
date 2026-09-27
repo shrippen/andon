@@ -21,6 +21,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	"andon/internal/crypto"
 	"andon/internal/db"
 	"andon/internal/enums"
@@ -154,6 +156,7 @@ type memEntry struct {
 	result  Result
 	connID  int64 // 0 without a connection
 	expires time.Time
+	used    time.Time // last read or write, for eviction
 }
 
 var (
@@ -163,6 +166,40 @@ var (
 	// reads; a failed fetch keeps the last good data next to its error.
 	latest = map[string]memEntry{}
 )
+
+// maxEntries bounds each in-memory cache; every parameter combination is
+// its own key.
+const maxEntries = 500
+
+// idleFor drops a remembered result nobody read for a day, e.g. the
+// preview of settings that were never saved.
+const idleFor = 24 * time.Hour
+
+// evict keeps m within maxEntries: idle entries go first, then the least
+// recently used. Caller holds memMu.
+func evict(m map[string]memEntry, now time.Time) {
+	for k, e := range m {
+		if now.Sub(e.used) > idleFor {
+			delete(m, k)
+		}
+	}
+	for len(m) > maxEntries {
+		oldest, at := "", now
+		for k, e := range m {
+			if e.used.Before(at) {
+				oldest, at = k, e.used
+			}
+		}
+		delete(m, oldest)
+	}
+}
+
+// entries is the size of the larger cache.
+func entries() int {
+	memMu.Lock()
+	defer memMu.Unlock()
+	return max(len(mem), len(latest))
+}
 
 func remembered(key string, now time.Time) (Result, bool) {
 	memMu.Lock()
@@ -196,13 +233,15 @@ func remember(key string, connID int64, result Result, ttl time.Duration) Result
 	if prev, ok := latest[key]; ok && !result.Ok() && prev.result.Data != nil {
 		kept.Data, kept.OkAt = prev.result.Data, prev.result.OkAt
 	}
-	latest[key] = memEntry{result: kept, connID: connID}
+	latest[key] = memEntry{result: kept, connID: connID, used: now}
 
 	served := result
 	if kept.Data != nil && now.Sub(kept.OkAt) <= staleFor {
 		served = kept
 	}
-	mem[key] = memEntry{result: served, connID: connID, expires: now.Add(ttl)}
+	mem[key] = memEntry{result: served, connID: connID, expires: now.Add(ttl), used: now}
+	evict(mem, now)
+	evict(latest, now)
 	return served
 }
 
@@ -211,6 +250,8 @@ func stored(key string) Result {
 	defer memMu.Unlock()
 
 	if e, ok := latest[key]; ok {
+		e.used = time.Now()
+		latest[key] = e
 		return e.result
 	}
 	return Result{Pending: true}
@@ -290,7 +331,21 @@ func Get(ctx context.Context, d *sql.DB, sourceKey string, params map[string]any
 		}
 		return Result{FetchedAt: time.Now().UTC(), Error: BudgetSpent}, nil
 	}
-	return fetch(ctx, d, key, sourceKey, source, sctx, conn), nil
+	return shared(ctx, d, key, sourceKey, source, sctx, conn), nil
+}
+
+// fetches joins concurrent fetches of one key: the analysis run, a tile
+// and a second viewer asking at once reach the service once.
+var fetches singleflight.Group
+
+func shared(ctx context.Context, d *sql.DB, key, sourceKey string, source sources.Source, sctx sources.Ctx, conn *model.Connection) Result {
+	// Not tied to the first caller: its cancelled request must not fail
+	// the others waiting on the same fetch.
+	ctx = context.WithoutCancel(ctx)
+	out, _, _ := fetches.Do(key, func() (any, error) {
+		return fetch(ctx, d, key, sourceKey, source, sctx, conn), nil
+	})
+	return out.(Result)
 }
 
 // BudgetSpent is the error of a fetch skipped because the connection's
