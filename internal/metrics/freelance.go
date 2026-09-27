@@ -39,7 +39,7 @@ const isoDay = "2006-01-02"
 type MoraleRow struct {
 	ClientID   int64
 	Client     string
-	AvgDays    int // all paid invoices
+	UsualDays  int // all paid invoices (mean or median, see Center)
 	RecentDays int // the last moraleRecent
 	Count      int
 	Worse      bool // recent notably slower than usual
@@ -47,7 +47,7 @@ type MoraleRow struct {
 
 // PaymentMorale pairs each paid invoice with the client's next payment
 // on or after its date (Invoice Ninja lists no per-invoice paid date).
-func PaymentMorale(data *sources.NinjaDataset, slowerBy int) []MoraleRow {
+func PaymentMorale(data *sources.NinjaDataset, slowerBy int, center Center) []MoraleRow {
 	paid := map[int64][]time.Time{}
 	for _, p := range data.Payments {
 		if d, ok := ParseDay(p.Date); ok {
@@ -87,16 +87,16 @@ func PaymentMorale(data *sources.NinjaDataset, slowerBy int) []MoraleRow {
 	var out []MoraleRow
 	for id, list := range gaps {
 		sort.Slice(list, func(a, b int) bool { return list[a].at.Before(list[b].at) })
-		avg := func(part []gap) int {
-			sum := 0
-			for _, g := range part {
-				sum += g.days
+		typical := func(part []gap) int {
+			days := make([]int, len(part))
+			for i, g := range part {
+				days[i] = g.days
 			}
-			return int(round(float64(sum) / float64(len(part))))
+			return center.days(days)
 		}
 		recent := list[max(0, len(list)-moraleRecent):]
-		row := MoraleRow{ClientID: id, Client: names[id], AvgDays: avg(list), RecentDays: avg(recent), Count: len(list)}
-		row.Worse = len(list) > moraleRecent && row.RecentDays-row.AvgDays >= slowerBy
+		row := MoraleRow{ClientID: id, Client: names[id], UsualDays: typical(list), RecentDays: typical(recent), Count: len(list)}
+		row.Worse = len(list) > moraleRecent && row.RecentDays-row.UsualDays >= slowerBy
 		out = append(out, row)
 	}
 	sort.Slice(out, func(a, b int) bool { return out[a].RecentDays > out[b].RecentDays })
@@ -127,6 +127,7 @@ type CashInputs struct {
 	HasTax       bool
 	VATInterval  string
 	VATMethod    string
+	Center       Center // typical payment delay per client
 }
 
 // Cashflow projects the balance for days ahead. Without Sure the start
@@ -163,7 +164,7 @@ func Cashflow(in CashInputs, today time.Time, days int) ([]CashPoint, []CashEven
 	}
 
 	if in.Ninja != nil {
-		delay := NinjaPaymentDays(in.Ninja)
+		delay := NinjaPaymentDays(in.Ninja, in.Center)
 		for _, i := range NinjaOpenInvoices(in.Ninja, today) {
 			issued, ok := ParseDay(i.Date)
 			if !ok {

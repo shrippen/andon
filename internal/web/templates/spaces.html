@@ -45,6 +45,15 @@
         <p class="small muted">{{t "settings.billing_internal_hint"}}</p>
       </div>
 
+      <h2>{{t "settings.stats"}}</h2>
+      <div class="card">
+        <label for="center">{{t "settings.center"}}</label>
+        <select id="center" name="center">
+          {{range .Centers}}<option value="{{.}}"{{if eq . (print $.Center)}} selected{{end}}>{{t (print "settings.center_" .)}}</option>{{end}}
+        </select>
+        <p class="small muted">{{t "settings.center_hint"}}</p>
+      </div>
+
       <h2>{{t "settings.homelab"}}</h2>
       <div class="card">
         <label for="power_entity">{{t "settings.power_entity"}}</label>
@@ -100,7 +109,7 @@
       <div class="table-wrap"><table class="table">
         <tr><th>{{t "settings.rule"}}</th><th>{{t "settings.params"}}</th></tr>
         {{range .Rules}}{{$id := .ID}}
-        <tr>
+        <tr id="rule-{{.ID}}">
           <td><label class="check"><input type="checkbox" name="rule.{{.ID}}.enabled"{{if .Enabled}} checked{{end}}> {{t (print "rule_name." .ID)}}</label><small class="muted"><code>{{.ID}}</code></small></td>
           <td class="rule-params">
             {{range .Params}}

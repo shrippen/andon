@@ -224,9 +224,10 @@ func NinjaShares(data *sources.NinjaDataset, today time.Time) []NinjaClientShare
 	return out
 }
 
-// NinjaPaymentDays is the average days from invoice to the next payment of
-// the same client (approximation), keyed by client id.
-func NinjaPaymentDays(data *sources.NinjaDataset) map[int64]int {
+// NinjaPaymentGaps pairs each paid invoice with the client's next payment
+// on or after its date (approximation) and returns the days between, per
+// client id, in invoice order.
+func NinjaPaymentGaps(data *sources.NinjaDataset) map[int64][]int {
 	byClient := map[int64][]time.Time{}
 	for _, p := range data.Payments {
 		if d, ok := ParseDay(p.Date); ok {
@@ -234,10 +235,9 @@ func NinjaPaymentDays(data *sources.NinjaDataset) map[int64]int {
 		}
 	}
 
-	result := map[int64]int{}
+	result := map[int64][]int{}
 	for clientID, paid := range byClient {
 		sort.Slice(paid, func(a, b int) bool { return paid[a].Before(paid[b]) })
-		var gaps []int
 		for _, i := range NinjaCounted(data) {
 			if i.ClientID != clientID || i.Status != "paid" {
 				continue
@@ -248,21 +248,30 @@ func NinjaPaymentDays(data *sources.NinjaDataset) map[int64]int {
 			}
 			for _, pd := range paid {
 				if !pd.Before(d) {
-					gaps = append(gaps, int(pd.Sub(d).Hours()/24))
+					result[clientID] = append(result[clientID], int(pd.Sub(d).Hours()/24))
 					break
 				}
 			}
 		}
-		if len(gaps) > 0 {
-			sum := 0
-			for _, g := range gaps {
-				sum += g
-			}
-			result[clientID] = int(round(float64(sum) / float64(len(gaps))))
-		}
 	}
 	return result
 }
+
+// NinjaPaymentDays is the typical days (mean or median) from invoice to
+// payment per client id (see NinjaPaymentGaps).
+func NinjaPaymentDays(data *sources.NinjaDataset, center Center) map[int64]int {
+	result := map[int64]int{}
+	for clientID, gaps := range NinjaPaymentGaps(data) {
+		result[clientID] = center.days(gaps)
+	}
+	return result
+}
+
+// NinjaClientName is a client's name, "" when unknown.
+func NinjaClientName(data *sources.NinjaDataset, id int64) string { return ninjaClientNames(data)[id] }
+
+// TypicalDays is Center.days for callers outside the package.
+func (c Center) TypicalDays(values []int) int { return c.days(values) }
 
 // NinjaSummary is the Invoice Ninja dashboard's headline numbers.
 type NinjaSummary struct {

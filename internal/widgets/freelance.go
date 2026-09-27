@@ -84,7 +84,7 @@ func cashflowView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 		return map[string]any{}
 	}
 	in := metrics.CashInputs{Ninja: ninja, FixedMonthly: settingsFloat(settingsMap(ctx.Settings, "costs"), "fixed_monthly", 0),
-		VATInterval: metrics.TaxVATInterval(ctx.Settings), VATMethod: metrics.TaxVATMethod(ctx.Settings)}
+		VATInterval: metrics.TaxVATInterval(ctx.Settings), VATMethod: metrics.TaxVATMethod(ctx.Settings), Center: metrics.CenterOf(ctx.Settings)}
 	in.Tax, in.HasTax = metrics.ParseTaxSettings(ctx.Settings)
 	if sure, ok := results[peerSure].(*sources.SureDataset); ok {
 		in.Sure = sure

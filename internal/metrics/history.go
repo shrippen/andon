@@ -82,19 +82,16 @@ func Trend(points []Point, min int) (slopePerDay, last float64, ok bool) {
 	return (n*sxy - sx*sy) / den, points[len(points)-1].Value, true
 }
 
-// Mean averages the points within [from, to).
-func Mean(points []Point, from, to time.Time) (float64, int) {
-	sum, n := 0.0, 0
+// Typical is the mean or median of the points within [from, to), and
+// how many there were.
+func Typical(points []Point, from, to time.Time, center Center) (float64, int) {
+	var values []float64
 	for _, p := range points {
 		if !p.Day.Before(from) && p.Day.Before(to) {
-			sum += p.Value
-			n++
+			values = append(values, p.Value)
 		}
 	}
-	if n == 0 {
-		return 0, 0
-	}
-	return sum / float64(n), n
+	return center.Of(values), len(values)
 }
 
 // ValueOn returns the newest point on or before day.

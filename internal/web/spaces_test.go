@@ -24,13 +24,14 @@ func TestSpaceSettingsSaveGoalsAndRules(t *testing.T) {
 	resp = postForm(t, client, srv.URL+settingsURL, url.Values{
 		"csrf": {csrf}, "revenue_year": {"90000"}, "hours_per_day": {"7"}, "vat_method": {"soll"},
 		"rule.kimai.timer_running_long.hours": {"6"}, "billing_internal": {"Intern, Verein"},
+		"center": {"median"},
 	})
 	if resp.StatusCode != http.StatusSeeOther {
 		t.Fatalf("save: %d", resp.StatusCode)
 	}
 	page = string(mustGet(t, srv, client, settingsURL))
 	for _, want := range []string{`value="90000"`, `<option value="soll" selected>`, `name="rule.kimai.timer_running_long.hours" value="6"`,
-		`name="billing_internal" value="Intern, Verein"`} {
+		`name="billing_internal" value="Intern, Verein"`, `<option value="median" selected>`} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("expected %q after save:\n%s", want, page)
 		}

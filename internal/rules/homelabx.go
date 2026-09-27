@@ -112,7 +112,7 @@ func init() {
 
 	Register("system.slower_since_update", Cross, map[string]any{"factor": 1.5}, func(_ any, cfg map[string]any, env Env) []Finding {
 		var found []Finding
-		for _, s := range metrics.Slowdowns(historyOf(env), env.Today, cfgFloat(cfg, "factor")) {
+		for _, s := range metrics.Slowdowns(historyOf(env), env.Today, cfgFloat(cfg, "factor"), metrics.CenterOf(env.Settings)) {
 			found = append(found, Finding{Fingerprint: "slower:" + s.Monitor + ":" + s.At.Format(time.DateOnly), Rule: "system.slower_since_update",
 				Severity: enums.SeverityWarn, Message: "system.slower_since_update",
 				Params:  map[string]any{"subject": s.Subject, "monitor": s.Monitor, "before": Num(s.BeforeMS, 0), "now": Num(s.NowMS, 0), "day": Day(s.At)},
@@ -164,7 +164,7 @@ func init() {
 	Register("dns.device_spike", Cross, map[string]any{"factor": 5.0, "min_queries": 1000.0}, func(_ any, cfg map[string]any, env Env) []Finding {
 		var found []Finding
 		for _, dns := range dnsFilters(env) {
-			for _, s := range metrics.DeviceSpikes(dns, historyOf(env), env.Today, cfgFloat(cfg, "factor"), cfgInt(cfg, "min_queries")) {
+			for _, s := range metrics.DeviceSpikes(dns, historyOf(env), env.Today, cfgFloat(cfg, "factor"), cfgInt(cfg, "min_queries"), metrics.CenterOf(env.Settings)) {
 				found = append(found, Finding{Fingerprint: "spike:" + s.IP + ":" + env.Today.Format(time.DateOnly), Rule: "dns.device_spike",
 					Severity: enums.SeverityWarn, Message: "dns.device_spike",
 					Params:    map[string]any{"device": deviceName(s.DNSClient), "queries": s.Queries, "usual": Num(s.Usual, 0), "blocked": s.Blocked},

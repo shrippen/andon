@@ -87,7 +87,7 @@ func init() {
 			data := nData(raw)
 			clients := ninjaClientMap(data)
 			var found []Finding
-			for cid, avg := range metrics.NinjaPaymentDays(data) {
+			for cid, avg := range metrics.NinjaPaymentDays(data, metrics.CenterOf(env.Settings)) {
 				if avg <= cfgInt(cfg, "days") {
 					continue
 				}

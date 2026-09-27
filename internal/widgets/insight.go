@@ -480,8 +480,8 @@ func tableRows(kind TableKind, results map[string]any, ctx ViewCtx) ([]Row, bool
 
 	case kind == TableMorale && service == enums.ServiceInvoiceNinja:
 		var rows []Row
-		for _, m := range metrics.PaymentMorale(data.(*sources.NinjaDataset), moraleSlower) {
-			rows = append(rows, Row{[]any{m.Client, m.AvgDays, m.RecentDays, m.Count}})
+		for _, m := range metrics.PaymentMorale(data.(*sources.NinjaDataset), moraleSlower, metrics.CenterOf(ctx.Settings)) {
+			rows = append(rows, Row{[]any{m.Client, m.UsualDays, m.RecentDays, m.Count}})
 		}
 		return rows, true
 

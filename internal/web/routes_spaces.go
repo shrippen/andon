@@ -2,6 +2,7 @@ package web
 
 import (
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/rules"
 	"net/http"
 	"strconv"
@@ -20,6 +21,7 @@ const (
 var (
 	vatMethods   = []string{"ist", "soll"}
 	vatIntervals = []string{"monthly", "quarterly"}
+	centers      = []string{string(metrics.CenterMean), string(metrics.CenterMedian)}
 )
 
 // RegisterSpaceRoutes wires a space's evaluation settings: goals, tax
@@ -65,6 +67,7 @@ func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request) {
 	_ = d.Page(w, ctx, "space_settings", http.StatusOK, map[string]any{
 		"SpaceID": id, "Goals": goals, "Tax": tax, "VAT": asMap(tax["vat"]), "Prepay": asMap(tax["prepayments"]),
 		"Costs": asMap(settings["costs"]), "Homelab": asMap(settings["homelab"]), "Billing": asMap(settings["billing"]),
+		"Center": metrics.CenterOf(settings), "Centers": centers,
 		"Rules": spaces.RuleViews(settings), "Methods": vatMethods, "Intervals": vatIntervals,
 		"Saved": r.URL.Query().Has("saved"), "Page": spaces.PageOf(settings), "NavText": spaces.NavText(spaces.PageOf(settings)),
 		"Custom": spaces.CustomRows(settings), "Ops": rules.CustomOps, "Services": enums.Services, "Levels": severityLevels,
@@ -132,6 +135,8 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request) {
 		"costs": map[string]any{"fixed_monthly": number(r.FormValue("fixed_monthly"), 0), "hourly_cost": number(r.FormValue("hourly_cost"), 0)},
 		// Customers whose time is never invoiced (own projects, clubs).
 		"billing": map[string]any{"internal": strings.TrimSpace(r.FormValue("billing_internal"))},
+		// Mean or median for typical values (payment days, usual traffic).
+		"stats": map[string]any{"center": oneOf(r.FormValue("center"), centers)},
 		"homelab": map[string]any{
 			"power_entity":   strings.TrimSpace(r.FormValue("power_entity")),
 			"power_price":    number(r.FormValue("power_price"), 0),

@@ -16,8 +16,8 @@ func TestPaymentMoraleRecentSlower(t *testing.T) {
 		data.Invoices = append(data.Invoices, sources.NinjaInvoice{ClientID: 1, Status: "paid", Date: issued.Format("2006-01-02")})
 		data.Payments = append(data.Payments, sources.NinjaPayment{ClientID: 1, Date: issued.AddDate(0, 0, gap).Format("2006-01-02")})
 	}
-	rows := metrics.PaymentMorale(data, 10)
-	if len(rows) != 1 || rows[0].AvgDays != 20 || rows[0].RecentDays != 30 || !rows[0].Worse {
+	rows := metrics.PaymentMorale(data, 10, metrics.CenterMean)
+	if len(rows) != 1 || rows[0].UsualDays != 20 || rows[0].RecentDays != 30 || !rows[0].Worse {
 		t.Fatalf("morale: %+v", rows)
 	}
 }

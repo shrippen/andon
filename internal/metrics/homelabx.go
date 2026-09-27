@@ -160,7 +160,7 @@ type Slowdown struct {
 
 // Slowdowns compares each monitor matching an updated service in the week
 // before the update with the days since.
-func Slowdowns(h *History, now time.Time, factor float64) []Slowdown {
+func Slowdowns(h *History, now time.Time, factor float64, center Center) []Slowdown {
 	var out []Slowdown
 	for _, e := range h.Events {
 		if e.Kind != EventUpdate || now.Sub(e.At).Hours() < regressionAfter*hoursPerDay {
@@ -176,8 +176,8 @@ func Slowdowns(h *History, now time.Time, factor float64) []Slowdown {
 				continue
 			}
 			day := Today(e.At)
-			before, n1 := Mean(h.SeriesOf(k), day.AddDate(0, 0, -regressionDays), day)
-			after, n2 := Mean(h.SeriesOf(k), day.AddDate(0, 0, 1), now.AddDate(0, 0, 1))
+			before, n1 := Typical(h.SeriesOf(k), day.AddDate(0, 0, -regressionDays), day, center)
+			after, n2 := Typical(h.SeriesOf(k), day.AddDate(0, 0, 1), now.AddDate(0, 0, 1), center)
 			if n1 < usualMin || n2 < regressionAfter || after < before*factor || after-before < minSlowdownMS {
 				continue
 			}
@@ -441,11 +441,12 @@ type DeviceSpike struct {
 	Usual float64
 }
 
-// DeviceSpikes compares today's queries with the mean of the two weeks before.
-func DeviceSpikes(dns *sources.DNSFilterDataset, h *History, now time.Time, factor float64, minQueries int) []DeviceSpike {
+// DeviceSpikes compares today's queries with the typical day of the two
+// weeks before.
+func DeviceSpikes(dns *sources.DNSFilterDataset, h *History, now time.Time, factor float64, minQueries int, center Center) []DeviceSpike {
 	var out []DeviceSpike
 	for _, c := range dns.TopClients {
-		usual, n := Mean(h.SeriesOf(key("dns", "q", c.IP)), Today(now).AddDate(0, 0, -usualDays), Today(now))
+		usual, n := Typical(h.SeriesOf(key("dns", "q", c.IP)), Today(now).AddDate(0, 0, -usualDays), Today(now), center)
 		if n < usualMin || c.Queries < minQueries || float64(c.Queries) < usual*factor {
 			continue
 		}
