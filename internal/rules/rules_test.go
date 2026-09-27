@@ -279,3 +279,14 @@ func TestNinjaDunningMinimum(t *testing.T) {
 		t.Fatalf("levels: %+v", levels)
 	}
 }
+
+// TestRegisterRejectsDuplicates: a second rule with the same id must not
+// silently replace the first.
+func TestRegisterRejectsDuplicates(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected panic for a duplicate rule id")
+		}
+	}()
+	rules.Register("kimai.timer_running_long", "kimai", nil, nil)
+}

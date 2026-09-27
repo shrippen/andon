@@ -152,6 +152,9 @@ func LiveData(kind WidgetType, config map[string]any) bool {
 
 // Register adds a widget type to the process-wide registry.
 func Register(kind WidgetType) WidgetType {
+	if _, taken := registry[kind.Key]; taken {
+		panic("widgets: duplicate widget key " + kind.Key)
+	}
 	if kind.Queries == nil {
 		kind.Queries = func(any) []Query { return nil }
 	}

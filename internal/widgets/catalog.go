@@ -1164,10 +1164,13 @@ func vaultwardenView(cfgAny any, results map[string]any, _ ViewCtx) map[string]a
 }
 
 func init() {
-	on := func(key string, service enums.ServiceType, refresh int, decode DecodeFunc, view ViewFunc, extra ...Query) {
-		Register(WidgetType{Key: key, Decode: decode, Template: "widgets/" + key, Category: CategoryInsight,
+	build := func(key string, service enums.ServiceType, refresh int, decode DecodeFunc, view ViewFunc, extra ...Query) WidgetType {
+		return WidgetType{Key: key, Decode: decode, Template: "widgets/" + key, Category: CategoryInsight,
 			Service: service, RefreshS: refresh, View: view,
-			Queries: func(any) []Query { return append(dataQuery(nil), extra...) }})
+			Queries: func(any) []Query { return append(dataQuery(nil), extra...) }}
+	}
+	on := func(key string, service enums.ServiceType, refresh int, decode DecodeFunc, view ViewFunc, extra ...Query) {
+		Register(build(key, service, refresh, decode, view, extra...))
 	}
 	const minute, hour = 60, 3600
 
@@ -1176,7 +1179,9 @@ func init() {
 	on("unbilled_age", enums.ServiceKimai, hour, decodeAging([2]int{30, 60}), unbilledAgeView)
 	on("disks", enums.ServiceScrutiny, hour, decodeDisks, disksView)
 	on("komodo_stacks", enums.ServiceKomodo, 5*minute, decodeKomodo, komodoView)
-	on("truenas_pools", enums.ServiceTrueNAS, 10*minute, decodeTrueNAS, truenasView)
+	nas := build("truenas_pools", enums.ServiceTrueNAS, 10*minute, decodeTrueNAS, truenasView)
+	nas.Extra = ExtraHistory // the pool forecast
+	Register(nas)
 	on("pihole", enums.ServicePihole, 5*minute, decodeDNS, dnsFilterView)
 	on("adguard", enums.ServiceAdGuard, 5*minute, decodeDNS, dnsFilterView)
 	on("vpn", enums.ServiceGluetun, 5*minute, decodeVPN, vpnView)
@@ -1185,13 +1190,9 @@ func init() {
 		Query{Name: peerDomains, Source: "data", Conn: ConnPeer, Service: enums.ServiceDomains})
 	on("sabnzbd", enums.ServiceSabnzbd, 5*minute, decodeSab, sabnzbdView)
 	on("paperless_inbox", enums.ServicePaperless, 30*minute, decodePaperless, paperlessInboxView)
-	on("mail_invoices", enums.ServiceMail, hour, decodeMail, mailInvoicesView)
-	mail, _ := Get("mail_invoices")
+	mail := build("mail_invoices", enums.ServiceMail, hour, decodeMail, mailInvoicesView)
 	mail.Extra = ExtraForwarded
 	Register(mail)
-	nas, _ := Get("truenas_pools")
-	nas.Extra = ExtraHistory // the pool forecast
-	Register(nas)
 	on("freshrss_feeds", enums.ServiceFreshRSS, 30*minute, decodeFreshRSS, freshrssView)
 	on("linkwarden", enums.ServiceLinkwarden, hour, decodeLinkwarden, linkwardenView)
 	on("gitea_reviews", enums.ServiceGitea, 15*minute, decodeListOf("show"), giteaView)

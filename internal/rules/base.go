@@ -62,6 +62,9 @@ var registry = map[string]Spec{}
 // Register adds a rule to the process-wide registry. scope is a
 // ServiceType value, Cross, or Deadlines.
 func Register(id string, scope string, defaults map[string]any, fn RuleFunc) {
+	if _, taken := registry[id]; taken {
+		panic("rules: duplicate rule id " + id)
+	}
 	merged := map[string]any{Enabled: true}
 	for k, v := range defaults {
 		merged[k] = v

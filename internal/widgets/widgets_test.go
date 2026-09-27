@@ -66,3 +66,14 @@ func TestAllTypesSortedByCategoryThenKey(t *testing.T) {
 		}
 	}
 }
+
+// TestRegisterRejectsDuplicates: a second widget type with the same key
+// must not silently replace the first.
+func TestRegisterRejectsDuplicates(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected panic for a duplicate widget key")
+		}
+	}()
+	widgets.Register(widgets.WidgetType{Key: "rss"})
+}
