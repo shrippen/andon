@@ -13,6 +13,9 @@ import (
 	"andon/internal/db"
 	"andon/internal/db/dbtest"
 	"andon/internal/enums"
+	"andon/internal/model"
+	authrepo "andon/internal/repos/auth"
+	"andon/internal/repos/misc"
 	"andon/internal/repos/users"
 	"andon/internal/services/access"
 	"andon/internal/services/accounts"
@@ -253,5 +256,39 @@ func TestResolveReadsWithoutWriteLock(t *testing.T) {
 	}
 	if waited := time.Since(start); waited > time.Second {
 		t.Fatalf("resolve waited %v for the write lock", waited)
+	}
+}
+
+// TestPasskeySatisfiesAdminSecondFactor: with "force a second factor for
+// admins" on, an admin with a passkey is not pushed into TOTP setup.
+func TestPasskeySatisfiesAdminSecondFactor(t *testing.T) {
+	q := openTestDB(t)
+	pw := "correct-password"
+	u, err := accounts.Create(q, "admin@x.de", "Admin", &pw, enums.RoleAdmin, enums.LocaleDE, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := misc.SetSetting(q, "security", map[string]any{"force_admin_totp": true}); err != nil {
+		t.Fatal(err)
+	}
+	who, err := access.Load(q, u.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	required, err := auth.TOTPRequired(q, who, enums.AuthPassword)
+	if err != nil || !required {
+		t.Fatalf("without second factor: required=%v err=%v", required, err)
+	}
+
+	key := &model.Passkey{UserID: u.ID, CredID: "cred", Name: "Laptop", Data: "{}", CreatedAt: time.Now().UTC()}
+	if err := authrepo.AddPasskey(q, key); err != nil {
+		t.Fatal(err)
+	}
+	for _, method := range []enums.AuthMethod{enums.AuthPassword, enums.AuthPasskey} {
+		required, err := auth.TOTPRequired(q, who, method)
+		if err != nil || required {
+			t.Fatalf("%s with passkey: required=%v err=%v", method, required, err)
+		}
 	}
 }

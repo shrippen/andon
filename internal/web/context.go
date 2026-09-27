@@ -41,8 +41,9 @@ var ErrTOTPPending = errors.New("web: totp pending")
 // ErrTOTPSetup means TOTP is forced for admins and this one hasn't set it up.
 var ErrTOTPSetup = errors.New("web: totp setup required")
 
-// totpSetupPaths stay reachable while TOTP setup is required.
-var totpSetupPaths = []string{"/me/security", "/logout"}
+// totpSetupPaths stay reachable while a second factor (TOTP or passkey)
+// must still be set up.
+var totpSetupPaths = []string{"/me/security", "/me/passkeys", "/logout"}
 
 // ErrCSRFFailed means the request's CSRF token was missing or wrong.
 var ErrCSRFFailed = errors.New("web: csrf failed")

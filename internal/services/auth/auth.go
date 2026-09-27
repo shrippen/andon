@@ -672,7 +672,12 @@ func TOTPRequired(q db.Queryer, who *access.Principal, method enums.AuthMethod) 
 	if err != nil || user == nil {
 		return false, err
 	}
-	return !user.TOTPEnabled, nil
+	if user.TOTPEnabled {
+		return false, nil
+	}
+	// A passkey is the stronger second factor and satisfies the rule.
+	keys, err := auth.PasskeysOf(q, who.UserID)
+	return len(keys) == 0, err
 }
 
 // ── API tokens ──
