@@ -129,7 +129,11 @@ func main() {
 	deps.RegisterStartPageRoutes(mux)
 	deps.RegisterHealthRoute(mux)
 
-	server := &http.Server{Addr: ":8080", Handler: deps.Secure(mux)}
+	addr := ":8080"
+	if port := os.Getenv("PORT"); port != "" {
+		addr = ":" + port
+	}
+	server := &http.Server{Addr: addr, Handler: deps.Secure(mux)}
 
 	go func() {
 		slog.Info("listening", "addr", server.Addr)

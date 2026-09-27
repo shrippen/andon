@@ -21,12 +21,13 @@ import (
 	"andon/internal/services/porting"
 )
 
-// Demo accounts (made-up data, connections use demo:// URLs).
+// Demo accounts from the shared shrippen demo world, Studio Weber (made-up
+// data, connections use demo:// URLs, see package sources/demoworld).
 const (
-	DemoAdmin    = "admin@demo.local"
-	DemoUser     = "alex@demo.local"
+	DemoAdmin    = "lena@studio-weber.example.test"
+	DemoUser     = "mara@studio-weber.example.test"
 	DemoPassword = "demo-password-1"
-	demoTeam     = "IT"
+	demoTeam     = "Produktion"
 )
 
 //go:embed demo/instance.yml
@@ -45,7 +46,7 @@ func Demo(ctx context.Context, d *sql.DB) error {
 			return err
 		}
 		password := DemoPassword
-		admin, err := accounts.Create(tx, DemoAdmin, "Admin", &password, enums.RoleAdmin, enums.LocaleDE, "")
+		admin, err := accounts.Create(tx, DemoAdmin, "Lena Kraus", &password, enums.RoleAdmin, enums.LocaleDE, "")
 		if err != nil {
 			return err
 		}
@@ -53,7 +54,7 @@ func Demo(ctx context.Context, d *sql.DB) error {
 		if err := users.Update(tx, admin); err != nil {
 			return err
 		}
-		user, err := accounts.Create(tx, DemoUser, "Alex", &password, enums.RoleUser, enums.LocaleDE, "")
+		user, err := accounts.Create(tx, DemoUser, "Mara Weber", &password, enums.RoleUser, enums.LocaleDE, "")
 		if err != nil {
 			return err
 		}

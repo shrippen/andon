@@ -1,0 +1,78 @@
+{
+  "kind": "web",
+  "start": "DATA_DIR=$(mktemp -d) BASE_URL=http://127.0.0.1:{port} ./start.sh demo",
+  "ready": "http://127.0.0.1:{port}/login",
+  "base": "http://127.0.0.1:{port}",
+  "timeout": 400,
+  "viewport": [
+    1440,
+    960
+  ],
+  "user": "mara@studio-weber.example.test",
+  "setup": [
+    {
+      "goto": "/login"
+    },
+    {
+      "fill": "#email",
+      "value": "{user}"
+    },
+    {
+      "fill": "#password",
+      "value": "{password}"
+    },
+    {
+      "click": "form[action='/login'] button[type=submit]"
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "eval": "fetch('/me/locale', {method: 'POST', body: new URLSearchParams({csrf: document.querySelector('meta[name=csrf]').content, locale: '{lang}'})})"
+    },
+    {
+      "sleep": 500
+    }
+  ],
+  "shots": [
+    {
+      "name": "overview",
+      "url": "/",
+      "actions": [
+        {
+          "eval": "document.querySelectorAll('.intro form button[type=submit]').forEach(b => b.click())"
+        },
+        {
+          "sleep": 800
+        }
+      ],
+      "settle": 2500
+    },
+    {
+      "name": "billing",
+      "url": "/billing",
+      "actions": [
+        {
+          "eval": "document.querySelectorAll('.intro form button[type=submit]').forEach(b => b.click())"
+        },
+        {
+          "sleep": 800
+        }
+      ],
+      "settle": 2000
+    },
+    {
+      "name": "hints",
+      "url": "/hints",
+      "actions": [
+        {
+          "eval": "document.querySelectorAll('.intro form button[type=submit]').forEach(b => b.click())"
+        },
+        {
+          "sleep": 800
+        }
+      ],
+      "settle": 1500
+    }
+  ]
+}

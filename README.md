@@ -52,6 +52,15 @@ make build    # static binary in ./bin/andon
 
 Layers: `web → services → repos | sources | outbound → db | drivers`. See `agent.md`.
 
+### Demo
+
+`./start.sh demo` starts with made-up users, boards and demo:// connections in `./data-demo`.
+Names, places and receipts come from Studio Weber, the demo world shared by all shrippen
+projects (`internal/sources/demoworld/world.json`, copied from `shrippen.github.io/demo`).
+Sign in as `mara@studio-weber.example.test` (own boards) or `lena@studio-weber.example.test`
+(admin), password `demo-password-1`. `demo/shots.json` lists the screenshots that
+`shrippen.github.io/tools/screenshots.py` takes.
+
 ## Operator CLI
 
 Run as the same user (`-u` = your `PUID`), so no files end up owned by root.

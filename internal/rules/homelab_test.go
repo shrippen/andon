@@ -138,7 +138,7 @@ func TestSureRules(t *testing.T) {
 	if got := run(t, "sure.low_balance", data, env); len(got) != 1 || got[0].Params["account"] != "Tagesgeld" {
 		t.Fatalf("low: %+v", got)
 	}
-	if got := run(t, "sure.unusual_expense", data, env); len(got) != 1 || got[0].Params["name"] != "Amazon" {
+	if got := run(t, "sure.unusual_expense", data, env); len(got) != 1 || got[0].Params["name"] != "Kabelwerk Studiobedarf" {
 		t.Fatalf("unusual: %+v", got)
 	}
 }

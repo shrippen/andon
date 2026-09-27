@@ -20,12 +20,12 @@ func TestIncomingInvoicesAgainstNinja(t *testing.T) {
 	docs.Invoices = append(docs.Invoices, sources.PaperlessDoc{ID: 312, Title: "Scan", Correspondent: "Stadtwerke", Created: day(40)})
 	env.Datasets = map[string]any{"mail": mail, "paperless": docs, "invoiceninja": ninja}
 
-	// Hetzner 41.65 matches the expense; JetBrains 289 does not.
+	// Nordhost 41.65 matches the expense; Farbraum Software 289 does not.
 	got := run(t, "mail.invoice_unrecorded", nil, env)
-	if len(got) != 1 || got[0].Params["sender"] != "JetBrains" || got[0].Severity != enums.SeverityInfo {
+	if len(got) != 1 || got[0].Params["sender"] != "Farbraum Software" || got[0].Severity != enums.SeverityInfo {
 		t.Fatalf("mail: %+v", got)
 	}
-	// Telekom 39.95 ≠ 99, but amount known → no vendor fallback; Stadtwerke
+	// Elbnetz 39.95 ≠ 99, but amount known → no vendor fallback; Stadtwerke
 	// without amount and without vendor → unrecorded, 40 days old → warn.
 	got = run(t, "paperless.invoice_unrecorded", nil, env)
 	if len(got) != 2 || got[1].Params["sender"] != "Stadtwerke" || got[1].Severity != enums.SeverityWarn {

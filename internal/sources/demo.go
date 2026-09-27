@@ -1,17 +1,22 @@
 package sources
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
+
+	"andon/internal/sources/demoworld"
 )
 
 // Generated demo datasets for demo:// connections, relative to today and
-// deterministic. They fit together so every rule fires once:
+// deterministic. Names, places and receipts come from Studio Weber, the demo
+// world shared by all shrippen projects (package demoworld). The datasets fit
+// together so every rule fires once:
 //
-//	Muster GmbH   visited on demoSkipDay without a Kimai entry, unbilled hours, overdue invoice
-//	Beispiel AG   budget at 85 %, quote without reaction
-//	Nordlicht     EU client, invoice at 0 % without VAT id
+//	Northlight Pictures  visited on demoSkipDay without a Kimai entry, unbilled hours, overdue invoice
+//	Speiche              budget at 85 %, quote without reaction
+//	Donaulicht Film      EU client (Austria), invoice at 0 % without VAT id
 
 const (
 	demoSeed         = 7
@@ -28,11 +33,37 @@ const (
 )
 
 var (
+	demoWorld      = demoworld.Get()
 	demoClientDays = []int{1, 3, 8, 10, 15}
-	demoHome       = [2]float64{52.5200, 13.4050}
-	demoSite       = [2]float64{52.3906, 13.0645}
-	demoCustomers  = []KimaiCustomer{{1, "Muster GmbH"}, {2, "Beispiel AG"}, {3, "Nordlicht e.V."}}
+	// Customer ids 1-3 in every demo dataset: on-site client, budget client, EU client.
+	demoCustomerIDs = []string{"northlight", "speiche", "donaulicht"}
+	demoProjectIDs  = []string{"harbour", "spring", "trailer"}
+	demoHome        = demoWorld.Place("home-mara")
+	demoSite        = demoWorld.Place("northlight-office")
+	demoCustomers   = demoKimaiCustomers()
+	demoEdit        = demoWorld.Activity("edit").Name.DE()
+	demoOnSite      = demoWorld.Activity("shoot").Name.DE() + " vor Ort"
 )
+
+func demoKimaiCustomers() []KimaiCustomer {
+	out := make([]KimaiCustomer, len(demoCustomerIDs))
+	for i, id := range demoCustomerIDs {
+		out[i] = KimaiCustomer{int64(i + 1), demoWorld.Customer(id).Name}
+	}
+	return out
+}
+
+func demoProjectName(i int) string { return demoWorld.Project(demoProjectIDs[i]).Name.DE() }
+
+// demoSiteName is the Dawarich area of the on-site client.
+func demoSiteName() string { return demoSite.Name.DE() }
+
+func demoCountry(code string) string {
+	if code == "AT" {
+		return demoEUCountry
+	}
+	return demoHomeCountry
+}
 
 func demoDay(t time.Time) time.Time {
 	t = t.UTC()
@@ -92,9 +123,9 @@ func DemoKimai(now time.Time) *KimaiDataset {
 		}
 		hours := 5 + rnd.Intn(4)
 		age := int(today.Sub(d).Hours() / 24)
-		activity := "Entwicklung"
+		activity := demoEdit
 		if visits[d] {
-			activity = "vor Ort"
+			activity = demoOnSite
 		}
 		sheets = append(sheets, KimaiSheet{
 			ID: int64(len(sheets) + 1), Begin: stamp(d, 9, 0), End: stamp(d, 9+hours, 0),
@@ -109,11 +140,11 @@ func DemoKimai(now time.Time) *KimaiDataset {
 		URL:        "https://kimai.demo",
 		Timesheets: sheets,
 		Active: []KimaiSheet{{ID: 9999, Begin: running.Format(time.RFC3339), Billable: true,
-			ProjectID: 2, CustomerID: 2, Activity: "Entwicklung", UserID: 1}},
+			ProjectID: 2, CustomerID: 2, Activity: demoEdit, UserID: 1}},
 		Projects: []KimaiProject{
-			{ID: 1, Name: "Wartung", CustomerID: 1},
-			{ID: 2, Name: "Relaunch", CustomerID: 2, Budget: 40000, End: iso(today.AddDate(0, 0, 60)), UsedMoney: 34000},
-			{ID: 3, Name: "Mitgliederportal", CustomerID: 3, TimeBudgetMin: 40 * 60, BudgetType: "month"},
+			{ID: 1, Name: demoProjectName(0), CustomerID: 1},
+			{ID: 2, Name: demoProjectName(1), CustomerID: 2, Budget: 40000, End: iso(today.AddDate(0, 0, 60)), UsedMoney: 34000},
+			{ID: 3, Name: demoProjectName(2), CustomerID: 3, TimeBudgetMin: 40 * 60, BudgetType: "month"},
 		},
 		Customers: demoCustomers,
 		Absences: []KimaiAbsence{{Start: iso(today.AddDate(0, 0, 20)), End: iso(today.AddDate(0, 0, 24)),
@@ -162,22 +193,35 @@ func DemoNinja(now time.Time) *NinjaDataset {
 
 	return &NinjaDataset{
 		URL: "https://invoice.demo", Currency: "EUR", Invoices: invoices, Payments: kept,
-		Clients: []NinjaClient{
-			{ID: 1, Name: "Muster GmbH", VATNumber: "DE123456789", CountryID: demoHomeCountry},
-			{ID: 2, Name: "Beispiel AG", VATNumber: "DE987654321", CountryID: demoHomeCountry},
-			{ID: 3, Name: "Nordlicht e.V.", CountryID: demoEUCountry},
-		},
-		Expenses: []NinjaExpense{
-			{ID: 1, Date: iso(today.AddDate(0, 0, -30)), Amount: 1428, Tax: 228, Notes: "Notebook ThinkPad", VendorID: 1},
-			{ID: 2, Date: iso(today.AddDate(0, 0, -12)), Amount: 59.5, Notes: "Hosting", VendorID: 2},
-			{ID: 3, Date: iso(today.AddDate(0, 0, -5)), Amount: 238, Tax: 38, Notes: "Software", VendorID: 3},
-		},
+		Clients:  demoNinjaClients(),
+		Expenses: demoNinjaExpenses(today),
 		Quotes: []NinjaQuote{{ID: 1, Number: "A-" + today.Format("2006") + "-004", ClientID: 2, Status: "sent",
 			Date: iso(today.AddDate(0, 0, -20)), Amount: 8330}},
 		Recurring: []NinjaRecurring{{ID: 1, Number: "W-01", ClientID: 1, Active: true,
 			NextSendDate: iso(today.AddDate(0, 0, 12)), RemainingCycles: 1, Amount: 595}},
 		HomeCountryID: demoHomeCountry,
 	}
+}
+
+func demoNinjaClients() []NinjaClient {
+	out := make([]NinjaClient, len(demoCustomerIDs))
+	for i, id := range demoCustomerIDs {
+		c := demoWorld.Customer(id)
+		out[i] = NinjaClient{ID: int64(i + 1), Name: c.Name, VATNumber: c.VATID, CountryID: demoCountry(c.Country)}
+	}
+	return out
+}
+
+// demoNinjaExpenses are the receipts of the demo world. Their days are
+// offsets from Monday of the current week.
+func demoNinjaExpenses(today time.Time) []NinjaExpense {
+	monday := today.AddDate(0, 0, -((int(today.Weekday()) + 6) % 7))
+	out := make([]NinjaExpense, 0, len(demoWorld.Receipts))
+	for _, r := range demoWorld.Receipts {
+		out = append(out, NinjaExpense{ID: int64(r.ID), Date: iso(monday.AddDate(0, 0, r.Day)), Amount: r.Amount,
+			Tax: round2(r.Amount * demoVAT / (1 + demoVAT)), Notes: r.Vendor + " · " + r.Note.DE(), VendorID: int64(r.ID)})
+	}
+	return out
 }
 
 func pad3(n int64) string {
@@ -223,20 +267,20 @@ func DemoSnipe(now time.Time) *SnipeDataset {
 func DemoDawarich(now time.Time) *DawarichDataset {
 	today := demoDay(now)
 	days := clientDays(today)
-	lat, lon := demoSite[0], demoSite[1]
+	lat, lon := demoSite.Lat, demoSite.Lon
 	var visits []DawarichVisit
 	for _, i := range demoClientDays {
 		if i >= len(days) {
 			continue
 		}
 		visits = append(visits, DawarichVisit{ID: int64(i), Start: stamp(days[i], 8, 30), End: stamp(days[i], 17, 45),
-			Minutes: 555, AreaID: 2, Name: "Muster GmbH Büro", Lat: &lat, Lon: &lon})
+			Minutes: 555, AreaID: 2, Name: demoSiteName(), Lat: &lat, Lon: &lon})
 	}
 	return &DawarichDataset{
 		URL: "https://dawarich.demo",
 		Areas: []DawarichArea{
-			{ID: 1, Name: "Home", Lat: demoHome[0], Lon: demoHome[1], Radius: 100},
-			{ID: 2, Name: "Muster GmbH Büro", Lat: lat, Lon: lon, Radius: 150},
+			{ID: 1, Name: demoHome.Name.DE(), Lat: demoHome.Lat, Lon: demoHome.Lon, Radius: 100},
+			{ID: 2, Name: demoSiteName(), Lat: lat, Lon: lon, Radius: 150},
 		},
 		Visits: visits,
 		Stats: map[string]any{"totalDistanceKm": 18450.0, "yearlyStats": []any{map[string]any{
@@ -296,11 +340,11 @@ func DemoProxmox(now time.Time) *ProxmoxDataset {
 // DemoPaperless is the demo Paperless-ngx dataset.
 func DemoPaperless(now time.Time) *PaperlessDataset {
 	today := demoDay(now)
-	return &PaperlessDataset{URL: "https://docs.demo", Total: 1843, Inbox: 7, OldestTitle: "Rechnung Telekom",
+	return &PaperlessDataset{URL: "https://docs.demo", Total: 1843, Inbox: 7, OldestTitle: "Rechnung Elbnetz Mobilfunk",
 		OldestAdded: iso(today.AddDate(0, 0, -23)),
-		Invoices: []PaperlessDoc{{ID: 311, Title: "Rechnung 09/2026", Correspondent: "Telekom Deutschland GmbH",
+		Invoices: []PaperlessDoc{{ID: 311, Title: "Rechnung 09/2026", Correspondent: "Elbnetz Mobilfunk",
 			Created: iso(today.AddDate(0, 0, -23)), Amount: 39.95}},
-		Contracts: []PaperlessContract{{ID: 88, Title: "Mobilfunkvertrag", Correspondent: "Telekom Deutschland GmbH",
+		Contracts: []PaperlessContract{{ID: 88, Title: "Mobilfunkvertrag", Correspondent: "Elbnetz Mobilfunk",
 			End: today.AddDate(0, 3, 20), NoticeMonths: 3, Deadline: today.AddDate(0, 0, 20), RenewsAutomatic: true}},
 		Newest: []PaperlessNew{{ID: 1843, Title: "Kontoauszug 09/2026", Added: iso(today)}, {ID: 1842, Title: "Rechnung Hetzner", Added: iso(today.AddDate(0, 0, -1))},
 			{ID: 1841, Title: "Versicherungsschein", Added: iso(today.AddDate(0, 0, -2))}},
@@ -354,14 +398,14 @@ func DemoFreshRSS(now time.Time) *FreshRSSDataset {
 // DemoGitea is the demo Gitea dataset.
 func DemoGitea(now time.Time) *GiteaDataset {
 	day := func(n int) time.Time { return now.UTC().AddDate(0, 0, n) }
-	return &GiteaDataset{URL: "https://git.demo", User: "alex", Notifications: 4,
+	return &GiteaDataset{URL: "https://git.demo", User: "mara", Notifications: 4,
 		Assigned: []Issue{
-			{Repo: "alex/dashboard", Title: "Export als PDF", URL: "https://git.demo/alex/dashboard/issues/12", Number: 12, Due: day(-2), Updated: day(-10)},
-			{Repo: "alex/website", Title: "Neues Theme", URL: "https://git.demo/alex/website/pulls/4", Number: 4, Pull: true, Updated: day(-21)},
+			{Repo: "studio/showreel", Title: "Neue Harbour-Lights-Szenen", URL: "https://git.demo/studio/showreel/issues/12", Number: 12, Due: day(-2), Updated: day(-10)},
+			{Repo: "studio/website", Title: "Neues Theme", URL: "https://git.demo/studio/website/pulls/4", Number: 4, Pull: true, Updated: day(-21)},
 		},
 		Reviews: []Issue{{Repo: "team/infra", Title: "Traefik 3 Migration", URL: "https://git.demo/team/infra/pulls/7", Number: 7, Pull: true, Updated: day(-4)}},
 		Repos: []Repo{
-			{Name: "alex/dashboard", URL: "https://git.demo/alex/dashboard", Updated: day(0), FailedWorkflow: "test"},
+			{Name: "studio/showreel", URL: "https://git.demo/studio/showreel", Updated: day(0), FailedWorkflow: "test"},
 			{Name: "mirror/linux", URL: "https://git.demo/mirror/linux", Mirror: true, MirrorUpdated: day(-12), Updated: day(-12)},
 		},
 	}
@@ -402,17 +446,17 @@ func DemoSure(now time.Time) *SureDataset {
 			{ID: "a2", Name: "Tagesgeld", Type: "depository", Classification: "asset", Balance: 150, Currency: "EUR"},
 		},
 		Transactions: []SureTxn{
-			{ID: "t1", Date: day(-3), Name: "Muster GmbH RE-2026-017", Amount: 2380, Category: "Einnahmen", Account: "Geschäftskonto"},
-			{ID: "t2", Date: day(-5), Name: "Hetzner Online", Amount: -41.65, Category: "Hosting", Merchant: "Hetzner", Account: "Geschäftskonto"},
-			{ID: "t3", Date: day(-8), Name: "Amazon", Amount: -899, Account: "Geschäftskonto"},
+			{ID: "t1", Date: day(-3), Name: fmt.Sprintf("%s RE-2026-017", demoCustomers[0].Name), Amount: 2380, Category: "Einnahmen", Account: "Geschäftskonto"},
+			{ID: "t2", Date: day(-5), Name: "Nordhost Server", Amount: -41.65, Category: "Hosting", Merchant: "Nordhost", Account: "Geschäftskonto"},
+			{ID: "t3", Date: day(-8), Name: "Kabelwerk Studiobedarf", Amount: -899, Account: "Geschäftskonto"},
 			{ID: "t4", Date: day(-12), Name: "Bäckerei", Amount: -6.4, Account: "Tagesgeld"},
-			{ID: "t5", Date: day(-40), Name: "Hetzner Online", Amount: -41.65, Category: "Hosting", Merchant: "Hetzner", Account: "Geschäftskonto"},
+			{ID: "t5", Date: day(-40), Name: "Nordhost Server", Amount: -41.65, Category: "Hosting", Merchant: "Nordhost", Account: "Geschäftskonto"},
 		},
 		Recurring: []SureRecurring{
-			{Name: "Hetzner Online", Status: "active", Amount: 41.65, Expense: true, Next: day(25), Last: day(-5)},
+			{Name: "Nordhost Server", Status: "active", Amount: 41.65, Expense: true, Next: day(25), Last: day(-5)},
 			{Name: "Krankenversicherung", Status: "active", Amount: 612, Expense: true, Next: day(-9), Last: day(-39)},
-			{Name: "Miete Büro", Status: "active", Amount: 450, Expense: true, Next: day(6), Last: day(-24)},
-			{Name: "Adobe Creative Cloud", Status: "active", Amount: 66.45, Expense: true, Next: day(11), Last: day(-19)},
+			{Name: "Miete Studio", Status: "active", Amount: 450, Expense: true, Next: day(6), Last: day(-24)},
+			{Name: "Schnittsoftware-Abo", Status: "active", Amount: 66.45, Expense: true, Next: day(11), Last: day(-19)},
 		},
 	}
 }
@@ -459,9 +503,9 @@ func DemoPGBack(now time.Time) *PGBackDataset {
 func DemoMail(now time.Time) *MailDataset {
 	day := func(n int) time.Time { return now.UTC().AddDate(0, 0, -n) }
 	return &MailDataset{Mailbox: "INBOX", Scanned: 214, Invoices: []MailInvoice{
-		{UID: 1, Date: day(4), Sender: "Hetzner Online GmbH", Addr: "billing@hetzner.com", Domain: "hetzner.com",
-			Subject: "Ihre Rechnung R0012345", Amount: 41.65, Attachments: []string{"Hetzner_2026-09.pdf"}},
-		{UID: 2, Date: day(9), Sender: "JetBrains", Addr: "sales@jetbrains.com", Domain: "jetbrains.com",
+		{UID: 1, Date: day(4), Sender: "Nordhost Server", Addr: "billing@nordhost.example.test", Domain: "nordhost.example.test",
+			Subject: "Ihre Rechnung R0012345", Amount: 41.65, Attachments: []string{"Nordhost_2026-09.pdf"}},
+		{UID: 2, Date: day(9), Sender: "Farbraum Software", Addr: "sales@farbraum.example.test", Domain: "farbraum.example.test",
 			Subject: "Invoice for your order", Amount: 289, Attachments: []string{"invoice.pdf"}},
 	}}
 }

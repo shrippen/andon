@@ -44,7 +44,7 @@ func (CalendarData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 // a private one in three days.
 func DemoCalendar(now time.Time) *CalendarResult {
 	day := time.Date(now.Year(), now.Month(), now.Day(), 14, 0, 0, 0, time.UTC).AddDate(0, 0, -2)
-	return &CalendarResult{Events: []Event{{Start: day, Title: "Workshop Acme GmbH"}, {Start: day.AddDate(0, 0, 2).Add(2 * time.Hour), Title: "Call Beispiel AG"},
+	return &CalendarResult{Events: []Event{{Start: day, Title: "Drehplan " + demoCustomers[0].Name}, {Start: day.AddDate(0, 0, 2).Add(2 * time.Hour), Title: "Call " + demoCustomers[1].Name},
 		{Start: day.AddDate(0, 0, 5), Title: "Zahnarzt"}}}
 }
 
