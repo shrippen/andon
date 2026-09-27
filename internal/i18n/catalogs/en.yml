@@ -1576,6 +1576,12 @@ hint:
     ci_failed:
       title: '{repo}: CI failed'
       why: 'Latest run on the default branch.'
+    review_waiting:
+      title: 'Review waiting: {repo}#{number}'
+      why: '“{title}” has waited {days} days for you.'
+    stale_pr:
+      title: 'PR {repo}#{number} idle for {days} days'
+      why: '“{title}”: finish or close it.'
   energy:
     shift_jobs:
       title: '{job} runs at {hour}:00 when power is expensive'
@@ -2480,6 +2486,8 @@ rule_name:
   glances.swap_high: 'Heavy swapping'
   system.clock_skew: 'Service clock is off'
   wallos.renewal_soon: 'Subscription renews soon'
+  github.review_waiting: 'Review waiting (GitHub)'
+  github.stale_pr: 'Own PR idle (GitHub)'
 param:
   new_watts: 'New device (W)'
   new_cost: 'New device (€)'

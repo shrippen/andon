@@ -1,8 +1,10 @@
 package sources_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -178,5 +180,33 @@ func TestGrocyAndTibber(t *testing.T) {
 	e := out.(*sources.TibberDataset)
 	if e.Current != 0.31 || e.CurrentEnergy != 0.12 || len(e.Prices) != 1 || e.Prices[0].Energy != 0.11 || e.Days[0].KWh != 7.5 || e.Days[0].Day != "2026-09-24" {
 		t.Fatalf("tibber: %+v", e)
+	}
+}
+
+// TestGitHubReviewsAndOwnPRs: with a token the dataset lists PRs waiting
+// for my review and my own open PRs, from the search API.
+func TestGitHubReviewsAndOwnPRs(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/search/issues" {
+			w.Write([]byte(`[]`))
+			return
+		}
+		item := `{"title":"Fix login","number":7,"html_url":"https://github.com/a/b/pull/7","pull_request":{},
+			"updated_at":"2026-09-01T10:00:00Z","repository_url":"https://api.github.com/repos/a/b"}`
+		if strings.Contains(r.URL.Query().Get("q"), "review-requested:@me") {
+			w.Write([]byte(`{"items":[` + item + `]}`))
+			return
+		}
+		w.Write([]byte(`{"items":[` + item + `,` + item + `]}`))
+	}))
+	defer srv.Close()
+
+	raw, err := sources.GitHubData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "t"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := raw.(*sources.GitHubDataset)
+	if len(data.Reviews) != 1 || data.Reviews[0].Repo != "a/b" || data.Reviews[0].Number != 7 || len(data.MyPRs) != 2 {
+		t.Fatalf("dataset: %+v", data)
 	}
 }

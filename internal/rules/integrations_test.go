@@ -35,6 +35,8 @@ func TestIntegrationRules(t *testing.T) {
 		{"grocy.chores_overdue", sources.DemoGrocy(now), 1, enums.SeverityInfo},
 		{"dwd.warning", sources.DemoDWD(now), 1, enums.SeverityInfo},
 		{"github.ci_failed", sources.DemoGitHub(now), 1, enums.SeverityWarn},
+		{"github.review_waiting", sources.DemoGitHub(now), 1, enums.SeverityWarn},
+		{"github.stale_pr", sources.DemoGitHub(now), 1, enums.SeverityInfo},
 		{"energy.cost_rising", sources.DemoTibber(now), 0, 0},
 	}
 	for _, c := range cases {

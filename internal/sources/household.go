@@ -345,6 +345,8 @@ type GitHubDataset struct {
 	URL           string
 	Repos         []GitRepo
 	Notifications int
+	Reviews       []Issue // open PRs waiting for my review (token only)
+	MyPRs         []Issue // my own open PRs (token only)
 }
 
 type GitHubData struct{}
@@ -370,9 +372,33 @@ func (GitHubData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		if list, err := api.Get(ctx, "notifications", url.Values{"per_page": {githubPerPage}}); err == nil {
 			data.Notifications = len(asList(list))
 		}
+		data.Reviews = githubSearch(ctx, api, "is:open is:pr review-requested:@me")
+		data.MyPRs = githubSearch(ctx, api, "is:open is:pr author:@me")
 	}
 	return data, nil
 }
+
+// githubSearch lists open issues or PRs for a search query; best effort,
+// a failed search leaves the list empty.
+func githubSearch(ctx context.Context, api services.KeyedApi, query string) []Issue {
+	raw, err := api.Get(ctx, "search/issues", url.Values{"q": {query}, "per_page": {githubPerPage}})
+	if err != nil {
+		return nil
+	}
+	var out []Issue
+	for _, item := range asList(asMap(raw)["items"]) {
+		m := asMap(item)
+		out = append(out, Issue{
+			Repo:  strings.TrimPrefix(asStr(m["repository_url"]), githubRepoPrefix),
+			Title: asStr(m["title"]), URL: asStr(m["html_url"]), Number: asInt64(m["number"]),
+			Pull: m["pull_request"] != nil, Updated: parseTime(m["updated_at"]),
+		})
+	}
+	return out
+}
+
+// githubRepoPrefix precedes "owner/name" in a search item's repository_url.
+const githubRepoPrefix = "https://api.github.com/repos/"
 
 func loadRepo(ctx context.Context, api services.KeyedApi, name string) (GitRepo, error) {
 	path := "repos/" + name
@@ -538,7 +564,12 @@ func DemoGitHub(now time.Time) *GitHubDataset {
 	return &GitHubDataset{URL: "https://api.github.com", Notifications: 4, Repos: []GitRepo{
 		{Name: "studio/website", Issues: 3, PRs: 1, CI: "success", Release: "v0.12.0", ReleasedAt: now.AddDate(0, 0, -6)},
 		{Name: "studio/showreel", Issues: 0, PRs: 0, CI: "failure"},
-	}}
+	},
+		Reviews: []Issue{{Repo: "studio/website", Title: "Kontaktformular prüfen", URL: "https://github.com/studio/website/pull/42",
+			Number: 42, Pull: true, Updated: now.AddDate(0, 0, -3)}},
+		MyPRs: []Issue{{Repo: "studio/website", Title: "Bilder verkleinern", URL: "https://github.com/studio/website/pull/38",
+			Number: 38, Pull: true, Updated: now.AddDate(0, 0, -20)}},
+	}
 }
 
 // demoGridAndTax is the demo's grid fees and taxes per kWh.

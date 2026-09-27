@@ -1576,6 +1576,12 @@ hint:
     ci_failed:
       title: '{repo}: CI fehlgeschlagen'
       why: 'Letzter Lauf auf dem Hauptzweig.'
+    review_waiting:
+      title: 'Review wartet: {repo}#{number}'
+      why: '„{title}“ wartet seit {days} Tagen auf dich.'
+    stale_pr:
+      title: 'PR {repo}#{number} ruht seit {days} Tagen'
+      why: '„{title}“: abschließen oder schließen.'
   energy:
     shift_jobs:
       title: '{job} läuft um {hour} Uhr teuer'
@@ -2481,6 +2487,8 @@ rule_name:
   glances.swap_high: 'Auslagerung hoch'
   system.clock_skew: 'Uhr eines Dienstes geht falsch'
   wallos.renewal_soon: 'Abo verlängert sich bald'
+  github.review_waiting: 'Review wartet (GitHub)'
+  github.stale_pr: 'Eigener PR ruht (GitHub)'
 param:
   new_watts: 'Neues Gerät (W)'
   new_cost: 'Neues Gerät (€)'

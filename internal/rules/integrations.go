@@ -17,9 +17,12 @@ package rules
 //	grocy.chores_overdue    chores past due
 //	dwd.warning             weather warning (moderate: info … extreme: critical)
 //	github.ci_failed        latest CI run on the default branch failed
+//	github.review_waiting   a PR has waited N days for my review
+//	github.stale_pr         my own PR has not moved for N days
 //	energy.cost_rising      last 7 days cost more than factor × the 7 before
 
 import (
+	"fmt"
 	"strings"
 
 	"andon/internal/enums"
@@ -241,6 +244,30 @@ func registerEverydayRules() {
 	})
 
 	gh := string(enums.ServiceGitHub)
+	prFinding := func(rule string, level enums.Severity, i sources.Issue, days int) Finding {
+		return svcFinding(gh, rule, fmt.Sprintf("%s#%d", i.Repo, i.Number), rule, level, i.URL,
+			map[string]any{"repo": i.Repo, "number": i.Number, "title": i.Title, "days": days})
+	}
+	Register("github.review_waiting", gh, map[string]any{"days": 2.0}, func(raw any, cfg map[string]any, env Env) []Finding {
+		data, _ := raw.(*sources.GitHubDataset)
+		var found []Finding
+		for _, pr := range data.Reviews {
+			if days := int(env.Today.Sub(pr.Updated).Hours() / hoursPerDay); days >= cfgInt(cfg, "days") {
+				found = append(found, prFinding("github.review_waiting", enums.SeverityWarn, pr, days))
+			}
+		}
+		return found
+	})
+	Register("github.stale_pr", gh, map[string]any{"days": 14.0}, func(raw any, cfg map[string]any, env Env) []Finding {
+		data, _ := raw.(*sources.GitHubDataset)
+		var found []Finding
+		for _, pr := range data.MyPRs {
+			if days := int(env.Today.Sub(pr.Updated).Hours() / hoursPerDay); days >= cfgInt(cfg, "days") {
+				found = append(found, prFinding("github.stale_pr", enums.SeverityInfo, pr, days))
+			}
+		}
+		return found
+	})
 	Register("github.ci_failed", gh, nil, func(raw any, _ map[string]any, _ Env) []Finding {
 		data, _ := raw.(*sources.GitHubDataset)
 		var found []Finding
