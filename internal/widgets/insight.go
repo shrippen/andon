@@ -227,6 +227,48 @@ type KpiResult struct {
 	SubEnd   string
 	SubGoal  float64
 	SubRate  int
+	Spark    *Spark // last 12 months, where the metric has a history
+}
+
+// sparkMonths is how far back a KPI's line reaches.
+const sparkMonths = 12
+
+// kimaiMonthHours is the tracked hours of each of the last n months,
+// oldest first; prev is the same month a year before.
+func kimaiMonthHours(data *sources.KimaiDataset, today time.Time, n int) (cur, prev []float64) {
+	for back := n - 1; back >= 0; back-- {
+		start := metrics.AddMonths(today, -back)
+		end := metrics.AddMonths(start, 1).AddDate(0, 0, -1)
+		prevStart := time.Date(start.Year()-1, start.Month(), 1, 0, 0, 0, 0, time.UTC)
+		prevEnd := metrics.AddMonths(prevStart, 1).AddDate(0, 0, -1)
+		cur = append(cur, float64(metrics.KimaiMinutesBetween(data, start, end, metrics.HoursAll))/minutesPerHourInsight)
+		prev = append(prev, float64(metrics.KimaiMinutesBetween(data, prevStart, prevEnd, metrics.HoursAll))/minutesPerHourInsight)
+	}
+	return cur, prev
+}
+
+// kpiSpark is the monthly line behind a metric, nil when it has none. It
+// ends with last month: the running month would always dip.
+func kpiSpark(metric Metric, data any, today time.Time) *Spark {
+	lastMonth := metrics.AddMonths(today, -1)
+	switch d := data.(type) {
+	case *sources.NinjaDataset:
+		if metric != MetricRevenueYTD && metric != MetricRevenueMonth {
+			return nil
+		}
+		var values []float64
+		for _, m := range metrics.NinjaByMonth(d, lastMonth, sparkMonths) {
+			values = append(values, m.Net)
+		}
+		return SparkOf(values)
+	case *sources.KimaiDataset:
+		if metric != MetricHoursMonth && metric != MetricHoursWeek && metric != MetricUtilization {
+			return nil
+		}
+		cur, _ := kimaiMonthHours(d, lastMonth, sparkMonths)
+		return SparkOf(cur)
+	}
+	return nil
 }
 
 func kpiKimai(metric Metric, data *sources.KimaiDataset, ctx ViewCtx) *KpiResult {
@@ -377,6 +419,9 @@ func kpiView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	case enums.ServiceSnipeIT:
 		kpi = kpiSnipe(cfg.Metric, data.(*sources.SnipeDataset), ctx)
 	}
+	if kpi != nil {
+		kpi.Spark = kpiSpark(cfg.Metric, data, parseToday(ctx.Today))
+	}
 	return map[string]any{"KPI": kpi, "Unsupported": kpi == nil}
 }
 
@@ -385,6 +430,12 @@ func kpiView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 // Col is one table column: its header key and how to format each row's
 // value at the same index.
 type Col struct{ Label, Format string }
+
+// numericFormats are the column formats set right-aligned.
+var numericFormats = map[string]bool{"money": true, "hours": true, "km": true, "daycount": true, "late": true}
+
+// Numeric tells whether the column holds numbers (right-aligned).
+func (c Col) Numeric() bool { return numericFormats[c.Format] }
 
 // Row is one table row; Values line up with the widget's Cols.
 type Row struct{ Values []any }
@@ -506,8 +557,9 @@ func tableRows(kind TableKind, results map[string]any, ctx ViewCtx) ([]Row, bool
 
 // budgetRow is one Kimai project's budget usage.
 type budgetRow struct {
-	Name string
-	Pct  float64
+	Name    string
+	Pct     float64
+	Monthly bool // a monthly time budget: the month is its period
 }
 
 // kimaiBudgets: money budgets use their running total, monthly time
@@ -532,7 +584,7 @@ func kimaiBudgets(data *sources.KimaiDataset, today time.Time) []budgetRow {
 					}
 				}
 			}
-			rows = append(rows, budgetRow{Name: p.Name, Pct: float64(used) / float64(p.TimeBudgetMin)})
+			rows = append(rows, budgetRow{Name: p.Name, Pct: float64(used) / float64(p.TimeBudgetMin), Monthly: p.BudgetType == "month"})
 		}
 	}
 	sort.Slice(rows, func(i, j int) bool { return rows[i].Pct > rows[j].Pct })
@@ -640,18 +692,11 @@ func chartView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 		return map[string]any{"Bars": barsFrom(raw), "Unit": "money", "PrevKey": "chart.season_avg"}
 
 	case cfg.Chart == ChartHours && service == enums.ServiceKimai:
-		kdata := data.(*sources.KimaiDataset)
+		cur, prev := kimaiMonthHours(data.(*sources.KimaiDataset), today, cfg.Months)
 		var raw []barSeries
-		for back := cfg.Months - 1; back >= 0; back-- {
-			start := metrics.AddMonths(today, -back)
-			end := metrics.AddMonths(start, 1).AddDate(0, 0, -1)
-			prevStart := time.Date(start.Year()-1, start.Month(), 1, 0, 0, 0, 0, time.UTC)
-			prevEnd := metrics.AddMonths(prevStart, 1).AddDate(0, 0, -1)
-			raw = append(raw, barSeries{
-				start.Format("2006-01"),
-				float64(metrics.KimaiMinutesBetween(kdata, start, end, metrics.HoursAll)) / minutesPerHourInsight,
-				float64(metrics.KimaiMinutesBetween(kdata, prevStart, prevEnd, metrics.HoursAll)) / minutesPerHourInsight,
-			})
+		for i := range cur {
+			month := metrics.AddMonths(today, i-len(cur)+1).Format("2006-01")
+			raw = append(raw, barSeries{month, cur[i], prev[i]})
 		}
 		return map[string]any{"Bars": barsFrom(raw), "Unit": "hours"}
 	}
@@ -668,6 +713,56 @@ type ProgressItem struct {
 	HasGoal  bool
 	Value    float64
 	Goal     float64
+
+	// Drawn bar, in percent of its width: the filled part, the part past
+	// 100 % (an exceeded goal), and where the calendar says it should be
+	// today (0 = no mark).
+	Fill, Over, Soll float64
+	SollPct          float64 // share of the period passed (0..1), for the caption
+	Tier             string  // green, yellow, red
+}
+
+// progressSlack is how far a meter may run ahead of (budget) or behind
+// (goal) the calendar before it turns yellow.
+const progressSlack = 0.1
+
+// Meter kinds: a budget should not run ahead, a goal should not lag.
+type meterKind int
+
+const (
+	meterBudget meterKind = iota
+	meterGoal
+)
+
+// shape fills in the drawn bar and its colour from Pct and the share of
+// the period that has passed (soll, 0 if unknown).
+func (p *ProgressItem) shape(kind meterKind, soll float64) {
+	scale := max(p.Pct, 1)
+	p.Fill = min(p.Pct, 1) / scale * pctFull
+	p.Over = max(p.Pct-1, 0) / scale * pctFull
+	p.Soll = soll / scale * pctFull
+	p.SollPct = soll
+
+	switch {
+	case kind == meterGoal && (p.Pct >= 1 || p.Pct >= soll-progressSlack):
+		p.Tier = "green"
+	case kind == meterGoal:
+		p.Tier = "yellow"
+	case p.Pct >= 1:
+		p.Tier = "red"
+	case soll > 0 && p.Pct > soll+progressSlack, soll == 0 && p.Pct >= budgetWarn:
+		p.Tier = "yellow"
+	default:
+		p.Tier = "green"
+	}
+}
+
+// budgetWarn colours a budget without a period from this share on.
+const budgetWarn = 0.8
+
+// passed is the share of the period around today that is over (today counted).
+func passed(today time.Time, start, end time.Time) float64 {
+	return float64(today.Sub(start).Hours()/24+1) / float64(end.Sub(start).Hours()/24)
 }
 
 func progressView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
@@ -681,13 +776,23 @@ func progressView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 
 	if enums.ServiceType(ctx.Service) == enums.ServiceKimai {
 		for _, b := range kimaiBudgets(data.(*sources.KimaiDataset), today) {
-			items = append(items, ProgressItem{Label: b.Name, Pct: b.Pct})
+			item := ProgressItem{Label: b.Name, Pct: b.Pct}
+			soll := 0.0
+			if b.Monthly {
+				start := metrics.MonthStart(today)
+				soll = passed(today, start, metrics.AddMonths(start, 1))
+			}
+			item.shape(meterBudget, soll)
+			items = append(items, item)
 		}
 	}
 	goal := settingsFloat(settingsMap(ctx.Settings, "goals"), "revenue_year", 0)
 	if enums.ServiceType(ctx.Service) == enums.ServiceInvoiceNinja && cfg.Goal && goal > 0 {
 		ytd := metrics.NinjaSummaryOf(data.(*sources.NinjaDataset), today, "", "").RevenueYTD
-		items = append(items, ProgressItem{LabelKey: "progress.revenue_goal", Pct: ytd / goal, HasGoal: true, Value: ytd, Goal: goal})
+		item := ProgressItem{LabelKey: "progress.revenue_goal", Pct: ytd / goal, HasGoal: true, Value: ytd, Goal: goal}
+		start := time.Date(today.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
+		item.shape(meterGoal, passed(today, start, start.AddDate(1, 0, 0)))
+		items = append(items, item)
 	}
 	return map[string]any{"Items": items}
 }

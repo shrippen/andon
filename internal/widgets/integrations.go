@@ -12,6 +12,7 @@ package widgets
 //	energy        Tibber prices, cheapest hours, cost; power from Home Assistant
 
 import (
+	"fmt"
 	"time"
 
 	"andon/internal/enums"
@@ -62,20 +63,36 @@ func energyView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 	}
 	out := map[string]any{"Data": data}
 
+	// Prices hold for a whole hour, so the curve is a staircase:
+	//	M0,y0 H40 V y1 H80 V y2 …   plus the cheapest window as a band
+	//	and a line for now, on the same x scale.
+	now := time.Now().UTC()
 	if len(data.Prices) >= 2 {
 		low, high := data.Prices[0].Total, data.Prices[0].Total
 		for _, p := range data.Prices {
 			low, high = min(low, p.Total), max(high, p.Total)
 		}
 		span := max(high-low, 0.01)
-		step := float64(trendWidth) / float64(len(data.Prices)-1)
-		coords := make([]string, len(data.Prices))
+		step := float64(trendWidth) / float64(len(data.Prices))
+		y := func(v float64) float64 { return trendHeight - (v-low)/span*(trendHeight-2*chartMargin) - chartMargin }
+		path := fmt.Sprintf("M0,%.1f", y(data.Prices[0].Total))
 		for i, p := range data.Prices {
-			coords[i] = formatPoint(float64(i)*step, trendHeight-(p.Total-low)/span*(trendHeight-2*chartMargin)-chartMargin)
+			if i > 0 {
+				path += fmt.Sprintf(" V%.1f", y(p.Total))
+			}
+			path += fmt.Sprintf(" H%.1f", float64(i+1)*step)
 		}
-		out["Path"], out["W"], out["H"], out["Low"], out["High"] = "M"+joinPoints(coords), trendWidth, trendHeight, low, high
+		first := data.Prices[0].At
+		x := func(t time.Time) float64 { return t.Sub(first).Hours() * step }
+		out["Path"], out["W"], out["H"], out["Low"], out["High"] = path, trendWidth, trendHeight, low, high
+		if nx := x(now); nx > 0 && nx < float64(trendWidth) {
+			out["NowX"] = nx
+		}
+		if start, _, ok := metrics.CheapWindow(data.Prices, now, metrics.CheapHours); ok {
+			out["CheapX"], out["CheapW"] = x(start), float64(metrics.CheapHours)*step
+		}
 	}
-	if start, avg, ok := metrics.CheapWindow(data.Prices, time.Now().UTC(), metrics.CheapHours); ok {
+	if start, avg, ok := metrics.CheapWindow(data.Prices, now, metrics.CheapHours); ok {
 		out["CheapStart"], out["CheapAvg"], out["CheapHours"] = start, avg, metrics.CheapHours
 	}
 

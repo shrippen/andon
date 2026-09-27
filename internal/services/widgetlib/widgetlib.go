@@ -628,11 +628,17 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 	if kind.Extra == widgets.ExtraHints {
 		hcfg := cfg.(widgets.HintsConfig)
 		filter := hints.Filter{MinSeverity: enums.Severity(hcfg.MinSeverity), Sources: hcfg.Sources, Rules: rules.RulesOf(hcfg.Topic)}
-		views, err := hints.Filtered(d, who, filter, hcfg.Limit)
+		// All matching hints for the level bar, the first Limit for the list.
+		all, err := hints.Filtered(d, who, filter, 0)
 		if err != nil {
 			return nil, err
 		}
-		frag.View = map[string]any{"Hints": views, "Groups": hintGroups(views)}
+		sevs := make([]enums.Severity, len(all))
+		for i, v := range all {
+			sevs[i] = v.Severity
+		}
+		views := all[:min(len(all), hcfg.Limit)]
+		frag.View = map[string]any{"Hints": views, "Groups": hintGroups(views), "Levels": widgets.LevelBar(sevs), "Total": len(all)}
 	}
 
 	return frag, nil

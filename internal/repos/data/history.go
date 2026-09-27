@@ -27,6 +27,18 @@ func PutSamples(q db.Queryer, spaceID, owner int64, day string, values map[strin
 	return nil
 }
 
+// AddSamples adds to today's values, e.g. counts of runs that saw a
+// monitor up.
+func AddSamples(q db.Queryer, spaceID, owner int64, day string, deltas map[string]float64) error {
+	for key, v := range deltas {
+		if _, err := q.Exec(`INSERT INTO samples (space_id, owner, key, day, value) VALUES (?,?,?,?,?)
+			ON CONFLICT (space_id, owner, key, day) DO UPDATE SET value = value + excluded.value`, spaceID, owner, key, day, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // SamplesSince returns every series of a space and owner from a day on,
 // oldest first.
 func SamplesSince(q db.Queryer, spaceID, owner int64, since string) (map[string][]SamplePoint, error) {

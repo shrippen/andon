@@ -84,3 +84,52 @@ func Backups(borg *sources.BorgDataset, pg *sources.PGBackDataset, nas *sources.
 	})
 	return rows
 }
+
+// BackupMarks is, per backup item, 1 when its newest backup falls on
+// now's day, else 0. Stored once a day (the last run wins), the marks give
+// the item's history even though the tools report only the newest backup.
+func BackupMarks(datasets map[string]any, now time.Time) map[string]float64 {
+	var borg *sources.BorgDataset
+	var pg *sources.PGBackDataset
+	var nas *sources.TrueNASDataset
+	for _, raw := range datasets {
+		switch d := raw.(type) {
+		case *sources.BorgDataset:
+			borg = d
+		case *sources.PGBackDataset:
+			pg = d
+		case *sources.TrueNASDataset:
+			nas = d
+		}
+	}
+	out := map[string]float64{}
+	for _, row := range Backups(borg, pg, nas, now, 0) {
+		mark := 0.0
+		if !row.Last.IsZero() && Today(row.Last).Equal(Today(now)) {
+			mark = 1
+		}
+		out[backupKey(row.Tool, row.Item)] = mark
+	}
+	return out
+}
+
+// backupKey keeps the item's own spelling apart from key()'s dot rule.
+func backupKey(tool, item string) string { return key("backup", tool, item) }
+
+// BackupDays reads an item's marks for the last n days, oldest first:
+// 1 backed up, 0 not, -1 not recorded.
+func BackupDays(h *History, tool, item string, now time.Time, n int) []float64 {
+	marks := map[time.Time]float64{}
+	for _, p := range h.SeriesOf(backupKey(tool, item)) {
+		marks[Today(p.Day)] = p.Value
+	}
+	out := make([]float64, n)
+	for i := range out {
+		day := Today(now).AddDate(0, 0, i-n+1)
+		out[i] = -1
+		if v, ok := marks[day]; ok {
+			out[i] = v
+		}
+	}
+	return out
+}

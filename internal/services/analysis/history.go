@@ -4,6 +4,8 @@ package analysis
 // hands the stored history to the rules:
 //
 //	datasets → metrics.Samples  → samples (one value per key and day)
+//	datasets → metrics.Tallies  → samples, added up per day (monitor uptime)
+//	datasets → metrics.BackupMarks → samples, 1 on days with a backup
 //	datasets → metrics.Versions → versions; a change → events ("update")
 //	samples (history.SeriesDays) + events (eventDays) → Datasets["history"]
 
@@ -32,6 +34,12 @@ func recordHistory(d *sql.DB, sc *scope, now time.Time) (*metrics.History, error
 	day := now.Format(time.DateOnly)
 	err := db.WithTx(d, func(tx *sql.Tx) error {
 		if err := data.PutSamples(tx, sc.spaceID, owner, day, metrics.Samples(sc.datasets)); err != nil {
+			return err
+		}
+		if err := data.AddSamples(tx, sc.spaceID, owner, day, metrics.Tallies(sc.datasets)); err != nil {
+			return err
+		}
+		if err := data.PutSamples(tx, sc.spaceID, owner, day, metrics.BackupMarks(sc.datasets, now)); err != nil {
 			return err
 		}
 		known, err := data.Versions(tx, sc.spaceID, owner)

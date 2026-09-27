@@ -329,8 +329,26 @@ func weatherView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 	if len(data.Days) > 1 {
 		ahead = data.Days[1:]
 	}
-	return map[string]any{"Temp": data.Temp, "Code": data.Code, "Label": cfg.Label, "Days": ahead}
+	out := map[string]any{"Temp": data.Temp, "Code": data.Code, "Label": cfg.Label, "Days": ahead}
+
+	// The next hours: temperature as a line, rain chance as columns, and
+	// when rain gets likely.
+	if len(data.Hours) >= 2 {
+		temps := make([]float64, len(data.Hours))
+		rain := make([]int, len(data.Hours))
+		for i, h := range data.Hours {
+			temps[i], rain[i] = h.Temp, int(h.Rain)
+			if _, found := out["RainFrom"]; !found && h.Rain >= rainLikely && len(h.At) >= len("2006-01-02T15:04") {
+				out["RainFrom"] = h.At[len("2006-01-02T"):]
+			}
+		}
+		out["Spark"], out["Rain"] = SparkOf(temps), rain
+	}
+	return out
 }
+
+// rainLikely is the rain chance (%) from which the tile says "rain from".
+const rainLikely = 50
 
 // WeatherConfig is the "weather" widget's config.
 type WeatherConfig struct {

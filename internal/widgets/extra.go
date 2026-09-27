@@ -4,9 +4,13 @@ package widgets
 // monitor list of an Uptime Kuma connection.
 
 import (
-	"andon/internal/enums"
-	"andon/internal/sources"
+	"fmt"
 	"sort"
+	"time"
+
+	"andon/internal/enums"
+	"andon/internal/metrics"
+	"andon/internal/sources"
 )
 
 const (
@@ -56,6 +60,54 @@ var kumaStates = map[int][2]string{
 // kumaCells maps monitor_status to a strip cell state.
 var kumaCells = map[int]string{sources.KumaDown: "bad", sources.KumaUp: "ok", sources.KumaPending: "mid", sources.KumaMaintenance: "none"}
 
+// MonitorLine is one monitor with its last days, as Andon saw them.
+type MonitorLine struct {
+	Name, State string // State: pill state now
+	MS          float64
+	Days        []StripCell
+}
+
+// Uptime tiers of a day cell: at least uptimeOK is "ok", uptimeWarn "mid".
+const (
+	uptimeOK   = 0.999
+	uptimeWarn = 0.95
+	uptimeDays = 14
+	monitorMax = 8
+)
+
+// monitorLines draws each monitor's last uptimeDays days, in the order
+// given (down first); nil before the first recorded run.
+func monitorLines(mons []sources.KumaMonitor, h *metrics.History, today time.Time) []MonitorLine {
+	var out []MonitorLine
+	recorded := false
+	for _, m := range mons[:min(len(mons), monitorMax)] {
+		line := MonitorLine{Name: m.Name, State: kumaStates[m.Status][0], MS: m.MS}
+		for i, share := range metrics.UptimeDays(h, m.Name, today, uptimeDays) {
+			day := today.AddDate(0, 0, i-uptimeDays+1).Format(time.DateOnly)
+			cell := StripCell{State: "none", Title: day}
+			switch {
+			case share < 0:
+			case share >= uptimeOK:
+				cell.State = "ok"
+			case share >= uptimeWarn:
+				cell.State = "mid"
+			default:
+				cell.State = "bad"
+			}
+			if share >= 0 {
+				recorded = true
+				cell.Title = fmt.Sprintf("%s · %.1f %%", day, share*pctFull)
+			}
+			line.Days = append(line.Days, cell)
+		}
+		out = append(out, line)
+	}
+	if !recorded {
+		return nil
+	}
+	return out
+}
+
 // Limits of the monitors tile: problems listed, certificate warning.
 const (
 	monitorProblems = 4
@@ -69,7 +121,7 @@ const (
 //	12 / 14 online · Ø 180 ms
 //	▮▮▮▮▮▮▮▮▮▮▮▮▯▯
 //	NAS down · Shop pending
-func monitorsView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+func monitorsView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
 	data, ok := results["data"].(*sources.KumaDataset)
 	if !ok {
 		return map[string]any{}
@@ -106,6 +158,11 @@ func monitorsView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 	}
 
 	out := map[string]any{"Up": up, "Total": len(mons), "Cells": cells, "Problems": problems, "More": more}
+	if h, ok := results[HistorySlot].(*metrics.History); ok {
+		if lines := monitorLines(mons, h, parseToday(ctx.Today)); lines != nil {
+			out["Lines"], out["LinesMore"] = lines, max(len(mons)-monitorMax, 0)
+		}
+	}
 	if msCount > 0 {
 		out["AvgMS"] = msSum / float64(msCount)
 	}
@@ -128,5 +185,6 @@ func init() {
 		}})
 
 	Register(WidgetType{Key: "monitors", Decode: decodeEmpty, Template: "widgets/monitors",
-		Category: CategoryStart, Service: enums.ServiceUptimeKuma, RefreshS: 60, Live: true, Queries: dataQuery, View: monitorsView})
+		Category: CategoryStart, Service: enums.ServiceUptimeKuma, RefreshS: 60, Live: true, Queries: dataQuery, View: monitorsView,
+		Extra: ExtraHistory})
 }

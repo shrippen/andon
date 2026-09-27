@@ -5,7 +5,7 @@
 {{define "weekcols"}}
 <div class="weekcols" role="img" aria-label="{{.Label}}">
   {{range .D}}
-  <div class="weekcol" title="{{t (print "week.d" .I)}} · {{.Hours}}">
+  <div class="weekcol{{if .Today}} is-today{{end}}{{if .Later}} is-later{{end}}" title="{{t (print "week.d" .I)}} · {{.Hours}}">
     <span class="weekcol-bar">
       {{if .Segs}}<span class="weekcol-stack" style="--h:{{.H}}%">{{range .Segs}}<i style="--s:{{.H}}%" data-tier="{{.Tier}}"></i>{{end}}</span>
       {{else}}<i style="--h:{{.H}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i>{{end}}
@@ -186,18 +186,27 @@
 {{define "widgets/kintsugi"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
+{{/* tile-split: figures left, list right once the tile is wide. */}}
+<div class="tile-split">
+<div class="tile-split-figures">
 <div class="tile-head"><b class="tile-value">{{$d.New}}</b><span class="tile-sub">{{t "kintsugi.open"}}{{if ge $d.Rate 0}} · {{t "kintsugi.rate" "n" $d.Rate}}{{end}}</span></div>
-{{with $v.Open}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="{{if eq (print .Kind) "acquisition"}}yellow{{else}}blue{{end}}" title="{{t (print "kintsugi.kind_" .Kind)}}" aria-hidden="true"></span><span class="stack-item"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a><small class="muted">{{ago .Created}}</small></span></li>{{end}}</ul>{{end}}
 <p class="small muted">{{t "kintsugi.accepted" "n" $d.Accepted}}{{if $d.GapsOpen}} · <a href="{{$d.URL}}/profil">{{t "kintsugi.gaps" "n" $d.GapsOpen}}</a>{{end}}{{if $v.RunFailed}} · <span class="warn-text">{{t "kintsugi.run_failed"}}</span>{{end}}</p>
+</div>
+{{with $v.Open}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="{{if eq (print .Kind) "acquisition"}}yellow{{else}}blue{{end}}" title="{{t (print "kintsugi.kind_" .Kind)}}" aria-hidden="true"></span><span class="stack-item"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a><small class="muted">{{ago .Created}}</small></span></li>{{end}}</ul>{{end}}
+</div>
 {{end}}{{end}}
 {{end}}
 
 {{define "widgets/gitea_reviews"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
-<div class="tile-head"><b class="tile-value">{{len $d.Reviews}}</b><span class="tile-sub">{{t "gitea.reviews"}} · {{t "gitea.notifications" "n" $d.Notifications}}</span></div>
+<div class="tile-split">
+<div class="tile-split-figures"><div class="tile-head"><b class="tile-value">{{len $d.Reviews}}</b><span class="tile-sub">{{t "gitea.reviews"}} · {{t "gitea.notifications" "n" $d.Notifications}}</span></div></div>
+<div>
 {{with $v.Reviews}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="yellow" aria-hidden="true"></span><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a> <small class="muted">{{.Repo}}</small><b>{{ago .Updated}}</b></li>{{end}}</ul>{{end}}
 {{with $v.Assigned}}<span class="label">{{t "gitea.assigned"}}</span><ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a> <small class="muted">{{.Repo}}</small></li>{{end}}</ul>{{end}}
+</div>
+</div>
 {{end}}{{end}}
 {{end}}
 
@@ -230,4 +239,29 @@
 <div class="progress-bar"><i style="--p:{{$v.WithPct}}%" data-tier="{{if eq $v.With $v.Active}}green{{else}}yellow{{end}}"></i></div>
 {{with $v.Without}}<p class="tile-sub">{{t "vault.without"}}: {{range $i, $e := .}}{{if $i}}, {{end}}{{$e}}{{end}}</p>{{end}}
 {{end}}{{end}}
+{{end}}
+
+{{define "widgets/payment_days"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Rows}}
+<ul class="pay-rows">
+  {{range $v.Rows}}<li{{if .Late}} class="is-late"{{end}}><span class="pay-client">{{.Client}}</span>
+    <span class="pay-scale" role="img" aria-label="{{t "paydays.row" "client" .Client "days" .Typical "count" .Count}}">{{range .Dots}}<i style="--x:{{.}}%"></i>{{end}}<b style="--x:{{.TypicalX}}%"></b><u style="--x:{{.TargetX}}%"></u></span>
+    <small>{{t "col.days" "days" .Typical}}</small></li>{{end}}
+</ul>
+<p class="small muted">{{t "paydays.legend" "center" (t (print "settings.center_" $v.Center)) "target" $v.Target}}</p>
+{{else}}<p class="slot-note">{{t "paydays.none"}}</p>{{end}}{{end}}
+{{end}}
+
+{{define "widgets/exposure"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Rows}}
+<div class="tile-head"><b class="tile-value">{{len $v.Rows}}</b><span class="tile-sub">{{t "exposure.public"}}{{if $v.Open}} · <span class="warn-text">{{t "exposure.open" "n" $v.Open}}</span>{{end}}</span></div>
+<ul class="expo-rows">
+  {{range $v.Rows}}<li><span class="expo-name">{{.Domain}}<small class="muted">{{.Name}}</small></span>
+    <span class="expo-chips">{{if .Login}}<span class="chip-ok">{{t "exposure.login"}}</span>{{else}}<span class="chip-bad">{{t "exposure.no_login"}}</span>{{end}}
+    {{if .Updates}}<span class="chip-warn">{{t "exposure.updates" "n" .Updates}}</span>{{end}}
+    {{if and (ge .CertDays 0) (lt .CertDays 14)}}<span class="chip-warn">{{t "exposure.cert" "days" .CertDays}}</span>{{end}}</span></li>{{end}}
+</ul>
+{{else}}<p class="slot-note">{{t "exposure.none"}}</p>{{end}}{{end}}
 {{end}}

@@ -72,8 +72,8 @@ func TestHassToggle(t *testing.T) {
 	})
 	placement := string(regexp.MustCompile(`/placements/(\d+)/unplace`).FindSubmatch(mustGet(t, srv, client, boardURL+"?edit"))[1])
 
-	frag := string(awaitFragment(t, srv, client, placement, "aria-pressed"))
-	if !strings.Contains(frag, `aria-pressed="false"`) || !strings.Contains(frag, "/widget-fragments/"+placement+"/toggle") {
+	frag := string(awaitFragment(t, srv, client, placement, "aria-checked"))
+	if !strings.Contains(frag, `role="switch" aria-checked="false"`) || !strings.Contains(frag, "/widget-fragments/"+placement+"/toggle") {
 		t.Fatalf("no toggle rendered:\n%s", frag)
 	}
 
@@ -88,7 +88,7 @@ func TestHassToggle(t *testing.T) {
 	}
 	r := toggle("light.desk")
 	body := readAll(t, r)
-	if r.StatusCode != http.StatusOK || !strings.Contains(body, `aria-pressed="true"`) {
+	if r.StatusCode != http.StatusOK || !strings.Contains(body, `aria-checked="true"`) {
 		t.Fatalf("toggle: %d\n%s", r.StatusCode, body)
 	}
 	if got := calls(); len(got) != 1 || got[0] != "/api/services/light/toggle light.desk" {

@@ -5,6 +5,7 @@ import (
 	"embed"
 	"errors"
 	"html/template"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -45,6 +46,7 @@ func mustParse() *template.Template {
 		// so unlike the above they're the real implementation, not a
 		// placeholder.
 		"barPct":      barPct,
+		"abs":         math.Abs,
 		"tier":        tier,
 		"eqID":        func(a *int64, b int64) bool { return a != nil && *a == b },
 		"weatherKind": weatherKind,

@@ -1,6 +1,7 @@
 package widgets
 
 import (
+	"strconv"
 	"strings"
 
 	"andon/internal/enums"
@@ -19,10 +20,14 @@ func decodeHass(raw map[string]any) any { return HassConfig{Entities: asStringLi
 
 // HassRow is one entity line; Toggle offers a switch, On is its state.
 type HassRow struct {
-	ID, Name, Value string
-	Toggle, On      bool
-	Missing         bool
+	ID, Name, Value, Unit string
+	Toggle, On            bool
+	Missing               bool
+	Low                   bool // a battery below batteryLow
 }
+
+// batteryLow is the charge (%) below which a battery shows red.
+const batteryLow = 15
 
 // HassToggleable reports whether a configured entity can be switched.
 func HassToggleable(cfg any, entityID string) bool {
@@ -52,11 +57,11 @@ func hassView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 			rows = append(rows, HassRow{ID: id, Name: id, Missing: true})
 			continue
 		}
-		value := e.State
-		if e.Unit != "" {
-			value += " " + e.Unit
+		row := HassRow{ID: id, Name: e.Name, Value: e.State, Unit: e.Unit, Toggle: hassSwitchable[e.Domain], On: e.State == sources.HassOn}
+		if charge, err := strconv.ParseFloat(e.State, 64); err == nil && e.DeviceClass == "battery" && charge < batteryLow {
+			row.Low = true
 		}
-		rows = append(rows, HassRow{ID: id, Name: e.Name, Value: value, Toggle: hassSwitchable[e.Domain], On: e.State == sources.HassOn})
+		rows = append(rows, row)
 	}
 	return map[string]any{"Rows": rows}
 }

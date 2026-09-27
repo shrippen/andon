@@ -64,12 +64,45 @@ func updateWindowView(_ any, results map[string]any, ctx ViewCtx) map[string]any
 		"BackupHours": int(w.BackupAge.Hours())}
 }
 
-func storageView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// StorageRow is one store as drawn: the used part, how much more the next
+// storageAhead days add at the recent pace (both in percent), and when
+// it is full.
+type StorageRow struct {
+	Label        string
+	Used, Ahead  float64
+	FullIn       int    // days, -1 = not filling
+	FullOn, Tier string // Tier: red within 30 days, yellow within 90
+}
+
+const (
+	storageAhead = 30
+	storageRed   = 30
+	storageWarn  = 90
+)
+
+func storageView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
 	h, _ := results[HistorySlot].(*metrics.History)
 	if h == nil {
 		return map[string]any{}
 	}
-	return map[string]any{"Rows": metrics.StorageForecasts(h, time.Now().UTC())}
+	today := parseToday(ctx.Today)
+	var rows []StorageRow
+	for _, f := range metrics.StorageForecasts(h, today) {
+		row := StorageRow{Label: f.Label, Used: f.Used * pctFull, FullIn: f.FullIn}
+		if f.FullIn >= 0 {
+			row.FullOn = today.AddDate(0, 0, f.FullIn).Format(time.DateOnly)
+			perDay := (1 - f.Used) / float64(max(f.FullIn, 1))
+			row.Ahead = min(perDay*storageAhead, 1-f.Used) * pctFull
+		}
+		switch {
+		case f.FullIn >= 0 && f.FullIn < storageRed:
+			row.Tier = "red"
+		case f.FullIn >= 0 && f.FullIn < storageWarn:
+			row.Tier = "yellow"
+		}
+		rows = append(rows, row)
+	}
+	return map[string]any{"Rows": rows}
 }
 
 // homelabQueries are the peers of the homelab tables.

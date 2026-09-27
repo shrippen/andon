@@ -76,6 +76,8 @@ type DayCol struct {
 	Hours string
 	Tier  string
 	Segs  []Seg
+	Today bool // outlined
+	Later bool // still to come: dimmed, never flagged
 }
 
 func pctOf(v, full float64) int {
@@ -154,12 +156,14 @@ func kimaiWeekView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]a
 		sum += m
 	}
 	cols := make([]DayCol, weekDays)
+	todayIdx := int(todayOf(ctx).Sub(weekStart(todayOf(ctx))).Hours() / hoursPerDay)
 	for i, m := range total {
 		tier := ""
-		if i < workDays && float64(m) < target {
+		if i < workDays && i < todayIdx && float64(m) < target {
 			tier = "yellow"
 		}
-		cols[i] = DayCol{I: i, H: max(pctOf(float64(m), top), 2), Hours: clockMinutes(m), Tier: tier}
+		cols[i] = DayCol{I: i, H: max(pctOf(float64(m), top), 2), Hours: clockMinutes(m), Tier: tier,
+			Today: i == todayIdx, Later: i > todayIdx}
 	}
 	left := int(cfg.WeekHours*minutesPerHour) - sum
 	return map[string]any{"Days": cols, "TargetPct": pctOf(target, top), "Total": clockMinutes(sum),

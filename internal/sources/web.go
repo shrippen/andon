@@ -27,10 +27,13 @@ const (
 	httpOKMax    = 399
 	pageAccept   = "text/html,application/xhtml+xml,*/*;q=0.8"
 	feedLimitMax = 50
-	openMeteoURL = "https://api.open-meteo.com/v1/forecast"
 	publicIPURL  = "https://api.ipify.org"
 	forecastDays = 4
+	forecastHrs  = 24
 )
+
+// openMeteoURL is a var so tests can point it at a local server.
+var openMeteoURL = "https://api.open-meteo.com/v1/forecast"
 
 // ── http_status ──
 
@@ -153,12 +156,19 @@ type WeatherDay struct {
 	Max, Min float64
 }
 
+// WeatherHour is one hour ahead: temperature and rain probability (0–100).
+type WeatherHour struct {
+	At         string // local "2006-01-02T15:04"
+	Temp, Rain float64
+}
+
 // WeatherResult is the current conditions plus a short forecast.
 type WeatherResult struct {
 	Temp, Wind float64
 	Code       int
 	IsDay      bool
 	Days       []WeatherDay
+	Hours      []WeatherHour // the next forecastHrs hours
 }
 
 type WeatherSource struct{}
@@ -169,12 +179,14 @@ func (WeatherSource) Service() enums.ServiceType { return "" }
 
 func (WeatherSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	params := url.Values{
-		"latitude":      {strconv.FormatFloat(asFloat(sctx.Params["lat"]), 'f', -1, 64)},
-		"longitude":     {strconv.FormatFloat(asFloat(sctx.Params["lon"]), 'f', -1, 64)},
-		"current":       {"temperature_2m,weather_code,wind_speed_10m,is_day"},
-		"daily":         {"weather_code,temperature_2m_max,temperature_2m_min"},
-		"timezone":      {"auto"},
-		"forecast_days": {strconv.Itoa(forecastDays)},
+		"latitude":       {strconv.FormatFloat(asFloat(sctx.Params["lat"]), 'f', -1, 64)},
+		"longitude":      {strconv.FormatFloat(asFloat(sctx.Params["lon"]), 'f', -1, 64)},
+		"current":        {"temperature_2m,weather_code,wind_speed_10m,is_day"},
+		"daily":          {"weather_code,temperature_2m_max,temperature_2m_min"},
+		"hourly":         {"temperature_2m,precipitation_probability"},
+		"forecast_hours": {strconv.Itoa(forecastHrs)},
+		"timezone":       {"auto"},
+		"forecast_days":  {strconv.Itoa(forecastDays)},
 	}
 	body, _, err := httpclient.GetJSON(ctx, openMeteoURL, httpclient.Options{Params: params})
 	if err != nil {
@@ -199,13 +211,23 @@ func (WeatherSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		})
 	}
 
+	hourly := asMap(raw["hourly"])
+	times, temps, rains := asList(hourly["time"]), asList(hourly["temperature_2m"]), asList(hourly["precipitation_probability"])
+	var hours []WeatherHour
+	for i := range times {
+		if i >= len(temps) || i >= len(rains) {
+			break
+		}
+		hours = append(hours, WeatherHour{At: asStr(times[i]), Temp: asFloat(temps[i]), Rain: asFloat(rains[i])})
+	}
+
 	isDay := true
 	if v, ok := current["is_day"]; ok {
 		isDay = asFloat(v) != 0
 	}
 	return &WeatherResult{
 		Temp: asFloat(current["temperature_2m"]), Wind: asFloat(current["wind_speed_10m"]),
-		Code: int(asFloat(current["weather_code"])), IsDay: isDay, Days: forecast,
+		Code: int(asFloat(current["weather_code"])), IsDay: isDay, Days: forecast, Hours: hours,
 	}, nil
 }
 

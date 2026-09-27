@@ -170,3 +170,48 @@ func TestKpiLiquidityUsesSureRecurring(t *testing.T) {
 		t.Fatalf("kpi: %+v", kpi)
 	}
 }
+
+// TestProgressTiers: an exceeded revenue goal is good (green, with the
+// overshoot), one behind the calendar is yellow; a monthly budget used
+// faster than the month passes is yellow, a spent one red. The 15 Sep
+// mark sits at 258/365 of the year and 15/30 of the month.
+func TestProgressTiers(t *testing.T) {
+	kind, _ := widgets.Get("progress")
+	cfg, _ := widgets.Decode("progress", map[string]any{})
+	goal := map[string]any{"goals": map[string]any{"revenue_year": 10000.0}}
+	item := func(view map[string]any) widgets.ProgressItem {
+		items := view["Items"].([]widgets.ProgressItem)
+		if len(items) != 1 {
+			t.Fatalf("items: %+v", items)
+		}
+		return items[0]
+	}
+
+	ahead := item(kind.View(cfg, map[string]any{"data": &sources.NinjaDataset{Invoices: []sources.NinjaInvoice{
+		{ID: 1, ClientID: 1, Status: "paid", Date: "2026-01-10", Net: 12500}}}}, ctxFor(enums.ServiceInvoiceNinja, goal)))
+	if ahead.Tier != "green" || ahead.Fill != 80 || ahead.Over != 20 {
+		t.Fatalf("exceeded goal: %+v", ahead)
+	}
+	behind := item(kind.View(cfg, map[string]any{"data": &sources.NinjaDataset{Invoices: []sources.NinjaInvoice{
+		{ID: 1, ClientID: 1, Status: "paid", Date: "2026-01-10", Net: 2500}}}}, ctxFor(enums.ServiceInvoiceNinja, goal)))
+	if behind.Tier != "yellow" || behind.Soll < 70 || behind.Soll > 71 {
+		t.Fatalf("goal behind the calendar: %+v", behind)
+	}
+
+	budget := func(usedMin int) widgets.ProgressItem {
+		data := &sources.KimaiDataset{
+			Projects:   []sources.KimaiProject{{ID: 1, Name: "Relaunch", TimeBudgetMin: 600, BudgetType: "month"}},
+			Timesheets: []sources.KimaiSheet{{ProjectID: 1, Begin: "2026-09-02", Minutes: usedMin}},
+		}
+		return item(kind.View(cfg, map[string]any{"data": data}, ctxFor(enums.ServiceKimai, nil)))
+	}
+	if fast := budget(480); fast.Tier != "yellow" || fast.Soll != 50 {
+		t.Fatalf("budget used too fast: %+v", fast)
+	}
+	if calm := budget(240); calm.Tier != "green" {
+		t.Fatalf("budget on pace: %+v", calm)
+	}
+	if spent := budget(660); spent.Tier != "red" {
+		t.Fatalf("spent budget: %+v", spent)
+	}
+}

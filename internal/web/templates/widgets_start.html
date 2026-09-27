@@ -5,11 +5,12 @@
      with the board (see "tile" in boards.html). */}}
 {{define "widgets/link"}}
 {{with $s := index .Frag.Slots "status"}}{{with $d := $s.Data}}
-<span class="dot" data-up="{{if $d.Up}}yes{{else}}no{{end}}" title="{{if $d.Code}}HTTP {{$d.Code}} · {{$d.Ms}} ms{{else}}{{$d.Error}}{{end}}">{{if $d.Up}}{{t "status.up"}}{{else}}{{t "status.down"}}{{end}}</span>
+<span class="dot" data-up="{{if $d.Up}}yes{{else}}no{{end}}" title="{{if $d.Code}}HTTP {{$d.Code}}{{else}}{{$d.Error}}{{end}}">{{if $d.Up}}{{t "status.up"}}{{if $d.Ms}}<span class="dot-ms"> · {{$d.Ms}} ms</span>{{end}}{{else}}{{t "status.down"}}{{end}}</span>
 {{end}}{{end}}
 {{with $info := index .Frag.View "Info"}}<span class="launch-info">{{range $i, $p := $info}}{{if $i}} · {{end}}{{tt (print "info." $p.Key) $p.Params}}{{end}}</span>
 {{else}}{{with $slot := index .Frag.Slots "info"}}{{if $slot.MissingCredential}}<span class="launch-info">{{t "widget.setup_access_short"}}</span>{{else if $slot.Error}}<span class="launch-info is-error">{{t "widget.error"}}</span>{{end}}{{end}}{{end}}
-{{if .Frag.HintCount}}<span class="launch-hints" data-level="{{.Frag.HintLevel}}" data-hints="/connections/{{.Frag.HintConn}}/hints" title="{{t "hints.badge" "n" .Frag.HintCount}}">{{.Frag.HintCount}}</span>{{end}}
+{{/* Hint count with the level as a shape too: ▲ critical, ■ warning, ● info. */}}
+{{if .Frag.HintCount}}<span class="launch-hints" data-level="{{.Frag.HintLevel}}" data-hints="/connections/{{.Frag.HintConn}}/hints" title="{{t "hints.badge" "n" .Frag.HintCount}}" aria-label="{{t "hints.badge" "n" .Frag.HintCount}}"><span aria-hidden="true">{{if ge .Frag.HintLevel 30}}▲{{else if ge .Frag.HintLevel 20}}■{{else}}●{{end}}</span> {{.Frag.HintCount}}</span>{{end}}
 {{with $u := index .Frag.View "Uptime"}}<span class="uptime" title="{{t "uptime.summary" "share" (pct $u.Share) "ms" $u.AvgMs}}">{{range $u.Bars}}<i data-state="{{.State}}" title="{{day .Day}} · {{pct .Share}}"></i>{{end}}</span>{{end}}
 {{end}}
 
@@ -47,6 +48,11 @@
     <span>{{t (printf "weather.%s" (weatherKind $w.Code))}}</span>
     {{if $w.Label}}<small>{{$w.Label}}</small>{{end}}
   </div>
+  {{with $w.Spark}}<div class="weather-hours">
+    <small class="muted">{{with $w.RainFrom}}{{t "weather.rain_from" "time" .}}{{else}}{{t "weather.next_hours"}}{{end}}</small>
+    {{template "spark" .}}
+    <span class="rain-cols" role="img" aria-label="{{t "weather.rain_chance"}}">{{range $w.Rain}}<i style="--h:{{.}}%"></i>{{end}}</span>
+  </div>{{end}}
   <ol class="weather-days">
     {{range $w.Days}}<li><small>{{day .Day}}</small><span>{{num .Max 0}}° / {{num .Min 0}}°</span><small>{{t (printf "weather.%s" (weatherKind .Code))}}</small></li>{{end}}
   </ol>
@@ -107,8 +113,18 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Total}}
 <div class="tile-head"><b class="tile-value">{{$v.Up}} / {{$v.Total}}</b><span class="tile-sub">{{t "kuma.online"}}{{with $v.AvgMS}} · Ø {{num . 0}} ms{{end}}</span></div>
+{{if $v.Lines}}
+{{/* One line per monitor: state now, its last 14 days, response time. */}}
+<ul class="mon-lines">
+  {{range $v.Lines}}<li><span class="mon-name"><span class="mon-dot" data-state="{{.State}}"></span>{{.Name}}</span>
+    <span class="strip" role="img" aria-label="{{t "kuma.days" "name" .Name}}">{{range .Days}}<i data-state="{{.State}}" title="{{.Title}}"></i>{{end}}</span>
+    <small>{{if .MS}}{{num .MS 0}} ms{{else}}–{{end}}</small></li>{{end}}
+</ul>
+{{if $v.LinesMore}}<p class="tile-foot">{{t "kuma.more" "n" $v.LinesMore}}</p>{{end}}
+{{else}}
 <span class="strip strip-lg" role="img" aria-label="{{t "kuma.strip" "up" $v.Up "total" $v.Total}}">{{range $v.Cells}}<i data-state="{{.State}}" title="{{.Title}}"></i>{{end}}</span>
-{{if $v.Problems}}<p class="kuma-problems">{{range $i, $m := $v.Problems}}{{if $i}} · {{end}}<span class="kuma-bad" data-state="{{$m.State}}">{{$m.Name}}</span> <small>{{t $m.Key}}</small>{{end}}{{if $v.More}} · {{t "kuma.more" "n" $v.More}}{{end}}</p>{{end}}
+{{end}}
+{{if and $v.Problems (not $v.Lines)}}<p class="kuma-problems">{{range $i, $m := $v.Problems}}{{if $i}} · {{end}}<span class="kuma-bad" data-state="{{$m.State}}">{{$m.Name}}</span> <small>{{t $m.Key}}</small>{{end}}{{if $v.More}} · {{t "kuma.more" "n" $v.More}}{{end}}</p>{{end}}
 {{with $v.CertName}}<p class="tile-foot"><span>{{t "kuma.cert" "name" . "days" $v.CertDays}}</span></p>{{end}}
 {{end}}{{end}}
 {{end}}
@@ -124,9 +140,9 @@
     <form hx-post="/widget-fragments/{{$.PlacementID}}/toggle" hx-target="closest .card-body" hx-swap="innerHTML">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
       <input type="hidden" name="entity" value="{{.ID}}">
-      <button type="submit" class="seg-toggle" aria-pressed="{{.On}}" aria-label="{{.Name}}">{{if .On}}{{t "hass.on"}}{{else}}{{t "hass.off"}}{{end}}</button>
+      <button type="submit" class="hass-switch" role="switch" aria-checked="{{.On}}" aria-label="{{.Name}}" title="{{if .On}}{{t "hass.on"}}{{else}}{{t "hass.off"}}{{end}}"></button>
     </form>
-    {{else}}<b class="hass-value">{{.Value}}</b>{{end}}
+    {{else}}<b class="hass-value{{if .Low}} is-low{{end}}">{{if .Low}}<span aria-hidden="true">▮ </span>{{end}}{{.Value}}{{with .Unit}} <small>{{.}}</small>{{end}}</b>{{end}}
   </li>
   {{end}}
 </ul>
@@ -165,4 +181,17 @@
     </ul>
   </div>
 </div>
+{{end}}
+
+{{define "widgets/uptime_month"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Rows}}
+<p class="kpi-label">{{t "uptime.month" "month" $v.Month}}</p>
+<div class="table-wrap"><table class="table compact">
+  <tbody>{{range $v.Rows}}<tr><td>{{.Name}}</td>
+    <td class="num"><span class="up-share" data-tier="{{.Tier}}">{{num .SharePct 2}} %</span></td>
+    <td class="num"><small class="muted">{{if ge .DownHours 1.0}}{{num .DownHours 0}} h{{else}}{{.DownMin}} min{{end}}</small></td></tr>{{end}}</tbody>
+</table></div>
+<p class="small muted">{{t "uptime.measured"}}{{with $v.Since}} {{t "uptime.since" "day" (day .)}}{{end}}</p>
+{{else}}<p class="slot-note">{{t "uptime.none"}}</p>{{end}}{{end}}
 {{end}}

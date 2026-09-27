@@ -25,7 +25,7 @@
     {{else if eq $k.Kind "hours"}}{{num $k.Value 1}} h
     {{else}}{{num $k.Value 0}}{{end}}
   </b>
-  {{if $k.HasDelta}}<span class="kpi-delta" data-trend="{{if ge $k.Delta 0.0}}up{{else}}down{{end}}">{{pct $k.Delta}} {{t "kpi.vs_last_year"}}</span>{{end}}
+  {{if $k.HasDelta}}<span class="kpi-delta" data-trend="{{if ge $k.Delta 0.0}}up{{else}}down{{end}}" title="{{t "kpi.vs_last_year"}}">{{if ge $k.Delta 0.0}}▲{{else}}▼{{end}} {{pct (abs $k.Delta)}}</span>{{end}}
   {{if eq $k.SubKey "kpi.of_target"}}<span class="kpi-sub">{{t "kpi.of_target" "hours" (num $k.SubHours 1)}}</span>
   {{else if eq $k.SubKey "kpi.hours"}}<span class="kpi-sub">{{t "kpi.hours" "hours" (num $k.SubHours 1)}}</span>
   {{else if eq $k.SubKey "kpi.invoices"}}<span class="kpi-sub">{{t "kpi.invoices" "count" $k.SubCount}}</span>
@@ -38,6 +38,7 @@
   {{else if eq $k.SubKey "kpi.per_hour"}}<span class="kpi-sub">{{t "kpi.per_hour" "count" $k.SubCount}}</span>
   {{else if eq $k.SubKey "kpi.assets"}}<span class="kpi-sub">{{t "kpi.assets" "count" $k.SubCount}}</span>
   {{end}}
+  {{with $k.Spark}}{{template "spark" .}}<span class="kpi-sub">{{t "kpi.spark_months" "n" 12}}</span>{{end}}
 </div>
 {{else}}{{if .Frag.View.Unsupported}}<p class="slot-note">{{t "widget.unsupported"}}</p>{{end}}{{end}}
 {{end}}
@@ -48,18 +49,19 @@
 {{if .Frag.View.Unsupported}}<p class="slot-note">{{t "widget.unsupported"}}</p>
 {{else if $cols}}
 <div class="table-wrap"><table class="table compact">
-  <thead><tr>{{range $cols}}<th>{{t (printf "col.%s" .Label)}}</th>{{end}}</tr></thead>
+  {{/* Numbers sit right-aligned in their own column; shares get a bar. */}}
+  <thead><tr>{{range $cols}}<th{{if .Numeric}} class="num"{{end}}>{{t (printf "col.%s" .Label)}}</th>{{end}}</tr></thead>
   <tbody>
   {{range $rows}}
-    <tr>{{$row := .}}{{range $i, $col := $cols}}{{$v := index $row.Values $i}}<td>
+    <tr>{{$row := .}}{{range $i, $col := $cols}}{{$v := index $row.Values $i}}<td{{if $col.Numeric}} class="num"{{end}}>
       {{if eq $col.Format "money"}}{{money $v}}
-      {{else if eq $col.Format "pct"}}{{pct $v}}
+      {{else if eq $col.Format "pct"}}<span class="share"><i style="--p:{{barPct $v}}%"></i>{{pct $v}}</span>
       {{else if eq $col.Format "bar"}}<div class="progress-bar"><i style="--p:{{barPct $v}}%" data-tier="{{tier $v}}"></i></div><small>{{pct $v}}</small>
       {{else if eq $col.Format "hours"}}{{num $v 1}} h
       {{else if eq $col.Format "km"}}{{num $v 0}} km
       {{else if eq $col.Format "day"}}{{if $v}}{{day $v}}{{else}}–{{end}}
       {{else if eq $col.Format "daycount"}}{{t "col.days" "days" $v}}
-      {{else if eq $col.Format "late"}}{{if gt $v 0}}<span class="late">{{t "col.days" "days" $v}}</span>{{else}}–{{end}}
+      {{else if eq $col.Format "late"}}{{if gt $v 0}}<span class="chip-late">{{t "col.days" "days" $v}}</span>{{else}}–{{end}}
       {{else if eq $col.Format "upcoming"}}{{t (printf "upcoming.%s" $v)}}
       {{else if eq $col.Format "match"}}{{t (printf "match.%s" $v)}}
       {{else if eq $col.Format "yesno"}}{{if $v}}✓{{else}}<span class="late">✗</span>{{end}}
@@ -97,8 +99,8 @@
 {{range .Frag.View.Items}}
   <div class="progress">
     <div class="progress-head"><span>{{if .LabelKey}}{{t .LabelKey}}{{else}}{{.Label}}{{end}}</span><span>{{pct .Pct}}</span></div>
-    <div class="progress-bar"><i style="--p:{{barPct .Pct}}%" data-tier="{{tier .Pct}}"></i></div>
-    {{if .HasGoal}}<small class="muted">{{money .Value}} / {{money .Goal}}</small>{{end}}
+    <div class="progress-bar"><i style="--p:{{.Fill}}%" data-tier="{{.Tier}}"></i>{{if .Over}}<i class="progress-over" style="--p:{{.Over}}%"></i>{{end}}{{if .Soll}}<span class="progress-soll" style="--x:{{.Soll}}%" title="{{t "progress.soll" "pct" (pct .SollPct)}}"></span>{{end}}</div>
+    <small class="muted">{{if .HasGoal}}{{money .Value}} / {{money .Goal}}{{end}}{{if and .HasGoal .SollPct}} · {{end}}{{if .SollPct}}{{t "progress.soll" "pct" (pct .SollPct)}}{{end}}</small>
   </div>
 {{else}}{{if .Frag.View}}<p class="muted">{{t "widget.empty"}}</p>{{end}}
 {{end}}
@@ -107,10 +109,13 @@
 
 {{define "widgets/deadlines"}}
 {{if not .Frag.View.Configured}}<p class="slot-note">{{t "deadlines.setup"}} <a href="/spaces/settings">{{t "nav.space_settings"}}</a></p>{{end}}
-<ol class="timeline">
+<ol class="deadlines">
 {{range .Frag.View.Items}}
-  <li{{if le .Left 3}} class="soon"{{end}}><time datetime="{{.Due}}">{{day .Due}}</time>
-    <span>{{if eq .Kind "vat_return"}}{{t "deadline.vat_return" "period" .Period}}{{else if eq .Kind "prepayment"}}{{t "deadline.prepayment"}}{{else}}{{t "deadline.annual" "year" .Year}}{{end}}{{if .Amount}} · {{money .Amount}}{{end}}</span></li>
+  {{/* Countdown first: red from tomorrow, yellow within a week. */}}
+  <li data-urgency="{{if le .Left 1}}red{{else if le .Left 6}}yellow{{end}}">
+    <span class="countdown">{{if eq .Left 0}}{{t "deadline.today"}}{{else}}{{.Left}}<em>{{t "deadline.days_short"}}</em>{{end}}</span>
+    <span>{{if eq .Kind "vat_return"}}{{t "deadline.vat_return" "period" .Period}}{{else if eq .Kind "prepayment"}}{{t "deadline.prepayment"}}{{else}}{{t "deadline.annual" "year" .Year}}{{end}}{{if .Amount}} · {{money .Amount}}{{end}}
+      <time datetime="{{.Due}}">{{weekday .Due}} {{day .Due}}</time></span></li>
 {{else}}{{if .Frag.View.Configured}}<li class="muted">{{t "widget.empty"}}</li>{{end}}
 {{end}}
 </ol>
@@ -131,13 +136,16 @@
 {{/* Hints widget ("Lage"): open hints in severity bands, each with its
      own action and a "later" that snoozes for a day and returns here. */}}
 {{define "widgets/hints"}}
-{{range .Frag.View.Groups}}
-<section class="hint-group" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}">
-  <h4 class="hint-group-head"><span class="sq" aria-hidden="true"></span>{{t (print "severity." .Severity.Key)}}<span class="hint-group-count">{{len .Hints}}</span></h4>
-  <ul class="hints">
-    {{range .Hints}}{{template "hint-item" dict "H" . "R" $}}{{end}}
-  </ul>
-</section>
+{{/* Overview first: open hints per level as one stacked bar, then the
+     most urgent ones as single lines. */}}
+{{with .Frag.View.Levels}}
+<div class="level-bar" role="img" aria-label="{{t "hints.levels" "n" $.Frag.View.Total}}">{{range .}}<i data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}" style="--w:{{.W}}%"></i>{{end}}</div>
+<p class="level-counts">{{range .}}<span data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span>{{.N}} {{t (print "severity." .Severity.Key)}}</span>{{end}}</p>
+{{end}}
+{{with .Frag.View.Hints}}
+<ul class="hint-lines">
+  {{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><a href="/hints#hint-{{.ID}}">{{.Title}}</a><small>{{ago .FirstSeen}}</small></li>{{end}}
+</ul>
 {{else}}<p class="hint-empty">{{t "hints.none"}}</p>
 {{end}}
 <p class="hint-all"><a href="/hints">{{t "hints.all"}} →</a></p>
@@ -185,10 +193,60 @@
 {{with .Frag.View.Rows}}
 <div class="strip strip-lg" role="img" aria-label="{{t "wtype.backups.name"}}">{{range .}}<i data-state="{{if eq (print .State) "ok"}}ok{{else if eq (print .State) "failed"}}bad{{else}}mid{{end}}" title="{{.Item}}"></i>{{end}}</div>
 {{end}}
-<ul class="legend-list">
+<ul class="legend-list backup-lines">
   {{range .Frag.View.Rows}}
   <li><span class="sq" data-tier="{{if eq (print .State) "ok"}}green{{else if eq (print .State) "failed"}}red{{else}}yellow{{end}}" aria-hidden="true"></span>{{.Item}} <small class="muted">{{t (print "service." .Tool)}} · {{t (print "backup." .State)}}</small>
+    {{with .Days}}<span class="backup-dots" role="img" aria-label="{{t "backup.days"}}">{{range .}}<i data-state="{{.State}}" title="{{.Title}}"></i>{{end}}</span>{{end}}
     <b>{{if .Last.IsZero}}–{{else}}{{ago .Last}}{{end}}</b></li>
   {{else}}<li class="muted">{{t "backup.none"}}</li>{{end}}
 </ul>
+{{end}}
+
+{{/* spark: a small line with its area and the last point marked (widgets.Spark). */}}
+{{define "spark"}}<span class="spark"><svg viewBox="0 0 {{.W}} {{.H}}" preserveAspectRatio="none" aria-hidden="true">
+  <path class="spark-area" d="{{.Area}}"/><path class="spark-line" d="{{.Line}}"/>
+</svg><i class="spark-end" style="left:{{.EndLeft}}%;top:{{.EndTop}}%"></i></span>{{end}}
+
+{{define "widgets/rate_trend"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Rate}}
+<div class="kpi">
+  <span class="kpi-label">{{$v.Month}}</span>
+  <b class="kpi-value">{{money $v.Rate $v.Currency}}{{t "rate.per_hour"}}</b>
+  {{with $v.Prev}}<span class="kpi-delta" data-trend="{{if ge $v.Delta 0.0}}up{{else}}down{{end}}" title="{{t "rate.vs_prev" "rate" (money . $v.Currency)}}">{{if ge $v.Delta 0.0}}▲{{else}}▼{{end}} {{money (abs $v.Delta) $v.Currency}}</span>{{end}}
+  {{with $v.Spark}}{{template "spark" .}}{{end}}
+  <span class="kpi-sub">{{if $v.Target}}{{t "rate.target" "rate" (money $v.Target $v.Currency)}} · {{end}}{{t "kpi.spark_months" "n" 12}}</span>
+</div>
+{{else}}<p class="slot-note">{{t "rate.none"}}</p>{{end}}{{end}}
+{{end}}
+
+{{define "widgets/status_light"}}
+{{with $v := .Frag.View}}
+<div class="light" data-state="{{$v.State}}">
+  <b>{{t (print "light." $v.State)}}</b>
+  <small>{{if $v.Count}}{{t "light.count" "n" $v.Count}}{{else}}{{t "light.calm"}}{{end}}</small>
+</div>
+{{with $v.Items}}<ul class="hint-lines">{{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><a href="/hints#hint-{{.ID}}">{{.Title}}</a></li>{{end}}</ul>{{end}}
+{{if $v.More}}<p class="hint-all"><a href="/hints">{{t "light.more" "n" $v.More}} →</a></p>{{end}}
+{{end}}
+{{end}}
+
+{{define "widgets/hint_noise"}}
+{{with $v := .Frag.View}}{{if $v.Spark}}
+<div class="tile-head"><b class="tile-value">{{$v.Total}}</b><span class="tile-sub">{{t "noise.new" "days" $v.Days}}</span></div>
+{{template "spark" $v.Spark}}
+{{with $v.Flaps}}<ul class="hint-lines">{{range .}}<li><a href="/spaces/settings#rule-{{.Rule}}">{{t (print "rule_name." .Rule)}}</a><small>{{t "noise.returns" "n" .Returns}}</small></li>{{end}}</ul>
+{{else}}<p class="small muted">{{t "noise.calm"}}</p>{{end}}
+{{else}}<p class="slot-note">{{t "noise.none"}}</p>{{end}}{{end}}
+{{end}}
+
+{{define "widgets/timeline_recent"}}
+{{with $v := .Frag.View}}{{if $v.Items}}
+<ol class="day-line is-recent">
+  {{range $v.Items}}<li data-kind="{{if eq .Kind "update"}}event{{else if eq .Kind "resolved"}}transit{{else}}deadline{{end}}">
+    <span class="day-at">{{ago .At}}</span><i aria-hidden="true"></i>
+    <span>{{if .HintID}}<a href="/hints#hint-{{.HintID}}">{{.Subject}}</a>{{else}}<b>{{.Subject}}</b>{{end}} <small class="muted">{{t (print "timeline." .Kind)}}{{with .Detail}} · {{.}}{{end}}</small></span></li>{{end}}
+</ol>
+<p class="hint-all"><a href="/timeline">{{if $v.More}}{{t "light.more" "n" $v.More}}{{else}}{{t "nav.timeline"}}{{end}} →</a></p>
+{{else}}<p class="slot-note">{{t "recent.none"}}</p>{{end}}{{end}}
 {{end}}

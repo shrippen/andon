@@ -11,3 +11,10 @@ func SetBases(base string) func() {
 		nasaBase, flightsBase, transitBase, rdapBase, ownIPURL = saved[5], saved[6], saved[7], saved[8], saved[9]
 	}
 }
+
+// SetWeatherURL points the weather source at a test server.
+func SetWeatherURL(u string) func() {
+	saved := openMeteoURL
+	openMeteoURL = u
+	return func() { openMeteoURL = saved }
+}
