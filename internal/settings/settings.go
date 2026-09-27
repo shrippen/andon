@@ -4,6 +4,7 @@
 package settings
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -108,7 +109,40 @@ func envInt(key string, def int) int {
 }
 
 func readSecret(name string) string {
-	data, err := os.ReadFile(filepath.Join(secretsDir, name))
+	return readFile(filepath.Join(secretsDir, name))
+}
+
+// Suffixes of env vars that point to a secret instead of holding it:
+// a file path, or an open file descriptor. A descriptor is read as is;
+// reopening it via /dev/fd/N would check permissions the unprivileged
+// process lacks.
+const (
+	fileSuffix = "_FILE"
+	fdSuffix   = "_FD"
+)
+
+func readFD(fd string) string {
+	n, err := strconv.Atoi(fd)
+	if err != nil || n < 3 {
+		return ""
+	}
+	f := os.NewFile(uintptr(n), "secret")
+	if f == nil {
+		return ""
+	}
+	defer f.Close()
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+func readFile(path string) string {
+	if path == "" {
+		return ""
+	}
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return ""
 	}
@@ -143,15 +177,28 @@ func Load() Settings {
 		AnalysisMinutes:      max(1, envInt("ANALYSIS_MINUTES", 5)),
 	}
 
+	// Secrets in order of precedence: Docker secret file, NAME_FD (a file
+	// descriptor the entrypoint opened as root, e.g. 3), NAME_FILE, NAME.
+	// None of them stays in the environment once read.
 	for name, dst := range map[string]*string{
 		"master_key":         &s.MasterKey,
 		"smtp_password":      &s.SMTPPassword,
 		"oidc_client_secret": &s.OIDCClientSecret,
 		"anthropic_api_key":  &s.AnthropicAPIKey,
 	} {
+		env := strings.ToUpper(name)
+		if v := readFile(os.Getenv(env + fileSuffix)); v != "" {
+			*dst = v
+		}
+		if v := readFD(os.Getenv(env + fdSuffix)); v != "" {
+			*dst = v
+		}
 		if v := readSecret(name); v != "" {
 			*dst = v
 		}
+		_ = os.Unsetenv(env)
+		_ = os.Unsetenv(env + fileSuffix)
+		_ = os.Unsetenv(env + fdSuffix)
 	}
 
 	return s
