@@ -2107,6 +2107,10 @@ hint:
     swap_high:
       title: 'Auslagerung zu {percent} % belegt'
       why: 'Der Arbeitsspeicher reicht nicht; alles wird langsam. Speicherhungrige Dienste prüfen.'
+  wallos:
+    renewal_soon:
+      title: '{name} verlängert sich am {day}'
+      why: '{amount} für die nächste Laufzeit. Wer kündigen will, muss es davor tun.'
 info:
   tailscale:
     online: '{online}/{count} online'
@@ -2476,6 +2480,7 @@ rule_name:
   glances.load_high: 'Rechner dauerhaft ausgelastet'
   glances.swap_high: 'Auslagerung hoch'
   system.clock_skew: 'Uhr eines Dienstes geht falsch'
+  wallos.renewal_soon: 'Abo verlängert sich bald'
 param:
   new_watts: 'Neues Gerät (W)'
   new_cost: 'Neues Gerät (€)'

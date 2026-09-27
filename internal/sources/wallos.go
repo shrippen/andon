@@ -116,7 +116,7 @@ func DemoWallos(now time.Time) *WallosDataset {
 	return &WallosDataset{URL: "https://wallos.demo", Currency: "EUR", Subs: []WallosSub{
 		sub(demoHosting, 4),
 		sub(demoWorld.Vendor("elbstrom"), 18),
-		{Name: "Domain " + demoWorld.Studio.Domain, Price: 24, Monthly: 2, Next: next(150), Category: demoHosting.Kind.DE()},
+		{Name: "Domain " + demoWorld.Studio.Domain, Price: 24, Monthly: 2, Next: next(21), Category: demoHosting.Kind.DE()},
 		sub(demoWorld.Vendor("wellenklang"), 9),
 	}}
 }

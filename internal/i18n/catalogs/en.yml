@@ -2106,6 +2106,10 @@ hint:
     swap_high:
       title: 'Swap {percent} % used'
       why: 'Memory runs short and everything slows down. Check memory-hungry services.'
+  wallos:
+    renewal_soon:
+      title: '{name} renews on {day}'
+      why: '{amount} for the next term. To cancel, do it before.'
 info:
   tailscale:
     online: '{online}/{count} online'
@@ -2475,6 +2479,7 @@ rule_name:
   glances.load_high: 'Host constantly busy'
   glances.swap_high: 'Heavy swapping'
   system.clock_skew: 'Service clock is off'
+  wallos.renewal_soon: 'Subscription renews soon'
 param:
   new_watts: 'New device (W)'
   new_cost: 'New device (€)'
