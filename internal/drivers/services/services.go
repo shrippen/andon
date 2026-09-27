@@ -144,6 +144,11 @@ func (a NinjaApi) Version(ctx context.Context) (string, error) {
 	return headers.Get("X-App-Version"), nil
 }
 
+// Get performs one GET against /api/v1/<path>, e.g. one expense.
+func (a NinjaApi) Get(ctx context.Context, path string, params url.Values) (any, error) {
+	return fetchJSON(ctx, a.URL+"/api/v1/"+path, a.headers(), params, httpclient.TLSOf(a.Verify))
+}
+
 // Pages follows Invoice Ninja's meta.pagination paging for one entity.
 func (a NinjaApi) Pages(ctx context.Context, entity string, params url.Values) ([]any, error) {
 	var items []any
@@ -356,6 +361,25 @@ func (a PaperlessApi) Get(ctx context.Context, path string, params url.Values) (
 	return fetchJSON(ctx, strings.TrimRight(a.URL, "/")+"/api/"+path, map[string]string{
 		"Authorization": "Token " + a.Token, "Accept": "application/json",
 	}, params, httpclient.TLSOf(a.Verify))
+}
+
+// Bytes reads a binary answer of /api/<path>, e.g. a document's
+// thumbnail, with its content type.
+func (a PaperlessApi) Bytes(ctx context.Context, path string) ([]byte, string, error) {
+	resp, err := httpclient.Request(ctx, http.MethodGet, joinURL(a.URL, "api/"+path),
+		httpclient.Options{Headers: map[string]string{"Authorization": "Token " + a.Token}, SkipVerify: !a.Verify})
+	if err != nil {
+		return nil, "", ApiError{err.Error()}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= http.StatusBadRequest {
+		return nil, "", ApiError{resp.Status}
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, httpclient.MaxBody))
+	if err != nil {
+		return nil, "", ApiError{err.Error()}
+	}
+	return body, resp.Header.Get("Content-Type"), nil
 }
 
 // ── TLS certificates ──

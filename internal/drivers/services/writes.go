@@ -3,8 +3,9 @@ package services
 // Write calls, used only by the outbound layer:
 //
 //	Kimai        POST /api/timesheets, PATCH /api/timesheets/{id}/stop, PATCH …/export
-//	InvoiceNinja POST /api/v1/invoices
-//	Paperless    POST /api/documents/post_document/ (multipart)
+//	InvoiceNinja POST /api/v1/invoices, PUT /api/v1/expenses/{id}
+//	Paperless    POST /api/documents/post_document/ (multipart),
+//	             POST /api/documents/bulk_edit/, PATCH /api/documents/{id}/
 
 import (
 	"bytes"
@@ -12,6 +13,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 
 	"andon/internal/drivers/httpclient"
 )
@@ -24,6 +26,18 @@ func (a KimaiApi) Send(ctx context.Context, method, path string, body any) (any,
 // Post creates one entity in Invoice Ninja, e.g. ("invoices", {...}).
 func (a NinjaApi) Post(ctx context.Context, entity string, body any) (any, error) {
 	return sendJSON(ctx, http.MethodPost, a.URL+"/api/v1/"+entity, a.headers(), body, httpclient.TLSOf(a.Verify))
+}
+
+// Put changes one entity in Invoice Ninja, e.g. ("expenses", "Kx9", {...});
+// fields left out stay as they are.
+func (a NinjaApi) Put(ctx context.Context, entity, id string, body any) (any, error) {
+	return sendJSON(ctx, http.MethodPut, a.URL+"/api/v1/"+entity+"/"+url.PathEscape(id), a.headers(), body, httpclient.TLSOf(a.Verify))
+}
+
+// Send runs one write against /api/<path> of Paperless, e.g.
+// (POST, "documents/bulk_edit/", {...}).
+func (a PaperlessApi) Send(ctx context.Context, method, path string, body any) (any, error) {
+	return sendJSON(ctx, method, joinURL(a.URL, "api/"+path), map[string]string{"Authorization": "Token " + a.Token}, body, httpclient.TLSOf(a.Verify))
 }
 
 // Upload sends one file to Paperless' consume endpoint; Paperless answers

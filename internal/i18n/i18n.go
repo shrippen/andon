@@ -94,7 +94,8 @@ func T(key string, locale enums.Locale, params map[string]any) string {
 	})
 }
 
-// Typed formats a hint's typed params ({"$money": 12.5} -> "12,50 €", etc.)
+// Typed formats a hint's typed params ({"$money": 12.5} -> "12,50 €",
+// {"$t": "key"} -> the key's text, etc.)
 // for use as T() params. The "key" entry (the message key itself) is
 // dropped, since it is not a display parameter.
 func Typed(params map[string]any, locale enums.Locale) map[string]any {
@@ -122,6 +123,9 @@ func typedValue(value any, locale enums.Locale) any {
 	}
 	if v, ok := m["$day"]; ok {
 		return Day(v, locale)
+	}
+	if key, ok := m["$t"].(string); ok {
+		return T(key, locale, nil)
 	}
 	if v, ok := m["$num"]; ok {
 		digits := 0

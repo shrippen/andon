@@ -157,6 +157,7 @@
   <tbody>{{range $v.Rows}}<tr><td>{{if .Search}}<a href="{{.Search}}" target="_blank" rel="noopener noreferrer" title="{{t "receipts.search"}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</td>
     <td class="num">{{money .Amount $v.Currency}}</td><td class="num"><small class="muted">{{day .Date}}</small></td></tr>{{end}}</tbody>
 </table></div>
+<p class="small"><a href="/receipts">{{t "receipts.open_page"}}</a></p>
 {{else}}<p class="slot-note">{{t "receipts.none"}}</p>{{end}}{{end}}
 {{end}}
 

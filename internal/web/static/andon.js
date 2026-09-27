@@ -159,6 +159,59 @@
     });
   }
 
+  // ── Receipts page: j / k walk the suggestions, Enter links the focused
+  // one, n jumps to the next expense, s opens its search ──
+  function setupReceiptKeys() {
+    function focusOn(el) {
+      if (!el) {
+        return;
+      }
+      el.setAttribute("tabindex", "-1");
+      el.focus();
+      el.scrollIntoView({ block: "nearest" });
+    }
+
+    d.addEventListener("keydown", function (e) {
+      var page = d.querySelector("main.receipts");
+      if (!page || e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target)) {
+        return;
+      }
+      var items = Array.prototype.slice.call(page.querySelectorAll(".kb-item"));
+      var here = d.activeElement && d.activeElement.closest ? d.activeElement.closest(".kb-item") : null;
+      var at = items.indexOf(here);
+      var card = d.activeElement && d.activeElement.closest ? d.activeElement.closest(".receipt-match") : null;
+
+      if (e.key === "j" || e.key === "k") {
+        if (!items.length) {
+          return;
+        }
+        e.preventDefault();
+        var step = e.key === "j" ? 1 : -1;
+        focusOn(items[(at + step + items.length) % items.length]);
+      } else if (e.key === "Enter" && here && d.activeElement === here) {
+        var link = here.querySelector("button[data-link]");
+        if (link) {
+          e.preventDefault();
+          link.click();
+        }
+      } else if (e.key === "n") {
+        var cards = Array.prototype.slice.call(page.querySelectorAll(".receipt-match"));
+        if (!cards.length) {
+          return;
+        }
+        e.preventDefault();
+        var next = cards[(cards.indexOf(card) + 1) % cards.length];
+        focusOn(next.querySelector(".kb-item") || next);
+      } else if (e.key === "s" && card) {
+        var search = card.querySelector("[data-search]");
+        if (search) {
+          e.preventDefault();
+          search.click();
+        }
+      }
+    });
+  }
+
   // ── Context menu on links: new tab, same tab, copy address ──
   // Shift + right click keeps the browser's own menu.
   function setupContextMenu() {
@@ -810,6 +863,7 @@
     setupKimaiForm();
     setupOffline();
     setupHotkeys();
+    setupReceiptKeys();
     setupFolding();
     setupContextMenu();
     setupPalette();
