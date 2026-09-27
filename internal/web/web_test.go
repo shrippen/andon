@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -719,7 +720,9 @@ func TestWidgetFragmentRendersRssFeed(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
+	var hits atomic.Int32
 	feed := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
 		w.Write([]byte(`<rss version="2.0"><channel><title>T</title>
 <item><title>First post</title><link>https://example.org/1</link></item>
 </channel></rss>`))
@@ -765,6 +768,14 @@ func TestWidgetFragmentRendersRssFeed(t *testing.T) {
 	fragBody := mustGet(t, srv, client, "/widget-fragments/"+string(placementMatch[1]))
 	if !strings.Contains(string(fragBody), "First post") || !strings.Contains(string(fragBody), "https://example.org/1") {
 		t.Fatalf("expected the feed's item rendered, got:\n%s", fragBody)
+	}
+
+	// ?refresh forces a fetch at most once a minute per tile.
+	before := hits.Load()
+	mustGet(t, srv, client, "/widget-fragments/"+string(placementMatch[1])+"?refresh")
+	mustGet(t, srv, client, "/widget-fragments/"+string(placementMatch[1])+"?refresh")
+	if n := hits.Load() - before; n > 1 {
+		t.Fatalf("two refreshes fetched %d times", n)
 	}
 }
 

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"sync"
+	"time"
 
 	"andon/internal/enums"
 	"andon/internal/services/accounts"
@@ -211,10 +213,36 @@ func (d Deps) handleWidgetFragment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fresh := svcdata.Cached
-	if r.URL.Query().Has("refresh") {
+	if r.URL.Query().Has("refresh") && ctx.CSRF != "" && forceAllowed(id, time.Now()) {
 		fresh = svcdata.Force
 	}
 	d.renderFragment(w, r, ctx, id, fresh)
+}
+
+// forceEvery limits ?refresh: a live fetch per tile at most once a
+// minute, and only for signed-in viewers (ctx.CSRF set), never through
+// an embed token, so an embedding page cannot drain a fetch budget.
+const forceEvery = time.Minute
+
+var (
+	forcedMu sync.Mutex
+	forced   = map[int64]time.Time{}
+)
+
+func forceAllowed(placementID int64, now time.Time) bool {
+	forcedMu.Lock()
+	defer forcedMu.Unlock()
+
+	for id, at := range forced {
+		if now.Sub(at) >= forceEvery {
+			delete(forced, id)
+		}
+	}
+	if _, recent := forced[placementID]; recent {
+		return false
+	}
+	forced[placementID] = now
+	return true
 }
 
 func (d Deps) renderFragment(w http.ResponseWriter, r *http.Request, ctx Ctx, placementID int64, fresh svcdata.Freshness) {
