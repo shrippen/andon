@@ -576,10 +576,17 @@ button.ghost:hover, .link-btn:hover { color: var(--orange); border-color: var(--
 .chip-pick input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 1px; }
 
 /* ── my credentials: replace on demand ── */
-.cred-table .row-actions { display: flex; flex-wrap: wrap; gap: .4rem .6rem; align-items: flex-start; }
+/* The cell stays a table cell (its lines line up with the row); the
+   actions flow inside it, all one button size. */
+.cred-table td { vertical-align: middle; }
+.cred-actions { display: flex; flex-wrap: wrap; gap: .4rem .6rem; align-items: center; }
+.cred-actions form { margin: 0; }
+.cred-btn { display: inline-flex; align-items: center; height: 2rem; padding: 0 .75rem; margin: 0; font-size: .82rem; line-height: 1;
+  font-family: var(--font-mono); color: var(--blue); background: none; border: 1px solid var(--bg2); cursor: pointer; white-space: nowrap; }
+.cred-btn:hover { color: var(--orange); border-color: var(--fg3); }
 .cred-replace { flex: 1 1 100%; }
 .cred-replace:not([open]) { flex: 0 0 auto; }
-.cred-replace > summary { list-style: none; cursor: pointer; display: inline-block; }
+.cred-replace > summary { list-style: none; cursor: pointer; }
 .cred-replace > summary::-webkit-details-marker { display: none; }
 .cred-replace[open] > summary { margin-bottom: .4rem; }
 

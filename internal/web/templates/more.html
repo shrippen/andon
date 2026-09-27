@@ -107,8 +107,8 @@
       <tr>
         <td>{{.Name}} <span class="muted">({{t (print "service." .Service)}})</span><br><small class="muted">{{.URL}}</small></td>
         <td class="nowrap">{{if .HasMine}}<span class="pill" data-state="ok">{{t "cred.set"}}</span>{{if not .SecretAt.IsZero}}<br><small class="muted">{{ago .SecretAt}}</small>{{end}}{{else}}<span class="pill" data-state="warn">{{t "cred.missing"}}</span>{{end}}</td>
-        <td class="row-actions">
-          {{if .HasMine}}<details class="cred-replace"><summary class="link-btn">{{t "cred.replace"}}</summary>{{end}}
+        <td><div class="cred-actions">
+          {{if .HasMine}}<details class="cred-replace"><summary class="cred-btn">{{t "cred.replace"}}</summary>{{end}}
           <form method="post" action="/me/credentials/{{.ID}}" class="inline-form cred-form">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
             {{$shape := credShape .Service}}
@@ -135,19 +135,19 @@
             <form method="post" action="/connections/{{$item.ID}}/connect" class="inline-form" hx-boost="false">
               <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
               <input type="hidden" name="back" value="/me/credentials">
-              <button type="submit" class="ghost">{{t "connect.button" "service" (t (print "service." $item.Service))}}</button>
+              <button type="submit" class="ghost cred-btn">{{t "connect.button" "service" (t (print "service." $item.Service))}}</button>
             </form>
             {{else}}<p class="small muted">{{t "connect.client_missing"}}</p>{{end}}
           {{end}}
           {{if .HasMine}}
           <form method="post" action="/me/credentials/{{.ID}}/delete" class="inline-form" data-confirm="{{t "edit.confirm_delete"}}">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" class="link-btn">{{t "action.delete"}}</button>
+            <button type="submit" class="ghost cred-btn">{{t "action.delete"}}</button>
           </form>
           {{end}}
-        </td>
+        </div></td>
       </tr>
-      {{else}}<tr><td colspan="4" class="muted">{{t "cred.none"}}</td></tr>{{end}}
+      {{else}}<tr><td colspan="3" class="muted">{{t "cred.none"}}</td></tr>{{end}}
     </table></div>
   </main>
 </body>
