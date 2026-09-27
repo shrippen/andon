@@ -43,9 +43,9 @@ type Customer struct {
 }
 
 type Project struct {
-	ID, Customer string
-	Name         Text
-	HourlyRate   float64 `json:"hourly_rate"`
+	ID, Customer, Color string
+	Name                Text
+	HourlyRate          float64 `json:"hourly_rate"`
 }
 
 type Activity struct {
@@ -70,17 +70,49 @@ type Receipt struct {
 	Note     Text
 }
 
+// Vendor is a supplier the studio pays regularly (not a customer).
+type Vendor struct {
+	ID, Name, Domain string
+	Kind, Contract   Text
+	Monthly          float64
+}
+
+type Asset struct {
+	Tag, Name, Model string
+	Category         Text
+	Cost             float64
+}
+
+type License struct {
+	Name, Vendor string
+	Seats        int
+}
+
+// Inventory is the studio's IT: assets, licences and the NAS disks.
+type Inventory struct {
+	Assets   []Asset
+	Licenses []License
+	Disks    []string
+}
+
 type World struct {
 	Studio struct {
 		Name     string
 		Hostname string
+		Domain   string
+		City     string
 	}
-	People       []Person
-	Customers    []Customer
-	Projects     []Project
-	Activities   []Activity
-	Places       []Place
-	Receipts     []Receipt
+	People     []Person
+	Customers  []Customer
+	Projects   []Project
+	Activities []Activity
+	Places     []Place
+	Receipts   []Receipt
+	Vendors    []Vendor
+	Inventory  Inventory
+	Media      struct {
+		Album struct{ Title, Artist string }
+	}
 	DemoPassword string `json:"demo_password"`
 }
 
@@ -147,4 +179,13 @@ func (w *World) Receipt(id int) Receipt {
 		}
 	}
 	panic(fmt.Sprintf("demoworld: no receipt %d", id))
+}
+
+func (w *World) Vendor(id string) Vendor {
+	for _, v := range w.Vendors {
+		if v.ID == id {
+			return v
+		}
+	}
+	panic("demoworld: no vendor " + id)
 }

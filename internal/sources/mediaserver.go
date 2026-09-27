@@ -260,14 +260,15 @@ func pad2(n int) string {
 
 func DemoMediaServer() *MediaServerDataset {
 	return &MediaServerDataset{URL: "https://jellyfin.demo", Kind: mediaJellyfin, Version: "10.10.7", Movies: 1204, Series: 86, Episodes: 4310,
-		Streams: []Stream{{User: "anna", Title: "Dark"}, {User: "ben", Title: "Arrival"}}}
+		Streams: []Stream{{User: demoWorld.Person("selin").Alias, Title: demoProjectName(0)},
+			{User: demoWorld.Person("theo").Alias, Title: demoWorld.Media.Album.Title}}}
 }
 
 func DemoArr(now time.Time) *ArrDataset {
 	return &ArrDataset{URL: "https://sonarr.demo", App: sonarrApp, Version: "4.0.15", Queue: 3, Missing: 12,
-		Stuck:    []string{"Andor.S02E04"},
-		Health:   []ArrHealth{{Level: arrWarning, Message: "Indexer Nyaa is unavailable"}},
-		Upcoming: []ArrItem{{Title: "Severance 2x09", At: now.Add(26 * time.Hour)}, {Title: "The Bear 4x01", At: now.Add(80 * time.Hour)}}}
+		Stuck:    []string{"Harbour.Lights.S02E04"},
+		Health:   []ArrHealth{{Level: arrWarning, Message: "Indexer Elbindex is unavailable"}},
+		Upcoming: []ArrItem{{Title: "Harbour Lights 2x05", At: now.Add(26 * time.Hour)}, {Title: "Harbour Lights 2x06", At: now.Add(80 * time.Hour)}}}
 }
 
 func init() {

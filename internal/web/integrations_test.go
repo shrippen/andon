@@ -17,11 +17,11 @@ func TestIntegrationWidgetsRender(t *testing.T) {
 
 	cases := []struct{ service, widget, want string }{
 		{"tailscale", "tailscale", "laptop"},
-		{"mediaserver", "mediaserver", "Arrival"},
-		{"arr", "arr_upcoming", "Severance 2x09"},
+		{"mediaserver", "mediaserver", "Harbour Lights (Original Score)"},
+		{"arr", "arr_upcoming", "Harbour Lights 2x05"},
 		{"grocy", "grocy", "Joghurt"},
 		{"dwd", "dwd", "STURMBÖEN"},
-		{"github", "github", "shrippen/dotfiles"},
+		{"github", "github", "studio/showreel"},
 		{"speedtest", "speedtest", "243"},
 		{"tibber", "energy", "trend-line"},
 	}

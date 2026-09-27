@@ -16,6 +16,7 @@ import (
 
 	"andon/internal/drivers/services"
 	"andon/internal/enums"
+	"andon/internal/sources/demoworld"
 )
 
 // WallosSub is one subscription.
@@ -105,13 +106,18 @@ func (WallosData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 
 // DemoWallos is a small set of subscriptions; Sure's demo "Adobe Creative
 // Cloud" is missing on purpose, for the cross.wallos_missing hint.
+// DemoWallos is the demo Wallos dataset: the studio's suppliers from the
+// demo world plus its domain; the software subscription in Sure is missing.
 func DemoWallos(now time.Time) *WallosDataset {
 	next := func(days int) string { return now.AddDate(0, 0, days).Format(time.DateOnly) }
+	sub := func(v demoworld.Vendor, days int) WallosSub {
+		return WallosSub{Name: v.Name, Price: v.Monthly, Monthly: v.Monthly, Next: next(days), Category: v.Kind.DE()}
+	}
 	return &WallosDataset{URL: "https://wallos.demo", Currency: "EUR", Subs: []WallosSub{
-		{Name: "Hetzner", Price: 38.2, Monthly: 38.2, Next: next(4), Category: "Hosting"},
-		{Name: "Tibber", Price: 72, Monthly: 72, Next: next(18), Category: "Energie"},
-		{Name: "Domain arianw.de", Price: 24, Monthly: 2, Next: next(150), Category: "Hosting"},
-		{Name: "Spotify", Price: 10.99, Monthly: 10.99, Next: next(9), Category: "Unterhaltung"},
+		sub(demoHosting, 4),
+		sub(demoWorld.Vendor("elbstrom"), 18),
+		{Name: "Domain " + demoWorld.Studio.Domain, Price: 24, Monthly: 2, Next: next(150), Category: demoHosting.Kind.DE()},
+		sub(demoWorld.Vendor("wellenklang"), 9),
 	}}
 }
 

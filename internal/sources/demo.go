@@ -43,6 +43,13 @@ var (
 	demoCustomers   = demoKimaiCustomers()
 	demoEdit        = demoWorld.Activity("edit").Name.DE()
 	demoOnSite      = demoWorld.Activity("shoot").Name.DE() + " vor Ort"
+	demoMeeting     = demoWorld.Activity("meeting").Name.DE()
+	// Suppliers: the mobile contract in Paperless, the hosting that Sure,
+	// Wallos and the mailbox know, the software subscription missing in Wallos.
+	demoMobile   = demoWorld.Vendor("elbnetz")
+	demoHosting  = demoWorld.Vendor("nordhost")
+	demoSoftware = demoWorld.Vendor("farbraum")
+	demoDisks    = demoWorld.Inventory.Disks
 )
 
 func demoKimaiCustomers() []KimaiCustomer {
@@ -238,31 +245,47 @@ func pad3(n int64) string {
 	return string(s)
 }
 
+// demoSnipeAssets gives the studio's assets from the demo world their
+// states: the notebook's warranty ends soon, the NAS is past end of life
+// and overdue for an audit.
+func demoSnipeAssets(ago, ahead func(int) string) []SnipeAsset {
+	states := []SnipeAsset{
+		{Status: "Ausgegeben", Deployable: true, Assigned: true, PurchaseDate: ago(30), WarrantyExpires: ahead(10),
+			EOLDate: ahead(900), NextAudit: ahead(100), LastChange: ago(30)},
+		{Status: "In Betrieb", Deployable: true, Assigned: true, PurchaseDate: ago(1900), WarrantyExpires: ago(800),
+			EOLDate: ago(20), NextAudit: ago(15), LastChange: ago(400)},
+		{Status: "Bereit", Deployable: true, PurchaseDate: ago(500), WarrantyExpires: ahead(230),
+			NextAudit: ahead(60), LastChange: ago(140)},
+		{Status: "Ausgegeben", Deployable: true, Assigned: true, PurchaseDate: ago(60), WarrantyExpires: ahead(1000),
+			NextAudit: ahead(200), LastChange: ago(60)},
+	}
+	out := make([]SnipeAsset, len(states))
+	for i, a := range demoWorld.Inventory.Assets[:len(states)] {
+		s := states[i]
+		s.ID, s.Name, s.Tag, s.Model, s.Category, s.PurchaseCost = int64(i+1), a.Name, a.Tag, a.Model, a.Category.DE(), a.Cost
+		out[i] = s
+	}
+	return out
+}
+
+// demoSnipeLicenses: the first licence expires soon, the second has free seats.
+func demoSnipeLicenses(ahead func(int) string) []SnipeLicense {
+	l := demoWorld.Inventory.Licenses
+	return []SnipeLicense{
+		{ID: 1, Name: l[0].Name, Expires: ahead(20), Seats: l[0].Seats},
+		{ID: 2, Name: l[1].Name, Expires: ahead(200), Seats: l[1].Seats, Free: 2},
+	}
+}
+
 // DemoSnipe is the demo Snipe-IT dataset.
 func DemoSnipe(now time.Time) *SnipeDataset {
 	today := demoDay(now)
 	ago := func(n int) string { return iso(today.AddDate(0, 0, -n)) }
 	ahead := func(n int) string { return iso(today.AddDate(0, 0, n)) }
 	return &SnipeDataset{
-		URL: "https://assets.demo",
-		Assets: []SnipeAsset{
-			{ID: 1, Name: "ThinkPad T14", Tag: "NB-001", Model: "T14 Gen 4", Category: "Notebook", Status: "Ausgegeben",
-				Deployable: true, Assigned: true, PurchaseDate: ago(30), PurchaseCost: 1200, WarrantyExpires: ahead(10),
-				EOLDate: ahead(900), NextAudit: ahead(100), LastChange: ago(30)},
-			{ID: 2, Name: "NAS", Tag: "SRV-002", Model: "DS920+", Category: "Server", Status: "In Betrieb",
-				Deployable: true, Assigned: true, PurchaseDate: ago(1900), PurchaseCost: 650, WarrantyExpires: ago(800),
-				EOLDate: ago(20), NextAudit: ago(15), LastChange: ago(400)},
-			{ID: 3, Name: "Pixel 7", Tag: "PH-003", Model: "Pixel 7", Category: "Smartphone", Status: "Bereit",
-				Deployable: true, PurchaseDate: ago(500), PurchaseCost: 599, WarrantyExpires: ahead(230),
-				NextAudit: ahead(60), LastChange: ago(140)},
-			{ID: 4, Name: `Monitor 27"`, Tag: "MO-004", Model: "U2723QE", Category: "Monitor", Status: "Ausgegeben",
-				Deployable: true, Assigned: true, PurchaseDate: ago(60), PurchaseCost: 890, WarrantyExpires: ahead(1000),
-				NextAudit: ahead(200), LastChange: ago(60)},
-		},
-		Licenses: []SnipeLicense{
-			{ID: 1, Name: "JetBrains All Products", Expires: ahead(20), Seats: 1},
-			{ID: 2, Name: "Microsoft 365", Expires: ahead(200), Seats: 5, Free: 2},
-		},
+		URL:          "https://assets.demo",
+		Assets:       demoSnipeAssets(ago, ahead),
+		Licenses:     demoSnipeLicenses(ahead),
 		Consumables:  []SnipeConsumable{{ID: 1, Name: "Toner schwarz", Remaining: 1, Min: 2}},
 		AuditOverdue: []int64{2},
 	}
@@ -345,13 +368,13 @@ func DemoProxmox(now time.Time) *ProxmoxDataset {
 // DemoPaperless is the demo Paperless-ngx dataset.
 func DemoPaperless(now time.Time) *PaperlessDataset {
 	today := demoDay(now)
-	return &PaperlessDataset{URL: "https://docs.demo", Total: 1843, Inbox: 7, OldestTitle: "Rechnung Elbnetz Mobilfunk",
+	return &PaperlessDataset{URL: "https://docs.demo", Total: 1843, Inbox: 7, OldestTitle: "Rechnung " + demoMobile.Name,
 		OldestAdded: iso(today.AddDate(0, 0, -23)),
-		Invoices: []PaperlessDoc{{ID: 311, Title: "Rechnung 09/2026", Correspondent: "Elbnetz Mobilfunk",
-			Created: iso(today.AddDate(0, 0, -23)), Amount: 39.95}},
-		Contracts: []PaperlessContract{{ID: 88, Title: "Mobilfunkvertrag", Correspondent: "Elbnetz Mobilfunk",
+		Invoices: []PaperlessDoc{{ID: 311, Title: "Rechnung 09/2026", Correspondent: demoMobile.Name,
+			Created: iso(today.AddDate(0, 0, -23)), Amount: demoMobile.Monthly}},
+		Contracts: []PaperlessContract{{ID: 88, Title: demoMobile.Contract.DE(), Correspondent: demoMobile.Name,
 			End: today.AddDate(0, 3, 20), NoticeMonths: 3, Deadline: today.AddDate(0, 0, 20), RenewsAutomatic: true}},
-		Newest: []PaperlessNew{{ID: 1843, Title: "Kontoauszug 09/2026", Added: iso(today)}, {ID: 1842, Title: "Rechnung Nordhost Server", Added: iso(today.AddDate(0, 0, -1))},
+		Newest: []PaperlessNew{{ID: 1843, Title: "Kontoauszug 09/2026", Added: iso(today)}, {ID: 1842, Title: "Rechnung " + demoHosting.Name, Added: iso(today.AddDate(0, 0, -1))},
 			{ID: 1841, Title: "Versicherungsschein", Added: iso(today.AddDate(0, 0, -2))}},
 		TagCounts: map[string]int{"steuer 2026": 64, "belege": 212}}
 }
@@ -369,9 +392,9 @@ func DemoCerts(now time.Time) *CertDataset {
 func DemoScrutiny(now time.Time) *ScrutinyDataset {
 	seen := now.UTC().Add(-3 * time.Hour)
 	return &ScrutinyDataset{URL: "https://disks.demo", Disks: []Disk{
-		{Name: "sda", Model: "WDC WD40EFRX", Status: ScrutinyPassed, Temp: 38, Hours: 31000, Seen: seen},
-		{Name: "sdb", Model: "ST4000VN008", Status: 1, Temp: 41, Hours: 42000, Seen: seen},
-		{Name: "nvme0", Model: "Samsung 980", Status: ScrutinyPassed, Temp: 56, Hours: 9000, Seen: seen},
+		{Name: "sda", Model: demoDisks[0], Status: ScrutinyPassed, Temp: 38, Hours: 31000, Seen: seen},
+		{Name: "sdb", Model: demoDisks[1], Status: 1, Temp: 41, Hours: 42000, Seen: seen},
+		{Name: "nvme0", Model: demoDisks[2], Status: ScrutinyPassed, Temp: 56, Hours: 9000, Seen: seen},
 	}}
 }
 
@@ -452,16 +475,16 @@ func DemoSure(now time.Time) *SureDataset {
 		},
 		Transactions: []SureTxn{
 			{ID: "t1", Date: day(-3), Name: fmt.Sprintf("%s RE-2026-017", demoCustomers[0].Name), Amount: 2380, Category: "Einnahmen", Account: "Geschäftskonto"},
-			{ID: "t2", Date: day(-5), Name: "Nordhost Server", Amount: -41.65, Category: "Hosting", Merchant: "Nordhost", Account: "Geschäftskonto"},
+			{ID: "t2", Date: day(-5), Name: demoHosting.Name, Amount: -demoHosting.Monthly, Category: demoHosting.Kind.DE(), Merchant: demoHosting.Name, Account: "Geschäftskonto"},
 			{ID: "t3", Date: day(-8), Name: "Kabelwerk Studiobedarf", Amount: -899, Account: "Geschäftskonto"},
 			{ID: "t4", Date: day(-12), Name: "Bäckerei", Amount: -6.4, Account: "Tagesgeld"},
-			{ID: "t5", Date: day(-40), Name: "Nordhost Server", Amount: -41.65, Category: "Hosting", Merchant: "Nordhost", Account: "Geschäftskonto"},
+			{ID: "t5", Date: day(-40), Name: demoHosting.Name, Amount: -demoHosting.Monthly, Category: demoHosting.Kind.DE(), Merchant: demoHosting.Name, Account: "Geschäftskonto"},
 		},
 		Recurring: []SureRecurring{
-			{Name: "Nordhost Server", Status: "active", Amount: 41.65, Expense: true, Next: day(25), Last: day(-5)},
+			{Name: demoHosting.Name, Status: "active", Amount: demoHosting.Monthly, Expense: true, Next: day(25), Last: day(-5)},
 			{Name: "Krankenversicherung", Status: "active", Amount: 612, Expense: true, Next: day(-9), Last: day(-39)},
 			{Name: "Miete Studio", Status: "active", Amount: 450, Expense: true, Next: day(6), Last: day(-24)},
-			{Name: "Schnittsoftware-Abo", Status: "active", Amount: 66.45, Expense: true, Next: day(11), Last: day(-19)},
+			{Name: demoSoftware.Contract.DE(), Status: "active", Amount: demoSoftware.Monthly, Expense: true, Next: day(11), Last: day(-19)},
 		},
 	}
 }
@@ -508,9 +531,9 @@ func DemoPGBack(now time.Time) *PGBackDataset {
 func DemoMail(now time.Time) *MailDataset {
 	day := func(n int) time.Time { return now.UTC().AddDate(0, 0, -n) }
 	return &MailDataset{Mailbox: "INBOX", Scanned: 214, Invoices: []MailInvoice{
-		{UID: 1, Date: day(4), Sender: "Nordhost Server", Addr: "billing@nordhost.example.test", Domain: "nordhost.example.test",
-			Subject: "Ihre Rechnung R0012345", Amount: 41.65, Attachments: []string{"Nordhost_2026-09.pdf"}},
-		{UID: 2, Date: day(9), Sender: "Farbraum Software", Addr: "sales@farbraum.example.test", Domain: "farbraum.example.test",
+		{UID: 1, Date: day(4), Sender: demoHosting.Name, Addr: "billing@" + demoHosting.Domain, Domain: demoHosting.Domain,
+			Subject: "Ihre Rechnung R0012345", Amount: demoHosting.Monthly, Attachments: []string{"Rechnung_R0012345.pdf"}},
+		{UID: 2, Date: day(9), Sender: demoSoftware.Name, Addr: "sales@" + demoSoftware.Domain, Domain: demoSoftware.Domain,
 			Subject: "Invoice for your order", Amount: 289, Attachments: []string{"invoice.pdf"}},
 	}}
 }
@@ -620,16 +643,27 @@ func DemoBlacklist() *BlacklistDataset {
 		Listings: []Listing{{IP: "93.184.216.34", Zone: "bl.spamcop.net", Code: "127.0.0.2"}}}
 }
 
+// demoTimer is a timer on demo project i (Kimai id i+1, as in DemoKimai).
+func demoTimer(i int, activityID int64, activity string, begin time.Time) KimaiTimer {
+	project := demoWorld.Project(demoProjectIDs[i])
+	t := KimaiTimer{ProjectID: int64(i + 1), ActivityID: activityID, Project: project.Name.DE(), Activity: activity,
+		Customer: demoCustomers[i].Name, Color: project.Color, Begin: begin}
+	if !begin.IsZero() {
+		t.ID = 901
+	}
+	return t
+}
+
 // DemoKimaiLive is the demo live Kimai view: one timer running.
 func DemoKimaiLive(now time.Time) *KimaiLive {
 	begin := now.Add(-47 * time.Minute)
 	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	at := func(h, m int) time.Time { return day.Add(time.Duration(h)*time.Hour + time.Duration(m)*time.Minute) }
 	return &KimaiLive{URL: "https://kimai.demo", TodayMin: 312, WeekMin: 1590,
-		Active: []KimaiTimer{{ID: 901, ProjectID: 3, ActivityID: 7, Project: "Relaunch", Activity: "Entwicklung", Customer: "Acme GmbH", Color: "#d3869b", Begin: begin}},
+		Active: []KimaiTimer{demoTimer(1, 7, demoEdit, begin)},
 		Recent: []KimaiTimer{
-			{ProjectID: 3, ActivityID: 7, Project: "Relaunch", Activity: "Entwicklung", Customer: "Acme GmbH", Color: "#d3869b"},
-			{ProjectID: 5, ActivityID: 2, Project: "Wartung", Activity: "Support", Customer: "Beta AG", Color: "#8ec07c"},
+			demoTimer(1, 7, demoEdit, time.Time{}),
+			demoTimer(0, 2, demoMeeting, time.Time{}),
 		},
 		Today: []KimaiSpan{{Begin: at(9, 5), End: at(11, 40)}, {Begin: at(12, 15), End: at(13, 5)}}}
 }
@@ -638,7 +672,7 @@ func DemoKimaiLive(now time.Time) *KimaiLive {
 // and one project activity.
 func DemoKimaiCatalog() *KimaiCatalog {
 	return &KimaiCatalog{
-		Projects:   []KimaiPick{{ID: 3, Name: "Relaunch", Customer: "Acme GmbH"}, {ID: 5, Name: "Wartung", Customer: "Beta AG"}},
-		Activities: []KimaiActivityPick{{ID: 7, Name: "Entwicklung"}, {ID: 2, Name: "Support", ProjectID: 5}},
+		Projects:   []KimaiPick{{ID: 2, Name: demoProjectName(1), Customer: demoCustomers[1].Name}, {ID: 1, Name: demoProjectName(0), Customer: demoCustomers[0].Name}},
+		Activities: []KimaiActivityPick{{ID: 7, Name: demoEdit}, {ID: 2, Name: demoMeeting, ProjectID: 1}},
 	}
 }

@@ -68,6 +68,7 @@ func demoReceipts(today time.Time) []demoReceipt {
 	fuel, fuelDay := w(5)
 	printing, printingDay := w(6)
 	phoneDay := today.AddDate(0, 0, -23) // DemoPaperless' invoice 311
+	phone := demoMobile
 	return []demoReceipt{
 		{expense: "demo1", number: "EX-0041", vendor: film.Vendor, notes: film.Note.DE(), invoice: film.Number, amount: film.Amount, day: filmDay,
 			docs: []demoScan{{id: 201, title: "Rechnung " + film.Number, correspondent: film.Vendor + " GmbH",
@@ -78,8 +79,8 @@ func demoReceipts(today time.Time) []demoReceipt {
 		{expense: "demo3", number: "EX-0043", vendor: catering.Vendor, notes: catering.Note.DE(), amount: catering.Amount, day: cateringDay,
 			docs: []demoScan{{id: 203, title: catering.Vendor, correspondent: catering.Vendor, text: "Total " + euro(catering.Amount) + " EUR",
 				day: cateringDay.AddDate(0, 0, 1)}}},
-		{expense: "demo4", number: "EX-0044", vendor: "Elbnetz Mobilfunk", notes: "Mobilfunk", amount: 39.95, day: phoneDay,
-			docs: []demoScan{{id: 311, title: "Rechnung 09/2026", correspondent: "Elbnetz Mobilfunk", text: "Rechnungsbetrag 39,95 EUR", amount: 39.95, day: phoneDay}}},
+		{expense: "demo4", number: "EX-0044", vendor: phone.Name, notes: phone.Kind.DE(), amount: phone.Monthly, day: phoneDay,
+			docs: []demoScan{{id: 311, title: "Rechnung 09/2026", correspondent: phone.Name, text: "Rechnungsbetrag " + euro(phone.Monthly) + " EUR", amount: phone.Monthly, day: phoneDay}}},
 		{expense: "demo5", number: "EX-0045", vendor: car.Vendor, notes: car.Note.DE(), amount: car.Amount, day: carDay,
 			docs: []demoScan{{id: 204, title: "Quittung " + car.Vendor, correspondent: car.Vendor, text: "Summe 99,00", amount: 99, day: carDay, tagged: true},
 				{id: 205, title: "Quittung " + car.Vendor, correspondent: car.Vendor, text: "Summe " + euro(car.Amount-99), amount: round2(car.Amount - 99),

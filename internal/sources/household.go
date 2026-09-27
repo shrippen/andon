@@ -514,8 +514,8 @@ func addTemperatures(ctx context.Context, days []EnergyDay, options map[string]a
 
 func DemoVaultwarden(now time.Time) *VaultwardenDataset {
 	return &VaultwardenDataset{URL: "https://vault.demo", Version: "1.34.3", Users: []VaultUser{
-		{Email: "anna@example.org", TwoFactor: true, Enabled: true, LastActive: now.AddDate(0, 0, -1)},
-		{Email: "ben@example.org", Enabled: true, LastActive: now.AddDate(0, 0, -3)},
+		{Email: demoWorld.Person("mara").Email, TwoFactor: true, Enabled: true, LastActive: now.AddDate(0, 0, -1)},
+		{Email: demoWorld.Person("lena").Email, Enabled: true, LastActive: now.AddDate(0, 0, -3)},
 	}}
 }
 
@@ -529,15 +529,15 @@ func DemoGrocy(now time.Time) *GrocyDataset {
 }
 
 func DemoDWD(now time.Time) *DWDDataset {
-	return &DWDDataset{URL: "https://api.brightsky.dev", Place: "Berlin", Warnings: []WeatherWarning{
+	return &DWDDataset{URL: "https://api.brightsky.dev", Place: demoWorld.Studio.City, Warnings: []WeatherWarning{
 		{ID: "demo-1", Event: "STURMBÖEN", Headline: "Amtliche WARNUNG vor STURMBÖEN", Severity: WarnModerate, Onset: now, Expire: now.Add(8 * time.Hour)},
 	}}
 }
 
 func DemoGitHub(now time.Time) *GitHubDataset {
 	return &GitHubDataset{URL: "https://api.github.com", Notifications: 4, Repos: []GitRepo{
-		{Name: "shrippen/andon", Issues: 3, PRs: 1, CI: "success", Release: "v0.12.0", ReleasedAt: now.AddDate(0, 0, -6)},
-		{Name: "shrippen/dotfiles", Issues: 0, PRs: 0, CI: "failure"},
+		{Name: "studio/website", Issues: 3, PRs: 1, CI: "success", Release: "v0.12.0", ReleasedAt: now.AddDate(0, 0, -6)},
+		{Name: "studio/showreel", Issues: 0, PRs: 0, CI: "failure"},
 	}}
 }
 

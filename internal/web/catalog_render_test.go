@@ -58,7 +58,7 @@ func TestCatalogTilesRender(t *testing.T) {
 		"receipts_missing": {data: sources.DemoSure(now), want: "slot-note"},
 		"travel":           {data: sources.DemoDawarich(now), want: "412 km"},
 		"exposure":         {data: sources.DemoPangolin(), want: "expo-rows"},
-		"subscriptions":    {want: "Hetzner", peers: map[string]any{"wallos": sources.DemoWallos(now), "sure": sources.DemoSure(now)}},
+		"subscriptions":    {want: "Nordhost", peers: map[string]any{"wallos": sources.DemoWallos(now), "sure": sources.DemoSure(now)}},
 		"rate_trend":       {data: sources.DemoNinja(now), want: "spark", peers: map[string]any{"kimai": sources.DemoKimai(now)}},
 	}
 	for key, c := range cases {
