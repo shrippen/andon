@@ -36,10 +36,26 @@ func TestAllowlistBlocksPrivateUnlessListed(t *testing.T) {
 		t.Fatalf("expected listed network allowed: %v", err)
 	}
 
-	if err := ApplyNetwork(NetworkPolicy{Mode: NetOpen}); err != nil {
+	if err := ApplyNetwork(NetworkPolicy{Mode: NetOpen, Networks: []string{"127.0.0.0/8"}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := call(); err != nil {
-		t.Fatalf("expected open mode: %v", err)
+		t.Fatalf("expected listed loopback allowed in open mode: %v", err)
+	}
+}
+
+// TestOpenModeBlocksLocalTargets: without admin settings, users still
+// cannot reach Andon itself (loopback) or cloud metadata (link-local).
+func TestOpenModeBlocksLocalTargets(t *testing.T) {
+	t.Cleanup(func() { httpclient.SetGuard(nil) })
+	if err := ApplyNetwork(NetworkPolicy{Mode: NetOpen, Public: true}); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, target := range []string{"http://127.0.0.1:1/", "http://169.254.169.254/latest/meta-data/", "http://[::1]:1/", "http://0.0.0.0:1/"} {
+		_, err := httpclient.Request(context.Background(), http.MethodGet, target, httpclient.Options{})
+		if _, denied := err.(httpclient.EgressDenied); !denied {
+			t.Errorf("%s: expected EgressDenied, got %v", target, err)
+		}
 	}
 }

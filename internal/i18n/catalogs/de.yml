@@ -1380,7 +1380,7 @@ admin:
   network: Netzwerk
   net_mode: Ausgehende Verbindungen
   net_public: Öffentliche Adressen erlauben
-  net_networks: Erlaubte Netze (CIDR)
+  net_networks: Erlaubte Netze (CIDR; im offenen Modus Ausnahmen, z. B. 127.0.0.0/8)
   net_hosts: Erlaubte Hosts
   oidc: Single Sign-on (authentik)
   oidc_enabled: Aktiv
@@ -1395,7 +1395,7 @@ admin:
   group: authentik-Gruppe
   team: Team
 net:
-  open: Offen
+  open: Offen (außer Loopback und Link-Local, z. B. 169.254.169.254)
   allowlist: Nur erlaubte Netze
 audit:
   who: Wer

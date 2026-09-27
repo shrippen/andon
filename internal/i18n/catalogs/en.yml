@@ -1373,7 +1373,7 @@ admin:
   network: Network
   net_mode: Outgoing connections
   net_public: Allow public addresses
-  net_networks: Allowed networks (CIDR)
+  net_networks: Allowed networks (CIDR; exceptions in open mode, e.g. 127.0.0.0/8)
   net_hosts: Allowed hosts
   oidc: Single sign-on (authentik)
   oidc_enabled: Active
@@ -1388,7 +1388,7 @@ admin:
   group: authentik group
   team: Team
 net:
-  open: Open
+  open: Open (except loopback and link-local, e.g. 169.254.169.254)
   allowlist: Allowed networks only
 audit:
   who: Who

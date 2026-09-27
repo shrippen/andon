@@ -17,7 +17,8 @@ const (
 
 // NetworkPolicy restricts which hosts sources may reach:
 //
-//	open        everything
+//	open        everything but local targets (loopback, link-local such as
+//	            169.254.169.254, unspecified, multicast) unless listed
 //	allowlist   listed hosts, listed networks, public addresses (if Public)
 type NetworkPolicy struct {
 	Mode     NetMode
@@ -41,10 +42,6 @@ func ParseNetworks(cidrs []string) ([]*net.IPNet, error) {
 
 // ApplyNetwork installs policy as the process-wide egress guard.
 func ApplyNetwork(policy NetworkPolicy) error {
-	if policy.Mode != NetAllowlist {
-		httpclient.SetGuard(nil)
-		return nil
-	}
 	nets, err := ParseNetworks(policy.Networks)
 	if err != nil {
 		return err
@@ -54,18 +51,40 @@ func ApplyNetwork(policy NetworkPolicy) error {
 		hosts[strings.ToLower(strings.TrimSpace(h))] = true
 	}
 
+	allowed := allowedAddr
+	if policy.Mode != NetAllowlist {
+		allowed = notLocal
+	}
 	httpclient.SetGuard(func(host string, addrs []net.IP) bool {
 		if hosts[strings.ToLower(host)] {
 			return true
 		}
 		for _, addr := range addrs {
-			if !allowedAddr(addr, nets, policy) {
+			if !allowed(addr, nets, policy) {
 				return false
 			}
 		}
 		return true
 	})
 	return nil
+}
+
+// notLocal is the open mode: any address except local targets, which
+// only a listed network unlocks (e.g. 127.0.0.0/8 for a sidecar).
+func notLocal(addr net.IP, nets []*net.IPNet, _ NetworkPolicy) bool {
+	for _, n := range nets {
+		if n.Contains(addr) {
+			return true
+		}
+	}
+	return !isLocal(addr)
+}
+
+// isLocal: Andon itself or the host's metadata service, never a service
+// an invited user should reach.
+func isLocal(ip net.IP) bool {
+	return ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
+		ip.IsUnspecified() || ip.IsMulticast()
 }
 
 func allowedAddr(addr net.IP, nets []*net.IPNet, policy NetworkPolicy) bool {

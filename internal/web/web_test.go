@@ -28,6 +28,7 @@ import (
 	"andon/internal/services/system"
 	"andon/internal/services/themes"
 	"andon/internal/settings"
+	"andon/internal/sources"
 	"andon/internal/web"
 )
 
@@ -73,6 +74,11 @@ func newTestServer(t *testing.T) (*httptest.Server, *http.Client, string) {
 	t.Cleanup(func() { database.Close() })
 	if err := system.Start(database); err != nil {
 		t.Fatalf("system start: %v", err)
+	}
+	// Fake services are httptest servers on loopback, which open mode
+	// blocks by default.
+	if err := sources.ApplyNetwork(sources.NetworkPolicy{Mode: sources.NetOpen, Networks: []string{"127.0.0.0/8", "::1/128"}}); err != nil {
+		t.Fatalf("network: %v", err)
 	}
 	if _, err := themes.EnsureBuiltin(database); err != nil {
 		t.Fatalf("ensure builtin theme: %v", err)
