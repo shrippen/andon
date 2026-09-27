@@ -21,6 +21,9 @@ const (
 	Cross     = "cross"
 	Deadlines = "deadlines"
 	Enabled   = "enabled"
+	// Escalate is every rule's "raise to critical after N open days"
+	// setting; 0 keeps the rule's own severity.
+	Escalate = "escalate_days"
 )
 
 // Finding is one problem found by a rule, e.g. an overdue invoice.
@@ -34,6 +37,9 @@ type Finding struct {
 	ActionLabel string
 	Due         string
 	Sources     []string
+	// EscalateDays > 0 raises the hint to critical once it has been open
+	// that long (rule setting escalate_days, filled in by the analysis).
+	EscalateDays int
 }
 
 // Env is what a rule sees beyond its own service's dataset: today, the
@@ -65,7 +71,7 @@ func Register(id string, scope string, defaults map[string]any, fn RuleFunc) {
 	if _, taken := registry[id]; taken {
 		panic("rules: duplicate rule id " + id)
 	}
-	merged := map[string]any{Enabled: true}
+	merged := map[string]any{Enabled: true, Escalate: 0.0}
 	for k, v := range defaults {
 		merged[k] = v
 	}
@@ -144,6 +150,11 @@ func round2(f float64) float64 {
 
 // ── cfg helpers: cfg values arrive as map[string]any (from JSON/YAML), so
 // these do the float64/int/bool/string coercions rule bodies need. ──
+
+// EscalateDays reads a rule config's escalation setting (0 = off).
+func EscalateDays(cfg map[string]any) int {
+	return int(cfgFloat(cfg, Escalate))
+}
 
 func cfgFloat(cfg map[string]any, key string) float64 {
 	switch v := cfg[key].(type) {

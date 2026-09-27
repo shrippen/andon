@@ -191,15 +191,16 @@ const (
 type HintEvent string
 
 const (
-	EventOpened   HintEvent = "opened"   // first finding
-	EventResolved HintEvent = "resolved" // rule stopped firing
-	EventReopened HintEvent = "reopened" // fired again after resolving
-	EventAcked    HintEvent = "acked"
-	EventSnoozed  HintEvent = "snoozed"
-	EventReset    HintEvent = "reset" // ack or snooze undone
-	EventAssigned HintEvent = "assigned"
-	EventWork     HintEvent = "work"
-	EventNote     HintEvent = "note"
+	EventOpened    HintEvent = "opened"    // first finding
+	EventResolved  HintEvent = "resolved"  // rule stopped firing
+	EventReopened  HintEvent = "reopened"  // fired again after resolving
+	EventEscalated HintEvent = "escalated" // open too long, raised to critical
+	EventAcked     HintEvent = "acked"
+	EventSnoozed   HintEvent = "snoozed"
+	EventReset     HintEvent = "reset" // ack or snooze undone
+	EventAssigned  HintEvent = "assigned"
+	EventWork      HintEvent = "work"
+	EventNote      HintEvent = "note"
 )
 
 // WorkState is how far the assignee got with a hint.

@@ -81,7 +81,16 @@ func Sync(q db.Queryer, spaceID int64, userID *int64, connID *int64, ruleIDs []s
 			}
 			fresh++
 		}
+		wasCritical := hint.Severity == enums.SeverityCritical
 		fill(hint, item, connID, now)
+		if overdue(hint, item, now) {
+			hint.Severity = enums.SeverityCritical
+			if !wasCritical {
+				if err := logEvent(q, hint.ID, enums.EventEscalated, nil, ""); err != nil {
+					return 0, err
+				}
+			}
+		}
 		if err := data.UpdateHint(q, hint); err != nil {
 			return 0, err
 		}
@@ -104,6 +113,11 @@ func Sync(q db.Queryer, spaceID int64, userID *int64, connID *int64, ruleIDs []s
 	}
 
 	return fresh, nil
+}
+
+// overdue: the rule escalates and the hint has been open long enough.
+func overdue(hint *model.Hint, item rules.Finding, now time.Time) bool {
+	return item.EscalateDays > 0 && now.Sub(hint.FirstSeen) >= time.Duration(item.EscalateDays)*24*time.Hour
 }
 
 func fill(hint *model.Hint, item rules.Finding, connID *int64, now time.Time) {

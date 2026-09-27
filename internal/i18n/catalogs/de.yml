@@ -959,6 +959,7 @@ hints:
   none: Keine offenen Hinweise.
   all: Alle Hinweise
   levels: '{n} offene Hinweise nach Stufe'
+  event_escalated: 'zu lange offen, jetzt kritisch'
 severity:
   info: Info
   warn: Warnung
@@ -2553,6 +2554,7 @@ param:
   per_core: 'Last je Kern'
   percent: 'Prozent'
   seconds: 'Sekunden'
+  escalate_days: 'Nach Tagen kritisch (0 = nie)'
 settings:
   billing_internal: Interne Kunden
   billing_internal_hint: 'Kimai-Kunden, deren Zeiten nie in Rechnung gehen, durch Komma getrennt. Kunden mit Stundensatz 0 zählen immer als intern.'

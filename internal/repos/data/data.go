@@ -269,9 +269,9 @@ func UpdateHint(q db.Queryer, h *model.Hint) error {
 	}
 	_, err = q.Exec(`UPDATE hints SET
 		severity=?, message=?, params=?, action_url=?, action_label=?, due=?, sources=?,
-		last_seen=?, resolved_at=? WHERE id=?`,
+		first_seen=?, last_seen=?, resolved_at=? WHERE id=?`,
 		h.Severity, h.Message, params, nullStr(h.ActionURL), nullStr(h.ActionLabel),
-		nullStr(h.Due), sources, db.TimeStr(h.LastSeen), db.NullTimeStr(h.ResolvedAt), h.ID,
+		nullStr(h.Due), sources, db.TimeStr(h.FirstSeen), db.TimeStr(h.LastSeen), db.NullTimeStr(h.ResolvedAt), h.ID,
 	)
 	return err
 }

@@ -959,6 +959,7 @@ hints:
   none: No open hints.
   all: All hints
   levels: '{n} open hints by level'
+  event_escalated: 'open too long, now critical'
 severity:
   info: Info
   warn: Warning
@@ -2552,6 +2553,7 @@ param:
   per_core: 'Load per core'
   percent: 'Percent'
   seconds: 'Seconds'
+  escalate_days: 'Critical after days (0 = never)'
 settings:
   billing_internal: Internal customers
   billing_internal_hint: 'Kimai customers whose time is never invoiced, comma separated. Customers at rate 0 always count as internal.'

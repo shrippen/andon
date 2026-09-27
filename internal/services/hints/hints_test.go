@@ -10,6 +10,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/model"
 	"andon/internal/repos/content"
+	"andon/internal/repos/data"
 	"andon/internal/rules"
 	"andon/internal/services/hints"
 )
@@ -31,6 +32,15 @@ func spaceID(t *testing.T, q db.Queryer) int64 {
 		t.Fatalf("add space: %v", err)
 	}
 	return sp.ID
+}
+
+// backdate moves a hint's first sighting into the past.
+func backdate(t *testing.T, q db.Queryer, id int64, days int) {
+	t.Helper()
+	at := db.TimeStr(time.Now().UTC().AddDate(0, 0, -days))
+	if _, err := q.Exec("UPDATE hints SET first_seen = ? WHERE id = ?", at, id); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func finding(fp string) rules.Finding {
@@ -99,6 +109,31 @@ func TestSyncReopensResolvedHint(t *testing.T) {
 	}
 }
 
+// TestReopenRestartsFirstSeen: a hint that comes back counts its age
+// ("since …", escalation) from its return, not from its first sighting.
+func TestReopenRestartsFirstSeen(t *testing.T) {
+	q := openTestDB(t)
+	sid := spaceID(t, q)
+	f := finding("missing:2026-03-01")
+	ids := []string{"kimai.missing_day"}
+
+	if _, err := hints.Sync(q, sid, nil, nil, ids, []rules.Finding{f}); err != nil {
+		t.Fatal(err)
+	}
+	h, _ := data.HintByPrint(q, sid, nil, "missing:2026-03-01")
+	backdate(t, q, h.ID, 30)
+	if _, err := hints.Sync(q, sid, nil, nil, ids, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := hints.Sync(q, sid, nil, nil, ids, []rules.Finding{f}); err != nil {
+		t.Fatal(err)
+	}
+	h, _ = data.HintByPrint(q, sid, nil, "missing:2026-03-01")
+	if time.Since(h.FirstSeen) > time.Hour {
+		t.Fatalf("first seen kept %v after reopening", h.FirstSeen)
+	}
+}
+
 func addConnection(t *testing.T, q db.Queryer, spaceID int64, key string) int64 {
 	t.Helper()
 	c := &model.Connection{
@@ -148,4 +183,39 @@ func dataHintsOfScope(q db.Queryer, spaceID int64) ([]int64, error) {
 		out = append(out, id)
 	}
 	return out, rows.Err()
+}
+
+// TestSyncEscalatesOldHints: with escalation set, a hint open longer
+// than the given days becomes critical, once noted in its history.
+func TestSyncEscalatesOldHints(t *testing.T) {
+	q := openTestDB(t)
+	sid := spaceID(t, q)
+	f := finding("missing:2026-03-01")
+	f.EscalateDays = 3
+
+	if _, err := hints.Sync(q, sid, nil, nil, []string{"kimai.missing_day"}, []rules.Finding{f}); err != nil {
+		t.Fatal(err)
+	}
+	h, _ := data.HintByPrint(q, sid, nil, "missing:2026-03-01")
+	if h.Severity != enums.SeverityInfo {
+		t.Fatalf("fresh hint escalated: %v", h.Severity)
+	}
+
+	backdate(t, q, h.ID, 4)
+	for range 2 {
+		if _, err := hints.Sync(q, sid, nil, nil, []string{"kimai.missing_day"}, []rules.Finding{f}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	h, _ = data.HintByPrint(q, sid, nil, "missing:2026-03-01")
+	events, _ := data.HintEvents(q, h.ID, 10)
+	escalated := 0
+	for _, e := range events {
+		if e.Kind == enums.EventEscalated {
+			escalated++
+		}
+	}
+	if h.Severity != enums.SeverityCritical || escalated != 1 {
+		t.Fatalf("severity %v, escalation events %d", h.Severity, escalated)
+	}
 }

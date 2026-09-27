@@ -408,7 +408,11 @@ func apply(specs []rules.Spec, dataset any, env rules.Env) ([]rules.Finding, []s
 		if enabled, ok := cfg[rules.Enabled].(bool); ok && !enabled {
 			continue
 		}
-		findings = append(findings, safeRun(spec, dataset, cfg, env)...)
+		escalate := rules.EscalateDays(cfg)
+		for _, f := range safeRun(spec, dataset, cfg, env) {
+			f.EscalateDays = escalate
+			findings = append(findings, f)
+		}
 	}
 	return findings, ids
 }
