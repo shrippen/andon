@@ -141,7 +141,7 @@ func (d Deps) handleSettingsGeneral(w http.ResponseWriter, r *http.Request) {
 		ip := ClientIP(r)
 		var origins []string
 		for _, o := range lines(r.FormValue("iframe")) {
-			if strings.HasPrefix(o, "https://") || strings.HasPrefix(o, "http://") {
+			if system.IsOrigin(o) {
 				origins = append(origins, o)
 			}
 		}

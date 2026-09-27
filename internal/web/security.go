@@ -9,6 +9,9 @@ import (
 
 const embedPrefix = "/embed/"
 
+// hsts keeps browsers on HTTPS for a year once they saw Andon over TLS.
+const hsts = "max-age=31536000"
+
 // csp builds the Content-Security-Policy: everything same-origin, iframe
 // widgets only from admin-listed origins, and only /embed/ pages may be
 // framed by other sites.
@@ -34,6 +37,10 @@ func (d Deps) Secure(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "same-origin")
 		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		h.Set("Cross-Origin-Opener-Policy", "same-origin")
+		if d.Settings.SecureCookies() {
+			h.Set("Strict-Transport-Security", hsts)
+		}
 		next.ServeHTTP(w, r)
 	})
 }

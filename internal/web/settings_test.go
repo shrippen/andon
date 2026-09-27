@@ -27,7 +27,7 @@ func TestSettingsOpenRegistrationAndCSP(t *testing.T) {
 
 	csrf := csrfToken(t, srv, client)
 	resp = postForm(t, client, srv.URL+"/admin/settings/general", url.Values{
-		"csrf": {csrf}, "registration": {"on"}, "iframe": {"https://grafana.lan, javascript:x"},
+		"csrf": {csrf}, "registration": {"on"}, "iframe": {"https://grafana.lan, javascript:x, https://evil.lan; script-src *"},
 	})
 	if resp.StatusCode != http.StatusSeeOther {
 		t.Fatalf("save general: %d", resp.StatusCode)
@@ -44,6 +44,9 @@ func TestSettingsOpenRegistrationAndCSP(t *testing.T) {
 	csp = resp.Header.Get("Content-Security-Policy")
 	if !strings.Contains(csp, "frame-src https://grafana.lan;") || !strings.Contains(csp, "frame-ancestors *") {
 		t.Fatalf("expected iframe origin and open ancestors on embeds: %q", csp)
+	}
+	if strings.Contains(csp, "evil.lan") {
+		t.Fatalf("origin with CSP syntax must be refused: %q", csp)
 	}
 
 	resp = postForm(t, client, srv.URL+"/admin/settings/network", url.Values{"csrf": {csrf}, "mode": {"allowlist"}, "networks": {"not-a-cidr"}})

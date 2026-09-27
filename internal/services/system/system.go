@@ -11,7 +11,9 @@ package system
 import (
 	"database/sql"
 	"errors"
+	"net/url"
 	"strings"
+	"sync/atomic"
 
 	"andon/internal/db"
 	"andon/internal/enums"
@@ -49,6 +51,7 @@ var ErrDenied = errors.New("error.denied")
 
 // Start prepares instance-wide state once at boot.
 func Start(d *sql.DB) error {
+	iframeCache.Store(nil)
 	if err := ensureInstanceSpace(d); err != nil {
 		return err
 	}
@@ -119,12 +122,16 @@ func Put(d *sql.DB, who *access.Principal, key string, value map[string]any, ip 
 	if !who.IsAdmin() {
 		return ErrDenied
 	}
-	return db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithTx(d, func(tx *sql.Tx) error {
 		if err := misc.SetSetting(tx, key, value); err != nil {
 			return err
 		}
 		return audit.Log(tx, &who.UserID, "settings."+key, "", ip, nil)
 	})
+	if key == IframeKey {
+		iframeCache.Store(nil)
+	}
+	return err
 }
 
 // Flag reads a boolean field of a settings object.
@@ -137,13 +144,32 @@ func Flag(q db.Queryer, key, field string) bool {
 	return on
 }
 
+// iframeCache holds IframeOrigins: every response's CSP needs it, it
+// changes only when an admin saves the settings.
+var iframeCache atomic.Pointer[[]string]
+
 // IframeOrigins lists origins embedded pages may be loaded from (CSP frame-src).
 func IframeOrigins(q db.Queryer) []string {
+	if cached := iframeCache.Load(); cached != nil {
+		return *cached
+	}
 	raw, err := misc.Setting(q, IframeKey)
 	if err != nil {
 		return nil
 	}
-	return stringList(raw["origins"])
+	origins := stringList(raw["origins"])
+	iframeCache.Store(&origins)
+	return origins
+}
+
+// IsOrigin accepts a bare http(s) origin ("https://grafana.lan:3000"),
+// nothing that could extend the CSP it lands in ("https://x; script-src *").
+func IsOrigin(s string) bool {
+	u, err := url.Parse(s)
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+		return false
+	}
+	return s == u.Scheme+"://"+u.Host && !strings.ContainsAny(u.Host, " ;,'\"")
 }
 
 // stringList converts a JSON list (decoded as []any) to []string.
