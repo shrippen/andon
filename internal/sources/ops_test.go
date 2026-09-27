@@ -93,17 +93,32 @@ func TestProxmoxReadsNodesGuestsBackups(t *testing.T) {
 	}
 }
 
+// TestPaperlessCountsInbox: only documents with the token user's inbox
+// tag count. Each Paperless user has an own inbox tag; a superuser sees
+// them all, so "is_in_inbox" mixed in other users' documents. Paperless
+// also ignores an unknown "is_inbox_tag" filter on tags/, which once
+// counted every tagged document (2356 instead of 55).
 func TestPaperlessCountsInbox(t *testing.T) {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/api/ui_settings/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"user":{"id":2,"username":"me"}}`))
+	})
 	mux.HandleFunc("/api/tags/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"count":1,"results":[{"id":3,"name":"Inbox"}]}`))
+		w.Write([]byte(`{"count":3,"results":[{"id":49,"is_inbox_tag":true,"owner":6},{"id":22,"is_inbox_tag":true,"owner":2},{"id":4,"is_inbox_tag":false,"owner":2}]}`))
 	})
 	mux.HandleFunc("/api/documents/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("tags__id__in") != "3" || r.Header.Get("Authorization") != "Token tok" {
-			w.WriteHeader(http.StatusBadRequest)
+		if r.Header.Get("Authorization") != "Token tok" {
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		w.Write([]byte(`{"count":5,"results":[{"title":"Strom","added":"2026-08-01T10:00:00+02:00"}]}`))
+		switch {
+		case r.URL.Query().Get("tags__id__in") == "22":
+			w.Write([]byte(`{"count":5,"results":[{"title":"Strom","added":"2026-08-01T10:00:00+02:00"}]}`))
+		case r.URL.Query().Get("is_in_inbox") == "true":
+			w.Write([]byte(`{"count":12,"results":[{"title":"Fremd","added":"2026-07-01T10:00:00+02:00"}]}`))
+		default:
+			w.Write([]byte(`{"count":2356,"results":[{"title":"Alt","added":"2019-01-01T10:00:00+01:00"}]}`))
+		}
 	})
 	srv := httptest.NewServer(mux)
 	defer srv.Close()

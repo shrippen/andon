@@ -363,23 +363,19 @@ func (PaperlessData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 }
 
 func loadPaperless(ctx context.Context, api services.PaperlessApi, sctx Ctx) (*PaperlessDataset, error) {
-	tags, err := api.Get(ctx, "tags/", url.Values{"is_inbox_tag": {"true"}, "page_size": {"100"}})
+	filter, err := inboxFilter(ctx, api)
 	if err != nil {
 		return nil, err
 	}
-	var ids []string
-	for _, raw := range asList(asMap(tags)["results"]) {
-		ids = append(ids, strconv.FormatInt(asInt64(asMap(raw)["id"]), 10))
-	}
 	data := &PaperlessDataset{URL: sctx.URL}
-	if len(ids) == 0 {
+	if filter == nil {
 		return data, nil
 	}
 
-	// Oldest first, one row: count comes with it.
-	docs, err := api.Get(ctx, "documents/", url.Values{
-		"tags__id__in": {strings.Join(ids, ",")}, "ordering": {"added"}, "page_size": {"1"},
-	})
+	// Oldest inbox document first, one row: count comes with it.
+	filter.Set("ordering", "added")
+	filter.Set("page_size", "1")
+	docs, err := api.Get(ctx, "documents/", filter)
 	if err != nil {
 		return nil, err
 	}
@@ -391,6 +387,39 @@ func loadPaperless(ctx context.Context, api services.PaperlessApi, sctx Ctx) (*P
 		data.OldestAdded = day(doc["added"])
 	}
 	return data, nil
+}
+
+// paperlessTagPage covers all tags in one request.
+const paperlessTagPage = "1000"
+
+// inboxFilter selects the token user's inbox: every Paperless user has
+// an own inbox tag, and a superuser sees all of them. Tags without owner
+// belong to everyone and count too. nil = the user has no inbox tag.
+// When the user cannot be told, any inbox tag counts.
+func inboxFilter(ctx context.Context, api services.PaperlessApi) (url.Values, error) {
+	settings, err := api.Get(ctx, "ui_settings/", nil)
+	if err != nil {
+		return url.Values{"is_in_inbox": {"true"}}, nil
+	}
+	me := asInt64(asMap(asMap(settings)["user"])["id"])
+
+	tags, err := api.Get(ctx, "tags/", url.Values{"page_size": {paperlessTagPage}})
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, raw := range asList(asMap(tags)["results"]) {
+		tag := asMap(raw)
+		owner, owned := tag["owner"].(float64)
+		if tag["is_inbox_tag"] != true || (owned && int64(owner) != me) {
+			continue
+		}
+		ids = append(ids, strconv.FormatInt(asInt64(tag["id"]), 10))
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return url.Values{"tags__id__in": {strings.Join(ids, ",")}}, nil
 }
 
 const (
