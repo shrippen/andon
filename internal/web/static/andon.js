@@ -644,6 +644,7 @@
           // Server-rendered html/template output from our own origin.
           var pop = hintPop();
           pop.innerHTML = html;
+          applyStyles(pop);
           var box = badge.getBoundingClientRect();
           var left = Math.min(box.left, window.innerWidth - HINT_POP_WIDTH - HINT_POP_MARGIN);
           pop.style.top = Math.round(box.bottom + HINT_POP_GAP) + "px";
@@ -919,6 +920,34 @@
       pageFns.forEach(runPage);
     });
   }
+
+  // applyStyles turns data-style="--p:72%" into the element's style. The
+  // CSP forbids style attributes in markup; setting them through the
+  // CSSOM is allowed. Values come from services (a Kimai project color),
+  // so only known properties and plain values pass: no url(), no ";".
+  var STYLE_PROP = /^(--[a-z]+|width|left|top|background)$/;
+  var STYLE_VALUE = /^(-?[\d.]+(%|deg|rem|px)?|#[0-9a-fA-F]{3,8}|var\(--[a-z0-9-]+\)|[a-z]+)$/;
+
+  function applyStyles(root) {
+    var els = [].slice.call(root.querySelectorAll ? root.querySelectorAll("[data-style]") : []);
+    if (root.hasAttribute && root.hasAttribute("data-style")) {
+      els.push(root);
+    }
+    els.forEach(function (el) {
+      el.getAttribute("data-style").split(";").forEach(function (decl) {
+        var at = decl.indexOf(":");
+        var prop = decl.slice(0, at).trim();
+        var value = decl.slice(at + 1).trim();
+        if (at < 0 || !STYLE_PROP.test(prop) || !STYLE_VALUE.test(value)) {
+          return;
+        }
+        el.style.setProperty(prop, value);
+      });
+      el.removeAttribute("data-style");
+    });
+  }
+  applyStyles(d);
+  d.addEventListener("htmx:load", function (e) { applyStyles(e.target); });
 
   // Soft page changes for every same-origin link and form, except on a wall
   // display, which rotates by full page loads.

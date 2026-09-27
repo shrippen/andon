@@ -37,9 +37,9 @@
     <div class="clock clock-zone" data-tz="{{.}}" data-locale="{{$.Ctx.Locale}}" data-seconds="{{if $c.Seconds}}yes{{else}}no{{end}}" data-h12="{{if $c.H12}}yes{{else}}no{{end}}">
       {{if $c.Analog}}{{with $h := clockHands .}}<svg class="clock-face" viewBox="0 0 100 100" role="img" aria-hidden="true">
         <circle cx="50" cy="50" r="46"/>
-        <line class="hand-h" x1="50" y1="50" x2="50" y2="26" style="--a:{{$h.H}}deg"/>
-        <line class="hand-m" x1="50" y1="50" x2="50" y2="12" style="--a:{{$h.M}}deg"/>
-        {{if $c.Seconds}}<line class="hand-s" x1="50" y1="56" x2="50" y2="10" style="--a:{{$h.S}}deg"/>{{end}}
+        <line class="hand-h" x1="50" y1="50" x2="50" y2="26" data-style="--a:{{$h.H}}deg"/>
+        <line class="hand-m" x1="50" y1="50" x2="50" y2="12" data-style="--a:{{$h.M}}deg"/>
+        {{if $c.Seconds}}<line class="hand-s" x1="50" y1="56" x2="50" y2="10" data-style="--a:{{$h.S}}deg"/>{{end}}
       </svg>{{end}}{{end}}
       <span class="muted small">{{.}}</span> <strong class="clock-time">{{clockShow . $c.Seconds $c.H12}}</strong>
       {{if $c.Date}}<span class="muted small clock-date">{{clockDate .}}</span>{{end}}
@@ -60,7 +60,7 @@
   {{with $w.Spark}}<div class="weather-hours">
     <small class="muted">{{with $w.RainFrom}}{{t "weather.rain_from" "time" .}}{{else}}{{t "weather.next_hours"}}{{end}}</small>
     {{template "spark" .}}
-    <span class="rain-cols" role="img" aria-label="{{t "weather.rain_chance"}}">{{range $w.Rain}}<i style="--h:{{.}}%"></i>{{end}}</span>
+    <span class="rain-cols" role="img" aria-label="{{t "weather.rain_chance"}}">{{range $w.Rain}}<i data-style="--h:{{.}}%"></i>{{end}}</span>
   </div>{{end}}
   <ol class="weather-days">
     {{range $w.Days}}<li><small>{{day .Day}}</small><span>{{num .Max 0}}° / {{num .Min 0}}°</span><small>{{t (printf "weather.%s" (weatherKind .Code))}}</small></li>{{end}}
@@ -86,7 +86,7 @@
 {{/* One labelled percent meter; "V" is 0–100. */}}
 {{define "meter"}}
 <div class="progress"><div class="progress-head"><span>{{.L}}</span><span>{{num .V 0}} %</span></div>
-  <div class="progress-bar"><i style="--p:{{num .V 0}}%" data-tier="{{if .Tier}}{{.Tier}}{{else if ge .V 80.0}}red{{else if ge .V 60.0}}yellow{{else}}green{{end}}"></i></div></div>
+  <div class="progress-bar"><i data-style="--p:{{num .V 0}}%" data-tier="{{if .Tier}}{{.Tier}}{{else if ge .V 80.0}}red{{else if ge .V 60.0}}yellow{{else}}green{{end}}"></i></div></div>
 {{end}}
 
 {{define "widgets/public_ip"}}
@@ -187,7 +187,7 @@
     {{if $v.Days}}
     <div class="greet-now"><b>{{num $v.Temp 0}}°</b><span>{{t (printf "weather.%s" (weatherKind $v.Code))}} · {{t "greeting.wind" "n" (num $v.Wind 0)}}</span></div>
     <ol class="forecast">
-      {{range $v.Days}}<li><small title="{{day .Day}}">{{weekday .Day}}</small><span class="forecast-bar"><i style="--h:{{.Height}}%"></i></span><b>{{num .Max 0}}°</b><small>{{num .Min 0}}°</small></li>{{end}}
+      {{range $v.Days}}<li><small title="{{day .Day}}">{{weekday .Day}}</small><span class="forecast-bar"><i data-style="--h:{{.Height}}%"></i></span><b>{{num .Max 0}}°</b><small>{{num .Min 0}}°</small></li>{{end}}
     </ol>
     {{end}}
   </div>

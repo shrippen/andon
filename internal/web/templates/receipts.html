@@ -95,7 +95,7 @@
   {{range .}}<li{{if .Hit}} data-hit{{end}}{{if .Off}} data-off{{end}}>
     <div><b>{{t (print "receipts.factor_" .Key)}}</b><span>{{if .Off}}{{t "receipts.factor_off"}}{{else}}{{.Points}} / {{.Max}}{{end}}</span></div>
     <p>{{tt .Text .Args}}</p>
-    {{if not .Off}}<span class="receipt-bar" aria-hidden="true"><span style="width: {{.Width}}%"></span></span>{{end}}
+    {{if not .Off}}<span class="receipt-bar" aria-hidden="true"><span data-style="width: {{.Width}}%"></span></span>{{end}}
   </li>{{end}}
 </ul>
 {{end}}

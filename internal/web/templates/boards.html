@@ -204,7 +204,7 @@
     </form>
     {{end}}
   </header>
-  <div class="dsec-body size-{{.Size}}"{{with .Cols}} style="--cols:{{.}}"{{end}} data-sortable="{{.ID}}">
+  <div class="dsec-body size-{{.Size}}"{{with .Cols}} data-style="--cols:{{.}}"{{end}} data-sortable="{{.ID}}">
     {{range .Tiles}}
       {{if or (not .Hidden) $b.LayerEdit}}{{template "tile" dict "T" . "B" $b}}{{end}}
     {{end}}

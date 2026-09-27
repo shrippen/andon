@@ -55,8 +55,8 @@
   {{range $rows}}
     <tr>{{$row := .}}{{range $i, $col := $cols}}{{$v := index $row.Values $i}}<td{{if $col.Numeric}} class="num"{{end}}>
       {{if eq $col.Format "money"}}{{money $v}}
-      {{else if eq $col.Format "pct"}}<span class="share"><i style="--p:{{barPct $v}}%"></i>{{pct $v}}</span>
-      {{else if eq $col.Format "bar"}}<div class="progress-bar"><i style="--p:{{barPct $v}}%" data-tier="{{tier $v}}"></i></div><small>{{pct $v}}</small>
+      {{else if eq $col.Format "pct"}}<span class="share"><i data-style="--p:{{barPct $v}}%"></i>{{pct $v}}</span>
+      {{else if eq $col.Format "bar"}}<div class="progress-bar"><i data-style="--p:{{barPct $v}}%" data-tier="{{tier $v}}"></i></div><small>{{pct $v}}</small>
       {{else if eq $col.Format "hours"}}{{num $v 1}} h
       {{else if eq $col.Format "km"}}{{num $v 0}} km
       {{else if eq $col.Format "day"}}{{if $v}}{{day $v}}{{else}}–{{end}}
@@ -104,7 +104,7 @@
 {{range .Frag.View.Items}}
   <div class="progress">
     <div class="progress-head"><span>{{if .LabelKey}}{{t .LabelKey}}{{else}}{{.Label}}{{end}}</span><span>{{pct .Pct}}</span></div>
-    <div class="progress-bar"><i style="--p:{{.Fill}}%" data-tier="{{.Tier}}"></i>{{if .Over}}<i class="progress-over" style="--p:{{.Over}}%"></i>{{end}}{{if .Soll}}<span class="progress-soll" style="--x:{{.Soll}}%" title="{{t "progress.soll" "pct" (pct .SollPct)}}"></span>{{end}}</div>
+    <div class="progress-bar"><i data-style="--p:{{.Fill}}%" data-tier="{{.Tier}}"></i>{{if .Over}}<i class="progress-over" data-style="--p:{{.Over}}%"></i>{{end}}{{if .Soll}}<span class="progress-soll" data-style="--x:{{.Soll}}%" title="{{t "progress.soll" "pct" (pct .SollPct)}}"></span>{{end}}</div>
     <small class="muted">{{if .HasGoal}}{{money .Value}} / {{money .Goal}}{{end}}{{if and .HasGoal .SollPct}} · {{end}}{{if .SollPct}}{{t "progress.soll" "pct" (pct .SollPct)}}{{end}}</small>
   </div>
 {{else}}{{if .Frag.View}}<p class="muted">{{t "widget.empty"}}</p>{{end}}
@@ -146,7 +146,7 @@
 {{/* Overview first: open hints per level as one stacked bar, then the
      most urgent ones as single lines. */}}
 {{with .Frag.View.Levels}}
-<div class="level-bar" role="img" aria-label="{{t "hints.levels" "n" $.Frag.View.Total}}">{{range .}}<i data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}" style="--w:{{.W}}%"></i>{{end}}</div>
+<div class="level-bar" role="img" aria-label="{{t "hints.levels" "n" $.Frag.View.Total}}">{{range .}}<i data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}" data-style="--w:{{.W}}%"></i>{{end}}</div>
 <p class="level-counts">{{range .}}<span data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span>{{.N}} {{t (print "severity." .Severity.Key)}}</span>{{end}}</p>
 {{end}}
 {{with .Frag.View.Hints}}
@@ -216,7 +216,7 @@
 {{/* spark: a small line with its area and the last point marked (widgets.Spark). */}}
 {{define "spark"}}<span class="spark"><svg viewBox="0 0 {{.W}} {{.H}}" preserveAspectRatio="none" aria-hidden="true">
   <path class="spark-area" d="{{.Area}}"/><path class="spark-line" d="{{.Line}}"/>
-</svg><i class="spark-end" style="left:{{.EndLeft}}%;top:{{.EndTop}}%"></i></span>{{end}}
+</svg><i class="spark-end" data-style="left:{{.EndLeft}}%;top:{{.EndTop}}%"></i></span>{{end}}
 
 {{define "widgets/rate_trend"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}

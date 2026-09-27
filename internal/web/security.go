@@ -7,7 +7,10 @@ import (
 	"andon/internal/services/system"
 )
 
-const embedPrefix = "/embed/"
+const (
+	embedPrefix = "/embed/"
+	iconPrefix  = "/icons/"
+)
 
 // hsts keeps browsers on HTTPS for a year once they saw Andon over TLS.
 const hsts = "max-age=31536000"
@@ -24,7 +27,13 @@ func (d Deps) csp(path string) string {
 	if strings.HasPrefix(path, embedPrefix) {
 		ancestors = "*"
 	}
-	return "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+	// Markup carries no style attributes (andon.js applies data-style);
+	// only icons keep inline styles, as uploaded SVGs use them.
+	styles := "'self'"
+	if strings.HasPrefix(path, iconPrefix) {
+		styles += " 'unsafe-inline'"
+	}
+	return "default-src 'self'; script-src 'self'; style-src " + styles + "; " +
 		"img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; " +
 		"frame-src " + frames + "; frame-ancestors " + ancestors + "; base-uri 'self'; form-action 'self'"
 }

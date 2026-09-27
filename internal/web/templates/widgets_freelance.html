@@ -20,10 +20,10 @@
   {{end}}
   <p class="kl-sums">{{with $v.Running}}{{with .Since}}{{t "timer.since" "time" .}} · {{end}}{{end}}{{t "timer.today"}} {{$v.Today}} · {{t "timer.week"}} {{$v.Week}}</p>
   <div class="kl-day" role="img" aria-label="{{t "timer.day"}}: {{$v.Today}}">
-    {{range $v.DaySegs}}<i style="--l:{{.L}}%;--w:{{.W}}%"{{if .Run}} data-run{{end}}></i>{{end}}
-    <b style="--l:{{$v.DayNow}}%"></b>
+    {{range $v.DaySegs}}<i data-style="--l:{{.L}}%;--w:{{.W}}%"{{if .Run}} data-run{{end}}></i>{{end}}
+    <b data-style="--l:{{$v.DayNow}}%"></b>
   </div>
-  <div class="kl-ticks" aria-hidden="true">{{range $v.DayTicks}}<span style="--l:{{.Pos}}%">{{printf "%02d" .Hour}}</span>{{end}}</div>
+  <div class="kl-ticks" aria-hidden="true">{{range $v.DayTicks}}<span data-style="--l:{{.Pos}}%">{{printf "%02d" .Hour}}</span>{{end}}</div>
   {{with $r := $v.Running}}{{if $.Ctx.CSRF}}
   <form class="kl-stop" hx-post="/widget-fragments/{{$.PlacementID}}/kimai" hx-target="closest .card-body" hx-swap="innerHTML">
     <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
@@ -38,7 +38,7 @@
   <ul class="kl-list">
     {{range .}}
     <li>
-      <span class="kl-color"{{with .Color}} style="--c:{{.}}"{{end}} aria-hidden="true"></span>
+      <span class="kl-color"{{with .Color}} data-style="--c:{{.}}"{{end}} aria-hidden="true"></span>
       {{if $.Ctx.CSRF}}<form hx-post="/widget-fragments/{{$.PlacementID}}/kimai" hx-target="closest .card-body" hx-swap="innerHTML"{{if $v.AskNote}} hx-include="#kl-sn-{{$.PlacementID}}"{{end}}{{if $v.Running}} hx-confirm="{{t "timer.switch" "name" (print .Project " · " .Activity)}}"{{end}}>
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
         <input type="hidden" name="action" value="{{if $v.Running}}switch{{else}}start{{end}}">
@@ -120,7 +120,7 @@
 {{define "widgets/month_close"}}
 {{with $v := .Frag.View}}{{if $v.Steps}}
 <div class="row-between"><span class="kpi-label">{{t "close.title" "month" $v.Month}}</span><span class="store-when">{{$v.Done}} / {{len $v.Steps}}</span></div>
-<div class="store-bar"><i style="--w:{{$v.Pct}}%"></i></div>
+<div class="store-bar"><i data-style="--w:{{$v.Pct}}%"></i></div>
 <ul class="close-steps">
   {{range $v.Steps}}<li{{if .Done}} class="is-done"{{end}}>{{if and $v.Manual $.Ctx.CSRF (or .Hand (not .Done))}}<form class="close-tick" hx-post="/widget-fragments/{{$.PlacementID}}/close" hx-target="closest .card-body" hx-swap="innerHTML">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="month" value="{{$v.MonthKey}}"><input type="hidden" name="step" value="{{.Key}}">
@@ -166,7 +166,7 @@
 {{with $v := .Frag.View}}{{if or $v.MonthKM $v.YearKM}}
 {{$prevKey := "travel.prev"}}{{if $v.Year}}{{$prevKey = "travel.prev_year"}}{{end}}
 <div class="tile-head"><b class="tile-value">{{num $v.HeadKM 0}} km</b><span class="tile-sub">{{if $v.Year}}{{t "travel.this_year"}}{{else}}{{t "travel.month"}}{{end}}{{if $v.PrevKM}} · {{t $prevKey "km" (num $v.PrevKM 0)}}{{end}}</span></div>
-{{with $v.Bar}}<div class="store-bar" title="{{t $prevKey "km" (num $v.PrevKM 0)}}"><i style="--w:{{.}}%;background:var(--blue)"></i></div>{{end}}
+{{with $v.Bar}}<div class="store-bar" title="{{t $prevKey "km" (num $v.PrevKM 0)}}"><i data-style="--w:{{.}}%;background:var(--blue)"></i></div>{{end}}
 {{if $v.Year}}<p class="small">{{t "travel.places" "countries" $v.Countries "cities" $v.Cities}} · {{t "travel.month"}} {{num $v.MonthKM 0}} km</p>
 {{else}}<p class="small">{{t "travel.year" "km" (num $v.YearKM 0) "countries" $v.Countries "cities" $v.Cities}}</p>{{end}}
 {{if $v.Trips}}<p class="small">{{t "travel.trips" "n" $v.Trips "km" (num $v.TripKM 0)}}{{if $v.Rate}} · {{t "travel.amount" "amount" (money $v.TripAmount) "rate" (num $v.Rate 2)}}{{end}}</p>{{end}}

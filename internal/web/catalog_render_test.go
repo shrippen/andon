@@ -81,6 +81,9 @@ func TestCatalogTilesRender(t *testing.T) {
 		if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, kind.Template, http.StatusOK, map[string]any{"ThemeURL": "", "Frag": frag}); err != nil {
 			t.Fatalf("%s: %v", key, err)
 		}
+		if body := rec.Body.String(); strings.Contains(body, ` style="`) {
+			t.Errorf("%s: inline style attribute (CSP forbids it, use data-style)", key)
+		}
 		if body := rec.Body.String(); !strings.Contains(body, c.want) {
 			t.Errorf("%s: missing %q\n%s", key, c.want, body)
 		}

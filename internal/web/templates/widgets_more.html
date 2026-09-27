@@ -95,9 +95,9 @@
 <div class="tile-head"><b class="tile-value">{{if eq $v.Metric "load"}}{{num $v.Now 2}}{{else}}{{num $v.Now 0}} %{{end}}</b><span class="tile-sub">{{t (printf "opt.%s" $v.Metric)}}</span></div>
 <div class="bars-wrap">
 <div class="bars" role="img" aria-label="{{t (printf "opt.%s" $v.Metric)}}: {{if eq $v.Metric "load"}}{{num $v.Now 2}}{{else}}{{num $v.Now 0}} %{{end}}">
-  {{range $v.Bars}}<i style="--h:{{.H}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i>{{end}}
+  {{range $v.Bars}}<i data-style="--h:{{.H}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i>{{end}}
 </div>
-{{with $v.Warn}}<b class="bars-target" style="--t:{{$v.WarnPct}}%" title="{{num . 1}}"></b>{{end}}
+{{with $v.Warn}}<b class="bars-target" data-style="--t:{{$v.WarnPct}}%" title="{{num . 1}}"></b>{{end}}
 </div>
 <p class="tile-foot"><span>{{ago $v.First}}</span><span>{{ago $v.Last}}</span></p>
 {{end}}{{end}}

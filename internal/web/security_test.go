@@ -28,6 +28,9 @@ func TestSecureHeadersOverHTTPS(t *testing.T) {
 	d.Secure(http.NotFoundHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 
 	h := rec.Header()
+	if strings.Contains(h.Get("Content-Security-Policy"), "unsafe-inline") {
+		t.Errorf("CSP allows inline styles: %s", h.Get("Content-Security-Policy"))
+	}
 	if !strings.HasPrefix(h.Get("Strict-Transport-Security"), "max-age=") {
 		t.Errorf("missing HSTS: %v", h)
 	}

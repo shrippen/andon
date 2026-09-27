@@ -130,7 +130,7 @@ func (d Deps) handleTOTPSubmit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ctx, _ := d.Context(r)
 		_ = d.Page(w, ctx, "totp", http.StatusUnauthorized,
-			map[string]any{"Token": cookie.Value, "Error": "Code ungültig."})
+			map[string]any{"Token": cookie.Value, "Error": auth.ErrTOTPInvalid.Error()})
 		return
 	}
 	http.Redirect(w, r, startPath, http.StatusSeeOther)

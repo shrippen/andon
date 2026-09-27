@@ -72,9 +72,9 @@
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
 <div class="meters">
   <div class="progress"><div class="progress-head"><span>↓ {{num $d.Down 0}} Mbit/s</span><span>{{if $d.ExpectDown}}{{pct $v.DownPct}}{{end}}</span></div>
-    {{if $d.ExpectDown}}<div class="progress-bar"><i style="--p:{{barPct $v.DownPct}}%" data-tier="{{if lt $v.DownPct 0.8}}yellow{{else}}green{{end}}"></i></div>{{end}}</div>
+    {{if $d.ExpectDown}}<div class="progress-bar"><i data-style="--p:{{barPct $v.DownPct}}%" data-tier="{{if lt $v.DownPct 0.8}}yellow{{else}}green{{end}}"></i></div>{{end}}</div>
   <div class="progress"><div class="progress-head"><span>↑ {{num $d.Up 0}} Mbit/s</span><span>{{if $d.ExpectUp}}{{pct $v.UpPct}}{{end}}</span></div>
-    {{if $d.ExpectUp}}<div class="progress-bar"><i style="--p:{{barPct $v.UpPct}}%" data-tier="{{if lt $v.UpPct 0.8}}yellow{{else}}green{{end}}"></i></div>{{end}}</div>
+    {{if $d.ExpectUp}}<div class="progress-bar"><i data-style="--p:{{barPct $v.UpPct}}%" data-tier="{{if lt $v.UpPct 0.8}}yellow{{else}}green{{end}}"></i></div>{{end}}</div>
 </div>
 <p class="tile-foot"><span>{{if $v.Ping}}{{t "speed.ping" "ms" (num $d.Ping 0)}}{{if $d.Jitter}} · {{t "speed.jitter" "ms" (num $d.Jitter 1)}}{{end}}{{end}}</span><span>{{ago $d.At}}</span></p>
 {{end}}{{end}}
@@ -114,7 +114,7 @@
 <ul class="store-rows">
   {{range .}}<li>
     <div class="row-between"><span>{{.Label}}</span><span{{with .Tier}} data-tier="{{.}}"{{end}} class="store-when">{{num .Used 0}} %{{if ge .FullIn 0}} · {{t "forecast.full_on" "days" .FullIn "day" (day .FullOn)}}{{else}} · {{t "forecast.stable"}}{{end}}</span></div>
-    <div class="store-bar"><i style="--w:{{.Used}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i>{{if .Ahead}}<i class="store-ahead" style="--w:{{.Ahead}}%"></i>{{end}}</div>
+    <div class="store-bar"><i data-style="--w:{{.Used}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i>{{if .Ahead}}<i class="store-ahead" data-style="--w:{{.Ahead}}%"></i>{{end}}</div>
   </li>{{end}}
 </ul>
 <p class="small muted">{{t "forecast.ahead_hint" "days" $ahead}}</p>
@@ -160,7 +160,7 @@
 {{with $v := .Frag.View}}{{if $v.Count}}
 <div class="tile-head"><b class="tile-value">{{money $v.Total}}</b><span class="tile-sub">{{t "aging.count" "n" $v.Count}}</span></div>
 <div class="stack" role="img" aria-label="{{range $v.Bands}}{{if .Count}}{{template "aging_band" .}} {{money .Amount}}; {{end}}{{end}}">
-  {{range $v.Bands}}{{if .Pct}}<i style="--w:{{.Pct}}%" data-tier="{{.Tier}}"></i>{{end}}{{end}}
+  {{range $v.Bands}}{{if .Pct}}<i data-style="--w:{{.Pct}}%" data-tier="{{.Tier}}"></i>{{end}}{{end}}
 </div>
 <ul class="legend-list">
   {{range $v.Bands}}{{if .Count}}<li><span class="sq" data-tier="{{.Tier}}" aria-hidden="true"></span>{{template "aging_band" .}}<b>{{money .Amount}}</b></li>{{end}}{{end}}

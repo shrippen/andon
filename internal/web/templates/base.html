@@ -12,7 +12,7 @@
 <meta name="offline-note" content="{{t "nav.offline"}}">
 {{/* Soft page changes (hx-boost, see andon.js). Back and forward load
      the full page: a cached body would miss its head. */}}
-<meta name="htmx-config" content='{"historyCacheSize":0,"refreshOnHistoryMiss":true}'>
+<meta name="htmx-config" content='{"historyCacheSize":0,"refreshOnHistoryMiss":true,"includeIndicatorStyles":false}'>
 <script src="{{asset "vendor/htmx/htmx.min.js"}}" defer></script>
 <script src="{{asset "andon.js"}}" defer></script>
 {{end}}
