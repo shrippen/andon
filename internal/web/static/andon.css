@@ -274,6 +274,8 @@ button.ghost:hover, .link-btn:hover { color: var(--orange); border-color: var(--
 .tile-slot.w-rss, .tile-slot.w-iframe, .tile-slot.w-deadlines, .tile-slot.w-hints, .tile-slot.w-table, .tile-slot.w-chart,
 .tile-slot.w-note, .tile-slot.w-progress, .tile-slot.w-greeting { grid-column: 1 / -1; }
 .tile-slot[data-rows="2"] { grid-row: span 2; }
+/* A section's only tile takes the section's width. */
+.board-main .dsec-body > .tile-slot:only-child { grid-column: 1 / -1; }
 .tile-slot[data-rows="2"] > .card { height: 100%; }
 .tile-slot.is-hidden { opacity: .35; }
 /* ── edit and layout mode: tile strip, "+" tile, dragging ──
@@ -342,16 +344,19 @@ button.ghost:hover, .link-btn:hover { color: var(--orange); border-color: var(--
 .dot::before { content: ""; width: .45rem; height: .45rem; background: var(--aqua); }
 .dot[data-up="no"] { color: var(--danger-text); }
 .dot[data-up="no"]::before { background: var(--red); }
-.launch-hints { display: inline-grid; place-items: center; min-width: 1.2rem; height: 1.1rem; padding: 0 .3rem; background: var(--blue); color: var(--bg-void); font-weight: 500; font-size: .62rem; border: 0; margin: 0; cursor: pointer; font-family: var(--font-mono); }
-.launch-hints[data-level="20"] { background: var(--yellow); }
-.launch-hints[data-level="30"] { background: var(--red); }
-.launch-hints:hover { background: var(--fg0); }
+/* Hint count: outlined in the level's colour, the shape repeats the level. */
+.launch-hints { display: inline-flex; align-items: center; gap: .2rem; min-width: 1.2rem; height: 1.1rem; padding: 0 .3rem; background: none; color: var(--blue); border: 1px solid currentColor; font-weight: 500; font-size: .62rem; margin: 0; cursor: pointer; font-family: var(--font-mono); }
+.launch-hints[data-level="20"] { color: var(--warn-text); }
+.launch-hints[data-level="30"] { color: var(--danger-text); }
+.launch-hints:hover { background: var(--bg1); }
 /* 30-day uptime strip: one bar per day; state also in the title text. */
-.uptime { display: inline-flex; gap: 1px; align-items: flex-end; height: .7rem; flex-basis: 100%; }
-.uptime i { width: 3px; height: 100%; background: var(--bg2); }
+/* Days of reachability as even cells, readable at a glance. */
+.uptime { display: inline-flex; gap: 2px; height: .4rem; flex-basis: 100%; max-width: 8rem; }
+.uptime i { flex: 1; height: 100%; background: var(--bg2); }
 .uptime i[data-state="up"] { background: var(--green-n); }
-.uptime i[data-state="partial"] { background: var(--yellow); height: 70%; }
-.uptime i[data-state="down"] { background: var(--red); height: 40%; }
+.uptime i[data-state="partial"] { background: var(--yellow); }
+.uptime i[data-state="down"] { background: var(--red); }
+.dot-ms { text-transform: none; letter-spacing: 0; color: var(--fg3); }
 
 /* small: name, status square and hint badge on one line */
 .size-small .launch { padding: 0 .45rem; height: 2.15rem; gap: .55rem; }
@@ -477,6 +482,14 @@ button.ghost:hover, .link-btn:hover { color: var(--orange); border-color: var(--
 .kpi-sub, .kpi-delta { font-family: var(--font-mono); font-size: .72rem; color: var(--fg3); }
 .kpi-delta[data-trend="up"] { color: var(--ok-text); }
 .kpi-delta[data-trend="down"] { color: var(--danger-text); }
+/* A KPI tile is already a card: no second frame inside it. */
+.card-body > .kpi { background: none; padding: 0; }
+.kpi .kpi-delta { align-self: flex-start; border: 1px solid currentColor; padding: 0 .35rem; }
+.spark { display: block; position: relative; width: 100%; height: 2rem; margin-top: .2rem; }
+.spark svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.spark-area { fill: color-mix(in srgb, var(--aqua) 16%, transparent); }
+.spark-line { fill: none; stroke: var(--aqua); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.spark-end { position: absolute; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: var(--fg0); }
 
 /* ── hints ("Lage"): severity bands, one row per hint ── */
 .hint-group { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .6rem; }
@@ -614,6 +627,9 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .progress-bar > i { display: block; height: 100%; width: var(--p); background: var(--aqua); }
 .progress-bar > i[data-tier="yellow"] { background: var(--yellow); }
 .progress-bar > i[data-tier="red"] { background: var(--red); }
+.progress-bar { display: flex; }
+.progress-bar > i.progress-over { background: repeating-linear-gradient(135deg, var(--aqua) 0 3px, transparent 3px 6px); }
+.progress-soll { position: absolute; left: var(--x); top: -3px; bottom: -3px; width: 2px; background: var(--fg0); }
 
 /* ── timeline (deadlines) ── */
 .timeline { list-style: none; margin: 0; padding: 0; }
@@ -626,12 +642,13 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .chart { width: 100%; height: auto; }
 .chart .axis { stroke: var(--bg2); stroke-width: 1; }
 .chart .bar { fill: var(--blue); }
-.chart .bar.prev { fill: var(--bg2); }
+/* Last year as an outline, so this year's bar reads first. */
+.chart .bar.prev { fill: none; stroke: var(--fg3); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
 .chart text { fill: var(--fg3); font-family: var(--font-mono); font-size: 10px; }
 .chart .trend-line { fill: none; stroke: var(--blue); stroke-width: 2; }
 .legend { display: flex; gap: 1rem; font-family: var(--font-mono); font-size: .72rem; color: var(--fg3); margin: .4rem 0 0; }
 .legend i { display: inline-block; width: 10px; height: 10px; background: var(--blue); margin-right: .3rem; vertical-align: -1px; }
-.legend i.prev { background: var(--bg2); }
+.legend i.prev { background: none; border: 1px dashed var(--fg3); }
 
 /* ── table ── */
 .table-wrap { overflow-x: auto; border: 1px solid var(--bg2); }
@@ -1099,3 +1116,168 @@ a.flow-node:hover { border-color: var(--accent); }
 .boards-table tr.is-hidden td:first-child a { color: var(--fg3); }
 .boards-order form { display: inline-flex; gap: .25rem; }
 .boards-order button { padding: .1rem .5rem; }
+
+/* ── deadlines: countdown block, then what and when ── */
+.deadlines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.deadlines li { display: grid; grid-template-columns: 3.2rem 1fr; gap: .7rem; align-items: center; padding: .45rem 0; border-bottom: 1px solid var(--bg2); }
+.deadlines li:last-child { border-bottom: 0; }
+.deadlines time { display: block; font-family: var(--font-mono); font-size: .72rem; color: var(--fg3); }
+.countdown { font-family: var(--font-heading); font-weight: 700; font-size: 1.3rem; line-height: 1.2; text-align: center; background: var(--bg1); color: var(--fg0); font-variant-numeric: tabular-nums; }
+.countdown em { font-style: normal; font-size: .7rem; margin-left: .1rem; color: var(--fg3); }
+.deadlines li[data-urgency="yellow"] .countdown { background: var(--yellow); color: var(--bg-void); }
+.deadlines li[data-urgency="red"] .countdown { background: var(--red); color: var(--bg-void); }
+.deadlines li[data-urgency] .countdown em { color: inherit; }
+
+/* ── tables: numbers right, shares as a bar, lateness as a chip ── */
+table.table th.num, table.table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.share { display: inline-flex; align-items: center; gap: .45rem; font-variant-numeric: tabular-nums; }
+.share i { display: inline-block; width: 60px; height: 6px; background: linear-gradient(to right, var(--blue) var(--p), var(--bg1) var(--p)); }
+.chip-late { display: inline-block; border: 1px solid var(--red); color: var(--danger-text); padding: 0 .35rem; font-size: .78rem; }
+
+/* ── monitors: one line per monitor with its last days ── */
+.mon-lines { list-style: none; margin: .4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .3rem; }
+.mon-lines li { display: grid; grid-template-columns: minmax(0, 7rem) 1fr 3.6rem; gap: .6rem; align-items: center; font-size: .82rem; }
+.mon-lines small { text-align: right; font-family: var(--font-mono); font-size: .7rem; color: var(--fg3); font-variant-numeric: tabular-nums; }
+.mon-name { display: flex; align-items: center; gap: .35rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mon-dot { width: 7px; height: 7px; flex: none; background: var(--aqua); }
+.mon-dot[data-state="fail"] { background: var(--red); }
+.mon-dot[data-state="warn"] { background: var(--yellow); }
+
+/* ── wide tiles: figures left, list right (tile-split) ── */
+.card-body { container-type: inline-size; }
+@container (min-width: 32rem) {
+  .tile-split { display: grid; grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
+  .tile-split .legend-list { columns: 2; column-gap: 1.2rem; }
+  .tile-split .legend-list li { break-inside: avoid; }
+}
+
+/* ── week columns: today outlined, days to come dimmed ── */
+.weekcol.is-today .weekcol-bar { outline: 1px solid var(--yellow); outline-offset: 1px; }
+.weekcol.is-today small { color: var(--fg0); font-weight: 600; }
+.weekcol.is-later { opacity: .45; }
+
+/* ── storage forecast: used plus the coming month, dashed ── */
+.store-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .55rem; }
+.row-between { display: flex; justify-content: space-between; gap: .6rem; font-size: .85rem; }
+.store-when { white-space: nowrap; font-family: var(--font-mono); font-size: .72rem; color: var(--fg3); font-variant-numeric: tabular-nums; }
+.store-when[data-tier="yellow"] { color: var(--warn-text); }
+.store-when[data-tier="red"] { color: var(--danger-text); }
+.store-bar { display: flex; height: 7px; background: var(--bg1); margin-top: .25rem; }
+.store-bar i { display: block; height: 100%; width: var(--w); background: var(--aqua); }
+.store-bar i[data-tier="yellow"] { background: var(--yellow); }
+.store-bar i[data-tier="red"] { background: var(--red); }
+.store-bar i.store-ahead { background: repeating-linear-gradient(90deg, var(--fg3) 0 4px, transparent 4px 7px); }
+
+/* ── hints tile: level bar, counts, one line per hint ── */
+.level-bar { display: flex; gap: 1px; height: 9px; }
+.level-bar i { width: var(--w); background: var(--blue); }
+.level-bar i[data-tier="yellow"] { background: var(--yellow); }
+.level-bar i[data-tier="red"] { background: var(--red); }
+.level-counts { display: flex; flex-wrap: wrap; gap: .2rem 1rem; margin: .4rem 0 .6rem; font-family: var(--font-mono); font-size: .72rem; color: var(--fg2); }
+.level-counts .sq, .hint-lines .sq { display: inline-block; width: 7px; height: 7px; margin-right: .35rem; background: var(--blue); flex: none; }
+[data-tier="yellow"] > .sq { background: var(--yellow); }
+[data-tier="red"] > .sq { background: var(--red); }
+.hint-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.hint-lines li { display: flex; align-items: baseline; gap: .1rem; padding: .3rem 0; border-bottom: 1px solid var(--bg2); font-size: .86rem; min-width: 0; }
+.hint-lines li a { color: var(--fg1); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.hint-lines li a:hover { color: var(--fg0); text-decoration: underline; }
+.hint-lines small { margin-left: auto; padding-left: .6rem; flex: none; font-family: var(--font-mono); font-size: .68rem; color: var(--fg3); }
+
+/* ── energy: hourly price steps, cheapest window, now ── */
+.price-steps .trend-line { stroke: var(--yellow); }
+.price-cheap { fill: color-mix(in srgb, var(--aqua) 22%, transparent); }
+.price-now { stroke: var(--fg0); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.legend i.cheap { background: color-mix(in srgb, var(--aqua) 40%, transparent); }
+.legend i.now { background: none; border-left: 2px dashed var(--fg0); width: 0; }
+
+/* ── weather: next 24 hours, temperature line over rain chance ── */
+.weather-hours { display: flex; flex-direction: column; gap: .15rem; margin: .4rem 0; }
+.rain-cols { display: flex; align-items: flex-end; gap: 1px; height: 1rem; }
+.rain-cols i { flex: 1; height: var(--h); min-height: 1px; background: var(--blue); opacity: .75; }
+
+/* ── Home Assistant: switches as switches, low batteries red ── */
+.hass-switch { position: relative; width: 2.1rem; height: 1.15rem; padding: 0; border: 0; border-radius: .6rem; background: var(--bg2); cursor: pointer; }
+.hass-switch::after { content: ""; position: absolute; top: .15rem; left: .15rem; width: .85rem; height: .85rem; border-radius: 50%; background: var(--fg2); transition: left .12s; }
+.hass-switch[aria-checked="true"] { background: var(--orange); }
+.hass-switch[aria-checked="true"]::after { left: 1.1rem; background: var(--bg-void); }
+.hass-switch:hover { background: var(--fg3); }
+.hass-switch[aria-checked="true"]:hover { background: var(--yellow); }
+.hass-value small { font-size: .7em; color: var(--fg3); font-weight: 400; }
+.hass-value.is-low { color: var(--danger-text); }
+@media (prefers-reduced-motion: reduce) { .hass-switch::after { transition: none; } }
+
+/* ── backups: one dot per day (filled: backed up, ring: missed) ── */
+.backup-dots { display: inline-flex; gap: 3px; align-items: center; margin-left: auto; }
+.backup-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--bg2); }
+.backup-dots i[data-state="ok"] { background: var(--aqua); }
+.backup-dots i[data-state="miss"] { background: none; border: 1px solid var(--red); }
+.backup-lines li b { margin-left: .6rem; }
+
+/* ── payment days: dots per invoice, mark = typical, dashed = target ── */
+.pay-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .45rem; }
+.pay-rows li { display: grid; grid-template-columns: minmax(0, 7rem) 1fr 3rem; gap: .6rem; align-items: center; font-size: .85rem; }
+.pay-rows small { text-align: right; font-family: var(--font-mono); font-size: .72rem; color: var(--fg2); font-variant-numeric: tabular-nums; }
+.pay-rows li.is-late small { color: var(--danger-text); }
+.pay-client { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pay-scale { position: relative; height: 14px; }
+.pay-scale::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid var(--bg2); }
+.pay-scale i { position: absolute; left: var(--x); top: 4px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--blue); opacity: .8; }
+.pay-scale b { position: absolute; left: var(--x); top: 0; width: 2px; height: 14px; margin-left: -1px; background: var(--fg0); }
+.pay-scale u { position: absolute; left: var(--x); top: -2px; height: 18px; border-left: 1px dashed var(--red); }
+
+/* ── month close: a checklist that ticks itself ── */
+.close-steps { list-style: none; margin: .6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .35rem; font-size: .88rem; }
+.close-steps li { display: flex; align-items: center; gap: .5rem; }
+.close-steps li a { margin-left: auto; text-decoration: none; }
+.close-box { width: .75rem; height: .75rem; border: 1px solid var(--fg3); flex: none; }
+.close-steps li.is-done { color: var(--fg3); }
+.close-steps li.is-done .close-box { background: var(--aqua); border-color: var(--aqua); }
+
+/* ── today: a line of time ── */
+.day-line { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.day-line li { display: grid; grid-template-columns: 3.4rem 10px 1fr; gap: .55rem; align-items: center; padding: .28rem 0; font-size: .88rem; position: relative; }
+.day-at { font-family: var(--font-mono); font-size: .74rem; color: var(--fg3); text-align: right; font-variant-numeric: tabular-nums; }
+.day-line i { width: 9px; height: 9px; background: var(--bg2); justify-self: center; }
+.day-line li[data-kind="event"] i { background: var(--blue); }
+.day-line li[data-kind="transit"] i { background: var(--fg2); border-radius: 50%; }
+.day-line li[data-kind="deadline"] i { background: var(--red); transform: rotate(45deg) scale(.8); }
+.day-line li.is-now i { background: var(--yellow); }
+.day-line li.is-now > span:last-child { color: var(--fg0); font-weight: 600; }
+.day-line li.is-past { opacity: .5; }
+.day-line.is-recent li { grid-template-columns: 6.5rem 10px 1fr; }
+
+/* ── exposure: domain left, what protects it as chips ── */
+.expo-rows { list-style: none; margin: .4rem 0 0; padding: 0; display: flex; flex-direction: column; }
+.expo-rows li { display: flex; justify-content: space-between; align-items: center; gap: .6rem; padding: .35rem 0; border-bottom: 1px solid var(--bg2); font-size: .86rem; }
+.expo-name { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.expo-name small { font-size: .72rem; }
+.expo-chips { display: flex; gap: .3rem; flex-wrap: wrap; justify-content: flex-end; }
+.chip-ok, .chip-bad, .chip-warn { font-family: var(--font-mono); font-size: .66rem; padding: 0 .35rem; border: 1px solid; white-space: nowrap; }
+.chip-ok { color: var(--ok-text); }
+.chip-bad { color: var(--danger-text); }
+.chip-warn { color: var(--warn-text); }
+
+/* ── status light: one big state for the wall ── */
+.light { display: flex; flex-direction: column; gap: .2rem; padding: .9rem 1rem; border-top: 5px solid var(--aqua); background: color-mix(in srgb, var(--aqua) 14%, transparent); margin-bottom: .5rem; }
+.light b { font-family: var(--font-heading); font-size: 2.2rem; line-height: 1; color: var(--fg0); letter-spacing: .03em; text-transform: uppercase; }
+.light small { font-family: var(--font-mono); font-size: .74rem; color: var(--fg2); }
+.light[data-state="yellow"] { border-top-color: var(--yellow); background: color-mix(in srgb, var(--yellow) 14%, transparent); }
+.light[data-state="red"] { border-top-color: var(--red); background: color-mix(in srgb, var(--red) 16%, transparent); }
+
+/* ── uptime this month ── */
+.up-share { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up-share[data-tier="ok"] { color: var(--ok-text); }
+.up-share[data-tier="mid"] { color: var(--warn-text); }
+.up-share[data-tier="bad"] { color: var(--danger-text); }
+
+/* ── subscriptions: name and when left, price right ── */
+.sub-rows { list-style: none; margin: .4rem 0; padding: 0; display: flex; flex-direction: column; }
+.sub-rows li { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; padding: .3rem 0; border-bottom: 1px solid var(--bg2); font-size: .86rem; }
+.sub-name { display: flex; flex-direction: column; min-width: 0; }
+.sub-name small { font-size: .72rem; }
+.sub-price { font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Narrow tile: the client's name above its scale. */
+@container (max-width: 24rem) {
+  .pay-rows li { grid-template-columns: 1fr 3rem; row-gap: .15rem; }
+  .pay-client { grid-column: 1 / -1; }
+}

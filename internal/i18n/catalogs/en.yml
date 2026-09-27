@@ -74,6 +74,7 @@ action:
   open_in_snipeit: Open in Snipe-IT
   open_in_dawarich: Open in Dawarich
   backup: 'View backup'
+  open_in_wallos: Open in Wallos
 error:
   csrf: The request expired. Please reload the page.
   denied: Not allowed.
@@ -284,6 +285,9 @@ field:
   table: Table
   chart: Chart
   info: Info line from connection
+  km_rate: 'Mileage rate (€/km)'
+  red_from: 'Red from level'
+  yellow_from: 'Yellow from level'
 opt:
   exposure: 'Exposure'
   domain_chain: 'Domain chain'
@@ -355,6 +359,9 @@ opt:
   revenue_forecast: Revenue forecast year
   cash_30: Expected incoming
   month_min: Hours month
+  critical: Critical
+  warn: Warning
+  info: Info
 size:
   small: Small
   medium: Medium
@@ -592,6 +599,42 @@ wtype:
   trend:
     name: Trend
     desc: Daily history of a metric (receivables, revenue, hours).
+  payment_days:
+    name: 'Payment time per client'
+    desc: 'Days from invoice to payment per client as dots, the typical value as a mark, the payment target as a line.'
+  rate_trend:
+    name: 'Effective hourly rate'
+    desc: 'Revenue per tracked hour each month (Invoice Ninja and Kimai), against your target rate.'
+  month_close:
+    name: 'Month close'
+    desc: 'What closing last month still needs: bill hours, send drafts, receipts, inbox, VAT. Ticks itself off.'
+  today:
+    name: 'Today'
+    desc: 'The day as a timeline: appointments from the calendar connection, the running Kimai timer, next departures and the weeks deadlines.'
+  receipts_missing:
+    name: 'Missing receipts'
+    desc: 'Business spending from Sure without a receipt in Invoice Ninja, Paperless or the mailbox, largest first, with a Paperless search.'
+  travel:
+    name: 'On the road'
+    desc: 'Distance this month and year from Dawarich, countries and cities, trips to clients at a mileage rate.'
+  exposure:
+    name: 'Publicly reachable'
+    desc: 'What Pangolin makes public, riskiest first: without login, with pending updates or a certificate about to expire.'
+  status_light:
+    name: 'Status light'
+    desc: 'One state for everything, readable from across the room: red, yellow or green from the open hints. You choose what triggers each colour.'
+  hint_noise:
+    name: 'Hint noise'
+    desc: 'New hints per day and the rules whose hints come and go on their own, linked to their settings.'
+  uptime_month:
+    name: 'Uptime this month'
+    desc: 'Per monitor the share of reachable checks since the 1st and the downtime, worst first. Measured by Andon.'
+  timeline_recent:
+    name: 'Recently'
+    desc: 'The latest timeline events: updates, redeployed stacks, hints that came or went.'
+  subscriptions:
+    name: 'Subscriptions and recurring costs'
+    desc: 'Monthly total and the next debits from Wallos, else from Sure; names subscriptions missing in Wallos.'
 widget:
   delete_hint: 'The tile disappears from every board it is on.'
   pending: Loading with the next check …
@@ -626,6 +669,9 @@ weather:
   showers: Showers
   thunder: Thunderstorm
   unknown: –
+  rain_from: 'Rain likely from {time}'
+  next_hours: 'Next 24 hours'
+  rain_chance: Chance of rain per hour
 sys:
   cpu: CPU
   mem: RAM
@@ -678,6 +724,7 @@ hints:
   ack: Done
   none: No open hints.
   all: All hints
+  levels: '{n} open hints by level'
 severity:
   info: Info
   warn: Warning
@@ -888,6 +935,10 @@ conn:
   options_hint_snipeit: 'No options needed. Token = personal API key (user menu → manage API keys). Rights follow the user: view assets, licenses and consumables.'
   options_hint_dawarich: 'Token = API key (account → settings). Options: areas: {"Client office": {customer_id: 12}, "Home": {home: true}} – area names from Dawarich, customer_id from Kimai.'
   options_hint_glances: 'Token only when the Glances web server runs with a password. Options: api_version: 4 (default) or 3 for older Glances.'
+  what_wallos: 'Wallos keeps track of subscriptions: prices, payment dates and categories.'
+  about_wallos: 'Subscriptions and payment dates'
+  options_hint_wallos: 'No options needed. Key = API key from Wallos → Profile (API key). URL = address of the Wallos web interface. Prices come in your main currency.'
+  secret_wallos: API key
 mode:
   shared: Shared
   personal: Personal
@@ -942,6 +993,7 @@ service:
   snipeit: Snipe-IT
   dawarich: Dawarich
   glances: Glances
+  wallos: Wallos
 test:
   ok: OK
   failed: Failed
@@ -1484,6 +1536,9 @@ hint:
     expense_unrecorded:
       title: 'Expense missing in Invoice Ninja: {name}'
       why: '{amount} on {day} from {account}. Record it if it is a business expense.'
+    wallos_missing:
+      title: '{count} subscriptions missing in Wallos'
+      why: 'Sure books {names} regularly, Wallos has nothing for it. Add it in Wallos or exclude it in the rule.'
   hass:
     alarm:
       title: '{entity} reports an alarm'
@@ -1669,8 +1724,8 @@ hint:
       title: 'Reminder due: {number} ({days} days)'
       why: '{client}, open: {amount}. Send a payment reminder.'
     slow_payer:
-      title: '{client} pays after {days} days on average'
-      why: Average time from invoice to payment is above {limit} days.
+      title: '{client} typically pays after {days} days'
+      why: Typical time from invoice to payment is above {limit} days.
     draft_stale:
       title: Draft invoice for {client} since {days} days
       why: Draft worth {amount} has not been sent.
@@ -1893,6 +1948,8 @@ info:
     last: updated {hours} h ago
   glances:
     cpu: CPU {percent} %
+  wallos:
+    subs: '{count} subscriptions · {amount}/month'
 kpi:
   safe: 'Cash {in}, to set aside {out}'
   liquidity: income {in} − fixed costs {out}
@@ -1906,6 +1963,7 @@ kpi:
   vs_last_year: vs. last year
   of_goal: goal {goal}
   cash_30: open + recurring, 30 days
+  spark_months: 'last {n} months'
 col:
   storage: 'Storage'
   full_in: 'Full in'
@@ -1981,12 +2039,15 @@ chart:
   this: Current
 progress:
   revenue_goal: Revenue goal
+  soll: 'Expected today {pct}'
 deadlines:
   setup: Tax values are not set yet.
 deadline:
   vat_return: VAT return {period}
   prepayment: Income tax prepayment
   annual: Tax returns {year}
+  today: today
+  days_short: d
 rule_name:
   system.connector_down: Connection failing
   system.unused_service: 'Unused service'
@@ -2144,6 +2205,7 @@ rule_name:
   kintsugi.budget: Kintsugi budget used up
   kintsugi.stale: Suggestions left waiting
   system.backup: 'Andon backup'
+  cross.wallos_missing: Subscriptions missing in Wallos
 param:
   new_watts: 'New device (W)'
   new_cost: 'New device (€)'
@@ -2191,6 +2253,8 @@ param:
   tolerance: Tolerance (share)
   date_window: Date window (days)
   notice_days: Notice (days)
+  max_monthly: At most per month (€)
+  ignore_names: Exclude (name parts)
 settings:
   billing_internal: Internal customers
   billing_internal_hint: 'Kimai customers whose time is never invoiced, comma separated. Customers at rate 0 always count as internal.'
@@ -2239,6 +2303,11 @@ settings:
   rules: Hints
   rule: Rule
   params: Values
+  stats: Analysis
+  center: Typical value
+  center_mean: Mean
+  center_median: Median
+  center_hint: 'For typical values: payment days per client, expected payment dates in the cash flow, usual response times and DNS queries. The median stays put with outliers (one invoice paid after 90 days among many after 10).'
 notify:
   min_level: From level
   sources: Only these sources
@@ -2299,6 +2368,7 @@ kuma:
   down: down
   pending: pending
   maintenance: maintenance
+  days: '{name}: uptime of the last 14 days, as measured by Andon'
 summary:
   deadlines: Tax deadlines in the next 14 days
   system: 'You write the weekly review of a dashboard for a self-employed person. You only get counts of open hints per rule with their highest severity. Summarise the situation in three to five sentences in English: most urgent first, then what can wait. Do not invent details, names or amounts. No Markdown, no lists.'
@@ -2344,6 +2414,7 @@ backup:
   failed: failed
   unknown: unknown
   none: No backup tools connected.
+  days: 'Backups of the last 14 days, as recorded by Andon'
 timer:
   project: Project
   activity: Activity
@@ -2443,6 +2514,10 @@ keys:
   context: Browser menu instead of the tile menu
 uptime:
   summary: '{share} reachable in 30 days, avg {ms} ms'
+  month: 'Uptime {month}'
+  measured: Measured by Andon on every check run (every 5 minutes).
+  none: No measurements yet. Andon counts from the next check run on.
+  since: 'Measured since {day}.'
 template:
   start: Start (greeting, data tiles, hint rail)
   familie: Family (weather, holidays, list)
@@ -2490,6 +2565,8 @@ energy:
     EXPENSIVE: 'expensive'
     VERY_EXPENSIVE: 'very expensive'
     none: ''
+  cheap_band: cheapest window
+  now_line: now
 selfbackup:
   integrity: 'The copy is damaged.'
   migrations: 'The copy has a different schema version.'
@@ -2535,6 +2612,8 @@ window:
 forecast:
   stable: 'not growing'
   none: 'Not enough history yet: forecasts appear after a week.'
+  full_on: 'full in {days} d ({day})'
+  ahead_hint: 'Dashed: what the next 30 days add at the recent pace.'
 timeline:
   title: 'Timeline'
   lead: 'Updates and hints of the last {days} days, newest first.'
@@ -2939,3 +3018,67 @@ boards:
   my_layout: My layout
   start: Start
   start_hint: 'Which board opens at “/” is set in your profile; without a choice it is the top one.'
+paydays:
+  row: '{client}: typically {days} days to payment, {count} invoices'
+  legend: 'Dot = one invoice · mark = {center} · dashed = target {target} days'
+  none: No paid invoices yet.
+rate:
+  per_hour: ' /h'
+  vs_prev: 'Month before {rate}/h'
+  target: 'Target {rate}/h'
+  none: No months with hours and revenue yet.
+close:
+  title: 'Close {month}'
+  hours: 'Not billed yet: {hours} h'
+  hours_done: Hours billed
+  drafts: 'Open invoice drafts: {n}'
+  drafts_done: No open drafts
+  receipts: 'Expenses without receipt: {n}'
+  receipts_done: Receipts complete
+  receipts_setup: 'Receipts: name business accounts in the rules'
+  inbox: 'In the Paperless inbox: {n}'
+  inbox_done: Paperless inbox empty
+  vat: 'VAT return by {day}'
+  none: No matching connection in this space.
+today:
+  timer: 'Timer running · {what}'
+  all_day: all day
+  now: 'As of {time}'
+  empty: Nothing on today.
+receipts:
+  count: '{n} expenses without receipt'
+  search: Search in Paperless
+  none: Every expense has a receipt.
+travel:
+  month: this month
+  prev: 'last month {km} km'
+  year: 'This year {km} km · {countries} countries · {cities} cities'
+  trips: '{n} trips to clients, {km} km'
+  amount: '{amount} at {rate} €/km'
+  none: Dawarich has no statistics yet.
+exposure:
+  public: publicly reachable
+  open: '{n} without login'
+  login: SSO
+  no_login: no login
+  updates: '{n} updates'
+  cert: 'certificate {days} d'
+  none: Pangolin publishes nothing.
+light:
+  green: All good
+  yellow: Attention
+  red: Trouble
+  count: '{n} open'
+  calm: Nothing open
+  more: '{n} more'
+noise:
+  new: 'new hints in {days} days'
+  returns: 'came back {n}×'
+  calm: No rule comes and goes on its own.
+  none: No hints yet.
+recent:
+  none: Nothing happened in the last 7 days.
+subs:
+  per_month: '{n} subscriptions per month'
+  missing: 'Missing in Wallos: {names}'
+  none: No Wallos or Sure connection in this space.
