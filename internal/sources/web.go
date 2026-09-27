@@ -318,7 +318,9 @@ type GlancesDisk struct {
 
 // GlancesResult is a host's current load, reported by its Glances agent.
 type GlancesResult struct {
+	URL                  string
 	CPU, Mem, Swap, Load float64
+	Cores                int // logical cores, to judge Load (0 = unknown)
 	Disks                []GlancesDisk
 }
 
@@ -354,8 +356,8 @@ func (GlancesSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		mounts = append(mounts, GlancesDisk{Mount: asStr(m["mnt_point"]), Percent: asFloat(m["percent"])})
 	}
 	return &GlancesResult{
-		CPU: asFloat(quickM["cpu"]), Mem: asFloat(quickM["mem"]), Swap: asFloat(quickM["swap"]),
-		Load: asFloat(loadM["min5"]), Disks: mounts,
+		URL: sctx.URL, CPU: asFloat(quickM["cpu"]), Mem: asFloat(quickM["mem"]), Swap: asFloat(quickM["swap"]),
+		Load: asFloat(loadM["min5"]), Cores: int(asFloat(loadM["cpucore"])), Disks: mounts,
 	}, nil
 }
 

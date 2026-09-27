@@ -76,6 +76,7 @@ action:
   open_in_dawarich: Open in Dawarich
   backup: 'View backup'
   open_in_wallos: Open in Wallos
+  open_in_glances: 'Open in Glances'
 error:
   csrf: The request expired. Please reload the page.
   denied: Not allowed.
@@ -2092,6 +2093,16 @@ hint:
     backup_failed:
       title: 'Andon backup failed'
       why: 'The last copy failed its restore test and was discarded.'
+  glances:
+    disk_full:
+      title: '{mount} is {percent} % full'
+      why: 'A full file system stops services and backups. Clean up or grow it.'
+    load_high:
+      title: 'Load {load} on {cores} cores'
+      why: 'Processes have waited for the CPU for at least 5 minutes. Check running jobs.'
+    swap_high:
+      title: 'Swap {percent} % used'
+      why: 'Memory runs short and everything slows down. Check memory-hungry services.'
 info:
   tailscale:
     online: '{online}/{count} online'
@@ -2457,6 +2468,9 @@ rule_name:
   kintsugi.stale: Suggestions left waiting
   system.backup: 'Andon backup'
   cross.wallos_missing: Subscriptions missing in Wallos
+  glances.disk_full: 'File system almost full'
+  glances.load_high: 'Host constantly busy'
+  glances.swap_high: 'Heavy swapping'
 param:
   new_watts: 'New device (W)'
   new_cost: 'New device (€)'
@@ -2506,6 +2520,8 @@ param:
   notice_days: Notice (days)
   max_monthly: At most per month (€)
   ignore_names: Exclude (name parts)
+  per_core: 'Load per core'
+  percent: 'Percent'
 settings:
   billing_internal: Internal customers
   billing_internal_hint: 'Kimai customers whose time is never invoiced, comma separated. Customers at rate 0 always count as internal.'

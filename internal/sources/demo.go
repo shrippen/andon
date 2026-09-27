@@ -334,7 +334,7 @@ func DemoKuma() *KumaDataset {
 
 // DemoGlances is the demo Glances host: busy CPU, one disk filling up.
 func DemoGlances() *GlancesResult {
-	return &GlancesResult{CPU: 38, Mem: 64, Swap: 4, Load: 1.2,
+	return &GlancesResult{URL: "https://glances.demo", CPU: 38, Mem: 64, Swap: 4, Load: 1.2, Cores: 4,
 		Disks: []GlancesDisk{{Mount: "/", Percent: 52}, {Mount: "/data", Percent: 87}}}
 }
 

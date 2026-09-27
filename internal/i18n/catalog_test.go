@@ -18,6 +18,7 @@ var (
 	templateKey = regexp.MustCompile(`\bt\s+"([a-z0-9_.]+)"`)
 	codeKey     = regexp.MustCompile(`\bi18n\.T\(\s*"([a-z0-9_.]+)"`)
 	hintMessage = regexp.MustCompile(`Message:\s*"([a-z0-9_.]+)"`)
+	ruleID      = regexp.MustCompile(`Register\(\s*"([a-z0-9_.]+)"`)
 )
 
 const srcRoot = "../"
@@ -53,6 +54,7 @@ func TestUsedKeysExist(t *testing.T) {
 			collect(t, path, codeKey, used, "")
 			if strings.Contains(path, "/rules/") {
 				collect(t, path, hintMessage, used, "hint.")
+				collect(t, path, ruleID, used, "rule_name.")
 			}
 		}
 		return nil
@@ -73,8 +75,9 @@ func TestUsedKeysExist(t *testing.T) {
 	}
 }
 
-// collect adds the matches of re in one file; with prefix set, a match
-// is a hint message and needs its .title and .why.
+// collect adds the matches of re in one file. With prefix "hint." a
+// match is a hint message and needs its .title and .why; with another
+// prefix the key is prefix + match (rule_name.<rule id>).
 func collect(t *testing.T, path string, re *regexp.Regexp, used map[string]bool, prefix string) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -84,8 +87,8 @@ func collect(t *testing.T, path string, re *regexp.Regexp, used map[string]bool,
 		if strings.HasSuffix(m[1], ".") || strings.HasSuffix(m[1], "_") {
 			continue // prefix of a computed key, e.g. i18n.T("hint."+msg+".title")
 		}
-		if prefix == "" {
-			used[m[1]] = true
+		if prefix != "hint." {
+			used[prefix+m[1]] = true
 			continue
 		}
 		used[prefix+m[1]+".title"] = true

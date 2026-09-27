@@ -76,6 +76,7 @@ action:
   open_in_dawarich: In Dawarich öffnen
   backup: 'Sicherung ansehen'
   open_in_wallos: In Wallos öffnen
+  open_in_glances: 'In Glances öffnen'
 error:
   csrf: Die Anfrage war abgelaufen. Bitte Seite neu laden.
   denied: Keine Berechtigung.
@@ -2093,6 +2094,16 @@ hint:
     backup_failed:
       title: 'Andon-Sicherung fehlerhaft'
       why: 'Die letzte Kopie hat den Wiederherstellungstest nicht bestanden und wurde verworfen.'
+  glances:
+    disk_full:
+      title: '{mount} ist zu {percent} % belegt'
+      why: 'Ein volles Dateisystem stoppt Dienste und Backups. Aufräumen oder erweitern.'
+    load_high:
+      title: 'Last {load} auf {cores} Kernen'
+      why: 'Seit mindestens 5 Minuten warten Prozesse auf die CPU. Laufende Jobs prüfen.'
+    swap_high:
+      title: 'Auslagerung zu {percent} % belegt'
+      why: 'Der Arbeitsspeicher reicht nicht; alles wird langsam. Speicherhungrige Dienste prüfen.'
 info:
   tailscale:
     online: '{online}/{count} online'
@@ -2458,6 +2469,9 @@ rule_name:
   kintsugi.stale: Liegengebliebene Vorschläge
   system.backup: 'Sicherung von Andon'
   cross.wallos_missing: Abos fehlen in Wallos
+  glances.disk_full: 'Dateisystem fast voll'
+  glances.load_high: 'Rechner dauerhaft ausgelastet'
+  glances.swap_high: 'Auslagerung hoch'
 param:
   new_watts: 'Neues Gerät (W)'
   new_cost: 'Neues Gerät (€)'
@@ -2507,6 +2521,8 @@ param:
   notice_days: Vorlauf (Tage)
   max_monthly: Höchstens je Monat (€)
   ignore_names: Ausnehmen (Namensteile)
+  per_core: 'Last je Kern'
+  percent: 'Prozent'
 settings:
   billing_internal: Interne Kunden
   billing_internal_hint: 'Kimai-Kunden, deren Zeiten nie in Rechnung gehen, durch Komma getrennt. Kunden mit Stundensatz 0 zählen immer als intern.'
