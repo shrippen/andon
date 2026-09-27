@@ -349,6 +349,8 @@ type DomainInfo struct {
 	Name    string
 	Expires time.Time
 	Error   string
+	// Mail authentication; MailChecked false when DNS failed.
+	MailChecked, SPF, DMARC bool
 }
 
 type DomainsDataset struct{ Domains []DomainInfo }
@@ -367,6 +369,9 @@ func (DomainsData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	data := &DomainsDataset{}
 	for _, name := range registeredDomains(sctx) {
 		info := DomainInfo{Name: name}
+		if spf, dmarc, err := services.MailAuth(ctx, name); err == nil {
+			info.MailChecked, info.SPF, info.DMARC = true, spf, dmarc
+		}
 		body, _, err := httpclient.GetJSON(ctx, rdapBase+"/domain/"+url.PathEscape(name), httpclient.Options{})
 		if err != nil {
 			info.Error = err.Error()

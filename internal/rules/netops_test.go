@@ -63,3 +63,18 @@ func TestDomainsBlacklistRules(t *testing.T) {
 		t.Fatalf("blacklist: %+v", got)
 	}
 }
+
+// A domain without SPF or DMARC can be used to send mail in its name;
+// unchecked domains (DNS failed) stay quiet.
+func TestDomainsMailAuth(t *testing.T) {
+	data := &sources.DomainsDataset{Domains: []sources.DomainInfo{
+		{Name: "ok.example", MailChecked: true, SPF: true, DMARC: true},
+		{Name: "half.example", MailChecked: true, SPF: true},
+		{Name: "bare.example", MailChecked: true},
+		{Name: "unknown.example"},
+	}}
+	got := run(t, "domains.mail_auth", data, todayEnv(nil))
+	if len(got) != 2 || got[0].Params["missing"] != "DMARC" || got[1].Params["missing"] != "SPF, DMARC" {
+		t.Fatalf("findings: %+v", got)
+	}
+}

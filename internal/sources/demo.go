@@ -633,8 +633,8 @@ func DemoGluetun() *GluetunDataset {
 // DemoDomains is the demo domain dataset.
 func DemoDomains(now time.Time) *DomainsDataset {
 	return &DomainsDataset{Domains: []DomainInfo{
-		{Name: "example.de"},
-		{Name: "example.org", Expires: now.UTC().AddDate(0, 0, 18)},
+		{Name: "example.de", MailChecked: true, SPF: true, DMARC: true},
+		{Name: "example.org", Expires: now.UTC().AddDate(0, 0, 18), MailChecked: true, SPF: true},
 	}}
 }
 

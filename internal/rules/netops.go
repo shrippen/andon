@@ -16,6 +16,7 @@ func init() {
 	registerSabnzbd()
 	registerGluetun()
 	registerDomains()
+	registerMailAuth()
 	registerBlacklist()
 }
 
@@ -162,6 +163,31 @@ func registerDomains() {
 			}
 			return found
 		})
+}
+
+// registerMailAuth: a domain without SPF or DMARC lets anyone send mail
+// in its name; parked domains need "v=spf1 -all" and p=reject too.
+func registerMailAuth() {
+	svc := string(enums.ServiceDomains)
+	Register("domains.mail_auth", svc, nil, func(raw any, cfg map[string]any, env Env) []Finding {
+		data, _ := raw.(*sources.DomainsDataset)
+		var found []Finding
+		for _, d := range data.Domains {
+			var missing []string
+			if !d.SPF {
+				missing = append(missing, "SPF")
+			}
+			if !d.DMARC {
+				missing = append(missing, "DMARC")
+			}
+			if !d.MailChecked || len(missing) == 0 {
+				continue
+			}
+			found = append(found, svcFinding(svc, "domains.mail_auth", "mailauth:"+d.Name, "domains.mail_auth",
+				enums.SeverityWarn, "", map[string]any{"domain": d.Name, "missing": strings.Join(missing, ", ")}))
+		}
+		return found
+	})
 }
 
 func registerBlacklist() {

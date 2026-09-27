@@ -1657,6 +1657,9 @@ hint:
     expiring:
       title: 'Domain {domain} expires on {day}'
       why: '{days} days left. Check the renewal at the registrar.'
+    mail_auth:
+      title: '{domain}: {missing} missing'
+      why: 'Without SPF and DMARC anyone can send mail in the domain''s name. Domains without mail need "v=spf1 -all" and DMARC with p=reject too.'
   blacklist:
     listed:
       title: '{ip} is listed on {zone}'
@@ -2492,6 +2495,7 @@ rule_name:
   github.review_waiting: 'Review waiting (GitHub)'
   github.stale_pr: 'Own PR idle (GitHub)'
   snipe.checkin_overdue: 'Return overdue'
+  domains.mail_auth: 'Mail sender not protected'
 param:
   new_watts: 'New device (W)'
   new_cost: 'New device (€)'

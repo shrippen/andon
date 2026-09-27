@@ -200,6 +200,37 @@ func dnsblName(ip net.IP, zone string) (string, bool) {
 
 func itoa(b byte) string { return strconv.Itoa(int(b)) }
 
+// ── Mail authentication ──
+
+// MailAuth tells whether a domain publishes SPF (TXT "v=spf1" on the
+// domain) and DMARC (TXT "v=DMARC1" on _dmarc.<domain>). A missing record
+// is false, not an error; err only when DNS itself fails.
+func MailAuth(ctx context.Context, domain string) (spf, dmarc bool, err error) {
+	spf, err = hasTXT(ctx, domain, "v=spf1")
+	if err != nil {
+		return false, false, err
+	}
+	dmarc, err = hasTXT(ctx, "_dmarc."+domain, "v=DMARC1")
+	return spf, dmarc, err
+}
+
+func hasTXT(ctx context.Context, name, prefix string) (bool, error) {
+	records, err := net.DefaultResolver.LookupTXT(ctx, name)
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) && dnsErr.IsNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, ApiError{err.Error()}
+	}
+	for _, r := range records {
+		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(r)), strings.ToLower(prefix)) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // ResolveIPv4 returns a host's IPv4 addresses.
 func ResolveIPv4(ctx context.Context, host string) ([]net.IP, error) {
 	if ip := net.ParseIP(host); ip != nil {
