@@ -27,7 +27,7 @@ func TestBoardsPageOrdersNav(t *testing.T) {
 
 	postForm(t, client, srv.URL+"/boards/"+id[1]+"/nav", url.Values{"csrf": {csrf}, "move": {"up"}})
 	nav := regexp.MustCompile(`(?s)<nav class="app-links"[^>]*>(.*?)</nav>`).FindStringSubmatch(string(mustGet(t, srv, client, "/boards")))[1]
-	if strings.Index(nav, "Zweites") < 0 || strings.Index(nav, "Zweites") > strings.Index(nav, "Start") {
+	if !strings.Contains(nav, "Zweites") || strings.Index(nav, "Zweites") > strings.Index(nav, "Start") {
 		t.Fatalf("moved board not first in nav:\n%s", nav)
 	}
 

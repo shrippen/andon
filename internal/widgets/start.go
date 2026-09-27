@@ -537,11 +537,6 @@ func publicIPView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any 
 // WatchesIP says whether the widgets service should track the address.
 func (c PublicIPConfig) WatchesIP() bool { return c.Watch }
 
-// EmptyConfig is used by widgets with no configuration (sysinfo, public_ip).
-type EmptyConfig struct{}
-
-func decodeEmpty(map[string]any) any { return EmptyConfig{} }
-
 func init() {
 	Register(WidgetType{Key: "link", Decode: decodeLink, Template: "widgets/link",
 		Category: CategoryStart, Inline: true, Queries: linkQueries, View: linkView})
