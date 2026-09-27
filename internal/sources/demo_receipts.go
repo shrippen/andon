@@ -4,19 +4,22 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"andon/internal/sources/demoworld"
 )
 
 // Demo receipts: the demo Invoice Ninja's expenses and the demo
-// Paperless' scans, set up so each view of the receipts page shows
-// something:
+// Paperless' scans, taken from the receipts of Studio Weber (package
+// demoworld, the same ones as in DemoInvoiceNinja), set up so each view of
+// the receipts page shows something:
 //
-//	Lenovo    invoice number in both → sure match
-//	Hetzner   linked already
-//	Adobe     amount and vendor only
-//	Telekom   the demo Paperless' invoice (311)
-//	Schmidt   two receipts that add up (1∶n)
-//	Bahn      no scan yet
-//	Aral      a scan tagged "Beleg" without expense (receipts first)
+//	Fotohaus Elbe           invoice number in both → sure match
+//	Kabelwerk Studiobedarf  linked already
+//	Kombüse Catering        amount and vendor only
+//	Elbnetz Mobilfunk       the demo Paperless' invoice (311)
+//	Mietwagen Nord          two receipts that add up (1∶n)
+//	Druckerei Nordlicht     no scan yet
+//	Tankstelle Elbchaussee  a scan tagged "Beleg" without expense (receipts first)
 
 const (
 	demoDocsURL = "https://docs.demo"
@@ -35,7 +38,7 @@ const (
 type demoReceipt struct {
 	expense, number, vendor, notes, invoice string
 	amount                                  float64
-	back                                    int // days before today
+	day                                     time.Time
 	docs                                    []demoScan
 	linked                                  bool
 }
@@ -44,36 +47,59 @@ type demoScan struct {
 	id                         int64
 	title, correspondent, text string
 	amount                     float64
-	back                       int
+	day                        time.Time
 	tagged                     bool
 }
 
-var demoReceipts = []demoReceipt{
-	{expense: "demo1", number: "EX-0041", vendor: "Lenovo", notes: "Notebook ThinkPad", invoice: "LEN-88213", amount: 1428, back: 30,
-		docs: []demoScan{{id: 201, title: "Rechnung LEN-88213", correspondent: "Lenovo (Deutschland) GmbH", text: "Rechnungsnr. LEN-88213 Gesamtbetrag 1.428,00 EUR", amount: 1428, back: 29}}},
-	{expense: "demo2", number: "EX-0042", vendor: "Hetzner Online", notes: "Hosting", invoice: "R0012345678", amount: 59.5, back: 12, linked: true,
-		docs: []demoScan{{id: 202, title: "Rechnung Hetzner", correspondent: "Hetzner Online GmbH", text: "Rechnung R0012345678 Summe 59,50 EUR", amount: 59.5, back: 12}}},
-	{expense: "demo3", number: "EX-0043", vendor: "Adobe", notes: "Software", amount: 238, back: 5,
-		docs: []demoScan{{id: 203, title: "Adobe Creative Cloud", correspondent: "Adobe Systems Software Ireland", text: "Total 238,00 EUR", back: 4}}},
-	{expense: "demo4", number: "EX-0044", vendor: "Telekom Deutschland GmbH", notes: "Mobilfunk", amount: 39.95, back: 23,
-		docs: []demoScan{{id: 311, title: "Rechnung 09/2026", correspondent: "Telekom Deutschland GmbH", text: "Rechnungsbetrag 39,95 EUR", amount: 39.95, back: 23}}},
-	{expense: "demo5", number: "EX-0045", vendor: "Bürobedarf Schmidt", notes: "Büromaterial", amount: 86.4, back: 9,
-		docs: []demoScan{{id: 204, title: "Quittung Schmidt", correspondent: "Bürobedarf Schmidt", text: "Summe 50,40", amount: 50.4, back: 9, tagged: true},
-			{id: 205, title: "Quittung Schmidt", correspondent: "Bürobedarf Schmidt", text: "Summe 36,00", amount: 36, back: 8, tagged: true}}},
-	{expense: "demo6", number: "EX-0046", vendor: "Deutsche Bahn", notes: "Reise Kundentermin", amount: 129.9, back: 16},
-	{docs: []demoScan{{id: 206, title: "Tankquittung", correspondent: "Aral", text: "Betrag 72,18 EUR", amount: 72.18, back: 3, tagged: true}}},
+// demoReceipts builds the list for today; dates of the demo world's
+// receipts are days from Monday of this week.
+func demoReceipts(today time.Time) []demoReceipt {
+	monday := demoMonday(today)
+	w := func(id int) (demoworld.Receipt, time.Time) {
+		r := demoWorld.Receipt(id)
+		return r, monday.AddDate(0, 0, r.Day)
+	}
+	euro := func(v float64) string { return strings.Replace(strconv.FormatFloat(v, 'f', 2, 64), ".", ",", 1) }
+
+	film, filmDay := w(1)
+	cable, cableDay := w(2)
+	catering, cateringDay := w(3)
+	car, carDay := w(4)
+	fuel, fuelDay := w(5)
+	printing, printingDay := w(6)
+	phoneDay := today.AddDate(0, 0, -23) // DemoPaperless' invoice 311
+	return []demoReceipt{
+		{expense: "demo1", number: "EX-0041", vendor: film.Vendor, notes: film.Note.DE(), invoice: film.Number, amount: film.Amount, day: filmDay,
+			docs: []demoScan{{id: 201, title: "Rechnung " + film.Number, correspondent: film.Vendor + " GmbH",
+				text: "Rechnungsnr. " + film.Number + " Gesamtbetrag " + euro(film.Amount) + " EUR", amount: film.Amount, day: filmDay.AddDate(0, 0, 1)}}},
+		{expense: "demo2", number: "EX-0042", vendor: cable.Vendor, notes: cable.Note.DE(), invoice: cable.Number, amount: cable.Amount, day: cableDay, linked: true,
+			docs: []demoScan{{id: 202, title: "Rechnung " + cable.Vendor, correspondent: cable.Vendor,
+				text: "Rechnung " + cable.Number + " Summe " + euro(cable.Amount) + " EUR", amount: cable.Amount, day: cableDay}}},
+		{expense: "demo3", number: "EX-0043", vendor: catering.Vendor, notes: catering.Note.DE(), amount: catering.Amount, day: cateringDay,
+			docs: []demoScan{{id: 203, title: catering.Vendor, correspondent: catering.Vendor, text: "Total " + euro(catering.Amount) + " EUR",
+				day: cateringDay.AddDate(0, 0, 1)}}},
+		{expense: "demo4", number: "EX-0044", vendor: "Elbnetz Mobilfunk", notes: "Mobilfunk", amount: 39.95, day: phoneDay,
+			docs: []demoScan{{id: 311, title: "Rechnung 09/2026", correspondent: "Elbnetz Mobilfunk", text: "Rechnungsbetrag 39,95 EUR", amount: 39.95, day: phoneDay}}},
+		{expense: "demo5", number: "EX-0045", vendor: car.Vendor, notes: car.Note.DE(), amount: car.Amount, day: carDay,
+			docs: []demoScan{{id: 204, title: "Quittung " + car.Vendor, correspondent: car.Vendor, text: "Summe 99,00", amount: 99, day: carDay, tagged: true},
+				{id: 205, title: "Quittung " + car.Vendor, correspondent: car.Vendor, text: "Summe " + euro(car.Amount-99), amount: round2(car.Amount - 99),
+					day: carDay.AddDate(0, 0, 1), tagged: true}}},
+		{expense: "demo6", number: "EX-0046", vendor: printing.Vendor, notes: printing.Note.DE(), amount: printing.Amount, day: printingDay},
+		{docs: []demoScan{{id: 206, title: "Tankquittung", correspondent: fuel.Vendor, text: "Betrag " + euro(fuel.Amount) + " EUR",
+			amount: fuel.Amount, day: fuelDay, tagged: true}}},
+	}
 }
 
 // DemoExpenses is the demo Invoice Ninja's expense list.
 func DemoExpenses(now time.Time) *ExpenseSet {
 	today := demoDay(now)
 	set := &ExpenseSet{URL: "https://invoices.demo", Slots: [NinjaSlots]string{"Rechnungsnummer", "Paperless"}}
-	for _, r := range demoReceipts {
+	for _, r := range demoReceipts(today) {
 		if r.expense == "" {
 			continue
 		}
 		e := ReceiptExpense{Key: r.expense, Number: r.number, Vendor: r.vendor, Notes: r.notes, Amount: r.amount,
-			Day: iso(today.AddDate(0, 0, -r.back)), Updated: today.AddDate(0, 0, -r.back)}
+			Day: iso(r.day), Updated: r.day}
 		e.Custom[0] = r.invoice
 		if r.linked {
 			e.Custom[1] = demoDocURL(r.docs[0].id)
@@ -89,9 +115,9 @@ func DemoDocs(now time.Time, year int) *DocSet {
 	set := &DocSet{URL: demoDocsURL, Tags: map[string]int64{strings.ToLower(DemoReceiptTag): 1},
 		Fields: []DocField{{demoFieldInvoice, "Rechnungsnummer", "string"}, {demoFieldExpense, "Ausgabe", "string"},
 			{demoFieldLink, "Invoice Ninja", "url"}, {demoFieldAmount, "Betrag", "monetary"}}}
-	for _, r := range demoReceipts {
+	for _, r := range demoReceipts(today) {
 		for _, s := range r.docs {
-			created := today.AddDate(0, 0, -s.back)
+			created := s.day
 			if year != 0 && created.Year() != year {
 				continue
 			}

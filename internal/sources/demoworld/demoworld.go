@@ -7,6 +7,7 @@ package demoworld
 import (
 	_ "embed"
 	"encoding/json"
+	"fmt"
 )
 
 //go:embed world.json
@@ -137,4 +138,13 @@ func (w *World) Place(id string) Place {
 		}
 	}
 	panic("demoworld: no place " + id)
+}
+
+func (w *World) Receipt(id int) Receipt {
+	for _, r := range w.Receipts {
+		if r.ID == id {
+			return r
+		}
+	}
+	panic(fmt.Sprintf("demoworld: no receipt %d", id))
 }

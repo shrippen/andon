@@ -70,6 +70,11 @@ func demoDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
 
+// demoMonday is Monday of the week of today, the anchor of the demo world's days.
+func demoMonday(today time.Time) time.Time {
+	return today.AddDate(0, 0, -((int(today.Weekday()) + 6) % 7))
+}
+
 func iso(t time.Time) string { return t.Format(time.DateOnly) }
 
 func stamp(d time.Time, hour, minute int) string {
@@ -215,7 +220,7 @@ func demoNinjaClients() []NinjaClient {
 // demoNinjaExpenses are the receipts of the demo world. Their days are
 // offsets from Monday of the current week.
 func demoNinjaExpenses(today time.Time) []NinjaExpense {
-	monday := today.AddDate(0, 0, -((int(today.Weekday()) + 6) % 7))
+	monday := demoMonday(today)
 	out := make([]NinjaExpense, 0, len(demoWorld.Receipts))
 	for _, r := range demoWorld.Receipts {
 		out = append(out, NinjaExpense{ID: int64(r.ID), Date: iso(monday.AddDate(0, 0, r.Day)), Amount: r.Amount,
@@ -346,7 +351,7 @@ func DemoPaperless(now time.Time) *PaperlessDataset {
 			Created: iso(today.AddDate(0, 0, -23)), Amount: 39.95}},
 		Contracts: []PaperlessContract{{ID: 88, Title: "Mobilfunkvertrag", Correspondent: "Elbnetz Mobilfunk",
 			End: today.AddDate(0, 3, 20), NoticeMonths: 3, Deadline: today.AddDate(0, 0, 20), RenewsAutomatic: true}},
-		Newest: []PaperlessNew{{ID: 1843, Title: "Kontoauszug 09/2026", Added: iso(today)}, {ID: 1842, Title: "Rechnung Hetzner", Added: iso(today.AddDate(0, 0, -1))},
+		Newest: []PaperlessNew{{ID: 1843, Title: "Kontoauszug 09/2026", Added: iso(today)}, {ID: 1842, Title: "Rechnung Nordhost Server", Added: iso(today.AddDate(0, 0, -1))},
 			{ID: 1841, Title: "Versicherungsschein", Added: iso(today.AddDate(0, 0, -2))}},
 		TagCounts: map[string]int{"steuer 2026": 64, "belege": 212}}
 }

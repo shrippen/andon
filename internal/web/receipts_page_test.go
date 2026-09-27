@@ -48,7 +48,7 @@ func TestReceiptsPage(t *testing.T) {
 	}
 
 	part := string(mustGet(t, srv, client, "/receipts/part?tab=match"))
-	for _, want := range []string{"EX-0041", "Rechnung LEN-88213", "Verknüpfen", "„LEN-88213“ steht im Beleg (Titel)"} {
+	for _, want := range []string{"EX-0041", "Rechnung FE-2026-0917", "Verknüpfen", "„FE-2026-0917“ steht im Beleg (Titel)"} {
 		if !strings.Contains(part, want) {
 			t.Fatalf("suggestions lack %q:\n%s", want, part)
 		}
@@ -59,15 +59,15 @@ func TestReceiptsPage(t *testing.T) {
 
 	combos := string(mustGet(t, srv, client, "/receipts/part?tab=match&combo=1"))
 	if !strings.Contains(combos, "2 Belege") {
-		t.Fatalf("no 1∶n combo for the two Schmidt receipts:\n%s", combos)
+		t.Fatalf("no 1∶n combo for the two Mietwagen Nord receipts:\n%s", combos)
 	}
 	queue := string(mustGet(t, srv, client, "/receipts/part?tab=queue"))
 	if !strings.Contains(queue, "Tankquittung") {
 		t.Fatalf("queue lacks the tagged scan:\n%s", queue)
 	}
 	linked := string(mustGet(t, srv, client, "/receipts/part?tab=linked"))
-	if !strings.Contains(linked, "EX-0042") || !strings.Contains(linked, "Rechnung Hetzner") {
-		t.Fatalf("linked lacks Hetzner:\n%s", linked)
+	if !strings.Contains(linked, "EX-0042") || !strings.Contains(linked, "Rechnung Kabelwerk Studiobedarf") {
+		t.Fatalf("linked lacks Kabelwerk:\n%s", linked)
 	}
 	fields := string(mustGet(t, srv, client, "/receipts/part?tab=fields"))
 	if !regexp.MustCompile(`<option value="2" selected>custom_value2 · Paperless</option>`).MatchString(fields) {
