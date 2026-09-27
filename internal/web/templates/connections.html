@@ -84,7 +84,7 @@
       <label for="name">{{t "field.name"}}</label>
       <input id="name" name="name" value="{{if .Conn}}{{.Conn.Name}}{{end}}" required>
 
-      <label for="url">{{if eq $shape "ical"}}{{t "conn.ical_url"}}{{else}}{{t "field.url"}}{{end}}</label>
+      <label for="url">{{if eq $shape "ical"}}{{t "field.ical_url"}}{{else}}{{t "field.url"}}{{end}}</label>
       <input id="url" name="url" type="url" value="{{if .Conn}}{{.Conn.URL}}{{else}}{{defaultURL .Service}}{{end}}" required>
 
       {{$opts := dict}}{{if .Conn}}{{$opts = .Conn.Options}}{{end}}

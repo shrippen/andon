@@ -401,6 +401,13 @@ field:
   hide_past: Hide past appointments
   top_clients: Show busiest devices
   top_domains: Show most blocked domains
+  hide_measures: Hide loss and latency
+  device_list: List devices by name
+  only_trouble: Only offline or with expiring key
+  expected_country: Expected country (overrides the connection)
+  ping: Show ping and jitter
+  ipv6: Show IPv6
+  watch: Show address changes
   newest: List the latest links
   newest_docs: List the latest documents (count)
   only_unread: Only feeds with unread items
@@ -2778,6 +2785,7 @@ budget:
 tailscale:
   key: 'key until'
   update: 'update'
+  all_fine: 'All {n} devices online, no keys expiring soon.'
 mediaserver:
   now: 'Playing now'
   library: '{movies} movies · {series} series'
@@ -2985,6 +2993,8 @@ expiry:
 speed:
   contract: 'Contract {n} Mbit/s'
   slow: '{n} days too slow'
+  ping: 'Ping {ms} ms'
+  jitter: 'Jitter {ms} ms'
 sab:
   paused: 'paused'
   queue: '{n} queued'

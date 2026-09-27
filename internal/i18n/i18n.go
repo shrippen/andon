@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -30,13 +31,16 @@ const (
 
 var (
 	catalogs = map[enums.Locale]map[string]string{}
-	loaded   = false
+	loadOnce sync.Once
 )
 
+// ensureLoaded parses the catalogs on first use; requests translate in
+// parallel, so the load must happen exactly once.
 func ensureLoaded() {
-	if loaded {
-		return
-	}
+	loadOnce.Do(load)
+}
+
+func load() {
 	for _, loc := range []enums.Locale{enums.LocaleDE, enums.LocaleEN} {
 		raw, err := catalogFiles.ReadFile("catalogs/" + string(loc) + ".yml")
 		if err != nil {
@@ -50,7 +54,6 @@ func ensureLoaded() {
 		flatten("", node, flat)
 		catalogs[loc] = flat
 	}
-	loaded = true
 }
 
 func flatten(prefix string, node any, out map[string]string) {
