@@ -87,28 +87,30 @@ func (d Deps) session(r *http.Request) (*auth.SessionInfo, error) {
 
 // Context builds a Ctx for any request, authenticated or not.
 func (d Deps) Context(r *http.Request) (Ctx, error) {
+	ctx, _, err := d.resolve(r)
+	return ctx, err
+}
+
+// resolve reads the session once and builds the Ctx from it.
+func (d Deps) resolve(r *http.Request) (Ctx, *auth.SessionInfo, error) {
 	info, err := d.session(r)
 	if err != nil {
-		return Ctx{}, err
-	}
-	if info == nil {
-		return Ctx{Locale: i18n.Pick(r.Header.Get("Accept-Language")), Path: r.URL.Path}, nil
+		return Ctx{}, nil, err
 	}
 	locale := i18n.Pick(r.Header.Get("Accept-Language"))
+	if info == nil {
+		return Ctx{Locale: locale, Path: r.URL.Path}, nil, nil
+	}
 	if info.Principal != nil {
 		locale = info.Principal.Locale
 	}
-	return Ctx{Who: info.Principal, CSRF: info.CSRF, Method: info.Method, Locale: locale, Path: r.URL.Path}, nil
+	return Ctx{Who: info.Principal, CSRF: info.CSRF, Method: info.Method, Locale: locale, Path: r.URL.Path}, info, nil
 }
 
 // Require builds a Ctx and enforces that the caller is fully logged in
 // (not pending 2FA) with a valid CSRF token on unsafe methods.
 func (d Deps) Require(r *http.Request) (Ctx, error) {
-	ctx, err := d.Context(r)
-	if err != nil {
-		return Ctx{}, err
-	}
-	info, err := d.session(r)
+	ctx, info, err := d.resolve(r)
 	if err != nil {
 		return Ctx{}, err
 	}

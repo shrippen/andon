@@ -223,3 +223,35 @@ func TestAPITokenLifecycle(t *testing.T) {
 		t.Fatalf("expected revoked token to no longer resolve, got %+v err=%v", resolved, err)
 	}
 }
+
+// TestResolveReadsWithoutWriteLock: checking a fresh session must not
+// wait for a writer (e.g. the analysis run), since every request and
+// every tile fragment resolves the session.
+func TestResolveReadsWithoutWriteLock(t *testing.T) {
+	q := openTestDB(t)
+	addActiveUser(t, q, "a@b.c", "correct-password")
+	res, err := auth.Login(q, testCfg(), "a@b.c", "correct-password", "1.2.3.4", "agent")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	locked, release := make(chan struct{}), make(chan struct{})
+	go func() {
+		_ = db.WithTx(q, func(*sql.Tx) error {
+			close(locked)
+			<-release
+			return nil
+		})
+	}()
+	<-locked
+	defer close(release)
+
+	start := time.Now()
+	info, err := auth.Resolve(q, testCfg(), res.Token)
+	if err != nil || info == nil || info.Principal == nil {
+		t.Fatalf("resolve: %+v %v", info, err)
+	}
+	if waited := time.Since(start); waited > time.Second {
+		t.Fatalf("resolve waited %v for the write lock", waited)
+	}
+}

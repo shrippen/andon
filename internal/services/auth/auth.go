@@ -365,30 +365,31 @@ type SessionInfo struct {
 }
 
 // Resolve looks up a session by its cookie token, refreshing last_seen and
-// dropping it if expired or idle too long.
+// dropping it if expired or idle too long. The lookup only reads, so the
+// many requests of a board never queue behind a writer; the rare touch
+// or removal takes the write lock afterwards.
 func Resolve(d *sql.DB, cfg settings.Settings, token string) (*SessionInfo, error) {
 	if token == "" {
 		return nil, nil
 	}
 
+	var row *model.LoginSession
 	var info *SessionInfo
-	err := db.WithTx(d, func(tx *sql.Tx) error {
-		row, err := auth.SessionByHash(tx, crypto.TokenHash(token))
+	drop, touch := false, false
+	now := time.Now().UTC()
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		var err error
+		row, err = auth.SessionByHash(tx, crypto.TokenHash(token))
 		if err != nil || row == nil {
 			return err
 		}
 
-		now := time.Now().UTC()
 		idleLimit := row.LastSeen.Add(time.Duration(cfg.SessionIdleMinutes) * time.Minute)
 		if row.ExpiresAt.Before(now) || idleLimit.Before(now) {
-			return auth.RemoveSession(tx, row.ID)
+			drop = true
+			return nil
 		}
-
-		if now.Sub(row.LastSeen) > touchInterval {
-			if err := auth.TouchSession(tx, row.ID, now, row.Pending2FA); err != nil {
-				return err
-			}
-		}
+		touch = now.Sub(row.LastSeen) > touchInterval
 
 		var who *access.Principal
 		if !row.Pending2FA {
@@ -397,7 +398,8 @@ func Resolve(d *sql.DB, cfg settings.Settings, token string) (*SessionInfo, erro
 				return err
 			}
 			if who == nil {
-				return auth.RemoveSession(tx, row.ID)
+				drop = true
+				return nil
 			}
 			sessionID := row.ID
 			who.SessionID = &sessionID
@@ -406,7 +408,20 @@ func Resolve(d *sql.DB, cfg settings.Settings, token string) (*SessionInfo, erro
 		info = &SessionInfo{Principal: who, CSRF: row.CSRF, Pending2FA: row.Pending2FA, Method: row.Method}
 		return nil
 	})
-	return info, err
+	if err != nil || row == nil {
+		return nil, err
+	}
+
+	if drop {
+		return nil, db.WithTx(d, func(tx *sql.Tx) error { return auth.RemoveSession(tx, row.ID) })
+	}
+	if touch {
+		// Idle tracking only: a busy database must not fail the request.
+		if err := db.WithTx(d, func(tx *sql.Tx) error { return auth.TouchSession(tx, row.ID, now, row.Pending2FA) }); err != nil {
+			slog.Warn("touch session", "err", err)
+		}
+	}
+	return info, nil
 }
 
 // Logout ends a session and returns its OIDC id_token, if any, for
