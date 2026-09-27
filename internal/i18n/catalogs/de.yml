@@ -960,6 +960,8 @@ hints:
   all: Alle Hinweise
   levels: '{n} offene Hinweise nach Stufe'
   event_escalated: 'zu lange offen, jetzt kritisch'
+  maintenance: 'Wartung'
+  maintenance_hint: 'Gehört zu einer geplanten Wartung; wird erst danach gemeldet.'
 severity:
   info: Info
   warn: Warnung
@@ -2608,6 +2610,12 @@ settings:
   center_mean: Durchschnitt
   center_median: Median
   center_hint: 'Für typische Werte: Zahlungsdauer je Kunde, erwartete Zahltage im Cashflow, übliche Antwortzeiten und DNS-Anfragen. Der Median bleibt bei Ausreißern stabil (eine Rechnung nach 90 Tagen unter vielen nach 10).'
+  maintenance: 'Wartung'
+  maintenance_hint: 'Geplante Arbeiten, z. B. ein Update: Hinweise der gewählten Verbindungen (keine gewählt = alle) erscheinen weiter, werden aber erst nach dem Ende gemeldet.'
+  maintenance_active: 'Wartung läuft, endet {until}'
+  maintenance_until: 'Ende (leer = keine Wartung)'
+  maintenance_conns: 'Betroffene Verbindungen'
+  maintenance_note: 'Notiz'
 notify:
   min_level: Ab Stufe
   sources: Nur diese Quellen

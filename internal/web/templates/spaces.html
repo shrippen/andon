@@ -29,6 +29,19 @@
         <input id="footer" name="footer" value="{{.Page.Footer}}">
       </div>
 
+      <h2 id="maintenance">{{t "settings.maintenance"}}</h2>
+      <div class="card">
+        <p class="small muted">{{t "settings.maintenance_hint"}}</p>
+        {{if .Maint.Active .Now}}<p class="pill" data-state="reviewing">{{t "settings.maintenance_active" "until" (ago .Maint.Until)}}</p>{{end}}
+        <label for="maint_until">{{t "settings.maintenance_until"}}</label>
+        <input id="maint_until" name="maint_until" type="datetime-local" value="{{.MaintUntil}}">
+        {{with .Conns}}<fieldset class="chip-picks"><legend>{{t "settings.maintenance_conns"}}</legend>
+          {{range .}}<label class="chip-pick"><input type="checkbox" name="maint_conn" value="{{.ID}}"{{if index $.MaintConns .ID}} checked{{end}}><span>{{.Name}}</span></label>{{end}}
+        </fieldset>{{end}}
+        <label for="maint_note">{{t "settings.maintenance_note"}}</label>
+        <input id="maint_note" name="maint_note" value="{{.Maint.Note}}">
+      </div>
+
       <h2>{{t "settings.goals"}}</h2>
       <div class="card">
         <label for="revenue_year">{{t "settings.revenue_year"}}</label>

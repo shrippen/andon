@@ -108,7 +108,8 @@
         <span class="hint-level">{{if ge .Severity 30}}{{t "severity.critical"}}{{else if ge .Severity 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}</span>
         <div class="hint-main">
           <div class="hint-head"><b>{{.Title}}</b>{{if .Value}}<span class="pill">{{money .Value .Currency}}</span>{{end}}</div>
-          {{if or .Assignee (ne (print .Work) "open") .Flapping}}<p class="hint-tags">
+          {{if or .Assignee (ne (print .Work) "open") .Flapping .Maintenance}}<p class="hint-tags">
+            {{if .Maintenance}}<span class="pill" data-state="reviewing" title="{{t "hints.maintenance_hint"}}">{{t "hints.maintenance"}}</span>{{end}}
             {{with .Assignee}}<span class="pill">{{t "hints.assigned_to" "name" .}}</span>{{end}}
             {{if ne (print .Work) "open"}}<span class="pill" data-state="{{if eq (print .Work) "done"}}ok{{else}}reviewing{{end}}">{{t (print "hints.work_" .Work)}}</span>{{end}}
             {{if .Flapping}}<span class="pill" data-state="warn" title="{{t "hints.flapping_hint"}}">{{t "hints.flapping"}}</span>{{end}}

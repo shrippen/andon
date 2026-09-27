@@ -23,6 +23,7 @@ import (
 	"andon/internal/repos/data"
 	"andon/internal/rules"
 	"andon/internal/services/access"
+	"andon/internal/services/spaces"
 )
 
 const (
@@ -156,6 +157,7 @@ type View struct {
 	Flapping     bool    // reopened often lately; pushed only once
 	Value        float64 // largest money amount the hint names, 0 if none
 	Currency     string
+	Maintenance  bool // in a planned work window of its space: not pushed
 }
 
 func hidden(marks []*model.HintMark, now time.Time) bool {
@@ -259,13 +261,37 @@ func Filtered(d *sql.DB, who *access.Principal, f Filter, limit int) ([]View, er
 			rows = rows[:limit]
 		}
 
+		windows, err := maintenanceOf(tx, rows)
+		if err != nil {
+			return err
+		}
+		now := time.Now().UTC()
 		views = make([]View, len(rows))
 		for i, h := range rows {
 			views[i] = viewOf(h, who)
+			views[i].Maintenance = windows[h.SpaceID].Covers(h.ConnectionID, now)
 		}
 		return enrich(tx, views)
 	})
 	return views, err
+}
+
+// maintenanceOf reads the work window of every space the hints belong to.
+func maintenanceOf(q db.Queryer, rows []*model.Hint) (map[int64]spaces.Maintenance, error) {
+	out := map[int64]spaces.Maintenance{}
+	for _, h := range rows {
+		if _, done := out[h.SpaceID]; done {
+			continue
+		}
+		sp, err := content.Space(q, h.SpaceID)
+		if err != nil {
+			return nil, err
+		}
+		if sp != nil {
+			out[h.SpaceID] = spaces.MaintenanceOf(sp.Settings)
+		}
+	}
+	return out, nil
 }
 
 func anyMatch(have, want []string) bool {

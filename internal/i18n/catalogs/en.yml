@@ -960,6 +960,8 @@ hints:
   all: All hints
   levels: '{n} open hints by level'
   event_escalated: 'open too long, now critical'
+  maintenance: 'Maintenance'
+  maintenance_hint: 'Part of planned maintenance; pushed only afterwards.'
 severity:
   info: Info
   warn: Warning
@@ -2607,6 +2609,12 @@ settings:
   center_mean: Mean
   center_median: Median
   center_hint: 'For typical values: payment days per client, expected payment dates in the cash flow, usual response times and DNS queries. The median stays put with outliers (one invoice paid after 90 days among many after 10).'
+  maintenance: 'Maintenance'
+  maintenance_hint: 'Planned work, e.g. an update: hints of the chosen connections (none chosen = all) still appear but are only pushed after the end.'
+  maintenance_active: 'Maintenance running, ends {until}'
+  maintenance_until: 'Ends (empty = none)'
+  maintenance_conns: 'Affected connections'
+  maintenance_note: 'Note'
 notify:
   min_level: From level
   sources: Only these sources

@@ -358,10 +358,15 @@ func windowOf(quiet bool) pushWindow {
 
 // due decides whether a hint is pushed now.
 //
+//	in a maintenance window         → no (comes after the window)
 //	never sent                      → yes (in quiet hours: critical only)
 //	sent, critical, not flapping,
 //	older than repeat hours         → yes, again
 func due(h hints.View, last time.Time, window pushWindow, repeat int, now time.Time) bool {
+	// Planned work: pushed afterwards if still open, not during.
+	if h.Maintenance {
+		return false
+	}
 	if window == windowQuiet && h.Severity < enums.SeverityCritical {
 		return false
 	}

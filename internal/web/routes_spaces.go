@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"andon/internal/services/access"
+	"andon/internal/services/connections"
 	"andon/internal/services/spaces"
 )
 
@@ -64,6 +66,19 @@ func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	goals := asMap(settings["goals"])
 	tax := asMap(settings["tax"])
+	maint := spaces.MaintenanceOf(settings)
+	chosen := map[int64]bool{}
+	for _, id := range maint.Connections {
+		chosen[id] = true
+	}
+	var conns []connections.View
+	if all, err := connections.Listing(d.DB, ctx.Who, enums.RightView); err == nil {
+		for _, c := range all {
+			if c.SpaceID == id {
+				conns = append(conns, c)
+			}
+		}
+	}
 	_ = d.Page(w, ctx, "space_settings", http.StatusOK, map[string]any{
 		"SpaceID": id, "Goals": goals, "Tax": tax, "VAT": asMap(tax["vat"]), "Prepay": asMap(tax["prepayments"]),
 		"Costs": asMap(settings["costs"]), "Homelab": asMap(settings["homelab"]), "Billing": asMap(settings["billing"]),
@@ -71,6 +86,7 @@ func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request) {
 		"Rules": spaces.RuleViews(settings), "Methods": vatMethods, "Intervals": vatIntervals,
 		"Saved": r.URL.Query().Has("saved"), "Page": spaces.PageOf(settings), "NavText": spaces.NavText(spaces.PageOf(settings)),
 		"Custom": spaces.CustomRows(settings), "Ops": rules.CustomOps, "Services": enums.Services, "Levels": severityLevels,
+		"Maint": maint, "MaintUntil": maint.UntilInput(time.Local), "MaintConns": chosen, "Conns": conns, "Now": time.Now(),
 	})
 }
 
@@ -151,6 +167,7 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request) {
 		changes[k] = v
 	}
 	changes[rules.CustomKey] = spaces.ParseCustomRules(r.FormValue)
+	changes["maintenance"] = spaces.ParseMaintenance(r.FormValue, r.Form["maint_conn"], time.Local)
 	if err := spaces.Update(d.DB, ctx.Who, id, changes, ClientIP(r)); err != nil {
 		d.handleBoardError(w, r, err)
 		return
