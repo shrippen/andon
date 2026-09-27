@@ -545,7 +545,9 @@ func DemoGitHub(now time.Time) *GitHubDataset {
 const demoGridAndTax = 0.17
 
 func DemoTibber(now time.Time) *TibberDataset {
-	start := now.Truncate(24 * time.Hour)
+	// Local midnight: Truncate cuts at UTC midnight, which is 22:00 or
+	// 23:00 the day before in Berlin.
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	data := &TibberDataset{URL: "https://api.tibber.com/v1-beta/gql", Home: "Zuhause", Currency: "EUR", Level: "CHEAP"}
 	for h := range 48 { // today and tomorrow
 		total := 0.24 + 0.08*float64((h+6)%24)/24
