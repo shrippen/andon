@@ -74,5 +74,8 @@
       ],
       "settle": 1500
     }
-  ]
+  ],
+  "page": {
+    "board-preview.svg": "overview"
+  }
 }
