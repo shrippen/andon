@@ -13,8 +13,8 @@ ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/andon ./cmd/andon
 
 # ── Runtime ──
-FROM alpine:3.20
-RUN apk add --no-cache wget su-exec \
+FROM alpine:3.24
+RUN apk add --no-cache su-exec \
  && addgroup -S -g 10001 andon \
  && adduser -S -u 10001 -G andon -h /app andon \
  && mkdir -p /data && chown andon:andon /data
@@ -26,5 +26,5 @@ COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 VOLUME ["/data"]
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
-  CMD wget -q -O- http://127.0.0.1:8080/healthz || exit 1
+  CMD ["andon", "healthcheck"]
 ENTRYPOINT ["entrypoint.sh"]

@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"andon/internal/services/maintenance"
 	"andon/internal/services/porting"
@@ -13,6 +15,7 @@ import (
 
 const cliUsage = `usage:
   andon                              run the server
+  andon healthcheck                  exit 0 if the local server answers /healthz
   andon backup <dir>                 SQLite backup as tar.gz
   andon rotate-key <keyfile>         re-encrypt secrets under a new master key
   andon import --email <e> [--dashy] <file>
@@ -106,6 +109,26 @@ func runImport(args []string, database *sql.DB) int {
 	}
 	for _, n := range report.Notes {
 		fmt.Println("note:", n)
+	}
+	return 0
+}
+
+// healthTimeout bounds the container healthcheck; Docker kills it at 5 s.
+const healthTimeout = 4 * time.Second
+
+// healthcheck asks a running server for /healthz: exit 0 when it answers
+// 200, 1 otherwise. baseURL e.g. "http://127.0.0.1:8080".
+func healthcheck(baseURL string) int {
+	client := &http.Client{Timeout: healthTimeout}
+	resp, err := client.Get(baseURL + "/healthz")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "healthcheck:", err)
+		return 1
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		fmt.Fprintln(os.Stderr, "healthcheck: HTTP", resp.StatusCode)
+		return 1
 	}
 	return 0
 }

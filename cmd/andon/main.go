@@ -41,6 +41,11 @@ const (
 )
 
 func main() {
+	// Needs neither key nor database: it only asks the running server.
+	if len(os.Args) == 2 && os.Args[1] == "healthcheck" {
+		os.Exit(healthcheck("http://127.0.0.1" + listenAddr()))
+	}
+
 	cfg := settings.Load()
 
 	masterKey := cfg.MasterKey
@@ -139,12 +144,8 @@ func main() {
 	deps.RegisterStartPageRoutes(mux)
 	deps.RegisterHealthRoute(mux)
 
-	addr := ":8080"
-	if port := os.Getenv("PORT"); port != "" {
-		addr = ":" + port
-	}
 	server := &http.Server{
-		Addr: addr, Handler: deps.Secure(mux),
+		Addr: listenAddr(), Handler: deps.Secure(mux),
 		ReadHeaderTimeout: readHeaderTimeout, ReadTimeout: readTimeout,
 		WriteTimeout: writeTimeout, IdleTimeout: idleTimeout, MaxHeaderBytes: maxHeaderBytes,
 	}
@@ -186,4 +187,12 @@ func lockDB(path string) *db.Held {
 		}
 		time.Sleep(lockRetry)
 	}
+}
+
+// listenAddr is the server's address, ":8080" unless PORT says otherwise.
+func listenAddr() string {
+	if port := os.Getenv("PORT"); port != "" {
+		return ":" + port
+	}
+	return ":8080"
 }
