@@ -33,6 +33,7 @@ func (d Deps) RegisterConnectionRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /connections/{id}/check", d.handleConnectionCheck)
 	mux.HandleFunc("GET /places", d.handlePlaces)
 	mux.HandleFunc("POST /connections/{id}/hygiene", d.handleConnectionHygiene)
+	mux.HandleFunc("POST /connections/{id}/hook/rotate", d.handleHookRotate)
 	mux.HandleFunc("POST /connections/{id}/connect", d.handleConnectStart)
 	mux.HandleFunc("POST /connections/{id}/oauth-client", d.handleOAuthClient)
 	mux.HandleFunc("GET "+connect.CallbackPath, d.handleConnectCallback)
@@ -181,7 +182,7 @@ func (d Deps) handleConnectionEditForm(w http.ResponseWriter, r *http.Request) {
 		"SignIn": d.signInOf(conn),
 	}
 	if hooks.Accepts(conn.Service) {
-		values["HookURL"], _ = hooks.URL(d.Settings.BaseURL, conn.ID)
+		values["HookURL"], _ = hooks.URL(d.DB, d.Settings.BaseURL, conn.ID)
 	}
 	// Just signed in: show right away whether the service answers.
 	if r.URL.Query().Has("connected") {
@@ -352,6 +353,25 @@ func (d Deps) handleConnectionHygiene(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, target, http.StatusSeeOther)
+}
+
+// handleHookRotate replaces a leaked webhook URL.
+func (d Deps) handleHookRotate(w http.ResponseWriter, r *http.Request) {
+	ctx, err := d.Require(r)
+	if err != nil {
+		d.handleAuthError(w, r, err)
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := connections.RotateHook(d.DB, ctx.Who, id); err != nil {
+		d.handleBoardError(w, r, err)
+		return
+	}
+	http.Redirect(w, r, "/connections/"+strconv.FormatInt(id, 10)+"/edit", http.StatusSeeOther)
 }
 
 // servicePick is one card of the service picker.

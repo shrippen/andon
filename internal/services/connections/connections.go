@@ -22,6 +22,7 @@ import (
 	"andon/internal/repos/misc"
 	"andon/internal/services/access"
 	"andon/internal/services/audit"
+	"andon/internal/services/hooks"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/util"
 )
@@ -391,6 +392,28 @@ func Delete(d *sql.DB, who *access.Principal, connID int64) error {
 			return err
 		}
 		return content.RemoveConnection(tx, conn.ID)
+	})
+}
+
+// RotateHook gives a push connection a new webhook URL, e.g. after the
+// old one leaked. Requires MANAGE.
+func RotateHook(d *sql.DB, who *access.Principal, connID int64) error {
+	return db.WithTx(d, func(tx *sql.Tx) error {
+		conn, err := content.Connection(tx, connID)
+		if err != nil || conn == nil {
+			return err
+		}
+		granted, err := rightOf(tx, who, conn)
+		if err != nil {
+			return err
+		}
+		if err := access.Need(granted, enums.RightManage); err != nil {
+			return err
+		}
+		if err := hooks.Rotate(tx, conn.ID); err != nil {
+			return err
+		}
+		return audit.Log(tx, &who.UserID, "connection.hook_rotated", conn.Name, "", nil)
 	})
 }
 

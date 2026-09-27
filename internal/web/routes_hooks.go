@@ -45,6 +45,10 @@ func (d Deps) handleHook(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
+		if errors.Is(err, hooks.ErrThrottled) {
+			http.Error(w, "too many events", http.StatusTooManyRequests)
+			return
+		}
 		http.Error(w, "error", http.StatusInternalServerError)
 		return
 	}

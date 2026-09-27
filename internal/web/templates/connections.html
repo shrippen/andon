@@ -211,6 +211,10 @@
         <p class="small muted">{{t "conn.hook_hint"}}</p>
         <pre class="mono">{{.HookURL}}</pre>
         <pre class="mono">{"event": "execution_failed", "name": "kimai"}</pre>
+        <form method="post" action="/connections/{{.Conn.ID}}/hook/rotate" data-confirm="{{t "conn.hook_rotate_confirm"}}">
+          <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+          <button type="submit" class="link-btn">{{t "conn.hook_rotate"}}</button>
+        </form>
       </div>
     {{end}}
     {{with .Suggest}}

@@ -1133,6 +1133,8 @@ conn:
   options_hint_pgbackweb: No options, no token. PG Back Web reports by webhook, see below.
   hook: Webhook
   hook_hint: 'In PG Back Web add one webhook per event (execution_success, execution_failed, database_unhealthy/healthy, destination_unhealthy/healthy) and backup: method POST, this URL, body as below with event and backup name. Keep the URL secret.'
+  hook_rotate: Generate new URL
+  hook_rotate_confirm: 'The current URL stops working at once. Update the webhooks in PG Back Web afterwards.'
   options_hint_linkwarden: 'collections: [Homelab, Tools] – collections compared with this space''s link tiles (empty = all). Token = access token (settings → access tokens).'
   options_hint_kintsugi: 'No options needed. Token = API token from Kintsugi → Einstellungen → API-Token (read-only, shown once). URL = address of the Kintsugi web UI.'
   options_hint_sure: No options needed. Token = API key with read scope (settings → API keys).

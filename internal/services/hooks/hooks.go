@@ -1,7 +1,7 @@
 // Package hooks receives events that services push (PG Back Web
 // webhooks) and hands out the URL they must call.
 //
-//	POST /hooks/{connection id}/{HMAC(master key, id)}  body {"event", "name"}
+//	POST /hooks/{connection id}/{HMAC(master key, id + nonce)}  body {"event", "name"}
 //	     → hook_events row → pgbackweb.data (svcdata passes the events)
 package hooks
 
@@ -10,6 +10,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"andon/internal/crypto"
@@ -18,6 +19,7 @@ import (
 	"andon/internal/model"
 	"andon/internal/repos/content"
 	data "andon/internal/repos/data"
+	"andon/internal/repos/misc"
 	"andon/internal/services/svcdata"
 )
 
@@ -31,20 +33,47 @@ const (
 // ErrRejected hides whether the connection or the signature was wrong.
 var ErrRejected = errors.New("hooks: rejected")
 
+// ErrThrottled means a URL sent more than perMinute events.
+var ErrThrottled = errors.New("hooks: throttled")
+
+// perMinute caps the events one connection accepts; PG Back Web sends a
+// handful per backup run, a leaked URL could send millions.
+const perMinute = 60
+
+// nonceKey stores a connection's nonce (settings table); rotating it
+// changes the URL and revokes the old one. No nonce: URLs from before.
+const nonceKey = "hook."
+
 // pushServices accept webhooks.
 var pushServices = map[enums.ServiceType]bool{enums.ServicePGBackWeb: true}
 
 // Accepts reports whether a service is fed by webhooks.
 func Accepts(service enums.ServiceType) bool { return pushServices[service] }
 
-func signature(connID int64) (string, error) {
-	return crypto.Sign("hook:"+strconv.FormatInt(connID, 10), crypto.PurposeHook)
+func signature(q db.Queryer, connID int64) (string, error) {
+	id := strconv.FormatInt(connID, 10)
+	raw, err := misc.Setting(q, nonceKey+id)
+	if err != nil {
+		return "", err
+	}
+	message := "hook:" + id
+	if nonce, _ := raw["nonce"].(string); nonce != "" {
+		message += ":" + nonce
+	}
+	return crypto.Sign(message, crypto.PurposeHook)
+}
+
+// Rotate gives a connection a new webhook URL; the old one stops working.
+// The caller checks the right to manage the connection.
+func Rotate(q db.Queryer, connID int64) error {
+	nonce := crypto.NewToken()
+	return misc.SetSetting(q, nonceKey+strconv.FormatInt(connID, 10), map[string]any{"nonce": nonce})
 }
 
 // URL is the webhook address for a connection, e.g.
 // https://dash.example/hooks/7/q3…
-func URL(baseURL string, connID int64) (string, error) {
-	sig, err := signature(connID)
+func URL(q db.Queryer, baseURL string, connID int64) (string, error) {
+	sig, err := signature(q, connID)
 	if err != nil {
 		return "", err
 	}
@@ -53,9 +82,12 @@ func URL(baseURL string, connID int64) (string, error) {
 
 // Receive stores one event after checking the URL's signature.
 func Receive(d *sql.DB, connID int64, sig, event, subject string) error {
-	want, err := signature(connID)
+	want, err := signature(d, connID)
 	if err != nil || !crypto.Same(want, sig) {
 		return ErrRejected
+	}
+	if !allow(connID, time.Now()) {
+		return ErrThrottled
 	}
 	event, subject = clip(strings.TrimSpace(event), eventMax), clip(strings.TrimSpace(subject), subjectMax)
 	if event == "" {
@@ -88,4 +120,28 @@ func clip(s string, n int) string {
 		return s[:n]
 	}
 	return s
+}
+
+var (
+	floodMu sync.Mutex
+	flood   = map[int64][]time.Time{} // accepted events of the last minute
+)
+
+// allow counts an event against the connection's per-minute cap.
+func allow(connID int64, now time.Time) bool {
+	floodMu.Lock()
+	defer floodMu.Unlock()
+
+	recent := flood[connID][:0]
+	for _, at := range flood[connID] {
+		if now.Sub(at) < time.Minute {
+			recent = append(recent, at)
+		}
+	}
+	if len(recent) >= perMinute {
+		flood[connID] = recent
+		return false
+	}
+	flood[connID] = append(recent, now)
+	return true
 }
