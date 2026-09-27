@@ -2039,6 +2039,9 @@ hint:
     expense_missing:
       title: No expense for {asset}
       why: Bought on {day} for {amount}, no matching expense in Invoice Ninja.
+    checkin_overdue:
+      title: '{asset} was due back on {day}'
+      why: 'Checked out to {who}. Ask for it or extend the return date in Snipe-IT.'
   geo:
     visit_without_time:
       title: '{customer} on {day}: no time booked'
@@ -2488,6 +2491,7 @@ rule_name:
   wallos.renewal_soon: 'Subscription renews soon'
   github.review_waiting: 'Review waiting (GitHub)'
   github.stale_pr: 'Own PR idle (GitHub)'
+  snipe.checkin_overdue: 'Return overdue'
 param:
   new_watts: 'New device (W)'
   new_cost: 'New device (€)'

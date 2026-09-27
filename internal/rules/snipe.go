@@ -70,6 +70,27 @@ func init() {
 			return found
 		})
 
+	// Lent gear past its agreed return date: remind before it is lost.
+	Register("snipe.checkin_overdue", string(enums.ServiceSnipeIT), nil,
+		func(raw any, cfg map[string]any, env Env) []Finding {
+			data := sData(raw)
+			var found []Finding
+			for _, a := range data.Assets {
+				due, ok := metrics.ParseDay(a.ExpectedCheckin)
+				if !a.Assigned || !ok || !due.Before(env.Today) {
+					continue
+				}
+				found = append(found, Finding{
+					Fingerprint: fmt.Sprintf("checkin:%d", a.ID), Rule: "snipe.checkin_overdue",
+					Severity: enums.SeverityWarn, Message: "snipe.checkin_overdue",
+					Params:    map[string]any{"asset": a.Name, "tag": a.Tag, "who": a.AssignedTo, "day": Day(due)},
+					ActionURL: snipeURL(data, fmt.Sprintf("hardware/%d", a.ID)), ActionLabel: snipeOpen,
+					Due: due.Format(time.DateOnly), Sources: []string{snipeSource},
+				})
+			}
+			return found
+		})
+
 	Register("snipe.eol_reached", string(enums.ServiceSnipeIT), nil,
 		func(raw any, cfg map[string]any, env Env) []Finding {
 			data := sData(raw)

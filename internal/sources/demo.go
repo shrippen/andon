@@ -248,7 +248,7 @@ func pad3(n int64) string {
 
 // demoSnipeAssets gives the studio's assets from the demo world their
 // states: the notebook's warranty ends soon, the NAS is past end of life
-// and overdue for an audit.
+// and overdue for an audit, the fourth asset should have come back.
 func demoSnipeAssets(ago, ahead func(int) string) []SnipeAsset {
 	states := []SnipeAsset{
 		{Status: "Ausgegeben", Deployable: true, Assigned: true, PurchaseDate: ago(30), WarrantyExpires: ahead(10),
@@ -258,7 +258,7 @@ func demoSnipeAssets(ago, ahead func(int) string) []SnipeAsset {
 		{Status: "Bereit", Deployable: true, PurchaseDate: ago(500), WarrantyExpires: ahead(230),
 			NextAudit: ahead(60), LastChange: ago(140)},
 		{Status: "Ausgegeben", Deployable: true, Assigned: true, PurchaseDate: ago(60), WarrantyExpires: ahead(1000),
-			NextAudit: ahead(200), LastChange: ago(60)},
+			NextAudit: ahead(200), LastChange: ago(60), AssignedTo: demoWorld.Person("jonas").Name, ExpectedCheckin: ago(5)},
 	}
 	out := make([]SnipeAsset, len(states))
 	for i, a := range demoWorld.Inventory.Assets[:len(states)] {

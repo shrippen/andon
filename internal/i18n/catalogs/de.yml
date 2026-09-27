@@ -2040,6 +2040,9 @@ hint:
     expense_missing:
       title: Keine Ausgabe zu {asset}
       why: Kauf am {day} über {amount}, in Invoice Ninja keine passende Ausgabe.
+    checkin_overdue:
+      title: '{asset} sollte seit {day} zurück sein'
+      why: 'Ausgegeben an {who}. Nachfragen oder die Rückgabe in Snipe-IT verlängern.'
   geo:
     visit_without_time:
       title: '{customer} am {day}: keine Zeit gebucht'
@@ -2489,6 +2492,7 @@ rule_name:
   wallos.renewal_soon: 'Abo verlängert sich bald'
   github.review_waiting: 'Review wartet (GitHub)'
   github.stale_pr: 'Eigener PR ruht (GitHub)'
+  snipe.checkin_overdue: 'Rückgabe überfällig'
 param:
   new_watts: 'Neues Gerät (W)'
   new_cost: 'Neues Gerät (€)'

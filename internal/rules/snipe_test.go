@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -32,5 +33,20 @@ func TestSnipeUnusedIsOneHint(t *testing.T) {
 	p := got[0].Params
 	if p["count"] != 12 || p["oldest"] != 400 || !strings.HasPrefix(p["names"].(string), "Akku, Patchkabel (10×), Stativ") {
 		t.Fatalf("params: %+v", p)
+	}
+}
+
+// A lent asset past its expected return date is overdue; one without a
+// date or already back is not.
+func TestSnipeCheckinOverdue(t *testing.T) {
+	data := &sources.SnipeDataset{URL: "https://snipe.test", Assets: []sources.SnipeAsset{
+		{ID: 1, Name: "Kamera", Assigned: true, AssignedTo: "Jonas", ExpectedCheckin: "2026-09-20"},
+		{ID: 2, Name: "Stativ", Assigned: true, ExpectedCheckin: "2026-10-20"},
+		{ID: 3, Name: "Mikro", Assigned: false, ExpectedCheckin: "2026-09-01"},
+		{ID: 4, Name: "Laptop", Assigned: true},
+	}}
+	got := run(t, "snipe.checkin_overdue", data, rules.Env{Today: day("2026-09-25")})
+	if len(got) != 1 || got[0].Fingerprint != "checkin:1" || got[0].Params["who"] != "Jonas" {
+		t.Fatalf("findings: %+v", got)
 	}
 }

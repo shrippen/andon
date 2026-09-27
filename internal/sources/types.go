@@ -156,6 +156,8 @@ type SnipeAsset struct {
 	EOLDate         string
 	NextAudit       string
 	LastChange      string
+	AssignedTo      string // who has it (person, location or asset name)
+	ExpectedCheckin string // agreed return date, "" if none
 }
 
 type SnipeLicense struct {
