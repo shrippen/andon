@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"andon/internal/sources"
 )
@@ -239,5 +240,28 @@ func TestHTTPStatusAsksForAPage(t *testing.T) {
 	}
 	if status := out.(*sources.HTTPStatusResult); !status.Up {
 		t.Fatalf("expected up, got %+v", status)
+	}
+}
+
+// TestHTTPStatusMethodAndTimeout: HEAD when asked, and a slow service
+// counts as down after the tile's time limit.
+func TestHTTPStatusMethodAndTimeout(t *testing.T) {
+	method := ""
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method = r.Method
+		if r.URL.Path == "/slow" {
+			time.Sleep(1500 * time.Millisecond)
+		}
+	}))
+	defer srv.Close()
+	source, _ := sources.Get("http_status")
+
+	out, _ := source.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"url": srv.URL, "method": "HEAD"}})
+	if !out.(*sources.HTTPStatusResult).Up || method != http.MethodHead {
+		t.Fatalf("head: %+v via %s", out, method)
+	}
+	out, _ = source.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"url": srv.URL + "/slow", "timeout": 1.0}})
+	if res := out.(*sources.HTTPStatusResult); res.Up || res.Error == "" {
+		t.Fatalf("timeout: %+v", res)
 	}
 }

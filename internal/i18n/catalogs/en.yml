@@ -26,7 +26,7 @@ action:
   isp_report: 'Open report'
   book_payment: 'Book payment'
   open_in_tailscale: 'Open in Tailscale / Headscale'
-  open_in_gateway: 'Open in Router (OPNsense, pfSense, UniFi)'
+  open_in_gateway: 'Open in router'
   open_in_mediaserver: 'Open in Jellyfin / Plex'
   open_in_arr: 'Open in Sonarr / Radarr'
   open_in_vaultwarden: 'Open in Vaultwarden'
@@ -288,6 +288,160 @@ field:
   km_rate: 'Mileage rate (€/km)'
   red_from: 'Red from level'
   yellow_from: 'Yellow from level'
+  frame_accent: Accent colour
+  frame_header: Header
+  frame_link: Title opens
+  frame_icon: Header icon
+  frame_refresh: Refresh
+  frame_density: Density
+  frame_round: Amounts
+  frame_only_issues: Show only when something needs doing
+  compare: Compare with
+  target_value: Target value
+  spark: Show the line
+  show_prev: Show last year
+  values: Values on the bars
+  goal_line: Goal per month as a line
+  projects: Only these projects
+  soll: Show the expected mark
+  warn_ahead: Yellow when ahead by (points)
+  show_vat: VAT returns
+  show_prepayment: Prepayments
+  show_annual: Annual return
+  amounts: Show amounts
+  smooth: Smooth (7 days)
+  weekdays: Monday to Friday only
+  by_goal: Colour by daily goal
+  min_balance: Minimum balance
+  delay: Payments later by (days)
+  hide_cols: Hide columns (names)
+  sum_row: Sum row
+  bands: Age bands (days, e.g. 30, 60)
+  hide_internal: Hide internal customers
+  hide_clients: Hide clients
+  only_open: Only mails not yet sent to Paperless
+  change: Change
+  invert: Show the inverse
+  digits: Decimals
+  week: Week
+  group: Split by
+  workdays: Workdays
+  billable_only: Billable hours only
+  recent: Quick starts (count)
+  ask_note: Ask for a description on start
+  kind: Kind
+  show: Show
+  categories: Only these categories
+  close_hours: Step "hours billed"
+  close_drafts: Step "invoice drafts"
+  close_receipts: Step "receipts"
+  close_inbox: Step "Paperless inbox"
+  close_vat: Step "VAT return"
+  manual: Tick steps by hand
+  min_amount: Minimum amount (empty = as in the rule)
+  month: Month
+  period: Period
+  power_entity: Power entity (Home Assistant)
+  show_hours: Line for work
+  show_money: Line for money
+  show_storage: Line for storage
+  show_power: Line for power
+  show_hints: Line for hints
+  yearly: Costs per year instead of month
+  ahead: Look ahead (days)
+  app_updates: Name apps with updates
+  buttons: '"Done" and "Later" buttons'
+  by_value: Sort by amount
+  cheap_hours: Cheap window (hours)
+  filter: Only names containing
+  forecast: Forecast "full in … days"
+  kinds: Show
+  levels: Level bar
+  max_days: Only up to … days (empty = all)
+  only_issues: Only with updates or problems
+  only_problems: Only problems
+  only_shaky: Only shaky now (last 2 days)
+  power_split: Power per service
+  price: Price
+  response_time: Show response time
+  show_cpu: CPU
+  show_disks: Disks
+  show_mem: Memory
+  show_swap: Swap
+  temp_warn: Yellow from (°C)
+  tomorrow: Include tomorrow
+  tools: 'Only these tools (borgbackup, pgbackweb, truenas)'
+  use_backup: Wait for a fresh backup
+  use_meetings: Mind appointments
+  use_price: Mind the power price
+  use_streams: Mind running streams
+  use_timer: Mind a running Kimai timer
+  warn_pct: Yellow from (%)
+  window: 'Maintenance window (e.g. 22:00-06:00)'
+  only_failures: Failed logins only
+  list_without: List accounts without two-factor
+  only_red: Red CI only
+  warn_line: Warning line at
+  thresholds: Colour thresholds
+  thresholds_hint: 'One rule per line: name, comparison, limit, colour. Example: "queue > 10 yellow" or "Temp >= 30 red".'
+  units: Units
+  units_hint: 'One per line: "name = unit", e.g. "Temp = °C".'
+  labels: Own labels
+  labels_hint: 'One per line: "entity = name", e.g. "sensor.office_temp = Office".'
+  direct: Include monitors and connections
+  text_green: Text for green
+  text_yellow: Text for yellow
+  text_red: Text for red
+  sla: Target (%)
+  show_calendar: Appointments
+  show_timer: Kimai timer
+  show_transit: Departures
+  show_deadlines: Deadlines
+  hide_past: Hide past appointments
+  top_clients: Show busiest devices
+  top_domains: Show most blocked domains
+  newest: List the latest links
+  newest_docs: List the latest documents (count)
+  only_unread: Only feeds with unread items
+  queue: Show the queue (count)
+  show_users: Show who is streaming
+  tag: Another tag instead of the inbox
+  two_columns: Two columns
+  show_stock: Stock
+  show_shopping: Shopping list
+  show_chores: Chores
+  day: Day
+  airlines: Only these airlines (codes, e.g. LH, EW)
+  bridges: Mark bridge days
+  color_1: Colour of the first calendar
+  color_2: Colour of the second calendar
+  color_3: Colour of the third calendar
+  hide_all_day: Hide all-day events
+  hourly: Next hours
+  ical_url_2: Second calendar (iCal address)
+  ical_url_3: Third calendar (iCal address)
+  lines: Only these lines
+  min_level: From warning level
+  unit: Unit
+  walk: Walk to the stop (minutes)
+  analog: Analogue clock
+  format: Hour format
+  show_since: Since yesterday
+  show_weather: Weather
+  markdown: 'Markdown (**bold**, *italic*, - list, [link](https://…))'
+  columns: Columns
+  icon_size: Icon size
+  status_method: Status check via
+  status_timeout: Check time limit (seconds)
+  more_urls: More feeds (merged)
+  images: Show pictures
+  max_age: Maximum age (days, empty = any)
+  reload: Reload every … minutes (empty = default)
+  fit: Display
+  image_only: Picture only, no text
+  random: A random comic instead of the newest
+  every: A new joke every … hours (empty = hourly)
+  hide_bar: Hide the comparison bar
 opt:
   exposure: 'Exposure'
   domain_chain: 'Domain chain'
@@ -362,6 +516,77 @@ opt:
   critical: Critical
   warn: Warning
   info: Info
+  normal: Normal
+  small: Small
+  auto: Automatic
+  '60': Every minute
+  '300': Every 5 minutes
+  '900': Every 15 minutes
+  '3600': Hourly
+  compact: Compact
+  exact: Exact (with cents)
+  euro: Without cents
+  thousand: In thousands (k)
+  prev_year: Last year
+  prev_month: Last month
+  as_is: As delivered
+  amount_desc: Largest amount first
+  amount_asc: Smallest amount first
+  name: By name
+  date: By date
+  day: since yesterday
+  week: over a week
+  this: this one
+  last: last one
+  customer: Customer
+  project: Project
+  mo_fr: Mon–Fri
+  mo_sa: Mon–Sat
+  all: All
+  acquisition: Acquisition
+  development: Development
+  reviews: Reviews only
+  issues: Issues only
+  calendar: Calendar week
+  current: Running month
+  days7: Last 7 days
+  next: Next debit first
+  previous: Last month
+  price: Dearest first
+  "14": 14 days
+  "30": 30 days
+  "7": 7 days
+  age: Oldest first
+  both: Certificates and domains
+  certs: Certificates only
+  domains: Domains only
+  energy: Energy only (without grid fees and taxes)
+  month: Per month
+  total: Total price
+  urgency: Most urgent first
+  year: Per year
+  24h: 24 hours
+  7d: 7 days
+  "90": 90 days
+  hints: Hints only
+  updates: Updates only
+  today: Today
+  yesterday: Yesterday
+  c: °C
+  f: °F
+  minor: Weather warning
+  moderate: Marked
+  severe: Severe weather
+  extreme: Extreme weather
+  "12": 12 hours
+  "24": 24 hours
+  "1": One
+  "2": Two
+  GET: GET (whole page)
+  HEAD: HEAD (headers only)
+  large: Large
+  contain: Show it whole
+  cover: Fill the space
 size:
   small: Small
   medium: Medium
@@ -535,7 +760,7 @@ wtype:
     desc: 'Prices and 24 h change from CoinGecko; coins as ids (bitcoin, ethereum).'
   stocks:
     name: Stocks
-    desc: 'Quotes from stooq by ticker (aapl.us, sap.de), delayed.'
+    desc: 'Quotes from Yahoo Finance by ticker (AAPL, SAP.DE; aapl.us, sap.de work too), delayed.'
   flights:
     name: Flights
     desc: 'Departures or arrivals of the next 12 h (AeroDataBox, RapidAPI key required).'
@@ -757,7 +982,7 @@ conn:
   about_calendar: 'Appointments against bookings'
   options_hint_tailscale: 'URL https://api.tailscale.com (token = API access token, admin console → settings → keys; expires after 90 days at most) or the Headscale URL (token = API key, headscale apikeys create). Options: tailnet: example.com (Tailscale, else the default tailnet).'
   about_tailscale: 'Devices, key expiry, updates'
-  options_hint_gateway: 'Options: kind: opnsense | pfsense | unifi. OPNsense: token = key:secret of an API key. pfSense: REST API package, token = API key. UniFi: integration API key (Settings → Control Plane → Integrations), console URL. For pfSense and UniFi leave “API key” empty and put the key into “API secret”.'
+  options_hint_gateway: 'Choose the router above. OPNsense: token = key:secret of an API key. pfSense: REST API package, token = API key. UniFi: integration API key (Settings → Control Plane → Integrations), console URL. For pfSense and UniFi leave “API key” empty and put the key into “API secret”.'
   about_gateway: 'WAN, devices, firmware updates'
   options_hint_mediaserver: 'Options: kind: jellyfin | plex (default jellyfin). Token = Jellyfin API key (dashboard → API keys, admins only) or the server owner''s X-Plex-Token.'
   about_mediaserver: 'Running streams, library'
@@ -833,7 +1058,7 @@ conn:
   what_blacklist: 'Built-in check: Andon looks whether your mail server is on spam blocklists.'
   what_jsonapi: 'Built-in: Andon reads any JSON API and shows the fields you choose.'
   what_tailscale: 'Tailscale is a WireGuard-based VPN that joins devices into a private network; Headscale is its self-hosted server.'
-  what_gateway: 'Router and firewall: OPNsense, pfSense or UniFi.'
+  what_gateway: 'Router and firewall: OPNsense, pfSense, UniFi or OpenWrt.'
   what_mediaserver: 'Jellyfin (open source) or Plex stream your films, shows and music to all devices.'
   what_arr: 'Sonarr and Radarr manage show and film collections and fetch new releases automatically.'
   what_vaultwarden: 'Vaultwarden is a lightweight, self-hosted server for the Bitwarden password manager.'
@@ -939,6 +1164,12 @@ conn:
   about_wallos: 'Subscriptions and payment dates'
   options_hint_wallos: 'No options needed. Key = API key from Wallos → Profile (API key). URL = address of the Wallos web interface. Prices come in your main currency.'
   secret_wallos: API key
+  router_kind: Router
+  choice_opnsense: OPNsense
+  choice_pfsense: pfSense
+  choice_unifi: UniFi
+  choice_openwrt: OpenWrt
+  openwrt_login: 'Login for rpcd (/ubus, comes with LuCI). Empty user = root. An own login needs read access to system, network.interface and luci-rpc (for the device list).'
 mode:
   shared: Shared
   personal: Personal
@@ -948,7 +1179,7 @@ mode:
 service:
   calendar: 'Calendar (iCal)'
   tailscale: 'Tailscale / Headscale'
-  gateway: 'Router (OPNsense, pfSense, UniFi)'
+  gateway: 'Router (OPNsense, pfSense, UniFi, OpenWrt)'
   mediaserver: 'Jellyfin / Plex'
   arr: 'Sonarr / Radarr'
   vaultwarden: 'Vaultwarden'
@@ -1964,6 +2195,7 @@ kpi:
   of_goal: goal {goal}
   cash_30: open + recurring, 30 days
   spark_months: 'last {n} months'
+  vs_last_month: vs last month
 col:
   storage: 'Storage'
   full_in: 'Full in'
@@ -2030,6 +2262,7 @@ upcoming:
   license: Licence
 table:
   more: '{count} more'
+  sum: Total
 chart:
   season_avg: Ø prior years
   seasonal: Seasonal revenue
@@ -2037,6 +2270,7 @@ chart:
   hours: Hours per month
   prev: Last year
   this: Current
+  goal: 'Goal {amount} per month'
 progress:
   revenue_goal: Revenue goal
   soll: 'Expected today {pct}'
@@ -2353,6 +2587,8 @@ calendar:
 trend:
   range: '{low} – {high}'
   collecting: Collecting history (one value per day).
+  smoothed: Smoothed over 7 days
+  target: 'Target {value}'
 passkey:
   failed: Passkey operation failed or was cancelled.
   expired: Ceremony expired. Please try again.
@@ -2389,13 +2625,14 @@ span:
 holidays:
   today: today
   in: 'in {days} days'
+  bridge: 'Bridge day {day}'
 picture:
   open: Original
   more: Description
 joke:
   reveal: Punchline
 stocks:
-  source: Data from stooq, delayed.
+  source: Data from Yahoo Finance, delayed.
 topic:
   overview: Overview
   work: Work & money
@@ -2415,6 +2652,7 @@ backup:
   unknown: unknown
   none: No backup tools connected.
   days: 'Backups of the last 14 days, as recorded by Andon'
+  all_ok: All backups are fine.
 timer:
   project: Project
   activity: Activity
@@ -2437,10 +2675,13 @@ timer:
   today: Today
   start: Start
   stop: Stop
+  start_note: Description for the start
 heatmap:
   total: '{hours} hours in the last year'
   less: less
   more: more
+  goal_met: daily goal met
+  goal_under: below
 cashflow:
   end: Expected balance at the end
   change: Expected change
@@ -2448,6 +2689,8 @@ cashflow:
   fixed: Fixed costs
   prepayment: Tax prepayment
   relative_hint: Without a Sure connection it starts at 0 – the curve shows the change, not the balance.
+  below_min: 'Falls below the minimum of {amount}.'
+  delayed: 'Assumption: clients pay {days} days later.'
 billing:
   summary: Overview
   sum_unbilled: 'unbilled · {n} customers'
@@ -2518,6 +2761,7 @@ uptime:
   measured: Measured by Andon on every check run (every 5 minutes).
   none: No measurements yet. Andon counts from the next check run on.
   since: 'Measured since {day}.'
+  sla: 'target {pct} %'
 template:
   start: Start (greeting, data tiles, hint rail)
   familie: Family (weather, holidays, list)
@@ -2552,6 +2796,7 @@ github:
   issues: 'Issues'
   release: 'Release'
   notifications: '{count} notifications'
+  all_green: No red CI.
 energy:
   now: 'Price now'
   power: 'Power'
@@ -2567,6 +2812,7 @@ energy:
     none: ''
   cheap_band: cheapest window
   now_line: now
+  energy_only: without grid fees and taxes
 selfbackup:
   integrity: 'The copy is damaged.'
   migrations: 'The copy has a different schema version.'
@@ -2609,11 +2855,12 @@ window:
   working: 'A Kimai timer is running'
   meeting: 'Appointment within the hour'
   expensive: 'Power is expensive right now'
+  outside: Outside the maintenance window
 forecast:
   stable: 'not growing'
   none: 'Not enough history yet: forecasts appear after a week.'
   full_on: 'full in {days} d ({day})'
-  ahead_hint: 'Dashed: what the next 30 days add at the recent pace.'
+  ahead_hint: 'Dashed: what the next {days} days add at the recent pace.'
 timeline:
   title: 'Timeline'
   lead: 'Updates and hints of the last {days} days, newest first.'
@@ -2642,6 +2889,8 @@ cost:
   cloud: 'Comparable cloud services: {amount} per month.'
   business: 'Business: {percent} % ({count} of {all} stacks and repos for clients), {yearly} a year.'
   power_split: 'Power per service ({watts} W, {amount} per month)'
+  per_year: 'Homelab per year'
+  power_split_year: 'Power per service ({watts} W, {amount} per year)'
 week:
   d0: 'Mo'
   d1: 'Tu'
@@ -2680,6 +2929,8 @@ aging:
   d60: 31–60 days overdue
   older: over 60 days
   none: No open invoices.
+  span: '{from}–{to} days late'
+  over: 'over {days} days'
 split:
   other: 'Other'
 unbilled:
@@ -2688,6 +2939,7 @@ unbilled:
   mid: '31–60 days'
   old: 'over 60 days'
   none: 'Everything billed.'
+  upto: 'up to {days} days'
 disks:
   healthy: 'disks fine'
   ok: 'ok'
@@ -2702,12 +2954,16 @@ truenas:
   https_required: 'Connect TrueNAS over https:// only: TrueNAS revokes an API key as soon as it is used over http. Please change the URL to https:// and create a new key.'
   alerts: 'Alerts: {n}'
   updates: 'App updates: {n}'
+  full_in: 'full in {days} days'
+  app_list: 'Updates for: {names}'
 dns:
   blocked: 'blocked today'
   on: 'on'
   off: 'off'
   queries: '{n} queries'
   blocked_n: '{n} blocked'
+  top_clients: Busiest devices (24 h)
+  top_blocked: Most blocked domains
 vpn:
   down: 'Tunnel down'
   leak: 'Leak'
@@ -2721,6 +2977,7 @@ gateway:
   devices: 'devices online'
   offline: 'Offline'
   updates: 'Updates: {n}'
+  clients: devices on the network (DHCP)
 expiry:
   days: 'days'
   total: '{n} certificates and domains'
@@ -2735,6 +2992,8 @@ paperless:
   inbox: 'in the inbox'
   oldest: 'Oldest: {title} ({days} days)'
   total: '{n} documents'
+  tagged: 'Documents tagged "{tag}"'
+  newest: Recently added
 mailinv:
   found: 'invoices in the mail · {sum}'
   scanned: '{n} mails read in {box}'
@@ -2742,6 +3001,7 @@ rss:
   unread: 'unread in {n} feeds'
 linkwarden:
   links: 'links in {n} collections'
+  newest: Recently saved
 kintsugi:
   open: 'suggestions open'
   rate: '{n} % taken up'
@@ -2757,10 +3017,14 @@ gitea:
 places:
   unknown: 'Unknown place'
   none: 'No places today yet.'
+  yesterday: Yesterday
 authentik:
   logins: 'logins in 7 days'
   failed24: '{n} failed (24 h)'
   failed7: '{n} failed in 7 days'
+  logins_24h: Logins in 24 hours
+  failures_24h: Failed logins in 24 hours
+  failures_7d: Failed logins in 7 days
 vault:
   with2fa: 'accounts with two-factor'
   without: 'Without'
@@ -3040,6 +3304,8 @@ close:
   inbox_done: Paperless inbox empty
   vat: 'VAT return by {day}'
   none: No matching connection in this space.
+  tick: Tick by hand
+  untick: Remove the tick
 today:
   timer: 'Timer running · {what}'
   all_day: all day
@@ -3056,6 +3322,9 @@ travel:
   trips: '{n} trips to clients, {km} km'
   amount: '{amount} at {rate} €/km'
   none: Dawarich has no statistics yet.
+  this_year: this year
+  prev_year: 'last year {km} km'
+  places: '{countries} countries · {cities} cities'
 exposure:
   public: publicly reachable
   open: '{n} without login'
@@ -3064,6 +3333,7 @@ exposure:
   updates: '{n} updates'
   cert: 'certificate {days} d'
   none: Pangolin publishes nothing.
+  all_login: 'All {n} public services require a login.'
 light:
   green: All good
   yellow: Attention
@@ -3071,6 +3341,8 @@ light:
   count: '{n} open'
   calm: Nothing open
   more: '{n} more'
+  monitor_down: monitor down
+  conn_failing: connection failing
 noise:
   new: 'new hints in {days} days'
   returns: 'came back {n}×'
@@ -3082,3 +3354,6 @@ subs:
   per_month: '{n} subscriptions per month'
   missing: 'Missing in Wallos: {names}'
   none: No Wallos or Sure connection in this space.
+  per_year: '{n} subscriptions per year'
+ip:
+  changed: 'New since {time}, before {prev}'

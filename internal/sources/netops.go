@@ -55,6 +55,13 @@ type DNSFilterDataset struct {
 	ListsUpdated     time.Time // Pi-hole gravity; zero if unknown
 	Clients          int
 	TopClients       []DNSClient // busiest clients (Pi-hole v6, AdGuard)
+	TopBlocked       []DNSDomain // most blocked domains (Pi-hole v6, AdGuard)
+}
+
+// DNSDomain is one blocked domain and how often.
+type DNSDomain struct {
+	Domain string
+	Count  int
 }
 
 // DNSClient is one device's queries of the last 24 hours.
@@ -106,6 +113,12 @@ func (PiholeData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		Percent: asFloat(q["percent_blocked"]), Enabled: asStr(asMap(blocking)["blocking"]) == pihole5Enabled,
 		ListsUpdated: time.Unix(asInt64(g["last_update"]), 0).UTC(), Clients: int(asFloat(asMap(asMap(summary)["clients"])["active"]))}
 	data.TopClients = piholeClients(ctx, session)
+	if top, err := session.Get(ctx, "stats/top_domains?blocked=true&count="+topClientCount); err == nil {
+		for _, raw := range asList(asMap(top)["domains"]) {
+			d := asMap(raw)
+			data.TopBlocked = append(data.TopBlocked, DNSDomain{Domain: asStr(d["domain"]), Count: int(asFloat(d["count"]))})
+		}
+	}
 	return data, nil
 }
 
@@ -138,6 +151,12 @@ func (AdGuardData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	for _, raw := range asList(s["top_clients"]) {
 		for ip, n := range asMap(raw) {
 			data.TopClients = append(data.TopClients, DNSClient{IP: ip, Queries: int(asFloat(n))})
+		}
+	}
+	// top_blocked_domains: [{"ads.example": 42}, …]
+	for _, raw := range asList(s["top_blocked_domains"]) {
+		for domain, n := range asMap(raw) {
+			data.TopBlocked = append(data.TopBlocked, DNSDomain{Domain: domain, Count: int(asFloat(n))})
 		}
 	}
 	return data, nil
@@ -223,6 +242,14 @@ type SabnzbdDataset struct {
 	SpeedKB  float64
 	FreeGB   float64 // download disk
 	Failures []SabFailure
+	Queue    []SabItem // first entries of the queue
+}
+
+// SabItem is one queued download.
+type SabItem struct {
+	Name    string
+	Percent float64
+	Left    string // "0:12:30"
 }
 
 type SabnzbdData struct{}
@@ -247,6 +274,10 @@ func (SabnzbdData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	q := asMap(asMap(queue)["queue"])
 	data := &SabnzbdDataset{URL: sctx.URL, Paused: asBool(q["paused"]), Slots: int(asFloat(q["noofslots"])),
 		SpeedKB: asFloat(q["kbpersec"]), FreeGB: asFloat(q["diskspace1"])}
+	for _, raw := range asList(q["slots"]) {
+		item := asMap(raw)
+		data.Queue = append(data.Queue, SabItem{Name: asStr(item["filename"]), Percent: asFloat(item["percentage"]), Left: asStr(item["timeleft"])})
+	}
 
 	history, err := api.Mode(ctx, "history", url.Values{"limit": {sabHistory}})
 	if err != nil {

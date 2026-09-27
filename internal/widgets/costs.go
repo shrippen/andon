@@ -19,7 +19,36 @@ var costPeers = []enums.ServiceType{
 	enums.ServiceKimai, enums.ServiceKomodo, enums.ServiceGitea, enums.ServiceGitHub, enums.ServiceProxmox,
 }
 
-func homelabCostView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
+// CostConfig is the "homelab_cost" widget's config.
+type CostConfig struct {
+	Yearly     bool // amounts per year
+	PowerSplit bool // the power cost per Proxmox guest
+}
+
+func decodeCost(raw map[string]any) any {
+	return CostConfig{Yearly: raw["period"] == "year", PowerSplit: boolOr(raw["power_split"], true)}
+}
+
+// scaleBill turns the monthly bill into the tile's period.
+func scaleBill(b metrics.HomelabBill, f float64) metrics.HomelabBill {
+	items := make([]metrics.CostItem, len(b.Items))
+	for i, it := range b.Items {
+		it.Monthly *= f
+		items[i] = it
+	}
+	b.Items, b.Total, b.Cloud = items, b.Total*f, b.Cloud*f
+	return b
+}
+
+func homelabCostView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(CostConfig)
+	if !ok {
+		cfg = CostConfig{PowerSplit: true}
+	}
+	scale := 1.0
+	if cfg.Yearly {
+		scale = monthsPerYearF
+	}
 	ds := peerDatasets(results, costPeers)
 	s := metrics.HomelabSettingsOf(ctx.Settings)
 	in := metrics.CostInputs{}
@@ -30,16 +59,17 @@ func homelabCostView(_ any, results map[string]any, ctx ViewCtx) map[string]any 
 	in.Domains, _ = ds[string(enums.ServiceDomains)].(*sources.DomainsDataset)
 	bill := metrics.HomelabCost(in, s, time.Now().UTC())
 
-	out := map[string]any{"Bill": bill, "Settings": s}
+	out := map[string]any{"Bill": scaleBill(bill, scale), "Settings": s, "Yearly": cfg.Yearly}
 	kimai, _ := ds[string(enums.ServiceKimai)].(*sources.KimaiDataset)
 	if share, business, all := metrics.BusinessShare(kimai, metrics.WorkNames(ds)); all > 0 && kimai != nil {
 		out["Share"], out["SharePct"], out["ShareOf"], out["ShareAll"] = share, share*100, business, all
 		out["BusinessYearly"] = bill.Total * share * monthsPerYearF
 	}
-	if w, ok := metrics.PowerWatts(in.Hass, s.PowerEntity); ok {
+	if w, ok := metrics.PowerWatts(in.Hass, s.PowerEntity); ok && cfg.PowerSplit {
 		monthly := metrics.MonthlyPowerCost(w, metrics.PowerPrice(in.Tibber, s.PowerPrice))
 		proxmox, _ := ds[string(enums.ServiceProxmox)].(*sources.ProxmoxDataset)
-		out["Watts"], out["PowerMonthly"], out["Services"] = w, monthly, metrics.PowerPerService(proxmox, monthly)
+		services := metrics.PowerPerService(proxmox, monthly*scale)
+		out["Watts"], out["PowerMonthly"], out["Services"] = w, monthly*scale, services
 	}
 	return out
 }
@@ -50,13 +80,41 @@ const monthsPerYearF = 12.0
 // StorySlot names the week's story among a widget's results.
 const StorySlot = "story"
 
-func storyView(_ any, results map[string]any, _ ViewCtx) map[string]any {
-	return map[string]any{"Lines": results[StorySlot]}
+// storyParts maps a story line to the checkbox that hides it.
+var storyParts = map[string]string{"hours": "show_hours", "invoiced": "show_money", "paid": "show_money",
+	"storage": "show_storage", "power": "show_power", "hints": "show_hints"}
+
+// StoryConfig is the "week_story" widget's config.
+type StoryConfig struct {
+	Hide     map[string]bool // line keys left out
+	Calendar bool            // since Monday instead of the last 7 days
+}
+
+func decodeStory(raw map[string]any) any {
+	cfg := StoryConfig{Hide: map[string]bool{}, Calendar: raw["period"] == "calendar"}
+	for line, box := range storyParts {
+		if !boolOr(raw[box], true) {
+			cfg.Hide[line] = true
+		}
+	}
+	return cfg
+}
+
+func storyView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(StoryConfig)
+	lines, _ := results[StorySlot].([]metrics.StoryLine)
+	var shown []metrics.StoryLine
+	for _, l := range lines {
+		if !cfg.Hide[l.Key] {
+			shown = append(shown, l)
+		}
+	}
+	return map[string]any{"Lines": shown, "Calendar": cfg.Calendar}
 }
 
 func init() {
-	Register(WidgetType{Key: "week_story", Decode: decodeEmpty, Template: "widgets/week_story", Category: CategoryInsight,
+	Register(WidgetType{Key: "week_story", Decode: decodeStory, Template: "widgets/week_story", Category: CategoryInsight,
 		RefreshS: 3600, View: storyView, Extra: ExtraStory})
-	Register(WidgetType{Key: "homelab_cost", Decode: decodeEmpty, Template: "widgets/homelab_cost", Category: CategoryInsight,
+	Register(WidgetType{Key: "homelab_cost", Decode: decodeCost, Template: "widgets/homelab_cost", Category: CategoryInsight,
 		RefreshS: 3600, View: homelabCostView, Queries: func(any) []Query { return peersOf(costPeers) }})
 }

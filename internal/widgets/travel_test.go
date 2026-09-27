@@ -29,3 +29,19 @@ func TestTravelTile(t *testing.T) {
 		t.Fatalf("previous month: %v", view["PrevKM"])
 	}
 }
+
+// TestTravelYear: the year against last year, and no bar when asked.
+func TestTravelYear(t *testing.T) {
+	data := &sources.DawarichDataset{Stats: map[string]any{"yearlyStats": []any{
+		map[string]any{"year": 2026.0, "totalDistanceKm": 3100.0, "monthlyDistanceKm": map[string]any{"august": 500.0, "september": 412.0}},
+		map[string]any{"year": 2025.0, "totalDistanceKm": 9000.0},
+	}}}
+	v := viewOf(t, "travel", map[string]any{"period": "year"}, map[string]any{"data": data}, enums.ServiceDawarich, nil)
+	if v["HeadKM"] != 3100.0 || v["PrevKM"] != 9000.0 || v["Year"] != true || v["Bar"] != 34 {
+		t.Fatalf("year: %+v", v)
+	}
+	v = viewOf(t, "travel", map[string]any{"hide_bar": true}, map[string]any{"data": data}, enums.ServiceDawarich, nil)
+	if v["HeadKM"] != 412.0 || v["Bar"] != nil {
+		t.Fatalf("month without bar: %+v", v)
+	}
+}

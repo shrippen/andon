@@ -127,6 +127,7 @@ var setupFields = map[enums.ServiceType][]setupField{
 	enums.ServiceDWD:       {{Key: "place", Label: "conn.place", Kind: fieldPlace}},
 	enums.ServiceTibber:    {{Key: "place", Label: "conn.place", Kind: fieldPlace}},
 	enums.ServiceSpeedtest: {{Key: "kind", Label: "conn.speed_tool", Kind: fieldSelect, Choices: []string{"tracker", "myspeed"}}},
+	enums.ServiceGateway:   {{Key: "kind", Label: "conn.router_kind", Kind: fieldSelect, Choices: []string{"opnsense", "pfsense", "unifi", "openwrt"}}},
 }
 
 func setupFieldsOf(service enums.ServiceType) []setupField {

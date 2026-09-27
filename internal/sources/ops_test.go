@@ -104,7 +104,7 @@ func TestPaperlessCountsInbox(t *testing.T) {
 		w.Write([]byte(`{"user":{"id":2,"username":"me"}}`))
 	})
 	mux.HandleFunc("/api/tags/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"count":3,"results":[{"id":49,"is_inbox_tag":true,"owner":6},{"id":22,"is_inbox_tag":true,"owner":2},{"id":4,"is_inbox_tag":false,"owner":2}]}`))
+		w.Write([]byte(`{"count":3,"results":[{"id":49,"is_inbox_tag":true,"owner":6},{"id":22,"is_inbox_tag":true,"owner":2},{"id":4,"name":"Steuer","is_inbox_tag":false,"owner":2,"document_count":31}]}`))
 	})
 	mux.HandleFunc("/api/documents/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Token tok" {
@@ -116,6 +116,8 @@ func TestPaperlessCountsInbox(t *testing.T) {
 			w.Write([]byte(`{"count":5,"results":[{"title":"Strom","added":"2026-08-01T10:00:00+02:00"}]}`))
 		case r.URL.Query().Get("is_in_inbox") == "true":
 			w.Write([]byte(`{"count":12,"results":[{"title":"Fremd","added":"2026-07-01T10:00:00+02:00"}]}`))
+		case r.URL.Query().Get("ordering") == "-added":
+			w.Write([]byte(`{"count":2356,"results":[{"id":2400,"title":"Neu","added":"2026-09-26T10:00:00+02:00"}]}`))
 		default:
 			w.Write([]byte(`{"count":2356,"results":[{"title":"Alt","added":"2019-01-01T10:00:00+01:00"}]}`))
 		}
@@ -128,7 +130,8 @@ func TestPaperlessCountsInbox(t *testing.T) {
 		t.Fatalf("fetch: %v", err)
 	}
 	data := out.(*sources.PaperlessDataset)
-	if data.Inbox != 5 || data.OldestTitle != "Strom" || data.OldestAdded != "2026-08-01" {
+	if data.Inbox != 5 || data.OldestTitle != "Strom" || data.OldestAdded != "2026-08-01" || data.TagCounts["steuer"] != 31 ||
+		len(data.Newest) != 1 || data.Newest[0].ID != 2400 || data.Newest[0].Added != "2026-09-26" {
 		t.Fatalf("data: %+v", data)
 	}
 }

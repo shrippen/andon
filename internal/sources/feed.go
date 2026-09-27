@@ -15,15 +15,26 @@ const (
 	summaryMaxLen = 240
 )
 
+// mediaRef is an element pointing at a picture by attribute: enclosure,
+// media:thumbnail, media:content.
+type mediaRef struct {
+	URL  string `xml:"url,attr"`
+	Type string `xml:"type,attr"`
+}
+
 type rssDoc struct {
 	XMLName xml.Name `xml:"rss"`
 	Channel struct {
 		Title string `xml:"title"`
 		Items []struct {
-			Title       string `xml:"title"`
-			Link        string `xml:"link"`
-			PubDate     string `xml:"pubDate"`
-			Description string `xml:"description"`
+			Title       string     `xml:"title"`
+			Link        string     `xml:"link"`
+			PubDate     string     `xml:"pubDate"`
+			Description string     `xml:"description"`
+			Encoded     string     `xml:"encoded"`
+			Enclosure   []mediaRef `xml:"enclosure"`
+			Thumbnail   []mediaRef `xml:"thumbnail"`
+			Content     []mediaRef `xml:"content"`
 		} `xml:"item"`
 	} `xml:"channel"`
 }
@@ -36,10 +47,34 @@ type atomDoc struct {
 		Link  struct {
 			Href string `xml:"href,attr"`
 		} `xml:"link"`
-		Updated   string `xml:"updated"`
-		Published string `xml:"published"`
-		Summary   string `xml:"summary"`
+		Updated   string     `xml:"updated"`
+		Published string     `xml:"published"`
+		Summary   string     `xml:"summary"`
+		Content   string     `xml:"content"`
+		Thumbnail []mediaRef `xml:"thumbnail"`
 	} `xml:"entry"`
+}
+
+var imgSrc = regexp.MustCompile(`(?i)<img[^>]+src=["']([^"']+)["']`)
+
+// feedImage is an item's picture: an image enclosure, a media thumbnail
+// or content, else the first <img> in its HTML; http(s) only.
+func feedImage(html []string, refs ...[]mediaRef) string {
+	for _, list := range refs {
+		for _, r := range list {
+			if r.URL != "" && (r.Type == "" || strings.HasPrefix(r.Type, "image/")) {
+				if link := httpLinkOnly(r.URL); link != "" {
+					return link
+				}
+			}
+		}
+	}
+	for _, h := range html {
+		if m := imgSrc.FindStringSubmatch(h); m != nil {
+			return httpLinkOnly(m[1])
+		}
+	}
+	return ""
 }
 
 var errInvalidFeed = errors.New("invalid feed")
@@ -60,6 +95,7 @@ func parseFeed(r io.Reader) (*FeedResult, error) {
 			out.Items = append(out.Items, FeedItem{
 				Title: plainText(item.Title, titleMaxLen), Link: httpLinkOnly(item.Link),
 				Published: parseFeedDate(item.PubDate), Summary: plainText(item.Description, summaryMaxLen),
+				imageURL: feedImage([]string{item.Description, item.Encoded}, item.Enclosure, item.Thumbnail, item.Content),
 			})
 		}
 		return out, nil
@@ -76,6 +112,7 @@ func parseFeed(r io.Reader) (*FeedResult, error) {
 			out.Items = append(out.Items, FeedItem{
 				Title: plainText(entry.Title, titleMaxLen), Link: httpLinkOnly(entry.Link.Href),
 				Published: parseFeedDate(published), Summary: plainText(entry.Summary, summaryMaxLen),
+				imageURL: feedImage([]string{entry.Summary, entry.Content}, entry.Thumbnail),
 			})
 		}
 		return out, nil

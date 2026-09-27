@@ -105,8 +105,14 @@ type AgingRow struct {
 	OldestDay       string
 }
 
-// UnbilledAging groups billable, not exported work by how long it waits.
+// UnbilledAging groups billable, not exported work by how long it waits
+// (up to 30 days, up to 60, older).
 func UnbilledAging(kimai *sources.KimaiDataset, today time.Time) []AgingRow {
+	return UnbilledAgingBy(kimai, today, agingMid, agingOld)
+}
+
+// UnbilledAgingBy is UnbilledAging with own limits in days.
+func UnbilledAgingBy(kimai *sources.KimaiDataset, today time.Time, mid, old int) []AgingRow {
 	names := KimaiCustomerNames(kimai)
 	rows := map[int64]*AgingRow{}
 	for _, s := range kimai.Timesheets {
@@ -124,10 +130,10 @@ func UnbilledAging(kimai *sources.KimaiDataset, today time.Time) []AgingRow {
 		}
 		age := int(today.Sub(d).Hours() / hoursPerDay)
 		switch {
-		case age > agingOld:
+		case age > old:
 			r.Old += s.Rate
 			r.OldMinutes += s.Minutes
-		case age > agingMid:
+		case age > mid:
 			r.Mid += s.Rate
 		default:
 			r.Fresh += s.Rate

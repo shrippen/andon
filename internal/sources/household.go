@@ -88,6 +88,7 @@ func vaultTime(v any) time.Time {
 type SpeedtestDataset struct {
 	URL                  string
 	Down, Up, Ping       float64 // Mbit/s, ms
+	Jitter               float64 // ms, 0 = unknown
 	At                   time.Time
 	ExpectDown, ExpectUp float64 // from the options, 0 = none
 }
@@ -101,7 +102,7 @@ func (SpeedtestData) Service() enums.ServiceType { return enums.ServiceSpeedtest
 func (SpeedtestData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	data := &SpeedtestDataset{URL: sctx.URL, ExpectDown: asFloat(sctx.Options["expect_down"]), ExpectUp: asFloat(sctx.Options["expect_up"])}
 	if isDemo(sctx) {
-		data.Down, data.Up, data.Ping, data.At = 243, 41, 12, time.Now().UTC().Add(-20*time.Minute)
+		data.Down, data.Up, data.Ping, data.Jitter, data.At = 243, 41, 12, 1.8, time.Now().UTC().Add(-20*time.Minute)
 		return data, nil
 	}
 
@@ -119,6 +120,8 @@ func (SpeedtestData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		r := asMap(asMap(body)["data"])
 		data.Down, data.Up = asFloat(r["download_bits"])/bitsPerMbit, asFloat(r["upload_bits"])/bitsPerMbit
 		data.Ping, data.At = asFloat(r["ping"]), parseTime(r["created_at"])
+		// The raw Ookla result carries the jitter.
+		data.Jitter = asFloat(asMap(asMap(r["data"])["ping"])["jitter"])
 		return data, nil
 	}
 	body, err := api.Get(ctx, "api/speedtest/latest", nil)
@@ -174,7 +177,7 @@ func mySpeed(ctx context.Context, sctx Ctx, data *SpeedtestDataset) (any, error)
 		if asStr(r["error"]) != "" {
 			continue // failed run: keep looking for the last real measurement
 		}
-		data.Down, data.Up, data.Ping = asFloat(r["download"]), asFloat(r["upload"]), asFloat(r["ping"])
+		data.Down, data.Up, data.Ping, data.Jitter = asFloat(r["download"]), asFloat(r["upload"]), asFloat(r["ping"]), asFloat(r["jitter"])
 		for _, layout := range mySpeedTimes {
 			if at, err := time.Parse(layout, asStr(r["created"])); err == nil {
 				data.At = at.UTC()
@@ -404,8 +407,9 @@ func loadRepo(ctx context.Context, api services.KeyedApi, name string) (GitRepo,
 
 // PricePoint is one hour's electricity price (total incl. taxes).
 type PricePoint struct {
-	At    time.Time
-	Total float64
+	At     time.Time
+	Total  float64
+	Energy float64 // without grid fees and taxes
 }
 
 // EnergyDay is one day's consumption and cost.
@@ -421,9 +425,11 @@ type TibberDataset struct {
 	Home     string
 	Currency string
 	Current  float64
-	Level    string // VERY_CHEAP … VERY_EXPENSIVE
-	Prices   []PricePoint
-	Days     []EnergyDay
+	// CurrentEnergy is the current price without grid fees and taxes.
+	CurrentEnergy float64
+	Level         string // VERY_CHEAP … VERY_EXPENSIVE
+	Prices        []PricePoint
+	Days          []EnergyDay
 }
 
 type TibberData struct{}
@@ -433,8 +439,8 @@ func (TibberData) TTL() time.Duration         { return priceTTL }
 func (TibberData) Service() enums.ServiceType { return enums.ServiceTibber }
 
 const tibberQuery = `{ viewer { homes { appNickname
-  currentSubscription { priceInfo { current { total level currency }
-    today { total startsAt } tomorrow { total startsAt } } }
+  currentSubscription { priceInfo { current { total energy level currency }
+    today { total energy startsAt } tomorrow { total energy startsAt } } }
   consumption(resolution: DAILY, last: 30) { nodes { from cost consumption } } } } }`
 
 func (TibberData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
@@ -461,11 +467,11 @@ func (TibberData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	info := asMap(asMap(home["currentSubscription"])["priceInfo"])
 	current := asMap(info["current"])
 	data := &TibberDataset{URL: sctx.URL, Home: asStr(home["appNickname"]), Currency: asStr(current["currency"]),
-		Current: asFloat(current["total"]), Level: asStr(current["level"])}
+		Current: asFloat(current["total"]), CurrentEnergy: asFloat(current["energy"]), Level: asStr(current["level"])}
 	for _, key := range []string{"today", "tomorrow"} {
 		for _, raw := range asList(info[key]) {
 			p := asMap(raw)
-			data.Prices = append(data.Prices, PricePoint{At: parseTime(p["startsAt"]), Total: asFloat(p["total"])})
+			data.Prices = append(data.Prices, PricePoint{At: parseTime(p["startsAt"]), Total: asFloat(p["total"]), Energy: asFloat(p["energy"])})
 		}
 	}
 	for _, raw := range asList(asMap(home["consumption"])["nodes"]) {
@@ -535,13 +541,17 @@ func DemoGitHub(now time.Time) *GitHubDataset {
 	}}
 }
 
+// demoGridAndTax is the demo's grid fees and taxes per kWh.
+const demoGridAndTax = 0.17
+
 func DemoTibber(now time.Time) *TibberDataset {
 	start := now.Truncate(24 * time.Hour)
 	data := &TibberDataset{URL: "https://api.tibber.com/v1-beta/gql", Home: "Zuhause", Currency: "EUR", Level: "CHEAP"}
-	for h := range 24 {
-		data.Prices = append(data.Prices, PricePoint{At: start.Add(time.Duration(h) * time.Hour), Total: 0.24 + 0.08*float64((h+6)%24)/24})
+	for h := range 48 { // today and tomorrow
+		total := 0.24 + 0.08*float64((h+6)%24)/24
+		data.Prices = append(data.Prices, PricePoint{At: start.Add(time.Duration(h) * time.Hour), Total: total, Energy: total - demoGridAndTax})
 	}
-	data.Current = data.Prices[now.Hour()].Total
+	data.Current, data.CurrentEnergy = data.Prices[now.Hour()].Total, data.Prices[now.Hour()].Energy
 	for d := tibberDays; d > 0; d-- {
 		data.Days = append(data.Days, EnergyDay{Day: now.AddDate(0, 0, -d).Format(time.DateOnly), KWh: 7 + float64(d%5), Cost: 2 + float64(d%5)*0.3,
 			TempC: 18 - float64(d%5)*2, HasTemp: true})

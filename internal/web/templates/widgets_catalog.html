@@ -46,8 +46,8 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Rows}}
 <div class="tile-head"><b class="tile-value">{{money $v.Total}}</b><span class="tile-sub">{{t "unbilled.sub"}}</span></div>
-<div class="stack" role="img" aria-label="{{range $v.Bands}}{{t (print "unbilled." .Key)}} {{money .Amount}}; {{end}}">{{range $v.Bands}}{{if .Pct}}<i style="--w:{{.Pct}}%" data-tier="{{.Tier}}"></i>{{end}}{{end}}</div>
-<ul class="legend-list">{{range $v.Bands}}{{if .Amount}}<li><span class="sq" data-tier="{{.Tier}}" aria-hidden="true"></span>{{t (print "unbilled." .Key)}}<b>{{money .Amount}}</b></li>{{end}}{{end}}</ul>
+<div class="stack" role="img" aria-label="{{range $v.Bands}}{{template "unbilled_band" .}} {{money .Amount}}; {{end}}">{{range $v.Bands}}{{if .Pct}}<i style="--w:{{.Pct}}%" data-tier="{{.Tier}}"></i>{{end}}{{end}}</div>
+<ul class="legend-list">{{range $v.Bands}}{{if .Amount}}<li><span class="sq" data-tier="{{.Tier}}" aria-hidden="true"></span>{{template "unbilled_band" .}}<b>{{money .Amount}}</b></li>{{end}}{{end}}</ul>
 <ul class="hbars">
   {{range $v.Rows}}<li><span class="hbar-label">{{.Customer}}</span><span class="hbar is-stack"><i style="--w:{{.FreshW}}%" data-tier="green"></i><i style="--w:{{.MidW}}%" data-tier="yellow"></i><i style="--w:{{.OldW}}%" data-tier="red"></i></span><span class="hbar-value">{{money .Total}}</span></li>{{end}}
 </ul>
@@ -78,8 +78,9 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Pools}}
 <ul class="hbars">
-  {{range $v.Pools}}<li><span class="hbar-label">{{.Label}}</span><span class="hbar"><i style="--w:{{.W}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i></span><span class="hbar-value">{{.W}} %</span></li>{{end}}
+  {{range $v.Pools}}<li><span class="hbar-label">{{.Label}}{{if $v.Forecast}} <small class="muted">{{if ge .FullIn 0}}{{t "truenas.full_in" "days" .FullIn}}{{else}}{{t "forecast.stable"}}{{end}}</small>{{end}}</span><span class="hbar"><i style="--w:{{.W}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i></span><span class="hbar-value">{{.W}} %</span></li>{{end}}
 </ul>
+{{with $v.Apps}}<p class="small">{{t "truenas.app_list" "names" .}}</p>{{end}}
 <p class="tile-foot"><span>{{t "truenas.alerts" "n" $v.Alerts}}</span><span>{{t "truenas.updates" "n" $v.Updates}}</span></p>
 {{end}}{{end}}
 {{end}}
@@ -90,6 +91,10 @@
 <div class="tile-head"><b class="tile-value">{{num $v.Percent 1}} %</b><span class="tile-sub">{{t "dns.blocked"}}</span>
   <span class="pill" data-state="{{if $v.Enabled}}ok{{else}}warn{{end}}">{{if $v.Enabled}}{{t "dns.on"}}{{else}}{{t "dns.off"}}{{end}}</span></div>
 <div class="progress-bar"><i style="--p:{{$v.W}}%"></i></div>
+{{with $v.Clients}}<span class="label">{{t "dns.top_clients"}}</span>
+<ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span>{{if .Name}}{{.Name}} <small class="muted">{{.IP}}</small>{{else}}{{.IP}}{{end}}<b>{{.Queries}}</b></li>{{end}}</ul>{{end}}
+{{with $v.Domains}}<span class="label">{{t "dns.top_blocked"}}</span>
+<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="red" aria-hidden="true"></span>{{.Domain}}<b>{{.Count}}</b></li>{{end}}</ul>{{end}}
 <p class="tile-foot"><span>{{t "dns.queries" "n" $v.Queries}}</span><span>{{t "dns.blocked_n" "n" $v.Blocked}}</span></p>
 {{end}}{{end}}
 {{end}}
@@ -108,13 +113,15 @@
 
 {{define "widgets/gateway"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
-{{with $v := .Frag.View}}{{if or $v.Links $v.Devices}}
+{{with $v := .Frag.View}}{{if or $v.Links $v.Devices $v.Clients}}
 <ul class="legend-list">
-  {{range $v.Links}}<li><span class="sq" data-tier="{{if .Up}}green{{else}}red{{end}}" aria-hidden="true"></span>{{.Name}} <small class="muted">{{if .Up}}{{t "gateway.up"}}{{else}}{{t "gateway.down"}}{{end}} · {{num .Loss 0}} % {{t "gateway.loss"}}</small><b>{{num .DelayMS 0}} ms</b></li>{{end}}
+  {{range $v.Links}}<li><span class="sq" data-tier="{{if .Up}}green{{else}}red{{end}}" aria-hidden="true"></span>{{.Name}} <small class="muted">{{if .Up}}{{t "gateway.up"}}{{else}}{{t "gateway.down"}}{{end}}{{if $v.ShowMeasures}} · {{num .Loss 0}} % {{t "gateway.loss"}}{{end}}</small>{{if $v.ShowMeasures}}<b>{{num .DelayMS 0}} ms</b>{{end}}</li>{{end}}
 </ul>
-<div class="tile-head"><b class="tile-value">{{$v.Online}} / {{$v.Devices}}</b><span class="tile-sub">{{t "gateway.devices"}}</span></div>
+{{if $v.Devices}}<div class="tile-head"><b class="tile-value">{{$v.Online}} / {{$v.Devices}}</b><span class="tile-sub">{{t "gateway.devices"}}</span></div>
+{{else if $v.Clients}}<div class="tile-head"><b class="tile-value">{{$v.Clients}}</b><span class="tile-sub">{{t "gateway.clients"}}</span></div>{{end}}
 {{with $v.Offline}}<p class="tile-sub">{{t "gateway.offline"}}: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</p>{{end}}
-<p class="tile-foot"><span>{{$v.Kind}} {{$v.Version}}</span><span>{{t "gateway.updates" "n" $v.Updates}}</span></p>
+{{with $v.Names}}<p class="small">{{.}}{{if $v.NamesMore}} {{t "kuma.more" "n" $v.NamesMore}}{{end}}</p>{{end}}
+<p class="tile-foot"><span>{{with $v.Model}}{{.}} · {{end}}{{$v.Kind}} {{$v.Version}}</span>{{if $v.Measured}}<span>{{t "gateway.updates" "n" $v.Updates}}</span>{{end}}</p>
 {{end}}{{end}}
 {{end}}
 
@@ -145,6 +152,7 @@
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
 <div class="tile-head"><b class="tile-value">{{num $v.SpeedMB 1}} MB/s</b><span class="tile-sub">{{if $d.Paused}}{{t "sab.paused"}}{{else}}{{t "sab.queue" "n" $d.Slots}}{{end}}</span></div>
 <p class="tile-sub">{{t "sab.free" "n" (num $d.FreeGB 0)}}</p>
+{{with $v.Queue}}<ul class="hbars">{{range .}}<li><span class="hbar-label">{{.Name}}</span><span class="hbar"><i style="--w:{{.Percent}}%"></i></span><span class="hbar-value">{{.Left}}</span></li>{{end}}</ul>{{end}}
 {{with $v.Failures}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="red" aria-hidden="true"></span>{{.Name}}<b>{{ago .At}}</b></li>{{end}}</ul>{{end}}
 {{end}}{{end}}
 {{end}}
@@ -152,8 +160,10 @@
 {{define "widgets/paperless_inbox"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
-<div class="tile-head"><b class="tile-value">{{$d.Inbox}}</b><span class="tile-sub">{{t "paperless.inbox"}}</span></div>
-{{if $d.OldestTitle}}<p class="tile-sub">{{t "paperless.oldest" "title" $d.OldestTitle "days" $v.OldestDays}}</p>{{end}}
+<div class="tile-head"><b class="tile-value">{{$v.Count}}</b><span class="tile-sub">{{with $v.Tag}}{{t "paperless.tagged" "tag" .}}{{else}}{{t "paperless.inbox"}}{{end}}</span></div>
+{{if and $d.OldestTitle (not $v.Tag)}}<p class="tile-sub">{{t "paperless.oldest" "title" $d.OldestTitle "days" $v.OldestDays}}</p>{{end}}
+{{with $v.Newest}}<span class="label">{{t "paperless.newest"}}</span>
+<ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span><a href="{{$d.URL}}/documents/{{.ID}}/details" target="_blank" rel="noopener noreferrer">{{.Title}}</a><b>{{day .Added}}</b></li>{{end}}</ul>{{end}}
 <p class="tile-foot"><span>{{if ge $d.Total 0}}{{t "paperless.total" "n" $d.Total}}{{end}}</span><a href="{{$d.URL}}/documents?sort=added" target="_blank" rel="noopener noreferrer">{{t "action.open"}} →</a></p>
 {{end}}{{end}}
 {{end}}
@@ -180,6 +190,8 @@
 {{with $v := .Frag.View}}{{if $v.Links}}
 <div class="tile-head"><b class="tile-value">{{$v.Links}}</b><span class="tile-sub">{{t "linkwarden.links" "n" $v.Collections}}</span></div>
 {{template "hbars" $v.Bars}}
+{{with $v.Newest}}<span class="label">{{t "linkwarden.newest"}}</span>
+<ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Name}}</a>{{if not .Created.IsZero}}<b>{{ago .Created}}</b>{{end}}</li>{{end}}</ul>{{end}}
 {{end}}{{end}}
 {{end}}
 
@@ -213,9 +225,10 @@
 {{define "widgets/dawarich_day"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.DayTicks}}
+{{if $v.Yesterday}}<span class="label">{{t "places.yesterday"}}</span>{{end}}
 <div class="kl-day" role="img" aria-label="{{t "wtype.dawarich_day.name"}}">
   {{range $v.DaySegs}}<i style="--l:{{.L}}%;--w:{{.W}}%"{{if .Run}} data-run{{end}}></i>{{end}}
-  <b style="--l:{{$v.DayNow}}%"></b>
+  {{if not $v.Yesterday}}<b style="--l:{{$v.DayNow}}%"></b>{{end}}
 </div>
 <div class="kl-ticks" aria-hidden="true">{{range $v.DayTicks}}<span style="--l:{{.Pos}}%">{{printf "%02d" .Hour}}</span>{{end}}</div>
 <ul class="legend-list">{{range $v.Rows}}<li><span class="sq" data-tier="green" aria-hidden="true"></span>{{with .Name}}{{.}}{{else}}{{t "places.unknown"}}{{end}} <small class="muted">{{.From}}–{{.To}}</small><b>{{.Dur}} h</b></li>{{else}}<li class="muted">{{t "places.none"}}</li>{{end}}</ul>
@@ -225,10 +238,10 @@
 {{define "widgets/authentik_logins"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
-<div class="tile-head"><b class="tile-value">{{$d.Logins7d}}</b><span class="tile-sub">{{t "authentik.logins"}}</span>
-  {{if $d.Failed24h}}<span class="pill" data-state="warn">{{t "authentik.failed24" "n" $d.Failed24h}}</span>{{end}}</div>
-<ul class="legend-list">{{range $v.Logins}}<li><span class="sq" aria-hidden="true"></span>{{.User}} <small class="muted">{{with .City}}{{.}}, {{end}}{{.Country}}</small><b>{{ago .At}}</b></li>{{end}}</ul>
-<p class="tile-foot"><span>{{t "authentik.failed7" "n" $d.Failed7d}}</span><span>{{$d.Version}}</span></p>
+<div class="tile-head"><b class="tile-value">{{if $v.OnlyFailures}}{{$v.Failed}}{{else}}{{$v.Count}}{{end}}</b><span class="tile-sub">{{if $v.OnlyFailures}}{{if $v.Day}}{{t "authentik.failures_24h"}}{{else}}{{t "authentik.failures_7d"}}{{end}}{{else if $v.Day}}{{t "authentik.logins_24h"}}{{else}}{{t "authentik.logins"}}{{end}}</span>
+  {{if and $d.Failed24h (not $v.OnlyFailures)}}<span class="pill" data-state="warn">{{t "authentik.failed24" "n" $d.Failed24h}}</span>{{end}}</div>
+<ul class="legend-list">{{range $v.Logins}}<li><span class="sq"{{if $v.OnlyFailures}} data-tier="red"{{end}} aria-hidden="true"></span>{{.User}} <small class="muted">{{with .City}}{{.}}, {{end}}{{.Country}}{{if and $v.OnlyFailures .IP}} · {{.IP}}{{end}}</small><b>{{ago .At}}</b></li>{{end}}</ul>
+<p class="tile-foot"><span>{{if not $v.OnlyFailures}}{{if $v.Day}}{{t "authentik.failed24" "n" $d.Failed24h}}{{else}}{{t "authentik.failed7" "n" $d.Failed7d}}{{end}}{{end}}</span><span>{{$d.Version}}</span></p>
 {{end}}{{end}}
 {{end}}
 
@@ -256,12 +269,14 @@
 {{define "widgets/exposure"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Rows}}
-<div class="tile-head"><b class="tile-value">{{len $v.Rows}}</b><span class="tile-sub">{{t "exposure.public"}}{{if $v.Open}} · <span class="warn-text">{{t "exposure.open" "n" $v.Open}}</span>{{end}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.Total}}</b><span class="tile-sub">{{t "exposure.public"}}{{if $v.Open}} · <span class="warn-text">{{t "exposure.open" "n" $v.Open}}</span>{{end}}</span></div>
 <ul class="expo-rows">
   {{range $v.Rows}}<li><span class="expo-name">{{.Domain}}<small class="muted">{{.Name}}</small></span>
     <span class="expo-chips">{{if .Login}}<span class="chip-ok">{{t "exposure.login"}}</span>{{else}}<span class="chip-bad">{{t "exposure.no_login"}}</span>{{end}}
     {{if .Updates}}<span class="chip-warn">{{t "exposure.updates" "n" .Updates}}</span>{{end}}
     {{if and (ge .CertDays 0) (lt .CertDays 14)}}<span class="chip-warn">{{t "exposure.cert" "days" .CertDays}}</span>{{end}}</span></li>{{end}}
 </ul>
-{{else}}<p class="slot-note">{{t "exposure.none"}}</p>{{end}}{{end}}
+{{else if $v.Total}}<p class="slot-note">{{t "exposure.all_login" "n" $v.Total}}</p>{{else}}<p class="slot-note">{{t "exposure.none"}}</p>{{end}}{{end}}
 {{end}}
+
+{{define "unbilled_band"}}{{if eq .Key "fresh"}}{{t "unbilled.upto" "days" .To}}{{else if eq .Key "mid"}}{{t "aging.span" "from" .From "to" .To}}{{else}}{{t "aging.over" "days" .Over}}{{end}}{{end}}

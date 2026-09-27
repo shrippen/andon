@@ -25,6 +25,8 @@ package widgets
 //	kintsugi        Kintsugi: open acquisition suggestions, take-up, gaps
 
 import (
+	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -101,12 +103,23 @@ func todayOf(ctx ViewCtx) time.Time {
 	return t
 }
 
-// weekMinutes sums this week's Kimai minutes per weekday, by customer.
-func weekMinutes(data *sources.KimaiDataset, today time.Time) ([weekDays]int, [weekDays]map[int64]int) {
+// weekPick narrows which Kimai time counts.
+type weekPick struct {
+	Back      int  // weeks before this one
+	Billable  bool // only billable time
+	ByProject bool // group by project instead of customer
+}
+
+// weekMinutes sums a week's Kimai minutes per weekday, by customer (or
+// project).
+func weekMinutes(data *sources.KimaiDataset, today time.Time, pick weekPick) ([weekDays]int, [weekDays]map[int64]int) {
 	var total [weekDays]int
-	var byCustomer [weekDays]map[int64]int
-	start := weekStart(today)
+	var byKey [weekDays]map[int64]int
+	start := weekStart(today).AddDate(0, 0, -weekDays*pick.Back)
 	for _, s := range data.Timesheets {
+		if pick.Billable && !s.Billable {
+			continue
+		}
 		day, ok := metrics.ParseDay(s.Begin)
 		if !ok {
 			continue
@@ -116,28 +129,40 @@ func weekMinutes(data *sources.KimaiDataset, today time.Time) ([weekDays]int, [w
 			continue
 		}
 		total[i] += s.Minutes
-		if byCustomer[i] == nil {
-			byCustomer[i] = map[int64]int{}
+		if byKey[i] == nil {
+			byKey[i] = map[int64]int{}
 		}
-		byCustomer[i][s.CustomerID] += s.Minutes
+		key := s.CustomerID
+		if pick.ByProject {
+			key = s.ProjectID
+		}
+		byKey[i][key] += s.Minutes
 	}
-	return total, byCustomer
+	return total, byKey
 }
 
 // ── kimai_week ──
 
 // KimaiWeekConfig is the "kimai_week" widget's config.
-type KimaiWeekConfig struct{ WeekHours float64 }
+type KimaiWeekConfig struct {
+	WeekHours    float64
+	Workdays     int  // 5 (Mo–Fr) or 6 (Mo–Sa)
+	BillableOnly bool // leave internal time out
+}
 
 func decodeKimaiWeek(raw map[string]any) any {
 	h := asFloat(raw["week_hours"])
 	if h <= 0 {
 		h = defaultWeekH
 	}
-	return KimaiWeekConfig{WeekHours: h}
+	days := workDays
+	if raw["workdays"] == "mo_sa" {
+		days = workDays + 1
+	}
+	return KimaiWeekConfig{WeekHours: h, Workdays: days, BillableOnly: asBool(raw["billable_only"])}
 }
 
-// kimaiWeekView draws Mon–Sun against the daily target (week / 5):
+// kimaiWeekView draws Mon–Sun against the daily target (week / workdays):
 //
 //	target 8 h, Mo 6.5 h Di 9 h  →  Mo yellow below the line, Di over it
 func kimaiWeekView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
@@ -146,9 +171,13 @@ func kimaiWeekView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]a
 	if !ok {
 		return map[string]any{}
 	}
-	total, _ := weekMinutes(data, todayOf(ctx))
+	total, _ := weekMinutes(data, todayOf(ctx), weekPick{Billable: cfg.BillableOnly})
+	days := cfg.Workdays
+	if days <= 0 {
+		days = workDays
+	}
 
-	target := cfg.WeekHours / workDays * minutesPerHour
+	target := cfg.WeekHours / float64(days) * minutesPerHour
 	top := target
 	sum := 0
 	for _, m := range total {
@@ -159,7 +188,7 @@ func kimaiWeekView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]a
 	todayIdx := int(todayOf(ctx).Sub(weekStart(todayOf(ctx))).Hours() / hoursPerDay)
 	for i, m := range total {
 		tier := ""
-		if i < workDays && i < todayIdx && float64(m) < target {
+		if i < days && i < todayIdx && float64(m) < target {
 			tier = "yellow"
 		}
 		cols[i] = DayCol{I: i, H: max(pctOf(float64(m), top), 2), Hours: clockMinutes(m), Tier: tier,
@@ -179,13 +208,34 @@ type SplitLegend struct {
 
 // kimaiSplitView stacks each day by customer; the busiest customers keep
 // their own colour, the rest share "other".
-func kimaiSplitView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
+// KimaiSplitConfig is the "kimai_split" widget's config.
+type KimaiSplitConfig struct {
+	LastWeek  bool
+	ByProject bool
+}
+
+func decodeKimaiSplit(raw map[string]any) any {
+	return KimaiSplitConfig{LastWeek: raw["week"] == "last", ByProject: raw["group"] == "project"}
+}
+
+func kimaiSplitView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(KimaiSplitConfig)
 	data, ok := results["data"].(*sources.KimaiDataset)
 	if !ok {
 		return map[string]any{}
 	}
-	total, byCustomer := weekMinutes(data, todayOf(ctx))
+	pick := weekPick{ByProject: cfg.ByProject}
+	if cfg.LastWeek {
+		pick.Back = 1
+	}
+	total, byCustomer := weekMinutes(data, todayOf(ctx), pick)
 	names := metrics.KimaiCustomerNames(data)
+	if cfg.ByProject {
+		names = map[int64]string{}
+		for _, p := range data.Projects {
+			names[p.ID] = p.Name
+		}
+	}
 
 	sums := map[int64]int{}
 	top := 1
@@ -249,15 +299,29 @@ type UnbilledRow struct {
 	FreshW, MidW, OldW int
 }
 
-func unbilledAgeView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
+func unbilledAgeView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(AgingConfig)
+	if !ok {
+		cfg = decodeAging([2]int{30, 60})(nil).(AgingConfig)
+	}
 	data, ok := results["data"].(*sources.KimaiDataset)
 	if !ok {
 		return map[string]any{}
 	}
+	internal := map[string]bool{}
+	if cfg.HideInternal {
+		for _, name := range internalCustomers(ctx.Settings) {
+			internal[name] = true
+		}
+	}
 	var rows []UnbilledRow
 	var fresh, mid, old float64
 	top := 0.0
-	for _, r := range metrics.UnbilledAging(data, todayOf(ctx)) {
+	for _, r := range metrics.UnbilledAgingBy(data, todayOf(ctx), cfg.Mid, cfg.Old) {
+		name := strings.ToLower(r.Customer)
+		if internal[name] || slices.Contains(cfg.HideClients, name) {
+			continue
+		}
 		row := UnbilledRow{Customer: r.Customer, Fresh: r.Fresh, Mid: r.Mid, Old: r.Old, Total: r.Fresh + r.Mid + r.Old}
 		fresh, mid, old = fresh+r.Fresh, mid+r.Mid, old+r.Old
 		top = max(top, row.Total)
@@ -273,10 +337,23 @@ func unbilledAgeView(_ any, results map[string]any, ctx ViewCtx) map[string]any 
 	total := fresh + mid + old
 	return map[string]any{"Total": total, "Rows": rows,
 		"Bands": []AgingBand{
-			{Key: "fresh", Tier: "green", Amount: fresh, Pct: pctOf(fresh, total)},
-			{Key: "mid", Tier: "yellow", Amount: mid, Pct: pctOf(mid, total)},
-			{Key: "old", Tier: "red", Amount: old, Pct: pctOf(old, total)},
+			{Key: "fresh", Tier: "green", Amount: fresh, Pct: pctOf(fresh, total), To: cfg.Mid},
+			{Key: "mid", Tier: "yellow", Amount: mid, Pct: pctOf(mid, total), From: cfg.Mid + 1, To: cfg.Old},
+			{Key: "old", Tier: "red", Amount: old, Pct: pctOf(old, total), Over: cfg.Old},
 		}}
+}
+
+// internalCustomers are the space's customers whose time is never billed
+// (settings billing.internal, comma separated), lower case.
+func internalCustomers(settings map[string]any) []string {
+	list, _ := settingsMap(settings, "billing")["internal"].(string)
+	var out []string
+	for _, name := range strings.Split(list, ",") {
+		if name = strings.ToLower(strings.TrimSpace(name)); name != "" {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 // ── disks ──
@@ -290,7 +367,25 @@ type DiskRow struct {
 	Years       float64 // power-on time
 }
 
-func disksView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// DisksConfig is the "disks" widget's config.
+type DisksConfig struct {
+	TempWarn     float64 // °C from which a disk turns yellow; red 10 °C above
+	OnlyProblems bool
+}
+
+func decodeDisks(raw map[string]any) any {
+	warn := asFloat(raw["temp_warn"])
+	if warn <= 0 {
+		warn = tempWarn
+	}
+	return DisksConfig{TempWarn: warn, OnlyProblems: asBool(raw["only_problems"])}
+}
+
+func disksView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(DisksConfig)
+	if !ok {
+		cfg = DisksConfig{TempWarn: tempWarn}
+	}
 	data, ok := results["data"].(*sources.ScrutinyDataset)
 	if !ok {
 		return map[string]any{}
@@ -301,18 +396,21 @@ func disksView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 		row := DiskRow{Name: d.Name, Model: d.Model, OK: d.Status == sources.ScrutinyPassed, Temp: d.Temp,
 			Years: float64(d.Hours) / hoursPerDay / 365}
 		switch {
-		case d.Temp >= tempHigh:
+		case d.Temp >= cfg.TempWarn+tempHigh-tempWarn:
 			row.TempTier = "red"
-		case d.Temp >= tempWarn:
+		case d.Temp >= cfg.TempWarn:
 			row.TempTier = "yellow"
 		}
 		if row.OK {
 			healthy++
 		}
+		if cfg.OnlyProblems && row.OK && row.TempTier == "" {
+			continue
+		}
 		rows = append(rows, row)
 	}
 	sort.SliceStable(rows, func(a, b int) bool { return !rows[a].OK && rows[b].OK })
-	return map[string]any{"Healthy": healthy, "Total": len(rows), "Rows": rows}
+	return map[string]any{"Healthy": healthy, "Total": len(data.Disks), "Rows": rows}
 }
 
 // ── komodo_stacks ──
@@ -328,17 +426,31 @@ func stackState(state string) string {
 	}
 }
 
-func komodoView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// KomodoConfig is the "komodo_stacks" widget's config.
+type KomodoConfig struct {
+	Only       []string // stack name parts (lower case), empty = all
+	OnlyIssues bool     // only stacks not running or with updates
+}
+
+func decodeKomodo(raw map[string]any) any {
+	return KomodoConfig{Only: lowerList(raw["filter"]), OnlyIssues: asBool(raw["only_issues"])}
+}
+
+func komodoView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(KomodoConfig)
 	data, ok := results["data"].(*sources.KomodoDataset)
 	if !ok {
 		return map[string]any{}
 	}
 	var cells []StripCell
 	var trouble []string
-	updates, running := 0, 0
+	updates, running, stacks := 0, 0, 0
 	for _, s := range data.Stacks {
+		if !matchesAny(s.Name, cfg.Only) {
+			continue
+		}
+		stacks++
 		state := stackState(s.State)
-		cells = append(cells, StripCell{State: state, Title: s.Name + " · " + s.State})
 		if state == "ok" {
 			running++
 		} else if len(trouble) < listShown {
@@ -347,56 +459,136 @@ func komodoView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 		if len(s.Updates) > 0 {
 			updates++
 		}
+		if cfg.OnlyIssues && state == "ok" && len(s.Updates) == 0 {
+			continue
+		}
+		cells = append(cells, StripCell{State: state, Title: s.Name + " · " + s.State})
 	}
 	return map[string]any{"Servers": data.ServersHealthy, "ServersTotal": data.ServersTotal, "Running": running,
-		"Stacks": len(data.Stacks), "Cells": cells, "Trouble": trouble, "Updates": updates, "Alerts": len(data.Alerts)}
+		"Stacks": stacks, "Cells": cells, "Trouble": trouble, "Updates": updates, "Alerts": len(data.Alerts)}
 }
 
 // ── truenas_pools ──
 
-func truenasView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// TrueNASConfig is the "truenas_pools" widget's config.
+type TrueNASConfig struct {
+	WarnPct  float64 // fill level from which a pool turns yellow; red 20 points above
+	AppList  bool    // name the apps with updates
+	Forecast bool    // "full in … days" per pool from the history
+}
+
+func decodeTrueNAS(raw map[string]any) any {
+	warn := asFloat(raw["warn_pct"])
+	if warn <= 0 || warn > pctFull {
+		warn = loadWarn
+	}
+	return TrueNASConfig{WarnPct: warn, AppList: asBool(raw["app_updates"]), Forecast: asBool(raw["forecast"])}
+}
+
+// PoolBar is one pool: its bar and, with the forecast on, when it is full.
+type PoolBar struct {
+	HBar
+	FullIn int // days, -1 = not filling or unknown
+}
+
+func truenasView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(TrueNASConfig)
+	if !ok {
+		cfg = TrueNASConfig{WarnPct: loadWarn}
+	}
 	data, ok := results["data"].(*sources.TrueNASDataset)
 	if !ok {
 		return map[string]any{}
 	}
-	var pools []HBar
+	fullIn := map[string]int{}
+	if h, _ := results[HistorySlot].(*metrics.History); cfg.Forecast && h != nil {
+		for _, f := range metrics.StorageForecasts(h, parseToday(ctx.Today)) {
+			fullIn[f.Key] = f.FullIn
+		}
+	}
+	var pools []PoolBar
 	for _, p := range data.Pools {
 		used := 0.0
 		if p.Size > 0 {
 			used = p.Allocated / p.Size
 		}
-		tier := loadTier(used * pctFull)
-		if !p.Healthy {
+		tier := ""
+		switch {
+		case !p.Healthy || used*pctFull >= cfg.WarnPct+loadHigh-loadWarn:
 			tier = "red"
+		case used*pctFull >= cfg.WarnPct:
+			tier = "yellow"
 		}
-		pools = append(pools, HBar{Label: p.Name + " · " + p.Status, W: pctOf(used, 1), Tier: tier})
+		bar := PoolBar{HBar: HBar{Label: p.Name + " · " + p.Status, W: pctOf(used, 1), Tier: tier}, FullIn: -1}
+		if days, ok := fullIn["truenas.pool."+p.Name+".used"]; ok {
+			bar.FullIn = days
+		}
+		pools = append(pools, bar)
 	}
 	updates := 0
+	var apps []string
 	for _, a := range data.Apps {
 		if a.Update {
 			updates++
+			apps = append(apps, a.Name)
 		}
 	}
-	return map[string]any{"Pools": pools, "Alerts": len(data.Alerts), "Updates": updates, "Version": data.Version}
+	out := map[string]any{"Pools": pools, "Alerts": len(data.Alerts), "Updates": updates, "Version": data.Version, "Forecast": cfg.Forecast}
+	if cfg.AppList {
+		out["Apps"] = strings.Join(apps, ", ")
+	}
+	return out
 }
 
 // ── dns_filter ──
 
-func dnsFilterView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// DNSConfig is the Pi-hole and AdGuard widgets' config.
+type DNSConfig struct{ Clients, Domains bool }
+
+func decodeDNS(raw map[string]any) any {
+	return DNSConfig{Clients: asBool(raw["top_clients"]), Domains: asBool(raw["top_domains"])}
+}
+
+// dnsTop is how many clients or domains a DNS tile lists.
+const dnsTop = 5
+
+func dnsFilterView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(DNSConfig)
 	data, ok := results["data"].(*sources.DNSFilterDataset)
 	if !ok {
 		return map[string]any{}
 	}
-	return map[string]any{"Percent": data.Percent, "W": pctOf(data.Percent, pctFull), "Queries": data.Queries,
+	out := map[string]any{"Percent": data.Percent, "W": pctOf(data.Percent, pctFull), "Queries": data.Queries,
 		"Blocked": data.Blocked, "Enabled": data.Enabled}
+	if cfg.Clients {
+		out["Clients"] = firstN(data.TopClients, dnsTop)
+	}
+	if cfg.Domains {
+		out["Domains"] = firstN(data.TopBlocked, dnsTop)
+	}
+	return out
 }
 
 // ── vpn ──
 
-func vpnView(_ any, results map[string]any, _ ViewCtx) map[string]any {
-	data, ok := results["data"].(*sources.GluetunDataset)
+// VPNConfig is the "vpn" widget's config.
+type VPNConfig struct{ Country string }
+
+func decodeVPN(raw map[string]any) any {
+	return VPNConfig{Country: strings.TrimSpace(asString(raw["expected_country"]))}
+}
+
+func vpnView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(VPNConfig)
+	raw, ok := results["data"].(*sources.GluetunDataset)
 	if !ok {
 		return map[string]any{}
+	}
+	data := raw
+	if cfg.Country != "" {
+		copied := *raw
+		copied.ExpectedCountry = cfg.Country
+		data = &copied
 	}
 	up := data.Status == "running"
 	leak := data.ExitIP != "" && data.ExitIP == data.OwnIP
@@ -413,7 +605,21 @@ func vpnView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 
 // ── gateway ──
 
-func gatewayView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// GatewayConfig is the "gateway" widget's config.
+type GatewayConfig struct {
+	HideMeasures bool // no loss and latency per link
+	DeviceList   bool // name the devices, not just count them
+}
+
+func decodeGateway(raw map[string]any) any {
+	return GatewayConfig{HideMeasures: asBool(raw["hide_measures"]), DeviceList: asBool(raw["device_list"])}
+}
+
+// gatewayNames caps the devices a gateway tile names.
+const gatewayNames = 30
+
+func gatewayView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(GatewayConfig)
 	data, ok := results["data"].(*sources.GatewayDataset)
 	if !ok {
 		return map[string]any{}
@@ -430,8 +636,20 @@ func gatewayView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 			pending++
 		}
 	}
-	return map[string]any{"Links": data.Gateways, "Online": online, "Devices": len(data.Devices), "Offline": offline,
-		"Updates": data.Updates + pending, "Kind": data.Kind, "Version": data.Version}
+	out := map[string]any{"Links": data.Gateways, "Online": online, "Devices": len(data.Devices), "Offline": offline,
+		"Updates": data.Updates + pending, "Kind": data.Kind, "Version": data.Version, "Model": data.Model, "Clients": data.Clients,
+		// OpenWrt reports links without loss and delay, and no updates.
+		"Measured": data.Kind != "openwrt", "ShowMeasures": data.Kind != "openwrt" && !cfg.HideMeasures}
+	if cfg.DeviceList {
+		var names []string
+		for _, dev := range data.Devices {
+			names = append(names, dev.Name)
+		}
+		names = append(names, data.ClientNames...)
+		out["Names"] = strings.Join(firstN(names, gatewayNames), ", ")
+		out["NamesMore"] = max(len(names)-gatewayNames, 0)
+	}
+	return out
 }
 
 // ── expiry ──
@@ -455,7 +673,23 @@ func expiryBar(label string, left int, err string) HBar {
 // expiryView lists certificates and domains soonest first:
 //
 //	shop.example 12 d (red) · nas.lan 40 d · example.org (domain) 200 d
-func expiryView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
+//
+// ExpiryConfig is the "expiry" widget's config.
+type ExpiryConfig struct {
+	MaxDays int    // hide what runs out later, 0 = show all
+	Kinds   string // "", "certs" or "domains"
+}
+
+func decodeExpiry(raw map[string]any) any {
+	kinds, _ := raw["kinds"].(string)
+	if kinds == "both" {
+		kinds = ""
+	}
+	return ExpiryConfig{MaxDays: clampInt(asInt(raw["max_days"], 0), 0, 3650), Kinds: kinds}
+}
+
+func expiryView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(ExpiryConfig)
 	today := todayOf(ctx)
 	daysTo := func(t time.Time) int { return int(t.Sub(today).Hours() / hoursPerDay) }
 
@@ -464,16 +698,19 @@ func expiryView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
 		left int
 	}
 	var items []item
-	if certs, ok := results["data"].(*sources.CertDataset); ok {
+	keep := func(left int, failed string) bool { return cfg.MaxDays == 0 || left <= cfg.MaxDays || failed != "" }
+	if certs, ok := results["data"].(*sources.CertDataset); ok && cfg.Kinds != "domains" {
 		for _, c := range certs.Certs {
-			left := daysTo(c.NotAfter)
-			items = append(items, item{expiryBar(c.Host, left, c.Error), left})
+			if left := daysTo(c.NotAfter); keep(left, c.Error) {
+				items = append(items, item{expiryBar(c.Host, left, c.Error), left})
+			}
 		}
 	}
-	if doms, ok := results[peerDomains].(*sources.DomainsDataset); ok {
+	if doms, ok := results[peerDomains].(*sources.DomainsDataset); ok && cfg.Kinds != "certs" {
 		for _, dm := range doms.Domains {
-			left := daysTo(dm.Expires)
-			items = append(items, item{expiryBar(dm.Name, left, dm.Error), left})
+			if left := daysTo(dm.Expires); keep(left, dm.Error) {
+				items = append(items, item{expiryBar(dm.Name, left, dm.Error), left})
+			}
 		}
 	}
 	sort.SliceStable(items, func(a, b int) bool { return items[a].left < items[b].left })
@@ -489,15 +726,26 @@ func expiryView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
 
 // ── speed_history ──
 
-func speedHistoryView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// SpeedHistoryConfig is the "speed_history" widget's config.
+type SpeedHistoryConfig struct{ Days int }
+
+func decodeSpeedHistory(raw map[string]any) any {
+	return SpeedHistoryConfig{Days: clampInt(asInt(raw["days"], speedDays), 2, 90)}
+}
+
+func speedHistoryView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	days := speedDays
+	if cfg, ok := cfgAny.(SpeedHistoryConfig); ok && cfg.Days > 0 {
+		days = cfg.Days
+	}
 	h, _ := results[HistorySlot].(*metrics.History)
 	data, _ := results["data"].(*sources.SpeedtestDataset)
 	if h == nil {
 		return map[string]any{}
 	}
 	points := h.SeriesOf(metrics.SampleKey("speedtest", "down"))
-	if len(points) > speedDays {
-		points = points[len(points)-speedDays:]
+	if len(points) > days {
+		points = points[len(points)-days:]
 	}
 	expect := 0.0
 	if data != nil {
@@ -526,26 +774,47 @@ func speedHistoryView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 
 // ── sabnzbd ──
 
-func sabnzbdView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// SabConfig is the "sabnzbd" widget's config.
+type SabConfig struct{ Queue int }
+
+func decodeSab(raw map[string]any) any {
+	return SabConfig{Queue: clampInt(asInt(raw["queue"], 0), 0, 20)}
+}
+
+func sabnzbdView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(SabConfig)
 	data, ok := results["data"].(*sources.SabnzbdDataset)
 	if !ok {
 		return map[string]any{}
 	}
-	failures := data.Failures
-	if len(failures) > listShown {
-		failures = failures[:listShown]
-	}
-	return map[string]any{"Data": data, "SpeedMB": data.SpeedKB / 1024, "Failures": failures}
+	return map[string]any{"Data": data, "SpeedMB": data.SpeedKB / 1024, "Failures": firstN(data.Failures, listShown),
+		"Queue": firstN(data.Queue, cfg.Queue)}
 }
 
 // ── paperless_inbox ──
 
-func paperlessInboxView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
+// PaperlessConfig is the "paperless_inbox" widget's config.
+type PaperlessConfig struct {
+	Newest int    // latest documents listed
+	Tag    string // count this tag instead of the inbox (lower case)
+}
+
+func decodePaperless(raw map[string]any) any {
+	return PaperlessConfig{Newest: clampInt(asInt(raw["newest_docs"], 0), 0, 10), Tag: strings.ToLower(strings.TrimSpace(asString(raw["tag"])))}
+}
+
+func paperlessInboxView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(PaperlessConfig)
 	data, ok := results["data"].(*sources.PaperlessDataset)
 	if !ok {
 		return map[string]any{}
 	}
-	out := map[string]any{"Data": data}
+	out := map[string]any{"Data": data, "Count": data.Inbox, "Newest": firstN(data.Newest, cfg.Newest)}
+	if cfg.Tag != "" {
+		out["Tag"], out["Count"] = cfg.Tag, data.TagCounts[cfg.Tag]
+		out["TagURL"] = strings.TrimRight(data.URL, "/") + "/documents?query=" + url.QueryEscape("tag:"+cfg.Tag)
+		return out
+	}
 	if added, ok := metrics.ParseDay(data.OldestAdded); ok {
 		out["OldestDays"] = int(todayOf(ctx).Sub(added).Hours() / hoursPerDay)
 	}
@@ -554,31 +823,76 @@ func paperlessInboxView(_ any, results map[string]any, ctx ViewCtx) map[string]a
 
 // ── mail_invoices ──
 
-func mailInvoicesView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// ForwardedSlot carries the UIDs of mails already sent to Paperless
+// (map[uint32]bool) for the mail invoices tile.
+const ForwardedSlot = "forwarded"
+
+// MailConfig is the "mail_invoices" widget's config.
+type MailConfig struct {
+	OnlyOpen bool // leave out mails already sent to Paperless
+	Limit    int
+}
+
+func decodeMail(raw map[string]any) any {
+	return MailConfig{OnlyOpen: asBool(raw["only_open"]), Limit: clampInt(asInt(raw["limit"], listShown), 1, 30)}
+}
+
+func mailInvoicesView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(MailConfig)
+	if !ok {
+		cfg = decodeMail(nil).(MailConfig)
+	}
 	data, ok := results["data"].(*sources.MailDataset)
 	if !ok {
 		return map[string]any{}
 	}
+	sent, _ := results[ForwardedSlot].(map[uint32]bool)
+	var list []sources.MailInvoice
 	sum := 0.0
 	for _, inv := range data.Invoices {
+		if cfg.OnlyOpen && sent[inv.UID] {
+			continue
+		}
 		sum += inv.Amount
+		list = append(list, inv)
 	}
-	shown := append([]sources.MailInvoice(nil), data.Invoices...)
+	shown := append([]sources.MailInvoice(nil), list...)
 	sort.Slice(shown, func(a, b int) bool { return shown[a].Date.After(shown[b].Date) })
-	if len(shown) > listShown {
-		shown = shown[:listShown]
+	if len(shown) > cfg.Limit {
+		shown = shown[:cfg.Limit]
 	}
-	return map[string]any{"Count": len(data.Invoices), "Sum": sum, "Shown": shown, "Scanned": data.Scanned, "Mailbox": data.Mailbox}
+	return map[string]any{"Count": len(list), "Sum": sum, "Shown": shown, "Scanned": data.Scanned, "Mailbox": data.Mailbox}
 }
 
 // ── freshrss_feeds ──
 
-func freshrssView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// FreshRSSConfig is the "freshrss_feeds" widget's config.
+type FreshRSSConfig struct {
+	Only       []string // feed or category name parts (lower case), empty = all
+	OnlyUnread bool
+}
+
+func decodeFreshRSS(raw map[string]any) any {
+	return FreshRSSConfig{Only: lowerList(raw["filter"]), OnlyUnread: boolOr(raw["only_unread"], true)}
+}
+
+func freshrssView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(FreshRSSConfig)
+	if !ok {
+		cfg.OnlyUnread = true
+	}
 	data, ok := results["data"].(*sources.FreshRSSDataset)
 	if !ok {
 		return map[string]any{}
 	}
-	feeds := append([]sources.Feed(nil), data.Feeds...)
+	var feeds []sources.Feed
+	unread := 0
+	for _, f := range data.Feeds {
+		if matchesAny(f.Title, cfg.Only) || matchesAny(f.Category, cfg.Only) {
+			feeds = append(feeds, f)
+			unread += f.Unread
+		}
+	}
 	sort.Slice(feeds, func(a, b int) bool { return feeds[a].Unread > feeds[b].Unread })
 	top := 1
 	if len(feeds) > 0 {
@@ -586,24 +900,45 @@ func freshrssView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 	}
 	var bars []HBar
 	for _, f := range feeds {
-		if f.Unread == 0 || len(bars) >= barsShown {
+		if (f.Unread == 0 && cfg.OnlyUnread) || len(bars) >= barsShown {
 			break
 		}
 		bars = append(bars, HBar{Label: f.Title, Value: strconv.Itoa(f.Unread), W: pctOf(float64(f.Unread), float64(top))})
 	}
-	return map[string]any{"Unread": data.Unread, "Feeds": len(data.Feeds), "Bars": bars}
+	if len(cfg.Only) == 0 {
+		unread = data.Unread
+	}
+	return map[string]any{"Unread": unread, "Feeds": len(feeds), "Bars": bars}
 }
 
 // ── linkwarden ──
 
-func linkwardenView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// LinkwardenConfig is the "linkwarden" widget's config.
+type LinkwardenConfig struct {
+	Only   []string // collection name parts (lower case), empty = all
+	Newest bool     // list the latest links
+}
+
+// linksNewest is how many latest links the tile lists.
+const linksNewest = 5
+
+func decodeLinkwarden(raw map[string]any) any {
+	return LinkwardenConfig{Only: lowerList(raw["filter"]), Newest: asBool(raw["newest"])}
+}
+
+func linkwardenView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(LinkwardenConfig)
 	data, ok := results["data"].(*sources.LinkwardenDataset)
 	if !ok {
 		return map[string]any{}
 	}
 	counts := map[string]int{}
+	var links []sources.Bookmark
 	for _, l := range data.Links {
-		counts[l.Collection]++
+		if matchesAny(l.Collection, cfg.Only) {
+			counts[l.Collection]++
+			links = append(links, l)
+		}
 	}
 	names := make([]string, 0, len(counts))
 	for n := range counts {
@@ -621,38 +956,77 @@ func linkwardenView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 		}
 		bars = append(bars, HBar{Label: n, Value: strconv.Itoa(counts[n]), W: pctOf(float64(counts[n]), float64(top))})
 	}
-	return map[string]any{"Links": len(data.Links), "Collections": len(names), "Bars": bars}
+	out := map[string]any{"Links": len(links), "Collections": len(names), "Bars": bars}
+	if cfg.Newest {
+		sort.SliceStable(links, func(a, b int) bool { return links[a].Created.After(links[b].Created) })
+		out["Newest"] = firstN(links, linksNewest)
+	}
+	return out
 }
 
 // ── kintsugi ──
 
-func kintsugiView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// PickConfig is a list tile's row count and which part it shows.
+type PickConfig struct {
+	Limit int
+	Only  string // "" = everything
+}
+
+func decodeListOf(only string) func(map[string]any) any {
+	return func(raw map[string]any) any {
+		kind, _ := raw[only].(string)
+		if kind == "all" {
+			kind = ""
+		}
+		return PickConfig{Limit: clampInt(asInt(raw["limit"], listShown), 1, 20), Only: kind}
+	}
+}
+
+func firstN[T any](list []T, n int) []T {
+	if len(list) > n {
+		return list[:n]
+	}
+	return list
+}
+
+func kintsugiView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(PickConfig)
+	if !ok {
+		cfg = PickConfig{Limit: listShown}
+	}
 	data, ok := results["data"].(*sources.KintsugiDataset)
 	if !ok {
 		return map[string]any{}
 	}
-	open := data.Open
-	if len(open) > listShown {
-		open = open[:listShown]
+	var open []sources.KintsugiSuggestion
+	for _, s := range data.Open {
+		if cfg.Only == "" || string(s.Kind) == cfg.Only {
+			open = append(open, s)
+		}
 	}
 	failed := data.LastRun != nil && data.LastRun.Status == sources.KintsugiRunFailed
-	return map[string]any{"Data": data, "Open": open, "RunFailed": failed}
+	return map[string]any{"Data": data, "Open": firstN(open, cfg.Limit), "RunFailed": failed}
 }
 
 // ── gitea_reviews ──
 
-func giteaView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+func giteaView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(PickConfig)
+	if !ok {
+		cfg = PickConfig{Limit: listShown}
+	}
 	data, ok := results["data"].(*sources.GiteaDataset)
 	if !ok {
 		return map[string]any{}
 	}
-	cut := func(list []sources.Issue) []sources.Issue {
-		if len(list) > listShown {
-			return list[:listShown]
-		}
-		return list
+	out := map[string]any{"Data": data}
+	if cfg.Only != "issues" {
+		out["Reviews"] = firstN(data.Reviews, cfg.Limit)
 	}
-	return map[string]any{"Data": data, "Reviews": cut(data.Reviews), "Assigned": cut(data.Assigned)}
+	if cfg.Only != "reviews" {
+		out["Assigned"] = firstN(data.Assigned, cfg.Limit)
+	}
+	return out
 }
 
 // ── dawarich_day ──
@@ -672,17 +1046,32 @@ type PlaceRow struct {
 	Name, From, To, Dur string
 }
 
-func dawarichDayView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
+// DawarichConfig is the "dawarich_day" widget's config.
+type DawarichConfig struct{ Yesterday bool }
+
+func decodeDawarich(raw map[string]any) any {
+	return DawarichConfig{Yesterday: raw["day"] == "yesterday"}
+}
+
+func dawarichDayView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(DawarichConfig)
 	data, ok := results["data"].(*sources.DawarichDataset)
 	if !ok {
 		return map[string]any{}
 	}
 	now := time.Now()
+	day := ctx.Today
+	if cfg.Yesterday {
+		y := parseToday(ctx.Today).AddDate(0, 0, -1)
+		day = y.Format(time.DateOnly)
+		// The bar ends with that day; there is no "now" on it.
+		now = time.Date(y.Year(), y.Month(), y.Day(), 23, 59, 0, 0, now.Location())
+	}
 	var spans []sources.KimaiSpan
 	var rows []PlaceRow
 	for _, v := range data.Visits {
 		begin := dawarichTime(v.Start)
-		if begin.IsZero() || begin.In(now.Location()).Format(time.DateOnly) != ctx.Today {
+		if begin.IsZero() || begin.In(now.Location()).Format(time.DateOnly) != day {
 			continue
 		}
 		end := dawarichTime(v.End)
@@ -694,26 +1083,65 @@ func dawarichDayView(_ any, results map[string]any, ctx ViewCtx) map[string]any 
 		rows = append(rows, PlaceRow{Name: v.Name, From: begin.In(now.Location()).Format("15:04"), To: to, Dur: clockMinutes(v.Minutes)})
 	}
 	from, to, segs, pos := dayBar(spans, now)
-	return map[string]any{"Rows": rows, "DaySegs": segs, "DayNow": pos, "DayTicks": dayTicks(from, to)}
+	out := map[string]any{"Rows": rows, "DaySegs": segs, "DayNow": pos, "DayTicks": dayTicks(from, to), "Yesterday": cfg.Yesterday}
+	if cfg.Yesterday {
+		out["DayNow"] = nil
+	}
+	return out
 }
 
 // ── authentik_logins ──
 
-func authentikView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// AuthentikConfig is the "authentik_logins" widget's config.
+type AuthentikConfig struct {
+	Day          bool // the last 24 hours instead of 7 days
+	OnlyFailures bool
+}
+
+func decodeAuthentik(raw map[string]any) any {
+	return AuthentikConfig{Day: raw["span"] == "24h", OnlyFailures: asBool(raw["only_failures"])}
+}
+
+func authentikView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(AuthentikConfig)
 	data, ok := results["data"].(*sources.AuthentikDataset)
 	if !ok {
 		return map[string]any{}
 	}
-	logins := data.Logins
-	if len(logins) > listShown {
-		logins = logins[:listShown]
+	span := 7 * 24 * time.Hour
+	logins, failed := data.Logins7d, data.Failed7d
+	if cfg.Day {
+		span, logins, failed = 24*time.Hour, data.Logins24h, data.Failed24h
 	}
-	return map[string]any{"Data": data, "Logins": logins}
+	list := data.Logins
+	if cfg.OnlyFailures {
+		list = data.Failures
+	}
+	since := time.Now().Add(-span)
+	var shown []sources.AKLogin
+	for _, l := range list {
+		if l.At.After(since) && len(shown) < listShown {
+			shown = append(shown, l)
+		}
+	}
+	return map[string]any{"Data": data, "Logins": shown, "Count": logins, "Failed": failed, "Day": cfg.Day, "OnlyFailures": cfg.OnlyFailures}
 }
 
 // ── vaultwarden_2fa ──
 
-func vaultwardenView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// VaultConfig is the "vaultwarden_2fa" widget's config.
+type VaultConfig struct{ List bool }
+
+func decodeVault(raw map[string]any) any { return VaultConfig{List: boolOr(raw["list_without"], true)} }
+
+// vaultListed caps the accounts without 2FA named on the tile.
+const vaultListed = 20
+
+func vaultwardenView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(VaultConfig)
+	if !ok {
+		cfg.List = true
+	}
 	data, ok := results["data"].(*sources.VaultwardenDataset)
 	if !ok {
 		return map[string]any{}
@@ -727,7 +1155,7 @@ func vaultwardenView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 		active++
 		if u.TwoFactor {
 			with++
-		} else if len(without) < listShown {
+		} else if cfg.List && len(without) < vaultListed {
 			without = append(without, u.Email)
 		}
 	}
@@ -744,28 +1172,34 @@ func init() {
 	const minute, hour = 60, 3600
 
 	on("kimai_week", enums.ServiceKimai, 10*minute, decodeKimaiWeek, kimaiWeekView)
-	on("kimai_split", enums.ServiceKimai, 10*minute, decodeEmpty, kimaiSplitView)
-	on("unbilled_age", enums.ServiceKimai, hour, decodeEmpty, unbilledAgeView)
-	on("disks", enums.ServiceScrutiny, hour, decodeEmpty, disksView)
-	on("komodo_stacks", enums.ServiceKomodo, 5*minute, decodeEmpty, komodoView)
-	on("truenas_pools", enums.ServiceTrueNAS, 10*minute, decodeEmpty, truenasView)
-	on("pihole", enums.ServicePihole, 5*minute, decodeEmpty, dnsFilterView)
-	on("adguard", enums.ServiceAdGuard, 5*minute, decodeEmpty, dnsFilterView)
-	on("vpn", enums.ServiceGluetun, 5*minute, decodeEmpty, vpnView)
-	on("gateway", enums.ServiceGateway, 5*minute, decodeEmpty, gatewayView)
-	on("expiry", enums.ServiceCerts, hour, decodeEmpty, expiryView,
+	on("kimai_split", enums.ServiceKimai, 10*minute, decodeKimaiSplit, kimaiSplitView)
+	on("unbilled_age", enums.ServiceKimai, hour, decodeAging([2]int{30, 60}), unbilledAgeView)
+	on("disks", enums.ServiceScrutiny, hour, decodeDisks, disksView)
+	on("komodo_stacks", enums.ServiceKomodo, 5*minute, decodeKomodo, komodoView)
+	on("truenas_pools", enums.ServiceTrueNAS, 10*minute, decodeTrueNAS, truenasView)
+	on("pihole", enums.ServicePihole, 5*minute, decodeDNS, dnsFilterView)
+	on("adguard", enums.ServiceAdGuard, 5*minute, decodeDNS, dnsFilterView)
+	on("vpn", enums.ServiceGluetun, 5*minute, decodeVPN, vpnView)
+	on("gateway", enums.ServiceGateway, 5*minute, decodeGateway, gatewayView)
+	on("expiry", enums.ServiceCerts, hour, decodeExpiry, expiryView,
 		Query{Name: peerDomains, Source: "data", Conn: ConnPeer, Service: enums.ServiceDomains})
-	on("sabnzbd", enums.ServiceSabnzbd, 5*minute, decodeEmpty, sabnzbdView)
-	on("paperless_inbox", enums.ServicePaperless, 30*minute, decodeEmpty, paperlessInboxView)
-	on("mail_invoices", enums.ServiceMail, hour, decodeEmpty, mailInvoicesView)
-	on("freshrss_feeds", enums.ServiceFreshRSS, 30*minute, decodeEmpty, freshrssView)
-	on("linkwarden", enums.ServiceLinkwarden, hour, decodeEmpty, linkwardenView)
-	on("gitea_reviews", enums.ServiceGitea, 15*minute, decodeEmpty, giteaView)
-	on("dawarich_day", enums.ServiceDawarich, 30*minute, decodeEmpty, dawarichDayView)
-	on("authentik_logins", enums.ServiceAuthentik, 15*minute, decodeEmpty, authentikView)
-	on("vaultwarden_2fa", enums.ServiceVaultwarden, hour, decodeEmpty, vaultwardenView)
-	on("kintsugi", enums.ServiceKintsugi, 15*minute, decodeEmpty, kintsugiView)
+	on("sabnzbd", enums.ServiceSabnzbd, 5*minute, decodeSab, sabnzbdView)
+	on("paperless_inbox", enums.ServicePaperless, 30*minute, decodePaperless, paperlessInboxView)
+	on("mail_invoices", enums.ServiceMail, hour, decodeMail, mailInvoicesView)
+	mail, _ := Get("mail_invoices")
+	mail.Extra = ExtraForwarded
+	Register(mail)
+	nas, _ := Get("truenas_pools")
+	nas.Extra = ExtraHistory // the pool forecast
+	Register(nas)
+	on("freshrss_feeds", enums.ServiceFreshRSS, 30*minute, decodeFreshRSS, freshrssView)
+	on("linkwarden", enums.ServiceLinkwarden, hour, decodeLinkwarden, linkwardenView)
+	on("gitea_reviews", enums.ServiceGitea, 15*minute, decodeListOf("show"), giteaView)
+	on("dawarich_day", enums.ServiceDawarich, 30*minute, decodeDawarich, dawarichDayView)
+	on("authentik_logins", enums.ServiceAuthentik, 15*minute, decodeAuthentik, authentikView)
+	on("vaultwarden_2fa", enums.ServiceVaultwarden, hour, decodeVault, vaultwardenView)
+	on("kintsugi", enums.ServiceKintsugi, 15*minute, decodeListOf("kind"), kintsugiView)
 
-	Register(WidgetType{Key: "speed_history", Decode: decodeEmpty, Template: "widgets/speed_history", Category: CategoryInsight,
+	Register(WidgetType{Key: "speed_history", Decode: decodeSpeedHistory, Template: "widgets/speed_history", Category: CategoryInsight,
 		Service: enums.ServiceSpeedtest, RefreshS: hour, View: speedHistoryView, Queries: dataQuery, Extra: ExtraHistory})
 }

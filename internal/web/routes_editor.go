@@ -397,7 +397,8 @@ func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widge
 	_ = d.Page(w, ctx, "widget_form", status, map[string]any{
 		"Dest": dest, "Topic": widgets.TopicOf(f.Kind.Key), "RowOptions": rowOptions(),
 		"Kind": f.Kind, "Title": f.Title, "Fields": widgets.FormValues(f.Kind.Key, f.Config),
-		"Conns": matching, "AllConns": conns, "ConnID": f.ConnID, "MinRole": f.MinRole,
+		"FrameFields": widgets.FrameFormValues(f.Kind.Key, f.Config),
+		"Conns":       matching, "AllConns": conns, "ConnID": f.ConnID, "MinRole": f.MinRole,
 		"Widget": f.Widget, "Target": f.Target, "Error": f.Error,
 		"NeedsConn":  f.Kind.Service != "" || f.Kind.Category == widgets.CategoryInsight,
 		"TeamRoles":  []enums.TeamRole{enums.TeamViewer, enums.TeamEditor, enums.TeamOwner},
@@ -580,11 +581,22 @@ func (d Deps) handleWidgetPreview(w http.ResponseWriter, r *http.Request) {
 	conn := connectionID(r)
 	if conn == nil && kind.Service != "" {
 		frag, err := widgetlib.Demo(r.Context(), d.DB, ctx.Who, space, kind.Key, r.FormValue("title"), config)
-		d.renderPreview(w, ctx, kind, frag, err)
+		d.renderLivePreview(w, ctx, kind, frag, err)
 		return
 	}
 	frag, err := widgetlib.Preview(r.Context(), d.DB, ctx.Who, space, kind.Key, r.FormValue("title"), config, conn)
-	d.renderPreview(w, ctx, kind, frag, err)
+	d.renderLivePreview(w, ctx, kind, frag, err)
+}
+
+// renderLivePreview writes the editor's preview: link tiles as they are,
+// every other tile as a whole card, so its frame and title show too.
+func (d Deps) renderLivePreview(w http.ResponseWriter, ctx Ctx, kind widgets.WidgetType, frag *widgetlib.Fragment, err error) {
+	if err != nil || kind.Key == linkType {
+		d.renderPreview(w, ctx, kind, frag, err)
+		return
+	}
+	_ = d.Page(w, ctx, "preview_card", http.StatusOK, map[string]any{"ThemeURL": "", "Title": frag.Title, "Frame": frag.Frame,
+		"Icon": boards.IconOf(frag.Frame.Icon), "Body": &tileBody{Template: kind.Template, Frag: frag}})
 }
 
 func (d Deps) handleWidgetDelete(w http.ResponseWriter, r *http.Request) {

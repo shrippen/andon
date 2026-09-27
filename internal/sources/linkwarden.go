@@ -16,6 +16,7 @@ const lwMaxPages = 20
 // Bookmark is one saved link.
 type Bookmark struct {
 	Name, URL, Collection string
+	Created               time.Time // zero if unknown
 }
 
 type LinkwardenDataset struct {
@@ -94,7 +95,7 @@ func collectionLinks(ctx context.Context, api services.LinkwardenApi, id int64, 
 		}
 		for _, raw := range list {
 			l := asMap(raw)
-			out = append(out, Bookmark{Name: asStr(l["name"]), URL: asStr(l["url"]), Collection: name})
+			out = append(out, Bookmark{Name: asStr(l["name"]), URL: asStr(l["url"]), Collection: name, Created: parseTime(l["createdAt"])})
 		}
 		next := strconv.FormatInt(asInt64(asMap(list[len(list)-1])["id"]), 10)
 		if next == cursor {

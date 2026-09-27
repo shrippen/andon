@@ -262,7 +262,7 @@ func TestLinkwardenCollectionsWithCursor(t *testing.T) {
 		var page []any
 		switch r.URL.Query().Get("cursor") {
 		case "":
-			page = []any{map[string]any{"id": 9, "name": "A", "url": "https://a"}, map[string]any{"id": 8, "name": "B", "url": "https://b"}}
+			page = []any{map[string]any{"id": 9, "name": "A", "url": "https://a", "createdAt": "2026-09-20T08:00:00.000Z"}, map[string]any{"id": 8, "name": "B", "url": "https://b"}}
 		case "8":
 			page = []any{map[string]any{"id": 7, "name": "C", "url": "https://c"}}
 		}
@@ -277,7 +277,7 @@ func TestLinkwardenCollectionsWithCursor(t *testing.T) {
 		t.Fatal(err)
 	}
 	d := out.(*sources.LinkwardenDataset)
-	if len(d.Collections) != 1 || len(d.Links) != 3 || d.Links[2].Name != "C" {
+	if len(d.Collections) != 1 || len(d.Links) != 3 || d.Links[2].Name != "C" || d.Links[0].Created.Day() != 20 {
 		t.Fatalf("data: %+v", d)
 	}
 }

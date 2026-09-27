@@ -4,7 +4,7 @@
 {{with $slot := index .Frag.Slots "events"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with .Frag.View.Rows}}
 <ul class="agenda">
-  {{range .}}<li><time datetime="{{.Day}}">{{day .Day}}</time> <span class="muted">{{if .Time}}{{.Time}}{{else}}{{t "calendar.all_day"}}{{end}}</span> {{.Title}}{{with .Location}} <small class="muted">· {{.}}</small>{{end}}</li>{{end}}
+  {{range .}}<li{{if ne .Color "none"}} data-color="{{.Color}}"{{end}}><time datetime="{{.Day}}">{{day .Day}}</time> <span class="muted">{{if .Time}}{{.Time}}{{else}}{{t "calendar.all_day"}}{{end}}</span> {{.Title}}{{with .Location}} <small class="muted">· {{.}}</small>{{end}}</li>{{end}}
 </ul>
 {{end}}
 {{end}}
@@ -12,12 +12,12 @@
 {{define "widgets/custom_api"}}
 {{with $slot := index .Frag.Slots "body"}}{{template "widget-slot-state" $slot}}{{end}}
 <dl class="kv">
-  {{range .Frag.View.Rows}}<dt>{{.Label}}</dt><dd>{{if .Missing}}<span class="muted">–</span>{{else}}{{.Value}}{{end}}</dd>{{end}}
+  {{range .Frag.View.Rows}}<dt>{{.Label}}</dt><dd>{{if .Missing}}<span class="muted">–</span>{{else if .Level}}<span class="pill" data-state="{{.Level}}">{{.Value}}{{with .Unit}} {{.}}{{end}}</span>{{else}}{{.Value}}{{with .Unit}} {{.}}{{end}}{{end}}</dd>{{end}}
 </dl>
 {{end}}
 
 {{define "widgets/list"}}
-<ul class="plain-list">
+<ul class="plain-list"{{if .Frag.Config.TwoCols}} data-cols="2"{{end}}>
   {{range .Frag.Config.Entries}}<li>{{if .URL}}<a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Text}}</a>{{else}}{{.Text}}{{end}}</li>
   {{else}}<li class="muted">{{t "widget.empty"}}</li>{{end}}
 </ul>
@@ -26,7 +26,7 @@
 {{define "widgets/holidays"}}
 {{with $slot := index .Frag.Slots "days"}}{{template "widget-slot-state" $slot}}{{end}}
 <ul class="agenda">
-  {{range .Frag.View.Rows}}<li><time datetime="{{.Day}}">{{day .Day}}</time> {{.Name}} <small class="muted">{{if eq .In 0}}{{t "holidays.today"}}{{else}}{{t "holidays.in" "days" .In}}{{end}}</small></li>{{end}}
+  {{range .Frag.View.Rows}}<li><time datetime="{{.Day}}">{{day .Day}}</time> {{.Name}} <small class="muted">{{if eq .In 0}}{{t "holidays.today"}}{{else}}{{t "holidays.in" "days" .In}}{{end}}</small>{{with .Bridge}} <span class="pill" data-state="ok">{{t "holidays.bridge" "day" (weekday .)}}</span>{{end}}</li>{{end}}
 </ul>
 {{end}}
 
@@ -36,8 +36,8 @@
 {{with $p := $slot.Data}}
 <figure class="picture">
   {{if $p.DataURI}}<img class="image-tile" src="{{$p.DataURI | dataURI}}" alt="{{$p.Title}}" title="{{$p.Text}}">{{end}}
-  <figcaption><b>{{$p.Title}}</b>{{if $p.Link}} · <a href="{{$p.Link}}" target="_blank" rel="noopener noreferrer">{{t "picture.open"}}</a>{{end}}</figcaption>
-  {{if and $p.Text (eq $.Frag.Type "apod")}}<details><summary class="small">{{t "picture.more"}}</summary><p class="small muted">{{$p.Text}}</p></details>{{end}}
+  {{if not $.Frag.View.ImageOnly}}<figcaption><b>{{$p.Title}}</b>{{if $p.Link}} · <a href="{{$p.Link}}" target="_blank" rel="noopener noreferrer">{{t "picture.open"}}</a>{{end}}</figcaption>
+  {{if and $p.Text (eq $.Frag.Type "apod")}}<details><summary class="small">{{t "picture.more"}}</summary><p class="small muted">{{$p.Text}}</p></details>{{end}}{{end}}
 </figure>
 {{end}}{{end}}
 {{end}}
@@ -54,7 +54,9 @@
 {{with $slot := index .Frag.Slots "prices"}}{{template "widget-slot-state" $slot}}
 {{with $r := $slot.Data}}
 <table class="table rates">
-  {{range $r.Coins}}<tr><td>{{.ID}}</td><td class="num">{{num .Price 2}} {{$r.Currency}}</td>
+  {{$c := $.Frag.Config}}
+  {{range $r.Coins}}<tr><td>{{.ID}}</td><td class="num">{{num .Price $c.Digits}} {{$r.Currency}}</td>
+    {{if $c.Spark}}<td class="spark-cell">{{with sparkOf .Spark}}{{template "spark" .}}{{end}}</td>{{end}}
     <td class="num"><span class="pill" data-state="{{if lt .Change 0.0}}fail{{else}}ok{{end}}">{{if gt .Change 0.0}}+{{end}}{{num .Change 1}} %</span></td></tr>{{end}}
 </table>
 {{end}}{{end}}
@@ -64,8 +66,10 @@
 {{with $slot := index .Frag.Slots "quotes"}}{{template "widget-slot-state" $slot}}
 {{with $r := $slot.Data}}
 <table class="table rates">
-  {{range $r.Quotes}}<tr><td>{{.Symbol}}</td><td class="num">{{num .Close 2}}</td>
-    <td class="num"><span class="pill" data-state="{{if lt .Change 0.0}}fail{{else}}ok{{end}}">{{if gt .Change 0.0}}+{{end}}{{num .Change 1}} %</span></td></tr>{{end}}
+  {{$c := $.Frag.Config}}
+  {{range $r.Quotes}}{{$ch := .Change}}{{if $c.Week}}{{$ch = .WeekChange}}{{end}}<tr><td>{{.Symbol}}</td><td class="num">{{num .Close 2}} <small class="muted">{{.Currency}}</small></td>
+    {{if $c.Spark}}<td class="spark-cell">{{with sparkOf .Closes}}{{template "spark" .}}{{end}}</td>{{end}}
+    <td class="num"><span class="pill" data-state="{{if lt $ch 0.0}}fail{{else}}ok{{end}}">{{if gt $ch 0.0}}+{{end}}{{num $ch 1}} %</span></td></tr>{{end}}
 </table>
 <small class="muted">{{t "stocks.source"}}</small>
 {{end}}{{end}}
@@ -89,8 +93,11 @@
 {{with $slot := index .Frag.Slots "history"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Bars}}
 <div class="tile-head"><b class="tile-value">{{if eq $v.Metric "load"}}{{num $v.Now 2}}{{else}}{{num $v.Now 0}} %{{end}}</b><span class="tile-sub">{{t (printf "opt.%s" $v.Metric)}}</span></div>
+<div class="bars-wrap">
 <div class="bars" role="img" aria-label="{{t (printf "opt.%s" $v.Metric)}}: {{if eq $v.Metric "load"}}{{num $v.Now 2}}{{else}}{{num $v.Now 0}} %{{end}}">
   {{range $v.Bars}}<i style="--h:{{.H}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i>{{end}}
+</div>
+{{with $v.Warn}}<b class="bars-target" style="--t:{{$v.WarnPct}}%" title="{{num . 1}}"></b>{{end}}
 </div>
 <p class="tile-foot"><span>{{ago $v.First}}</span><span>{{ago $v.Last}}</span></p>
 {{end}}{{end}}
@@ -100,7 +107,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}
 {{if $v.Fields}}<dl class="kv">
-  {{range $v.Fields}}<dt>{{.Label}}</dt><dd>{{if not .Found}}<span class="muted">–</span>{{else if .Numeric}}{{if .Level}}<span class="pill" data-state="{{.Level}}">{{num .Value 2}}</span>{{else}}{{num .Value 2}}{{end}}{{else}}{{.Text}}{{end}}</dd>{{end}}
+  {{range $v.Fields}}<dt>{{.Label}}</dt><dd>{{if not .Found}}<span class="muted">–</span>{{else if .Numeric}}{{if .Level}}<span class="pill" data-state="{{.Level}}">{{num .Value 2}}{{with .Unit}} {{.}}{{end}}</span>{{else}}{{num .Value 2}}{{with .Unit}} {{.}}{{end}}{{end}}{{else}}{{.Text}}{{with .Unit}} {{.}}{{end}}{{end}}</dd>{{end}}
 </dl>{{end}}
 {{if $v.Rows}}<div class="table-wrap"><table class="table">
   <tr>{{range $v.Columns}}<th>{{.}}</th>{{end}}</tr>

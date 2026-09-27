@@ -16,6 +16,7 @@ const (
 type GlancesChartConfig struct {
 	Metric string
 	Points int
+	Warn   float64 // a horizontal line at this value, 0 = none
 }
 
 func decodeGlancesChart(raw map[string]any) any {
@@ -23,7 +24,8 @@ func decodeGlancesChart(raw map[string]any) any {
 	if _, ok := sources.GlancesMetrics[metric]; !ok {
 		metric = defaultGlancesMetric
 	}
-	return GlancesChartConfig{Metric: metric, Points: clampInt(asInt(raw["points"], defaultGlancesPoints), 10, 300)}
+	return GlancesChartConfig{Metric: metric, Points: clampInt(asInt(raw["points"], defaultGlancesPoints), 10, 300),
+		Warn: max(asFloat(raw["warn_line"]), 0)}
 }
 
 // glancesChartView scales samples into the trend chart's box; percent
@@ -31,7 +33,8 @@ func decodeGlancesChart(raw map[string]any) any {
 // glancesBars caps the bars of the load chart.
 const glancesBars = 36
 
-func glancesChartView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+func glancesChartView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(GlancesChartConfig)
 	data, ok := results["history"].(*sources.GlancesHistory)
 	if !ok || len(data.Samples) < 2 {
 		return map[string]any{}
@@ -43,7 +46,7 @@ func glancesChartView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 		for _, s := range data.Samples {
 			high = max(high, s.Value)
 		}
-		high = max(high, 1)
+		high = max(high, 1, cfg.Warn)
 	}
 
 	step := float64(trendWidth) / float64(len(data.Samples)-1)
@@ -56,8 +59,12 @@ func glancesChartView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 	for i, s := range data.Samples {
 		values[i] = s.Value
 	}
-	return map[string]any{"Path": "M" + joinPoints(coords), "Bars": barsOf(values, glancesBars, high), "Now": now, "High": high, "Metric": data.Metric,
+	out := map[string]any{"Path": "M" + joinPoints(coords), "Bars": barsOf(values, glancesBars, high), "Now": now, "High": high, "Metric": data.Metric,
 		"W": trendWidth, "H": trendHeight, "First": data.Samples[0].At, "Last": data.Samples[len(data.Samples)-1].At}
+	if cfg.Warn > 0 && cfg.Warn <= high {
+		out["Warn"], out["WarnPct"] = cfg.Warn, pctOf(cfg.Warn, high)
+	}
+	return out
 }
 
 func init() {

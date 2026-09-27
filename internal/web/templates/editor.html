@@ -223,7 +223,7 @@
   <main>
     <div class="editor-split">
       <form method="post" action="{{if .Widget}}/widgets/{{.Widget.ID}}/edit{{else}}/widgets{{end}}" class="card wf" id="widget-form"
-            hx-post="/widget-preview" hx-trigger="input changed delay:600ms from:#widget-form, load" hx-target="#preview" hx-swap="innerHTML">
+            hx-post="/widget-preview" hx-trigger="input changed delay:350ms from:#widget-form, load" hx-target="#preview" hx-swap="innerHTML">
         {{if not .Widget}}<a class="label" href="/widgets/new?space={{.Target.SpaceID}}{{if .Target.Place}}&section={{.Target.SectionID}}&board={{.Target.BoardID}}&version={{.Target.Version}}{{end}}">← {{t "gallery.other"}}</a>{{end}}
         <span class="label">{{t (print "topic." .Topic)}}{{with .Dest.Section}} · {{t "gallery.into"}} {{$.Dest.Board}} › {{.}}{{end}}</span>
         <h1>{{t (print "wtype." .Kind.Key ".name")}}</h1>
@@ -247,34 +247,7 @@
         {{if .Kind.Service}}<p class="small muted">{{t "gallery.conn_hint"}}{{if not .Conns}} <a href="/connections/new?service={{.Kind.Service}}">{{t "gallery.connect"}}</a>{{end}}</p>{{end}}
         {{end}}
 
-        {{range .Fields}}
-          {{if eq (print .Input) "checkbox"}}
-          <label class="check"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}> {{t (print "field." .Label)}}</label>
-          {{else}}
-          <label for="{{.Name}}">{{t (print "field." .Label)}}</label>
-          {{if eq (print .Input) "select"}}
-            <select id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}{{range .Options}}<option value="{{.}}"{{if eq . $v}} selected{{end}}>{{t (print "opt." .)}}</option>{{end}}</select>
-          {{else if or (eq (print .Input) "textarea") (eq (print .Input) "links") (eq (print .Input) "headers")}}
-            <textarea id="{{.Name}}" name="{{.Name}}" rows="3">{{.Text}}</textarea>
-          {{else if eq (print .Input) "number"}}
-            <input id="{{.Name}}" name="{{.Name}}" type="number" step="any" value="{{.Text}}"{{if .Required}} required{{end}}>
-          {{else if eq (print .Input) "secret"}}
-            <input id="{{.Name}}" name="{{.Name}}" type="password" autocomplete="off" value="">
-          {{else if eq (print .Input) "place"}}
-            {{template "place_pick" dict "ID" .Name "Place" .Text "Lat" .Lat "Lon" .Lon "PlaceName" .Name "LatName" "cfg.lat" "LonName" "cfg.lon"}}
-          {{else if eq (print .Input) "connection"}}
-            <select id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}<option value="">–</option>{{range $.AllConns}}<option value="{{.Key}}"{{if eq .Key $v}} selected{{end}}>{{.Name}}</option>{{end}}</select>
-          {{else}}
-            <input id="{{.Name}}" name="{{.Name}}" value="{{.Text}}"{{if .Required}} required{{end}}>
-          {{end}}
-          {{if or (eq (print .Input) "list") (eq (print .Input) "numbers")}}<p class="small muted">{{t "field.list_hint"}}</p>{{end}}
-          {{if eq (print .Input) "links"}}<p class="small muted">{{t "field.links_hint"}}</p>{{end}}
-          {{if eq (print .Input) "headers"}}<p class="small muted">{{t "field.headers_hint"}}</p>{{end}}
-          {{if eq (print .Input) "secret"}}<p class="small muted">{{t "field.secret_hint"}}</p>{{end}}
-          {{if eq .Label "icon"}}<p class="small muted">{{t "field.icon_hint"}}</p>
-            <input class="icon-upload" type="file" accept="image/svg+xml,image/png,image/webp,image/jpeg,image/x-icon" data-target="{{.Name}}" aria-label="{{t "field.icon"}}">{{end}}
-          {{end}}
-        {{end}}
+        {{template "cfg_fields" dict "Fields" .Fields "Root" $}}
 
         </fieldset>
         {{end}}
@@ -283,6 +256,7 @@
         <legend>{{t "gallery.display"}}</legend>
         <label for="title">{{t "field.title"}}</label>
         <input id="title" name="title" value="{{.Title}}">
+        {{template "cfg_fields" dict "Fields" .FrameFields "Root" $}}
         {{if and .Target.Place (not .Widget)}}
         <label for="rows">{{t "gallery.height"}}</label>
         <select id="rows" name="rows">{{range $n := .RowOptions}}<option value="{{$n}}">{{t (print "gallery.rows_" $n)}}</option>{{end}}</select>
@@ -313,8 +287,8 @@
         <div class="dsec-body size-{{or .Dest.Size "medium"}}">
           {{if .Target.Place}}<div class="tile-slot gal-ghost" aria-hidden="true"></div><div class="tile-slot gal-ghost" aria-hidden="true"></div>{{end}}
           <div class="tile-slot w-{{.Kind.Key}} wf-slot">
-            {{if eq .Kind.Key "link"}}<div id="preview"></div>
-            {{else}}<article class="card"><h3 class="card-title">{{.Title}}</h3><div class="card-body" id="preview"></div></article>{{end}}
+            {{/* The live preview swaps in the whole tile: frame, title and body. */}}
+            <div id="preview">{{if ne .Kind.Key "link"}}<article class="card"><h3 class="card-title">{{.Title}}</h3><div class="card-body"></div></article>{{end}}</div>
           </div>
           {{if .Target.Place}}<div class="tile-slot gal-ghost" aria-hidden="true"></div>{{end}}
         </div>
@@ -339,4 +313,41 @@
   <span class="launch-live">{{template "widgets/link" .}}</span></span></a>
 {{end}}
 
+{{/* preview_card: a whole card tile for the editor's live preview. */}}
+{{define "preview_card"}}<article class="card"{{with .Frame.Accent}} data-accent="{{.}}"{{end}}{{if .Frame.Dense}} data-density="compact"{{end}}>
+{{template "card_head" dict "Title" .Title "Frame" .Frame "Icon" .Icon}}
+<div class="card-body">{{fragment .Body}}</div></article>{{end}}
+
 {{define "widget_preview_error"}}<p class="error">{{t .Error}}</p>{{end}}
+
+{{/* cfg_fields: config fields of the widget form; "Root" is the page. */}}
+{{define "cfg_fields"}}{{$ := .Root}}<input type="hidden" name="cfg.__fields" value="1">{{range .Fields}}
+          {{if eq (print .Input) "checkbox"}}
+          <label class="check"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}> {{t (print "field." .Label)}}</label>
+          {{else}}
+          <label for="{{.Name}}">{{t (print "field." .Label)}}</label>
+          {{if eq (print .Input) "select"}}
+            <select id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}{{range .Options}}<option value="{{.}}"{{if eq . $v}} selected{{end}}>{{t (print "opt." .)}}</option>{{end}}</select>
+          {{else if or (eq (print .Input) "textarea") (eq (print .Input) "links") (eq (print .Input) "headers")}}
+            <textarea id="{{.Name}}" name="{{.Name}}" rows="3">{{.Text}}</textarea>
+          {{else if eq (print .Input) "number"}}
+            <input id="{{.Name}}" name="{{.Name}}" type="number" step="any" value="{{.Text}}"{{if .Required}} required{{end}}>
+          {{else if eq (print .Input) "secret"}}
+            <input id="{{.Name}}" name="{{.Name}}" type="password" autocomplete="off" value="">
+          {{else if eq (print .Input) "place"}}
+            {{template "place_pick" dict "ID" .Name "Place" .Text "Lat" .Lat "Lon" .Lon "PlaceName" .Name "LatName" "cfg.lat" "LonName" "cfg.lon"}}
+          {{else if eq (print .Input) "connection"}}
+            <select id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}<option value="">–</option>{{range $.Root.AllConns}}<option value="{{.Key}}"{{if eq .Key $v}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+          {{else}}
+            <input id="{{.Name}}" name="{{.Name}}" value="{{.Text}}"{{if .Required}} required{{end}}>
+          {{end}}
+          {{if or (eq (print .Input) "list") (eq (print .Input) "numbers")}}<p class="small muted">{{t "field.list_hint"}}</p>{{end}}
+          {{if eq (print .Input) "links"}}<p class="small muted">{{t "field.links_hint"}}</p>{{end}}
+          {{if eq (print .Input) "headers"}}<p class="small muted">{{t "field.headers_hint"}}</p>{{end}}
+          {{if eq .Label "thresholds"}}<p class="small muted">{{t "field.thresholds_hint"}}</p>{{end}}
+          {{if or (eq .Label "units") (eq .Label "labels")}}<p class="small muted">{{t (print "field." .Label "_hint")}}</p>{{end}}
+          {{if eq (print .Input) "secret"}}<p class="small muted">{{t "field.secret_hint"}}</p>{{end}}
+          {{if eq .Label "icon"}}<p class="small muted">{{t "field.icon_hint"}}</p>
+            <input class="icon-upload" type="file" accept="image/svg+xml,image/png,image/webp,image/jpeg,image/x-icon" data-target="{{.Name}}" aria-label="{{t "field.icon"}}">{{end}}
+          {{end}}
+{{end}}{{end}}

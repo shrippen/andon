@@ -38,7 +38,7 @@ func TestCatalogTilesRender(t *testing.T) {
 		"pihole":           {data: sources.DemoPihole(now), want: "progress-bar"},
 		"adguard":          {data: sources.DemoAdGuard(), want: "progress-bar"},
 		"vpn":              {data: sources.DemoGluetun(), want: "pill"},
-		"gateway":          {data: sources.DemoGateway(), want: "tile-value"},
+		"gateway":          {data: sources.DemoGateway(), want: "WAN_DHCP"},
 		"expiry":           {data: sources.DemoCerts(now), want: "hbar"},
 		"speed_history":    {data: &sources.SpeedtestDataset{Down: 240, Up: 40, ExpectDown: 250, At: now}, want: "bars-target"},
 		"sabnzbd":          {data: sources.DemoSabnzbd(now), want: "MB/s"},
@@ -102,5 +102,28 @@ func TestGreetingForecastShowsWeekdays(t *testing.T) {
 	body := rec.Body.String()
 	if !strings.Contains(body, `title="26.09.2026">Sa</small>`) || !strings.Contains(body, `>So</small>`) {
 		t.Fatalf("forecast labels:\n%s", body)
+	}
+}
+
+// TestGatewayTileOpenWrt: an OpenWrt router shows its model and clients,
+// and no loss, delay or update count it cannot know.
+func TestGatewayTileOpenWrt(t *testing.T) {
+	kind, _ := widgets.Get("gateway")
+	data := &sources.GatewayDataset{Kind: "openwrt", Version: "24.10.2", Model: "GL-MT6000", Clients: 14,
+		Gateways: []sources.GatewayLink{{Name: "wan", Up: true}}}
+	view := kind.View(nil, map[string]any{"data": data}, widgets.ViewCtx{})
+	frag := &widgetlib.Fragment{Type: "gateway", View: view, Slots: map[string]widgetlib.Slot{"data": {Data: data}}}
+	rec := httptest.NewRecorder()
+	if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, "widgets/gateway", http.StatusOK, map[string]any{"ThemeURL": "", "Frag": frag}); err != nil {
+		t.Fatal(err)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{"GL-MT6000", ">14<", "Geräte im Netz"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("missing %q:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "Verlust") || strings.Contains(body, "Updates") {
+		t.Fatalf("shows what OpenWrt does not report:\n%s", body)
 	}
 }

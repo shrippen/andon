@@ -20,7 +20,15 @@ type ExposedRow struct {
 	Risk         int
 }
 
-func exposureView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
+// ExposureConfig is the "exposure" widget's config.
+type ExposureConfig struct{ OnlyOpen bool }
+
+func decodeExposure(raw map[string]any) any {
+	return ExposureConfig{OnlyOpen: asBool(raw["only_open"])}
+}
+
+func exposureView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(ExposureConfig)
 	data, ok := results["data"].(*sources.PangolinDataset)
 	if !ok {
 		return map[string]any{}
@@ -29,18 +37,21 @@ func exposureView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
 	updates := metrics.PendingUpdates(peerDatasets(results, updatePeers))
 	var rows []ExposedRow
 	open := 0
-	for _, r := range metrics.Exposure(data, certs, updates, parseToday(ctx.Today)) {
-		rows = append(rows, ExposedRow{Name: r.Name, Domain: r.Domain, Login: r.Login, Updates: len(r.Updates), CertDays: r.CertDays, Risk: r.Risk})
+	all := metrics.Exposure(data, certs, updates, parseToday(ctx.Today))
+	for _, r := range all {
 		if !r.Login {
 			open++
+		} else if cfg.OnlyOpen {
+			continue
 		}
+		rows = append(rows, ExposedRow{Name: r.Name, Domain: r.Domain, Login: r.Login, Updates: len(r.Updates), CertDays: r.CertDays, Risk: r.Risk})
 	}
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].Risk > rows[j].Risk })
-	return map[string]any{"Rows": rows, "Open": open}
+	return map[string]any{"Rows": rows, "Open": open, "Total": len(all)}
 }
 
 func init() {
-	Register(WidgetType{Key: "exposure", Decode: decodeEmpty, Template: "widgets/exposure", Category: CategoryInsight,
+	Register(WidgetType{Key: "exposure", Decode: decodeExposure, Template: "widgets/exposure", Category: CategoryInsight,
 		Service: enums.ServicePangolin, RefreshS: 1800, View: exposureView,
 		Queries: func(any) []Query { return append(dataQuery(nil), homelabQueries(TableExposure)...) }})
 }

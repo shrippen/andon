@@ -215,3 +215,34 @@ func TestProgressTiers(t *testing.T) {
 		t.Fatalf("spent budget: %+v", spent)
 	}
 }
+
+// TestKpiOptions: the comparison can be turned off or switched to the
+// month before, a target colours the value (lower is better for open
+// amounts), and the line can be left out.
+func TestKpiOptions(t *testing.T) {
+	kind, _ := widgets.Get("kpi")
+	data := &sources.NinjaDataset{Currency: "EUR", Invoices: []sources.NinjaInvoice{
+		{ID: 1, ClientID: 1, Status: "paid", Date: "2026-08-10", Net: 1000},
+		{ID: 2, ClientID: 1, Status: "paid", Date: "2026-09-05", Net: 1500},
+		{ID: 3, ClientID: 1, Status: "sent", Date: "2026-09-01", DueDate: "2026-09-30", Balance: 800},
+	}}
+	view := func(raw map[string]any) *widgets.KpiResult {
+		cfg, _ := widgets.Decode("kpi", raw)
+		return kind.View(cfg, map[string]any{"data": data}, ctxFor(enums.ServiceInvoiceNinja, nil))["KPI"].(*widgets.KpiResult)
+	}
+	if k := view(map[string]any{"metric": "revenue_month", "compare": "prev_month"}); !k.HasDelta || k.Delta != 0.5 || k.DeltaKey != "kpi.vs_last_month" {
+		t.Fatalf("month compare: %+v", k)
+	}
+	if k := view(map[string]any{"metric": "revenue_ytd", "compare": "off"}); k.HasDelta {
+		t.Fatalf("compare off: %+v", k)
+	}
+	if k := view(map[string]any{"metric": "revenue_month", "target_value": 1000.0}); k.Target != "good" {
+		t.Fatalf("target met: %+v", k)
+	}
+	if k := view(map[string]any{"metric": "open_amount", "target_value": 500.0}); k.Target != "bad" {
+		t.Fatalf("open amount above its target: %+v", k)
+	}
+	if k := view(map[string]any{"metric": "revenue_ytd", "spark": false}); k.Spark != nil {
+		t.Fatalf("line switched off: %+v", k)
+	}
+}

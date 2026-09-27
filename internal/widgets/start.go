@@ -87,6 +87,9 @@ type LinkConfig struct {
 	Items       []SubLink         // more links in the same tile
 	Color       TileColor         // "" = theme default
 	Headers     map[string]string // sent with the status check
+	Method      string            // status check: GET or HEAD
+	TimeoutS    float64           // status check limit in seconds, 0 = default
+	IconSize    string            // "small", "normal", "large"
 }
 
 // SubLink is one extra link inside a link tile, e.g. "Admin" next to the
@@ -154,6 +157,8 @@ func decodeLink(raw map[string]any) any {
 		Target: target, Status: status, StatusURL: webURL(raw["status_url"]),
 		Accept: asIntList(raw["accept"]), Insecure: asBool(raw["insecure"]), Hotkey: asString(raw["hotkey"]),
 		Tags: asStringList(raw["tags"]), Items: subLinks(raw["items"]), Color: tileColor(raw["color"]), Headers: stringMap(raw["headers"]),
+		Method: oneOfStr(raw["status_method"], []string{"GET", "HEAD"}, "GET"), TimeoutS: min(max(asFloat(raw["status_timeout"]), 0), 60),
+		IconSize: oneOfStr(raw["icon_size"], []string{"small", "normal", "large"}, "normal"),
 	}
 	if info, ok := raw["info"].(map[string]any); ok {
 		cfg.InfoConn = asString(info["connection"])
@@ -167,6 +172,7 @@ func linkQueries(cfgAny any) []Query {
 	if cfg.Status == StatusHTTP {
 		found = append(found, Query{Name: "status", Source: "http_status", Params: map[string]any{
 			"url": firstNonEmpty(cfg.StatusURL, cfg.URL), "accept": cfg.Accept, "insecure": cfg.Insecure, "headers": cfg.Headers,
+			"method": cfg.Method, "timeout": cfg.TimeoutS,
 		}})
 	}
 	if cfg.InfoConn != "" {
@@ -285,8 +291,11 @@ func linkView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
 // RssConfig is the "rss" widget's config.
 type RssConfig struct {
 	URL     string
+	More    []string // further feeds, merged newest first
 	Limit   int
 	Summary bool
+	Images  bool
+	MaxAge  int // days, 0 = any age
 }
 
 func decodeRss(raw map[string]any) any {
@@ -297,7 +306,14 @@ func decodeRss(raw map[string]any) any {
 	if limit > 50 {
 		limit = 50
 	}
-	return RssConfig{URL: webURL(raw["url"]), Limit: limit, Summary: asBool(raw["summary"])}
+	cfg := RssConfig{URL: webURL(raw["url"]), Limit: limit, Summary: asBool(raw["summary"]), Images: asBool(raw["images"]),
+		MaxAge: clampInt(asInt(raw["max_age"], 0), 0, 365)}
+	for _, u := range asStringList(raw["more_urls"]) {
+		if u = webURL(u); u != "" {
+			cfg.More = append(cfg.More, u)
+		}
+	}
+	return cfg
 }
 
 // ClockConfig is the "clock" widget's config.
@@ -305,6 +321,8 @@ type ClockConfig struct {
 	Timezones []string
 	Seconds   bool
 	Date      bool
+	H12       bool // 3:04 PM instead of 15:04
+	Analog    bool // a face with hands
 }
 
 func decodeClock(raw map[string]any) any {
@@ -316,7 +334,7 @@ func decodeClock(raw map[string]any) any {
 	if v, ok := raw["date"]; ok {
 		date = asBool(v)
 	}
-	return ClockConfig{Timezones: tz, Seconds: asBool(raw["seconds"]), Date: date}
+	return ClockConfig{Timezones: tz, Seconds: asBool(raw["seconds"]), Date: date, H12: raw["format"] == "12", Analog: asBool(raw["analog"])}
 }
 
 // weatherView drops today from the forecast (the current conditions
@@ -327,15 +345,22 @@ func weatherView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 	if !ok || data == nil {
 		return map[string]any{}
 	}
+	conv := func(c float64) float64 { return c }
+	if cfg.Fahrenheit {
+		conv = fahrenheit
+	}
 	var ahead []sources.WeatherDay
 	if len(data.Days) > 1 {
-		ahead = data.Days[1:]
+		for _, d := range data.Days[1:min(len(data.Days), cfg.Days+1)] {
+			d.Max, d.Min = conv(d.Max), conv(d.Min)
+			ahead = append(ahead, d)
+		}
 	}
-	out := map[string]any{"Temp": data.Temp, "Code": data.Code, "Label": cfg.Label, "Days": ahead}
+	out := map[string]any{"Temp": conv(data.Temp), "Code": data.Code, "Label": cfg.Label, "Days": ahead, "Fahrenheit": cfg.Fahrenheit}
 
 	// The next hours: temperature as a line, rain chance as columns, and
 	// when rain gets likely.
-	if len(data.Hours) >= 2 {
+	if len(data.Hours) >= 2 && cfg.Hourly {
 		temps := make([]float64, len(data.Hours))
 		rain := make([]int, len(data.Hours))
 		for i, h := range data.Hours {
@@ -354,19 +379,30 @@ const rainLikely = 50
 
 // WeatherConfig is the "weather" widget's config.
 type WeatherConfig struct {
-	Label string
-	Lat   float64
-	Lon   float64
+	Label      string
+	Lat        float64
+	Lon        float64
+	Fahrenheit bool
+	Hourly     bool // the next hours as a line
+	Days       int  // days after today
 }
 
+// weatherDays is how many days after today the tile shows by default.
+const weatherDays = 3
+
 func decodeWeather(raw map[string]any) any {
-	return WeatherConfig{Label: asString(raw["label"]), Lat: asFloat(raw["lat"]), Lon: asFloat(raw["lon"])}
+	return WeatherConfig{Label: asString(raw["label"]), Lat: asFloat(raw["lat"]), Lon: asFloat(raw["lon"]),
+		Fahrenheit: raw["unit"] == "f", Hourly: boolOr(raw["hourly"], true), Days: clampInt(asInt(raw["days"], weatherDays), 0, 7)}
 }
+
+// fahrenheit converts °C.
+func fahrenheit(c float64) float64 { return c*9/5 + 32 }
 
 // IframeConfig is the "iframe" widget's config.
 type IframeConfig struct {
-	URL    string
-	Height int
+	URL     string
+	Height  int
+	ReloadM int // minutes between reloads in the browser, 0 = never
 }
 
 func decodeIframe(raw map[string]any) any {
@@ -377,17 +413,129 @@ func decodeIframe(raw map[string]any) any {
 	if height > 2000 {
 		height = 2000
 	}
-	return IframeConfig{URL: webURL(raw["url"]), Height: height}
+	return IframeConfig{URL: webURL(raw["url"]), Height: height, ReloadM: clampInt(asInt(raw["reload"], 0), 0, 1440)}
 }
 
 // NoteConfig is the "note" widget's config.
 type NoteConfig struct {
-	Text string
+	Text     string
+	Markdown bool
+	Blocks   []MDBlock // the text parsed, when Markdown
+	Color    string    // background tint, "none" = plain
 }
 
 func decodeNote(raw map[string]any) any {
-	return NoteConfig{Text: asString(raw["text"])}
+	cfg := NoteConfig{Text: asString(raw["text"]), Markdown: asBool(raw["markdown"]), Color: oneOfStr(raw["color"], accentColors, "none")}
+	if cfg.Markdown {
+		cfg.Blocks = parseMarkdown(cfg.Text)
+	}
+	return cfg
 }
+
+// SysinfoConfig is the "sysinfo" widget's config.
+type SysinfoConfig struct {
+	Hide map[string]bool // cpu, mem, swap, disks
+	Warn float64         // percent from which a meter turns yellow; red 20 points above
+}
+
+var sysParts = []string{"cpu", "mem", "swap", "disks"}
+
+func decodeSysinfo(raw map[string]any) any {
+	cfg := SysinfoConfig{Hide: map[string]bool{}, Warn: asFloat(raw["warn_pct"])}
+	if cfg.Warn <= 0 || cfg.Warn > pctFull {
+		cfg.Warn = loadWarn
+	}
+	for _, p := range sysParts {
+		if !boolOr(raw["show_"+p], true) {
+			cfg.Hide[p] = true
+		}
+	}
+	return cfg
+}
+
+// Meter is one labelled percent: Label is a catalog key unless Raw.
+type Meter struct {
+	Label string
+	Raw   bool
+	V     float64
+	Tier  string
+}
+
+func meterTier(v, warn float64) string {
+	switch {
+	case v >= warn+loadHigh-loadWarn:
+		return "red"
+	case v >= warn:
+		return "yellow"
+	default:
+		return "green"
+	}
+}
+
+func sysinfoView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(SysinfoConfig)
+	if !ok {
+		cfg = SysinfoConfig{Warn: loadWarn}
+	}
+	s, ok := results["stats"].(*sources.GlancesResult)
+	if !ok {
+		return map[string]any{}
+	}
+	var meters []Meter
+	for _, m := range []struct {
+		key string
+		v   float64
+	}{{"cpu", s.CPU}, {"mem", s.Mem}, {"swap", s.Swap}} {
+		if !cfg.Hide[m.key] {
+			meters = append(meters, Meter{Label: "sys." + m.key, V: m.v, Tier: meterTier(m.v, cfg.Warn)})
+		}
+	}
+	if !cfg.Hide["disks"] {
+		for _, d := range s.Disks {
+			meters = append(meters, Meter{Label: d.Mount, Raw: true, V: d.Percent, Tier: meterTier(d.Percent, cfg.Warn)})
+		}
+	}
+	return map[string]any{"Meters": meters, "Load": s.Load}
+}
+
+// PublicIPConfig is the "public_ip" widget's config.
+type PublicIPConfig struct {
+	V6    bool
+	Watch bool // point out a new address
+}
+
+func decodePublicIP(raw map[string]any) any {
+	return PublicIPConfig{V6: asBool(raw["ipv6"]), Watch: asBool(raw["watch"])}
+}
+
+// IPSeen is the address a viewer last saw and when it changed; the widgets
+// service keeps it (results[IPSeenSlot]).
+type IPSeen struct {
+	IP, Prev string
+	Since    time.Time // zero: not seen changing yet
+}
+
+// IPSeenSlot carries IPSeen for ExtraIPWatch.
+const IPSeenSlot = "ip_seen"
+
+// ipFresh is how long a change is pointed out.
+const ipFresh = 24 * time.Hour
+
+func publicIPView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(PublicIPConfig)
+	ip, ok := results["ip"].(*sources.PublicIPResult)
+	if !ok {
+		return map[string]any{}
+	}
+	out := map[string]any{"IP": ip.IP, "IPv6": ip.IPv6}
+	if seen, ok := results[IPSeenSlot].(IPSeen); ok && cfg.Watch && seen.Prev != "" && seen.IP == ip.IP && time.Since(seen.Since) < ipFresh {
+		out["Changed"], out["Prev"], out["Since"] = true, seen.Prev, seen.Since
+	}
+	return out
+}
+
+// WatchesIP says whether the widgets service should track the address.
+func (c PublicIPConfig) WatchesIP() bool { return c.Watch }
 
 // EmptyConfig is used by widgets with no configuration (sysinfo, public_ip).
 type EmptyConfig struct{}
@@ -401,7 +549,8 @@ func init() {
 	Register(WidgetType{Key: "rss", Decode: decodeRss, Template: "widgets/rss",
 		Category: CategoryStart, RefreshS: 30 * 60, Queries: func(cfgAny any) []Query {
 			cfg := cfgAny.(RssConfig)
-			return []Query{{Name: "feed", Source: "rss", Params: map[string]any{"url": cfg.URL, "limit": cfg.Limit}}}
+			return []Query{{Name: "feed", Source: "rss", Params: map[string]any{"url": cfg.URL, "limit": cfg.Limit, "urls": cfg.More,
+				"images": cfg.Images, "max_age": float64(cfg.MaxAge)}}}
 		}})
 
 	Register(WidgetType{Key: "clock", Decode: decodeClock, Template: "widgets/clock",
@@ -410,19 +559,22 @@ func init() {
 	Register(WidgetType{Key: "weather", Decode: decodeWeather, Template: "widgets/weather",
 		Category: CategoryStart, RefreshS: 30 * 60, View: weatherView, Queries: func(cfgAny any) []Query {
 			cfg := cfgAny.(WeatherConfig)
-			return []Query{{Name: "weather", Source: "open_meteo", Params: map[string]any{"lat": cfg.Lat, "lon": cfg.Lon}}}
+			return []Query{{Name: "weather", Source: "open_meteo", Params: map[string]any{"lat": cfg.Lat, "lon": cfg.Lon, "days": float64(cfg.Days)}}}
 		}})
 
 	Register(WidgetType{Key: "iframe", Decode: decodeIframe, Template: "widgets/iframe",
 		Category: CategoryStart, Inline: true})
 
-	Register(WidgetType{Key: "sysinfo", Decode: decodeEmpty, Template: "widgets/sysinfo",
-		Category: CategoryStart, Service: enums.ServiceGlances, RefreshS: 60, Live: true,
+	Register(WidgetType{Key: "sysinfo", Decode: decodeSysinfo, Template: "widgets/sysinfo",
+		Category: CategoryStart, Service: enums.ServiceGlances, RefreshS: 60, Live: true, View: sysinfoView,
 		Queries: func(any) []Query { return []Query{{Name: "stats", Source: "glances", Conn: ConnWidget}} }})
 
-	Register(WidgetType{Key: "public_ip", Decode: decodeEmpty, Template: "widgets/public_ip",
-		Category: CategoryStart, RefreshS: 60 * 60,
-		Queries: func(any) []Query { return []Query{{Name: "ip", Source: "public_ip"}} }})
+	Register(WidgetType{Key: "public_ip", Decode: decodePublicIP, Template: "widgets/public_ip",
+		Category: CategoryStart, RefreshS: 60 * 60, View: publicIPView, Extra: ExtraIPWatch,
+		Queries: func(c any) []Query {
+			cfg, _ := c.(PublicIPConfig)
+			return []Query{{Name: "ip", Source: "public_ip", Params: map[string]any{"v6": cfg.V6}}}
+		}})
 
 	Register(WidgetType{Key: "note", Decode: decodeNote, Template: "widgets/note",
 		Category: CategoryStart, Inline: true})

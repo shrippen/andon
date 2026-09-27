@@ -19,9 +19,14 @@ import (
 // TodayConfig is the "today" widget's config.
 type TodayConfig struct {
 	Timezone string
-	Stop     string // transit stop; "" = no departures
-	Days     int    // deadlines this many days ahead
+	Stop     string          // transit stop; "" = no departures
+	Days     int             // deadlines this many days ahead
+	Hide     map[string]bool // parts left out: event, timer, transit, deadline
+	HidePast bool            // drop what is over instead of dimming it
 }
+
+// todayParts maps each part to its checkbox.
+var todayParts = map[string]string{"event": "show_calendar", "timer": "show_timer", "transit": "show_transit", "deadline": "show_deadlines"}
 
 const (
 	todayDeadlineDays = 7
@@ -34,7 +39,14 @@ func decodeToday(raw map[string]any) any {
 	if tz == "" {
 		tz = defaultTimezone
 	}
-	return TodayConfig{Timezone: tz, Stop: asString(raw["stop"]), Days: clampInt(asInt(raw["days"], todayDeadlineDays), 1, 60)}
+	cfg := TodayConfig{Timezone: tz, Stop: asString(raw["stop"]), Days: clampInt(asInt(raw["days"], todayDeadlineDays), 1, 60),
+		Hide: map[string]bool{}, HidePast: asBool(raw["hide_past"])}
+	for part, box := range todayParts {
+		if !boolOr(raw[box], true) {
+			cfg.Hide[part] = true
+		}
+	}
+	return cfg
 }
 
 // TodayItem is one entry of the day.
@@ -53,8 +65,14 @@ type TodayItem struct {
 
 func todayQueries(cfgAny any) []Query {
 	cfg := cfgAny.(TodayConfig)
-	q := []Query{peer(peerCalendar, enums.ServiceCalendar), kimaiPeer}
-	if cfg.Stop != "" {
+	var q []Query
+	if !cfg.Hide["event"] {
+		q = append(q, peer(peerCalendar, enums.ServiceCalendar))
+	}
+	if !cfg.Hide["timer"] {
+		q = append(q, kimaiPeer)
+	}
+	if cfg.Stop != "" && !cfg.Hide["transit"] {
 		q = append(q, Query{Name: "board", Source: "transit", Params: map[string]any{"stop": cfg.Stop, "results": float64(todayDepartures)}})
 	}
 	return q
@@ -79,6 +97,9 @@ func todayView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 				continue
 			}
 			item := TodayItem{Kind: "event", Text: e.Title, at: e.Start, Past: e.Start.Before(now)}
+			if cfg.HidePast && item.Past && !e.AllDay {
+				continue
+			}
 			if !e.AllDay {
 				item.At = clock(e.Start)
 			}
@@ -102,7 +123,7 @@ func todayView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	}
 	sort.SliceStable(items, func(i, j int) bool { return items[i].at.Before(items[j].at) })
 
-	if tax, ok := metrics.ParseTaxSettings(ctx.Settings); ok {
+	if tax, ok := metrics.ParseTaxSettings(ctx.Settings); ok && !cfg.Hide["deadline"] {
 		for _, dl := range metrics.UpcomingDeadlines(tax, parseToday(ctx.Today), cfg.Days) {
 			items = append(items, TodayItem{Kind: "deadline", Deadline: dl.Kind, Period: dl.Period, Year: dl.Year,
 				Left: int(dl.Due.Sub(parseToday(ctx.Today)).Hours() / hoursPerDay)})

@@ -9,9 +9,13 @@ import (
 )
 
 // KimaiStart starts a timer for project and activity (Kimai sets "now").
-func KimaiStart(ctx context.Context, to Target, projectID, activityID int64) error {
+func KimaiStart(ctx context.Context, to Target, projectID, activityID int64, description string) error {
 	api := services.KimaiApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}
-	_, err := api.Send(ctx, http.MethodPost, "timesheets", map[string]any{"project": projectID, "activity": activityID})
+	body := map[string]any{"project": projectID, "activity": activityID}
+	if description != "" {
+		body["description"] = description
+	}
+	_, err := api.Send(ctx, http.MethodPost, "timesheets", body)
 	return err
 }
 

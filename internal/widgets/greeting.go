@@ -40,15 +40,24 @@ type GreetingConfig struct {
 	Lat, Lon  float64
 	Timezone  string
 	SinceHour int
+	Hide      map[string]bool // weather, since, hints
 }
+
+var greetingParts = []string{"weather", "since", "hints"}
 
 func decodeGreeting(raw map[string]any) any {
 	tz := asString(raw["timezone"])
 	if tz == "" {
 		tz = defaultTimezone
 	}
-	return GreetingConfig{Label: asString(raw["label"]), Lat: asFloat(raw["lat"]), Lon: asFloat(raw["lon"]),
-		Timezone: tz, SinceHour: clampInt(asInt(raw["since_hour"], greetingSinceHour), 0, 23)}
+	cfg := GreetingConfig{Label: asString(raw["label"]), Lat: asFloat(raw["lat"]), Lon: asFloat(raw["lon"]),
+		Timezone: tz, SinceHour: clampInt(asInt(raw["since_hour"], greetingSinceHour), 0, 23), Hide: map[string]bool{}}
+	for _, p := range greetingParts {
+		if !boolOr(raw["show_"+p], true) {
+			cfg.Hide[p] = true
+		}
+	}
+	return cfg
 }
 
 // GreetingChange is one timeline entry a greeting may mention.
@@ -110,7 +119,7 @@ func greetingView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any 
 		loc = time.Local
 	}
 	out := map[string]any{"Part": dayPart(time.Now().In(loc).Hour()), "Label": cfg.Label, "Timezone": cfg.Timezone, "SinceHour": cfg.SinceHour,
-		"HasWeather": cfg.Lat != 0 || cfg.Lon != 0}
+		"HasWeather": (cfg.Lat != 0 || cfg.Lon != 0) && !cfg.Hide["weather"], "ShowSince": !cfg.Hide["since"], "ShowHints": !cfg.Hide["hints"]}
 
 	if w, ok := results["weather"].(*sources.WeatherResult); ok && w != nil {
 		out["Temp"], out["Code"], out["Wind"], out["Days"] = w.Temp, w.Code, w.Wind, forecast(w.Days)
@@ -182,7 +191,7 @@ func init() {
 		Category: CategoryStart, RefreshS: 10 * 60, View: greetingView, Extra: ExtraGreeting,
 		Queries: func(cfgAny any) []Query {
 			cfg := cfgAny.(GreetingConfig)
-			if cfg.Lat == 0 && cfg.Lon == 0 {
+			if (cfg.Lat == 0 && cfg.Lon == 0) || cfg.Hide["weather"] {
 				return nil
 			}
 			return []Query{{Name: "weather", Source: "open_meteo", Params: map[string]any{"lat": cfg.Lat, "lon": cfg.Lon}}}

@@ -30,7 +30,7 @@ func fake(t *testing.T, header, value string, routes map[string]string) *httptes
 
 func TestHeadscaleDevices(t *testing.T) {
 	srv := fake(t, "Authorization", "Bearer key", map[string]string{
-		"GET /api/v1/node": `{"nodes": [{"givenName": "nas", "online": true, "expiry": "0001-01-01T00:00:00Z"},
+		"GET /api/v1/node": `{"nodes": [{"givenName": "nas", "online": true, "expiry": "0001-01-01T00:00:00Z", "forcedTags": ["tag:server"], "validTags": ["tag:server", "tag:home"]},
 			{"name": "pi", "online": false, "lastSeen": "2026-09-01T10:00:00Z", "expiry": "2026-10-01T00:00:00Z"}]}`,
 	})
 	out, err := sources.TailscaleData{}.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "key"})
@@ -38,7 +38,7 @@ func TestHeadscaleDevices(t *testing.T) {
 		t.Fatal(err)
 	}
 	d := out.(*sources.TailscaleDataset)
-	if !d.Headscale || len(d.Devices) != 2 || !d.Devices[0].KeyExpiry.IsZero() || d.Devices[1].Online || d.Devices[1].KeyExpiry.IsZero() {
+	if !d.Headscale || len(d.Devices) != 2 || len(d.Devices[0].Tags) != 2 || !d.Devices[0].KeyExpiry.IsZero() || d.Devices[1].Online || d.Devices[1].KeyExpiry.IsZero() {
 		t.Fatalf("devices: %+v", d)
 	}
 }
@@ -165,8 +165,8 @@ func TestGrocyAndTibber(t *testing.T) {
 
 	tibber := fake(t, "Authorization", "Bearer t", map[string]string{
 		"POST /": `{"data": {"viewer": {"homes": [{"appNickname": "Zuhause",
-			"currentSubscription": {"priceInfo": {"current": {"total": 0.31, "level": "NORMAL", "currency": "EUR"},
-				"today": [{"total": 0.30, "startsAt": "2026-09-25T00:00:00+02:00"}], "tomorrow": []}},
+			"currentSubscription": {"priceInfo": {"current": {"total": 0.31, "energy": 0.12, "level": "NORMAL", "currency": "EUR"},
+				"today": [{"total": 0.30, "energy": 0.11, "startsAt": "2026-09-25T00:00:00+02:00"}], "tomorrow": []}},
 			"consumption": {"nodes": [{"from": "2026-09-24T00:00:00+02:00", "cost": 2.1, "consumption": 7.5}]}}]}}}`,
 	})
 	out, err = sources.TibberData{}.Fetch(t.Context(), sources.Ctx{URL: tibber.URL + "/", Secret: "t"})
@@ -174,7 +174,7 @@ func TestGrocyAndTibber(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := out.(*sources.TibberDataset)
-	if e.Current != 0.31 || len(e.Prices) != 1 || e.Days[0].KWh != 7.5 || e.Days[0].Day != "2026-09-24" {
+	if e.Current != 0.31 || e.CurrentEnergy != 0.12 || len(e.Prices) != 1 || e.Prices[0].Energy != 0.11 || e.Days[0].KWh != 7.5 || e.Days[0].Day != "2026-09-24" {
 		t.Fatalf("tibber: %+v", e)
 	}
 }

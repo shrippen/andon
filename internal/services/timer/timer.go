@@ -57,6 +57,7 @@ type Request struct {
 	Project, Activity int64
 	Sheet             int64
 	Note              string
+	StartNote         string // description for a timer being started
 	Begin, End        string
 }
 
@@ -82,7 +83,7 @@ func Run(ctx context.Context, d *sql.DB, who *access.Principal, placementID int6
 		if req.Project <= 0 || req.Activity <= 0 {
 			return ErrNotTimer
 		}
-		return outbound.KimaiStart(ctx, to, req.Project, req.Activity)
+		return outbound.KimaiStart(ctx, to, req.Project, req.Activity, req.StartNote)
 	}
 
 	create := func() error {

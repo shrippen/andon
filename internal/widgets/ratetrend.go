@@ -13,27 +13,40 @@ import (
 )
 
 // RateTrendConfig is the "rate_trend" widget's config; Target 0 = none.
-type RateTrendConfig struct{ Target float64 }
+type RateTrendConfig struct {
+	Target       float64
+	Months       int
+	BillableOnly bool // the rate over billable hours only
+}
 
 func decodeRateTrend(raw map[string]any) any {
-	return RateTrendConfig{Target: max(asFloat(raw["target"]), 0)}
+	return RateTrendConfig{Target: max(asFloat(raw["target"]), 0), Months: clampInt(asInt(raw["months"], sparkMonths), 3, 36),
+		BillableOnly: asBool(raw["billable_only"])}
 }
 
 func rateTrendView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg := cfgAny.(RateTrendConfig)
+	if cfg.Months == 0 {
+		cfg.Months = sparkMonths
+	}
 	ninja, ok := results["data"].(*sources.NinjaDataset)
 	kimai, ok2 := results[peerKimai].(*sources.KimaiDataset)
 	if !ok || !ok2 {
 		return map[string]any{}
 	}
 	lastMonth := metrics.AddMonths(parseToday(ctx.Today), -1)
-	hours, _ := kimaiMonthHours(kimai, lastMonth, sparkMonths)
+	kind := metrics.HoursAll
+	if cfg.BillableOnly {
+		kind = metrics.HoursBillable
+	}
+	hours := kimaiMonthHoursOf(kimai, lastMonth, cfg.Months, kind)
 	var rates []float64
-	for i, m := range metrics.NinjaByMonth(ninja, lastMonth, sparkMonths) {
+	for i, m := range metrics.NinjaByMonth(ninja, lastMonth, cfg.Months) {
 		if i < len(hours) && hours[i] > 0 {
 			rates = append(rates, m.Net/hours[i])
 		}
 	}
-	out := map[string]any{"Currency": ninja.Currency, "Target": cfgAny.(RateTrendConfig).Target, "Month": lastMonth.Format("01/2006")}
+	out := map[string]any{"Currency": ninja.Currency, "Target": cfg.Target, "Month": lastMonth.Format("01/2006")}
 	if len(rates) == 0 {
 		return out
 	}

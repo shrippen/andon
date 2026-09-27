@@ -25,15 +25,19 @@ const (
 	dayBarTo    = 21 // … and widens for earlier or later work
 	dayBarTick  = 3  // hours between labels
 	recentShown = 4
+	recentMax   = 10 // what the source fetches
 )
 
 // KimaiLiteConfig is the "kimai_timer" widget's config.
 type KimaiLiteConfig struct {
 	WeekHours float64 // weekly target, 0 = none
+	Recent    int     // quick-start rows
+	AskNote   bool    // a description field for the timer being started
 }
 
 func decodeKimaiLite(raw map[string]any) any {
-	return KimaiLiteConfig{WeekHours: max(0, asFloat(raw["week_hours"]))}
+	return KimaiLiteConfig{WeekHours: max(0, asFloat(raw["week_hours"])), Recent: clampInt(asInt(raw["recent"], recentShown), 0, recentMax),
+		AskNote: asBool(raw["ask_note"])}
 }
 
 // TimerRow is one running or startable timer.
@@ -101,11 +105,11 @@ func timerView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 
 	var recent []TimerRow
 	for _, t := range data.Recent {
-		if !running[[2]int64{t.ProjectID, t.ActivityID}] && len(recent) < recentShown {
+		if !running[[2]int64{t.ProjectID, t.ActivityID}] && len(recent) < cfg.Recent {
 			recent = append(recent, timerRow(t))
 		}
 	}
-	out["Recent"] = recent
+	out["Recent"], out["AskNote"] = recent, cfg.AskNote
 
 	if cfg.WeekHours > 0 {
 		left := int(cfg.WeekHours*minutesPerHour) - data.WeekMin

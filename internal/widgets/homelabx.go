@@ -58,8 +58,92 @@ func peerDatasets(results map[string]any, services []enums.ServiceType) map[stri
 	return out
 }
 
-func updateWindowView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
-	w := metrics.UpdateWindow(peerDatasets(results, windowPeers), time.Now().UTC(), windowBackupAge)
+// WindowConfig is the "update_window" widget's config.
+type WindowConfig struct {
+	From, To int             // maintenance window in minutes of the day; From == To = always
+	Timezone string          // of the window
+	Ignore   map[string]bool // blockers left out (metrics.Window* keys)
+}
+
+// windowFactors maps each blocker to the checkbox that weighs it.
+var windowFactors = map[string]string{metrics.WindowNoBackup: "use_backup", metrics.WindowStreaming: "use_streams",
+	metrics.WindowWorking: "use_timer", metrics.WindowMeeting: "use_meetings", metrics.WindowExpensive: "use_price"}
+
+// WindowOutside is the blocker for "outside the maintenance window".
+const WindowOutside = "outside"
+
+func decodeWindow(raw map[string]any) any {
+	cfg := WindowConfig{Ignore: map[string]bool{}, Timezone: asString(raw["timezone"])}
+	if cfg.Timezone == "" {
+		cfg.Timezone = defaultTimezone
+	}
+	cfg.From, cfg.To, _ = parseSpan(asString(raw["window"]))
+	for blocker, box := range windowFactors {
+		if !boolOr(raw[box], true) {
+			cfg.Ignore[blocker] = true
+		}
+	}
+	return cfg
+}
+
+// parseSpan reads "22:00-06:00" or "22-6" into minutes of the day.
+func parseSpan(s string) (int, int, bool) {
+	from, to, ok := strings.Cut(strings.ReplaceAll(s, " ", ""), "-")
+	if !ok {
+		return 0, 0, false
+	}
+	a, okA := clockOf(from)
+	b, okB := clockOf(to)
+	return a, b, okA && okB
+}
+
+func clockOf(s string) (int, bool) {
+	h, m, _ := strings.Cut(s, ":")
+	hours, err := strconv.Atoi(h)
+	if err != nil || hours < 0 || hours > 24 {
+		return 0, false
+	}
+	minutes := 0
+	if m != "" {
+		if minutes, err = strconv.Atoi(m); err != nil || minutes < 0 || minutes > 59 {
+			return 0, false
+		}
+	}
+	return hours*minutesPerHour + minutes, true
+}
+
+// inSpan: the minute of the day lies in [from, to), across midnight too.
+func inSpan(minute, from, to int) bool {
+	if from == to {
+		return true
+	}
+	if from < to {
+		return minute >= from && minute < to
+	}
+	return minute >= from || minute < to
+}
+
+func updateWindowView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(WindowConfig)
+	now := time.Now().UTC()
+	w := metrics.UpdateWindow(peerDatasets(results, windowPeers), now, windowBackupAge)
+	kept := w.Blockers[:0]
+	for _, b := range w.Blockers {
+		if !cfg.Ignore[b] {
+			kept = append(kept, b)
+		}
+	}
+	w.Blockers = kept
+	if cfg.From != cfg.To {
+		loc, err := time.LoadLocation(cfg.Timezone)
+		if err != nil {
+			loc = time.UTC
+		}
+		local := now.In(loc)
+		if !inSpan(local.Hour()*minutesPerHour+local.Minute(), cfg.From, cfg.To) {
+			w.Blockers = append(w.Blockers, WindowOutside)
+		}
+	}
 	return map[string]any{"Window": w, "Good": len(w.Blockers) == 0 && len(w.Updates) > 0,
 		"BackupHours": int(w.BackupAge.Hours())}
 }
@@ -80,7 +164,35 @@ const (
 	storageWarn  = 90
 )
 
-func storageView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
+// StorageConfig is the "storage_forecast" widget's config.
+type StorageConfig struct {
+	Only  []string // label parts to keep (lower case), empty = all
+	Ahead int      // days the dashed part looks ahead
+}
+
+func decodeStorage(raw map[string]any) any {
+	return StorageConfig{Only: lowerList(raw["filter"]), Ahead: clampInt(asInt(raw["ahead"], storageAhead), 1, 365)}
+}
+
+// matchesAny: no filter, or the name contains one of the parts.
+func matchesAny(name string, parts []string) bool {
+	if len(parts) == 0 {
+		return true
+	}
+	name = strings.ToLower(name)
+	for _, p := range parts {
+		if p != "" && strings.Contains(name, p) {
+			return true
+		}
+	}
+	return false
+}
+
+func storageView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(StorageConfig)
+	if !ok || cfg.Ahead == 0 {
+		cfg.Ahead = storageAhead
+	}
 	h, _ := results[HistorySlot].(*metrics.History)
 	if h == nil {
 		return map[string]any{}
@@ -88,11 +200,14 @@ func storageView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
 	today := parseToday(ctx.Today)
 	var rows []StorageRow
 	for _, f := range metrics.StorageForecasts(h, today) {
+		if !matchesAny(f.Label, cfg.Only) {
+			continue
+		}
 		row := StorageRow{Label: f.Label, Used: f.Used * pctFull, FullIn: f.FullIn}
 		if f.FullIn >= 0 {
 			row.FullOn = today.AddDate(0, 0, f.FullIn).Format(time.DateOnly)
 			perDay := (1 - f.Used) / float64(max(f.FullIn, 1))
-			row.Ahead = min(perDay*storageAhead, 1-f.Used) * pctFull
+			row.Ahead = min(perDay*float64(cfg.Ahead), 1-f.Used) * pctFull
 		}
 		switch {
 		case f.FullIn >= 0 && f.FullIn < storageRed:
@@ -102,7 +217,7 @@ func storageView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
 		}
 		rows = append(rows, row)
 	}
-	return map[string]any{"Rows": rows}
+	return map[string]any{"Rows": rows, "Ahead": cfg.Ahead}
 }
 
 // homelabQueries are the peers of the homelab tables.
@@ -164,8 +279,8 @@ func certText(days int) string {
 }
 
 func init() {
-	Register(WidgetType{Key: "update_window", Decode: decodeEmpty, Template: "widgets/update_window", Category: CategoryInsight,
+	Register(WidgetType{Key: "update_window", Decode: decodeWindow, Template: "widgets/update_window", Category: CategoryInsight,
 		RefreshS: windowRefreshS, View: updateWindowView, Queries: func(any) []Query { return peersOf(windowPeers) }})
-	Register(WidgetType{Key: "storage_forecast", Decode: decodeEmpty, Template: "widgets/storage_forecast", Category: CategoryInsight,
+	Register(WidgetType{Key: "storage_forecast", Decode: decodeStorage, Template: "widgets/storage_forecast", Category: CategoryInsight,
 		RefreshS: 3600, View: storageView, Extra: ExtraHistory})
 }

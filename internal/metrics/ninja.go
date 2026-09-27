@@ -228,6 +228,12 @@ func NinjaShares(data *sources.NinjaDataset, today time.Time) []NinjaClientShare
 // on or after its date (approximation) and returns the days between, per
 // client id, in invoice order.
 func NinjaPaymentGaps(data *sources.NinjaDataset) map[int64][]int {
+	return NinjaPaymentGapsSince(data, time.Time{})
+}
+
+// NinjaPaymentGapsSince is NinjaPaymentGaps for invoices dated on or after
+// since.
+func NinjaPaymentGapsSince(data *sources.NinjaDataset, since time.Time) map[int64][]int {
 	byClient := map[int64][]time.Time{}
 	for _, p := range data.Payments {
 		if d, ok := ParseDay(p.Date); ok {
@@ -243,7 +249,7 @@ func NinjaPaymentGaps(data *sources.NinjaDataset) map[int64][]int {
 				continue
 			}
 			d, ok := ParseDay(i.Date)
-			if !ok {
+			if !ok || d.Before(since) {
 				continue
 			}
 			for _, pd := range paid {

@@ -6,12 +6,12 @@ package sources
 //	holidays   date.nager.at      /api/v3/PublicHolidays/{year}/{country}
 //	jokes      v2.jokeapi.dev     /joke/{category}?lang=&safe-mode
 //	crypto     api.coingecko.com  /api/v3/simple/price
-//	stocks     stooq.com          /q/l/?s=aapl.us&f=sd2t2ohlcv&e=csv
+//	stocks     query1.finance.yahoo.com /v8/finance/chart/AAPL?range=1mo
 //	json_api   any URL, optional (sealed) headers
 
 import (
 	"context"
-	"encoding/csv"
+	"fmt"
 	"net/url"
 	"sort"
 	"strconv"
@@ -43,7 +43,7 @@ var (
 	nagerBase     = "https://date.nager.at"
 	jokeBase      = "https://v2.jokeapi.dev"
 	coingeckoBase = "https://api.coingecko.com"
-	stooqBase     = "https://stooq.com"
+	yahooBase     = "https://query1.finance.yahoo.com"
 )
 
 // ── holidays ──
@@ -155,6 +155,7 @@ func (JokesSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 type Coin struct {
 	ID            string
 	Price, Change float64
+	Spark         []float64 // 7 days, with "spark"
 }
 
 // CryptoResult lists coins in the configured order.
@@ -172,6 +173,9 @@ func (CryptoSource) Service() enums.ServiceType { return "" }
 func (CryptoSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	ids := limitList(sctx.Params["coins"])
 	currency := strings.ToLower(asStr(sctx.Params["currency"]))
+	if asBool(sctx.Params["spark"]) {
+		return cryptoMarkets(ctx, ids, currency)
+	}
 	query := url.Values{"ids": {strings.Join(ids, ",")}, "vs_currencies": {currency}, "include_24hr_change": {"true"}}
 	body, _, err := httpclient.GetJSON(ctx, coingeckoBase+"/api/v3/simple/price", httpclient.Options{Params: query})
 	if err != nil {
@@ -186,6 +190,33 @@ func (CryptoSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		}
 		m := asMap(p)
 		out.Coins = append(out.Coins, Coin{ID: id, Price: asFloat(m[currency]), Change: asFloat(m[currency+"_24h_change"])})
+	}
+	return out, nil
+}
+
+// cryptoMarkets reads prices with their 7-day line (CoinGecko markets).
+func cryptoMarkets(ctx context.Context, ids []string, currency string) (any, error) {
+	query := url.Values{"vs_currency": {currency}, "ids": {strings.Join(ids, ",")}, "sparkline": {"true"}}
+	body, _, err := httpclient.GetJSON(ctx, coingeckoBase+"/api/v3/coins/markets", httpclient.Options{Params: query})
+	if err != nil {
+		return nil, newSourceError("%s", err.Error())
+	}
+	byID := map[string]map[string]any{}
+	for _, raw := range asList(body) {
+		m := asMap(raw)
+		byID[asStr(m["id"])] = m
+	}
+	out := &CryptoResult{Currency: strings.ToUpper(currency)}
+	for _, id := range ids {
+		m, ok := byID[id]
+		if !ok {
+			continue
+		}
+		c := Coin{ID: id, Price: asFloat(m["current_price"]), Change: asFloat(m["price_change_percentage_24h"])}
+		for _, p := range asList(asMap(m["sparkline_in_7d"])["price"]) {
+			c.Spark = append(c.Spark, asFloat(p))
+		}
+		out.Coins = append(out.Coins, c)
 	}
 	return out, nil
 }
@@ -206,10 +237,13 @@ func limitList(v any) []string {
 
 // ── stocks ──
 
-// Quote is one stock's last price and change since the open, in percent.
+// Quote is one stock's last price, its change against the previous
+// close and against a week ago (in percent), and its recent daily closes.
 type Quote struct {
-	Symbol, Day   string
-	Close, Change float64
+	Symbol, Day, Currency string
+	Close, Change         float64
+	WeekChange            float64
+	Closes                []float64 // oldest first, about a month
 }
 
 type StocksResult struct{ Quotes []Quote }
@@ -220,49 +254,77 @@ func (StocksSource) Key() string                { return "stocks" }
 func (StocksSource) TTL() time.Duration         { return stocksTTL }
 func (StocksSource) Service() enums.ServiceType { return "" }
 
-// Stooq CSV columns for f=sd2t2ohlcv.
-const (
-	colSymbol = iota
-	colDate
-	colTime
-	colOpen
-	colHigh
-	colLow
-	colClose
-	stooqCols
-)
+// weekBack is how many trading days make a week.
+const weekBack = 5
 
-// Fetch reads stooq's free CSV quotes; symbols carry a market suffix
-// ("aapl.us", "sap.de"). Unknown symbols come back as "N/D" and are skipped.
+// browserAgent: Yahoo refuses requests without a browser-like agent.
+const browserAgent = "Mozilla/5.0 (X11; Linux x86_64) Andon"
+
+// yahooSuffix maps stooq's market suffixes to Yahoo's ("sap.de" → SAP.DE).
+var yahooSuffix = map[string]string{"us": "", "de": ".DE", "uk": ".L", "jp": ".T", "hk": ".HK", "fr": ".PA", "nl": ".AS"}
+
+// yahooSymbol turns a configured symbol into Yahoo's.
+func yahooSymbol(s string) string {
+	if name, market, found := strings.Cut(s, "."); found {
+		if suffix, known := yahooSuffix[strings.ToLower(market)]; known {
+			return strings.ToUpper(name) + suffix
+		}
+	}
+	return strings.ToUpper(s)
+}
+
+// Fetch reads each symbol's month of daily closes from Yahoo's chart API
+// (stooq, the former source, stopped answering). Unknown symbols are
+// skipped.
 func (StocksSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
-	symbols := limitList(sctx.Params["symbols"])
-	query := url.Values{"s": {strings.Join(symbols, ",")}, "f": {"sd2t2ohlcv"}, "h": {""}, "e": {"csv"}}
-	text, err := httpclient.GetText(ctx, stooqBase+"/q/l/", httpclient.Options{Params: query})
-	if err != nil {
-		return nil, newSourceError("%s", err.Error())
-	}
-	rows, err := csv.NewReader(strings.NewReader(text)).ReadAll()
-	if err != nil {
-		return nil, newSourceError("invalid CSV")
-	}
-
 	out := &StocksResult{}
-	for i, row := range rows {
-		if i == 0 || len(row) < stooqCols {
+	var failed error
+	for _, sym := range limitList(sctx.Params["symbols"]) {
+		q, err := yahooQuote(ctx, yahooSymbol(sym))
+		if err != nil {
+			failed = err
 			continue
-		}
-		open, err1 := strconv.ParseFloat(row[colOpen], 64)
-		last, err2 := strconv.ParseFloat(row[colClose], 64)
-		if err1 != nil || err2 != nil {
-			continue
-		}
-		q := Quote{Symbol: strings.ToUpper(row[colSymbol]), Day: row[colDate], Close: last}
-		if open != 0 {
-			q.Change = (last - open) / open * percent
 		}
 		out.Quotes = append(out.Quotes, q)
 	}
+	if len(out.Quotes) == 0 && failed != nil {
+		return nil, newSourceError("%s", failed.Error())
+	}
 	return out, nil
+}
+
+func yahooQuote(ctx context.Context, symbol string) (Quote, error) {
+	body, _, err := httpclient.GetJSON(ctx, yahooBase+"/v8/finance/chart/"+url.PathEscape(symbol),
+		httpclient.Options{Params: url.Values{"range": {"1mo"}, "interval": {"1d"}}, Headers: map[string]string{"User-Agent": browserAgent}})
+	if err != nil {
+		return Quote{}, err
+	}
+	results := asList(asMap(asMap(body)["chart"])["result"])
+	if len(results) == 0 {
+		return Quote{}, fmt.Errorf("%s: no quote", symbol)
+	}
+	r := asMap(results[0])
+	meta := asMap(r["meta"])
+	q := Quote{Symbol: symbol, Currency: asStr(meta["currency"]), Close: asFloat(meta["regularMarketPrice"])}
+	if quotes := asList(asMap(r["indicators"])["quote"]); len(quotes) > 0 {
+		for _, c := range asList(asMap(quotes[0])["close"]) {
+			if f, ok := c.(float64); ok {
+				q.Closes = append(q.Closes, f)
+			}
+		}
+	}
+	change := func(back int) float64 {
+		if len(q.Closes) <= back {
+			return 0
+		}
+		ref := q.Closes[len(q.Closes)-1-back]
+		if ref == 0 {
+			return 0
+		}
+		return (q.Closes[len(q.Closes)-1] - ref) / ref * percent
+	}
+	q.Change, q.WeekChange = change(1), change(weekBack)
+	return q, nil
 }
 
 const percent = 100

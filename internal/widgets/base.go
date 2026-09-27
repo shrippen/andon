@@ -60,6 +60,15 @@ const (
 	// ExtraTimeline hands the caller's recent timeline to the view as
 	// results["timeline"] ([]TimelineItem).
 	ExtraTimeline Extra = "timeline"
+	// ExtraForwarded hands the UIDs of the mailbox's mails already sent to
+	// Paperless to the view as results["forwarded"] (map[uint32]bool).
+	ExtraForwarded Extra = "forwarded"
+	// ExtraCloseTicks hands the viewer's month-close steps ticked by hand
+	// to the view as results["close_ticks"] (map[string][]string).
+	ExtraCloseTicks Extra = "close_ticks"
+	// ExtraIPWatch keeps the viewer's last public IP and hands it to the
+	// view as results["ip_seen"] (IPSeen).
+	ExtraIPWatch Extra = "ip_watch"
 )
 
 // Category groups widget types for the library UI.

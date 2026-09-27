@@ -67,6 +67,27 @@ type Tile struct {
 	IconEmoji   string // link tiles: emoji instead of an image
 	IconGlyph   bool   // single-color icon, inverted on dark themes
 	Items       []TileItem
+	Frame       widgets.Frame
+	FrameIcon   TileIcon // the frame's title icon
+}
+
+// TileIcon is a resolved icon: an emoji or an image.
+type TileIcon struct {
+	Emoji, URL string
+	Glyph      bool
+}
+
+// IconOf resolves an icon spec ("si-gitea", "🔥", an uploaded icon); zero
+// for none.
+func IconOf(spec string) TileIcon {
+	if spec == "" {
+		return TileIcon{}
+	}
+	icon := TileIcon{Emoji: icons.Emoji(spec), Glyph: icons.Glyph(spec)}
+	if icon.Emoji == "" {
+		icon.URL = icons.URL(spec, "")
+	}
+	return icon
 }
 
 // TileItem is a link tile's sub-link with its resolved icon.
@@ -406,6 +427,14 @@ func viewSection(q db.Queryer, who *access.Principal, section model.Section, boa
 			Category: kind.Category, Inline: kind.Inline, RefreshS: kind.RefreshS, Config: cfg, Hidden: hidden[placement.ID],
 			Rows: tileRows(placement.Rows),
 		}
+		tile.Frame = widgets.FrameOf(w.Config)
+		if own, ok := cfg.(widgets.Refresher); ok && own.RefreshSeconds() > 0 {
+			tile.RefreshS = own.RefreshSeconds()
+		}
+		if tile.Frame.RefreshS > 0 {
+			tile.RefreshS = tile.Frame.RefreshS
+		}
+		tile.FrameIcon = IconOf(tile.Frame.Icon)
 		if v, ok := myRows[strconv.FormatInt(placement.ID, 10)]; ok {
 			tile.Rows = tileRows(int(int64FromAny(v)))
 		}

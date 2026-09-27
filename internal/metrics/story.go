@@ -21,7 +21,11 @@ type StoryLine struct {
 
 // WeekStory builds the lines of the seven days before now.
 func WeekStory(datasets map[string]any, h *History, now time.Time) []StoryLine {
-	start := Today(now).AddDate(0, 0, -weekLen)
+	return StorySince(datasets, h, Today(now).AddDate(0, 0, -weekLen), now)
+}
+
+// StorySince builds the lines from start (a day) until now.
+func StorySince(datasets map[string]any, h *History, start, now time.Time) []StoryLine {
 	var out []StoryLine
 	for _, raw := range datasets {
 		switch d := raw.(type) {

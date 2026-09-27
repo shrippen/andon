@@ -40,11 +40,14 @@ func TestPiholeV6Session(t *testing.T) {
 	mux.HandleFunc("GET /api/dns/blocking", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{"blocking": "disabled"})
 	})
+	mux.HandleFunc("GET /api/stats/top_domains", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{"domains": []any{map[string]any{"domain": "ads.example", "count": 42}}})
+	})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 
 	data := fetchConn(t, "pihole.data", sources.Ctx{URL: srv.URL, Secret: "pw"}).(*sources.DNSFilterDataset)
-	if data.Queries != 100 || data.Enabled || data.Clients != 5 || !loggedOut {
+	if data.Queries != 100 || data.Enabled || data.Clients != 5 || !loggedOut || len(data.TopBlocked) != 1 || data.TopBlocked[0].Count != 42 {
 		t.Fatalf("data: %+v, logged out %v", data, loggedOut)
 	}
 }
@@ -61,17 +64,19 @@ func TestPiholeV5Fallback(t *testing.T) {
 func TestAdGuardNextcloudSabnzbd(t *testing.T) {
 	srv := jsonServer(t, map[string]any{
 		"/control/status": map[string]any{"protection_enabled": true},
-		"/control/stats":  map[string]any{"num_dns_queries": 200, "num_blocked_filtering": 50},
+		"/control/stats": map[string]any{"num_dns_queries": 200, "num_blocked_filtering": 50,
+			"top_blocked_domains": []any{map[string]any{"tracker.example": 9}}},
 		"/ocs/v2.php/apps/serverinfo/api/v1/info": map[string]any{"ocs": map[string]any{"data": map[string]any{
 			"nextcloud":   map[string]any{"system": map[string]any{"version": "31.0.8", "freespace": 1e9, "apps": map[string]any{"num_updates_available": 2}}, "storage": map[string]any{"num_users": 4}},
 			"activeUsers": map[string]any{"last24hours": 2},
 		}}},
-		"/api": map[string]any{"queue": map[string]any{"noofslots": 2, "kbpersec": "1024", "diskspace1": "30.5"},
+		"/api": map[string]any{"queue": map[string]any{"noofslots": 2, "kbpersec": "1024", "diskspace1": "30.5",
+			"slots": []any{map[string]any{"filename": "Film.2026", "percentage": "40", "timeleft": "0:12:30"}}},
 			"history": map[string]any{"slots": []any{map[string]any{"name": "x", "status": "Failed", "fail_message": "CRC", "completed": 1758700000}}}},
 	}, nil)
 
 	ad := fetchConn(t, "adguard.data", sources.Ctx{URL: srv.URL, Secret: "u:p"}).(*sources.DNSFilterDataset)
-	if ad.Percent != 25 || !ad.Enabled {
+	if ad.Percent != 25 || !ad.Enabled || len(ad.TopBlocked) != 1 || ad.TopBlocked[0].Domain != "tracker.example" {
 		t.Fatalf("adguard: %+v", ad)
 	}
 	nc := fetchConn(t, "nextcloud.data", sources.Ctx{URL: srv.URL, Secret: "token"}).(*sources.NextcloudDataset)
@@ -79,7 +84,7 @@ func TestAdGuardNextcloudSabnzbd(t *testing.T) {
 		t.Fatalf("nextcloud: %+v", nc)
 	}
 	sab := fetchConn(t, "sabnzbd.data", sources.Ctx{URL: srv.URL, Secret: "k"}).(*sources.SabnzbdDataset)
-	if sab.Slots != 2 || sab.FreeGB != 30.5 || len(sab.Failures) != 1 {
+	if sab.Slots != 2 || sab.FreeGB != 30.5 || len(sab.Failures) != 1 || len(sab.Queue) != 1 || sab.Queue[0].Percent != 40 || sab.Queue[0].Left != "0:12:30" {
 		t.Fatalf("sabnzbd: %+v", sab)
 	}
 }

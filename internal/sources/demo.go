@@ -301,7 +301,10 @@ func DemoPaperless(now time.Time) *PaperlessDataset {
 		Invoices: []PaperlessDoc{{ID: 311, Title: "Rechnung 09/2026", Correspondent: "Telekom Deutschland GmbH",
 			Created: iso(today.AddDate(0, 0, -23)), Amount: 39.95}},
 		Contracts: []PaperlessContract{{ID: 88, Title: "Mobilfunkvertrag", Correspondent: "Telekom Deutschland GmbH",
-			End: today.AddDate(0, 3, 20), NoticeMonths: 3, Deadline: today.AddDate(0, 0, 20), RenewsAutomatic: true}}}
+			End: today.AddDate(0, 3, 20), NoticeMonths: 3, Deadline: today.AddDate(0, 0, 20), RenewsAutomatic: true}},
+		Newest: []PaperlessNew{{ID: 1843, Title: "Kontoauszug 09/2026", Added: iso(today)}, {ID: 1842, Title: "Rechnung Hetzner", Added: iso(today.AddDate(0, 0, -1))},
+			{ID: 1841, Title: "Versicherungsschein", Added: iso(today.AddDate(0, 0, -2))}},
+		TagCounts: map[string]int{"steuer 2026": 64, "belege": 212}}
 }
 
 // DemoCerts is the demo certificate dataset.
@@ -417,10 +420,11 @@ func DemoSure(now time.Time) *SureDataset {
 // DemoLinkwarden is the demo Linkwarden dataset: two bookmarks match
 // Homelab tiles, one is missing there.
 func DemoLinkwarden() *LinkwardenDataset {
+	now := time.Now().UTC()
 	return &LinkwardenDataset{URL: "https://links.demo", Collections: []string{"Homelab"}, Links: []Bookmark{
-		{Name: "Kimai", URL: "https://www.kimai.org/", Collection: "Homelab"},
-		{Name: "Invoice Ninja", URL: "https://invoiceninja.com", Collection: "Homelab"},
-		{Name: "Grafana", URL: "https://grafana.com", Collection: "Homelab"},
+		{Name: "Kimai", URL: "https://www.kimai.org/", Collection: "Homelab", Created: now.AddDate(0, 0, -30)},
+		{Name: "Invoice Ninja", URL: "https://invoiceninja.com", Collection: "Homelab", Created: now.AddDate(0, 0, -3)},
+		{Name: "Grafana", URL: "https://grafana.com", Collection: "Homelab", Created: now.AddDate(0, 0, -1)},
 	}}
 }
 
@@ -509,10 +513,12 @@ func DemoPangolin() *PangolinDataset {
 func DemoAuthentik(now time.Time) *AuthentikDataset {
 	ago := func(d int) time.Time { return now.UTC().AddDate(0, 0, -d) }
 	return &AuthentikDataset{URL: "https://auth.demo", Version: "2025.6.3", Latest: "2025.8.1", Outdated: true,
-		Logins7d: 214, Failed7d: 61, Failed24h: 38,
+		Logins7d: 214, Logins24h: 31, Failed7d: 61, Failed24h: 38,
 		Apps:   []AKApp{{Name: "Immich", Events: 96, Users: 4}, {Name: "Gitea", Events: 41, Users: 2}, {Name: "Andon", Events: 30, Users: 3}},
 		Users:  []AKUser{{Name: "alex", LastLogin: ago(0)}, {Name: "sam", LastLogin: ago(2)}, {Name: "kim", LastLogin: ago(240)}, {Name: "test", LastLogin: time.Time{}}},
 		Logins: []AKLogin{{User: "alex", IP: "203.0.113.7", Country: "DE", City: "Berlin", Lat: 52.52, Lon: 13.40, At: now.UTC().Add(-time.Hour)}},
+		Failures: []AKLogin{{User: "admin", IP: "198.51.100.23", Country: "NL", City: "Amsterdam", At: now.UTC().Add(-20 * time.Minute)},
+			{User: "alex", IP: "203.0.113.7", Country: "DE", City: "Berlin", At: now.UTC().Add(-3 * time.Hour)}},
 	}
 }
 
@@ -520,12 +526,15 @@ func DemoAuthentik(now time.Time) *AuthentikDataset {
 func DemoPihole(now time.Time) *DNSFilterDataset {
 	return &DNSFilterDataset{URL: "https://pihole.demo", Queries: 48210, Blocked: 9120, Percent: 18.9,
 		Enabled: false, ListsUpdated: now.UTC().AddDate(0, 0, -21), Clients: 14,
-		TopClients: []DNSClient{{IP: "192.168.1.20", Name: "laptop", Queries: 9120, Blocked: 1400}, {IP: "192.168.1.87", Queries: 14200, Blocked: 8700}}}
+		TopClients: []DNSClient{{IP: "192.168.1.20", Name: "laptop", Queries: 9120, Blocked: 1400}, {IP: "192.168.1.87", Queries: 14200, Blocked: 8700}},
+		TopBlocked: []DNSDomain{{Domain: "telemetry.tv.example", Count: 6100}, {Domain: "ads.example.net", Count: 1900}}}
 }
 
 // DemoAdGuard is the demo AdGuard Home dataset.
 func DemoAdGuard() *DNSFilterDataset {
-	return &DNSFilterDataset{URL: "https://adguard.demo", Queries: 30500, Blocked: 4100, Percent: 13.4, Enabled: true}
+	return &DNSFilterDataset{URL: "https://adguard.demo", Queries: 30500, Blocked: 4100, Percent: 13.4, Enabled: true,
+		TopClients: []DNSClient{{IP: "192.168.1.31", Queries: 8800}, {IP: "192.168.1.12", Queries: 5100}},
+		TopBlocked: []DNSDomain{{Domain: "metrics.app.example", Count: 1300}}}
 }
 
 // DemoNextcloud is the demo Nextcloud dataset.
@@ -537,7 +546,9 @@ func DemoNextcloud() *NextcloudDataset {
 // DemoSabnzbd is the demo Sabnzbd dataset.
 func DemoSabnzbd(now time.Time) *SabnzbdDataset {
 	return &SabnzbdDataset{URL: "https://sab.demo", Slots: 3, SpeedKB: 42000, FreeGB: 14.2,
-		Failures: []SabFailure{{Name: "Linux.ISO.2026", Reason: "Unpacking failed, CRC error", At: now.UTC().Add(-5 * time.Hour)}}}
+		Failures: []SabFailure{{Name: "Linux.ISO.2026", Reason: "Unpacking failed, CRC error", At: now.UTC().Add(-5 * time.Hour)}},
+		Queue: []SabItem{{Name: "Debian.13.netinst", Percent: 64, Left: "0:03:10"}, {Name: "Podcast.Archive.2025", Percent: 12, Left: "0:41:55"},
+			{Name: "Photos.Backup", Percent: 0, Left: "1:20:00"}}}
 }
 
 // DemoGluetun is the demo Gluetun dataset: tunnel up, wrong country.

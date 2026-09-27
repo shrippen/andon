@@ -7,6 +7,8 @@
 package widgetlib
 
 import (
+	"andon/internal/metrics"
+	"andon/internal/repos/users"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -14,6 +16,7 @@ import (
 	"fmt"
 	"net/url"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -334,6 +337,12 @@ type Fragment struct {
 	HintLevel enums.Severity
 	HintConn  int64 // connection the hint count belongs to, 0 = none
 	View      map[string]any
+	Frame     widgets.Frame
+}
+
+// Calm tells whether the tile has nothing to do and asks to be hidden then.
+func (f *Fragment) Calm() bool {
+	return f.Frame.OnlyIssues && f.View != nil && f.View[widgets.CalmSlot] == true
 }
 
 func sourceFor(q widgets.Query, target *model.Connection) string {
@@ -447,6 +456,7 @@ func Load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 type origin int
 
 const (
+	storyDays           = 7    // the week story's default span
 	originStored origin = iota // the widget's real connections
 	originDemo                 // generated demo datasets, nothing fetched or stored
 )
@@ -468,7 +478,8 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		return nil, ErrUnknownType
 	}
 	cfg, _ := widgets.Decode(widget.Type, util.OpenSecrets(widget.Config))
-	frag := &Fragment{WidgetID: widget.ID, Type: widget.Type, Title: widget.Title, Config: cfg, Slots: map[string]Slot{}}
+	frag := &Fragment{WidgetID: widget.ID, Type: widget.Type, Title: widget.Title, Config: cfg, Slots: map[string]Slot{},
+		Frame: widgets.FrameOf(widget.Config)}
 
 	var conn, infoConn, hostConn *model.Connection
 	var settings map[string]any
@@ -575,7 +586,12 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 	}
 
 	if kind.Extra == widgets.ExtraStory {
-		lines, err := weekly.Story(ctx, d, who, time.Now().UTC())
+		now := time.Now().UTC()
+		start := metrics.Today(now).AddDate(0, 0, -storyDays)
+		if story, _ := cfg.(widgets.StoryConfig); story.Calendar {
+			start = metrics.WeekStart(metrics.Today(now))
+		}
+		lines, err := weekly.StorySince(ctx, d, who, start, now)
 		if err != nil {
 			return nil, err
 		}
@@ -588,7 +604,11 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		}
 		frag.Slots[widgets.GreetingSlot] = Slot{Data: g}
 	}
-	if kind.Extra == widgets.ExtraConnHealth {
+	wantsStrips := false
+	if w, ok := cfg.(widgets.ConnHealthWanter); ok {
+		wantsStrips = w.WantsConnHealth()
+	}
+	if kind.Extra == widgets.ExtraConnHealth || wantsStrips {
 		strips, err := connections.Strips(d, who, widgets.ConnHealthDays, time.Now().UTC())
 		if err != nil {
 			return nil, err
@@ -608,7 +628,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		frag.Slots[widgets.HintsSlot] = Slot{Data: briefs}
 	}
 	if kind.Extra == widgets.ExtraNoise {
-		n, err := hints.Noise(d, who, time.Now().UTC(), widgets.NoiseDays)
+		n, err := hints.Noise(d, who, time.Now().UTC(), extraDays(cfg, widgets.NoiseDays))
 		if err != nil {
 			return nil, err
 		}
@@ -619,7 +639,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		frag.Slots[widgets.NoiseSlot] = Slot{Data: data}
 	}
 	if kind.Extra == widgets.ExtraTimeline {
-		entries, err := history.Timeline(d, who, time.Now().UTC().AddDate(0, 0, -widgets.TimelineDays), timelineMax)
+		entries, err := history.Timeline(d, who, time.Now().UTC().AddDate(0, 0, -extraDays(cfg, widgets.TimelineDays)), timelineMax)
 		if err != nil {
 			return nil, err
 		}
@@ -628,6 +648,37 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 			items[i] = widgets.TimelineItem{At: e.At, Kind: e.Kind, Subject: e.Subject, Detail: e.Detail, HintID: e.HintID}
 		}
 		frag.Slots[widgets.TimelineSlot] = Slot{Data: items}
+	}
+	if kind.Extra == widgets.ExtraForwarded && conn != nil {
+		reads, err := data.MailReads(d, conn.ID)
+		if err != nil {
+			return nil, err
+		}
+		sent := map[uint32]bool{}
+		for uid, fields := range reads {
+			_, sent[uid] = fields[mailForwardedKey]
+		}
+		frag.Slots[widgets.ForwardedSlot] = Slot{Data: sent}
+	}
+	if kind.Extra == widgets.ExtraCloseTicks {
+		u, err := users.Get(d, who.UserID)
+		if err != nil {
+			return nil, err
+		}
+		if u != nil {
+			frag.Slots[widgets.CloseTicksPref] = Slot{Data: u.Prefs[widgets.CloseTicksPref]}
+		}
+	}
+	if kind.Extra == widgets.ExtraIPWatch {
+		if w, ok := cfg.(interface{ WatchesIP() bool }); ok && w.WatchesIP() {
+			if ip, ok := frag.Slots["ip"].Data.(*sources.PublicIPResult); ok && ip.IP != "" {
+				seen, err := watchIP(d, who, ip.IP, time.Now().UTC())
+				if err != nil {
+					return nil, err
+				}
+				frag.Slots[widgets.IPSeenSlot] = Slot{Data: seen}
+			}
+		}
 	}
 	if kind.Extra == widgets.ExtraHistory {
 		h, err := history.Load(d, widget.SpaceID, 0, time.Now().UTC())
@@ -671,11 +722,69 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		for i, v := range all {
 			sevs[i] = v.Severity
 		}
+		switch hcfg.Sort {
+		case widgets.HintSortValue:
+			hints.ByValue(all)
+		case widgets.HintSortAge:
+			sort.SliceStable(all, func(i, j int) bool { return all[i].FirstSeen.Before(all[j].FirstSeen) })
+		}
 		views := all[:min(len(all), hcfg.Limit)]
-		frag.View = map[string]any{"Hints": views, "Groups": hintGroups(views), "Levels": widgets.LevelBar(sevs), "Total": len(all)}
+		frag.View = map[string]any{"Hints": views, "Groups": hintGroups(views), "Total": len(all), "Buttons": hcfg.Buttons}
+		if !hcfg.NoLevels {
+			frag.View["Levels"] = widgets.LevelBar(sevs)
+		}
 	}
 
+	if widgets.IsCalm(kind.Key, frag.View) {
+		frag.View[widgets.CalmSlot] = true
+	}
 	return frag, nil
+}
+
+// ipSeenPref is the user pref that remembers the last public IP.
+const ipSeenPref = "public_ip_seen"
+
+// watchIP compares the address with the one the viewer last saw and
+// remembers a change with its time.
+func watchIP(d *sql.DB, who *access.Principal, ip string, now time.Time) (widgets.IPSeen, error) {
+	var seen widgets.IPSeen
+	err := db.WithTx(d, func(tx *sql.Tx) error {
+		u, err := users.Get(tx, who.UserID)
+		if err != nil || u == nil {
+			return err
+		}
+		stored, _ := u.Prefs[ipSeenPref].(map[string]any)
+		seen.IP, _ = stored["ip"].(string)
+		seen.Prev, _ = stored["prev"].(string)
+		if at, ok := stored["since"].(string); ok {
+			seen.Since, _ = time.Parse(time.RFC3339, at)
+		}
+		if seen.IP == ip {
+			return nil
+		}
+		if seen.IP != "" {
+			seen.Prev, seen.Since = seen.IP, now
+		}
+		seen.IP = ip
+		if u.Prefs == nil {
+			u.Prefs = map[string]any{}
+		}
+		entry := map[string]any{"ip": seen.IP, "prev": seen.Prev}
+		if !seen.Since.IsZero() {
+			entry["since"] = seen.Since.Format(time.RFC3339)
+		}
+		u.Prefs[ipSeenPref] = entry
+		return users.Update(tx, u)
+	})
+	return seen, err
+}
+
+// extraDays is how far back a config wants its extra, else def.
+func extraDays(cfg any, def int) int {
+	if w, ok := cfg.(widgets.DaysWanter); ok && w.ExtraDays() > 0 {
+		return w.ExtraDays()
+	}
+	return def
 }
 
 // integrationFreshness: connection data comes from the background run
@@ -814,6 +923,9 @@ func Demo(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64, 
 	w := &model.Widget{SpaceID: spaceID, Type: typeKey, Title: title, Config: config}
 	return load(ctx, d, who, w, svcdata.Cached, originDemo)
 }
+
+// mailForwardedKey marks a mail sent to Paperless (see mailfwd).
+const mailForwardedKey = "forwarded"
 
 // timelineMax caps what the recent-timeline tile loads.
 const timelineMax = 50

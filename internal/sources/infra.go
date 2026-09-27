@@ -292,13 +292,37 @@ type AuthentikDataset struct {
 	URL, Version, Latest string
 	Outdated, Outposts   bool // update for server / outposts
 	Logins7d, Failed7d   int
-	Failed24h            int
+	Logins24h, Failed24h int
 	Apps                 []AKApp
 	Users                []AKUser  // active human accounts
 	Logins               []AKLogin // latest logins, newest first
+	Failures             []AKLogin // latest failed logins, newest first
 }
 
 type AuthentikData struct{}
+
+// authentikLogins reads the latest events of one login action; a failed
+// login names the attempted user in its context. Best-effort.
+func authentikLogins(ctx context.Context, api services.AuthentikApi, action string) []AKLogin {
+	events, err := api.Get(ctx, "events/events/", url.Values{"action": {action}, "ordering": {"-created"}, "page_size": {strconv.Itoa(authentikPage)}})
+	if err != nil {
+		return nil
+	}
+	var out []AKLogin
+	for _, raw := range asList(asMap(events)["results"]) {
+		e := asMap(raw)
+		detail := asMap(e["context"])
+		geo := asMap(detail["geo"])
+		at, _ := time.Parse(time.RFC3339, asStr(e["created"]))
+		user := asStr(detail["username"])
+		if user == "" {
+			user = asStr(asMap(e["user"])["username"])
+		}
+		out = append(out, AKLogin{User: user, IP: asStr(e["client_ip"]), Country: asStr(geo["country"]), City: asStr(geo["city"]),
+			Lat: asFloat(geo["lat"]), Lon: asFloat(geo["long"]), At: at.UTC()})
+	}
+	return out
+}
 
 func (AuthentikData) Key() string                { return "authentik.data" }
 func (AuthentikData) TTL() time.Duration         { return opsTTL }
@@ -341,6 +365,9 @@ func loadAuthentik(ctx context.Context, api services.AuthentikApi, base string, 
 		switch asStr(b["action"]) {
 		case "login":
 			data.Logins7d += n
+			if now.Sub(at) <= 24*time.Hour {
+				data.Logins24h += n
+			}
 		case "login_failed":
 			data.Failed7d += n
 			if now.Sub(at) <= 24*time.Hour {
@@ -350,15 +377,8 @@ func loadAuthentik(ctx context.Context, api services.AuthentikApi, base string, 
 	}
 
 	// Latest logins with their place (authentik adds GeoIP to events).
-	if events, err := api.Get(ctx, "events/events/", url.Values{"action": {"login"}, "ordering": {"-created"}, "page_size": {strconv.Itoa(authentikPage)}}); err == nil {
-		for _, raw := range asList(asMap(events)["results"]) {
-			e := asMap(raw)
-			geo := asMap(asMap(e["context"])["geo"])
-			at, _ := time.Parse(time.RFC3339, asStr(e["created"]))
-			data.Logins = append(data.Logins, AKLogin{User: asStr(asMap(e["user"])["username"]), IP: asStr(e["client_ip"]),
-				Country: asStr(geo["country"]), City: asStr(geo["city"]), Lat: asFloat(geo["lat"]), Lon: asFloat(geo["long"]), At: at.UTC()})
-		}
-	}
+	data.Logins = authentikLogins(ctx, api, "login")
+	data.Failures = authentikLogins(ctx, api, "login_failed")
 
 	if top, err := api.Get(ctx, "events/events/top_per_user/", url.Values{"action": {"authorize_application"}, "top_n": {"10"}}); err == nil {
 		for _, raw := range asList(top) {

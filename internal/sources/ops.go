@@ -315,7 +315,18 @@ type PaperlessDataset struct {
 	OldestAdded string // "2026-09-01"
 	Invoices    []PaperlessDoc
 	Contracts   []PaperlessContract
+	Newest      []PaperlessNew // latest added documents, newest first
+	TagCounts   map[string]int // documents per tag, by lower-case name
 }
+
+// PaperlessNew is one recently added document.
+type PaperlessNew struct {
+	ID           int64
+	Title, Added string // Added: "2026-09-26"
+}
+
+// paperlessNewest is how many recent documents are read.
+const paperlessNewest = "10"
 
 // PaperlessDoc is one invoice document; Amount comes from a monetary
 // custom field (0 if none).
@@ -356,6 +367,21 @@ func (PaperlessData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	data.Total = -1
 	if all, err := api.Get(ctx, "documents/", url.Values{"page_size": {"1"}}); err == nil {
 		data.Total = int(asFloat(asMap(all)["count"]))
+	}
+	if recent, err := api.Get(ctx, "documents/", url.Values{"ordering": {"-added"}, "page_size": {paperlessNewest}}); err == nil {
+		for _, raw := range asList(asMap(recent)["results"]) {
+			doc := asMap(raw)
+			data.Newest = append(data.Newest, PaperlessNew{ID: asInt64(doc["id"]), Title: asStr(doc["title"]), Added: day(doc["added"])})
+		}
+	}
+	if tags, err := api.Get(ctx, "tags/", url.Values{"page_size": {paperlessTagPage}}); err == nil {
+		data.TagCounts = map[string]int{}
+		for _, raw := range asList(asMap(tags)["results"]) {
+			tag := asMap(raw)
+			if name := strings.ToLower(asStr(tag["name"])); name != "" {
+				data.TagCounts[name] = int(asFloat(tag["document_count"]))
+			}
+		}
 	}
 	data.Invoices = loadPaperlessInvoices(ctx, api, sctx.Options)
 	data.Contracts = loadContracts(ctx, api, sctx.Options, time.Now().UTC())

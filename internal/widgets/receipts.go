@@ -16,7 +16,10 @@ import (
 )
 
 // ReceiptsConfig is the "receipts_missing" widget's config.
-type ReceiptsConfig struct{ Days, Limit int }
+type ReceiptsConfig struct {
+	Days, Limit int
+	MinAmount   float64 // overrides the rule's minimum, 0 = the rule's
+}
 
 const (
 	cents              = 100
@@ -25,7 +28,8 @@ const (
 )
 
 func decodeReceipts(raw map[string]any) any {
-	return ReceiptsConfig{Days: clampInt(asInt(raw["days"], defaultReceiptDays), 7, 365), Limit: clampInt(asInt(raw["limit"], defaultReceiptRows), 1, 30)}
+	return ReceiptsConfig{Days: clampInt(asInt(raw["days"], defaultReceiptDays), 7, 365), Limit: clampInt(asInt(raw["limit"], defaultReceiptRows), 1, 30),
+		MinAmount: max(asFloat(raw["min_amount"]), 0)}
 }
 
 // ReceiptRow is one booking without receipt.
@@ -44,6 +48,9 @@ func receiptsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 	rule := ruleConfig("cross.expense_unrecorded", ctx.Settings)
 	in := metrics.ReceiptInputs{Sure: sure, Accounts: asStringList(rule["accounts"]), MinAmount: floatOf(rule["min_amount"]),
 		Window: int(floatOf(rule["date_window"])), Since: parseToday(ctx.Today).AddDate(0, 0, -cfg.Days)}
+	if cfg.MinAmount > 0 {
+		in.MinAmount = cfg.MinAmount
+	}
 	in.Ninja, _ = results[peerNinja].(*sources.NinjaDataset)
 	in.Mail, _ = results[peerMail].(*sources.MailDataset)
 	paperless, _ := results[peerPaperless].(*sources.PaperlessDataset)

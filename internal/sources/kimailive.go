@@ -20,7 +20,7 @@ import (
 
 const (
 	kimaiLiveTTL  = 30 * time.Second
-	kimaiRecent   = 6
+	kimaiRecent   = 12 // a few more than a tile shows, running ones drop out
 	kimaiDateTime = "2006-01-02T15:04:05"
 )
 

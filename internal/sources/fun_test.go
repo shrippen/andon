@@ -73,16 +73,45 @@ func TestHolidaysJokesCrypto(t *testing.T) {
 	}
 }
 
-func TestStocksCSV(t *testing.T) {
+// TestStocksYahoo: stooq no longer answers (every quote URL says "does
+// not exist"), so quotes come from Yahoo's chart API. Stooq-style symbols
+// keep working ("aapl.us" is AAPL, "sap.de" SAP.DE); the day's and the
+// week's change come from the daily closes, which also draw the line.
+func TestStocksYahoo(t *testing.T) {
+	chart := func(symbol string, closes ...float64) string {
+		list := ""
+		for i, c := range closes {
+			if i > 0 {
+				list += ","
+			}
+			list += strconv.FormatFloat(c, 'f', -1, 64)
+		}
+		return `{"chart":{"result":[{"meta":{"symbol":"` + symbol + `","currency":"USD","regularMarketPrice":` +
+			strconv.FormatFloat(closes[len(closes)-1], 'f', -1, 64) + `},"indicators":{"quote":[{"close":[` + list + `]}]}}],"error":null}}`
+	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Symbol,Date,Time,Open,High,Low,Close,Volume\r\nAAPL.US,2026-09-24,22:00:00,200,210,199,210,1000\r\nXX.US,N/D,N/D,N/D,N/D,N/D,N/D,N/D\r\n"))
+		switch r.URL.Path {
+		case "/v8/finance/chart/AAPL":
+			w.Write([]byte(chart("AAPL", 100, 101, 102, 103, 104, 105, 110)))
+		case "/v8/finance/chart/SAP.DE":
+			w.Write([]byte(chart("SAP.DE", 200, 180)))
+		default:
+			http.NotFound(w, r)
+		}
 	}))
 	t.Cleanup(srv.Close)
 	t.Cleanup(sources.SetBases(srv.URL))
 
-	quotes := fetch(t, "stocks", map[string]any{"symbols": []string{"aapl.us", "xx.us"}}).(*sources.StocksResult).Quotes
-	if len(quotes) != 1 || quotes[0].Symbol != "AAPL.US" || quotes[0].Change != 5 {
+	quotes := fetch(t, "stocks", map[string]any{"symbols": []string{"aapl.us", "sap.de", "xx.us"}}).(*sources.StocksResult).Quotes
+	if len(quotes) != 2 {
 		t.Fatalf("quotes: %+v", quotes)
+	}
+	a := quotes[0]
+	if a.Symbol != "AAPL" || a.Close != 110 || a.Change < 4.7 || a.Change > 4.8 || a.WeekChange < 8.9 || a.WeekChange > 8.92 || len(a.Closes) != 7 || a.Currency != "USD" {
+		t.Fatalf("AAPL: %+v", a)
+	}
+	if quotes[1].Symbol != "SAP.DE" || quotes[1].Change != -10 {
+		t.Fatalf("SAP: %+v", quotes[1])
 	}
 }
 
@@ -117,5 +146,35 @@ func TestFlightsNeedKey(t *testing.T) {
 	src, _ := sources.Get("flights")
 	if _, err := src.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"airport": "MUC"}}); err == nil {
 		t.Fatal("missing key accepted")
+	}
+}
+
+// TestRatesChange: with "change" the source reads the last week's series
+// and gives each rate its change against the previous day; every rate
+// also carries its inverse.
+func TestRatesChange(t *testing.T) {
+	srv := jsonServer(t, map[string]any{
+		"/v1/latest": map[string]any{"base": "EUR", "date": "2026-09-25", "rates": map[string]any{"USD": 1.1}},
+		"/v1/2026-09-18..": map[string]any{"base": "EUR", "rates": map[string]any{
+			"2026-09-24": map[string]any{"USD": 1.0}, "2026-09-25": map[string]any{"USD": 1.1}}},
+	}, nil)
+	t.Cleanup(sources.SetFrankfurter(srv.URL + "/v1"))
+	r := fetch(t, "exchange_rates", map[string]any{"base": "EUR", "symbols": []string{"USD"}, "change": true, "today": "2026-09-25"}).(*sources.RatesResult)
+	if len(r.Rates) != 1 || r.Rates[0].Change < 9.9 || r.Rates[0].Change > 10.1 || r.Rates[0].Inverse < 0.9 || r.Rates[0].Inverse > 0.91 {
+		t.Fatalf("rates: %+v", r.Rates)
+	}
+}
+
+// TestCryptoSpark: with "spark" the source reads CoinGecko's markets with
+// the 7-day line.
+func TestCryptoSpark(t *testing.T) {
+	srv := jsonServer(t, map[string]any{
+		"/api/v3/coins/markets": []any{map[string]any{"id": "bitcoin", "current_price": 50000.0, "price_change_percentage_24h": 1.5,
+			"sparkline_in_7d": map[string]any{"price": []any{48000.0, 49000.0, 50000.0}}}},
+	}, nil)
+	t.Cleanup(sources.SetBases(srv.URL))
+	c := fetch(t, "crypto", map[string]any{"coins": []string{"bitcoin"}, "currency": "EUR", "spark": true}).(*sources.CryptoResult)
+	if len(c.Coins) != 1 || c.Coins[0].Price != 50000 || c.Coins[0].Change != 1.5 || len(c.Coins[0].Spark) != 3 {
+		t.Fatalf("crypto: %+v", c)
 	}
 }

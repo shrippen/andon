@@ -23,7 +23,7 @@ const (
 )
 
 // secretKeys are the config keys holding secrets.
-var secretKeys = []string{"headers", "api_key", "ical_url"}
+var secretKeys = []string{"headers", "api_key", "ical_url", "ical_url_2", "ical_url_3"}
 
 func copyConfig(config map[string]any) map[string]any {
 	out := make(map[string]any, len(config))

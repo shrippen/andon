@@ -5,6 +5,7 @@ package widgets
 // fill in without it, and name what Wallos lacks when both are there.
 
 import (
+	"slices"
 	"sort"
 	"strings"
 
@@ -15,7 +16,12 @@ import (
 )
 
 // SubsConfig is the "subscriptions" widget's config.
-type SubsConfig struct{ Limit int }
+type SubsConfig struct {
+	Limit      int
+	ByPrice    bool     // dearest first instead of next debit
+	Yearly     bool     // costs per year
+	Categories []string // only these (lower case), empty = all
+}
 
 const (
 	defaultSubRows = 5
@@ -23,7 +29,8 @@ const (
 )
 
 func decodeSubs(raw map[string]any) any {
-	return SubsConfig{Limit: clampInt(asInt(raw["limit"], defaultSubRows), 1, 30)}
+	return SubsConfig{Limit: clampInt(asInt(raw["limit"], defaultSubRows), 1, 30), ByPrice: raw["sort"] == "price",
+		Yearly: asBool(raw["yearly"]), Categories: lowerList(raw["categories"])}
 }
 
 // SubRow is one subscription as listed.
@@ -66,12 +73,32 @@ func subsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 		return out
 	}
 
+	if len(cfg.Categories) > 0 {
+		kept := rows[:0]
+		for _, r := range rows {
+			if slices.Contains(cfg.Categories, strings.ToLower(r.Category)) {
+				kept = append(kept, r)
+			}
+		}
+		rows = kept
+	}
 	total := 0.0
-	for _, r := range rows {
+	for i, r := range rows {
 		total += r.Monthly
+		if cfg.Yearly {
+			rows[i].Price = r.Monthly * monthsPerYearF
+		}
+	}
+	if cfg.Yearly {
+		total *= monthsPerYearF
 	}
 	out["Monthly"] = float64(int(total*cents+0.5)) / cents
-	out["Count"] = len(rows)
+	out["Count"], out["Yearly"] = len(rows), cfg.Yearly
+	if cfg.ByPrice {
+		sort.SliceStable(rows, func(i, j int) bool { return rows[i].Monthly > rows[j].Monthly })
+		out["Rows"] = rows[:min(len(rows), cfg.Limit)]
+		return out
+	}
 	// Next debits first; past or unknown dates last.
 	sort.SliceStable(rows, func(i, j int) bool {
 		a, b := rows[i].Next, rows[j].Next

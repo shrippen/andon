@@ -4,6 +4,8 @@ package widgets
 // space, worst first. Tools without a connection are simply missing.
 
 import (
+	"slices"
+	"strings"
 	"time"
 
 	"andon/internal/enums"
@@ -13,10 +15,24 @@ import (
 
 const defaultBackupHours = 26
 
-type BackupsConfig struct{ MaxHours int }
+// BackupsConfig is the "backups" widget's config.
+type BackupsConfig struct {
+	MaxHours     int
+	Tools        []string // only these tools (service keys, lower case), empty = all
+	OnlyProblems bool
+	Days         int // days in the dot row
+}
 
 func decodeBackups(raw map[string]any) any {
-	return BackupsConfig{MaxHours: clampInt(asInt(raw["max_hours"], defaultBackupHours), 1, 24*14)}
+	days := backupDays
+	switch raw["days"] {
+	case "7":
+		days = 7
+	case "30":
+		days = 30
+	}
+	return BackupsConfig{MaxHours: clampInt(asInt(raw["max_hours"], defaultBackupHours), 1, 24*14), Tools: lowerList(raw["tools"]),
+		OnlyProblems: asBool(raw["only_problems"]), Days: days}
 }
 
 func backupsQueries(any) []Query {
@@ -37,19 +53,31 @@ type BackupLine struct {
 const backupDays = 14
 
 func backupsView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg := cfgAny.(BackupsConfig)
+	if cfg.Days == 0 {
+		cfg.Days = backupDays
+	}
 	borg, _ := results[string(enums.ServiceBorgBackup)].(*sources.BorgDataset)
 	pg, _ := results[string(enums.ServicePGBackWeb)].(*sources.PGBackDataset)
 	nas, _ := results[string(enums.ServiceTrueNAS)].(*sources.TrueNASDataset)
-	maxAge := time.Duration(cfgAny.(BackupsConfig).MaxHours) * time.Hour
+	maxAge := time.Duration(cfg.MaxHours) * time.Hour
 	now := time.Now().UTC()
 	h, _ := results[HistorySlot].(*metrics.History)
 
 	var lines []BackupLine
+	total := 0
 	for _, row := range metrics.Backups(borg, pg, nas, now, maxAge) {
+		if len(cfg.Tools) > 0 && !slices.Contains(cfg.Tools, strings.ToLower(row.Tool)) {
+			continue
+		}
+		total++
+		if cfg.OnlyProblems && row.State == metrics.BackupOK {
+			continue
+		}
 		line := BackupLine{BackupRow: row}
 		if h != nil {
-			for i, mark := range metrics.BackupDays(h, row.Tool, row.Item, now, backupDays) {
-				cell := StripCell{State: "none", Title: now.AddDate(0, 0, i-backupDays+1).Format(time.DateOnly)}
+			for i, mark := range metrics.BackupDays(h, row.Tool, row.Item, now, cfg.Days) {
+				cell := StripCell{State: "none", Title: now.AddDate(0, 0, i-cfg.Days+1).Format(time.DateOnly)}
 				switch mark {
 				case 1:
 					cell.State = "ok"
@@ -61,7 +89,7 @@ func backupsView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 		}
 		lines = append(lines, line)
 	}
-	return map[string]any{"Rows": lines}
+	return map[string]any{"Rows": lines, "Total": total, "Wide": cfg.Days > backupDays}
 }
 
 func init() {

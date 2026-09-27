@@ -2,6 +2,7 @@ package timer_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -48,5 +49,26 @@ func TestRunWritesOnlyForTimers(t *testing.T) {
 	defer mu.Unlock()
 	if len(writes) != 1 || writes[0] != "POST /api/timesheets" {
 		t.Fatalf("writes: %v", writes)
+	}
+}
+
+// A start can carry a description for the new timesheet.
+func TestStartWithDescription(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	var body map[string]any
+	kimai := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewDecoder(r.Body).Decode(&body)
+		w.Write([]byte(`{}`))
+	}))
+	defer kimai.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceKimai, kimai.URL)
+	tile := testkit.Place(t, d, who, space, timer.WidgetType, nil, &conn)
+	req := timer.Request{Action: timer.ActionStart, Project: 3, Activity: 7, StartNote: "Angebot"}
+	if err := timer.Run(context.Background(), d, who, tile, req, ""); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	if body["description"] != "Angebot" {
+		t.Fatalf("body: %v", body)
 	}
 }

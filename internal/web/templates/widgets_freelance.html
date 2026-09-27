@@ -34,11 +34,12 @@
   {{with $v.Target}}<p class="kl-target"{{if $v.Over}} data-over{{end}}>{{if $v.Over}}{{t "timer.over" "time" $v.Left}}{{else}}{{t "timer.left" "time" $v.Left}}{{end}}</p>{{end}}
   {{with $v.Recent}}
   <span class="label">{{t "timer.recent"}}</span>
+  {{if and $v.AskNote $.Ctx.CSRF}}<input class="kl-start-note" id="kl-sn-{{$.PlacementID}}" name="start_note" placeholder="{{t "timer.start_note"}}" aria-label="{{t "timer.start_note"}}" autocomplete="off">{{end}}
   <ul class="kl-list">
     {{range .}}
     <li>
       <span class="kl-color"{{with .Color}} style="--c:{{.}}"{{end}} aria-hidden="true"></span>
-      {{if $.Ctx.CSRF}}<form hx-post="/widget-fragments/{{$.PlacementID}}/kimai" hx-target="closest .card-body" hx-swap="innerHTML"{{if $v.Running}} hx-confirm="{{t "timer.switch" "name" (print .Project " · " .Activity)}}"{{end}}>
+      {{if $.Ctx.CSRF}}<form hx-post="/widget-fragments/{{$.PlacementID}}/kimai" hx-target="closest .card-body" hx-swap="innerHTML"{{if $v.AskNote}} hx-include="#kl-sn-{{$.PlacementID}}"{{end}}{{if $v.Running}} hx-confirm="{{t "timer.switch" "name" (print .Project " · " .Activity)}}"{{end}}>
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
         <input type="hidden" name="action" value="{{if $v.Running}}switch{{else}}start{{end}}">
         <input type="hidden" name="project" value="{{.ProjectID}}"><input type="hidden" name="activity" value="{{.ActivityID}}">
@@ -91,10 +92,11 @@
 <p class="small muted">{{t "heatmap.total" "hours" $v.Total}}</p>
 <div class="heatmap-wrap">
 <svg class="heatmap" viewBox="0 0 {{$v.W}} {{$v.H}}" role="img" aria-label="{{t "wtype.heatmap.name"}}">
-  {{range $v.Cells}}<rect x="{{.X}}" y="{{.Y}}" width="10" height="10" data-level="{{.Level}}"><title>{{day .Day}} · {{.Hours}} h</title></rect>{{end}}
+  {{range $v.Cells}}<rect x="{{.X}}" y="{{.Y}}" width="10" height="10" data-level="{{.Level}}"{{with .Goal}} data-goal="{{.}}"{{end}}><title>{{day .Day}} · {{.Hours}} h</title></rect>{{end}}
 </svg>
 </div>
-<p class="legend heat-legend"><span>{{t "heatmap.less"}}</span><i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i><span>{{t "heatmap.more"}}</span></p>
+{{if $v.ByGoal}}<p class="legend heat-legend"><i data-goal="met"></i><span>{{t "heatmap.goal_met"}}</span><i data-goal="under"></i><span>{{t "heatmap.goal_under"}}</span></p>
+{{else}}<p class="legend heat-legend"><span>{{t "heatmap.less"}}</span><i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i><span>{{t "heatmap.more"}}</span></p>{{end}}
 {{end}}{{end}}
 {{end}}
 
@@ -104,8 +106,11 @@
 <p class="kpi"><span class="kpi-label">{{if $v.Relative}}{{t "cashflow.change"}}{{else}}{{t "cashflow.end"}}{{end}}</span>
   <b class="kpi-value">{{money $v.End $v.Currency}}</b></p>
 <svg class="chart spark-lg" viewBox="0 0 {{$v.W}} {{$v.H}}" preserveAspectRatio="none" role="img" aria-label="{{t "wtype.cashflow.name"}}">
+  {{with $v.MinY}}<line class="goal-line{{if $v.BelowMin}} is-bad{{end}}" x1="0" y1="{{.}}" x2="{{$v.W}}" y2="{{.}}"/>{{end}}
   <path class="trend-line" d="{{$v.Path}}"/>
 </svg>
+{{if $v.BelowMin}}<p class="small late">{{t "cashflow.below_min" "amount" (money $v.Min $v.Currency)}}</p>{{end}}
+{{with $v.Delay}}<p class="small warn-text">{{t "cashflow.delayed" "days" .}}</p>{{end}}
 <p class="small{{if lt $v.Low 0.0}} late{{else}} muted{{end}}">{{t "cashflow.low" "amount" (money $v.Low $v.Currency) "day" (day $v.LowDay)}}</p>
 {{with $v.Events}}<ul class="cash-events">{{range .}}<li><time>{{day .Day}}</time> <span>{{if eq .Label "fixed"}}{{t "cashflow.fixed"}}{{else if eq .Label "prepayment"}}{{t "cashflow.prepayment"}}{{else}}{{.Label}}{{end}}</span> <b class="{{if lt .Amount 0.0}}late{{end}}">{{money .Amount $v.Currency}}</b></li>{{end}}</ul>{{end}}
 {{if $v.Relative}}<p class="small muted">{{t "cashflow.relative_hint"}}</p>{{end}}
@@ -117,7 +122,9 @@
 <div class="row-between"><span class="kpi-label">{{t "close.title" "month" $v.Month}}</span><span class="store-when">{{$v.Done}} / {{len $v.Steps}}</span></div>
 <div class="store-bar"><i style="--w:{{$v.Pct}}%"></i></div>
 <ul class="close-steps">
-  {{range $v.Steps}}<li{{if .Done}} class="is-done"{{end}}><span class="close-box" aria-hidden="true"></span>
+  {{range $v.Steps}}<li{{if .Done}} class="is-done"{{end}}>{{if and $v.Manual $.Ctx.CSRF (or .Hand (not .Done))}}<form class="close-tick" hx-post="/widget-fragments/{{$.PlacementID}}/close" hx-target="closest .card-body" hx-swap="innerHTML">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="month" value="{{$v.MonthKey}}"><input type="hidden" name="step" value="{{.Key}}">
+      <button type="submit" class="close-box" role="checkbox" aria-checked="{{.Done}}" aria-label="{{if .Done}}{{t "close.untick"}}{{else}}{{t "close.tick"}}{{end}}" title="{{if .Done}}{{t "close.untick"}}{{else}}{{t "close.tick"}}{{end}}"></button></form>{{else}}<span class="close-box" aria-hidden="true"></span>{{end}}
     <span>{{if eq .Key "hours"}}{{if .Done}}{{t "close.hours_done"}}{{else}}{{t "close.hours" "hours" (num .Hours 1)}}{{end}}
       {{else if eq .Key "drafts"}}{{if .Done}}{{t "close.drafts_done"}}{{else}}{{t "close.drafts" "n" .Count}}{{end}}
       {{else if eq .Key "receipts"}}{{if .Done}}{{t "close.receipts_done"}}{{else if .Count}}{{t "close.receipts" "n" .Count}}{{else}}{{t "close.receipts_setup"}}{{end}}
@@ -156,16 +163,18 @@
 {{define "widgets/travel"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if or $v.MonthKM $v.YearKM}}
-<div class="tile-head"><b class="tile-value">{{num $v.MonthKM 0}} km</b><span class="tile-sub">{{t "travel.month"}}{{if $v.PrevKM}} · {{t "travel.prev" "km" (num $v.PrevKM 0)}}{{end}}</span></div>
-{{if $v.PrevKM}}<div class="store-bar" title="{{t "travel.prev" "km" (num $v.PrevKM 0)}}"><i style="--w:{{$v.MonthBar}}%;background:var(--blue)"></i></div>{{end}}
-<p class="small">{{t "travel.year" "km" (num $v.YearKM 0) "countries" $v.Countries "cities" $v.Cities}}</p>
+{{$prevKey := "travel.prev"}}{{if $v.Year}}{{$prevKey = "travel.prev_year"}}{{end}}
+<div class="tile-head"><b class="tile-value">{{num $v.HeadKM 0}} km</b><span class="tile-sub">{{if $v.Year}}{{t "travel.this_year"}}{{else}}{{t "travel.month"}}{{end}}{{if $v.PrevKM}} · {{t $prevKey "km" (num $v.PrevKM 0)}}{{end}}</span></div>
+{{with $v.Bar}}<div class="store-bar" title="{{t $prevKey "km" (num $v.PrevKM 0)}}"><i style="--w:{{.}}%;background:var(--blue)"></i></div>{{end}}
+{{if $v.Year}}<p class="small">{{t "travel.places" "countries" $v.Countries "cities" $v.Cities}} · {{t "travel.month"}} {{num $v.MonthKM 0}} km</p>
+{{else}}<p class="small">{{t "travel.year" "km" (num $v.YearKM 0) "countries" $v.Countries "cities" $v.Cities}}</p>{{end}}
 {{if $v.Trips}}<p class="small">{{t "travel.trips" "n" $v.Trips "km" (num $v.TripKM 0)}}{{if $v.Rate}} · {{t "travel.amount" "amount" (money $v.TripAmount) "rate" (num $v.Rate 2)}}{{end}}</p>{{end}}
 {{else}}<p class="slot-note">{{t "travel.none"}}</p>{{end}}{{end}}
 {{end}}
 
 {{define "widgets/subscriptions"}}
 {{with $v := .Frag.View}}{{if $v.Source}}
-<div class="tile-head"><b class="tile-value">{{money $v.Monthly $v.Currency}}</b><span class="tile-sub">{{t "subs.per_month" "n" $v.Count}} · {{t (print "service." $v.Source)}}</span></div>
+<div class="tile-head"><b class="tile-value">{{money $v.Monthly $v.Currency}}</b><span class="tile-sub">{{if $v.Yearly}}{{t "subs.per_year" "n" $v.Count}}{{else}}{{t "subs.per_month" "n" $v.Count}}{{end}} · {{t (print "service." $v.Source)}}</span></div>
 {{with $v.Rows}}<ul class="sub-rows">
   {{range .}}<li><span class="sub-name">{{.Name}}<small class="muted">{{with .Category}}{{.}} · {{end}}{{if .Next}}{{day .Next}}{{end}}</small></span><span class="sub-price">{{money .Price $v.Currency}}</span></li>{{end}}
 </ul>{{end}}

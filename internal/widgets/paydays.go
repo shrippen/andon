@@ -8,7 +8,10 @@ package widgets
 //	Beispiel        · ·|·  ·              25 T
 
 import (
+	"slices"
 	"sort"
+	"strings"
+	"time"
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
@@ -16,7 +19,11 @@ import (
 )
 
 // PaymentDaysConfig is the "payment_days" widget's config.
-type PaymentDaysConfig struct{ Target, Limit int }
+type PaymentDaysConfig struct {
+	Target, Limit int
+	Months        int      // only invoices of the last months, 0 = all
+	HideClients   []string // lower case
+}
 
 const (
 	defaultPayTarget = 30
@@ -26,7 +33,8 @@ const (
 
 func decodePaymentDays(raw map[string]any) any {
 	return PaymentDaysConfig{Target: clampInt(asInt(raw["target"], defaultPayTarget), 1, 365),
-		Limit: clampInt(asInt(raw["limit"], defaultPayRows), 1, 20)}
+		Limit: clampInt(asInt(raw["limit"], defaultPayRows), 1, 20), Months: clampInt(asInt(raw["months"], 0), 0, 120),
+		HideClients: lowerList(raw["hide_clients"])}
 }
 
 // PayRow is one client: dot and mark positions in percent of the scale.
@@ -45,7 +53,16 @@ func paymentDaysView(cfgAny any, results map[string]any, ctx ViewCtx) map[string
 		return map[string]any{}
 	}
 	center := metrics.CenterOf(ctx.Settings)
-	gaps := metrics.NinjaPaymentGaps(data)
+	var since time.Time
+	if cfg.Months > 0 {
+		since = parseToday(ctx.Today).AddDate(0, -cfg.Months, 0)
+	}
+	gaps := metrics.NinjaPaymentGapsSince(data, since)
+	for id := range gaps {
+		if slices.Contains(cfg.HideClients, strings.ToLower(metrics.NinjaClientName(data, id))) {
+			delete(gaps, id)
+		}
+	}
 
 	top := float64(cfg.Target)
 	for _, list := range gaps {

@@ -36,7 +36,8 @@ func (d Deps) handleKimaiTimer(w http.ResponseWriter, r *http.Request) {
 		return n
 	}
 	req := timer.Request{Action: timer.Action(r.FormValue("action")), Project: num("project"), Activity: num("activity"),
-		Sheet: num("sheet"), Note: strings.TrimSpace(r.FormValue("note")), Begin: r.FormValue("begin"), End: r.FormValue("end")}
+		Sheet: num("sheet"), Note: strings.TrimSpace(r.FormValue("note")),
+		StartNote: strings.TrimSpace(r.FormValue("start_note")), Begin: r.FormValue("begin"), End: r.FormValue("end")}
 	err = timer.Run(r.Context(), d.DB, ctx.Who, id, req, ClientIP(r))
 	if errors.Is(err, timer.ErrBadRange) {
 		d.renderKimaiNew(w, r, ctx, id, req, err.Error())

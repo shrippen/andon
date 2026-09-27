@@ -87,3 +87,21 @@ func TestPlaceField(t *testing.T) {
 	}
 	t.Fatal("weather has no place field")
 }
+
+// TestUncheckedNeedsTheEditor: a missing checkbox is "off" only when the
+// editor sent its fields; a bare create keeps the defaults.
+func TestUncheckedNeedsTheEditor(t *testing.T) {
+	bare := ParseForm("week_story", func(string) string { return "" })
+	if _, set := bare["show_hours"]; set {
+		t.Fatalf("bare form set a checkbox: %v", bare)
+	}
+	editor := ParseForm("week_story", func(name string) string {
+		if name == FormPrefix+FormMarker {
+			return "1"
+		}
+		return ""
+	})
+	if editor["show_hours"] != false {
+		t.Fatalf("editor form: %v", editor)
+	}
+}

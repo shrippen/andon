@@ -31,3 +31,23 @@ func TestWeatherHours(t *testing.T) {
 		t.Fatalf("hours: %+v", w.Hours)
 	}
 }
+
+// TestWeatherDays: a tile asking for a week gets today plus seven days.
+func TestWeatherDays(t *testing.T) {
+	got := ""
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = r.URL.Query().Get("forecast_days")
+		w.Write([]byte(`{"current":{},"daily":{},"hourly":{}}`))
+	}))
+	defer srv.Close()
+	defer sources.SetWeatherURL(srv.URL)()
+
+	week := sources.Ctx{Params: map[string]any{"days": 7.0}}
+	if _, err := (sources.WeatherSource{}).Fetch(context.Background(), week); err != nil || got != "8" {
+		t.Fatalf("forecast_days %q, %v", got, err)
+	}
+	(sources.WeatherSource{}).Fetch(context.Background(), sources.Ctx{Params: map[string]any{}})
+	if got != "4" {
+		t.Fatalf("default forecast_days %q", got)
+	}
+}

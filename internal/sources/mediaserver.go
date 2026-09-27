@@ -21,7 +21,7 @@ const (
 	mediaJellyfin    = "jellyfin"
 	activeSessionsS  = "960"
 	arrQueuePage     = "50"
-	arrUpcomingDays  = 7
+	arrUpcomingDays  = 30 // tiles show up to this; each picks its own span
 	arrWarning       = "warning"
 	sonarrApp        = "Sonarr"
 	plexMovieSection = "movie"

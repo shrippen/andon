@@ -26,7 +26,7 @@ action:
   isp_report: 'Bericht öffnen'
   book_payment: 'Zahlung buchen'
   open_in_tailscale: 'In Tailscale / Headscale öffnen'
-  open_in_gateway: 'In Router (OPNsense, pfSense, UniFi) öffnen'
+  open_in_gateway: 'Im Router öffnen'
   open_in_mediaserver: 'In Jellyfin / Plex öffnen'
   open_in_arr: 'In Sonarr / Radarr öffnen'
   open_in_vaultwarden: 'In Vaultwarden öffnen'
@@ -288,6 +288,167 @@ field:
   km_rate: 'Kilometerpauschale (€/km)'
   red_from: 'Rot ab Stufe'
   yellow_from: 'Gelb ab Stufe'
+  frame_accent: Akzentfarbe
+  frame_header: Kopfzeile
+  frame_link: Klick auf den Titel öffnet
+  frame_icon: Icon im Kopf
+  frame_refresh: Aktualisierung
+  frame_density: Dichte
+  frame_round: Beträge
+  frame_only_issues: Nur bei Handlungsbedarf zeigen
+  compare: Vergleich
+  target_value: Zielwert
+  spark: Verlauf zeigen
+  show_prev: Vorjahr zeigen
+  values: Werte an den Balken
+  goal_line: Ziel je Monat als Linie
+  projects: Nur diese Projekte
+  soll: Soll-Marke zeigen
+  warn_ahead: Gelb ab Vorsprung (Prozentpunkte)
+  show_vat: USt-Voranmeldungen
+  show_prepayment: Vorauszahlungen
+  show_annual: Jahreserklärung
+  amounts: Beträge zeigen
+  smooth: Glätten (7 Tage)
+  weekdays: Nur Montag bis Freitag
+  by_goal: Farbe nach Tagesziel
+  min_balance: Mindeststand
+  delay: Zahlungen später um (Tage)
+  hide_cols: Spalten ausblenden (Namen)
+  sum_row: Summenzeile
+  bands: Altersstufen (Tage, z. B. 30, 60)
+  hide_internal: Interne Kunden ausblenden
+  hide_clients: Kunden ausblenden
+  only_open: Nur noch nicht an Paperless gesendete
+  change: Veränderung
+  invert: Kehrwert zeigen
+  digits: Nachkommastellen
+  week: Woche
+  group: Aufteilen nach
+  workdays: Arbeitstage
+  billable_only: Nur abrechenbare Stunden
+  recent: Schnellstarts (Anzahl)
+  ask_note: Beschreibung beim Start abfragen
+  kind: Art
+  show: Zeigen
+  categories: Nur diese Kategorien
+  close_hours: Schritt „Stunden abgerechnet“
+  close_drafts: Schritt „Rechnungsentwürfe“
+  close_receipts: Schritt „Belege“
+  close_inbox: Schritt „Paperless-Posteingang“
+  close_vat: Schritt „USt-Voranmeldung“
+  manual: Schritte von Hand abhaken
+  min_amount: Mindestbetrag (leer = wie in der Regel)
+  month: Monat
+  period: Zeitraum
+  power_entity: Leistungs-Entität (Home Assistant)
+  show_hours: Zeile Arbeit
+  show_money: Zeile Geld
+  show_storage: Zeile Speicher
+  show_power: Zeile Strom
+  show_hints: Zeile Hinweise
+  yearly: Kosten je Jahr statt Monat
+  ahead: Vorschau (Tage)
+  app_updates: Apps mit Updates nennen
+  buttons: Knöpfe „Erledigt“ und „Später“
+  by_value: Nach Betrag sortieren
+  cheap_hours: Günstiges Fenster (Stunden)
+  filter: Nur Namen mit
+  forecast: Prognose „voll in … Tagen“
+  kinds: Zeigen
+  levels: Stufenbalken
+  max_days: Nur bis … Tage (leer = alle)
+  only_issues: Nur mit Updates oder Problemen
+  only_problems: Nur Probleme
+  only_shaky: Nur aktuell wackelige (letzte 2 Tage)
+  power_split: Strom je Dienst
+  price: Preis
+  response_time: Antwortzeit zeigen
+  show_cpu: CPU
+  show_disks: Platten
+  show_mem: Arbeitsspeicher
+  show_swap: Swap
+  temp_warn: Gelb ab (°C)
+  tomorrow: Morgen einblenden
+  tools: 'Nur diese Werkzeuge (borgbackup, pgbackweb, truenas)'
+  use_backup: Frische Sicherung abwarten
+  use_meetings: Termine beachten
+  use_price: Strompreis beachten
+  use_streams: Laufende Streams beachten
+  use_timer: Laufenden Kimai-Timer beachten
+  warn_pct: Gelb ab (%)
+  window: 'Wartungsfenster (z. B. 22:00-06:00)'
+  only_failures: Nur Fehlversuche
+  list_without: Konten ohne Zwei-Faktor auflisten
+  only_red: Nur rote CI
+  warn_line: Warnlinie bei
+  thresholds: Farbschwellen
+  thresholds_hint: 'Eine Regel je Zeile: Name, Vergleich, Grenze, Farbe. Beispiel: „queue > 10 gelb“ oder „Temp >= 30 rot“.'
+  units: Einheiten
+  units_hint: 'Eine je Zeile: „Name = Einheit“, z. B. „Temp = °C“.'
+  labels: Eigene Beschriftungen
+  labels_hint: 'Eine je Zeile: „Entität = Name“, z. B. „sensor.buero_temp = Büro“.'
+  direct: Monitore und Verbindungen einbeziehen
+  text_green: Text bei Grün
+  text_yellow: Text bei Gelb
+  text_red: Text bei Rot
+  sla: Zielwert (%)
+  show_calendar: Termine
+  show_timer: Kimai-Timer
+  show_transit: Abfahrten
+  show_deadlines: Fristen
+  hide_past: Vergangene Termine ausblenden
+  top_clients: Aktivste Geräte zeigen
+  top_domains: Meistgeblockte Domains zeigen
+  hide_measures: Verlust und Latenz ausblenden
+  device_list: Geräte mit Namen auflisten
+  only_trouble: Nur offline oder mit ablaufendem Schlüssel
+  expected_country: Erwartetes Land (überschreibt die Verbindung)
+  ping: Ping und Jitter zeigen
+  ipv6: IPv6 zeigen
+  watch: Wechsel der Adresse anzeigen
+  newest: Neueste Links listen
+  newest_docs: Neueste Dokumente listen (Anzahl)
+  only_unread: Nur Feeds mit Ungelesenen
+  queue: Warteschlange zeigen (Anzahl)
+  show_users: Nutzer der Streams zeigen
+  tag: Anderer Tag statt Posteingang
+  two_columns: Zweispaltig
+  show_stock: Vorräte
+  show_shopping: Einkaufsliste
+  show_chores: Hausarbeit
+  day: Tag
+  airlines: Nur diese Airlines (Kürzel, z. B. LH, EW)
+  bridges: Brückentage markieren
+  color_1: Farbe erster Kalender
+  color_2: Farbe zweiter Kalender
+  color_3: Farbe dritter Kalender
+  hide_all_day: Ganztägiges ausblenden
+  hourly: Stundenverlauf
+  ical_url_2: Zweiter Kalender (iCal-Adresse)
+  ical_url_3: Dritter Kalender (iCal-Adresse)
+  lines: Nur diese Linien
+  min_level: Ab Warnstufe
+  unit: Einheit
+  walk: Fußweg zur Haltestelle (Minuten)
+  analog: Analoguhr
+  format: Stundenformat
+  show_since: Seit gestern
+  show_weather: Wetter
+  markdown: 'Markdown (**fett**, *kursiv*, - Liste, [Link](https://…))'
+  columns: Spalten
+  icon_size: Icon-Größe
+  status_method: Statusprüfung per
+  status_timeout: Zeitlimit der Prüfung (Sekunden)
+  more_urls: Weitere Feeds (zusammengeführt)
+  images: Bilder zeigen
+  max_age: Höchstalter (Tage, leer = alle)
+  reload: Neu laden alle … Minuten (leer = Standard)
+  fit: Darstellung
+  image_only: Nur das Bild, ohne Text
+  random: Zufälliger Comic statt des neuesten
+  every: Neuer Witz alle … Stunden (leer = stündlich)
+  hide_bar: Vergleichsbalken ausblenden
 opt:
   exposure: 'Angriffsfläche'
   domain_chain: 'Domain-Kette'
@@ -362,6 +523,77 @@ opt:
   critical: Kritisch
   warn: Warnung
   info: Info
+  normal: Normal
+  small: Klein
+  auto: Automatisch
+  '60': Jede Minute
+  '300': Alle 5 Minuten
+  '900': Alle 15 Minuten
+  '3600': Stündlich
+  compact: Kompakt
+  exact: Genau (mit Cent)
+  euro: Ohne Cent
+  thousand: In Tausend (T€)
+  prev_year: Vorjahr
+  prev_month: Vormonat
+  as_is: Wie geliefert
+  amount_desc: Größter Betrag zuerst
+  amount_asc: Kleinster Betrag zuerst
+  name: Nach Name
+  date: Nach Datum
+  day: seit gestern
+  week: seit einer Woche
+  this: diese
+  last: letzte
+  customer: Kunde
+  project: Projekt
+  mo_fr: Mo–Fr
+  mo_sa: Mo–Sa
+  all: Alle
+  acquisition: Akquise
+  development: Entwicklung
+  reviews: nur Reviews
+  issues: nur Issues
+  calendar: Kalenderwoche
+  current: laufender Monat
+  days7: letzte 7 Tage
+  next: nächste Abbuchung zuerst
+  previous: Vormonat
+  price: teuerste zuerst
+  "14": 14 Tage
+  "30": 30 Tage
+  "7": 7 Tage
+  age: älteste zuerst
+  both: Zertifikate und Domains
+  certs: nur Zertifikate
+  domains: nur Domains
+  energy: nur Energiepreis (ohne Netzentgelte und Steuern)
+  month: je Monat
+  total: Gesamtpreis
+  urgency: dringendste zuerst
+  year: je Jahr
+  24h: 24 Stunden
+  7d: 7 Tage
+  "90": 90 Tage
+  hints: nur Hinweise
+  updates: nur Updates
+  today: heute
+  yesterday: gestern
+  c: °C
+  f: °F
+  minor: Wetterwarnung
+  moderate: markant
+  severe: Unwetter
+  extreme: extremes Unwetter
+  "12": 12 Stunden
+  "24": 24 Stunden
+  "1": eine
+  "2": zwei
+  GET: GET (ganze Seite)
+  HEAD: HEAD (nur Kopfzeilen)
+  large: groß
+  contain: ganz zeigen
+  cover: Fläche füllen
 size:
   small: Klein
   medium: Mittel
@@ -535,7 +767,7 @@ wtype:
     desc: 'Kurse und 24-h-Änderung von CoinGecko, Coins als IDs (bitcoin, ethereum).'
   stocks:
     name: Aktien
-    desc: 'Kurse von stooq mit Börsenkürzel (aapl.us, sap.de), verzögert.'
+    desc: 'Kurse von Yahoo Finance mit Börsenkürzel (AAPL, SAP.DE; auch aapl.us, sap.de), verzögert.'
   flights:
     name: Flüge
     desc: 'Abflüge oder Ankünfte der nächsten 12 h (AeroDataBox, RapidAPI-Schlüssel nötig).'
@@ -757,7 +989,7 @@ conn:
   about_calendar: 'Termine gegen Zeitbuchungen'
   options_hint_tailscale: 'URL https://api.tailscale.com (Token = API-Zugriffstoken, Admin-Konsole → Einstellungen → Schlüssel; läuft nach höchstens 90 Tagen ab) oder die Headscale-URL (Token = API-Schlüssel, headscale apikeys create). Optionen: tailnet: example.com (Tailscale, sonst Standard-Tailnet).'
   about_tailscale: 'Geräte, Schlüsselablauf, Updates'
-  options_hint_gateway: 'Optionen: kind: opnsense | pfsense | unifi. OPNsense: Token = key:secret eines API-Schlüssels. pfSense: REST-API-Paket, Token = API-Schlüssel. UniFi: Integrations-API-Schlüssel (Einstellungen → Control Plane → Integrationen), URL der Konsole. Bei pfSense und UniFi das Feld „API-Key“ leer lassen und den Schlüssel ins Feld „API-Secret“.'
+  options_hint_gateway: 'Router oben wählen. OPNsense: Token = key:secret eines API-Schlüssels. pfSense: REST-API-Paket, Token = API-Schlüssel. UniFi: Integrations-API-Schlüssel (Einstellungen → Control Plane → Integrationen), URL der Konsole. Bei pfSense und UniFi das Feld „API-Key“ leer lassen und den Schlüssel ins Feld „API-Secret“.'
   about_gateway: 'WAN, Geräte, Firmware-Updates'
   options_hint_mediaserver: 'Optionen: kind: jellyfin | plex (Standard jellyfin). Token = Jellyfin-API-Schlüssel (Dashboard → API-Schlüssel, nur Admins) bzw. X-Plex-Token des Server-Besitzers.'
   about_mediaserver: 'Laufende Streams, Bibliothek'
@@ -833,7 +1065,7 @@ conn:
   what_blacklist: 'Eingebaute Prüfung: Andon sieht nach, ob dein Mailserver auf Spam-Sperrlisten steht.'
   what_jsonapi: 'Eingebaut: Andon liest eine beliebige JSON-Schnittstelle und zeigt die Felder, die du wählst.'
   what_tailscale: 'Tailscale ist ein VPN auf Basis von WireGuard, das Geräte zu einem privaten Netz verbindet; Headscale ist der selbst gehostete Server dafür.'
-  what_gateway: 'Router und Firewall: OPNsense, pfSense oder UniFi.'
+  what_gateway: 'Router und Firewall: OPNsense, pfSense, UniFi oder OpenWrt.'
   what_mediaserver: 'Jellyfin (quelloffen) oder Plex spielen deine Filme, Serien und Musik auf allen Geräten ab.'
   what_arr: 'Sonarr und Radarr verwalten Serien- und Filmsammlungen und laden Neues automatisch.'
   what_vaultwarden: 'Vaultwarden ist ein schlanker, selbst gehosteter Server für den Passwortmanager Bitwarden.'
@@ -939,6 +1171,12 @@ conn:
   about_wallos: 'Abos und Zahlungstermine'
   options_hint_wallos: 'Keine Optionen nötig. Schlüssel = API-Schlüssel aus Wallos → Profil (API-Schlüssel). URL = Adresse der Wallos-Oberfläche. Preise kommen in deiner Hauptwährung.'
   secret_wallos: API-Schlüssel
+  router_kind: Router
+  choice_opnsense: OPNsense
+  choice_pfsense: pfSense
+  choice_unifi: UniFi
+  choice_openwrt: OpenWrt
+  openwrt_login: 'Login für rpcd (/ubus, kommt mit LuCI). Benutzer leer = root. Ein eigener Login braucht Leserecht auf system, network.interface und luci-rpc (für die Geräteliste).'
 mode:
   shared: Geteilt
   personal: Persönlich
@@ -948,7 +1186,7 @@ mode:
 service:
   calendar: 'Kalender (iCal)'
   tailscale: 'Tailscale / Headscale'
-  gateway: 'Router (OPNsense, pfSense, UniFi)'
+  gateway: 'Router (OPNsense, pfSense, UniFi, OpenWrt)'
   mediaserver: 'Jellyfin / Plex'
   arr: 'Sonarr / Radarr'
   vaultwarden: 'Vaultwarden'
@@ -1965,6 +2203,7 @@ kpi:
   of_goal: Ziel {goal}
   cash_30: offen + wiederkehrend, 30 Tage
   spark_months: 'letzte {n} Monate'
+  vs_last_month: zum Vormonat
 col:
   storage: 'Speicher'
   full_in: 'Voll in'
@@ -2031,6 +2270,7 @@ upcoming:
   license: Lizenz
 table:
   more: '{count} weitere'
+  sum: Summe
 chart:
   season_avg: Ø Vorjahre
   seasonal: Saisonverlauf Umsatz
@@ -2038,6 +2278,7 @@ chart:
   hours: Stunden je Monat
   prev: Vorjahr
   this: Aktuell
+  goal: 'Ziel {amount} je Monat'
 progress:
   revenue_goal: Umsatzziel
   soll: 'Soll heute {pct}'
@@ -2354,6 +2595,8 @@ calendar:
 trend:
   range: '{low} – {high}'
   collecting: Verlauf wird gesammelt (ein Wert pro Tag).
+  smoothed: Geglättet über 7 Tage
+  target: 'Ziel {value}'
 passkey:
   failed: Passkey-Vorgang fehlgeschlagen oder abgebrochen.
   expired: Vorgang abgelaufen. Bitte erneut versuchen.
@@ -2390,13 +2633,14 @@ span:
 holidays:
   today: heute
   in: 'in {days} Tagen'
+  bridge: 'Brückentag {day}'
 picture:
   open: Original
   more: Beschreibung
 joke:
   reveal: Auflösung
 stocks:
-  source: Daten von stooq, verzögert.
+  source: Daten von Yahoo Finance, verzögert.
 topic:
   overview: Überblick
   work: Arbeit & Geld
@@ -2416,6 +2660,7 @@ backup:
   unknown: unbekannt
   none: Keine Backup-Werkzeuge verbunden.
   days: 'Sicherungen der letzten 14 Tage, von Andon erfasst'
+  all_ok: Alle Sicherungen in Ordnung.
 timer:
   project: Projekt
   activity: Tätigkeit
@@ -2438,10 +2683,13 @@ timer:
   today: Heute
   start: Starten
   stop: Stoppen
+  start_note: Beschreibung für den Start
 heatmap:
   total: '{hours} Stunden im letzten Jahr'
   less: weniger
   more: mehr
+  goal_met: Tagesziel erreicht
+  goal_under: darunter
 cashflow:
   end: Erwarteter Stand am Ende
   change: Erwartete Veränderung
@@ -2449,6 +2697,8 @@ cashflow:
   fixed: Feste Kosten
   prepayment: Steuervorauszahlung
   relative_hint: Ohne Sure-Verbindung ab 0 gerechnet – die Kurve zeigt die Veränderung, nicht den Kontostand.
+  below_min: 'Fällt unter den Mindeststand von {amount}.'
+  delayed: 'Annahme: Kunden zahlen {days} Tage später.'
 billing:
   summary: Überblick
   sum_unbilled: 'nicht abgerechnet · {n} Kunden'
@@ -2519,6 +2769,7 @@ uptime:
   measured: Gemessen von Andon bei jedem Prüflauf (alle 5 Minuten).
   none: Noch keine Messungen. Andon zählt ab dem nächsten Prüflauf mit.
   since: 'Messung seit {day}.'
+  sla: 'Ziel {pct} %'
 template:
   start: Start (Begrüßung, Datenkacheln, Lage)
   familie: Familie (Wetter, Feiertage, Liste)
@@ -2534,6 +2785,7 @@ budget:
 tailscale:
   key: 'Schlüssel bis'
   update: 'Update'
+  all_fine: 'Alle {n} Geräte online, keine Schlüssel laufen bald ab.'
 mediaserver:
   now: 'Läuft gerade'
   library: '{movies} Filme · {series} Serien'
@@ -2553,6 +2805,7 @@ github:
   issues: 'Issues'
   release: 'Release'
   notifications: '{count} Benachrichtigungen'
+  all_green: Keine rote CI.
 energy:
   now: 'Strom jetzt'
   power: 'Leistung'
@@ -2568,6 +2821,7 @@ energy:
     none: ''
   cheap_band: günstigstes Fenster
   now_line: jetzt
+  energy_only: ohne Netzentgelte und Steuern
 selfbackup:
   integrity: 'Die Kopie ist beschädigt.'
   migrations: 'Die Kopie hat einen anderen Datenbankstand.'
@@ -2610,11 +2864,12 @@ window:
   working: 'Ein Kimai-Timer läuft'
   meeting: 'Termin in der nächsten Stunde'
   expensive: 'Strom ist gerade teuer'
+  outside: Außerhalb des Wartungsfensters
 forecast:
   stable: 'wächst nicht'
   none: 'Noch zu wenig Verlauf: nach einer Woche erscheinen Prognosen.'
   full_on: 'voll in {days} T ({day})'
-  ahead_hint: 'Gestrichelt: was die nächsten 30 Tage beim bisherigen Tempo dazukommt.'
+  ahead_hint: 'Gestrichelt: was die nächsten {days} Tage beim bisherigen Tempo dazukommt.'
 timeline:
   title: 'Zeitleiste'
   lead: 'Updates und Hinweise der letzten {days} Tage, neueste zuerst.'
@@ -2643,6 +2898,8 @@ cost:
   cloud: 'Vergleichbare Cloud-Dienste: {amount} je Monat.'
   business: 'Betrieblich: {percent} % ({count} von {all} Stacks und Repos für Kunden), {yearly} im Jahr.'
   power_split: 'Strom je Dienst ({watts} W, {amount} je Monat)'
+  per_year: 'Homelab je Jahr'
+  power_split_year: 'Strom je Dienst ({watts} W, {amount} je Jahr)'
 week:
   d0: 'Mo'
   d1: 'Di'
@@ -2681,6 +2938,8 @@ aging:
   d60: 31–60 Tage über
   older: über 60 Tage
   none: Keine offenen Rechnungen.
+  span: '{from}–{to} Tage über'
+  over: 'über {days} Tage'
 split:
   other: 'Übrige'
 unbilled:
@@ -2689,6 +2948,7 @@ unbilled:
   mid: '31–60 Tage'
   old: 'über 60 Tage'
   none: 'Alles abgerechnet.'
+  upto: 'bis {days} Tage'
 disks:
   healthy: 'Platten in Ordnung'
   ok: 'ok'
@@ -2703,12 +2963,16 @@ truenas:
   https_required: 'TrueNAS nur über https:// verbinden: TrueNAS widerruft einen API-Schlüssel, sobald er über http benutzt wird. Bitte die URL auf https:// ändern und einen neuen Schlüssel anlegen.'
   alerts: 'Warnungen: {n}'
   updates: 'App-Updates: {n}'
+  full_in: 'voll in {days} Tagen'
+  app_list: 'Updates für: {names}'
 dns:
   blocked: 'heute geblockt'
   on: 'an'
   off: 'aus'
   queries: '{n} Anfragen'
   blocked_n: '{n} geblockt'
+  top_clients: Aktivste Geräte (24 h)
+  top_blocked: Meistgeblockte Domains
 vpn:
   down: 'Tunnel aus'
   leak: 'Leck'
@@ -2722,12 +2986,15 @@ gateway:
   devices: 'Geräte online'
   offline: 'Offline'
   updates: 'Updates: {n}'
+  clients: Geräte im Netz (DHCP)
 expiry:
   days: 'Tage'
   total: '{n} Zertifikate und Domains'
 speed:
   contract: 'Vertrag {n} Mbit/s'
   slow: '{n} Tage zu langsam'
+  ping: 'Ping {ms} ms'
+  jitter: 'Jitter {ms} ms'
 sab:
   paused: 'pausiert'
   queue: '{n} in der Warteschlange'
@@ -2736,6 +3003,8 @@ paperless:
   inbox: 'im Posteingang'
   oldest: 'Ältestes: {title} ({days} Tage)'
   total: '{n} Dokumente'
+  tagged: 'Dokumente mit „{tag}“'
+  newest: Zuletzt hinzugefügt
 mailinv:
   found: 'Rechnungen in der Mail · {sum}'
   scanned: '{n} Mails in {box} gelesen'
@@ -2743,6 +3012,7 @@ rss:
   unread: 'ungelesen in {n} Feeds'
 linkwarden:
   links: 'Links in {n} Sammlungen'
+  newest: Zuletzt gespeichert
 kintsugi:
   open: 'Vorschläge offen'
   rate: '{n} % angenommen'
@@ -2758,10 +3028,14 @@ gitea:
 places:
   unknown: 'Unbekannter Ort'
   none: 'Heute noch keine Orte.'
+  yesterday: Gestern
 authentik:
   logins: 'Anmeldungen in 7 Tagen'
   failed24: '{n} fehlgeschlagen (24 h)'
   failed7: '{n} fehlgeschlagen in 7 Tagen'
+  logins_24h: Anmeldungen in 24 Stunden
+  failures_24h: Fehlversuche in 24 Stunden
+  failures_7d: Fehlversuche in 7 Tagen
 vault:
   with2fa: 'Konten mit Zwei-Faktor'
   without: 'Ohne'
@@ -3041,6 +3315,8 @@ close:
   inbox_done: Paperless-Posteingang leer
   vat: 'USt-Voranmeldung bis {day}'
   none: Keine passende Verbindung im Bereich.
+  tick: Von Hand abhaken
+  untick: Haken entfernen
 today:
   timer: 'Timer läuft · {what}'
   all_day: ganztags
@@ -3057,6 +3333,9 @@ travel:
   trips: '{n} Fahrten zu Kunden, {km} km'
   amount: '{amount} bei {rate} €/km'
   none: Dawarich liefert noch keine Statistik.
+  this_year: dieses Jahr
+  prev_year: 'Vorjahr {km} km'
+  places: '{countries} Länder · {cities} Städte'
 exposure:
   public: öffentlich erreichbar
   open: '{n} ohne Anmeldung'
@@ -3065,6 +3344,7 @@ exposure:
   updates: '{n} Updates'
   cert: 'Zertifikat {days} T'
   none: Pangolin veröffentlicht nichts.
+  all_login: 'Alle {n} öffentlichen Dienste verlangen eine Anmeldung.'
 light:
   green: Alles gut
   yellow: Achtung
@@ -3072,6 +3352,8 @@ light:
   count: '{n} Punkte offen'
   calm: Nichts offen
   more: '{n} weitere'
+  monitor_down: Monitor ausgefallen
+  conn_failing: Verbindung gestört
 noise:
   new: 'neue Hinweise in {days} Tagen'
   returns: 'kam {n}× wieder'
@@ -3083,3 +3365,6 @@ subs:
   per_month: '{n} Abos je Monat'
   missing: 'Fehlt in Wallos: {names}'
   none: Keine Wallos- oder Sure-Verbindung im Bereich.
+  per_year: '{n} Abos je Jahr'
+ip:
+  changed: 'Neu seit {time}, vorher {prev}'

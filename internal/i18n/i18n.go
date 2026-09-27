@@ -375,3 +375,30 @@ func asDate(value any) (time.Time, bool) {
 		return time.Time{}, false
 	}
 }
+
+// MoneyRound formats money for a tile that asks for less detail:
+// "euro" drops the cents, "thousand" shows thousands (109,4 T€ / €109.4k);
+// anything else is Money.
+func MoneyRound(value float64, locale enums.Locale, currency, mode string) string {
+	symbol := currencySymbol(currency)
+	var amount string
+	switch mode {
+	case "euro":
+		amount = groupedDecimal(value, locale, 0)
+	case "thousand":
+		amount = groupedDecimal(value/thousand, locale, 1)
+		if locale == enums.LocaleDE {
+			return amount + " T" + symbol
+		}
+		return symbol + amount + "k"
+	default:
+		return Money(value, locale, currency)
+	}
+	if locale == enums.LocaleDE {
+		return amount + " " + symbol
+	}
+	return symbol + amount
+}
+
+// thousand divides money for MoneyRound's "thousand" mode.
+const thousand = 1000

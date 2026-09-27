@@ -20,18 +20,35 @@ type TimelineItem struct {
 }
 
 // RecentConfig is the "timeline_recent" widget's config.
-type RecentConfig struct{ Limit int }
+type RecentConfig struct {
+	Limit int
+	Days  int
+	Kinds string // "" all, "updates" or "hints"
+}
 
 const defaultRecent = 6
 
 func decodeRecent(raw map[string]any) any {
-	return RecentConfig{Limit: clampInt(asInt(raw["limit"], defaultRecent), 1, 30)}
+	kinds, _ := raw["kinds"].(string)
+	if kinds != "updates" && kinds != "hints" {
+		kinds = ""
+	}
+	return RecentConfig{Limit: clampInt(asInt(raw["limit"], defaultRecent), 1, 30), Days: clampInt(asInt(raw["days"], TimelineDays), 1, 90), Kinds: kinds}
 }
 
+// ExtraDays is how far back the widgets service loads the timeline.
+func (c RecentConfig) ExtraDays() int { return c.Days }
+
 func recentView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	items, _ := results[TimelineSlot].([]TimelineItem)
-	limit := cfgAny.(RecentConfig).Limit
-	return map[string]any{"Items": items[:min(len(items), limit)], "More": max(len(items)-limit, 0)}
+	all, _ := results[TimelineSlot].([]TimelineItem)
+	cfg := cfgAny.(RecentConfig)
+	var items []TimelineItem
+	for _, it := range all {
+		if cfg.Kinds == "" || (cfg.Kinds == "hints") == (it.HintID != 0) {
+			items = append(items, it)
+		}
+	}
+	return map[string]any{"Items": items[:min(len(items), cfg.Limit)], "More": max(len(items)-cfg.Limit, 0)}
 }
 
 func init() {

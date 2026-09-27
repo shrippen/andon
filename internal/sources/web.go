@@ -5,8 +5,10 @@ package sources
 import (
 	"context"
 	"errors"
+	"net/http"
 	"net/url"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -23,13 +25,14 @@ const (
 	glancesTTL    = time.Minute
 	publicIPTTL   = time.Hour
 
-	httpOKMin    = 200
-	httpOKMax    = 399
-	pageAccept   = "text/html,application/xhtml+xml,*/*;q=0.8"
-	feedLimitMax = 50
-	publicIPURL  = "https://api.ipify.org"
-	forecastDays = 4
-	forecastHrs  = 24
+	httpOKMin       = 200
+	httpOKMax       = 399
+	pageAccept      = "text/html,application/xhtml+xml,*/*;q=0.8"
+	feedLimitMax    = 50
+	publicIPURL     = "https://api.ipify.org"
+	forecastDays    = 4
+	maxForecastDays = 8
+	forecastHrs     = 24
 )
 
 // openMeteoURL is a var so tests can point it at a local server.
@@ -79,8 +82,16 @@ func (HTTPStatusSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	headers = withAccept
 
+	method := http.MethodGet
+	if strings.EqualFold(asStr(sctx.Params["method"]), http.MethodHead) {
+		method = http.MethodHead
+	}
+	opts := httpclient.Options{SkipVerify: insecure, Headers: headers}
+	if s := asFloat(sctx.Params["timeout"]); s > 0 {
+		opts.Timeout = time.Duration(s * float64(time.Second))
+	}
 	started := time.Now()
-	resp, err := httpclient.Request(ctx, "GET", target, httpclient.Options{SkipVerify: insecure, Headers: headers})
+	resp, err := httpclient.Request(ctx, method, target, opts)
 	if err != nil {
 		msg := "egress"
 		var denied httpclient.EgressDenied
@@ -107,7 +118,15 @@ type FeedItem struct {
 	Link      string
 	Published string // ISO 8601, "" if unknown
 	Summary   string
+	Image     string // data: URI, only when asked for
+	imageURL  string
 }
+
+// Feed pictures: how many items get one, and how large one may be.
+const (
+	feedImages   = 6
+	feedImageMax = 150 << 10
+)
 
 // FeedResult is a parsed RSS/Atom feed.
 type FeedResult struct {
@@ -122,16 +141,51 @@ func (FeedSource) TTL() time.Duration         { return feedTTL }
 func (FeedSource) Service() enums.ServiceType { return "" }
 
 func (FeedSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
-	target := asStr(sctx.Params["url"])
-	resp, err := httpclient.Request(ctx, "GET", target, httpclient.Options{})
-	if err != nil {
-		return nil, newSourceError("%s", err.Error())
+	targets := []string{asStr(sctx.Params["url"])}
+	switch more := sctx.Params["urls"].(type) {
+	case []string:
+		targets = append(targets, more...)
+	case []any:
+		for _, u := range more {
+			targets = append(targets, asStr(u))
+		}
 	}
-	defer resp.Body.Close()
-
-	parsed, err := parseFeed(resp.Body)
-	if err != nil {
-		return nil, newSourceError("invalid feed")
+	targets = slices.DeleteFunc(targets[1:], func(u string) bool { return u == "" })
+	targets = append([]string{asStr(sctx.Params["url"])}, targets...)
+	var merged *FeedResult
+	for i, target := range targets {
+		parsed, err := fetchFeed(ctx, target)
+		if err != nil {
+			if i == 0 {
+				return nil, err
+			}
+			continue // a further feed failing costs only its items
+		}
+		if merged == nil {
+			merged = parsed
+			continue
+		}
+		merged.Items = append(merged.Items, parsed.Items...)
+	}
+	if len(targets) > 1 {
+		// Newest first across feeds; undated items last.
+		sort.SliceStable(merged.Items, func(a, b int) bool {
+			pa, pb := merged.Items[a].Published, merged.Items[b].Published
+			if (pa == "") != (pb == "") {
+				return pb == ""
+			}
+			return pa > pb
+		})
+	}
+	if days := asFloat(sctx.Params["max_age"]); days > 0 {
+		cut := time.Now().UTC().Add(-time.Duration(days * 24 * float64(time.Hour))).Format(time.RFC3339)
+		kept := merged.Items[:0]
+		for _, it := range merged.Items {
+			if it.Published == "" || it.Published >= cut {
+				kept = append(kept, it)
+			}
+		}
+		merged.Items = kept
 	}
 
 	limit := int(asFloat(sctx.Params["limit"]))
@@ -141,8 +195,30 @@ func (FeedSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	if limit > feedLimitMax {
 		limit = feedLimitMax
 	}
-	if len(parsed.Items) > limit {
-		parsed.Items = parsed.Items[:limit]
+	if len(merged.Items) > limit {
+		merged.Items = merged.Items[:limit]
+	}
+	if asBool(sctx.Params["images"]) {
+		for i := range merged.Items[:min(len(merged.Items), feedImages)] {
+			if u := merged.Items[i].imageURL; u != "" {
+				if img, err := fetchImage(ctx, u, feedImageMax); err == nil {
+					merged.Items[i].Image = img.DataURI
+				}
+			}
+		}
+	}
+	return merged, nil
+}
+
+func fetchFeed(ctx context.Context, target string) (*FeedResult, error) {
+	resp, err := httpclient.Request(ctx, "GET", target, httpclient.Options{})
+	if err != nil {
+		return nil, newSourceError("%s", err.Error())
+	}
+	defer resp.Body.Close()
+	parsed, err := parseFeed(resp.Body)
+	if err != nil {
+		return nil, newSourceError("invalid feed")
 	}
 	return parsed, nil
 }
@@ -186,7 +262,8 @@ func (WeatherSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		"hourly":         {"temperature_2m,precipitation_probability"},
 		"forecast_hours": {strconv.Itoa(forecastHrs)},
 		"timezone":       {"auto"},
-		"forecast_days":  {strconv.Itoa(forecastDays)},
+		// A tile may want up to a week after today.
+		"forecast_days": {strconv.Itoa(min(max(forecastDays, int(asFloat(sctx.Params["days"]))+1), maxForecastDays))},
 	}
 	body, _, err := httpclient.GetJSON(ctx, openMeteoURL, httpclient.Options{Params: params})
 	if err != nil {
@@ -284,8 +361,12 @@ func (GlancesSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 
 // ── public_ip ──
 
-// PublicIPResult is the container's outbound public IP.
-type PublicIPResult struct{ IP string }
+// PublicIPResult is the container's outbound public IP; IPv6 only when
+// asked for and the host has it.
+type PublicIPResult struct{ IP, IPv6 string }
+
+// publicIPv6URL answers over IPv6 only; a var so tests can replace it.
+var publicIPv6URL = "https://api6.ipify.org"
 
 type PublicIPSource struct{}
 
@@ -293,12 +374,19 @@ func (PublicIPSource) Key() string                { return "public_ip" }
 func (PublicIPSource) TTL() time.Duration         { return publicIPTTL }
 func (PublicIPSource) Service() enums.ServiceType { return "" }
 
-func (PublicIPSource) Fetch(ctx context.Context, _ Ctx) (any, error) {
-	body, _, err := httpclient.GetJSON(ctx, publicIPURL, httpclient.Options{Params: url.Values{"format": {"json"}}})
+func (PublicIPSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+	body, _, err := httpclient.GetJSON(ctx, ownIPURL, httpclient.Options{Params: url.Values{"format": {"json"}}})
 	if err != nil {
 		return nil, newSourceError("%s", err.Error())
 	}
-	return &PublicIPResult{IP: asStr(asMap(body)["ip"])}, nil
+	out := &PublicIPResult{IP: asStr(asMap(body)["ip"])}
+	if asBool(sctx.Params["v6"]) {
+		// Best-effort: without IPv6 the request just fails.
+		if v6, _, err := httpclient.GetJSON(ctx, publicIPv6URL, httpclient.Options{Params: url.Values{"format": {"json"}}}); err == nil {
+			out.IPv6 = asStr(asMap(v6)["ip"])
+		}
+	}
+	return out, nil
 }
 
 func init() {

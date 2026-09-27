@@ -143,6 +143,8 @@ func TestAuthentikUsage(t *testing.T) {
 			map[string]any{"action": "login_failed", "time": recent, "count": 4},
 			map[string]any{"action": "login_failed", "time": old, "count": 6},
 		},
+		"/api/v3/events/events/": map[string]any{"results": []any{map[string]any{"created": recent, "client_ip": "203.0.113.9",
+			"user": map[string]any{"username": "AnonymousUser"}, "context": map[string]any{"username": "mallory"}}}},
 		"/api/v3/events/events/top_per_user/": []any{map[string]any{"application": map[string]any{"name": "Gitea"}, "counted_events": 7, "unique_users": 2}},
 		"/api/v3/core/users/": map[string]any{"pagination": map[string]any{"next": 0}, "results": []any{
 			map[string]any{"username": "alex", "type": "internal", "last_login": recent},
@@ -155,7 +157,8 @@ func TestAuthentikUsage(t *testing.T) {
 		t.Fatal(err)
 	}
 	data := out.(*sources.AuthentikDataset)
-	if data.Logins7d != 10 || data.Failed7d != 10 || data.Failed24h != 4 || len(data.Apps) != 1 || len(data.Users) != 1 || !data.Outdated {
+	if data.Logins7d != 10 || data.Logins24h != 10 || data.Failed7d != 10 || data.Failed24h != 4 || len(data.Failures) != 1 ||
+		data.Failures[0].User != "mallory" || len(data.Apps) != 1 || len(data.Users) != 1 || !data.Outdated {
 		t.Fatalf("data: %+v", data)
 	}
 }

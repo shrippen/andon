@@ -130,10 +130,13 @@
         <label for="secret_b">{{t "conn.cred_secret"}}</label>
         <input id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
       {{else if eq $shape "keysecret"}}
-        <label for="secret_a">{{t "conn.cred_key"}}</label>
+        {{/* A router kind may log in with user and password instead (OpenWrt):
+             the labels follow the kind chosen above, see .only-openwrt. */}}
+        <label for="secret_a"><span class="not-openwrt">{{t "conn.cred_key"}}</span><span class="only-openwrt">{{t "conn.cred_user"}}</span></label>
         <input id="secret_a" name="secret_a" autocomplete="off" placeholder="{{$keep}}">
-        <label for="secret_b">{{t "conn.cred_secret"}}</label>
+        <label for="secret_b"><span class="not-openwrt">{{t "conn.cred_secret"}}</span><span class="only-openwrt">{{t "field.password"}}</span></label>
         <input id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
+        <p class="small muted only-openwrt">{{t "conn.openwrt_login"}}</p>
       {{else}}
         <label for="secret">{{if eq $shape "ical"}}{{t "conn.ical_private"}}{{else if eq $shape "password"}}{{t "field.password"}}{{else}}{{t (secretLabel (or .Service .Conn.Service))}}{{end}}</label>
         <input id="secret" name="secret" type="password" autocomplete="off" placeholder="{{$keep}}">

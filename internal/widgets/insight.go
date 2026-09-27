@@ -6,10 +6,13 @@ package widgets
 
 import (
 	"fmt"
+	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/i18n"
 	"andon/internal/metrics"
 	"andon/internal/rules"
 	"andon/internal/sources"
@@ -83,20 +86,96 @@ const (
 )
 
 // KpiConfig is the "kpi" widget's config.
-type KpiConfig struct{ Metric Metric }
+type KpiConfig struct {
+	Metric  Metric
+	Compare string  // prev_year (default), prev_month, off
+	Target  float64 // 0 = none; colours the value
+	Spark   bool    // the 12-month line
+}
+
+// KPI comparisons.
+const (
+	comparePrevYear  = "prev_year"
+	comparePrevMonth = "prev_month"
+	compareOff       = "off"
+)
+
+// lowerBetter are metrics where staying under the target is good.
+var lowerBetter = map[Metric]bool{MetricOpenAmount: true, MetricOverdueAmount: true, MetricVATLiability: true, MetricUnbilled: true}
 
 func decodeKpi(raw map[string]any) any {
 	metric := Metric(asString(raw["metric"]))
 	if metric == "" {
 		metric = MetricRevenueYTD
 	}
-	return KpiConfig{Metric: metric}
+	compare := asString(raw["compare"])
+	if compare != comparePrevMonth && compare != compareOff {
+		compare = comparePrevYear
+	}
+	spark, set := raw["spark"].(bool)
+	return KpiConfig{Metric: metric, Compare: compare, Target: max(asFloat(raw["target_value"]), 0), Spark: spark || !set}
+}
+
+// monthDelta is this month against the last for metrics with months.
+func monthDelta(metric Metric, data any, today time.Time) (float64, bool) {
+	var prev, cur float64
+	switch d := data.(type) {
+	case *sources.NinjaDataset:
+		if metric != MetricRevenueMonth {
+			return 0, false
+		}
+		months := metrics.NinjaByMonth(d, today, 2)
+		if len(months) < 2 {
+			return 0, false
+		}
+		prev, cur = months[0].Net, months[1].Net
+	case *sources.KimaiDataset:
+		if metric != MetricHoursMonth {
+			return 0, false
+		}
+		hours, _ := kimaiMonthHours(d, today, 2)
+		prev, cur = hours[0], hours[1]
+	default:
+		return 0, false
+	}
+	if prev == 0 {
+		return 0, false
+	}
+	return (cur - prev) / prev, true
+}
+
+// shapeKpi applies the tile's options to a computed KPI.
+func shapeKpi(kpi *KpiResult, cfg KpiConfig, data any, today time.Time) {
+	kpi.DeltaKey = "kpi.vs_last_year"
+	switch cfg.Compare {
+	case compareOff:
+		kpi.HasDelta = false
+	case comparePrevMonth:
+		kpi.Delta, kpi.HasDelta = monthDelta(cfg.Metric, data, today)
+		kpi.DeltaKey = "kpi.vs_last_month"
+	}
+	if cfg.Target > 0 {
+		good := kpi.Value >= cfg.Target
+		if lowerBetter[cfg.Metric] {
+			good = kpi.Value <= cfg.Target
+		}
+		kpi.Target = "bad"
+		if good {
+			kpi.Target = "good"
+		}
+	}
+	if cfg.Spark {
+		kpi.Spark = kpiSpark(cfg.Metric, data, today)
+	}
 }
 
 // TableConfig is the "table" widget's config.
 type TableConfig struct {
-	Table TableKind
-	Limit int
+	Table    TableKind
+	Limit    int
+	HideCols []string // column names (as shown, any language) or keys, lower case
+	Sort     string   // "" (as delivered), amount_desc, amount_asc, name, date
+	SumRow   bool
 }
 
 func decodeTable(raw map[string]any) any {
@@ -104,13 +183,21 @@ func decodeTable(raw map[string]any) any {
 	if table == "" {
 		table = TableOpenInvoices
 	}
-	return TableConfig{Table: table, Limit: clampInt(asInt(raw["limit"], 8), 1, 50)}
+	var hide []string
+	for _, c := range asStringList(raw["hide_cols"]) {
+		hide = append(hide, strings.ToLower(strings.TrimSpace(c)))
+	}
+	return TableConfig{Table: table, Limit: clampInt(asInt(raw["limit"], 8), 1, 50), HideCols: hide, Sort: asString(raw["sort"]),
+		SumRow: asBool(raw["sum_row"])}
 }
 
 // ChartConfig is the "chart" widget's config.
 type ChartConfig struct {
-	Chart  ChartKind
-	Months int
+	Chart    ChartKind
+	Months   int
+	ShowPrev bool // last year (or the seasonal average) as an outline
+	Values   bool // the value over each bar
+	GoalLine bool // revenue: the year's goal per month
 }
 
 func decodeChart(raw map[string]any) any {
@@ -118,18 +205,41 @@ func decodeChart(raw map[string]any) any {
 	if chart == "" {
 		chart = ChartRevenue
 	}
-	return ChartConfig{Chart: chart, Months: clampInt(asInt(raw["months"], 12), 3, 24)}
+	return ChartConfig{Chart: chart, Months: clampInt(asInt(raw["months"], 12), 3, 24), ShowPrev: boolOr(raw["show_prev"], true),
+		Values: asBool(raw["values"]), GoalLine: asBool(raw["goal_line"])}
+}
+
+// boolOr reads a checkbox that defaults to on.
+func boolOr(v any, def bool) bool {
+	b, ok := v.(bool)
+	if !ok {
+		return def
+	}
+	return b
 }
 
 // ProgressConfig is the "progress" widget's config.
-type ProgressConfig struct{ Goal bool }
+type ProgressConfig struct {
+	Goal     bool
+	Projects []string // only these budgets (lower case); empty = all
+	Soll     bool     // the "where it should be today" mark
+	Warn     float64  // yellow from this many points ahead (0..1)
+}
 
 func decodeProgress(raw map[string]any) any {
 	goal := true
 	if v, ok := raw["goal"]; ok {
 		goal = asBool(v)
 	}
-	return ProgressConfig{Goal: goal}
+	var projects []string
+	for _, p := range asStringList(raw["projects"]) {
+		projects = append(projects, strings.ToLower(p))
+	}
+	warn := progressSlack
+	if v := asFloat(raw["warn_ahead"]); v > 0 {
+		warn = v / pctFull
+	}
+	return ProgressConfig{Goal: goal, Projects: projects, Soll: boolOr(raw["soll"], true), Warn: warn}
 }
 
 // HintsConfig is the "hints" widget's config.
@@ -138,26 +248,50 @@ type HintsConfig struct {
 	MinSeverity int
 	Limit       int
 	Topic       rules.Topic // updates/backups widgets
+	Sort        string      // "" = most urgent first, "value" = largest amount, "age" = oldest
+	Buttons     bool        // done and later on each line
+	NoLevels    bool        // hide the level bar
 }
+
+// Hint list orders besides the default (most urgent first).
+const (
+	HintSortValue = "value"
+	HintSortAge   = "age"
+)
 
 // decodeTopic builds the decoder of a topic widget: a hints list limited
 // to one topic's rules.
 func decodeTopic(topic rules.Topic) DecodeFunc {
 	return func(raw map[string]any) any {
-		return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: clampInt(asInt(raw["limit"], 20), 1, 50), Topic: topic}
+		sort, _ := raw["sort"].(string)
+		if sort != HintSortAge {
+			sort = ""
+		}
+		return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: clampInt(asInt(raw["limit"], 20), 1, 50), Topic: topic,
+			Sources: asStringList(raw["sources"]), Sort: sort}
 	}
 }
 
 func decodeHints(raw map[string]any) any {
 	minSeverity := clampInt(asInt(raw["min_severity"], int(enums.SeverityInfo)), int(enums.SeverityInfo), int(enums.SeverityCritical))
-	return HintsConfig{Sources: asStringList(raw["sources"]), MinSeverity: minSeverity, Limit: clampInt(asInt(raw["limit"], 8), 1, 50)}
+	cfg := HintsConfig{Sources: asStringList(raw["sources"]), MinSeverity: minSeverity, Limit: clampInt(asInt(raw["limit"], 8), 1, 50),
+		Buttons: asBool(raw["buttons"]), NoLevels: !boolOr(raw["levels"], true)}
+	if asBool(raw["by_value"]) {
+		cfg.Sort = HintSortValue
+	}
+	return cfg
 }
 
 // TrendConfig is the "trend" widget's config.
 type TrendConfig struct {
 	Metric TrendMetric
 	Days   int
+	Target float64 // 0 = no target line
+	Smooth bool    // 7-day centre (mean or median, space setting)
 }
+
+// smoothDays is the window of a smoothed trend.
+const smoothDays = 7
 
 // MaxTrendDays is the longest span a trend shows; older daily points go.
 const MaxTrendDays = 730
@@ -167,14 +301,20 @@ func decodeTrend(raw map[string]any) any {
 	if metric == "" {
 		metric = TrendOpenAmount
 	}
-	return TrendConfig{Metric: metric, Days: clampInt(asInt(raw["days"], 90), 7, MaxTrendDays)}
+	return TrendConfig{Metric: metric, Days: clampInt(asInt(raw["days"], 90), 7, MaxTrendDays), Target: max(asFloat(raw["target_value"]), 0),
+		Smooth: asBool(raw["smooth"])}
 }
 
 // DeadlinesConfig is the "deadlines" widget's config.
-type DeadlinesConfig struct{ Days int }
+type DeadlinesConfig struct {
+	Days                     int
+	VAT, Prepayments, Annual bool // which kinds to list
+	Amounts                  bool
+}
 
 func decodeDeadlines(raw map[string]any) any {
-	return DeadlinesConfig{Days: clampInt(asInt(raw["days"], 45), 7, 400)}
+	return DeadlinesConfig{Days: clampInt(asInt(raw["days"], 45), 7, 400), VAT: boolOr(raw["show_vat"], true),
+		Prepayments: boolOr(raw["show_prepayment"], true), Annual: boolOr(raw["show_annual"], true), Amounts: boolOr(raw["amounts"], true)}
 }
 
 func clampInt(v, lo, hi int) int {
@@ -228,6 +368,8 @@ type KpiResult struct {
 	SubGoal  float64
 	SubRate  int
 	Spark    *Spark // last 12 months, where the metric has a history
+	DeltaKey string // what Delta compares with
+	Target   string // "good", "bad" or "" (no target)
 }
 
 // sparkMonths is how far back a KPI's line reaches.
@@ -245,6 +387,18 @@ func kimaiMonthHours(data *sources.KimaiDataset, today time.Time, n int) (cur, p
 		prev = append(prev, float64(metrics.KimaiMinutesBetween(data, prevStart, prevEnd, metrics.HoursAll))/minutesPerHourInsight)
 	}
 	return cur, prev
+}
+
+// kimaiMonthHoursOf is the hours of the n months up to today's, of one
+// kind.
+func kimaiMonthHoursOf(data *sources.KimaiDataset, today time.Time, n int, kind metrics.Hours) []float64 {
+	var out []float64
+	for back := n - 1; back >= 0; back-- {
+		start := metrics.AddMonths(today, -back)
+		end := metrics.AddMonths(start, 1).AddDate(0, 0, -1)
+		out = append(out, float64(metrics.KimaiMinutesBetween(data, start, end, kind))/minutesPerHourInsight)
+	}
+	return out
 }
 
 // kpiSpark is the monthly line behind a metric, nil when it has none. It
@@ -420,7 +574,7 @@ func kpiView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 		kpi = kpiSnipe(cfg.Metric, data.(*sources.SnipeDataset), ctx)
 	}
 	if kpi != nil {
-		kpi.Spark = kpiSpark(cfg.Metric, data, parseToday(ctx.Today))
+		shapeKpi(kpi, cfg, data, parseToday(ctx.Today))
 	}
 	return map[string]any{"KPI": kpi, "Unsupported": kpi == nil}
 }
@@ -600,11 +754,119 @@ func tableView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 		}
 		return map[string]any{}
 	}
+	cols := colsFor(cfg.Table)
+	sortRows(rows, cols, cfg.Sort)
+	var sum Row
+	if cfg.SumRow {
+		sum = sumRow(rows, cols)
+	}
+	cols, rows, sum = hideCols(cols, rows, sum, cfg.HideCols)
 	total := len(rows)
 	if total > cfg.Limit {
 		rows = rows[:cfg.Limit]
 	}
-	return map[string]any{"Cols": colsFor(cfg.Table), "Rows": rows, "Total": total, "More": total - len(rows)}
+	out := map[string]any{"Cols": cols, "Rows": rows, "Total": total, "More": total - len(rows)}
+	if cfg.SumRow {
+		out["Sum"] = sum
+	}
+	return out
+}
+
+// Table sort orders.
+const (
+	sortAmountDesc = "amount_desc"
+	sortAmountAsc  = "amount_asc"
+	sortName       = "name"
+	sortDate       = "date"
+)
+
+// sortRows orders rows by the first column of the kind the order needs.
+func sortRows(rows []Row, cols []Col, order string) {
+	find := func(formats ...string) int {
+		for i, c := range cols {
+			if slices.Contains(formats, c.Format) {
+				return i
+			}
+		}
+		return -1
+	}
+	switch order {
+	case sortAmountDesc, sortAmountAsc:
+		i := find("money", "hours", "km", "pct")
+		if i < 0 {
+			return
+		}
+		sort.SliceStable(rows, func(a, b int) bool {
+			x, y := asFloat(rows[a].Values[i]), asFloat(rows[b].Values[i])
+			if order == sortAmountAsc {
+				return x < y
+			}
+			return x > y
+		})
+	case sortName, sortDate:
+		i := find("text")
+		if order == sortDate {
+			i = find("day")
+		}
+		if i < 0 {
+			return
+		}
+		sort.SliceStable(rows, func(a, b int) bool {
+			return strings.ToLower(fmt.Sprint(rows[a].Values[i])) < strings.ToLower(fmt.Sprint(rows[b].Values[i]))
+		})
+	}
+}
+
+// summed are the column formats a sum row adds up.
+var summed = map[string]bool{"money": true, "hours": true, "km": true}
+
+// sumRow adds up the summable columns of all rows ("" elsewhere).
+func sumRow(rows []Row, cols []Col) Row {
+	out := Row{Values: make([]any, len(cols))}
+	for i, c := range cols {
+		if !summed[c.Format] {
+			out.Values[i] = ""
+			continue
+		}
+		total := 0.0
+		for _, r := range rows {
+			total += asFloat(r.Values[i])
+		}
+		out.Values[i] = total
+	}
+	return out
+}
+
+// hideCols drops the columns named in hide, by key or by their name in
+// German or English.
+func hideCols(cols []Col, rows []Row, sum Row, hide []string) ([]Col, []Row, Row) {
+	if len(hide) == 0 {
+		return cols, rows, sum
+	}
+	var keep []int
+	var kept []Col
+	for i, c := range cols {
+		names := []string{c.Label, strings.ToLower(i18n.T("col."+c.Label, enums.LocaleDE, nil)), strings.ToLower(i18n.T("col."+c.Label, enums.LocaleEN, nil))}
+		if slices.ContainsFunc(names, func(n string) bool { return slices.Contains(hide, n) }) {
+			continue
+		}
+		keep = append(keep, i)
+		kept = append(kept, c)
+	}
+	pick := func(r Row) Row {
+		if r.Values == nil {
+			return r
+		}
+		out := Row{Values: make([]any, len(keep))}
+		for j, i := range keep {
+			out.Values[j] = r.Values[i]
+		}
+		return out
+	}
+	for i := range rows {
+		rows[i] = pick(rows[i])
+	}
+	return kept, rows, pick(sum)
 }
 
 // ── Chart ──
@@ -630,11 +892,18 @@ type barSeries struct {
 	Value, Prev float64
 }
 
-func barsFrom(raw []barSeries) []Bar {
-	top := 1.0
+// barTop is the scale's top: the highest bar, at least extra (a goal line).
+func barTop(raw []barSeries, extra float64) float64 {
+	top := maxF(1, extra)
 	for _, r := range raw {
 		top = maxF(top, r.Value, r.Prev)
 	}
+	return top
+}
+
+func barsFrom(raw []barSeries) []Bar { return barsFromTop(raw, barTop(raw, 0)) }
+
+func barsFromTop(raw []barSeries, top float64) []Bar {
 	step := (chartW - chartPad) / float64(len(raw))
 
 	bars := make([]Bar, len(raw))
@@ -667,6 +936,15 @@ func maxF(vals ...float64) float64 {
 
 func fnum(f float64) string { return fmt.Sprintf("%.1f", f) }
 
+// monthsPerYear splits the year's goal into months.
+const monthsPerYear = 12
+
+// chartOptions adds the tile's display choices to a chart view.
+func chartOptions(out map[string]any, cfg ChartConfig) map[string]any {
+	out["ShowPrev"], out["Values"] = cfg.ShowPrev, cfg.Values
+	return out
+}
+
 func chartView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	cfg := cfgAny.(ChartConfig)
 	data, ok := results["data"]
@@ -682,14 +960,20 @@ func chartView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 		for _, m := range metrics.NinjaByMonth(data.(*sources.NinjaDataset), today, cfg.Months) {
 			raw = append(raw, barSeries{m.Month, m.Net, m.Prev})
 		}
-		return map[string]any{"Bars": barsFrom(raw), "Unit": "money"}
+		out := map[string]any{"Bars": barsFrom(raw), "Unit": "money"}
+		if goal := settingsFloat(settingsMap(ctx.Settings, "goals"), "revenue_year", 0); cfg.GoalLine && goal > 0 {
+			monthly := goal / monthsPerYear
+			out["GoalY"], out["Goal"] = fnum(chartH-monthly/barTop(raw, monthly)*(chartH-chartPad)), monthly
+			out["Bars"] = barsFromTop(raw, barTop(raw, monthly))
+		}
+		return chartOptions(out, cfg)
 
 	case cfg.Chart == ChartSeason && service == enums.ServiceInvoiceNinja:
 		var raw []barSeries
 		for _, m := range metrics.NinjaSeasonal(data.(*sources.NinjaDataset), today, cfg.Months) {
 			raw = append(raw, barSeries{m.Month, m.Net, m.Prev})
 		}
-		return map[string]any{"Bars": barsFrom(raw), "Unit": "money", "PrevKey": "chart.season_avg"}
+		return chartOptions(map[string]any{"Bars": barsFrom(raw), "Unit": "money", "PrevKey": "chart.season_avg"}, cfg)
 
 	case cfg.Chart == ChartHours && service == enums.ServiceKimai:
 		cur, prev := kimaiMonthHours(data.(*sources.KimaiDataset), today, cfg.Months)
@@ -698,7 +982,7 @@ func chartView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 			month := metrics.AddMonths(today, i-len(cur)+1).Format("2006-01")
 			raw = append(raw, barSeries{month, cur[i], prev[i]})
 		}
-		return map[string]any{"Bars": barsFrom(raw), "Unit": "hours"}
+		return chartOptions(map[string]any{"Bars": barsFrom(raw), "Unit": "hours"}, cfg)
 	}
 	return map[string]any{"Unsupported": true}
 }
@@ -736,7 +1020,7 @@ const (
 
 // shape fills in the drawn bar and its colour from Pct and the share of
 // the period that has passed (soll, 0 if unknown).
-func (p *ProgressItem) shape(kind meterKind, soll float64) {
+func (p *ProgressItem) shape(kind meterKind, soll, slack float64) {
 	scale := max(p.Pct, 1)
 	p.Fill = min(p.Pct, 1) / scale * pctFull
 	p.Over = max(p.Pct-1, 0) / scale * pctFull
@@ -744,13 +1028,13 @@ func (p *ProgressItem) shape(kind meterKind, soll float64) {
 	p.SollPct = soll
 
 	switch {
-	case kind == meterGoal && (p.Pct >= 1 || p.Pct >= soll-progressSlack):
+	case kind == meterGoal && (p.Pct >= 1 || p.Pct >= soll-slack):
 		p.Tier = "green"
 	case kind == meterGoal:
 		p.Tier = "yellow"
 	case p.Pct >= 1:
 		p.Tier = "red"
-	case soll > 0 && p.Pct > soll+progressSlack, soll == 0 && p.Pct >= budgetWarn:
+	case soll > 0 && p.Pct > soll+slack, soll == 0 && p.Pct >= budgetWarn:
 		p.Tier = "yellow"
 	default:
 		p.Tier = "green"
@@ -776,13 +1060,19 @@ func progressView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 
 	if enums.ServiceType(ctx.Service) == enums.ServiceKimai {
 		for _, b := range kimaiBudgets(data.(*sources.KimaiDataset), today) {
+			if len(cfg.Projects) > 0 && !slices.Contains(cfg.Projects, strings.ToLower(b.Name)) {
+				continue
+			}
 			item := ProgressItem{Label: b.Name, Pct: b.Pct}
 			soll := 0.0
 			if b.Monthly {
 				start := metrics.MonthStart(today)
 				soll = passed(today, start, metrics.AddMonths(start, 1))
 			}
-			item.shape(meterBudget, soll)
+			item.shape(meterBudget, soll, cfg.Warn)
+			if !cfg.Soll {
+				item.Soll, item.SollPct = 0, 0
+			}
 			items = append(items, item)
 		}
 	}
@@ -791,7 +1081,10 @@ func progressView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 		ytd := metrics.NinjaSummaryOf(data.(*sources.NinjaDataset), today, "", "").RevenueYTD
 		item := ProgressItem{LabelKey: "progress.revenue_goal", Pct: ytd / goal, HasGoal: true, Value: ytd, Goal: goal}
 		start := time.Date(today.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
-		item.shape(meterGoal, passed(today, start, start.AddDate(1, 0, 0)))
+		item.shape(meterGoal, passed(today, start, start.AddDate(1, 0, 0)), cfg.Warn)
+		if !cfg.Soll {
+			item.Soll, item.SollPct = 0, 0
+		}
 		items = append(items, item)
 	}
 	return map[string]any{"Items": items}
@@ -806,11 +1099,17 @@ func deadlinesView(cfgAny any, _ map[string]any, ctx ViewCtx) map[string]any {
 
 	var items []map[string]any
 	if configured {
+		shown := map[string]bool{"vat_return": cfg.VAT, "prepayment": cfg.Prepayments, "annual": cfg.Annual}
 		for _, d := range metrics.UpcomingDeadlines(tax, today, cfg.Days) {
-			items = append(items, map[string]any{
-				"Kind": d.Kind, "Due": d.Due.Format("2006-01-02"), "Left": int(d.Due.Sub(today).Hours() / 24),
-				"Period": d.Period, "Year": d.Year, "Amount": d.Amount,
-			})
+			if !shown[d.Kind] {
+				continue
+			}
+			item := map[string]any{"Kind": d.Kind, "Due": d.Due.Format("2006-01-02"), "Left": int(d.Due.Sub(today).Hours() / 24),
+				"Period": d.Period, "Year": d.Year}
+			if cfg.Amounts && d.Amount != nil {
+				item["Amount"] = d.Amount
+			}
+			items = append(items, item)
 		}
 	}
 	return map[string]any{"Items": items, "Configured": configured}
@@ -823,7 +1122,7 @@ const (
 	trendHeight = 160
 )
 
-func trendView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+func trendView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	cfg := cfgAny.(TrendConfig)
 	points, _ := results["points"].([][2]any)
 	if len(points) < 2 {
@@ -837,14 +1136,21 @@ func trendView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 			values[i] /= minutesPerHourInsight
 		}
 	}
+	if cfg.Smooth {
+		center := metrics.CenterOf(ctx.Settings)
+		smoothed := make([]float64, len(values))
+		for i := range values {
+			lo, hi := max(i-smoothDays/2, 0), min(i+smoothDays/2+1, len(values))
+			smoothed[i] = center.Of(values[lo:hi])
+		}
+		values = smoothed
+	}
 	low, high := values[0], values[0]
 	for _, v := range values {
-		if v < low {
-			low = v
-		}
-		if v > high {
-			high = v
-		}
+		low, high = min(low, v), max(high, v)
+	}
+	if cfg.Target > 0 {
+		low, high = min(low, cfg.Target), max(high, cfg.Target)
 	}
 	span := high - low
 	if span == 0 {
@@ -863,9 +1169,18 @@ func trendView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 		unit = "hours"
 	}
 	return map[string]any{
+		"Smooth": cfg.Smooth, "TargetY": targetY(cfg.Target, low, span), "Target": cfg.Target,
 		"Path": "M" + joinPoints(coords), "First": points[0][0], "Last": points[len(points)-1][0],
 		"Low": low, "High": high, "Now": values[len(values)-1], "Unit": unit, "W": trendWidth, "H": trendHeight,
 	}
+}
+
+// targetY places a trend's target on its scale; nil without a target.
+func targetY(target, low, span float64) any {
+	if target <= 0 {
+		return nil
+	}
+	return fnum(trendHeight - (target-low)/span*(trendHeight-10) - 5)
 }
 
 func formatPoint(x, y float64) string { return fmt.Sprintf("%.1f,%.1f", x, y) }

@@ -2,7 +2,7 @@
 
 {{define "widgets/tailscale"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
-{{with .Frag.View.Data}}
+{{with .Frag.View.Data}}{{if and (not .Devices) $.Frag.View.OnlyTrouble}}<p class="tile-sub">{{t "tailscale.all_fine" "n" $.Frag.View.Total}}</p>{{end}}
 <ul class="plain-list">
   {{range .Devices}}<li><span class="pill" data-state="{{if .Online}}ok{{else}}fail{{end}}">{{if .Online}}{{t "status.up"}}{{else}}{{t "status.down"}}{{end}}</span> {{.Name}}
     {{if not .Online}}<small class="muted">{{ago .LastSeen}}</small>{{end}}
@@ -16,7 +16,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with .Frag.View.Data}}
 <p class="kpi"><span class="kpi-label">{{t "mediaserver.now"}}</span> <b class="kpi-value">{{len .Streams}}</b></p>
-{{with .Streams}}<ul class="plain-list">{{range .}}<li>{{.Title}} <small class="muted">{{.User}}</small></li>{{end}}</ul>{{end}}
+{{with .Streams}}<ul class="plain-list">{{range .}}<li>{{.Title}}{{if $.Frag.View.Users}} <small class="muted">{{.User}}</small>{{end}}</li>{{end}}</ul>{{end}}
 <p class="small muted">{{t "mediaserver.library" "movies" .Movies "series" .Series}}</p>
 {{end}}
 {{end}}
@@ -56,13 +56,13 @@
 
 {{define "widgets/github"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
-{{with .Frag.View.Data}}
+{{with .Frag.View.Data}}{{if and (not .Repos) $.Frag.View.RedCI}}<p class="tile-sub">{{t "github.all_green"}}</p>{{else}}
 <div class="table-wrap"><table class="table">
   <tr><th>{{t "github.repo"}}</th><th class="num">PRs</th><th class="num">{{t "github.issues"}}</th><th>CI</th><th>{{t "github.release"}}</th></tr>
   {{range .Repos}}<tr><td>{{.Name}}</td><td class="num">{{.PRs}}</td><td class="num">{{.Issues}}</td>
     <td>{{if .CI}}<span class="pill" data-state="{{if eq .CI "success"}}ok{{else if eq .CI "failure"}}fail{{else}}warn{{end}}">{{.CI}}</span>{{else}}–{{end}}</td>
     <td>{{.Release}}</td></tr>{{end}}
-</table></div>
+</table></div>{{end}}
 {{if .Notifications}}<p class="small muted">{{t "github.notifications" "count" .Notifications}}</p>{{end}}
 {{end}}
 {{end}}
@@ -76,14 +76,14 @@
   <div class="progress"><div class="progress-head"><span>↑ {{num $d.Up 0}} Mbit/s</span><span>{{if $d.ExpectUp}}{{pct $v.UpPct}}{{end}}</span></div>
     {{if $d.ExpectUp}}<div class="progress-bar"><i style="--p:{{barPct $v.UpPct}}%" data-tier="{{if lt $v.UpPct 0.8}}yellow{{else}}green{{end}}"></i></div>{{end}}</div>
 </div>
-<p class="tile-foot"><span>{{num $d.Ping 0}} ms</span><span>{{ago $d.At}}</span></p>
+<p class="tile-foot"><span>{{if $v.Ping}}{{t "speed.ping" "ms" (num $d.Ping 0)}}{{if $d.Jitter}} · {{t "speed.jitter" "ms" (num $d.Jitter 1)}}{{end}}{{end}}</span><span>{{ago $d.At}}</span></p>
 {{end}}{{end}}
 {{end}}
 
 {{define "widgets/energy"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $v.Data}}
-<p class="kpi"><span class="kpi-label">{{t "energy.now"}}</span> <b class="kpi-value">{{money .Current .Currency}}</b> {{with .Level}}<small class="muted">{{t (print "energy.level." .)}}</small>{{end}}</p>
+<p class="kpi"><span class="kpi-label">{{t "energy.now"}}{{if $v.EnergyOnly}} · {{t "energy.energy_only"}}{{end}}</span> <b class="kpi-value">{{money .Current .Currency}}</b> {{with .Level}}<small class="muted">{{t (print "energy.level." .)}}</small>{{end}}</p>
 {{with $v.Power}}<p class="kpi"><span class="kpi-label">{{t "energy.power"}}</span> <b class="kpi-value">{{.}} {{$v.PowerUnit}}</b></p>{{end}}
 {{if $v.Path}}<svg class="chart spark-lg price-steps" viewBox="0 0 {{$v.W}} {{$v.H}}" preserveAspectRatio="none" role="img" aria-label="{{t "energy.prices"}}">
   {{with $v.CheapW}}<rect class="price-cheap" x="{{$v.CheapX}}" y="0" width="{{.}}" height="{{$v.H}}"/>{{end}}
@@ -110,26 +110,26 @@
 
 {{define "widgets/storage_forecast"}}
 {{/* Each store: used, plus (dashed) what the next 30 days add at the recent pace. */}}
-{{with .Frag.View.Rows}}
+{{$ahead := .Frag.View.Ahead}}{{with .Frag.View.Rows}}
 <ul class="store-rows">
   {{range .}}<li>
     <div class="row-between"><span>{{.Label}}</span><span{{with .Tier}} data-tier="{{.}}"{{end}} class="store-when">{{num .Used 0}} %{{if ge .FullIn 0}} · {{t "forecast.full_on" "days" .FullIn "day" (day .FullOn)}}{{else}} · {{t "forecast.stable"}}{{end}}</span></div>
     <div class="store-bar"><i style="--w:{{.Used}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i>{{if .Ahead}}<i class="store-ahead" style="--w:{{.Ahead}}%"></i>{{end}}</div>
   </li>{{end}}
 </ul>
-<p class="small muted">{{t "forecast.ahead_hint"}}</p>
+<p class="small muted">{{t "forecast.ahead_hint" "days" $ahead}}</p>
 {{else}}<p class="small muted">{{t "forecast.none"}}</p>{{end}}
 {{end}}
 
 {{define "widgets/homelab_cost"}}
 {{with $v := .Frag.View}}{{with $b := $v.Bill}}
-<p class="kpi"><span class="kpi-label">{{t "cost.per_month"}}</span> <b class="kpi-value">{{money $b.Total}}</b></p>
+<p class="kpi"><span class="kpi-label">{{if $v.Yearly}}{{t "cost.per_year"}}{{else}}{{t "cost.per_month"}}{{end}}</span> <b class="kpi-value">{{money $b.Total}}</b></p>
 {{with $b.Items}}<ul class="plain-list small">{{range .}}<li>{{t (print "cost." .Key)}} <span class="muted">{{.Name}}</span> · {{money .Monthly}}</li>{{end}}</ul>
 {{else}}<p class="small muted">{{t "cost.none"}}</p>{{end}}
 {{if $b.Cloud}}<p class="small">{{t "cost.cloud" "amount" (money $b.Cloud)}}</p>{{end}}
 {{end}}
 {{with $v.Share}}<p class="small">{{t "cost.business" "percent" (num $v.SharePct 0) "count" $v.ShareOf "all" $v.ShareAll "yearly" (money $v.BusinessYearly)}}</p>{{end}}
-{{with $v.Services}}<h4>{{t "cost.power_split" "watts" (num $v.Watts 0) "amount" (money $v.PowerMonthly)}}</h4>
+{{with $v.Services}}<h4>{{if $v.Yearly}}{{t "cost.power_split_year" "watts" (num $v.Watts 0) "amount" (money $v.PowerMonthly)}}{{else}}{{t "cost.power_split" "watts" (num $v.Watts 0) "amount" (money $v.PowerMonthly)}}{{end}}</h4>
 <ul class="plain-list small">{{range .}}<li>{{.Name}} · {{money .Monthly}}</li>{{end}}</ul>{{end}}
 {{end}}
 {{end}}
@@ -159,11 +159,14 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Count}}
 <div class="tile-head"><b class="tile-value">{{money $v.Total}}</b><span class="tile-sub">{{t "aging.count" "n" $v.Count}}</span></div>
-<div class="stack" role="img" aria-label="{{range $v.Bands}}{{if .Count}}{{t (print "aging." .Key)}} {{money .Amount}}; {{end}}{{end}}">
+<div class="stack" role="img" aria-label="{{range $v.Bands}}{{if .Count}}{{template "aging_band" .}} {{money .Amount}}; {{end}}{{end}}">
   {{range $v.Bands}}{{if .Pct}}<i style="--w:{{.Pct}}%" data-tier="{{.Tier}}"></i>{{end}}{{end}}
 </div>
 <ul class="legend-list">
-  {{range $v.Bands}}{{if .Count}}<li><span class="sq" data-tier="{{.Tier}}" aria-hidden="true"></span>{{t (print "aging." .Key)}}<b>{{money .Amount}}</b></li>{{end}}{{end}}
+  {{range $v.Bands}}{{if .Count}}<li><span class="sq" data-tier="{{.Tier}}" aria-hidden="true"></span>{{template "aging_band" .}}<b>{{money .Amount}}</b></li>{{end}}{{end}}
 </ul>
 {{else}}<p class="tile-sub">{{t "aging.none"}}</p>{{end}}{{end}}
 {{end}}
+
+{{/* aging_band: a band's days, from its limits (AgingBand). */}}
+{{define "aging_band"}}{{if eq .Key "current"}}{{t "aging.current"}}{{else if .Over}}{{t "aging.over" "days" .Over}}{{else}}{{t "aging.span" "from" .From "to" .To}}{{end}}{{end}}

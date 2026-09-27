@@ -1,6 +1,7 @@
 package web
 
 import (
+	"andon/internal/widgets"
 	"bytes"
 	"embed"
 	"errors"
@@ -47,11 +48,20 @@ func mustParse() *template.Template {
 		// placeholder.
 		"barPct":      barPct,
 		"abs":         math.Abs,
+		"thousands":   func(v float64) float64 { return v / 1000 },
+		"sparkOf":     widgets.SparkOf,
 		"tier":        tier,
 		"eqID":        func(a *int64, b int64) bool { return a != nil && *a == b },
 		"weatherKind": weatherKind,
 		"clockNow":    func(tz string) string { return clockNow(tz, clockMinutes) },
 		"clockNowSec": func(tz string) string { return clockNow(tz, clockSeconds) },
+		// clockShow is a clock tile's time: 12 or 24 hours, with or without seconds.
+		"clockShow": func(tz string, seconds, h12 bool) string {
+			layout := map[[2]bool]string{{false, false}: clockMinutes, {true, false}: clockSeconds,
+				{false, true}: clock12Minutes, {true, true}: clock12Seconds}[[2]bool{seconds, h12}]
+			return clockNow(tz, layout)
+		},
+		"clockHands":  clockHands,
 		"dict":        dict,
 		"list":        func(items ...string) []string { return items },
 		"monogram":    monogram,
@@ -136,9 +146,25 @@ func clockNow(tz, layout string) string {
 
 // Clock layouts: with or without seconds.
 const (
-	clockMinutes = "15:04"
-	clockSeconds = "15:04:05"
+	clockMinutes   = "15:04"
+	clockSeconds   = "15:04:05"
+	clock12Minutes = "3:04 PM"
+	clock12Seconds = "3:04:05 PM"
 )
+
+// Hands is an analogue clock's hand angles in degrees.
+type Hands struct{ H, M, S float64 }
+
+// clockHands is now in tz as hand angles; andon.js moves them on.
+func clockHands(tz string) Hands {
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		loc = time.Local
+	}
+	now := time.Now().In(loc)
+	m := float64(now.Minute()) + float64(now.Second())/60
+	return Hands{H: float64(now.Hour()%12)*30 + m/2, M: m * 6, S: float64(now.Second()) * 6}
+}
 
 func clockDate(tz string, locale enums.Locale) string {
 	loc, err := time.LoadLocation(tz)
@@ -156,14 +182,8 @@ func clockDate(tz string, locale enums.Locale) string {
 func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, values map[string]any) error {
 	locale := ctx.Locale
 	funcs := template.FuncMap{
-		"t": func(key string, kv ...any) string { return i18n.T(key, locale, pairs(kv)) },
-		"money": func(v float64, currency ...string) string {
-			c := i18n.DefaultCurrency
-			if len(currency) > 0 && currency[0] != "" {
-				c = currency[0]
-			}
-			return i18n.Money(v, locale, c)
-		},
+		"t":         func(key string, kv ...any) string { return i18n.T(key, locale, pairs(kv)) },
+		"money":     moneyFunc(locale, roundOf(values["Round"])),
 		"num":       func(v float64, digits ...int) string { return i18n.Num(v, locale, firstOr(digits, 0)) },
 		"day":       func(v any) string { return i18n.Day(v, locale) },
 		"weekday":   func(v any) string { return i18n.Weekday(v, locale) },
@@ -215,15 +235,48 @@ func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, valu
 			own[k] = v
 		}
 		own["Frag"], own["PlacementID"] = body.Frag, body.PlacementID
+		tile := page
+		// A tile that rounds money gets its own money func.
+		if body.Frag != nil && body.Frag.Frame.Round != widgets.RoundExact && body.Frag.Frame.Round != "" {
+			clone, err := page.Clone()
+			if err != nil {
+				return "", err
+			}
+			tile = clone.Funcs(template.FuncMap{"money": moneyFunc(locale, body.Frag.Frame.Round)})
+		}
 		var buf bytes.Buffer
-		if err := page.ExecuteTemplate(&buf, body.Template, own); err != nil {
+		if err := tile.ExecuteTemplate(&buf, body.Template, own); err != nil {
 			return "", err
+		}
+		if body.Frag != nil && body.Frag.Calm() {
+			buf.WriteString(calmMark)
 		}
 		return template.HTML(buf.String()), nil //nolint:gosec // output of our own escaping templates
 	}})
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	return page.ExecuteTemplate(w, name, data)
+}
+
+// calmMark ends a tile body that has nothing to do and asks to be hidden
+// (widgets.Frame.OnlyIssues); CSS hides the tile around it.
+const calmMark = `<i class="calm-mark" hidden></i>`
+
+// moneyFunc formats money in the locale, rounded as a tile's frame asks.
+func moneyFunc(locale enums.Locale, round widgets.RoundMode) func(float64, ...string) string {
+	return func(v float64, currency ...string) string {
+		c := i18n.DefaultCurrency
+		if len(currency) > 0 && currency[0] != "" {
+			c = currency[0]
+		}
+		return i18n.MoneyRound(v, locale, c, string(round))
+	}
+}
+
+// roundOf reads a page's "Round" value (a fragment's frame).
+func roundOf(v any) widgets.RoundMode {
+	r, _ := v.(widgets.RoundMode)
+	return r
 }
 
 // themeURL resolves the CSS URL of the theme active for who (nil for an

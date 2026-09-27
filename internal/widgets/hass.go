@@ -13,17 +13,24 @@ var hassSwitchable = map[string]bool{"switch": true, "light": true, "input_boole
 
 // HassConfig lists the entities a "hass" widget shows, in order.
 type HassConfig struct {
-	Entities []string
+	Entities   []string
+	Labels     map[string]string // own names by lower-case entity ID
+	Thresholds []Threshold       // by entity ID or shown name
+	TwoCols    bool
 }
 
-func decodeHass(raw map[string]any) any { return HassConfig{Entities: asStringList(raw["entities"])} }
+func decodeHass(raw map[string]any) any {
+	return HassConfig{Entities: asStringList(raw["entities"]), Labels: parsePairs(asString(raw["labels"])),
+		Thresholds: parseThresholds(asString(raw["thresholds"])), TwoCols: asBool(raw["two_columns"])}
+}
 
 // HassRow is one entity line; Toggle offers a switch, On is its state.
 type HassRow struct {
 	ID, Name, Value, Unit string
 	Toggle, On            bool
 	Missing               bool
-	Low                   bool // a battery below batteryLow
+	Low                   bool   // a battery below batteryLow
+	Level                 string // from the tile's thresholds: warn, fail
 }
 
 // batteryLow is the charge (%) below which a battery shows red.
@@ -54,16 +61,27 @@ func hassView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 	for _, id := range cfg.Entities {
 		e, found := data.Find(id)
 		if !found {
-			rows = append(rows, HassRow{ID: id, Name: id, Missing: true})
+			name := id
+			if own := cfg.Labels[strings.ToLower(id)]; own != "" {
+				name = own
+			}
+			rows = append(rows, HassRow{ID: id, Name: name, Missing: true})
 			continue
 		}
 		row := HassRow{ID: id, Name: e.Name, Value: e.State, Unit: e.Unit, Toggle: hassSwitchable[e.Domain], On: e.State == sources.HassOn}
-		if charge, err := strconv.ParseFloat(e.State, 64); err == nil && e.DeviceClass == "battery" && charge < batteryLow {
-			row.Low = true
+		if own := cfg.Labels[strings.ToLower(id)]; own != "" {
+			row.Name = own
+		}
+		if n, err := strconv.ParseFloat(e.State, 64); err == nil {
+			row.Low = e.DeviceClass == "battery" && n < batteryLow
+			row.Level = levelOf(id, n, cfg.Thresholds)
+			if row.Level == "" {
+				row.Level = levelOf(row.Name, n, cfg.Thresholds)
+			}
 		}
 		rows = append(rows, row)
 	}
-	return map[string]any{"Rows": rows}
+	return map[string]any{"Rows": rows, "TwoCols": cfg.TwoCols}
 }
 
 func init() {

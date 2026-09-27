@@ -19,7 +19,8 @@
 {{with $feed := $slot.Data}}
 <ul class="feed-list">
   {{range $feed.Items}}
-  <li>
+  <li{{if .Image}} class="has-image"{{end}}>
+    {{with .Image}}<img class="feed-image" src="{{. | dataURI}}" alt="" loading="lazy">{{end}}
     {{if .Link}}<a href="{{.Link}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a>{{else}}{{.Title}}{{end}}
     {{if .Published}}<time datetime="{{.Published}}">{{day .Published}}</time>{{end}}
     {{if and $.Frag.Config.Summary .Summary}}<p class="muted small">{{.Summary}}</p>{{end}}
@@ -30,10 +31,18 @@
 {{end}}
 
 {{define "widgets/clock"}}
-<div class="clock-tile">
-  {{range .Frag.Config.Timezones}}
-    <div class="clock-zone"><span class="muted small">{{.}}</span> <strong>{{if $.Frag.Config.Seconds}}{{clockNowSec .}}{{else}}{{clockNow .}}{{end}}</strong>
-      {{if $.Frag.Config.Date}}<span class="muted small">{{clockDate .}}</span>{{end}}
+{{$c := .Frag.Config}}
+<div class="clock-tile{{if $c.Analog}} is-analog{{end}}">
+  {{range $c.Timezones}}
+    <div class="clock clock-zone" data-tz="{{.}}" data-locale="{{$.Ctx.Locale}}" data-seconds="{{if $c.Seconds}}yes{{else}}no{{end}}" data-h12="{{if $c.H12}}yes{{else}}no{{end}}">
+      {{if $c.Analog}}{{with $h := clockHands .}}<svg class="clock-face" viewBox="0 0 100 100" role="img" aria-hidden="true">
+        <circle cx="50" cy="50" r="46"/>
+        <line class="hand-h" x1="50" y1="50" x2="50" y2="26" style="--a:{{$h.H}}deg"/>
+        <line class="hand-m" x1="50" y1="50" x2="50" y2="12" style="--a:{{$h.M}}deg"/>
+        {{if $c.Seconds}}<line class="hand-s" x1="50" y1="56" x2="50" y2="10" style="--a:{{$h.S}}deg"/>{{end}}
+      </svg>{{end}}{{end}}
+      <span class="muted small">{{.}}</span> <strong class="clock-time">{{clockShow . $c.Seconds $c.H12}}</strong>
+      {{if $c.Date}}<span class="muted small clock-date">{{clockDate .}}</span>{{end}}
     </div>
   {{end}}
 </div>
@@ -44,7 +53,7 @@
 {{with $w := .Frag.View}}
 <div class="weather-tile">
   <div class="weather-now">
-    <b>{{num $w.Temp 0}}°</b>
+    <b>{{num $w.Temp 0}}°{{if $w.Fahrenheit}}F{{end}}</b>
     <span>{{t (printf "weather.%s" (weatherKind $w.Code))}}</span>
     {{if $w.Label}}<small>{{$w.Label}}</small>{{end}}
   </div>
@@ -61,38 +70,37 @@
 {{end}}
 
 {{define "widgets/iframe"}}
-<iframe class="frame" src="{{.Frag.Config.URL}}" height="{{.Frag.Config.Height}}" loading="lazy" referrerpolicy="no-referrer"></iframe>
+<iframe class="frame" src="{{.Frag.Config.URL}}" height="{{.Frag.Config.Height}}" loading="lazy" referrerpolicy="no-referrer"{{with .Frag.Config.ReloadM}} data-reload="{{.}}"{{end}}></iframe>
 {{end}}
 
 {{define "widgets/sysinfo"}}
-{{with $slot := index .Frag.Slots "stats"}}{{template "widget-slot-state" $slot}}
-{{with $s := $slot.Data}}
+{{with $slot := index .Frag.Slots "stats"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Meters}}
 <div class="meters">
-  {{template "meter" dict "L" (t "sys.cpu") "V" $s.CPU}}
-  {{template "meter" dict "L" (t "sys.mem") "V" $s.Mem}}
-  {{template "meter" dict "L" (t "sys.swap") "V" $s.Swap}}
-  {{range $s.Disks}}{{template "meter" dict "L" .Mount "V" .Percent}}{{end}}
-</div>
-<p class="tile-foot"><span>{{t "sys.load"}} {{num $s.Load 2}}</span></p>
-{{end}}{{end}}
+  {{range $v.Meters}}{{template "meter" dict "L" (or (and .Raw .Label) (t .Label)) "V" .V "Tier" .Tier}}{{end}}
+</div>{{end}}
+{{if $v.Meters}}<p class="tile-foot"><span>{{t "sys.load"}} {{num $v.Load 2}}</span></p>{{end}}
+{{end}}
 {{end}}
 
 {{/* One labelled percent meter; "V" is 0–100. */}}
 {{define "meter"}}
 <div class="progress"><div class="progress-head"><span>{{.L}}</span><span>{{num .V 0}} %</span></div>
-  <div class="progress-bar"><i style="--p:{{num .V 0}}%" data-tier="{{if ge .V 80.0}}red{{else if ge .V 60.0}}yellow{{else}}green{{end}}"></i></div></div>
+  <div class="progress-bar"><i style="--p:{{num .V 0}}%" data-tier="{{if .Tier}}{{.Tier}}{{else if ge .V 80.0}}red{{else if ge .V 60.0}}yellow{{else}}green{{end}}"></i></div></div>
 {{end}}
 
 {{define "widgets/public_ip"}}
-{{with $slot := index .Frag.Slots "ip"}}{{template "widget-slot-state" $slot}}
-{{with $ip := $slot.Data}}<p class="kpi-value">{{$ip.IP}}</p>{{end}}{{end}}
+{{with $slot := index .Frag.Slots "ip"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{with $v.IP}}<p class="kpi-value">{{.}}</p>{{end}}
+{{with $v.IPv6}}<p class="small ip6">{{.}}</p>{{end}}
+{{if $v.Changed}}<p class="small warn-text">{{t "ip.changed" "time" ($v.Since.Local.Format "15:04") "prev" $v.Prev}}</p>{{end}}{{end}}
 {{end}}
 
 {{define "widgets/image"}}
 {{with $slot := index .Frag.Slots "image"}}{{template "widget-slot-state" $slot}}
 {{with $img := $slot.Data}}
 {{if $.Frag.Config.Link}}<a href="{{$.Frag.Config.Link}}" target="_blank" rel="noopener noreferrer">{{end}}
-<img class="image-tile" src="{{$img.DataURI | dataURI}}" height="{{$.Frag.Config.Height}}" alt="{{$.Frag.Title}}">
+<img class="image-tile{{if $.Frag.Config.Cover}} is-cover{{end}}" src="{{$img.DataURI | dataURI}}" height="{{$.Frag.Config.Height}}" alt="{{$.Frag.Title}}">
 {{if $.Frag.Config.Link}}</a>{{end}}
 {{end}}{{end}}
 {{end}}
@@ -101,7 +109,9 @@
 {{with $slot := index .Frag.Slots "rates"}}{{template "widget-slot-state" $slot}}
 {{with $r := $slot.Data}}
 <table class="table rates">
-  {{range $r.Rates}}<tr><td>1 {{$r.Base}}</td><td class="num">{{num .Value 4}} {{.Code}}</td></tr>{{end}}
+  {{$c := $.Frag.Config}}
+  {{range $r.Rates}}<tr>{{if $c.Invert}}<td>1 {{.Code}}</td><td class="num">{{num .Inverse 4}} {{$r.Base}}</td>{{else}}<td>1 {{$r.Base}}</td><td class="num">{{num .Value 4}} {{.Code}}</td>{{end}}
+    {{if $c.Change}}<td class="num"><span class="pill" data-state="{{if lt .Change 0.0}}fail{{else}}ok{{end}}">{{if gt .Change 0.0}}+{{end}}{{num .Change 2}} %</span></td>{{end}}</tr>{{end}}
 </table>
 <small class="muted">{{t "rates.source" "day" (day $r.Day)}}</small>
 {{end}}{{end}}
@@ -115,10 +125,10 @@
 <div class="tile-head"><b class="tile-value">{{$v.Up}} / {{$v.Total}}</b><span class="tile-sub">{{t "kuma.online"}}{{with $v.AvgMS}} · Ø {{num . 0}} ms{{end}}</span></div>
 {{if $v.Lines}}
 {{/* One line per monitor: state now, its last 14 days, response time. */}}
-<ul class="mon-lines">
+<ul class="mon-lines"{{if $v.HideMS}} data-no-ms{{end}}>
   {{range $v.Lines}}<li><span class="mon-name"><span class="mon-dot" data-state="{{.State}}"></span>{{.Name}}</span>
     <span class="strip" role="img" aria-label="{{t "kuma.days" "name" .Name}}">{{range .Days}}<i data-state="{{.State}}" title="{{.Title}}"></i>{{end}}</span>
-    <small>{{if .MS}}{{num .MS 0}} ms{{else}}–{{end}}</small></li>{{end}}
+    {{if not $v.HideMS}}<small>{{if .MS}}{{num .MS 0}} ms{{else}}–{{end}}</small>{{end}}</li>{{end}}
 </ul>
 {{if $v.LinesMore}}<p class="tile-foot">{{t "kuma.more" "n" $v.LinesMore}}</p>{{end}}
 {{else}}
@@ -131,7 +141,7 @@
 
 {{define "widgets/hass"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
-<ul class="hass-list">
+<ul class="hass-list"{{if .Frag.View.TwoCols}} data-cols="2"{{end}}>
   {{range .Frag.View.Rows}}
   <li>
     <span>{{.Name}}</span>
@@ -142,15 +152,24 @@
       <input type="hidden" name="entity" value="{{.ID}}">
       <button type="submit" class="hass-switch" role="switch" aria-checked="{{.On}}" aria-label="{{.Name}}" title="{{if .On}}{{t "hass.on"}}{{else}}{{t "hass.off"}}{{end}}"></button>
     </form>
+    {{else if .Level}}<span class="pill" data-state="{{.Level}}">{{.Value}}{{with .Unit}} {{.}}{{end}}</span>
     {{else}}<b class="hass-value{{if .Low}} is-low{{end}}">{{if .Low}}<span aria-hidden="true">▮ </span>{{end}}{{.Value}}{{with .Unit}} <small>{{.}}</small>{{end}}</b>{{end}}
   </li>
   {{end}}
 </ul>
 {{end}}
 
-{{define "widgets/note"}}
-<p class="note-tile">{{.Frag.Config.Text}}</p>
+{{define "widgets/note"}}{{$c := .Frag.Config}}
+<div class="note-tile"{{if ne $c.Color "none"}} data-color="{{$c.Color}}"{{end}}>
+{{if $c.Markdown}}{{range $c.Blocks}}{{if eq .Kind "h"}}<h4>{{range index .Lines 0}}{{template "md_span" .}}{{end}}</h4>
+{{else if eq .Kind "ul"}}<ul>{{range .Lines}}<li>{{range .}}{{template "md_span" .}}{{end}}</li>{{end}}</ul>
+{{else}}<p>{{range $i, $l := .Lines}}{{if $i}}<br>{{end}}{{range $l}}{{template "md_span" .}}{{end}}{{end}}</p>{{end}}{{end}}
+{{else}}<p>{{$c.Text}}</p>{{end}}
+</div>
 {{end}}
+
+{{/* One Markdown run; the text is always escaped. */}}
+{{define "md_span"}}{{if .URL}}<a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Text}}</a>{{else if eq .Style "b"}}<strong>{{.Text}}</strong>{{else if eq .Style "i"}}<em>{{.Text}}</em>{{else if eq .Style "code"}}<code>{{.Text}}</code>{{else}}{{.Text}}{{end}}{{end}}
 
 {{/* Greeting: hello, clock, weather ahead, changes since last evening. */}}
 {{define "widgets/greeting"}}
@@ -159,7 +178,7 @@
   <div class="greet-hello">
     <p class="clock greet-when" data-tz="{{$v.Timezone}}" data-locale="{{.Ctx.Locale}}"><span class="clock-date">{{clockDate $v.Timezone}}</span> · <span class="clock-time">{{clockNow $v.Timezone}}</span></p>
     <h2 class="greet-title">{{t (print "greeting." $v.Part)}},<br>{{$v.Name}}.</h2>
-    <p class="greet-sub">{{if $v.OpenHints}}<a href="/hints">{{t "greeting.open" "n" $v.OpenHints}}</a>{{else}}{{t "greeting.calm"}}{{end}}</p>
+    {{if $v.ShowHints}}<p class="greet-sub">{{if $v.OpenHints}}<a href="/hints">{{t "greeting.open" "n" $v.OpenHints}}</a>{{else}}{{t "greeting.calm"}}{{end}}</p>{{end}}
   </div>
   {{if $v.HasWeather}}{{with $slot := index $.Frag.Slots "weather"}}
   <div class="greet-box greet-weather">
@@ -173,20 +192,20 @@
     {{end}}
   </div>
   {{end}}{{end}}
-  <div class="greet-box greet-since">
+  {{if $v.ShowSince}}<div class="greet-box greet-since">
     <span class="greet-label">{{t "greeting.since" "hour" $v.SinceHour}}</span>
     <ul>
       {{range $v.Lines}}<li><span class="sq" data-tier="{{.Tier}}" aria-hidden="true"></span>{{if .Key}}{{t .Key "n" .N}}{{else}}{{.Text}}{{end}}</li>
       {{else}}<li class="muted">{{t "greeting.nothing"}}</li>{{end}}
     </ul>
-  </div>
+  </div>{{end}}
 </div>
 {{end}}
 
 {{define "widgets/uptime_month"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Rows}}
-<p class="kpi-label">{{t "uptime.month" "month" $v.Month}}</p>
+<p class="kpi-label">{{t "uptime.month" "month" $v.Month}}{{with $v.SLA}} · {{t "uptime.sla" "pct" (num . 2)}}{{end}}</p>
 <div class="table-wrap"><table class="table compact">
   <tbody>{{range $v.Rows}}<tr><td>{{.Name}}</td>
     <td class="num"><span class="up-share" data-tier="{{.Tier}}">{{num .SharePct 2}} %</span></td>

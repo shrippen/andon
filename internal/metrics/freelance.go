@@ -128,6 +128,7 @@ type CashInputs struct {
 	VATInterval  string
 	VATMethod    string
 	Center       Center // typical payment delay per client
+	DelayDays    int    // scenario: every open invoice paid this much later
 }
 
 // Cashflow projects the balance for days ahead. Without Sure the start
@@ -174,7 +175,7 @@ func Cashflow(in CashInputs, today time.Time, days int) ([]CashPoint, []CashEven
 			if !known {
 				wait = defaultTerms
 			}
-			add(issued.AddDate(0, 0, wait), i.Number+" "+i.Client, i.Balance)
+			add(issued.AddDate(0, 0, wait+in.DelayDays), i.Number+" "+i.Client, i.Balance)
 		}
 		for _, r := range in.Ninja.Recurring {
 			if d, ok := ParseDay(r.NextSendDate); ok && r.Active {

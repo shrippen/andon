@@ -8,6 +8,8 @@ package sources
 import (
 	"context"
 	"net/url"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +25,7 @@ const (
 	gatewayOPNsense = "opnsense"
 	gatewayPfSense  = "pfsense"
 	gatewayUniFi    = "unifi"
+	gatewayOpenWrt  = "openwrt"
 	unifiPageSize   = "200"
 )
 
@@ -35,6 +38,20 @@ type TailDevice struct {
 	LastSeen  time.Time
 	KeyExpiry time.Time // zero = never expires
 	Update    bool
+	Tags      []string // "tag:server"
+}
+
+// tailTags merges the tag lists a device or node carries, without doubles.
+func tailTags(d map[string]any, keys ...string) []string {
+	var out []string
+	for _, k := range keys {
+		for _, raw := range asList(d[k]) {
+			if t := asStr(raw); t != "" && !slices.Contains(out, t) {
+				out = append(out, t)
+			}
+		}
+	}
+	return out
 }
 
 type TailscaleDataset struct {
@@ -73,7 +90,8 @@ func (TailscaleData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		data := &TailscaleDataset{URL: sctx.URL}
 		for _, raw := range asList(asMap(body)["devices"]) {
 			d := asMap(raw)
-			dev := TailDevice{Name: firstStr(asStr(d["hostname"]), asStr(d["name"])), LastSeen: parseTime(d["lastSeen"]), Update: asBool(d["updateAvailable"])}
+			dev := TailDevice{Name: firstStr(asStr(d["hostname"]), asStr(d["name"])), LastSeen: parseTime(d["lastSeen"]), Update: asBool(d["updateAvailable"]),
+				Tags: tailTags(d, "tags")}
 			dev.Online = asBool(d["connectedToControl"]) || now.Sub(dev.LastSeen) < onlineWindow
 			if !asBool(d["keyExpiryDisabled"]) {
 				dev.KeyExpiry = parseTime(d["expires"])
@@ -90,7 +108,8 @@ func (TailscaleData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	data := &TailscaleDataset{URL: sctx.URL, Headscale: true}
 	for _, raw := range asList(asMap(body)["nodes"]) {
 		d := asMap(raw)
-		dev := TailDevice{Name: firstStr(asStr(d["givenName"]), asStr(d["name"])), Online: asBool(d["online"]), LastSeen: parseTime(d["lastSeen"])}
+		dev := TailDevice{Name: firstStr(asStr(d["givenName"]), asStr(d["name"])), Online: asBool(d["online"]), LastSeen: parseTime(d["lastSeen"]),
+			Tags: tailTags(d, "tags", "forcedTags", "validTags")}
 		// Headscale reports "0001-01-01T00:00:00Z" for keys that never expire.
 		if exp := parseTime(d["expiry"]); exp.Year() > 1 {
 			dev.KeyExpiry = exp
@@ -126,12 +145,16 @@ type NetDevice struct {
 }
 
 type GatewayDataset struct {
-	URL      string
-	Kind     string
-	Version  string
-	Updates  int
-	Gateways []GatewayLink
-	Devices  []NetDevice
+	URL     string
+	Kind    string
+	Version string
+	Model   string // OpenWrt: the router's model
+	Updates int
+	Clients int // OpenWrt: devices with a DHCP lease
+	// ClientNames are the leased devices' host names (else MAC or IP), sorted.
+	ClientNames []string
+	Gateways    []GatewayLink
+	Devices     []NetDevice
 }
 
 type GatewayData struct{}
@@ -155,6 +178,8 @@ func (GatewayData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		data, err = pfSense(ctx, services.HeaderApi(sctx.URL, "X-API-Key", secret, sctx.TLS()))
 	case gatewayUniFi:
 		data, err = uniFi(ctx, services.HeaderApi(sctx.URL, "X-API-KEY", secret, sctx.TLS()))
+	case gatewayOpenWrt:
+		data, err = openWrt(ctx, services.UbusApi{URL: sctx.URL, Verify: sctx.VerifyTLS}, secret)
 	default:
 		kind = gatewayOPNsense
 		data, err = opnSense(ctx, services.BasicApi(sctx.URL, secret, sctx.TLS()))
@@ -244,13 +269,78 @@ func uniFi(ctx context.Context, api services.KeyedApi) (*GatewayDataset, error) 
 	return data, nil
 }
 
+// ubusRoot is the login when the secret names no user.
+const ubusRoot = "root"
+
+// openWrt reads an OpenWrt router over rpcd (the login needs read access
+// to system, network.interface and, for clients, luci-rpc):
+//
+//	system board            version, model
+//	network.interface dump  WAN links = interfaces with a default route
+//	luci-rpc getDHCPLeases  clients (optional, comes with LuCI)
+func openWrt(ctx context.Context, api services.UbusApi, secret string) (*GatewayDataset, error) {
+	user, password, found := strings.Cut(secret, ":")
+	if !found {
+		user, password = ubusRoot, secret
+	}
+	session, err := api.Login(ctx, user, password)
+	if err != nil {
+		return nil, err
+	}
+	board, err := api.Call(ctx, session, "system", "board", nil)
+	if err != nil {
+		return nil, err
+	}
+	data := &GatewayDataset{Version: asStr(asMap(asMap(board)["release"])["version"]), Model: asStr(asMap(board)["model"])}
+
+	dump, err := api.Call(ctx, session, "network.interface", "dump", nil)
+	if err != nil {
+		return nil, err
+	}
+	for _, raw := range asList(asMap(dump)["interface"]) {
+		iface := asMap(raw)
+		if defaultRoute(iface) {
+			data.Gateways = append(data.Gateways, GatewayLink{Name: asStr(iface["interface"]), Up: asBool(iface["up"])})
+		}
+	}
+
+	if leases, err := api.Call(ctx, session, "luci-rpc", "getDHCPLeases", nil); err == nil {
+		seen := map[string]bool{}
+		for _, key := range []string{"dhcp_leases", "dhcp6_leases"} {
+			for _, raw := range asList(asMap(leases)[key]) {
+				l := asMap(raw)
+				seen[firstStr(asStr(l["hostname"]), asStr(l["macaddr"]), asStr(l["ipaddr"]))] = true
+			}
+		}
+		delete(seen, "")
+		data.Clients = len(seen)
+		for name := range seen {
+			data.ClientNames = append(data.ClientNames, name)
+		}
+		sort.Strings(data.ClientNames)
+	}
+	return data, nil
+}
+
+// defaultRoute tells whether an interface carries a default route (IPv4
+// 0.0.0.0/0 or IPv6 ::/0), i.e. is an uplink.
+func defaultRoute(iface map[string]any) bool {
+	for _, raw := range asList(iface["route"]) {
+		r := asMap(raw)
+		if target := asStr(r["target"]); (target == "0.0.0.0" || target == "::") && asFloat(r["mask"]) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // ── Demo ──
 
 func DemoTailscale(now time.Time) *TailscaleDataset {
 	return &TailscaleDataset{URL: "https://api.tailscale.com", Devices: []TailDevice{
-		{Name: "nas", Online: true, LastSeen: now},
+		{Name: "nas", Online: true, LastSeen: now, Tags: []string{"tag:server"}},
 		{Name: "laptop", Online: true, LastSeen: now, KeyExpiry: now.AddDate(0, 0, 9)},
-		{Name: "pi", LastSeen: now.AddDate(0, 0, -12), Update: true},
+		{Name: "pi", LastSeen: now.AddDate(0, 0, -12), Update: true, Tags: []string{"tag:server", "tag:iot"}},
 	}}
 }
 

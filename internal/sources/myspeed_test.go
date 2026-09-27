@@ -47,7 +47,7 @@ func TestMySpeed(t *testing.T) {
 		t.Fatal(err)
 	}
 	data := out.(*sources.SpeedtestDataset)
-	if data.Down != 243.5 || data.Up != 41.2 || data.Ping != 14 || data.At.Hour() != 17 {
+	if data.Down != 243.5 || data.Up != 41.2 || data.Ping != 14 || data.Jitter != 2.1 || data.At.Hour() != 17 {
 		t.Fatalf("latest successful test: %+v", data)
 	}
 	if data.ExpectDown != 250 || data.ExpectUp != 40 {

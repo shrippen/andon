@@ -6,7 +6,9 @@ package widgets
 //	invoice_aging  open invoices stacked by how overdue they are
 
 import (
+	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"andon/internal/enums"
@@ -71,10 +73,24 @@ const ConnHealthDays = 14
 // ConnHealthConfig is the "conn_health" widget's config.
 type ConnHealthConfig struct {
 	Limit int
+	Now   bool // only connections failing in the last days, not long ago
 }
 
+// connShakyDays is how far back "failing now" looks.
+const connShakyDays = 2
+
 func decodeConnHealth(raw map[string]any) any {
-	return ConnHealthConfig{Limit: clampInt(asInt(raw["limit"], 4), 1, 20)}
+	return ConnHealthConfig{Limit: clampInt(asInt(raw["limit"], 4), 1, 20), Now: asBool(raw["only_shaky"])}
+}
+
+// failingLately: a failure within the last connShakyDays days.
+func failingLately(s ConnStrip) bool {
+	for _, d := range s.Days[max(len(s.Days)-connShakyDays, 0):] {
+		if d.Fail > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // ConnStrip is one connection's strip as the services hand it over.
@@ -102,6 +118,7 @@ type StripRow struct {
 	Name    string
 	FailPct int
 	Cells   []StripCell
+	lately  bool // failed within connShakyDays
 }
 
 func cellState(d ConnDayState) string {
@@ -128,7 +145,7 @@ func connHealthView(cfgAny any, results map[string]any, _ ViewCtx) map[string]an
 		if s.FailPct == 0 {
 			healthy++
 		}
-		row := StripRow{Name: s.Name, FailPct: s.FailPct}
+		row := StripRow{Name: s.Name, FailPct: s.FailPct, lately: failingLately(s)}
 		for _, d := range s.Days {
 			row.Cells = append(row.Cells, StripCell{State: cellState(d), Title: d.Day})
 		}
@@ -138,7 +155,7 @@ func connHealthView(cfgAny any, results map[string]any, _ ViewCtx) map[string]an
 
 	var shown []StripRow
 	for _, r := range rows {
-		if r.FailPct > 0 && len(shown) < cfg.Limit {
+		if r.FailPct > 0 && len(shown) < cfg.Limit && (!cfg.Now || r.lately) {
 			shown = append(shown, r)
 		}
 	}
@@ -149,11 +166,46 @@ func connHealthView(cfgAny any, results map[string]any, _ ViewCtx) map[string]an
 
 // AgingBand is one part of the stacked open-invoice bar.
 type AgingBand struct {
-	Key    string // catalog suffix: "current", "d30", "d60", "older"
-	Tier   string
-	Amount float64
-	Count  int
-	Pct    int
+	Key      string // catalog suffix: "current", "d30", "d60", "older"
+	Tier     string
+	Amount   float64
+	Count    int
+	Pct      int
+	From, To int // days of the band
+	Over     int // the open-ended band: more than this many days
+}
+
+// AgingConfig is the config of the aging tiles: two band limits in days
+// and names left out.
+type AgingConfig struct {
+	Mid, Old     int
+	HideClients  []string // lower case
+	HideInternal bool     // unbilled: the space's internal customers
+}
+
+func decodeAging(def [2]int) DecodeFunc {
+	return func(raw map[string]any) any {
+		cfg := AgingConfig{Mid: def[0], Old: def[1], HideInternal: asBool(raw["hide_internal"])}
+		if b := asNumberList(raw["bands"]); len(b) == 2 && b[0] > 0 && b[1] > b[0] {
+			cfg.Mid, cfg.Old = b[0], b[1]
+		}
+		cfg.HideClients = lowerList(raw["hide_clients"])
+		return cfg
+	}
+}
+
+// asNumberList reads a list of whole numbers.
+func asNumberList(v any) []int {
+	var out []int
+	for _, x := range asAnyList(v) {
+		out = append(out, int(asFloat(x)))
+	}
+	return out
+}
+
+func asAnyList(v any) []any {
+	list, _ := v.([]any)
+	return list
 }
 
 // agingLimits are the upper overdue days of the bands after "current".
@@ -167,23 +219,39 @@ var agingLimits = []struct {
 // invoiceAgingView stacks open invoices by days overdue:
 //
 //	not due 2.940 € · 1–30 d 1.240 € · 31–60 d 0 · older 0
-func invoiceAgingView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
+func invoiceAgingView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(AgingConfig)
+	if !ok {
+		cfg = decodeAging([2]int{30, 60})(nil).(AgingConfig)
+	}
 	data, ok := results["data"].(*sources.NinjaDataset)
 	if !ok {
 		return map[string]any{}
 	}
 	today, _ := time.Parse(time.DateOnly, ctx.Today)
-	open := metrics.NinjaOpenInvoices(data, today)
+	var open []metrics.NinjaOpenInvoice
+	for _, inv := range metrics.NinjaOpenInvoices(data, today) {
+		if !slices.Contains(cfg.HideClients, strings.ToLower(inv.Client)) {
+			open = append(open, inv)
+		}
+	}
 
+	limits := []int{0, cfg.Mid, cfg.Old, -1}
 	bands := make([]AgingBand, len(agingLimits))
 	total := 0.0
 	for i, l := range agingLimits {
 		bands[i] = AgingBand{Key: l.key, Tier: l.tier}
+		if i > 0 {
+			bands[i].From, bands[i].To = limits[i-1]+1, max(limits[i], 0)
+		}
+		if limits[i] < 0 {
+			bands[i].Over = limits[i-1]
+		}
 	}
 	for _, inv := range open {
-		i := len(agingLimits) - 1
-		for j, l := range agingLimits {
-			if l.upTo >= 0 && inv.OverdueDays <= l.upTo {
+		i := len(limits) - 1
+		for j, upTo := range limits {
+			if upTo >= 0 && inv.OverdueDays <= upTo {
 				i = j
 				break
 			}
@@ -203,12 +271,21 @@ func invoiceAgingView(_ any, results map[string]any, ctx ViewCtx) map[string]any
 // ── speedtest ──
 
 // speedView sets the last measurement against the contract.
-func speedView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+// SpeedConfig is the "speedtest" widget's config.
+type SpeedConfig struct{ Ping bool }
+
+func decodeSpeed(raw map[string]any) any { return SpeedConfig{Ping: boolOr(raw["ping"], true)} }
+
+func speedView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, ok := cfgAny.(SpeedConfig)
+	if !ok {
+		cfg.Ping = true
+	}
 	data, ok := results["data"].(*sources.SpeedtestDataset)
 	if !ok || data == nil {
 		return map[string]any{}
 	}
-	out := map[string]any{"Data": data}
+	out := map[string]any{"Data": data, "Ping": cfg.Ping}
 	if data.ExpectDown > 0 {
 		out["DownPct"] = data.Down / data.ExpectDown
 	}
@@ -221,6 +298,15 @@ func speedView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 func init() {
 	Register(WidgetType{Key: "conn_health", Decode: decodeConnHealth, Template: "widgets/conn_health", Category: CategoryInsight,
 		RefreshS: 10 * 60, View: connHealthView, Extra: ExtraConnHealth})
-	Register(WidgetType{Key: "invoice_aging", Decode: decodeEmpty, Template: "widgets/invoice_aging", Category: CategoryInsight,
+	Register(WidgetType{Key: "invoice_aging", Decode: decodeAging([2]int{30, 60}), Template: "widgets/invoice_aging", Category: CategoryInsight,
 		Service: enums.ServiceInvoiceNinja, RefreshS: 30 * 60, Queries: dataQuery, View: invoiceAgingView})
+}
+
+// lowerList reads a list field in lower case, for names compared loosely.
+func lowerList(v any) []string {
+	var out []string
+	for _, n := range asStringList(v) {
+		out = append(out, strings.ToLower(n))
+	}
+	return out
 }

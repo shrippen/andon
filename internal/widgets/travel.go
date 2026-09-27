@@ -15,7 +15,11 @@ import (
 )
 
 // TravelConfig is the "travel" widget's config; KMRate 0 hides the amount.
-type TravelConfig struct{ KMRate float64 }
+type TravelConfig struct {
+	KMRate  float64
+	Year    bool // the year against last year instead of the month
+	HideBar bool // no bar against the previous period
+}
 
 // defaultKMRate is the German flat rate for business trips by car (€/km).
 const defaultKMRate = 0.30
@@ -25,7 +29,7 @@ func decodeTravel(raw map[string]any) any {
 	if v, ok := raw["km_rate"]; ok {
 		rate = max(asFloat(v), 0)
 	}
-	return TravelConfig{KMRate: rate}
+	return TravelConfig{KMRate: rate, Year: raw["period"] == "year", HideBar: asBool(raw["hide_bar"])}
 }
 
 // yearStats finds one year in Dawarich's yearlyStats.
@@ -64,8 +68,16 @@ func travelView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any 
 		km += t.KM
 	}
 	out["Trips"], out["TripKM"], out["TripAmount"] = len(trips), km, km*cfg.KMRate
-	if prev := out["PrevKM"].(float64); prev > 0 {
-		out["MonthBar"] = min(pctOf(out["MonthKM"].(float64), prev), pctFull)
+
+	// The head: this month against the last, or this year against the last.
+	head, prev := out["MonthKM"].(float64), out["PrevKM"].(float64)
+	if cfg.Year {
+		head, prev = out["YearKM"].(float64), asFloat(yearStats(data.Stats, today.Year()-1)["totalDistanceKm"])
+		out["PrevKM"] = prev
+	}
+	out["HeadKM"], out["Year"] = head, cfg.Year
+	if prev > 0 && !cfg.HideBar {
+		out["Bar"] = min(pctOf(head, prev), pctFull)
 	}
 	return out
 }

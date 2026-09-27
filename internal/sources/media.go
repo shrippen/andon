@@ -6,7 +6,9 @@ package sources
 
 import (
 	"context"
+	"math/rand/v2"
 	"net/url"
+	"strconv"
 	"time"
 
 	"andon/internal/drivers/httpclient"
@@ -33,6 +35,9 @@ type Picture struct {
 
 // ── xkcd ──
 
+// xkcdMissing is the comic number that does not exist (a joke of its own).
+const xkcdMissing = 404
+
 type XkcdSource struct{}
 
 func (XkcdSource) Key() string                { return "xkcd" }
@@ -45,7 +50,20 @@ func (XkcdSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		return nil, newSourceError("%s", err.Error())
 	}
 	m := asMap(body)
-	pic := &Picture{Title: asStr(m["safe_title"]), Text: asStr(m["alt"]), Link: xkcdBase + "/" + asStr(m["num"]) + "/"}
+	if latest := int(asFloat(m["num"])); asBool(sctx.Params["random"]) && latest > 1 {
+		n := rand.IntN(latest) + 1 //nolint:gosec // picks a comic, nothing secret
+		if n == xkcdMissing {
+			n++
+		}
+		if n <= latest {
+			one, _, err := httpclient.GetJSON(ctx, xkcdBase+"/"+strconv.Itoa(n)+"/info.0.json", httpclient.Options{})
+			if err != nil {
+				return nil, newSourceError("%s", err.Error())
+			}
+			m = asMap(one)
+		}
+	}
+	pic := &Picture{Title: asStr(m["safe_title"]), Text: asStr(m["alt"]), Link: xkcdBase + "/" + strconv.Itoa(int(asFloat(m["num"]))) + "/"}
 	img, err := fetchImage(ctx, asStr(m["img"]), imageMax)
 	if err != nil {
 		return nil, err

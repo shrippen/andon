@@ -30,6 +30,12 @@ const (
 
 // Story returns the week's lines across the caller's spaces.
 func Story(ctx context.Context, d *sql.DB, who *access.Principal, now time.Time) ([]metrics.StoryLine, error) {
+	return StorySince(ctx, d, who, metrics.Today(now).AddDate(0, 0, -weekDays), now)
+}
+
+// StorySince returns the lines from start (a day) until now, e.g. since
+// Monday for the calendar week.
+func StorySince(ctx context.Context, d *sql.DB, who *access.Principal, start, now time.Time) ([]metrics.StoryLine, error) {
 	views, err := connections.Listing(d, who, enums.RightUse)
 	if err != nil {
 		return nil, err
@@ -63,13 +69,13 @@ func Story(ctx context.Context, d *sql.DB, who *access.Principal, now time.Time)
 			merged.Series[k] = v
 		}
 	}
-	lines = append(lines, metrics.WeekStory(datasets, merged, now)...)
+	lines = append(lines, metrics.StorySince(datasets, merged, start, now)...)
 
 	ids := make([]int64, 0, len(who.Spaces))
 	for id := range who.Spaces {
 		ids = append(ids, id)
 	}
-	events, err := data.HintEventsSince(d, ids, []string{string(enums.EventOpened), string(enums.EventResolved)}, now.AddDate(0, 0, -weekDays), eventLimit)
+	events, err := data.HintEventsSince(d, ids, []string{string(enums.EventOpened), string(enums.EventResolved)}, start, eventLimit)
 	if err != nil {
 		return nil, err
 	}

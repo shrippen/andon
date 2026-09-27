@@ -10,6 +10,7 @@ package widgets
 //	□ USt-Voranmeldung bis 10.10.  (never ticked: Andon cannot see it)
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -26,6 +27,51 @@ type CloseStep struct {
 	Hours float64
 	Due   string // vat only
 	URL   string
+	Hand  bool // ticked by hand
+}
+
+// CloseTicksPref is the user pref (and result slot) of steps ticked by
+// hand: {"2026-08": ["vat"]}.
+const CloseTicksPref = "close_ticks"
+
+// CloseTicksOf reads the stored ticks, which come back from JSON as
+// map[string]any of []any.
+func CloseTicksOf(raw any) map[string][]string {
+	out := map[string][]string{}
+	switch m := raw.(type) {
+	case map[string][]string:
+		return m
+	case map[string]any:
+		for month, list := range m {
+			items, _ := list.([]any)
+			for _, item := range items {
+				if s, ok := item.(string); ok {
+					out[month] = append(out[month], s)
+				}
+			}
+		}
+	}
+	return out
+}
+
+// closeSteps are the steps in order, each with its on/off field.
+var closeSteps = []string{"hours", "drafts", "receipts", "inbox", "vat"}
+
+// MonthCloseConfig is the "month_close" widget's config.
+type MonthCloseConfig struct {
+	Hide    map[string]bool
+	Current bool // the running month instead of last month
+	Manual  bool // steps can be ticked by hand
+}
+
+func decodeMonthClose(raw map[string]any) any {
+	cfg := MonthCloseConfig{Hide: map[string]bool{}, Current: raw["month"] == "current", Manual: asBool(raw["manual"])}
+	for _, step := range closeSteps {
+		if !boolOr(raw["close_"+step], true) {
+			cfg.Hide[step] = true
+		}
+	}
+	return cfg
 }
 
 func monthCloseQueries(any) []Query {
@@ -33,9 +79,13 @@ func monthCloseQueries(any) []Query {
 		peer(peerPaperless, enums.ServicePaperless), peer(peerMail, enums.ServiceMail)}
 }
 
-func monthCloseView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
+func monthCloseView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(MonthCloseConfig)
 	today := parseToday(ctx.Today)
 	start := metrics.AddMonths(today, -1)
+	if cfg.Current {
+		start = metrics.AddMonths(today, 0)
+	}
 	end := metrics.AddMonths(start, 1).AddDate(0, 0, -1)
 	inMonth := func(day string) bool {
 		d, ok := metrics.ParseDay(day)
@@ -86,17 +136,27 @@ func monthCloseView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
 		}
 	}
 
+	month := start.Format("2006-01")
+	ticked := CloseTicksOf(results[CloseTicksPref])[month]
+	shown := steps[:0]
 	done := 0
 	for _, s := range steps {
+		if cfg.Hide[s.Key] {
+			continue
+		}
+		if cfg.Manual && !s.Done && slices.Contains(ticked, s.Key) {
+			s.Done, s.Hand = true, true
+		}
 		if s.Done {
 			done++
 		}
+		shown = append(shown, s)
 	}
-	return map[string]any{"Steps": steps, "Done": done, "Month": start.Format("01/2006"),
-		"Pct": pctOf(float64(done), float64(max(len(steps), 1)))}
+	return map[string]any{"Steps": shown, "Done": done, "Month": start.Format("01/2006"), "MonthKey": month, "Manual": cfg.Manual,
+		"Pct": pctOf(float64(done), float64(max(len(shown), 1)))}
 }
 
 func init() {
-	Register(WidgetType{Key: "month_close", Decode: decodeEmpty, Template: "widgets/month_close", Category: CategoryInsight,
+	Register(WidgetType{Key: "month_close", Decode: decodeMonthClose, Extra: ExtraCloseTicks, Template: "widgets/month_close", Category: CategoryInsight,
 		RefreshS: 1800, Queries: monthCloseQueries, View: monthCloseView})
 }

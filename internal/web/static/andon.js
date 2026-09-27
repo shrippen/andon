@@ -382,8 +382,24 @@
     });
   }
 
+  // Embedded pages with data-reload (minutes) load again at that pace.
+  function reloadFrames() {
+    var now = Date.now();
+    [].forEach.call(d.querySelectorAll("iframe[data-reload]"), function (f) {
+      var every = parseFloat(f.getAttribute("data-reload")) * 60000;
+      var since = parseFloat(f.getAttribute("data-loaded") || "0");
+      if (!since) {
+        f.setAttribute("data-loaded", String(now));
+      } else if (every > 0 && now - since >= every) {
+        f.setAttribute("data-loaded", String(now));
+        f.src = f.src;
+      }
+    });
+  }
+
   function tick() {
     tickTimers();
+    reloadFrames();
     [].forEach.call(d.querySelectorAll(".clock"), function (el) {
       var zone = el.getAttribute("data-tz");
       var locale = el.getAttribute("data-locale") || undefined;
@@ -392,6 +408,23 @@
       var time = { hour: "2-digit", minute: "2-digit", timeZone: zone };
       if (seconds) {
         time.second = "2-digit";
+      }
+      if (el.getAttribute("data-h12") === "yes") {
+        time.hour = "numeric";
+        time.hour12 = true;
+      }
+      var face = el.querySelector(".clock-face");
+      if (face) {
+        try {
+          var hms = now.toLocaleTimeString("en-GB", { hour12: false, timeZone: zone }).split(":").map(Number);
+          var m = hms[1] + hms[2] / 60;
+          face.querySelector(".hand-h").style.setProperty("--a", ((hms[0] % 12) * 30 + m / 2) + "deg");
+          face.querySelector(".hand-m").style.setProperty("--a", (m * 6) + "deg");
+          var sec = face.querySelector(".hand-s");
+          if (sec) {
+            sec.style.setProperty("--a", (hms[2] * 6) + "deg");
+          }
+        } catch (err) { /* unknown zone: the text says "?" below */ }
       }
 
       try {
@@ -628,6 +661,8 @@
       box.querySelector('input[type="search"]').value = hit.getAttribute("data-place");
       box.querySelector("[data-place-coords]").textContent = hit.getAttribute("data-lat") + ", " + hit.getAttribute("data-lon");
       box.querySelector(".place-results").innerHTML = "";
+      // Tell the form (live preview) that the place changed.
+      box.querySelector('[data-place-field="place"]').dispatchEvent(new Event("input", { bubbles: true }));
     });
   }
 

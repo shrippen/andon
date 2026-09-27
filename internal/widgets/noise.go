@@ -21,6 +21,26 @@ type Flap struct {
 // NoiseDays is the window of the "hint_noise" tile.
 const NoiseDays = 14
 
+// NoiseConfig is the "hint_noise" widget's config.
+type NoiseConfig struct{ Days int }
+
+func decodeNoise(raw map[string]any) any {
+	days := NoiseDays
+	switch raw["period"] {
+	case "30":
+		days = 30
+	case "90":
+		days = 90
+	}
+	return NoiseConfig{Days: days}
+}
+
+// ExtraDays is how far back the widgets service loads the traffic.
+func (c NoiseConfig) ExtraDays() int { return c.Days }
+
+// DaysWanter is a config that sets how many days its extra reaches back.
+type DaysWanter interface{ ExtraDays() int }
+
 func noiseView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 	data, ok := results[NoiseSlot].(NoiseData)
 	if !ok {
@@ -36,6 +56,6 @@ func noiseView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "hint_noise", Decode: decodeEmpty, Template: "widgets/hint_noise", Category: CategoryInsight,
+	Register(WidgetType{Key: "hint_noise", Decode: decodeNoise, Template: "widgets/hint_noise", Category: CategoryInsight,
 		RefreshS: 1800, View: noiseView, Extra: ExtraNoise})
 }
