@@ -30,6 +30,16 @@ import (
 
 const shutdownTimeout = 10 * time.Second
 
+// Server limits: slow clients must not hold connections open (Slowloris).
+// Writes get room for the slowest handlers (tax ZIP, LLM advice).
+const (
+	readHeaderTimeout = 10 * time.Second
+	readTimeout       = time.Minute
+	writeTimeout      = 5 * time.Minute
+	idleTimeout       = 2 * time.Minute
+	maxHeaderBytes    = 64 << 10
+)
+
 func main() {
 	cfg := settings.Load()
 
@@ -133,7 +143,11 @@ func main() {
 	if port := os.Getenv("PORT"); port != "" {
 		addr = ":" + port
 	}
-	server := &http.Server{Addr: addr, Handler: deps.Secure(mux)}
+	server := &http.Server{
+		Addr: addr, Handler: deps.Secure(mux),
+		ReadHeaderTimeout: readHeaderTimeout, ReadTimeout: readTimeout,
+		WriteTimeout: writeTimeout, IdleTimeout: idleTimeout, MaxHeaderBytes: maxHeaderBytes,
+	}
 
 	go func() {
 		slog.Info("listening", "addr", server.Addr)
