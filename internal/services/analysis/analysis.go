@@ -373,7 +373,7 @@ func snapshot(d *sql.DB, conn *model.Connection, owner *int64, dataset any, toda
 		values["revenue_ytd"] = stats.RevenueYTD
 		values["open_amount"] = stats.OpenAmount
 	case "kimai":
-		stats := metrics.KimaiSummaryOf(dataset.(*sources.KimaiDataset), today, 0)
+		stats := metrics.KimaiSummaryOf(dataset.(*sources.KimaiDataset), today)
 		values["month_min"] = float64(stats.MonthMin)
 	}
 	if len(values) == 0 {

@@ -60,6 +60,7 @@ type KimaiDataset struct {
 	Absences      []KimaiAbsence
 	Holidays      []KimaiHoliday
 	HolidayBundle bool
+	Contract      *WorkContract // working time from Kimai, nil if none
 }
 
 // ── Invoice Ninja ──

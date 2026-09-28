@@ -9,6 +9,7 @@
     <span class="weekcol-bar">
       {{if .Segs}}<span class="weekcol-stack" data-style="--h:{{.H}}%">{{range .Segs}}<i data-style="--s:{{.H}}%" data-tier="{{.Tier}}"></i>{{end}}</span>
       {{else}}<i data-style="--h:{{.H}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i>{{end}}
+      {{with .TargetPct}}<b class="weekcol-mark" data-style="--t:{{.}}%"></b>{{end}}
     </span>
     <small>{{t (print "week.d" .I)}}</small>
   </div>
@@ -27,8 +28,8 @@
 {{define "widgets/kimai_week"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Days}}
-<div class="tile-head"><b class="tile-value">{{$v.Total}} h</b><span class="tile-sub">{{if $v.Over}}{{t "timer.over" "time" $v.Left}}{{else}}{{t "timer.left" "time" $v.Left}}{{end}}</span></div>
-{{template "weekcols" dict "D" $v.Days "Target" $v.TargetPct "Label" (t "wtype.kimai_week.name")}}
+<div class="tile-head"><b class="tile-value">{{$v.Total}} h</b><span class="tile-sub">{{if not $v.Contract}}{{t "kimai.no_contract"}}{{else if $v.Over}}{{t "timer.over" "time" $v.Left}}{{else}}{{t "timer.left" "time" $v.Left}}{{end}}</span></div>
+{{template "weekcols" dict "D" $v.Days "Target" 0 "Label" (t "wtype.kimai_week.name")}}
 {{end}}{{end}}
 {{end}}
 

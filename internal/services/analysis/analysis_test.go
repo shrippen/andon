@@ -91,6 +91,13 @@ func TestRunAllProducesKimaiHints(t *testing.T) {
 	mux.HandleFunc("/api/customers", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(`[]`)) })
 	mux.HandleFunc("/api/timesheets/active", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(`[]`)) })
 	mux.HandleFunc("/api/holiday/absences", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNotFound) })
+	// Workdays come from the Kimai work contract: 8 h Monday to Sunday,
+	// so every recent day expects work whatever today is.
+	mux.HandleFunc("/api/users/me", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"preferences":[{"name":"work_monday","value":"28800"},{"name":"work_tuesday","value":"28800"},
+			{"name":"work_wednesday","value":"28800"},{"name":"work_thursday","value":"28800"},{"name":"work_friday","value":"28800"},
+			{"name":"work_saturday","value":"28800"},{"name":"work_sunday","value":"28800"}]}`))
+	})
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 

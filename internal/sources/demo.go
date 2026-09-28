@@ -151,6 +151,7 @@ func DemoKimai(now time.Time) *KimaiDataset {
 	running := now.UTC().Add(-demoRunningHours * time.Hour)
 	return &KimaiDataset{
 		URL:        "https://kimai.demo",
+		Contract:   DemoContract(),
 		Timesheets: sheets,
 		Active: []KimaiSheet{{ID: 9999, Begin: running.Format(time.RFC3339), Billable: true,
 			ProjectID: 2, CustomerID: 2, Activity: demoEdit, UserID: 1}},
@@ -655,12 +656,18 @@ func demoTimer(i int, activityID int64, activity string, begin time.Time) KimaiT
 	return t
 }
 
+// DemoContract is a 40-hour week, Monday to Friday.
+func DemoContract() *WorkContract {
+	const day = 8 * 60
+	return &WorkContract{Day: [7]int{day, day, day, day, day, 0, 0}}
+}
+
 // DemoKimaiLive is the demo live Kimai view: one timer running.
 func DemoKimaiLive(now time.Time) *KimaiLive {
 	begin := now.Add(-47 * time.Minute)
 	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	at := func(h, m int) time.Time { return day.Add(time.Duration(h)*time.Hour + time.Duration(m)*time.Minute) }
-	return &KimaiLive{URL: "https://kimai.demo", TodayMin: 312, WeekMin: 1590,
+	return &KimaiLive{URL: "https://kimai.demo", TodayMin: 312, WeekMin: 1590, Contract: DemoContract(),
 		Active: []KimaiTimer{demoTimer(1, 7, demoEdit, begin)},
 		Recent: []KimaiTimer{
 			demoTimer(1, 7, demoEdit, time.Time{}),

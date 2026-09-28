@@ -68,7 +68,6 @@ func heatmapView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any
 	}
 	perDay := metrics.HoursByDay(data)
 	today := parseToday(ctx.Today)
-	goal := int(settingsFloat(settingsMap(ctx.Settings, "goals"), "hours_per_day", 0) * minutesPerHour)
 	weeks := min(int(float64(cfg.Months)*weeksPerMonth+0.5), heatWeeks)
 	rows := 7
 	if cfg.Weekdays {
@@ -90,6 +89,8 @@ func heatmapView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any
 		total += minutes
 		week := int(d.Sub(first).Hours()/24) / 7
 		cell := HeatCell{X: week * heatCell, Y: row * heatCell, Level: heatLevel(minutes), Day: key, Hours: clockMinutes(minutes)}
+		// The day's goal is its target in the Kimai work contract.
+		goal := data.Contract.Minutes(d)
 		if cfg.ByGoal && goal > 0 && minutes > 0 {
 			cell.Goal = "under"
 			if minutes >= goal {
@@ -98,7 +99,7 @@ func heatmapView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any
 		}
 		cells = append(cells, cell)
 	}
-	return map[string]any{"Cells": cells, "W": weeks * heatCell, "H": rows * heatCell, "Total": total / minutesPerHour, "ByGoal": cfg.ByGoal && goal > 0}
+	return map[string]any{"Cells": cells, "W": weeks * heatCell, "H": rows * heatCell, "Total": total / minutesPerHour, "ByGoal": cfg.ByGoal && data.Contract != nil}
 }
 
 // ── cashflow ──

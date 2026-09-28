@@ -87,9 +87,10 @@ func TestCashflowOptions(t *testing.T) {
 
 // TestHeatmapOptions: fewer months, no weekends, colour by daily goal.
 func TestHeatmapOptions(t *testing.T) {
-	kimai := &sources.KimaiDataset{Timesheets: []sources.KimaiSheet{{Begin: "2026-09-14", Minutes: 480}, {Begin: "2026-09-13", Minutes: 60}}}
-	goal := map[string]any{"goals": map[string]any{"hours_per_day": 8.0}}
-	v := viewOf(t, "heatmap", map[string]any{"months": 3.0, "weekdays": true, "by_goal": true}, map[string]any{"data": kimai}, enums.ServiceKimai, goal)
+	// The daily goal is the Kimai work contract's (8 h Monday to Friday).
+	kimai := &sources.KimaiDataset{Contract: sources.DemoContract(),
+		Timesheets: []sources.KimaiSheet{{Begin: "2026-09-14", Minutes: 480}, {Begin: "2026-09-13", Minutes: 60}}}
+	v := viewOf(t, "heatmap", map[string]any{"months": 3.0, "weekdays": true, "by_goal": true}, map[string]any{"data": kimai}, enums.ServiceKimai, nil)
 	cells := v["Cells"].([]widgets.HeatCell)
 	if len(cells) > 5*14 {
 		t.Fatalf("too many cells: %d", len(cells))

@@ -120,8 +120,7 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request, ct
 	}
 	changes := map[string]any{
 		"goals": map[string]any{
-			"revenue_year":  number(r.FormValue("revenue_year"), 0),
-			"hours_per_day": number(r.FormValue("hours_per_day"), defaultHoursPerDay),
+			"revenue_year": number(r.FormValue("revenue_year"), 0),
 		},
 		"tax": map[string]any{
 			"vat": map[string]any{

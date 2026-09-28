@@ -59,7 +59,8 @@ func init() {
 				}
 			}
 			start := env.Today.AddDate(0, 0, -cfgInt(cfg, "lookback_days"))
-			days := metrics.Workdays(start, env.Today.AddDate(0, 0, -1), metrics.KimaiFreeDays(data))
+			// Days the Kimai work contract expects work; none without one.
+			days := metrics.KimaiWorkdays(data, start, env.Today.AddDate(0, 0, -1))
 
 			var found []Finding
 			for _, d := range days {
@@ -159,13 +160,14 @@ func init() {
 			return found
 		})
 
-	Register("kimai.utilization_low", string(enums.ServiceKimai), map[string]any{"goal": 0.7, "hours_per_day": 8.0},
+	// Target from the Kimai work contract only; no contract, no hint.
+	Register("kimai.utilization_low", string(enums.ServiceKimai), map[string]any{"goal": 0.7},
 		func(raw any, cfg map[string]any, env Env) []Finding {
 			if env.Today.Day() < utilizationFromDay {
 				return nil
 			}
 			data := kimaiData(raw)
-			stats := metrics.KimaiSummaryOf(data, env.Today, cfgFloat(cfg, "hours_per_day"))
+			stats := metrics.KimaiSummaryOf(data, env.Today)
 			if stats.Utilization == nil || *stats.Utilization >= cfgFloat(cfg, "goal") {
 				return nil
 			}

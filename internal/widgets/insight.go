@@ -443,8 +443,7 @@ func kpiSpark(metric Metric, data any, today time.Time) *Spark {
 }
 
 func kpiKimai(metric Metric, data *sources.KimaiDataset, ctx ViewCtx) *KpiResult {
-	hoursPerDay := settingsFloat(settingsMap(ctx.Settings, "goals"), "hours_per_day", 0)
-	stats := metrics.KimaiSummaryOf(data, parseToday(ctx.Today), hoursPerDay)
+	stats := metrics.KimaiSummaryOf(data, parseToday(ctx.Today))
 	switch metric {
 	case MetricHoursToday:
 		return &KpiResult{Kind: "hours", Value: float64(stats.TodayMin) / minutesPerHourInsight}

@@ -13,7 +13,7 @@ import (
 func TestKimaiWeekMarksToday(t *testing.T) {
 	kind, _ := widgets.Get("kimai_week")
 	cfg, _ := widgets.Decode("kimai_week", map[string]any{})
-	data := &sources.KimaiDataset{Timesheets: []sources.KimaiSheet{{Begin: "2026-09-14", Minutes: 120}}}
+	data := &sources.KimaiDataset{Contract: sources.DemoContract(), Timesheets: []sources.KimaiSheet{{Begin: "2026-09-14", Minutes: 120}}}
 	view := kind.View(cfg, map[string]any{"data": data}, ctxFor(enums.ServiceKimai, nil))
 	days := view["Days"].([]widgets.DayCol)
 	if days[0].Tier != "yellow" || !days[1].Today || days[1].Later {

@@ -24,7 +24,7 @@ func part(key string, params map[string]any) InfoPart {
 
 // KimaiInfo builds the info line for a Kimai link tile.
 func KimaiInfo(data *sources.KimaiDataset, today time.Time) []InfoPart {
-	stats := KimaiSummaryOf(data, today, 0)
+	stats := KimaiSummaryOf(data, today)
 	found := []InfoPart{part("kimai.today", map[string]any{
 		"hours": map[string]any{"$num": float64(stats.TodayMin) / minutesPerHour, "digits": 1},
 	})}

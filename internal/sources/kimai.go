@@ -197,6 +197,7 @@ func loadKimai(ctx context.Context, api services.KimaiApi, sctx Ctx) (*KimaiData
 		URL: sctx.URL, Timesheets: sheets, Active: active, Projects: projects, Customers: customers,
 	}
 	loadKimaiHolidays(ctx, api, today, data)
+	data.Contract = loadContract(ctx, api)
 	return data, nil
 }
 

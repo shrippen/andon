@@ -46,7 +46,8 @@ type KimaiLive struct {
 	Recent   []KimaiTimer
 	TodayMin int
 	WeekMin  int
-	Today    []KimaiSpan // stopped sheets of today, oldest first
+	Today    []KimaiSpan   // stopped sheets of today, oldest first
+	Contract *WorkContract // working time from Kimai, nil if none
 }
 
 type KimaiLiveSource struct{}
@@ -64,7 +65,7 @@ func (KimaiLiveSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		return nil, err
 	}
 	now := time.Now()
-	out := &KimaiLive{URL: sctx.URL}
+	out := &KimaiLive{URL: sctx.URL, Contract: loadContract(ctx, api)}
 
 	active, err := api.Get(ctx, "timesheets/active", nil)
 	if err != nil {

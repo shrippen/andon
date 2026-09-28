@@ -16,13 +16,21 @@ func sheet(day string, minutes int, customer int64) sources.KimaiSheet {
 }
 
 func TestKimaiWeekAgainstDailyTarget(t *testing.T) {
-	data := &sources.KimaiDataset{Timesheets: []sources.KimaiSheet{
+	data := &sources.KimaiDataset{Contract: sources.DemoContract(), Timesheets: []sources.KimaiSheet{
 		sheet("2026-09-21", 390, 1), sheet("2026-09-22", 540, 1), sheet("2026-09-20", 600, 1), // Sunday before: not this week
 	}}
-	v := kimaiWeekView(KimaiWeekConfig{WeekHours: 40}, map[string]any{"data": data}, ViewCtx{Today: catalogToday})
+	v := kimaiWeekView(KimaiWeekConfig{}, map[string]any{"data": data}, ViewCtx{Today: catalogToday})
 	days := v["Days"].([]DayCol)
-	if days[0].Tier != "yellow" || days[1].Tier != "" || days[1].H != 100 || v["Total"] != "15:30" || v["TargetPct"] != 89 {
+	if days[0].Tier != "yellow" || days[1].Tier != "" || days[1].H != 100 || v["Total"] != "15:30" ||
+		days[0].TargetPct != 89 || days[5].TargetPct != 0 || v["WeekHours"] != 40.0 {
 		t.Fatalf("view: %+v", v)
+	}
+
+	// Without a work contract in Kimai there is no target at all.
+	data.Contract = nil
+	v = kimaiWeekView(KimaiWeekConfig{}, map[string]any{"data": data}, ViewCtx{Today: catalogToday})
+	if v["Contract"] != false || v["Days"].([]DayCol)[0].Tier != "" {
+		t.Fatalf("no contract: %+v", v)
 	}
 }
 

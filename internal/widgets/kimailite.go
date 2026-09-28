@@ -29,15 +29,14 @@ const (
 )
 
 // KimaiLiteConfig is the "kimai_timer" widget's config.
+// The weekly target comes from the Kimai work contract, never from here.
 type KimaiLiteConfig struct {
-	WeekHours float64 // weekly target, 0 = none
-	Recent    int     // quick-start rows
-	AskNote   bool    // a description field for the timer being started
+	Recent  int  // quick-start rows
+	AskNote bool // a description field for the timer being started
 }
 
 func decodeKimaiLite(raw map[string]any) any {
-	return KimaiLiteConfig{WeekHours: max(0, asFloat(raw["week_hours"])), Recent: clampInt(asInt(raw["recent"], recentShown), 0, recentMax),
-		AskNote: asBool(raw["ask_note"])}
+	return KimaiLiteConfig{Recent: clampInt(asInt(raw["recent"], recentShown), 0, recentMax), AskNote: asBool(raw["ask_note"])}
 }
 
 // TimerRow is one running or startable timer.
@@ -111,9 +110,9 @@ func timerView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 	}
 	out["Recent"], out["AskNote"] = recent, cfg.AskNote
 
-	if cfg.WeekHours > 0 {
-		left := int(cfg.WeekHours*minutesPerHour) - data.WeekMin
-		out["Target"], out["Left"], out["Over"] = cfg.WeekHours, clockMinutes(max(left, -left)), left < 0
+	if week := data.Contract.WeekMinutes(); week > 0 {
+		left := week - data.WeekMin
+		out["Target"], out["Left"], out["Over"] = float64(week)/minutesPerHour, clockMinutes(max(left, -left)), left < 0
 	}
 
 	from, to, segs, pos := dayBar(spans, now)

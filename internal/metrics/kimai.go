@@ -157,10 +157,32 @@ func KimaiUnbilled(data *sources.KimaiDataset, today time.Time) []KimaiUnbilledG
 	return out
 }
 
-// KimaiTargetMinutes is the workday target for [start, end] at hoursPerDay.
-func KimaiTargetMinutes(data *sources.KimaiDataset, start, end time.Time, hoursPerDay float64) int {
-	days := Workdays(start, end, KimaiFreeDays(data))
-	return int(round(float64(len(days)) * hoursPerDay * minutesPerHour))
+// KimaiTargetMinutes is the working-time target for [start, end] from the
+// Kimai work contract, holidays and approved absences left out; 0 without
+// a contract.
+func KimaiTargetMinutes(data *sources.KimaiDataset, start, end time.Time) int {
+	sum := 0
+	for _, d := range KimaiWorkdays(data, start, end) {
+		sum += data.Contract.Minutes(d)
+	}
+	return sum
+}
+
+// KimaiWorkdays are the days in [start, end] the contract expects work:
+// a target above zero, no holiday, no approved absence. None without a
+// contract.
+func KimaiWorkdays(data *sources.KimaiDataset, start, end time.Time) []time.Time {
+	if data.Contract == nil {
+		return nil
+	}
+	free := KimaiFreeDays(data)
+	var days []time.Time
+	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
+		if data.Contract.Minutes(d) > 0 && !free[d] {
+			days = append(days, d)
+		}
+	}
+	return days
 }
 
 // KimaiSummary is the Kimai dashboard's headline numbers.
@@ -177,14 +199,11 @@ type KimaiSummary struct {
 }
 
 // KimaiSummaryOf computes KimaiSummary for today.
-func KimaiSummaryOf(data *sources.KimaiDataset, today time.Time, hoursPerDay float64) KimaiSummary {
-	if hoursPerDay == 0 {
-		hoursPerDay = defaultHoursPerDay
-	}
+func KimaiSummaryOf(data *sources.KimaiDataset, today time.Time) KimaiSummary {
 	month := MonthStart(today)
 	monthMin := KimaiMinutesBetween(data, month, today, HoursAll)
 	billableMonth := KimaiMinutesBetween(data, month, today, HoursBillable)
-	target := KimaiTargetMinutes(data, month, today, hoursPerDay)
+	target := KimaiTargetMinutes(data, month, today)
 
 	var utilization *float64
 	if target > 0 {

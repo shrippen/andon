@@ -77,6 +77,8 @@ type DayCol struct {
 	Segs  []Seg
 	Today bool // outlined
 	Later bool // still to come: dimmed, never flagged
+	// TargetPct is the day's own target line (Kimai work contract), 0 = none.
+	TargetPct int
 }
 
 func pctOf(v, full float64) int {
@@ -140,60 +142,55 @@ func weekMinutes(data *sources.KimaiDataset, today time.Time, pick weekPick) ([w
 
 // ── kimai_week ──
 
-// KimaiWeekConfig is the "kimai_week" widget's config.
+// KimaiWeekConfig is the "kimai_week" widget's config. Daily targets
+// come from the Kimai work contract, never from here.
 type KimaiWeekConfig struct {
-	WeekHours    float64
-	Workdays     int  // 5 (Mo–Fr) or 6 (Mo–Sa)
 	BillableOnly bool // leave internal time out
 }
 
 func decodeKimaiWeek(raw map[string]any) any {
-	h := asFloat(raw["week_hours"])
-	if h <= 0 {
-		h = defaultWeekH
-	}
-	days := workDays
-	if raw["workdays"] == "mo_sa" {
-		days = workDays + 1
-	}
-	return KimaiWeekConfig{WeekHours: h, Workdays: days, BillableOnly: asBool(raw["billable_only"])}
+	return KimaiWeekConfig{BillableOnly: asBool(raw["billable_only"])}
 }
 
-// kimaiWeekView draws Mon–Sun against the daily target (week / workdays):
+// kimaiWeekView draws Mon–Sun against each day's contract target:
 //
-//	target 8 h, Mo 6.5 h Di 9 h  →  Mo yellow below the line, Di over it
+//	Mo target 8 h, 6.5 h booked  →  yellow below its line
+//	Sa target 0                  →  no line, never yellow
 func kimaiWeekView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	cfg := cfgAny.(KimaiWeekConfig)
 	data, ok := results["data"].(*sources.KimaiDataset)
 	if !ok {
 		return map[string]any{}
 	}
-	total, _ := weekMinutes(data, todayOf(ctx), weekPick{Billable: cfg.BillableOnly})
-	days := cfg.Workdays
-	if days <= 0 {
-		days = workDays
-	}
+	today := todayOf(ctx)
+	monday := weekStart(today)
+	total, _ := weekMinutes(data, today, weekPick{Billable: cfg.BillableOnly})
 
-	target := cfg.WeekHours / float64(days) * minutesPerHour
-	top := target
+	targets := make([]float64, weekDays)
+	top := 0.0
+	for i := range targets {
+		targets[i] = float64(data.Contract.Minutes(monday.AddDate(0, 0, i)))
+		top = max(top, targets[i])
+	}
 	sum := 0
 	for _, m := range total {
 		top = max(top, float64(m))
 		sum += m
 	}
 	cols := make([]DayCol, weekDays)
-	todayIdx := int(todayOf(ctx).Sub(weekStart(todayOf(ctx))).Hours() / hoursPerDay)
+	todayIdx := int(today.Sub(monday).Hours() / hoursPerDay)
 	for i, m := range total {
 		tier := ""
-		if i < days && i < todayIdx && float64(m) < target {
+		if targets[i] > 0 && i < todayIdx && float64(m) < targets[i] {
 			tier = "yellow"
 		}
 		cols[i] = DayCol{I: i, H: max(pctOf(float64(m), top), 2), Hours: clockMinutes(m), Tier: tier,
-			Today: i == todayIdx, Later: i > todayIdx}
+			Today: i == todayIdx, Later: i > todayIdx, TargetPct: pctOf(targets[i], top)}
 	}
-	left := int(cfg.WeekHours*minutesPerHour) - sum
-	return map[string]any{"Days": cols, "TargetPct": pctOf(target, top), "Total": clockMinutes(sum),
-		"Left": clockMinutes(max(left, -left)), "Over": left < 0, "WeekHours": cfg.WeekHours}
+	week := data.Contract.WeekMinutes()
+	left := week - sum
+	return map[string]any{"Days": cols, "Total": clockMinutes(sum), "Contract": week > 0,
+		"Left": clockMinutes(max(left, -left)), "Over": left < 0, "WeekHours": float64(week) / minutesPerHour}
 }
 
 // ── kimai_split ──

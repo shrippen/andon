@@ -26,14 +26,14 @@ func TestKimaiSplitOptions(t *testing.T) {
 	}
 }
 
-// TestKimaiWeekOptions: Saturday counts as a workday and internal time is
-// left out.
+// TestKimaiWeekOptions: internal time can be left out; targets come from
+// the Kimai work contract, a manual week_hours is ignored.
 func TestKimaiWeekOptions(t *testing.T) {
-	data := &sources.KimaiDataset{Timesheets: []sources.KimaiSheet{
+	data := &sources.KimaiDataset{Contract: sources.DemoContract(), Timesheets: []sources.KimaiSheet{
 		{Begin: "2026-09-14", Minutes: 120, Billable: true},
 		{Begin: "2026-09-14", Minutes: 300, Billable: false},
 	}}
-	v := viewOf(t, "kimai_week", map[string]any{"workdays": "mo_sa", "billable_only": true, "week_hours": 48.0}, map[string]any{"data": data}, enums.ServiceKimai, nil)
+	v := viewOf(t, "kimai_week", map[string]any{"billable_only": true, "week_hours": 48.0}, map[string]any{"data": data}, enums.ServiceKimai, nil)
 	if v["Total"] != "2:00" {
 		t.Fatalf("total: %v", v["Total"])
 	}
@@ -41,7 +41,10 @@ func TestKimaiWeekOptions(t *testing.T) {
 	if days[0].Tier != "yellow" {
 		t.Fatalf("2 h of 8 h should be short: %+v", days[0])
 	}
-	v = viewOf(t, "kimai_week", map[string]any{"workdays": "mo_sa"}, map[string]any{"data": data}, enums.ServiceKimai, nil)
+	if v["WeekHours"] != 40.0 {
+		t.Fatalf("target from the contract: %v", v["WeekHours"])
+	}
+	v = viewOf(t, "kimai_week", map[string]any{}, map[string]any{"data": data}, enums.ServiceKimai, nil)
 	if v["Total"] != "7:00" {
 		t.Fatalf("all hours: %v", v["Total"])
 	}

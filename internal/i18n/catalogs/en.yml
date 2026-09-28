@@ -3749,3 +3749,5 @@ hosts:
 docker:
   running: 'running'
   all_fine: 'All containers are running.'
+kimai:
+  no_contract: 'No working time in Kimai (user → working time)'
