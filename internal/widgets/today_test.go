@@ -22,10 +22,10 @@ func TestTodayTimeline(t *testing.T) {
 	results := map[string]any{
 		"calendar": &sources.CalendarResult{Events: []sources.Event{
 			{Start: day.Add(23*time.Hour + 30*time.Minute), Title: "Spät"},
-			{Start: day.Add(time.Minute), Title: "Früh"},
+			{Start: day, Title: "Früh"}, // midnight: before the timer at any time of day
 			{Start: day.AddDate(0, 0, 1).Add(9 * time.Hour), Title: "Morgen"},
 		}},
-		"kimai": &sources.KimaiDataset{Active: []sources.KimaiSheet{{Begin: now.Add(-time.Minute).Format(time.RFC3339), Activity: "Relaunch"}}},
+		"kimai": &sources.KimaiDataset{Active: []sources.KimaiSheet{{Begin: now.Format(time.RFC3339), Activity: "Relaunch"}}},
 		"board": &sources.BoardResult{Movements: []sources.Movement{{When: now.Add(20 * time.Minute), Line: "S1", Place: "Flughafen"}}},
 	}
 	settings := map[string]any{"tax": map[string]any{"vat": map[string]any{"return_interval": "monthly"}}}
