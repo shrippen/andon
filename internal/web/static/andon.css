@@ -101,6 +101,10 @@ button.ghost, .link-btn {
 }
 .link-btn { display: inline-block; padding: .35rem .7rem; text-decoration: none; cursor: pointer; margin: 0; font-size: .82rem; }
 button.ghost:hover, .link-btn:hover { color: var(--orange); border-color: var(--fg3); }
+/* The file picker's button looks like the other secondary buttons. */
+input[type="file"] { color: var(--fg2); font-family: var(--font-mono); font-size: .82rem; }
+input[type="file"]::file-selector-button { margin-right: .7rem; padding: .35rem .7rem; background: none; color: var(--blue); border: 1px solid var(--bg2); font: inherit; cursor: pointer; }
+input[type="file"]::file-selector-button:hover { color: var(--orange); border-color: var(--fg3); }
 
 /* ── app chrome (nav) ── */
 .app-nav {
