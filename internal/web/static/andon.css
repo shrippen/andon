@@ -278,7 +278,12 @@ button.ghost:hover, .link-btn:hover { color: var(--orange); border-color: var(--
 /* A wide tile spans two columns once the section fits two (13.5rem each);
    the side column and narrow sections keep it one column wide. */
 .board-main .dsec-body { container-type: inline-size; }
-@container (min-width: 28rem) { .tile-slot[data-cols="2"] { grid-column: span 2; } }
+@container (min-width: 28rem) {
+  /* :where keeps full-width tiles (rss, table, …) full width. */
+  :where(.tile-slot[data-cols="2"]) { grid-column: span 2; }
+  /* Item lists use the width as a second column. */
+  .tile-slot[data-cols="2"] :is(.legend-list, .plain-list, .hint-lines, .mon-lines, .hass-list) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.4rem; }
+}
 /* A section's only tile takes the section's width. */
 .board-main .dsec-body > .tile-slot:only-child { grid-column: 1 / -1; }
 .tile-slot[data-rows="2"] > .card { height: 100%; }
