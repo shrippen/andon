@@ -144,3 +144,33 @@ func TestContractNotice(t *testing.T) {
 		t.Fatalf("contract: %+v", got)
 	}
 }
+
+// A Proxmox node that is offline takes its guests and the services on
+// them down: one outage for the node, not one per service.
+//
+//	node pve1 offline ─► guest nas ─► nas.lan: TrueNAS failed, monitor NAS down
+func TestOutageFollowsProxmoxNode(t *testing.T) {
+	pve := &sources.ProxmoxDataset{
+		Nodes:  []sources.ProxmoxNode{{Name: "pve1", Online: false}, {Name: "pve2", Online: true}},
+		Guests: []sources.ProxmoxGuest{{Name: "nas", Node: "pve1"}, {Name: "web", Node: "pve2", Running: true}},
+	}
+	kuma := &sources.KumaDataset{Monitors: []sources.KumaMonitor{
+		{Name: "NAS", Target: "https://nas.lan", Status: sources.KumaDown},
+		{Name: "Web", Target: "https://web.lan", Status: sources.KumaDown},
+	}}
+	env := todayEnv(nil)
+	env.Datasets = map[string]any{"proxmox": pve, "uptimekuma": kuma,
+		rules.FailedDataset: []rules.Failed{{Service: "truenas", Name: "TrueNAS", Host: "nas.lan"}}}
+
+	outages := rules.Outages(env)
+	if len(outages) != 1 || len(outages["pve1"]) != 3 {
+		t.Fatalf("outages: %v", outages)
+	}
+	if rules.OutageRoot(env, "nas.lan") != "pve1" || rules.OutageRoot(env, "web.lan") != "web.lan" {
+		t.Fatal("roots")
+	}
+	down := run(t, "kuma.monitor_down", kuma, env)
+	if !rules.Suppressed(down[0], env, outages) || rules.Suppressed(down[1], env, outages) {
+		t.Fatalf("suppression: %+v", down)
+	}
+}

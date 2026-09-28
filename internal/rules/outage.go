@@ -5,6 +5,12 @@ package rules
 //	connection nas.lan failed ─┐
 //	kuma monitor "NAS" down    ├─ host nas.lan ─► system.outage (critical)
 //	kuma monitor "SMB" down   ─┘                  single hints suppressed
+//
+// A host that runs as a Proxmox guest belongs to its guest, and a guest to
+// its node: when the node is offline (or the guest stopped), the signals
+// of all hosts on it gather under the node (or guest) as the one cause.
+//
+//	node pve1 offline ─► guest nas ─► nas.lan signals ─► outage "pve1"
 
 import (
 	"net/url"
@@ -42,31 +48,90 @@ func HostOf(raw string) string {
 	return strings.ToLower(u.Hostname())
 }
 
-// Outages maps each host with at least two failure signals to the names
-// of what failed there.
+// Outages maps each cause (a host, or a Proxmox node or guest that is
+// down) with at least two failure signals to the names of what failed.
 func Outages(env Env) map[string][]string {
+	roots := downRoots(env)
 	signals := map[string][]string{}
+	add := func(host, name string) {
+		if host == "" {
+			return
+		}
+		key := rootOf(roots, host)
+		signals[key] = append(signals[key], name)
+	}
 	if failed, ok := env.Datasets[FailedDataset].([]Failed); ok {
 		for _, f := range failed {
-			if f.Host != "" {
-				signals[f.Host] = append(signals[f.Host], f.Name)
-			}
+			add(f.Host, f.Name)
 		}
 	}
 	if kuma, ok := env.Datasets[string(enums.ServiceUptimeKuma)].(*sources.KumaDataset); ok {
 		for _, m := range kuma.Monitors {
-			if host := HostOf(m.Target); m.Status == sources.KumaDown && host != "" {
-				signals[host] = append(signals[host], m.Name)
+			if m.Status == sources.KumaDown {
+				add(HostOf(m.Target), m.Name)
 			}
 		}
 	}
+	// A down node or guest is a signal itself, once, when something on it failed.
+	for key, names := range signals {
+		if cause, ok := roots.causes[key]; ok {
+			signals[key] = append(names, cause)
+		}
+	}
 	out := map[string][]string{}
-	for host, names := range signals {
+	for key, names := range signals {
 		if len(names) >= minOutageHits {
-			out[host] = names
+			out[key] = names
 		}
 	}
 	return out
+}
+
+// OutageRoot is the key a host's failures gather under in Outages: the
+// Proxmox node or guest it runs on when that is down, else the host.
+func OutageRoot(env Env, host string) string {
+	return rootOf(downRoots(env), host)
+}
+
+// roots maps a host label ("nas" of nas.lan) to the down node or guest it
+// depends on, and each such root to its own signal ("pve1 offline").
+type roots struct {
+	byLabel map[string]string
+	causes  map[string]string
+}
+
+func downRoots(env Env) roots {
+	r := roots{byLabel: map[string]string{}, causes: map[string]string{}}
+	pve, ok := env.Datasets[string(enums.ServiceProxmox)].(*sources.ProxmoxDataset)
+	if !ok {
+		return r
+	}
+	offline := map[string]bool{}
+	for _, n := range pve.Nodes {
+		if !n.Online {
+			offline[n.Name] = true
+		}
+	}
+	for _, g := range pve.Guests {
+		label := strings.ToLower(g.Name)
+		switch {
+		case offline[g.Node]:
+			r.byLabel[label] = g.Node
+			r.causes[g.Node] = "Proxmox " + g.Node
+		case !g.Running && !g.Template:
+			r.byLabel[label] = label
+			r.causes[label] = "Proxmox " + g.Name
+		}
+	}
+	return r
+}
+
+func rootOf(r roots, host string) string {
+	label, _, _ := strings.Cut(host, ".")
+	if root, ok := r.byLabel[label]; ok {
+		return root
+	}
+	return host
 }
 
 // Suppressed reports whether a finding is covered by an outage hint.
@@ -80,7 +145,7 @@ func Suppressed(f Finding, env Env, outages map[string][]string) bool {
 	}
 	for _, m := range kuma.Monitors {
 		if f.Params["monitor"] == m.Name {
-			_, down := outages[HostOf(m.Target)]
+			_, down := outages[OutageRoot(env, HostOf(m.Target))]
 			return down
 		}
 	}

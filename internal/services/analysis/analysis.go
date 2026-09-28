@@ -288,7 +288,7 @@ func evaluate(d *sql.DB, r run, sc *scope, settings map[string]any, today time.T
 
 	// A connection on a host that is down as a whole is part of the outage hint.
 	var down []rules.Finding
-	if _, inOutage := outages[rules.HostOf(r.conn.URL)]; !r.result.Ok() && !inOutage {
+	if _, inOutage := outages[rules.OutageRoot(env, rules.HostOf(r.conn.URL))]; !r.result.Ok() && !inOutage {
 		down = []rules.Finding{downFinding(r.conn, r.result.Error)}
 	}
 	fresh, err := syncHints(d, r.conn.SpaceID, r.owner, &r.conn.ID, []string{connectorRule}, down)
