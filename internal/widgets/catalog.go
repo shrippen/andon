@@ -915,6 +915,51 @@ func freshrssView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any 
 // decodeEmptyConfig is for tiles without settings.
 func decodeEmptyConfig(map[string]any) any { return struct{}{} }
 
+// ── docker ──
+
+// DockerConfig: all containers or only those with a problem.
+type DockerConfig struct{ OnlyProblems bool }
+
+func decodeDocker(raw map[string]any) any {
+	return DockerConfig{OnlyProblems: asBool(raw["only_problems"])}
+}
+
+// DockerRow is one container line: state as tier, then the status text.
+type DockerRow struct {
+	Name, Image, Status, Tier string
+}
+
+// dockerView lists containers, problems first: unhealthy or crashed red,
+// stopped cleanly grey.
+func dockerView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(DockerConfig)
+	data, ok := results["data"].(*sources.DockerDataset)
+	if !ok {
+		return map[string]any{}
+	}
+	var rows []DockerRow
+	running := 0
+	for _, c := range data.Containers {
+		tier := "green"
+		switch {
+		case c.Health == sources.HealthUnhealthy, c.State == sources.StateRestarting,
+			c.State == sources.StateExited && c.ExitCode != 0:
+			tier = "red"
+		case c.State != sources.StateRunning:
+			tier = ""
+		}
+		if c.State == sources.StateRunning {
+			running++
+		}
+		if cfg.OnlyProblems && tier != "red" {
+			continue
+		}
+		rows = append(rows, DockerRow{Name: c.Name, Image: c.Image, Status: c.Status, Tier: tier})
+	}
+	sort.SliceStable(rows, func(a, b int) bool { return rows[a].Tier == "red" && rows[b].Tier != "red" })
+	return map[string]any{"Rows": rows, "Running": running, "Total": len(data.Containers)}
+}
+
 // ── umami ──
 
 // UmamiConfig filters the sites of the "umami_sites" tile.
@@ -1272,6 +1317,7 @@ func init() {
 	mail.Extra = ExtraForwarded
 	Register(mail)
 	on("freshrss_feeds", enums.ServiceFreshRSS, 30*minute, decodeFreshRSS, freshrssView)
+	on("docker_containers", enums.ServiceDocker, 5*minute, decodeDocker, dockerView)
 	on("umami_sites", enums.ServiceUmami, 30*minute, decodeUmami, umamiView)
 	on("immich_library", enums.ServiceImmich, 30*minute, decodeEmptyConfig, immichView)
 	on("linkwarden", enums.ServiceLinkwarden, hour, decodeLinkwarden, linkwardenView)

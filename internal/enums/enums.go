@@ -96,6 +96,7 @@ const (
 	ServicePaperless     ServiceType = "paperless"
 	ServiceCerts         ServiceType = "certs"
 	ServiceScrutiny      ServiceType = "scrutiny"
+	ServiceDocker        ServiceType = "docker"
 	ServiceImmich        ServiceType = "immich"
 	ServiceUmami         ServiceType = "umami"
 	ServiceFreshRSS      ServiceType = "freshrss"
@@ -137,7 +138,7 @@ const (
 var Services = []ServiceType{
 	ServiceKimai, ServiceInvoiceNinja, ServiceSnipeIT, ServiceDawarich, ServiceGlances,
 	ServiceUptimeKuma, ServiceProxmox, ServicePaperless, ServiceCerts,
-	ServiceScrutiny, ServiceImmich, ServiceUmami, ServiceFreshRSS, ServiceGitea, ServiceBorgBackup,
+	ServiceScrutiny, ServiceDocker, ServiceImmich, ServiceUmami, ServiceFreshRSS, ServiceGitea, ServiceBorgBackup,
 	ServiceHomeAssistant, ServiceSure, ServiceLinkwarden, ServicePGBackWeb, ServiceMail,
 	ServiceTrueNAS, ServiceKomodo, ServicePangolin, ServiceAuthentik,
 	ServicePihole, ServiceAdGuard, ServiceNextcloud, ServiceSabnzbd, ServiceGluetun, ServiceDomains, ServiceBlacklist,

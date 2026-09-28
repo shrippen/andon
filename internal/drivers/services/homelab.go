@@ -3,6 +3,7 @@ package services
 // REST clients for homelab services.
 //
 //	ScrutinyApi   no auth
+//	DockerApi     no auth (read-only socket proxy)
 //	ImmichApi     x-api-key
 //	UmamiApi      login (user:password → bearer) or x-umami-api-key
 //	FreshRSSApi   Google Reader ClientLogin (user:apipassword)
@@ -74,6 +75,21 @@ type ScrutinyApi struct {
 // Summary returns /api/summary.
 func (a ScrutinyApi) Summary(ctx context.Context) (any, error) {
 	return fetchJSON(ctx, joinURL(a.URL, "api/summary"), nil, nil, httpclient.TLSOf(a.Verify))
+}
+
+// ── Docker ──
+
+// DockerApi reads the Docker Engine API through a socket proxy that
+// allows only GET /containers (e.g. tecnativa/docker-socket-proxy with
+// CONTAINERS=1), never the socket itself.
+type DockerApi struct {
+	URL    string
+	Verify bool
+}
+
+// Containers returns /containers/json?all=1: running and stopped.
+func (a DockerApi) Containers(ctx context.Context) (any, error) {
+	return fetchJSON(ctx, joinURL(a.URL, "containers/json"), nil, url.Values{"all": {"1"}}, httpclient.TLSOf(a.Verify))
 }
 
 // ── Immich ──

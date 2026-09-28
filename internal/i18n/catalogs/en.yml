@@ -79,6 +79,7 @@ action:
   backup: 'View backup'
   open_in_wallos: Open in Wallos
   open_in_glances: 'Open in Glances'
+  open_in_docker: 'Open Docker'
 error:
   csrf: The request expired. Please reload the page.
   denied: Not allowed.
@@ -887,6 +888,9 @@ wtype:
   immich_library:
     name: 'Immich library'
     desc: 'Photos and videos, disk space, failed jobs and an available update.'
+  docker_containers:
+    name: 'Containers'
+    desc: 'Every Docker container of a host, problems first.'
 widget:
   delete_hint: 'The tile disappears from every board it is on.'
   pending: Loading with the next check …
@@ -1217,6 +1221,9 @@ conn:
   choice_unifi: UniFi
   choice_openwrt: OpenWrt
   openwrt_login: 'Login for rpcd (/ubus, comes with LuCI). Empty user = root. An own login needs read access to system, network.interface and luci-rpc (for the device list).'
+  what_docker: 'Docker: state of every container on a host, read through a socket proxy that may only list containers.'
+  about_docker: 'Container state'
+  options_hint_docker: 'No token. Address of a socket proxy, never the Docker socket itself, e.g. tecnativa/docker-socket-proxy with CONTAINERS=1 and nothing else: http://docker-proxy:2375.'
 mode:
   shared: Shared
   personal: Personal
@@ -1273,6 +1280,7 @@ service:
   glances: Glances
   wallos: Wallos
   tax: 'Tax'
+  docker: 'Docker'
 test:
   ok: OK
   failed: Failed
@@ -2162,6 +2170,13 @@ hint:
     renewal_soon:
       title: '{name} renews on {day}'
       why: '{amount} for the next term. To cancel, do it before.'
+  docker:
+    unhealthy:
+      title: 'Container {name} is unhealthy'
+      why: 'It runs, but its health check fails ({status}). Check the logs.'
+    crashed:
+      title: 'Container {name} is not running'
+      why: '{status}. Restart it or check the logs for the error.'
 info:
   tailscale:
     online: '{online}/{count} online'
@@ -2539,6 +2554,8 @@ rule_name:
   snipe.checkin_overdue: 'Return overdue'
   domains.mail_auth: 'Mail sender not protected'
   backups.restore_untested: 'Test a restore'
+  docker.unhealthy: 'Container unhealthy'
+  docker.crashed: 'Container crashed'
 param:
   new_watts: 'New device (W)'
   new_cost: 'New device (€)'
@@ -3724,3 +3741,6 @@ hosts:
   certs: 'Certificates'
   cert_until: 'valid until {day}'
   no_hints: 'No open hints about this host.'
+docker:
+  running: 'running'
+  all_fine: 'All containers are running.'

@@ -185,6 +185,14 @@
 {{end}}{{end}}
 {{end}}
 
+{{define "widgets/docker_containers"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Total}}
+<div class="tile-head"><b class="tile-value">{{$v.Running}}/{{$v.Total}}</b><span class="tile-sub">{{t "docker.running"}}</span></div>
+<ul class="legend-list">{{range $v.Rows}}<li{{with .Tier}} data-tier="{{.}}"{{end}}><span class="sq" aria-hidden="true"></span><span title="{{.Image}}">{{.Name}}</span><b>{{.Status}}</b></li>{{else}}<li class="muted">{{t "docker.all_fine"}}</li>{{end}}</ul>
+{{end}}{{end}}
+{{end}}
+
 {{define "widgets/umami_sites"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Bars}}

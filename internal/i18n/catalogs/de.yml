@@ -79,6 +79,7 @@ action:
   backup: 'Sicherung ansehen'
   open_in_wallos: In Wallos öffnen
   open_in_glances: 'In Glances öffnen'
+  open_in_docker: 'Docker öffnen'
 error:
   csrf: Die Anfrage war abgelaufen. Bitte Seite neu laden.
   denied: Keine Berechtigung.
@@ -887,6 +888,9 @@ wtype:
   immich_library:
     name: 'Immich-Bibliothek'
     desc: 'Fotos und Videos, Speicherplatz, fehlgeschlagene Jobs und verfügbares Update.'
+  docker_containers:
+    name: 'Container'
+    desc: 'Alle Docker-Container eines Hosts, Probleme zuerst.'
 widget:
   delete_hint: 'Die Kachel verschwindet von allen Boards, auf denen sie steht.'
   pending: Wird beim nächsten Prüflauf geladen …
@@ -1217,6 +1221,9 @@ conn:
   choice_unifi: UniFi
   choice_openwrt: OpenWrt
   openwrt_login: 'Login für rpcd (/ubus, kommt mit LuCI). Benutzer leer = root. Ein eigener Login braucht Leserecht auf system, network.interface und luci-rpc (für die Geräteliste).'
+  what_docker: 'Docker: Zustand aller Container eines Hosts, gelesen über einen Socket-Proxy, der nur Container anzeigen darf.'
+  about_docker: 'Container-Zustand'
+  options_hint_docker: 'Kein Token. Adresse eines Socket-Proxys, nie den Docker-Socket selbst, z. B. tecnativa/docker-socket-proxy mit CONTAINERS=1 und sonst nichts: http://docker-proxy:2375.'
 mode:
   shared: Geteilt
   personal: Persönlich
@@ -1273,6 +1280,7 @@ service:
   glances: Glances
   wallos: Wallos
   tax: 'Steuer'
+  docker: 'Docker'
 test:
   ok: OK
   failed: Fehler
@@ -2163,6 +2171,13 @@ hint:
     renewal_soon:
       title: '{name} verlängert sich am {day}'
       why: '{amount} für die nächste Laufzeit. Wer kündigen will, muss es davor tun.'
+  docker:
+    unhealthy:
+      title: 'Container {name} ist ungesund'
+      why: 'Er läuft, aber sein Health-Check schlägt fehl ({status}). Logs prüfen.'
+    crashed:
+      title: 'Container {name} läuft nicht'
+      why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
   tailscale:
     online: '{online}/{count} online'
@@ -2540,6 +2555,8 @@ rule_name:
   snipe.checkin_overdue: 'Rückgabe überfällig'
   domains.mail_auth: 'Mail-Absender nicht abgesichert'
   backups.restore_untested: 'Wiederherstellung testen'
+  docker.unhealthy: 'Container ungesund'
+  docker.crashed: 'Container abgestürzt'
 param:
   new_watts: 'Neues Gerät (W)'
   new_cost: 'Neues Gerät (€)'
@@ -3725,3 +3742,6 @@ hosts:
   certs: 'Zertifikate'
   cert_until: 'gültig bis {day}'
   no_hints: 'Keine offenen Hinweise zu diesem Host.'
+docker:
+  running: 'laufen'
+  all_fine: 'Alle Container laufen.'

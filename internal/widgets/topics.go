@@ -53,7 +53,7 @@ var topicOf = map[string]Topic{
 	"sysinfo": TopicHomelab, "glances_chart": TopicHomelab, "monitors": TopicHomelab, "disks": TopicHomelab,
 	"truenas_pools": TopicHomelab, "komodo_stacks": TopicHomelab, "backups": TopicHomelab,
 	"storage_forecast": TopicHomelab, "updates": TopicHomelab, "update_window": TopicHomelab,
-	"homelab_cost": TopicHomelab, "immich_library": TopicHomelab, "umami_sites": TopicHomelab,
+	"homelab_cost": TopicHomelab, "immich_library": TopicHomelab, "docker_containers": TopicHomelab, "umami_sites": TopicHomelab,
 
 	"adguard": TopicNetwork, "pihole": TopicNetwork, "gateway": TopicNetwork, "vpn": TopicNetwork,
 	"tailscale": TopicNetwork, "speedtest": TopicNetwork, "speed_history": TopicNetwork, "public_ip": TopicNetwork,

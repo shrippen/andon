@@ -15,6 +15,7 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServiceProxmox:       "https://www.proxmox.com/en/proxmox-virtual-environment",
 	enums.ServicePaperless:     "https://docs.paperless-ngx.com",
 	enums.ServiceScrutiny:      "https://github.com/AnalogJ/scrutiny",
+	enums.ServiceDocker:        "https://github.com/Tecnativa/docker-socket-proxy",
 	enums.ServiceImmich:        "https://immich.app",
 	enums.ServiceUmami:         "https://umami.is",
 	enums.ServiceFreshRSS:      "https://freshrss.org",

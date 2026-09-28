@@ -64,6 +64,13 @@ func init() {
 				}
 			}
 		}
+		if dk, ok := env.Datasets[string(enums.ServiceDocker)].(*sources.DockerDataset); ok {
+			for _, c := range dk.Containers {
+				if c.State == sources.StateRunning && !idx.mentions(c.Name) {
+					missing[string(enums.ServiceDocker)] = append(missing[string(enums.ServiceDocker)], c.Name)
+				}
+			}
+		}
 		if k, ok := env.Datasets[string(enums.ServiceUptimeKuma)].(*sources.KumaDataset); ok {
 			for _, m := range k.Monitors {
 				if host := HostOf(m.Target); host != "" && !idx.hosts[host] && !idx.mentions(m.Name) {
