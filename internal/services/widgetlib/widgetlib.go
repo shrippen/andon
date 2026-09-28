@@ -728,8 +728,12 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		case widgets.HintSortAge:
 			sort.SliceStable(all, func(i, j int) bool { return all[i].FirstSeen.Before(all[j].FirstSeen) })
 		}
+		if hcfg.DueDays > 0 {
+			all = dueWithin(all, hcfg.DueDays, time.Now())
+		}
 		views := all[:min(len(all), hcfg.Limit)]
-		frag.View = map[string]any{"Hints": views, "Groups": hintGroups(views), "Total": len(all), "Buttons": hcfg.Buttons}
+		frag.View = map[string]any{"Hints": views, "Groups": hintGroups(views), "Total": len(all), "Buttons": hcfg.Buttons,
+			"Left": daysLeft(views, time.Now())}
 		if !hcfg.NoLevels {
 			frag.View["Levels"] = widgets.LevelBar(sevs)
 		}
@@ -938,7 +942,32 @@ type HintGroup struct {
 
 // hintGroups splits hints into severity bands, keeping their order:
 //
-//	[warn a, crit b, info c, warn d]  →  crit [b] · warn [a d] · info [c]
+// dueWithin keeps the hints due within days from now, soonest first.
+func dueWithin(all []hints.View, days int, now time.Time) []hints.View {
+	horizon := now.AddDate(0, 0, days).Format(time.DateOnly)
+	var out []hints.View
+	for _, v := range all {
+		if v.Due != "" && v.Due <= horizon {
+			out = append(out, v)
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Due < out[j].Due })
+	return out
+}
+
+// daysLeft maps each hint with a due date to the days until it, by id.
+func daysLeft(views []hints.View, now time.Time) map[int64]int {
+	today, _ := time.Parse(time.DateOnly, now.Format(time.DateOnly))
+	out := map[int64]int{}
+	for _, v := range views {
+		if due, err := time.Parse(time.DateOnly, v.Due); err == nil {
+			out[v.ID] = int(due.Sub(today).Hours() / 24)
+		}
+	}
+	return out
+}
+
+// [warn a, crit b, info c, warn d]  →  crit [b] · warn [a d] · info [c]
 func hintGroups(views []hints.View) []HintGroup {
 	levels := []enums.Severity{enums.SeverityCritical, enums.SeverityWarn, enums.SeverityInfo}
 	var out []HintGroup

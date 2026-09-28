@@ -251,6 +251,7 @@ type HintsConfig struct {
 	Sort        string      // "" = most urgent first, "value" = largest amount, "age" = oldest
 	Buttons     bool        // done and later on each line
 	NoLevels    bool        // hide the level bar
+	DueDays     int         // > 0: only hints due within that many days, soonest first
 }
 
 // Hint list orders besides the default (most urgent first).
@@ -270,6 +271,13 @@ func decodeTopic(topic rules.Topic) DecodeFunc {
 		return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: clampInt(asInt(raw["limit"], 20), 1, 50), Topic: topic,
 			Sources: asStringList(raw["sources"]), Sort: sort}
 	}
+}
+
+// decodeExpiries: every hint with a due date (certificates, domains,
+// warranties, contracts, renewals, tax) on one timeline.
+func decodeExpiries(raw map[string]any) any {
+	return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: clampInt(asInt(raw["limit"], 15), 1, 50),
+		Sources: asStringList(raw["sources"]), DueDays: clampInt(asInt(raw["days"], 90), 7, 400), NoLevels: true}
 }
 
 func decodeHints(raw map[string]any) any {
@@ -1242,4 +1250,6 @@ func init() {
 		RefreshS: 600, Extra: ExtraHints})
 	Register(WidgetType{Key: "hints", Decode: decodeHints, Template: "widgets/hints", Category: CategoryInsight,
 		RefreshS: 300, Extra: ExtraHints})
+	Register(WidgetType{Key: "expiries", Decode: decodeExpiries, Template: "widgets/expiries", Category: CategoryInsight,
+		RefreshS: 3600, Extra: ExtraHints})
 }

@@ -869,6 +869,9 @@ wtype:
   subscriptions:
     name: 'Abos und wiederkehrende Kosten'
     desc: 'Summe je Monat und die nächsten Abbuchungen aus Wallos, sonst aus Sure; nennt Abos, die in Wallos fehlen.'
+  expiries:
+    name: 'Ablauf-Zeitstrahl'
+    desc: 'Alles mit Datum an einer Stelle: Zertifikate, Domains, Garantien, Verträge, Verlängerungen, Steuer.'
 widget:
   delete_hint: 'Die Kachel verschwindet von allen Boards, auf denen sie steht.'
   pending: Wird beim nächsten Prüflauf geladen …
@@ -2352,6 +2355,7 @@ deadline:
   annual: Steuererklärungen {year}
   today: heute
   days_short: T
+  overdue: 'fällig'
 rule_name:
   system.connector_down: Verbindung gestört
   system.unused_service: 'Ungenutzter Dienst'

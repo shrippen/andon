@@ -869,6 +869,9 @@ wtype:
   subscriptions:
     name: 'Subscriptions and recurring costs'
     desc: 'Monthly total and the next debits from Wallos, else from Sure; names subscriptions missing in Wallos.'
+  expiries:
+    name: 'Expiry timeline'
+    desc: 'Everything with a date in one place: certificates, domains, warranties, contracts, renewals, tax.'
 widget:
   delete_hint: 'The tile disappears from every board it is on.'
   pending: Loading with the next check …
@@ -2351,6 +2354,7 @@ deadline:
   annual: Tax returns {year}
   today: today
   days_short: d
+  overdue: 'due'
 rule_name:
   system.connector_down: Connection failing
   system.unused_service: 'Unused service'

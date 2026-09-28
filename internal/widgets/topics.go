@@ -40,7 +40,7 @@ var topicOf = map[string]Topic{
 	"payment_days":     TopicWork,
 	"greeting":         TopicOverview, "hints": TopicOverview, "week_story": TopicOverview, "conn_health": TopicOverview,
 	"clock": TopicOverview, "calendar": TopicOverview, "note": TopicOverview, "list": TopicOverview,
-	"link": TopicOverview, "deadlines": TopicOverview,
+	"link": TopicOverview, "deadlines": TopicOverview, "expiries": TopicOverview,
 
 	"kimai_timer": TopicWork, "kimai_week": TopicWork, "kimai_split": TopicWork, "heatmap": TopicWork,
 	"unbilled_age": TopicWork, "cashflow": TopicWork, "invoice_aging": TopicWork, "mail_invoices": TopicWork,

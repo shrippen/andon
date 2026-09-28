@@ -162,6 +162,20 @@
 <p class="hint-all"><a href="/hints">{{t "hints.all"}} →</a></p>
 {{end}}
 
+{{define "widgets/expiries"}}
+{{/* Everything with a date: certificates, domains, warranties, contracts,
+     renewals, tax. Countdown first: red from tomorrow, yellow within a week. */}}
+<ol class="deadlines">
+{{range .Frag.View.Hints}}{{$left := index $.Frag.View.Left .ID}}
+  <li data-urgency="{{if le $left 1}}red{{else if le $left 6}}yellow{{end}}">
+    <span class="countdown">{{if lt $left 0}}{{t "deadline.overdue"}}{{else if eq $left 0}}{{t "deadline.today"}}{{else}}{{$left}}<em>{{t "deadline.days_short"}}</em>{{end}}</span>
+    <span><a href="/hints#hint-{{.ID}}">{{.Title}}</a>
+      <time datetime="{{.Due}}">{{weekday .Due}} {{day .Due}}</time></span></li>
+{{else}}<li class="muted">{{t "widget.empty"}}</li>
+{{end}}
+</ol>
+{{end}}
+
 {{/* One hint row; "R" is the fragment root (CSRF). */}}
 {{define "hint-item"}}
 {{$r := .R}}{{with .H}}
