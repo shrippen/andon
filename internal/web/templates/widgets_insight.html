@@ -33,12 +33,13 @@
   {{else if eq $k.SubKey "kpi.of_goal"}}<span class="kpi-sub">{{t "kpi.of_goal" "goal" (money $k.SubGoal $k.Currency)}}</span>
   {{else if eq $k.SubKey "kpi.cash_30"}}<span class="kpi-sub">{{t "kpi.cash_30"}}</span>
   {{else if eq $k.SubKey "kpi.reserve"}}<span class="kpi-sub">{{t "kpi.reserve" "rate" $k.SubRate}}</span>
+  {{else if eq $k.SubKey "kpi.free"}}<span class="kpi-sub">{{t "kpi.free" "amount" (money $k.SubIn $k.Currency)}}</span>
   {{else if eq $k.SubKey "kpi.safe"}}<span class="kpi-sub">{{t "kpi.safe" "in" (money $k.SubIn) "out" (money $k.SubOut)}}</span>
   {{else if eq $k.SubKey "kpi.liquidity"}}<span class="kpi-sub">{{t "kpi.liquidity" "in" (money $k.SubIn) "out" (money $k.SubOut)}}</span>
   {{else if eq $k.SubKey "kpi.per_hour"}}<span class="kpi-sub">{{t "kpi.per_hour" "count" $k.SubCount}}</span>
   {{else if eq $k.SubKey "kpi.assets"}}<span class="kpi-sub">{{t "kpi.assets" "count" $k.SubCount}}</span>
   {{end}}
-  {{with $k.Spark}}{{template "spark" .}}<span class="kpi-sub">{{t "kpi.spark_months" "n" 12}}</span>{{end}}
+  {{with $k.Spark}}{{template "spark" .}}<span class="kpi-sub">{{if $k.SparkDays}}{{t "kpi.spark_days" "n" $k.SparkDays}}{{else}}{{t "kpi.spark_months" "n" 12}}{{end}}</span>{{end}}
   {{with $k.Details}}<details class="kpi-details"><summary class="small">{{t "kpi.details"}}</summary>
     <ul class="legend-list">{{range .}}<li><span>{{.Label}}{{with .Note}} <small class="muted">{{.}}</small>{{end}}</span><b>{{money .Amount $k.Currency}}</b></li>{{end}}</ul>
   </details>{{end}}

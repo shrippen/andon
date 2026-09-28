@@ -122,3 +122,15 @@ func TestKpiDetails(t *testing.T) {
 		t.Fatalf("unbilled details: %+v", k.Details)
 	}
 }
+
+// TestCashOptions: the balance tile shows its last 30 days and, with
+// Invoice Ninja, what is free to spend.
+func TestCashOptions(t *testing.T) {
+	now := time.Now()
+	results := map[string]any{"data": sources.DemoSure(now), "invoiceninja": sources.DemoNinja(now)}
+	v := viewOf(t, "kpi", map[string]any{"metric": "cash", "free": true}, results, enums.ServiceSure, nil)
+	k := v["KPI"].(*widgets.KpiResult)
+	if k.Spark == nil || k.SparkDays != 30 || k.SubKey != "kpi.free" {
+		t.Fatalf("cash: %+v", k)
+	}
+}

@@ -462,6 +462,7 @@ field:
   hide_after: 'Geräte ausblenden, die länger offline sind als (Tage, 0 = nie)'
   board_layout: 'Anordnung'
   board_layout_hint: 'Spaltenfluss füllt Lücken unter kurzen Abschnitten; die Breite der Abschnitte gilt dann nicht.'
+  free: 'Frei verfügbaren Betrag zeigen (Kontostand)'
 opt:
   exposure: 'Angriffsfläche'
   domain_chain: 'Domain-Kette'
@@ -2306,6 +2307,8 @@ kpi:
   spark_months: 'letzte {n} Monate'
   vs_last_month: zum Vormonat
   details: 'Woraus sich das zusammensetzt'
+  free: 'frei verfügbar {amount}'
+  spark_days: 'letzte {n} Tage'
 col:
   storage: 'Speicher'
   full_in: 'Voll in'

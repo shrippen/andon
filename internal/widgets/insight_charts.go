@@ -356,6 +356,10 @@ func kpiQueries(cfg any) []Query {
 		return append(dataQuery(nil), kimaiPeer)
 	case MetricLiquidity30, MetricSafeToSpend:
 		return append(dataQuery(nil), surePeer)
+	case MetricCash:
+		if cfg.(KpiConfig).Free {
+			return append(dataQuery(nil), peer(peerNinja, enums.ServiceInvoiceNinja))
+		}
 	}
 	return dataQuery(nil)
 }

@@ -87,7 +87,8 @@ type KpiConfig struct {
 	Metric  Metric
 	Compare string  // prev_year (default), prev_month, off
 	Target  float64 // 0 = none; colours the value
-	Spark   bool    // the 12-month line
+	Spark   bool    // the 12-month line (balance: 30 days)
+	Free    bool    // balance: what is free to spend below the value
 }
 
 // KpiDetail is one line behind a KPI value, e.g. an open invoice.
@@ -120,7 +121,8 @@ func decodeKpi(raw map[string]any) any {
 		compare = comparePrevYear
 	}
 	spark, set := raw["spark"].(bool)
-	return KpiConfig{Metric: metric, Compare: compare, Target: max(asFloat(raw["target_value"]), 0), Spark: spark || !set}
+	return KpiConfig{Metric: metric, Compare: compare, Target: max(asFloat(raw["target_value"]), 0), Spark: spark || !set,
+		Free: asBool(raw["free"])}
 }
 
 // monthDelta is this month against the last for metrics with months.
@@ -173,6 +175,9 @@ func shapeKpi(kpi *KpiResult, cfg KpiConfig, data any, today time.Time) {
 	}
 	if cfg.Spark {
 		kpi.Spark = kpiSpark(cfg.Metric, data, today)
+	}
+	if kpi.Spark != nil && cfg.Metric == MetricCash {
+		kpi.SparkDays = cashDays
 	}
 }
 
@@ -368,29 +373,34 @@ func parseToday(iso string) time.Time {
 // KpiResult is one "kpi" widget's computed value plus an optional
 // translated sub-caption (see the widgets/kpi.html template).
 type KpiResult struct {
-	Kind     string // "money", "percent", "hours", "count"
-	Value    float64
-	Currency string
-	HasDelta bool
-	Delta    float64
-	SubKey   string // "" if none
-	SubHours float64
-	SubCount int
-	SubIn    float64 // liquidity: expected income
-	SubOut   float64 // liquidity: fixed costs
-	SubStart string
-	SubEnd   string
-	SubGoal  float64
-	SubRate  int
-	Spark    *Spark      // last 12 months, where the metric has a history
-	DeltaKey string      // what Delta compares with
-	Details  []KpiDetail // what the value is made of, opened on click
+	Kind      string // "money", "percent", "hours", "count"
+	Value     float64
+	Currency  string
+	HasDelta  bool
+	Delta     float64
+	SubKey    string // "" if none
+	SubHours  float64
+	SubCount  int
+	SubIn     float64 // liquidity: expected income
+	SubOut    float64 // liquidity: fixed costs
+	SubStart  string
+	SubEnd    string
+	SubGoal   float64
+	SubRate   int
+	Spark     *Spark      // last 12 months, where the metric has a history
+	SparkDays int         // the line covers days instead of months (balance)
+	DeltaKey  string      // what Delta compares with
+	Details   []KpiDetail // what the value is made of, opened on click
 
 	Target string // "good", "bad" or "" (no target)
 }
 
-// sparkMonths is how far back a KPI's line reaches.
-const sparkMonths = 12
+// sparkMonths is how far back a KPI's line reaches; a balance, which
+// changes daily, shows cashDays days.
+const (
+	sparkMonths = 12
+	cashDays    = 30
+)
 
 // kimaiMonthHours is the tracked hours of each of the last n months,
 // oldest first; prev is the same month a year before.
@@ -438,6 +448,11 @@ func kpiSpark(metric Metric, data any, today time.Time) *Spark {
 		}
 		cur, _ := kimaiMonthHours(d, lastMonth, sparkMonths)
 		return SparkOf(cur)
+	case *sources.SureDataset:
+		if metric != MetricCash {
+			return nil
+		}
+		return SparkOf(metrics.SureCashDays(d, today, cashDays))
 	}
 	return nil
 }
@@ -569,12 +584,23 @@ func kpiNinja(metric Metric, data *sources.NinjaDataset, peers map[string]any, c
 	return nil
 }
 
-func kpiSure(metric Metric, data *sources.SureDataset) *KpiResult {
-	switch metric {
+func kpiSure(cfg KpiConfig, data *sources.SureDataset, peers map[string]any, ctx ViewCtx) *KpiResult {
+	switch cfg.Metric {
 	case MetricNetWorth:
 		return &KpiResult{Kind: "money", Value: data.NetWorth, Currency: data.Currency}
 	case MetricCash:
-		return &KpiResult{Kind: "money", Value: metrics.SureCash(data), Currency: data.Currency}
+		kpi := &KpiResult{Kind: "money", Value: metrics.SureCash(data), Currency: data.Currency}
+		ninja, ok := peers[peerNinja].(*sources.NinjaDataset)
+		if !cfg.Free || !ok {
+			return kpi
+		}
+
+		// Free to spend: the balance less VAT, income tax and 30 days of
+		// fixed costs (see MetricSafeToSpend).
+		rate := settingsFloat(settingsMap(ctx.Settings, "tax"), "income_tax_rate", defaultIncomeTaxRate)
+		s := metrics.SafeToSpend(data, ninja, parseToday(ctx.Today), metrics.TaxVATInterval(ctx.Settings), metrics.TaxVATMethod(ctx.Settings), rate)
+		kpi.SubKey, kpi.SubIn = "kpi.free", s.Free
+		return kpi
 	}
 	return nil
 }
@@ -603,7 +629,7 @@ func kpiView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	case enums.ServiceInvoiceNinja:
 		kpi = kpiNinja(cfg.Metric, data.(*sources.NinjaDataset), results, ctx)
 	case enums.ServiceSure:
-		kpi = kpiSure(cfg.Metric, data.(*sources.SureDataset))
+		kpi = kpiSure(cfg, data.(*sources.SureDataset), results, ctx)
 	case enums.ServiceSnipeIT:
 		kpi = kpiSnipe(cfg.Metric, data.(*sources.SnipeDataset), ctx)
 	}

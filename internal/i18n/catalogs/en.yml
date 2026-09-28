@@ -462,6 +462,7 @@ field:
   hide_after: 'Hide devices offline longer than (days, 0 = never)'
   board_layout: 'Layout'
   board_layout_hint: 'Flowing columns fill gaps under short sections; section widths do not apply then.'
+  free: 'Show amount free to spend (balance)'
 opt:
   exposure: 'Exposure'
   domain_chain: 'Domain chain'
@@ -2305,6 +2306,8 @@ kpi:
   spark_months: 'last {n} months'
   vs_last_month: vs last month
   details: 'What it is made of'
+  free: '{amount} free to spend'
+  spark_days: 'last {n} days'
 col:
   storage: 'Storage'
   full_in: 'Full in'

@@ -135,7 +135,7 @@ var fieldsByType = map[string][]Field{
 		"revenue_ytd", "revenue_month", "open_amount", "overdue_amount", "vat_liability", "tax_reserve",
 		"asset_value", "assets_ready", "revenue_forecast", "cash_30", "liquidity_30", "effective_rate", "net_worth", "cash", "safe_to_spend"),
 		sel("compare", comparePrevYear, comparePrevYear, comparePrevMonth, compareOff),
-		{Key: "target_value", Input: InputNumber}, {Key: "spark", Input: InputCheck, Default: true}},
+		{Key: "target_value", Input: InputNumber}, {Key: "spark", Input: InputCheck, Default: true}, {Key: "free", Input: InputCheck}},
 	"table": {sel("table", "open_invoices", "open_invoices", "unbilled", "budgets", "client_shares", "asset_dates", "trips", "effective_rates", "app_usage", "payment_morale",
 		"full_rates", "unbilled_aging", "payment_matches", "missing_receipts", "subscriptions", "budget_forecast", "project_margins", "exposure", "domain_chain"),
 		{Key: "limit", Input: InputNumber, Default: 8}, {Key: "hide_cols", Input: InputList},
