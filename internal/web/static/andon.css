@@ -451,6 +451,9 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
 .loading { color: var(--fg3); font-family: var(--font-mono); font-size: .78rem; }
+/* A small turning square says the wait is work, not a hang. */
+.loading::before { content: ""; display: inline-block; width: .55rem; height: .55rem; margin-right: .55rem; vertical-align: middle; background: var(--primary); animation: loading-turn 1.1s linear infinite; }
+@keyframes loading-turn { to { transform: rotate(360deg); } }
 .slot-note { font-size: .8rem; color: var(--fg2); }
 .slot-note.is-error code { color: var(--danger-text); }
 
