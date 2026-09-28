@@ -22,6 +22,7 @@ import (
 //	mdi-server       → Material Design Icons (SVG)
 //	fas fa-rocket    → Font Awesome Free (SVG; fab = brands, far = regular)
 //	favicon + url    → <origin>/favicon.ico
+//	auto:kimai + url → Dashboard Icons, selfh.st, then <origin>/favicon.ico
 //	https://…/x.png  → as is
 
 const (
@@ -31,6 +32,7 @@ const (
 	mdiIcons       = "https://cdn.jsdelivr.net/npm/@mdi/svg@latest/svg/%s.svg"
 	faIcons        = "https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/svgs/%s/%s.svg"
 	faSolid        = "solid"
+	autoPrefix     = "auto:"
 	maxIcon        = 512 * 1024
 	iconTimeout    = 10 * time.Second
 	svgType        = "image/svg+xml"
@@ -66,6 +68,10 @@ func IconCandidates(spec, pageURL string) []string {
 	case strings.HasPrefix(spec, "sh-"):
 		name := spec[3:]
 		return []string{fmt.Sprintf(selfhstIcons, "svg", name, "svg"), fmt.Sprintf(selfhstIcons, "png", name, "png")}
+	case strings.HasPrefix(spec, autoPrefix):
+		name := spec[len(autoPrefix):]
+		found := []string{fmt.Sprintf(dashboardIcons, "svg", name, "svg"), fmt.Sprintf(selfhstIcons, "svg", name, "svg")}
+		return append(found, IconCandidates("favicon", pageURL)...)
 	case strings.HasPrefix(spec, "mdi-"):
 		return []string{fmt.Sprintf(mdiIcons, spec[4:])}
 	case IsFontAwesome(spec):

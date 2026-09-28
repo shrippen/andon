@@ -32,6 +32,7 @@ const (
 	fetchTimeout = 30 * time.Second
 	defaultType  = "image/png"
 	faviconSpec  = "favicon"
+	autoPrefix   = "auto:"
 	svgMediaType = "image/svg+xml"
 )
 
@@ -122,6 +123,42 @@ func Emoji(spec string) string {
 }
 
 const zeroWidthJoiner = 0x200D
+
+// noneSpec turns a link's icon off: the tile shows its monogram.
+const noneSpec = "none"
+
+// LinkSpec is the icon spec a link tile uses: its own, or, when empty, a
+// lookup by title in the icon sets ("Uptime Kuma" → "auto:uptime-kuma").
+func LinkSpec(spec, title string) string {
+	spec = strings.TrimSpace(spec)
+	switch spec {
+	case noneSpec:
+		return ""
+	case "":
+		if name := iconName(title); name != "" {
+			return autoPrefix + name
+		}
+		return ""
+	}
+	return spec
+}
+
+// iconName is a title as icon sets name files: lower case, words joined
+// by "-", other characters dropped ("FRITZ!Box" → "fritzbox").
+func iconName(title string) string {
+	var b strings.Builder
+	for _, word := range strings.Fields(strings.ToLower(title)) {
+		if b.Len() > 0 {
+			b.WriteByte('-')
+		}
+		for _, r := range word {
+			if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+				b.WriteRune(r)
+			}
+		}
+	}
+	return strings.Trim(b.String(), "-")
+}
 
 // URL returns the local URL of spec's icon, or "" while it is missing
 // (a background download starts on first request).

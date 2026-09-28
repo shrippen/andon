@@ -191,7 +191,7 @@ func (d Deps) renderPreview(w http.ResponseWriter, ctx Ctx, kind widgets.WidgetT
 		if link, ok := frag.Config.(widgets.LinkConfig); ok {
 			icon := map[string]any{"Emoji": icons.Emoji(link.Icon), "Glyph": icons.Glyph(link.Icon)}
 			if icon["Emoji"] == "" {
-				icon["URL"] = icons.URL(link.Icon, link.URL)
+				icon["URL"] = icons.URL(icons.LinkSpec(link.Icon, frag.Title), link.URL)
 			}
 			values["Icon"] = icon
 		}

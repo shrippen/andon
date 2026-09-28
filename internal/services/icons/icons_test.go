@@ -74,3 +74,20 @@ func TestEmojiAndGlyph(t *testing.T) {
 		}
 	}
 }
+
+// A link without icon looks one up by its title; "none" keeps the
+// monogram.
+func TestLinkSpec(t *testing.T) {
+	cases := map[[2]string]string{
+		{"", "Uptime Kuma"}:     "auto:uptime-kuma",
+		{"", "Pi-hole"}:         "auto:pi-hole",
+		{"", "FRITZ!Box"}:       "auto:fritzbox",
+		{"none", "Uptime Kuma"}: "",
+		{"si-gitea", "Gitea"}:   "si-gitea",
+	}
+	for in, want := range cases {
+		if got := icons.LinkSpec(in[0], in[1]); got != want {
+			t.Fatalf("%v: %q, want %q", in, got, want)
+		}
+	}
+}

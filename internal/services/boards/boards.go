@@ -447,10 +447,10 @@ func viewSection(q db.Queryer, who *access.Principal, section model.Section, boa
 			tile.IconEmoji = icons.Emoji(link.Icon)
 			tile.IconGlyph = icons.Glyph(link.Icon)
 			if tile.IconEmoji == "" {
-				tile.IconURL = icons.URL(link.Icon, link.URL)
+				tile.IconURL = icons.URL(icons.LinkSpec(link.Icon, w.Title), link.URL)
 			}
 			for _, item := range link.Items {
-				tile.Items = append(tile.Items, TileItem{Title: item.Title, URL: item.URL, IconURL: icons.URL(item.Icon, item.URL)})
+				tile.Items = append(tile.Items, TileItem{Title: item.Title, URL: item.URL, IconURL: icons.URL(icons.LinkSpec(item.Icon, item.Title), item.URL)})
 			}
 		}
 		view.Tiles = append(view.Tiles, tile)
