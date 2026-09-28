@@ -211,6 +211,7 @@ button.ghost:hover, .link-btn:hover { color: var(--orange); border-color: var(--
 .board-page { max-width: none; padding-top: 1.4rem; }
 .board-head { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem 1.4rem; margin: 0 0 1.4rem; }
 .board-title { margin: 0; font-size: 1.6rem; letter-spacing: .03em; }
+.board-kicker { display: block; font-family: var(--font-mono); font-size: .68rem; font-weight: 400; letter-spacing: .14em; color: var(--fg3); }
 .board-tools { display: flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; align-items: center; }
 .board-tools .link-btn { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--fg3); border-color: var(--bg1); }
 .board-tools .link-btn:hover { color: var(--fg0); }

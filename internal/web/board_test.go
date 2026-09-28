@@ -227,7 +227,7 @@ func TestLinkExtrasAndPage(t *testing.T) {
 
 	page := string(mustGet(t, srv, client, "/boards/"+board))
 	for _, want := range []string{`href="https://git.example/admin"`, `#code`, `data-color="green"`, `data-span="2"`, `data-rows="3"`, `data-mobile="first"`,
-		`data-color="blue"`, `id="ctx-menu"`, `>Heim</h1>`, `Alles hier`, `href="https://wiki.example"`, `class="page-foot">Privat`} {
+		`data-color="blue"`, `id="ctx-menu"`, `<small class="board-kicker">Heim</small>`, `Alles hier`, `href="https://wiki.example"`, `class="page-foot">Privat`} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("board missing %q:\n%s", want, page)
 		}

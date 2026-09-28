@@ -22,7 +22,8 @@
   <main class="board-page">
   {{if not .Embed}}
   <div class="board-head">
-    <h1 class="board-title">{{with .Board.Page.Title}}{{.}}{{else}}{{.Board.Name}}{{end}}</h1>
+    {{/* The board's own name leads; the space's page title sits above it. */}}
+    <h1 class="board-title">{{with .Board.Page.Title}}{{if ne . $.Board.Name}}<small class="board-kicker">{{.}}</small>{{end}}{{end}}{{.Board.Name}}</h1>
     {{template "intro" dict "Page" "board" "Chapter" "boards" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <label class="search">
       <span class="sr">{{t "board.search"}}</span>
