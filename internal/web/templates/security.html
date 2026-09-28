@@ -12,6 +12,7 @@
   {{template "header" .}}
   <main>
     <h1>{{t "nav.security"}}</h1>
+    {{template "intro" dict "Page" "security" "Chapter" "security" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
 
     <div class="card">

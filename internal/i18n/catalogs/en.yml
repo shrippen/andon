@@ -1291,7 +1291,6 @@ code:
   replace: Replace
   merge: Merge
 import:
-  lead: Take over a Dashy conf.yml or a YAML export into a space.
   kind: Format
   file: File
   run: Import
@@ -1379,7 +1378,6 @@ security:
   boards_only: Only these boards (optional)
 cred:
   replace: Replace
-  lead: Connections with personal credentials. Only you see your token.
   state: State
   set: stored
   missing: missing
@@ -1406,7 +1404,6 @@ admin:
   health_every: Interval
   health_error: Error
   analysis_run: Check now
-  users_lead: Manage accounts. Personal content is not visible to admins.
   login: Last login
   invite: Invite
   send_invite: Send invitation
@@ -3405,11 +3402,20 @@ intro:
   billing: 'Open Kimai hours per customer. One click turns them into a draft invoice in Invoice Ninja.'
   timeline: 'The timeline shows what changed in the last 14 days: service updates and restarts, hints that came or went. It helps to find what happened just before a problem.'
   receipts: 'Invoice Ninja expenses find their Paperless receipts here. Andon suggests, you confirm; afterwards both sides reference each other.'
+  boards: 'Every board you can see. Order and selection apply to your navigation only.'
+  credentials: 'Connections with personal credentials. Only you see your token.'
+  import: 'Take over a Dashy conf.yml or a YAML export into a space.'
+  clients: 'Each Kimai customer with the Invoice Ninja client of the same name: hours, open work, invoices, revenue and payment time.'
+  hosts: 'Every machine name of your connections with everything aimed at it: services, monitors, certificates, hints.'
+  users: 'Manage accounts. Personal content is not visible to admins.'
+  instance: 'Settings for the whole instance: check run, health, backup, network and sign-in. Only admins see this page.'
+  audit: 'Who changed what, and when. Settings show their old and new value; entries are kept for a year.'
+  profile: 'Name, language, theme, start board and search engine apply to you only.'
+  security: 'Password, second factor, passkeys, sessions and API tokens of your account. A passkey counts as a second factor.'
 danger:
   title: Delete
 boards:
   title: Boards
-  lead: 'Every board you can see. Order and selection apply to your navigation only.'
   order: Order
   in_nav: Navigation
   up: Move up
@@ -3708,7 +3714,6 @@ immich:
   failed: '{n} failed jobs'
   update: 'Update to {version} available'
 clients:
-  lead: 'Each Kimai customer with the Invoice Ninja client of the same name: hours, open work, invoices, revenue and payment time.'
   customer: 'Customer'
   hours_year: 'Hours (year)'
   hours_month: '{hours} h this month'
@@ -3730,7 +3735,6 @@ clients:
   projects: 'Projects this year'
   no_hints: 'No open hints about this customer.'
 hosts:
-  lead: 'Every machine name of your connections with everything aimed at it: services, monitors, certificates, hints.'
   host: 'Host'
   services: 'Services'
   monitors: 'Monitors'

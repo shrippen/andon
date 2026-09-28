@@ -660,7 +660,7 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .receipt-expense dt { color: var(--fg2); }
 .receipt-expense dd { margin: 0; }
 .receipt-actions { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin: .5rem 0 0; }
-.receipt-actions button, .receipt-ignore button, .receipts-note button, .receipts-concept-foot button { margin: 0; }
+.receipt-actions button, .receipt-ignore button, .receipts-note button { margin: 0; }
 .receipt-actions button.ghost, .receipt-ignore button.ghost, .receipts-note button.ghost { padding: .35rem .7rem; font-size: .82rem; }
 .receipt-candidates { display: flex; flex-direction: column; gap: .7rem; min-width: 0; }
 .receipt-cand { display: flex; gap: .8rem; padding: .6rem .7rem; border: 1px solid var(--bg2); background: var(--bg-hard); }
@@ -719,7 +719,6 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .receipt-pick button { margin: 0; }
 .receipt-pick button:disabled { opacity: .5; cursor: not-allowed; }
 .receipt-cand-head input[data-pick] { width: auto; margin: 0 .2rem 0 0; flex: 0 0 auto; align-self: center; }
-.receipts-concept-foot { display: flex; flex-wrap: wrap; gap: .4rem 1rem; align-items: center; margin: .5rem 0 0; }
 .receipt-factors { list-style: none; padding: 0; margin: .4rem 0; display: flex; flex-direction: column; gap: .45rem; font-size: .82rem; }
 .receipt-factors li { color: var(--fg2); }
 .receipt-factors li[data-hit] { color: var(--fg1); }

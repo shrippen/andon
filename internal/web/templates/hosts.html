@@ -11,7 +11,7 @@
   {{template "header" .}}
   <main>
     <h1>{{t "nav.hosts"}}</h1>
-    <p class="muted">{{t "hosts.lead"}}</p>
+    {{template "intro" dict "Page" "hosts" "Chapter" "connections" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Hosts}}
     <div class="table-wrap"><table class="table">
       <thead><tr><th>{{t "hosts.host"}}</th><th>{{t "hosts.services"}}</th><th class="num">{{t "hosts.monitors"}}</th><th class="num">{{t "hosts.problems"}}</th></tr></thead>

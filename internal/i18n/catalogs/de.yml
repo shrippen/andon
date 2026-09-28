@@ -1291,7 +1291,6 @@ code:
   replace: Ersetzen
   merge: Zusammenführen
 import:
-  lead: Dashy conf.yml oder YAML-Export in einen Bereich übernehmen.
   kind: Format
   file: Datei
   run: Importieren
@@ -1379,7 +1378,6 @@ security:
   boards_only: Nur diese Boards (optional)
 cred:
   replace: Ersetzen
-  lead: Verbindungen mit persönlichen Zugangsdaten. Dein Token sieht nur du.
   state: Status
   set: hinterlegt
   missing: fehlt
@@ -1406,7 +1404,6 @@ admin:
   health_every: Intervall
   health_error: Fehler
   analysis_run: Jetzt prüfen
-  users_lead: Konten verwalten. Persönliche Inhalte sind für Admins nicht sichtbar.
   login: Letzte Anmeldung
   invite: Einladen
   send_invite: Einladung senden
@@ -3406,11 +3403,20 @@ intro:
   billing: 'Offene Kimai-Stunden je Kunde. Mit einem Klick entsteht daraus ein Rechnungsentwurf in Invoice Ninja.'
   timeline: 'Die Zeitleiste zeigt, was sich in den letzten 14 Tagen geändert hat: Updates und Neustarts der Dienste, Hinweise, die kamen oder gingen. So findest du, was kurz vor einem Problem passiert ist.'
   receipts: 'Invoice-Ninja-Ausgaben finden hier ihre Belege aus Paperless. Andon schlägt vor, du bestätigst; die Verweise stehen danach auf beiden Seiten.'
+  boards: 'Alle Boards, die du siehst. Reihenfolge und Auswahl gelten nur für deine Navigation.'
+  credentials: 'Verbindungen mit persönlichen Zugangsdaten. Dein Token sieht nur du.'
+  import: 'Dashy conf.yml oder YAML-Export in einen Bereich übernehmen.'
+  clients: 'Jeder Kunde aus Kimai mit seinem Invoice-Ninja-Kunden gleichen Namens: Stunden, offene Arbeit, Rechnungen, Umsatz und Zahlungsdauer.'
+  hosts: 'Jeder Rechnername aus deinen Verbindungen mit allem, was darauf zeigt: Dienste, Monitore, Zertifikate, Hinweise.'
+  users: 'Konten verwalten. Persönliche Inhalte sind für Admins nicht sichtbar.'
+  instance: 'Einstellungen für die ganze Instanz: Prüflauf, Zustand, Sicherung, Netz und Anmeldung. Nur Admins sehen diese Seite.'
+  audit: 'Wer hat wann was geändert. Einstellungen erscheinen mit altem und neuem Wert; Einträge bleiben ein Jahr.'
+  profile: 'Name, Sprache, Theme, Startboard und Suchmaschine gelten nur für dich.'
+  security: 'Passwort, zweiter Faktor, Passkeys, Sitzungen und API-Tokens deines Kontos. Ein Passkey genügt als zweiter Faktor.'
 danger:
   title: Löschen
 boards:
   title: Boards
-  lead: 'Alle Boards, die du siehst. Reihenfolge und Auswahl gelten nur für deine Navigation.'
   order: Reihenfolge
   in_nav: Navigation
   up: Nach oben
@@ -3709,7 +3715,6 @@ immich:
   failed: '{n} fehlgeschlagene Jobs'
   update: 'Update auf {version} verfügbar'
 clients:
-  lead: 'Jeder Kunde aus Kimai mit seinem Invoice-Ninja-Kunden gleichen Namens: Stunden, offene Arbeit, Rechnungen, Umsatz und Zahlungsdauer.'
   customer: 'Kunde'
   hours_year: 'Stunden (Jahr)'
   hours_month: '{hours} h diesen Monat'
@@ -3731,7 +3736,6 @@ clients:
   projects: 'Projekte dieses Jahr'
   no_hints: 'Keine offenen Hinweise zu diesem Kunden.'
 hosts:
-  lead: 'Jeder Rechnername aus deinen Verbindungen mit allem, was darauf zeigt: Dienste, Monitore, Zertifikate, Hinweise.'
   host: 'Host'
   services: 'Dienste'
   monitors: 'Monitore'

@@ -17,7 +17,7 @@
   {{template "header" .}}
   <main>
     <h1>{{t "nav.import"}}</h1>
-    <p class="muted">{{t "import.lead"}}</p>
+    {{template "intro" dict "Page" "import" "Chapter" "boards" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Error}}<p class="error">{{t "code.error"}}: <code>{{t .Error}}</code></p>{{end}}
     {{with .Report}}{{template "report" .}}{{end}}
     {{with .Preview}}

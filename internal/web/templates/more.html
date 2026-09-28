@@ -11,7 +11,7 @@
   {{template "header" .}}
   <main>
     <h1>{{t "boards.title"}}</h1>
-    <p class="muted">{{t "boards.lead"}}</p>
+    {{template "intro" dict "Page" "boards" "Chapter" "boards" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p><a class="link-btn" href="/boards/new">+ {{t "board.new"}}</a></p>
     <div class="table-wrap"><table class="table boards-table">
       <thead><tr><th>{{t "field.name"}}</th><th>{{t "field.space"}}</th><th>{{t "boards.order"}}</th><th>{{t "boards.in_nav"}}</th><th></th></tr></thead>
@@ -96,7 +96,7 @@
   {{template "header" .}}
   <main>
     <h1>{{t "nav.credentials"}}</h1>
-    <p class="muted">{{t "cred.lead"}}</p>
+    {{template "intro" dict "Page" "credentials" "Chapter" "connections" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Connected}}<p class="ok">{{t "connect.done"}}</p>{{end}}
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
     {{/* One row per connection: state and age; a stored token is replaced

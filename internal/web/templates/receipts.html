@@ -11,14 +11,10 @@
   {{template "header" .}}
   <main class="receipts">
     <h1>{{t "nav.receipts"}}</h1>
-    {{/* The concept in place of the intro box: open until "understood". */}}
-    {{$fresh := false}}{{with .Onboarding}}{{if not (index .Seen "receipts")}}{{$fresh = true}}{{end}}{{end}}
-    <details class="receipts-concept"{{if $fresh}} open{{end}}>
+    {{template "intro" dict "Page" "receipts" "Chapter" "receipts" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
+    <details class="receipts-concept">
       <summary>{{t "receipts.concept"}}</summary>
       <ul>{{range list "why" "link" "state" "you"}}<li>{{t (print "receipts.concept_" .)}}</li>{{end}}</ul>
-      <p class="receipts-concept-foot"><a href="/welcome#c-receipts">{{t "intro.more"}}</a>
-        {{if $fresh}}<form method="post" action="/welcome/intro/receipts" hx-post="/welcome/intro/receipts" hx-target="this" hx-swap="outerHTML" class="inline-form">
-          <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><button type="submit" class="ghost">{{t "intro.close"}}</button></form>{{end}}</p>
     </details>
     {{with .Done}}<p class="pill" data-state="ok">{{t "receipts.linked_note" "number" .}}</p>{{end}}
     {{with .Linked}}<p class="pill" data-state="ok">{{t "receipts.linked_many" "n" .}}</p>{{end}}
