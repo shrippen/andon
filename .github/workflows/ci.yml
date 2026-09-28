@@ -20,8 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        # Latest patch of the Dockerfile's Go line: go.mod's "go 1.26.0" is
+        # only the minimum, and 1.26.0 carries known stdlib vulnerabilities.
         with:
-          go-version-file: go.mod
+          go-version: "1.26"
+          check-latest: true
       - run: gofmt -l . | (! grep .)
       - run: go vet ./...
       - run: go run honnef.co/go/tools/cmd/staticcheck@2026.2.1 ./...
