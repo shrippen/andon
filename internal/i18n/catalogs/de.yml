@@ -23,6 +23,7 @@ nav:
   logout: Abmelden
   space_settings: Bereich einstellen
   receipts: Belege zuordnen
+  clients: 'Kunden'
 action:
   isp_report: 'Bericht öffnen'
   book_payment: 'Zahlung buchen'
@@ -3683,3 +3684,25 @@ immich:
   free: '{free} frei'
   failed: '{n} fehlgeschlagene Jobs'
   update: 'Update auf {version} verfügbar'
+clients:
+  lead: 'Jeder Kunde aus Kimai mit seinem Invoice-Ninja-Kunden gleichen Namens: Stunden, offene Arbeit, Rechnungen, Umsatz und Zahlungsdauer.'
+  customer: 'Kunde'
+  hours_year: 'Stunden (Jahr)'
+  hours_month: '{hours} h diesen Monat'
+  unbilled: 'Nicht abgerechnet'
+  open: 'Offen'
+  overdue: 'davon {amount} überfällig'
+  revenue: 'Umsatz (Jahr, netto)'
+  pay_days: 'Zahlt in Tagen'
+  pays_in: 'zahlt meist nach {days} Tagen'
+  none: 'Noch keine Kunden: Kimai verbinden.'
+  last_work: 'zuletzt gearbeitet am {day}'
+  no_ninja: 'kein Invoice-Ninja-Kunde gleichen Namens'
+  to_billing: 'zur Abrechnung'
+  invoices: 'Offene Rechnungen'
+  number: 'Nummer'
+  date: 'Datum'
+  due: 'Fällig'
+  balance: 'Offen'
+  projects: 'Projekte dieses Jahr'
+  no_hints: 'Keine offenen Hinweise zu diesem Kunden.'

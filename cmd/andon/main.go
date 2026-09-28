@@ -140,6 +140,7 @@ func main() {
 	deps.RegisterPasskeyRoutes(mux)
 	deps.RegisterHookRoutes(mux)
 	deps.RegisterBillingRoutes(mux)
+	deps.RegisterClientRoutes(mux)
 	deps.RegisterInsightRoutes(mux)
 	deps.RegisterStartPageRoutes(mux)
 	deps.RegisterHealthRoute(mux)

@@ -1,0 +1,73 @@
+{{define "clients"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "nav.clients"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <h1>{{t "nav.clients"}}</h1>
+    <p class="muted">{{t "clients.lead"}}</p>
+    {{if .Cards}}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>{{t "clients.customer"}}</th><th class="num">{{t "clients.hours_year"}}</th><th class="num">{{t "clients.unbilled"}}</th>
+        <th class="num">{{t "clients.open"}}</th><th class="num">{{t "clients.revenue"}}</th><th class="num">{{t "clients.pay_days"}}</th></tr></thead>
+      <tbody>{{range .Cards}}<tr>
+        <td><a href="/clients/{{.SpaceID}}/{{.CustomerID}}">{{.Name}}</a> <small class="muted">{{.SpaceName}}</small></td>
+        <td class="num">{{num .HoursYear 1}}</td>
+        <td class="num">{{if .Unbilled}}{{money .Unbilled .Currency}}{{end}}</td>
+        <td class="num">{{if .Open}}<span{{if .Overdue}} class="late"{{end}}>{{money .Open .Currency}}</span>{{end}}</td>
+        <td class="num">{{if .RevenueYTD}}{{money .RevenueYTD .Currency}}{{end}}</td>
+        <td class="num">{{if .PaymentDays}}{{.PaymentDays}}{{end}}</td>
+      </tr>{{end}}</tbody>
+    </table></div>
+    {{else}}<p class="muted">{{t "clients.none"}}</p>{{end}}
+  </main>
+</body>
+</html>
+{{end}}
+
+{{define "client"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.C.Name}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    {{$c := .C}}
+    <p class="small"><a href="/clients">← {{t "nav.clients"}}</a></p>
+    <h1>{{$c.Name}}</h1>
+    <p class="muted">{{$c.SpaceName}}{{with $c.LastWork}} · {{t "clients.last_work" "day" (day .)}}{{end}}{{if not $c.Matched}} · {{t "clients.no_ninja"}}{{end}}</p>
+
+    <div class="client-kpis">
+      <div class="kpi"><span class="kpi-label">{{t "clients.hours_year"}}</span><b class="kpi-value">{{num $c.HoursYear 1}} h</b><span class="kpi-sub">{{t "clients.hours_month" "hours" (num $c.HoursMonth 1)}}</span></div>
+      <div class="kpi"><span class="kpi-label">{{t "clients.unbilled"}}</span><b class="kpi-value">{{money $c.Unbilled $c.Currency}}</b>{{if $c.Unbilled}}<a class="kpi-sub" href="/billing#drafts">{{t "clients.to_billing"}}</a>{{end}}</div>
+      <div class="kpi"><span class="kpi-label">{{t "clients.open"}}</span><b class="kpi-value">{{money $c.Open $c.Currency}}</b>{{if $c.Overdue}}<span class="kpi-sub late">{{t "clients.overdue" "amount" (money $c.Overdue $c.Currency)}}</span>{{end}}</div>
+      <div class="kpi"><span class="kpi-label">{{t "clients.revenue"}}</span><b class="kpi-value">{{money $c.RevenueYTD $c.Currency}}</b>{{if $c.PaymentDays}}<span class="kpi-sub">{{t "clients.pays_in" "days" $c.PaymentDays}}</span>{{end}}</div>
+    </div>
+
+    {{with $c.Invoices}}<h2>{{t "clients.invoices"}}</h2>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>{{t "clients.number"}}</th><th>{{t "clients.date"}}</th><th>{{t "clients.due"}}</th><th class="num">{{t "clients.balance"}}</th></tr></thead>
+      <tbody>{{range .}}<tr><td>{{.Number}}</td><td>{{day .Date}}</td><td>{{day .DueDate}}{{if .OverdueDays}} <span class="late">+{{.OverdueDays}}</span>{{end}}</td><td class="num">{{money .Balance $c.Currency}}</td></tr>{{end}}</tbody>
+    </table></div>{{end}}
+
+    {{with $c.Projects}}<h2>{{t "clients.projects"}}</h2>
+    <ul class="legend-list">{{range .}}<li><span>{{.Name}}</span><b>{{num .Hours 1}} h</b></li>{{end}}</ul>{{end}}
+
+    <h2>{{t "nav.hints"}}</h2>
+    {{with .C.Hints}}<ul class="hint-lines">{{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><a href="/hints#hint-{{.ID}}">{{.Title}}</a><small>{{ago .FirstSeen}}</small></li>{{end}}</ul>
+    {{else}}<p class="muted">{{t "clients.no_hints"}}</p>{{end}}
+  </main>
+</body>
+</html>
+{{end}}

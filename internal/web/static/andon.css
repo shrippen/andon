@@ -1309,6 +1309,10 @@ table.table th.num, table.table td.num { text-align: right; font-variant-numeric
 .level-bar i { width: var(--w); background: var(--blue); }
 .level-bar i[data-tier="yellow"] { background: var(--yellow); }
 .level-bar i[data-tier="red"] { background: var(--red); }
+/* ── customer page: four key figures in a row ── */
+.client-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .8rem; margin: 1rem 0; }
+.client-kpis .kpi { background: var(--bg-panel); border: 1px solid var(--bg2); padding: .8rem; }
+
 /* ── hint trend: one spark per level ── */
 .trend-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; }
 .trend-lines li { display: grid; grid-template-columns: auto 4.5rem 2.5rem 1fr; align-items: center; gap: .4rem; font-size: .8rem; }

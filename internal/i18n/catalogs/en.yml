@@ -23,6 +23,7 @@ nav:
   logout: Log out
   space_settings: Space settings
   receipts: Match receipts
+  clients: 'Customers'
 action:
   isp_report: 'Open report'
   book_payment: 'Book payment'
@@ -3682,3 +3683,25 @@ immich:
   free: '{free} free'
   failed: '{n} failed jobs'
   update: 'Update to {version} available'
+clients:
+  lead: 'Each Kimai customer with the Invoice Ninja client of the same name: hours, open work, invoices, revenue and payment time.'
+  customer: 'Customer'
+  hours_year: 'Hours (year)'
+  hours_month: '{hours} h this month'
+  unbilled: 'Unbilled'
+  open: 'Open'
+  overdue: '{amount} of it overdue'
+  revenue: 'Revenue (year, net)'
+  pay_days: 'Pays in days'
+  pays_in: 'usually pays after {days} days'
+  none: 'No customers yet: connect Kimai.'
+  last_work: 'last worked on {day}'
+  no_ninja: 'no Invoice Ninja client of the same name'
+  to_billing: 'to billing'
+  invoices: 'Open invoices'
+  number: 'Number'
+  date: 'Date'
+  due: 'Due'
+  balance: 'Balance'
+  projects: 'Projects this year'
+  no_hints: 'No open hints about this customer.'

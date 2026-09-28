@@ -119,6 +119,7 @@ func newTestServer(t *testing.T) (*httptest.Server, *http.Client, string) {
 	deps.RegisterPasskeyRoutes(mux)
 	deps.RegisterHookRoutes(mux)
 	deps.RegisterBillingRoutes(mux)
+	deps.RegisterClientRoutes(mux)
 	deps.RegisterInsightRoutes(mux)
 	deps.RegisterStartPageRoutes(mux)
 	deps.RegisterHealthRoute(mux)
@@ -1140,4 +1141,24 @@ func awaitFragment(t *testing.T, srv *httptest.Server, client *http.Client, plac
 		time.Sleep(20 * time.Millisecond)
 	}
 	return body
+}
+
+// TestClientsPageWithoutKimai: the customer page opens and says what is
+// missing when no Kimai is connected.
+func TestClientsPageWithoutKimai(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	body := string(mustGet(t, srv, client, "/clients"))
+	if !strings.Contains(body, "Kimai verbinden") {
+		t.Fatalf("clients page:\n%s", body)
+	}
+	resp, err := client.Get(srv.URL + "/clients/1/99")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("unknown customer: %d", resp.StatusCode)
+	}
 }
