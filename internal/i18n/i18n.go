@@ -97,6 +97,14 @@ func T(key string, locale enums.Locale, params map[string]any) string {
 	})
 }
 
+// Has reports whether key is in the default catalog, e.g. to tell a
+// source error that is a key ("truenas.https_required") from plain text.
+func Has(key string) bool {
+	ensureLoaded()
+	_, ok := catalogs[DefaultLocale][key]
+	return ok
+}
+
 // Typed formats a hint's typed params ({"$money": 12.5} -> "12,50 €",
 // {"$t": "key"} -> the key's text, etc.)
 // for use as T() params. The "key" entry (the message key itself) is

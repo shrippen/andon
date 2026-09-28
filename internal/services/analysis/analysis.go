@@ -19,6 +19,7 @@ import (
 
 	"andon/internal/db"
 	"andon/internal/enums"
+	"andon/internal/i18n"
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/repos/content"
@@ -433,9 +434,14 @@ func downFinding(conn *model.Connection, errMsg string) rules.Finding {
 	if errMsg == "" {
 		errMsg = "?"
 	}
+	// A source error may be a catalog key; the reader gets its text.
+	var errParam any = errMsg
+	if i18n.Has(errMsg) {
+		errParam = map[string]any{"$t": errMsg}
+	}
 	return rules.Finding{
 		Fingerprint: fmt.Sprintf("down:%d", conn.ID), Rule: connectorRule, Severity: enums.SeverityWarn,
-		Message: "system.connector_down", Params: map[string]any{"name": conn.Name, "error": errMsg},
+		Message: "system.connector_down", Params: map[string]any{"name": conn.Name, "error": errParam},
 		Sources: []string{conn.Service},
 	}
 }

@@ -17,6 +17,8 @@ import (
 var (
 	templateKey = regexp.MustCompile(`\bt\s+"([a-z0-9_.]+)"`)
 	codeKey     = regexp.MustCompile(`\bi18n\.T\(\s*"([a-z0-9_.]+)"`)
+	// Source errors that are keys show translated (newSourceError("x.y")).
+	sourceErr   = regexp.MustCompile(`newSourceError\("([a-z0-9_]+\.[a-z0-9_.]+)"\)`)
 	hintMessage = regexp.MustCompile(`Message:\s*"([a-z0-9_.]+)"`)
 	ruleID      = regexp.MustCompile(`Register\(\s*"([a-z0-9_.]+)"`)
 	// A hint's sources show as filter chips: {{t (print "service." …)}}.
@@ -54,6 +56,7 @@ func TestUsedKeysExist(t *testing.T) {
 			collect(t, path, templateKey, used, "")
 		case ".go":
 			collect(t, path, codeKey, used, "")
+			collect(t, path, sourceErr, used, "")
 			if strings.Contains(path, "/rules/") {
 				collect(t, path, hintMessage, used, "hint.")
 				collect(t, path, ruleID, used, "rule_name.")

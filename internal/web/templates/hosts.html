@@ -49,7 +49,7 @@
       <thead><tr><th>{{t "hosts.connection"}}</th><th>{{t "hosts.state"}}</th><th>{{t "hosts.version"}}</th><th>{{t "hosts.fetched"}}</th></tr></thead>
       <tbody>{{range $h.Services}}<tr>
         <td><a href="/connections/{{.ConnID}}/edit">{{.Name}}</a> <small class="muted">{{t (print "service." .Service)}}</small></td>
-        <td>{{if .OK}}<span class="pill" data-state="ok">{{t "hosts.ok"}}</span>{{else}}<span class="pill" data-state="fail" title="{{.Error}}">{{t "hosts.failed"}}</span>{{end}}</td>
+        <td>{{if .OK}}<span class="pill" data-state="ok">{{t "hosts.ok"}}</span>{{else}}<span class="pill" data-state="fail" title="{{t .Error}}">{{t "hosts.failed"}}</span>{{end}}</td>
         <td>{{with .Version}}<code>{{.}}</code>{{end}}</td>
         <td>{{ago .FetchedAt}}</td>
       </tr>{{end}}</tbody>

@@ -227,7 +227,7 @@
       <h2>{{t "conn.health"}}</h2>
       <div class="card">
         <p>{{template "conn_health_cell" .Conn}}</p>
-        {{with .Conn.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}{{if not $.Conn.Health.LastFail.IsZero}} {{ago $.Conn.Health.LastFail}}{{end}}: {{.}}{{if $.Conn.Health.ErrorSettled}} <span class="pill" data-state="ok">{{t "conn.ok_since"}}</span>{{end}}</p>{{end}}
+        {{with .Conn.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}{{if not $.Conn.Health.LastFail.IsZero}} {{ago $.Conn.Health.LastFail}}{{end}}: {{t .}}{{if $.Conn.Health.ErrorSettled}} <span class="pill" data-state="ok">{{t "conn.ok_since"}}</span>{{end}}</p>{{end}}
         {{if .Conn.DailyBudget}}<p class="small muted">{{t "conn.budget_today" "n" .Conn.Health.Today "max" .Conn.DailyBudget}}</p>{{end}}
       </div>
       <div class="row-actions">
@@ -250,7 +250,7 @@
      lets a test swap the cell in place. */}}
 {{define "conn_health_cell"}}<span class="health" id="health-{{.ID}}" data-state="{{.Health.State}}">{{template "conn_health" .Health}}</span>{{end}}
 {{define "conn_health"}}{{$s := print .State}}<span class="health-dot" aria-hidden="true"></span>{{if eq $s "unknown"}}<small class="muted">{{t "conn.no_fetches"}}</small>
-{{else if eq $s "failing"}}<b>{{t "conn.state_failing_one"}}</b>{{with .LastError}} <small class="muted">{{.}}</small>{{end}}
+{{else if eq $s "failing"}}<b>{{t "conn.state_failing_one"}}</b>{{with .LastError}} <small class="muted">{{t .}}</small>{{end}}
 {{else if eq $s "shaky"}}{{.FailPct}} % {{t "conn.failed"}} <small class="muted">· {{.AvgMS}} ms · ✓ {{ago .LastOK}}</small>
 {{else}}{{.AvgMS}} ms <small class="muted">· ✓ {{ago .LastOK}}</small>{{end}}{{end}}
 
