@@ -302,3 +302,30 @@ func TestClockSkew(t *testing.T) {
 		t.Fatalf("findings: %+v", found)
 	}
 }
+
+// TestNinjaOverdueBundled: from three overdue invoices on, a client gets
+// one hint with count, sum and the oldest age instead of one per invoice.
+func TestNinjaOverdueBundled(t *testing.T) {
+	data := &sources.NinjaDataset{
+		Invoices: []sources.NinjaInvoice{
+			{ID: 1, Number: "R1", ClientID: 1, Status: "sent", DueDate: "2026-01-01", Balance: 100},
+			{ID: 2, Number: "R2", ClientID: 1, Status: "sent", DueDate: "2026-01-20", Balance: 200},
+			{ID: 3, Number: "R3", ClientID: 1, Status: "sent", DueDate: "2026-01-25", Balance: 300},
+			{ID: 4, Number: "R4", ClientID: 2, Status: "sent", DueDate: "2026-01-25", Balance: 50},
+		},
+		Clients: []sources.NinjaClient{{ID: 1, Name: "Nivre"}, {ID: 2, Name: "Acme"}},
+	}
+	env := rules.Env{Today: day("2026-02-01"), Settings: map[string]any{}}
+	byPrint := map[string]rules.Finding{}
+	for _, f := range run(t, "in.invoice_overdue", data, env) {
+		byPrint[f.Fingerprint] = f
+	}
+	bundle, ok := byPrint["overdue_client:1"]
+	if len(byPrint) != 2 || !ok || byPrint["overdue:4"].Rule == "" {
+		t.Fatalf("findings: %+v", byPrint)
+	}
+	if bundle.Message != "in.overdue_client" || bundle.Severity != enums.SeverityCritical ||
+		bundle.Params["count"] != 3 || bundle.Params["days"] != 31 || bundle.Params["numbers"] != "R1, R2, R3" {
+		t.Fatalf("bundle: %+v", bundle)
+	}
+}

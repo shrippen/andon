@@ -2066,6 +2066,9 @@ hint:
     concentration_pension:
       title: '{client}: {percent} % of revenue'
       why: 'More than 5/6 of revenue from one client: check German pension insurance duty (§ 2 Nr. 9 SGB VI).'
+    overdue_client:
+      title: '{count} invoices overdue: {client} ({amount})'
+      why: 'Oldest for {days} days: {numbers}. Send reminders per invoice in Invoice Ninja.'
   snipe:
     replace_worth:
       title: '{name}: replacement pays back in {months} months'
@@ -2619,6 +2622,7 @@ param:
   seconds: 'Seconds'
   escalate_days: 'Critical after days (0 = never)'
   offline_days: 'Ignore when offline longer than (days)'
+  bundle_from: 'Bundle per client from this many invoices (0 = never)'
 settings:
   billing_internal: Internal customers
   billing_internal_hint: 'Kimai customers whose time is never invoiced, comma separated. Customers at rate 0 always count as internal.'

@@ -44,6 +44,67 @@ func clientName(clients map[int64]sources.NinjaClient, id int64) string {
 	return "?"
 }
 
+// overdueInvoice is an overdue invoice with the level of its own hint.
+type overdueInvoice struct {
+	metrics.NinjaOpenInvoice
+	level enums.Severity
+}
+
+// overdueNumbersShown caps the invoice numbers a bundled hint lists.
+const overdueNumbersShown = 10
+
+// bundleOverdue replaces the per-invoice hints of clients with at least
+// from overdue invoices by one hint per client: 15 hints for one client
+// become "15 invoices overdue: Nivre (13,484.77 €)".
+func bundleOverdue(found []Finding, byClient map[int64][]overdueInvoice, from int, data *sources.NinjaDataset) []Finding {
+	bundled := map[string]bool{}
+	var out []Finding
+	for cid, invs := range byClient {
+		if from < 2 || len(invs) < from {
+			continue
+		}
+		for _, inv := range invs {
+			bundled[fmt.Sprintf("overdue:%d", inv.ID)] = true
+		}
+		out = append(out, overdueBundle(cid, invs, data))
+	}
+	for _, f := range found {
+		if !bundled[f.Fingerprint] {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// overdueBundle is one client's hint over its overdue invoices, most
+// overdue first (as NinjaOpenInvoices sorts them).
+func overdueBundle(cid int64, invs []overdueInvoice, data *sources.NinjaDataset) Finding {
+	level := enums.SeverityInfo
+	var sum float64
+	var numbers []string
+	for _, inv := range invs {
+		level = max(level, inv.level)
+		sum += inv.Balance
+		if len(numbers) < overdueNumbersShown {
+			numbers = append(numbers, inv.Number)
+		}
+	}
+	list := strings.Join(numbers, ", ")
+	if len(invs) > overdueNumbersShown {
+		list += ", …"
+	}
+	return Finding{
+		Fingerprint: fmt.Sprintf("overdue_client:%d", cid), Rule: "in.invoice_overdue",
+		Severity: level, Message: "in.overdue_client",
+		Params: map[string]any{
+			"client": invs[0].Client, "count": len(invs), "days": invs[0].OverdueDays, "numbers": list,
+			"amount": Money(sum, ninjaCurrency(data)),
+		},
+		ActionURL: ninjaURL(data, fmt.Sprintf("clients/%d", cid)), ActionLabel: ninjaOpen,
+		Sources: []string{ninjaSource},
+	}
+}
+
 func nData(data any) *sources.NinjaDataset {
 	d, _ := data.(*sources.NinjaDataset)
 	return d
@@ -51,11 +112,13 @@ func nData(data any) *sources.NinjaDataset {
 
 func init() {
 	// Below min_amount an overdue invoice is no critical reminder (a few
-	// cents left open are no emergency).
-	Register("in.invoice_overdue", string(enums.ServiceInvoiceNinja), map[string]any{"dunning_after_days": 14.0, "min_amount": 5.0},
+	// cents left open are no emergency). From bundle_from overdue invoices
+	// on, a client gets one hint for all of them (see bundleOverdue).
+	Register("in.invoice_overdue", string(enums.ServiceInvoiceNinja), map[string]any{"dunning_after_days": 14.0, "min_amount": 5.0, "bundle_from": 3.0},
 		func(raw any, cfg map[string]any, env Env) []Finding {
 			data := nData(raw)
 			var found []Finding
+			byClient := map[int64][]overdueInvoice{}
 			for _, inv := range metrics.NinjaOpenInvoices(data, env.Today) {
 				if inv.OverdueDays <= 0 {
 					continue
@@ -68,6 +131,9 @@ func init() {
 				if inv.Balance < cfgFloat(cfg, "min_amount") {
 					level = enums.SeverityInfo
 				}
+				if level > enums.SeverityInfo {
+					byClient[inv.ClientID] = append(byClient[inv.ClientID], overdueInvoice{inv, level})
+				}
 				found = append(found, Finding{
 					Fingerprint: fmt.Sprintf("overdue:%d", inv.ID), Rule: "in.invoice_overdue",
 					Severity: level, Message: msg,
@@ -79,7 +145,7 @@ func init() {
 					Sources: []string{ninjaSource},
 				})
 			}
-			return found
+			return bundleOverdue(found, byClient, cfgInt(cfg, "bundle_from"), data)
 		})
 
 	Register("in.slow_payer", string(enums.ServiceInvoiceNinja), map[string]any{"days": 30.0},
