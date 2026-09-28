@@ -1596,6 +1596,9 @@ hint:
     stuck:
       title: '{app}: {count} downloads stuck'
       why: '{names}'
+    check:
+      title: '{app}: {check}'
+      why: 'Message: {message}'
   vaultwarden:
     no_2fa:
       title: '{count} vaults without two-factor'
@@ -3789,3 +3792,16 @@ board_layout:
 rule_scope:
   cross: 'Across services'
   deadlines: 'Deadlines'
+arr_check:
+  IndexerStatusCheck: 'Indexer unavailable'
+  IndexerLongTermStatusCheck: 'Indexer unavailable for hours'
+  IndexerRssCheck: 'No indexer for RSS'
+  IndexerSearchCheck: 'No indexer for search'
+  DownloadClientCheck: 'Download client unreachable'
+  DownloadClientStatusCheck: 'Download client reports errors'
+  RemovedMovieCheck: 'Movie removed from TMDb'
+  RemovedSeriesCheck: 'Series removed from TheTVDB'
+  RootFolderCheck: 'Root folder missing'
+  UpdateCheck: 'Update available'
+  ImportMechanismCheck: 'Check import settings'
+  ProxyCheck: 'Proxy unreachable'

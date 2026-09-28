@@ -146,6 +146,7 @@ func plex(ctx context.Context, api services.KeyedApi) (*MediaServerDataset, erro
 // ArrHealth is one health check message.
 type ArrHealth struct {
 	Level, Message string
+	Source         string // the check, e.g. "IndexerStatusCheck"
 }
 
 // ArrItem is one upcoming episode or movie.
@@ -204,7 +205,7 @@ func loadArr(ctx context.Context, api services.KeyedApi, now time.Time) (*ArrDat
 		Queue: int(asFloat(asMap(queue)["totalRecords"]))}
 	for _, raw := range asList(health) {
 		h := asMap(raw)
-		data.Health = append(data.Health, ArrHealth{Level: asStr(h["type"]), Message: asStr(h["message"])})
+		data.Health = append(data.Health, ArrHealth{Level: asStr(h["type"]), Message: asStr(h["message"]), Source: asStr(h["source"])})
 	}
 	for _, raw := range asList(asMap(queue)["records"]) {
 		r := asMap(raw)

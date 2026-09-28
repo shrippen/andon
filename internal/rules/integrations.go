@@ -44,6 +44,13 @@ var dwdLevels = map[string]enums.Severity{
 	sources.WarnExtreme:  enums.SeverityCritical,
 }
 
+// arrChecks are the Sonarr/Radarr health checks with a catalog title.
+var arrChecks = map[string]bool{
+	"IndexerStatusCheck": true, "IndexerLongTermStatusCheck": true, "IndexerRssCheck": true, "IndexerSearchCheck": true,
+	"DownloadClientCheck": true, "DownloadClientStatusCheck": true, "RemovedMovieCheck": true, "RemovedSeriesCheck": true,
+	"RootFolderCheck": true, "UpdateCheck": true, "ImportMechanismCheck": true, "ProxyCheck": true,
+}
+
 func init() {
 	registerNetworkRules()
 	registerMediaRules()
@@ -139,6 +146,8 @@ func registerMediaRules() {
 	})
 
 	arr := string(enums.ServiceArr)
+	// Known checks get a short translated title (catalog arr_check.<source>);
+	// the English message, often with ids, moves to the explanation.
 	Register("arr.health", arr, nil, func(raw any, _ map[string]any, _ Env) []Finding {
 		data, _ := raw.(*sources.ArrDataset)
 		var found []Finding
@@ -147,8 +156,11 @@ func registerMediaRules() {
 			if h.Level == arrError {
 				level = enums.SeverityWarn
 			}
-			found = append(found, svcFinding(arr, "arr.health", "health:"+h.Message, "arr.health", level, data.URL,
-				map[string]any{"app": data.App, "message": h.Message}))
+			msg, params := "arr.health", map[string]any{"app": data.App, "message": h.Message}
+			if arrChecks[h.Source] {
+				msg, params["check"] = "arr.check", map[string]any{"$t": "arr_check." + h.Source}
+			}
+			found = append(found, svcFinding(arr, "arr.health", "health:"+h.Message, msg, level, data.URL, params))
 		}
 		return found
 	})

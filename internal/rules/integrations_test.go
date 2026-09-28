@@ -77,3 +77,24 @@ func TestTailscaleKeyExpired(t *testing.T) {
 		t.Fatalf("findings: %+v", got)
 	}
 }
+
+// Known Sonarr/Radarr checks read as a short translated title; the raw
+// English message stays in the explanation. Unknown checks stay as they
+// are.
+func TestArrHealthKnownChecks(t *testing.T) {
+	data := &sources.ArrDataset{App: "Radarr", Health: []sources.ArrHealth{
+		{Level: "warning", Source: "IndexerStatusCheck", Message: "Indexers unavailable due to failures for more than 6 hours: Elbindex"},
+		{Level: "warning", Source: "SomethingNewCheck", Message: "Something new"},
+	}}
+	byMsg := map[string]rules.Finding{}
+	for _, f := range run(t, "arr.health", data, todayEnv(nil)) {
+		byMsg[f.Message] = f
+	}
+	known, ok := byMsg["arr.check"]
+	if !ok || byMsg["arr.health"].Rule == "" {
+		t.Fatalf("messages: %+v", byMsg)
+	}
+	if check, _ := known.Params["check"].(map[string]any); check["$t"] != "arr_check.IndexerStatusCheck" {
+		t.Fatalf("check param: %+v", known.Params)
+	}
+}

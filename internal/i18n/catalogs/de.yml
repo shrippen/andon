@@ -1596,6 +1596,9 @@ hint:
     stuck:
       title: '{app}: {count} Downloads hängen'
       why: '{names}'
+    check:
+      title: '{app}: {check}'
+      why: 'Meldung: {message}'
   vaultwarden:
     no_2fa:
       title: '{count} Tresore ohne Zwei-Faktor'
@@ -3790,3 +3793,16 @@ board_layout:
 rule_scope:
   cross: 'Dienstübergreifend'
   deadlines: 'Fristen'
+arr_check:
+  IndexerStatusCheck: 'Indexer nicht verfügbar'
+  IndexerLongTermStatusCheck: 'Indexer seit Stunden nicht verfügbar'
+  IndexerRssCheck: 'Kein Indexer für RSS'
+  IndexerSearchCheck: 'Kein Indexer für die Suche'
+  DownloadClientCheck: 'Download-Client nicht erreichbar'
+  DownloadClientStatusCheck: 'Download-Client meldet Fehler'
+  RemovedMovieCheck: 'Film aus TMDb entfernt'
+  RemovedSeriesCheck: 'Serie aus TheTVDB entfernt'
+  RootFolderCheck: 'Stammordner fehlt'
+  UpdateCheck: 'Update verfügbar'
+  ImportMechanismCheck: 'Import-Einstellung prüfen'
+  ProxyCheck: 'Proxy nicht erreichbar'
