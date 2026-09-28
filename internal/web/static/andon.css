@@ -1137,6 +1137,7 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .strip i[data-state="ok"] { background: var(--aqua); }
 .strip i[data-state="mid"] { background: var(--yellow); }
 .strip i[data-state="bad"] { background: var(--red); }
+.strip i[data-state="off"] { background: var(--bg2); }
 .strip-pct { font-family: var(--font-mono); font-size: .7rem; color: var(--warn-text); text-align: right; }
 .stack { display: flex; height: 1rem; background: var(--bg-hard); }
 .stack i { width: var(--w); height: 100%; background: var(--aqua); }

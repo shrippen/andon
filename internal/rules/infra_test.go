@@ -174,3 +174,15 @@ func TestOutageFollowsProxmoxNode(t *testing.T) {
 		t.Fatalf("suppression: %+v", down)
 	}
 }
+
+// Stacks listed as stopped on purpose (connection option "stopped") are
+// no problem.
+func TestKomodoStoppedOnPurpose(t *testing.T) {
+	data := &sources.KomodoDataset{Stacks: []sources.KStack{{Name: "cloudbeaver", State: "down"}, {Name: "immich", State: "down"}}}
+	env := todayEnv(nil)
+	env.Options = map[string]map[string]any{"komodo": {"stopped": []any{"CloudBeaver"}}}
+	got := run(t, "komodo.stack_down", data, env)
+	if len(got) != 1 || got[0].Params["stack"] != "immich" {
+		t.Fatalf("found: %+v", got)
+	}
+}

@@ -102,3 +102,13 @@ func TestDisksMarkStale(t *testing.T) {
 		t.Fatalf("stale disk: %+v healthy %v", sdl, v["Healthy"])
 	}
 }
+
+// Stacks stopped on purpose show grey and are no trouble.
+func TestKomodoStoppedGrey(t *testing.T) {
+	data := &sources.KomodoDataset{Stacks: []sources.KStack{{Name: "cloudbeaver", State: "down"}, {Name: "immich", State: "running"}}}
+	v := komodoView(KomodoConfig{}, map[string]any{"data": data}, ViewCtx{Options: map[string]any{"stopped": []any{"cloudbeaver"}}})
+	cells := v["Cells"].([]StripCell)
+	if cells[0].State != "off" || len(v["Trouble"].([]string)) != 0 {
+		t.Fatalf("view: %+v", v)
+	}
+}

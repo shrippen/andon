@@ -435,6 +435,9 @@ func diskRank(r DiskRow) int {
 
 // ── komodo_stacks ──
 
+// stackOff is a stack stopped on purpose (the connection's "stopped").
+const stackOff = "off"
+
 func stackState(state string) string {
 	switch strings.ToLower(state) {
 	case "running", "healthy":
@@ -456,7 +459,7 @@ func decodeKomodo(raw map[string]any) any {
 	return KomodoConfig{Only: lowerList(raw["filter"]), OnlyIssues: asBool(raw["only_issues"])}
 }
 
-func komodoView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+func komodoView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	cfg, _ := cfgAny.(KomodoConfig)
 	data, ok := results["data"].(*sources.KomodoDataset)
 	if !ok {
@@ -465,12 +468,22 @@ func komodoView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 	var cells []StripCell
 	var trouble []string
 	updates, running, stacks := 0, 0, 0
+	stopped := metrics.KomodoStopped(ctx.Options)
 	for _, s := range data.Stacks {
 		if !matchesAny(s.Name, cfg.Only) {
 			continue
 		}
 		stacks++
 		state := stackState(s.State)
+
+		// Stopped on purpose: grey, no trouble.
+		if stopped[strings.ToLower(s.Name)] && state != "ok" {
+			if cfg.OnlyIssues {
+				continue
+			}
+			cells = append(cells, StripCell{State: stackOff, Title: s.Name + " · " + s.State})
+			continue
+		}
 		if state == "ok" {
 			running++
 		} else if len(trouble) < listShown {

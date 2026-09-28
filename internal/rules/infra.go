@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/sources"
 )
 
@@ -96,10 +97,11 @@ func registerKomodo() {
 
 	Register("komodo.alerts", svc, nil, func(raw any, cfg map[string]any, env Env) []Finding {
 		data, _ := raw.(*sources.KomodoDataset)
+		stopped := metrics.KomodoStopped(env.Options[svc])
 		var found []Finding
 		for _, a := range data.Alerts {
 			level, ok := alertSeverity[a.Level]
-			if !ok {
+			if !ok || stopped[strings.ToLower(a.Name)] {
 				continue
 			}
 			found = append(found, svcFinding(svc, "komodo.alerts", "alert:"+a.Kind+":"+a.Name, "komodo.alert",
@@ -110,9 +112,10 @@ func registerKomodo() {
 
 	Register("komodo.stack_down", svc, nil, func(raw any, cfg map[string]any, env Env) []Finding {
 		data, _ := raw.(*sources.KomodoDataset)
+		stopped := metrics.KomodoStopped(env.Options[svc])
 		var found []Finding
 		for _, s := range data.Stacks {
-			if !komodoBroken[s.State] {
+			if !komodoBroken[s.State] || stopped[strings.ToLower(s.Name)] {
 				continue
 			}
 			found = append(found, svcFinding(svc, "komodo.stack_down", "stack:"+s.Name, "komodo.stack_down",
