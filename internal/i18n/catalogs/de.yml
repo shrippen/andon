@@ -8,7 +8,7 @@ nav:
   home: Zur Startseite
   hints: Hinweise
   new_board: Neues Board
-  library: Widget-Bibliothek
+  library: Kachel-Bibliothek
   connections: Verbindungen
   import: Import
   themes: Themes
@@ -143,7 +143,7 @@ board:
   kiosk: Wandanzeige
   kiosk_hint: Vollbild, wechselt jede Minute das Board, 22–7 Uhr gedimmt. Parameter every und dim in der Adresse anpassbar.
   from_template: Aus Vorlage
-  template_hint: Legt Board und Widgets im gewählten Bereich an; Widgets mit Verbindung zeigen danach, was noch fehlt.
+  template_hint: Legt Board und Kacheln im gewählten Bereich an; Kacheln mit Verbindung zeigen danach, was noch fehlt.
   bulk_invalid: Nichts ausgewählt oder unbekannte Aktion.
   frequent: Häufig
   nothing_to_undo: Nichts zum Rückgängigmachen.
@@ -902,10 +902,10 @@ widget:
   empty: Keine Einträge.
   setup_access: Zugang für {name} einrichten
   setup_access_short: Zugang einrichten
-  unknown_type: Unbekannter Widget-Typ.
-  connection_required: Dieses Widget braucht eine Verbindung.
+  unknown_type: Unbekannter Kacheltyp.
+  connection_required: Diese Kachel braucht eine Verbindung.
   connection_missing: Verbindung nicht gefunden.
-  connection_type: Die Verbindung passt nicht zum Widget-Typ.
+  connection_type: Die Verbindung passt nicht zum Kacheltyp.
   unsupported: Passt nicht zur gewählten Verbindung.
 connection:
   bad_date: 'Datum im Format JJJJ-MM-TT angeben.'
@@ -1007,10 +1007,10 @@ severity:
 library:
   search: 'Suchen: Titel, Typ, Bereich'
   links: Links
-  lead: Einmal eingerichtete Widgets, beliebig oft platzierbar.
+  lead: Einmal eingerichtete Kacheln, beliebig oft platzierbar.
   uses: Verwendet
   copy: Als Kopie übernehmen
-  empty: Noch keine Widgets.
+  empty: Noch keine Kacheln.
 history:
   when: Zeitpunkt
   sections: Abschnitte
@@ -1048,13 +1048,13 @@ conn:
   about_dwd: 'Wetterwarnungen für einen Ort'
   options_hint_github: 'URL https://api.github.com. Optionen: repos: [besitzer/repo]. Token optional (Feingranular, Lesen: Actions, Contents, Issues, Pull Requests; Benachrichtigungen nur mit klassischem Token).'
   about_github: 'Repos: PRs, Issues, CI, Releases'
-  options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt das Energie-Widget die aktuelle Leistung.'
+  options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
   health: 'Zustand'
   token_age: 'Token-Alter'
   expires: 'Läuft ab'
   other_service: 'anderer Dienst'
-  suggest: 'Passende Widgets'
+  suggest: 'Passende Kacheln'
   last_error: 'Letzter Fehler'
   budget_today: 'Heute {n} von {max} Abrufen.'
   hygiene: 'Token und Abrufe'
@@ -1125,7 +1125,7 @@ conn:
   cred_incomplete: 'Bitte beide Felder ausfüllen, z. B. Benutzername und Passwort.'
   ical_private: 'Private iCal-Adresse'
   cred_tokenid: 'Token-ID'
-  pick: 'Welchen Dienst willst du verbinden? Danach: Adresse und Token, Test, passende Widgets.'
+  pick: 'Welchen Dienst willst du verbinden? Danach: Adresse und Token, Test, passende Kacheln.'
   about_kimai: 'Zeiterfassung: Stunden, Projekte, Budgets'
   about_invoiceninja: 'Rechnungen, Zahlungen, Ausgaben'
   about_snipeit: 'Inventar: Geräte, Lizenzen, Garantie'
@@ -1159,7 +1159,7 @@ conn:
   about_domains: 'Ablauf von Domains'
   about_blacklist: 'Mailserver auf Sperrlisten'
   about_jsonapi: 'Beliebige JSON-Schnittstelle, eigene Felder'
-  options_hint_jsonapi: 'URL einer JSON-Antwort, Token optional. Optionen (YAML): header: X-Api-Key (sonst Authorization: Bearer <Token>); fields: [{label: Warteschlange, path: stats.queue, warn: 10, critical: 50}] für Kennzahlen und Hinweise; list: {path: jobs, columns: [name, state], limit: 10} für eine Tabelle. Widget „Eigene Integration“ zeigt beides; eigene Regeln prüfen jedes Feld.'
+  options_hint_jsonapi: 'URL einer JSON-Antwort, Token optional. Optionen (YAML): header: X-Api-Key (sonst Authorization: Bearer <Token>); fields: [{label: Warteschlange, path: stats.queue, warn: 10, critical: 50}] für Kennzahlen und Hinweise; list: {path: jobs, columns: [name, state], limit: 10} für eine Tabelle. Kachel „Eigene Integration“ zeigt beides; eigene Regeln prüfen jedes Feld.'
   options_hint_pihole: Keine Optionen. Token = App-Passwort (Pi-hole v6) bzw. API-Token (v5).
   options_hint_adguard: Keine Optionen. Benutzername und Passwort des AdGuard-Home-Kontos.
   options_hint_nextcloud: 'Keine Optionen. Benutzername und App-Passwort eines Admin-Kontos (Einstellungen → Sicherheit → App-Passwort). Alternativ Benutzername leer lassen und den serverinfo-Token ins Passwortfeld (occ config:app:set serverinfo token --value …).'
@@ -1204,7 +1204,7 @@ conn:
   mine_set: dein Token hinterlegt
   mine_missing: dein Token fehlt
   secret_keep: (unverändert lassen)
-  shared_warning: Geteilte Zugangsdaten bedeuten geteilte Daten. Wer ein Widget auf dieser Verbindung sehen darf, sieht, was dieses Token sieht.
+  shared_warning: Geteilte Zugangsdaten bedeuten geteilte Daten. Wer eine Kachel auf dieser Verbindung sehen darf, sieht, was dieses Token sieht.
   delete: Verbindung löschen
   options: Optionen (YAML)
   options_hint_kimai: 'Token = API-Token (Profil → API-Zugang). Rechte folgen der Kimai-Rolle: eigene Zeiten, Kunden, Projekte und Tätigkeiten ansehen genügt. Timer starten und Zeiten als exportiert markieren brauchen Schreibrechte auf Zeiteinträge. Optionen: all_users: true zählt Zeiten aller Benutzer (Rolle muss fremde Zeiten sehen dürfen).'
@@ -1299,11 +1299,11 @@ import:
   not_mapping: Unerwartetes YAML-Format.
   check: Vorschau zeigen
   preview: Vorschau
-  would: 'Würde übernehmen: {boards} Boards, {widgets} Widgets, {connections} Verbindungen. Noch ist nichts gespeichert.'
+  would: 'Würde übernehmen: {boards} Boards, {widgets} Kacheln, {connections} Verbindungen. Noch ist nichts gespeichert.'
   board_names: Boards
   confirm: Jetzt importieren
 report:
-  done: 'Übernommen: {boards} Boards, {widgets} Widgets, {connections} Verbindungen.'
+  done: 'Übernommen: {boards} Boards, {widgets} Kacheln, {connections} Verbindungen.'
   skipped: Nicht übernommen
   notes: Hinweise
 share:
@@ -1391,11 +1391,11 @@ admin:
   backup_hint: 'Täglich eine Kopie der Datenbank nach data/backups; jede Kopie wird probeweise geöffnet (Integrität, Migrationen, Zeilen, Zugangsdaten entschlüsselbar). Die neuesten {keep} bleiben. Die Kopien liegen im selben Volume wie die Datenbank: das Verzeichnis zusätzlich extern sichern und den Master-Schlüssel getrennt aufbewahren.'
   backup_ok: 'Wiederherstellung geprüft'
   backup_failed: 'Sicherung fehlerhaft'
-  backup_rows: '{users} Nutzer, {boards} Boards, {widgets} Widgets, {secrets} Zugangsdaten lesbar.'
+  backup_rows: '{users} Nutzer, {boards} Boards, {widgets} Kacheln, {secrets} Zugangsdaten lesbar.'
   backup_none: 'Noch keine Sicherung.'
   backup_run: 'Jetzt sichern'
   analysis: Prüflauf
-  analysis_every: 'Alle {minutes} Minuten holt der Prüflauf die Daten aller Integrationen und leitet Hinweise ab. Seiten zeigen diesen Stand; live sind der Status-Ping der Kacheln und Widgets im Datenmodus „live“ (Vorgabe bei Home Assistant, Monitoren, Systemwerten).'
+  analysis_every: 'Alle {minutes} Minuten holt der Prüflauf die Daten aller Integrationen und leitet Hinweise ab. Seiten zeigen diesen Stand; live sind der Status-Ping der Links und Kacheln im Datenmodus „live“ (Vorgabe bei Home Assistant, Monitoren, Systemwerten).'
   analysis_last: 'Zuletzt {when}, Dauer {seconds} s.'
   analysis_none: Noch kein Lauf seit dem Start.
   health: Zustand des Prozesses
@@ -1457,7 +1457,7 @@ audit:
   action: Aktion
   target: Ziel
 teams:
-  lead: Teams teilen Verbindungen, Widgets und Boards.
+  lead: Teams teilen Verbindungen, Kacheln und Boards.
   remove: Entfernen
   no_members: Keine Mitglieder.
   set_member: Mitglied setzen
@@ -2150,7 +2150,7 @@ hint:
       why: '{count} Dienste betroffen: {names}. Einzelne Hinweise dazu werden zurückgehalten.'
     connector_down:
       title: '{name} nicht erreichbar'
-      why: 'Letzter Abruf fehlgeschlagen: {error}. Widgets zeigen den letzten Stand.'
+      why: 'Letzter Abruf fehlgeschlagen: {error}. Kacheln zeigen den letzten Stand.'
     backup_late:
       title: 'Andon-Sicherung {hours} Stunden alt'
       why: 'Die tägliche Kopie der Datenbank ist ausgeblieben. Prüfen, ob der Dienst läuft und data/backups beschreibbar ist.'
@@ -2626,7 +2626,7 @@ settings:
   domain_yearly: 'Kosten je Domain und Jahr (€)'
   hosting_words: 'Hosting-Abos erkennen an (Sure)'
   cloud_monthly: 'Vergleich: Cloud-Kosten je Monat (€)'
-  homelab_hint: 'Für das Widget „Homelab-Kosten“, die Austausch-Rechnung und it-kosten.csv im Jahrespaket.'
+  homelab_hint: 'Für die Kachel „Homelab-Kosten“, die Austausch-Rechnung und it-kosten.csv im Jahrespaket.'
   custom: Eigene Regeln
   custom_hint: 'Schwellwert auf ein Feld eines Datensatzes, z. B. SABnzbd „Slots“ > 10 oder Eigene API „stats.users“ < 1. Listen zählen mit „#“: „Failures#“ >= 1. Feldnamen stehen im Verbindungstest.'
   custom_source: Quelle

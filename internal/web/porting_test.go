@@ -21,7 +21,7 @@ func TestImportDashyAndCodeView(t *testing.T) {
 	resp := postFile(t, client, srv.URL+"/import", map[string]string{"csrf": csrf, "space_id": string(space), "kind": "dashy"}, "conf.yml", []byte(conf))
 	body := readAll(t, resp)
 	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK || !strings.Contains(body, `import-preview`) || !strings.Contains(body, "1 Boards, 1 Widgets") {
+	if resp.StatusCode != http.StatusOK || !strings.Contains(body, `import-preview`) || !strings.Contains(body, "1 Boards, 1 Kacheln") {
 		t.Fatalf("dashy preview: %d\n%s", resp.StatusCode, body)
 	}
 	if strings.Contains(string(mustGet(t, srv, client, "/spaces/"+string(space)+"/code")), "si-gitea") {

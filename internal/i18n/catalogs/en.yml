@@ -8,7 +8,7 @@ nav:
   home: Go to start page
   hints: Hints
   new_board: New board
-  library: Widget library
+  library: Tile library
   connections: Connections
   import: Import
   themes: Themes
@@ -143,7 +143,7 @@ board:
   kiosk: Wall display
   kiosk_hint: Fullscreen, next board every minute, dimmed 22–7. Adjust every and dim in the address.
   from_template: From template
-  template_hint: Creates the board and widgets in the chosen space; widgets needing a connection then show what is missing.
+  template_hint: Creates the board and tiles in the chosen space; tiles needing a connection then show what is missing.
   bulk_invalid: Nothing selected or unknown action.
   frequent: Frequent
   nothing_to_undo: Nothing to undo.
@@ -902,10 +902,10 @@ widget:
   empty: No entries.
   setup_access: Set up access for {name}
   setup_access_short: Set up access
-  unknown_type: Unknown widget type.
-  connection_required: This widget needs a connection.
+  unknown_type: Unknown tile type.
+  connection_required: This tile needs a connection.
   connection_missing: Connection not found.
-  connection_type: The connection does not fit the widget type.
+  connection_type: The connection does not fit the tile type.
   unsupported: Does not fit the chosen connection.
 connection:
   bad_date: 'Give the date as YYYY-MM-DD.'
@@ -1007,10 +1007,10 @@ severity:
 library:
   search: 'Search: title, type, space'
   links: Links
-  lead: Widgets set up once, placeable any number of times.
+  lead: Tiles set up once, placeable any number of times.
   uses: Used
   copy: Take over as copy
-  empty: No widgets yet.
+  empty: No tiles yet.
 history:
   when: When
   sections: Sections
@@ -1048,13 +1048,13 @@ conn:
   about_dwd: 'Weather warnings for a place'
   options_hint_github: 'URL https://api.github.com. Options: repos: [owner/repo]. Token optional (fine-grained, read: actions, contents, issues, pull requests; notifications need a classic token).'
   about_github: 'Repos: PRs, issues, CI, releases'
-  options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy widget also shows the current power.'
+  options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
   health: 'Health'
   token_age: 'Token age'
   expires: 'Expires'
   other_service: 'other service'
-  suggest: 'Matching widgets'
+  suggest: 'Matching tiles'
   last_error: 'Last error'
   budget_today: 'Today {n} of {max} fetches.'
   hygiene: 'Token and fetches'
@@ -1125,7 +1125,7 @@ conn:
   cred_incomplete: 'Please fill in both fields, e.g. user name and password.'
   ical_private: 'Private iCal address'
   cred_tokenid: 'Token ID'
-  pick: 'Which service do you want to connect? Then: address and token, test, matching widgets.'
+  pick: 'Which service do you want to connect? Then: address and token, test, matching tiles.'
   about_kimai: 'Time tracking: hours, projects, budgets'
   about_invoiceninja: 'Invoices, payments, expenses'
   about_snipeit: 'Inventory: assets, licenses, warranty'
@@ -1159,7 +1159,7 @@ conn:
   about_domains: 'Domain expiry'
   about_blacklist: 'Mail server on blocklists'
   about_jsonapi: 'Any JSON API, own fields'
-  options_hint_jsonapi: 'URL of a JSON response, token optional. Options (YAML): header: X-Api-Key (else Authorization: Bearer <token>); fields: [{label: Queue, path: stats.queue, warn: 10, critical: 50}] for key figures and hints; list: {path: jobs, columns: [name, state], limit: 10} for a table. The "Own integration" widget shows both; custom rules can test any field.'
+  options_hint_jsonapi: 'URL of a JSON response, token optional. Options (YAML): header: X-Api-Key (else Authorization: Bearer <token>); fields: [{label: Queue, path: stats.queue, warn: 10, critical: 50}] for key figures and hints; list: {path: jobs, columns: [name, state], limit: 10} for a table. The "Own integration" tile shows both; custom rules can test any field.'
   options_hint_pihole: No options. Token = app password (Pi-hole v6) or API token (v5).
   options_hint_adguard: No options. User name and password of the AdGuard Home account.
   options_hint_nextcloud: 'No options. User name and app password of an admin account (settings → security → app password). Or leave the user name empty and put the serverinfo token into the password field (occ config:app:set serverinfo token --value …).'
@@ -1204,7 +1204,7 @@ conn:
   mine_set: your token stored
   mine_missing: your token missing
   secret_keep: (leave unchanged)
-  shared_warning: Shared credentials mean shared data. Whoever may see a widget on this connection sees what this token sees.
+  shared_warning: Shared credentials mean shared data. Whoever may see a tile on this connection sees what this token sees.
   delete: Delete connection
   options: Options (YAML)
   options_hint_kimai: 'Token = API token (profile → API access). Rights follow the Kimai role: viewing your own times, customers, projects and activities is enough. Starting timers and marking times as exported need write access to timesheets. Options: all_users: true counts all users'' time (the role must see other users'' times).'
@@ -1299,11 +1299,11 @@ import:
   not_mapping: Unexpected YAML format.
   check: Show preview
   preview: Preview
-  would: 'Would take over: {boards} boards, {widgets} widgets, {connections} connections. Nothing is saved yet.'
+  would: 'Would take over: {boards} boards, {widgets} tiles, {connections} connections. Nothing is saved yet.'
   board_names: Boards
   confirm: Import now
 report:
-  done: 'Imported: {boards} boards, {widgets} widgets, {connections} connections.'
+  done: 'Imported: {boards} boards, {widgets} tiles, {connections} connections.'
   skipped: Not imported
   notes: Notes
 share:
@@ -1391,11 +1391,11 @@ admin:
   backup_hint: 'A daily copy of the database in data/backups; each copy is test-opened (integrity, migrations, rows, credentials decryptable). The newest {keep} stay. The copies sit on the same volume as the database: back the directory up elsewhere too and keep the master key separately.'
   backup_ok: 'Restore verified'
   backup_failed: 'Backup failed'
-  backup_rows: '{users} users, {boards} boards, {widgets} widgets, {secrets} credentials readable.'
+  backup_rows: '{users} users, {boards} boards, {widgets} tiles, {secrets} credentials readable.'
   backup_none: 'No backup yet.'
   backup_run: 'Back up now'
   analysis: Integration check
-  analysis_every: 'Every {minutes} minutes the check fetches all integrations and derives hints. Pages show this state; live are the tiles'' status ping and widgets in data mode “live” (default for Home Assistant, monitors, system stats).'
+  analysis_every: 'Every {minutes} minutes the check fetches all integrations and derives hints. Pages show this state; live are link status pings and tiles in data mode “live” (default for Home Assistant, monitors, system stats).'
   analysis_last: 'Last run {when}, took {seconds} s.'
   analysis_none: No run since start.
   health: Process health
@@ -1457,7 +1457,7 @@ audit:
   action: Action
   target: Target
 teams:
-  lead: Teams share connections, widgets and boards.
+  lead: Teams share connections, tiles and boards.
   remove: Remove
   no_members: No members.
   set_member: Set member
@@ -2149,7 +2149,7 @@ hint:
       why: '{count} services affected: {names}. Their single hints are held back.'
     connector_down:
       title: '{name} unreachable'
-      why: 'Last fetch failed: {error}. Widgets show the last data.'
+      why: 'Last fetch failed: {error}. Tiles show the last data.'
     backup_late:
       title: 'Andon backup {hours} hours old'
       why: 'The daily database copy did not happen. Check that the service runs and data/backups is writable.'
@@ -2625,7 +2625,7 @@ settings:
   domain_yearly: 'Cost per domain and year (€)'
   hosting_words: 'Recognize hosting subscriptions by (Sure)'
   cloud_monthly: 'Compare: cloud cost per month (€)'
-  homelab_hint: 'For the “Homelab cost” widget, the replacement calculation and it-kosten.csv in the tax package.'
+  homelab_hint: 'For the “Homelab cost” tile, the replacement calculation and it-kosten.csv in the tax package.'
   custom: Custom rules
   custom_hint: 'Threshold on a dataset field, e.g. SABnzbd "Slots" > 10 or Custom API "stats.users" < 1. Count lists with "#": "Failures#" >= 1. The connection test shows field names.'
   custom_source: Source
