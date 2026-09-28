@@ -467,6 +467,16 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
 .feed-list a { color: var(--fg1); font-size: .86rem; text-decoration: none; }
 .feed-list a:hover { color: var(--blue); }
 .feed-list time { font-family: var(--font-mono); font-size: .68rem; color: var(--fg3); text-transform: uppercase; letter-spacing: .04em; }
+/* Compact feed: one line per item, day at the right. */
+.feed-list[data-compact] { gap: .3rem; }
+.feed-list[data-compact] li { flex-direction: row; align-items: baseline; gap: .6rem; padding-bottom: .3rem; }
+.feed-list[data-compact] a { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feed-list[data-compact] time { flex: none; }
+/* Fixed height: the list scrolls inside the tile. */
+.feed-list[data-height] { overflow-y: auto; padding-right: .3rem; }
+.feed-list[data-height="short"] { max-height: 12rem; }
+.feed-list[data-height="medium"] { max-height: 22rem; }
+.feed-list[data-height="tall"] { max-height: 36rem; }
 
 .sysinfo-tile p { margin: 0 0 .5rem; font-family: var(--font-mono); font-size: .82rem; color: var(--fg2); }
 .sysinfo-tile ul { list-style: none; margin: 0; padding: 0; font-family: var(--font-mono); font-size: .78rem; color: var(--fg2); }

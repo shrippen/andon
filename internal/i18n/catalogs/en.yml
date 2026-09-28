@@ -463,6 +463,8 @@ field:
   board_layout: 'Layout'
   board_layout_hint: 'Flowing columns fill gaps under short sections; section widths do not apply then.'
   free: 'Show amount free to spend (balance)'
+  titles_only: 'Titles only (one line per item)'
+  list_height: 'List height'
 opt:
   exposure: 'Exposure'
   domain_chain: 'Domain chain'
@@ -608,6 +610,9 @@ opt:
   large: Large
   contain: Show it whole
   cover: Fill the space
+  short: 'Short'
+  tall: 'Tall'
+  medium: 'Medium'
 size:
   small: Small
   medium: Medium

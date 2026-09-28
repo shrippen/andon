@@ -17,13 +17,13 @@
 {{define "widgets/rss"}}
 {{with $slot := index .Frag.Slots "feed"}}{{template "widget-slot-state" $slot}}
 {{with $feed := $slot.Data}}
-<ul class="feed-list">
+<ul class="feed-list"{{if $.Frag.Config.Compact}} data-compact{{end}}{{if ne $.Frag.Config.Height "auto"}} data-height="{{$.Frag.Config.Height}}"{{end}}>
   {{range $feed.Items}}
-  <li{{if .Image}} class="has-image"{{end}}>
-    {{with .Image}}<img class="feed-image" src="{{. | dataURI}}" alt="" loading="lazy">{{end}}
+  <li{{if and .Image (not $.Frag.Config.Compact)}} class="has-image"{{end}}>
+    {{if not $.Frag.Config.Compact}}{{with .Image}}<img class="feed-image" src="{{. | dataURI}}" alt="" loading="lazy">{{end}}{{end}}
     {{if .Link}}<a href="{{.Link}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a>{{else}}{{.Title}}{{end}}
     {{if .Published}}<time datetime="{{.Published}}">{{day .Published}}</time>{{end}}
-    {{if and $.Frag.Config.Summary .Summary}}<p class="muted small">{{.Summary}}</p>{{end}}
+    {{if and $.Frag.Config.Summary .Summary (not $.Frag.Config.Compact)}}<p class="muted small">{{.Summary}}</p>{{end}}
   </li>
   {{else}}<li class="muted">{{t "widget.empty"}}</li>{{end}}
 </ul>

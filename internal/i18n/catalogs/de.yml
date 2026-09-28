@@ -463,6 +463,8 @@ field:
   board_layout: 'Anordnung'
   board_layout_hint: 'Spaltenfluss füllt Lücken unter kurzen Abschnitten; die Breite der Abschnitte gilt dann nicht.'
   free: 'Frei verfügbaren Betrag zeigen (Kontostand)'
+  titles_only: 'Nur Titel (eine Zeile je Eintrag)'
+  list_height: 'Listenhöhe'
 opt:
   exposure: 'Angriffsfläche'
   domain_chain: 'Domain-Kette'
@@ -608,6 +610,9 @@ opt:
   large: groß
   contain: ganz zeigen
   cover: Fläche füllen
+  short: 'Niedrig'
+  tall: 'Hoch'
+  medium: 'Mittel'
 size:
   small: Klein
   medium: Mittel

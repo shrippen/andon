@@ -254,3 +254,16 @@ func TestTodayParts(t *testing.T) {
 		}
 	}
 }
+
+// TestRssCompact: titles only and a fixed list height; unknown heights
+// grow with the list.
+func TestRssCompact(t *testing.T) {
+	cfg, _ := widgets.Decode("rss", map[string]any{"url": "https://x.test/feed", "titles_only": true, "list_height": "short"})
+	if c := cfg.(widgets.RssConfig); !c.Compact || c.Height != "short" {
+		t.Fatalf("cfg: %+v", c)
+	}
+	cfg, _ = widgets.Decode("rss", map[string]any{"url": "https://x.test/feed", "list_height": "huge"})
+	if c := cfg.(widgets.RssConfig); c.Height != "auto" {
+		t.Fatalf("unknown height: %+v", c)
+	}
+}

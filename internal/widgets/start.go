@@ -295,8 +295,16 @@ type RssConfig struct {
 	Limit   int
 	Summary bool
 	Images  bool
-	MaxAge  int // days, 0 = any age
+	MaxAge  int    // days, 0 = any age
+	Compact bool   // one line per item: title and day only
+	Height  string // rssHeightAuto, or short/medium/tall: fixed, scrolls inside
 }
+
+// rssHeightAuto lets the list grow with its items.
+const rssHeightAuto = "auto"
+
+// rssHeights are the fixed list heights a feed tile may take.
+var rssHeights = map[string]bool{"short": true, "medium": true, "tall": true}
 
 func decodeRss(raw map[string]any) any {
 	limit := asInt(raw["limit"], 8)
@@ -307,7 +315,10 @@ func decodeRss(raw map[string]any) any {
 		limit = 50
 	}
 	cfg := RssConfig{URL: webURL(raw["url"]), Limit: limit, Summary: asBool(raw["summary"]), Images: asBool(raw["images"]),
-		MaxAge: clampInt(asInt(raw["max_age"], 0), 0, 365)}
+		MaxAge: clampInt(asInt(raw["max_age"], 0), 0, 365), Compact: asBool(raw["titles_only"]), Height: rssHeightAuto}
+	if h := asString(raw["list_height"]); rssHeights[h] {
+		cfg.Height = h
+	}
 	for _, u := range asStringList(raw["more_urls"]) {
 		if u = webURL(u); u != "" {
 			cfg.More = append(cfg.More, u)
