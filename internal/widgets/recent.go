@@ -9,6 +9,9 @@ import "time"
 // TimelineSlot carries []TimelineItem for ExtraTimeline.
 const TimelineSlot = "timeline"
 
+// kindUpdate is a timeline entry that is no hint change.
+const kindUpdate = "update"
+
 // TimelineDays is how far back the tile looks.
 const TimelineDays = 7
 
@@ -45,7 +48,8 @@ func recentView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 	cfg := cfgAny.(RecentConfig)
 	var items []TimelineItem
 	for _, it := range all {
-		if cfg.Kinds == "" || (cfg.Kinds == "hints") == (it.HintID != 0) {
+		// Bursts of hints have no single HintID: tell kinds by Kind.
+		if cfg.Kinds == "" || (cfg.Kinds == "hints") == (it.Kind != kindUpdate) {
 			items = append(items, it)
 		}
 	}

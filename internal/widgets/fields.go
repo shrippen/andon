@@ -63,6 +63,7 @@ func sel(key string, def string, options ...string) Field {
 var fieldsByType = map[string][]Field{
 	"subscriptions": {{Key: "limit", Input: InputNumber, Default: defaultSubRows}, sel("sort", "next", "next", "price"),
 		{Key: "yearly", Input: InputCheck}, {Key: "categories", Input: InputList}},
+	"links_down": {{Key: "limit", Input: InputNumber, Default: defaultLinksDown}},
 	"timeline_recent": {{Key: "limit", Input: InputNumber, Default: defaultRecent}, {Key: "days", Input: InputNumber, Default: TimelineDays},
 		sel("kinds", "all", "all", "updates", "hints")},
 	"uptime_month": {{Key: "sla", Input: InputNumber}, {Key: "filter", Input: InputList}},

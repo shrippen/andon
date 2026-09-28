@@ -28,6 +28,7 @@ var Topics = []Topic{TopicOverview, TopicWork, TopicAnalysis, TopicHomelab, Topi
 var topicOf = map[string]Topic{
 	"subscriptions":    TopicAnalysis,
 	"timeline_recent":  TopicOverview,
+	"links_down":       TopicOverview,
 	"uptime_month":     TopicHomelab,
 	"hint_noise":       TopicOverview,
 	"hint_trend":       TopicOverview,

@@ -214,3 +214,13 @@
 <p class="small muted">{{t "uptime.measured"}}{{with $v.Since}} {{t "uptime.since" "day" (day .)}}{{end}}</p>
 {{else}}<p class="slot-note">{{t "uptime.none"}}</p>{{end}}{{end}}
 {{end}}
+
+{{define "widgets/links_down"}}
+{{with $v := .Frag.View}}{{if $v.Links}}
+<ul class="legend-list">
+  {{range $v.Links}}<li data-tier="red"><span class="sq" aria-hidden="true"></span><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a>
+    <small class="muted">{{if .Since.IsZero}}{{t "links_down.today"}}{{else}}{{t "links_down.since" "day" (day .Since)}}{{end}}</small></li>{{end}}
+</ul>
+{{with $v.More}}<p class="small muted">{{t "light.more" "n" .}}</p>{{end}}
+{{else}}<p class="slot-note">{{t "links_down.none"}}</p>{{end}}{{end}}
+{{end}}

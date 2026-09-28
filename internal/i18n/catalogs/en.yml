@@ -899,6 +899,9 @@ wtype:
   docker_containers:
     name: 'Containers'
     desc: 'Every Docker container of a host, problems first.'
+  links_down:
+    name: 'What is red?'
+    desc: 'Every link of the space whose status check fails, with how long.'
 widget:
   delete_hint: 'The tile disappears from every board it is on.'
   pending: Loading with the next check …
@@ -3805,3 +3808,7 @@ arr_check:
   UpdateCheck: 'Update available'
   ImportMechanismCheck: 'Check import settings'
   ProxyCheck: 'Proxy unreachable'
+links_down:
+  since: 'no answer since {day}'
+  today: 'since today'
+  none: 'All links answer.'

@@ -356,6 +356,13 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		}
 		frag.Slots[widgets.NoiseSlot] = Slot{Data: data}
 	}
+	if kind.Extra == widgets.ExtraLinksDown {
+		links, err := linksDown(ctx, d, who, widget.SpaceID)
+		if err != nil {
+			return nil, err
+		}
+		frag.Slots[widgets.LinksDownSlot] = Slot{Data: links}
+	}
 	if kind.Extra == widgets.ExtraTimeline {
 		entries, err := history.Timeline(d, who, time.Now().UTC().AddDate(0, 0, -extraDays(cfg, widgets.TimelineDays)), timelineMax)
 		if err != nil {

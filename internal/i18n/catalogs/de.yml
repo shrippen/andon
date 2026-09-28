@@ -899,6 +899,9 @@ wtype:
   docker_containers:
     name: 'Container'
     desc: 'Alle Docker-Container eines Hosts, Probleme zuerst.'
+  links_down:
+    name: 'Was ist rot?'
+    desc: 'Alle Links des Bereichs, deren Statusprüfung fehlschlägt, mit Dauer.'
 widget:
   delete_hint: 'Die Kachel verschwindet von allen Boards, auf denen sie steht.'
   pending: Wird beim nächsten Prüflauf geladen …
@@ -3806,3 +3809,7 @@ arr_check:
   UpdateCheck: 'Update verfügbar'
   ImportMechanismCheck: 'Import-Einstellung prüfen'
   ProxyCheck: 'Proxy nicht erreichbar'
+links_down:
+  since: 'seit {day} ohne Antwort'
+  today: 'seit heute'
+  none: 'Alle Links antworten.'

@@ -60,6 +60,9 @@ const (
 	// ExtraTimeline hands the caller's recent timeline to the view as
 	// results["timeline"] ([]TimelineItem).
 	ExtraTimeline Extra = "timeline"
+	// ExtraLinksDown hands the space's link tiles whose status check fails
+	// to the view as results["links_down"] ([]DownLink).
+	ExtraLinksDown Extra = "links_down"
 	// ExtraForwarded hands the UIDs of the mailbox's mails already sent to
 	// Paperless to the view as results["forwarded"] (map[uint32]bool).
 	ExtraForwarded Extra = "forwarded"
