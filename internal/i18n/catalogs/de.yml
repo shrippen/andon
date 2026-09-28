@@ -1383,7 +1383,6 @@ cred:
   set: hinterlegt
   missing: fehlt
   none: Keine Verbindungen mit persönlichen Zugangsdaten.
-  credential_missing: Zugang fehlt
 credential:
   missing: Kein persönlicher Zugang hinterlegt.
 admin:

@@ -1383,7 +1383,6 @@ cred:
   set: stored
   missing: missing
   none: No connections with personal credentials.
-  credential_missing: Access missing
 credential:
   missing: No personal access stored.
 admin:
