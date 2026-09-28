@@ -455,6 +455,7 @@ field:
   every: A new joke every … hours (empty = hourly)
   hide_bar: Hide the comparison bar
   show_paid: 'Show income of the last 30 days'
+  hide_after: 'Hide devices offline longer than (days, 0 = never)'
 opt:
   exposure: 'Exposure'
   domain_chain: 'Domain chain'
@@ -1564,6 +1565,9 @@ hint:
     offline:
       title: '{count} devices offline for long'
       why: 'Not seen for over {days} days: {names}.'
+    key_expired:
+      title: '{name}: key expired'
+      why: 'Expired since {day}; the device can no longer reach the tailnet. Sign it in again or remove it.'
   gateway:
     wan_down:
       title: 'WAN {name} down'
@@ -2608,6 +2612,7 @@ param:
   percent: 'Percent'
   seconds: 'Seconds'
   escalate_days: 'Critical after days (0 = never)'
+  offline_days: 'Ignore when offline longer than (days)'
 settings:
   billing_internal: Internal customers
   billing_internal_hint: 'Kimai customers whose time is never invoiced, comma separated. Customers at rate 0 always count as internal.'
@@ -2904,6 +2909,7 @@ tailscale:
   key: 'key until'
   update: 'update'
   all_fine: 'All {n} devices online, no keys expiring soon.'
+  key_expired: 'key expired'
 mediaserver:
   now: 'Playing now'
   library: '{movies} movies · {series} series'

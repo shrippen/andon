@@ -184,7 +184,7 @@ var fieldsByType = map[string][]Field{
 	"invoice_aging":    {{Key: "bands", Input: InputNumbers, Default: []any{30.0, 60.0}}, {Key: "hide_clients", Input: InputList}},
 	"heatmap":          {{Key: "months", Input: InputNumber, Default: 12}, {Key: "weekdays", Input: InputCheck}, {Key: "by_goal", Input: InputCheck}},
 	"jsonapi":          {{Key: "thresholds", Input: InputArea}, {Key: "units", Input: InputArea}},
-	"tailscale":        {{Key: "only_trouble", Input: InputCheck}, {Key: "tags", Input: InputList}},
+	"tailscale":        {{Key: "only_trouble", Input: InputCheck}, {Key: "hide_after", Input: InputNumber, Default: 0}, {Key: "tags", Input: InputList}},
 	"mediaserver":      {{Key: "show_users", Input: InputCheck, Default: true}},
 	"arr_upcoming":     {{Key: "days", Input: InputNumber, Default: arrDays}},
 	"grocy": {{Key: "show_stock", Input: InputCheck, Default: true}, {Key: "show_shopping", Input: InputCheck, Default: true},

@@ -455,6 +455,7 @@ field:
   every: Neuer Witz alle … Stunden (leer = stündlich)
   hide_bar: Vergleichsbalken ausblenden
   show_paid: 'Eingang der letzten 30 Tage zeigen'
+  hide_after: 'Geräte ausblenden, die länger offline sind als (Tage, 0 = nie)'
 opt:
   exposure: 'Angriffsfläche'
   domain_chain: 'Domain-Kette'
@@ -1564,6 +1565,9 @@ hint:
     offline:
       title: '{count} Geräte länger offline'
       why: 'Seit über {days} Tagen nicht gesehen: {names}.'
+    key_expired:
+      title: '{name}: Schlüssel abgelaufen'
+      why: 'Seit {day} abgelaufen; das Gerät erreicht das Tailnet nicht mehr. Neu anmelden oder das Gerät entfernen.'
   gateway:
     wan_down:
       title: 'WAN {name} ausgefallen'
@@ -2609,6 +2613,7 @@ param:
   percent: 'Prozent'
   seconds: 'Sekunden'
   escalate_days: 'Nach Tagen kritisch (0 = nie)'
+  offline_days: 'Offline länger als (Tage) ignorieren'
 settings:
   billing_internal: Interne Kunden
   billing_internal_hint: 'Kimai-Kunden, deren Zeiten nie in Rechnung gehen, durch Komma getrennt. Kunden mit Stundensatz 0 zählen immer als intern.'
@@ -2905,6 +2910,7 @@ tailscale:
   key: 'Schlüssel bis'
   update: 'Update'
   all_fine: 'Alle {n} Geräte online, keine Schlüssel laufen bald ab.'
+  key_expired: 'Schlüssel abgelaufen'
 mediaserver:
   now: 'Läuft gerade'
   library: '{movies} Filme · {series} Serien'

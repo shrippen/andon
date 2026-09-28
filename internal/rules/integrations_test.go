@@ -62,3 +62,18 @@ func TestIntegrationRules(t *testing.T) {
 		t.Errorf("updates topic: %v", topic)
 	}
 }
+
+// An expired key says so; a device offline for a long time (an old
+// laptop) is left to tailscale.offline instead of warning about its key.
+func TestTailscaleKeyExpired(t *testing.T) {
+	today := time.Date(2026, 9, 28, 0, 0, 0, 0, time.UTC)
+	data := &sources.TailscaleDataset{Devices: []sources.TailDevice{
+		{Name: "nas", Online: true, KeyExpiry: today.AddDate(0, 0, -3)},
+		{Name: "laptop", Online: true, KeyExpiry: today.AddDate(0, 0, 5)},
+		{Name: "old", Online: false, LastSeen: today.AddDate(-1, 0, 0), KeyExpiry: today.AddDate(0, -8, 0)},
+	}}
+	got := run(t, "tailscale.key_expiry", data, rules.Env{Today: today})
+	if len(got) != 2 || got[0].Message != "tailscale.key_expired" || got[1].Message != "tailscale.key_expiry" {
+		t.Fatalf("findings: %+v", got)
+	}
+}

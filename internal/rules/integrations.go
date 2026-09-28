@@ -53,22 +53,25 @@ func init() {
 
 func registerNetworkRules() {
 	ts := string(enums.ServiceTailscale)
-	Register("tailscale.key_expiry", ts, map[string]any{"warn_days": 14}, func(raw any, cfg map[string]any, env Env) []Finding {
+	// A device offline longer than offline_days is left to
+	// tailscale.offline: its key does not matter until it returns.
+	Register("tailscale.key_expiry", ts, map[string]any{"warn_days": 14, "offline_days": 30}, func(raw any, cfg map[string]any, env Env) []Finding {
 		data, _ := raw.(*sources.TailscaleDataset)
 		var found []Finding
 		for _, d := range data.Devices {
-			if d.KeyExpiry.IsZero() {
+			gone := !d.Online && !d.LastSeen.IsZero() && env.Today.Sub(d.LastSeen).Hours()/hoursPerDay > cfgFloat(cfg, "offline_days")
+			if d.KeyExpiry.IsZero() || gone {
 				continue
 			}
 			left := int(d.KeyExpiry.Sub(env.Today).Hours() / hoursPerDay)
 			if left > cfgInt(cfg, "warn_days") {
 				continue
 			}
-			level := enums.SeverityWarn
+			level, msg := enums.SeverityWarn, "tailscale.key_expiry"
 			if left < 0 {
-				level = enums.SeverityCritical
+				level, msg = enums.SeverityCritical, "tailscale.key_expired"
 			}
-			found = append(found, svcFinding(ts, "tailscale.key_expiry", "key:"+d.Name, "tailscale.key_expiry", level, data.URL,
+			found = append(found, svcFinding(ts, "tailscale.key_expiry", "key:"+d.Name, msg, level, data.URL,
 				map[string]any{"name": d.Name, "day": Day(d.KeyExpiry)}))
 		}
 		return found

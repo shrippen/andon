@@ -6,7 +6,7 @@
 <ul class="plain-list">
   {{range .Devices}}<li><span class="pill" data-state="{{if .Online}}ok{{else}}fail{{end}}">{{if .Online}}{{t "status.up"}}{{else}}{{t "status.down"}}{{end}}</span> {{.Name}}
     {{if not .Online}}<small class="muted">{{ago .LastSeen}}</small>{{end}}
-    {{if not .KeyExpiry.IsZero}}<small class="muted">· {{t "tailscale.key"}} {{day .KeyExpiry}}</small>{{end}}
+    {{if not .KeyExpiry.IsZero}}{{if .KeyExpiry.Before $.Frag.View.Now}}<small class="late">· {{t "tailscale.key_expired"}}</small>{{else}}<small class="muted">· {{t "tailscale.key"}} {{day .KeyExpiry}}</small>{{end}}{{end}}
     {{if .Update}}<small class="muted">· {{t "tailscale.update"}}</small>{{end}}</li>{{end}}
 </ul>
 {{end}}

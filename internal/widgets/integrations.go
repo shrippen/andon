@@ -130,6 +130,7 @@ func dwdView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 type TailscaleConfig struct {
 	OnlyTrouble bool     // offline, or the key runs out within tailKeyDays
 	Tags        []string // any of these tags ("server" or "tag:server"), empty = all
+	HideAfter   int      // hide devices offline longer than this many days, 0 = show all
 }
 
 // tailKeyDays is when an expiring key counts as trouble.
@@ -143,7 +144,7 @@ func decodeTailscale(raw map[string]any) any {
 		}
 		tags = append(tags, t)
 	}
-	return TailscaleConfig{OnlyTrouble: asBool(raw["only_trouble"]), Tags: tags}
+	return TailscaleConfig{OnlyTrouble: asBool(raw["only_trouble"]), Tags: tags, HideAfter: clampInt(asInt(raw["hide_after"], 0), 0, 3650)}
 }
 
 func tailscaleView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
@@ -152,11 +153,15 @@ func tailscaleView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any
 	if !ok {
 		return map[string]any{}
 	}
-	soon := time.Now().AddDate(0, 0, tailKeyDays)
+	now := time.Now()
+	soon := now.AddDate(0, 0, tailKeyDays)
 	shown := *data
 	shown.Devices = nil
 	for _, d := range data.Devices {
 		if len(cfg.Tags) > 0 && !slices.ContainsFunc(d.Tags, func(t string) bool { return slices.Contains(cfg.Tags, strings.ToLower(t)) }) {
+			continue
+		}
+		if cfg.HideAfter > 0 && !d.Online && !d.LastSeen.IsZero() && d.LastSeen.Before(now.AddDate(0, 0, -cfg.HideAfter)) {
 			continue
 		}
 		trouble := !d.Online || (!d.KeyExpiry.IsZero() && d.KeyExpiry.Before(soon))
@@ -165,7 +170,7 @@ func tailscaleView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any
 		}
 		shown.Devices = append(shown.Devices, d)
 	}
-	return map[string]any{"Data": &shown, "OnlyTrouble": cfg.OnlyTrouble, "Total": len(data.Devices)}
+	return map[string]any{"Data": &shown, "OnlyTrouble": cfg.OnlyTrouble, "Total": len(data.Devices), "Now": now}
 }
 
 // GitHubConfig is the "github" widget's config.
