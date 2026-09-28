@@ -225,8 +225,12 @@ func arrView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 			items = append(items, it)
 		}
 	}
-	return map[string]any{"Data": data, "Items": items}
+	return map[string]any{"Data": data, "Items": items, "Kind": arrKinds[data.App]}
 }
+
+// arrKinds names what an *arr app lists, for the tile's head line
+// ("Sonarr · Episoden"); catalog keys arr.kind_<kind>.
+var arrKinds = map[string]string{"Sonarr": "episodes", "Radarr": "movies", "Lidarr": "albums", "Readarr": "books"}
 
 // MediaConfig is the "mediaserver" widget's config.
 type MediaConfig struct{ Users bool }

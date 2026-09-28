@@ -24,6 +24,7 @@
 {{define "widgets/arr_upcoming"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $v.Data}}
+{{with .App}}<p class="tile-sub"><b>{{.}}</b>{{with $v.Kind}} · {{t (print "arr.kind_" .)}}{{end}}</p>{{end}}
 <ul class="plain-list">
   {{range $v.Items}}<li><time>{{day .At}}</time> {{.Title}}</li>{{else}}<li class="muted">{{t "arr.nothing"}}</li>{{end}}
 </ul>

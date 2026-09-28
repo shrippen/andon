@@ -2922,6 +2922,10 @@ mediaserver:
   library: '{movies} Filme · {series} Serien'
 arr:
   nothing: 'Nichts in den nächsten 7 Tagen.'
+  kind_episodes: 'Folgen'
+  kind_movies: 'Filme'
+  kind_albums: 'Alben'
+  kind_books: 'Bücher'
 grocy:
   buy: 'Einkaufen'
   chores: 'Hausarbeit'
