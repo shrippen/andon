@@ -81,7 +81,7 @@ func loadSections(q db.Queryer, board *model.Board) error {
 
 func loadPlacements(q db.Queryer, sectionID int64) ([]model.Placement, error) {
 	rows, err := q.Query(
-		`SELECT p.id, p.section_id, p.widget_id, p.position, p.rows,
+		`SELECT p.id, p.section_id, p.widget_id, p.position, p.rows, p.cols,
 			widgets.id, widgets.space_id, widgets.key, widgets.type, widgets.title, widgets.config,
 			widgets.connection_id, widgets.min_team_role, widgets.version, widgets.updated_at
 		FROM placements p JOIN widgets ON widgets.id = p.widget_id
@@ -115,7 +115,7 @@ func scanPlacementJoined(rows *sql.Rows, p *model.Placement) (*model.Widget, err
 	var minRole sql.NullString
 
 	err := rows.Scan(
-		&p.ID, &p.SectionID, &p.WidgetID, &p.Position, &p.Rows,
+		&p.ID, &p.SectionID, &p.WidgetID, &p.Position, &p.Rows, &p.Cols,
 		&w.ID, &w.SpaceID, &w.Key, &w.Type, &w.Title, &config, &connID, &minRole,
 		&w.Version, &updatedAt,
 	)
@@ -289,8 +289,8 @@ func RemoveSection(q db.Queryer, sectionID int64) error {
 func Placement(q db.Queryer, placementID int64) (*model.Placement, error) {
 	var p model.Placement
 	err := q.QueryRow(
-		"SELECT id, section_id, widget_id, position, rows FROM placements WHERE id = ?", placementID,
-	).Scan(&p.ID, &p.SectionID, &p.WidgetID, &p.Position, &p.Rows)
+		"SELECT id, section_id, widget_id, position, rows, cols FROM placements WHERE id = ?", placementID,
+	).Scan(&p.ID, &p.SectionID, &p.WidgetID, &p.Position, &p.Rows, &p.Cols)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -308,8 +308,8 @@ func Placement(q db.Queryer, placementID int64) (*model.Placement, error) {
 // AddPlacement inserts a new placement.
 func AddPlacement(q db.Queryer, p *model.Placement) error {
 	res, err := q.Exec(
-		"INSERT INTO placements (section_id, widget_id, position, rows) VALUES (?,?,?,?)",
-		p.SectionID, p.WidgetID, p.Position, max(p.Rows, 1),
+		"INSERT INTO placements (section_id, widget_id, position, rows, cols) VALUES (?,?,?,?,?)",
+		p.SectionID, p.WidgetID, p.Position, max(p.Rows, 1), max(p.Cols, 1),
 	)
 	if err != nil {
 		return err
@@ -334,6 +334,12 @@ func UpdatePlacementPosition(q db.Queryer, placementID, sectionID int64, positio
 // UpdatePlacementRows sets how many grid rows a placed tile spans.
 func UpdatePlacementRows(q db.Queryer, placementID int64, rows int) error {
 	_, err := q.Exec("UPDATE placements SET rows = ? WHERE id = ?", rows, placementID)
+	return err
+}
+
+// UpdatePlacementCols sets how many grid columns a placed tile spans.
+func UpdatePlacementCols(q db.Queryer, placementID int64, cols int) error {
+	_, err := q.Exec("UPDATE placements SET cols = ? WHERE id = ?", cols, placementID)
 	return err
 }
 

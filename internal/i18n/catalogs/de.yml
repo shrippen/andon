@@ -197,6 +197,8 @@ edit:
   clear_selection: Markierung aufheben
   layout_hint: Änderungen gelten nur für dich
   repeated: 'Diese Kachel steht mehrmals auf dem Board.'
+  tile_wide: 'Doppelte Breite'
+  tile_narrow: 'Normale Breite'
 field:
   place: Ort
   week_hours: Wochenziel (Stunden)

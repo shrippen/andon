@@ -230,7 +230,7 @@
 {{define "tile"}}
 {{$b := .B}}{{with .T}}
 {{$frag := print "/widget-fragments/" .PlacementID}}{{if $b.EmbedToken}}{{$frag = print $frag "?token=" $b.EmbedToken}}{{end}}
-<div class="tile-slot w-{{.Type}}{{if .Hidden}} is-hidden{{end}}" data-placement="{{.PlacementID}}"{{if gt .Rows 1}} data-rows="{{.Rows}}"{{end}}>
+<div class="tile-slot w-{{.Type}}{{if .Hidden}} is-hidden{{end}}" data-placement="{{.PlacementID}}"{{if gt .Rows 1}} data-rows="{{.Rows}}"{{end}}{{if gt .Cols 1}} data-cols="{{.Cols}}"{{end}}>
   {{if eq .Type "link"}}
     {{$c := .Config}}
     <a class="launch" data-click="{{.PlacementID}}" href="{{$c.URL}}"{{if eq (print $c.Target) "newtab"}} target="_blank" rel="noopener noreferrer"{{end}}
@@ -269,6 +269,7 @@
   {{/* Tile strip: on the tile's top edge, shown on hover and focus; the
        grip drags, the controls keep their forms. */}}
   {{$tall := t "edit.tile_tall"}}{{if gt .Rows 1}}{{$tall = t "edit.tile_normal"}}{{end}}
+  {{$wide := t "edit.tile_wide"}}{{if gt .Cols 1}}{{$wide = t "edit.tile_narrow"}}{{end}}
   {{if $b.Edit}}
   <div class="tile-strip">
     <span class="tile-grip" aria-hidden="true"><svg><use href="#i-grip"/></svg></span>
@@ -283,6 +284,13 @@
       <input type="hidden" name="version" value="{{$b.Board.Version}}">
       <input type="hidden" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}">
       <button class="tile-ico" type="submit" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><svg><use href="#i-height"/></svg></button>
+    </form>
+    <form method="post" action="/placements/{{.PlacementID}}/cols" class="inline-form">
+      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
+      <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
+      <input type="hidden" name="version" value="{{$b.Board.Version}}">
+      <input type="hidden" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}">
+      <button class="tile-ico" type="submit" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><svg><use href="#i-width"/></svg></button>
     </form>
     <form method="post" action="/placements/{{.PlacementID}}/unplace" class="inline-form">
       <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
@@ -306,6 +314,11 @@
       <input type="hidden" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}">
       <button class="tile-ico" type="submit" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><svg><use href="#i-height"/></svg></button>
     </form>
+    <form method="post" action="/boards/{{$b.Board.ID}}/cols/{{.PlacementID}}" class="inline-form">
+      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
+      <input type="hidden" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}">
+      <button class="tile-ico" type="submit" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><svg><use href="#i-width"/></svg></button>
+    </form>
   </div>
   {{end}}
 </div>
@@ -319,6 +332,7 @@
   <symbol id="i-edit" viewBox="0 0 16 16"><path fill="currentColor" d="M11.3 1.3a1 1 0 0 1 1.4 0l2 2a1 1 0 0 1 0 1.4L6 13.4 2 14l.6-4 8.7-8.7Z"/></symbol>
   <symbol id="i-share" viewBox="0 0 16 16"><path fill="currentColor" d="M12 1a3 3 0 1 1-2.8 4l-3.4 1.8a3 3 0 0 1 0 2.4L9.2 11A3 3 0 1 1 9 12.4l-3.5-1.9a3 3 0 1 1 0-5L9 3.6A3 3 0 0 1 12 1Z"/></symbol>
   <symbol id="i-height" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0 12 4H9v8h3l-4 4-4-4h3V4H4Z"/></symbol>
+  <symbol id="i-width" viewBox="0 0 16 16"><path fill="currentColor" d="M0 8 4 4v3h8V4l4 4-4 4V9H4v3Z"/></symbol>
   <symbol id="i-x" viewBox="0 0 16 16"><path fill="currentColor" d="M3.4 2 8 6.6 12.6 2 14 3.4 9.4 8l4.6 4.6-1.4 1.4L8 9.4 3.4 14 2 12.6 6.6 8 2 3.4Z"/></symbol>
   <symbol id="i-eye" viewBox="0 0 16 16"><path fill="currentColor" d="M8 3c3.6 0 6.3 2.6 7.5 5-1.2 2.4-3.9 5-7.5 5S1.7 10.4.5 8C1.7 5.6 4.4 3 8 3Zm0 2.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z"/></symbol>
 </svg>

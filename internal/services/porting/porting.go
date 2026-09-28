@@ -98,7 +98,7 @@ func widgetRef(w *model.Widget, home int64, spaces map[int64]*model.Space) strin
 func boardDoc(b *model.Board, spaces map[int64]*model.Space) map[string]any {
 	sections := []any{}
 	for _, sec := range b.Sections {
-		refs, tall := []any{}, []any{}
+		refs, tall, wide := []any{}, []any{}, []any{}
 		for _, p := range sec.Placements {
 			if p.Widget == nil {
 				continue
@@ -108,10 +108,16 @@ func boardDoc(b *model.Board, spaces map[int64]*model.Space) map[string]any {
 			if p.Rows > 1 {
 				tall = append(tall, ref)
 			}
+			if p.Cols > 1 {
+				wide = append(wide, ref)
+			}
 		}
 		item := map[string]any{"title": sec.Title, "widgets": refs}
 		if len(tall) > 0 {
 			item["tall"] = tall
+		}
+		if len(wide) > 0 {
+			item["wide"] = wide
 		}
 		if sec.Cols != nil {
 			item["cols"] = *sec.Cols
@@ -586,9 +592,12 @@ func importBoard(q db.Queryer, who *access.Principal, spaceID int64, item map[st
 			return err
 		}
 
-		tall := map[string]bool{}
+		tall, wide := map[string]bool{}, map[string]bool{}
 		for _, r := range asAnyList(raw["tall"]) {
 			tall[fmt.Sprint(r)] = true
+		}
+		for _, r := range asAnyList(raw["wide"]) {
+			wide[fmt.Sprint(r)] = true
 		}
 		refs, _ := raw["widgets"].([]any)
 		for pos, r := range refs {
@@ -601,11 +610,14 @@ func importBoard(q db.Queryer, who *access.Principal, spaceID int64, item map[st
 				report.Skipped = append(report.Skipped, "board "+name+": widget "+ref)
 				continue
 			}
-			rows := 1
+			rows, cols := 1, 1
 			if tall[ref] {
 				rows = boards.MaxTileRows
 			}
-			if err := content.AddPlacement(q, &model.Placement{SectionID: sec.ID, WidgetID: id, Position: pos, Rows: rows}); err != nil {
+			if wide[ref] {
+				cols = boards.MaxTileCols
+			}
+			if err := content.AddPlacement(q, &model.Placement{SectionID: sec.ID, WidgetID: id, Position: pos, Rows: rows, Cols: cols}); err != nil {
 				return err
 			}
 		}

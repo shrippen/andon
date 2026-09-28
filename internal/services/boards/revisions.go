@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"slices"
 	"time"
 
 	"andon/internal/db"
@@ -33,6 +34,7 @@ type snapshotSection struct {
 	Mobile    string  `json:"mobile,omitempty"`
 	Widgets   []int64 `json:"widgets"`
 	Tall      []int64 `json:"tall,omitempty"` // widgets of Widgets placed MaxTileRows high
+	Wide      []int64 `json:"wide,omitempty"` // widgets of Widgets placed MaxTileCols wide
 }
 
 type snapshotBoard struct {
@@ -55,6 +57,9 @@ func snapshot(q db.Queryer, who *access.Principal, board *model.Board) error {
 			row.Widgets = append(row.Widgets, p.WidgetID)
 			if p.Rows > 1 {
 				row.Tall = append(row.Tall, p.WidgetID)
+			}
+			if p.Cols > 1 {
+				row.Wide = append(row.Wide, p.WidgetID)
 			}
 		}
 		snap.Sections = append(snap.Sections, row)
@@ -186,7 +191,8 @@ func rebuild(tx *sql.Tx, board *model.Board, snap snapshotBoard) error {
 				continue // widget gone, or from a space we can't resolve here (see doc comment)
 			}
 			if err := content.AddPlacement(tx, &model.Placement{
-				SectionID: newSection.ID, WidgetID: widgetID, Position: pos, Rows: rowsIn(sec.Tall, widgetID),
+				SectionID: newSection.ID, WidgetID: widgetID, Position: pos, Rows: spanIn(sec.Tall, widgetID, MaxTileRows),
+				Cols: spanIn(sec.Wide, widgetID, MaxTileCols),
 			}); err != nil {
 				return err
 			}
@@ -232,11 +238,10 @@ func sectionColor(raw string) string {
 }
 
 // rowsIn is MaxTileRows for a widget listed as tall, else 1.
-func rowsIn(tall []int64, widgetID int64) int {
-	for _, id := range tall {
-		if id == widgetID {
-			return MaxTileRows
-		}
+// spanIn is span for widgets listed in ids (tall or wide), else 1.
+func spanIn(ids []int64, widgetID int64, span int) int {
+	if slices.Contains(ids, widgetID) {
+		return span
 	}
 	return 1
 }

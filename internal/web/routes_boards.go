@@ -35,6 +35,7 @@ func (d Deps) RegisterBoardRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /boards/{id}/fold/{sectionID}", d.handleFold)
 	mux.HandleFunc("POST /boards/{id}/show/{placementID}", d.handleShow)
 	mux.HandleFunc("POST /boards/{id}/rows/{placementID}", d.handleMyRows)
+	mux.HandleFunc("POST /boards/{id}/cols/{placementID}", d.handleMyCols)
 	mux.HandleFunc("POST /boards/{id}/size/{sectionID}", d.handleSize)
 	mux.HandleFunc("POST /boards/{id}/overlay/reset", d.authed(d.handleOverlayReset))
 	mux.HandleFunc("GET /boards/{id}/history", d.authed(d.handleHistory))
@@ -409,6 +410,14 @@ func (d Deps) handleMyRows(w http.ResponseWriter, r *http.Request) {
 	d.layoutAction(w, r, "placementID", func(ctx Ctx, id, placementID int64) error {
 		rows, _ := strconv.Atoi(r.FormValue("rows"))
 		return boards.SetMyTileRows(d.DB, ctx.Who, id, placementID, rows)
+	}, layoutPage)
+}
+
+// handleMyCols sets a tile's width in the caller's own layout.
+func (d Deps) handleMyCols(w http.ResponseWriter, r *http.Request) {
+	d.layoutAction(w, r, "placementID", func(ctx Ctx, id, placementID int64) error {
+		cols, _ := strconv.Atoi(r.FormValue("cols"))
+		return boards.SetMyTileCols(d.DB, ctx.Who, id, placementID, cols)
 	}, layoutPage)
 }
 

@@ -108,11 +108,14 @@ func ResizeSection(d *sql.DB, who *access.Principal, boardID, sectionID int64, s
 	return setLayer(d, who, boardID, "size", sectionID, string(size))
 }
 
-// Tile heights: a placed tile spans one row of its section's grid, or
-// two (MaxTileRows) for a tall one.
+// Tile spans: a placed tile covers one cell of its section's grid, or two
+// rows (MaxTileRows) for a tall one, two columns (MaxTileCols) for a wide
+// one.
 const (
 	MaxTileRows = 2
+	MaxTileCols = 2
 	layerRows   = "rows"
+	layerCols   = "cols"
 )
 
 // tileRows keeps a stored height within 1..MaxTileRows.
@@ -120,9 +123,30 @@ func tileRows(rows int) int {
 	return min(max(rows, 1), MaxTileRows)
 }
 
+// tileCols keeps a stored width within 1..MaxTileCols.
+func tileCols(cols int) int {
+	return min(max(cols, 1), MaxTileCols)
+}
+
 // SetTileRows sets how many rows a placed tile spans for everybody.
 // Requires EDIT; bumps the board version and records a revision.
 func SetTileRows(d *sql.DB, who *access.Principal, placementID int64, rows, version int) error {
+	return setPlacement(d, who, placementID, version, func(tx *sql.Tx) error {
+		return content.UpdatePlacementRows(tx, placementID, tileRows(rows))
+	})
+}
+
+// SetTileCols sets how many columns a placed tile spans for everybody.
+// Requires EDIT; bumps the board version and records a revision.
+func SetTileCols(d *sql.DB, who *access.Principal, placementID int64, cols, version int) error {
+	return setPlacement(d, who, placementID, version, func(tx *sql.Tx) error {
+		return content.UpdatePlacementCols(tx, placementID, tileCols(cols))
+	})
+}
+
+// setPlacement runs one change of a placement on its board: checks EDIT
+// and the version, then bumps the board and records a revision.
+func setPlacement(d *sql.DB, who *access.Principal, placementID int64, version int, change func(*sql.Tx) error) error {
 	return db.WithTx(d, func(tx *sql.Tx) error {
 		placement, err := content.Placement(tx, placementID)
 		if err != nil || placement == nil {
@@ -139,7 +163,7 @@ func SetTileRows(d *sql.DB, who *access.Principal, placementID int64, rows, vers
 		if err := bump(board, version); err != nil {
 			return err
 		}
-		if err := content.UpdatePlacementRows(tx, placement.ID, tileRows(rows)); err != nil {
+		if err := change(tx); err != nil {
 			return err
 		}
 		board.UpdatedAt = time.Now().UTC()
@@ -153,6 +177,11 @@ func SetTileRows(d *sql.DB, who *access.Principal, placementID int64, rows, vers
 // SetMyTileRows sets a placed tile's height in the caller's overlay.
 func SetMyTileRows(d *sql.DB, who *access.Principal, boardID, placementID int64, rows int) error {
 	return setLayer(d, who, boardID, layerRows, placementID, tileRows(rows))
+}
+
+// SetMyTileCols sets a placed tile's width in the caller's overlay.
+func SetMyTileCols(d *sql.DB, who *access.Principal, boardID, placementID int64, cols int) error {
+	return setLayer(d, who, boardID, layerCols, placementID, tileCols(cols))
 }
 
 // ResetOverlay clears the caller's overlay for a board.

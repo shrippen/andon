@@ -59,6 +59,7 @@ type Tile struct {
 	Config      any
 	Hidden      bool
 	Rows        int    // grid rows the tile spans: the board's, or the viewer's overlay
+	Cols        int    // grid columns the tile spans, likewise
 	IconURL     string // link tiles: cached icon, "" = monogram
 	IconEmoji   string // link tiles: emoji instead of an image
 	IconGlyph   bool   // single-color icon, inverted on dark themes
@@ -376,6 +377,7 @@ func viewSection(q db.Queryer, who *access.Principal, section model.Section, boa
 		Collapsed: collapsed, Area: area, Span: section.Span, Rows: section.Rows, Color: section.Color, Mobile: section.Mobile}
 
 	myRows, _ := layer[layerRows].(map[string]any)
+	myCols, _ := layer[layerCols].(map[string]any)
 	hidden := map[int64]bool{}
 	if hiddenList, ok := layer["hidden"].([]any); ok {
 		for _, v := range hiddenList {
@@ -424,7 +426,7 @@ func viewSection(q db.Queryer, who *access.Principal, section model.Section, boa
 		tile := Tile{
 			PlacementID: placement.ID, WidgetID: w.ID, Type: w.Type, Title: w.Title, Template: kind.Template,
 			Category: kind.Category, Inline: kind.Inline, RefreshS: kind.RefreshS, Config: cfg, Hidden: hidden[placement.ID],
-			Rows: tileRows(placement.Rows),
+			Rows: tileRows(placement.Rows), Cols: tileCols(placement.Cols),
 		}
 		tile.Frame = widgets.FrameOf(w.Config)
 		if own, ok := cfg.(widgets.Refresher); ok && own.RefreshSeconds() > 0 {
@@ -436,6 +438,9 @@ func viewSection(q db.Queryer, who *access.Principal, section model.Section, boa
 		tile.FrameIcon = IconOf(tile.Frame.Icon)
 		if v, ok := myRows[strconv.FormatInt(placement.ID, 10)]; ok {
 			tile.Rows = tileRows(int(int64FromAny(v)))
+		}
+		if v, ok := myCols[strconv.FormatInt(placement.ID, 10)]; ok {
+			tile.Cols = tileCols(int(int64FromAny(v)))
 		}
 		if link, ok := cfg.(widgets.LinkConfig); ok {
 			tile.IconEmoji = icons.Emoji(link.Icon)

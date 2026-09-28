@@ -197,6 +197,8 @@ edit:
   clear_selection: Clear selection
   layout_hint: Changes apply only to you
   repeated: 'This tile is on the board more than once.'
+  tile_wide: 'Double width'
+  tile_narrow: 'Normal width'
 field:
   place: Place
   week_hours: Weekly target (hours)

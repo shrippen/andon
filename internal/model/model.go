@@ -140,6 +140,7 @@ type Placement struct {
 	WidgetID  int64
 	Position  int
 	Rows      int // grid rows the tile spans, 1 = normal
+	Cols      int // grid columns the tile spans, 1 = normal
 
 	Widget *Widget // populated by repos.Board / repos.Placement
 }

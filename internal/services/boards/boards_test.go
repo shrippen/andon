@@ -273,3 +273,51 @@ func TestTileRows(t *testing.T) {
 		t.Fatalf("restored rows %d", tile().Rows)
 	}
 }
+
+// TestTileCols: like heights, editors make a tile wide for everybody and
+// every viewer may override it; restore keeps the width.
+func TestTileCols(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	boardID, _ := boards.Create(d, who, space.ID, "B")
+	w := addWidget(t, d, space.ID, "w1")
+	view, _ := boards.View(d, who, boardID)
+	placementID, _ := boards.Place(d, who, view.Sections[0].ID, w.ID, view.Version)
+
+	tile := func() boards.Tile {
+		v, err := boards.View(d, who, boardID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v.Sections[0].Tiles[0]
+	}
+	if tile().Cols != 1 {
+		t.Fatalf("new tile cols %d, want 1", tile().Cols)
+	}
+
+	view, _ = boards.View(d, who, boardID)
+	if err := boards.SetTileCols(d, who, placementID, 5, view.Version); err != nil {
+		t.Fatalf("set cols: %v", err)
+	}
+	if tile().Cols != boards.MaxTileCols {
+		t.Fatalf("cols %d, want the cap %d", tile().Cols, boards.MaxTileCols)
+	}
+
+	if err := boards.SetMyTileCols(d, who, boardID, placementID, 1); err != nil {
+		t.Fatalf("my cols: %v", err)
+	}
+	if tile().Cols != 1 {
+		t.Fatalf("overlay not applied: %d", tile().Cols)
+	}
+	boards.ResetOverlay(d, who, boardID)
+
+	history, _ := boards.History(d, who, boardID)
+	if err := boards.Restore(d, who, boardID, history[0].ID); err != nil {
+		t.Fatalf("restore: %v", err)
+	}
+	if tile().Cols != boards.MaxTileCols {
+		t.Fatalf("restored cols %d", tile().Cols)
+	}
+}

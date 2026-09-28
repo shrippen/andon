@@ -275,6 +275,10 @@ button.ghost:hover, .link-btn:hover { color: var(--orange); border-color: var(--
 .tile-slot.w-rss, .tile-slot.w-iframe, .tile-slot.w-deadlines, .tile-slot.w-hints, .tile-slot.w-table, .tile-slot.w-chart,
 .tile-slot.w-note, .tile-slot.w-progress, .tile-slot.w-greeting { grid-column: 1 / -1; }
 .tile-slot[data-rows="2"] { grid-row: span 2; }
+/* A wide tile spans two columns once the section fits two (13.5rem each);
+   the side column and narrow sections keep it one column wide. */
+.board-main .dsec-body { container-type: inline-size; }
+@container (min-width: 28rem) { .tile-slot[data-cols="2"] { grid-column: span 2; } }
 /* A section's only tile takes the section's width. */
 .board-main .dsec-body > .tile-slot:only-child { grid-column: 1 / -1; }
 .tile-slot[data-rows="2"] > .card { height: 100%; }
@@ -800,8 +804,9 @@ table.table tr:last-child td { border-bottom: 0; }
 .timer-list li > span:first-child { flex: 1; min-width: 0; }
 .timer-list li.is-running { border-left: 3px solid var(--green); padding-left: .5rem; }
 .timer-clock { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.heatmap-wrap { overflow-x: auto; }
-.heatmap { width: 100%; min-width: 30rem; height: auto; }
+/* Narrow tiles show the latest weeks (the left side is cut), no scrollbar. */
+.heatmap-wrap { overflow: hidden; display: flex; justify-content: flex-end; }
+.heatmap { flex: none; width: max(100%, 30rem); height: auto; }
 .heatmap rect, .heat-legend i { fill: var(--bg1); background: var(--bg1); }
 .heatmap rect[data-level="1"], .heat-legend i[data-level="1"] { fill: var(--green-n); background: var(--green-n); opacity: .45; }
 .heatmap rect[data-level="2"], .heat-legend i[data-level="2"] { fill: var(--green-n); background: var(--green-n); }

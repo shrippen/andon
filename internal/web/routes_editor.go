@@ -33,6 +33,7 @@ func (d Deps) RegisterEditorRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /boards/{boardID}/sections/{sectionID}/place", d.authed(d.handlePlace))
 	mux.HandleFunc("POST /placements/{id}/unplace", d.authed(d.handleUnplace))
 	mux.HandleFunc("POST /placements/{id}/rows", d.authed(d.handleTileRows))
+	mux.HandleFunc("POST /placements/{id}/cols", d.authed(d.handleTileCols))
 
 	mux.HandleFunc("GET /widgets", d.authed(d.handleWidgetLibrary))
 	mux.HandleFunc("GET /widgets/new", d.authed(d.handleWidgetNewForm))
@@ -231,6 +232,26 @@ func (d Deps) handleTileRows(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	version, _ := strconv.Atoi(r.FormValue("version"))
 	rows, _ := strconv.Atoi(r.FormValue("rows"))
 	if err := boards.SetTileRows(d.DB, ctx.Who, id, rows, version); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, "/boards/"+r.FormValue("board_id")+"?edit", http.StatusSeeOther)
+}
+
+// handleTileCols sets how many columns a placed tile spans for everybody.
+func (d Deps) handleTileCols(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	version, _ := strconv.Atoi(r.FormValue("version"))
+	cols, _ := strconv.Atoi(r.FormValue("cols"))
+	if err := boards.SetTileCols(d.DB, ctx.Who, id, cols, version); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
