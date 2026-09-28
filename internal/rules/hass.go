@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -49,17 +50,13 @@ func init() {
 	Register("hass.battery_low", svc, map[string]any{"warn": 20.0, "critical": 10.0}, func(raw any, cfg map[string]any, env Env) []Finding {
 		data, _ := raw.(*sources.HassDataset)
 		var found []Finding
-		for _, e := range data.Entities {
-			level, err := strconv.ParseFloat(e.State, 64)
-			if e.DeviceClass != "battery" || e.Unit != "%" || err != nil || level >= cfgFloat(cfg, "warn") {
-				continue
-			}
+		for _, b := range lowBatteries(data, cfgFloat(cfg, "warn")) {
 			sev := enums.SeverityWarn
-			if level < cfgFloat(cfg, "critical") {
+			if b.level < cfgFloat(cfg, "critical") {
 				sev = enums.SeverityCritical
 			}
-			found = append(found, svcFinding(svc, "hass.battery_low", "battery:"+e.ID, "hass.battery", sev,
-				entityURL(data), map[string]any{"entity": e.Name, "percent": int(level)}))
+			found = append(found, svcFinding(svc, "hass.battery_low", "battery:"+b.entity.ID, "hass.battery", sev,
+				entityURL(data), map[string]any{"entity": b.entity.Name, "percent": int(b.level)}))
 		}
 		return found
 	})
@@ -109,4 +106,35 @@ func hasPrefix(id string, prefixes []string) bool {
 		}
 	}
 	return false
+}
+
+// battery is one battery below the warning level, named by its first
+// sensor.
+type battery struct {
+	entity sources.Entity
+	level  float64
+}
+
+// lowBatteries lists batteries under warn. Sensors of one device
+// ("Batterie", "Batterie+") are one battery at their lowest level, named
+// by the sensor first in id order so its hint stays the same.
+func lowBatteries(data *sources.HassDataset, warn float64) []battery {
+	var out []battery
+	byDevice := map[string]int{}
+	for _, e := range data.Entities {
+		level, err := strconv.ParseFloat(e.State, 64)
+		if e.DeviceClass != "battery" || e.Unit != "%" || err != nil {
+			continue
+		}
+		i, seen := byDevice[e.Device]
+		if e.Device == "" || !seen {
+			if e.Device != "" {
+				byDevice[e.Device] = len(out)
+			}
+			out = append(out, battery{e, level})
+			continue
+		}
+		out[i].level = min(out[i].level, level)
+	}
+	return slices.DeleteFunc(out, func(b battery) bool { return b.level >= warn })
 }

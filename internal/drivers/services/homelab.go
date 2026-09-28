@@ -225,6 +225,12 @@ func (a HassApi) States(ctx context.Context) (any, error) {
 	return fetchJSON(ctx, joinURL(a.URL, "api/states"), a.headers(), nil, httpclient.TLSOf(a.Verify))
 }
 
+// Template renders a Jinja template in Home Assistant (/api/template);
+// the template must render JSON.
+func (a HassApi) Template(ctx context.Context, template string) (any, error) {
+	return postJSON(ctx, joinURL(a.URL, "api/template"), a.headers(), map[string]string{"template": template}, httpclient.TLSOf(a.Verify))
+}
+
 // Call runs a service on one entity, e.g. ("switch", "toggle", "switch.fan").
 func (a HassApi) Call(ctx context.Context, domain, service, entityID string) error {
 	path := "api/services/" + url.PathEscape(domain) + "/" + url.PathEscape(service)

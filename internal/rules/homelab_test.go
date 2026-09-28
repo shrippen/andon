@@ -208,3 +208,22 @@ func TestFreshRSSStaleFeedsBundled(t *testing.T) {
 		t.Fatalf("stale: %+v", got)
 	}
 }
+
+// Two battery sensors of one device ("Batterie", "Batterie+") are one
+// battery: one hint, at the lower level.
+func TestHassBatteryPerDevice(t *testing.T) {
+	data := &sources.HassDataset{Entities: []sources.Entity{
+		{ID: "sensor.heizung_battery", Name: "Heizung Batterie", State: "15", Unit: "%", DeviceClass: "battery", Device: "d1"},
+		{ID: "sensor.heizung_battery_plus", Name: "Heizung Batterie+", State: "8", Unit: "%", DeviceClass: "battery", Device: "d1"},
+		{ID: "sensor.tuer_battery", Name: "Tür Batterie", State: "12", Unit: "%", DeviceClass: "battery"},
+	}}
+	got := run(t, "hass.battery_low", data, todayEnv(nil))
+	if len(got) != 2 {
+		t.Fatalf("findings: %+v", got)
+	}
+	for _, f := range got {
+		if f.Fingerprint == "battery:sensor.heizung_battery" && (f.Params["percent"] != 8 || f.Severity != enums.SeverityCritical) {
+			t.Fatalf("device finding: %+v", f)
+		}
+	}
+}

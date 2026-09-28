@@ -22,8 +22,14 @@ type Entity struct {
 	ID, Name, Domain string
 	State, Unit      string
 	DeviceClass      string
+	Device           string // Home Assistant device id; set for battery sensors
 	Changed          time.Time
 }
+
+// batteryDevices asks Home Assistant which device each battery sensor
+// belongs to, as [[entity_id, device_id], …]; the states API lacks it.
+const batteryDevices = `[{% for s in states.sensor | selectattr('attributes.device_class', 'eq', 'battery') %}` +
+	`{{ [s.entity_id, device_id(s.entity_id)] | tojson }}{% if not loop.last %},{% endif %}{% endfor %}]`
 
 type HassDataset struct {
 	URL      string
@@ -54,11 +60,32 @@ func (HassData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	states, err := services.HassApi{URL: sctx.URL, Token: secret, Verify: sctx.VerifyTLS}.States(ctx)
+	api := services.HassApi{URL: sctx.URL, Token: secret, Verify: sctx.VerifyTLS}
+	states, err := api.States(ctx)
 	if err != nil {
 		return nil, fetchError(err)
 	}
-	return parseHass(sctx.URL, states), nil
+	data := parseHass(sctx.URL, states)
+
+	// Devices only merge battery hints: without them each sensor counts.
+	if pairs, err := api.Template(ctx, batteryDevices); err == nil {
+		data.setDevices(pairs)
+	}
+	return data, nil
+}
+
+// setDevices fills Entity.Device from [[entity_id, device_id], …].
+func (d *HassDataset) setDevices(pairs any) {
+	devices := map[string]string{}
+	for _, raw := range asList(pairs) {
+		pair := asList(raw)
+		if len(pair) == 2 {
+			devices[asStr(pair[0])] = asStr(pair[1])
+		}
+	}
+	for i := range d.Entities {
+		d.Entities[i].Device = devices[d.Entities[i].ID]
+	}
 }
 
 func parseHass(base string, states any) *HassDataset {
