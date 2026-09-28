@@ -11,14 +11,18 @@ import (
 // its price covers at least this many months.
 const longCycle = 2.5
 
+// renewalCfg: how many days ahead a renewal shows.
+type renewalCfg struct {
+	Days float64 `json:"days"`
+}
+
 func init() {
 	svc := string(enums.ServiceWallos)
 
 	// A yearly subscription renews once: the weeks before are the only
 	// chance to cancel it. Monthly ones renew all the time and stay quiet.
-	Register("wallos.renewal_soon", svc, map[string]any{"days": 30.0}, func(raw any, cfg map[string]any, env Env) []Finding {
-		data, _ := raw.(*sources.WallosDataset)
-		horizon := env.Today.AddDate(0, 0, int(cfgFloat(cfg, "days")))
+	registerTyped("wallos.renewal_soon", enums.ServiceWallos, renewalCfg{Days: 30}, func(data *sources.WallosDataset, cfg renewalCfg, env Env) []Finding {
+		horizon := env.Today.AddDate(0, 0, int(cfg.Days))
 		var found []Finding
 		for _, s := range data.Subs {
 			next, err := time.Parse(time.DateOnly, s.Next)

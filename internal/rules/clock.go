@@ -17,15 +17,20 @@ type Clock struct {
 	Seconds    float64 // negative: behind
 }
 
+// skewCfg: from how many seconds off a clock is reported.
+type skewCfg struct {
+	Seconds float64 `json:"seconds"`
+}
+
 func init() {
 	// A clock off by minutes breaks TOTP codes, certificate checks and
 	// backup schedules long before anyone notices the time.
-	Register("system.clock_skew", Cross, map[string]any{"seconds": 60.0}, func(_ any, cfg map[string]any, env Env) []Finding {
+	registerTyped("system.clock_skew", Cross, skewCfg{Seconds: 60}, func(_ *noSettings, cfg skewCfg, env Env) []Finding {
 		clocks, _ := env.Datasets[ClockDataset].([]Clock)
 		sort.Slice(clocks, func(i, j int) bool { return clocks[i].Host < clocks[j].Host })
 		var found []Finding
 		for _, c := range clocks {
-			if math.Abs(c.Seconds) < cfgFloat(cfg, "seconds") {
+			if math.Abs(c.Seconds) < cfg.Seconds {
 				continue
 			}
 			found = append(found, Finding{Fingerprint: "clock:" + c.Host, Rule: "system.clock_skew",
