@@ -79,6 +79,107 @@ type Entry struct {
 	Rule    string // the hint's rule, "" for updates
 	Count   int    // > 1: a burst of this many hints of Rule (see foldBursts)
 	Space   string
+
+	// Cause is the update shortly before a new hint (within BeforeWindow),
+	// CauseMin how many minutes before: "4 min before: ↑ Invoice Ninja".
+	Cause    *Entry
+	CauseMin int
+}
+
+// kindUpdate and kindOpened, kindReopened are the entry kinds
+// linkCauses pairs.
+const (
+	kindUpdate   = "update"
+	kindOpened   = "opened"
+	kindReopened = "reopened"
+)
+
+// linkCauses points each new hint at the latest update within
+// BeforeWindow before it. entries are newest first.
+func linkCauses(entries []Entry) {
+	for i := range entries {
+		e := &entries[i]
+		if e.Kind != kindOpened && e.Kind != kindReopened {
+			continue
+		}
+		for j := i + 1; j < len(entries); j++ {
+			prev := entries[j]
+			if e.At.Sub(prev.At) > BeforeWindow {
+				break
+			}
+			if prev.Kind != kindUpdate {
+				continue
+			}
+			e.Cause, e.CauseMin = &prev, int(e.At.Sub(prev.At).Minutes())
+			break
+		}
+	}
+}
+
+// Day is one calendar day of the timeline.
+type Day struct {
+	Date    time.Time
+	Entries []Entry
+}
+
+// ByDay splits newest-first entries into days in loc, newest first.
+func ByDay(entries []Entry, loc *time.Location) []Day {
+	var out []Day
+	for _, e := range entries {
+		local := e.At.In(loc)
+		date := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, loc)
+		if n := len(out); n > 0 && out[n-1].Date.Equal(date) {
+			out[n-1].Entries = append(out[n-1].Entries, e)
+			continue
+		}
+		out = append(out, Day{Date: date, Entries: []Entry{e}})
+	}
+	return out
+}
+
+// Bar is one slot of the density band: how much happened, and its
+// height in percent of the busiest slot.
+type Bar struct {
+	At  time.Time
+	N   int
+	Pct int
+}
+
+// pctFull is a full-height bar.
+const pctFull = 100
+
+// Top is the bar's top edge in a 0–100 box drawn from the bottom.
+func (b Bar) Top() int { return pctFull - b.Pct }
+
+// Band counts events per step from since to now, oldest first; a burst
+// counts each of its hints.
+func Band(entries []Entry, since, now time.Time, step time.Duration) []Bar {
+	n := int(now.Sub(since) / step)
+	if n <= 0 {
+		return nil
+	}
+	bars := make([]Bar, n)
+	for i := range bars {
+		bars[i].At = since.Add(time.Duration(i) * step)
+	}
+	for _, e := range entries {
+		if e.At.Before(since) {
+			continue
+		}
+		i := min(int(e.At.Sub(since)/step), n-1)
+		bars[i].N += max(e.Count, 1)
+	}
+
+	top := 0
+	for _, b := range bars {
+		top = max(top, b.N)
+	}
+	for i := range bars {
+		if top > 0 {
+			bars[i].Pct = bars[i].N * pctFull / top
+		}
+	}
+	return bars
 }
 
 // foldBursts merges hints of one rule that changed alike within the same
@@ -139,6 +240,7 @@ func Timeline(d *sql.DB, who *access.Principal, since time.Time, limit int) ([]E
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].At.After(out[j].At) })
 	out = foldBursts(out, func(rule string) string { return i18n.T("rule_name."+rule, who.Locale, nil) })
+	linkCauses(out)
 	if len(out) > limit {
 		out = out[:limit]
 	}

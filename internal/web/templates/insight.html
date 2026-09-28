@@ -14,12 +14,33 @@
     <h1>{{t "timeline.title"}}</h1>
     {{template "intro" dict "Page" "timeline" "Chapter" "freelance" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{t "timeline.lead" "days" .Days}}</p>
-    <ol class="timeline">
-      {{range .Entries}}
-      <li data-kind="{{.Kind}}"><time>{{day .At}} {{.At.Local.Format "15:04"}}</time>
-        <span class="pill" data-state="{{if eq .Kind "resolved"}}ok{{else if eq .Kind "update"}}reviewing{{else}}warn{{end}}">{{t (print "timeline." .Kind)}}</span>
-        {{if .HintID}}<a href="/hints#hint-{{.HintID}}">{{.Subject}}</a>{{else}}<b>{{if gt .Count 1}}{{.Count}} × {{end}}{{.Subject}}</b>{{end}}
-        {{with .Detail}}<small class="muted">{{.}}</small>{{end}}{{with .Space}}<small class="muted"> · {{.}}</small>{{end}}</li>
+    {{/* Density band: how much happened per quarter day, oldest left. */}}
+    {{with .Band}}<figure class="tl-band">
+      <svg viewBox="0 0 {{len .}} 100" preserveAspectRatio="none" role="img" aria-label="{{t "timeline.band" "days" $.Days}}">
+        {{range $i, $b := .}}<rect x="{{$i}}" y="{{$b.Top}}" width=".8" height="{{$b.Pct}}"><title>{{day $b.At}} {{$b.At.Local.Format "15:04"}} · {{$b.N}}</title></rect>{{end}}
+      </svg>
+      <figcaption><span>{{day $.Since}}</span><span>{{t "timeline.today"}}</span></figcaption>
+    </figure>{{end}}
+
+    {{/* Days, newest first; a new hint shows the update just before it. */}}
+    <ol class="tl">
+      {{range .Groups}}
+      <li class="tl-day">
+        <h2 class="tl-date">{{if .Date.Equal $.Today}}{{t "timeline.today"}}{{else if .Date.Equal $.Yesterday}}{{t "timeline.yesterday"}}{{else}}{{weekday .Date}} {{day .Date}}{{end}}</h2>
+        <ol class="tl-events">
+          {{range $e := .Entries}}
+          <li data-kind="{{.Kind}}">
+            <time>{{.At.Local.Format "15:04"}}</time>
+            <span class="tl-mark" aria-label="{{t (print "timeline." .Kind)}}">{{if eq .Kind "update"}}↑{{else if eq .Kind "resolved"}}✓{{else}}●{{end}}</span>
+            <div class="tl-text">
+              {{if .HintID}}<a href="/hints#hint-{{.HintID}}">{{.Subject}}</a>{{else}}<b>{{if gt .Count 1}}{{.Count}} × {{end}}{{.Subject}}</b>{{end}}
+              {{with .Detail}}<small class="muted">{{.}}</small>{{end}}{{with .Space}}<small class="muted"> · {{.}}</small>{{end}}
+              {{with .Cause}}<small class="tl-cause">└ {{t "timeline.before_min" "min" $e.CauseMin}}: ↑ {{.Subject}}{{with .Detail}} {{.}}{{end}}</small>{{end}}
+            </div>
+          </li>
+          {{end}}
+        </ol>
+      </li>
       {{else}}<li class="muted">{{t "timeline.empty"}}</li>{{end}}
     </ol>
   </main>

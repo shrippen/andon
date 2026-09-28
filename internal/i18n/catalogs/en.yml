@@ -3037,6 +3037,10 @@ timeline:
   resolved: 'Resolved'
   reopened: 'Back'
   empty: 'Nothing recorded yet.'
+  today: 'Today'
+  yesterday: 'Yesterday'
+  band: 'Events per quarter day over the last {days} days'
+  before_min: '{min} min before'
 isp:
   title: 'Internet against contract'
   lead: 'Daily measurements of the last {days} days (Speedtest Tracker) and WAN outages (router). A day counts as too slow below {share} % of the booked download.'

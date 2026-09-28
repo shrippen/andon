@@ -1549,3 +1549,22 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 
 /* Theme list: a strip of each theme's colours before its name. */
 .swatches { display: inline-block; vertical-align: middle; width: 6rem; height: .9rem; margin-right: .6rem; border: 1px solid var(--bg2); }
+
+/* ── timeline page: density band, days on a vertical line ── */
+.tl-band { margin: 0 0 1.4rem; }
+.tl-band svg { display: block; width: 100%; height: 3.2rem; background: var(--bg-hard); }
+.tl-band rect { fill: var(--primary); }
+.tl-band figcaption { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: .68rem; color: var(--fg3); margin-top: .25rem; }
+.tl { list-style: none; margin: 0; padding: 0; }
+.tl-day { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0 1rem; }
+.tl-date { font-family: var(--font-mono); font-size: .76rem; letter-spacing: .06em; color: var(--fg2); padding-top: .55rem; text-transform: uppercase; }
+.tl-events { list-style: none; margin: 0; padding: .3rem 0 1rem 1.1rem; border-left: 2px solid var(--bg2); }
+.tl-events li { display: grid; grid-template-columns: 3rem 1.2rem minmax(0, 1fr); gap: .5rem; align-items: baseline; padding: .3rem 0; }
+.tl-events time { font-family: var(--font-mono); font-size: .74rem; color: var(--fg3); }
+.tl-mark { font-weight: 700; text-align: center; }
+.tl-events [data-kind="opened"] .tl-mark, .tl-events [data-kind="reopened"] .tl-mark { color: var(--danger-text); }
+.tl-events [data-kind="resolved"] .tl-mark { color: var(--ok-text); }
+.tl-events [data-kind="update"] .tl-mark { color: var(--blue); }
+.tl-text { min-width: 0; }
+.tl-cause { display: block; margin-top: .15rem; font-family: var(--font-mono); font-size: .72rem; color: var(--fg3); }
+@media (max-width: 640px) { .tl-day { grid-template-columns: minmax(0, 1fr); } .tl-date { padding-top: .8rem; } }

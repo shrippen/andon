@@ -3038,6 +3038,10 @@ timeline:
   resolved: 'Erledigt'
   reopened: 'Wieder da'
   empty: 'Noch nichts aufgezeichnet.'
+  today: 'Heute'
+  yesterday: 'Gestern'
+  band: 'Ereignisse je Vierteltag der letzten {days} Tage'
+  before_min: '{min} min davor'
 isp:
   title: 'Internet gegen Vertrag'
   lead: 'Tägliche Messungen der letzten {days} Tage (Speedtest Tracker) und WAN-Ausfälle (Router). Ein Tag zählt als zu langsam unter {share} % des gebuchten Downloads.'
