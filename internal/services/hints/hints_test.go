@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"andon/internal/crypto"
 	"andon/internal/db"
 	"andon/internal/db/dbtest"
 	"andon/internal/enums"
@@ -217,5 +218,29 @@ func TestSyncEscalatesOldHints(t *testing.T) {
 	}
 	if h.Severity != enums.SeverityCritical || escalated != 1 {
 		t.Fatalf("severity %v, escalation events %d", h.Severity, escalated)
+	}
+}
+
+// TestResolvedLists: hints whose condition went away show in the done
+// list of the last days, newest first; open ones do not.
+func TestResolvedLists(t *testing.T) {
+	d, err := db.Open(filepath.Join(t.TempDir(), "done.db"), dbtest.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { d.Close() })
+	crypto.Init("test-master-key")
+	who := person(t, d, "a@x.de")
+	sid := ownSpace(who)
+	ids := []string{"kimai.missing_day"}
+	if _, err := hints.Sync(d, sid, nil, nil, ids, []rules.Finding{finding("gone"), finding("open")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := hints.Sync(d, sid, nil, nil, ids, []rules.Finding{finding("open")}); err != nil {
+		t.Fatal(err)
+	}
+	done, err := hints.Resolved(d, who, time.Now().Add(-time.Hour))
+	if err != nil || len(done) != 1 || done[0].ResolvedAt == nil {
+		t.Fatalf("done: %+v %v", done, err)
 	}
 }

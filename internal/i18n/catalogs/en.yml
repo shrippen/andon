@@ -966,6 +966,13 @@ hints:
   runbook_add: 'Add a runbook for this rule'
   runbook_edit: 'Edit runbook'
   runbook_hint: 'Applies to every hint of this rule in the space. Saving it empty removes it.'
+  search: 'Search hints'
+  keys: 'Keys: / search · j / k next / previous · a done · s pause 7 days'
+  done_link: 'Done (7 days)'
+  open_link: 'Open hints'
+  done_title: 'Done in the last {days} days'
+  done_when: 'done {when}'
+  done_none: 'Nothing done in this time.'
 severity:
   info: Info
   warn: Warning
@@ -1243,6 +1250,7 @@ service:
   dawarich: Dawarich
   glances: Glances
   wallos: Wallos
+  tax: 'Tax'
 test:
   ok: OK
   failed: Failed

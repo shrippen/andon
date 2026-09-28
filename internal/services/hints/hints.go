@@ -157,7 +157,8 @@ type View struct {
 	Flapping     bool    // reopened often lately; pushed only once
 	Value        float64 // largest money amount the hint names, 0 if none
 	Currency     string
-	Maintenance  bool // in a planned work window of its space: not pushed
+	Maintenance  bool       // in a planned work window of its space: not pushed
+	ResolvedAt   *time.Time // set in the done list
 }
 
 func hidden(marks []*model.HintMark, now time.Time) bool {
@@ -210,6 +211,29 @@ func visible(q db.Queryer, who *access.Principal) ([]*model.Hint, error) {
 // oldest first, capped at limit if positive.
 func Active(d *sql.DB, who *access.Principal, minSeverity enums.Severity, sourcesFilter []string, limit int) ([]View, error) {
 	return Filtered(d, who, Filter{MinSeverity: minSeverity, Sources: sourcesFilter}, limit)
+}
+
+// Resolved lists the hints whose condition went away since a time,
+// newest first: the "done" view of the hints page.
+func Resolved(d *sql.DB, who *access.Principal, since time.Time) ([]View, error) {
+	var views []View
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		spaceIDs := make([]int64, 0, len(who.Spaces))
+		for id := range who.Spaces {
+			spaceIDs = append(spaceIDs, id)
+		}
+		found, err := data.ResolvedHintsIn(tx, spaceIDs, who.UserID, since.UTC())
+		if err != nil {
+			return err
+		}
+		for _, h := range found {
+			v := viewOf(h, who)
+			v.ResolvedAt = h.ResolvedAt
+			views = append(views, v)
+		}
+		return nil
+	})
+	return views, err
 }
 
 // Filter narrows the visible hints; empty lists match everything.

@@ -966,6 +966,13 @@ hints:
   runbook_add: 'Anleitung für diese Regel hinterlegen'
   runbook_edit: 'Anleitung bearbeiten'
   runbook_hint: 'Gilt für alle Hinweise dieser Regel im Bereich. Leer speichern entfernt sie.'
+  search: 'Hinweise durchsuchen'
+  keys: 'Tasten: / suchen · j / k nächster / voriger · a erledigt · s 7 Tage pausieren'
+  done_link: 'Erledigt (7 Tage)'
+  open_link: 'Offene Hinweise'
+  done_title: 'Erledigt in den letzten {days} Tagen'
+  done_when: 'erledigt {when}'
+  done_none: 'Nichts erledigt in dieser Zeit.'
 severity:
   info: Info
   warn: Warnung
@@ -1243,6 +1250,7 @@ service:
   dawarich: Dawarich
   glances: Glances
   wallos: Wallos
+  tax: 'Steuer'
 test:
   ok: OK
   failed: Fehler

@@ -159,6 +159,72 @@
     });
   }
 
+  // ── Hints page: / searches, j / k walk the hints, a marks the focused
+  // one done, s pauses it for 7 days ──
+  function filterHints(query) {
+    var q = query.trim().toLowerCase();
+    [].forEach.call(d.querySelectorAll(".hints-page li.hint"), function (li) {
+      li.hidden = q !== "" && li.textContent.toLowerCase().indexOf(q) < 0;
+    });
+    [].forEach.call(d.querySelectorAll(".hints-page .hint-rest"), function (rest) {
+      rest.open = rest.open || q !== "";
+    });
+    [].forEach.call(d.querySelectorAll(".hints-page .hint-rule"), function (sec) {
+      sec.hidden = q !== "" && !sec.querySelector("li.hint:not([hidden])");
+    });
+  }
+
+  function setupHintKeys() {
+    d.addEventListener("input", function (e) {
+      if (e.target.id === "hint-search") {
+        filterHints(e.target.value);
+      }
+    });
+    d.addEventListener("keydown", function (e) {
+      if (!d.querySelector(".hints-page") || e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target)) {
+        return;
+      }
+      var list = [].filter.call(d.querySelectorAll(".hints-page li.hint[id]"), function (li) {
+        return li.offsetParent !== null;
+      });
+      var current = d.activeElement && d.activeElement.closest ? d.activeElement.closest("li.hint") : null;
+      var at = list.indexOf(current);
+      var target = null;
+      switch (e.key) {
+        case SEARCH_KEY:
+          target = d.getElementById("hint-search");
+          break;
+        case "j":
+          target = list[Math.min(at + 1, list.length - 1)];
+          break;
+        case "k":
+          target = list[Math.max(at - 1, 0)];
+          break;
+        case "a":
+        case "s":
+          if (current) {
+            var btn = current.querySelector(e.key === "a" ? "form.hint-ack button:not([formaction])" : "form.hint-ack button[formaction]");
+            if (btn) {
+              e.preventDefault();
+              btn.click();
+            }
+          }
+          return;
+        default:
+          return;
+      }
+      if (!target) {
+        return;
+      }
+      e.preventDefault();
+      if (target.tagName !== "INPUT") {
+        target.setAttribute("tabindex", "-1");
+        target.scrollIntoView({ block: "nearest" });
+      }
+      target.focus();
+    });
+  }
+
   // ── Receipts page: j / k walk the suggestions, Enter links the focused
   // one, n jumps to the next expense, s opens its search ──
   function setupReceiptKeys() {
@@ -989,6 +1055,7 @@
     setupOffline();
     setupHotkeys();
     setupReceiptKeys();
+    setupHintKeys();
     setupFolding();
     setupContextMenu();
     setupPalette();

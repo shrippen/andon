@@ -57,6 +57,10 @@ func (d Deps) handleHintsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = onboarding.Visit(d.DB, ctx.Who, "hints") // a checklist step: seen the hints once
+	if r.URL.Query().Get("view") == doneView {
+		d.hintsDone(w, ctx)
+		return
+	}
 	found, err := hints.Active(d.DB, ctx.Who, enums.SeverityInfo, nil, 0)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -76,6 +80,21 @@ func (d Deps) handleHintsPage(w http.ResponseWriter, r *http.Request) {
 		"Groups": groupHints(filter.apply(found)), "Levels": levelCounts(found, filter), "Sources": sourceCounts(found, filter),
 		"Filter": filter, "Total": len(found), "ByValue": byValue, "Noisy": noisy,
 	})
+}
+
+// doneView (?view=done) lists what resolved in the last doneDays.
+const (
+	doneView = "done"
+	doneDays = 7
+)
+
+func (d Deps) hintsDone(w http.ResponseWriter, ctx Ctx) {
+	done, err := hints.Resolved(d.DB, ctx.Who, time.Now().AddDate(0, 0, -doneDays))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	_ = d.Page(w, ctx, "hints", http.StatusOK, map[string]any{"Done": done, "DoneDays": doneDays})
 }
 
 // hintsShown is how many hints of one rule stay open; the rest fold away.

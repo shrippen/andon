@@ -339,6 +339,9 @@ func underPath(cur, path string) bool {
 // asTimePtr turns a slot's OkAt (a zero time.Time when unset) into the
 // pointer i18n.Ago expects.
 func asTimePtr(v any) *time.Time {
+	if p, ok := v.(*time.Time); ok && p != nil {
+		v = *p
+	}
 	t, ok := v.(time.Time)
 	if !ok || t.IsZero() {
 		return nil

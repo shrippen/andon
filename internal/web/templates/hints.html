@@ -9,20 +9,31 @@
 </head>
 <body>
   {{if not .Embed}}{{template "header" .}}{{end}}
-  <main>
+  <main class="hints-page">
     {{if not .Embed}}
     <h1>{{t "hints.title"}}</h1>
     {{template "intro" dict "Page" "hints" "Chapter" "hints" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{t "hints.lead"}}</p>
-    <p class="small">{{if .ByValue}}<a href="/hints">{{t "hints.sort_level"}}</a>{{else}}<a href="/hints?sort=value">{{t "hints.sort_value"}}</a>{{end}}</p>
+    {{if not .DoneDays}}<p class="small">{{if .ByValue}}<a href="/hints">{{t "hints.sort_level"}}</a>{{else}}<a href="/hints?sort=value">{{t "hints.sort_value"}}</a>{{end}}
+      · <a href="/hints?view=done">{{t "hints.done_link"}}</a></p>{{end}}
+    {{if .DoneDays}}<p class="small"><a href="/hints">{{t "hints.open_link"}}</a></p>
+    <h2>{{t "hints.done_title" "days" .DoneDays}}</h2>
+    <ul class="hints">{{range .Done}}
+      <li class="hint" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}">
+        <span class="hint-level">{{t "hints.done_when" "when" (ago .ResolvedAt)}}</span>
+        <div class="hint-main"><div class="hint-head"><b>{{.Title}}</b></div><p class="hint-why">{{.Why}}</p>
+          <p class="hint-meta-line">{{.SpaceName}} · {{t "hints.since" "when" (ago .FirstSeen)}}</p></div>
+      </li>{{else}}<li class="hint-empty">{{t "hints.done_none"}}</li>{{end}}
+    </ul>{{end}}
     {{with .Noisy}}<details class="card"><summary>{{t "hints.noisy" "count" (len .)}}</summary>
       <p class="small muted">{{t "hints.noisy_hint"}}</p>
       <ul class="plain-list small">{{range .}}<li>{{t (print "rule_name." .Rule)}} · {{.Space}} · {{t "hints.noisy_line" "dismissed" .Dismissed "opened" .Opened}}
         <a href="/spaces/{{.SpaceID}}/settings">{{t "hints.noisy_adjust"}}</a></li>{{end}}</ul>
     </details>{{end}}
     {{end}}
-    {{if not .Embed}}
+    {{if and (not .Embed) (not .DoneDays)}}
     <nav class="hint-filters" aria-label="{{t "hints.filter"}}">
+      <input id="hint-search" type="search" placeholder="{{t "hints.search"}}" aria-label="{{t "hints.search"}}" aria-keyshortcuts="/">
       <div class="chips">
         <a class="chip" href="{{.Filter.Link "level" ""}}"{{if not .Filter.Level}} aria-current="true"{{end}}>{{t "hints.all_levels"}}</a>
         {{range .Levels}}<a class="chip" data-tier="{{.Key}}" href="{{$.Filter.Link "level" .Key}}"{{if eq .Key $.Filter.Level}} aria-current="true"{{end}}>{{t (print "severity." .Key)}} <span>{{.N}}</span></a>{{end}}
@@ -53,7 +64,8 @@
       </details>
       {{end}}
     </section>
-    {{else}}<ul class="hints"><li class="hint-empty">{{t "hints.none"}}</li></ul>{{end}}
+    {{else}}{{if not .DoneDays}}<ul class="hints"><li class="hint-empty">{{t "hints.none"}}</li></ul>{{end}}{{end}}
+    {{if and (not .Embed) (not .DoneDays)}}<p class="small muted">{{t "hints.keys"}}</p>{{end}}
   </main>
 </body>
 </html>

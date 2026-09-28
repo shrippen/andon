@@ -19,6 +19,8 @@ var (
 	codeKey     = regexp.MustCompile(`\bi18n\.T\(\s*"([a-z0-9_.]+)"`)
 	hintMessage = regexp.MustCompile(`Message:\s*"([a-z0-9_.]+)"`)
 	ruleID      = regexp.MustCompile(`Register\(\s*"([a-z0-9_.]+)"`)
+	// A hint's sources show as filter chips: {{t (print "service." …)}}.
+	hintSources = regexp.MustCompile(`Sources:\s*\[\]string\{"([a-z_]+)"`)
 )
 
 const srcRoot = "../"
@@ -55,6 +57,7 @@ func TestUsedKeysExist(t *testing.T) {
 			if strings.Contains(path, "/rules/") {
 				collect(t, path, hintMessage, used, "hint.")
 				collect(t, path, ruleID, used, "rule_name.")
+				collect(t, path, hintSources, used, "service.")
 			}
 		}
 		return nil
