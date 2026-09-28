@@ -20,8 +20,8 @@ import (
 // RegisterHintRoutes wires the hints overview page, snooze/ack/reopen
 // actions and the workflow (history, notes, assignment, work state).
 func (d Deps) RegisterHintRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /hints", d.handleHintsPage)
-	mux.HandleFunc("POST /hints/bulk", d.handleHintBulk)
+	mux.HandleFunc("GET /hints", d.authed(d.handleHintsPage))
+	mux.HandleFunc("POST /hints/bulk", d.authed(d.handleHintBulk))
 	mux.HandleFunc("POST /hints/{id}/ack", d.handleHintAct(hints.ActionAck))
 	mux.HandleFunc("POST /hints/{id}/snooze", d.handleHintAct(hints.ActionSnooze))
 	mux.HandleFunc("POST /hints/{id}/reopen", d.handleHintAct(hints.ActionReopen))
@@ -53,12 +53,7 @@ var workStates = []enums.WorkState{enums.WorkOpen, enums.WorkProgress, enums.Wor
 // sortByValue orders the hints page by the money a hint names.
 const sortByValue = "value"
 
-func (d Deps) handleHintsPage(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleHintsPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	_ = onboarding.Visit(d.DB, ctx.Who, "hints") // a checklist step: seen the hints once
 	if r.URL.Query().Get("view") == doneView {
 		d.hintsDone(w, ctx)
@@ -264,7 +259,7 @@ func (d Deps) hintRequest(w http.ResponseWriter, r *http.Request) (Ctx, int64, b
 			return ctx, 0, false
 		}
 	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return ctx, 0, false
@@ -294,12 +289,7 @@ func (d Deps) handleHintAct(action hints.Action) http.HandlerFunc {
 }
 
 // handleHintBulk acknowledges or pauses every hint of a group at once.
-func (d Deps) handleHintBulk(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleHintBulk(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	action := hints.ActionAck
 	if r.FormValue("action") == string(hints.ActionSnooze) {
 		action = hints.ActionSnooze

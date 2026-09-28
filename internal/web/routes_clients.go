@@ -10,16 +10,11 @@ import (
 // RegisterClientRoutes wires the customer pages: every Kimai customer
 // with invoices, hours and hints on one card.
 func (d Deps) RegisterClientRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /clients", d.handleClients)
-	mux.HandleFunc("GET /clients/{space}/{id}", d.handleClient)
+	mux.HandleFunc("GET /clients", d.authed(d.handleClients))
+	mux.HandleFunc("GET /clients/{space}/{id}", d.authed(d.handleClient))
 }
 
-func (d Deps) handleClients(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleClients(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	cards, err := clients.List(r.Context(), d.DB, ctx.Who)
 	if err != nil {
 		d.handleBoardError(w, r, err)
@@ -28,12 +23,7 @@ func (d Deps) handleClients(w http.ResponseWriter, r *http.Request) {
 	_ = d.Page(w, ctx, "clients", http.StatusOK, map[string]any{"Cards": cards})
 }
 
-func (d Deps) handleClient(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleClient(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	spaceID, err1 := pathID(r, "space")
 	id, err2 := pathID(r, "id")
 	if err1 != nil || err2 != nil {

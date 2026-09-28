@@ -19,15 +19,15 @@ import (
 // RegisterAdminRoutes wires the admin-only account pages: user list with
 // role/active/break-glass/reset/delete, invitations, and the audit log.
 func (d Deps) RegisterAdminRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /admin/users", d.handleAdminUsers)
+	mux.HandleFunc("GET /admin/users", d.authed(d.handleAdminUsers))
 	mux.HandleFunc("POST /admin/users/{id}/role", d.handleAdminUserRole)
 	mux.HandleFunc("POST /admin/users/{id}/active", d.handleAdminSwitch(admin.SetActive))
 	mux.HandleFunc("POST /admin/users/{id}/breakglass", d.handleAdminSwitch(admin.SetBreakglass))
-	mux.HandleFunc("POST /admin/users/{id}/reset", d.handleAdminUserReset)
+	mux.HandleFunc("POST /admin/users/{id}/reset", d.authed(d.handleAdminUserReset))
 	mux.HandleFunc("POST /admin/users/{id}/delete", d.handleAdminUserDelete)
-	mux.HandleFunc("POST /admin/invite", d.handleAdminInvite)
+	mux.HandleFunc("POST /admin/invite", d.authed(d.handleAdminInvite))
 	mux.HandleFunc("POST /admin/invites/{id}/delete", d.handleAdminInviteDelete)
-	mux.HandleFunc("GET /admin/audit", d.handleAdminAudit)
+	mux.HandleFunc("GET /admin/audit", d.authed(d.handleAdminAudit))
 }
 
 func (d Deps) adminUsersPage(w http.ResponseWriter, ctx Ctx, status int, extra map[string]any) {
@@ -63,17 +63,12 @@ func (d Deps) pageError(w http.ResponseWriter, ctx Ctx, err error) {
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
-func (d Deps) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleAdminUsers(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	d.adminUsersPage(w, ctx, http.StatusOK, nil)
 }
 
 func adminUserID(r *http.Request) (int64, error) {
-	return strconv.ParseInt(r.PathValue("id"), 10, 64)
+	return pathID(r, "id")
 }
 
 // adminAction is the common shape of an admin form post: auth, id, run, back to list.
@@ -117,12 +112,7 @@ func (d Deps) handleAdminUserDelete(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (d Deps) handleAdminUserReset(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleAdminUserReset(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := adminUserID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -136,12 +126,7 @@ func (d Deps) handleAdminUserReset(w http.ResponseWriter, r *http.Request) {
 	d.adminUsersPage(w, ctx, http.StatusOK, map[string]any{"ResetLink": link})
 }
 
-func (d Deps) handleAdminInvite(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleAdminInvite(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -176,12 +161,7 @@ type auditRow struct {
 	Who string
 }
 
-func (d Deps) handleAdminAudit(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleAdminAudit(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	entries, err := audit.Entries(d.DB, ctx.Who)
 	if err != nil {
 		d.pageError(w, ctx, err)

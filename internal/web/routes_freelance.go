@@ -20,13 +20,8 @@ import (
 
 // handleKimaiTimer starts or stops a Kimai timer from its tile and
 // answers with the refreshed tile.
-func (d Deps) handleKimaiTimer(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleKimaiTimer(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -62,13 +57,8 @@ const formTimeLayout = "2006-01-02T15:04"
 
 // handleKimaiNew swaps a Kimai Lite tile for its add-entry form: the
 // last hour, ending now.
-func (d Deps) handleKimaiNew(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleKimaiNew(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -92,22 +82,17 @@ func (d Deps) renderKimaiNew(w http.ResponseWriter, r *http.Request, ctx Ctx, id
 
 // RegisterBillingRoutes wires invoice drafts and the tax year package.
 func (d Deps) RegisterBillingRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /billing", d.handleBillingPage)
-	mux.HandleFunc("POST /billing/draft", d.handleBillingDraft)
-	mux.HandleFunc("GET /billing/export", d.handleBillingExport)
-	mux.HandleFunc("POST /billing/mail", d.handleMailForward)
-	mux.HandleFunc("POST /billing/mail/read", d.handleMailRead)
-	mux.HandleFunc("POST /billing/payment", d.handlePaymentBook)
+	mux.HandleFunc("GET /billing", d.authed(d.handleBillingPage))
+	mux.HandleFunc("POST /billing/draft", d.authed(d.handleBillingDraft))
+	mux.HandleFunc("GET /billing/export", d.authed(d.handleBillingExport))
+	mux.HandleFunc("POST /billing/mail", d.authed(d.handleMailForward))
+	mux.HandleFunc("POST /billing/mail/read", d.authed(d.handleMailRead))
+	mux.HandleFunc("POST /billing/payment", d.authed(d.handlePaymentBook))
 	d.registerReceiptRoutes(mux)
 }
 
 // handlePaymentBook books a matched bank income in Invoice Ninja.
-func (d Deps) handlePaymentBook(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handlePaymentBook(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	space, _ := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
 	invoice, _ := strconv.ParseInt(r.FormValue("invoice_id"), 10, 64)
 	if err := billing.Book(r.Context(), d.DB, ctx.Who, space, r.FormValue("txn"), invoice, ClientIP(r)); err != nil {
@@ -143,22 +128,12 @@ func (d Deps) billingPage(w http.ResponseWriter, r *http.Request, ctx Ctx, statu
 	_ = d.Page(w, ctx, "billing", status, values)
 }
 
-func (d Deps) handleBillingPage(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleBillingPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	query := r.URL.Query()
 	d.billingPage(w, r, ctx, http.StatusOK, map[string]any{"Created": query.Get("created"), "Forwarded": query.Get("forwarded")})
 }
 
-func (d Deps) handleBillingDraft(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleBillingDraft(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	space, _ := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
 	customer, _ := strconv.ParseInt(r.FormValue("customer_id"), 10, 64)
 	mode := billing.KeepSheets
@@ -173,12 +148,7 @@ func (d Deps) handleBillingDraft(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/billing?created="+url.QueryEscape(number), http.StatusSeeOther)
 }
 
-func (d Deps) handleBillingExport(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleBillingExport(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	space, _ := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
 	year, _ := strconv.Atoi(r.FormValue("year"))
 	name, blob, err := billing.Export(r.Context(), d.DB, ctx.Who, space, year, ClientIP(r))
@@ -192,12 +162,7 @@ func (d Deps) handleBillingExport(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleMailForward sends one invoice mail's attachments to Paperless.
-func (d Deps) handleMailForward(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleMailForward(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	conn, _ := strconv.ParseInt(r.FormValue("conn"), 10, 64)
 	uid, _ := strconv.ParseUint(r.FormValue("uid"), 10, 32)
 	n, err := mailfwd.Forward(r.Context(), d.DB, ctx.Who, conn, uint32(uid), ClientIP(r))
@@ -209,12 +174,7 @@ func (d Deps) handleMailForward(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleMailRead lets Claude read one invoice mail's attachments.
-func (d Deps) handleMailRead(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleMailRead(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	conn, _ := strconv.ParseInt(r.FormValue("conn"), 10, 64)
 	uid, _ := strconv.ParseUint(r.FormValue("uid"), 10, 32)
 	if _, err := mailfwd.Read(r.Context(), d.DB, ctx.Who, conn, uint32(uid), ClientIP(r)); err != nil {

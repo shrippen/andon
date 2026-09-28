@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"andon/internal/services/hooks"
 )
@@ -26,7 +25,7 @@ type hookBody struct {
 }
 
 func (d Deps) handleHook(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return

@@ -101,28 +101,23 @@ func years() []int {
 }
 
 func (d Deps) registerReceiptRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /receipts", d.handleReceipts)
-	mux.HandleFunc("GET /receipts/part", d.handleReceiptsPart)
-	mux.HandleFunc("GET /receipts/search", d.handleReceiptsSearch)
-	mux.HandleFunc("GET /receipts/combos", d.handleReceiptCombos)
-	mux.HandleFunc("GET /receipts/expenses", d.handleReceiptExpenses)
-	mux.HandleFunc("GET /receipts/new-expense", d.handleReceiptDraft)
-	mux.HandleFunc("POST /receipts/new-expense", d.handleReceiptCreate)
-	mux.HandleFunc("POST /receipts/link-many", d.handleReceiptLinkMany)
-	mux.HandleFunc("GET /receipts/thumb/{id}", d.handleReceiptThumb)
-	mux.HandleFunc("POST /receipts/pick", d.handleReceiptsPick)
-	mux.HandleFunc("POST /receipts/link", d.handleReceiptLink)
-	mux.HandleFunc("POST /receipts/unlink", d.handleReceiptUnlink)
-	mux.HandleFunc("POST /receipts/ignore", d.handleReceiptIgnore)
-	mux.HandleFunc("POST /receipts/fields", d.handleReceiptFields)
+	mux.HandleFunc("GET /receipts", d.authed(d.handleReceipts))
+	mux.HandleFunc("GET /receipts/part", d.authed(d.handleReceiptsPart))
+	mux.HandleFunc("GET /receipts/search", d.authed(d.handleReceiptsSearch))
+	mux.HandleFunc("GET /receipts/combos", d.authed(d.handleReceiptCombos))
+	mux.HandleFunc("GET /receipts/expenses", d.authed(d.handleReceiptExpenses))
+	mux.HandleFunc("GET /receipts/new-expense", d.authed(d.handleReceiptDraft))
+	mux.HandleFunc("POST /receipts/new-expense", d.authed(d.handleReceiptCreate))
+	mux.HandleFunc("POST /receipts/link-many", d.authed(d.handleReceiptLinkMany))
+	mux.HandleFunc("GET /receipts/thumb/{id}", d.authed(d.handleReceiptThumb))
+	mux.HandleFunc("POST /receipts/pick", d.authed(d.handleReceiptsPick))
+	mux.HandleFunc("POST /receipts/link", d.authed(d.handleReceiptLink))
+	mux.HandleFunc("POST /receipts/unlink", d.authed(d.handleReceiptUnlink))
+	mux.HandleFunc("POST /receipts/ignore", d.authed(d.handleReceiptIgnore))
+	mux.HandleFunc("POST /receipts/fields", d.authed(d.handleReceiptFields))
 }
 
-func (d Deps) handleReceipts(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceipts(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	setup, err := receipts.SetupOf(d.DB, ctx.Who)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -140,12 +135,8 @@ func (d Deps) handleReceipts(w http.ResponseWriter, r *http.Request) {
 type receiptUndo struct{ Expense, Doc string }
 
 // handleReceiptsPart renders one tab; errors show inside it.
-func (d Deps) handleReceiptsPart(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceiptsPart(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	var err error
 	q := receiptsQueryOf(r)
 	values := map[string]any{"Q": q}
 	switch q.Tab {
@@ -178,12 +169,7 @@ func receiptError(err error) string {
 	return errKey(err)
 }
 
-func (d Deps) handleReceiptsSearch(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceiptsSearch(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	in := receipts.SearchInput{Query: r.FormValue("q"), Correspondent: r.FormValue("correspondent"), From: dateOrEmpty(r.FormValue("from")),
 		To: dateOrEmpty(r.FormValue("to")), Preset: receipts.Preset(r.FormValue("preset")), UnlinkedOnly: r.FormValue("unlinked") != "", Year: q.Year}
@@ -212,12 +198,7 @@ func searchSlot(r *http.Request) string {
 var slotPattern = regexp.MustCompile(`^(search|panel)-[A-Za-z0-9_-]+$`)
 
 // handleReceiptCombos looks for 1∶n combos of one expense on request.
-func (d Deps) handleReceiptCombos(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceiptCombos(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	view, err := receipts.FindCombos(r.Context(), d.DB, ctx.Who, r.FormValue("expense"), q.Year)
 	values := map[string]any{"Q": q, "S": view}
@@ -228,12 +209,7 @@ func (d Deps) handleReceiptCombos(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleReceiptExpenses searches the expenses one scan could belong to.
-func (d Deps) handleReceiptExpenses(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceiptExpenses(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	id, _ := strconv.ParseInt(r.FormValue("doc"), 10, 64)
 	view, err := receipts.FindExpenses(r.Context(), d.DB, ctx.Who, id, q.Year, r.FormValue("q"))
@@ -245,12 +221,7 @@ func (d Deps) handleReceiptExpenses(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleReceiptDraft shows the form for a new expense from a scan.
-func (d Deps) handleReceiptDraft(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceiptDraft(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, _ := strconv.ParseInt(r.FormValue("doc"), 10, 64)
 	view, err := receipts.Draft(r.Context(), d.DB, ctx.Who, id)
 	values := map[string]any{"Q": receiptsQueryOf(r), "S": view}
@@ -260,12 +231,7 @@ func (d Deps) handleReceiptDraft(w http.ResponseWriter, r *http.Request) {
 	_ = d.Page(w, ctx, "receipts_draft", http.StatusOK, values)
 }
 
-func (d Deps) handleReceiptCreate(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceiptCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	id, _ := strconv.ParseInt(r.FormValue("doc"), 10, 64)
 	amount, _ := strconv.ParseFloat(strings.ReplaceAll(strings.TrimSpace(r.FormValue("amount")), ",", "."), 64)
@@ -279,12 +245,7 @@ func (d Deps) handleReceiptCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleReceiptLinkMany links the sure matches ticked, "Kx9:201" each.
-func (d Deps) handleReceiptLinkMany(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceiptLinkMany(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -317,13 +278,8 @@ func dateOrEmpty(v string) string {
 // thumbCache lets the browser keep thumbnails for a while.
 const thumbCache = "private, max-age=300"
 
-func (d Deps) handleReceiptThumb(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleReceiptThumb(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -338,12 +294,7 @@ func (d Deps) handleReceiptThumb(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
-func (d Deps) handleReceiptsPick(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceiptsPick(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	ninja, _ := strconv.ParseInt(r.FormValue("ninja"), 10, 64)
 	paperless, _ := strconv.ParseInt(r.FormValue("paperless"), 10, 64)
 	q := receiptsQueryOf(r)
@@ -354,12 +305,7 @@ func (d Deps) handleReceiptsPick(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/receipts?"+q.Values().Encode(), http.StatusSeeOther)
 }
 
-func (d Deps) handleReceiptLink(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceiptLink(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -389,12 +335,7 @@ func (d Deps) handleReceiptLink(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, q.back("done", number), http.StatusSeeOther)
 }
 
-func (d Deps) handleReceiptUnlink(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceiptUnlink(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	id, _ := strconv.ParseInt(r.FormValue("doc"), 10, 64)
 	expense := r.FormValue("expense")
@@ -405,12 +346,7 @@ func (d Deps) handleReceiptUnlink(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, q.back("note", "receipts.unlinked", "undo_expense", expense, "undo_doc", strconv.FormatInt(id, 10)), http.StatusSeeOther)
 }
 
-func (d Deps) handleReceiptIgnore(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceiptIgnore(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	hide, note := receipts.Hidden, "receipts.ignored_note"
 	if r.FormValue("show") != "" {
@@ -423,12 +359,7 @@ func (d Deps) handleReceiptIgnore(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, q.back("note", note), http.StatusSeeOther)
 }
 
-func (d Deps) handleReceiptFields(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReceiptFields(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	num := func(name string) int64 {
 		n, _ := strconv.ParseInt(r.FormValue(name), 10, 64)

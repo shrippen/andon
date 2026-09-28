@@ -12,9 +12,9 @@ import (
 // RegisterShareRoutes wires the "who has access?" dialog: view a
 // resource's shares, grant one, revoke one.
 func (d Deps) RegisterShareRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /shares/{kind}/{id}", d.handleSharesPage)
-	mux.HandleFunc("POST /shares/{kind}/{id}", d.handleShareGrant)
-	mux.HandleFunc("POST /shares/{kind}/{id}/{shareID}/revoke", d.handleShareRevoke)
+	mux.HandleFunc("GET /shares/{kind}/{id}", d.authed(d.handleSharesPage))
+	mux.HandleFunc("POST /shares/{kind}/{id}", d.authed(d.handleShareGrant))
+	mux.HandleFunc("POST /shares/{kind}/{id}/{shareID}/revoke", d.authed(d.handleShareRevoke))
 }
 
 var errBadKind = errors.New("shares: unknown resource kind")
@@ -56,18 +56,13 @@ func (d Deps) sharesPage(w http.ResponseWriter, ctx Ctx, kind enums.ResourceKind
 	_ = d.Page(w, ctx, "shares", status, values)
 }
 
-func (d Deps) handleSharesPage(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleSharesPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	kind, err := parseKind(r.PathValue("kind"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	resourceID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	resourceID, err := pathID(r, "id")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -75,18 +70,13 @@ func (d Deps) handleSharesPage(w http.ResponseWriter, r *http.Request) {
 	d.sharesPage(w, ctx, kind, resourceID, http.StatusOK, nil)
 }
 
-func (d Deps) handleShareGrant(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleShareGrant(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	kind, err := parseKind(r.PathValue("kind"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	resourceID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	resourceID, err := pathID(r, "id")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -115,23 +105,18 @@ func (d Deps) handleShareGrant(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/shares/"+string(kind)+"/"+r.PathValue("id"), http.StatusSeeOther)
 }
 
-func (d Deps) handleShareRevoke(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleShareRevoke(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	kind, err := parseKind(r.PathValue("kind"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	resourceID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	resourceID, err := pathID(r, "id")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	shareID, err := strconv.ParseInt(r.PathValue("shareID"), 10, 64)
+	shareID, err := pathID(r, "shareID")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

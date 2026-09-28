@@ -14,8 +14,8 @@ import (
 // RegisterProfileRoutes wires the personal settings page (/me/profile):
 // name, locale, colour mode, theme, start board, search engine.
 func (d Deps) RegisterProfileRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /me/profile", d.handleProfilePage)
-	mux.HandleFunc("POST /me/profile", d.handleProfileSave)
+	mux.HandleFunc("GET /me/profile", d.authed(d.handleProfilePage))
+	mux.HandleFunc("POST /me/profile", d.authed(d.handleProfileSave))
 }
 
 func (d Deps) profilePage(w http.ResponseWriter, ctx Ctx, status int, extra map[string]any) {
@@ -41,21 +41,11 @@ func (d Deps) profilePage(w http.ResponseWriter, ctx Ctx, status int, extra map[
 	_ = d.Page(w, ctx, "profile", status, values)
 }
 
-func (d Deps) handleProfilePage(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleProfilePage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	d.profilePage(w, ctx, http.StatusOK, nil)
 }
 
-func (d Deps) handleProfileSave(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleProfileSave(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

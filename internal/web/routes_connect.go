@@ -55,13 +55,8 @@ func withQuery(path, key, value string) string {
 	return path + sep + key + "=" + url.QueryEscape(value)
 }
 
-func (d Deps) handleConnectStart(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleConnectStart(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -84,12 +79,7 @@ func (d Deps) handleConnectStart(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (d Deps) handleConnectCallback(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleConnectCallback(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	back, err := connect.Callback(r.Context(), d.DB, ctx.Who, d.Settings, r.URL.Query())
 	if err != nil {
 		http.Redirect(w, r, withQuery(back, "error", errKey(err)), http.StatusSeeOther)
@@ -100,12 +90,7 @@ func (d Deps) handleConnectCallback(w http.ResponseWriter, r *http.Request) {
 
 // handleConnectPoll answers the wait page's htmx poll: nothing yet (204),
 // or where to go now (HX-Redirect).
-func (d Deps) handleConnectPoll(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleConnectPoll(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	step, back, err := connect.Poll(r.Context(), d.DB, ctx.Who, r.URL.Query().Get("flow"))
 	switch {
 	case err != nil:
@@ -116,13 +101,8 @@ func (d Deps) handleConnectPoll(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (d Deps) handleOAuthClient(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleOAuthClient(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return

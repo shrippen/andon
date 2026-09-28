@@ -19,14 +19,14 @@ const oidcBlankRules = 2
 // RegisterSettingsRoutes wires the admin's instance settings and the
 // "reapply authentik groups" action.
 func (d Deps) RegisterSettingsRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /admin/settings", d.handleSettingsPage)
+	mux.HandleFunc("GET /admin/settings", d.authed(d.handleSettingsPage))
 	mux.HandleFunc("POST /admin/settings/general", d.handleSettingsGeneral)
 	mux.HandleFunc("POST /admin/settings/network", d.handleSettingsNetwork)
 	mux.HandleFunc("POST /admin/settings/oidc", d.handleSettingsOIDC)
-	mux.HandleFunc("POST /admin/settings/oidc/test", d.handleSettingsOIDCTest)
+	mux.HandleFunc("POST /admin/settings/oidc/test", d.authed(d.handleSettingsOIDCTest))
 	mux.HandleFunc("POST /admin/settings/analysis", d.handleAnalysisRun)
 	mux.HandleFunc("POST /admin/settings/backup", d.handleBackupRun)
-	mux.HandleFunc("GET /admin/users/{id}/reapply", d.handleReapplyPreview)
+	mux.HandleFunc("GET /admin/users/{id}/reapply", d.authed(d.handleReapplyPreview))
 	mux.HandleFunc("POST /admin/users/{id}/reapply", d.handleReapply)
 }
 
@@ -110,12 +110,7 @@ func (d Deps) settingsPage(w http.ResponseWriter, ctx Ctx, status int, extra map
 	_ = d.Page(w, ctx, "admin_settings", status, values)
 }
 
-func (d Deps) handleSettingsPage(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleSettingsPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	d.settingsPage(w, ctx, http.StatusOK, nil)
 }
 
@@ -220,12 +215,7 @@ func (d Deps) handleSettingsOIDC(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (d Deps) handleSettingsOIDCTest(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleSettingsOIDCTest(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	issuer, err := oidc.Test(r.Context(), d.DB, d.Settings, ctx.Who)
 	if err != nil {
 		d.settingsPage(w, ctx, http.StatusBadGateway, map[string]any{"OIDCTest": err.Error(), "OIDCTestOK": false})
@@ -234,12 +224,7 @@ func (d Deps) handleSettingsOIDCTest(w http.ResponseWriter, r *http.Request) {
 	d.settingsPage(w, ctx, http.StatusOK, map[string]any{"OIDCTest": issuer, "OIDCTestOK": true})
 }
 
-func (d Deps) handleReapplyPreview(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleReapplyPreview(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := adminUserID(r)
 	if err != nil {
 		http.NotFound(w, r)

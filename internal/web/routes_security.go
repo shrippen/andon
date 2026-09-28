@@ -13,14 +13,14 @@ import (
 
 // RegisterSecurityRoutes wires /me/security: password, TOTP, sessions, API tokens.
 func (d Deps) RegisterSecurityRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /me/security", d.handleSecurityPage)
-	mux.HandleFunc("POST /me/security/password", d.handlePasswordChange)
-	mux.HandleFunc("POST /me/security/totp/begin", d.handleTOTPBeginForm)
-	mux.HandleFunc("POST /me/security/totp/confirm", d.handleTOTPConfirmForm)
-	mux.HandleFunc("POST /me/security/totp/disable", d.handleTOTPDisableForm)
-	mux.HandleFunc("POST /me/security/sessions/{id}/end", d.handleSessionEnd)
-	mux.HandleFunc("POST /me/security/tokens", d.handleTokenCreate)
-	mux.HandleFunc("POST /me/security/tokens/{id}/revoke", d.handleTokenRevoke)
+	mux.HandleFunc("GET /me/security", d.authed(d.handleSecurityPage))
+	mux.HandleFunc("POST /me/security/password", d.authed(d.handlePasswordChange))
+	mux.HandleFunc("POST /me/security/totp/begin", d.authed(d.handleTOTPBeginForm))
+	mux.HandleFunc("POST /me/security/totp/confirm", d.authed(d.handleTOTPConfirmForm))
+	mux.HandleFunc("POST /me/security/totp/disable", d.authed(d.handleTOTPDisableForm))
+	mux.HandleFunc("POST /me/security/sessions/{id}/end", d.authed(d.handleSessionEnd))
+	mux.HandleFunc("POST /me/security/tokens", d.authed(d.handleTokenCreate))
+	mux.HandleFunc("POST /me/security/tokens/{id}/revoke", d.authed(d.handleTokenRevoke))
 }
 
 func (d Deps) securityPage(w http.ResponseWriter, ctx Ctx, status int, extra map[string]any) {
@@ -59,21 +59,12 @@ func (d Deps) securityPage(w http.ResponseWriter, ctx Ctx, status int, extra map
 	_ = d.Page(w, ctx, "security", status, values)
 }
 
-func (d Deps) handleSecurityPage(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleSecurityPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	d.securityPage(w, ctx, http.StatusOK, nil)
 }
 
-func (d Deps) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handlePasswordChange(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	var err error
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -86,12 +77,7 @@ func (d Deps) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/me/security", http.StatusSeeOther)
 }
 
-func (d Deps) handleTOTPBeginForm(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleTOTPBeginForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	secret, uri, err := auth.TOTPBegin(d.DB, ctx.Who)
 	if err != nil {
 		d.securityPage(w, ctx, http.StatusInternalServerError, map[string]any{"Error": errKey(err)})
@@ -100,12 +86,7 @@ func (d Deps) handleTOTPBeginForm(w http.ResponseWriter, r *http.Request) {
 	d.securityPage(w, ctx, http.StatusOK, map[string]any{"TOTPSecret": secret, "TOTPURI": uri})
 }
 
-func (d Deps) handleTOTPConfirmForm(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleTOTPConfirmForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -118,12 +99,7 @@ func (d Deps) handleTOTPConfirmForm(w http.ResponseWriter, r *http.Request) {
 	d.securityPage(w, ctx, http.StatusOK, map[string]any{"RecoveryCodes": codes})
 }
 
-func (d Deps) handleTOTPDisableForm(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleTOTPDisableForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -135,13 +111,8 @@ func (d Deps) handleTOTPDisableForm(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/me/security", http.StatusSeeOther)
 }
 
-func (d Deps) handleSessionEnd(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleSessionEnd(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -153,12 +124,7 @@ func (d Deps) handleSessionEnd(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/me/security", http.StatusSeeOther)
 }
 
-func (d Deps) handleTokenCreate(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleTokenCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -181,13 +147,8 @@ func (d Deps) handleTokenCreate(w http.ResponseWriter, r *http.Request) {
 	d.securityPage(w, ctx, http.StatusOK, map[string]any{"NewToken": created.Secret})
 }
 
-func (d Deps) handleTokenRevoke(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleTokenRevoke(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return

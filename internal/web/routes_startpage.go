@@ -17,21 +17,16 @@ import (
 // RegisterStartPageRoutes wires the start page conveniences: undo, add a
 // link by URL, click counting and the command palette's data.
 func (d Deps) RegisterStartPageRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /boards/{id}/undo", d.handleUndo)
-	mux.HandleFunc("POST /sections/{id}/quick-link", d.handleQuickLink)
+	mux.HandleFunc("POST /boards/{id}/undo", d.authed(d.handleUndo))
+	mux.HandleFunc("POST /sections/{id}/quick-link", d.authed(d.handleQuickLink))
 	mux.HandleFunc("POST /clicks/{id}", d.handleClick)
-	mux.HandleFunc("GET /palette.json", d.handlePalette)
-	mux.HandleFunc("POST /boards/{id}/duplicate", d.handleBoardDuplicate)
-	mux.HandleFunc("POST /boards/{id}/bulk", d.handleBulk)
+	mux.HandleFunc("GET /palette.json", d.authed(d.handlePalette))
+	mux.HandleFunc("POST /boards/{id}/duplicate", d.authed(d.handleBoardDuplicate))
+	mux.HandleFunc("POST /boards/{id}/bulk", d.authed(d.handleBulk))
 }
 
-func (d Deps) handleBoardDuplicate(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleBoardDuplicate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -44,13 +39,8 @@ func (d Deps) handleBoardDuplicate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, boardPath(copyID)+"?edit", http.StatusSeeOther)
 }
 
-func (d Deps) handleBulk(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleBulk(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -101,13 +91,8 @@ var palettePages = []palettePage{
 	{key: "nav.admin_settings", url: "/admin/settings", kind: boards.PaletteSetting, admin: true},
 }
 
-func (d Deps) handleUndo(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleUndo(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -119,13 +104,8 @@ func (d Deps) handleUndo(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/boards/"+r.PathValue("id")+"?edit", http.StatusSeeOther)
 }
 
-func (d Deps) handleQuickLink(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	section, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleQuickLink(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	section, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -145,19 +125,14 @@ func (d Deps) handleClick(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	id, err := pathID(r, "id")
 	if err == nil {
 		_ = boards.Click(d.DB, ctx.Who, id)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (d Deps) handlePalette(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handlePalette(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	items, err := boards.Palette(d.DB, ctx.Who)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

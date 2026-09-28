@@ -18,10 +18,10 @@ const (
 // RegisterPortingRoutes wires YAML import/export: the import page (Dashy or
 // our own format), a space's code view and the downloads.
 func (d Deps) RegisterPortingRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /import", d.handleImportForm)
+	mux.HandleFunc("GET /import", d.authed(d.handleImportForm))
 	mux.HandleFunc("POST /import", d.handleImportRun)
-	mux.HandleFunc("GET /spaces/{id}/code", d.handleSpaceCode)
-	mux.HandleFunc("POST /spaces/{id}/code", d.handleSpaceCodeSave)
+	mux.HandleFunc("GET /spaces/{id}/code", d.authed(d.handleSpaceCode))
+	mux.HandleFunc("POST /spaces/{id}/code", d.authed(d.handleSpaceCodeSave))
 	mux.HandleFunc("GET /spaces/{id}/export", d.handleSpaceExport)
 	mux.HandleFunc("GET /boards/{id}/export", d.handleBoardExport)
 }
@@ -34,12 +34,7 @@ func (d Deps) importPage(w http.ResponseWriter, ctx Ctx, status int, extra map[s
 	_ = d.Page(w, ctx, "import", status, values)
 }
 
-func (d Deps) handleImportForm(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleImportForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	d.importPage(w, ctx, http.StatusOK, nil)
 }
 
@@ -114,12 +109,7 @@ func (d Deps) codePage(w http.ResponseWriter, ctx Ctx, space int64, status int, 
 	_ = d.Page(w, ctx, "space_code", status, values)
 }
 
-func (d Deps) handleSpaceCode(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleSpaceCode(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	space, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
@@ -128,12 +118,7 @@ func (d Deps) handleSpaceCode(w http.ResponseWriter, r *http.Request) {
 	d.codePage(w, ctx, space, http.StatusOK, nil)
 }
 
-func (d Deps) handleSpaceCodeSave(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleSpaceCodeSave(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	space, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)

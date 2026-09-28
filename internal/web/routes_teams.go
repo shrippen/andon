@@ -14,12 +14,12 @@ import (
 // RegisterTeamRoutes wires /teams: overview, create, rename, member
 // set/remove, delete. Admins manage every team; owners manage their own.
 func (d Deps) RegisterTeamRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /teams", d.handleTeamsPage)
-	mux.HandleFunc("POST /teams", d.handleTeamCreate)
-	mux.HandleFunc("POST /teams/{id}/rename", d.handleTeamRename)
-	mux.HandleFunc("POST /teams/{id}/members", d.handleTeamMemberSet)
-	mux.HandleFunc("POST /teams/{id}/members/{userID}/remove", d.handleTeamMemberRemove)
-	mux.HandleFunc("POST /teams/{id}/delete", d.handleTeamDelete)
+	mux.HandleFunc("GET /teams", d.authed(d.handleTeamsPage))
+	mux.HandleFunc("POST /teams", d.authed(d.handleTeamCreate))
+	mux.HandleFunc("POST /teams/{id}/rename", d.authed(d.handleTeamRename))
+	mux.HandleFunc("POST /teams/{id}/members", d.authed(d.handleTeamMemberSet))
+	mux.HandleFunc("POST /teams/{id}/members/{userID}/remove", d.authed(d.handleTeamMemberRemove))
+	mux.HandleFunc("POST /teams/{id}/delete", d.authed(d.handleTeamDelete))
 }
 
 func (d Deps) teamsPage(w http.ResponseWriter, ctx Ctx, status int, extra map[string]any) {
@@ -58,21 +58,11 @@ func (d Deps) teamsPage(w http.ResponseWriter, ctx Ctx, status int, extra map[st
 	_ = d.Page(w, ctx, "teams", status, values)
 }
 
-func (d Deps) handleTeamsPage(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleTeamsPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	d.teamsPage(w, ctx, http.StatusOK, nil)
 }
 
-func (d Deps) handleTeamCreate(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleTeamCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -85,15 +75,10 @@ func (d Deps) handleTeamCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func teamID(r *http.Request) (int64, error) {
-	return strconv.ParseInt(r.PathValue("id"), 10, 64)
+	return pathID(r, "id")
 }
 
-func (d Deps) handleTeamRename(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleTeamRename(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := teamID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -110,12 +95,7 @@ func (d Deps) handleTeamRename(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/teams", http.StatusSeeOther)
 }
 
-func (d Deps) handleTeamMemberSet(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleTeamMemberSet(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := teamID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -138,18 +118,13 @@ func (d Deps) handleTeamMemberSet(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/teams", http.StatusSeeOther)
 }
 
-func (d Deps) handleTeamMemberRemove(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleTeamMemberRemove(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := teamID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	userID, err := strconv.ParseInt(r.PathValue("userID"), 10, 64)
+	userID, err := pathID(r, "userID")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -161,12 +136,7 @@ func (d Deps) handleTeamMemberRemove(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/teams", http.StatusSeeOther)
 }
 
-func (d Deps) handleTeamDelete(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleTeamDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := teamID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

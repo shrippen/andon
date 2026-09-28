@@ -15,7 +15,7 @@ const profileHome = "/me/security"
 func (d Deps) RegisterOIDCRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /auth/oidc/login", d.handleOIDCLogin)
 	mux.HandleFunc("GET "+oidc.CallbackPath, d.handleOIDCCallback)
-	mux.HandleFunc("POST /me/oidc/link", d.handleOIDCLink)
+	mux.HandleFunc("POST /me/oidc/link", d.authed(d.handleOIDCLink))
 }
 
 // safeNext keeps ?next= to local paths: no open redirect ("//evil" is not local).
@@ -54,12 +54,7 @@ func (d Deps) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, safeNext(next), http.StatusSeeOther)
 }
 
-func (d Deps) handleOIDCLink(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleOIDCLink(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	userID := ctx.Who.UserID
 	target, err := oidc.AuthorizeURL(r.Context(), d.DB, d.Settings, profileHome, &userID)
 	if err != nil {

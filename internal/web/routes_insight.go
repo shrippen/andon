@@ -15,18 +15,13 @@ const (
 
 // RegisterInsightRoutes wires the timeline and the provider report.
 func (d Deps) RegisterInsightRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /timeline", d.handleTimeline)
-	mux.HandleFunc("GET /reports/isp", d.handleISPReport)
-	mux.HandleFunc("GET /reports/isp.csv", d.handleISPCSV)
+	mux.HandleFunc("GET /timeline", d.authed(d.handleTimeline))
+	mux.HandleFunc("GET /reports/isp", d.authed(d.handleISPReport))
+	mux.HandleFunc("GET /reports/isp.csv", d.authed(d.handleISPCSV))
 }
 
 // handleTimeline lists updates and hints that came or went.
-func (d Deps) handleTimeline(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleTimeline(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	entries, err := history.Timeline(d.DB, ctx.Who, time.Now().UTC().AddDate(0, 0, -timelineDays), timelineLimit)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -35,12 +30,7 @@ func (d Deps) handleTimeline(w http.ResponseWriter, r *http.Request) {
 	_ = d.Page(w, ctx, "timeline", http.StatusOK, map[string]any{"Entries": entries, "Days": timelineDays})
 }
 
-func (d Deps) handleISPReport(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleISPReport(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	list, err := reports.ISPReports(r.Context(), d.DB, ctx.Who)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -50,12 +40,7 @@ func (d Deps) handleISPReport(w http.ResponseWriter, r *http.Request) {
 		"Share": int(reports.ISPShare * 100)})
 }
 
-func (d Deps) handleISPCSV(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleISPCSV(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	list, err := reports.ISPReports(r.Context(), d.DB, ctx.Who)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

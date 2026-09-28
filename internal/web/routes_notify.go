@@ -13,11 +13,11 @@ import (
 // RegisterNotifyRoutes wires the "notifications" page under /me: channels
 // (add/test/delete) and quiet-hours preferences.
 func (d Deps) RegisterNotifyRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /me/notify", d.handleNotifyPage)
-	mux.HandleFunc("POST /me/notify/channels", d.handleNotifyChannelCreate)
-	mux.HandleFunc("POST /me/notify/channels/{id}/test", d.handleNotifyChannelTest)
-	mux.HandleFunc("POST /me/notify/channels/{id}/delete", d.handleNotifyChannelDelete)
-	mux.HandleFunc("POST /me/notify/prefs", d.handleNotifyPrefsSave)
+	mux.HandleFunc("GET /me/notify", d.authed(d.handleNotifyPage))
+	mux.HandleFunc("POST /me/notify/channels", d.authed(d.handleNotifyChannelCreate))
+	mux.HandleFunc("POST /me/notify/channels/{id}/test", d.authed(d.handleNotifyChannelTest))
+	mux.HandleFunc("POST /me/notify/channels/{id}/delete", d.authed(d.handleNotifyChannelDelete))
+	mux.HandleFunc("POST /me/notify/prefs", d.authed(d.handleNotifyPrefsSave))
 }
 
 var severityLevels = []enums.Severity{enums.SeverityInfo, enums.SeverityWarn, enums.SeverityCritical}
@@ -44,21 +44,11 @@ func (d Deps) notifyPage(w http.ResponseWriter, r *http.Request, ctx Ctx, status
 	_ = d.Page(w, ctx, "notify", status, values)
 }
 
-func (d Deps) handleNotifyPage(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleNotifyPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	d.notifyPage(w, r, ctx, http.StatusOK, nil)
 }
 
-func (d Deps) handleNotifyChannelCreate(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleNotifyChannelCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -72,13 +62,8 @@ func (d Deps) handleNotifyChannelCreate(w http.ResponseWriter, r *http.Request) 
 	http.Redirect(w, r, "/me/notify", http.StatusSeeOther)
 }
 
-func (d Deps) handleNotifyChannelTest(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleNotifyChannelTest(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -90,13 +75,8 @@ func (d Deps) handleNotifyChannelTest(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/me/notify", http.StatusSeeOther)
 }
 
-func (d Deps) handleNotifyChannelDelete(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleNotifyChannelDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -108,12 +88,7 @@ func (d Deps) handleNotifyChannelDelete(w http.ResponseWriter, r *http.Request) 
 	http.Redirect(w, r, "/me/notify", http.StatusSeeOther)
 }
 
-func (d Deps) handleNotifyPrefsSave(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleNotifyPrefsSave(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

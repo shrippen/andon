@@ -43,17 +43,17 @@ var hexColor = regexp.MustCompile(`^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)
 func (d Deps) RegisterThemeRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /theme/{idcss}", d.handleThemeCSS)
 	mux.HandleFunc("GET /theme-fonts/{id}/{name}", d.handleThemeFont)
-	mux.HandleFunc("GET /themes", d.handleThemeList)
-	mux.HandleFunc("POST /themes/duplicate", d.handleThemeDuplicate)
+	mux.HandleFunc("GET /themes", d.authed(d.handleThemeList))
+	mux.HandleFunc("POST /themes/duplicate", d.authed(d.handleThemeDuplicate))
 	mux.HandleFunc("POST /themes/import", d.handleThemeImport)
-	mux.HandleFunc("POST /themes/preset", d.handleThemePreset)
-	mux.HandleFunc("GET /themes/{id}", d.handleThemeEdit)
-	mux.HandleFunc("POST /themes/{id}", d.handleThemeSave)
-	mux.HandleFunc("POST /themes/{id}/delete", d.handleThemeDelete)
-	mux.HandleFunc("GET /themes/{id}/export", d.handleThemeExport)
+	mux.HandleFunc("POST /themes/preset", d.authed(d.handleThemePreset))
+	mux.HandleFunc("GET /themes/{id}", d.authed(d.handleThemeEdit))
+	mux.HandleFunc("POST /themes/{id}", d.authed(d.handleThemeSave))
+	mux.HandleFunc("POST /themes/{id}/delete", d.authed(d.handleThemeDelete))
+	mux.HandleFunc("GET /themes/{id}/export", d.authed(d.handleThemeExport))
 	mux.HandleFunc("POST /themes/{id}/fonts", d.handleFontUpload)
-	mux.HandleFunc("POST /themes/{id}/fonts/{name}/delete", d.handleFontDelete)
-	mux.HandleFunc("GET /styleguide", d.handleStyleguide)
+	mux.HandleFunc("POST /themes/{id}/fonts/{name}/delete", d.authed(d.handleFontDelete))
+	mux.HandleFunc("GET /styleguide", d.authed(d.handleStyleguide))
 }
 
 // handleThemeCSS serves one theme's rendered stylesheet. No auth: it's a
@@ -77,7 +77,7 @@ func (d Deps) handleThemeCSS(w http.ResponseWriter, r *http.Request) {
 
 // handleThemeFont serves an uploaded theme font (public, like the CSS).
 func (d Deps) handleThemeFont(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -122,25 +122,15 @@ func (d Deps) themeListPage(w http.ResponseWriter, ctx Ctx, status int, extra ma
 	_ = d.Page(w, ctx, "themes", status, values)
 }
 
-func (d Deps) handleThemeList(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleThemeList(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	d.themeListPage(w, ctx, http.StatusOK, nil)
 }
 
-func themeID(r *http.Request) (int64, error) { return strconv.ParseInt(r.PathValue("id"), 10, 64) }
+func themeID(r *http.Request) (int64, error) { return pathID(r, "id") }
 
 func themeURL(id int64) string { return "/themes/" + strconv.FormatInt(id, 10) }
 
-func (d Deps) handleThemeDuplicate(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleThemeDuplicate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	source, err1 := strconv.ParseInt(r.FormValue("theme_id"), 10, 64)
 	space, err2 := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
 	if err1 != nil || err2 != nil {
@@ -156,12 +146,7 @@ func (d Deps) handleThemeDuplicate(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleThemePreset creates a theme from a Dashy preset.
-func (d Deps) handleThemePreset(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleThemePreset(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	space, err := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
 	if err != nil {
 		http.Error(w, "bad form", http.StatusBadRequest)
@@ -299,12 +284,7 @@ func (d Deps) handleThemeError(w http.ResponseWriter, err error) {
 	}
 }
 
-func (d Deps) handleThemeEdit(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleThemeEdit(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := themeID(r)
 	if err != nil {
 		http.NotFound(w, r)
@@ -326,12 +306,7 @@ func formTokens(r *http.Request, mode string, base map[string]string) map[string
 	return out
 }
 
-func (d Deps) handleThemeSave(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleThemeSave(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := themeID(r)
 	if err != nil {
 		http.NotFound(w, r)
@@ -358,12 +333,7 @@ func (d Deps) handleThemeSave(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, themeURL(id), http.StatusSeeOther)
 }
 
-func (d Deps) handleThemeDelete(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleThemeDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := themeID(r)
 	if err != nil {
 		http.NotFound(w, r)
@@ -376,12 +346,7 @@ func (d Deps) handleThemeDelete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/themes", http.StatusSeeOther)
 }
 
-func (d Deps) handleThemeExport(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleThemeExport(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := themeID(r)
 	if err != nil {
 		http.NotFound(w, r)
@@ -431,12 +396,7 @@ func (d Deps) handleFontUpload(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, themeURL(id), http.StatusSeeOther)
 }
 
-func (d Deps) handleFontDelete(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleFontDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := themeID(r)
 	if err != nil {
 		http.NotFound(w, r)
@@ -449,11 +409,6 @@ func (d Deps) handleFontDelete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, themeURL(id), http.StatusSeeOther)
 }
 
-func (d Deps) handleStyleguide(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleStyleguide(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	_ = d.Page(w, ctx, "styleguide", http.StatusOK, nil)
 }

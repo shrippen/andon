@@ -21,21 +21,16 @@ const startPath = "/start"
 var introPage = regexp.MustCompile(`^[a-z_]{1,32}$`)
 
 func (d Deps) RegisterWelcomeRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET "+startPath, d.handleStart)
-	mux.HandleFunc("GET /welcome", d.handleWelcome)
-	mux.HandleFunc("POST /welcome/intro/{page}", d.handleIntroSeen)
+	mux.HandleFunc("GET "+startPath, d.authed(d.handleStart))
+	mux.HandleFunc("GET /welcome", d.authed(d.handleWelcome))
+	mux.HandleFunc("POST /welcome/intro/{page}", d.authed(d.handleIntroSeen))
 	mux.HandleFunc("POST /welcome/dismiss", d.welcomeAction(onboarding.Dismiss))
 	mux.HandleFunc("POST /welcome/resume", d.welcomeAction(onboarding.Resume))
 	mux.HandleFunc("POST /welcome/intros", d.welcomeAction(onboarding.ShowIntros))
 }
 
 // handleStart opens the welcome page once after the first login.
-func (d Deps) handleStart(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleStart(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	state, err := onboarding.Load(d.DB, ctx.Who)
 	if err == nil && !state.Shown {
 		_ = onboarding.MarkShown(d.DB, ctx.Who)
@@ -45,12 +40,7 @@ func (d Deps) handleStart(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func (d Deps) handleWelcome(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleWelcome(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	state, err := onboarding.Load(d.DB, ctx.Who)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -60,12 +50,7 @@ func (d Deps) handleWelcome(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleIntroSeen closes one page's intro; htmx removes the box.
-func (d Deps) handleIntroSeen(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleIntroSeen(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	page := r.PathValue("page")
 	if !introPage.MatchString(page) {
 		http.NotFound(w, r)

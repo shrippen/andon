@@ -20,28 +20,23 @@ import (
 // new board, personal credentials, connection options, ending other
 // sessions, team space settings, widget copy and the language switch.
 func (d Deps) RegisterMoreRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /boards", d.handleBoardList)
-	mux.HandleFunc("POST /boards/{id}/nav", d.handleBoardNav)
-	mux.HandleFunc("GET /boards/new", d.handleBoardNewForm)
-	mux.HandleFunc("POST /boards/new", d.handleBoardCreate)
-	mux.HandleFunc("GET /me/credentials", d.handleCredentials)
+	mux.HandleFunc("GET /boards", d.authed(d.handleBoardList))
+	mux.HandleFunc("POST /boards/{id}/nav", d.authed(d.handleBoardNav))
+	mux.HandleFunc("GET /boards/new", d.authed(d.handleBoardNewForm))
+	mux.HandleFunc("POST /boards/new", d.authed(d.handleBoardCreate))
+	mux.HandleFunc("GET /me/credentials", d.authed(d.handleCredentials))
 	mux.HandleFunc("POST /me/credentials/{id}", d.handleCredentialSave)
 	mux.HandleFunc("POST /me/credentials/{id}/delete", d.handleCredentialDelete)
-	mux.HandleFunc("POST /connections/{id}/options", d.handleConnectionOptions)
-	mux.HandleFunc("POST /me/security/sessions/others/end", d.handleEndOthers)
-	mux.HandleFunc("POST /spaces/{id}/team-settings", d.handleTeamSpaceSettings)
-	mux.HandleFunc("POST /widgets/{id}/copy", d.handleWidgetCopy)
-	mux.HandleFunc("POST /me/locale", d.handleLocale)
+	mux.HandleFunc("POST /connections/{id}/options", d.authed(d.handleConnectionOptions))
+	mux.HandleFunc("POST /me/security/sessions/others/end", d.authed(d.handleEndOthers))
+	mux.HandleFunc("POST /spaces/{id}/team-settings", d.authed(d.handleTeamSpaceSettings))
+	mux.HandleFunc("POST /widgets/{id}/copy", d.authed(d.handleWidgetCopy))
+	mux.HandleFunc("POST /me/locale", d.authed(d.handleLocale))
 }
 
 // handleBoardList shows every board the viewer sees, in their own order,
 // to sort and hide in the header and to jump into editing.
-func (d Deps) handleBoardList(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleBoardList(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	list, err := boards.Listed(d.DB, ctx.Who)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -58,12 +53,7 @@ func (d Deps) handleBoardList(w http.ResponseWriter, r *http.Request) {
 
 // handleBoardNav moves a board up or down in the viewer's order, or
 // shows/hides it in the header.
-func (d Deps) handleBoardNav(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleBoardNav(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
@@ -87,21 +77,11 @@ func (d Deps) handleBoardNav(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/boards#board-"+r.PathValue("id"), http.StatusSeeOther)
 }
 
-func (d Deps) handleBoardNewForm(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleBoardNewForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	_ = d.Page(w, ctx, "board_new", http.StatusOK, map[string]any{"Spaces": access.EditableSpaces(ctx.Who), "Templates": porting.Templates()})
 }
 
-func (d Deps) handleBoardCreate(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleBoardCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	space, err := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
 	if err != nil {
 		http.Error(w, "bad form", http.StatusBadRequest)
@@ -123,12 +103,7 @@ func (d Deps) handleBoardCreate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, boardPath(id)+"?edit", http.StatusSeeOther)
 }
 
-func (d Deps) handleCredentials(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleCredentials(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	items, err := connections.PersonalNeeded(d.DB, ctx.Who)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -183,12 +158,7 @@ func (d Deps) handleCredentialDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleConnectionOptions stores a connection's options, edited as YAML.
-func (d Deps) handleConnectionOptions(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleConnectionOptions(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
@@ -205,12 +175,7 @@ func (d Deps) handleConnectionOptions(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/connections/"+strconv.FormatInt(id, 10)+"/edit", http.StatusSeeOther)
 }
 
-func (d Deps) handleEndOthers(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleEndOthers(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := auth.EndOtherSessions(d.DB, ctx.Who); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -219,12 +184,7 @@ func (d Deps) handleEndOthers(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleTeamSpaceSettings stores a team space's hint handling and theme.
-func (d Deps) handleTeamSpaceSettings(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleTeamSpaceSettings(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
@@ -245,12 +205,7 @@ func (d Deps) handleTeamSpaceSettings(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/teams", http.StatusSeeOther)
 }
 
-func (d Deps) handleWidgetCopy(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleWidgetCopy(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err1 := pathID(r, "id")
 	space, err2 := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
 	if err1 != nil || err2 != nil {
@@ -277,12 +232,7 @@ func (d Deps) handleWidgetCopy(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleLocale switches the language and returns to the page it came from.
-func (d Deps) handleLocale(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleLocale(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	locale := enums.Locale(r.FormValue("locale"))
 	if err := accounts.UpdateProfile(d.DB, ctx.Who, accounts.ProfileChanges{Locale: &locale}); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

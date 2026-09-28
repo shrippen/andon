@@ -23,29 +23,24 @@ import (
 
 // RegisterConnectionRoutes wires the connections list/create/edit/delete/test pages.
 func (d Deps) RegisterConnectionRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /connections", d.handleConnectionsList)
-	mux.HandleFunc("GET /connections/new", d.handleConnectionNewForm)
-	mux.HandleFunc("POST /connections", d.handleConnectionCreate)
-	mux.HandleFunc("GET /connections/{id}/edit", d.handleConnectionEditForm)
-	mux.HandleFunc("POST /connections/{id}/edit", d.handleConnectionUpdate)
-	mux.HandleFunc("POST /connections/{id}/delete", d.handleConnectionDelete)
-	mux.HandleFunc("POST /connections/{id}/test", d.handleConnectionTest)
-	mux.HandleFunc("POST /connections/{id}/check", d.handleConnectionCheck)
-	mux.HandleFunc("GET /places", d.handlePlaces)
-	mux.HandleFunc("POST /connections/{id}/hygiene", d.handleConnectionHygiene)
-	mux.HandleFunc("POST /connections/{id}/hook/rotate", d.handleHookRotate)
-	mux.HandleFunc("POST /connections/{id}/connect", d.handleConnectStart)
-	mux.HandleFunc("POST /connections/{id}/oauth-client", d.handleOAuthClient)
-	mux.HandleFunc("GET "+connect.CallbackPath, d.handleConnectCallback)
-	mux.HandleFunc("GET "+pollPath, d.handleConnectPoll)
+	mux.HandleFunc("GET /connections", d.authed(d.handleConnectionsList))
+	mux.HandleFunc("GET /connections/new", d.authed(d.handleConnectionNewForm))
+	mux.HandleFunc("POST /connections", d.authed(d.handleConnectionCreate))
+	mux.HandleFunc("GET /connections/{id}/edit", d.authed(d.handleConnectionEditForm))
+	mux.HandleFunc("POST /connections/{id}/edit", d.authed(d.handleConnectionUpdate))
+	mux.HandleFunc("POST /connections/{id}/delete", d.authed(d.handleConnectionDelete))
+	mux.HandleFunc("POST /connections/{id}/test", d.authed(d.handleConnectionTest))
+	mux.HandleFunc("POST /connections/{id}/check", d.authed(d.handleConnectionCheck))
+	mux.HandleFunc("GET /places", d.authed(d.handlePlaces))
+	mux.HandleFunc("POST /connections/{id}/hygiene", d.authed(d.handleConnectionHygiene))
+	mux.HandleFunc("POST /connections/{id}/hook/rotate", d.authed(d.handleHookRotate))
+	mux.HandleFunc("POST /connections/{id}/connect", d.authed(d.handleConnectStart))
+	mux.HandleFunc("POST /connections/{id}/oauth-client", d.authed(d.handleOAuthClient))
+	mux.HandleFunc("GET "+connect.CallbackPath, d.authed(d.handleConnectCallback))
+	mux.HandleFunc("GET "+pollPath, d.authed(d.handleConnectPoll))
 }
 
-func (d Deps) handleConnectionsList(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleConnectionsList(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	list, err := connections.Listing(d.DB, ctx.Who, enums.RightView)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -87,12 +82,7 @@ func healthSummary(list []connections.View) connSum {
 
 var serviceOptions = enums.Services
 
-func (d Deps) handleConnectionNewForm(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleConnectionNewForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	// Step 1 of the assistant: pick the service; step 2: its form with
 	// where to find the token; step 3 (edit page, ?welcome): test and
 	// matching widgets.
@@ -123,12 +113,7 @@ func widgetsFor(service enums.ServiceType) []widgets.WidgetType {
 	return out
 }
 
-func (d Deps) handleConnectionCreate(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleConnectionCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -160,13 +145,8 @@ func (d Deps) handleConnectionCreate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/connections/"+strconv.FormatInt(id, 10)+"/edit?welcome", http.StatusSeeOther)
 }
 
-func (d Deps) handleConnectionEditForm(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleConnectionEditForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -200,13 +180,8 @@ func (d Deps) handleConnectionEditForm(w http.ResponseWriter, r *http.Request) {
 	_ = d.Page(w, ctx, "connection_form", http.StatusOK, values)
 }
 
-func (d Deps) handleConnectionUpdate(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleConnectionUpdate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -287,13 +262,8 @@ func (d Deps) saveAdvanced(r *http.Request, ctx Ctx, conn connections.View) erro
 	return connections.SetOptions(d.DB, ctx.Who, conn.ID, options)
 }
 
-func (d Deps) handleConnectionDelete(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleConnectionDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -305,13 +275,8 @@ func (d Deps) handleConnectionDelete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/connections", http.StatusSeeOther)
 }
 
-func (d Deps) handleConnectionTest(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleConnectionTest(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -330,13 +295,8 @@ func (d Deps) handleConnectionTest(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleConnectionHygiene stores token expiry and daily fetch budget.
-func (d Deps) handleConnectionHygiene(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleConnectionHygiene(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -356,13 +316,8 @@ func (d Deps) handleConnectionHygiene(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleHookRotate replaces a leaked webhook URL.
-func (d Deps) handleHookRotate(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleHookRotate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -404,13 +359,8 @@ func (d Deps) servicePicks(ctx Ctx) ([]servicePick, error) {
 
 // handleConnectionCheck runs the connection test from the overview and
 // answers with the result only (htmx swaps it into the row).
-func (d Deps) handleConnectionCheck(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleConnectionCheck(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -433,12 +383,7 @@ func (d Deps) handleConnectionCheck(w http.ResponseWriter, r *http.Request) {
 
 // handlePlaces answers the place search of a setup form with matching
 // places to pick from.
-func (d Deps) handlePlaces(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handlePlaces(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	query := r.URL.Query().Get("place_q")
 	found, err := places.Search(r.Context(), query, ctx.Locale)
 	if err != nil {

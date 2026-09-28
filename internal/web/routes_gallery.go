@@ -138,12 +138,8 @@ func (d Deps) targetNames(ctx Ctx, target widgetTarget) galleryTarget {
 
 // handleSample renders a type with default settings: live with the given
 // connection, else with demo data.
-func (d Deps) handleSample(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleSample(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	var err error
 	kind, ok := widgets.Get(r.PathValue("type"))
 	if !ok {
 		http.NotFound(w, r)
@@ -161,12 +157,7 @@ func (d Deps) handleSample(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleWidgetShow renders a library widget as it looks on a board.
-func (d Deps) handleWidgetShow(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleWidgetShow(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)

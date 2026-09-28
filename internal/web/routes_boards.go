@@ -24,31 +24,26 @@ const compactView = "compact"
 // RegisterBoardRoutes wires the home page, board view, widget fragments
 // and the personal layout changes (fold, hide, size, order).
 func (d Deps) RegisterBoardRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /{$}", d.handleHome)
-	mux.HandleFunc("GET /boards/{id}", d.handleBoardView)
+	mux.HandleFunc("GET /{$}", d.authed(d.handleHome))
+	mux.HandleFunc("GET /boards/{id}", d.authed(d.handleBoardView))
 	mux.HandleFunc("GET /widget-fragments/{id}", d.handleWidgetFragment)
-	mux.HandleFunc("POST /widget-fragments/{id}/toggle", d.handleHassToggle)
-	mux.HandleFunc("POST /widget-fragments/{id}/kimai", d.handleKimaiTimer)
-	mux.HandleFunc("POST /widget-fragments/{id}/close", d.handleCloseTick)
-	mux.HandleFunc("GET /widget-fragments/{id}/kimai/new", d.handleKimaiNew)
-	mux.HandleFunc("POST /boards/{id}/arrange", d.handleArrange)
+	mux.HandleFunc("POST /widget-fragments/{id}/toggle", d.authed(d.handleHassToggle))
+	mux.HandleFunc("POST /widget-fragments/{id}/kimai", d.authed(d.handleKimaiTimer))
+	mux.HandleFunc("POST /widget-fragments/{id}/close", d.authed(d.handleCloseTick))
+	mux.HandleFunc("GET /widget-fragments/{id}/kimai/new", d.authed(d.handleKimaiNew))
+	mux.HandleFunc("POST /boards/{id}/arrange", d.authed(d.handleArrange))
 	mux.HandleFunc("POST /boards/{id}/fold/{sectionID}", d.handleFold)
 	mux.HandleFunc("POST /boards/{id}/show/{placementID}", d.handleShow)
 	mux.HandleFunc("POST /boards/{id}/rows/{placementID}", d.handleMyRows)
 	mux.HandleFunc("POST /boards/{id}/size/{sectionID}", d.handleSize)
-	mux.HandleFunc("POST /boards/{id}/overlay/reset", d.handleOverlayReset)
-	mux.HandleFunc("GET /boards/{id}/history", d.handleHistory)
-	mux.HandleFunc("GET /boards/{id}/suggest", d.handleSuggest)
-	mux.HandleFunc("POST /boards/{id}/suggest", d.handleSuggestApply)
+	mux.HandleFunc("POST /boards/{id}/overlay/reset", d.authed(d.handleOverlayReset))
+	mux.HandleFunc("GET /boards/{id}/history", d.authed(d.handleHistory))
+	mux.HandleFunc("GET /boards/{id}/suggest", d.authed(d.handleSuggest))
+	mux.HandleFunc("POST /boards/{id}/suggest", d.authed(d.handleSuggestApply))
 	mux.HandleFunc("POST /boards/{id}/restore/{revisionID}", d.handleRestore)
 }
 
-func (d Deps) handleHome(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleHome(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 
 	// The profile's start board wins; StartBoard falls back to the first
 	// visible board when it is gone or no longer visible.
@@ -69,12 +64,7 @@ func (d Deps) handleHome(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, target, http.StatusSeeOther)
 }
 
-func (d Deps) handleBoardView(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleBoardView(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	d.renderBoard(w, r, ctx, "")
 }
 
@@ -89,7 +79,7 @@ func modeOf(r *http.Request) boardMode {
 // renderBoard shows board {id}. With an embed token the page drops the
 // app nav and edit controls, and fragment URLs carry the token along.
 func (d Deps) renderBoard(w http.ResponseWriter, r *http.Request, ctx Ctx, embedToken string) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -206,7 +196,7 @@ func (d Deps) handleWidgetFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -268,13 +258,8 @@ func (d Deps) renderFragment(w http.ResponseWriter, r *http.Request, ctx Ctx, pl
 
 // handleHassToggle switches a Home Assistant entity and answers with the
 // refreshed tile body (htmx swaps it in place).
-func (d Deps) handleHassToggle(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleHassToggle(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -292,13 +277,8 @@ func (d Deps) handleHassToggle(w http.ResponseWriter, r *http.Request) {
 
 // handleCloseTick ticks a month-close step by hand and answers with the
 // refreshed tile.
-func (d Deps) handleCloseTick(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleCloseTick(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -358,12 +338,7 @@ type arrangeRequest struct {
 
 // handleArrange stores a new tile order: into the board for editors in
 // edit mode, else into the caller's own overlay.
-func (d Deps) handleArrange(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleArrange(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
@@ -443,12 +418,7 @@ func (d Deps) handleSize(w http.ResponseWriter, r *http.Request) {
 	}, layoutPage)
 }
 
-func (d Deps) handleOverlayReset(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleOverlayReset(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
@@ -476,12 +446,7 @@ type revisionSection struct {
 	Widgets int
 }
 
-func (d Deps) handleHistory(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleHistory(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
@@ -521,12 +486,7 @@ func (d Deps) handleRestore(w http.ResponseWriter, r *http.Request) {
 
 // handleSuggest previews a layout built from the space's tiles and
 // connections (cold start); nothing changes until it is applied.
-func (d Deps) handleSuggest(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleSuggest(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
@@ -546,12 +506,7 @@ func (d Deps) handleSuggest(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleSuggestApply replaces the board's layout with the suggestion.
-func (d Deps) handleSuggestApply(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleSuggestApply(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)

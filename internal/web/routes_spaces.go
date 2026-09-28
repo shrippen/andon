@@ -29,17 +29,12 @@ var (
 // RegisterSpaceRoutes wires a space's evaluation settings: goals, tax
 // values and rule thresholds.
 func (d Deps) RegisterSpaceRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /spaces/settings", d.handleMySpaceSettings)
-	mux.HandleFunc("GET /spaces/{id}/settings", d.handleSpaceSettings)
-	mux.HandleFunc("POST /spaces/{id}/settings", d.handleSpaceSettingsSave)
+	mux.HandleFunc("GET /spaces/settings", d.authed(d.handleMySpaceSettings))
+	mux.HandleFunc("GET /spaces/{id}/settings", d.authed(d.handleSpaceSettings))
+	mux.HandleFunc("POST /spaces/{id}/settings", d.authed(d.handleSpaceSettingsSave))
 }
 
-func (d Deps) handleMySpaceSettings(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleMySpaceSettings(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	mine := access.Personal(ctx.Who)
 	if mine == nil {
 		http.NotFound(w, r)
@@ -48,12 +43,7 @@ func (d Deps) handleMySpaceSettings(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/spaces/"+strconv.FormatInt(mine.ID, 10)+"/settings", http.StatusSeeOther)
 }
 
-func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
@@ -118,12 +108,7 @@ func oneOf(value string, allowed []string) string {
 	return allowed[0]
 }
 
-func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)

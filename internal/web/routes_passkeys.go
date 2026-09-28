@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"andon/internal/services/auth"
 	"andon/internal/services/passkeys"
@@ -18,9 +17,9 @@ const jsonType = "application/json"
 // RegisterPasskeyRoutes wires passkey registration (/me/passkeys) and
 // login (/login/passkey). Both ceremonies are JSON, driven by passkeys.js.
 func (d Deps) RegisterPasskeyRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /me/passkeys/begin", d.handlePasskeyBegin)
-	mux.HandleFunc("POST /me/passkeys/finish", d.handlePasskeyFinish)
-	mux.HandleFunc("POST /me/passkeys/{id}/delete", d.handlePasskeyDelete)
+	mux.HandleFunc("POST /me/passkeys/begin", d.authed(d.handlePasskeyBegin))
+	mux.HandleFunc("POST /me/passkeys/finish", d.authed(d.handlePasskeyFinish))
+	mux.HandleFunc("POST /me/passkeys/{id}/delete", d.authed(d.handlePasskeyDelete))
 	mux.HandleFunc("POST /login/passkey/begin", d.handlePasskeyLoginBegin)
 	mux.HandleFunc("POST /login/passkey/finish", d.handlePasskeyLoginFinish)
 }
@@ -37,12 +36,7 @@ func jsonError(w http.ResponseWriter, status int, key string) {
 	writeRawJSON(w, status, body)
 }
 
-func (d Deps) handlePasskeyBegin(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handlePasskeyBegin(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	options, err := passkeys.Begin(d.DB, d.Settings, ctx.Who)
 	if err != nil {
 		jsonError(w, http.StatusBadRequest, errKey(err))
@@ -51,12 +45,8 @@ func (d Deps) handlePasskeyBegin(w http.ResponseWriter, r *http.Request) {
 	writeRawJSON(w, http.StatusOK, options)
 }
 
-func (d Deps) handlePasskeyFinish(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handlePasskeyFinish(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	var err error
 	body := http.MaxBytesReader(w, r.Body, passkeyBodyMax)
 	err = passkeys.Finish(d.DB, d.Settings, ctx.Who, r.URL.Query().Get("name"), body, ClientIP(r))
 	if err != nil {
@@ -66,13 +56,8 @@ func (d Deps) handlePasskeyFinish(w http.ResponseWriter, r *http.Request) {
 	writeRawJSON(w, http.StatusOK, []byte(`{"redirect":"/me/security"}`))
 }
 
-func (d Deps) handlePasskeyDelete(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handlePasskeyDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return

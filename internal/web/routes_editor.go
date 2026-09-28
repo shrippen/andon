@@ -24,34 +24,29 @@ import (
 // RegisterEditorRoutes wires board settings, sections, the widget library
 // and placement.
 func (d Deps) RegisterEditorRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /boards/{id}/settings", d.handleBoardSettingsForm)
-	mux.HandleFunc("POST /boards/{id}/settings", d.handleBoardRename)
-	mux.HandleFunc("POST /boards/{id}/delete", d.handleBoardDelete)
-	mux.HandleFunc("POST /boards/{id}/sections", d.handleSectionAdd)
-	mux.HandleFunc("POST /sections/{id}/edit", d.handleSectionEdit)
-	mux.HandleFunc("POST /sections/{id}/delete", d.handleSectionDelete)
-	mux.HandleFunc("POST /boards/{boardID}/sections/{sectionID}/place", d.handlePlace)
-	mux.HandleFunc("POST /placements/{id}/unplace", d.handleUnplace)
-	mux.HandleFunc("POST /placements/{id}/rows", d.handleTileRows)
+	mux.HandleFunc("GET /boards/{id}/settings", d.authed(d.handleBoardSettingsForm))
+	mux.HandleFunc("POST /boards/{id}/settings", d.authed(d.handleBoardRename))
+	mux.HandleFunc("POST /boards/{id}/delete", d.authed(d.handleBoardDelete))
+	mux.HandleFunc("POST /boards/{id}/sections", d.authed(d.handleSectionAdd))
+	mux.HandleFunc("POST /sections/{id}/edit", d.authed(d.handleSectionEdit))
+	mux.HandleFunc("POST /sections/{id}/delete", d.authed(d.handleSectionDelete))
+	mux.HandleFunc("POST /boards/{boardID}/sections/{sectionID}/place", d.authed(d.handlePlace))
+	mux.HandleFunc("POST /placements/{id}/unplace", d.authed(d.handleUnplace))
+	mux.HandleFunc("POST /placements/{id}/rows", d.authed(d.handleTileRows))
 
-	mux.HandleFunc("GET /widgets", d.handleWidgetLibrary)
-	mux.HandleFunc("GET /widgets/new", d.handleWidgetNewForm)
-	mux.HandleFunc("POST /widgets", d.handleWidgetCreate)
-	mux.HandleFunc("GET /widgets/{id}/edit", d.handleWidgetEditForm)
-	mux.HandleFunc("POST /widgets/{id}/edit", d.handleWidgetUpdate)
-	mux.HandleFunc("POST /widgets/{id}/delete", d.handleWidgetDelete)
-	mux.HandleFunc("POST /widget-preview", d.handleWidgetPreview)
-	mux.HandleFunc("GET /widget-sample/{type}", d.handleSample)
-	mux.HandleFunc("GET /widgets/{id}/preview", d.handleWidgetShow)
+	mux.HandleFunc("GET /widgets", d.authed(d.handleWidgetLibrary))
+	mux.HandleFunc("GET /widgets/new", d.authed(d.handleWidgetNewForm))
+	mux.HandleFunc("POST /widgets", d.authed(d.handleWidgetCreate))
+	mux.HandleFunc("GET /widgets/{id}/edit", d.authed(d.handleWidgetEditForm))
+	mux.HandleFunc("POST /widgets/{id}/edit", d.authed(d.handleWidgetUpdate))
+	mux.HandleFunc("POST /widgets/{id}/delete", d.authed(d.handleWidgetDelete))
+	mux.HandleFunc("POST /widget-preview", d.authed(d.handleWidgetPreview))
+	mux.HandleFunc("GET /widget-sample/{type}", d.authed(d.handleSample))
+	mux.HandleFunc("GET /widgets/{id}/preview", d.authed(d.handleWidgetShow))
 }
 
-func (d Deps) handleBoardSettingsForm(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleBoardSettingsForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -72,13 +67,8 @@ func (d Deps) handleBoardSettingsForm(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (d Deps) handleBoardRename(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleBoardRename(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -99,13 +89,8 @@ func (d Deps) handleBoardRename(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/boards/"+r.PathValue("id"), http.StatusSeeOther)
 }
 
-func (d Deps) handleBoardDelete(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleBoardDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -117,13 +102,8 @@ func (d Deps) handleBoardDelete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func (d Deps) handleSectionAdd(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	boardID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleSectionAdd(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	boardID, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -140,13 +120,8 @@ func (d Deps) handleSectionAdd(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/boards/"+r.PathValue("id")+"?edit", http.StatusSeeOther)
 }
 
-func (d Deps) handleSectionEdit(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleSectionEdit(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -180,13 +155,8 @@ func (d Deps) handleSectionEdit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/boards/"+boardID+"?edit", http.StatusSeeOther)
 }
 
-func (d Deps) handleSectionDelete(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleSectionDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -204,18 +174,13 @@ func (d Deps) handleSectionDelete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/boards/"+boardID+"?edit&undo", http.StatusSeeOther)
 }
 
-func (d Deps) handlePlace(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	boardID, err := strconv.ParseInt(r.PathValue("boardID"), 10, 64)
+func (d Deps) handlePlace(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	boardID, err := pathID(r, "boardID")
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	sectionID, err := strconv.ParseInt(r.PathValue("sectionID"), 10, 64)
+	sectionID, err := pathID(r, "sectionID")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -233,13 +198,8 @@ func (d Deps) handlePlace(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/boards/"+strconv.FormatInt(boardID, 10)+"?edit", http.StatusSeeOther)
 }
 
-func (d Deps) handleUnplace(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleUnplace(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -258,13 +218,8 @@ func (d Deps) handleUnplace(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleTileRows sets how many rows a placed tile spans for everybody.
-func (d Deps) handleTileRows(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleTileRows(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -284,12 +239,7 @@ func (d Deps) handleTileRows(w http.ResponseWriter, r *http.Request) {
 
 // ── Widget library ──
 
-func (d Deps) handleWidgetLibrary(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleWidgetLibrary(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	lib, err := widgetlib.Library(d.DB, ctx.Who)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -406,12 +356,7 @@ func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widge
 	})
 }
 
-func (d Deps) handleWidgetNewForm(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleWidgetNewForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	target := targetOf(r.URL.Query().Get)
 	spaces := access.EditableSpaces(ctx.Who)
 	if target.SpaceID == 0 && len(spaces) > 0 {
@@ -448,12 +393,7 @@ func minRole(r *http.Request) *enums.TeamRole {
 	return &role
 }
 
-func (d Deps) handleWidgetCreate(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleWidgetCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	kind, ok := widgets.Get(r.FormValue("type"))
 	if !ok {
 		http.Error(w, "widget.unknown_type", http.StatusBadRequest)
@@ -501,13 +441,8 @@ func (d Deps) placeNew(ctx Ctx, target widgetTarget, widgetID int64, rows string
 	return boards.SetTileRows(d.DB, ctx.Who, placement, n, target.Version+1)
 }
 
-func (d Deps) handleWidgetEditForm(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleWidgetEditForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -532,13 +467,8 @@ func (d Deps) handleWidgetEditForm(w http.ResponseWriter, r *http.Request) {
 		ConnID: widget.ConnectionID, MinRole: role, Widget: widget, Target: target})
 }
 
-func (d Deps) handleWidgetUpdate(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleWidgetUpdate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -563,12 +493,7 @@ func (d Deps) handleWidgetUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleWidgetPreview renders the form's current state (htmx, unsaved).
-func (d Deps) handleWidgetPreview(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleWidgetPreview(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	kind, ok := widgets.Get(r.FormValue("type"))
 	if !ok {
 		http.Error(w, "widget.unknown_type", http.StatusBadRequest)
@@ -599,13 +524,8 @@ func (d Deps) renderLivePreview(w http.ResponseWriter, ctx Ctx, kind widgets.Wid
 		"Icon": boards.IconOf(frag.Frame.Icon), "Body": &tileBody{Template: kind.Template, Frag: frag}})
 }
 
-func (d Deps) handleWidgetDelete(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+func (d Deps) handleWidgetDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
 		return

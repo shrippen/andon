@@ -108,6 +108,22 @@ func (d Deps) resolve(r *http.Request) (Ctx, *auth.SessionInfo, error) {
 	return Ctx{Who: info.Principal, CSRF: info.CSRF, Method: info.Method, Locale: locale, Path: r.URL.Path}, info, nil
 }
 
+// authedHandler is a handler for signed-in users; it gets the checked Ctx.
+type authedHandler func(w http.ResponseWriter, r *http.Request, ctx Ctx)
+
+// authed runs h after Require: logged in, second factor done, CSRF valid
+// on unsafe methods. Failures answer as handleAuthError does.
+func (d Deps) authed(h authedHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, err := d.Require(r)
+		if err != nil {
+			d.handleAuthError(w, r, err)
+			return
+		}
+		h(w, r, ctx)
+	}
+}
+
 // Require builds a Ctx and enforces that the caller is fully logged in
 // (not pending 2FA) with a valid CSRF token on unsafe methods.
 func (d Deps) Require(r *http.Request) (Ctx, error) {

@@ -9,16 +9,11 @@ import (
 
 // RegisterHostRoutes wires the host pages: what runs on one machine.
 func (d Deps) RegisterHostRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /hosts", d.handleHosts)
-	mux.HandleFunc("GET /hosts/{name}", d.handleHost)
+	mux.HandleFunc("GET /hosts", d.authed(d.handleHosts))
+	mux.HandleFunc("GET /hosts/{name}", d.authed(d.handleHost))
 }
 
-func (d Deps) handleHosts(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleHosts(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	list, err := hosts.List(r.Context(), d.DB, ctx.Who)
 	if err != nil {
 		d.handleBoardError(w, r, err)
@@ -27,12 +22,7 @@ func (d Deps) handleHosts(w http.ResponseWriter, r *http.Request) {
 	_ = d.Page(w, ctx, "hosts", http.StatusOK, map[string]any{"Hosts": list})
 }
 
-func (d Deps) handleHost(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Require(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
+func (d Deps) handleHost(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	host, err := hosts.One(r.Context(), d.DB, ctx.Who, r.PathValue("name"))
 	if errors.Is(err, hosts.ErrNotFound) {
 		http.NotFound(w, r)
