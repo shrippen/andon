@@ -87,6 +87,11 @@
     <label>{{t "hints.work"}} <select name="state">{{range .States}}<option value="{{.}}">{{t (print "hints.work_" .)}}</option>{{end}}</select></label>
     <button type="submit" class="ghost">{{t "action.save"}}</button>
   </form>
+  <form method="post" action="/hints/{{.ID}}/snooze" class="inline-form">
+    <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+    <span class="small">{{t "hints.snooze_until"}}</span>
+    {{range .SnoozeChoices}}<button type="submit" name="for" value="{{.}}" class="ghost">{{t (print "hints.snooze_" .)}}</button>{{end}}
+  </form>
   <form method="post" action="/hints/{{.ID}}/note" class="inline-form">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
     <input name="note" maxlength="500" required placeholder="{{t "hints.note"}}" aria-label="{{t "hints.note"}}">

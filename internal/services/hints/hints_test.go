@@ -244,3 +244,18 @@ func TestResolvedLists(t *testing.T) {
 		t.Fatalf("done: %+v %v", done, err)
 	}
 }
+
+// Snooze choices count days from now: tomorrow, next Monday, the 1st of
+// next month (local calendar days).
+func TestSnoozeDays(t *testing.T) {
+	wed := time.Date(2026, 9, 30, 15, 0, 0, 0, time.UTC) // a Wednesday
+	for choice, want := range map[string]int{"tomorrow": 1, "monday": 5, "month": 1, "week": 7, "": 0} {
+		if got := hints.SnoozeDays(choice, wed); got != want {
+			t.Errorf("%q: %d, want %d", choice, got, want)
+		}
+	}
+	mon := time.Date(2026, 9, 28, 9, 0, 0, 0, time.UTC)
+	if got := hints.SnoozeDays("monday", mon); got != 7 {
+		t.Errorf("monday on a Monday: %d", got)
+	}
+}

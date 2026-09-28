@@ -973,6 +973,10 @@ hints:
   done_title: 'Erledigt in den letzten {days} Tagen'
   done_when: 'erledigt {when}'
   done_none: 'Nichts erledigt in dieser Zeit.'
+  snooze_until: 'Pausieren bis'
+  snooze_tomorrow: 'morgen'
+  snooze_monday: 'Montag'
+  snooze_month: 'Monatsanfang'
 severity:
   info: Info
   warn: Warnung

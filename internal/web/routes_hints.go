@@ -36,6 +36,9 @@ func (d Deps) RegisterHintRoutes(mux *http.ServeMux) {
 
 const defaultSnoozeDays = 7
 
+// snoozeChoices are the quick picks in a hint's detail.
+var snoozeChoices = []string{hints.SnoozeTomorrow, hints.SnoozeMonday, hints.SnoozeMonth}
+
 // hintStep is one workflow form.
 type hintStep string
 
@@ -276,6 +279,9 @@ func (d Deps) handleHintAct(action hints.Action) http.HandlerFunc {
 			return
 		}
 		days, _ := strconv.Atoi(r.FormValue("days"))
+		if choice := r.FormValue("for"); choice != "" {
+			days = hints.SnoozeDays(choice, time.Now())
+		}
 		if days <= 0 {
 			days = defaultSnoozeDays
 		}
@@ -340,7 +346,7 @@ func (d Deps) handleHintDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = d.Page(w, ctx, "hint_detail", http.StatusOK, map[string]any{"ID": id, "History": history, "People": people, "States": workStates,
-		"Assist": assist.Enabled(), "Before": before, "Runbook": book})
+		"Assist": assist.Enabled(), "Before": before, "Runbook": book, "SnoozeChoices": snoozeChoices})
 }
 
 // handleHintRunbook saves the space's runbook for the hint's rule.

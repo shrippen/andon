@@ -503,6 +503,39 @@ func Act(d *sql.DB, who *access.Principal, hintID int64, action Action, days int
 	}
 }
 
+// Snooze choices of the hint detail, e.g. "until Monday".
+const (
+	SnoozeTomorrow = "tomorrow"
+	SnoozeMonday   = "monday"
+	SnoozeMonth    = "month"
+	SnoozeWeek     = "week"
+)
+
+// SnoozeDays turns a snooze choice into days from now: "monday" is the
+// next Monday (a week on a Monday), "month" the 1st of next month.
+// 0 for an unknown choice.
+func SnoozeDays(choice string, now time.Time) int {
+	switch choice {
+	case SnoozeTomorrow:
+		return 1
+	case SnoozeWeek:
+		return daysPerWeek
+	case SnoozeMonday:
+		ahead := (int(time.Monday) - int(now.Weekday()) + daysPerWeek) % daysPerWeek
+		if ahead == 0 {
+			ahead = daysPerWeek
+		}
+		return ahead
+	case SnoozeMonth:
+		first := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location())
+		today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		return int(first.Sub(today).Hours() / 24)
+	}
+	return 0
+}
+
+const daysPerWeek = 7
+
 // Prune deletes hints resolved more than resolvedRetention ago.
 func Prune(d *sql.DB) error {
 	return db.WithTx(d, func(tx *sql.Tx) error {

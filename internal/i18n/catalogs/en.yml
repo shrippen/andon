@@ -973,6 +973,10 @@ hints:
   done_title: 'Done in the last {days} days'
   done_when: 'done {when}'
   done_none: 'Nothing done in this time.'
+  snooze_until: 'Pause until'
+  snooze_tomorrow: 'tomorrow'
+  snooze_monday: 'Monday'
+  snooze_month: 'start of month'
 severity:
   info: Info
   warn: Warning
