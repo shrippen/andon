@@ -268,7 +268,7 @@ func TestQuickLinkClicksPaletteUndo(t *testing.T) {
 		t.Fatalf("quick link: %d", resp.StatusCode)
 	}
 	view := string(mustGet(t, srv, client, "/boards/"+board))
-	if !strings.Contains(view, `<b class="launch-title">Jellyfin</b>`) {
+	if !strings.Contains(view, `<b class="launch-title" title="Jellyfin">Jellyfin</b>`) {
 		t.Fatalf("tile missing:\n%s", view)
 	}
 

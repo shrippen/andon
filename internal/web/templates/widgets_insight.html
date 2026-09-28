@@ -154,7 +154,7 @@
 {{end}}
 {{with .Frag.View.Hints}}
 <ul class="hint-lines">
-  {{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><a href="/hints#hint-{{.ID}}">{{.Title}}</a><small>{{ago .FirstSeen}}</small>
+  {{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><a href="/hints#hint-{{.ID}}" title="{{.Title}}">{{.Title}}</a><small>{{ago .FirstSeen}}</small>
     {{if and $.Frag.View.Buttons $.Ctx.CSRF}}<span class="hint-line-acts">
       <form method="post" action="/hints/{{.ID}}/ack"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer"><button type="submit" class="ghost" aria-label="{{t "hints.ack"}}: {{.Title}}">{{t "hints.ack"}}</button></form>
       <form method="post" action="/hints/{{.ID}}/snooze"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="days" value="1"><input type="hidden" name="back" value="referer"><button type="submit" class="ghost" aria-label="{{t "hints.later"}}: {{.Title}}">{{t "hints.later"}}</button></form>
@@ -172,7 +172,7 @@
 {{range .Frag.View.Hints}}{{$left := index $.Frag.View.Left .ID}}
   <li data-urgency="{{if le $left 1}}red{{else if le $left 6}}yellow{{end}}">
     <span class="countdown">{{if lt $left 0}}{{t "deadline.overdue"}}{{else if eq $left 0}}{{t "deadline.today"}}{{else}}{{$left}}<em>{{t "deadline.days_short"}}</em>{{end}}</span>
-    <span><a href="/hints#hint-{{.ID}}">{{.Title}}</a>
+    <span><a href="/hints#hint-{{.ID}}" title="{{.Title}}">{{.Title}}</a>
       <time datetime="{{.Due}}">{{weekday .Due}} {{day .Due}}</time></span></li>
 {{else}}<li class="muted">{{t "widget.empty"}}</li>
 {{end}}
@@ -254,7 +254,7 @@
   <b>{{if $v.Text}}{{$v.Text}}{{else}}{{t (print "light." $v.State)}}{{end}}</b>
   <small>{{if $v.Count}}{{t "light.count" "n" $v.Count}}{{else}}{{t "light.calm"}}{{end}}</small>
 </div>
-{{with $v.Items}}<ul class="hint-lines">{{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span>{{if .ID}}<a href="/hints#hint-{{.ID}}">{{.Title}}</a>{{else}}<span>{{.Title}}{{with .Note}} · {{t .}}{{end}}</span>{{end}}</li>{{end}}</ul>{{end}}
+{{with $v.Items}}<ul class="hint-lines">{{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span>{{if .ID}}<a href="/hints#hint-{{.ID}}" title="{{.Title}}">{{.Title}}</a>{{else}}<span>{{.Title}}{{with .Note}} · {{t .}}{{end}}</span>{{end}}</li>{{end}}</ul>{{end}}
 {{if $v.More}}<p class="hint-all"><a href="/hints">{{t "light.more" "n" $v.More}} →</a></p>{{end}}
 {{end}}
 {{end}}

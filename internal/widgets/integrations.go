@@ -170,7 +170,7 @@ func tailscaleView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any
 		}
 		shown.Devices = append(shown.Devices, d)
 	}
-	return map[string]any{"Data": &shown, "OnlyTrouble": cfg.OnlyTrouble, "Total": len(data.Devices), "Now": now}
+	return map[string]any{"Data": &shown, "OnlyTrouble": cfg.OnlyTrouble, "Total": len(data.Devices), "Now": now, "Soon": soon}
 }
 
 // GitHubConfig is the "github" widget's config.

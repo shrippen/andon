@@ -2030,10 +2030,10 @@ hint:
       title: '{client} zahlt langsamer'
       why: 'Zuletzt nach {recent} Tagen, sonst nach {avg}. Zahlungsziel ansprechen oder Abschläge vereinbaren.'
     overdue:
-      title: Rechnung {number} seit {days} Tagen überfällig
+      title: 'Seit {days} Tagen überfällig: Rechnung {number}'
       why: '{client}, offen: {amount}.'
     overdue_dunning:
-      title: 'Mahnung fällig: {number} ({days} Tage)'
+      title: '{days} Tage offen, Mahnung fällig: {number}'
       why: '{client}, offen: {amount}. Zahlungserinnerung oder Mahnung senden.'
     slow_payer:
       title: '{client} zahlt im Mittel nach {days} Tagen'

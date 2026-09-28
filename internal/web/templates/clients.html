@@ -65,7 +65,7 @@
     <ul class="legend-list">{{range .}}<li><span>{{.Name}}</span><b>{{num .Hours 1}} h</b></li>{{end}}</ul>{{end}}
 
     <h2>{{t "nav.hints"}}</h2>
-    {{with .C.Hints}}<ul class="hint-lines">{{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><a href="/hints#hint-{{.ID}}">{{.Title}}</a><small>{{ago .FirstSeen}}</small></li>{{end}}</ul>
+    {{with .C.Hints}}<ul class="hint-lines">{{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><a href="/hints#hint-{{.ID}}" title="{{.Title}}">{{.Title}}</a><small>{{ago .FirstSeen}}</small></li>{{end}}</ul>
     {{else}}<p class="muted">{{t "clients.no_hints"}}</p>{{end}}
   </main>
 </body>

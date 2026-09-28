@@ -2030,10 +2030,10 @@ hint:
       title: '{client} pays slower'
       why: 'Recently after {recent} days, usually after {avg}. Talk about payment terms or agree on instalments.'
     overdue:
-      title: Invoice {number} overdue for {days} days
+      title: 'Overdue for {days} days: invoice {number}'
       why: '{client}, open: {amount}.'
     overdue_dunning:
-      title: 'Reminder due: {number} ({days} days)'
+      title: '{days} days open, reminder due: {number}'
       why: '{client}, open: {amount}. Send a payment reminder.'
     slow_payer:
       title: '{client} typically pays after {days} days'

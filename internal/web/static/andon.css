@@ -1370,6 +1370,8 @@ table.table th.num, table.table td.num { text-align: right; font-variant-numeric
 .hint-lines li { display: flex; align-items: baseline; gap: .1rem; padding: .3rem 0; border-bottom: 1px solid var(--bg2); font-size: .86rem; min-width: 0; }
 .hint-lines li a { color: var(--fg1); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .hint-lines li a:hover { color: var(--fg0); text-decoration: underline; }
+/* A tall tile has room: titles wrap instead of being cut. */
+.tile-slot[data-rows="2"] .hint-lines li a { white-space: normal; }
 .hint-lines small { margin-left: auto; padding-left: .6rem; flex: none; font-family: var(--font-mono); font-size: .68rem; color: var(--fg3); }
 .hint-line-acts { display: flex; gap: .25rem; flex: none; margin-left: .5rem; }
 .hint-line-acts form { margin: 0; }
