@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/i18n"
 	"andon/internal/metrics"
 	data "andon/internal/repos/data"
 	"andon/internal/services/access"
@@ -74,8 +75,38 @@ type Entry struct {
 	Kind    string // "update", "opened", "resolved", "reopened"
 	Subject string // service or hint title
 	Detail  string // "v1 → v2"
-	HintID  int64  // 0 for updates
+	HintID  int64  // 0 for updates and bursts
+	Rule    string // the hint's rule, "" for updates
+	Count   int    // > 1: a burst of this many hints of Rule (see foldBursts)
 	Space   string
+}
+
+// foldBursts merges hints of one rule that changed alike within the same
+// minute (one analysis run) into one entry named by the rule: 54 resolved
+// "unused service" hints become "54 × Unused service". entries are
+// newest first.
+func foldBursts(entries []Entry, ruleName func(rule string) string) []Entry {
+	type burst struct {
+		minute     time.Time
+		rule, kind string
+	}
+	var out []Entry
+	at := map[burst]int{}
+	for _, e := range entries {
+		key := burst{e.At.Truncate(time.Minute), e.Rule, e.Kind}
+		i, seen := at[key]
+		if e.Rule == "" || !seen {
+			at[key] = len(out)
+			out = append(out, e)
+			continue
+		}
+		first := &out[i]
+		if first.Count == 0 {
+			first.Count, first.HintID, first.Subject = 1, 0, ruleName(e.Rule)
+		}
+		first.Count++
+	}
+	return out
 }
 
 // Timeline lists what happened in the caller's spaces within days.
@@ -104,9 +135,10 @@ func Timeline(d *sql.DB, who *access.Principal, since time.Time, limit int) ([]E
 		if err != nil {
 			continue
 		}
-		out = append(out, Entry{At: c.At, Kind: c.Kind, Subject: view.Title, HintID: c.HintID, Space: view.SpaceName})
+		out = append(out, Entry{At: c.At, Kind: c.Kind, Subject: view.Title, HintID: c.HintID, Rule: c.Rule, Space: view.SpaceName})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].At.After(out[j].At) })
+	out = foldBursts(out, func(rule string) string { return i18n.T("rule_name."+rule, who.Locale, nil) })
 	if len(out) > limit {
 		out = out[:limit]
 	}

@@ -285,7 +285,7 @@
 <ol class="day-line is-recent">
   {{range $v.Items}}<li data-kind="{{if eq .Kind "update"}}event{{else if eq .Kind "resolved"}}transit{{else}}deadline{{end}}">
     <span class="day-at">{{ago .At}}</span><i aria-hidden="true"></i>
-    <span>{{if .HintID}}<a href="/hints#hint-{{.HintID}}">{{.Subject}}</a>{{else}}<b>{{.Subject}}</b>{{end}} <small class="muted">{{t (print "timeline." .Kind)}}{{with .Detail}} · {{.}}{{end}}</small></span></li>{{end}}
+    <span>{{if .HintID}}<a href="/hints#hint-{{.HintID}}">{{.Subject}}</a>{{else}}<b>{{if gt .Count 1}}{{.Count}} × {{end}}{{.Subject}}</b>{{end}} <small class="muted">{{t (print "timeline." .Kind)}}{{with .Detail}} · {{.}}{{end}}</small></span></li>{{end}}
 </ol>
 <p class="hint-all"><a href="/timeline">{{if $v.More}}{{t "light.more" "n" $v.More}}{{else}}{{t "nav.timeline"}}{{end}} →</a></p>
 {{else}}<p class="slot-note">{{t "recent.none"}}</p>{{end}}{{end}}

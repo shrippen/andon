@@ -18,7 +18,7 @@
       {{range .Entries}}
       <li data-kind="{{.Kind}}"><time>{{day .At}} {{.At.Local.Format "15:04"}}</time>
         <span class="pill" data-state="{{if eq .Kind "resolved"}}ok{{else if eq .Kind "update"}}reviewing{{else}}warn{{end}}">{{t (print "timeline." .Kind)}}</span>
-        {{if .HintID}}<a href="/hints#hint-{{.HintID}}">{{.Subject}}</a>{{else}}<b>{{.Subject}}</b>{{end}}
+        {{if .HintID}}<a href="/hints#hint-{{.HintID}}">{{.Subject}}</a>{{else}}<b>{{if gt .Count 1}}{{.Count}} × {{end}}{{.Subject}}</b>{{end}}
         {{with .Detail}}<small class="muted">{{.}}</small>{{end}}{{with .Space}}<small class="muted"> · {{.}}</small>{{end}}</li>
       {{else}}<li class="muted">{{t "timeline.empty"}}</li>{{end}}
     </ol>

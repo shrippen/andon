@@ -17,6 +17,7 @@ type TimelineItem struct {
 	At                    time.Time
 	Kind, Subject, Detail string // Kind: update, opened, resolved, reopened
 	HintID                int64
+	Count                 int // > 1: a burst of this many hints
 }
 
 // RecentConfig is the "timeline_recent" widget's config.

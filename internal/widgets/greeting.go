@@ -64,6 +64,7 @@ func decodeGreeting(raw map[string]any) any {
 type GreetingChange struct {
 	Kind, Subject, Detail string
 	At                    time.Time
+	Count                 int // > 1: a burst of this many hints
 }
 
 // GreetingData is what the widgets service adds for a greeting: the
@@ -166,9 +167,9 @@ func greetingLines(changes []GreetingChange) []GreetingLine {
 	for _, c := range changes {
 		switch c.Kind {
 		case ChangeOpened, ChangeReopened:
-			opened++
+			opened += max(c.Count, 1)
 		case ChangeResolved:
-			resolved++
+			resolved += max(c.Count, 1)
 		case ChangeUpdate:
 			if len(updates) < greetingUpdates {
 				updates = append(updates, GreetingLine{Tier: "blue", Text: c.Subject + " " + c.Detail})

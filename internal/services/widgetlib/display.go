@@ -363,7 +363,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		}
 		items := make([]widgets.TimelineItem, len(entries))
 		for i, e := range entries {
-			items[i] = widgets.TimelineItem{At: e.At, Kind: e.Kind, Subject: e.Subject, Detail: e.Detail, HintID: e.HintID}
+			items[i] = widgets.TimelineItem{At: e.At, Kind: e.Kind, Subject: e.Subject, Detail: e.Detail, HintID: e.HintID, Count: e.Count}
 		}
 		frag.Slots[widgets.TimelineSlot] = Slot{Data: items}
 	}
@@ -729,7 +729,7 @@ func greetingData(d *sql.DB, who *access.Principal, cfg widgets.GreetingConfig) 
 		return nil, err
 	}
 	for _, e := range entries {
-		g.Changes = append(g.Changes, widgets.GreetingChange{Kind: e.Kind, Subject: e.Subject, Detail: e.Detail, At: e.At})
+		g.Changes = append(g.Changes, widgets.GreetingChange{Kind: e.Kind, Subject: e.Subject, Detail: e.Detail, At: e.At, Count: e.Count})
 	}
 	return g, nil
 }
