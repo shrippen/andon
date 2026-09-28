@@ -961,6 +961,11 @@ main .cm-s-default .cm-error { color: var(--danger-text); }
 main > * + h2 { margin-top: 1.8rem; }
 .row-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
 .row-actions form { margin: 0; }
+/* In a table the cell stays a cell, so row lines stay level. */
+td.row-actions { display: table-cell; }
+td.row-actions > * { display: inline-block; vertical-align: middle; margin: .15rem .4rem .15rem 0; }
+td.row-actions button { margin: 0; }
+.boards-table button { margin: 0; }
 label.check { display: flex; gap: .5rem; align-items: center; }
 @media (max-width: 800px) {
   .editor-split, .token-grid { grid-template-columns: minmax(0, 1fr); }

@@ -34,9 +34,9 @@
           </form>
         </td>
         <td class="row-actions">
-          {{if .CanEdit}}<a href="/boards/{{.ID}}?edit">{{t "boards.edit"}}</a>
-          <a href="/boards/{{.ID}}/settings">{{t "boards.settings"}}</a>{{end}}
-          <a href="/boards/{{.ID}}?layout">{{t "boards.my_layout"}}</a>
+          {{if .CanEdit}}<a class="link-btn" href="/boards/{{.ID}}?edit">{{t "boards.edit"}}</a>
+          <a class="link-btn" href="/boards/{{.ID}}/settings">{{t "boards.settings"}}</a>{{end}}
+          <a class="link-btn" href="/boards/{{.ID}}?layout">{{t "boards.my_layout"}}</a>
         </td>
       </tr>
       {{end}}
