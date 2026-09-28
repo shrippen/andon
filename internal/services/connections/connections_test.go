@@ -266,3 +266,15 @@ func TestHealthStateFollowsLastFetch(t *testing.T) {
 		t.Fatalf("after a good test: %s", got)
 	}
 }
+
+// A connection counts as shaky from 5 % failed fetches; single failures
+// among many fetches are noise.
+func TestHealthShakyFromFivePercent(t *testing.T) {
+	now := time.Now()
+	for pct, want := range map[int]connections.HealthState{4: connections.HealthOK, 5: connections.HealthShaky} {
+		h := connections.Health{Fetches: 100, FailPct: pct, LastOK: now, LastFail: now.Add(-time.Hour)}
+		if got := h.State(); got != want {
+			t.Fatalf("%d %%: %s", pct, got)
+		}
+	}
+}

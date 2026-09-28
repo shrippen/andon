@@ -46,6 +46,10 @@ const (
 	HealthFailing HealthState = "failing" // the last fetch failed
 )
 
+// shakyPct: below this failure rate single failures are noise (1 of 33
+// fetches is 3 %).
+const shakyPct = 5
+
 // State follows the latest fetch: a successful test ends "failing" at
 // once, the failure rate only makes it "shaky".
 func (h Health) State() HealthState {
@@ -54,7 +58,7 @@ func (h Health) State() HealthState {
 		return HealthUnknown
 	case !h.LastFail.IsZero() && (h.LastOK.IsZero() || h.LastFail.After(h.LastOK)):
 		return HealthFailing
-	case h.FailPct > 0:
+	case h.FailPct >= shakyPct:
 		return HealthShaky
 	}
 	return HealthOK
