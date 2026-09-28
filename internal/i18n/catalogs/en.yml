@@ -2675,6 +2675,9 @@ settings:
   maintenance_until: 'Ends (empty = none)'
   maintenance_conns: 'Affected connections'
   maintenance_note: 'Note'
+  toc: 'Contents'
+  rule_search: 'Search rules'
+  rule_none: 'No rule matches.'
 notify:
   min_level: From level
   sources: Only these sources
@@ -3765,3 +3768,6 @@ kimai:
 board_layout:
   grid: 'Grid'
   masonry: 'Flowing columns'
+rule_scope:
+  cross: 'Across services'
+  deadlines: 'Deadlines'

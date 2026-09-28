@@ -14,9 +14,10 @@
     {{template "intro" dict "Page" "spaces" "Chapter" "spaces" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{t "settings.lead"}}</p>
     {{if .Saved}}<p class="pill" data-state="ok">{{t "saved"}}</p>{{end}}
+    <nav class="toc" aria-label="{{t "settings.toc"}}">{{range list "page" "maintenance" "goals" "stats" "homelab" "tax" "custom" "rules"}}<a href="#{{.}}">{{t (print "settings." .)}}</a>{{end}}</nav>
     <form method="post" action="/spaces/{{.SpaceID}}/settings">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-      <h2>{{t "settings.page"}}</h2>
+      <h2 id="page">{{t "settings.page"}}</h2>
       <div class="card">
         <label for="title">{{t "settings.page_title"}}</label>
         <input id="title" name="title" value="{{.Page.Title}}">
@@ -42,7 +43,7 @@
         <input id="maint_note" name="maint_note" value="{{.Maint.Note}}">
       </div>
 
-      <h2>{{t "settings.goals"}}</h2>
+      <h2 id="goals">{{t "settings.goals"}}</h2>
       <div class="card">
         <label for="revenue_year">{{t "settings.revenue_year"}}</label>
         <input id="revenue_year" name="revenue_year" type="number" step="100" value="{{index .Goals "revenue_year"}}">
@@ -56,7 +57,7 @@
         <p class="small muted">{{t "settings.billing_internal_hint"}}</p>
       </div>
 
-      <h2>{{t "settings.stats"}}</h2>
+      <h2 id="stats">{{t "settings.stats"}}</h2>
       <div class="card">
         <label for="center">{{t "settings.center"}}</label>
         <select id="center" name="center">
@@ -65,7 +66,7 @@
         <p class="small muted">{{t "settings.center_hint"}}</p>
       </div>
 
-      <h2>{{t "settings.homelab"}}</h2>
+      <h2 id="homelab">{{t "settings.homelab"}}</h2>
       <div class="card">
         <label for="power_entity">{{t "settings.power_entity"}}</label>
         <input id="power_entity" name="power_entity" value="{{index .Homelab "power_entity"}}" placeholder="sensor.server_power">
@@ -82,7 +83,7 @@
         <p class="small muted">{{t "settings.homelab_hint"}}</p>
       </div>
 
-      <h2>{{t "settings.tax"}}</h2>
+      <h2 id="tax">{{t "settings.tax"}}</h2>
       <div class="card">
         <label for="vat_method">{{t "settings.vat_method"}}</label>
         <select id="vat_method" name="vat_method">{{$m := print (index .VAT "method")}}{{range .Methods}}<option value="{{.}}"{{if eq . $m}} selected{{end}}>{{t (print "settings.method_" .)}}</option>{{end}}</select>
@@ -98,7 +99,7 @@
         <p class="small muted">{{t "settings.tax_hint"}}</p>
       </div>
 
-      <h2>{{t "settings.custom"}}</h2>
+      <h2 id="custom">{{t "settings.custom"}}</h2>
       <p class="small muted">{{t "settings.custom_hint"}}</p>
       <input type="hidden" name="cr_count" value="{{len .Custom}}">
       <div class="table-wrap"><table class="table custom-rules">
@@ -116,22 +117,28 @@
         {{end}}
       </table></div>
 
-      <h2>{{t "settings.rules"}}</h2>
-      <div class="table-wrap"><table class="table">
-        <tr><th>{{t "settings.rule"}}</th><th>{{t "settings.params"}}</th></tr>
-        {{range .Rules}}{{$id := .ID}}
-        <tr id="rule-{{.ID}}">
-          <td><label class="check"><input type="checkbox" name="rule.{{.ID}}.enabled"{{if .Enabled}} checked{{end}}> {{t (print "rule_name." .ID)}}</label><small class="muted"><code>{{.ID}}</code></small></td>
-          <td class="rule-params">
-            {{range .Params}}
-              {{if eq (print .Kind) "bool"}}<label class="check"><input type="checkbox" name="rule.{{$id}}.{{.Key}}"{{if .On}} checked{{end}}> {{t (print "param." .Key)}}</label>
-              {{else}}<label>{{t (print "param." .Key)}} <input name="rule.{{$id}}.{{.Key}}" value="{{.Text}}"{{if eq (print .Kind) "number"}} type="number" step="any"{{end}}></label>{{end}}
-            {{end}}
-          </td>
-        </tr>
-        {{end}}
-      </table></div>
-      <button type="submit">{{t "action.save"}}</button>
+      <h2 id="rules">{{t "settings.rules"}}</h2>
+      <input type="search" id="rule-q" class="rule-search" placeholder="{{t "settings.rule_search"}}" aria-label="{{t "settings.rule_search"}}">
+      {{range .RuleGroups}}
+      <details class="rule-group" data-rule-group>
+        <summary><b>{{t .Label}}</b> <span class="hint-group-count">{{len .Rules}}</span></summary>
+        <div class="table-wrap"><table class="table">
+          {{range .Rules}}{{$id := .ID}}
+          <tr id="rule-{{.ID}}" data-q="{{.ID}} {{t (print "rule_name." .ID)}}">
+            <td><label class="check"><input type="checkbox" name="rule.{{.ID}}.enabled"{{if .Enabled}} checked{{end}}> {{t (print "rule_name." .ID)}}</label><small class="muted"><code>{{.ID}}</code></small></td>
+            <td class="rule-params">
+              {{range .Params}}
+                {{if eq (print .Kind) "bool"}}<label class="check"><input type="checkbox" name="rule.{{$id}}.{{.Key}}"{{if .On}} checked{{end}}> {{t (print "param." .Key)}}</label>
+                {{else}}<label>{{t (print "param." .Key)}} <input name="rule.{{$id}}.{{.Key}}" value="{{.Text}}"{{if eq (print .Kind) "number"}} type="number" step="any"{{end}}></label>{{end}}
+              {{end}}
+            </td>
+          </tr>
+          {{end}}
+        </table></div>
+      </details>
+      {{end}}
+      <p class="rule-none muted" hidden>{{t "settings.rule_none"}}</p>
+      <div class="save-bar"><button type="submit">{{t "action.save"}}</button></div>
     </form>
   </main>
 </body>

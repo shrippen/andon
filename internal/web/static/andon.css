@@ -1516,3 +1516,13 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 .heat-legend i[data-goal="under"] { background: var(--yellow); }
 .spark-cell { width: 5rem; }
 .spark-cell .spark { height: 1.1rem; margin: 0; }
+
+/* ── space settings: contents, rule groups, save bar ── */
+.toc { display: flex; flex-wrap: wrap; gap: .3rem 1rem; margin: 0 0 1.2rem; font-family: var(--font-mono); font-size: .78rem; }
+.rule-search { margin: .6rem 0 .8rem; }
+.rule-group { border-top: 1px solid var(--bg2); }
+.rule-group > summary { cursor: pointer; padding: .55rem 0; }
+.rule-group[open] > summary { padding-bottom: .4rem; }
+.rule-group .table-wrap { margin-bottom: .8rem; }
+.save-bar { position: sticky; bottom: 0; z-index: 5; margin-top: 1rem; padding: .6rem 0; background: var(--bg-void); border-top: 1px solid var(--bg2); }
+.save-bar button { margin: 0; }

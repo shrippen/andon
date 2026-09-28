@@ -2676,6 +2676,9 @@ settings:
   maintenance_until: 'Ende (leer = keine Wartung)'
   maintenance_conns: 'Betroffene Verbindungen'
   maintenance_note: 'Notiz'
+  toc: 'Inhalt'
+  rule_search: 'Regeln durchsuchen'
+  rule_none: 'Keine Regel passt.'
 notify:
   min_level: Ab Stufe
   sources: Nur diese Quellen
@@ -3766,3 +3769,6 @@ kimai:
 board_layout:
   grid: 'Raster'
   masonry: 'Spaltenfluss'
+rule_scope:
+  cross: 'Dienstübergreifend'
+  deadlines: 'Fristen'

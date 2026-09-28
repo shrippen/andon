@@ -41,8 +41,36 @@ type Param struct {
 // RuleView is one rule with its effective parameters.
 type RuleView struct {
 	ID      string
+	Scope   string
 	Enabled bool
 	Params  []Param
+}
+
+// RuleGroup is the rules of one service (or other scope) with the
+// catalog key of its name, e.g. "service.kimai".
+type RuleGroup struct {
+	Scope, Label string
+	Rules        []RuleView
+}
+
+// scopeLabels names scopes that are no service.
+var scopeLabels = map[string]string{"cross": "rule_scope.cross", "deadlines": "rule_scope.deadlines"}
+
+// RuleGroups groups RuleViews by scope, in scope order.
+func RuleGroups(settings map[string]any) []RuleGroup {
+	var out []RuleGroup
+	for _, v := range RuleViews(settings) {
+		if n := len(out); n > 0 && out[n-1].Scope == v.Scope {
+			out[n-1].Rules = append(out[n-1].Rules, v)
+			continue
+		}
+		label, ok := scopeLabels[v.Scope]
+		if !ok {
+			label = "service." + v.Scope
+		}
+		out = append(out, RuleGroup{Scope: v.Scope, Label: label, Rules: []RuleView{v}})
+	}
+	return out
 }
 
 // Settings returns a space's settings. Requires VIEW.
@@ -140,14 +168,20 @@ func toText(v any) string {
 	return ""
 }
 
-// RuleViews lists every rule with its effective parameters, sorted by id.
+// RuleViews lists every rule with its effective parameters, sorted by
+// scope, then id.
 func RuleViews(settings map[string]any) []RuleView {
 	specs := rules.AllRules()
-	sort.Slice(specs, func(i, j int) bool { return specs[i].ID < specs[j].ID })
+	sort.Slice(specs, func(i, j int) bool {
+		if specs[i].Scope != specs[j].Scope {
+			return specs[i].Scope < specs[j].Scope
+		}
+		return specs[i].ID < specs[j].ID
+	})
 	out := make([]RuleView, 0, len(specs))
 	for _, spec := range specs {
 		cfg := rules.Config(spec, settings)
-		view := RuleView{ID: spec.ID, Enabled: true}
+		view := RuleView{ID: spec.ID, Scope: spec.Scope, Enabled: true}
 		if on, ok := cfg[enabledKey].(bool); ok {
 			view.Enabled = on
 		}

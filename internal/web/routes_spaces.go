@@ -73,7 +73,7 @@ func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request, ctx Ct
 		"SpaceID": id, "Goals": goals, "Tax": tax, "VAT": asMap(tax["vat"]), "Prepay": asMap(tax["prepayments"]),
 		"Costs": asMap(settings["costs"]), "Homelab": asMap(settings["homelab"]), "Billing": asMap(settings["billing"]),
 		"Center": metrics.CenterOf(settings), "Centers": centers,
-		"Rules": spaces.RuleViews(settings), "Methods": vatMethods, "Intervals": vatIntervals,
+		"RuleGroups": spaces.RuleGroups(settings), "Methods": vatMethods, "Intervals": vatIntervals,
 		"Saved": r.URL.Query().Has("saved"), "Page": spaces.PageOf(settings), "NavText": spaces.NavText(spaces.PageOf(settings)),
 		"Custom": spaces.CustomRows(settings), "Ops": rules.CustomOps, "Services": enums.Services, "Levels": severityLevels,
 		"Maint": maint, "MaintUntil": maint.UntilInput(time.Local), "MaintConns": chosen, "Conns": conns, "Now": time.Now(),

@@ -1046,8 +1046,39 @@
     d.body.setAttribute("hx-boost", "true");
   }
 
+  // Space settings: the rule search shows matching rules and opens their
+  // groups; a link to #rule-<id> opens that rule's group.
+  function setupRuleSearch() {
+    var q = d.getElementById("rule-q");
+    if (!q) {
+      return;
+    }
+    var target = location.hash && d.getElementById(location.hash.slice(1));
+    if (target && target.closest("[data-rule-group]")) {
+      target.closest("[data-rule-group]").open = true;
+      target.scrollIntoView();
+    }
+    q.addEventListener("input", function () {
+      var text = q.value.trim().toLowerCase();
+      var any = false;
+      [].forEach.call(d.querySelectorAll("[data-rule-group]"), function (group) {
+        var shown = 0;
+        [].forEach.call(group.querySelectorAll("[data-q]"), function (row) {
+          var hit = !text || row.getAttribute("data-q").toLowerCase().indexOf(text) >= 0;
+          row.hidden = !hit;
+          shown += hit ? 1 : 0;
+        });
+        group.hidden = shown === 0;
+        group.open = !!text && shown > 0;
+        any = any || shown > 0;
+      });
+      d.querySelector(".rule-none").hidden = any;
+    });
+  }
+
   d.addEventListener("DOMContentLoaded", function () {
     setupRetry();
+    setupRuleSearch();
     setupAutosubmit();
     setupMenus();
     setupHintPop();
