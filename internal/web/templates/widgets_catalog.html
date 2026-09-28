@@ -152,7 +152,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
 <div class="tile-head"><b class="tile-value">{{num $v.SpeedMB 1}} MB/s</b><span class="tile-sub">{{if $d.Paused}}{{t "sab.paused"}}{{else}}{{t "sab.queue" "n" $d.Slots}}{{end}}</span></div>
-<p class="tile-sub">{{t "sab.free" "n" (num $d.FreeGB 0)}}</p>
+<p class="tile-sub">{{t "sab.free" "n" (gb $d.FreeGB)}}</p>
 {{with $v.Queue}}<ul class="hbars">{{range .}}<li><span class="hbar-label">{{.Name}}</span><span class="hbar"><i data-style="--w:{{.Percent}}%"></i></span><span class="hbar-value">{{.Left}}</span></li>{{end}}</ul>{{end}}
 {{with $v.Failures}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="red" aria-hidden="true"></span>{{.Name}}<b>{{ago .At}}</b></li>{{end}}</ul>{{end}}
 {{end}}{{end}}

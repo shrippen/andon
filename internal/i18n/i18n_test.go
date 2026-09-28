@@ -88,3 +88,13 @@ func TestAgoFuturePast(t *testing.T) {
 		t.Fatalf("expected past phrase, got %q", got)
 	}
 }
+
+// GB scales large sizes to TB, so 2168 GB does not read as 2,168 GB.
+func TestGBScales(t *testing.T) {
+	cases := map[float64]string{12.4: "12 GB", 2168: "2,2 TB", 999: "999 GB"}
+	for gb, want := range cases {
+		if got := i18n.GB(gb, enums.LocaleDE); got != want {
+			t.Fatalf("%v: %q, want %q", gb, got, want)
+		}
+	}
+}

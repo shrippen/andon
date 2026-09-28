@@ -3121,7 +3121,7 @@ speed:
 sab:
   paused: 'pausiert'
   queue: '{n} in der Warteschlange'
-  free: '{n} GB frei'
+  free: '{n} frei'
 paperless:
   inbox: 'im Posteingang'
   oldest: 'Ältestes: {title} ({days} Tage)'

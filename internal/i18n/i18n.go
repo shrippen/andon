@@ -202,6 +202,17 @@ func Num(value float64, locale enums.Locale, digits int) string {
 	return groupedDecimal(value, locale, digits)
 }
 
+// gbPerTB: sizes from here on read as TB ("2,2 TB", not "2.168 GB").
+const gbPerTB = 1000
+
+// GB formats a size given in GB with its unit, scaled to TB when large.
+func GB(value float64, locale enums.Locale) string {
+	if value >= gbPerTB {
+		return groupedDecimal(value/gbPerTB, locale, 1) + " TB"
+	}
+	return groupedDecimal(value, locale, 0) + " GB"
+}
+
 // groupedDecimal formats value with thousands grouping and the locale's
 // decimal separator (",", "." for de; "." for en).
 func groupedDecimal(value float64, locale enums.Locale, digits int) string {

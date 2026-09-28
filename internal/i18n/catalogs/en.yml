@@ -3120,7 +3120,7 @@ speed:
 sab:
   paused: 'paused'
   queue: '{n} queued'
-  free: '{n} GB free'
+  free: '{n} free'
 paperless:
   inbox: 'in the inbox'
   oldest: 'Oldest: {title} ({days} days)'
