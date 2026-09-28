@@ -43,7 +43,7 @@ var topicOf = map[string]Topic{
 	"link": TopicOverview, "deadlines": TopicOverview, "expiries": TopicOverview,
 
 	"kimai_timer": TopicWork, "kimai_week": TopicWork, "kimai_split": TopicWork, "heatmap": TopicWork,
-	"unbilled_age": TopicWork, "cashflow": TopicWork, "invoice_aging": TopicWork, "mail_invoices": TopicWork,
+	"unbilled_age": TopicWork, "cashflow": TopicWork, "money_flow": TopicWork, "invoice_aging": TopicWork, "mail_invoices": TopicWork,
 	"dawarich_day": TopicWork, "paperless_inbox": TopicWork, "kintsugi": TopicWork,
 
 	"kpi": TopicAnalysis, "chart": TopicAnalysis, "table": TopicAnalysis, "trend": TopicAnalysis,

@@ -451,6 +451,7 @@ field:
   random: A random comic instead of the newest
   every: A new joke every … hours (empty = hourly)
   hide_bar: Hide the comparison bar
+  show_paid: 'Show income of the last 30 days'
 opt:
   exposure: 'Exposure'
   domain_chain: 'Domain chain'
@@ -872,6 +873,9 @@ wtype:
   expiries:
     name: 'Expiry timeline'
     desc: 'Everything with a date in one place: certificates, domains, warranties, contracts, renewals, tax.'
+  money_flow:
+    name: 'Money flow'
+    desc: 'Money on its way to the account: unbilled, drafts, sent, overdue, plus what came in over the last 30 days.'
 widget:
   delete_hint: 'The tile disappears from every board it is on.'
   pending: Loading with the next check …
@@ -3652,3 +3656,10 @@ subs:
   per_year: '{n} subscriptions per year'
 ip:
   changed: 'New since {time}, before {prev}'
+flow:
+  total: 'On its way'
+  unbilled: 'Unbilled'
+  drafts: 'Drafts'
+  sent: 'Sent'
+  overdue: 'Overdue'
+  paid: 'Paid (30 d)'

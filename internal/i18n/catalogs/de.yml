@@ -451,6 +451,7 @@ field:
   random: Zufälliger Comic statt des neuesten
   every: Neuer Witz alle … Stunden (leer = stündlich)
   hide_bar: Vergleichsbalken ausblenden
+  show_paid: 'Eingang der letzten 30 Tage zeigen'
 opt:
   exposure: 'Angriffsfläche'
   domain_chain: 'Domain-Kette'
@@ -872,6 +873,9 @@ wtype:
   expiries:
     name: 'Ablauf-Zeitstrahl'
     desc: 'Alles mit Datum an einer Stelle: Zertifikate, Domains, Garantien, Verträge, Verlängerungen, Steuer.'
+  money_flow:
+    name: 'Geldfluss'
+    desc: 'Geld auf dem Weg zum Konto: nicht abgerechnet, Entwürfe, versendet, überfällig, dazu der Eingang der letzten 30 Tage.'
 widget:
   delete_hint: 'Die Kachel verschwindet von allen Boards, auf denen sie steht.'
   pending: Wird beim nächsten Prüflauf geladen …
@@ -3653,3 +3657,10 @@ subs:
   per_year: '{n} Abos je Jahr'
 ip:
   changed: 'Neu seit {time}, vorher {prev}'
+flow:
+  total: 'Unterwegs'
+  unbilled: 'Nicht abgerechnet'
+  drafts: 'Entwürfe'
+  sent: 'Versendet'
+  overdue: 'Überfällig'
+  paid: 'Eingegangen (30 T.)'

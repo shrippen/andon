@@ -119,6 +119,50 @@ func decodeCashflow(raw map[string]any) any {
 		Delay: clampInt(asInt(raw["delay"], 0), 0, 180)}
 }
 
+// MoneyFlowConfig is the "money_flow" widget's config.
+type MoneyFlowConfig struct {
+	Paid bool // show what came in the last 30 days
+}
+
+func decodeMoneyFlow(raw map[string]any) any {
+	return MoneyFlowConfig{Paid: boolOr(raw["show_paid"], true)}
+}
+
+// FlowStage is one segment of the money flow bar.
+type FlowStage struct {
+	Key    string // unbilled, drafts, sent, overdue
+	Amount float64
+	W      float64 // share of the bar in percent
+	Link   string  // where to act on it
+}
+
+// moneyFlowView lays the stages out as one bar, from work to overdue.
+func moneyFlowView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
+	cfg := cfgAny.(MoneyFlowConfig)
+	ninja, ok := results["data"].(*sources.NinjaDataset)
+	if !ok {
+		return map[string]any{}
+	}
+	kimai, _ := results[peerKimai].(*sources.KimaiDataset)
+	f := metrics.MoneyFlowOf(kimai, ninja, parseToday(ctx.Today))
+	stages := []FlowStage{
+		{Key: "unbilled", Amount: f.Unbilled, Link: "/billing"},
+		{Key: "drafts", Amount: f.Drafts, Link: "/billing#drafts"},
+		{Key: "sent", Amount: f.Sent, Link: ninja.URL},
+		{Key: "overdue", Amount: f.Overdue, Link: "/hints?source=invoiceninja"},
+	}
+	if total := f.Total(); total > 0 {
+		for i := range stages {
+			stages[i].W = stages[i].Amount / total * pctFull
+		}
+	}
+	view := map[string]any{"Stages": stages, "Total": f.Total(), "Currency": f.Currency}
+	if cfg.Paid {
+		view["Paid"] = f.Paid
+	}
+	return view
+}
+
 func cashflowView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	cfg := cfgAny.(CashflowConfig)
 	ninja, ok := results["data"].(*sources.NinjaDataset)
@@ -178,6 +222,9 @@ func lowest(points []metrics.CashPoint) float64 {
 func init() {
 	Register(WidgetType{Key: "heatmap", Decode: decodeHeat, Template: "widgets/heatmap", Category: CategoryInsight,
 		Service: enums.ServiceKimai, RefreshS: 3600, Queries: dataQuery, View: heatmapView})
+	Register(WidgetType{Key: "money_flow", Decode: decodeMoneyFlow, Template: "widgets/money_flow", Category: CategoryInsight,
+		Service: enums.ServiceInvoiceNinja, RefreshS: 3600, View: moneyFlowView,
+		Queries: func(any) []Query { return append(dataQuery(nil), kimaiPeer) }})
 	Register(WidgetType{Key: "cashflow", Decode: decodeCashflow, Template: "widgets/cashflow", Category: CategoryInsight,
 		Service: enums.ServiceInvoiceNinja, RefreshS: 3600, View: cashflowView,
 		Queries: func(any) []Query { return append(dataQuery(nil), surePeer) }})

@@ -1309,6 +1309,17 @@ table.table th.num, table.table td.num { text-align: right; font-variant-numeric
 .level-bar i { width: var(--w); background: var(--blue); }
 .level-bar i[data-tier="yellow"] { background: var(--yellow); }
 .level-bar i[data-tier="red"] { background: var(--red); }
+/* ── money flow: unbilled → drafts → sent → overdue ── */
+.flow-bar { display: flex; gap: 1px; height: 12px; margin: .3rem 0 .5rem; }
+.flow-bar i { width: var(--w); background: var(--fg3); }
+.flow-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: .15rem; font-size: .8rem; }
+.flow-legend b { font-family: var(--font-mono); font-weight: 500; float: right; }
+.flow-legend .sq { display: inline-block; width: 7px; height: 7px; margin-right: .4rem; background: var(--fg3); }
+[data-stage="unbilled"] .sq, .flow-bar i[data-stage="unbilled"] { background: var(--blue); }
+[data-stage="drafts"] .sq, .flow-bar i[data-stage="drafts"] { background: var(--purple); }
+[data-stage="sent"] .sq, .flow-bar i[data-stage="sent"] { background: var(--aqua); }
+[data-stage="overdue"] .sq, .flow-bar i[data-stage="overdue"] { background: var(--red); }
+[data-stage="paid"] .sq { background: var(--green); }
 .level-counts { display: flex; flex-wrap: wrap; gap: .2rem 1rem; margin: .4rem 0 .6rem; font-family: var(--font-mono); font-size: .72rem; color: var(--fg2); }
 .level-counts .sq, .hint-lines .sq { display: inline-block; width: 7px; height: 7px; margin-right: .35rem; background: var(--blue); flex: none; }
 [data-tier="yellow"] > .sq { background: var(--yellow); }

@@ -183,3 +183,14 @@
 {{if $v.URL}}<p class="tile-foot"><span></span><a href="{{$v.URL}}" target="_blank" rel="noopener noreferrer">{{t "action.open_in_wallos"}} →</a></p>{{end}}
 {{else}}<p class="slot-note">{{t "subs.none"}}</p>{{end}}{{end}}
 {{end}}
+
+{{define "widgets/money_flow"}}
+{{/* From work to account: one bar, each stage a link to where it moves. */}}
+{{$v := .Frag.View}}
+{{if $v.Stages}}
+<p class="kpi"><span class="kpi-label">{{t "flow.total"}}</span><b class="kpi-value">{{money $v.Total $v.Currency}}</b></p>
+<div class="flow-bar" role="img" aria-label="{{t "flow.total"}}">{{range $v.Stages}}{{if .Amount}}<i data-stage="{{.Key}}" data-style="--w:{{.W}}%"></i>{{end}}{{end}}</div>
+<ul class="flow-legend">{{range $v.Stages}}<li data-stage="{{.Key}}"><span class="sq" aria-hidden="true"></span>{{if .Link}}<a href="{{.Link}}">{{t (print "flow." .Key)}}</a>{{else}}{{t (print "flow." .Key)}}{{end}} <b>{{money .Amount $v.Currency}}</b></li>{{end}}
+{{with $v.Paid}}<li data-stage="paid"><span class="sq" aria-hidden="true"></span>{{t "flow.paid"}} <b>{{money . $v.Currency}}</b></li>{{end}}</ul>
+{{else}}<p class="muted">{{t "widget.empty"}}</p>{{end}}
+{{end}}
