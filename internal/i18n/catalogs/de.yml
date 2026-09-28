@@ -459,6 +459,8 @@ field:
   hide_bar: Vergleichsbalken ausblenden
   show_paid: 'Eingang der letzten 30 Tage zeigen'
   hide_after: 'Geräte ausblenden, die länger offline sind als (Tage, 0 = nie)'
+  board_layout: 'Anordnung'
+  board_layout_hint: 'Spaltenfluss füllt Lücken unter kurzen Abschnitten; die Breite der Abschnitte gilt dann nicht.'
 opt:
   exposure: 'Angriffsfläche'
   domain_chain: 'Domain-Kette'
@@ -3760,3 +3762,6 @@ docker:
   all_fine: 'Alle Container laufen.'
 kimai:
   no_contract: 'Kein Arbeitsvertrag in Kimai (Benutzer → Arbeitszeit)'
+board_layout:
+  grid: 'Raster'
+  masonry: 'Spaltenfluss'

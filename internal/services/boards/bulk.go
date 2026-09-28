@@ -155,6 +155,10 @@ func Duplicate(d *sql.DB, who *access.Principal, boardID int64, name string) (in
 		if err != nil {
 			return err
 		}
+		copyBoard.Layout = src.Layout
+		if err := content.UpdateBoard(tx, copyBoard); err != nil {
+			return err
+		}
 		for _, empty := range copyBoard.Sections {
 			if err := content.RemoveSection(tx, empty.ID); err != nil {
 				return err

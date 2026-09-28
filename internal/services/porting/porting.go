@@ -148,7 +148,11 @@ func boardDoc(b *model.Board, spaces map[int64]*model.Space) map[string]any {
 		}
 		sections = append(sections, item)
 	}
-	return map[string]any{"name": b.Name, "slug": b.Slug, "sections": sections}
+	doc := map[string]any{"name": b.Name, "slug": b.Slug, "sections": sections}
+	if b.Layout != enums.LayoutGrid {
+		doc["layout"] = string(b.Layout)
+	}
+	return doc
 }
 
 // ExportSpace renders one space as YAML. Requires EDIT.
@@ -563,7 +567,10 @@ func importBoard(q db.Queryer, who *access.Principal, spaceID int64, item map[st
 		slugBase = name
 	}
 	board := &model.Board{SpaceID: spaceID, Slug: util.Unique(util.Slug(slugBase, "board"), taken), Name: name,
-		Position: len(taken), Version: 1, UpdatedAt: time.Now().UTC()}
+		Position: len(taken), Layout: enums.BoardLayout(str(item, "layout")), Version: 1, UpdatedAt: time.Now().UTC()}
+	if board.Layout != enums.LayoutMasonry {
+		board.Layout = enums.LayoutGrid
+	}
 	if err := content.AddBoard(q, board); err != nil {
 		return err
 	}

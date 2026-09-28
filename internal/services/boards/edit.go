@@ -58,8 +58,8 @@ func Create(d *sql.DB, who *access.Principal, spaceID int64, name string) (int64
 	return id, err
 }
 
-// Rename updates a board's name/theme/team restriction.
-func Rename(d *sql.DB, who *access.Principal, boardID int64, version int, name string, themeID *int64, minRole *enums.TeamRole) error {
+// Rename updates a board's name/theme/team restriction/layout.
+func Rename(d *sql.DB, who *access.Principal, boardID int64, version int, name string, themeID *int64, minRole *enums.TeamRole, layout enums.BoardLayout) error {
 	return db.WithTx(d, func(tx *sql.Tx) error {
 		board, err := load(tx, who, boardID, enums.RightEdit)
 		if err != nil {
@@ -73,12 +73,21 @@ func Rename(d *sql.DB, who *access.Principal, boardID int64, version int, name s
 		}
 		board.ThemeID = themeID
 		board.MinTeamRole = minRole
+		board.Layout = boardLayout(layout)
 		board.UpdatedAt = time.Now().UTC()
 		if err := content.UpdateBoard(tx, board); err != nil {
 			return err
 		}
 		return snapshot(tx, who, board)
 	})
+}
+
+// boardLayout accepts only known layouts; anything else is the grid.
+func boardLayout(raw enums.BoardLayout) enums.BoardLayout {
+	if raw == enums.LayoutMasonry {
+		return raw
+	}
+	return enums.LayoutGrid
 }
 
 // Delete removes a board and its shares. Requires MANAGE.

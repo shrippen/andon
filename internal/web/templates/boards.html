@@ -132,7 +132,7 @@
   {{range .Board.Sections}}{{if eq .Area "side"}}{{$hasSide = true}}{{end}}{{end}}
   <div class="board{{if and $hasSide (not .Compact)}} has-side{{end}}{{if .Compact}} is-compact{{end}}"
        data-board="{{.Board.ID}}" data-version="{{.Board.Version}}"
-       data-mode="{{if .Edit}}board{{else if .LayerEdit}}overlay{{end}}">
+       data-mode="{{if .Edit}}board{{else if .LayerEdit}}overlay{{end}}"{{with .Board.Layout}} data-layout="{{.}}"{{end}}>
     <div class="board-col board-main">
       {{range mainRuns .Board.Sections}}
         {{if .Flow}}<div class="dsec-flow">{{range .Sections}}{{template "section" dict "S" . "B" $}}{{end}}</div>

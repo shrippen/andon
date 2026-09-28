@@ -459,6 +459,8 @@ field:
   hide_bar: Hide the comparison bar
   show_paid: 'Show income of the last 30 days'
   hide_after: 'Hide devices offline longer than (days, 0 = never)'
+  board_layout: 'Layout'
+  board_layout_hint: 'Flowing columns fill gaps under short sections; section widths do not apply then.'
 opt:
   exposure: 'Exposure'
   domain_chain: 'Domain chain'
@@ -3759,3 +3761,6 @@ docker:
   all_fine: 'All containers are running.'
 kimai:
   no_contract: 'No working time in Kimai (user → working time)'
+board_layout:
+  grid: 'Grid'
+  masonry: 'Flowing columns'

@@ -28,6 +28,12 @@
         {{range .TeamRoles}}<option value="{{.}}"{{if eq (print .) $role}} selected{{end}}>{{t (print "role." .)}}</option>{{end}}
       </select>
       <p class="small muted">{{t "field.min_role_hint"}}</p>
+      <label for="layout">{{t "field.board_layout"}}</label>
+      <select id="layout" name="layout">
+        <option value="">{{t "board_layout.grid"}}</option>
+        <option value="masonry"{{if eq (print .Board.Layout) "masonry"}} selected{{end}}>{{t "board_layout.masonry"}}</option>
+      </select>
+      <p class="small muted">{{t "field.board_layout_hint"}}</p>
       <button type="submit">{{t "action.save"}}</button>
     </form>
     <p><a class="link-btn" href="/boards/{{.Board.ID}}/export">{{t "action.export"}}</a></p>

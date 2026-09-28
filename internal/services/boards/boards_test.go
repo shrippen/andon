@@ -106,7 +106,7 @@ func TestVersionConflict(t *testing.T) {
 	space, _ := content.PersonalSpace(d, u.ID)
 	boardID, _ := boards.Create(d, who, space.ID, "B")
 
-	err := boards.Rename(d, who, boardID, 999, "New Name", nil, nil)
+	err := boards.Rename(d, who, boardID, 999, "New Name", nil, nil, enums.LayoutGrid)
 	if !errors.Is(err, boards.ErrConflict) {
 		t.Fatalf("expected conflict for stale version, got %v", err)
 	}
@@ -319,5 +319,24 @@ func TestTileCols(t *testing.T) {
 	}
 	if tile().Cols != boards.MaxTileCols {
 		t.Fatalf("restored cols %d", tile().Cols)
+	}
+}
+
+// TestBoardLayout: masonry is stored; unknown layouts fall back to the grid.
+func TestBoardLayout(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	boardID, _ := boards.Create(d, who, space.ID, "B")
+
+	for _, c := range []struct{ in, want enums.BoardLayout }{{enums.LayoutMasonry, enums.LayoutMasonry}, {"bogus", enums.LayoutGrid}} {
+		view, _ := boards.View(d, who, boardID)
+		if err := boards.Rename(d, who, boardID, view.Version, "B", nil, nil, c.in); err != nil {
+			t.Fatal(err)
+		}
+		if view, _ = boards.View(d, who, boardID); view.Layout != c.want {
+			t.Fatalf("%q: %q", c.in, view.Layout)
+		}
 	}
 }

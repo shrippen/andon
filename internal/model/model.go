@@ -110,6 +110,7 @@ type Board struct {
 	ThemeID     *int64
 	IsTemplate  bool
 	MinTeamRole *enums.TeamRole
+	Layout      enums.BoardLayout
 	Version     int
 	UpdatedAt   time.Time
 

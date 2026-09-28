@@ -265,6 +265,15 @@ const (
 	TileLarge  TileSize = "large"
 )
 
+// BoardLayout is how a board places its sections: the grid with spans
+// (zero value, the default) or flowing columns that close gaps (masonry).
+type BoardLayout string
+
+const (
+	LayoutGrid    BoardLayout = ""
+	LayoutMasonry BoardLayout = "masonry"
+)
+
 // SortOrder controls how a section orders its widgets.
 type SortOrder string
 
