@@ -3382,7 +3382,7 @@ welcome:
   c_notify: 'Benachrichtigungen'
   c_notify_text: 'Wichtige Hinweise kommen als Push über Apprise zu dir, mit Ruhezeiten und Wiederholung. Dazu gibt es einen täglichen oder wöchentlichen Überblick per Mail, auf Wunsch mit KI-Zusammenfassung, und einen iCal-Kalender für Fristen.'
   c_freelance: 'Abrechnung und Zeitleiste'
-  c_freelance_text: 'Mit Kimai und Invoice Ninja zeigt Andon offene Stunden, Rechnungen, Auslastung und eine Jahresprognose. Unter „Abrechnung“ wird aus offener Zeit mit einem Klick ein Rechnungsentwurf. Die Zeitleiste legt Tage aus allen Diensten nebeneinander, etwa Standort, Buchungen und Termine.'
+  c_freelance_text: 'Mit Kimai und Invoice Ninja zeigt Andon offene Stunden, Rechnungen, Auslastung und eine Jahresprognose. Unter „Abrechnung“ wird aus offener Zeit mit einem Klick ein Rechnungsentwurf. Die Zeitleiste zeigt Updates und Hinweise der letzten Tage.'
   c_receipts: 'Belege zuordnen'
   c_receipts_text: 'Invoice Ninja führt Ausgaben, Paperless die Belege. Statt jeden Beleg doppelt hochzuladen, bleibt er in Paperless und wird mit seiner Ausgabe verknüpft, in beide Richtungen: Die Ausgabe bekommt einen Link zum Beleg, der Beleg Ausgabennummer und Link zur Ausgabe. Andon schlägt Paare nach Betrag, Datum, Lieferant und Rechnungsnummer vor und begründet jeden Vorschlag; verknüpft wird nur per Klick. Eine eigene Liste führt Andon dabei nicht: Ob etwas verknüpft ist, steht in den Feldern beider Programme, die du einmal unter „Felder“ zuordnest.'
   c_themes: 'Themes'
@@ -3403,7 +3403,7 @@ intro:
   themes: 'Themes bestimmen Farben und Schriften. Jede Änderung wird auf Lesbarkeit geprüft.'
   notify: 'Lege fest, wie wichtige Hinweise dich erreichen: Push über Apprise, Ruhezeiten und ein Überblick per Mail.'
   billing: 'Offene Kimai-Stunden je Kunde. Mit einem Klick entsteht daraus ein Rechnungsentwurf in Invoice Ninja.'
-  timeline: 'Die Zeitleiste legt einen Tag aus allen Diensten nebeneinander, etwa Standort, Buchungen und Termine.'
+  timeline: 'Die Zeitleiste zeigt, was sich in den letzten 14 Tagen geändert hat: Updates und Neustarts der Dienste, Hinweise, die kamen oder gingen. So findest du, was kurz vor einem Problem passiert ist.'
   receipts: 'Invoice-Ninja-Ausgaben finden hier ihre Belege aus Paperless. Andon schlägt vor, du bestätigst; die Verweise stehen danach auf beiden Seiten.'
 danger:
   title: Löschen
