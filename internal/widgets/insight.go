@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -92,6 +93,16 @@ type KpiConfig struct {
 	Target  float64 // 0 = none; colours the value
 	Spark   bool    // the 12-month line
 }
+
+// KpiDetail is one line behind a KPI value, e.g. an open invoice.
+type KpiDetail struct {
+	Label  string
+	Note   string // e.g. "12 days overdue", "14.5 h"
+	Amount float64
+}
+
+// kpiDetailsShown caps the lines behind a KPI value.
+const kpiDetailsShown = 12
 
 // KPI comparisons.
 const (
@@ -375,9 +386,11 @@ type KpiResult struct {
 	SubEnd   string
 	SubGoal  float64
 	SubRate  int
-	Spark    *Spark // last 12 months, where the metric has a history
-	DeltaKey string // what Delta compares with
-	Target   string // "good", "bad" or "" (no target)
+	Spark    *Spark      // last 12 months, where the metric has a history
+	DeltaKey string      // what Delta compares with
+	Details  []KpiDetail // what the value is made of, opened on click
+
+	Target string // "good", "bad" or "" (no target)
 }
 
 // sparkMonths is how far back a KPI's line reaches.
@@ -456,9 +469,27 @@ func kpiKimai(metric Metric, data *sources.KimaiDataset, ctx ViewCtx) *KpiResult
 			amount += g.Amount
 			minutes += g.Minutes
 		}
-		return &KpiResult{Kind: "money", Value: amount, SubKey: "kpi.hours", SubHours: float64(minutes) / minutesPerHourInsight}
+		result := &KpiResult{Kind: "money", Value: amount, SubKey: "kpi.hours", SubHours: float64(minutes) / minutesPerHourInsight}
+		for _, g := range stats.Unbilled[:min(len(stats.Unbilled), kpiDetailsShown)] {
+			result.Details = append(result.Details, KpiDetail{Label: g.Customer, Amount: g.Amount,
+				Note: strconv.FormatFloat(float64(g.Minutes)/minutesPerHourInsight, 'f', 1, 64) + " h"})
+		}
+		return result
 	}
 	return nil
+}
+
+// invoiceDetails lists open invoices behind a KPI value.
+func invoiceDetails(open []metrics.NinjaOpenInvoice) []KpiDetail {
+	var out []KpiDetail
+	for _, i := range open[:min(len(open), kpiDetailsShown)] {
+		d := KpiDetail{Label: i.Number + " · " + i.Client, Amount: i.Balance}
+		if i.OverdueDays > 0 {
+			d.Note = "+" + strconv.Itoa(i.OverdueDays) + " d"
+		}
+		out = append(out, d)
+	}
+	return out
 }
 
 func kpiNinja(metric Metric, data *sources.NinjaDataset, peers map[string]any, ctx ViewCtx) *KpiResult {
@@ -479,14 +510,14 @@ func kpiNinja(metric Metric, data *sources.NinjaDataset, peers map[string]any, c
 		return &KpiResult{Kind: "money", Value: stats.RevenueMonth, Currency: stats.Currency}
 	case MetricOpenAmount:
 		return &KpiResult{Kind: "money", Value: stats.OpenAmount, Currency: stats.Currency,
-			SubKey: "kpi.invoices", SubCount: len(stats.Open)}
+			SubKey: "kpi.invoices", SubCount: len(stats.Open), Details: invoiceDetails(stats.Open)}
 	case MetricOverdueAmount:
 		var amount float64
 		for _, i := range stats.Overdue {
 			amount += i.Balance
 		}
 		return &KpiResult{Kind: "money", Value: amount, Currency: stats.Currency,
-			SubKey: "kpi.invoices", SubCount: len(stats.Overdue)}
+			SubKey: "kpi.invoices", SubCount: len(stats.Overdue), Details: invoiceDetails(stats.Overdue)}
 	case MetricVATLiability:
 		return &KpiResult{Kind: "money", Value: stats.VAT.Liability, Currency: stats.Currency,
 			SubKey: "kpi.vat_period", SubStart: stats.VAT.Start, SubEnd: stats.VAT.End}

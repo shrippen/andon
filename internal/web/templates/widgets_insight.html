@@ -39,6 +39,9 @@
   {{else if eq $k.SubKey "kpi.assets"}}<span class="kpi-sub">{{t "kpi.assets" "count" $k.SubCount}}</span>
   {{end}}
   {{with $k.Spark}}{{template "spark" .}}<span class="kpi-sub">{{t "kpi.spark_months" "n" 12}}</span>{{end}}
+  {{with $k.Details}}<details class="kpi-details"><summary class="small">{{t "kpi.details"}}</summary>
+    <ul class="legend-list">{{range .}}<li><span>{{.Label}}{{with .Note}} <small class="muted">{{.}}</small>{{end}}</span><b>{{money .Amount $k.Currency}}</b></li>{{end}}</ul>
+  </details>{{end}}
 </div>
 {{else}}{{if .Frag.View.Unsupported}}<p class="slot-note">{{t "widget.unsupported"}}</p>{{end}}{{end}}
 {{end}}

@@ -2282,6 +2282,7 @@ kpi:
   cash_30: offen + wiederkehrend, 30 Tage
   spark_months: 'letzte {n} Monate'
   vs_last_month: zum Vormonat
+  details: 'Woraus sich das zusammensetzt'
 col:
   storage: 'Speicher'
   full_in: 'Voll in'

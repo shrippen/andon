@@ -2,6 +2,7 @@ package widgets_test
 
 import (
 	"testing"
+	"time"
 
 	"andon/internal/enums"
 	"andon/internal/sources"
@@ -104,5 +105,19 @@ func TestHeatmapOptions(t *testing.T) {
 	}
 	if !met {
 		t.Fatalf("goal colouring: %+v", cells[len(cells)-2:])
+	}
+}
+
+// TestKpiDetails: open and overdue amounts and unbilled work list what
+// they are made of, so a click on the value answers "which ones?".
+func TestKpiDetails(t *testing.T) {
+	now := time.Now()
+	ninja := viewOf(t, "kpi", map[string]any{"metric": "open_amount"}, map[string]any{"data": sources.DemoNinja(now)}, enums.ServiceInvoiceNinja, nil)
+	if k := ninja["KPI"].(*widgets.KpiResult); len(k.Details) == 0 || k.Details[0].Amount == 0 {
+		t.Fatalf("open amount details: %+v", k.Details)
+	}
+	kimai := viewOf(t, "kpi", map[string]any{"metric": "unbilled"}, map[string]any{"data": sources.DemoKimai(now)}, enums.ServiceKimai, nil)
+	if k := kimai["KPI"].(*widgets.KpiResult); len(k.Details) == 0 || k.Details[0].Note == "" {
+		t.Fatalf("unbilled details: %+v", k.Details)
 	}
 }
