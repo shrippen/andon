@@ -184,7 +184,7 @@ func (d Deps) paletteHints(ctx Ctx) []boards.PaletteItem {
 		return nil
 	}
 	var out []boards.PaletteItem
-	for _, g := range groupHints(found) {
+	for _, g := range groupHints(found, groupRule) {
 		out = append(out, boards.PaletteItem{
 			Kind: boards.PaletteHints, Title: i18n.T("rule_name."+g.Rule, ctx.Locale, nil), URL: "/hints#rule-" + g.Rule,
 			Detail: i18n.T("palette.hint_count", ctx.Locale, map[string]any{"n": g.Count()}),

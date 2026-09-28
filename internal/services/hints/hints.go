@@ -155,6 +155,7 @@ type View struct {
 	AssigneeID   *int64
 	Work         enums.WorkState
 	Flapping     bool    // reopened often lately; pushed only once
+	Client       string  // the client or customer the hint names, "" if none
 	Value        float64 // largest money amount the hint names, 0 if none
 	Currency     string
 	Maintenance  bool       // in a planned work window of its space: not pushed
@@ -344,12 +345,25 @@ func viewOf(h *model.Hint, who *access.Principal) View {
 	}
 	value, currency := moneyValue(h.Params)
 	return View{
-		ID: h.ID, Rule: h.Rule, Severity: h.Severity, Value: value, Currency: currency,
+		ID: h.ID, Rule: h.Rule, Severity: h.Severity, Value: value, Currency: currency, Client: clientOf(h.Params),
 		Title:     i18n.T("hint."+h.Message+".title", locale, params),
 		Why:       i18n.T("hint."+h.Message+".why", locale, params),
 		ActionURL: h.ActionURL, ActionLabel: actionLabel, Due: h.Due, Sources: h.Sources,
 		SpaceName: spaceName, FirstSeen: h.FirstSeen, ConnectionID: h.ConnectionID,
 	}
+}
+
+// clientParams are the params a hint names its client by.
+var clientParams = []string{"client", "customer"}
+
+// clientOf is the client a hint's params name, "" if none.
+func clientOf(params map[string]any) string {
+	for _, k := range clientParams {
+		if name, ok := params[k].(string); ok && name != "" && name != "?" {
+			return name
+		}
+	}
+	return ""
 }
 
 // CountFor returns (count, highest severity) of open hints on one connection.

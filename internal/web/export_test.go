@@ -3,7 +3,7 @@ package web
 import "andon/internal/services/hints"
 
 // Test-only access to the hints page helpers.
-var GroupHints = groupHints
+var GroupHints = func(v []hints.View) []hintGroup { return groupHints(v, groupRule) }
 
 type HintFilter = hintFilter
 

@@ -50,8 +50,12 @@ const (
 
 var workStates = []enums.WorkState{enums.WorkOpen, enums.WorkProgress, enums.WorkDone}
 
-// sortByValue orders the hints page by the money a hint names.
-const sortByValue = "value"
+// sortByValue orders the hints page by the money a hint names;
+// groupByClient gathers each client's hints (?group=client).
+const (
+	sortByValue   = "value"
+	groupByClient = "client"
+)
 
 func (d Deps) handleHintsPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	_ = onboarding.Visit(d.DB, ctx.Who, "hints") // a checklist step: seen the hints once
@@ -73,9 +77,10 @@ func (d Deps) handleHintsPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	filter := hintFilter{Level: r.URL.Query().Get("level"), Source: r.URL.Query().Get("source"), ByValue: byValue}
+	filter := hintFilter{Level: r.URL.Query().Get("level"), Source: r.URL.Query().Get("source"), ByValue: byValue,
+		ByClient: r.URL.Query().Get("group") == groupByClient}
 	_ = d.Page(w, ctx, "hints", http.StatusOK, map[string]any{
-		"Groups": groupHints(filter.apply(found)), "Levels": levelCounts(found, filter), "Sources": sourceCounts(found, filter),
+		"Groups": groupHints(filter.apply(found), filter.grouping()), "Levels": levelCounts(found, filter), "Sources": sourceCounts(found, filter),
 		"Filter": filter, "Total": len(found), "ByValue": byValue, "Noisy": noisy,
 	})
 }
@@ -108,6 +113,7 @@ var hintLevels = []struct {
 type hintFilter struct {
 	Level, Source string
 	ByValue       bool
+	ByClient      bool
 }
 
 // levelOf names a severity band: "critical", "warn" or "info".
@@ -165,6 +171,9 @@ func (f hintFilter) Link(key, value string) string {
 	if f.ByValue {
 		q.Set("sort", sortByValue)
 	}
+	if f.ByClient {
+		q.Set("group", groupByClient)
+	}
 	if len(q) == 0 {
 		return "/hints"
 	}
@@ -213,25 +222,49 @@ func sourceCounts(all []hints.View, f hintFilter) []hintCount {
 	return out
 }
 
-// hintGroup is one rule's hints; Rest folds away below the first few.
+// hintGrouping is what the hints page gathers hints by.
+type hintGrouping int
+
+const (
+	groupRule hintGrouping = iota
+	groupClient
+)
+
+// grouping is the filter's hintGrouping.
+func (f hintFilter) grouping() hintGrouping {
+	if f.ByClient {
+		return groupClient
+	}
+	return groupRule
+}
+
+// hintGroup is one rule's or one client's hints; Rest folds away below
+// the first few.
 type hintGroup struct {
 	Rule     string
+	Client   string // set when grouped by client
 	Severity enums.Severity
 	Shown    []hints.View
 	Rest     []hints.View
 }
 
 // groupHints keeps the given order and gathers each rule's hints where the
-// rule first appears: 40 "invoice missing" hints become one group.
-func groupHints(views []hints.View) []hintGroup {
+// rule first appears: 40 "invoice missing" hints become one group. By
+// client, hints naming a client gather under it instead, so overdue,
+// slow payer and unbilled hours of one client stand together.
+func groupHints(views []hints.View, by hintGrouping) []hintGroup {
 	var out []hintGroup
 	at := map[string]int{}
 	for _, v := range views {
-		i, ok := at[v.Rule]
+		key, group := "rule:"+v.Rule, hintGroup{Rule: v.Rule, Severity: v.Severity}
+		if by == groupClient && v.Client != "" {
+			key, group = "client:"+v.Client, hintGroup{Client: v.Client, Severity: v.Severity}
+		}
+		i, ok := at[key]
 		if !ok {
 			i = len(out)
-			at[v.Rule] = i
-			out = append(out, hintGroup{Rule: v.Rule, Severity: v.Severity})
+			at[key] = i
+			out = append(out, group)
 		}
 		g := &out[i]
 		if len(g.Shown) < hintsShown {

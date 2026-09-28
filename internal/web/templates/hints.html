@@ -15,6 +15,7 @@
     {{template "intro" dict "Page" "hints" "Chapter" "hints" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{t "hints.lead"}}</p>
     {{if not .DoneDays}}<p class="small">{{if .ByValue}}<a href="/hints">{{t "hints.sort_level"}}</a>{{else}}<a href="/hints?sort=value">{{t "hints.sort_value"}}</a>{{end}}
+      · {{if .Filter.ByClient}}<a href="/hints">{{t "hints.group_rule"}}</a>{{else}}<a href="/hints?group=client">{{t "hints.group_client"}}</a>{{end}}
       · <a href="/hints?view=done">{{t "hints.done_link"}}</a></p>{{end}}
     {{if .DoneDays}}<p class="small"><a href="/hints">{{t "hints.open_link"}}</a></p>
     <h2>{{t "hints.done_title" "days" .DoneDays}}</h2>
@@ -45,8 +46,8 @@
     </nav>
     {{end}}
     {{range .Groups}}
-    <section class="hint-rule" id="rule-{{.Rule}}" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}">
-      {{if not $.Embed}}<h2 class="hint-group-head"><span class="sq" aria-hidden="true"></span>{{t (print "rule_name." .Rule)}}<span class="hint-group-count">{{.Count}}</span></h2>
+    <section class="hint-rule"{{if .Rule}} id="rule-{{.Rule}}"{{end}} data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}">
+      {{if not $.Embed}}<h2 class="hint-group-head"><span class="sq" aria-hidden="true"></span>{{if .Client}}{{.Client}} <a class="small" href="/clients">{{t "hints.client_page"}}</a>{{else}}{{t (print "rule_name." .Rule)}}{{end}}<span class="hint-group-count">{{.Count}}</span></h2>
       {{/* The whole group at once: all done, or all paused for 7 days. */}}
       <form method="post" action="/hints/bulk" class="hint-bulk">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">

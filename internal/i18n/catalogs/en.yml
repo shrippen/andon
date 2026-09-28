@@ -1007,6 +1007,9 @@ hints:
   snooze_tomorrow: 'tomorrow'
   snooze_monday: 'Monday'
   snooze_month: 'start of month'
+  group_client: 'Group by client'
+  group_rule: 'Group by rule'
+  client_page: 'Client page'
 severity:
   info: Info
   warn: Warning
