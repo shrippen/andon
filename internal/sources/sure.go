@@ -121,8 +121,8 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 		for _, raw := range list {
 			t := asMap(raw)
 			data.Transactions = append(data.Transactions, SureTxn{
-				ID: asStr(t["id"]), Date: asStr(t["date"]), Name: asStr(t["name"]), Amount: cents(t["signed_amount_cents"]),
-				Category: asStr(asMap(t["category"])["name"]), Merchant: asStr(asMap(t["merchant"])["name"]),
+				ID: asStr(t["id"]), Date: asStr(t["date"]), Name: cleanName(asStr(t["name"])), Amount: cents(t["signed_amount_cents"]),
+				Category: asStr(asMap(t["category"])["name"]), Merchant: cleanName(asStr(asMap(t["merchant"])["name"])),
 				Account: asStr(asMap(t["account"])["name"]),
 			})
 		}
@@ -142,9 +142,9 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 			r := asMap(raw)
 			// Detected from a merchant, a recurring item has no name of
 			// its own; Sure then shows the merchant's.
-			name := asStr(r["name"])
+			name := cleanName(asStr(r["name"]))
 			if name == "" {
-				name = asStr(asMap(r["merchant"])["name"])
+				name = cleanName(asStr(asMap(r["merchant"])["name"]))
 			}
 			data.Recurring = append(data.Recurring, SureRecurring{
 				Name: name, Status: asStr(r["status"]), Amount: abs(cents(r["amount_cents"])), Expense: cents(r["amount_cents"]) > 0,

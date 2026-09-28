@@ -1,6 +1,7 @@
 package sources
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -83,4 +84,14 @@ func day(v any) string {
 		return s[:10]
 	}
 	return s
+}
+
+// truncMark is how bank texts end a name cut short: padding, then "..".
+var truncMark = regexp.MustCompile(`\s+\.{2,}$`)
+
+// cleanName tidies a name from bank data: "DB Vertrieb GmbH      .." →
+// "DB Vertrieb GmbH" (runs of spaces collapse, a cut-off mark goes).
+func cleanName(s string) string {
+	s = truncMark.ReplaceAllString(s, "")
+	return strings.Join(strings.Fields(s), " ")
 }
