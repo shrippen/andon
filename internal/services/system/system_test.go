@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"andon/internal/enums"
+	"andon/internal/model"
+	"andon/internal/services/audit"
 	"andon/internal/services/system"
 	"andon/internal/testkit"
 )
@@ -56,5 +58,35 @@ func TestHealthAdminOnly(t *testing.T) {
 	}
 	if h.DatabaseMB <= 0 || h.HeapMB <= 0 || h.Goroutines == 0 {
 		t.Fatalf("health: %+v", h)
+	}
+}
+
+// Saving settings logs only what changed, with the old and new value;
+// saving the same values again logs nothing.
+func TestPutAuditsChanges(t *testing.T) {
+	d := testkit.DB(t)
+	admin, _ := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+
+	for range 2 {
+		if err := system.Put(d, admin, system.RegistrationKey, map[string]any{"open": true}, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	entries, err := audit.Entries(d, admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var logged []*model.AuditEntry
+	for _, e := range entries {
+		if e.Action == "settings."+system.RegistrationKey {
+			logged = append(logged, e)
+		}
+	}
+	if len(logged) != 1 {
+		t.Fatalf("entries: %d", len(logged))
+	}
+	change, _ := logged[0].Detail["open"].([]any)
+	if len(change) != 2 || change[0] != nil || change[1] != true {
+		t.Fatalf("detail: %+v", logged[0].Detail)
 	}
 }

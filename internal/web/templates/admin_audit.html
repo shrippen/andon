@@ -17,7 +17,7 @@
       <tr>
         <td class="small">{{or .Who "—"}}</td>
         <td title="{{.Action}}">{{t (print "audit_action." .Action)}}</td>
-        <td>{{.Target}}</td>
+        <td>{{.Target}}{{range .Details}}<br><small class="muted">{{.}}</small>{{end}}</td>
         <td class="small muted">{{ago .At}}</td>
       </tr>
       {{end}}

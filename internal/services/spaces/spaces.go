@@ -93,20 +93,21 @@ func Update(d *sql.DB, who *access.Principal, spaceID int64, changes map[string]
 		if err != nil || sp == nil {
 			return util.ErrNotFound
 		}
+		diff := audit.Changes(sp.Settings, changes)
+		if len(diff) == 0 {
+			return nil
+		}
 		merged := map[string]any{}
 		for k, v := range sp.Settings {
 			merged[k] = v
 		}
-		keys := make([]string, 0, len(changes))
 		for k, v := range changes {
 			merged[k] = v
-			keys = append(keys, k)
 		}
-		sort.Strings(keys)
 		if err := content.UpdateSpaceSettings(tx, spaceID, merged, sp.Version); err != nil {
 			return err
 		}
-		return audit.Log(tx, &who.UserID, "space.settings", sp.Name, ip, map[string]any{"keys": keys})
+		return audit.Log(tx, &who.UserID, "space.settings", sp.Name, ip, diff)
 	})
 }
 

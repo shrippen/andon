@@ -107,10 +107,18 @@ func SetNetwork(d *sql.DB, who *access.Principal, policy sources.NetworkPolicy, 
 		value := map[string]any{
 			"mode": string(policy.Mode), "networks": policy.Networks, "hosts": policy.Hosts, "public": policy.Public,
 		}
+		stored, err := misc.Setting(tx, NetworkKey)
+		if err != nil {
+			return err
+		}
+		changes := audit.Changes(stored, value)
+		if len(changes) == 0 {
+			return nil
+		}
 		if err := misc.SetSetting(tx, NetworkKey, value); err != nil {
 			return err
 		}
-		return audit.Log(tx, &who.UserID, "settings.network", string(policy.Mode), ip, nil)
+		return audit.Log(tx, &who.UserID, "settings.network", string(policy.Mode), ip, changes)
 	})
 	if err != nil {
 		return err
@@ -126,10 +134,18 @@ func Put(d *sql.DB, who *access.Principal, key string, value map[string]any, ip 
 		return ErrDenied
 	}
 	err := db.WithTx(d, func(tx *sql.Tx) error {
+		stored, err := misc.Setting(tx, key)
+		if err != nil {
+			return err
+		}
+		changes := audit.Changes(stored, value)
+		if len(changes) == 0 {
+			return nil
+		}
 		if err := misc.SetSetting(tx, key, value); err != nil {
 			return err
 		}
-		return audit.Log(tx, &who.UserID, "settings."+key, "", ip, nil)
+		return audit.Log(tx, &who.UserID, "settings."+key, "", ip, changes)
 	})
 	if key == IframeKey {
 		iframeCache.Store(nil)

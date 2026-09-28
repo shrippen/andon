@@ -4,7 +4,10 @@ import (
 	"cmp"
 	"database/sql"
 	"errors"
+	"fmt"
+	"maps"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"andon/internal/enums"
@@ -155,10 +158,41 @@ func (d Deps) handleAdminInviteDelete(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// auditRow is an audit entry with its user's name ("" = system).
+// auditRow is an audit entry with its user's name ("" = system) and its
+// detail as lines, e.g. "open: false → true".
 type auditRow struct {
 	*model.AuditEntry
-	Who string
+	Who     string
+	Details []string
+}
+
+// auditValueMax cuts long values (lists, nested settings) in the table.
+const auditValueMax = 60
+
+// auditLines formats an entry's detail; a [old, new] pair is a change.
+func auditLines(detail map[string]any) []string {
+	keys := slices.Sorted(maps.Keys(detail))
+	lines := make([]string, 0, len(keys))
+	for _, k := range keys {
+		pair, ok := detail[k].([]any)
+		if ok && len(pair) == 2 {
+			lines = append(lines, k+": "+auditValue(pair[0])+" → "+auditValue(pair[1]))
+			continue
+		}
+		lines = append(lines, k+": "+auditValue(detail[k]))
+	}
+	return lines
+}
+
+func auditValue(v any) string {
+	if v == nil {
+		return "–"
+	}
+	r := []rune(fmt.Sprint(v))
+	if len(r) > auditValueMax {
+		return string(r[:auditValueMax]) + "…"
+	}
+	return string(r)
 }
 
 func (d Deps) handleAdminAudit(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -178,7 +212,7 @@ func (d Deps) handleAdminAudit(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 	}
 	rows := make([]auditRow, 0, len(entries))
 	for _, e := range entries {
-		row := auditRow{AuditEntry: e}
+		row := auditRow{AuditEntry: e, Details: auditLines(e.Detail)}
 		if e.UserID != nil {
 			row.Who = cmp.Or(names[*e.UserID], "#"+strconv.FormatInt(*e.UserID, 10))
 		}
