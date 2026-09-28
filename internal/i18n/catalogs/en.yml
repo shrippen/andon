@@ -80,6 +80,7 @@ action:
   open_in_wallos: Open in Wallos
   open_in_glances: 'Open in Glances'
   open_in_docker: 'Open Docker'
+  more: 'More actions'
 error:
   csrf: The request expired. Please reload the page.
   denied: Not allowed.

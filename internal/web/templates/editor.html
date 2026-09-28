@@ -76,13 +76,15 @@
           <td class="small muted">{{.Space.Name}}</td>
           <td class="small muted">{{if .Uses}}{{t "gallery.uses" "n" .Uses}}{{else}}{{t "gallery.unused"}}{{end}}</td>
           <td class="row-actions">{{if .CanEdit}}<a class="link-btn" href="/widgets/{{.ID}}/edit">{{t "action.edit"}}</a>{{end}}
-            <a class="link-btn" href="/shares/widget/{{.ID}}">{{t "edit.share"}}</a>
-            <details class="inline-details"><summary class="link-btn">{{t "library.copy"}}</summary>
-              <form method="post" action="/widgets/{{.ID}}/copy" class="inline-form">
-                <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-                <select name="space_id" aria-label="{{t "field.space"}}">{{range $.Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
-                <button type="submit" class="ghost">{{t "library.copy"}}</button>
-              </form>
+            <details class="row-more"><summary class="link-btn" aria-label="{{t "action.more"}}" title="{{t "action.more"}}">⋯</summary>
+              <div class="row-more-body">
+                <a class="link-btn" href="/shares/widget/{{.ID}}">{{t "edit.share"}}</a>
+                <form method="post" action="/widgets/{{.ID}}/copy" class="inline-form">
+                  <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+                  <select name="space_id" aria-label="{{t "field.space"}}">{{range $.Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
+                  <button type="submit" class="ghost">{{t "library.copy"}}</button>
+                </form>
+              </div>
             </details>
           </td>
         </tr>

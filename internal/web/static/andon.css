@@ -978,6 +978,12 @@ main .cm-s-default .cm-error { color: var(--danger-text); }
 main > * + h2 { margin-top: 1.8rem; }
 .row-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
 .row-actions form { margin: 0; }
+/* ⋯ holds a row's further actions; it opens in the cell, since the
+   scrolling table wrapper would clip a floating menu. */
+.row-more > summary { list-style: none; }
+.row-more > summary::-webkit-details-marker { display: none; }
+.row-more-body { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-top: .4rem; white-space: normal; }
+.row-more-body form, .row-more-body button { margin: 0; }
 /* In a table the cell stays a cell, so row lines stay level. */
 td.row-actions { display: table-cell; }
 td.row-actions > * { display: inline-block; vertical-align: middle; margin: .15rem .4rem .15rem 0; }

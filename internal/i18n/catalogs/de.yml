@@ -80,6 +80,7 @@ action:
   open_in_wallos: In Wallos öffnen
   open_in_glances: 'In Glances öffnen'
   open_in_docker: 'Docker öffnen'
+  more: 'Weitere Aktionen'
 error:
   csrf: Die Anfrage war abgelaufen. Bitte Seite neu laden.
   denied: Keine Berechtigung.
