@@ -56,7 +56,7 @@ func kimaiSheet(raw any) KimaiSheet {
 	return KimaiSheet{
 		ID: asInt64(m["id"]), Begin: asStr(m["begin"]), End: asStr(m["end"]),
 		Minutes: int(round(asFloat(m["duration"]) / secondsPerMinute)),
-		Rate:    asFloat(m["rate"]), Billable: boolOr(m["billable"], true), Exported: asBool(m["exported"]),
+		Rate:    asFloat(m["rate"]), HourlyRate: asFloat(m["hourlyRate"]), Billable: boolOr(m["billable"], true), Exported: asBool(m["exported"]),
 		ProjectID: refID(m["project"]), CustomerID: customerID, Activity: asStr(activity["name"]),
 		UserID: refID(m["user"]),
 	}

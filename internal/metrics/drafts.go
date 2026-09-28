@@ -42,7 +42,24 @@ type draftKey struct {
 type draftAgg struct {
 	minutes     int
 	amount      float64
+	hourly      float64 // Kimai's hourly rate if all sheets share one, else 0
+	mixed       bool
 	first, last time.Time
+}
+
+// hoursScale keeps quantities exact to the minute (1/60 h ≈ 0.0167).
+const hoursScale = 10000
+
+// rate is the line's hourly rate: Kimai's own, or the amount spread over
+// the exact hours when sheets differ or Kimai did not send one.
+func (a *draftAgg) rate(hours float64) float64 {
+	if a.hourly > 0 && !a.mixed {
+		return a.hourly
+	}
+	if hours == 0 {
+		return 0
+	}
+	return round2(a.amount / hours)
 }
 
 // Drafts builds one draft per Kimai customer with unbilled time, oldest
@@ -81,6 +98,10 @@ func Drafts(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset) []Draft {
 		}
 		agg.minutes += s.Minutes
 		agg.amount += s.Rate
+		if agg.hourly != 0 && agg.hourly != s.HourlyRate {
+			agg.mixed = true
+		}
+		agg.hourly = s.HourlyRate
 		agg.first = minTime(agg.first, day)
 		agg.last = maxTime(agg.last, day)
 		sheets[s.CustomerID] = append(sheets[s.CustomerID], s.ID)
@@ -93,12 +114,13 @@ func Drafts(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset) []Draft {
 			d.ClientKey, d.Client = c.Key, c.Name
 		}
 		for key, agg := range groups {
-			hours := round2(float64(agg.minutes) / minutesPerHour)
+			// Exact hours and the real rate; only the amount is rounded,
+			// as Invoice Ninja does for quantity × cost.
+			exact := float64(agg.minutes) / minutesPerHour
+			hours := round(exact*hoursScale) / hoursScale
+			rate := agg.rate(exact)
 			line := DraftLine{Product: projects[key.project], Notes: key.activity + " " + agg.first.Format(draftDay) + "–" + agg.last.Format(draftDay+"2006"),
-				Hours: hours, Amount: round2(agg.amount)}
-			if hours > 0 {
-				line.Rate = round2(agg.amount / hours)
-			}
+				Hours: hours, Rate: rate, Amount: round2(hours * rate)}
 			d.Lines = append(d.Lines, line)
 			d.Total += line.Amount
 			if d.Oldest.IsZero() || agg.first.Before(d.Oldest) {

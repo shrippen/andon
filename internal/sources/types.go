@@ -11,7 +11,8 @@ type KimaiSheet struct {
 	Begin      string
 	End        string
 	Minutes    int
-	Rate       float64
+	Rate       float64 // amount of this sheet
+	HourlyRate float64 // 0 if Kimai did not send it
 	Billable   bool
 	Exported   bool
 	ProjectID  int64
