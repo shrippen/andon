@@ -6,12 +6,15 @@ import (
 	"testing"
 )
 
-// Text colours sit on these surfaces; --bg-void as text sits on filled
-// badges instead and is checked against those fills.
+// Text colours sit on these surfaces; some text sits on fills instead and
+// is checked against those: --bg-void on badges, --on-primary on buttons
+// (--accent on hover).
 var (
-	textColor    = regexp.MustCompile(`(?:^|[\s;{])color:\s*var\((--[a-z0-9-]+)\)`)
-	badgeFills   = []string{"--blue", "--yellow", "--orange", "--red"}
-	badgeText    = "--bg-void"
+	textColor  = regexp.MustCompile(`(?:^|[\s;{])color:\s*var\((--[a-z0-9-]+)\)`)
+	filledText = map[string][]string{
+		"--bg-void":    {"--blue", "--yellow", "--orange", "--red"},
+		"--on-primary": {"--primary", "--accent"},
+	}
 	dashboardCSS = "../../web/static/andon.css"
 )
 
@@ -43,8 +46,8 @@ func TestComponentContrastAA(t *testing.T) {
 	for mode, tokens := range map[Mode]map[string]string{ModeDark: dark, ModeLight: light} {
 		for fg := range used {
 			surfaces := textSurfaces
-			if fg == badgeText {
-				surfaces = badgeFills
+			if fills, ok := filledText[fg]; ok {
+				surfaces = fills
 			}
 			for _, bg := range surfaces {
 				a, b := resolved(tokens, fg), resolved(tokens, bg)
