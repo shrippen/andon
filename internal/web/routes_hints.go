@@ -28,6 +28,7 @@ func (d Deps) RegisterHintRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /hints/{id}/detail", d.handleHintDetail)
 	mux.HandleFunc("GET /connections/{id}/hints", d.handleConnHints)
 	mux.HandleFunc("POST /hints/{id}/advice", d.handleHintAdvice)
+	mux.HandleFunc("POST /hints/{id}/runbook", d.handleHintRunbook)
 	mux.HandleFunc("POST /hints/{id}/note", d.handleHintWorkflow(hintNote))
 	mux.HandleFunc("POST /hints/{id}/assign", d.handleHintWorkflow(hintAssign))
 	mux.HandleFunc("POST /hints/{id}/work", d.handleHintWorkflow(hintWork))
@@ -314,8 +315,26 @@ func (d Deps) handleHintDetail(w http.ResponseWriter, r *http.Request) {
 		d.handleBoardError(w, r, err)
 		return
 	}
+	book, err := hints.Runbook(d.DB, ctx.Who, id)
+	if err != nil {
+		d.handleBoardError(w, r, err)
+		return
+	}
 	_ = d.Page(w, ctx, "hint_detail", http.StatusOK, map[string]any{"ID": id, "History": history, "People": people, "States": workStates,
-		"Assist": assist.Enabled(), "Before": before})
+		"Assist": assist.Enabled(), "Before": before, "Runbook": book})
+}
+
+// handleHintRunbook saves the space's runbook for the hint's rule.
+func (d Deps) handleHintRunbook(w http.ResponseWriter, r *http.Request) {
+	ctx, id, ok := d.hintRequest(w, r)
+	if !ok {
+		return
+	}
+	if err := hints.SetRunbook(d.DB, ctx.Who, id, r.FormValue("text")); err != nil {
+		d.handleBoardError(w, r, err)
+		return
+	}
+	http.Redirect(w, r, backTo(r, "/hints"), http.StatusSeeOther)
 }
 
 // handleHintAdvice answers "Was tun?" for one hint (htmx fragment).

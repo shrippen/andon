@@ -64,19 +64,29 @@ func Settings(d *sql.DB, who *access.Principal, spaceID int64) (map[string]any, 
 	return sp.Settings, nil
 }
 
+// CanChange reports whether who may change a space's settings.
+func CanChange(q db.Queryer, who *access.Principal, spaceID int64) bool {
+	return mayChange(q, who, spaceID) == nil
+}
+
+// mayChange: personal spaces need EDIT, team and instance spaces MANAGE.
+func mayChange(q db.Queryer, who *access.Principal, spaceID int64) error {
+	ref, err := access.SpaceOf(q, who, spaceID)
+	if err != nil {
+		return err
+	}
+	need := enums.RightManage
+	if ref.Kind == enums.SpacePersonal {
+		need = enums.RightEdit
+	}
+	return access.Need(access.SpaceRight(who, ref), need)
+}
+
 // Update merges changes into a space's settings. Personal spaces need
 // EDIT, team and instance spaces MANAGE (owners, admins).
 func Update(d *sql.DB, who *access.Principal, spaceID int64, changes map[string]any, ip string) error {
 	return db.WithTx(d, func(tx *sql.Tx) error {
-		ref, err := access.SpaceOf(tx, who, spaceID)
-		if err != nil {
-			return err
-		}
-		need := enums.RightManage
-		if ref.Kind == enums.SpacePersonal {
-			need = enums.RightEdit
-		}
-		if err := access.Need(access.SpaceRight(who, ref), need); err != nil {
+		if err := mayChange(tx, who, spaceID); err != nil {
 			return err
 		}
 		sp, err := content.Space(tx, spaceID)

@@ -1321,6 +1321,7 @@ table.table th.num, table.table td.num { text-align: right; font-variant-numeric
 .hint-line-acts { display: flex; gap: .25rem; flex: none; margin-left: .5rem; }
 .hint-line-acts form { margin: 0; }
 .hint-line-acts button { padding: .1rem .4rem; font-size: .7rem; }
+.hint-runbook-text { white-space: pre-wrap; margin: .2rem 0 .4rem; }
 
 /* ── energy: hourly price steps, cheapest window, now ── */
 .price-steps .trend-line { stroke: var(--yellow); }

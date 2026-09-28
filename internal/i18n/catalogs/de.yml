@@ -962,6 +962,10 @@ hints:
   event_escalated: 'zu lange offen, jetzt kritisch'
   maintenance: 'Wartung'
   maintenance_hint: 'Gehört zu einer geplanten Wartung; wird erst danach gemeldet.'
+  runbook: 'Eigene Anleitung'
+  runbook_add: 'Anleitung für diese Regel hinterlegen'
+  runbook_edit: 'Anleitung bearbeiten'
+  runbook_hint: 'Gilt für alle Hinweise dieser Regel im Bereich. Leer speichern entfernt sie.'
 severity:
   info: Info
   warn: Warnung

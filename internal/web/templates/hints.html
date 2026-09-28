@@ -80,6 +80,17 @@
     <input name="note" maxlength="500" required placeholder="{{t "hints.note"}}" aria-label="{{t "hints.note"}}">
     <button type="submit" class="ghost">{{t "hints.add_note"}}</button>
   </form>
+  {{with .Runbook}}{{if or .Text .CanEdit}}<div class="hint-runbook">
+    {{with .Text}}<b class="small">{{t "hints.runbook"}}</b><p class="hint-runbook-text">{{.}}</p>{{end}}
+    {{if .CanEdit}}<details><summary class="small">{{if .Text}}{{t "hints.runbook_edit"}}{{else}}{{t "hints.runbook_add"}}{{end}}</summary>
+      <form method="post" action="/hints/{{$.ID}}/runbook">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+        <textarea name="text" rows="5" maxlength="4000" aria-label="{{t "hints.runbook"}}">{{.Text}}</textarea>
+        <p class="small muted">{{t "hints.runbook_hint"}}</p>
+        <button type="submit" class="ghost">{{t "action.save"}}</button>
+      </form>
+    </details>{{end}}
+  </div>{{end}}{{end}}
   {{if .Assist}}<div class="hint-advice">
     <form method="post" action="/hints/{{.ID}}/advice" hx-post="/hints/{{.ID}}/advice" hx-target="closest .hint-advice" hx-swap="innerHTML" class="inline-form">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
