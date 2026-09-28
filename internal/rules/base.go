@@ -9,8 +9,10 @@
 package rules
 
 import (
+	"path"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"andon/internal/enums"
@@ -25,6 +27,10 @@ const (
 	// Escalate is every rule's "raise to critical after N open days"
 	// setting; 0 keeps the rule's own severity.
 	Escalate = "escalate_days"
+	// MaxAge drops findings older than N days (their "days" param);
+	// Exclude drops findings naming a listed name or pattern (see Filter).
+	MaxAge  = "max_age_days"
+	Exclude = "exclude"
 )
 
 // Finding is one problem found by a rule, e.g. an overdue invoice.
@@ -72,7 +78,7 @@ func Register(id string, scope string, defaults map[string]any, fn RuleFunc) {
 	if _, taken := registry[id]; taken {
 		panic("rules: duplicate rule id " + id)
 	}
-	merged := map[string]any{Enabled: true, Escalate: 0.0}
+	merged := map[string]any{Enabled: true, Escalate: 0.0, MaxAge: 0.0, Exclude: ""}
 	for k, v := range defaults {
 		merged[k] = v
 	}
@@ -172,6 +178,65 @@ func round2(f float64) float64 {
 // ── cfg helpers: cfg values arrive as map[string]any (from JSON/YAML), so
 // these do the float64/int/bool/string coercions rule bodies need. ──
 
+// Filter drops a rule's findings the space excluded: older than MaxAge
+// days, or naming an Exclude entry. Entries are comma-separated, case
+// does not matter; "*" is a wildcard, a plain word matches as part
+// ("Heizung*, sonos").
+func Filter(found []Finding, cfg map[string]any) []Finding {
+	maxAge := cfgFloat(cfg, MaxAge)
+	var patterns []string
+	for _, p := range strings.Split(strings.ToLower(cfgString(cfg, Exclude)), ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			patterns = append(patterns, p)
+		}
+	}
+	if maxAge <= 0 && len(patterns) == 0 {
+		return found
+	}
+
+	var out []Finding
+	for _, f := range found {
+		if age, ok := numberOf(f.Params["days"]); ok && maxAge > 0 && age > maxAge {
+			continue
+		}
+		if excluded(f.Params, patterns) {
+			continue
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// excluded reports whether a text param matches one of the patterns.
+func excluded(params map[string]any, patterns []string) bool {
+	for _, v := range params {
+		text, ok := v.(string)
+		if !ok {
+			continue
+		}
+		text = strings.ToLower(text)
+		for _, p := range patterns {
+			if matched, _ := path.Match(p, text); matched || (!strings.Contains(p, "*") && strings.Contains(text, p)) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// numberOf reads an int or float param.
+func numberOf(v any) (float64, bool) {
+	switch n := v.(type) {
+	case int:
+		return float64(n), true
+	case int64:
+		return float64(n), true
+	case float64:
+		return n, true
+	}
+	return 0, false
+}
+
 // EscalateDays reads a rule config's escalation setting (0 = off).
 func EscalateDays(cfg map[string]any) int {
 	return int(cfgFloat(cfg, Escalate))
@@ -190,6 +255,11 @@ func cfgFloat(cfg map[string]any, key string) float64 {
 
 func cfgInt(cfg map[string]any, key string) int {
 	return int(cfgFloat(cfg, key))
+}
+
+func cfgString(cfg map[string]any, key string) string {
+	v, _ := cfg[key].(string)
+	return v
 }
 
 func cfgBool(cfg map[string]any, key string) bool {

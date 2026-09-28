@@ -428,7 +428,7 @@ func apply(specs []rules.Spec, dataset any, env rules.Env) ([]rules.Finding, []s
 			continue
 		}
 		escalate := rules.EscalateDays(cfg)
-		for _, f := range safeRun(spec, dataset, cfg, env) {
+		for _, f := range rules.Filter(safeRun(spec, dataset, cfg, env), cfg) {
 			f.EscalateDays = escalate
 			findings = append(findings, f)
 		}
