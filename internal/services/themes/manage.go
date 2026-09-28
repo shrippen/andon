@@ -59,7 +59,7 @@ func Listing(d *sql.DB, who *access.Principal) ([]Ref, error) {
 				continue
 			}
 			out = append(out, Ref{ID: t.ID, Slug: t.Slug, Name: t.Name, Builtin: t.Builtin,
-				SpaceID: t.SpaceID, CanEdit: granted >= enums.RightEdit})
+				SpaceID: t.SpaceID, CanEdit: granted >= enums.RightEdit, Swatches: swatches(t)})
 		}
 		return nil
 	})

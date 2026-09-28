@@ -24,7 +24,7 @@
       <tr><th>{{t "field.name"}}</th><th></th></tr>
       {{range .Items}}
       <tr>
-        <td>{{.Name}}{{if .Builtin}} <span class="pill">{{t "themes.builtin"}}</span>{{end}}
+        <td>{{with .Swatches}}<svg class="swatches" viewBox="0 0 {{len .}} 1" preserveAspectRatio="none" aria-hidden="true">{{range $i, $c := .}}<rect x="{{$i}}" width="1" height="1" fill="{{$c}}"/>{{end}}</svg>{{end}}{{.Name}}{{if .Builtin}} <span class="pill">{{t "themes.builtin"}}</span>{{end}}
           {{if eq .ID $.ActiveTheme}} <span class="pill" data-state="ok">{{t "themes.active"}}</span>{{end}}
           {{if eq .ID $.InstanceTheme}} <span class="pill">{{t "themes.instance_default"}}</span>{{end}}
           {{if eq .ID $.MyTheme}} <span class="pill">{{t "themes.mine"}}</span>{{end}}</td>

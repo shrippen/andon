@@ -1532,3 +1532,6 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 .rule-group .table-wrap { margin-bottom: .8rem; }
 .save-bar { position: sticky; bottom: 0; z-index: 5; margin-top: 1rem; padding: .6rem 0; background: var(--bg-void); border-top: 1px solid var(--bg2); }
 .save-bar button { margin: 0; }
+
+/* Theme list: a strip of each theme's colours before its name. */
+.swatches { display: inline-block; vertical-align: middle; width: 6rem; height: .9rem; margin-right: .6rem; border: 1px solid var(--bg2); }

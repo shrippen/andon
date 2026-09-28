@@ -89,12 +89,35 @@ const (
 
 // Ref is a lightweight theme listing entry.
 type Ref struct {
-	ID      int64
-	Slug    string
-	Name    string
-	Builtin bool
-	SpaceID *int64
-	CanEdit bool
+	ID       int64
+	Slug     string
+	Name     string
+	Builtin  bool
+	SpaceID  *int64
+	CanEdit  bool
+	Swatches []string // dark-mode colours of swatchTokens, e.g. "#141312"
+}
+
+// swatchTokens are the colours a theme list shows: ground, text, main
+// action, then the semantic colours.
+var swatchTokens = []string{"--bg-void", "--fg1", "--primary", "--blue", "--aqua", "--yellow", "--orange", "--red"}
+
+// swatches resolves swatchTokens in a theme's dark mode; references like
+// "var(--yellow)" follow to their colour.
+func swatches(theme *model.Theme) []string {
+	base, _ := Contract()
+	tokens := merge(base, stringMap(theme.Dark))
+	out := make([]string, 0, len(swatchTokens))
+	for _, name := range swatchTokens {
+		v := tokens[name]
+		for i := 0; i < len(swatchTokens) && strings.HasPrefix(v, "var("); i++ {
+			v = tokens[strings.TrimSuffix(strings.TrimPrefix(v, "var("), ")")]
+		}
+		if hexColor.MatchString(v) {
+			out = append(out, v)
+		}
+	}
+	return out
 }
 
 // ContrastIssue is one text/background pair failing WCAG AA.
