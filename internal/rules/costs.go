@@ -30,6 +30,11 @@ func init() {
 		return found
 	})
 
+	// A failed inventory or usage source would read as "nothing unused"
+	// and resolve every hint until the next run.
+	Needs("system.unused_service", string(enums.ServiceKomodo), string(enums.ServiceProxmox), string(enums.ServiceTrueNAS),
+		string(enums.ServiceAuthentik))
+
 	Register("energy.shift_jobs", Cross, map[string]any{"min_saving": 0.05}, func(_ any, cfg map[string]any, env Env) []Finding {
 		tibber, ok := env.Datasets[string(enums.ServiceTibber)].(*sources.TibberDataset)
 		if !ok {

@@ -179,6 +179,8 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 			}
 			if err != nil {
 				slog.Error("analysis: connection failed", "connection", conn.Name, "err", err)
+				failed, _ := sc.datasets[rules.FailedDataset].([]rules.Failed)
+				sc.datasets[rules.FailedDataset] = append(failed, rules.Failed{Service: conn.Service, Name: conn.Name, Host: rules.HostOf(conn.URL)})
 				continue
 			}
 			runs = append(runs, run{conn: conn, owner: owner, result: result})
@@ -416,6 +418,10 @@ func apply(specs []rules.Spec, dataset any, env rules.Env) ([]rules.Finding, []s
 	var findings []rules.Finding
 	ids := make([]string, 0, len(specs))
 	for _, spec := range specs {
+		// Without its inputs a rule's hints stay: not listed, not resolved.
+		if spec.Incomplete(env) {
+			continue
+		}
 		cfg := rules.Config(spec, env.Settings)
 		ids = append(ids, spec.ID)
 		if enabled, ok := cfg[rules.Enabled].(bool); ok && !enabled {

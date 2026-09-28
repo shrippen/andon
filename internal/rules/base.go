@@ -9,6 +9,7 @@
 package rules
 
 import (
+	"slices"
 	"sort"
 	"time"
 
@@ -76,6 +77,26 @@ func Register(id string, scope string, defaults map[string]any, fn RuleFunc) {
 		merged[k] = v
 	}
 	registry[id] = Spec{ID: id, Scope: scope, Defaults: merged, Run: fn}
+}
+
+// needs lists, per rule, the services without which a run of it says
+// nothing: when one of them failed, the rule's hints stay as they were.
+var needs = map[string][]string{}
+
+// Needs names services a rule's result depends on (see Incomplete).
+func Needs(id string, services ...string) {
+	needs[id] = services
+}
+
+// Incomplete reports whether a service the rule needs failed this run.
+func (s Spec) Incomplete(env Env) bool {
+	failed, _ := env.Datasets[FailedDataset].([]Failed)
+	for _, f := range failed {
+		if slices.Contains(needs[s.ID], f.Service) {
+			return true
+		}
+	}
+	return false
 }
 
 // ForScope returns every rule registered for one scope.
