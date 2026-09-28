@@ -294,7 +294,8 @@ func evaluate(d *sql.DB, r run, sc *scope, settings map[string]any, today time.T
 
 	// A connection on a host that is down as a whole is part of the outage hint.
 	var down []rules.Finding
-	if _, inOutage := outages[rules.OutageRoot(env, rules.HostOf(r.conn.URL))]; !r.result.Ok() && !inOutage {
+	failing := reportDown(fetcher{r.conn.ID, ownerID(r.owner)}, r.result.Ok())
+	if _, inOutage := outages[rules.OutageRoot(env, rules.HostOf(r.conn.URL))]; failing && !inOutage {
 		down = []rules.Finding{downFinding(r.conn, r.result.Error)}
 	}
 	fresh, err := syncHints(d, r.conn.SpaceID, r.owner, &r.conn.ID, []string{connectorRule}, down)
@@ -446,6 +447,31 @@ func safeRun(spec rules.Spec, dataset any, cfg map[string]any, env rules.Env) (o
 		}
 	}()
 	return spec.Run(dataset, cfg, env)
+}
+
+// downAfter is how many runs in a row must fail before a connection is
+// reported down: one slow answer (Kimai at 7 % failures) is no outage.
+const downAfter = 2
+
+// fetcher is one connection fetched for one owner (0 = shared).
+type fetcher struct{ conn, owner int64 }
+
+var (
+	failMu     sync.Mutex
+	failStreak = map[fetcher]int{} // failed runs in a row
+)
+
+// reportDown counts a fetcher's failed runs in a row and tells whether
+// its connection now counts as down.
+func reportDown(f fetcher, ok bool) bool {
+	failMu.Lock()
+	defer failMu.Unlock()
+	if ok {
+		delete(failStreak, f)
+		return false
+	}
+	failStreak[f]++
+	return failStreak[f] >= downAfter
 }
 
 func downFinding(conn *model.Connection, errMsg string) rules.Finding {

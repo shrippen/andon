@@ -30,6 +30,12 @@ const (
 	ninjaPage = 100
 	snipePage = 500
 	maxPages  = 200
+
+	// Kimai answers large pages slowly: a longer limit and one more try
+	// before a fetch counts as failed.
+	kimaiTimeout  = 30 * time.Second
+	kimaiAttempts = 2
+	clientErrors  = "HTTP 4" // HttpError prefix of 4xx answers: no retry
 )
 
 // ApiError means the service answered with an error or could not be reached.
@@ -91,7 +97,30 @@ func (a KimaiApi) headers() map[string]string {
 
 // Get performs one GET against /api/<path>.
 func (a KimaiApi) Get(ctx context.Context, path string, params url.Values) (any, error) {
-	return fetchJSON(ctx, a.URL+"/api/"+path, a.headers(), params, httpclient.TLSOf(a.Verify))
+	body, _, err := a.fetch(ctx, a.URL+"/api/"+path, params)
+	return body, err
+}
+
+// fetch GETs one Kimai URL with kimaiTimeout, trying again on network
+// and server errors (not on 4xx, which a retry does not change).
+func (a KimaiApi) fetch(ctx context.Context, rawURL string, params url.Values) (any, http.Header, error) {
+	opts := httpclient.Options{Headers: a.headers(), Params: params, SkipVerify: httpclient.TLSOf(a.Verify) == httpclient.TLSSkip, Timeout: kimaiTimeout}
+	var err error
+	for range kimaiAttempts {
+		var body any
+		var headers http.Header
+		body, headers, err = httpclient.GetJSON(ctx, rawURL, opts)
+		if err == nil {
+			return body, headers, nil
+		}
+		if isNotFound(err) {
+			return nil, nil, ApiMissing{rawURL}
+		}
+		if strings.HasPrefix(err.Error(), clientErrors) || ctx.Err() != nil {
+			break
+		}
+	}
+	return nil, nil, ApiError{err.Error()}
 }
 
 // Pages follows Kimai's X-Total-Pages paging and returns every item.
@@ -102,7 +131,7 @@ func (a KimaiApi) Pages(ctx context.Context, path string, params url.Values) ([]
 		query.Set("page", strconv.Itoa(page))
 		query.Set("size", strconv.Itoa(kimaiPage))
 
-		body, headers, err := fetchJSONWithHeaders(ctx, a.URL+"/api/"+path, a.headers(), query, httpclient.TLSOf(a.Verify))
+		body, headers, err := a.fetch(ctx, a.URL+"/api/"+path, query)
 		if err != nil {
 			return nil, err
 		}

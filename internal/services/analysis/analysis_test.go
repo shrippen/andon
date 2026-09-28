@@ -62,12 +62,16 @@ func TestRunAllReportsConnectorDown(t *testing.T) {
 		t.Fatalf("add connection: %v", err)
 	}
 
+	// One failed run is no outage yet; the second in a row is.
 	fresh, err := analysis.RunAll(context.Background(), d, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("run all: %v", err)
 	}
-	if fresh == 0 {
-		t.Fatal("expected at least the connector_down hint to be fresh")
+	if fresh != 0 {
+		t.Fatalf("first failure reported: %d fresh", fresh)
+	}
+	if fresh, err = analysis.RunAll(context.Background(), d, time.Now().UTC()); err != nil || fresh == 0 {
+		t.Fatalf("second failure: %d fresh, %v", fresh, err)
 	}
 
 	var count int

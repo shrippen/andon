@@ -160,3 +160,32 @@ func TestDawarichVersionReadsHeader(t *testing.T) {
 		t.Fatalf("expected version, got %q err=%v", v, err)
 	}
 }
+
+// A Kimai page that fails with a server error is tried once more; a
+// refused token is not.
+func TestKimaiRetriesServerErrors(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if calls == 1 {
+			w.WriteHeader(http.StatusBadGateway)
+			return
+		}
+		w.Write([]byte(`[{"id": 1}]`))
+	}))
+	defer srv.Close()
+	items, err := services.KimaiApi{URL: srv.URL, Token: "tok", Verify: true}.Pages(context.Background(), "timesheets", url.Values{})
+	if err != nil || len(items) != 1 || calls != 2 {
+		t.Fatalf("items %v, err %v, calls %d", items, err, calls)
+	}
+
+	refused := 0
+	deny := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		refused++
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer deny.Close()
+	if _, err := (services.KimaiApi{URL: deny.URL, Token: "x", Verify: true}).Get(context.Background(), "users/me", nil); err == nil || refused != 1 {
+		t.Fatalf("401: err %v, calls %d", err, refused)
+	}
+}
