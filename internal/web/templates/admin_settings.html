@@ -16,7 +16,7 @@
 
     <h2>{{t "admin.analysis"}}</h2>
     <div class="card">
-      <p>{{t "admin.analysis_every" "minutes" .AnalysisEvery}}</p>
+      <p class="small">{{t "admin.analysis_every" "minutes" .AnalysisEvery}}</p>
       {{with .AnalysisRun}}
       <p class="small muted">{{t "admin.analysis_last" "when" (ago .At) "seconds" (num .Duration.Seconds 1)}}</p>
       {{if .Err}}<p class="error">{{.Err}}</p>{{end}}
