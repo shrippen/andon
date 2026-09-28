@@ -196,6 +196,7 @@ edit:
   selected: '{n} markiert'
   clear_selection: Markierung aufheben
   layout_hint: Änderungen gelten nur für dich
+  repeated: 'Diese Kachel steht mehrmals auf dem Board.'
 field:
   place: Ort
   week_hours: Wochenziel (Stunden)

@@ -196,6 +196,7 @@ edit:
   selected: '{n} selected'
   clear_selection: Clear selection
   layout_hint: Changes apply only to you
+  repeated: 'This tile is on the board more than once.'
 field:
   place: Place
   week_hours: Weekly target (hours)

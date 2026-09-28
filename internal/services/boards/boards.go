@@ -65,6 +65,8 @@ type Tile struct {
 	Items       []TileItem
 	Frame       widgets.Frame
 	FrameIcon   TileIcon // the frame's title icon
+	Host        string   // link tiles: host, when another link has the same title
+	Placed      int      // how often the widget is on the board; editors see "2×"
 }
 
 // TileIcon is a resolved icon: an emoji or an image.
@@ -341,6 +343,7 @@ func View(d *sql.DB, who *access.Principal, boardID int64) (*BoardView, error) {
 			}
 			view.Sections = append(view.Sections, sv)
 		}
+		markTwins(view.Sections)
 		if view.Frequent, err = frequent(tx, who, view.Sections); err != nil {
 			return err
 		}
