@@ -1,0 +1,70 @@
+{{define "hosts"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "nav.hosts"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <h1>{{t "nav.hosts"}}</h1>
+    <p class="muted">{{t "hosts.lead"}}</p>
+    {{if .Hosts}}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>{{t "hosts.host"}}</th><th>{{t "hosts.services"}}</th><th class="num">{{t "hosts.monitors"}}</th><th class="num">{{t "hosts.problems"}}</th></tr></thead>
+      <tbody>{{range .Hosts}}<tr>
+        <td><a href="/hosts/{{.Name}}">{{.Name}}</a></td>
+        <td>{{range $i, $s := .Services}}{{if $i}}, {{end}}{{$s.Name}}{{end}}</td>
+        <td class="num">{{len .Monitors}}</td>
+        <td class="num">{{if .Problems}}<span class="late">{{.Problems}}</span>{{else}}–{{end}}</td>
+      </tr>{{end}}</tbody>
+    </table></div>
+    {{else}}<p class="muted">{{t "hosts.none"}}</p>{{end}}
+  </main>
+</body>
+</html>
+{{end}}
+
+{{define "host"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.H.Name}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    {{$h := .H}}
+    <p class="small"><a href="/hosts">← {{t "nav.hosts"}}</a></p>
+    <h1>{{$h.Name}}</h1>
+
+    <h2>{{t "hosts.services"}}</h2>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>{{t "hosts.connection"}}</th><th>{{t "hosts.state"}}</th><th>{{t "hosts.version"}}</th><th>{{t "hosts.fetched"}}</th></tr></thead>
+      <tbody>{{range $h.Services}}<tr>
+        <td><a href="/connections/{{.ConnID}}/edit">{{.Name}}</a> <small class="muted">{{t (print "service." .Service)}}</small></td>
+        <td>{{if .OK}}<span class="pill" data-state="ok">{{t "hosts.ok"}}</span>{{else}}<span class="pill" data-state="fail" title="{{.Error}}">{{t "hosts.failed"}}</span>{{end}}</td>
+        <td>{{with .Version}}<code>{{.}}</code>{{end}}</td>
+        <td>{{ago .FetchedAt}}</td>
+      </tr>{{end}}</tbody>
+    </table></div>
+
+    {{with $h.Monitors}}<h2>{{t "hosts.monitors"}}</h2>
+    <ul class="legend-list">{{range .}}<li data-tier="{{if .Up}}green{{else}}red{{end}}"><span class="sq" aria-hidden="true"></span><span>{{.Name}}</span><b>{{if .Up}}{{if .MS}}{{num .MS 0}} ms{{else}}{{t "hosts.up"}}{{end}}{{else}}{{t "hosts.down"}}{{end}}</b></li>{{end}}</ul>{{end}}
+
+    {{with $h.Certs}}<h2>{{t "hosts.certs"}}</h2>
+    <ul class="legend-list">{{range .}}<li><span>{{.Host}}{{with .Issuer}} <small class="muted">{{.}}</small>{{end}}</span><b>{{if .Error}}<span class="late">{{.Error}}</span>{{else}}{{t "hosts.cert_until" "day" (day .NotAfter)}}{{end}}</b></li>{{end}}</ul>{{end}}
+
+    <h2>{{t "nav.hints"}}</h2>
+    {{with $h.Hints}}<ul class="hint-lines">{{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><a href="/hints#hint-{{.ID}}">{{.Title}}</a><small>{{ago .FirstSeen}}</small></li>{{end}}</ul>
+    {{else}}<p class="muted">{{t "hosts.no_hints"}}</p>{{end}}
+  </main>
+</body>
+</html>
+{{end}}

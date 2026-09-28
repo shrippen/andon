@@ -24,6 +24,7 @@ nav:
   space_settings: Space settings
   receipts: Match receipts
   clients: 'Customers'
+  hosts: 'Hosts'
 action:
   isp_report: 'Open report'
   book_payment: 'Book payment'
@@ -3705,3 +3706,21 @@ clients:
   balance: 'Balance'
   projects: 'Projects this year'
   no_hints: 'No open hints about this customer.'
+hosts:
+  lead: 'Every machine name of your connections with everything aimed at it: services, monitors, certificates, hints.'
+  host: 'Host'
+  services: 'Services'
+  monitors: 'Monitors'
+  problems: 'Problems'
+  none: 'No connections yet.'
+  connection: 'Connection'
+  state: 'State'
+  version: 'Version'
+  fetched: 'Fetched'
+  ok: 'ok'
+  failed: 'failing'
+  up: 'up'
+  down: 'down'
+  certs: 'Certificates'
+  cert_until: 'valid until {day}'
+  no_hints: 'No open hints about this host.'

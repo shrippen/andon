@@ -24,6 +24,7 @@ nav:
   space_settings: Bereich einstellen
   receipts: Belege zuordnen
   clients: 'Kunden'
+  hosts: 'Hosts'
 action:
   isp_report: 'Bericht öffnen'
   book_payment: 'Zahlung buchen'
@@ -3706,3 +3707,21 @@ clients:
   balance: 'Offen'
   projects: 'Projekte dieses Jahr'
   no_hints: 'Keine offenen Hinweise zu diesem Kunden.'
+hosts:
+  lead: 'Jeder Rechnername aus deinen Verbindungen mit allem, was darauf zeigt: Dienste, Monitore, Zertifikate, Hinweise.'
+  host: 'Host'
+  services: 'Dienste'
+  monitors: 'Monitore'
+  problems: 'Probleme'
+  none: 'Noch keine Verbindungen.'
+  connection: 'Verbindung'
+  state: 'Zustand'
+  version: 'Version'
+  fetched: 'Abgerufen'
+  ok: 'ok'
+  failed: 'gestört'
+  up: 'erreichbar'
+  down: 'nicht erreichbar'
+  certs: 'Zertifikate'
+  cert_until: 'gültig bis {day}'
+  no_hints: 'Keine offenen Hinweise zu diesem Host.'

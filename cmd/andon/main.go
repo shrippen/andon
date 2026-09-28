@@ -141,6 +141,7 @@ func main() {
 	deps.RegisterHookRoutes(mux)
 	deps.RegisterBillingRoutes(mux)
 	deps.RegisterClientRoutes(mux)
+	deps.RegisterHostRoutes(mux)
 	deps.RegisterInsightRoutes(mux)
 	deps.RegisterStartPageRoutes(mux)
 	deps.RegisterHealthRoute(mux)

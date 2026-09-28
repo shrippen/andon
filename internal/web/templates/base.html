@@ -79,6 +79,7 @@
         <div class="menu-list">
           <a href="/boards"{{if eq .Ctx.Path "/boards"}} aria-current="page"{{end}}>{{t "boards.title"}}</a>
           <a href="/widgets"{{if here "/widgets"}} aria-current="page"{{end}}>{{t "nav.library"}}</a>
+          <a href="/hosts"{{if here "/hosts"}} aria-current="page"{{end}}>{{t "nav.hosts"}}</a>
           <a href="/connections"{{if here "/connections"}} aria-current="page"{{end}}>{{t "nav.connections"}}</a>
           <a href="/spaces/settings"{{if here "/spaces/settings"}} aria-current="page"{{end}}>{{t "nav.space_settings"}}</a>
           <a href="/teams"{{if here "/teams"}} aria-current="page"{{end}}>{{t "nav.teams"}}</a>
