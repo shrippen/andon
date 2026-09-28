@@ -160,6 +160,9 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 		}
 		return scopes[key]
 	}
+	// The shared scope always runs: rules on the settings alone (tax
+	// deadlines) belong there, once, not in each owner's scope too.
+	scopeOf(nil)
 
 	// Certificate checks go last: they may pick up hosts found by others.
 	var runs []run
@@ -395,8 +398,17 @@ func snapshot(d *sql.DB, conn *model.Connection, owner *int64, dataset any, toda
 
 func runScope(d *sql.DB, sc *scope, today time.Time) (int, error) {
 	env := rules.Env{Today: today, Settings: sc.settings, Datasets: sc.datasets, Options: sc.options}
-	specs := append(rules.ForScope(rules.Cross), rules.ForScope(rules.Deadlines)...)
+	specs := rules.ForScope(rules.Cross)
+	if sc.owner == nil {
+		specs = append(specs, rules.ForScope(rules.Deadlines)...)
+	}
 	findings, ids := apply(specs, nil, env)
+	if sc.owner != nil {
+		// Listed without findings: copies an owner's scope once made resolve.
+		for _, spec := range rules.ForScope(rules.Deadlines) {
+			ids = append(ids, spec.ID)
+		}
+	}
 	return syncHints(d, sc.spaceID, sc.owner, nil, ids, findings)
 }
 

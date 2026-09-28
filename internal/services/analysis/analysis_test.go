@@ -17,6 +17,7 @@ import (
 	"andon/internal/model"
 	"andon/internal/repos/content"
 	data "andon/internal/repos/data"
+	"andon/internal/services/accounts"
 	"andon/internal/services/analysis"
 )
 
@@ -292,5 +293,47 @@ func TestPrunePointsKeepsTrendSpan(t *testing.T) {
 	}
 	if len(points) != 1 || points[0].Day != kept {
 		t.Fatalf("points: %+v", points)
+	}
+}
+
+// TestDeadlinesOncePerSpace: a space with a personal-credential
+// connection gets a second scope for its owner; the tax deadlines, which
+// come from the space settings alone, must still appear once.
+func TestDeadlinesOncePerSpace(t *testing.T) {
+	d := openTestDB(t)
+	sid := addSpace(t, d)
+	settings := map[string]any{"tax": map[string]any{"vat": map[string]any{"return_interval": "monthly"}}}
+	if err := content.UpdateSpaceSettings(d, sid, settings, 1); err != nil {
+		t.Fatal(err)
+	}
+	pw := "long-enough-password"
+	u, err := accounts.Create(d, "a@b.de", "A", &pw, enums.RoleUser, enums.LocaleDE, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn := &model.Connection{
+		SpaceID: sid, Key: "wallos", Name: "Wallos", Service: "wallos", URL: "http://127.0.0.1:1",
+		CredentialMode: enums.CredentialPersonal, VerifyTLS: true, CreatedAt: time.Now().UTC(),
+	}
+	if err := content.AddConnection(d, conn); err != nil {
+		t.Fatal(err)
+	}
+	if err := content.SetCredential(d, conn.ID, u.ID, encryptedSecret(t, "tok")); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := analysis.RunAll(context.Background(), d, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)); err != nil {
+		t.Fatal(err)
+	}
+	var total, dupes int
+	if err := d.QueryRow("SELECT COUNT(*) FROM hints WHERE rule = 'tax.deadlines' AND resolved_at IS NULL").Scan(&total); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.QueryRow(`SELECT COUNT(*) FROM (SELECT fingerprint FROM hints WHERE rule = 'tax.deadlines'
+		AND resolved_at IS NULL GROUP BY fingerprint HAVING COUNT(*) > 1)`).Scan(&dupes); err != nil {
+		t.Fatal(err)
+	}
+	if total == 0 || dupes != 0 {
+		t.Fatalf("tax hints: %d, duplicated fingerprints: %d", total, dupes)
 	}
 }
