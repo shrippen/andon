@@ -185,6 +185,27 @@
 {{end}}{{end}}
 {{end}}
 
+{{define "widgets/umami_sites"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Bars}}
+<div class="tile-head"><b class="tile-value">{{$v.Visitors}}</b><span class="tile-sub">{{t "umami.visitors_week" "n" $v.Sites}}</span></div>
+{{template "hbars" $v.Bars}}
+{{end}}{{end}}
+{{end}}
+
+{{define "widgets/immich_library"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{with $v.Data}}
+<div class="tile-head"><b class="tile-value">{{num $v.Photos 0}}</b><span class="tile-sub">{{t "immich.library" "videos" .Videos}}</span></div>
+<div class="progress"><div class="progress-head"><span>{{t "immich.disk"}}</span><span>{{$v.Disk}} %{{with .DiskAvailable}} · {{t "immich.free" "free" .}}{{end}}</span></div>
+  <div class="progress-bar"><i data-style="--p:{{$v.Disk}}%"{{with $v.DiskTier}} data-tier="{{.}}"{{end}}></i></div></div>
+<ul class="legend-list">
+  {{if $v.Failed}}<li data-tier="red"><span class="sq" aria-hidden="true"></span>{{t "immich.failed" "n" $v.Failed}}</li>{{end}}
+  {{if $v.Update}}<li data-tier="yellow"><span class="sq" aria-hidden="true"></span>{{t "immich.update" "version" .Latest}}</li>{{end}}
+</ul>
+{{end}}{{end}}
+{{end}}
+
 {{define "widgets/linkwarden"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Links}}

@@ -45,6 +45,8 @@ func TestCatalogTilesRender(t *testing.T) {
 		"paperless_inbox":  {data: sources.DemoPaperless(now), want: "Posteingang"},
 		"mail_invoices":    {data: sources.DemoMail(now), want: "tile-value"},
 		"freshrss_feeds":   {data: sources.DemoFreshRSS(now), want: "hbar"},
+		"umami_sites":      {data: sources.DemoUmami(), want: "(-86 %)"},
+		"immich_library":   {data: sources.DemoImmich(), want: "v1.132.3"},
 		"linkwarden":       {data: sources.DemoLinkwarden(), want: "hbar"},
 		"kintsugi":         {data: sources.DemoKintsugi(now), want: "Stadtwerke"},
 		"gitea_reviews":    {data: sources.DemoGitea(now), want: "Reviews offen"},

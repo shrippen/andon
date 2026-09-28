@@ -25,6 +25,7 @@ package widgets
 //	kintsugi        Kintsugi: open acquisition suggestions, take-up, gaps
 
 import (
+	"fmt"
 	"net/url"
 	"slices"
 	"sort"
@@ -911,6 +912,83 @@ func freshrssView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any 
 	return map[string]any{"Unread": unread, "Feeds": len(feeds), "Bars": bars}
 }
 
+// decodeEmptyConfig is for tiles without settings.
+func decodeEmptyConfig(map[string]any) any { return struct{}{} }
+
+// ── umami ──
+
+// UmamiConfig filters the sites of the "umami_sites" tile.
+type UmamiConfig struct{ Only []string }
+
+func decodeUmami(raw map[string]any) any { return UmamiConfig{Only: lowerList(raw["filter"])} }
+
+// umamiView: visitors of the last 7 days per site, with the change
+// against the week before (a drop in red).
+func umamiView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+	cfg, _ := cfgAny.(UmamiConfig)
+	data, ok := results["data"].(*sources.UmamiDataset)
+	if !ok {
+		return map[string]any{}
+	}
+	var sites []sources.Site
+	visitors := 0
+	for _, s := range data.Sites {
+		if matchesAny(s.Name, cfg.Only) || matchesAny(s.Domain, cfg.Only) {
+			sites = append(sites, s)
+			visitors += s.Visitors
+		}
+	}
+	sort.Slice(sites, func(a, b int) bool { return sites[a].Visitors > sites[b].Visitors })
+	top := 1
+	if len(sites) > 0 {
+		top = max(sites[0].Visitors, 1)
+	}
+	var bars []HBar
+	for _, s := range sites[:min(len(sites), barsShown)] {
+		bar := HBar{Label: s.Name, Value: strconv.Itoa(s.Visitors), W: pctOf(float64(s.Visitors), float64(top))}
+		if s.PrevVisit > 0 {
+			change := (s.Visitors - s.PrevVisit) * pctFull / s.PrevVisit
+			bar.Value += fmt.Sprintf(" (%+d %%)", change)
+			if change <= -umamiDrop {
+				bar.Tier = "red"
+			}
+		}
+		bars = append(bars, bar)
+	}
+	return map[string]any{"Visitors": visitors, "Sites": len(sites), "Bars": bars}
+}
+
+// umamiDrop marks a site whose visitors fell by this many percent.
+const umamiDrop = 30
+
+// ── immich ──
+
+// immichView: library size, disk use, failed jobs and a pending update.
+func immichView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+	data, ok := results["data"].(*sources.ImmichDataset)
+	if !ok {
+		return map[string]any{}
+	}
+	failed := 0
+	for _, n := range data.FailedJobs {
+		failed += n
+	}
+	tier := ""
+	switch {
+	case data.DiskPercent >= immichDiskRed:
+		tier = "red"
+	case data.DiskPercent >= immichDiskYellow:
+		tier = "yellow"
+	}
+	return map[string]any{"Data": data, "Photos": float64(data.Photos), "Failed": failed, "DiskTier": tier, "Disk": int(data.DiskPercent),
+		"Update": data.Latest != "" && data.Latest != data.Version}
+}
+
+const (
+	immichDiskYellow = 80
+	immichDiskRed    = 90
+)
+
 // ── linkwarden ──
 
 // LinkwardenConfig is the "linkwarden" widget's config.
@@ -1194,6 +1272,8 @@ func init() {
 	mail.Extra = ExtraForwarded
 	Register(mail)
 	on("freshrss_feeds", enums.ServiceFreshRSS, 30*minute, decodeFreshRSS, freshrssView)
+	on("umami_sites", enums.ServiceUmami, 30*minute, decodeUmami, umamiView)
+	on("immich_library", enums.ServiceImmich, 30*minute, decodeEmptyConfig, immichView)
 	on("linkwarden", enums.ServiceLinkwarden, hour, decodeLinkwarden, linkwardenView)
 	on("gitea_reviews", enums.ServiceGitea, 15*minute, decodeListOf("show"), giteaView)
 	on("dawarich_day", enums.ServiceDawarich, 30*minute, decodeDawarich, dawarichDayView)

@@ -879,6 +879,12 @@ wtype:
   hint_trend:
     name: 'Hint trend'
     desc: 'Open hints per level over the last weeks: is it getting calmer?'
+  umami_sites:
+    name: 'Visitors per website'
+    desc: 'Visitors of the last 7 days per website from Umami, with the change against the week before.'
+  immich_library:
+    name: 'Immich library'
+    desc: 'Photos and videos, disk space, failed jobs and an available update.'
 widget:
   delete_hint: 'The tile disappears from every board it is on.'
   pending: Loading with the next check …
@@ -3667,3 +3673,11 @@ flow:
   sent: 'Sent'
   overdue: 'Overdue'
   paid: 'Paid (30 d)'
+umami:
+  visitors_week: 'visitors in 7 days · {n} websites'
+immich:
+  library: 'photos · {videos} videos'
+  disk: 'Storage'
+  free: '{free} free'
+  failed: '{n} failed jobs'
+  update: 'Update to {version} available'

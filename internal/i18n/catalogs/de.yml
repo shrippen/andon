@@ -879,6 +879,12 @@ wtype:
   hint_trend:
     name: 'Hinweis-Verlauf'
     desc: 'Offene Hinweise je Stufe über die letzten Wochen: wird es ruhiger?'
+  umami_sites:
+    name: 'Besucher je Website'
+    desc: 'Besucher der letzten 7 Tage je Website aus Umami, mit Veränderung zur Vorwoche.'
+  immich_library:
+    name: 'Immich-Bibliothek'
+    desc: 'Fotos und Videos, Speicherplatz, fehlgeschlagene Jobs und verfügbares Update.'
 widget:
   delete_hint: 'Die Kachel verschwindet von allen Boards, auf denen sie steht.'
   pending: Wird beim nächsten Prüflauf geladen …
@@ -3668,3 +3674,11 @@ flow:
   sent: 'Versendet'
   overdue: 'Überfällig'
   paid: 'Eingegangen (30 T.)'
+umami:
+  visitors_week: 'Besucher in 7 Tagen · {n} Websites'
+immich:
+  library: 'Fotos · {videos} Videos'
+  disk: 'Speicher'
+  free: '{free} frei'
+  failed: '{n} fehlgeschlagene Jobs'
+  update: 'Update auf {version} verfügbar'
