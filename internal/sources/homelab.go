@@ -52,6 +52,8 @@ type Disk struct {
 	Temp        float64
 	Hours       int
 	Seen        time.Time // last collector run
+	WWN         string
+	Failing     string // failed disks: flagged attributes, "Reallocated Sectors Count 8"
 }
 
 type ScrutinyDataset struct {
@@ -69,11 +71,56 @@ func (ScrutinyData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoScrutiny(time.Now()), nil
 	}
-	body, err := services.ScrutinyApi{URL: sctx.URL, Verify: sctx.VerifyTLS}.Summary(ctx)
+	api := services.ScrutinyApi{URL: sctx.URL, Verify: sctx.VerifyTLS}
+	body, err := api.Summary(ctx)
 	if err != nil {
 		return nil, fetchError(err)
 	}
-	return parseScrutiny(sctx.URL, body), nil
+	data := parseScrutiny(sctx.URL, body)
+
+	// A failed disk says why: its details name the flagged attributes.
+	for i, d := range data.Disks {
+		if d.Status == ScrutinyPassed || d.WWN == "" {
+			continue
+		}
+		if details, err := api.Details(ctx, d.WWN); err == nil {
+			data.Disks[i].Failing = failingAttrs(details)
+		}
+	}
+	return data, nil
+}
+
+// failingAttrs lists the attributes of a disk's latest SMART result that
+// SMART or Scrutiny flag (status ≠ 0), by attribute id, with raw values.
+func failingAttrs(details any) string {
+	body := asMap(details)
+	results := asList(asMap(body["data"])["smart_results"])
+	if len(results) == 0 {
+		return ""
+	}
+	names := asMap(body["metadata"])
+	type attr struct {
+		id   int
+		text string
+	}
+	var flagged []attr
+	for key, raw := range asMap(asMap(results[0])["attrs"]) {
+		a := asMap(raw)
+		if asFloat(a["status"]) == 0 {
+			continue
+		}
+		name := asStr(asMap(names[key])["display_name"])
+		if name == "" {
+			name = "SMART " + key
+		}
+		flagged = append(flagged, attr{int(asFloat(a["attribute_id"])), name + " " + strconv.FormatFloat(asFloat(a["raw_value"]), 'f', -1, 64)})
+	}
+	sort.Slice(flagged, func(i, j int) bool { return flagged[i].id < flagged[j].id })
+	texts := make([]string, len(flagged))
+	for i, a := range flagged {
+		texts[i] = a.text
+	}
+	return strings.Join(texts, ", ")
 }
 
 func parseScrutiny(base string, body any) *ScrutinyDataset {
@@ -85,7 +132,7 @@ func parseScrutiny(base string, body any) *ScrutinyDataset {
 		data.Disks = append(data.Disks, Disk{
 			Name: asStr(dev["device_name"]), Model: asStr(dev["model_name"]),
 			Status: int(asFloat(dev["device_status"])), Temp: asFloat(smart["temp"]),
-			Hours: int(asFloat(smart["power_on_hours"])), Seen: seen.UTC(),
+			Hours: int(asFloat(smart["power_on_hours"])), Seen: seen.UTC(), WWN: asStr(dev["wwn"]),
 		})
 	}
 	sort.Slice(data.Disks, func(i, j int) bool { return data.Disks[i].Name < data.Disks[j].Name })

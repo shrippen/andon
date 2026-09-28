@@ -227,3 +227,19 @@ func TestHassBatteryPerDevice(t *testing.T) {
 		}
 	}
 }
+
+// A failed disk's hint names the flagged attributes when Scrutiny gave
+// them.
+func TestScrutinyFailedNamesAttrs(t *testing.T) {
+	data := &sources.ScrutinyDataset{Disks: []sources.Disk{
+		{Name: "sdb", Status: 1, Failing: "Reallocated Sectors Count 8"},
+		{Name: "sdc", Status: 2},
+	}}
+	msgs := map[string]string{}
+	for _, f := range run(t, "scrutiny.disk_failed", data, todayEnv(nil)) {
+		msgs[f.Params["disk"].(string)] = f.Message
+	}
+	if msgs["sdb"] != "scrutiny.failed_attrs" || msgs["sdc"] != "scrutiny.failed" {
+		t.Fatalf("messages: %v", msgs)
+	}
+}

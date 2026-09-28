@@ -1920,6 +1920,9 @@ hint:
     stale:
       title: 'Keine SMART-Daten für {disk} seit {day}'
       why: Der Scrutiny-Collector läuft vermutlich nicht mehr.
+    failed_attrs:
+      title: 'Platte {disk}: {attrs}'
+      why: '{model}, {hours} Betriebsstunden. Werte über der Schwelle; Daten sichern und Tausch planen.'
   immich:
     storage:
       title: 'Immich-Speicher zu {percent} % belegt'

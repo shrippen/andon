@@ -49,8 +49,12 @@ func registerScrutiny() {
 			if d.Status == sources.ScrutinyPassed {
 				continue
 			}
-			found = append(found, svcFinding(svc, "scrutiny.disk_failed", "failed:"+d.Name, "scrutiny.failed",
-				enums.SeverityCritical, data.URL, map[string]any{"disk": d.Name, "model": d.Model, "hours": d.Hours}))
+			msg := "scrutiny.failed"
+			if d.Failing != "" {
+				msg = "scrutiny.failed_attrs"
+			}
+			found = append(found, svcFinding(svc, "scrutiny.disk_failed", "failed:"+d.Name, msg,
+				enums.SeverityCritical, data.URL, map[string]any{"disk": d.Name, "model": d.Model, "hours": d.Hours, "attrs": d.Failing}))
 		}
 		return found
 	})

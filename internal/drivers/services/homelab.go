@@ -77,6 +77,12 @@ func (a ScrutinyApi) Summary(ctx context.Context) (any, error) {
 	return fetchJSON(ctx, joinURL(a.URL, "api/summary"), nil, nil, httpclient.TLSOf(a.Verify))
 }
 
+// Details returns /api/device/<wwn>/details: SMART results with every
+// attribute's status, plus attribute names in "metadata".
+func (a ScrutinyApi) Details(ctx context.Context, wwn string) (any, error) {
+	return fetchJSON(ctx, joinURL(a.URL, "api/device/"+url.PathEscape(wwn)+"/details"), nil, nil, httpclient.TLSOf(a.Verify))
+}
+
 // ── Docker ──
 
 // DockerApi reads the Docker Engine API through a socket proxy that

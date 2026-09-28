@@ -1920,6 +1920,9 @@ hint:
     stale:
       title: 'No SMART data for {disk} since {day}'
       why: The Scrutiny collector has probably stopped.
+    failed_attrs:
+      title: 'Disk {disk}: {attrs}'
+      why: '{model}, {hours} power-on hours. Values past the threshold; back up and plan a replacement.'
   immich:
     storage:
       title: 'Immich storage {percent} % full'
