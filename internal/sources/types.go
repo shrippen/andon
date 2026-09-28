@@ -97,6 +97,7 @@ type NinjaClient struct {
 
 type NinjaExpense struct {
 	ID        int64
+	Number    string
 	Date      string
 	Amount    float64
 	Tax       float64

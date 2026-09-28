@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"cmp"
 	"fmt"
 	"strings"
 	"time"
@@ -313,6 +314,10 @@ func init() {
 		func(raw any, cfg map[string]any, env Env) []Finding {
 			data := nData(raw)
 			since := env.Today.AddDate(0, 0, -ninjaRecentDays)
+			vendors := map[string]string{}
+			for _, v := range data.Vendors {
+				vendors[v.Key] = v.Name
+			}
 			var found []Finding
 			for _, e := range data.Expenses {
 				d, ok := metrics.ParseDay(e.Date)
@@ -328,6 +333,7 @@ func init() {
 					Severity: enums.SeverityInfo, Message: "in.expense_no_vat",
 					Params: map[string]any{
 						"amount": Money(e.Amount, ninjaCurrency(data)), "notes": notes, "day": DayStr(e.Date),
+						"vendor": cmp.Or(vendors[e.VendorKey], "–"), "number": cmp.Or(e.Number, "–"),
 					},
 					ActionURL: ninjaURL(data, fmt.Sprintf("expenses/%d/edit", e.ID)), ActionLabel: ninjaOpen,
 					Sources: []string{ninjaSource},

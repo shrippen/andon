@@ -172,7 +172,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 		if day(em["date"]) >= since {
 			notes := asStr(em["public_notes"])
 			expenses = append(expenses, NinjaExpense{
-				ID: asInt64(em["id"]), Date: day(em["date"]), Amount: asFloat(em["amount"]),
+				ID: asInt64(em["id"]), Number: asStr(em["number"]), Date: day(em["date"]), Amount: asFloat(em["amount"]),
 				Tax: round2(expenseTax(em)), Notes: notes, VendorID: asInt64(em["vendor_id"]), VendorKey: idKey(em["vendor_id"]),
 			})
 		}

@@ -329,3 +329,16 @@ func TestNinjaOverdueBundled(t *testing.T) {
 		t.Fatalf("bundle: %+v", bundle)
 	}
 }
+
+// An expense without input VAT names its vendor and number, so it can be
+// found without opening Invoice Ninja.
+func TestExpenseNoVATNamesVendor(t *testing.T) {
+	data := &sources.NinjaDataset{
+		Expenses: []sources.NinjaExpense{{ID: 7, Number: "A-0042", Date: "2026-09-20", Amount: 297.5, VendorKey: "v1"}},
+		Vendors:  []sources.NinjaVendor{{Key: "v1", Name: "Hetzner"}},
+	}
+	found := run(t, "in.expense_no_input_vat", data, rules.Env{Today: day("2026-09-28"), Settings: map[string]any{}})
+	if len(found) != 1 || found[0].Params["vendor"] != "Hetzner" || found[0].Params["number"] != "A-0042" {
+		t.Fatalf("found: %+v", found)
+	}
+}

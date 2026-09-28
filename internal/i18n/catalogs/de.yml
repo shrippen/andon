@@ -2067,7 +2067,7 @@ hint:
       title: 'Rechnung {number}: USt-IdNr. fehlt'
       why: '{client} sitzt im Ausland, die Rechnung ist ohne Umsatzsteuer. Für Reverse Charge braucht es die USt-IdNr. des Kunden.'
     expense_no_vat:
-      title: Ausgabe ohne Vorsteuer ({amount})
+      title: 'Ausgabe {number} von {vendor} ohne Vorsteuer ({amount})'
       why: '{notes} vom {day}: keine Vorsteuer erfasst.'
     concentration:
       title: '{client}: {percent} % des Umsatzes'

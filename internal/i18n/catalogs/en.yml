@@ -2067,7 +2067,7 @@ hint:
       title: 'Invoice {number}: VAT ID missing'
       why: '{client} is abroad and the invoice has no VAT. Reverse charge needs the client''s VAT ID.'
     expense_no_vat:
-      title: Expense without input VAT ({amount})
+      title: 'Expense {number} from {vendor} without input VAT ({amount})'
       why: '{notes} on {day}: no input VAT recorded.'
     concentration:
       title: '{client}: {percent} % of revenue'
