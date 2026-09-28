@@ -67,6 +67,7 @@ var fieldsByType = map[string][]Field{
 		sel("kinds", "all", "all", "updates", "hints")},
 	"uptime_month": {{Key: "sla", Input: InputNumber}, {Key: "filter", Input: InputList}},
 	"hint_noise":   {sel("period", "14", "14", "30", "90")},
+	"hint_trend":   {sel("period", "30", "14", "30", "90")},
 	"status_light": {sel("red_from", "critical", "critical", "warn"), sel("yellow_from", "warn", "warn", "info", "off"), {Key: "sources", Input: InputList},
 		{Key: "direct", Input: InputCheck}, {Key: "text_green", Input: InputText}, {Key: "text_yellow", Input: InputText}, {Key: "text_red", Input: InputText}},
 	"exposure": {{Key: "only_open", Input: InputCheck}},

@@ -265,6 +265,17 @@
 {{else}}<p class="slot-note">{{t "noise.none"}}</p>{{end}}{{end}}
 {{end}}
 
+{{define "widgets/hint_trend"}}
+{{/* Open hints per level over the period: getting calmer or not. */}}
+{{with $v := .Frag.View}}{{if $v.Lines}}
+<ul class="trend-lines">{{range $v.Lines}}
+  <li data-tier="{{if ge .Level 30}}red{{else if ge .Level 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span>
+    <span>{{t (print "severity." .Level.Key)}}</span><b>{{.Now}}</b>{{with .Spark}}{{template "spark" .}}{{end}}</li>{{end}}
+</ul>
+<p class="small muted">{{t "trend.hints_days" "days" $v.Days}}</p>
+{{else}}<p class="slot-note">{{t "noise.none"}}</p>{{end}}{{end}}
+{{end}}
+
 {{define "widgets/timeline_recent"}}
 {{with $v := .Frag.View}}{{if $v.Items}}
 <ol class="day-line is-recent">

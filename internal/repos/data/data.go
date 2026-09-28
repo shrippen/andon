@@ -153,6 +153,33 @@ func HintsIn(q db.Queryer, spaceIDs []int64, userID int64) ([]*model.Hint, error
 	return scanHints(rows)
 }
 
+// HintsTouching returns the hints of the given spaces that were open at
+// some point since a time: still open, or resolved after it.
+func HintsTouching(q db.Queryer, spaceIDs []int64, userID int64, since time.Time) ([]*model.Hint, error) {
+	if len(spaceIDs) == 0 {
+		return nil, nil
+	}
+	placeholders, args := "", []any{}
+	for i, id := range spaceIDs {
+		if i > 0 {
+			placeholders += ","
+		}
+		placeholders += "?"
+		args = append(args, id)
+	}
+	args = append(args, db.TimeStr(since), userID)
+	rows, err := q.Query(
+		"SELECT "+hintCols+" FROM hints WHERE space_id IN ("+placeholders+
+			") AND (resolved_at IS NULL OR resolved_at >= ?) AND (user_id IS NULL OR user_id = ?)",
+		args...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanHints(rows)
+}
+
 // ResolvedHintsIn returns the hints of the given spaces that resolved
 // since a time, visible to userID, newest first.
 func ResolvedHintsIn(q db.Queryer, spaceIDs []int64, userID int64, since time.Time) ([]*model.Hint, error) {

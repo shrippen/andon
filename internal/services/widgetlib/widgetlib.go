@@ -632,7 +632,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		if err != nil {
 			return nil, err
 		}
-		data := widgets.NoiseData{Daily: n.Daily}
+		data := widgets.NoiseData{Daily: n.Daily, Open: n.Open}
 		for _, f := range n.Flapping {
 			data.Flaps = append(data.Flaps, widgets.Flap{Rule: f.Rule, Returns: f.Returns})
 		}

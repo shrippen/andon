@@ -876,6 +876,9 @@ wtype:
   money_flow:
     name: 'Geldfluss'
     desc: 'Geld auf dem Weg zum Konto: nicht abgerechnet, Entwürfe, versendet, überfällig, dazu der Eingang der letzten 30 Tage.'
+  hint_trend:
+    name: 'Hinweis-Verlauf'
+    desc: 'Offene Hinweise je Stufe über die letzten Wochen: wird es ruhiger?'
 widget:
   delete_hint: 'Die Kachel verschwindet von allen Boards, auf denen sie steht.'
   pending: Wird beim nächsten Prüflauf geladen …
@@ -2687,6 +2690,7 @@ trend:
   collecting: Verlauf wird gesammelt (ein Wert pro Tag).
   smoothed: Geglättet über 7 Tage
   target: 'Ziel {value}'
+  hints_days: 'Offen am Tagesende, letzte {days} Tage'
 passkey:
   failed: Passkey-Vorgang fehlgeschlagen oder abgebrochen.
   expired: Vorgang abgelaufen. Bitte erneut versuchen.

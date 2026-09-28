@@ -30,6 +30,7 @@ var topicOf = map[string]Topic{
 	"timeline_recent":  TopicOverview,
 	"uptime_month":     TopicHomelab,
 	"hint_noise":       TopicOverview,
+	"hint_trend":       TopicOverview,
 	"status_light":     TopicOverview,
 	"exposure":         TopicSecurity,
 	"travel":           TopicWork,

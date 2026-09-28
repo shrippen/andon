@@ -876,6 +876,9 @@ wtype:
   money_flow:
     name: 'Money flow'
     desc: 'Money on its way to the account: unbilled, drafts, sent, overdue, plus what came in over the last 30 days.'
+  hint_trend:
+    name: 'Hint trend'
+    desc: 'Open hints per level over the last weeks: is it getting calmer?'
 widget:
   delete_hint: 'The tile disappears from every board it is on.'
   pending: Loading with the next check …
@@ -2686,6 +2689,7 @@ trend:
   collecting: Collecting history (one value per day).
   smoothed: Smoothed over 7 days
   target: 'Target {value}'
+  hints_days: 'Open at each day''s end, last {days} days'
 passkey:
   failed: Passkey operation failed or was cancelled.
   expired: Ceremony expired. Please try again.
