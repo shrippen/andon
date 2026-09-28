@@ -83,7 +83,7 @@ Das Projekt ist vollständig von Python auf **Go** umgestellt (Zielplattform: Ra
 │                                                                                   │
 │  Anmeldung ─► Sitzung ─► Berechtigungsprüfung (jede Anfrage, jedes Widget-Fragment) │
 │                                   │                                               │
-│  Web-UI (Jinja + HTMX)  ◄─────────┼──────── Boards, Widgets, Themes, Editor        │
+│  Web-UI (html/template + HTMX) ◄──┼──────── Boards, Widgets, Themes, Editor        │
 │  JSON-API /api/*  ·  /embed/*     │                                               │
 │                                   ▼                                               │
 │  Scheduler ─► Quellen ─► Cache/Snapshots ─► Kennzahlen ─► Regeln ─► Hinweise       │
@@ -103,24 +103,22 @@ Das Projekt ist vollständig von Python auf **Go** umgestellt (Zielplattform: Ra
 
 **Datenbank statt Konfigurationsdatei:** Weil Editor und Mehrbenutzerbetrieb schreiben, ist die **Datenbank die Quelle der Wahrheit** für Boards, Widgets, Verbindungen, Themes und Rechte. YAML bleibt als Import-/Export-Format und für eine optionale Erstbefüllung (`seed.yml`). Über Umgebungsvariablen kommen nur Betriebswerte (Basis-URL, Datenbank, Hauptschlüssel, SMTP).
 
-**Stack-Vorschlag**
+**Stack** (Go; bis v0.3 war es Python/FastAPI, siehe Git-Historie)
 
 | Schicht | Wahl | Begründung |
 |---|---|---|
-| Sprache | Python 3.12 | gute HTTP-/Datums-Bibliotheken, die vorhandenen Tools (`preview/server.py`, `tools/*.py`) sind schon Python |
-| Web | FastAPI + Jinja2 + HTMX | serverseitig gerendert, kaum JavaScript, passt zum CSS-only Design System |
-| Datenbank | SQLAlchemy 2 + Alembic; SQLite im WAL-Modus | reicht für 1–10 Benutzer problemlos, ein Volume, einfaches Backup; Migrationen bei jedem Update. Durch SQLAlchemy bleibt PostgreSQL später möglich, wird aber nicht unterstützt oder getestet |
-| Anmeldung | `argon2-cffi`, serverseitige Sitzungen, `pyotp` (TOTP), `authlib` (OIDC für authentik), später `webauthn` | eigene Anmeldung, dazu Single Sign-on über authentik |
-| Übersetzung | Babel + Jinja2-i18n (gettext, `.po`-Dateien) | Oberfläche, Hinweise und E-Mails auf Deutsch und Englisch; Zahlen, Beträge und Datumsangaben im Format der Sprache |
-| Benachrichtigungen | Apprise | ein Baustein für alle Kanäle (ntfy, Gotify, Matrix, Telegram, E-Mail …), je Benutzer eine Liste von Apprise-URLs |
-| E-Mail | `aiosmtplib`, Vorlagen im Design System | Einladungen, Passwort-Reset, Sicherheitsmeldungen, Digest |
-| Geheimnisse | `cryptography` (AES-GCM), Hauptschlüssel aus Docker Secret | API-Tokens verschlüsselt in der Datenbank |
-| HTTP | `httpx` (async) | parallele Abrufe, Timeouts, Retries |
-| Zeitplan | APScheduler | Intervall je Quelle, dazu Cron-Jobs für Digests |
-| Fremdinhalte | `feedparser`, `nh3` | RSS lesen und HTML bereinigen |
-| Editor | SortableJS (vorgebaut, ins Repo kopiert), Formulare aus JSON-Schema | Drag & Drop ohne Framework und ohne Build-Kette |
-| Diagramme | uPlot oder Chart.js, Farben aus den Theme-Tokens | leicht, keine Build-Kette |
-| Validierung | Pydantic | ein Schema je Widget-Typ für Editor, Import und API |
+| Sprache | Go (aktuelle Stable), ein statisches Binary ohne cgo | läuft auf dem Raspberry Pi, kein C-Toolchain nötig |
+| Web | `net/http` + `html/template` + htmx | serverseitig gerendert, kaum JavaScript, passt zum CSS-only Design System |
+| Datenbank | `ncruces/go-sqlite3` (SQLite als WebAssembly) mit Adiantum-Verschlüsselung, WAL | ein Volume, einfaches Backup; Migrationen als SQL-Dateien |
+| Anmeldung | Argon2id, serverseitige Sitzungen, `pquerna/otp` (TOTP), eigener OIDC-Client (authentik), `go-webauthn` (Passkeys) | eigene Anmeldung, dazu Single Sign-on über authentik |
+| Übersetzung | YAML-Kataloge mit Schlüsseln (`internal/i18n/catalogs`) | Oberfläche, Hinweise und E-Mails auf Deutsch und Englisch; Beträge und Daten im Format der Sprache |
+| Benachrichtigungen | Apprise (API), SMTP für Digest | ein Baustein für alle Kanäle, je Benutzer eine Liste von Apprise-URLs |
+| Geheimnisse | AES-GCM (`internal/crypto`), Hauptschlüssel aus Docker Secret | Zugangsdaten verschlüsselt in der Datenbank |
+| HTTP | eigener Client mit Egress-Schutz beim Verbindungsaufbau (`internal/drivers/httpclient`) | Timeouts, geteilte Verbindungen, keine Umgehung über Weiterleitungen |
+| Zeitplan | eigener Scheduler (`internal/services/scheduler`) | ein Ticker je Job, Fehler und Panics isoliert |
+| Editor | SortableJS und CodeMirror 5 (vorgebaut, im Repo) | Drag & Drop ohne Framework und ohne Build-Kette |
+| Diagramme | SVG aus den Templates, Farben aus den Theme-Tokens | keine Build-Kette, kein Diagramm-Paket |
+| KI (optional) | `anthropic-sdk-go` | Wochenzusammenfassung, „Was tun?“, Rechnungen in Mails lesen |
 
 **Datenfluss**
 
@@ -808,7 +806,7 @@ Jede Quelle liefert einen gecachten Datensatz (`<dienst>.data`), Regeln, eine In
 - [x] Borg Backup Server: Clients offline/Fehler, fehlgeschlagene Jobs, Alter des letzten Backups, Speicher, Updates
 - [x] PG Back Web (keine Lese-API): signierte Webhook-URL je Verbindung; fehlgeschlagene/veraltete Backups, nicht erreichbare Datenbanken/Ziele, ausbleibende Webhooks
 - [ ] Obsidian – zurückgestellt, bis ein konkreter Nutzen feststeht (Wege zum Lesen des Vaults unten)
-- [ ] Docker
+- [x] Docker *(über einen Socket-Proxy, der nur Container zeigt; Regeln `docker.unhealthy`, `docker.crashed`, Kachel „Container“, Container ohne Kachel)*
 
 ### Phase 11: Dashy-Abgleich und weitere Integrationen
 
@@ -948,6 +946,31 @@ Analysen, die erst aus mehreren Diensten zusammen entstehen. Grundlage ist ein K
 - [x] Wochenrückblick mit Zusammenhängen *(im wöchentlichen Digest und als Widget „Woche in Zahlen“; lokal berechnet)*
 - [x] Schwellen, die nur nerven *(Hinweise-Seite: Regeln, deren Hinweise in 90 Tagen zu ≥ 80 % weggeklickt wurden)*
 - [x] Was ein Hinweis kostet *(Betrag am Hinweis, Sortierung nach Geldwert)*
+
+
+### Phase 14: Ausbauliste (28.09.2026)
+
+Drei Durchgänge durch den Code; umgesetzt, jeweils mit Test.
+
+**Sicherheit und Betrieb**
+- [x] Egress-Schutz beim Verbindungsaufbau (Weiterleitungen, DNS-Rebinding); offener Modus sperrt Loopback und Link-Local
+- [x] Server-Timeouts, HSTS, COOP, CSP ohne `unsafe-inline` (`data-style` über das CSSOM), iframe-Ursprünge geprüft
+- [x] Secrets als Dateideskriptor statt Umgebungsvariable; Webhook-URLs widerrufbar und gedrosselt; `?refresh` gedrosselt
+- [x] Release-Build ohne Demo-Modus (`-tags release`, `scripts/release-check.sh`); Galerie mit neutralem `sample.json`
+- [x] CI: staticcheck, govulncheck, Race-Test, gepinnte Actions, SBOM und cosign (GitHub); `latest` nur für Releases
+- [x] Prozesszustand auf Admin → Instanz; `andon healthcheck`; Alpine 3.24
+
+**Leistung**
+- [x] Geteilte HTTP-Transports, Sitzung ohne Schreibsperre, Lesepfade mit `WithRead`, Cache begrenzt, gleichzeitige Abrufe gebündelt, Polling pausiert in verborgenen Tabs, statische Dateien gzip
+
+**Hinweise**
+- [x] Neue Regeln: `glances.*`, `system.clock_skew`, `wallos.renewal_soon`, `github.review_waiting`/`stale_pr`, `snipe.checkin_overdue`, `domains.mail_auth`, `backups.restore_untested`, `docker.*`
+- [x] Wartungsfenster, Eskalation nach Tagen, Anleitung je Regel, Ausfälle über Proxmox-Knoten und -Gäste, Suche/Tasten/Erledigt-Liste, Pausieren bis Montag/Monatsanfang
+
+**Kacheln und Seiten**
+- [x] Ablauf-Zeitstrahl, Geldfluss, Hinweis-Verlauf, Umami, Immich, Container; KPI-Details
+- [x] Kundenseiten (`/clients`), Host-Seiten (`/hosts`)
+- Nicht umgesetzt: `system.version_drift` (die Versionstabelle hält eine Version je Dienst und Bereich, nicht je Host), „Wichtigster Hinweis groß“ (deckt die Wandampel ab), „Seit gestern“-Seite (deckt die Begrüßung ab)
 
 ---
 
