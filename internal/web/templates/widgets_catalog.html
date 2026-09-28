@@ -60,7 +60,7 @@
 {{with $v := .Frag.View}}{{if $v.Total}}
 <div class="tile-head"><b class="tile-value">{{$v.Healthy}} / {{$v.Total}}</b><span class="tile-sub">{{t "disks.healthy"}}</span></div>
 <ul class="legend-list">
-  {{range $v.Rows}}<li><span class="sq" data-tier="{{if .OK}}green{{else}}red{{end}}" aria-hidden="true"></span>{{.Name}} <small class="muted">{{if .OK}}{{t "disks.ok"}}{{else}}{{t "disks.failed"}}{{end}} · {{num .Years 1}} {{t "disks.years"}}</small><b{{with .TempTier}} data-tier="{{.}}"{{end}}>{{num .Temp 0}} °C</b></li>{{end}}
+  {{range $v.Rows}}{{if .Stale}}<li><span class="sq" data-tier="grey" aria-hidden="true"></span>{{.Name}} <small class="muted">{{t "disks.stale" "day" (day .Seen)}}</small><b class="muted">–</b></li>{{else}}<li><span class="sq" data-tier="{{if .OK}}green{{else}}red{{end}}" aria-hidden="true"></span>{{.Name}} <small class="muted">{{if .OK}}{{t "disks.ok"}}{{else}}{{t "disks.failed"}}{{end}} · {{num .Years 1}} {{t "disks.years"}}</small><b{{with .TempTier}} data-tier="{{.}}"{{end}}>{{num .Temp 0}} °C</b></li>{{end}}{{end}}
 </ul>
 {{end}}{{end}}
 {{end}}

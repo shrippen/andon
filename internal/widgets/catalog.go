@@ -356,10 +356,16 @@ func internalCustomers(settings map[string]any) []string {
 type DiskRow struct {
 	Name, Model string
 	OK          bool
+	Stale       bool      // collector silent: values are old
+	Seen        time.Time // last collector run
 	Temp        float64
 	TempTier    string
 	Years       float64 // power-on time
 }
+
+// diskStaleDays: a disk not reported for longer shows grey, like the
+// scrutiny.stale rule's default.
+const diskStaleDays = 2
 
 // DisksConfig is the "disks" widget's config.
 type DisksConfig struct {
@@ -375,7 +381,7 @@ func decodeDisks(raw map[string]any) any {
 	return DisksConfig{TempWarn: warn, OnlyProblems: asBool(raw["only_problems"])}
 }
 
-func disksView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+func disksView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	cfg, ok := cfgAny.(DisksConfig)
 	if !ok {
 		cfg = DisksConfig{TempWarn: tempWarn}
@@ -386,9 +392,18 @@ func disksView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 	}
 	healthy := 0
 	var rows []DiskRow
+	staleBefore := parseToday(ctx.Today).AddDate(0, 0, -diskStaleDays)
 	for _, d := range data.Disks {
 		row := DiskRow{Name: d.Name, Model: d.Model, OK: d.Status == sources.ScrutinyPassed, Temp: d.Temp,
-			Years: float64(d.Hours) / hoursPerDay / 365}
+			Years: float64(d.Hours) / hoursPerDay / 365, Seen: d.Seen}
+
+		// Old values say nothing about the disk now: neither ok nor hot.
+		if !d.Seen.IsZero() && d.Seen.Before(staleBefore) {
+			row.Stale, row.OK = true, false
+			rows = append(rows, row)
+			continue
+		}
+
 		switch {
 		case d.Temp >= cfg.TempWarn+tempHigh-tempWarn:
 			row.TempTier = "red"
@@ -403,8 +418,19 @@ func disksView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 		}
 		rows = append(rows, row)
 	}
-	sort.SliceStable(rows, func(a, b int) bool { return !rows[a].OK && rows[b].OK })
+	sort.SliceStable(rows, func(a, b int) bool { return diskRank(rows[a]) < diskRank(rows[b]) })
 	return map[string]any{"Healthy": healthy, "Total": len(data.Disks), "Rows": rows}
+}
+
+// diskRank orders failed disks first, then stale ones, then healthy ones.
+func diskRank(r DiskRow) int {
+	switch {
+	case r.Stale:
+		return 1
+	case r.OK:
+		return 2
+	}
+	return 0
 }
 
 // ── komodo_stacks ──

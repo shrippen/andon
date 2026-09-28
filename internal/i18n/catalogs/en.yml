@@ -3077,6 +3077,7 @@ disks:
   healthy: 'disks fine'
   ok: 'ok'
   failed: 'failing'
+  stale: 'no values since {day}'
   years: 'years'
 komodo:
   running: 'stacks running · servers {servers}/{total} healthy'

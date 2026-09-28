@@ -81,3 +81,24 @@ func TestVaultwardenCountsActiveOnly(t *testing.T) {
 		t.Fatalf("view: %+v", v)
 	}
 }
+
+// A disk whose collector stopped reporting is neither ok nor failed: its
+// values are old, and the tile says since when.
+func TestDisksMarkStale(t *testing.T) {
+	today := time.Date(2026, 9, 26, 0, 0, 0, 0, time.UTC)
+	data := &sources.ScrutinyDataset{Disks: []sources.Disk{
+		{Name: "sda", Status: sources.ScrutinyPassed, Temp: 30, Seen: today.Add(-time.Hour)},
+		{Name: "sdl", Status: sources.ScrutinyPassed, Temp: 38, Seen: today.AddDate(0, -8, 0)},
+	}}
+	v := disksView(DisksConfig{TempWarn: tempWarn}, map[string]any{"data": data}, ViewCtx{Today: catalogToday})
+	rows := v["Rows"].([]DiskRow)
+	var sdl DiskRow
+	for _, r := range rows {
+		if r.Name == "sdl" {
+			sdl = r
+		}
+	}
+	if !sdl.Stale || sdl.OK || v["Healthy"] != 1 {
+		t.Fatalf("stale disk: %+v healthy %v", sdl, v["Healthy"])
+	}
+}
