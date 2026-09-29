@@ -1,6 +1,8 @@
 package oidc_test
 
 import (
+	"andon/internal/repos/misc"
+	"andon/internal/services/admin"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -249,5 +251,30 @@ func TestInitialValuesPicksHighestTeamRole(t *testing.T) {
 	role, _ = oidc.InitialValues(rules, []string{"a"})
 	if role != enums.RoleAdmin {
 		t.Fatalf("expected admin, got %v", role)
+	}
+}
+
+// TestEmailLinkSkipsSelfRegistered: an unverified self-registered
+// account with the victim's address must not receive the victim's SSO
+// identity (pre-hijack); a new account is created instead.
+func TestEmailLinkSkipsSelfRegistered(t *testing.T) {
+	d, env, who, idp := setup(t)
+	cfg, _ := oidc.Load(d, env)
+	cfg.EmailLink = true
+	if err := oidc.Save(d, who, cfg, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := misc.SetSetting(d, "registration", map[string]any{"open": true}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admin.Register(d, "victim@corp.de", "Fake", "attacker-password", enums.LocaleDE); err != nil {
+		t.Fatal(err)
+	}
+	squatter, _ := users.ByEmail(d, "victim@corp.de")
+
+	idp.claims = map[string]any{"sub": "victim-sub", "email": "victim@corp.de", "email_verified": true}
+	result, err := login(t, d, env, idp, "good")
+	if err == nil && result.UserID == squatter.ID {
+		t.Fatal("SSO identity linked to the self-registered account")
 	}
 }

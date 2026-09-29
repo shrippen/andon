@@ -22,6 +22,10 @@ import (
 // MinPassword is the minimum accepted password length.
 const MinPassword = 12
 
+// SelfRegisteredPref marks an account made by self-registration: its
+// address is unverified, so single sign-on never links to it by email.
+const SelfRegisteredPref = "self_registered"
+
 // ErrEmailTaken means the email is already registered.
 var ErrEmailTaken = errors.New("accounts: email already registered")
 

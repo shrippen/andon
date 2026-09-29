@@ -219,6 +219,10 @@ func Register(d *sql.DB, email, name, password string, locale enums.Locale) (str
 		if err != nil {
 			return err
 		}
+		user.Prefs = map[string]any{accounts.SelfRegisteredPref: true}
+		if err := users.Update(tx, user); err != nil {
+			return err
+		}
 		created = user.Email
 		return audit.Log(tx, &user.ID, "user.registered", user.Email, "", nil)
 	})

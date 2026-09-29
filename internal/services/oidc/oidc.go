@@ -393,6 +393,11 @@ func resolveAccount(d *sql.DB, cfg Config, claims map[string]any, linkUser *int6
 			if user, err = users.ByEmail(tx, email); err != nil {
 				return err
 			}
+			// A self-registered address is unverified: whoever typed it
+			// must not receive this person's SSO identity.
+			if user != nil && user.Prefs[accounts.SelfRegisteredPref] == true {
+				return ErrNoAccount
+			}
 			if user != nil {
 				user.OIDCSub = sub
 				if err := audit.Log(tx, &user.ID, "oidc.linked_by_email", "", "", nil); err != nil {
