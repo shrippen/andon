@@ -14,6 +14,7 @@
   {{template "style" .}}
   {{if or .Edit .LayerEdit}}
   <script src="{{asset "vendor/sortable/Sortable.min.js"}}" defer></script>
+  <script src="{{asset "vendor/idiomorph/idiomorph-ext.min.js"}}" defer></script>
   <script src="{{asset "editor.js"}}" defer></script>
   {{end}}
 </head>
@@ -55,7 +56,9 @@
        behind "Board"; bulk actions appear once tiles are selected. */}}
   <div class="modebar is-edit">
     <b class="modebar-title">{{t "edit.mode"}} · {{.Board.Space.Name}} · v<span data-board-version>{{.Board.Version}}</span></b>
-    <form method="post" action="/boards/{{.Board.ID}}/undo" class="inline-form">
+    {{/* Undo and bulk touch several sections: the new page is morphed in,
+         only changed nodes are replaced (a 240-tile swap took seconds). */}}
+    <form method="post" action="/boards/{{.Board.ID}}/undo" class="inline-form" hx-ext="morph" hx-swap="morph:innerHTML show:none">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <button type="submit" class="{{if .UndoHint}}is-hint{{end}}">↶ {{t "edit.undo"}}</button>
     </form>
@@ -88,7 +91,7 @@
     </details>
     <a class="modebar-done" href="/boards/{{.Board.ID}}">{{t "edit.done"}}</a>
   </div>
-  <form id="bulk" method="post" action="/boards/{{.Board.ID}}/bulk" class="selbar">
+  <form id="bulk" method="post" action="/boards/{{.Board.ID}}/bulk" class="selbar" hx-ext="morph" hx-swap="morph:innerHTML show:none">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
     <input type="hidden" name="version" value="{{.Board.Version}}">
     <b data-sel-count data-template="{{t "edit.selected"}}">{{t "edit.bulk"}}</b>

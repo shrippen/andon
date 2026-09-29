@@ -109,9 +109,19 @@
     }
   }
 
+  // firstBind marks el as set up: a morphed page change keeps elements,
+  // and their listeners must not double.
+  function firstBind(el) {
+    if (!el || el.andonBound) {
+      return false;
+    }
+    el.andonBound = true;
+    return true;
+  }
+
   function setupSearch() {
     var input = d.getElementById("search");
-    if (!input) {
+    if (!firstBind(input)) {
       return;
     }
 
@@ -498,6 +508,9 @@
       return;
     }
     var input = d.getElementById("palette-q");
+    if (!firstBind(input)) {
+      return;
+    }
     input.addEventListener("input", function () {
       paletteSel = 0;
       renderPalette();

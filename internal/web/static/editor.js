@@ -77,15 +77,15 @@
     return board;
   }
 
-  // bind makes the tile lists in root draggable, once each.
+  // bind makes the tile lists in root draggable, once each (a morphed
+  // page keeps its lists).
   function bind(board, root) {
     // Editors may move tiles between sections; personal layouts only within one.
     var shared = board.getAttribute("data-mode") === "board" ? "tiles" : null;
     [].forEach.call(root.querySelectorAll("[data-sortable]"), function (list) {
-      if (list.hasAttribute("data-bound")) {
+      if (Sortable.get(list)) {
         return;
       }
-      list.setAttribute("data-bound", "");
       Sortable.create(list, {
         group: shared ? { name: shared } : "section-" + list.getAttribute("data-sortable"),
         animation: 120,
