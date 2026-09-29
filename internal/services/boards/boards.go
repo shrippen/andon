@@ -584,7 +584,9 @@ func Fragments(ctx context.Context, d *sql.DB, who *access.Principal, boardID in
 		return nil, err
 	}
 
-	// Tiles load side by side; each holds a pool connection only briefly.
+	// Tiles load side by side; each holds a pool connection only briefly,
+	// and they share lookups (connections, hint badges) through a memo.
+	ctx = widgetlib.WithMemo(ctx)
 	//
 	//	seen ─► jobs ─► fragmentWorkers × widgetlib.Load ─► out
 	out := make(map[int64]*widgetlib.Fragment, len(seen))
