@@ -207,6 +207,22 @@ func load(q db.Queryer, who *access.Principal, boardID int64, required enums.Rig
 	if err != nil {
 		return nil, err
 	}
+	return need(q, who, board, required)
+}
+
+// loadHead is load without sections and tiles: a tile fragment checks
+// access once per tile, so loading the whole board made a page with n
+// tiles cost n² tile reads.
+func loadHead(q db.Queryer, who *access.Principal, boardID int64, required enums.Right) (*model.Board, error) {
+	board, err := content.BoardHead(q, boardID)
+	if err != nil {
+		return nil, err
+	}
+	return need(q, who, board, required)
+}
+
+// need returns board if who holds required on it.
+func need(q db.Queryer, who *access.Principal, board *model.Board, required enums.Right) (*model.Board, error) {
 	if board == nil {
 		return nil, ErrNotFound
 	}
@@ -502,7 +518,7 @@ func PlacedWidget(d *sql.DB, who *access.Principal, placementID int64) (*model.W
 		if err != nil || section == nil {
 			return orNotFound(err)
 		}
-		board, err := load(tx, who, section.BoardID, enums.RightView)
+		board, err := loadHead(tx, who, section.BoardID, enums.RightView)
 		if err != nil {
 			return err
 		}

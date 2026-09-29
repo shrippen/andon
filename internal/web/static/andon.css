@@ -317,7 +317,6 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
 .tile-ico:hover, .tile-ico:focus-visible { background: var(--bg2); color: var(--fg0); }
 .tile-ico[aria-pressed="true"] { color: var(--warn-text); }
 .tile-ico.is-danger:hover, .tile-ico.is-danger:focus-visible { color: var(--danger-text); }
-.tile-strip .inline-form { gap: 0; }
 @media (hover: none) {
   .tile-strip { position: static; opacity: 1; pointer-events: auto; }
 }

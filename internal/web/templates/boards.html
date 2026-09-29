@@ -50,7 +50,15 @@
   {{with .Board.Page.Description}}<p class="page-desc">{{.}}</p>{{end}}
   {{with .Board.Page.Nav}}<nav class="page-links" aria-label="{{t "board.page_links"}}">{{range .}}<a href="{{.URL}}">{{.Title}}</a>{{end}}</nav>{{end}}
 
-  {{if or .Edit .LayerEdit}}{{template "edit_icons"}}{{end}}
+  {{if or .Edit .LayerEdit}}{{template "edit_icons"}}
+  {{/* One form for every tile strip button (form="tile-act", own
+       formaction): per-tile forms made a 50-tile board ~2,500 elements. */}}
+  <form id="tile-act" method="post" hidden>
+    <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+    <input type="hidden" name="board_id" value="{{.Board.ID}}">
+    <input type="hidden" name="version" value="{{.Board.Version}}">
+  </form>
+  {{end}}
   {{if .Edit}}
   {{/* Edit bar: the everyday actions up front, the board's own settings
        behind "Board"; bulk actions appear once tiles are selected. */}}
@@ -278,47 +286,18 @@
     <span class="tile-strip-gap"></span>
     <a class="tile-ico" href="/widgets/{{.WidgetID}}/edit?board={{$b.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><svg><use href="#i-edit"/></svg></a>
     <a class="tile-ico" href="/shares/widget/{{.WidgetID}}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><svg><use href="#i-share"/></svg></a>
-    <form method="post" action="/placements/{{.PlacementID}}/rows" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
-      <input type="hidden" name="version" value="{{$b.Board.Version}}">
-      <input type="hidden" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}">
-      <button class="tile-ico" type="submit" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><svg><use href="#i-height"/></svg></button>
-    </form>
-    <form method="post" action="/placements/{{.PlacementID}}/cols" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
-      <input type="hidden" name="version" value="{{$b.Board.Version}}">
-      <input type="hidden" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}">
-      <button class="tile-ico" type="submit" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><svg><use href="#i-width"/></svg></button>
-    </form>
-    <form method="post" action="/placements/{{.PlacementID}}/unplace" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
-      <input type="hidden" name="version" value="{{$b.Board.Version}}">
-      <button class="tile-ico is-danger" type="submit" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><svg><use href="#i-x"/></svg></button>
-    </form>
+    <button class="tile-ico" type="submit" form="tile-act" formaction="/placements/{{.PlacementID}}/rows" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><svg><use href="#i-height"/></svg></button>
+    <button class="tile-ico" type="submit" form="tile-act" formaction="/placements/{{.PlacementID}}/cols" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><svg><use href="#i-width"/></svg></button>
+    <button class="tile-ico is-danger" type="submit" form="tile-act" formaction="/placements/{{.PlacementID}}/unplace" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><svg><use href="#i-x"/></svg></button>
   </div>
   {{else if $b.LayerEdit}}
   {{$eye := t "edit.hide"}}{{if .Hidden}}{{$eye = t "edit.show"}}{{end}}
   <div class="tile-strip">
     <span class="tile-grip" aria-hidden="true"><svg><use href="#i-grip"/></svg></span>
     <span class="tile-strip-gap"></span>
-    <form method="post" action="/boards/{{$b.Board.ID}}/show/{{.PlacementID}}" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="state" value="{{if .Hidden}}shown{{else}}hidden{{end}}">
-      <button class="tile-ico" type="submit" aria-label="{{$eye}}" aria-pressed="{{.Hidden}}" title="{{$eye}}"><svg><use href="#i-eye"/></svg></button>
-    </form>
-    <form method="post" action="/boards/{{$b.Board.ID}}/rows/{{.PlacementID}}" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}">
-      <button class="tile-ico" type="submit" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><svg><use href="#i-height"/></svg></button>
-    </form>
-    <form method="post" action="/boards/{{$b.Board.ID}}/cols/{{.PlacementID}}" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}">
-      <button class="tile-ico" type="submit" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><svg><use href="#i-width"/></svg></button>
-    </form>
+    <button class="tile-ico" type="submit" form="tile-act" formaction="/boards/{{$b.Board.ID}}/show/{{.PlacementID}}" name="state" value="{{if .Hidden}}shown{{else}}hidden{{end}}" aria-label="{{$eye}}" aria-pressed="{{.Hidden}}" title="{{$eye}}"><svg><use href="#i-eye"/></svg></button>
+    <button class="tile-ico" type="submit" form="tile-act" formaction="/boards/{{$b.Board.ID}}/rows/{{.PlacementID}}" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><svg><use href="#i-height"/></svg></button>
+    <button class="tile-ico" type="submit" form="tile-act" formaction="/boards/{{$b.Board.ID}}/cols/{{.PlacementID}}" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><svg><use href="#i-width"/></svg></button>
   </div>
   {{end}}
 </div>
