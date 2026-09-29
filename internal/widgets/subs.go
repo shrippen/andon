@@ -66,8 +66,10 @@ func subsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 		}
 	case hasSure:
 		out["Source"], out["Currency"] = "sure", sure.Currency
+		categories := sureCategories(sure)
 		for _, s := range metrics.Subscriptions(sure, nil, rules.Usages(rules.Env{})) {
-			rows = append(rows, SubRow{Name: s.Name, Next: s.Next, Price: s.Monthly, Monthly: s.Monthly})
+			rows = append(rows, SubRow{Name: s.Name, Next: s.Next, Price: s.Monthly, Monthly: s.Monthly,
+				Category: categories[strings.ToLower(s.Name)]})
 		}
 	default:
 		return out
@@ -108,6 +110,28 @@ func subsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 		return a < b
 	})
 	out["Rows"] = rows[:min(len(rows), cfg.Limit)]
+	return out
+}
+
+// sureCategories maps a booking's name and merchant (lower case) to the
+// category of its latest booking: Sure's recurring payments have none.
+//
+//	{Date: 09-05, Name: "Adobe", Category: "Software"} → {"adobe": "Software"}
+func sureCategories(sure *sources.SureDataset) map[string]string {
+	out := map[string]string{}
+	latest := map[string]string{}
+	for _, t := range sure.Transactions {
+		if t.Category == "" {
+			continue
+		}
+		for _, name := range []string{t.Name, t.Merchant} {
+			key := strings.ToLower(strings.TrimSpace(name))
+			if key == "" || t.Date < latest[key] {
+				continue
+			}
+			latest[key], out[key] = t.Date, t.Category
+		}
+	}
 	return out
 }
 

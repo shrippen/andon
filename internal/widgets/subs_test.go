@@ -38,3 +38,23 @@ func TestSubscriptionsTile(t *testing.T) {
 		t.Fatalf("sure view: %+v", view)
 	}
 }
+
+// TestSubscriptionsSureCategory: Sure's recurring payments carry no
+// category; the latest booking of the same name lends its own, so the
+// category filter keeps them.
+func TestSubscriptionsSureCategory(t *testing.T) {
+	kind, _ := widgets.Get("subscriptions")
+	cfg, _ := widgets.Decode("subscriptions", map[string]any{"categories": []any{"Software"}})
+	sure := &sources.SureDataset{Currency: "EUR",
+		Recurring: []sources.SureRecurring{
+			{Name: "Adobe", Status: "active", Amount: 66, Expense: true, Next: "2026-10-05"},
+			{Name: "Tibber", Status: "active", Amount: 72, Expense: true, Next: "2026-10-03"}},
+		Transactions: []sources.SureTxn{
+			{Date: "2026-09-05", Name: "Adobe", Amount: -66, Category: "Software"},
+			{Date: "2026-09-03", Merchant: "Tibber", Amount: -72, Category: "Energie"}}}
+
+	rows := kind.View(cfg, map[string]any{"sure": sure}, ctxFor("", nil))["Rows"].([]widgets.SubRow)
+	if len(rows) != 1 || rows[0].Name != "Adobe" || rows[0].Category != "Software" {
+		t.Fatalf("rows: %+v", rows)
+	}
+}
