@@ -341,7 +341,7 @@ func importSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, m
 		if err != nil {
 			return err
 		}
-		if err := access.Need(access.SpaceRight(who, ref), enums.RightEdit); err != nil {
+		if err := access.Need(access.SpaceRight(who, ref), importRight(doc, mode)); err != nil {
 			return err
 		}
 		if mode == Replace {
@@ -354,7 +354,7 @@ func importSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, m
 				return err
 			}
 		}
-		connIDs, err := importConnections(tx, spaceID, list(doc, "connections"), report)
+		connIDs, err := importConnections(tx, ref, list(doc, "connections"), report)
 		if err != nil {
 			return err
 		}
@@ -376,6 +376,17 @@ func importSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, m
 		err = nil
 	}
 	return report, err
+}
+
+// importRight is what an import needs: boards and tiles are EDIT, as
+// when made by hand; wiping the space, its settings and connections
+// are MANAGE.
+func importRight(doc map[string]any, mode Mode) enums.Right {
+	settings, _ := doc["settings"].(map[string]any)
+	if mode == Replace || len(settings) > 0 || len(list(doc, "connections")) > 0 {
+		return enums.RightManage
+	}
+	return enums.RightEdit
 }
 
 func clear(q db.Queryer, spaceID int64) error {
@@ -415,7 +426,8 @@ func mergeSettings(q db.Queryer, spaceID int64, extra map[string]any) error {
 	return content.UpdateSpaceSettings(q, spaceID, merged, sp.Version)
 }
 
-func importConnections(q db.Queryer, spaceID int64, items []map[string]any, report *Report) (map[string]int64, error) {
+func importConnections(q db.Queryer, space *access.SpaceRef, items []map[string]any, report *Report) (map[string]int64, error) {
+	spaceID := space.ID
 	existing, err := content.Connections(q, []int64{spaceID})
 	if err != nil {
 		return nil, err
@@ -440,6 +452,11 @@ func importConnections(q db.Queryer, spaceID int64, items []map[string]any, repo
 		mode := enums.CredentialMode(str(item, "credentials"))
 		if mode != enums.CredentialPersonal {
 			mode = enums.CredentialShared
+		}
+		// Whereabouts are shared only as set up by hand (admin setting).
+		if service == string(enums.ServiceDawarich) && mode == enums.CredentialShared && space.Kind != enums.SpacePersonal {
+			report.Skipped = append(report.Skipped, "connection "+key+": location")
+			continue
 		}
 		options, _ := item["options"].(map[string]any)
 		verify := true
@@ -488,6 +505,10 @@ func importWidgets(q db.Queryer, spaceID int64, items []map[string]any, connIDs 
 		config, _ := item["config"].(map[string]any)
 		if config == nil {
 			config = map[string]any{}
+		}
+		if bad := widgets.Check(kind, config); bad != "" {
+			report.Skipped = append(report.Skipped, "widget "+key+": "+bad)
+			continue
 		}
 		config, err := util.SealSecrets(config, nil)
 		if err != nil {
