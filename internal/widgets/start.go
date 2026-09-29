@@ -20,9 +20,28 @@ const (
 	StatusHTTP StatusMode = "http"
 )
 
+// scriptSchemes run code when followed: never a link target.
+var scriptSchemes = map[string]bool{"javascript": true, "vbscript": true, "data": true}
+
+// webURL is a link target from config, "" for a script URL. Browsers
+// ignore tabs, newlines and case in a scheme ("Java\tScript:"), so the
+// check does too; other schemes (ssh:, smb:) and paths pass.
 func webURL(raw any) string {
 	v := strings.TrimSpace(asString(raw))
-	return v // scheme validation happens in the web form layer (task: editor), not here
+	scheme, _, found := strings.Cut(v, ":")
+	if !found {
+		return v
+	}
+	scheme = strings.ToLower(strings.Map(func(r rune) rune {
+		if r == '\t' || r == '\n' || r == '\r' || r == ' ' {
+			return -1
+		}
+		return r
+	}, scheme))
+	if scriptSchemes[scheme] {
+		return ""
+	}
+	return v
 }
 
 func asString(v any) string {

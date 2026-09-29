@@ -93,7 +93,7 @@ func oneOfStr(v any, allowed []string, def string) string {
 func FrameOf(raw map[string]any) Frame {
 	f := Frame{
 		Header: HeaderMode(oneOfStr(raw["frame_header"], headerModes, string(HeaderNormal))),
-		Link:   asString(raw["frame_link"]),
+		Link:   webURL(raw["frame_link"]),
 		Icon:   asString(raw["frame_icon"]),
 		Dense:  asString(raw["frame_density"]) == "compact",
 		Round:  RoundMode(oneOfStr(raw["frame_round"], roundModes, string(RoundExact))),
