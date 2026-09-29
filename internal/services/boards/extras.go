@@ -150,7 +150,7 @@ func Palette(d *sql.DB, who *access.Principal) ([]PaletteItem, error) {
 	seen := map[string]bool{}
 	for _, ref := range refs {
 		out = append(out, PaletteItem{Kind: PaletteBoard, Title: ref.Name, URL: "/boards/" + strconv.FormatInt(ref.ID, 10), Detail: ref.Space.Name})
-		view, err := View(d, who, ref.ID)
+		view, err := View(d, who, ref.ID, LayoutOverlay)
 		if err != nil {
 			continue
 		}

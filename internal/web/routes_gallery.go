@@ -123,7 +123,7 @@ func (d Deps) handleGallery(w http.ResponseWriter, ctx Ctx, target widgetTarget,
 // targetNames looks up the board and section a new tile goes to; empty
 // names if the board can't be read (the page still works without them).
 func (d Deps) targetNames(ctx Ctx, target widgetTarget) galleryTarget {
-	view, err := boards.View(d.DB, ctx.Who, target.BoardID)
+	view, err := boards.View(d.DB, ctx.Who, target.BoardID, boards.LayoutOverlay)
 	if err != nil {
 		return galleryTarget{}
 	}

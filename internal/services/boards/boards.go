@@ -33,7 +33,8 @@ var areas = []string{"main", "side"}
 
 const startSlug = "start"
 
-// LayoutTarget says where Arrange stored a drag-and-drop result.
+// LayoutTarget says where Arrange stored a drag-and-drop result, and
+// which layout View shows: the shared board or the viewer's own.
 type LayoutTarget string
 
 const (
@@ -321,8 +322,12 @@ func StartBoard(d *sql.DB, who *access.Principal, preferred *int64) (int64, erro
 
 // ── View ──
 
-// View renders a board for who, applying their personal overlay.
-func View(d *sql.DB, who *access.Principal, boardID int64) (*BoardView, error) {
+// View renders a board for who. LayoutOverlay applies their personal
+// overlay; LayoutBoard shows the shared board, as edit mode must: an
+// editor's own hides and order would otherwise hide tiles from them or
+// be saved into the board by a drag. Who may not edit always gets
+// their own layout, as in Arrange.
+func View(d *sql.DB, who *access.Principal, boardID int64, want LayoutTarget) (*BoardView, error) {
 	var out *BoardView
 	err := db.WithRead(d, func(tx *sql.Tx) error {
 		board, err := load(tx, who, boardID, enums.RightView)
@@ -338,7 +343,7 @@ func View(d *sql.DB, who *access.Principal, boardID int64) (*BoardView, error) {
 			return err
 		}
 		layer := map[string]any{}
-		if overlay != nil {
+		if overlay != nil && (want == LayoutOverlay || granted < enums.RightEdit) {
 			layer = overlay.Data
 		}
 		space, err := access.SpaceOf(tx, who, board.SpaceID)

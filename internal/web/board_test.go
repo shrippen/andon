@@ -96,6 +96,13 @@ func TestLinkTileAndLayout(t *testing.T) {
 		t.Fatal("layout mode should show hidden tiles dimmed")
 	}
 
+	// Edit mode shows the shared board: the editor's own hides and folds
+	// do not apply there.
+	edit := string(mustGet(t, srv, client, boardURL+"?edit"))
+	if !strings.Contains(edit, `<div class="tile-slot w-link" data-placement="`+placements[0][1]+`"`) || strings.Contains(edit, "is-collapsed") {
+		t.Fatalf("edit mode applies the own layout:\n%s", edit)
+	}
+
 	// The editors' look: normal view names what is hidden; "Mein Layout"
 	// has its own bar, eye and height icons on the tile (the eye pressed on
 	// a hidden one) and a labelled size choice; edit mode has the strip on

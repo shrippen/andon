@@ -73,7 +73,7 @@ func TestSuggestAndApply(t *testing.T) {
 	if err := boards.ApplySuggestion(d, who, board, s.Version); err != nil {
 		t.Fatalf("apply: %v", err)
 	}
-	view, err := boards.View(d, who, board)
+	view, err := boards.View(d, who, board, boards.LayoutOverlay)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestSuggestAndApply(t *testing.T) {
 	if err := boards.Undo(d, who, board); err != nil {
 		t.Fatalf("undo: %v", err)
 	}
-	view, _ = boards.View(d, who, board)
+	view, _ = boards.View(d, who, board, boards.LayoutOverlay)
 	if len(view.Sections) != 1 {
 		t.Fatalf("undo left %d sections, want the original one", len(view.Sections))
 	}

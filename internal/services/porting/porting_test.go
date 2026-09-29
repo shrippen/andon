@@ -106,7 +106,7 @@ func TestDashyImport(t *testing.T) {
 	}
 
 	visible, _ := boards.Visible(d, who)
-	view, err := boards.View(d, who, visible[0].ID)
+	view, err := boards.View(d, who, visible[0].ID, boards.LayoutOverlay)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestExportImportRoundtrip(t *testing.T) {
 
 	// A tall tile keeps its height through export and import.
 	visible, _ := boards.Visible(d, a)
-	view, _ := boards.View(d, a, visible[0].ID)
+	view, _ := boards.View(d, a, visible[0].ID, boards.LayoutOverlay)
 	if err := boards.SetTileRows(d, a, view.Sections[0].Tiles[0].PlacementID, boards.MaxTileRows, view.Version); err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +168,7 @@ func TestExportImportRoundtrip(t *testing.T) {
 		t.Fatalf("expected 5 widgets in b's library, got %d", len(lib))
 	}
 	visibleB, _ := boards.Visible(d, b)
-	viewB, _ := boards.View(d, b, visibleB[0].ID)
+	viewB, _ := boards.View(d, b, visibleB[0].ID, boards.LayoutOverlay)
 	if viewB.Sections[0].Tiles[0].Rows != boards.MaxTileRows {
 		t.Fatalf("tall tile lost on import: %+v", viewB.Sections[0].Tiles[0])
 	}
@@ -212,7 +212,7 @@ func TestDashyImportExtraWidgets(t *testing.T) {
 	}
 
 	visible, _ := boards.Visible(d, who)
-	view, err := boards.View(d, who, visible[0].ID)
+	view, err := boards.View(d, who, visible[0].ID, boards.LayoutOverlay)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func TestDashyLinksAndPage(t *testing.T) {
 	}
 
 	visible, _ := boards.Visible(d, who)
-	view, err := boards.View(d, who, visible[0].ID)
+	view, err := boards.View(d, who, visible[0].ID, boards.LayoutOverlay)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,7 +289,7 @@ func TestDashyWidgetKeysSealed(t *testing.T) {
 		t.Fatal(err)
 	}
 	visible, _ := boards.Visible(d, who)
-	view, _ := boards.View(d, who, visible[0].ID)
+	view, _ := boards.View(d, who, visible[0].ID, boards.LayoutOverlay)
 	tiles := view.Sections[0].Tiles
 	flights := tiles[0].Config.(widgets.FlightsConfig)
 	holidays := tiles[1].Config.(widgets.HolidaysConfig)

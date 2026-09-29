@@ -17,16 +17,16 @@ func TestBulkMoveRemoveAndDuplicate(t *testing.T) {
 	space, _ := content.PersonalSpace(d, u.ID)
 	boardID, _ := boards.Create(d, who, space.ID, "B")
 
-	view, _ := boards.View(d, who, boardID)
+	view, _ := boards.View(d, who, boardID, boards.LayoutOverlay)
 	first := view.Sections[0].ID
 	p1, _ := boards.Place(d, who, first, addWidget(t, d, space.ID, "n1").ID, view.Version)
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	p2, _ := boards.Place(d, who, first, addWidget(t, d, space.ID, "n2").ID, view.Version)
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	if _, err := boards.AddSection(d, who, boardID, view.Version, "Zwei"); err != nil {
 		t.Fatal(err)
 	}
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	second := view.Sections[1].ID
 
 	if err := boards.Bulk(d, who, boardID, view.Version, nil, boards.BulkChange{Action: boards.BulkMove}); !errors.Is(err, boards.ErrBulk) {
@@ -35,7 +35,7 @@ func TestBulkMoveRemoveAndDuplicate(t *testing.T) {
 	if err := boards.Bulk(d, who, boardID, view.Version, []int64{p1, p2}, boards.BulkChange{Action: boards.BulkMove, SectionID: second}); err != nil {
 		t.Fatal(err)
 	}
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	if len(view.Sections[0].Tiles) != 0 || len(view.Sections[1].Tiles) != 2 {
 		t.Fatalf("move: %+v", view.Sections)
 	}
@@ -44,7 +44,7 @@ func TestBulkMoveRemoveAndDuplicate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dup, _ := boards.View(d, who, copyID)
+	dup, _ := boards.View(d, who, copyID, boards.LayoutOverlay)
 	if dup.Name != "Kopie" || len(dup.Sections) != 2 || len(dup.Sections[1].Tiles) != 2 {
 		t.Fatalf("duplicate: %+v", dup)
 	}
@@ -52,8 +52,8 @@ func TestBulkMoveRemoveAndDuplicate(t *testing.T) {
 	if err := boards.Bulk(d, who, boardID, view.Version, []int64{p1}, boards.BulkChange{Action: boards.BulkRemove}); err != nil {
 		t.Fatal(err)
 	}
-	view, _ = boards.View(d, who, boardID)
-	dup, _ = boards.View(d, who, copyID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
+	dup, _ = boards.View(d, who, copyID, boards.LayoutOverlay)
 	if len(view.Sections[1].Tiles) != 1 || len(dup.Sections[1].Tiles) != 2 {
 		t.Fatalf("remove touched copy: %+v / %+v", view.Sections, dup.Sections)
 	}

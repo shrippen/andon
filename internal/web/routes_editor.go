@@ -52,7 +52,7 @@ func (d Deps) handleBoardSettingsForm(w http.ResponseWriter, r *http.Request, ct
 		http.NotFound(w, r)
 		return
 	}
-	view, err := boards.View(d.DB, ctx.Who, id)
+	view, err := boards.View(d.DB, ctx.Who, id, boards.LayoutOverlay)
 	if err != nil {
 		d.handleBoardError(w, r, err)
 		return

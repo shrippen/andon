@@ -90,7 +90,12 @@ func (d Deps) renderBoard(w http.ResponseWriter, r *http.Request, ctx Ctx, embed
 		return
 	}
 
-	view, err := boards.View(d.DB, ctx.Who, id)
+	// Edit mode shows the shared board, not the editor's own layout.
+	want := boards.LayoutOverlay
+	if modeOf(r).edit && embedToken == "" {
+		want = boards.LayoutBoard
+	}
+	view, err := boards.View(d.DB, ctx.Who, id, want)
 	if err != nil {
 		d.handleBoardError(w, r, err)
 		return
@@ -195,7 +200,11 @@ func (d Deps) boardPart(w http.ResponseWriter, r *http.Request, ctx Ctx, boardID
 	if section == 0 {
 		return false
 	}
-	view, err := boards.View(d.DB, ctx.Who, boardID)
+	want := boards.LayoutOverlay
+	if mode == partEdit {
+		want = boards.LayoutBoard
+	}
+	view, err := boards.View(d.DB, ctx.Who, boardID, want)
 	if err != nil {
 		d.handleBoardError(w, r, err)
 		return true
@@ -586,7 +595,7 @@ func (d Deps) handleHistory(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		http.NotFound(w, r)
 		return
 	}
-	view, err := boards.View(d.DB, ctx.Who, id)
+	view, err := boards.View(d.DB, ctx.Who, id, boards.LayoutOverlay)
 	if err != nil {
 		d.handleBoardError(w, r, err)
 		return
@@ -626,7 +635,7 @@ func (d Deps) handleSuggest(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		http.NotFound(w, r)
 		return
 	}
-	view, err := boards.View(d.DB, ctx.Who, id)
+	view, err := boards.View(d.DB, ctx.Who, id, boards.LayoutOverlay)
 	if err != nil {
 		d.handleBoardError(w, r, err)
 		return

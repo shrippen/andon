@@ -61,7 +61,7 @@ func TestCreateAndViewBoard(t *testing.T) {
 		t.Fatalf("create: %v", err)
 	}
 
-	view, err := boards.View(d, who, id)
+	view, err := boards.View(d, who, id, boards.LayoutOverlay)
 	if err != nil {
 		t.Fatalf("view: %v", err)
 	}
@@ -78,14 +78,14 @@ func TestPlaceAndUnplaceWidget(t *testing.T) {
 	boardID, _ := boards.Create(d, who, space.ID, "B")
 	w := addWidget(t, d, space.ID, "note1")
 
-	view, _ := boards.View(d, who, boardID)
+	view, _ := boards.View(d, who, boardID, boards.LayoutOverlay)
 	sectionID := view.Sections[0].ID
 
 	placementID, err := boards.Place(d, who, sectionID, w.ID, view.Version)
 	if err != nil {
 		t.Fatalf("place: %v", err)
 	}
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	if len(view.Sections[0].Tiles) != 1 || view.Sections[0].Tiles[0].WidgetID != w.ID {
 		t.Fatalf("expected 1 tile, got %+v", view.Sections[0].Tiles)
 	}
@@ -93,7 +93,7 @@ func TestPlaceAndUnplaceWidget(t *testing.T) {
 	if err := boards.Unplace(d, who, placementID, view.Version); err != nil {
 		t.Fatalf("unplace: %v", err)
 	}
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	if len(view.Sections[0].Tiles) != 0 {
 		t.Fatalf("expected 0 tiles after unplace, got %+v", view.Sections[0].Tiles)
 	}
@@ -124,7 +124,7 @@ func TestOtherUserCannotEditPersonalBoard(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if _, err := boards.View(d, strangerWho, boardID); err == nil {
+	if _, err := boards.View(d, strangerWho, boardID, boards.LayoutOverlay); err == nil {
 		t.Fatal("expected stranger to be denied viewing a personal board")
 	}
 }
@@ -138,12 +138,12 @@ func TestArrangeByEditorReordersBoard(t *testing.T) {
 	w1 := addWidget(t, d, space.ID, "w1")
 	w2 := addWidget(t, d, space.ID, "w2")
 
-	view, _ := boards.View(d, who, boardID)
+	view, _ := boards.View(d, who, boardID, boards.LayoutOverlay)
 	sectionID := view.Sections[0].ID
 	p1, _ := boards.Place(d, who, sectionID, w1.ID, view.Version)
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	p2, _ := boards.Place(d, who, sectionID, w2.ID, view.Version)
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 
 	target, _, err := boards.Arrange(d, who, boardID, view.Version, map[int64][]int64{sectionID: {p2, p1}}, boards.LayoutBoard)
 	if err != nil {
@@ -152,7 +152,7 @@ func TestArrangeByEditorReordersBoard(t *testing.T) {
 	if target != boards.LayoutBoard {
 		t.Fatalf("expected editor arrange to target the board, got %v", target)
 	}
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	if view.Sections[0].Tiles[0].WidgetID != w2.ID {
 		t.Fatalf("expected w2 first after reorder, got %+v", view.Sections[0].Tiles)
 	}
@@ -169,12 +169,12 @@ func TestArrangeInOwnLayoutKeepsBoard(t *testing.T) {
 	w1 := addWidget(t, d, space.ID, "w1")
 	w2 := addWidget(t, d, space.ID, "w2")
 
-	view, _ := boards.View(d, who, boardID)
+	view, _ := boards.View(d, who, boardID, boards.LayoutOverlay)
 	sectionID := view.Sections[0].ID
 	p1, _ := boards.Place(d, who, sectionID, w1.ID, view.Version)
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	p2, _ := boards.Place(d, who, sectionID, w2.ID, view.Version)
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 
 	target, version, err := boards.Arrange(d, who, boardID, view.Version, map[int64][]int64{sectionID: {p2, p1}}, boards.LayoutOverlay)
 	if err != nil {
@@ -187,7 +187,7 @@ func TestArrangeInOwnLayoutKeepsBoard(t *testing.T) {
 	if placements.Sections[0].Placements[0].ID != p1 {
 		t.Fatal("board order changed")
 	}
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	if view.Sections[0].Tiles[0].WidgetID != w2.ID {
 		t.Fatalf("own layout not reordered: %+v", view.Sections[0].Tiles)
 	}
@@ -201,7 +201,7 @@ func TestFoldAndShowUseOverlay(t *testing.T) {
 	boardID, _ := boards.Create(d, who, space.ID, "B")
 	w := addWidget(t, d, space.ID, "w1")
 
-	view, _ := boards.View(d, who, boardID)
+	view, _ := boards.View(d, who, boardID, boards.LayoutOverlay)
 	sectionID := view.Sections[0].ID
 	placementID, _ := boards.Place(d, who, sectionID, w.ID, view.Version)
 
@@ -212,7 +212,7 @@ func TestFoldAndShowUseOverlay(t *testing.T) {
 		t.Fatalf("hide: %v", err)
 	}
 
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	if !view.Sections[0].Collapsed {
 		t.Fatal("expected section collapsed via overlay")
 	}
@@ -226,7 +226,7 @@ func TestFoldAndShowUseOverlay(t *testing.T) {
 	if err := boards.ResetOverlay(d, who, boardID); err != nil {
 		t.Fatalf("reset: %v", err)
 	}
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	if view.Sections[0].Collapsed || view.HasOverlay {
 		t.Fatal("expected overlay cleared")
 	}
@@ -240,7 +240,7 @@ func TestHistoryAndRestore(t *testing.T) {
 	boardID, _ := boards.Create(d, who, space.ID, "B")
 	w := addWidget(t, d, space.ID, "w1")
 
-	view, _ := boards.View(d, who, boardID)
+	view, _ := boards.View(d, who, boardID, boards.LayoutOverlay)
 	sectionID := view.Sections[0].ID
 	boards.Place(d, who, sectionID, w.ID, view.Version)
 
@@ -254,7 +254,7 @@ func TestHistoryAndRestore(t *testing.T) {
 	if err := boards.Restore(d, who, boardID, oldest.ID); err != nil {
 		t.Fatalf("restore: %v", err)
 	}
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	if len(view.Sections[0].Tiles) != 0 {
 		t.Fatalf("expected restored board to have no tiles, got %+v", view.Sections[0].Tiles)
 	}
@@ -269,11 +269,11 @@ func TestTileRows(t *testing.T) {
 	space, _ := content.PersonalSpace(d, u.ID)
 	boardID, _ := boards.Create(d, who, space.ID, "B")
 	w := addWidget(t, d, space.ID, "w1")
-	view, _ := boards.View(d, who, boardID)
+	view, _ := boards.View(d, who, boardID, boards.LayoutOverlay)
 	placementID, _ := boards.Place(d, who, view.Sections[0].ID, w.ID, view.Version)
 
 	tile := func() boards.Tile {
-		v, err := boards.View(d, who, boardID)
+		v, err := boards.View(d, who, boardID, boards.LayoutOverlay)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -283,7 +283,7 @@ func TestTileRows(t *testing.T) {
 		t.Fatalf("new tile rows %d, want 1", tile().Rows)
 	}
 
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	if err := boards.SetTileRows(d, who, placementID, 5, view.Version); err != nil {
 		t.Fatalf("set rows: %v", err)
 	}
@@ -318,11 +318,11 @@ func TestTileCols(t *testing.T) {
 	space, _ := content.PersonalSpace(d, u.ID)
 	boardID, _ := boards.Create(d, who, space.ID, "B")
 	w := addWidget(t, d, space.ID, "w1")
-	view, _ := boards.View(d, who, boardID)
+	view, _ := boards.View(d, who, boardID, boards.LayoutOverlay)
 	placementID, _ := boards.Place(d, who, view.Sections[0].ID, w.ID, view.Version)
 
 	tile := func() boards.Tile {
-		v, err := boards.View(d, who, boardID)
+		v, err := boards.View(d, who, boardID, boards.LayoutOverlay)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -332,7 +332,7 @@ func TestTileCols(t *testing.T) {
 		t.Fatalf("new tile cols %d, want 1", tile().Cols)
 	}
 
-	view, _ = boards.View(d, who, boardID)
+	view, _ = boards.View(d, who, boardID, boards.LayoutOverlay)
 	if err := boards.SetTileCols(d, who, placementID, 5, view.Version); err != nil {
 		t.Fatalf("set cols: %v", err)
 	}
@@ -366,11 +366,11 @@ func TestBoardLayout(t *testing.T) {
 	boardID, _ := boards.Create(d, who, space.ID, "B")
 
 	for _, c := range []struct{ in, want enums.BoardLayout }{{enums.LayoutMasonry, enums.LayoutMasonry}, {"bogus", enums.LayoutGrid}} {
-		view, _ := boards.View(d, who, boardID)
+		view, _ := boards.View(d, who, boardID, boards.LayoutOverlay)
 		if err := boards.Rename(d, who, boardID, view.Version, "B", nil, nil, c.in); err != nil {
 			t.Fatal(err)
 		}
-		if view, _ = boards.View(d, who, boardID); view.Layout != c.want {
+		if view, _ = boards.View(d, who, boardID, boards.LayoutOverlay); view.Layout != c.want {
 			t.Fatalf("%q: %q", c.in, view.Layout)
 		}
 	}

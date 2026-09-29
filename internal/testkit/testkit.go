@@ -78,7 +78,7 @@ func Place(t *testing.T, d *sql.DB, who *access.Principal, space int64, typeKey 
 	if err != nil {
 		t.Fatalf("board: %v", err)
 	}
-	view, err := boards.View(d, who, board)
+	view, err := boards.View(d, who, board, boards.LayoutOverlay)
 	if err != nil {
 		t.Fatalf("view: %v", err)
 	}
