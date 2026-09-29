@@ -284,7 +284,7 @@ func dawarichDayView(cfgAny any, results map[string]any, ctx ViewCtx) map[string
 	now := time.Now()
 	day := ctx.Today
 	if cfg.Yesterday {
-		y := parseToday(ctx.Today).AddDate(0, 0, -1)
+		y := todayOf(ctx).AddDate(0, 0, -1)
 		day = y.Format(time.DateOnly)
 		// The bar ends with that day; there is no "now" on it.
 		now = time.Date(y.Year(), y.Month(), y.Day(), 23, 59, 0, 0, now.Location())

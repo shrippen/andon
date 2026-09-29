@@ -55,7 +55,7 @@ func paymentDaysView(cfgAny any, results map[string]any, ctx ViewCtx) map[string
 	center := metrics.CenterOf(ctx.Settings)
 	var since time.Time
 	if cfg.Months > 0 {
-		since = parseToday(ctx.Today).AddDate(0, -cfg.Months, 0)
+		since = todayOf(ctx).AddDate(0, -cfg.Months, 0)
 	}
 	gaps := metrics.NinjaPaymentGapsSince(data, since)
 	for id := range gaps {

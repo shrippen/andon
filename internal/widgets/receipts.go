@@ -47,7 +47,7 @@ func receiptsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 	}
 	rule := ruleConfig("cross.expense_unrecorded", ctx.Settings)
 	in := metrics.ReceiptInputs{Sure: sure, Accounts: asStringList(rule["accounts"]), MinAmount: floatOf(rule["min_amount"]),
-		Window: int(floatOf(rule["date_window"])), Since: parseToday(ctx.Today).AddDate(0, 0, -cfg.Days)}
+		Window: int(floatOf(rule["date_window"])), Since: todayOf(ctx).AddDate(0, 0, -cfg.Days)}
 	if cfg.MinAmount > 0 {
 		in.MinAmount = cfg.MinAmount
 	}

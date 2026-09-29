@@ -66,7 +66,7 @@ func tableRows(kind TableKind, results map[string]any, ctx ViewCtx) ([]Row, bool
 	if rows, ok := homelabRows(kind, data, results, ctx); ok {
 		return rows, true
 	}
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	service := enums.ServiceType(ctx.Service)
 
 	switch {

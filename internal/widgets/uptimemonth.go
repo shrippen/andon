@@ -44,7 +44,7 @@ func uptimeMonthView(cfgAny any, results map[string]any, ctx ViewCtx) map[string
 	if !ok || !ok2 {
 		return map[string]any{}
 	}
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	start := metrics.MonthStart(today)
 	now := time.Now().UTC()
 	if !today.Equal(metrics.Today(now)) {

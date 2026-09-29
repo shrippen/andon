@@ -94,12 +94,12 @@ func weekStart(today time.Time) time.Time {
 	return d.AddDate(0, 0, -((int(d.Weekday()) + 6) % 7))
 }
 
+// todayOf is the view's day; now (UTC) when the context lacks one.
 func todayOf(ctx ViewCtx) time.Time {
-	t, err := time.Parse(time.DateOnly, ctx.Today)
-	if err != nil {
-		return time.Now()
+	if t, ok := metrics.ParseDay(ctx.Today); ok {
+		return t
 	}
-	return t
+	return time.Now().UTC()
 }
 
 // weekPick narrows which Kimai time counts.
@@ -392,7 +392,7 @@ func disksView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	}
 	healthy := 0
 	var rows []DiskRow
-	staleBefore := parseToday(ctx.Today).AddDate(0, 0, -diskStaleDays)
+	staleBefore := todayOf(ctx).AddDate(0, 0, -diskStaleDays)
 	for _, d := range data.Disks {
 		row := DiskRow{Name: d.Name, Model: d.Model, OK: d.Status == sources.ScrutinyPassed, Temp: d.Temp,
 			Years: float64(d.Hours) / hoursPerDay / 365, Seen: d.Seen}
@@ -536,7 +536,7 @@ func truenasView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any
 	}
 	fullIn := map[string]int{}
 	if h, _ := results[HistorySlot].(*metrics.History); cfg.Forecast && h != nil {
-		for _, f := range metrics.StorageForecasts(h, parseToday(ctx.Today)) {
+		for _, f := range metrics.StorageForecasts(h, todayOf(ctx)) {
 			fullIn[f.Key] = f.FullIn
 		}
 	}

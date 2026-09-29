@@ -1,6 +1,7 @@
 package sources
 
 import (
+	"cmp"
 	"context"
 	"time"
 
@@ -37,18 +38,9 @@ func snipeAsset(raw any) SnipeAsset {
 		PurchaseDate: day(m["purchase_date"]), PurchaseCost: asFloat(m["purchase_cost"]),
 		WarrantyExpires: day(m["warranty_expires"]), EOLDate: day(m["asset_eol_date"]),
 		NextAudit:  day(m["next_audit_date"]),
-		LastChange: firstNonEmpty(day(m["last_checkin"]), day(m["last_checkout"]), day(m["updated_at"])),
+		LastChange: cmp.Or(day(m["last_checkin"]), day(m["last_checkout"]), day(m["updated_at"])),
 		AssignedTo: nameOf(m["assigned_to"]), ExpectedCheckin: day(m["expected_checkin"]),
 	}
-}
-
-func firstNonEmpty(vals ...string) string {
-	for _, v := range vals {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
 }
 
 // SnipeData is the "snipeit.data" source: assets, licenses, consumables

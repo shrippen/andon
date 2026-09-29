@@ -37,7 +37,7 @@ func exposureView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 	updates := metrics.PendingUpdates(peerDatasets(results, updatePeers))
 	var rows []ExposedRow
 	open := 0
-	all := metrics.Exposure(data, certs, updates, parseToday(ctx.Today))
+	all := metrics.Exposure(data, certs, updates, todayOf(ctx))
 	for _, r := range all {
 		if !r.Login {
 			open++

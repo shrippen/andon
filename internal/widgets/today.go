@@ -124,9 +124,9 @@ func todayView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	sort.SliceStable(items, func(i, j int) bool { return items[i].at.Before(items[j].at) })
 
 	if tax, ok := metrics.ParseTaxSettings(ctx.Settings); ok && !cfg.Hide["deadline"] {
-		for _, dl := range metrics.UpcomingDeadlines(tax, parseToday(ctx.Today), cfg.Days) {
+		for _, dl := range metrics.UpcomingDeadlines(tax, todayOf(ctx), cfg.Days) {
 			items = append(items, TodayItem{Kind: "deadline", Deadline: dl.Kind, Period: dl.Period, Year: dl.Year,
-				Left: int(dl.Due.Sub(parseToday(ctx.Today)).Hours() / hoursPerDay)})
+				Left: int(dl.Due.Sub(todayOf(ctx)).Hours() / hoursPerDay)})
 		}
 	}
 	return map[string]any{"Items": items, "Now": clock(now)}

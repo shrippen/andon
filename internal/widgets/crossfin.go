@@ -96,7 +96,7 @@ func ruleConfig(id string, settings map[string]any) map[string]any {
 // crossRows returns the rows of a cross table; ok is false for other kinds
 // or a wrong own service.
 func crossRows(kind TableKind, data any, results map[string]any, ctx ViewCtx) ([]Row, bool) {
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	var rows []Row
 	switch d := data.(type) {
 	case *sources.NinjaDataset:

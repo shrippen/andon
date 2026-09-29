@@ -56,7 +56,7 @@ func travelView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any 
 	if !ok {
 		return map[string]any{}
 	}
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	year := yearStats(data.Stats, today.Year())
 	out := map[string]any{"MonthKM": monthKM(data.Stats, today), "PrevKM": monthKM(data.Stats, metrics.AddMonths(today, -1)),
 		"YearKM": asFloat(year["totalDistanceKm"]), "Countries": int(asFloat(year["totalCountriesVisited"])),

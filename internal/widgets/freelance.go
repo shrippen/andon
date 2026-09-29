@@ -67,7 +67,7 @@ func heatmapView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any
 		return map[string]any{}
 	}
 	perDay := metrics.HoursByDay(data)
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	weeks := min(int(float64(cfg.Months)*weeksPerMonth+0.5), heatWeeks)
 	rows := 7
 	if cfg.Weekdays {
@@ -145,7 +145,7 @@ func moneyFlowView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]a
 		return map[string]any{}
 	}
 	kimai, _ := results[peerKimai].(*sources.KimaiDataset)
-	f := metrics.MoneyFlowOf(kimai, ninja, parseToday(ctx.Today))
+	f := metrics.MoneyFlowOf(kimai, ninja, todayOf(ctx))
 	stages := []FlowStage{
 		{Key: "unbilled", Amount: f.Unbilled, Link: "/billing"},
 		{Key: "drafts", Amount: f.Drafts, Link: "/billing#drafts"},
@@ -176,7 +176,7 @@ func cashflowView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 	if sure, ok := results[peerSure].(*sources.SureDataset); ok {
 		in.Sure = sure
 	}
-	points, events := metrics.Cashflow(in, parseToday(ctx.Today), cfg.Days)
+	points, events := metrics.Cashflow(in, todayOf(ctx), cfg.Days)
 	if len(points) < 2 {
 		return map[string]any{}
 	}

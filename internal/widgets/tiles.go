@@ -186,21 +186,12 @@ type AgingConfig struct {
 func decodeAging(def [2]int) DecodeFunc {
 	return func(raw map[string]any) any {
 		cfg := AgingConfig{Mid: def[0], Old: def[1], HideInternal: asBool(raw["hide_internal"])}
-		if b := asNumberList(raw["bands"]); len(b) == 2 && b[0] > 0 && b[1] > b[0] {
+		if b := asIntList(raw["bands"]); len(b) == 2 && b[0] > 0 && b[1] > b[0] {
 			cfg.Mid, cfg.Old = b[0], b[1]
 		}
 		cfg.HideClients = lowerList(raw["hide_clients"])
 		return cfg
 	}
-}
-
-// asNumberList reads a list of whole numbers.
-func asNumberList(v any) []int {
-	var out []int
-	for _, x := range asAnyList(v) {
-		out = append(out, int(asFloat(x)))
-	}
-	return out
 }
 
 func asAnyList(v any) []any {

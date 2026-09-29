@@ -2,6 +2,7 @@
 package widgets
 
 import (
+	"cmp"
 	"strings"
 	"time"
 
@@ -208,7 +209,7 @@ func linkQueries(cfgAny any) []Query {
 	var found []Query
 	if cfg.Status == StatusHTTP {
 		found = append(found, Query{Name: "status", Source: "http_status", Params: map[string]any{
-			"url": firstNonEmpty(cfg.StatusURL, cfg.URL), "accept": cfg.Accept, "insecure": cfg.Insecure, "headers": cfg.Headers,
+			"url": cmp.Or(cfg.StatusURL, cfg.URL), "accept": cfg.Accept, "insecure": cfg.Insecure, "headers": cfg.Headers,
 			"method": cfg.Method, "timeout": cfg.TimeoutS,
 		}})
 	}
@@ -216,13 +217,6 @@ func linkQueries(cfgAny any) []Query {
 		found = append(found, Query{Name: "info", Source: "data", Conn: ConnInfo})
 	}
 	return found
-}
-
-func firstNonEmpty(a, b string) string {
-	if a != "" {
-		return a
-	}
-	return b
 }
 
 // linkView turns the info connection's dataset into the tile's info line,

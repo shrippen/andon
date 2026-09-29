@@ -94,7 +94,7 @@ func chartView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	if !ok || data == nil {
 		return map[string]any{}
 	}
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	service := enums.ServiceType(ctx.Service)
 
 	switch {
@@ -198,7 +198,7 @@ func progressView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 	if !ok || data == nil {
 		return map[string]any{}
 	}
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	var items []ProgressItem
 
 	if enums.ServiceType(ctx.Service) == enums.ServiceKimai {
@@ -238,7 +238,7 @@ func progressView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 func deadlinesView(cfgAny any, _ map[string]any, ctx ViewCtx) map[string]any {
 	cfg := cfgAny.(DeadlinesConfig)
 	tax, configured := metrics.ParseTaxSettings(ctx.Settings)
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 
 	var items []map[string]any
 	if configured {

@@ -42,7 +42,7 @@ type SubRow struct {
 
 func subsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	cfg := cfgAny.(SubsConfig)
-	today := parseToday(ctx.Today).Format("2006-01-02")
+	today := todayOf(ctx).Format("2006-01-02")
 	wallos, hasWallos := results[peerWallos].(*sources.WallosDataset)
 	sure, hasSure := results[peerSure].(*sources.SureDataset)
 

@@ -34,7 +34,7 @@ func rateTrendView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]a
 	if !ok || !ok2 {
 		return map[string]any{}
 	}
-	lastMonth := metrics.AddMonths(parseToday(ctx.Today), -1)
+	lastMonth := metrics.AddMonths(todayOf(ctx), -1)
 	kind := metrics.HoursAll
 	if cfg.BillableOnly {
 		kind = metrics.HoursBillable

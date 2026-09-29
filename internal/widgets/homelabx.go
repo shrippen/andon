@@ -197,7 +197,7 @@ func storageView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any
 	if h == nil {
 		return map[string]any{}
 	}
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	var rows []StorageRow
 	for _, f := range metrics.StorageForecasts(h, today) {
 		if !matchesAny(f.Label, cfg.Only) {
@@ -242,7 +242,7 @@ func homelabCols(kind TableKind) []Col {
 }
 
 func homelabRows(kind TableKind, data any, results map[string]any, ctx ViewCtx) ([]Row, bool) {
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	var rows []Row
 	switch d := data.(type) {
 	case *sources.PangolinDataset:

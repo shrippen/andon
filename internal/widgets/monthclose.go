@@ -81,7 +81,7 @@ func monthCloseQueries(any) []Query {
 
 func monthCloseView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	cfg, _ := cfgAny.(MonthCloseConfig)
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	start := metrics.AddMonths(today, -1)
 	if cfg.Current {
 		start = metrics.AddMonths(today, 0)

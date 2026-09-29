@@ -211,7 +211,7 @@ func monitorsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 
 	out := map[string]any{"Up": up, "Total": len(mons), "Cells": cells, "Problems": problems, "More": more}
 	if h, ok := results[HistorySlot].(*metrics.History); ok {
-		if lines := monitorLines(mons, h, parseToday(ctx.Today), cfg.Days); lines != nil {
+		if lines := monitorLines(mons, h, todayOf(ctx), cfg.Days); lines != nil {
 			if cfg.HideMS {
 				for i := range lines {
 					lines[i].MS = 0

@@ -7,6 +7,7 @@
 package widgetlib
 
 import (
+	"cmp"
 	"database/sql"
 	"errors"
 	"strings"
@@ -195,7 +196,7 @@ func CreateTx(tx *sql.Tx, who *access.Principal, spaceID int64, typeKey, title s
 	}
 
 	widget := &model.Widget{
-		SpaceID: spaceID, Key: util.Unique(util.Slug(firstNonEmpty(label, typeKey), typeKey), taken),
+		SpaceID: spaceID, Key: util.Unique(util.Slug(cmp.Or(label, typeKey), typeKey), taken),
 		Type: typeKey, Title: label, Config: config, ConnectionID: connID, MinTeamRole: minRole,
 		Version: 1, UpdatedAt: time.Now().UTC(),
 	}
@@ -203,13 +204,6 @@ func CreateTx(tx *sql.Tx, who *access.Principal, spaceID int64, typeKey, title s
 		return 0, err
 	}
 	return widget.ID, snapshot(tx, who, widget)
-}
-
-func firstNonEmpty(a, b string) string {
-	if a != "" {
-		return a
-	}
-	return b
 }
 
 // Detail returns a widget and the caller's right on it. Requires VIEW.

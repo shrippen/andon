@@ -374,13 +374,6 @@ func settingsFloat(m map[string]any, key string, def float64) float64 {
 	return def
 }
 
-func parseToday(iso string) time.Time {
-	if t, ok := metrics.ParseDay(iso); ok {
-		return t
-	}
-	return time.Now().UTC()
-}
-
 // ── KPI ──
 
 // KpiResult is one "kpi" widget's computed value plus an optional
@@ -471,7 +464,7 @@ func kpiSpark(metric Metric, data any, today time.Time) *Spark {
 }
 
 func kpiKimai(metric Metric, data *sources.KimaiDataset, ctx ViewCtx) *KpiResult {
-	stats := metrics.KimaiSummaryOf(data, parseToday(ctx.Today))
+	stats := metrics.KimaiSummaryOf(data, todayOf(ctx))
 	switch metric {
 	case MetricHoursToday:
 		return &KpiResult{Kind: "hours", Value: float64(stats.TodayMin) / minutesPerHourInsight}
@@ -519,7 +512,7 @@ func kpiNinja(metric Metric, data *sources.NinjaDataset, peers map[string]any, c
 	tax := settingsMap(ctx.Settings, "tax")
 	interval := metrics.TaxVATInterval(ctx.Settings)
 	method := metrics.TaxVATMethod(ctx.Settings)
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	stats := metrics.NinjaSummaryOf(data, today, interval, method)
 
 	switch metric {
@@ -611,7 +604,7 @@ func kpiSure(cfg KpiConfig, data *sources.SureDataset, peers map[string]any, ctx
 		// Free to spend: the balance less VAT, income tax and 30 days of
 		// fixed costs (see MetricSafeToSpend).
 		rate := settingsFloat(settingsMap(ctx.Settings, "tax"), "income_tax_rate", defaultIncomeTaxRate)
-		s := metrics.SafeToSpend(data, ninja, parseToday(ctx.Today), metrics.TaxVATInterval(ctx.Settings), metrics.TaxVATMethod(ctx.Settings), rate)
+		s := metrics.SafeToSpend(data, ninja, todayOf(ctx), metrics.TaxVATInterval(ctx.Settings), metrics.TaxVATMethod(ctx.Settings), rate)
 		kpi.SubKey, kpi.SubIn = "kpi.free", s.Free
 		return kpi
 	}
@@ -619,7 +612,7 @@ func kpiSure(cfg KpiConfig, data *sources.SureDataset, peers map[string]any, ctx
 }
 
 func kpiSnipe(metric Metric, data *sources.SnipeDataset, ctx ViewCtx) *KpiResult {
-	stats := metrics.SnipeSummaryOf(data, parseToday(ctx.Today))
+	stats := metrics.SnipeSummaryOf(data, todayOf(ctx))
 	switch metric {
 	case MetricAssetValue:
 		return &KpiResult{Kind: "money", Value: stats.Value, SubKey: "kpi.assets", SubCount: stats.Assets}
@@ -647,7 +640,7 @@ func kpiView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 		kpi = kpiSnipe(cfg.Metric, data.(*sources.SnipeDataset), ctx)
 	}
 	if kpi != nil {
-		shapeKpi(kpi, cfg, data, parseToday(ctx.Today))
+		shapeKpi(kpi, cfg, data, todayOf(ctx))
 	}
 	return map[string]any{"KPI": kpi, "Unsupported": kpi == nil}
 }

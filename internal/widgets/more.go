@@ -5,6 +5,7 @@ package widgets
 // crypto, stocks, flights and public transport.
 
 import (
+	"cmp"
 	"slices"
 	"sort"
 	"strconv"
@@ -115,7 +116,7 @@ func decodeList(raw map[string]any) any {
 		if !strings.HasPrefix(link, "https://") && !strings.HasPrefix(link, "http://") {
 			link = ""
 		}
-		cfg.Entries = append(cfg.Entries, ListEntry{Text: firstNonEmpty(text, link), URL: link})
+		cfg.Entries = append(cfg.Entries, ListEntry{Text: cmp.Or(text, link), URL: link})
 	}
 	return cfg
 }
@@ -129,7 +130,7 @@ type HolidaysConfig struct {
 // decodeHolidays prefixes a bare state with its country, as Nager names
 // regions: "BY" → "DE-BY".
 func decodeHolidays(raw map[string]any) any {
-	country := firstNonEmpty(strings.ToUpper(asString(raw["country"])), defaultCountry)
+	country := cmp.Or(strings.ToUpper(asString(raw["country"])), defaultCountry)
 	state := strings.ToUpper(strings.TrimSpace(asString(raw["state"])))
 	if state != "" && !strings.Contains(state, "-") {
 		state = country + "-" + state
@@ -144,7 +145,7 @@ type JokeConfig struct {
 }
 
 func decodeJoke(raw map[string]any) any {
-	return JokeConfig{Category: firstNonEmpty(asString(raw["category"]), "Any"), Lang: firstNonEmpty(asString(raw["lang"]), "de"),
+	return JokeConfig{Category: cmp.Or(asString(raw["category"]), "Any"), Lang: cmp.Or(asString(raw["lang"]), "de"),
 		EveryH: clampInt(asInt(raw["every"], 0), 0, 168)}
 }
 
@@ -184,7 +185,7 @@ var (
 )
 
 func decodeCrypto(raw map[string]any) any {
-	return CryptoConfig{Coins: listOr(raw["coins"], defaultCoins), Currency: firstNonEmpty(strings.ToLower(asString(raw["currency"])), defaultCurrency),
+	return CryptoConfig{Coins: listOr(raw["coins"], defaultCoins), Currency: cmp.Or(strings.ToLower(asString(raw["currency"])), defaultCurrency),
 		Spark: asBool(raw["spark"]), Digits: clampInt(asInt(raw["digits"], cryptoDigits), 0, 8)}
 }
 
@@ -364,7 +365,7 @@ func holidaysView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 	if !ok {
 		return map[string]any{}
 	}
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	var rows []HolidayRow
 	for _, h := range data.Days {
 		if len(rows) >= cfg.Limit {
