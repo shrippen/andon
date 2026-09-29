@@ -250,7 +250,7 @@ func decodeProgress(raw map[string]any) any {
 		projects = append(projects, strings.ToLower(p))
 	}
 	warn := progressSlack
-	if v := asFloat(raw["warn_ahead"]); v > 0 {
+	if v := asFloat(raw["warn_ahead"]); v > 0 && v <= pctFull {
 		warn = v / pctFull
 	}
 	return ProgressConfig{Goal: goal, Projects: projects, Soll: boolOr(raw["soll"], true), Warn: warn}

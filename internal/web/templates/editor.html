@@ -345,7 +345,7 @@
           {{else if or (eq (print .Input) "textarea") (eq (print .Input) "links") (eq (print .Input) "headers")}}
             <textarea id="{{.Name}}" name="{{.Name}}" rows="3">{{.Text}}</textarea>
           {{else if eq (print .Input) "number"}}
-            <input id="{{.Name}}" name="{{.Name}}" type="number" step="any" value="{{.Text}}"{{if .Required}} required{{end}}>
+            <input id="{{.Name}}" name="{{.Name}}" type="number" step="any" value="{{.Text}}"{{with .Min}} min="{{.}}"{{end}}{{with .Max}} max="{{.}}"{{end}}{{if .Required}} required{{end}}>
           {{else if eq (print .Input) "secret"}}
             <input id="{{.Name}}" name="{{.Name}}" type="password" autocomplete="off" value="">
           {{else if eq (print .Input) "place"}}

@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 )
 
@@ -136,6 +137,40 @@ func TestSelectFallsBackToDefault(t *testing.T) {
 	for _, v := range FormValues("kpi", map[string]any{"metric": "gone"}) {
 		if v.Key == "metric" && v.Text != string(MetricRevenueYTD) {
 			t.Fatalf("metric %q, want %q", v.Text, MetricRevenueYTD)
+		}
+	}
+}
+
+// TestNumberFieldsBounded: every number field names the range its
+// decoder accepts, so the browser stops a value the tile would clamp
+// or drop. Beyond a bound, the decoder clamps to it or falls back.
+func TestNumberFieldsBounded(t *testing.T) {
+	unboundedLow := map[string]bool{"cashflow.min_balance": true}
+	for _, kind := range AllTypes() {
+		empty, _ := Decode(kind.Key, nil)
+		for _, f := range FieldsOf(kind.Key) {
+			if f.Input != InputNumber {
+				continue
+			}
+			name := kind.Key + "." + f.Key
+			if f.Min == "" && !unboundedLow[name] {
+				t.Errorf("%s: no min", name)
+			}
+			for bound, beyond := range map[string]float64{f.Min: -1e6, f.Max: 1e6} {
+				if bound == "" {
+					continue
+				}
+				v, err := strconv.ParseFloat(bound, 64)
+				if err != nil {
+					t.Errorf("%s: bound %q", name, bound)
+					continue
+				}
+				at, _ := Decode(kind.Key, map[string]any{f.Key: v})
+				out, _ := Decode(kind.Key, map[string]any{f.Key: v + beyond})
+				if !reflect.DeepEqual(out, at) && !reflect.DeepEqual(out, empty) {
+					t.Errorf("%s: beyond %s neither clamps nor falls back", name, bound)
+				}
+			}
 		}
 	}
 }

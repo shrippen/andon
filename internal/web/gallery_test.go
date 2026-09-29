@@ -189,3 +189,16 @@ func TestWidgetBadWindowRefused(t *testing.T) {
 		t.Fatalf("status %d:\n%s", resp.StatusCode, body)
 	}
 }
+
+// TestNumberFieldHasRange: the form tells the browser a field's range.
+func TestNumberFieldHasRange(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	body := string(mustGet(t, srv, client, "/widgets/new?type=hints&space="+string(space)))
+	if !strings.Contains(body, `name="cfg.limit" type="number" step="any" value="8" min="1" max="50"`) {
+		t.Fatalf("no range on limit:\n%s", body)
+	}
+}

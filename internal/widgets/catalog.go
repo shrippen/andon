@@ -375,7 +375,7 @@ type DisksConfig struct {
 
 func decodeDisks(raw map[string]any) any {
 	warn := asFloat(raw["temp_warn"])
-	if warn <= 0 {
+	if warn <= 0 || warn > pctFull {
 		warn = tempWarn
 	}
 	return DisksConfig{TempWarn: warn, OnlyProblems: asBool(raw["only_problems"])}
