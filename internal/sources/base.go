@@ -39,6 +39,13 @@ type Ctx struct {
 // TLS is the connection's certificate check for driver calls.
 func (c Ctx) TLS() httpclient.TLS { return httpclient.TLSOf(c.VerifyTLS) }
 
+// TLS says whether a call checks the server's certificate.
+type TLS = httpclient.TLS
+
+// TLSFor maps a connection's "verify TLS" setting, for calls made
+// outside a fetch (sign-in flows, token renewal).
+func TLSFor(verify bool) TLS { return httpclient.TLSOf(verify) }
+
 // Pushed is one event a service sent to the dashboard's webhook.
 type Pushed struct {
 	Event, Subject string

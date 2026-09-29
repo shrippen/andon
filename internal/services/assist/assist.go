@@ -7,6 +7,7 @@
 package assist
 
 import (
+	"andon/internal/outbound"
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -16,7 +17,6 @@ import (
 	"strings"
 
 	"andon/internal/db"
-	"andon/internal/drivers/llm"
 	"andon/internal/i18n"
 	data "andon/internal/repos/data"
 	"andon/internal/services/access"
@@ -39,7 +39,7 @@ var (
 var apiKey string
 
 // complete is the LLM call; tests swap it.
-var complete = llm.CompleteFiles
+var complete = outbound.AskFiles
 
 // Init reads the API key; without one the features stay hidden.
 func Init(cfg settings.Settings) { apiKey = cfg.AnthropicAPIKey }
@@ -98,7 +98,7 @@ func (i Invoice) Title() string {
 }
 
 // ReadInvoice reads invoice fields from attachments.
-func ReadInvoice(ctx context.Context, files []llm.File) (Invoice, error) {
+func ReadInvoice(ctx context.Context, files []outbound.LLMFile) (Invoice, error) {
 	if !Enabled() {
 		return Invoice{}, ErrOff
 	}

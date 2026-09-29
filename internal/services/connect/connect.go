@@ -26,7 +26,6 @@ import (
 	"sync"
 	"time"
 
-	"andon/internal/drivers/httpclient"
 	"andon/internal/enums"
 	"andon/internal/model"
 	"andon/internal/services/access"
@@ -167,8 +166,8 @@ func service(conn *model.Connection) string {
 	return strings.TrimRight(conn.URL, "/")
 }
 
-func tlsOf(conn *model.Connection) httpclient.TLS {
-	return httpclient.TLSOf(conn.VerifyTLS)
+func tlsOf(conn *model.Connection) sources.TLS {
+	return sources.TLSFor(conn.VerifyTLS)
 }
 
 // deviceID names Andon towards Jellyfin, one per connection and user.

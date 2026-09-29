@@ -11,8 +11,8 @@ import (
 	"andon/internal/crypto"
 	"andon/internal/db"
 	"andon/internal/db/dbtest"
-	"andon/internal/drivers/llm"
 	"andon/internal/enums"
+	"andon/internal/outbound"
 	"andon/internal/rules"
 	"andon/internal/services/access"
 	"andon/internal/services/accounts"
@@ -65,7 +65,7 @@ func TestAdviseOnceAndPrivate(t *testing.T) {
 	d, who, space := setup(t)
 	calls, prompt := 0, ""
 	real := complete
-	complete = func(_ context.Context, _, _, p string, _ []llm.File) (string, error) {
+	complete = func(_ context.Context, _, _, p string, _ []outbound.LLMFile) (string, error) {
 		calls++
 		prompt = p
 		return "1. Log öffnen", nil
@@ -98,14 +98,16 @@ func TestReadInvoice(t *testing.T) {
 	t.Cleanup(func() { complete = real; Init(settings.Settings{}) })
 	Init(settings.Settings{AnthropicAPIKey: "k"})
 
-	complete = func(context.Context, string, string, string, []llm.File) (string, error) {
+	complete = func(context.Context, string, string, string, []outbound.LLMFile) (string, error) {
 		return "Hier:\n{\"vendor\": \"Hetzner\", \"number\": \"R1\", \"gross\": 12.5, \"currency\": \"EUR\"}", nil
 	}
-	inv, err := ReadInvoice(context.Background(), []llm.File{{Media: "application/pdf", Content: []byte("%PDF")}})
+	inv, err := ReadInvoice(context.Background(), []outbound.LLMFile{{Media: "application/pdf", Content: []byte("%PDF")}})
 	if err != nil || inv.Title() != "Hetzner R1" || inv.Gross != 12.5 {
 		t.Fatalf("invoice: %+v %v", inv, err)
 	}
-	complete = func(context.Context, string, string, string, []llm.File) (string, error) { return "nicht lesbar", nil }
+	complete = func(context.Context, string, string, string, []outbound.LLMFile) (string, error) {
+		return "nicht lesbar", nil
+	}
 	if _, err := ReadInvoice(context.Background(), nil); !errors.Is(err, ErrUnreadable) {
 		t.Fatalf("garbage accepted: %v", err)
 	}

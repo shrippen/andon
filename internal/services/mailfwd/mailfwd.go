@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"andon/internal/db"
-	"andon/internal/drivers/llm"
 	"andon/internal/enums"
 	"andon/internal/model"
 	"andon/internal/outbound"
@@ -230,10 +229,10 @@ func Read(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID int6
 	if err != nil {
 		return assist.Invoice{}, err
 	}
-	var readable []llm.File
+	var readable []outbound.LLMFile
 	for _, f := range files {
-		if media := http.DetectContentType(f.Content); llm.Readable(media) {
-			readable = append(readable, llm.File{Media: media, Content: f.Content})
+		if media := http.DetectContentType(f.Content); outbound.LLMReadable(media) {
+			readable = append(readable, outbound.LLMFile{Media: media, Content: f.Content})
 		}
 	}
 	if len(readable) == 0 {
