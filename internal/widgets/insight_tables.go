@@ -208,6 +208,7 @@ func tableView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 
 // Table sort orders.
 const (
+	sortAsIs       = "as_is"
 	sortAmountDesc = "amount_desc"
 	sortAmountAsc  = "amount_asc"
 	sortName       = "name"

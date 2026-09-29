@@ -190,6 +190,8 @@ type TableConfig struct {
 	SumRow   bool
 }
 
+var tableSorts = []string{sortAsIs, sortAmountDesc, sortAmountAsc, sortName, sortDate}
+
 func decodeTable(raw map[string]any) any {
 	table := TableKind(asString(raw["table"]))
 	if table == "" {
@@ -199,7 +201,7 @@ func decodeTable(raw map[string]any) any {
 	for _, c := range asStringList(raw["hide_cols"]) {
 		hide = append(hide, strings.ToLower(strings.TrimSpace(c)))
 	}
-	return TableConfig{Table: table, Limit: clampInt(asInt(raw["limit"], 8), 1, 50), HideCols: hide, Sort: asString(raw["sort"]),
+	return TableConfig{Table: table, Limit: clampInt(asInt(raw["limit"], 8), 1, 50), HideCols: hide, Sort: oneOfStr(raw["sort"], tableSorts, sortAsIs),
 		SumRow: asBool(raw["sum_row"])}
 }
 

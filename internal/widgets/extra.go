@@ -57,12 +57,15 @@ type RatesConfig struct {
 	Invert  bool // 1 USD = … EUR instead of 1 EUR = … USD
 }
 
+// defaultRates are the currencies a new rates tile lists.
+var defaultRates = []string{"USD", "CHF", "GBP"}
+
 func decodeRates(raw map[string]any) any {
 	base := asString(raw["base"])
 	if base == "" {
 		base = defaultRatesBase
 	}
-	return RatesConfig{Base: base, Symbols: asStringList(raw["symbols"]), Change: asBool(raw["change"]), Invert: asBool(raw["invert"])}
+	return RatesConfig{Base: base, Symbols: listOr(raw["symbols"], defaultRates), Change: asBool(raw["change"]), Invert: asBool(raw["invert"])}
 }
 
 // MonitorRow is one Kuma monitor with its pill state and label key.

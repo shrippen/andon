@@ -105,3 +105,27 @@ func TestUncheckedNeedsTheEditor(t *testing.T) {
 		t.Fatalf("editor form: %v", editor)
 	}
 }
+
+// TestFormDefaultsMatchDecode: a tile saved from an untouched form works
+// like a tile without config (the gallery preview), e.g. kpi's metric.
+func TestFormDefaultsMatchDecode(t *testing.T) {
+	for _, kind := range AllTypes() {
+		form := map[string]string{FormPrefix + FormMarker: "1"}
+		for _, v := range FormValues(kind.Key, nil) {
+			if v.Input == InputCheck {
+				if v.On {
+					form[v.Name] = "on"
+				}
+				continue
+			}
+			form[v.Name] = v.Text
+		}
+		saved := ParseForm(kind.Key, func(name string) string { return form[name] })
+
+		got, _ := Decode(kind.Key, saved)
+		want, _ := Decode(kind.Key, nil)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%s:\nform   %+v\ndecode %+v", kind.Key, got, want)
+		}
+	}
+}

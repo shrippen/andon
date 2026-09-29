@@ -171,8 +171,14 @@ type CryptoConfig struct {
 // cryptoDigits is the default number of decimals.
 const cryptoDigits = 2
 
+// Coins and tickers a new tile lists.
+var (
+	defaultCoins   = []string{"bitcoin", "ethereum"}
+	defaultTickers = []string{"aapl.us", "sap.de"}
+)
+
 func decodeCrypto(raw map[string]any) any {
-	return CryptoConfig{Coins: asStringList(raw["coins"]), Currency: firstNonEmpty(strings.ToLower(asString(raw["currency"])), defaultCurrency),
+	return CryptoConfig{Coins: listOr(raw["coins"], defaultCoins), Currency: firstNonEmpty(strings.ToLower(asString(raw["currency"])), defaultCurrency),
 		Spark: asBool(raw["spark"]), Digits: clampInt(asInt(raw["digits"], cryptoDigits), 0, 8)}
 }
 
@@ -183,7 +189,7 @@ type StocksConfig struct {
 }
 
 func decodeStocks(raw map[string]any) any {
-	return StocksConfig{Symbols: asStringList(raw["tickers"]), Week: asString(raw["change"]) == "week", Spark: asBool(raw["spark"])}
+	return StocksConfig{Symbols: listOr(raw["tickers"], defaultTickers), Week: asString(raw["change"]) == "week", Spark: asBool(raw["spark"])}
 }
 
 type FlightsConfig struct {

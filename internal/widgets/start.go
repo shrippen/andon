@@ -62,6 +62,24 @@ func asStringList(v any) []string {
 	return out
 }
 
+// listOr is v as strings, or def when v holds none: a tile needs
+// something to show.
+func listOr(v any, def []string) []string {
+	if list := asStringList(v); len(list) > 0 {
+		return list
+	}
+	return def
+}
+
+// anyList turns strings into a config list: ["a"] → []any{"a"}.
+func anyList(list []string) []any {
+	out := make([]any, len(list))
+	for i, s := range list {
+		out[i] = s
+	}
+	return out
+}
+
 func asIntList(v any) []int {
 	list, _ := v.([]any)
 	out := make([]int, 0, len(list))
