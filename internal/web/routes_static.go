@@ -19,7 +19,7 @@ var staticFiles embed.FS
 // RegisterStaticRoutes serves vendored assets (htmx, ...) so board pages
 // can lazy-load widget fragments without a CDN dependency.
 func (d Deps) RegisterStaticRoutes(mux *http.ServeMux) {
-	mux.Handle("GET /static/", cacheStatic(gzipStatic(http.FileServerFS(staticFiles))))
+	mux.Handle("GET /static/", cacheStatic(tagStatic(gzipStatic(http.FileServerFS(staticFiles)))))
 	mux.HandleFunc("GET /sw.js", handleWorker)
 }
 
@@ -75,12 +75,49 @@ func cacheStatic(next http.Handler) http.Handler {
 	})
 }
 
-// compressible are the text assets worth gzipping; fonts and images are
-// compressed already.
+// compressible are the assets worth gzipping; images are compressed
+// already, TTF fonts are not (Rajdhani: 360 kB → 140 kB).
 var compressible = map[string]string{
 	".css": "text/css; charset=utf-8",
 	".js":  "text/javascript; charset=utf-8",
 	".svg": "image/svg+xml",
+	".ttf": "font/ttf",
+}
+
+// tags holds each file's ETag once; the files are embedded and never
+// change while the process runs.
+var tags sync.Map // path → string
+
+// tagStatic gives every file an ETag. Embedded files have no modification
+// time, so an unversioned URL (fonts linked from andon.css) was sent in
+// full on every page load; now it revalidates with a 304.
+func tagStatic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tag, err := tagOf(strings.TrimPrefix(r.URL.Path, "/"))
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("ETag", tag)
+		next.ServeHTTP(w, r)
+	})
+}
+
+// tagLen is how many hex digits of the SHA-256 name a file's version.
+const tagLen = 16
+
+func tagOf(name string) (string, error) {
+	if cached, ok := tags.Load(name); ok {
+		return cached.(string), nil
+	}
+	raw, err := staticFiles.ReadFile(name)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(raw)
+	tag := `"` + hex.EncodeToString(sum[:])[:tagLen] + `"`
+	tags.Store(name, tag)
+	return tag, nil
 }
 
 // gzipped holds each compressed asset once; the files are embedded and
@@ -102,9 +139,19 @@ func gzipStatic(next http.Handler) http.Handler {
 			return
 		}
 		h := w.Header()
+		h.Set("Vary", "Accept-Encoding")
+
+		// The gzipped bytes differ from the file: their own tag.
+		if tag := h.Get("ETag"); tag != "" {
+			tag = strings.TrimSuffix(tag, `"`) + `-gz"`
+			h.Set("ETag", tag)
+			if r.Header.Get("If-None-Match") == tag {
+				w.WriteHeader(http.StatusNotModified)
+				return
+			}
+		}
 		h.Set("Content-Type", kind)
 		h.Set("Content-Encoding", "gzip")
-		h.Set("Vary", "Accept-Encoding")
 		w.Write(body)
 	})
 }
