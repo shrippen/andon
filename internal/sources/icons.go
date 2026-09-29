@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"mime"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -152,15 +151,23 @@ func tryIcon(ctx context.Context, target string) (Icon, bool) {
 		return Icon{}, false
 	}
 
-	media, _, _ := mime.ParseMediaType(resp.Header.Get("Content-Type"))
-	media = strings.ToLower(media)
-	switch {
-	case strings.HasSuffix(target, ".svg") || media == svgType:
+	// The body decides, not the URL or the server's word: an icon URL
+	// may point anywhere, and only images may be served back.
+	if isSVG(body) {
 		return Icon{Body: CleanSVG(body), MediaType: svgType}, true
-	case iconTypes[media]:
-		return Icon{Body: body, MediaType: media}, true
-	case strings.HasSuffix(target, ".ico"):
-		return Icon{Body: body, MediaType: icoType}, true
 	}
-	return Icon{}, false
+	media := http.DetectContentType(body)
+	if !iconTypes[media] && media != icoType {
+		return Icon{}, false
+	}
+	return Icon{Body: body, MediaType: media}, true
+}
+
+// svgStart finds an <svg> root after an optional XML declaration,
+// doctype or comments.
+var svgStart = regexp.MustCompile(`(?s)^\s*(<\?xml[^>]*>\s*)?(<!--.*?-->\s*|<!DOCTYPE[^>]*>\s*)*<svg[\s>]`)
+
+// isSVG reports whether body is an SVG document.
+func isSVG(body []byte) bool {
+	return svgStart.Match(body)
 }
