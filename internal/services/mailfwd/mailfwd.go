@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -243,18 +244,22 @@ func Read(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID int6
 		return assist.Invoice{}, err
 	}
 
-	raw, _ := json.Marshal(inv)
-	fields := map[string]any{}
-	_ = json.Unmarshal(raw, &fields)
-	if err := db.WithTx(d, func(tx *sql.Tx) error { return repodata.SaveMailRead(tx, mail.ID, uid, fields) }); err != nil {
+	if err := db.WithTx(d, func(tx *sql.Tx) error { return repodata.SaveMailRead(tx, mail.ID, uid, inv) }); err != nil {
 		return assist.Invoice{}, err
 	}
 	return inv, auditsvc.Log(d, &who.UserID, "mail.read", fmt.Sprintf("%s#%d", mail.Name, uid), ip, nil)
 }
 
+// invoiceOf reads a stored read back; a read that does not decode
+// shows as empty rather than failing the list.
 func invoiceOf(fields map[string]any) *assist.Invoice {
-	raw, _ := json.Marshal(fields)
 	var inv assist.Invoice
-	_ = json.Unmarshal(raw, &inv)
+	raw, err := json.Marshal(fields)
+	if err == nil {
+		err = json.Unmarshal(raw, &inv)
+	}
+	if err != nil {
+		slog.Warn("mailfwd: stored read", "err", err)
+	}
 	return &inv
 }
