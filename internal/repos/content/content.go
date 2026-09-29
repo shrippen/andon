@@ -456,6 +456,31 @@ func scanWidgets(rows *sql.Rows) ([]*model.Widget, error) {
 	return out, rows.Err()
 }
 
+// WidgetsOfTypes returns every widget of the given types, in all spaces.
+func WidgetsOfTypes(q db.Queryer, types []string) ([]*model.Widget, error) {
+	if len(types) == 0 {
+		return nil, nil
+	}
+	query, args := inClause("SELECT "+widgetCols+" FROM widgets WHERE type IN (%s) ORDER BY id", types)
+	rows, err := q.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanWidgets(rows)
+}
+
+// SetWidgetConfig replaces a widget's config as is: no version bump,
+// for rewriting stored data rather than a user's change.
+func SetWidgetConfig(q db.Queryer, widgetID int64, config map[string]any) error {
+	text, err := db.ToJSON(orEmpty(config))
+	if err != nil {
+		return err
+	}
+	_, err = q.Exec("UPDATE widgets SET config = ? WHERE id = ?", text, widgetID)
+	return err
+}
+
 // WidgetByKey looks up a widget by its space-scoped key.
 func WidgetByKey(q db.Queryer, spaceID int64, key string) (*model.Widget, error) {
 	row := q.QueryRow("SELECT "+widgetCols+" FROM widgets WHERE space_id = ? AND key = ?", spaceID, key)

@@ -202,14 +202,13 @@ edit:
   tile_narrow: 'Normale Breite'
 typefield:
   payment_days:
-    target: Zahlungsziel (Tage)
     months: Zeitraum (Monate, leer = alle)
   rate_trend:
-    target: Ziel-Stundensatz
+    target_value: Ziel-Stundensatz
   authentik_logins:
-    span: Zeitraum
+    only_problems: Nur Fehlversuche
   exposure:
-    only_open: Nur Dienste ohne Anmeldung
+    only_problems: Nur Dienste ohne Anmeldung
   custom_api:
     headers: HTTP-Header der Anfrage
     fields_hint: 'Eine Zeile je Wert: Beschriftung = Pfad, z. B. Version = data.version oder Erster = list.0.name.'
@@ -236,6 +235,7 @@ typefield:
   speed_history:
     days: Verlauf (Tage)
   hints:
+    sort_value: Größter Betrag zuerst
     min_severity_10: Alle Stufen
     min_severity_20: Ab Warnung
     min_severity_30: Nur kritische
@@ -256,6 +256,14 @@ typefield:
     sla_hint: 'Prozent, darunter rot, z. B. 99,5. Leer = ab 99,9 % grün, unter 95 % rot.'
   iframe:
     reload: Neu laden alle … Minuten (leer = nie)
+  komodo_stacks:
+    only_problems: Nur mit Updates oder Problemen
+  tailscale:
+    only_problems: Nur offline oder mit ablaufendem Schlüssel
+  github:
+    only_problems: Nur rote CI
+  conn_health:
+    only_problems: Nur aktuell wackelige (letzte 2 Tage)
 field:
   place: Ort
   week_hours: Wochenziel (Stunden)
@@ -362,6 +370,7 @@ field:
   frame_round: Beträge
   frame_only_issues: Nur bei Handlungsbedarf zeigen
   compare: Vergleich
+  target_days: Zahlungsziel (Tage)
   target_value: Zielwert
   spark: Verlauf zeigen
   show_prev: Vorjahr zeigen
@@ -415,17 +424,14 @@ field:
   yearly: Kosten je Jahr statt Monat
   ahead: Vorschau (Tage)
   app_updates: Apps mit Updates nennen
-  buttons: Knöpfe „Erledigt“ und „Später“
-  by_value: Nach Betrag sortieren
+  show_buttons: Knöpfe „Erledigt“ und „Später“
   cheap_hours: Günstiges Fenster (Stunden)
   filter: Nur Namen mit
   forecast: Prognose „voll in … Tagen“
   kinds: Zeigen
-  levels: Stufenbalken
+  show_levels: Stufenbalken
   max_days: Nur bis … Tage (leer = alle)
-  only_issues: Nur mit Updates oder Problemen
   only_problems: Nur Probleme
-  only_shaky: Nur aktuell wackelige (letzte 2 Tage)
   power_split: Strom je Dienst
   price: Preis
   response_time: Antwortzeit zeigen
@@ -443,9 +449,7 @@ field:
   use_timer: Laufenden Kimai-Timer beachten
   warn_pct: Gelb ab (%)
   window: 'Wartungsfenster (z. B. 22:00-06:00)'
-  only_failures: Nur Fehlversuche
   list_without: Konten ohne Zwei-Faktor auflisten
-  only_red: Nur rote CI
   warn_line: Warnlinie bei
   thresholds: Farbschwellen
   thresholds_hint: 'Eine Regel je Zeile: Name, Vergleich, Grenze, Farbe. Beispiel: „queue > 10 gelb“ oder „Temp >= 30 rot“.'
@@ -467,7 +471,6 @@ field:
   top_domains: Meistgeblockte Domains zeigen
   hide_measures: Verlust und Latenz ausblenden
   device_list: Geräte mit Namen auflisten
-  only_trouble: Nur offline oder mit ablaufendem Schlüssel
   expected_country: Erwartetes Land (überschreibt die Verbindung)
   ping: Ping und Jitter zeigen
   ipv6: IPv6 zeigen

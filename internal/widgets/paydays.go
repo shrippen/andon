@@ -32,7 +32,7 @@ const (
 )
 
 func decodePaymentDays(raw map[string]any) any {
-	return PaymentDaysConfig{Target: clampInt(asInt(raw["target"], defaultPayTarget), 1, 365),
+	return PaymentDaysConfig{Target: clampInt(asInt(raw["target_days"], defaultPayTarget), 1, 365),
 		Limit: clampInt(asInt(raw["limit"], defaultPayRows), 1, 20), Months: clampInt(asInt(raw["months"], 0), 0, 120),
 		HideClients: lowerList(raw["hide_clients"])}
 }

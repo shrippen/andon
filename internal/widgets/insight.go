@@ -270,8 +270,9 @@ type HintsConfig struct {
 
 // Hint list orders besides the default (most urgent first).
 const (
-	HintSortValue = "value"
-	HintSortAge   = "age"
+	hintSortUrgency = "urgency" // the select's name for "" (most urgent first)
+	HintSortValue   = "value"
+	HintSortAge     = "age"
 )
 
 // decodeTopic builds the decoder of a topic widget: a hints list limited
@@ -307,9 +308,9 @@ func decodeHints(raw map[string]any) any {
 	}
 	minSeverity := clampInt(asInt(level, int(enums.SeverityInfo)), int(enums.SeverityInfo), int(enums.SeverityCritical))
 	cfg := HintsConfig{Sources: lowerList(raw["sources"]), MinSeverity: minSeverity, Limit: clampInt(asInt(raw["limit"], 8), 1, 50),
-		Buttons: asBool(raw["buttons"]), NoLevels: !boolOr(raw["levels"], true)}
-	if asBool(raw["by_value"]) {
-		cfg.Sort = HintSortValue
+		Buttons: asBool(raw["show_buttons"]), NoLevels: !boolOr(raw["show_levels"], true)}
+	if sort := asString(raw["sort"]); sort == HintSortValue || sort == HintSortAge {
+		cfg.Sort = sort
 	}
 	return cfg
 }

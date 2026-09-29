@@ -148,8 +148,8 @@ func TestBoardRendersTilesWithPage(t *testing.T) {
 	}
 }
 
-// TestFieldLabelPerType: a key two tile types use differently gets the
-// type's own label, e.g. payment_days' "target" is days, not "open in".
+// TestFieldLabelPerType: payment_days' target is days, not the link
+// tile's "open in".
 func TestFieldLabelPerType(t *testing.T) {
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)
@@ -157,7 +157,7 @@ func TestFieldLabelPerType(t *testing.T) {
 
 	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
 	body := string(mustGet(t, srv, client, "/widgets/new?type=payment_days&space="+string(space)))
-	label := regexp.MustCompile(`<label for="cfg.target">([^<]*)</label>`).FindStringSubmatch(body)
+	label := regexp.MustCompile(`<label for="cfg.target_days">([^<]*)</label>`).FindStringSubmatch(body)
 	if label == nil {
 		t.Fatalf("no target field:\n%s", body)
 	}

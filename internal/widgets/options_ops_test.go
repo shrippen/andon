@@ -48,7 +48,7 @@ func TestDisksOptions(t *testing.T) {
 func TestConnHealthShaky(t *testing.T) {
 	old := widgets.ConnStrip{Name: "alt", FailPct: 10, Days: []widgets.ConnDayState{{Fail: 3}, {OK: 5}, {OK: 5}}}
 	now := widgets.ConnStrip{Name: "neu", FailPct: 5, Days: []widgets.ConnDayState{{OK: 5}, {OK: 5}, {Fail: 1}}}
-	v := viewOf(t, "conn_health", map[string]any{"only_shaky": true}, map[string]any{widgets.ConnHealthSlot: []widgets.ConnStrip{old, now}}, "", nil)
+	v := viewOf(t, "conn_health", map[string]any{"only_problems": true}, map[string]any{widgets.ConnHealthSlot: []widgets.ConnStrip{old, now}}, "", nil)
 	rows := v["Rows"].([]widgets.StripRow)
 	if len(rows) != 1 || rows[0].Name != "neu" {
 		t.Fatalf("rows: %+v", rows)
@@ -89,7 +89,7 @@ func TestTrueNASOptions(t *testing.T) {
 // TestKomodoOptions: filtered stacks, only the troubled drawn.
 func TestKomodoOptions(t *testing.T) {
 	data := &sources.KomodoDataset{Stacks: []sources.KStack{{Name: "web-prod", State: "running"}, {Name: "web-dev", State: "down"}, {Name: "db", State: "down"}}}
-	v := viewOf(t, "komodo_stacks", map[string]any{"filter": []any{"web"}, "only_issues": true}, map[string]any{"data": data}, enums.ServiceKomodo, nil)
+	v := viewOf(t, "komodo_stacks", map[string]any{"filter": []any{"web"}, "only_problems": true}, map[string]any{"data": data}, enums.ServiceKomodo, nil)
 	if v["Stacks"] != 2 || len(v["Cells"].([]widgets.StripCell)) != 1 {
 		t.Fatalf("komodo: %+v", v)
 	}
@@ -161,7 +161,7 @@ func TestExpiryOptions(t *testing.T) {
 // TestAuthentikOptions: failed logins of the last day.
 func TestAuthentikOptions(t *testing.T) {
 	data := sources.DemoAuthentik(time.Now())
-	v := viewOf(t, "authentik_logins", map[string]any{"span": "24h", "only_failures": true}, map[string]any{"data": data}, enums.ServiceAuthentik, nil)
+	v := viewOf(t, "authentik_logins", map[string]any{"period": "24h", "only_problems": true}, map[string]any{"data": data}, enums.ServiceAuthentik, nil)
 	list := v["Logins"].([]sources.AKLogin)
 	if v["Failed"] != 38 || len(list) != 2 || list[0].User != "admin" {
 		t.Fatalf("authentik: %+v", v)
@@ -171,7 +171,7 @@ func TestAuthentikOptions(t *testing.T) {
 // TestGitHubRedCI: only the failing repo stays.
 func TestGitHubRedCI(t *testing.T) {
 	data := &sources.GitHubDataset{Repos: []sources.GitRepo{{Name: "a/ok", CI: "success"}, {Name: "a/bad", CI: "failure"}}}
-	v := viewOf(t, "github", map[string]any{"only_red": true}, map[string]any{"data": data}, enums.ServiceGitHub, nil)
+	v := viewOf(t, "github", map[string]any{"only_problems": true}, map[string]any{"data": data}, enums.ServiceGitHub, nil)
 	if repos := v["Data"].(*sources.GitHubDataset).Repos; len(repos) != 1 || repos[0].Name != "a/bad" || len(data.Repos) != 2 {
 		t.Fatalf("github: %+v", repos)
 	}
@@ -238,7 +238,7 @@ func TestTimelineKinds(t *testing.T) {
 		t.Fatalf("timeline: %+v", shown)
 	}
 	cfg, _ := widgets.Decode("timeline_recent", map[string]any{"days": 30.0})
-	noise, _ := widgets.Decode("hint_noise", map[string]any{"period": "90"})
+	noise, _ := widgets.Decode("hint_noise", map[string]any{"days": "90"})
 	if cfg.(widgets.DaysWanter).ExtraDays() != 30 || noise.(widgets.DaysWanter).ExtraDays() != 90 {
 		t.Fatalf("days: %+v %+v", cfg, noise)
 	}

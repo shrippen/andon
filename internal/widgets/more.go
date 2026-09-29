@@ -105,7 +105,7 @@ type ListConfig struct {
 }
 
 func decodeList(raw map[string]any) any {
-	cfg := ListConfig{TwoCols: raw["columns"] == "2"}
+	cfg := ListConfig{TwoCols: asBool(raw["two_columns"])}
 	for _, line := range strings.Split(asString(raw["entries"]), "\n") {
 		text, link, _ := strings.Cut(line, linkSep)
 		text, link = strings.TrimSpace(text), strings.TrimSpace(link)

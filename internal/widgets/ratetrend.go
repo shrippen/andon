@@ -20,7 +20,7 @@ type RateTrendConfig struct {
 }
 
 func decodeRateTrend(raw map[string]any) any {
-	return RateTrendConfig{Target: max(asFloat(raw["target"]), 0), Months: clampInt(asInt(raw["months"], sparkMonths), 3, 36),
+	return RateTrendConfig{Target: max(asFloat(raw["target_value"]), 0), Months: clampInt(asInt(raw["months"], sparkMonths), 3, 36),
 		BillableOnly: asBool(raw["billable_only"])}
 }
 

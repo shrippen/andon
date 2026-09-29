@@ -142,7 +142,7 @@ func decodeTailscale(raw map[string]any) any {
 		}
 		tags = append(tags, t)
 	}
-	return TailscaleConfig{OnlyTrouble: asBool(raw["only_trouble"]), Tags: tags, HideAfter: clampInt(asInt(raw["hide_after"], 0), 0, 3650)}
+	return TailscaleConfig{OnlyTrouble: asBool(raw["only_problems"]), Tags: tags, HideAfter: clampInt(asInt(raw["hide_after"], 0), 0, 3650)}
 }
 
 func tailscaleView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
@@ -178,7 +178,7 @@ type GitHubConfig struct {
 }
 
 func decodeGitHub(raw map[string]any) any {
-	return GitHubConfig{Only: lowerList(raw["filter"]), RedCI: asBool(raw["only_red"])}
+	return GitHubConfig{Only: lowerList(raw["filter"]), RedCI: asBool(raw["only_problems"])}
 }
 
 func githubView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {

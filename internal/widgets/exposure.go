@@ -24,7 +24,7 @@ type ExposedRow struct {
 type ExposureConfig struct{ OnlyOpen bool }
 
 func decodeExposure(raw map[string]any) any {
-	return ExposureConfig{OnlyOpen: asBool(raw["only_open"])}
+	return ExposureConfig{OnlyOpen: asBool(raw["only_problems"])}
 }
 
 func exposureView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {

@@ -24,6 +24,7 @@ import (
 	"andon/internal/services/summary"
 	"andon/internal/services/system"
 	"andon/internal/services/themes"
+	"andon/internal/services/widgetlib"
 	"andon/internal/settings"
 	"andon/internal/web"
 )
@@ -81,6 +82,15 @@ func main() {
 	if _, err := themes.EnsureBuiltin(database); err != nil {
 		slog.Error("ensure builtin theme", "err", err)
 		os.Exit(1)
+	}
+	// Stored tile configs under renamed keys move to the current ones.
+	upgraded, err := widgetlib.UpgradeConfigs(database)
+	if err != nil {
+		slog.Error("upgrade widget configs", "err", err)
+		os.Exit(1)
+	}
+	if upgraded > 0 {
+		slog.Info("upgraded widget configs", "count", upgraded)
 	}
 	if err := system.Start(database); err != nil {
 		slog.Error("start", "err", err)

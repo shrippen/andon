@@ -321,7 +321,7 @@ type AuthentikConfig struct {
 }
 
 func decodeAuthentik(raw map[string]any) any {
-	return AuthentikConfig{Day: raw["span"] == "24h", OnlyFailures: asBool(raw["only_failures"])}
+	return AuthentikConfig{Day: raw["period"] == "24h", OnlyFailures: asBool(raw["only_problems"])}
 }
 
 func authentikView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {

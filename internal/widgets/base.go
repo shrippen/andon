@@ -196,5 +196,6 @@ func Decode(key string, config map[string]any) (any, bool) {
 	if config == nil {
 		config = map[string]any{}
 	}
+	config, _ = Upgrade(key, config)
 	return kind.Decode(config), true
 }

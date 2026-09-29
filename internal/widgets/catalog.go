@@ -456,7 +456,7 @@ type KomodoConfig struct {
 }
 
 func decodeKomodo(raw map[string]any) any {
-	return KomodoConfig{Only: lowerList(raw["filter"]), OnlyIssues: asBool(raw["only_issues"])}
+	return KomodoConfig{Only: lowerList(raw["filter"]), OnlyIssues: asBool(raw["only_problems"])}
 }
 
 func komodoView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {

@@ -29,7 +29,7 @@ type NoiseConfig struct{ Days int }
 
 func decodeNoise(raw map[string]any) any {
 	days := NoiseDays
-	switch raw["period"] {
+	switch raw["days"] {
 	case "30":
 		days = 30
 	case "90":
@@ -40,7 +40,7 @@ func decodeNoise(raw map[string]any) any {
 
 // decodeHintTrend is decodeNoise with 30 days unless set.
 func decodeHintTrend(raw map[string]any) any {
-	if _, set := raw["period"]; !set {
+	if _, set := raw["days"]; !set {
 		return NoiseConfig{Days: trendDays}
 	}
 	return decodeNoise(raw)

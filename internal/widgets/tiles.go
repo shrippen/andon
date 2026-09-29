@@ -80,7 +80,7 @@ type ConnHealthConfig struct {
 const connShakyDays = 2
 
 func decodeConnHealth(raw map[string]any) any {
-	return ConnHealthConfig{Limit: clampInt(asInt(raw["limit"], 4), 1, 20), Now: asBool(raw["only_shaky"])}
+	return ConnHealthConfig{Limit: clampInt(asInt(raw["limit"], 4), 1, 20), Now: asBool(raw["only_problems"])}
 }
 
 // failingLately: a failure within the last connShakyDays days.
