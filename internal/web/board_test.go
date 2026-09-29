@@ -8,6 +8,7 @@ import (
 	"net/textproto"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -123,6 +124,12 @@ func TestLinkTileAndLayout(t *testing.T) {
 	resp, err = client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Fatalf("arrange: %v %d %s", err, resp.StatusCode, payload)
+	}
+
+	// The new version lets editor.js carry on without reloading the page.
+	next, _ := strconv.Atoi(version)
+	if got := readAll(t, resp); !strings.Contains(got, `"version":`+strconv.Itoa(next+1)) {
+		t.Fatalf("arrange answer lacks the new version: %s", got)
 	}
 
 	if !strings.Contains(string(mustGet(t, srv, client, boardURL+"/history")), "Wiederherstellen") {

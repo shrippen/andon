@@ -315,13 +315,16 @@ func Unplace(d *sql.DB, who *access.Principal, placementID int64, version int) e
 // Arrange applies a drag-and-drop result {section_id: [placement ids]}.
 // Editors reorder the board itself (tiles may move between sections);
 // everybody else stores the order in their own overlay (within a section).
-func Arrange(d *sql.DB, who *access.Principal, boardID int64, version int, layout map[int64][]int64) (LayoutTarget, error) {
+// It returns the board's version afterwards, so the page can carry on.
+func Arrange(d *sql.DB, who *access.Principal, boardID int64, version int, layout map[int64][]int64) (LayoutTarget, int, error) {
 	var target LayoutTarget
+	after := version
 	err := db.WithTx(d, func(tx *sql.Tx) error {
 		board, err := load(tx, who, boardID, enums.RightView)
 		if err != nil {
 			return err
 		}
+		after = board.Version
 		known := map[int64]model.Placement{}
 		sections := map[int64]bool{}
 		for _, sec := range board.Sections {
@@ -349,6 +352,7 @@ func Arrange(d *sql.DB, who *access.Principal, boardID int64, version int, layou
 			if err := bump(board, version); err != nil {
 				return err
 			}
+			after = board.Version
 			for sectionID, pids := range layout {
 				for index, pid := range pids {
 					if err := content.UpdatePlacementPosition(tx, pid, sectionID, index); err != nil {
@@ -386,5 +390,5 @@ func Arrange(d *sql.DB, who *access.Principal, boardID int64, version int, layou
 		target = LayoutOverlay
 		return content.SetOverlay(tx, who.UserID, board.ID, data)
 	})
-	return target, err
+	return target, after, err
 }

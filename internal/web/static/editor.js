@@ -20,18 +20,53 @@
     return result;
   }
 
+  // carryOn moves the page to the board's new version instead of reloading
+  // it: the tiles already stand where they were dropped, and a board of
+  // 240 tiles took seconds to reload after every drag.
+  function carryOn(board, version) {
+    var old = board.getAttribute("data-version");
+    var inQuery = new RegExp("([?&]version=)" + old + "(?!\\d)");
+    board.setAttribute("data-version", version);
+    [].forEach.call(d.querySelectorAll('input[name="version"]'), function (input) {
+      if (input.value === old) {
+        input.value = version;
+      }
+    });
+    [].forEach.call(d.querySelectorAll('a[href*="version="]'), function (a) {
+      a.setAttribute("href", a.getAttribute("href").replace(inQuery, "$1" + version));
+    });
+    [].forEach.call(d.querySelectorAll("[data-board-version]"), function (el) {
+      el.textContent = version;
+    });
+
+    // Tiles may have changed sections: recount.
+    [].forEach.call(board.querySelectorAll("[data-sortable]"), function (list) {
+      var count = list.closest(".dsec") && list.closest(".dsec").querySelector(".dsec-count");
+      if (count) {
+        count.textContent = list.querySelectorAll(":scope > .tile-slot[data-placement]").length;
+      }
+    });
+  }
+
   function save(board) {
     var body = { version: Number(board.getAttribute("data-version")), layout: layout(board) };
+    var reload = function () { window.location.reload(); };
     fetch("/boards/" + board.getAttribute("data-board") + "/arrange", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf() },
       body: JSON.stringify(body),
       credentials: "same-origin"
     }).then(function (res) {
-      // The board version changed (or somebody else saved): reload for a consistent state.
-      window.location.reload();
-      return res;
-    });
+      return res.ok ? res.json() : null;
+    }).then(function (answer) {
+      // Somebody else saved in between, or the save failed: reload for a
+      // consistent state.
+      if (!answer || !answer.version) {
+        reload();
+        return;
+      }
+      carryOn(board, String(answer.version));
+    }).catch(reload);
   }
 
   window.andonPage(function () {

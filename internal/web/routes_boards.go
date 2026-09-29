@@ -383,12 +383,12 @@ func (d Deps) handleArrange(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		}
 		layout[sectionID] = placements
 	}
-	target, err := boards.Arrange(d.DB, ctx.Who, id, body.Version, layout)
+	target, version, err := boards.Arrange(d.DB, ctx.Who, id, body.Version, layout)
 	if err != nil {
 		d.handleBoardError(w, r, err)
 		return
 	}
-	writeJSON(w, map[string]string{"target": string(target)})
+	writeJSON(w, map[string]any{"target": string(target), "version": version})
 }
 
 // layoutAction runs one overlay change and answers with back.

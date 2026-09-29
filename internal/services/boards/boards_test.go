@@ -145,7 +145,7 @@ func TestArrangeByEditorReordersBoard(t *testing.T) {
 	p2, _ := boards.Place(d, who, sectionID, w2.ID, view.Version)
 	view, _ = boards.View(d, who, boardID)
 
-	target, err := boards.Arrange(d, who, boardID, view.Version, map[int64][]int64{sectionID: {p2, p1}})
+	target, _, err := boards.Arrange(d, who, boardID, view.Version, map[int64][]int64{sectionID: {p2, p1}})
 	if err != nil {
 		t.Fatalf("arrange: %v", err)
 	}

@@ -54,7 +54,7 @@
   {{/* Edit bar: the everyday actions up front, the board's own settings
        behind "Board"; bulk actions appear once tiles are selected. */}}
   <div class="modebar is-edit">
-    <b class="modebar-title">{{t "edit.mode"}} · {{.Board.Space.Name}} · v{{.Board.Version}}</b>
+    <b class="modebar-title">{{t "edit.mode"}} · {{.Board.Space.Name}} · v<span data-board-version>{{.Board.Version}}</span></b>
     <form method="post" action="/boards/{{.Board.ID}}/undo" class="inline-form">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <button type="submit" class="{{if .UndoHint}}is-hint{{end}}">↶ {{t "edit.undo"}}</button>
