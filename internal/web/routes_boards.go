@@ -355,10 +355,12 @@ func pathID(r *http.Request, name string) (int64, error) {
 
 func boardPath(id int64) string { return "/boards/" + strconv.FormatInt(id, 10) }
 
-// arrangeRequest is editor.js's payload: {"version": 3, "layout": {"12": [5, 7]}}.
+// arrangeRequest is editor.js's payload: {"version": 3, "layout": {"12": [5, 7]},
+// "mode": "board"}; mode is the page's (board in edit mode, else overlay).
 type arrangeRequest struct {
-	Version int                `json:"version"`
-	Layout  map[string][]int64 `json:"layout"`
+	Version int                 `json:"version"`
+	Layout  map[string][]int64  `json:"layout"`
+	Mode    boards.LayoutTarget `json:"mode"`
 }
 
 // handleArrange stores a new tile order: into the board for editors in
@@ -383,7 +385,7 @@ func (d Deps) handleArrange(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		}
 		layout[sectionID] = placements
 	}
-	target, version, err := boards.Arrange(d.DB, ctx.Who, id, body.Version, layout)
+	target, version, err := boards.Arrange(d.DB, ctx.Who, id, body.Version, layout, body.Mode)
 	if err != nil {
 		d.handleBoardError(w, r, err)
 		return

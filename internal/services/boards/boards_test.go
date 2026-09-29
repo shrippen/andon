@@ -145,7 +145,7 @@ func TestArrangeByEditorReordersBoard(t *testing.T) {
 	p2, _ := boards.Place(d, who, sectionID, w2.ID, view.Version)
 	view, _ = boards.View(d, who, boardID)
 
-	target, _, err := boards.Arrange(d, who, boardID, view.Version, map[int64][]int64{sectionID: {p2, p1}})
+	target, _, err := boards.Arrange(d, who, boardID, view.Version, map[int64][]int64{sectionID: {p2, p1}}, boards.LayoutBoard)
 	if err != nil {
 		t.Fatalf("arrange: %v", err)
 	}
@@ -155,6 +155,41 @@ func TestArrangeByEditorReordersBoard(t *testing.T) {
 	view, _ = boards.View(d, who, boardID)
 	if view.Sections[0].Tiles[0].WidgetID != w2.ID {
 		t.Fatalf("expected w2 first after reorder, got %+v", view.Sections[0].Tiles)
+	}
+}
+
+// TestArrangeInOwnLayoutKeepsBoard: an editor dragging in "Mein Layout"
+// changes only their own layout, not the board everybody sees.
+func TestArrangeInOwnLayoutKeepsBoard(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	boardID, _ := boards.Create(d, who, space.ID, "B")
+	w1 := addWidget(t, d, space.ID, "w1")
+	w2 := addWidget(t, d, space.ID, "w2")
+
+	view, _ := boards.View(d, who, boardID)
+	sectionID := view.Sections[0].ID
+	p1, _ := boards.Place(d, who, sectionID, w1.ID, view.Version)
+	view, _ = boards.View(d, who, boardID)
+	p2, _ := boards.Place(d, who, sectionID, w2.ID, view.Version)
+	view, _ = boards.View(d, who, boardID)
+
+	target, version, err := boards.Arrange(d, who, boardID, view.Version, map[int64][]int64{sectionID: {p2, p1}}, boards.LayoutOverlay)
+	if err != nil {
+		t.Fatalf("arrange: %v", err)
+	}
+	if target != boards.LayoutOverlay || version != view.Version {
+		t.Fatalf("own layout drag reached the board: %v, version %d → %d", target, view.Version, version)
+	}
+	placements, _ := content.Board(d, boardID)
+	if placements.Sections[0].Placements[0].ID != p1 {
+		t.Fatal("board order changed")
+	}
+	view, _ = boards.View(d, who, boardID)
+	if view.Sections[0].Tiles[0].WidgetID != w2.ID {
+		t.Fatalf("own layout not reordered: %+v", view.Sections[0].Tiles)
 	}
 }
 

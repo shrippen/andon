@@ -313,10 +313,11 @@ func Unplace(d *sql.DB, who *access.Principal, placementID int64, version int) e
 }
 
 // Arrange applies a drag-and-drop result {section_id: [placement ids]}.
-// Editors reorder the board itself (tiles may move between sections);
-// everybody else stores the order in their own overlay (within a section).
-// It returns the board's version afterwards, so the page can carry on.
-func Arrange(d *sql.DB, who *access.Principal, boardID int64, version int, layout map[int64][]int64) (LayoutTarget, int, error) {
+// Editors in edit mode (want LayoutBoard) reorder the board itself (tiles
+// may move between sections); everybody else, and editors in their own
+// layout, store the order in their overlay (within a section). It returns
+// the board's version afterwards, so the page can carry on.
+func Arrange(d *sql.DB, who *access.Principal, boardID int64, version int, layout map[int64][]int64, want LayoutTarget) (LayoutTarget, int, error) {
 	var target LayoutTarget
 	after := version
 	err := db.WithTx(d, func(tx *sql.Tx) error {
@@ -348,7 +349,7 @@ func Arrange(d *sql.DB, who *access.Principal, boardID int64, version int, layou
 		if err != nil {
 			return err
 		}
-		if granted >= enums.RightEdit {
+		if want == LayoutBoard && granted >= enums.RightEdit {
 			if err := bump(board, version); err != nil {
 				return err
 			}

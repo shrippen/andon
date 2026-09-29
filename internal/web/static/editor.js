@@ -49,7 +49,7 @@
   }
 
   function save(board) {
-    var body = { version: Number(board.getAttribute("data-version")), layout: layout(board) };
+    var body = { version: Number(board.getAttribute("data-version")), layout: layout(board), mode: board.getAttribute("data-mode") };
     var reload = function () { window.location.reload(); };
     fetch("/boards/" + board.getAttribute("data-board") + "/arrange", {
       method: "POST",

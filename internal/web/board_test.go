@@ -117,7 +117,7 @@ func TestLinkTileAndLayout(t *testing.T) {
 		`id="bulk" method="post" action="`+boardURL+`/bulk" class="selbar"`, `class="add-tile"`, `class="modebar-menu"`)
 
 	version := regexp.MustCompile(`data-version="(\d+)"`).FindStringSubmatch(string(mustGet(t, srv, client, boardURL)))[1]
-	payload := []byte(`{"version":` + version + `,"layout":{"` + section + `":[` + placements[1][1] + `,` + placements[0][1] + `]}}`)
+	payload := []byte(`{"version":` + version + `,"layout":{"` + section + `":[` + placements[1][1] + `,` + placements[0][1] + `]},"mode":"board"}`)
 	req, _ = http.NewRequest(http.MethodPost, srv.URL+boardURL+"/arrange", bytes.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-CSRF-Token", csrf)
