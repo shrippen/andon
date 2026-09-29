@@ -10,7 +10,9 @@ package util
 import (
 	"encoding/base64"
 	"encoding/json"
+	"net/url"
 	"reflect"
+	"strings"
 
 	"andon/internal/crypto"
 )
@@ -47,9 +49,13 @@ func empty(v any) bool {
 }
 
 // SealSecrets encrypts every secret in config. An empty value keeps the
-// secret of prev, SecretClear drops it.
+// secret of prev, SecretClear drops it. Nothing is kept when a URL now
+// points at another host: its headers were meant for the old one.
 func SealSecrets(config, prev map[string]any) (map[string]any, error) {
 	out := copyConfig(config)
+	if !sameHosts(config, prev) {
+		prev = nil
+	}
 	for _, key := range secretKeys {
 		raw := out[key]
 		delete(out, key)
@@ -76,6 +82,33 @@ func SealSecrets(config, prev map[string]any) (map[string]any, error) {
 		out[key+encSuffix] = base64.StdEncoding.EncodeToString(blob)
 	}
 	return out, nil
+}
+
+// urlKeys are the config keys a tile's secrets are sent to.
+var urlKeys = []string{"url", "status_url"}
+
+// sameHosts: every URL config sets has the scheme and host it had in
+// prev.
+func sameHosts(config, prev map[string]any) bool {
+	for _, key := range urlKeys {
+		if _, set := config[key]; !set {
+			continue
+		}
+		if hostOf(config[key]) != hostOf(prev[key]) {
+			return false
+		}
+	}
+	return true
+}
+
+// hostOf: "https://api.lan/x" → "https://api.lan"; "" for no URL.
+func hostOf(v any) string {
+	s, _ := v.(string)
+	u, err := url.Parse(strings.TrimSpace(s))
+	if err != nil || s == "" {
+		return ""
+	}
+	return strings.ToLower(u.Scheme + "://" + u.Host)
 }
 
 // OpenSecrets returns config with its secrets decrypted; a secret that
