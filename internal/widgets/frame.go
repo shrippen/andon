@@ -72,7 +72,7 @@ func FrameFieldsOf(key string) []Field {
 		sel("frame_density", "normal", densityModes...),
 		sel("frame_round", string(RoundExact), roundModes...),
 	}
-	if calmTypes[key] {
+	if calmTypes[key] || registry[key].Calm != nil {
 		fields = append(fields, Field{Key: "frame_only_issues", Input: InputCheck})
 	}
 	return fields

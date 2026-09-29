@@ -63,8 +63,6 @@ func sel(key string, def string, options ...string) Field {
 }
 
 var fieldsByType = map[string][]Field{
-	"subscriptions": {{Key: "limit", Input: InputNumber, Default: defaultSubRows, Min: "1", Max: "30"}, sel("sort", "next", "next", "price"),
-		{Key: "yearly", Input: InputCheck}, {Key: "categories", Input: InputList}},
 	"links_down": {{Key: "limit", Input: InputNumber, Default: defaultLinksDown, Min: "1", Max: "50"}},
 	"timeline_recent": {{Key: "limit", Input: InputNumber, Default: defaultRecent, Min: "1", Max: "30"}, {Key: "days", Input: InputNumber, Default: TimelineDays, Min: "1", Max: "90"},
 		sel("kinds", "all", "all", "updates", "hints")},
@@ -109,9 +107,6 @@ var fieldsByType = map[string][]Field{
 		{Key: "status_timeout", Input: InputNumber, Min: "0", Max: "60"},
 		sel("icon_size", "normal", "small", "normal", "large"),
 	},
-	"rss": {{Key: "url", Input: InputText, Required: true}, {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"}, {Key: "summary", Input: InputCheck},
-		{Key: "more_urls", Input: InputList}, {Key: "images", Input: InputCheck}, {Key: "max_age", Input: InputNumber, Min: "0", Max: "365"},
-		{Key: "titles_only", Input: InputCheck}, sel("list_height", rssHeightAuto, rssHeightAuto, "short", "medium", "tall")},
 	"clock": {{Key: "timezones", Input: InputList, Default: []any{defaultTimezone}}, {Key: "seconds", Input: InputCheck}, {Key: "date", Input: InputCheck, Default: true},
 		sel("format", "24", "24", "12"), {Key: "analog", Input: InputCheck}},
 	"weather": {{Key: "label", Input: InputText}, {Key: placeKey, Input: InputPlace, Required: true}, sel("unit", "c", "c", "f"),
@@ -165,7 +160,6 @@ var fieldsByType = map[string][]Field{
 	"kimai_split":       {sel("week", "this", "this", "last"), sel("group", "customer", "customer", "project")},
 	"unbilled_age":      {{Key: "bands", Input: InputNumbers, Default: []any{30.0, 60.0}}, {Key: "hide_internal", Input: InputCheck}, {Key: "hide_clients", Input: InputList}},
 	"disks":             {{Key: "temp_warn", Input: InputNumber, Default: tempWarn, Min: "1", Max: "100"}, {Key: "only_problems", Input: InputCheck}},
-	"komodo_stacks":     {{Key: "filter", Input: InputList}, {Key: "only_problems", Input: InputCheck}},
 	"truenas_pools": {{Key: "warn_pct", Input: InputNumber, Default: loadWarn, Min: "1", Max: "100"}, {Key: "app_updates", Input: InputCheck},
 		{Key: "forecast", Input: InputCheck}},
 	"pihole":           {{Key: "top_clients", Input: InputCheck}, {Key: "top_domains", Input: InputCheck}},
@@ -244,10 +238,15 @@ var liveCapable = map[string]bool{"link": true, "kpi": true, "table": true, "cha
 
 // FieldsOf returns the config fields of a widget type.
 func FieldsOf(key string) []Field {
-	if liveCapable[key] {
-		return append(append([]Field(nil), fieldsByType[key]...), dataModeField)
+	kind := registry[key]
+	fields, choice := kind.Fields, kind.DataChoice
+	if fields == nil {
+		fields = fieldsByType[key]
 	}
-	return fieldsByType[key]
+	if choice || liveCapable[key] {
+		return append(append([]Field(nil), fields...), dataModeField)
+	}
+	return fields
 }
 
 // FormValue is one field with its current value, ready for a form.

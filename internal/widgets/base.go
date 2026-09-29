@@ -126,6 +126,15 @@ type WidgetType struct {
 	Queries QueriesFunc
 	View    ViewFunc
 	Extra   Extra
+
+	Topic      Topic
+	DataChoice bool // the user may pick live or background data
+	Fields     []Field
+	Renames    []rename
+	Check      func(raw map[string]any) string
+	Calm       func(view map[string]any) bool
+
+	tile bool // declared as a Tile
 }
 
 var registry = map[string]WidgetType{}

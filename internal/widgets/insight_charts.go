@@ -336,8 +336,11 @@ func joinPoints(coords []string) string {
 	return out
 }
 
+// dataName is the query of a tile's own connection dataset.
+const dataName = "data"
+
 func dataQuery(any) []Query {
-	return []Query{{Name: "data", Source: "data", Conn: ConnWidget}}
+	return []Query{{Name: dataName, Source: "data", Conn: ConnWidget}}
 }
 
 // peerKimai names the space's Kimai dataset for rate views.

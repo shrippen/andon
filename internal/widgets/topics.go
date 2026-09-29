@@ -26,7 +26,6 @@ var Topics = []Topic{TopicOverview, TopicWork, TopicAnalysis, TopicHomelab, Topi
 
 // topicOf maps each type key to its topic; unlisted types land in overview.
 var topicOf = map[string]Topic{
-	"subscriptions":    TopicAnalysis,
 	"timeline_recent":  TopicOverview,
 	"links_down":       TopicOverview,
 	"uptime_month":     TopicHomelab,
@@ -52,7 +51,7 @@ var topicOf = map[string]Topic{
 	"progress": TopicAnalysis, "jsonapi": TopicAnalysis, "custom_api": TopicAnalysis,
 
 	"sysinfo": TopicHomelab, "glances_chart": TopicHomelab, "monitors": TopicHomelab, "disks": TopicHomelab,
-	"truenas_pools": TopicHomelab, "komodo_stacks": TopicHomelab, "backups": TopicHomelab,
+	"truenas_pools": TopicHomelab, "backups": TopicHomelab,
 	"storage_forecast": TopicHomelab, "updates": TopicHomelab, "update_window": TopicHomelab,
 	"homelab_cost": TopicHomelab, "immich_library": TopicHomelab, "docker_containers": TopicHomelab, "umami_sites": TopicHomelab,
 
@@ -62,7 +61,7 @@ var topicOf = map[string]Topic{
 	"authentik_logins": TopicSecurity, "vaultwarden_2fa": TopicSecurity, "expiry": TopicSecurity,
 
 	"mediaserver": TopicMedia, "arr_upcoming": TopicMedia, "sabnzbd": TopicMedia, "freshrss_feeds": TopicMedia,
-	"rss": TopicMedia, "linkwarden": TopicMedia, "apod": TopicMedia, "xkcd": TopicMedia, "joke": TopicMedia,
+	"linkwarden": TopicMedia, "apod": TopicMedia, "xkcd": TopicMedia, "joke": TopicMedia,
 	"image": TopicMedia,
 
 	"hass": TopicHome, "grocy": TopicHome, "energy": TopicHome, "weather": TopicHome, "dwd": TopicHome,
@@ -75,6 +74,9 @@ var topicOf = map[string]Topic{
 
 // TopicOf returns the gallery topic of a type key.
 func TopicOf(key string) Topic {
+	if topic := registry[key].Topic; topic != "" {
+		return topic
+	}
 	if topic, ok := topicOf[key]; ok {
 		return topic
 	}

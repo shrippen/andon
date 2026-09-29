@@ -28,9 +28,9 @@ const (
 	peerWallos     = "wallos"
 )
 
-func decodeSubs(raw map[string]any) any {
-	return SubsConfig{Limit: clampInt(asInt(raw["limit"], defaultSubRows), 1, 30), ByPrice: raw["sort"] == "price",
-		Yearly: asBool(raw["yearly"]), Categories: lowerList(raw["categories"])}
+func decodeSubs(r Raw) SubsConfig {
+	return SubsConfig{Limit: r.Int("limit"), ByPrice: r.Pick("sort") == "price", Yearly: r.Bool("yearly"),
+		Categories: r.Lower("categories")}
 }
 
 // SubRow is one subscription as listed.
@@ -40,8 +40,7 @@ type SubRow struct {
 	Category, Detail string
 }
 
-func subsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(SubsConfig)
+func subsView(cfg SubsConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	today := todayOf(ctx).Format("2006-01-02")
 	wallos, hasWallos := results[peerWallos].(*sources.WallosDataset)
 	sure, hasSure := results[peerSure].(*sources.SureDataset)
@@ -136,7 +135,9 @@ func sureCategories(sure *sources.SureDataset) map[string]string {
 }
 
 func init() {
-	Register(WidgetType{Key: "subscriptions", Decode: decodeSubs, Category: CategoryInsight,
-		RefreshS: 3600, View: subsView,
-		Queries: func(any) []Query { return []Query{peer(peerWallos, enums.ServiceWallos), surePeer} }})
+	Tile[SubsConfig]{Key: "subscriptions", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600,
+		Fields: []Field{{Key: "limit", Input: InputNumber, Default: defaultSubRows, Min: "1", Max: "30"}, sel("sort", "next", "next", "price"),
+			{Key: "yearly", Input: InputCheck}, {Key: "categories", Input: InputList}},
+		Decode: decodeSubs, View: subsView,
+		Queries: func(SubsConfig) []Query { return []Query{peer(peerWallos, enums.ServiceWallos), surePeer} }}.add()
 }

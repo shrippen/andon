@@ -6,7 +6,7 @@ import "testing"
 // the overview.
 func TestEveryTypeHasTopic(t *testing.T) {
 	for _, kind := range AllTypes() {
-		if _, ok := topicOf[kind.Key]; !ok {
+		if _, ok := topicOf[kind.Key]; !ok && kind.Topic == "" {
 			t.Errorf("%s has no topic", kind.Key)
 		}
 	}

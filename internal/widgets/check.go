@@ -41,8 +41,11 @@ func checkZone(raw map[string]any) string {
 // Check reports the first config value a type cannot use as a catalog
 // key, "" when all are fine.
 func Check(key string, config map[string]any) string {
-	check, ok := checks[key]
-	if !ok {
+	check := registry[key].Check
+	if check == nil {
+		check = checks[key]
+	}
+	if check == nil {
 		return ""
 	}
 	return check(config)

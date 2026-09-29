@@ -8,7 +8,7 @@ import (
 
 func TestEveryTypeHasFields(t *testing.T) {
 	for _, kind := range AllTypes() {
-		if _, ok := fieldsByType[kind.Key]; !ok {
+		if _, ok := fieldsByType[kind.Key]; !ok && !kind.tile {
 			t.Errorf("widget type %q has no form fields", kind.Key)
 		}
 	}

@@ -400,7 +400,6 @@ func init() {
 	on("kimai_split", enums.ServiceKimai, 10*minute, decodeKimaiSplit, kimaiSplitView)
 	on("unbilled_age", enums.ServiceKimai, hour, decodeAging([2]int{30, 60}), unbilledAgeView)
 	on("disks", enums.ServiceScrutiny, hour, decodeDisks, disksView)
-	on("komodo_stacks", enums.ServiceKomodo, 5*minute, decodeKomodo, komodoView)
 	nas := build("truenas_pools", enums.ServiceTrueNAS, 10*minute, decodeTrueNAS, truenasView)
 	nas.Extra = ExtraHistory // the pool forecast
 	Register(nas)

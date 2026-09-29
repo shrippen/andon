@@ -334,23 +334,10 @@ type RssConfig struct {
 // rssHeightAuto lets the list grow with its items.
 const rssHeightAuto = "auto"
 
-// rssHeights are the fixed list heights a feed tile may take.
-var rssHeights = map[string]bool{"short": true, "medium": true, "tall": true}
-
-func decodeRss(raw map[string]any) any {
-	limit := asInt(raw["limit"], 8)
-	if limit < 1 {
-		limit = 1
-	}
-	if limit > 50 {
-		limit = 50
-	}
-	cfg := RssConfig{URL: webURL(raw["url"]), Limit: limit, Summary: asBool(raw["summary"]), Images: asBool(raw["images"]),
-		MaxAge: clampInt(asInt(raw["max_age"], 0), 0, 365), Compact: asBool(raw["titles_only"]), Height: rssHeightAuto}
-	if h := asString(raw["list_height"]); rssHeights[h] {
-		cfg.Height = h
-	}
-	for _, u := range asStringList(raw["more_urls"]) {
+func decodeRss(r Raw) RssConfig {
+	cfg := RssConfig{URL: r.URL("url"), Limit: r.Int("limit"), Summary: r.Bool("summary"), Images: r.Bool("images"),
+		MaxAge: r.Int("max_age"), Compact: r.Bool("titles_only"), Height: r.Pick("list_height")}
+	for _, u := range r.List("more_urls") {
 		if u = webURL(u); u != "" {
 			cfg.More = append(cfg.More, u)
 		}
@@ -594,11 +581,15 @@ func (c PublicIPConfig) WatchesIP() bool { return c.Watch }
 func init() {
 	Register(WidgetType{Key: "link", Decode: decodeLink, Category: CategoryStart, Inline: true, Queries: linkQueries, View: linkView})
 
-	Register(WidgetType{Key: "rss", Decode: decodeRss, Category: CategoryStart, RefreshS: 30 * 60, Queries: func(cfgAny any) []Query {
-		cfg := cfgAny.(RssConfig)
-		return []Query{{Name: "feed", Source: "rss", Params: map[string]any{"url": cfg.URL, "limit": cfg.Limit, "urls": cfg.More,
-			"images": cfg.Images, "max_age": float64(cfg.MaxAge)}}}
-	}})
+	Tile[RssConfig]{Key: "rss", Category: CategoryStart, Topic: TopicMedia, RefreshS: 30 * 60,
+		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
+			{Key: "summary", Input: InputCheck}, {Key: "more_urls", Input: InputList}, {Key: "images", Input: InputCheck},
+			{Key: "max_age", Input: InputNumber, Min: "0", Max: "365"}, {Key: "titles_only", Input: InputCheck},
+			sel("list_height", rssHeightAuto, rssHeightAuto, "short", "medium", "tall")},
+		Decode: decodeRss, Queries: func(cfg RssConfig) []Query {
+			return []Query{{Name: "feed", Source: "rss", Params: map[string]any{"url": cfg.URL, "limit": cfg.Limit, "urls": cfg.More,
+				"images": cfg.Images, "max_age": float64(cfg.MaxAge)}}}
+		}}.add()
 
 	Register(WidgetType{Key: "clock", Decode: decodeClock, Category: CategoryStart, Inline: true, RefreshS: 30})
 

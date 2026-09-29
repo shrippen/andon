@@ -35,7 +35,7 @@ func TestRedAboveHighWarn(t *testing.T) {
 func TestKomodoCalmWithStoppedStack(t *testing.T) {
 	data := &sources.KomodoDataset{Stacks: []sources.KStack{{Name: "web", State: "running"}, {Name: "old", State: "stopped"}}}
 	ctx := ViewCtx{Options: map[string]any{"stopped": []any{"old"}}}
-	view := komodoView(decodeKomodo(map[string]any{}), map[string]any{"data": data}, ctx)
+	view := run("komodo_stacks", nil, map[string]any{"data": data}, ctx)
 	if !IsCalm("komodo_stacks", view) {
 		t.Fatalf("not calm: %+v", view)
 	}

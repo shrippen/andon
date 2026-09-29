@@ -21,15 +21,9 @@ var calmChecks = map[string]func(v map[string]any) bool{
 		}
 		return v["Total"] != 0 && v["Total"] != nil
 	},
-	"monitors":    func(v map[string]any) bool { return v["Total"] != nil && v["Up"] == v["Total"] },
-	"disks":       func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] },
-	"conn_health": func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] },
-	// Stacks stopped on purpose (Resting) count as fine.
-	"komodo_stacks": func(v map[string]any) bool {
-		running, _ := v["Running"].(int)
-		resting, _ := v["Resting"].(int)
-		return v["Stacks"] != nil && running+resting == v["Stacks"] && v["Updates"] == 0 && v["Alerts"] == 0
-	},
+	"monitors":         func(v map[string]any) bool { return v["Total"] != nil && v["Up"] == v["Total"] },
+	"disks":            func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] },
+	"conn_health":      func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] },
 	"truenas_pools":    func(v map[string]any) bool { return v["Pools"] != nil && v["Alerts"] == 0 },
 	"expiry":           func(v map[string]any) bool { return v["Total"] == 0 },
 	"unbilled_age":     func(v map[string]any) bool { return isZero(v["Total"]) },
@@ -70,8 +64,11 @@ func init() {
 
 // IsCalm tells whether a type's view reports nothing to do.
 func IsCalm(key string, view map[string]any) bool {
-	check, ok := calmChecks[key]
-	return ok && view != nil && check(view)
+	check := registry[key].Calm
+	if check == nil {
+		check = calmChecks[key]
+	}
+	return check != nil && view != nil && check(view)
 }
 
 func isZero(v any) bool {

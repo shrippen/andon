@@ -30,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/sources"
 )
@@ -455,16 +456,23 @@ type KomodoConfig struct {
 	OnlyIssues bool     // only stacks not running or with updates
 }
 
-func decodeKomodo(raw map[string]any) any {
-	return KomodoConfig{Only: lowerList(raw["filter"]), OnlyIssues: asBool(raw["only_problems"])}
+func init() {
+	Tile[KomodoConfig]{Key: "komodo_stacks", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceKomodo, RefreshS: 5 * 60,
+		Fields:  []Field{{Key: "filter", Input: InputList}, {Key: "only_problems", Input: InputCheck}},
+		Renames: []rename{{from: "only_issues", to: "only_problems"}},
+		Decode: func(r Raw) KomodoConfig {
+			return KomodoConfig{Only: r.Lower("filter"), OnlyIssues: r.Bool("only_problems")}
+		},
+		Queries: ownData[KomodoConfig], View: dataView(komodoView),
+		// Stacks stopped on purpose (Resting) count as fine.
+		Calm: func(v map[string]any) bool {
+			running, _ := v["Running"].(int)
+			resting, _ := v["Resting"].(int)
+			return v["Stacks"] != nil && running+resting == v["Stacks"] && v["Updates"] == 0 && v["Alerts"] == 0
+		}}.add()
 }
 
-func komodoView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(KomodoConfig)
-	data, ok := results["data"].(*sources.KomodoDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func komodoView(cfg KomodoConfig, data *sources.KomodoDataset, ctx ViewCtx) map[string]any {
 	var cells []StripCell
 	var trouble []string
 	updates, running, stacks, resting := 0, 0, 0, 0

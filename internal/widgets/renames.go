@@ -21,7 +21,6 @@ type rename struct {
 }
 
 var renames = map[string][]rename{
-	"komodo_stacks":    {{from: "only_issues", to: "only_problems"}},
 	"tailscale":        {{from: "only_trouble", to: "only_problems"}},
 	"github":           {{from: "only_red", to: "only_problems"}},
 	"authentik_logins": {{from: "only_failures", to: "only_problems"}, {from: "span", to: "period"}},
@@ -43,7 +42,7 @@ var renames = map[string][]rename{
 // names, and whether anything moved. A current key wins over an old one.
 func Upgrade(key string, config map[string]any) (map[string]any, bool) {
 	var out map[string]any
-	for _, r := range renames[key] {
+	for _, r := range renamesOf(key) {
 		v, ok := config[r.from]
 		if !ok {
 			continue
@@ -69,7 +68,20 @@ func Upgrade(key string, config map[string]any) (map[string]any, bool) {
 	return out, true
 }
 
+func renamesOf(key string) []rename {
+	if r := registry[key].Renames; r != nil {
+		return r
+	}
+	return renames[key]
+}
+
 // RenamedTypes lists the types with renamed keys, sorted.
 func RenamedTypes() []string {
-	return slices.Sorted(maps.Keys(renames))
+	var out []string
+	for key := range registry {
+		if renamesOf(key) != nil {
+			out = append(out, key)
+		}
+	}
+	return slices.Sorted(slices.Values(out))
 }
