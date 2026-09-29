@@ -194,11 +194,6 @@ func decodeAging(def [2]int) DecodeFunc {
 	}
 }
 
-func asAnyList(v any) []any {
-	list, _ := v.([]any)
-	return list
-}
-
 // agingLimits are the upper overdue days of the bands after "current".
 var agingLimits = []struct {
 	key, tier string
