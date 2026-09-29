@@ -294,8 +294,18 @@ func decodeExpiries(raw map[string]any) any {
 		Sources: lowerList(raw["sources"]), DueDays: clampInt(asInt(raw["days"], 90), 7, 400), NoLevels: true}
 }
 
+// severityChoices are the hint levels a tile can start from, as the
+// select sends them: "10" info, "20" warning, "30" critical.
+var severityChoices = []string{strconv.Itoa(int(enums.SeverityInfo)), strconv.Itoa(int(enums.SeverityWarn)),
+	strconv.Itoa(int(enums.SeverityCritical))}
+
 func decodeHints(raw map[string]any) any {
-	minSeverity := clampInt(asInt(raw["min_severity"], int(enums.SeverityInfo)), int(enums.SeverityInfo), int(enums.SeverityCritical))
+	level := raw["min_severity"]
+	if s, ok := level.(string); ok {
+		n, _ := strconv.Atoi(s)
+		level = float64(n)
+	}
+	minSeverity := clampInt(asInt(level, int(enums.SeverityInfo)), int(enums.SeverityInfo), int(enums.SeverityCritical))
 	cfg := HintsConfig{Sources: lowerList(raw["sources"]), MinSeverity: minSeverity, Limit: clampInt(asInt(raw["limit"], 8), 1, 50),
 		Buttons: asBool(raw["buttons"]), NoLevels: !boolOr(raw["levels"], true)}
 	if asBool(raw["by_value"]) {

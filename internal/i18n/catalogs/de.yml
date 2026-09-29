@@ -231,6 +231,9 @@ typefield:
   speed_history:
     days: Verlauf (Tage)
   hints:
+    min_severity_10: Alle Stufen
+    min_severity_20: Ab Warnung
+    min_severity_30: Nur kritische
     sources_hint: 'Dienste, z. B. kimai, invoiceninja, truenas. Leer = alle.'
   status_light:
     sources_hint: 'Dienste, z. B. kimai, invoiceninja, truenas. Leer = alle.'
@@ -244,6 +247,8 @@ typefield:
     state_hint: 'Kürzel des Bundeslands, z. B. BY. Leer = nur bundesweite.'
   vpn:
     expected_country_hint: 'Landesname, wie Gluetun ihn meldet, z. B. Sweden.'
+  uptime_month:
+    sla_hint: 'Prozent, darunter rot, z. B. 99,5. Leer = ab 99,9 % grün, unter 95 % rot.'
   iframe:
     reload: Neu laden alle … Minuten (leer = nie)
 field:

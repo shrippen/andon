@@ -231,6 +231,9 @@ typefield:
   speed_history:
     days: History (days)
   hints:
+    min_severity_10: All levels
+    min_severity_20: From warning
+    min_severity_30: Critical only
     sources_hint: 'Services, e.g. kimai, invoiceninja, truenas. Empty = all.'
   status_light:
     sources_hint: 'Services, e.g. kimai, invoiceninja, truenas. Empty = all.'
@@ -244,6 +247,8 @@ typefield:
     state_hint: 'State code, e.g. BY. Empty = nationwide only.'
   vpn:
     expected_country_hint: 'Country name as Gluetun reports it, e.g. Sweden.'
+  uptime_month:
+    sla_hint: 'Percent, red below, e.g. 99.5. Empty = green from 99.9 %, red under 95 %.'
   iframe:
     reload: Reload every … minutes (empty = never)
 field:

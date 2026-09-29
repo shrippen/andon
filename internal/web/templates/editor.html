@@ -331,7 +331,8 @@
 {{define "widget_preview_error"}}<p class="error">{{t .Error}}</p>{{end}}
 
 {{/* cfg_fields: config fields of the widget form; "Root" is the page.
-     A type's own text (typefield.<type>.<key>) wins over field.<key>. */}}
+     A type's own text (typefield.<type>.<key>, typefield.<type>.<key>_<option>)
+     wins over field.<key> and opt.<option>. */}}
 {{define "cfg_fields"}}{{$ := .Root}}<input type="hidden" name="cfg.__fields" value="1">{{range .Fields}}
           {{$label := or (known (print "typefield." $.Kind.Key "." .Label)) (print "field." .Label)}}
           {{if eq (print .Input) "checkbox"}}
@@ -339,7 +340,8 @@
           {{else}}
           <label for="{{.Name}}">{{t $label}}</label>
           {{if eq (print .Input) "select"}}
-            <select id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}{{range .Options}}<option value="{{.}}"{{if eq . $v}} selected{{end}}>{{t (print "opt." .)}}</option>{{end}}</select>
+            {{$own := print "typefield." $.Kind.Key "." .Label "_"}}
+            <select id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}{{range .Options}}<option value="{{.}}"{{if eq . $v}} selected{{end}}>{{t (or (known (print $own .)) (print "opt." .))}}</option>{{end}}</select>
           {{else if or (eq (print .Input) "textarea") (eq (print .Input) "links") (eq (print .Input) "headers")}}
             <textarea id="{{.Name}}" name="{{.Name}}" rows="3">{{.Text}}</textarea>
           {{else if eq (print .Input) "number"}}

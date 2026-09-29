@@ -209,7 +209,7 @@ var fieldsByType = map[string][]Field{
 		{Key: "delay", Input: InputNumber}},
 	"backups": {{Key: "max_hours", Input: InputNumber, Default: defaultBackupHours}, {Key: "tools", Input: InputList},
 		{Key: "only_problems", Input: InputCheck}, sel("days", "14", "7", "14", "30")},
-	"hints": {{Key: "sources", Input: InputList}, {Key: "min_severity", Input: InputNumber, Default: 10}, {Key: "limit", Input: InputNumber, Default: 8},
+	"hints": {{Key: "sources", Input: InputList}, sel("min_severity", severityChoices[0], severityChoices...), {Key: "limit", Input: InputNumber, Default: 8},
 		{Key: "buttons", Input: InputCheck}, {Key: "by_value", Input: InputCheck}, {Key: "levels", Input: InputCheck, Default: true}},
 	"calendar": {{Key: "ical_url", Input: InputSecret}, {Key: "days", Input: InputNumber, Default: defaultCalDays},
 		{Key: "limit", Input: InputNumber, Default: defaultListLimit}, {Key: "hide_all_day", Input: InputCheck},

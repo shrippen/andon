@@ -103,3 +103,18 @@ func TestRateTrendNamesItsMonths(t *testing.T) {
 		t.Fatalf("months: %v", view["Months"])
 	}
 }
+
+// TestHintsMinSeverityFromSelect: the select sends "20"; stored
+// numbers keep working.
+func TestHintsMinSeverityFromSelect(t *testing.T) {
+	for _, raw := range []any{"20", 20.0} {
+		if cfg := decodeHints(map[string]any{"min_severity": raw}).(HintsConfig); cfg.MinSeverity != 20 {
+			t.Errorf("%#v: %d", raw, cfg.MinSeverity)
+		}
+	}
+	for _, v := range FormValues("hints", map[string]any{"min_severity": 30.0}) {
+		if v.Key == "min_severity" && (v.Input != InputSelect || v.Text != "30") {
+			t.Errorf("field: %s %q", v.Input, v.Text)
+		}
+	}
+}

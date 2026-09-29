@@ -26,6 +26,10 @@ func TestEveryTileOptionHasText(t *testing.T) {
 		for _, v := range values {
 			check("field." + v.Label)
 			for _, o := range v.Options {
+				if own := "typefield." + kind.Key + "." + v.Label + "_" + o; i18n.Has(own) {
+					check(own)
+					continue
+				}
 				check("opt." + o)
 			}
 		}
