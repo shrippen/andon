@@ -84,6 +84,10 @@ type View struct {
 	Members []Member
 	// CanManage: who may add and remove members (owner or admin).
 	CanManage bool
+	// AckTeam: one member's "done" counts for the team; ThemeID the team
+	// space's theme, 0 for none.
+	AckTeam bool
+	ThemeID int64
 }
 
 // Overview lists every team the principal is a member of (or, for admins,
@@ -94,6 +98,14 @@ func Overview(d *sql.DB, who *access.Principal) ([]View, error) {
 		all, err := users.Teams(tx)
 		if err != nil {
 			return err
+		}
+		people, err := users.All(tx)
+		if err != nil {
+			return err
+		}
+		byID := make(map[int64]*model.User, len(people))
+		for _, u := range people {
+			byID[u.ID] = u
 		}
 		for _, team := range all {
 			role, mine := who.Teams[team.ID]
@@ -111,10 +123,7 @@ func Overview(d *sql.DB, who *access.Principal) ([]View, error) {
 			}
 			members := make([]Member, 0, len(memberships))
 			for _, m := range memberships {
-				u, err := users.Get(tx, m.UserID)
-				if err != nil {
-					return err
-				}
+				u := byID[m.UserID]
 				if u == nil {
 					continue
 				}
@@ -124,6 +133,10 @@ func Overview(d *sql.DB, who *access.Principal) ([]View, error) {
 			view := View{ID: team.ID, Name: team.Name, Members: members, CanManage: mayManage(who, team.ID) == nil}
 			if space != nil {
 				view.SpaceID = space.ID
+				view.AckTeam = space.Settings["hint_ack"] == string(enums.AckTeam)
+				if id, ok := space.Settings["theme_id"].(float64); ok {
+					view.ThemeID = int64(id)
+				}
 			}
 			if mine {
 				r := role

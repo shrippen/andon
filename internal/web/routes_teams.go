@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"andon/internal/enums"
-	"andon/internal/services/spaces"
 	"andon/internal/services/teams"
 	"andon/internal/services/themes"
 )
@@ -37,20 +36,7 @@ func (d Deps) teamsPage(w http.ResponseWriter, ctx Ctx, status int, extra map[st
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
-	// Per team space: hint handling and theme, for the team settings form.
-	ackTeam := map[int64]bool{}
-	themeOf := map[int64]int64{}
-	for _, team := range overview {
-		settings, err := spaces.Settings(d.DB, ctx.Who, team.SpaceID)
-		if err != nil {
-			continue
-		}
-		ackTeam[team.SpaceID] = settings["hint_ack"] == string(enums.AckTeam)
-		if id, ok := settings["theme_id"].(float64); ok {
-			themeOf[team.SpaceID] = int64(id)
-		}
-	}
-	values := map[string]any{"Teams": overview, "Users": candidates, "Themes": themeList, "AckTeam": ackTeam, "ThemeOf": themeOf}
+	values := map[string]any{"Teams": overview, "Users": candidates, "Themes": themeList}
 	for k, v := range extra {
 		values[k] = v
 	}
