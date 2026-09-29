@@ -85,7 +85,8 @@ func GrocyInfo(data *sources.GrocyDataset) []InfoPart {
 	if n := len(data.Expired) + len(data.Overdue); n > 0 {
 		found = append(found, part("grocy.expired", map[string]any{"count": n}))
 	}
-	found = append(found, part("grocy.soon", map[string]any{"count": len(data.Soon)}))
+	soon := data.SoonWithin(sources.GrocySoonDays, time.Now())
+	found = append(found, part("grocy.soon", map[string]any{"count": len(soon)}))
 	if len(data.Missing) > 0 {
 		found = append(found, part("grocy.missing", map[string]any{"count": len(data.Missing)}))
 	}

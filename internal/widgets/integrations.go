@@ -12,6 +12,7 @@ package widgets
 //	energy        Tibber prices, cheapest hours, cost; power from Home Assistant
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 	"strings"
@@ -45,13 +46,13 @@ func decodeEnergy(raw map[string]any) any {
 // GrocyConfig is the "grocy" widget's config.
 type GrocyConfig struct {
 	Hide map[string]bool // stock, shopping, chores
-	Days int             // soon and chores within this many days, 0 = as Grocy says
+	Days int             // soon and chores within this many days, 0 = as Grocy says (5 days, all chores)
 }
 
 var grocyParts = []string{"stock", "shopping", "chores"}
 
 func decodeGrocy(raw map[string]any) any {
-	cfg := GrocyConfig{Hide: map[string]bool{}, Days: clampInt(asInt(raw["days"], 0), 0, 60)}
+	cfg := GrocyConfig{Hide: map[string]bool{}, Days: clampInt(asInt(raw["days"], 0), 0, sources.GrocyAheadDays)}
 	for _, p := range grocyParts {
 		if !boolOr(raw["show_"+p], true) {
 			cfg.Hide[p] = true
@@ -76,21 +77,18 @@ func grocyView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 	if cfg.Hide["chores"] {
 		shown.Chores = nil
 	}
+	if !cfg.Hide["stock"] {
+		shown.Soon = data.SoonWithin(cmp.Or(cfg.Days, sources.GrocySoonDays), time.Now())
+	}
 	if cfg.Days > 0 {
 		until := time.Now().AddDate(0, 0, cfg.Days)
-		var soon []sources.Product
-		for _, p := range shown.Soon {
-			if d, ok := metrics.ParseDay(p.Due); !ok || d.Before(until) {
-				soon = append(soon, p)
-			}
-		}
 		var chores []sources.Chore
 		for _, c := range shown.Chores {
 			if c.Due.Before(until) {
 				chores = append(chores, c)
 			}
 		}
-		shown.Soon, shown.Chores = soon, chores
+		shown.Chores = chores
 	}
 	return map[string]any{"Data": &shown}
 }

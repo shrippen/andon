@@ -81,6 +81,18 @@ func TestGrocyParts(t *testing.T) {
 	}
 }
 
+// TestGrocyDaysAhead: "days" reaches past Grocy's 5 days; 0 keeps them.
+func TestGrocyDaysAhead(t *testing.T) {
+	day := func(n int) string { return time.Now().AddDate(0, 0, n).Format(time.DateOnly) }
+	data := &sources.GrocyDataset{Soon: []sources.Product{{Name: "Milch", Due: day(2)}, {Name: "Reis", Due: day(20)}}}
+	for days, want := range map[float64]int{30: 2, 0: 1} {
+		v := viewOf(t, "grocy", map[string]any{"days": days}, map[string]any{"data": data}, enums.ServiceGrocy, nil)
+		if soon := v["Data"].(*sources.GrocyDataset).Soon; len(soon) != want {
+			t.Errorf("days %v: %d soon, want %d", days, len(soon), want)
+		}
+	}
+}
+
 // TestCalendarMerge: two calendars in time order, each with its colour,
 // all-day events left out.
 func TestCalendarMerge(t *testing.T) {

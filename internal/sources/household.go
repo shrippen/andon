@@ -24,7 +24,6 @@ import (
 
 const (
 	bitsPerMbit       = 1e6
-	grocyDueDays      = "5"
 	githubPerPage     = "100"
 	tibberDays        = 30
 	dwdTTL            = 15 * time.Minute
@@ -227,6 +226,26 @@ type GrocyDataset struct {
 
 type GrocyData struct{}
 
+// Grocy's products due soon: the dataset reaches GrocyAheadDays ahead so
+// a tile may look further; "soon" as Grocy counts it is GrocySoonDays.
+const (
+	GrocySoonDays  = 5
+	GrocyAheadDays = 60
+)
+
+// SoonWithin lists the products due within days after now (undated ones
+// too): SoonWithin(5, now) is Grocy's own "due soon".
+func (d *GrocyDataset) SoonWithin(days int, now time.Time) []Product {
+	until := now.AddDate(0, 0, days).Format(time.DateOnly)
+	var out []Product
+	for _, p := range d.Soon {
+		if p.Due == "" || p.Due <= until {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 func (GrocyData) Key() string                { return "grocy.data" }
 func (GrocyData) TTL() time.Duration         { return opsTTL }
 func (GrocyData) Service() enums.ServiceType { return enums.ServiceGrocy }
@@ -240,7 +259,7 @@ func (GrocyData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 		return nil, err
 	}
 	api := services.HeaderApi(sctx.URL, "GROCY-API-KEY", secret, sctx.TLS())
-	stock, err := api.Get(ctx, "api/stock/volatile", url.Values{"due_soon_days": {grocyDueDays}})
+	stock, err := api.Get(ctx, "api/stock/volatile", url.Values{"due_soon_days": {strconv.Itoa(GrocyAheadDays)}})
 	if err != nil {
 		return nil, fetchError(err)
 	}

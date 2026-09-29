@@ -222,6 +222,9 @@ typefield:
     sources_hint: 'Services, e.g. truenas, borgbackup, paperless. Empty = all.'
   arr_upcoming:
     days: Look ahead (days)
+  grocy:
+    days: Look ahead (days, 0 = as Grocy)
+    days_hint: 'Stock up to 60 days ahead. 0 = Grocy''s 5 days and all chores.'
   today:
     days: Deadlines ahead (days)
   receipts_missing:
