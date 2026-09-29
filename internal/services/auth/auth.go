@@ -626,8 +626,9 @@ func TOTPDisable(d *sql.DB, who *access.Principal, code, ip string) error {
 }
 
 // TOTPVerify is the second login step: it lifts pending_2fa on success.
-func TOTPVerify(d *sql.DB, token, code, ip, agent string) error {
+func TOTPVerify(d *sql.DB, token, code, ip, agent string) (string, error) {
 	var userID int64
+	fresh := crypto.NewToken()
 	err := db.WithTx(d, func(tx *sql.Tx) error {
 		row, err := auth.SessionByHash(tx, crypto.TokenHash(token))
 		if err != nil {
@@ -645,36 +646,80 @@ func TOTPVerify(d *sql.DB, token, code, ip, agent string) error {
 			return err
 		}
 
-		ok, err := totpOK(user, code)
+		step, err := totpStep(user, code)
 		if err != nil {
 			return err
 		}
-		if !ok && !useRecovery(user, code) {
+		if step > 0 {
+			remember(user, step)
+		} else if !useRecovery(user, code) {
 			return ErrTOTPInvalid
 		}
 		release()
-		if err := users.Update(tx, user); err != nil { // persists a used recovery code, if any
+		if err := users.Update(tx, user); err != nil { // persists the used code or recovery code
 			return err
 		}
 		userID = user.ID
+
+		// A new token for the full session: the pending one sat in the
+		// TOTP page.
+		if err := auth.RotateSession(tx, row.ID, crypto.TokenHash(fresh)); err != nil {
+			return err
+		}
 		return auth.TouchSession(tx, row.ID, time.Now().UTC(), false)
 	})
-	if err == nil {
-		noteLogin(d, userID, ip, agent)
+	if err != nil {
+		return "", err
 	}
-	return err
+	noteLogin(d, userID, ip, agent)
+	return fresh, nil
 }
 
 func totpOK(user *model.User, code string) (bool, error) {
+	step, err := totpStep(user, code)
+	return step > 0, err
+}
+
+// totpPeriod is the TOTP time step; totpUsedPref keeps the last step a
+// login used, so a code (valid 30 s either side) works once.
+const (
+	totpPeriod   = 30
+	totpUsedPref = "totp_used_step"
+)
+
+// totpStep is the time step code belongs to (now or one either side),
+// 0 if it is wrong or was already used.
+func totpStep(user *model.User, code string) (int64, error) {
 	if len(user.TOTPSecretEnc) == 0 {
-		return false, nil
+		return 0, nil
 	}
 	secret, err := crypto.Decrypt(user.TOTPSecretEnc, crypto.PurposeTOTP)
 	if err != nil {
-		return false, err
+		return 0, err
 	}
 	clean := strings.ReplaceAll(strings.TrimSpace(code), " ", "")
-	return totp.Validate(clean, secret), nil
+	used, _ := user.Prefs[totpUsedPref].(float64)
+	now := time.Now().Unix() / totpPeriod
+	for _, step := range []int64{now - 1, now, now + 1} {
+		if float64(step) <= used {
+			continue
+		}
+		want, err := totp.GenerateCode(secret, time.Unix(step*totpPeriod, 0))
+		if err == nil && crypto.Same(want, clean) {
+			return step, nil
+		}
+	}
+	return 0, nil
+}
+
+// remember keeps step as the last one used.
+func remember(user *model.User, step int64) {
+	prefs := map[string]any{}
+	for k, v := range user.Prefs {
+		prefs[k] = v
+	}
+	prefs[totpUsedPref] = float64(step)
+	user.Prefs = prefs
 }
 
 func useRecovery(user *model.User, code string) bool {

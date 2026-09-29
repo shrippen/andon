@@ -51,7 +51,6 @@
       <h1 class="login-title">{{t "totp.title"}}</h1>
       {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
       <form method="post" action="/login/totp">
-        <input type="hidden" name="token" value="{{.Token}}">
         <label for="code">{{t "totp.code"}}</label>
         <input id="code" name="code" required autofocus autocomplete="one-time-code">
         <p class="small muted">{{t "totp.recovery_hint"}}</p>

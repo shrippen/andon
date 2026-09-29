@@ -180,15 +180,16 @@ func TestTOTPLifecycle(t *testing.T) {
 	}
 
 	badCode, _ := totp.GenerateCode(secret, time.Now().Add(-time.Hour))
-	if err := auth.TOTPVerify(q, res.Token, badCode, "1.2.3.4", "agent"); err == nil {
+	if _, err := auth.TOTPVerify(q, res.Token, badCode, "1.2.3.4", "agent"); err == nil {
 		t.Fatal("expected stale code to be rejected")
 	}
 	freshCode, _ := totp.GenerateCode(secret, time.Now())
-	if err := auth.TOTPVerify(q, res.Token, freshCode, "1.2.3.4", "agent"); err != nil {
+	full, err := auth.TOTPVerify(q, res.Token, freshCode, "1.2.3.4", "agent")
+	if err != nil {
 		t.Fatalf("totp verify: %v", err)
 	}
 
-	info, err := auth.Resolve(q, testCfg(), res.Token)
+	info, err := auth.Resolve(q, testCfg(), full)
 	if err != nil || info == nil || info.Pending2FA {
 		t.Fatalf("expected 2FA cleared after verify, got %+v err=%v", info, err)
 	}
@@ -360,7 +361,7 @@ func TestTOTPFailsSurviveCorrectPassword(t *testing.T) {
 		if err != nil {
 			t.Fatalf("login %d: %v", i, err)
 		}
-		last = auth.TOTPVerify(q, res.Token, "000000", "10.0.0.8", "agent")
+		_, last = auth.TOTPVerify(q, res.Token, "000000", "10.0.0.8", "agent")
 	}
 	if !errors.Is(last, auth.ErrThrottled) {
 		t.Fatalf("6th wrong code: %v", last)
@@ -402,5 +403,37 @@ func TestEmbedTokenScopedToBoards(t *testing.T) {
 	}
 	if len(scoped.Spaces) != 1 || scoped.TokenBoards[0] != board.ID {
 		t.Fatalf("spaces %v, boards %v", scoped.Spaces, scoped.TokenBoards)
+	}
+}
+
+// TestTOTPVerifyRotatesAndBlocksReplay: passing the second factor gives
+// a fresh session token (the pending one was on the TOTP page) and a
+// code works once.
+func TestTOTPVerifyRotatesAndBlocksReplay(t *testing.T) {
+	q := openTestDB(t)
+	uid := addActiveUser(t, q, "r@b.c", "correct-password")
+	who := &access.Principal{UserID: uid}
+	secret, _, _ := auth.TOTPBegin(q, who)
+	first, _ := totp.GenerateCode(secret, time.Now().Add(-30*time.Second))
+	if _, err := auth.TOTPConfirm(q, who, first, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	code, _ := totp.GenerateCode(secret, time.Now())
+	res, _ := auth.Login(q, testCfg(), "r@b.c", "correct-password", "10.0.0.7", "agent")
+	fresh, err := auth.TOTPVerify(q, res.Token, code, "10.0.0.7", "agent")
+	if err != nil || fresh == "" || fresh == res.Token {
+		t.Fatalf("verify: %q %v", fresh, err)
+	}
+	if info, _ := auth.Resolve(q, testCfg(), res.Token); info != nil {
+		t.Fatal("pending token still valid")
+	}
+	if info, _ := auth.Resolve(q, testCfg(), fresh); info == nil || info.Pending2FA {
+		t.Fatal("fresh token not a full session")
+	}
+
+	again, _ := auth.Login(q, testCfg(), "r@b.c", "correct-password", "10.0.0.7", "agent")
+	if _, err := auth.TOTPVerify(q, again.Token, code, "10.0.0.7", "agent"); err == nil {
+		t.Fatal("same code accepted twice")
 	}
 }

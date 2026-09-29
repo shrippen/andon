@@ -106,13 +106,12 @@ func (d Deps) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d Deps) handleTOTPForm(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(CookieName)
-	if err != nil {
+	if _, err := r.Cookie(CookieName); err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 	ctx, _ := d.Context(r)
-	_ = d.Page(w, ctx, "totp", http.StatusOK, map[string]any{"Token": cookie.Value})
+	_ = d.Page(w, ctx, "totp", http.StatusOK, nil)
 }
 
 func (d Deps) handleTOTPSubmit(w http.ResponseWriter, r *http.Request) {
@@ -126,13 +125,13 @@ func (d Deps) handleTOTPSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = auth.TOTPVerify(d.DB, cookie.Value, r.FormValue("code"), d.clientIP(r), Agent(r))
+	token, err := auth.TOTPVerify(d.DB, cookie.Value, r.FormValue("code"), d.clientIP(r), Agent(r))
 	if err != nil {
 		ctx, _ := d.Context(r)
-		_ = d.Page(w, ctx, "totp", http.StatusUnauthorized,
-			map[string]any{"Token": cookie.Value, "Error": auth.ErrTOTPInvalid.Error()})
+		_ = d.Page(w, ctx, "totp", http.StatusUnauthorized, map[string]any{"Error": auth.ErrTOTPInvalid.Error()})
 		return
 	}
+	d.setSession(w, token)
 	http.Redirect(w, r, startPath, http.StatusSeeOther)
 }
 
