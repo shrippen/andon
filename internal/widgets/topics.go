@@ -25,28 +25,7 @@ var Topics = []Topic{TopicOverview, TopicWork, TopicAnalysis, TopicHomelab, Topi
 	TopicSecurity, TopicMedia, TopicHome, TopicWorld, TopicDev}
 
 // topicOf maps each type key to its topic; unlisted types land in overview.
-var topicOf = map[string]Topic{
-	"timeline_recent":  TopicOverview,
-	"links_down":       TopicOverview,
-	"hint_noise":       TopicOverview,
-	"hint_trend":       TopicOverview,
-	"status_light":     TopicOverview,
-	"exposure":         TopicSecurity,
-	"hints":            TopicOverview,
-	"week_story":       TopicOverview,
-	"deadlines":        TopicOverview,
-	"expiries":         TopicOverview,
-	"kpi":              TopicAnalysis,
-	"chart":            TopicAnalysis,
-	"table":            TopicAnalysis,
-	"trend":            TopicAnalysis,
-	"progress":         TopicAnalysis,
-	"backups":          TopicHomelab,
-	"storage_forecast": TopicHomelab,
-	"updates":          TopicHomelab,
-	"update_window":    TopicHomelab,
-	"homelab_cost":     TopicHomelab,
-}
+var topicOf = map[string]Topic{}
 
 // TopicOf returns the gallery topic of a type key.
 func TopicOf(key string) Topic {

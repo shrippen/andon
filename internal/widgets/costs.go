@@ -25,8 +25,13 @@ type CostConfig struct {
 	PowerSplit bool // the power cost per Proxmox guest
 }
 
-func decodeCost(raw map[string]any) any {
-	return CostConfig{Yearly: raw["period"] == "year", PowerSplit: boolOr(raw["power_split"], true)}
+func init() {
+	Tile[CostConfig]{Key: "homelab_cost", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 3600,
+		Fields: []Field{sel("period", "month", "month", "year"), {Key: "power_split", Input: InputCheck, Default: true}},
+		Decode: func(r Raw) CostConfig {
+			return CostConfig{Yearly: r.Pick("period") == "year", PowerSplit: r.Bool("power_split")}
+		},
+		Queries: func(CostConfig) []Query { return peersOf(costPeers) }, View: homelabCostView}.add()
 }
 
 // scaleBill turns the monthly bill into the tile's period.
@@ -40,11 +45,7 @@ func scaleBill(b metrics.HomelabBill, f float64) metrics.HomelabBill {
 	return b
 }
 
-func homelabCostView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(CostConfig)
-	if !ok {
-		cfg = CostConfig{PowerSplit: true}
-	}
+func homelabCostView(cfg CostConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	scale := 1.0
 	if cfg.Yearly {
 		scale = monthsPerYearF
@@ -90,18 +91,17 @@ type StoryConfig struct {
 	Calendar bool            // since Monday instead of the last 7 days
 }
 
-func decodeStory(raw map[string]any) any {
-	cfg := StoryConfig{Hide: map[string]bool{}, Calendar: raw["period"] == "calendar"}
+func decodeStory(r Raw) StoryConfig {
+	cfg := StoryConfig{Hide: map[string]bool{}, Calendar: r.Pick("period") == "calendar"}
 	for line, box := range storyParts {
-		if !boolOr(raw[box], true) {
+		if !r.Bool(box) {
 			cfg.Hide[line] = true
 		}
 	}
 	return cfg
 }
 
-func storyView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(StoryConfig)
+func storyView(cfg StoryConfig, results map[string]any, _ ViewCtx) map[string]any {
 	lines, _ := results[StorySlot].([]metrics.StoryLine)
 	var shown []metrics.StoryLine
 	for _, l := range lines {
@@ -113,8 +113,9 @@ func storyView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "week_story", Decode: decodeStory, Category: CategoryInsight,
-		RefreshS: 3600, View: storyView, Extra: ExtraStory})
-	Register(WidgetType{Key: "homelab_cost", Decode: decodeCost, Category: CategoryInsight,
-		RefreshS: 3600, View: homelabCostView, Queries: func(any) []Query { return peersOf(costPeers) }})
+	Tile[StoryConfig]{Key: "week_story", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600, Extra: ExtraStory,
+		Fields: []Field{sel("period", "days7", "days7", "calendar"), {Key: "show_hours", Input: InputCheck, Default: true},
+			{Key: "show_money", Input: InputCheck, Default: true}, {Key: "show_storage", Input: InputCheck, Default: true},
+			{Key: "show_power", Input: InputCheck, Default: true}, {Key: "show_hints", Input: InputCheck, Default: true}},
+		Decode: decodeStory, View: storyView}.add()
 }

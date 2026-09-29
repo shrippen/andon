@@ -108,7 +108,7 @@ func TestRateTrendNamesItsMonths(t *testing.T) {
 // numbers keep working.
 func TestHintsMinSeverityFromSelect(t *testing.T) {
 	for _, raw := range []any{"20", 20.0} {
-		if cfg := decodeHints(map[string]any{"min_severity": raw}).(HintsConfig); cfg.MinSeverity != 20 {
+		if cfg := decodeOf[HintsConfig]("hints", map[string]any{"min_severity": raw}); cfg.MinSeverity != 20 {
 			t.Errorf("%#v: %d", raw, cfg.MinSeverity)
 		}
 	}

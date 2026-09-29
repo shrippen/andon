@@ -8,7 +8,6 @@ import (
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
-	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -88,8 +87,7 @@ func chartOptions(out map[string]any, cfg ChartConfig) map[string]any {
 	return out
 }
 
-func chartView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(ChartConfig)
+func chartView(cfg ChartConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	data, ok := results["data"]
 	if !ok || data == nil {
 		return map[string]any{}
@@ -192,8 +190,7 @@ func passed(today time.Time, start, end time.Time) float64 {
 	return float64(today.Sub(start).Hours()/24+1) / float64(end.Sub(start).Hours()/24)
 }
 
-func progressView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(ProgressConfig)
+func progressView(cfg ProgressConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	data, ok := results["data"]
 	if !ok || data == nil {
 		return map[string]any{}
@@ -235,8 +232,7 @@ func progressView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 
 // ── Deadlines ──
 
-func deadlinesView(cfgAny any, _ map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(DeadlinesConfig)
+func deadlinesView(cfg DeadlinesConfig, _ map[string]any, ctx ViewCtx) map[string]any {
 	tax, configured := metrics.ParseTaxSettings(ctx.Settings)
 	today := todayOf(ctx)
 
@@ -265,8 +261,7 @@ const (
 	trendHeight = 160
 )
 
-func trendView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(TrendConfig)
+func trendView(cfg TrendConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	points, _ := results["points"].([][2]any)
 	if len(points) < 2 {
 		return map[string]any{"Count": len(points)}
@@ -353,45 +348,23 @@ const peerSure = "sure"
 
 var surePeer = Query{Name: peerSure, Source: "data", Conn: ConnPeer, Service: enums.ServiceSure}
 
-func kpiQueries(cfg any) []Query {
-	switch cfg.(KpiConfig).Metric {
+func kpiQueries(cfg KpiConfig) []Query {
+	switch cfg.Metric {
 	case MetricEffectiveRate:
 		return append(dataQuery(nil), kimaiPeer)
 	case MetricLiquidity30, MetricSafeToSpend:
 		return append(dataQuery(nil), surePeer)
 	case MetricCash:
-		if cfg.(KpiConfig).Free {
+		if cfg.Free {
 			return append(dataQuery(nil), peer(peerNinja, enums.ServiceInvoiceNinja))
 		}
 	}
 	return dataQuery(nil)
 }
 
-func tableQueries(cfg any) []Query {
-	if cfg.(TableConfig).Table == TableRates {
+func tableQueries(cfg TableConfig) []Query {
+	if cfg.Table == TableRates {
 		return append(dataQuery(nil), kimaiPeer)
 	}
-	kind := cfg.(TableConfig).Table
-	return append(append(dataQuery(nil), crossQueries(kind)...), homelabQueries(kind)...)
-}
-
-func init() {
-	Register(WidgetType{Key: "kpi", Decode: decodeKpi, Category: CategoryInsight,
-		RefreshS: 600, Queries: kpiQueries, View: kpiView})
-	Register(WidgetType{Key: "table", Decode: decodeTable, Category: CategoryInsight,
-		RefreshS: 600, Queries: tableQueries, View: tableView})
-	Register(WidgetType{Key: "chart", Decode: decodeChart, Category: CategoryInsight,
-		RefreshS: 3600, Queries: dataQuery, View: chartView})
-	Register(WidgetType{Key: "progress", Decode: decodeProgress, Category: CategoryInsight,
-		RefreshS: 600, Queries: dataQuery, View: progressView})
-	Register(WidgetType{Key: "deadlines", Decode: decodeDeadlines, Category: CategoryInsight,
-		RefreshS: 3600, View: deadlinesView})
-	Register(WidgetType{Key: "trend", Decode: decodeTrend, Category: CategoryInsight,
-		RefreshS: 3600, View: trendView, Extra: ExtraPoints})
-	Register(WidgetType{Key: "updates", Decode: decodeTopic(rules.TopicUpdates), Template: "widgets/topic", Category: CategoryInsight,
-		RefreshS: 600, Extra: ExtraHints})
-	Register(WidgetType{Key: "hints", Decode: decodeHints, Category: CategoryInsight,
-		RefreshS: 300, Extra: ExtraHints})
-	Register(WidgetType{Key: "expiries", Decode: decodeExpiries, Category: CategoryInsight,
-		RefreshS: 3600, Extra: ExtraHints})
+	return append(append(dataQuery(nil), crossQueries(cfg.Table)...), homelabQueries(cfg.Table)...)
 }

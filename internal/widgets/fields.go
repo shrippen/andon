@@ -61,61 +61,13 @@ func sel(key string, def string, options ...string) Field {
 	return Field{Key: key, Input: InputSelect, Options: options, Default: def}
 }
 
-var fieldsByType = map[string][]Field{
-	"links_down": {{Key: "limit", Input: InputNumber, Default: defaultLinksDown, Min: "1", Max: "50"}},
-	"timeline_recent": {{Key: "limit", Input: InputNumber, Default: defaultRecent, Min: "1", Max: "30"}, {Key: "days", Input: InputNumber, Default: TimelineDays, Min: "1", Max: "90"},
-		sel("kinds", "all", "all", "updates", "hints")},
-	"hint_noise": {sel("days", "14", "14", "30", "90")},
-	"hint_trend": {sel("days", "30", "14", "30", "90")},
-	"status_light": {sel("red_from", "critical", "critical", "warn"), sel("yellow_from", "warn", "warn", "info", "off"), {Key: "sources", Input: InputList},
-		{Key: "direct", Input: InputCheck}, {Key: "text_green", Input: InputText}, {Key: "text_yellow", Input: InputText}, {Key: "text_red", Input: InputText}},
-	"exposure": {{Key: "only_problems", Input: InputCheck}},
-	"kpi": {sel("metric", string(MetricRevenueYTD), "hours_today", "hours_week", "hours_month", "utilization", "unbilled",
-		"revenue_ytd", "revenue_month", "open_amount", "overdue_amount", "vat_liability", "tax_reserve",
-		"asset_value", "assets_ready", "revenue_forecast", "cash_30", "liquidity_30", "effective_rate", "net_worth", "cash", "safe_to_spend"),
-		sel("compare", comparePrevYear, comparePrevYear, comparePrevMonth, compareOff),
-		{Key: "target_value", Input: InputNumber, Min: "0"}, {Key: "spark", Input: InputCheck, Default: true}, {Key: "free", Input: InputCheck}},
-	"table": {sel("table", "open_invoices", "open_invoices", "unbilled", "budgets", "client_shares", "asset_dates", "trips", "effective_rates", "app_usage", "payment_morale",
-		"full_rates", "unbilled_aging", "payment_matches", "missing_receipts", "subscriptions", "budget_forecast", "project_margins", "exposure", "domain_chain"),
-		{Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"}, {Key: "hide_cols", Input: InputList},
-		sel("sort", sortAsIs, sortAsIs, sortAmountDesc, sortAmountAsc, sortName, sortDate), {Key: "sum_row", Input: InputCheck}},
-	"chart": {sel("chart", "revenue", "revenue", "hours", "seasonal"), {Key: "months", Input: InputNumber, Default: 12, Min: "3", Max: "24"},
-		{Key: "show_prev", Input: InputCheck, Default: true}, {Key: "values", Input: InputCheck}, {Key: "goal_line", Input: InputCheck}},
-	"progress": {{Key: "goal", Input: InputCheck, Default: true}, {Key: "projects", Input: InputList}, {Key: "soll", Input: InputCheck, Default: true},
-		{Key: "warn_ahead", Input: InputNumber, Default: 10, Min: "1", Max: "100"}},
-	"deadlines": {{Key: "days", Input: InputNumber, Default: 45, Min: "7", Max: "400"}, {Key: "show_vat", Input: InputCheck, Default: true},
-		{Key: "show_prepayment", Input: InputCheck, Default: true}, {Key: "show_annual", Input: InputCheck, Default: true},
-		{Key: "amounts", Input: InputCheck, Default: true}},
-	"trend": {sel("metric", string(TrendOpenAmount), "revenue_ytd", "open_amount", "month_min"), {Key: "days", Input: InputNumber, Default: 90, Min: "7", Max: "730"},
-		{Key: "target_value", Input: InputNumber, Min: "0"}, {Key: "smooth", Input: InputCheck}},
-	"expiries": {{Key: "days", Input: InputNumber, Default: 90, Min: "7", Max: "400"}, {Key: "limit", Input: InputNumber, Default: 15, Min: "1", Max: "50"}, {Key: "sources", Input: InputList}},
-	"updates":  {{Key: "limit", Input: InputNumber, Default: 20, Min: "1", Max: "50"}, {Key: "sources", Input: InputList}, sel("sort", "urgency", "urgency", "age")},
-	"update_window": {{Key: "window", Input: InputText}, {Key: "timezone", Input: InputText, Default: defaultTimezone},
-		{Key: "use_backup", Input: InputCheck, Default: true}, {Key: "use_streams", Input: InputCheck, Default: true},
-		{Key: "use_timer", Input: InputCheck, Default: true}, {Key: "use_meetings", Input: InputCheck, Default: true},
-		{Key: "use_price", Input: InputCheck, Default: true}},
-	"homelab_cost": {sel("period", "month", "month", "year"), {Key: "power_split", Input: InputCheck, Default: true}},
-	"week_story": {sel("period", "days7", "days7", "calendar"), {Key: "show_hours", Input: InputCheck, Default: true},
-		{Key: "show_money", Input: InputCheck, Default: true}, {Key: "show_storage", Input: InputCheck, Default: true},
-		{Key: "show_power", Input: InputCheck, Default: true}, {Key: "show_hints", Input: InputCheck, Default: true}},
-	"storage_forecast": {{Key: "filter", Input: InputList}, {Key: "ahead", Input: InputNumber, Default: storageAhead, Min: "1", Max: "365"}},
-	"backups": {{Key: "max_hours", Input: InputNumber, Default: defaultBackupHours, Min: "1", Max: "336"}, {Key: "tools", Input: InputList},
-		{Key: "only_problems", Input: InputCheck}, sel("days", "14", "7", "14", "30")},
-	"hints": {{Key: "sources", Input: InputList}, sel("min_severity", severityChoices[0], severityChoices...), {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
-		{Key: "show_buttons", Input: InputCheck}, sel("sort", hintSortUrgency, hintSortUrgency, HintSortValue, HintSortAge),
-		{Key: "show_levels", Input: InputCheck, Default: true}},
-}
+var fieldsByType = map[string][]Field{}
 
 // dataModeField lets connection-bound widgets choose live or background data.
 var dataModeField = sel(DataModeKey, string(DataAuto), string(DataAuto), string(DataLive), string(DataStored))
 
 // liveCapable are types whose data comes from a connection.
-var liveCapable = map[string]bool{
-	"kpi":      true,
-	"table":    true,
-	"chart":    true,
-	"progress": true,
-}
+var liveCapable = map[string]bool{}
 
 // FieldsOf returns the config fields of a widget type.
 func FieldsOf(key string) []Field {

@@ -7,23 +7,7 @@ package widgets
 import "reflect"
 
 // calmChecks read "nothing to do" from a type's view.
-var calmChecks = map[string]func(v map[string]any) bool{
-	"backups": func(v map[string]any) bool {
-		lines, _ := v["Rows"].([]BackupLine)
-		for _, l := range lines {
-			if l.State != "ok" {
-				return false
-			}
-		}
-		return v["Total"] != 0 && v["Total"] != nil
-	},
-	"status_light": func(v map[string]any) bool { return v["State"] == "green" },
-	"exposure":     func(v map[string]any) bool { return v["Total"] != nil && v["Total"] != 0 && v["Open"] == 0 },
-	"deadlines":    func(v map[string]any) bool { return v["Configured"] == true && lenOf(v["Items"]) == 0 },
-	// Hint lists (ExtraHints): calm without hints.
-	"hints":   func(v map[string]any) bool { return v["Hints"] != nil && lenOf(v["Hints"]) == 0 },
-	"updates": func(v map[string]any) bool { return v["Hints"] != nil && lenOf(v["Hints"]) == 0 },
-}
+var calmChecks = map[string]func(v map[string]any) bool{}
 
 func init() {
 	for key := range calmChecks {

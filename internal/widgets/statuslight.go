@@ -51,21 +51,15 @@ var lightLevels = map[string]enums.Severity{"critical": enums.SeverityCritical, 
 
 const lightShown = 5
 
-func decodeStatusLight(raw map[string]any) any {
-	level := func(key, def string) enums.Severity {
-		if v, ok := lightLevels[asString(raw[key])]; ok {
-			return v
-		}
-		return lightLevels[def]
-	}
+func decodeStatusLight(r Raw) StatusLightConfig {
 	texts := map[string]string{}
 	for _, state := range []string{"green", "yellow", "red"} {
-		if t := strings.TrimSpace(asString(raw["text_"+state])); t != "" {
+		if t := strings.TrimSpace(r.String("text_" + state)); t != "" {
 			texts[state] = t
 		}
 	}
-	return StatusLightConfig{Red: max(level("red_from", "critical"), enums.SeverityWarn), Yellow: level("yellow_from", "warn"),
-		Sources: lowerList(raw["sources"]), Direct: asBool(raw["direct"]), Texts: texts}
+	return StatusLightConfig{Red: lightLevels[r.Pick("red_from")], Yellow: lightLevels[r.Pick("yellow_from")],
+		Sources: r.Lower("sources"), Direct: r.Bool("direct"), Texts: texts}
 }
 
 // Hints loads every hint that can colour the light.
@@ -100,15 +94,14 @@ func directBriefs(results map[string]any) []HintBrief {
 // peerKuma names Uptime Kuma's data for a direct status light.
 const peerKuma = "kuma"
 
-func statusLightQueries(c any) []Query {
-	if cfg, ok := c.(StatusLightConfig); ok && cfg.Direct {
+func statusLightQueries(cfg StatusLightConfig) []Query {
+	if cfg.Direct {
 		return []Query{peer(peerKuma, enums.ServiceUptimeKuma)}
 	}
 	return nil
 }
 
-func statusLightView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg := cfgAny.(StatusLightConfig)
+func statusLightView(cfg StatusLightConfig, results map[string]any, _ ViewCtx) map[string]any {
 	briefs, _ := results[HintsSlot].([]HintBrief)
 	if cfg.Direct {
 		briefs = append(directBriefs(results), briefs...)
@@ -133,6 +126,9 @@ func statusLightView(cfgAny any, results map[string]any, _ ViewCtx) map[string]a
 }
 
 func init() {
-	Register(WidgetType{Key: "status_light", Decode: decodeStatusLight, Category: CategoryInsight,
-		RefreshS: 60, View: statusLightView, Extra: ExtraHintBriefs, Queries: statusLightQueries})
+	Tile[StatusLightConfig]{Key: "status_light", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 60, Extra: ExtraHintBriefs,
+		Fields: []Field{sel("red_from", "critical", "critical", "warn"), sel("yellow_from", "warn", "warn", "info", "off"), {Key: "sources", Input: InputList},
+			{Key: "direct", Input: InputCheck}, {Key: "text_green", Input: InputText}, {Key: "text_yellow", Input: InputText}, {Key: "text_red", Input: InputText}},
+		Decode: decodeStatusLight, Queries: statusLightQueries, View: statusLightView,
+		Calm: func(v map[string]any) bool { return v["State"] == "green" }}.add()
 }

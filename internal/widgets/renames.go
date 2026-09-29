@@ -20,16 +20,7 @@ type rename struct {
 	value    func(v any) (any, bool)
 }
 
-var renames = map[string][]rename{
-	"exposure":   {{from: "only_open", to: "only_problems"}},
-	"hint_noise": {{from: "period", to: "days"}},
-	"hint_trend": {{from: "period", to: "days"}},
-	"hints": {
-		{from: "by_value", to: "sort", value: func(v any) (any, bool) { return HintSortValue, asBool(v) }},
-		{from: "levels", to: "show_levels"},
-		{from: "buttons", to: "show_buttons"},
-	},
-}
+var renames = map[string][]rename{}
 
 // Upgrade returns config with a type's old keys under their current
 // names, and whether anything moved. A current key wins over an old one.

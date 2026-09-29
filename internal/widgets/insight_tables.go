@@ -179,8 +179,7 @@ func kimaiBudgets(data *sources.KimaiDataset, today time.Time) []budgetRow {
 	return rows
 }
 
-func tableView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(TableConfig)
+func tableView(cfg TableConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	rows, ok := tableRows(cfg.Table, results, ctx)
 	if !ok {
 		if _, hasData := results["data"]; hasData {

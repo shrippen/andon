@@ -111,18 +111,18 @@ const (
 // lowerBetter are metrics where staying under the target is good.
 var lowerBetter = map[Metric]bool{MetricOpenAmount: true, MetricOverdueAmount: true, MetricVATLiability: true, MetricUnbilled: true}
 
-func decodeKpi(raw map[string]any) any {
-	metric := Metric(asString(raw["metric"]))
-	if metric == "" {
-		metric = MetricRevenueYTD
-	}
-	compare := asString(raw["compare"])
-	if compare != comparePrevMonth && compare != compareOff {
-		compare = comparePrevYear
-	}
-	spark, set := raw["spark"].(bool)
-	return KpiConfig{Metric: metric, Compare: compare, Target: max(asFloat(raw["target_value"]), 0), Spark: spark || !set,
-		Free: asBool(raw["free"])}
+func init() {
+	Tile[KpiConfig]{Key: "kpi", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
+		Fields: []Field{sel("metric", string(MetricRevenueYTD), "hours_today", "hours_week", "hours_month", "utilization", "unbilled",
+			"revenue_ytd", "revenue_month", "open_amount", "overdue_amount", "vat_liability", "tax_reserve",
+			"asset_value", "assets_ready", "revenue_forecast", "cash_30", "liquidity_30", "effective_rate", "net_worth", "cash", "safe_to_spend"),
+			sel("compare", comparePrevYear, comparePrevYear, comparePrevMonth, compareOff),
+			{Key: "target_value", Input: InputNumber, Min: "0"}, {Key: "spark", Input: InputCheck, Default: true}, {Key: "free", Input: InputCheck}},
+		Decode: func(r Raw) KpiConfig {
+			return KpiConfig{Metric: Metric(r.Pick("metric")), Compare: r.Pick("compare"), Target: r.Float("target_value"),
+				Spark: r.Bool("spark"), Free: r.Bool("free")}
+		},
+		Queries: kpiQueries, View: kpiView}.add()
 }
 
 // monthDelta is this month against the last for metrics with months.
@@ -190,19 +190,22 @@ type TableConfig struct {
 	SumRow   bool
 }
 
-var tableSorts = []string{sortAsIs, sortAmountDesc, sortAmountAsc, sortName, sortDate}
+func init() {
+	Tile[TableConfig]{Key: "table", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
+		Fields: []Field{sel("table", "open_invoices", "open_invoices", "unbilled", "budgets", "client_shares", "asset_dates", "trips", "effective_rates", "app_usage", "payment_morale",
+			"full_rates", "unbilled_aging", "payment_matches", "missing_receipts", "subscriptions", "budget_forecast", "project_margins", "exposure", "domain_chain"),
+			{Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"}, {Key: "hide_cols", Input: InputList},
+			sel("sort", sortAsIs, sortAsIs, sortAmountDesc, sortAmountAsc, sortName, sortDate), {Key: "sum_row", Input: InputCheck}},
+		Decode: decodeTable, Queries: tableQueries, View: tableView}.add()
+}
 
-func decodeTable(raw map[string]any) any {
-	table := TableKind(asString(raw["table"]))
-	if table == "" {
-		table = TableOpenInvoices
-	}
+func decodeTable(r Raw) TableConfig {
 	var hide []string
-	for _, c := range asStringList(raw["hide_cols"]) {
+	for _, c := range r.List("hide_cols") {
 		hide = append(hide, strings.ToLower(strings.TrimSpace(c)))
 	}
-	return TableConfig{Table: table, Limit: clampInt(asInt(raw["limit"], 8), 1, 50), HideCols: hide, Sort: oneOfStr(raw["sort"], tableSorts, sortAsIs),
-		SumRow: asBool(raw["sum_row"])}
+	return TableConfig{Table: TableKind(r.Pick("table")), Limit: r.Int("limit"), HideCols: hide, Sort: r.Pick("sort"),
+		SumRow: r.Bool("sum_row")}
 }
 
 // ChartConfig is the "chart" widget's config.
@@ -214,13 +217,15 @@ type ChartConfig struct {
 	GoalLine bool // revenue: the year's goal per month
 }
 
-func decodeChart(raw map[string]any) any {
-	chart := ChartKind(asString(raw["chart"]))
-	if chart == "" {
-		chart = ChartRevenue
-	}
-	return ChartConfig{Chart: chart, Months: clampInt(asInt(raw["months"], 12), 3, 24), ShowPrev: boolOr(raw["show_prev"], true),
-		Values: asBool(raw["values"]), GoalLine: asBool(raw["goal_line"])}
+func init() {
+	Tile[ChartConfig]{Key: "chart", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600, DataChoice: true,
+		Fields: []Field{sel("chart", "revenue", "revenue", "hours", "seasonal"), {Key: "months", Input: InputNumber, Default: 12, Min: "3", Max: "24"},
+			{Key: "show_prev", Input: InputCheck, Default: true}, {Key: "values", Input: InputCheck}, {Key: "goal_line", Input: InputCheck}},
+		Decode: func(r Raw) ChartConfig {
+			return ChartConfig{Chart: ChartKind(r.Pick("chart")), Months: r.Int("months"), ShowPrev: r.Bool("show_prev"),
+				Values: r.Bool("values"), GoalLine: r.Bool("goal_line")}
+		},
+		Queries: ownData[ChartConfig], View: chartView}.add()
 }
 
 // boolOr reads a checkbox that defaults to on.
@@ -240,20 +245,20 @@ type ProgressConfig struct {
 	Warn     float64  // yellow from this many points ahead (0..1)
 }
 
-func decodeProgress(raw map[string]any) any {
-	goal := true
-	if v, ok := raw["goal"]; ok {
-		goal = asBool(v)
-	}
-	var projects []string
-	for _, p := range asStringList(raw["projects"]) {
-		projects = append(projects, strings.ToLower(p))
-	}
+func init() {
+	Tile[ProgressConfig]{Key: "progress", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
+		Fields: []Field{{Key: "goal", Input: InputCheck, Default: true}, {Key: "projects", Input: InputList}, {Key: "soll", Input: InputCheck, Default: true},
+			{Key: "warn_ahead", Input: InputNumber, Default: 10, Min: "1", Max: "100"}},
+		Decode: decodeProgress, Queries: ownData[ProgressConfig], View: progressView}.add()
+}
+
+func decodeProgress(r Raw) ProgressConfig {
+	// Out of range means the default, not the nearest bound: 0 → 10 %.
 	warn := progressSlack
-	if v := asFloat(raw["warn_ahead"]); v > 0 && v <= pctFull {
+	if v := asFloat(r.Get("warn_ahead")); v > 0 && v <= pctFull {
 		warn = v / pctFull
 	}
-	return ProgressConfig{Goal: goal, Projects: projects, Soll: boolOr(raw["soll"], true), Warn: warn}
+	return ProgressConfig{Goal: r.Bool("goal"), Projects: r.Lower("projects"), Soll: r.Bool("soll"), Warn: warn}
 }
 
 // HintsConfig is the "hints" widget's config.
@@ -275,24 +280,35 @@ const (
 	HintSortAge     = "age"
 )
 
-// decodeTopic builds the decoder of a topic widget: a hints list limited
-// to one topic's rules.
-func decodeTopic(topic rules.Topic) DecodeFunc {
-	return func(raw map[string]any) any {
-		sort, _ := raw["sort"].(string)
-		if sort != HintSortAge {
-			sort = ""
-		}
-		return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: clampInt(asInt(raw["limit"], 20), 1, 50), Topic: topic,
-			Sources: lowerList(raw["sources"]), Sort: sort}
+// hintSort is the sort select as HintsConfig.Sort: urgency is "".
+func hintSort(r Raw) string {
+	if s := r.Pick("sort"); s != hintSortUrgency {
+		return s
 	}
+	return ""
 }
 
-// decodeExpiries: every hint with a due date (certificates, domains,
-// warranties, contracts, renewals, tax) on one timeline.
-func decodeExpiries(raw map[string]any) any {
-	return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: clampInt(asInt(raw["limit"], 15), 1, 50),
-		Sources: lowerList(raw["sources"]), DueDays: clampInt(asInt(raw["days"], 90), 7, 400), NoLevels: true}
+// Hint lists (ExtraHints) are calm without hints.
+func hintsCalm(v map[string]any) bool { return v["Hints"] != nil && lenOf(v["Hints"]) == 0 }
+
+func init() {
+	// updates: a hints list limited to the update rules.
+	Tile[HintsConfig]{Key: "updates", Template: "widgets/topic", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 600, Extra: ExtraHints,
+		Fields: []Field{{Key: "limit", Input: InputNumber, Default: 20, Min: "1", Max: "50"}, {Key: "sources", Input: InputList}, sel("sort", "urgency", "urgency", "age")},
+		Calm:   hintsCalm,
+		Decode: func(r Raw) HintsConfig {
+			return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: r.Int("limit"), Topic: rules.TopicUpdates,
+				Sources: r.Lower("sources"), Sort: hintSort(r)}
+		}}.add()
+
+	// expiries: every hint with a due date (certificates, domains,
+	// warranties, contracts, renewals, tax) on one timeline.
+	Tile[HintsConfig]{Key: "expiries", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600, Extra: ExtraHints,
+		Fields: []Field{{Key: "days", Input: InputNumber, Default: 90, Min: "7", Max: "400"}, {Key: "limit", Input: InputNumber, Default: 15, Min: "1", Max: "50"}, {Key: "sources", Input: InputList}},
+		Decode: func(r Raw) HintsConfig {
+			return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: r.Int("limit"),
+				Sources: r.Lower("sources"), DueDays: r.Int("days"), NoLevels: true}
+		}}.add()
 }
 
 // severityChoices are the hint levels a tile can start from, as the
@@ -300,19 +316,30 @@ func decodeExpiries(raw map[string]any) any {
 var severityChoices = []string{strconv.Itoa(int(enums.SeverityInfo)), strconv.Itoa(int(enums.SeverityWarn)),
 	strconv.Itoa(int(enums.SeverityCritical))}
 
-func decodeHints(raw map[string]any) any {
-	level := raw["min_severity"]
+func init() {
+	Tile[HintsConfig]{Key: "hints", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 300, Extra: ExtraHints,
+		Fields: []Field{{Key: "sources", Input: InputList}, sel("min_severity", severityChoices[0], severityChoices...), {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
+			{Key: "show_buttons", Input: InputCheck}, sel("sort", hintSortUrgency, hintSortUrgency, HintSortValue, HintSortAge),
+			{Key: "show_levels", Input: InputCheck, Default: true}},
+		Renames: []rename{
+			{from: "by_value", to: "sort", value: func(v any) (any, bool) { return HintSortValue, asBool(v) }},
+			{from: "levels", to: "show_levels"},
+			{from: "buttons", to: "show_buttons"},
+		},
+		Calm: hintsCalm, Decode: decodeHints}.add()
+}
+
+func decodeHints(r Raw) HintsConfig {
+	// Stored as the select's text ("20") or, older, as a number; any
+	// level in between counts too, so this is no Pick.
+	level := r.Get("min_severity")
 	if s, ok := level.(string); ok {
 		n, _ := strconv.Atoi(s)
 		level = float64(n)
 	}
 	minSeverity := clampInt(asInt(level, int(enums.SeverityInfo)), int(enums.SeverityInfo), int(enums.SeverityCritical))
-	cfg := HintsConfig{Sources: lowerList(raw["sources"]), MinSeverity: minSeverity, Limit: clampInt(asInt(raw["limit"], 8), 1, 50),
-		Buttons: asBool(raw["show_buttons"]), NoLevels: !boolOr(raw["show_levels"], true)}
-	if sort := asString(raw["sort"]); sort == HintSortValue || sort == HintSortAge {
-		cfg.Sort = sort
-	}
-	return cfg
+	return HintsConfig{Sources: r.Lower("sources"), MinSeverity: minSeverity, Limit: r.Int("limit"),
+		Buttons: r.Bool("show_buttons"), NoLevels: !r.Bool("show_levels"), Sort: hintSort(r)}
 }
 
 // TrendConfig is the "trend" widget's config.
@@ -329,13 +356,15 @@ const smoothDays = 7
 // MaxTrendDays is the longest span a trend shows; older daily points go.
 const MaxTrendDays = 730
 
-func decodeTrend(raw map[string]any) any {
-	metric := TrendMetric(asString(raw["metric"]))
-	if metric == "" {
-		metric = TrendOpenAmount
-	}
-	return TrendConfig{Metric: metric, Days: clampInt(asInt(raw["days"], 90), 7, MaxTrendDays), Target: max(asFloat(raw["target_value"]), 0),
-		Smooth: asBool(raw["smooth"])}
+func init() {
+	Tile[TrendConfig]{Key: "trend", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600, Extra: ExtraPoints,
+		Fields: []Field{sel("metric", string(TrendOpenAmount), "revenue_ytd", "open_amount", "month_min"), {Key: "days", Input: InputNumber, Default: 90, Min: "7", Max: strconv.Itoa(MaxTrendDays)},
+			{Key: "target_value", Input: InputNumber, Min: "0"}, {Key: "smooth", Input: InputCheck}},
+		Decode: func(r Raw) TrendConfig {
+			return TrendConfig{Metric: TrendMetric(r.Pick("metric")), Days: r.Int("days"), Target: r.Float("target_value"),
+				Smooth: r.Bool("smooth")}
+		},
+		View: trendView}.add()
 }
 
 // DeadlinesConfig is the "deadlines" widget's config.
@@ -345,9 +374,17 @@ type DeadlinesConfig struct {
 	Amounts                  bool
 }
 
-func decodeDeadlines(raw map[string]any) any {
-	return DeadlinesConfig{Days: clampInt(asInt(raw["days"], 45), 7, 400), VAT: boolOr(raw["show_vat"], true),
-		Prepayments: boolOr(raw["show_prepayment"], true), Annual: boolOr(raw["show_annual"], true), Amounts: boolOr(raw["amounts"], true)}
+func init() {
+	Tile[DeadlinesConfig]{Key: "deadlines", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600,
+		Fields: []Field{{Key: "days", Input: InputNumber, Default: 45, Min: "7", Max: "400"}, {Key: "show_vat", Input: InputCheck, Default: true},
+			{Key: "show_prepayment", Input: InputCheck, Default: true}, {Key: "show_annual", Input: InputCheck, Default: true},
+			{Key: "amounts", Input: InputCheck, Default: true}},
+		Decode: func(r Raw) DeadlinesConfig {
+			return DeadlinesConfig{Days: r.Int("days"), VAT: r.Bool("show_vat"), Prepayments: r.Bool("show_prepayment"),
+				Annual: r.Bool("show_annual"), Amounts: r.Bool("amounts")}
+		},
+		View: deadlinesView,
+		Calm: func(v map[string]any) bool { return v["Configured"] == true && lenOf(v["Items"]) == 0 }}.add()
 }
 
 func clampInt(v, lo, hi int) int {
@@ -622,8 +659,7 @@ func kpiSnipe(metric Metric, data *sources.SnipeDataset, ctx ViewCtx) *KpiResult
 	return nil
 }
 
-func kpiView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(KpiConfig)
+func kpiView(cfg KpiConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	data, ok := results["data"]
 	if !ok || data == nil {
 		return map[string]any{}

@@ -11,18 +11,9 @@ const (
 	CheckBadTimezone = "widget.bad_timezone"
 )
 
-// checks read what a type's decoder would silently drop: a window
-// "25-3" would mean "always", a zone "Europe/Berln" UTC.
-var checks = map[string]func(raw map[string]any) string{
-	"update_window": func(raw map[string]any) string {
-		if w := strings.TrimSpace(asString(raw["window"])); w != "" {
-			if _, _, ok := parseSpan(w); !ok {
-				return CheckBadWindow
-			}
-		}
-		return checkZone(raw)
-	},
-}
+// checks read what a type's decoder would silently drop: a zone
+// "Europe/Berln" would mean UTC.
+var checks = map[string]func(raw map[string]any) string{}
 
 // checkZone: an empty zone means the default, any other must be known.
 func checkZone(raw map[string]any) string {
