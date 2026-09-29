@@ -21,8 +21,7 @@ func init() {
 			if !m.Worse {
 				continue
 			}
-			found = append(found, Finding{Fingerprint: fmt.Sprintf("slower:%d", m.ClientID), Rule: "in.payment_worse",
-				Severity: enums.SeverityWarn, Message: "in.payment_worse",
+			found = append(found, Finding{Fingerprint: fmt.Sprintf("slower:%d", m.ClientID), Severity: enums.SeverityWarn, Message: "in.payment_worse",
 				Params:    map[string]any{"client": m.Client, "recent": m.RecentDays, "avg": m.UsualDays},
 				ActionURL: strings.TrimRight(data.URL, "/") + "/#/clients", ActionLabel: "open_in_invoiceninja", Sources: []string{ninja}})
 		}
@@ -48,7 +47,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{Fingerprint: fmt.Sprintf("contract:%d:%s", c.ID, c.Deadline.Format(time.DateOnly)),
-					Rule: "paperless.contract_notice", Severity: level, Message: "paperless.contract_notice",
+					Severity: level, Message: "paperless.contract_notice",
 					Params: map[string]any{"title": c.Title, "correspondent": c.Correspondent, "day": Day(c.Deadline), "days": days,
 						"end": Day(c.End)},
 					Due:       c.Deadline.Format(time.DateOnly),

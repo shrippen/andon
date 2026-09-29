@@ -136,8 +136,7 @@ func init() {
 					byClient[inv.ClientID] = append(byClient[inv.ClientID], overdueInvoice{inv, level})
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("overdue:%d", inv.ID), Rule: "in.invoice_overdue",
-					Severity: level, Message: msg,
+					Fingerprint: fmt.Sprintf("overdue:%d", inv.ID), Severity: level, Message: msg,
 					Params: map[string]any{
 						"number": inv.Number, "client": inv.Client, "days": inv.OverdueDays,
 						"amount": Money(inv.Balance, ninjaCurrency(data)),
@@ -159,8 +158,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("slow:%d", cid), Rule: "in.slow_payer",
-					Severity: enums.SeverityInfo, Message: "in.slow_payer",
+					Fingerprint: fmt.Sprintf("slow:%d", cid), Severity: enums.SeverityInfo, Message: "in.slow_payer",
 					Params:  map[string]any{"client": clientName(clients, cid), "days": avg, "limit": cfgInt(cfg, "days")},
 					Sources: []string{ninjaSource},
 				})
@@ -183,8 +181,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("draft:%d", inv.ID), Rule: "in.draft_stale",
-					Severity: enums.SeverityInfo, Message: "in.draft_stale",
+					Fingerprint: fmt.Sprintf("draft:%d", inv.ID), Severity: enums.SeverityInfo, Message: "in.draft_stale",
 					Params: map[string]any{
 						"client": clientName(clients, inv.ClientID), "days": age,
 						"amount": Money(inv.Amount, ninjaCurrency(data)),
@@ -211,8 +208,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("quote:%d", q.ID), Rule: "in.quote_open",
-					Severity: enums.SeverityInfo, Message: "in.quote_open",
+					Fingerprint: fmt.Sprintf("quote:%d", q.ID), Severity: enums.SeverityInfo, Message: "in.quote_open",
 					Params:    map[string]any{"number": q.Number, "client": clientName(clients, q.ClientID), "days": age},
 					ActionURL: ninjaURL(data, fmt.Sprintf("quotes/%d/edit", q.ID)), ActionLabel: ninjaOpen,
 					Sources: []string{ninjaSource},
@@ -238,8 +234,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("recurring:%d", r.ID), Rule: "in.recurring_ending",
-					Severity: enums.SeverityInfo, Message: "in.recurring_ending",
+					Fingerprint: fmt.Sprintf("recurring:%d", r.ID), Severity: enums.SeverityInfo, Message: "in.recurring_ending",
 					Params:      map[string]any{"client": clientName(clients, r.ClientID), "day": Day(send)},
 					ActionURL:   ninjaURL(data, fmt.Sprintf("recurring_invoices/%d/edit", r.ID)),
 					ActionLabel: ninjaOpen, Due: send.Format("2006-01-02"), Sources: []string{ninjaSource},
@@ -262,8 +257,7 @@ func init() {
 				return nil
 			}
 			return []Finding{{
-				Fingerprint: fmt.Sprintf("goal:%d", env.Today.Year()), Rule: "in.revenue_vs_goal",
-				Severity: enums.SeverityInfo, Message: "in.revenue_goal",
+				Fingerprint: fmt.Sprintf("goal:%d", env.Today.Year()), Severity: enums.SeverityInfo, Message: "in.revenue_goal",
 				Params: map[string]any{
 					"ytd": Money(summary.RevenueYTD, ninjaCurrency(data)), "expected": Money(expected, ninjaCurrency(data)),
 					"goal": Money(goal, ninjaCurrency(data)),
@@ -300,8 +294,7 @@ func init() {
 					msg = "in.missing_vat_domestic"
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("vat:%d", inv.ID), Rule: "in.missing_vat",
-					Severity: enums.SeverityWarn, Message: msg,
+					Fingerprint: fmt.Sprintf("vat:%d", inv.ID), Severity: enums.SeverityWarn, Message: msg,
 					Params:    map[string]any{"number": inv.Number, "client": clientNameOr(client.Name)},
 					ActionURL: ninjaURL(data, fmt.Sprintf("invoices/%d/edit", inv.ID)), ActionLabel: ninjaOpen,
 					Sources: []string{ninjaSource},
@@ -329,8 +322,7 @@ func init() {
 					notes = "–"
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("expense:%d", e.ID), Rule: "in.expense_no_input_vat",
-					Severity: enums.SeverityInfo, Message: "in.expense_no_vat",
+					Fingerprint: fmt.Sprintf("expense:%d", e.ID), Severity: enums.SeverityInfo, Message: "in.expense_no_vat",
 					Params: map[string]any{
 						"amount": Money(e.Amount, ninjaCurrency(data)), "notes": notes, "day": DayStr(e.Date),
 						"vendor": cmp.Or(vendors[e.VendorKey], "–"), "number": cmp.Or(e.Number, "–"),
@@ -367,8 +359,7 @@ func init() {
 				}
 			}
 			return []Finding{{
-				Fingerprint: fmt.Sprintf("concentration:%d", top.ClientID), Rule: "in.client_concentration",
-				Severity: level, Message: msg, Params: params, Sources: sourceList,
+				Fingerprint: fmt.Sprintf("concentration:%d", top.ClientID), Severity: level, Message: msg, Params: params, Sources: sourceList,
 			}}
 		})
 }

@@ -54,7 +54,7 @@ func init() {
 				continue
 			}
 			found = append(found, Finding{
-				Fingerprint: "down:" + m.Name, Rule: "kuma.monitor_down", Severity: enums.SeverityCritical,
+				Fingerprint: "down:" + m.Name, Severity: enums.SeverityCritical,
 				Message: "kuma.down", Params: map[string]any{"monitor": m.Name},
 				ActionURL: data.URL, ActionLabel: "open_in_uptimekuma", Sources: []string{kuma},
 			})
@@ -71,7 +71,7 @@ func init() {
 				continue
 			}
 			found = append(found, Finding{
-				Fingerprint: "cert:" + m.Name, Rule: "kuma.cert_expiring", Severity: level,
+				Fingerprint: "cert:" + m.Name, Severity: level,
 				Message: "kuma.cert", Params: map[string]any{"monitor": m.Name, "days": m.CertDays},
 				ActionURL: data.URL, ActionLabel: "open_in_uptimekuma", Sources: []string{kuma},
 			})
@@ -96,7 +96,7 @@ func init() {
 				level = enums.SeverityWarn
 			}
 			return []Finding{{
-				Fingerprint: "inbox", Rule: "paperless.inbox", Severity: level, Message: "paperless.inbox",
+				Fingerprint: "inbox", Severity: level, Message: "paperless.inbox",
 				Params:    map[string]any{"count": data.Inbox, "title": data.OldestTitle, "days": days},
 				ActionURL: strings.TrimRight(data.URL, "/") + "/documents?sort=added", ActionLabel: "open_in_paperless",
 				Sources: []string{paperless},
@@ -110,7 +110,7 @@ func init() {
 		for _, c := range data.Certs {
 			if c.Error != "" {
 				found = append(found, Finding{
-					Fingerprint: "unreachable:" + c.Host, Rule: "certs.expiring", Severity: enums.SeverityWarn,
+					Fingerprint: "unreachable:" + c.Host, Severity: enums.SeverityWarn,
 					Message: "certs.unreachable", Params: map[string]any{"host": c.Host, "error": c.Error},
 					Sources: []string{certs},
 				})
@@ -122,7 +122,7 @@ func init() {
 				continue
 			}
 			found = append(found, Finding{
-				Fingerprint: "cert:" + c.Host, Rule: "certs.expiring", Severity: level, Message: "certs.expiring",
+				Fingerprint: "cert:" + c.Host, Severity: level, Message: "certs.expiring",
 				Params: map[string]any{"host": c.Host, "day": Day(c.NotAfter), "days": daysLeft},
 				Due:    c.NotAfter.Format("2006-01-02"), Sources: []string{certs},
 			})

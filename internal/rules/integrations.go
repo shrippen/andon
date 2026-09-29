@@ -288,7 +288,7 @@ func registerEverydayRules() {
 		var found []Finding
 		for _, r := range data.Repos {
 			if r.CI == ciFailure {
-				found = append(found, Finding{Fingerprint: "ci:" + r.Name, Rule: "github.ci_failed", Severity: enums.SeverityWarn,
+				found = append(found, Finding{Fingerprint: "ci:" + r.Name, Severity: enums.SeverityWarn,
 					Message: "github.ci_failed", Params: map[string]any{"repo": r.Name}, ActionURL: r.CIURL, ActionLabel: "open_in_github", Sources: []string{gh}})
 			}
 		}

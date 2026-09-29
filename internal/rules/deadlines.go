@@ -61,8 +61,7 @@ func deadlineFinding(item metrics.TaxDeadline, level enums.Severity, ninja *sour
 	}
 
 	return Finding{
-		Fingerprint: item.Kind + ":" + item.Due.Format("2006-01-02"), Rule: "tax.deadlines",
-		Severity: level, Message: message, Params: params, Due: item.Due.Format("2006-01-02"),
+		Fingerprint: item.Kind + ":" + item.Due.Format("2006-01-02"), Severity: level, Message: message, Params: params, Due: item.Due.Format("2006-01-02"),
 		Sources: []string{"tax"},
 	}
 }

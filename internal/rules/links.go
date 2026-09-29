@@ -74,7 +74,7 @@ func init() {
 		var found []Finding
 		for _, col := range sortedKeysOf(missing) {
 			found = append(found, Finding{
-				Fingerprint: "missing:" + col, Rule: "linkwarden.not_on_board", Severity: enums.SeverityInfo,
+				Fingerprint: "missing:" + col, Severity: enums.SeverityInfo,
 				Message: "linkwarden.missing", Params: map[string]any{"collection": col, "count": len(missing[col]), "names": shortList(missing[col])},
 				ActionURL: data.URL, ActionLabel: "open_in_linkwarden", Sources: []string{lw},
 			})
@@ -102,7 +102,7 @@ func init() {
 			return nil
 		}
 		return []Finding{{
-			Fingerprint: "unsaved", Rule: "linkwarden.not_saved", Severity: enums.SeverityInfo,
+			Fingerprint: "unsaved", Severity: enums.SeverityInfo,
 			Message: "linkwarden.unsaved", Params: map[string]any{"count": len(names), "names": shortList(names)},
 			ActionURL: data.URL, ActionLabel: "open_in_linkwarden", Sources: []string{lw},
 		}}
@@ -135,7 +135,7 @@ func init() {
 			return nil
 		}
 		return []Finding{{
-			Fingerprint: "unmonitored", Rule: "kuma.unmonitored", Severity: enums.SeverityInfo,
+			Fingerprint: "unmonitored", Severity: enums.SeverityInfo,
 			Message: "kuma.unmonitored", Params: map[string]any{"count": len(names), "names": shortList(names)},
 			ActionURL: data.URL, ActionLabel: "open_in_uptimekuma", Sources: []string{kuma},
 		}}
@@ -167,7 +167,7 @@ func init() {
 		if len(names) == 0 {
 			return nil
 		}
-		return []Finding{{Fingerprint: "dead", Rule: "links.dead", Severity: enums.SeverityInfo, Message: "links.dead",
+		return []Finding{{Fingerprint: "dead", Severity: enums.SeverityInfo, Message: "links.dead",
 			Params: map[string]any{"count": len(names), "names": shortList(names), "days": cfgInt(cfg, "days")}, Sources: []string{"links"}}}
 	})
 }

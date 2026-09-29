@@ -43,7 +43,7 @@ func init() {
 		if len(missing) == 0 {
 			return nil
 		}
-		return []Finding{{Fingerprint: "gap", Rule: "backups.gap", Severity: enums.SeverityInfo, Message: "backups.gap",
+		return []Finding{{Fingerprint: "gap", Severity: enums.SeverityInfo, Message: "backups.gap",
 			Params: map[string]any{"count": len(missing), "names": shortList(missing)}, Sources: []string{"backups"}}}
 	})
 }

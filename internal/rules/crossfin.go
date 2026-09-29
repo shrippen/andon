@@ -88,7 +88,7 @@ func init() {
 				continue
 			}
 			found = append(found, Finding{
-				Fingerprint: "rate:" + strings.ToLower(r.Customer), Rule: "in.rate_below", Severity: enums.SeverityInfo,
+				Fingerprint: "rate:" + strings.ToLower(r.Customer), Severity: enums.SeverityInfo,
 				Message: "in.rate_below", Params: map[string]any{"client": r.Customer, "full": Money(r.Full, ninja.Currency),
 					"nominal": Money(r.Nominal, ninja.Currency), "other": Num(r.OtherH, 0), "travel": Num(r.TravelH, 0)},
 				Sources: []string{kimaiKey, ninjaKey},
@@ -119,8 +119,7 @@ func init() {
 			if !s.Deadline.IsZero() {
 				msg, params["deadline"] = "sure.subscription_unused_deadline", Day(s.Deadline)
 			}
-			found = append(found, Finding{Fingerprint: "sub:" + strings.ToLower(s.Name), Rule: "sure.subscription_unused",
-				Severity: enums.SeverityInfo, Message: msg, Params: params, Sources: []string{string(enums.ServiceSure)}})
+			found = append(found, Finding{Fingerprint: "sub:" + strings.ToLower(s.Name), Severity: enums.SeverityInfo, Message: msg, Params: params, Sources: []string{string(enums.ServiceSure)}})
 		}
 		return found
 	})
@@ -135,7 +134,7 @@ func init() {
 		if s.Free >= 0 {
 			return nil
 		}
-		return []Finding{{Fingerprint: "spendable", Rule: "sure.spendable_negative", Severity: enums.SeverityWarn,
+		return []Finding{{Fingerprint: "spendable", Severity: enums.SeverityWarn,
 			Message: "sure.spendable_negative", Params: map[string]any{"cash": Money(s.Cash, sure.Currency),
 				"reserved": Money(s.VAT+s.IncomeTax+s.Fixed, sure.Currency), "missing": Money(-s.Free, sure.Currency)},
 			Sources: []string{string(enums.ServiceSure), ninjaKey}}}
@@ -162,8 +161,7 @@ func init() {
 		}
 		var found []Finding
 		for d, m := range minutes {
-			found = append(found, Finding{Fingerprint: "free:" + d.Format(time.DateOnly), Rule: "kimai.booked_free_day",
-				Severity: enums.SeverityInfo, Message: "kimai.booked_free_day", Params: map[string]any{"day": Day(d), "hours": hoursParam(float64(m))},
+			found = append(found, Finding{Fingerprint: "free:" + d.Format(time.DateOnly), Severity: enums.SeverityInfo, Message: "kimai.booked_free_day", Params: map[string]any{"day": Day(d), "hours": hoursParam(float64(m))},
 				Sources: []string{kimaiSource}})
 		}
 		return found
@@ -179,7 +177,7 @@ func init() {
 		if !ok || g.LastYearH < cfgFloat(cfg, "min_hours") || g.RecentH >= g.LastYearH*cfgFloat(cfg, "ratio") {
 			return nil
 		}
-		return []Finding{{Fingerprint: "gap:" + env.Today.Format("2006-01"), Rule: "in.order_gap", Severity: enums.SeverityWarn,
+		return []Finding{{Fingerprint: "gap:" + env.Today.Format("2006-01"), Severity: enums.SeverityWarn,
 			Message: "in.order_gap", Params: map[string]any{"recent": Num(g.RecentH, 0), "last_year": Num(g.LastYearH, 0),
 				"ahead": Num(g.AheadLastYearH, 0), "quotes": g.OpenQuotes, "quote_sum": Money(g.QuoteSum, "")},
 			Sources: []string{kimaiKey, ninjaKey}}}
@@ -191,8 +189,7 @@ func init() {
 			if w.LongWeeks < cfgInt(cfg, "weeks") && w.DaysSinceFree < cfgInt(cfg, "days") {
 				return nil
 			}
-			return []Finding{{Fingerprint: "workload:" + metrics.WeekStart(env.Today).Format(time.DateOnly), Rule: "kimai.workload",
-				Severity: enums.SeverityInfo, Message: "kimai.workload",
+			return []Finding{{Fingerprint: "workload:" + metrics.WeekStart(env.Today).Format(time.DateOnly), Severity: enums.SeverityInfo, Message: "kimai.workload",
 				Params: map[string]any{"weeks": w.LongWeeks, "last_week": Num(w.LastWeekH, 0), "late": w.LateEvenings,
 					"weekend": w.WeekendDays, "free": w.DaysSinceFree},
 				Sources: []string{kimaiSource}}}
@@ -210,8 +207,7 @@ func init() {
 			if m.Revenue < cfgFloat(cfg, "min_amount") || m.Margin >= cfgFloat(cfg, "goal") {
 				continue
 			}
-			found = append(found, Finding{Fingerprint: "margin:" + strings.ToLower(m.Project), Rule: "kimai.margin_low",
-				Severity: enums.SeverityInfo, Message: "kimai.margin_low",
+			found = append(found, Finding{Fingerprint: "margin:" + strings.ToLower(m.Project), Severity: enums.SeverityInfo, Message: "kimai.margin_low",
 				Params: map[string]any{"project": m.Project, "margin": Num(m.Margin*100, 0), "revenue": Money(m.Revenue, ""),
 					"expenses": Money(m.Expenses, ""), "time_cost": Money(m.TimeCost, "")},
 				Sources: []string{kimaiKey}})

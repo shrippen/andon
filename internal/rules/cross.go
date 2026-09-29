@@ -121,8 +121,7 @@ func init() {
 					name = "?"
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("novisit:%d", s.ID), Rule: "geo.time_without_visit",
-					Severity: enums.SeverityInfo, Message: "geo.time_without_visit",
+					Fingerprint: fmt.Sprintf("novisit:%d", s.ID), Severity: enums.SeverityInfo, Message: "geo.time_without_visit",
 					Params:  map[string]any{"customer": name, "day": Day(when)},
 					Sources: []string{string(enums.ServiceKimai), string(enums.ServiceDawarich)},
 				})
@@ -146,8 +145,7 @@ func init() {
 				return nil
 			}
 			return []Finding{{
-				Fingerprint: "travel:" + start.Format("2006-01"), Rule: "geo.travel_costs",
-				Severity: enums.SeverityInfo, Message: "geo.travel_costs",
+				Fingerprint: "travel:" + start.Format("2006-01"), Severity: enums.SeverityInfo, Message: "geo.travel_costs",
 				Params: map[string]any{
 					"trips": len(trips), "km": Num(km, 0), "amount": Money(km*cfgFloat(cfg, "km_rate"), ""),
 					"month": start.Format("01/2006"),
@@ -173,8 +171,7 @@ func init() {
 				return nil
 			}
 			return []Finding{{
-				Fingerprint: "perdiem:" + start.Format("2006-01"), Rule: "geo.per_diem",
-				Severity: enums.SeverityInfo, Message: "geo.per_diem",
+				Fingerprint: "perdiem:" + start.Format("2006-01"), Severity: enums.SeverityInfo, Message: "geo.per_diem",
 				Params: map[string]any{
 					"days": days, "amount": Money(float64(days)*cfgFloat(cfg, "over_8h"), ""), "month": start.Format("01/2006"),
 				},
@@ -197,7 +194,7 @@ func init() {
 				return nil
 			}
 			return []Finding{{
-				Fingerprint: "nodata", Rule: "geo.no_data", Severity: enums.SeverityWarn, Message: "geo.no_data",
+				Fingerprint: "nodata", Severity: enums.SeverityWarn, Message: "geo.no_data",
 				Params:    map[string]any{"hours": Num(silent, 0)},
 				ActionURL: strings.TrimRight(data.URL, "/") + "/map", ActionLabel: "open_in_dawarich",
 				Sources: []string{string(enums.ServiceDawarich)},
@@ -236,8 +233,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("expense:%d", asset.ID), Rule: "snipe.expense_missing",
-					Severity: enums.SeverityInfo, Message: "snipe.expense_missing",
+					Fingerprint: fmt.Sprintf("expense:%d", asset.ID), Severity: enums.SeverityInfo, Message: "snipe.expense_missing",
 					Params:  map[string]any{"asset": asset.Name, "amount": Money(cost, ""), "day": Day(bought)},
 					Sources: []string{string(enums.ServiceSnipeIT), string(enums.ServiceInvoiceNinja)},
 				})

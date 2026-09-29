@@ -143,7 +143,7 @@ func registerSureCross() {
 				continue
 			}
 			found = append(found, Finding{
-				Fingerprint: fmt.Sprintf("paid:%d", m.Invoice.ID), Rule: "cross.invoice_paid", Severity: enums.SeverityWarn,
+				Fingerprint: fmt.Sprintf("paid:%d", m.Invoice.ID), Severity: enums.SeverityWarn,
 				Message: "cross.invoice_paid", Params: map[string]any{"number": m.Invoice.Number, "client": m.Invoice.Client,
 					"amount": Money(m.Txn.Amount, ninja.Currency), "day": Day(m.Day), "account": m.Txn.Account},
 				ActionURL: "/billing#payments", ActionLabel: "book_payment",
@@ -165,7 +165,7 @@ func registerSureCross() {
 		var found []Finding
 		for _, t := range metrics.UnmatchedIncome(sure, ninja, matches, env.Today, days) {
 			found = append(found, Finding{
-				Fingerprint: "unmatched:" + t.ID, Rule: "cross.payment_unmatched", Severity: enums.SeverityInfo,
+				Fingerprint: "unmatched:" + t.ID, Severity: enums.SeverityInfo,
 				Message: "cross.payment_unmatched", Params: map[string]any{"name": t.Name, "amount": Money(t.Amount, sure.Currency), "day": DayStr(t.Date)},
 				Sources: sources2,
 			})
@@ -188,7 +188,7 @@ func registerSureCross() {
 			var found []Finding
 			for _, t := range metrics.MissingReceipts(in) {
 				found = append(found, Finding{
-					Fingerprint: "expense:" + t.ID, Rule: "cross.expense_unrecorded", Severity: enums.SeverityInfo,
+					Fingerprint: "expense:" + t.ID, Severity: enums.SeverityInfo,
 					Message: "cross.expense_unrecorded", Params: map[string]any{"name": t.Name, "amount": Money(-t.Amount, sure.Currency),
 						"day": DayStr(t.Date), "account": t.Account},
 					ActionURL: strings.TrimRight(ninja.URL, "/") + "/expenses/create", ActionLabel: "open_in_invoiceninja",
@@ -216,7 +216,7 @@ func registerSureCross() {
 				names[i] = r.Name
 			}
 			return []Finding{{
-				Fingerprint: "missing", Rule: "cross.wallos_missing", Severity: enums.SeverityInfo, Message: "cross.wallos_missing",
+				Fingerprint: "missing", Severity: enums.SeverityInfo, Message: "cross.wallos_missing",
 				Params:    map[string]any{"count": len(missing), "names": shortList(names)},
 				ActionURL: wallos.URL, ActionLabel: "open_in_wallos",
 				Sources: []string{string(enums.ServiceSure), string(enums.ServiceWallos)},

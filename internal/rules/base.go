@@ -83,7 +83,21 @@ func Register(id string, scope string, defaults map[string]any, fn RuleFunc) {
 	for k, v := range defaults {
 		merged[k] = v
 	}
-	registry[id] = Spec{ID: id, Scope: scope, Defaults: merged, Run: fn}
+	registry[id] = Spec{ID: id, Scope: scope, Defaults: merged, Run: ownRule(id, fn)}
+}
+
+// ownRule stamps the rule id on findings that leave Rule empty, so a
+// rule body need not repeat its own id.
+func ownRule(id string, fn RuleFunc) RuleFunc {
+	return func(raw any, cfg map[string]any, env Env) []Finding {
+		found := fn(raw, cfg, env)
+		for i := range found {
+			if found[i].Rule == "" {
+				found[i].Rule = id
+			}
+		}
+		return found
+	}
 }
 
 // needs lists, per rule, the services without which a run of it says

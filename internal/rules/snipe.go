@@ -60,8 +60,7 @@ func init() {
 					level = enums.SeverityWarn
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("warranty:%d", a.ID), Rule: "snipe.warranty_expiring",
-					Severity: level, Message: "snipe.warranty",
+					Fingerprint: fmt.Sprintf("warranty:%d", a.ID), Severity: level, Message: "snipe.warranty",
 					Params:    map[string]any{"asset": a.Name, "tag": a.Tag, "day": Day(ends)},
 					ActionURL: snipeURL(data, fmt.Sprintf("hardware/%d", a.ID)), ActionLabel: snipeOpen,
 					Due: ends.Format("2006-01-02"), Sources: []string{snipeSource},
@@ -81,8 +80,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("checkin:%d", a.ID), Rule: "snipe.checkin_overdue",
-					Severity: enums.SeverityWarn, Message: "snipe.checkin_overdue",
+					Fingerprint: fmt.Sprintf("checkin:%d", a.ID), Severity: enums.SeverityWarn, Message: "snipe.checkin_overdue",
 					Params:    map[string]any{"asset": a.Name, "tag": a.Tag, "who": a.AssignedTo, "day": Day(due)},
 					ActionURL: snipeURL(data, fmt.Sprintf("hardware/%d", a.ID)), ActionLabel: snipeOpen,
 					Due: due.Format(time.DateOnly), Sources: []string{snipeSource},
@@ -101,8 +99,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("eol:%d", a.ID), Rule: "snipe.eol_reached",
-					Severity: enums.SeverityInfo, Message: "snipe.eol",
+					Fingerprint: fmt.Sprintf("eol:%d", a.ID), Severity: enums.SeverityInfo, Message: "snipe.eol",
 					Params:    map[string]any{"asset": a.Name, "tag": a.Tag, "day": DayStr(a.EOLDate)},
 					ActionURL: snipeURL(data, fmt.Sprintf("hardware/%d", a.ID)), ActionLabel: snipeOpen,
 					Sources: []string{snipeSource},
@@ -125,8 +122,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("license:%d", l.ID), Rule: "snipe.license_expiring",
-					Severity: enums.SeverityWarn, Message: "snipe.license",
+					Fingerprint: fmt.Sprintf("license:%d", l.ID), Severity: enums.SeverityWarn, Message: "snipe.license",
 					Params:    map[string]any{"license": l.Name, "day": Day(d)},
 					ActionURL: snipeURL(data, fmt.Sprintf("licenses/%d", l.ID)), ActionLabel: snipeOpen,
 					Due: l.Expires, Sources: []string{snipeSource},
@@ -144,8 +140,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("seats:%d", l.ID), Rule: "snipe.license_seats",
-					Severity: enums.SeverityInfo, Message: "snipe.seats",
+					Fingerprint: fmt.Sprintf("seats:%d", l.ID), Severity: enums.SeverityInfo, Message: "snipe.seats",
 					Params:    map[string]any{"license": l.Name, "seats": l.Seats},
 					ActionURL: snipeURL(data, fmt.Sprintf("licenses/%d", l.ID)), ActionLabel: snipeOpen,
 					Sources: []string{snipeSource},
@@ -168,8 +163,7 @@ func init() {
 					name = fmt.Sprintf("#%d", aid)
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("audit:%d", aid), Rule: "snipe.audit_overdue",
-					Severity: enums.SeverityWarn, Message: "snipe.audit",
+					Fingerprint: fmt.Sprintf("audit:%d", aid), Severity: enums.SeverityWarn, Message: "snipe.audit",
 					Params:    map[string]any{"asset": name},
 					ActionURL: snipeURL(data, fmt.Sprintf("hardware/%d", aid)), ActionLabel: snipeOpen,
 					Sources: []string{snipeSource},
@@ -187,8 +181,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("stock:%d", c.ID), Rule: "snipe.consumable_low",
-					Severity: enums.SeverityInfo, Message: "snipe.stock",
+					Fingerprint: fmt.Sprintf("stock:%d", c.ID), Severity: enums.SeverityInfo, Message: "snipe.stock",
 					Params:    map[string]any{"item": c.Name, "left": c.Remaining, "min": c.Min},
 					ActionURL: snipeURL(data, fmt.Sprintf("consumables/%d", c.ID)), ActionLabel: snipeOpen,
 					Sources: []string{snipeSource},
@@ -222,8 +215,7 @@ func init() {
 			}
 			sort.SliceStable(idle, func(i, j int) bool { return idle[i].days > idle[j].days })
 			return []Finding{{
-				Fingerprint: "unused", Rule: "snipe.unassigned_deployable",
-				Severity: enums.SeverityInfo, Message: "snipe.unused",
+				Fingerprint: "unused", Severity: enums.SeverityInfo, Message: "snipe.unused",
 				Params: map[string]any{"count": len(idle), "days": cfgInt(cfg, "days"), "oldest": idle[0].days,
 					"names": agedNames(idle)},
 				ActionURL: snipeURL(data, "hardware?status=RTD"), ActionLabel: snipeOpen,
@@ -248,8 +240,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("gwg:%d", a.ID), Rule: "snipe.gwg_hint",
-					Severity: enums.SeverityInfo, Message: "snipe.gwg",
+					Fingerprint: fmt.Sprintf("gwg:%d", a.ID), Severity: enums.SeverityInfo, Message: "snipe.gwg",
 					Params:    map[string]any{"asset": a.Name, "net": Money(net, "")},
 					ActionURL: snipeURL(data, fmt.Sprintf("hardware/%d", a.ID)), ActionLabel: snipeOpen,
 					Sources: []string{snipeSource},

@@ -40,8 +40,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("timer:%d", r.Sheet.ID), Rule: "kimai.timer_running_long",
-					Severity: enums.SeverityWarn, Message: "kimai.timer_long",
+					Fingerprint: fmt.Sprintf("timer:%d", r.Sheet.ID), Severity: enums.SeverityWarn, Message: "kimai.timer_long",
 					Params:    map[string]any{"hours": hoursParam(float64(r.RunningMin))},
 					ActionURL: kimaiURL(data, "timesheet/"), ActionLabel: kimaiOpen, Sources: []string{kimaiSource},
 				})
@@ -68,8 +67,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: "missing:" + d.Format("2006-01-02"), Rule: "kimai.missing_day",
-					Severity: enums.SeverityInfo, Message: "kimai.missing_day",
+					Fingerprint: "missing:" + d.Format("2006-01-02"), Severity: enums.SeverityInfo, Message: "kimai.missing_day",
 					Params: map[string]any{"day": Day(d)}, ActionURL: kimaiURL(data, "timesheet/"),
 					ActionLabel: kimaiOpen, Sources: []string{kimaiSource},
 				})
@@ -91,8 +89,7 @@ func init() {
 					level = enums.SeverityCritical
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("unbilled:%d", g.CustomerID), Rule: "kimai.unbilled_hours",
-					Severity: level, Message: "kimai.unbilled",
+					Fingerprint: fmt.Sprintf("unbilled:%d", g.CustomerID), Severity: level, Message: "kimai.unbilled",
 					Params: map[string]any{
 						"hours": hoursParam(float64(g.Minutes)), "customer": g.Customer,
 						"amount": Money(g.Amount, ""), "oldest": DayStr(g.Oldest), "days": cfgFloat(cfg, "warn_days"),
@@ -129,7 +126,7 @@ func init() {
 					level = enums.SeverityCritical
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("budget:%d", p.ID), Rule: "kimai.budget_burn", Severity: level,
+					Fingerprint: fmt.Sprintf("budget:%d", p.ID), Severity: level,
 					Message:     "kimai.budget",
 					Params:      map[string]any{"project": p.Name, "percent": Num(ratio*100, 0)},
 					ActionURL:   kimaiURL(data, fmt.Sprintf("admin/project/%d/details", p.ID)),
@@ -149,8 +146,7 @@ func init() {
 					continue
 				}
 				found = append(found, Finding{
-					Fingerprint: fmt.Sprintf("pace:%d", f.ProjectID), Rule: "kimai.budget_pace",
-					Severity: enums.SeverityWarn, Message: "kimai.runout",
+					Fingerprint: fmt.Sprintf("pace:%d", f.ProjectID), Severity: enums.SeverityWarn, Message: "kimai.runout",
 					Params: map[string]any{"project": f.Project, "runout": Day(f.RunOut), "end": Day(f.End),
 						"gap": f.GapDays, "percent": Num(f.Used*100, 0)},
 					ActionURL:   kimaiURL(data, fmt.Sprintf("admin/project/%d/details", f.ProjectID)),
@@ -172,8 +168,7 @@ func init() {
 				return nil
 			}
 			return []Finding{{
-				Fingerprint: "utilization:" + env.Today.Format("2006-01"), Rule: "kimai.utilization_low",
-				Severity: enums.SeverityInfo, Message: "kimai.utilization",
+				Fingerprint: "utilization:" + env.Today.Format("2006-01"), Severity: enums.SeverityInfo, Message: "kimai.utilization",
 				Params:  map[string]any{"percent": Num(*stats.Utilization*100, 0), "goal": Num(cfgFloat(cfg, "goal")*100, 0)},
 				Sources: []string{kimaiSource},
 			}}
@@ -207,8 +202,7 @@ func init() {
 			}
 			average := float64(sum) / float64(len(weeks))
 			return []Finding{{
-				Fingerprint: "overtime:" + weeks[0].Format("2006-01-02"), Rule: "kimai.overtime",
-				Severity: enums.SeverityInfo, Message: "kimai.overtime",
+				Fingerprint: "overtime:" + weeks[0].Format("2006-01-02"), Severity: enums.SeverityInfo, Message: "kimai.overtime",
 				Params: map[string]any{
 					"hours": hoursParam(average), "weeks": weeksBack, "limit": cfgFloat(cfg, "max_week_hours"),
 				},
@@ -235,8 +229,7 @@ func init() {
 				return nil
 			}
 			return []Finding{{
-				Fingerprint: "close:" + start.Format("2006-01"), Rule: "kimai.monthly_close",
-				Severity: enums.SeverityWarn, Message: "kimai.monthly_close",
+				Fingerprint: "close:" + start.Format("2006-01"), Severity: enums.SeverityWarn, Message: "kimai.monthly_close",
 				Params:    map[string]any{"month": start.Format("01/2006"), "hours": hoursParam(float64(openMin))},
 				ActionURL: kimaiURL(data, "abrechnung"), ActionLabel: kimaiOpen, Sources: []string{kimaiSource},
 			}}

@@ -22,8 +22,7 @@ func init() {
 	Register("system.unused_service", Cross, map[string]any{"days": 90.0}, func(_ any, cfg map[string]any, env Env) []Finding {
 		var found []Finding
 		for _, u := range metrics.UnusedServices(env.Datasets, Usages(env), env.Today, cfgInt(cfg, "days")) {
-			found = append(found, Finding{Fingerprint: "unused:" + u.Kind + ":" + strings.ToLower(u.Name), Rule: "system.unused_service",
-				Severity: enums.SeverityInfo, Message: "system.unused_service",
+			found = append(found, Finding{Fingerprint: "unused:" + u.Kind + ":" + strings.ToLower(u.Name), Severity: enums.SeverityInfo, Message: "system.unused_service",
 				Params:  map[string]any{"name": u.Name, "kind": u.Kind, "days": cfgInt(cfg, "days"), "gb": Num(u.MemBytes/bytesPerGB, 1)},
 				Sources: []string{system}})
 		}
@@ -45,7 +44,7 @@ func init() {
 			if j.Price-j.CheapPrice < cfgFloat(cfg, "min_saving") {
 				continue
 			}
-			found = append(found, Finding{Fingerprint: "shift:" + j.Job, Rule: "energy.shift_jobs", Severity: enums.SeverityInfo,
+			found = append(found, Finding{Fingerprint: "shift:" + j.Job, Severity: enums.SeverityInfo,
 				Message: "energy.shift_jobs", Params: map[string]any{"job": j.Job, "hour": j.Hour, "cheap_hour": j.CheapHour,
 					"price": Money(j.Price, tibber.Currency), "cheap_price": Money(j.CheapPrice, tibber.Currency)},
 				Sources: []string{string(enums.ServiceTibber)}})
@@ -66,7 +65,7 @@ func init() {
 			if r.PaybackMonths > cfgInt(cfg, "max_months") {
 				continue
 			}
-			found = append(found, Finding{Fingerprint: "replace:" + strings.ToLower(r.Asset), Rule: "snipe.replace_worth", Severity: enums.SeverityInfo,
+			found = append(found, Finding{Fingerprint: "replace:" + strings.ToLower(r.Asset), Severity: enums.SeverityInfo,
 				Message: "snipe.replace_worth", Params: map[string]any{"name": r.Asset, "years": Num(r.AgeYears, 0), "watts": Num(r.Watts, 0),
 					"yearly": Money(r.YearlyCost, ""), "months": r.PaybackMonths, "new_watts": Num(cfgFloat(cfg, "new_watts"), 0), "new_cost": Money(cfgFloat(cfg, "new_cost"), "")},
 				Sources: []string{string(enums.ServiceSnipeIT), string(enums.ServiceHomeAssistant)}})
@@ -83,8 +82,7 @@ func init() {
 		if !ok || w.Deviation < cfgFloat(cfg, "share") {
 			return nil
 		}
-		return []Finding{{Fingerprint: "weather:" + metrics.WeekStart(env.Today).Format(time.DateOnly), Rule: "energy.weather_adjusted",
-			Severity: enums.SeverityInfo, Message: "energy.weather_adjusted",
+		return []Finding{{Fingerprint: "weather:" + metrics.WeekStart(env.Today).Format(time.DateOnly), Severity: enums.SeverityInfo, Message: "energy.weather_adjusted",
 			Params:  map[string]any{"actual": Num(w.ActualKWh, 0), "expected": Num(w.ExpectedKWh, 0), "percent": Num(w.Deviation*100, 0)},
 			Sources: []string{string(enums.ServiceTibber)}}}
 	})

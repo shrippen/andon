@@ -80,7 +80,7 @@ func init() {
 			if f.FullIn <= cfgInt(cfg, "critical_days") {
 				level = enums.SeverityCritical
 			}
-			found = append(found, Finding{Fingerprint: "full:" + f.Key, Rule: "system.storage_forecast", Severity: level,
+			found = append(found, Finding{Fingerprint: "full:" + f.Key, Severity: level,
 				Message: "system.storage_forecast", Params: map[string]any{"name": f.Label, "percent": Num(f.Used*100, 0),
 					"days": f.FullIn, "day": Day(env.Today.AddDate(0, 0, f.FullIn))},
 				Due: env.Today.AddDate(0, 0, f.FullIn).Format(time.DateOnly), Sources: []string{system}})
@@ -105,7 +105,7 @@ func init() {
 		if env.Today.Sub(last).Hours()/hoursPerDay > cfgFloat(cfg, "warn_days") {
 			level = enums.SeverityWarn
 		}
-		return []Finding{{Fingerprint: "unsaved", Rule: "backups.unsaved", Severity: level, Message: "backups.unsaved",
+		return []Finding{{Fingerprint: "unsaved", Severity: level, Message: "backups.unsaved",
 			Params:  map[string]any{"items": strings.Join(parts, ", "), "tool": tool, "day": Day(last)},
 			Sources: []string{system}}}
 	})
@@ -113,8 +113,7 @@ func init() {
 	Register("system.slower_since_update", Cross, map[string]any{"factor": 1.5}, func(_ any, cfg map[string]any, env Env) []Finding {
 		var found []Finding
 		for _, s := range metrics.Slowdowns(historyOf(env), env.Today, cfgFloat(cfg, "factor"), metrics.CenterOf(env.Settings)) {
-			found = append(found, Finding{Fingerprint: "slower:" + s.Monitor + ":" + s.At.Format(time.DateOnly), Rule: "system.slower_since_update",
-				Severity: enums.SeverityWarn, Message: "system.slower_since_update",
+			found = append(found, Finding{Fingerprint: "slower:" + s.Monitor + ":" + s.At.Format(time.DateOnly), Severity: enums.SeverityWarn, Message: "system.slower_since_update",
 				Params:  map[string]any{"subject": s.Subject, "monitor": s.Monitor, "before": Num(s.BeforeMS, 0), "now": Num(s.NowMS, 0), "day": Day(s.At)},
 				Sources: []string{system, string(enums.ServiceUptimeKuma)}})
 		}
@@ -132,7 +131,7 @@ func init() {
 			if r.Risk < 2 {
 				continue
 			}
-			found = append(found, Finding{Fingerprint: "exposed:" + r.Domain, Rule: "pangolin.exposure", Severity: enums.SeverityWarn,
+			found = append(found, Finding{Fingerprint: "exposed:" + r.Domain, Severity: enums.SeverityWarn,
 				Message: "pangolin.exposure", Params: map[string]any{"name": r.Name, "domain": r.Domain, "updates": shortList(r.Updates),
 					"cert": r.CertDays},
 				Sources: []string{string(enums.ServicePangolin)}})
@@ -152,9 +151,8 @@ func init() {
 			if a.Reason == metrics.LoginFar {
 				level, msg = enums.SeverityCritical, "authentik.far_login"
 			}
-			found = append(found, Finding{Fingerprint: "login:" + a.User + ":" + a.At.Format(time.RFC3339), Rule: "authentik.login_anomaly",
-				Severity: level, Message: msg, Params: map[string]any{"user": a.User, "country": a.Country, "city": a.City, "ip": a.IP,
-					"km": Num(a.KM, 0), "when": Day(a.At)},
+			found = append(found, Finding{Fingerprint: "login:" + a.User + ":" + a.At.Format(time.RFC3339), Severity: level, Message: msg, Params: map[string]any{"user": a.User, "country": a.Country, "city": a.City, "ip": a.IP,
+				"km": Num(a.KM, 0), "when": Day(a.At)},
 				ActionURL: strings.TrimRight(ak.URL, "/") + "/if/admin/#/events/log", ActionLabel: "open_in_authentik",
 				Sources: []string{string(enums.ServiceAuthentik)}})
 		}
@@ -165,8 +163,7 @@ func init() {
 		var found []Finding
 		for _, dns := range dnsFilters(env) {
 			for _, s := range metrics.DeviceSpikes(dns, historyOf(env), env.Today, cfgFloat(cfg, "factor"), cfgInt(cfg, "min_queries"), metrics.CenterOf(env.Settings)) {
-				found = append(found, Finding{Fingerprint: "spike:" + s.IP + ":" + env.Today.Format(time.DateOnly), Rule: "dns.device_spike",
-					Severity: enums.SeverityWarn, Message: "dns.device_spike",
+				found = append(found, Finding{Fingerprint: "spike:" + s.IP + ":" + env.Today.Format(time.DateOnly), Severity: enums.SeverityWarn, Message: "dns.device_spike",
 					Params:    map[string]any{"device": deviceName(s.DNSClient), "queries": s.Queries, "usual": Num(s.Usual, 0), "blocked": s.Blocked},
 					ActionURL: dns.URL, Sources: []string{system}})
 			}
@@ -178,7 +175,7 @@ func init() {
 		var found []Finding
 		for _, dns := range dnsFilters(env) {
 			for _, c := range metrics.NewDevices(dns, historyOf(env), env.Today) {
-				found = append(found, Finding{Fingerprint: "new:" + c.IP, Rule: "dns.new_device", Severity: enums.SeverityInfo,
+				found = append(found, Finding{Fingerprint: "new:" + c.IP, Severity: enums.SeverityInfo,
 					Message: "dns.new_device", Params: map[string]any{"ip": c.IP, "queries": c.Queries, "blocked": c.Blocked},
 					ActionURL: dns.URL, Sources: []string{system}})
 			}
@@ -195,7 +192,7 @@ func init() {
 		if r.BelowDays < cfgInt(cfg, "min_count") {
 			return nil
 		}
-		return []Finding{{Fingerprint: "contract:" + env.Today.Format("2006-01"), Rule: "speedtest.contract", Severity: enums.SeverityInfo,
+		return []Finding{{Fingerprint: "contract:" + env.Today.Format("2006-01"), Severity: enums.SeverityInfo,
 			Message: "speedtest.contract", Params: map[string]any{"below": r.BelowDays, "measured": len(r.Days), "outages": len(r.Outages),
 				"expect": Num(st.ExpectDown, 0), "share": Num(cfgFloat(cfg, "share")*100, 0)},
 			ActionURL: "/reports/isp", ActionLabel: "isp_report", Sources: []string{string(enums.ServiceSpeedtest)}}}
@@ -220,7 +217,7 @@ func init() {
 		if last.IsZero() {
 			msg = "dwd.storm_prep_nobackup"
 		}
-		return []Finding{{Fingerprint: "storm:" + w.ID, Rule: "dwd.storm_prep", Severity: enums.SeverityWarn, Message: msg,
+		return []Finding{{Fingerprint: "storm:" + w.ID, Severity: enums.SeverityWarn, Message: msg,
 			Params: params, Sources: []string{string(enums.ServiceDWD), system}}}
 	})
 
@@ -235,7 +232,7 @@ func init() {
 		if vpn.Status == "running" && !leaking && !wrongCountry {
 			return nil
 		}
-		return []Finding{{Fingerprint: "exposed", Rule: "gluetun.downloads_exposed", Severity: enums.SeverityCritical,
+		return []Finding{{Fingerprint: "exposed", Severity: enums.SeverityCritical,
 			Message: "gluetun.downloads_exposed", Params: map[string]any{"status": vpn.Status, "queue": sab.Slots},
 			ActionURL: sab.URL, ActionLabel: "open_in_sabnzbd", Sources: []string{string(enums.ServiceGluetun), string(enums.ServiceSabnzbd)}}}
 	})
