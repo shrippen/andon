@@ -64,3 +64,27 @@ func TestTokenURLsAreNotCached(t *testing.T) {
 		t.Fatalf("headers: %v", rec.Header())
 	}
 }
+
+// TestCrossSiteFormRefused: another site cannot post a login (login
+// CSRF) or a reset; the browser marks such requests cross-site.
+func TestCrossSiteFormRefused(t *testing.T) {
+	crypto.Init("test-master-key")
+	database, err := db.Open(filepath.Join(t.TempDir(), "test.db"), dbtest.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { database.Close() })
+	d := Deps{DB: database}
+	ok := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	for site, want := range map[string]int{"cross-site": http.StatusForbidden, "same-origin": http.StatusNoContent, "": http.StatusNoContent} {
+		req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader("email=a&password=b"))
+		if site != "" {
+			req.Header.Set("Sec-Fetch-Site", site)
+		}
+		rec := httptest.NewRecorder()
+		d.Secure(ok).ServeHTTP(rec, req)
+		if rec.Code != want {
+			t.Errorf("%q: %d, want %d", site, rec.Code, want)
+		}
+	}
+}
