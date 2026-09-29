@@ -692,6 +692,12 @@
     }, true);
   }
 
+  function forgetPlace() {
+    try {
+      window.sessionStorage.removeItem(PLACE_KEY);
+    } catch (err) { /* nothing stored */ }
+  }
+
   function restorePlace() {
     var place = null;
     try {
@@ -1006,6 +1012,16 @@
     }
     d.addEventListener("htmx:beforeSwap", function (e) {
       if (!e.detail.boosted) {
+        return;
+      }
+      // A section answer (a form targeting its section, see boardPart) is
+      // no page change; on an error (a stale version) reload the page.
+      if (e.detail.target !== d.body) {
+        forgetPlace();
+        if (e.detail.xhr.status >= 400) {
+          e.detail.shouldSwap = false;
+          window.location.reload();
+        }
         return;
       }
       var xhr = e.detail.xhr;

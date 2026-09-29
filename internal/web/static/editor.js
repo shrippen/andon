@@ -69,15 +69,23 @@
     }).catch(reload);
   }
 
-  window.andonPage(function () {
+  function editedBoard() {
     var board = d.querySelector(".board[data-mode]");
     if (!board || !board.getAttribute("data-mode") || typeof Sortable === "undefined") {
-      return;
+      return null;
     }
+    return board;
+  }
 
+  // bind makes the tile lists in root draggable, once each.
+  function bind(board, root) {
     // Editors may move tiles between sections; personal layouts only within one.
     var shared = board.getAttribute("data-mode") === "board" ? "tiles" : null;
-    [].forEach.call(board.querySelectorAll("[data-sortable]"), function (list) {
+    [].forEach.call(root.querySelectorAll("[data-sortable]"), function (list) {
+      if (list.hasAttribute("data-bound")) {
+        return;
+      }
+      list.setAttribute("data-bound", "");
       Sortable.create(list, {
         group: shared ? { name: shared } : "section-" + list.getAttribute("data-sortable"),
         animation: 120,
@@ -92,6 +100,34 @@
         onEnd: function () { save(board); }
       });
     });
+  }
+
+  window.andonPage(function () {
+    var board = editedBoard();
+    if (board) {
+      bind(board, board);
+    }
+  });
+
+  // A section answer (see boardPart): bind its tiles, carry the board's
+  // new version into the rest of the page, point at undo like ?undo does.
+  d.addEventListener("htmx:load", function (e) {
+    var board = editedBoard();
+    if (board && e.target.matches && e.target.matches(".dsec")) {
+      bind(board, e.target);
+    }
+  });
+  d.addEventListener("boardVersion", function (e) {
+    var board = editedBoard();
+    if (board) {
+      carryOn(board, String(e.detail.value));
+    }
+  });
+  d.addEventListener("undoHint", function (e) {
+    var undo = d.querySelector('form[action$="/undo"] button');
+    if (undo && e.detail.value) {
+      undo.classList.add("is-hint");
+    }
   });
 })();
 

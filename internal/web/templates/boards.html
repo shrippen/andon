@@ -156,11 +156,14 @@
 </html>
 {{end}}
 
+{{/* One section alone: the answer to an action on it (see boardPart). */}}
+{{define "board_section"}}{{range .Board.Sections}}{{if eq .ID $.Section}}{{template "section" dict "S" . "B" $}}{{end}}{{end}}{{end}}
+
 {{/* "dict" packs the section and the root context into one pipeline,
      since {{template}} takes a single argument. */}}
 {{define "section"}}
 {{$b := .B}}{{with .S}}
-<section class="dsec{{if .Collapsed}} is-collapsed{{end}}{{if and (not .Title) (not $b.Edit) (not $b.LayerEdit)}} is-bare{{end}}" data-section="{{.ID}}"{{with .Span}} data-span="{{.}}"{{end}}{{with .Rows}} data-rows="{{.}}"{{end}}{{with .Color}} data-color="{{.}}"{{end}}{{with .Mobile}} data-mobile="{{.}}"{{end}}>
+<section id="dsec-{{.ID}}" class="dsec{{if .Collapsed}} is-collapsed{{end}}{{if and (not .Title) (not $b.Edit) (not $b.LayerEdit)}} is-bare{{end}}" data-section="{{.ID}}"{{with .Span}} data-span="{{.}}"{{end}}{{with .Rows}} data-rows="{{.}}"{{end}}{{with .Color}} data-color="{{.}}"{{end}}{{with .Mobile}} data-mobile="{{.}}"{{end}}>
   <header class="dsec-head">
     <button class="fold-btn" type="button" aria-expanded="{{if .Collapsed}}false{{else}}true{{end}}"
             data-fold="/boards/{{$b.Board.ID}}/fold/{{.ID}}">
@@ -172,8 +175,10 @@
     {{if $b.Edit}}
     <details class="section-tools">
       <summary class="link-btn">{{t "edit.section"}}</summary>
-      <form method="post" action="/sections/{{.ID}}/edit" class="section-form">
+      <form method="post" action="/sections/{{.ID}}/edit" class="section-form" hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false">
         <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
+        <input type="hidden" name="was_area" value="{{.Area}}">
+        <input type="hidden" name="was_span" value="{{.Span}}">
         <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
         <input type="hidden" name="version" value="{{$b.Board.Version}}">
         <label>{{t "field.title"}}<input name="title" value="{{.Title}}"></label>
@@ -212,7 +217,7 @@
     {{/* The "+" tile ends every section: gallery or a pasted link. */}}
     <div class="add-tile" data-static>
       <a class="add-tile-main" href="/widgets/new?space={{$b.Board.Space.ID}}&section={{.ID}}&board={{$b.Board.ID}}&version={{$b.Board.Version}}"><span aria-hidden="true">+</span>{{t "gallery.title"}}</a>
-      <form method="post" action="/sections/{{.ID}}/quick-link" class="quick-link">
+      <form method="post" action="/sections/{{.ID}}/quick-link" class="quick-link" hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false">
         <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
         <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
         <input type="hidden" name="version" value="{{$b.Board.Version}}">
@@ -276,8 +281,9 @@
   {{if $b.Edit}}
   {{/* One form per strip, each button its own formaction: three forms
        per tile made a 50-tile board ~2,500 elements, and buttons tied to
-       one shared form (form="…") made every swap quadratic. */}}
-  <form class="tile-strip" method="post">
+       one shared form (form="…") made every swap quadratic. htmx swaps
+       only the section in; the server answers with it alone. */}}
+  <form class="tile-strip" method="post" hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false">
     <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
     <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
     <input type="hidden" name="version" value="{{$b.Board.Version}}">
@@ -293,7 +299,7 @@
   </form>
   {{else if $b.LayerEdit}}
   {{$eye := t "edit.hide"}}{{if .Hidden}}{{$eye = t "edit.show"}}{{end}}
-  <form class="tile-strip" method="post">
+  <form class="tile-strip" method="post" hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false">
     <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
     <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
     <span class="tile-strip-gap"></span>

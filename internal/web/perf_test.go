@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"regexp"
 	"runtime"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -170,5 +172,94 @@ func TestPageSkipsWriteLock(t *testing.T) {
 	page := mustGet(t, srv, client, boardURL+"?edit")
 	if took := time.Since(start); took >= lockWait || !bytes.Contains(page, []byte("tile-")) {
 		t.Fatalf("page waited %v for the write lock", took)
+	}
+}
+
+// TestTileActionAnswersSection: a tile strip action sent by htmx for its
+// section gets only that section back, plus the board's new version; the
+// whole page would cost seconds to swap on a big board.
+func TestTileActionAnswersSection(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+	resp := getFollowingRedirect(t, srv, client, "/")
+	resp.Body.Close()
+	boardURL := resp.Request.URL.Path
+	add := addLinkRe.FindSubmatch(mustGet(t, srv, client, boardURL+"?edit"))
+	postForm(t, client, srv.URL+"/sections/"+string(add[1])+"/quick-link", url.Values{"csrf": {csrf},
+		"version": {string(add[2])}, "board_id": {boardIDFrom(boardURL)}, "url": {"https://a.example"}})
+
+	page := mustGet(t, srv, client, boardURL+"?edit")
+	placement := regexp.MustCompile(`/placements/(\d+)/rows`).FindSubmatch(page)[1]
+	section := regexp.MustCompile(`id="(dsec-\d+)"`).FindSubmatch(page)[1]
+	version := regexp.MustCompile(`data-version="(\d+)"`).FindSubmatch(page)[1]
+
+	form := url.Values{"csrf": {csrf}, "board_id": {boardIDFrom(boardURL)}, "version": {string(version)}, "rows": {"2"}}
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/placements/"+string(placement)+"/rows", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("HX-Request", "true")
+	req.Header.Set("HX-Target", string(section))
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := readAll(t, resp)
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK || !strings.HasPrefix(strings.TrimSpace(body), `<section`) || strings.Contains(body, "<html") {
+		t.Fatalf("expected the section alone, got %d:\n%.300s", resp.StatusCode, body)
+	}
+	if !strings.Contains(body, `data-placement="`+string(placement)+`" data-rows="2"`) {
+		t.Fatalf("section lacks the change:\n%s", body)
+	}
+	next, _ := strconv.Atoi(string(version))
+	if trigger := resp.Header.Get("HX-Trigger"); !strings.Contains(trigger, `"boardVersion":`+strconv.Itoa(next+1)) {
+		t.Fatalf("no new version in HX-Trigger: %q", trigger)
+	}
+}
+
+// TestSectionEditAnswersSection: renaming a section answers with the
+// section; moving it to the side area changes the page's layout, so htmx
+// is asked to reload the page.
+func TestSectionEditAnswersSection(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+	resp := getFollowingRedirect(t, srv, client, "/")
+	resp.Body.Close()
+	boardURL := resp.Request.URL.Path
+
+	edit := func(area string) *http.Response {
+		t.Helper()
+		page := mustGet(t, srv, client, boardURL+"?edit")
+		section := regexp.MustCompile(`id="dsec-(\d+)"`).FindSubmatch(page)[1]
+		version := regexp.MustCompile(`data-version="(\d+)"`).FindSubmatch(page)[1]
+		form := url.Values{"csrf": {csrf}, "board_id": {boardIDFrom(boardURL)}, "version": {string(version)}, "title": {"Renamed"},
+			"size": {"medium"}, "sort": {"manual"}, "area": {area}, "span": {"0"}, "rows": {"1"}, "mobile": {""},
+			"was_area": {"main"}, "was_span": {"0"}}
+		req, _ := http.NewRequest(http.MethodPost, srv.URL+"/sections/"+string(section)+"/edit", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("HX-Request", "true")
+		req.Header.Set("HX-Target", "dsec-"+string(section))
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return resp
+	}
+
+	resp = edit("main")
+	body := readAll(t, resp)
+	resp.Body.Close()
+	if !strings.HasPrefix(strings.TrimSpace(body), "<section") || !strings.Contains(body, "Renamed") {
+		t.Fatalf("rename: expected the section alone, got %d:\n%.300s", resp.StatusCode, body)
+	}
+
+	resp = edit("side")
+	resp.Body.Close()
+	if resp.Header.Get("HX-Refresh") != "true" {
+		t.Fatalf("area change: expected a page reload, got %d %v", resp.StatusCode, resp.Header)
 	}
 }

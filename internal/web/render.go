@@ -293,10 +293,11 @@ func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, valu
 	for k, v := range values {
 		data[k] = v
 	}
-	// A tile fragment has no header: skip the nav and onboarding queries
-	// that every one of a board's fragments would otherwise repeat.
+	// A tile fragment or a board section has no header: skip the nav and
+	// onboarding queries that every one of them would otherwise repeat.
 	_, fragment := data["Frag"]
-	if ctx.Who != nil && !fragment {
+	_, partial := data["Partial"]
+	if ctx.Who != nil && !fragment && !partial {
 		d.addNav(data, ctx.Who)
 		// Menu progress and page intros (see routes_welcome.go).
 		if _, ok := data["Onboarding"]; !ok {
