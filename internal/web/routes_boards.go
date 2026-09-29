@@ -188,14 +188,14 @@ func (d Deps) tileBodies(r *http.Request, ctx Ctx, view *boards.BoardView) map[i
 }
 
 // needsLoad: live types want fresh data on every view, sources without a
-// connection (weather, feeds) are only fetched on view, and pending slots
-// have no stored value yet.
+// connection (weather, feeds) are only fetched on view, once their stored
+// value is due, and pending slots have no stored value yet.
 func needsLoad(kind widgets.WidgetType, cfg any, frag *widgetlib.Fragment) bool {
 	if kind.Live {
 		return true
 	}
 	for _, q := range kind.Queries(cfg) {
-		if q.Conn == widgets.ConnNone {
+		if q.Conn == widgets.ConnNone && frag.Slots[q.Name].Due {
 			return true
 		}
 	}

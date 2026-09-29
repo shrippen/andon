@@ -283,6 +283,21 @@ func Forget(connID int64) {
 	}
 }
 
+// Due reports whether a Cached read of r would reach the source again:
+// nothing stored yet, or older than the source's TTL (errorTTL after a
+// failure). A tile whose data is not due gains nothing from a reload.
+func Due(sourceKey string, r Result, now time.Time) bool {
+	source, err := sources.Get(sourceKey)
+	if err != nil || r.Pending {
+		return true
+	}
+	ttl := source.TTL()
+	if !r.Ok() {
+		ttl = min(ttl, errorTTL)
+	}
+	return now.Sub(r.FetchedAt) >= ttl
+}
+
 // Get fetches source sourceKey (never raises for a service error — it
 // comes back as Result.Error) and persists the outcome to the cache table.
 func Get(ctx context.Context, d *sql.DB, sourceKey string, params map[string]any, conn *model.Connection, userID *int64, fresh Freshness) (Result, error) {

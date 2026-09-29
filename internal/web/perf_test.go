@@ -91,3 +91,39 @@ func fetchOK(t *testing.T, srv *httptest.Server, client *http.Client, path strin
 		t.Fatalf("%s: empty", path)
 	}
 }
+
+// TestFreshCardSkipsLoad: a feed tile whose stored feed is within the
+// source's TTL renders with the page and fetches nothing on load; the
+// load would only swap in the same HTML and re-lay out the board.
+func TestFreshCardSkipsLoad(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	feed := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<rss version="2.0"><channel><title>T</title><item><title>First post</title></item></channel></rss>`))
+	}))
+	defer feed.Close()
+
+	space := string(regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1])
+	postForm(t, client, srv.URL+"/widgets", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space}, "type": {"rss"},
+		"title": {"News"}, "cfg.url": {feed.URL}})
+	boardURL, section, version, widget := placeTarget(t, srv, client, "News")
+	postForm(t, client, srv.URL+"/boards/"+boardIDFrom(boardURL)+"/sections/"+section+"/place", url.Values{
+		"csrf": {csrfToken(t, srv, client)}, "widget_id": {widget}, "version": {version}})
+
+	// The first view fetches the feed.
+	frag := fragmentRe.FindSubmatch(mustGet(t, srv, client, boardURL))
+	if frag == nil {
+		t.Fatal("no fragment on the board")
+	}
+	fetchOK(t, srv, client, string(frag[1]))
+
+	page := mustGet(t, srv, client, boardURL)
+	if !bytes.Contains(page, []byte("First post")) {
+		t.Fatal("feed not rendered with the page")
+	}
+	if bytes.Contains(page, []byte(`hx-trigger="load`)) {
+		t.Fatal("fresh feed tile loads again")
+	}
+}

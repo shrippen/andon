@@ -41,6 +41,7 @@ type Slot struct {
 	OkAt              time.Time
 	MissingCredential string // connection name, "" if credentials are fine
 	Pending           bool   // not fetched by a background run yet
+	Due               bool   // a Cached read would fetch again (see svcdata.Due)
 }
 
 // Fragment is a widget's live view: its queries' results shaped by its
@@ -546,7 +547,7 @@ func runQuery(ctx context.Context, d *sql.DB, source string, params map[string]a
 		}
 		return Slot{Error: "source.unknown"}
 	}
-	return Slot{Data: res.Data, Error: res.Error, OkAt: res.OkAt, Pending: res.Pending}
+	return Slot{Data: res.Data, Error: res.Error, OkAt: res.OkAt, Pending: res.Pending, Due: svcdata.Due(source, res, time.Now())}
 }
 
 // demoQuery asks a source directly for its demo dataset: no cache, no
