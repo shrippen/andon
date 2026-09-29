@@ -148,22 +148,30 @@ type tileBody struct {
 // Link tiles too: one request per status line made a 50-link board send
 // 50 requests on every view and on every edit.
 func (d Deps) tileBodies(r *http.Request, ctx Ctx, view *boards.BoardView) map[int64]*tileBody {
-	out := map[int64]*tileBody{}
+
+	// A link without status or info line has no body.
+	var ids []int64
 	for _, sec := range view.Sections {
 		for _, tile := range sec.Tiles {
 			kind, ok := widgets.Get(tile.Type)
-			if !ok {
+			if !ok || (tile.Type == linkType && len(kind.Queries(tile.Config)) == 0) {
 				continue
 			}
+			ids = append(ids, tile.PlacementID)
+		}
+	}
+	frags, err := boards.Fragments(r.Context(), d.DB, ctx.Who, view.ID, ids, svcdata.Stored)
+	if err != nil {
+		return nil
+	}
 
-			// A link without status or info line has no body.
+	out := map[int64]*tileBody{}
+	for _, sec := range view.Sections {
+		for _, tile := range sec.Tiles {
+			kind, _ := widgets.Get(tile.Type)
 			link := tile.Type == linkType
-			if link && len(kind.Queries(tile.Config)) == 0 {
-				continue
-			}
-
-			frag, err := boards.Fragment(r.Context(), d.DB, ctx.Who, tile.PlacementID, svcdata.Stored)
-			if err != nil {
+			frag, ok := frags[tile.PlacementID]
+			if !ok {
 				continue
 			}
 

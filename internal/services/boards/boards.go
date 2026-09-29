@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"andon/internal/db"
 	"andon/internal/enums"
@@ -545,6 +546,77 @@ func Fragment(ctx context.Context, d *sql.DB, who *access.Principal, placementID
 	}
 	return widgetlib.Load(ctx, d, who, w, fresh)
 }
+
+// Fragments loads the fragments of a board's placements for the page's
+// first render. One access check for the board, where Fragment per tile
+// re-read placement, section and board: on a 240-tile board that was
+// 15 % of the page. A tile that fails is left out; it loads lazily.
+func Fragments(ctx context.Context, d *sql.DB, who *access.Principal, boardID int64, placementIDs []int64, fresh svcdata.Freshness) (map[int64]*widgetlib.Fragment, error) {
+	wanted := make(map[int64]bool, len(placementIDs))
+	for _, id := range placementIDs {
+		wanted[id] = true
+	}
+
+	// Access as in PlacedWidget, for every wanted placement at once.
+	seen := map[int64]*model.Widget{}
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		board, err := load(tx, who, boardID, enums.RightView)
+		if err != nil {
+			return err
+		}
+		for _, section := range board.Sections {
+			for _, placement := range section.Placements {
+				if !wanted[placement.ID] || placement.Widget == nil {
+					continue
+				}
+				granted, err := seenRight(tx, who, placement.Widget, board)
+				if err != nil {
+					return err
+				}
+				if granted >= enums.RightView {
+					seen[placement.ID] = placement.Widget
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Tiles load side by side; each holds a pool connection only briefly.
+	//
+	//	seen ─► jobs ─► fragmentWorkers × widgetlib.Load ─► out
+	out := make(map[int64]*widgetlib.Fragment, len(seen))
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	jobs := make(chan int64)
+	for range fragmentWorkers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for id := range jobs {
+				frag, err := widgetlib.Load(ctx, d, who, seen[id], fresh)
+				if err != nil {
+					continue
+				}
+				mu.Lock()
+				out[id] = frag
+				mu.Unlock()
+			}
+		}()
+	}
+	for id := range seen {
+		jobs <- id
+	}
+	close(jobs)
+	wg.Wait()
+	return out, nil
+}
+
+// fragmentWorkers loads a page's tiles in parallel, one below the
+// database pool's size so writers and other requests still get through.
+const fragmentWorkers = 3
 
 func orNotFound(err error) error {
 	if err != nil {

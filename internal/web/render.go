@@ -185,6 +185,7 @@ type renderState struct {
 	path   string
 	round  widgets.RoundMode
 	data   map[string]any
+	tile   map[string]any // data plus one tile's fragment, reused per tile
 }
 
 // pageSet is a clone of the templates whose funcs read state. Reused:
@@ -254,9 +255,15 @@ func newPageSet() *pageSet {
 // fragment renders a tile body inside the page, with the page's data
 // plus the fragment, as /widget-fragments/{id} would answer.
 func (s *pageSet) fragment(body *tileBody) (template.HTML, error) {
-	own := make(map[string]any, len(s.state.data)+2)
-	for k, v := range s.state.data {
-		own[k] = v
+	// One copy of the page data per render, not per tile: tile bodies
+	// render one after another.
+	own := s.state.tile
+	if own == nil {
+		own = make(map[string]any, len(s.state.data)+2)
+		for k, v := range s.state.data {
+			own[k] = v
+		}
+		s.state.tile = own
 	}
 	own["Frag"], own["PlacementID"] = body.Frag, body.PlacementID
 
