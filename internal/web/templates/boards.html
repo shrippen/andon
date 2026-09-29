@@ -50,15 +50,6 @@
   {{with .Board.Page.Description}}<p class="page-desc">{{.}}</p>{{end}}
   {{with .Board.Page.Nav}}<nav class="page-links" aria-label="{{t "board.page_links"}}">{{range .}}<a href="{{.URL}}">{{.Title}}</a>{{end}}</nav>{{end}}
 
-  {{if or .Edit .LayerEdit}}
-  {{/* One form for every tile strip button (form="tile-act", own
-       formaction): per-tile forms made a 50-tile board ~2,500 elements. */}}
-  <form id="tile-act" method="post" hidden>
-    <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-    <input type="hidden" name="board_id" value="{{.Board.ID}}">
-    <input type="hidden" name="version" value="{{.Board.Version}}">
-  </form>
-  {{end}}
   {{if .Edit}}
   {{/* Edit bar: the everyday actions up front, the board's own settings
        behind "Board"; bulk actions appear once tiles are selected. */}}
@@ -283,26 +274,33 @@
   {{$tall := t "edit.tile_tall"}}{{if gt .Rows 1}}{{$tall = t "edit.tile_normal"}}{{end}}
   {{$wide := t "edit.tile_wide"}}{{if gt .Cols 1}}{{$wide = t "edit.tile_narrow"}}{{end}}
   {{if $b.Edit}}
-  <div class="tile-strip">
+  {{/* One form per strip, each button its own formaction: three forms
+       per tile made a 50-tile board ~2,500 elements, and buttons tied to
+       one shared form (form="…") made every swap quadratic. */}}
+  <form class="tile-strip" method="post">
+    <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
+    <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
+    <input type="hidden" name="version" value="{{$b.Board.Version}}">
     <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
     <label class="tile-check"><input type="checkbox" name="placement" value="{{.PlacementID}}" form="bulk" aria-label="{{t "edit.select"}} {{.Title}}"></label>
     {{if gt .Placed 1}}<span class="tile-repeat" title="{{t "edit.repeated"}}">{{.Placed}}×</span>{{end}}
     <span class="tile-strip-gap"></span>
     <a class="tile-ico" href="/widgets/{{.WidgetID}}/edit?board={{$b.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><i class="ico ico-edit"></i></a>
     <a class="tile-ico" href="/shares/widget/{{.WidgetID}}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><i class="ico ico-share"></i></a>
-    <button class="tile-ico" type="submit" form="tile-act" formaction="/placements/{{.PlacementID}}/rows" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><i class="ico ico-height"></i></button>
-    <button class="tile-ico" type="submit" form="tile-act" formaction="/placements/{{.PlacementID}}/cols" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><i class="ico ico-width"></i></button>
-    <button class="tile-ico is-danger" type="submit" form="tile-act" formaction="/placements/{{.PlacementID}}/unplace" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><i class="ico ico-x"></i></button>
-  </div>
+    <button class="tile-ico" type="submit" formaction="/placements/{{.PlacementID}}/rows" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><i class="ico ico-height"></i></button>
+    <button class="tile-ico" type="submit" formaction="/placements/{{.PlacementID}}/cols" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><i class="ico ico-width"></i></button>
+    <button class="tile-ico is-danger" type="submit" formaction="/placements/{{.PlacementID}}/unplace" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><i class="ico ico-x"></i></button>
+  </form>
   {{else if $b.LayerEdit}}
   {{$eye := t "edit.hide"}}{{if .Hidden}}{{$eye = t "edit.show"}}{{end}}
-  <div class="tile-strip">
+  <form class="tile-strip" method="post">
+    <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
     <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
     <span class="tile-strip-gap"></span>
-    <button class="tile-ico" type="submit" form="tile-act" formaction="/boards/{{$b.Board.ID}}/show/{{.PlacementID}}" name="state" value="{{if .Hidden}}shown{{else}}hidden{{end}}" aria-label="{{$eye}}" aria-pressed="{{.Hidden}}" title="{{$eye}}"><i class="ico ico-eye"></i></button>
-    <button class="tile-ico" type="submit" form="tile-act" formaction="/boards/{{$b.Board.ID}}/rows/{{.PlacementID}}" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><i class="ico ico-height"></i></button>
-    <button class="tile-ico" type="submit" form="tile-act" formaction="/boards/{{$b.Board.ID}}/cols/{{.PlacementID}}" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><i class="ico ico-width"></i></button>
-  </div>
+    <button class="tile-ico" type="submit" formaction="/boards/{{$b.Board.ID}}/show/{{.PlacementID}}" name="state" value="{{if .Hidden}}shown{{else}}hidden{{end}}" aria-label="{{$eye}}" aria-pressed="{{.Hidden}}" title="{{$eye}}"><i class="ico ico-eye"></i></button>
+    <button class="tile-ico" type="submit" formaction="/boards/{{$b.Board.ID}}/rows/{{.PlacementID}}" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><i class="ico ico-height"></i></button>
+    <button class="tile-ico" type="submit" formaction="/boards/{{$b.Board.ID}}/cols/{{.PlacementID}}" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><i class="ico ico-width"></i></button>
+  </form>
   {{end}}
 </div>
 {{end}}

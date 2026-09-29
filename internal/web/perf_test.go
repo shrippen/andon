@@ -47,8 +47,14 @@ func TestEditBoardFiftyLinks(t *testing.T) {
 
 	var page []byte
 	pageBytes := allocated(func() { page = mustGet(t, srv, client, boardURL+"?edit") })
-	if forms := bytes.Count(page, []byte("<form")); forms >= editTiles {
-		t.Errorf("edit page has %d forms: tile strips must share one", forms)
+	// Hidden inputs per tile were most of the page; elements tied to a
+	// form elsewhere (form="…") are attached one by one on every swap,
+	// quadratic in their number: 5 s of a 240-tile swap on a slow device.
+	if hidden := bytes.Count(page, []byte(`type="hidden"`)); hidden > 4*editTiles {
+		t.Errorf("edit page has %d hidden inputs", hidden)
+	}
+	if linked := bytes.Count(page, []byte(` form="`)); linked > editTiles {
+		t.Errorf("edit page has %d elements with a form attribute", linked)
 	}
 	if icons := bytes.Count(page, []byte("<svg")); icons >= editTiles {
 		t.Errorf("edit page has %d SVG icons: each costs a shadow tree", icons)
