@@ -67,7 +67,7 @@ func (d Deps) handleTeamCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	if _, err := teams.Create(d.DB, ctx.Who, r.FormValue("name"), ClientIP(r)); err != nil {
+	if _, err := teams.Create(d.DB, ctx.Who, r.FormValue("name"), d.clientIP(r)); err != nil {
 		d.teamsPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
@@ -111,7 +111,7 @@ func (d Deps) handleTeamMemberSet(w http.ResponseWriter, r *http.Request, ctx Ct
 		return
 	}
 	role := enums.TeamRole(r.FormValue("role"))
-	if err := teams.SetMember(d.DB, ctx.Who, id, userID, role, ClientIP(r)); err != nil {
+	if err := teams.SetMember(d.DB, ctx.Who, id, userID, role, d.clientIP(r)); err != nil {
 		d.teamsPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
@@ -129,7 +129,7 @@ func (d Deps) handleTeamMemberRemove(w http.ResponseWriter, r *http.Request, ctx
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	if err := teams.RemoveMember(d.DB, ctx.Who, id, userID, ClientIP(r)); err != nil {
+	if err := teams.RemoveMember(d.DB, ctx.Who, id, userID, d.clientIP(r)); err != nil {
 		d.teamsPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
@@ -142,7 +142,7 @@ func (d Deps) handleTeamDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	if err := teams.Delete(d.DB, ctx.Who, id, ClientIP(r)); err != nil {
+	if err := teams.Delete(d.DB, ctx.Who, id, d.clientIP(r)); err != nil {
 		d.teamsPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}

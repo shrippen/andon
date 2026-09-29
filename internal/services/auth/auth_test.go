@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -310,5 +311,57 @@ func TestTOTPBeginKeepsActive2FA(t *testing.T) {
 	}
 	if u, _ := users.Get(q, uid); !u.TOTPEnabled {
 		t.Fatal("2FA switched off")
+	}
+}
+
+// TestLoginThrottleHoldsUnderBurst: attempts sent at once cannot slip
+// past the limit before the first failure is noted.
+func TestLoginThrottleHoldsUnderBurst(t *testing.T) {
+	q := openTestDB(t)
+	addActiveUser(t, q, "burst@b.c", "correct-password")
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	checked := 0
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := auth.Login(q, testCfg(), "burst@b.c", "wrong", "10.0.0.9", "agent")
+			if errors.Is(err, auth.ErrLoginFailed) {
+				mu.Lock()
+				checked++
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+	if checked > 5 {
+		t.Fatalf("%d passwords checked, limit 5", checked)
+	}
+}
+
+// TestTOTPFailsSurviveCorrectPassword: knowing the password must not
+// reset the count of wrong second-factor codes.
+func TestTOTPFailsSurviveCorrectPassword(t *testing.T) {
+	q := openTestDB(t)
+	uid := addActiveUser(t, q, "t@b.c", "correct-password")
+	who := &access.Principal{UserID: uid}
+	secret, _, _ := auth.TOTPBegin(q, who)
+	code, _ := totp.GenerateCode(secret, time.Now())
+	if _, err := auth.TOTPConfirm(q, who, code, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	var last error
+	for i := 0; i < 6; i++ {
+		res, err := auth.Login(q, testCfg(), "t@b.c", "correct-password", "10.0.0.8", "agent")
+		if err != nil {
+			t.Fatalf("login %d: %v", i, err)
+		}
+		last = auth.TOTPVerify(q, res.Token, "000000", "10.0.0.8", "agent")
+	}
+	if !errors.Is(last, auth.ErrThrottled) {
+		t.Fatalf("6th wrong code: %v", last)
 	}
 }

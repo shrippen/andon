@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"net/netip"
 	"strings"
 
 	"andon/internal/crypto"
@@ -50,23 +51,40 @@ var ErrCSRFFailed = errors.New("web: csrf failed")
 
 var safeMethods = map[string]bool{http.MethodGet: true, http.MethodHead: true, http.MethodOptions: true}
 
-// ClientIP returns the request's client address. Behind the reverse proxy,
-// the server must be started with trusted proxy headers applied upstream
-// of this handler (see cmd/andon's ReverseProxy wiring).
-func ClientIP(r *http.Request) string {
-	host, _, err := splitHostPort(r.RemoteAddr)
+// clientIP is the request's client address. Behind a trusted reverse
+// proxy (settings TrustedProxies) it is the last X-Forwarded-For entry
+// not itself a trusted proxy; anyone else's header is ignored, it could
+// be forged to dodge the login limit.
+func (d Deps) clientIP(r *http.Request) string {
+	remote, err := netip.ParseAddrPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
 	}
-	return host
+	addr := remote.Addr().Unmap()
+	if !d.trusted(addr) {
+		return addr.String()
+	}
+
+	hops := strings.Split(r.Header.Get("X-Forwarded-For"), ",")
+	for i := len(hops) - 1; i >= 0; i-- {
+		hop, err := netip.ParseAddr(strings.TrimSpace(hops[i]))
+		if err != nil {
+			break
+		}
+		if !d.trusted(hop.Unmap()) {
+			return hop.Unmap().String()
+		}
+	}
+	return addr.String()
 }
 
-func splitHostPort(addr string) (string, string, error) {
-	i := strings.LastIndex(addr, ":")
-	if i < 0 {
-		return addr, "", nil
+func (d Deps) trusted(addr netip.Addr) bool {
+	for _, p := range d.Settings.TrustedProxies {
+		if p.Contains(addr) {
+			return true
+		}
 	}
-	return addr[:i], addr[i+1:], nil
+	return false
 }
 
 // Agent returns the request's User-Agent header.

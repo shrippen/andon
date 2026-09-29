@@ -25,7 +25,7 @@ func (d Deps) RegisterAccountRoutes(mux *http.ServeMux) {
 
 // loginAfter opens a session for a just-created account and goes home.
 func (d Deps) loginAfter(w http.ResponseWriter, r *http.Request, email, password string) {
-	result, err := auth.Login(d.DB, d.Settings, email, password, ClientIP(r), Agent(r))
+	result, err := auth.Login(d.DB, d.Settings, email, password, d.clientIP(r), Agent(r))
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -107,7 +107,7 @@ func (d Deps) handleResetRequest(w http.ResponseWriter, r *http.Request) {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	if err := invites.RequestReset(d.DB, r.FormValue("email"), ClientIP(r)); err != nil {
+	if err := invites.RequestReset(d.DB, r.FormValue("email"), d.clientIP(r)); err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
@@ -136,7 +136,7 @@ func (d Deps) handleResetSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := r.PathValue("token")
-	if err := invites.Reset(d.DB, token, r.FormValue("password"), ClientIP(r)); err != nil {
+	if err := invites.Reset(d.DB, token, r.FormValue("password"), d.clientIP(r)); err != nil {
 		_ = d.Page(w, ctx, "reset", http.StatusBadRequest, map[string]any{"Token": token, "Error": errKey(err)})
 		return
 	}

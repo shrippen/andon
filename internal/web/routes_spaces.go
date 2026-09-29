@@ -152,7 +152,7 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request, ct
 	}
 	changes[rules.CustomKey] = spaces.ParseCustomRules(r.FormValue)
 	changes["maintenance"] = spaces.ParseMaintenance(r.FormValue, r.Form["maint_conn"], time.Local)
-	if err := spaces.Update(d.DB, ctx.Who, id, changes, ClientIP(r)); err != nil {
+	if err := spaces.Update(d.DB, ctx.Who, id, changes, d.clientIP(r)); err != nil {
 		d.handleBoardError(w, r, err)
 		return
 	}

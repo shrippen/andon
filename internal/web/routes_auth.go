@@ -83,7 +83,7 @@ func (d Deps) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := auth.Login(d.DB, d.Settings, r.FormValue("email"), r.FormValue("password"),
-		ClientIP(r), Agent(r))
+		d.clientIP(r), Agent(r))
 	if err != nil {
 		status, key := http.StatusUnauthorized, "login.failed"
 		switch {
@@ -126,7 +126,7 @@ func (d Deps) handleTOTPSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = auth.TOTPVerify(d.DB, cookie.Value, r.FormValue("code"), ClientIP(r), Agent(r))
+	err = auth.TOTPVerify(d.DB, cookie.Value, r.FormValue("code"), d.clientIP(r), Agent(r))
 	if err != nil {
 		ctx, _ := d.Context(r)
 		_ = d.Page(w, ctx, "totp", http.StatusUnauthorized,

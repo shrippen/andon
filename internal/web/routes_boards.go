@@ -265,7 +265,7 @@ func (d Deps) handleHassToggle(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		http.NotFound(w, r)
 		return
 	}
-	if err := hass.Toggle(r.Context(), d.DB, ctx.Who, id, r.FormValue("entity"), ClientIP(r)); err != nil {
+	if err := hass.Toggle(r.Context(), d.DB, ctx.Who, id, r.FormValue("entity"), d.clientIP(r)); err != nil {
 		if errors.Is(err, hass.ErrNotSwitchable) {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return

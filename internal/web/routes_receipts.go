@@ -236,7 +236,7 @@ func (d Deps) handleReceiptCreate(w http.ResponseWriter, r *http.Request, ctx Ct
 	id, _ := strconv.ParseInt(r.FormValue("doc"), 10, 64)
 	amount, _ := strconv.ParseFloat(strings.ReplaceAll(strings.TrimSpace(r.FormValue("amount")), ",", "."), 64)
 	in := receipts.NewExpense{Amount: amount, Day: dateOrEmpty(r.FormValue("day")), Vendor: r.FormValue("vendor"), Notes: r.FormValue("notes")}
-	number, err := receipts.Create(r.Context(), d.DB, ctx.Who, id, in, ClientIP(r))
+	number, err := receipts.Create(r.Context(), d.DB, ctx.Who, id, in, d.clientIP(r))
 	if err != nil {
 		http.Redirect(w, r, q.back("error", receiptError(err)), http.StatusSeeOther)
 		return
@@ -259,7 +259,7 @@ func (d Deps) handleReceiptLinkMany(w http.ResponseWriter, r *http.Request, ctx 
 			pairs = append(pairs, receipts.Pair{Expense: key, Docs: []int64{id}})
 		}
 	}
-	done, err := receipts.LinkMany(r.Context(), d.DB, ctx.Who, pairs, ClientIP(r))
+	done, err := receipts.LinkMany(r.Context(), d.DB, ctx.Who, pairs, d.clientIP(r))
 	if err != nil {
 		http.Redirect(w, r, q.back("error", receiptError(err), "linked", strconv.Itoa(done)), http.StatusSeeOther)
 		return
@@ -322,7 +322,7 @@ func (d Deps) handleReceiptLink(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		http.Redirect(w, r, q.back("error", errKey(receipts.ErrNotFound)), http.StatusSeeOther)
 		return
 	}
-	number, err := receipts.Link(r.Context(), d.DB, ctx.Who, r.FormValue("expense"), ids, ClientIP(r))
+	number, err := receipts.Link(r.Context(), d.DB, ctx.Who, r.FormValue("expense"), ids, d.clientIP(r))
 	var elsewhere receipts.LinkedElsewhere
 	if errors.As(err, &elsewhere) {
 		http.Redirect(w, r, q.back("error", elsewhere.Error(), "other", elsewhere.Number), http.StatusSeeOther)
@@ -339,7 +339,7 @@ func (d Deps) handleReceiptUnlink(w http.ResponseWriter, r *http.Request, ctx Ct
 	q := receiptsQueryOf(r)
 	id, _ := strconv.ParseInt(r.FormValue("doc"), 10, 64)
 	expense := r.FormValue("expense")
-	if err := receipts.Unlink(r.Context(), d.DB, ctx.Who, expense, id, ClientIP(r)); err != nil {
+	if err := receipts.Unlink(r.Context(), d.DB, ctx.Who, expense, id, d.clientIP(r)); err != nil {
 		http.Redirect(w, r, q.back("error", receiptError(err)), http.StatusSeeOther)
 		return
 	}

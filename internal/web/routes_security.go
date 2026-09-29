@@ -70,7 +70,7 @@ func (d Deps) handlePasswordChange(w http.ResponseWriter, r *http.Request, ctx C
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	err = accounts.ChangePassword(d.DB, ctx.Who, r.FormValue("current"), r.FormValue("new"), ClientIP(r))
+	err = accounts.ChangePassword(d.DB, ctx.Who, r.FormValue("current"), r.FormValue("new"), d.clientIP(r))
 	if err != nil {
 		d.securityPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
@@ -96,7 +96,7 @@ func (d Deps) handleTOTPConfirmForm(w http.ResponseWriter, r *http.Request, ctx 
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	codes, err := auth.TOTPConfirm(d.DB, ctx.Who, r.FormValue("code"), ClientIP(r))
+	codes, err := auth.TOTPConfirm(d.DB, ctx.Who, r.FormValue("code"), d.clientIP(r))
 	if err != nil {
 		d.securityPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
@@ -109,7 +109,7 @@ func (d Deps) handleTOTPDisableForm(w http.ResponseWriter, r *http.Request, ctx 
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	if err := auth.TOTPDisable(d.DB, ctx.Who, r.FormValue("code"), ClientIP(r)); err != nil {
+	if err := auth.TOTPDisable(d.DB, ctx.Who, r.FormValue("code"), d.clientIP(r)); err != nil {
 		d.securityPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}

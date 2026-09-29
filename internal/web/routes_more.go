@@ -198,7 +198,7 @@ func (d Deps) handleTeamSpaceSettings(w http.ResponseWriter, r *http.Request, ct
 	if n, err := strconv.ParseInt(r.FormValue("theme_id"), 10, 64); err == nil {
 		theme = float64(n)
 	}
-	if err := spaces.Update(d.DB, ctx.Who, id, map[string]any{"hint_ack": string(mode), "theme_id": theme}, ClientIP(r)); err != nil {
+	if err := spaces.Update(d.DB, ctx.Who, id, map[string]any{"hint_ack": string(mode), "theme_id": theme}, d.clientIP(r)); err != nil {
 		d.handleBoardError(w, r, err)
 		return
 	}

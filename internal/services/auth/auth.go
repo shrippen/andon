@@ -91,32 +91,54 @@ func recent(key string, now time.Time) []time.Time {
 	return out
 }
 
-func checkThrottle(email, ip string) error {
+// Throttle keys: failures per account, per address, and per account's
+// second factor (kept apart: a known password must not reset it).
+const (
+	keyAccount = "a:"
+	keyAddress = "i:"
+	keyTOTP    = "t:"
+)
+
+// attempt books one try against an account (kind + email) and an
+// address before it is checked, so a burst cannot pass the limit before
+// the first failure counts. The try stays counted as failed unless the
+// returned release is called on success.
+func attempt(kind, email, ip string) (release func(), err error) {
 	now := time.Now()
+	account, address := kind+strings.ToLower(email), keyAddress+ip
 	failsMu.Lock()
 	defer failsMu.Unlock()
-	if len(recent("a:"+strings.ToLower(email), now)) >= accountLimit {
-		return ErrThrottled
+	if len(recent(account, now)) >= accountLimit || len(recent(address, now)) >= ipLimit {
+		return nil, ErrThrottled
 	}
-	if len(recent("i:"+ip, now)) >= ipLimit {
-		return ErrThrottled
-	}
-	return nil
+	fails[account] = append(recent(account, now), now)
+	fails[address] = append(recent(address, now), now)
+
+	return func() {
+		failsMu.Lock()
+		defer failsMu.Unlock()
+		delete(fails, account)
+		fails[address] = dropOne(fails[address], now)
+	}, nil
 }
 
-func noteFail(email, ip string) {
-	now := time.Now()
-	failsMu.Lock()
-	defer failsMu.Unlock()
-	for _, key := range []string{"a:" + strings.ToLower(email), "i:" + ip} {
-		fails[key] = append(recent(key, now), now)
+// dropOne removes one entry equal to at.
+func dropOne(list []time.Time, at time.Time) []time.Time {
+	for i, t := range list {
+		if t.Equal(at) {
+			return append(list[:i:i], list[i+1:]...)
+		}
 	}
+	return list
 }
 
-func clearFails(email string) {
-	failsMu.Lock()
-	defer failsMu.Unlock()
-	delete(fails, "a:"+strings.ToLower(email))
+// hashSlots bounds concurrent password checks: each takes 64 MiB.
+var hashSlots = make(chan struct{}, 4)
+
+func checkPassword(hash, password string) bool {
+	hashSlots <- struct{}{}
+	defer func() { <-hashSlots }()
+	return crypto.CheckPassword(hash, password)
 }
 
 // ResetThrottle clears every recorded failure. Tests only.
@@ -197,61 +219,68 @@ func CreateAdmin(d *sql.DB, code, email, name, password string, locale enums.Loc
 // TOTP-enabled account passes its second factor, the returned token is only
 // good for the TOTP endpoint.
 func Login(d *sql.DB, cfg settings.Settings, email, password, ip, agent string) (LoginResult, error) {
-	if err := checkThrottle(email, ip); err != nil {
+	release, err := attempt(keyAccount, email, ip)
+	if err != nil {
 		return LoginResult{}, err
 	}
 
+	// Read, then hash outside the write lock: argon2 takes its time.
+	var user *model.User
+	var oidcOnly bool
+	err = db.WithRead(d, func(tx *sql.Tx) error {
+		if user, err = users.ByEmail(tx, strings.TrimSpace(email)); err != nil {
+			return err
+		}
+		oidcOnly, err = isOIDCOnly(tx)
+		return err
+	})
+	if err != nil {
+		return LoginResult{}, err
+	}
+	// Before the password: an answer after it would confirm a guess.
+	if oidcOnly && (user == nil || !user.IsBreakglass) {
+		return LoginResult{}, ErrOIDCOnly
+	}
+	var stored string
+	if user != nil && user.IsActive {
+		stored = user.PasswordHash
+	}
+	if !checkPassword(stored, password) {
+		var uid *int64
+		if user != nil {
+			uid = &user.ID
+		}
+		_ = db.WithTx(d, func(tx *sql.Tx) error { return auditsvc.Log(tx, uid, "login.failed", email, ip, nil) })
+		return LoginResult{}, ErrLoginFailed
+	}
+	release()
+
 	var result LoginResult
-	var userID int64
-	err := db.WithTx(d, func(tx *sql.Tx) error {
-		user, err := users.ByEmail(tx, strings.TrimSpace(email))
+	err = db.WithTx(d, func(tx *sql.Tx) error {
+		fresh, err := users.Get(tx, user.ID)
 		if err != nil {
 			return err
 		}
-		var stored string
-		if user != nil && user.IsActive {
-			stored = user.PasswordHash
-		}
-		if !crypto.CheckPassword(stored, password) {
-			noteFail(email, ip)
-			var uid *int64
-			if user != nil {
-				uid = &user.ID
-			}
-			_ = auditsvc.Log(tx, uid, "login.failed", email, ip, nil)
+		if fresh == nil || !fresh.IsActive {
 			return ErrLoginFailed
 		}
-
-		oidcOnly, err := isOIDCOnly(tx)
-		if err != nil {
-			return err
-		}
-		if oidcOnly && !user.IsBreakglass {
-			return ErrOIDCOnly
-		}
-
-		clearFails(email)
 		step := StepDone
-		if user.TOTPEnabled {
+		if fresh.TOTPEnabled {
 			step = StepTOTP
 		}
-		token, err := openSession(tx, cfg, user, enums.AuthPassword, ip, agent, step, "")
+		token, err := openSession(tx, cfg, fresh, enums.AuthPassword, ip, agent, step, "")
 		if err != nil {
-			return err
-		}
-		if err := auditsvc.Log(tx, &user.ID, "login.password", "", ip, nil); err != nil {
 			return err
 		}
 		result = LoginResult{Token: token, Step: step}
-		userID = user.ID
-		return nil
+		return auditsvc.Log(tx, &fresh.ID, "login.password", "", ip, nil)
 	})
 	if err != nil {
 		return LoginResult{}, err
 	}
 
 	if result.Step == StepDone {
-		noteLogin(d, userID, ip, agent)
+		noteLogin(d, user.ID, ip, agent)
 	}
 	return result, nil
 }
@@ -610,7 +639,8 @@ func TOTPVerify(d *sql.DB, token, code, ip, agent string) error {
 		if err != nil || user == nil {
 			return err
 		}
-		if err := checkThrottle(user.Email, ip); err != nil {
+		release, err := attempt(keyTOTP, user.Email, ip)
+		if err != nil {
 			return err
 		}
 
@@ -619,9 +649,9 @@ func TOTPVerify(d *sql.DB, token, code, ip, agent string) error {
 			return err
 		}
 		if !ok && !useRecovery(user, code) {
-			noteFail(user.Email, ip)
 			return ErrTOTPInvalid
 		}
+		release()
 		if err := users.Update(tx, user); err != nil { // persists a used recovery code, if any
 			return err
 		}

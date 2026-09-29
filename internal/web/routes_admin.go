@@ -95,7 +95,7 @@ func (d Deps) adminAction(w http.ResponseWriter, r *http.Request, run func(Ctx, 
 
 func (d Deps) handleAdminUserRole(w http.ResponseWriter, r *http.Request) {
 	d.adminAction(w, r, func(ctx Ctx, id int64) error {
-		return admin.SetRole(d.DB, ctx.Who, id, enums.InstanceRole(r.FormValue("role")), ClientIP(r))
+		return admin.SetRole(d.DB, ctx.Who, id, enums.InstanceRole(r.FormValue("role")), d.clientIP(r))
 	})
 }
 
@@ -104,14 +104,14 @@ type switchFunc func(d *sql.DB, who *access.Principal, userID int64, state admin
 func (d Deps) handleAdminSwitch(set switchFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		d.adminAction(w, r, func(ctx Ctx, id int64) error {
-			return set(d.DB, ctx.Who, id, admin.Switch(r.FormValue("state")), ClientIP(r))
+			return set(d.DB, ctx.Who, id, admin.Switch(r.FormValue("state")), d.clientIP(r))
 		})
 	}
 }
 
 func (d Deps) handleAdminUserDelete(w http.ResponseWriter, r *http.Request) {
 	d.adminAction(w, r, func(ctx Ctx, id int64) error {
-		return admin.Delete(d.DB, ctx.Who, id, ClientIP(r))
+		return admin.Delete(d.DB, ctx.Who, id, d.clientIP(r))
 	})
 }
 

@@ -48,7 +48,7 @@ func (d Deps) handlePasskeyBegin(w http.ResponseWriter, r *http.Request, ctx Ctx
 func (d Deps) handlePasskeyFinish(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	var err error
 	body := http.MaxBytesReader(w, r.Body, passkeyBodyMax)
-	err = passkeys.Finish(d.DB, d.Settings, ctx.Who, r.URL.Query().Get("name"), body, ClientIP(r))
+	err = passkeys.Finish(d.DB, d.Settings, ctx.Who, r.URL.Query().Get("name"), body, d.clientIP(r))
 	if err != nil {
 		jsonError(w, http.StatusBadRequest, errKey(err))
 		return
@@ -62,7 +62,7 @@ func (d Deps) handlePasskeyDelete(w http.ResponseWriter, r *http.Request, ctx Ct
 		http.NotFound(w, r)
 		return
 	}
-	if err := passkeys.Remove(d.DB, ctx.Who, id, ClientIP(r)); err != nil {
+	if err := passkeys.Remove(d.DB, ctx.Who, id, d.clientIP(r)); err != nil {
 		d.securityPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
@@ -93,7 +93,7 @@ func (d Deps) handlePasskeyLoginFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body := http.MaxBytesReader(w, r.Body, passkeyBodyMax)
-	token, err := passkeys.FinishLogin(d.DB, d.Settings, r.URL.Query().Get("ceremony"), body, ClientIP(r), Agent(r))
+	token, err := passkeys.FinishLogin(d.DB, d.Settings, r.URL.Query().Get("ceremony"), body, d.clientIP(r), Agent(r))
 	if err != nil {
 		key := "login.failed"
 		if errors.Is(err, auth.ErrOIDCOnly) {

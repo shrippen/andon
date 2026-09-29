@@ -33,7 +33,7 @@ func (d Deps) handleKimaiTimer(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 	req := timer.Request{Action: timer.Action(r.FormValue("action")), Project: num("project"), Activity: num("activity"),
 		Sheet: num("sheet"), Note: strings.TrimSpace(r.FormValue("note")),
 		StartNote: strings.TrimSpace(r.FormValue("start_note")), Begin: r.FormValue("begin"), End: r.FormValue("end")}
-	err = timer.Run(r.Context(), d.DB, ctx.Who, id, req, ClientIP(r))
+	err = timer.Run(r.Context(), d.DB, ctx.Who, id, req, d.clientIP(r))
 	if errors.Is(err, timer.ErrBadRange) {
 		d.renderKimaiNew(w, r, ctx, id, req, err.Error())
 		return
@@ -95,7 +95,7 @@ func (d Deps) RegisterBillingRoutes(mux *http.ServeMux) {
 func (d Deps) handlePaymentBook(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	space, _ := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
 	invoice, _ := strconv.ParseInt(r.FormValue("invoice_id"), 10, 64)
-	if err := billing.Book(r.Context(), d.DB, ctx.Who, space, r.FormValue("txn"), invoice, ClientIP(r)); err != nil {
+	if err := billing.Book(r.Context(), d.DB, ctx.Who, space, r.FormValue("txn"), invoice, d.clientIP(r)); err != nil {
 		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
@@ -140,7 +140,7 @@ func (d Deps) handleBillingDraft(w http.ResponseWriter, r *http.Request, ctx Ctx
 	if r.FormValue("mark_exported") != "" {
 		mode = billing.MarkSheets
 	}
-	number, err := billing.Create(r.Context(), d.DB, ctx.Who, space, customer, mode, ClientIP(r))
+	number, err := billing.Create(r.Context(), d.DB, ctx.Who, space, customer, mode, d.clientIP(r))
 	if err != nil {
 		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
@@ -151,7 +151,7 @@ func (d Deps) handleBillingDraft(w http.ResponseWriter, r *http.Request, ctx Ctx
 func (d Deps) handleBillingExport(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	space, _ := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
 	year, _ := strconv.Atoi(r.FormValue("year"))
-	name, blob, err := billing.Export(r.Context(), d.DB, ctx.Who, space, year, ClientIP(r))
+	name, blob, err := billing.Export(r.Context(), d.DB, ctx.Who, space, year, d.clientIP(r))
 	if err != nil {
 		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
@@ -165,7 +165,7 @@ func (d Deps) handleBillingExport(w http.ResponseWriter, r *http.Request, ctx Ct
 func (d Deps) handleMailForward(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	conn, _ := strconv.ParseInt(r.FormValue("conn"), 10, 64)
 	uid, _ := strconv.ParseUint(r.FormValue("uid"), 10, 32)
-	n, err := mailfwd.Forward(r.Context(), d.DB, ctx.Who, conn, uint32(uid), ClientIP(r))
+	n, err := mailfwd.Forward(r.Context(), d.DB, ctx.Who, conn, uint32(uid), d.clientIP(r))
 	if err != nil {
 		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
@@ -177,7 +177,7 @@ func (d Deps) handleMailForward(w http.ResponseWriter, r *http.Request, ctx Ctx)
 func (d Deps) handleMailRead(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	conn, _ := strconv.ParseInt(r.FormValue("conn"), 10, 64)
 	uid, _ := strconv.ParseUint(r.FormValue("uid"), 10, 32)
-	if _, err := mailfwd.Read(r.Context(), d.DB, ctx.Who, conn, uint32(uid), ClientIP(r)); err != nil {
+	if _, err := mailfwd.Read(r.Context(), d.DB, ctx.Who, conn, uint32(uid), d.clientIP(r)); err != nil {
 		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
