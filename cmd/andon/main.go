@@ -63,6 +63,9 @@ func run() int {
 		os.Exit(1)
 	}
 	crypto.Init(masterKey)
+	if crypto.WeakKey(masterKey) && !cfg.Dev {
+		slog.Warn("MASTER_KEY is guessable; replace it via rotate-key with one from openssl rand -base64 32")
+	}
 
 	if err := os.MkdirAll(cfg.DataDir, 0o750); err != nil {
 		slog.Error("create data dir", "err", err)

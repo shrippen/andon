@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -58,6 +59,18 @@ func TestBackupProducesReadableArchive(t *testing.T) {
 	}
 }
 
+// newMasterKey is a strong key, as `openssl rand -base64 32` makes one.
+const newMasterKey = "q1dW3V0r3a9mGx6+Yt7n2ZkQv5LbHs8PjR4uE0cXf1o="
+
+// Rotating to a guessable key would weaken every secret; it is refused
+// before anything is re-encrypted.
+func TestRotateKeyRefusesWeakKey(t *testing.T) {
+	d, path := openTestDB(t)
+	if _, err := maintenance.RotateKey(d, path, "new-master-key"); !errors.Is(err, maintenance.ErrWeakKey) {
+		t.Fatalf("weak key: %v", err)
+	}
+}
+
 func TestRotateKeyReEncryptsConnectionSecret(t *testing.T) {
 	d, path := openTestDB(t)
 	sp := &model.Space{Kind: enums.SpacePersonal, Name: "x", Version: 1}
@@ -76,7 +89,7 @@ func TestRotateKeyReEncryptsConnectionSecret(t *testing.T) {
 		t.Fatalf("add connection: %v", err)
 	}
 
-	count, err := maintenance.RotateKey(d, path, "new-master-key")
+	count, err := maintenance.RotateKey(d, path, newMasterKey)
 	if err != nil {
 		t.Fatalf("rotate: %v", err)
 	}
@@ -94,7 +107,7 @@ func TestRotateKeyReEncryptsConnectionSecret(t *testing.T) {
 		t.Fatal("expected the old master key to no longer decrypt the rotated secret")
 	}
 	// ...but the new one must.
-	crypto.Init("new-master-key")
+	crypto.Init(newMasterKey)
 	text, err := crypto.Decrypt(updated.SecretEnc, crypto.PurposeCredential)
 	if err != nil || text != "s3cret-token" {
 		t.Fatalf("expected the new master key to decrypt to the original secret, got %q err=%v", text, err)

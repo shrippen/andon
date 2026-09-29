@@ -57,6 +57,24 @@ func Init(secret string) {
 	master = MasterFrom(secret)
 }
 
+// A strong master key is long and varied, like `openssl rand -base64 32`.
+const (
+	minKeyLen   = 32
+	minKeyChars = 16 // distinct characters
+)
+
+// WeakKey reports whether a master key could be guessed offline.
+// MasterFrom hashes the key once (SHA-256, no work factor): whoever holds
+// the database file or a backup can test billions of guesses a second,
+// so only a random key protects it.
+func WeakKey(secret string) bool {
+	distinct := map[rune]bool{}
+	for _, r := range secret {
+		distinct[r] = true
+	}
+	return len(secret) < minKeyLen || len(distinct) < minKeyChars
+}
+
 // MasterFrom derives a 32-byte master key from an arbitrary secret string.
 func MasterFrom(secret string) []byte {
 	sum := sha256.Sum256([]byte(secret))

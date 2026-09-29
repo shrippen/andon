@@ -113,12 +113,18 @@ func addFile(tw *tar.Writer, sourcePath, arcname string) error {
 	return err
 }
 
+// ErrWeakKey means a new master key could be guessed (see crypto.WeakKey).
+var ErrWeakKey = errors.New("maintenance: master key too weak, use openssl rand -base64 32")
+
 // RotateKey re-encrypts every secret under a new master key and writes
 // the database file under the new file key (swapped in at the next
 // start). Returns the number of values re-encrypted. The caller must then
 // replace the master_key secret and restart — this process keeps using
 // the old key until it does, and its later writes are lost.
 func RotateKey(d *sql.DB, dbPath, newSecret string) (int, error) {
+	if crypto.WeakKey(newSecret) {
+		return 0, ErrWeakKey
+	}
 	newKey := crypto.MasterFrom(newSecret)
 	count, err := swapSecrets(d, newKey)
 	if err != nil {

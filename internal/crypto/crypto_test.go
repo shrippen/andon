@@ -1,6 +1,9 @@
 package crypto
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestEncryptDecryptRoundtrip(t *testing.T) {
 	Init("test-master-key")
@@ -51,5 +54,22 @@ func TestNewTokenUnique(t *testing.T) {
 	}
 	if TokenHash(a) == TokenHash(b) {
 		t.Fatal("hashes must differ for different tokens")
+	}
+}
+
+// A master key is hashed without a work factor, so only a random key
+// resists offline guessing: short or repetitive keys count as weak.
+func TestWeakKey(t *testing.T) {
+	for key, want := range map[string]bool{
+		"":                                 true,
+		"hunter2":                          true,
+		"new-master-key":                   true,
+		strings.Repeat("ab", 30):           true,
+		"k3Jx9QpLm2VbN7wRt5YzA1sDf8GhUe4C": false, // 32 random characters
+		"q1dW3V0r3a9mGx6+Yt7n2ZkQv5LbHs8PjR4uE0cXf1o=": false, // openssl rand -base64 32
+	} {
+		if got := WeakKey(key); got != want {
+			t.Errorf("WeakKey(%q) = %v, want %v", key, got, want)
+		}
 	}
 }
