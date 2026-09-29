@@ -61,7 +61,7 @@ func widgetRight(q db.Queryer, who *access.Principal, w *model.Widget) (enums.Ri
 // explicitly shared ones.
 func Library(d *sql.DB, who *access.Principal) ([]Ref, error) {
 	var out []Ref
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		spaceIDs := make([]int64, 0, len(who.Spaces))
 		for id := range who.Spaces {
 			spaceIDs = append(spaceIDs, id)
@@ -207,7 +207,7 @@ func firstNonEmpty(a, b string) string {
 func Detail(d *sql.DB, who *access.Principal, widgetID int64) (*model.Widget, enums.Right, error) {
 	var w *model.Widget
 	var granted enums.Right
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		item, err := content.Widget(tx, widgetID)
 		if err != nil {
 			return err

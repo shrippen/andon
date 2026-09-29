@@ -2,6 +2,7 @@ package web_test
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,9 @@ import (
 	"regexp"
 	"runtime"
 	"testing"
+	"time"
+
+	"andon/internal/db"
 )
 
 // editTiles is the board size the edit mode must stay fast at.
@@ -134,5 +138,37 @@ func TestFreshCardSkipsLoad(t *testing.T) {
 	}
 	if bytes.Contains(page, []byte(`hx-trigger="load`)) {
 		t.Fatal("fresh feed tile loads again")
+	}
+}
+
+// lockWait bounds a page render next to a writer; one that needed the
+// write lock would wait out the busy timeout (5 s) per transaction.
+const lockWait = time.Second
+
+// TestPageSkipsWriteLock: a board page only reads, so it renders while a
+// background job holds the database's write lock.
+func TestPageSkipsWriteLock(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	resp := getFollowingRedirect(t, srv, client, "/")
+	resp.Body.Close()
+	boardURL := resp.Request.URL.Path
+	mustGet(t, srv, client, boardURL)
+
+	raw, _ := testDBs.Load(srv.URL)
+	locked, release := make(chan struct{}), make(chan struct{})
+	go db.WithTx(raw.(*sql.DB), func(*sql.Tx) error {
+		close(locked)
+		<-release
+		return nil
+	})
+	<-locked
+	defer close(release)
+
+	start := time.Now()
+	page := mustGet(t, srv, client, boardURL+"?edit")
+	if took := time.Since(start); took >= lockWait || !bytes.Contains(page, []byte("tile-")) {
+		t.Fatalf("page waited %v for the write lock", took)
 	}
 }

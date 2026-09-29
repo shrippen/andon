@@ -56,7 +56,7 @@ func mailboxes(d *sql.DB, who *access.Principal) (map[*model.Connection]*model.C
 	if err != nil {
 		return nil, err
 	}
-	err = db.WithTx(d, func(tx *sql.Tx) error {
+	err = db.WithRead(d, func(tx *sql.Tx) error {
 		for _, v := range views {
 			if v.Service != enums.ServiceMail {
 				continue

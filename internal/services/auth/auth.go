@@ -448,7 +448,7 @@ func Logout(d *sql.DB, token string) (string, error) {
 // MySessions lists a principal's active sessions.
 func MySessions(d *sql.DB, who *access.Principal) ([]*model.LoginSession, error) {
 	var out []*model.LoginSession
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		out, err = auth.SessionsOf(tx, who.UserID)
 		return err
@@ -728,7 +728,7 @@ func CreateToken(d *sql.DB, who *access.Principal, name string, scope enums.Toke
 // MyTokens lists a principal's API tokens.
 func MyTokens(d *sql.DB, who *access.Principal) ([]*model.ApiToken, error) {
 	var out []*model.ApiToken
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		out, err = auth.TokensOf(tx, who.UserID)
 		return err

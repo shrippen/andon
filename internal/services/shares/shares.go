@@ -139,7 +139,7 @@ type NamedID struct {
 // Info loads the sharing dialog's data for one resource. Requires MANAGE.
 func Info(d *sql.DB, who *access.Principal, kind enums.ResourceKind, resourceID int64) (*ShareInfo, error) {
 	var out *ShareInfo
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		item, err := loadResource(tx, kind, resourceID)
 		if err != nil {
 			return err

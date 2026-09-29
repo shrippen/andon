@@ -148,7 +148,7 @@ func Listing(d *sql.DB, who *access.Principal, minimum enums.Right) ([]View, err
 // Get returns one connection's view. Requires at least USE.
 func Get(d *sql.DB, who *access.Principal, connID int64) (View, error) {
 	var out View
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		conn, err := content.Connection(tx, connID)
 		if err != nil {
 			return err
@@ -530,7 +530,7 @@ func Test(ctx context.Context, d *sql.DB, who *access.Principal, connID int64) (
 // check: callers are jobs, not requests on a user's behalf.
 func ByID(d *sql.DB, connID int64) (*model.Connection, error) {
 	var conn *model.Connection
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		conn, err = content.Connection(tx, connID)
 		return err

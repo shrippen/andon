@@ -464,7 +464,7 @@ func anyMap(m map[string]string) map[string]any {
 // team default > instance default > Kante.
 func Active(d *sql.DB, who *access.Principal, boardTheme *int64, spaceID *int64) (int64, error) {
 	var id int64
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var candidates []*int64
 		candidates = append(candidates, boardTheme)
 		if who != nil {
@@ -542,7 +542,7 @@ func defaultThemeID(q db.Queryer) (*int64, error) {
 func Stylesheet(d *sql.DB, themeID int64) (string, int, error) {
 	var css string
 	var version int
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		theme, err := misc.Theme(tx, themeID)
 		if err != nil {
 			return err
