@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -164,5 +165,27 @@ func TestFieldLabelPerType(t *testing.T) {
 		if label[1] == i18n.T("field.target", loc, nil) {
 			t.Fatalf("target labelled as the link's %q", label[1])
 		}
+	}
+}
+
+// TestWidgetBadWindowRefused: a maintenance window like "25-3" is not
+// saved; the form says why.
+func TestWidgetBadWindowRefused(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	resp, err := client.PostForm(srv.URL+"/widgets", url.Values{
+		"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space)}, "type": {"update_window"}, "cfg.window": {"25-3"},
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusBadRequest || !strings.Contains(string(body), i18n.T("widget.bad_window", enums.LocaleDE, nil)) &&
+		!strings.Contains(string(body), i18n.T("widget.bad_window", enums.LocaleEN, nil)) {
+		t.Fatalf("status %d:\n%s", resp.StatusCode, body)
 	}
 }

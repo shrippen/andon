@@ -222,6 +222,8 @@ typefield:
     sources_hint: 'Dienste, z. B. truenas, borgbackup, paperless. Leer = alle.'
   arr_upcoming:
     days: Vorschau (Tage)
+  update_window:
+    window_hint: 'Von-bis, z. B. 22:00-06:00 oder 22-6. Leer = jederzeit.'
   grocy:
     days: Vorschau (Tage, 0 = wie Grocy)
     days_hint: 'Vorräte bis 60 Tage voraus. 0 = die 5 Tage von Grocy und alle Aufgaben.'
@@ -962,6 +964,8 @@ wtype:
     name: 'Was ist rot?'
     desc: 'Alle Links des Bereichs, deren Statusprüfung fehlschlägt, mit Dauer.'
 widget:
+  bad_window: 'Wartungsfenster nicht lesbar: z. B. 22:00-06:00 oder 22-6.'
+  bad_timezone: 'Unbekannte Zeitzone: z. B. Europe/Berlin.'
   delete_hint: 'Die Kachel verschwindet von allen Boards, auf denen sie steht.'
   pending: Wird beim nächsten Prüflauf geladen …
   loading: lädt …

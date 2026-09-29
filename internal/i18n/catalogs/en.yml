@@ -222,6 +222,8 @@ typefield:
     sources_hint: 'Services, e.g. truenas, borgbackup, paperless. Empty = all.'
   arr_upcoming:
     days: Look ahead (days)
+  update_window:
+    window_hint: 'From-to, e.g. 22:00-06:00 or 22-6. Empty = any time.'
   grocy:
     days: Look ahead (days, 0 = as Grocy)
     days_hint: 'Stock up to 60 days ahead. 0 = Grocy''s 5 days and all chores.'
@@ -962,6 +964,8 @@ wtype:
     name: 'What is red?'
     desc: 'Every link of the space whose status check fails, with how long.'
 widget:
+  bad_window: 'Maintenance window not readable: e.g. 22:00-06:00 or 22-6.'
+  bad_timezone: 'Unknown time zone: e.g. Europe/Berlin.'
   delete_hint: 'The tile disappears from every board it is on.'
   pending: Loading with the next check …
   loading: loading …

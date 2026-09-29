@@ -118,3 +118,27 @@ func TestHintsMinSeverityFromSelect(t *testing.T) {
 		}
 	}
 }
+
+// TestCheckConfig: a window or time zone the tile cannot read is
+// refused on save instead of silently meaning "always" or UTC.
+func TestCheckConfig(t *testing.T) {
+	cases := []struct {
+		key  string
+		raw  map[string]any
+		want string
+	}{
+		{"update_window", map[string]any{"window": "22:00-06:00", "timezone": "Europe/Berlin"}, ""},
+		{"update_window", map[string]any{}, ""},
+		{"update_window", map[string]any{"window": "25-3"}, CheckBadWindow},
+		{"update_window", map[string]any{"window": "22"}, CheckBadWindow},
+		{"update_window", map[string]any{"timezone": "Europe/Berln"}, CheckBadTimezone},
+		{"today", map[string]any{"timezone": "Mars/Base"}, CheckBadTimezone},
+		{"greeting", map[string]any{"timezone": "Mars/Base"}, CheckBadTimezone},
+		{"note", map[string]any{"timezone": "Mars/Base"}, ""},
+	}
+	for _, c := range cases {
+		if got := Check(c.key, c.raw); got != c.want {
+			t.Errorf("%s %v: %q, want %q", c.key, c.raw, got, c.want)
+		}
+	}
+}

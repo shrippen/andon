@@ -141,6 +141,12 @@ func checkConnection(q db.Queryer, who *access.Principal, connID *int64, typeKey
 	return nil
 }
 
+// ConfigError is a config value the widget type cannot use; its text is
+// a catalog key (widgets.Check).
+type ConfigError string
+
+func (e ConfigError) Error() string { return string(e) }
+
 // Create adds a new widget to a space. Requires EDIT on the space.
 func Create(d *sql.DB, who *access.Principal, spaceID int64, typeKey, title string, config map[string]any,
 	connID *int64, minRole *enums.TeamRole) (int64, error) {
@@ -159,6 +165,9 @@ func CreateTx(tx *sql.Tx, who *access.Principal, spaceID int64, typeKey, title s
 	connID *int64, minRole *enums.TeamRole) (int64, error) {
 	if _, ok := widgets.Get(typeKey); !ok {
 		return 0, ErrUnknownType
+	}
+	if bad := widgets.Check(typeKey, config); bad != "" {
+		return 0, ConfigError(bad)
 	}
 	space, err := access.SpaceOf(tx, who, spaceID)
 	if err != nil {
@@ -248,6 +257,9 @@ func Update(d *sql.DB, who *access.Principal, widgetID int64, version int, title
 		}
 		if widget.Version != version {
 			return ErrConflict
+		}
+		if bad := widgets.Check(widget.Type, config); bad != "" {
+			return ConfigError(bad)
 		}
 		if err := checkConnection(tx, who, connID, widget.Type); err != nil {
 			return err
