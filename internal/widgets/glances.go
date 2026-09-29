@@ -19,13 +19,8 @@ type GlancesChartConfig struct {
 	Warn   float64 // a horizontal line at this value, 0 = none
 }
 
-func decodeGlancesChart(raw map[string]any) any {
-	metric := asString(raw["metric"])
-	if _, ok := sources.GlancesMetrics[metric]; !ok {
-		metric = defaultGlancesMetric
-	}
-	return GlancesChartConfig{Metric: metric, Points: clampInt(asInt(raw["points"], defaultGlancesPoints), 10, 300),
-		Warn: max(asFloat(raw["warn_line"]), 0)}
+func decodeGlancesChart(r Raw) GlancesChartConfig {
+	return GlancesChartConfig{Metric: r.Pick("metric"), Points: r.Int("points"), Warn: r.Float("warn_line")}
 }
 
 // glancesChartView scales samples into the trend chart's box; percent
@@ -33,8 +28,7 @@ func decodeGlancesChart(raw map[string]any) any {
 // glancesBars caps the bars of the load chart.
 const glancesBars = 36
 
-func glancesChartView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(GlancesChartConfig)
+func glancesChartView(cfg GlancesChartConfig, results map[string]any, _ ViewCtx) map[string]any {
 	data, ok := results["history"].(*sources.GlancesHistory)
 	if !ok || len(data.Samples) < 2 {
 		return map[string]any{}
@@ -68,10 +62,13 @@ func glancesChartView(cfgAny any, results map[string]any, _ ViewCtx) map[string]
 }
 
 func init() {
-	Register(WidgetType{Key: "glances_chart", Decode: decodeGlancesChart, Category: CategoryStart, Service: enums.ServiceGlances, RefreshS: 60, Live: true, View: glancesChartView,
-		Queries: func(c any) []Query {
-			cfg := c.(GlancesChartConfig)
+	Tile[GlancesChartConfig]{Key: "glances_chart", Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceGlances, RefreshS: 60,
+		Live: true, DataChoice: true,
+		Fields: []Field{sel("metric", defaultGlancesMetric, "cpu", "mem", "load", "swap"),
+			{Key: "points", Input: InputNumber, Default: defaultGlancesPoints, Min: "10", Max: "300"}, {Key: "warn_line", Input: InputNumber, Min: "0"}},
+		Decode: decodeGlancesChart, View: glancesChartView,
+		Queries: func(cfg GlancesChartConfig) []Query {
 			return []Query{{Name: "history", Source: "glances_history", Conn: ConnWidget,
 				Params: map[string]any{"metric": cfg.Metric, "points": float64(cfg.Points)}}}
-		}})
+		}}.add()
 }

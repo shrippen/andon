@@ -39,16 +39,11 @@ type JSONAPIConfig struct {
 	Units      map[string]string
 }
 
-func decodeJSONAPI(raw map[string]any) any {
-	return JSONAPIConfig{Thresholds: parseThresholds(asString(raw["thresholds"])), Units: parsePairs(asString(raw["units"]))}
+func decodeJSONAPI(r Raw) JSONAPIConfig {
+	return JSONAPIConfig{Thresholds: parseThresholds(r.String("thresholds")), Units: parsePairs(r.String("units"))}
 }
 
-func jsonAPIView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(JSONAPIConfig)
-	data, ok := results["data"].(*sources.JSONAPIDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func jsonAPIView(cfg JSONAPIConfig, data *sources.JSONAPIDataset, _ ViewCtx) map[string]any {
 	fields := make([]JSONFieldView, 0, len(data.Fields))
 	for _, f := range data.Fields {
 		view := JSONFieldView{JSONField: f, Level: jsonFieldLevel(f), Unit: cfg.Units[strings.ToLower(f.Label)]}
@@ -63,6 +58,7 @@ func jsonAPIView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "jsonapi", Decode: decodeJSONAPI, Category: CategoryInsight,
-		Service: enums.ServiceJSONAPI, RefreshS: jsonAPIRefresh, Queries: dataQuery, View: jsonAPIView})
+	Tile[JSONAPIConfig]{Key: "jsonapi", Category: CategoryInsight, Topic: TopicAnalysis, Service: enums.ServiceJSONAPI, RefreshS: jsonAPIRefresh,
+		Fields: []Field{{Key: "thresholds", Input: InputArea}, {Key: "units", Input: InputArea}},
+		Decode: decodeJSONAPI, Queries: ownData[JSONAPIConfig], View: dataView(jsonAPIView)}.add()
 }

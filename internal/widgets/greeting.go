@@ -45,15 +45,11 @@ type GreetingConfig struct {
 
 var greetingParts = []string{"weather", "since", "hints"}
 
-func decodeGreeting(raw map[string]any) any {
-	tz := asString(raw["timezone"])
-	if tz == "" {
-		tz = defaultTimezone
-	}
-	cfg := GreetingConfig{Label: asString(raw["label"]), Lat: asFloat(raw["lat"]), Lon: asFloat(raw["lon"]),
-		Timezone: tz, SinceHour: clampInt(asInt(raw["since_hour"], greetingSinceHour), 0, 23), Hide: map[string]bool{}}
+func decodeGreeting(r Raw) GreetingConfig {
+	cfg := GreetingConfig{Label: r.String("label"), Lat: r.Float("lat"), Lon: r.Float("lon"),
+		Timezone: textOr(r, "timezone"), SinceHour: r.Int("since_hour"), Hide: map[string]bool{}}
 	for _, p := range greetingParts {
-		if !boolOr(raw["show_"+p], true) {
+		if !r.Bool("show_" + p) {
 			cfg.Hide[p] = true
 		}
 	}
@@ -113,8 +109,7 @@ func dayPart(hour int) string {
 	}
 }
 
-func greetingView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg := cfgAny.(GreetingConfig)
+func greetingView(cfg GreetingConfig, results map[string]any, _ ViewCtx) map[string]any {
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
 		loc = time.Local
@@ -188,12 +183,17 @@ func greetingLines(changes []GreetingChange) []GreetingLine {
 }
 
 func init() {
-	Register(WidgetType{Key: "greeting", Decode: decodeGreeting, Category: CategoryStart, RefreshS: 10 * 60, View: greetingView, Extra: ExtraGreeting,
-		Queries: func(cfgAny any) []Query {
-			cfg := cfgAny.(GreetingConfig)
+	Tile[GreetingConfig]{Key: "greeting", Category: CategoryStart, Topic: TopicOverview, RefreshS: 10 * 60, Extra: ExtraGreeting,
+		Fields: []Field{{Key: "label", Input: InputText}, {Key: placeKey, Input: InputPlace},
+			{Key: "timezone", Input: InputText, Default: defaultTimezone}, {Key: "since_hour", Input: InputNumber, Default: greetingSinceHour, Min: "0", Max: "23"},
+			{Key: "show_weather", Input: InputCheck, Default: true}, {Key: "show_since", Input: InputCheck, Default: true},
+			{Key: "show_hints", Input: InputCheck, Default: true}},
+		Check:  checkZone,
+		Decode: decodeGreeting, View: greetingView,
+		Queries: func(cfg GreetingConfig) []Query {
 			if (cfg.Lat == 0 && cfg.Lon == 0) || cfg.Hide["weather"] {
 				return nil
 			}
 			return []Query{{Name: "weather", Source: "open_meteo", Params: map[string]any{"lat": cfg.Lat, "lon": cfg.Lon}}}
-		}})
+		}}.add()
 }

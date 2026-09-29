@@ -53,10 +53,10 @@ func TestPaperlessCalmCountsTag(t *testing.T) {
 
 // TestHolidaysStateGetsCountry: "BY" means "DE-BY", as Nager names it.
 func TestHolidaysStateGetsCountry(t *testing.T) {
-	if cfg := decodeHolidays(map[string]any{"country": "de", "state": "by"}).(HolidaysConfig); cfg.State != "DE-BY" {
+	if cfg := decodeOf[HolidaysConfig]("holidays", map[string]any{"country": "de", "state": "by"}); cfg.State != "DE-BY" {
 		t.Fatalf("state %q", cfg.State)
 	}
-	if cfg := decodeHolidays(map[string]any{"state": "DE-BY"}).(HolidaysConfig); cfg.State != "DE-BY" {
+	if cfg := decodeOf[HolidaysConfig]("holidays", map[string]any{"state": "DE-BY"}); cfg.State != "DE-BY" {
 		t.Fatalf("state %q", cfg.State)
 	}
 }
@@ -77,7 +77,7 @@ func TestExpiryUnknownDateLast(t *testing.T) {
 
 // TestClockDropsUnknownZones: a typo would show "?" in the browser.
 func TestClockDropsUnknownZones(t *testing.T) {
-	cfg := decodeClock(map[string]any{"timezones": []any{"Europe/Berlin", "Europe/Berln"}}).(ClockConfig)
+	cfg := decodeOf[ClockConfig]("clock", map[string]any{"timezones": []any{"Europe/Berlin", "Europe/Berln"}})
 	if len(cfg.Timezones) != 1 || cfg.Timezones[0] != "Europe/Berlin" {
 		t.Fatalf("zones: %v", cfg.Timezones)
 	}

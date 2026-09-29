@@ -82,15 +82,6 @@ func asStringList(v any) []string {
 	return out
 }
 
-// listOr is v as strings, or def when v holds none: a tile needs
-// something to show.
-func listOr(v any, def []string) []string {
-	if list := asStringList(v); len(list) > 0 {
-		return list
-	}
-	return def
-}
-
 // anyList turns strings into a config list: ["a"] → []any{"a"}.
 func anyList(list []string) []any {
 	out := make([]any, len(list))
@@ -181,31 +172,22 @@ func stringMap(raw any) map[string]string {
 	return out
 }
 
-func decodeLink(raw map[string]any) any {
-	target := enums.LinkTarget(asString(raw["target"]))
-	if target == "" {
-		target = enums.LinkNewTab
-	}
-	status := StatusMode(asString(raw["status"]))
-	if status == "" {
-		status = StatusHTTP
-	}
+// decodeLink keeps a target or status it does not know, as stored.
+func decodeLink(r Raw) LinkConfig {
 	cfg := LinkConfig{
-		URL: webURL(raw["url"]), Description: asString(raw["description"]), Icon: asString(raw["icon"]),
-		Target: target, Status: status, StatusURL: webURL(raw["status_url"]),
-		Accept: asIntList(raw["accept"]), Insecure: asBool(raw["insecure"]), Hotkey: asString(raw["hotkey"]),
-		Tags: asStringList(raw["tags"]), Items: subLinks(raw["items"]), Color: tileColor(raw["color"]), Headers: stringMap(raw["headers"]),
-		Method: oneOfStr(raw["status_method"], []string{"GET", "HEAD"}, "GET"), TimeoutS: min(max(asFloat(raw["status_timeout"]), 0), 60),
-		IconSize: oneOfStr(raw["icon_size"], []string{"small", "normal", "large"}, "normal"),
+		URL: r.URL("url"), Description: r.String("description"), Icon: r.String("icon"),
+		Target: enums.LinkTarget(textOr(r, "target")), Status: StatusMode(textOr(r, "status")), StatusURL: r.URL("status_url"),
+		Accept: r.Ints("accept"), Insecure: r.Bool("insecure"), Hotkey: r.String("hotkey"),
+		Tags: r.List("tags"), Items: subLinks(r.Get("items")), Color: tileColor(r.Get("color")), Headers: stringMap(r.Get("headers")),
+		Method: r.Pick("status_method"), TimeoutS: r.Float("status_timeout"), IconSize: r.Pick("icon_size"),
 	}
-	if info, ok := raw["info"].(map[string]any); ok {
+	if info, ok := r.Get("info").(map[string]any); ok {
 		cfg.InfoConn = asString(info["connection"])
 	}
 	return cfg
 }
 
-func linkQueries(cfgAny any) []Query {
-	cfg := cfgAny.(LinkConfig)
+func linkQueries(cfg LinkConfig) []Query {
 	var found []Query
 	if cfg.Status == StatusHTTP {
 		found = append(found, Query{Name: "status", Source: "http_status", Params: map[string]any{
@@ -221,7 +203,7 @@ func linkQueries(cfgAny any) []Query {
 
 // linkView turns the info connection's dataset into the tile's info line,
 // e.g. Kimai -> ["3,5 h heute", "Timer läuft"].
-func linkView(_ any, results map[string]any, ctx ViewCtx) map[string]any {
+func linkView(_ LinkConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	info := results["info"]
 	if info == nil || ctx.Service == "" {
 		return map[string]any{}
@@ -355,27 +337,22 @@ type ClockConfig struct {
 }
 
 // decodeClock keeps the zones Go knows: a typo would show "?".
-func decodeClock(raw map[string]any) any {
+func decodeClock(r Raw) ClockConfig {
 	var tz []string
-	for _, name := range asStringList(raw["timezones"]) {
+	for _, name := range r.List("timezones") {
 		if _, err := time.LoadLocation(name); err == nil {
 			tz = append(tz, name)
 		}
 	}
 	if len(tz) == 0 {
-		tz = []string{defaultTimezone}
+		tz = asStringList(r.field("timezones").Default)
 	}
-	date := true
-	if v, ok := raw["date"]; ok {
-		date = asBool(v)
-	}
-	return ClockConfig{Timezones: tz, Seconds: asBool(raw["seconds"]), Date: date, H12: raw["format"] == "12", Analog: asBool(raw["analog"])}
+	return ClockConfig{Timezones: tz, Seconds: r.Bool("seconds"), Date: r.Bool("date"), H12: r.Pick("format") == "12", Analog: r.Bool("analog")}
 }
 
 // weatherView drops today from the forecast (the current conditions
 // already show it) so the template only lists the days ahead.
-func weatherView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg := cfgAny.(WeatherConfig)
+func weatherView(cfg WeatherConfig, results map[string]any, _ ViewCtx) map[string]any {
 	data, ok := results["weather"].(*sources.WeatherResult)
 	if !ok || data == nil {
 		return map[string]any{}
@@ -425,9 +402,9 @@ type WeatherConfig struct {
 // weatherDays is how many days after today the tile shows by default.
 const weatherDays = 3
 
-func decodeWeather(raw map[string]any) any {
-	return WeatherConfig{Label: asString(raw["label"]), Lat: asFloat(raw["lat"]), Lon: asFloat(raw["lon"]),
-		Fahrenheit: raw["unit"] == "f", Hourly: boolOr(raw["hourly"], true), Days: clampInt(asInt(raw["days"], weatherDays), 0, 7)}
+func decodeWeather(r Raw) WeatherConfig {
+	return WeatherConfig{Label: r.String("label"), Lat: r.Float("lat"), Lon: r.Float("lon"),
+		Fahrenheit: r.Pick("unit") == "f", Hourly: r.Bool("hourly"), Days: r.Int("days")}
 }
 
 // fahrenheit converts °C.
@@ -440,15 +417,8 @@ type IframeConfig struct {
 	ReloadM int // minutes between reloads in the browser, 0 = never
 }
 
-func decodeIframe(raw map[string]any) any {
-	height := asInt(raw["height"], 320)
-	if height < 80 {
-		height = 80
-	}
-	if height > 2000 {
-		height = 2000
-	}
-	return IframeConfig{URL: webURL(raw["url"]), Height: height, ReloadM: clampInt(asInt(raw["reload"], 0), 0, 1440)}
+func decodeIframe(r Raw) IframeConfig {
+	return IframeConfig{URL: r.URL("url"), Height: r.Int("height"), ReloadM: r.Int("reload")}
 }
 
 // NoteConfig is the "note" widget's config.
@@ -459,8 +429,8 @@ type NoteConfig struct {
 	Color    string    // background tint, "none" = plain
 }
 
-func decodeNote(raw map[string]any) any {
-	cfg := NoteConfig{Text: asString(raw["text"]), Markdown: asBool(raw["markdown"]), Color: oneOfStr(raw["color"], accentColors, "none")}
+func decodeNote(r Raw) NoteConfig {
+	cfg := NoteConfig{Text: r.String("text"), Markdown: r.Bool("markdown"), Color: r.Pick("color")}
 	if cfg.Markdown {
 		cfg.Blocks = parseMarkdown(cfg.Text)
 	}
@@ -475,13 +445,15 @@ type SysinfoConfig struct {
 
 var sysParts = []string{"cpu", "mem", "swap", "disks"}
 
-func decodeSysinfo(raw map[string]any) any {
-	cfg := SysinfoConfig{Hide: map[string]bool{}, Warn: asFloat(raw["warn_pct"])}
+// decodeSysinfo reads a warning outside (0, 100] as the default, not
+// as the nearest bound.
+func decodeSysinfo(r Raw) SysinfoConfig {
+	cfg := SysinfoConfig{Hide: map[string]bool{}, Warn: asFloat(r.Get("warn_pct"))}
 	if cfg.Warn <= 0 || cfg.Warn > pctFull {
-		cfg.Warn = loadWarn
+		cfg.Warn = number(r.field("warn_pct").Default)
 	}
 	for _, p := range sysParts {
-		if !boolOr(raw["show_"+p], true) {
+		if !r.Bool("show_" + p) {
 			cfg.Hide[p] = true
 		}
 	}
@@ -513,10 +485,10 @@ func meterTier(v, warn float64) string {
 	}
 }
 
-func sysinfoView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(SysinfoConfig)
-	if !ok {
-		cfg = SysinfoConfig{Warn: loadWarn}
+func sysinfoView(cfg SysinfoConfig, results map[string]any, _ ViewCtx) map[string]any {
+	// No config (a nil one): the default warning.
+	if cfg.Warn == 0 {
+		cfg.Warn = loadWarn
 	}
 	s, ok := results["stats"].(*sources.GlancesResult)
 	if !ok {
@@ -545,8 +517,8 @@ type PublicIPConfig struct {
 	Watch bool // point out a new address
 }
 
-func decodePublicIP(raw map[string]any) any {
-	return PublicIPConfig{V6: asBool(raw["ipv6"]), Watch: asBool(raw["watch"])}
+func decodePublicIP(r Raw) PublicIPConfig {
+	return PublicIPConfig{V6: r.Bool("ipv6"), Watch: r.Bool("watch")}
 }
 
 // IPSeen is the address a viewer last saw and when it changed; the widgets
@@ -562,8 +534,7 @@ const IPSeenSlot = "ip_seen"
 // ipFresh is how long a change is pointed out.
 const ipFresh = 24 * time.Hour
 
-func publicIPView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(PublicIPConfig)
+func publicIPView(cfg PublicIPConfig, results map[string]any, _ ViewCtx) map[string]any {
 	ip, ok := results["ip"].(*sources.PublicIPResult)
 	if !ok {
 		return map[string]any{}
@@ -579,7 +550,27 @@ func publicIPView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any 
 func (c PublicIPConfig) WatchesIP() bool { return c.Watch }
 
 func init() {
-	Register(WidgetType{Key: "link", Decode: decodeLink, Category: CategoryStart, Inline: true, Queries: linkQueries, View: linkView})
+	Tile[LinkConfig]{Key: "link", Category: CategoryStart, Topic: TopicOverview, Inline: true, DataChoice: true,
+		Fields: []Field{
+			{Key: "url", Input: InputText, Required: true},
+			{Key: "description", Input: InputArea},
+			{Key: "icon", Input: InputText},
+			sel("target", "newtab", "newtab", "sametab"),
+			sel("status", "http", "http", "off"),
+			{Key: "status_url", Input: InputText},
+			{Key: "accept", Input: InputNumbers},
+			{Key: "insecure", Input: InputCheck},
+			{Key: "hotkey", Input: InputText},
+			{Key: "info.connection", Input: InputConn},
+			{Key: "tags", Input: InputList},
+			{Key: "items", Input: InputLinks},
+			sel("color", "none", "none", "yellow", "green", "red", "blue", "purple", "aqua", "orange"),
+			{Key: "headers", Input: InputHeaders},
+			sel("status_method", "GET", "GET", "HEAD"),
+			{Key: "status_timeout", Input: InputNumber, Min: "0", Max: "60"},
+			sel("icon_size", "normal", "small", "normal", "large"),
+		},
+		Decode: decodeLink, Queries: linkQueries, View: linkView}.add()
 
 	Tile[RssConfig]{Key: "rss", Category: CategoryStart, Topic: TopicMedia, RefreshS: 30 * 60,
 		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
@@ -591,23 +582,37 @@ func init() {
 				"images": cfg.Images, "max_age": float64(cfg.MaxAge)}}}
 		}}.add()
 
-	Register(WidgetType{Key: "clock", Decode: decodeClock, Category: CategoryStart, Inline: true, RefreshS: 30})
+	Tile[ClockConfig]{Key: "clock", Category: CategoryStart, Topic: TopicOverview, Inline: true, RefreshS: 30,
+		Fields: []Field{{Key: "timezones", Input: InputList, Default: []any{defaultTimezone}}, {Key: "seconds", Input: InputCheck}, {Key: "date", Input: InputCheck, Default: true},
+			sel("format", "24", "24", "12"), {Key: "analog", Input: InputCheck}},
+		Decode: decodeClock}.add()
 
-	Register(WidgetType{Key: "weather", Decode: decodeWeather, Category: CategoryStart, RefreshS: 30 * 60, View: weatherView, Queries: func(cfgAny any) []Query {
-		cfg := cfgAny.(WeatherConfig)
-		return []Query{{Name: "weather", Source: "open_meteo", Params: map[string]any{"lat": cfg.Lat, "lon": cfg.Lon, "days": float64(cfg.Days)}}}
-	}})
+	Tile[WeatherConfig]{Key: "weather", Category: CategoryStart, Topic: TopicHome, RefreshS: 30 * 60,
+		Fields: []Field{{Key: "label", Input: InputText}, {Key: placeKey, Input: InputPlace, Required: true}, sel("unit", "c", "c", "f"),
+			{Key: "hourly", Input: InputCheck, Default: true}, {Key: "days", Input: InputNumber, Default: weatherDays, Min: "0", Max: "7"}},
+		Decode: decodeWeather, View: weatherView, Queries: func(cfg WeatherConfig) []Query {
+			return []Query{{Name: "weather", Source: "open_meteo", Params: map[string]any{"lat": cfg.Lat, "lon": cfg.Lon, "days": float64(cfg.Days)}}}
+		}}.add()
 
-	Register(WidgetType{Key: "iframe", Decode: decodeIframe, Category: CategoryStart, Inline: true})
+	Tile[IframeConfig]{Key: "iframe", Category: CategoryStart, Topic: TopicDev, Inline: true,
+		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "height", Input: InputNumber, Default: 320, Min: "80", Max: "2000"},
+			{Key: "reload", Input: InputNumber, Min: "0", Max: "1440"}},
+		Decode: decodeIframe}.add()
 
-	Register(WidgetType{Key: "sysinfo", Decode: decodeSysinfo, Category: CategoryStart, Service: enums.ServiceGlances, RefreshS: 60, Live: true, View: sysinfoView,
-		Queries: func(any) []Query { return []Query{{Name: "stats", Source: "glances", Conn: ConnWidget}} }})
+	Tile[SysinfoConfig]{Key: "sysinfo", Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceGlances, RefreshS: 60, Live: true, DataChoice: true,
+		Fields: []Field{{Key: "show_cpu", Input: InputCheck, Default: true}, {Key: "show_mem", Input: InputCheck, Default: true},
+			{Key: "show_swap", Input: InputCheck, Default: true}, {Key: "show_disks", Input: InputCheck, Default: true},
+			{Key: "warn_pct", Input: InputNumber, Default: loadWarn, Min: "1", Max: "100"}},
+		Decode: decodeSysinfo, View: sysinfoView,
+		Queries: func(SysinfoConfig) []Query { return []Query{{Name: "stats", Source: "glances", Conn: ConnWidget}} }}.add()
 
-	Register(WidgetType{Key: "public_ip", Decode: decodePublicIP, Category: CategoryStart, RefreshS: 60 * 60, View: publicIPView, Extra: ExtraIPWatch,
-		Queries: func(c any) []Query {
-			cfg, _ := c.(PublicIPConfig)
+	Tile[PublicIPConfig]{Key: "public_ip", Category: CategoryStart, Topic: TopicNetwork, RefreshS: 60 * 60, Extra: ExtraIPWatch,
+		Fields: []Field{{Key: "ipv6", Input: InputCheck}, {Key: "watch", Input: InputCheck}},
+		Decode: decodePublicIP, View: publicIPView, Queries: func(cfg PublicIPConfig) []Query {
 			return []Query{{Name: "ip", Source: "public_ip", Params: map[string]any{"v6": cfg.V6}}}
-		}})
+		}}.add()
 
-	Register(WidgetType{Key: "note", Decode: decodeNote, Category: CategoryStart, Inline: true})
+	Tile[NoteConfig]{Key: "note", Category: CategoryStart, Topic: TopicOverview, Inline: true,
+		Fields: []Field{{Key: "text", Input: InputArea}, {Key: "markdown", Input: InputCheck}, sel("color", "none", accentColors...)},
+		Decode: decodeNote}.add()
 }

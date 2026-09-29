@@ -24,7 +24,6 @@ var renames = map[string][]rename{
 	"exposure":   {{from: "only_open", to: "only_problems"}},
 	"hint_noise": {{from: "period", to: "days"}},
 	"hint_trend": {{from: "period", to: "days"}},
-	"list":       {{from: "columns", to: "two_columns", value: func(v any) (any, bool) { return v == "2", true }}},
 	"hints": {
 		{from: "by_value", to: "sort", value: func(v any) (any, bool) { return HintSortValue, asBool(v) }},
 		{from: "levels", to: "show_levels"},

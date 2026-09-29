@@ -8,7 +8,7 @@ import (
 )
 
 func TestCustomAPIPaths(t *testing.T) {
-	cfg := decodeCustomAPI(map[string]any{"fields": "Temp = main.temp\nFirst = list.0.name\nmissing.x\n"})
+	cfg := decodeOf[CustomAPIConfig]("custom_api", map[string]any{"fields": "Temp = main.temp\nFirst = list.0.name\nmissing.x\n"})
 	body := map[string]any{"main": map[string]any{"temp": 21.5}, "list": []any{map[string]any{"name": "a"}}}
 	rows := customAPIView(cfg, map[string]any{"body": &sources.JSONResult{Body: body}}, ViewCtx{})["Rows"].([]APIValue)
 	if len(rows) != 3 || rows[0].Value != "21.5" || rows[1].Value != "a" || !rows[2].Missing || rows[2].Label != "missing.x" {
@@ -17,7 +17,7 @@ func TestCustomAPIPaths(t *testing.T) {
 }
 
 func TestListDropsUnsafeLinks(t *testing.T) {
-	cfg := decodeList(map[string]any{"entries": "Wiki | https://wiki\nNotiz\nBad | javascript:alert(1)\n"}).(ListConfig)
+	cfg := decodeOf[ListConfig]("list", map[string]any{"entries": "Wiki | https://wiki\nNotiz\nBad | javascript:alert(1)\n"})
 	if len(cfg.Entries) != 3 || cfg.Entries[0].URL != "https://wiki" || cfg.Entries[1].URL != "" || cfg.Entries[2].URL != "" {
 		t.Fatalf("entries: %+v", cfg.Entries)
 	}
@@ -50,7 +50,7 @@ func TestHolidaysView(t *testing.T) {
 
 func TestGlancesChartView(t *testing.T) {
 	data := &sources.GlancesHistory{Metric: "cpu", Samples: []sources.Sample{{Value: 0}, {Value: 100}}}
-	view := glancesChartView(nil, map[string]any{"history": data}, ViewCtx{})
+	view := glancesChartView(GlancesChartConfig{}, map[string]any{"history": data}, ViewCtx{})
 	if view["Path"] != "M0.0,155.0 L1000.0,5.0" || view["Now"] != 100.0 {
 		t.Fatalf("view: %+v", view)
 	}

@@ -22,7 +22,6 @@ var checks = map[string]func(raw map[string]any) string{
 		}
 		return checkZone(raw)
 	},
-	"greeting": checkZone,
 }
 
 // checkZone: an empty zone means the default, any other must be known.

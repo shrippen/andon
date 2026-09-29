@@ -17,7 +17,6 @@ var calmChecks = map[string]func(v map[string]any) bool{
 		}
 		return v["Total"] != 0 && v["Total"] != nil
 	},
-	"monitors":     func(v map[string]any) bool { return v["Total"] != nil && v["Up"] == v["Total"] },
 	"status_light": func(v map[string]any) bool { return v["State"] == "green" },
 	"exposure":     func(v map[string]any) bool { return v["Total"] != nil && v["Total"] != 0 && v["Open"] == 0 },
 	"deadlines":    func(v map[string]any) bool { return v["Configured"] == true && lenOf(v["Items"]) == 0 },

@@ -14,7 +14,7 @@ func TestScriptURLsDropped(t *testing.T) {
 			t.Errorf("%q: %q, want %q", raw, got, want)
 		}
 	}
-	link := decodeLink(map[string]any{"url": "javascript:x", "items": []any{map[string]any{"url": "javascript:y"}}}).(LinkConfig)
+	link := decodeOf[LinkConfig]("link", map[string]any{"url": "javascript:x", "items": []any{map[string]any{"url": "javascript:y"}}})
 	if link.URL != "" || len(link.Items) != 0 {
 		t.Errorf("link: %+v", link)
 	}
