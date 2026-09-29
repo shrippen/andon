@@ -196,7 +196,7 @@ func run() int {
 	defer cancel()
 	_ = server.Shutdown(ctx)
 	stopScheduler()
-	drain(ctx, waitJobs, svcdata.WaitFills, outbound.WaitSent)
+	drain(ctx, waitJobs, svcdata.WaitFills, outbound.WaitSent, icons.Wait)
 	if failed {
 		return 1
 	}

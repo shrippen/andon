@@ -91,6 +91,7 @@ func newTestServer(t *testing.T) (*httptest.Server, *http.Client, string) {
 	mail.Init(cfg)
 	themes.InitFonts(t.TempDir())
 	icons.Init(t.TempDir())
+	t.Cleanup(icons.Wait) // favicon downloads write there; runs before the dir goes
 	outbound.TakeOutbox()
 	deps := web.Deps{DB: database, Settings: cfg}
 	mux := http.NewServeMux()
