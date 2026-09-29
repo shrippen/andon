@@ -46,7 +46,7 @@ func parseRight(raw string) (enums.Right, error) {
 func (d Deps) sharesPage(w http.ResponseWriter, ctx Ctx, kind enums.ResourceKind, resourceID int64, status int, extra map[string]any) {
 	info, err := shares.Info(d.DB, ctx.Who, kind, resourceID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	values := map[string]any{"Info": info, "Kind": kind, "ResourceID": resourceID}
@@ -59,12 +59,12 @@ func (d Deps) sharesPage(w http.ResponseWriter, ctx Ctx, kind enums.ResourceKind
 func (d Deps) handleSharesPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	kind, err := parseKind(r.PathValue("kind"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	resourceID, err := pathID(r, "id")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	d.sharesPage(w, ctx, kind, resourceID, http.StatusOK, nil)
@@ -73,16 +73,16 @@ func (d Deps) handleSharesPage(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 func (d Deps) handleShareGrant(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	kind, err := parseKind(r.PathValue("kind"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	resourceID, err := pathID(r, "id")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -108,17 +108,17 @@ func (d Deps) handleShareGrant(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 func (d Deps) handleShareRevoke(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	kind, err := parseKind(r.PathValue("kind"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	resourceID, err := pathID(r, "id")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	shareID, err := pathID(r, "shareID")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	if err := shares.Revoke(d.DB, ctx.Who, shareID); err != nil {

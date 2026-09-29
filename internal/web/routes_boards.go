@@ -50,12 +50,12 @@ func (d Deps) handleHome(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	// visible board when it is gone or no longer visible.
 	profile, err := accounts.GetProfile(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	id, err := boards.StartBoard(d.DB, ctx.Who, profile.StartBoardID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	target := "/boards/" + strconv.FormatInt(id, 10)
@@ -105,13 +105,13 @@ func (d Deps) renderBoard(w http.ResponseWriter, r *http.Request, ctx Ctx, embed
 	}
 	navBoards, err := boards.Nav(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	themeURL, err := d.themeURL(ctx.Who, view.ThemeID, &view.Space.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -299,10 +299,8 @@ func (d Deps) handleBoardError(w http.ResponseWriter, r *http.Request, err error
 	switch {
 	case errors.Is(err, util.ErrNotFound):
 		http.NotFound(w, r)
-	case errors.Is(err, boards.ErrDenied):
-		http.Error(w, "forbidden", http.StatusForbidden)
 	default:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 	}
 }
 
@@ -319,7 +317,7 @@ func (d Deps) handleAuthError(w http.ResponseWriter, r *http.Request, err error)
 	case errors.Is(err, ErrCSRFFailed):
 		http.Error(w, "csrf", http.StatusForbidden)
 	default:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 	}
 }
 

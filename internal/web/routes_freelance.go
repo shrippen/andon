@@ -105,17 +105,17 @@ func (d Deps) handlePaymentBook(w http.ResponseWriter, r *http.Request, ctx Ctx)
 func (d Deps) billingPage(w http.ResponseWriter, r *http.Request, ctx Ctx, status int, extra map[string]any) {
 	drafts, err := billing.Candidates(r.Context(), d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	mails, sent, err := mailfwd.List(r.Context(), d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	payments, err := billing.Payments(r.Context(), d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	// Sure matches first; the rest wants a second look.

@@ -63,7 +63,7 @@ func (d Deps) pageError(w http.ResponseWriter, ctx Ctx, err error) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	http.Error(w, err.Error(), http.StatusInternalServerError)
+	d.fail(w, err, http.StatusInternalServerError)
 }
 
 func (d Deps) handleAdminUsers(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -83,7 +83,7 @@ func (d Deps) adminAction(w http.ResponseWriter, r *http.Request, run func(Ctx, 
 	}
 	id, err := adminUserID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	if err := run(ctx, id); err != nil {
@@ -118,7 +118,7 @@ func (d Deps) handleAdminUserDelete(w http.ResponseWriter, r *http.Request) {
 func (d Deps) handleAdminUserReset(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := adminUserID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	link, err := invites.AdminResetLink(d.DB, ctx.Who, id)
@@ -131,7 +131,7 @@ func (d Deps) handleAdminUserReset(w http.ResponseWriter, r *http.Request, ctx C
 
 func (d Deps) handleAdminInvite(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 

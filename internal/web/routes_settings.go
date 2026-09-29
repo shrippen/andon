@@ -48,27 +48,27 @@ func (d Deps) settingsPage(w http.ResponseWriter, ctx Ctx, status int, extra map
 	}
 	net, err := system.Network(d.DB)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	cfg, err := oidc.Load(d.DB, d.Settings)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	themeList, err := themes.Listing(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	registration, err := admin.RegistrationOpen(d.DB)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	defaultTheme, err := themes.DefaultID(d.DB)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	var defaultID int64
@@ -122,7 +122,7 @@ func (d Deps) settingsAction(w http.ResponseWriter, r *http.Request, run func(Ct
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	if err := run(ctx); err != nil {

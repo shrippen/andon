@@ -64,7 +64,7 @@ func (d Deps) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	token, err := auth.OpenOIDCSession(d.DB, d.Settings, result.UserID, ClientIP(r), Agent(r), result.IDToken)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	d.setSession(w, token)

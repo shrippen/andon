@@ -26,27 +26,27 @@ func (d Deps) RegisterSecurityRoutes(mux *http.ServeMux) {
 func (d Deps) securityPage(w http.ResponseWriter, ctx Ctx, status int, extra map[string]any) {
 	profile, err := accounts.GetProfile(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	sessions, err := auth.MySessions(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	tokens, err := auth.MyTokens(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	keys, err := passkeys.Mine(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	required, err := auth.TOTPRequired(d.DB, ctx.Who, ctx.Method)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	values := map[string]any{
@@ -66,7 +66,7 @@ func (d Deps) handleSecurityPage(w http.ResponseWriter, r *http.Request, ctx Ctx
 func (d Deps) handlePasswordChange(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	var err error
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	err = accounts.ChangePassword(d.DB, ctx.Who, r.FormValue("current"), r.FormValue("new"), ClientIP(r))
@@ -88,7 +88,7 @@ func (d Deps) handleTOTPBeginForm(w http.ResponseWriter, r *http.Request, ctx Ct
 
 func (d Deps) handleTOTPConfirmForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	codes, err := auth.TOTPConfirm(d.DB, ctx.Who, r.FormValue("code"), ClientIP(r))
@@ -101,7 +101,7 @@ func (d Deps) handleTOTPConfirmForm(w http.ResponseWriter, r *http.Request, ctx 
 
 func (d Deps) handleTOTPDisableForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	if err := auth.TOTPDisable(d.DB, ctx.Who, r.FormValue("code"), ClientIP(r)); err != nil {
@@ -118,7 +118,7 @@ func (d Deps) handleSessionEnd(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		return
 	}
 	if err := auth.EndSession(d.DB, ctx.Who, id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/me/security", http.StatusSeeOther)
@@ -126,7 +126,7 @@ func (d Deps) handleSessionEnd(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 
 func (d Deps) handleTokenCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	scope := enums.TokenScope(r.FormValue("scope"))
@@ -154,7 +154,7 @@ func (d Deps) handleTokenRevoke(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		return
 	}
 	if err := auth.RevokeToken(d.DB, ctx.Who, id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/me/security", http.StatusSeeOther)

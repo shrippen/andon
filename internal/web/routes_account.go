@@ -39,7 +39,7 @@ func (d Deps) handleInviteForm(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	found, err := invites.Peek(d.DB, token)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	if found == nil {
@@ -52,7 +52,7 @@ func (d Deps) handleInviteForm(w http.ResponseWriter, r *http.Request) {
 func (d Deps) handleInviteSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx, _ := d.Context(r)
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	token, password := r.PathValue("token"), r.FormValue("password")
@@ -71,7 +71,7 @@ func (d Deps) handleRegisterForm(w http.ResponseWriter, r *http.Request) {
 	ctx, _ := d.Context(r)
 	open, err := admin.RegistrationOpen(d.DB)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	if !open {
@@ -84,7 +84,7 @@ func (d Deps) handleRegisterForm(w http.ResponseWriter, r *http.Request) {
 func (d Deps) handleRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx, _ := d.Context(r)
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	password := r.FormValue("password")
@@ -104,11 +104,11 @@ func (d Deps) handleResetRequestForm(w http.ResponseWriter, r *http.Request) {
 func (d Deps) handleResetRequest(w http.ResponseWriter, r *http.Request) {
 	ctx, _ := d.Context(r)
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	if err := invites.RequestReset(d.DB, r.FormValue("email"), ClientIP(r)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	_ = d.Page(w, ctx, "reset_request", http.StatusOK, map[string]any{"Sent": true})
@@ -119,7 +119,7 @@ func (d Deps) handleResetForm(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	valid, err := invites.ResetValid(d.DB, token)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	if !valid {
@@ -132,7 +132,7 @@ func (d Deps) handleResetForm(w http.ResponseWriter, r *http.Request) {
 func (d Deps) handleResetSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx, _ := d.Context(r)
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	token := r.PathValue("token")

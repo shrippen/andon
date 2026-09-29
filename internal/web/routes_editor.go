@@ -59,7 +59,7 @@ func (d Deps) handleBoardSettingsForm(w http.ResponseWriter, r *http.Request, ct
 	}
 	themeList, err := themes.Listing(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	_ = d.Page(w, ctx, "board_settings", http.StatusOK, map[string]any{
@@ -75,7 +75,7 @@ func (d Deps) handleBoardRename(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	version, _ := strconv.Atoi(r.FormValue("version"))
@@ -84,7 +84,7 @@ func (d Deps) handleBoardRename(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		themeID = &n
 	}
 	if err := boards.Rename(d.DB, ctx.Who, id, version, r.FormValue("name"), themeID, minRole(r), enums.BoardLayout(r.FormValue("layout"))); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/boards/"+r.PathValue("id"), http.StatusSeeOther)
@@ -97,7 +97,7 @@ func (d Deps) handleBoardDelete(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		return
 	}
 	if err := boards.Delete(d.DB, ctx.Who, id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -110,12 +110,12 @@ func (d Deps) handleSectionAdd(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	version, _ := strconv.Atoi(r.FormValue("version"))
 	if _, err := boards.AddSection(d.DB, ctx.Who, boardID, version, r.FormValue("title")); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/boards/"+r.PathValue("id")+"?edit", http.StatusSeeOther)
@@ -128,7 +128,7 @@ func (d Deps) handleSectionEdit(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	version, _ := strconv.Atoi(r.FormValue("version"))
@@ -150,7 +150,7 @@ func (d Deps) handleSectionEdit(w http.ResponseWriter, r *http.Request, ctx Ctx)
 
 	boardID := r.FormValue("board_id")
 	if err := boards.EditSection(d.DB, ctx.Who, id, version, changes); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/boards/"+boardID+"?edit", http.StatusSeeOther)
@@ -163,13 +163,13 @@ func (d Deps) handleSectionDelete(w http.ResponseWriter, r *http.Request, ctx Ct
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	version, _ := strconv.Atoi(r.FormValue("version"))
 	boardID := r.FormValue("board_id")
 	if err := boards.DeleteSection(d.DB, ctx.Who, id, version); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/boards/"+boardID+"?edit&undo", http.StatusSeeOther)
@@ -187,13 +187,13 @@ func (d Deps) handlePlace(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	widgetID, _ := strconv.ParseInt(r.FormValue("widget_id"), 10, 64)
 	version, _ := strconv.Atoi(r.FormValue("version"))
 	if _, err := boards.Place(d.DB, ctx.Who, sectionID, widgetID, version); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/boards/"+strconv.FormatInt(boardID, 10)+"?edit", http.StatusSeeOther)
@@ -206,13 +206,13 @@ func (d Deps) handleUnplace(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	version, _ := strconv.Atoi(r.FormValue("version"))
 	boardID := r.FormValue("board_id")
 	if err := boards.Unplace(d.DB, ctx.Who, id, version); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/boards/"+boardID+"?edit&undo", http.StatusSeeOther)
@@ -226,13 +226,13 @@ func (d Deps) handleTileRows(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	version, _ := strconv.Atoi(r.FormValue("version"))
 	rows, _ := strconv.Atoi(r.FormValue("rows"))
 	if err := boards.SetTileRows(d.DB, ctx.Who, id, rows, version); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/boards/"+r.FormValue("board_id")+"?edit", http.StatusSeeOther)
@@ -246,13 +246,13 @@ func (d Deps) handleTileCols(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	version, _ := strconv.Atoi(r.FormValue("version"))
 	cols, _ := strconv.Atoi(r.FormValue("cols"))
 	if err := boards.SetTileCols(d.DB, ctx.Who, id, cols, version); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/boards/"+r.FormValue("board_id")+"?edit", http.StatusSeeOther)
@@ -263,7 +263,7 @@ func (d Deps) handleTileCols(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 func (d Deps) handleWidgetLibrary(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	lib, err := widgetlib.Library(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	_ = d.Page(w, ctx, "widgets", http.StatusOK, map[string]any{"Groups": libraryGroups(ctx, lib), "Count": len(lib),
@@ -348,7 +348,7 @@ type widgetForm struct {
 func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widgetForm) {
 	conns, err := connections.Listing(d.DB, ctx.Who, enums.RightUse)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	var matching []connections.View
@@ -562,7 +562,7 @@ func (d Deps) handleWidgetDelete(w http.ResponseWriter, r *http.Request, ctx Ctx
 		return
 	}
 	if err := widgetlib.Delete(d.DB, ctx.Who, id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/widgets", http.StatusSeeOther)

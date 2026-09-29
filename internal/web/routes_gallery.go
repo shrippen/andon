@@ -59,7 +59,7 @@ type galleryTarget struct {
 func (d Deps) handleGallery(w http.ResponseWriter, ctx Ctx, target widgetTarget, spaces []access.SpaceRef) {
 	conns, err := connections.Listing(d.DB, ctx.Who, enums.RightUse)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	connOf := map[enums.ServiceType]int64{}
@@ -94,7 +94,7 @@ func (d Deps) handleGallery(w http.ResponseWriter, ctx Ctx, target widgetTarget,
 	if target.Place {
 		lib, err := widgetlib.Library(d.DB, ctx.Who)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			d.fail(w, err, http.StatusInternalServerError)
 			return
 		}
 		for _, ref := range lib {

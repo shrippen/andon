@@ -21,17 +21,17 @@ func (d Deps) RegisterProfileRoutes(mux *http.ServeMux) {
 func (d Deps) profilePage(w http.ResponseWriter, ctx Ctx, status int, extra map[string]any) {
 	profile, err := accounts.GetProfile(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	myBoards, err := boards.Visible(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	themeList, err := themes.Listing(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	values := map[string]any{"Profile": profile, "Boards": myBoards, "Themes": themeList}
@@ -47,7 +47,7 @@ func (d Deps) handleProfilePage(w http.ResponseWriter, r *http.Request, ctx Ctx)
 
 func (d Deps) handleProfileSave(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 

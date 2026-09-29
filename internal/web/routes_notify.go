@@ -25,12 +25,12 @@ var severityLevels = []enums.Severity{enums.SeverityInfo, enums.SeverityWarn, en
 func (d Deps) notifyPage(w http.ResponseWriter, r *http.Request, ctx Ctx, status int, extra map[string]any) {
 	chans, err := notify.Channels(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	prefs, err := notify.GetPrefs(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	values := map[string]any{
@@ -50,7 +50,7 @@ func (d Deps) handleNotifyPage(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 
 func (d Deps) handleNotifyChannelCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	level, _ := strconv.Atoi(r.FormValue("level"))
@@ -90,7 +90,7 @@ func (d Deps) handleNotifyChannelDelete(w http.ResponseWriter, r *http.Request, 
 
 func (d Deps) handleNotifyPrefsSave(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	prefs := notify.Prefs{

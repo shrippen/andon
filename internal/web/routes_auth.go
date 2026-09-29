@@ -23,7 +23,7 @@ func (d Deps) RegisterAuthRoutes(mux *http.ServeMux) {
 func (d Deps) handleSetupForm(w http.ResponseWriter, r *http.Request) {
 	needed, err := auth.SetupNeeded(d.DB)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	if !needed {
@@ -37,7 +37,7 @@ func (d Deps) handleSetupForm(w http.ResponseWriter, r *http.Request) {
 func (d Deps) handleSetupSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx, _ := d.Context(r)
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	err := auth.CreateAdmin(d.DB, r.FormValue("code"), r.FormValue("email"), r.FormValue("name"),
@@ -78,7 +78,7 @@ func (d Deps) loginExtras(values map[string]any) map[string]any {
 func (d Deps) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx, _ := d.Context(r)
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -117,7 +117,7 @@ func (d Deps) handleTOTPForm(w http.ResponseWriter, r *http.Request) {
 
 func (d Deps) handleTOTPSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	cookie, err := r.Cookie(CookieName)
@@ -142,7 +142,7 @@ func (d Deps) handleLogout(w http.ResponseWriter, r *http.Request) {
 	// page could force a log-out via a bare <form method=post action=...>.
 	ctx, err := d.Context(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	if err := d.checkCSRF(r, ctx.CSRF); err != nil {

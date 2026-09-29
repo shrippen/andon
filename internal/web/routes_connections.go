@@ -42,7 +42,7 @@ func (d Deps) RegisterConnectionRoutes(mux *http.ServeMux) {
 func (d Deps) handleConnectionsList(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	list, err := connections.Listing(d.DB, ctx.Who, enums.RightView)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	// Broken first, then shaky, not yet fetched, working; by name within.
@@ -89,7 +89,7 @@ func (d Deps) handleConnectionNewForm(w http.ResponseWriter, r *http.Request, ct
 	if !service.Known() {
 		picks, err := d.servicePicks(ctx)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			d.fail(w, err, http.StatusInternalServerError)
 			return
 		}
 		_ = d.Page(w, ctx, "connection_pick", http.StatusOK, map[string]any{"Services": picks})
@@ -114,7 +114,7 @@ func widgetsFor(service enums.ServiceType) []widgets.WidgetType {
 
 func (d Deps) handleConnectionCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	spaceID, _ := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
@@ -187,7 +187,7 @@ func (d Deps) handleConnectionUpdate(w http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	conn, err := connections.Get(d.DB, ctx.Who, id)
@@ -269,7 +269,7 @@ func (d Deps) handleConnectionDelete(w http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 	if err := connections.Delete(d.DB, ctx.Who, id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/connections", http.StatusSeeOther)
@@ -283,7 +283,7 @@ func (d Deps) handleConnectionTest(w http.ResponseWriter, r *http.Request, ctx C
 	}
 	result, err := connections.Test(r.Context(), d.DB, ctx.Who, id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	conn, _ := connections.Get(d.DB, ctx.Who, id)
@@ -387,7 +387,7 @@ func (d Deps) handlePlaces(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	query := r.URL.Query().Get("place_q")
 	found, err := places.Search(r.Context(), query, ctx.Locale)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
+		d.fail(w, err, http.StatusBadGateway)
 		return
 	}
 	_ = d.Page(w, ctx, "place_results", http.StatusOK, map[string]any{"Places": found, "Query": query})

@@ -28,7 +28,7 @@ func (d Deps) handleTimeline(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	since := now.AddDate(0, 0, -timelineDays)
 	entries, err := history.Timeline(d.DB, ctx.Who, since.UTC(), timelineLimit)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
@@ -41,7 +41,7 @@ func (d Deps) handleTimeline(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 func (d Deps) handleISPReport(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	list, err := reports.ISPReports(r.Context(), d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	_ = d.Page(w, ctx, "isp_report", http.StatusOK, map[string]any{"Reports": list, "Days": reports.ISPDays,
@@ -51,12 +51,12 @@ func (d Deps) handleISPReport(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 func (d Deps) handleISPCSV(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	list, err := reports.ISPReports(r.Context(), d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	blob, err := reports.ISPCSV(list)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")

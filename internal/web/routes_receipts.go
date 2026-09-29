@@ -120,7 +120,7 @@ func (d Deps) registerReceiptRoutes(mux *http.ServeMux) {
 func (d Deps) handleReceipts(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	setup, err := receipts.SetupOf(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	query := r.URL.Query()
@@ -248,7 +248,7 @@ func (d Deps) handleReceiptCreate(w http.ResponseWriter, r *http.Request, ctx Ct
 func (d Deps) handleReceiptLinkMany(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	var pairs []receipts.Pair
@@ -308,7 +308,7 @@ func (d Deps) handleReceiptsPick(w http.ResponseWriter, r *http.Request, ctx Ctx
 func (d Deps) handleReceiptLink(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	// "docs" is a list ("11,12"), "doc" one per ticked box.

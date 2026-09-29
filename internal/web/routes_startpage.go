@@ -46,7 +46,7 @@ func (d Deps) handleBulk(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	var placements []int64
@@ -135,7 +135,7 @@ func (d Deps) handleClick(w http.ResponseWriter, r *http.Request) {
 func (d Deps) handlePalette(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	items, err := boards.Palette(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	items = append(items, d.paletteConnections(ctx)...)

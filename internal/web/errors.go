@@ -2,6 +2,21 @@ package web
 
 import (
 	"errors"
+	"log/slog"
+	"net/http"
+
+	"andon/internal/services/access"
+	"andon/internal/services/admin"
+	"andon/internal/services/audit"
+	"andon/internal/services/clients"
+	"andon/internal/services/hints"
+	"andon/internal/services/hosts"
+	"andon/internal/services/invites"
+	"andon/internal/services/oidc"
+	"andon/internal/services/receipts"
+	"andon/internal/services/selfbackup"
+	"andon/internal/services/system"
+	"andon/internal/services/util"
 
 	"andon/internal/services/accounts"
 	"andon/internal/services/auth"
@@ -42,4 +57,49 @@ func errKey(err error) string {
 		}
 	}
 	return err.Error()
+}
+
+// Denied and not-found errors of the services, answered 403 and 404
+// whatever the handler expected.
+var (
+	deniedErrors = []error{access.ErrDenied, admin.ErrDenied, audit.ErrDenied, auth.ErrForbidden, hints.ErrDenied,
+		invites.ErrDenied, oidc.ErrDenied, selfbackup.ErrDenied, system.ErrDenied, teams.ErrDenied}
+	notFoundErrors = []error{util.ErrNotFound, admin.ErrNotFound, clients.ErrNotFound, hints.ErrNotFound, hosts.ErrNotFound,
+		receipts.ErrNotFound, shares.ErrNotFound, teams.ErrNotFound}
+)
+
+// fail answers a failed request: 403 denied, 404 not found, 409 stale
+// version, else fallback. A 400 names the error (a catalog key, see
+// errKey); a 500 is logged and says nothing more, as its text may name
+// tables, hosts or paths.
+func (d Deps) fail(w http.ResponseWriter, err error, fallback int) {
+	status := fallback
+	switch {
+	case isAny(err, deniedErrors):
+		status = http.StatusForbidden
+	case isAny(err, notFoundErrors):
+		status = http.StatusNotFound
+	case errors.Is(err, util.ErrConflict):
+		status = http.StatusConflict
+	}
+
+	if status >= http.StatusInternalServerError {
+		slog.Error("request failed", "err", err)
+		http.Error(w, http.StatusText(status), status)
+		return
+	}
+	if status != fallback {
+		http.Error(w, http.StatusText(status), status)
+		return
+	}
+	http.Error(w, errKey(err), status)
+}
+
+func isAny(err error, list []error) bool {
+	for _, e := range list {
+		if errors.Is(err, e) {
+			return true
+		}
+	}
+	return false
 }
