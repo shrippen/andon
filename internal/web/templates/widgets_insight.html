@@ -244,7 +244,7 @@
   <b class="kpi-value">{{money $v.Rate $v.Currency}}{{t "rate.per_hour"}}</b>
   {{with $v.Prev}}<span class="kpi-delta" data-trend="{{if ge $v.Delta 0.0}}up{{else}}down{{end}}" title="{{t "rate.vs_prev" "rate" (money . $v.Currency)}}">{{if ge $v.Delta 0.0}}▲{{else}}▼{{end}} {{money (abs $v.Delta) $v.Currency}}</span>{{end}}
   {{with $v.Spark}}{{template "spark" .}}{{end}}
-  <span class="kpi-sub">{{if $v.Target}}{{t "rate.target" "rate" (money $v.Target $v.Currency)}} · {{end}}{{t "kpi.spark_months" "n" 12}}</span>
+  <span class="kpi-sub">{{if $v.Target}}{{t "rate.target" "rate" (money $v.Target $v.Currency)}} · {{end}}{{t "kpi.spark_months" "n" $v.Months}}</span>
 </div>
 {{else}}<p class="slot-note">{{t "rate.none"}}</p>{{end}}{{end}}
 {{end}}

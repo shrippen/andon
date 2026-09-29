@@ -354,8 +354,14 @@ type ClockConfig struct {
 	Analog    bool // a face with hands
 }
 
+// decodeClock keeps the zones Go knows: a typo would show "?".
 func decodeClock(raw map[string]any) any {
-	tz := asStringList(raw["timezones"])
+	var tz []string
+	for _, name := range asStringList(raw["timezones"]) {
+		if _, err := time.LoadLocation(name); err == nil {
+			tz = append(tz, name)
+		}
+	}
 	if len(tz) == 0 {
 		tz = []string{defaultTimezone}
 	}
@@ -490,9 +496,15 @@ type Meter struct {
 	Tier  string
 }
 
+// redFrom is where red starts above a warning: 20 points higher, but
+// never beyond halfway to full (warn 90 → red 95).
+func redFrom(warn float64) float64 {
+	return min(warn+loadHigh-loadWarn, (warn+pctFull)/2)
+}
+
 func meterTier(v, warn float64) string {
 	switch {
-	case v >= warn+loadHigh-loadWarn:
+	case v >= redFrom(warn):
 		return "red"
 	case v >= warn:
 		return "yellow"

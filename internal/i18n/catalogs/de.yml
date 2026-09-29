@@ -644,7 +644,7 @@ opt:
   c: °C
   f: °F
   minor: Wetterwarnung
-  moderate: markant
+  moderate: Markantes Wetter
   severe: Unwetter
   extreme: extremes Unwetter
   "12": 12 Stunden
@@ -3201,6 +3201,7 @@ gateway:
 expiry:
   days: 'Tage'
   total: '{n} Zertifikate und Domains'
+  unknown: 'Ablauf unbekannt'
 speed:
   contract: 'Vertrag {n} Mbit/s'
   slow: '{n} Tage zu langsam'

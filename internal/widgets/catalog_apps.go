@@ -237,7 +237,11 @@ func giteaView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 	if !ok {
 		return map[string]any{}
 	}
-	out := map[string]any{"Data": data}
+	// Head: reviews waiting, or the assigned issues when only those show.
+	out := map[string]any{"Data": data, "Head": len(data.Reviews), "HeadKey": "gitea.reviews"}
+	if cfg.Only == "issues" {
+		out["Head"], out["HeadKey"] = len(data.Assigned), "gitea.assigned"
+	}
 	if cfg.Only != "issues" {
 		out["Reviews"] = firstN(data.Reviews, cfg.Limit)
 	}

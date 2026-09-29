@@ -24,8 +24,11 @@ var calmChecks = map[string]func(v map[string]any) bool{
 	"monitors":    func(v map[string]any) bool { return v["Total"] != nil && v["Up"] == v["Total"] },
 	"disks":       func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] },
 	"conn_health": func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] },
+	// Stacks stopped on purpose (Resting) count as fine.
 	"komodo_stacks": func(v map[string]any) bool {
-		return v["Stacks"] != nil && v["Running"] == v["Stacks"] && v["Updates"] == 0 && v["Alerts"] == 0
+		running, _ := v["Running"].(int)
+		resting, _ := v["Resting"].(int)
+		return v["Stacks"] != nil && running+resting == v["Stacks"] && v["Updates"] == 0 && v["Alerts"] == 0
 	},
 	"truenas_pools":    func(v map[string]any) bool { return v["Pools"] != nil && v["Alerts"] == 0 },
 	"expiry":           func(v map[string]any) bool { return v["Total"] == 0 },
@@ -49,9 +52,10 @@ var calmChecks = map[string]func(v map[string]any) bool{
 		}
 		return len(rows) > 0
 	},
+	// Count is the inbox, or the tag's documents when a tag is set.
 	"paperless_inbox": func(v map[string]any) bool {
-		d, ok := v["Data"].(*sources.PaperlessDataset)
-		return ok && d.Inbox == 0
+		_, ok := v["Data"].(*sources.PaperlessDataset)
+		return ok && v["Count"] == 0
 	},
 	// Hint lists (ExtraHints): calm without hints.
 	"hints":   func(v map[string]any) bool { return v["Hints"] != nil && lenOf(v["Hints"]) == 0 },

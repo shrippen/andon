@@ -467,7 +467,7 @@ func komodoView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any 
 	}
 	var cells []StripCell
 	var trouble []string
-	updates, running, stacks := 0, 0, 0
+	updates, running, stacks, resting := 0, 0, 0, 0
 	stopped := metrics.KomodoStopped(ctx.Options)
 	for _, s := range data.Stacks {
 		if !matchesAny(s.Name, cfg.Only) {
@@ -478,6 +478,7 @@ func komodoView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any 
 
 		// Stopped on purpose: grey, no trouble.
 		if stopped[strings.ToLower(s.Name)] && state != "ok" {
+			resting++
 			if cfg.OnlyIssues {
 				continue
 			}
@@ -498,7 +499,7 @@ func komodoView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any 
 		cells = append(cells, StripCell{State: state, Title: s.Name + " · " + s.State})
 	}
 	return map[string]any{"Servers": data.ServersHealthy, "ServersTotal": data.ServersTotal, "Running": running,
-		"Stacks": stacks, "Cells": cells, "Trouble": trouble, "Updates": updates, "Alerts": len(data.Alerts)}
+		"Stacks": stacks, "Resting": resting, "Cells": cells, "Trouble": trouble, "Updates": updates, "Alerts": len(data.Alerts)}
 }
 
 // ── truenas_pools ──
@@ -547,7 +548,7 @@ func truenasView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any
 		}
 		tier := ""
 		switch {
-		case !p.Healthy || used*pctFull >= cfg.WarnPct+loadHigh-loadWarn:
+		case !p.Healthy || used*pctFull >= redFrom(cfg.WarnPct):
 			tier = "red"
 		case used*pctFull >= cfg.WarnPct:
 			tier = "yellow"

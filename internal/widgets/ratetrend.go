@@ -46,7 +46,7 @@ func rateTrendView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]a
 			rates = append(rates, m.Net/hours[i])
 		}
 	}
-	out := map[string]any{"Currency": ninja.Currency, "Target": cfg.Target, "Month": lastMonth.Format("01/2006")}
+	out := map[string]any{"Currency": ninja.Currency, "Target": cfg.Target, "Month": lastMonth.Format("01/2006"), "Months": cfg.Months}
 	if len(rates) == 0 {
 		return out
 	}

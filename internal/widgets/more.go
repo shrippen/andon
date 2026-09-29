@@ -126,9 +126,15 @@ type HolidaysConfig struct {
 	Bridges        bool // name the bridge day next to a Tuesday or Thursday holiday
 }
 
+// decodeHolidays prefixes a bare state with its country, as Nager names
+// regions: "BY" → "DE-BY".
 func decodeHolidays(raw map[string]any) any {
-	return HolidaysConfig{Country: firstNonEmpty(strings.ToUpper(asString(raw["country"])), defaultCountry),
-		State: strings.ToUpper(asString(raw["state"])), Limit: clampInt(asInt(raw["limit"], 5), 1, 30),
+	country := firstNonEmpty(strings.ToUpper(asString(raw["country"])), defaultCountry)
+	state := strings.ToUpper(strings.TrimSpace(asString(raw["state"])))
+	if state != "" && !strings.Contains(state, "-") {
+		state = country + "-" + state
+	}
+	return HolidaysConfig{Country: country, State: state, Limit: clampInt(asInt(raw["limit"], 5), 1, 30),
 		Bridges: asBool(raw["bridges"])}
 }
 

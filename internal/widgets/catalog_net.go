@@ -1,6 +1,7 @@
 package widgets
 
 import (
+	"math"
 	"net/url"
 	"sort"
 	"strconv"
@@ -127,9 +128,21 @@ func gatewayView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 
 const peerDomains = "domains"
 
+// expiryUnknown is the value of a bar whose end is not known; such a
+// bar sorts last (expiryNever days left).
+const (
+	expiryUnknown = "expiry.unknown"
+	expiryNever   = math.MaxInt32
+)
+
+// expiryBar: days left as a bar; an error or an unknown end as text
+// without a bar (W 0).
 func expiryBar(label string, left int, err string) HBar {
 	if err != "" {
 		return HBar{Label: label, Value: err, Tier: "red"}
+	}
+	if left == expiryNever {
+		return HBar{Label: label, Value: expiryUnknown}
 	}
 	tier := ""
 	switch {
@@ -162,7 +175,12 @@ func decodeExpiry(raw map[string]any) any {
 func expiryView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	cfg, _ := cfgAny.(ExpiryConfig)
 	today := todayOf(ctx)
-	daysTo := func(t time.Time) int { return int(t.Sub(today).Hours() / hoursPerDay) }
+	daysTo := func(t time.Time) int {
+		if t.IsZero() {
+			return expiryNever
+		}
+		return int(t.Sub(today).Hours() / hoursPerDay)
+	}
 
 	type item struct {
 		bar  HBar

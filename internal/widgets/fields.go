@@ -158,7 +158,7 @@ var fieldsByType = map[string][]Field{
 	"money_flow":        {{Key: "show_paid", Input: InputCheck, Default: true}},
 	"expiries":          {{Key: "days", Input: InputNumber, Default: 90}, {Key: "limit", Input: InputNumber, Default: 15}, {Key: "sources", Input: InputList}},
 	"updates":           {{Key: "limit", Input: InputNumber, Default: 20}, {Key: "sources", Input: InputList}, sel("sort", "urgency", "urgency", "age")},
-	"kimai_timer":       {},
+	"kimai_timer":       {{Key: "recent", Input: InputNumber, Default: recentShown}, {Key: "ask_note", Input: InputCheck}},
 	"conn_health":       {{Key: "limit", Input: InputNumber, Default: 4}, {Key: "only_shaky", Input: InputCheck}},
 	"kimai_week":        {{Key: "billable_only", Input: InputCheck}},
 	"kimai_split":       {sel("week", "this", "this", "last"), sel("group", "customer", "customer", "project")},
