@@ -398,3 +398,20 @@ func readZipFile(zr *zip.Reader, name string, limit int) ([]byte, error) {
 	}
 	return data, nil
 }
+
+// Usable reports, inside a running transaction, whether who may use a
+// theme (e.g. to put it on a board): access.ErrDenied if not.
+func Usable(q db.Queryer, who *access.Principal, themeID int64) error {
+	t, err := misc.Theme(q, themeID)
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		return ErrNotFound
+	}
+	g, err := right(q, who, t)
+	if err != nil {
+		return err
+	}
+	return access.Need(g, enums.RightUse)
+}
