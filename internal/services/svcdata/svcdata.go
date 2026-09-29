@@ -396,7 +396,7 @@ func fillLater(d *sql.DB, key string, source sources.Source, sctx sources.Ctx, c
 	inflight[key] = true
 	inflightMu.Unlock()
 
-	go func() {
+	filling.Go(func() {
 		defer func() {
 			inflightMu.Lock()
 			delete(inflight, key)
@@ -405,8 +405,14 @@ func fillLater(d *sql.DB, key string, source sources.Source, sctx sources.Ctx, c
 		ctx, cancel := context.WithTimeout(context.Background(), backgroundWait)
 		defer cancel()
 		fetch(ctx, d, key, source.Key(), source, sctx, conn)
-	}()
+	})
 }
+
+// filling tracks background fills, so shutdown can wait for them.
+var filling sync.WaitGroup
+
+// WaitFills blocks until every background fill has finished.
+func WaitFills() { filling.Wait() }
 
 // fetch reaches the service and remembers the outcome.
 func fetch(ctx context.Context, d *sql.DB, key, sourceKey string, source sources.Source, sctx sources.Ctx, conn *model.Connection) Result {

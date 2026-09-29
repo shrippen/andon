@@ -97,3 +97,25 @@ func TestTriggerRunsJobNow(t *testing.T) {
 		t.Fatal("unknown job triggered")
 	}
 }
+
+// TestWaitDrainsRunningJob: after stop, wait returns only once a job
+// that was running has finished, so the database is not closed under it.
+func TestWaitDrainsRunningJob(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	started, finished := make(chan struct{}), make(chan struct{})
+	wait := scheduler.Start(ctx, []scheduler.Job{{Name: "slow", Interval: time.Hour, Start: scheduler.AtStart,
+		Run: func(context.Context) error {
+			close(started)
+			time.Sleep(100 * time.Millisecond)
+			close(finished)
+			return nil
+		}}})
+	<-started
+	cancel()
+	wait()
+	select {
+	case <-finished:
+	default:
+		t.Fatal("wait returned while the job ran")
+	}
+}
