@@ -47,7 +47,7 @@ func TestGallerySortsByName(t *testing.T) {
 }
 
 // From the gallery a set-up tile is placed as a copy, and a new tile can
-// be two rows high.
+// be two rows high and two columns wide.
 func TestGalleryCopyAndRows(t *testing.T) {
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)
@@ -83,7 +83,7 @@ func TestGalleryCopyAndRows(t *testing.T) {
 	}
 
 	// The copy bumped the board version once.
-	form = url.Values{"csrf": {csrfToken(t, srv, client)}, "type": {"note"}, "title": {"Tall"}, "cfg.text": {"x"}, "rows": {"2"}}
+	form = url.Values{"csrf": {csrfToken(t, srv, client)}, "type": {"note"}, "title": {"Tall"}, "cfg.text": {"x"}, "rows": {"2"}, "cols": {"2"}}
 	for k, v := range target {
 		form[k] = v
 	}
@@ -98,6 +98,9 @@ func TestGalleryCopyAndRows(t *testing.T) {
 	}
 	if body := string(mustGet(t, srv, client, boardURL+"?edit")); !strings.Contains(body, `data-rows="2"`) {
 		t.Fatalf("expected a two-row tile:\n%s", body)
+	}
+	if body := string(mustGet(t, srv, client, boardURL+"?edit")); !strings.Contains(body, `data-cols="2"`) {
+		t.Fatalf("expected a two-column tile:\n%s", body)
 	}
 }
 

@@ -290,8 +290,65 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
 @container (min-width: 28rem) {
   /* :where keeps full-width tiles (rss, table, …) full width. */
   :where(.tile-slot[data-cols="2"]) { grid-column: span 2; }
-  /* Item lists use the width as a second column. */
-  .tile-slot[data-cols="2"] :is(.legend-list, .plain-list, .hint-lines, .mon-lines, .hass-list) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.4rem; }
+}
+.editor-split:has(#cols option[value="2"]:checked) .wf-slot { grid-column: span 2; }
+/* Wide tile content, once its body has the room (the query sees the
+   card body). Same for the editor preview set to two columns:
+     ┌ narrow ──────┐   ┌ wide ──────────────────────┐
+     │ ■ a      12  │   │ ■ a      12 │ ■ c      7   │
+     │ ■ b       9  │   │ ■ b       9 │ ■ d      3   │
+     │ ■ c       7  │   └─────────────────────────────┘
+     └──────────────┘   dated lists flow down, then over. */
+@container (min-width: 24rem) {
+  /* Short items and meters: side by side. Rows with much in them (bars,
+     time lines, containers with their status) keep one column and get
+     the room; split tiles already use it, backup rows need it for their
+     day dots. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot)
+    :is(.legend-list:not(.tile-split *, .backup-lines, .w-docker_containers *), .plain-list, .hint-lines, .mon-lines, .hass-list,
+        .sub-rows, .store-rows, .close-steps, .kl-list, .topic-list, .flow-legend, .meters) {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.4rem; align-items: start; }
+  /* Dated lists keep their order: down the first column, then the second. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) :is(.agenda, .deadlines) {
+    display: block; columns: 2; column-gap: 1.4rem; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) :is(.agenda, .deadlines) > li {
+    break-inside: avoid; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .agenda > li { margin-bottom: .4rem; }
+  /* Key–value pairs: two pairs a line. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kv {
+    grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); }
+  /* Several clocks: next to each other. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .clock-tile {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .6rem 1.4rem; }
+  /* Weather: now and the next hours left, the days right. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .weather-tile {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.4rem; align-items: start; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .weather-days {
+    grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+  /* A figure with its spark line: figures left, a taller line right. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi:has(> .spark) {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); column-gap: 1.4rem; align-content: start; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi:has(> .spark) > * { grid-column: 1; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi > .spark {
+    grid-column: 2; grid-row: 1 / span 3; height: auto; min-height: 3.2rem; margin: 0; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi > .spark + .kpi-sub { grid-column: 2; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi:has(> .spark) > .kpi-delta { justify-self: start; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi > .kpi-details { grid-column: 1 / -1; }
+  /* Pictures: caption and text next to the image. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .picture:has(figcaption) {
+    display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: .4rem 1.2rem; align-items: start; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .picture:has(figcaption) > img {
+    grid-row: 1 / span 2; }
+  /* Status light: the light left, what makes it so right. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .light) {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); column-gap: 1.2rem; align-items: start; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .light) > * { grid-column: 2; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .light) > .light { grid-column: 1; grid-row: 1 / span 2; margin: 0; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body > .light ~ .hint-lines { display: flex; align-items: stretch; }
+  /* Connection strips: two a line. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .strip-row) {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.4rem; align-items: center; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .strip-row) > :not(.strip-row) { grid-column: 1 / -1; }
 }
 /* A section's only tile takes the section's width. */
 .board-main .dsec-body > .tile-slot:only-child { grid-column: 1 / -1; }

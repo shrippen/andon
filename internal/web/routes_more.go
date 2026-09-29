@@ -222,7 +222,7 @@ func (d Deps) handleWidgetCopy(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 	edit := "/widgets/" + strconv.FormatInt(newID, 10) + "/edit"
 	target := targetOf(r.FormValue)
 	if target.Place {
-		if err := d.placeNew(ctx, target, newID, ""); err != nil {
+		if err := d.placeNew(ctx, target, newID, "", ""); err != nil {
 			d.handleBoardError(w, r, err)
 			return
 		}

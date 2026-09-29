@@ -268,6 +268,8 @@
         {{if and .Target.Place (not .Widget)}}
         <label for="rows">{{t "gallery.height"}}</label>
         <select id="rows" name="rows">{{range $n := .RowOptions}}<option value="{{$n}}">{{t (print "gallery.rows_" $n)}}</option>{{end}}</select>
+        <label for="cols">{{t "gallery.width"}}</label>
+        <select id="cols" name="cols">{{range $n := .ColOptions}}<option value="{{$n}}">{{t (print "gallery.cols_" $n)}}</option>{{end}}</select>
         {{end}}
         </fieldset>
 

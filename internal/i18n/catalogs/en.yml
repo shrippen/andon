@@ -3235,6 +3235,9 @@ gallery:
   height: Height
   rows_1: 1 row
   rows_2: 2 rows
+  width: Width
+  cols_1: 1 column
+  cols_2: 2 columns
   add_to: 'Add to “{section}”'
   preview_hint: How the tile sits among its neighbours.
 audit_action:

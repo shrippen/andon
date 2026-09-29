@@ -366,7 +366,7 @@ func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widge
 		dest = d.targetNames(ctx, f.Target)
 	}
 	_ = d.Page(w, ctx, "widget_form", status, map[string]any{
-		"Dest": dest, "Topic": widgets.TopicOf(f.Kind.Key), "RowOptions": rowOptions(),
+		"Dest": dest, "Topic": widgets.TopicOf(f.Kind.Key), "RowOptions": spanOptions(boards.MaxTileRows), "ColOptions": spanOptions(boards.MaxTileCols),
 		"Kind": f.Kind, "Title": f.Title, "Fields": widgets.FormValues(f.Kind.Key, f.Config),
 		"FrameFields": widgets.FrameFormValues(f.Kind.Key, f.Config),
 		"Conns":       matching, "AllConns": conns, "ConnID": f.ConnID, "MinRole": f.MinRole,
@@ -431,7 +431,7 @@ func (d Deps) handleWidgetCreate(w http.ResponseWriter, r *http.Request, ctx Ctx
 		return
 	}
 	if target.Place {
-		if err := d.placeNew(ctx, target, id, r.FormValue("rows")); err != nil {
+		if err := d.placeNew(ctx, target, id, r.FormValue("rows"), r.FormValue("cols")); err != nil {
 			d.handleBoardError(w, r, err)
 			return
 		}
@@ -439,9 +439,11 @@ func (d Deps) handleWidgetCreate(w http.ResponseWriter, r *http.Request, ctx Ctx
 	http.Redirect(w, r, target.Back(), http.StatusSeeOther)
 }
 
-// rowOptions lists the heights a new tile can take: 1…MaxTileRows.
-func rowOptions() []int {
-	out := make([]int, boards.MaxTileRows)
+// spanOptions lists the spans a new tile can take: 1…most.
+//
+//	spanOptions(2) → [1 2]
+func spanOptions(most int) []int {
+	out := make([]int, most)
 	for i := range out {
 		out[i] = i + 1
 	}
@@ -449,17 +451,25 @@ func rowOptions() []int {
 }
 
 // placeNew puts a just-created widget into the target section, two rows
-// high if asked. Place bumps the board version, hence Version+1.
-func (d Deps) placeNew(ctx Ctx, target widgetTarget, widgetID int64, rows string) error {
+// high or two columns wide if asked. Each change bumps the board version.
+func (d Deps) placeNew(ctx Ctx, target widgetTarget, widgetID int64, rows, cols string) error {
 	placement, err := boards.Place(d.DB, ctx.Who, target.SectionID, widgetID, target.Version)
 	if err != nil {
 		return err
 	}
-	n, _ := strconv.Atoi(rows)
-	if n <= 1 {
-		return nil
+	version := target.Version + 1
+
+	if n, _ := strconv.Atoi(rows); n > 1 {
+		if err := boards.SetTileRows(d.DB, ctx.Who, placement, n, version); err != nil {
+			return err
+		}
+		version++
 	}
-	return boards.SetTileRows(d.DB, ctx.Who, placement, n, target.Version+1)
+
+	if n, _ := strconv.Atoi(cols); n > 1 {
+		return boards.SetTileCols(d.DB, ctx.Who, placement, n, version)
+	}
+	return nil
 }
 
 func (d Deps) handleWidgetEditForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
