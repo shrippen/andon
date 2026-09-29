@@ -655,6 +655,71 @@
     }, true);
   }
 
+  // ── Edit actions keep the place ──
+  //
+  // Board edits answer with the board again; a long board jumped to the
+  // top after every change. The tile (or section) acted on returns to its
+  // spot on screen. By element, not scrollY: tiles off screen come back
+  // with placeholder heights (content-visibility).
+  //
+  //   submit ─► remember {path, tile, section, top} ─► new page ─► restore
+  var PLACE_KEY = "andon-place";
+  var PLACE_MAX_AGE_MS = 30000;
+
+  function placeOf(el) {
+    var tile = el.closest && el.closest("[data-placement]");
+    var section = el.closest && el.closest("[data-section]");
+    if (!tile && !section) {
+      return null;
+    }
+    return {
+      path: window.location.pathname, at: Date.now(),
+      tile: tile ? tile.getAttribute("data-placement") : "", tileTop: tile ? tile.getBoundingClientRect().top : 0,
+      section: section ? section.getAttribute("data-section") : "", sectionTop: section ? section.getBoundingClientRect().top : 0
+    };
+  }
+
+  function setupPlace() {
+    d.addEventListener("submit", function (e) {
+      var place = placeOf(e.submitter || e.target);
+      try {
+        if (place) {
+          window.sessionStorage.setItem(PLACE_KEY, JSON.stringify(place));
+        } else {
+          window.sessionStorage.removeItem(PLACE_KEY);
+        }
+      } catch (err) { /* storage blocked: jump to the top as before */ }
+    }, true);
+  }
+
+  function restorePlace() {
+    var place = null;
+    try {
+      place = JSON.parse(window.sessionStorage.getItem(PLACE_KEY) || "null");
+      window.sessionStorage.removeItem(PLACE_KEY);
+    } catch (err) {
+      return;
+    }
+    if (!place || place.path !== window.location.pathname || Date.now() - place.at > PLACE_MAX_AGE_MS) {
+      return;
+    }
+    // A removed tile: fall back to its section.
+    var el = place.tile && d.querySelector('[data-placement="' + place.tile + '"]');
+    var top = place.tileTop;
+    if (!el) {
+      el = place.section && d.querySelector('[data-section="' + place.section + '"]');
+      top = place.sectionTop;
+    }
+    if (!el) {
+      return;
+    }
+    // After htmx's own scroll to the top of a boosted page.
+    window.requestAnimationFrame(function () {
+      el.scrollIntoView({ block: "start" });
+      window.scrollBy(0, -top);
+    });
+  }
+
   // ── Selects that submit their form on change (no inline handlers: CSP) ──
   function setupAutosubmit() {
     d.addEventListener("change", function (e) {
@@ -1094,10 +1159,12 @@
     setupConfirm();
     setupPlacePick();
     setupBoost();
+    setupPlace();
     window.setInterval(tick, CLOCK_TICK_MS);
   });
 
   window.andonPage(function () {
+    restorePlace();
     retryPending(d);
     setupSearch();
     bindPalette();
