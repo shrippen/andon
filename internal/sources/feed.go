@@ -2,6 +2,7 @@ package sources
 
 import (
 	"andon/internal/drivers/httpclient"
+	"andon/internal/weburl"
 	"encoding/xml"
 	"errors"
 	"html"
@@ -126,7 +127,7 @@ func parseFeed(r io.Reader) (*FeedResult, error) {
 }
 
 func httpLinkOnly(link string) string {
-	if strings.HasPrefix(link, "http://") || strings.HasPrefix(link, "https://") {
+	if weburl.IsWeb(link) {
 		return link
 	}
 	return ""

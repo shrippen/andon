@@ -1,6 +1,7 @@
 package sources
 
 import (
+	"andon/internal/weburl"
 	"context"
 	"fmt"
 	"io"
@@ -85,7 +86,7 @@ func IconCandidates(spec, pageURL string) []string {
 			return nil
 		}
 		return []string{u.Scheme + "://" + u.Host + "/favicon.ico"}
-	case strings.HasPrefix(spec, "http://") || strings.HasPrefix(spec, "https://"):
+	case weburl.IsWeb(spec):
 		return []string{spec}
 	}
 	return nil

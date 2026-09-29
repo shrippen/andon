@@ -1,6 +1,7 @@
 package porting
 
 import (
+	"andon/internal/weburl"
 	"database/sql"
 	"fmt"
 	"strconv"
@@ -216,7 +217,7 @@ func dashyItem(entry map[string]any, defaultStatus widgets.StatusMode, report *R
 	if title == "" {
 		title = url
 	}
-	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+	if !weburl.IsWeb(url) {
 		report.Skipped = append(report.Skipped, fmt.Sprintf("item %s: url %q", title, url))
 		return nil
 	}
@@ -459,7 +460,7 @@ func dashySubItems(entry map[string]any, report *Report) []any {
 	var out []any
 	for _, sub := range list(entry, "subItems") {
 		url := str(sub, "url")
-		if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		if !weburl.IsWeb(url) {
 			report.Skipped = append(report.Skipped, fmt.Sprintf("sub-item %s: url %q", str(sub, "title"), url))
 			continue
 		}

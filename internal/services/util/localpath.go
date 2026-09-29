@@ -1,11 +1,11 @@
 package util
 
-import "strings"
+import "andon/internal/weburl"
 
 // LocalPath keeps a redirect target on this host, else "/": no open
 // redirect through "//evil" or "/\evil", which browsers read as hosts.
 func LocalPath(target string) string {
-	if !strings.HasPrefix(target, "/") || strings.HasPrefix(target, "//") || strings.Contains(target, "\\") {
+	if !weburl.IsLocalPath(target) {
 		return "/"
 	}
 	return target

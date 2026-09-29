@@ -683,9 +683,6 @@ sort:
 area:
   main: Hauptspalte
   side: Seitenspalte
-category:
-  start: Startseite
-  insight: Auswertung
 wtype:
   kimai_week:
     name: 'Kimai-Woche'
@@ -1606,8 +1603,6 @@ sample:
   budget: Budget Projekt Relaunch
 icon:
   invalid: Icon ungültig (SVG, PNG, WebP, JPEG, ICO bis 512 KB).
-url:
-  scheme: URL muss mit http:// oder https:// beginnen.
 mail:
   footer: Andon · {url}
   invite:

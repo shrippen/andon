@@ -1,6 +1,10 @@
 package spaces
 
-import "strings"
+import (
+	"strings"
+
+	"andon/internal/weburl"
+)
 
 // Page texts of a space, shown on its boards (Dashy's pageInfo):
 //
@@ -49,8 +53,7 @@ func PageOf(settings map[string]any) PageInfo {
 
 // safeURL keeps nav links to web and site-relative addresses.
 func safeURL(url string) bool {
-	return strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://") ||
-		(strings.HasPrefix(url, "/") && !strings.HasPrefix(url, "//"))
+	return weburl.IsWeb(url) || weburl.IsLocalPath(url)
 }
 
 // NavText: [{Docs /docs}] → "Docs | /docs", one link per line.
