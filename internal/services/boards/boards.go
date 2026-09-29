@@ -179,16 +179,36 @@ func widgetRight(q db.Queryer, who *access.Principal, w *model.Widget) (enums.Ri
 	return access.Right(who, enums.ResourceWidget, w.ID, space, w.MinTeamRole), nil
 }
 
+// boardSight is a board with its right, worked out once for all tiles:
+// on a shared board every tile would ask again.
+type boardSight struct {
+	board *model.Board
+	known bool
+	got   enums.Right
+}
+
+func (s *boardSight) right(q db.Queryer, who *access.Principal) (enums.Right, error) {
+	if s.known {
+		return s.got, nil
+	}
+	got, err := boardRight(q, who, s.board)
+	if err != nil {
+		return enums.RightNone, err
+	}
+	s.known, s.got = true, got
+	return got, nil
+}
+
 // seenRight is the viewing right on a placed widget: a board shared with
 // somebody shows its own space's widgets to them, but not widgets from
 // other spaces even if the board happens to reference one.
-func seenRight(q db.Queryer, who *access.Principal, w *model.Widget, board *model.Board) (enums.Right, error) {
+func seenRight(q db.Queryer, who *access.Principal, w *model.Widget, sight *boardSight) (enums.Right, error) {
 	granted, err := widgetRight(q, who, w)
 	if err != nil {
 		return enums.RightNone, err
 	}
-	if w.SpaceID == board.SpaceID && w.MinTeamRole == nil {
-		br, err := boardRight(q, who, board)
+	if w.SpaceID == sight.board.SpaceID && w.MinTeamRole == nil && granted < enums.RightView {
+		br, err := sight.right(q, who)
 		if err != nil {
 			return enums.RightNone, err
 		}
@@ -404,6 +424,7 @@ func viewSection(q db.Queryer, who *access.Principal, section model.Section, boa
 		}
 	}
 
+	sight := &boardSight{board: board}
 	for _, placement := range placements {
 		w := placement.Widget
 		if w == nil {
@@ -413,7 +434,7 @@ func viewSection(q db.Queryer, who *access.Principal, section model.Section, boa
 		if !ok {
 			continue
 		}
-		granted, err := seenRight(q, who, w, board)
+		granted, err := seenRight(q, who, w, sight)
 		if err != nil {
 			return SectionView{}, err
 		}
@@ -503,7 +524,7 @@ func PlacedWidget(d *sql.DB, who *access.Principal, placementID int64) (*model.W
 		if err != nil {
 			return err
 		}
-		granted, err := seenRight(tx, who, placement.Widget, board)
+		granted, err := seenRight(tx, who, placement.Widget, &boardSight{board: board})
 		if err != nil {
 			return err
 		}
