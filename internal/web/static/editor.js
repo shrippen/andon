@@ -28,9 +28,15 @@
       body: JSON.stringify(body),
       credentials: "same-origin"
     }).then(function (res) {
-      // The board version changed (or somebody else saved): reload for a consistent state.
-      window.location.reload();
-      return res;
+      // Saved, or the board changed meanwhile (409): reload for a
+      // consistent state. Anything else leaves the page as it is and says so.
+      if (res.ok || res.status === 409) {
+        window.location.reload();
+        return;
+      }
+      window.alert(board.getAttribute("data-save-failed") || "Saving failed (" + res.status + ").");
+    }).catch(function () {
+      window.alert(board.getAttribute("data-save-failed") || "Saving failed: offline?");
     });
   }
 

@@ -755,6 +755,9 @@
 
   // ── Wall display: fullscreen on first tap, rotate boards, dim at night ──
   var KIOSK_DIM_CHECK_MS = 60000;
+  // kioskTimers survive boosted page changes, which run setupKiosk again:
+  // cleared first, so rotation and dimming never pile up.
+  var kioskTimers = { next: 0, dim: 0 };
 
   function inDim(spec, hour) {
     var parts = spec.split("-");
@@ -764,6 +767,8 @@
 
   function setupKiosk() {
     var body = d.body;
+    window.clearTimeout(kioskTimers.next);
+    window.clearInterval(kioskTimers.dim);
     if (!body.classList.contains("is-kiosk")) {
       return;
     }
@@ -775,7 +780,7 @@
 
     var next = body.dataset.kioskNext, every = +body.dataset.kioskEvery;
     if (next && every > 0) {
-      window.setTimeout(function () { window.location.href = next; }, every * 1000);
+      kioskTimers.next = window.setTimeout(function () { window.location.href = next; }, every * 1000);
     }
 
     var dim = body.dataset.kioskDim;
@@ -784,7 +789,7 @@
     }
     var check = function () { body.classList.toggle("is-dim", inDim(dim, new Date().getHours())); };
     check();
-    window.setInterval(check, KIOSK_DIM_CHECK_MS);
+    kioskTimers.dim = window.setInterval(check, KIOSK_DIM_CHECK_MS);
   }
 
   // ── Offline view: service worker keeps the last state, banner says so ──

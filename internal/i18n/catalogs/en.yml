@@ -166,6 +166,7 @@ board:
   full: Show all
   compact: Compact
 edit:
+  save_failed: 'The new arrangement was not saved. Check the connection and try again.'
   tile_tall: Double height
   tile_normal: Normal height
   bulk: Selection

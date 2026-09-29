@@ -166,6 +166,7 @@ board:
   full: Alles zeigen
   compact: Kompakt
 edit:
+  save_failed: 'Die neue Anordnung wurde nicht gespeichert. Verbindung prüfen und erneut versuchen.'
   tile_tall: Doppelte Höhe
   tile_normal: Normale Höhe
   bulk: Auswahl
