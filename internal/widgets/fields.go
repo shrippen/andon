@@ -233,8 +233,18 @@ var fieldsByType = map[string][]Field{
 var dataModeField = sel(DataModeKey, string(DataAuto), string(DataAuto), string(DataLive), string(DataStored))
 
 // liveCapable are types whose data comes from a connection.
-var liveCapable = map[string]bool{"link": true, "kpi": true, "table": true, "chart": true, "progress": true,
-	"sysinfo": true, "monitors": true, "hass": true, "glances_chart": true, "kimai_timer": true}
+var liveCapable = map[string]bool{
+	"link":          true,
+	"kpi":           true,
+	"table":         true,
+	"chart":         true,
+	"progress":      true,
+	"sysinfo":       true,
+	"monitors":      true,
+	"hass":          true,
+	"glances_chart": true,
+	"kimai_timer":   true,
+}
 
 // FieldsOf returns the config fields of a widget type.
 func FieldsOf(key string) []Field {
