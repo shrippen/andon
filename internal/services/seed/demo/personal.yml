@@ -57,7 +57,7 @@ widgets:
   - {id: noise, type: hint_noise, title: Hinweis-Lärm, config: {}}
   - {id: close, type: month_close, title: Monatsabschluss, config: {}}
   - {id: paydays, type: payment_days, title: Zahlungsdauer, connection: invoiceninja, config: {}}
-  - {id: rate, type: rate_trend, title: Stundensatz, connection: invoiceninja, config: {target: 90}}
+  - {id: rate, type: rate_trend, title: Stundensatz, connection: invoiceninja, config: {target_value: 90}}
   - {id: receipts, type: receipts_missing, title: Belege fehlen, connection: sure, config: {}}
   - {id: subs, type: subscriptions, title: Abos, config: {}}
   - {id: travel, type: travel, title: Unterwegs, connection: dawarich, config: {}}
