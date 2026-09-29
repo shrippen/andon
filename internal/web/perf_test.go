@@ -2,10 +2,8 @@ package web_test
 
 import (
 	"bytes"
-	"compress/gzip"
 	"database/sql"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -266,10 +264,9 @@ func TestSectionEditAnswersSection(t *testing.T) {
 	}
 }
 
-// TestPagesCompressed: HTML goes out gzipped to browsers that accept it;
-// the CSRF token in it changes with every answer (BREACH) and still
-// passes the check.
-func TestPagesCompressed(t *testing.T) {
+// TestCSRFMasked: the CSRF token in a page changes with every answer, so
+// a compressing proxy cannot leak it (BREACH), and still passes the check.
+func TestCSRFMasked(t *testing.T) {
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
@@ -279,24 +276,9 @@ func TestPagesCompressed(t *testing.T) {
 
 	token := func() string {
 		t.Helper()
-		req, _ := http.NewRequest(http.MethodGet, srv.URL+boardURL, nil)
-		req.Header.Set("Accept-Encoding", "gzip")
-		resp, err := http.DefaultTransport.RoundTrip(withCookies(client, req))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-		if resp.Header.Get("Content-Encoding") != "gzip" || resp.Header.Get("Vary") != "Accept-Encoding" {
-			t.Fatalf("page not compressed: %v", resp.Header)
-		}
-		zr, err := gzip.NewReader(resp.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		page, _ := io.ReadAll(zr)
-		m := csrfRe.FindSubmatch(page)
+		m := csrfRe.FindSubmatch(mustGet(t, srv, client, boardURL))
 		if m == nil {
-			t.Fatalf("no token in page:\n%.300s", page)
+			t.Fatal("no token in page")
 		}
 		return string(m[1])
 	}
@@ -309,12 +291,4 @@ func TestPagesCompressed(t *testing.T) {
 	if res.StatusCode != http.StatusSeeOther {
 		t.Fatalf("masked token rejected: %d", res.StatusCode)
 	}
-}
-
-// withCookies adds the client's cookies to req, for a raw RoundTrip.
-func withCookies(client *http.Client, req *http.Request) *http.Request {
-	for _, c := range client.Jar.Cookies(req.URL) {
-		req.AddCookie(c)
-	}
-	return req
 }
