@@ -3,6 +3,7 @@ package sources
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/url"
 	"strconv"
 	"time"
@@ -55,7 +56,7 @@ func kimaiSheet(raw any) KimaiSheet {
 	}
 	return KimaiSheet{
 		ID: asInt64(m["id"]), Begin: asStr(m["begin"]), End: asStr(m["end"]),
-		Minutes: int(round(asFloat(m["duration"]) / secondsPerMinute)),
+		Minutes: int(math.Round(asFloat(m["duration"]) / secondsPerMinute)),
 		Rate:    asFloat(m["rate"]), HourlyRate: asFloat(m["hourlyRate"]), Billable: boolOr(m["billable"], true), Exported: asBool(m["exported"]),
 		ProjectID: refID(m["project"]), CustomerID: customerID, Activity: asStr(activity["name"]),
 		UserID: refID(m["user"]),
@@ -69,18 +70,11 @@ func boolOr(v any, def bool) bool {
 	return asBool(v)
 }
 
-func round(f float64) float64 {
-	if f < 0 {
-		return float64(int64(f - 0.5))
-	}
-	return float64(int64(f + 0.5))
-}
-
 func kimaiProject(raw any) KimaiProject {
 	m := asMap(raw)
 	return KimaiProject{
 		ID: asInt64(m["id"]), Name: asStr(m["name"]), CustomerID: refID(m["customer"]),
-		Budget: asFloat(m["budget"]), TimeBudgetMin: int(round(asFloat(m["timeBudget"]) / secondsPerMinute)),
+		Budget: asFloat(m["budget"]), TimeBudgetMin: int(math.Round(asFloat(m["timeBudget"]) / secondsPerMinute)),
 		BudgetType: asStr(m["budgetType"]), End: asStr(m["end"]),
 	}
 }
@@ -152,7 +146,7 @@ func loadKimai(ctx context.Context, api services.KimaiApi, sctx Ctx) (*KimaiData
 				minutes += asFloat(sm["duration"])
 			}
 			project.UsedMoney = money
-			project.UsedMinutes = int(round(minutes / secondsPerMinute))
+			project.UsedMinutes = int(math.Round(minutes / secondsPerMinute))
 		}
 		projects = append(projects, project)
 	}

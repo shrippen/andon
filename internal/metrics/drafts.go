@@ -7,6 +7,7 @@ package metrics
 //	  "Relaunch" · "Entwicklung 03.09.–24.09.2026" · 12.5 h · 95.00
 
 import (
+	"math"
 	"sort"
 	"time"
 
@@ -117,7 +118,7 @@ func Drafts(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset) []Draft {
 			// Exact hours and the real rate; only the amount is rounded,
 			// as Invoice Ninja does for quantity × cost.
 			exact := float64(agg.minutes) / minutesPerHour
-			hours := round(exact*hoursScale) / hoursScale
+			hours := math.Round(exact*hoursScale) / hoursScale
 			rate := agg.rate(exact)
 			line := DraftLine{Product: projects[key.project], Notes: key.activity + " " + agg.first.Format(draftDay) + "–" + agg.last.Format(draftDay+"2006"),
 				Hours: hours, Rate: rate, Amount: round2(hours * rate)}

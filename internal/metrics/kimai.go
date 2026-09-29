@@ -2,6 +2,7 @@
 package metrics
 
 import (
+	"math"
 	"sort"
 	"time"
 
@@ -220,13 +221,6 @@ func KimaiSummaryOf(data *sources.KimaiDataset, today time.Time) KimaiSummary {
 	}
 }
 
-func round(f float64) float64 {
-	if f < 0 {
-		return float64(int64(f - 0.5))
-	}
-	return float64(int64(f + 0.5))
-}
-
 func round2(f float64) float64 {
-	return round(f*100) / 100
+	return math.Round(f*100) / 100
 }

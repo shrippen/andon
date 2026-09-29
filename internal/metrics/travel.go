@@ -191,4 +191,4 @@ func Trips(data *sources.DawarichDataset, mapping map[string]AreaMapping, start,
 	return out
 }
 
-func round1(f float64) float64 { return round(f*10) / 10 }
+func round1(f float64) float64 { return math.Round(f*10) / 10 }

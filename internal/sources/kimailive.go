@@ -10,6 +10,7 @@ package sources
 
 import (
 	"context"
+	"math"
 	"net/url"
 	"sort"
 	"strconv"
@@ -94,7 +95,7 @@ func (KimaiLiveSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	out.WeekMin = out.TodayMin
 	for _, raw := range week {
 		m := asMap(raw)
-		minutes := int(round(asFloat(m["duration"]) / secondsPerMin)) // as the Kimai dataset does
+		minutes := int(math.Round(asFloat(m["duration"]) / secondsPerMin)) // as the Kimai dataset does
 		out.WeekMin += minutes
 
 		begin, end := kimaiTime(asStr(m["begin"])), kimaiTime(asStr(m["end"]))

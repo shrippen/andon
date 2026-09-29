@@ -9,6 +9,7 @@
 package rules
 
 import (
+	"math"
 	"path"
 	"slices"
 	"sort"
@@ -172,7 +173,7 @@ func Num(value float64, digits int) map[string]any {
 }
 
 func round2(f float64) float64 {
-	return float64(int64(f*100+0.5)) / 100
+	return math.Round(f*100) / 100
 }
 
 // ── cfg helpers: cfg values arrive as map[string]any (from JSON/YAML), so

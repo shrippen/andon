@@ -3,6 +3,7 @@ package sources
 import (
 	"context"
 	"hash/fnv"
+	"math"
 	"net/url"
 	"strconv"
 	"time"
@@ -226,7 +227,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 }
 
 func round2(f float64) float64 {
-	return float64(int64(f*100+0.5)) / 100
+	return math.Round(f*100) / 100
 }
 
 // NinjaTest is the "invoiceninja.test" source: a lightweight connection check.

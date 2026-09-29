@@ -4,6 +4,7 @@
 package metrics
 
 import (
+	"math"
 	"time"
 
 	"andon/internal/sources"
@@ -68,5 +69,5 @@ func DawarichInfo(lastPoint string) []InfoPart {
 
 // GlancesInfo builds the info line for a Glances link tile.
 func GlancesInfo(cpuPercent float64) []InfoPart {
-	return []InfoPart{part("glances.cpu", map[string]any{"percent": round(cpuPercent)})}
+	return []InfoPart{part("glances.cpu", map[string]any{"percent": math.Round(cpuPercent)})}
 }
