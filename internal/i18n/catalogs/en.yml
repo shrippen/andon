@@ -2770,6 +2770,7 @@ settings:
   rule_search: 'Search rules'
   rule_none: 'No rule matches.'
 notify:
+  raw_http: 'json://, xml:// and form:// send to any address; only admins may add them.'
   min_level: From level
   sources: Only these sources
   sources_hint: Nothing selected = all sources.

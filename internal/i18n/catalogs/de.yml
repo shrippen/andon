@@ -2771,6 +2771,7 @@ settings:
   rule_search: 'Regeln durchsuchen'
   rule_none: 'Keine Regel passt.'
 notify:
+  raw_http: 'json://, xml:// und form:// senden an beliebige Adressen; nur Admins dürfen sie anlegen.'
   min_level: Ab Stufe
   sources: Nur diese Quellen
   sources_hint: Keine Auswahl = alle Quellen.

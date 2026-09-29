@@ -52,8 +52,10 @@ func mustLoadBerlin() *time.Location {
 var (
 	ErrDenied     = access.ErrDenied
 	ErrInvalidURL = errors.New("notify: invalid apprise url")
-	ErrBadTime    = errors.New("notify: bad time")
-	ErrFailed     = errors.New("notify: delivery failed")
+	// ErrRawHTTP: a plain json://, xml:// or form:// target needs an admin.
+	ErrRawHTTP = errors.New("notify.raw_http")
+	ErrBadTime = errors.New("notify: bad time")
+	ErrFailed  = errors.New("notify: delivery failed")
 )
 
 // ChannelView is one channel as shown to its owner (URL masked).
@@ -75,6 +77,15 @@ func mask(rawURL string) string {
 		return scheme + "://…/" + rest[i+1:]
 	}
 	return scheme + "://" + rest
+}
+
+// rawHTTPSchemes make Apprise send a plain request to any address, past
+// Andon's network guard: admins only.
+var rawHTTPSchemes = map[string]bool{"json": true, "jsons": true, "xml": true, "xmls": true, "form": true, "forms": true}
+
+func rawHTTP(rawURL string) bool {
+	scheme, _, _ := strings.Cut(rawURL, "://")
+	return rawHTTPSchemes[strings.ToLower(scheme)]
 }
 
 func looksLikeApprise(rawURL string) bool {
@@ -107,6 +118,9 @@ func AddChannel(d *sql.DB, who *access.Principal, name, rawURL string, level enu
 	rawURL = strings.TrimSpace(rawURL)
 	if !looksLikeApprise(rawURL) {
 		return ErrInvalidURL
+	}
+	if rawHTTP(rawURL) && !who.IsAdmin() {
+		return ErrRawHTTP
 	}
 	label := strings.TrimSpace(name)
 	if label == "" {
