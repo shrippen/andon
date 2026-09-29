@@ -962,6 +962,14 @@
     return el.getAttribute(name) || "";
   }
 
+  // headOf parses a page up to its <body> tag: all syncHead reads. htmx
+  // parses the whole answer anyway, half a megabyte on a big board.
+  function headOf(html) {
+    var body = /<body[^>]*>/i.exec(html);
+    var upTo = body ? html.slice(0, body.index + body[0].length) : html;
+    return new DOMParser().parseFromString(upTo, "text/html");
+  }
+
   // syncHead takes over what the new page declares in <head> and on <body>.
   function syncHead(next) {
     d.documentElement.lang = next.documentElement.lang;
@@ -1040,7 +1048,7 @@
         return;
       }
 
-      var next = new DOMParser().parseFromString(xhr.responseText, "text/html");
+      var next = headOf(xhr.responseText);
       if (next.body.classList.contains("is-kiosk")) {
         e.detail.shouldSwap = false;
         window.location.href = xhr.responseURL;
