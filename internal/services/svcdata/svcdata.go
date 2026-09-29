@@ -303,6 +303,15 @@ func Get(ctx context.Context, d *sql.DB, sourceKey string, params map[string]any
 		}
 	}
 
+	// A known stored result needs neither a transaction nor the secret:
+	// a big board reads hundreds per view. Personal credentials still go
+	// through buildCtx, which fails once the credential is gone.
+	if fresh == Stored && (conn == nil || conn.CredentialMode != enums.CredentialPersonal) {
+		if result := stored(key); !result.Pending {
+			return result, nil
+		}
+	}
+
 	var sctx sources.Ctx
 	err = db.WithRead(d, func(tx *sql.Tx) error {
 		sctx, err = buildCtx(tx, conn, userID, params)
