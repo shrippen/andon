@@ -440,19 +440,6 @@ func (d Deps) handleOverlayReset(w http.ResponseWriter, r *http.Request, ctx Ctx
 
 // ── History ──
 
-// revisionRow summarises one revision: "Links (4), Tools (2)".
-type revisionRow struct {
-	ID       int64
-	Version  int
-	At       any
-	Sections []revisionSection
-}
-
-type revisionSection struct {
-	Title   string
-	Widgets int
-}
-
 func (d Deps) handleHistory(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
@@ -469,20 +456,7 @@ func (d Deps) handleHistory(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.handleBoardError(w, r, err)
 		return
 	}
-
-	rows := make([]revisionRow, 0, len(revs))
-	for _, rev := range revs {
-		row := revisionRow{ID: rev.ID, Version: rev.Version, At: rev.At}
-		list, _ := rev.Data["sections"].([]any)
-		for _, item := range list {
-			sec, _ := item.(map[string]any)
-			title, _ := sec["title"].(string)
-			placed, _ := sec["widgets"].([]any)
-			row.Sections = append(row.Sections, revisionSection{Title: title, Widgets: len(placed)})
-		}
-		rows = append(rows, row)
-	}
-	_ = d.Page(w, ctx, "board_history", http.StatusOK, map[string]any{"Board": view, "Revisions": rows})
+	_ = d.Page(w, ctx, "board_history", http.StatusOK, map[string]any{"Board": view, "Revisions": revs})
 }
 
 func (d Deps) handleRestore(w http.ResponseWriter, r *http.Request) {

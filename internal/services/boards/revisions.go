@@ -83,13 +83,31 @@ func snapshot(q db.Queryer, who *access.Principal, board *model.Board) error {
 	return content.PruneRevisions(q, enums.RevisionBoard, fresh.ID)
 }
 
-// RevisionView is one stored revision.
+// RevisionView is one stored revision, its sections summed up:
+// "Links (4), Tools (2)".
 type RevisionView struct {
-	ID      int64
-	Version int
-	At      time.Time
-	UserID  *int64
-	Data    map[string]any
+	ID       int64
+	Version  int
+	At       time.Time
+	UserID   *int64
+	Sections []RevisionSection
+}
+
+// RevisionSection is one section of a revision and its tile count.
+type RevisionSection struct {
+	Title   string
+	Widgets int
+}
+
+// snapshotOf reads a stored revision back into its snapshot.
+func snapshotOf(data map[string]any) (snapshotBoard, error) {
+	var snap snapshotBoard
+	raw, err := json.Marshal(data)
+	if err != nil {
+		return snap, err
+	}
+	err = json.Unmarshal(raw, &snap)
+	return snap, err
 }
 
 // History lists a board's revisions, newest first. Requires EDIT.
@@ -104,7 +122,15 @@ func History(d *sql.DB, who *access.Principal, boardID int64) ([]RevisionView, e
 			return err
 		}
 		for _, r := range revs {
-			out = append(out, RevisionView{ID: r.ID, Version: r.Version, At: r.CreatedAt, UserID: r.UserID, Data: r.Data})
+			view := RevisionView{ID: r.ID, Version: r.Version, At: r.CreatedAt, UserID: r.UserID}
+			snap, err := snapshotOf(r.Data)
+			if err != nil {
+				return err
+			}
+			for _, sec := range snap.Sections {
+				view.Sections = append(view.Sections, RevisionSection{Title: sec.Title, Widgets: len(sec.Widgets)})
+			}
+			out = append(out, view)
 		}
 		return nil
 	})
@@ -131,12 +157,8 @@ func Restore(d *sql.DB, who *access.Principal, boardID, revisionID int64) error 
 			return ErrBadRevision
 		}
 
-		raw, err := json.Marshal(rev.Data)
+		snap, err := snapshotOf(rev.Data)
 		if err != nil {
-			return err
-		}
-		var snap snapshotBoard
-		if err := json.Unmarshal(raw, &snap); err != nil {
 			return err
 		}
 		if snap.Name != "" {
