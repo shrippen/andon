@@ -15,37 +15,39 @@ import (
 )
 
 func init() {
-	nas := string(enums.ServiceTrueNAS)
-	Register("truenas.snapshot_failed", nas, nil, func(raw any, cfg map[string]any, env Env) []Finding {
-		data, _ := raw.(*sources.TrueNASDataset)
-		var found []Finding
-		for _, s := range data.Snapshots {
-			if !s.Enabled || s.State != "ERROR" {
-				continue
-			}
-			found = append(found, svcFinding(nas, "truenas.snapshot_failed", "snap:"+s.Dataset, "truenas.snapshot_failed",
-				enums.SeverityWarn, strings.TrimRight(data.URL, "/")+"/ui/data-protection", map[string]any{"dataset": s.Dataset}))
-		}
-		return found
-	})
+	Register("truenas.snapshot_failed", truenasSvc, nil, on(snapshotFailed))
 
-	Register("backups.gap", Cross, nil, func(_ any, cfg map[string]any, env Env) []Finding {
-		items, hasTool := backupItems(env)
-		if !hasTool {
-			return nil
+	Register("backups.gap", Cross, nil, backupGap)
+}
+
+func snapshotFailed(data *sources.TrueNASDataset, cfg map[string]any, env Env) []Finding {
+	var found []Finding
+	for _, s := range data.Snapshots {
+		if !s.Enabled || s.State != "ERROR" {
+			continue
 		}
-		var missing []string
-		for _, name := range serviceNames(env) {
-			if !coveredBy(name, items) {
-				missing = append(missing, name)
-			}
+		found = append(found, svcFinding(truenasSvc, "truenas.snapshot_failed", "snap:"+s.Dataset, "truenas.snapshot_failed",
+			enums.SeverityWarn, strings.TrimRight(data.URL, "/")+"/ui/data-protection", map[string]any{"dataset": s.Dataset}))
+	}
+	return found
+}
+
+func backupGap(_ any, cfg map[string]any, env Env) []Finding {
+	items, hasTool := backupItems(env)
+	if !hasTool {
+		return nil
+	}
+	var missing []string
+	for _, name := range serviceNames(env) {
+		if !coveredBy(name, items) {
+			missing = append(missing, name)
 		}
-		if len(missing) == 0 {
-			return nil
-		}
-		return []Finding{{Fingerprint: "gap", Severity: enums.SeverityInfo, Message: "backups.gap",
-			Params: map[string]any{"count": len(missing), "names": shortList(missing)}, Sources: []string{"backups"}}}
-	})
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	return []Finding{{Fingerprint: "gap", Severity: enums.SeverityInfo, Message: "backups.gap",
+		Params: map[string]any{"count": len(missing), "names": shortList(missing)}, Sources: []string{"backups"}}}
 }
 
 // backupItems lists lower-case names of everything a backup tool covers;

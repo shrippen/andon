@@ -59,261 +59,273 @@ func init() {
 }
 
 func registerNetworkRules() {
-	ts := string(enums.ServiceTailscale)
 	// A device offline longer than offline_days is left to
 	// tailscale.offline: its key does not matter until it returns.
-	Register("tailscale.key_expiry", ts, map[string]any{"warn_days": 14, "offline_days": 30}, func(raw any, cfg map[string]any, env Env) []Finding {
-		data, _ := raw.(*sources.TailscaleDataset)
-		var found []Finding
-		for _, d := range data.Devices {
-			gone := !d.Online && !d.LastSeen.IsZero() && env.Today.Sub(d.LastSeen).Hours()/hoursPerDay > cfgFloat(cfg, "offline_days")
-			if d.KeyExpiry.IsZero() || gone {
-				continue
-			}
-			left := int(d.KeyExpiry.Sub(env.Today).Hours() / hoursPerDay)
-			if left > cfgInt(cfg, "warn_days") {
-				continue
-			}
-			level, msg := enums.SeverityWarn, "tailscale.key_expiry"
-			if left < 0 {
-				level, msg = enums.SeverityCritical, "tailscale.key_expired"
-			}
-			found = append(found, svcFinding(ts, "tailscale.key_expiry", "key:"+d.Name, msg, level, data.URL,
-				map[string]any{"name": d.Name, "day": Day(d.KeyExpiry)}))
-		}
-		return found
-	})
-	Register("tailscale.offline", ts, map[string]any{"days": 7}, func(raw any, cfg map[string]any, env Env) []Finding {
-		data, _ := raw.(*sources.TailscaleDataset)
-		var names []string
-		for _, d := range data.Devices {
-			if !d.Online && !d.LastSeen.IsZero() && env.Today.Sub(d.LastSeen).Hours()/hoursPerDay > cfgFloat(cfg, "days") {
-				names = append(names, d.Name)
-			}
-		}
-		if len(names) == 0 {
-			return nil
-		}
-		return []Finding{svcFinding(ts, "tailscale.offline", "offline", "tailscale.offline", enums.SeverityInfo, data.URL,
-			map[string]any{"count": len(names), "names": shortList(names), "days": cfgInt(cfg, "days")})}
-	})
+	Register("tailscale.key_expiry", tailscaleSvc, map[string]any{"warn_days": 14, "offline_days": 30}, on(keyExpiry))
+	Register("tailscale.offline", tailscaleSvc, map[string]any{"days": 7}, on(tailscaleOffline))
 
-	gw := string(enums.ServiceGateway)
-	Register("gateway.wan_down", gw, nil, func(raw any, _ map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.GatewayDataset)
-		var found []Finding
-		for _, g := range data.Gateways {
-			if !g.Up {
-				found = append(found, svcFinding(gw, "gateway.wan_down", "wan:"+g.Name, "gateway.wan_down", enums.SeverityCritical, data.URL,
-					map[string]any{"name": g.Name, "loss": Num(g.Loss, 0)}))
-			}
+	Register("gateway.wan_down", gatewaySvc, nil, on(wanDown))
+	Register("gateway.devices_offline", gatewaySvc, nil, on(devicesOffline))
+	Register("gateway.updates", gatewaySvc, nil, on(gatewayUpdates))
+}
+
+func keyExpiry(data *sources.TailscaleDataset, cfg map[string]any, env Env) []Finding {
+	var found []Finding
+	for _, d := range data.Devices {
+		gone := !d.Online && !d.LastSeen.IsZero() && env.Today.Sub(d.LastSeen).Hours()/hoursPerDay > cfgFloat(cfg, "offline_days")
+		if d.KeyExpiry.IsZero() || gone {
+			continue
 		}
-		return found
-	})
-	Register("gateway.devices_offline", gw, nil, func(raw any, _ map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.GatewayDataset)
-		var names []string
-		for _, d := range data.Devices {
-			if !d.Online {
-				names = append(names, d.Name)
-			}
+		left := int(d.KeyExpiry.Sub(env.Today).Hours() / hoursPerDay)
+		if left > cfgInt(cfg, "warn_days") {
+			continue
 		}
-		if len(names) == 0 {
-			return nil
+		level, msg := enums.SeverityWarn, "tailscale.key_expiry"
+		if left < 0 {
+			level, msg = enums.SeverityCritical, "tailscale.key_expired"
 		}
-		return []Finding{svcFinding(gw, "gateway.devices_offline", "devices", "gateway.devices_offline", enums.SeverityWarn, data.URL,
-			map[string]any{"count": len(names), "names": shortList(names)})}
-	})
-	Register("gateway.updates", gw, nil, func(raw any, _ map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.GatewayDataset)
-		if data.Updates == 0 {
-			return nil
+		found = append(found, svcFinding(tailscaleSvc, "tailscale.key_expiry", "key:"+d.Name, msg, level, data.URL,
+			map[string]any{"name": d.Name, "day": Day(d.KeyExpiry)}))
+	}
+	return found
+}
+
+func tailscaleOffline(data *sources.TailscaleDataset, cfg map[string]any, env Env) []Finding {
+	var names []string
+	for _, d := range data.Devices {
+		if !d.Online && !d.LastSeen.IsZero() && env.Today.Sub(d.LastSeen).Hours()/hoursPerDay > cfgFloat(cfg, "days") {
+			names = append(names, d.Name)
 		}
-		return []Finding{svcFinding(gw, "gateway.updates", "updates", "gateway.updates", enums.SeverityInfo, data.URL,
-			map[string]any{"count": data.Updates, "version": data.Version})}
-	})
+	}
+	if len(names) == 0 {
+		return nil
+	}
+	return []Finding{svcFinding(tailscaleSvc, "tailscale.offline", "offline", "tailscale.offline", enums.SeverityInfo, data.URL,
+		map[string]any{"count": len(names), "names": shortList(names), "days": cfgInt(cfg, "days")})}
+}
+
+func wanDown(data *sources.GatewayDataset, _ map[string]any, _ Env) []Finding {
+	var found []Finding
+	for _, g := range data.Gateways {
+		if !g.Up {
+			found = append(found, svcFinding(gatewaySvc, "gateway.wan_down", "wan:"+g.Name, "gateway.wan_down", enums.SeverityCritical, data.URL,
+				map[string]any{"name": g.Name, "loss": Num(g.Loss, 0)}))
+		}
+	}
+	return found
+}
+
+func devicesOffline(data *sources.GatewayDataset, _ map[string]any, _ Env) []Finding {
+	var names []string
+	for _, d := range data.Devices {
+		if !d.Online {
+			names = append(names, d.Name)
+		}
+	}
+	if len(names) == 0 {
+		return nil
+	}
+	return []Finding{svcFinding(gatewaySvc, "gateway.devices_offline", "devices", "gateway.devices_offline", enums.SeverityWarn, data.URL,
+		map[string]any{"count": len(names), "names": shortList(names)})}
+}
+
+func gatewayUpdates(data *sources.GatewayDataset, _ map[string]any, _ Env) []Finding {
+	if data.Updates == 0 {
+		return nil
+	}
+	return []Finding{svcFinding(gatewaySvc, "gateway.updates", "updates", "gateway.updates", enums.SeverityInfo, data.URL,
+		map[string]any{"count": data.Updates, "version": data.Version})}
 }
 
 func registerMediaRules() {
-	ms := string(enums.ServiceMediaServer)
-	Register("mediaserver.update", ms, nil, func(raw any, _ map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.MediaServerDataset)
-		if !data.Update {
-			return nil
-		}
-		return []Finding{svcFinding(ms, "mediaserver.update", "update", "mediaserver.update", enums.SeverityInfo, data.URL,
-			map[string]any{"version": data.Version})}
-	})
+	Register("mediaserver.update", mediaSvc, nil, on(mediaserverUpdate))
 
-	arr := string(enums.ServiceArr)
 	// Known checks get a short translated title (catalog arr_check.<source>);
 	// the English message, often with ids, moves to the explanation.
-	Register("arr.health", arr, nil, func(raw any, _ map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.ArrDataset)
-		var found []Finding
-		for _, h := range data.Health {
-			level := enums.SeverityInfo
-			if h.Level == arrError {
-				level = enums.SeverityWarn
-			}
-			msg, params := "arr.health", map[string]any{"app": data.App, "message": h.Message}
-			if arrChecks[h.Source] {
-				msg, params["check"] = "arr.check", map[string]any{"$t": "arr_check." + h.Source}
-			}
-			found = append(found, svcFinding(arr, "arr.health", "health:"+h.Message, msg, level, data.URL, params))
+	Register("arr.health", arrSvc, nil, on(arrHealth))
+	Register("arr.stuck", arrSvc, nil, on(arrStuck))
+}
+
+func mediaserverUpdate(data *sources.MediaServerDataset, _ map[string]any, _ Env) []Finding {
+	if !data.Update {
+		return nil
+	}
+	return []Finding{svcFinding(mediaSvc, "mediaserver.update", "update", "mediaserver.update", enums.SeverityInfo, data.URL,
+		map[string]any{"version": data.Version})}
+}
+
+func arrHealth(data *sources.ArrDataset, _ map[string]any, _ Env) []Finding {
+	var found []Finding
+	for _, h := range data.Health {
+		level := enums.SeverityInfo
+		if h.Level == arrError {
+			level = enums.SeverityWarn
 		}
-		return found
-	})
-	Register("arr.stuck", arr, nil, func(raw any, _ map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.ArrDataset)
-		if len(data.Stuck) == 0 {
-			return nil
+		msg, params := "arr.health", map[string]any{"app": data.App, "message": h.Message}
+		if arrChecks[h.Source] {
+			msg, params["check"] = "arr.check", map[string]any{"$t": "arr_check." + h.Source}
 		}
-		return []Finding{svcFinding(arr, "arr.stuck", "stuck", "arr.stuck", enums.SeverityWarn, strings.TrimRight(data.URL, "/")+"/activity/queue",
-			map[string]any{"app": data.App, "count": len(data.Stuck), "names": shortList(append([]string(nil), data.Stuck...))})}
-	})
+		found = append(found, svcFinding(arrSvc, "arr.health", "health:"+h.Message, msg, level, data.URL, params))
+	}
+	return found
+}
+
+func arrStuck(data *sources.ArrDataset, _ map[string]any, _ Env) []Finding {
+	if len(data.Stuck) == 0 {
+		return nil
+	}
+	return []Finding{svcFinding(arrSvc, "arr.stuck", "stuck", "arr.stuck", enums.SeverityWarn, strings.TrimRight(data.URL, "/")+"/activity/queue",
+		map[string]any{"app": data.App, "count": len(data.Stuck), "names": shortList(append([]string(nil), data.Stuck...))})}
 }
 
 func registerEverydayRules() {
-	vw := string(enums.ServiceVaultwarden)
-	Register("vaultwarden.no_2fa", vw, nil, func(raw any, _ map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.VaultwardenDataset)
-		var names []string
-		for _, u := range data.Users {
-			if u.Enabled && !u.TwoFactor {
-				names = append(names, u.Email)
-			}
-		}
-		if len(names) == 0 {
-			return nil
-		}
-		return []Finding{svcFinding(vw, "vaultwarden.no_2fa", "no_2fa", "vaultwarden.no_2fa", enums.SeverityWarn,
-			strings.TrimRight(data.URL, "/")+"/admin/users/overview", map[string]any{"count": len(names), "names": shortList(names)})}
-	})
+	Register("vaultwarden.no_2fa", vaultwardenSvc, nil, on(no2fa))
 
-	st := string(enums.ServiceSpeedtest)
-	Register("speedtest.slow", st, map[string]any{"share": 0.5}, func(raw any, cfg map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.SpeedtestDataset)
-		share := cfgFloat(cfg, "share")
-		slowDown := data.ExpectDown > 0 && data.Down < data.ExpectDown*share
-		slowUp := data.ExpectUp > 0 && data.Up < data.ExpectUp*share
-		if data.At.IsZero() || (!slowDown && !slowUp) {
-			return nil
-		}
-		return []Finding{svcFinding(st, "speedtest.slow", "slow", "speedtest.slow", enums.SeverityWarn, data.URL,
-			map[string]any{"down": Num(data.Down, 0), "up": Num(data.Up, 0), "expect_down": Num(data.ExpectDown, 0), "expect_up": Num(data.ExpectUp, 0)})}
-	})
+	Register("speedtest.slow", speedtestSvc, map[string]any{"share": 0.5}, on(speedtestSlow))
 
-	gr := string(enums.ServiceGrocy)
-	names := func(list []sources.Product) []string {
-		out := make([]string, 0, len(list))
-		for _, p := range list {
-			out = append(out, p.Name)
-		}
-		return out
+	Register("grocy.expired", grocySvc, nil, on(grocyExpired))
+	Register("grocy.missing", grocySvc, nil, on(grocyMissing))
+	Register("grocy.chores_overdue", grocySvc, nil, on(choresOverdue))
+
+	Register(dwdWarningKey, dwdSvc, nil, on(dwdWarning))
+
+	Register("github.review_waiting", githubSvc, map[string]any{"days": 2.0}, on(githubReviewWaiting))
+	Register("github.stale_pr", githubSvc, map[string]any{"days": 14.0}, on(githubStalePr))
+	Register("github.ci_failed", githubSvc, nil, on(ciFailed))
+
+	Register(costRuleID, tibberSvc, map[string]any{"factor": 1.3}, on(costRising))
+}
+
+// productNames lists the products' names.
+func productNames(list []sources.Product) []string {
+	out := make([]string, 0, len(list))
+	for _, p := range list {
+		out = append(out, p.Name)
 	}
-	Register("grocy.expired", gr, nil, func(raw any, _ map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.GrocyDataset)
-		if len(data.Expired) == 0 {
-			return nil
-		}
-		return []Finding{svcFinding(gr, "grocy.expired", "expired", "grocy.expired", enums.SeverityWarn, strings.TrimRight(data.URL, "/")+"/stockoverview",
-			map[string]any{"count": len(data.Expired), "names": shortList(names(data.Expired))})}
-	})
-	Register("grocy.missing", gr, nil, func(raw any, _ map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.GrocyDataset)
-		if len(data.Missing) == 0 {
-			return nil
-		}
-		return []Finding{svcFinding(gr, "grocy.missing", "missing", "grocy.missing", enums.SeverityInfo, strings.TrimRight(data.URL, "/")+"/shoppinglist",
-			map[string]any{"count": len(data.Missing), "names": shortList(names(data.Missing))})}
-	})
-	Register("grocy.chores_overdue", gr, nil, func(raw any, _ map[string]any, env Env) []Finding {
-		data, _ := raw.(*sources.GrocyDataset)
-		var due []string
-		for _, c := range data.Chores {
-			if c.Due.Before(env.Today) {
-				due = append(due, c.Name)
-			}
-		}
-		if len(due) == 0 {
-			return nil
-		}
-		return []Finding{svcFinding(gr, "grocy.chores_overdue", "chores", "grocy.chores_overdue", enums.SeverityInfo, strings.TrimRight(data.URL, "/")+"/choresoverview",
-			map[string]any{"count": len(due), "names": shortList(due)})}
-	})
+	return out
+}
 
-	dwd := string(enums.ServiceDWD)
-	Register(dwdWarningKey, dwd, nil, func(raw any, _ map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.DWDDataset)
-		var found []Finding
-		for _, w := range data.Warnings {
-			level, ok := dwdLevels[w.Severity]
-			if !ok {
-				continue
-			}
-			found = append(found, Finding{Fingerprint: "warn:" + w.ID, Rule: dwdWarningKey, Severity: level, Message: dwdWarningKey,
-				Params: map[string]any{"event": w.Headline, "place": data.Place, "until": Day(w.Expire)}, Sources: []string{dwd}})
-		}
-		return found
-	})
+// githubFinding is a finding about one pull request.
+func githubFinding(rule string, level enums.Severity, i sources.Issue, days int) Finding {
+	return svcFinding(githubSvc, rule, fmt.Sprintf("%s#%d", i.Repo, i.Number), rule, level, i.URL,
+		map[string]any{"repo": i.Repo, "number": i.Number, "title": i.Title, "days": days})
+}
 
-	gh := string(enums.ServiceGitHub)
-	prFinding := func(rule string, level enums.Severity, i sources.Issue, days int) Finding {
-		return svcFinding(gh, rule, fmt.Sprintf("%s#%d", i.Repo, i.Number), rule, level, i.URL,
-			map[string]any{"repo": i.Repo, "number": i.Number, "title": i.Title, "days": days})
+func no2fa(data *sources.VaultwardenDataset, _ map[string]any, _ Env) []Finding {
+	var names []string
+	for _, u := range data.Users {
+		if u.Enabled && !u.TwoFactor {
+			names = append(names, u.Email)
+		}
 	}
-	Register("github.review_waiting", gh, map[string]any{"days": 2.0}, func(raw any, cfg map[string]any, env Env) []Finding {
-		data, _ := raw.(*sources.GitHubDataset)
-		var found []Finding
-		for _, pr := range data.Reviews {
-			if days := int(env.Today.Sub(pr.Updated).Hours() / hoursPerDay); days >= cfgInt(cfg, "days") {
-				found = append(found, prFinding("github.review_waiting", enums.SeverityWarn, pr, days))
-			}
-		}
-		return found
-	})
-	Register("github.stale_pr", gh, map[string]any{"days": 14.0}, func(raw any, cfg map[string]any, env Env) []Finding {
-		data, _ := raw.(*sources.GitHubDataset)
-		var found []Finding
-		for _, pr := range data.MyPRs {
-			if days := int(env.Today.Sub(pr.Updated).Hours() / hoursPerDay); days >= cfgInt(cfg, "days") {
-				found = append(found, prFinding("github.stale_pr", enums.SeverityInfo, pr, days))
-			}
-		}
-		return found
-	})
-	Register("github.ci_failed", gh, nil, func(raw any, _ map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.GitHubDataset)
-		var found []Finding
-		for _, r := range data.Repos {
-			if r.CI == ciFailure {
-				found = append(found, Finding{Fingerprint: "ci:" + r.Name, Severity: enums.SeverityWarn,
-					Message: "github.ci_failed", Params: map[string]any{"repo": r.Name}, ActionURL: r.CIURL, ActionLabel: "open_in_github", Sources: []string{gh}})
-			}
-		}
-		return found
-	})
+	if len(names) == 0 {
+		return nil
+	}
+	return []Finding{svcFinding(vaultwardenSvc, "vaultwarden.no_2fa", "no_2fa", "vaultwarden.no_2fa", enums.SeverityWarn,
+		strings.TrimRight(data.URL, "/")+"/admin/users/overview", map[string]any{"count": len(names), "names": shortList(names)})}
+}
 
-	tb := string(enums.ServiceTibber)
-	Register(costRuleID, tb, map[string]any{"factor": 1.3}, func(raw any, cfg map[string]any, _ Env) []Finding {
-		data, _ := raw.(*sources.TibberDataset)
-		if len(data.Days) < 2*weekDays {
-			return nil
+func speedtestSlow(data *sources.SpeedtestDataset, cfg map[string]any, _ Env) []Finding {
+	share := cfgFloat(cfg, "share")
+	slowDown := data.ExpectDown > 0 && data.Down < data.ExpectDown*share
+	slowUp := data.ExpectUp > 0 && data.Up < data.ExpectUp*share
+	if data.At.IsZero() || (!slowDown && !slowUp) {
+		return nil
+	}
+	return []Finding{svcFinding(speedtestSvc, "speedtest.slow", "slow", "speedtest.slow", enums.SeverityWarn, data.URL,
+		map[string]any{"down": Num(data.Down, 0), "up": Num(data.Up, 0), "expect_down": Num(data.ExpectDown, 0), "expect_up": Num(data.ExpectUp, 0)})}
+}
+
+func grocyExpired(data *sources.GrocyDataset, _ map[string]any, _ Env) []Finding {
+	if len(data.Expired) == 0 {
+		return nil
+	}
+	return []Finding{svcFinding(grocySvc, "grocy.expired", "expired", "grocy.expired", enums.SeverityWarn, strings.TrimRight(data.URL, "/")+"/stockoverview",
+		map[string]any{"count": len(data.Expired), "names": shortList(productNames(data.Expired))})}
+}
+
+func grocyMissing(data *sources.GrocyDataset, _ map[string]any, _ Env) []Finding {
+	if len(data.Missing) == 0 {
+		return nil
+	}
+	return []Finding{svcFinding(grocySvc, "grocy.missing", "missing", "grocy.missing", enums.SeverityInfo, strings.TrimRight(data.URL, "/")+"/shoppinglist",
+		map[string]any{"count": len(data.Missing), "names": shortList(productNames(data.Missing))})}
+}
+
+func choresOverdue(data *sources.GrocyDataset, _ map[string]any, env Env) []Finding {
+	var due []string
+	for _, c := range data.Chores {
+		if c.Due.Before(env.Today) {
+			due = append(due, c.Name)
 		}
-		sum := func(days []sources.EnergyDay) float64 {
-			total := 0.0
-			for _, d := range days {
-				total += d.Cost
-			}
-			return total
+	}
+	if len(due) == 0 {
+		return nil
+	}
+	return []Finding{svcFinding(grocySvc, "grocy.chores_overdue", "chores", "grocy.chores_overdue", enums.SeverityInfo, strings.TrimRight(data.URL, "/")+"/choresoverview",
+		map[string]any{"count": len(due), "names": shortList(due)})}
+}
+
+func dwdWarning(data *sources.DWDDataset, _ map[string]any, _ Env) []Finding {
+	var found []Finding
+	for _, w := range data.Warnings {
+		level, ok := dwdLevels[w.Severity]
+		if !ok {
+			continue
 		}
-		n := len(data.Days)
-		recent, before := sum(data.Days[n-weekDays:]), sum(data.Days[n-2*weekDays:n-weekDays])
-		if before <= 0 || recent < before*cfgFloat(cfg, "factor") {
-			return nil
+		found = append(found, Finding{Fingerprint: "warn:" + w.ID, Rule: dwdWarningKey, Severity: level, Message: dwdWarningKey,
+			Params: map[string]any{"event": w.Headline, "place": data.Place, "until": Day(w.Expire)}, Sources: []string{dwdSvc}})
+	}
+	return found
+}
+
+func githubReviewWaiting(data *sources.GitHubDataset, cfg map[string]any, env Env) []Finding {
+	var found []Finding
+	for _, pr := range data.Reviews {
+		if days := int(env.Today.Sub(pr.Updated).Hours() / hoursPerDay); days >= cfgInt(cfg, "days") {
+			found = append(found, githubFinding("github.review_waiting", enums.SeverityWarn, pr, days))
 		}
-		return []Finding{{Fingerprint: "cost", Rule: costRuleID, Severity: enums.SeverityInfo, Message: costRuleID,
-			Params: map[string]any{"recent": Money(recent, data.Currency), "before": Money(before, data.Currency)}, Sources: []string{tb}}}
-	})
+	}
+	return found
+}
+
+func githubStalePr(data *sources.GitHubDataset, cfg map[string]any, env Env) []Finding {
+	var found []Finding
+	for _, pr := range data.MyPRs {
+		if days := int(env.Today.Sub(pr.Updated).Hours() / hoursPerDay); days >= cfgInt(cfg, "days") {
+			found = append(found, githubFinding("github.stale_pr", enums.SeverityInfo, pr, days))
+		}
+	}
+	return found
+}
+
+func ciFailed(data *sources.GitHubDataset, _ map[string]any, _ Env) []Finding {
+	var found []Finding
+	for _, r := range data.Repos {
+		if r.CI == ciFailure {
+			found = append(found, Finding{Fingerprint: "ci:" + r.Name, Severity: enums.SeverityWarn,
+				Message: "github.ci_failed", Params: map[string]any{"repo": r.Name}, ActionURL: r.CIURL, ActionLabel: "open_in_github", Sources: []string{githubSvc}})
+		}
+	}
+	return found
+}
+
+func costRising(data *sources.TibberDataset, cfg map[string]any, _ Env) []Finding {
+	if len(data.Days) < 2*weekDays {
+		return nil
+	}
+	sum := func(days []sources.EnergyDay) float64 {
+		total := 0.0
+		for _, d := range days {
+			total += d.Cost
+		}
+		return total
+	}
+	n := len(data.Days)
+	recent, before := sum(data.Days[n-weekDays:]), sum(data.Days[n-2*weekDays:n-weekDays])
+	if before <= 0 || recent < before*cfgFloat(cfg, "factor") {
+		return nil
+	}
+	return []Finding{{Fingerprint: "cost", Rule: costRuleID, Severity: enums.SeverityInfo, Message: costRuleID,
+		Params: map[string]any{"recent": Money(recent, data.Currency), "before": Money(before, data.Currency)}, Sources: []string{tibberSvc}}}
 }

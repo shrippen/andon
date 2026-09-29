@@ -17,25 +17,26 @@ func vatMethod(env Env) string {
 }
 
 func init() {
-	Register("tax.deadlines", Deadlines, map[string]any{"notice_days": 14.0, "warn_days": 3.0},
-		func(_ any, cfg map[string]any, env Env) []Finding {
-			tax, ok := taxSettings(env)
-			if !ok {
-				return nil
-			}
-			ninja, _ := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
+	Register("tax.deadlines", Deadlines, map[string]any{"notice_days": 14.0, "warn_days": 3.0}, taxDeadlines)
+}
 
-			var found []Finding
-			for _, item := range metrics.UpcomingDeadlines(tax, env.Today, cfgInt(cfg, "notice_days")) {
-				left := int(item.Due.Sub(env.Today).Hours() / 24)
-				level := enums.SeverityInfo
-				if left <= cfgInt(cfg, "warn_days") {
-					level = enums.SeverityWarn
-				}
-				found = append(found, deadlineFinding(item, level, ninja, env))
-			}
-			return found
-		})
+func taxDeadlines(_ any, cfg map[string]any, env Env) []Finding {
+	tax, ok := taxSettings(env)
+	if !ok {
+		return nil
+	}
+	ninja, _ := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
+
+	var found []Finding
+	for _, item := range metrics.UpcomingDeadlines(tax, env.Today, cfgInt(cfg, "notice_days")) {
+		left := int(item.Due.Sub(env.Today).Hours() / 24)
+		level := enums.SeverityInfo
+		if left <= cfgInt(cfg, "warn_days") {
+			level = enums.SeverityWarn
+		}
+		found = append(found, deadlineFinding(item, level, ninja, env))
+	}
+	return found
 }
 
 func deadlineFinding(item metrics.TaxDeadline, level enums.Severity, ninja *sources.NinjaDataset, env Env) Finding {

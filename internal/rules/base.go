@@ -11,6 +11,7 @@ package rules
 import (
 	"math"
 	"path"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -84,6 +85,27 @@ func Register(id string, scope string, defaults map[string]any, fn RuleFunc) {
 		merged[k] = v
 	}
 	registry[id] = Spec{ID: id, Scope: scope, Defaults: merged, Run: ownRule(id, fn)}
+}
+
+// on adapts a rule over one dataset type to a RuleFunc. A dataset of
+// another type, or a nil pointer, finds nothing:
+//
+//	Register("snipe.eol_reached", string(enums.ServiceSnipeIT), nil, on(eolReached))
+//	func eolReached(data *sources.SnipeDataset, cfg map[string]any, env Env) []Finding
+func on[D any](run func(data D, cfg map[string]any, env Env) []Finding) RuleFunc {
+	return func(raw any, cfg map[string]any, env Env) []Finding {
+		data, ok := raw.(D)
+		if !ok || isNil(data) {
+			return nil
+		}
+		return run(data, cfg, env)
+	}
+}
+
+// isNil reports whether v is a nil pointer.
+func isNil(v any) bool {
+	rv := reflect.ValueOf(v)
+	return rv.Kind() == reflect.Pointer && rv.IsNil()
 }
 
 // ownRule stamps the rule id on findings that leave Rule empty, so a

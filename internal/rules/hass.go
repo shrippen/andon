@@ -29,74 +29,78 @@ func shortList(names []string) string {
 }
 
 func init() {
-	svc := string(enums.ServiceHomeAssistant)
-	entityURL := func(data *sources.HassDataset) string {
-		return strings.TrimRight(data.URL, "/") + "/config/entities"
-	}
+	Register("hass.alarm", hassSvc, nil, on(hassAlarm))
 
-	Register("hass.alarm", svc, nil, func(raw any, cfg map[string]any, env Env) []Finding {
-		data, _ := raw.(*sources.HassDataset)
-		var found []Finding
-		for _, e := range data.Entities {
-			if e.Domain != "binary_sensor" || !hassAlarms[e.DeviceClass] || e.State != sources.HassOn {
-				continue
-			}
-			found = append(found, svcFinding(svc, "hass.alarm", "alarm:"+e.ID, "hass.alarm", enums.SeverityCritical,
-				data.URL, map[string]any{"entity": e.Name, "kind": e.DeviceClass}))
-		}
-		return found
-	})
-
-	Register("hass.battery_low", svc, map[string]any{"warn": 20.0, "critical": 10.0}, func(raw any, cfg map[string]any, env Env) []Finding {
-		data, _ := raw.(*sources.HassDataset)
-		var found []Finding
-		for _, b := range lowBatteries(data, cfgFloat(cfg, "warn")) {
-			sev := enums.SeverityWarn
-			if b.level < cfgFloat(cfg, "critical") {
-				sev = enums.SeverityCritical
-			}
-			found = append(found, svcFinding(svc, "hass.battery_low", "battery:"+b.entity.ID, "hass.battery", sev,
-				entityURL(data), map[string]any{"entity": b.entity.Name, "percent": int(b.level)}))
-		}
-		return found
-	})
+	Register("hass.battery_low", hassSvc, map[string]any{"warn": 20.0, "critical": 10.0}, on(batteryLow))
 
 	// One hint for all long-unavailable entities: a dead Zigbee stick
 	// takes dozens with it, and that should read as one problem.
-	Register("hass.unavailable", svc, map[string]any{"hours": 6.0, "ignore": []any{}}, func(raw any, cfg map[string]any, env Env) []Finding {
-		data, _ := raw.(*sources.HassDataset)
-		ignore := stringsSlice(cfg["ignore"])
-		var names []string
-		for _, e := range data.Entities {
-			if (e.State != sources.HassUnavailable && e.State != sources.HassUnknown) || hassSilent[e.Domain] {
-				continue
-			}
-			if e.Changed.IsZero() || time.Now().UTC().Sub(e.Changed).Hours() < cfgFloat(cfg, "hours") || hasPrefix(e.ID, ignore) {
-				continue
-			}
+	Register("hass.unavailable", hassSvc, map[string]any{"hours": 6.0, "ignore": []any{}}, on(hassUnavailable))
+
+	Register("hass.updates", hassSvc, nil, on(hassUpdates))
+}
+
+// hassEntities links the entity list.
+func hassEntities(data *sources.HassDataset) string {
+	return strings.TrimRight(data.URL, "/") + "/config/entities"
+}
+
+func hassAlarm(data *sources.HassDataset, cfg map[string]any, env Env) []Finding {
+	var found []Finding
+	for _, e := range data.Entities {
+		if e.Domain != "binary_sensor" || !hassAlarms[e.DeviceClass] || e.State != sources.HassOn {
+			continue
+		}
+		found = append(found, svcFinding(hassSvc, "hass.alarm", "alarm:"+e.ID, "hass.alarm", enums.SeverityCritical,
+			data.URL, map[string]any{"entity": e.Name, "kind": e.DeviceClass}))
+	}
+	return found
+}
+
+func batteryLow(data *sources.HassDataset, cfg map[string]any, env Env) []Finding {
+	var found []Finding
+	for _, b := range lowBatteries(data, cfgFloat(cfg, "warn")) {
+		sev := enums.SeverityWarn
+		if b.level < cfgFloat(cfg, "critical") {
+			sev = enums.SeverityCritical
+		}
+		found = append(found, svcFinding(hassSvc, "hass.battery_low", "battery:"+b.entity.ID, "hass.battery", sev,
+			hassEntities(data), map[string]any{"entity": b.entity.Name, "percent": int(b.level)}))
+	}
+	return found
+}
+
+func hassUnavailable(data *sources.HassDataset, cfg map[string]any, env Env) []Finding {
+	ignore := stringsSlice(cfg["ignore"])
+	var names []string
+	for _, e := range data.Entities {
+		if (e.State != sources.HassUnavailable && e.State != sources.HassUnknown) || hassSilent[e.Domain] {
+			continue
+		}
+		if e.Changed.IsZero() || time.Now().UTC().Sub(e.Changed).Hours() < cfgFloat(cfg, "hours") || hasPrefix(e.ID, ignore) {
+			continue
+		}
+		names = append(names, e.Name)
+	}
+	if len(names) == 0 {
+		return nil
+	}
+	return []Finding{svcFinding(hassSvc, "hass.unavailable", "unavailable", "hass.unavailable", enums.SeverityWarn,
+		hassEntities(data), map[string]any{"count": len(names), "names": shortList(names)})}
+}
+
+func hassUpdates(data *sources.HassDataset, cfg map[string]any, env Env) []Finding {
+	var names []string
+	for _, e := range data.Entities {
+		if e.Domain == "update" && e.State == sources.HassOn {
 			names = append(names, e.Name)
 		}
-		if len(names) == 0 {
-			return nil
-		}
-		return []Finding{svcFinding(svc, "hass.unavailable", "unavailable", "hass.unavailable", enums.SeverityWarn,
-			entityURL(data), map[string]any{"count": len(names), "names": shortList(names)})}
-	})
-
-	Register("hass.updates", svc, nil, func(raw any, cfg map[string]any, env Env) []Finding {
-		data, _ := raw.(*sources.HassDataset)
-		var names []string
-		for _, e := range data.Entities {
-			if e.Domain == "update" && e.State == sources.HassOn {
-				names = append(names, e.Name)
-			}
-		}
-		if len(names) == 0 {
-			return nil
-		}
-		return []Finding{svcFinding(svc, "hass.updates", "updates", "hass.updates", enums.SeverityInfo,
-			strings.TrimRight(data.URL, "/")+"/config/updates", map[string]any{"count": len(names), "names": shortList(names)})}
-	})
+	}
+	if len(names) == 0 {
+		return nil
+	}
+	return []Finding{svcFinding(hassSvc, "hass.updates", "updates", "hass.updates", enums.SeverityInfo,
+		strings.TrimRight(data.URL, "/")+"/config/updates", map[string]any{"count": len(names), "names": shortList(names)})}
 }
 
 func hasPrefix(id string, prefixes []string) bool {

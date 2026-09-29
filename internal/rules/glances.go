@@ -28,37 +28,41 @@ type swapCfg struct {
 }
 
 func init() {
-	svc := enums.ServiceGlances
+	registerTyped("glances.disk_full", enums.ServiceGlances, diskFullCfg{Warn: 85, Critical: 95}, diskFull)
 
-	registerTyped("glances.disk_full", svc, diskFullCfg{Warn: 85, Critical: 95}, func(data *sources.GlancesResult, cfg diskFullCfg, env Env) []Finding {
-		var found []Finding
-		for _, d := range data.Disks {
-			if strings.HasPrefix(d.Mount, snapMounts) || d.Percent < cfg.Warn {
-				continue
-			}
-			level := enums.SeverityWarn
-			if d.Percent >= cfg.Critical {
-				level = enums.SeverityCritical
-			}
-			found = append(found, svcFinding(string(svc), "glances.disk_full", "disk:"+d.Mount, "glances.disk_full",
-				level, data.URL, map[string]any{"mount": d.Mount, "percent": int(d.Percent)}))
-		}
-		return found
-	})
+	registerTyped("glances.load_high", enums.ServiceGlances, loadCfg{PerCore: 1.5}, loadHigh)
 
-	registerTyped("glances.load_high", svc, loadCfg{PerCore: 1.5}, func(data *sources.GlancesResult, cfg loadCfg, env Env) []Finding {
-		if data.Cores == 0 || data.Load/float64(data.Cores) < cfg.PerCore {
-			return nil
-		}
-		return []Finding{svcFinding(string(svc), "glances.load_high", "load", "glances.load_high",
-			enums.SeverityWarn, data.URL, map[string]any{"load": Num(data.Load, 1), "cores": data.Cores})}
-	})
+	registerTyped("glances.swap_high", enums.ServiceGlances, swapCfg{Percent: 80}, swapHigh)
+}
 
-	registerTyped("glances.swap_high", svc, swapCfg{Percent: 80}, func(data *sources.GlancesResult, cfg swapCfg, env Env) []Finding {
-		if data.Swap < cfg.Percent {
-			return nil
+func diskFull(data *sources.GlancesResult, cfg diskFullCfg, env Env) []Finding {
+	var found []Finding
+	for _, d := range data.Disks {
+		if strings.HasPrefix(d.Mount, snapMounts) || d.Percent < cfg.Warn {
+			continue
 		}
-		return []Finding{svcFinding(string(svc), "glances.swap_high", "swap", "glances.swap_high",
-			enums.SeverityWarn, data.URL, map[string]any{"percent": int(data.Swap)})}
-	})
+		level := enums.SeverityWarn
+		if d.Percent >= cfg.Critical {
+			level = enums.SeverityCritical
+		}
+		found = append(found, svcFinding(glancesSvc, "glances.disk_full", "disk:"+d.Mount, "glances.disk_full",
+			level, data.URL, map[string]any{"mount": d.Mount, "percent": int(d.Percent)}))
+	}
+	return found
+}
+
+func loadHigh(data *sources.GlancesResult, cfg loadCfg, env Env) []Finding {
+	if data.Cores == 0 || data.Load/float64(data.Cores) < cfg.PerCore {
+		return nil
+	}
+	return []Finding{svcFinding(glancesSvc, "glances.load_high", "load", "glances.load_high",
+		enums.SeverityWarn, data.URL, map[string]any{"load": Num(data.Load, 1), "cores": data.Cores})}
+}
+
+func swapHigh(data *sources.GlancesResult, cfg swapCfg, env Env) []Finding {
+	if data.Swap < cfg.Percent {
+		return nil
+	}
+	return []Finding{svcFinding(glancesSvc, "glances.swap_high", "swap", "glances.swap_high",
+		enums.SeverityWarn, data.URL, map[string]any{"percent": int(data.Swap)})}
 }

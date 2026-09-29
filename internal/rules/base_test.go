@@ -19,3 +19,22 @@ func TestOwnRuleStampsID(t *testing.T) {
 		t.Fatalf("rules = %q, %q", found[0].Rule, found[1].Rule)
 	}
 }
+
+// on runs a rule only on a non-nil dataset of its type.
+func TestOnSkipsOtherData(t *testing.T) {
+	run := on(func(data *Clock, _ map[string]any, _ Env) []Finding {
+		return []Finding{{Fingerprint: data.Host}}
+	})
+
+	var none *Clock
+	for _, raw := range []any{"other", none, nil} {
+		if found := run(raw, nil, Env{}); found != nil {
+			t.Fatalf("run(%#v) = %v, want nil", raw, found)
+		}
+	}
+
+	found := run(&Clock{Host: "nas"}, nil, Env{})
+	if len(found) != 1 || found[0].Fingerprint != "nas" {
+		t.Fatalf("found = %v", found)
+	}
+}

@@ -95,57 +95,59 @@ func amountParam(amount float64, currency string) any {
 }
 
 func init() {
-	mail := string(enums.ServiceMail)
-	paperless := string(enums.ServicePaperless)
 	defaults := map[string]any{"date_window": 30.0, "warn_days": 14.0}
 
-	Register("mail.invoice_unrecorded", Cross, defaults, func(_ any, cfg map[string]any, env Env) []Finding {
-		box, ok1 := env.Datasets[mail].(*sources.MailDataset)
-		ninja, ok2 := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
-		if !ok1 || !ok2 {
-			return nil
-		}
-		var found []Finding
-		for _, m := range box.Invoices {
-			in := incoming{sender: m.Sender, domain: m.Domain, amount: m.Amount, day: m.Date}
-			if invoiceRecorded(ninja, in, cfgInt(cfg, "date_window")) {
-				continue
-			}
-			level := enums.SeverityInfo
-			if env.Today.Sub(m.Date).Hours()/hoursPerDay >= cfgFloat(cfg, "warn_days") {
-				level = enums.SeverityWarn
-			}
-			found = append(found, unrecordedFinding("mail.invoice_unrecorded", "mail.unrecorded", "mail:"+shortHash(m.Addr, m.Subject, m.Date.Format(time.DateOnly)),
-				level, ninja, mail, map[string]any{"sender": m.Sender, "subject": m.Subject, "amount": amountParam(m.Amount, ninja.Currency), "day": Day(m.Date)}))
-		}
-		return found
-	})
+	Register("mail.invoice_unrecorded", Cross, defaults, invoiceUnrecorded)
 
-	Register("paperless.invoice_unrecorded", Cross, defaults, func(_ any, cfg map[string]any, env Env) []Finding {
-		docs, ok1 := env.Datasets[paperless].(*sources.PaperlessDataset)
-		ninja, ok2 := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
-		if !ok1 || !ok2 {
-			return nil
+	Register("paperless.invoice_unrecorded", Cross, defaults, paperlessInvoiceUnrecorded)
+}
+
+func invoiceUnrecorded(_ any, cfg map[string]any, env Env) []Finding {
+	box, ok1 := env.Datasets[mailSvc].(*sources.MailDataset)
+	ninja, ok2 := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
+	if !ok1 || !ok2 {
+		return nil
+	}
+	var found []Finding
+	for _, m := range box.Invoices {
+		in := incoming{sender: m.Sender, domain: m.Domain, amount: m.Amount, day: m.Date}
+		if invoiceRecorded(ninja, in, cfgInt(cfg, "date_window")) {
+			continue
 		}
-		var found []Finding
-		for _, d := range docs.Invoices {
-			created, ok := metrics.ParseDay(d.Created)
-			if !ok {
-				continue
-			}
-			in := incoming{sender: d.Correspondent, amount: d.Amount, day: created}
-			if invoiceRecorded(ninja, in, cfgInt(cfg, "date_window")) {
-				continue
-			}
-			level := enums.SeverityInfo
-			if env.Today.Sub(created).Hours()/hoursPerDay >= cfgFloat(cfg, "warn_days") {
-				level = enums.SeverityWarn
-			}
-			f := unrecordedFinding("paperless.invoice_unrecorded", "paperless.unrecorded", fmt.Sprintf("doc:%d", d.ID),
-				level, ninja, paperless, map[string]any{"sender": d.Correspondent, "subject": d.Title, "amount": amountParam(d.Amount, ninja.Currency), "day": Day(created)})
-			f.ActionURL, f.ActionLabel = strings.TrimRight(docs.URL, "/")+fmt.Sprintf("/documents/%d/details", d.ID), "open_in_paperless"
-			found = append(found, f)
+		level := enums.SeverityInfo
+		if env.Today.Sub(m.Date).Hours()/hoursPerDay >= cfgFloat(cfg, "warn_days") {
+			level = enums.SeverityWarn
 		}
-		return found
-	})
+		found = append(found, unrecordedFinding("mail.invoice_unrecorded", "mail.unrecorded", "mail:"+shortHash(m.Addr, m.Subject, m.Date.Format(time.DateOnly)),
+			level, ninja, mailSvc, map[string]any{"sender": m.Sender, "subject": m.Subject, "amount": amountParam(m.Amount, ninja.Currency), "day": Day(m.Date)}))
+	}
+	return found
+}
+
+func paperlessInvoiceUnrecorded(_ any, cfg map[string]any, env Env) []Finding {
+	docs, ok1 := env.Datasets[paperlessSvc].(*sources.PaperlessDataset)
+	ninja, ok2 := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
+	if !ok1 || !ok2 {
+		return nil
+	}
+	var found []Finding
+	for _, d := range docs.Invoices {
+		created, ok := metrics.ParseDay(d.Created)
+		if !ok {
+			continue
+		}
+		in := incoming{sender: d.Correspondent, amount: d.Amount, day: created}
+		if invoiceRecorded(ninja, in, cfgInt(cfg, "date_window")) {
+			continue
+		}
+		level := enums.SeverityInfo
+		if env.Today.Sub(created).Hours()/hoursPerDay >= cfgFloat(cfg, "warn_days") {
+			level = enums.SeverityWarn
+		}
+		f := unrecordedFinding("paperless.invoice_unrecorded", "paperless.unrecorded", fmt.Sprintf("doc:%d", d.ID),
+			level, ninja, paperlessSvc, map[string]any{"sender": d.Correspondent, "subject": d.Title, "amount": amountParam(d.Amount, ninja.Currency), "day": Day(created)})
+		f.ActionURL, f.ActionLabel = strings.TrimRight(docs.URL, "/")+fmt.Sprintf("/documents/%d/details", d.ID), "open_in_paperless"
+		found = append(found, f)
+	}
+	return found
 }
