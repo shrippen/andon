@@ -32,7 +32,7 @@ func TestInvoiceAgingBands(t *testing.T) {
 		{Status: "sent", Balance: 500, DueDate: "2026-09-10"},
 		{Status: "sent", Balance: 500, DueDate: "2026-06-01"},
 	}}
-	v := invoiceAgingView(nil, map[string]any{"data": data}, ViewCtx{Today: "2026-09-26"})
+	v := run("invoice_aging", nil, map[string]any{"data": data}, ViewCtx{Today: "2026-09-26"})
 	bands := v["Bands"].([]AgingBand)
 	if v["Total"] != 2000.0 || bands[0].Amount != 1000 || bands[1].Amount != 500 || bands[3].Amount != 500 || bands[0].Pct != 50 {
 		t.Fatalf("view: %+v", v)

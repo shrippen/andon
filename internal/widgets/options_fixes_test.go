@@ -24,7 +24,7 @@ func TestRedAboveHighWarn(t *testing.T) {
 	}
 
 	data := &sources.TrueNASDataset{Pools: []sources.Pool{{Name: "tank", Status: "ONLINE", Healthy: true, Size: 100, Allocated: 97}}}
-	view := truenasView(decodeTrueNAS(map[string]any{"warn_pct": 90.0}), map[string]any{"data": data}, ViewCtx{})
+	view := run("truenas_pools", map[string]any{"warn_pct": 90.0}, map[string]any{"data": data}, ViewCtx{})
 	if pools := view["Pools"].([]PoolBar); pools[0].Tier != "red" {
 		t.Fatalf("pool 97 %% at warn 90: %q", pools[0].Tier)
 	}
@@ -45,7 +45,7 @@ func TestKomodoCalmWithStoppedStack(t *testing.T) {
 // only an empty tag is calm.
 func TestPaperlessCalmCountsTag(t *testing.T) {
 	data := &sources.PaperlessDataset{Inbox: 0, TagCounts: map[string]int{"todo": 3}}
-	view := paperlessInboxView(decodePaperless(map[string]any{"tag": "todo"}), map[string]any{"data": data}, ViewCtx{})
+	view := run("paperless_inbox", map[string]any{"tag": "todo"}, map[string]any{"data": data}, ViewCtx{})
 	if IsCalm("paperless_inbox", view) {
 		t.Fatal("calm with 3 tagged documents")
 	}
@@ -67,7 +67,7 @@ func TestExpiryUnknownDateLast(t *testing.T) {
 	now := time.Now()
 	certs := &sources.CertDataset{Certs: []sources.Cert{{Host: "a", NotAfter: now.AddDate(0, 0, 20)}}}
 	doms := &sources.DomainsDataset{Domains: []sources.DomainInfo{{Name: "b"}}}
-	view := expiryView(decodeExpiry(map[string]any{}), map[string]any{"data": certs, peerDomains: doms},
+	view := run("expiry", nil, map[string]any{"data": certs, peerDomains: doms},
 		ViewCtx{Today: now.Format(time.DateOnly)})
 	bars := view["Bars"].([]HBar)
 	if len(bars) != 2 || bars[0].Label != "a" || bars[1].Value != expiryUnknown {
@@ -86,7 +86,7 @@ func TestClockDropsUnknownZones(t *testing.T) {
 // TestGiteaHeadFollowsShow: showing only issues heads with their count.
 func TestGiteaHeadFollowsShow(t *testing.T) {
 	data := &sources.GiteaDataset{Reviews: []sources.Issue{{Title: "r"}}, Assigned: []sources.Issue{{Title: "a"}, {Title: "b"}}}
-	view := giteaView(decodeListOf("show")(map[string]any{"show": "issues"}), map[string]any{"data": data}, ViewCtx{})
+	view := run("gitea_reviews", map[string]any{"show": "issues"}, map[string]any{"data": data}, ViewCtx{})
 	if view["Head"] != 2 || view["HeadKey"] != "gitea.assigned" {
 		t.Fatalf("head: %v %v", view["Head"], view["HeadKey"])
 	}

@@ -149,20 +149,18 @@ type KimaiWeekConfig struct {
 	BillableOnly bool // leave internal time out
 }
 
-func decodeKimaiWeek(raw map[string]any) any {
-	return KimaiWeekConfig{BillableOnly: asBool(raw["billable_only"])}
+func init() {
+	Tile[KimaiWeekConfig]{Key: "kimai_week", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 10 * 60,
+		Fields:  []Field{{Key: "billable_only", Input: InputCheck}},
+		Decode:  func(r Raw) KimaiWeekConfig { return KimaiWeekConfig{BillableOnly: r.Bool("billable_only")} },
+		Queries: ownData[KimaiWeekConfig], View: dataView(kimaiWeekView)}.add()
 }
 
 // kimaiWeekView draws Mon–Sun against each day's contract target:
 //
 //	Mo target 8 h, 6.5 h booked  →  yellow below its line
 //	Sa target 0                  →  no line, never yellow
-func kimaiWeekView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(KimaiWeekConfig)
-	data, ok := results["data"].(*sources.KimaiDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func kimaiWeekView(cfg KimaiWeekConfig, data *sources.KimaiDataset, ctx ViewCtx) map[string]any {
 	today := todayOf(ctx)
 	monday := weekStart(today)
 	total, _ := weekMinutes(data, today, weekPick{Billable: cfg.BillableOnly})
@@ -209,16 +207,16 @@ type KimaiSplitConfig struct {
 	ByProject bool
 }
 
-func decodeKimaiSplit(raw map[string]any) any {
-	return KimaiSplitConfig{LastWeek: raw["week"] == "last", ByProject: raw["group"] == "project"}
+func init() {
+	Tile[KimaiSplitConfig]{Key: "kimai_split", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 10 * 60,
+		Fields: []Field{sel("week", "this", "this", "last"), sel("group", "customer", "customer", "project")},
+		Decode: func(r Raw) KimaiSplitConfig {
+			return KimaiSplitConfig{LastWeek: r.Pick("week") == "last", ByProject: r.Pick("group") == "project"}
+		},
+		Queries: ownData[KimaiSplitConfig], View: dataView(kimaiSplitView)}.add()
 }
 
-func kimaiSplitView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(KimaiSplitConfig)
-	data, ok := results["data"].(*sources.KimaiDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func kimaiSplitView(cfg KimaiSplitConfig, data *sources.KimaiDataset, ctx ViewCtx) map[string]any {
 	pick := weekPick{ByProject: cfg.ByProject}
 	if cfg.LastWeek {
 		pick.Back = 1
@@ -294,15 +292,14 @@ type UnbilledRow struct {
 	FreshW, MidW, OldW int
 }
 
-func unbilledAgeView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(AgingConfig)
-	if !ok {
-		cfg = decodeAging([2]int{30, 60})(nil).(AgingConfig)
-	}
-	data, ok := results["data"].(*sources.KimaiDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func init() {
+	Tile[AgingConfig]{Key: "unbilled_age", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 60 * 60,
+		Fields: []Field{agingBands, {Key: "hide_internal", Input: InputCheck}, {Key: "hide_clients", Input: InputList}},
+		Decode: decodeAging, Queries: ownData[AgingConfig], View: dataView(unbilledAgeView),
+		Calm: func(v map[string]any) bool { return isZero(v["Total"]) }}.add()
+}
+
+func unbilledAgeView(cfg AgingConfig, data *sources.KimaiDataset, ctx ViewCtx) map[string]any {
 	internal := map[string]bool{}
 	if cfg.HideInternal {
 		for _, name := range internalCustomers(ctx.Settings) {
@@ -374,23 +371,27 @@ type DisksConfig struct {
 	OnlyProblems bool
 }
 
-func decodeDisks(raw map[string]any) any {
-	warn := asFloat(raw["temp_warn"])
+// warnFrom reads a warning level up to 100; outside (0, 100] it is the
+// field's Default, not clamped: {"temp_warn": 0} → 45.
+func warnFrom(r Raw, key string) float64 {
+	warn := asFloat(r.Get(key))
 	if warn <= 0 || warn > pctFull {
-		warn = tempWarn
+		return number(r.field(key).Default)
 	}
-	return DisksConfig{TempWarn: warn, OnlyProblems: asBool(raw["only_problems"])}
+	return warn
 }
 
-func disksView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(DisksConfig)
-	if !ok {
-		cfg = DisksConfig{TempWarn: tempWarn}
-	}
-	data, ok := results["data"].(*sources.ScrutinyDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func init() {
+	Tile[DisksConfig]{Key: "disks", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceScrutiny, RefreshS: 60 * 60,
+		Fields: []Field{{Key: "temp_warn", Input: InputNumber, Default: tempWarn, Min: "1", Max: "100"}, {Key: "only_problems", Input: InputCheck}},
+		Decode: func(r Raw) DisksConfig {
+			return DisksConfig{TempWarn: warnFrom(r, "temp_warn"), OnlyProblems: r.Bool("only_problems")}
+		},
+		Queries: ownData[DisksConfig], View: dataView(disksView),
+		Calm: func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] }}.add()
+}
+
+func disksView(cfg DisksConfig, data *sources.ScrutinyDataset, ctx ViewCtx) map[string]any {
 	healthy := 0
 	var rows []DiskRow
 	staleBefore := todayOf(ctx).AddDate(0, 0, -diskStaleDays)
@@ -519,12 +520,17 @@ type TrueNASConfig struct {
 	Forecast bool    // "full in … days" per pool from the history
 }
 
-func decodeTrueNAS(raw map[string]any) any {
-	warn := asFloat(raw["warn_pct"])
-	if warn <= 0 || warn > pctFull {
-		warn = loadWarn
-	}
-	return TrueNASConfig{WarnPct: warn, AppList: asBool(raw["app_updates"]), Forecast: asBool(raw["forecast"])}
+func decodeTrueNAS(r Raw) TrueNASConfig {
+	return TrueNASConfig{WarnPct: warnFrom(r, "warn_pct"), AppList: r.Bool("app_updates"), Forecast: r.Bool("forecast")}
+}
+
+func init() {
+	Tile[TrueNASConfig]{Key: "truenas_pools", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceTrueNAS, RefreshS: 10 * 60,
+		Extra: ExtraHistory, // the pool forecast
+		Fields: []Field{{Key: "warn_pct", Input: InputNumber, Default: loadWarn, Min: "1", Max: "100"}, {Key: "app_updates", Input: InputCheck},
+			{Key: "forecast", Input: InputCheck}},
+		Decode: decodeTrueNAS, Queries: ownData[TrueNASConfig], View: truenasView,
+		Calm: func(v map[string]any) bool { return v["Pools"] != nil && v["Alerts"] == 0 }}.add()
 }
 
 // PoolBar is one pool: its bar and, with the forecast on, when it is full.
@@ -533,11 +539,7 @@ type PoolBar struct {
 	FullIn int // days, -1 = not filling or unknown
 }
 
-func truenasView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(TrueNASConfig)
-	if !ok {
-		cfg = TrueNASConfig{WarnPct: loadWarn}
-	}
+func truenasView(cfg TrueNASConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	data, ok := results["data"].(*sources.TrueNASDataset)
 	if !ok {
 		return map[string]any{}

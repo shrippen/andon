@@ -79,8 +79,15 @@ type ConnHealthConfig struct {
 // connShakyDays is how far back "failing now" looks.
 const connShakyDays = 2
 
-func decodeConnHealth(raw map[string]any) any {
-	return ConnHealthConfig{Limit: clampInt(asInt(raw["limit"], 4), 1, 20), Now: asBool(raw["only_problems"])}
+func init() {
+	Tile[ConnHealthConfig]{Key: "conn_health", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 10 * 60, Extra: ExtraConnHealth,
+		Fields:  []Field{{Key: "limit", Input: InputNumber, Default: 4, Min: "1", Max: "20"}, {Key: "only_problems", Input: InputCheck}},
+		Renames: []rename{{from: "only_shaky", to: "only_problems"}},
+		Decode: func(r Raw) ConnHealthConfig {
+			return ConnHealthConfig{Limit: r.Int("limit"), Now: r.Bool("only_problems")}
+		},
+		View: connHealthView,
+		Calm: func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] }}.add()
 }
 
 // failingLately: a failure within the last connShakyDays days.
@@ -135,8 +142,7 @@ func cellState(d ConnDayState) string {
 }
 
 // connHealthView counts healthy connections and draws the worst ones.
-func connHealthView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg := cfgAny.(ConnHealthConfig)
+func connHealthView(cfg ConnHealthConfig, results map[string]any, _ ViewCtx) map[string]any {
 	strips, _ := results[ConnHealthSlot].([]ConnStrip)
 
 	healthy := 0
@@ -183,15 +189,23 @@ type AgingConfig struct {
 	HideInternal bool     // unbilled: the space's internal customers
 }
 
-func decodeAging(def [2]int) DecodeFunc {
-	return func(raw map[string]any) any {
-		cfg := AgingConfig{Mid: def[0], Old: def[1], HideInternal: asBool(raw["hide_internal"])}
-		if b := asIntList(raw["bands"]); len(b) == 2 && b[0] > 0 && b[1] > b[0] {
-			cfg.Mid, cfg.Old = b[0], b[1]
-		}
-		cfg.HideClients = lowerList(raw["hide_clients"])
-		return cfg
+// Default band limits of the aging tiles, in days.
+const (
+	agingMid = 30
+	agingOld = 60
+)
+
+// agingBands is the band limits field of the aging tiles.
+var agingBands = Field{Key: "bands", Input: InputNumbers, Default: []any{float64(agingMid), float64(agingOld)}}
+
+// decodeAging keeps the default bands unless two rising limits are set:
+// [7 14] → 7, 14; [14 7] → 30, 60.
+func decodeAging(r Raw) AgingConfig {
+	cfg := AgingConfig{Mid: agingMid, Old: agingOld, HideInternal: r.Bool("hide_internal"), HideClients: r.Lower("hide_clients")}
+	if b := r.Ints("bands"); len(b) == 2 && b[0] > 0 && b[1] > b[0] {
+		cfg.Mid, cfg.Old = b[0], b[1]
 	}
+	return cfg
 }
 
 // agingLimits are the upper overdue days of the bands after "current".
@@ -202,18 +216,17 @@ var agingLimits = []struct {
 	{"current", "green", 0}, {"d30", "yellow", 30}, {"d60", "orange", 60}, {"older", "red", -1},
 }
 
+func init() {
+	Tile[AgingConfig]{Key: "invoice_aging", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 30 * 60,
+		Fields: []Field{agingBands, {Key: "hide_clients", Input: InputList}},
+		Decode: decodeAging, Queries: ownData[AgingConfig], View: dataView(invoiceAgingView),
+		Calm: func(v map[string]any) bool { return v["Count"] == 0 }}.add()
+}
+
 // invoiceAgingView stacks open invoices by days overdue:
 //
 //	not due 2.940 € · 1–30 d 1.240 € · 31–60 d 0 · older 0
-func invoiceAgingView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(AgingConfig)
-	if !ok {
-		cfg = decodeAging([2]int{30, 60})(nil).(AgingConfig)
-	}
-	data, ok := results["data"].(*sources.NinjaDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func invoiceAgingView(cfg AgingConfig, data *sources.NinjaDataset, ctx ViewCtx) map[string]any {
 	today, _ := time.Parse(time.DateOnly, ctx.Today)
 	var open []metrics.NinjaOpenInvoice
 	for _, inv := range metrics.NinjaOpenInvoices(data, today) {
@@ -260,15 +273,15 @@ func invoiceAgingView(cfgAny any, results map[string]any, ctx ViewCtx) map[strin
 // SpeedConfig is the "speedtest" widget's config.
 type SpeedConfig struct{ Ping bool }
 
-func decodeSpeed(raw map[string]any) any { return SpeedConfig{Ping: boolOr(raw["ping"], true)} }
+func init() {
+	Tile[SpeedConfig]{Key: "speedtest", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest, RefreshS: integrationTTL,
+		Fields:  []Field{{Key: "ping", Input: InputCheck, Default: true}},
+		Decode:  func(r Raw) SpeedConfig { return SpeedConfig{Ping: r.Bool("ping")} },
+		Queries: ownData[SpeedConfig], View: dataView(speedView)}.add()
+}
 
-func speedView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(SpeedConfig)
-	if !ok {
-		cfg.Ping = true
-	}
-	data, ok := results["data"].(*sources.SpeedtestDataset)
-	if !ok || data == nil {
+func speedView(cfg SpeedConfig, data *sources.SpeedtestDataset, _ ViewCtx) map[string]any {
+	if data == nil {
 		return map[string]any{}
 	}
 	out := map[string]any{"Data": data, "Ping": cfg.Ping}
@@ -279,13 +292,6 @@ func speedView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 		out["UpPct"] = data.Up / data.ExpectUp
 	}
 	return out
-}
-
-func init() {
-	Register(WidgetType{Key: "conn_health", Decode: decodeConnHealth, Category: CategoryInsight,
-		RefreshS: 10 * 60, View: connHealthView, Extra: ExtraConnHealth})
-	Register(WidgetType{Key: "invoice_aging", Decode: decodeAging([2]int{30, 60}), Category: CategoryInsight,
-		Service: enums.ServiceInvoiceNinja, RefreshS: 30 * 60, Queries: dataQuery, View: invoiceAgingView})
 }
 
 // lowerList reads a list field in lower case, for names compared loosely.

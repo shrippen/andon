@@ -4,11 +4,7 @@ package widgets
 // its finished view; with the frame option "only_issues" the board then
 // hides the tile until something needs attention.
 
-import (
-	"reflect"
-
-	"andon/internal/sources"
-)
+import "reflect"
 
 // calmChecks read "nothing to do" from a type's view.
 var calmChecks = map[string]func(v map[string]any) bool{
@@ -21,21 +17,10 @@ var calmChecks = map[string]func(v map[string]any) bool{
 		}
 		return v["Total"] != 0 && v["Total"] != nil
 	},
-	"monitors":      func(v map[string]any) bool { return v["Total"] != nil && v["Up"] == v["Total"] },
-	"disks":         func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] },
-	"conn_health":   func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] },
-	"truenas_pools": func(v map[string]any) bool { return v["Pools"] != nil && v["Alerts"] == 0 },
-	"expiry":        func(v map[string]any) bool { return v["Total"] == 0 },
-	"unbilled_age":  func(v map[string]any) bool { return isZero(v["Total"]) },
-	"invoice_aging": func(v map[string]any) bool { return v["Count"] == 0 },
-	"status_light":  func(v map[string]any) bool { return v["State"] == "green" },
-	"exposure":      func(v map[string]any) bool { return v["Total"] != nil && v["Total"] != 0 && v["Open"] == 0 },
-	"deadlines":     func(v map[string]any) bool { return v["Configured"] == true && lenOf(v["Items"]) == 0 },
-	// Count is the inbox, or the tag's documents when a tag is set.
-	"paperless_inbox": func(v map[string]any) bool {
-		_, ok := v["Data"].(*sources.PaperlessDataset)
-		return ok && v["Count"] == 0
-	},
+	"monitors":     func(v map[string]any) bool { return v["Total"] != nil && v["Up"] == v["Total"] },
+	"status_light": func(v map[string]any) bool { return v["State"] == "green" },
+	"exposure":     func(v map[string]any) bool { return v["Total"] != nil && v["Total"] != 0 && v["Open"] == 0 },
+	"deadlines":    func(v map[string]any) bool { return v["Configured"] == true && lenOf(v["Items"]) == 0 },
 	// Hint lists (ExtraHints): calm without hints.
 	"hints":   func(v map[string]any) bool { return v["Hints"] != nil && lenOf(v["Hints"]) == 0 },
 	"updates": func(v map[string]any) bool { return v["Hints"] != nil && lenOf(v["Hints"]) == 0 },

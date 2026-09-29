@@ -293,13 +293,6 @@ func energyView(cfg EnergyConfig, results map[string]any, _ ViewCtx) map[string]
 }
 
 func init() {
-	on := func(key string, service enums.ServiceType, decode DecodeFunc, view ViewFunc) {
-		Register(WidgetType{Key: key, Decode: decode, Category: CategoryInsight,
-			Service: service, RefreshS: integrationTTL, Queries: dataQuery, View: view})
-	}
-
-	on("speedtest", enums.ServiceSpeedtest, decodeSpeed, speedView)
-
 	Tile[MediaConfig]{Key: "mediaserver", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceMediaServer, RefreshS: integrationTTL,
 		Fields:  []Field{{Key: "show_users", Input: InputCheck, Default: true}},
 		Decode:  func(r Raw) MediaConfig { return MediaConfig{Users: r.Bool("show_users")} },
