@@ -235,9 +235,6 @@ func Visible(d *sql.DB, who *access.Principal) ([]BoardRef, error) {
 			return err
 		}
 		for _, id := range access.GrantedResourceIDs(who, enums.ResourceBoard) {
-			if _, inOwn := who.Spaces[id]; inOwn {
-				continue
-			}
 			b, err := content.Board(tx, id)
 			if err != nil {
 				return err
