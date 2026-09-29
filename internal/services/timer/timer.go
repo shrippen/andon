@@ -1,6 +1,6 @@
 // Package timer starts and stops Kimai timers from a board.
 //
-//	tile ──POST──► Start/Stop: widget is a Kimai timer? USE on the
+//	tile ──POST──► Start/Stop: widget is a Kimai timer? EDIT on the
 //	connection? ──► outbound.KimaiStart/KimaiStop ──► cache dropped
 package timer
 
@@ -61,10 +61,14 @@ type Request struct {
 	Begin, End        string
 }
 
-// Run starts, stops or switches a timer behind a tile.
+// Run starts, stops or switches a timer behind a tile. Requires EDIT on
+// the connection.
 func Run(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64, req Request, ip string) error {
 	conn, secret, err := target(d, who, placementID)
 	if err != nil {
+		return err
+	}
+	if err := connections.Writable(d, who, conn.ID); err != nil {
 		return err
 	}
 	to := outbound.Target{URL: conn.URL, Token: secret, VerifyTLS: conn.VerifyTLS}

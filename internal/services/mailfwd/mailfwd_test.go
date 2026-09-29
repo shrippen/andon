@@ -27,3 +27,17 @@ func TestForwardChecksBeforeFetching(t *testing.T) {
 		t.Fatalf("foreign mailbox: %v", err)
 	}
 }
+
+// Forwarding writes to Paperless: using the mailbox is not enough.
+func TestForwardNeedsEditRight(t *testing.T) {
+	d := testkit.DB(t)
+	instance := testkit.Instance(t, d)
+	boss, _ := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+	user, _ := testkit.User(t, d, "user@x.de", enums.RoleUser)
+	box := testkit.Conn(t, d, boss, instance, enums.ServiceMail, "imaps://mail.example:993")
+	testkit.Conn(t, d, boss, instance, enums.ServicePaperless, "https://docs.example")
+
+	if _, err := mailfwd.Forward(context.Background(), d, user, box, 1, ""); !errors.Is(err, access.ErrDenied) {
+		t.Fatalf("forward with USE: %v", err)
+	}
+}

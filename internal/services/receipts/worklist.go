@@ -18,6 +18,7 @@ import (
 
 	"andon/internal/outbound"
 	"andon/internal/services/access"
+	"andon/internal/services/connections"
 	"andon/internal/sources"
 )
 
@@ -222,6 +223,9 @@ func Draft(ctx context.Context, d *sql.DB, who *access.Principal, docID int64) (
 func Create(ctx context.Context, d *sql.DB, who *access.Principal, docID int64, in NewExpense, ip string) (string, error) {
 	p, err := openPair(d, who)
 	if err != nil {
+		return "", err
+	}
+	if err := connections.Writable(d, who, p.ninja.ID, p.docs.ID); err != nil {
 		return "", err
 	}
 	if !p.mapping.Complete() {

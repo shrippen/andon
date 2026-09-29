@@ -150,6 +150,22 @@ func Listing(d *sql.DB, who *access.Principal, minimum enums.Right) ([]View, err
 	return out, err
 }
 
+// Writable checks that who may write through each connection to its
+// service (book, link, upload, start a timer). Requires EDIT: USE only
+// reads.
+func Writable(d *sql.DB, who *access.Principal, connIDs ...int64) error {
+	for _, id := range connIDs {
+		v, err := Get(d, who, id)
+		if err != nil {
+			return err
+		}
+		if err := access.Need(v.Right, enums.RightEdit); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Get returns one connection's view. Requires at least USE.
 func Get(d *sql.DB, who *access.Principal, connID int64) (View, error) {
 	var out View

@@ -14,6 +14,7 @@ import (
 	"andon/internal/outbound"
 	"andon/internal/services/access"
 	auditsvc "andon/internal/services/audit"
+	"andon/internal/services/connections"
 	"andon/internal/services/svcdata"
 	"andon/internal/sources"
 )
@@ -90,6 +91,9 @@ type writer struct {
 }
 
 func (p pair) writer(ctx context.Context, d *sql.DB, who *access.Principal, expenseKey string, ids []int64) (writer, error) {
+	if err := connections.Writable(d, who, p.ninja.ID, p.docs.ID); err != nil {
+		return writer{}, err
+	}
 	if !p.mapping.Complete() {
 		return writer{}, ErrMapping
 	}

@@ -88,3 +88,14 @@ func Place(t *testing.T, d *sql.DB, who *access.Principal, space int64, typeKey 
 	}
 	return placement
 }
+
+// Instance adds the instance space, which plain users may only use, and
+// returns its id. Load principals after it so they see it.
+func Instance(t *testing.T, d *sql.DB) int64 {
+	t.Helper()
+	space := &model.Space{Kind: enums.SpaceInstance, Name: "Instance", Version: 1}
+	if err := content.AddSpace(d, space); err != nil {
+		t.Fatalf("instance space: %v", err)
+	}
+	return space.ID
+}

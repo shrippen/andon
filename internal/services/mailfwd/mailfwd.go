@@ -159,7 +159,7 @@ func Forward(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID i
 	if paperless == nil {
 		return 0, ErrNoPaperless
 	}
-	if _, err := connections.Get(d, who, paperless.ID); err != nil {
+	if err := connections.Writable(d, who, paperless.ID); err != nil {
 		return 0, err
 	}
 
