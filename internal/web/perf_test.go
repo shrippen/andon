@@ -2,8 +2,10 @@ package web_test
 
 import (
 	"bytes"
+	"compress/gzip"
 	"database/sql"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -262,4 +264,57 @@ func TestSectionEditAnswersSection(t *testing.T) {
 	if resp.Header.Get("HX-Refresh") != "true" {
 		t.Fatalf("area change: expected a page reload, got %d %v", resp.StatusCode, resp.Header)
 	}
+}
+
+// TestPagesCompressed: HTML goes out gzipped to browsers that accept it;
+// the CSRF token in it changes with every answer (BREACH) and still
+// passes the check.
+func TestPagesCompressed(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	resp := getFollowingRedirect(t, srv, client, "/")
+	resp.Body.Close()
+	boardURL := resp.Request.URL.Path
+
+	token := func() string {
+		t.Helper()
+		req, _ := http.NewRequest(http.MethodGet, srv.URL+boardURL, nil)
+		req.Header.Set("Accept-Encoding", "gzip")
+		resp, err := http.DefaultTransport.RoundTrip(withCookies(client, req))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.Header.Get("Content-Encoding") != "gzip" || resp.Header.Get("Vary") != "Accept-Encoding" {
+			t.Fatalf("page not compressed: %v", resp.Header)
+		}
+		zr, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		page, _ := io.ReadAll(zr)
+		m := csrfRe.FindSubmatch(page)
+		if m == nil {
+			t.Fatalf("no token in page:\n%.300s", page)
+		}
+		return string(m[1])
+	}
+	a, b := token(), token()
+	if a == b {
+		t.Fatal("CSRF token repeats across answers")
+	}
+	res := postForm(t, client, srv.URL+"/boards/"+boardIDFrom(boardURL)+"/sections", url.Values{"csrf": {a}, "title": {"S"},
+		"version": {string(regexp.MustCompile(`data-version="(\d+)"`).FindSubmatch(mustGet(t, srv, client, boardURL))[1])}})
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("masked token rejected: %d", res.StatusCode)
+	}
+}
+
+// withCookies adds the client's cookies to req, for a raw RoundTrip.
+func withCookies(client *http.Client, req *http.Request) *http.Request {
+	for _, c := range client.Jar.Cookies(req.URL) {
+		req.AddCookie(c)
+	}
+	return req
 }

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/crypto"
 	"andon/internal/enums"
 	"andon/internal/i18n"
 	"andon/internal/services/access"
@@ -289,7 +290,13 @@ func (s *pageSet) fragment(body *tileBody) (template.HTML, error) {
 // the caller already set "ThemeURL" itself — the board page picks its own
 // board/space-scoped theme).
 func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, values map[string]any) error {
-	data := map[string]any{"Ctx": ctx, "Who": ctx.Who, "CSRFField": CSRFField, "CSRFHeader": CSRFHeader}
+	// A fresh mask per answer: compressed pages must not repeat the
+	// token (BREACH).
+	shown := ctx
+	if shown.CSRF != "" {
+		shown.CSRF = crypto.MaskToken(ctx.CSRF)
+	}
+	data := map[string]any{"Ctx": shown, "Who": ctx.Who, "CSRFField": CSRFField, "CSRFHeader": CSRFHeader}
 	for k, v := range values {
 		data[k] = v
 	}

@@ -57,6 +57,6 @@ func (d Deps) Secure(next http.Handler) http.Handler {
 			h.Set("Cache-Control", "no-store")
 			h.Set("Referrer-Policy", "no-referrer")
 		}
-		next.ServeHTTP(w, r)
+		compressAnswers(next).ServeHTTP(w, r)
 	})
 }

@@ -1,6 +1,9 @@
 package crypto
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestEncryptDecryptRoundtrip(t *testing.T) {
 	Init("test-master-key")
@@ -51,5 +54,26 @@ func TestNewTokenUnique(t *testing.T) {
 	}
 	if TokenHash(a) == TokenHash(b) {
 		t.Fatal("hashes must differ for different tokens")
+	}
+}
+
+// TestMaskToken: a masked token differs on every call (compressed pages
+// must not repeat it, BREACH) and unmasks to the token; tampering fails.
+func TestMaskToken(t *testing.T) {
+	const token = "csrf-token-value"
+	a, b := MaskToken(token), MaskToken(token)
+	if a == b || strings.Contains(a, token) {
+		t.Fatalf("masks repeat or leak: %q %q", a, b)
+	}
+	for _, masked := range []string{a, b} {
+		if got, ok := UnmaskToken(masked); !ok || got != token {
+			t.Fatalf("unmask %q: %q %v", masked, got, ok)
+		}
+	}
+	if _, ok := UnmaskToken(a[:len(a)-2]); ok {
+		t.Fatal("truncated token unmasked")
+	}
+	if _, ok := UnmaskToken("not base64 !"); ok {
+		t.Fatal("garbage unmasked")
 	}
 }
