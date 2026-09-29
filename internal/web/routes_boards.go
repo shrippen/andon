@@ -143,26 +143,37 @@ type tileBody struct {
 	Load        bool
 }
 
-// tileBodies renders every card tile from stored data only (svcdata.Stored:
+// tileBodies renders every tile from stored data only (svcdata.Stored:
 // no request leaves the server), so the page stays as fast as before.
-// Link tiles keep loading lazily: their status line is small.
+// Link tiles too: one request per status line made a 50-link board send
+// 50 requests on every view and on every edit.
 func (d Deps) tileBodies(r *http.Request, ctx Ctx, view *boards.BoardView) map[int64]*tileBody {
 	out := map[int64]*tileBody{}
 	for _, sec := range view.Sections {
 		for _, tile := range sec.Tiles {
-			if tile.Type == linkType {
-				continue
-			}
 			kind, ok := widgets.Get(tile.Type)
 			if !ok {
 				continue
 			}
+
+			// A link without status or info line has no body.
+			link := tile.Type == linkType
+			if link && len(kind.Queries(tile.Config)) == 0 {
+				continue
+			}
+
 			frag, err := boards.Fragment(r.Context(), d.DB, ctx.Who, tile.PlacementID, svcdata.Stored)
 			if err != nil {
 				continue
 			}
-			out[tile.PlacementID] = &tileBody{PlacementID: tile.PlacementID, Template: kind.Template, Frag: frag,
-				Load: needsLoad(kind, tile.Config, frag)}
+
+			// linkstatus checks every link in the background, so a stored
+			// status is as fresh as the tile's own polling would keep it.
+			load := needsLoad(kind, tile.Config, frag)
+			if link {
+				load = pending(frag)
+			}
+			out[tile.PlacementID] = &tileBody{PlacementID: tile.PlacementID, Template: kind.Template, Frag: frag, Load: load}
 		}
 	}
 	return out
@@ -180,6 +191,11 @@ func needsLoad(kind widgets.WidgetType, cfg any, frag *widgetlib.Fragment) bool 
 			return true
 		}
 	}
+	return pending(frag)
+}
+
+// pending reports a slot without a stored value yet.
+func pending(frag *widgetlib.Fragment) bool {
 	for _, slot := range frag.Slots {
 		if slot.Pending {
 			return true

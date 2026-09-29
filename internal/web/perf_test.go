@@ -60,6 +60,11 @@ func TestEditBoardFiftyLinks(t *testing.T) {
 		}
 	}) / editTiles
 
+	// Known link states render with the page: no request per tile.
+	if loads := bytes.Count(mustGet(t, srv, client, boardURL+"?edit"), []byte(`hx-trigger="load`)); loads > 0 {
+		t.Errorf("edit page still loads %d tiles one by one", loads)
+	}
+
 	t.Logf("edit page %d KB, fragment %d KB", pageBytes>>10, fragBytes>>10)
 	if pageBytes > editPageBudget {
 		t.Errorf("edit page allocates %d KB, budget %d KB", pageBytes>>10, editPageBudget>>10)

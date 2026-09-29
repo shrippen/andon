@@ -249,7 +249,11 @@
         {{if $c.Description}}<small class="launch-desc">{{$c.Description}}</small>{{end}}
         {{with $c.Tags}}<small class="launch-tags">{{range .}}<span>#{{.}}</span>{{end}}</small>{{end}}
         {{if or (ne (print $c.Status) "off") $c.InfoConn}}
+        {{with index $b.Bodies .PlacementID}}
+        <span class="launch-live" hx-get="{{$frag}}" hx-trigger="{{if .Load}}load, {{end}}wake, every 300s" hx-swap="innerHTML">{{fragment .}}</span>
+        {{else}}
         <span class="launch-live" hx-get="{{$frag}}" hx-trigger="load, wake, every 300s" hx-swap="innerHTML"></span>
+        {{end}}
         {{end}}
       </span>
       {{if $c.Hotkey}}<kbd class="launch-key">{{$c.Hotkey}}</kbd>{{end}}
