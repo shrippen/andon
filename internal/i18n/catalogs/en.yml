@@ -985,6 +985,7 @@ widget:
   connection_type: The connection does not fit the tile type.
   unsupported: Does not fit the chosen connection.
 connection:
+  secret_for_host: 'New address: please enter the credential again. The stored one is not sent to another server.'
   bad_date: 'Give the date as YYYY-MM-DD.'
   missing: Connection missing
   location_personal: Location data is only allowed as a personal connection.

@@ -497,7 +497,7 @@ func TestConnectionsCreateEditDelete(t *testing.T) {
 	csrf = csrfToken(t, srv, client)
 	resp, err = client.PostForm(srv.URL+editLocation, url.Values{
 		"csrf": {csrf}, "name": {"Renamed Kimai"}, "url": {"https://kimai2.example"},
-		"mode": {"shared"}, "tls": {"verify"},
+		"mode": {"shared"}, "tls": {"verify"}, "secret": {"tok2"}, // a new host needs the token again
 	})
 	if err != nil {
 		t.Fatalf("update: %v", err)

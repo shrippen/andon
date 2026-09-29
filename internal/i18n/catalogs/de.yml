@@ -985,6 +985,7 @@ widget:
   connection_type: Die Verbindung passt nicht zum Kacheltyp.
   unsupported: Passt nicht zur gewählten Verbindung.
 connection:
+  secret_for_host: 'Neue Adresse: bitte den Zugang neu eingeben. Der gespeicherte geht nicht an einen anderen Server.'
   bad_date: 'Datum im Format JJJJ-MM-TT angeben.'
   missing: Verbindung fehlt
   location_personal: Standortdaten sind nur als persönliche Verbindung erlaubt.

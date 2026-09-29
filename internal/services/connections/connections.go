@@ -11,6 +11,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	neturl "net/url"
 	"strings"
 	"time"
 
@@ -35,6 +36,10 @@ var ErrLocationPersonal = errors.New("connections: location data must stay perso
 
 // ErrNotFound means the connection does not exist.
 var ErrNotFound = util.ErrNotFound
+
+// ErrSecretForHost: a connection moved to another host needs its token
+// entered again; the stored one must not go there.
+var ErrSecretForHost = errors.New("connection.secret_for_host")
 
 // TLS selects certificate verification for a connection.
 type TLS string
@@ -288,7 +293,14 @@ func Update(d *sql.DB, who *access.Principal, connID int64, name, url string, mo
 		if n := strings.TrimSpace(name); n != "" {
 			conn.Name = n
 		}
-		conn.URL = strings.TrimRight(strings.TrimSpace(url), "/")
+		newURL := strings.TrimRight(strings.TrimSpace(url), "/")
+		given := secret != nil && *secret != ""
+		if hostOf(newURL) != hostOf(conn.URL) {
+			if err := forgetSecrets(tx, who, conn, mode, given); err != nil {
+				return err
+			}
+		}
+		conn.URL = newURL
 		if err := keepEditorToken(tx, who, conn, mode); err != nil {
 			return err
 		}
@@ -314,6 +326,35 @@ func Update(d *sql.DB, who *access.Principal, connID int64, name, url string, mo
 		}
 		return audit.Log(tx, &who.UserID, "connection.updated", conn.Name, "", nil)
 	})
+}
+
+// hostOf is a URL's scheme and host: "https://kimai.lan".
+func hostOf(raw string) string {
+	u, err := neturl.Parse(raw)
+	if err != nil {
+		return raw
+	}
+	return strings.ToLower(u.Scheme + "://" + u.Host)
+}
+
+// forgetSecrets: a connection moved to another host must not send the
+// stored tokens there. A shared token has to be entered again (given);
+// the users' own tokens are dropped, each enters theirs anew.
+func forgetSecrets(tx *sql.Tx, who *access.Principal, conn *model.Connection, mode enums.CredentialMode, given bool) error {
+	if mode == enums.CredentialShared && len(conn.SecretEnc) > 0 && !given {
+		return ErrSecretForHost
+	}
+	conn.SecretEnc = nil
+	own, err := content.Credentials(tx, conn.ID)
+	if err != nil {
+		return err
+	}
+	for _, c := range own {
+		if err := content.RemoveCredential(tx, conn.ID, c.UserID); err != nil {
+			return err
+		}
+	}
+	return audit.Log(tx, &who.UserID, "connection.host_changed", conn.Name, "", nil)
 }
 
 // storeSecret keeps a token where the connection's mode reads it: on the
