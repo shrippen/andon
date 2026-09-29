@@ -6,6 +6,7 @@ package sources
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -31,7 +32,7 @@ const (
 // fetchError turns a driver error into a message for the user.
 func fetchError(err error) error {
 	var apiErr services.ApiError
-	if isApiError(err, &apiErr) {
+	if errors.As(err, &apiErr) {
 		return newSourceError("%s", apiErr.Error())
 	}
 	return err

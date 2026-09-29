@@ -69,11 +69,7 @@ func (SnipeData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	data, err := loadSnipe(ctx, api, sctx)
 	if err != nil {
-		var apiErr services.ApiError
-		if isApiError(err, &apiErr) {
-			return nil, newSourceError("%s", apiErr.Error())
-		}
-		return nil, err
+		return nil, fetchError(err)
 	}
 	return data, nil
 }
@@ -149,11 +145,7 @@ func (SnipeTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	me, err := api.Get(ctx, "users/me", nil)
 	if err != nil {
-		var apiErr services.ApiError
-		if isApiError(err, &apiErr) {
-			return nil, newSourceError("%s", apiErr.Error())
-		}
-		return nil, err
+		return nil, fetchError(err)
 	}
 	return map[string]any{"version": nil, "user": asStr(asMap(me)["username"])}, nil
 }

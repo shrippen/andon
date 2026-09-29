@@ -65,11 +65,7 @@ func (DawarichData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	data, err := loadDawarich(ctx, api, sctx)
 	if err != nil {
-		var apiErr services.ApiError
-		if isApiError(err, &apiErr) {
-			return nil, newSourceError("%s", apiErr.Error())
-		}
-		return nil, err
+		return nil, fetchError(err)
 	}
 	return data, nil
 }
@@ -150,11 +146,7 @@ func (DawarichTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	v, err := api.Version(ctx)
 	if err != nil {
-		var apiErr services.ApiError
-		if isApiError(err, &apiErr) {
-			return nil, newSourceError("%s", apiErr.Error())
-		}
-		return nil, err
+		return nil, fetchError(err)
 	}
 	return map[string]any{"version": v}, nil
 }

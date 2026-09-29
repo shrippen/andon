@@ -103,21 +103,9 @@ func (KimaiData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	data, err := loadKimai(ctx, api, sctx)
 	if err != nil {
-		var apiErr services.ApiError
-		if isApiError(err, &apiErr) {
-			return nil, newSourceError("%s", apiErr.Error())
-		}
-		return nil, err
+		return nil, fetchError(err)
 	}
 	return data, nil
-}
-
-func isApiError(err error, target *services.ApiError) bool {
-	e, ok := err.(services.ApiError)
-	if ok {
-		*target = e
-	}
-	return ok
 }
 
 func loadKimai(ctx context.Context, api services.KimaiApi, sctx Ctx) (*KimaiDataset, error) {
@@ -251,11 +239,7 @@ func (KimaiTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	body, err := api.Get(ctx, "version", nil)
 	if err != nil {
-		var apiErr services.ApiError
-		if isApiError(err, &apiErr) {
-			return nil, newSourceError("%s", apiErr.Error())
-		}
-		return nil, err
+		return nil, fetchError(err)
 	}
 	return map[string]any{"version": asStr(asMap(body)["version"])}, nil
 }
