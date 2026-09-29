@@ -65,7 +65,7 @@ func decodeStatusLight(raw map[string]any) any {
 		}
 	}
 	return StatusLightConfig{Red: max(level("red_from", "critical"), enums.SeverityWarn), Yellow: level("yellow_from", "warn"),
-		Sources: asStringList(raw["sources"]), Direct: asBool(raw["direct"]), Texts: texts}
+		Sources: lowerList(raw["sources"]), Direct: asBool(raw["direct"]), Texts: texts}
 }
 
 // Hints loads every hint that can colour the light.

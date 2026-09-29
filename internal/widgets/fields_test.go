@@ -129,3 +129,13 @@ func TestFormDefaultsMatchDecode(t *testing.T) {
 		}
 	}
 }
+
+// TestSelectFallsBackToDefault: a stored value the select no longer
+// offers shows the default, not whatever option comes first.
+func TestSelectFallsBackToDefault(t *testing.T) {
+	for _, v := range FormValues("kpi", map[string]any{"metric": "gone"}) {
+		if v.Key == "metric" && v.Text != string(MetricRevenueYTD) {
+			t.Fatalf("metric %q, want %q", v.Text, MetricRevenueYTD)
+		}
+	}
+}

@@ -200,6 +200,52 @@ edit:
   repeated: 'Diese Kachel steht mehrmals auf dem Board.'
   tile_wide: 'Doppelte Breite'
   tile_narrow: 'Normale Breite'
+typefield:
+  payment_days:
+    target: Zahlungsziel (Tage)
+    months: Zeitraum (Monate, leer = alle)
+  rate_trend:
+    target: Ziel-Stundensatz
+  authentik_logins:
+    span: Zeitraum
+  exposure:
+    only_open: Nur Dienste ohne Anmeldung
+  custom_api:
+    headers: HTTP-Header der Anfrage
+    fields_hint: 'Eine Zeile je Wert: Beschriftung = Pfad, z. B. Version = data.version oder Erster = list.0.name.'
+  cashflow:
+    days: Vorschau (Tage)
+  deadlines:
+    days: Vorschau (Tage)
+  expiries:
+    days: Vorschau (Tage)
+    sources_hint: 'Dienste, z. B. truenas, borgbackup, paperless. Leer = alle.'
+  arr_upcoming:
+    days: Vorschau (Tage)
+  today:
+    days: Fristen voraus (Tage)
+  receipts_missing:
+    days: Rückblick (Tage)
+  trend:
+    days: Verlauf (Tage)
+  speed_history:
+    days: Verlauf (Tage)
+  hints:
+    sources_hint: 'Dienste, z. B. kimai, invoiceninja, truenas. Leer = alle.'
+  status_light:
+    sources_hint: 'Dienste, z. B. kimai, invoiceninja, truenas. Leer = alle.'
+  updates:
+    sources_hint: 'Dienste, z. B. proxmox, truenas, immich. Leer = alle.'
+  crypto:
+    coins_hint: 'CoinGecko-Kennungen, z. B. bitcoin, ethereum (nicht BTC).'
+  stocks:
+    tickers_hint: 'Kürzel mit Börse wie bei Stooq, z. B. aapl.us, sap.de.'
+  holidays:
+    state_hint: 'Kürzel des Bundeslands, z. B. BY. Leer = nur bundesweite.'
+  vpn:
+    expected_country_hint: 'Landesname, wie Gluetun ihn meldet, z. B. Sweden.'
+  iframe:
+    reload: Neu laden alle … Minuten (leer = nie)
 field:
   place: Ort
   week_hours: Wochenziel (Stunden)

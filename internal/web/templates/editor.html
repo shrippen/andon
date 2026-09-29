@@ -330,12 +330,14 @@
 
 {{define "widget_preview_error"}}<p class="error">{{t .Error}}</p>{{end}}
 
-{{/* cfg_fields: config fields of the widget form; "Root" is the page. */}}
+{{/* cfg_fields: config fields of the widget form; "Root" is the page.
+     A type's own text (typefield.<type>.<key>) wins over field.<key>. */}}
 {{define "cfg_fields"}}{{$ := .Root}}<input type="hidden" name="cfg.__fields" value="1">{{range .Fields}}
+          {{$label := or (known (print "typefield." $.Kind.Key "." .Label)) (print "field." .Label)}}
           {{if eq (print .Input) "checkbox"}}
-          <label class="check"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}> {{t (print "field." .Label)}}</label>
+          <label class="check"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}> {{t $label}}</label>
           {{else}}
-          <label for="{{.Name}}">{{t (print "field." .Label)}}</label>
+          <label for="{{.Name}}">{{t $label}}</label>
           {{if eq (print .Input) "select"}}
             <select id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}{{range .Options}}<option value="{{.}}"{{if eq . $v}} selected{{end}}>{{t (print "opt." .)}}</option>{{end}}</select>
           {{else if or (eq (print .Input) "textarea") (eq (print .Input) "links") (eq (print .Input) "headers")}}
@@ -357,7 +359,8 @@
           {{if eq .Label "thresholds"}}<p class="small muted">{{t "field.thresholds_hint"}}</p>{{end}}
           {{if or (eq .Label "units") (eq .Label "labels")}}<p class="small muted">{{t (print "field." .Label "_hint")}}</p>{{end}}
           {{if eq (print .Input) "secret"}}<p class="small muted">{{t "field.secret_hint"}}</p>{{end}}
-          {{if eq .Label "icon"}}<p class="small muted">{{t "field.icon_hint"}}</p>
+          {{with known (print "typefield." $.Kind.Key "." .Label "_hint")}}<p class="small muted">{{t .}}</p>{{end}}
+          {{if or (eq .Label "icon") (eq .Label "frame_icon")}}<p class="small muted">{{t "field.icon_hint"}}</p>
             <input class="icon-upload" type="file" accept="image/svg+xml,image/png,image/webp,image/jpeg,image/x-icon" data-target="{{.Name}}" aria-label="{{t "field.icon"}}">{{end}}
           {{end}}
 {{end}}{{end}}

@@ -9,6 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	"andon/internal/enums"
+	"andon/internal/i18n"
+
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 )
@@ -141,5 +144,25 @@ func TestBoardRendersTilesWithPage(t *testing.T) {
 	tile := regexp.MustCompile(`(?s)<div class="tile-slot w-note".*?</article>`).FindString(page)
 	if !strings.Contains(tile, "Inline body") || strings.Contains(tile, `hx-trigger="load`) {
 		t.Fatalf("expected the note rendered inline without a fragment request:\n%s", tile)
+	}
+}
+
+// TestFieldLabelPerType: a key two tile types use differently gets the
+// type's own label, e.g. payment_days' "target" is days, not "open in".
+func TestFieldLabelPerType(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	body := string(mustGet(t, srv, client, "/widgets/new?type=payment_days&space="+string(space)))
+	label := regexp.MustCompile(`<label for="cfg.target">([^<]*)</label>`).FindStringSubmatch(body)
+	if label == nil {
+		t.Fatalf("no target field:\n%s", body)
+	}
+	for _, loc := range []enums.Locale{enums.LocaleDE, enums.LocaleEN} {
+		if label[1] == i18n.T("field.target", loc, nil) {
+			t.Fatalf("target labelled as the link's %q", label[1])
+		}
 	}
 }

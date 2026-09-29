@@ -45,6 +45,17 @@ func mustParse() *template.Template {
 		"here":      func(string) bool { return false },
 		"fragment":  func(*tileBody) (template.HTML, error) { return "", nil },
 
+		// known is the first of keys the catalog has, else "": picks a
+		// tile type's own label over the shared one.
+		"known": func(keys ...string) string {
+			for _, k := range keys {
+				if i18n.Has(k) {
+					return k
+				}
+			}
+			return ""
+		},
+
 		// barPct/tier are locale-independent (plain numbers/CSS keywords),
 		// so unlike the above they're the real implementation, not a
 		// placeholder.

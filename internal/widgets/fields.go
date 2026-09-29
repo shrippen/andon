@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"andon/internal/metrics"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -326,6 +327,10 @@ func formValues(fields []Field, config map[string]any) []FormValue {
 		on, _ := v.(bool)
 		text := textOf(v)
 		switch f.Input {
+		case InputSelect:
+			if !slices.Contains(f.Options, text) {
+				text = textOf(f.Default)
+			}
 		case InputLinks:
 			text = linksText(v)
 		case InputHeaders:

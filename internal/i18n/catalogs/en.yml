@@ -200,6 +200,52 @@ edit:
   repeated: 'This tile is on the board more than once.'
   tile_wide: 'Double width'
   tile_narrow: 'Normal width'
+typefield:
+  payment_days:
+    target: Payment term (days)
+    months: Period (months, empty = all)
+  rate_trend:
+    target: Target hourly rate
+  authentik_logins:
+    span: Period
+  exposure:
+    only_open: Only services without login
+  custom_api:
+    headers: HTTP headers of the request
+    fields_hint: 'One value per line: label = path, e.g. Version = data.version or First = list.0.name.'
+  cashflow:
+    days: Look ahead (days)
+  deadlines:
+    days: Look ahead (days)
+  expiries:
+    days: Look ahead (days)
+    sources_hint: 'Services, e.g. truenas, borgbackup, paperless. Empty = all.'
+  arr_upcoming:
+    days: Look ahead (days)
+  today:
+    days: Deadlines ahead (days)
+  receipts_missing:
+    days: Look back (days)
+  trend:
+    days: History (days)
+  speed_history:
+    days: History (days)
+  hints:
+    sources_hint: 'Services, e.g. kimai, invoiceninja, truenas. Empty = all.'
+  status_light:
+    sources_hint: 'Services, e.g. kimai, invoiceninja, truenas. Empty = all.'
+  updates:
+    sources_hint: 'Services, e.g. proxmox, truenas, immich. Empty = all.'
+  crypto:
+    coins_hint: 'CoinGecko ids, e.g. bitcoin, ethereum (not BTC).'
+  stocks:
+    tickers_hint: 'Symbol with exchange as on Stooq, e.g. aapl.us, sap.de.'
+  holidays:
+    state_hint: 'State code, e.g. BY. Empty = nationwide only.'
+  vpn:
+    expected_country_hint: 'Country name as Gluetun reports it, e.g. Sweden.'
+  iframe:
+    reload: Reload every … minutes (empty = never)
 field:
   place: Place
   week_hours: Weekly target (hours)

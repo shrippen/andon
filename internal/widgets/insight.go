@@ -283,7 +283,7 @@ func decodeTopic(topic rules.Topic) DecodeFunc {
 			sort = ""
 		}
 		return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: clampInt(asInt(raw["limit"], 20), 1, 50), Topic: topic,
-			Sources: asStringList(raw["sources"]), Sort: sort}
+			Sources: lowerList(raw["sources"]), Sort: sort}
 	}
 }
 
@@ -291,12 +291,12 @@ func decodeTopic(topic rules.Topic) DecodeFunc {
 // warranties, contracts, renewals, tax) on one timeline.
 func decodeExpiries(raw map[string]any) any {
 	return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: clampInt(asInt(raw["limit"], 15), 1, 50),
-		Sources: asStringList(raw["sources"]), DueDays: clampInt(asInt(raw["days"], 90), 7, 400), NoLevels: true}
+		Sources: lowerList(raw["sources"]), DueDays: clampInt(asInt(raw["days"], 90), 7, 400), NoLevels: true}
 }
 
 func decodeHints(raw map[string]any) any {
 	minSeverity := clampInt(asInt(raw["min_severity"], int(enums.SeverityInfo)), int(enums.SeverityInfo), int(enums.SeverityCritical))
-	cfg := HintsConfig{Sources: asStringList(raw["sources"]), MinSeverity: minSeverity, Limit: clampInt(asInt(raw["limit"], 8), 1, 50),
+	cfg := HintsConfig{Sources: lowerList(raw["sources"]), MinSeverity: minSeverity, Limit: clampInt(asInt(raw["limit"], 8), 1, 50),
 		Buttons: asBool(raw["buttons"]), NoLevels: !boolOr(raw["levels"], true)}
 	if asBool(raw["by_value"]) {
 		cfg.Sort = HintSortValue
