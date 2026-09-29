@@ -7,6 +7,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"andon/internal/crypto"
@@ -170,9 +171,48 @@ func Accept(d *sql.DB, token, name, password string, locale enums.Locale) (strin
 	return email, err
 }
 
+// Reset requests allowed per address and per client within resetWindow:
+// enough to retry, too few to flood a mailbox.
+const (
+	resetWindow     = time.Hour
+	resetPerAddress = 3
+	resetPerClient  = 10
+)
+
+var (
+	resetMu   sync.Mutex
+	resetSeen = map[string][]time.Time{}
+)
+
+// resetAllowed books one request for email and ip, or says no.
+func resetAllowed(email, ip string, at time.Time) bool {
+	resetMu.Lock()
+	defer resetMu.Unlock()
+	keys := map[string]int{"a:" + strings.ToLower(strings.TrimSpace(email)): resetPerAddress, "i:" + ip: resetPerClient}
+	for key, limit := range keys {
+		var recent []time.Time
+		for _, t := range resetSeen[key] {
+			if at.Sub(t) < resetWindow {
+				recent = append(recent, t)
+			}
+		}
+		resetSeen[key] = recent
+		if len(recent) >= limit {
+			return false
+		}
+	}
+	for key := range keys {
+		resetSeen[key] = append(resetSeen[key], at)
+	}
+	return true
+}
+
 // RequestReset mails a reset link. It looks the same to the requester
-// whether the account exists or not.
+// whether the account exists or not, and whether the limit was hit.
 func RequestReset(d *sql.DB, email, ip string) error {
+	if !resetAllowed(email, ip, now()) {
+		return nil
+	}
 	token := crypto.NewToken()
 	var address string
 	var locale enums.Locale
