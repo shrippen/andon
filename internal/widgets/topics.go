@@ -1,6 +1,10 @@
 package widgets
 
-import "andon/internal/enums"
+import (
+	"cmp"
+
+	"andon/internal/enums"
+)
 
 // Topic groups widget types by subject in the gallery ("Kachel hinzufügen").
 // Unlike Category, which says how a type gets its data, a topic says what
@@ -24,18 +28,9 @@ const (
 var Topics = []Topic{TopicOverview, TopicWork, TopicAnalysis, TopicHomelab, TopicNetwork,
 	TopicSecurity, TopicMedia, TopicHome, TopicWorld, TopicDev}
 
-// topicOf maps each type key to its topic; unlisted types land in overview.
-var topicOf = map[string]Topic{}
-
 // TopicOf returns the gallery topic of a type key.
 func TopicOf(key string) Topic {
-	if topic := registry[key].Topic; topic != "" {
-		return topic
-	}
-	if topic, ok := topicOf[key]; ok {
-		return topic
-	}
-	return TopicOverview
+	return cmp.Or(registry[key].Topic, TopicOverview)
 }
 
 // starterPick is the first tile a service gets on a suggested board where

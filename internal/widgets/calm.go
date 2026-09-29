@@ -6,21 +6,9 @@ package widgets
 
 import "reflect"
 
-// calmChecks read "nothing to do" from a type's view.
-var calmChecks = map[string]func(v map[string]any) bool{}
-
-func init() {
-	for key := range calmChecks {
-		calmType(key)
-	}
-}
-
 // IsCalm tells whether a type's view reports nothing to do.
 func IsCalm(key string, view map[string]any) bool {
 	check := registry[key].Calm
-	if check == nil {
-		check = calmChecks[key]
-	}
 	return check != nil && view != nil && check(view)
 }
 

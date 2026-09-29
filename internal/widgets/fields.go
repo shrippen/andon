@@ -61,25 +61,16 @@ func sel(key string, def string, options ...string) Field {
 	return Field{Key: key, Input: InputSelect, Options: options, Default: def}
 }
 
-var fieldsByType = map[string][]Field{}
-
 // dataModeField lets connection-bound widgets choose live or background data.
 var dataModeField = sel(DataModeKey, string(DataAuto), string(DataAuto), string(DataLive), string(DataStored))
-
-// liveCapable are types whose data comes from a connection.
-var liveCapable = map[string]bool{}
 
 // FieldsOf returns the config fields of a widget type.
 func FieldsOf(key string) []Field {
 	kind := registry[key]
-	fields, choice := kind.Fields, kind.DataChoice
-	if fields == nil {
-		fields = fieldsByType[key]
+	if kind.DataChoice {
+		return append(append([]Field(nil), kind.Fields...), dataModeField)
 	}
-	if choice || liveCapable[key] {
-		return append(append([]Field(nil), fields...), dataModeField)
-	}
-	return fields
+	return kind.Fields
 }
 
 // FormValue is one field with its current value, ready for a form.

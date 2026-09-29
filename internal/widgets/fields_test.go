@@ -6,14 +6,6 @@ import (
 	"testing"
 )
 
-func TestEveryTypeHasFields(t *testing.T) {
-	for _, kind := range AllTypes() {
-		if _, ok := fieldsByType[kind.Key]; !ok && !kind.tile {
-			t.Errorf("widget type %q has no form fields", kind.Key)
-		}
-	}
-}
-
 func TestFormRoundTrip(t *testing.T) {
 	config := map[string]any{
 		"url": "https://kimai.lan", "icon": "hl-kimai", "target": "sametab", "status": "off",

@@ -20,13 +20,11 @@ type rename struct {
 	value    func(v any) (any, bool)
 }
 
-var renames = map[string][]rename{}
-
 // Upgrade returns config with a type's old keys under their current
 // names, and whether anything moved. A current key wins over an old one.
 func Upgrade(key string, config map[string]any) (map[string]any, bool) {
 	var out map[string]any
-	for _, r := range renamesOf(key) {
+	for _, r := range registry[key].Renames {
 		v, ok := config[r.from]
 		if !ok {
 			continue
@@ -52,18 +50,11 @@ func Upgrade(key string, config map[string]any) (map[string]any, bool) {
 	return out, true
 }
 
-func renamesOf(key string) []rename {
-	if r := registry[key].Renames; r != nil {
-		return r
-	}
-	return renames[key]
-}
-
 // RenamedTypes lists the types with renamed keys, sorted.
 func RenamedTypes() []string {
 	var out []string
 	for key := range registry {
-		if renamesOf(key) != nil {
+		if registry[key].Renames != nil {
 			out = append(out, key)
 		}
 	}

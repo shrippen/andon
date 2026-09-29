@@ -11,10 +11,6 @@ const (
 	CheckBadTimezone = "widget.bad_timezone"
 )
 
-// checks read what a type's decoder would silently drop: a zone
-// "Europe/Berln" would mean UTC.
-var checks = map[string]func(raw map[string]any) string{}
-
 // checkZone: an empty zone means the default, any other must be known.
 func checkZone(raw map[string]any) string {
 	zone := strings.TrimSpace(asString(raw["timezone"]))
@@ -28,12 +24,10 @@ func checkZone(raw map[string]any) string {
 }
 
 // Check reports the first config value a type cannot use as a catalog
-// key, "" when all are fine.
+// key, "" when all are fine. A type's Check reads what its decoder would
+// silently drop: a zone "Europe/Berln" would mean UTC.
 func Check(key string, config map[string]any) string {
 	check := registry[key].Check
-	if check == nil {
-		check = checks[key]
-	}
 	if check == nil {
 		return ""
 	}
