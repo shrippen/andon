@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"andon/internal/repos/content"
 	"database/sql"
 	"errors"
 	"path/filepath"
@@ -363,5 +364,43 @@ func TestTOTPFailsSurviveCorrectPassword(t *testing.T) {
 	}
 	if !errors.Is(last, auth.ErrThrottled) {
 		t.Fatalf("6th wrong code: %v", last)
+	}
+}
+
+// TestEmbedTokenScopedToBoards: an embed token names its boards, only
+// boards its owner sees, and reaches no other space's hints or tiles.
+func TestEmbedTokenScopedToBoards(t *testing.T) {
+	q := openTestDB(t)
+	uid := addActiveUser(t, q, "a@b.c", "correct-password")
+	who, _ := access.Load(q, uid)
+	space, _ := content.PersonalSpace(q, uid)
+	board := &model.Board{SpaceID: space.ID, Slug: "wall", Name: "Wall", Version: 1}
+	if err := content.AddBoard(q, board); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := auth.CreateToken(q, who, "Wall", enums.TokenEmbed, nil, nil); !errors.Is(err, auth.ErrTokenBoards) {
+		t.Fatalf("embed token without boards: %v", err)
+	}
+	other := addActiveUser(t, q, "o@b.c", "correct-password")
+	otherSpace, _ := content.PersonalSpace(q, other)
+	foreign := &model.Board{SpaceID: otherSpace.ID, Slug: "x", Name: "X", Version: 1}
+	if err := content.AddBoard(q, foreign); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := auth.CreateToken(q, who, "Wall", enums.TokenEmbed, []int64{foreign.ID}, nil); !errors.Is(err, auth.ErrTokenBoards) {
+		t.Fatalf("token for a board not seen: %v", err)
+	}
+
+	tok, err := auth.CreateToken(q, who, "Wall", enums.TokenEmbed, []int64{board.ID}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scoped, err := auth.PrincipalForToken(q, tok.Secret, enums.TokenEmbed)
+	if err != nil || scoped == nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if len(scoped.Spaces) != 1 || scoped.TokenBoards[0] != board.ID {
+		t.Fatalf("spaces %v, boards %v", scoped.Spaces, scoped.TokenBoards)
 	}
 }

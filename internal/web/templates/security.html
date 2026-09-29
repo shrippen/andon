@@ -133,7 +133,7 @@
         {{range .Tokens}}
         <tr>
           <td>{{.Name}}</td>
-          <td>{{.Scope}}</td>
+          <td>{{t (print "scope." .Scope)}}{{with .BoardIDs}} · {{t "security.token_boards_n" "n" (len .)}}{{end}}</td>
           <td>
             <form method="post" action="/me/security/tokens/{{.ID}}/revoke">
               <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
@@ -150,9 +150,14 @@
         <input id="token_name" name="name">
         <label for="token_scope">{{t "field.scope"}}</label>
         <select id="token_scope" name="scope">
-          <option value="read">read</option>
-          <option value="embed">embed</option>
+          <option value="read">{{t "scope.read"}}</option>
+          <option value="embed">{{t "scope.embed"}}</option>
         </select>
+        {{with .Boards}}<fieldset class="token-boards">
+          <legend>{{t "security.token_boards"}}</legend>
+          <p class="small muted">{{t "security.token_boards_hint"}}</p>
+          {{range .}}<label class="check"><input type="checkbox" name="board" value="{{.ID}}"> {{.Name}}</label>{{end}}
+        </fieldset>{{end}}
         <label for="token_days">{{t "security.days"}}</label>
         <input id="token_days" name="days" type="number" min="1">
         <button type="submit">{{t "action.create"}}</button>

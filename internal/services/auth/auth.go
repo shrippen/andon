@@ -7,6 +7,7 @@
 package auth
 
 import (
+	"andon/internal/repos/content"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -726,6 +727,9 @@ type NewAPIToken struct {
 // ErrForbidden is returned when a token operation targets another user's token.
 var ErrForbidden = errors.New("auth: not your token")
 
+// ErrTokenBoards: an embed token must name boards its owner sees.
+var ErrTokenBoards = errors.New("token.boards")
+
 // ErrTOTPActive: a second factor is on; switching it off needs a code.
 var ErrTOTPActive = errors.New("totp.active")
 
@@ -734,6 +738,9 @@ func CreateToken(d *sql.DB, who *access.Principal, name string, scope enums.Toke
 	secret := "dsh_" + crypto.NewToken()
 	var out NewAPIToken
 	err := db.WithTx(d, func(tx *sql.Tx) error {
+		if err := checkTokenBoards(tx, who, scope, boardIDs); err != nil {
+			return err
+		}
 		label := strings.TrimSpace(name)
 		if label == "" {
 			label = string(scope)
@@ -814,12 +821,44 @@ func PrincipalForToken(d *sql.DB, secret string, scope enums.TokenScope) (*acces
 		if err != nil || who == nil {
 			return err
 		}
-		if len(item.BoardIDs) > 0 {
-			who.TokenBoards = item.BoardIDs
+		if len(item.BoardIDs) == 0 {
+			return nil
 		}
+		boards := map[int64]int64{}
+		for _, id := range item.BoardIDs {
+			if b, err := content.Board(tx, id); err == nil && b != nil {
+				boards[id] = b.SpaceID
+			}
+		}
+		who.ScopeToBoards(boards)
 		return nil
 	})
 	return who, err
+}
+
+// checkTokenBoards: an embed token (a URL shown in other pages) must
+// name its boards, and a token may only name boards its owner sees.
+func checkTokenBoards(q db.Queryer, who *access.Principal, scope enums.TokenScope, boardIDs []int64) error {
+	if scope == enums.TokenEmbed && len(boardIDs) == 0 {
+		return ErrTokenBoards
+	}
+	for _, id := range boardIDs {
+		b, err := content.Board(q, id)
+		if err != nil {
+			return err
+		}
+		if b == nil {
+			return ErrTokenBoards
+		}
+		space, err := access.SpaceOf(q, who, b.SpaceID)
+		if err != nil {
+			return ErrTokenBoards
+		}
+		if access.Right(who, enums.ResourceBoard, b.ID, space, b.MinTeamRole) < enums.RightView {
+			return ErrTokenBoards
+		}
+	}
+	return nil
 }
 
 // notify sends a security notice; mail problems never fail the action.

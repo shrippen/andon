@@ -1424,6 +1424,9 @@ scope:
   read: Lesen (API)
   embed: Einbetten
 security:
+  token_boards: Boards
+  token_boards_hint: 'Einbetten braucht mindestens ein Board; das Token sieht dann nur diese Boards und ihre Bereiche. Lesen ohne Auswahl: alles, was du siehst.'
+  token_boards_n: '{n} Boards'
   totp_required: 'Die Instanz verlangt für Admins einen zweiten Faktor. Richte ihn ein, um weiterzumachen.'
   passkeys: Passkeys
   no_passkeys: Keine Passkeys.
@@ -3889,3 +3892,5 @@ links_down:
   since: 'seit {day} ohne Antwort'
   today: 'seit heute'
   none: 'Alle Links antworten.'
+token:
+  boards: 'Ein Einbettungs-Token braucht Boards, die du siehst.'

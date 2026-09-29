@@ -8,6 +8,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/services/accounts"
 	"andon/internal/services/auth"
+	"andon/internal/services/boards"
 	"andon/internal/services/oidc"
 	"andon/internal/services/passkeys"
 )
@@ -50,9 +51,14 @@ func (d Deps) securityPage(w http.ResponseWriter, ctx Ctx, status int, extra map
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
+	visible, err := boards.Visible(d.DB, ctx.Who)
+	if err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
 	values := map[string]any{
 		"Profile": profile, "Sessions": sessions, "Tokens": tokens, "OIDCLabel": oidc.Button(d.DB, d.Settings),
-		"Passkeys": keys, "TOTPRequired": required,
+		"Passkeys": keys, "TOTPRequired": required, "Boards": visible,
 	}
 	for k, v := range extra {
 		values[k] = v
@@ -144,7 +150,13 @@ func (d Deps) handleTokenCreate(w http.ResponseWriter, r *http.Request, ctx Ctx)
 			days = &n
 		}
 	}
-	created, err := auth.CreateToken(d.DB, ctx.Who, r.FormValue("name"), scope, nil, days)
+	var boardIDs []int64
+	for _, raw := range r.Form["board"] {
+		if id, convErr := strconv.ParseInt(raw, 10, 64); convErr == nil {
+			boardIDs = append(boardIDs, id)
+		}
+	}
+	created, err := auth.CreateToken(d.DB, ctx.Who, r.FormValue("name"), scope, boardIDs, days)
 	if err != nil {
 		d.securityPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return

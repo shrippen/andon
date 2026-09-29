@@ -1424,6 +1424,9 @@ scope:
   read: Read (API)
   embed: Embed
 security:
+  token_boards: Boards
+  token_boards_hint: 'Embedding needs at least one board; the token then sees only these boards and their spaces. Read without a choice: all you see.'
+  token_boards_n: '{n} boards'
   totp_required: 'This instance requires a second factor for admins. Set it up to continue.'
   passkeys: Passkeys
   no_passkeys: No passkeys.
@@ -3888,3 +3891,5 @@ links_down:
   since: 'no answer since {day}'
   today: 'since today'
   none: 'All links answer.'
+token:
+  boards: 'An embed token needs boards you can see.'
