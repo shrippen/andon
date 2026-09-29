@@ -4,8 +4,10 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"andon/internal/drivers/services"
+	"andon/internal/enums"
 )
 
 // KimaiStart starts a timer for project and activity (Kimai sets "now").
@@ -19,17 +21,72 @@ func KimaiStart(ctx context.Context, to Target, projectID, activityID int64, des
 	return err
 }
 
-// KimaiCreate books a finished timesheet; begin and end are local times
+// KimaiSheet is a timesheet write. Begin and End are local times
 // ("2026-09-26T09:05:00"), as Kimai reads them in the user's timezone.
-func KimaiCreate(ctx context.Context, to Target, projectID, activityID int64, begin, end, description string) error {
-	api := services.KimaiApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}
-	body := map[string]any{"project": projectID, "activity": activityID, "begin": begin, "end": end}
-	if description != "" {
-		body["description"] = description
+// Empty ids and times are left out; Description and Tags are always sent,
+// so an edit passes the sheet's current values.
+type KimaiSheet struct {
+	Project, Activity int64
+	Begin, End        string
+	Description       string
+	Tags              []string
+	Billable          enums.Billable
+}
+
+// body is the sheet as Kimai's form reads it: tags as one
+// comma-separated string, not a list.
+func (s KimaiSheet) body() map[string]any {
+	out := map[string]any{"description": s.Description, "tags": strings.Join(s.Tags, ",")}
+	for key, v := range map[string]int64{"project": s.Project, "activity": s.Activity} {
+		if v > 0 {
+			out[key] = v
+		}
 	}
-	_, err := api.Send(ctx, http.MethodPost, "timesheets", body)
+	for key, v := range map[string]string{"begin": s.Begin, "end": s.End} {
+		if v != "" {
+			out[key] = v
+		}
+	}
+	if s.Billable != enums.BillableDefault {
+		out["billable"] = s.Billable == enums.BillableYes
+	}
+	return out
+}
+
+// KimaiCreate books a timesheet (finished if End is set).
+func KimaiCreate(ctx context.Context, to Target, sheet KimaiSheet) error {
+	return kimaiWrite(ctx, to, http.MethodPost, "timesheets", sheet.body())
+}
+
+// KimaiEdit changes one timesheet; a running one keeps running unless
+// End is set.
+func KimaiEdit(ctx context.Context, to Target, timesheetID int64, sheet KimaiSheet) error {
+	return kimaiWrite(ctx, to, http.MethodPatch, "timesheets/"+strconv.FormatInt(timesheetID, 10), sheet.body())
+}
+
+// KimaiDelete removes one timesheet.
+func KimaiDelete(ctx context.Context, to Target, timesheetID int64) error {
+	api := services.KimaiApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}
+	_, err := api.Send(ctx, http.MethodDelete, "timesheets/"+strconv.FormatInt(timesheetID, 10), nil)
 	return err
 }
+
+// kimaiWrite sends a timesheet. Kimai rejects the billable field without
+// the edit_billable permission ("extra fields", HTTP 400), so a rejected
+// write is tried once more without it.
+func kimaiWrite(ctx context.Context, to Target, method, path string, body map[string]any) error {
+	api := services.KimaiApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}
+	_, err := api.Send(ctx, method, path, body)
+	if _, sent := body["billable"]; err == nil || !sent || !strings.Contains(err.Error(), badRequest) {
+		return err
+	}
+	delete(body, "billable")
+	_, err = api.Send(ctx, method, path, body)
+	return err
+}
+
+// badRequest is how the driver reports a rejected form.
+const badRequest = "HTTP 400"
 
 // KimaiDescribe sets a timesheet's description.
 func KimaiDescribe(ctx context.Context, to Target, timesheetID int64, description string) error {

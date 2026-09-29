@@ -630,7 +630,7 @@ Status: **da** = gab es schon, **neu** = mit dem D-Stil gebaut (2026-09-26).
 | Start | Lage | Hinweise nach Schwere, Aktion, Später | Hinweise | neu (Umbau) |
 | Start | Uhr, Wetter, Feiertage, Kalender, RSS, Notiz, Liste, Bild, Eingebettete Seite | Text | diverse | da |
 | Start | Öffentliche IP | Wert | ipify | da |
-| Zeit | Kimai Lite | Timer, Tagesbalken, Heute/Woche, Zuletzt | Kimai (live) | neu (Umbau) |
+| Zeit | Kimai Lite | Timer, Tagesbalken, Heute/Woche, Favoriten, Zuletzt; Einträge bearbeiten, teilen, löschen; Tags, abrechenbar | Kimai (live) | neu (Umbau) |
 | Zeit | Stunden-Heatmap | Jahresraster | Kimai | da |
 | Zeit | Woche je Tag gegen Ziel | Balken mit Ziellinie | Kimai | neu |
 | Zeit | Projekte je Tag / Tätigkeitsverteilung (wie Plasmai-Statistik) | gestapelte Balken, Ring | Kimai | neu |

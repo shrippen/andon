@@ -32,6 +32,10 @@ type KimaiTimer struct {
 	Customer              string
 	Color                 string // customer colour, else the project's ("#rrggbb", "" = none)
 	Begin                 time.Time
+	End                   time.Time // zero while it runs
+	Description           string
+	Tags                  []string
+	Billable              bool
 }
 
 // KimaiSpan is one of today's timesheets; End is zero while it runs.
@@ -125,7 +129,16 @@ func kimaiTimer(raw any) KimaiTimer {
 	if t.Color == "" {
 		t.Color = asStr(project["color"])
 	}
-	t.Begin = kimaiTime(asStr(m["begin"]))
+	t.Begin, t.End = kimaiTime(asStr(m["begin"])), kimaiTime(asStr(m["end"]))
+	t.Description, t.Billable = asStr(m["description"]), asBool(m["billable"])
+	for _, tag := range asList(m["tags"]) {
+		// Kimai lists tag names; older versions nest {"name": …}.
+		name := asStr(tag)
+		if name == "" {
+			name = asStr(asMap(tag)["name"])
+		}
+		t.Tags = append(t.Tags, name)
+	}
 	return t
 }
 

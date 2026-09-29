@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -392,6 +393,16 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		}
 		if u != nil {
 			frag.Slots[widgets.CloseTicksPref] = Slot{Data: u.Prefs[widgets.CloseTicksPref]}
+		}
+	}
+	if kind.Extra == widgets.ExtraKimaiFavs && conn != nil {
+		u, err := users.Get(d, who.UserID)
+		if err != nil {
+			return nil, err
+		}
+		if u != nil {
+			all, _ := u.Prefs[widgets.KimaiFavsPref].(map[string]any)
+			frag.Slots[widgets.KimaiFavsPref] = Slot{Data: widgets.KimaiFavsOf(all[strconv.FormatInt(conn.ID, 10)])}
 		}
 	}
 	if kind.Extra == widgets.ExtraIPWatch {

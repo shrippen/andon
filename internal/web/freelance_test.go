@@ -113,6 +113,117 @@ func TestKimaiTimerStops(t *testing.T) {
 	}
 }
 
+// TestKimaiLiteEditsDay: the running entry opens in the edit form, a
+// recent pair is pinned, a sheet of today's list opens with split and
+// delete, and refusals come back where they came from.
+func TestKimaiLiteEditsDay(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	var mu sync.Mutex
+	var writes []string
+	now := time.Now()
+	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	stamp := func(h int) string { return day.Add(time.Duration(h) * time.Hour).Format(time.RFC3339) }
+	running := `{"id": 77, "begin": "` + stamp(0) + `", "description": "Backup", "tags": ["Ops"], "billable": true,
+		"project": {"id": 3, "name": "Relaunch", "customer": {"name": "Acme"}}, "activity": {"id": 7, "name": "Dev"}}`
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/timesheets/active", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(`[` + running + `]`)) })
+	mux.HandleFunc("GET /api/timesheets/recent", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`[{"id": 60, "project": {"id": 4, "name": "Shop"}, "activity": {"id": 8, "name": "Review"}}]`))
+	})
+	mux.HandleFunc("GET /api/timesheets", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Total-Pages", "1")
+		if r.URL.Query().Get("full") != "true" {
+			w.Write([]byte(`[]`))
+			return
+		}
+		w.Write([]byte(`[{"id": 5, "begin": "` + stamp(0) + `", "end": "` + stamp(2) + `", "project": {"id": 4, "name": "Shop"}, "activity": {"id": 8, "name": "Review"}}, ` + running + `]`))
+	})
+	mux.HandleFunc("GET /api/projects", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`[{"id": 3, "name": "Relaunch", "parentTitle": "Acme"}, {"id": 4, "name": "Shop", "parentTitle": "Acme"}]`))
+	})
+	mux.HandleFunc("GET /api/activities", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`[{"id": 7, "name": "Dev"}, {"id": 8, "name": "Review"}]`))
+	})
+	mux.HandleFunc("/api/timesheets/{id}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		writes = append(writes, r.Method+" "+r.URL.Path)
+		mu.Unlock()
+		if r.Method == http.MethodPatch {
+			w.WriteHeader(http.StatusBadRequest) // no permission to edit
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	kimai := httptest.NewServer(mux)
+	defer kimai.Close()
+
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	csrf := csrfToken(t, srv, client)
+	resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {space}, "service": {"kimai"}, "name": {"Kimai"},
+		"url": {kimai.URL}, "mode": {"shared"}, "secret": {"tok"}, "tls": {"verify"}})
+	connID := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))[1]
+	postForm(t, client, srv.URL+"/widgets", url.Values{"csrf": {csrf}, "space_id": {space}, "type": {"kimai_timer"}, "title": {"Timer"}, "connection_id": {connID}})
+	boardURL, section, version, widget := placeTarget(t, srv, client, "Timer")
+	postForm(t, client, srv.URL+"/boards/"+boardIDFrom(boardURL)+"/sections/"+section+"/place", url.Values{"csrf": {csrf}, "widget_id": {widget}, "version": {version}})
+	placement := string(regexp.MustCompile(`/placements/(\d+)/unplace`).FindSubmatch(mustGet(t, srv, client, boardURL+"?edit"))[1])
+	base := srv.URL + "/widget-fragments/" + placement
+	post := func(target string, form url.Values) string {
+		resp, err := client.PostForm(target, form)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return string(body)
+	}
+
+	frag := string(awaitFragment(t, srv, client, placement, "Relaunch"))
+	if !strings.Contains(frag, "/kimai/edit?sheet=77") || !strings.Contains(frag, "/kimai/day") || strings.Contains(frag, "Favoriten") {
+		t.Fatalf("tile:\n%s", frag)
+	}
+
+	// Pin the recent pair: it moves to the favorites.
+	frag = post(base+"/kimai/pin", url.Values{"csrf": {csrf}, "project": {"4"}, "activity": {"8"}})
+	if !strings.Contains(frag, "Favoriten") || !strings.Contains(frag, "data-pinned") || strings.Contains(frag, ">Zuletzt<") {
+		t.Fatalf("pinned:\n%s", frag)
+	}
+
+	// The running entry's form: no end, current tags and billable.
+	form := string(mustGet(t, srv, client, "/widget-fragments/"+placement+"/kimai/edit?sheet=77"))
+	if !strings.Contains(form, `value="edit"`) || strings.Contains(form, `name="end"`) || !strings.Contains(form, `value="Ops"`) ||
+		!strings.Contains(form, `value="yes" selected`) || !strings.Contains(form, "data-kimai-search") {
+		t.Fatalf("edit form:\n%s", form)
+	}
+	edit := url.Values{"csrf": {csrf}, "action": {"edit"}, "sheet": {"77"}, "project": {"3"}, "activity": {"7"}, "begin": {day.Format("2006-01-02T15:04")}}
+	if body := post(base+"/kimai", edit); !strings.Contains(body, "Kimai hat die Änderung abgelehnt.") {
+		t.Fatalf("rejected edit:\n%s", body)
+	}
+
+	// Today's list: split outside the entry is refused, delete goes out.
+	list := string(mustGet(t, srv, client, "/widget-fragments/"+placement+"/kimai/day"))
+	if !strings.Contains(list, "Einträge heute") || !strings.Contains(list, "edit?sheet=5&amp;back=day") || !strings.Contains(list, "Shop · Review") {
+		t.Fatalf("day list:\n%s", list)
+	}
+	form = string(mustGet(t, srv, client, "/widget-fragments/"+placement+"/kimai/edit?sheet=5&back=day"))
+	if !strings.Contains(form, `name="end"`) || !strings.Contains(form, `name="at" type="datetime-local" value="`+day.Add(time.Hour).Format("2006-01-02T15:04")+`"`) ||
+		!strings.Contains(form, `"action": "delete"`) {
+		t.Fatalf("stopped form:\n%s", form)
+	}
+	split := url.Values{"csrf": {csrf}, "action": {"split"}, "sheet": {"5"}, "back": {"day"}, "at": {day.Add(3 * time.Hour).Format("2006-01-02T15:04")}}
+	if body := post(base+"/kimai", split); !strings.Contains(body, "Der Zeitpunkt muss innerhalb des Eintrags liegen.") {
+		t.Fatalf("bad split:\n%s", body)
+	}
+	body := post(base+"/kimai", url.Values{"csrf": {csrf}, "action": {"delete"}, "sheet": {"5"}, "back": {"day"}})
+	mu.Lock()
+	defer mu.Unlock()
+	if !strings.Contains(body, "Einträge heute") || writes[len(writes)-1] != "DELETE /api/timesheets/5" {
+		t.Fatalf("delete: %v\n%s", writes, body)
+	}
+}
+
 // TestBillingDraftAndExport: unbilled Kimai time becomes a Ninja draft,
 // the sheets are flagged exported, and the year package holds the CSVs.
 func TestBillingDraftAndExport(t *testing.T) {

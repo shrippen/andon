@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/enums"
 	"andon/internal/services/access"
 	"andon/internal/services/assist"
 	"andon/internal/services/billing"
@@ -16,10 +17,20 @@ import (
 
 	"andon/internal/services/svcdata"
 	"andon/internal/services/timer"
+	"andon/internal/widgets"
 )
 
-// handleKimaiTimer starts or stops a Kimai timer from its tile and
-// answers with the refreshed tile.
+// kimaiBack is the view a Kimai Lite form returns to.
+type kimaiBack string
+
+const (
+	backTile kimaiBack = ""
+	backDay  kimaiBack = "day"
+)
+
+// handleKimaiTimer runs a Kimai Lite action and answers with the
+// refreshed tile, or today's list when the action came from there. A
+// rejected form comes back with its error.
 func (d Deps) handleKimaiTimer(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
@@ -32,21 +43,46 @@ func (d Deps) handleKimaiTimer(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 	}
 	req := timer.Request{Action: timer.Action(r.FormValue("action")), Project: num("project"), Activity: num("activity"),
 		Sheet: num("sheet"), Note: strings.TrimSpace(r.FormValue("note")),
-		StartNote: strings.TrimSpace(r.FormValue("start_note")), Begin: r.FormValue("begin"), End: r.FormValue("end")}
+		StartNote: strings.TrimSpace(r.FormValue("start_note")), Begin: r.FormValue("begin"), End: r.FormValue("end"),
+		Tags: r.FormValue("tags"), Billable: enums.Billable(r.FormValue("billable")), At: r.FormValue("at")}
+	back := kimaiBack(r.FormValue("back"))
 	err = timer.Run(r.Context(), d.DB, ctx.Who, id, req, ClientIP(r))
-	if errors.Is(err, timer.ErrBadRange) {
-		d.renderKimaiNew(w, r, ctx, id, req, err.Error())
-		return
-	}
 	if errors.Is(err, timer.ErrNotTimer) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
+	}
+
+	// Form errors go back to the form they came from.
+	if key := formErrKey(err); key != "" {
+		switch req.Action {
+		case timer.ActionCreate, timer.ActionEdit:
+			d.renderKimaiForm(w, r, ctx, id, req, back, key)
+			return
+		case timer.ActionSplit, timer.ActionDelete:
+			d.renderKimaiDay(w, r, ctx, id, key)
+			return
+		}
 	}
 	if err != nil {
 		d.handleBoardError(w, r, err)
 		return
 	}
+	if back == backDay {
+		d.renderKimaiDay(w, r, ctx, id, "")
+		return
+	}
 	d.renderFragment(w, r, ctx, id, svcdata.Force)
+}
+
+// formErrKey is the message key of an error a form can show; "" for
+// others.
+func formErrKey(err error) string {
+	for _, known := range []error{timer.ErrBadRange, timer.ErrBadSplit, timer.ErrRejected} {
+		if errors.Is(err, known) {
+			return known.Error()
+		}
+	}
+	return ""
 }
 
 // newEntryStep rounds the add-entry form's default times (5 minutes).
@@ -64,10 +100,32 @@ func (d Deps) handleKimaiNew(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	end := time.Now().Truncate(newEntryStep)
-	d.renderKimaiNew(w, r, ctx, id, timer.Request{Begin: end.Add(-time.Hour).Format(formTimeLayout), End: end.Format(formTimeLayout)}, "")
+	req := timer.Request{Action: timer.ActionCreate, Begin: end.Add(-time.Hour).Format(formTimeLayout), End: end.Format(formTimeLayout)}
+	d.renderKimaiForm(w, r, ctx, id, req, backTile, "")
 }
 
-func (d Deps) renderKimaiNew(w http.ResponseWriter, r *http.Request, ctx Ctx, id int64, req timer.Request, errKey string) {
+// handleKimaiEdit swaps a Kimai Lite tile for the edit form of the
+// running entry or one of today's (?sheet=77&back=day).
+func (d Deps) handleKimaiEdit(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	sheet, _ := strconv.ParseInt(r.URL.Query().Get("sheet"), 10, 64)
+	req, err := timer.Draft(r.Context(), d.DB, ctx.Who, id, sheet)
+	if errors.Is(err, timer.ErrNotTimer) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	if err != nil {
+		d.handleBoardError(w, r, err)
+		return
+	}
+	d.renderKimaiForm(w, r, ctx, id, req, kimaiBack(r.URL.Query().Get("back")), "")
+}
+
+func (d Deps) renderKimaiForm(w http.ResponseWriter, r *http.Request, ctx Ctx, id int64, req timer.Request, back kimaiBack, errKey string) {
 	catalog, err := timer.Catalog(r.Context(), d.DB, ctx.Who, id)
 	if errors.Is(err, timer.ErrNotTimer) {
 		http.Error(w, "forbidden", http.StatusForbidden)
@@ -77,7 +135,68 @@ func (d Deps) renderKimaiNew(w http.ResponseWriter, r *http.Request, ctx Ctx, id
 		d.handleBoardError(w, r, err)
 		return
 	}
-	_ = d.Page(w, ctx, "kimai_new", http.StatusOK, map[string]any{"PlacementID": id, "Catalog": catalog, "Req": req, "Error": errKey, "ThemeURL": ""})
+	_ = d.Page(w, ctx, "kimai_new", http.StatusOK, map[string]any{"PlacementID": id, "Catalog": catalog, "Req": req, "Error": errKey,
+		"Back": string(back), "Split": splitOf(req), "ThemeURL": ""})
+}
+
+// splitTimes is the edit form's split field: default, first, last.
+type splitTimes struct{ At, Min, Max string }
+
+// splitOf offers the middle of a stopped entry, inside its first and
+// last minute: 09:00–12:00 → 10:30 (09:01–11:59).
+func splitOf(req timer.Request) splitTimes {
+	begin, errB := time.Parse(formTimeLayout, req.Begin)
+	end, errE := time.Parse(formTimeLayout, req.End)
+	if errB != nil || errE != nil || !end.After(begin) {
+		return splitTimes{}
+	}
+	mid := begin.Add(end.Sub(begin) / 2).Truncate(time.Minute)
+	return splitTimes{mid.Format(formTimeLayout), begin.Add(time.Minute).Format(formTimeLayout), end.Add(-time.Minute).Format(formTimeLayout)}
+}
+
+// handleKimaiDay swaps a Kimai Lite tile for today's entries.
+func (d Deps) handleKimaiDay(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	d.renderKimaiDay(w, r, ctx, id, "")
+}
+
+func (d Deps) renderKimaiDay(w http.ResponseWriter, r *http.Request, ctx Ctx, id int64, errKey string) {
+	day, err := timer.Day(r.Context(), d.DB, ctx.Who, id)
+	if errors.Is(err, timer.ErrNotTimer) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	if err != nil {
+		d.handleBoardError(w, r, err)
+		return
+	}
+	_ = d.Page(w, ctx, "kimai_day", http.StatusOK, map[string]any{"PlacementID": id, "Rows": widgets.DayRows(day, time.Now()),
+		"Error": errKey, "ThemeURL": ""})
+}
+
+// handleKimaiPin pins a project-activity pair on the tile, or unpins it.
+func (d Deps) handleKimaiPin(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	project, _ := strconv.ParseInt(r.FormValue("project"), 10, 64)
+	activity, _ := strconv.ParseInt(r.FormValue("activity"), 10, 64)
+	err = timer.Pin(r.Context(), d.DB, ctx.Who, id, project, activity)
+	if errors.Is(err, timer.ErrNotTimer) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	if err != nil {
+		d.handleBoardError(w, r, err)
+		return
+	}
+	d.renderFragment(w, r, ctx, id, svcdata.Cached)
 }
 
 // RegisterBillingRoutes wires invoice drafts and the tax year package.

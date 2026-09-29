@@ -9,10 +9,15 @@ package widgets
 //	│ seit 13:04 · Heute 4:53 · Woche 26:30│
 //	│ ▕██▁▁███▁▁▁▁▓▓▓│▁▁▁▁▁▁▏  09 … 21      │  today: booked, running, now
 //	│ [Beschreibung…]              [Stopp] │
-//	│ Zuletzt  ▶ Muster · Website          │  start, or switch when running
+//	│ Favoriten ▶ Muster · Schnitt       ★ │  pinned pairs
+//	│ Zuletzt  ▶ Muster · Website        ☆ │  start, or switch when running
 //	└──────────────────────────────────────┘
+//
+// The head opens the add-entry form and today's list (edit, split,
+// delete); the running entry has its own edit form.
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -47,6 +52,13 @@ type TimerRow struct {
 	Begin                       string // RFC3339, for the ticking clock
 	Since                       string // "13:04"
 	Elapsed                     string // "1:28:16"
+	Pinned                      bool
+}
+
+// TimerList is a titled group of startable rows (pinned, recent).
+type TimerList struct {
+	Label string // message key
+	Rows  []TimerRow
 }
 
 // DaySeg is one booked or running block of the day bar, in percent.
@@ -59,6 +71,32 @@ type DaySeg struct {
 type DayTick struct {
 	Hour int
 	Pos  float64
+}
+
+// KimaiFavsPref is the user pref of pinned project-activity pairs per
+// Kimai connection: {"12": [{"project_id": 3, "activity_id": 7, …}]}.
+// The result slot of the same name holds the tile connection's list.
+const KimaiFavsPref = "kimai_favs"
+
+// KimaiFav is one pinned pair, names kept from when it was pinned.
+type KimaiFav struct {
+	ProjectID  int64  `json:"project_id"`
+	ActivityID int64  `json:"activity_id"`
+	Project    string `json:"project"`
+	Activity   string `json:"activity"`
+	Customer   string `json:"customer,omitempty"`
+	Color      string `json:"color,omitempty"`
+}
+
+// KimaiFavsOf reads a stored list, which comes back from JSON as []any.
+func KimaiFavsOf(raw any) []KimaiFav {
+	var out []KimaiFav
+	b, err := json.Marshal(raw)
+	if err != nil {
+		return nil
+	}
+	_ = json.Unmarshal(b, &out)
+	return out
 }
 
 func timerRow(t sources.KimaiTimer) TimerRow {
@@ -84,6 +122,11 @@ func timerView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 		return map[string]any{}
 	}
 	now := time.Now()
+	favs, _ := results[KimaiFavsPref].([]KimaiFav)
+	pinned := map[[2]int64]bool{}
+	for _, f := range favs {
+		pinned[[2]int64{f.ProjectID, f.ActivityID}] = true
+	}
 	out := map[string]any{"URL": data.URL, "Today": clockMinutes(data.TodayMin), "Week": clockMinutes(data.WeekMin)}
 
 	spans := data.Today
@@ -96,19 +139,36 @@ func timerView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 			row.Begin, row.Since, row.Elapsed = t.Begin.Format(time.RFC3339), local.Format("15:04"), clockSeconds(now.Sub(t.Begin))
 			spans = append(spans, sources.KimaiSpan{Begin: t.Begin})
 		}
+		row.Pinned = pinned[[2]int64{t.ProjectID, t.ActivityID}]
 		out["Running"] = row
 		for _, a := range data.Active {
 			running[[2]int64{a.ProjectID, a.ActivityID}] = true
 		}
 	}
 
-	var recent []TimerRow
+	// Pinned pairs first, then recent ones that are neither running nor
+	// pinned.
+	var favRows, recent []TimerRow
+	for _, f := range favs {
+		if !running[[2]int64{f.ProjectID, f.ActivityID}] {
+			favRows = append(favRows, TimerRow{ProjectID: f.ProjectID, ActivityID: f.ActivityID, Project: f.Project,
+				Activity: f.Activity, Customer: f.Customer, Color: f.Color, Pinned: true})
+		}
+	}
 	for _, t := range data.Recent {
-		if !running[[2]int64{t.ProjectID, t.ActivityID}] && len(recent) < cfg.Recent {
+		pair := [2]int64{t.ProjectID, t.ActivityID}
+		if !running[pair] && !pinned[pair] && len(recent) < cfg.Recent {
 			recent = append(recent, timerRow(t))
 		}
 	}
-	out["Recent"], out["AskNote"] = recent, cfg.AskNote
+	out["Favs"], out["Recent"], out["AskNote"] = favRows, recent, cfg.AskNote
+	var lists []TimerList
+	for _, l := range []TimerList{{"timer.favs", favRows}, {"timer.recent", recent}} {
+		if len(l.Rows) > 0 {
+			lists = append(lists, l)
+		}
+	}
+	out["Lists"] = lists
 
 	if week := data.Contract.WeekMinutes(); week > 0 {
 		left := week - data.WeekMin
@@ -117,6 +177,40 @@ func timerView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 
 	from, to, segs, pos := dayBar(spans, now)
 	out["DaySegs"], out["DayNow"], out["DayTicks"] = segs, pos, dayTicks(from, to)
+	return out
+}
+
+// DayRow is one of today's timesheets in the Kimai Lite day list, in
+// Kimai's own clock (the edit form's).
+type DayRow struct {
+	TimerRow
+	From, To string // "09:05", "" while running
+	Duration string // "2:35"
+	Note     string
+	Tags     []string
+	Billable bool
+}
+
+// DayRows lists today's sheets, oldest first.
+//
+//	09:05–11:40  2:35  Muster · Schnitt
+//	13:04–       0:47  Intern · Wartung   (running)
+func DayRows(day *sources.KimaiDay, now time.Time) []DayRow {
+	if day == nil {
+		return nil
+	}
+	var out []DayRow
+	for _, t := range day.Sheets {
+		row := DayRow{TimerRow: timerRow(t), From: t.Begin.Format("15:04"), Note: t.Description, Tags: t.Tags, Billable: t.Billable}
+		end := t.End
+		if end.IsZero() {
+			end = now
+		} else {
+			row.To = end.Format("15:04")
+		}
+		row.Duration = clockMinutes(int(max(end.Sub(t.Begin), 0).Minutes()))
+		out = append(out, row)
+	}
 	return out
 }
 
@@ -164,6 +258,7 @@ func dayTicks(from, to int) []DayTick {
 
 func init() {
 	Register(WidgetType{Key: "kimai_timer", Decode: decodeKimaiLite, Template: "widgets/kimai_timer", Category: CategoryInsight,
+		Extra:   ExtraKimaiFavs,
 		Service: enums.ServiceKimai, RefreshS: 60, Live: true, View: timerView,
 		Queries: func(any) []Query { return []Query{{Name: "live", Source: "kimai.live", Conn: ConnWidget}} }})
 }

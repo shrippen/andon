@@ -89,3 +89,4 @@ internal/services/scheduler/    Background-Jobs (Ticker je Job, panic-/error-iso
 - String-Enum mit explizitem Zero-Value versehen, wenn die Go-Zero-Value (`""`) semantisch "Standard"/"keiner" bedeuten soll (z. B. `ConnUse`s `ConnNone`); sonst weicht ein Feld, das nie explizit gesetzt wird, unbemerkt vom Default ab.
 - DB-Datei ist verschlüsselt (Adiantum-VFS); Kopien nur über `db.Snapshot`/`db.OpenReadOnly`, nie per Dateikopie oder `sql.Open`. Reine Lesepfade über `db.WithRead`, `db.WithTx` nimmt die Schreibsperre sofort.
 - Board-Freigabe muss Widgets aus dem Bereich des Boards sichtbar machen (`boards.seenRight`).
+- `html/template` behandelt Attribute, deren Name ohne `data-` mit `on` beginnt (`data-on`), als Event-Handler (JS-Kontext); ein `{{if}}` darum bricht mit "branches end in different contexts". Anderen Namen wählen (`data-pinned`).

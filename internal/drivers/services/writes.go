@@ -2,7 +2,8 @@ package services
 
 // Write calls, used only by the outbound layer:
 //
-//	Kimai        POST /api/timesheets, PATCH /api/timesheets/{id}/stop, PATCH …/export
+//	Kimai        POST /api/timesheets, PATCH|DELETE /api/timesheets/{id},
+//	             PATCH /api/timesheets/{id}/stop, PATCH …/export
 //	InvoiceNinja POST /api/v1/invoices, PUT /api/v1/expenses/{id}
 //	Paperless    POST /api/documents/post_document/ (multipart),
 //	             POST /api/documents/bulk_edit/, PATCH /api/documents/{id}/

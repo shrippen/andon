@@ -2838,6 +2838,25 @@ timer:
   start: Start
   stop: Stop
   start_note: Description for the start
+  edit: Edit running entry
+  edit_entry: Edit entry
+  search: Search project
+  tags: Tags
+  tags_hint: 'comma-separated'
+  billable: billable
+  billable_default: as in the project
+  billable_yes: 'yes'
+  billable_no: 'no'
+  day_list: Entries today
+  day_empty: Nothing booked today yet.
+  split: Split
+  split_at: Split at
+  bad_split: The time must be inside the entry.
+  delete_confirm: Delete this entry?
+  rejected: Kimai rejected the change.
+  favs: Favorites
+  pin: Pin as favorite
+  unpin: Unpin favorite
 heatmap:
   total: '{hours} hours in the last year'
   less: less

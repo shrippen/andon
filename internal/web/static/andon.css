@@ -1208,6 +1208,15 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .kl-actions { display: flex; gap: .5rem; margin-top: .4rem; }
 .kl-actions button { margin: 0; }
 button.kl-ib { margin: 0; padding: 0; background: none; cursor: pointer; }
+.kl-run { display: flex; align-items: center; gap: .4rem; }
+.kl-run .kl-proj { margin-right: auto; min-width: 0; }
+.kl-list .kl-pin-f { margin-left: auto; }
+.kl-pin[data-pinned] { color: var(--warn-text); }
+.kl-pin[data-pinned] svg { fill: currentColor; }
+.kl-search { margin: 0 0 .3rem; padding: .35rem .6rem; font-size: .82rem; }
+.kl-daylist .kl-pair { margin-right: auto; }
+.kl-new .kl-actions input { flex: 1; }
+.kl-del { margin-left: auto; }
 
 /* ── catalog tiles: weekday columns, horizontal bars, target lines ── */
 .weekcols { position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .35rem; height: 5.2rem; }

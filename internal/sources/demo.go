@@ -676,6 +676,17 @@ func DemoKimaiLive(now time.Time) *KimaiLive {
 		Today: []KimaiSpan{{Begin: at(9, 5), End: at(11, 40)}, {Begin: at(12, 15), End: at(13, 5)}}}
 }
 
+// DemoKimaiDay is the demo day list: the live view's two blocks plus the
+// running timer.
+func DemoKimaiDay(now time.Time) *KimaiDay {
+	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	at := func(h, m int) time.Time { return day.Add(time.Duration(h)*time.Hour + time.Duration(m)*time.Minute) }
+	first, second := demoTimer(0, 2, demoMeeting, at(9, 5)), demoTimer(1, 7, demoEdit, at(12, 15))
+	first.ID, first.End, first.Billable = 899, at(11, 40), true
+	second.ID, second.End, second.Tags = 900, at(13, 5), []string{"Schnitt"}
+	return &KimaiDay{Sheets: []KimaiTimer{first, second, demoTimer(1, 7, demoEdit, now.Add(-47*time.Minute))}}
+}
+
 // DemoKimaiCatalog is the demo add-entry choice: two projects, one global
 // and one project activity.
 func DemoKimaiCatalog() *KimaiCatalog {

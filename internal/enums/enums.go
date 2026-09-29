@@ -308,3 +308,13 @@ const (
 	RevisionSpace  RevisionKind = "space"
 	RevisionTheme  RevisionKind = "theme"
 )
+
+// Billable is what a Kimai write says about the billable flag. The zero
+// value leaves it to Kimai (new entry) or unchanged (edit).
+type Billable string
+
+const (
+	BillableDefault Billable = ""
+	BillableYes     Billable = "yes"
+	BillableNo      Billable = "no"
+)

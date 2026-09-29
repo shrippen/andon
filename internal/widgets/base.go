@@ -69,6 +69,9 @@ const (
 	// ExtraCloseTicks hands the viewer's month-close steps ticked by hand
 	// to the view as results["close_ticks"] (map[string][]string).
 	ExtraCloseTicks Extra = "close_ticks"
+	// ExtraKimaiFavs hands the viewer's pinned Kimai pairs of the tile's
+	// connection to the view as results["kimai_favs"] ([]KimaiFav).
+	ExtraKimaiFavs Extra = "kimai_favs"
 	// ExtraIPWatch keeps the viewer's last public IP and hands it to the
 	// view as results["ip_seen"] (IPSeen).
 	ExtraIPWatch Extra = "ip_watch"

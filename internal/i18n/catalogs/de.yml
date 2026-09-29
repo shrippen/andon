@@ -2839,6 +2839,25 @@ timer:
   start: Starten
   stop: Stoppen
   start_note: Beschreibung für den Start
+  edit: Laufenden Eintrag bearbeiten
+  edit_entry: Eintrag bearbeiten
+  search: Projekt suchen
+  tags: Tags
+  tags_hint: 'mit Komma getrennt'
+  billable: abrechenbar
+  billable_default: wie im Projekt
+  billable_yes: ja
+  billable_no: nein
+  day_list: Einträge heute
+  day_empty: Heute noch nichts gebucht.
+  split: Teilen
+  split_at: Teilen um
+  bad_split: Der Zeitpunkt muss innerhalb des Eintrags liegen.
+  delete_confirm: Diesen Eintrag löschen?
+  rejected: Kimai hat die Änderung abgelehnt.
+  favs: Favoriten
+  pin: Als Favorit anheften
+  unpin: Favorit lösen
 heatmap:
   total: '{hours} Stunden im letzten Jahr'
   less: weniger

@@ -742,10 +742,43 @@
     }
   }
 
+  // Narrow the project list to names containing the search text ("acme
+  // web" matches "Acme · Website"); keep a visible project selected.
+  function searchProjects(input) {
+    var project = input.form && input.form.querySelector("[data-kimai-project]");
+    if (!project) {
+      return;
+    }
+    var words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+    var firstShown = null;
+    [].forEach.call(project.options, function (o) {
+      var text = o.textContent.toLowerCase();
+      o.hidden = !words.every(function (w) { return text.indexOf(w) >= 0; });
+      if (!o.hidden && !firstShown) {
+        firstShown = o;
+      }
+    });
+    if (project.selectedOptions.length && project.selectedOptions[0].hidden && firstShown) {
+      firstShown.selected = true;
+      filterActivities(input.form);
+    }
+  }
+
   function setupKimaiForm() {
     d.addEventListener("change", function (e) {
       if (e.target.matches && e.target.matches("[data-kimai-project]")) {
         filterActivities(e.target.form);
+      }
+    });
+    d.addEventListener("input", function (e) {
+      if (e.target.matches && e.target.matches("[data-kimai-search]")) {
+        searchProjects(e.target);
+      }
+    });
+    // Enter in the search picks, it does not save the form.
+    d.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && e.target.matches && e.target.matches("[data-kimai-search]")) {
+        e.preventDefault();
       }
     });
     d.addEventListener("htmx:afterSettle", function () {
