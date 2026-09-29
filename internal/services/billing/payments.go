@@ -48,7 +48,7 @@ type bank struct {
 
 func banks(d *sql.DB, who *access.Principal, spaceID int64) ([]bank, error) {
 	var out []bank
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		for id, ref := range who.Spaces {
 			if (spaceID != 0 && id != spaceID) || access.SpaceRight(who, &ref) < enums.RightEdit {
 				continue

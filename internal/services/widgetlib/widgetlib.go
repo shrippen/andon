@@ -216,7 +216,7 @@ func firstNonEmpty(a, b string) string {
 func Detail(d *sql.DB, who *access.Principal, widgetID int64) (*model.Widget, enums.Right, error) {
 	var w *model.Widget
 	var granted enums.Right
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		item, err := content.Widget(tx, widgetID)
 		if err != nil {
 			return err

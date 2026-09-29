@@ -136,7 +136,7 @@ func recolor(tx *sql.Tx, who *access.Principal, board *model.Board, known map[in
 func Duplicate(d *sql.DB, who *access.Principal, boardID int64, name string) (int64, error) {
 	src, err := func() (*model.Board, error) {
 		var b *model.Board
-		err := db.WithTx(d, func(tx *sql.Tx) error {
+		err := db.WithRead(d, func(tx *sql.Tx) error {
 			var err error
 			b, err = load(tx, who, boardID, enums.RightView)
 			return err

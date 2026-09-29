@@ -158,7 +158,7 @@ func boardDoc(b *model.Board, spaces map[int64]*model.Space) map[string]any {
 // ExportSpace renders one space as YAML. Requires EDIT.
 func ExportSpace(d *sql.DB, who *access.Principal, spaceID int64) (string, error) {
 	var doc map[string]any
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		ref, err := access.SpaceOf(tx, who, spaceID)
 		if err != nil {
 			return err
@@ -658,7 +658,7 @@ func importBoard(q db.Queryer, who *access.Principal, spaceID int64, item map[st
 // ExportBoard renders one board as YAML (for use as a template). Requires VIEW.
 func ExportBoard(d *sql.DB, who *access.Principal, boardID int64) (string, error) {
 	var doc map[string]any
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		board, err := content.Board(tx, boardID)
 		if err != nil || board == nil {
 			return util.ErrNotFound

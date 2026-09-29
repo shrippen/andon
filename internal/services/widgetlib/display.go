@@ -614,7 +614,7 @@ func snapshot(q db.Queryer, who *access.Principal, w *model.Widget) error {
 // live data before saving.
 func Preview(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64, typeKey, title string,
 	config map[string]any, connID *int64) (*Fragment, error) {
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		space, err := access.SpaceOf(tx, who, spaceID)
 		if err != nil {
 			return err

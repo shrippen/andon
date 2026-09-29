@@ -95,7 +95,7 @@ func looksLikeApprise(rawURL string) bool {
 // Channels lists a user's own notification channels.
 func Channels(d *sql.DB, who *access.Principal) ([]ChannelView, error) {
 	var out []ChannelView
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		chans, err := data.Channels(tx, who.UserID)
 		if err != nil {
 			return err
@@ -163,7 +163,7 @@ func DeleteChannel(d *sql.DB, who *access.Principal, channelID int64) error {
 // TestChannel sends a test push through one of the caller's own channels.
 func TestChannel(ctx context.Context, d *sql.DB, cfg settings.Settings, who *access.Principal, channelID int64) error {
 	var rawURL string
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		channel, err := own(tx, who, channelID)
 		if err != nil {
 			return err
@@ -216,7 +216,7 @@ var levelColor = map[enums.Severity]string{
 // GetPrefs reads a user's quiet-hours preference.
 func GetPrefs(d *sql.DB, who *access.Principal) (Prefs, error) {
 	var out Prefs
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		u, err := users.Get(tx, who.UserID)
 		if err != nil || u == nil {
 			return orNotFound(err)
@@ -311,7 +311,7 @@ func quietNow(prefs map[string]any, now time.Time) bool {
 // pushes sent (one per channel per user, batched across hints).
 func Dispatch(ctx context.Context, d *sql.DB, cfg settings.Settings) (int, error) {
 	var people []*model.User
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		all, err := users.All(tx)
 		if err != nil {
 			return err
@@ -413,7 +413,7 @@ func dispatchUser(ctx context.Context, d *sql.DB, cfg settings.Settings, userID 
 	}
 
 	var chans []*model.NotifyChannel
-	err = db.WithTx(d, func(tx *sql.Tx) error {
+	err = db.WithRead(d, func(tx *sql.Tx) error {
 		found, err := data.Channels(tx, userID)
 		if err != nil {
 			return err
@@ -436,7 +436,7 @@ func dispatchUser(ctx context.Context, d *sql.DB, cfg settings.Settings, userID 
 
 	var fresh []hints.View
 	now := time.Now().UTC()
-	err = db.WithTx(d, func(tx *sql.Tx) error {
+	err = db.WithRead(d, func(tx *sql.Tx) error {
 		for _, h := range open {
 			last, err := data.LastSent(tx, userID, h.ID)
 			if err != nil {
@@ -480,7 +480,7 @@ func dispatchUser(ctx context.Context, d *sql.DB, cfg settings.Settings, userID 
 
 func sendBatch(ctx context.Context, d *sql.DB, cfg settings.Settings, who *access.Principal, c *model.NotifyChannel, batch []hints.View) error {
 	var rawURL string
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		u, err := data.Channel(tx, c.ID)
 		if err != nil || u == nil {
 			return orNotFound(err)

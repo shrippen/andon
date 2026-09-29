@@ -89,7 +89,7 @@ func cacheKey(sourceKey string, connID *int64, owner *int64, params map[string]a
 // outside the cache (downloads a user asked for).
 func SourceCtx(d *sql.DB, conn *model.Connection, userID int64) (sources.Ctx, error) {
 	var sctx sources.Ctx
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		sctx, err = buildCtx(tx, conn, &userID, nil)
 		return err
@@ -489,7 +489,7 @@ func Prune(d *sql.DB) error {
 // calls that act instead of read (e.g. switching a light).
 func Secret(d *sql.DB, conn *model.Connection, userID int64) (string, error) {
 	var sctx sources.Ctx
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		sctx, err = buildCtx(tx, conn, &userID, nil)
 		return err

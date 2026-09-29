@@ -90,7 +90,7 @@ type View struct {
 // every team).
 func Overview(d *sql.DB, who *access.Principal) ([]View, error) {
 	var out []View
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		all, err := users.Teams(tx)
 		if err != nil {
 			return err

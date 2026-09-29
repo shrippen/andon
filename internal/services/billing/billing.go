@@ -56,7 +56,7 @@ type pair struct {
 
 func pairs(d *sql.DB, who *access.Principal, spaceID int64) ([]pair, error) {
 	var out []pair
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		for id, ref := range who.Spaces {
 			if spaceID != 0 && id != spaceID {
 				continue

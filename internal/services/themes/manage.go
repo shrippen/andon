@@ -41,7 +41,7 @@ func spaceIDOf(theme *model.Theme) int64 {
 // Listing returns the themes who may at least USE.
 func Listing(d *sql.DB, who *access.Principal) ([]Ref, error) {
 	var out []Ref
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		spaceIDs := make([]int64, 0, len(who.Spaces))
 		for id := range who.Spaces {
 			spaceIDs = append(spaceIDs, id)
@@ -70,7 +70,7 @@ func Listing(d *sql.DB, who *access.Principal) ([]Ref, error) {
 func Get(d *sql.DB, who *access.Principal, themeID int64) (*model.Theme, enums.Right, error) {
 	var theme *model.Theme
 	var granted enums.Right
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		t, err := misc.Theme(tx, themeID)
 		if err != nil {
 			return err

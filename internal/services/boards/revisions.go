@@ -95,7 +95,7 @@ type RevisionView struct {
 // History lists a board's revisions, newest first. Requires EDIT.
 func History(d *sql.DB, who *access.Principal, boardID int64) ([]RevisionView, error) {
 	var out []RevisionView
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		if _, err := load(tx, who, boardID, enums.RightEdit); err != nil {
 			return err
 		}

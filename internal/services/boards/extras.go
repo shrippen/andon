@@ -61,7 +61,7 @@ func QuickLink(ctx context.Context, d *sql.DB, who *access.Principal, sectionID 
 		return 0, ErrBadURL
 	}
 	var spaceID int64
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		section, err := content.Section(tx, sectionID)
 		if err != nil || section == nil {
 			return orNotFound(err)
