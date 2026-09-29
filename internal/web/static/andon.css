@@ -300,12 +300,12 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
      │ ■ c       7  │   └─────────────────────────────┘
      └──────────────┘   dated lists flow down, then over. */
 @container (min-width: 24rem) {
-  /* Short items and meters: side by side. Rows with much in them (bars,
-     time lines, containers with their status) keep one column and get
-     the room; split tiles already use it, backup rows need it for their
-     day dots. */
+  /* Short items and meters: side by side. Rows with much in them (hint
+     titles, bars, time lines, containers with their status) keep one
+     column and get the room; split tiles already use it, backup rows
+     need it for their day dots. */
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot)
-    :is(.legend-list:not(.tile-split *, .backup-lines, .w-docker_containers *), .plain-list, .hint-lines, .mon-lines, .hass-list,
+    :is(.legend-list:not(.tile-split *, .backup-lines, .w-docker_containers *), .plain-list, .mon-lines, .hass-list,
         .sub-rows, .store-rows, .close-steps, .kl-list, .topic-list, .flow-legend, .meters) {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.4rem; align-items: start; }
   /* Dated lists keep their order: down the first column, then the second. */
@@ -344,7 +344,6 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); column-gap: 1.2rem; align-items: start; }
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .light) > * { grid-column: 2; }
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .light) > .light { grid-column: 1; grid-row: 1 / span 2; margin: 0; }
-  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body > .light ~ .hint-lines { display: flex; align-items: stretch; }
   /* Connection strips: two a line. */
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .strip-row) {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.4rem; align-items: center; }
