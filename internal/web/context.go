@@ -225,8 +225,15 @@ func (d Deps) tokenPrincipal(r *http.Request, scope enums.TokenScope) (*access.P
 	return auth.PrincipalForToken(d.DB, secret, scope)
 }
 
-// setSession writes the session cookie for token.
+// clearSiteData drops the browser's offline copies of boards (service
+// worker cache) and local storage.
+const clearSiteData = `"cache", "storage"`
+
+// setSession writes the session cookie for token. A new session starts
+// without offline copies a previous one (maybe another user's, expired
+// without logout) left behind.
 func (d Deps) setSession(w http.ResponseWriter, token string) {
+	w.Header().Set("Clear-Site-Data", clearSiteData)
 	http.SetCookie(w, &http.Cookie{
 		Name: CookieName, Value: token, Path: "/", HttpOnly: true,
 		Secure: d.Settings.SecureCookies(), SameSite: http.SameSiteLaxMode,

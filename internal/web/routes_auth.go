@@ -161,6 +161,6 @@ func (d Deps) handleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 	d.clearSession(w)
 	// Drops the offline copies of boards along with the session.
-	w.Header().Set("Clear-Site-Data", `"cache", "storage"`)
+	w.Header().Set("Clear-Site-Data", clearSiteData)
 	http.Redirect(w, r, target, http.StatusSeeOther)
 }

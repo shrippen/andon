@@ -1,6 +1,7 @@
 // Offline view: board pages and their fragments are fetched from the
 // network first; the last good answer is kept and served when offline.
-// Logout clears it (Clear-Site-Data).
+// Logout and login clear it (Clear-Site-Data); so does being sent to the
+// login page, when the session ended elsewhere (expired, revoked).
 "use strict";
 
 var CACHE = "andon-last";
@@ -22,6 +23,10 @@ self.addEventListener("fetch", function (e) {
     return;
   }
   e.respondWith(fetch(req).then(function (res) {
+    if (res.redirected && new URL(res.url).pathname === "/login") {
+      caches.delete(CACHE);
+      return res;
+    }
     if (res.ok && res.type === "basic" && !res.redirected) {
       var copy = res.clone();
       caches.open(CACHE).then(function (c) { c.put(req, copy); });
