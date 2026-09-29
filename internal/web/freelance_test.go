@@ -70,7 +70,7 @@ func TestKimaiTimerStops(t *testing.T) {
 	postForm(t, client, srv.URL+"/widgets", url.Values{"csrf": {csrf}, "space_id": {space}, "type": {"kimai_timer"}, "title": {"Timer"}, "connection_id": {connID}})
 	boardURL, section, version, widget := placeTarget(t, srv, client, "Timer")
 	postForm(t, client, srv.URL+"/boards/"+boardIDFrom(boardURL)+"/sections/"+section+"/place", url.Values{"csrf": {csrf}, "widget_id": {widget}, "version": {version}})
-	placement := string(regexp.MustCompile(`/placements/(\d+)/unplace`).FindSubmatch(mustGet(t, srv, client, boardURL+"?edit"))[1])
+	placement := string(placementRe.FindSubmatch(mustGet(t, srv, client, boardURL+"?edit"))[1])
 
 	frag := string(awaitFragment(t, srv, client, placement, "Relaunch"))
 	if !strings.Contains(frag, `name="sheet" value="77"`) || !strings.Contains(frag, "2:00") || !strings.Contains(frag, `data-begin=`) {

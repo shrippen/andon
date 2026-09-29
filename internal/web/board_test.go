@@ -110,10 +110,10 @@ func TestLinkTileAndLayout(t *testing.T) {
 	}
 	expect(string(mustGet(t, srv, client, boardURL)), "board", `class="dsec-hidden"`, "1 ausgeblendet")
 	expect(string(mustGet(t, srv, client, boardURL+"?layout")), "layout mode",
-		`class="modebar is-layout"`, "Änderungen gelten nur für dich", `class="tile-strip"`,
-		`aria-label="Einblenden" aria-pressed="true"`, `aria-label="Doppelte Höhe"`, ">Kachelgröße<")
+		`class="modebar is-layout"`, "Änderungen gelten nur für dich", `id="tile-strip" class="tile-strip"`,
+		`data-show="Einblenden"`, `data-tall="Doppelte Höhe"`, `is-hidden" data-placement=`, ">Kachelgröße<")
 	expect(string(mustGet(t, srv, client, boardURL+"?edit")), "edit mode",
-		`class="modebar is-edit"`, `class="tile-strip"`, `aria-label="Entfernen"`, `aria-label="Bearbeiten"`,
+		`class="modebar is-edit"`, `id="tile-strip" class="tile-strip"`, `aria-label="Entfernen"`, `aria-label="Bearbeiten"`,
 		`id="bulk" method="post" action="`+boardURL+`/bulk" class="selbar"`, `class="add-tile"`, `class="modebar-menu"`)
 
 	version := regexp.MustCompile(`data-version="(\d+)"`).FindStringSubmatch(string(mustGet(t, srv, client, boardURL)))[1]

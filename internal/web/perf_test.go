@@ -30,6 +30,8 @@ const (
 var (
 	addLinkRe  = regexp.MustCompile(`/widgets/new\?space=\d+&(?:amp;)?section=(\d+)&(?:amp;)?board=\d+&(?:amp;)?version=(\d+)`)
 	fragmentRe = regexp.MustCompile(`hx-get="(/widget-fragments/\d+)"`)
+	// placementRe finds a placed tile on a board page.
+	placementRe = regexp.MustCompile(`data-placement="(\d+)"`)
 )
 
 // TestEditBoardFiftyLinks: a board with 50 link tiles in edit mode, and
@@ -61,6 +63,14 @@ func TestEditBoardFiftyLinks(t *testing.T) {
 	}
 	if linked := bytes.Count(page, []byte(` form="`)); linked > editTiles {
 		t.Errorf("edit page has %d elements with a form attribute", linked)
+	}
+
+	// One tile strip moves to the tile at hand; each tile carries its data.
+	if strips := bytes.Count(page, []byte(`class="tile-strip"`)); strips != 1 {
+		t.Errorf("edit page has %d tile strips, want 1", strips)
+	}
+	if tiles := bytes.Count(page, []byte(` data-widget="`)); tiles != editTiles {
+		t.Errorf("%d of %d tiles carry their widget", tiles, editTiles)
 	}
 	if icons := bytes.Count(page, []byte("<svg")); icons >= editTiles {
 		t.Errorf("edit page has %d SVG icons: each costs a shadow tree", icons)
@@ -191,7 +201,7 @@ func TestTileActionAnswersSection(t *testing.T) {
 		"version": {string(add[2])}, "board_id": {boardIDFrom(boardURL)}, "url": {"https://a.example"}})
 
 	page := mustGet(t, srv, client, boardURL+"?edit")
-	placement := regexp.MustCompile(`/placements/(\d+)/rows`).FindSubmatch(page)[1]
+	placement := regexp.MustCompile(`data-placement="(\d+)"`).FindSubmatch(page)[1]
 	section := regexp.MustCompile(`id="(dsec-\d+)"`).FindSubmatch(page)[1]
 	version := regexp.MustCompile(`data-version="(\d+)"`).FindSubmatch(page)[1]
 

@@ -147,6 +147,7 @@
     </div>
     {{end}}
   </div>
+  {{template "tile_strip" .}}
   <p class="search-empty" hidden>{{t "board.no_match"}}</p>
   <ul class="ctx-menu" id="ctx-menu" role="menu" hidden>
     <li><button type="button" role="menuitem" data-act="newtab">{{t "board.ctx_newtab"}}</button></li>
@@ -157,6 +158,42 @@
   </main>
 </body>
 </html>
+{{end}}
+
+{{/* The tile strip, once per page: editor.js moves it into the tile under
+     the mouse, the focused one or the tapped one, and fills in that
+     tile's values ({placement}, {widget}, pressed states, labels). A strip
+     per tile made a 240-tile board ~5,000 elements. htmx swaps its answer
+     into the tile's section (see boardPart). */}}
+{{define "tile_strip"}}
+{{if .Edit}}
+<form id="tile-strip" class="tile-strip" method="post" hidden hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false"
+      data-tall="{{t "edit.tile_tall"}}" data-normal="{{t "edit.tile_normal"}}" data-wide="{{t "edit.tile_wide"}}" data-narrow="{{t "edit.tile_narrow"}}" data-select="{{t "edit.select"}}">
+  <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+  <input type="hidden" name="board_id" value="{{.Board.ID}}">
+  <input type="hidden" name="version" value="{{.Board.Version}}">
+  <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
+  <label class="tile-check"><input type="checkbox" data-pick></label>
+  <span class="tile-repeat" title="{{t "edit.repeated"}}" data-repeat hidden></span>
+  <span class="tile-strip-gap"></span>
+  <a class="tile-ico" href="/widgets" data-href="/widgets/{widget}/edit?board={{.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><i class="ico ico-edit"></i></a>
+  <a class="tile-ico" href="/widgets" data-href="/shares/widget/{widget}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><i class="ico ico-share"></i></a>
+  <button class="tile-ico" type="submit" name="rows" data-act="/placements/{placement}/rows" data-toggle="rows"><i class="ico ico-height"></i></button>
+  <button class="tile-ico" type="submit" name="cols" data-act="/placements/{placement}/cols" data-toggle="cols"><i class="ico ico-width"></i></button>
+  <button class="tile-ico is-danger" type="submit" data-act="/placements/{placement}/unplace" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><i class="ico ico-x"></i></button>
+</form>
+{{else if .LayerEdit}}
+<form id="tile-strip" class="tile-strip" method="post" hidden hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false"
+      data-tall="{{t "edit.tile_tall"}}" data-normal="{{t "edit.tile_normal"}}" data-wide="{{t "edit.tile_wide"}}" data-narrow="{{t "edit.tile_narrow"}}" data-hide="{{t "edit.hide"}}" data-show="{{t "edit.show"}}">
+  <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+  <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
+  <span class="tile-strip-gap"></span>
+  <button class="tile-ico" type="submit" name="state" data-act="/boards/{{.Board.ID}}/show/{placement}" data-toggle="hidden"><i class="ico ico-eye"></i></button>
+  <button class="tile-ico" type="submit" name="rows" data-act="/boards/{{.Board.ID}}/rows/{placement}" data-toggle="rows"><i class="ico ico-height"></i></button>
+  <button class="tile-ico" type="submit" name="cols" data-act="/boards/{{.Board.ID}}/cols/{placement}" data-toggle="cols"><i class="ico ico-width"></i></button>
+</form>
+{{end}}
+{{if or .Edit .LayerEdit}}<p class="edit-touch">{{t "edit.touch_hint"}}</p>{{end}}
 {{end}}
 
 {{/* One section alone: the answer to an action on it (see boardPart). */}}
@@ -237,7 +274,8 @@
 {{define "tile"}}
 {{$b := .B}}{{with .T}}
 {{$frag := print "/widget-fragments/" .PlacementID}}{{if $b.EmbedToken}}{{$frag = print $frag "?token=" $b.EmbedToken}}{{end}}
-<div class="tile-slot w-{{.Type}}{{if .Hidden}} is-hidden{{end}}" data-placement="{{.PlacementID}}"{{if gt .Rows 1}} data-rows="{{.Rows}}"{{end}}{{if gt .Cols 1}} data-cols="{{.Cols}}"{{end}}>
+<div class="tile-slot w-{{.Type}}{{if .Hidden}} is-hidden{{end}}" data-placement="{{.PlacementID}}"{{if gt .Rows 1}} data-rows="{{.Rows}}"{{end}}{{if gt .Cols 1}} data-cols="{{.Cols}}"{{end}}
+  {{- if or $b.Edit $b.LayerEdit}} data-widget="{{.WidgetID}}" data-title="{{.Title}}"{{if gt .Placed 1}} data-placed="{{.Placed}}"{{end}} tabindex="0"{{end}}>
   {{if eq .Type "link"}}
     {{$c := .Config}}
     <a class="launch" data-click="{{.PlacementID}}" href="{{$c.URL}}"{{if eq (print $c.Target) "newtab"}} target="_blank" rel="noopener noreferrer"{{end}}
@@ -276,40 +314,6 @@
       </div>
       {{end}}
     </article>
-  {{end}}
-  {{/* Tile strip: on the tile's top edge, shown on hover and focus; the
-       grip drags, the controls keep their forms. */}}
-  {{$tall := t "edit.tile_tall"}}{{if gt .Rows 1}}{{$tall = t "edit.tile_normal"}}{{end}}
-  {{$wide := t "edit.tile_wide"}}{{if gt .Cols 1}}{{$wide = t "edit.tile_narrow"}}{{end}}
-  {{if $b.Edit}}
-  {{/* One form per strip, each button its own formaction: three forms
-       per tile made a 50-tile board ~2,500 elements, and buttons tied to
-       one shared form (form="…") made every swap quadratic. htmx swaps
-       only the section in; the server answers with it alone. */}}
-  <form class="tile-strip" method="post" hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false">
-    <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-    <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
-    <input type="hidden" name="version" value="{{$b.Board.Version}}">
-    <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
-    <label class="tile-check"><input type="checkbox" name="placement" value="{{.PlacementID}}" form="bulk" aria-label="{{t "edit.select"}} {{.Title}}"></label>
-    {{if gt .Placed 1}}<span class="tile-repeat" title="{{t "edit.repeated"}}">{{.Placed}}×</span>{{end}}
-    <span class="tile-strip-gap"></span>
-    <a class="tile-ico" href="/widgets/{{.WidgetID}}/edit?board={{$b.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><i class="ico ico-edit"></i></a>
-    <a class="tile-ico" href="/shares/widget/{{.WidgetID}}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><i class="ico ico-share"></i></a>
-    <button class="tile-ico" type="submit" formaction="/placements/{{.PlacementID}}/rows" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><i class="ico ico-height"></i></button>
-    <button class="tile-ico" type="submit" formaction="/placements/{{.PlacementID}}/cols" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><i class="ico ico-width"></i></button>
-    <button class="tile-ico is-danger" type="submit" formaction="/placements/{{.PlacementID}}/unplace" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><i class="ico ico-x"></i></button>
-  </form>
-  {{else if $b.LayerEdit}}
-  {{$eye := t "edit.hide"}}{{if .Hidden}}{{$eye = t "edit.show"}}{{end}}
-  <form class="tile-strip" method="post" hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false">
-    <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-    <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
-    <span class="tile-strip-gap"></span>
-    <button class="tile-ico" type="submit" formaction="/boards/{{$b.Board.ID}}/show/{{.PlacementID}}" name="state" value="{{if .Hidden}}shown{{else}}hidden{{end}}" aria-label="{{$eye}}" aria-pressed="{{.Hidden}}" title="{{$eye}}"><i class="ico ico-eye"></i></button>
-    <button class="tile-ico" type="submit" formaction="/boards/{{$b.Board.ID}}/rows/{{.PlacementID}}" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><i class="ico ico-height"></i></button>
-    <button class="tile-ico" type="submit" formaction="/boards/{{$b.Board.ID}}/cols/{{.PlacementID}}" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><i class="ico ico-width"></i></button>
-  </form>
   {{end}}
 </div>
 {{end}}

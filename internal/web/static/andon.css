@@ -307,8 +307,12 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
 .board[data-mode] .tile-slot:hover, .board[data-mode] .tile-slot:focus-within { outline-color: var(--yellow); }
 .tile-strip { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: .1rem;
   padding: .15rem .25rem; background: var(--bg1); opacity: 0; pointer-events: none; transition: opacity .12s; }
-.tile-slot:hover > .tile-strip, .tile-slot:focus-within > .tile-strip, .tile-slot.is-hidden > .tile-strip,
-.tile-slot:has(.tile-check input:checked) > .tile-strip { opacity: 1; pointer-events: auto; }
+.tile-slot:hover > .tile-strip, .tile-slot:focus-within > .tile-strip, .tile-slot.is-active > .tile-strip { opacity: 1; pointer-events: auto; }
+.board[data-mode] .tile-slot.is-picked { outline: 2px solid var(--yellow); }
+.edit-touch { display: none; margin: 0 0 .8rem; font-size: .8rem; color: var(--fg3); }
+@media (hover: none) {
+  .edit-touch { display: block; }
+}
 .tile-strip-gap { flex: 1; }
 .tile-repeat { font-family: var(--font-mono); font-size: .7rem; color: var(--warn-text); }
 .tile-grip { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; color: var(--fg3); cursor: grab; }
@@ -934,7 +938,7 @@ table.table tr:last-child td { border-bottom: 0; }
 /* Selection bar: only once tiles are selected. */
 .selbar { display: none; align-items: center; gap: .5rem; flex-wrap: wrap; margin: 0; padding: .5rem 1rem; background: var(--bg1); border-left: 3px solid var(--yellow);
   position: sticky; top: 0; z-index: 4; }
-.board-page:has(.tile-check input:checked) .selbar { display: flex; }
+.selbar:has(input[name="placement"]) { display: flex; }
 .selbar b { font-family: var(--font-mono); font-size: .75rem; font-weight: 500; color: var(--fg0); }
 .selbar select { width: auto; margin: 0; }
 .selbar button { margin: 0; }

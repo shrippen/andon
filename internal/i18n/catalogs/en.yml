@@ -200,6 +200,7 @@ edit:
   repeated: 'This tile is on the board more than once.'
   tile_wide: 'Double width'
   tile_narrow: 'Normal width'
+  touch_hint: 'Editing is made for desktop. Tap a tile for its tools; tap again to open it.'
 field:
   place: Place
   week_hours: Weekly target (hours)
