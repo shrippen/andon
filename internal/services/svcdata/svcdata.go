@@ -202,13 +202,6 @@ func Sizes() (fresh, known int) {
 	return len(mem), len(latest)
 }
 
-// entries is the size of the larger cache.
-func entries() int {
-	memMu.Lock()
-	defer memMu.Unlock()
-	return max(len(mem), len(latest))
-}
-
 func remembered(key string, now time.Time) (Result, bool) {
 	memMu.Lock()
 	defer memMu.Unlock()

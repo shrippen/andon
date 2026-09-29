@@ -155,22 +155,6 @@ func Board(q db.Queryer, boardID int64) (*model.Board, error) {
 	return b, nil
 }
 
-// BoardBySlug returns a board (with content) by its space-scoped slug.
-func BoardBySlug(q db.Queryer, spaceID int64, slug string) (*model.Board, error) {
-	row := q.QueryRow("SELECT "+boardCols+" FROM boards WHERE space_id = ? AND slug = ?", spaceID, slug)
-	b, err := scanBoardRow(row)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	if err := loadSections(q, b); err != nil {
-		return nil, err
-	}
-	return b, nil
-}
-
 // Boards returns the boards of the given spaces (without content), ordered
 // by position then id.
 func Boards(q db.Queryer, spaceIDs []int64) ([]*model.Board, error) {

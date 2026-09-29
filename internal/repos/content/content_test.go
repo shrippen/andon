@@ -71,27 +71,6 @@ func TestBoardWithSectionsAndPlacementsRoundTrip(t *testing.T) {
 	}
 }
 
-func TestBoardBySlugScopedToSpace(t *testing.T) {
-	q := openTestDB(t)
-	sp1 := addSpace(t, q)
-	sp2 := &model.Space{Kind: enums.SpaceTeam, Name: "Team", Version: 1}
-	if err := content.AddSpace(q, sp2); err != nil {
-		t.Fatalf("add space2: %v", err)
-	}
-
-	b := &model.Board{SpaceID: sp1.ID, Slug: "start", Name: "Start", Version: 1}
-	if err := content.AddBoard(q, b); err != nil {
-		t.Fatalf("add board: %v", err)
-	}
-
-	if got, err := content.BoardBySlug(q, sp2.ID, "start"); err != nil || got != nil {
-		t.Fatalf("expected no board in other space, got %+v err=%v", got, err)
-	}
-	if got, err := content.BoardBySlug(q, sp1.ID, "start"); err != nil || got == nil {
-		t.Fatalf("expected board in own space, got %+v err=%v", got, err)
-	}
-}
-
 func TestWidgetUsesCounts(t *testing.T) {
 	q := openTestDB(t)
 	sp := addSpace(t, q)

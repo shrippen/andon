@@ -168,15 +168,17 @@ func TestNotifyLogPreventsDuplicates(t *testing.T) {
 		t.Fatalf("add hint: %v", err)
 	}
 
-	sent, err := data.WasSent(q, uid, h.ID)
-	if err != nil || sent {
-		t.Fatalf("expected not sent yet, got %v err=%v", sent, err)
+	at, err := data.LastSent(q, uid, h.ID)
+	if err != nil || !at.IsZero() {
+		t.Fatalf("expected not sent yet, got %v err=%v", at, err)
 	}
-	if err := data.LogSent(q, uid, h.ID); err != nil {
-		t.Fatalf("log sent: %v", err)
+	for range 2 { // one row per user and hint, however often sent
+		if err := data.TouchSent(q, uid, h.ID); err != nil {
+			t.Fatalf("touch sent: %v", err)
+		}
 	}
-	sent, err = data.WasSent(q, uid, h.ID)
-	if err != nil || !sent {
-		t.Fatalf("expected sent, got %v err=%v", sent, err)
+	at, err = data.LastSent(q, uid, h.ID)
+	if err != nil || at.IsZero() {
+		t.Fatalf("expected sent, got %v err=%v", at, err)
 	}
 }

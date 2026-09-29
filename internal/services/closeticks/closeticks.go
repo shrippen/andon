@@ -28,15 +28,6 @@ var ErrNotClose = errors.New("close.not_close")
 
 var monthPattern = regexp.MustCompile(`^\d{4}-\d{2}$`)
 
-// Of returns the user's ticked steps per month ("2026-08").
-func Of(d *sql.DB, who *access.Principal) (map[string][]string, error) {
-	u, err := users.Get(d, who.UserID)
-	if err != nil || u == nil {
-		return nil, err
-	}
-	return widgets.CloseTicksOf(u.Prefs[widgets.CloseTicksPref]), nil
-}
-
 // Toggle ticks or unticks one step of a month behind a tile.
 func Toggle(d *sql.DB, who *access.Principal, placementID int64, month, step string) error {
 	w, err := boards.PlacedWidget(d, who, placementID)

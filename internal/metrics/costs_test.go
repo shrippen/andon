@@ -44,7 +44,7 @@ func TestWeekStory(t *testing.T) {
 	ninja := &sources.NinjaDataset{Currency: "EUR", Payments: []sources.NinjaPayment{{Date: "2026-09-24", Amount: 1190}}}
 	h := &metrics.History{Series: map[string][]metrics.Point{"truenas.pool.tank.used": {
 		{Day: time.Date(2026, 9, 17, 0, 0, 0, 0, time.UTC), Value: 0.78}, {Day: time.Date(2026, 9, 25, 0, 0, 0, 0, time.UTC), Value: 0.81}}}}
-	lines := metrics.WeekStory(map[string]any{"kimai": kimai, "invoiceninja": ninja}, h, now)
+	lines := metrics.StorySince(map[string]any{"kimai": kimai, "invoiceninja": ninja}, h, metrics.Today(now).AddDate(0, 0, -7), now)
 	if len(lines) != 3 || lines[0].Key != "hours" || lines[0].Params["customer"] != "Acme" || lines[1].Key != "paid" || lines[2].Key != "storage" {
 		t.Fatalf("lines: %+v", lines)
 	}

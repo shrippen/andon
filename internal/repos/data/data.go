@@ -528,28 +528,6 @@ func RemoveChannel(q db.Queryer, channelID int64) error {
 	return err
 }
 
-// WasSent reports whether a hint was already sent to a user (no duplicate
-// pushes across restarts).
-func WasSent(q db.Queryer, userID, hintID int64) (bool, error) {
-	var id int64
-	err := q.QueryRow(
-		"SELECT id FROM notify_log WHERE user_id = ? AND hint_id = ?", userID, hintID,
-	).Scan(&id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
-	}
-	return err == nil, err
-}
-
-// LogSent records that a hint was sent to a user.
-func LogSent(q db.Queryer, userID, hintID int64) error {
-	_, err := q.Exec(
-		"INSERT INTO notify_log (user_id, hint_id, sent_at) VALUES (?,?,?)",
-		userID, hintID, db.TimeStr(time.Now().UTC()),
-	)
-	return err
-}
-
 func nullStr(s string) any {
 	if s == "" {
 		return nil

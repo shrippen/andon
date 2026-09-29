@@ -71,22 +71,6 @@ func QuarterStart(day time.Time) time.Time {
 	return time.Date(day.Year(), time.Month(m), 1, 0, 0, 0, 0, time.UTC)
 }
 
-// Workdays returns Mon-Fri between start and end (inclusive), minus the
-// days in free.
-func Workdays(start, end time.Time, free map[time.Time]bool) []time.Time {
-	var found []time.Time
-	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
-		if d.Weekday() == time.Saturday || d.Weekday() == time.Sunday {
-			continue
-		}
-		if free[d] {
-			continue
-		}
-		found = append(found, d)
-	}
-	return found
-}
-
 // Expand returns every day from start to end (inclusive) as a set. If end
 // is empty, only start is included.
 func Expand(start, end string) map[time.Time]bool {
