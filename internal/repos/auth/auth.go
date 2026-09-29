@@ -239,6 +239,12 @@ func TouchToken(q db.Queryer, tokenID int64, at time.Time) error {
 }
 
 // RemoveToken deletes one API token.
+// RemoveTokensOf deletes every API token of a user.
+func RemoveTokensOf(q db.Queryer, userID int64) error {
+	_, err := q.Exec("DELETE FROM api_tokens WHERE user_id = ?", userID)
+	return err
+}
+
 func RemoveToken(q db.Queryer, tokenID int64) error {
 	_, err := q.Exec("DELETE FROM api_tokens WHERE id = ?", tokenID)
 	return err

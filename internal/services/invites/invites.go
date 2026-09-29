@@ -234,7 +234,8 @@ func ResetValid(d *sql.DB, token string) (bool, error) {
 	return r != nil, err
 }
 
-// Reset sets a new password, ends every session and notifies the user.
+// Reset sets a new password, ends every session and API token and
+// notifies the user.
 func Reset(d *sql.DB, token, password, ip string) error {
 	if err := accounts.CheckPasswordRules(password); err != nil {
 		return err
@@ -267,7 +268,11 @@ func Reset(d *sql.DB, token, password, ip string) error {
 		if err := authrepo.MarkResetUsed(tx, r.ID, now()); err != nil {
 			return err
 		}
+		// The account may have been taken over: its tokens end as well.
 		if err := authrepo.DropSessions(tx, user.ID, nil); err != nil {
+			return err
+		}
+		if err := authrepo.RemoveTokensOf(tx, user.ID); err != nil {
 			return err
 		}
 		userID = user.ID

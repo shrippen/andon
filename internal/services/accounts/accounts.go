@@ -3,6 +3,7 @@
 package accounts
 
 import (
+	authrepo "andon/internal/repos/auth"
 	"database/sql"
 	"errors"
 	"strings"
@@ -240,6 +241,10 @@ func ChangePassword(d *sql.DB, who *access.Principal, current, newPassword, ip s
 		}
 		u.PasswordHash = hash
 		if err := users.Update(tx, u); err != nil {
+			return err
+		}
+		// Whoever else is logged in is the reason to change it.
+		if err := authrepo.DropSessions(tx, u.ID, who.SessionID); err != nil {
 			return err
 		}
 		return audit.Log(tx, &who.UserID, "password.changed", "", ip, nil)
