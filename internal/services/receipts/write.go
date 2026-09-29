@@ -3,6 +3,9 @@ package receipts
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
+	"log/slog"
 	"slices"
 	"strconv"
 	"strings"
@@ -179,7 +182,9 @@ func (w writer) link(ctx context.Context) error {
 			onDoc[m.FieldInvoice] = invoice
 		}
 		if err := outbound.PaperlessFieldsSet(ctx, w.docsTo, doc.ID, onDoc); err != nil {
-			w.rollback(ctx, done)
+			if undoErr := w.rollback(ctx, done); undoErr != nil {
+				return FetchError{err.Error() + "; " + undoErr.Error()}
+			}
 			return FetchError{err.Error()}
 		}
 		done = append(done, doc.ID)
@@ -188,13 +193,22 @@ func (w writer) link(ctx context.Context) error {
 }
 
 // rollback undoes a half-written link, best effort: the expense's link
-// value, then the scans written so far.
-func (w writer) rollback(ctx context.Context, done []int64) {
+// value, then the scans written so far. What cannot be undone is logged
+// with its ids and returned, so the user learns what is left half-linked.
+func (w writer) rollback(ctx context.Context, done []int64) error {
 	m := w.mapping
-	_ = outbound.NinjaExpenseSet(ctx, w.ninja, w.expense.Key, map[string]string{slotName(m.LinkSlot): w.expense.Custom[m.LinkSlot-1]})
-	for _, id := range done {
-		_ = outbound.PaperlessFieldsSet(ctx, w.docsTo, id, map[int64]any{m.FieldExpense: "", m.FieldLink: ""})
+	var failed []error
+	if err := outbound.NinjaExpenseSet(ctx, w.ninja, w.expense.Key, map[string]string{slotName(m.LinkSlot): w.expense.Custom[m.LinkSlot-1]}); err != nil {
+		slog.Error("receipts: undo expense link", "expense", w.expense.Key, "err", err)
+		failed = append(failed, fmt.Errorf("expense %s still linked", w.expense.Key))
 	}
+	for _, id := range done {
+		if err := outbound.PaperlessFieldsSet(ctx, w.docsTo, id, map[int64]any{m.FieldExpense: "", m.FieldLink: ""}); err != nil {
+			slog.Error("receipts: undo document link", "document", id, "err", err)
+			failed = append(failed, fmt.Errorf("document %d still linked", id))
+		}
+	}
+	return errors.Join(failed...)
 }
 
 func (w writer) unlink(ctx context.Context, id int64) error {
