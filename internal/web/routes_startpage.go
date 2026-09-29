@@ -55,8 +55,8 @@ func (d Deps) handleBulk(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 			placements = append(placements, p)
 		}
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
-	section, _ := strconv.ParseInt(r.FormValue("section"), 10, 64)
+	version := formInt(r, "version")
+	section := formID(r, "section")
 	change := boards.BulkChange{Action: boards.BulkAction(r.FormValue("action")), SectionID: section, Color: r.FormValue("color")}
 	if err := boards.Bulk(d.DB, ctx.Who, id, version, placements, change); err != nil {
 		d.handleBoardError(w, r, err)
@@ -110,7 +110,7 @@ func (d Deps) handleQuickLink(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		http.NotFound(w, r)
 		return
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
+	version := formInt(r, "version")
 	if _, err := boards.QuickLink(r.Context(), d.DB, ctx.Who, section, version, r.FormValue("url")); err != nil {
 		d.handleBoardError(w, r, err)
 		return

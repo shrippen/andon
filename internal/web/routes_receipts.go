@@ -211,7 +211,7 @@ func (d Deps) handleReceiptCombos(w http.ResponseWriter, r *http.Request, ctx Ct
 // handleReceiptExpenses searches the expenses one scan could belong to.
 func (d Deps) handleReceiptExpenses(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
-	id, _ := strconv.ParseInt(r.FormValue("doc"), 10, 64)
+	id := formID(r, "doc")
 	view, err := receipts.FindExpenses(r.Context(), d.DB, ctx.Who, id, q.Year, r.FormValue("q"))
 	values := map[string]any{"Q": q, "S": view}
 	if err != nil {
@@ -222,7 +222,7 @@ func (d Deps) handleReceiptExpenses(w http.ResponseWriter, r *http.Request, ctx 
 
 // handleReceiptDraft shows the form for a new expense from a scan.
 func (d Deps) handleReceiptDraft(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	id, _ := strconv.ParseInt(r.FormValue("doc"), 10, 64)
+	id := formID(r, "doc")
 	view, err := receipts.Draft(r.Context(), d.DB, ctx.Who, id)
 	values := map[string]any{"Q": receiptsQueryOf(r), "S": view}
 	if err != nil {
@@ -233,7 +233,7 @@ func (d Deps) handleReceiptDraft(w http.ResponseWriter, r *http.Request, ctx Ctx
 
 func (d Deps) handleReceiptCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
-	id, _ := strconv.ParseInt(r.FormValue("doc"), 10, 64)
+	id := formID(r, "doc")
 	amount, _ := strconv.ParseFloat(strings.ReplaceAll(strings.TrimSpace(r.FormValue("amount")), ",", "."), 64)
 	in := receipts.NewExpense{Amount: amount, Day: dateOrEmpty(r.FormValue("day")), Vendor: r.FormValue("vendor"), Notes: r.FormValue("notes")}
 	number, err := receipts.Create(r.Context(), d.DB, ctx.Who, id, in, d.clientIP(r))
@@ -295,8 +295,8 @@ func (d Deps) handleReceiptThumb(w http.ResponseWriter, r *http.Request, ctx Ctx
 }
 
 func (d Deps) handleReceiptsPick(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	ninja, _ := strconv.ParseInt(r.FormValue("ninja"), 10, 64)
-	paperless, _ := strconv.ParseInt(r.FormValue("paperless"), 10, 64)
+	ninja := formID(r, "ninja")
+	paperless := formID(r, "paperless")
 	q := receiptsQueryOf(r)
 	if err := receipts.Choose(d.DB, ctx.Who, ninja, paperless); err != nil {
 		http.Redirect(w, r, q.back("error", errKey(err)), http.StatusSeeOther)
@@ -337,7 +337,7 @@ func (d Deps) handleReceiptLink(w http.ResponseWriter, r *http.Request, ctx Ctx)
 
 func (d Deps) handleReceiptUnlink(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
-	id, _ := strconv.ParseInt(r.FormValue("doc"), 10, 64)
+	id := formID(r, "doc")
 	expense := r.FormValue("expense")
 	if err := receipts.Unlink(r.Context(), d.DB, ctx.Who, expense, id, d.clientIP(r)); err != nil {
 		http.Redirect(w, r, q.back("error", receiptError(err)), http.StatusSeeOther)
@@ -362,7 +362,7 @@ func (d Deps) handleReceiptIgnore(w http.ResponseWriter, r *http.Request, ctx Ct
 func (d Deps) handleReceiptFields(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	num := func(name string) int64 {
-		n, _ := strconv.ParseInt(r.FormValue(name), 10, 64)
+		n := formID(r, name)
 		return n
 	}
 	m := receipts.Mapping{InvoiceSlot: int(num("invoice_slot")), LinkSlot: int(num("link_slot")), FieldInvoice: num("field_invoice"),

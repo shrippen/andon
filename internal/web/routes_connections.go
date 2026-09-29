@@ -117,7 +117,7 @@ func (d Deps) handleConnectionCreate(w http.ResponseWriter, r *http.Request, ctx
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	spaceID, _ := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
+	spaceID := formID(r, "space_id")
 	tls := connections.TLSVerify
 	if r.FormValue("tls") == "skip" {
 		tls = connections.TLSSkip
@@ -245,7 +245,7 @@ func (d Deps) saveAdvanced(r *http.Request, ctx Ctx, conn connections.View) erro
 	if _, sent := r.PostForm["budget"]; !sent {
 		return nil
 	}
-	budget, _ := strconv.Atoi(r.FormValue("budget"))
+	budget := formInt(r, "budget")
 	if expires := r.FormValue("expires"); expires != conn.SecretExpires || budget != conn.DailyBudget {
 		if err := connections.SetHygiene(d.DB, ctx.Who, conn.ID, expires, budget); err != nil {
 			return err
@@ -301,7 +301,7 @@ func (d Deps) handleConnectionHygiene(w http.ResponseWriter, r *http.Request, ct
 		http.NotFound(w, r)
 		return
 	}
-	budget, _ := strconv.Atoi(r.FormValue("budget"))
+	budget := formInt(r, "budget")
 	target := "/connections/" + strconv.FormatInt(id, 10) + "/edit"
 	err = connections.SetHygiene(d.DB, ctx.Who, id, r.FormValue("expires"), budget)
 	if errors.Is(err, connections.ErrBadDate) {

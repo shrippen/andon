@@ -78,7 +78,7 @@ func (d Deps) handleBoardRename(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
+	version := formInt(r, "version")
 	var themeID *int64
 	if n, err := strconv.ParseInt(r.FormValue("theme_id"), 10, 64); err == nil {
 		themeID = &n
@@ -113,7 +113,7 @@ func (d Deps) handleSectionAdd(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
+	version := formInt(r, "version")
 	if _, err := boards.AddSection(d.DB, ctx.Who, boardID, version, r.FormValue("title")); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
 		return
@@ -131,7 +131,7 @@ func (d Deps) handleSectionEdit(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
+	version := formInt(r, "version")
 	title := r.FormValue("title")
 	size := enums.TileSize(r.FormValue("size"))
 	sortOrder := enums.SortOrder(r.FormValue("sort"))
@@ -141,8 +141,8 @@ func (d Deps) handleSectionEdit(w http.ResponseWriter, r *http.Request, ctx Ctx)
 	if n, err := strconv.Atoi(r.FormValue("cols")); err == nil && n > 0 {
 		cols = &n
 	}
-	span, _ := strconv.Atoi(r.FormValue("span"))
-	rows, _ := strconv.Atoi(r.FormValue("rows"))
+	span := formInt(r, "span")
+	rows := formInt(r, "rows")
 	color := r.FormValue("color")
 	mobile := enums.MobileMode(r.FormValue("mobile"))
 	changes := boards.SectionChanges{Title: &title, Size: &size, Sort: &sortOrder, Area: &area,
@@ -166,7 +166,7 @@ func (d Deps) handleSectionDelete(w http.ResponseWriter, r *http.Request, ctx Ct
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
+	version := formInt(r, "version")
 	boardID := r.FormValue("board_id")
 	if err := boards.DeleteSection(d.DB, ctx.Who, id, version); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
@@ -190,8 +190,8 @@ func (d Deps) handlePlace(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	widgetID, _ := strconv.ParseInt(r.FormValue("widget_id"), 10, 64)
-	version, _ := strconv.Atoi(r.FormValue("version"))
+	widgetID := formID(r, "widget_id")
+	version := formInt(r, "version")
 	if _, err := boards.Place(d.DB, ctx.Who, sectionID, widgetID, version); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
 		return
@@ -209,7 +209,7 @@ func (d Deps) handleUnplace(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
+	version := formInt(r, "version")
 	boardID := r.FormValue("board_id")
 	if err := boards.Unplace(d.DB, ctx.Who, id, version); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
@@ -229,8 +229,8 @@ func (d Deps) handleTileRows(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
-	rows, _ := strconv.Atoi(r.FormValue("rows"))
+	version := formInt(r, "version")
+	rows := formInt(r, "rows")
 	if err := boards.SetTileRows(d.DB, ctx.Who, id, rows, version); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
 		return
@@ -249,8 +249,8 @@ func (d Deps) handleTileCols(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
-	cols, _ := strconv.Atoi(r.FormValue("cols"))
+	version := formInt(r, "version")
+	cols := formInt(r, "cols")
 	if err := boards.SetTileCols(d.DB, ctx.Who, id, cols, version); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
 		return
@@ -511,7 +511,7 @@ func (d Deps) handleWidgetUpdate(w http.ResponseWriter, r *http.Request, ctx Ctx
 	}
 	kind, _ := widgets.Get(widget.Type)
 	config := widgets.ParseForm(kind.Key, r.FormValue)
-	version, _ := strconv.Atoi(r.FormValue("widget_version"))
+	version := formInt(r, "widget_version")
 	title := r.FormValue("title")
 	target := targetOf(r.FormValue)
 
@@ -530,7 +530,7 @@ func (d Deps) handleWidgetPreview(w http.ResponseWriter, r *http.Request, ctx Ct
 		http.Error(w, "widget.unknown_type", http.StatusBadRequest)
 		return
 	}
-	space, _ := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
+	space := formID(r, "space_id")
 	config := widgets.ParseForm(kind.Key, r.FormValue)
 
 	// Without a connection a service tile previews demo data.

@@ -306,7 +306,7 @@ func (d Deps) handleHintAct(action hints.Action) http.HandlerFunc {
 		if !ok {
 			return
 		}
-		days, _ := strconv.Atoi(r.FormValue("days"))
+		days := formInt(r, "days")
 		if choice := r.FormValue("for"); choice != "" {
 			days = hints.SnoozeDays(choice, time.Now())
 		}
@@ -413,7 +413,7 @@ func (d Deps) handleHintWorkflow(step hintStep) http.HandlerFunc {
 		var err error
 		switch step {
 		case hintAssign:
-			assignee, _ := strconv.ParseInt(r.FormValue("assignee"), 10, 64)
+			assignee := formID(r, "assignee")
 			err = hints.Assign(d.DB, ctx.Who, id, assignee, note)
 		case hintWork:
 			err = hints.SetWork(d.DB, ctx.Who, id, enums.WorkState(r.FormValue("state")), note)

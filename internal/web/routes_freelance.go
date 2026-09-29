@@ -27,7 +27,7 @@ func (d Deps) handleKimaiTimer(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		return
 	}
 	num := func(name string) int64 {
-		n, _ := strconv.ParseInt(r.FormValue(name), 10, 64)
+		n := formID(r, name)
 		return n
 	}
 	req := timer.Request{Action: timer.Action(r.FormValue("action")), Project: num("project"), Activity: num("activity"),
@@ -93,8 +93,8 @@ func (d Deps) RegisterBillingRoutes(mux *http.ServeMux) {
 
 // handlePaymentBook books a matched bank income in Invoice Ninja.
 func (d Deps) handlePaymentBook(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	space, _ := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
-	invoice, _ := strconv.ParseInt(r.FormValue("invoice_id"), 10, 64)
+	space := formID(r, "space_id")
+	invoice := formID(r, "invoice_id")
 	if err := billing.Book(r.Context(), d.DB, ctx.Who, space, r.FormValue("txn"), invoice, d.clientIP(r)); err != nil {
 		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
@@ -134,8 +134,8 @@ func (d Deps) handleBillingPage(w http.ResponseWriter, r *http.Request, ctx Ctx)
 }
 
 func (d Deps) handleBillingDraft(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	space, _ := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
-	customer, _ := strconv.ParseInt(r.FormValue("customer_id"), 10, 64)
+	space := formID(r, "space_id")
+	customer := formID(r, "customer_id")
 	mode := billing.KeepSheets
 	if r.FormValue("mark_exported") != "" {
 		mode = billing.MarkSheets
@@ -149,8 +149,8 @@ func (d Deps) handleBillingDraft(w http.ResponseWriter, r *http.Request, ctx Ctx
 }
 
 func (d Deps) handleBillingExport(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	space, _ := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
-	year, _ := strconv.Atoi(r.FormValue("year"))
+	space := formID(r, "space_id")
+	year := formInt(r, "year")
 	name, blob, err := billing.Export(r.Context(), d.DB, ctx.Who, space, year, d.clientIP(r))
 	if err != nil {
 		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
@@ -163,7 +163,7 @@ func (d Deps) handleBillingExport(w http.ResponseWriter, r *http.Request, ctx Ct
 
 // handleMailForward sends one invoice mail's attachments to Paperless.
 func (d Deps) handleMailForward(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	conn, _ := strconv.ParseInt(r.FormValue("conn"), 10, 64)
+	conn := formID(r, "conn")
 	uid, _ := strconv.ParseUint(r.FormValue("uid"), 10, 32)
 	n, err := mailfwd.Forward(r.Context(), d.DB, ctx.Who, conn, uint32(uid), d.clientIP(r))
 	if err != nil {
@@ -175,7 +175,7 @@ func (d Deps) handleMailForward(w http.ResponseWriter, r *http.Request, ctx Ctx)
 
 // handleMailRead lets Claude read one invoice mail's attachments.
 func (d Deps) handleMailRead(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	conn, _ := strconv.ParseInt(r.FormValue("conn"), 10, 64)
+	conn := formID(r, "conn")
 	uid, _ := strconv.ParseUint(r.FormValue("uid"), 10, 32)
 	if _, err := mailfwd.Read(r.Context(), d.DB, ctx.Who, conn, uint32(uid), d.clientIP(r)); err != nil {
 		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})

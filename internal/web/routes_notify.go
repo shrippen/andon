@@ -53,7 +53,7 @@ func (d Deps) handleNotifyChannelCreate(w http.ResponseWriter, r *http.Request, 
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	level, _ := strconv.Atoi(r.FormValue("level"))
+	level := formInt(r, "level")
 	sources := r.Form["sources"]
 	if err := notify.AddChannel(d.DB, ctx.Who, r.FormValue("name"), r.FormValue("url"), enums.Severity(level), sources); err != nil {
 		d.notifyPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": err.Error()})

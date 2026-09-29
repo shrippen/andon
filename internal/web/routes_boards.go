@@ -406,7 +406,7 @@ func (d Deps) handleShow(w http.ResponseWriter, r *http.Request) {
 // handleMyRows sets a tile's height in the caller's own layout.
 func (d Deps) handleMyRows(w http.ResponseWriter, r *http.Request) {
 	d.layoutAction(w, r, "placementID", func(ctx Ctx, id, placementID int64) error {
-		rows, _ := strconv.Atoi(r.FormValue("rows"))
+		rows := formInt(r, "rows")
 		return boards.SetMyTileRows(d.DB, ctx.Who, id, placementID, rows)
 	}, layoutPage)
 }
@@ -414,7 +414,7 @@ func (d Deps) handleMyRows(w http.ResponseWriter, r *http.Request) {
 // handleMyCols sets a tile's width in the caller's own layout.
 func (d Deps) handleMyCols(w http.ResponseWriter, r *http.Request) {
 	d.layoutAction(w, r, "placementID", func(ctx Ctx, id, placementID int64) error {
-		cols, _ := strconv.Atoi(r.FormValue("cols"))
+		cols := formInt(r, "cols")
 		return boards.SetMyTileCols(d.DB, ctx.Who, id, placementID, cols)
 	}, layoutPage)
 }
@@ -493,7 +493,7 @@ func (d Deps) handleSuggestApply(w http.ResponseWriter, r *http.Request, ctx Ctx
 		http.NotFound(w, r)
 		return
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
+	version := formInt(r, "version")
 	if err := boards.ApplySuggestion(d.DB, ctx.Who, id, version); err != nil {
 		d.handleBoardError(w, r, err)
 		return

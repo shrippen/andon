@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"andon/internal/services/access"
 	"andon/internal/services/admin"
@@ -102,4 +103,17 @@ func isAny(err error, list []error) bool {
 		}
 	}
 	return false
+}
+
+// formInt reads a whole-number form field; 0 when missing or not a
+// number (fields where 0 means "none", or a version a stale form sends).
+func formInt(r *http.Request, name string) int {
+	n, _ := strconv.Atoi(r.FormValue(name))
+	return n
+}
+
+// formID reads an id form field; 0 when missing or not a number.
+func formID(r *http.Request, name string) int64 {
+	n, _ := strconv.ParseInt(r.FormValue(name), 10, 64)
+	return n
 }
