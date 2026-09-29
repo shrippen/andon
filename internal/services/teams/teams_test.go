@@ -132,3 +132,29 @@ func TestDeleteRequiresAdmin(t *testing.T) {
 		t.Fatalf("expected team gone, got %+v err=%v", got, err)
 	}
 }
+
+// TestCandidatesOnlyForManagers: the list of all users to add (with
+// e-mail addresses) is for team owners and admins, not every member.
+func TestCandidatesOnlyForManagers(t *testing.T) {
+	d := openTestDB(t)
+	admin := addUser(t, d, "admin@x.de", enums.RoleAdmin)
+	member := addUser(t, d, "m@x.de", enums.RoleUser)
+	adminWho, _ := access.Load(d, admin.ID)
+	teamID, _ := teams.Create(d, adminWho, "IT", "")
+	if err := teams.SetMember(d, adminWho, teamID, member.ID, enums.TeamEditor, ""); err != nil {
+		t.Fatal(err)
+	}
+	memberWho, _ := access.Load(d, member.ID)
+
+	if list, err := teams.Candidates(d, memberWho); err != nil || len(list) != 0 {
+		t.Fatalf("member sees %d users, %v", len(list), err)
+	}
+	list, err := teams.Candidates(d, adminWho)
+	if err != nil || len(list) != 2 {
+		t.Fatalf("admin: %v %v", list, err)
+	}
+	overview, _ := teams.Overview(d, memberWho)
+	if overview[0].CanManage {
+		t.Fatal("editor may manage")
+	}
+}

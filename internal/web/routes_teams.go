@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"andon/internal/enums"
-	"andon/internal/repos/users"
 	"andon/internal/services/spaces"
 	"andon/internal/services/teams"
 	"andon/internal/services/themes"
@@ -28,7 +27,7 @@ func (d Deps) teamsPage(w http.ResponseWriter, ctx Ctx, status int, extra map[st
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
-	allUsers, err := users.All(d.DB)
+	candidates, err := teams.Candidates(d.DB, ctx.Who)
 	if err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
 		return
@@ -51,7 +50,7 @@ func (d Deps) teamsPage(w http.ResponseWriter, ctx Ctx, status int, extra map[st
 			themeOf[team.SpaceID] = int64(id)
 		}
 	}
-	values := map[string]any{"Teams": overview, "Users": allUsers, "Themes": themeList, "AckTeam": ackTeam, "ThemeOf": themeOf}
+	values := map[string]any{"Teams": overview, "Users": candidates, "Themes": themeList, "AckTeam": ackTeam, "ThemeOf": themeOf}
 	for k, v := range extra {
 		values[k] = v
 	}

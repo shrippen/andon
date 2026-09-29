@@ -82,6 +82,8 @@ type View struct {
 	SpaceID int64
 	MyRole  *enums.TeamRole
 	Members []Member
+	// CanManage: who may add and remove members (owner or admin).
+	CanManage bool
 }
 
 // Overview lists every team the principal is a member of (or, for admins,
@@ -119,7 +121,7 @@ func Overview(d *sql.DB, who *access.Principal) ([]View, error) {
 				members = append(members, Member{UserID: u.ID, Name: u.Name, Email: u.Email, Role: m.Role})
 			}
 
-			view := View{ID: team.ID, Name: team.Name, Members: members}
+			view := View{ID: team.ID, Name: team.Name, Members: members, CanManage: mayManage(who, team.ID) == nil}
 			if space != nil {
 				view.SpaceID = space.ID
 			}
@@ -128,6 +130,37 @@ func Overview(d *sql.DB, who *access.Principal) ([]View, error) {
 				view.MyRole = &r
 			}
 			out = append(out, view)
+		}
+		return nil
+	})
+	return out, err
+}
+
+// Candidate is a user who can be added to a team.
+type Candidate struct {
+	ID          int64
+	Name, Email string
+}
+
+// Candidates lists every user to add to a team, for who manages at least
+// one team (owner) or all (admin); nil for anyone else: a member must not
+// read every account's address.
+func Candidates(d *sql.DB, who *access.Principal) ([]Candidate, error) {
+	manages := who.IsAdmin()
+	for _, role := range who.Teams {
+		manages = manages || role == enums.TeamOwner
+	}
+	if !manages {
+		return nil, nil
+	}
+	var out []Candidate
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		all, err := users.All(tx)
+		if err != nil {
+			return err
+		}
+		for _, u := range all {
+			out = append(out, Candidate{ID: u.ID, Name: u.Name, Email: u.Email})
 		}
 		return nil
 	})
