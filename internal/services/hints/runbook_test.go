@@ -17,7 +17,7 @@ import (
 // A runbook belongs to a rule in a space: every hint of that rule there
 // shows it. Only who may edit the space writes it; others cannot reach it.
 func TestRunbookPerRule(t *testing.T) {
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	d, err := db.Open(filepath.Join(t.TempDir(), "r.db"), dbtest.Key)
 	if err != nil {
 		t.Fatal(err)

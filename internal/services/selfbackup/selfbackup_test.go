@@ -19,8 +19,12 @@ import (
 // TestRunVerifiesAndPrunes: each run leaves a copy that passes the
 // restore test (rows, decryptable secrets); only Keep copies stay.
 func TestRunVerifiesAndPrunes(t *testing.T) {
-	crypto.Init("test-master-key")
-	d, err := db.Open(filepath.Join(t.TempDir(), "live.db"), dbtest.Key)
+	crypto.Init(crypto.Derive("test-master-key", nil))
+	live := filepath.Join(t.TempDir(), "live.db")
+	if err := db.WriteSalt(live, crypto.NewSalt()); err != nil {
+		t.Fatal(err)
+	}
+	d, err := db.Open(live, dbtest.Key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,14 +60,18 @@ func TestRunVerifiesAndPrunes(t *testing.T) {
 	if len(files) != selfbackup.Keep || files[0].Name != "andon-20260909-030000.db" {
 		t.Fatalf("files: %+v", files)
 	}
+	// Each copy keeps the salt its key needs, and loses it with the copy.
+	if salts, _ := filepath.Glob(filepath.Join(dir, "*.salt")); len(salts) != selfbackup.Keep {
+		t.Fatalf("salts: %v", salts)
+	}
 	last, err := selfbackup.Last(d)
 	if err != nil || last == nil || !last.OK || last.File != files[0].Name {
 		t.Fatalf("last: %+v %v", last, err)
 	}
 
 	// A copy the master key cannot open fails the test and is dropped.
-	crypto.Init("other-key")
-	defer crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("other-key", nil))
+	defer crypto.Init(crypto.Derive("test-master-key", nil))
 	status, _ := selfbackup.Run(d, dir, start.AddDate(0, 1, 0))
 	if status.OK || status.Problem != "selfbackup.secrets" {
 		t.Fatalf("wrong key passed: %+v", status)
@@ -71,13 +79,16 @@ func TestRunVerifiesAndPrunes(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, status.File)); !os.IsNotExist(err) {
 		t.Fatalf("failed copy kept")
 	}
+	if _, err := os.Stat(filepath.Join(dir, status.File+".salt")); !os.IsNotExist(err) {
+		t.Fatalf("failed copy's salt kept")
+	}
 }
 
 // TestRunDueSurvivesRestarts: a process restarted more often than once a
 // day still backs up, because the job checks the last copy's age instead
 // of waiting a day after start.
 func TestRunDueSurvivesRestarts(t *testing.T) {
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	d, err := db.Open(filepath.Join(t.TempDir(), "live.db"), dbtest.Key)
 	if err != nil {
 		t.Fatal(err)

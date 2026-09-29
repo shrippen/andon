@@ -229,7 +229,7 @@ func TestResolvedLists(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { d.Close() })
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	who := person(t, d, "a@x.de")
 	sid := ownSpace(who)
 	ids := []string{"kimai.missing_day"}

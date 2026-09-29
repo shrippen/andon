@@ -13,19 +13,30 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"os"
 )
 
 // integrityOK is SQLite's answer for a sound database.
 const integrityOK = "ok"
 
-// Snapshot writes a consistent copy of the database to path.
+// Snapshot writes a consistent copy of the database to path, with the
+// salt its key needs beside it.
 func Snapshot(d *sql.DB, path string) error {
-	key := keyOf(d)
-	if key == nil {
+	h := handleOf(d)
+	if h.key == nil {
 		return ErrKey
 	}
-	_, err := d.Exec("VACUUM INTO ?", fileURI(path, key))
-	return err
+	if _, err := d.Exec("VACUUM INTO ?", fileURI(path, h.key)); err != nil {
+		return err
+	}
+	if err := os.Chmod(path, fileMode); err != nil {
+		return err
+	}
+	salt, err := ReadSalt(h.path)
+	if err != nil || salt == nil {
+		return err
+	}
+	return WriteSalt(path, salt)
 }
 
 // Rekey writes a copy of the database at path under newKey. Open swaps
@@ -52,7 +63,9 @@ func OpenReadOnly(live *sql.DB, path string) (*sql.DB, error) {
 	return sql.Open(driverName, dsn(path, key, "&mode=ro"))
 }
 
-func keyOf(d *sql.DB) []byte {
+func keyOf(d *sql.DB) []byte { return handleOf(d).key }
+
+func handleOf(d *sql.DB) handle {
 	keysMu.Lock()
 	defer keysMu.Unlock()
 	return keys[d]

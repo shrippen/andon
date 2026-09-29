@@ -16,7 +16,7 @@ import (
 // TestSecureHeadersOverHTTPS: behind TLS the browser is told to stay on
 // HTTPS and to isolate the window from openers.
 func TestSecureHeadersOverHTTPS(t *testing.T) {
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	database, err := db.Open(filepath.Join(t.TempDir(), "test.db"), dbtest.Key)
 	if err != nil {
 		t.Fatal(err)
@@ -50,7 +50,7 @@ func TestSecureHeadersOverHTTPS(t *testing.T) {
 // calendar clients cannot send headers) is neither cached nor passed on
 // as referrer.
 func TestTokenURLsAreNotCached(t *testing.T) {
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	database, err := db.Open(filepath.Join(t.TempDir(), "test.db"), dbtest.Key)
 	if err != nil {
 		t.Fatal(err)
@@ -68,7 +68,7 @@ func TestTokenURLsAreNotCached(t *testing.T) {
 // TestCrossSiteFormRefused: another site cannot post a login (login
 // CSRF) or a reset; the browser marks such requests cross-site.
 func TestCrossSiteFormRefused(t *testing.T) {
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	database, err := db.Open(filepath.Join(t.TempDir(), "test.db"), dbtest.Key)
 	if err != nil {
 		t.Fatal(err)

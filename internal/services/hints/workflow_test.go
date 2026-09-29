@@ -45,7 +45,7 @@ func ownSpace(who *access.Principal) int64 {
 // History records the rule's lifecycle and the user's steps; flapping
 // shows after repeated reopenings; outsiders cannot be assigned.
 func TestHintWorkflow(t *testing.T) {
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	d, err := db.Open(filepath.Join(t.TempDir(), "w.db"), dbtest.Key)
 	if err != nil {
 		t.Fatal(err)

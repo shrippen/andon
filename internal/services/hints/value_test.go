@@ -17,7 +17,7 @@ import (
 // TestValueAndNoisyRules: hints carry the largest money amount they name;
 // a rule whose hints are all dismissed shows as noisy.
 func TestValueAndNoisyRules(t *testing.T) {
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	d, err := db.Open(filepath.Join(t.TempDir(), "v.db"), dbtest.Key)
 	if err != nil {
 		t.Fatal(err)

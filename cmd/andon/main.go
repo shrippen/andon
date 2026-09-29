@@ -20,6 +20,7 @@ import (
 	"andon/internal/services/auth"
 	"andon/internal/services/icons"
 	"andon/internal/services/mail"
+	"andon/internal/services/maintenance"
 	"andon/internal/services/scheduler"
 	"andon/internal/services/seed"
 	"andon/internal/services/summary"
@@ -62,29 +63,30 @@ func run() int {
 		slog.Error("MASTER_KEY is required (see docker-compose.example.yml)")
 		os.Exit(1)
 	}
-	crypto.Init(masterKey)
-	if crypto.WeakKey(masterKey) && !cfg.Dev {
-		slog.Warn("MASTER_KEY is guessable; replace it via rotate-key with one from openssl rand -base64 32")
+	// A guessable key would give a stolen database away; the server
+	// refuses it, rotate-key (a command) still runs to replace it.
+	if crypto.WeakKey(masterKey) && serving(os.Args) && !cfg.Dev {
+		slog.Error("MASTER_KEY is guessable; replace it: andon rotate-key <file with the output of openssl rand -base64 32>")
+		os.Exit(1)
 	}
+	restrictFiles()
 
 	if err := os.MkdirAll(cfg.DataDir, 0o750); err != nil {
 		slog.Error("create data dir", "err", err)
 		os.Exit(1)
 	}
-	dbKey, err := crypto.DatabaseKey(nil)
-	if err != nil {
-		slog.Error("database key", "err", err)
-		os.Exit(1)
-	}
 	if serving(os.Args) {
 		defer lockDB(cfg.DBPath()).Release()
 	}
-	database, err := db.Open(cfg.DBPath(), dbKey)
+	database, unlocked, err := maintenance.Unlock(cfg.DBPath(), masterKey)
 	if err != nil {
 		slog.Error("open database", "err", err)
 		os.Exit(1)
 	}
 	defer database.Close()
+	if unlocked == maintenance.UnlockedUpgraded {
+		slog.Warn("database re-encrypted under an Argon2id key; keep andon.db.salt with your backups, webhook URLs changed")
+	}
 
 	if handled, code := runCLI(os.Args, database, cfg.DBPath(), cfg.DataDir); handled {
 		os.Exit(code)

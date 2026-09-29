@@ -66,7 +66,7 @@ func runAnalysis(t *testing.T, srv *httptest.Server) {
 
 func newTestServer(t *testing.T) (*httptest.Server, *http.Client, string) {
 	t.Helper()
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	auth.ResetThrottle()
 	database, err := db.Open(filepath.Join(t.TempDir(), "test.db"), dbtest.Key)
 	if err != nil {

@@ -12,10 +12,7 @@ import (
 	"strings"
 )
 
-const (
-	secretsDir       = "/run/secrets"
-	devMasterKeyFile = "dev_master_key"
-)
+const secretsDir = "/run/secrets"
 
 // Settings holds the container's operating configuration.
 type Settings struct {
@@ -23,7 +20,7 @@ type Settings struct {
 	DataDir     string
 	DatabaseURL string
 
-	// Development: relaxed cookies, generated master key inside DataDir.
+	// Development: a guessable MASTER_KEY is accepted (ANDON_DEV).
 	Dev     bool
 	Demo    bool
 	Testing bool

@@ -21,7 +21,7 @@ import (
 // TestBeforeShowsUpdateBeforeOutage: an update recorded minutes before a
 // hint appears shows as its prehistory; the hint and later events do not.
 func TestBeforeShowsUpdateBeforeOutage(t *testing.T) {
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	d, err := db.Open(filepath.Join(t.TempDir(), "t.db"), dbtest.Key)
 	if err != nil {
 		t.Fatal(err)

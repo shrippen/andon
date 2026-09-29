@@ -28,7 +28,7 @@ const masterKey = "test-master-key"
 // DB opens a fresh, migrated database that closes with the test.
 func DB(t *testing.T) *sql.DB {
 	t.Helper()
-	crypto.Init(masterKey)
+	crypto.Init(crypto.Derive(masterKey, nil))
 	d, err := db.Open(filepath.Join(t.TempDir(), "test.db"), dbtest.Key)
 	if err != nil {
 		t.Fatalf("open db: %v", err)

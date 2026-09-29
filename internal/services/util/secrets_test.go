@@ -7,7 +7,7 @@ import (
 )
 
 func TestHeadersSealed(t *testing.T) {
-	crypto.Init("test-secret-with-enough-length-0123456789")
+	crypto.Init(crypto.Derive("test-secret-with-enough-length-0123456789", nil))
 	sealed, err := SealSecrets(map[string]any{"url": "u", "headers": map[string]any{"X-Api": "tok"}}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -34,7 +34,7 @@ func TestHeadersSealed(t *testing.T) {
 }
 
 func TestStringSecret(t *testing.T) {
-	crypto.Init("test-secret-with-enough-length-0123456789")
+	crypto.Init(crypto.Derive("test-secret-with-enough-length-0123456789", nil))
 	sealed, err := SealSecrets(map[string]any{"api_key": "k1", "limit": 3.0}, nil)
 	if err != nil || sealed["api_key"] != nil || sealed["limit"] != 3.0 {
 		t.Fatalf("sealed: %v %v", sealed, err)
@@ -50,7 +50,7 @@ func TestStringSecret(t *testing.T) {
 // TestSealDropsSecretsForNewHost: headers kept from before must not go
 // to a URL on another host; the same host keeps them.
 func TestSealDropsSecretsForNewHost(t *testing.T) {
-	crypto.Init("test-secret-with-enough-length-0123456789")
+	crypto.Init(crypto.Derive("test-secret-with-enough-length-0123456789", nil))
 	prev, err := SealSecrets(map[string]any{"url": "https://api.lan/x", "headers": map[string]any{"Authorization": "Bearer t"}}, nil)
 	if err != nil {
 		t.Fatal(err)
