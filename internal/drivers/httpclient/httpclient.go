@@ -132,9 +132,23 @@ const (
 	maxIdlePerHost  = 4
 )
 
-var transports = map[TLS]*http.Transport{
-	TLSVerify: newTransport(TLSVerify),
-	TLSSkip:   newTransport(TLSSkip),
+var transports = map[TLS]http.RoundTripper{
+	TLSVerify: proxyGuard{newTransport(TLSVerify)},
+	TLSSkip:   proxyGuard{newTransport(TLSSkip)},
+}
+
+// proxyGuard checks the target of a request sent through an HTTP proxy
+// (HTTP(S)_PROXY): the dial then reaches only the proxy, so the guard in
+// Dial never sees the real host. Each redirect is a request of its own.
+type proxyGuard struct{ base *http.Transport }
+
+func (p proxyGuard) RoundTrip(req *http.Request) (*http.Response, error) {
+	if proxy, err := p.base.Proxy(req); err == nil && proxy != nil {
+		if err := checkGuard(req.URL.String()); err != nil {
+			return nil, err
+		}
+	}
+	return p.base.RoundTrip(req)
 }
 
 func newTransport(mode TLS) *http.Transport {
