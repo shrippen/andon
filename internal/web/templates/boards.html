@@ -50,7 +50,7 @@
   {{with .Board.Page.Description}}<p class="page-desc">{{.}}</p>{{end}}
   {{with .Board.Page.Nav}}<nav class="page-links" aria-label="{{t "board.page_links"}}">{{range .}}<a href="{{.URL}}">{{.Title}}</a>{{end}}</nav>{{end}}
 
-  {{if or .Edit .LayerEdit}}{{template "edit_icons"}}
+  {{if or .Edit .LayerEdit}}
   {{/* One form for every tile strip button (form="tile-act", own
        formaction): per-tile forms made a 50-tile board ~2,500 elements. */}}
   <form id="tile-act" method="post" hidden>
@@ -284,42 +284,30 @@
   {{$wide := t "edit.tile_wide"}}{{if gt .Cols 1}}{{$wide = t "edit.tile_narrow"}}{{end}}
   {{if $b.Edit}}
   <div class="tile-strip">
-    <span class="tile-grip" aria-hidden="true"><svg><use href="#i-grip"/></svg></span>
+    <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
     <label class="tile-check"><input type="checkbox" name="placement" value="{{.PlacementID}}" form="bulk" aria-label="{{t "edit.select"}} {{.Title}}"></label>
     {{if gt .Placed 1}}<span class="tile-repeat" title="{{t "edit.repeated"}}">{{.Placed}}×</span>{{end}}
     <span class="tile-strip-gap"></span>
-    <a class="tile-ico" href="/widgets/{{.WidgetID}}/edit?board={{$b.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><svg><use href="#i-edit"/></svg></a>
-    <a class="tile-ico" href="/shares/widget/{{.WidgetID}}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><svg><use href="#i-share"/></svg></a>
-    <button class="tile-ico" type="submit" form="tile-act" formaction="/placements/{{.PlacementID}}/rows" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><svg><use href="#i-height"/></svg></button>
-    <button class="tile-ico" type="submit" form="tile-act" formaction="/placements/{{.PlacementID}}/cols" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><svg><use href="#i-width"/></svg></button>
-    <button class="tile-ico is-danger" type="submit" form="tile-act" formaction="/placements/{{.PlacementID}}/unplace" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><svg><use href="#i-x"/></svg></button>
+    <a class="tile-ico" href="/widgets/{{.WidgetID}}/edit?board={{$b.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><i class="ico ico-edit"></i></a>
+    <a class="tile-ico" href="/shares/widget/{{.WidgetID}}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><i class="ico ico-share"></i></a>
+    <button class="tile-ico" type="submit" form="tile-act" formaction="/placements/{{.PlacementID}}/rows" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><i class="ico ico-height"></i></button>
+    <button class="tile-ico" type="submit" form="tile-act" formaction="/placements/{{.PlacementID}}/cols" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><i class="ico ico-width"></i></button>
+    <button class="tile-ico is-danger" type="submit" form="tile-act" formaction="/placements/{{.PlacementID}}/unplace" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><i class="ico ico-x"></i></button>
   </div>
   {{else if $b.LayerEdit}}
   {{$eye := t "edit.hide"}}{{if .Hidden}}{{$eye = t "edit.show"}}{{end}}
   <div class="tile-strip">
-    <span class="tile-grip" aria-hidden="true"><svg><use href="#i-grip"/></svg></span>
+    <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
     <span class="tile-strip-gap"></span>
-    <button class="tile-ico" type="submit" form="tile-act" formaction="/boards/{{$b.Board.ID}}/show/{{.PlacementID}}" name="state" value="{{if .Hidden}}shown{{else}}hidden{{end}}" aria-label="{{$eye}}" aria-pressed="{{.Hidden}}" title="{{$eye}}"><svg><use href="#i-eye"/></svg></button>
-    <button class="tile-ico" type="submit" form="tile-act" formaction="/boards/{{$b.Board.ID}}/rows/{{.PlacementID}}" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><svg><use href="#i-height"/></svg></button>
-    <button class="tile-ico" type="submit" form="tile-act" formaction="/boards/{{$b.Board.ID}}/cols/{{.PlacementID}}" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><svg><use href="#i-width"/></svg></button>
+    <button class="tile-ico" type="submit" form="tile-act" formaction="/boards/{{$b.Board.ID}}/show/{{.PlacementID}}" name="state" value="{{if .Hidden}}shown{{else}}hidden{{end}}" aria-label="{{$eye}}" aria-pressed="{{.Hidden}}" title="{{$eye}}"><i class="ico ico-eye"></i></button>
+    <button class="tile-ico" type="submit" form="tile-act" formaction="/boards/{{$b.Board.ID}}/rows/{{.PlacementID}}" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><i class="ico ico-height"></i></button>
+    <button class="tile-ico" type="submit" form="tile-act" formaction="/boards/{{$b.Board.ID}}/cols/{{.PlacementID}}" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><i class="ico ico-width"></i></button>
   </div>
   {{end}}
 </div>
 {{end}}
 {{end}}
 
-{{/* Icons of the tile strip, once per page in edit and layout mode. */}}
-{{define "edit_icons"}}
-<svg class="sprite" aria-hidden="true" focusable="false">
-  <symbol id="i-grip" viewBox="0 0 16 16"><path fill="currentColor" d="M5 2h2v2H5zm4 0h2v2H9zM5 7h2v2H5zm4 0h2v2H9zm-4 5h2v2H5zm4 0h2v2H9z"/></symbol>
-  <symbol id="i-edit" viewBox="0 0 16 16"><path fill="currentColor" d="M11.3 1.3a1 1 0 0 1 1.4 0l2 2a1 1 0 0 1 0 1.4L6 13.4 2 14l.6-4 8.7-8.7Z"/></symbol>
-  <symbol id="i-share" viewBox="0 0 16 16"><path fill="currentColor" d="M12 1a3 3 0 1 1-2.8 4l-3.4 1.8a3 3 0 0 1 0 2.4L9.2 11A3 3 0 1 1 9 12.4l-3.5-1.9a3 3 0 1 1 0-5L9 3.6A3 3 0 0 1 12 1Z"/></symbol>
-  <symbol id="i-height" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0 12 4H9v8h3l-4 4-4-4h3V4H4Z"/></symbol>
-  <symbol id="i-width" viewBox="0 0 16 16"><path fill="currentColor" d="M0 8 4 4v3h8V4l4 4-4 4V9H4v3Z"/></symbol>
-  <symbol id="i-x" viewBox="0 0 16 16"><path fill="currentColor" d="M3.4 2 8 6.6 12.6 2 14 3.4 9.4 8l4.6 4.6-1.4 1.4L8 9.4 3.4 14 2 12.6 6.6 8 2 3.4Z"/></symbol>
-  <symbol id="i-eye" viewBox="0 0 16 16"><path fill="currentColor" d="M8 3c3.6 0 6.3 2.6 7.5 5-1.2 2.4-3.9 5-7.5 5S1.7 10.4.5 8C1.7 5.6 4.4 3 8 3Zm0 2.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z"/></symbol>
-</svg>
-{{end}}
 
 {{define "board_history"}}
 <!doctype html>

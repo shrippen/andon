@@ -50,6 +50,9 @@ func TestEditBoardFiftyLinks(t *testing.T) {
 	if forms := bytes.Count(page, []byte("<form")); forms >= editTiles {
 		t.Errorf("edit page has %d forms: tile strips must share one", forms)
 	}
+	if icons := bytes.Count(page, []byte("<svg")); icons >= editTiles {
+		t.Errorf("edit page has %d SVG icons: each costs a shadow tree", icons)
+	}
 	frags := fragmentRe.FindAllSubmatch(page, -1)
 	if len(frags) != editTiles {
 		t.Fatalf("expected %d fragments, got %d", editTiles, len(frags))
