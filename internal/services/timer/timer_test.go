@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"sync"
 	"testing"
 
@@ -133,10 +134,27 @@ func TestEditRunning(t *testing.T) {
 	if err := timer.Run(context.Background(), d, who, tile, req, ""); err != nil {
 		t.Fatalf("edit: %v", err)
 	}
-	body := k.bodies[0]
-	if k.writes[0] != "PATCH /api/timesheets/9" || body["begin"] != "2026-09-29T08:00:00" || body["end"] != nil ||
+	// Tags "Film" and "Ton" are created first.
+	body := k.bodies[2]
+	if k.writes[2] != "PATCH /api/timesheets/9" || body["begin"] != "2026-09-29T08:00:00" || body["end"] != nil ||
 		body["tags"] != "Film,Ton" || body["billable"] != true || body["description"] != "Kunde" {
 		t.Fatalf("edit: %v %v", k.writes, body)
+	}
+}
+
+// Kimai drops tags it does not know, so each one is created first; a
+// tag that exists already (400) does not stop the write.
+func TestTagsCreated(t *testing.T) {
+	k := &kimaiWrites{reject: func(body map[string]any) bool { return body["name"] == "Film" }}
+	d, who, tile := kimaiTile(t, k)
+	req := timer.Request{Action: timer.ActionCreate, Project: 3, Activity: 7, Begin: "2026-09-29T08:00", End: "2026-09-29T09:00",
+		Tags: "Film, Neu"}
+	if err := timer.Run(context.Background(), d, who, tile, req, ""); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	want := []string{"POST /api/tags", "POST /api/tags", "POST /api/timesheets"}
+	if !slices.Equal(k.writes, want) || k.bodies[0]["name"] != "Film" || k.bodies[1]["name"] != "Neu" || k.bodies[1]["visible"] != true {
+		t.Fatalf("writes: %v %v", k.writes, k.bodies)
 	}
 }
 

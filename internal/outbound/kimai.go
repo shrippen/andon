@@ -58,6 +58,16 @@ func KimaiCreate(ctx context.Context, to Target, sheet KimaiSheet) error {
 	return kimaiWrite(ctx, to, http.MethodPost, "timesheets", sheet.body())
 }
 
+// KimaiTags creates tags so a timesheet write can use them: Kimai's API
+// drops unknown tag names without error. A tag that exists already is
+// refused (HTTP 400) and skipped; so is one the user may not create.
+func KimaiTags(ctx context.Context, to Target, names []string) {
+	api := services.KimaiApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}
+	for _, name := range names {
+		api.Send(ctx, http.MethodPost, "tags", map[string]any{"name": name, "visible": true})
+	}
+}
+
 // KimaiEdit changes one timesheet; a running one keeps running unless
 // End is set.
 func KimaiEdit(ctx context.Context, to Target, timesheetID int64, sheet KimaiSheet) error {

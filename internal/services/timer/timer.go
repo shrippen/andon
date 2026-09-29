@@ -183,6 +183,7 @@ func create(ctx context.Context, to outbound.Target, req Request) error {
 	if err != nil {
 		return err
 	}
+	outbound.KimaiTags(ctx, to, sheet.Tags)
 	return outbound.KimaiCreate(ctx, to, sheet)
 }
 
@@ -195,6 +196,7 @@ func edit(ctx context.Context, to outbound.Target, req Request) error {
 	if err != nil {
 		return err
 	}
+	outbound.KimaiTags(ctx, to, sheet.Tags)
 	return outbound.KimaiEdit(ctx, to, req.Sheet, sheet)
 }
 
