@@ -32,7 +32,7 @@ func TestSnipeDataNormalizesAssets(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	src := sources.SnipeData{}
+	src := sources.SnipeData
 	out, err := src.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
 	if err != nil {
 		t.Fatalf("fetch: %v", err)

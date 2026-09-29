@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"andon/internal/drivers/httpclient"
-	"andon/internal/enums"
 )
 
 const (
@@ -53,14 +52,10 @@ type BoardResult struct {
 
 // ── flights ──
 
-type FlightsSource struct{}
-
-func (FlightsSource) Key() string                { return "flights" }
-func (FlightsSource) TTL() time.Duration         { return flightsTTL }
-func (FlightsSource) Service() enums.ServiceType { return "" }
+var FlightsSource = source{key: "flights", ttl: flightsTTL, fetch: fetchFlights}
 
 // Fetch: params airport (IATA), direction (Departure|Arrival), api_key.
-func (FlightsSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchFlights(ctx context.Context, sctx Ctx) (any, error) {
 	key := asStr(sctx.Params["api_key"])
 	if key == "" {
 		return nil, newSourceError("api_key missing")
@@ -108,14 +103,10 @@ func flightTime(v string) time.Time {
 
 // ── transit ──
 
-type TransitSource struct{}
-
-func (TransitSource) Key() string                { return "transit" }
-func (TransitSource) TTL() time.Duration         { return transitTTL }
-func (TransitSource) Service() enums.ServiceType { return "" }
+var TransitSource = source{key: "transit", ttl: transitTTL, fetch: fetchTransit}
 
 // Fetch: params stop (IBNR id like "8000261" or a name), results.
-func (TransitSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchTransit(ctx context.Context, sctx Ctx) (any, error) {
 	stop := strings.TrimSpace(asStr(sctx.Params["stop"]))
 	name := stop
 	if _, err := strconv.Atoi(stop); err != nil {
@@ -168,6 +159,6 @@ func findStop(ctx context.Context, name string) (string, string, error) {
 }
 
 func init() {
-	Register(FlightsSource{})
-	Register(TransitSource{})
+	Register(FlightsSource)
+	Register(TransitSource)
 }

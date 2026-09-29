@@ -23,7 +23,7 @@ func TestJSONAPIShape(t *testing.T) {
 		w.Write([]byte(`{"stats": {"users": 42}, "name": "app", "jobs": [{"name": "a", "state": "ok"}, {"name": "b"}]}`))
 	}))
 	defer srv.Close()
-	out, err := sources.JSONAPIData{}.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "tok", Options: options})
+	out, err := sources.JSONAPIData.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "tok", Options: options})
 	if err != nil {
 		t.Fatal(err)
 	}

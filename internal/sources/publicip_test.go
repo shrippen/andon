@@ -26,19 +26,19 @@ func TestPublicIPv6(t *testing.T) {
 	defer sources.SetBases(srv.URL)()
 	defer sources.SetPublicIPv6(srv.URL + "/v6")()
 
-	out, err := sources.PublicIPSource{}.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"v6": true}})
+	out, err := sources.PublicIPSource.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"v6": true}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if ip := out.(*sources.PublicIPResult); ip.IP != "203.0.113.5" || ip.IPv6 != "2001:db8::5" {
 		t.Fatalf("ip: %+v", ip)
 	}
-	out, _ = sources.PublicIPSource{}.Fetch(context.Background(), sources.Ctx{})
+	out, _ = sources.PublicIPSource.Fetch(context.Background(), sources.Ctx{})
 	if ip := out.(*sources.PublicIPResult); ip.IPv6 != "" {
 		t.Fatalf("v6 not asked: %+v", ip)
 	}
 	sources.SetPublicIPv6(srv.URL + "/none")
-	out, err = sources.PublicIPSource{}.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"v6": true}})
+	out, err = sources.PublicIPSource.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"v6": true}})
 	if err != nil || out.(*sources.PublicIPResult).IPv6 != "" {
 		t.Fatalf("no v6: %+v %v", out, err)
 	}

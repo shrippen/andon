@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"andon/internal/drivers/httpclient"
-	"andon/internal/enums"
 )
 
 const (
@@ -38,13 +37,9 @@ type Picture struct {
 // xkcdMissing is the comic number that does not exist (a joke of its own).
 const xkcdMissing = 404
 
-type XkcdSource struct{}
+var XkcdSource = source{key: "xkcd", ttl: pictureTTL, fetch: fetchXkcd}
 
-func (XkcdSource) Key() string                { return "xkcd" }
-func (XkcdSource) TTL() time.Duration         { return pictureTTL }
-func (XkcdSource) Service() enums.ServiceType { return "" }
-
-func (XkcdSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchXkcd(ctx context.Context, sctx Ctx) (any, error) {
 	body, _, err := httpclient.GetJSON(ctx, xkcdBase+"/info.0.json", httpclient.Options{})
 	if err != nil {
 		return nil, newSourceError("%s", err.Error())
@@ -74,14 +69,10 @@ func (XkcdSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 
 // ── apod ──
 
-type ApodSource struct{}
-
-func (ApodSource) Key() string                { return "apod" }
-func (ApodSource) TTL() time.Duration         { return pictureTTL }
-func (ApodSource) Service() enums.ServiceType { return "" }
+var ApodSource = source{key: "apod", ttl: pictureTTL, fetch: fetchApod}
 
 // Fetch uses the widget's own API key or NASA's rate-limited DEMO_KEY.
-func (ApodSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchApod(ctx context.Context, sctx Ctx) (any, error) {
 	key := asStr(sctx.Params["api_key"])
 	if key == "" {
 		key = nasaDemo
@@ -104,6 +95,6 @@ func (ApodSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 }
 
 func init() {
-	Register(XkcdSource{})
-	Register(ApodSource{})
+	Register(XkcdSource)
+	Register(ApodSource)
 }

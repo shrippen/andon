@@ -39,7 +39,7 @@ func TestNinjaDataNormalizesInvoicesAndExpenses(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	src := sources.NinjaData{}
+	src := sources.NinjaData
 	out, err := src.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
 	if err != nil {
 		t.Fatalf("fetch: %v", err)
@@ -72,7 +72,7 @@ func TestNinjaTestReadsVersionHeader(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	src := sources.NinjaTest{}
+	src := sources.NinjaTest
 	out, err := src.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
 	if err != nil {
 		t.Fatalf("fetch: %v", err)
@@ -101,7 +101,7 @@ func TestNinjaHashedClientIDs(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	out, err := sources.NinjaData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	out, err := sources.NinjaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}

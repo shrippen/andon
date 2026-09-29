@@ -61,13 +61,9 @@ type ScrutinyDataset struct {
 	Disks []Disk
 }
 
-type ScrutinyData struct{}
+var ScrutinyData = source{key: "scrutiny.data", ttl: opsTTL, service: enums.ServiceScrutiny, fetch: fetchScrutiny}
 
-func (ScrutinyData) Key() string                { return "scrutiny.data" }
-func (ScrutinyData) TTL() time.Duration         { return opsTTL }
-func (ScrutinyData) Service() enums.ServiceType { return enums.ServiceScrutiny }
-
-func (ScrutinyData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchScrutiny(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoScrutiny(time.Now()), nil
 	}
@@ -152,13 +148,9 @@ type ImmichDataset struct {
 	Latest        string         // newest release, "" if unknown
 }
 
-type ImmichData struct{}
+var ImmichData = source{key: "immich.data", ttl: opsTTL, service: enums.ServiceImmich, fetch: fetchImmich}
 
-func (ImmichData) Key() string                { return "immich.data" }
-func (ImmichData) TTL() time.Duration         { return opsTTL }
-func (ImmichData) Service() enums.ServiceType { return enums.ServiceImmich }
-
-func (ImmichData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchImmich(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoImmich(), nil
 	}
@@ -211,13 +203,9 @@ type UmamiDataset struct {
 	Sites []Site
 }
 
-type UmamiData struct{}
+var UmamiData = source{key: "umami.data", ttl: opsTTL, service: enums.ServiceUmami, fetch: fetchUmami}
 
-func (UmamiData) Key() string                { return "umami.data" }
-func (UmamiData) TTL() time.Duration         { return opsTTL }
-func (UmamiData) Service() enums.ServiceType { return enums.ServiceUmami }
-
-func (UmamiData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchUmami(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoUmami(), nil
 	}
@@ -283,10 +271,10 @@ func urlValues(kv ...any) map[string][]string {
 }
 
 func init() {
-	Register(ScrutinyData{})
-	Register(testOf{ScrutinyData{}, func(d any) map[string]any { return map[string]any{"disks": len(d.(*ScrutinyDataset).Disks)} }})
-	Register(ImmichData{})
-	Register(testOf{ImmichData{}, func(d any) map[string]any { return map[string]any{"version": d.(*ImmichDataset).Version} }})
-	Register(UmamiData{})
-	Register(testOf{UmamiData{}, func(d any) map[string]any { return map[string]any{"sites": len(d.(*UmamiDataset).Sites)} }})
+	Register(ScrutinyData)
+	Register(testOf{ScrutinyData, func(d any) map[string]any { return map[string]any{"disks": len(d.(*ScrutinyDataset).Disks)} }})
+	Register(ImmichData)
+	Register(testOf{ImmichData, func(d any) map[string]any { return map[string]any{"version": d.(*ImmichDataset).Version} }})
+	Register(UmamiData)
+	Register(testOf{UmamiData, func(d any) map[string]any { return map[string]any{"sites": len(d.(*UmamiDataset).Sites)} }})
 }

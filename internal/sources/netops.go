@@ -73,13 +73,9 @@ type DNSClient struct {
 // topClientCount is how many busy clients are read.
 const topClientCount = "25"
 
-type PiholeData struct{}
+var PiholeData = source{key: "pihole.data", ttl: opsTTL, service: enums.ServicePihole, fetch: fetchPihole}
 
-func (PiholeData) Key() string                { return "pihole.data" }
-func (PiholeData) TTL() time.Duration         { return opsTTL }
-func (PiholeData) Service() enums.ServiceType { return enums.ServicePihole }
-
-func (PiholeData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchPihole(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoPihole(time.Now()), nil
 	}
@@ -122,13 +118,9 @@ func (PiholeData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	return data, nil
 }
 
-type AdGuardData struct{}
+var AdGuardData = source{key: "adguard.data", ttl: opsTTL, service: enums.ServiceAdGuard, fetch: fetchAdGuard}
 
-func (AdGuardData) Key() string                { return "adguard.data" }
-func (AdGuardData) TTL() time.Duration         { return opsTTL }
-func (AdGuardData) Service() enums.ServiceType { return enums.ServiceAdGuard }
-
-func (AdGuardData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchAdGuard(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoAdGuard(), nil
 	}
@@ -197,13 +189,9 @@ type NextcloudDataset struct {
 	AppUpdates      int
 }
 
-type NextcloudData struct{}
+var NextcloudData = source{key: "nextcloud.data", ttl: opsTTL, service: enums.ServiceNextcloud, fetch: fetchNextcloud}
 
-func (NextcloudData) Key() string                { return "nextcloud.data" }
-func (NextcloudData) TTL() time.Duration         { return opsTTL }
-func (NextcloudData) Service() enums.ServiceType { return enums.ServiceNextcloud }
-
-func (NextcloudData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchNextcloud(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoNextcloud(), nil
 	}
@@ -252,13 +240,9 @@ type SabItem struct {
 	Left    string // "0:12:30"
 }
 
-type SabnzbdData struct{}
+var SabnzbdData = source{key: "sabnzbd.data", ttl: opsTTL, service: enums.ServiceSabnzbd, fetch: fetchSabnzbd}
 
-func (SabnzbdData) Key() string                { return "sabnzbd.data" }
-func (SabnzbdData) TTL() time.Duration         { return opsTTL }
-func (SabnzbdData) Service() enums.ServiceType { return enums.ServiceSabnzbd }
-
-func (SabnzbdData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchSabnzbd(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoSabnzbd(time.Now()), nil
 	}
@@ -303,15 +287,11 @@ type GluetunDataset struct {
 	ExpectedCountry string
 }
 
-type GluetunData struct{}
-
-func (GluetunData) Key() string                { return "gluetun.data" }
-func (GluetunData) TTL() time.Duration         { return opsTTL }
-func (GluetunData) Service() enums.ServiceType { return enums.ServiceGluetun }
+var GluetunData = source{key: "gluetun.data", ttl: opsTTL, service: enums.ServiceGluetun, fetch: fetchGluetun}
 
 // Fetch reads VPN state and exit IP; options.country names the expected
 // exit country (e.g. "Sweden").
-func (GluetunData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchGluetun(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoGluetun(), nil
 	}
@@ -355,14 +335,10 @@ type DomainInfo struct {
 
 type DomainsDataset struct{ Domains []DomainInfo }
 
-type DomainsData struct{}
-
-func (DomainsData) Key() string                { return "domains.data" }
-func (DomainsData) TTL() time.Duration         { return domainsTTL }
-func (DomainsData) Service() enums.ServiceType { return enums.ServiceDomains }
+var DomainsData = source{key: "domains.data", ttl: domainsTTL, service: enums.ServiceDomains, fetch: fetchDomains}
 
 // Fetch checks the connection URL's domain plus options.domains.
-func (DomainsData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchDomains(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoDomains(time.Now()), nil
 	}
@@ -426,16 +402,12 @@ type BlacklistDataset struct {
 	Refused  []string // zones that refused our resolver
 }
 
-type BlacklistData struct{}
-
-func (BlacklistData) Key() string                { return "blacklist.data" }
-func (BlacklistData) TTL() time.Duration         { return blacklistTTL }
-func (BlacklistData) Service() enums.ServiceType { return enums.ServiceBlacklist }
+var BlacklistData = source{key: "blacklist.data", ttl: blacklistTTL, service: enums.ServiceBlacklist, fetch: fetchBlacklist}
 
 // Fetch checks the IPv4 addresses of the connection URL's host plus
 // options.ips against options.zones (default: Spamhaus ZEN, SpamCop,
 // Barracuda).
-func (BlacklistData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchBlacklist(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoBlacklist(), nil
 	}
@@ -484,18 +456,18 @@ func (BlacklistData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 }
 
 func init() {
-	Register(PiholeData{})
-	Register(testOf{PiholeData{}, func(d any) map[string]any { return map[string]any{"queries": d.(*DNSFilterDataset).Queries} }})
-	Register(AdGuardData{})
-	Register(testOf{AdGuardData{}, func(d any) map[string]any { return map[string]any{"queries": d.(*DNSFilterDataset).Queries} }})
-	Register(NextcloudData{})
-	Register(testOf{NextcloudData{}, func(d any) map[string]any { return map[string]any{"version": d.(*NextcloudDataset).Version} }})
-	Register(SabnzbdData{})
-	Register(testOf{SabnzbdData{}, func(d any) map[string]any { return map[string]any{"queue": d.(*SabnzbdDataset).Slots} }})
-	Register(GluetunData{})
-	Register(testOf{GluetunData{}, func(d any) map[string]any { return map[string]any{"status": d.(*GluetunDataset).Status} }})
-	Register(DomainsData{})
-	Register(testOf{DomainsData{}, func(d any) map[string]any { return map[string]any{"domains": len(d.(*DomainsDataset).Domains)} }})
-	Register(BlacklistData{})
-	Register(testOf{BlacklistData{}, func(d any) map[string]any { return map[string]any{"checked": len(d.(*BlacklistDataset).Checked)} }})
+	Register(PiholeData)
+	Register(testOf{PiholeData, func(d any) map[string]any { return map[string]any{"queries": d.(*DNSFilterDataset).Queries} }})
+	Register(AdGuardData)
+	Register(testOf{AdGuardData, func(d any) map[string]any { return map[string]any{"queries": d.(*DNSFilterDataset).Queries} }})
+	Register(NextcloudData)
+	Register(testOf{NextcloudData, func(d any) map[string]any { return map[string]any{"version": d.(*NextcloudDataset).Version} }})
+	Register(SabnzbdData)
+	Register(testOf{SabnzbdData, func(d any) map[string]any { return map[string]any{"queue": d.(*SabnzbdDataset).Slots} }})
+	Register(GluetunData)
+	Register(testOf{GluetunData, func(d any) map[string]any { return map[string]any{"status": d.(*GluetunDataset).Status} }})
+	Register(DomainsData)
+	Register(testOf{DomainsData, func(d any) map[string]any { return map[string]any{"domains": len(d.(*DomainsDataset).Domains)} }})
+	Register(BlacklistData)
+	Register(testOf{BlacklistData, func(d any) map[string]any { return map[string]any{"checked": len(d.(*BlacklistDataset).Checked)} }})
 }

@@ -28,7 +28,7 @@ func TestKintsugiFetch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	out, err := sources.KintsugiData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL + "/", Secret: "tok", VerifyTLS: true})
+	out, err := sources.KintsugiData.Fetch(context.Background(), sources.Ctx{URL: srv.URL + "/", Secret: "tok", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestKintsugiFetch(t *testing.T) {
 		t.Fatalf("run: %+v", d.LastRun)
 	}
 
-	if _, err := (sources.KintsugiData{}).Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "wrong", VerifyTLS: true}); err == nil {
+	if _, err := (sources.KintsugiData).Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "wrong", VerifyTLS: true}); err == nil {
 		t.Fatal("wrong token accepted")
 	}
 }

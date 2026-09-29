@@ -67,7 +67,7 @@ func TestMailFindsInvoiceOverIMAP(t *testing.T) {
 	t.Cleanup(func() { srv.Close() })
 	port := strconv.Itoa(l.Addr().(*net.TCPAddr).Port)
 
-	out, err := sources.MailData{}.Fetch(context.Background(), sources.Ctx{URL: "imap://127.0.0.1:" + port + "/INBOX", Secret: "username:password"})
+	out, err := sources.MailData.Fetch(context.Background(), sources.Ctx{URL: "imap://127.0.0.1:" + port + "/INBOX", Secret: "username:password"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestMailFilesDownloadsPDF(t *testing.T) {
 	t.Cleanup(func() { srv.Close() })
 	sctx := sources.Ctx{URL: "imap://" + l.Addr().String() + "/INBOX", Secret: "username:password"}
 
-	data, err := sources.MailData{}.Fetch(context.Background(), sctx)
+	data, err := sources.MailData.Fetch(context.Background(), sctx)
 	if err != nil {
 		t.Fatal(err)
 	}

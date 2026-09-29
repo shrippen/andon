@@ -115,13 +115,9 @@ func kumaAPI(sctx Ctx) (services.KumaApi, error) {
 	return services.KumaApi{URL: sctx.URL, Key: secret, Verify: sctx.VerifyTLS}, nil
 }
 
-type KumaData struct{}
+var KumaData = source{key: "uptimekuma.data", ttl: time.Minute, service: enums.ServiceUptimeKuma, fetch: fetchKuma}
 
-func (KumaData) Key() string                { return "uptimekuma.data" }
-func (KumaData) TTL() time.Duration         { return time.Minute }
-func (KumaData) Service() enums.ServiceType { return enums.ServiceUptimeKuma }
-
-func (KumaData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchKuma(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoKuma(), nil
 	}
@@ -136,14 +132,10 @@ func (KumaData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	return &KumaDataset{URL: sctx.URL, Monitors: parseKuma(text)}, nil
 }
 
-type KumaTest struct{}
+var KumaTest = source{key: "uptimekuma.test", ttl: testTTL, service: enums.ServiceUptimeKuma, fetch: fetchKumaTest}
 
-func (KumaTest) Key() string                { return "uptimekuma.test" }
-func (KumaTest) TTL() time.Duration         { return testTTL }
-func (KumaTest) Service() enums.ServiceType { return enums.ServiceUptimeKuma }
-
-func (KumaTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
-	data, err := KumaData{}.Fetch(ctx, sctx)
+func fetchKumaTest(ctx context.Context, sctx Ctx) (any, error) {
+	data, err := KumaData.Fetch(ctx, sctx)
 	if err != nil {
 		return nil, err
 	}
@@ -190,13 +182,9 @@ func proxmoxAPI(sctx Ctx) (services.ProxmoxApi, error) {
 	return services.ProxmoxApi{URL: sctx.URL, Token: secret, Verify: sctx.VerifyTLS}, nil
 }
 
-type ProxmoxData struct{}
+var ProxmoxData = source{key: "proxmox.data", ttl: opsTTL, service: enums.ServiceProxmox, fetch: fetchProxmox}
 
-func (ProxmoxData) Key() string                { return "proxmox.data" }
-func (ProxmoxData) TTL() time.Duration         { return opsTTL }
-func (ProxmoxData) Service() enums.ServiceType { return enums.ServiceProxmox }
-
-func (ProxmoxData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchProxmox(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoProxmox(time.Now()), nil
 	}
@@ -283,13 +271,9 @@ func loadProxmoxNode(ctx context.Context, api services.ProxmoxApi, node *Proxmox
 	return nil
 }
 
-type ProxmoxTest struct{}
+var ProxmoxTest = source{key: "proxmox.test", ttl: testTTL, service: enums.ServiceProxmox, fetch: fetchProxmoxTest}
 
-func (ProxmoxTest) Key() string                { return "proxmox.test" }
-func (ProxmoxTest) TTL() time.Duration         { return testTTL }
-func (ProxmoxTest) Service() enums.ServiceType { return enums.ServiceProxmox }
-
-func (ProxmoxTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchProxmoxTest(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return map[string]any{"version": "demo"}, nil
 	}
@@ -347,13 +331,9 @@ func paperlessAPI(sctx Ctx) (services.PaperlessApi, error) {
 	return services.PaperlessApi{URL: sctx.URL, Token: secret, Verify: sctx.VerifyTLS}, nil
 }
 
-type PaperlessData struct{}
+var PaperlessData = source{key: "paperless.data", ttl: opsTTL, service: enums.ServicePaperless, fetch: fetchPaperless}
 
-func (PaperlessData) Key() string                { return "paperless.data" }
-func (PaperlessData) TTL() time.Duration         { return opsTTL }
-func (PaperlessData) Service() enums.ServiceType { return enums.ServicePaperless }
-
-func (PaperlessData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchPaperless(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoPaperless(time.Now()), nil
 	}
@@ -526,13 +506,9 @@ func loadPaperlessInvoices(ctx context.Context, api services.PaperlessApi, optio
 	return out
 }
 
-type PaperlessTest struct{}
+var PaperlessTest = source{key: "paperless.test", ttl: testTTL, service: enums.ServicePaperless, fetch: fetchPaperlessTest}
 
-func (PaperlessTest) Key() string                { return "paperless.test" }
-func (PaperlessTest) TTL() time.Duration         { return testTTL }
-func (PaperlessTest) Service() enums.ServiceType { return enums.ServicePaperless }
-
-func (PaperlessTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchPaperlessTest(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return map[string]any{"version": "demo"}, nil
 	}
@@ -588,13 +564,9 @@ func certHosts(sctx Ctx) []string {
 	return out
 }
 
-type CertData struct{}
+var CertData = source{key: "certs.data", ttl: certTTL, service: enums.ServiceCerts, fetch: fetchCert}
 
-func (CertData) Key() string                { return "certs.data" }
-func (CertData) TTL() time.Duration         { return certTTL }
-func (CertData) Service() enums.ServiceType { return enums.ServiceCerts }
-
-func (CertData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchCert(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoCerts(time.Now()), nil
 	}
@@ -624,14 +596,10 @@ func (CertData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	return &CertDataset{Certs: certs}, nil
 }
 
-type CertTest struct{}
+var CertTest = source{key: "certs.test", ttl: testTTL, service: enums.ServiceCerts, fetch: fetchCertTest}
 
-func (CertTest) Key() string                { return "certs.test" }
-func (CertTest) TTL() time.Duration         { return testTTL }
-func (CertTest) Service() enums.ServiceType { return enums.ServiceCerts }
-
-func (CertTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
-	data, _ := CertData{}.Fetch(ctx, sctx)
+func fetchCertTest(ctx context.Context, sctx Ctx) (any, error) {
+	data, _ := CertData.Fetch(ctx, sctx)
 	for _, c := range data.(*CertDataset).Certs {
 		if c.Error != "" {
 			return nil, newSourceError("%s: %s", c.Host, c.Error)
@@ -641,12 +609,12 @@ func (CertTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 }
 
 func init() {
-	Register(KumaData{})
-	Register(KumaTest{})
-	Register(ProxmoxData{})
-	Register(ProxmoxTest{})
-	Register(PaperlessData{})
-	Register(PaperlessTest{})
-	Register(CertData{})
-	Register(CertTest{})
+	Register(KumaData)
+	Register(KumaTest)
+	Register(ProxmoxData)
+	Register(ProxmoxTest)
+	Register(PaperlessData)
+	Register(PaperlessTest)
+	Register(CertData)
+	Register(CertTest)
 }

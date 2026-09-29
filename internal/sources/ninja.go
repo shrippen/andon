@@ -91,13 +91,9 @@ func expenseTax(m map[string]any) float64 {
 
 // NinjaData is the "invoiceninja.data" source: invoices, payments, clients,
 // expenses, quotes and recurring invoices from the last window.
-type NinjaData struct{}
+var NinjaData = source{key: "invoiceninja.data", ttl: dataTTL, service: enums.ServiceInvoiceNinja, fetch: fetchNinja}
 
-func (NinjaData) Key() string                { return "invoiceninja.data" }
-func (NinjaData) TTL() time.Duration         { return dataTTL }
-func (NinjaData) Service() enums.ServiceType { return enums.ServiceInvoiceNinja }
-
-func (NinjaData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchNinja(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoNinja(time.Now()), nil
 	}
@@ -231,13 +227,9 @@ func round2(f float64) float64 {
 }
 
 // NinjaTest is the "invoiceninja.test" source: a lightweight connection check.
-type NinjaTest struct{}
+var NinjaTest = source{key: "invoiceninja.test", ttl: testTTL, service: enums.ServiceInvoiceNinja, fetch: fetchNinjaTest}
 
-func (NinjaTest) Key() string                { return "invoiceninja.test" }
-func (NinjaTest) TTL() time.Duration         { return testTTL }
-func (NinjaTest) Service() enums.ServiceType { return enums.ServiceInvoiceNinja }
-
-func (NinjaTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchNinjaTest(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return map[string]any{"version": "demo"}, nil
 	}

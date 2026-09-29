@@ -51,13 +51,9 @@ type KimaiLive struct {
 	Contract *WorkContract // working time from Kimai, nil if none
 }
 
-type KimaiLiveSource struct{}
+var KimaiLiveSource = source{key: "kimai.live", ttl: kimaiLiveTTL, service: enums.ServiceKimai, fetch: fetchKimaiLive}
 
-func (KimaiLiveSource) Key() string                { return "kimai.live" }
-func (KimaiLiveSource) TTL() time.Duration         { return kimaiLiveTTL }
-func (KimaiLiveSource) Service() enums.ServiceType { return enums.ServiceKimai }
-
-func (KimaiLiveSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchKimaiLive(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoKimaiLive(time.Now()), nil
 	}
@@ -145,5 +141,5 @@ func kimaiTime(s string) time.Time {
 }
 
 func init() {
-	Register(KimaiLiveSource{})
+	Register(KimaiLiveSource)
 }

@@ -67,6 +67,33 @@ type Source interface {
 	Fetch(ctx context.Context, sctx Ctx) (any, error)
 }
 
+// source is a Source declared as a value:
+//
+//	var HassData = source{key: "homeassistant.data", ttl: time.Minute,
+//		service: enums.ServiceHomeAssistant, fetch: fetchHass}
+type source struct {
+	key     string
+	ttl     time.Duration
+	service enums.ServiceType
+	fetch   func(ctx context.Context, sctx Ctx) (any, error)
+}
+
+func (s source) Key() string                { return s.key }
+func (s source) TTL() time.Duration         { return s.ttl }
+func (s source) Service() enums.ServiceType { return s.service }
+
+func (s source) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+	return s.fetch(ctx, sctx)
+}
+
+// pushSource is a source fed by the webhook events of its last window.
+type pushSource struct {
+	source
+	window time.Duration
+}
+
+func (p pushSource) PushWindow() time.Duration { return p.window }
+
 var registry = map[string]Source{}
 
 // Register adds a source to the process-wide registry.

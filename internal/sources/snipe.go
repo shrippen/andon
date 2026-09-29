@@ -45,13 +45,9 @@ func snipeAsset(raw any) SnipeAsset {
 
 // SnipeData is the "snipeit.data" source: assets, licenses, consumables
 // and overdue audits.
-type SnipeData struct{}
+var SnipeData = source{key: "snipeit.data", ttl: dataTTL, service: enums.ServiceSnipeIT, fetch: fetchSnipe}
 
-func (SnipeData) Key() string                { return "snipeit.data" }
-func (SnipeData) TTL() time.Duration         { return dataTTL }
-func (SnipeData) Service() enums.ServiceType { return enums.ServiceSnipeIT }
-
-func (SnipeData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchSnipe(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoSnipe(time.Now()), nil
 	}
@@ -121,13 +117,9 @@ func loadSnipe(ctx context.Context, api services.SnipeApi, sctx Ctx) (*SnipeData
 }
 
 // SnipeTest is the "snipeit.test" source: a lightweight connection check.
-type SnipeTest struct{}
+var SnipeTest = source{key: "snipeit.test", ttl: testTTL, service: enums.ServiceSnipeIT, fetch: fetchSnipeTest}
 
-func (SnipeTest) Key() string                { return "snipeit.test" }
-func (SnipeTest) TTL() time.Duration         { return testTTL }
-func (SnipeTest) Service() enums.ServiceType { return enums.ServiceSnipeIT }
-
-func (SnipeTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchSnipeTest(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return map[string]any{"version": "demo"}, nil
 	}

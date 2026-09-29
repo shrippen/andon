@@ -35,7 +35,7 @@ func TestScrutinyReadsSummary(t *testing.T) {
 		"0x2": map[string]any{"device": map[string]any{"device_name": "sda", "device_status": 0}, "smart": map[string]any{}},
 	}}}}, nil)
 
-	out, err := sources.ScrutinyData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, VerifyTLS: true})
+	out, err := sources.ScrutinyData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestImmichReadsStorageJobsVersion(t *testing.T) {
 		"/api/server/version-check": map[string]any{"releaseVersion": "v1.132.3"},
 	}, func(r *http.Request) bool { return r.Header.Get("x-api-key") == "k" })
 
-	out, err := sources.ImmichData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "k", VerifyTLS: true})
+	out, err := sources.ImmichData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "k", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestUmamiLoginAndBothStatShapes(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	out, err := sources.UmamiData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "admin:pw", VerifyTLS: true})
+	out, err := sources.UmamiData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "admin:pw", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestFreshRSSGoogleReader(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	out, err := sources.FreshRSSData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "alex:pw", VerifyTLS: true})
+	out, err := sources.FreshRSSData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "alex:pw", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestGiteaAssignedReviewsRepos(t *testing.T) {
 			map[string]any{"full_name": "alex/old", "archived": true}},
 	}, func(r *http.Request) bool { return r.Header.Get("Authorization") == "token t" })
 
-	out, err := sources.GiteaData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "t", VerifyTLS: true})
+	out, err := sources.GiteaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "t", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +174,7 @@ func TestBorgDashboardAndClients(t *testing.T) {
 		"/api/v1/clients": map[string]any{"clients": []any{map[string]any{"name": "nas", "status": "online", "last_heartbeat": "2026-09-25 10:00:00"}}},
 	}, func(r *http.Request) bool { return r.Header.Get("Authorization") == "Bearer bbs_tok_x" })
 
-	out, err := sources.BorgData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "bbs_tok_x", VerifyTLS: true})
+	out, err := sources.BorgData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "bbs_tok_x", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -205,7 +205,7 @@ func TestBorgClientBackupsFromSummary(t *testing.T) {
 	}
 	srv := jsonServer(t, routes, func(*http.Request) bool { return true })
 
-	out, err := sources.BorgData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "bbs_tok_x", VerifyTLS: true})
+	out, err := sources.BorgData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "bbs_tok_x", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +220,7 @@ func TestBorgClientBackupsFromSummary(t *testing.T) {
 
 	delete(routes, "/api/v1/summary")
 	old := jsonServer(t, routes, func(*http.Request) bool { return true })
-	if _, err := (sources.BorgData{}).Fetch(context.Background(), sources.Ctx{URL: old.URL, Secret: "bbs_tok_x", VerifyTLS: true}); err != nil {
+	if _, err := (sources.BorgData).Fetch(context.Background(), sources.Ctx{URL: old.URL, Secret: "bbs_tok_x", VerifyTLS: true}); err != nil {
 		t.Fatalf("server without /summary: %v", err)
 	}
 }
@@ -238,7 +238,7 @@ func TestSureReadsAccountsTransactionsRecurring(t *testing.T) {
 		"/api/v1/syncs/latest": map[string]any{"data": map[string]any{"status": "failed", "syncable": map[string]any{"name": "Sparkasse"}}},
 	}, func(r *http.Request) bool { return r.Header.Get("X-Api-Key") == "k" })
 
-	out, err := sources.SureData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "k", VerifyTLS: true})
+	out, err := sources.SureData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "k", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,7 +271,7 @@ func TestLinkwardenCollectionsWithCursor(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	out, err := sources.LinkwardenData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true,
+	out, err := sources.LinkwardenData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true,
 		Options: map[string]any{"collections": []any{"homelab"}}})
 	if err != nil {
 		t.Fatal(err)
@@ -284,7 +284,7 @@ func TestLinkwardenCollectionsWithCursor(t *testing.T) {
 
 func TestPGBackFoldsEvents(t *testing.T) {
 	at := func(h int) time.Time { return time.Date(2026, 9, 25, h, 0, 0, 0, time.UTC) }
-	out, _ := sources.PGBackData{}.Fetch(context.Background(), sources.Ctx{URL: "https://pg", Events: []sources.Pushed{
+	out, _ := sources.PGBackData.Fetch(context.Background(), sources.Ctx{URL: "https://pg", Events: []sources.Pushed{
 		{Event: "execution_success", Subject: "kimai", At: at(1)},
 		{Event: "execution_failed", Subject: "kimai", At: at(2)},
 		{Event: "database_unhealthy", Subject: "db1", At: at(3)},

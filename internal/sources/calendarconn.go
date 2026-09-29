@@ -18,13 +18,9 @@ import (
 // calendarDays is the window before and after today.
 const calendarDays = 30
 
-type CalendarData struct{}
+var CalendarData = source{key: "calendar.data", ttl: icalTTL, service: enums.ServiceCalendar, fetch: fetchCalendarData}
 
-func (CalendarData) Key() string                { return "calendar.data" }
-func (CalendarData) TTL() time.Duration         { return icalTTL }
-func (CalendarData) Service() enums.ServiceType { return enums.ServiceCalendar }
-
-func (CalendarData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchCalendarData(ctx context.Context, sctx Ctx) (any, error) {
 	now := time.Now()
 	if isDemo(sctx) {
 		return DemoCalendar(now), nil
@@ -49,6 +45,6 @@ func DemoCalendar(now time.Time) *CalendarResult {
 }
 
 func init() {
-	Register(CalendarData{})
-	Register(testOf{CalendarData{}, func(d any) map[string]any { return map[string]any{"events": len(d.(*CalendarResult).Events)} }})
+	Register(CalendarData)
+	Register(testOf{CalendarData, func(d any) map[string]any { return map[string]any{"events": len(d.(*CalendarResult).Events)} }})
 }

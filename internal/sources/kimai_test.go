@@ -39,7 +39,7 @@ func TestKimaiDataNormalizesSheetsAndProjects(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	src := sources.KimaiData{}
+	src := sources.KimaiData
 	out, err := src.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
 	if err != nil {
 		t.Fatalf("fetch: %v", err)
@@ -62,7 +62,7 @@ func TestKimaiDataNormalizesSheetsAndProjects(t *testing.T) {
 }
 
 func TestKimaiDataMissingCredential(t *testing.T) {
-	src := sources.KimaiData{}
+	src := sources.KimaiData
 	_, err := src.Fetch(context.Background(), sources.Ctx{URL: "http://example.invalid"})
 	if err == nil {
 		t.Fatal("expected error for missing secret")
@@ -75,7 +75,7 @@ func TestKimaiTestReadsVersion(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	src := sources.KimaiTest{}
+	src := sources.KimaiTest
 	out, err := src.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
 	if err != nil {
 		t.Fatalf("fetch: %v", err)
@@ -100,7 +100,7 @@ func TestKimaiLiveParsesKimaiTimestamps(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	out, err := sources.KimaiLiveSource{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	out, err := sources.KimaiLiveSource.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +126,7 @@ func TestKimaiLiveWeekRoundsLikeDataset(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	out, err := sources.KimaiLiveSource{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	out, err := sources.KimaiLiveSource.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}

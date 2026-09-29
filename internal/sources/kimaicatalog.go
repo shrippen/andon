@@ -36,13 +36,9 @@ type KimaiCatalog struct {
 	Activities []KimaiActivityPick
 }
 
-type KimaiCatalogSource struct{}
+var KimaiCatalogSource = source{key: "kimai.catalog", ttl: kimaiCatalogTTL, service: enums.ServiceKimai, fetch: fetchKimaiCatalog}
 
-func (KimaiCatalogSource) Key() string                { return "kimai.catalog" }
-func (KimaiCatalogSource) TTL() time.Duration         { return kimaiCatalogTTL }
-func (KimaiCatalogSource) Service() enums.ServiceType { return enums.ServiceKimai }
-
-func (KimaiCatalogSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchKimaiCatalog(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoKimaiCatalog(), nil
 	}
@@ -83,5 +79,5 @@ func (KimaiCatalogSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 }
 
 func init() {
-	Register(KimaiCatalogSource{})
+	Register(KimaiCatalogSource)
 }

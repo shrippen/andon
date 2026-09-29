@@ -46,13 +46,9 @@ func (d *HassDataset) Find(id string) (Entity, bool) {
 	return Entity{}, false
 }
 
-type HassData struct{}
+var HassData = source{key: "homeassistant.data", ttl: time.Minute, service: enums.ServiceHomeAssistant, fetch: fetchHass}
 
-func (HassData) Key() string                { return "homeassistant.data" }
-func (HassData) TTL() time.Duration         { return time.Minute }
-func (HassData) Service() enums.ServiceType { return enums.ServiceHomeAssistant }
-
-func (HassData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchHass(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoHass(time.Now()), nil
 	}
@@ -110,6 +106,6 @@ func parseHass(base string, states any) *HassDataset {
 }
 
 func init() {
-	Register(HassData{})
-	Register(testOf{HassData{}, func(d any) map[string]any { return map[string]any{"entities": len(d.(*HassDataset).Entities)} }})
+	Register(HassData)
+	Register(testOf{HassData, func(d any) map[string]any { return map[string]any{"entities": len(d.(*HassDataset).Entities)} }})
 }

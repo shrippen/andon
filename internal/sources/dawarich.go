@@ -49,13 +49,9 @@ func dawarichVisit(raw any) DawarichVisit {
 
 // DawarichData is the "dawarich.data" source: aggregates only — areas,
 // visits, monthly distances, time of the last point.
-type DawarichData struct{}
+var DawarichData = source{key: "dawarich.data", ttl: dataTTL, service: enums.ServiceDawarich, fetch: fetchDawarich}
 
-func (DawarichData) Key() string                { return "dawarich.data" }
-func (DawarichData) TTL() time.Duration         { return dataTTL }
-func (DawarichData) Service() enums.ServiceType { return enums.ServiceDawarich }
-
-func (DawarichData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchDawarich(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoDawarich(time.Now()), nil
 	}
@@ -130,13 +126,9 @@ func lastPoint(points any) string {
 }
 
 // DawarichTest is the "dawarich.test" source: a lightweight connection check.
-type DawarichTest struct{}
+var DawarichTest = source{key: "dawarich.test", ttl: testTTL, service: enums.ServiceDawarich, fetch: fetchDawarichTest}
 
-func (DawarichTest) Key() string                { return "dawarich.test" }
-func (DawarichTest) TTL() time.Duration         { return testTTL }
-func (DawarichTest) Service() enums.ServiceType { return enums.ServiceDawarich }
-
-func (DawarichTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchDawarichTest(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return map[string]any{"version": "demo"}, nil
 	}
@@ -152,12 +144,12 @@ func (DawarichTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 }
 
 func init() {
-	Register(KimaiData{})
-	Register(KimaiTest{})
-	Register(NinjaData{})
-	Register(NinjaTest{})
-	Register(SnipeData{})
-	Register(SnipeTest{})
-	Register(DawarichData{})
-	Register(DawarichTest{})
+	Register(KimaiData)
+	Register(KimaiTest)
+	Register(NinjaData)
+	Register(NinjaTest)
+	Register(SnipeData)
+	Register(SnipeTest)
+	Register(DawarichData)
+	Register(DawarichTest)
 }

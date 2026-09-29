@@ -81,13 +81,9 @@ func kimaiProject(raw any) KimaiProject {
 
 // KimaiData is the "kimai.data" source: timesheets, projects, customers and
 // (if the holiday-bundle plugin is installed) absences/public holidays.
-type KimaiData struct{}
+var KimaiData = source{key: "kimai.data", ttl: dataTTL, service: enums.ServiceKimai, fetch: fetchKimai}
 
-func (KimaiData) Key() string                { return "kimai.data" }
-func (KimaiData) TTL() time.Duration         { return dataTTL }
-func (KimaiData) Service() enums.ServiceType { return enums.ServiceKimai }
-
-func (KimaiData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchKimai(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoKimai(time.Now()), nil
 	}
@@ -217,13 +213,9 @@ func loadKimaiHolidays(ctx context.Context, api services.KimaiApi, today time.Ti
 }
 
 // KimaiTest is the "kimai.test" source: a lightweight connection check.
-type KimaiTest struct{}
+var KimaiTest = source{key: "kimai.test", ttl: testTTL, service: enums.ServiceKimai, fetch: fetchKimaiTest}
 
-func (KimaiTest) Key() string                { return "kimai.test" }
-func (KimaiTest) TTL() time.Duration         { return testTTL }
-func (KimaiTest) Service() enums.ServiceType { return enums.ServiceKimai }
-
-func (KimaiTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchKimaiTest(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return map[string]any{"version": "demo"}, nil
 	}

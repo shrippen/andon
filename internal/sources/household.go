@@ -45,13 +45,9 @@ type VaultwardenDataset struct {
 	Users   []VaultUser
 }
 
-type VaultwardenData struct{}
+var VaultwardenData = source{key: "vaultwarden.data", ttl: opsTTL, service: enums.ServiceVaultwarden, fetch: fetchVaultwarden}
 
-func (VaultwardenData) Key() string                { return "vaultwarden.data" }
-func (VaultwardenData) TTL() time.Duration         { return opsTTL }
-func (VaultwardenData) Service() enums.ServiceType { return enums.ServiceVaultwarden }
-
-func (VaultwardenData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchVaultwarden(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoVaultwarden(time.Now().UTC()), nil
 	}
@@ -92,13 +88,9 @@ type SpeedtestDataset struct {
 	ExpectDown, ExpectUp float64 // from the options, 0 = none
 }
 
-type SpeedtestData struct{}
+var SpeedtestData = source{key: "speedtest.data", ttl: opsTTL, service: enums.ServiceSpeedtest, fetch: fetchSpeedtest}
 
-func (SpeedtestData) Key() string                { return "speedtest.data" }
-func (SpeedtestData) TTL() time.Duration         { return opsTTL }
-func (SpeedtestData) Service() enums.ServiceType { return enums.ServiceSpeedtest }
-
-func (SpeedtestData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchSpeedtest(ctx context.Context, sctx Ctx) (any, error) {
 	data := &SpeedtestDataset{URL: sctx.URL, ExpectDown: asFloat(sctx.Options["expect_down"]), ExpectUp: asFloat(sctx.Options["expect_up"])}
 	if isDemo(sctx) {
 		data.Down, data.Up, data.Ping, data.Jitter, data.At = 243, 41, 12, 1.8, time.Now().UTC().Add(-20*time.Minute)
@@ -224,7 +216,7 @@ type GrocyDataset struct {
 	Chores                 []Chore
 }
 
-type GrocyData struct{}
+var GrocyData = source{key: "grocy.data", ttl: opsTTL, service: enums.ServiceGrocy, fetch: fetchGrocy}
 
 // Grocy's products due soon: the dataset reaches GrocyAheadDays ahead so
 // a tile may look further; "soon" as Grocy counts it is GrocySoonDays.
@@ -246,11 +238,7 @@ func (d *GrocyDataset) SoonWithin(days int, now time.Time) []Product {
 	return out
 }
 
-func (GrocyData) Key() string                { return "grocy.data" }
-func (GrocyData) TTL() time.Duration         { return opsTTL }
-func (GrocyData) Service() enums.ServiceType { return enums.ServiceGrocy }
-
-func (GrocyData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchGrocy(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoGrocy(time.Now().UTC()), nil
 	}
@@ -315,13 +303,9 @@ type DWDDataset struct {
 	Warnings []WeatherWarning
 }
 
-type DWDData struct{}
+var DWDData = source{key: "dwd.data", ttl: dwdTTL, service: enums.ServiceDWD, fetch: fetchDWD}
 
-func (DWDData) Key() string                { return "dwd.data" }
-func (DWDData) TTL() time.Duration         { return dwdTTL }
-func (DWDData) Service() enums.ServiceType { return enums.ServiceDWD }
-
-func (DWDData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchDWD(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoDWD(time.Now().UTC()), nil
 	}
@@ -368,13 +352,9 @@ type GitHubDataset struct {
 	MyPRs         []Issue // my own open PRs (token only)
 }
 
-type GitHubData struct{}
+var GitHubData = source{key: "github.data", ttl: opsTTL, service: enums.ServiceGitHub, fetch: fetchGitHub}
 
-func (GitHubData) Key() string                { return "github.data" }
-func (GitHubData) TTL() time.Duration         { return opsTTL }
-func (GitHubData) Service() enums.ServiceType { return enums.ServiceGitHub }
-
-func (GitHubData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchGitHub(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoGitHub(time.Now().UTC()), nil
 	}
@@ -477,18 +457,14 @@ type TibberDataset struct {
 	Days          []EnergyDay
 }
 
-type TibberData struct{}
-
-func (TibberData) Key() string                { return "tibber.data" }
-func (TibberData) TTL() time.Duration         { return priceTTL }
-func (TibberData) Service() enums.ServiceType { return enums.ServiceTibber }
+var TibberData = source{key: "tibber.data", ttl: priceTTL, service: enums.ServiceTibber, fetch: fetchTibber}
 
 const tibberQuery = `{ viewer { homes { appNickname
   currentSubscription { priceInfo { current { total energy level currency }
     today { total energy startsAt } tomorrow { total energy startsAt } } }
   consumption(resolution: DAILY, last: 30) { nodes { from cost consumption } } } } }`
 
-func (TibberData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchTibber(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoTibber(time.Now().UTC()), nil
 	}
@@ -612,16 +588,16 @@ func DemoTibber(now time.Time) *TibberDataset {
 }
 
 func init() {
-	Register(VaultwardenData{})
-	Register(testOf{VaultwardenData{}, func(d any) map[string]any { return map[string]any{"version": d.(*VaultwardenDataset).Version} }})
-	Register(SpeedtestData{})
-	Register(testOf{SpeedtestData{}, func(d any) map[string]any { return map[string]any{"down": d.(*SpeedtestDataset).Down} }})
-	Register(GrocyData{})
-	Register(testOf{GrocyData{}, func(d any) map[string]any { return map[string]any{"missing": len(d.(*GrocyDataset).Missing)} }})
-	Register(DWDData{})
-	Register(testOf{DWDData{}, func(d any) map[string]any { return map[string]any{"place": d.(*DWDDataset).Place} }})
-	Register(GitHubData{})
-	Register(testOf{GitHubData{}, func(d any) map[string]any { return map[string]any{"repos": len(d.(*GitHubDataset).Repos)} }})
-	Register(TibberData{})
-	Register(testOf{TibberData{}, func(d any) map[string]any { return map[string]any{"price": d.(*TibberDataset).Current} }})
+	Register(VaultwardenData)
+	Register(testOf{VaultwardenData, func(d any) map[string]any { return map[string]any{"version": d.(*VaultwardenDataset).Version} }})
+	Register(SpeedtestData)
+	Register(testOf{SpeedtestData, func(d any) map[string]any { return map[string]any{"down": d.(*SpeedtestDataset).Down} }})
+	Register(GrocyData)
+	Register(testOf{GrocyData, func(d any) map[string]any { return map[string]any{"missing": len(d.(*GrocyDataset).Missing)} }})
+	Register(DWDData)
+	Register(testOf{DWDData, func(d any) map[string]any { return map[string]any{"place": d.(*DWDDataset).Place} }})
+	Register(GitHubData)
+	Register(testOf{GitHubData, func(d any) map[string]any { return map[string]any{"repos": len(d.(*GitHubDataset).Repos)} }})
+	Register(TibberData)
+	Register(testOf{TibberData, func(d any) map[string]any { return map[string]any{"price": d.(*TibberDataset).Current} }})
 }

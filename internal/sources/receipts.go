@@ -84,13 +84,9 @@ const (
 	ninjaLabelSplit = "|" // "Rechnungsnummer|single_line_text"
 )
 
-type NinjaExpenses struct{}
+var NinjaExpenses = source{key: "ninja.expenses", ttl: receiptTTL, service: enums.ServiceInvoiceNinja, fetch: fetchNinjaExpenses}
 
-func (NinjaExpenses) Key() string                { return "ninja.expenses" }
-func (NinjaExpenses) TTL() time.Duration         { return receiptTTL }
-func (NinjaExpenses) Service() enums.ServiceType { return enums.ServiceInvoiceNinja }
-
-func (NinjaExpenses) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchNinjaExpenses(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoExpenses(time.Now()), nil
 	}
@@ -169,15 +165,11 @@ func NinjaExpenseByKey(ctx context.Context, sctx Ctx, key string) (ReceiptExpens
 	return receiptExpense(asMap(body)["data"]), nil
 }
 
-type PaperlessDocs struct{}
-
-func (PaperlessDocs) Key() string                { return "paperless.docs" }
-func (PaperlessDocs) TTL() time.Duration         { return receiptTTL }
-func (PaperlessDocs) Service() enums.ServiceType { return enums.ServicePaperless }
+var PaperlessDocs = source{key: "paperless.docs", ttl: receiptTTL, service: enums.ServicePaperless, fetch: fetchPaperlessDocs}
 
 // Fetch reads the documents created in Params["year"] (this year if
 // missing).
-func (PaperlessDocs) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchPaperlessDocs(ctx context.Context, sctx Ctx) (any, error) {
 	year := int(asFloat(sctx.Params["year"]))
 	if year == 0 {
 		year = time.Now().Year()
@@ -405,6 +397,6 @@ func NinjaVendorKey(ctx context.Context, sctx Ctx, name string) (string, error) 
 func IsDemo(rawURL string) bool { return isDemo(Ctx{URL: rawURL}) }
 
 func init() {
-	Register(NinjaExpenses{})
-	Register(PaperlessDocs{})
+	Register(NinjaExpenses)
+	Register(PaperlessDocs)
 }
