@@ -99,8 +99,8 @@ func hintTrendView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "hint_trend", Decode: decodeHintTrend, Template: "widgets/hint_trend", Category: CategoryInsight,
+	Register(WidgetType{Key: "hint_trend", Decode: decodeHintTrend, Category: CategoryInsight,
 		RefreshS: 1800, View: hintTrendView, Extra: ExtraNoise})
-	Register(WidgetType{Key: "hint_noise", Decode: decodeNoise, Template: "widgets/hint_noise", Category: CategoryInsight,
+	Register(WidgetType{Key: "hint_noise", Decode: decodeNoise, Category: CategoryInsight,
 		RefreshS: 1800, View: noiseView, Extra: ExtraNoise})
 }

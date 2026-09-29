@@ -88,6 +88,6 @@ func uptimeMonthView(cfgAny any, results map[string]any, ctx ViewCtx) map[string
 }
 
 func init() {
-	Register(WidgetType{Key: "uptime_month", Decode: decodeUptimeMonth, Template: "widgets/uptime_month", Category: CategoryInsight,
+	Register(WidgetType{Key: "uptime_month", Decode: decodeUptimeMonth, Category: CategoryInsight,
 		Service: enums.ServiceUptimeKuma, RefreshS: 1800, Queries: dataQuery, View: uptimeMonthView, Extra: ExtraHistory})
 }

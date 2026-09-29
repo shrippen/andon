@@ -279,8 +279,8 @@ func certText(days int) string {
 }
 
 func init() {
-	Register(WidgetType{Key: "update_window", Decode: decodeWindow, Template: "widgets/update_window", Category: CategoryInsight,
+	Register(WidgetType{Key: "update_window", Decode: decodeWindow, Category: CategoryInsight,
 		RefreshS: windowRefreshS, View: updateWindowView, Queries: func(any) []Query { return peersOf(windowPeers) }})
-	Register(WidgetType{Key: "storage_forecast", Decode: decodeStorage, Template: "widgets/storage_forecast", Category: CategoryInsight,
+	Register(WidgetType{Key: "storage_forecast", Decode: decodeStorage, Category: CategoryInsight,
 		RefreshS: 3600, View: storageView, Extra: ExtraHistory})
 }

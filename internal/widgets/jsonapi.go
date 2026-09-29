@@ -63,6 +63,6 @@ func jsonAPIView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "jsonapi", Decode: decodeJSONAPI, Template: "widgets/jsonapi", Category: CategoryInsight,
+	Register(WidgetType{Key: "jsonapi", Decode: decodeJSONAPI, Category: CategoryInsight,
 		Service: enums.ServiceJSONAPI, RefreshS: jsonAPIRefresh, Queries: dataQuery, View: jsonAPIView})
 }

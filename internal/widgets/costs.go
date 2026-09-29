@@ -113,8 +113,8 @@ func storyView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "week_story", Decode: decodeStory, Template: "widgets/week_story", Category: CategoryInsight,
+	Register(WidgetType{Key: "week_story", Decode: decodeStory, Category: CategoryInsight,
 		RefreshS: 3600, View: storyView, Extra: ExtraStory})
-	Register(WidgetType{Key: "homelab_cost", Decode: decodeCost, Template: "widgets/homelab_cost", Category: CategoryInsight,
+	Register(WidgetType{Key: "homelab_cost", Decode: decodeCost, Category: CategoryInsight,
 		RefreshS: 3600, View: homelabCostView, Queries: func(any) []Query { return peersOf(costPeers) }})
 }

@@ -133,6 +133,6 @@ func todayView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "today", Decode: decodeToday, Template: "widgets/today", Category: CategoryInsight,
+	Register(WidgetType{Key: "today", Decode: decodeToday, Category: CategoryInsight,
 		RefreshS: 300, Queries: todayQueries, View: todayView})
 }

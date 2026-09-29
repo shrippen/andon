@@ -163,7 +163,7 @@ func dayTicks(from, to int) []DayTick {
 }
 
 func init() {
-	Register(WidgetType{Key: "kimai_timer", Decode: decodeKimaiLite, Template: "widgets/kimai_timer", Category: CategoryInsight,
+	Register(WidgetType{Key: "kimai_timer", Decode: decodeKimaiLite, Category: CategoryInsight,
 		Service: enums.ServiceKimai, RefreshS: 60, Live: true, View: timerView,
 		Queries: func(any) []Query { return []Query{{Name: "live", Source: "kimai.live", Conn: ConnWidget}} }})
 }

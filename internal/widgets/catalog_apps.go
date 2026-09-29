@@ -387,7 +387,7 @@ func vaultwardenView(cfgAny any, results map[string]any, _ ViewCtx) map[string]a
 
 func init() {
 	build := func(key string, service enums.ServiceType, refresh int, decode DecodeFunc, view ViewFunc, extra ...Query) WidgetType {
-		return WidgetType{Key: key, Decode: decode, Template: "widgets/" + key, Category: CategoryInsight,
+		return WidgetType{Key: key, Decode: decode, Category: CategoryInsight,
 			Service: service, RefreshS: refresh, View: view,
 			Queries: func(any) []Query { return append(dataQuery(nil), extra...) }}
 	}
@@ -426,6 +426,6 @@ func init() {
 	on("vaultwarden_2fa", enums.ServiceVaultwarden, hour, decodeVault, vaultwardenView)
 	on("kintsugi", enums.ServiceKintsugi, 15*minute, decodeListOf("kind"), kintsugiView)
 
-	Register(WidgetType{Key: "speed_history", Decode: decodeSpeedHistory, Template: "widgets/speed_history", Category: CategoryInsight,
+	Register(WidgetType{Key: "speed_history", Decode: decodeSpeedHistory, Category: CategoryInsight,
 		Service: enums.ServiceSpeedtest, RefreshS: hour, View: speedHistoryView, Queries: dataQuery, Extra: ExtraHistory})
 }

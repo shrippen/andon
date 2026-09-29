@@ -68,8 +68,7 @@ func glancesChartView(cfgAny any, results map[string]any, _ ViewCtx) map[string]
 }
 
 func init() {
-	Register(WidgetType{Key: "glances_chart", Decode: decodeGlancesChart, Template: "widgets/glances_chart",
-		Category: CategoryStart, Service: enums.ServiceGlances, RefreshS: 60, Live: true, View: glancesChartView,
+	Register(WidgetType{Key: "glances_chart", Decode: decodeGlancesChart, Category: CategoryStart, Service: enums.ServiceGlances, RefreshS: 60, Live: true, View: glancesChartView,
 		Queries: func(c any) []Query {
 			cfg := c.(GlancesChartConfig)
 			return []Query{{Name: "history", Source: "glances_history", Conn: ConnWidget,

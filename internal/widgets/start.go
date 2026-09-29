@@ -592,39 +592,31 @@ func publicIPView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any 
 func (c PublicIPConfig) WatchesIP() bool { return c.Watch }
 
 func init() {
-	Register(WidgetType{Key: "link", Decode: decodeLink, Template: "widgets/link",
-		Category: CategoryStart, Inline: true, Queries: linkQueries, View: linkView})
+	Register(WidgetType{Key: "link", Decode: decodeLink, Category: CategoryStart, Inline: true, Queries: linkQueries, View: linkView})
 
-	Register(WidgetType{Key: "rss", Decode: decodeRss, Template: "widgets/rss",
-		Category: CategoryStart, RefreshS: 30 * 60, Queries: func(cfgAny any) []Query {
-			cfg := cfgAny.(RssConfig)
-			return []Query{{Name: "feed", Source: "rss", Params: map[string]any{"url": cfg.URL, "limit": cfg.Limit, "urls": cfg.More,
-				"images": cfg.Images, "max_age": float64(cfg.MaxAge)}}}
-		}})
+	Register(WidgetType{Key: "rss", Decode: decodeRss, Category: CategoryStart, RefreshS: 30 * 60, Queries: func(cfgAny any) []Query {
+		cfg := cfgAny.(RssConfig)
+		return []Query{{Name: "feed", Source: "rss", Params: map[string]any{"url": cfg.URL, "limit": cfg.Limit, "urls": cfg.More,
+			"images": cfg.Images, "max_age": float64(cfg.MaxAge)}}}
+	}})
 
-	Register(WidgetType{Key: "clock", Decode: decodeClock, Template: "widgets/clock",
-		Category: CategoryStart, Inline: true, RefreshS: 30})
+	Register(WidgetType{Key: "clock", Decode: decodeClock, Category: CategoryStart, Inline: true, RefreshS: 30})
 
-	Register(WidgetType{Key: "weather", Decode: decodeWeather, Template: "widgets/weather",
-		Category: CategoryStart, RefreshS: 30 * 60, View: weatherView, Queries: func(cfgAny any) []Query {
-			cfg := cfgAny.(WeatherConfig)
-			return []Query{{Name: "weather", Source: "open_meteo", Params: map[string]any{"lat": cfg.Lat, "lon": cfg.Lon, "days": float64(cfg.Days)}}}
-		}})
+	Register(WidgetType{Key: "weather", Decode: decodeWeather, Category: CategoryStart, RefreshS: 30 * 60, View: weatherView, Queries: func(cfgAny any) []Query {
+		cfg := cfgAny.(WeatherConfig)
+		return []Query{{Name: "weather", Source: "open_meteo", Params: map[string]any{"lat": cfg.Lat, "lon": cfg.Lon, "days": float64(cfg.Days)}}}
+	}})
 
-	Register(WidgetType{Key: "iframe", Decode: decodeIframe, Template: "widgets/iframe",
-		Category: CategoryStart, Inline: true})
+	Register(WidgetType{Key: "iframe", Decode: decodeIframe, Category: CategoryStart, Inline: true})
 
-	Register(WidgetType{Key: "sysinfo", Decode: decodeSysinfo, Template: "widgets/sysinfo",
-		Category: CategoryStart, Service: enums.ServiceGlances, RefreshS: 60, Live: true, View: sysinfoView,
+	Register(WidgetType{Key: "sysinfo", Decode: decodeSysinfo, Category: CategoryStart, Service: enums.ServiceGlances, RefreshS: 60, Live: true, View: sysinfoView,
 		Queries: func(any) []Query { return []Query{{Name: "stats", Source: "glances", Conn: ConnWidget}} }})
 
-	Register(WidgetType{Key: "public_ip", Decode: decodePublicIP, Template: "widgets/public_ip",
-		Category: CategoryStart, RefreshS: 60 * 60, View: publicIPView, Extra: ExtraIPWatch,
+	Register(WidgetType{Key: "public_ip", Decode: decodePublicIP, Category: CategoryStart, RefreshS: 60 * 60, View: publicIPView, Extra: ExtraIPWatch,
 		Queries: func(c any) []Query {
 			cfg, _ := c.(PublicIPConfig)
 			return []Query{{Name: "ip", Source: "public_ip", Params: map[string]any{"v6": cfg.V6}}}
 		}})
 
-	Register(WidgetType{Key: "note", Decode: decodeNote, Template: "widgets/note",
-		Category: CategoryStart, Inline: true})
+	Register(WidgetType{Key: "note", Decode: decodeNote, Category: CategoryStart, Inline: true})
 }

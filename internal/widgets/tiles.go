@@ -282,9 +282,9 @@ func speedView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "conn_health", Decode: decodeConnHealth, Template: "widgets/conn_health", Category: CategoryInsight,
+	Register(WidgetType{Key: "conn_health", Decode: decodeConnHealth, Category: CategoryInsight,
 		RefreshS: 10 * 60, View: connHealthView, Extra: ExtraConnHealth})
-	Register(WidgetType{Key: "invoice_aging", Decode: decodeAging([2]int{30, 60}), Template: "widgets/invoice_aging", Category: CategoryInsight,
+	Register(WidgetType{Key: "invoice_aging", Decode: decodeAging([2]int{30, 60}), Category: CategoryInsight,
 		Service: enums.ServiceInvoiceNinja, RefreshS: 30 * 60, Queries: dataQuery, View: invoiceAgingView})
 }
 

@@ -57,6 +57,6 @@ func recentView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "timeline_recent", Decode: decodeRecent, Template: "widgets/timeline_recent", Category: CategoryInsight,
+	Register(WidgetType{Key: "timeline_recent", Decode: decodeRecent, Category: CategoryInsight,
 		RefreshS: 900, View: recentView, Extra: ExtraTimeline})
 }

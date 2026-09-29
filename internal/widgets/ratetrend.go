@@ -60,7 +60,7 @@ func rateTrendView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]a
 }
 
 func init() {
-	Register(WidgetType{Key: "rate_trend", Decode: decodeRateTrend, Template: "widgets/rate_trend", Category: CategoryInsight,
+	Register(WidgetType{Key: "rate_trend", Decode: decodeRateTrend, Category: CategoryInsight,
 		Service: enums.ServiceInvoiceNinja, RefreshS: 3600, View: rateTrendView,
 		Queries: func(any) []Query { return append(dataQuery(nil), kimaiPeer) }})
 }

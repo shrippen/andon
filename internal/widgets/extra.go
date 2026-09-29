@@ -231,19 +231,16 @@ func monitorsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 }
 
 func init() {
-	Register(WidgetType{Key: "image", Decode: decodeImage, Template: "widgets/image",
-		Category: CategoryStart, RefreshS: 60 * 60, Queries: func(cfgAny any) []Query {
-			cfg := cfgAny.(ImageConfig)
-			return []Query{{Name: "image", Source: "image", Params: map[string]any{"url": cfg.URL, "fresh": freshBucket(cfg.ReloadM * secondsPerMinute)}}}
-		}})
+	Register(WidgetType{Key: "image", Decode: decodeImage, Category: CategoryStart, RefreshS: 60 * 60, Queries: func(cfgAny any) []Query {
+		cfg := cfgAny.(ImageConfig)
+		return []Query{{Name: "image", Source: "image", Params: map[string]any{"url": cfg.URL, "fresh": freshBucket(cfg.ReloadM * secondsPerMinute)}}}
+	}})
 
-	Register(WidgetType{Key: "rates", Decode: decodeRates, Template: "widgets/rates",
-		Category: CategoryStart, RefreshS: 6 * 60 * 60, Queries: func(cfgAny any) []Query {
-			cfg := cfgAny.(RatesConfig)
-			return []Query{{Name: "rates", Source: "exchange_rates", Params: map[string]any{"base": cfg.Base, "symbols": cfg.Symbols, "change": cfg.Change}}}
-		}})
+	Register(WidgetType{Key: "rates", Decode: decodeRates, Category: CategoryStart, RefreshS: 6 * 60 * 60, Queries: func(cfgAny any) []Query {
+		cfg := cfgAny.(RatesConfig)
+		return []Query{{Name: "rates", Source: "exchange_rates", Params: map[string]any{"base": cfg.Base, "symbols": cfg.Symbols, "change": cfg.Change}}}
+	}})
 
-	Register(WidgetType{Key: "monitors", Decode: decodeMonitors, Template: "widgets/monitors",
-		Category: CategoryStart, Service: enums.ServiceUptimeKuma, RefreshS: 60, Live: true, Queries: dataQuery, View: monitorsView,
+	Register(WidgetType{Key: "monitors", Decode: decodeMonitors, Category: CategoryStart, Service: enums.ServiceUptimeKuma, RefreshS: 60, Live: true, Queries: dataQuery, View: monitorsView,
 		Extra: ExtraHistory})
 }

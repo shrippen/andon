@@ -75,7 +75,7 @@ func receiptsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 }
 
 func init() {
-	Register(WidgetType{Key: "receipts_missing", Decode: decodeReceipts, Template: "widgets/receipts_missing", Category: CategoryInsight,
+	Register(WidgetType{Key: "receipts_missing", Decode: decodeReceipts, Category: CategoryInsight,
 		Service: enums.ServiceSure, RefreshS: 3600, View: receiptsView,
 		Queries: func(any) []Query {
 			return append(dataQuery(nil), peer(peerNinja, enums.ServiceInvoiceNinja), peer(peerPaperless, enums.ServicePaperless), peer(peerMail, enums.ServiceMail))

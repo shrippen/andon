@@ -90,6 +90,6 @@ func paymentDaysView(cfgAny any, results map[string]any, ctx ViewCtx) map[string
 }
 
 func init() {
-	Register(WidgetType{Key: "payment_days", Decode: decodePaymentDays, Template: "widgets/payment_days", Category: CategoryInsight,
+	Register(WidgetType{Key: "payment_days", Decode: decodePaymentDays, Category: CategoryInsight,
 		Service: enums.ServiceInvoiceNinja, RefreshS: 3600, Queries: dataQuery, View: paymentDaysView})
 }

@@ -83,6 +83,6 @@ func travelView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any 
 }
 
 func init() {
-	Register(WidgetType{Key: "travel", Decode: decodeTravel, Template: "widgets/travel", Category: CategoryInsight,
+	Register(WidgetType{Key: "travel", Decode: decodeTravel, Category: CategoryInsight,
 		Service: enums.ServiceDawarich, RefreshS: 3600, Queries: dataQuery, View: travelView})
 }

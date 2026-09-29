@@ -51,7 +51,7 @@ func exposureView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 }
 
 func init() {
-	Register(WidgetType{Key: "exposure", Decode: decodeExposure, Template: "widgets/exposure", Category: CategoryInsight,
+	Register(WidgetType{Key: "exposure", Decode: decodeExposure, Category: CategoryInsight,
 		Service: enums.ServicePangolin, RefreshS: 1800, View: exposureView,
 		Queries: func(any) []Query { return append(dataQuery(nil), homelabQueries(TableExposure)...) }})
 }

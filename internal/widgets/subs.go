@@ -136,7 +136,7 @@ func sureCategories(sure *sources.SureDataset) map[string]string {
 }
 
 func init() {
-	Register(WidgetType{Key: "subscriptions", Decode: decodeSubs, Template: "widgets/subscriptions", Category: CategoryInsight,
+	Register(WidgetType{Key: "subscriptions", Decode: decodeSubs, Category: CategoryInsight,
 		RefreshS: 3600, View: subsView,
 		Queries: func(any) []Query { return []Query{peer(peerWallos, enums.ServiceWallos), surePeer} }})
 }

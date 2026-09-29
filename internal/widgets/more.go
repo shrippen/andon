@@ -478,18 +478,18 @@ func init() {
 		hour   = 60 * minute
 	)
 
-	Register(WidgetType{Key: "calendar", Decode: decodeCalendar, Template: "widgets/calendar", Category: CategoryStart, RefreshS: 15 * minute,
+	Register(WidgetType{Key: "calendar", Decode: decodeCalendar, Category: CategoryStart, RefreshS: 15 * minute,
 		Queries: calendarQueries, View: calendarView})
 
-	Register(WidgetType{Key: "custom_api", Decode: decodeCustomAPI, Template: "widgets/custom_api", Category: CategoryStart, RefreshS: 5 * minute,
+	Register(WidgetType{Key: "custom_api", Decode: decodeCustomAPI, Category: CategoryStart, RefreshS: 5 * minute,
 		Queries: one("body", "json_api", func(c any) map[string]any {
 			cfg := c.(CustomAPIConfig)
 			return map[string]any{"url": cfg.URL, "headers": cfg.Headers}
 		}), View: customAPIView})
 
-	Register(WidgetType{Key: "list", Decode: decodeList, Template: "widgets/list", Category: CategoryStart})
+	Register(WidgetType{Key: "list", Decode: decodeList, Category: CategoryStart})
 
-	Register(WidgetType{Key: "holidays", Decode: decodeHolidays, Template: "widgets/holidays", Category: CategoryStart, RefreshS: 12 * hour,
+	Register(WidgetType{Key: "holidays", Decode: decodeHolidays, Category: CategoryStart, RefreshS: 12 * hour,
 		Queries: one("days", "holidays", func(c any) map[string]any {
 			cfg := c.(HolidaysConfig)
 			return map[string]any{"country": cfg.Country, "state": cfg.State}
@@ -501,19 +501,19 @@ func init() {
 	Register(WidgetType{Key: "apod", Decode: decodePicture, Template: "widgets/picture", Category: CategoryStart, RefreshS: 6 * hour,
 		View: pictureView, Queries: one("picture", "apod", func(c any) map[string]any { return map[string]any{"api_key": c.(PictureConfig).APIKey} })})
 
-	Register(WidgetType{Key: "joke", Decode: decodeJoke, Template: "widgets/joke", Category: CategoryStart, RefreshS: hour,
+	Register(WidgetType{Key: "joke", Decode: decodeJoke, Category: CategoryStart, RefreshS: hour,
 		Queries: one("joke", "jokes", func(c any) map[string]any {
 			cfg := c.(JokeConfig)
 			return map[string]any{"category": cfg.Category, "lang": cfg.Lang, "fresh": freshBucket(cfg.RefreshSeconds())}
 		})})
 
-	Register(WidgetType{Key: "crypto", Decode: decodeCrypto, Template: "widgets/crypto", Category: CategoryStart, RefreshS: 10 * minute,
+	Register(WidgetType{Key: "crypto", Decode: decodeCrypto, Category: CategoryStart, RefreshS: 10 * minute,
 		Queries: one("prices", "crypto", func(c any) map[string]any {
 			cfg := c.(CryptoConfig)
 			return map[string]any{"coins": cfg.Coins, "currency": cfg.Currency, "spark": cfg.Spark}
 		})})
 
-	Register(WidgetType{Key: "stocks", Decode: decodeStocks, Template: "widgets/stocks", Category: CategoryStart, RefreshS: 15 * minute,
+	Register(WidgetType{Key: "stocks", Decode: decodeStocks, Category: CategoryStart, RefreshS: 15 * minute,
 		Queries: one("quotes", "stocks", func(c any) map[string]any { return map[string]any{"symbols": c.(StocksConfig).Symbols} })})
 
 	Register(WidgetType{Key: "flights", Decode: decodeFlights, Template: "widgets/board", Category: CategoryStart, RefreshS: 10 * minute,

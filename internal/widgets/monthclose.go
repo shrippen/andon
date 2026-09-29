@@ -157,6 +157,6 @@ func monthCloseView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]
 }
 
 func init() {
-	Register(WidgetType{Key: "month_close", Decode: decodeMonthClose, Extra: ExtraCloseTicks, Template: "widgets/month_close", Category: CategoryInsight,
+	Register(WidgetType{Key: "month_close", Decode: decodeMonthClose, Extra: ExtraCloseTicks, Category: CategoryInsight,
 		RefreshS: 1800, Queries: monthCloseQueries, View: monthCloseView})
 }

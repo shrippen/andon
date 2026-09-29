@@ -43,6 +43,6 @@ func downSince(l DownLink) time.Time {
 }
 
 func init() {
-	Register(WidgetType{Key: "links_down", Decode: decodeLinksDown, Template: "widgets/links_down", Category: CategoryStart,
+	Register(WidgetType{Key: "links_down", Decode: decodeLinksDown, Category: CategoryStart,
 		RefreshS: 300, View: linksDownView, Extra: ExtraLinksDown})
 }

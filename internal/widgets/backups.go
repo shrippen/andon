@@ -93,6 +93,6 @@ func backupsView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "backups", Decode: decodeBackups, Template: "widgets/backups", Category: CategoryInsight,
+	Register(WidgetType{Key: "backups", Decode: decodeBackups, Category: CategoryInsight,
 		RefreshS: 600, Queries: backupsQueries, View: backupsView, Extra: ExtraHistory})
 }

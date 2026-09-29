@@ -221,12 +221,12 @@ func lowest(points []metrics.CashPoint) float64 {
 }
 
 func init() {
-	Register(WidgetType{Key: "heatmap", Decode: decodeHeat, Template: "widgets/heatmap", Category: CategoryInsight,
+	Register(WidgetType{Key: "heatmap", Decode: decodeHeat, Category: CategoryInsight,
 		Service: enums.ServiceKimai, RefreshS: 3600, Queries: dataQuery, View: heatmapView})
-	Register(WidgetType{Key: "money_flow", Decode: decodeMoneyFlow, Template: "widgets/money_flow", Category: CategoryInsight,
+	Register(WidgetType{Key: "money_flow", Decode: decodeMoneyFlow, Category: CategoryInsight,
 		Service: enums.ServiceInvoiceNinja, RefreshS: 3600, View: moneyFlowView,
 		Queries: func(any) []Query { return append(dataQuery(nil), kimaiPeer) }})
-	Register(WidgetType{Key: "cashflow", Decode: decodeCashflow, Template: "widgets/cashflow", Category: CategoryInsight,
+	Register(WidgetType{Key: "cashflow", Decode: decodeCashflow, Category: CategoryInsight,
 		Service: enums.ServiceInvoiceNinja, RefreshS: 3600, View: cashflowView,
 		Queries: func(any) []Query { return append(dataQuery(nil), surePeer) }})
 }

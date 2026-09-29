@@ -188,8 +188,7 @@ func greetingLines(changes []GreetingChange) []GreetingLine {
 }
 
 func init() {
-	Register(WidgetType{Key: "greeting", Decode: decodeGreeting, Template: "widgets/greeting",
-		Category: CategoryStart, RefreshS: 10 * 60, View: greetingView, Extra: ExtraGreeting,
+	Register(WidgetType{Key: "greeting", Decode: decodeGreeting, Category: CategoryStart, RefreshS: 10 * 60, View: greetingView, Extra: ExtraGreeting,
 		Queries: func(cfgAny any) []Query {
 			cfg := cfgAny.(GreetingConfig)
 			if (cfg.Lat == 0 && cfg.Lon == 0) || cfg.Hide["weather"] {

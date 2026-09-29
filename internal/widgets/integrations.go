@@ -334,7 +334,7 @@ func energyView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 
 func init() {
 	on := func(key string, service enums.ServiceType, decode DecodeFunc, view ViewFunc) {
-		Register(WidgetType{Key: key, Decode: decode, Template: "widgets/" + key, Category: CategoryInsight,
+		Register(WidgetType{Key: key, Decode: decode, Category: CategoryInsight,
 			Service: service, RefreshS: integrationTTL, Queries: dataQuery, View: view})
 	}
 
@@ -345,7 +345,7 @@ func init() {
 	on("tailscale", enums.ServiceTailscale, decodeTailscale, tailscaleView)
 	on("speedtest", enums.ServiceSpeedtest, decodeSpeed, speedView)
 	on("github", enums.ServiceGitHub, decodeGitHub, githubView)
-	Register(WidgetType{Key: "energy", Decode: decodeEnergy, Template: "widgets/energy", Category: CategoryInsight,
+	Register(WidgetType{Key: "energy", Decode: decodeEnergy, Category: CategoryInsight,
 		Service: enums.ServiceTibber, RefreshS: integrationTTL, View: energyView,
 		Queries: func(c any) []Query {
 			queries := dataQuery(nil)

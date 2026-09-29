@@ -373,22 +373,22 @@ func tableQueries(cfg any) []Query {
 }
 
 func init() {
-	Register(WidgetType{Key: "kpi", Decode: decodeKpi, Template: "widgets/kpi", Category: CategoryInsight,
+	Register(WidgetType{Key: "kpi", Decode: decodeKpi, Category: CategoryInsight,
 		RefreshS: 600, Queries: kpiQueries, View: kpiView})
-	Register(WidgetType{Key: "table", Decode: decodeTable, Template: "widgets/table", Category: CategoryInsight,
+	Register(WidgetType{Key: "table", Decode: decodeTable, Category: CategoryInsight,
 		RefreshS: 600, Queries: tableQueries, View: tableView})
-	Register(WidgetType{Key: "chart", Decode: decodeChart, Template: "widgets/chart", Category: CategoryInsight,
+	Register(WidgetType{Key: "chart", Decode: decodeChart, Category: CategoryInsight,
 		RefreshS: 3600, Queries: dataQuery, View: chartView})
-	Register(WidgetType{Key: "progress", Decode: decodeProgress, Template: "widgets/progress", Category: CategoryInsight,
+	Register(WidgetType{Key: "progress", Decode: decodeProgress, Category: CategoryInsight,
 		RefreshS: 600, Queries: dataQuery, View: progressView})
-	Register(WidgetType{Key: "deadlines", Decode: decodeDeadlines, Template: "widgets/deadlines", Category: CategoryInsight,
+	Register(WidgetType{Key: "deadlines", Decode: decodeDeadlines, Category: CategoryInsight,
 		RefreshS: 3600, View: deadlinesView})
-	Register(WidgetType{Key: "trend", Decode: decodeTrend, Template: "widgets/trend", Category: CategoryInsight,
+	Register(WidgetType{Key: "trend", Decode: decodeTrend, Category: CategoryInsight,
 		RefreshS: 3600, View: trendView, Extra: ExtraPoints})
 	Register(WidgetType{Key: "updates", Decode: decodeTopic(rules.TopicUpdates), Template: "widgets/topic", Category: CategoryInsight,
 		RefreshS: 600, Extra: ExtraHints})
-	Register(WidgetType{Key: "hints", Decode: decodeHints, Template: "widgets/hints", Category: CategoryInsight,
+	Register(WidgetType{Key: "hints", Decode: decodeHints, Category: CategoryInsight,
 		RefreshS: 300, Extra: ExtraHints})
-	Register(WidgetType{Key: "expiries", Decode: decodeExpiries, Template: "widgets/expiries", Category: CategoryInsight,
+	Register(WidgetType{Key: "expiries", Decode: decodeExpiries, Category: CategoryInsight,
 		RefreshS: 3600, Extra: ExtraHints})
 }

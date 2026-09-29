@@ -85,6 +85,6 @@ func hassView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "hass", Decode: decodeHass, Template: "widgets/hass", Category: CategoryStart,
+	Register(WidgetType{Key: "hass", Decode: decodeHass, Category: CategoryStart,
 		Service: enums.ServiceHomeAssistant, RefreshS: 60, Live: true, Queries: dataQuery, View: hassView})
 }

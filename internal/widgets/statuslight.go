@@ -133,6 +133,6 @@ func statusLightView(cfgAny any, results map[string]any, _ ViewCtx) map[string]a
 }
 
 func init() {
-	Register(WidgetType{Key: "status_light", Decode: decodeStatusLight, Template: "widgets/status_light", Category: CategoryInsight,
+	Register(WidgetType{Key: "status_light", Decode: decodeStatusLight, Category: CategoryInsight,
 		RefreshS: 60, View: statusLightView, Extra: ExtraHintBriefs, Queries: statusLightQueries})
 }
