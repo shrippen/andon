@@ -43,16 +43,20 @@ func TestStaticIsCompressed(t *testing.T) {
 
 // fontPath is linked from andon.css without a version, so it is
 // revalidated on every full page load.
-const fontPath = "/static/vendor/kante/fonts/Rajdhani-600.ttf"
+const fontPath = "/static/vendor/kante/fonts/Rajdhani-600.woff2"
 
 // TestStaticRevalidates: unversioned files carry an ETag and answer a
-// matching If-None-Match with 304, gzipped or not; fonts are gzipped.
+// matching If-None-Match with 304, gzipped or not.
 func TestStaticRevalidates(t *testing.T) {
 	mux := http.NewServeMux()
 	Deps{}.RegisterStaticRoutes(mux)
 
-	for _, encoding := range []string{"", "gzip"} {
-		req := httptest.NewRequest(http.MethodGet, fontPath, nil)
+	for _, path := range []string{fontPath, "/static/andon.css"} {
+		encoding := ""
+		if path != fontPath {
+			encoding = "gzip"
+		}
+		req := httptest.NewRequest(http.MethodGet, path, nil)
 		req.Header.Set("Accept-Encoding", encoding)
 		first := httptest.NewRecorder()
 		mux.ServeHTTP(first, req)

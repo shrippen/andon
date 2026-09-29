@@ -75,13 +75,12 @@ func cacheStatic(next http.Handler) http.Handler {
 	})
 }
 
-// compressible are the assets worth gzipping; images are compressed
-// already, TTF fonts are not (Rajdhani: 360 kB → 140 kB).
+// compressible are the text assets worth gzipping; fonts (WOFF2) and
+// images are compressed already.
 var compressible = map[string]string{
 	".css": "text/css; charset=utf-8",
 	".js":  "text/javascript; charset=utf-8",
 	".svg": "image/svg+xml",
-	".ttf": "font/ttf",
 }
 
 // tags holds each file's ETag once; the files are embedded and never

@@ -1,9 +1,9 @@
 /* Local fonts (CSP: font-src 'self'; no third-party requests). */
-@font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-500.ttf) format("truetype"); }
-@font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-600.ttf) format("truetype"); }
-@font-face { font-family: "Rajdhani"; font-weight: 700; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-700.ttf) format("truetype"); }
-@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url(/static/vendor/kante/fonts/JetBrainsMono-400.ttf) format("truetype"); }
-@font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap; src: url(/static/vendor/kante/fonts/JetBrainsMono-500.ttf) format("truetype"); }
+@font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-500.woff2) format("woff2"); }
+@font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-600.woff2) format("woff2"); }
+@font-face { font-family: "Rajdhani"; font-weight: 700; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-700.woff2) format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url(/static/vendor/kante/fonts/JetBrainsMono-400.woff2) format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap; src: url(/static/vendor/kante/fonts/JetBrainsMono-500.woff2) format("woff2"); }
 
 /*
  * andon.css — app components on Kante tokens only (var(--…)).
