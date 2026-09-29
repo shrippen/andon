@@ -98,6 +98,7 @@ login:
   throttled: Zu viele Versuche. Bitte in 15 Minuten erneut probieren.
   oidc_only: Anmeldung nur über Single Sign-on.
 totp:
+  active: Der zweite Faktor ist aktiv. Erst mit einem Code abschalten, dann neu einrichten.
   title: Zweiter Faktor
   code: Code aus der Authenticator-App
   submit: Bestätigen

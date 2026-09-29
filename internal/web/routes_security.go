@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -79,6 +80,10 @@ func (d Deps) handlePasswordChange(w http.ResponseWriter, r *http.Request, ctx C
 
 func (d Deps) handleTOTPBeginForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	secret, uri, err := auth.TOTPBegin(d.DB, ctx.Who)
+	if errors.Is(err, auth.ErrTOTPActive) {
+		d.securityPage(w, ctx, http.StatusConflict, map[string]any{"Error": errKey(err)})
+		return
+	}
 	if err != nil {
 		d.securityPage(w, ctx, http.StatusInternalServerError, map[string]any{"Error": errKey(err)})
 		return

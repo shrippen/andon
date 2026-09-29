@@ -98,6 +98,7 @@ login:
   throttled: Too many attempts. Please try again in 15 minutes.
   oidc_only: Login only via single sign-on.
 totp:
+  active: The second factor is on. Switch it off with a code first, then set it up again.
   title: Second factor
   code: Code from your authenticator app
   submit: Confirm

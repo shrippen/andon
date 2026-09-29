@@ -292,3 +292,23 @@ func TestPasskeySatisfiesAdminSecondFactor(t *testing.T) {
 		}
 	}
 }
+
+// TestTOTPBeginKeepsActive2FA: starting over does not switch an active
+// second factor off; that needs a code (TOTPDisable).
+func TestTOTPBeginKeepsActive2FA(t *testing.T) {
+	q := openTestDB(t)
+	uid := addActiveUser(t, q, "a@b.c", "correct-password")
+	who := &access.Principal{UserID: uid}
+	secret, _, _ := auth.TOTPBegin(q, who)
+	code, _ := totp.GenerateCode(secret, time.Now())
+	if _, err := auth.TOTPConfirm(q, who, code, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, _, err := auth.TOTPBegin(q, who); !errors.Is(err, auth.ErrTOTPActive) {
+		t.Fatalf("begin with 2FA on: %v", err)
+	}
+	if u, _ := users.Get(q, uid); !u.TOTPEnabled {
+		t.Fatal("2FA switched off")
+	}
+}

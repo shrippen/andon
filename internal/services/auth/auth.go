@@ -490,7 +490,8 @@ func Purge(d *sql.DB) error {
 // ── Second factor (TOTP) ──
 
 // TOTPBegin generates a new (not yet active) TOTP secret and its
-// provisioning URI for a QR code.
+// provisioning URI for a QR code. With 2FA on it refuses: starting
+// over would switch it off without a code (ErrTOTPActive).
 func TOTPBegin(d *sql.DB, who *access.Principal) (secret, uri string, err error) {
 	err = db.WithTx(d, func(tx *sql.Tx) error {
 		user, err := users.Get(tx, who.UserID)
@@ -499,6 +500,9 @@ func TOTPBegin(d *sql.DB, who *access.Principal) (secret, uri string, err error)
 		}
 		if user == nil {
 			return sql.ErrNoRows
+		}
+		if user.TOTPEnabled {
+			return ErrTOTPActive
 		}
 		key, err := totp.Generate(totp.GenerateOpts{Issuer: totpIssuer, AccountName: user.Email})
 		if err != nil {
@@ -691,6 +695,9 @@ type NewAPIToken struct {
 
 // ErrForbidden is returned when a token operation targets another user's token.
 var ErrForbidden = errors.New("auth: not your token")
+
+// ErrTOTPActive: a second factor is on; switching it off needs a code.
+var ErrTOTPActive = errors.New("totp.active")
 
 // CreateToken issues a new API token for the principal.
 func CreateToken(d *sql.DB, who *access.Principal, name string, scope enums.TokenScope, boardIDs []int64, days *int) (NewAPIToken, error) {
