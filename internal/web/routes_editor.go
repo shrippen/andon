@@ -153,7 +153,26 @@ func (d Deps) handleSectionEdit(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// A section that changes area or flows into columns moves on the page:
+	// the section alone would land in the wrong place.
+	if sectionTarget(r) > 0 && (area != r.FormValue("was_area") || flows(span) != flows(atoi(r.FormValue("was_span")))) {
+		w.Header().Set("HX-Refresh", "true")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if d.boardPart(w, r, ctx, formBoard(r), partEdit, hintNone) {
+		return
+	}
 	http.Redirect(w, r, "/boards/"+boardID+"?edit", http.StatusSeeOther)
+}
+
+// flows reports a span that puts a section into the flowing columns.
+func flows(span int) bool { return span == boards.SpanFlow }
+
+func atoi(raw string) int {
+	n, _ := strconv.Atoi(raw)
+	return n
 }
 
 func (d Deps) handleSectionDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -215,6 +234,9 @@ func (d Deps) handleUnplace(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if d.boardPart(w, r, ctx, formBoard(r), partEdit, hintUndo) {
+		return
+	}
 	http.Redirect(w, r, "/boards/"+boardID+"?edit&undo", http.StatusSeeOther)
 }
 
@@ -235,6 +257,9 @@ func (d Deps) handleTileRows(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if d.boardPart(w, r, ctx, formBoard(r), partEdit, hintNone) {
+		return
+	}
 	http.Redirect(w, r, "/boards/"+r.FormValue("board_id")+"?edit", http.StatusSeeOther)
 }
 
@@ -253,6 +278,9 @@ func (d Deps) handleTileCols(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	cols, _ := strconv.Atoi(r.FormValue("cols"))
 	if err := boards.SetTileCols(d.DB, ctx.Who, id, cols, version); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if d.boardPart(w, r, ctx, formBoard(r), partEdit, hintNone) {
 		return
 	}
 	http.Redirect(w, r, "/boards/"+r.FormValue("board_id")+"?edit", http.StatusSeeOther)

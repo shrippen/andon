@@ -117,7 +117,7 @@ func TestCrossTablesRender(t *testing.T) {
 		boardURL, sectionID, version, widgetID := placeTarget(t, srv, client, title)
 		postForm(t, client, srv.URL+"/boards/"+boardIDFrom(boardURL)+"/sections/"+sectionID+"/place", url.Values{
 			"csrf": {csrfToken(t, srv, client)}, "widget_id": {widgetID}, "version": {version}})
-		placement := string(regexp.MustCompile(`/placements/(\d+)/unplace`).FindSubmatch(mustGet(t, srv, client, boardURL+"?edit"))[1])
+		placement := string(placementRe.FindSubmatch(mustGet(t, srv, client, boardURL+"?edit"))[1])
 		frag := string(awaitFragment(t, srv, client, placement, c.want))
 		if !strings.Contains(frag, c.want) || strings.Contains(frag, "col.") {
 			t.Errorf("%s: %q missing or raw key:\n%s", c.kind, c.want, frag)

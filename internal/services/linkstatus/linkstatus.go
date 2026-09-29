@@ -40,7 +40,7 @@ type check struct {
 // Check probes every link tile once and records the results.
 func Check(ctx context.Context, d *sql.DB) error {
 	var checks []check
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		spaces, err := content.AllSpaces(tx)
 		if err != nil {
 			return err

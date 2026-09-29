@@ -109,9 +109,19 @@
     }
   }
 
+  // firstBind marks el as set up: a morphed page change keeps elements,
+  // and their listeners must not double.
+  function firstBind(el) {
+    if (!el || el.andonBound) {
+      return false;
+    }
+    el.andonBound = true;
+    return true;
+  }
+
   function setupSearch() {
     var input = d.getElementById("search");
-    if (!input) {
+    if (!firstBind(input)) {
       return;
     }
 
@@ -498,6 +508,9 @@
       return;
     }
     var input = d.getElementById("palette-q");
+    if (!firstBind(input)) {
+      return;
+    }
     input.addEventListener("input", function () {
       paletteSel = 0;
       renderPalette();
@@ -653,6 +666,77 @@
         e.stopPropagation();
       }
     }, true);
+  }
+
+  // ── Edit actions keep the place ──
+  //
+  // Board edits answer with the board again; a long board jumped to the
+  // top after every change. The tile (or section) acted on returns to its
+  // spot on screen. By element, not scrollY: tiles off screen come back
+  // with placeholder heights (content-visibility).
+  //
+  //   submit ─► remember {path, tile, section, top} ─► new page ─► restore
+  var PLACE_KEY = "andon-place";
+  var PLACE_MAX_AGE_MS = 30000;
+
+  function placeOf(el) {
+    var tile = el.closest && el.closest("[data-placement]");
+    var section = el.closest && el.closest("[data-section]");
+    if (!tile && !section) {
+      return null;
+    }
+    return {
+      path: window.location.pathname, at: Date.now(),
+      tile: tile ? tile.getAttribute("data-placement") : "", tileTop: tile ? tile.getBoundingClientRect().top : 0,
+      section: section ? section.getAttribute("data-section") : "", sectionTop: section ? section.getBoundingClientRect().top : 0
+    };
+  }
+
+  function setupPlace() {
+    d.addEventListener("submit", function (e) {
+      var place = placeOf(e.submitter || e.target);
+      try {
+        if (place) {
+          window.sessionStorage.setItem(PLACE_KEY, JSON.stringify(place));
+        } else {
+          window.sessionStorage.removeItem(PLACE_KEY);
+        }
+      } catch (err) { /* storage blocked: jump to the top as before */ }
+    }, true);
+  }
+
+  function forgetPlace() {
+    try {
+      window.sessionStorage.removeItem(PLACE_KEY);
+    } catch (err) { /* nothing stored */ }
+  }
+
+  function restorePlace() {
+    var place = null;
+    try {
+      place = JSON.parse(window.sessionStorage.getItem(PLACE_KEY) || "null");
+      window.sessionStorage.removeItem(PLACE_KEY);
+    } catch (err) {
+      return;
+    }
+    if (!place || place.path !== window.location.pathname || Date.now() - place.at > PLACE_MAX_AGE_MS) {
+      return;
+    }
+    // A removed tile: fall back to its section.
+    var el = place.tile && d.querySelector('[data-placement="' + place.tile + '"]');
+    var top = place.tileTop;
+    if (!el) {
+      el = place.section && d.querySelector('[data-section="' + place.section + '"]');
+      top = place.sectionTop;
+    }
+    if (!el) {
+      return;
+    }
+    // After htmx's own scroll to the top of a boosted page.
+    window.requestAnimationFrame(function () {
+      el.scrollIntoView({ block: "start" });
+      window.scrollBy(0, -top);
+    });
   }
 
   // ── Selects that submit their form on change (no inline handlers: CSP) ──
@@ -924,6 +1008,14 @@
     return el.getAttribute(name) || "";
   }
 
+  // headOf parses a page up to its <body> tag: all syncHead reads. htmx
+  // parses the whole answer anyway, half a megabyte on a big board.
+  function headOf(html) {
+    var body = /<body[^>]*>/i.exec(html);
+    var upTo = body ? html.slice(0, body.index + body[0].length) : html;
+    return new DOMParser().parseFromString(upTo, "text/html");
+  }
+
   // syncHead takes over what the new page declares in <head> and on <body>.
   function syncHead(next) {
     d.documentElement.lang = next.documentElement.lang;
@@ -976,6 +1068,16 @@
       if (!e.detail.boosted) {
         return;
       }
+      // A section answer (a form targeting its section, see boardPart) is
+      // no page change; on an error (a stale version) reload the page.
+      if (e.detail.target !== d.body) {
+        forgetPlace();
+        if (e.detail.xhr.status >= 400) {
+          e.detail.shouldSwap = false;
+          window.location.reload();
+        }
+        return;
+      }
       var xhr = e.detail.xhr;
       var type = xhr.getResponseHeader("Content-Type") || "";
       if (type.indexOf("text/html") !== 0) {
@@ -992,7 +1094,7 @@
         return;
       }
 
-      var next = new DOMParser().parseFromString(xhr.responseText, "text/html");
+      var next = headOf(xhr.responseText);
       if (next.body.classList.contains("is-kiosk")) {
         e.detail.shouldSwap = false;
         window.location.href = xhr.responseURL;
@@ -1127,10 +1229,12 @@
     setupConfirm();
     setupPlacePick();
     setupBoost();
+    setupPlace();
     window.setInterval(tick, CLOCK_TICK_MS);
   });
 
   window.andonPage(function () {
+    restorePlace();
     retryPending(d);
     setupSearch();
     bindPalette();

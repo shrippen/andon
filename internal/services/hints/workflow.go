@@ -72,7 +72,7 @@ func reachable(q db.Queryer, who *access.Principal, hintID int64) (*model.Hint, 
 // One returns one hint as who sees it.
 func One(d *sql.DB, who *access.Principal, hintID int64) (View, error) {
 	var out View
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		hint, err := reachable(tx, who, hintID)
 		if err != nil {
 			return err
@@ -109,7 +109,7 @@ type EventView struct {
 // History returns a hint's latest history entries, newest first.
 func History(d *sql.DB, who *access.Principal, hintID int64) ([]EventView, error) {
 	var out []EventView
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		if _, err := reachable(tx, who, hintID); err != nil {
 			return err
 		}
@@ -159,7 +159,7 @@ type Person struct {
 // Assignees lists who may take over a hint: users who see its space.
 func Assignees(d *sql.DB, who *access.Principal, hintID int64) ([]Person, error) {
 	var out []Person
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		hint, err := reachable(tx, who, hintID)
 		if err != nil {
 			return err

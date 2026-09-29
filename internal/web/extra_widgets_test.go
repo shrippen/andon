@@ -64,7 +64,7 @@ func TestCustomAPIWidgetUsesSealedHeader(t *testing.T) {
 	boardURL, section, version, widget := placeTarget(t, srv, client, "Stats")
 	postForm(t, client, srv.URL+"/boards/"+boardIDFrom(boardURL)+"/sections/"+section+"/place", url.Values{"csrf": {csrf}, "widget_id": {widget}, "version": {version}})
 
-	placement := regexp.MustCompile(`/placements/(\d+)/unplace`).FindSubmatch(mustGet(t, srv, client, boardURL+"?edit"))[1]
+	placement := placementRe.FindSubmatch(mustGet(t, srv, client, boardURL+"?edit"))[1]
 	if frag := string(awaitFragment(t, srv, client, string(placement), "42")); !strings.Contains(frag, "<dd>42</dd>") {
 		t.Fatalf("fragment:\n%s", frag)
 	}
@@ -86,7 +86,7 @@ func TestOverviewWidgetsAndCustomRules(t *testing.T) {
 		postForm(t, client, srv.URL+"/widgets", url.Values{"csrf": {csrf}, "space_id": {space}, "type": {w.kind}, "title": {w.title}})
 		boardURL, section, version, widget := placeTarget(t, srv, client, w.title)
 		postForm(t, client, srv.URL+"/boards/"+boardIDFrom(boardURL)+"/sections/"+section+"/place", url.Values{"csrf": {csrf}, "widget_id": {widget}, "version": {version}})
-		placements := regexp.MustCompile(`/placements/(\d+)/unplace`).FindAllSubmatch(mustGet(t, srv, client, boardURL+"?edit"), -1)
+		placements := placementRe.FindAllSubmatch(mustGet(t, srv, client, boardURL+"?edit"), -1)
 		frag := string(awaitFragment(t, srv, client, string(placements[len(placements)-1][1]), w.want))
 		if !strings.Contains(frag, w.want) {
 			t.Fatalf("%s fragment:\n%s", w.kind, frag)

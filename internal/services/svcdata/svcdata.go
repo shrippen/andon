@@ -89,7 +89,7 @@ func cacheKey(sourceKey string, connID *int64, owner *int64, params map[string]a
 // outside the cache (downloads a user asked for).
 func SourceCtx(d *sql.DB, conn *model.Connection, userID int64) (sources.Ctx, error) {
 	var sctx sources.Ctx
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		sctx, err = buildCtx(tx, conn, &userID, nil)
 		return err
@@ -283,6 +283,21 @@ func Forget(connID int64) {
 	}
 }
 
+// Due reports whether a Cached read of r would reach the source again:
+// nothing stored yet, or older than the source's TTL (errorTTL after a
+// failure). A tile whose data is not due gains nothing from a reload.
+func Due(sourceKey string, r Result, now time.Time) bool {
+	source, err := sources.Get(sourceKey)
+	if err != nil || r.Pending {
+		return true
+	}
+	ttl := source.TTL()
+	if !r.Ok() {
+		ttl = min(ttl, errorTTL)
+	}
+	return now.Sub(r.FetchedAt) >= ttl
+}
+
 // Get fetches source sourceKey (never raises for a service error — it
 // comes back as Result.Error) and persists the outcome to the cache table.
 func Get(ctx context.Context, d *sql.DB, sourceKey string, params map[string]any, conn *model.Connection, userID *int64, fresh Freshness) (Result, error) {
@@ -299,6 +314,15 @@ func Get(ctx context.Context, d *sql.DB, sourceKey string, params map[string]any
 	key := cacheKey(sourceKey, connID, owner, params) + connVersion(conn)
 	if fresh == Cached {
 		if result, ok := remembered(key, time.Now()); ok {
+			return result, nil
+		}
+	}
+
+	// A known stored result needs neither a transaction nor the secret:
+	// a big board reads hundreds per view. Personal credentials still go
+	// through buildCtx, which fails once the credential is gone.
+	if fresh == Stored && (conn == nil || conn.CredentialMode != enums.CredentialPersonal) {
+		if result := stored(key); !result.Pending {
 			return result, nil
 		}
 	}
@@ -475,7 +499,7 @@ func Prune(d *sql.DB) error {
 // calls that act instead of read (e.g. switching a light).
 func Secret(d *sql.DB, conn *model.Connection, userID int64) (string, error) {
 	var sctx sources.Ctx
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		sctx, err = buildCtx(tx, conn, &userID, nil)
 		return err

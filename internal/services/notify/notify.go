@@ -84,7 +84,7 @@ func looksLikeApprise(rawURL string) bool {
 // Channels lists a user's own notification channels.
 func Channels(d *sql.DB, who *access.Principal) ([]ChannelView, error) {
 	var out []ChannelView
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		chans, err := data.Channels(tx, who.UserID)
 		if err != nil {
 			return err
@@ -202,7 +202,7 @@ var levelColor = map[enums.Severity]string{
 // GetPrefs reads a user's quiet-hours preference.
 func GetPrefs(d *sql.DB, who *access.Principal) (Prefs, error) {
 	var out Prefs
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		u, err := users.Get(tx, who.UserID)
 		if err != nil || u == nil {
 			return orNotFound(err)

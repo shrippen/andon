@@ -57,7 +57,7 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64
 	}
 	var conns []*model.Connection
 	var settings map[string]any
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		if conns, err = content.Connections(tx, []int64{spaceID}); err != nil {
 			return err

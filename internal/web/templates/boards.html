@@ -14,6 +14,7 @@
   {{template "style" .}}
   {{if or .Edit .LayerEdit}}
   <script src="{{asset "vendor/sortable/Sortable.min.js"}}" defer></script>
+  <script src="{{asset "vendor/idiomorph/idiomorph-ext.min.js"}}" defer></script>
   <script src="{{asset "editor.js"}}" defer></script>
   {{end}}
 </head>
@@ -50,13 +51,14 @@
   {{with .Board.Page.Description}}<p class="page-desc">{{.}}</p>{{end}}
   {{with .Board.Page.Nav}}<nav class="page-links" aria-label="{{t "board.page_links"}}">{{range .}}<a href="{{.URL}}">{{.Title}}</a>{{end}}</nav>{{end}}
 
-  {{if or .Edit .LayerEdit}}{{template "edit_icons"}}{{end}}
   {{if .Edit}}
   {{/* Edit bar: the everyday actions up front, the board's own settings
        behind "Board"; bulk actions appear once tiles are selected. */}}
   <div class="modebar is-edit">
-    <b class="modebar-title">{{t "edit.mode"}} · {{.Board.Space.Name}} · v{{.Board.Version}}</b>
-    <form method="post" action="/boards/{{.Board.ID}}/undo" class="inline-form">
+    <b class="modebar-title">{{t "edit.mode"}} · {{.Board.Space.Name}} · v<span data-board-version>{{.Board.Version}}</span></b>
+    {{/* Undo and bulk touch several sections: the new page is morphed in,
+         only changed nodes are replaced (a 240-tile swap took seconds). */}}
+    <form method="post" action="/boards/{{.Board.ID}}/undo" class="inline-form" hx-ext="morph" hx-swap="morph:innerHTML show:none">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <button type="submit" class="{{if .UndoHint}}is-hint{{end}}">↶ {{t "edit.undo"}}</button>
     </form>
@@ -89,7 +91,7 @@
     </details>
     <a class="modebar-done" href="/boards/{{.Board.ID}}">{{t "edit.done"}}</a>
   </div>
-  <form id="bulk" method="post" action="/boards/{{.Board.ID}}/bulk" class="selbar">
+  <form id="bulk" method="post" action="/boards/{{.Board.ID}}/bulk" class="selbar" hx-ext="morph" hx-swap="morph:innerHTML show:none">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
     <input type="hidden" name="version" value="{{.Board.Version}}">
     <b data-sel-count data-template="{{t "edit.selected"}}">{{t "edit.bulk"}}</b>
@@ -145,6 +147,7 @@
     </div>
     {{end}}
   </div>
+  {{template "tile_strip" .}}
   <p class="search-empty" hidden>{{t "board.no_match"}}</p>
   <ul class="ctx-menu" id="ctx-menu" role="menu" hidden>
     <li><button type="button" role="menuitem" data-act="newtab">{{t "board.ctx_newtab"}}</button></li>
@@ -157,11 +160,50 @@
 </html>
 {{end}}
 
+{{/* The tile strip, once per page: editor.js moves it into the tile under
+     the mouse, the focused one or the tapped one, and fills in that
+     tile's values ({placement}, {widget}, pressed states, labels). A strip
+     per tile made a 240-tile board ~5,000 elements. htmx swaps its answer
+     into the tile's section (see boardPart). */}}
+{{define "tile_strip"}}
+{{if .Edit}}
+<form id="tile-strip" class="tile-strip" method="post" hidden hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false"
+      data-tall="{{t "edit.tile_tall"}}" data-normal="{{t "edit.tile_normal"}}" data-wide="{{t "edit.tile_wide"}}" data-narrow="{{t "edit.tile_narrow"}}" data-select="{{t "edit.select"}}">
+  <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+  <input type="hidden" name="board_id" value="{{.Board.ID}}">
+  <input type="hidden" name="version" value="{{.Board.Version}}">
+  <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
+  <label class="tile-check"><input type="checkbox" data-pick></label>
+  <span class="tile-repeat" title="{{t "edit.repeated"}}" data-repeat hidden></span>
+  <span class="tile-strip-gap"></span>
+  <a class="tile-ico" href="/widgets" data-href="/widgets/{widget}/edit?board={{.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><i class="ico ico-edit"></i></a>
+  <a class="tile-ico" href="/widgets" data-href="/shares/widget/{widget}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><i class="ico ico-share"></i></a>
+  <button class="tile-ico" type="submit" name="rows" data-act="/placements/{placement}/rows" data-toggle="rows"><i class="ico ico-height"></i></button>
+  <button class="tile-ico" type="submit" name="cols" data-act="/placements/{placement}/cols" data-toggle="cols"><i class="ico ico-width"></i></button>
+  <button class="tile-ico is-danger" type="submit" data-act="/placements/{placement}/unplace" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><i class="ico ico-x"></i></button>
+</form>
+{{else if .LayerEdit}}
+<form id="tile-strip" class="tile-strip" method="post" hidden hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false"
+      data-tall="{{t "edit.tile_tall"}}" data-normal="{{t "edit.tile_normal"}}" data-wide="{{t "edit.tile_wide"}}" data-narrow="{{t "edit.tile_narrow"}}" data-hide="{{t "edit.hide"}}" data-show="{{t "edit.show"}}">
+  <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+  <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
+  <span class="tile-strip-gap"></span>
+  <button class="tile-ico" type="submit" name="state" data-act="/boards/{{.Board.ID}}/show/{placement}" data-toggle="hidden"><i class="ico ico-eye"></i></button>
+  <button class="tile-ico" type="submit" name="rows" data-act="/boards/{{.Board.ID}}/rows/{placement}" data-toggle="rows"><i class="ico ico-height"></i></button>
+  <button class="tile-ico" type="submit" name="cols" data-act="/boards/{{.Board.ID}}/cols/{placement}" data-toggle="cols"><i class="ico ico-width"></i></button>
+</form>
+{{end}}
+{{if or .Edit .LayerEdit}}<p class="edit-touch">{{t "edit.touch_hint"}}</p>{{end}}
+{{end}}
+
+{{/* One section alone: the answer to an action on it (see boardPart). */}}
+{{define "board_section"}}{{range .Board.Sections}}{{if eq .ID $.Section}}{{template "section" dict "S" . "B" $}}{{end}}{{end}}{{end}}
+
 {{/* "dict" packs the section and the root context into one pipeline,
      since {{template}} takes a single argument. */}}
 {{define "section"}}
 {{$b := .B}}{{with .S}}
-<section class="dsec{{if .Collapsed}} is-collapsed{{end}}{{if and (not .Title) (not $b.Edit) (not $b.LayerEdit)}} is-bare{{end}}" data-section="{{.ID}}"{{with .Span}} data-span="{{.}}"{{end}}{{with .Rows}} data-rows="{{.}}"{{end}}{{with .Color}} data-color="{{.}}"{{end}}{{with .Mobile}} data-mobile="{{.}}"{{end}}>
+<section id="dsec-{{.ID}}" class="dsec{{if .Collapsed}} is-collapsed{{end}}{{if and (not .Title) (not $b.Edit) (not $b.LayerEdit)}} is-bare{{end}}" data-section="{{.ID}}"{{with .Span}} data-span="{{.}}"{{end}}{{with .Rows}} data-rows="{{.}}"{{end}}{{with .Color}} data-color="{{.}}"{{end}}{{with .Mobile}} data-mobile="{{.}}"{{end}}>
   <header class="dsec-head">
     <button class="fold-btn" type="button" aria-expanded="{{if .Collapsed}}false{{else}}true{{end}}"
             data-fold="/boards/{{$b.Board.ID}}/fold/{{.ID}}">
@@ -173,8 +215,10 @@
     {{if $b.Edit}}
     <details class="section-tools">
       <summary class="link-btn">{{t "edit.section"}}</summary>
-      <form method="post" action="/sections/{{.ID}}/edit" class="section-form">
+      <form method="post" action="/sections/{{.ID}}/edit" class="section-form" hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false">
         <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
+        <input type="hidden" name="was_area" value="{{.Area}}">
+        <input type="hidden" name="was_span" value="{{.Span}}">
         <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
         <input type="hidden" name="version" value="{{$b.Board.Version}}">
         <label>{{t "field.title"}}<input name="title" value="{{.Title}}"></label>
@@ -213,7 +257,7 @@
     {{/* The "+" tile ends every section: gallery or a pasted link. */}}
     <div class="add-tile" data-static>
       <a class="add-tile-main" href="/widgets/new?space={{$b.Board.Space.ID}}&section={{.ID}}&board={{$b.Board.ID}}&version={{$b.Board.Version}}"><span aria-hidden="true">+</span>{{t "gallery.title"}}</a>
-      <form method="post" action="/sections/{{.ID}}/quick-link" class="quick-link">
+      <form method="post" action="/sections/{{.ID}}/quick-link" class="quick-link" hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false">
         <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
         <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
         <input type="hidden" name="version" value="{{$b.Board.Version}}">
@@ -230,7 +274,8 @@
 {{define "tile"}}
 {{$b := .B}}{{with .T}}
 {{$frag := print "/widget-fragments/" .PlacementID}}{{if $b.EmbedToken}}{{$frag = print $frag "?token=" $b.EmbedToken}}{{end}}
-<div class="tile-slot w-{{.Type}}{{if .Hidden}} is-hidden{{end}}" data-placement="{{.PlacementID}}"{{if gt .Rows 1}} data-rows="{{.Rows}}"{{end}}{{if gt .Cols 1}} data-cols="{{.Cols}}"{{end}}>
+<div class="tile-slot w-{{.Type}}{{if .Hidden}} is-hidden{{end}}" data-placement="{{.PlacementID}}"{{if gt .Rows 1}} data-rows="{{.Rows}}"{{end}}{{if gt .Cols 1}} data-cols="{{.Cols}}"{{end}}
+  {{- if or $b.Edit $b.LayerEdit}} data-widget="{{.WidgetID}}" data-title="{{.Title}}"{{if gt .Placed 1}} data-placed="{{.Placed}}"{{end}} tabindex="0"{{end}}>
   {{if eq .Type "link"}}
     {{$c := .Config}}
     <a class="launch" data-click="{{.PlacementID}}" href="{{$c.URL}}"{{if eq (print $c.Target) "newtab"}} target="_blank" rel="noopener noreferrer"{{end}}
@@ -241,7 +286,11 @@
         {{if $c.Description}}<small class="launch-desc">{{$c.Description}}</small>{{end}}
         {{with $c.Tags}}<small class="launch-tags">{{range .}}<span>#{{.}}</span>{{end}}</small>{{end}}
         {{if or (ne (print $c.Status) "off") $c.InfoConn}}
+        {{with index $b.Bodies .PlacementID}}
+        <span class="launch-live" hx-get="{{$frag}}" hx-trigger="{{if .Load}}load, {{end}}wake, every 300s" hx-swap="innerHTML">{{fragment .}}</span>
+        {{else}}
         <span class="launch-live" hx-get="{{$frag}}" hx-trigger="load, wake, every 300s" hx-swap="innerHTML"></span>
+        {{end}}
         {{end}}
       </span>
       {{if $c.Hotkey}}<kbd class="launch-key">{{$c.Hotkey}}</kbd>{{end}}
@@ -266,77 +315,10 @@
       {{end}}
     </article>
   {{end}}
-  {{/* Tile strip: on the tile's top edge, shown on hover and focus; the
-       grip drags, the controls keep their forms. */}}
-  {{$tall := t "edit.tile_tall"}}{{if gt .Rows 1}}{{$tall = t "edit.tile_normal"}}{{end}}
-  {{$wide := t "edit.tile_wide"}}{{if gt .Cols 1}}{{$wide = t "edit.tile_narrow"}}{{end}}
-  {{if $b.Edit}}
-  <div class="tile-strip">
-    <span class="tile-grip" aria-hidden="true"><svg><use href="#i-grip"/></svg></span>
-    <label class="tile-check"><input type="checkbox" name="placement" value="{{.PlacementID}}" form="bulk" aria-label="{{t "edit.select"}} {{.Title}}"></label>
-    {{if gt .Placed 1}}<span class="tile-repeat" title="{{t "edit.repeated"}}">{{.Placed}}×</span>{{end}}
-    <span class="tile-strip-gap"></span>
-    <a class="tile-ico" href="/widgets/{{.WidgetID}}/edit?board={{$b.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><svg><use href="#i-edit"/></svg></a>
-    <a class="tile-ico" href="/shares/widget/{{.WidgetID}}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><svg><use href="#i-share"/></svg></a>
-    <form method="post" action="/placements/{{.PlacementID}}/rows" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
-      <input type="hidden" name="version" value="{{$b.Board.Version}}">
-      <input type="hidden" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}">
-      <button class="tile-ico" type="submit" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><svg><use href="#i-height"/></svg></button>
-    </form>
-    <form method="post" action="/placements/{{.PlacementID}}/cols" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
-      <input type="hidden" name="version" value="{{$b.Board.Version}}">
-      <input type="hidden" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}">
-      <button class="tile-ico" type="submit" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><svg><use href="#i-width"/></svg></button>
-    </form>
-    <form method="post" action="/placements/{{.PlacementID}}/unplace" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
-      <input type="hidden" name="version" value="{{$b.Board.Version}}">
-      <button class="tile-ico is-danger" type="submit" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><svg><use href="#i-x"/></svg></button>
-    </form>
-  </div>
-  {{else if $b.LayerEdit}}
-  {{$eye := t "edit.hide"}}{{if .Hidden}}{{$eye = t "edit.show"}}{{end}}
-  <div class="tile-strip">
-    <span class="tile-grip" aria-hidden="true"><svg><use href="#i-grip"/></svg></span>
-    <span class="tile-strip-gap"></span>
-    <form method="post" action="/boards/{{$b.Board.ID}}/show/{{.PlacementID}}" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="state" value="{{if .Hidden}}shown{{else}}hidden{{end}}">
-      <button class="tile-ico" type="submit" aria-label="{{$eye}}" aria-pressed="{{.Hidden}}" title="{{$eye}}"><svg><use href="#i-eye"/></svg></button>
-    </form>
-    <form method="post" action="/boards/{{$b.Board.ID}}/rows/{{.PlacementID}}" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="rows" value="{{if gt .Rows 1}}1{{else}}2{{end}}">
-      <button class="tile-ico" type="submit" aria-label="{{$tall}}" aria-pressed="{{gt .Rows 1}}" title="{{$tall}}"><svg><use href="#i-height"/></svg></button>
-    </form>
-    <form method="post" action="/boards/{{$b.Board.ID}}/cols/{{.PlacementID}}" class="inline-form">
-      <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-      <input type="hidden" name="cols" value="{{if gt .Cols 1}}1{{else}}2{{end}}">
-      <button class="tile-ico" type="submit" aria-label="{{$wide}}" aria-pressed="{{gt .Cols 1}}" title="{{$wide}}"><svg><use href="#i-width"/></svg></button>
-    </form>
-  </div>
-  {{end}}
 </div>
 {{end}}
 {{end}}
 
-{{/* Icons of the tile strip, once per page in edit and layout mode. */}}
-{{define "edit_icons"}}
-<svg class="sprite" aria-hidden="true" focusable="false">
-  <symbol id="i-grip" viewBox="0 0 16 16"><path fill="currentColor" d="M5 2h2v2H5zm4 0h2v2H9zM5 7h2v2H5zm4 0h2v2H9zm-4 5h2v2H5zm4 0h2v2H9z"/></symbol>
-  <symbol id="i-edit" viewBox="0 0 16 16"><path fill="currentColor" d="M11.3 1.3a1 1 0 0 1 1.4 0l2 2a1 1 0 0 1 0 1.4L6 13.4 2 14l.6-4 8.7-8.7Z"/></symbol>
-  <symbol id="i-share" viewBox="0 0 16 16"><path fill="currentColor" d="M12 1a3 3 0 1 1-2.8 4l-3.4 1.8a3 3 0 0 1 0 2.4L9.2 11A3 3 0 1 1 9 12.4l-3.5-1.9a3 3 0 1 1 0-5L9 3.6A3 3 0 0 1 12 1Z"/></symbol>
-  <symbol id="i-height" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0 12 4H9v8h3l-4 4-4-4h3V4H4Z"/></symbol>
-  <symbol id="i-width" viewBox="0 0 16 16"><path fill="currentColor" d="M0 8 4 4v3h8V4l4 4-4 4V9H4v3Z"/></symbol>
-  <symbol id="i-x" viewBox="0 0 16 16"><path fill="currentColor" d="M3.4 2 8 6.6 12.6 2 14 3.4 9.4 8l4.6 4.6-1.4 1.4L8 9.4 3.4 14 2 12.6 6.6 8 2 3.4Z"/></symbol>
-  <symbol id="i-eye" viewBox="0 0 16 16"><path fill="currentColor" d="M8 3c3.6 0 6.3 2.6 7.5 5-1.2 2.4-3.9 5-7.5 5S1.7 10.4.5 8C1.7 5.6 4.4 3 8 3Zm0 2.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z"/></symbol>
-</svg>
-{{end}}
 
 {{define "board_history"}}
 <!doctype html>

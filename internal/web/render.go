@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/crypto"
 	"andon/internal/enums"
 	"andon/internal/i18n"
 	"andon/internal/services/access"
@@ -178,38 +179,132 @@ func clockDate(tz string, locale enums.Locale) string {
 	return i18n.Weekday(now, locale) + ", " + i18n.Day(now, locale)
 }
 
+// renderState is what a pooled template set's funcs read during one
+// render: the locale, the request path, money rounding and the page data.
+type renderState struct {
+	locale enums.Locale
+	path   string
+	round  widgets.RoundMode
+	data   map[string]any
+	tile   map[string]any // data plus one tile's fragment, reused per tile
+}
+
+// pageSet is a clone of the templates whose funcs read state. Reused:
+// cloning the whole set per request cost ~3.7 MB and dominated each of a
+// board's tile fragments (50 link tiles → 50 clones per page view).
+//
+//	pageSets ─► pageSet{tmpl, state} ─► set state ─► execute ─► reset ─► pageSets
+type pageSet struct {
+	tmpl  *template.Template
+	state *renderState
+}
+
+// maxPageSets bounds the idle sets (~3 MB each). A channel, not a
+// sync.Pool: every GC empties a pool, and rendering allocates enough to
+// run GC often.
+const maxPageSets = 8
+
+var pageSets = make(chan *pageSet, maxPageSets)
+
+// takeSet returns an idle set, or a new one when all are busy.
+func takeSet() *pageSet {
+	select {
+	case set := <-pageSets:
+		return set
+	default:
+		return newPageSet()
+	}
+}
+
+// returnSet clears the set's state and keeps it unless enough are idle.
+func returnSet(set *pageSet) {
+	*set.state = renderState{}
+	select {
+	case pageSets <- set:
+	default:
+	}
+}
+
+// newPageSet clones the templates once and binds the per-render helpers
+// to the set's own state.
+func newPageSet() *pageSet {
+	st := &renderState{}
+	set := &pageSet{tmpl: template.Must(templates.Clone()), state: st}
+	set.tmpl.Funcs(template.FuncMap{
+		"t": func(key string, kv ...any) string { return i18n.T(key, st.locale, pairs(kv)) },
+		"money": func(v float64, currency ...string) string {
+			return moneyFunc(st.locale, st.round)(v, currency...)
+		},
+		"num":       func(v float64, digits ...int) string { return i18n.Num(v, st.locale, firstOr(digits, 0)) },
+		"gb":        func(v float64) string { return i18n.GB(v, st.locale) },
+		"day":       func(v any) string { return i18n.Day(v, st.locale) },
+		"weekday":   func(v any) string { return i18n.Weekday(v, st.locale) },
+		"pct":       func(v float64) string { return i18n.Num(v*pctScale, st.locale, 0) + " %" },
+		"ago":       func(v any) string { return i18n.Ago(asTimePtr(v), st.locale) },
+		"clockDate": func(tz string) string { return clockDate(tz, st.locale) },
+		// here tells whether the page lies at or below path (menu underline).
+		"here": func(path string) bool { return underPath(st.path, path) },
+		// tt translates with typed params ({"$money": 12.5} -> "12,50 €").
+		"tt": func(key string, params map[string]any) string {
+			return i18n.T(key, st.locale, i18n.Typed(params, st.locale))
+		},
+		"fragment": set.fragment,
+	})
+	return set
+}
+
+// fragment renders a tile body inside the page, with the page's data
+// plus the fragment, as /widget-fragments/{id} would answer.
+func (s *pageSet) fragment(body *tileBody) (template.HTML, error) {
+	// One copy of the page data per render, not per tile: tile bodies
+	// render one after another.
+	own := s.state.tile
+	if own == nil {
+		own = make(map[string]any, len(s.state.data)+2)
+		for k, v := range s.state.data {
+			own[k] = v
+		}
+		s.state.tile = own
+	}
+	own["Frag"], own["PlacementID"] = body.Frag, body.PlacementID
+
+	// A tile that rounds money formats with its own rounding.
+	pageRound := s.state.round
+	defer func() { s.state.round = pageRound }()
+	if body.Frag != nil && body.Frag.Frame.Round != widgets.RoundExact && body.Frag.Frame.Round != "" {
+		s.state.round = body.Frag.Frame.Round
+	}
+
+	var buf bytes.Buffer
+	if err := s.tmpl.ExecuteTemplate(&buf, body.Template, own); err != nil {
+		return "", err
+	}
+	if body.Frag != nil && body.Frag.Calm() {
+		buf.WriteString(calmMark)
+	}
+	return template.HTML(buf.String()), nil //nolint:gosec // output of our own escaping templates
+}
+
 // Page renders a full page with the common translation/formatting helpers
 // bound to ctx.Locale, and the active theme's stylesheet (unless
 // the caller already set "ThemeURL" itself — the board page picks its own
 // board/space-scoped theme).
 func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, values map[string]any) error {
-	locale := ctx.Locale
-	funcs := template.FuncMap{
-		"t":         func(key string, kv ...any) string { return i18n.T(key, locale, pairs(kv)) },
-		"money":     moneyFunc(locale, roundOf(values["Round"])),
-		"num":       func(v float64, digits ...int) string { return i18n.Num(v, locale, firstOr(digits, 0)) },
-		"gb":        func(v float64) string { return i18n.GB(v, locale) },
-		"day":       func(v any) string { return i18n.Day(v, locale) },
-		"weekday":   func(v any) string { return i18n.Weekday(v, locale) },
-		"pct":       func(v float64) string { return i18n.Num(v*pctScale, locale, 0) + " %" },
-		"ago":       func(v any) string { return i18n.Ago(asTimePtr(v), locale) },
-		"clockDate": func(tz string) string { return clockDate(tz, locale) },
-		// here tells whether the page lies at or below path (menu underline).
-		"here": func(path string) bool { return underPath(ctx.Path, path) },
-		// tt translates with typed params ({"$money": 12.5} -> "12,50 €").
-		"tt": func(key string, params map[string]any) string {
-			return i18n.T(key, locale, i18n.Typed(params, locale))
-		},
+	// A fresh mask per answer: compressed pages must not repeat the
+	// token (BREACH).
+	shown := ctx
+	if shown.CSRF != "" {
+		shown.CSRF = crypto.MaskToken(ctx.CSRF)
 	}
-
-	data := map[string]any{"Ctx": ctx, "Who": ctx.Who, "CSRFField": CSRFField, "CSRFHeader": CSRFHeader}
+	data := map[string]any{"Ctx": shown, "Who": ctx.Who, "CSRFField": CSRFField, "CSRFHeader": CSRFHeader}
 	for k, v := range values {
 		data[k] = v
 	}
-	// A tile fragment has no header: skip the nav and onboarding queries
-	// that every one of a board's fragments would otherwise repeat.
+	// A tile fragment or a board section has no header: skip the nav and
+	// onboarding queries that every one of them would otherwise repeat.
 	_, fragment := data["Frag"]
-	if ctx.Who != nil && !fragment {
+	_, partial := data["Partial"]
+	if ctx.Who != nil && !fragment && !partial {
 		d.addNav(data, ctx.Who)
 		// Menu progress and page intros (see routes_welcome.go).
 		if _, ok := data["Onboarding"]; !ok {
@@ -228,43 +323,15 @@ func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, valu
 		data["ThemeURL"] = url
 	}
 
-	page, err := templates.Clone()
-	if err != nil {
-		return err
-	}
-	page = page.Funcs(funcs)
+	set := takeSet()
+	defer returnSet(set)
+	*set.state = renderState{locale: ctx.Locale, path: ctx.Path, round: roundOf(values["Round"]), data: data}
 
-	// fragment renders a tile body inside the page, with the page's data
-	// plus the fragment, as /widget-fragments/{id} would answer.
-	page = page.Funcs(template.FuncMap{"fragment": func(body *tileBody) (template.HTML, error) {
-		own := make(map[string]any, len(data)+2)
-		for k, v := range data {
-			own[k] = v
-		}
-		own["Frag"], own["PlacementID"] = body.Frag, body.PlacementID
-		tile := page
-		// A tile that rounds money gets its own money func.
-		if body.Frag != nil && body.Frag.Frame.Round != widgets.RoundExact && body.Frag.Frame.Round != "" {
-			clone, err := page.Clone()
-			if err != nil {
-				return "", err
-			}
-			tile = clone.Funcs(template.FuncMap{"money": moneyFunc(locale, body.Frag.Frame.Round)})
-		}
-		var buf bytes.Buffer
-		if err := tile.ExecuteTemplate(&buf, body.Template, own); err != nil {
-			return "", err
-		}
-		if body.Frag != nil && body.Frag.Calm() {
-			buf.WriteString(calmMark)
-		}
-		return template.HTML(buf.String()), nil //nolint:gosec // output of our own escaping templates
-	}})
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	// Logged here: most callers ignore the error once headers are out, and
 	// a broken template would otherwise leave half a page and no trace.
-	if err := page.ExecuteTemplate(w, name, data); err != nil {
+	if err := set.tmpl.ExecuteTemplate(w, name, data); err != nil {
 		slog.Warn("render", "template", name, "err", err)
 		return err
 	}

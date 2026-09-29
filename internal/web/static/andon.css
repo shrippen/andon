@@ -1,9 +1,9 @@
 /* Local fonts (CSP: font-src 'self'; no third-party requests). */
-@font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-500.ttf) format("truetype"); }
-@font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-600.ttf) format("truetype"); }
-@font-face { font-family: "Rajdhani"; font-weight: 700; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-700.ttf) format("truetype"); }
-@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url(/static/vendor/kante/fonts/JetBrainsMono-400.ttf) format("truetype"); }
-@font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap; src: url(/static/vendor/kante/fonts/JetBrainsMono-500.ttf) format("truetype"); }
+@font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-500.woff2) format("woff2"); }
+@font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-600.woff2) format("woff2"); }
+@font-face { font-family: "Rajdhani"; font-weight: 700; font-display: swap; src: url(/static/vendor/kante/fonts/Rajdhani-700.woff2) format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url(/static/vendor/kante/fonts/JetBrainsMono-400.woff2) format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap; src: url(/static/vendor/kante/fonts/JetBrainsMono-500.woff2) format("woff2"); }
 
 /*
  * andon.css — app components on Kante tokens only (var(--…)).
@@ -295,29 +295,44 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
 }
 /* A section's only tile takes the section's width. */
 .board-main .dsec-body > .tile-slot:only-child { grid-column: 1 / -1; }
+/* Tiles off screen skip layout and paint (a 240-tile board: ~35 % less
+   work per load and per swap); auto keeps a tile's last rendered size. */
+.board .tile-slot { content-visibility: auto; contain-intrinsic-size: auto 5rem; }
 .tile-slot[data-rows="2"] > .card { height: 100%; }
 .tile-slot.is-hidden { opacity: .35; }
 /* ── edit and layout mode: tile strip, "+" tile, dragging ──
    The strip sits on the tile's top edge and shows on hover or focus
    (always on touch screens, on hidden and on selected tiles). */
-.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 .board[data-mode="board"] .tile-slot, .board[data-mode="overlay"] .tile-slot { cursor: grab; outline: 1px dashed var(--bg2); outline-offset: 2px; }
 .board[data-mode] .tile-slot:hover, .board[data-mode] .tile-slot:focus-within { outline-color: var(--yellow); }
 .tile-strip { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: .1rem;
   padding: .15rem .25rem; background: var(--bg1); opacity: 0; pointer-events: none; transition: opacity .12s; }
-.tile-slot:hover > .tile-strip, .tile-slot:focus-within > .tile-strip, .tile-slot.is-hidden > .tile-strip,
-.tile-slot:has(.tile-check input:checked) > .tile-strip { opacity: 1; pointer-events: auto; }
+.tile-slot:hover > .tile-strip, .tile-slot:focus-within > .tile-strip, .tile-slot.is-active > .tile-strip { opacity: 1; pointer-events: auto; }
+.board[data-mode] .tile-slot.is-picked { outline: 2px solid var(--yellow); }
+.edit-touch { display: none; margin: 0 0 .8rem; font-size: .8rem; color: var(--fg3); }
+@media (hover: none) {
+  .edit-touch { display: block; }
+}
 .tile-strip-gap { flex: 1; }
 .tile-repeat { font-family: var(--font-mono); font-size: .7rem; color: var(--warn-text); }
 .tile-grip { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; color: var(--fg3); cursor: grab; }
-.tile-grip svg, .tile-ico svg { width: .75rem; height: .75rem; }
+/* Strip icons as CSS masks: an inline <svg><use> per icon built a
+   shadow tree each, ~1 s of a 240-tile edit page on a slow device. */
+.ico { display: block; width: .75rem; height: .75rem; background: currentColor;
+  -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; }
+.ico-grip { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M5 2h2v2H5zm4 0h2v2H9zM5 7h2v2H5zm4 0h2v2H9zm-4 5h2v2H5zm4 0h2v2H9z%22/%3E%3C/svg%3E"); }
+.ico-edit { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M11.3 1.3a1 1 0 0 1 1.4 0l2 2a1 1 0 0 1 0 1.4L6 13.4 2 14l.6-4 8.7-8.7Z%22/%3E%3C/svg%3E"); }
+.ico-share { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M12 1a3 3 0 1 1-2.8 4l-3.4 1.8a3 3 0 0 1 0 2.4L9.2 11A3 3 0 1 1 9 12.4l-3.5-1.9a3 3 0 1 1 0-5L9 3.6A3 3 0 0 1 12 1Z%22/%3E%3C/svg%3E"); }
+.ico-height { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M8 0 12 4H9v8h3l-4 4-4-4h3V4H4Z%22/%3E%3C/svg%3E"); }
+.ico-width { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M0 8 4 4v3h8V4l4 4-4 4V9H4v3Z%22/%3E%3C/svg%3E"); }
+.ico-x { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M3.4 2 8 6.6 12.6 2 14 3.4 9.4 8l4.6 4.6-1.4 1.4L8 9.4 3.4 14 2 12.6 6.6 8 2 3.4Z%22/%3E%3C/svg%3E"); }
+.ico-eye { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M8 3c3.6 0 6.3 2.6 7.5 5-1.2 2.4-3.9 5-7.5 5S1.7 10.4.5 8C1.7 5.6 4.4 3 8 3Zm0 2.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z%22/%3E%3C/svg%3E"); }
 .tile-check { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; margin: 0; cursor: pointer; }
 .tile-check input { margin: 0; width: .85rem; height: .85rem; }
 .tile-ico { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; padding: 0; margin: 0; border: 0; background: none; color: var(--fg2); cursor: pointer; }
 .tile-ico:hover, .tile-ico:focus-visible { background: var(--bg2); color: var(--fg0); }
 .tile-ico[aria-pressed="true"] { color: var(--warn-text); }
 .tile-ico.is-danger:hover, .tile-ico.is-danger:focus-visible { color: var(--danger-text); }
-.tile-strip .inline-form { gap: 0; }
 @media (hover: none) {
   .tile-strip { position: static; opacity: 1; pointer-events: auto; }
 }
@@ -923,7 +938,7 @@ table.table tr:last-child td { border-bottom: 0; }
 /* Selection bar: only once tiles are selected. */
 .selbar { display: none; align-items: center; gap: .5rem; flex-wrap: wrap; margin: 0; padding: .5rem 1rem; background: var(--bg1); border-left: 3px solid var(--yellow);
   position: sticky; top: 0; z-index: 4; }
-.board-page:has(.tile-check input:checked) .selbar { display: flex; }
+.selbar:has(input[name="placement"]) { display: flex; }
 .selbar b { font-family: var(--font-mono); font-size: .75rem; font-weight: 500; color: var(--fg0); }
 .selbar select { width: auto; margin: 0; }
 .selbar button { margin: 0; }

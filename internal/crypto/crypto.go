@@ -200,3 +200,34 @@ func Sign(message string, purpose Purpose) (string, error) {
 	mac.Write([]byte(message))
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil)), nil
 }
+
+// MaskToken hides a token behind a fresh random pad, so it never repeats
+// in compressed pages (BREACH):
+//
+//	base64url(pad ‖ pad XOR token), pad random, len(pad) = len(token)
+func MaskToken(token string) string {
+	pad := make([]byte, len(token))
+	if _, err := rand.Read(pad); err != nil {
+		panic(err) // the OS random source never fails on supported systems
+	}
+	out := make([]byte, 2*len(token))
+	copy(out, pad)
+	for i := range len(token) {
+		out[len(token)+i] = pad[i] ^ token[i]
+	}
+	return base64.RawURLEncoding.EncodeToString(out)
+}
+
+// UnmaskToken reverses MaskToken; false for anything it did not make.
+func UnmaskToken(masked string) (string, bool) {
+	raw, err := base64.RawURLEncoding.DecodeString(masked)
+	if err != nil || len(raw) == 0 || len(raw)%2 != 0 {
+		return "", false
+	}
+	half := len(raw) / 2
+	out := make([]byte, half)
+	for i := range half {
+		out[i] = raw[i] ^ raw[half+i]
+	}
+	return string(out), true
+}

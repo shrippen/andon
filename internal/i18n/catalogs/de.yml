@@ -200,6 +200,7 @@ edit:
   repeated: 'Diese Kachel steht mehrmals auf dem Board.'
   tile_wide: 'Doppelte Breite'
   tile_narrow: 'Normale Breite'
+  touch_hint: 'Bearbeiten ist für den Desktop gemacht. Kachel antippen für ihre Werkzeuge, noch einmal tippen öffnet sie.'
 field:
   place: Ort
   week_hours: Wochenziel (Stunden)

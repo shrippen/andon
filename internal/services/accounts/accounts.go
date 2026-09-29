@@ -136,7 +136,7 @@ func JoinTeams(q db.Queryer, userID int64, assignments []TeamAssignment) error {
 // GetProfile returns one user's account profile.
 func GetProfile(d *sql.DB, who *access.Principal) (*Profile, error) {
 	var p *Profile
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		u, err := users.Get(tx, who.UserID)
 		if err != nil {
 			return err

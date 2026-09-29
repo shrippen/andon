@@ -115,6 +115,9 @@ func (d Deps) handleQuickLink(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.handleBoardError(w, r, err)
 		return
 	}
+	if d.boardPart(w, r, ctx, formBoard(r), partEdit, hintUndo) {
+		return
+	}
 	http.Redirect(w, r, "/boards/"+r.FormValue("board_id")+"?edit&undo", http.StatusSeeOther)
 }
 

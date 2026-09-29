@@ -42,6 +42,7 @@ type Slot struct {
 	OkAt              time.Time
 	MissingCredential string // connection name, "" if credentials are fine
 	Pending           bool   // not fetched by a background run yet
+	Due               bool   // a Cached read would fetch again (see svcdata.Due)
 }
 
 // Fragment is a widget's live view: its queries' results shaped by its
@@ -115,7 +116,7 @@ func linkHost(cfg any) string {
 // hostConnection finds the connection serving host (pl.example.org →
 // the Paperless connection), in the widget's space first. A link tile
 // without an info connection counts that connection's hints.
-func hostConnection(q db.Queryer, who *access.Principal, widget *model.Widget, host string) (*model.Connection, error) {
+func hostConnection(q db.Queryer, who *access.Principal, widget *model.Widget, host string, m *memo) (*model.Connection, error) {
 	spaceIDs := []int64{widget.SpaceID}
 	for spaceID := range who.Spaces {
 		if spaceID != widget.SpaceID {
@@ -125,7 +126,7 @@ func hostConnection(q db.Queryer, who *access.Principal, widget *model.Widget, h
 	slices.Sort(spaceIDs[1:])
 
 	for _, spaceID := range spaceIDs {
-		list, err := content.Connections(q, []int64{spaceID})
+		list, err := m.connections(q, spaceID)
 		if err != nil {
 			return nil, err
 		}
@@ -220,7 +221,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 			infoConn = c
 		}
 		if conn == nil && infoConn == nil && host != "" {
-			c, err := hostConnection(tx, who, widget, host)
+			c, err := hostConnection(tx, who, widget, host, memoOf(ctx))
 			if err != nil {
 				return err
 			}
@@ -288,11 +289,11 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		serviceConn = hostConn
 	}
 	if serviceConn != nil && from == originStored {
-		count, level, err := hints.CountFor(d, who, serviceConn.ID)
+		badge, err := memoOf(ctx).badge(d, who, serviceConn.ID)
 		if err != nil {
 			return nil, err
 		}
-		frag.HintCount, frag.HintLevel, frag.HintConn = count, level, serviceConn.ID
+		frag.HintCount, frag.HintLevel, frag.HintConn = badge.Count, badge.Top, serviceConn.ID
 	}
 
 	if kind.Extra == widgets.ExtraPoints && conn != nil && from == originStored {
@@ -358,7 +359,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		frag.Slots[widgets.NoiseSlot] = Slot{Data: data}
 	}
 	if kind.Extra == widgets.ExtraLinksDown {
-		links, err := linksDown(ctx, d, who, widget.SpaceID)
+		links, err := memoOf(ctx).linksDown(ctx, d, who, widget.SpaceID)
 		if err != nil {
 			return nil, err
 		}
@@ -557,7 +558,7 @@ func runQuery(ctx context.Context, d *sql.DB, source string, params map[string]a
 		}
 		return Slot{Error: "source.unknown"}
 	}
-	return Slot{Data: res.Data, Error: res.Error, OkAt: res.OkAt, Pending: res.Pending}
+	return Slot{Data: res.Data, Error: res.Error, OkAt: res.OkAt, Pending: res.Pending, Due: svcdata.Due(source, res, time.Now())}
 }
 
 // demoQuery asks a source directly for its demo dataset: no cache, no
@@ -625,7 +626,7 @@ func snapshot(q db.Queryer, who *access.Principal, w *model.Widget) error {
 // live data before saving.
 func Preview(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64, typeKey, title string,
 	config map[string]any, connID *int64) (*Fragment, error) {
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		space, err := access.SpaceOf(tx, who, spaceID)
 		if err != nil {
 			return err

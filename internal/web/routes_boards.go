@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -123,17 +124,109 @@ func (d Deps) renderBoard(w http.ResponseWriter, r *http.Request, ctx Ctx, embed
 		bodies = d.tileBodies(r, ctx, view)
 	}
 
-	_ = d.Page(w, ctx, "board", http.StatusOK, map[string]any{
+	_ = d.Page(w, ctx, "board", http.StatusOK, withChoices(map[string]any{
 		"Bodies": bodies, "Board": view, "NavBoards": navBoards, "CurBoard": view.ID, "ThemeURL": themeURL,
 		"Embed": embed, "EmbedToken": embedToken, "SearchEngine": searchEngine,
 		"Edit": mode.edit, "LayerEdit": mode.layer && !embed, "Compact": mode.compact, "UndoHint": r.URL.Query().Has("undo"),
-		"Sizes": []enums.TileSize{enums.TileSmall, enums.TileMedium, enums.TileLarge},
-		"Sorts": []enums.SortOrder{enums.SortManual, enums.SortAlphabetical},
-		"Areas": []string{"main", "side"},
-		"Spans": []int{0, 1, 2, 3, 5, 6, boards.SpanFlow}, "RowSpans": []int{1, 2, 3, 4}, "Colors": widgets.TileColors,
-		"Mobiles": []enums.MobileMode{enums.MobileNormal, enums.MobileFirst, enums.MobileHide},
-		"Kiosk":   kioskOf(r, navBoards, view.ID),
-	})
+		"Kiosk": kioskOf(r, navBoards, view.ID),
+	}))
+}
+
+// withChoices adds the section and tile forms' options to a board's data.
+func withChoices(data map[string]any) map[string]any {
+	data["Sizes"] = []enums.TileSize{enums.TileSmall, enums.TileMedium, enums.TileLarge}
+	data["Sorts"] = []enums.SortOrder{enums.SortManual, enums.SortAlphabetical}
+	data["Areas"] = []string{"main", "side"}
+	data["Spans"] = []int{0, 1, 2, 3, 5, 6, boards.SpanFlow}
+	data["RowSpans"] = []int{1, 2, 3, 4}
+	data["Colors"] = widgets.TileColors
+	data["Mobiles"] = []enums.MobileMode{enums.MobileNormal, enums.MobileFirst, enums.MobileHide}
+	return data
+}
+
+// ── Section answers ──
+//
+// An action on one section (tile strip, quick link) sent by htmx gets
+// that section back instead of the page: swapping a 240-tile page took
+// seconds on a slow device. The board's new version rides along in
+// HX-Trigger, and the page carries it into its other forms (editor.js).
+//
+//	strip form ─POST, HX-Target: dsec-12─► handler ─► boardPart ─► <section id="dsec-12">
+//	                                                     └─► HX-Trigger {"boardVersion": 8}
+
+// sectionIDPrefix starts a section element's id: "dsec-12".
+const sectionIDPrefix = "dsec-"
+
+// partMode says which tile strips a section answer carries.
+type partMode int
+
+const (
+	partEdit  partMode = iota // board edit mode
+	partLayer                 // the viewer's own layout
+)
+
+// partHint says whether the answer points at undo, as ?undo does.
+type partHint int
+
+const (
+	hintNone partHint = iota
+	hintUndo
+)
+
+// sectionTarget is the section an htmx request wants back, 0 for the
+// whole page.
+func sectionTarget(r *http.Request) int64 {
+	if r.Header.Get("HX-Request") != "true" {
+		return 0
+	}
+	raw, ok := strings.CutPrefix(r.Header.Get("HX-Target"), sectionIDPrefix)
+	if !ok {
+		return 0
+	}
+	id, _ := strconv.ParseInt(raw, 10, 64)
+	return id
+}
+
+// boardPart answers with the target section of board boardID; false
+// means the request wants the whole page. A section that is gone asks
+// htmx to reload the page.
+func (d Deps) boardPart(w http.ResponseWriter, r *http.Request, ctx Ctx, boardID int64, mode partMode, hint partHint) bool {
+	section := sectionTarget(r)
+	if section == 0 {
+		return false
+	}
+	view, err := boards.View(d.DB, ctx.Who, boardID)
+	if err != nil {
+		d.handleBoardError(w, r, err)
+		return true
+	}
+
+	one := *view
+	one.Sections = nil
+	for _, sec := range view.Sections {
+		if sec.ID == section {
+			one.Sections = append(one.Sections, sec)
+		}
+	}
+	if len(one.Sections) == 0 {
+		w.Header().Set("HX-Refresh", "true")
+		w.WriteHeader(http.StatusNoContent)
+		return true
+	}
+
+	trigger, _ := json.Marshal(map[string]any{"boardVersion": view.Version, "undoHint": hint == hintUndo})
+	w.Header().Set("HX-Trigger", string(trigger))
+	_ = d.Page(w, ctx, "board_section", http.StatusOK, withChoices(map[string]any{
+		"Board": &one, "Section": section, "Bodies": d.tileBodies(r, ctx, &one), "Partial": true, "ThemeURL": "",
+		"Edit": mode == partEdit && view.CanEdit, "LayerEdit": mode == partLayer,
+	}))
+	return true
+}
+
+// formBoard is the board a form names in its board_id field.
+func formBoard(r *http.Request) int64 {
+	id, _ := strconv.ParseInt(r.FormValue("board_id"), 10, 64)
+	return id
 }
 
 // tileBody is a tile's first render, done with the page so tiles don't
@@ -146,43 +239,67 @@ type tileBody struct {
 	Load        bool
 }
 
-// tileBodies renders every card tile from stored data only (svcdata.Stored:
+// tileBodies renders every tile from stored data only (svcdata.Stored:
 // no request leaves the server), so the page stays as fast as before.
-// Link tiles keep loading lazily: their status line is small.
+// Link tiles too: one request per status line made a 50-link board send
+// 50 requests on every view and on every edit.
 func (d Deps) tileBodies(r *http.Request, ctx Ctx, view *boards.BoardView) map[int64]*tileBody {
+
+	// A link without status or info line has no body.
+	var ids []int64
+	for _, sec := range view.Sections {
+		for _, tile := range sec.Tiles {
+			kind, ok := widgets.Get(tile.Type)
+			if !ok || (tile.Type == linkType && len(kind.Queries(tile.Config)) == 0) {
+				continue
+			}
+			ids = append(ids, tile.PlacementID)
+		}
+	}
+	frags, err := boards.Fragments(r.Context(), d.DB, ctx.Who, view.ID, ids, svcdata.Stored)
+	if err != nil {
+		return nil
+	}
+
 	out := map[int64]*tileBody{}
 	for _, sec := range view.Sections {
 		for _, tile := range sec.Tiles {
-			if tile.Type == linkType {
-				continue
-			}
-			kind, ok := widgets.Get(tile.Type)
+			kind, _ := widgets.Get(tile.Type)
+			link := tile.Type == linkType
+			frag, ok := frags[tile.PlacementID]
 			if !ok {
 				continue
 			}
-			frag, err := boards.Fragment(r.Context(), d.DB, ctx.Who, tile.PlacementID, svcdata.Stored)
-			if err != nil {
-				continue
+
+			// linkstatus checks every link in the background, so a stored
+			// status is as fresh as the tile's own polling would keep it.
+			load := needsLoad(kind, tile.Config, frag)
+			if link {
+				load = pending(frag)
 			}
-			out[tile.PlacementID] = &tileBody{PlacementID: tile.PlacementID, Template: kind.Template, Frag: frag,
-				Load: needsLoad(kind, tile.Config, frag)}
+			out[tile.PlacementID] = &tileBody{PlacementID: tile.PlacementID, Template: kind.Template, Frag: frag, Load: load}
 		}
 	}
 	return out
 }
 
 // needsLoad: live types want fresh data on every view, sources without a
-// connection (weather, feeds) are only fetched on view, and pending slots
-// have no stored value yet.
+// connection (weather, feeds) are only fetched on view, once their stored
+// value is due, and pending slots have no stored value yet.
 func needsLoad(kind widgets.WidgetType, cfg any, frag *widgetlib.Fragment) bool {
 	if kind.Live {
 		return true
 	}
 	for _, q := range kind.Queries(cfg) {
-		if q.Conn == widgets.ConnNone {
+		if q.Conn == widgets.ConnNone && frag.Slots[q.Name].Due {
 			return true
 		}
 	}
+	return pending(frag)
+}
+
+// pending reports a slot without a stored value yet.
+func pending(frag *widgetlib.Fragment) bool {
 	for _, slot := range frag.Slots {
 		if slot.Pending {
 			return true
@@ -334,10 +451,12 @@ func pathID(r *http.Request, name string) (int64, error) {
 
 func boardPath(id int64) string { return "/boards/" + strconv.FormatInt(id, 10) }
 
-// arrangeRequest is editor.js's payload: {"version": 3, "layout": {"12": [5, 7]}}.
+// arrangeRequest is editor.js's payload: {"version": 3, "layout": {"12": [5, 7]},
+// "mode": "board"}; mode is the page's (board in edit mode, else overlay).
 type arrangeRequest struct {
-	Version int                `json:"version"`
-	Layout  map[string][]int64 `json:"layout"`
+	Version int                 `json:"version"`
+	Layout  map[string][]int64  `json:"layout"`
+	Mode    boards.LayoutTarget `json:"mode"`
 }
 
 // handleArrange stores a new tile order: into the board for editors in
@@ -362,12 +481,12 @@ func (d Deps) handleArrange(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		}
 		layout[sectionID] = placements
 	}
-	target, err := boards.Arrange(d.DB, ctx.Who, id, body.Version, layout)
+	target, version, err := boards.Arrange(d.DB, ctx.Who, id, body.Version, layout, body.Mode)
 	if err != nil {
 		d.handleBoardError(w, r, err)
 		return
 	}
-	writeJSON(w, map[string]string{"target": string(target)})
+	writeJSON(w, map[string]any{"target": string(target), "version": version})
 }
 
 // layoutAction runs one overlay change and answers with back.
@@ -385,6 +504,9 @@ func (d Deps) layoutAction(w http.ResponseWriter, r *http.Request, child string,
 	}
 	if err := run(ctx, id, childID); err != nil {
 		d.handleBoardError(w, r, err)
+		return
+	}
+	if back != nil && d.boardPart(w, r, ctx, id, partLayer, hintNone) {
 		return
 	}
 	if back == nil {

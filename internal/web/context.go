@@ -172,7 +172,16 @@ func (d Deps) checkCSRF(r *http.Request, expected string) error {
 	if sent == "" {
 		sent = r.FormValue(CSRFField)
 	}
-	if sent == "" || expected == "" || !crypto.Same(sent, expected) {
+	if sent == "" || expected == "" {
+		return ErrCSRFFailed
+	}
+
+	// Pages carry the token masked (see Page); scripts and API clients
+	// may still send it plain.
+	if plain, ok := crypto.UnmaskToken(sent); ok && crypto.Same(plain, expected) {
+		return nil
+	}
+	if !crypto.Same(sent, expected) {
 		return ErrCSRFFailed
 	}
 	return nil

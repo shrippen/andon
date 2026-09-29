@@ -154,3 +154,25 @@ func TestFailedFetchKeepsLastData(t *testing.T) {
 		}
 	}
 }
+
+// TestStoredReadSkipsDatabase: a known result is served from memory, with
+// no transaction (a big board reads hundreds per view).
+func TestStoredReadSkipsDatabase(t *testing.T) {
+	d, err := db.Open(filepath.Join(t.TempDir(), "test.db"), dbtest.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	calls := 0
+	sources.Register(countingSource{&calls})
+	params := map[string]any{"q": "stored-fast"}
+	if _, err := svcdata.Get(context.Background(), d, "test.counting", params, nil, nil, svcdata.Force); err != nil {
+		t.Fatal(err)
+	}
+
+	d.Close()
+	res, err := svcdata.Get(context.Background(), d, "test.counting", params, nil, nil, svcdata.Stored)
+	if err != nil || res.Pending || res.Data == nil {
+		t.Fatalf("stored read needed the database: %+v %v", res, err)
+	}
+}

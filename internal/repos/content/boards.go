@@ -155,6 +155,17 @@ func Board(q db.Queryer, boardID int64) (*model.Board, error) {
 	return b, nil
 }
 
+// BoardHead returns a board without its sections and tiles (nil if
+// missing): enough for access checks, which then skip loading every tile.
+func BoardHead(q db.Queryer, boardID int64) (*model.Board, error) {
+	row := q.QueryRow("SELECT "+boardCols+" FROM boards WHERE id = ?", boardID)
+	b, err := scanBoardRow(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	return b, err
+}
+
 // BoardBySlug returns a board (with content) by its space-scoped slug.
 func BoardBySlug(q db.Queryer, spaceID int64, slug string) (*model.Board, error) {
 	row := q.QueryRow("SELECT "+boardCols+" FROM boards WHERE space_id = ? AND slug = ?", spaceID, slug)

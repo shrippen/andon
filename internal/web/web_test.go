@@ -604,7 +604,7 @@ func TestEditorCreateWidgetPlaceUnplace(t *testing.T) {
 		t.Fatalf("expected placed widget's title on the board:\n%s", boardBody)
 	}
 
-	placementMatch := regexp.MustCompile(`/placements/(\d+)/unplace`).FindSubmatch(boardBody)
+	placementMatch := placementRe.FindSubmatch(boardBody)
 	if placementMatch == nil {
 		t.Fatalf("no unplace form found:\n%s", boardBody)
 	}
@@ -626,7 +626,7 @@ func TestEditorCreateWidgetPlaceUnplace(t *testing.T) {
 
 	boardBody = mustGet(t, srv, client, boardURL+"?edit")
 	// What must be gone is the unplace form for this placement id.
-	if strings.Contains(string(boardBody), "/placements/"+string(placementMatch[1])+"/unplace") {
+	if strings.Contains(string(boardBody), `data-placement="`+string(placementMatch[1])+`"`) {
 		t.Fatalf("expected the placement's unplace form gone from the board after unplace:\n%s", boardBody)
 	}
 }
@@ -688,7 +688,7 @@ func TestWidgetFragmentRendersKimaiKpi(t *testing.T) {
 	resp.Body.Close()
 
 	boardBody := mustGet(t, srv, client, boardURL+"?edit")
-	placementMatch := regexp.MustCompile(`/placements/(\d+)/unplace`).FindSubmatch(boardBody)
+	placementMatch := placementRe.FindSubmatch(boardBody)
 	if placementMatch == nil {
 		t.Fatalf("no placement found on board:\n%s", boardBody)
 	}
@@ -762,7 +762,7 @@ func TestWidgetFragmentRendersRssFeed(t *testing.T) {
 	resp.Body.Close()
 
 	boardBody := mustGet(t, srv, client, boardURL+"?edit")
-	placementMatch := regexp.MustCompile(`/placements/(\d+)/unplace`).FindSubmatch(boardBody)
+	placementMatch := placementRe.FindSubmatch(boardBody)
 	if placementMatch == nil {
 		t.Fatalf("no placement found on board:\n%s", boardBody)
 	}

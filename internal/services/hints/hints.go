@@ -368,24 +368,38 @@ func clientOf(params map[string]any) string {
 
 // CountFor returns (count, highest severity) of open hints on one connection.
 func CountFor(d *sql.DB, who *access.Principal, connID int64) (int, enums.Severity, error) {
-	var count int
-	var top enums.Severity
+	all, err := Badges(d, who)
+	badge := all[connID]
+	return badge.Count, badge.Top, err
+}
+
+// Badge is a connection's open hints: how many, the most severe.
+type Badge struct {
+	Count int
+	Top   enums.Severity
+}
+
+// Badges returns the badge of every connection with open hints, in one
+// read: a board shows one per tile that has a connection.
+func Badges(d *sql.DB, who *access.Principal) (map[int64]Badge, error) {
+	out := map[int64]Badge{}
 	err := db.WithRead(d, func(tx *sql.Tx) error {
 		found, err := visible(tx, who)
 		if err != nil {
 			return err
 		}
 		for _, h := range found {
-			if h.ConnectionID != nil && *h.ConnectionID == connID {
-				count++
-				if h.Severity > top {
-					top = h.Severity
-				}
+			if h.ConnectionID == nil {
+				continue
 			}
+			badge := out[*h.ConnectionID]
+			badge.Count++
+			badge.Top = max(badge.Top, h.Severity)
+			out[*h.ConnectionID] = badge
 		}
 		return nil
 	})
-	return count, top, err
+	return out, err
 }
 
 // ForConnection lists the open hints of one connection, most severe
