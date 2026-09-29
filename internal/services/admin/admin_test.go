@@ -184,7 +184,22 @@ func TestDeleteDisabledAdminAllowed(t *testing.T) {
 	}
 
 	if err := admin.Delete(d, boss, second.UserID, ""); err != nil {
-		t.Skipf("BUG: Delete refuses a disabled admin as last admin: %v", err)
+		t.Fatalf("delete disabled admin: %v", err)
+	}
+}
+
+// Demoting a disabled admin leaves the active admin, so the last-admin
+// guard must not refuse.
+func TestDemoteDisabledAdminAllowed(t *testing.T) {
+	d := testkit.DB(t)
+	boss, _ := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+	second, _ := testkit.User(t, d, "admin2@x.de", enums.RoleAdmin)
+	if err := admin.SetActive(d, boss, second.UserID, admin.Off, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := admin.SetRole(d, boss, second.UserID, enums.RoleUser, ""); err != nil {
+		t.Fatalf("demote disabled admin: %v", err)
 	}
 }
 
