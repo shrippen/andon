@@ -544,3 +544,31 @@ func orEmpty(m map[string]any) map[string]any {
 	}
 	return m
 }
+
+// HookURL is a connection's webhook address, "" for a service that sends
+// none. The URL is its own secret, so it needs MANAGE, as rotating does.
+func HookURL(d *sql.DB, who *access.Principal, connID int64, baseURL string) (string, error) {
+	var out string
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		conn, err := content.Connection(tx, connID)
+		if err != nil {
+			return err
+		}
+		if conn == nil {
+			return ErrNotFound
+		}
+		granted, err := rightOf(tx, who, conn)
+		if err != nil {
+			return err
+		}
+		if err := access.Need(granted, enums.RightManage); err != nil {
+			return err
+		}
+		if !hooks.Accepts(enums.ServiceType(conn.Service)) {
+			return nil
+		}
+		out, err = hooks.URL(tx, baseURL, conn.ID)
+		return err
+	})
+	return out, err
+}

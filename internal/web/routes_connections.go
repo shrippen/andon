@@ -15,7 +15,6 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/connect"
 	"andon/internal/services/connections"
-	"andon/internal/services/hooks"
 	"andon/internal/services/places"
 	"andon/internal/services/porting"
 	"andon/internal/widgets"
@@ -161,8 +160,9 @@ func (d Deps) handleConnectionEditForm(w http.ResponseWriter, r *http.Request, c
 		"OptionsYAML": porting.DumpMap(conn.Options), "Error": r.URL.Query().Get("error"),
 		"SignIn": d.signInOf(conn),
 	}
-	if hooks.Accepts(conn.Service) {
-		values["HookURL"], _ = hooks.URL(d.DB, d.Settings.BaseURL, conn.ID)
+	// Only who may rotate the webhook sees its URL (it is the secret).
+	if conn.Right >= enums.RightManage {
+		values["HookURL"], _ = connections.HookURL(d.DB, ctx.Who, conn.ID, d.Settings.BaseURL)
 	}
 	// Just signed in: show right away whether the service answers.
 	if r.URL.Query().Has("connected") {
