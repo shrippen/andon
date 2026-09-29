@@ -31,12 +31,6 @@ const (
 	payScaleRoom     = 1.1 // the rightmost dot keeps a little room
 )
 
-func decodePaymentDays(raw map[string]any) any {
-	return PaymentDaysConfig{Target: clampInt(asInt(raw["target_days"], defaultPayTarget), 1, 365),
-		Limit: clampInt(asInt(raw["limit"], defaultPayRows), 1, 20), Months: clampInt(asInt(raw["months"], 0), 0, 120),
-		HideClients: lowerList(raw["hide_clients"])}
-}
-
 // PayRow is one client: dot and mark positions in percent of the scale.
 type PayRow struct {
 	Client            string
@@ -46,12 +40,7 @@ type PayRow struct {
 	Late              bool // typical beyond the target
 }
 
-func paymentDaysView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(PaymentDaysConfig)
-	data, ok := results["data"].(*sources.NinjaDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func paymentDaysView(cfg PaymentDaysConfig, data *sources.NinjaDataset, ctx ViewCtx) map[string]any {
 	center := metrics.CenterOf(ctx.Settings)
 	var since time.Time
 	if cfg.Months > 0 {
@@ -90,6 +79,13 @@ func paymentDaysView(cfgAny any, results map[string]any, ctx ViewCtx) map[string
 }
 
 func init() {
-	Register(WidgetType{Key: "payment_days", Decode: decodePaymentDays, Category: CategoryInsight,
-		Service: enums.ServiceInvoiceNinja, RefreshS: 3600, Queries: dataQuery, View: paymentDaysView})
+	Tile[PaymentDaysConfig]{Key: "payment_days", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
+		Fields: []Field{{Key: "target_days", Input: InputNumber, Default: defaultPayTarget, Min: "1", Max: "365"},
+			{Key: "limit", Input: InputNumber, Default: defaultPayRows, Min: "1", Max: "20"},
+			{Key: "months", Input: InputNumber, Min: "0", Max: "120"}, {Key: "hide_clients", Input: InputList}},
+		Renames: []rename{{from: "target", to: "target_days"}},
+		Decode: func(r Raw) PaymentDaysConfig {
+			return PaymentDaysConfig{Target: r.Int("target_days"), Limit: r.Int("limit"), Months: r.Int("months"), HideClients: r.Lower("hide_clients")}
+		},
+		Queries: ownData[PaymentDaysConfig], View: dataView(paymentDaysView)}.add()
 }

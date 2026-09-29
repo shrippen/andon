@@ -29,16 +29,16 @@ type UptimeMonthConfig struct {
 	Only []string // monitor name parts (lower case), empty = all
 }
 
-func decodeUptimeMonth(raw map[string]any) any {
-	sla := asFloat(raw["sla"])
+// decodeUptimeMonth: an SLA out of 0–100 means none, not the bound.
+func decodeUptimeMonth(r Raw) UptimeMonthConfig {
+	sla := asFloat(r.Get("sla"))
 	if sla < 0 || sla > pctFull {
 		sla = 0
 	}
-	return UptimeMonthConfig{SLA: sla, Only: lowerList(raw["filter"])}
+	return UptimeMonthConfig{SLA: sla, Only: r.Lower("filter")}
 }
 
-func uptimeMonthView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(UptimeMonthConfig)
+func uptimeMonthView(cfg UptimeMonthConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	data, ok := results["data"].(*sources.KumaDataset)
 	h, ok2 := results[HistorySlot].(*metrics.History)
 	if !ok || !ok2 {
@@ -88,6 +88,17 @@ func uptimeMonthView(cfgAny any, results map[string]any, ctx ViewCtx) map[string
 }
 
 func init() {
-	Register(WidgetType{Key: "uptime_month", Decode: decodeUptimeMonth, Category: CategoryInsight,
-		Service: enums.ServiceUptimeKuma, RefreshS: 1800, Queries: dataQuery, View: uptimeMonthView, Extra: ExtraHistory})
+	Tile[UptimeMonthConfig]{Key: "uptime_month", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceUptimeKuma, RefreshS: 1800,
+		Extra:  ExtraHistory,
+		Fields: []Field{{Key: "sla", Input: InputNumber, Min: "0", Max: "100"}, {Key: "filter", Input: InputList}},
+		Decode: decodeUptimeMonth, Queries: ownData[UptimeMonthConfig], View: uptimeMonthView,
+		Calm: func(v map[string]any) bool {
+			rows, _ := v["Rows"].([]UptimeRow)
+			for _, r := range rows {
+				if r.Tier != "ok" {
+					return false
+				}
+			}
+			return len(rows) > 0
+		}}.add()
 }

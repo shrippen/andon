@@ -22,7 +22,6 @@ var checks = map[string]func(raw map[string]any) string{
 		}
 		return checkZone(raw)
 	},
-	"today":    checkZone,
 	"greeting": checkZone,
 }
 

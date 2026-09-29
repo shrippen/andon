@@ -21,15 +21,11 @@ type rename struct {
 }
 
 var renames = map[string][]rename{
-	"tailscale":        {{from: "only_trouble", to: "only_problems"}},
-	"github":           {{from: "only_red", to: "only_problems"}},
 	"authentik_logins": {{from: "only_failures", to: "only_problems"}, {from: "span", to: "period"}},
 	"conn_health":      {{from: "only_shaky", to: "only_problems"}},
 	"exposure":         {{from: "only_open", to: "only_problems"}},
 	"hint_noise":       {{from: "period", to: "days"}},
 	"hint_trend":       {{from: "period", to: "days"}},
-	"rate_trend":       {{from: "target", to: "target_value"}},
-	"payment_days":     {{from: "target", to: "target_days"}},
 	"list":             {{from: "columns", to: "two_columns", value: func(v any) (any, bool) { return v == "2", true }}},
 	"hints": {
 		{from: "by_value", to: "sort", value: func(v any) (any, bool) { return HintSortValue, asBool(v) }},

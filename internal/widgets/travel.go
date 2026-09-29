@@ -24,14 +24,6 @@ type TravelConfig struct {
 // defaultKMRate is the German flat rate for business trips by car (€/km).
 const defaultKMRate = 0.30
 
-func decodeTravel(raw map[string]any) any {
-	rate := defaultKMRate
-	if v, ok := raw["km_rate"]; ok {
-		rate = max(asFloat(v), 0)
-	}
-	return TravelConfig{KMRate: rate, Year: raw["period"] == "year", HideBar: asBool(raw["hide_bar"])}
-}
-
 // yearStats finds one year in Dawarich's yearlyStats.
 func yearStats(stats map[string]any, year int) map[string]any {
 	list, _ := stats["yearlyStats"].([]any)
@@ -50,12 +42,7 @@ func monthKM(stats map[string]any, day time.Time) float64 {
 	return asFloat(months[strings.ToLower(day.Month().String())])
 }
 
-func travelView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(TravelConfig)
-	data, ok := results["data"].(*sources.DawarichDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func travelView(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx) map[string]any {
 	today := todayOf(ctx)
 	year := yearStats(data.Stats, today.Year())
 	out := map[string]any{"MonthKM": monthKM(data.Stats, today), "PrevKM": monthKM(data.Stats, metrics.AddMonths(today, -1)),
@@ -83,6 +70,11 @@ func travelView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any 
 }
 
 func init() {
-	Register(WidgetType{Key: "travel", Decode: decodeTravel, Category: CategoryInsight,
-		Service: enums.ServiceDawarich, RefreshS: 3600, Queries: dataQuery, View: travelView})
+	Tile[TravelConfig]{Key: "travel", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceDawarich, RefreshS: 3600,
+		Fields: []Field{{Key: "km_rate", Input: InputNumber, Default: defaultKMRate, Min: "0"}, sel("period", "month", "month", "year"),
+			{Key: "hide_bar", Input: InputCheck}},
+		Decode: func(r Raw) TravelConfig {
+			return TravelConfig{KMRate: r.Float("km_rate"), Year: r.Pick("period") == "year", HideBar: r.Bool("hide_bar")}
+		},
+		Queries: ownData[TravelConfig], View: dataView(travelView)}.add()
 }

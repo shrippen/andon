@@ -1,7 +1,6 @@
 package widgets
 
 import (
-	"andon/internal/metrics"
 	"slices"
 	"sort"
 	"strconv"
@@ -66,28 +65,11 @@ var fieldsByType = map[string][]Field{
 	"links_down": {{Key: "limit", Input: InputNumber, Default: defaultLinksDown, Min: "1", Max: "50"}},
 	"timeline_recent": {{Key: "limit", Input: InputNumber, Default: defaultRecent, Min: "1", Max: "30"}, {Key: "days", Input: InputNumber, Default: TimelineDays, Min: "1", Max: "90"},
 		sel("kinds", "all", "all", "updates", "hints")},
-	"uptime_month": {{Key: "sla", Input: InputNumber, Min: "0", Max: "100"}, {Key: "filter", Input: InputList}},
-	"hint_noise":   {sel("days", "14", "14", "30", "90")},
-	"hint_trend":   {sel("days", "30", "14", "30", "90")},
+	"hint_noise": {sel("days", "14", "14", "30", "90")},
+	"hint_trend": {sel("days", "30", "14", "30", "90")},
 	"status_light": {sel("red_from", "critical", "critical", "warn"), sel("yellow_from", "warn", "warn", "info", "off"), {Key: "sources", Input: InputList},
 		{Key: "direct", Input: InputCheck}, {Key: "text_green", Input: InputText}, {Key: "text_yellow", Input: InputText}, {Key: "text_red", Input: InputText}},
 	"exposure": {{Key: "only_problems", Input: InputCheck}},
-	"travel": {{Key: "km_rate", Input: InputNumber, Default: defaultKMRate, Min: "0"}, sel("period", "month", "month", "year"),
-		{Key: "hide_bar", Input: InputCheck}},
-	"receipts_missing": {{Key: "days", Input: InputNumber, Default: defaultReceiptDays, Min: "7", Max: "365"}, {Key: "limit", Input: InputNumber, Default: defaultReceiptRows, Min: "1", Max: "30"},
-		{Key: "min_amount", Input: InputNumber, Min: "0"}},
-	"today": {{Key: "timezone", Input: InputText, Default: defaultTimezone}, {Key: "stop", Input: InputText}, {Key: "days", Input: InputNumber, Default: todayDeadlineDays, Min: "1", Max: "60"},
-		{Key: "show_calendar", Input: InputCheck, Default: true}, {Key: "show_timer", Input: InputCheck, Default: true},
-		{Key: "show_transit", Input: InputCheck, Default: true}, {Key: "show_deadlines", Input: InputCheck, Default: true},
-		{Key: "hide_past", Input: InputCheck}},
-	"month_close": {sel("month", "previous", "previous", "current"), {Key: "manual", Input: InputCheck},
-		{Key: "close_hours", Input: InputCheck, Default: true}, {Key: "close_drafts", Input: InputCheck, Default: true},
-		{Key: "close_receipts", Input: InputCheck, Default: true}, {Key: "close_inbox", Input: InputCheck, Default: true},
-		{Key: "close_vat", Input: InputCheck, Default: true}},
-	"rate_trend": {{Key: "target_value", Input: InputNumber, Min: "0"}, {Key: "months", Input: InputNumber, Default: sparkMonths, Min: "3", Max: "36"},
-		{Key: "billable_only", Input: InputCheck}},
-	"payment_days": {{Key: "target_days", Input: InputNumber, Default: defaultPayTarget, Min: "1", Max: "365"}, {Key: "limit", Input: InputNumber, Default: defaultPayRows, Min: "1", Max: "20"},
-		{Key: "months", Input: InputNumber, Min: "0", Max: "120"}, {Key: "hide_clients", Input: InputList}},
 	"link": {
 		{Key: "url", Input: InputText, Required: true},
 		{Key: "description", Input: InputArea},
@@ -151,10 +133,8 @@ var fieldsByType = map[string][]Field{
 	"docker_containers": {{Key: "only_problems", Input: InputCheck}},
 	"umami_sites":       {{Key: "filter", Input: InputList}},
 	"immich_library":    {},
-	"money_flow":        {{Key: "show_paid", Input: InputCheck, Default: true}},
 	"expiries":          {{Key: "days", Input: InputNumber, Default: 90, Min: "7", Max: "400"}, {Key: "limit", Input: InputNumber, Default: 15, Min: "1", Max: "50"}, {Key: "sources", Input: InputList}},
 	"updates":           {{Key: "limit", Input: InputNumber, Default: 20, Min: "1", Max: "50"}, {Key: "sources", Input: InputList}, sel("sort", "urgency", "urgency", "age")},
-	"kimai_timer":       {{Key: "recent", Input: InputNumber, Default: recentShown, Min: "0", Max: "10"}, {Key: "ask_note", Input: InputCheck}},
 	"conn_health":       {{Key: "limit", Input: InputNumber, Default: 4, Min: "1", Max: "20"}, {Key: "only_problems", Input: InputCheck}},
 	"kimai_week":        {{Key: "billable_only", Input: InputCheck}},
 	"kimai_split":       {sel("week", "this", "this", "last"), sel("group", "customer", "customer", "project")},
@@ -179,18 +159,8 @@ var fieldsByType = map[string][]Field{
 	"authentik_logins": {sel("period", "7d", "24h", "7d"), {Key: "only_problems", Input: InputCheck}},
 	"vaultwarden_2fa":  {{Key: "list_without", Input: InputCheck, Default: true}},
 	"invoice_aging":    {{Key: "bands", Input: InputNumbers, Default: []any{30.0, 60.0}}, {Key: "hide_clients", Input: InputList}},
-	"heatmap":          {{Key: "months", Input: InputNumber, Default: 12, Min: "1", Max: "12"}, {Key: "weekdays", Input: InputCheck}, {Key: "by_goal", Input: InputCheck}},
 	"jsonapi":          {{Key: "thresholds", Input: InputArea}, {Key: "units", Input: InputArea}},
-	"tailscale":        {{Key: "only_problems", Input: InputCheck}, {Key: "hide_after", Input: InputNumber, Default: 0, Min: "0", Max: "3650"}, {Key: "tags", Input: InputList}},
-	"mediaserver":      {{Key: "show_users", Input: InputCheck, Default: true}},
-	"arr_upcoming":     {{Key: "days", Input: InputNumber, Default: arrDays, Min: "1", Max: "30"}},
-	"grocy": {{Key: "show_stock", Input: InputCheck, Default: true}, {Key: "show_shopping", Input: InputCheck, Default: true},
-		{Key: "show_chores", Input: InputCheck, Default: true}, {Key: "days", Input: InputNumber, Default: 0, Min: "0", Max: "60"}},
-	"dwd":       {sel("min_level", "minor", "minor", "moderate", "severe", "extreme")},
-	"github":    {{Key: "filter", Input: InputList}, {Key: "only_problems", Input: InputCheck}},
-	"speedtest": {{Key: "ping", Input: InputCheck, Default: true}},
-	"energy": {{Key: "power_entity", Input: InputText}, {Key: "cheap_hours", Input: InputNumber, Default: metrics.CheapHours, Min: "1", Max: "12"},
-		{Key: "tomorrow", Input: InputCheck, Default: true}, sel("price", "total", "total", "energy")},
+	"speedtest":        {{Key: "ping", Input: InputCheck, Default: true}},
 	"update_window": {{Key: "window", Input: InputText}, {Key: "timezone", Input: InputText, Default: defaultTimezone},
 		{Key: "use_backup", Input: InputCheck, Default: true}, {Key: "use_streams", Input: InputCheck, Default: true},
 		{Key: "use_timer", Input: InputCheck, Default: true}, {Key: "use_meetings", Input: InputCheck, Default: true},
@@ -200,8 +170,6 @@ var fieldsByType = map[string][]Field{
 		{Key: "show_money", Input: InputCheck, Default: true}, {Key: "show_storage", Input: InputCheck, Default: true},
 		{Key: "show_power", Input: InputCheck, Default: true}, {Key: "show_hints", Input: InputCheck, Default: true}},
 	"storage_forecast": {{Key: "filter", Input: InputList}, {Key: "ahead", Input: InputNumber, Default: storageAhead, Min: "1", Max: "365"}},
-	"cashflow": {{Key: "days", Input: InputNumber, Default: defaultCashDays, Min: "14", Max: "365"}, {Key: "min_balance", Input: InputNumber},
-		{Key: "delay", Input: InputNumber, Min: "0", Max: "180"}},
 	"backups": {{Key: "max_hours", Input: InputNumber, Default: defaultBackupHours, Min: "1", Max: "336"}, {Key: "tools", Input: InputList},
 		{Key: "only_problems", Input: InputCheck}, sel("days", "14", "7", "14", "30")},
 	"hints": {{Key: "sources", Input: InputList}, sel("min_severity", severityChoices[0], severityChoices...), {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
@@ -243,7 +211,6 @@ var liveCapable = map[string]bool{
 	"monitors":      true,
 	"hass":          true,
 	"glances_chart": true,
-	"kimai_timer":   true,
 }
 
 // FieldsOf returns the config fields of a widget type.

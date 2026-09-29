@@ -39,11 +39,6 @@ type HeatConfig struct {
 	ByGoal   bool // colour against the daily goal, not by hours
 }
 
-func decodeHeat(raw map[string]any) any {
-	return HeatConfig{Months: clampInt(asInt(raw["months"], monthsPerYear), 1, monthsPerYear), Weekdays: asBool(raw["weekdays"]),
-		ByGoal: asBool(raw["by_goal"])}
-}
-
 // weeksPerMonth sizes the heatmap for a number of months.
 const weeksPerMonth = 4.35
 
@@ -57,15 +52,7 @@ func heatLevel(minutes int) int {
 	return min(level, len(heatLevels)-1)
 }
 
-func heatmapView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(HeatConfig)
-	if !ok {
-		cfg = decodeHeat(nil).(HeatConfig)
-	}
-	data, ok := results["data"].(*sources.KimaiDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func heatmapView(cfg HeatConfig, data *sources.KimaiDataset, ctx ViewCtx) map[string]any {
 	perDay := metrics.HoursByDay(data)
 	today := todayOf(ctx)
 	weeks := min(int(float64(cfg.Months)*weeksPerMonth+0.5), heatWeeks)
@@ -115,18 +102,9 @@ type CashflowConfig struct {
 	Delay      int     // scenario: clients pay this many days later
 }
 
-func decodeCashflow(raw map[string]any) any {
-	return CashflowConfig{Days: clampInt(asInt(raw["days"], defaultCashDays), 14, 365), MinBalance: asFloat(raw["min_balance"]),
-		Delay: clampInt(asInt(raw["delay"], 0), 0, 180)}
-}
-
 // MoneyFlowConfig is the "money_flow" widget's config.
 type MoneyFlowConfig struct {
 	Paid bool // show what came in the last 30 days
-}
-
-func decodeMoneyFlow(raw map[string]any) any {
-	return MoneyFlowConfig{Paid: boolOr(raw["show_paid"], true)}
 }
 
 // FlowStage is one segment of the money flow bar.
@@ -138,8 +116,7 @@ type FlowStage struct {
 }
 
 // moneyFlowView lays the stages out as one bar, from work to overdue.
-func moneyFlowView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(MoneyFlowConfig)
+func moneyFlowView(cfg MoneyFlowConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	ninja, ok := results["data"].(*sources.NinjaDataset)
 	if !ok {
 		return map[string]any{}
@@ -164,8 +141,7 @@ func moneyFlowView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]a
 	return view
 }
 
-func cashflowView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(CashflowConfig)
+func cashflowView(cfg CashflowConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	ninja, ok := results["data"].(*sources.NinjaDataset)
 	if !ok {
 		return map[string]any{}
@@ -221,12 +197,24 @@ func lowest(points []metrics.CashPoint) float64 {
 }
 
 func init() {
-	Register(WidgetType{Key: "heatmap", Decode: decodeHeat, Category: CategoryInsight,
-		Service: enums.ServiceKimai, RefreshS: 3600, Queries: dataQuery, View: heatmapView})
-	Register(WidgetType{Key: "money_flow", Decode: decodeMoneyFlow, Category: CategoryInsight,
-		Service: enums.ServiceInvoiceNinja, RefreshS: 3600, View: moneyFlowView,
-		Queries: func(any) []Query { return append(dataQuery(nil), kimaiPeer) }})
-	Register(WidgetType{Key: "cashflow", Decode: decodeCashflow, Category: CategoryInsight,
-		Service: enums.ServiceInvoiceNinja, RefreshS: 3600, View: cashflowView,
-		Queries: func(any) []Query { return append(dataQuery(nil), surePeer) }})
+	Tile[HeatConfig]{Key: "heatmap", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 3600,
+		Fields: []Field{{Key: "months", Input: InputNumber, Default: 12, Min: "1", Max: "12"}, {Key: "weekdays", Input: InputCheck},
+			{Key: "by_goal", Input: InputCheck}},
+		Decode: func(r Raw) HeatConfig {
+			return HeatConfig{Months: r.Int("months"), Weekdays: r.Bool("weekdays"), ByGoal: r.Bool("by_goal")}
+		},
+		Queries: ownData[HeatConfig], View: dataView(heatmapView)}.add()
+
+	Tile[MoneyFlowConfig]{Key: "money_flow", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
+		Fields:  []Field{{Key: "show_paid", Input: InputCheck, Default: true}},
+		Decode:  func(r Raw) MoneyFlowConfig { return MoneyFlowConfig{Paid: r.Bool("show_paid")} },
+		Queries: func(MoneyFlowConfig) []Query { return append(dataQuery(nil), kimaiPeer) }, View: moneyFlowView}.add()
+
+	Tile[CashflowConfig]{Key: "cashflow", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
+		Fields: []Field{{Key: "days", Input: InputNumber, Default: defaultCashDays, Min: "14", Max: "365"}, {Key: "min_balance", Input: InputNumber},
+			{Key: "delay", Input: InputNumber, Min: "0", Max: "180"}},
+		Decode: func(r Raw) CashflowConfig {
+			return CashflowConfig{Days: r.Int("days"), MinBalance: r.Float("min_balance"), Delay: r.Int("delay")}
+		},
+		Queries: func(CashflowConfig) []Query { return append(dataQuery(nil), surePeer) }, View: cashflowView}.add()
 }

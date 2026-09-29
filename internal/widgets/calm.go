@@ -21,31 +21,16 @@ var calmChecks = map[string]func(v map[string]any) bool{
 		}
 		return v["Total"] != 0 && v["Total"] != nil
 	},
-	"monitors":         func(v map[string]any) bool { return v["Total"] != nil && v["Up"] == v["Total"] },
-	"disks":            func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] },
-	"conn_health":      func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] },
-	"truenas_pools":    func(v map[string]any) bool { return v["Pools"] != nil && v["Alerts"] == 0 },
-	"expiry":           func(v map[string]any) bool { return v["Total"] == 0 },
-	"unbilled_age":     func(v map[string]any) bool { return isZero(v["Total"]) },
-	"invoice_aging":    func(v map[string]any) bool { return v["Count"] == 0 },
-	"status_light":     func(v map[string]any) bool { return v["State"] == "green" },
-	"receipts_missing": func(v map[string]any) bool { return v["Count"] == 0 && v["Setup"] == false },
-	"exposure":         func(v map[string]any) bool { return v["Total"] != nil && v["Total"] != 0 && v["Open"] == 0 },
-	"deadlines":        func(v map[string]any) bool { return v["Configured"] == true && lenOf(v["Items"]) == 0 },
-	"today":            func(v map[string]any) bool { return lenOf(v["Items"]) == 0 },
-	"month_close": func(v map[string]any) bool {
-		steps, _ := v["Steps"].([]CloseStep)
-		return len(steps) > 0 && v["Done"] == len(steps)
-	},
-	"uptime_month": func(v map[string]any) bool {
-		rows, _ := v["Rows"].([]UptimeRow)
-		for _, r := range rows {
-			if r.Tier != "ok" {
-				return false
-			}
-		}
-		return len(rows) > 0
-	},
+	"monitors":      func(v map[string]any) bool { return v["Total"] != nil && v["Up"] == v["Total"] },
+	"disks":         func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] },
+	"conn_health":   func(v map[string]any) bool { return v["Total"] != nil && v["Healthy"] == v["Total"] },
+	"truenas_pools": func(v map[string]any) bool { return v["Pools"] != nil && v["Alerts"] == 0 },
+	"expiry":        func(v map[string]any) bool { return v["Total"] == 0 },
+	"unbilled_age":  func(v map[string]any) bool { return isZero(v["Total"]) },
+	"invoice_aging": func(v map[string]any) bool { return v["Count"] == 0 },
+	"status_light":  func(v map[string]any) bool { return v["State"] == "green" },
+	"exposure":      func(v map[string]any) bool { return v["Total"] != nil && v["Total"] != 0 && v["Open"] == 0 },
+	"deadlines":     func(v map[string]any) bool { return v["Configured"] == true && lenOf(v["Items"]) == 0 },
 	// Count is the inbox, or the tag's documents when a tag is set.
 	"paperless_inbox": func(v map[string]any) bool {
 		_, ok := v["Data"].(*sources.PaperlessDataset)

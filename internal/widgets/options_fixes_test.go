@@ -11,7 +11,7 @@ import (
 // be set in the form and survive saving.
 func TestKimaiTimerFormKeepsOptions(t *testing.T) {
 	form := map[string]string{FormPrefix + FormMarker: "1", FormPrefix + "recent": "6", FormPrefix + "ask_note": "on"}
-	cfg := decodeKimaiLite(ParseForm("kimai_timer", func(name string) string { return form[name] })).(KimaiLiteConfig)
+	cfg := decodeOf[KimaiLiteConfig]("kimai_timer", ParseForm("kimai_timer", func(name string) string { return form[name] }))
 	if cfg.Recent != 6 || !cfg.AskNote {
 		t.Fatalf("cfg: %+v", cfg)
 	}
@@ -97,7 +97,7 @@ func TestGiteaHeadFollowsShow(t *testing.T) {
 func TestRateTrendNamesItsMonths(t *testing.T) {
 	ninja := &sources.NinjaDataset{Currency: "EUR", Invoices: []sources.NinjaInvoice{{ID: 1, Status: "paid", Date: "2026-08-10", Net: 1000}}}
 	kimai := &sources.KimaiDataset{Timesheets: []sources.KimaiSheet{{Begin: "2026-08-03", Minutes: 600}}}
-	view := rateTrendView(decodeRateTrend(map[string]any{"months": 6.0}), map[string]any{"data": ninja, peerKimai: kimai},
+	view := run("rate_trend", map[string]any{"months": 6.0}, map[string]any{"data": ninja, peerKimai: kimai},
 		ViewCtx{Today: "2026-09-15"})
 	if view["Months"] != 6 {
 		t.Fatalf("months: %v", view["Months"])

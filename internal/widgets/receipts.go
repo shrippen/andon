@@ -27,11 +27,6 @@ const (
 	defaultReceiptRows = 6
 )
 
-func decodeReceipts(raw map[string]any) any {
-	return ReceiptsConfig{Days: clampInt(asInt(raw["days"], defaultReceiptDays), 7, 365), Limit: clampInt(asInt(raw["limit"], defaultReceiptRows), 1, 30),
-		MinAmount: max(asFloat(raw["min_amount"]), 0)}
-}
-
 // ReceiptRow is one booking without receipt.
 type ReceiptRow struct {
 	Name, Date, Account string
@@ -39,8 +34,7 @@ type ReceiptRow struct {
 	Search              string // Paperless search, "" without Paperless
 }
 
-func receiptsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(ReceiptsConfig)
+func receiptsView(cfg ReceiptsConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	sure, ok := results["data"].(*sources.SureDataset)
 	if !ok {
 		return map[string]any{}
@@ -75,9 +69,15 @@ func receiptsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 }
 
 func init() {
-	Register(WidgetType{Key: "receipts_missing", Decode: decodeReceipts, Category: CategoryInsight,
-		Service: enums.ServiceSure, RefreshS: 3600, View: receiptsView,
-		Queries: func(any) []Query {
+	Tile[ReceiptsConfig]{Key: "receipts_missing", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceSure, RefreshS: 3600,
+		Fields: []Field{{Key: "days", Input: InputNumber, Default: defaultReceiptDays, Min: "7", Max: "365"},
+			{Key: "limit", Input: InputNumber, Default: defaultReceiptRows, Min: "1", Max: "30"}, {Key: "min_amount", Input: InputNumber, Min: "0"}},
+		Decode: func(r Raw) ReceiptsConfig {
+			return ReceiptsConfig{Days: r.Int("days"), Limit: r.Int("limit"), MinAmount: r.Float("min_amount")}
+		},
+		View: receiptsView,
+		Queries: func(ReceiptsConfig) []Query {
 			return append(dataQuery(nil), peer(peerNinja, enums.ServiceInvoiceNinja), peer(peerPaperless, enums.ServicePaperless), peer(peerMail, enums.ServiceMail))
-		}})
+		},
+		Calm: func(v map[string]any) bool { return v["Count"] == 0 && v["Setup"] == false }}.add()
 }

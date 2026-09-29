@@ -58,7 +58,7 @@ func TestGlancesChartView(t *testing.T) {
 
 func TestHeatmapLevels(t *testing.T) {
 	data := &sources.KimaiDataset{Timesheets: []sources.KimaiSheet{{Begin: "2026-09-24T09:00:00+0200", Minutes: 400}}}
-	view := heatmapView(nil, map[string]any{"data": data}, ViewCtx{Today: "2026-09-25"})
+	view := run("heatmap", nil, map[string]any{"data": data}, ViewCtx{Today: "2026-09-25"})
 	cells := view["Cells"].([]HeatCell)
 	var found bool
 	for _, c := range cells {
