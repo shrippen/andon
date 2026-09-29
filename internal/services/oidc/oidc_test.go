@@ -131,7 +131,7 @@ func setup(t *testing.T) (*sql.DB, settings.Settings, *access.Principal, *fakeId
 // login runs the full flow: authorize URL → callback params → Complete.
 func login(t *testing.T, d *sql.DB, env settings.Settings, idp *fakeIdP, code string) (oidc.Result, error) {
 	t.Helper()
-	target, err := oidc.AuthorizeURL(context.Background(), d, env, "/boards/1", nil)
+	target, _, err := oidc.AuthorizeURL(context.Background(), d, env, "/boards/1", nil)
 	if err != nil {
 		t.Fatalf("authorize: %v", err)
 	}
@@ -141,7 +141,8 @@ func login(t *testing.T, d *sql.DB, env settings.Settings, idp *fakeIdP, code st
 		t.Fatalf("unexpected authorize query: %v", q)
 	}
 	idp.nonce = q.Get("nonce")
-	return oidc.Complete(context.Background(), d, env, url.Values{"state": {q.Get("state")}, "code": {code}})
+	return oidc.Complete(context.Background(), d, env, url.Values{"state": {q.Get("state")}, "code": {code}},
+		oidc.Browser{State: q.Get("state")})
 }
 
 func TestLoginCreatesAccountWithGroupTeams(t *testing.T) {
@@ -179,14 +180,15 @@ func TestLoginRejectsReplayAndBadNonce(t *testing.T) {
 	d, env, _, idp := setup(t)
 	idp.claims = map[string]any{"sub": "u-2", "email": "b@x.de"}
 
-	target, _ := oidc.AuthorizeURL(context.Background(), d, env, "/", nil)
+	target, _, _ := oidc.AuthorizeURL(context.Background(), d, env, "/", nil)
 	u, _ := url.Parse(target)
 	state := u.Query().Get("state")
 	idp.nonce = "wrong"
-	if _, err := oidc.Complete(context.Background(), d, env, url.Values{"state": {state}, "code": {"good"}}); err != oidc.ErrFailed {
+	browser := oidc.Browser{State: state}
+	if _, err := oidc.Complete(context.Background(), d, env, url.Values{"state": {state}, "code": {"good"}}, browser); err != oidc.ErrFailed {
 		t.Fatalf("expected ErrFailed for wrong nonce, got %v", err)
 	}
-	if _, err := oidc.Complete(context.Background(), d, env, url.Values{"state": {state}, "code": {"good"}}); err != oidc.ErrState {
+	if _, err := oidc.Complete(context.Background(), d, env, url.Values{"state": {state}, "code": {"good"}}, browser); err != oidc.ErrState {
 		t.Fatalf("expected ErrState on replayed state, got %v", err)
 	}
 }
@@ -198,12 +200,39 @@ func TestLinkRefusesTakenSub(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	target, _ := oidc.AuthorizeURL(context.Background(), d, env, "/me/security", &admin.UserID)
+	target, _, _ := oidc.AuthorizeURL(context.Background(), d, env, "/me/security", &admin.UserID)
 	u, _ := url.Parse(target)
 	idp.nonce = u.Query().Get("nonce")
-	_, err := oidc.Complete(context.Background(), d, env, url.Values{"state": {u.Query().Get("state")}, "code": {"good"}})
+	state := u.Query().Get("state")
+	_, err := oidc.Complete(context.Background(), d, env, url.Values{"state": {state}, "code": {"good"}},
+		oidc.Browser{State: state, UserID: admin.UserID})
 	if err != oidc.ErrSubTaken {
 		t.Fatalf("expected ErrSubTaken, got %v", err)
+	}
+}
+
+// TestCallbackBoundToBrowser: a callback URL handed to another browser
+// neither logs that browser in (login CSRF) nor links the other
+// person's account (link hijack).
+func TestCallbackBoundToBrowser(t *testing.T) {
+	d, env, admin, idp := setup(t)
+	idp.claims = map[string]any{"sub": "u-4", "email": "d@x.de"}
+
+	target, _, _ := oidc.AuthorizeURL(context.Background(), d, env, "/", nil)
+	u, _ := url.Parse(target)
+	idp.nonce = u.Query().Get("nonce")
+	params := url.Values{"state": {u.Query().Get("state")}, "code": {"good"}}
+	if _, err := oidc.Complete(context.Background(), d, env, params, oidc.Browser{}); err != oidc.ErrState {
+		t.Fatalf("login without the starting browser: %v", err)
+	}
+
+	target, _, _ = oidc.AuthorizeURL(context.Background(), d, env, "/me/security", &admin.UserID)
+	u, _ = url.Parse(target)
+	idp.nonce = u.Query().Get("nonce")
+	state := u.Query().Get("state")
+	params = url.Values{"state": {state}, "code": {"good"}}
+	if _, err := oidc.Complete(context.Background(), d, env, params, oidc.Browser{State: state, UserID: admin.UserID + 1}); err != oidc.ErrState {
+		t.Fatalf("link finished by another user: %v", err)
 	}
 }
 

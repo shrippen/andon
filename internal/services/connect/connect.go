@@ -13,6 +13,7 @@
 package connect
 
 import (
+	"andon/internal/services/util"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -177,10 +178,7 @@ func deviceID(connID, user int64) string {
 
 // localPath keeps back on this site: "/me/credentials", never "//evil".
 func localPath(back string) string {
-	if !strings.HasPrefix(back, "/") || strings.HasPrefix(back, "//") {
-		return "/"
-	}
-	return back
+	return util.LocalPath(back)
 }
 
 // Start begins signing in connection connID for who; back is the page to
