@@ -346,14 +346,22 @@ func Get(ctx context.Context, d *sql.DB, sourceKey string, params map[string]any
 // and a second viewer asking at once reach the service once.
 var fetches singleflight.Group
 
+// shared runs or joins the fetch of key.
+//
+// The fetch is not tied to any caller: a cancelled request must not fail
+// the others waiting on it. A caller that gives up gets Pending and the
+// fetch finishes for the cache.
 func shared(ctx context.Context, d *sql.DB, key, sourceKey string, source sources.Source, sctx sources.Ctx, conn *model.Connection) Result {
-	// Not tied to the first caller: its cancelled request must not fail
-	// the others waiting on the same fetch.
-	ctx = context.WithoutCancel(ctx)
-	out, _, _ := fetches.Do(key, func() (any, error) {
-		return fetch(ctx, d, key, sourceKey, source, sctx, conn), nil
+	detached := context.WithoutCancel(ctx)
+	done := fetches.DoChan(key, func() (any, error) {
+		return fetch(detached, d, key, sourceKey, source, sctx, conn), nil
 	})
-	return out.(Result)
+	select {
+	case out := <-done:
+		return out.Val.(Result)
+	case <-ctx.Done():
+		return Result{Pending: true}
+	}
 }
 
 // BudgetSpent is the error of a fetch skipped because the connection's
