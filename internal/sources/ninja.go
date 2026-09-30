@@ -3,6 +3,7 @@ package sources
 import (
 	"context"
 	"hash/fnv"
+	"math"
 	"net/url"
 	"strconv"
 	"time"
@@ -90,13 +91,9 @@ func expenseTax(m map[string]any) float64 {
 
 // NinjaData is the "invoiceninja.data" source: invoices, payments, clients,
 // expenses, quotes and recurring invoices from the last window.
-type NinjaData struct{}
+var NinjaData = source{key: "invoiceninja.data", ttl: dataTTL, service: enums.ServiceInvoiceNinja, fetch: fetchNinja}
 
-func (NinjaData) Key() string                { return "invoiceninja.data" }
-func (NinjaData) TTL() time.Duration         { return dataTTL }
-func (NinjaData) Service() enums.ServiceType { return enums.ServiceInvoiceNinja }
-
-func (NinjaData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchNinja(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoNinja(time.Now()), nil
 	}
@@ -106,11 +103,7 @@ func (NinjaData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	data, err := loadNinja(ctx, api, sctx)
 	if err != nil {
-		var apiErr services.ApiError
-		if isApiError(err, &apiErr) {
-			return nil, newSourceError("%s", apiErr.Error())
-		}
-		return nil, err
+		return nil, fetchError(err)
 	}
 	return data, nil
 }
@@ -230,17 +223,13 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 }
 
 func round2(f float64) float64 {
-	return float64(int64(f*100+0.5)) / 100
+	return math.Round(f*100) / 100
 }
 
 // NinjaTest is the "invoiceninja.test" source: a lightweight connection check.
-type NinjaTest struct{}
+var NinjaTest = source{key: "invoiceninja.test", ttl: testTTL, service: enums.ServiceInvoiceNinja, fetch: fetchNinjaTest}
 
-func (NinjaTest) Key() string                { return "invoiceninja.test" }
-func (NinjaTest) TTL() time.Duration         { return testTTL }
-func (NinjaTest) Service() enums.ServiceType { return enums.ServiceInvoiceNinja }
-
-func (NinjaTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchNinjaTest(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return map[string]any{"version": "demo"}, nil
 	}
@@ -250,11 +239,7 @@ func (NinjaTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	v, err := api.Version(ctx)
 	if err != nil {
-		var apiErr services.ApiError
-		if isApiError(err, &apiErr) {
-			return nil, newSourceError("%s", apiErr.Error())
-		}
-		return nil, err
+		return nil, fetchError(err)
 	}
 	return map[string]any{"version": v}, nil
 }

@@ -46,13 +46,9 @@ type MediaServerDataset struct {
 	Episodes       int
 }
 
-type MediaServerData struct{}
+var MediaServerData = source{key: "mediaserver.data", ttl: time.Minute, service: enums.ServiceMediaServer, fetch: fetchMediaServer}
 
-func (MediaServerData) Key() string                { return "mediaserver.data" }
-func (MediaServerData) TTL() time.Duration         { return time.Minute }
-func (MediaServerData) Service() enums.ServiceType { return enums.ServiceMediaServer }
-
-func (MediaServerData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchMediaServer(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoMediaServer(), nil
 	}
@@ -166,13 +162,9 @@ type ArrDataset struct {
 	Upcoming []ArrItem
 }
 
-type ArrData struct{}
+var ArrData = source{key: "arr.data", ttl: opsTTL, service: enums.ServiceArr, fetch: fetchArr}
 
-func (ArrData) Key() string                { return "arr.data" }
-func (ArrData) TTL() time.Duration         { return opsTTL }
-func (ArrData) Service() enums.ServiceType { return enums.ServiceArr }
-
-func (ArrData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchArr(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoArr(time.Now().UTC()), nil
 	}
@@ -275,10 +267,10 @@ func DemoArr(now time.Time) *ArrDataset {
 }
 
 func init() {
-	Register(MediaServerData{})
-	Register(testOf{MediaServerData{}, func(d any) map[string]any { return map[string]any{"version": d.(*MediaServerDataset).Version} }})
-	Register(ArrData{})
-	Register(testOf{ArrData{}, func(d any) map[string]any {
+	Register(MediaServerData)
+	Register(testOf{MediaServerData, func(d any) map[string]any { return map[string]any{"version": d.(*MediaServerDataset).Version} }})
+	Register(ArrData)
+	Register(testOf{ArrData, func(d any) map[string]any {
 		a := d.(*ArrDataset)
 		return map[string]any{"version": a.App + " " + a.Version}
 	}})

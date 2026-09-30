@@ -17,7 +17,7 @@ import (
 // TestNoise: a hint that resolves and reopens on its own counts as
 // coming and going; new hints are counted per day.
 func TestNoise(t *testing.T) {
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	d, err := db.Open(filepath.Join(t.TempDir(), "n.db"), dbtest.Key)
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +52,7 @@ func TestNoise(t *testing.T) {
 // TestOpenPerDay: open hints per level and day, from when each appeared
 // to when it resolved; today counts what is open now.
 func TestOpenPerDay(t *testing.T) {
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	d, err := db.Open(filepath.Join(t.TempDir(), "o.db"), dbtest.Key)
 	if err != nil {
 		t.Fatal(err)

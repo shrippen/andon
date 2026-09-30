@@ -68,7 +68,7 @@ func (d Deps) handleThemeCSS(w http.ResponseWriter, r *http.Request) {
 	}
 	css, _, err := themes.Stylesheet(d.DB, id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", cssType)
@@ -96,7 +96,7 @@ func (d Deps) handleThemeFont(w http.ResponseWriter, r *http.Request) {
 func (d Deps) themeListPage(w http.ResponseWriter, ctx Ctx, status int, extra map[string]any) {
 	items, err := themes.Listing(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	values := map[string]any{"Items": items, "Spaces": access.EditableSpaces(ctx.Who), "Presets": themes.Presets()}
@@ -281,7 +281,7 @@ func (d Deps) handleThemeError(w http.ResponseWriter, err error) {
 	case errors.Is(err, themes.ErrDenied):
 		http.Error(w, "forbidden", http.StatusForbidden)
 	default:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 	}
 }
 

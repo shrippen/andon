@@ -7,6 +7,7 @@
 package auth
 
 import (
+	"andon/internal/repos/content"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -91,32 +92,54 @@ func recent(key string, now time.Time) []time.Time {
 	return out
 }
 
-func checkThrottle(email, ip string) error {
+// Throttle keys: failures per account, per address, and per account's
+// second factor (kept apart: a known password must not reset it).
+const (
+	keyAccount = "a:"
+	keyAddress = "i:"
+	keyTOTP    = "t:"
+)
+
+// attempt books one try against an account (kind + email) and an
+// address before it is checked, so a burst cannot pass the limit before
+// the first failure counts. The try stays counted as failed unless the
+// returned release is called on success.
+func attempt(kind, email, ip string) (release func(), err error) {
 	now := time.Now()
+	account, address := kind+strings.ToLower(email), keyAddress+ip
 	failsMu.Lock()
 	defer failsMu.Unlock()
-	if len(recent("a:"+strings.ToLower(email), now)) >= accountLimit {
-		return ErrThrottled
+	if len(recent(account, now)) >= accountLimit || len(recent(address, now)) >= ipLimit {
+		return nil, ErrThrottled
 	}
-	if len(recent("i:"+ip, now)) >= ipLimit {
-		return ErrThrottled
-	}
-	return nil
+	fails[account] = append(recent(account, now), now)
+	fails[address] = append(recent(address, now), now)
+
+	return func() {
+		failsMu.Lock()
+		defer failsMu.Unlock()
+		delete(fails, account)
+		fails[address] = dropOne(fails[address], now)
+	}, nil
 }
 
-func noteFail(email, ip string) {
-	now := time.Now()
-	failsMu.Lock()
-	defer failsMu.Unlock()
-	for _, key := range []string{"a:" + strings.ToLower(email), "i:" + ip} {
-		fails[key] = append(recent(key, now), now)
+// dropOne removes one entry equal to at.
+func dropOne(list []time.Time, at time.Time) []time.Time {
+	for i, t := range list {
+		if t.Equal(at) {
+			return append(list[:i:i], list[i+1:]...)
+		}
 	}
+	return list
 }
 
-func clearFails(email string) {
-	failsMu.Lock()
-	defer failsMu.Unlock()
-	delete(fails, "a:"+strings.ToLower(email))
+// hashSlots bounds concurrent password checks: each takes 64 MiB.
+var hashSlots = make(chan struct{}, 4)
+
+func checkPassword(hash, password string) bool {
+	hashSlots <- struct{}{}
+	defer func() { <-hashSlots }()
+	return crypto.CheckPassword(hash, password)
 }
 
 // ResetThrottle clears every recorded failure. Tests only.
@@ -197,61 +220,68 @@ func CreateAdmin(d *sql.DB, code, email, name, password string, locale enums.Loc
 // TOTP-enabled account passes its second factor, the returned token is only
 // good for the TOTP endpoint.
 func Login(d *sql.DB, cfg settings.Settings, email, password, ip, agent string) (LoginResult, error) {
-	if err := checkThrottle(email, ip); err != nil {
+	release, err := attempt(keyAccount, email, ip)
+	if err != nil {
 		return LoginResult{}, err
 	}
 
+	// Read, then hash outside the write lock: argon2 takes its time.
+	var user *model.User
+	var oidcOnly bool
+	err = db.WithRead(d, func(tx *sql.Tx) error {
+		if user, err = users.ByEmail(tx, strings.TrimSpace(email)); err != nil {
+			return err
+		}
+		oidcOnly, err = isOIDCOnly(tx)
+		return err
+	})
+	if err != nil {
+		return LoginResult{}, err
+	}
+	// Before the password: an answer after it would confirm a guess.
+	if oidcOnly && (user == nil || !user.IsBreakglass) {
+		return LoginResult{}, ErrOIDCOnly
+	}
+	var stored string
+	if user != nil && user.IsActive {
+		stored = user.PasswordHash
+	}
+	if !checkPassword(stored, password) {
+		var uid *int64
+		if user != nil {
+			uid = &user.ID
+		}
+		_ = db.WithTx(d, func(tx *sql.Tx) error { return auditsvc.Log(tx, uid, "login.failed", email, ip, nil) })
+		return LoginResult{}, ErrLoginFailed
+	}
+	release()
+
 	var result LoginResult
-	var userID int64
-	err := db.WithTx(d, func(tx *sql.Tx) error {
-		user, err := users.ByEmail(tx, strings.TrimSpace(email))
+	err = db.WithTx(d, func(tx *sql.Tx) error {
+		fresh, err := users.Get(tx, user.ID)
 		if err != nil {
 			return err
 		}
-		var stored string
-		if user != nil && user.IsActive {
-			stored = user.PasswordHash
-		}
-		if !crypto.CheckPassword(stored, password) {
-			noteFail(email, ip)
-			var uid *int64
-			if user != nil {
-				uid = &user.ID
-			}
-			_ = auditsvc.Log(tx, uid, "login.failed", email, ip, nil)
+		if fresh == nil || !fresh.IsActive {
 			return ErrLoginFailed
 		}
-
-		oidcOnly, err := isOIDCOnly(tx)
-		if err != nil {
-			return err
-		}
-		if oidcOnly && !user.IsBreakglass {
-			return ErrOIDCOnly
-		}
-
-		clearFails(email)
 		step := StepDone
-		if user.TOTPEnabled {
+		if fresh.TOTPEnabled {
 			step = StepTOTP
 		}
-		token, err := openSession(tx, cfg, user, enums.AuthPassword, ip, agent, step, "")
+		token, err := openSession(tx, cfg, fresh, enums.AuthPassword, ip, agent, step, "")
 		if err != nil {
-			return err
-		}
-		if err := auditsvc.Log(tx, &user.ID, "login.password", "", ip, nil); err != nil {
 			return err
 		}
 		result = LoginResult{Token: token, Step: step}
-		userID = user.ID
-		return nil
+		return auditsvc.Log(tx, &fresh.ID, "login.password", "", ip, nil)
 	})
 	if err != nil {
 		return LoginResult{}, err
 	}
 
 	if result.Step == StepDone {
-		noteLogin(d, userID, ip, agent)
+		noteLogin(d, user.ID, ip, agent)
 	}
 	return result, nil
 }
@@ -490,7 +520,8 @@ func Purge(d *sql.DB) error {
 // ── Second factor (TOTP) ──
 
 // TOTPBegin generates a new (not yet active) TOTP secret and its
-// provisioning URI for a QR code.
+// provisioning URI for a QR code. With 2FA on it refuses: starting
+// over would switch it off without a code (ErrTOTPActive).
 func TOTPBegin(d *sql.DB, who *access.Principal) (secret, uri string, err error) {
 	err = db.WithTx(d, func(tx *sql.Tx) error {
 		user, err := users.Get(tx, who.UserID)
@@ -499,6 +530,9 @@ func TOTPBegin(d *sql.DB, who *access.Principal) (secret, uri string, err error)
 		}
 		if user == nil {
 			return sql.ErrNoRows
+		}
+		if user.TOTPEnabled {
+			return ErrTOTPActive
 		}
 		key, err := totp.Generate(totp.GenerateOpts{Issuer: totpIssuer, AccountName: user.Email})
 		if err != nil {
@@ -592,8 +626,9 @@ func TOTPDisable(d *sql.DB, who *access.Principal, code, ip string) error {
 }
 
 // TOTPVerify is the second login step: it lifts pending_2fa on success.
-func TOTPVerify(d *sql.DB, token, code, ip, agent string) error {
+func TOTPVerify(d *sql.DB, token, code, ip, agent string) (string, error) {
 	var userID int64
+	fresh := crypto.NewToken()
 	err := db.WithTx(d, func(tx *sql.Tx) error {
 		row, err := auth.SessionByHash(tx, crypto.TokenHash(token))
 		if err != nil {
@@ -606,40 +641,85 @@ func TOTPVerify(d *sql.DB, token, code, ip, agent string) error {
 		if err != nil || user == nil {
 			return err
 		}
-		if err := checkThrottle(user.Email, ip); err != nil {
-			return err
-		}
-
-		ok, err := totpOK(user, code)
+		release, err := attempt(keyTOTP, user.Email, ip)
 		if err != nil {
 			return err
 		}
-		if !ok && !useRecovery(user, code) {
-			noteFail(user.Email, ip)
+
+		step, err := totpStep(user, code)
+		if err != nil {
+			return err
+		}
+		if step > 0 {
+			remember(user, step)
+		} else if !useRecovery(user, code) {
 			return ErrTOTPInvalid
 		}
-		if err := users.Update(tx, user); err != nil { // persists a used recovery code, if any
+		release()
+		if err := users.Update(tx, user); err != nil { // persists the used code or recovery code
 			return err
 		}
 		userID = user.ID
+
+		// A new token for the full session: the pending one sat in the
+		// TOTP page.
+		if err := auth.RotateSession(tx, row.ID, crypto.TokenHash(fresh)); err != nil {
+			return err
+		}
 		return auth.TouchSession(tx, row.ID, time.Now().UTC(), false)
 	})
-	if err == nil {
-		noteLogin(d, userID, ip, agent)
+	if err != nil {
+		return "", err
 	}
-	return err
+	noteLogin(d, userID, ip, agent)
+	return fresh, nil
 }
 
 func totpOK(user *model.User, code string) (bool, error) {
+	step, err := totpStep(user, code)
+	return step > 0, err
+}
+
+// totpPeriod is the TOTP time step; totpUsedPref keeps the last step a
+// login used, so a code (valid 30 s either side) works once.
+const (
+	totpPeriod   = 30
+	totpUsedPref = "totp_used_step"
+)
+
+// totpStep is the time step code belongs to (now or one either side),
+// 0 if it is wrong or was already used.
+func totpStep(user *model.User, code string) (int64, error) {
 	if len(user.TOTPSecretEnc) == 0 {
-		return false, nil
+		return 0, nil
 	}
 	secret, err := crypto.Decrypt(user.TOTPSecretEnc, crypto.PurposeTOTP)
 	if err != nil {
-		return false, err
+		return 0, err
 	}
 	clean := strings.ReplaceAll(strings.TrimSpace(code), " ", "")
-	return totp.Validate(clean, secret), nil
+	used, _ := user.Prefs[totpUsedPref].(float64)
+	now := time.Now().Unix() / totpPeriod
+	for _, step := range []int64{now - 1, now, now + 1} {
+		if float64(step) <= used {
+			continue
+		}
+		want, err := totp.GenerateCode(secret, time.Unix(step*totpPeriod, 0))
+		if err == nil && crypto.Same(want, clean) {
+			return step, nil
+		}
+	}
+	return 0, nil
+}
+
+// remember keeps step as the last one used.
+func remember(user *model.User, step int64) {
+	prefs := map[string]any{}
+	for k, v := range user.Prefs {
+		prefs[k] = v
+	}
+	prefs[totpUsedPref] = float64(step)
+	user.Prefs = prefs
 }
 
 func useRecovery(user *model.User, code string) bool {
@@ -692,11 +772,20 @@ type NewAPIToken struct {
 // ErrForbidden is returned when a token operation targets another user's token.
 var ErrForbidden = errors.New("auth: not your token")
 
+// ErrTokenBoards: an embed token must name boards its owner sees.
+var ErrTokenBoards = errors.New("token.boards")
+
+// ErrTOTPActive: a second factor is on; switching it off needs a code.
+var ErrTOTPActive = errors.New("totp.active")
+
 // CreateToken issues a new API token for the principal.
 func CreateToken(d *sql.DB, who *access.Principal, name string, scope enums.TokenScope, boardIDs []int64, days *int) (NewAPIToken, error) {
 	secret := "dsh_" + crypto.NewToken()
 	var out NewAPIToken
 	err := db.WithTx(d, func(tx *sql.Tx) error {
+		if err := checkTokenBoards(tx, who, scope, boardIDs); err != nil {
+			return err
+		}
 		label := strings.TrimSpace(name)
 		if label == "" {
 			label = string(scope)
@@ -777,12 +866,44 @@ func PrincipalForToken(d *sql.DB, secret string, scope enums.TokenScope) (*acces
 		if err != nil || who == nil {
 			return err
 		}
-		if len(item.BoardIDs) > 0 {
-			who.TokenBoards = item.BoardIDs
+		if len(item.BoardIDs) == 0 {
+			return nil
 		}
+		boards := map[int64]int64{}
+		for _, id := range item.BoardIDs {
+			if b, err := content.Board(tx, id); err == nil && b != nil {
+				boards[id] = b.SpaceID
+			}
+		}
+		who.ScopeToBoards(boards)
 		return nil
 	})
 	return who, err
+}
+
+// checkTokenBoards: an embed token (a URL shown in other pages) must
+// name its boards, and a token may only name boards its owner sees.
+func checkTokenBoards(q db.Queryer, who *access.Principal, scope enums.TokenScope, boardIDs []int64) error {
+	if scope == enums.TokenEmbed && len(boardIDs) == 0 {
+		return ErrTokenBoards
+	}
+	for _, id := range boardIDs {
+		b, err := content.Board(q, id)
+		if err != nil {
+			return err
+		}
+		if b == nil {
+			return ErrTokenBoards
+		}
+		space, err := access.SpaceOf(q, who, b.SpaceID)
+		if err != nil {
+			return ErrTokenBoards
+		}
+		if access.Right(who, enums.ResourceBoard, b.ID, space, b.MinTeamRole) < enums.RightView {
+			return ErrTokenBoards
+		}
+	}
+	return nil
 }
 
 // notify sends a security notice; mail problems never fail the action.

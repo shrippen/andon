@@ -13,6 +13,7 @@
 package connect
 
 import (
+	"andon/internal/services/util"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -25,7 +26,6 @@ import (
 	"sync"
 	"time"
 
-	"andon/internal/drivers/httpclient"
 	"andon/internal/enums"
 	"andon/internal/model"
 	"andon/internal/services/access"
@@ -166,8 +166,8 @@ func service(conn *model.Connection) string {
 	return strings.TrimRight(conn.URL, "/")
 }
 
-func tlsOf(conn *model.Connection) httpclient.TLS {
-	return httpclient.TLSOf(conn.VerifyTLS)
+func tlsOf(conn *model.Connection) sources.TLS {
+	return sources.TLSFor(conn.VerifyTLS)
 }
 
 // deviceID names Andon towards Jellyfin, one per connection and user.
@@ -177,10 +177,7 @@ func deviceID(connID, user int64) string {
 
 // localPath keeps back on this site: "/me/credentials", never "//evil".
 func localPath(back string) string {
-	if !strings.HasPrefix(back, "/") || strings.HasPrefix(back, "//") {
-		return "/"
-	}
-	return back
+	return util.LocalPath(back)
 }
 
 // Start begins signing in connection connID for who; back is the page to

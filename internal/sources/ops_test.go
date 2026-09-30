@@ -26,7 +26,7 @@ monitor_cert_days_remaining{monitor_name="Shop",monitor_type="http",monitor_url=
 	}))
 	defer srv.Close()
 
-	out, err := sources.KumaData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "key", VerifyTLS: true})
+	out, err := sources.KumaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "key", VerifyTLS: true})
 	if err != nil {
 		t.Fatalf("fetch: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestKumaRejectsLoginRedirect(t *testing.T) {
 	}))
 	defer kuma.Close()
 
-	_, err := sources.KumaData{}.Fetch(context.Background(), sources.Ctx{URL: kuma.URL, Secret: "key", VerifyTLS: true})
+	_, err := sources.KumaData.Fetch(context.Background(), sources.Ctx{URL: kuma.URL, Secret: "key", VerifyTLS: true})
 	if err == nil {
 		t.Fatal("expected an error for a login redirect")
 	}
@@ -76,7 +76,7 @@ func TestProxmoxReadsNodesGuestsBackups(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	out, err := sources.ProxmoxData{}.Fetch(context.Background(),
+	out, err := sources.ProxmoxData.Fetch(context.Background(),
 		sources.Ctx{URL: srv.URL, Secret: "root@pam!dash=uuid", VerifyTLS: true})
 	if err != nil {
 		t.Fatalf("fetch: %v", err)
@@ -125,7 +125,7 @@ func TestPaperlessCountsInbox(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	out, err := sources.PaperlessData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	out, err := sources.PaperlessData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
 	if err != nil {
 		t.Fatalf("fetch: %v", err)
 	}
@@ -141,7 +141,7 @@ func TestCertsReadExpiry(t *testing.T) {
 	defer srv.Close()
 	host := strings.TrimPrefix(srv.URL, "https://")
 
-	out, err := sources.CertData{}.Fetch(context.Background(), sources.Ctx{
+	out, err := sources.CertData.Fetch(context.Background(), sources.Ctx{
 		URL: "https://" + host, Options: map[string]any{"hosts": []any{host, "127.0.0.1:1"}},
 	})
 	if err != nil {

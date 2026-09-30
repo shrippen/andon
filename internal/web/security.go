@@ -39,8 +39,16 @@ func (d Deps) csp(path string) string {
 		"frame-src " + frames + "; frame-ancestors " + ancestors + "; base-uri 'self'; form-action 'self'"
 }
 
-// Secure adds the security headers to every response.
+// crossOrigin refuses state-changing requests a browser marks as sent
+// by another site (Sec-Fetch-Site, Origin): login CSRF and forged resets
+// on routes without a session token. Requests without those headers
+// (webhooks, API clients) pass.
+var crossOrigin = http.NewCrossOriginProtection()
+
+// Secure adds the security headers to every response and refuses
+// cross-site form posts.
 func (d Deps) Secure(next http.Handler) http.Handler {
+	next = crossOrigin.Handler(next)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
 		h.Set("Content-Security-Policy", d.csp(r.URL.Path))

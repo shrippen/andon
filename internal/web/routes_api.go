@@ -59,12 +59,12 @@ func (d Deps) handleAPISummary(w http.ResponseWriter, r *http.Request) {
 	}
 	counts, err := hints.Summary(d.DB, who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	visible, err := boards.Visible(d.DB, who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -101,7 +101,7 @@ func (d Deps) handleAPIHints(w http.ResponseWriter, r *http.Request) {
 	}
 	open, err := hints.Active(d.DB, who, enums.SeverityInfo, nil, 0)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	out := make([]apiHint, 0, len(open))
@@ -119,7 +119,7 @@ func (d Deps) handleCalendar(w http.ResponseWriter, r *http.Request) {
 	}
 	feed, err := calendar.Feed(d.DB, who, time.Now())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
@@ -134,7 +134,7 @@ func (d Deps) handleEmbedHints(w http.ResponseWriter, r *http.Request) {
 	}
 	found, err := hints.Active(d.DB, who, enums.SeverityInfo, nil, embedHintLimit)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	_ = d.Page(w, Ctx{Who: who, Locale: who.Locale}, "hints", http.StatusOK, map[string]any{"Groups": groupHints(found, groupRule), "Embed": true})

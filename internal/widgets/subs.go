@@ -28,9 +28,9 @@ const (
 	peerWallos     = "wallos"
 )
 
-func decodeSubs(raw map[string]any) any {
-	return SubsConfig{Limit: clampInt(asInt(raw["limit"], defaultSubRows), 1, 30), ByPrice: raw["sort"] == "price",
-		Yearly: asBool(raw["yearly"]), Categories: lowerList(raw["categories"])}
+func decodeSubs(r Raw) SubsConfig {
+	return SubsConfig{Limit: r.Int("limit"), ByPrice: r.Pick("sort") == "price", Yearly: r.Bool("yearly"),
+		Categories: r.Lower("categories")}
 }
 
 // SubRow is one subscription as listed.
@@ -40,9 +40,8 @@ type SubRow struct {
 	Category, Detail string
 }
 
-func subsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(SubsConfig)
-	today := parseToday(ctx.Today).Format("2006-01-02")
+func subsView(cfg SubsConfig, results map[string]any, ctx ViewCtx) map[string]any {
+	today := todayOf(ctx).Format("2006-01-02")
 	wallos, hasWallos := results[peerWallos].(*sources.WallosDataset)
 	sure, hasSure := results[peerSure].(*sources.SureDataset)
 
@@ -66,8 +65,10 @@ func subsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 		}
 	case hasSure:
 		out["Source"], out["Currency"] = "sure", sure.Currency
+		categories := sureCategories(sure)
 		for _, s := range metrics.Subscriptions(sure, nil, rules.Usages(rules.Env{})) {
-			rows = append(rows, SubRow{Name: s.Name, Next: s.Next, Price: s.Monthly, Monthly: s.Monthly})
+			rows = append(rows, SubRow{Name: s.Name, Next: s.Next, Price: s.Monthly, Monthly: s.Monthly,
+				Category: categories[strings.ToLower(s.Name)]})
 		}
 	default:
 		return out
@@ -111,8 +112,32 @@ func subsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	return out
 }
 
+// sureCategories maps a booking's name and merchant (lower case) to the
+// category of its latest booking: Sure's recurring payments have none.
+//
+//	{Date: 09-05, Name: "Adobe", Category: "Software"} → {"adobe": "Software"}
+func sureCategories(sure *sources.SureDataset) map[string]string {
+	out := map[string]string{}
+	latest := map[string]string{}
+	for _, t := range sure.Transactions {
+		if t.Category == "" {
+			continue
+		}
+		for _, name := range []string{t.Name, t.Merchant} {
+			key := strings.ToLower(strings.TrimSpace(name))
+			if key == "" || t.Date < latest[key] {
+				continue
+			}
+			latest[key], out[key] = t.Date, t.Category
+		}
+	}
+	return out
+}
+
 func init() {
-	Register(WidgetType{Key: "subscriptions", Decode: decodeSubs, Template: "widgets/subscriptions", Category: CategoryInsight,
-		RefreshS: 3600, View: subsView,
-		Queries: func(any) []Query { return []Query{peer(peerWallos, enums.ServiceWallos), surePeer} }})
+	Tile[SubsConfig]{Key: "subscriptions", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600,
+		Fields: []Field{{Key: "limit", Input: InputNumber, Default: defaultSubRows, Min: "1", Max: "30"}, sel("sort", "next", "next", "price"),
+			{Key: "yearly", Input: InputCheck}, {Key: "categories", Input: InputList}},
+		Decode: decodeSubs, View: subsView,
+		Queries: func(SubsConfig) []Query { return []Query{peer(peerWallos, enums.ServiceWallos), surePeer} }}.add()
 }

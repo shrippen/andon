@@ -153,20 +153,22 @@ func Suppressed(f Finding, env Env, outages map[string][]string) bool {
 }
 
 func init() {
-	Register(outageRule, Cross, nil, func(_ any, cfg map[string]any, env Env) []Finding {
-		outages := Outages(env)
-		hosts := make([]string, 0, len(outages))
-		for h := range outages {
-			hosts = append(hosts, h)
-		}
-		sort.Strings(hosts)
+	Register(outageRule, Cross, nil, systemOutage)
+}
 
-		var found []Finding
-		for _, host := range hosts {
-			found = append(found, Finding{Fingerprint: "outage:" + host, Rule: outageRule, Severity: enums.SeverityCritical,
-				Message: "system.outage", Params: map[string]any{"host": host, "count": len(outages[host]), "names": shortList(outages[host])},
-				Sources: []string{"system"}})
-		}
-		return found
-	})
+func systemOutage(_ any, cfg map[string]any, env Env) []Finding {
+	outages := Outages(env)
+	hosts := make([]string, 0, len(outages))
+	for h := range outages {
+		hosts = append(hosts, h)
+	}
+	sort.Strings(hosts)
+
+	var found []Finding
+	for _, host := range hosts {
+		found = append(found, Finding{Fingerprint: "outage:" + host, Rule: outageRule, Severity: enums.SeverityCritical,
+			Message: "system.outage", Params: map[string]any{"host": host, "count": len(outages[host]), "names": shortList(outages[host])},
+			Sources: []string{"system"}})
+	}
+	return found
 }

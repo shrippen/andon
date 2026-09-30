@@ -11,7 +11,7 @@ test:
 	go test ./...
 
 run:
-	DATA_DIR=./data MASTER_KEY=dev-only-not-secret go run ./cmd/andon
+	DATA_DIR=./data ANDON_DEV=true MASTER_KEY=dev-only-not-secret go run ./cmd/andon
 
 # Release build: no demo mode, no demo data (scripts/release-check.sh).
 build:

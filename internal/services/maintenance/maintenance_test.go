@@ -4,25 +4,25 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"database/sql"
+	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"andon/internal/crypto"
 	"andon/internal/db"
-	"andon/internal/db/dbtest"
-	"andon/internal/enums"
-	"andon/internal/model"
-	"andon/internal/repos/content"
 	"andon/internal/services/maintenance"
 )
 
+// oldMasterKey is the key a test database starts with.
+const oldMasterKey = "test-master-key"
+
+// openTestDB starts a new install: salt written, database open.
 func openTestDB(t *testing.T) (*sql.DB, string) {
 	t.Helper()
-	crypto.Init("test-master-key")
 	path := filepath.Join(t.TempDir(), "test.db")
-	d, err := db.Open(path, dbtest.Key)
+	d, _, err := maintenance.Unlock(path, oldMasterKey)
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -58,61 +58,54 @@ func TestBackupProducesReadableArchive(t *testing.T) {
 	}
 }
 
-func TestRotateKeyReEncryptsConnectionSecret(t *testing.T) {
-	d, path := openTestDB(t)
-	sp := &model.Space{Kind: enums.SpacePersonal, Name: "x", Version: 1}
-	if err := content.AddSpace(d, sp); err != nil {
-		t.Fatalf("add space: %v", err)
-	}
-	enc, err := crypto.Encrypt("s3cret-token", crypto.PurposeCredential, nil)
-	if err != nil {
-		t.Fatalf("encrypt: %v", err)
-	}
-	conn := &model.Connection{
-		SpaceID: sp.ID, Key: "kimai", Name: "Kimai", Service: "kimai", URL: "https://kimai.example",
-		CredentialMode: enums.CredentialShared, SecretEnc: enc, VerifyTLS: true, CreatedAt: time.Now().UTC(),
-	}
-	if err := content.AddConnection(d, conn); err != nil {
-		t.Fatalf("add connection: %v", err)
-	}
+// newMasterKey is a strong key, as `openssl rand -base64 32` makes one.
+const newMasterKey = "q1dW3V0r3a9mGx6+Yt7n2ZkQv5LbHs8PjR4uE0cXf1o="
 
-	count, err := maintenance.RotateKey(d, path, "new-master-key")
-	if err != nil {
+// Rotating to a guessable key would weaken every secret; it is refused
+// before anything is re-encrypted.
+func TestRotateKeyRefusesWeakKey(t *testing.T) {
+	d, path := openTestDB(t)
+	if _, err := maintenance.RotateKey(d, path, "new-master-key"); !errors.Is(err, maintenance.ErrWeakKey) {
+		t.Fatalf("weak key: %v", err)
+	}
+}
+
+// After a rotation the old key still starts the old database; the new
+// key swaps the copy in, and from then on only the new key opens it.
+func TestRotateThenRestart(t *testing.T) {
+	d, path := openTestDB(t)
+	places := storeEverything(t, d)
+	if _, err := maintenance.RotateKey(d, path, newMasterKey); err != nil {
 		t.Fatalf("rotate: %v", err)
 	}
-	if count != 1 {
-		t.Fatalf("expected 1 secret re-encrypted, got %d", count)
-	}
-
-	updated, err := content.Connection(d, conn.ID)
-	if err != nil {
-		t.Fatalf("reload connection: %v", err)
-	}
-	// The old master key must no longer decrypt it...
-	crypto.Init("test-master-key")
-	if _, err := crypto.Decrypt(updated.SecretEnc, crypto.PurposeCredential); err == nil {
-		t.Fatal("expected the old master key to no longer decrypt the rotated secret")
-	}
-	// ...but the new one must.
-	crypto.Init("new-master-key")
-	text, err := crypto.Decrypt(updated.SecretEnc, crypto.PurposeCredential)
-	if err != nil || text != "s3cret-token" {
-		t.Fatalf("expected the new master key to decrypt to the original secret, got %q err=%v", text, err)
-	}
-
-	// The next start with the new master key opens the rekeyed file.
 	d.Close()
-	fileKey, err := crypto.DatabaseKey(nil)
-	if err != nil {
-		t.Fatal(err)
+
+	for _, step := range []struct {
+		key  string
+		fail bool
+	}{{oldMasterKey, false}, {newMasterKey, false}, {oldMasterKey, true}} {
+		again, _, err := maintenance.Unlock(path, step.key)
+		if step.fail {
+			if !errors.Is(err, db.ErrKey) {
+				t.Fatalf("old key after the swap: %v", err)
+			}
+			continue
+		}
+		if err != nil {
+			t.Fatalf("start with %s: %v", step.key, err)
+		}
+		expectReadable(t, again, places)
+		again.Close()
 	}
-	reopened, err := db.Open(path, fileKey)
-	if err != nil {
-		t.Fatalf("open with new file key: %v", err)
-	}
-	defer reopened.Close()
-	if _, err := content.Connection(reopened, conn.ID); err != nil {
-		t.Fatalf("connection after rekey: %v", err)
+}
+
+// expectReadable checks every stored secret opens under the process key.
+func expectReadable(t *testing.T, q db.Queryer, places []sealed) {
+	t.Helper()
+	for _, p := range places {
+		if text, err := crypto.Decrypt(p.read(q), p.purpose); err != nil || text != "secret" {
+			t.Errorf("%s: %q, %v", p.name, text, err)
+		}
 	}
 }
 
@@ -158,4 +151,47 @@ func TestBackupIncludesAssets(t *testing.T) {
 			t.Errorf("missing %s in %v", want, names)
 		}
 	}
+}
+
+// A backup restores on its own: unpacked anywhere, the archive's
+// database and salt open with MASTER_KEY.
+func TestBackupRestores(t *testing.T) {
+	d, path := openTestDB(t)
+	places := storeEverything(t, d)
+	archive, err := maintenance.Backup(d, path, t.TempDir(), "")
+	if err != nil {
+		t.Fatalf("backup: %v", err)
+	}
+
+	restored := filepath.Join(t.TempDir(), "andon.db")
+	f, err := os.Open(archive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr := tar.NewReader(gz)
+	for {
+		hdr, err := tr.Next()
+		if err != nil {
+			break
+		}
+		body, err := io.ReadAll(tr)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(filepath.Dir(restored), hdr.Name), body, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	again, how, err := maintenance.Unlock(restored, oldMasterKey)
+	if err != nil || how != maintenance.UnlockedAsIs {
+		t.Fatalf("open restored backup: %v %v", how, err)
+	}
+	defer again.Close()
+	expectReadable(t, again, places)
 }

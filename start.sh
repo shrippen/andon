@@ -8,6 +8,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 export MASTER_KEY=dev-only-not-secret
+export ANDON_DEV=true # accepts the guessable dev key
 export PORT="${PORT:-8080}"
 export BASE_URL="${BASE_URL:-http://localhost:$PORT}"
 data_dir="${DATA_DIR:-}"

@@ -19,7 +19,7 @@ func TestMonitorsViewSumsUp(t *testing.T) {
 		sources.KumaMonitor{Name: "C", Status: sources.KumaDown, CertDays: -1},
 		sources.KumaMonitor{Name: "D", Status: sources.KumaDown, CertDays: -1},
 	)
-	v := monitorsView(nil, map[string]any{"data": &sources.KumaDataset{Monitors: mons}}, ViewCtx{})
+	v := monitorsView(MonitorsConfig{}, map[string]any{"data": &sources.KumaDataset{Monitors: mons}}, ViewCtx{})
 	cells := v["Cells"].([]StripCell)
 	problems := v["Problems"].([]MonitorRow)
 	if v["Up"] != 11 || v["Total"] != 16 || cells[0].State != "bad" || len(problems) != 4 || v["More"] != 1 ||

@@ -5,6 +5,7 @@ package widgets
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,19 +24,27 @@ type BackupsConfig struct {
 	Days         int // days in the dot row
 }
 
-func decodeBackups(raw map[string]any) any {
-	days := backupDays
-	switch raw["days"] {
-	case "7":
-		days = 7
-	case "30":
-		days = 30
-	}
-	return BackupsConfig{MaxHours: clampInt(asInt(raw["max_hours"], defaultBackupHours), 1, 24*14), Tools: lowerList(raw["tools"]),
-		OnlyProblems: asBool(raw["only_problems"]), Days: days}
+func init() {
+	Tile[BackupsConfig]{Key: "backups", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 600, Extra: ExtraHistory,
+		Fields: []Field{{Key: "max_hours", Input: InputNumber, Default: defaultBackupHours, Min: "1", Max: "336"}, {Key: "tools", Input: InputList},
+			{Key: "only_problems", Input: InputCheck}, sel("days", strconv.Itoa(backupDays), "7", "14", "30")},
+		Decode: func(r Raw) BackupsConfig {
+			days, _ := strconv.Atoi(r.Pick("days"))
+			return BackupsConfig{MaxHours: r.Int("max_hours"), Tools: r.Lower("tools"), OnlyProblems: r.Bool("only_problems"), Days: days}
+		},
+		Queries: backupsQueries, View: backupsView,
+		Calm: func(v map[string]any) bool {
+			lines, _ := v["Rows"].([]BackupLine)
+			for _, l := range lines {
+				if l.State != "ok" {
+					return false
+				}
+			}
+			return v["Total"] != 0 && v["Total"] != nil
+		}}.add()
 }
 
-func backupsQueries(any) []Query {
+func backupsQueries(BackupsConfig) []Query {
 	return []Query{
 		{Name: string(enums.ServiceBorgBackup), Source: "data", Conn: ConnPeer, Service: enums.ServiceBorgBackup},
 		{Name: string(enums.ServicePGBackWeb), Source: "data", Conn: ConnPeer, Service: enums.ServicePGBackWeb},
@@ -52,8 +61,7 @@ type BackupLine struct {
 
 const backupDays = 14
 
-func backupsView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg := cfgAny.(BackupsConfig)
+func backupsView(cfg BackupsConfig, results map[string]any, _ ViewCtx) map[string]any {
 	if cfg.Days == 0 {
 		cfg.Days = backupDays
 	}
@@ -90,9 +98,4 @@ func backupsView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 		lines = append(lines, line)
 	}
 	return map[string]any{"Rows": lines, "Total": total, "Wide": cfg.Days > backupDays}
-}
-
-func init() {
-	Register(WidgetType{Key: "backups", Decode: decodeBackups, Template: "widgets/backups", Category: CategoryInsight,
-		RefreshS: 600, Queries: backupsQueries, View: backupsView, Extra: ExtraHistory})
 }

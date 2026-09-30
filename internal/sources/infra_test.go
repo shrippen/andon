@@ -57,7 +57,7 @@ func TestTrueNASOverWebSocket(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	out, err := sources.TrueNASData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: testKey})
+	out, err := sources.TrueNASData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: testKey})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestTrueNASRestFallback(t *testing.T) {
 	srv := httptest.NewTLSServer(plain.Config.Handler)
 	t.Cleanup(srv.Close)
 
-	out, err := sources.TrueNASData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: testKey})
+	out, err := sources.TrueNASData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: testKey})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestKomodoReadsStacksAlerts(t *testing.T) {
 		return r.Header.Get("X-Api-Key") == "id" && r.Header.Get("X-Api-Secret") == "sec"
 	})
 
-	out, err := sources.KomodoData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "id:sec", VerifyTLS: true})
+	out, err := sources.KomodoData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "id:sec", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,12 +118,12 @@ func TestPangolinNeedsOrg(t *testing.T) {
 	}, nil)
 	sctx := sources.Ctx{URL: srv.URL + "/v1", Secret: testKey, VerifyTLS: true}
 
-	if _, err := (sources.PangolinData{}).Fetch(context.Background(), sctx); err == nil {
+	if _, err := (sources.PangolinData).Fetch(context.Background(), sctx); err == nil {
 		t.Fatal("missing org accepted")
 	}
 
 	sctx.Options = map[string]any{"org": "home"}
-	out, err := sources.PangolinData{}.Fetch(context.Background(), sctx)
+	out, err := sources.PangolinData.Fetch(context.Background(), sctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestAuthentikUsage(t *testing.T) {
 		}},
 	}, func(r *http.Request) bool { return r.Header.Get("Authorization") == "Bearer "+testKey })
 
-	out, err := sources.AuthentikData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: testKey, VerifyTLS: true})
+	out, err := sources.AuthentikData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: testKey, VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ func TestTrueNASRefusesPlainHTTP(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { hits.Add(1) }))
 	t.Cleanup(srv.Close)
 
-	_, err := sources.TrueNASData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: testKey})
+	_, err := sources.TrueNASData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: testKey})
 	if err == nil || !strings.Contains(err.Error(), "truenas.https_required") {
 		t.Fatalf("expected https_required, got %v", err)
 	}
@@ -187,7 +187,7 @@ func TestPangolinWantsIntegrationAPI(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	sctx := sources.Ctx{URL: srv.URL, Secret: testKey, Options: map[string]any{"org": "home"}}
-	_, err := sources.PangolinData{}.Fetch(context.Background(), sctx)
+	_, err := sources.PangolinData.Fetch(context.Background(), sctx)
 	if err == nil || !strings.Contains(err.Error(), "pangolin.url") || hits.Load() != 0 {
 		t.Fatalf("expected pangolin.url without a request, got %v (%d requests)", err, hits.Load())
 	}

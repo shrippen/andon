@@ -22,7 +22,7 @@ import (
 // TestDemoFillsBoardsAndFiresRules: the demo instance imports every widget
 // and the analysis turns the demo datasets into hints.
 func TestDemoFillsBoardsAndFiresRules(t *testing.T) {
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	d, err := db.Open(filepath.Join(t.TempDir(), "t.db"), dbtest.Key)
 	if err != nil {
 		t.Fatal(err)

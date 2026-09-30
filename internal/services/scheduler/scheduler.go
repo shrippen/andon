@@ -95,15 +95,20 @@ func Runs() []NamedRun {
 // gets its own goroutine and runs strictly one tick at a time (a slow run
 // coalesces any ticks queued behind it — time.Ticker only buffers one); a
 // panicking or erroring job is logged and never stops the others.
-func Start(ctx context.Context, jobs []Job) {
+//
+// The returned wait blocks until every job has stopped after ctx ends,
+// so a running job finishes before the database closes.
+func Start(ctx context.Context, jobs []Job) (wait func()) {
+	var running sync.WaitGroup
 	for _, job := range jobs {
 		kick := make(chan struct{}, 1)
 		runsMu.Lock()
 		triggers[job.Name] = kick
 		runsMu.Unlock()
-		go runJob(ctx, job, kick)
+		running.Go(func() { runJob(ctx, job, kick) })
 	}
 	slog.Info("scheduler started", "jobs", jobNames(jobs))
+	return running.Wait
 }
 
 func jobNames(jobs []Job) []string {

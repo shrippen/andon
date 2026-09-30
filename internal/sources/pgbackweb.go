@@ -45,14 +45,9 @@ type PGBackDataset struct {
 	LastEvent time.Time // zero: no webhook received in the window
 }
 
-type PGBackData struct{}
+var PGBackData = pushSource{source{key: "pgbackweb.data", ttl: time.Minute, service: enums.ServicePGBackWeb, fetch: fetchPGBack}, pgbackWindow}
 
-func (PGBackData) Key() string                { return "pgbackweb.data" }
-func (PGBackData) TTL() time.Duration         { return time.Minute }
-func (PGBackData) Service() enums.ServiceType { return enums.ServicePGBackWeb }
-func (PGBackData) PushWindow() time.Duration  { return pgbackWindow }
-
-func (PGBackData) Fetch(_ context.Context, sctx Ctx) (any, error) {
+func fetchPGBack(_ context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoPGBack(time.Now()), nil
 	}
@@ -98,6 +93,6 @@ func foldPGBack(base string, events []Pushed) *PGBackDataset {
 }
 
 func init() {
-	Register(PGBackData{})
-	Register(testOf{PGBackData{}, func(d any) map[string]any { return map[string]any{"backups": len(d.(*PGBackDataset).Backups)} }})
+	Register(PGBackData)
+	Register(testOf{PGBackData, func(d any) map[string]any { return map[string]any{"backups": len(d.(*PGBackDataset).Backups)} }})
 }

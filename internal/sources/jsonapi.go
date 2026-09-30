@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"andon/internal/drivers/httpclient"
 	"andon/internal/enums"
@@ -50,13 +49,9 @@ type JSONAPIDataset struct {
 
 func (d *JSONAPIDataset) MarshalJSON() ([]byte, error) { return json.Marshal(d.Body) }
 
-type JSONAPIData struct{}
+var JSONAPIData = source{key: "jsonapi.data", ttl: opsTTL, service: enums.ServiceJSONAPI, fetch: fetchJSONAPIData}
 
-func (JSONAPIData) Key() string                { return "jsonapi.data" }
-func (JSONAPIData) TTL() time.Duration         { return opsTTL }
-func (JSONAPIData) Service() enums.ServiceType { return enums.ServiceJSONAPI }
-
-func (JSONAPIData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchJSONAPIData(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return shapeJSON(map[string]any{"stats": map[string]any{"users": 42.0, "queue": 3.0}}, sctx.Options), nil
 	}
@@ -164,8 +159,8 @@ func jsonText(v any) string {
 }
 
 func init() {
-	Register(JSONAPIData{})
-	Register(testOf{JSONAPIData{}, func(d any) map[string]any {
+	Register(JSONAPIData)
+	Register(testOf{JSONAPIData, func(d any) map[string]any {
 		return map[string]any{"fields": len(asMap(d.(*JSONAPIDataset).Body))}
 	}})
 }

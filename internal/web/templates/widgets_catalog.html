@@ -67,7 +67,7 @@
 
 {{define "widgets/komodo_stacks"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
-{{with $v := .Frag.View}}{{if $v.Cells}}
+{{with $v := .Frag.View}}{{if $v.Stacks}}
 <div class="tile-head"><b class="tile-value" data-live>{{$v.Running}} / {{$v.Stacks}}</b><span class="tile-note">{{t "komodo.running" "servers" $v.Servers "total" $v.ServersTotal}}</span></div>
 <span class="daybar daybar-lg" role="img" aria-label="{{t "komodo.stacks"}}">{{range $v.Cells}}<i data-state="{{.State}}" title="{{.Title}}"></i>{{end}}</span>
 {{with $v.Trouble}}<ul class="plain-list small">{{range .}}<li>{{.}}</li>{{end}}</ul>{{end}}
@@ -130,7 +130,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Bars}}
 <ul class="hbars">
-  {{range $v.Bars}}<li><span class="hbar-label">{{.Label}}</span><span class="hbar"><i data-style="--w:{{.W}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i></span><span class="hbar-value">{{.Value}} {{t "expiry.days"}}</span></li>{{end}}
+  {{range $v.Bars}}<li><span class="hbar-label">{{.Label}}</span><span class="hbar"><i data-style="--w:{{.W}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i></span><span class="hbar-value">{{if .W}}{{.Value}} {{t "expiry.days"}}{{else}}{{t .Value}}{{end}}</span></li>{{end}}
 </ul>
 <p class="tile-foot"><span>{{t "expiry.total" "n" $v.Total}}</span></p>
 {{end}}{{end}}
@@ -165,7 +165,7 @@
 {{if and $d.OldestTitle (not $v.Tag)}}<p class="tile-note">{{t "paperless.oldest" "title" $d.OldestTitle "days" $v.OldestDays}}</p>{{end}}
 {{with $v.Newest}}<span class="label">{{t "paperless.newest"}}</span>
 <ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span><a href="{{$d.URL}}/documents/{{.ID}}/details" target="_blank" rel="noopener noreferrer">{{.Title}}</a><b>{{day .Added}}</b></li>{{end}}</ul>{{end}}
-<p class="tile-foot"><span>{{if ge $d.Total 0}}{{t "paperless.total" "n" $d.Total}}{{end}}</span><a href="{{$d.URL}}/documents?sort=added" target="_blank" rel="noopener noreferrer">{{t "action.open"}} →</a></p>
+<p class="tile-foot"><span>{{if ge $d.Total 0}}{{t "paperless.total" "n" $d.Total}}{{end}}</span><a href="{{with $v.TagURL}}{{.}}{{else}}{{$d.URL}}/documents?sort=added{{end}}" target="_blank" rel="noopener noreferrer">{{t "action.open"}} →</a></p>
 {{end}}{{end}}
 {{end}}
 
@@ -243,7 +243,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
 <div class="tile-split">
-<div class="tile-split-figures"><div class="tile-head"><b class="tile-value" data-live>{{len $d.Reviews}}</b><span class="tile-note">{{t "gitea.reviews"}} · {{t "gitea.notifications" "n" $d.Notifications}}</span></div></div>
+<div class="tile-split-figures"><div class="tile-head"><b class="tile-value" data-live>{{$v.Head}}</b><span class="tile-note">{{t $v.HeadKey}} · {{t "gitea.notifications" "n" $d.Notifications}}</span></div></div>
 <div>
 {{with $v.Reviews}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="yellow" aria-hidden="true"></span><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a> <small class="muted">{{.Repo}}</small><b>{{ago .Updated}}</b></li>{{end}}</ul>{{end}}
 {{with $v.Assigned}}<span class="label">{{t "gitea.assigned"}}</span><ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a> <small class="muted">{{.Repo}}</small></li>{{end}}</ul>{{end}}

@@ -1,9 +1,11 @@
 package auth_test
 
 import (
+	"andon/internal/repos/content"
 	"database/sql"
 	"errors"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -25,7 +27,7 @@ import (
 
 func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	auth.ResetThrottle()
 	d, err := db.Open(filepath.Join(t.TempDir(), "test.db"), dbtest.Key)
 	if err != nil {
@@ -178,15 +180,16 @@ func TestTOTPLifecycle(t *testing.T) {
 	}
 
 	badCode, _ := totp.GenerateCode(secret, time.Now().Add(-time.Hour))
-	if err := auth.TOTPVerify(q, res.Token, badCode, "1.2.3.4", "agent"); err == nil {
+	if _, err := auth.TOTPVerify(q, res.Token, badCode, "1.2.3.4", "agent"); err == nil {
 		t.Fatal("expected stale code to be rejected")
 	}
 	freshCode, _ := totp.GenerateCode(secret, time.Now())
-	if err := auth.TOTPVerify(q, res.Token, freshCode, "1.2.3.4", "agent"); err != nil {
+	full, err := auth.TOTPVerify(q, res.Token, freshCode, "1.2.3.4", "agent")
+	if err != nil {
 		t.Fatalf("totp verify: %v", err)
 	}
 
-	info, err := auth.Resolve(q, testCfg(), res.Token)
+	info, err := auth.Resolve(q, testCfg(), full)
 	if err != nil || info == nil || info.Pending2FA {
 		t.Fatalf("expected 2FA cleared after verify, got %+v err=%v", info, err)
 	}
@@ -290,5 +293,147 @@ func TestPasskeySatisfiesAdminSecondFactor(t *testing.T) {
 		if err != nil || required {
 			t.Fatalf("%s with passkey: required=%v err=%v", method, required, err)
 		}
+	}
+}
+
+// TestTOTPBeginKeepsActive2FA: starting over does not switch an active
+// second factor off; that needs a code (TOTPDisable).
+func TestTOTPBeginKeepsActive2FA(t *testing.T) {
+	q := openTestDB(t)
+	uid := addActiveUser(t, q, "a@b.c", "correct-password")
+	who := &access.Principal{UserID: uid}
+	secret, _, _ := auth.TOTPBegin(q, who)
+	code, _ := totp.GenerateCode(secret, time.Now())
+	if _, err := auth.TOTPConfirm(q, who, code, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, _, err := auth.TOTPBegin(q, who); !errors.Is(err, auth.ErrTOTPActive) {
+		t.Fatalf("begin with 2FA on: %v", err)
+	}
+	if u, _ := users.Get(q, uid); !u.TOTPEnabled {
+		t.Fatal("2FA switched off")
+	}
+}
+
+// TestLoginThrottleHoldsUnderBurst: attempts sent at once cannot slip
+// past the limit before the first failure is noted.
+func TestLoginThrottleHoldsUnderBurst(t *testing.T) {
+	q := openTestDB(t)
+	addActiveUser(t, q, "burst@b.c", "correct-password")
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	checked := 0
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := auth.Login(q, testCfg(), "burst@b.c", "wrong", "10.0.0.9", "agent")
+			if errors.Is(err, auth.ErrLoginFailed) {
+				mu.Lock()
+				checked++
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+	if checked > 5 {
+		t.Fatalf("%d passwords checked, limit 5", checked)
+	}
+}
+
+// TestTOTPFailsSurviveCorrectPassword: knowing the password must not
+// reset the count of wrong second-factor codes.
+func TestTOTPFailsSurviveCorrectPassword(t *testing.T) {
+	q := openTestDB(t)
+	uid := addActiveUser(t, q, "t@b.c", "correct-password")
+	who := &access.Principal{UserID: uid}
+	secret, _, _ := auth.TOTPBegin(q, who)
+	code, _ := totp.GenerateCode(secret, time.Now())
+	if _, err := auth.TOTPConfirm(q, who, code, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	var last error
+	for i := 0; i < 6; i++ {
+		res, err := auth.Login(q, testCfg(), "t@b.c", "correct-password", "10.0.0.8", "agent")
+		if err != nil {
+			t.Fatalf("login %d: %v", i, err)
+		}
+		_, last = auth.TOTPVerify(q, res.Token, "000000", "10.0.0.8", "agent")
+	}
+	if !errors.Is(last, auth.ErrThrottled) {
+		t.Fatalf("6th wrong code: %v", last)
+	}
+}
+
+// TestEmbedTokenScopedToBoards: an embed token names its boards, only
+// boards its owner sees, and reaches no other space's hints or tiles.
+func TestEmbedTokenScopedToBoards(t *testing.T) {
+	q := openTestDB(t)
+	uid := addActiveUser(t, q, "a@b.c", "correct-password")
+	who, _ := access.Load(q, uid)
+	space, _ := content.PersonalSpace(q, uid)
+	board := &model.Board{SpaceID: space.ID, Slug: "wall", Name: "Wall", Version: 1}
+	if err := content.AddBoard(q, board); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := auth.CreateToken(q, who, "Wall", enums.TokenEmbed, nil, nil); !errors.Is(err, auth.ErrTokenBoards) {
+		t.Fatalf("embed token without boards: %v", err)
+	}
+	other := addActiveUser(t, q, "o@b.c", "correct-password")
+	otherSpace, _ := content.PersonalSpace(q, other)
+	foreign := &model.Board{SpaceID: otherSpace.ID, Slug: "x", Name: "X", Version: 1}
+	if err := content.AddBoard(q, foreign); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := auth.CreateToken(q, who, "Wall", enums.TokenEmbed, []int64{foreign.ID}, nil); !errors.Is(err, auth.ErrTokenBoards) {
+		t.Fatalf("token for a board not seen: %v", err)
+	}
+
+	tok, err := auth.CreateToken(q, who, "Wall", enums.TokenEmbed, []int64{board.ID}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scoped, err := auth.PrincipalForToken(q, tok.Secret, enums.TokenEmbed)
+	if err != nil || scoped == nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if len(scoped.Spaces) != 1 || scoped.TokenBoards[0] != board.ID {
+		t.Fatalf("spaces %v, boards %v", scoped.Spaces, scoped.TokenBoards)
+	}
+}
+
+// TestTOTPVerifyRotatesAndBlocksReplay: passing the second factor gives
+// a fresh session token (the pending one was on the TOTP page) and a
+// code works once.
+func TestTOTPVerifyRotatesAndBlocksReplay(t *testing.T) {
+	q := openTestDB(t)
+	uid := addActiveUser(t, q, "r@b.c", "correct-password")
+	who := &access.Principal{UserID: uid}
+	secret, _, _ := auth.TOTPBegin(q, who)
+	first, _ := totp.GenerateCode(secret, time.Now().Add(-30*time.Second))
+	if _, err := auth.TOTPConfirm(q, who, first, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	code, _ := totp.GenerateCode(secret, time.Now())
+	res, _ := auth.Login(q, testCfg(), "r@b.c", "correct-password", "10.0.0.7", "agent")
+	fresh, err := auth.TOTPVerify(q, res.Token, code, "10.0.0.7", "agent")
+	if err != nil || fresh == "" || fresh == res.Token {
+		t.Fatalf("verify: %q %v", fresh, err)
+	}
+	if info, _ := auth.Resolve(q, testCfg(), res.Token); info != nil {
+		t.Fatal("pending token still valid")
+	}
+	if info, _ := auth.Resolve(q, testCfg(), fresh); info == nil || info.Pending2FA {
+		t.Fatal("fresh token not a full session")
+	}
+
+	again, _ := auth.Login(q, testCfg(), "r@b.c", "correct-password", "10.0.0.7", "agent")
+	if _, err := auth.TOTPVerify(q, again.Token, code, "10.0.0.7", "agent"); err == nil {
+		t.Fatal("same code accepted twice")
 	}
 }

@@ -141,6 +141,16 @@ type Strip struct {
 	Days          []DayState
 }
 
+// stripFailPct is the share of failed fetches in percent, rounded up:
+// 1 failure in 500 is 1 %, not a clean 0 %.
+func stripFailPct(ok, fail int) int {
+	total := ok + fail
+	if total == 0 {
+		return 0
+	}
+	return (fail*100 + total - 1) / total
+}
+
 // Strips returns the day-by-day health of every connection who can see,
 // over the last days (the connection health tile).
 func Strips(d *sql.DB, who *access.Principal, days int, now time.Time) ([]Strip, error) {
@@ -166,9 +176,7 @@ func Strips(d *sql.DB, who *access.Principal, days int, now time.Time) ([]Strip,
 			}
 
 			strip := Strip{Name: c.Name, Service: string(c.Service)}
-			if ok+fail > 0 {
-				strip.FailPct = fail * 100 / (ok + fail)
-			}
+			strip.FailPct = stripFailPct(ok, fail)
 			for i := range days {
 				day := first.AddDate(0, 0, i).Format(time.DateOnly)
 				r := byDay[day]

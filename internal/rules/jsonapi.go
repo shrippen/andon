@@ -28,22 +28,19 @@ func fieldLevel(f sources.JSONField) (enums.Severity, float64, bool) {
 }
 
 func init() {
-	svc := string(enums.ServiceJSONAPI)
-	Register(thresholdRule, svc, nil, func(raw any, _ map[string]any, _ Env) []Finding {
-		data, ok := raw.(*sources.JSONAPIDataset)
-		if !ok {
-			return nil
+	Register(thresholdRule, jsonapiSvc, nil, on(jsonThreshold))
+}
+
+func jsonThreshold(data *sources.JSONAPIDataset, _ map[string]any, _ Env) []Finding {
+	var found []Finding
+	for _, f := range data.Fields {
+		level, limit, over := fieldLevel(f)
+		if !over {
+			continue
 		}
-		var found []Finding
-		for _, f := range data.Fields {
-			level, limit, over := fieldLevel(f)
-			if !over {
-				continue
-			}
-			found = append(found, Finding{Fingerprint: "threshold:" + f.Path, Rule: thresholdRule, Severity: level,
-				Message: thresholdRule, Params: map[string]any{"label": f.Label, "value": Num(f.Value, 2), "limit": Num(limit, 2)},
-				Sources: []string{svc}})
-		}
-		return found
-	})
+		found = append(found, Finding{Fingerprint: "threshold:" + f.Path, Rule: thresholdRule, Severity: level,
+			Message: thresholdRule, Params: map[string]any{"label": f.Label, "value": Num(f.Value, 2), "limit": Num(limit, 2)},
+			Sources: []string{jsonapiSvc}})
+	}
+	return found
 }

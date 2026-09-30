@@ -121,13 +121,9 @@ func mailConfig(sctx Ctx) (imapmail.Config, error) {
 	return cfg, nil
 }
 
-type MailData struct{}
+var MailData = source{key: "mail.data", ttl: mailTTL, service: enums.ServiceMail, fetch: fetchMail}
 
-func (MailData) Key() string                { return "mail.data" }
-func (MailData) TTL() time.Duration         { return mailTTL }
-func (MailData) Service() enums.ServiceType { return enums.ServiceMail }
-
-func (MailData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoMail(time.Now()), nil
 	}
@@ -178,8 +174,8 @@ func ignored(addr string, ignore map[string]bool) bool {
 }
 
 func init() {
-	Register(MailData{})
-	Register(testOf{MailData{}, func(d any) map[string]any {
+	Register(MailData)
+	Register(testOf{MailData, func(d any) map[string]any {
 		m := d.(*MailDataset)
 		return map[string]any{"mailbox": m.Mailbox, "scanned": m.Scanned, "invoices": len(m.Invoices)}
 	}})

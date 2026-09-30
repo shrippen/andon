@@ -12,7 +12,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"andon/internal/drivers/services"
 	"andon/internal/enums"
@@ -44,13 +43,9 @@ type DockerDataset struct {
 	Containers []Container
 }
 
-type DockerData struct{}
+var DockerData = source{key: "docker.data", ttl: opsTTL, service: enums.ServiceDocker, fetch: fetchDocker}
 
-func (DockerData) Key() string                { return "docker.data" }
-func (DockerData) TTL() time.Duration         { return opsTTL }
-func (DockerData) Service() enums.ServiceType { return enums.ServiceDocker }
-
-func (DockerData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchDocker(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoDocker(), nil
 	}
@@ -102,6 +97,6 @@ func DemoDocker() *DockerDataset {
 }
 
 func init() {
-	Register(DockerData{})
-	Register(testOf{DockerData{}, func(d any) map[string]any { return map[string]any{"containers": len(d.(*DockerDataset).Containers)} }})
+	Register(DockerData)
+	Register(testOf{DockerData, func(d any) map[string]any { return map[string]any{"containers": len(d.(*DockerDataset).Containers)} }})
 }

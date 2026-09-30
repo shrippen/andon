@@ -32,20 +32,22 @@ type RecentConfig struct {
 
 const defaultRecent = 6
 
-func decodeRecent(raw map[string]any) any {
-	kinds, _ := raw["kinds"].(string)
-	if kinds != "updates" && kinds != "hints" {
+// recentAll is the kinds select's "everything", stored as "" in RecentConfig.
+const recentAll = "all"
+
+func decodeRecent(r Raw) RecentConfig {
+	kinds := r.Pick("kinds")
+	if kinds == recentAll {
 		kinds = ""
 	}
-	return RecentConfig{Limit: clampInt(asInt(raw["limit"], defaultRecent), 1, 30), Days: clampInt(asInt(raw["days"], TimelineDays), 1, 90), Kinds: kinds}
+	return RecentConfig{Limit: r.Int("limit"), Days: r.Int("days"), Kinds: kinds}
 }
 
 // ExtraDays is how far back the widgets service loads the timeline.
 func (c RecentConfig) ExtraDays() int { return c.Days }
 
-func recentView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+func recentView(cfg RecentConfig, results map[string]any, _ ViewCtx) map[string]any {
 	all, _ := results[TimelineSlot].([]TimelineItem)
-	cfg := cfgAny.(RecentConfig)
 	var items []TimelineItem
 	for _, it := range all {
 		// Bursts of hints have no single HintID: tell kinds by Kind.
@@ -57,6 +59,8 @@ func recentView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "timeline_recent", Decode: decodeRecent, Template: "widgets/timeline_recent", Category: CategoryInsight,
-		RefreshS: 900, View: recentView, Extra: ExtraTimeline})
+	Tile[RecentConfig]{Key: "timeline_recent", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 900, Extra: ExtraTimeline,
+		Fields: []Field{{Key: "limit", Input: InputNumber, Default: defaultRecent, Min: "1", Max: "30"}, {Key: "days", Input: InputNumber, Default: TimelineDays, Min: "1", Max: "90"},
+			sel("kinds", recentAll, recentAll, "updates", "hints")},
+		Decode: decodeRecent, View: recentView}.add()
 }

@@ -98,6 +98,7 @@ login:
   throttled: Zu viele Versuche. Bitte in 15 Minuten erneut probieren.
   oidc_only: Anmeldung nur über Single Sign-on.
 totp:
+  active: Der zweite Faktor ist aktiv. Erst mit einem Code abschalten, dann neu einrichten.
   title: Zweiter Faktor
   code: Code aus der Authenticator-App
   submit: Bestätigen
@@ -166,6 +167,7 @@ board:
   full: Alles zeigen
   compact: Kompakt
 edit:
+  save_failed: 'Die neue Anordnung wurde nicht gespeichert. Verbindung prüfen und erneut versuchen.'
   tile_tall: Doppelte Höhe
   tile_normal: Normale Höhe
   bulk: Auswahl
@@ -202,6 +204,70 @@ edit:
   tile_wide: 'Doppelte Breite'
   tile_narrow: 'Normale Breite'
   touch_hint: 'Bearbeiten ist für den Desktop gemacht. Kachel antippen für ihre Werkzeuge, noch einmal tippen öffnet sie.'
+typefield:
+  payment_days:
+    months: Zeitraum (Monate, leer = alle)
+  rate_trend:
+    target_value: Ziel-Stundensatz
+  authentik_logins:
+    only_problems: Nur Fehlversuche
+  exposure:
+    only_problems: Nur Dienste ohne Anmeldung
+  custom_api:
+    headers: HTTP-Header der Anfrage
+    fields_hint: 'Eine Zeile je Wert: Beschriftung = Pfad, z. B. Version = data.version oder Erster = list.0.name.'
+  cashflow:
+    days: Vorschau (Tage)
+  deadlines:
+    days: Vorschau (Tage)
+  expiries:
+    days: Vorschau (Tage)
+    sources_hint: 'Dienste, z. B. truenas, borgbackup, paperless. Leer = alle.'
+  arr_upcoming:
+    days: Vorschau (Tage)
+  update_window:
+    window_hint: 'Von-bis, z. B. 22:00-06:00 oder 22-6. Leer = jederzeit.'
+  grocy:
+    days: Vorschau (Tage, 0 = wie Grocy)
+    days_hint: 'Vorräte bis 60 Tage voraus. 0 = die 5 Tage von Grocy und alle Aufgaben.'
+  today:
+    days: Fristen voraus (Tage)
+  receipts_missing:
+    days: Rückblick (Tage)
+  trend:
+    days: Verlauf (Tage)
+  speed_history:
+    days: Verlauf (Tage)
+  hints:
+    sort_value: Größter Betrag zuerst
+    min_severity_10: Alle Stufen
+    min_severity_20: Ab Warnung
+    min_severity_30: Nur kritische
+    sources_hint: 'Dienste, z. B. kimai, invoiceninja, truenas. Leer = alle.'
+  status_light:
+    sources_hint: 'Dienste, z. B. kimai, invoiceninja, truenas. Leer = alle.'
+  updates:
+    sources_hint: 'Dienste, z. B. proxmox, truenas, immich. Leer = alle.'
+  crypto:
+    coins_hint: 'CoinGecko-Kennungen, z. B. bitcoin, ethereum (nicht BTC).'
+  stocks:
+    tickers_hint: 'Kürzel mit Börse wie bei Stooq, z. B. aapl.us, sap.de.'
+  holidays:
+    state_hint: 'Kürzel des Bundeslands, z. B. BY. Leer = nur bundesweite.'
+  vpn:
+    expected_country_hint: 'Landesname, wie Gluetun ihn meldet, z. B. Sweden.'
+  uptime_month:
+    sla_hint: 'Prozent, darunter rot, z. B. 99,5. Leer = ab 99,9 % grün, unter 95 % rot.'
+  iframe:
+    reload: Neu laden alle … Minuten (leer = nie)
+  komodo_stacks:
+    only_problems: Nur mit Updates oder Problemen
+  tailscale:
+    only_problems: Nur offline oder mit ablaufendem Schlüssel
+  github:
+    only_problems: Nur rote CI
+  conn_health:
+    only_problems: Nur aktuell wackelige (letzte 2 Tage)
 field:
   place: Ort
   week_hours: Wochenziel (Stunden)
@@ -308,6 +374,7 @@ field:
   frame_round: Beträge
   frame_only_issues: Nur bei Handlungsbedarf zeigen
   compare: Vergleich
+  target_days: Zahlungsziel (Tage)
   target_value: Zielwert
   spark: Verlauf zeigen
   show_prev: Vorjahr zeigen
@@ -361,17 +428,14 @@ field:
   yearly: Kosten je Jahr statt Monat
   ahead: Vorschau (Tage)
   app_updates: Apps mit Updates nennen
-  buttons: Knöpfe „Erledigt“ und „Später“
-  by_value: Nach Betrag sortieren
+  show_buttons: Knöpfe „Erledigt“ und „Später“
   cheap_hours: Günstiges Fenster (Stunden)
   filter: Nur Namen mit
   forecast: Prognose „voll in … Tagen“
   kinds: Zeigen
-  levels: Stufenbalken
+  show_levels: Stufenbalken
   max_days: Nur bis … Tage (leer = alle)
-  only_issues: Nur mit Updates oder Problemen
   only_problems: Nur Probleme
-  only_shaky: Nur aktuell wackelige (letzte 2 Tage)
   power_split: Strom je Dienst
   price: Preis
   response_time: Antwortzeit zeigen
@@ -389,9 +453,7 @@ field:
   use_timer: Laufenden Kimai-Timer beachten
   warn_pct: Gelb ab (%)
   window: 'Wartungsfenster (z. B. 22:00-06:00)'
-  only_failures: Nur Fehlversuche
   list_without: Konten ohne Zwei-Faktor auflisten
-  only_red: Nur rote CI
   warn_line: Warnlinie bei
   thresholds: Farbschwellen
   thresholds_hint: 'Eine Regel je Zeile: Name, Vergleich, Grenze, Farbe. Beispiel: „queue > 10 gelb“ oder „Temp >= 30 rot“.'
@@ -413,7 +475,6 @@ field:
   top_domains: Meistgeblockte Domains zeigen
   hide_measures: Verlust und Latenz ausblenden
   device_list: Geräte mit Namen auflisten
-  only_trouble: Nur offline oder mit ablaufendem Schlüssel
   expected_country: Erwartetes Land (überschreibt die Verbindung)
   ping: Ping und Jitter zeigen
   ipv6: IPv6 zeigen
@@ -600,7 +661,7 @@ opt:
   c: °C
   f: °F
   minor: Wetterwarnung
-  moderate: markant
+  moderate: Markantes Wetter
   severe: Unwetter
   extreme: extremes Unwetter
   "12": 12 Stunden
@@ -625,9 +686,6 @@ sort:
 area:
   main: Hauptspalte
   side: Seitenspalte
-category:
-  start: Startseite
-  insight: Auswertung
 wtype:
   kimai_week:
     name: 'Kimai-Woche'
@@ -910,6 +968,8 @@ wtype:
     name: 'Was ist rot?'
     desc: 'Alle Links des Bereichs, deren Statusprüfung fehlschlägt, mit Dauer.'
 widget:
+  bad_window: 'Wartungsfenster nicht lesbar: z. B. 22:00-06:00 oder 22-6.'
+  bad_timezone: 'Unbekannte Zeitzone: z. B. Europe/Berlin.'
   delete_hint: 'Die Kachel verschwindet von allen Boards, auf denen sie steht.'
   pending: Wird beim nächsten Prüflauf geladen …
   loading: lädt …
@@ -925,6 +985,7 @@ widget:
   connection_type: Die Verbindung passt nicht zum Kacheltyp.
   unsupported: Passt nicht zur gewählten Verbindung.
 connection:
+  secret_for_host: 'Neue Adresse: bitte den Zugang neu eingeben. Der gespeicherte geht nicht an einen anderen Server.'
   bad_date: 'Datum im Format JJJJ-MM-TT angeben.'
   missing: Verbindung fehlt
   location_personal: Standortdaten sind nur als persönliche Verbindung erlaubt.
@@ -1363,6 +1424,9 @@ scope:
   read: Lesen (API)
   embed: Einbetten
 security:
+  token_boards: Boards
+  token_boards_hint: 'Einbetten braucht mindestens ein Board; das Token sieht dann nur diese Boards und ihre Bereiche. Lesen ohne Auswahl: alles, was du siehst.'
+  token_boards_n: '{n} Boards'
   totp_required: 'Die Instanz verlangt für Admins einen zweiten Faktor. Richte ihn ein, um weiterzumachen.'
   passkeys: Passkeys
   no_passkeys: Keine Passkeys.
@@ -1543,8 +1607,6 @@ sample:
   budget: Budget Projekt Relaunch
 icon:
   invalid: Icon ungültig (SVG, PNG, WebP, JPEG, ICO bis 512 KB).
-url:
-  scheme: URL muss mit http:// oder https:// beginnen.
 mail:
   footer: Andon · {url}
   invite:
@@ -2708,6 +2770,7 @@ settings:
   rule_search: 'Regeln durchsuchen'
   rule_none: 'Keine Regel passt.'
 notify:
+  raw_http: 'json://, xml:// und form:// senden an beliebige Adressen; nur Admins dürfen sie anlegen.'
   min_level: Ab Stufe
   sources: Nur diese Quellen
   sources_hint: Keine Auswahl = alle Quellen.
@@ -3177,6 +3240,7 @@ gateway:
 expiry:
   days: 'Tage'
   total: '{n} Zertifikate und Domains'
+  unknown: 'Ablauf unbekannt'
 speed:
   contract: 'Vertrag {n} Mbit/s'
   slow: '{n} Tage zu langsam'
@@ -3258,6 +3322,9 @@ gallery:
   height: Höhe
   rows_1: 1 Reihe
   rows_2: 2 Reihen
+  width: Breite
+  cols_1: 1 Spalte
+  cols_2: 2 Spalten
   add_to: 'Zu „{section}“ hinzufügen'
   preview_hint: So sitzt die Kachel zwischen ihren Nachbarn.
 audit_action:
@@ -3844,3 +3911,5 @@ links_down:
   since: 'seit {day} ohne Antwort'
   today: 'seit heute'
   none: 'Alle Links antworten.'
+token:
+  boards: 'Ein Einbettungs-Token braucht Boards, die du siehst.'

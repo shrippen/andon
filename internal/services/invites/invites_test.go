@@ -1,8 +1,11 @@
 package invites_test
 
 import (
+	"andon/internal/repos/users"
+	"andon/internal/services/auth"
 	"errors"
 	"path"
+	"strconv"
 	"testing"
 
 	"andon/internal/enums"
@@ -55,5 +58,48 @@ func TestResetOnce(t *testing.T) {
 	}
 	if err := invites.Reset(d, token, "another long passphrase", ""); !errors.Is(err, invites.ErrResetInvalid) {
 		t.Fatalf("second reset: %v", err)
+	}
+}
+
+// TestResetRevokesTokens: after a reset (the account may be taken over)
+// the API tokens stop working too, as the sessions do.
+func TestResetRevokesTokens(t *testing.T) {
+	d := testkit.DB(t)
+	admin, _ := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+	user, _ := testkit.User(t, d, "user@x.de", enums.RoleUser)
+	tok, err := auth.CreateToken(d, user, "cli", enums.TokenRead, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	link, _ := invites.AdminResetLink(d, admin, user.UserID)
+	if err := invites.Reset(d, path.Base(link), "a long enough passphrase", ""); err != nil {
+		t.Fatal(err)
+	}
+	if who, _ := auth.PrincipalForToken(d, tok.Secret, enums.TokenRead); who != nil {
+		t.Fatal("token still works after reset")
+	}
+}
+
+// TestResetRequestsLimited: reset mails to one address (or from one
+// client) are capped; the page answers the same either way.
+func TestResetRequestsLimited(t *testing.T) {
+	d := testkit.DB(t)
+	testkit.User(t, d, "user@x.de", enums.RoleUser)
+	u, _ := users.ByEmail(d, "user@x.de")
+	u.PasswordHash = "x"
+	if err := users.Update(d, u); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 6; i++ {
+		if err := invites.RequestReset(d, "user@x.de", "10.9.9."+strconv.Itoa(i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var n int
+	if err := d.QueryRow("SELECT COUNT(*) FROM reset_tokens").Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n > 3 {
+		t.Fatalf("%d reset mails for one address", n)
 	}
 }

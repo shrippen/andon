@@ -39,7 +39,7 @@ import (
 
 const (
 	ceremonyTTL = 5 * time.Minute
-	maxPending  = 1000 // login begin is public: bound the memory it takes
+	maxPending  = 1000 // login begin is public: bound the memory logins take
 	rpName      = "Andon"
 	nameMax     = 60
 )
@@ -67,13 +67,20 @@ func keep(key string, c ceremony) error {
 	pendingMu.Lock()
 	defer pendingMu.Unlock()
 
+	// Anonymous login starts share one budget; a logged-in user adding a
+	// key does not count against it (their number is bounded by users).
 	now := time.Now()
+	logins := 0
 	for k, old := range pending {
 		if now.After(old.expires) {
 			delete(pending, k)
+			continue
+		}
+		if old.userID == 0 {
+			logins++
 		}
 	}
-	if len(pending) >= maxPending {
+	if c.userID == 0 && logins >= maxPending {
 		return ErrBusy
 	}
 	c.expires = now.Add(ceremonyTTL)

@@ -23,7 +23,7 @@ import (
 
 func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	d, err := db.Open(filepath.Join(t.TempDir(), "test.db"), dbtest.Key)
 	if err != nil {
 		t.Fatalf("open db: %v", err)
@@ -271,5 +271,26 @@ func TestDispatchQuietCriticalAndSubscriptions(t *testing.T) {
 	}
 	if n, _ := notify.Dispatch(context.Background(), d, cfg); n != 0 {
 		t.Fatalf("muted quiet hours sent %d", n)
+	}
+}
+
+// TestAddChannelRefusesRawHTTP: json://, xml:// and form:// make the
+// Apprise server send any request anywhere, past Andon's network
+// guard; only admins may add them.
+func TestAddChannelRefusesRawHTTP(t *testing.T) {
+	d := openTestDB(t)
+	who, _ := access.Load(d, addUser(t, d))
+	for _, raw := range []string{"json://10.0.0.5:8080/admin", "JSONS://x", "form://h/p", "xml://h", "xmls://h", "forms://h"} {
+		if err := notify.AddChannel(d, who, "", raw, enums.SeverityWarn, nil); err == nil {
+			t.Errorf("%s accepted", raw)
+		}
+	}
+	if err := notify.AddChannel(d, who, "", "ntfy://ntfy.sh/topic", enums.SeverityWarn, nil); err != nil {
+		t.Errorf("ntfy: %v", err)
+	}
+	admin := *who
+	admin.Role = enums.RoleAdmin
+	if err := notify.AddChannel(d, &admin, "", "json://hooks.lan/in", enums.SeverityWarn, nil); err != nil {
+		t.Errorf("admin json: %v", err)
 	}
 }

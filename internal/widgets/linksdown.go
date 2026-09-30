@@ -23,12 +23,7 @@ type LinksDownConfig struct{ Limit int }
 
 const defaultLinksDown = 8
 
-func decodeLinksDown(raw map[string]any) any {
-	return LinksDownConfig{Limit: clampInt(asInt(raw["limit"], defaultLinksDown), 1, 50)}
-}
-
-func linksDownView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg := cfgAny.(LinksDownConfig)
+func linksDownView(cfg LinksDownConfig, results map[string]any, _ ViewCtx) map[string]any {
 	links, _ := results[LinksDownSlot].([]DownLink)
 	sort.SliceStable(links, func(i, j int) bool { return downSince(links[i]).Before(downSince(links[j])) })
 	return map[string]any{"Links": links[:min(len(links), cfg.Limit)], "More": max(len(links)-cfg.Limit, 0), "Total": len(links)}
@@ -43,6 +38,8 @@ func downSince(l DownLink) time.Time {
 }
 
 func init() {
-	Register(WidgetType{Key: "links_down", Decode: decodeLinksDown, Template: "widgets/links_down", Category: CategoryStart,
-		RefreshS: 300, View: linksDownView, Extra: ExtraLinksDown})
+	Tile[LinksDownConfig]{Key: "links_down", Category: CategoryStart, Topic: TopicOverview, RefreshS: 300, Extra: ExtraLinksDown,
+		Fields: []Field{{Key: "limit", Input: InputNumber, Default: defaultLinksDown, Min: "1", Max: "50"}},
+		Decode: func(r Raw) LinksDownConfig { return LinksDownConfig{Limit: r.Int("limit")} },
+		View:   linksDownView}.add()
 }

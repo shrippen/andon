@@ -51,9 +51,15 @@ const rekeyedSuffix = ".rekeyed"
 // ErrKey means the key is missing or does not open the file.
 var ErrKey = errors.New("db: missing or wrong database key")
 
+// handle is what an open database was opened with.
+type handle struct {
+	key  []byte
+	path string
+}
+
 var (
 	keysMu sync.Mutex
-	keys   = map[*sql.DB][]byte{}
+	keys   = map[*sql.DB]handle{}
 )
 
 // Open opens (and creates if needed) the encrypted sqlite database at
@@ -86,7 +92,7 @@ func Open(path string, key []byte) (*sql.DB, error) {
 	}
 
 	keysMu.Lock()
-	keys[sqlDB] = key
+	keys[sqlDB] = handle{key: key, path: path}
 	keysMu.Unlock()
 	return sqlDB, nil
 }

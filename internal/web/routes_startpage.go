@@ -46,7 +46,7 @@ func (d Deps) handleBulk(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	var placements []int64
@@ -55,8 +55,8 @@ func (d Deps) handleBulk(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 			placements = append(placements, p)
 		}
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
-	section, _ := strconv.ParseInt(r.FormValue("section"), 10, 64)
+	version := formInt(r, "version")
+	section := formID(r, "section")
 	change := boards.BulkChange{Action: boards.BulkAction(r.FormValue("action")), SectionID: section, Color: r.FormValue("color")}
 	if err := boards.Bulk(d.DB, ctx.Who, id, version, placements, change); err != nil {
 		d.handleBoardError(w, r, err)
@@ -110,7 +110,7 @@ func (d Deps) handleQuickLink(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		http.NotFound(w, r)
 		return
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
+	version := formInt(r, "version")
 	if _, err := boards.QuickLink(r.Context(), d.DB, ctx.Who, section, version, r.FormValue("url")); err != nil {
 		d.handleBoardError(w, r, err)
 		return
@@ -138,7 +138,7 @@ func (d Deps) handleClick(w http.ResponseWriter, r *http.Request) {
 func (d Deps) handlePalette(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	items, err := boards.Palette(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	items = append(items, d.paletteConnections(ctx)...)

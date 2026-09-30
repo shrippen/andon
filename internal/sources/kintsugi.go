@@ -70,13 +70,9 @@ func (d *KintsugiDataset) Oldest() (time.Time, bool) {
 	return oldest, !oldest.IsZero()
 }
 
-type KintsugiData struct{}
+var KintsugiData = source{key: "kintsugi.data", ttl: dataTTL, service: enums.ServiceKintsugi, fetch: fetchKintsugi}
 
-func (KintsugiData) Key() string                { return "kintsugi.data" }
-func (KintsugiData) TTL() time.Duration         { return dataTTL }
-func (KintsugiData) Service() enums.ServiceType { return enums.ServiceKintsugi }
-
-func (KintsugiData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchKintsugi(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoKintsugi(time.Now()), nil
 	}
@@ -142,6 +138,6 @@ func kintsugiAt(s string) time.Time {
 }
 
 func init() {
-	Register(KintsugiData{})
-	Register(testOf{KintsugiData{}, func(d any) map[string]any { return map[string]any{"open": len(d.(*KintsugiDataset).Open)} }})
+	Register(KintsugiData)
+	Register(testOf{KintsugiData, func(d any) map[string]any { return map[string]any{"open": len(d.(*KintsugiDataset).Open)} }})
 }

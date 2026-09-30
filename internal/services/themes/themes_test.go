@@ -1,8 +1,11 @@
 package themes_test
 
 import (
+	"archive/zip"
+	"bytes"
 	"database/sql"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -266,5 +269,37 @@ func TestBuiltinRenamedToKante(t *testing.T) {
 	}
 	if legacy, _ := misc.BuiltinTheme(d, "shrippen"); legacy != nil {
 		t.Fatalf("old slug still there: %+v", legacy)
+	}
+}
+
+// TestImportZipBombRefused: a small zip that inflates to far more than a
+// theme can hold is refused before it fills memory.
+func TestImportZipBombRefused(t *testing.T) {
+	d := openTestDB(t)
+	themes.EnsureBuiltin(d)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	f, _ := zw.Create("tokens.css")
+	chunk := bytes.Repeat([]byte("a"), 1<<20)
+	for range 64 { // 64 MB of CSS, a few KB zipped
+		f.Write(chunk)
+	}
+	meta, _ := zw.Create("theme.json")
+	meta.Write([]byte(`{"name":"Bomb"}`))
+	zw.Close()
+
+	var before, after runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&before)
+	if _, err := themes.ImportZip(d, who, space.ID, buf.Bytes()); err == nil {
+		t.Fatal("bomb imported")
+	}
+	runtime.ReadMemStats(&after)
+	if grown := after.TotalAlloc - before.TotalAlloc; grown > 16<<20 {
+		t.Fatalf("read %d MB to refuse it", grown>>20)
 	}
 }

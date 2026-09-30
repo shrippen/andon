@@ -72,14 +72,33 @@ var windowFactors = map[string]string{metrics.WindowNoBackup: "use_backup", metr
 // WindowOutside is the blocker for "outside the maintenance window".
 const WindowOutside = "outside"
 
-func decodeWindow(raw map[string]any) any {
-	cfg := WindowConfig{Ignore: map[string]bool{}, Timezone: asString(raw["timezone"])}
+func init() {
+	Tile[WindowConfig]{Key: "update_window", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: windowRefreshS,
+		Fields: []Field{{Key: "window", Input: InputText}, {Key: "timezone", Input: InputText, Default: defaultTimezone},
+			{Key: "use_backup", Input: InputCheck, Default: true}, {Key: "use_streams", Input: InputCheck, Default: true},
+			{Key: "use_timer", Input: InputCheck, Default: true}, {Key: "use_meetings", Input: InputCheck, Default: true},
+			{Key: "use_price", Input: InputCheck, Default: true}},
+		Decode: decodeWindow, Queries: func(WindowConfig) []Query { return peersOf(windowPeers) }, View: updateWindowView,
+		// A window "25-3" would mean "always", a zone "Europe/Berln" UTC.
+		Check: func(raw map[string]any) string {
+			if w := strings.TrimSpace(asString(raw["window"])); w != "" {
+				if _, _, ok := parseSpan(w); !ok {
+					return CheckBadWindow
+				}
+			}
+			return checkZone(raw)
+		}}.add()
+}
+
+func decodeWindow(r Raw) WindowConfig {
+	// An empty zone is the default too, not only a missing one.
+	cfg := WindowConfig{Ignore: map[string]bool{}, Timezone: r.String("timezone")}
 	if cfg.Timezone == "" {
 		cfg.Timezone = defaultTimezone
 	}
-	cfg.From, cfg.To, _ = parseSpan(asString(raw["window"]))
+	cfg.From, cfg.To, _ = parseSpan(r.String("window"))
 	for blocker, box := range windowFactors {
-		if !boolOr(raw[box], true) {
+		if !r.Bool(box) {
 			cfg.Ignore[blocker] = true
 		}
 	}
@@ -123,8 +142,7 @@ func inSpan(minute, from, to int) bool {
 	return minute >= from || minute < to
 }
 
-func updateWindowView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(WindowConfig)
+func updateWindowView(cfg WindowConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	now := time.Now().UTC()
 	w := metrics.UpdateWindow(peerDatasets(results, windowPeers), now, windowBackupAge)
 	kept := w.Blockers[:0]
@@ -170,8 +188,11 @@ type StorageConfig struct {
 	Ahead int      // days the dashed part looks ahead
 }
 
-func decodeStorage(raw map[string]any) any {
-	return StorageConfig{Only: lowerList(raw["filter"]), Ahead: clampInt(asInt(raw["ahead"], storageAhead), 1, 365)}
+func init() {
+	Tile[StorageConfig]{Key: "storage_forecast", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 3600, Extra: ExtraHistory,
+		Fields: []Field{{Key: "filter", Input: InputList}, {Key: "ahead", Input: InputNumber, Default: storageAhead, Min: "1", Max: "365"}},
+		Decode: func(r Raw) StorageConfig { return StorageConfig{Only: r.Lower("filter"), Ahead: r.Int("ahead")} },
+		View:   storageView}.add()
 }
 
 // matchesAny: no filter, or the name contains one of the parts.
@@ -188,16 +209,15 @@ func matchesAny(name string, parts []string) bool {
 	return false
 }
 
-func storageView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(StorageConfig)
-	if !ok || cfg.Ahead == 0 {
+func storageView(cfg StorageConfig, results map[string]any, ctx ViewCtx) map[string]any {
+	if cfg.Ahead == 0 {
 		cfg.Ahead = storageAhead
 	}
 	h, _ := results[HistorySlot].(*metrics.History)
 	if h == nil {
 		return map[string]any{}
 	}
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	var rows []StorageRow
 	for _, f := range metrics.StorageForecasts(h, today) {
 		if !matchesAny(f.Label, cfg.Only) {
@@ -242,7 +262,7 @@ func homelabCols(kind TableKind) []Col {
 }
 
 func homelabRows(kind TableKind, data any, results map[string]any, ctx ViewCtx) ([]Row, bool) {
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	var rows []Row
 	switch d := data.(type) {
 	case *sources.PangolinDataset:
@@ -276,11 +296,4 @@ func certText(days int) string {
 		return ""
 	}
 	return strconv.Itoa(days)
-}
-
-func init() {
-	Register(WidgetType{Key: "update_window", Decode: decodeWindow, Template: "widgets/update_window", Category: CategoryInsight,
-		RefreshS: windowRefreshS, View: updateWindowView, Queries: func(any) []Query { return peersOf(windowPeers) }})
-	Register(WidgetType{Key: "storage_forecast", Decode: decodeStorage, Template: "widgets/storage_forecast", Category: CategoryInsight,
-		RefreshS: 3600, View: storageView, Extra: ExtraHistory})
 }

@@ -35,7 +35,7 @@ func TestHeadscaleDevices(t *testing.T) {
 		"GET /api/v1/node": `{"nodes": [{"givenName": "nas", "online": true, "expiry": "0001-01-01T00:00:00Z", "forcedTags": ["tag:server"], "validTags": ["tag:server", "tag:home"]},
 			{"name": "pi", "online": false, "lastSeen": "2026-09-01T10:00:00Z", "expiry": "2026-10-01T00:00:00Z"}]}`,
 	})
-	out, err := sources.TailscaleData{}.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "key"})
+	out, err := sources.TailscaleData.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "key"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestOPNsenseGateway(t *testing.T) {
 		"GET /api/routes/gateway/status": `{"items": [{"name": "WAN", "status": "none", "delay": "11.4 ms", "loss": "0.0 %"},
 			{"name": "LTE", "status": "down", "status_translated": "Offline", "loss": "100.0 %"}]}`,
 	})
-	out, err := sources.GatewayData{}.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "key:secret"})
+	out, err := sources.GatewayData.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "key:secret"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestSonarr(t *testing.T) {
 		"GET /api/v3/wanted/missing": `{"totalRecords": 7}`,
 		"GET /api/v3/calendar":       `[{"series": {"title": "Dark"}, "seasonNumber": 2, "episodeNumber": 5, "airDateUtc": "2030-01-01T20:00:00Z"}]`,
 	})
-	out, err := sources.ArrData{}.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "k"})
+	out, err := sources.ArrData.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "k"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestRadarrShowsTheComingRelease(t *testing.T) {
 		"GET /api/v3/wanted/missing": `{"totalRecords": 0}`,
 		"GET /api/v3/calendar":       `[{"title": "Colony", "inCinemas": "` + cinema + `", "digitalRelease": "` + digital + `"}]`,
 	})
-	out, err := sources.ArrData{}.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "k"})
+	out, err := sources.ArrData.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "k"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func TestJellyfin(t *testing.T) {
 		"GET /Items/Counts": `{"MovieCount": 12, "SeriesCount": 3, "EpisodeCount": 40}`,
 		"GET /Sessions":     `[{"UserName": "anna", "NowPlayingItem": {"Name": "E1", "SeriesName": "Dark"}}, {"UserName": "idle"}]`,
 	})
-	out, err := sources.MediaServerData{}.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "k"})
+	out, err := sources.MediaServerData.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "k"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestVaultwardenLogin(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	out, err := sources.VaultwardenData{}.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "admintoken"})
+	out, err := sources.VaultwardenData.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "admintoken"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestGrocyAndTibber(t *testing.T) {
 			"missing_products": [{"name": "Kaffee", "amount_missing": 1}]}`,
 		"GET /api/chores": `[{"chore_name": "Bad", "next_estimated_execution_time": "2026-09-24 10:00:00"}, {"chore_name": "nie", "next_estimated_execution_time": null}]`,
 	})
-	out, err := sources.GrocyData{}.Fetch(t.Context(), sources.Ctx{URL: grocy.URL, Secret: "k"})
+	out, err := sources.GrocyData.Fetch(t.Context(), sources.Ctx{URL: grocy.URL, Secret: "k"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +173,7 @@ func TestGrocyAndTibber(t *testing.T) {
 				"today": [{"total": 0.30, "energy": 0.11, "startsAt": "2026-09-25T00:00:00+02:00"}], "tomorrow": []}},
 			"consumption": {"nodes": [{"from": "2026-09-24T00:00:00+02:00", "cost": 2.1, "consumption": 7.5}]}}]}}}`,
 	})
-	out, err = sources.TibberData{}.Fetch(t.Context(), sources.Ctx{URL: tibber.URL + "/", Secret: "t"})
+	out, err = sources.TibberData.Fetch(t.Context(), sources.Ctx{URL: tibber.URL + "/", Secret: "t"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +201,7 @@ func TestGitHubReviewsAndOwnPRs(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	raw, err := sources.GitHubData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "t"})
+	raw, err := sources.GitHubData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "t"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,16 +3,16 @@
 // names, amounts or location data.
 //
 //	hints ──count per rule──► facts ("Überfällige Rechnungen: 3, Warnung")
-//	      ──llm.Complete──► 3–5 sentences at the top of the weekly digest
+//	      ──outbound.Ask──► 3–5 sentences at the top of the weekly digest
 package summary
 
 import (
+	"andon/internal/outbound"
 	"context"
 	"fmt"
 	"sort"
 	"strings"
 
-	"andon/internal/drivers/llm"
 	"andon/internal/enums"
 	"andon/internal/i18n"
 	"andon/internal/services/hints"
@@ -26,7 +26,7 @@ const locationRules = "geo."
 var apiKey string
 
 // complete is the LLM call; tests swap it.
-var complete = llm.Complete
+var complete = outbound.Ask
 
 // Init reads the API key; without one the summary stays off.
 func Init(cfg settings.Settings) { apiKey = cfg.AnthropicAPIKey }

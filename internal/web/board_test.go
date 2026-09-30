@@ -350,8 +350,19 @@ func TestOfflineWorker(t *testing.T) {
 	noFollow := *client
 	noFollow.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	resp = postForm(t, &noFollow, srv.URL+"/logout", url.Values{"csrf": {csrf}})
-	if !strings.Contains(resp.Header.Get("Clear-Site-Data"), `"cache"`) {
+	if !strings.Contains(resp.Header.Get("Clear-Site-Data"), `"storage"`) {
 		t.Fatalf("logout keeps offline copies: %v", resp.Header)
+	}
+
+	// A session that ended without logout (expired, revoked) left its
+	// copies behind; the next login drops them.
+	resp, err = client.PostForm(srv.URL+"/login", url.Values{"email": {"admin@x.de"}, "password": {"s3cret-password-long"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if !strings.Contains(resp.Header.Get("Clear-Site-Data"), `"storage"`) {
+		t.Fatalf("login keeps offline copies: %v", resp.Header)
 	}
 }
 

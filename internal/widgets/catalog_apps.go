@@ -15,8 +15,11 @@ import (
 // DockerConfig: all containers or only those with a problem.
 type DockerConfig struct{ OnlyProblems bool }
 
-func decodeDocker(raw map[string]any) any {
-	return DockerConfig{OnlyProblems: asBool(raw["only_problems"])}
+func init() {
+	Tile[DockerConfig]{Key: "docker_containers", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceDocker, RefreshS: 5 * 60,
+		Fields:  []Field{{Key: "only_problems", Input: InputCheck}},
+		Decode:  func(r Raw) DockerConfig { return DockerConfig{OnlyProblems: r.Bool("only_problems")} },
+		Queries: ownData[DockerConfig], View: dataView(dockerView)}.add()
 }
 
 // DockerRow is one container line: state as tier, then the status text.
@@ -26,12 +29,7 @@ type DockerRow struct {
 
 // dockerView lists containers, problems first: unhealthy or crashed red,
 // stopped cleanly grey.
-func dockerView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(DockerConfig)
-	data, ok := results["data"].(*sources.DockerDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func dockerView(cfg DockerConfig, data *sources.DockerDataset, _ ViewCtx) map[string]any {
 	var rows []DockerRow
 	running := 0
 	for _, c := range data.Containers {
@@ -60,16 +58,16 @@ func dockerView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 // UmamiConfig filters the sites of the "umami_sites" tile.
 type UmamiConfig struct{ Only []string }
 
-func decodeUmami(raw map[string]any) any { return UmamiConfig{Only: lowerList(raw["filter"])} }
+func init() {
+	Tile[UmamiConfig]{Key: "umami_sites", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceUmami, RefreshS: 30 * 60,
+		Fields:  []Field{{Key: "filter", Input: InputList}},
+		Decode:  func(r Raw) UmamiConfig { return UmamiConfig{Only: r.Lower("filter")} },
+		Queries: ownData[UmamiConfig], View: dataView(umamiView)}.add()
+}
 
 // umamiView: visitors of the last 7 days per site, with the change
 // against the week before (a drop in red).
-func umamiView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(UmamiConfig)
-	data, ok := results["data"].(*sources.UmamiDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func umamiView(cfg UmamiConfig, data *sources.UmamiDataset, _ ViewCtx) map[string]any {
 	var sites []sources.Site
 	visitors := 0
 	for _, s := range data.Sites {
@@ -103,12 +101,13 @@ const umamiDrop = 30
 
 // ── immich ──
 
+func init() {
+	Tile[struct{}]{Key: "immich_library", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceImmich, RefreshS: 30 * 60,
+		Fields: []Field{}, Queries: ownData[struct{}], View: dataView(immichView)}.add()
+}
+
 // immichView: library size, disk use, failed jobs and a pending update.
-func immichView(_ any, results map[string]any, _ ViewCtx) map[string]any {
-	data, ok := results["data"].(*sources.ImmichDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func immichView(_ struct{}, data *sources.ImmichDataset, _ ViewCtx) map[string]any {
 	failed := 0
 	for _, n := range data.FailedJobs {
 		failed += n
@@ -140,16 +139,16 @@ type LinkwardenConfig struct {
 // linksNewest is how many latest links the tile lists.
 const linksNewest = 5
 
-func decodeLinkwarden(raw map[string]any) any {
-	return LinkwardenConfig{Only: lowerList(raw["filter"]), Newest: asBool(raw["newest"])}
+func init() {
+	Tile[LinkwardenConfig]{Key: "linkwarden", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceLinkwarden, RefreshS: 60 * 60,
+		Fields: []Field{{Key: "filter", Input: InputList}, {Key: "newest", Input: InputCheck}},
+		Decode: func(r Raw) LinkwardenConfig {
+			return LinkwardenConfig{Only: r.Lower("filter"), Newest: r.Bool("newest")}
+		},
+		Queries: ownData[LinkwardenConfig], View: dataView(linkwardenView)}.add()
 }
 
-func linkwardenView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(LinkwardenConfig)
-	data, ok := results["data"].(*sources.LinkwardenDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func linkwardenView(cfg LinkwardenConfig, data *sources.LinkwardenDataset, _ ViewCtx) map[string]any {
 	counts := map[string]int{}
 	var links []sources.Bookmark
 	for _, l := range data.Links {
@@ -190,14 +189,30 @@ type PickConfig struct {
 	Only  string // "" = everything
 }
 
-func decodeListOf(only string) func(map[string]any) any {
-	return func(raw map[string]any) any {
-		kind, _ := raw[only].(string)
-		if kind == "all" {
+// pickAll is the select value for "everything".
+const pickAll = "all"
+
+// decodePick reads the row count and the select only.
+func decodePick(only string) func(Raw) PickConfig {
+	return func(r Raw) PickConfig {
+		kind := r.Pick(only)
+		if kind == pickAll {
 			kind = ""
 		}
-		return PickConfig{Limit: clampInt(asInt(raw["limit"], listShown), 1, 20), Only: kind}
+		return PickConfig{Limit: r.Int("limit"), Only: kind}
 	}
+}
+
+// pickLimit is the row count field of the list tiles.
+var pickLimit = Field{Key: "limit", Input: InputNumber, Default: listShown, Min: "1", Max: "20"}
+
+func init() {
+	Tile[PickConfig]{Key: "kintsugi", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKintsugi, RefreshS: 15 * 60,
+		Fields: []Field{pickLimit, sel("kind", pickAll, pickAll, "acquisition", "development")},
+		Decode: decodePick("kind"), Queries: ownData[PickConfig], View: dataView(kintsugiView)}.add()
+	Tile[PickConfig]{Key: "gitea_reviews", Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitea, RefreshS: 15 * 60,
+		Fields: []Field{sel("show", pickAll, pickAll, "reviews", "issues"), pickLimit},
+		Decode: decodePick("show"), Queries: ownData[PickConfig], View: dataView(giteaView)}.add()
 }
 
 func firstN[T any](list []T, n int) []T {
@@ -207,15 +222,7 @@ func firstN[T any](list []T, n int) []T {
 	return list
 }
 
-func kintsugiView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(PickConfig)
-	if !ok {
-		cfg = PickConfig{Limit: listShown}
-	}
-	data, ok := results["data"].(*sources.KintsugiDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func kintsugiView(cfg PickConfig, data *sources.KintsugiDataset, _ ViewCtx) map[string]any {
 	var open []sources.KintsugiSuggestion
 	for _, s := range data.Open {
 		if cfg.Only == "" || string(s.Kind) == cfg.Only {
@@ -228,16 +235,12 @@ func kintsugiView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any 
 
 // ── gitea_reviews ──
 
-func giteaView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(PickConfig)
-	if !ok {
-		cfg = PickConfig{Limit: listShown}
+func giteaView(cfg PickConfig, data *sources.GiteaDataset, _ ViewCtx) map[string]any {
+	// Head: reviews waiting, or the assigned issues when only those show.
+	out := map[string]any{"Data": data, "Head": len(data.Reviews), "HeadKey": "gitea.reviews"}
+	if cfg.Only == "issues" {
+		out["Head"], out["HeadKey"] = len(data.Assigned), "gitea.assigned"
 	}
-	data, ok := results["data"].(*sources.GiteaDataset)
-	if !ok {
-		return map[string]any{}
-	}
-	out := map[string]any{"Data": data}
 	if cfg.Only != "issues" {
 		out["Reviews"] = firstN(data.Reviews, cfg.Limit)
 	}
@@ -267,20 +270,18 @@ type PlaceRow struct {
 // DawarichConfig is the "dawarich_day" widget's config.
 type DawarichConfig struct{ Yesterday bool }
 
-func decodeDawarich(raw map[string]any) any {
-	return DawarichConfig{Yesterday: raw["day"] == "yesterday"}
+func init() {
+	Tile[DawarichConfig]{Key: "dawarich_day", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceDawarich, RefreshS: 30 * 60,
+		Fields:  []Field{sel("day", "today", "today", "yesterday")},
+		Decode:  func(r Raw) DawarichConfig { return DawarichConfig{Yesterday: r.Pick("day") == "yesterday"} },
+		Queries: ownData[DawarichConfig], View: dataView(dawarichDayView)}.add()
 }
 
-func dawarichDayView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(DawarichConfig)
-	data, ok := results["data"].(*sources.DawarichDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func dawarichDayView(cfg DawarichConfig, data *sources.DawarichDataset, ctx ViewCtx) map[string]any {
 	now := time.Now()
 	day := ctx.Today
 	if cfg.Yesterday {
-		y := parseToday(ctx.Today).AddDate(0, 0, -1)
+		y := todayOf(ctx).AddDate(0, 0, -1)
 		day = y.Format(time.DateOnly)
 		// The bar ends with that day; there is no "now" on it.
 		now = time.Date(y.Year(), y.Month(), y.Day(), 23, 59, 0, 0, now.Location())
@@ -316,16 +317,17 @@ type AuthentikConfig struct {
 	OnlyFailures bool
 }
 
-func decodeAuthentik(raw map[string]any) any {
-	return AuthentikConfig{Day: raw["span"] == "24h", OnlyFailures: asBool(raw["only_failures"])}
+func init() {
+	Tile[AuthentikConfig]{Key: "authentik_logins", Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceAuthentik, RefreshS: 15 * 60,
+		Fields:  []Field{sel("period", "7d", "24h", "7d"), {Key: "only_problems", Input: InputCheck}},
+		Renames: []rename{{from: "only_failures", to: "only_problems"}, {from: "span", to: "period"}},
+		Decode: func(r Raw) AuthentikConfig {
+			return AuthentikConfig{Day: r.Pick("period") == "24h", OnlyFailures: r.Bool("only_problems")}
+		},
+		Queries: ownData[AuthentikConfig], View: dataView(authentikView)}.add()
 }
 
-func authentikView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(AuthentikConfig)
-	data, ok := results["data"].(*sources.AuthentikDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func authentikView(cfg AuthentikConfig, data *sources.AuthentikDataset, _ ViewCtx) map[string]any {
 	span := 7 * 24 * time.Hour
 	logins, failed := data.Logins7d, data.Failed7d
 	if cfg.Day {
@@ -350,20 +352,17 @@ func authentikView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any
 // VaultConfig is the "vaultwarden_2fa" widget's config.
 type VaultConfig struct{ List bool }
 
-func decodeVault(raw map[string]any) any { return VaultConfig{List: boolOr(raw["list_without"], true)} }
+func init() {
+	Tile[VaultConfig]{Key: "vaultwarden_2fa", Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceVaultwarden, RefreshS: 60 * 60,
+		Fields:  []Field{{Key: "list_without", Input: InputCheck, Default: true}},
+		Decode:  func(r Raw) VaultConfig { return VaultConfig{List: r.Bool("list_without")} },
+		Queries: ownData[VaultConfig], View: dataView(vaultwardenView)}.add()
+}
 
 // vaultListed caps the accounts without 2FA named on the tile.
 const vaultListed = 20
 
-func vaultwardenView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(VaultConfig)
-	if !ok {
-		cfg.List = true
-	}
-	data, ok := results["data"].(*sources.VaultwardenDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func vaultwardenView(cfg VaultConfig, data *sources.VaultwardenDataset, _ ViewCtx) map[string]any {
 	with, active := 0, 0
 	var without []string
 	for _, u := range data.Users {
@@ -379,49 +378,4 @@ func vaultwardenView(cfgAny any, results map[string]any, _ ViewCtx) map[string]a
 	}
 	return map[string]any{"With": with, "Active": active, "Without": without, "WithPct": pctOf(float64(with), float64(max(active, 1))),
 		"Version": data.Version}
-}
-
-func init() {
-	build := func(key string, service enums.ServiceType, refresh int, decode DecodeFunc, view ViewFunc, extra ...Query) WidgetType {
-		return WidgetType{Key: key, Decode: decode, Template: "widgets/" + key, Category: CategoryInsight,
-			Service: service, RefreshS: refresh, View: view,
-			Queries: func(any) []Query { return append(dataQuery(nil), extra...) }}
-	}
-	on := func(key string, service enums.ServiceType, refresh int, decode DecodeFunc, view ViewFunc, extra ...Query) {
-		Register(build(key, service, refresh, decode, view, extra...))
-	}
-	const minute, hour = 60, 3600
-
-	on("kimai_week", enums.ServiceKimai, 10*minute, decodeKimaiWeek, kimaiWeekView)
-	on("kimai_split", enums.ServiceKimai, 10*minute, decodeKimaiSplit, kimaiSplitView)
-	on("unbilled_age", enums.ServiceKimai, hour, decodeAging([2]int{30, 60}), unbilledAgeView)
-	on("disks", enums.ServiceScrutiny, hour, decodeDisks, disksView)
-	on("komodo_stacks", enums.ServiceKomodo, 5*minute, decodeKomodo, komodoView)
-	nas := build("truenas_pools", enums.ServiceTrueNAS, 10*minute, decodeTrueNAS, truenasView)
-	nas.Extra = ExtraHistory // the pool forecast
-	Register(nas)
-	on("pihole", enums.ServicePihole, 5*minute, decodeDNS, dnsFilterView)
-	on("adguard", enums.ServiceAdGuard, 5*minute, decodeDNS, dnsFilterView)
-	on("vpn", enums.ServiceGluetun, 5*minute, decodeVPN, vpnView)
-	on("gateway", enums.ServiceGateway, 5*minute, decodeGateway, gatewayView)
-	on("expiry", enums.ServiceCerts, hour, decodeExpiry, expiryView,
-		Query{Name: peerDomains, Source: "data", Conn: ConnPeer, Service: enums.ServiceDomains})
-	on("sabnzbd", enums.ServiceSabnzbd, 5*minute, decodeSab, sabnzbdView)
-	on("paperless_inbox", enums.ServicePaperless, 30*minute, decodePaperless, paperlessInboxView)
-	mail := build("mail_invoices", enums.ServiceMail, hour, decodeMail, mailInvoicesView)
-	mail.Extra = ExtraForwarded
-	Register(mail)
-	on("freshrss_feeds", enums.ServiceFreshRSS, 30*minute, decodeFreshRSS, freshrssView)
-	on("docker_containers", enums.ServiceDocker, 5*minute, decodeDocker, dockerView)
-	on("umami_sites", enums.ServiceUmami, 30*minute, decodeUmami, umamiView)
-	on("immich_library", enums.ServiceImmich, 30*minute, decodeEmptyConfig, immichView)
-	on("linkwarden", enums.ServiceLinkwarden, hour, decodeLinkwarden, linkwardenView)
-	on("gitea_reviews", enums.ServiceGitea, 15*minute, decodeListOf("show"), giteaView)
-	on("dawarich_day", enums.ServiceDawarich, 30*minute, decodeDawarich, dawarichDayView)
-	on("authentik_logins", enums.ServiceAuthentik, 15*minute, decodeAuthentik, authentikView)
-	on("vaultwarden_2fa", enums.ServiceVaultwarden, hour, decodeVault, vaultwardenView)
-	on("kintsugi", enums.ServiceKintsugi, 15*minute, decodeListOf("kind"), kintsugiView)
-
-	Register(WidgetType{Key: "speed_history", Decode: decodeSpeedHistory, Template: "widgets/speed_history", Category: CategoryInsight,
-		Service: enums.ServiceSpeedtest, RefreshS: hour, View: speedHistoryView, Queries: dataQuery, Extra: ExtraHistory})
 }

@@ -29,7 +29,7 @@ func TestHintsTileOptions(t *testing.T) {
 	if _, err := hints.Sync(d, space.ID, nil, nil, []string{"ninja.overdue"}, findings); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
-	id, err := widgetlib.Create(d, who, space.ID, "hints", "Lage", map[string]any{"levels": false, "by_value": true, "buttons": true}, nil, nil)
+	id, err := widgetlib.Create(d, who, space.ID, "hints", "Lage", map[string]any{"show_levels": false, "sort": "value", "show_buttons": true}, nil, nil)
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}

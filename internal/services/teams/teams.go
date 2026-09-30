@@ -82,6 +82,12 @@ type View struct {
 	SpaceID int64
 	MyRole  *enums.TeamRole
 	Members []Member
+	// CanManage: who may add and remove members (owner or admin).
+	CanManage bool
+	// AckTeam: one member's "done" counts for the team; ThemeID the team
+	// space's theme, 0 for none.
+	AckTeam bool
+	ThemeID int64
 }
 
 // Overview lists every team the principal is a member of (or, for admins,
@@ -92,6 +98,14 @@ func Overview(d *sql.DB, who *access.Principal) ([]View, error) {
 		all, err := users.Teams(tx)
 		if err != nil {
 			return err
+		}
+		people, err := users.All(tx)
+		if err != nil {
+			return err
+		}
+		byID := make(map[int64]*model.User, len(people))
+		for _, u := range people {
+			byID[u.ID] = u
 		}
 		for _, team := range all {
 			role, mine := who.Teams[team.ID]
@@ -109,25 +123,57 @@ func Overview(d *sql.DB, who *access.Principal) ([]View, error) {
 			}
 			members := make([]Member, 0, len(memberships))
 			for _, m := range memberships {
-				u, err := users.Get(tx, m.UserID)
-				if err != nil {
-					return err
-				}
+				u := byID[m.UserID]
 				if u == nil {
 					continue
 				}
 				members = append(members, Member{UserID: u.ID, Name: u.Name, Email: u.Email, Role: m.Role})
 			}
 
-			view := View{ID: team.ID, Name: team.Name, Members: members}
+			view := View{ID: team.ID, Name: team.Name, Members: members, CanManage: mayManage(who, team.ID) == nil}
 			if space != nil {
 				view.SpaceID = space.ID
+				view.AckTeam = space.Settings["hint_ack"] == string(enums.AckTeam)
+				if id, ok := space.Settings["theme_id"].(float64); ok {
+					view.ThemeID = int64(id)
+				}
 			}
 			if mine {
 				r := role
 				view.MyRole = &r
 			}
 			out = append(out, view)
+		}
+		return nil
+	})
+	return out, err
+}
+
+// Candidate is a user who can be added to a team.
+type Candidate struct {
+	ID          int64
+	Name, Email string
+}
+
+// Candidates lists every user to add to a team, for who manages at least
+// one team (owner) or all (admin); nil for anyone else: a member must not
+// read every account's address.
+func Candidates(d *sql.DB, who *access.Principal) ([]Candidate, error) {
+	manages := who.IsAdmin()
+	for _, role := range who.Teams {
+		manages = manages || role == enums.TeamOwner
+	}
+	if !manages {
+		return nil, nil
+	}
+	var out []Candidate
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		all, err := users.All(tx)
+		if err != nil {
+			return err
+		}
+		for _, u := range all {
+			out = append(out, Candidate{ID: u.ID, Name: u.Name, Email: u.Email})
 		}
 		return nil
 	})

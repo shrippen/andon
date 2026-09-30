@@ -1,9 +1,11 @@
 // Package crypto handles secrets at rest, password hashing and random tokens.
 //
-//	master key (Docker secret)
-//	    │ HKDF(purpose)
+//	MASTER_KEY (Docker secret) + salt (per install, next to the database)
+//	    │ Argon2id (64 MiB, 4 passes): each guess of a stolen copy costs that
 //	    ▼
-//	AES-256-GCM key ──► nonce(12) ‖ ciphertext‖tag   stored in *_enc columns
+//	master ──HKDF(purpose)──► database file key (Adiantum)
+//	                     ├──► AES-256-GCM key ──► nonce(12) ‖ ciphertext‖tag  in *_enc
+//	                     └──► HMAC key (webhook URLs)
 package crypto
 
 import (
@@ -18,6 +20,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/hkdf"
@@ -33,6 +36,11 @@ const (
 	argonThreads = 4
 	argonSaltLen = 16
 	argonKeyLen  = 32
+
+	// The master key is derived once per start, so it may cost more
+	// than a login.
+	masterTime = 4
+	saltLen    = 16
 )
 
 // Purpose scopes a derived key to one use, so a key never crosses purposes.
@@ -52,15 +60,59 @@ var ErrMissingKey = errors.New("crypto: master key not initialised")
 
 var master []byte
 
-// Init sets the process-wide master key, derived from secret via MasterFrom.
-func Init(secret string) {
-	master = MasterFrom(secret)
+// Init sets the process-wide master key (see Derive).
+func Init(m []byte) {
+	master = m
 }
 
-// MasterFrom derives a 32-byte master key from an arbitrary secret string.
-func MasterFrom(secret string) []byte {
+var (
+	derivedMu sync.Mutex
+	derived   = map[string][]byte{} // secret and salt → master, one Argon2id run each
+)
+
+// Derive turns MASTER_KEY and the install's salt into the master key.
+// Argon2id makes every guess against a stolen database cost 64 MiB and
+// several passes, where a hash would allow billions a second.
+func Derive(secret string, salt []byte) []byte {
+	id := secret + "\x00" + string(salt)
+	derivedMu.Lock()
+	defer derivedMu.Unlock()
+	if m, ok := derived[id]; ok {
+		return m
+	}
+	m := argon2.IDKey([]byte(secret), salt, masterTime, argonMemory, argonThreads, keyLen)
+	derived[id] = m
+	return m
+}
+
+// Legacy is the master key of databases from before salts: SHA-256 of
+// MASTER_KEY. Only to open them once and re-encrypt under Derive.
+func Legacy(secret string) []byte {
 	sum := sha256.Sum256([]byte(secret))
 	return sum[:]
+}
+
+// NewSalt returns a fresh random salt for Derive.
+func NewSalt() []byte {
+	salt := make([]byte, saltLen)
+	_, _ = rand.Read(salt)
+	return salt
+}
+
+// A strong master key is long and varied, like `openssl rand -base64 32`.
+const (
+	minKeyLen   = 32
+	minKeyChars = 16 // distinct characters
+)
+
+// WeakKey reports whether a master key could be guessed offline: Derive
+// slows each guess, but a short or repetitive key is in every wordlist.
+func WeakKey(secret string) bool {
+	distinct := map[rune]bool{}
+	for _, r := range secret {
+		distinct[r] = true
+	}
+	return len(secret) < minKeyLen || len(distinct) < minKeyChars
 }
 
 func key(purpose Purpose, m []byte) ([]byte, error) {
@@ -104,6 +156,16 @@ func Encrypt(text string, purpose Purpose, m []byte) ([]byte, error) {
 	}
 	ct := gcm.Seal(nil, nonce, []byte(text), []byte(purpose))
 	return append(nonce, ct...), nil
+}
+
+// Reseal re-encrypts a blob from the process master key to master to
+// (key rotation).
+func Reseal(blob []byte, purpose Purpose, to []byte) ([]byte, error) {
+	text, err := Decrypt(blob, purpose)
+	if err != nil {
+		return nil, err
+	}
+	return Encrypt(text, purpose, to)
 }
 
 // Decrypt opens a blob sealed by Encrypt under the process master key.

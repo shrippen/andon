@@ -1,12 +1,14 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"andon/internal/enums"
 	"andon/internal/services/accounts"
 	"andon/internal/services/auth"
+	"andon/internal/services/boards"
 	"andon/internal/services/oidc"
 	"andon/internal/services/passkeys"
 )
@@ -26,32 +28,37 @@ func (d Deps) RegisterSecurityRoutes(mux *http.ServeMux) {
 func (d Deps) securityPage(w http.ResponseWriter, ctx Ctx, status int, extra map[string]any) {
 	profile, err := accounts.GetProfile(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	sessions, err := auth.MySessions(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	tokens, err := auth.MyTokens(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	keys, err := passkeys.Mine(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	required, err := auth.TOTPRequired(d.DB, ctx.Who, ctx.Method)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	visible, err := boards.Visible(d.DB, ctx.Who)
+	if err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	values := map[string]any{
 		"Profile": profile, "Sessions": sessions, "Tokens": tokens, "OIDCLabel": oidc.Button(d.DB, d.Settings),
-		"Passkeys": keys, "TOTPRequired": required,
+		"Passkeys": keys, "TOTPRequired": required, "Boards": visible,
 	}
 	for k, v := range extra {
 		values[k] = v
@@ -66,10 +73,10 @@ func (d Deps) handleSecurityPage(w http.ResponseWriter, r *http.Request, ctx Ctx
 func (d Deps) handlePasswordChange(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	var err error
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	err = accounts.ChangePassword(d.DB, ctx.Who, r.FormValue("current"), r.FormValue("new"), ClientIP(r))
+	err = accounts.ChangePassword(d.DB, ctx.Who, r.FormValue("current"), r.FormValue("new"), d.clientIP(r))
 	if err != nil {
 		d.securityPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
@@ -79,6 +86,10 @@ func (d Deps) handlePasswordChange(w http.ResponseWriter, r *http.Request, ctx C
 
 func (d Deps) handleTOTPBeginForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	secret, uri, err := auth.TOTPBegin(d.DB, ctx.Who)
+	if errors.Is(err, auth.ErrTOTPActive) {
+		d.securityPage(w, ctx, http.StatusConflict, map[string]any{"Error": errKey(err)})
+		return
+	}
 	if err != nil {
 		d.securityPage(w, ctx, http.StatusInternalServerError, map[string]any{"Error": errKey(err)})
 		return
@@ -88,10 +99,10 @@ func (d Deps) handleTOTPBeginForm(w http.ResponseWriter, r *http.Request, ctx Ct
 
 func (d Deps) handleTOTPConfirmForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	codes, err := auth.TOTPConfirm(d.DB, ctx.Who, r.FormValue("code"), ClientIP(r))
+	codes, err := auth.TOTPConfirm(d.DB, ctx.Who, r.FormValue("code"), d.clientIP(r))
 	if err != nil {
 		d.securityPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
@@ -101,10 +112,10 @@ func (d Deps) handleTOTPConfirmForm(w http.ResponseWriter, r *http.Request, ctx 
 
 func (d Deps) handleTOTPDisableForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	if err := auth.TOTPDisable(d.DB, ctx.Who, r.FormValue("code"), ClientIP(r)); err != nil {
+	if err := auth.TOTPDisable(d.DB, ctx.Who, r.FormValue("code"), d.clientIP(r)); err != nil {
 		d.securityPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
@@ -118,7 +129,7 @@ func (d Deps) handleSessionEnd(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		return
 	}
 	if err := auth.EndSession(d.DB, ctx.Who, id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/me/security", http.StatusSeeOther)
@@ -126,7 +137,7 @@ func (d Deps) handleSessionEnd(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 
 func (d Deps) handleTokenCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	scope := enums.TokenScope(r.FormValue("scope"))
@@ -139,7 +150,13 @@ func (d Deps) handleTokenCreate(w http.ResponseWriter, r *http.Request, ctx Ctx)
 			days = &n
 		}
 	}
-	created, err := auth.CreateToken(d.DB, ctx.Who, r.FormValue("name"), scope, nil, days)
+	var boardIDs []int64
+	for _, raw := range r.Form["board"] {
+		if id, convErr := strconv.ParseInt(raw, 10, 64); convErr == nil {
+			boardIDs = append(boardIDs, id)
+		}
+	}
+	created, err := auth.CreateToken(d.DB, ctx.Who, r.FormValue("name"), scope, boardIDs, days)
 	if err != nil {
 		d.securityPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
@@ -154,7 +171,7 @@ func (d Deps) handleTokenRevoke(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		return
 	}
 	if err := auth.RevokeToken(d.DB, ctx.Who, id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/me/security", http.StatusSeeOther)

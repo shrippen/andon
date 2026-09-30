@@ -36,13 +36,9 @@ type FreshRSSDataset struct {
 	Feeds  []Feed
 }
 
-type FreshRSSData struct{}
+var FreshRSSData = source{key: "freshrss.data", ttl: opsTTL, service: enums.ServiceFreshRSS, fetch: fetchFreshRSS}
 
-func (FreshRSSData) Key() string                { return "freshrss.data" }
-func (FreshRSSData) TTL() time.Duration         { return opsTTL }
-func (FreshRSSData) Service() enums.ServiceType { return enums.ServiceFreshRSS }
-
-func (FreshRSSData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchFreshRSS(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoFreshRSS(time.Now()), nil
 	}
@@ -133,13 +129,9 @@ type GiteaDataset struct {
 	Repos         []Repo
 }
 
-type GiteaData struct{}
+var GiteaData = source{key: "gitea.data", ttl: opsTTL, service: enums.ServiceGitea, fetch: fetchGitea}
 
-func (GiteaData) Key() string                { return "gitea.data" }
-func (GiteaData) TTL() time.Duration         { return opsTTL }
-func (GiteaData) Service() enums.ServiceType { return enums.ServiceGitea }
-
-func (GiteaData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchGitea(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoGitea(time.Now()), nil
 	}
@@ -265,11 +257,7 @@ type BorgDataset struct {
 	ServerUpdate   bool
 }
 
-type BorgData struct{}
-
-func (BorgData) Key() string                { return "borgbackup.data" }
-func (BorgData) TTL() time.Duration         { return opsTTL }
-func (BorgData) Service() enums.ServiceType { return enums.ServiceBorgBackup }
+var BorgData = source{key: "borgbackup.data", ttl: opsTTL, service: enums.ServiceBorgBackup, fetch: fetchBorg}
 
 // borgTime reads "2026-09-25 03:00:00" (server local time) or RFC 3339.
 func borgTime(v any) time.Time {
@@ -281,7 +269,7 @@ func borgTime(v any) time.Time {
 	return t.UTC()
 }
 
-func (BorgData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchBorg(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoBorg(time.Now()), nil
 	}
@@ -363,10 +351,10 @@ func parseBorg(base string, dash, clients any) *BorgDataset {
 }
 
 func init() {
-	Register(FreshRSSData{})
-	Register(testOf{FreshRSSData{}, func(d any) map[string]any { return map[string]any{"feeds": len(d.(*FreshRSSDataset).Feeds)} }})
-	Register(GiteaData{})
-	Register(testOf{GiteaData{}, func(d any) map[string]any { return map[string]any{"user": d.(*GiteaDataset).User} }})
-	Register(BorgData{})
-	Register(testOf{BorgData{}, func(d any) map[string]any { return map[string]any{"clients": len(d.(*BorgDataset).Clients)} }})
+	Register(FreshRSSData)
+	Register(testOf{FreshRSSData, func(d any) map[string]any { return map[string]any{"feeds": len(d.(*FreshRSSDataset).Feeds)} }})
+	Register(GiteaData)
+	Register(testOf{GiteaData, func(d any) map[string]any { return map[string]any{"user": d.(*GiteaDataset).User} }})
+	Register(BorgData)
+	Register(testOf{BorgData, func(d any) map[string]any { return map[string]any{"clients": len(d.(*BorgDataset).Clients)} }})
 }

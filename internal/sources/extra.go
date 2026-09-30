@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"andon/internal/drivers/httpclient"
-	"andon/internal/enums"
 )
 
 const (
@@ -34,13 +33,9 @@ const (
 // ImageResult is the image as a data: URI.
 type ImageResult struct{ DataURI string }
 
-type ImageSource struct{}
+var ImageSource = source{key: "image", ttl: imageTTL, fetch: fetchImageSource}
 
-func (ImageSource) Key() string                { return "image" }
-func (ImageSource) TTL() time.Duration         { return imageTTL }
-func (ImageSource) Service() enums.ServiceType { return "" }
-
-func (ImageSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchImageSource(ctx context.Context, sctx Ctx) (any, error) {
 	return fetchImage(ctx, asStr(sctx.Params["url"]), imageMax)
 }
 
@@ -88,13 +83,9 @@ type RatesResult struct {
 	Rates []Rate
 }
 
-type RatesSource struct{}
+var RatesSource = source{key: "exchange_rates", ttl: ratesTTL, fetch: fetchRates}
 
-func (RatesSource) Key() string                { return "exchange_rates" }
-func (RatesSource) TTL() time.Duration         { return ratesTTL }
-func (RatesSource) Service() enums.ServiceType { return "" }
-
-func (RatesSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchRates(ctx context.Context, sctx Ctx) (any, error) {
 	base := strings.ToUpper(asStr(sctx.Params["base"]))
 	if base == "" {
 		base = defaultBase
@@ -157,6 +148,6 @@ func ratesChange(ctx context.Context, out *RatesResult, query url.Values, today 
 }
 
 func init() {
-	Register(ImageSource{})
-	Register(RatesSource{})
+	Register(ImageSource)
+	Register(RatesSource)
 }

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"andon/internal/services/util"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -61,9 +62,9 @@ func (d Deps) handleConnectStart(w http.ResponseWriter, r *http.Request, ctx Ctx
 		http.NotFound(w, r)
 		return
 	}
-	back := r.FormValue("back")
-	if back == "" {
-		back = "/connections/" + strconv.FormatInt(id, 10) + "/edit"
+	back := "/connections/" + strconv.FormatInt(id, 10) + "/edit"
+	if b := r.FormValue("back"); b != "" {
+		back = util.LocalPath(b)
 	}
 
 	step, err := connect.Start(r.Context(), d.DB, ctx.Who, d.Settings, id, back)

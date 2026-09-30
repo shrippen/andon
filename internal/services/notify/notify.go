@@ -52,8 +52,10 @@ func mustLoadBerlin() *time.Location {
 var (
 	ErrDenied     = access.ErrDenied
 	ErrInvalidURL = errors.New("notify: invalid apprise url")
-	ErrBadTime    = errors.New("notify: bad time")
-	ErrFailed     = errors.New("notify: delivery failed")
+	// ErrRawHTTP: a plain json://, xml:// or form:// target needs an admin.
+	ErrRawHTTP = errors.New("notify.raw_http")
+	ErrBadTime = errors.New("notify: bad time")
+	ErrFailed  = errors.New("notify: delivery failed")
 )
 
 // ChannelView is one channel as shown to its owner (URL masked).
@@ -75,6 +77,15 @@ func mask(rawURL string) string {
 		return scheme + "://…/" + rest[i+1:]
 	}
 	return scheme + "://" + rest
+}
+
+// rawHTTPSchemes make Apprise send a plain request to any address, past
+// Andon's network guard: admins only.
+var rawHTTPSchemes = map[string]bool{"json": true, "jsons": true, "xml": true, "xmls": true, "form": true, "forms": true}
+
+func rawHTTP(rawURL string) bool {
+	scheme, _, _ := strings.Cut(rawURL, "://")
+	return rawHTTPSchemes[strings.ToLower(scheme)]
 }
 
 func looksLikeApprise(rawURL string) bool {
@@ -107,6 +118,9 @@ func AddChannel(d *sql.DB, who *access.Principal, name, rawURL string, level enu
 	rawURL = strings.TrimSpace(rawURL)
 	if !looksLikeApprise(rawURL) {
 		return ErrInvalidURL
+	}
+	if rawHTTP(rawURL) && !who.IsAdmin() {
+		return ErrRawHTTP
 	}
 	label := strings.TrimSpace(name)
 	if label == "" {
@@ -149,7 +163,7 @@ func DeleteChannel(d *sql.DB, who *access.Principal, channelID int64) error {
 // TestChannel sends a test push through one of the caller's own channels.
 func TestChannel(ctx context.Context, d *sql.DB, cfg settings.Settings, who *access.Principal, channelID int64) error {
 	var rawURL string
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		channel, err := own(tx, who, channelID)
 		if err != nil {
 			return err
@@ -297,7 +311,7 @@ func quietNow(prefs map[string]any, now time.Time) bool {
 // pushes sent (one per channel per user, batched across hints).
 func Dispatch(ctx context.Context, d *sql.DB, cfg settings.Settings) (int, error) {
 	var people []*model.User
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		all, err := users.All(tx)
 		if err != nil {
 			return err
@@ -399,7 +413,7 @@ func dispatchUser(ctx context.Context, d *sql.DB, cfg settings.Settings, userID 
 	}
 
 	var chans []*model.NotifyChannel
-	err = db.WithTx(d, func(tx *sql.Tx) error {
+	err = db.WithRead(d, func(tx *sql.Tx) error {
 		found, err := data.Channels(tx, userID)
 		if err != nil {
 			return err
@@ -422,7 +436,7 @@ func dispatchUser(ctx context.Context, d *sql.DB, cfg settings.Settings, userID 
 
 	var fresh []hints.View
 	now := time.Now().UTC()
-	err = db.WithTx(d, func(tx *sql.Tx) error {
+	err = db.WithRead(d, func(tx *sql.Tx) error {
 		for _, h := range open {
 			last, err := data.LastSent(tx, userID, h.ID)
 			if err != nil {
@@ -466,7 +480,7 @@ func dispatchUser(ctx context.Context, d *sql.DB, cfg settings.Settings, userID 
 
 func sendBatch(ctx context.Context, d *sql.DB, cfg settings.Settings, who *access.Principal, c *model.NotifyChannel, batch []hints.View) error {
 	var rawURL string
-	err := db.WithTx(d, func(tx *sql.Tx) error {
+	err := db.WithRead(d, func(tx *sql.Tx) error {
 		u, err := data.Channel(tx, c.ID)
 		if err != nil || u == nil {
 			return orNotFound(err)

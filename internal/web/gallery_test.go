@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -8,6 +9,9 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"andon/internal/enums"
+	"andon/internal/i18n"
 
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
@@ -47,7 +51,7 @@ func TestGallerySortsByName(t *testing.T) {
 }
 
 // From the gallery a set-up tile is placed as a copy, and a new tile can
-// be two rows high.
+// be two rows high and two columns wide.
 func TestGalleryCopyAndRows(t *testing.T) {
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)
@@ -83,7 +87,7 @@ func TestGalleryCopyAndRows(t *testing.T) {
 	}
 
 	// The copy bumped the board version once.
-	form = url.Values{"csrf": {csrfToken(t, srv, client)}, "type": {"note"}, "title": {"Tall"}, "cfg.text": {"x"}, "rows": {"2"}}
+	form = url.Values{"csrf": {csrfToken(t, srv, client)}, "type": {"note"}, "title": {"Tall"}, "cfg.text": {"x"}, "rows": {"2"}, "cols": {"2"}}
 	for k, v := range target {
 		form[k] = v
 	}
@@ -98,6 +102,9 @@ func TestGalleryCopyAndRows(t *testing.T) {
 	}
 	if body := string(mustGet(t, srv, client, boardURL+"?edit")); !strings.Contains(body, `data-rows="2"`) {
 		t.Fatalf("expected a two-row tile:\n%s", body)
+	}
+	if body := string(mustGet(t, srv, client, boardURL+"?edit")); !strings.Contains(body, `data-cols="2"`) {
+		t.Fatalf("expected a two-column tile:\n%s", body)
 	}
 }
 
@@ -138,5 +145,60 @@ func TestBoardRendersTilesWithPage(t *testing.T) {
 	tile := regexp.MustCompile(`(?s)<div class="tile-slot w-note".*?</article>`).FindString(page)
 	if !strings.Contains(tile, "Inline body") || strings.Contains(tile, `hx-trigger="load`) {
 		t.Fatalf("expected the note rendered inline without a fragment request:\n%s", tile)
+	}
+}
+
+// TestFieldLabelPerType: payment_days' target is days, not the link
+// tile's "open in".
+func TestFieldLabelPerType(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	body := string(mustGet(t, srv, client, "/widgets/new?type=payment_days&space="+string(space)))
+	label := regexp.MustCompile(`<label for="cfg.target_days">([^<]*)</label>`).FindStringSubmatch(body)
+	if label == nil {
+		t.Fatalf("no target field:\n%s", body)
+	}
+	for _, loc := range []enums.Locale{enums.LocaleDE, enums.LocaleEN} {
+		if label[1] == i18n.T("field.target", loc, nil) {
+			t.Fatalf("target labelled as the link's %q", label[1])
+		}
+	}
+}
+
+// TestWidgetBadWindowRefused: a maintenance window like "25-3" is not
+// saved; the form says why.
+func TestWidgetBadWindowRefused(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	resp, err := client.PostForm(srv.URL+"/widgets", url.Values{
+		"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space)}, "type": {"update_window"}, "cfg.window": {"25-3"},
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusBadRequest || !strings.Contains(string(body), i18n.T("widget.bad_window", enums.LocaleDE, nil)) &&
+		!strings.Contains(string(body), i18n.T("widget.bad_window", enums.LocaleEN, nil)) {
+		t.Fatalf("status %d:\n%s", resp.StatusCode, body)
+	}
+}
+
+// TestNumberFieldHasRange: the form tells the browser a field's range.
+func TestNumberFieldHasRange(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	body := string(mustGet(t, srv, client, "/widgets/new?type=hints&space="+string(space)))
+	if !strings.Contains(body, `name="cfg.limit" type="number" step="any" value="8" min="1" max="50"`) {
+		t.Fatalf("no range on limit:\n%s", body)
 	}
 }

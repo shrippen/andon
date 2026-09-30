@@ -19,22 +19,13 @@ type RateTrendConfig struct {
 	BillableOnly bool // the rate over billable hours only
 }
 
-func decodeRateTrend(raw map[string]any) any {
-	return RateTrendConfig{Target: max(asFloat(raw["target"]), 0), Months: clampInt(asInt(raw["months"], sparkMonths), 3, 36),
-		BillableOnly: asBool(raw["billable_only"])}
-}
-
-func rateTrendView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(RateTrendConfig)
-	if cfg.Months == 0 {
-		cfg.Months = sparkMonths
-	}
+func rateTrendView(cfg RateTrendConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	ninja, ok := results["data"].(*sources.NinjaDataset)
 	kimai, ok2 := results[peerKimai].(*sources.KimaiDataset)
 	if !ok || !ok2 {
 		return map[string]any{}
 	}
-	lastMonth := metrics.AddMonths(parseToday(ctx.Today), -1)
+	lastMonth := metrics.AddMonths(todayOf(ctx), -1)
 	kind := metrics.HoursAll
 	if cfg.BillableOnly {
 		kind = metrics.HoursBillable
@@ -46,7 +37,7 @@ func rateTrendView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]a
 			rates = append(rates, m.Net/hours[i])
 		}
 	}
-	out := map[string]any{"Currency": ninja.Currency, "Target": cfg.Target, "Month": lastMonth.Format("01/2006")}
+	out := map[string]any{"Currency": ninja.Currency, "Target": cfg.Target, "Month": lastMonth.Format("01/2006"), "Months": cfg.Months}
 	if len(rates) == 0 {
 		return out
 	}
@@ -60,7 +51,12 @@ func rateTrendView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]a
 }
 
 func init() {
-	Register(WidgetType{Key: "rate_trend", Decode: decodeRateTrend, Template: "widgets/rate_trend", Category: CategoryInsight,
-		Service: enums.ServiceInvoiceNinja, RefreshS: 3600, View: rateTrendView,
-		Queries: func(any) []Query { return append(dataQuery(nil), kimaiPeer) }})
+	Tile[RateTrendConfig]{Key: "rate_trend", Category: CategoryInsight, Topic: TopicAnalysis, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
+		Fields: []Field{{Key: "target_value", Input: InputNumber, Min: "0"}, {Key: "months", Input: InputNumber, Default: sparkMonths, Min: "3", Max: "36"},
+			{Key: "billable_only", Input: InputCheck}},
+		Renames: []rename{{from: "target", to: "target_value"}},
+		Decode: func(r Raw) RateTrendConfig {
+			return RateTrendConfig{Target: r.Float("target_value"), Months: r.Int("months"), BillableOnly: r.Bool("billable_only")}
+		},
+		Queries: func(RateTrendConfig) []Query { return append(dataQuery(nil), kimaiPeer) }, View: rateTrendView}.add()
 }

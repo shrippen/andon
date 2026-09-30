@@ -17,6 +17,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 	"regexp"
 	"slices"
 	"strconv"
@@ -416,7 +417,7 @@ func (p *pair) backfill(ctx context.Context, d *sql.DB, who *access.Principal, e
 		p.state.Aliases.learn(byDoc[doc.ID], doc.Correspondent)
 	}
 	learned := p.state.Aliases
-	_ = saveState(d, who, func(s *state) {
+	err = saveState(d, who, func(s *state) {
 		for _, group := range learned {
 			for _, name := range group[1:] {
 				s.Aliases.learn(group[0], name)
@@ -424,6 +425,9 @@ func (p *pair) backfill(ctx context.Context, d *sql.DB, who *access.Principal, e
 		}
 		s.Backfilled = append(s.Backfilled, key)
 	})
+	if err != nil {
+		slog.Warn("receipts: keep learned vendor names", "err", err)
+	}
 }
 
 var docIDPattern = regexp.MustCompile(`/documents/(\d+)`)

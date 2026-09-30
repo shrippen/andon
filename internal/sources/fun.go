@@ -21,7 +21,6 @@ import (
 	"golang.org/x/text/language"
 
 	"andon/internal/drivers/httpclient"
-	"andon/internal/enums"
 )
 
 const (
@@ -56,15 +55,11 @@ type Holiday struct {
 // HolidaysResult lists upcoming holidays, soonest first.
 type HolidaysResult struct{ Days []Holiday }
 
-type HolidaysSource struct{}
-
-func (HolidaysSource) Key() string                { return "holidays" }
-func (HolidaysSource) TTL() time.Duration         { return holidaysTTL }
-func (HolidaysSource) Service() enums.ServiceType { return "" }
+var HolidaysSource = source{key: "holidays", ttl: holidaysTTL, fetch: fetchHolidays}
 
 // Fetch reads this and next year: in December the next holidays are in
 // January. state ("DE-BY") adds regional holidays to the national ones.
-func (HolidaysSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchHolidays(ctx context.Context, sctx Ctx) (any, error) {
 	country := isoAlpha2(asStr(sctx.Params["country"]))
 	state := strings.ToUpper(asStr(sctx.Params["state"]))
 	if code, sub, ok := strings.Cut(state, "-"); ok {
@@ -123,13 +118,9 @@ type Joke struct {
 	Setup, Delivery string
 }
 
-type JokesSource struct{}
+var JokesSource = source{key: "jokes", ttl: jokesTTL, fetch: fetchJokes}
 
-func (JokesSource) Key() string                { return "jokes" }
-func (JokesSource) TTL() time.Duration         { return jokesTTL }
-func (JokesSource) Service() enums.ServiceType { return "" }
-
-func (JokesSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchJokes(ctx context.Context, sctx Ctx) (any, error) {
 	category := asStr(sctx.Params["category"])
 	if category == "" {
 		category = "Any"
@@ -164,13 +155,9 @@ type CryptoResult struct {
 	Coins    []Coin
 }
 
-type CryptoSource struct{}
+var CryptoSource = source{key: "crypto", ttl: cryptoTTL, fetch: fetchCrypto}
 
-func (CryptoSource) Key() string                { return "crypto" }
-func (CryptoSource) TTL() time.Duration         { return cryptoTTL }
-func (CryptoSource) Service() enums.ServiceType { return "" }
-
-func (CryptoSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchCrypto(ctx context.Context, sctx Ctx) (any, error) {
 	ids := limitList(sctx.Params["coins"])
 	currency := strings.ToLower(asStr(sctx.Params["currency"]))
 	if asBool(sctx.Params["spark"]) {
@@ -248,11 +235,7 @@ type Quote struct {
 
 type StocksResult struct{ Quotes []Quote }
 
-type StocksSource struct{}
-
-func (StocksSource) Key() string                { return "stocks" }
-func (StocksSource) TTL() time.Duration         { return stocksTTL }
-func (StocksSource) Service() enums.ServiceType { return "" }
+var StocksSource = source{key: "stocks", ttl: stocksTTL, fetch: fetchStocks}
 
 // weekBack is how many trading days make a week.
 const weekBack = 5
@@ -276,7 +259,7 @@ func yahooSymbol(s string) string {
 // Fetch reads each symbol's month of daily closes from Yahoo's chart API
 // (stooq, the former source, stopped answering). Unknown symbols are
 // skipped.
-func (StocksSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchStocks(ctx context.Context, sctx Ctx) (any, error) {
 	out := &StocksResult{}
 	var failed error
 	for _, sym := range limitList(sctx.Params["symbols"]) {
@@ -334,13 +317,9 @@ const percent = 100
 // JSONResult is any decoded JSON body; the widget picks fields from it.
 type JSONResult struct{ Body any }
 
-type JSONAPISource struct{}
+var JSONAPISource = source{key: "json_api", ttl: jsonAPITTL, fetch: fetchJSONAPISource}
 
-func (JSONAPISource) Key() string                { return "json_api" }
-func (JSONAPISource) TTL() time.Duration         { return jsonAPITTL }
-func (JSONAPISource) Service() enums.ServiceType { return "" }
-
-func (JSONAPISource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchJSONAPISource(ctx context.Context, sctx Ctx) (any, error) {
 	headers, _ := sctx.Params["headers"].(map[string]string)
 	body, _, err := httpclient.GetJSON(ctx, asStr(sctx.Params["url"]), httpclient.Options{Headers: headers})
 	if err != nil {
@@ -350,9 +329,9 @@ func (JSONAPISource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 }
 
 func init() {
-	Register(HolidaysSource{})
-	Register(JokesSource{})
-	Register(CryptoSource{})
-	Register(StocksSource{})
-	Register(JSONAPISource{})
+	Register(HolidaysSource)
+	Register(JokesSource)
+	Register(CryptoSource)
+	Register(StocksSource)
+	Register(JSONAPISource)
 }

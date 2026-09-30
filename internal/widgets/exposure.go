@@ -23,12 +23,18 @@ type ExposedRow struct {
 // ExposureConfig is the "exposure" widget's config.
 type ExposureConfig struct{ OnlyOpen bool }
 
-func decodeExposure(raw map[string]any) any {
-	return ExposureConfig{OnlyOpen: asBool(raw["only_open"])}
+func init() {
+	Tile[ExposureConfig]{Key: "exposure", Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServicePangolin, RefreshS: 1800,
+		Fields:  []Field{{Key: "only_problems", Input: InputCheck}},
+		Renames: []rename{{from: "only_open", to: "only_problems"}},
+		Decode:  func(r Raw) ExposureConfig { return ExposureConfig{OnlyOpen: r.Bool("only_problems")} },
+		Queries: func(ExposureConfig) []Query { return append(dataQuery(nil), homelabQueries(TableExposure)...) },
+		View:    exposureView,
+		Calm:    func(v map[string]any) bool { return v["Total"] != nil && v["Total"] != 0 && v["Open"] == 0 }}.add()
 }
 
-func exposureView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(ExposureConfig)
+// exposureView needs the peers besides the data, so it is no dataView.
+func exposureView(cfg ExposureConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	data, ok := results["data"].(*sources.PangolinDataset)
 	if !ok {
 		return map[string]any{}
@@ -37,7 +43,7 @@ func exposureView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 	updates := metrics.PendingUpdates(peerDatasets(results, updatePeers))
 	var rows []ExposedRow
 	open := 0
-	all := metrics.Exposure(data, certs, updates, parseToday(ctx.Today))
+	all := metrics.Exposure(data, certs, updates, todayOf(ctx))
 	for _, r := range all {
 		if !r.Login {
 			open++
@@ -48,10 +54,4 @@ func exposureView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 	}
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].Risk > rows[j].Risk })
 	return map[string]any{"Rows": rows, "Open": open, "Total": len(all)}
-}
-
-func init() {
-	Register(WidgetType{Key: "exposure", Decode: decodeExposure, Template: "widgets/exposure", Category: CategoryInsight,
-		Service: enums.ServicePangolin, RefreshS: 1800, View: exposureView,
-		Queries: func(any) []Query { return append(dataQuery(nil), homelabQueries(TableExposure)...) }})
 }

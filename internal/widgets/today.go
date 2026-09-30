@@ -8,6 +8,7 @@ package widgets
 //	  5 T  USt-Voranmeldung 08/2026     (tax deadlines of the week)
 
 import (
+	"cmp"
 	"sort"
 	"time"
 
@@ -34,15 +35,12 @@ const (
 	peerCalendar      = "calendar"
 )
 
-func decodeToday(raw map[string]any) any {
-	tz := asString(raw["timezone"])
-	if tz == "" {
-		tz = defaultTimezone
-	}
-	cfg := TodayConfig{Timezone: tz, Stop: asString(raw["stop"]), Days: clampInt(asInt(raw["days"], todayDeadlineDays), 1, 60),
-		Hide: map[string]bool{}, HidePast: asBool(raw["hide_past"])}
+func decodeToday(r Raw) TodayConfig {
+	// A zone stored empty is the default too.
+	cfg := TodayConfig{Timezone: cmp.Or(r.String("timezone"), defaultTimezone), Stop: r.String("stop"), Days: r.Int("days"),
+		Hide: map[string]bool{}, HidePast: r.Bool("hide_past")}
 	for part, box := range todayParts {
-		if !boolOr(raw[box], true) {
+		if !r.Bool(box) {
 			cfg.Hide[part] = true
 		}
 	}
@@ -63,8 +61,7 @@ type TodayItem struct {
 	at               time.Time
 }
 
-func todayQueries(cfgAny any) []Query {
-	cfg := cfgAny.(TodayConfig)
+func todayQueries(cfg TodayConfig) []Query {
 	var q []Query
 	if !cfg.Hide["event"] {
 		q = append(q, peer(peerCalendar, enums.ServiceCalendar))
@@ -78,8 +75,7 @@ func todayQueries(cfgAny any) []Query {
 	return q
 }
 
-func todayView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(TodayConfig)
+func todayView(cfg TodayConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
 		loc = time.UTC
@@ -124,15 +120,22 @@ func todayView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 	sort.SliceStable(items, func(i, j int) bool { return items[i].at.Before(items[j].at) })
 
 	if tax, ok := metrics.ParseTaxSettings(ctx.Settings); ok && !cfg.Hide["deadline"] {
-		for _, dl := range metrics.UpcomingDeadlines(tax, parseToday(ctx.Today), cfg.Days) {
+		for _, dl := range metrics.UpcomingDeadlines(tax, todayOf(ctx), cfg.Days) {
 			items = append(items, TodayItem{Kind: "deadline", Deadline: dl.Kind, Period: dl.Period, Year: dl.Year,
-				Left: int(dl.Due.Sub(parseToday(ctx.Today)).Hours() / hoursPerDay)})
+				Left: int(dl.Due.Sub(todayOf(ctx)).Hours() / hoursPerDay)})
 		}
 	}
 	return map[string]any{"Items": items, "Now": clock(now)}
 }
 
 func init() {
-	Register(WidgetType{Key: "today", Decode: decodeToday, Template: "widgets/today", Category: CategoryInsight,
-		RefreshS: 300, Queries: todayQueries, View: todayView})
+	Tile[TodayConfig]{Key: "today", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 300,
+		Fields: []Field{{Key: "timezone", Input: InputText, Default: defaultTimezone}, {Key: "stop", Input: InputText},
+			{Key: "days", Input: InputNumber, Default: todayDeadlineDays, Min: "1", Max: "60"},
+			{Key: "show_calendar", Input: InputCheck, Default: true}, {Key: "show_timer", Input: InputCheck, Default: true},
+			{Key: "show_transit", Input: InputCheck, Default: true}, {Key: "show_deadlines", Input: InputCheck, Default: true},
+			{Key: "hide_past", Input: InputCheck}},
+		Check:  checkZone,
+		Decode: decodeToday, Queries: todayQueries, View: todayView,
+		Calm: func(v map[string]any) bool { return lenOf(v["Items"]) == 0 }}.add()
 }

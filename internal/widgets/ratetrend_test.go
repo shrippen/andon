@@ -15,7 +15,7 @@ func TestRateTrend(t *testing.T) {
 	if !ok {
 		t.Fatal("rate_trend not registered")
 	}
-	cfg, _ := widgets.Decode("rate_trend", map[string]any{"target": 90.0})
+	cfg, _ := widgets.Decode("rate_trend", map[string]any{"target_value": 90.0})
 	ninja := &sources.NinjaDataset{Currency: "EUR", Invoices: []sources.NinjaInvoice{
 		{ID: 1, ClientID: 1, Status: "paid", Date: "2026-07-10", Net: 800},
 		{ID: 2, ClientID: 1, Status: "paid", Date: "2026-08-10", Net: 1000},

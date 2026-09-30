@@ -12,6 +12,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"database/sql"
 	"encoding/base64"
 	"errors"
@@ -253,18 +254,19 @@ func cleanup(now time.Time) {
 	}
 }
 
-// AuthorizeURL starts a login (or, with linkUser, an account link).
-func AuthorizeURL(ctx context.Context, d *sql.DB, env settings.Settings, next string, linkUser *int64) (string, error) {
+// AuthorizeURL starts a login (or, with linkUser, an account link). The
+// caller keeps the returned state in the browser (Browser.State).
+func AuthorizeURL(ctx context.Context, d *sql.DB, env settings.Settings, next string, linkUser *int64) (string, string, error) {
 	cfg, err := Load(d, env)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if Button(d, env) == "" {
-		return "", ErrDisabled
+		return "", "", ErrDisabled
 	}
 	p, err := sources.Discover(ctx, cfg.Issuer)
 	if err != nil {
-		return "", ErrUnreachable
+		return "", "", ErrUnreachable
 	}
 
 	state, nonce, verifier := randomToken(), randomToken(), randomToken()
@@ -279,7 +281,14 @@ func AuthorizeURL(ctx context.Context, d *sql.DB, env settings.Settings, next st
 		"scope": {scopes}, "state": {state}, "nonce": {nonce},
 		"code_challenge": {challenge(verifier)}, "code_challenge_method": {"S256"},
 	}
-	return p.Authorize + "?" + query.Encode(), nil
+	return p.Authorize + "?" + query.Encode(), state, nil
+}
+
+// Browser is what the callback's browser holds: the state it was given
+// when the flow started (a cookie) and its logged-in user, 0 if none.
+type Browser struct {
+	State  string
+	UserID int64
 }
 
 // Result is a finished login.
@@ -291,15 +300,25 @@ type Result struct {
 
 // Complete finishes the callback: state check, code exchange, token check,
 // account resolution.
-func Complete(ctx context.Context, d *sql.DB, env settings.Settings, params url.Values) (Result, error) {
+func Complete(ctx context.Context, d *sql.DB, env settings.Settings, params url.Values, browser Browser) (Result, error) {
 	if params.Get("error") != "" {
 		return Result{}, ErrCancelled
 	}
+	state := params.Get("state")
 	pendingMu.Lock()
-	p, ok := inFlight[params.Get("state")]
-	delete(inFlight, params.Get("state"))
+	p, ok := inFlight[state]
+	delete(inFlight, state)
 	pendingMu.Unlock()
 	if !ok || time.Since(p.at) > stateTTL {
+		return Result{}, ErrState
+	}
+
+	// Only the browser that started the flow may finish it, and a link
+	// only for the user who asked for it.
+	if subtle.ConstantTimeCompare([]byte(state), []byte(browser.State)) != 1 {
+		return Result{}, ErrState
+	}
+	if p.linkUser != nil && *p.linkUser != browser.UserID {
 		return Result{}, ErrState
 	}
 
@@ -373,6 +392,11 @@ func resolveAccount(d *sql.DB, cfg Config, claims map[string]any, linkUser *int6
 		case user == nil && cfg.EmailLink && flag(claims, "email_verified", false) && email != "":
 			if user, err = users.ByEmail(tx, email); err != nil {
 				return err
+			}
+			// A self-registered address is unverified: whoever typed it
+			// must not receive this person's SSO identity.
+			if user != nil && user.Prefs[accounts.SelfRegisteredPref] == true {
+				return ErrNoAccount
 			}
 			if user != nil {
 				user.OIDCSub = sub

@@ -5,16 +5,14 @@ package settings
 
 import (
 	"io"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 )
 
-const (
-	secretsDir       = "/run/secrets"
-	devMasterKeyFile = "dev_master_key"
-)
+const secretsDir = "/run/secrets"
 
 // Settings holds the container's operating configuration.
 type Settings struct {
@@ -22,7 +20,7 @@ type Settings struct {
 	DataDir     string
 	DatabaseURL string
 
-	// Development: relaxed cookies, generated master key inside DataDir.
+	// Development: a guessable MASTER_KEY is accepted (ANDON_DEV).
 	Dev     bool
 	Demo    bool
 	Testing bool
@@ -53,6 +51,10 @@ type Settings struct {
 	SessionIdleMinutes   int
 	SessionAbsoluteHours int
 	OIDCSessionHours     int
+
+	// TrustedProxies are the reverse proxies whose X-Forwarded-For names
+	// the client (TRUSTED_PROXIES="172.18.0.0/16,10.0.0.1").
+	TrustedProxies []netip.Prefix
 }
 
 // DBPath returns the sqlite file path when DatabaseURL is unset.
@@ -138,6 +140,23 @@ func readFD(fd string) string {
 	return strings.TrimSpace(string(data))
 }
 
+// prefixes reads "10.0.0.0/8, 172.18.0.1": addresses count as /32 or
+// /128; what does not parse is left out.
+func prefixes(list string) []netip.Prefix {
+	var out []netip.Prefix
+	for _, part := range strings.Split(list, ",") {
+		part = strings.TrimSpace(part)
+		if p, err := netip.ParsePrefix(part); err == nil {
+			out = append(out, p)
+			continue
+		}
+		if a, err := netip.ParseAddr(part); err == nil {
+			out = append(out, netip.PrefixFrom(a, a.BitLen()))
+		}
+	}
+	return out
+}
+
 func readFile(path string) string {
 	if path == "" {
 		return ""
@@ -171,6 +190,7 @@ func Load() Settings {
 		SeedFile:             envStr("SEED_FILE", ""),
 		SchedulerEnabled:     envBool("SCHEDULER_ENABLED", true),
 		LogLevel:             envStr("LOG_LEVEL", "INFO"),
+		TrustedProxies:       prefixes(envStr("TRUSTED_PROXIES", "")),
 		SessionIdleMinutes:   envInt("SESSION_IDLE_MINUTES", 60*24*7),
 		SessionAbsoluteHours: envInt("SESSION_ABSOLUTE_HOURS", 24*30),
 		OIDCSessionHours:     envInt("OIDC_SESSION_HOURS", 12),

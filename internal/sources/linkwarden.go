@@ -25,15 +25,11 @@ type LinkwardenDataset struct {
 	Links       []Bookmark
 }
 
-type LinkwardenData struct{}
-
-func (LinkwardenData) Key() string                { return "linkwarden.data" }
-func (LinkwardenData) TTL() time.Duration         { return dataTTL }
-func (LinkwardenData) Service() enums.ServiceType { return enums.ServiceLinkwarden }
+var LinkwardenData = source{key: "linkwarden.data", ttl: dataTTL, service: enums.ServiceLinkwarden, fetch: fetchLinkwarden}
 
 // Fetch reads the collections named in options.collections (all if
 // empty) and their links.
-func (LinkwardenData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchLinkwarden(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoLinkwarden(), nil
 	}
@@ -107,6 +103,6 @@ func collectionLinks(ctx context.Context, api services.LinkwardenApi, id int64, 
 }
 
 func init() {
-	Register(LinkwardenData{})
-	Register(testOf{LinkwardenData{}, func(d any) map[string]any { return map[string]any{"links": len(d.(*LinkwardenDataset).Links)} }})
+	Register(LinkwardenData)
+	Register(testOf{LinkwardenData, func(d any) map[string]any { return map[string]any{"links": len(d.(*LinkwardenDataset).Links)} }})
 }

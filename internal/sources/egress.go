@@ -84,8 +84,23 @@ func notLocal(addr net.IP, nets []*net.IPNet, _ NetworkPolicy) bool {
 // isLocal: Andon itself or the host's metadata service, never a service
 // an invited user should reach.
 func isLocal(ip net.IP) bool {
+	if v4, ok := nat64(ip); ok {
+		ip = v4
+	}
 	return ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
 		ip.IsUnspecified() || ip.IsMulticast()
+}
+
+// nat64Prefix is the well-known NAT64 prefix: 64:ff9b::7f00:1 reaches
+// 127.0.0.1 on a host with NAT64.
+var nat64Prefix = &net.IPNet{IP: net.ParseIP("64:ff9b::"), Mask: net.CIDRMask(96, 128)}
+
+// nat64 is the IPv4 address behind a NAT64 address.
+func nat64(ip net.IP) (net.IP, bool) {
+	if ip.To4() != nil || !nat64Prefix.Contains(ip) {
+		return nil, false
+	}
+	return net.IP(ip[12:16]), true
 }
 
 func allowedAddr(addr net.IP, nets []*net.IPNet, policy NetworkPolicy) bool {

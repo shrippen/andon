@@ -1,6 +1,7 @@
 package sources
 
 import (
+	"cmp"
 	"context"
 	"time"
 
@@ -37,29 +38,16 @@ func snipeAsset(raw any) SnipeAsset {
 		PurchaseDate: day(m["purchase_date"]), PurchaseCost: asFloat(m["purchase_cost"]),
 		WarrantyExpires: day(m["warranty_expires"]), EOLDate: day(m["asset_eol_date"]),
 		NextAudit:  day(m["next_audit_date"]),
-		LastChange: firstNonEmpty(day(m["last_checkin"]), day(m["last_checkout"]), day(m["updated_at"])),
+		LastChange: cmp.Or(day(m["last_checkin"]), day(m["last_checkout"]), day(m["updated_at"])),
 		AssignedTo: nameOf(m["assigned_to"]), ExpectedCheckin: day(m["expected_checkin"]),
 	}
 }
 
-func firstNonEmpty(vals ...string) string {
-	for _, v := range vals {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
-}
-
 // SnipeData is the "snipeit.data" source: assets, licenses, consumables
 // and overdue audits.
-type SnipeData struct{}
+var SnipeData = source{key: "snipeit.data", ttl: dataTTL, service: enums.ServiceSnipeIT, fetch: fetchSnipe}
 
-func (SnipeData) Key() string                { return "snipeit.data" }
-func (SnipeData) TTL() time.Duration         { return dataTTL }
-func (SnipeData) Service() enums.ServiceType { return enums.ServiceSnipeIT }
-
-func (SnipeData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchSnipe(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoSnipe(time.Now()), nil
 	}
@@ -69,11 +57,7 @@ func (SnipeData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	data, err := loadSnipe(ctx, api, sctx)
 	if err != nil {
-		var apiErr services.ApiError
-		if isApiError(err, &apiErr) {
-			return nil, newSourceError("%s", apiErr.Error())
-		}
-		return nil, err
+		return nil, fetchError(err)
 	}
 	return data, nil
 }
@@ -133,13 +117,9 @@ func loadSnipe(ctx context.Context, api services.SnipeApi, sctx Ctx) (*SnipeData
 }
 
 // SnipeTest is the "snipeit.test" source: a lightweight connection check.
-type SnipeTest struct{}
+var SnipeTest = source{key: "snipeit.test", ttl: testTTL, service: enums.ServiceSnipeIT, fetch: fetchSnipeTest}
 
-func (SnipeTest) Key() string                { return "snipeit.test" }
-func (SnipeTest) TTL() time.Duration         { return testTTL }
-func (SnipeTest) Service() enums.ServiceType { return enums.ServiceSnipeIT }
-
-func (SnipeTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchSnipeTest(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return map[string]any{"version": "demo"}, nil
 	}
@@ -149,11 +129,7 @@ func (SnipeTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	me, err := api.Get(ctx, "users/me", nil)
 	if err != nil {
-		var apiErr services.ApiError
-		if isApiError(err, &apiErr) {
-			return nil, newSourceError("%s", apiErr.Error())
-		}
-		return nil, err
+		return nil, fetchError(err)
 	}
 	return map[string]any{"version": nil, "user": asStr(asMap(me)["username"])}, nil
 }

@@ -42,49 +42,51 @@ func (idx tileIndex) mentions(name string) bool {
 }
 
 func init() {
-	Register(discoveryRule, Cross, nil, func(_ any, cfg map[string]any, env Env) []Finding {
-		links, ok := boardLinks(env)
-		if !ok {
-			return nil
-		}
-		idx := indexTiles(links)
-		missing := map[string][]string{}
+	Register(discoveryRule, Cross, nil, noTile)
+}
 
-		if k, ok := env.Datasets[string(enums.ServiceKomodo)].(*sources.KomodoDataset); ok {
-			for _, s := range k.Stacks {
-				if !idx.mentions(s.Name) {
-					missing[string(enums.ServiceKomodo)] = append(missing[string(enums.ServiceKomodo)], s.Name)
-				}
-			}
-		}
-		if p, ok := env.Datasets[string(enums.ServicePangolin)].(*sources.PangolinDataset); ok {
-			for _, r := range p.Resources {
-				if r.Enabled && !idx.hosts[strings.ToLower(r.Domain)] {
-					missing[string(enums.ServicePangolin)] = append(missing[string(enums.ServicePangolin)], r.Domain)
-				}
-			}
-		}
-		if dk, ok := env.Datasets[string(enums.ServiceDocker)].(*sources.DockerDataset); ok {
-			for _, c := range dk.Containers {
-				if c.State == sources.StateRunning && !idx.mentions(c.Name) {
-					missing[string(enums.ServiceDocker)] = append(missing[string(enums.ServiceDocker)], c.Name)
-				}
-			}
-		}
-		if k, ok := env.Datasets[string(enums.ServiceUptimeKuma)].(*sources.KumaDataset); ok {
-			for _, m := range k.Monitors {
-				if host := HostOf(m.Target); host != "" && !idx.hosts[host] && !idx.mentions(m.Name) {
-					missing[string(enums.ServiceUptimeKuma)] = append(missing[string(enums.ServiceUptimeKuma)], m.Name)
-				}
-			}
-		}
+func noTile(_ any, cfg map[string]any, env Env) []Finding {
+	links, ok := boardLinks(env)
+	if !ok {
+		return nil
+	}
+	idx := indexTiles(links)
+	missing := map[string][]string{}
 
-		var found []Finding
-		for _, svc := range sortedKeysOf(missing) {
-			found = append(found, Finding{Fingerprint: "no_tile:" + svc, Rule: discoveryRule, Severity: enums.SeverityInfo,
-				Message: "discovery.no_tile", Params: map[string]any{"service": svc, "count": len(missing[svc]), "names": shortList(missing[svc])},
-				ActionURL: "/widgets/new?type=link", Sources: []string{svc}})
+	if k, ok := env.Datasets[string(enums.ServiceKomodo)].(*sources.KomodoDataset); ok {
+		for _, s := range k.Stacks {
+			if !idx.mentions(s.Name) {
+				missing[string(enums.ServiceKomodo)] = append(missing[string(enums.ServiceKomodo)], s.Name)
+			}
 		}
-		return found
-	})
+	}
+	if p, ok := env.Datasets[string(enums.ServicePangolin)].(*sources.PangolinDataset); ok {
+		for _, r := range p.Resources {
+			if r.Enabled && !idx.hosts[strings.ToLower(r.Domain)] {
+				missing[string(enums.ServicePangolin)] = append(missing[string(enums.ServicePangolin)], r.Domain)
+			}
+		}
+	}
+	if dk, ok := env.Datasets[string(enums.ServiceDocker)].(*sources.DockerDataset); ok {
+		for _, c := range dk.Containers {
+			if c.State == sources.StateRunning && !idx.mentions(c.Name) {
+				missing[string(enums.ServiceDocker)] = append(missing[string(enums.ServiceDocker)], c.Name)
+			}
+		}
+	}
+	if k, ok := env.Datasets[string(enums.ServiceUptimeKuma)].(*sources.KumaDataset); ok {
+		for _, m := range k.Monitors {
+			if host := HostOf(m.Target); host != "" && !idx.hosts[host] && !idx.mentions(m.Name) {
+				missing[string(enums.ServiceUptimeKuma)] = append(missing[string(enums.ServiceUptimeKuma)], m.Name)
+			}
+		}
+	}
+
+	var found []Finding
+	for _, svc := range sortedKeysOf(missing) {
+		found = append(found, Finding{Fingerprint: "no_tile:" + svc, Rule: discoveryRule, Severity: enums.SeverityInfo,
+			Message: "discovery.no_tile", Params: map[string]any{"service": svc, "count": len(missing[svc]), "names": shortList(missing[svc])},
+			ActionURL: "/widgets/new?type=link", Sources: []string{svc}})
+	}
+	return found
 }

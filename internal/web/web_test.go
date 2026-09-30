@@ -66,7 +66,7 @@ func runAnalysis(t *testing.T, srv *httptest.Server) {
 
 func newTestServer(t *testing.T) (*httptest.Server, *http.Client, string) {
 	t.Helper()
-	crypto.Init("test-master-key")
+	crypto.Init(crypto.Derive("test-master-key", nil))
 	auth.ResetThrottle()
 	database, err := db.Open(filepath.Join(t.TempDir(), "test.db"), dbtest.Key)
 	if err != nil {
@@ -91,6 +91,7 @@ func newTestServer(t *testing.T) (*httptest.Server, *http.Client, string) {
 	mail.Init(cfg)
 	themes.InitFonts(t.TempDir())
 	icons.Init(t.TempDir())
+	t.Cleanup(icons.Wait) // favicon downloads write there; runs before the dir goes
 	outbound.TakeOutbox()
 	deps := web.Deps{DB: database, Settings: cfg}
 	mux := http.NewServeMux()
@@ -543,7 +544,7 @@ func TestConnectionsCreateEditDelete(t *testing.T) {
 	csrf = csrfToken(t, srv, client)
 	resp, err = client.PostForm(srv.URL+editLocation, url.Values{
 		"csrf": {csrf}, "name": {"Renamed Kimai"}, "url": {"https://kimai2.example"},
-		"mode": {"shared"}, "tls": {"verify"},
+		"mode": {"shared"}, "tls": {"verify"}, "secret": {"tok2"}, // a new host needs the token again
 	})
 	if err != nil {
 		t.Fatalf("update: %v", err)

@@ -66,7 +66,7 @@ func tableRows(kind TableKind, results map[string]any, ctx ViewCtx) ([]Row, bool
 	if rows, ok := homelabRows(kind, data, results, ctx); ok {
 		return rows, true
 	}
-	today := parseToday(ctx.Today)
+	today := todayOf(ctx)
 	service := enums.ServiceType(ctx.Service)
 
 	switch {
@@ -179,8 +179,7 @@ func kimaiBudgets(data *sources.KimaiDataset, today time.Time) []budgetRow {
 	return rows
 }
 
-func tableView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg := cfgAny.(TableConfig)
+func tableView(cfg TableConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	rows, ok := tableRows(cfg.Table, results, ctx)
 	if !ok {
 		if _, hasData := results["data"]; hasData {
@@ -208,6 +207,7 @@ func tableView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
 
 // Table sort orders.
 const (
+	sortAsIs       = "as_is"
 	sortAmountDesc = "amount_desc"
 	sortAmountAsc  = "amount_asc"
 	sortName       = "name"

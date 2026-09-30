@@ -98,6 +98,7 @@ login:
   throttled: Too many attempts. Please try again in 15 minutes.
   oidc_only: Login only via single sign-on.
 totp:
+  active: The second factor is on. Switch it off with a code first, then set it up again.
   title: Second factor
   code: Code from your authenticator app
   submit: Confirm
@@ -166,6 +167,7 @@ board:
   full: Show all
   compact: Compact
 edit:
+  save_failed: 'The new arrangement was not saved. Check the connection and try again.'
   tile_tall: Double height
   tile_normal: Normal height
   bulk: Selection
@@ -202,6 +204,70 @@ edit:
   tile_wide: 'Double width'
   tile_narrow: 'Normal width'
   touch_hint: 'Editing is made for desktop. Tap a tile for its tools; tap again to open it.'
+typefield:
+  payment_days:
+    months: Period (months, empty = all)
+  rate_trend:
+    target_value: Target hourly rate
+  authentik_logins:
+    only_problems: Failed logins only
+  exposure:
+    only_problems: Only services without login
+  custom_api:
+    headers: HTTP headers of the request
+    fields_hint: 'One value per line: label = path, e.g. Version = data.version or First = list.0.name.'
+  cashflow:
+    days: Look ahead (days)
+  deadlines:
+    days: Look ahead (days)
+  expiries:
+    days: Look ahead (days)
+    sources_hint: 'Services, e.g. truenas, borgbackup, paperless. Empty = all.'
+  arr_upcoming:
+    days: Look ahead (days)
+  update_window:
+    window_hint: 'From-to, e.g. 22:00-06:00 or 22-6. Empty = any time.'
+  grocy:
+    days: Look ahead (days, 0 = as Grocy)
+    days_hint: 'Stock up to 60 days ahead. 0 = Grocy''s 5 days and all chores.'
+  today:
+    days: Deadlines ahead (days)
+  receipts_missing:
+    days: Look back (days)
+  trend:
+    days: History (days)
+  speed_history:
+    days: History (days)
+  hints:
+    sort_value: Largest amount first
+    min_severity_10: All levels
+    min_severity_20: From warning
+    min_severity_30: Critical only
+    sources_hint: 'Services, e.g. kimai, invoiceninja, truenas. Empty = all.'
+  status_light:
+    sources_hint: 'Services, e.g. kimai, invoiceninja, truenas. Empty = all.'
+  updates:
+    sources_hint: 'Services, e.g. proxmox, truenas, immich. Empty = all.'
+  crypto:
+    coins_hint: 'CoinGecko ids, e.g. bitcoin, ethereum (not BTC).'
+  stocks:
+    tickers_hint: 'Symbol with exchange as on Stooq, e.g. aapl.us, sap.de.'
+  holidays:
+    state_hint: 'State code, e.g. BY. Empty = nationwide only.'
+  vpn:
+    expected_country_hint: 'Country name as Gluetun reports it, e.g. Sweden.'
+  uptime_month:
+    sla_hint: 'Percent, red below, e.g. 99.5. Empty = green from 99.9 %, red under 95 %.'
+  iframe:
+    reload: Reload every … minutes (empty = never)
+  komodo_stacks:
+    only_problems: Only with updates or problems
+  tailscale:
+    only_problems: Only offline or with expiring key
+  github:
+    only_problems: Red CI only
+  conn_health:
+    only_problems: Only shaky now (last 2 days)
 field:
   place: Place
   week_hours: Weekly target (hours)
@@ -308,6 +374,7 @@ field:
   frame_round: Amounts
   frame_only_issues: Show only when something needs doing
   compare: Compare with
+  target_days: Payment term (days)
   target_value: Target value
   spark: Show the line
   show_prev: Show last year
@@ -361,17 +428,14 @@ field:
   yearly: Costs per year instead of month
   ahead: Look ahead (days)
   app_updates: Name apps with updates
-  buttons: '"Done" and "Later" buttons'
-  by_value: Sort by amount
+  show_buttons: '"Done" and "Later" buttons'
   cheap_hours: Cheap window (hours)
   filter: Only names containing
   forecast: Forecast "full in … days"
   kinds: Show
-  levels: Level bar
+  show_levels: Level bar
   max_days: Only up to … days (empty = all)
-  only_issues: Only with updates or problems
   only_problems: Only problems
-  only_shaky: Only shaky now (last 2 days)
   power_split: Power per service
   price: Price
   response_time: Show response time
@@ -389,9 +453,7 @@ field:
   use_timer: Mind a running Kimai timer
   warn_pct: Yellow from (%)
   window: 'Maintenance window (e.g. 22:00-06:00)'
-  only_failures: Failed logins only
   list_without: List accounts without two-factor
-  only_red: Red CI only
   warn_line: Warning line at
   thresholds: Colour thresholds
   thresholds_hint: 'One rule per line: name, comparison, limit, colour. Example: "queue > 10 yellow" or "Temp >= 30 red".'
@@ -413,7 +475,6 @@ field:
   top_domains: Show most blocked domains
   hide_measures: Hide loss and latency
   device_list: List devices by name
-  only_trouble: Only offline or with expiring key
   expected_country: Expected country (overrides the connection)
   ping: Show ping and jitter
   ipv6: Show IPv6
@@ -600,7 +661,7 @@ opt:
   c: °C
   f: °F
   minor: Weather warning
-  moderate: Marked
+  moderate: Moderate weather
   severe: Severe weather
   extreme: Extreme weather
   "12": 12 hours
@@ -625,9 +686,6 @@ sort:
 area:
   main: Main column
   side: Side column
-category:
-  start: Start page
-  insight: Insights
 wtype:
   kimai_week:
     name: 'Kimai week'
@@ -910,6 +968,8 @@ wtype:
     name: 'What is red?'
     desc: 'Every link of the space whose status check fails, with how long.'
 widget:
+  bad_window: 'Maintenance window not readable: e.g. 22:00-06:00 or 22-6.'
+  bad_timezone: 'Unknown time zone: e.g. Europe/Berlin.'
   delete_hint: 'The tile disappears from every board it is on.'
   pending: Loading with the next check …
   loading: loading …
@@ -925,6 +985,7 @@ widget:
   connection_type: The connection does not fit the tile type.
   unsupported: Does not fit the chosen connection.
 connection:
+  secret_for_host: 'New address: please enter the credential again. The stored one is not sent to another server.'
   bad_date: 'Give the date as YYYY-MM-DD.'
   missing: Connection missing
   location_personal: Location data is only allowed as a personal connection.
@@ -1363,6 +1424,9 @@ scope:
   read: Read (API)
   embed: Embed
 security:
+  token_boards: Boards
+  token_boards_hint: 'Embedding needs at least one board; the token then sees only these boards and their spaces. Read without a choice: all you see.'
+  token_boards_n: '{n} boards'
   totp_required: 'This instance requires a second factor for admins. Set it up to continue.'
   passkeys: Passkeys
   no_passkeys: No passkeys.
@@ -1543,8 +1607,6 @@ sample:
   budget: Budget project relaunch
 icon:
   invalid: Invalid icon (SVG, PNG, WebP, JPEG, ICO up to 512 KB).
-url:
-  scheme: URL must start with http:// or https://.
 mail:
   footer: Andon · {url}
   invite:
@@ -2707,6 +2769,7 @@ settings:
   rule_search: 'Search rules'
   rule_none: 'No rule matches.'
 notify:
+  raw_http: 'json://, xml:// and form:// send to any address; only admins may add them.'
   min_level: From level
   sources: Only these sources
   sources_hint: Nothing selected = all sources.
@@ -3176,6 +3239,7 @@ gateway:
 expiry:
   days: 'days'
   total: '{n} certificates and domains'
+  unknown: 'end unknown'
 speed:
   contract: 'Contract {n} Mbit/s'
   slow: '{n} days too slow'
@@ -3257,6 +3321,9 @@ gallery:
   height: Height
   rows_1: 1 row
   rows_2: 2 rows
+  width: Width
+  cols_1: 1 column
+  cols_2: 2 columns
   add_to: 'Add to “{section}”'
   preview_hint: How the tile sits among its neighbours.
 audit_action:
@@ -3843,3 +3910,5 @@ links_down:
   since: 'no answer since {day}'
   today: 'since today'
   none: 'All links answer.'
+token:
+  boards: 'An embed token needs boards you can see.'

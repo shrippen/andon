@@ -50,7 +50,7 @@ func MailReads(q db.Queryer, connID int64) (map[uint32]map[string]any, error) {
 }
 
 // SaveMailRead stores or replaces the fields read from one mail.
-func SaveMailRead(q db.Queryer, connID int64, uid uint32, fields map[string]any) error {
+func SaveMailRead(q db.Queryer, connID int64, uid uint32, fields any) error {
 	raw, err := db.ToJSON(fields)
 	if err != nil {
 		return err

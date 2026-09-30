@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"andon/internal/drivers/httpclient"
-	"andon/internal/enums"
 )
 
 const (
@@ -45,13 +44,9 @@ type Event struct {
 // CalendarResult lists occurrences, soonest first.
 type CalendarResult struct{ Events []Event }
 
-type CalendarSource struct{}
+var CalendarSource = source{key: "ical", ttl: icalTTL, fetch: fetchCalendarSource}
 
-func (CalendarSource) Key() string                { return "ical" }
-func (CalendarSource) TTL() time.Duration         { return icalTTL }
-func (CalendarSource) Service() enums.ServiceType { return "" }
-
-func (CalendarSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchCalendarSource(ctx context.Context, sctx Ctx) (any, error) {
 	text, err := httpclient.GetText(ctx, asStr(sctx.Params["url"]), httpclient.Options{})
 	if err != nil {
 		return nil, newSourceError("%s", err.Error())
@@ -323,5 +318,5 @@ func weekly(start time.Time, week int, days []time.Weekday, emit func(time.Time)
 }
 
 func init() {
-	Register(CalendarSource{})
+	Register(CalendarSource)
 }

@@ -54,13 +54,9 @@ type TrueNASDataset struct {
 	Snapshots          []SnapTask
 }
 
-type TrueNASData struct{}
+var TrueNASData = source{key: "truenas.data", ttl: opsTTL, service: enums.ServiceTrueNAS, fetch: fetchTrueNAS}
 
-func (TrueNASData) Key() string                { return "truenas.data" }
-func (TrueNASData) TTL() time.Duration         { return opsTTL }
-func (TrueNASData) Service() enums.ServiceType { return enums.ServiceTrueNAS }
-
-func (TrueNASData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchTrueNAS(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoTrueNAS(), nil
 	}
@@ -139,13 +135,9 @@ type KomodoDataset struct {
 	Alerts                                       []KAlert // open
 }
 
-type KomodoData struct{}
+var KomodoData = source{key: "komodo.data", ttl: opsTTL, service: enums.ServiceKomodo, fetch: fetchKomodo}
 
-func (KomodoData) Key() string                { return "komodo.data" }
-func (KomodoData) TTL() time.Duration         { return opsTTL }
-func (KomodoData) Service() enums.ServiceType { return enums.ServiceKomodo }
-
-func (KomodoData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchKomodo(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoKomodo(time.Now()), nil
 	}
@@ -211,14 +203,10 @@ type PangolinDataset struct {
 	Resources []PResource
 }
 
-type PangolinData struct{}
-
-func (PangolinData) Key() string                { return "pangolin.data" }
-func (PangolinData) TTL() time.Duration         { return opsTTL }
-func (PangolinData) Service() enums.ServiceType { return enums.ServicePangolin }
+var PangolinData = source{key: "pangolin.data", ttl: opsTTL, service: enums.ServicePangolin, fetch: fetchPangolin}
 
 // Fetch needs options.org, the organisation id.
-func (PangolinData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchPangolin(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoPangolin(), nil
 	}
@@ -299,7 +287,7 @@ type AuthentikDataset struct {
 	Failures             []AKLogin // latest failed logins, newest first
 }
 
-type AuthentikData struct{}
+var AuthentikData = source{key: "authentik.data", ttl: opsTTL, service: enums.ServiceAuthentik, fetch: fetchAuthentik}
 
 // authentikLogins reads the latest events of one login action; a failed
 // login names the attempted user in its context. Best-effort.
@@ -324,11 +312,7 @@ func authentikLogins(ctx context.Context, api services.AuthentikApi, action stri
 	return out
 }
 
-func (AuthentikData) Key() string                { return "authentik.data" }
-func (AuthentikData) TTL() time.Duration         { return opsTTL }
-func (AuthentikData) Service() enums.ServiceType { return enums.ServiceAuthentik }
-
-func (AuthentikData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchAuthentik(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoAuthentik(time.Now()), nil
 	}
@@ -412,15 +396,15 @@ func loadAuthentik(ctx context.Context, api services.AuthentikApi, base string, 
 }
 
 func init() {
-	Register(TrueNASData{})
-	Register(testOf{TrueNASData{}, func(d any) map[string]any {
+	Register(TrueNASData)
+	Register(testOf{TrueNASData, func(d any) map[string]any {
 		t := d.(*TrueNASDataset)
 		return map[string]any{"version": t.Version, "pools": len(t.Pools)}
 	}})
-	Register(KomodoData{})
-	Register(testOf{KomodoData{}, func(d any) map[string]any { return map[string]any{"stacks": len(d.(*KomodoDataset).Stacks)} }})
-	Register(PangolinData{})
-	Register(testOf{PangolinData{}, func(d any) map[string]any { return map[string]any{"sites": len(d.(*PangolinDataset).Sites)} }})
-	Register(AuthentikData{})
-	Register(testOf{AuthentikData{}, func(d any) map[string]any { return map[string]any{"version": d.(*AuthentikDataset).Version} }})
+	Register(KomodoData)
+	Register(testOf{KomodoData, func(d any) map[string]any { return map[string]any{"stacks": len(d.(*KomodoDataset).Stacks)} }})
+	Register(PangolinData)
+	Register(testOf{PangolinData, func(d any) map[string]any { return map[string]any{"sites": len(d.(*PangolinDataset).Sites)} }})
+	Register(AuthentikData)
+	Register(testOf{AuthentikData, func(d any) map[string]any { return map[string]any{"version": d.(*AuthentikDataset).Version} }})
 }

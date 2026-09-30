@@ -25,18 +25,20 @@ type skewCfg struct {
 func init() {
 	// A clock off by minutes breaks TOTP codes, certificate checks and
 	// backup schedules long before anyone notices the time.
-	registerTyped("system.clock_skew", Cross, skewCfg{Seconds: 60}, func(_ *noSettings, cfg skewCfg, env Env) []Finding {
-		clocks, _ := env.Datasets[ClockDataset].([]Clock)
-		sort.Slice(clocks, func(i, j int) bool { return clocks[i].Host < clocks[j].Host })
-		var found []Finding
-		for _, c := range clocks {
-			if math.Abs(c.Seconds) < cfg.Seconds {
-				continue
-			}
-			found = append(found, Finding{Fingerprint: "clock:" + c.Host, Rule: "system.clock_skew",
-				Severity: enums.SeverityWarn, Message: "system.clock_skew",
-				Params: map[string]any{"name": c.Name, "host": c.Host, "seconds": int(c.Seconds)}})
+	registerTyped("system.clock_skew", Cross, skewCfg{Seconds: 60}, clockSkew)
+}
+
+func clockSkew(_ *noSettings, cfg skewCfg, env Env) []Finding {
+	clocks, _ := env.Datasets[ClockDataset].([]Clock)
+	sort.Slice(clocks, func(i, j int) bool { return clocks[i].Host < clocks[j].Host })
+	var found []Finding
+	for _, c := range clocks {
+		if math.Abs(c.Seconds) < cfg.Seconds {
+			continue
 		}
-		return found
-	})
+		found = append(found, Finding{Fingerprint: "clock:" + c.Host, Rule: "system.clock_skew",
+			Severity: enums.SeverityWarn, Message: "system.clock_skew",
+			Params: map[string]any{"name": c.Name, "host": c.Host, "seconds": int(c.Seconds)}})
+	}
+	return found
 }

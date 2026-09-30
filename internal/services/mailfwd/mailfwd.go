@@ -14,11 +14,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"andon/internal/db"
-	"andon/internal/drivers/llm"
 	"andon/internal/enums"
 	"andon/internal/model"
 	"andon/internal/outbound"
@@ -159,7 +159,7 @@ func Forward(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID i
 	if paperless == nil {
 		return 0, ErrNoPaperless
 	}
-	if _, err := connections.Get(d, who, paperless.ID); err != nil {
+	if err := connections.Writable(d, who, paperless.ID); err != nil {
 		return 0, err
 	}
 
@@ -230,10 +230,10 @@ func Read(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID int6
 	if err != nil {
 		return assist.Invoice{}, err
 	}
-	var readable []llm.File
+	var readable []outbound.LLMFile
 	for _, f := range files {
-		if media := http.DetectContentType(f.Content); llm.Readable(media) {
-			readable = append(readable, llm.File{Media: media, Content: f.Content})
+		if media := http.DetectContentType(f.Content); outbound.LLMReadable(media) {
+			readable = append(readable, outbound.LLMFile{Media: media, Content: f.Content})
 		}
 	}
 	if len(readable) == 0 {
@@ -244,18 +244,22 @@ func Read(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID int6
 		return assist.Invoice{}, err
 	}
 
-	raw, _ := json.Marshal(inv)
-	fields := map[string]any{}
-	_ = json.Unmarshal(raw, &fields)
-	if err := db.WithTx(d, func(tx *sql.Tx) error { return repodata.SaveMailRead(tx, mail.ID, uid, fields) }); err != nil {
+	if err := db.WithTx(d, func(tx *sql.Tx) error { return repodata.SaveMailRead(tx, mail.ID, uid, inv) }); err != nil {
 		return assist.Invoice{}, err
 	}
 	return inv, auditsvc.Log(d, &who.UserID, "mail.read", fmt.Sprintf("%s#%d", mail.Name, uid), ip, nil)
 }
 
+// invoiceOf reads a stored read back; a read that does not decode
+// shows as empty rather than failing the list.
 func invoiceOf(fields map[string]any) *assist.Invoice {
-	raw, _ := json.Marshal(fields)
 	var inv assist.Invoice
-	_ = json.Unmarshal(raw, &inv)
+	raw, err := json.Marshal(fields)
+	if err == nil {
+		err = json.Unmarshal(raw, &inv)
+	}
+	if err != nil {
+		slog.Warn("mailfwd: stored read", "err", err)
+	}
 	return &inv
 }

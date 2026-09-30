@@ -12,6 +12,7 @@ package widgets
 //	energy        Tibber prices, cheapest hours, cost; power from Home Assistant
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 	"strings"
@@ -37,35 +38,38 @@ type EnergyConfig struct {
 	EnergyOnly  bool // prices without grid fees and taxes
 }
 
-func decodeEnergy(raw map[string]any) any {
-	return EnergyConfig{PowerEntity: asString(raw["power_entity"]), CheapHours: clampInt(asInt(raw["cheap_hours"], metrics.CheapHours), 1, 12),
-		Tomorrow: boolOr(raw["tomorrow"], true), EnergyOnly: raw["price"] == "energy"}
+func decodeEnergy(r Raw) EnergyConfig {
+	return EnergyConfig{PowerEntity: r.String("power_entity"), CheapHours: r.Int("cheap_hours"),
+		Tomorrow: r.Bool("tomorrow"), EnergyOnly: r.Pick("price") == "energy"}
+}
+
+func energyQueries(cfg EnergyConfig) []Query {
+	queries := dataQuery(nil)
+	if cfg.PowerEntity != "" {
+		queries = append(queries, Query{Name: peerHass, Source: "data", Conn: ConnPeer, Service: enums.ServiceHomeAssistant})
+	}
+	return queries
 }
 
 // GrocyConfig is the "grocy" widget's config.
 type GrocyConfig struct {
 	Hide map[string]bool // stock, shopping, chores
-	Days int             // soon and chores within this many days, 0 = as Grocy says
+	Days int             // soon and chores within this many days, 0 = as Grocy says (5 days, all chores)
 }
 
 var grocyParts = []string{"stock", "shopping", "chores"}
 
-func decodeGrocy(raw map[string]any) any {
-	cfg := GrocyConfig{Hide: map[string]bool{}, Days: clampInt(asInt(raw["days"], 0), 0, 60)}
+func decodeGrocy(r Raw) GrocyConfig {
+	cfg := GrocyConfig{Hide: map[string]bool{}, Days: r.Int("days")}
 	for _, p := range grocyParts {
-		if !boolOr(raw["show_"+p], true) {
+		if !r.Bool("show_" + p) {
 			cfg.Hide[p] = true
 		}
 	}
 	return cfg
 }
 
-func grocyView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(GrocyConfig)
-	data, ok := results["data"].(*sources.GrocyDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func grocyView(cfg GrocyConfig, data *sources.GrocyDataset, _ ViewCtx) map[string]any {
 	shown := *data
 	if cfg.Hide["stock"] {
 		shown.Expired, shown.Overdue, shown.Soon = nil, nil, nil
@@ -76,21 +80,18 @@ func grocyView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 	if cfg.Hide["chores"] {
 		shown.Chores = nil
 	}
+	if !cfg.Hide["stock"] {
+		shown.Soon = data.SoonWithin(cmp.Or(cfg.Days, sources.GrocySoonDays), time.Now())
+	}
 	if cfg.Days > 0 {
 		until := time.Now().AddDate(0, 0, cfg.Days)
-		var soon []sources.Product
-		for _, p := range shown.Soon {
-			if d, ok := metrics.ParseDay(p.Due); !ok || d.Before(until) {
-				soon = append(soon, p)
-			}
-		}
 		var chores []sources.Chore
 		for _, c := range shown.Chores {
 			if c.Due.Before(until) {
 				chores = append(chores, c)
 			}
 		}
-		shown.Soon, shown.Chores = soon, chores
+		shown.Chores = chores
 	}
 	return map[string]any{"Data": &shown}
 }
@@ -101,20 +102,9 @@ type DWDConfig struct{ MinLevel int }
 // dwdLevels ranks DWD severities.
 var dwdLevels = map[string]int{"minor": 1, "moderate": 2, "severe": 3, "extreme": 4}
 
-func decodeDWD(raw map[string]any) any {
-	level, ok := dwdLevels[asString(raw["min_level"])]
-	if !ok {
-		level = 1
-	}
-	return DWDConfig{MinLevel: level}
-}
+func decodeDWD(r Raw) DWDConfig { return DWDConfig{MinLevel: dwdLevels[r.Pick("min_level")]} }
 
-func dwdView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(DWDConfig)
-	data, ok := results["data"].(*sources.DWDDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func dwdView(cfg DWDConfig, data *sources.DWDDataset, _ ViewCtx) map[string]any {
 	shown := *data
 	shown.Warnings = nil
 	for _, w := range data.Warnings {
@@ -136,23 +126,18 @@ type TailscaleConfig struct {
 // tailKeyDays is when an expiring key counts as trouble.
 const tailKeyDays = 14
 
-func decodeTailscale(raw map[string]any) any {
+func decodeTailscale(r Raw) TailscaleConfig {
 	var tags []string
-	for _, t := range lowerList(raw["tags"]) {
+	for _, t := range r.Lower("tags") {
 		if !strings.HasPrefix(t, "tag:") {
 			t = "tag:" + t
 		}
 		tags = append(tags, t)
 	}
-	return TailscaleConfig{OnlyTrouble: asBool(raw["only_trouble"]), Tags: tags, HideAfter: clampInt(asInt(raw["hide_after"], 0), 0, 3650)}
+	return TailscaleConfig{OnlyTrouble: r.Bool("only_problems"), Tags: tags, HideAfter: r.Int("hide_after")}
 }
 
-func tailscaleView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(TailscaleConfig)
-	data, ok := results["data"].(*sources.TailscaleDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func tailscaleView(cfg TailscaleConfig, data *sources.TailscaleDataset, _ ViewCtx) map[string]any {
 	now := time.Now()
 	soon := now.AddDate(0, 0, tailKeyDays)
 	shown := *data
@@ -179,16 +164,11 @@ type GitHubConfig struct {
 	RedCI bool     // only repos whose CI failed
 }
 
-func decodeGitHub(raw map[string]any) any {
-	return GitHubConfig{Only: lowerList(raw["filter"]), RedCI: asBool(raw["only_red"])}
+func decodeGitHub(r Raw) GitHubConfig {
+	return GitHubConfig{Only: r.Lower("filter"), RedCI: r.Bool("only_problems")}
 }
 
-func githubView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(GitHubConfig)
-	data, ok := results["data"].(*sources.GitHubDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func githubView(cfg GitHubConfig, data *sources.GitHubDataset, _ ViewCtx) map[string]any {
 	shown := *data
 	shown.Repos = nil
 	for _, r := range data.Repos {
@@ -205,19 +185,7 @@ type ArrConfig struct{ Days int }
 // arrDays is the default look ahead of the Arr tile.
 const arrDays = 7
 
-func decodeArr(raw map[string]any) any {
-	return ArrConfig{Days: clampInt(asInt(raw["days"], arrDays), 1, 30)}
-}
-
-func arrView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(ArrConfig)
-	if !ok || cfg.Days == 0 {
-		cfg.Days = arrDays
-	}
-	data, ok := results["data"].(*sources.ArrDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func arrView(cfg ArrConfig, data *sources.ArrDataset, _ ViewCtx) map[string]any {
 	until := time.Now().AddDate(0, 0, cfg.Days)
 	var items []sources.ArrItem
 	for _, it := range data.Upcoming {
@@ -235,13 +203,7 @@ var arrKinds = map[string]string{"Sonarr": "episodes", "Radarr": "movies", "Lida
 // MediaConfig is the "mediaserver" widget's config.
 type MediaConfig struct{ Users bool }
 
-func decodeMedia(raw map[string]any) any { return MediaConfig{Users: boolOr(raw["show_users"], true)} }
-
-func mediaView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(MediaConfig)
-	if !ok {
-		cfg.Users = true
-	}
+func mediaView(cfg MediaConfig, results map[string]any, _ ViewCtx) map[string]any {
 	if results["data"] == nil {
 		return map[string]any{}
 	}
@@ -271,11 +233,7 @@ func energyPrices(raw *sources.TibberDataset, cfg EnergyConfig, now time.Time) *
 
 // energyView draws today's and tomorrow's prices and finds the cheapest
 // hours ahead.
-func energyView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg := cfgAny.(EnergyConfig)
-	if cfg.CheapHours == 0 {
-		cfg.CheapHours = metrics.CheapHours
-	}
+func energyView(cfg EnergyConfig, results map[string]any, _ ViewCtx) map[string]any {
 	raw, ok := results["data"].(*sources.TibberDataset)
 	if !ok {
 		return map[string]any{}
@@ -335,25 +293,38 @@ func energyView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	on := func(key string, service enums.ServiceType, decode DecodeFunc, view ViewFunc) {
-		Register(WidgetType{Key: key, Decode: decode, Template: "widgets/" + key, Category: CategoryInsight,
-			Service: service, RefreshS: integrationTTL, Queries: dataQuery, View: view})
-	}
+	Tile[MediaConfig]{Key: "mediaserver", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceMediaServer, RefreshS: integrationTTL,
+		Fields:  []Field{{Key: "show_users", Input: InputCheck, Default: true}},
+		Decode:  func(r Raw) MediaConfig { return MediaConfig{Users: r.Bool("show_users")} },
+		Queries: ownData[MediaConfig], View: mediaView}.add()
 
-	on("mediaserver", enums.ServiceMediaServer, decodeMedia, mediaView)
-	on("arr_upcoming", enums.ServiceArr, decodeArr, arrView)
-	on("grocy", enums.ServiceGrocy, decodeGrocy, grocyView)
-	on("dwd", enums.ServiceDWD, decodeDWD, dwdView)
-	on("tailscale", enums.ServiceTailscale, decodeTailscale, tailscaleView)
-	on("speedtest", enums.ServiceSpeedtest, decodeSpeed, speedView)
-	on("github", enums.ServiceGitHub, decodeGitHub, githubView)
-	Register(WidgetType{Key: "energy", Decode: decodeEnergy, Template: "widgets/energy", Category: CategoryInsight,
-		Service: enums.ServiceTibber, RefreshS: integrationTTL, View: energyView,
-		Queries: func(c any) []Query {
-			queries := dataQuery(nil)
-			if c.(EnergyConfig).PowerEntity != "" {
-				queries = append(queries, Query{Name: peerHass, Source: "data", Conn: ConnPeer, Service: enums.ServiceHomeAssistant})
-			}
-			return queries
-		}})
+	Tile[ArrConfig]{Key: "arr_upcoming", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceArr, RefreshS: integrationTTL,
+		Fields:  []Field{{Key: "days", Input: InputNumber, Default: arrDays, Min: "1", Max: "30"}},
+		Decode:  func(r Raw) ArrConfig { return ArrConfig{Days: r.Int("days")} },
+		Queries: ownData[ArrConfig], View: dataView(arrView)}.add()
+
+	Tile[GrocyConfig]{Key: "grocy", Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceGrocy, RefreshS: integrationTTL,
+		Fields: []Field{{Key: "show_stock", Input: InputCheck, Default: true}, {Key: "show_shopping", Input: InputCheck, Default: true},
+			{Key: "show_chores", Input: InputCheck, Default: true}, {Key: "days", Input: InputNumber, Default: 0, Min: "0", Max: "60"}},
+		Decode: decodeGrocy, Queries: ownData[GrocyConfig], View: dataView(grocyView)}.add()
+
+	Tile[DWDConfig]{Key: "dwd", Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceDWD, RefreshS: integrationTTL,
+		Fields: []Field{sel("min_level", "minor", "minor", "moderate", "severe", "extreme")},
+		Decode: decodeDWD, Queries: ownData[DWDConfig], View: dataView(dwdView)}.add()
+
+	Tile[TailscaleConfig]{Key: "tailscale", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceTailscale, RefreshS: integrationTTL,
+		Fields: []Field{{Key: "only_problems", Input: InputCheck}, {Key: "hide_after", Input: InputNumber, Default: 0, Min: "0", Max: "3650"},
+			{Key: "tags", Input: InputList}},
+		Renames: []rename{{from: "only_trouble", to: "only_problems"}},
+		Decode:  decodeTailscale, Queries: ownData[TailscaleConfig], View: dataView(tailscaleView)}.add()
+
+	Tile[GitHubConfig]{Key: "github", Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitHub, RefreshS: integrationTTL,
+		Fields:  []Field{{Key: "filter", Input: InputList}, {Key: "only_problems", Input: InputCheck}},
+		Renames: []rename{{from: "only_red", to: "only_problems"}},
+		Decode:  decodeGitHub, Queries: ownData[GitHubConfig], View: dataView(githubView)}.add()
+
+	Tile[EnergyConfig]{Key: "energy", Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceTibber, RefreshS: integrationTTL,
+		Fields: []Field{{Key: "power_entity", Input: InputText}, {Key: "cheap_hours", Input: InputNumber, Default: metrics.CheapHours, Min: "1", Max: "12"},
+			{Key: "tomorrow", Input: InputCheck, Default: true}, sel("price", "total", "total", "energy")},
+		Decode: decodeEnergy, Queries: energyQueries, View: energyView}.add()
 }

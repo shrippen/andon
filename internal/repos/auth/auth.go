@@ -92,6 +92,12 @@ func AddSession(q db.Queryer, s *model.LoginSession) error {
 
 // TouchSession bumps last_seen and, once the second factor is verified,
 // clears pending_2fa.
+// RotateSession gives a session a new token (hash): the old one stops.
+func RotateSession(q db.Queryer, sessionID int64, tokenHash string) error {
+	_, err := q.Exec("UPDATE sessions SET token_hash = ? WHERE id = ?", tokenHash, sessionID)
+	return err
+}
+
 func TouchSession(q db.Queryer, sessionID int64, lastSeen time.Time, pending2FA bool) error {
 	_, err := q.Exec(
 		"UPDATE sessions SET last_seen = ?, pending_2fa = ? WHERE id = ?",
@@ -233,6 +239,12 @@ func TouchToken(q db.Queryer, tokenID int64, at time.Time) error {
 }
 
 // RemoveToken deletes one API token.
+// RemoveTokensOf deletes every API token of a user.
+func RemoveTokensOf(q db.Queryer, userID int64) error {
+	_, err := q.Exec("DELETE FROM api_tokens WHERE user_id = ?", userID)
+	return err
+}
+
 func RemoveToken(q db.Queryer, tokenID int64) error {
 	_, err := q.Exec("DELETE FROM api_tokens WHERE id = ?", tokenID)
 	return err

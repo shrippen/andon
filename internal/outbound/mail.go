@@ -49,8 +49,14 @@ func Deliver(cfg settings.Settings, m Mail) {
 		slog.Info("mail skipped (no SMTP_URL)", "subject", m.Subject)
 		return
 	}
-	go sendNow(cfg, m)
+	sending.Go(func() { sendNow(cfg, m) })
 }
+
+// sending tracks mails on their way, so shutdown can wait for them.
+var sending sync.WaitGroup
+
+// WaitSent blocks until every mail handed to Deliver is sent or failed.
+func WaitSent() { sending.Wait() }
 
 // SendMail delivers m synchronously and returns the SMTP error, if any.
 func SendMail(cfg settings.Settings, m Mail) error {

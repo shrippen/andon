@@ -91,7 +91,7 @@ func Run(d *sql.DB, dir string, now time.Time) (Status, error) {
 	status.OK = status.Problem == ""
 	if !status.OK {
 		// A copy that fails the test must not push a good one out.
-		_ = os.Remove(path)
+		_ = db.RemoveCopy(path)
 	} else if err := prune(dir); err != nil {
 		return status, err
 	}
@@ -207,7 +207,7 @@ func prune(dir string) error {
 		return err
 	}
 	for i := Keep; i < len(files); i++ {
-		if err := os.Remove(filepath.Join(dir, files[i].Name)); err != nil {
+		if err := db.RemoveCopy(filepath.Join(dir, files[i].Name)); err != nil {
 			return err
 		}
 	}

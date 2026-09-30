@@ -57,16 +57,30 @@
       body: JSON.stringify(body),
       credentials: "same-origin"
     }).then(function (res) {
-      return res.ok ? res.json() : null;
+      if (res.ok) {
+        return res.json();
+      }
+      // The board changed meanwhile (409): reload for a consistent state.
+      // Anything else leaves the page as it is and says so.
+      if (res.status === 409) {
+        reload();
+      } else {
+        window.alert(board.getAttribute("data-save-failed") || "Saving failed (" + res.status + ").");
+      }
+      return false;
     }).then(function (answer) {
-      // Somebody else saved in between, or the save failed: reload for a
-      // consistent state.
+      if (answer === false) {
+        return;
+      }
+      // Somebody else saved in between: reload for a consistent state.
       if (!answer || !answer.version) {
         reload();
         return;
       }
       carryOn(board, String(answer.version));
-    }).catch(reload);
+    }).catch(function () {
+      window.alert(board.getAttribute("data-save-failed") || "Saving failed: offline?");
+    });
   }
 
   function editedBoard() {

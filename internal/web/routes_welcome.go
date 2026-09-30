@@ -43,7 +43,7 @@ func (d Deps) handleStart(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 func (d Deps) handleWelcome(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	state, err := onboarding.Load(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	_ = d.Page(w, ctx, "welcome", http.StatusOK, map[string]any{"Onboarding": state})
@@ -57,7 +57,7 @@ func (d Deps) handleIntroSeen(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	if err := onboarding.SeeIntro(d.DB, ctx.Who, page); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	// htmx swaps the box away; a plain form post goes back to the page.
@@ -81,7 +81,7 @@ func (d Deps) welcomeAction(change func(*sql.DB, *access.Principal) error) http.
 			return
 		}
 		if err := change(d.DB, ctx.Who); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			d.fail(w, err, http.StatusInternalServerError)
 			return
 		}
 		http.Redirect(w, r, "/welcome", http.StatusSeeOther)

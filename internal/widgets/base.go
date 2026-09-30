@@ -2,7 +2,7 @@
 //
 // A widget type declares what it needs, never how to get it:
 //
-//	Register(WidgetType{Key: "rss", Template: "widgets/rss.html",
+//	Register(WidgetType{Key: "rss",
 //	    Queries: func(cfg any) []Query { ... }})
 //
 // The widgets service runs the queries (with access checks and caching)
@@ -117,7 +117,7 @@ type ViewFunc func(cfg any, results map[string]any, ctx ViewCtx) map[string]any
 type WidgetType struct {
 	Key      string
 	Decode   DecodeFunc
-	Template string
+	Template string // defaults to "widgets/<Key>"
 	Category Category
 	Service  enums.ServiceType // "" if not tied to one service
 	RefreshS int               // 0 = no periodic refresh
@@ -129,6 +129,15 @@ type WidgetType struct {
 	Queries QueriesFunc
 	View    ViewFunc
 	Extra   Extra
+
+	Topic      Topic
+	DataChoice bool // the user may pick live or background data
+	Fields     []Field
+	Renames    []rename
+	Check      func(raw map[string]any) string
+	Calm       func(view map[string]any) bool
+
+	tile bool // declared as a Tile
 }
 
 var registry = map[string]WidgetType{}
@@ -163,6 +172,9 @@ func Register(kind WidgetType) WidgetType {
 	}
 	if kind.Queries == nil {
 		kind.Queries = func(any) []Query { return nil }
+	}
+	if kind.Template == "" {
+		kind.Template = "widgets/" + kind.Key
 	}
 	registry[kind.Key] = kind
 	return kind
@@ -199,5 +211,6 @@ func Decode(key string, config map[string]any) (any, bool) {
 	if config == nil {
 		config = map[string]any{}
 	}
+	config, _ = Upgrade(key, config)
 	return kind.Decode(config), true
 }

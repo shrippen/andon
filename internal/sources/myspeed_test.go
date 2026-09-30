@@ -42,7 +42,7 @@ func TestMySpeed(t *testing.T) {
 	defer srv.Close()
 
 	sctx := sources.Ctx{URL: srv.URL, Secret: password, Options: map[string]any{"kind": "myspeed"}}
-	out, err := sources.SpeedtestData{}.Fetch(context.Background(), sctx)
+	out, err := sources.SpeedtestData.Fetch(context.Background(), sctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestMySpeed(t *testing.T) {
 	}
 
 	sctx.Options["expect_down"] = 500.0
-	out, _ = sources.SpeedtestData{}.Fetch(context.Background(), sctx)
+	out, _ = sources.SpeedtestData.Fetch(context.Background(), sctx)
 	if out.(*sources.SpeedtestDataset).ExpectDown != 500 {
 		t.Fatal("options must win over MySpeed's config")
 	}

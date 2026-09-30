@@ -54,12 +54,12 @@ func (d Deps) handleHome(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	// visible board when it is gone or no longer visible.
 	profile, err := accounts.GetProfile(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	id, err := boards.StartBoard(d.DB, ctx.Who, profile.StartBoardID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	target := "/boards/" + strconv.FormatInt(id, 10)
@@ -114,13 +114,13 @@ func (d Deps) renderBoard(w http.ResponseWriter, r *http.Request, ctx Ctx, embed
 	}
 	navBoards, err := boards.Nav(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	themeURL, err := d.themeURL(ctx.Who, view.ThemeID, &view.Space.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -394,7 +394,7 @@ func (d Deps) handleHassToggle(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		http.NotFound(w, r)
 		return
 	}
-	if err := hass.Toggle(r.Context(), d.DB, ctx.Who, id, r.FormValue("entity"), ClientIP(r)); err != nil {
+	if err := hass.Toggle(r.Context(), d.DB, ctx.Who, id, r.FormValue("entity"), d.clientIP(r)); err != nil {
 		if errors.Is(err, hass.ErrNotSwitchable) {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
@@ -428,10 +428,8 @@ func (d Deps) handleBoardError(w http.ResponseWriter, r *http.Request, err error
 	switch {
 	case errors.Is(err, util.ErrNotFound):
 		http.NotFound(w, r)
-	case errors.Is(err, boards.ErrDenied):
-		http.Error(w, "forbidden", http.StatusForbidden)
 	default:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 	}
 }
 
@@ -448,7 +446,7 @@ func (d Deps) handleAuthError(w http.ResponseWriter, r *http.Request, err error)
 	case errors.Is(err, ErrCSRFFailed):
 		http.Error(w, "csrf", http.StatusForbidden)
 	default:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 	}
 }
 
@@ -542,7 +540,7 @@ func (d Deps) handleShow(w http.ResponseWriter, r *http.Request) {
 // handleMyRows sets a tile's height in the caller's own layout.
 func (d Deps) handleMyRows(w http.ResponseWriter, r *http.Request) {
 	d.layoutAction(w, r, "placementID", func(ctx Ctx, id, placementID int64) error {
-		rows, _ := strconv.Atoi(r.FormValue("rows"))
+		rows := formInt(r, "rows")
 		return boards.SetMyTileRows(d.DB, ctx.Who, id, placementID, rows)
 	}, layoutPage)
 }
@@ -550,7 +548,7 @@ func (d Deps) handleMyRows(w http.ResponseWriter, r *http.Request) {
 // handleMyCols sets a tile's width in the caller's own layout.
 func (d Deps) handleMyCols(w http.ResponseWriter, r *http.Request) {
 	d.layoutAction(w, r, "placementID", func(ctx Ctx, id, placementID int64) error {
-		cols, _ := strconv.Atoi(r.FormValue("cols"))
+		cols := formInt(r, "cols")
 		return boards.SetMyTileCols(d.DB, ctx.Who, id, placementID, cols)
 	}, layoutPage)
 }
@@ -576,19 +574,6 @@ func (d Deps) handleOverlayReset(w http.ResponseWriter, r *http.Request, ctx Ctx
 
 // ── History ──
 
-// revisionRow summarises one revision: "Links (4), Tools (2)".
-type revisionRow struct {
-	ID       int64
-	Version  int
-	At       any
-	Sections []revisionSection
-}
-
-type revisionSection struct {
-	Title   string
-	Widgets int
-}
-
 func (d Deps) handleHistory(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
@@ -605,20 +590,7 @@ func (d Deps) handleHistory(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.handleBoardError(w, r, err)
 		return
 	}
-
-	rows := make([]revisionRow, 0, len(revs))
-	for _, rev := range revs {
-		row := revisionRow{ID: rev.ID, Version: rev.Version, At: rev.At}
-		list, _ := rev.Data["sections"].([]any)
-		for _, item := range list {
-			sec, _ := item.(map[string]any)
-			title, _ := sec["title"].(string)
-			placed, _ := sec["widgets"].([]any)
-			row.Sections = append(row.Sections, revisionSection{Title: title, Widgets: len(placed)})
-		}
-		rows = append(rows, row)
-	}
-	_ = d.Page(w, ctx, "board_history", http.StatusOK, map[string]any{"Board": view, "Revisions": rows})
+	_ = d.Page(w, ctx, "board_history", http.StatusOK, map[string]any{"Board": view, "Revisions": revs})
 }
 
 func (d Deps) handleRestore(w http.ResponseWriter, r *http.Request) {
@@ -655,7 +627,7 @@ func (d Deps) handleSuggestApply(w http.ResponseWriter, r *http.Request, ctx Ctx
 		http.NotFound(w, r)
 		return
 	}
-	version, _ := strconv.Atoi(r.FormValue("version"))
+	version := formInt(r, "version")
 	if err := boards.ApplySuggestion(d.DB, ctx.Who, id, version); err != nil {
 		d.handleBoardError(w, r, err)
 		return

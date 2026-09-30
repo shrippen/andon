@@ -202,13 +202,6 @@ func Sizes() (fresh, known int) {
 	return len(mem), len(latest)
 }
 
-// entries is the size of the larger cache.
-func entries() int {
-	memMu.Lock()
-	defer memMu.Unlock()
-	return max(len(mem), len(latest))
-}
-
 func remembered(key string, now time.Time) (Result, bool) {
 	memMu.Lock()
 	defer memMu.Unlock()
@@ -370,14 +363,22 @@ func Get(ctx context.Context, d *sql.DB, sourceKey string, params map[string]any
 // and a second viewer asking at once reach the service once.
 var fetches singleflight.Group
 
+// shared runs or joins the fetch of key.
+//
+// The fetch is not tied to any caller: a cancelled request must not fail
+// the others waiting on it. A caller that gives up gets Pending and the
+// fetch finishes for the cache.
 func shared(ctx context.Context, d *sql.DB, key, sourceKey string, source sources.Source, sctx sources.Ctx, conn *model.Connection) Result {
-	// Not tied to the first caller: its cancelled request must not fail
-	// the others waiting on the same fetch.
-	ctx = context.WithoutCancel(ctx)
-	out, _, _ := fetches.Do(key, func() (any, error) {
-		return fetch(ctx, d, key, sourceKey, source, sctx, conn), nil
+	detached := context.WithoutCancel(ctx)
+	done := fetches.DoChan(key, func() (any, error) {
+		return fetch(detached, d, key, sourceKey, source, sctx, conn), nil
 	})
-	return out.(Result)
+	select {
+	case out := <-done:
+		return out.Val.(Result)
+	case <-ctx.Done():
+		return Result{Pending: true}
+	}
 }
 
 // BudgetSpent is the error of a fetch skipped because the connection's
@@ -412,7 +413,7 @@ func fillLater(d *sql.DB, key string, source sources.Source, sctx sources.Ctx, c
 	inflight[key] = true
 	inflightMu.Unlock()
 
-	go func() {
+	filling.Go(func() {
 		defer func() {
 			inflightMu.Lock()
 			delete(inflight, key)
@@ -421,8 +422,14 @@ func fillLater(d *sql.DB, key string, source sources.Source, sctx sources.Ctx, c
 		ctx, cancel := context.WithTimeout(context.Background(), backgroundWait)
 		defer cancel()
 		fetch(ctx, d, key, source.Key(), source, sctx, conn)
-	}()
+	})
 }
+
+// filling tracks background fills, so shutdown can wait for them.
+var filling sync.WaitGroup
+
+// WaitFills blocks until every background fill has finished.
+func WaitFills() { filling.Wait() }
 
 // fetch reaches the service and remembers the outcome.
 func fetch(ctx context.Context, d *sql.DB, key, sourceKey string, source sources.Source, sctx sources.Ctx, conn *model.Connection) Result {

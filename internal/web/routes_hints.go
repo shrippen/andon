@@ -65,7 +65,7 @@ func (d Deps) handleHintsPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	}
 	found, err := hints.Active(d.DB, ctx.Who, enums.SeverityInfo, nil, 0)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	byValue := r.URL.Query().Get("sort") == sortByValue
@@ -74,7 +74,7 @@ func (d Deps) handleHintsPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	}
 	noisy, err := hints.NoisyRules(d.DB, ctx.Who, time.Now().UTC())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	filter := hintFilter{Level: r.URL.Query().Get("level"), Source: r.URL.Query().Get("source"), ByValue: byValue,
@@ -94,7 +94,7 @@ const (
 func (d Deps) hintsDone(w http.ResponseWriter, ctx Ctx) {
 	done, err := hints.Resolved(d.DB, ctx.Who, time.Now().AddDate(0, 0, -doneDays))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	_ = d.Page(w, ctx, "hints", http.StatusOK, map[string]any{"Done": done, "DoneDays": doneDays})
@@ -306,7 +306,7 @@ func (d Deps) handleHintAct(action hints.Action) http.HandlerFunc {
 		if !ok {
 			return
 		}
-		days, _ := strconv.Atoi(r.FormValue("days"))
+		days := formInt(r, "days")
 		if choice := r.FormValue("for"); choice != "" {
 			days = hints.SnoozeDays(choice, time.Now())
 		}
@@ -413,7 +413,7 @@ func (d Deps) handleHintWorkflow(step hintStep) http.HandlerFunc {
 		var err error
 		switch step {
 		case hintAssign:
-			assignee, _ := strconv.ParseInt(r.FormValue("assignee"), 10, 64)
+			assignee := formID(r, "assignee")
 			err = hints.Assign(d.DB, ctx.Who, id, assignee, note)
 		case hintWork:
 			err = hints.SetWork(d.DB, ctx.Who, id, enums.WorkState(r.FormValue("state")), note)

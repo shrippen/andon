@@ -100,12 +100,13 @@ func Bulk(d *sql.DB, who *access.Principal, boardID int64, version int, placemen
 
 // recolor sets the color of the chosen link tiles the caller may edit.
 func recolor(tx *sql.Tx, who *access.Principal, board *model.Board, known map[int64]model.Placement, placements []int64, color string) error {
+	sight := &boardSight{board: board}
 	for _, id := range placements {
 		w := known[id].Widget
 		if w == nil || w.Type != linkType {
 			continue
 		}
-		granted, err := seenRight(tx, who, w, board)
+		granted, err := seenRight(tx, who, w, sight)
 		if err != nil {
 			return err
 		}
@@ -136,7 +137,7 @@ func recolor(tx *sql.Tx, who *access.Principal, board *model.Board, known map[in
 func Duplicate(d *sql.DB, who *access.Principal, boardID int64, name string) (int64, error) {
 	src, err := func() (*model.Board, error) {
 		var b *model.Board
-		err := db.WithTx(d, func(tx *sql.Tx) error {
+		err := db.WithRead(d, func(tx *sql.Tx) error {
 			var err error
 			b, err = load(tx, who, boardID, enums.RightView)
 			return err

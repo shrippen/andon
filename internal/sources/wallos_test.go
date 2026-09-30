@@ -44,7 +44,7 @@ func TestWallosFetch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	out, err := sources.WallosData{}.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "key", VerifyTLS: true})
+	out, err := sources.WallosData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "key", VerifyTLS: true})
 	if err != nil {
 		t.Fatal(err)
 	}

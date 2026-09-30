@@ -1,12 +1,14 @@
 package widgets
 
 import (
+	"math"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/sources"
 )
@@ -16,19 +18,22 @@ import (
 // DNSConfig is the Pi-hole and AdGuard widgets' config.
 type DNSConfig struct{ Clients, Domains bool }
 
-func decodeDNS(raw map[string]any) any {
-	return DNSConfig{Clients: asBool(raw["top_clients"]), Domains: asBool(raw["top_domains"])}
+func decodeDNS(r Raw) DNSConfig {
+	return DNSConfig{Clients: r.Bool("top_clients"), Domains: r.Bool("top_domains")}
 }
 
 // dnsTop is how many clients or domains a DNS tile lists.
 const dnsTop = 5
 
-func dnsFilterView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(DNSConfig)
-	data, ok := results["data"].(*sources.DNSFilterDataset)
-	if !ok {
-		return map[string]any{}
+func init() {
+	for key, service := range map[string]enums.ServiceType{"pihole": enums.ServicePihole, "adguard": enums.ServiceAdGuard} {
+		Tile[DNSConfig]{Key: key, Category: CategoryInsight, Topic: TopicNetwork, Service: service, RefreshS: 5 * 60,
+			Fields: []Field{{Key: "top_clients", Input: InputCheck}, {Key: "top_domains", Input: InputCheck}},
+			Decode: decodeDNS, Queries: ownData[DNSConfig], View: dataView(dnsFilterView)}.add()
 	}
+}
+
+func dnsFilterView(cfg DNSConfig, data *sources.DNSFilterDataset, _ ViewCtx) map[string]any {
 	out := map[string]any{"Percent": data.Percent, "W": pctOf(data.Percent, pctFull), "Queries": data.Queries,
 		"Blocked": data.Blocked, "Enabled": data.Enabled}
 	if cfg.Clients {
@@ -45,16 +50,16 @@ func dnsFilterView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any
 // VPNConfig is the "vpn" widget's config.
 type VPNConfig struct{ Country string }
 
-func decodeVPN(raw map[string]any) any {
-	return VPNConfig{Country: strings.TrimSpace(asString(raw["expected_country"]))}
+func init() {
+	Tile[VPNConfig]{Key: "vpn", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceGluetun, RefreshS: 5 * 60,
+		Fields: []Field{{Key: "expected_country", Input: InputText}},
+		Decode: func(r Raw) VPNConfig {
+			return VPNConfig{Country: strings.TrimSpace(r.String("expected_country"))}
+		},
+		Queries: ownData[VPNConfig], View: dataView(vpnView)}.add()
 }
 
-func vpnView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(VPNConfig)
-	raw, ok := results["data"].(*sources.GluetunDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func vpnView(cfg VPNConfig, raw *sources.GluetunDataset, _ ViewCtx) map[string]any {
 	data := raw
 	if cfg.Country != "" {
 		copied := *raw
@@ -82,19 +87,19 @@ type GatewayConfig struct {
 	DeviceList   bool // name the devices, not just count them
 }
 
-func decodeGateway(raw map[string]any) any {
-	return GatewayConfig{HideMeasures: asBool(raw["hide_measures"]), DeviceList: asBool(raw["device_list"])}
+func init() {
+	Tile[GatewayConfig]{Key: "gateway", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceGateway, RefreshS: 5 * 60,
+		Fields: []Field{{Key: "hide_measures", Input: InputCheck}, {Key: "device_list", Input: InputCheck}},
+		Decode: func(r Raw) GatewayConfig {
+			return GatewayConfig{HideMeasures: r.Bool("hide_measures"), DeviceList: r.Bool("device_list")}
+		},
+		Queries: ownData[GatewayConfig], View: dataView(gatewayView)}.add()
 }
 
 // gatewayNames caps the devices a gateway tile names.
 const gatewayNames = 30
 
-func gatewayView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(GatewayConfig)
-	data, ok := results["data"].(*sources.GatewayDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func gatewayView(cfg GatewayConfig, data *sources.GatewayDataset, _ ViewCtx) map[string]any {
 	online, pending := 0, 0
 	var offline []string
 	for _, dev := range data.Devices {
@@ -127,9 +132,21 @@ func gatewayView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 
 const peerDomains = "domains"
 
+// expiryUnknown is the value of a bar whose end is not known; such a
+// bar sorts last (expiryNever days left).
+const (
+	expiryUnknown = "expiry.unknown"
+	expiryNever   = math.MaxInt32
+)
+
+// expiryBar: days left as a bar; an error or an unknown end as text
+// without a bar (W 0).
 func expiryBar(label string, left int, err string) HBar {
 	if err != "" {
 		return HBar{Label: label, Value: err, Tier: "red"}
+	}
+	if left == expiryNever {
+		return HBar{Label: label, Value: expiryUnknown}
 	}
 	tier := ""
 	switch {
@@ -151,18 +168,35 @@ type ExpiryConfig struct {
 	Kinds   string // "", "certs" or "domains"
 }
 
-func decodeExpiry(raw map[string]any) any {
-	kinds, _ := raw["kinds"].(string)
-	if kinds == "both" {
+// expiryBoth shows certificates and domains.
+const expiryBoth = "both"
+
+func decodeExpiry(r Raw) ExpiryConfig {
+	kinds := r.Pick("kinds")
+	if kinds == expiryBoth {
 		kinds = ""
 	}
-	return ExpiryConfig{MaxDays: clampInt(asInt(raw["max_days"], 0), 0, 3650), Kinds: kinds}
+	return ExpiryConfig{MaxDays: r.Int("max_days"), Kinds: kinds}
 }
 
-func expiryView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(ExpiryConfig)
+func init() {
+	Tile[ExpiryConfig]{Key: "expiry", Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceCerts, RefreshS: 60 * 60,
+		Fields: []Field{{Key: "max_days", Input: InputNumber, Min: "0", Max: "3650"}, sel("kinds", expiryBoth, expiryBoth, "certs", "domains")},
+		Decode: decodeExpiry, View: expiryView,
+		Queries: func(ExpiryConfig) []Query {
+			return append(dataQuery(nil), Query{Name: peerDomains, Source: "data", Conn: ConnPeer, Service: enums.ServiceDomains})
+		},
+		Calm: func(v map[string]any) bool { return v["Total"] == 0 }}.add()
+}
+
+func expiryView(cfg ExpiryConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	today := todayOf(ctx)
-	daysTo := func(t time.Time) int { return int(t.Sub(today).Hours() / hoursPerDay) }
+	daysTo := func(t time.Time) int {
+		if t.IsZero() {
+			return expiryNever
+		}
+		return int(t.Sub(today).Hours() / hoursPerDay)
+	}
 
 	type item struct {
 		bar  HBar
@@ -200,13 +234,17 @@ func expiryView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any 
 // SpeedHistoryConfig is the "speed_history" widget's config.
 type SpeedHistoryConfig struct{ Days int }
 
-func decodeSpeedHistory(raw map[string]any) any {
-	return SpeedHistoryConfig{Days: clampInt(asInt(raw["days"], speedDays), 2, 90)}
+func init() {
+	Tile[SpeedHistoryConfig]{Key: "speed_history", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest,
+		RefreshS: 60 * 60, Extra: ExtraHistory,
+		Fields:  []Field{{Key: "days", Input: InputNumber, Default: speedDays, Min: "2", Max: "90"}},
+		Decode:  func(r Raw) SpeedHistoryConfig { return SpeedHistoryConfig{Days: r.Int("days")} },
+		Queries: ownData[SpeedHistoryConfig], View: speedHistoryView}.add()
 }
 
-func speedHistoryView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
+func speedHistoryView(cfg SpeedHistoryConfig, results map[string]any, _ ViewCtx) map[string]any {
 	days := speedDays
-	if cfg, ok := cfgAny.(SpeedHistoryConfig); ok && cfg.Days > 0 {
+	if cfg.Days > 0 {
 		days = cfg.Days
 	}
 	h, _ := results[HistorySlot].(*metrics.History)
@@ -248,16 +286,14 @@ func speedHistoryView(cfgAny any, results map[string]any, _ ViewCtx) map[string]
 // SabConfig is the "sabnzbd" widget's config.
 type SabConfig struct{ Queue int }
 
-func decodeSab(raw map[string]any) any {
-	return SabConfig{Queue: clampInt(asInt(raw["queue"], 0), 0, 20)}
+func init() {
+	Tile[SabConfig]{Key: "sabnzbd", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceSabnzbd, RefreshS: 5 * 60,
+		Fields:  []Field{{Key: "queue", Input: InputNumber, Default: 0, Min: "0", Max: "20"}},
+		Decode:  func(r Raw) SabConfig { return SabConfig{Queue: r.Int("queue")} },
+		Queries: ownData[SabConfig], View: dataView(sabnzbdView)}.add()
 }
 
-func sabnzbdView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(SabConfig)
-	data, ok := results["data"].(*sources.SabnzbdDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func sabnzbdView(cfg SabConfig, data *sources.SabnzbdDataset, _ ViewCtx) map[string]any {
 	return map[string]any{"Data": data, "SpeedMB": data.SpeedKB / 1024, "Failures": firstN(data.Failures, listShown),
 		"Queue": firstN(data.Queue, cfg.Queue)}
 }
@@ -270,16 +306,21 @@ type PaperlessConfig struct {
 	Tag    string // count this tag instead of the inbox (lower case)
 }
 
-func decodePaperless(raw map[string]any) any {
-	return PaperlessConfig{Newest: clampInt(asInt(raw["newest_docs"], 0), 0, 10), Tag: strings.ToLower(strings.TrimSpace(asString(raw["tag"])))}
+func init() {
+	Tile[PaperlessConfig]{Key: "paperless_inbox", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServicePaperless, RefreshS: 30 * 60,
+		Fields: []Field{{Key: "newest_docs", Input: InputNumber, Default: 0, Min: "0", Max: "10"}, {Key: "tag", Input: InputText}},
+		Decode: func(r Raw) PaperlessConfig {
+			return PaperlessConfig{Newest: r.Int("newest_docs"), Tag: strings.ToLower(strings.TrimSpace(r.String("tag")))}
+		},
+		Queries: ownData[PaperlessConfig], View: dataView(paperlessInboxView),
+		// Count is the inbox, or the tag's documents when a tag is set.
+		Calm: func(v map[string]any) bool {
+			_, ok := v["Data"].(*sources.PaperlessDataset)
+			return ok && v["Count"] == 0
+		}}.add()
 }
 
-func paperlessInboxView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(PaperlessConfig)
-	data, ok := results["data"].(*sources.PaperlessDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func paperlessInboxView(cfg PaperlessConfig, data *sources.PaperlessDataset, ctx ViewCtx) map[string]any {
 	out := map[string]any{"Data": data, "Count": data.Inbox, "Newest": firstN(data.Newest, cfg.Newest)}
 	if cfg.Tag != "" {
 		out["Tag"], out["Count"] = cfg.Tag, data.TagCounts[cfg.Tag]
@@ -304,15 +345,15 @@ type MailConfig struct {
 	Limit    int
 }
 
-func decodeMail(raw map[string]any) any {
-	return MailConfig{OnlyOpen: asBool(raw["only_open"]), Limit: clampInt(asInt(raw["limit"], listShown), 1, 30)}
+func init() {
+	Tile[MailConfig]{Key: "mail_invoices", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceMail, RefreshS: 60 * 60,
+		Extra:   ExtraForwarded,
+		Fields:  []Field{{Key: "only_open", Input: InputCheck}, {Key: "limit", Input: InputNumber, Default: listShown, Min: "1", Max: "30"}},
+		Decode:  func(r Raw) MailConfig { return MailConfig{OnlyOpen: r.Bool("only_open"), Limit: r.Int("limit")} },
+		Queries: ownData[MailConfig], View: mailInvoicesView}.add()
 }
 
-func mailInvoicesView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(MailConfig)
-	if !ok {
-		cfg = decodeMail(nil).(MailConfig)
-	}
+func mailInvoicesView(cfg MailConfig, results map[string]any, _ ViewCtx) map[string]any {
 	data, ok := results["data"].(*sources.MailDataset)
 	if !ok {
 		return map[string]any{}
@@ -343,19 +384,16 @@ type FreshRSSConfig struct {
 	OnlyUnread bool
 }
 
-func decodeFreshRSS(raw map[string]any) any {
-	return FreshRSSConfig{Only: lowerList(raw["filter"]), OnlyUnread: boolOr(raw["only_unread"], true)}
+func init() {
+	Tile[FreshRSSConfig]{Key: "freshrss_feeds", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceFreshRSS, RefreshS: 30 * 60,
+		Fields: []Field{{Key: "filter", Input: InputList}, {Key: "only_unread", Input: InputCheck, Default: true}},
+		Decode: func(r Raw) FreshRSSConfig {
+			return FreshRSSConfig{Only: r.Lower("filter"), OnlyUnread: r.Bool("only_unread")}
+		},
+		Queries: ownData[FreshRSSConfig], View: dataView(freshrssView)}.add()
 }
 
-func freshrssView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(FreshRSSConfig)
-	if !ok {
-		cfg.OnlyUnread = true
-	}
-	data, ok := results["data"].(*sources.FreshRSSDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func freshrssView(cfg FreshRSSConfig, data *sources.FreshRSSDataset, _ ViewCtx) map[string]any {
 	var feeds []sources.Feed
 	unread := 0
 	for _, f := range data.Feeds {
@@ -381,6 +419,3 @@ func freshrssView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any 
 	}
 	return map[string]any{"Unread": unread, "Feeds": len(feeds), "Bars": bars}
 }
-
-// decodeEmptyConfig is for tiles without settings.
-func decodeEmptyConfig(map[string]any) any { return struct{}{} }

@@ -39,7 +39,7 @@ func (d Deps) RegisterMoreRoutes(mux *http.ServeMux) {
 func (d Deps) handleBoardList(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	list, err := boards.Listed(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	start := int64(0)
@@ -71,7 +71,7 @@ func (d Deps) handleBoardNav(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/boards#board-"+r.PathValue("id"), http.StatusSeeOther)
@@ -106,7 +106,7 @@ func (d Deps) handleBoardCreate(w http.ResponseWriter, r *http.Request, ctx Ctx)
 func (d Deps) handleCredentials(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	items, err := connections.PersonalNeeded(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	signIns := map[int64]*signIn{}
@@ -177,7 +177,7 @@ func (d Deps) handleConnectionOptions(w http.ResponseWriter, r *http.Request, ct
 
 func (d Deps) handleEndOthers(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := auth.EndOtherSessions(d.DB, ctx.Who); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/me/security", http.StatusSeeOther)
@@ -198,7 +198,7 @@ func (d Deps) handleTeamSpaceSettings(w http.ResponseWriter, r *http.Request, ct
 	if n, err := strconv.ParseInt(r.FormValue("theme_id"), 10, 64); err == nil {
 		theme = float64(n)
 	}
-	if err := spaces.Update(d.DB, ctx.Who, id, map[string]any{"hint_ack": string(mode), "theme_id": theme}, ClientIP(r)); err != nil {
+	if err := spaces.Update(d.DB, ctx.Who, id, map[string]any{"hint_ack": string(mode), "theme_id": theme}, d.clientIP(r)); err != nil {
 		d.handleBoardError(w, r, err)
 		return
 	}
@@ -222,7 +222,7 @@ func (d Deps) handleWidgetCopy(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 	edit := "/widgets/" + strconv.FormatInt(newID, 10) + "/edit"
 	target := targetOf(r.FormValue)
 	if target.Place {
-		if err := d.placeNew(ctx, target, newID, ""); err != nil {
+		if err := d.placeNew(ctx, target, newID, "", ""); err != nil {
 			d.handleBoardError(w, r, err)
 			return
 		}
@@ -235,7 +235,7 @@ func (d Deps) handleWidgetCopy(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 func (d Deps) handleLocale(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	locale := enums.Locale(r.FormValue("locale"))
 	if err := accounts.UpdateProfile(d.DB, ctx.Who, accounts.ProfileChanges{Locale: &locale}); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	back := "/"

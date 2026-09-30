@@ -2,16 +2,9 @@ package widgets
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 )
-
-func TestEveryTypeHasFields(t *testing.T) {
-	for _, kind := range AllTypes() {
-		if _, ok := fieldsByType[kind.Key]; !ok {
-			t.Errorf("widget type %q has no form fields", kind.Key)
-		}
-	}
-}
 
 func TestFormRoundTrip(t *testing.T) {
 	config := map[string]any{
@@ -103,5 +96,73 @@ func TestUncheckedNeedsTheEditor(t *testing.T) {
 	})
 	if editor["show_hours"] != false {
 		t.Fatalf("editor form: %v", editor)
+	}
+}
+
+// TestFormDefaultsMatchDecode: a tile saved from an untouched form works
+// like a tile without config (the gallery preview), e.g. kpi's metric.
+func TestFormDefaultsMatchDecode(t *testing.T) {
+	for _, kind := range AllTypes() {
+		form := map[string]string{FormPrefix + FormMarker: "1"}
+		for _, v := range FormValues(kind.Key, nil) {
+			if v.Input == InputCheck {
+				if v.On {
+					form[v.Name] = "on"
+				}
+				continue
+			}
+			form[v.Name] = v.Text
+		}
+		saved := ParseForm(kind.Key, func(name string) string { return form[name] })
+
+		got, _ := Decode(kind.Key, saved)
+		want, _ := Decode(kind.Key, nil)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%s:\nform   %+v\ndecode %+v", kind.Key, got, want)
+		}
+	}
+}
+
+// TestSelectFallsBackToDefault: a stored value the select no longer
+// offers shows the default, not whatever option comes first.
+func TestSelectFallsBackToDefault(t *testing.T) {
+	for _, v := range FormValues("kpi", map[string]any{"metric": "gone"}) {
+		if v.Key == "metric" && v.Text != string(MetricRevenueYTD) {
+			t.Fatalf("metric %q, want %q", v.Text, MetricRevenueYTD)
+		}
+	}
+}
+
+// TestNumberFieldsBounded: every number field names the range its
+// decoder accepts, so the browser stops a value the tile would clamp
+// or drop. Beyond a bound, the decoder clamps to it or falls back.
+func TestNumberFieldsBounded(t *testing.T) {
+	unboundedLow := map[string]bool{"cashflow.min_balance": true}
+	for _, kind := range AllTypes() {
+		empty, _ := Decode(kind.Key, nil)
+		for _, f := range FieldsOf(kind.Key) {
+			if f.Input != InputNumber {
+				continue
+			}
+			name := kind.Key + "." + f.Key
+			if f.Min == "" && !unboundedLow[name] {
+				t.Errorf("%s: no min", name)
+			}
+			for bound, beyond := range map[string]float64{f.Min: -1e6, f.Max: 1e6} {
+				if bound == "" {
+					continue
+				}
+				v, err := strconv.ParseFloat(bound, 64)
+				if err != nil {
+					t.Errorf("%s: bound %q", name, bound)
+					continue
+				}
+				at, _ := Decode(kind.Key, map[string]any{f.Key: v})
+				out, _ := Decode(kind.Key, map[string]any{f.Key: v + beyond})
+				if !reflect.DeepEqual(out, at) && !reflect.DeepEqual(out, empty) {
+					t.Errorf("%s: beyond %s neither clamps nor falls back", name, bound)
+				}
+			}
+		}
 	}
 }

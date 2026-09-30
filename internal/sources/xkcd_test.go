@@ -30,7 +30,7 @@ func TestXkcdRandom(t *testing.T) {
 	defer sources.SetBases(srv.URL)()
 
 	for range 10 {
-		out, err := sources.XkcdSource{}.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"random": true}})
+		out, err := sources.XkcdSource.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"random": true}})
 		if err != nil {
 			t.Fatal(err)
 		}

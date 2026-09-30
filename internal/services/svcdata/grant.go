@@ -9,7 +9,6 @@ import (
 
 	"andon/internal/crypto"
 	"andon/internal/db"
-	"andon/internal/drivers/httpclient"
 	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/sources"
@@ -62,7 +61,7 @@ func grantToken(ctx context.Context, d *sql.DB, conn *model.Connection, owner *i
 		client = sources.ParseClient(raw)
 	}
 
-	next, renewed, err := g.Fresh(ctx, client, httpclient.TLSOf(conn.VerifyTLS), time.Now().UTC())
+	next, renewed, err := g.Fresh(ctx, client, sources.TLSFor(conn.VerifyTLS), time.Now().UTC())
 	if err != nil {
 		return "", err
 	}

@@ -15,6 +15,9 @@ services:
       # Existing Apprise API instance to send push notifications through
       # (no bundled Apprise container here — reuse what you already run):
       APPRISE_API_URL: https://apprise.example.lan
+      # Behind a reverse proxy: its address, so logins are counted per
+      # client and not all as the proxy's (comma-separated, CIDR ok).
+      # TRUSTED_PROXIES: 172.18.0.0/16
       # optional at first start; afterwards Admin → Instanz:
       # OIDC_ISSUER: https://auth.example.lan/application/o/andon/
       # OIDC_CLIENT_ID: andon

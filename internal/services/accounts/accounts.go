@@ -3,6 +3,7 @@
 package accounts
 
 import (
+	authrepo "andon/internal/repos/auth"
 	"database/sql"
 	"errors"
 	"strings"
@@ -21,6 +22,10 @@ import (
 
 // MinPassword is the minimum accepted password length.
 const MinPassword = 12
+
+// SelfRegisteredPref marks an account made by self-registration: its
+// address is unverified, so single sign-on never links to it by email.
+const SelfRegisteredPref = "self_registered"
 
 // ErrEmailTaken means the email is already registered.
 var ErrEmailTaken = errors.New("accounts: email already registered")
@@ -236,6 +241,10 @@ func ChangePassword(d *sql.DB, who *access.Principal, current, newPassword, ip s
 		}
 		u.PasswordHash = hash
 		if err := users.Update(tx, u); err != nil {
+			return err
+		}
+		// Whoever else is logged in is the reason to change it.
+		if err := authrepo.DropSessions(tx, u.ID, who.SessionID); err != nil {
 			return err
 		}
 		return audit.Log(tx, &who.UserID, "password.changed", "", ip, nil)

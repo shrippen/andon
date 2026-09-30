@@ -1,6 +1,8 @@
 package sources
 
 import (
+	"andon/internal/drivers/httpclient"
+	"andon/internal/weburl"
 	"encoding/xml"
 	"errors"
 	"html"
@@ -83,9 +85,12 @@ var errInvalidFeed = errors.New("invalid feed")
 // parser (no third-party feedparser equivalent in Go): common fields
 // only, not every extension format in the wild.
 func parseFeed(r io.Reader) (*FeedResult, error) {
-	raw, err := io.ReadAll(r)
+	raw, err := io.ReadAll(io.LimitReader(r, httpclient.MaxBody+1))
 	if err != nil {
 		return nil, err
+	}
+	if len(raw) > httpclient.MaxBody {
+		return nil, errInvalidFeed
 	}
 
 	var rss rssDoc
@@ -122,7 +127,7 @@ func parseFeed(r io.Reader) (*FeedResult, error) {
 }
 
 func httpLinkOnly(link string) string {
-	if strings.HasPrefix(link, "http://") || strings.HasPrefix(link, "https://") {
+	if weburl.IsWeb(link) {
 		return link
 	}
 	return ""

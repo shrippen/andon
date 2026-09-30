@@ -57,7 +57,7 @@ func TestOpenWrtGateway(t *testing.T) {
 	srv := fakeUbus(t)
 	defer srv.Close()
 	for _, secret := range []string{"root:pw", "pw"} {
-		out, err := sources.GatewayData{}.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: secret, Options: map[string]any{"kind": "openwrt"}})
+		out, err := sources.GatewayData.Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: secret, Options: map[string]any{"kind": "openwrt"}})
 		if err != nil {
 			t.Fatalf("%s: %v", secret, err)
 		}
@@ -69,7 +69,7 @@ func TestOpenWrtGateway(t *testing.T) {
 			t.Fatalf("links: %+v", d.Gateways)
 		}
 	}
-	if _, err := (sources.GatewayData{}).Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "root:wrong", Options: map[string]any{"kind": "openwrt"}}); err == nil {
+	if _, err := (sources.GatewayData).Fetch(t.Context(), sources.Ctx{URL: srv.URL, Secret: "root:wrong", Options: map[string]any{"kind": "openwrt"}}); err == nil {
 		t.Fatal("wrong password accepted")
 	}
 }

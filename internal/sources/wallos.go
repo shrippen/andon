@@ -63,13 +63,9 @@ func wallosMonthly(price float64, cycle, frequency int) float64 {
 	return 0
 }
 
-type WallosData struct{}
+var WallosData = source{key: "wallos.data", ttl: dataTTL, service: enums.ServiceWallos, fetch: fetchWallos}
 
-func (WallosData) Key() string                { return "wallos.data" }
-func (WallosData) TTL() time.Duration         { return dataTTL }
-func (WallosData) Service() enums.ServiceType { return enums.ServiceWallos }
-
-func (WallosData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchWallos(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoWallos(time.Now()), nil
 	}
@@ -122,6 +118,6 @@ func DemoWallos(now time.Time) *WallosDataset {
 }
 
 func init() {
-	Register(WallosData{})
-	Register(testOf{WallosData{}, func(d any) map[string]any { return map[string]any{"subscriptions": len(d.(*WallosDataset).Subs)} }})
+	Register(WallosData)
+	Register(testOf{WallosData, func(d any) map[string]any { return map[string]any{"subscriptions": len(d.(*WallosDataset).Subs)} }})
 }

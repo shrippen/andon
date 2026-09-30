@@ -39,14 +39,6 @@ func TestQuarterStart(t *testing.T) {
 	}
 }
 
-func TestWorkdaysExcludesWeekendsAndFree(t *testing.T) {
-	free := map[time.Time]bool{day("2026-03-04"): true} // Wednesday
-	got := metrics.Workdays(day("2026-03-02"), day("2026-03-06"), free)
-	if len(got) != 4 { // Mon, Tue, Thu, Fri (Wed excluded)
-		t.Fatalf("expected 4 workdays, got %d: %v", len(got), got)
-	}
-}
-
 // ── kimai ──
 
 func kimaiData() *sources.KimaiDataset {

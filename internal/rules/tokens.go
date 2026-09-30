@@ -51,14 +51,16 @@ func tokenFinding(c Conn, today time.Time, maxAge, warnDays int) (Finding, bool)
 }
 
 func init() {
-	Register(tokenRule, Cross, map[string]any{"max_age_days": 365, "warn_days": 30}, func(_ any, cfg map[string]any, env Env) []Finding {
-		conns, _ := env.Datasets[ConnsDataset].([]Conn)
-		var found []Finding
-		for _, c := range conns {
-			if f, ok := tokenFinding(c, env.Today, cfgInt(cfg, "max_age_days"), cfgInt(cfg, "warn_days")); ok {
-				found = append(found, f)
-			}
+	Register(tokenRule, Cross, map[string]any{"max_age_days": 365, "warn_days": 30}, tokenAge)
+}
+
+func tokenAge(_ any, cfg map[string]any, env Env) []Finding {
+	conns, _ := env.Datasets[ConnsDataset].([]Conn)
+	var found []Finding
+	for _, c := range conns {
+		if f, ok := tokenFinding(c, env.Today, cfgInt(cfg, "max_age_days"), cfgInt(cfg, "warn_days")); ok {
+			found = append(found, f)
 		}
-		return found
-	})
+	}
+	return found
 }

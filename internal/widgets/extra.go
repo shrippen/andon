@@ -6,6 +6,7 @@ package widgets
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"andon/internal/enums"
@@ -27,9 +28,8 @@ type ImageConfig struct {
 	Cover   bool // fill the box (and crop) instead of showing the whole picture
 }
 
-func decodeImage(raw map[string]any) any {
-	return ImageConfig{URL: webURL(raw["url"]), Height: clampInt(asInt(raw["height"], defaultImageHeight), 40, 1200),
-		Link: webURL(raw["link"]), ReloadM: clampInt(asInt(raw["reload"], 0), 0, 1440), Cover: raw["fit"] == "cover"}
+func decodeImage(r Raw) ImageConfig {
+	return ImageConfig{URL: r.URL("url"), Height: r.Int("height"), Link: r.URL("link"), ReloadM: r.Int("reload"), Cover: r.Pick("fit") == "cover"}
 }
 
 // RefreshSeconds lets the tile reload at the chosen pace.
@@ -57,12 +57,11 @@ type RatesConfig struct {
 	Invert  bool // 1 USD = … EUR instead of 1 EUR = … USD
 }
 
-func decodeRates(raw map[string]any) any {
-	base := asString(raw["base"])
-	if base == "" {
-		base = defaultRatesBase
-	}
-	return RatesConfig{Base: base, Symbols: asStringList(raw["symbols"]), Change: asBool(raw["change"]), Invert: asBool(raw["invert"])}
+// defaultRates are the currencies a new rates tile lists.
+var defaultRates = []string{"USD", "CHF", "GBP"}
+
+func decodeRates(r Raw) RatesConfig {
+	return RatesConfig{Base: textOr(r, "base"), Symbols: listOr(r, "symbols"), Change: r.Bool("change"), Invert: r.Bool("invert")}
 }
 
 // MonitorRow is one Kuma monitor with its pill state and label key.
@@ -150,20 +149,14 @@ type MonitorsConfig struct {
 	HideMS bool
 }
 
-func decodeMonitors(raw map[string]any) any {
-	days := uptimeDays
-	switch raw["days"] {
-	case "7":
-		days = 7
-	case "30":
-		days = 30
-	}
-	return MonitorsConfig{Only: lowerList(raw["filter"]), Days: days, HideMS: !boolOr(raw["response_time"], true)}
+func decodeMonitors(r Raw) MonitorsConfig {
+	days, _ := strconv.Atoi(r.Pick("days"))
+	return MonitorsConfig{Only: r.Lower("filter"), Days: days, HideMS: !r.Bool("response_time")}
 }
 
-func monitorsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, ok := cfgAny.(MonitorsConfig)
-	if !ok || cfg.Days == 0 {
+func monitorsView(cfg MonitorsConfig, results map[string]any, ctx ViewCtx) map[string]any {
+	// No config (a nil one): the default days.
+	if cfg.Days == 0 {
 		cfg.Days = uptimeDays
 	}
 	data, ok := results["data"].(*sources.KumaDataset)
@@ -208,7 +201,7 @@ func monitorsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 
 	out := map[string]any{"Up": up, "Total": len(mons), "Cells": cells, "Problems": problems, "More": more}
 	if h, ok := results[HistorySlot].(*metrics.History); ok {
-		if lines := monitorLines(mons, h, parseToday(ctx.Today), cfg.Days); lines != nil {
+		if lines := monitorLines(mons, h, todayOf(ctx), cfg.Days); lines != nil {
 			if cfg.HideMS {
 				for i := range lines {
 					lines[i].MS = 0
@@ -228,19 +221,23 @@ func monitorsView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]an
 }
 
 func init() {
-	Register(WidgetType{Key: "image", Decode: decodeImage, Template: "widgets/image",
-		Category: CategoryStart, RefreshS: 60 * 60, Queries: func(cfgAny any) []Query {
-			cfg := cfgAny.(ImageConfig)
+	Tile[ImageConfig]{Key: "image", Category: CategoryStart, Topic: TopicMedia, RefreshS: 60 * 60,
+		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "height", Input: InputNumber, Default: defaultImageHeight, Min: "40", Max: "1200"},
+			{Key: "link", Input: InputText}, {Key: "reload", Input: InputNumber, Min: "0", Max: "1440"}, sel("fit", "contain", "contain", "cover")},
+		Decode: decodeImage, Queries: func(cfg ImageConfig) []Query {
 			return []Query{{Name: "image", Source: "image", Params: map[string]any{"url": cfg.URL, "fresh": freshBucket(cfg.ReloadM * secondsPerMinute)}}}
-		}})
+		}}.add()
 
-	Register(WidgetType{Key: "rates", Decode: decodeRates, Template: "widgets/rates",
-		Category: CategoryStart, RefreshS: 6 * 60 * 60, Queries: func(cfgAny any) []Query {
-			cfg := cfgAny.(RatesConfig)
+	Tile[RatesConfig]{Key: "rates", Category: CategoryStart, Topic: TopicWorld, RefreshS: 6 * 60 * 60,
+		Fields: []Field{{Key: "base", Input: InputText, Default: defaultRatesBase}, {Key: "symbols", Input: InputList, Default: anyList(defaultRates)},
+			{Key: "change", Input: InputCheck}, {Key: "invert", Input: InputCheck}},
+		Decode: decodeRates, Queries: func(cfg RatesConfig) []Query {
 			return []Query{{Name: "rates", Source: "exchange_rates", Params: map[string]any{"base": cfg.Base, "symbols": cfg.Symbols, "change": cfg.Change}}}
-		}})
+		}}.add()
 
-	Register(WidgetType{Key: "monitors", Decode: decodeMonitors, Template: "widgets/monitors",
-		Category: CategoryStart, Service: enums.ServiceUptimeKuma, RefreshS: 60, Live: true, Queries: dataQuery, View: monitorsView,
-		Extra: ExtraHistory})
+	Tile[MonitorsConfig]{Key: "monitors", Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceUptimeKuma, RefreshS: 60,
+		Live: true, DataChoice: true, Extra: ExtraHistory,
+		Fields: []Field{{Key: "filter", Input: InputList}, sel("days", "14", "7", "14", "30"), {Key: "response_time", Input: InputCheck, Default: true}},
+		Decode: decodeMonitors, Queries: ownData[MonitorsConfig], View: monitorsView,
+		Calm: func(v map[string]any) bool { return v["Total"] != nil && v["Up"] == v["Total"] }}.add()
 }

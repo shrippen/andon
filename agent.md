@@ -71,15 +71,15 @@ db/         database/sql, Tx     drivers/  rohes HTTP je Dienst
 
 ## Bausteine
 ```
-internal/sources/*.go           <service>.data: ein gecachter Datensatz je Verbindung (+ .test)
+internal/sources/*.go           <service>.data: `var XData = source{…}`, ein gecachter Datensatz je Verbindung (+ .test)
 internal/metrics/*.go           reine Funktionen: Datensatz → Kennzahlen (kein I/O)
 internal/rules/*.go             Register(id, scope, defaults, run): Datensatz → Finding (kein I/O)
-internal/widgets/*.go           WidgetType: Decode, Queries, View (rein), Template
+internal/widgets/*.go           Tile[C]: Felder, Thema, Decode(Raw), Queries, View (rein), Calm
 internal/services/analysis/     Job: Datensätze laden, Regeln anwenden, hints.Sync()
 internal/services/scheduler/    Background-Jobs (Ticker je Job, panic-/error-isoliert)
 ```
 - Neue Regel: Funktion in `internal/rules/`, Texte `hint.<message>.title|why` in beiden Katalogen, Test in `internal/rules/*_test.go`.
-- Neues Widget: Typ in `internal/widgets/`, Template-Define `widgets/<key>` in `internal/web/templates/widgets_*.html`, `wtype.<key>` in den Katalogen.
+- Neues Widget: `Tile[XConfig]{…}.add()` in `internal/widgets/` (Grenzen/Defaults nur im Field, gelesen über `Raw`), Template-Define `widgets/<key>` in `internal/web/templates/widgets_*.html`, `wtype.<key>` in den Katalogen.
 - Hinweis-Parameter typisiert übergeben (`money()`, `day()`, `num()` aus `internal/i18n`).
 
 ## Gelernte Fehler
@@ -87,7 +87,7 @@ internal/services/scheduler/    Background-Jobs (Ticker je Job, panic-/error-iso
 - `html/template` kann kein Template mit zur Laufzeit berechnetem Namen einbinden (`{{template}}` braucht einen String-Literal) — anders als Jinjas `include`. Für pro-Typ-Fragmente (Widgets) daher `ExecuteTemplate` mit dynamischem Namen aus einer eigenen Route aufrufen (siehe `/widget-fragments/{id}`), nicht versuchen, es inline im Template zu lösen.
 - Der SQLite-Treiber liefert TEXT-Spalten als `string`, nicht als `time.Time` — auch wenn der Wert wie ein Zeitstempel aussieht. Erst in `string` scannen, dann `db.ParseTime`.
 - String-Enum mit explizitem Zero-Value versehen, wenn die Go-Zero-Value (`""`) semantisch "Standard"/"keiner" bedeuten soll (z. B. `ConnUse`s `ConnNone`); sonst weicht ein Feld, das nie explizit gesetzt wird, unbemerkt vom Default ab.
-- DB-Datei ist verschlüsselt (Adiantum-VFS); Kopien nur über `db.Snapshot`/`db.OpenReadOnly`, nie per Dateikopie oder `sql.Open`. Reine Lesepfade über `db.WithRead`, `db.WithTx` nimmt die Schreibsperre sofort.
+- DB-Datei ist verschlüsselt (Adiantum-VFS, Schlüssel = Argon2id(MASTER_KEY, `andon.db.salt`)); öffnen nur über `maintenance.Unlock`, Kopien nur über `db.Snapshot`/`db.OpenReadOnly` (tragen ihr `.salt` mit), nie per Dateikopie oder `sql.Open`. Neue verschlüsselte Daten: Spalte `*_enc` bzw. JSON-Schlüssel `*_enc` und Zweck in `maintenance.sealedPurpose`, sonst verweigert `rotate-key`. Reine Lesepfade über `db.WithRead`, `db.WithTx` nimmt die Schreibsperre sofort.
 - Board-Freigabe muss Widgets aus dem Bereich des Boards sichtbar machen (`boards.seenRight`).
 - `html/template` behandelt Attribute, deren Name ohne `data-` mit `on` beginnt (`data-on`), als Event-Handler (JS-Kontext); ein `{{if}}` darum bricht mit "branches end in different contexts". Anderen Namen wählen (`data-pinned`).
 

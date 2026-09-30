@@ -251,3 +251,26 @@ func TestDraft(t *testing.T) {
 		t.Fatalf("unknown sheet: %v", err)
 	}
 }
+
+// Using a connection is not enough to write to it: a plain user of the
+// instance space may see the timer but not start it.
+func TestRunNeedsEditRight(t *testing.T) {
+	d := testkit.DB(t)
+	instance := testkit.Instance(t, d)
+	boss, _ := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+	user, _ := testkit.User(t, d, "user@x.de", enums.RoleUser)
+
+	writes := 0
+	kimai := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writes++
+		w.Write([]byte(`{}`))
+	}))
+	defer kimai.Close()
+	conn := testkit.Conn(t, d, boss, instance, enums.ServiceKimai, kimai.URL)
+	tile := testkit.Place(t, d, boss, instance, timer.WidgetType, nil, &conn)
+
+	err := timer.Run(context.Background(), d, user, tile, timer.Request{Action: timer.ActionStart, Project: 3, Activity: 7}, "")
+	if !errors.Is(err, access.ErrDenied) || writes != 0 {
+		t.Fatalf("start with USE: %v, %d writes", err, writes)
+	}
+}

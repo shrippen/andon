@@ -15,13 +15,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"andon/internal/crypto"
 	"andon/internal/db"
-	"andon/internal/repos/content"
-	data "andon/internal/repos/data"
-	"andon/internal/repos/misc"
-	"andon/internal/repos/users"
 )
+
+// saltExt names the salt beside a database copy (see db.WriteSalt).
+const saltExt = ".salt"
 
 // assetDirs are the DATA_DIR folders that exist only on disk: uploaded
 // and cached icons, theme fonts.
@@ -33,6 +31,7 @@ var assetDirs = []string{"icons", "themes"}
 //
 //	andon-20260926-120000.tar.gz
 //	├── andon.db
+//	├── andon.db.salt   (with MASTER_KEY, what opens andon.db)
 //	├── icons/…
 //	└── themes/…
 func Backup(d *sql.DB, dbPath, targetDir, dataDir string) (string, error) {
@@ -46,7 +45,7 @@ func Backup(d *sql.DB, dbPath, targetDir, dataDir string) (string, error) {
 	if err := db.Snapshot(d, copyPath); err != nil {
 		return "", err
 	}
-	defer os.Remove(copyPath)
+	defer db.RemoveCopy(copyPath)
 
 	out, err := os.Create(archivePath)
 	if err != nil {
@@ -58,6 +57,11 @@ func Backup(d *sql.DB, dbPath, targetDir, dataDir string) (string, error) {
 
 	if err := addFile(tw, copyPath, "andon.db"); err != nil {
 		return "", err
+	}
+	if db.Exists(copyPath + saltExt) {
+		if err := addFile(tw, copyPath+saltExt, "andon.db"+saltExt); err != nil {
+			return "", err
+		}
 	}
 	for _, dir := range assetDirs {
 		if err := addTree(tw, dataDir, dir); err != nil {
@@ -111,90 +115,4 @@ func addFile(tw *tar.Writer, sourcePath, arcname string) error {
 	}
 	_, err = io.Copy(tw, source)
 	return err
-}
-
-// RotateKey re-encrypts every secret under a new master key and writes
-// the database file under the new file key (swapped in at the next
-// start). Returns the number of values re-encrypted. The caller must then
-// replace the master_key secret and restart — this process keeps using
-// the old key until it does, and its later writes are lost.
-func RotateKey(d *sql.DB, dbPath, newSecret string) (int, error) {
-	newKey := crypto.MasterFrom(newSecret)
-	count, err := swapSecrets(d, newKey)
-	if err != nil {
-		return 0, err
-	}
-
-	fileKey, err := crypto.DatabaseKey(newKey)
-	if err != nil {
-		return 0, err
-	}
-	return count, db.Rekey(d, dbPath, fileKey)
-}
-
-// swapSecrets re-encrypts the secret columns under newKey.
-func swapSecrets(d *sql.DB, newKey []byte) (int, error) {
-	count := 0
-
-	swap := func(blob []byte, purpose crypto.Purpose) ([]byte, error) {
-		if len(blob) == 0 {
-			return blob, nil
-		}
-		text, err := crypto.Decrypt(blob, purpose)
-		if err != nil {
-			return nil, err
-		}
-		enc, err := crypto.Encrypt(text, purpose, newKey)
-		if err != nil {
-			return nil, err
-		}
-		count++
-		return enc, nil
-	}
-
-	return count, db.WithTx(d, func(tx *sql.Tx) error {
-		conns, creds, people, channels, err := misc.EncryptedRows(tx)
-		if err != nil {
-			return err
-		}
-
-		for _, c := range conns {
-			enc, err := swap(c.SecretEnc, crypto.PurposeCredential)
-			if err != nil {
-				return err
-			}
-			c.SecretEnc = enc
-			if err := content.UpdateConnection(tx, c); err != nil {
-				return err
-			}
-		}
-		for _, c := range creds {
-			enc, err := swap(c.SecretEnc, crypto.PurposeCredential)
-			if err != nil {
-				return err
-			}
-			if err := content.SetCredential(tx, c.ConnectionID, c.UserID, enc); err != nil {
-				return err
-			}
-		}
-		for _, u := range people {
-			enc, err := swap(u.TOTPSecretEnc, crypto.PurposeTOTP)
-			if err != nil {
-				return err
-			}
-			if err := users.UpdateTOTPSecret(tx, u.ID, enc); err != nil {
-				return err
-			}
-		}
-		for _, ch := range channels {
-			enc, err := swap(ch.URLEnc, crypto.PurposeNotify)
-			if err != nil {
-				return err
-			}
-			if err := data.UpdateChannelSecret(tx, ch.ID, enc); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
 }

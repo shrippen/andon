@@ -22,7 +22,7 @@ func TestWeatherHours(t *testing.T) {
 	defer srv.Close()
 	defer sources.SetWeatherURL(srv.URL)()
 
-	out, err := sources.WeatherSource{}.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"lat": 52.5, "lon": 13.4}})
+	out, err := sources.WeatherSource.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"lat": 52.5, "lon": 13.4}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,10 +43,10 @@ func TestWeatherDays(t *testing.T) {
 	defer sources.SetWeatherURL(srv.URL)()
 
 	week := sources.Ctx{Params: map[string]any{"days": 7.0}}
-	if _, err := (sources.WeatherSource{}).Fetch(context.Background(), week); err != nil || got != "8" {
+	if _, err := (sources.WeatherSource).Fetch(context.Background(), week); err != nil || got != "8" {
 		t.Fatalf("forecast_days %q, %v", got, err)
 	}
-	(sources.WeatherSource{}).Fetch(context.Background(), sources.Ctx{Params: map[string]any{}})
+	(sources.WeatherSource).Fetch(context.Background(), sources.Ctx{Params: map[string]any{}})
 	if got != "4" {
 		t.Fatalf("default forecast_days %q", got)
 	}

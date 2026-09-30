@@ -30,7 +30,6 @@ const (
 	dayBarTo    = 21 // … and widens for earlier or later work
 	dayBarTick  = 3  // hours between labels
 	recentShown = 4
-	recentMax   = 10 // what the source fetches
 )
 
 // KimaiLiteConfig is the "kimai_timer" widget's config.
@@ -38,10 +37,6 @@ const (
 type KimaiLiteConfig struct {
 	Recent  int  // quick-start rows
 	AskNote bool // a description field for the timer being started
-}
-
-func decodeKimaiLite(raw map[string]any) any {
-	return KimaiLiteConfig{Recent: clampInt(asInt(raw["recent"], recentShown), 0, recentMax), AskNote: asBool(raw["ask_note"])}
 }
 
 // TimerRow is one running or startable timer.
@@ -115,8 +110,7 @@ func clockSeconds(d time.Duration) string {
 	return fmt.Sprintf("%d:%02d:%02d", s/3600, s/60%60, s%60)
 }
 
-func timerView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(KimaiLiteConfig)
+func timerView(cfg KimaiLiteConfig, results map[string]any, _ ViewCtx) map[string]any {
 	data, ok := results["live"].(*sources.KimaiLive)
 	if !ok {
 		return map[string]any{}
@@ -257,8 +251,13 @@ func dayTicks(from, to int) []DayTick {
 }
 
 func init() {
-	Register(WidgetType{Key: "kimai_timer", Decode: decodeKimaiLite, Template: "widgets/kimai_timer", Category: CategoryInsight,
-		Extra:   ExtraKimaiFavs,
-		Service: enums.ServiceKimai, RefreshS: 60, Live: true, View: timerView,
-		Queries: func(any) []Query { return []Query{{Name: "live", Source: "kimai.live", Conn: ConnWidget}} }})
+	// recent: at most what the source fetches (10).
+	Tile[KimaiLiteConfig]{Key: "kimai_timer", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 60,
+		Live: true, DataChoice: true, Extra: ExtraKimaiFavs,
+		Fields: []Field{{Key: "recent", Input: InputNumber, Default: recentShown, Min: "0", Max: "10"}, {Key: "ask_note", Input: InputCheck}},
+		Decode: func(r Raw) KimaiLiteConfig {
+			return KimaiLiteConfig{Recent: r.Int("recent"), AskNote: r.Bool("ask_note")}
+		},
+		View:    timerView,
+		Queries: func(KimaiLiteConfig) []Query { return []Query{{Name: "live", Source: "kimai.live", Conn: ConnWidget}} }}.add()
 }

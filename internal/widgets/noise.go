@@ -1,6 +1,10 @@
 package widgets
 
-import "andon/internal/enums"
+import (
+	"strconv"
+
+	"andon/internal/enums"
+)
 
 // "hint_noise": new hints per day and the rules whose hints come and go
 // on their own, each linked to its settings.
@@ -27,27 +31,11 @@ const NoiseDays = 14
 // NoiseConfig is the "hint_noise" widget's config.
 type NoiseConfig struct{ Days int }
 
-func decodeNoise(raw map[string]any) any {
-	days := NoiseDays
-	switch raw["period"] {
-	case "30":
-		days = 30
-	case "90":
-		days = 90
-	}
+// decodeNoise reads the days select: "30" → 30.
+func decodeNoise(r Raw) NoiseConfig {
+	days, _ := strconv.Atoi(r.Pick("days"))
 	return NoiseConfig{Days: days}
 }
-
-// decodeHintTrend is decodeNoise with 30 days unless set.
-func decodeHintTrend(raw map[string]any) any {
-	if _, set := raw["period"]; !set {
-		return NoiseConfig{Days: trendDays}
-	}
-	return decodeNoise(raw)
-}
-
-// trendDays is the default window of the "hint_trend" tile.
-const trendDays = 30
 
 // ExtraDays is how far back the widgets service loads the traffic.
 func (c NoiseConfig) ExtraDays() int { return c.Days }
@@ -55,7 +43,7 @@ func (c NoiseConfig) ExtraDays() int { return c.Days }
 // DaysWanter is a config that sets how many days its extra reaches back.
 type DaysWanter interface{ ExtraDays() int }
 
-func noiseView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+func noiseView(_ NoiseConfig, results map[string]any, _ ViewCtx) map[string]any {
 	data, ok := results[NoiseSlot].(NoiseData)
 	if !ok {
 		return map[string]any{}
@@ -78,7 +66,7 @@ type TrendLine struct {
 
 // hintTrendView: is the homelab getting calmer? One line per level,
 // critical first, today's count emphasized.
-func hintTrendView(_ any, results map[string]any, _ ViewCtx) map[string]any {
+func hintTrendView(_ NoiseConfig, results map[string]any, _ ViewCtx) map[string]any {
 	data, ok := results[NoiseSlot].(NoiseData)
 	if !ok {
 		return map[string]any{}
@@ -99,8 +87,12 @@ func hintTrendView(_ any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "hint_trend", Decode: decodeHintTrend, Template: "widgets/hint_trend", Category: CategoryInsight,
-		RefreshS: 1800, View: hintTrendView, Extra: ExtraNoise})
-	Register(WidgetType{Key: "hint_noise", Decode: decodeNoise, Template: "widgets/hint_noise", Category: CategoryInsight,
-		RefreshS: 1800, View: noiseView, Extra: ExtraNoise})
+	Tile[NoiseConfig]{Key: "hint_trend", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 1800, Extra: ExtraNoise,
+		Fields:  []Field{sel("days", "30", "14", "30", "90")},
+		Renames: []rename{{from: "period", to: "days"}},
+		Decode:  decodeNoise, View: hintTrendView}.add()
+	Tile[NoiseConfig]{Key: "hint_noise", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 1800, Extra: ExtraNoise,
+		Fields:  []Field{sel("days", "14", "14", "30", "90")},
+		Renames: []rename{{from: "period", to: "days"}},
+		Decode:  decodeNoise, View: noiseView}.add()
 }

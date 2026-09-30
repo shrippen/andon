@@ -19,9 +19,9 @@ type HassConfig struct {
 	TwoCols    bool
 }
 
-func decodeHass(raw map[string]any) any {
-	return HassConfig{Entities: asStringList(raw["entities"]), Labels: parsePairs(asString(raw["labels"])),
-		Thresholds: parseThresholds(asString(raw["thresholds"])), TwoCols: asBool(raw["two_columns"])}
+func decodeHass(r Raw) HassConfig {
+	return HassConfig{Entities: r.List("entities"), Labels: parsePairs(r.String("labels")),
+		Thresholds: parseThresholds(r.String("thresholds")), TwoCols: r.Bool("two_columns")}
 }
 
 // HassRow is one entity line; Toggle offers a switch, On is its state.
@@ -51,12 +51,7 @@ func HassToggleable(cfg any, entityID string) bool {
 	return false
 }
 
-func hassView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
-	cfg := cfgAny.(HassConfig)
-	data, ok := results["data"].(*sources.HassDataset)
-	if !ok {
-		return map[string]any{}
-	}
+func hassView(cfg HassConfig, data *sources.HassDataset, _ ViewCtx) map[string]any {
 	rows := make([]HassRow, 0, len(cfg.Entities))
 	for _, id := range cfg.Entities {
 		e, found := data.Find(id)
@@ -85,6 +80,9 @@ func hassView(cfgAny any, results map[string]any, _ ViewCtx) map[string]any {
 }
 
 func init() {
-	Register(WidgetType{Key: "hass", Decode: decodeHass, Template: "widgets/hass", Category: CategoryStart,
-		Service: enums.ServiceHomeAssistant, RefreshS: 60, Live: true, Queries: dataQuery, View: hassView})
+	Tile[HassConfig]{Key: "hass", Category: CategoryStart, Topic: TopicHome, Service: enums.ServiceHomeAssistant, RefreshS: 60,
+		Live: true, DataChoice: true,
+		Fields: []Field{{Key: "entities", Input: InputList, Required: true}, {Key: "labels", Input: InputArea}, {Key: "thresholds", Input: InputArea},
+			{Key: "two_columns", Input: InputCheck}},
+		Decode: decodeHass, Queries: ownData[HassConfig], View: dataView(hassView)}.add()
 }

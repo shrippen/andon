@@ -94,7 +94,7 @@ func SetRole(d *sql.DB, who *access.Principal, userID int64, role enums.Instance
 		if u == nil {
 			return ErrNotFound
 		}
-		if u.Role == enums.RoleAdmin && role != enums.RoleAdmin {
+		if isActiveAdmin(u) && role != enums.RoleAdmin {
 			if err := failIfLastAdmin(tx); err != nil {
 				return err
 			}
@@ -182,7 +182,7 @@ func Delete(d *sql.DB, who *access.Principal, userID int64, ip string) error {
 		if u == nil {
 			return ErrNotFound
 		}
-		if u.Role == enums.RoleAdmin {
+		if isActiveAdmin(u) {
 			if err := failIfLastAdmin(tx); err != nil {
 				return err
 			}
@@ -219,10 +219,20 @@ func Register(d *sql.DB, email, name, password string, locale enums.Locale) (str
 		if err != nil {
 			return err
 		}
+		user.Prefs = map[string]any{accounts.SelfRegisteredPref: true}
+		if err := users.Update(tx, user); err != nil {
+			return err
+		}
 		created = user.Email
 		return audit.Log(tx, &user.ID, "user.registered", user.Email, "", nil)
 	})
 	return created, err
+}
+
+// isActiveAdmin says whether u counts toward the last-admin guard, which
+// counts active admins only.
+func isActiveAdmin(u *model.User) bool {
+	return u.Role == enums.RoleAdmin && u.IsActive
 }
 
 func failIfLastAdmin(q db.Queryer) error {

@@ -23,7 +23,7 @@ func (d Deps) RegisterAuthRoutes(mux *http.ServeMux) {
 func (d Deps) handleSetupForm(w http.ResponseWriter, r *http.Request) {
 	needed, err := auth.SetupNeeded(d.DB)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	if !needed {
@@ -37,7 +37,7 @@ func (d Deps) handleSetupForm(w http.ResponseWriter, r *http.Request) {
 func (d Deps) handleSetupSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx, _ := d.Context(r)
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	err := auth.CreateAdmin(d.DB, r.FormValue("code"), r.FormValue("email"), r.FormValue("name"),
@@ -78,12 +78,12 @@ func (d Deps) loginExtras(values map[string]any) map[string]any {
 func (d Deps) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx, _ := d.Context(r)
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 
 	result, err := auth.Login(d.DB, d.Settings, r.FormValue("email"), r.FormValue("password"),
-		ClientIP(r), Agent(r))
+		d.clientIP(r), Agent(r))
 	if err != nil {
 		status, key := http.StatusUnauthorized, "login.failed"
 		switch {
@@ -106,18 +106,17 @@ func (d Deps) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d Deps) handleTOTPForm(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(CookieName)
-	if err != nil {
+	if _, err := r.Cookie(CookieName); err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 	ctx, _ := d.Context(r)
-	_ = d.Page(w, ctx, "totp", http.StatusOK, map[string]any{"Token": cookie.Value})
+	_ = d.Page(w, ctx, "totp", http.StatusOK, nil)
 }
 
 func (d Deps) handleTOTPSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	cookie, err := r.Cookie(CookieName)
@@ -126,13 +125,13 @@ func (d Deps) handleTOTPSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = auth.TOTPVerify(d.DB, cookie.Value, r.FormValue("code"), ClientIP(r), Agent(r))
+	token, err := auth.TOTPVerify(d.DB, cookie.Value, r.FormValue("code"), d.clientIP(r), Agent(r))
 	if err != nil {
 		ctx, _ := d.Context(r)
-		_ = d.Page(w, ctx, "totp", http.StatusUnauthorized,
-			map[string]any{"Token": cookie.Value, "Error": auth.ErrTOTPInvalid.Error()})
+		_ = d.Page(w, ctx, "totp", http.StatusUnauthorized, map[string]any{"Error": auth.ErrTOTPInvalid.Error()})
 		return
 	}
+	d.setSession(w, token)
 	http.Redirect(w, r, startPath, http.StatusSeeOther)
 }
 
@@ -142,7 +141,7 @@ func (d Deps) handleLogout(w http.ResponseWriter, r *http.Request) {
 	// page could force a log-out via a bare <form method=post action=...>.
 	ctx, err := d.Context(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	if err := d.checkCSRF(r, ctx.CSRF); err != nil {
@@ -162,6 +161,6 @@ func (d Deps) handleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 	d.clearSession(w)
 	// Drops the offline copies of boards along with the session.
-	w.Header().Set("Clear-Site-Data", `"cache", "storage"`)
+	w.Header().Set("Clear-Site-Data", clearSiteData)
 	http.Redirect(w, r, target, http.StatusSeeOther)
 }

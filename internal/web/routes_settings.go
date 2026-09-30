@@ -48,27 +48,27 @@ func (d Deps) settingsPage(w http.ResponseWriter, ctx Ctx, status int, extra map
 	}
 	net, err := system.Network(d.DB)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	cfg, err := oidc.Load(d.DB, d.Settings)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	themeList, err := themes.Listing(d.DB, ctx.Who)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	registration, err := admin.RegistrationOpen(d.DB)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	defaultTheme, err := themes.DefaultID(d.DB)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	var defaultID int64
@@ -122,7 +122,7 @@ func (d Deps) settingsAction(w http.ResponseWriter, r *http.Request, run func(Ct
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	if err := run(ctx); err != nil {
@@ -136,7 +136,7 @@ func checked(r *http.Request, name string) bool { return r.FormValue(name) != ""
 
 func (d Deps) handleSettingsGeneral(w http.ResponseWriter, r *http.Request) {
 	d.settingsAction(w, r, func(ctx Ctx) error {
-		ip := ClientIP(r)
+		ip := d.clientIP(r)
 		var origins []string
 		for _, o := range lines(r.FormValue("iframe")) {
 			if system.IsOrigin(o) {
@@ -190,7 +190,7 @@ func (d Deps) handleSettingsNetwork(w http.ResponseWriter, r *http.Request) {
 			Mode: system.NetMode(r.FormValue("mode")), Networks: lines(r.FormValue("networks")),
 			Hosts: lines(r.FormValue("hosts")), Public: checked(r, "public"),
 		}
-		return system.SetNetwork(d.DB, ctx.Who, policy, ClientIP(r))
+		return system.SetNetwork(d.DB, ctx.Who, policy, d.clientIP(r))
 	})
 }
 
@@ -211,7 +211,7 @@ func (d Deps) handleSettingsOIDC(w http.ResponseWriter, r *http.Request) {
 			Label: r.FormValue("label"), Only: checked(r, "only"), AutoCreate: checked(r, "auto_create"),
 			EmailLink: checked(r, "email_link"), Rules: rules,
 		}
-		return oidc.Save(d.DB, ctx.Who, cfg, r.FormValue("secret"), ClientIP(r))
+		return oidc.Save(d.DB, ctx.Who, cfg, r.FormValue("secret"), d.clientIP(r))
 	})
 }
 
@@ -240,6 +240,6 @@ func (d Deps) handleReapplyPreview(w http.ResponseWriter, r *http.Request, ctx C
 
 func (d Deps) handleReapply(w http.ResponseWriter, r *http.Request) {
 	d.adminAction(w, r, func(ctx Ctx, id int64) error {
-		return oidc.Reapply(d.DB, d.Settings, ctx.Who, id, ClientIP(r))
+		return oidc.Reapply(d.DB, d.Settings, ctx.Who, id, d.clientIP(r))
 	})
 }

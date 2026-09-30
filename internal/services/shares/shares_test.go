@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"andon/internal/repos/content"
 	"andon/internal/repos/users"
 	"andon/internal/services/access"
+	"andon/internal/services/boards"
 	"andon/internal/services/shares"
 )
 
@@ -88,4 +90,41 @@ func TestGrantRejectsUnshareableRight(t *testing.T) {
 	if err := shares.Grant(d, ownerWho, enums.ResourceBoard, board.ID, enums.GranteeUser, 999, enums.RightNone); !errors.Is(err, shares.ErrRight) {
 		t.Fatalf("expected ErrRight for NONE, got %v", err)
 	}
+}
+
+// TestSharedBoardListedDespiteIDClash: a shared board whose id equals one
+// of the grantee's space ids still shows in the grantee's board list.
+func TestSharedBoardListedDespiteIDClash(t *testing.T) {
+	d := openTestDB(t)
+	owner := addUser(t, d, "owner@x.de")
+	viewer := addUser(t, d, "viewer@x.de")
+	ownerWho, _ := access.Load(d, owner.ID)
+	viewerSpace, _ := content.PersonalSpace(d, viewer.ID)
+
+	space, _ := content.PersonalSpace(d, owner.ID)
+	var board *model.Board
+	for i := 0; board == nil || board.ID < viewerSpace.ID; i++ {
+		board = &model.Board{SpaceID: space.ID, Slug: "b" + strconv.Itoa(i), Name: "Board", Version: 1}
+		if err := content.AddBoard(d, board); err != nil {
+			t.Fatalf("add board: %v", err)
+		}
+	}
+	if board.ID != viewerSpace.ID {
+		t.Fatalf("setup: board %d, space %d", board.ID, viewerSpace.ID)
+	}
+	if err := shares.Grant(d, ownerWho, enums.ResourceBoard, board.ID, enums.GranteeUser, viewer.ID, enums.RightView); err != nil {
+		t.Fatalf("grant: %v", err)
+	}
+
+	viewerWho, _ := access.Load(d, viewer.ID)
+	list, err := boards.Visible(d, viewerWho)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ref := range list {
+		if ref.ID == board.ID {
+			return
+		}
+	}
+	t.Fatalf("shared board %d missing: %+v", board.ID, list)
 }

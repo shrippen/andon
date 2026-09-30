@@ -39,6 +39,13 @@ type Ctx struct {
 // TLS is the connection's certificate check for driver calls.
 func (c Ctx) TLS() httpclient.TLS { return httpclient.TLSOf(c.VerifyTLS) }
 
+// TLS says whether a call checks the server's certificate.
+type TLS = httpclient.TLS
+
+// TLSFor maps a connection's "verify TLS" setting, for calls made
+// outside a fetch (sign-in flows, token renewal).
+func TLSFor(verify bool) TLS { return httpclient.TLSOf(verify) }
+
 // Pushed is one event a service sent to the dashboard's webhook.
 type Pushed struct {
 	Event, Subject string
@@ -59,6 +66,33 @@ type Source interface {
 	Service() enums.ServiceType // "" if not tied to one service (e.g. rss)
 	Fetch(ctx context.Context, sctx Ctx) (any, error)
 }
+
+// source is a Source declared as a value:
+//
+//	var HassData = source{key: "homeassistant.data", ttl: time.Minute,
+//		service: enums.ServiceHomeAssistant, fetch: fetchHass}
+type source struct {
+	key     string
+	ttl     time.Duration
+	service enums.ServiceType
+	fetch   func(ctx context.Context, sctx Ctx) (any, error)
+}
+
+func (s source) Key() string                { return s.key }
+func (s source) TTL() time.Duration         { return s.ttl }
+func (s source) Service() enums.ServiceType { return s.service }
+
+func (s source) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+	return s.fetch(ctx, sctx)
+}
+
+// pushSource is a source fed by the webhook events of its last window.
+type pushSource struct {
+	source
+	window time.Duration
+}
+
+func (p pushSource) PushWindow() time.Duration { return p.window }
 
 var registry = map[string]Source{}
 

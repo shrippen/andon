@@ -1,6 +1,7 @@
 package boards
 
 import (
+	"andon/internal/services/themes"
 	"database/sql"
 	"strconv"
 	"strings"
@@ -70,6 +71,11 @@ func Rename(d *sql.DB, who *access.Principal, boardID int64, version int, name s
 		}
 		if n := strings.TrimSpace(name); n != "" {
 			board.Name = n
+		}
+		if themeID != nil {
+			if err := themes.Usable(tx, who, *themeID); err != nil {
+				return err
+			}
 		}
 		board.ThemeID = themeID
 		board.MinTeamRole = minRole

@@ -7,6 +7,7 @@
 package widgetlib
 
 import (
+	"cmp"
 	"database/sql"
 	"errors"
 	"strings"
@@ -141,6 +142,12 @@ func checkConnection(q db.Queryer, who *access.Principal, connID *int64, typeKey
 	return nil
 }
 
+// ConfigError is a config value the widget type cannot use; its text is
+// a catalog key (widgets.Check).
+type ConfigError string
+
+func (e ConfigError) Error() string { return string(e) }
+
 // Create adds a new widget to a space. Requires EDIT on the space.
 func Create(d *sql.DB, who *access.Principal, spaceID int64, typeKey, title string, config map[string]any,
 	connID *int64, minRole *enums.TeamRole) (int64, error) {
@@ -159,6 +166,9 @@ func CreateTx(tx *sql.Tx, who *access.Principal, spaceID int64, typeKey, title s
 	connID *int64, minRole *enums.TeamRole) (int64, error) {
 	if _, ok := widgets.Get(typeKey); !ok {
 		return 0, ErrUnknownType
+	}
+	if bad := widgets.Check(typeKey, config); bad != "" {
+		return 0, ConfigError(bad)
 	}
 	space, err := access.SpaceOf(tx, who, spaceID)
 	if err != nil {
@@ -186,7 +196,7 @@ func CreateTx(tx *sql.Tx, who *access.Principal, spaceID int64, typeKey, title s
 	}
 
 	widget := &model.Widget{
-		SpaceID: spaceID, Key: util.Unique(util.Slug(firstNonEmpty(label, typeKey), typeKey), taken),
+		SpaceID: spaceID, Key: util.Unique(util.Slug(cmp.Or(label, typeKey), typeKey), taken),
 		Type: typeKey, Title: label, Config: config, ConnectionID: connID, MinTeamRole: minRole,
 		Version: 1, UpdatedAt: time.Now().UTC(),
 	}
@@ -194,13 +204,6 @@ func CreateTx(tx *sql.Tx, who *access.Principal, spaceID int64, typeKey, title s
 		return 0, err
 	}
 	return widget.ID, snapshot(tx, who, widget)
-}
-
-func firstNonEmpty(a, b string) string {
-	if a != "" {
-		return a
-	}
-	return b
 }
 
 // Detail returns a widget and the caller's right on it. Requires VIEW.
@@ -248,6 +251,9 @@ func Update(d *sql.DB, who *access.Principal, widgetID int64, version int, title
 		}
 		if widget.Version != version {
 			return ErrConflict
+		}
+		if bad := widgets.Check(widget.Type, config); bad != "" {
+			return ConfigError(bad)
 		}
 		if err := checkConnection(tx, who, connID, widget.Type); err != nil {
 			return err

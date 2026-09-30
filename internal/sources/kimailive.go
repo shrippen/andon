@@ -10,6 +10,7 @@ package sources
 
 import (
 	"context"
+	"math"
 	"net/url"
 	"sort"
 	"strconv"
@@ -54,13 +55,9 @@ type KimaiLive struct {
 	Contract *WorkContract // working time from Kimai, nil if none
 }
 
-type KimaiLiveSource struct{}
+var KimaiLiveSource = source{key: "kimai.live", ttl: kimaiLiveTTL, service: enums.ServiceKimai, fetch: fetchKimaiLive}
 
-func (KimaiLiveSource) Key() string                { return "kimai.live" }
-func (KimaiLiveSource) TTL() time.Duration         { return kimaiLiveTTL }
-func (KimaiLiveSource) Service() enums.ServiceType { return enums.ServiceKimai }
-
-func (KimaiLiveSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchKimaiLive(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoKimaiLive(time.Now()), nil
 	}
@@ -98,7 +95,7 @@ func (KimaiLiveSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	out.WeekMin = out.TodayMin
 	for _, raw := range week {
 		m := asMap(raw)
-		minutes := int(round(asFloat(m["duration"]) / secondsPerMin)) // as the Kimai dataset does
+		minutes := int(math.Round(asFloat(m["duration"]) / secondsPerMin)) // as the Kimai dataset does
 		out.WeekMin += minutes
 
 		begin, end := kimaiTime(asStr(m["begin"])), kimaiTime(asStr(m["end"]))
@@ -157,5 +154,5 @@ func kimaiTime(s string) time.Time {
 }
 
 func init() {
-	Register(KimaiLiveSource{})
+	Register(KimaiLiveSource)
 }

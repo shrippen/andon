@@ -60,13 +60,9 @@ type TailscaleDataset struct {
 	Devices   []TailDevice
 }
 
-type TailscaleData struct{}
+var TailscaleData = source{key: "tailscale.data", ttl: opsTTL, service: enums.ServiceTailscale, fetch: fetchTailscale}
 
-func (TailscaleData) Key() string                { return "tailscale.data" }
-func (TailscaleData) TTL() time.Duration         { return opsTTL }
-func (TailscaleData) Service() enums.ServiceType { return enums.ServiceTailscale }
-
-func (TailscaleData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchTailscale(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoTailscale(time.Now().UTC()), nil
 	}
@@ -157,13 +153,9 @@ type GatewayDataset struct {
 	Devices     []NetDevice
 }
 
-type GatewayData struct{}
+var GatewayData = source{key: "gateway.data", ttl: opsTTL, service: enums.ServiceGateway, fetch: fetchGateway}
 
-func (GatewayData) Key() string                { return "gateway.data" }
-func (GatewayData) TTL() time.Duration         { return opsTTL }
-func (GatewayData) Service() enums.ServiceType { return enums.ServiceGateway }
-
-func (GatewayData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchGateway(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoGateway(), nil
 	}
@@ -350,8 +342,8 @@ func DemoGateway() *GatewayDataset {
 }
 
 func init() {
-	Register(TailscaleData{})
-	Register(testOf{TailscaleData{}, func(d any) map[string]any { return map[string]any{"devices": len(d.(*TailscaleDataset).Devices)} }})
-	Register(GatewayData{})
-	Register(testOf{GatewayData{}, func(d any) map[string]any { return map[string]any{"version": d.(*GatewayDataset).Version} }})
+	Register(TailscaleData)
+	Register(testOf{TailscaleData, func(d any) map[string]any { return map[string]any{"devices": len(d.(*TailscaleDataset).Devices)} }})
+	Register(GatewayData)
+	Register(testOf{GatewayData, func(d any) map[string]any { return map[string]any{"version": d.(*GatewayDataset).Version} }})
 }

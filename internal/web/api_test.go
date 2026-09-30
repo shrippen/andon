@@ -8,10 +8,11 @@ import (
 	"testing"
 )
 
-// newAPIToken creates a token of scope via the security page and returns it.
-func newAPIToken(t *testing.T, srv string, client *http.Client, csrf, scope string) string {
+// newAPIToken creates a token of scope via the security page, bound to
+// boards if given, and returns it.
+func newAPIToken(t *testing.T, srv string, client *http.Client, csrf, scope string, boards ...string) string {
 	t.Helper()
-	resp, err := client.PostForm(srv+"/me/security/tokens", url.Values{"csrf": {csrf}, "name": {scope}, "scope": {scope}})
+	resp, err := client.PostForm(srv+"/me/security/tokens", url.Values{"csrf": {csrf}, "name": {scope}, "scope": {scope}, "board": boards})
 	if err != nil {
 		t.Fatalf("create token: %v", err)
 	}
@@ -29,7 +30,8 @@ func TestTokenAPIAndCalendar(t *testing.T) {
 	login(t, srv, client)
 	csrf := csrfToken(t, srv, client)
 	read := newAPIToken(t, srv.URL, client, csrf, "read")
-	embed := newAPIToken(t, srv.URL, client, csrf, "embed")
+	board := boardIDFrom(getFollowingRedirect(t, srv, client, "/").Request.URL.Path)
+	embed := newAPIToken(t, srv.URL, client, csrf, "embed", board)
 	anon := freshClient(t)
 
 	cases := []struct {

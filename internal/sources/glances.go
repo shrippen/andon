@@ -33,13 +33,9 @@ type GlancesHistory struct {
 	Samples []Sample
 }
 
-type GlancesHistorySource struct{}
+var GlancesHistorySource = source{key: "glances_history", ttl: glancesTTL, service: enums.ServiceGlances, fetch: fetchGlancesHistory}
 
-func (GlancesHistorySource) Key() string                { return "glances_history" }
-func (GlancesHistorySource) TTL() time.Duration         { return glancesTTL }
-func (GlancesHistorySource) Service() enums.ServiceType { return enums.ServiceGlances }
-
-func (GlancesHistorySource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchGlancesHistory(ctx context.Context, sctx Ctx) (any, error) {
 	metric := asStr(sctx.Params["metric"])
 	target, ok := GlancesMetrics[metric]
 	if !ok {
@@ -67,5 +63,5 @@ func (GlancesHistorySource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 }
 
 func init() {
-	Register(GlancesHistorySource{})
+	Register(GlancesHistorySource)
 }

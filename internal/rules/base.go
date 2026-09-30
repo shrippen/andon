@@ -9,7 +9,9 @@
 package rules
 
 import (
+	"math"
 	"path"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -82,7 +84,42 @@ func Register(id string, scope string, defaults map[string]any, fn RuleFunc) {
 	for k, v := range defaults {
 		merged[k] = v
 	}
-	registry[id] = Spec{ID: id, Scope: scope, Defaults: merged, Run: fn}
+	registry[id] = Spec{ID: id, Scope: scope, Defaults: merged, Run: ownRule(id, fn)}
+}
+
+// on adapts a rule over one dataset type to a RuleFunc. A dataset of
+// another type, or a nil pointer, finds nothing:
+//
+//	Register("snipe.eol_reached", string(enums.ServiceSnipeIT), nil, on(eolReached))
+//	func eolReached(data *sources.SnipeDataset, cfg map[string]any, env Env) []Finding
+func on[D any](run func(data D, cfg map[string]any, env Env) []Finding) RuleFunc {
+	return func(raw any, cfg map[string]any, env Env) []Finding {
+		data, ok := raw.(D)
+		if !ok || isNil(data) {
+			return nil
+		}
+		return run(data, cfg, env)
+	}
+}
+
+// isNil reports whether v is a nil pointer.
+func isNil(v any) bool {
+	rv := reflect.ValueOf(v)
+	return rv.Kind() == reflect.Pointer && rv.IsNil()
+}
+
+// ownRule stamps the rule id on findings that leave Rule empty, so a
+// rule body need not repeat its own id.
+func ownRule(id string, fn RuleFunc) RuleFunc {
+	return func(raw any, cfg map[string]any, env Env) []Finding {
+		found := fn(raw, cfg, env)
+		for i := range found {
+			if found[i].Rule == "" {
+				found[i].Rule = id
+			}
+		}
+		return found
+	}
 }
 
 // needs lists, per rule, the services without which a run of it says
@@ -172,7 +209,7 @@ func Num(value float64, digits int) map[string]any {
 }
 
 func round2(f float64) float64 {
-	return float64(int64(f*100+0.5)) / 100
+	return math.Round(f*100) / 100
 }
 
 // ── cfg helpers: cfg values arrive as map[string]any (from JSON/YAML), so

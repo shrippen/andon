@@ -64,24 +64,23 @@ type MonthCloseConfig struct {
 	Manual  bool // steps can be ticked by hand
 }
 
-func decodeMonthClose(raw map[string]any) any {
-	cfg := MonthCloseConfig{Hide: map[string]bool{}, Current: raw["month"] == "current", Manual: asBool(raw["manual"])}
+func decodeMonthClose(r Raw) MonthCloseConfig {
+	cfg := MonthCloseConfig{Hide: map[string]bool{}, Current: r.Pick("month") == "current", Manual: r.Bool("manual")}
 	for _, step := range closeSteps {
-		if !boolOr(raw["close_"+step], true) {
+		if !r.Bool("close_" + step) {
 			cfg.Hide[step] = true
 		}
 	}
 	return cfg
 }
 
-func monthCloseQueries(any) []Query {
+func monthCloseQueries(MonthCloseConfig) []Query {
 	return []Query{kimaiPeer, peer(peerNinja, enums.ServiceInvoiceNinja), peer(peerSure, enums.ServiceSure),
 		peer(peerPaperless, enums.ServicePaperless), peer(peerMail, enums.ServiceMail)}
 }
 
-func monthCloseView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any {
-	cfg, _ := cfgAny.(MonthCloseConfig)
-	today := parseToday(ctx.Today)
+func monthCloseView(cfg MonthCloseConfig, results map[string]any, ctx ViewCtx) map[string]any {
+	today := todayOf(ctx)
 	start := metrics.AddMonths(today, -1)
 	if cfg.Current {
 		start = metrics.AddMonths(today, 0)
@@ -157,6 +156,14 @@ func monthCloseView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]
 }
 
 func init() {
-	Register(WidgetType{Key: "month_close", Decode: decodeMonthClose, Extra: ExtraCloseTicks, Template: "widgets/month_close", Category: CategoryInsight,
-		RefreshS: 1800, Queries: monthCloseQueries, View: monthCloseView})
+	Tile[MonthCloseConfig]{Key: "month_close", Category: CategoryInsight, Topic: TopicWork, RefreshS: 1800, Extra: ExtraCloseTicks,
+		Fields: []Field{sel("month", "previous", "previous", "current"), {Key: "manual", Input: InputCheck},
+			{Key: "close_hours", Input: InputCheck, Default: true}, {Key: "close_drafts", Input: InputCheck, Default: true},
+			{Key: "close_receipts", Input: InputCheck, Default: true}, {Key: "close_inbox", Input: InputCheck, Default: true},
+			{Key: "close_vat", Input: InputCheck, Default: true}},
+		Decode: decodeMonthClose, Queries: monthCloseQueries, View: monthCloseView,
+		Calm: func(v map[string]any) bool {
+			steps, _ := v["Steps"].([]CloseStep)
+			return len(steps) > 0 && v["Done"] == len(steps)
+		}}.add()
 }

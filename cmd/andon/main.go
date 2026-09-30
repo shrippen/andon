@@ -15,15 +15,19 @@ import (
 
 	"andon/internal/crypto"
 	"andon/internal/db"
+	"andon/internal/outbound"
 	"andon/internal/services/assist"
 	"andon/internal/services/auth"
 	"andon/internal/services/icons"
 	"andon/internal/services/mail"
+	"andon/internal/services/maintenance"
 	"andon/internal/services/scheduler"
 	"andon/internal/services/seed"
 	"andon/internal/services/summary"
+	"andon/internal/services/svcdata"
 	"andon/internal/services/system"
 	"andon/internal/services/themes"
+	"andon/internal/services/widgetlib"
 	"andon/internal/settings"
 	"andon/internal/web"
 )
@@ -41,6 +45,12 @@ const (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+// run serves until a stop signal and returns the exit code; its defers
+// (scheduler, database, lock) run before the process exits.
+func run() int {
 	// Needs neither key nor database: it only asks the running server.
 	if len(os.Args) == 2 && os.Args[1] == "healthcheck" {
 		os.Exit(healthcheck("http://127.0.0.1" + listenAddr()))
@@ -53,26 +63,30 @@ func main() {
 		slog.Error("MASTER_KEY is required (see docker-compose.example.yml)")
 		os.Exit(1)
 	}
-	crypto.Init(masterKey)
+	// A guessable key would give a stolen database away; the server
+	// refuses it, rotate-key (a command) still runs to replace it.
+	if crypto.WeakKey(masterKey) && serving(os.Args) && !cfg.Dev {
+		slog.Error("MASTER_KEY is guessable; replace it: andon rotate-key <file with the output of openssl rand -base64 32>")
+		os.Exit(1)
+	}
+	restrictFiles()
 
 	if err := os.MkdirAll(cfg.DataDir, 0o750); err != nil {
 		slog.Error("create data dir", "err", err)
 		os.Exit(1)
 	}
-	dbKey, err := crypto.DatabaseKey(nil)
-	if err != nil {
-		slog.Error("database key", "err", err)
-		os.Exit(1)
-	}
 	if serving(os.Args) {
 		defer lockDB(cfg.DBPath()).Release()
 	}
-	database, err := db.Open(cfg.DBPath(), dbKey)
+	database, unlocked, err := maintenance.Unlock(cfg.DBPath(), masterKey)
 	if err != nil {
 		slog.Error("open database", "err", err)
 		os.Exit(1)
 	}
 	defer database.Close()
+	if unlocked == maintenance.UnlockedUpgraded {
+		slog.Warn("database re-encrypted under an Argon2id key; keep andon.db.salt with your backups, webhook URLs changed")
+	}
 
 	if handled, code := runCLI(os.Args, database, cfg.DBPath(), cfg.DataDir); handled {
 		os.Exit(code)
@@ -81,6 +95,15 @@ func main() {
 	if _, err := themes.EnsureBuiltin(database); err != nil {
 		slog.Error("ensure builtin theme", "err", err)
 		os.Exit(1)
+	}
+	// Stored tile configs under renamed keys move to the current ones.
+	upgraded, err := widgetlib.UpgradeConfigs(database)
+	if err != nil {
+		slog.Error("upgrade widget configs", "err", err)
+		os.Exit(1)
+	}
+	if upgraded > 0 {
+		slog.Info("upgraded widget configs", "count", upgraded)
 	}
 	if err := system.Start(database); err != nil {
 		slog.Error("start", "err", err)
@@ -109,8 +132,9 @@ func main() {
 	}
 	schedulerCtx, stopScheduler := context.WithCancel(context.Background())
 	defer stopScheduler()
+	waitJobs := func() {}
 	if cfg.SchedulerEnabled {
-		scheduler.Start(schedulerCtx, backgroundJobs(database, cfg))
+		waitJobs = scheduler.Start(schedulerCtx, backgroundJobs(database, cfg))
 	}
 
 	deps := web.Deps{DB: database, Settings: cfg}
@@ -152,21 +176,49 @@ func main() {
 		WriteTimeout: writeTimeout, IdleTimeout: idleTimeout, MaxHeaderBytes: maxHeaderBytes,
 	}
 
+	serveErr := make(chan error, 1)
 	go func() {
 		slog.Info("listening", "addr", server.Addr)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("serve", "err", err)
-			os.Exit(1)
-		}
+		serveErr <- server.ListenAndServe()
 	}()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
+	failed := false
+	select {
+	case <-stop:
+	case err := <-serveErr:
+		slog.Error("serve", "err", err)
+		failed = true
+	}
 
+	// Stop taking requests, then let jobs, fills and mails finish before
+	// the deferred database close; all within the shutdown timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 	_ = server.Shutdown(ctx)
+	stopScheduler()
+	drain(ctx, waitJobs, svcdata.WaitFills, outbound.WaitSent, icons.Wait)
+	if failed {
+		return 1
+	}
+	return 0
+}
+
+// drain runs the waits one after another until ctx ends.
+func drain(ctx context.Context, waits ...func()) {
+	done := make(chan struct{})
+	go func() {
+		for _, wait := range waits {
+			wait()
+		}
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-ctx.Done():
+		slog.Warn("shutdown: background work still running")
+	}
 }
 
 // lockRetry is how often a second server looks whether the first is gone.

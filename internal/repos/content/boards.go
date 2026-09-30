@@ -517,9 +517,9 @@ func orEmpty(m map[string]any) map[string]any {
 	return m
 }
 
-// inClause builds "... IN (?,?,?)" for a slice of int64 ids and returns the
+// inClause builds "... IN (?,?,?)" for a slice of ids (or names) and returns the
 // matching arg list, so callers avoid ad-hoc string building.
-func inClause(format string, ids []int64) (string, []any) {
+func inClause[T int64 | string](format string, ids []T) (string, []any) {
 	placeholders := make([]string, len(ids))
 	args := make([]any, len(ids))
 	for i, id := range ids {

@@ -15,7 +15,6 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/connect"
 	"andon/internal/services/connections"
-	"andon/internal/services/hooks"
 	"andon/internal/services/places"
 	"andon/internal/services/porting"
 	"andon/internal/widgets"
@@ -43,7 +42,7 @@ func (d Deps) RegisterConnectionRoutes(mux *http.ServeMux) {
 func (d Deps) handleConnectionsList(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	list, err := connections.Listing(d.DB, ctx.Who, enums.RightView)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	// Broken first, then shaky, not yet fetched, working; by name within.
@@ -90,7 +89,7 @@ func (d Deps) handleConnectionNewForm(w http.ResponseWriter, r *http.Request, ct
 	if !service.Known() {
 		picks, err := d.servicePicks(ctx)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			d.fail(w, err, http.StatusInternalServerError)
 			return
 		}
 		_ = d.Page(w, ctx, "connection_pick", http.StatusOK, map[string]any{"Services": picks})
@@ -115,10 +114,10 @@ func widgetsFor(service enums.ServiceType) []widgets.WidgetType {
 
 func (d Deps) handleConnectionCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	spaceID, _ := strconv.ParseInt(r.FormValue("space_id"), 10, 64)
+	spaceID := formID(r, "space_id")
 	tls := connections.TLSVerify
 	if r.FormValue("tls") == "skip" {
 		tls = connections.TLSSkip
@@ -161,8 +160,9 @@ func (d Deps) handleConnectionEditForm(w http.ResponseWriter, r *http.Request, c
 		"OptionsYAML": porting.DumpMap(conn.Options), "Error": r.URL.Query().Get("error"),
 		"SignIn": d.signInOf(conn),
 	}
-	if hooks.Accepts(conn.Service) {
-		values["HookURL"], _ = hooks.URL(d.DB, d.Settings.BaseURL, conn.ID)
+	// Only who may rotate the webhook sees its URL (it is the secret).
+	if conn.Right >= enums.RightManage {
+		values["HookURL"], _ = connections.HookURL(d.DB, ctx.Who, conn.ID, d.Settings.BaseURL)
 	}
 	// Just signed in: show right away whether the service answers.
 	if r.URL.Query().Has("connected") {
@@ -187,7 +187,7 @@ func (d Deps) handleConnectionUpdate(w http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	conn, err := connections.Get(d.DB, ctx.Who, id)
@@ -245,7 +245,7 @@ func (d Deps) saveAdvanced(r *http.Request, ctx Ctx, conn connections.View) erro
 	if _, sent := r.PostForm["budget"]; !sent {
 		return nil
 	}
-	budget, _ := strconv.Atoi(r.FormValue("budget"))
+	budget := formInt(r, "budget")
 	if expires := r.FormValue("expires"); expires != conn.SecretExpires || budget != conn.DailyBudget {
 		if err := connections.SetHygiene(d.DB, ctx.Who, conn.ID, expires, budget); err != nil {
 			return err
@@ -269,7 +269,7 @@ func (d Deps) handleConnectionDelete(w http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 	if err := connections.Delete(d.DB, ctx.Who, id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/connections", http.StatusSeeOther)
@@ -283,7 +283,7 @@ func (d Deps) handleConnectionTest(w http.ResponseWriter, r *http.Request, ctx C
 	}
 	result, err := connections.Test(r.Context(), d.DB, ctx.Who, id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	conn, _ := connections.Get(d.DB, ctx.Who, id)
@@ -301,7 +301,7 @@ func (d Deps) handleConnectionHygiene(w http.ResponseWriter, r *http.Request, ct
 		http.NotFound(w, r)
 		return
 	}
-	budget, _ := strconv.Atoi(r.FormValue("budget"))
+	budget := formInt(r, "budget")
 	target := "/connections/" + strconv.FormatInt(id, 10) + "/edit"
 	err = connections.SetHygiene(d.DB, ctx.Who, id, r.FormValue("expires"), budget)
 	if errors.Is(err, connections.ErrBadDate) {
@@ -387,7 +387,7 @@ func (d Deps) handlePlaces(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	query := r.URL.Query().Get("place_q")
 	found, err := places.Search(r.Context(), query, ctx.Locale)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
+		d.fail(w, err, http.StatusBadGateway)
 		return
 	}
 	_ = d.Page(w, ctx, "place_results", http.StatusOK, map[string]any{"Places": found, "Query": query})

@@ -52,13 +52,9 @@ type SureDataset struct {
 	SyncError    string // latest sync failed: its message
 }
 
-type SureData struct{}
+var SureData = source{key: "sure.data", ttl: dataTTL, service: enums.ServiceSure, fetch: fetchSure}
 
-func (SureData) Key() string                { return "sure.data" }
-func (SureData) TTL() time.Duration         { return dataTTL }
-func (SureData) Service() enums.ServiceType { return enums.ServiceSure }
-
-func (SureData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchSure(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoSure(time.Now()), nil
 	}
@@ -166,6 +162,6 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 }
 
 func init() {
-	Register(SureData{})
-	Register(testOf{SureData{}, func(d any) map[string]any { return map[string]any{"accounts": len(d.(*SureDataset).Accounts)} }})
+	Register(SureData)
+	Register(testOf{SureData, func(d any) map[string]any { return map[string]any{"accounts": len(d.(*SureDataset).Accounts)} }})
 }

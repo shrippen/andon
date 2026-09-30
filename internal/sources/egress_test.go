@@ -52,7 +52,9 @@ func TestOpenModeBlocksLocalTargets(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, target := range []string{"http://127.0.0.1:1/", "http://169.254.169.254/latest/meta-data/", "http://[::1]:1/", "http://0.0.0.0:1/"} {
+	// 64:ff9b::7f00:1 is 127.0.0.1 through NAT64.
+	for _, target := range []string{"http://127.0.0.1:1/", "http://169.254.169.254/latest/meta-data/", "http://[::1]:1/", "http://0.0.0.0:1/",
+		"http://[64:ff9b::7f00:1]:1/", "http://[64:ff9b::a9fe:a9fe]/"} {
 		_, err := httpclient.Request(context.Background(), http.MethodGet, target, httpclient.Options{})
 		if _, denied := err.(httpclient.EgressDenied); !denied {
 			t.Errorf("%s: expected EgressDenied, got %v", target, err)

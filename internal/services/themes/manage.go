@@ -325,20 +325,20 @@ func ImportZip(d *sql.DB, who *access.Principal, spaceID int64, blob []byte) (in
 	var meta struct {
 		Name string `json:"name"`
 	}
-	metaRaw, err := readZipFile(zr, "theme.json")
+	metaRaw, err := readZipFile(zr, "theme.json", maxCSS)
 	if err != nil {
 		return 0, ErrTheme{"theme.zip_invalid"}
 	}
 	if err := json.Unmarshal(metaRaw, &meta); err != nil {
 		return 0, ErrTheme{"theme.zip_invalid"}
 	}
-	tokensRaw, err := readZipFile(zr, "tokens.css")
+	tokensRaw, err := readZipFile(zr, "tokens.css", maxCSS)
 	if err != nil {
 		return 0, ErrTheme{"theme.zip_invalid"}
 	}
 	dark, light := ParseCSS(string(tokensRaw))
 	css := ""
-	if raw, err := readZipFile(zr, "custom.css"); err == nil {
+	if raw, err := readZipFile(zr, "custom.css", maxCSS); err == nil {
 		css = string(raw)
 	}
 	if meta.Name == "" {
@@ -370,7 +370,7 @@ func ImportZip(d *sql.DB, who *access.Principal, spaceID int64, blob []byte) (in
 		if !ok || name == "" {
 			continue
 		}
-		data, err := readZipFile(zr, f.Name)
+		data, err := readZipFile(zr, f.Name, maxFont)
 		if err != nil {
 			return 0, ErrTheme{"theme.zip_invalid"}
 		}
@@ -381,11 +381,37 @@ func ImportZip(d *sql.DB, who *access.Principal, spaceID int64, blob []byte) (in
 	return newID, nil
 }
 
-func readZipFile(zr *zip.Reader, name string) ([]byte, error) {
+// readZipFile reads one entry, at most limit bytes: the zip's size says
+// nothing of what it inflates to.
+func readZipFile(zr *zip.Reader, name string, limit int) ([]byte, error) {
 	f, err := zr.Open(name)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	return io.ReadAll(f)
+	data, err := io.ReadAll(io.LimitReader(f, int64(limit)+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > limit {
+		return nil, ErrTheme{"theme.zip_invalid"}
+	}
+	return data, nil
+}
+
+// Usable reports, inside a running transaction, whether who may use a
+// theme (e.g. to put it on a board): access.ErrDenied if not.
+func Usable(q db.Queryer, who *access.Principal, themeID int64) error {
+	t, err := misc.Theme(q, themeID)
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		return ErrNotFound
+	}
+	g, err := right(q, who, t)
+	if err != nil {
+		return err
+	}
+	return access.Need(g, enums.RightUse)
 }

@@ -129,21 +129,23 @@ func compare(a float64, op string, b float64) bool {
 }
 
 func init() {
-	Register(customRule, Cross, nil, func(_ any, cfg map[string]any, env Env) []Finding {
-		var found []Finding
-		for _, r := range CustomRules(env.Settings) {
-			dataset, ok := env.Datasets[r.Service]
-			if !ok {
-				continue
-			}
-			value, ok := Measure(dataset, r.Path)
-			if !ok || !compare(value, r.Op, r.Value) {
-				continue
-			}
-			found = append(found, Finding{Fingerprint: "custom:" + r.ID, Rule: customRule, Severity: r.Severity, Message: "custom.rule",
-				Params:  map[string]any{"title": r.Title, "path": r.Path, "value": Num(value, 2), "op": r.Op, "threshold": Num(r.Value, 2)},
-				Sources: []string{r.Service}})
+	Register(customRule, Cross, nil, customCheck)
+}
+
+func customCheck(_ any, cfg map[string]any, env Env) []Finding {
+	var found []Finding
+	for _, r := range CustomRules(env.Settings) {
+		dataset, ok := env.Datasets[r.Service]
+		if !ok {
+			continue
 		}
-		return found
-	})
+		value, ok := Measure(dataset, r.Path)
+		if !ok || !compare(value, r.Op, r.Value) {
+			continue
+		}
+		found = append(found, Finding{Fingerprint: "custom:" + r.ID, Rule: customRule, Severity: r.Severity, Message: "custom.rule",
+			Params:  map[string]any{"title": r.Title, "path": r.Path, "value": Num(value, 2), "op": r.Op, "threshold": Num(r.Value, 2)},
+			Sources: []string{r.Service}})
+	}
+	return found
 }

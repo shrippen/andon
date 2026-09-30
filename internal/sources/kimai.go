@@ -3,6 +3,7 @@ package sources
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/url"
 	"strconv"
 	"time"
@@ -55,7 +56,7 @@ func kimaiSheet(raw any) KimaiSheet {
 	}
 	return KimaiSheet{
 		ID: asInt64(m["id"]), Begin: asStr(m["begin"]), End: asStr(m["end"]),
-		Minutes: int(round(asFloat(m["duration"]) / secondsPerMinute)),
+		Minutes: int(math.Round(asFloat(m["duration"]) / secondsPerMinute)),
 		Rate:    asFloat(m["rate"]), HourlyRate: asFloat(m["hourlyRate"]), Billable: boolOr(m["billable"], true), Exported: asBool(m["exported"]),
 		ProjectID: refID(m["project"]), CustomerID: customerID, Activity: asStr(activity["name"]),
 		UserID: refID(m["user"]),
@@ -69,31 +70,20 @@ func boolOr(v any, def bool) bool {
 	return asBool(v)
 }
 
-func round(f float64) float64 {
-	if f < 0 {
-		return float64(int64(f - 0.5))
-	}
-	return float64(int64(f + 0.5))
-}
-
 func kimaiProject(raw any) KimaiProject {
 	m := asMap(raw)
 	return KimaiProject{
 		ID: asInt64(m["id"]), Name: asStr(m["name"]), CustomerID: refID(m["customer"]),
-		Budget: asFloat(m["budget"]), TimeBudgetMin: int(round(asFloat(m["timeBudget"]) / secondsPerMinute)),
+		Budget: asFloat(m["budget"]), TimeBudgetMin: int(math.Round(asFloat(m["timeBudget"]) / secondsPerMinute)),
 		BudgetType: asStr(m["budgetType"]), End: asStr(m["end"]),
 	}
 }
 
 // KimaiData is the "kimai.data" source: timesheets, projects, customers and
 // (if the holiday-bundle plugin is installed) absences/public holidays.
-type KimaiData struct{}
+var KimaiData = source{key: "kimai.data", ttl: dataTTL, service: enums.ServiceKimai, fetch: fetchKimai}
 
-func (KimaiData) Key() string                { return "kimai.data" }
-func (KimaiData) TTL() time.Duration         { return dataTTL }
-func (KimaiData) Service() enums.ServiceType { return enums.ServiceKimai }
-
-func (KimaiData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchKimai(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoKimai(time.Now()), nil
 	}
@@ -103,21 +93,9 @@ func (KimaiData) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	data, err := loadKimai(ctx, api, sctx)
 	if err != nil {
-		var apiErr services.ApiError
-		if isApiError(err, &apiErr) {
-			return nil, newSourceError("%s", apiErr.Error())
-		}
-		return nil, err
+		return nil, fetchError(err)
 	}
 	return data, nil
-}
-
-func isApiError(err error, target *services.ApiError) bool {
-	e, ok := err.(services.ApiError)
-	if ok {
-		*target = e
-	}
-	return ok
 }
 
 func loadKimai(ctx context.Context, api services.KimaiApi, sctx Ctx) (*KimaiDataset, error) {
@@ -164,7 +142,7 @@ func loadKimai(ctx context.Context, api services.KimaiApi, sctx Ctx) (*KimaiData
 				minutes += asFloat(sm["duration"])
 			}
 			project.UsedMoney = money
-			project.UsedMinutes = int(round(minutes / secondsPerMinute))
+			project.UsedMinutes = int(math.Round(minutes / secondsPerMinute))
 		}
 		projects = append(projects, project)
 	}
@@ -235,13 +213,9 @@ func loadKimaiHolidays(ctx context.Context, api services.KimaiApi, today time.Ti
 }
 
 // KimaiTest is the "kimai.test" source: a lightweight connection check.
-type KimaiTest struct{}
+var KimaiTest = source{key: "kimai.test", ttl: testTTL, service: enums.ServiceKimai, fetch: fetchKimaiTest}
 
-func (KimaiTest) Key() string                { return "kimai.test" }
-func (KimaiTest) TTL() time.Duration         { return testTTL }
-func (KimaiTest) Service() enums.ServiceType { return enums.ServiceKimai }
-
-func (KimaiTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchKimaiTest(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return map[string]any{"version": "demo"}, nil
 	}
@@ -251,11 +225,7 @@ func (KimaiTest) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	body, err := api.Get(ctx, "version", nil)
 	if err != nil {
-		var apiErr services.ApiError
-		if isApiError(err, &apiErr) {
-			return nil, newSourceError("%s", apiErr.Error())
-		}
-		return nil, err
+		return nil, fetchError(err)
 	}
 	return map[string]any{"version": asStr(asMap(body)["version"])}, nil
 }

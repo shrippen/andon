@@ -1,7 +1,7 @@
 // Package timer starts, stops and edits Kimai timesheets from a board and
 // keeps the viewer's pinned pairs.
 //
-//	tile ──POST──► Run: widget is a Kimai timer? USE on the connection?
+//	tile ──POST──► Run: widget is a Kimai timer? EDIT on the connection?
 //	               ──► outbound.Kimai* ──► cache dropped
 //	     ──POST──► Pin: pair from the live view ──► user prefs "kimai_favs"
 package timer
@@ -88,10 +88,13 @@ type Request struct {
 }
 
 // Run starts, stops, switches, books, edits, deletes or splits a
-// timesheet behind a tile.
+// timesheet behind a tile. Requires EDIT on the connection.
 func Run(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64, req Request, ip string) error {
 	conn, secret, err := target(d, who, placementID)
 	if err != nil {
+		return err
+	}
+	if err := connections.Writable(d, who, conn.ID); err != nil {
 		return err
 	}
 	to := outbound.Target{URL: conn.URL, Token: secret, VerifyTLS: conn.VerifyTLS}

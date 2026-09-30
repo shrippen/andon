@@ -1,7 +1,9 @@
 package billing
 
 // Year package for the tax advisor: one ZIP with CSV files (semicolon,
-// decimal comma, UTF-8 with BOM – opens directly in German Excel).
+// decimal comma, UTF-8 with BOM – opens directly in German Excel). Column
+// headers and file names are German on purpose, whatever the user's
+// language: the package is for a German tax advisor, not for the screen.
 //
 //	rechnungen.csv  zahlungen.csv  ausgaben.csv  stunden.csv  ust.csv  fahrten.csv  it-kosten.csv
 

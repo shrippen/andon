@@ -1,6 +1,9 @@
 package metrics
 
-import "sort"
+import (
+	"math"
+	"sort"
+)
 
 // Center is how a typical value is taken from a list: the mean, or the
 // median, which one outlier cannot drag (one invoice paid after 90 days
@@ -48,5 +51,5 @@ func (c Center) days(values []int) int {
 	for i, v := range values {
 		list[i] = float64(v)
 	}
-	return int(round(c.Of(list)))
+	return int(math.Round(c.Of(list)))
 }

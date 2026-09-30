@@ -44,12 +44,6 @@ type Frame struct {
 // CalmSlot is the view key a type sets when there is nothing to do.
 const CalmSlot = "Calm"
 
-// calmTypes know when there is nothing to do (their view sets Calm).
-var calmTypes = map[string]bool{}
-
-// Calm marks a type as able to report "nothing to do".
-func calmType(key string) { calmTypes[key] = true }
-
 var (
 	accentColors  = []string{"none", "yellow", "green", "red", "blue", "purple", "aqua", "orange"}
 	headerModes   = []string{string(HeaderNormal), string(HeaderSmall), string(HeaderOff)}
@@ -72,7 +66,7 @@ func FrameFieldsOf(key string) []Field {
 		sel("frame_density", "normal", densityModes...),
 		sel("frame_round", string(RoundExact), roundModes...),
 	}
-	if calmTypes[key] {
+	if registry[key].Calm != nil {
 		fields = append(fields, Field{Key: "frame_only_issues", Input: InputCheck})
 	}
 	return fields
@@ -93,7 +87,7 @@ func oneOfStr(v any, allowed []string, def string) string {
 func FrameOf(raw map[string]any) Frame {
 	f := Frame{
 		Header: HeaderMode(oneOfStr(raw["frame_header"], headerModes, string(HeaderNormal))),
-		Link:   asString(raw["frame_link"]),
+		Link:   webURL(raw["frame_link"]),
 		Icon:   asString(raw["frame_icon"]),
 		Dense:  asString(raw["frame_density"]) == "compact",
 		Round:  RoundMode(oneOfStr(raw["frame_round"], roundModes, string(RoundExact))),

@@ -266,3 +266,23 @@ func Personal(who *Principal) *SpaceRef {
 	}
 	return nil
 }
+
+// ScopeToBoards narrows a principal to boards (id → its space id), as a
+// board-bound token acts: only those boards, their spaces, and no other
+// share.
+func (p *Principal) ScopeToBoards(boards map[int64]int64) {
+	spaces := map[int64]SpaceRef{}
+	grants := map[grantKey]enums.Right{}
+	p.TokenBoards = make([]int64, 0, len(boards))
+	for boardID, spaceID := range boards {
+		p.TokenBoards = append(p.TokenBoards, boardID)
+		if ref, ok := p.Spaces[spaceID]; ok {
+			spaces[spaceID] = ref
+		}
+		key := grantKey{enums.ResourceBoard, boardID}
+		if right, ok := p.Grants[key]; ok {
+			grants[key] = right
+		}
+	}
+	p.Spaces, p.Grants = spaces, grants
+}

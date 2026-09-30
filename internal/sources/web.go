@@ -57,15 +57,11 @@ func (r *HTTPStatusResult) Outcome() (bool, int) {
 	return true, r.Ms
 }
 
-type HTTPStatusSource struct{}
-
-func (HTTPStatusSource) Key() string                { return "http_status" }
-func (HTTPStatusSource) TTL() time.Duration         { return httpStatusTTL }
-func (HTTPStatusSource) Service() enums.ServiceType { return "" }
+var HTTPStatusSource = source{key: "http_status", ttl: httpStatusTTL, fetch: fetchHTTPStatus}
 
 // Fetch checks a URL's reachability. A failed check is data, not an error
 // — the widget shows "down", it doesn't fail to load.
-func (HTTPStatusSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchHTTPStatus(ctx context.Context, sctx Ctx) (any, error) {
 	target := asStr(sctx.Params["url"])
 	accept, _ := sctx.Params["accept"].([]int)
 	insecure, _ := sctx.Params["insecure"].(bool)
@@ -134,13 +130,9 @@ type FeedResult struct {
 	Items []FeedItem
 }
 
-type FeedSource struct{}
+var FeedSource = source{key: "rss", ttl: feedTTL, fetch: fetchFeedSource}
 
-func (FeedSource) Key() string                { return "rss" }
-func (FeedSource) TTL() time.Duration         { return feedTTL }
-func (FeedSource) Service() enums.ServiceType { return "" }
-
-func (FeedSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchFeedSource(ctx context.Context, sctx Ctx) (any, error) {
 	targets := []string{asStr(sctx.Params["url"])}
 	switch more := sctx.Params["urls"].(type) {
 	case []string:
@@ -247,13 +239,9 @@ type WeatherResult struct {
 	Hours      []WeatherHour // the next forecastHrs hours
 }
 
-type WeatherSource struct{}
+var WeatherSource = source{key: "open_meteo", ttl: weatherTTL, fetch: fetchWeather}
 
-func (WeatherSource) Key() string                { return "open_meteo" }
-func (WeatherSource) TTL() time.Duration         { return weatherTTL }
-func (WeatherSource) Service() enums.ServiceType { return "" }
-
-func (WeatherSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchWeather(ctx context.Context, sctx Ctx) (any, error) {
 	params := url.Values{
 		"latitude":       {strconv.FormatFloat(asFloat(sctx.Params["lat"]), 'f', -1, 64)},
 		"longitude":      {strconv.FormatFloat(asFloat(sctx.Params["lon"]), 'f', -1, 64)},
@@ -324,13 +312,9 @@ type GlancesResult struct {
 	Disks                []GlancesDisk
 }
 
-type GlancesSource struct{}
+var GlancesSource = source{key: "glances", ttl: glancesTTL, service: enums.ServiceGlances, fetch: fetchGlances}
 
-func (GlancesSource) Key() string                { return "glances" }
-func (GlancesSource) TTL() time.Duration         { return glancesTTL }
-func (GlancesSource) Service() enums.ServiceType { return enums.ServiceGlances }
-
-func (GlancesSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchGlances(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoGlances(), nil
 	}
@@ -370,13 +354,9 @@ type PublicIPResult struct{ IP, IPv6 string }
 // publicIPv6URL answers over IPv6 only; a var so tests can replace it.
 var publicIPv6URL = "https://api6.ipify.org"
 
-type PublicIPSource struct{}
+var PublicIPSource = source{key: "public_ip", ttl: publicIPTTL, fetch: fetchPublicIP}
 
-func (PublicIPSource) Key() string                { return "public_ip" }
-func (PublicIPSource) TTL() time.Duration         { return publicIPTTL }
-func (PublicIPSource) Service() enums.ServiceType { return "" }
-
-func (PublicIPSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
+func fetchPublicIP(ctx context.Context, sctx Ctx) (any, error) {
 	body, _, err := httpclient.GetJSON(ctx, ownIPURL, httpclient.Options{Params: url.Values{"format": {"json"}}})
 	if err != nil {
 		return nil, newSourceError("%s", err.Error())
@@ -392,9 +372,9 @@ func (PublicIPSource) Fetch(ctx context.Context, sctx Ctx) (any, error) {
 }
 
 func init() {
-	Register(HTTPStatusSource{})
-	Register(FeedSource{})
-	Register(WeatherSource{})
-	Register(GlancesSource{})
-	Register(PublicIPSource{})
+	Register(HTTPStatusSource)
+	Register(FeedSource)
+	Register(WeatherSource)
+	Register(GlancesSource)
+	Register(PublicIPSource)
 }
