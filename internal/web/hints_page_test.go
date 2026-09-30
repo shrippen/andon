@@ -28,7 +28,7 @@ func TestHintsPageCompactAndBulk(t *testing.T) {
 			t.Fatalf("hints page lacks %q:\n%s", want, page)
 		}
 	}
-	if regexp.MustCompile(`<input name="note"[^>]*>\s*<button`).MatchString(page) {
+	if regexp.MustCompile(`<input class="input" name="note"[^>]*>\s*<button`).MatchString(page) {
 		t.Fatal("note field still shown on every card")
 	}
 

@@ -17,36 +17,36 @@
       <form method="post" action="/me/profile">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <label for="name">{{t "field.name"}}</label>
-        <input id="name" name="name" value="{{.Profile.Name}}" required>
+        <input class="input" id="name" name="name" value="{{.Profile.Name}}" required>
 
         <label for="locale">{{t "field.locale"}}</label>
-        <select id="locale" name="locale">
+        <select class="select" id="locale" name="locale">
           <option value="de" {{if eq (print .Profile.Locale) "de"}}selected{{end}}>Deutsch</option>
           <option value="en" {{if eq (print .Profile.Locale) "en"}}selected{{end}}>English</option>
         </select>
 
         <label for="color_mode">{{t "field.color_mode"}}</label>
-        <select id="color_mode" name="color_mode">
+        <select class="select" id="color_mode" name="color_mode">
           <option value="auto" {{if eq (print .Profile.ColorMode) "auto"}}selected{{end}}>Auto</option>
           <option value="dark" {{if eq (print .Profile.ColorMode) "dark"}}selected{{end}}>Dark</option>
           <option value="light" {{if eq (print .Profile.ColorMode) "light"}}selected{{end}}>Light</option>
         </select>
 
         <label for="theme_id">{{t "field.theme"}}</label>
-        <select id="theme_id" name="theme_id">
+        <select class="select" id="theme_id" name="theme_id">
           <option value="">{{t "theme.default"}}</option>
           {{range .Themes}}<option value="{{.ID}}"{{if eqID $.Profile.ThemeID .ID}} selected{{end}}>{{.Name}}</option>{{end}}
         </select>
         <p class="small muted">{{t "field.theme_hint"}}</p>
 
         <label for="start_board_id">{{t "field.start_board"}}</label>
-        <select id="start_board_id" name="start_board_id">
+        <select class="select" id="start_board_id" name="start_board_id">
           <option value="">–</option>
           {{range .Boards}}<option value="{{.ID}}"{{if eqID $.Profile.StartBoardID .ID}} selected{{end}}>{{.Name}}</option>{{end}}
         </select>
 
         <label for="search_engine">{{t "field.search_engine"}}</label>
-        <input id="search_engine" name="search_engine" value="{{.Profile.SearchEngine}}" placeholder="https://www.google.com/search?q={query}">
+        <input class="input" id="search_engine" name="search_engine" value="{{.Profile.SearchEngine}}" placeholder="https://www.google.com/search?q={query}">
         <p class="small muted">{{t "field.search_engine_hint"}}</p>
 
         <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>

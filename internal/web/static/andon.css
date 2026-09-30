@@ -61,22 +61,13 @@ label {
   margin: .8rem 0 .3rem;
   font-family: var(--font-mono);
   font-size: .68rem;
-  letter-spacing: .06em;
+  letter-spacing: .14em;
   text-transform: uppercase;
   color: var(--fg3);
 }
-input, select, textarea {
-  width: 100%;
-  background: var(--field);
-  border: 1px solid var(--bg2);
-  color: var(--fg1);
-  padding: .55rem .7rem;
-  font-size: .88rem;
-  font-family: var(--font-sans);
-}
+/* Fields are Kante's .input and .select. Native check boxes that remain
+   (tile picks) and the file picker have no Kante field yet. */
 input[type=checkbox], input[type=radio] { width: auto; flex: none; margin: 0; }
-input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
-textarea { min-height: 8rem; font-family: var(--font-mono); resize: vertical; }
 /* Buttons are Kante's .btn variants. A bare <button> (menu entries, tabs,
    strip icons) shows only what its own class gives it; a form's .btn keeps
    the gap above it. */
@@ -189,8 +180,7 @@ a > .count, summary > .count { margin-left: .35rem; }
 .board-tools { display: flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; align-items: center; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .search { position: relative; flex: 1 1 18rem; max-width: 34rem; display: flex; align-items: center; margin: 0; }
-.search input { width: 100%; background: var(--bg-hard); border: 1px solid var(--bg1); color: var(--fg0); font-family: var(--font-sans); font-size: .88rem; padding: .5rem 2.6rem .5rem .8rem; margin: 0; }
-.search input:focus-visible { outline: 2px solid var(--focus); outline-offset: 0; }
+.search input { margin: 0; padding-right: 2.6rem; }
 .search kbd { position: absolute; right: .6rem; }
 .search-empty { color: var(--fg3); font-family: var(--font-mono); font-size: .8rem; }
 .board { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.4rem; align-items: start; }
@@ -308,7 +298,7 @@ a > .count, summary > .count { margin-left: .35rem; }
 .add-tile-main span { font-family: var(--font-heading); font-size: 1.5rem; line-height: 1; color: var(--fg1); }
 .add-tile-main:hover { color: var(--fg0); }
 .quick-link { display: flex; gap: .3rem; margin: 0; }
-.quick-link input { flex: 1; min-width: 0; width: auto; margin: 0; padding: .3rem .45rem; font-size: .78rem; }
+.quick-link input { flex: 1; min-width: 0; width: auto; margin: 0; }
 .quick-link button { margin: 0; }
 /* Dragging: the gap shows where the tile lands, the tile lifts. */
 .sortable-ghost { outline: 2px dashed var(--yellow); outline-offset: -2px; background: none; }
@@ -968,7 +958,7 @@ td.row-actions { display: table-cell; }
 td.row-actions > * { display: inline-block; vertical-align: middle; margin: .15rem .4rem .15rem 0; }
 td.row-actions button { margin: 0; }
 .boards-table button { margin: 0; }
-label.check { display: flex; gap: .5rem; align-items: center; }
+label.check { margin: .8rem 0 .3rem; font-family: var(--font-sans); text-transform: none; letter-spacing: 0; }
 @media (max-width: 800px) {
   .editor-split, .token-grid { grid-template-columns: minmax(0, 1fr); }
 }
@@ -1146,8 +1136,8 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .kl-ticks span:first-child { transform: none; }
 .kl-ticks span:last-child { transform: translateX(-100%); }
 .kl-stop { display: flex; gap: .4rem; margin: 0; }
-.kl-stop input { flex: 1; margin: 0; padding: .4rem .6rem; font-size: .82rem; }
-.kl-start-note { width: 100%; margin: 0; padding: .4rem .6rem; font-size: .82rem; }
+.kl-stop input { flex: 1; margin: 0; }
+.kl-start-note { width: 100%; margin: 0; }
 .kl-stop button { margin: 0; }
 .kl-sq { width: .55rem; height: .55rem; background: var(--bg-void); }
 .kl-target { margin: 0; font-size: .78rem; color: var(--fg2); }
@@ -1170,7 +1160,7 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .kl-list .kl-pin-f { margin-left: auto; }
 .kl-pin[data-pinned] { color: var(--warn-text); }
 .kl-pin[data-pinned] svg { fill: currentColor; }
-.kl-search { margin: 0 0 .3rem; padding: .35rem .6rem; font-size: .82rem; }
+.kl-search { margin: 0 0 .3rem; }
 .kl-daylist .kl-pair { margin-right: auto; }
 .kl-new .kl-actions input { flex: 1; }
 .kl-del { margin-left: auto; }

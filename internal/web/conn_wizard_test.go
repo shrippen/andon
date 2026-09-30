@@ -203,7 +203,7 @@ func TestSpeedtestKind(t *testing.T) {
 	login(t, srv, client)
 
 	form := string(mustGet(t, srv, client, "/connections/new?service=speedtest"))
-	if !strings.Contains(form, `<select id="opt_kind" name="opt_kind"`) || !strings.Contains(form, `value="myspeed"`) {
+	if !strings.Contains(form, `<select class="select" id="opt_kind" name="opt_kind"`) || !strings.Contains(form, `value="myspeed"`) {
 		t.Fatalf("no choice between Speedtest Tracker and MySpeed:\n%s", form)
 	}
 }

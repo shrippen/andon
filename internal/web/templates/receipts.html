@@ -44,12 +44,12 @@
       {{if $s.Pick}}<h2>{{t "receipts.pick_title"}}</h2><p class="muted">{{t "receipts.pick_text"}}</p>{{end}}
       <fieldset>
         <legend>{{t "service.invoiceninja"}}</legend>
-        {{range $s.Ninjas}}<label class="check"><input type="radio" name="ninja" value="{{.ID}}"{{if eq .ID $s.Ninja}} checked{{end}}{{if .NeedsToken}} disabled{{end}} required>
+        {{range $s.Ninjas}}<label class="check"><input type="radio" name="ninja" value="{{.ID}}"{{if eq .ID $s.Ninja}} checked{{end}}{{if .NeedsToken}} disabled{{end}} required><span class="check-dia"></span>
           {{.Label}}{{if .NeedsToken}} <a class="small" href="/me/credentials">{{t "receipts.needs_token"}}</a>{{end}}</label>{{end}}
       </fieldset>
       <fieldset>
         <legend>{{t "service.paperless"}}</legend>
-        {{range $s.Docs}}<label class="check"><input type="radio" name="paperless" value="{{.ID}}"{{if eq .ID $s.Paperless}} checked{{end}}{{if .NeedsToken}} disabled{{end}} required>
+        {{range $s.Docs}}<label class="check"><input type="radio" name="paperless" value="{{.ID}}"{{if eq .ID $s.Paperless}} checked{{end}}{{if .NeedsToken}} disabled{{end}} required><span class="check-dia"></span>
           {{.Label}}{{if .NeedsToken}} <a class="small" href="/me/credentials">{{t "receipts.needs_token"}}</a>{{end}}</label>{{end}}
       </fieldset>
       <button type="submit" class="btn {{if $s.Pick}}btn-accent{{else}}btn-outline btn-sm{{end}}">{{if $s.Pick}}{{t "receipts.pick_use"}}{{else}}{{t "receipts.pick_switch"}}{{end}}</button>
@@ -178,7 +178,7 @@
     <h2>{{t "receipts.sure_title"}}</h2>
     <p class="small muted">{{t "receipts.sure_lead"}}</p>
     <ul class="plain-list">{{range $v.Matches}}{{if .Sure}}{{$c := index .Candidates 0}}
-      <li><label class="check"><input type="checkbox" name="pair" value="{{.Expense.Key}}:{{$c.Doc.ID}}" checked>
+      <li><label class="check"><input type="checkbox" name="pair" value="{{.Expense.Key}}:{{$c.Doc.ID}}" checked><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>
         <span><b>{{or .Expense.Number .Expense.Key}}</b> {{or .Expense.Vendor "–"}} · {{money .Expense.Amount}} → {{or $c.Doc.Title (print "#" $c.Doc.ID)}}</span>
         {{template "receipt_score" $c}}</label></li>{{end}}{{end}}</ul>
     <button type="submit" class="btn btn-accent">{{t "receipts.sure_link"}}</button>
@@ -268,7 +268,7 @@
 {{if eq .Q.Tab "linked"}}{{if not .Error}}
   <form method="get" action="/receipts" class="receipt-search-row receipt-find">
     <input type="hidden" name="tab" value="linked"><input type="hidden" name="year" value="{{.Q.Year}}">
-    <input type="search" name="find" value="{{$v.Query}}" placeholder="{{t "receipts.find_placeholder"}}" aria-label="{{t "receipts.find"}}">
+    <input class="input" type="search" name="find" value="{{$v.Query}}" placeholder="{{t "receipts.find_placeholder"}}" aria-label="{{t "receipts.find"}}">
     <button type="submit" class="btn btn-outline btn-sm">{{t "receipts.find"}}</button>
   </form>
   <p class="small muted">{{t "receipts.linked_meta" "n" $v.Total "year" $v.Year}}{{if lt $v.Shown $v.Total}} {{t "receipts.linked_shown" "n" $v.Shown}}{{end}} {{t "receipts.linked_lead"}}</p>
@@ -358,7 +358,7 @@
     {{template "receipt_field" dict "Name" "field_expense" "Label" "receipts.map_field_expense" "Fields" $v.Fields "Now" $m.FieldExpense "Required" true}}
     {{template "receipt_field" dict "Name" "field_link" "Label" "receipts.map_field_link" "Fields" $v.Fields "Now" $m.FieldLink "Required" true}}
     {{template "receipt_field" dict "Name" "field_amount" "Label" "receipts.map_field_amount" "Fields" $v.Fields "Now" $m.FieldAmount}}
-    <label>{{t "receipts.map_queue_tag"}}<select name="queue_tag">
+    <label>{{t "receipts.map_queue_tag"}}<select class="select" name="queue_tag">
       <option value="">{{t "receipts.map_none"}}</option>
       {{$found := false}}{{range $v.Tags}}<option value="{{.}}"{{if eq . $m.QueueTag}}{{$found = true}} selected{{end}}>{{.}}</option>{{end}}
       {{if and $m.QueueTag (not $found)}}<option value="{{$m.QueueTag}}" selected>{{t "receipts.tag_unknown" "tag" $m.QueueTag}}</option>{{end}}
@@ -369,14 +369,14 @@
 {{end}}
 
 {{define "receipt_slot"}}
-<label>{{t .Label}}<select name="{{.Name}}" required>
+<label>{{t .Label}}<select class="select" name="{{.Name}}" required>
   <option value="">–</option>
   {{range .Slots}}<option value="{{.N}}"{{if eq .N $.Now}} selected{{end}}>{{template "receipt_slot_name" dict "N" .N "Label" .Label}}{{if .Used}} · {{t "receipts.slot_used" "n" .Used}}{{end}}</option>{{end}}
 </select><small class="muted">{{t (print .Label "_help")}}</small></label>
 {{end}}
 
 {{define "receipt_field"}}
-<label>{{t .Label}}<select name="{{.Name}}"{{if .Required}} required{{end}}>
+<label>{{t .Label}}<select class="select" name="{{.Name}}"{{if .Required}} required{{end}}>
   <option value="">{{if .Required}}–{{else}}{{t "receipts.map_none"}}{{end}}</option>
   {{range .Fields}}<option value="{{.ID}}"{{if eq .ID $.Now}} selected{{end}}>{{.Name}} ({{t (print "receipts.ftype_" .Type)}})</option>{{end}}
 </select><small class="muted">{{t (print .Label "_help")}}</small></label>
@@ -389,16 +389,16 @@
     <input type="hidden" name="slot" value="{{.Slot}}">{{with $v.Input.With}}<input type="hidden" name="with" value="{{.}}">
     <p class="small"><b>{{t "receipts.pick_for" "number" (or $e.Number $e.Key) "amount" (money $e.Amount)}}</b></p>{{end}}
     <div class="receipt-search-row">
-      <input type="search" name="q" value="{{$v.Input.Query}}" placeholder="{{t "receipts.search_placeholder"}}" aria-label="{{t "receipts.search_open"}}">
+      <input class="input" type="search" name="q" value="{{$v.Input.Query}}" placeholder="{{t "receipts.search_placeholder"}}" aria-label="{{t "receipts.search_open"}}">
       <button type="submit" class="btn btn-accent">{{t "receipts.search_go"}}</button>
       <button type="button" class="btn btn-outline btn-sm" data-close-search title="Esc">{{t "receipts.close"}}</button>
     </div>
     <div class="chips">{{range .Presets}}<button type="submit" name="preset" value="{{.}}" class="chip"{{if eq . $v.Input.Preset}} aria-current="true"{{end}}>{{t (print "receipts.preset_" .)}}</button>{{end}}</div>
     <div class="receipt-search-row small">
-      <label class="check"><input type="checkbox" name="unlinked" value="1"{{if $v.Input.UnlinkedOnly}} checked{{end}}> {{t "receipts.search_unlinked"}}</label>
-      <label>{{t "receipts.search_from"}} <input type="date" name="from" value="{{$v.Input.From}}"></label>
-      <label>{{t "receipts.search_to"}} <input type="date" name="to" value="{{$v.Input.To}}"></label>
-      <label>{{t "receipts.search_correspondent"}} <input name="correspondent" value="{{$v.Input.Correspondent}}"></label>
+      <label class="check"><input type="checkbox" name="unlinked" value="1"{{if $v.Input.UnlinkedOnly}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "receipts.search_unlinked"}}</label>
+      <label>{{t "receipts.search_from"}} <input class="input" type="date" name="from" value="{{$v.Input.From}}"></label>
+      <label>{{t "receipts.search_to"}} <input class="input" type="date" name="to" value="{{$v.Input.To}}"></label>
+      <label>{{t "receipts.search_correspondent"}} <input class="input" name="correspondent" value="{{$v.Input.Correspondent}}"></label>
     </div>
     {{if $v.From}}<p class="small muted">{{t "receipts.search_range" "from" (day $v.From) "to" (day $v.To)}}</p>{{end}}
   </form>
@@ -433,7 +433,7 @@
   <form hx-get="/receipts/expenses" hx-target="#panel-{{$d.ID}}" hx-swap="innerHTML">
     <input type="hidden" name="doc" value="{{$d.ID}}"><input type="hidden" name="year" value="{{.Q.Year}}">
     <div class="receipt-search-row">
-      <input type="search" name="q" value="{{$v.Query}}" placeholder="{{t "receipts.find_placeholder"}}" aria-label="{{t "receipts.expenses_open"}}">
+      <input class="input" type="search" name="q" value="{{$v.Query}}" placeholder="{{t "receipts.find_placeholder"}}" aria-label="{{t "receipts.expenses_open"}}">
       <button type="submit" class="btn btn-accent">{{t "receipts.search_go"}}</button>
       <button type="button" class="btn btn-outline btn-sm" data-close-search title="Esc">{{t "receipts.close"}}</button>
     </div>
@@ -460,10 +460,10 @@
   <p class="small muted">{{t "receipts.new_expense_lead"}}</p>
   {{with .Error}}<p class="error">{{t .}}</p>{{end}}
   <div class="receipt-draft-grid">
-    <label>{{t "col.amount"}}<input name="amount" inputmode="decimal" value="{{if $v.Amount}}{{printf "%.2f" $v.Amount}}{{end}}" required></label>
-    <label>{{t "receipts.date"}}<input type="date" name="day" value="{{$v.Day}}" required></label>
-    <label>{{t "receipts.vendor"}}<input name="vendor" value="{{$v.Vendor}}"><small class="muted">{{t "receipts.new_expense_vendor"}}</small></label>
-    <label>{{t "receipts.notes"}}<input name="notes" value="{{$v.Notes}}"></label>
+    <label>{{t "col.amount"}}<input class="input" name="amount" inputmode="decimal" value="{{if $v.Amount}}{{printf "%.2f" $v.Amount}}{{end}}" required></label>
+    <label>{{t "receipts.date"}}<input class="input" type="date" name="day" value="{{$v.Day}}" required></label>
+    <label>{{t "receipts.vendor"}}<input class="input" name="vendor" value="{{$v.Vendor}}"><small class="muted">{{t "receipts.new_expense_vendor"}}</small></label>
+    <label>{{t "receipts.notes"}}<input class="input" name="notes" value="{{$v.Notes}}"></label>
   </div>
   <p class="receipt-actions"><button type="submit" class="btn btn-accent">{{t "receipts.new_expense_go"}}</button>
     <button type="button" class="btn btn-outline btn-sm" data-close-search>{{t "receipts.close"}}</button></p>

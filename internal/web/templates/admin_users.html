@@ -28,7 +28,7 @@
         <td>
           <form method="post" action="/admin/users/{{.ID}}/role" class="inline-form">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <select name="role" aria-label="{{t "field.role"}}">
+            <select class="select" name="role" aria-label="{{t "field.role"}}">
               <option value="user"{{if eq (print .Role) "user"}} selected{{end}}>{{t "irole.user"}}</option>
               <option value="admin"{{if eq (print .Role) "admin"}} selected{{end}}>{{t "irole.admin"}}</option>
             </select>
@@ -71,24 +71,24 @@
       <form method="post" action="/admin/invite">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <label for="inv_email">{{t "field.email"}}</label>
-        <input id="inv_email" name="email" type="email" required>
+        <input class="input" id="inv_email" name="email" type="email" required>
         <label for="inv_role">{{t "field.role"}}</label>
-        <select id="inv_role" name="role">
+        <select class="select" id="inv_role" name="role">
           <option value="user" selected>{{t "irole.user"}}</option>
           <option value="admin">{{t "irole.admin"}}</option>
         </select>
         <label for="inv_locale">{{t "field.locale"}}</label>
-        <select id="inv_locale" name="locale">
+        <select class="select" id="inv_locale" name="locale">
           <option value="de">{{t "locale.de"}}</option>
           <option value="en">{{t "locale.en"}}</option>
         </select>
         {{if .TeamList}}
         <label for="inv_teams">{{t "nav.teams"}}</label>
-        <select id="inv_teams" name="teams" multiple size="3">
+        <select class="select" id="inv_teams" name="teams" multiple size="3">
           {{range .TeamList}}<option value="{{.Name}}">{{.Name}}</option>{{end}}
         </select>
         <label for="inv_team_role">{{t "field.team_role"}}</label>
-        <select id="inv_team_role" name="team_role">
+        <select class="select" id="inv_team_role" name="team_role">
           <option value="viewer" selected>{{t "role.viewer"}}</option>
           <option value="editor">{{t "role.editor"}}</option>
           <option value="owner">{{t "role.owner"}}</option>

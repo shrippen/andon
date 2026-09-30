@@ -39,7 +39,7 @@
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
         <input type="hidden" name="space_id" value="{{.SpaceID}}">
         <input type="hidden" name="customer_id" value="{{.CustomerID}}">
-        <label class="check"><input type="checkbox" name="mark_exported" checked> {{t "billing.mark_exported"}}</label>
+        <label class="check"><input type="checkbox" name="mark_exported" checked><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "billing.mark_exported"}}</label>
         <button type="submit" class="btn btn-accent">{{t "billing.create" "client" .Client}}</button>
       </form>
       {{else}}<p class="small late">{{t "billing.no_client"}}</p>{{end}}
@@ -88,7 +88,7 @@
     <h2 id="export">{{t "billing.export"}}</h2>
     <form method="get" action="/billing/export" class="card inline-form">
       {{template "space_select" .Spaces}}
-      <select name="year" aria-label="{{t "billing.year"}}">{{range .Years}}<option>{{.}}</option>{{end}}</select>
+      <select class="select" name="year" aria-label="{{t "billing.year"}}">{{range .Years}}<option>{{.}}</option>{{end}}</select>
       <button type="submit" class="btn btn-outline btn-sm">{{t "billing.download"}}</button>
     </form>
     <p class="small muted">{{t "billing.export_hint"}}</p>

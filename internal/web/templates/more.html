@@ -64,17 +64,17 @@
     <form method="post" action="/boards/new" class="card">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <label for="board_name">{{t "field.name"}}</label>
-      <input id="board_name" name="name" required autofocus>
+      <input class="input" id="board_name" name="name" required autofocus>
       <label for="board_space">{{t "field.space"}}</label>
-      <select id="board_space" name="space_id">{{range .Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
+      <select class="select" id="board_space" name="space_id">{{range .Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
       <button type="submit" class="btn btn-accent">{{t "action.create"}}</button>
     </form>
 
     <h2>{{t "board.from_template"}}</h2>
     <form method="post" action="/boards/new" class="card inline-form">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-      <select name="template" aria-label="{{t "board.from_template"}}">{{range .Templates}}<option value="{{.}}">{{t (print "template." .)}}</option>{{end}}</select>
-      <select name="space_id" aria-label="{{t "field.space"}}">{{range .Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
+      <select class="select" name="template" aria-label="{{t "board.from_template"}}">{{range .Templates}}<option value="{{.}}">{{t (print "template." .)}}</option>{{end}}</select>
+      <select class="select" name="space_id" aria-label="{{t "field.space"}}">{{range .Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
       <button type="submit" class="btn btn-outline btn-sm">{{t "action.create"}}</button>
     </form>
     <p class="small muted">{{t "board.template_hint"}}</p>
@@ -113,17 +113,17 @@
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
             {{$shape := credShape .Service}}
             {{if eq $shape "userpass"}}
-              <input name="secret_a" autocomplete="off" placeholder="{{t "conn.cred_user"}}" aria-label="{{t "conn.cred_user"}}">
-              <input name="secret_b" type="password" autocomplete="off" required placeholder="{{t "conn.cred_pass"}}" aria-label="{{t "conn.cred_pass"}}">
+              <input class="input" name="secret_a" autocomplete="off" placeholder="{{t "conn.cred_user"}}" aria-label="{{t "conn.cred_user"}}">
+              <input class="input" name="secret_b" type="password" autocomplete="off" required placeholder="{{t "conn.cred_pass"}}" aria-label="{{t "conn.cred_pass"}}">
             {{else if eq $shape "tokenid"}}
-              <input name="secret_a" autocomplete="off" placeholder="{{t "conn.cred_tokenid"}}" aria-label="{{t "conn.cred_tokenid"}}">
-              <input name="secret_b" type="password" autocomplete="off" required placeholder="{{t "conn.cred_secret"}}" aria-label="{{t "conn.cred_secret"}}">
+              <input class="input" name="secret_a" autocomplete="off" placeholder="{{t "conn.cred_tokenid"}}" aria-label="{{t "conn.cred_tokenid"}}">
+              <input class="input" name="secret_b" type="password" autocomplete="off" required placeholder="{{t "conn.cred_secret"}}" aria-label="{{t "conn.cred_secret"}}">
             {{else if eq $shape "keysecret"}}
-              <input name="secret_a" autocomplete="off" placeholder="{{t "conn.cred_key"}}" aria-label="{{t "conn.cred_key"}}">
-              <input name="secret_b" type="password" autocomplete="off" required placeholder="{{t "conn.cred_secret"}}" aria-label="{{t "conn.cred_secret"}}">
+              <input class="input" name="secret_a" autocomplete="off" placeholder="{{t "conn.cred_key"}}" aria-label="{{t "conn.cred_key"}}">
+              <input class="input" name="secret_b" type="password" autocomplete="off" required placeholder="{{t "conn.cred_secret"}}" aria-label="{{t "conn.cred_secret"}}">
             {{else}}
               {{$label := t "field.token"}}{{if eq $shape "ical"}}{{$label = t "conn.ical_private"}}{{else if eq $shape "password"}}{{$label = t "field.password"}}{{end}}
-              <input name="secret" type="password" autocomplete="off" required placeholder="{{$label}}" aria-label="{{$label}}">
+              <input class="input" name="secret" type="password" autocomplete="off" required placeholder="{{$label}}" aria-label="{{$label}}">
             {{end}}
             <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
           </form>

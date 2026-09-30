@@ -16,9 +16,9 @@
       {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
       <form method="post" action="/login">
         <label for="email">{{t "field.email"}}</label>
-        <input id="email" name="email" type="email" value="{{.Email}}" required autofocus>
+        <input class="input" id="email" name="email" type="email" value="{{.Email}}" required autofocus>
         <label for="password">{{t "field.password"}}</label>
-        <input id="password" name="password" type="password" required>
+        <input class="input" id="password" name="password" type="password" required>
         <button class="btn btn-accent login-btn" type="submit">{{t "login.submit"}}</button>
       </form>
       <p class="error" hidden data-passkey-error>{{t "passkey.failed"}}</p>
@@ -53,7 +53,7 @@
       <form method="post" action="/login/totp">
         <input type="hidden" name="token" value="{{.Token}}">
         <label for="code">{{t "totp.code"}}</label>
-        <input id="code" name="code" required autofocus autocomplete="one-time-code">
+        <input class="input" id="code" name="code" required autofocus autocomplete="one-time-code">
         <p class="small muted">{{t "totp.recovery_hint"}}</p>
         <button class="btn btn-accent login-btn" type="submit">{{t "totp.submit"}}</button>
       </form>
@@ -81,13 +81,13 @@
       {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
       <form method="post" action="/setup">
         <label for="code">{{t "setup.code"}}</label>
-        <input id="code" name="code" required>
+        <input class="input" id="code" name="code" required>
         <label for="email">{{t "field.email"}}</label>
-        <input id="email" name="email" type="email" required>
+        <input class="input" id="email" name="email" type="email" required>
         <label for="name">{{t "field.name"}}</label>
-        <input id="name" name="name" required>
+        <input class="input" id="name" name="name" required>
         <label for="password">{{t "field.password"}} ({{t "password.rules"}})</label>
-        <input id="password" name="password" type="password" required minlength="12">
+        <input class="input" id="password" name="password" type="password" required minlength="12">
         <button class="btn btn-accent login-btn" type="submit">{{t "setup.submit"}}</button>
       </form>
     </div>

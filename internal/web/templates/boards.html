@@ -28,7 +28,7 @@
     {{template "intro" dict "Page" "board" "Chapter" "boards" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <label class="search">
       <span class="sr">{{t "board.search"}}</span>
-      <input id="search" type="search" autocomplete="off" placeholder="{{t "board.search_hint"}}"
+      <input class="input" id="search" type="search" autocomplete="off" placeholder="{{t "board.search_hint"}}"
              data-engine="{{.SearchEngine}}" aria-keyshortcuts="/">
       <kbd>/</kbd>
     </label>
@@ -67,7 +67,7 @@
       <form method="post" action="/boards/{{.Board.ID}}/sections" class="inline-form">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <input type="hidden" name="version" value="{{.Board.Version}}">
-        <input name="title" placeholder="{{t "edit.section_title"}}" aria-label="{{t "edit.section_title"}}">
+        <input class="input" name="title" placeholder="{{t "edit.section_title"}}" aria-label="{{t "edit.section_title"}}">
         <button type="submit" class="btn btn-primary btn-sm">{{t "edit.add_section"}}</button>
       </form>
     </details>
@@ -95,13 +95,13 @@
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
     <input type="hidden" name="version" value="{{.Board.Version}}">
     <b data-sel-count data-template="{{t "edit.selected"}}">{{t "edit.bulk"}}</b>
-    <select name="action" aria-label="{{t "edit.bulk"}}">
+    <select class="select" name="action" aria-label="{{t "edit.bulk"}}">
       <option value="move">{{t "edit.bulk_move"}}</option>
       <option value="color">{{t "edit.bulk_color"}}</option>
       <option value="remove">{{t "edit.remove"}}</option>
     </select>
-    <select name="section" aria-label="{{t "edit.section"}}">{{range .Board.Sections}}<option value="{{.ID}}">{{if .Title}}{{.Title}}{{else}}{{t "board.untitled"}}{{end}}</option>{{end}}</select>
-    <select name="color" aria-label="{{t "field.color"}}"><option value="">{{t "opt.none"}}</option>{{range .Colors}}<option value="{{.}}">{{t (print "opt." .)}}</option>{{end}}</select>
+    <select class="select" name="section" aria-label="{{t "edit.section"}}">{{range .Board.Sections}}<option value="{{.ID}}">{{if .Title}}{{.Title}}{{else}}{{t "board.untitled"}}{{end}}</option>{{end}}</select>
+    <select class="select" name="color" aria-label="{{t "field.color"}}"><option value="">{{t "opt.none"}}</option>{{range .Colors}}<option value="{{.}}">{{t (print "opt." .)}}</option>{{end}}</select>
     <button type="submit" class="btn btn-accent">{{t "edit.bulk_apply"}}</button>
     <button type="button" class="btn btn-outline btn-sm" data-sel-clear>{{t "edit.clear_selection"}}</button>
   </form>
@@ -221,16 +221,16 @@
         <input type="hidden" name="was_span" value="{{.Span}}">
         <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
         <input type="hidden" name="version" value="{{$b.Board.Version}}">
-        <label>{{t "field.title"}}<input name="title" value="{{.Title}}"></label>
-        <label>{{t "field.cols"}}<input name="cols" type="number" min="1" max="12" value="{{with .Cols}}{{.}}{{end}}"></label>
-        <label>{{t "field.size"}}<select name="size">{{$size := .Size}}{{range $b.Sizes}}<option value="{{.}}"{{if eq . $size}} selected{{end}}>{{t (print "size." .)}}</option>{{end}}</select></label>
-        <label>{{t "field.sort"}}<select name="sort">{{$sort := .Sort}}{{range $b.Sorts}}<option value="{{.}}"{{if eq . $sort}} selected{{end}}>{{t (print "sort." .)}}</option>{{end}}</select></label>
-        <label>{{t "field.area"}}<select name="area">{{$area := .Area}}{{range $b.Areas}}<option value="{{.}}"{{if eq . $area}} selected{{end}}>{{t (print "area." .)}}</option>{{end}}</select></label>
-        <label>{{t "field.span"}}<select name="span">{{$span := .Span}}{{range $b.Spans}}<option value="{{.}}"{{if eq . $span}} selected{{end}}>{{t (print "span." .)}}</option>{{end}}</select></label>
-        <label>{{t "field.rows"}}<select name="rows">{{$rows := .Rows}}{{if eq $rows 0}}{{$rows = 1}}{{end}}{{range $b.RowSpans}}<option value="{{.}}"{{if eq . $rows}} selected{{end}}>{{.}}</option>{{end}}</select></label>
-        <label>{{t "field.color"}}<select name="color">{{$color := .Color}}<option value="">{{t "opt.none"}}</option>{{range $b.Colors}}<option value="{{.}}"{{if eq (print .) $color}} selected{{end}}>{{t (print "opt." .)}}</option>{{end}}</select></label>
-        <label>{{t "field.mobile"}}<select name="mobile">{{$mobile := .Mobile}}{{range $b.Mobiles}}<option value="{{.}}"{{if eq . $mobile}} selected{{end}}>{{t (print "mobile." (or (print .) "normal"))}}</option>{{end}}</select></label>
-        <label class="check"><input type="checkbox" name="collapsed"{{if .Collapsed}} checked{{end}}> {{t "field.collapsed"}}</label>
+        <label>{{t "field.title"}}<input class="input" name="title" value="{{.Title}}"></label>
+        <label>{{t "field.cols"}}<input class="input" name="cols" type="number" min="1" max="12" value="{{with .Cols}}{{.}}{{end}}"></label>
+        <label>{{t "field.size"}}<select class="select" name="size">{{$size := .Size}}{{range $b.Sizes}}<option value="{{.}}"{{if eq . $size}} selected{{end}}>{{t (print "size." .)}}</option>{{end}}</select></label>
+        <label>{{t "field.sort"}}<select class="select" name="sort">{{$sort := .Sort}}{{range $b.Sorts}}<option value="{{.}}"{{if eq . $sort}} selected{{end}}>{{t (print "sort." .)}}</option>{{end}}</select></label>
+        <label>{{t "field.area"}}<select class="select" name="area">{{$area := .Area}}{{range $b.Areas}}<option value="{{.}}"{{if eq . $area}} selected{{end}}>{{t (print "area." .)}}</option>{{end}}</select></label>
+        <label>{{t "field.span"}}<select class="select" name="span">{{$span := .Span}}{{range $b.Spans}}<option value="{{.}}"{{if eq . $span}} selected{{end}}>{{t (print "span." .)}}</option>{{end}}</select></label>
+        <label>{{t "field.rows"}}<select class="select" name="rows">{{$rows := .Rows}}{{if eq $rows 0}}{{$rows = 1}}{{end}}{{range $b.RowSpans}}<option value="{{.}}"{{if eq . $rows}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+        <label>{{t "field.color"}}<select class="select" name="color">{{$color := .Color}}<option value="">{{t "opt.none"}}</option>{{range $b.Colors}}<option value="{{.}}"{{if eq (print .) $color}} selected{{end}}>{{t (print "opt." .)}}</option>{{end}}</select></label>
+        <label>{{t "field.mobile"}}<select class="select" name="mobile">{{$mobile := .Mobile}}{{range $b.Mobiles}}<option value="{{.}}"{{if eq . $mobile}} selected{{end}}>{{t (print "mobile." (or (print .) "normal"))}}</option>{{end}}</select></label>
+        <label class="check"><input type="checkbox" name="collapsed"{{if .Collapsed}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "field.collapsed"}}</label>
         <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
       </form>
       <form method="post" action="/sections/{{.ID}}/delete" data-confirm="{{t "edit.confirm_delete"}}">
@@ -245,7 +245,7 @@
       <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
       {{$size := .Size}}
       <label class="size-pick"><span>{{t "field.size"}}</span>
-        <select name="value" data-autosubmit>{{range $b.Sizes}}<option value="{{.}}"{{if eq . $size}} selected{{end}}>{{t (print "size." .)}}</option>{{end}}</select></label>
+        <select class="select" name="value" data-autosubmit>{{range $b.Sizes}}<option value="{{.}}"{{if eq . $size}} selected{{end}}>{{t (print "size." .)}}</option>{{end}}</select></label>
     </form>
     {{end}}
   </header>
@@ -261,7 +261,7 @@
         <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
         <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
         <input type="hidden" name="version" value="{{$b.Board.Version}}">
-        <input name="url" inputmode="url" required placeholder="https://…" aria-label="{{t "edit.quick_link"}}">
+        <input class="input" name="url" inputmode="url" required placeholder="https://…" aria-label="{{t "edit.quick_link"}}">
         <button type="submit" class="btn btn-accent" aria-label="{{t "edit.quick_link"}}">+</button>
       </form>
     </div>

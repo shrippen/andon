@@ -34,7 +34,7 @@
     {{end}}
     {{if and (not .Embed) (not .DoneDays)}}
     <nav class="hint-filters" aria-label="{{t "hints.filter"}}">
-      <input id="hint-search" type="search" placeholder="{{t "hints.search"}}" aria-label="{{t "hints.search"}}" aria-keyshortcuts="/">
+      <input class="input" id="hint-search" type="search" placeholder="{{t "hints.search"}}" aria-label="{{t "hints.search"}}" aria-keyshortcuts="/">
       <div class="chips">
         <a class="chip" href="{{.Filter.Link "level" ""}}"{{if not .Filter.Level}} aria-current="true"{{end}}>{{t "hints.all_levels"}}</a>
         {{range .Levels}}<a class="chip" data-tier="{{.Key}}" href="{{$.Filter.Link "level" .Key}}"{{if eq .Key $.Filter.Level}} aria-current="true"{{end}}>{{t (print "severity." .Key)}} <span>{{.N}}</span></a>{{end}}
@@ -77,7 +77,7 @@
 <div class="hint-flow">
   <form method="post" action="/hints/{{.ID}}/assign" class="inline-form">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-    <label>{{t "hints.assign"}} <select name="assignee">
+    <label>{{t "hints.assign"}} <select class="select" name="assignee">
       <option value="0">{{t "hints.nobody"}}</option>
       {{range .People}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
     </select></label>
@@ -85,7 +85,7 @@
   </form>
   <form method="post" action="/hints/{{.ID}}/work" class="inline-form">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-    <label>{{t "hints.work"}} <select name="state">{{range .States}}<option value="{{.}}">{{t (print "hints.work_" .)}}</option>{{end}}</select></label>
+    <label>{{t "hints.work"}} <select class="select" name="state">{{range .States}}<option value="{{.}}">{{t (print "hints.work_" .)}}</option>{{end}}</select></label>
     <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
   </form>
   <form method="post" action="/hints/{{.ID}}/snooze" class="inline-form">
@@ -95,7 +95,7 @@
   </form>
   <form method="post" action="/hints/{{.ID}}/note" class="inline-form">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-    <input name="note" maxlength="500" required placeholder="{{t "hints.note"}}" aria-label="{{t "hints.note"}}">
+    <input class="input" name="note" maxlength="500" required placeholder="{{t "hints.note"}}" aria-label="{{t "hints.note"}}">
     <button type="submit" class="btn btn-outline btn-sm">{{t "hints.add_note"}}</button>
   </form>
   {{with .Runbook}}{{if or .Text .CanEdit}}<div class="hint-runbook">
@@ -103,7 +103,7 @@
     {{if .CanEdit}}<details><summary class="small">{{if .Text}}{{t "hints.runbook_edit"}}{{else}}{{t "hints.runbook_add"}}{{end}}</summary>
       <form method="post" action="/hints/{{$.ID}}/runbook">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-        <textarea name="text" rows="5" maxlength="4000" aria-label="{{t "hints.runbook"}}">{{.Text}}</textarea>
+        <textarea class="input" name="text" rows="5" maxlength="4000" aria-label="{{t "hints.runbook"}}">{{.Text}}</textarea>
         <p class="small muted">{{t "hints.runbook_hint"}}</p>
         <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
       </form>
@@ -157,7 +157,7 @@
             {{/* The note goes with "done" or "pause", but only when wanted. */}}
             <details class="hint-note">
               <summary>✎ {{t "hints.note"}}</summary>
-              <input name="note" form="ack-{{.ID}}" maxlength="500" placeholder="{{t "hints.note_optional"}}" aria-label="{{t "hints.note"}}">
+              <input class="input" name="note" form="ack-{{.ID}}" maxlength="500" placeholder="{{t "hints.note_optional"}}" aria-label="{{t "hints.note"}}">
             </details>
             <details class="hint-more">
               <summary title="{{t "hints.more"}}" aria-label="{{t "hints.more"}}">⋯</summary>

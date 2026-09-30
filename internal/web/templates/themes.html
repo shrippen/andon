@@ -1,5 +1,5 @@
 {{define "space_select"}}
-<select name="space_id" aria-label="{{t "field.space"}}">
+<select class="select" name="space_id" aria-label="{{t "field.space"}}">
   {{range .}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
 </select>
 {{end}}
@@ -36,7 +36,7 @@
             <form method="post" action="/themes/duplicate" class="inline-form">
               <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
               <input type="hidden" name="theme_id" value="{{.ID}}">
-              <input name="name" value="{{.Name}} 2" required aria-label="{{t "field.name"}}">
+              <input class="input" name="name" value="{{.Name}} 2" required aria-label="{{t "field.name"}}">
               {{template "space_select" $.Spaces}}
               <button type="submit" class="btn btn-outline btn-sm">{{t "themes.duplicate"}}</button>
             </form>
@@ -49,7 +49,7 @@
     <h2>{{t "themes.preset"}}</h2>
     <form method="post" action="/themes/preset" class="card inline-form">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-      <select name="preset" aria-label="{{t "themes.preset"}}">{{range .Presets}}<option value="{{.}}">{{.}}</option>{{end}}</select>
+      <select class="select" name="preset" aria-label="{{t "themes.preset"}}">{{range .Presets}}<option value="{{.}}">{{.}}</option>{{end}}</select>
       {{template "space_select" .Spaces}}
       <button type="submit" class="btn btn-outline btn-sm">{{t "themes.preset_create"}}</button>
     </form>
@@ -93,7 +93,7 @@
       <form method="post" action="/themes/{{.Theme.ID}}" class="card" id="theme-form">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <label for="theme_name">{{t "field.name"}}</label>
-        <input id="theme_name" name="name" value="{{.Theme.Name}}"{{if not .Editable}} disabled{{end}}>
+        <input class="input" id="theme_name" name="name" value="{{.Theme.Name}}"{{if not .Editable}} disabled{{end}}>
         {{range .Groups}}
         <h2>{{t (print "tokens." .Key)}}</h2>
         <div class="token-grid">
@@ -102,18 +102,18 @@
           <code>{{.Name}}</code>
           <span class="swatch-row">
             {{if .DarkIsHex}}<input type="color" value="{{.DarkColor}}" data-for="dark{{.Name}}" aria-label="{{.Name}} {{t "mode.dark"}}"{{if not $.Editable}} disabled{{end}}>{{end}}
-            <input name="dark{{.Name}}" value="{{.Dark}}" data-token="{{.Name}}" data-mode="dark" aria-label="{{.Name}} {{t "mode.dark"}}"{{if not $.Editable}} disabled{{end}}>
+            <input class="input" name="dark{{.Name}}" value="{{.Dark}}" data-token="{{.Name}}" data-mode="dark" aria-label="{{.Name}} {{t "mode.dark"}}"{{if not $.Editable}} disabled{{end}}>
           </span>
           <span class="swatch-row">
             {{if .LightIsHex}}<input type="color" value="{{.LightColor}}" data-for="light{{.Name}}" aria-label="{{.Name}} {{t "mode.light"}}"{{if not $.Editable}} disabled{{end}}>{{end}}
-            <input name="light{{.Name}}" value="{{.Light}}" data-token="{{.Name}}" data-mode="light" aria-label="{{.Name}} {{t "mode.light"}}"{{if not $.Editable}} disabled{{end}}>
+            <input class="input" name="light{{.Name}}" value="{{.Light}}" data-token="{{.Name}}" data-mode="light" aria-label="{{.Name}} {{t "mode.light"}}"{{if not $.Editable}} disabled{{end}}>
           </span>
           {{end}}
         </div>
         {{end}}
         {{if and .Who.IsAdmin .Editable}}
         <h2>{{t "themes.custom_css"}}</h2>
-        <textarea class="code-area short" name="custom_css" rows="8" spellcheck="false" data-code="css" aria-label="{{t "themes.custom_css"}}">{{.Theme.CustomCSS}}</textarea>
+        <textarea class="input code-area short" name="custom_css" rows="8" spellcheck="false" data-code="css" aria-label="{{t "themes.custom_css"}}">{{.Theme.CustomCSS}}</textarea>
         <p class="small muted">{{t "themes.custom_css_hint"}}</p>
         {{end}}
         {{if .Editable}}<button type="submit" class="btn btn-accent">{{t "action.save"}}</button>{{end}}
@@ -172,7 +172,7 @@
   </ul>
   <div class="progress"><div class="progress-head"><span>{{t "sample.budget"}}</span><span>72 %</span></div><div class="progress-bar"><i data-style="--p:72%" data-tier="yellow"></i></div></div>
   <p><button type="button" class="btn btn-accent">{{t "action.save"}}</button> <button type="button" class="btn btn-outline btn-sm">{{t "action.cancel"}}</button> <a href="#sample">Link</a></p>
-  <label for="sample_input">{{t "field.name"}}</label><input id="sample_input" value="Input">
+  <label for="sample_input">{{t "field.name"}}</label><input class="input" id="sample_input" value="Input">
 </div>
 {{end}}
 

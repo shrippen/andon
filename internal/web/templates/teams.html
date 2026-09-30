@@ -20,7 +20,7 @@
       <form method="post" action="/teams">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <label for="new_team_name">{{t "teams.new"}}</label>
-        <input id="new_team_name" name="name" required>
+        <input class="input" id="new_team_name" name="name" required>
         <button type="submit" class="btn btn-accent">{{t "action.create"}}</button>
       </form>
     </div>
@@ -34,7 +34,7 @@
       <form method="post" action="/teams/{{.ID}}/rename">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
         <label for="rename_{{.ID}}">{{t "field.name"}}</label>
-        <input id="rename_{{.ID}}" name="name" value="{{.Name}}">
+        <input class="input" id="rename_{{.ID}}" name="name" value="{{.Name}}">
         <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
       </form>
 
@@ -59,11 +59,11 @@
       <form method="post" action="/teams/{{.ID}}/members">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
         <label for="user_{{.ID}}">{{t "field.name"}}</label>
-        <select id="user_{{.ID}}" name="user_id">
+        <select class="select" id="user_{{.ID}}" name="user_id">
           {{range $.Users}}<option value="{{.ID}}">{{.Name}} ({{.Email}})</option>{{end}}
         </select>
         <label for="role_{{.ID}}">{{t "field.team_role"}}</label>
-        <select id="role_{{.ID}}" name="role">
+        <select class="select" id="role_{{.ID}}" name="role">
           <option value="owner">{{t "role.owner"}}</option>
           <option value="editor">{{t "role.editor"}}</option>
           <option value="viewer">{{t "role.viewer"}}</option>
@@ -76,13 +76,13 @@
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
         <label for="ack_{{.ID}}">{{t "teams.hint_ack"}}</label>
         {{$ack := index $.AckTeam .SpaceID}}
-        <select id="ack_{{.ID}}" name="hint_ack">
+        <select class="select" id="ack_{{.ID}}" name="hint_ack">
           <option value="per_user"{{if not $ack}} selected{{end}}>{{t "ack.per_user"}}</option>
           <option value="team"{{if $ack}} selected{{end}}>{{t "ack.team"}}</option>
         </select>
         <label for="theme_{{.ID}}">{{t "teams.theme"}}</label>
         {{$theme := index $.ThemeOf .SpaceID}}
-        <select id="theme_{{.ID}}" name="theme_id">
+        <select class="select" id="theme_{{.ID}}" name="theme_id">
           <option value="">{{t "theme.none"}}</option>
           {{range $.Themes}}<option value="{{.ID}}"{{if eq .ID $theme}} selected{{end}}>{{.Name}}</option>{{end}}
         </select>

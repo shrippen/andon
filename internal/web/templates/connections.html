@@ -78,7 +78,7 @@
         <p class="small muted">{{t (print "conn.options_hint_" .Service)}}</p>
         <input type="hidden" name="service" value="{{.Service}}">
         <label for="space_id">{{t "field.space"}}</label>
-        <select id="space_id" name="space_id" required>
+        <select class="select" id="space_id" name="space_id" required>
           {{range .Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
         </select>
         <p class="small muted">{{t "conn.space_hint"}}</p>
@@ -86,10 +86,10 @@
 
       {{$shape := ""}}{{if .IsNew}}{{$shape = credShape .Service}}{{else}}{{$shape = credShape .Conn.Service}}{{end}}
       <label for="name">{{t "field.name"}}</label>
-      <input id="name" name="name" value="{{if .Conn}}{{.Conn.Name}}{{end}}" required>
+      <input class="input" id="name" name="name" value="{{if .Conn}}{{.Conn.Name}}{{end}}" required>
 
       <label for="url">{{if eq $shape "ical"}}{{t "field.ical_url"}}{{else}}{{t "field.url"}}{{end}}</label>
-      <input id="url" name="url" type="url" value="{{if .Conn}}{{.Conn.URL}}{{else}}{{defaultURL .Service}}{{end}}" required>
+      <input class="input" id="url" name="url" type="url" value="{{if .Conn}}{{.Conn.URL}}{{else}}{{defaultURL .Service}}{{end}}" required>
 
       {{$opts := dict}}{{if .Conn}}{{$opts = .Conn.Options}}{{end}}
       {{range setupFields (or .Service .Conn.Service)}}
@@ -99,10 +99,10 @@
         {{else if eq .Kind "select"}}
         <label for="opt_{{.Key}}">{{t .Label}}</label>
         {{$v := optText $opts .Key}}
-        <select id="opt_{{.Key}}" name="opt_{{.Key}}">{{range .Choices}}<option value="{{.}}"{{if eq . $v}} selected{{end}}>{{t (print "conn.choice_" .)}}</option>{{end}}</select>
+        <select class="select" id="opt_{{.Key}}" name="opt_{{.Key}}">{{range .Choices}}<option value="{{.}}"{{if eq . $v}} selected{{end}}>{{t (print "conn.choice_" .)}}</option>{{end}}</select>
         {{else}}
         <label for="opt_{{.Key}}">{{t .Label}}</label>
-        <input id="opt_{{.Key}}" name="opt_{{.Key}}" value="{{with index $opts .Key}}{{.}}{{end}}" required>
+        <input class="input" id="opt_{{.Key}}" name="opt_{{.Key}}" value="{{with index $opts .Key}}{{.}}{{end}}" required>
         {{end}}
       {{end}}
 
@@ -110,7 +110,7 @@
       <p class="small muted">{{t "conn.no_login"}}</p>
       {{else}}
       <label for="mode">{{t "conn.credentials"}}</label>
-      <select id="mode" name="mode">
+      <select class="select" id="mode" name="mode">
         <option value="shared" {{if .Conn}}{{if eq (print .Conn.Mode) "shared"}}selected{{end}}{{end}}>{{t "mode.shared"}}</option>
         <option value="personal" {{if .Conn}}{{if eq (print .Conn.Mode) "personal"}}selected{{end}}{{else}}selected{{end}}>{{t "mode.personal"}}</option>
       </select>
@@ -125,25 +125,25 @@
       {{$keep := ""}}{{if .Conn}}{{if .Conn.HasSecret}}{{$keep = t "conn.secret_keep"}}{{end}}{{end}}
       {{if eq $shape "userpass"}}
         <label for="secret_a">{{t "conn.cred_user"}}</label>
-        <input id="secret_a" name="secret_a" autocomplete="off" placeholder="{{$keep}}">
+        <input class="input" id="secret_a" name="secret_a" autocomplete="off" placeholder="{{$keep}}">
         <label for="secret_b">{{t "conn.cred_pass"}}</label>
-        <input id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
+        <input class="input" id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
       {{else if eq $shape "tokenid"}}
         <label for="secret_a">{{t "conn.cred_tokenid"}}</label>
-        <input id="secret_a" name="secret_a" autocomplete="off" placeholder="{{if $keep}}{{$keep}}{{else}}root@pam!andon{{end}}">
+        <input class="input" id="secret_a" name="secret_a" autocomplete="off" placeholder="{{if $keep}}{{$keep}}{{else}}root@pam!andon{{end}}">
         <label for="secret_b">{{t "conn.cred_secret"}}</label>
-        <input id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
+        <input class="input" id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
       {{else if eq $shape "keysecret"}}
         {{/* A router kind may log in with user and password instead (OpenWrt):
              the labels follow the kind chosen above, see .only-openwrt. */}}
         <label for="secret_a"><span class="not-openwrt">{{t "conn.cred_key"}}</span><span class="only-openwrt">{{t "conn.cred_user"}}</span></label>
-        <input id="secret_a" name="secret_a" autocomplete="off" placeholder="{{$keep}}">
+        <input class="input" id="secret_a" name="secret_a" autocomplete="off" placeholder="{{$keep}}">
         <label for="secret_b"><span class="not-openwrt">{{t "conn.cred_secret"}}</span><span class="only-openwrt">{{t "field.password"}}</span></label>
-        <input id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
+        <input class="input" id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
         <p class="small muted only-openwrt">{{t "conn.openwrt_login"}}</p>
       {{else}}
         <label for="secret">{{if eq $shape "ical"}}{{t "conn.ical_private"}}{{else if eq $shape "password"}}{{t "field.password"}}{{else}}{{t (secretLabel (or .Service .Conn.Service))}}{{end}}</label>
-        <input id="secret" name="secret" type="password" autocomplete="off" placeholder="{{$keep}}">
+        <input class="input" id="secret" name="secret" type="password" autocomplete="off" placeholder="{{$keep}}">
       {{end}}
       <p class="small muted">{{t "conn.token_hint"}}</p>
       </div>
@@ -155,9 +155,9 @@
           {{if .SignIn.HasClient}}<p><span class="pill" data-state="ok">{{t "connect.client_set"}}</span></p>{{end}}
           {{if ne .SignIn.Method "client"}}<p class="small muted">{{t "connect.redirect_uri"}} <code>{{.SignIn.Callback}}</code></p>{{end}}
           <label for="client_id">{{t "connect.client_id"}}</label>
-          <input id="client_id" name="client_id" form="oauth-client-form" autocomplete="off">
+          <input class="input" id="client_id" name="client_id" form="oauth-client-form" autocomplete="off">
           <label for="client_secret">{{t "connect.client_secret"}}</label>
-          <input id="client_secret" name="client_secret" type="password" form="oauth-client-form" autocomplete="off">
+          <input class="input" id="client_secret" name="client_secret" type="password" form="oauth-client-form" autocomplete="off">
           <button type="submit" class="btn btn-outline btn-sm" form="oauth-client-form">{{t "connect.client_save"}}</button>
         {{end}}
         {{if or (not .SignIn.NeedsClient) .SignIn.HasClient}}
@@ -173,7 +173,7 @@
       </div>
       {{end}}
       <label for="tls">{{t "conn.tls"}}</label>
-      <select id="tls" name="tls">
+      <select class="select" id="tls" name="tls">
         <option value="verify" {{if .Conn}}{{if .Conn.VerifyTLS}}selected{{end}}{{end}}>{{t "conn.tls_verify"}}</option>
         <option value="skip" {{if .Conn}}{{if not .Conn.VerifyTLS}}selected{{end}}{{end}}>{{t "conn.tls_skip"}}</option>
       </select>
@@ -184,12 +184,12 @@
         <summary>{{t "conn.advanced"}}</summary>
         <p class="small muted">{{t "conn.token_age"}}: {{if not .Conn.SecretAt.IsZero}}{{ago .Conn.SecretAt}}{{else}}–{{end}}</p>
         <label for="expires">{{t "conn.expires"}}</label>
-        <input id="expires" name="expires" type="date" value="{{.Conn.SecretExpires}}">
+        <input class="input" id="expires" name="expires" type="date" value="{{.Conn.SecretExpires}}">
         <label for="budget">{{t "conn.budget"}}</label>
-        <input id="budget" name="budget" type="number" min="0" value="{{.Conn.DailyBudget}}">
+        <input class="input" id="budget" name="budget" type="number" min="0" value="{{.Conn.DailyBudget}}">
         <p class="small muted">{{t "conn.budget_hint"}}</p>
         <label for="options_yaml">{{t "conn.options"}}</label>
-        <textarea id="options_yaml" class="code-area short" name="options_yaml" rows="6" spellcheck="false" data-code="yaml">{{.OptionsYAML}}</textarea>
+        <textarea id="options_yaml" class="input code-area short" name="options_yaml" rows="6" spellcheck="false" data-code="yaml">{{.OptionsYAML}}</textarea>
         <input type="hidden" name="options_before" value="{{.OptionsYAML}}">
         <p class="small muted">{{t (print "conn.options_hint_" .Conn.Service)}}</p>
       </details>
@@ -341,7 +341,7 @@
         <li>{{t "conn.shared_warning"}}</li>
         {{if not .Conn.HasSecret}}
           {{if .Conn.HasMine}}
-            <li><label class="check"><input type="checkbox" name="share_mine" value="1" checked> {{t "mode_switch.share_mine"}}</label></li>
+            <li><label class="check"><input type="checkbox" name="share_mine" value="1" checked><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "mode_switch.share_mine"}}</label></li>
           {{else}}
             <li>{{t "mode_switch.no_token"}}</li>
           {{end}}

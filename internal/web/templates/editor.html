@@ -15,21 +15,21 @@
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <input type="hidden" name="version" value="{{.Board.Version}}">
       <label for="name">{{t "field.name"}}</label>
-      <input id="name" name="name" value="{{.Board.Name}}" required>
+      <input class="input" id="name" name="name" value="{{.Board.Name}}" required>
       <label for="theme_id">{{t "field.theme_forced"}}</label>
-      <select id="theme_id" name="theme_id">
+      <select class="select" id="theme_id" name="theme_id">
         <option value="">{{t "theme.none"}}</option>
         {{range .Themes}}<option value="{{.ID}}"{{if eqID $.Board.ThemeID .ID}} selected{{end}}>{{.Name}}</option>{{end}}
       </select>
       <label for="min_role">{{t "field.min_role"}}</label>
-      <select id="min_role" name="min_role">
+      <select class="select" id="min_role" name="min_role">
         <option value="">{{t "role.everyone"}}</option>
         {{$role := ""}}{{with .Board.MinTeamRole}}{{$role = print .}}{{end}}
         {{range .TeamRoles}}<option value="{{.}}"{{if eq (print .) $role}} selected{{end}}>{{t (print "role." .)}}</option>{{end}}
       </select>
       <p class="small muted">{{t "field.min_role_hint"}}</p>
       <label for="layout">{{t "field.board_layout"}}</label>
-      <select id="layout" name="layout">
+      <select class="select" id="layout" name="layout">
         <option value="">{{t "board_layout.grid"}}</option>
         <option value="masonry"{{if eq (print .Board.Layout) "masonry"}} selected{{end}}>{{t "board_layout.masonry"}}</option>
       </select>
@@ -60,7 +60,7 @@
     {{template "intro" dict "Page" "library" "Chapter" "tiles" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{t "library.lead"}}</p>
     <div class="gal-tools">
-      <input type="search" id="gal-q" placeholder="{{t "library.search"}}" aria-label="{{t "library.search"}}">
+      <input class="input" type="search" id="gal-q" placeholder="{{t "library.search"}}" aria-label="{{t "library.search"}}">
       <a class="btn btn-outline btn-sm" href="/widgets/new">+ {{t "gallery.title"}}</a>
     </div>
     {{range .Groups}}
@@ -81,7 +81,7 @@
                 <a class="btn btn-outline btn-sm" href="/shares/widget/{{.ID}}">{{t "edit.share"}}</a>
                 <form method="post" action="/widgets/{{.ID}}/copy" class="inline-form">
                   <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-                  <select name="space_id" aria-label="{{t "field.space"}}">{{range $.Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
+                  <select class="select" name="space_id" aria-label="{{t "field.space"}}">{{range $.Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
                   <button type="submit" class="btn btn-outline btn-sm">{{t "library.copy"}}</button>
                 </form>
               </div>
@@ -133,8 +133,8 @@
     {{template "intro" dict "Page" "gallery" "Chapter" "tiles" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
         <p class="muted">{{if .Reuse}}{{t "gallery.lead_both"}}{{else}}{{t "gallery.lead"}}{{end}}</p>
         <div class="gal-tools">
-          <input type="search" id="gal-q" placeholder="{{t "gallery.search"}}" aria-label="{{t "gallery.search"}}">
-          <label class="check"><input type="checkbox" id="gal-mine"> {{t "gallery.mine"}}</label>
+          <input class="input" type="search" id="gal-q" placeholder="{{t "gallery.search"}}" aria-label="{{t "gallery.search"}}">
+          <label class="check"><input type="checkbox" id="gal-mine"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "gallery.mine"}}</label>
         </div>
       </header>
 
@@ -248,7 +248,7 @@
         <legend>{{t "gallery.data"}}</legend>
         {{if .NeedsConn}}
         <label for="connection_id">{{t "field.connection"}}</label>
-        <select id="connection_id" name="connection_id">
+        <select class="select" id="connection_id" name="connection_id">
           <option value="">–</option>
           {{range .Conns}}<option value="{{.ID}}"{{if eqID $.ConnID .ID}} selected{{end}}>{{.Name}} ({{.Service}})</option>{{end}}
         </select>
@@ -263,18 +263,18 @@
         <fieldset>
         <legend>{{t "gallery.display"}}</legend>
         <label for="title">{{t "field.title"}}</label>
-        <input id="title" name="title" value="{{.Title}}">
+        <input class="input" id="title" name="title" value="{{.Title}}">
         {{template "cfg_fields" dict "Fields" .FrameFields "Root" $}}
         {{if and .Target.Place (not .Widget)}}
         <label for="rows">{{t "gallery.height"}}</label>
-        <select id="rows" name="rows">{{range $n := .RowOptions}}<option value="{{$n}}">{{t (print "gallery.rows_" $n)}}</option>{{end}}</select>
+        <select class="select" id="rows" name="rows">{{range $n := .RowOptions}}<option value="{{$n}}">{{t (print "gallery.rows_" $n)}}</option>{{end}}</select>
         {{end}}
         </fieldset>
 
         <fieldset>
         <legend>{{t "gallery.visibility"}}</legend>
         <label for="min_role">{{t "field.min_role"}}</label>
-        <select id="min_role" name="min_role">
+        <select class="select" id="min_role" name="min_role">
           <option value="">{{t "role.everyone"}}</option>
           {{range .TeamRoles}}<option value="{{.}}"{{if eq (print .) $.MinRole}} selected{{end}}>{{t (print "role." .)}}</option>{{end}}
         </select>
@@ -331,23 +331,23 @@
 {{/* cfg_fields: config fields of the widget form; "Root" is the page. */}}
 {{define "cfg_fields"}}{{$ := .Root}}<input type="hidden" name="cfg.__fields" value="1">{{range .Fields}}
           {{if eq (print .Input) "checkbox"}}
-          <label class="check"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}> {{t (print "field." .Label)}}</label>
+          <label class="check"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t (print "field." .Label)}}</label>
           {{else}}
           <label for="{{.Name}}">{{t (print "field." .Label)}}</label>
           {{if eq (print .Input) "select"}}
-            <select id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}{{range .Options}}<option value="{{.}}"{{if eq . $v}} selected{{end}}>{{t (print "opt." .)}}</option>{{end}}</select>
+            <select class="select" id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}{{range .Options}}<option value="{{.}}"{{if eq . $v}} selected{{end}}>{{t (print "opt." .)}}</option>{{end}}</select>
           {{else if or (eq (print .Input) "textarea") (eq (print .Input) "links") (eq (print .Input) "headers")}}
-            <textarea id="{{.Name}}" name="{{.Name}}" rows="3">{{.Text}}</textarea>
+            <textarea class="input" id="{{.Name}}" name="{{.Name}}" rows="3">{{.Text}}</textarea>
           {{else if eq (print .Input) "number"}}
-            <input id="{{.Name}}" name="{{.Name}}" type="number" step="any" value="{{.Text}}"{{if .Required}} required{{end}}>
+            <input class="input" id="{{.Name}}" name="{{.Name}}" type="number" step="any" value="{{.Text}}"{{if .Required}} required{{end}}>
           {{else if eq (print .Input) "secret"}}
-            <input id="{{.Name}}" name="{{.Name}}" type="password" autocomplete="off" value="">
+            <input class="input" id="{{.Name}}" name="{{.Name}}" type="password" autocomplete="off" value="">
           {{else if eq (print .Input) "place"}}
             {{template "place_pick" dict "ID" .Name "Place" .Text "Lat" .Lat "Lon" .Lon "PlaceName" .Name "LatName" "cfg.lat" "LonName" "cfg.lon"}}
           {{else if eq (print .Input) "connection"}}
-            <select id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}<option value="">–</option>{{range $.Root.AllConns}}<option value="{{.Key}}"{{if eq .Key $v}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+            <select class="select" id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}<option value="">–</option>{{range $.Root.AllConns}}<option value="{{.Key}}"{{if eq .Key $v}} selected{{end}}>{{.Name}}</option>{{end}}</select>
           {{else}}
-            <input id="{{.Name}}" name="{{.Name}}" value="{{.Text}}"{{if .Required}} required{{end}}>
+            <input class="input" id="{{.Name}}" name="{{.Name}}" value="{{.Text}}"{{if .Required}} required{{end}}>
           {{end}}
           {{if or (eq (print .Input) "list") (eq (print .Input) "numbers")}}<p class="small muted">{{t "field.list_hint"}}</p>{{end}}
           {{if eq (print .Input) "links"}}<p class="small muted">{{t "field.links_hint"}}</p>{{end}}

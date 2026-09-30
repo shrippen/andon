@@ -16,7 +16,7 @@ func TestGatewayFormRouterKind(t *testing.T) {
 	csrf := csrfToken(t, srv, client)
 
 	form := string(mustGet(t, srv, client, "/connections/new?service=gateway"))
-	for _, want := range []string{`<select id="opt_kind" name="opt_kind">`, `<option value="openwrt">OpenWrt</option>`,
+	for _, want := range []string{`<select class="select" id="opt_kind" name="opt_kind">`, `<option value="openwrt">OpenWrt</option>`,
 		`<span class="only-openwrt">Benutzername</span>`, `<span class="only-openwrt">Passwort</span>`} {
 		if !strings.Contains(form, want) {
 			t.Fatalf("form lacks %q:\n%s", want, form)

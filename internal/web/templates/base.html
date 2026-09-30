@@ -24,7 +24,7 @@
 <script src="{{asset "andon.js"}}" defer></script>
 {{end}}
 
-{{/* Loaded only by pages with <textarea data-code>. */}}
+{{/* Loaded only by pages with <textarea class="input" data-code>. */}}
 {{define "code-editor"}}
 <link rel="stylesheet" href="{{asset "vendor/codemirror/codemirror.min.css"}}">
 <script src="{{asset "vendor/codemirror/codemirror.min.js"}}" defer></script>
@@ -48,7 +48,7 @@
      and tile forms; dict ID, Place, Lat, Lon, PlaceName, LatName, LonName. */}}
 {{define "place_pick"}}
 <div class="place-pick">
-  <input id="{{.ID}}" name="place_q" type="search" autocomplete="off" placeholder="{{t "conn.place_search"}}" value="{{.Place}}"
+  <input class="input" id="{{.ID}}" name="place_q" type="search" autocomplete="off" placeholder="{{t "conn.place_search"}}" value="{{.Place}}"
          hx-get="/places" hx-trigger="input changed delay:300ms" hx-target="next .place-results" hx-params="place_q">
   <div class="place-results"></div>
   <input type="hidden" name="{{.PlaceName}}" value="{{.Place}}" data-place-field="place">
@@ -125,7 +125,7 @@
 </header>
 {{if .Who}}
 <dialog id="palette" class="palette" aria-label="{{t "palette.title"}}">
-  <input id="palette-q" type="search" autocomplete="off" placeholder="{{t "palette.hint"}}" aria-label="{{t "palette.title"}}">
+  <input class="input" id="palette-q" type="search" autocomplete="off" placeholder="{{t "palette.hint"}}" aria-label="{{t "palette.title"}}">
   <ul id="palette-list" role="listbox"></ul>
   <p class="small muted palette-foot">{{t "palette.keys"}}</p>
 </dialog>

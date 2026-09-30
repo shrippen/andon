@@ -39,11 +39,11 @@
       <form method="post" action="/me/notify/channels">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <label for="name">{{t "field.name"}}</label>
-        <input id="name" name="name">
+        <input class="input" id="name" name="name">
         <label for="url">{{t "field.url"}}</label>
-        <input id="url" name="url" placeholder="ntfy://host/topic" required>
+        <input class="input" id="url" name="url" placeholder="ntfy://host/topic" required>
         <label for="level">{{t "notify.min_level"}}</label>
-        <select id="level" name="level">
+        <select class="select" id="level" name="level">
           {{range .Levels}}<option value="{{.}}">{{if eq . 30}}{{t "severity.critical"}}{{else if eq . 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}</option>{{end}}
         </select>
         <fieldset class="chip-picks">
@@ -60,24 +60,24 @@
       <form method="post" action="/me/notify/prefs">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <label for="quiet_from">{{t "notify.quiet_from"}}</label>
-        <input id="quiet_from" name="quiet_from" placeholder="22:00" value="{{.Prefs.QuietFrom}}">
+        <input class="input" id="quiet_from" name="quiet_from" placeholder="22:00" value="{{.Prefs.QuietFrom}}">
         <label for="quiet_to">{{t "notify.quiet_to"}}</label>
-        <input id="quiet_to" name="quiet_to" placeholder="07:00" value="{{.Prefs.QuietTo}}">
-        <label class="check"><input type="checkbox" name="quiet_muted"{{if .Prefs.QuietMuted}} checked{{end}}> {{t "notify.quiet_muted"}}</label>
+        <input class="input" id="quiet_to" name="quiet_to" placeholder="07:00" value="{{.Prefs.QuietTo}}">
+        <label class="check"><input type="checkbox" name="quiet_muted"{{if .Prefs.QuietMuted}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "notify.quiet_muted"}}</label>
         <p class="small muted">{{t "notify.quiet_hint"}}</p>
         <label for="repeat_hours">{{t "notify.repeat"}}</label>
-        <input id="repeat_hours" name="repeat_hours" type="number" min="0" max="168" value="{{.Prefs.RepeatHours}}">
+        <input class="input" id="repeat_hours" name="repeat_hours" type="number" min="0" max="168" value="{{.Prefs.RepeatHours}}">
         <p class="small muted">{{t "notify.repeat_hint"}}</p>
         <label for="daily">{{t "notify.digest_at"}}</label>
-        <input id="daily" name="daily" placeholder="07:30" value="{{.Prefs.Daily}}">
+        <input class="input" id="daily" name="daily" placeholder="07:30" value="{{.Prefs.Daily}}">
         <p class="small muted">{{t "notify.digest_hint"}}</p>
         <label for="weekly">{{t "notify.weekly"}}</label>
-        <select id="weekly" name="weekly">
+        <select class="select" id="weekly" name="weekly">
           <option value="">{{t "notify.every_day"}}</option>
           {{range .Weekdays}}<option value="{{.}}"{{if eq . $.Prefs.Weekly}} selected{{end}}>{{t (print "weekday." .)}}</option>{{end}}
         </select>
         {{if .SummaryAvailable}}
-        <label class="check"><input type="checkbox" name="summary"{{if not .Prefs.NoSummary}} checked{{end}}> {{t "notify.summary"}}</label>
+        <label class="check"><input type="checkbox" name="summary"{{if not .Prefs.NoSummary}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "notify.summary"}}</label>
         <p class="small muted">{{t "notify.summary_hint"}}</p>
         {{end}}
         <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>

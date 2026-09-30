@@ -21,10 +21,10 @@
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         {{if .Profile.HasPassword}}
         <label for="current">{{t "security.current"}}</label>
-        <input id="current" name="current" type="password" required>
+        <input class="input" id="current" name="current" type="password" required>
         {{end}}
         <label for="new">{{t "security.new"}}</label>
-        <input id="new" name="new" type="password" required minlength="12">
+        <input class="input" id="new" name="new" type="password" required minlength="12">
         <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
       </form>
     </div>
@@ -39,7 +39,7 @@
         <form method="post" action="/me/security/totp/disable">
           <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
           <label for="disable_code">{{t "security.code_or_recovery"}}</label>
-          <input id="disable_code" name="code" required autocomplete="one-time-code">
+          <input class="input" id="disable_code" name="code" required autocomplete="one-time-code">
           <button type="submit" class="btn btn-outline btn-sm">{{t "security.disable"}}</button>
         </form>
       {{else if .TOTPSecret}}
@@ -49,7 +49,7 @@
         <form method="post" action="/me/security/totp/confirm">
           <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
           <label for="confirm_code">{{t "totp.code"}}</label>
-          <input id="confirm_code" name="code" required autocomplete="one-time-code">
+          <input class="input" id="confirm_code" name="code" required autocomplete="one-time-code">
           <button type="submit" class="btn btn-accent">{{t "security.confirm"}}</button>
         </form>
       {{else}}
@@ -83,7 +83,7 @@
       <p class="small muted">{{t "security.passkey_hint"}}</p>
       <p class="error" hidden data-passkey-error>{{t "passkey.failed"}}</p>
       <label for="passkey_name">{{t "field.name"}}</label>
-      <input id="passkey_name" placeholder="{{t "security.passkey_placeholder"}}">
+      <input class="input" id="passkey_name" placeholder="{{t "security.passkey_placeholder"}}">
       <button type="button" class="btn btn-accent" hidden data-passkey="register" data-name-field="passkey_name">{{t "security.passkey_add"}}</button>
     </div>
 
@@ -147,14 +147,14 @@
       <form method="post" action="/me/security/tokens">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <label for="token_name">{{t "field.name"}}</label>
-        <input id="token_name" name="name">
+        <input class="input" id="token_name" name="name">
         <label for="token_scope">{{t "field.scope"}}</label>
-        <select id="token_scope" name="scope">
+        <select class="select" id="token_scope" name="scope">
           <option value="read">read</option>
           <option value="embed">embed</option>
         </select>
         <label for="token_days">{{t "security.days"}}</label>
-        <input id="token_days" name="days" type="number" min="1">
+        <input class="input" id="token_days" name="days" type="number" min="1">
         <button type="submit" class="btn btn-accent">{{t "action.create"}}</button>
       </form>
     </div>

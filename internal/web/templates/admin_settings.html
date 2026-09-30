@@ -59,16 +59,16 @@
       <form method="post" action="/admin/settings/general">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <label for="iframe">{{t "admin.iframe"}}</label>
-        <input id="iframe" name="iframe" value="{{.Iframe}}" placeholder="https://grafana.example.lan">
+        <input class="input" id="iframe" name="iframe" value="{{.Iframe}}" placeholder="https://grafana.example.lan">
         <p class="small muted">{{t "admin.iframe_hint"}}</p>
         <label for="default_theme">{{t "admin.default_theme"}}</label>
-        <select id="default_theme" name="default_theme">
+        <select class="select" id="default_theme" name="default_theme">
           <option value="">Kante</option>
           {{range .ThemeList}}{{if not .Builtin}}<option value="{{.ID}}"{{if eq .ID $.DefaultTheme}} selected{{end}}>{{.Name}}</option>{{end}}{{end}}
         </select>
-        <label class="check"><input type="checkbox" name="force_admin_totp"{{if .ForceTOTP}} checked{{end}}> {{t "admin.force_totp"}}</label>
-        <label class="check"><input type="checkbox" name="registration"{{if .Registration}} checked{{end}}> {{t "admin.registration"}}</label>
-        <label class="check"><input type="checkbox" name="location_shared"{{if .Location}} checked{{end}}> {{t "admin.location_shared"}}</label>
+        <label class="check"><input type="checkbox" name="force_admin_totp"{{if .ForceTOTP}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "admin.force_totp"}}</label>
+        <label class="check"><input type="checkbox" name="registration"{{if .Registration}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "admin.registration"}}</label>
+        <label class="check"><input type="checkbox" name="location_shared"{{if .Location}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "admin.location_shared"}}</label>
         <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
       </form>
     </div>
@@ -78,14 +78,14 @@
       <form method="post" action="/admin/settings/network">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <label for="mode">{{t "admin.net_mode"}}</label>
-        <select id="mode" name="mode">
+        <select class="select" id="mode" name="mode">
           {{range .NetModes}}<option value="{{.}}"{{if eq . $.Net.Mode}} selected{{end}}>{{t (print "net." .)}}</option>{{end}}
         </select>
-        <label class="check"><input type="checkbox" name="public"{{if .Net.Public}} checked{{end}}> {{t "admin.net_public"}}</label>
+        <label class="check"><input type="checkbox" name="public"{{if .Net.Public}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "admin.net_public"}}</label>
         <label for="networks">{{t "admin.net_networks"}}</label>
-        <textarea id="networks" name="networks" rows="3" placeholder="192.168.10.0/24">{{.Networks}}</textarea>
+        <textarea class="input" id="networks" name="networks" rows="3" placeholder="192.168.10.0/24">{{.Networks}}</textarea>
         <label for="hosts">{{t "admin.net_hosts"}}</label>
-        <textarea id="hosts" name="hosts" rows="2" placeholder="kimai.example.lan">{{.Hosts}}</textarea>
+        <textarea class="input" id="hosts" name="hosts" rows="2" placeholder="kimai.example.lan">{{.Hosts}}</textarea>
         <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
       </form>
     </div>
@@ -95,19 +95,19 @@
       {{if .OIDCTest}}<p class="pill" data-state="{{if .OIDCTestOK}}ok{{else}}fail{{end}}">{{.OIDCTest}}</p>{{end}}
       <form method="post" action="/admin/settings/oidc">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <label class="check"><input type="checkbox" name="enabled"{{if .OIDC.Enabled}} checked{{end}}> {{t "admin.oidc_enabled"}}</label>
+        <label class="check"><input type="checkbox" name="enabled"{{if .OIDC.Enabled}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "admin.oidc_enabled"}}</label>
         <label for="label">{{t "admin.oidc_label"}}</label>
-        <input id="label" name="label" value="{{.OIDC.Label}}">
+        <input class="input" id="label" name="label" value="{{.OIDC.Label}}">
         <label for="issuer">{{t "admin.oidc_issuer"}}</label>
-        <input id="issuer" name="issuer" value="{{.OIDC.Issuer}}" placeholder="https://auth.example.lan/application/o/andon/">
+        <input class="input" id="issuer" name="issuer" value="{{.OIDC.Issuer}}" placeholder="https://auth.example.lan/application/o/andon/">
         <label for="client_id">Client-ID</label>
-        <input id="client_id" name="client_id" value="{{.OIDC.ClientID}}">
+        <input class="input" id="client_id" name="client_id" value="{{.OIDC.ClientID}}">
         <label for="secret">Client-Secret</label>
-        <input id="secret" name="secret" type="password" autocomplete="off" placeholder="{{if .OIDC.HasSecret}}{{t "conn.secret_keep"}}{{end}}">
+        <input class="input" id="secret" name="secret" type="password" autocomplete="off" placeholder="{{if .OIDC.HasSecret}}{{t "conn.secret_keep"}}{{end}}">
         <p class="small muted">{{t "admin.oidc_redirect"}} <code>{{.CallbackURL}}</code></p>
-        <label class="check"><input type="checkbox" name="auto_create"{{if .OIDC.AutoCreate}} checked{{end}}> {{t "admin.oidc_auto"}}</label>
-        <label class="check"><input type="checkbox" name="email_link"{{if .OIDC.EmailLink}} checked{{end}}> {{t "admin.oidc_email_link"}}</label>
-        <label class="check"><input type="checkbox" name="only"{{if .OIDC.Only}} checked{{end}}> {{t "admin.oidc_only"}}</label>
+        <label class="check"><input type="checkbox" name="auto_create"{{if .OIDC.AutoCreate}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "admin.oidc_auto"}}</label>
+        <label class="check"><input type="checkbox" name="email_link"{{if .OIDC.EmailLink}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "admin.oidc_email_link"}}</label>
+        <label class="check"><input type="checkbox" name="only"{{if .OIDC.Only}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "admin.oidc_only"}}</label>
 
         <p><b>{{t "admin.oidc_rules"}}</b></p>
         <p class="small muted">{{t "admin.oidc_rules_hint"}}</p>
@@ -115,11 +115,11 @@
           <tr><th>{{t "admin.group"}}</th><th>{{t "field.role"}}</th><th>{{t "admin.team"}}</th><th>{{t "field.team_role"}}</th></tr>
           {{range .Rules}}
           <tr>
-            <td><input name="rule_group" value="{{.Group}}" aria-label="{{t "admin.group"}}"></td>
-            <td><select name="rule_role" aria-label="{{t "field.role"}}"><option value="">–</option>
+            <td><input class="input" name="rule_group" value="{{.Group}}" aria-label="{{t "admin.group"}}"></td>
+            <td><select class="select" name="rule_role" aria-label="{{t "field.role"}}"><option value="">–</option>
               {{$r := .Role}}{{range $.InstanceRoles}}<option value="{{.}}"{{if eq . $r}} selected{{end}}>{{t (print "irole." .)}}</option>{{end}}</select></td>
-            <td><input name="rule_team" value="{{.Team}}" aria-label="{{t "admin.team"}}"></td>
-            <td><select name="rule_team_role" aria-label="{{t "field.team_role"}}">
+            <td><input class="input" name="rule_team" value="{{.Team}}" aria-label="{{t "admin.team"}}"></td>
+            <td><select class="select" name="rule_team_role" aria-label="{{t "field.team_role"}}">
               {{$tr := .TeamRole}}{{range $.TeamRoles}}<option value="{{.}}"{{if eq . $tr}} selected{{end}}>{{t (print "role." .)}}</option>{{end}}</select></td>
           </tr>
           {{end}}

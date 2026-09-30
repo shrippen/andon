@@ -20,14 +20,14 @@
       <h2 id="page">{{t "settings.page"}}</h2>
       <div class="card">
         <label for="title">{{t "settings.page_title"}}</label>
-        <input id="title" name="title" value="{{.Page.Title}}">
+        <input class="input" id="title" name="title" value="{{.Page.Title}}">
         <label for="description">{{t "settings.page_description"}}</label>
-        <input id="description" name="description" value="{{.Page.Description}}">
+        <input class="input" id="description" name="description" value="{{.Page.Description}}">
         <label for="nav">{{t "settings.page_nav"}}</label>
-        <textarea id="nav" name="nav" rows="3">{{.NavText}}</textarea>
+        <textarea class="input" id="nav" name="nav" rows="3">{{.NavText}}</textarea>
         <p class="small muted">{{t "settings.page_nav_hint"}}</p>
         <label for="footer">{{t "settings.page_footer"}}</label>
-        <input id="footer" name="footer" value="{{.Page.Footer}}">
+        <input class="input" id="footer" name="footer" value="{{.Page.Footer}}">
       </div>
 
       <h2 id="maintenance">{{t "settings.maintenance"}}</h2>
@@ -35,32 +35,32 @@
         <p class="small muted">{{t "settings.maintenance_hint"}}</p>
         {{if .Maint.Active .Now}}<p class="pill" data-state="reviewing">{{t "settings.maintenance_active" "until" (ago .Maint.Until)}}</p>{{end}}
         <label for="maint_until">{{t "settings.maintenance_until"}}</label>
-        <input id="maint_until" name="maint_until" type="datetime-local" value="{{.MaintUntil}}">
+        <input class="input" id="maint_until" name="maint_until" type="datetime-local" value="{{.MaintUntil}}">
         {{with .Conns}}<fieldset class="chip-picks"><legend>{{t "settings.maintenance_conns"}}</legend>
           {{range .}}<label class="chip-pick"><input type="checkbox" name="maint_conn" value="{{.ID}}"{{if index $.MaintConns .ID}} checked{{end}}><span>{{.Name}}</span></label>{{end}}
         </fieldset>{{end}}
         <label for="maint_note">{{t "settings.maintenance_note"}}</label>
-        <input id="maint_note" name="maint_note" value="{{.Maint.Note}}">
+        <input class="input" id="maint_note" name="maint_note" value="{{.Maint.Note}}">
       </div>
 
       <h2 id="goals">{{t "settings.goals"}}</h2>
       <div class="card">
         <label for="revenue_year">{{t "settings.revenue_year"}}</label>
-        <input id="revenue_year" name="revenue_year" type="number" step="100" value="{{index .Goals "revenue_year"}}">
+        <input class="input" id="revenue_year" name="revenue_year" type="number" step="100" value="{{index .Goals "revenue_year"}}">
         <label for="fixed_monthly">{{t "settings.fixed_monthly"}}</label>
-        <input id="fixed_monthly" name="fixed_monthly" type="number" step="10" min="0" value="{{index .Costs "fixed_monthly"}}">
+        <input class="input" id="fixed_monthly" name="fixed_monthly" type="number" step="10" min="0" value="{{index .Costs "fixed_monthly"}}">
         <label for="hourly_cost">{{t "settings.hourly_cost"}}</label>
-        <input id="hourly_cost" name="hourly_cost" type="number" step="1" min="0" value="{{index .Costs "hourly_cost"}}">
+        <input class="input" id="hourly_cost" name="hourly_cost" type="number" step="1" min="0" value="{{index .Costs "hourly_cost"}}">
         <p class="small muted">{{t "settings.hourly_cost_hint"}}</p>
         <label for="billing_internal">{{t "settings.billing_internal"}}</label>
-        <input id="billing_internal" name="billing_internal" value="{{index .Billing "internal"}}" placeholder="Intern, Verein">
+        <input class="input" id="billing_internal" name="billing_internal" value="{{index .Billing "internal"}}" placeholder="Intern, Verein">
         <p class="small muted">{{t "settings.billing_internal_hint"}}</p>
       </div>
 
       <h2 id="stats">{{t "settings.stats"}}</h2>
       <div class="card">
         <label for="center">{{t "settings.center"}}</label>
-        <select id="center" name="center">
+        <select class="select" id="center" name="center">
           {{range .Centers}}<option value="{{.}}"{{if eq . (print $.Center)}} selected{{end}}>{{t (print "settings.center_" .)}}</option>{{end}}
         </select>
         <p class="small muted">{{t "settings.center_hint"}}</p>
@@ -69,33 +69,33 @@
       <h2 id="homelab">{{t "settings.homelab"}}</h2>
       <div class="card">
         <label for="power_entity">{{t "settings.power_entity"}}</label>
-        <input id="power_entity" name="power_entity" value="{{index .Homelab "power_entity"}}" placeholder="sensor.server_power">
+        <input class="input" id="power_entity" name="power_entity" value="{{index .Homelab "power_entity"}}" placeholder="sensor.server_power">
         <label for="power_price">{{t "settings.power_price"}}</label>
-        <input id="power_price" name="power_price" type="number" step="0.01" min="0" value="{{index .Homelab "power_price"}}">
+        <input class="input" id="power_price" name="power_price" type="number" step="0.01" min="0" value="{{index .Homelab "power_price"}}">
         <label for="hardware_years">{{t "settings.hardware_years"}}</label>
-        <input id="hardware_years" name="hardware_years" type="number" step="1" min="1" value="{{with index .Homelab "hardware_years"}}{{.}}{{else}}5{{end}}">
+        <input class="input" id="hardware_years" name="hardware_years" type="number" step="1" min="1" value="{{with index .Homelab "hardware_years"}}{{.}}{{else}}5{{end}}">
         <label for="domain_yearly">{{t "settings.domain_yearly"}}</label>
-        <input id="domain_yearly" name="domain_yearly" type="number" step="1" min="0" value="{{index .Homelab "domain_yearly"}}">
+        <input class="input" id="domain_yearly" name="domain_yearly" type="number" step="1" min="0" value="{{index .Homelab "domain_yearly"}}">
         <label for="hosting_words">{{t "settings.hosting_words"}}</label>
-        <input id="hosting_words" name="hosting_words" value="{{with index .Homelab "hosting_words"}}{{.}}{{else}}hetzner, netcup, ionos, strato, cloudflare, backblaze, tailscale{{end}}">
+        <input class="input" id="hosting_words" name="hosting_words" value="{{with index .Homelab "hosting_words"}}{{.}}{{else}}hetzner, netcup, ionos, strato, cloudflare, backblaze, tailscale{{end}}">
         <label for="cloud_monthly">{{t "settings.cloud_monthly"}}</label>
-        <input id="cloud_monthly" name="cloud_monthly" type="number" step="1" min="0" value="{{index .Homelab "cloud_monthly"}}">
+        <input class="input" id="cloud_monthly" name="cloud_monthly" type="number" step="1" min="0" value="{{index .Homelab "cloud_monthly"}}">
         <p class="small muted">{{t "settings.homelab_hint"}}</p>
       </div>
 
       <h2 id="tax">{{t "settings.tax"}}</h2>
       <div class="card">
         <label for="vat_method">{{t "settings.vat_method"}}</label>
-        <select id="vat_method" name="vat_method">{{$m := print (index .VAT "method")}}{{range .Methods}}<option value="{{.}}"{{if eq . $m}} selected{{end}}>{{t (print "settings.method_" .)}}</option>{{end}}</select>
+        <select class="select" id="vat_method" name="vat_method">{{$m := print (index .VAT "method")}}{{range .Methods}}<option value="{{.}}"{{if eq . $m}} selected{{end}}>{{t (print "settings.method_" .)}}</option>{{end}}</select>
         <label for="vat_interval">{{t "settings.vat_interval"}}</label>
-        <select id="vat_interval" name="vat_interval">{{$i := print (index .VAT "return_interval")}}{{range .Intervals}}<option value="{{.}}"{{if eq . $i}} selected{{end}}>{{t (print "settings.interval_" .)}}</option>{{end}}</select>
-        <label class="check"><input type="checkbox" name="vat_extension"{{if index .VAT "extension"}} checked{{end}}> {{t "settings.vat_extension"}}</label>
+        <select class="select" id="vat_interval" name="vat_interval">{{$i := print (index .VAT "return_interval")}}{{range .Intervals}}<option value="{{.}}"{{if eq . $i}} selected{{end}}>{{t (print "settings.interval_" .)}}</option>{{end}}</select>
+        <label class="check"><input type="checkbox" name="vat_extension"{{if index .VAT "extension"}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "settings.vat_extension"}}</label>
         <label for="prepayment">{{t "settings.prepayment"}}</label>
-        <input id="prepayment" name="prepayment" type="number" step="10" value="{{index .Prepay "amount"}}">
+        <input class="input" id="prepayment" name="prepayment" type="number" step="10" value="{{index .Prepay "amount"}}">
         <label for="annual_due">{{t "settings.annual_due"}}</label>
-        <input id="annual_due" name="annual_due" value="{{with index .Tax "annual_due"}}{{.}}{{else}}07-31{{end}}" pattern="\d\d-\d\d">
+        <input class="input" id="annual_due" name="annual_due" value="{{with index .Tax "annual_due"}}{{.}}{{else}}07-31{{end}}" pattern="\d\d-\d\d">
         <label for="income_tax_rate">{{t "settings.income_tax_rate"}}</label>
-        <input id="income_tax_rate" name="income_tax_rate" type="number" step="0.01" min="0" max="0.6" value="{{with index .Tax "income_tax_rate"}}{{.}}{{else}}0.3{{end}}">
+        <input class="input" id="income_tax_rate" name="income_tax_rate" type="number" step="0.01" min="0" max="0.6" value="{{with index .Tax "income_tax_rate"}}{{.}}{{else}}0.3{{end}}">
         <p class="small muted">{{t "settings.tax_hint"}}</p>
       </div>
 
@@ -106,30 +106,30 @@
         <tr><th>{{t "field.title"}}</th><th>{{t "settings.custom_source"}}</th><th>{{t "settings.custom_path"}}</th><th>{{t "settings.custom_if"}}</th><th>{{t "settings.custom_level"}}</th><th></th></tr>
         {{range $i, $r := .Custom}}
         <tr>
-          <td><input type="hidden" name="cr.{{$i}}.id" value="{{$r.ID}}"><input name="cr.{{$i}}.title" value="{{$r.Title}}" aria-label="{{t "field.title"}}"></td>
-          <td><select name="cr.{{$i}}.service" aria-label="{{t "settings.custom_source"}}"><option value="">–</option>{{range $.Services}}<option value="{{.}}"{{if eq (print .) $r.Service}} selected{{end}}>{{t (print "service." .)}}</option>{{end}}</select></td>
-          <td><input name="cr.{{$i}}.path" value="{{$r.Path}}" placeholder="Slots" aria-label="{{t "settings.custom_path"}}"></td>
-          <td class="custom-if"><select name="cr.{{$i}}.op" aria-label="{{t "settings.custom_if"}}">{{range $.Ops}}<option{{if eq . $r.Op}} selected{{end}}>{{.}}</option>{{end}}</select>
-            <input name="cr.{{$i}}.value" value="{{if $r.ID}}{{$r.Value}}{{end}}" inputmode="decimal" aria-label="{{t "settings.custom_value"}}"></td>
-          <td><select name="cr.{{$i}}.severity" aria-label="{{t "settings.custom_level"}}">{{range $.Levels}}<option value="{{.}}"{{if eq . $r.Severity}} selected{{end}}>{{if eq . 30}}{{t "severity.critical"}}{{else if eq . 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}</option>{{end}}</select></td>
-          <td>{{if $r.ID}}<label class="check"><input type="checkbox" name="cr.{{$i}}.delete"> {{t "action.delete"}}</label>{{else}}<span class="muted small">{{t "settings.custom_new"}}</span>{{end}}</td>
+          <td><input type="hidden" name="cr.{{$i}}.id" value="{{$r.ID}}"><input class="input" name="cr.{{$i}}.title" value="{{$r.Title}}" aria-label="{{t "field.title"}}"></td>
+          <td><select class="select" name="cr.{{$i}}.service" aria-label="{{t "settings.custom_source"}}"><option value="">–</option>{{range $.Services}}<option value="{{.}}"{{if eq (print .) $r.Service}} selected{{end}}>{{t (print "service." .)}}</option>{{end}}</select></td>
+          <td><input class="input" name="cr.{{$i}}.path" value="{{$r.Path}}" placeholder="Slots" aria-label="{{t "settings.custom_path"}}"></td>
+          <td class="custom-if"><select class="select" name="cr.{{$i}}.op" aria-label="{{t "settings.custom_if"}}">{{range $.Ops}}<option{{if eq . $r.Op}} selected{{end}}>{{.}}</option>{{end}}</select>
+            <input class="input" name="cr.{{$i}}.value" value="{{if $r.ID}}{{$r.Value}}{{end}}" inputmode="decimal" aria-label="{{t "settings.custom_value"}}"></td>
+          <td><select class="select" name="cr.{{$i}}.severity" aria-label="{{t "settings.custom_level"}}">{{range $.Levels}}<option value="{{.}}"{{if eq . $r.Severity}} selected{{end}}>{{if eq . 30}}{{t "severity.critical"}}{{else if eq . 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}</option>{{end}}</select></td>
+          <td>{{if $r.ID}}<label class="check"><input type="checkbox" name="cr.{{$i}}.delete"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "action.delete"}}</label>{{else}}<span class="muted small">{{t "settings.custom_new"}}</span>{{end}}</td>
         </tr>
         {{end}}
       </table></div>
 
       <h2 id="rules">{{t "settings.rules"}}</h2>
-      <input type="search" id="rule-q" class="rule-search" placeholder="{{t "settings.rule_search"}}" aria-label="{{t "settings.rule_search"}}">
+      <input type="search" id="rule-q" class="input rule-search" placeholder="{{t "settings.rule_search"}}" aria-label="{{t "settings.rule_search"}}">
       {{range .RuleGroups}}
       <details class="rule-group" data-rule-group>
         <summary><b>{{t .Label}}</b> <span class="hint-group-count">{{len .Rules}}</span></summary>
         <div class="table-wrap"><table class="table">
           {{range .Rules}}{{$id := .ID}}
           <tr id="rule-{{.ID}}" data-q="{{.ID}} {{t (print "rule_name." .ID)}}">
-            <td><label class="check"><input type="checkbox" name="rule.{{.ID}}.enabled"{{if .Enabled}} checked{{end}}> {{t (print "rule_name." .ID)}}</label><small class="muted"><code>{{.ID}}</code></small></td>
+            <td><label class="check"><input type="checkbox" name="rule.{{.ID}}.enabled"{{if .Enabled}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t (print "rule_name." .ID)}}</label><small class="muted"><code>{{.ID}}</code></small></td>
             <td class="rule-params">
               {{range .Params}}
-                {{if eq (print .Kind) "bool"}}<label class="check"><input type="checkbox" name="rule.{{$id}}.{{.Key}}"{{if .On}} checked{{end}}> {{t (print "param." .Key)}}</label>
-                {{else}}<label>{{t (print "param." .Key)}} <input name="rule.{{$id}}.{{.Key}}" value="{{.Text}}"{{if eq (print .Kind) "number"}} type="number" step="any"{{end}}></label>{{end}}
+                {{if eq (print .Kind) "bool"}}<label class="check"><input type="checkbox" name="rule.{{$id}}.{{.Key}}"{{if .On}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t (print "param." .Key)}}</label>
+                {{else}}<label>{{t (print "param." .Key)}} <input class="input" name="rule.{{$id}}.{{.Key}}" value="{{.Text}}"{{if eq (print .Kind) "number"}} type="number" step="any"{{end}}></label>{{end}}
               {{end}}
             </td>
           </tr>

@@ -40,11 +40,11 @@
   <form class="kl-stop" hx-post="/widget-fragments/{{$.PlacementID}}/kimai" hx-target="closest .card-body" hx-swap="innerHTML">
     <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
     <input type="hidden" name="action" value="stop"><input type="hidden" name="sheet" value="{{$r.ID}}">
-    <input name="note" placeholder="{{t "timer.note"}}" aria-label="{{t "timer.note"}}" autocomplete="off">
+    <input class="input" name="note" placeholder="{{t "timer.note"}}" aria-label="{{t "timer.note"}}" autocomplete="off">
     <button type="submit" class="btn btn-accent"><span class="kl-sq" aria-hidden="true"></span>{{t "timer.stop"}}</button>
   </form>{{end}}{{end}}
   {{with $v.Target}}<p class="kl-target"{{if $v.Over}} data-over{{end}}>{{if $v.Over}}{{t "timer.over" "time" $v.Left}}{{else}}{{t "timer.left" "time" $v.Left}}{{end}}</p>{{end}}
-  {{if and $v.Lists $v.AskNote $.Ctx.CSRF}}<input class="kl-start-note" id="kl-sn-{{$.PlacementID}}" name="start_note" placeholder="{{t "timer.start_note"}}" aria-label="{{t "timer.start_note"}}" autocomplete="off">{{end}}
+  {{if and $v.Lists $v.AskNote $.Ctx.CSRF}}<input class="input kl-start-note" id="kl-sn-{{$.PlacementID}}" name="start_note" placeholder="{{t "timer.start_note"}}" aria-label="{{t "timer.start_note"}}" autocomplete="off">{{end}}
   {{range $list := $v.Lists}}
   <span class="label">{{t $list.Label}}</span>
   <ul class="kl-list">
@@ -87,26 +87,26 @@
   <div class="kl-head"><span class="label">{{if $running}}{{t "timer.edit"}}{{else if $edit}}{{t "timer.edit_entry"}}{{else}}{{t "timer.add"}}{{end}}</span></div>
   {{with .Error}}<p class="error">{{t .}}</p>{{end}}
   <label for="kl-p-{{.PlacementID}}">{{t "timer.project"}}</label>
-  <input type="search" class="kl-search" data-kimai-search placeholder="{{t "timer.search"}}" aria-label="{{t "timer.search"}}" aria-controls="kl-p-{{.PlacementID}}" autocomplete="off">
-  <select id="kl-p-{{.PlacementID}}" name="project" data-kimai-project required>
+  <input type="search" class="input kl-search" data-kimai-search placeholder="{{t "timer.search"}}" aria-label="{{t "timer.search"}}" aria-controls="kl-p-{{.PlacementID}}" autocomplete="off">
+  <select class="select" id="kl-p-{{.PlacementID}}" name="project" data-kimai-project required>
     {{$p := .Req.Project}}
     {{range .Catalog.Projects}}<option value="{{.ID}}"{{if eq .ID $p}} selected{{end}}>{{if .Customer}}{{.Customer}} · {{end}}{{.Name}}</option>{{end}}
   </select>
   <label for="kl-a-{{.PlacementID}}">{{t "timer.activity"}}</label>
-  <select id="kl-a-{{.PlacementID}}" name="activity" data-kimai-activity required>
+  <select class="select" id="kl-a-{{.PlacementID}}" name="activity" data-kimai-activity required>
     {{$a := .Req.Activity}}
     {{range .Catalog.Activities}}<option value="{{.ID}}" data-project="{{if .ProjectID}}{{.ProjectID}}{{end}}"{{if eq .ID $a}} selected{{end}}>{{.Name}}</option>{{end}}
   </select>
   <div class="kl-range">
-    <div><label for="kl-b-{{.PlacementID}}">{{t "timer.begin"}}</label><input id="kl-b-{{.PlacementID}}" name="begin" type="datetime-local" value="{{.Req.Begin}}" required></div>
-    {{if not $running}}<div><label for="kl-e-{{.PlacementID}}">{{t "timer.end"}}</label><input id="kl-e-{{.PlacementID}}" name="end" type="datetime-local" value="{{.Req.End}}" required></div>{{end}}
+    <div><label for="kl-b-{{.PlacementID}}">{{t "timer.begin"}}</label><input class="input" id="kl-b-{{.PlacementID}}" name="begin" type="datetime-local" value="{{.Req.Begin}}" required></div>
+    {{if not $running}}<div><label for="kl-e-{{.PlacementID}}">{{t "timer.end"}}</label><input class="input" id="kl-e-{{.PlacementID}}" name="end" type="datetime-local" value="{{.Req.End}}" required></div>{{end}}
   </div>
   <label for="kl-n-{{.PlacementID}}">{{t "timer.note"}}</label>
-  <input id="kl-n-{{.PlacementID}}" name="note" value="{{.Req.Note}}" autocomplete="off">
+  <input class="input" id="kl-n-{{.PlacementID}}" name="note" value="{{.Req.Note}}" autocomplete="off">
   <div class="kl-range">
-    <div><label for="kl-t-{{.PlacementID}}">{{t "timer.tags"}}</label><input id="kl-t-{{.PlacementID}}" name="tags" value="{{.Req.Tags}}" placeholder="{{t "timer.tags_hint"}}" autocomplete="off"></div>
+    <div><label for="kl-t-{{.PlacementID}}">{{t "timer.tags"}}</label><input class="input" id="kl-t-{{.PlacementID}}" name="tags" value="{{.Req.Tags}}" placeholder="{{t "timer.tags_hint"}}" autocomplete="off"></div>
     <div><label for="kl-x-{{.PlacementID}}">{{t "timer.billable"}}</label>
-      <select id="kl-x-{{.PlacementID}}" name="billable">
+      <select class="select" id="kl-x-{{.PlacementID}}" name="billable">
         {{$b := print .Req.Billable}}
         {{if not $edit}}<option value=""{{if eq $b ""}} selected{{end}}>{{t "timer.billable_default"}}</option>{{end}}
         <option value="yes"{{if eq $b "yes"}} selected{{end}}>{{t "timer.billable_yes"}}</option>
@@ -122,7 +122,7 @@
        over the hidden field. */}}
   <label for="kl-s-{{.PlacementID}}">{{t "timer.split_at"}}</label>
   <div class="kl-actions">
-    <input id="kl-s-{{.PlacementID}}" name="at" type="datetime-local" value="{{.Split.At}}" min="{{.Split.Min}}" max="{{.Split.Max}}">
+    <input class="input" id="kl-s-{{.PlacementID}}" name="at" type="datetime-local" value="{{.Split.At}}" min="{{.Split.Min}}" max="{{.Split.Max}}">
     <button type="button" class="btn btn-outline btn-sm" hx-post="/widget-fragments/{{.PlacementID}}/kimai" hx-vals='{"action": "split", "back": "day"}' hx-target="closest .card-body" hx-swap="innerHTML">{{t "timer.split"}}</button>
     <button type="button" class="btn btn-outline btn-sm kl-del" hx-post="/widget-fragments/{{.PlacementID}}/kimai" hx-vals='{"action": "delete", "back": "day"}' hx-confirm="{{t "timer.delete_confirm"}}" hx-target="closest .card-body" hx-swap="innerHTML">{{t "action.delete"}}</button>
   </div>
