@@ -25,7 +25,7 @@
     {{else if eq $k.Kind "hours"}}{{num $k.Value 1}} h
     {{else}}{{num $k.Value 0}}{{end}}
   </b>
-  {{if $k.HasDelta}}<span class="kpi-delta" data-trend="{{if ge $k.Delta 0.0}}up{{else}}down{{end}}" title="{{t $k.DeltaKey}}">{{if ge $k.Delta 0.0}}▲{{else}}▼{{end}} {{pct (abs $k.Delta)}}</span>{{end}}
+  {{if $k.HasDelta}}<span class="delta {{if ge $k.Delta 0.0}}up{{else}}dn{{end}}" title="{{t $k.DeltaKey}}">{{pct (abs $k.Delta)}}</span>{{end}}
   {{if eq $k.SubKey "kpi.of_target"}}<span class="kpi-sub">{{t "kpi.of_target" "hours" (num $k.SubHours 1)}}</span>
   {{else if eq $k.SubKey "kpi.hours"}}<span class="kpi-sub">{{t "kpi.hours" "hours" (num $k.SubHours 1)}}</span>
   {{else if eq $k.SubKey "kpi.invoices"}}<span class="kpi-sub">{{t "kpi.invoices" "count" $k.SubCount}}</span>
@@ -242,7 +242,7 @@
 <div class="kpi">
   <span class="kpi-label">{{$v.Month}}</span>
   <b class="kpi-value" data-live>{{money $v.Rate $v.Currency}}{{t "rate.per_hour"}}</b>
-  {{with $v.Prev}}<span class="kpi-delta" data-trend="{{if ge $v.Delta 0.0}}up{{else}}down{{end}}" title="{{t "rate.vs_prev" "rate" (money . $v.Currency)}}">{{if ge $v.Delta 0.0}}▲{{else}}▼{{end}} {{money (abs $v.Delta) $v.Currency}}</span>{{end}}
+  {{with $v.Prev}}<span class="delta {{if ge $v.Delta 0.0}}up{{else}}dn{{end}}" title="{{t "rate.vs_prev" "rate" (money . $v.Currency)}}">{{money (abs $v.Delta) $v.Currency}}</span>{{end}}
   {{with $v.Spark}}{{template "spark" .}}{{end}}
   <span class="kpi-sub">{{if $v.Target}}{{t "rate.target" "rate" (money $v.Target $v.Currency)}} · {{end}}{{t "kpi.spark_months" "n" 12}}</span>
 </div>

@@ -471,15 +471,9 @@ label.pick-check { margin: 0 .3rem; }
 
 /* ── KPI ── */
 .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--bg2); border: 1px solid var(--bg2); margin-bottom: 1rem; }
-.kpi { background: var(--bg-panel); padding: .9rem 1rem; display: flex; flex-direction: column; gap: .3rem; }
-.kpi-label { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--fg3); }
-.kpi-value { font-family: var(--font-heading); font-weight: 700; font-size: 1.7rem; color: var(--fg0); font-variant-numeric: tabular-nums; line-height: 1; }
-.kpi-sub, .kpi-delta { font-family: var(--font-mono); font-size: .72rem; color: var(--fg3); }
-.kpi-delta[data-trend="up"] { color: var(--ok-text); }
-.kpi-delta[data-trend="down"] { color: var(--danger-text); }
+.kpi { background: var(--bg-panel); padding: .9rem 1rem; }
 /* A KPI tile is already a card: no second frame inside it. */
 .card-body > .kpi { background: none; padding: 0; }
-.kpi .kpi-delta { align-self: flex-start; border: 1px solid currentColor; padding: 0 .35rem; }
 .spark { display: block; position: relative; width: 100%; height: 2rem; margin-top: .2rem; }
 .spark svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .spark-area { fill: color-mix(in srgb, var(--aqua) 16%, transparent); }

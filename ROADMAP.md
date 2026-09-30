@@ -544,7 +544,6 @@ Nicht im Einsatz, weil Andon eigene Strukturen hat: `.nav`/`.foot` (Andon: `.app
 
 | Komponente | Zweck |
 |---|---|
-| `.kpi` | Kennzahl-Kachel: Label (mono, versal), Wert (Rajdhani 700, tabellarische Ziffern), Delta zum Vorzeitraum, optionale Sparkline |
 | `.kpi-row` | Raster `auto-fit minmax(200px, 1fr)` |
 | `.launch` | Link-Kachel: Icon, Titel, Beschreibung, Statuspunkt (mit Text/Tooltip), Infozeile, Hinweis-Zähler; Größen `small`, `medium`, `large` |
 | `.launch-grid` | Raster für Kacheln eines Abschnitts, Spaltenzahl aus `cols` |
@@ -602,7 +601,7 @@ Die Komponenten nutzen ausschließlich Theme-Tokens (`var(--…)`), keine eigene
 
 **Offen: UI auf Kante-Tokens umstellen**
 
-Die Oberfläche läuft auf den Tokens und Komponenten von **Kante 1.6** (siehe „Einbindung“ oben). Schaltflächen, Felder, Pills, Menüs, Dialoge, Toasts, Tabellen, Fortschritt und die Live-Daten-Bewegung kommen aus dem vendorten Kante; `andon.css` behält nur Board-Layout und Widget-Innenleben. Offen: die Andon-Bausteine, die Kante noch nicht hat (Kachelkarte mit Tier-Balken ohne Klick-Verhalten, Filter-Chips, Tag-/Modusleiste, kompakte Schaltfläche, Datei-Feld, Auswahlkarte). Sie gehören zuerst nach Kante. Entwürfe für vier Bildschirme (Start, Übersicht, Editor, Anmeldung): <https://claude.ai/artifact/K1SEJhy4Pm4wyn4zDJ9vLH>.
+Die Oberfläche läuft auf den Tokens und Komponenten von **Kante 1.6** (siehe „Einbindung“ oben). Schaltflächen, Felder, Pills, Menüs, Dialoge, Toasts, Tabellen, Fortschritt und die Live-Daten-Bewegung kommen aus dem vendorten Kante; `andon.css` behält nur Board-Layout und Widget-Innenleben. Seit 1.5/1.6 aus Kante: Kennzahl (`.kpi`, `.delta`) und Filter-Chips (`.chip`, `aria-pressed`). Offen: die Andon-Bausteine, die Kante noch nicht hat (Kachelkarte mit Tier-Balken ohne Klick-Verhalten, Tag-/Modusleiste, ankreuzbare Chips). Sie gehören zuerst nach Kante. Entwürfe für vier Bildschirme (Start, Übersicht, Editor, Anmeldung): <https://claude.ai/artifact/K1SEJhy4Pm4wyn4zDJ9vLH>.
 
 - [x] `andon.css` in `internal/web/static/` angelegt: nur Tokens (`var(--…)`), keine Hex-Werte außerhalb `themes/`
 - [x] `base.html`: `system-ui`-Fallback durch `.app-nav`/`.app-links`/`.app-side` und echte Formularstile ersetzt; jede Seite lädt jetzt ihr aktives Theme (`Deps.Page` setzt `ThemeURL`, vorher nur die Board-Seite)
