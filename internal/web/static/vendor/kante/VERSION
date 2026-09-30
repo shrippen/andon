@@ -1,3 +1,5 @@
-source: https://github.com/shrippen/shrippen.github.io (Kante)
-commit: 268493294ff934f29ce2ef6f51195e3abaff4a67 plus uncommitted tokens (--primary, --on-primary)
-files: css/base.css css/components.css fonts/*.ttf fonts/OFL.txt tokens/variables.css
+Kante 1.4
+source: https://github.com/shrippen/shrippen.github.io (kante/)
+branch: ccr-ba8bde18-s8jxa6
+commit: 7bdc8eeb88a6e017529e016a12da7452a208044f
+files: base.css components.css shrippen.js fonts/OFL.txt fonts/*.woff2 (Latin subsets, see tools/sync-design.sh)
