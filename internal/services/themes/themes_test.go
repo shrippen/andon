@@ -79,6 +79,31 @@ func TestContrastIssuesFlagsLowContrast(t *testing.T) {
 	}
 }
 
+// Every value of the shipped contract passes the token validation, so the
+// editor can save a theme that keeps the Kante 1.4 roles, cuts and easings
+// as they are.
+func TestContractValuesAreValid(t *testing.T) {
+	dark, light := themes.Contract()
+	for mode, tokens := range map[string]map[string]string{"dark": dark, "light": light} {
+		raw := make(map[string]any, len(tokens))
+		for name, value := range tokens {
+			raw[name] = value
+		}
+		cleaned, err := themes.CleanTokens(raw)
+		if err != nil {
+			t.Fatalf("%s: %v", mode, err)
+		}
+		if len(cleaned) != len(tokens) {
+			t.Errorf("%s: %d of %d tokens kept", mode, len(cleaned), len(tokens))
+		}
+	}
+	for _, name := range []string{"--cyan", "--focus", "--link", "--warn", "--danger", "--cut-m", "--h-m", "--dur", "--ease-snap"} {
+		if _, ok := dark[name]; !ok {
+			t.Errorf("contract lacks Kante 1.4 token %s", name)
+		}
+	}
+}
+
 func TestCleanTokensDropsUnknownAndUnsafe(t *testing.T) {
 	cleaned, err := themes.CleanTokens(map[string]any{
 		"--bg-void": "#123456", "--not-a-real-token": "#fff",
