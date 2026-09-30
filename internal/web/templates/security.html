@@ -35,7 +35,7 @@
         <p class="muted">{{t "security.recovery"}}</p>
         <ul class="mono">{{range .RecoveryCodes}}<li>{{.}}</li>{{end}}</ul>
       {{else if .Profile.TOTPEnabled}}
-        <p class="pill" data-state="ok">{{t "security.totp_on"}}</p>
+        <p class="pill" data-state="applied">{{t "security.totp_on"}}</p>
         <form method="post" action="/me/security/totp/disable">
           <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
           <label for="disable_code">{{t "security.code_or_recovery"}}</label>
@@ -91,7 +91,7 @@
     <div class="card">
       <h2>{{.OIDCLabel}}</h2>
       {{if .Profile.OIDCLinked}}
-      <p class="pill" data-state="ok">{{t "security.oidc_linked"}}</p>
+      <p class="pill" data-state="applied">{{t "security.oidc_linked"}}</p>
       {{else}}
       <form method="post" action="/me/oidc/link">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">

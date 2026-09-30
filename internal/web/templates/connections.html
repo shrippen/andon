@@ -152,7 +152,7 @@
         <h3>{{t "connect.title"}}</h3>
         <p class="small muted">{{t (print "connect.how_" .Conn.Service)}}</p>
         {{if .SignIn.NeedsClient}}
-          {{if .SignIn.HasClient}}<p><span class="pill" data-state="ok">{{t "connect.client_set"}}</span></p>{{end}}
+          {{if .SignIn.HasClient}}<p><span class="pill" data-state="applied">{{t "connect.client_set"}}</span></p>{{end}}
           {{if ne .SignIn.Method "client"}}<p class="small muted">{{t "connect.redirect_uri"}} <code>{{.SignIn.Callback}}</code></p>{{end}}
           <label for="client_id">{{t "connect.client_id"}}</label>
           <input class="input" id="client_id" name="client_id" form="oauth-client-form" autocomplete="off">
@@ -231,7 +231,7 @@
       <h2>{{t "conn.health"}}</h2>
       <div class="card">
         <p>{{template "conn_health_cell" .Conn}}</p>
-        {{with .Conn.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}{{if not $.Conn.Health.LastFail.IsZero}} {{ago $.Conn.Health.LastFail}}{{end}}: {{t .}}{{if $.Conn.Health.ErrorSettled}} <span class="pill" data-state="ok">{{t "conn.ok_since"}}</span>{{end}}</p>{{end}}
+        {{with .Conn.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}{{if not $.Conn.Health.LastFail.IsZero}} {{ago $.Conn.Health.LastFail}}{{end}}: {{t .}}{{if $.Conn.Health.ErrorSettled}} <span class="pill" data-state="applied">{{t "conn.ok_since"}}</span>{{end}}</p>{{end}}
         {{if .Conn.DailyBudget}}<p class="small muted">{{t "conn.budget_today" "n" .Conn.Health.Today "max" .Conn.DailyBudget}}</p>{{end}}
       </div>
       <div class="row-actions">

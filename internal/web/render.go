@@ -54,6 +54,7 @@ func mustParse() *template.Template {
 		"thousands":   func(v float64) float64 { return v / 1000 },
 		"sparkOf":     widgets.SparkOf,
 		"tier":        tier,
+		"pill":        pillState,
 		"eqID":        func(a *int64, b int64) bool { return a != nil && *a == b },
 		"weatherKind": weatherKind,
 		"clockNow":    func(tz string) string { return clockNow(tz, clockMinutes) },
@@ -124,6 +125,19 @@ func weatherKind(code int) string {
 		}
 	}
 	return "unknown"
+}
+
+// pillStates maps the states services report (ok, warn, fail) to the
+// states of Kante's .pill.
+var pillStates = map[string]string{"ok": "applied", "warn": "locked", "fail": "failed"}
+
+// pillState is the data-state of a .pill for a service state; states that
+// are already Kante's (reviewing, ...) and "" pass through.
+func pillState(state string) string {
+	if kante, ok := pillStates[state]; ok {
+		return kante
+	}
+	return state
 }
 
 // tier is a progress bar's colour band: red at/over budget, yellow near it.

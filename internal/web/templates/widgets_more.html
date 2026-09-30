@@ -12,7 +12,7 @@
 {{define "widgets/custom_api"}}
 {{with $slot := index .Frag.Slots "body"}}{{template "widget-slot-state" $slot}}{{end}}
 <dl class="kv">
-  {{range .Frag.View.Rows}}<dt>{{.Label}}</dt><dd>{{if .Missing}}<span class="muted">–</span>{{else if .Level}}<span class="pill" data-state="{{.Level}}">{{.Value}}{{with .Unit}} {{.}}{{end}}</span>{{else}}{{.Value}}{{with .Unit}} {{.}}{{end}}{{end}}</dd>{{end}}
+  {{range .Frag.View.Rows}}<dt>{{.Label}}</dt><dd>{{if .Missing}}<span class="muted">–</span>{{else if .Level}}<span class="pill" data-state="{{pill .Level}}">{{.Value}}{{with .Unit}} {{.}}{{end}}</span>{{else}}{{.Value}}{{with .Unit}} {{.}}{{end}}{{end}}</dd>{{end}}
 </dl>
 {{end}}
 
@@ -26,7 +26,7 @@
 {{define "widgets/holidays"}}
 {{with $slot := index .Frag.Slots "days"}}{{template "widget-slot-state" $slot}}{{end}}
 <ul class="agenda">
-  {{range .Frag.View.Rows}}<li><time datetime="{{.Day}}">{{day .Day}}</time> {{.Name}} <small class="muted">{{if eq .In 0}}{{t "holidays.today"}}{{else}}{{t "holidays.in" "days" .In}}{{end}}</small>{{with .Bridge}} <span class="pill" data-state="ok">{{t "holidays.bridge" "day" (weekday .)}}</span>{{end}}</li>{{end}}
+  {{range .Frag.View.Rows}}<li><time datetime="{{.Day}}">{{day .Day}}</time> {{.Name}} <small class="muted">{{if eq .In 0}}{{t "holidays.today"}}{{else}}{{t "holidays.in" "days" .In}}{{end}}</small>{{with .Bridge}} <span class="pill" data-state="applied">{{t "holidays.bridge" "day" (weekday .)}}</span>{{end}}</li>{{end}}
 </ul>
 {{end}}
 
@@ -53,24 +53,24 @@
 {{define "widgets/crypto"}}
 {{with $slot := index .Frag.Slots "prices"}}{{template "widget-slot-state" $slot}}
 {{with $r := $slot.Data}}
-<table class="table rates">
+<div class="table-wrap"><table class="table rates">
   {{$c := $.Frag.Config}}
   {{range $r.Coins}}<tr><td>{{.ID}}</td><td class="num">{{num .Price $c.Digits}} {{$r.Currency}}</td>
     {{if $c.Spark}}<td class="spark-cell">{{with sparkOf .Spark}}{{template "spark" .}}{{end}}</td>{{end}}
-    <td class="num"><span class="pill" data-state="{{if lt .Change 0.0}}fail{{else}}ok{{end}}">{{if gt .Change 0.0}}+{{end}}{{num .Change 1}} %</span></td></tr>{{end}}
-</table>
+    <td class="num"><span class="pill" data-state="{{if lt .Change 0.0}}failed{{else}}applied{{end}}">{{if gt .Change 0.0}}+{{end}}{{num .Change 1}} %</span></td></tr>{{end}}
+</table></div>
 {{end}}{{end}}
 {{end}}
 
 {{define "widgets/stocks"}}
 {{with $slot := index .Frag.Slots "quotes"}}{{template "widget-slot-state" $slot}}
 {{with $r := $slot.Data}}
-<table class="table rates">
+<div class="table-wrap"><table class="table rates">
   {{$c := $.Frag.Config}}
   {{range $r.Quotes}}{{$ch := .Change}}{{if $c.Week}}{{$ch = .WeekChange}}{{end}}<tr><td>{{.Symbol}}</td><td class="num">{{num .Close 2}} <small class="muted">{{.Currency}}</small></td>
     {{if $c.Spark}}<td class="spark-cell">{{with sparkOf .Closes}}{{template "spark" .}}{{end}}</td>{{end}}
-    <td class="num"><span class="pill" data-state="{{if lt $ch 0.0}}fail{{else}}ok{{end}}">{{if gt $ch 0.0}}+{{end}}{{num $ch 1}} %</span></td></tr>{{end}}
-</table>
+    <td class="num"><span class="pill" data-state="{{if lt $ch 0.0}}failed{{else}}applied{{end}}">{{if gt $ch 0.0}}+{{end}}{{num $ch 1}} %</span></td></tr>{{end}}
+</table></div>
 <small class="muted">{{t "stocks.source"}}</small>
 {{end}}{{end}}
 {{end}}
@@ -79,13 +79,13 @@
 {{define "widgets/board"}}
 {{with $slot := index .Frag.Slots "board"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Stop}}<p class="small muted">{{$v.Stop}}</p>{{end}}
-<table class="table departures">
+<div class="table-wrap"><table class="table departures">
   {{range $v.Rows}}<tr{{if .Canceled}} class="is-canceled"{{end}}>
     <td class="num">{{.Time}}{{if gt .Delay 0}} <span class="late">+{{.Delay}}</span>{{end}}</td>
     <td><b>{{.Line}}</b></td><td>{{.Place}}</td>
-    <td>{{if .Canceled}}<span class="pill" data-state="fail">{{t "board.canceled"}}</span>{{else if .Platform}}{{t "board.platform" "platform" .Platform}}{{else}}{{.Status}}{{end}}</td>
+    <td>{{if .Canceled}}<span class="pill" data-state="failed">{{t "board.canceled"}}</span>{{else if .Platform}}{{t "board.platform" "platform" .Platform}}{{else}}{{.Status}}{{end}}</td>
   </tr>{{else}}<tr><td class="muted">{{t "widget.empty"}}</td></tr>{{end}}
-</table>
+</table></div>
 {{end}}
 {{end}}
 
@@ -107,7 +107,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}
 {{if $v.Fields}}<dl class="kv">
-  {{range $v.Fields}}<dt>{{.Label}}</dt><dd>{{if not .Found}}<span class="muted">–</span>{{else if .Numeric}}{{if .Level}}<span class="pill" data-state="{{.Level}}">{{num .Value 2}}{{with .Unit}} {{.}}{{end}}</span>{{else}}{{num .Value 2}}{{with .Unit}} {{.}}{{end}}{{end}}{{else}}{{.Text}}{{with .Unit}} {{.}}{{end}}{{end}}</dd>{{end}}
+  {{range $v.Fields}}<dt>{{.Label}}</dt><dd>{{if not .Found}}<span class="muted">–</span>{{else if .Numeric}}{{if .Level}}<span class="pill" data-state="{{pill .Level}}">{{num .Value 2}}{{with .Unit}} {{.}}{{end}}</span>{{else}}{{num .Value 2}}{{with .Unit}} {{.}}{{end}}{{end}}{{else}}{{.Text}}{{with .Unit}} {{.}}{{end}}{{end}}</dd>{{end}}
 </dl>{{end}}
 {{if $v.Rows}}<div class="table-wrap"><table class="table">
   <tr>{{range $v.Columns}}<th>{{.}}</th>{{end}}</tr>

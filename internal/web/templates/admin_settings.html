@@ -42,7 +42,7 @@
     <div class="card">
       <p class="small muted">{{t "admin.backup_hint" "keep" .BackupKeep}}</p>
       {{with .Backup}}
-      <p><span class="pill" data-state="{{if .OK}}ok{{else}}fail{{end}}">{{if .OK}}{{t "admin.backup_ok"}}{{else}}{{t "admin.backup_failed"}}{{end}}</span>
+      <p><span class="pill" data-state="{{if .OK}}applied{{else}}failed{{end}}">{{if .OK}}{{t "admin.backup_ok"}}{{else}}{{t "admin.backup_failed"}}{{end}}</span>
         <small class="muted">{{ago .At}}{{with .File}} · {{.}}{{end}}</small></p>
       {{if .OK}}<p class="small muted">{{t "admin.backup_rows" "users" (index .Rows "users") "boards" (index .Rows "boards") "widgets" (index .Rows "widgets") "secrets" .Secrets}}</p>
       {{else}}<p class="error">{{t .Problem}}</p>{{end}}
@@ -92,7 +92,7 @@
 
     <h2>{{t "admin.oidc"}}</h2>
     <div class="card">
-      {{if .OIDCTest}}<p class="pill" data-state="{{if .OIDCTestOK}}ok{{else}}fail{{end}}">{{.OIDCTest}}</p>{{end}}
+      {{if .OIDCTest}}<p class="pill" data-state="{{if .OIDCTestOK}}applied{{else}}failed{{end}}">{{.OIDCTest}}</p>{{end}}
       <form method="post" action="/admin/settings/oidc">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <label class="check"><input type="checkbox" name="enabled"{{if .OIDC.Enabled}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "admin.oidc_enabled"}}</label>

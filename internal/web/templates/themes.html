@@ -25,7 +25,7 @@
       {{range .Items}}
       <tr>
         <td>{{with .Swatches}}<svg class="swatches" viewBox="0 0 {{len .}} 1" preserveAspectRatio="none" aria-hidden="true">{{range $i, $c := .}}<rect x="{{$i}}" width="1" height="1" fill="{{$c}}"/>{{end}}</svg>{{end}}{{.Name}}{{if .Builtin}} <span class="pill">{{t "themes.builtin"}}</span>{{end}}
-          {{if eq .ID $.ActiveTheme}} <span class="pill" data-state="ok">{{t "themes.active"}}</span>{{end}}
+          {{if eq .ID $.ActiveTheme}} <span class="pill" data-state="applied">{{t "themes.active"}}</span>{{end}}
           {{if eq .ID $.InstanceTheme}} <span class="pill">{{t "themes.instance_default"}}</span>{{end}}
           {{if eq .ID $.MyTheme}} <span class="pill">{{t "themes.mine"}}</span>{{end}}</td>
         <td class="row-actions">
@@ -85,9 +85,9 @@
     <h1>{{.Theme.Name}}</h1>
     <p class="muted">{{t "themes.edit_lead"}}</p>
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
-    {{if .Saved}}<p class="pill" data-state="ok">{{t "saved"}}</p>{{end}}
+    {{if .Saved}}<p class="pill" data-state="applied">{{t "saved"}}</p>{{end}}
     {{if .Theme.Builtin}}<p class="card">{{t "themes.builtin_hint"}}</p>{{end}}
-    {{range .Issues}}<p class="pill" data-state="warn">{{t "themes.contrast" "mode" (t (print "mode." .Mode)) "fg" .FG "bg" .BG "ratio" .Ratio}}</p>{{end}}
+    {{range .Issues}}<p class="pill" data-state="locked">{{t "themes.contrast" "mode" (t (print "mode." .Mode)) "fg" .FG "bg" .BG "ratio" .Ratio}}</p>{{end}}
 
     <div class="editor-split">
       <form method="post" action="/themes/{{.Theme.ID}}" class="card" id="theme-form">
@@ -192,7 +192,7 @@
     <p class="muted">{{t "styleguide.lead"}}</p>
     {{template "sample" .}}
     <h2>.pill</h2>
-    <p><span class="pill" data-state="ok">ok</span> <span class="pill" data-state="warn">warn</span> <span class="pill" data-state="fail">fail</span> <span class="pill">info</span></p>
+    <p><span class="pill" data-state="applied">applied</span> <span class="pill" data-state="reviewing">reviewing</span> <span class="pill" data-state="locked">locked</span> <span class="pill" data-state="failed">failed</span> <span class="pill">info</span></p>
     <h2>.error</h2>
     <p class="error">{{t "error.denied"}}</p>
     <h2>.table</h2>

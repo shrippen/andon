@@ -157,7 +157,7 @@
             <div class="gal-preview" aria-hidden="true"><div class="gal-thumb" data-loading="{{t "gallery.preview_loading"}}" hx-get="/widget-sample/{{.Kind.Key}}?space={{$.Target.SpaceID}}{{with .ConnID}}&conn={{.}}{{end}}" hx-trigger="intersect once"></div></div>
             <div class="gal-meta">
               {{if .Kind.Service}}<span class="label">{{$svc}}
-                {{if .ConnID}}<span class="pill" data-state="ok">{{t "gallery.live"}}</span>{{else}}<span class="pill" data-state="warn">{{t "gallery.sample"}}</span>{{end}}</span>{{end}}
+                {{if .ConnID}}<span class="pill" data-state="applied">{{t "gallery.live"}}</span>{{else}}<span class="pill" data-state="locked">{{t "gallery.sample"}}</span>{{end}}</span>{{end}}
               <b>{{.Name}}</b>
               <small class="muted">{{.Desc}}</small>
             </div>
@@ -197,9 +197,9 @@
             </div>
             <div class="gal-actions"><button type="button" class="btn btn-accent" data-open="reuse-{{.ID}}">{{t "gallery.add"}}</button></div>
 
-            <dialog id="reuse-{{.ID}}" class="gal-dialog" aria-labelledby="reuse-{{.ID}}-h">
+            <dialog id="reuse-{{.ID}}" class="dialog gal-dialog" aria-labelledby="reuse-{{.ID}}-h">
               <span class="label">{{t "gallery.existing"}} · {{$type}}</span>
-              <h2 id="reuse-{{.ID}}-h">{{.Name}}</h2>
+              <h3 id="reuse-{{.ID}}-h">{{.Name}}</h3>
               <form method="post" action="/boards/{{$p.Target.BoardID}}/sections/{{$p.Target.SectionID}}/place">
                 <input type="hidden" name="{{$p.CSRFField}}" value="{{$p.Ctx.CSRF}}">
                 <input type="hidden" name="version" value="{{$p.Target.Version}}">

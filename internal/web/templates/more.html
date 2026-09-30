@@ -106,7 +106,7 @@
       {{range .Items}}
       <tr>
         <td>{{.Name}} <span class="muted">({{t (print "service." .Service)}})</span><br><small class="muted">{{.URL}}</small></td>
-        <td class="nowrap">{{if .HasMine}}<span class="pill" data-state="ok">{{t "cred.set"}}</span>{{if not .SecretAt.IsZero}}<br><small class="muted">{{ago .SecretAt}}</small>{{end}}{{else}}<span class="pill" data-state="warn">{{t "cred.missing"}}</span>{{end}}</td>
+        <td class="nowrap">{{if .HasMine}}<span class="pill" data-state="applied">{{t "cred.set"}}</span>{{if not .SecretAt.IsZero}}<br><small class="muted">{{ago .SecretAt}}</small>{{end}}{{else}}<span class="pill" data-state="locked">{{t "cred.missing"}}</span>{{end}}</td>
         <td><div class="cred-actions">
           {{if .HasMine}}<details class="cred-replace"><summary class="btn btn-outline btn-sm">{{t "cred.replace"}}</summary>{{end}}
           <form method="post" action="/me/credentials/{{.ID}}" class="inline-form cred-form">

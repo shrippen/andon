@@ -28,7 +28,7 @@ func TestSmallerActions(t *testing.T) {
 		t.Fatal("personal connection missing on credentials page")
 	}
 	postForm(t, client, srv.URL+"/me/credentials/"+conn, url.Values{"csrf": {csrf}, "secret": {"tok"}})
-	if !strings.Contains(string(mustGet(t, srv, client, "/me/credentials")), `data-state="ok"`) {
+	if !strings.Contains(string(mustGet(t, srv, client, "/me/credentials")), `data-state="applied"`) {
 		t.Fatal("personal token not stored")
 	}
 

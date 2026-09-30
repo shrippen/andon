@@ -34,7 +34,7 @@
 {{/* "What is this?" box on a main page until closed (routes_welcome.go);
      dict Page, Chapter (welcome page anchor), O (.Onboarding), CSRFField, CSRF. */}}
 {{define "intro"}}{{if .O}}{{if not (index .O.Seen .Page)}}
-<aside class="intro" aria-label="{{t "intro.title"}}">
+<aside class="callout intro" aria-label="{{t "intro.title"}}">
   <div><b>{{t "intro.title"}}</b> {{t (print "intro." .Page)}} <a href="/welcome#c-{{.Chapter}}">{{t "intro.more"}}</a></div>
   <form method="post" action="/welcome/intro/{{.Page}}" hx-post="/welcome/intro/{{.Page}}" hx-target="closest .intro" hx-swap="outerHTML">
     <input type="hidden" name="{{.CSRFField}}" value="{{.CSRF}}">
@@ -124,13 +124,13 @@
   {{end}}
 </header>
 {{if .Who}}
-<dialog id="palette" class="palette" aria-label="{{t "palette.title"}}">
+<dialog id="palette" class="dialog palette" aria-label="{{t "palette.title"}}">
   <input class="input" id="palette-q" type="search" autocomplete="off" placeholder="{{t "palette.hint"}}" aria-label="{{t "palette.title"}}">
   <ul id="palette-list" role="listbox"></ul>
   <p class="small muted palette-foot">{{t "palette.keys"}}</p>
 </dialog>
-<dialog id="shortcuts" class="shortcuts" aria-label="{{t "keys.title"}}">
-  <h2>{{t "keys.title"}}</h2>
+<dialog id="shortcuts" class="dialog shortcuts" aria-label="{{t "keys.title"}}">
+  <h3>{{t "keys.title"}}</h3>
   <dl>
     <dt><kbd>/</kbd></dt><dd>{{t "keys.search"}}</dd>
     <dt><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Enter</kbd></dt><dd>{{t "keys.hits"}}</dd>

@@ -76,3 +76,12 @@ func TestStaticRevalidates(t *testing.T) {
 		}
 	}
 }
+
+// TestPillState: service states become the states of Kante's .pill.
+func TestPillState(t *testing.T) {
+	for in, want := range map[string]string{"ok": "applied", "warn": "locked", "fail": "failed", "reviewing": "reviewing", "": ""} {
+		if got := pillState(in); got != want {
+			t.Errorf("pillState(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

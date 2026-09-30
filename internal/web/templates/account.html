@@ -71,7 +71,7 @@
 {{template "auth_open" .}}
 <h1>{{t "reset.title"}}</h1>
 {{if .Sent}}
-<p class="pill" data-state="ok">{{t "reset.sent"}}</p>
+<p class="pill" data-state="applied">{{t "reset.sent"}}</p>
 {{else}}
 <form method="post" action="/reset">
   <label for="email">{{t "field.email"}}</label>

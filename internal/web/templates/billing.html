@@ -14,8 +14,8 @@
     {{template "intro" dict "Page" "billing" "Chapter" "freelance" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{t "billing.lead"}}</p>
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
-    {{with .Created}}<p class="pill" data-state="ok">{{t "billing.created" "number" .}}</p>{{end}}
-    {{with .Forwarded}}<p class="pill" data-state="ok">{{t "billing.forwarded" "count" .}}</p>{{end}}
+    {{with .Created}}<p class="pill" data-state="applied">{{t "billing.created" "number" .}}</p>{{end}}
+    {{with .Forwarded}}<p class="pill" data-state="applied">{{t "billing.forwarded" "count" .}}</p>{{end}}
 
     {{/* What is waiting, each part a jump link. */}}
     {{with .Summary}}<nav class="billing-summary" aria-label="{{t "billing.summary"}}">
@@ -48,15 +48,15 @@
 
     <h2 id="payments">{{t "billing.payments"}}</h2>
     <p class="small muted">{{t "billing.payments_hint"}}</p>
-    {{with .Booked}}<p class="pill" data-state="ok">{{t "billing.booked" "number" .}}</p>{{end}}
+    {{with .Booked}}<p class="pill" data-state="applied">{{t "billing.booked" "number" .}}</p>{{end}}
     {{if .Payments}}
     <div class="table-wrap"><table class="table">
       <tr><th>{{t "col.day"}}</th><th>{{t "col.booking"}}</th><th class="num">{{t "col.amount"}}</th><th>{{t "col.number"}}</th><th>{{t "col.match"}}</th><th></th></tr>
       {{range .Payments}}
       <tr><td>{{day .Day}}</td><td>{{.Txn.Name}}<br><small class="muted">{{.Txn.Account}} · {{.SpaceName}}</small></td>
         <td class="num">{{money .Txn.Amount}}</td><td>{{.Invoice.Number}} <small class="muted">{{.Invoice.Client}} · {{t "billing.open"}} {{money .Invoice.Balance}}</small></td>
-        <td>{{if .Sure}}<span class="pill" data-state="ok">{{if eq .Reason "number"}}{{t "match.number"}}{{else}}{{t "match.name_amount"}}{{end}}</span>
-          {{else}}<span class="pill" data-state="warn" title="{{t "match.check_hint"}}">{{t "match.amount_only"}}</span>{{end}}</td>
+        <td>{{if .Sure}}<span class="pill" data-state="applied">{{if eq .Reason "number"}}{{t "match.number"}}{{else}}{{t "match.name_amount"}}{{end}}</span>
+          {{else}}<span class="pill" data-state="locked" title="{{t "match.check_hint"}}">{{t "match.amount_only"}}</span>{{end}}</td>
         <td><form method="post" action="/billing/payment" class="inline-form">
           <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
           <input type="hidden" name="space_id" value="{{.SpaceID}}"><input type="hidden" name="txn" value="{{.Txn.ID}}">

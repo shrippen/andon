@@ -140,8 +140,8 @@
           {{if or .Assignee (ne (print .Work) "open") .Flapping .Maintenance}}<p class="hint-tags">
             {{if .Maintenance}}<span class="pill" data-state="reviewing" title="{{t "hints.maintenance_hint"}}">{{t "hints.maintenance"}}</span>{{end}}
             {{with .Assignee}}<span class="pill">{{t "hints.assigned_to" "name" .}}</span>{{end}}
-            {{if ne (print .Work) "open"}}<span class="pill" data-state="{{if eq (print .Work) "done"}}ok{{else}}reviewing{{end}}">{{t (print "hints.work_" .Work)}}</span>{{end}}
-            {{if .Flapping}}<span class="pill" data-state="warn" title="{{t "hints.flapping_hint"}}">{{t "hints.flapping"}}</span>{{end}}
+            {{if ne (print .Work) "open"}}<span class="pill" data-state="{{if eq (print .Work) "done"}}applied{{else}}reviewing{{end}}">{{t (print "hints.work_" .Work)}}</span>{{end}}
+            {{if .Flapping}}<span class="pill" data-state="locked" title="{{t "hints.flapping_hint"}}">{{t "hints.flapping"}}</span>{{end}}
           </p>{{end}}
           <p class="hint-why">{{.Why}}</p>
           <p class="hint-meta-line">{{.SpaceName}} · {{t "hints.since" "when" (ago .FirstSeen)}}{{if .Sources}} · {{range $i, $s := .Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}{{end}}</p>
@@ -161,7 +161,7 @@
             </details>
             <details class="hint-more">
               <summary title="{{t "hints.more"}}" aria-label="{{t "hints.more"}}">⋯</summary>
-              <div hx-get="/hints/{{.ID}}/detail" hx-trigger="toggle from:closest details once" hx-swap="innerHTML"><span class="loading">{{t "widget.loading"}}</span></div>
+              <div hx-get="/hints/{{.ID}}/detail" hx-trigger="toggle from:closest details once" hx-swap="innerHTML"><span class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{t "widget.loading"}}</span></div>
             </details>
             {{end}}
           </div>

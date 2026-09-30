@@ -1,5 +1,5 @@
 {{define "report"}}
-<p class="pill" data-state="ok">{{t "report.done" "boards" .Boards "widgets" .Widgets "connections" .Connections}}</p>
+<p class="pill" data-state="applied">{{t "report.done" "boards" .Boards "widgets" .Widgets "connections" .Connections}}</p>
 {{if .Skipped}}<div class="card"><b>{{t "report.skipped"}}</b><ul>{{range .Skipped}}<li><code>{{.}}</code></li>{{end}}</ul></div>{{end}}
 {{if .Notes}}<div class="card"><b>{{t "report.notes"}}</b><ul>{{range .Notes}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
 {{end}}

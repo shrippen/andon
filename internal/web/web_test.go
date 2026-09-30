@@ -885,7 +885,7 @@ func TestSecurityTOTPEnableDisableFlow(t *testing.T) {
 	}
 
 	body = mustGet(t, srv, client, "/me/security")
-	if !strings.Contains(string(body), `data-state="ok"`) {
+	if !strings.Contains(string(body), `data-state="applied"`) {
 		t.Fatalf("expected TOTP shown as active:\n%s", body)
 	}
 

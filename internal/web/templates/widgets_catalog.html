@@ -90,8 +90,8 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Queries}}
 <div class="tile-head"><b class="tile-value">{{num $v.Percent 1}} %</b><span class="tile-note">{{t "dns.blocked"}}</span>
-  <span class="pill" data-state="{{if $v.Enabled}}ok{{else}}warn{{end}}">{{if $v.Enabled}}{{t "dns.on"}}{{else}}{{t "dns.off"}}{{end}}</span></div>
-<div class="progress-bar"><i data-style="--p:{{$v.W}}%"></i></div>
+  <span class="pill" data-state="{{if $v.Enabled}}applied{{else}}locked{{end}}">{{if $v.Enabled}}{{t "dns.on"}}{{else}}{{t "dns.off"}}{{end}}</span></div>
+<div class="progress-bar"><i data-style="--p:{{$v.W}}%" data-tier="green"></i></div>
 {{with $v.Clients}}<span class="label">{{t "dns.top_clients"}}</span>
 <ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span>{{if .Name}}{{.Name}} <small class="muted">{{.IP}}</small>{{else}}{{.IP}}{{end}}<b>{{.Queries}}</b></li>{{end}}</ul>{{end}}
 {{with $v.Domains}}<span class="label">{{t "dns.top_blocked"}}</span>
@@ -105,7 +105,7 @@
 {{define "widgets/vpn"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
-<div class="tile-head"><span class="pill" data-state="{{$v.State}}">{{if not $v.Up}}{{t "vpn.down"}}{{else if $v.Leak}}{{t "vpn.leak"}}{{else}}{{t "vpn.up"}}{{end}}</span>
+<div class="tile-head"><span class="pill" data-state="{{pill $v.State}}">{{if not $v.Up}}{{t "vpn.down"}}{{else if $v.Leak}}{{t "vpn.leak"}}{{else}}{{t "vpn.up"}}{{end}}</span>
   <b class="tile-value">{{with $d.Country}}{{.}}{{else}}–{{end}}</b></div>
 {{if $v.WrongCountry}}<p class="tile-note late">{{t "vpn.expected" "country" $d.ExpectedCountry}}</p>{{end}}
 <p class="tile-foot"><span>{{t "vpn.exit"}} {{with $d.ExitIP}}{{.}}{{else}}–{{end}}</span><span>{{$d.Status}}</span></p>
@@ -207,7 +207,7 @@
 {{with $v := .Frag.View}}{{with $v.Data}}
 <div class="tile-head"><b class="tile-value">{{num $v.Photos 0}}</b><span class="tile-note">{{t "immich.library" "videos" .Videos}}</span></div>
 <div class="progress"><div class="progress-head"><span>{{t "immich.disk"}}</span><span>{{$v.Disk}} %{{with .DiskAvailable}} · {{t "immich.free" "free" .}}{{end}}</span></div>
-  <div class="progress-bar"><i data-style="--p:{{$v.Disk}}%"{{with $v.DiskTier}} data-tier="{{.}}"{{end}}></i></div></div>
+  <div class="progress-bar"><i data-style="--p:{{$v.Disk}}%" data-tier="{{with $v.DiskTier}}{{.}}{{else}}green{{end}}"></i></div></div>
 <ul class="legend-list">
   {{if $v.Failed}}<li data-tier="red"><span class="sq" aria-hidden="true"></span>{{t "immich.failed" "n" $v.Failed}}</li>{{end}}
   {{if $v.Update}}<li data-tier="yellow"><span class="sq" aria-hidden="true"></span>{{t "immich.update" "version" .Latest}}</li>{{end}}
@@ -269,7 +269,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
 <div class="tile-head"><b class="tile-value">{{if $v.OnlyFailures}}{{$v.Failed}}{{else}}{{$v.Count}}{{end}}</b><span class="tile-note">{{if $v.OnlyFailures}}{{if $v.Day}}{{t "authentik.failures_24h"}}{{else}}{{t "authentik.failures_7d"}}{{end}}{{else if $v.Day}}{{t "authentik.logins_24h"}}{{else}}{{t "authentik.logins"}}{{end}}</span>
-  {{if and $d.Failed24h (not $v.OnlyFailures)}}<span class="pill" data-state="warn">{{t "authentik.failed24" "n" $d.Failed24h}}</span>{{end}}</div>
+  {{if and $d.Failed24h (not $v.OnlyFailures)}}<span class="pill" data-state="locked">{{t "authentik.failed24" "n" $d.Failed24h}}</span>{{end}}</div>
 <ul class="legend-list">{{range $v.Logins}}<li><span class="sq"{{if $v.OnlyFailures}} data-tier="red"{{end}} aria-hidden="true"></span>{{.User}} <small class="muted">{{with .City}}{{.}}, {{end}}{{.Country}}{{if and $v.OnlyFailures .IP}} · {{.IP}}{{end}}</small><b>{{ago .At}}</b></li>{{end}}</ul>
 <p class="tile-foot"><span>{{if not $v.OnlyFailures}}{{if $v.Day}}{{t "authentik.failed24" "n" $d.Failed24h}}{{else}}{{t "authentik.failed7" "n" $d.Failed7d}}{{end}}{{end}}</span><span>{{$d.Version}}</span></p>
 {{end}}{{end}}

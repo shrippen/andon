@@ -4,7 +4,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with .Frag.View.Data}}{{if and (not .Devices) $.Frag.View.OnlyTrouble}}<p class="tile-note">{{t "tailscale.all_fine" "n" $.Frag.View.Total}}</p>{{end}}
 <ul class="plain-list">
-  {{range .Devices}}<li><span class="pill" data-state="{{if .Online}}ok{{else}}fail{{end}}">{{if .Online}}{{t "status.up"}}{{else}}{{t "status.down"}}{{end}}</span> {{.Name}}
+  {{range .Devices}}<li><span class="pill" data-state="{{if .Online}}applied{{else}}failed{{end}}">{{if .Online}}{{t "status.up"}}{{else}}{{t "status.down"}}{{end}}</span> {{.Name}}
     {{if not .Online}}<small class="muted">{{ago .LastSeen}}</small>{{end}}
     {{if and (not .KeyExpiry.IsZero) (.KeyExpiry.Before $.Frag.View.Soon)}}{{if .KeyExpiry.Before $.Frag.View.Now}}<small class="late">· {{t "tailscale.key_expired"}}</small>{{else}}<small class="muted">· {{t "tailscale.key"}} {{day .KeyExpiry}}</small>{{end}}{{end}}
     {{if .Update}}<small class="muted">· {{t "tailscale.update"}}</small>{{end}}</li>{{end}}
@@ -49,7 +49,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with .Frag.View.Data}}
 {{with .Warnings}}<ul class="plain-list">
-  {{range .}}<li><span class="pill" data-state="{{if or (eq .Severity "severe") (eq .Severity "extreme")}}fail{{else}}warn{{end}}">{{t (print "dwd." .Severity)}}</span> {{.Headline}}
+  {{range .}}<li><span class="pill" data-state="{{if or (eq .Severity "severe") (eq .Severity "extreme")}}failed{{else}}locked{{end}}">{{t (print "dwd." .Severity)}}</span> {{.Headline}}
     <small class="muted">{{t "dwd.until" "day" (day .Expire)}}</small></li>{{end}}
 </ul>{{else}}<p class="muted">{{t "info.dwd.none"}}{{with .Place}} · {{.}}{{end}}</p>{{end}}
 {{end}}
@@ -61,7 +61,7 @@
 <div class="table-wrap"><table class="table">
   <tr><th>{{t "github.repo"}}</th><th class="num">PRs</th><th class="num">{{t "github.issues"}}</th><th>CI</th><th>{{t "github.release"}}</th></tr>
   {{range .Repos}}<tr><td>{{.Name}}</td><td class="num">{{.PRs}}</td><td class="num">{{.Issues}}</td>
-    <td>{{if .CI}}<span class="pill" data-state="{{if eq .CI "success"}}ok{{else if eq .CI "failure"}}fail{{else}}warn{{end}}">{{.CI}}</span>{{else}}–{{end}}</td>
+    <td>{{if .CI}}<span class="pill" data-state="{{if eq .CI "success"}}applied{{else if eq .CI "failure"}}failed{{else}}locked{{end}}">{{.CI}}</span>{{else}}–{{end}}</td>
     <td>{{.Release}}</td></tr>{{end}}
 </table></div>{{end}}
 {{if .Notifications}}<p class="small muted">{{t "github.notifications" "count" .Notifications}}</p>{{end}}
@@ -101,7 +101,7 @@
 {{with $v := .Frag.View}}{{with $w := $v.Window}}
 {{if not $w.Updates}}<p class="muted">{{t "window.no_updates"}}</p>
 {{else}}
-<p><span class="pill" data-state="{{if $v.Good}}ok{{else}}warn{{end}}">{{if $v.Good}}{{t "window.good"}}{{else}}{{t "window.wait"}}{{end}}</span>
+<p><span class="pill" data-state="{{if $v.Good}}applied{{else}}locked{{end}}">{{if $v.Good}}{{t "window.good"}}{{else}}{{t "window.wait"}}{{end}}</span>
   <small class="muted">{{t "window.count" "count" (len $w.Updates)}}{{if $w.BackupAge}} · {{t "window.backup" "hours" $v.BackupHours}}{{end}}</small></p>
 {{with $w.Blockers}}<ul class="plain-list small">{{range .}}<li>{{t (print "window." .)}}</li>{{end}}</ul>{{end}}
 <ul class="plain-list small">{{range $w.Updates}}<li><b>{{.Service}}</b> {{.What}}</li>{{end}}</ul>

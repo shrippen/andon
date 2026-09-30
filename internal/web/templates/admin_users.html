@@ -21,9 +21,9 @@
       {{range .Users}}
       <tr{{if not .IsActive}} class="muted"{{end}}>
         <td>{{.Name}}<br><small>{{.Email}}</small>
-          {{if .TOTPEnabled}}<span class="pill" data-state="ok">2FA</span>{{end}}
-          {{if .OIDCSub}}<span class="pill" data-state="info">SSO</span>{{end}}
-          {{if .IsBreakglass}}<span class="pill" data-state="warn">{{t "admin.breakglass"}}</span>{{end}}
+          {{if .TOTPEnabled}}<span class="pill" data-state="applied">2FA</span>{{end}}
+          {{if .OIDCSub}}<span class="pill">SSO</span>{{end}}
+          {{if .IsBreakglass}}<span class="pill" data-state="locked">{{t "admin.breakglass"}}</span>{{end}}
         </td>
         <td>
           <form method="post" action="/admin/users/{{.ID}}/role" class="inline-form">

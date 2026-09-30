@@ -13,7 +13,7 @@
     <h1>{{t "settings.title"}}</h1>
     {{template "intro" dict "Page" "spaces" "Chapter" "spaces" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{t "settings.lead"}}</p>
-    {{if .Saved}}<p class="pill" data-state="ok">{{t "saved"}}</p>{{end}}
+    {{if .Saved}}<p class="pill" data-state="applied">{{t "saved"}}</p>{{end}}
     <nav class="toc" aria-label="{{t "settings.toc"}}">{{range list "page" "maintenance" "goals" "stats" "homelab" "tax" "custom" "rules"}}<a href="#{{.}}">{{t (print "settings." .)}}</a>{{end}}</nav>
     <form method="post" action="/spaces/{{.SpaceID}}/settings">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">

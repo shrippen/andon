@@ -108,11 +108,11 @@
 {{define "widgets/rates"}}
 {{with $slot := index .Frag.Slots "rates"}}{{template "widget-slot-state" $slot}}
 {{with $r := $slot.Data}}
-<table class="table rates">
+<div class="table-wrap"><table class="table rates">
   {{$c := $.Frag.Config}}
   {{range $r.Rates}}<tr>{{if $c.Invert}}<td>1 {{.Code}}</td><td class="num">{{num .Inverse 4}} {{$r.Base}}</td>{{else}}<td>1 {{$r.Base}}</td><td class="num">{{num .Value 4}} {{.Code}}</td>{{end}}
-    {{if $c.Change}}<td class="num"><span class="pill" data-state="{{if lt .Change 0.0}}fail{{else}}ok{{end}}">{{if gt .Change 0.0}}+{{end}}{{num .Change 2}} %</span></td>{{end}}</tr>{{end}}
-</table>
+    {{if $c.Change}}<td class="num"><span class="pill" data-state="{{if lt .Change 0.0}}failed{{else}}applied{{end}}">{{if gt .Change 0.0}}+{{end}}{{num .Change 2}} %</span></td>{{end}}</tr>{{end}}
+</table></div>
 <small class="muted">{{t "rates.source" "day" (day $r.Day)}}</small>
 {{end}}{{end}}
 {{end}}
@@ -145,14 +145,14 @@
   {{range .Frag.View.Rows}}
   <li>
     <span>{{.Name}}</span>
-    {{if .Missing}}<span class="pill" data-state="warn">{{t "hass.missing"}}</span>
+    {{if .Missing}}<span class="pill" data-state="locked">{{t "hass.missing"}}</span>
     {{else if and .Toggle $.Ctx.CSRF}}
     <form hx-post="/widget-fragments/{{$.PlacementID}}/toggle" hx-target="closest .card-body" hx-swap="innerHTML">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
       <input type="hidden" name="entity" value="{{.ID}}">
       <button type="submit" class="switch hass-switch" role="switch" aria-checked="{{.On}}" aria-label="{{.Name}}" title="{{if .On}}{{t "hass.on"}}{{else}}{{t "hass.off"}}{{end}}"><span class="switch-track"></span></button>
     </form>
-    {{else if .Level}}<span class="pill" data-state="{{.Level}}">{{.Value}}{{with .Unit}} {{.}}{{end}}</span>
+    {{else if .Level}}<span class="pill" data-state="{{pill .Level}}">{{.Value}}{{with .Unit}} {{.}}{{end}}</span>
     {{else}}<b class="hass-value{{if .Low}} is-low{{end}}">{{if .Low}}<span aria-hidden="true">▮ </span>{{end}}{{.Value}}{{with .Unit}} <small>{{.}}</small>{{end}}</b>{{end}}
   </li>
   {{end}}

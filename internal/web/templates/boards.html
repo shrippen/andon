@@ -310,7 +310,7 @@
       <div class="card-body" hx-get="{{$frag}}" hx-trigger="{{$trigger}}" hx-swap="innerHTML">{{fragment .}}</div>
       {{else}}
       <div class="card-body" hx-get="{{$frag}}" hx-trigger="load, retry, wake{{if .RefreshS}}, every {{.RefreshS}}s{{end}}" hx-swap="innerHTML">
-        <span class="loading">{{t "widget.loading"}}</span>
+        <span class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{t "widget.loading"}}</span>
       </div>
       {{end}}
     </article>
@@ -378,7 +378,7 @@
           <h2>{{.Title}}</h2>
           <ul>
           {{range .Tiles}}
-            <li>{{if .Title}}{{.Title}}{{else}}{{t (print "wtype." .Type ".name")}}{{end}}{{with .ConnName}} <span class="muted">· {{.}}</span>{{end}}{{if .New}} <span class="pill" data-state="ok">{{t "suggest.new"}}</span>{{end}}</li>
+            <li>{{if .Title}}{{.Title}}{{else}}{{t (print "wtype." .Type ".name")}}{{end}}{{with .ConnName}} <span class="muted">· {{.}}</span>{{end}}{{if .New}} <span class="pill" data-state="applied">{{t "suggest.new"}}</span>{{end}}</li>
           {{end}}
           </ul>
         </section>

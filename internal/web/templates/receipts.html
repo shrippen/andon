@@ -16,9 +16,9 @@
       <summary>{{t "receipts.concept"}}</summary>
       <ul>{{range list "why" "link" "state" "you"}}<li>{{t (print "receipts.concept_" .)}}</li>{{end}}</ul>
     </details>
-    {{with .Done}}<p class="pill" data-state="ok">{{t "receipts.linked_note" "number" .}}</p>{{end}}
-    {{with .Linked}}<p class="pill" data-state="ok">{{t "receipts.linked_many" "n" .}}</p>{{end}}
-    {{with .Note}}<div class="receipts-note"><p class="pill" data-state="ok">{{t .}}</p>
+    {{with .Done}}<p class="pill" data-state="applied">{{t "receipts.linked_note" "number" .}}</p>{{end}}
+    {{with .Linked}}<p class="pill" data-state="applied">{{t "receipts.linked_many" "n" .}}</p>{{end}}
+    {{with .Note}}<div class="receipts-note"><p class="pill" data-state="applied">{{t .}}</p>
       {{if $.Undo.Expense}}<form method="post" action="/receipts/link" class="inline-form">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">{{template "receipt_back" $.Q}}
         <input type="hidden" name="expense" value="{{$.Undo.Expense}}"><input type="hidden" name="docs" value="{{$.Undo.Doc}}">
@@ -63,7 +63,7 @@
       <div class="chips">{{range .Years}}{{template "receipt_year" dict "Q" $.Q "Year" . "N" -1}}{{end}}</div>{{end}}
     </nav>
     <div id="receipts-part" hx-get="{{.Q.Part}}" hx-trigger="load" hx-swap="innerHTML" aria-live="polite">
-      <p class="loading">{{if eq .Q.Tab "match"}}{{t "receipts.loading_year" "year" .Q.Year}}{{else}}{{t "widget.loading"}}{{end}}</p>
+      <p class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{if eq .Q.Tab "match"}}{{t "receipts.loading_year" "year" .Q.Year}}{{else}}{{t "widget.loading"}}{{end}}</p>
     </div>
     <details class="receipts-keys small muted">
       <summary>{{t "receipts.keys"}}</summary>
@@ -138,7 +138,7 @@
     {{template "receipt_chips" $c.Factors}}
     <details{{if and $c.Open (not .Found)}} open{{end}}><summary>{{t "receipts.why" "score" $c.Score}}</summary>{{template "receipt_factors" $c.Factors}}</details>
     <p class="receipt-actions">
-      {{if .Other}}<span class="pill" data-state="warn">{{t "receipts.linked_to" "number" .Other}}</span>
+      {{if .Other}}<span class="pill" data-state="locked">{{t "receipts.linked_to" "number" .Other}}</span>
       {{else}}{{template "receipt_link" dict "P" .P "Expense" .Expense "Docs" (print $d.ID) "Label" (t "receipts.link")}}{{end}}
       {{if .Ignore}}{{template "receipt_ignore" dict "P" .P "Kind" "doc" "ID" (print $d.ID)}}{{end}}
     </p>
@@ -209,7 +209,7 @@
       {{else}}<div id="search-{{$e.Key}}"></div>{{end}}
     </div>
   </article>
-  {{else}}<p class="pill" data-state="ok">{{t "receipts.match_empty" "year" $v.Year}}</p>{{end}}
+  {{else}}<p class="pill" data-state="applied">{{t "receipts.match_empty" "year" $v.Year}}</p>{{end}}
 {{end}}{{end}}
 
 {{if eq .Q.Tab "queue"}}{{if not .Error}}
@@ -261,7 +261,7 @@
       <div id="panel-{{$d.ID}}"></div>
     </div>
   </article>
-  {{else}}<p class="pill" data-state="ok">{{t "receipts.queue_empty"}}</p>{{end}}
+  {{else}}<p class="pill" data-state="applied">{{t "receipts.queue_empty"}}</p>{{end}}
   {{end}}
 {{end}}{{end}}
 
@@ -333,7 +333,7 @@
     <dt>{{t "receipts.map_field_amount"}}</dt><dd>{{or (.FieldName $m.FieldAmount) (t "receipts.map_none")}}</dd>
     <dt>{{t "receipts.map_queue_tag"}}</dt><dd>{{or $m.QueueTag (t "receipts.map_none")}}</dd>
   </dl>
-  {{range .Warnings}}<p class="pill" data-state="warn">{{tt .Key .Args}}</p>{{end}}
+  {{range .Warnings}}<p class="pill" data-state="locked">{{tt .Key .Args}}</p>{{end}}
 </section>
 {{end}}
 
@@ -343,8 +343,8 @@
 <form method="post" action="/receipts/fields" class="card receipt-fields">
   <input type="hidden" name="{{.P.CSRFField}}" value="{{.P.Ctx.CSRF}}">{{template "receipt_back" .P.Q}}
   <p class="muted">{{t "receipts.fields_lead"}}</p>
-  {{if $v.Suggested}}<p class="pill" data-state="warn">{{t "receipts.fields_suggested"}}</p>{{end}}
-  {{range $v.Warnings}}<p class="pill" data-state="warn">{{tt .Key .Args}}</p>{{end}}
+  {{if $v.Suggested}}<p class="pill" data-state="locked">{{t "receipts.fields_suggested"}}</p>{{end}}
+  {{range $v.Warnings}}<p class="pill" data-state="locked">{{tt .Key .Args}}</p>{{end}}
   <fieldset>
     <legend>{{t "receipts.fields_ninja"}}</legend>
     <p class="small muted receipt-fields-setup">{{t "receipts.fields_ninja_setup"}}</p>

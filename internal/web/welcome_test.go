@@ -43,7 +43,7 @@ func TestWelcomeFlow(t *testing.T) {
 	}
 
 	hints := string(mustGet(t, srv, client, "/hints"))
-	if !strings.Contains(hints, `class="intro"`) || !strings.Contains(hints, `<span class="count" data-kind="info" title="Erste Schritte">`) {
+	if !strings.Contains(hints, `class="callout intro"`) || !strings.Contains(hints, `<span class="count" data-kind="info" title="Erste Schritte">`) {
 		t.Fatalf("hints page lacks intro or menu progress:\n%s", hints)
 	}
 	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/welcome/intro/hints", strings.NewReader(url.Values{"csrf": {csrfToken(t, srv, client)}}.Encode()))
@@ -57,7 +57,7 @@ func TestWelcomeFlow(t *testing.T) {
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("closing the intro: %d", res.StatusCode)
 	}
-	if hints = string(mustGet(t, srv, client, "/hints")); strings.Contains(hints, `class="intro"`) {
+	if hints = string(mustGet(t, srv, client, "/hints")); strings.Contains(hints, `class="callout intro"`) {
 		t.Fatal("intro still shown after closing it")
 	}
 	// Visiting the hints ticked that step.
