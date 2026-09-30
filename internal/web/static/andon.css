@@ -149,14 +149,12 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
   padding: .35rem 0;
 }
 .app-links a:hover { color: var(--fg0); }
-.app-links a[aria-current="page"], .app-links a.cur { color: var(--warn-text); }
+.app-links a[aria-current="page"], .app-links a.cur { color: var(--hl); }
 /* The current page is underlined; a menu shows it on its summary too. */
-.app-links a[aria-current="page"], .app-links a.cur, .menu:has(a[aria-current="page"]) > summary { box-shadow: inset 0 -2px 0 currentColor; }
-.menu:has(a[aria-current="page"]) > summary { color: var(--warn-text); }
-.menu-list a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .3em; color: var(--fg0); }
-.nav-count { display: inline-block; font-size: .62rem; letter-spacing: 0; padding: 0 .35rem; background: var(--blue); color: var(--bg-void); font-weight: 500; }
-.nav-count[data-level="20"] { background: var(--yellow); }
-.nav-count[data-level="30"] { background: var(--red); }
+.app-links a[aria-current="page"], .app-links a.cur, .nav-menu:has(a[aria-current="page"]) > summary { box-shadow: inset 0 -2px 0 currentColor; }
+.nav-menu:has(a[aria-current="page"]) > summary { color: var(--hl); }
+.menu a[aria-current="page"] { color: var(--hl); box-shadow: inset 3px 0 0 var(--hl); }
+a > .count, summary > .count { margin-left: .35rem; }
 .app-side { margin-left: auto; display: flex; align-items: center; gap: 1.2rem; }
 .app-side form { margin: 0; }
 .nav-search {
@@ -167,28 +165,19 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
 }
 .nav-search kbd { margin-left: auto; }
 .nav-search:hover { background: var(--bg-void); color: var(--fg1); border-color: var(--bg2); }
-.menu { position: relative; }
-.menu > summary {
+/* Header menu: a <details> whose popup is Kante's .menu. */
+.nav-menu { position: relative; }
+.nav-menu > summary {
   list-style: none; cursor: pointer;
   font-family: var(--font-mono); font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; color: var(--fg3);
   padding: .35rem 0;
 }
-.menu > summary::-webkit-details-marker { display: none; }
-.menu > summary::after { content: " ▾"; }
-.menu > summary:hover, .menu[open] > summary { color: var(--fg0); }
-.menu > summary.name { color: var(--warn-text); }
-.menu-list {
-  position: absolute; right: 0; top: calc(100% + .5rem); z-index: 40; min-width: 14rem;
-  display: flex; flex-direction: column; padding: .4rem 0;
-  background: var(--bg-hard); border: 1px solid var(--bg2); border-top: 3px solid var(--yellow);
-}
-.menu-list a, .menu-list button {
-  display: block; width: 100%; text-align: left; margin: 0; padding: .5rem 1rem;
-  background: none; border: 0; color: var(--fg1); text-decoration: none;
-  font-family: var(--font-sans); font-weight: 400; font-size: .88rem; text-transform: none; letter-spacing: 0; cursor: pointer;
-}
-.menu-list a:hover, .menu-list button:hover { background: var(--bg1); color: var(--fg0); }
-.menu-list hr { border: 0; border-top: 1px solid var(--bg1); margin: .3rem 0; width: 100%; }
+.nav-menu > summary::-webkit-details-marker { display: none; }
+.nav-menu > summary::after { content: " ▾"; }
+.nav-menu > summary:hover, .nav-menu[open] > summary { color: var(--fg0); }
+.nav-menu > summary.name { color: var(--hl); }
+.nav-menu > .menu { position: absolute; right: 0; top: calc(100% + .5rem); z-index: 40; }
+.menu form { margin: 0; }
 
 /* ── pill / status ── */
 .pill {
@@ -306,7 +295,7 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
   padding: .15rem .25rem; background: var(--bg1); opacity: 0; pointer-events: none; transition: opacity .12s; }
 .tile-slot:hover > .tile-strip, .tile-slot:focus-within > .tile-strip, .tile-slot.is-active > .tile-strip,
 .tile-strip.is-floating { opacity: 1; pointer-events: auto; }
-.board[data-mode] .tile-slot.is-picked { outline: 2px solid var(--yellow); }
+.board[data-mode] .tile-slot.is-selected { outline: 2px solid var(--yellow); }
 .edit-touch { display: none; margin: 0 0 .8rem; font-size: .8rem; color: var(--fg3); }
 @media (hover: none) {
   .edit-touch { display: block; }
@@ -325,8 +314,8 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
 .ico-width { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M0 8 4 4v3h8V4l4 4-4 4V9H4v3Z%22/%3E%3C/svg%3E"); }
 .ico-x { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M3.4 2 8 6.6 12.6 2 14 3.4 9.4 8l4.6 4.6-1.4 1.4L8 9.4 3.4 14 2 12.6 6.6 8 2 3.4Z%22/%3E%3C/svg%3E"); }
 .ico-eye { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M8 3c3.6 0 6.3 2.6 7.5 5-1.2 2.4-3.9 5-7.5 5S1.7 10.4.5 8C1.7 5.6 4.4 3 8 3Zm0 2.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z%22/%3E%3C/svg%3E"); }
-.tile-check { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; margin: 0; cursor: pointer; }
-.tile-check input { margin: 0; width: .85rem; height: .85rem; }
+.pick-check { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; margin: 0; cursor: pointer; }
+.pick-check input { margin: 0; width: .85rem; height: .85rem; }
 .tile-ico { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; padding: 0; margin: 0; border: 0; background: none; color: var(--fg2); cursor: pointer; }
 .tile-ico:hover, .tile-ico:focus-visible { background: var(--bg2); color: var(--fg0); }
 .tile-ico[aria-pressed="true"] { color: var(--warn-text); }
@@ -428,10 +417,8 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
 .launch-items a:hover { color: var(--fg0); }
 .launch-items img { width: .9rem; height: .9rem; object-fit: contain; }
 
-/* ── context menu (right click on a link tile) ── */
-.ctx-menu { position: fixed; z-index: 50; min-width: 12rem; background: var(--bg-hard); border: 1px solid var(--bg2); padding: .3rem 0; margin: 0; list-style: none; font-family: var(--font-mono); font-size: .78rem; }
-.ctx-menu button { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--fg1); padding: .4rem .9rem; margin: 0; cursor: pointer; font: inherit; }
-.ctx-menu button:hover, .ctx-menu button:focus-visible { background: var(--bg1); color: var(--fg0); outline: none; }
+/* ── context menu (right click on a link tile): Kante's .menu, placed by the pointer ── */
+.ctx-menu { position: fixed; z-index: 50; margin: 0; list-style: none; }
 
 /* ── page info from the space settings ── */
 .page-desc { color: var(--fg3); margin: -.8rem 0 1rem; }
@@ -917,22 +904,18 @@ table.table tr:last-child td { border-bottom: 0; }
 .modebar-title { font-family: var(--font-heading); text-transform: uppercase; font-size: .85rem; letter-spacing: .04em; }
 .modebar-hint { font-size: .82rem; }
 .modebar-gap { flex: 1; }
-.modebar a, .modebar button, .modebar summary {
+.modebar :is(a, button, summary):not(.menu *) {
   font-family: var(--font-mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; list-style: none;
   background: var(--bg-void); color: var(--fg0); border: 1px solid var(--bg-void); padding: .4rem .8rem; margin: 0; cursor: pointer; text-decoration: none; }
 .modebar summary::-webkit-details-marker { display: none; }
-.modebar a:hover, .modebar button:hover, .modebar summary:hover { color: var(--warn-text); }
+.modebar :is(a, button, summary):not(.menu *):hover { color: var(--warn-text); }
 .modebar .modebar-main { background: none; color: var(--bg-void); border-color: var(--bg-void); }
 .modebar .modebar-main:hover { background: var(--bg-void); color: var(--warn-text); }
 .modebar-pop, .modebar-menu { position: relative; }
-.modebar-pop > form, .modebar-list { position: absolute; top: calc(100% + .35rem); z-index: 40; padding: .6rem; background: var(--bg-hard); border: 1px solid var(--bg2); border-top: 3px solid var(--bar); }
-.modebar-pop > form { left: 0; }
+.modebar-pop > form { position: absolute; left: 0; top: calc(100% + .35rem); z-index: 40; padding: .6rem; background: var(--bg-hard); border: 1px solid var(--bg2); border-top: 4px solid var(--bar); }
 .modebar-pop input { width: 14rem; margin: 0; }
-.modebar-list { right: 0; min-width: 14rem; display: flex; flex-direction: column; padding: .3rem 0; }
-.modebar-list form { margin: 0; }
-.modebar .modebar-list a, .modebar .modebar-list button { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--fg1);
-  font-family: var(--font-sans); font-size: .88rem; font-weight: 400; text-transform: none; letter-spacing: 0; padding: .5rem 1rem; }
-.modebar .modebar-list a:hover, .modebar .modebar-list button:hover { background: var(--bg1); color: var(--fg0); }
+/* The board menu is Kante's .menu, placed under its summary. */
+.modebar-menu > .menu { position: absolute; right: 0; top: calc(100% + .35rem); z-index: 40; }
 /* Selection bar: only once tiles are selected. */
 .selbar { display: none; align-items: center; gap: .5rem; flex-wrap: wrap; margin: 0; padding: .5rem 1rem; background: var(--bg1); border-left: 3px solid var(--yellow);
   position: sticky; top: 0; z-index: 4; }
@@ -1147,21 +1130,21 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 /* ── data tiles: value head, bars, day strips, stacked bar ── */
 .tile-head { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; margin-bottom: .6rem; }
 .tile-value { font-family: var(--font-heading); font-weight: 700; font-size: 1.7rem; line-height: 1; color: var(--fg0); font-variant-numeric: tabular-nums; }
-.tile-sub { font-size: .8rem; color: var(--fg2); margin: 0; }
+.tile-note { font-size: .8rem; color: var(--fg2); margin: 0; }
 .tile-foot { display: flex; justify-content: space-between; gap: .6rem; margin: .5rem 0 0; font-family: var(--font-mono); font-size: .64rem; letter-spacing: .08em; text-transform: uppercase; color: var(--fg3); }
 .bars { display: flex; align-items: flex-end; gap: 3px; height: 3.5rem; }
 .bars i { flex: 1; height: var(--h); min-height: 2px; background: var(--aqua); }
 .bars i[data-tier="yellow"] { background: var(--yellow); }
 .bars i[data-tier="red"] { background: var(--red); }
-.strip-row { display: grid; grid-template-columns: minmax(4rem, 7rem) minmax(0, 1fr) 2.6rem; gap: .5rem; align-items: center; margin-top: .35rem; font-size: .8rem; }
-.strip-name { color: var(--fg1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.strip { display: flex; gap: 2px; height: .75rem; }
-.strip i { flex: 1; background: var(--bg1); }
-.strip i[data-state="ok"] { background: var(--aqua); }
-.strip i[data-state="mid"] { background: var(--yellow); }
-.strip i[data-state="bad"] { background: var(--red); }
-.strip i[data-state="off"] { background: var(--bg2); }
-.strip-pct { font-family: var(--font-mono); font-size: .7rem; color: var(--warn-text); text-align: right; }
+.daybar-row { display: grid; grid-template-columns: minmax(4rem, 7rem) minmax(0, 1fr) 2.6rem; gap: .5rem; align-items: center; margin-top: .35rem; font-size: .8rem; }
+.daybar-name { color: var(--fg1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.daybar { display: flex; gap: 2px; height: .75rem; }
+.daybar i { flex: 1; background: var(--bg1); }
+.daybar i[data-state="ok"] { background: var(--aqua); }
+.daybar i[data-state="mid"] { background: var(--yellow); }
+.daybar i[data-state="bad"] { background: var(--red); }
+.daybar i[data-state="off"] { background: var(--bg2); }
+.daybar-pct { font-family: var(--font-mono); font-size: .7rem; color: var(--warn-text); text-align: right; }
 .stack { display: flex; height: 1rem; background: var(--bg-hard); }
 .stack i { width: var(--w); height: 100%; background: var(--aqua); }
 .stack i[data-tier="yellow"] { background: var(--yellow); }
@@ -1175,7 +1158,7 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .legend-list li > a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Title with a detail line below, for narrow tiles (kintsugi). */
 .legend-list .stack-item { display: flex; flex-direction: column; min-width: 0; }
-.strip-lg { height: 1rem; margin-bottom: .2rem; }
+.daybar-lg { height: 1rem; margin-bottom: .2rem; }
 .meters .progress-bar { height: 8px; border: 0; }
 
 /* ── Kimai Lite ── */
@@ -1278,14 +1261,10 @@ button.kl-ib { margin: 0; padding: 0; background: none; cursor: pointer; }
 .suggest-sec ul { margin: 0; padding-left: 1.1rem; }
 .callout { border-left: 3px solid var(--yellow); background: var(--bg-panel); padding: .6rem .9rem; }
 
-/* Toast: short results fade in bottom right and go away by themselves. */
-.toast { position: fixed; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); z-index: 50; display: flex; flex-direction: column; gap: .4rem; pointer-events: none; }
-.toast-msg { background: var(--bg-panel); border: 1px solid var(--bg2); border-left: 4px solid var(--aqua); color: var(--fg1);
-  padding: .6rem .9rem; max-width: 26rem; box-shadow: 0 6px 18px var(--shadow); animation: toast-life 6s ease forwards; }
-.toast-msg[data-state="error"] { border-left-color: var(--red); animation-duration: 10s; }
-@keyframes toast-life { 0% { opacity: 0; transform: translateY(.5rem); } 6%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; visibility: hidden; } }
-@media (prefers-reduced-motion: reduce) { .toast-msg { animation: toast-fade 8s steps(1, end) forwards; } }
-@keyframes toast-fade { to { visibility: hidden; } }
+/* Toast stack: short results appear bottom right, each one is Kante's .toast
+   and goes away when its life line has run out (andon.js). */
+.toast-stack { position: fixed; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); z-index: 50; display: flex; flex-direction: column; gap: .4rem; pointer-events: none; }
+.toast-stack .toast { pointer-events: auto; }
 .service-about { color: var(--fg2); max-width: 60rem; }
 
 /* Place search: hits listed under the field, one click picks. */
@@ -1314,7 +1293,6 @@ a.flow-node:hover { border-color: var(--accent); }
 .chapters details { background: var(--bg-panel); border: 1px solid var(--bg2); padding: .5rem .8rem; }
 .chapters summary { cursor: pointer; font-weight: 600; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.menu summary .nav-count, .menu-list .nav-count { margin-left: .35rem; }
 
 /* ── boards list ── */
 .boards-table tr.is-hidden td:first-child a { color: var(--fg3); }

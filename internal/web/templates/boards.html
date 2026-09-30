@@ -76,7 +76,7 @@
     <span class="modebar-gap"></span>
     <details class="modebar-menu">
       <summary>{{t "edit.board_menu"}} ▾</summary>
-      <div class="modebar-list">
+      <div class="menu">
         <a href="/boards/{{.Board.ID}}/settings">{{t "edit.board_settings"}}</a>
         <form method="post" action="/boards/{{.Board.ID}}/duplicate">
           <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
@@ -149,7 +149,7 @@
   </div>
   {{template "tile_strip" .}}
   <p class="search-empty" hidden>{{t "board.no_match"}}</p>
-  <ul class="ctx-menu" id="ctx-menu" role="menu" hidden>
+  <ul class="menu ctx-menu" id="ctx-menu" role="menu" hidden>
     <li><button type="button" role="menuitem" data-act="newtab">{{t "board.ctx_newtab"}}</button></li>
     <li><button type="button" role="menuitem" data-act="sametab">{{t "board.ctx_sametab"}}</button></li>
     <li><button type="button" role="menuitem" data-act="copy">{{t "board.ctx_copy"}}</button></li>
@@ -173,7 +173,7 @@
   <input type="hidden" name="board_id" value="{{.Board.ID}}">
   <input type="hidden" name="version" value="{{.Board.Version}}">
   <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
-  <label class="tile-check"><input type="checkbox" data-pick></label>
+  <label class="pick-check"><input type="checkbox" data-pick></label>
   <span class="tile-repeat" title="{{t "edit.repeated"}}" data-repeat hidden></span>
   <span class="tile-strip-gap"></span>
   <a class="tile-ico" href="/widgets" data-href="/widgets/{widget}/edit?board={{.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><i class="ico ico-edit"></i></a>

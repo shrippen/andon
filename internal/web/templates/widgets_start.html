@@ -122,17 +122,17 @@
 {{define "widgets/monitors"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Total}}
-<div class="tile-head"><b class="tile-value">{{$v.Up}} / {{$v.Total}}</b><span class="tile-sub">{{t "kuma.online"}}{{with $v.AvgMS}} · Ø {{num . 0}} ms{{end}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.Up}} / {{$v.Total}}</b><span class="tile-note">{{t "kuma.online"}}{{with $v.AvgMS}} · Ø {{num . 0}} ms{{end}}</span></div>
 {{if $v.Lines}}
 {{/* One line per monitor: state now, its last 14 days, response time. */}}
 <ul class="mon-lines"{{if $v.HideMS}} data-no-ms{{end}}>
   {{range $v.Lines}}<li><span class="mon-name"><span class="mon-dot" data-state="{{.State}}"></span>{{.Name}}</span>
-    <span class="strip" role="img" aria-label="{{t "kuma.days" "name" .Name}}">{{range .Days}}<i data-state="{{.State}}" title="{{.Title}}"></i>{{end}}</span>
+    <span class="daybar" role="img" aria-label="{{t "kuma.days" "name" .Name}}">{{range .Days}}<i data-state="{{.State}}" title="{{.Title}}"></i>{{end}}</span>
     {{if not $v.HideMS}}<small>{{if .MS}}{{num .MS 0}} ms{{else}}–{{end}}</small>{{end}}</li>{{end}}
 </ul>
 {{if $v.LinesMore}}<p class="tile-foot">{{t "kuma.more" "n" $v.LinesMore}}</p>{{end}}
 {{else}}
-<span class="strip strip-lg" role="img" aria-label="{{t "kuma.strip" "up" $v.Up "total" $v.Total}}">{{range $v.Cells}}<i data-state="{{.State}}" title="{{.Title}}"></i>{{end}}</span>
+<span class="daybar daybar-lg" role="img" aria-label="{{t "kuma.strip" "up" $v.Up "total" $v.Total}}">{{range $v.Cells}}<i data-state="{{.State}}" title="{{.Title}}"></i>{{end}}</span>
 {{end}}
 {{if and $v.Problems (not $v.Lines)}}<p class="kuma-problems">{{range $i, $m := $v.Problems}}{{if $i}} · {{end}}<span class="kuma-bad" data-state="{{$m.State}}">{{$m.Name}}</span> <small>{{t $m.Key}}</small>{{end}}{{if $v.More}} · {{t "kuma.more" "n" $v.More}}{{end}}</p>{{end}}
 {{with $v.CertName}}<p class="tile-foot"><span>{{t "kuma.cert" "name" . "days" $v.CertDays}}</span></p>{{end}}

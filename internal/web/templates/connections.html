@@ -273,7 +273,7 @@
     <h1>{{t "conn.new"}}</h1>
     <p class="muted">{{t "conn.pick"}}</p>
     <div class="type-grid">
-      {{range .Services}}<a class="type-card" href="/connections/new?service={{.Service}}"><b>{{.Name}}{{if .Count}}<span class="nav-count" title="{{t "conn.existing" "count" .Count}}">{{.Count}}</span>{{end}}</b><small>{{t (print "conn.about_" .Service)}}</small></a>{{end}}
+      {{range .Services}}<a class="type-card" href="/connections/new?service={{.Service}}"><b>{{.Name}}{{if .Count}}<span class="count" data-kind="info" title="{{t "conn.existing" "count" .Count}}">{{.Count}}</span>{{end}}</b><small>{{t (print "conn.about_" .Service)}}</small></a>{{end}}
     </div>
   </main>
 </body>
@@ -358,7 +358,7 @@
 {{end}}
 
 {{/* Result of a connection test run from the overview. */}}
-{{define "conn_check"}}<div class="toast-msg" data-state="{{if .Result.Ok}}ok{{else}}error{{end}}"><b>{{.Name}}</b> {{if .Result.Ok}}✓ OK{{with .Result.Version}} ({{.}}){{end}}{{else}}✗ {{t .Result.Message}}{{end}}</div>
+{{define "conn_check"}}<div class="toast" data-kind="{{if .Result.Ok}}ok{{else}}error{{end}}" role="status"><span><b>{{.Name}}</b> {{if .Result.Ok}}✓ OK{{with .Result.Version}} ({{.}}){{end}}{{else}}✗ {{t .Result.Message}}{{end}}</span><span class="toast-life" data-style="--life:{{if .Result.Ok}}6{{else}}10{{end}}s" aria-hidden="true"></span></div>
 {{with .Conn}}<span class="health" id="health-{{.ID}}" data-state="{{.Health.State}}" hx-swap-oob="true">{{template "conn_health" .Health}}</span>{{end}}{{end}}
 
 {{/* What the service is, and where the project lives. */}}

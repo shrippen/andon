@@ -37,7 +37,7 @@
         <button type="submit" class="ghost">{{t "welcome.resume"}}</button>
       </form>
     {{else}}
-      <h2>{{t "welcome.steps_title"}} <span class="nav-count">{{.Done}}/{{len .Steps}}</span></h2>
+      <h2>{{t "welcome.steps_title"}} <span class="count" data-kind="info">{{.Done}}/{{len .Steps}}</span></h2>
       <ol class="checklist">
         {{range .Steps}}
         <li data-done="{{.Done}}">

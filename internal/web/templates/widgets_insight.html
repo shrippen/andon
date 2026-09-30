@@ -220,7 +220,7 @@
 
 {{define "widgets/backups"}}
 {{with .Frag.View.Rows}}
-<div class="strip strip-lg" role="img" aria-label="{{t "wtype.backups.name"}}">{{range .}}<i data-state="{{if eq (print .State) "ok"}}ok{{else if eq (print .State) "failed"}}bad{{else}}mid{{end}}" title="{{.Item}}"></i>{{end}}</div>
+<div class="daybar daybar-lg" role="img" aria-label="{{t "wtype.backups.name"}}">{{range .}}<i data-state="{{if eq (print .State) "ok"}}ok{{else if eq (print .State) "failed"}}bad{{else}}mid{{end}}" title="{{.Item}}"></i>{{end}}</div>
 {{end}}
 <ul class="legend-list backup-lines"{{if .Frag.View.Wide}} data-wide{{end}}>
   {{range .Frag.View.Rows}}
@@ -262,7 +262,7 @@
 
 {{define "widgets/hint_noise"}}
 {{with $v := .Frag.View}}{{if $v.Spark}}
-<div class="tile-head"><b class="tile-value">{{$v.Total}}</b><span class="tile-sub">{{t "noise.new" "days" $v.Days}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.Total}}</b><span class="tile-note">{{t "noise.new" "days" $v.Days}}</span></div>
 {{template "spark" $v.Spark}}
 {{with $v.Flaps}}<ul class="hint-lines">{{range .}}<li><a href="/spaces/settings#rule-{{.Rule}}">{{t (print "rule_name." .Rule)}}</a><small>{{t "noise.returns" "n" .Returns}}</small></li>{{end}}</ul>
 {{else}}<p class="small muted">{{t "noise.calm"}}</p>{{end}}

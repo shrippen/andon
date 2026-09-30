@@ -28,7 +28,7 @@
 {{define "widgets/kimai_week"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Days}}
-<div class="tile-head"><b class="tile-value">{{$v.Total}} h</b><span class="tile-sub">{{if not $v.Contract}}{{t "kimai.no_contract"}}{{else if $v.Over}}{{t "timer.over" "time" $v.Left}}{{else}}{{t "timer.left" "time" $v.Left}}{{end}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.Total}} h</b><span class="tile-note">{{if not $v.Contract}}{{t "kimai.no_contract"}}{{else if $v.Over}}{{t "timer.over" "time" $v.Left}}{{else}}{{t "timer.left" "time" $v.Left}}{{end}}</span></div>
 {{template "weekcols" dict "D" $v.Days "Target" 0 "Label" (t "wtype.kimai_week.name")}}
 {{end}}{{end}}
 {{end}}
@@ -46,19 +46,19 @@
 {{define "widgets/unbilled_age"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Rows}}
-<div class="tile-head"><b class="tile-value">{{money $v.Total}}</b><span class="tile-sub">{{t "unbilled.sub"}}</span></div>
+<div class="tile-head"><b class="tile-value">{{money $v.Total}}</b><span class="tile-note">{{t "unbilled.sub"}}</span></div>
 <div class="stack" role="img" aria-label="{{range $v.Bands}}{{template "unbilled_band" .}} {{money .Amount}}; {{end}}">{{range $v.Bands}}{{if .Pct}}<i data-style="--w:{{.Pct}}%" data-tier="{{.Tier}}"></i>{{end}}{{end}}</div>
 <ul class="legend-list">{{range $v.Bands}}{{if .Amount}}<li><span class="sq" data-tier="{{.Tier}}" aria-hidden="true"></span>{{template "unbilled_band" .}}<b>{{money .Amount}}</b></li>{{end}}{{end}}</ul>
 <ul class="hbars">
   {{range $v.Rows}}<li><span class="hbar-label">{{.Customer}}</span><span class="hbar is-stack"><i data-style="--w:{{.FreshW}}%" data-tier="green"></i><i data-style="--w:{{.MidW}}%" data-tier="yellow"></i><i data-style="--w:{{.OldW}}%" data-tier="red"></i></span><span class="hbar-value">{{money .Total}}</span></li>{{end}}
 </ul>
-{{else}}<p class="tile-sub">{{t "unbilled.none"}}</p>{{end}}{{end}}
+{{else}}<p class="tile-note">{{t "unbilled.none"}}</p>{{end}}{{end}}
 {{end}}
 
 {{define "widgets/disks"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Total}}
-<div class="tile-head"><b class="tile-value">{{$v.Healthy}} / {{$v.Total}}</b><span class="tile-sub">{{t "disks.healthy"}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.Healthy}} / {{$v.Total}}</b><span class="tile-note">{{t "disks.healthy"}}</span></div>
 <ul class="legend-list">
   {{range $v.Rows}}{{if .Stale}}<li><span class="sq" data-tier="grey" aria-hidden="true"></span>{{.Name}} <small class="muted">{{t "disks.stale" "day" (day .Seen)}}</small><b class="muted">–</b></li>{{else}}<li><span class="sq" data-tier="{{if .OK}}green{{else}}red{{end}}" aria-hidden="true"></span>{{.Name}} <small class="muted">{{if .OK}}{{t "disks.ok"}}{{else}}{{t "disks.failed"}}{{end}} · {{num .Years 1}} {{t "disks.years"}}</small><b{{with .TempTier}} data-tier="{{.}}"{{end}}>{{num .Temp 0}} °C</b></li>{{end}}{{end}}
 </ul>
@@ -68,8 +68,8 @@
 {{define "widgets/komodo_stacks"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Cells}}
-<div class="tile-head"><b class="tile-value">{{$v.Running}} / {{$v.Stacks}}</b><span class="tile-sub">{{t "komodo.running" "servers" $v.Servers "total" $v.ServersTotal}}</span></div>
-<span class="strip strip-lg" role="img" aria-label="{{t "komodo.stacks"}}">{{range $v.Cells}}<i data-state="{{.State}}" title="{{.Title}}"></i>{{end}}</span>
+<div class="tile-head"><b class="tile-value">{{$v.Running}} / {{$v.Stacks}}</b><span class="tile-note">{{t "komodo.running" "servers" $v.Servers "total" $v.ServersTotal}}</span></div>
+<span class="daybar daybar-lg" role="img" aria-label="{{t "komodo.stacks"}}">{{range $v.Cells}}<i data-state="{{.State}}" title="{{.Title}}"></i>{{end}}</span>
 {{with $v.Trouble}}<ul class="plain-list small">{{range .}}<li>{{.}}</li>{{end}}</ul>{{end}}
 <p class="tile-foot"><span>{{t "komodo.updates" "n" $v.Updates}}</span><span>{{t "komodo.alerts" "n" $v.Alerts}}</span></p>
 {{end}}{{end}}
@@ -89,7 +89,7 @@
 {{define "dnsfilter"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Queries}}
-<div class="tile-head"><b class="tile-value">{{num $v.Percent 1}} %</b><span class="tile-sub">{{t "dns.blocked"}}</span>
+<div class="tile-head"><b class="tile-value">{{num $v.Percent 1}} %</b><span class="tile-note">{{t "dns.blocked"}}</span>
   <span class="pill" data-state="{{if $v.Enabled}}ok{{else}}warn{{end}}">{{if $v.Enabled}}{{t "dns.on"}}{{else}}{{t "dns.off"}}{{end}}</span></div>
 <div class="progress-bar"><i data-style="--p:{{$v.W}}%"></i></div>
 {{with $v.Clients}}<span class="label">{{t "dns.top_clients"}}</span>
@@ -107,7 +107,7 @@
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
 <div class="tile-head"><span class="pill" data-state="{{$v.State}}">{{if not $v.Up}}{{t "vpn.down"}}{{else if $v.Leak}}{{t "vpn.leak"}}{{else}}{{t "vpn.up"}}{{end}}</span>
   <b class="tile-value">{{with $d.Country}}{{.}}{{else}}–{{end}}</b></div>
-{{if $v.WrongCountry}}<p class="tile-sub late">{{t "vpn.expected" "country" $d.ExpectedCountry}}</p>{{end}}
+{{if $v.WrongCountry}}<p class="tile-note late">{{t "vpn.expected" "country" $d.ExpectedCountry}}</p>{{end}}
 <p class="tile-foot"><span>{{t "vpn.exit"}} {{with $d.ExitIP}}{{.}}{{else}}–{{end}}</span><span>{{$d.Status}}</span></p>
 {{end}}{{end}}
 {{end}}
@@ -118,9 +118,9 @@
 <ul class="legend-list">
   {{range $v.Links}}<li><span class="sq" data-tier="{{if .Up}}green{{else}}red{{end}}" aria-hidden="true"></span>{{.Name}} <small class="muted">{{if .Up}}{{t "gateway.up"}}{{else}}{{t "gateway.down"}}{{end}}{{if $v.ShowMeasures}} · {{num .Loss 0}} % {{t "gateway.loss"}}{{end}}</small>{{if $v.ShowMeasures}}<b>{{num .DelayMS 0}} ms</b>{{end}}</li>{{end}}
 </ul>
-{{if $v.Devices}}<div class="tile-head"><b class="tile-value">{{$v.Online}} / {{$v.Devices}}</b><span class="tile-sub">{{t "gateway.devices"}}</span></div>
-{{else if $v.Clients}}<div class="tile-head"><b class="tile-value">{{$v.Clients}}</b><span class="tile-sub">{{t "gateway.clients"}}</span></div>{{end}}
-{{with $v.Offline}}<p class="tile-sub">{{t "gateway.offline"}}: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</p>{{end}}
+{{if $v.Devices}}<div class="tile-head"><b class="tile-value">{{$v.Online}} / {{$v.Devices}}</b><span class="tile-note">{{t "gateway.devices"}}</span></div>
+{{else if $v.Clients}}<div class="tile-head"><b class="tile-value">{{$v.Clients}}</b><span class="tile-note">{{t "gateway.clients"}}</span></div>{{end}}
+{{with $v.Offline}}<p class="tile-note">{{t "gateway.offline"}}: {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</p>{{end}}
 {{with $v.Names}}<p class="small">{{.}}{{if $v.NamesMore}} {{t "kuma.more" "n" $v.NamesMore}}{{end}}</p>{{end}}
 <p class="tile-foot"><span>{{with $v.Model}}{{.}} · {{end}}{{$v.Kind}} {{$v.Version}}</span>{{if $v.Measured}}<span>{{t "gateway.updates" "n" $v.Updates}}</span>{{end}}</p>
 {{end}}{{end}}
@@ -139,20 +139,20 @@
 {{define "widgets/speed_history"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Bars}}
-{{with $d := $v.Data}}<div class="tile-head"><b class="tile-value">↓ {{num $d.Down 0}}</b><span class="tile-sub">↑ {{num $d.Up 0}} Mbit/s</span></div>{{end}}
+{{with $d := $v.Data}}<div class="tile-head"><b class="tile-value">↓ {{num $d.Down 0}}</b><span class="tile-note">↑ {{num $d.Up 0}} Mbit/s</span></div>{{end}}
 <div class="bars-wrap">
   <div class="bars" role="img" aria-label="{{t "wtype.speed_history.name"}}">{{range $v.Bars}}<i data-style="--h:{{.H}}%"{{with .Tier}} data-tier="{{.}}"{{end}} title="{{day .Title}}"></i>{{end}}</div>
   {{if $v.Expect}}<b class="bars-target" data-style="--t:{{$v.ExpectPct}}%"></b>{{end}}
 </div>
 <p class="tile-foot"><span>{{if $v.Expect}}{{t "speed.contract" "n" (num $v.Expect 0)}}{{end}}</span><span>{{if $v.Slow}}{{t "speed.slow" "n" $v.Slow}}{{end}}</span></p>
-{{else}}<p class="tile-sub">{{t "trend.collecting"}}</p>{{end}}{{end}}
+{{else}}<p class="tile-note">{{t "trend.collecting"}}</p>{{end}}{{end}}
 {{end}}
 
 {{define "widgets/sabnzbd"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
-<div class="tile-head"><b class="tile-value">{{num $v.SpeedMB 1}} MB/s</b><span class="tile-sub">{{if $d.Paused}}{{t "sab.paused"}}{{else}}{{t "sab.queue" "n" $d.Slots}}{{end}}</span></div>
-<p class="tile-sub">{{t "sab.free" "n" (gb $d.FreeGB)}}</p>
+<div class="tile-head"><b class="tile-value">{{num $v.SpeedMB 1}} MB/s</b><span class="tile-note">{{if $d.Paused}}{{t "sab.paused"}}{{else}}{{t "sab.queue" "n" $d.Slots}}{{end}}</span></div>
+<p class="tile-note">{{t "sab.free" "n" (gb $d.FreeGB)}}</p>
 {{with $v.Queue}}<ul class="hbars">{{range .}}<li><span class="hbar-label">{{.Name}}</span><span class="hbar"><i data-style="--w:{{.Percent}}%"></i></span><span class="hbar-value">{{.Left}}</span></li>{{end}}</ul>{{end}}
 {{with $v.Failures}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="red" aria-hidden="true"></span>{{.Name}}<b>{{ago .At}}</b></li>{{end}}</ul>{{end}}
 {{end}}{{end}}
@@ -161,8 +161,8 @@
 {{define "widgets/paperless_inbox"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
-<div class="tile-head"><b class="tile-value">{{$v.Count}}</b><span class="tile-sub">{{with $v.Tag}}{{t "paperless.tagged" "tag" .}}{{else}}{{t "paperless.inbox"}}{{end}}</span></div>
-{{if and $d.OldestTitle (not $v.Tag)}}<p class="tile-sub">{{t "paperless.oldest" "title" $d.OldestTitle "days" $v.OldestDays}}</p>{{end}}
+<div class="tile-head"><b class="tile-value">{{$v.Count}}</b><span class="tile-note">{{with $v.Tag}}{{t "paperless.tagged" "tag" .}}{{else}}{{t "paperless.inbox"}}{{end}}</span></div>
+{{if and $d.OldestTitle (not $v.Tag)}}<p class="tile-note">{{t "paperless.oldest" "title" $d.OldestTitle "days" $v.OldestDays}}</p>{{end}}
 {{with $v.Newest}}<span class="label">{{t "paperless.newest"}}</span>
 <ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span><a href="{{$d.URL}}/documents/{{.ID}}/details" target="_blank" rel="noopener noreferrer">{{.Title}}</a><b>{{day .Added}}</b></li>{{end}}</ul>{{end}}
 <p class="tile-foot"><span>{{if ge $d.Total 0}}{{t "paperless.total" "n" $d.Total}}{{end}}</span><a href="{{$d.URL}}/documents?sort=added" target="_blank" rel="noopener noreferrer">{{t "action.open"}} →</a></p>
@@ -172,7 +172,7 @@
 {{define "widgets/mail_invoices"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Mailbox}}
-<div class="tile-head"><b class="tile-value">{{$v.Count}}</b><span class="tile-sub">{{t "mailinv.found" "sum" (money $v.Sum)}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.Count}}</b><span class="tile-note">{{t "mailinv.found" "sum" (money $v.Sum)}}</span></div>
 <ul class="legend-list">{{range $v.Shown}}<li><span class="sq" aria-hidden="true"></span>{{with .Sender}}{{.}}{{else}}{{.Domain}}{{end}} <small class="muted">{{.Subject}}</small><b>{{if .Amount}}{{money .Amount}}{{else}}{{day .Date}}{{end}}</b></li>{{end}}</ul>
 <p class="tile-foot"><span>{{t "mailinv.scanned" "n" $v.Scanned "box" $v.Mailbox}}</span><a href="/billing">{{t "nav.billing"}} →</a></p>
 {{end}}{{end}}
@@ -181,7 +181,7 @@
 {{define "widgets/freshrss_feeds"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Feeds}}
-<div class="tile-head"><b class="tile-value">{{$v.Unread}}</b><span class="tile-sub">{{t "rss.unread" "n" $v.Feeds}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.Unread}}</b><span class="tile-note">{{t "rss.unread" "n" $v.Feeds}}</span></div>
 {{template "hbars" $v.Bars}}
 {{end}}{{end}}
 {{end}}
@@ -189,7 +189,7 @@
 {{define "widgets/docker_containers"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Total}}
-<div class="tile-head"><b class="tile-value">{{$v.Running}}/{{$v.Total}}</b><span class="tile-sub">{{t "docker.running"}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.Running}}/{{$v.Total}}</b><span class="tile-note">{{t "docker.running"}}</span></div>
 <ul class="legend-list">{{range $v.Rows}}<li{{with .Tier}} data-tier="{{.}}"{{end}}><span class="sq" aria-hidden="true"></span><span title="{{.Image}}">{{.Name}}</span><b>{{.Status}}</b></li>{{else}}<li class="muted">{{t "docker.all_fine"}}</li>{{end}}</ul>
 {{end}}{{end}}
 {{end}}
@@ -197,7 +197,7 @@
 {{define "widgets/umami_sites"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Bars}}
-<div class="tile-head"><b class="tile-value">{{$v.Visitors}}</b><span class="tile-sub">{{t "umami.visitors_week" "n" $v.Sites}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.Visitors}}</b><span class="tile-note">{{t "umami.visitors_week" "n" $v.Sites}}</span></div>
 {{template "hbars" $v.Bars}}
 {{end}}{{end}}
 {{end}}
@@ -205,7 +205,7 @@
 {{define "widgets/immich_library"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $v.Data}}
-<div class="tile-head"><b class="tile-value">{{num $v.Photos 0}}</b><span class="tile-sub">{{t "immich.library" "videos" .Videos}}</span></div>
+<div class="tile-head"><b class="tile-value">{{num $v.Photos 0}}</b><span class="tile-note">{{t "immich.library" "videos" .Videos}}</span></div>
 <div class="progress"><div class="progress-head"><span>{{t "immich.disk"}}</span><span>{{$v.Disk}} %{{with .DiskAvailable}} · {{t "immich.free" "free" .}}{{end}}</span></div>
   <div class="progress-bar"><i data-style="--p:{{$v.Disk}}%"{{with $v.DiskTier}} data-tier="{{.}}"{{end}}></i></div></div>
 <ul class="legend-list">
@@ -218,7 +218,7 @@
 {{define "widgets/linkwarden"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Links}}
-<div class="tile-head"><b class="tile-value">{{$v.Links}}</b><span class="tile-sub">{{t "linkwarden.links" "n" $v.Collections}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.Links}}</b><span class="tile-note">{{t "linkwarden.links" "n" $v.Collections}}</span></div>
 {{template "hbars" $v.Bars}}
 {{with $v.Newest}}<span class="label">{{t "linkwarden.newest"}}</span>
 <ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Name}}</a>{{if not .Created.IsZero}}<b>{{ago .Created}}</b>{{end}}</li>{{end}}</ul>{{end}}
@@ -231,7 +231,7 @@
 {{/* tile-split: figures left, list right once the tile is wide. */}}
 <div class="tile-split">
 <div class="tile-split-figures">
-<div class="tile-head"><b class="tile-value">{{$d.New}}</b><span class="tile-sub">{{t "kintsugi.open"}}{{if ge $d.Rate 0}} · {{t "kintsugi.rate" "n" $d.Rate}}{{end}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$d.New}}</b><span class="tile-note">{{t "kintsugi.open"}}{{if ge $d.Rate 0}} · {{t "kintsugi.rate" "n" $d.Rate}}{{end}}</span></div>
 <p class="small muted">{{t "kintsugi.accepted" "n" $d.Accepted}}{{if $d.GapsOpen}} · <a href="{{$d.URL}}/profil">{{t "kintsugi.gaps" "n" $d.GapsOpen}}</a>{{end}}{{if $v.RunFailed}} · <span class="warn-text">{{t "kintsugi.run_failed"}}</span>{{end}}</p>
 </div>
 {{with $v.Open}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="{{if eq (print .Kind) "acquisition"}}yellow{{else}}blue{{end}}" title="{{t (print "kintsugi.kind_" .Kind)}}" aria-hidden="true"></span><span class="stack-item"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a><small class="muted">{{ago .Created}}</small></span></li>{{end}}</ul>{{end}}
@@ -243,7 +243,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
 <div class="tile-split">
-<div class="tile-split-figures"><div class="tile-head"><b class="tile-value">{{len $d.Reviews}}</b><span class="tile-sub">{{t "gitea.reviews"}} · {{t "gitea.notifications" "n" $d.Notifications}}</span></div></div>
+<div class="tile-split-figures"><div class="tile-head"><b class="tile-value">{{len $d.Reviews}}</b><span class="tile-note">{{t "gitea.reviews"}} · {{t "gitea.notifications" "n" $d.Notifications}}</span></div></div>
 <div>
 {{with $v.Reviews}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="yellow" aria-hidden="true"></span><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a> <small class="muted">{{.Repo}}</small><b>{{ago .Updated}}</b></li>{{end}}</ul>{{end}}
 {{with $v.Assigned}}<span class="label">{{t "gitea.assigned"}}</span><ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a> <small class="muted">{{.Repo}}</small></li>{{end}}</ul>{{end}}
@@ -268,7 +268,7 @@
 {{define "widgets/authentik_logins"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}
-<div class="tile-head"><b class="tile-value">{{if $v.OnlyFailures}}{{$v.Failed}}{{else}}{{$v.Count}}{{end}}</b><span class="tile-sub">{{if $v.OnlyFailures}}{{if $v.Day}}{{t "authentik.failures_24h"}}{{else}}{{t "authentik.failures_7d"}}{{end}}{{else if $v.Day}}{{t "authentik.logins_24h"}}{{else}}{{t "authentik.logins"}}{{end}}</span>
+<div class="tile-head"><b class="tile-value">{{if $v.OnlyFailures}}{{$v.Failed}}{{else}}{{$v.Count}}{{end}}</b><span class="tile-note">{{if $v.OnlyFailures}}{{if $v.Day}}{{t "authentik.failures_24h"}}{{else}}{{t "authentik.failures_7d"}}{{end}}{{else if $v.Day}}{{t "authentik.logins_24h"}}{{else}}{{t "authentik.logins"}}{{end}}</span>
   {{if and $d.Failed24h (not $v.OnlyFailures)}}<span class="pill" data-state="warn">{{t "authentik.failed24" "n" $d.Failed24h}}</span>{{end}}</div>
 <ul class="legend-list">{{range $v.Logins}}<li><span class="sq"{{if $v.OnlyFailures}} data-tier="red"{{end}} aria-hidden="true"></span>{{.User}} <small class="muted">{{with .City}}{{.}}, {{end}}{{.Country}}{{if and $v.OnlyFailures .IP}} · {{.IP}}{{end}}</small><b>{{ago .At}}</b></li>{{end}}</ul>
 <p class="tile-foot"><span>{{if not $v.OnlyFailures}}{{if $v.Day}}{{t "authentik.failed24" "n" $d.Failed24h}}{{else}}{{t "authentik.failed7" "n" $d.Failed7d}}{{end}}{{end}}</span><span>{{$d.Version}}</span></p>
@@ -278,9 +278,9 @@
 {{define "widgets/vaultwarden_2fa"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Active}}
-<div class="tile-head"><b class="tile-value">{{$v.With}} / {{$v.Active}}</b><span class="tile-sub">{{t "vault.with2fa"}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.With}} / {{$v.Active}}</b><span class="tile-note">{{t "vault.with2fa"}}</span></div>
 <div class="progress-bar"><i data-style="--p:{{$v.WithPct}}%" data-tier="{{if eq $v.With $v.Active}}green{{else}}yellow{{end}}"></i></div>
-{{with $v.Without}}<p class="tile-sub">{{t "vault.without"}}: {{range $i, $e := .}}{{if $i}}, {{end}}{{$e}}{{end}}</p>{{end}}
+{{with $v.Without}}<p class="tile-note">{{t "vault.without"}}: {{range $i, $e := .}}{{if $i}}, {{end}}{{$e}}{{end}}</p>{{end}}
 {{end}}{{end}}
 {{end}}
 
@@ -299,7 +299,7 @@
 {{define "widgets/exposure"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Rows}}
-<div class="tile-head"><b class="tile-value">{{$v.Total}}</b><span class="tile-sub">{{t "exposure.public"}}{{if $v.Open}} · <span class="warn-text">{{t "exposure.open" "n" $v.Open}}</span>{{end}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.Total}}</b><span class="tile-note">{{t "exposure.public"}}{{if $v.Open}} · <span class="warn-text">{{t "exposure.open" "n" $v.Open}}</span>{{end}}</span></div>
 <ul class="expo-rows">
   {{range $v.Rows}}<li><span class="expo-name">{{.Domain}}<small class="muted">{{.Name}}</small></span>
     <span class="expo-chips">{{if .Login}}<span class="chip-ok">{{t "exposure.login"}}</span>{{else}}<span class="chip-bad">{{t "exposure.no_login"}}</span>{{end}}

@@ -450,6 +450,49 @@ func TestStaticAssetsAreCached(t *testing.T) {
 	}
 }
 
+// TestPagesLoadKante: every page links the vendored Kante components
+// before andon.css (Andon builds on them, not the other way round) and
+// runs Kante's script after the one that hands it Andon's language.
+func TestPagesLoadKante(t *testing.T) {
+	srv, client, _ := newTestServer(t)
+
+	resp, err := client.Get(srv.URL + "/setup")
+	if err != nil {
+		t.Fatalf("get setup: %v", err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	page := string(body)
+
+	order := []string{
+		"/static/vendor/kante/components.css?v=", "/static/andon.css?v=",
+		"/static/kante-lang.js?v=", "/static/vendor/kante/shrippen.js?v=",
+	}
+	last := -1
+	for _, want := range order {
+		at := strings.Index(page, want)
+		if at < 0 || at < last {
+			t.Fatalf("expected %s after the earlier ones in:\n%s", want, page)
+		}
+		last = at
+	}
+
+	for _, path := range []string{"/static/vendor/kante/components.css", "/static/vendor/kante/shrippen.js", "/static/vendor/kante/VERSION"} {
+		res, err := client.Get(srv.URL + path)
+		if err != nil {
+			t.Fatalf("get %s: %v", path, err)
+		}
+		got, _ := io.ReadAll(res.Body)
+		res.Body.Close()
+		if res.StatusCode != http.StatusOK || len(got) == 0 {
+			t.Fatalf("%s: status %d, %d bytes", path, res.StatusCode, len(got))
+		}
+		if strings.HasSuffix(path, "VERSION") && !strings.HasPrefix(string(got), "Kante 1.4") {
+			t.Fatalf("VERSION: %q", got)
+		}
+	}
+}
+
 // TestConnectionsCreateEditDelete drives the full connections editor flow
 // through real HTTP requests: create, see it listed, edit, delete.
 func TestConnectionsCreateEditDelete(t *testing.T) {

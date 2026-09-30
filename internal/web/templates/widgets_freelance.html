@@ -220,7 +220,7 @@
 {{with $v := .Frag.View}}
 {{if $v.Setup}}<p class="slot-note">{{t "close.receipts_setup"}} <a href="/spaces/settings#rule-cross.expense_unrecorded">{{t "nav.space_settings"}}</a></p>
 {{else if $v.Rows}}
-<div class="tile-head"><b class="tile-value">{{money $v.Sum $v.Currency}}</b><span class="tile-sub">{{t "receipts.count" "n" $v.Count}}</span></div>
+<div class="tile-head"><b class="tile-value">{{money $v.Sum $v.Currency}}</b><span class="tile-note">{{t "receipts.count" "n" $v.Count}}</span></div>
 <div class="table-wrap"><table class="table compact">
   <tbody>{{range $v.Rows}}<tr><td>{{if .Search}}<a href="{{.Search}}" target="_blank" rel="noopener noreferrer" title="{{t "receipts.search"}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</td>
     <td class="num">{{money .Amount $v.Currency}}</td><td class="num"><small class="muted">{{day .Date}}</small></td></tr>{{end}}</tbody>
@@ -233,7 +233,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if or $v.MonthKM $v.YearKM}}
 {{$prevKey := "travel.prev"}}{{if $v.Year}}{{$prevKey = "travel.prev_year"}}{{end}}
-<div class="tile-head"><b class="tile-value">{{num $v.HeadKM 0}} km</b><span class="tile-sub">{{if $v.Year}}{{t "travel.this_year"}}{{else}}{{t "travel.month"}}{{end}}{{if $v.PrevKM}} · {{t $prevKey "km" (num $v.PrevKM 0)}}{{end}}</span></div>
+<div class="tile-head"><b class="tile-value">{{num $v.HeadKM 0}} km</b><span class="tile-note">{{if $v.Year}}{{t "travel.this_year"}}{{else}}{{t "travel.month"}}{{end}}{{if $v.PrevKM}} · {{t $prevKey "km" (num $v.PrevKM 0)}}{{end}}</span></div>
 {{with $v.Bar}}<div class="store-bar" title="{{t $prevKey "km" (num $v.PrevKM 0)}}"><i data-style="--w:{{.}}%;background:var(--blue)"></i></div>{{end}}
 {{if $v.Year}}<p class="small">{{t "travel.places" "countries" $v.Countries "cities" $v.Cities}} · {{t "travel.month"}} {{num $v.MonthKM 0}} km</p>
 {{else}}<p class="small">{{t "travel.year" "km" (num $v.YearKM 0) "countries" $v.Countries "cities" $v.Cities}}</p>{{end}}
@@ -243,7 +243,7 @@
 
 {{define "widgets/subscriptions"}}
 {{with $v := .Frag.View}}{{if $v.Source}}
-<div class="tile-head"><b class="tile-value">{{money $v.Monthly $v.Currency}}</b><span class="tile-sub">{{if $v.Yearly}}{{t "subs.per_year" "n" $v.Count}}{{else}}{{t "subs.per_month" "n" $v.Count}}{{end}} · {{t (print "service." $v.Source)}}</span></div>
+<div class="tile-head"><b class="tile-value">{{money $v.Monthly $v.Currency}}</b><span class="tile-note">{{if $v.Yearly}}{{t "subs.per_year" "n" $v.Count}}{{else}}{{t "subs.per_month" "n" $v.Count}}{{end}} · {{t (print "service." $v.Source)}}</span></div>
 {{with $v.Rows}}<ul class="sub-rows">
   {{range .}}<li><span class="sub-name">{{.Name}}<small class="muted">{{with .Category}}{{.}} · {{end}}{{if .Next}}{{day .Next}}{{end}}</small></span><span class="sub-price">{{money .Price $v.Currency}}</span></li>{{end}}
 </ul>{{end}}

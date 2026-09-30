@@ -401,7 +401,7 @@
     var id = tile.getAttribute("data-placement");
     var form = bulk();
     var had = field(id);
-    tile.classList.toggle("is-picked", on);
+    tile.classList.toggle("is-selected", on);
     if (on && !had && form) {
       var input = d.createElement("input");
       input.type = "hidden";
@@ -424,7 +424,7 @@
     if (!e.target.closest || !e.target.closest("[data-sel-clear]")) {
       return;
     }
-    [].forEach.call(d.querySelectorAll(".tile-slot.is-picked"), function (t) { pick(t, false); });
+    [].forEach.call(d.querySelectorAll(".tile-slot.is-selected"), function (t) { pick(t, false); });
     [].forEach.call(d.querySelectorAll('#bulk input[name="placement"]'), function (i) { i.remove(); });
     var box = d.querySelector("#tile-strip [data-pick]");
     if (box) {
@@ -439,7 +439,7 @@
       return;
     }
     [].forEach.call(e.target.querySelectorAll(".tile-slot[data-placement]"), function (t) {
-      t.classList.toggle("is-picked", picked(t.getAttribute("data-placement")));
+      t.classList.toggle("is-selected", picked(t.getAttribute("data-placement")));
     });
   });
 })();

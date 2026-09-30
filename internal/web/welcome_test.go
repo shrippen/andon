@@ -43,7 +43,7 @@ func TestWelcomeFlow(t *testing.T) {
 	}
 
 	hints := string(mustGet(t, srv, client, "/hints"))
-	if !strings.Contains(hints, `class="intro"`) || !strings.Contains(hints, `<span class="nav-count" title="Erste Schritte">`) {
+	if !strings.Contains(hints, `class="intro"`) || !strings.Contains(hints, `<span class="count" data-kind="info" title="Erste Schritte">`) {
 		t.Fatalf("hints page lacks intro or menu progress:\n%s", hints)
 	}
 	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/welcome/intro/hints", strings.NewReader(url.Values{"csrf": {csrfToken(t, srv, client)}}.Encode()))

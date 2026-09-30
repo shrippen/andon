@@ -1,11 +1,12 @@
 {{/* Shared page fragments: the Kante tokens (linked per-page via
-     .ThemeURL, see Deps.Page), andon.css's components on top, and the
-     app nav. Pages include "style" and "header" explicitly rather than
+     .ThemeURL, see Deps.Page), the vendored Kante components
+     (tools/sync-design.sh), andon.css's layout on top, and the app nav. Pages include "style" and "header" explicitly rather than
      overriding a {{block}}, so multiple pages parsed into one template
      set never clash over a shared block name. */}}
 {{define "style"}}
 <meta name="color-scheme" content="dark light">
 <link rel="stylesheet" href="{{.ThemeURL}}">
+<link rel="stylesheet" href="{{asset "vendor/kante/components.css"}}">
 <link rel="stylesheet" href="{{asset "andon.css"}}">
 <link rel="icon" href="{{asset "icon.svg"}}" type="image/svg+xml">
 <meta name="csrf" content="{{.Ctx.CSRF}}">
@@ -13,6 +14,12 @@
 {{/* Soft page changes (hx-boost, see andon.js). Back and forward load
      the full page: a cached body would miss its head. */}}
 <meta name="htmx-config" content='{"historyCacheSize":0,"refreshOnHistoryMiss":true,"includeIndicatorStyles":false}'>
+{{/* Kante's script sets html.lang from its own stored choice: kante-lang.js
+     hands it Andon's language first. It adds the live-data motion
+     (window.Kante) and does nothing else on these pages. Synchronous, so
+     the html classes are set before the first paint. */}}
+<script src="{{asset "kante-lang.js"}}"></script>
+<script src="{{asset "vendor/kante/shrippen.js"}}"></script>
 <script src="{{asset "vendor/htmx/htmx.min.js"}}" defer></script>
 <script src="{{asset "andon.js"}}" defer></script>
 {{end}}
@@ -59,14 +66,14 @@
 {{/* App header: boards and the evaluation pages up front, setup and the
      account behind two menus (native <details>, no script needed). */}}
 {{define "header"}}
-{{/* Short results (e.g. a connection test) fade in here, see andon.css .toast. */}}
-<div id="toast" class="toast" aria-live="polite"></div>
+{{/* Short results (e.g. a connection test) slide in here as Kante .toast. */}}
+<div id="toast" class="toast-stack" aria-live="polite"></div>
 <header class="app-nav">
   <a class="app-brand" href="/">{{template "mark"}}Andon</a>
   {{if .Who}}
     <nav class="app-links" aria-label="{{t "nav.main"}}">
       {{range .NavBoards}}<a href="/boards/{{.ID}}"{{if eq .ID $.CurBoard}} aria-current="page"{{end}}>{{.Name}}</a>{{end}}
-      <a href="/hints"{{if here "/hints"}} aria-current="page"{{end}}>{{t "nav.hints"}}{{if .HintOpen}}<span class="nav-count" data-level="{{.HintLevel}}">{{.HintOpen}}</span>{{end}}</a>
+      <a href="/hints"{{if here "/hints"}} aria-current="page"{{end}}>{{t "nav.hints"}}{{if .HintOpen}}<span class="count"{{if eq .HintLevel 30}} data-kind="error"{{else if lt .HintLevel 20}} data-kind="info"{{end}}>{{.HintOpen}}</span>{{end}}</a>
       <a href="/clients"{{if here "/clients"}} aria-current="page"{{end}}>{{t "nav.clients"}}</a>
       <a href="/billing"{{if here "/billing"}} aria-current="page"{{end}}>{{t "nav.billing"}}</a>
       <a href="/receipts"{{if here "/receipts"}} aria-current="page"{{end}}>{{t "nav.receipts"}}</a>
@@ -74,9 +81,9 @@
     </nav>
     <div class="app-side">
       <button type="button" class="nav-search" data-open="palette" aria-keyshortcuts="Control+K">{{t "palette.open"}} <kbd>Ctrl K</kbd></button>
-      <details class="menu">
+      <details class="nav-menu">
         <summary>{{t "nav.setup"}}</summary>
-        <div class="menu-list">
+        <div class="menu">
           <a href="/boards"{{if eq .Ctx.Path "/boards"}} aria-current="page"{{end}}>{{t "boards.title"}}</a>
           <a href="/widgets"{{if here "/widgets"}} aria-current="page"{{end}}>{{t "nav.library"}}</a>
           <a href="/hosts"{{if here "/hosts"}} aria-current="page"{{end}}>{{t "nav.hosts"}}</a>
@@ -93,10 +100,10 @@
           {{end}}
         </div>
       </details>
-      <details class="menu">
-        <summary class="name">{{.Who.Name}}{{with .Onboarding}}{{if .Open}}<span class="nav-count" title="{{t "welcome.title"}}">{{.Done}}/{{len .Steps}}</span>{{end}}{{end}}</summary>
-        <div class="menu-list">
-          <a href="/welcome"{{if here "/welcome"}} aria-current="page"{{end}}>{{t "welcome.title"}}{{with .Onboarding}}{{if .Open}} <span class="nav-count">{{.Done}}/{{len .Steps}}</span>{{end}}{{end}}</a>
+      <details class="nav-menu">
+        <summary class="name">{{.Who.Name}}{{with .Onboarding}}{{if .Open}}<span class="count" data-kind="info" title="{{t "welcome.title"}}">{{.Done}}/{{len .Steps}}</span>{{end}}{{end}}</summary>
+        <div class="menu">
+          <a href="/welcome"{{if here "/welcome"}} aria-current="page"{{end}}>{{t "welcome.title"}}{{with .Onboarding}}{{if .Open}} <span class="count" data-kind="info">{{.Done}}/{{len .Steps}}</span>{{end}}{{end}}</a>
           <a href="/me/profile"{{if here "/me/profile"}} aria-current="page"{{end}}>{{t "nav.profile"}}</a>
           <a href="/me/security"{{if here "/me/security"}} aria-current="page"{{end}}>{{t "nav.security"}}</a>
           <a href="/me/credentials"{{if here "/me/credentials"}} aria-current="page"{{end}}>{{t "nav.credentials"}}</a>

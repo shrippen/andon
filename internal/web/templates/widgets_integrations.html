@@ -2,7 +2,7 @@
 
 {{define "widgets/tailscale"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
-{{with .Frag.View.Data}}{{if and (not .Devices) $.Frag.View.OnlyTrouble}}<p class="tile-sub">{{t "tailscale.all_fine" "n" $.Frag.View.Total}}</p>{{end}}
+{{with .Frag.View.Data}}{{if and (not .Devices) $.Frag.View.OnlyTrouble}}<p class="tile-note">{{t "tailscale.all_fine" "n" $.Frag.View.Total}}</p>{{end}}
 <ul class="plain-list">
   {{range .Devices}}<li><span class="pill" data-state="{{if .Online}}ok{{else}}fail{{end}}">{{if .Online}}{{t "status.up"}}{{else}}{{t "status.down"}}{{end}}</span> {{.Name}}
     {{if not .Online}}<small class="muted">{{ago .LastSeen}}</small>{{end}}
@@ -24,7 +24,7 @@
 {{define "widgets/arr_upcoming"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $v.Data}}
-{{with .App}}<p class="tile-sub"><b>{{.}}</b>{{with $v.Kind}} · {{t (print "arr.kind_" .)}}{{end}}</p>{{end}}
+{{with .App}}<p class="tile-note"><b>{{.}}</b>{{with $v.Kind}} · {{t (print "arr.kind_" .)}}{{end}}</p>{{end}}
 <ul class="plain-list">
   {{range $v.Items}}<li><time>{{day .At}}</time> {{.Title}}</li>{{else}}<li class="muted">{{t "arr.nothing"}}</li>{{end}}
 </ul>
@@ -57,7 +57,7 @@
 
 {{define "widgets/github"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
-{{with .Frag.View.Data}}{{if and (not .Repos) $.Frag.View.RedCI}}<p class="tile-sub">{{t "github.all_green"}}</p>{{else}}
+{{with .Frag.View.Data}}{{if and (not .Repos) $.Frag.View.RedCI}}<p class="tile-note">{{t "github.all_green"}}</p>{{else}}
 <div class="table-wrap"><table class="table">
   <tr><th>{{t "github.repo"}}</th><th class="num">PRs</th><th class="num">{{t "github.issues"}}</th><th>CI</th><th>{{t "github.release"}}</th></tr>
   {{range .Repos}}<tr><td>{{.Name}}</td><td class="num">{{.PRs}}</td><td class="num">{{.Issues}}</td>
@@ -143,14 +143,14 @@
 {{/* Connection health: healthy count, the troubled ones as day strips. */}}
 {{define "widgets/conn_health"}}
 {{with $v := .Frag.View}}
-<div class="tile-head"><b class="tile-value">{{$v.Healthy}} / {{$v.Total}}</b><span class="tile-sub">{{t "health.healthy" "days" $v.Days}}</span></div>
+<div class="tile-head"><b class="tile-value">{{$v.Healthy}} / {{$v.Total}}</b><span class="tile-note">{{t "health.healthy" "days" $v.Days}}</span></div>
 {{range $v.Rows}}
-<div class="strip-row">
-  <span class="strip-name">{{.Name}}</span>
-  <span class="strip" role="img" aria-label="{{.Name}}: {{t "health.fail_pct" "pct" .FailPct}}">{{range .Cells}}<i data-state="{{.State}}" title="{{day .Title}}"></i>{{end}}</span>
-  <span class="strip-pct">{{.FailPct}} %</span>
+<div class="daybar-row">
+  <span class="daybar-name">{{.Name}}</span>
+  <span class="daybar" role="img" aria-label="{{.Name}}: {{t "health.fail_pct" "pct" .FailPct}}">{{range .Cells}}<i data-state="{{.State}}" title="{{day .Title}}"></i>{{end}}</span>
+  <span class="daybar-pct">{{.FailPct}} %</span>
 </div>
-{{else}}<p class="tile-sub">{{t "health.all_ok"}}</p>{{end}}
+{{else}}<p class="tile-note">{{t "health.all_ok"}}</p>{{end}}
 <p class="tile-foot"><a href="/connections">{{t "nav.connections"}} →</a></p>
 {{end}}
 {{end}}
@@ -159,14 +159,14 @@
 {{define "widgets/invoice_aging"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Count}}
-<div class="tile-head"><b class="tile-value">{{money $v.Total}}</b><span class="tile-sub">{{t "aging.count" "n" $v.Count}}</span></div>
+<div class="tile-head"><b class="tile-value">{{money $v.Total}}</b><span class="tile-note">{{t "aging.count" "n" $v.Count}}</span></div>
 <div class="stack" role="img" aria-label="{{range $v.Bands}}{{if .Count}}{{template "aging_band" .}} {{money .Amount}}; {{end}}{{end}}">
   {{range $v.Bands}}{{if .Pct}}<i data-style="--w:{{.Pct}}%" data-tier="{{.Tier}}"></i>{{end}}{{end}}
 </div>
 <ul class="legend-list">
   {{range $v.Bands}}{{if .Count}}<li><span class="sq" data-tier="{{.Tier}}" aria-hidden="true"></span>{{template "aging_band" .}}<b>{{money .Amount}}</b></li>{{end}}{{end}}
 </ul>
-{{else}}<p class="tile-sub">{{t "aging.none"}}</p>{{end}}{{end}}
+{{else}}<p class="tile-note">{{t "aging.none"}}</p>{{end}}{{end}}
 {{end}}
 
 {{/* aging_band: a band's days, from its limits (AgingBand). */}}

@@ -41,7 +41,7 @@ func TestServicePickSortedWithCounts(t *testing.T) {
 		"name": {"K"}, "url": {"http://127.0.0.1:1"}, "mode": {"shared"}, "secret": {"tok"}, "tls": {"verify"}})
 
 	pick = string(mustGet(t, srv, client, "/connections/new"))
-	if !regexp.MustCompile(`href="/connections/new\?service=kimai"><b>Kimai<span class="nav-count"[^>]*>1</span></b>`).MatchString(pick) {
+	if !regexp.MustCompile(`href="/connections/new\?service=kimai"><b>Kimai<span class="count"[^>]*>1</span></b>`).MatchString(pick) {
 		t.Fatalf("kimai card lacks its count:\n%s", pick)
 	}
 }

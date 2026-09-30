@@ -4,6 +4,13 @@
 
   var d = document;
   var CLOCK_TICK_MS = 1000;
+
+  // Kante's script (vendor/kante/shrippen.js) may set html.lang to its own
+  // choice when storage is blocked; the server's locale wins (kante-lang.js).
+  var locale = d.documentElement.getAttribute("data-locale");
+  if (locale) {
+    d.documentElement.lang = locale;
+  }
   var SEARCH_KEY = "/";
 
   function csrf() {
@@ -752,7 +759,7 @@
   // ── Header menus (<details>): one open at a time, closed by outside click or Esc ──
   function setupMenus() {
     d.addEventListener("click", function (e) {
-      d.querySelectorAll("details.menu[open]").forEach(function (m) {
+      d.querySelectorAll("details.nav-menu[open]").forEach(function (m) {
         if (!m.contains(e.target)) {
           m.open = false;
         }
@@ -760,7 +767,7 @@
     });
     d.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
-        d.querySelectorAll("details.menu[open]").forEach(function (m) { m.open = false; });
+        d.querySelectorAll("details.nav-menu[open]").forEach(function (m) { m.open = false; });
       }
     });
   }
@@ -1127,7 +1134,7 @@
   // CSSOM is allowed. Values come from services (a Kimai project color),
   // so only known properties and plain values pass: no url(), no ";".
   var STYLE_PROP = /^(--[a-z]+|width|left|top|background)$/;
-  var STYLE_VALUE = /^(-?[\d.]+(%|deg|rem|px)?|#[0-9a-fA-F]{3,8}|var\(--[a-z0-9-]+\)|[a-z]+)$/;
+  var STYLE_VALUE = /^(-?[\d.]+(%|deg|rem|px|s)?|#[0-9a-fA-F]{3,8}|var\(--[a-z0-9-]+\)|[a-z]+)$/;
 
   function applyStyles(root) {
     var els = [].slice.call(root.querySelectorAll ? root.querySelectorAll("[data-style]") : []);
@@ -1149,6 +1156,19 @@
   }
   applyStyles(d);
   d.addEventListener("htmx:load", function (e) { applyStyles(e.target); });
+
+  // A toast (Kante .toast) stays as long as its life line runs (--life on
+  // .toast-life, 4 s by default), then goes.
+  var TOAST_LIFE_MS = 4000;
+  d.addEventListener("htmx:load", function (e) {
+    var toast = e.target;
+    if (!toast.classList || !toast.classList.contains("toast")) {
+      return;
+    }
+    var line = toast.querySelector(".toast-life");
+    var life = line ? parseFloat(getComputedStyle(line).getPropertyValue("--life")) : NaN;
+    setTimeout(function () { toast.remove(); }, life ? life * 1000 : TOAST_LIFE_MS);
+  });
 
   // Tiles poll ("every 300s") only while the tab is visible; a poll missed
   // in the background runs once when the tab shows again ("wake"). A wall
