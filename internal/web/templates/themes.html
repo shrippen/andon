@@ -59,7 +59,7 @@
     <form method="post" action="/themes/import" enctype="multipart/form-data" class="card inline-form">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       {{template "space_select" .Spaces}}
-      <input type="file" name="file" accept=".zip" required aria-label="{{t "import.file"}}">
+      <input class="input" type="file" name="file" accept=".zip" required aria-label="{{t "import.file"}}">
       <button type="submit" class="btn btn-outline btn-sm">{{t "import.run"}}</button>
     </form>
     <p><a class="btn btn-outline btn-sm" href="/styleguide">{{t "styleguide.title"}}</a></p>
@@ -141,7 +141,7 @@
       </ul>{{end}}
       <form method="post" action="/themes/{{.Theme.ID}}/fonts" enctype="multipart/form-data" class="inline-form">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <input type="file" name="file" accept=".woff2,.woff,.ttf,.otf" required aria-label="{{t "themes.fonts"}}">
+        <input class="input" type="file" name="file" accept=".woff2,.woff,.ttf,.otf" required aria-label="{{t "themes.fonts"}}">
         <button type="submit" class="btn btn-outline btn-sm">{{t "themes.upload"}}</button>
       </form>
     </div>

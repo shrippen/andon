@@ -58,9 +58,9 @@
 
     {{if $s.Ready}}
     <nav class="hint-filters receipts-nav" aria-label="{{t "receipts.views"}}">
-      <div class="chips">{{range .Tabs}}{{template "receipt_tab" dict "Q" $.Q "Tab" . "N" -1}}{{end}}</div>
+      <div class="chips-row">{{range .Tabs}}{{template "receipt_tab" dict "Q" $.Q "Tab" . "N" -1}}{{end}}</div>
       {{if or (eq .Q.Tab "match") (eq .Q.Tab "queue") (eq .Q.Tab "linked")}}
-      <div class="chips">{{range .Years}}{{template "receipt_year" dict "Q" $.Q "Year" . "N" -1}}{{end}}</div>{{end}}
+      <div class="chips-row">{{range .Years}}{{template "receipt_year" dict "Q" $.Q "Year" . "N" -1}}{{end}}</div>{{end}}
     </nav>
     <div id="receipts-part" hx-get="{{.Q.Part}}" hx-trigger="load" hx-swap="innerHTML" aria-live="polite">
       <p class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{if eq .Q.Tab "match"}}{{t "receipts.loading_year" "year" .Q.Year}}{{else}}{{t "widget.loading"}}{{end}}</p>
@@ -77,9 +77,9 @@
 
 {{/* A tab or year chip; the part swaps them in again with their numbers
      (N −1 = not known yet). */}}
-{{define "receipt_tab"}}<a class="chip" id="receipts-tab-{{.Tab}}" href="{{.Q.Link "tab" .Tab}}"{{if eq .Tab .Q.Tab}} aria-pressed="true"{{end}}{{if .OOB}} hx-swap-oob="true"{{end}}>{{t (print "receipts.tab_" .Tab)}}{{if ge .N 0}} <span>{{.N}}</span>{{end}}</a>{{end}}
+{{define "receipt_tab"}}<a class="chip is-filter" id="receipts-tab-{{.Tab}}" href="{{.Q.Link "tab" .Tab}}"{{if eq .Tab .Q.Tab}} aria-pressed="true"{{end}}{{if .OOB}} hx-swap-oob="true"{{end}}>{{t (print "receipts.tab_" .Tab)}}{{if ge .N 0}} <span>{{.N}}</span>{{end}}</a>{{end}}
 
-{{define "receipt_year"}}<a class="chip" id="receipts-year-{{.Year}}" href="{{.Q.Link "year" (print .Year)}}"{{if eq .Year .Q.Year}} aria-pressed="true"{{end}}{{if eq .N 0}} data-empty{{end}}{{if .OOB}} hx-swap-oob="true"{{end}}>{{.Year}}{{if gt .N 0}} <span>{{.N}}</span>{{end}}</a>{{end}}
+{{define "receipt_year"}}<a class="chip is-filter" id="receipts-year-{{.Year}}" href="{{.Q.Link "year" (print .Year)}}"{{if eq .Year .Q.Year}} aria-pressed="true"{{end}}{{if eq .N 0}} data-empty{{end}}{{if .OOB}} hx-swap-oob="true"{{end}}>{{.Year}}{{if gt .N 0}} <span>{{.N}}</span>{{end}}</a>{{end}}
 
 {{/* The four signals at a glance: ✓ hit, – missed, dashed = does not apply. */}}
 {{define "receipt_chips"}}
@@ -393,7 +393,7 @@
       <button type="submit" class="btn btn-accent">{{t "receipts.search_go"}}</button>
       <button type="button" class="btn btn-outline btn-sm" data-close-search title="Esc">{{t "receipts.close"}}</button>
     </div>
-    <div class="chips">{{range .Presets}}<button type="submit" name="preset" value="{{.}}" class="chip"{{if eq . $v.Input.Preset}} aria-pressed="true"{{end}}>{{t (print "receipts.preset_" .)}}</button>{{end}}</div>
+    <div class="chips-row">{{range .Presets}}<button type="submit" name="preset" value="{{.}}" class="chip is-filter"{{if eq . $v.Input.Preset}} aria-pressed="true"{{end}}>{{t (print "receipts.preset_" .)}}</button>{{end}}</div>
     <div class="receipt-search-row small">
       <label class="check"><input type="checkbox" name="unlinked" value="1"{{if $v.Input.UnlinkedOnly}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "receipts.search_unlinked"}}</label>
       <label>{{t "receipts.search_from"}} <input class="input" type="date" name="from" value="{{$v.Input.From}}"></label>

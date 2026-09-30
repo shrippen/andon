@@ -356,6 +356,6 @@
           {{if or (eq .Label "units") (eq .Label "labels")}}<p class="small muted">{{t (print "field." .Label "_hint")}}</p>{{end}}
           {{if eq (print .Input) "secret"}}<p class="small muted">{{t "field.secret_hint"}}</p>{{end}}
           {{if eq .Label "icon"}}<p class="small muted">{{t "field.icon_hint"}}</p>
-            <input class="icon-upload" type="file" accept="image/svg+xml,image/png,image/webp,image/jpeg,image/x-icon" data-target="{{.Name}}" aria-label="{{t "field.icon"}}">{{end}}
+            <input class="input icon-upload" type="file" accept="image/svg+xml,image/png,image/webp,image/jpeg,image/x-icon" data-target="{{.Name}}" aria-label="{{t "field.icon"}}">{{end}}
           {{end}}
 {{end}}{{end}}

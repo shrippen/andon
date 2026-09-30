@@ -19,7 +19,7 @@ func TestServicePickSortedWithCounts(t *testing.T) {
 	login(t, srv, client)
 
 	pick := string(mustGet(t, srv, client, "/connections/new"))
-	names := regexp.MustCompile(`<a class="type-card"[^>]*><b>([^<]+)</b>`).FindAllStringSubmatch(pick, -1)
+	names := regexp.MustCompile(`<a class="option"[^>]*><b>([^<]+)</b>`).FindAllStringSubmatch(pick, -1)
 	if len(names) < 10 {
 		t.Fatalf("picker lists %d services:\n%s", len(names), pick)
 	}

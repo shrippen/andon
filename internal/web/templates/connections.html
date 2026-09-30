@@ -224,7 +224,7 @@
     {{with .Suggest}}
       <h2>{{t "conn.suggest"}}</h2>
       <div class="type-grid">
-        {{range .}}<a class="type-card" href="/widgets/new?type={{.Key}}&space={{$.Conn.SpaceID}}"><b>{{t (print "wtype." .Key ".name")}}</b><small>{{t (print "wtype." .Key ".desc")}}</small></a>{{end}}
+        {{range .}}<a class="option" href="/widgets/new?type={{.Key}}&space={{$.Conn.SpaceID}}"><b>{{t (print "wtype." .Key ".name")}}</b><small>{{t (print "wtype." .Key ".desc")}}</small></a>{{end}}
       </div>
     {{end}}
     {{if not .IsNew}}
@@ -273,7 +273,7 @@
     <h1>{{t "conn.new"}}</h1>
     <p class="muted">{{t "conn.pick"}}</p>
     <div class="type-grid">
-      {{range .Services}}<a class="type-card" href="/connections/new?service={{.Service}}"><b>{{.Name}}{{if .Count}}<span class="count" data-kind="info" title="{{t "conn.existing" "count" .Count}}">{{.Count}}</span>{{end}}</b><small>{{t (print "conn.about_" .Service)}}</small></a>{{end}}
+      {{range .Services}}<a class="option" href="/connections/new?service={{.Service}}"><b>{{.Name}}{{if .Count}}<span class="count" data-kind="info" title="{{t "conn.existing" "count" .Count}}">{{.Count}}</span>{{end}}</b><small>{{t (print "conn.about_" .Service)}}</small></a>{{end}}
     </div>
   </main>
 </body>
