@@ -58,8 +58,12 @@
     [].forEach.call(d.querySelectorAll(".dsec"), function (sec) {
       var any = sec.querySelector(".tile-slot:not([hidden])");
       sec.hidden = q !== "" && !any;
-      if (q) {
-        sec.classList.remove("is-collapsed");
+      // A hit in a folded section opens it for now; data-open first, so
+      // Kante sees no user change and nothing is stored.
+      var fold = sec.querySelector(".fold");
+      if (q && fold && !fold.open) {
+        fold.dataset.open = "true";
+        fold.open = true;
       }
     });
 
@@ -643,18 +647,15 @@
     });
   }
 
-  // ── Folding: instant in the page, stored in the personal overlay ──
+  // ── Folding: Kante's details.fold folds; the change goes to the
+  // personal overlay (data-fold is the section's fold route). ──
   function setupFolding() {
-    d.addEventListener("click", function (e) {
-      var btn = e.target.closest && e.target.closest(".fold-btn");
-      if (!btn) {
+    d.addEventListener("kante:fold", function (e) {
+      var url = e.target.getAttribute && e.target.getAttribute("data-fold");
+      if (!url) {
         return;
       }
-
-      var sec = btn.closest(".dsec");
-      var closed = sec.classList.toggle("is-collapsed");
-      btn.setAttribute("aria-expanded", String(!closed));
-      post(btn.getAttribute("data-fold"), { state: closed ? "closed" : "open" });
+      post(url, { state: e.detail.open ? "open" : "closed" });
     });
   }
 

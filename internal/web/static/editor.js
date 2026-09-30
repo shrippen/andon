@@ -433,6 +433,7 @@
     }
     var n = form.querySelectorAll('input[name="placement"]').length;
     label.textContent = n;
+    form.hidden = n === 0;
   }
 
   function pick(tile, on) {

@@ -66,7 +66,7 @@ func TestEditBoardFiftyLinks(t *testing.T) {
 	}
 
 	// One tile strip moves to the tile at hand; each tile carries its data.
-	if strips := bytes.Count(page, []byte(`class="tile-strip"`)); strips != 1 {
+	if strips := bytes.Count(page, []byte(`class="tile-tools"`)); strips != 1 {
 		t.Errorf("edit page has %d tile strips, want 1", strips)
 	}
 	if tiles := bytes.Count(page, []byte(` data-widget="`)); tiles != editTiles {

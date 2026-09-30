@@ -91,7 +91,7 @@
     </details>
     <a class="btn btn-primary btn-sm editbar-done" href="/boards/{{.Board.ID}}">{{t "edit.done"}}</a>
   </div>
-  <form id="bulk" method="post" action="/boards/{{.Board.ID}}/bulk" class="bulk-bar is-fixed" hx-ext="morph" hx-swap="morph:innerHTML show:none">
+  <form id="bulk" method="post" action="/boards/{{.Board.ID}}/bulk" class="bulk-bar is-fixed" hidden hx-ext="morph" hx-swap="morph:innerHTML show:none">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
     <input type="hidden" name="version" value="{{.Board.Version}}">
     <span class="n"><span data-sel-count>0</span><small>{{t "edit.selected"}}</small></span>
@@ -168,30 +168,30 @@
      into the tile's section (see boardPart). */}}
 {{define "tile_strip"}}
 {{if .Edit}}
-<form id="tile-strip" class="tile-strip" method="post" hidden hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false"
+<form id="tile-strip" class="tile-tools" method="post" hidden hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false"
       data-tall="{{t "edit.tile_tall"}}" data-normal="{{t "edit.tile_normal"}}" data-wide="{{t "edit.tile_wide"}}" data-narrow="{{t "edit.tile_narrow"}}" data-select="{{t "edit.select"}}">
   <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
   <input type="hidden" name="board_id" value="{{.Board.ID}}">
   <input type="hidden" name="version" value="{{.Board.Version}}">
-  <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
+  <span class="grip" aria-hidden="true"></span>
   <label class="check pick-check"><input type="checkbox" data-pick><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
-  <span class="tile-repeat" title="{{t "edit.repeated"}}" data-repeat hidden></span>
-  <span class="tile-strip-gap"></span>
-  <a class="btn btn-quiet btn-icon btn-sm tile-ico" href="/widgets" data-href="/widgets/{widget}/edit?board={{.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><i class="ico ico-edit"></i></a>
-  <a class="btn btn-quiet btn-icon btn-sm tile-ico" href="/widgets" data-href="/shares/widget/{widget}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><i class="ico ico-share"></i></a>
-  <button class="btn btn-quiet btn-icon btn-sm tile-ico" type="submit" name="rows" data-act="/placements/{placement}/rows" data-toggle="rows"><i class="ico ico-height"></i></button>
-  <button class="btn btn-quiet btn-icon btn-sm tile-ico" type="submit" name="cols" data-act="/placements/{placement}/cols" data-toggle="cols"><i class="ico ico-width"></i></button>
-  <button class="btn btn-quiet btn-icon btn-sm tile-ico is-danger" type="submit" data-act="/placements/{placement}/unplace" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><i class="ico ico-x"></i></button>
+  <small title="{{t "edit.repeated"}}" data-repeat hidden></small>
+  <span class="gap"></span>
+  <a href="/widgets" data-href="/widgets/{widget}/edit?board={{.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><i class="ico ico-edit"></i></a>
+  <a href="/widgets" data-href="/shares/widget/{widget}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><i class="ico ico-share"></i></a>
+  <button type="submit" name="rows" data-act="/placements/{placement}/rows" data-toggle="rows"><i class="ico ico-height"></i></button>
+  <button type="submit" name="cols" data-act="/placements/{placement}/cols" data-toggle="cols"><i class="ico ico-width"></i></button>
+  <button class="is-danger" type="submit" data-act="/placements/{placement}/unplace" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><i class="ico ico-x"></i></button>
 </form>
 {{else if .LayerEdit}}
-<form id="tile-strip" class="tile-strip" method="post" hidden hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false"
+<form id="tile-strip" class="tile-tools" method="post" hidden hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false"
       data-tall="{{t "edit.tile_tall"}}" data-normal="{{t "edit.tile_normal"}}" data-wide="{{t "edit.tile_wide"}}" data-narrow="{{t "edit.tile_narrow"}}" data-hide="{{t "edit.hide"}}" data-show="{{t "edit.show"}}">
   <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-  <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
-  <span class="tile-strip-gap"></span>
-  <button class="btn btn-quiet btn-icon btn-sm tile-ico" type="submit" name="state" data-act="/boards/{{.Board.ID}}/show/{placement}" data-toggle="hidden"><i class="ico ico-eye"></i></button>
-  <button class="btn btn-quiet btn-icon btn-sm tile-ico" type="submit" name="rows" data-act="/boards/{{.Board.ID}}/rows/{placement}" data-toggle="rows"><i class="ico ico-height"></i></button>
-  <button class="btn btn-quiet btn-icon btn-sm tile-ico" type="submit" name="cols" data-act="/boards/{{.Board.ID}}/cols/{placement}" data-toggle="cols"><i class="ico ico-width"></i></button>
+  <span class="grip" aria-hidden="true"></span>
+  <span class="gap"></span>
+  <button type="submit" name="state" data-act="/boards/{{.Board.ID}}/show/{placement}" data-toggle="hidden"><i class="ico ico-eye"></i></button>
+  <button type="submit" name="rows" data-act="/boards/{{.Board.ID}}/rows/{placement}" data-toggle="rows"><i class="ico ico-height"></i></button>
+  <button type="submit" name="cols" data-act="/boards/{{.Board.ID}}/cols/{placement}" data-toggle="cols"><i class="ico ico-width"></i></button>
 </form>
 {{end}}
 {{if or .Edit .LayerEdit}}<p class="edit-touch">{{t "edit.touch_hint"}}</p>{{end}}
@@ -204,14 +204,10 @@
      since {{template}} takes a single argument. */}}
 {{define "section"}}
 {{$b := .B}}{{with .S}}
-<section id="dsec-{{.ID}}" class="dsec{{if .Collapsed}} is-collapsed{{end}}{{if and (not .Title) (not $b.Edit) (not $b.LayerEdit)}} is-bare{{end}}" data-section="{{.ID}}"{{with .Span}} data-span="{{.}}"{{end}}{{with .Rows}} data-rows="{{.}}"{{end}}{{with .Color}} data-color="{{.}}"{{end}}{{with .Mobile}} data-mobile="{{.}}"{{end}}>
-  <header class="dsec-head">
-    <button class="fold-btn" type="button" aria-expanded="{{if .Collapsed}}false{{else}}true{{end}}"
-            data-fold="/boards/{{$b.Board.ID}}/fold/{{.ID}}">
-      <span class="fold-mark" aria-hidden="true"></span>
-      <h2>{{if .Title}}{{.Title}}{{else}}{{t "board.untitled"}}{{end}}</h2>
-      <span class="dsec-count">{{len .Tiles}}</span>
-    </button>
+{{$bare := and (not .Title) (not $b.Edit) (not $b.LayerEdit)}}
+<section id="dsec-{{.ID}}" class="dsec{{if $bare}} is-bare{{end}}" data-section="{{.ID}}"{{with .Span}} data-span="{{.}}"{{end}}{{with .Rows}} data-rows="{{.}}"{{end}}{{with .Color}} data-color="{{.}}"{{end}}{{with .Mobile}} data-mobile="{{.}}"{{end}}>
+  {{/* Section tools sit beside the fold's summary (no controls inside a summary). */}}
+  <div class="dsec-tools">
     {{if not (or $b.Edit $b.LayerEdit)}}{{with .HiddenCount}}<a class="dsec-hidden" href="/boards/{{$b.Board.ID}}?layout" title="{{t "edit.my_layout"}}">{{t "board.hidden_n" "n" .}}</a>{{end}}{{end}}
     {{if $b.Edit}}
     <details class="section-tools">
@@ -249,8 +245,16 @@
         <select class="select" name="value" data-autosubmit>{{range $b.Sizes}}<option value="{{.}}"{{if eq . $size}} selected{{end}}>{{t (print "size." .)}}</option>{{end}}</select></label>
     </form>
     {{end}}
-  </header>
-  <div class="dsec-body size-{{.Size}}"{{with .Cols}} data-style="--cols:{{.}}"{{end}} data-sortable="{{.ID}}">
+  </div>
+  {{/* Kante fold: data-open is the stored state; andon.js saves each
+       change (kante:fold) to data-fold. A bare section never folds. */}}
+  {{$open := or (not .Collapsed) $bare}}
+  <details class="fold" data-key="{{.ID}}" data-open="{{$open}}" data-fold="/boards/{{$b.Board.ID}}/fold/{{.ID}}"{{if $open}} open{{end}}>
+  <summary class="dsec-head">
+    <h2>{{if .Title}}{{.Title}}{{else}}{{t "board.untitled"}}{{end}}</h2>
+    <span class="count dsec-count">{{len .Tiles}}</span>
+  </summary>
+  <div class="body dsec-body size-{{.Size}}"{{with .Cols}} data-style="--cols:{{.}}"{{end}} data-sortable="{{.ID}}">
     {{range .Tiles}}
       {{if or (not .Hidden) $b.LayerEdit}}{{template "tile" dict "T" . "B" $b}}{{end}}
     {{end}}
@@ -268,6 +272,7 @@
     </div>
     {{end}}
   </div>
+  </details>
 </section>
 {{end}}
 {{end}}
@@ -275,7 +280,7 @@
 {{define "tile"}}
 {{$b := .B}}{{with .T}}
 {{$frag := print "/widget-fragments/" .PlacementID}}{{if $b.EmbedToken}}{{$frag = print $frag "?token=" $b.EmbedToken}}{{end}}
-<div class="tile-slot w-{{.Type}}{{if .Hidden}} is-hidden{{end}}" data-placement="{{.PlacementID}}"{{if gt .Rows 1}} data-rows="{{.Rows}}"{{end}}{{if gt .Cols 1}} data-cols="{{.Cols}}"{{end}}
+<div class="tile-slot w-{{.Type}}{{if .Hidden}} is-hidden{{end}}{{if or $b.Edit $b.LayerEdit}} has-tools{{end}}" data-placement="{{.PlacementID}}"{{if gt .Rows 1}} data-rows="{{.Rows}}"{{end}}{{if gt .Cols 1}} data-cols="{{.Cols}}"{{end}}
   {{- if or $b.Edit $b.LayerEdit}} data-widget="{{.WidgetID}}" data-title="{{.Title}}"{{if gt .Placed 1}} data-placed="{{.Placed}}"{{end}} tabindex="0"{{end}}>
   {{if eq .Type "link"}}
     {{$c := .Config}}

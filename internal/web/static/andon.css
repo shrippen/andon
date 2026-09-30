@@ -187,6 +187,7 @@ a > .count, summary > .count { margin-left: .35rem; }
 
 /* ── sections: panels with a tinted top edge and the chamfered corner ── */
 .dsec {
+  position: relative;
   background: var(--bg-panel);
   border-top: 4px solid var(--tint, var(--bg2));
   padding: .75rem .7rem .7rem;
@@ -194,17 +195,16 @@ a > .count, summary > .count { margin-left: .35rem; }
 }
 /* Untitled sections hold free-standing cards (data tiles): no panel. */
 .dsec.is-bare { background: none; border-top: 0; padding: 0; clip-path: none; }
-.dsec.is-bare > .dsec-head { display: none; }
-.dsec-head { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; margin: 0 .3rem .55rem; }
-.fold-btn { display: flex; align-items: baseline; gap: .55rem; background: none; border: 0; cursor: pointer; padding: 0; margin: 0; color: inherit; }
-.fold-btn:hover { background: none; }
-.fold-btn h2 { font-family: var(--font-heading); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; font-size: 1.08rem; color: var(--fg0); margin: 0; }
-.fold-mark { width: .45rem; height: .45rem; border-right: 2px solid var(--fg3); border-bottom: 2px solid var(--fg3); transform: rotate(45deg); transition: transform var(--dur-fast); align-self: center; margin-top: -.2rem; }
-.is-collapsed .fold-mark { transform: rotate(-45deg); margin-top: 0; }
-.dsec-count { font-family: var(--font-mono); font-size: .68rem; color: var(--fg3); }
-.is-collapsed .dsec-body { display: none; }
-.section-tools { margin-left: auto; }
-.section-tools[open] { flex-basis: 100%; order: 3; }
+/* The section folds as a Kante details.fold: its summary is the head. */
+.dsec.is-bare .dsec-head { display: none; }
+.dsec > .fold { border-bottom: 0; }
+.dsec > .fold > .body { padding: 0; }
+.dsec-head { margin: 0 .3rem .3rem; }
+.dsec:has(.dsec-tools > :not(.section-tools[open])) .dsec-head { padding-right: 8rem; }
+.dsec-head h2 { letter-spacing: .03em; font-size: 1.08rem; }
+/* Section tools beside the summary; an open section form flows above it. */
+.dsec-tools { position: absolute; top: .75rem; right: .7rem; z-index: 1; display: flex; align-items: center; gap: .6rem; }
+.dsec-tools:has(.section-tools[open]) { position: static; margin: 0 .3rem .6rem; }
 .section-tools summary { list-style: none; cursor: pointer; }
 .section-form { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: end; margin-top: .6rem; }
 .section-form label { display: flex; flex-direction: column; gap: .2rem; }
@@ -231,29 +231,23 @@ a > .count, summary > .count { margin-left: .35rem; }
 .board-main .dsec-body > .tile-slot:only-child { grid-column: 1 / -1; }
 .tile-slot[data-rows="2"] > .card { height: 100%; }
 .tile-slot.is-hidden { opacity: .35; }
-/* ── edit and layout mode: tile strip, "+" tile, dragging ──
-   The strip sits in a band above the tile (reserved, so it never covers the name) and shows on hover or focus
-   (always on touch screens, on hidden and on selected tiles). */
+/* ── edit and layout mode: Kante .tile-tools, "+" tile, dragging ──
+   Kante's band (.has-tools) holds one strip, moved to the tile at hand. */
 .board[data-mode="board"] .tile-slot, .board[data-mode="overlay"] .tile-slot { cursor: grab; outline: 1px dashed var(--bg2); outline-offset: 2px; }
 .board[data-mode] .tile-slot:hover, .board[data-mode] .tile-slot:focus-within { outline-color: var(--hl); }
-@media (hover: hover) { .board[data-mode] .tile-slot { padding-top: 2.4rem; } }
-.tile-strip { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: .1rem;
-  padding: .15rem .25rem; background: var(--bg1); opacity: 0; pointer-events: none; transition: opacity var(--dur-fast); }
-.tile-slot:hover > .tile-strip, .tile-slot:focus-within > .tile-strip, .tile-slot.is-active > .tile-strip,
-.tile-strip.is-floating { opacity: 1; pointer-events: auto; }
+/* Kante draws both with display: flex, over the hidden attribute. */
+:is(.tile-tools, .bulk-bar)[hidden] { display: none; }
+/* The shared strip floats outside its slot, where Kante sets the band height. */
+.tile-tools.is-floating { --tools-h: var(--h-s); }
 .board[data-mode] .tile-slot.is-selected { outline: 2px solid var(--hl); }
 .edit-touch { display: none; margin: 0 0 .8rem; font-size: .8rem; color: var(--fg3); }
 @media (hover: none) {
   .edit-touch { display: block; }
 }
-.tile-strip-gap { flex: 1; }
-.tile-repeat { font-family: var(--font-mono); font-size: .7rem; color: var(--warn-text); }
-.tile-grip { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; color: var(--fg3); cursor: grab; }
 /* Strip icons as CSS masks: an inline <svg><use> per icon built a
    shadow tree each, ~1 s of a 240-tile edit page on a slow device. */
 .ico { display: block; width: .75rem; height: .75rem; background: currentColor;
   -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; }
-.ico-grip { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M5 2h2v2H5zm4 0h2v2H9zM5 7h2v2H5zm4 0h2v2H9zm-4 5h2v2H5zm4 0h2v2H9z%22/%3E%3C/svg%3E"); }
 .ico-edit { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M11.3 1.3a1 1 0 0 1 1.4 0l2 2a1 1 0 0 1 0 1.4L6 13.4 2 14l.6-4 8.7-8.7Z%22/%3E%3C/svg%3E"); }
 .ico-share { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M12 1a3 3 0 1 1-2.8 4l-3.4 1.8a3 3 0 0 1 0 2.4L9.2 11A3 3 0 1 1 9 12.4l-3.5-1.9a3 3 0 1 1 0-5L9 3.6A3 3 0 0 1 12 1Z%22/%3E%3C/svg%3E"); }
 .ico-height { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M8 0 12 4H9v8h3l-4 4-4-4h3V4H4Z%22/%3E%3C/svg%3E"); }
@@ -261,12 +255,6 @@ a > .count, summary > .count { margin-left: .35rem; }
 .ico-x { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M3.4 2 8 6.6 12.6 2 14 3.4 9.4 8l4.6 4.6-1.4 1.4L8 9.4 3.4 14 2 12.6 6.6 8 2 3.4Z%22/%3E%3C/svg%3E"); }
 .ico-eye { --ico: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Cpath d=%22M8 3c3.6 0 6.3 2.6 7.5 5-1.2 2.4-3.9 5-7.5 5S1.7 10.4.5 8C1.7 5.6 4.4 3 8 3Zm0 2.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z%22/%3E%3C/svg%3E"); }
 label.pick-check { margin: 0 .3rem; }
-.tile-strip .btn { margin: 0; }
-.tile-ico[aria-pressed="true"] { color: var(--hl); }
-.tile-ico.is-danger:hover, .tile-ico.is-danger:focus-visible { color: var(--danger-text); }
-@media (hover: none) {
-  .tile-strip { position: static; opacity: 1; pointer-events: auto; }
-}
 .add-tile { display: flex; flex-direction: column; justify-content: center; gap: .5rem; min-height: 4.5rem; padding: .6rem;
   border: 1px dashed var(--bg2); color: var(--fg3); }
 .add-tile:hover, .add-tile:focus-within { border-color: var(--hl); }
@@ -754,11 +742,10 @@ dialog.dialog::backdrop { background: var(--scrim); }
 .editbar-pop { position: relative; }
 .editbar-pop > form { position: absolute; left: 0; top: calc(100% + .35rem); z-index: 40; padding: .6rem; background: var(--bg-hard); border: 1px solid var(--bg2); border-top: 4px solid var(--cyan); }
 .editbar-pop input { width: 14rem; margin: 0; }
-/* Bulk bar (Kante .bulk-bar): only once tiles are selected. */
-.bulk-bar:not(:has(input[name="placement"])) { display: none; }
+/* Bulk bar (Kante .bulk-bar): shown once tiles are selected (editor.js). */
 .bulk-bar select { width: auto; margin: 0; }
 .bulk-bar .btn { margin: 0; }
-main:has(.bulk-bar input[name="placement"]) { padding-bottom: 6rem; }
+main:has(.bulk-bar:not([hidden])) { padding-bottom: 6rem; }
 .dropzone { border: 2px dashed var(--bg2); padding: 1rem; display: flex; flex-wrap: wrap; gap: .7rem; background: var(--bg0); }
 
 /* ── login: Kante .login; the page has Andon's header above it ── */

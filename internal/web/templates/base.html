@@ -122,12 +122,12 @@
   {{end}}
 </header>
 {{if .Who}}
-<dialog id="palette" class="dialog palette" aria-label="{{t "palette.title"}}">
+<dialog id="palette" class="dialog palette" data-covers-bar aria-label="{{t "palette.title"}}">
   <input class="input" id="palette-q" type="search" autocomplete="off" placeholder="{{t "palette.hint"}}" aria-label="{{t "palette.title"}}">
   <ul id="palette-list" role="listbox"></ul>
   <p class="small muted palette-foot">{{t "palette.keys"}}</p>
 </dialog>
-<dialog id="shortcuts" class="dialog shortcuts" aria-label="{{t "keys.title"}}">
+<dialog id="shortcuts" class="dialog shortcuts" data-covers-bar aria-label="{{t "keys.title"}}">
   <h3>{{t "keys.title"}}</h3>
   <dl>
     <dt><kbd>/</kbd></dt><dd>{{t "keys.search"}}</dd>

@@ -84,7 +84,8 @@ func TestLinkTileAndLayout(t *testing.T) {
 	if err != nil || resp.StatusCode != http.StatusNoContent {
 		t.Fatalf("fold: %v %d", err, resp.StatusCode)
 	}
-	if !strings.Contains(string(mustGet(t, srv, client, boardURL)), `class="dsec is-collapsed`) {
+	// "Mein Layout" shows the fold (an untitled section has no head to fold in the normal view).
+	if !strings.Contains(string(mustGet(t, srv, client, boardURL+"?layout")), `data-open="false"`) {
 		t.Fatal("fold not stored in the overlay")
 	}
 
@@ -99,7 +100,7 @@ func TestLinkTileAndLayout(t *testing.T) {
 	// Edit mode shows the shared board: the editor's own hides and folds
 	// do not apply there.
 	edit := string(mustGet(t, srv, client, boardURL+"?edit"))
-	if !strings.Contains(edit, `<div class="tile-slot w-link" data-placement="`+placements[0][1]+`"`) || strings.Contains(edit, "is-collapsed") {
+	if !strings.Contains(edit, `<div class="tile-slot w-link has-tools" data-placement="`+placements[0][1]+`"`) || strings.Contains(edit, `data-open="false"`) {
 		t.Fatalf("edit mode applies the own layout:\n%s", edit)
 	}
 
@@ -117,10 +118,10 @@ func TestLinkTileAndLayout(t *testing.T) {
 	}
 	expect(string(mustGet(t, srv, client, boardURL)), "board", `class="dsec-hidden"`, "1 ausgeblendet", " data-live-tile")
 	expect(string(mustGet(t, srv, client, boardURL+"?layout")), "layout mode",
-		`class="editbar is-layout"`, "Änderungen gelten nur für dich", `id="tile-strip" class="tile-strip"`,
-		`data-show="Einblenden"`, `data-tall="Doppelte Höhe"`, `is-hidden" data-placement=`, ">Kachelgröße<")
+		`class="editbar is-layout"`, "Änderungen gelten nur für dich", `id="tile-strip" class="tile-tools"`,
+		`data-show="Einblenden"`, `data-tall="Doppelte Höhe"`, `is-hidden has-tools" data-placement=`, ">Kachelgröße<")
 	expect(string(mustGet(t, srv, client, boardURL+"?edit")), "edit mode",
-		`class="editbar has-menu is-edit"`, `id="tile-strip" class="tile-strip"`, `aria-label="Entfernen"`, `aria-label="Bearbeiten"`,
+		`class="editbar has-menu is-edit"`, `id="tile-strip" class="tile-tools"`, `aria-label="Entfernen"`, `aria-label="Bearbeiten"`,
 		`id="bulk" method="post" action="`+boardURL+`/bulk" class="bulk-bar is-fixed"`, `class="add-tile"`, `class="dropdown is-right"`)
 
 	version := regexp.MustCompile(`data-version="(\d+)"`).FindStringSubmatch(string(mustGet(t, srv, client, boardURL)))[1]
