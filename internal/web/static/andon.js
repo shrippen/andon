@@ -1127,7 +1127,7 @@
   // CSP forbids style attributes in markup; setting them through the
   // CSSOM is allowed. Values come from services (a Kimai project color),
   // so only known properties and plain values pass: no url(), no ";".
-  var STYLE_PROP = /^(--[a-z]+|width|left|top|background)$/;
+  var STYLE_PROP = /^(--[a-z]+|width|left|top|color|background)$/;
   var STYLE_VALUE = /^(-?[\d.]+(%|deg|rem|px|s)?|#[0-9a-fA-F]{3,8}|var\(--[a-z0-9-]+\)|[a-z]+)$/;
 
   function applyStyles(root) {

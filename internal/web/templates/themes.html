@@ -24,7 +24,7 @@
       <tr><th>{{t "field.name"}}</th><th></th></tr>
       {{range .Items}}
       <tr>
-        <td>{{with .Swatches}}<svg class="swatches" viewBox="0 0 {{len .}} 1" preserveAspectRatio="none" aria-hidden="true">{{range $i, $c := .}}<rect x="{{$i}}" width="1" height="1" fill="{{$c}}"/>{{end}}</svg>{{end}}{{.Name}}{{if .Builtin}} <span class="pill">{{t "themes.builtin"}}</span>{{end}}
+        <td>{{with .Swatches}}<span class="swatches" aria-hidden="true">{{range .}}<span class="swatch" data-style="--c:{{.}}"></span>{{end}}</span>{{end}}{{.Name}}{{if .Builtin}} <span class="pill">{{t "themes.builtin"}}</span>{{end}}
           {{if eq .ID $.ActiveTheme}} <span class="pill" data-state="applied">{{t "themes.active"}}</span>{{end}}
           {{if eq .ID $.InstanceTheme}} <span class="pill">{{t "themes.instance_default"}}</span>{{end}}
           {{if eq .ID $.MyTheme}} <span class="pill">{{t "themes.mine"}}</span>{{end}}</td>
@@ -87,7 +87,11 @@
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
     {{if .Saved}}<p class="pill" data-state="applied">{{t "saved"}}</p>{{end}}
     {{if .Theme.Builtin}}<p class="card">{{t "themes.builtin_hint"}}</p>{{end}}
-    {{range .Issues}}<p class="pill" data-state="locked">{{t "themes.contrast" "mode" (t (print "mode." .Mode)) "fg" .FG "bg" .BG "ratio" .Ratio}}</p>{{end}}
+    {{/* Failing pairs as Kante .contrast read-outs, the sentence beside. */}}
+    {{range .Issues}}<p class="contrast-issue">
+      <span class="contrast" data-level="fail"><span class="sample" data-style="color:{{.FGColor}};background:{{.BGColor}}">Aa</span><span class="ratio">{{num .Ratio 2}} : 1</span><span class="badge">AA</span></span>
+      <span class="small">{{t "themes.contrast" "mode" (t (print "mode." .Mode)) "fg" .FG "bg" .BG "ratio" (num .Ratio 2)}}</span>
+    </p>{{end}}
 
     <div class="editor-split">
       <form method="post" action="/themes/{{.Theme.ID}}" class="card" id="theme-form">
@@ -157,7 +161,7 @@
 
 {{/* Every component once, for the theme preview and /styleguide. */}}
 {{define "sample"}}
-<div class="sample">
+<div class="theme-sample">
   <div class="kpi-row">
     <div class="kpi"><span class="kpi-label">{{t "sample.revenue"}}</span><b class="kpi-value" data-live>{{money 48250}}</b><span class="delta up">+12 %</span></div>
     <div class="kpi"><span class="kpi-label">{{t "sample.open"}}</span><b class="kpi-value" data-live>{{money 4180}}</b><span class="delta dn">−3 %</span></div>

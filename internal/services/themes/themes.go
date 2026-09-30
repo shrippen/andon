@@ -122,10 +122,12 @@ func swatches(theme *model.Theme) []string {
 
 // ContrastIssue is one text/background pair failing WCAG AA.
 type ContrastIssue struct {
-	Mode  Mode
-	FG    string
-	BG    string
-	Ratio float64
+	Mode    Mode
+	FG      string
+	BG      string
+	FGColor string // hex of FG, for the sample, e.g. "#a89984"
+	BGColor string
+	Ratio   float64
 }
 
 // ── Parsing and rendering ──
@@ -310,7 +312,7 @@ func ContrastIssues(dark, light map[string]string) []ContrastIssue {
 				continue
 			}
 			if r := Ratio(a, b); r < aaText {
-				issues = append(issues, ContrastIssue{Mode: m.mode, FG: pair[0], BG: pair[1], Ratio: r})
+				issues = append(issues, ContrastIssue{Mode: m.mode, FG: pair[0], BG: pair[1], FGColor: a, BGColor: b, Ratio: r})
 			}
 		}
 	}

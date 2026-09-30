@@ -84,7 +84,7 @@ func TestThemeDuplicateEditFontExportImport(t *testing.T) {
 		t.Fatalf("import lost token or font:\n%s", css)
 	}
 
-	if !strings.Contains(string(mustGet(t, srv, client, "/styleguide")), `class="sample"`) {
+	if !strings.Contains(string(mustGet(t, srv, client, "/styleguide")), `class="theme-sample"`) {
 		t.Fatal("styleguide missing sample")
 	}
 }

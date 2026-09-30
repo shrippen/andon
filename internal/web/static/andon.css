@@ -791,10 +791,11 @@ main:has(.bulk-bar input[name="placement"]) { padding-bottom: 6rem; }
 .editor-split { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.4rem; align-items: start; }
 .token-grid { display: grid; grid-template-columns: minmax(8rem, auto) minmax(0, 1fr) minmax(0, 1fr); gap: .4rem .8rem; align-items: center; }
 .token-grid code { font-size: .75rem; }
+.contrast-issue { display: flex; flex-wrap: wrap; gap: .4rem .8rem; align-items: center; }
 .swatch-row { display: flex; gap: .35rem; align-items: center; }
 .swatch-row input[type=color] { flex: 0 0 2rem; height: 2rem; padding: 0; border: 1px solid var(--bg2); background: none; cursor: pointer; }
 .theme-preview { display: flex; flex-direction: column; gap: .8rem; position: sticky; top: 1rem; }
-.sample { display: flex; flex-direction: column; gap: 1rem; background: var(--bg-void); color: var(--fg1); padding: 1rem; border: 1px solid var(--bg1); }
+.theme-sample { display: flex; flex-direction: column; gap: 1rem; background: var(--bg-void); color: var(--fg1); padding: 1rem; border: 1px solid var(--bg1); }
 .code-area { font-family: var(--font-mono); min-height: 24rem; line-height: 1.5; white-space: pre; tab-size: 2; width: 100%; }
 .code-area.short { min-height: 8rem; }
 
@@ -1350,7 +1351,8 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 .save-bar button { margin: 0; }
 
 /* Theme list: a strip of each theme's colours before its name. */
-.swatches { display: inline-block; vertical-align: middle; width: 6rem; height: .9rem; margin-right: .6rem; border: 1px solid var(--bg2); }
+.swatches { display: inline-flex; gap: 2px; vertical-align: middle; margin-right: .6rem; }
+.swatches .swatch { width: 12px; height: 12px; }
 
 /* ── timeline page: density band, days on a vertical line ── */
 .tl-band { margin: 0 0 1.4rem; }
