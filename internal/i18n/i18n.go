@@ -295,6 +295,29 @@ func Weekday(value any, locale enums.Locale) string {
 	return t.Format("Mon")
 }
 
+// MonthDay formats a date's day of the month, two digits ("03").
+func MonthDay(value any) string {
+	t, ok := asDate(value)
+	if !ok {
+		return ""
+	}
+	return t.Format("02")
+}
+
+// MonthShort formats a date's abbreviated month name ("Okt", "Oct").
+func MonthShort(value any, locale enums.Locale) string {
+	t, ok := asDate(value)
+	if !ok {
+		return ""
+	}
+	if locale == enums.LocaleDE {
+		return germanMonths[t.Month()-1]
+	}
+	return t.Format("Jan")
+}
+
+var germanMonths = [12]string{"Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"}
+
 var germanWeekdays = map[time.Weekday]string{
 	time.Monday: "Mo", time.Tuesday: "Di", time.Wednesday: "Mi", time.Thursday: "Do",
 	time.Friday: "Fr", time.Saturday: "Sa", time.Sunday: "So",

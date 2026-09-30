@@ -461,12 +461,9 @@ label.pick-check { margin: 0 .3rem; }
 .kpi { background: var(--bg-panel); padding: .9rem 1rem; }
 /* A KPI tile is already a card: no second frame inside it. */
 .card-body > .kpi { background: none; padding: 0; }
-/* Kante .spark stretched to a fixed height: the line keeps its width,
-   the end square sits outside the stretched SVG. */
-.spark { position: relative; height: 2rem; margin-top: .2rem; }
+/* Kante .spark stretched to a fixed height. */
+.spark { height: 2rem; margin-top: .2rem; }
 .spark svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.spark path { vector-effect: non-scaling-stroke; }
-.spark-end { position: absolute; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; background: var(--d4); }
 
 /* ── hints ("Lage"): severity bands, one row per hint ── */
 .hint-group { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .6rem; }
@@ -480,11 +477,7 @@ label.pick-check { margin: 0 .3rem; }
 .hint-card .actions form { margin: 0; }
 .hint-card .actions .btn { margin: 0; }
 .hint-filters { display: flex; flex-direction: column; gap: .5rem; margin: 1rem 0 1.4rem; }
-/* Filter chips are links: Kante's .chip does not drop the underline. */
-a.chip { text-decoration: none; }
 .chip span { opacity: .75; }
-.chip[data-tier="critical"] { --c: var(--red); }
-.chip[data-tier="warn"] { --c: var(--orange); }
 .hint-rule { margin-bottom: 1.2rem; }
 .hint-rule .hint-group-head { font-size: 1rem; margin-bottom: .5rem; }
 .hint-rule[data-tier="red"] .sq { background: var(--red); }
@@ -677,11 +670,6 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 
 
 /* ── chart / trend: Kante .chart and .legend ── */
-/* Charts stretch to the tile (preserveAspectRatio="none"): strokes keep their width. */
-.chart .line, .chart .goal, .chart .prev { vector-effect: non-scaling-stroke; }
-/* Last year as an outline, so this year's bar reads first. */
-.chart .prev { fill: none; stroke: var(--fg3); stroke-width: 1.5; stroke-dasharray: 4 3; }
-.chart text { font-size: 10px; }
 .legend { margin: .4rem 0 0; }
 .legend i.prev { background: none; border: 1px dashed var(--fg3); }
 
@@ -698,12 +686,7 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .timer-clock { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 /* Narrow tiles show the latest weeks (the left side is cut), no scrollbar. */
 .heat-wrap { overflow: hidden; display: flex; justify-content: flex-end; }
-.heat-wrap .heat { flex: none; width: max(100%, 30rem); grid-auto-flow: column; grid-auto-columns: 1fr; grid-template-rows: repeat(7, auto); gap: 2px; }
-.heat-wrap .heat[data-rows="5"] { grid-template-rows: repeat(5, auto); }
-/* Legend scale: the five levels as a row of cells. */
-.heat-scale { align-items: center; gap: .4rem; }
-.heat-scale .heat { grid-auto-flow: column; gap: 2px; }
-.heat-scale .heat i { width: .7rem; margin: 0; }
+.heat-wrap .heat { flex: none; width: max(100%, 30rem); }
 .cash-events { list-style: none; margin: .4rem 0 0; padding: 0; font-size: .82rem; display: flex; flex-direction: column; gap: .2rem; }
 .cash-events li { display: flex; gap: .5rem; }
 .cash-events li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -787,7 +770,6 @@ main:has(.bulk-bar input[name="placement"]) { padding-bottom: 6rem; }
 .token-grid code { font-size: .75rem; }
 .contrast-issue { display: flex; flex-wrap: wrap; gap: .4rem .8rem; align-items: center; }
 .swatch-row { display: flex; gap: .35rem; align-items: center; }
-.swatch-row input[type=color] { flex: 0 0 2rem; height: 2rem; padding: 0; border: 1px solid var(--bg2); background: none; cursor: pointer; }
 .theme-preview { display: flex; flex-direction: column; gap: .8rem; position: sticky; top: 1rem; }
 .theme-sample { display: flex; flex-direction: column; gap: 1rem; background: var(--bg-void); color: var(--fg1); padding: 1rem; border: 1px solid var(--bg1); }
 .code-area { font-family: var(--font-mono); min-height: 24rem; line-height: 1.5; white-space: pre; tab-size: 2; width: 100%; }
@@ -1323,10 +1305,7 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 
 /* ── chart and trend options: values, goal lines; heatmap by goal ── */
 .chart .bar-value { fill: var(--fg2); font-family: var(--font-mono); font-size: 13px; }
-.chart .goal.is-bad { stroke: var(--red); }
 .legend i.goal { background: none; border-top: 2px dashed var(--yellow); height: 0; }
-.heat i[data-goal="met"], .legend i[data-goal="met"] { background: var(--aqua); }
-.heat i[data-goal="under"], .legend i[data-goal="under"] { background: var(--yellow); }
 .spark-cell { width: 5rem; }
 .spark-cell .spark { height: 1.1rem; margin: 0; }
 
@@ -1364,8 +1343,10 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 @media (max-width: 640px) { .tl-day { grid-template-columns: minmax(0, 1fr); } .tl-date { padding-top: .8rem; } }
 
 /* ── share dialog: Kante .share; the add row wraps on phones ── */
-.share > .add { flex-wrap: wrap; }
 .share > .add > select { width: auto; margin: 0; }
 .share > .add > select[name="grantee_id"] { flex: 1 1 12rem; min-width: 0; }
 .share > .add > .btn, .share > .row .btn { margin: 0; }
 .share > .row > .select { margin: 0; }
+
+/* Kante's .timeline counts on base.css's list reset, which Andon does not load. */
+ol.timeline { margin: 0; padding: 0; }

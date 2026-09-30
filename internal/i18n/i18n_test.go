@@ -56,6 +56,19 @@ func TestDayFormatting(t *testing.T) {
 	}
 }
 
+// The date tile (Kante .date-tile) shows day of month and short month.
+func TestMonthDayAndShort(t *testing.T) {
+	if got := i18n.MonthDay("2026-10-03"); got != "03" {
+		t.Fatalf("month day: %q", got)
+	}
+	if got := i18n.MonthShort("2026-10-03", enums.LocaleDE); got != "Okt" {
+		t.Fatalf("German month: %q", got)
+	}
+	if got := i18n.MonthShort("2026-10-03", enums.LocaleEN); got != "Oct" {
+		t.Fatalf("English month: %q", got)
+	}
+}
+
 func TestPickAcceptLanguage(t *testing.T) {
 	if got := i18n.Pick("en-US,en;q=0.9,de;q=0.8"); got != enums.LocaleEN {
 		t.Fatalf("expected en, got %v", got)

@@ -160,12 +160,12 @@
 <p class="small muted">{{t "heatmap.total" "hours" $v.Total}}</p>
 {{/* Kante .heat: one column per week, Monday on top. */}}
 <div class="heat-wrap">
-<div class="heat" data-rows="{{$v.Rows}}" role="img" aria-label="{{t "wtype.heatmap.name"}}">
-  {{range $v.Cells}}<i{{with .Level}} data-l="{{.}}"{{end}}{{with .Goal}} data-goal="{{.}}"{{end}} title="{{day .Day}} · {{.Hours}} h"></i>{{end}}
+<div class="heat" data-style="--rows:{{$v.Rows}}" role="img" aria-label="{{t "wtype.heatmap.name"}}">
+  {{range $v.Cells}}<i{{with .Level}} data-l="{{.}}"{{end}}{{with .Goal}} class="{{.}}"{{end}} title="{{day .Day}} · {{.Hours}} h"></i>{{end}}
 </div>
 </div>
-{{if $v.ByGoal}}<p class="legend"><span><i data-goal="met"></i>{{t "heatmap.goal_met"}}</span><span><i data-goal="under"></i>{{t "heatmap.goal_under"}}</span></p>
-{{else}}<p class="legend heat-scale"><span>{{t "heatmap.less"}}</span><span class="heat"><i></i><i data-l="1"></i><i data-l="2"></i><i data-l="3"></i><i data-l="4"></i></span><span>{{t "heatmap.more"}}</span></p>{{end}}
+{{if $v.ByGoal}}<p class="heat-legend"><i class="met"></i><span>{{t "heatmap.goal_met"}}</span><i class="under"></i><span>{{t "heatmap.goal_under"}}</span></p>
+{{else}}<p class="heat-legend"><span>{{t "heatmap.less"}}</span><i></i><i data-l="1"></i><i data-l="2"></i><i data-l="3"></i><i data-l="4"></i><span>{{t "heatmap.more"}}</span></p>{{end}}
 {{end}}{{end}}
 {{end}}
 
@@ -175,7 +175,7 @@
 <p class="kpi"><span class="kpi-label">{{if $v.Relative}}{{t "cashflow.change"}}{{else}}{{t "cashflow.end"}}{{end}}</span>
   <b class="kpi-value" data-live>{{money $v.End $v.Currency}}</b></p>
 <svg class="chart spark-lg" viewBox="0 0 {{$v.W}} {{$v.H}}" preserveAspectRatio="none" role="img" aria-label="{{t "wtype.cashflow.name"}}">
-  {{with $v.MinY}}<line class="goal{{if $v.BelowMin}} is-bad{{end}}" x1="0" y1="{{.}}" x2="{{$v.W}}" y2="{{.}}"/>{{end}}
+  {{with $v.MinY}}<line class="goal{{if $v.BelowMin}} is-danger{{end}}" x1="0" y1="{{.}}" x2="{{$v.W}}" y2="{{.}}"/>{{end}}
   <path class="line s1" d="{{$v.Path}}"/>
 </svg>
 {{if $v.BelowMin}}<p class="small late">{{t "cashflow.below_min" "amount" (money $v.Min $v.Currency)}}</p>{{end}}

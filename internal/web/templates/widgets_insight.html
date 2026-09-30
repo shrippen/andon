@@ -87,11 +87,11 @@
 {{$prevKey := or .Frag.View.PrevKey "chart.prev"}}
 {{if .Frag.View.Unsupported}}<p class="slot-note">{{t "widget.unsupported"}}</p>
 {{else if $bars}}
-<svg class="chart" viewBox="0 0 1000 220" role="img" aria-label="{{t (printf "chart.%s" $.Frag.Config.Chart)}}">
+<svg class="chart" viewBox="0 0 1000 220" data-style="--chart-text:10px" role="img" aria-label="{{t (printf "chart.%s" $.Frag.Config.Chart)}}">
   <line class="grid" x1="10" y1="200" x2="1000" y2="200"/>
   {{$v := .Frag.View}}
   {{range $bars}}
-  {{if $v.ShowPrev}}<rect class="prev" x="{{.PrevX}}" y="{{.PrevY}}" width="{{.PrevW}}" height="{{.PrevH}}"><title>{{.Label}} ({{t $prevKey}}): {{if eq $v.Unit "money"}}{{money .Prev}}{{else}}{{num .Prev 1}}{{end}}</title></rect>{{end}}
+  {{if $v.ShowPrev}}<rect class="bar is-prev" x="{{.PrevX}}" y="{{.PrevY}}" width="{{.PrevW}}" height="{{.PrevH}}"><title>{{.Label}} ({{t $prevKey}}): {{if eq $v.Unit "money"}}{{money .Prev}}{{else}}{{num .Prev 1}}{{end}}</title></rect>{{end}}
   <rect class="s1" x="{{.ValueX}}" y="{{.ValueY}}" width="{{.ValueW}}" height="{{.ValueH}}"><title>{{.Label}}: {{if eq $v.Unit "money"}}{{money .Value}}{{else}}{{num .Value 1}}{{end}}</title></rect>
   {{if $v.Values}}<text class="bar-value" x="{{.LabelX}}" y="{{.ValueY}}" dy="-4" text-anchor="middle">{{if eq $v.Unit "money"}}{{num (thousands .Value) 0}}k{{else}}{{num .Value 0}}{{end}}</text>{{end}}
   {{if .AxisLabel}}<text x="{{.LabelX}}" y="214" text-anchor="middle">{{.AxisLabel}}</text>{{end}}
@@ -122,7 +122,7 @@
 {{range .Frag.View.Items}}
   {{/* State first: red from tomorrow, yellow within a week. */}}
   <li{{if le .Left 1}} data-tier="red"{{else if le .Left 6}} data-tier="yellow"{{end}}>
-    <time class="date-tile" datetime="{{.Due}}">{{weekday .Due}} {{day .Due}}</time>
+    <time class="date-tile" datetime="{{.Due}}" title="{{day .Due}}"><b>{{mday .Due}}</b>{{month .Due}} · {{weekday .Due}}</time>
     <span class="what">{{if eq .Kind "vat_return"}}{{t "deadline.vat_return" "period" .Period}}{{else if eq .Kind "prepayment"}}{{t "deadline.prepayment"}}{{else}}{{t "deadline.annual" "year" .Year}}{{end}}{{if .Amount}} · {{money .Amount}}{{end}}</span>
     <em class="state">{{if eq .Left 0}}{{t "deadline.today"}}{{else}}{{.Left}} {{t "deadline.days_short"}}{{end}}</em></li>
 {{else}}{{if .Frag.View.Configured}}<li class="muted">{{t "widget.empty"}}</li>{{end}}
@@ -172,7 +172,7 @@
 <ol class="timeline">
 {{range .Frag.View.Hints}}{{$left := index $.Frag.View.Left .ID}}
   <li{{if le $left 1}} data-tier="red"{{else if le $left 6}} data-tier="yellow"{{end}}>
-    <time class="date-tile" datetime="{{.Due}}">{{weekday .Due}} {{day .Due}}</time>
+    <time class="date-tile" datetime="{{.Due}}" title="{{day .Due}}"><b>{{mday .Due}}</b>{{month .Due}} · {{weekday .Due}}</time>
     <span class="what"><a href="/hints#hint-{{.ID}}" title="{{.Title}}">{{.Title}}</a></span>
     <em class="state">{{if lt $left 0}}{{t "deadline.overdue"}}{{else if eq $left 0}}{{t "deadline.today"}}{{else}}{{$left}} {{t "deadline.days_short"}}{{end}}</em></li>
 {{else}}<li class="muted">{{t "widget.empty"}}</li>
@@ -234,7 +234,8 @@
 {{/* spark: Kante .spark, a small line with the last point marked (widgets.Spark). */}}
 {{define "spark"}}<span class="spark"><svg viewBox="0 0 {{.W}} {{.H}}" preserveAspectRatio="none" aria-hidden="true">
   <path d="{{.Line}}"/>
-</svg><i class="spark-end" data-style="left:{{.EndLeft}}%;top:{{.EndTop}}%"></i></span>{{end}}
+  <path class="end" d="M{{.EndX}} {{.EndY}}h0"/>
+</svg></span>{{end}}
 
 {{define "widgets/rate_trend"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}

@@ -10,13 +10,6 @@ type Spark struct {
 	EndX, EndY float64
 }
 
-// EndLeft and EndTop place the end marker in percent of the box, so it
-// stays round however the line is stretched.
-func (s Spark) EndLeft() float64 { return s.EndX / float64(s.W) * pctFull }
-
-// EndTop: see EndLeft.
-func (s Spark) EndTop() float64 { return s.EndY / float64(s.H) * pctFull }
-
 const (
 	sparkW   = 120
 	sparkH   = 28
