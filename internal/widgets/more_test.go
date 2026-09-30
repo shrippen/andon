@@ -66,7 +66,7 @@ func TestHeatmapLevels(t *testing.T) {
 			found = c.Level == 4 && c.Hours == "6:40"
 		}
 	}
-	if !found || cells[len(cells)-1].Day != "2026-09-25" || view["Total"] != 6 {
+	if !found || cells[len(cells)-1].Day != "2026-09-25" || view["Total"] != 6 || view["Rows"] != 7 {
 		t.Fatalf("heatmap: last %+v total %v", cells[len(cells)-1], view["Total"])
 	}
 }

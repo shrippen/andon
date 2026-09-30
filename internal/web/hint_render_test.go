@@ -40,7 +40,7 @@ func TestFreelanceTilesRender(t *testing.T) {
 	cases := map[string]map[string]any{
 		"widgets/cashflow": {"Path": "M0,1 L2,3", "W": 1000, "H": 160, "Low": -300.0, "LowDay": day, "End": 700.0, "Currency": "EUR",
 			"Relative": false, "Events": []metrics.CashEvent{{Day: day, Label: "fixed", Amount: -800}}},
-		"widgets/heatmap": {"Cells": []widgets.HeatCell{{Day: "2026-09-24", Level: 4, Hours: "6:40"}}, "W": 636, "H": 84, "Total": 6},
+		"widgets/heatmap": {"Cells": []widgets.HeatCell{{Day: "2026-09-24", Level: 4, Hours: "6:40"}}, "Rows": 7, "Total": 6},
 	}
 	for name, view := range cases {
 		rec := httptest.NewRecorder()
@@ -48,7 +48,7 @@ func TestFreelanceTilesRender(t *testing.T) {
 		if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, name, http.StatusOK, map[string]any{"ThemeURL": "", "Frag": frag}); err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-		want := map[string]string{"widgets/cashflow": "Feste Kosten", "widgets/heatmap": `data-level="4"`}[name]
+		want := map[string]string{"widgets/cashflow": "Feste Kosten", "widgets/heatmap": `data-l="4"`}[name]
 		if body := rec.Body.String(); !strings.Contains(body, want) {
 			t.Fatalf("%s:\n%s", name, body)
 		}

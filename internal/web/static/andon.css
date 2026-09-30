@@ -463,11 +463,12 @@ label.pick-check { margin: 0 .3rem; }
 .kpi { background: var(--bg-panel); padding: .9rem 1rem; }
 /* A KPI tile is already a card: no second frame inside it. */
 .card-body > .kpi { background: none; padding: 0; }
-.spark { display: block; position: relative; width: 100%; height: 2rem; margin-top: .2rem; }
+/* Kante .spark stretched to a fixed height: the line keeps its width,
+   the end square sits outside the stretched SVG. */
+.spark { position: relative; height: 2rem; margin-top: .2rem; }
 .spark svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.spark-area { fill: color-mix(in srgb, var(--aqua) 16%, transparent); }
-.spark-line { fill: none; stroke: var(--aqua); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-.spark-end { position: absolute; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; background: var(--fg0); }
+.spark path { vector-effect: non-scaling-stroke; }
+.spark-end { position: absolute; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; background: var(--d4); }
 
 /* ── hints ("Lage"): severity bands, one row per hint ── */
 .hint-group { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .6rem; }
@@ -677,16 +678,13 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .progress-soll { position: absolute; left: var(--x); top: -3px; bottom: -3px; width: 2px; background: var(--fg0); }
 
 
-/* ── chart / trend ── */
-.chart { width: 100%; height: auto; }
-.chart .axis { stroke: var(--bg2); stroke-width: 1; }
-.chart .bar { fill: var(--cyan); }
+/* ── chart / trend: Kante .chart and .legend ── */
+/* Charts stretch to the tile (preserveAspectRatio="none"): strokes keep their width. */
+.chart .line, .chart .goal, .chart .prev { vector-effect: non-scaling-stroke; }
 /* Last year as an outline, so this year's bar reads first. */
-.chart .bar.prev { fill: none; stroke: var(--fg3); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
-.chart text { fill: var(--fg3); font-family: var(--font-mono); font-size: 10px; }
-.chart .trend-line { fill: none; stroke: var(--cyan); stroke-width: 2; }
-.legend { display: flex; gap: 1rem; font-family: var(--font-mono); font-size: .72rem; color: var(--fg3); margin: .4rem 0 0; }
-.legend i { display: inline-block; width: 10px; height: 10px; background: var(--cyan); margin-right: .3rem; vertical-align: -1px; }
+.chart .prev { fill: none; stroke: var(--fg3); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.chart text { font-size: 10px; }
+.legend { margin: .4rem 0 0; }
 .legend i.prev { background: none; border: 1px dashed var(--fg3); }
 
 /* ── table: Kante's .table in a .table-wrap ── */
@@ -701,15 +699,13 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .timer-list li.is-running { border-left: 4px solid var(--green); padding-left: .5rem; }
 .timer-clock { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 /* Narrow tiles show the latest weeks (the left side is cut), no scrollbar. */
-.heatmap-wrap { overflow: hidden; display: flex; justify-content: flex-end; }
-.heatmap { flex: none; width: max(100%, 30rem); height: auto; }
-.heatmap rect, .heat-legend i { fill: var(--bg1); background: var(--bg1); }
-.heatmap rect[data-level="1"], .heat-legend i[data-level="1"] { fill: var(--green-n); background: var(--green-n); opacity: .45; }
-.heatmap rect[data-level="2"], .heat-legend i[data-level="2"] { fill: var(--green-n); background: var(--green-n); }
-.heatmap rect[data-level="3"], .heat-legend i[data-level="3"] { fill: var(--green); background: var(--green); opacity: .8; }
-.heatmap rect[data-level="4"], .heat-legend i[data-level="4"] { fill: var(--green); background: var(--green); }
-.heat-legend { display: flex; gap: .25rem; align-items: center; font-size: .7rem; }
-.heat-legend i { display: inline-block; width: .7rem; height: .7rem; }
+.heat-wrap { overflow: hidden; display: flex; justify-content: flex-end; }
+.heat-wrap .heat { flex: none; width: max(100%, 30rem); grid-auto-flow: column; grid-auto-columns: 1fr; grid-template-rows: repeat(7, auto); gap: 2px; }
+.heat-wrap .heat[data-rows="5"] { grid-template-rows: repeat(5, auto); }
+/* Legend scale: the five levels as a row of cells. */
+.heat-scale { align-items: center; gap: .4rem; }
+.heat-scale .heat { grid-auto-flow: column; gap: 2px; }
+.heat-scale .heat i { width: .7rem; margin: 0; }
 .cash-events { list-style: none; margin: .4rem 0 0; padding: 0; font-size: .82rem; display: flex; flex-direction: column; gap: .2rem; }
 .cash-events li { display: flex; gap: .5rem; }
 .cash-events li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1207,7 +1203,6 @@ table.table th.num, table.table td.num { text-align: right; font-variant-numeric
 .hint-runbook-text { white-space: pre-wrap; margin: .2rem 0 .4rem; }
 
 /* ── energy: hourly price steps, cheapest window, now ── */
-.price-steps .trend-line { stroke: var(--yellow); }
 .price-cheap { fill: color-mix(in srgb, var(--aqua) 22%, transparent); }
 .price-now { stroke: var(--fg0); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
 .legend i.cheap { background: color-mix(in srgb, var(--aqua) 40%, transparent); }
@@ -1330,13 +1325,10 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 
 /* ── chart and trend options: values, goal lines; heatmap by goal ── */
 .chart .bar-value { fill: var(--fg2); font-family: var(--font-mono); font-size: 13px; }
-.chart .goal-line { stroke: var(--yellow); stroke-width: 1.5; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
-.chart .goal-line.is-bad { stroke: var(--red); }
+.chart .goal.is-bad { stroke: var(--red); }
 .legend i.goal { background: none; border-top: 2px dashed var(--yellow); height: 0; }
-.heatmap rect[data-goal="met"] { fill: var(--aqua); }
-.heatmap rect[data-goal="under"] { fill: var(--yellow); }
-.heat-legend i[data-goal="met"] { background: var(--aqua); }
-.heat-legend i[data-goal="under"] { background: var(--yellow); }
+.heat i[data-goal="met"], .legend i[data-goal="met"] { background: var(--aqua); }
+.heat i[data-goal="under"], .legend i[data-goal="under"] { background: var(--yellow); }
 .spark-cell { width: 5rem; }
 .spark-cell .spark { height: 1.1rem; margin: 0; }
 

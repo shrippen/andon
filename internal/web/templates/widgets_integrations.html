@@ -88,7 +88,7 @@
 {{with $v.Power}}<p class="kpi"><span class="kpi-label">{{t "energy.power"}}</span> <b class="kpi-value" data-live>{{.}} {{$v.PowerUnit}}</b></p>{{end}}
 {{if $v.Path}}<svg class="chart spark-lg price-steps" viewBox="0 0 {{$v.W}} {{$v.H}}" preserveAspectRatio="none" role="img" aria-label="{{t "energy.prices"}}">
   {{with $v.CheapW}}<rect class="price-cheap" x="{{$v.CheapX}}" y="0" width="{{.}}" height="{{$v.H}}"/>{{end}}
-  <path class="trend-line" d="{{$v.Path}}"/>
+  <path class="line s2" d="{{$v.Path}}"/>
   {{with $v.NowX}}<line class="price-now" x1="{{.}}" y1="0" x2="{{.}}" y2="{{$v.H}}"/>{{end}}
 </svg>
 <p class="legend"><span><i class="cheap"></i>{{t "energy.cheap_band"}}</span><span><i class="now"></i>{{t "energy.now_line"}}</span></p>{{end}}

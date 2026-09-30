@@ -2,10 +2,10 @@ package widgets
 
 import "fmt"
 
-// Spark is a small line chart for a tile: the line, the area under it
-// and the last point, in a W×H box (see the "spark" template).
+// Spark is a small line chart for a tile: the line and the last point,
+// in a W×H box (see the "spark" template).
 type Spark struct {
-	Line, Area string
+	Line       string
 	W, H       int
 	EndX, EndY float64
 }
@@ -52,6 +52,5 @@ func SparkOf(values []float64) *Spark {
 		s.Line += fmt.Sprintf("%s%.1f,%.1f ", cmd, x, y)
 		s.EndX, s.EndY = x, y
 	}
-	s.Area = fmt.Sprintf("%sL%d,%d L0,%d Z", s.Line, sparkW, sparkH, sparkH)
 	return s
 }

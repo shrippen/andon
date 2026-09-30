@@ -88,15 +88,15 @@
 {{if .Frag.View.Unsupported}}<p class="slot-note">{{t "widget.unsupported"}}</p>
 {{else if $bars}}
 <svg class="chart" viewBox="0 0 1000 220" role="img" aria-label="{{t (printf "chart.%s" $.Frag.Config.Chart)}}">
-  <line class="axis" x1="10" y1="200" x2="1000" y2="200"/>
+  <line class="grid" x1="10" y1="200" x2="1000" y2="200"/>
   {{$v := .Frag.View}}
   {{range $bars}}
-  {{if $v.ShowPrev}}<rect class="bar prev" x="{{.PrevX}}" y="{{.PrevY}}" width="{{.PrevW}}" height="{{.PrevH}}"><title>{{.Label}} ({{t $prevKey}}): {{if eq $v.Unit "money"}}{{money .Prev}}{{else}}{{num .Prev 1}}{{end}}</title></rect>{{end}}
-  <rect class="bar" x="{{.ValueX}}" y="{{.ValueY}}" width="{{.ValueW}}" height="{{.ValueH}}"><title>{{.Label}}: {{if eq $v.Unit "money"}}{{money .Value}}{{else}}{{num .Value 1}}{{end}}</title></rect>
+  {{if $v.ShowPrev}}<rect class="prev" x="{{.PrevX}}" y="{{.PrevY}}" width="{{.PrevW}}" height="{{.PrevH}}"><title>{{.Label}} ({{t $prevKey}}): {{if eq $v.Unit "money"}}{{money .Prev}}{{else}}{{num .Prev 1}}{{end}}</title></rect>{{end}}
+  <rect class="s1" x="{{.ValueX}}" y="{{.ValueY}}" width="{{.ValueW}}" height="{{.ValueH}}"><title>{{.Label}}: {{if eq $v.Unit "money"}}{{money .Value}}{{else}}{{num .Value 1}}{{end}}</title></rect>
   {{if $v.Values}}<text class="bar-value" x="{{.LabelX}}" y="{{.ValueY}}" dy="-4" text-anchor="middle">{{if eq $v.Unit "money"}}{{num (thousands .Value) 0}}k{{else}}{{num .Value 0}}{{end}}</text>{{end}}
   {{if .AxisLabel}}<text x="{{.LabelX}}" y="214" text-anchor="middle">{{.AxisLabel}}</text>{{end}}
   {{end}}
-  {{with $v.GoalY}}<line class="goal-line" x1="10" y1="{{.}}" x2="1000" y2="{{.}}"/>{{end}}
+  {{with $v.GoalY}}<line class="goal" x1="10" y1="{{.}}" x2="1000" y2="{{.}}"/>{{end}}
 </svg>
 <p class="legend"><span><i></i>{{t "chart.this"}}</span>{{if $v.ShowPrev}}<span><i class="prev"></i>{{t $prevKey}}</span>{{end}}{{with $v.Goal}}<span><i class="goal"></i>{{t "chart.goal" "amount" (money .)}}</span>{{end}}</p>
 {{end}}
@@ -136,8 +136,8 @@
 <p class="kpi"><span class="kpi-label">{{t (printf "opt.%s" .Frag.Config.Metric)}}</span>
   <b class="kpi-value" data-live>{{if eq $v.Unit "money"}}{{money $v.Now}}{{else}}{{num $v.Now 1}} h{{end}}</b></p>
 <svg class="chart spark-lg" viewBox="0 0 {{$v.W}} {{$v.H}}" preserveAspectRatio="none" role="img" aria-label="{{t (printf "opt.%s" .Frag.Config.Metric)}}">
-  {{with $v.TargetY}}<line class="goal-line" x1="0" y1="{{.}}" x2="{{$v.W}}" y2="{{.}}"/>{{end}}
-  <path class="trend-line" d="{{$v.Path}}"/>
+  {{with $v.TargetY}}<line class="goal" x1="0" y1="{{.}}" x2="{{$v.W}}" y2="{{.}}"/>{{end}}
+  <path class="line s1" d="{{$v.Path}}"/>
 </svg>
 {{if or $v.Smooth $v.Target}}<p class="small muted">{{if $v.Smooth}}{{t "trend.smoothed"}}{{end}}{{if and $v.Smooth $v.Target}} · {{end}}{{if $v.Target}}{{t "trend.target" "value" (num $v.Target 0)}}{{end}}</p>{{end}}
 <p class="legend trend-legend"><span>{{day $v.First}}</span><span>{{if eq $v.Unit "money"}}{{t "trend.range" "low" (money $v.Low) "high" (money $v.High)}}{{else}}{{t "trend.range" "low" (num $v.Low 1) "high" (num $v.High 1)}}{{end}}</span><span>{{day $v.Last}}</span></p>
@@ -231,9 +231,9 @@
 </ul>
 {{end}}
 
-{{/* spark: a small line with its area and the last point marked (widgets.Spark). */}}
+{{/* spark: Kante .spark, a small line with the last point marked (widgets.Spark). */}}
 {{define "spark"}}<span class="spark"><svg viewBox="0 0 {{.W}} {{.H}}" preserveAspectRatio="none" aria-hidden="true">
-  <path class="spark-area" d="{{.Area}}"/><path class="spark-line" d="{{.Line}}"/>
+  <path d="{{.Line}}"/>
 </svg><i class="spark-end" data-style="left:{{.EndLeft}}%;top:{{.EndTop}}%"></i></span>{{end}}
 
 {{define "widgets/rate_trend"}}

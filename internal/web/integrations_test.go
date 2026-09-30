@@ -23,7 +23,7 @@ func TestIntegrationWidgetsRender(t *testing.T) {
 		{"dwd", "dwd", "STURMBÖEN"},
 		{"github", "github", "studio/showreel"},
 		{"speedtest", "speedtest", "243"},
-		{"tibber", "energy", "trend-line"},
+		{"tibber", "energy", `class="line s2"`},
 	}
 	for _, c := range cases {
 		resp := postForm(t, client, srv.URL+"/connections", url.Values{

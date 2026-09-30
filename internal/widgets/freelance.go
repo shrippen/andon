@@ -18,7 +18,6 @@ const minutesPerHour = 60
 
 const (
 	heatWeeks = 53
-	heatCell  = 12 // px incl. gap
 )
 
 // heatLevels are the minute thresholds of levels 1–4 (2 h, 4 h, 6 h, 8 h).
@@ -26,10 +25,10 @@ var heatLevels = []int{1, 120, 240, 360, 480}
 
 // HeatCell is one day of the heatmap.
 type HeatCell struct {
-	X, Y, Level int
-	Day         string
-	Hours       string
-	Goal        string // by_goal: "met", "under" or "" (no work)
+	Level int
+	Day   string
+	Hours string
+	Goal  string // by_goal: "met", "under" or "" (no work)
 }
 
 // HeatConfig is the "heatmap" widget's config.
@@ -87,8 +86,7 @@ func heatmapView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any
 		key := d.Format(isoDate)
 		minutes := perDay[key]
 		total += minutes
-		week := int(d.Sub(first).Hours()/24) / 7
-		cell := HeatCell{X: week * heatCell, Y: row * heatCell, Level: heatLevel(minutes), Day: key, Hours: clockMinutes(minutes)}
+		cell := HeatCell{Level: heatLevel(minutes), Day: key, Hours: clockMinutes(minutes)}
 		// The day's goal is its target in the Kimai work contract.
 		goal := data.Contract.Minutes(d)
 		if cfg.ByGoal && goal > 0 && minutes > 0 {
@@ -99,7 +97,7 @@ func heatmapView(cfgAny any, results map[string]any, ctx ViewCtx) map[string]any
 		}
 		cells = append(cells, cell)
 	}
-	return map[string]any{"Cells": cells, "W": weeks * heatCell, "H": rows * heatCell, "Total": total / minutesPerHour, "ByGoal": cfg.ByGoal && data.Contract != nil}
+	return map[string]any{"Cells": cells, "Rows": rows, "Total": total / minutesPerHour, "ByGoal": cfg.ByGoal && data.Contract != nil}
 }
 
 // ── cashflow ──

@@ -14,7 +14,7 @@ func TestSparkOf(t *testing.T) {
 		t.Fatal("one value makes no line")
 	}
 	s := widgets.SparkOf([]float64{1, 3, 2})
-	if s == nil || strings.Count(s.Line, "L") != 2 || !strings.HasSuffix(s.Area, "Z") {
+	if s == nil || strings.Count(s.Line, "L") != 2 {
 		t.Fatalf("spark: %+v", s)
 	}
 	if s.EndX != float64(s.W) {
