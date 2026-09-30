@@ -194,7 +194,7 @@ edit:
   preview: Preview
   confirm_delete: Really delete?
   board_menu: Board
-  selected: '{n} selected'
+  selected: selected
   clear_selection: Clear selection
   layout_hint: Changes apply only to you
   repeated: 'This tile is on the board more than once.'

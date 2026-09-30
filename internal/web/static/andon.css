@@ -773,22 +773,19 @@ dialog.dialog::backdrop { background: var(--scrim); }
 .inline-form select, .inline-form input { width: auto; }
 .inline-form button { margin: 0; }
 
-/* ── edit bars: Kante .editbar; popovers and the board menu hang under their summary ── */
+/* ── edit bars: Kante .editbar; the section popover hangs under its summary ── */
 .editbar-hint { font-size: .82rem; color: var(--fg2); }
 .editbar summary { list-style: none; }
 .editbar summary::-webkit-details-marker { display: none; }
 .editbar .btn { margin: 0; }
-.editbar-pop, .editbar-menu { position: relative; }
+.editbar-pop { position: relative; }
 .editbar-pop > form { position: absolute; left: 0; top: calc(100% + .35rem); z-index: 40; padding: .6rem; background: var(--bg-hard); border: 1px solid var(--bg2); border-top: 4px solid var(--cyan); }
 .editbar-pop input { width: 14rem; margin: 0; }
-.editbar-menu > .menu { position: absolute; right: 0; top: calc(100% + .35rem); z-index: 40; }
-/* Selection bar: only once tiles are selected. */
-.selbar { display: none; align-items: center; gap: .5rem; flex-wrap: wrap; margin: 0; padding: .5rem 1rem; background: var(--bg1); border-left: 4px solid var(--yellow);
-  position: sticky; top: 0; z-index: 4; }
-.selbar:has(input[name="placement"]) { display: flex; }
-.selbar b { font-family: var(--font-mono); font-size: .75rem; font-weight: 500; color: var(--fg0); }
-.selbar select { width: auto; margin: 0; }
-.selbar button { margin: 0; }
+/* Bulk bar (Kante .bulk-bar): only once tiles are selected. */
+.bulk-bar:not(:has(input[name="placement"])) { display: none; }
+.bulk-bar select { width: auto; margin: 0; }
+.bulk-bar .btn { margin: 0; }
+main:has(.bulk-bar input[name="placement"]) { padding-bottom: 6rem; }
 .dropzone { border: 2px dashed var(--bg2); padding: 1rem; display: flex; flex-wrap: wrap; gap: .7rem; background: var(--bg0); }
 
 /* ── login: Kante .login; the page has Andon's header above it ── */
@@ -929,7 +926,7 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .rule-params input[type=number] { width: 6rem; }
 
 /* Wall display: board only, dimmed at night. */
-.is-kiosk .board-nav, .is-kiosk .board-tools, .is-kiosk .search, .is-kiosk .editbar, .is-kiosk .selbar { display: none; }
+.is-kiosk .board-nav, .is-kiosk .board-tools, .is-kiosk .search, .is-kiosk .editbar, .is-kiosk .bulk-bar { display: none; }
 .is-kiosk .board-page { padding-top: 1rem; }
 .is-kiosk.is-dim { filter: brightness(.35); }
 

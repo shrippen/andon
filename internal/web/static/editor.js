@@ -432,7 +432,7 @@
       return;
     }
     var n = form.querySelectorAll('input[name="placement"]').length;
-    label.textContent = label.getAttribute("data-template").replace("{n}", n);
+    label.textContent = n;
   }
 
   function pick(tile, on) {

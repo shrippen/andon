@@ -120,8 +120,8 @@ func TestLinkTileAndLayout(t *testing.T) {
 		`class="editbar is-layout"`, "Änderungen gelten nur für dich", `id="tile-strip" class="tile-strip"`,
 		`data-show="Einblenden"`, `data-tall="Doppelte Höhe"`, `is-hidden" data-placement=`, ">Kachelgröße<")
 	expect(string(mustGet(t, srv, client, boardURL+"?edit")), "edit mode",
-		`class="editbar is-edit"`, `id="tile-strip" class="tile-strip"`, `aria-label="Entfernen"`, `aria-label="Bearbeiten"`,
-		`id="bulk" method="post" action="`+boardURL+`/bulk" class="selbar"`, `class="add-tile"`, `class="editbar-menu"`)
+		`class="editbar has-menu is-edit"`, `id="tile-strip" class="tile-strip"`, `aria-label="Entfernen"`, `aria-label="Bearbeiten"`,
+		`id="bulk" method="post" action="`+boardURL+`/bulk" class="bulk-bar is-fixed"`, `class="add-tile"`, `class="dropdown is-right"`)
 
 	version := regexp.MustCompile(`data-version="(\d+)"`).FindStringSubmatch(string(mustGet(t, srv, client, boardURL)))[1]
 	payload := []byte(`{"version":` + version + `,"layout":{"` + section + `":[` + placements[1][1] + `,` + placements[0][1] + `]},"mode":"board"}`)

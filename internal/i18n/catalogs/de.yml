@@ -194,7 +194,7 @@ edit:
   preview: Vorschau
   confirm_delete: Wirklich löschen?
   board_menu: Board
-  selected: '{n} markiert'
+  selected: markiert
   clear_selection: Markierung aufheben
   layout_hint: Änderungen gelten nur für dich
   repeated: 'Diese Kachel steht mehrmals auf dem Board.'
