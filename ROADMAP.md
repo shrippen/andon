@@ -1,6 +1,6 @@
 # Roadmap: Andon, IT- & Freelance-Dashboard
 
-Ein selbst gehostetes, **mehrbenutzerfähiges** Dashboard. Es löst Dashy als **Startseite mit Links, Statusanzeigen und Feeds** ab, führt zugleich Daten aus **Kimai**, **Invoice Ninja**, **Snipe-IT** und **Dawarich** zusammen und leitet daraus **Hinweise, Erinnerungen und Ratschläge** ab. Konfiguriert wird im **eingebauten Editor**, gestaltet über ein **Theme-System**, von dem nur das Theme **shrippen** mitgeliefert wird. Auslieferung als **ein Docker-Container** mit eigener Anmeldung.
+Ein selbst gehostetes, **mehrbenutzerfähiges** Dashboard. Es löst Dashy als **Startseite mit Links, Statusanzeigen und Feeds** ab, führt zugleich Daten aus **Kimai**, **Invoice Ninja**, **Snipe-IT** und **Dawarich** zusammen und leitet daraus **Hinweise, Erinnerungen und Ratschläge** ab. Konfiguriert wird im **eingebauten Editor**, gestaltet über ein **Theme-System**, von dem nur das Theme **Kante** mitgeliefert wird. Auslieferung als **ein Docker-Container** mit eigener Anmeldung.
 
 > Stand: v0.4 · Name **Andon** (seit 2026-09-26, vorher Arbeitstitel `dashboard`): die Signaltafel aus der Fertigung, die zeigt, wo es hakt.
 >
@@ -509,29 +509,38 @@ Alle Beträge, Sätze und Fristen werden im Editor je Bereich gepflegt, typische
 
 ## 9. Design: Kante (shrippen Design System)
 
-Das Dashboard ist eine **App** im Sinne des Design Systems und nutzt daher die App-Komponenten. Das Design System liefert zugleich das einzige mitgelieferte Theme (Abschnitt 6).
+Das Dashboard ist eine **App** im Sinne des Design Systems und nutzt daher die App-Komponenten. Das Design System liefert zugleich das einzige mitgelieferte Theme (Abschnitt 6). Stand: **Kante 1.4**. Regel für die Oberfläche (`agent.md`, „GUI rule“; Text in `kante/AGENT-RULE.md` des Design-System-Repos): Sie wird aus Kante erzeugt, nicht davon inspiriert. Was Kante fehlt, kommt zuerst nach Kante und erst dann hierher; lokal gebaut wird es nicht.
 
 **Einbindung**
 
-- `shrippen.css`, `shrippen.js` und die Schriften werden als **Kopie in dieses Repo** gelegt (`app/static/vendor/kante/`, Quelle und Stand in einer `VERSION`-Datei vermerkt). Die Token-Werte daraus bilden `themes/shrippen/`. Das Dashboard funktioniert so auch ohne Internet und wandert nicht ungeprüft mit dem CDN mit. Aktualisiert wird bewusst per Skript (`tools/sync-design.sh`).
-- Schriften (Rajdhani 500/600/700, JetBrains Mono 400/500) werden **lokal** ausgeliefert, nicht von Google Fonts (Datenschutz, offline).
+- Kante liegt **unverändert als Kopie in diesem Repo**: `internal/web/static/vendor/kante/` mit `components.css`, `base.css`, `shrippen.js`, den Schriften und einer `VERSION`-Datei (Quelle, Branch und Commit). Das Dashboard funktioniert so auch ohne Internet und wandert nicht ungeprüft mit dem CDN mit. Aktualisiert wird bewusst per Skript: `tools/sync-design.sh <Kante-Checkout>` (oder `KANTE_DIR`) kopiert die Dateien und erzeugt `internal/services/themes/builtin/kante/tokens.css` aus `tokens/variables.css`.
+- `components.css` wird in `base.html` **vor** `andon.css` geladen; `andon.css` enthält nur Andon-Layout (Board-Raster, Widget-Innenleben) mit Kante-Tokens (`--cut-m`, `--h-m`, `--dur`, Rollen wie `--focus`, `--link`, `--hl`, `--warn`, `--danger`). `base.css` wird nicht geladen: sein Reset und die Sprachregeln sind für Landing Pages.
+- `shrippen.js` wird geladen und liefert die Live-Daten-Bewegung (`window.Kante`: `tick`, `fresh`, `stale`, `edit`, `settle`). Sein Sprachumschalter läuft nicht: Andon hat eine eigene i18n, `kante-lang.js` gibt dem Skript vorher die Sprache des Servers, damit es `<html lang>` nicht auf Englisch setzt.
+- Schriften (Rajdhani 500/600/700, JetBrains Mono 400/500) werden **lokal** ausgeliefert (WOFF2-Ausschnitte), nicht von Google Fonts (Datenschutz, offline).
 - Hell/dunkel über `<html data-theme="light">`; die Wahl wird im Benutzerprofil gespeichert, nicht nur im Browser.
-- Sprachumschaltung DE/EN mit dem `.lang`-Umschalter des Design Systems. Anders als auf den Landing Pages werden die Seiten aber auf dem Server in der gewählten Sprache gerendert (nicht beide Sprachen im HTML); die Wahl steht im Profil.
+- Sprache: Die Seiten werden auf dem Server in der gewählten Sprache gerendert (nicht beide Sprachen im HTML, kein `.lang`-Umschalter); die Wahl steht im Profil.
 
 **Vorhandene Komponenten wiederverwenden**
 
-| Dashboard-Element | Design-System-Komponente |
+| Dashboard-Element | Design-System-Komponente (im Einsatz) |
 |---|---|
-| Hinweis-Karte | `.callout`, `.callout-warn`, `.callout-danger`, `.callout-ok` |
+| Einführungs-Hinweis einer Seite | `.callout` |
 | Budget, Auslastung, Umsatzziel | `.progress` mit `data-tier="green|yellow|red"` |
-| Status eines Connectors (ok, lädt, Fehler) | `.pill` mit `data-state` |
+| Status eines Connectors (ok, Warnung, Fehler) | `.pill` mit `data-state` (`applied`, `locked`, `failed`, `reviewing`); die Vorlagenfunktion `pill` übersetzt `ok`/`warn`/`fail` der Dienste |
 | Tabellen (offene Rechnungen, Assets) | `.table-wrap` + `.table` |
-| Navigation, Fuß | `.nav`, `.foot` |
-| Filter, Umschalter, Editor-Formulare | `.seg`, `.switch`, `.select`, `.field`, `.input`, `.range` |
-| Snooze-, Freigabe- und Editor-Dialoge | `.dialog`, `.scrim` |
-| Rückmeldung nach Aktion | `.toast` |
+| Aktionen | `.btn` mit `.btn-accent`, `.btn-outline`, `.btn-danger`, `.btn-quiet`, `.btn-icon`, `.btn-sm`; auf der gelben Leiste `.btn-primary`, `.btn-ghost` |
+| Formulare | `.input`, `.select`, `.check` (mit `.check-box`/`.check-dia`), `.switch` |
+| Umschalter | `.seg` |
+| Menüs (Kopfzeile, Board, Kontext) | `.menu`; Zähler in Menüs und Kopfzeile `.count` |
+| Palette, Kürzel-Hilfe, Kachel-Auswahl | `.dialog` auf einem nativen `<dialog>` |
+| Rückmeldung nach Aktion | `.toast` mit `.toast-life` |
+| Ablaufkarte der Willkommensseite | `.flow` |
+| Warten | `.loader` |
+| Live-Daten (Kachel aktualisiert, Wert ändert sich, Daten alt, Bearbeiten, Ziehen) | `[data-live-tile]`, `[data-live]`, `.is-stale`, `.is-editing`, `.is-picked`, `.drop-gap` mit `window.Kante` |
 
-**Neue Komponenten (leben in diesem Repo, `app/static/andon.css`)**
+Nicht im Einsatz, weil Andon eigene Strukturen hat: `.nav`/`.foot` (Andon: `.app-nav`), `.field` (Beschriftungen stehen ohne Wrapper), `.scrim`, `.range`, `.tabs`, `.tile`/`.feat` (Kacheln entstehen per htmx nach dem Laden und würden von den Einblend-Effekten versteckt bleiben).
+
+**Andon-Bausteine (in diesem Repo, `internal/web/static/andon.css`; fehlen in Kante und gehören nach Kante, siehe Pull-Request „Missing in Kante“)**
 
 | Komponente | Zweck |
 |---|---|
@@ -593,13 +602,7 @@ Die Komponenten nutzen ausschließlich Theme-Tokens (`var(--…)`), keine eigene
 
 **Offen: UI auf Kante-Tokens umstellen**
 
-Fachlich ist Phase 0–8 fast vollständig umgesetzt; die Lücke liegt allein in
-der Oberfläche. `internal/web/templates/base.html` rendert bisher mit
-`system-ui` und Browser-Standardstilen statt mit den Tokens aus
-`internal/services/themes/builtin/kante/tokens.css`; die in diesem
-Abschnitt vorgesehenen Komponenten (`.launch`, `.kpi`, `.hint`, `.pill`,
-`.progress` …) existieren nirgends im Code. Entwürfe für vier Bildschirme
-(Start, Übersicht, Editor, Anmeldung): <https://claude.ai/artifact/K1SEJhy4Pm4wyn4zDJ9vLH>.
+Die Oberfläche läuft auf den Tokens und Komponenten von **Kante 1.4** (siehe „Einbindung“ oben). Schaltflächen, Felder, Pills, Menüs, Dialoge, Toasts, Tabellen, Fortschritt und die Live-Daten-Bewegung kommen aus dem vendorten Kante; `andon.css` behält nur Board-Layout und Widget-Innenleben. Offen: die Andon-Bausteine, die Kante noch nicht hat (Kachelkarte mit Tier-Balken ohne Klick-Verhalten, Filter-Chips, Tag-/Modusleiste, kompakte Schaltfläche, Datei-Feld, Auswahlkarte). Sie gehören zuerst nach Kante. Entwürfe für vier Bildschirme (Start, Übersicht, Editor, Anmeldung): <https://claude.ai/artifact/K1SEJhy4Pm4wyn4zDJ9vLH>.
 
 - [x] `andon.css` in `internal/web/static/` angelegt: nur Tokens (`var(--…)`), keine Hex-Werte außerhalb `themes/`
 - [x] `base.html`: `system-ui`-Fallback durch `.app-nav`/`.app-links`/`.app-side` und echte Formularstile ersetzt; jede Seite lädt jetzt ihr aktives Theme (`Deps.Page` setzt `ThemeURL`, vorher nur die Board-Seite)
@@ -687,7 +690,7 @@ Jede Phase endet mit einem lauffähigen, getaggten Image. Anmeldung und Bereichs
 ### Phase 0: Fundament (v0.1)
 
 - [x] Repo-Struktur, `pyproject.toml`, Ruff, Stylelint, Pytest, pre-commit *(Stylecheck-Skript statt Stylelint, kein pre-commit)*
-- [x] FastAPI-Grundgerüst, Jinja-Layout mit `shrippen.css`, lokale Schriften *(seither Go: `net/http`, `html/template`; Schriften unter `static/vendor/kante/fonts`, CSP wie in Python)*
+- [x] FastAPI-Grundgerüst, Jinja-Layout mit Kante (`components.css`), lokale Schriften *(seither Go: `net/http`, `html/template`; Schriften unter `static/vendor/kante/fonts`, CSP wie in Python)*
 - [x] Übersetzung von Anfang an: alle Texte über gettext (DE/EN), Formatierung mit Babel, Sprache aus Profil bzw. `Accept-Language` beim ersten Besuch; CI prüft, dass keine Übersetzung fehlt *(YAML-Kataloge mit Schlüsseln statt gettext)*
 - [x] Datenbank mit SQLAlchemy + Alembic (SQLite im WAL-Modus)
 - [x] Datenmodell: Benutzer, Teams, Bereiche, Verbindungen, Widgets, Boards, Platzierungen, Freigaben, Revisionen
@@ -1113,7 +1116,7 @@ dashboard/
 │   ├── cli.py               ← import-dashy, backup, rotate-key, create-admin
 │   ├── templates/           ← Jinja-Seiten und Partials (HTMX)
 │   └── static/
-│       ├── vendor/kante/    ← Kopie von shrippen.css / shrippen.js / Schriften + VERSION
+│       ├── vendor/kante/    ← unveränderte Kopie: components.css, base.css, shrippen.js, Schriften + VERSION (tools/sync-design.sh)
 │       ├── vendor/sortable/ ← SortableJS (vorgebaut)
 │       ├── andon.js     ← Suche, Hotkeys, Uhr, Einklappen
 │       ├── editor.js        ← Drag & Drop, Vorschau (nur im Bearbeitungsmodus geladen)
@@ -1121,7 +1124,7 @@ dashboard/
 ├── themes/
 │   └── kante/               ← einziges mitgeliefertes Theme (theme.json, tokens.css)
 ├── tools/
-│   └── sync-design.sh       ← holt eine bestimmte Version des Design Systems nach vendor/ und themes/kante/
+│   └── sync-design.sh       ← kopiert Kante aus einem Checkout nach static/vendor/kante/ und erzeugt themes/builtin/kante/tokens.css
 └── tests/
     ├── fixtures/            ← anonymisierte API-Antworten je Dienst, Dashy-conf.yml, RSS-Beispiele
     ├── access/              ← Rechte-Matrix, Bereichstrennung je Route

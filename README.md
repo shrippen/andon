@@ -5,7 +5,7 @@ Self-hosted, multi-user dashboard for an IT landscape and a freelance business. 
 - Own login (password, TOTP, API tokens, invitations)
 - Users and teams, permissions down to single widgets, personal layouts
 - Configuration editor with history
-- Theme system on top of the [Kante design system](https://github.com/shrippen/shrippen.github.io); only the Kante theme ships
+- GUI built from the [Kante design system](https://github.com/shrippen/shrippen.github.io) 1.4, vendored unchanged in `internal/web/static/vendor/kante/` (`tools/sync-design.sh` updates it); theme system on its tokens, only the Kante theme ships
 - German and English
 - Push notifications through an existing Apprise API instance
 - One Docker container, SQLite in `/data`, pure Go (no cgo — runs on a Raspberry Pi without a C toolchain)
