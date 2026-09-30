@@ -1370,3 +1370,10 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 .tl-text { min-width: 0; }
 .tl-cause { display: block; margin-top: .15rem; font-family: var(--font-mono); font-size: .72rem; color: var(--fg3); }
 @media (max-width: 640px) { .tl-day { grid-template-columns: minmax(0, 1fr); } .tl-date { padding-top: .8rem; } }
+
+/* ── share dialog: Kante .share; the add row wraps on phones ── */
+.share > .add { flex-wrap: wrap; }
+.share > .add > select { width: auto; margin: 0; }
+.share > .add > select[name="grantee_id"] { flex: 1 1 12rem; min-width: 0; }
+.share > .add > .btn, .share > .row .btn { margin: 0; }
+.share > .row > .select { margin: 0; }

@@ -28,6 +28,10 @@ func parseKind(raw string) (enums.ResourceKind, error) {
 	}
 }
 
+// shareRights are the rights a grant can give, in the order the dialog
+// offers them; parseRight reads them back.
+var shareRights = []string{"view", "use", "edit", "manage"}
+
 func parseRight(raw string) (enums.Right, error) {
 	switch raw {
 	case "view":
@@ -49,7 +53,7 @@ func (d Deps) sharesPage(w http.ResponseWriter, ctx Ctx, kind enums.ResourceKind
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	values := map[string]any{"Info": info, "Kind": kind, "ResourceID": resourceID}
+	values := map[string]any{"Info": info, "Kind": kind, "ResourceID": resourceID, "Rights": shareRights}
 	for k, v := range extra {
 		values[k] = v
 	}

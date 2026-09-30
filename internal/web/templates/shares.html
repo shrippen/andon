@@ -21,47 +21,42 @@
       {{end}}
     </div>
 
+    {{/* Kante .share: one row per grant (changing the right grants anew),
+         the add row below. */}}
     <div class="card">
       <h2>{{t "share.title"}}</h2>
-      {{if .Info.Shares}}
-      <div class="table-wrap"><table class="table">
-        <tr><th>{{t "share.grantee"}}</th><th>{{t "share.right"}}</th><th></th></tr>
+      <div class="share">
         {{range .Info.Shares}}
-        <tr>
-          <td>{{t (print "grantee." .GranteeKind)}}: {{.GranteeName}}</td>
-          <td>{{t (print "right." .Right.Key)}}</td>
-          <td>
-            <form method="post" action="/shares/{{$.Kind}}/{{$.ResourceID}}/{{.ID}}/revoke">
-              <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-              <button type="submit" class="btn btn-outline btn-sm">{{t "share.revoke"}}</button>
-            </form>
-          </td>
-        </tr>
-        {{end}}
-      </table></div>
-      {{else}}<p class="muted">{{t "share.none"}}</p>{{end}}
+        <form class="row" method="post" action="/shares/{{$.Kind}}/{{$.ResourceID}}">
+          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+          <input type="hidden" name="grantee_kind" value="{{.GranteeKind}}">
+          <input type="hidden" name="grantee_id" value="{{.GranteeID}}">
+          <span class="subject" data-kind="{{.GranteeKind}}">{{.GranteeName}} <small>{{t (print "grantee." .GranteeKind)}}</small></span>
+          <select class="select" name="right" aria-label="{{t "share.right"}}" data-autosubmit>
+            {{$r := .Right.Key}}{{range $.Rights}}<option value="{{.}}"{{if eq . $r}} selected{{end}}>{{t (print "right." .)}}</option>{{end}}
+          </select>
+          <button type="submit" class="btn btn-quiet btn-sm" formaction="/shares/{{$.Kind}}/{{$.ResourceID}}/{{.ID}}/revoke">{{t "share.revoke"}}</button>
+        </form>
+        {{else}}<p class="muted">{{t "share.none"}}</p>{{end}}
 
-      <form method="post" action="/shares/{{.Kind}}/{{.ResourceID}}">
-        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <label for="grantee_kind">{{t "share.grantee"}}</label>
-        <select class="select" id="grantee_kind" name="grantee_kind">
-          <option value="user">{{t "grantee.user"}}</option>
-          <option value="team">{{t "grantee.team"}}</option>
-        </select>
-        <label for="grantee_id">{{t "field.name"}}</label>
-        <select class="select" id="grantee_id" name="grantee_id">
-          {{range .Info.Users}}<option value="{{.ID}}">{{t "grantee.user"}}: {{.Name}}</option>{{end}}
-          {{range .Info.Teams}}<option value="{{.ID}}">{{t "grantee.team"}}: {{.Name}}</option>{{end}}
-        </select>
-        <label for="right">{{t "share.right"}}</label>
-        <select class="select" id="right" name="right">
-          <option value="view">{{t "right.view"}}</option>
-          <option value="use">{{t "right.use"}}</option>
-          <option value="edit">{{t "right.edit"}}</option>
-          <option value="manage">{{t "right.manage"}}</option>
-        </select>
-        <button type="submit" class="btn btn-accent">{{t "share.grant"}}</button>
-      </form>
+        {{if .Info.WarnSharedData}}<div class="callout callout-warn">{{t "conn.shared_warning"}}</div>{{end}}
+
+        <form class="add" method="post" action="/shares/{{.Kind}}/{{.ResourceID}}">
+          <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+          <select class="select" name="grantee_kind" aria-label="{{t "share.grantee"}}">
+            <option value="user">{{t "grantee.user"}}</option>
+            <option value="team">{{t "grantee.team"}}</option>
+          </select>
+          <select class="select" name="grantee_id" aria-label="{{t "field.name"}}">
+            {{range .Info.Users}}<option value="{{.ID}}">{{t "grantee.user"}}: {{.Name}}</option>{{end}}
+            {{range .Info.Teams}}<option value="{{.ID}}">{{t "grantee.team"}}: {{.Name}}</option>{{end}}
+          </select>
+          <select class="select" name="right" aria-label="{{t "share.right"}}">
+            {{range .Rights}}<option value="{{.}}">{{t (print "right." .)}}</option>{{end}}
+          </select>
+          <button type="submit" class="btn btn-accent btn-sm">{{t "share.grant"}}</button>
+        </form>
+      </div>
     </div>
   </main>
 </body>
