@@ -304,7 +304,8 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
 .board[data-mode] .tile-slot:hover, .board[data-mode] .tile-slot:focus-within { outline-color: var(--yellow); }
 .tile-strip { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: .1rem;
   padding: .15rem .25rem; background: var(--bg1); opacity: 0; pointer-events: none; transition: opacity .12s; }
-.tile-slot:hover > .tile-strip, .tile-slot:focus-within > .tile-strip, .tile-slot.is-active > .tile-strip { opacity: 1; pointer-events: auto; }
+.tile-slot:hover > .tile-strip, .tile-slot:focus-within > .tile-strip, .tile-slot.is-active > .tile-strip,
+.tile-strip.is-floating { opacity: 1; pointer-events: auto; }
 .board[data-mode] .tile-slot.is-picked { outline: 2px solid var(--yellow); }
 .edit-touch { display: none; margin: 0 0 .8rem; font-size: .8rem; color: var(--fg3); }
 @media (hover: none) {

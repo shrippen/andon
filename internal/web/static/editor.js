@@ -137,7 +137,9 @@
 
 /* The tile strip: one per page, moved into the tile at hand.
  *
- *   mouse     hover a tile        ─► strip moves in, shows while hovered
+ *   mouse     hover a tile        ─► strip floats over it, stays in place in
+ *             the DOM (moving it into a tile made Firefox lay out the whole
+ *             column flow again: ~180 ms per hover on 107 tiles)
  *   keyboard  focus a tile        ─► strip moves in, Tab reaches its tools
  *   touch     first tap on a tile ─► strip moves in and stays (is-active);
  *             the second tap opens the tile as usual
@@ -151,6 +153,7 @@
   var d = document;
   var pointer = "mouse";
   var dragging = false;
+  var over = null; // the tile the floating strip is over
 
   function strip() {
     return d.getElementById("tile-strip");
@@ -212,6 +215,7 @@
       return;
     }
     if (s.parentNode !== tile) {
+      unfloat(s);
       fill(s, tile);
       tile.appendChild(s);
       s.hidden = false;
@@ -222,6 +226,58 @@
       }
     });
     tile.classList.toggle("is-active", !!stay);
+  }
+
+  // unfloat drops what hover set: position, visibility, htmx target.
+  function unfloat(s) {
+    over = null;
+    s.classList.remove("is-floating");
+    s.style.top = "";
+    s.style.left = "";
+    s.style.width = "";
+    s.style.right = "";
+    s.setAttribute("hx-target", "closest .dsec");
+  }
+
+  // hover shows the strip over tile without touching the tile's subtree.
+  //
+  //   board-main (column flow)      strip (outside the flow)
+  //   ┌──────┬──────┬──────┐          ┌────────┐
+  //   │ tile │ tile │ tile │   ◄──────│ tools  │ top/left/width of the tile
+  //   └──────┴──────┴──────┘          └────────┘
+  function hover(tile) {
+    var s = strip();
+    if (!s || !tile || over === tile) {
+      return;
+    }
+    if (tileOf(s)) {
+      rest();
+    }
+    s.hidden = false;
+    s.classList.add("is-floating");
+    s.setAttribute("hx-target", "#" + tile.closest(".dsec").id);
+    fill(s, tile);
+
+    var box = tile.getBoundingClientRect();
+    var parent = s.offsetParent;
+    var origin = parent && parent !== d.body && parent !== d.documentElement
+      ? parent.getBoundingClientRect()
+      : { top: -window.scrollY, left: -window.scrollX };
+    s.style.top = box.top - origin.top + "px";
+    s.style.left = box.left - origin.left + "px";
+    s.style.width = box.width + "px";
+    s.style.right = "auto";
+    over = tile;
+  }
+
+  // sink hides the floating strip again.
+  function sink() {
+    var s = strip();
+    if (!s || !over) {
+      return;
+    }
+    unfloat(s);
+    s.hidden = true;
   }
 
   // rest puts the strip back next to the board, e.g. before its tile's
@@ -241,10 +297,19 @@
     pointer = e.pointerType || "mouse";
   }, true);
   d.addEventListener("mouseover", function (e) {
-    if (pointer === "mouse" && !dragging) {
-      activate(tileOf(e.target), false);
+    if (pointer !== "mouse" || dragging) {
+      return;
+    }
+    var tile = tileOf(e.target);
+    if (tile) {
+      hover(tile);
+      return;
+    }
+    if (!(strip() && strip().contains(e.target))) {
+      sink();
     }
   });
+  d.documentElement.addEventListener("mouseleave", sink);
   d.addEventListener("focusin", function (e) {
     var tile = tileOf(e.target);
     if (tile && !dragging) {
@@ -275,6 +340,9 @@
   // focus returns to the same control of the same tile afterwards.
   var refocus = null;
   d.addEventListener("htmx:beforeSwap", function (e) {
+    if (over && e.detail.target && e.detail.target.contains(over)) {
+      sink();
+    }
     var s = strip();
     if (!s || !e.detail.target || e.detail.target === d.body || !e.detail.target.contains(s)) {
       return;
@@ -299,6 +367,9 @@
   });
   d.addEventListener("andon:drag", function (e) {
     dragging = e.detail;
+    if (dragging) {
+      sink();
+    }
   });
 
   // ── Selection: picked tiles live as hidden fields in the bulk form ──
