@@ -90,3 +90,22 @@ internal/services/scheduler/    Background-Jobs (Ticker je Job, panic-/error-iso
 - DB-Datei ist verschlüsselt (Adiantum-VFS); Kopien nur über `db.Snapshot`/`db.OpenReadOnly`, nie per Dateikopie oder `sql.Open`. Reine Lesepfade über `db.WithRead`, `db.WithTx` nimmt die Schreibsperre sofort.
 - Board-Freigabe muss Widgets aus dem Bereich des Boards sichtbar machen (`boards.seenRight`).
 - `html/template` behandelt Attribute, deren Name ohne `data-` mit `on` beginnt (`data-on`), als Event-Handler (JS-Kontext); ein `{{if}}` darum bricht mit "branches end in different contexts". Anderen Namen wählen (`data-pinned`).
+
+## GUI rule
+
+- Every GUI of this project is generated from Kante, not inspired by it: landing pages,
+  web apps, Qt Quick / Kirigami apps, Plasma widgets, dialogs, e-mail and print layouts.
+  Source: https://github.com/shrippen/shrippen.github.io (`kante/`).
+  Web: link `https://shrippen.github.io/v1/shrippen.css` and `shrippen.js`, or vendor them
+  unchanged. Apps: copy `kante/qml/Kante` (and `KantePlasma` for Plasma widgets) unchanged.
+- Use Kante's tokens, roles, components, classes, QML components and motion as they are.
+  No own colours, fonts, sizes, radii, cuts, shadows, animation timings, no own copy or
+  variant of a component that Kante has. Raw values (`#hex`, `px` for controls) are a bug;
+  use roles (`--primary`, `--focus`, `--warn`, `KanteStyle.*`).
+- A missing element is added to Kante first (CSS or QML, docs, catalogue), then used here.
+  Never solve it locally in this project and never wait with a "temporary" copy.
+- Exception: Kimai plugins take their GUI from Knust (`shrippen/kimai-knust-bundle`), the
+  Kante spinoff that adapts Kante to Kimai's look. The same rule applies to Knust: use it
+  as it is, and add missing elements to Knust.
+- A project without a GUI (library, CLI, scripts) has nothing to do here.
+- Rule text: https://github.com/shrippen/shrippen.github.io/blob/main/kante/AGENT-RULE.md
