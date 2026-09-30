@@ -230,9 +230,6 @@ a > .count, summary > .count { margin-left: .35rem; }
 .tile-slot.is-hidden { opacity: .35; }
 /* ── edit and layout mode: Kante .tile-tools, "+" tile, dragging ──
    Kante's band (.has-tools) holds one strip, moved to the tile at hand. */
-/* Kante's [hidden] rule sits in base.css, which Andon does not load (its
-   reset and language rules are for landing pages). */
-:is(.tile-tools, .bulk-bar)[hidden] { display: none; }
 .board[data-mode="board"] .tile-slot, .board[data-mode="overlay"] .tile-slot { cursor: grab; outline: 1px dashed var(--bg2); outline-offset: 2px; }
 .board[data-mode] .tile-slot:hover, .board[data-mode] .tile-slot:focus-within { outline-color: var(--hl); }
 .board[data-mode] .tile-slot.is-selected { outline: 2px solid var(--hl); }
