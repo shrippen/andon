@@ -36,12 +36,12 @@
     <nav class="hint-filters" aria-label="{{t "hints.filter"}}">
       <input class="input" id="hint-search" type="search" placeholder="{{t "hints.search"}}" aria-label="{{t "hints.search"}}" aria-keyshortcuts="/">
       <div class="chips">
-        <a class="chip" href="{{.Filter.Link "level" ""}}"{{if not .Filter.Level}} aria-current="true"{{end}}>{{t "hints.all_levels"}}</a>
-        {{range .Levels}}<a class="chip" data-tier="{{.Key}}" href="{{$.Filter.Link "level" .Key}}"{{if eq .Key $.Filter.Level}} aria-current="true"{{end}}>{{t (print "severity." .Key)}} <span>{{.N}}</span></a>{{end}}
+        <a class="chip" href="{{.Filter.Link "level" ""}}"{{if not .Filter.Level}} aria-pressed="true"{{end}}>{{t "hints.all_levels"}}</a>
+        {{range .Levels}}<a class="chip" data-tier="{{.Key}}" href="{{$.Filter.Link "level" .Key}}"{{if eq .Key $.Filter.Level}} aria-pressed="true"{{end}}>{{t (print "severity." .Key)}} <span>{{.N}}</span></a>{{end}}
       </div>
       {{if gt (len .Sources) 1}}<div class="chips">
-        <a class="chip" href="{{.Filter.Link "source" ""}}"{{if not .Filter.Source}} aria-current="true"{{end}}>{{t "hints.all_sources"}}</a>
-        {{range .Sources}}<a class="chip" href="{{$.Filter.Link "source" .Key}}"{{if eq .Key $.Filter.Source}} aria-current="true"{{end}}>{{t (print "service." .Key)}} <span>{{.N}}</span></a>{{end}}
+        <a class="chip" href="{{.Filter.Link "source" ""}}"{{if not .Filter.Source}} aria-pressed="true"{{end}}>{{t "hints.all_sources"}}</a>
+        {{range .Sources}}<a class="chip" href="{{$.Filter.Link "source" .Key}}"{{if eq .Key $.Filter.Source}} aria-pressed="true"{{end}}>{{t (print "service." .Key)}} <span>{{.N}}</span></a>{{end}}
       </div>{{end}}
     </nav>
     {{end}}
