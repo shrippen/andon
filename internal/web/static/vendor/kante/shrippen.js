@@ -8,11 +8,15 @@
   var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!still && 'IntersectionObserver' in window) h.classList.add('motion');
 
+  // An app with its own language handling (Andon) puts data-own-lang on <html>: Kante then
+  // leaves <html lang> and the .lang switch alone.
+  var ownLang = h.hasAttribute('data-own-lang');
   var lang = 'en'; // English is the default, whatever the browser language is
   try { var s = localStorage.getItem(KEY); if (s === 'de' || s === 'en') lang = s; } catch (e) {}
-  h.lang = lang;
+  if (!ownLang) h.lang = lang;
 
   function mark() {
+    if (ownLang) return;
     [].forEach.call(d.querySelectorAll('.lang button'), function (b) {
       b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === h.lang));
     });
@@ -22,7 +26,7 @@
     mark();
 
     d.addEventListener('click', function (e) {
-      var lb = e.target.closest && e.target.closest('.lang button');
+      var lb = !ownLang && e.target.closest && e.target.closest('.lang button');
       if (lb) {
         h.lang = lb.getAttribute('data-lang');
         try { localStorage.setItem(KEY, h.lang); } catch (x) {}
@@ -84,6 +88,86 @@
       place();
       addEventListener('resize', place);
       if (d.fonts) d.fonts.ready.then(place);
+    });
+
+    // ── Chart read-out and curve editor (Kante 1.6) ──────────────────────
+    // .chart-wrap[data-readout] > svg.chart: on hover a rule and marks sit on the nearest point,
+    //   .readout shows data-labels (svg) and data-values (each .line) at that index.
+    // svg.curve[data-editable]: drag .pt squares, arrows move the focused one; fires "change"
+    //   with detail = [{x, y}]. data-x/y-min/max and data-step give the range.
+    var NS = 'http://www.w3.org/2000/svg';
+    [].forEach.call(d.querySelectorAll('.chart-wrap[data-readout]'), function (wrap) {
+      var svg = wrap.querySelector('svg'), lines = svg.querySelectorAll('.line'), tip = wrap.querySelector('.readout');
+      if (!lines.length || !tip) return;
+      var pts = [].map.call(lines, function (l) {
+        return l.getAttribute('points').trim().split(/\s+/).map(function (p) { var a = p.split(','); return [+a[0], +a[1]]; });
+      });
+      var probe = d.createElementNS(NS, 'line'), marks = [];
+      probe.setAttribute('class', 'probe'); probe.style.display = 'none'; svg.appendChild(probe);
+      [].forEach.call(lines, function (l, i) {
+        var m = d.createElementNS(NS, 'rect');
+        m.setAttribute('class', 'mark ' + (l.getAttribute('class').match(/s\d/) || [''])[0]); m.setAttribute('width', 7); m.setAttribute('height', 7);
+        m.style.display = 'none'; svg.appendChild(m); marks.push(m);
+      });
+      function off() { probe.style.display = 'none'; marks.forEach(function (m) { m.style.display = 'none'; }); wrap.classList.remove('is-reading'); }
+      svg.addEventListener('pointerleave', off);
+      svg.addEventListener('pointermove', function (e) {
+        var r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, x = (e.clientX - r.left) / r.width * vb.width + vb.x;
+        var best = 0;
+        pts[0].forEach(function (p, i) { if (Math.abs(p[0] - x) < Math.abs(pts[0][best][0] - x)) best = i; });
+        var px = pts[0][best][0], labels = (svg.dataset.labels || '').split(',');
+        probe.setAttribute('x1', px); probe.setAttribute('x2', px); probe.setAttribute('y1', vb.y); probe.setAttribute('y2', vb.y + vb.height);
+        probe.style.display = '';
+        var html = labels[best] ? '<b>' + labels[best] + '</b>' : '';
+        [].forEach.call(lines, function (l, i) {
+          var p = pts[i][best]; if (!p) return;
+          marks[i].setAttribute('x', p[0] - 3.5); marks[i].setAttribute('y', p[1] - 3.5); marks[i].style.display = '';
+          html += (l.dataset.values || '').split(',')[best] + (svg.dataset.unit || '') + ' ';
+        });
+        tip.innerHTML = html;
+        wrap.classList.add('is-reading');
+        var w = tip.offsetWidth, left = (px - vb.x) / vb.width * r.width;
+        tip.style.left = (left > r.width / 2 ? left - w - 8 : left + 8) + 'px';
+      });
+    });
+    [].forEach.call(d.querySelectorAll('svg.curve[data-editable]'), function (svg) {
+      var D = svg.dataset, X0 = +D.xMin, X1 = +D.xMax, Y0 = +D.yMin, Y1 = +D.yMax, step = +(D.step || 1);
+      var box = svg.querySelector('.frame').getBBox(), line = svg.querySelector('.line');
+      var dots = [].slice.call(svg.querySelectorAll('.pt')), cur = null;
+      function pos(p) { return [box.x + (p.x - X0) / (X1 - X0) * box.width, box.y + box.height - (p.y - Y0) / (Y1 - Y0) * box.height]; }
+      function val(dot) { return { x: +dot.dataset.x, y: +dot.dataset.y }; }
+      function draw() {
+        var p = dots.map(function (dt) { return pos(val(dt)); });
+        dots.forEach(function (dt, i) { dt.setAttribute('x', p[i][0] - 5); dt.setAttribute('y', p[i][1] - 5); dt.setAttribute('aria-valuenow', dt.dataset.y); dt.setAttribute('aria-valuetext', dt.dataset.x + ' → ' + dt.dataset.y); });
+        var all = [[box.x, p[0][1]]].concat(p, [[box.x + box.width, p[p.length - 1][1]]]);
+        line.setAttribute('points', all.map(function (q) { return q.join(','); }).join(' '));
+      }
+      function put(i, x, y) {
+        var lo = i > 0 ? +dots[i - 1].dataset.x + step : X0, hi = i < dots.length - 1 ? +dots[i + 1].dataset.x - step : X1;
+        var ylo = i > 0 ? +dots[i - 1].dataset.y : Y0, yhi = i < dots.length - 1 ? +dots[i + 1].dataset.y : Y1;
+        var sn = function (v) { return Math.round(v / step) * step; };
+        dots[i].dataset.x = Math.max(lo, Math.min(hi, sn(x)));
+        dots[i].dataset.y = Math.max(ylo, Math.min(yhi, sn(y)));
+        draw();
+        svg.dispatchEvent(new CustomEvent('change', { detail: dots.map(val) }));
+      }
+      dots.forEach(function (dt, i) {
+        dt.setAttribute('tabindex', 0); dt.setAttribute('role', 'slider');
+        dt.addEventListener('pointerdown', function (e) { cur = i; dt.setPointerCapture(e.pointerId); dt.focus(); e.preventDefault(); });
+        dt.addEventListener('pointermove', function (e) {
+          if (cur !== i) return;
+          var r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+          var sx = (e.clientX - r.left) / r.width * vb.width + vb.x, sy = (e.clientY - r.top) / r.height * vb.height + vb.y;
+          put(i, X0 + (sx - box.x) / box.width * (X1 - X0), Y0 + (box.y + box.height - sy) / box.height * (Y1 - Y0));
+        });
+        dt.addEventListener('pointerup', function () { cur = null; });
+        dt.addEventListener('keydown', function (e) {
+          var v = val(dt), k = e.key, dx = k === 'ArrowRight' ? step : k === 'ArrowLeft' ? -step : 0, dy = k === 'ArrowUp' ? step : k === 'ArrowDown' ? -step : 0;
+          if (!dx && !dy) return;
+          e.preventDefault(); put(i, v.x + dx, v.y + dy);
+        });
+      });
+      draw();
     });
 
     // ── Live data API (window.Kante) ─────────────────────────────────────
@@ -238,6 +322,9 @@
         }
       });
     }, { rootMargin: '0px 0px -8% 0px' });
-    [].forEach.call(targets, function (el) { io.observe(el); });
+    [].forEach.call(targets, function (el) {
+      if (el.classList.contains('feat') || el.matches('.tiles>.tile,.hero-shot,.showcase figure,.shots figure')) el.setAttribute('data-entrance', '');
+      io.observe(el);
+    });
   });
 })();

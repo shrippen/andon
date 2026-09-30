@@ -62,6 +62,25 @@
   --primary:  var(--yellow);  /* primary action, pressed segment, switch on, focus ring */
   --on-primary: var(--bg-void); /* text on --primary */
 
+  /* ── Tints: translucent steps of the theme colours for hover, drop targets, selection, outlines ── */
+  --tint-1:    color-mix(in srgb, var(--fg1) 8%, transparent);
+  --tint-2:    color-mix(in srgb, var(--fg1) 16%, transparent);
+  --tint-hl:   color-mix(in srgb, var(--cyan) 12%, transparent);
+  --tint-hl-2: color-mix(in srgb, var(--cyan) 25%, transparent);
+  --tint-warn: color-mix(in srgb, var(--orange) 14%, transparent);
+
+  /* ── Data palette: series colours of charts, in this order (red stays danger) ── */
+  --d1: var(--cyan);
+  --d2: var(--yellow);
+  --d3: var(--purple);
+  --d4: var(--aqua);
+  --d5: var(--orange);
+  --d6: var(--fg3);
+
+  /* ── Paper: stickers and brand chips (cream label, dark ink) ── */
+  --paper:    var(--accent);
+  --on-paper: var(--bg-void);
+
   /* ── Layout ── */
   --radius:   12px;
   --max-w:    860px;

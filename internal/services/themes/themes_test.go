@@ -80,7 +80,7 @@ func TestContrastIssuesFlagsLowContrast(t *testing.T) {
 }
 
 // Every value of the shipped contract passes the token validation, so the
-// editor can save a theme that keeps the Kante 1.4 roles, cuts and easings
+// editor can save a theme that keeps the Kante 1.6 roles, cuts and easings
 // as they are.
 func TestContractValuesAreValid(t *testing.T) {
 	dark, light := themes.Contract()
@@ -99,7 +99,7 @@ func TestContractValuesAreValid(t *testing.T) {
 	}
 	for _, name := range []string{"--cyan", "--focus", "--link", "--warn", "--danger", "--cut-m", "--h-m", "--dur", "--ease-snap"} {
 		if _, ok := dark[name]; !ok {
-			t.Errorf("contract lacks Kante 1.4 token %s", name)
+			t.Errorf("contract lacks Kante 1.6 token %s", name)
 		}
 	}
 }

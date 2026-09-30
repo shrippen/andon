@@ -14,7 +14,7 @@
   clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,0 100%)}
 
 /* ── Nav: sticky; the project name fades in once the hero has left the viewport ── */
-.nav{position:sticky;top:0;z-index:10;background:rgba(20,19,18,.92);backdrop-filter:blur(8px);
+.nav{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg-void) 92%,transparent);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--bg1)}
 .nav-inner{display:flex;align-items:center;gap:1.5rem;max-width:var(--max-w-wide);margin:0 auto;
   padding:.6rem var(--gutter);min-height:56px}
@@ -88,7 +88,7 @@ main,.foot{position:relative;z-index:1}
 .btn:hover{--c1:calc(var(--cut) + var(--grow))}
 .btn:active{transform:translate(1px,1px)}
 .btn:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus),inset 0 0 0 4px var(--bg-void)}
-.install-card .btn:focus-visible{box-shadow:inset 0 0 0 2px var(--bg-void),inset 0 0 0 4px var(--yellow)}
+.install-card .btn:focus-visible,.ground-yellow .btn:focus-visible{box-shadow:inset 0 0 0 2px var(--bg-void),inset 0 0 0 4px var(--yellow)}
 /* filled with the double cut */
 .btn-primary,.btn-accent,.btn-danger{--c2:var(--cut)}
 .btn-primary:hover,.btn-accent:hover,.btn-danger:hover{--c2:calc(var(--cut) + var(--grow))}
@@ -487,9 +487,9 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 /* Counter, sticker, status lamp, HUD line */
 .count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding-inline:.3rem;background:var(--yellow);color:var(--bg-void);font-family:var(--font-mono);font-size:.68rem;font-weight:500;font-variant-numeric:tabular-nums}
 .count[data-kind="info"]{background:var(--info);color:var(--on-state)}.count[data-kind="error"]{background:var(--danger);color:var(--on-state)}
-.sticker{display:inline-flex;align-items:center;gap:.5rem;min-height:28px;padding:0 .9rem 0 .6rem;background:var(--accent);color:var(--bg-void);font-family:var(--font-mono);font-size:.7rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+.sticker{display:inline-flex;align-items:center;gap:.5rem;min-height:28px;padding:0 .9rem 0 .6rem;background:var(--paper);color:var(--on-paper);font-family:var(--font-mono);font-size:.7rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
   clip-path:polygon(0 0,calc(100% - var(--cut-s)) 0,100% var(--cut-s),100% 100%,0 100%)}
-.sticker::before{content:"";width:7px;height:7px;background:var(--dot,var(--bg-void))}
+.sticker::before{content:"";width:7px;height:7px;background:var(--dot,var(--on-paper))}
 .led{display:inline-block;width:10px;height:10px;background:var(--c,var(--info))}
 .hud{display:flex;flex-wrap:wrap;gap:.2rem .9rem;font-family:var(--font-mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--fg3)}
 .hud b{color:var(--yellow);font-weight:500}.hud em{font-style:normal;color:var(--cyan)}
@@ -571,15 +571,17 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
   .is-editing>.feat::before{transition:background var(--dur) calc(var(--i,0) * 70ms)}
   .is-editing>.feat::after,.is-editing>[data-editable]::after,.is-editing>.tile::after{animation:k-fade var(--dur) both;animation-delay:calc(var(--i,0) * 70ms)}
   /* Entrances */
-  html.motion .feat:not(.is-in){opacity:0}
-  html.motion .feat.is-in{animation:k-lamp 260ms steps(3) both;animation-delay:calc(var(--i,0) * 55ms)}
-  html.motion .feat:not(.is-in)::before{transform:scaleX(0)}
-  html.motion .feat.is-in::before{animation:k-grow var(--dur-slow) var(--ease-out) both;animation-delay:calc(var(--i,0) * 55ms + 120ms)}
-  html.motion .tiles>.tile:not(.is-in){opacity:0}
-  html.motion .tiles>.tile.is-in{animation:k-lamp 260ms steps(3) both;animation-delay:calc(var(--i,0) * 55ms)}
-  html.motion :is(.hero-shot,.showcase figure,.shots figure):not(.is-in){clip-path:polygon(0 0,100% 0,100% 0,0 0)}
-  html.motion :is(.hero-shot,.showcase figure,.shots figure).is-in{animation:k-scan 700ms cubic-bezier(.3,.7,.2,1) both}
-  html.motion :is(.hero-shot,.showcase figure,.shots figure).is-in::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--cyan);pointer-events:none;animation:k-scanline 700ms cubic-bezier(.3,.7,.2,1) both}
+  /* Only elements that shrippen.js marked at load (data-entrance) are hidden until seen: anything
+     inserted later (htmx swaps, dialogs) is never left invisible. */
+  html.motion .feat[data-entrance]:not(.is-in){opacity:0}
+  html.motion .feat[data-entrance].is-in{animation:k-lamp 260ms steps(3) both;animation-delay:calc(var(--i,0) * 55ms)}
+  html.motion .feat[data-entrance]:not(.is-in)::before{transform:scaleX(0)}
+  html.motion .feat[data-entrance].is-in::before{animation:k-grow var(--dur-slow) var(--ease-out) both;animation-delay:calc(var(--i,0) * 55ms + 120ms)}
+  html.motion .tiles>.tile[data-entrance]:not(.is-in){opacity:0}
+  html.motion .tiles>.tile[data-entrance].is-in{animation:k-lamp 260ms steps(3) both;animation-delay:calc(var(--i,0) * 55ms)}
+  html.motion :is(.hero-shot,.showcase figure,.shots figure)[data-entrance]:not(.is-in){clip-path:polygon(0 0,100% 0,100% 0,0 0)}
+  html.motion :is(.hero-shot,.showcase figure,.shots figure)[data-entrance].is-in{animation:k-scan 700ms cubic-bezier(.3,.7,.2,1) both}
+  html.motion :is(.hero-shot,.showcase figure,.shots figure)[data-entrance].is-in::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--cyan);pointer-events:none;animation:k-scanline 700ms cubic-bezier(.3,.7,.2,1) both}
 }
 @keyframes k-march{to{background-position:28.28px 0}}
 @keyframes k-march-l{to{background-position:33.94px 0}}
@@ -623,6 +625,233 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 .drop-gap,.drop-cell{background:transparent!important;border:2px dashed var(--cyan);box-shadow:none}
 .drop-cell{border-color:var(--bg2)}
 .drop-gap>*,.drop-cell>*{visibility:hidden}
+
+/* 9 · Additions from the project integrations (Kante 1.5) ─────────────
+   Everything Andon, Kader, Plasmai, Kurrent and FrameWidge kept locally because Kante lacked it. */
+/* Native <dialog>: closed dialogs stay closed, no UA border, backdrop = scrim */
+dialog.dialog{border:0;margin:auto;color:var(--fg1)}
+dialog.dialog:not([open]){display:none}
+dialog.dialog::backdrop{background:var(--scrim)}
+/* Toggle state of a button (aria-pressed) */
+.btn-outline[aria-pressed="true"],.btn-data[aria-pressed="true"],.btn-quiet[aria-pressed="true"]{--bc:var(--cyan);background-color:var(--cyan-tint);color:var(--fg0);box-shadow:inset 0 -2px 0 var(--cyan)}
+/* Inline button for dense rows (hints, tables): the one exception to the 32/40/48 heights */
+.btn-inline{--cut:0px;--grow:0px;min-height:0;padding:.1rem .5rem;font-size:.78rem;letter-spacing:.1em}
+/* Chip: an entity or a filter, a colour square and a name; pressed = filled; .chip-x removes it */
+.chips-row{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+.chip{--c:var(--purple);display:inline-flex;align-items:center;gap:.4rem;height:24px;padding-inline:.5rem;border:1px solid var(--c);background:none;color:var(--c);cursor:pointer;
+  font-family:var(--font-mono);font-size:.7rem;letter-spacing:.06em;white-space:nowrap}
+.chip::before{content:"";width:8px;height:8px;background:var(--c)}
+.chip[aria-pressed="true"]{background:var(--c);color:var(--on-state)}
+.chip[aria-pressed="true"]::before{background:var(--on-state)}
+.chip:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.chip-x{background:none;border:0;color:inherit;cursor:pointer;width:16px;height:16px;line-height:1;padding:0;font-family:var(--font-mono)}
+/* Pill over an image */
+.pill.is-solid{background:color-mix(in srgb,var(--bg-void) 85%,transparent)}
+/* Selectable option card (radio card): aria-checked or aria-selected marks the choice */
+.option{position:relative;display:flex;gap:.8rem;align-items:flex-start;padding:.9rem 1rem 1rem;background:var(--bg-panel);border-top:4px solid var(--bg2);cursor:pointer;color:var(--fg1);text-align:left;font:inherit;
+  clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
+.option:hover{background-color:var(--tint-1)}
+.option[aria-checked="true"],.option[aria-selected="true"]{border-top-color:var(--cyan);background-color:var(--cyan-tint);box-shadow:inset 0 0 0 1px var(--cyan)}
+.option:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
+/* Dropdown: a <details> that shows a .menu */
+details.dropdown{position:relative;display:inline-block}
+details.dropdown>summary{list-style:none;cursor:pointer}
+details.dropdown>summary::-webkit-details-marker{display:none}
+details.dropdown>.menu{position:absolute;top:calc(100% + 4px);left:0;z-index:20}
+details.dropdown.is-right>.menu{left:auto;right:0}
+/* Toast stack: fixed corner, newest at the bottom, a live region */
+.toast-stack{position:fixed;right:1rem;bottom:1rem;z-index:50;display:flex;flex-direction:column;align-items:flex-end;gap:.6rem;pointer-events:none}
+.toast-stack>*{pointer-events:auto}
+/* File input */
+.input[type="file"]{padding:0;display:flex;align-items:center;color:var(--fg2)}
+.input[type="file"]::file-selector-button{margin:0 .8rem 0 0;border:0;height:calc(var(--h-m) - 3px);padding:0 1rem;background:var(--bg1);color:var(--fg1);cursor:pointer;
+  font-family:var(--font-heading);font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+/* A <label> that wraps its control */
+label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--fg3)}
+/* Section label (a heading in mono) */
+.h-label{font-family:var(--font-mono);font-size:.7rem;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--fg3);border-bottom:1px solid var(--bg2);padding-bottom:.4rem}
+/* Dismissible callout */
+.callout{position:relative}
+.callout.has-x{padding-right:2.6rem}
+.callout-x{position:absolute;top:.5rem;right:.6rem;width:24px;height:24px;background:none;border:0;color:var(--fg3);cursor:pointer;font-family:var(--font-mono)}
+.callout-x:hover{color:var(--fg0)}
+.callout-x:focus-visible{outline:2px solid var(--focus);outline-offset:0}
+/* Flow node done, fact tier */
+.flow-node.done{border-top-color:var(--aqua)}
+.flow-node.done b::before{content:"✓ ";color:var(--aqua)}
+.fact[data-tier="green"]{border-top-color:var(--aqua)}.fact[data-tier="green"] b{color:var(--aqua)}
+.fact[data-tier="yellow"]{border-top-color:var(--yellow)}.fact[data-tier="yellow"] b{color:var(--yellow)}
+.fact[data-tier="red"]{border-top-color:var(--red)}.fact[data-tier="red"] b{color:var(--red)}
+.fact[data-tier="cyan"]{border-top-color:var(--cyan)}.fact[data-tier="cyan"] b{color:var(--cyan)}
+/* Swatch: entity colours are squares; the ring tells where the colour comes from */
+.swatch{--c:var(--cyan);display:inline-block;width:18px;height:18px;background:var(--c);flex:none}
+.swatch[data-src="own"]{outline:2px solid var(--c);outline-offset:2px}
+.swatch[data-src="inherited"]{outline:2px dashed var(--c);outline-offset:2px}
+.swatch[data-src="generated"]{outline:2px dotted var(--c);outline-offset:2px}
+.swatch[aria-selected="true"]{outline:2px solid var(--fg0);outline-offset:2px}
+.swatch-grid{display:grid;grid-template-columns:repeat(auto-fill,26px);gap:8px}
+/* Table: numbers, group rows, total row */
+.table .num,.table th.num{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.table .group-row td{background:var(--bg1);box-shadow:inset 3px 0 0 var(--yellow);font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--fg2)}
+.table tfoot td{border-top:2px solid var(--yellow);font-family:var(--font-heading);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg0)}
+.table tfoot td.num{color:var(--yellow)}
+/* Charts: SVG with the data palette --d1 to --d6; squares for marks, 1 px grid */
+.chart{display:block;width:100%;height:auto}
+.chart text{font-family:var(--font-mono);font-size:8px;letter-spacing:.08em;fill:var(--fg3)}
+.chart .grid{stroke:var(--bg1);stroke-width:1}
+.chart .goal{stroke:var(--yellow);stroke-width:1.5;stroke-dasharray:4 3}
+.chart .line{fill:none;stroke-width:2;stroke-linejoin:miter}
+.chart .s1{fill:var(--d1);stroke:var(--d1)}.chart .s2{fill:var(--d2);stroke:var(--d2)}.chart .s3{fill:var(--d3);stroke:var(--d3)}
+.chart .s4{fill:var(--d4);stroke:var(--d4)}.chart .s5{fill:var(--d5);stroke:var(--d5)}.chart .s6{fill:var(--d6);stroke:var(--d6)}
+.chart .line.s1,.chart .line.s2,.chart .line.s3,.chart .line.s4,.chart .line.s5,.chart .line.s6{fill:none}
+.spark{display:block;width:100%;height:auto}
+.spark path{fill:none;stroke:var(--d4);stroke-width:1.6}
+.spark rect{fill:var(--d4)}
+.legend{display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2)}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:.4rem;vertical-align:-1px;background:var(--c,var(--d1))}
+.heat{display:grid;gap:3px}
+.heat i{aspect-ratio:1;background:var(--bg-hard)}
+.heat i[data-l="1"]{background:color-mix(in srgb,var(--cyan) 22%,var(--bg-hard))}
+.heat i[data-l="2"]{background:color-mix(in srgb,var(--cyan) 44%,var(--bg-hard))}
+.heat i[data-l="3"]{background:color-mix(in srgb,var(--cyan) 66%,var(--bg-hard))}
+.heat i[data-l="4"]{background:var(--cyan)}
+/* Month grid: today = yellow frame, holiday = orange bar, absence = cyan bar, both = split */
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.cal>b{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.1em;color:var(--fg3);font-weight:400;text-align:center;padding-bottom:.2rem}
+.cal>i{font-style:normal;position:relative;aspect-ratio:1.2;background:var(--bg-panel);font-family:var(--font-mono);font-size:.7rem;color:var(--fg2);padding:.15rem .3rem;font-variant-numeric:tabular-nums}
+.cal>i.we{background:var(--bg-hard);color:var(--fg3)}
+.cal>i.today{box-shadow:inset 0 0 0 2px var(--yellow);color:var(--fg0)}
+.cal>i.hol::after,.cal>i.abs::after{content:"";position:absolute;left:.3rem;right:.3rem;bottom:.25rem;height:4px;background:var(--orange)}
+.cal>i.abs::after{background:var(--cyan)}
+.cal>i.hol.abs::after{background:linear-gradient(90deg,var(--orange) 50%,var(--cyan) 50%)}
+.cal>i[aria-selected="true"]{background:var(--cyan-tint);box-shadow:inset 0 0 0 2px var(--cyan)}
+
+/* Chart read-out, week and agenda views, curve and band editors (Kante 1.6) */
+.chart-wrap{position:relative}
+.chart-wrap .readout{right:auto;bottom:auto;top:.4rem;left:0;display:none;background:var(--bg-panel);color:var(--fg1);line-height:1.5}
+.chart-wrap.is-reading .readout{display:block}
+.chart-wrap .readout b{display:block;font-weight:400;color:var(--fg3);font-size:.6rem}
+.chart .probe{stroke:var(--cyan);stroke-width:1}
+.chart .mark{fill:var(--bg-panel);stroke-width:2}
+.week{--hours:10;display:grid;grid-template-columns:2.2rem repeat(7,minmax(0,1fr));grid-template-rows:1.5rem repeat(var(--hours),2.1rem);gap:0 2px;font-family:var(--font-mono);font-size:.68rem}
+.week>b{grid-row:1;text-align:center;font-weight:400;font-size:.6rem;letter-spacing:.1em;color:var(--fg3);align-self:center}
+.week>b.today{color:var(--yellow);font-weight:700}
+.week>.col{grid-row:2/-1;background:var(--bg-panel)}
+.week>.col.we{background:var(--bg-hard)}
+.week>.col.today{box-shadow:inset 0 0 0 2px var(--yellow)}
+.week>.hr{grid-column:1;color:var(--fg4,var(--fg3));text-align:right;padding-right:.4rem;font-size:.58rem;transform:translateY(-.5em)}
+.week>.ev{--c:var(--yellow);position:relative;margin:1px 3px;padding:.15rem .3rem .15rem .6rem;background:color-mix(in srgb,var(--c) 18%,var(--bg-panel));color:var(--fg0);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:var(--font-sans);font-size:.72rem;cursor:pointer}
+.week>.ev::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.week>.ev.warn{--c:var(--orange)}.week>.ev.info{--c:var(--cyan)}.week>.ev.ok{--c:var(--aqua)}
+.agenda{display:grid;gap:.9rem}
+.agenda>h4{display:flex;align-items:center;gap:.6rem;margin:0;font-family:var(--font-mono);font-size:.7rem;font-weight:400;letter-spacing:.1em;color:var(--fg3)}
+.agenda>h4::after{content:"";flex:1;height:1px;background:var(--bg1)}
+.agenda>h4.today{color:var(--yellow);font-weight:700}
+.agenda>h4.today::after{background:var(--yellow)}
+.agenda .item{--c:var(--yellow);position:relative;display:grid;grid-template-columns:4.4rem 1fr;align-items:center;min-height:2rem;padding-left:.9rem;cursor:pointer}
+.agenda .item::before{content:"";position:absolute;left:0;top:.25rem;bottom:.25rem;width:4px;background:var(--c)}
+.agenda .item.warn{--c:var(--orange)}.agenda .item.info{--c:var(--cyan)}.agenda .item.ok{--c:var(--aqua)}
+.agenda .item>time{font-family:var(--font-mono);font-size:.72rem;color:var(--fg3)}
+.agenda .none{color:var(--fg4,var(--fg3));font-size:.8rem}
+.curve{display:block;width:100%;height:auto;touch-action:none}
+.curve text{font-family:var(--font-mono);font-size:8px;fill:var(--fg3)}
+.curve .frame{fill:var(--bg-hard);stroke:var(--bg2)}
+.curve .grid{stroke:var(--bg1)}
+.curve .line{fill:none;stroke:var(--d1);stroke-width:2;stroke-linejoin:miter}
+.curve .pt{fill:var(--bg-panel);stroke:var(--yellow);stroke-width:2;cursor:grab}
+.curve .pt:focus,.curve .pt[aria-selected="true"]{fill:var(--yellow);stroke:var(--cyan);outline:0}
+.curve .pt:active{cursor:grabbing}
+.bands{display:grid;gap:.5rem}
+.bands>.row{display:flex;align-items:center;gap:.7rem}
+.bands>.row input{width:5.5rem;text-align:right}
+.bands>.row .unit{font-family:var(--font-mono);font-size:.72rem;color:var(--fg3);flex:1}
+.bands>.strip{display:flex;height:10px;background:var(--bg-hard)}
+.bands>.strip>i{display:block;background:var(--c);flex:var(--w) 1 0}
+/* KPI with change: the arrow is a shape, never colour alone */
+.kpi{display:flex;flex-direction:column;gap:.2rem}
+.kpi>b{font-family:var(--font-heading);font-weight:700;font-size:2.8rem;line-height:1;color:var(--fg0);font-variant-numeric:tabular-nums}
+.kpi>span{font-family:var(--font-mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3)}
+.delta{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--font-mono);font-size:.7rem;letter-spacing:.06em;font-variant-numeric:tabular-nums;color:var(--fg3)}
+.delta::before{content:"";width:8px;height:2px;background:currentColor}
+.delta.up{color:var(--aqua)}.delta.up::before{width:0;height:0;background:none;border:5px solid transparent;border-bottom:8px solid var(--aqua);border-top:0}
+.delta.dn{color:var(--red)}.delta.dn::before{width:0;height:0;background:none;border:5px solid transparent;border-top:8px solid var(--red);border-bottom:0}
+/* Bulk bar: appears when something is selected; cyan bar because selection is cyan */
+.bulk-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem;background:var(--bg1);border-top:3px solid var(--cyan);padding:.5rem .8rem;
+  clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
+.bulk-bar>.n{font-family:var(--font-heading);font-weight:700;font-size:1.3rem;color:var(--fg0);font-variant-numeric:tabular-nums}
+.bulk-bar>.n small{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);font-weight:400;margin-left:.4rem}
+.bulk-bar>.grow{flex:1}
+.bulk-bar.is-sticky{position:sticky;bottom:1rem;z-index:5}
+/* Sheet: a panel from the bottom or the side, with an action row */
+.sheet{background:var(--bg-panel);border-top:4px solid var(--yellow);padding:1.1rem 1.3rem 1.3rem;display:flex;flex-direction:column;gap:.8rem;
+  clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,0 100%)}
+.sheet>h3{font-family:var(--font-heading);font-weight:700;font-size:1.4rem;text-transform:uppercase;letter-spacing:.03em;color:var(--fg0);line-height:1.05}
+.sheet>.actions{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:flex-end}
+.sheet.is-side{position:fixed;top:0;right:0;bottom:0;width:min(26rem,100%);z-index:30;overflow-y:auto;clip-path:none;border-top-width:0;border-left:4px solid var(--yellow)}
+/* Setting row: label, hint, control; the reset button only when the value differs */
+.setting{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.15rem 1rem;align-items:center;padding-block:.7rem;border-bottom:1px solid var(--bg1)}
+.setting>b{font-weight:500;color:var(--fg0);font-size:.92rem}
+.setting>span{grid-column:1;font-size:.8rem;color:var(--fg3)}
+.setting>.ctl{grid-column:2;grid-row:1/3;display:flex;align-items:center;gap:.6rem}
+.setting>.ctl .reset{visibility:hidden}
+.setting.is-modified>.ctl .reset{visibility:visible}
+.setting.is-modified>b::after{content:"";display:inline-block;width:6px;height:6px;margin-left:.5rem;background:var(--cyan);vertical-align:middle}
+/* Day strip: one day as a bar, segments at their time, a 2 px "now" mark, hours below */
+.day-strip{position:relative;height:44px;background:var(--bg-hard);margin-bottom:1.2rem}
+.day-strip>i{position:absolute;top:0;bottom:0;background:var(--yellow)}
+.day-strip>i.is-dim{opacity:.6}
+.day-strip>i.is-event{top:auto;height:12px;background:var(--cyan)}
+.day-strip>.now{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--cyan)}
+.day-strip>.ticks{position:absolute;left:0;right:0;bottom:-1.1rem;display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.58rem;color:var(--fg3)}
+/* Status light of a service */
+.status{--k:var(--aqua);background:var(--bg-panel);border-top:4px solid var(--k);padding:.7rem .9rem .8rem;display:flex;flex-direction:column;gap:.3rem;
+  clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
+.status[data-state="warn"]{--k:var(--warn)}.status[data-state="bad"]{--k:var(--danger)}.status[data-state="off"]{--k:var(--bg2)}
+.status>.name{font-family:var(--font-heading);font-weight:700;font-size:1.05rem;letter-spacing:.06em;text-transform:uppercase;color:var(--fg0)}
+.status>.row{display:flex;align-items:center;gap:.5rem;font-family:var(--font-mono);font-size:.68rem;color:var(--fg2)}
+.status>.row::before{content:"";width:9px;height:9px;background:var(--k)}
+/* Board editor: add tile, grip, hover strip */
+.tile-add{display:grid;place-items:center;min-height:5rem;border:2px dashed var(--bg2);background:none;color:var(--fg3);cursor:pointer;font-family:var(--font-mono);font-size:1.4rem}
+.tile-add:hover,.tile-add:focus-visible{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-tint);outline:none}
+.grip{display:inline-block;width:12px;height:18px;cursor:grab;flex:none;
+  background:radial-gradient(circle,var(--fg3) 1.2px,transparent 1.6px) 0 0/6px 6px}
+.tile-strip{display:flex;gap:2px;align-items:center;background:var(--bg-void);border-bottom:1px solid var(--bg2);padding:.15rem .3rem}
+/* Clock: an SVG with .face, .tick, .h, .m, .s and .pin */
+.clock{display:block;width:var(--size,140px);height:var(--size,140px)}
+.clock .face{fill:var(--bg-panel)}
+.clock .tick{stroke:var(--fg3);stroke-width:1.5}
+.clock .h,.clock .m{stroke:var(--fg0);stroke-linecap:butt}
+.clock .s{stroke:var(--yellow);stroke-width:1.2}
+.clock .pin{fill:var(--yellow)}
+/* Command palette: a query line with a block cursor, a result list with kbd hints */
+.palette{background:var(--bg-panel);border-top:4px solid var(--yellow);display:flex;flex-direction:column;
+  clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,0 100%)}
+.palette>.q{display:flex;align-items:center;gap:.6rem;padding:.7rem .9rem;border-bottom:1px solid var(--bg1);font-family:var(--font-mono);font-size:.82rem;color:var(--fg0)}
+.palette>.r{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.5rem .9rem;font-size:.88rem;color:var(--fg1);cursor:pointer}
+.palette>.r[aria-selected="true"]{background:var(--cyan-tint);box-shadow:inset 3px 0 0 var(--cyan)}
+/* Link tile: icon, name, state, hints */
+a.link-tile{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.2rem .8rem;align-items:center;padding:.8rem 1rem;background:var(--bg-panel);border-top:4px solid var(--bg2);color:var(--fg1);text-decoration:none;
+  clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
+a.link-tile:hover{background-color:var(--tint-1);text-decoration:none}
+a.link-tile:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
+a.link-tile>img,a.link-tile>svg{width:28px;height:28px;grid-row:1/3}
+a.link-tile>.name{font-family:var(--font-heading);font-weight:700;font-size:1.05rem;letter-spacing:.05em;text-transform:uppercase;color:var(--fg0)}
+a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;color:var(--fg3)}
+/* List row: marker, text, meta; selected = cyan tint with a bar */
+.list-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:.7rem;min-height:var(--h-m);padding-inline:.8rem;border-bottom:1px solid var(--bg1);color:var(--fg1);cursor:pointer}
+.list-row:hover{background:var(--tint-1)}
+.list-row[aria-selected="true"]{background:var(--cyan-tint);box-shadow:inset 3px 0 0 var(--cyan)}
+.list-row:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
+.list-row>.meta{font-family:var(--font-mono);font-size:.7rem;color:var(--fg3);font-variant-numeric:tabular-nums}
+/* Map frame around a Leaflet (or similar) map: cut corner, dark tiles, square pins, yellow route */
+.map-frame{position:relative;border:1px solid var(--bg2);background:var(--bg-hard);
+  clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,0 100%)}
+.map-frame .leaflet-tile-pane{filter:grayscale(1) invert(1) brightness(.6) contrast(.9) sepia(.25)}
+.map-pin{display:block;width:14px;height:14px;background:var(--cyan);border:2px solid var(--bg-void)}
+.map-frame{--route:var(--yellow)}
+/* A command line outside the yellow install box */
+.cmd-row.is-plain .cmd-box{background:var(--bg-hard);color:var(--cyan)}
+.cmd-row.is-plain .copy-btn{background:var(--bg1);border-color:var(--bg1);color:var(--fg1)}
 
 /* ── Kante Light (apps, <html data-kante="light">) ─────────────────────
    Kante shapes on the platform look: controls get the system font, normal

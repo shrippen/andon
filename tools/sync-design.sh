@@ -53,7 +53,7 @@ if [ -n "$(git -C "$src" status --porcelain kante 2>/dev/null)" ]; then
 	dirty=" plus uncommitted changes"
 fi
 cat > "$dest/VERSION" <<VER
-Kante 1.4
+Kante 1.6
 source: https://github.com/shrippen/shrippen.github.io (kante/)
 branch: $branch
 commit: $commit$dirty
