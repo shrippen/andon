@@ -77,8 +77,39 @@
     return board;
   }
 
+  // editMode marks a tile list as being edited: Kante turns the tier bars
+  // cyan and draws four brackets on each tile, one after the other. Kante's
+  // script (vendor/kante/shrippen.js) is optional: without it a board edits
+  // and drags just the same.
+  function editMode(list) {
+    window.andonKante(function (kante) {
+      [].forEach.call(list.children, function (tile) {
+        if (tile.classList.contains("tile-slot")) {
+          tile.setAttribute("data-editable", "");
+        }
+      });
+      kante.edit(list, true);
+    });
+  }
+
+  // The tile in hand is a copy that Sortable removes before it reports the
+  // drop, so its last position is kept while the pointer moves.
+  var held = null;
+
+  function follow() {
+    var copy = d.querySelector(".is-picked");
+    if (copy) {
+      held = copy.getBoundingClientRect();
+    }
+  }
+
   // bind makes the tile lists in root draggable, once each (a morphed
   // page keeps its lists).
+  //
+  //   pick up ─► the tile stays as a dashed gap (.drop-gap), a copy follows
+  //              the pointer (.is-picked)
+  //   drop    ─► the tile glides from where it was let go into its cell
+  //              (Kante.settle)
   function bind(board, root) {
     // Editors may move tiles between sections; personal layouts only within one.
     var shared = board.getAttribute("data-mode") === "board" ? "tiles" : null;
@@ -86,20 +117,27 @@
       if (Sortable.get(list)) {
         return;
       }
+      editMode(list);
       Sortable.create(list, {
         group: shared ? { name: shared } : "section-" + list.getAttribute("data-sortable"),
         animation: 120,
         draggable: ".tile-slot[data-placement]",
         filter: "[data-static], a, button, input, select, label",
         preventOnFilter: false,
-        // The fallback drag lets CSS lift the tile (.sortable-drag) while a
-        // dashed gap (.sortable-ghost) marks where it lands.
         forceFallback: true,
-        fallbackClass: "sortable-drag",
-        ghostClass: "sortable-ghost",
-        onStart: function () { d.dispatchEvent(new CustomEvent("andon:drag", { detail: true })); },
-        onEnd: function () {
+        fallbackClass: "is-picked",
+        ghostClass: "drop-gap",
+        onStart: function () {
+          held = null;
+          d.addEventListener("pointermove", follow);
+          d.dispatchEvent(new CustomEvent("andon:drag", { detail: true }));
+        },
+        onEnd: function (evt) {
+          d.removeEventListener("pointermove", follow);
           d.dispatchEvent(new CustomEvent("andon:drag", { detail: false }));
+          if (held && window.Kante) {
+            window.Kante.settle(evt.item, held);
+          }
           save(board);
         }
       });

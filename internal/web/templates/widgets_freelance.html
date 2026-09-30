@@ -172,7 +172,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Path}}
 <p class="kpi"><span class="kpi-label">{{if $v.Relative}}{{t "cashflow.change"}}{{else}}{{t "cashflow.end"}}{{end}}</span>
-  <b class="kpi-value">{{money $v.End $v.Currency}}</b></p>
+  <b class="kpi-value" data-live>{{money $v.End $v.Currency}}</b></p>
 <svg class="chart spark-lg" viewBox="0 0 {{$v.W}} {{$v.H}}" preserveAspectRatio="none" role="img" aria-label="{{t "wtype.cashflow.name"}}">
   {{with $v.MinY}}<line class="goal-line{{if $v.BelowMin}} is-bad{{end}}" x1="0" y1="{{.}}" x2="{{$v.W}}" y2="{{.}}"/>{{end}}
   <path class="trend-line" d="{{$v.Path}}"/>
@@ -220,7 +220,7 @@
 {{with $v := .Frag.View}}
 {{if $v.Setup}}<p class="slot-note">{{t "close.receipts_setup"}} <a href="/spaces/settings#rule-cross.expense_unrecorded">{{t "nav.space_settings"}}</a></p>
 {{else if $v.Rows}}
-<div class="tile-head"><b class="tile-value">{{money $v.Sum $v.Currency}}</b><span class="tile-note">{{t "receipts.count" "n" $v.Count}}</span></div>
+<div class="tile-head"><b class="tile-value" data-live>{{money $v.Sum $v.Currency}}</b><span class="tile-note">{{t "receipts.count" "n" $v.Count}}</span></div>
 <div class="table-wrap"><table class="table compact">
   <tbody>{{range $v.Rows}}<tr><td>{{if .Search}}<a href="{{.Search}}" target="_blank" rel="noopener noreferrer" title="{{t "receipts.search"}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</td>
     <td class="num">{{money .Amount $v.Currency}}</td><td class="num"><small class="muted">{{day .Date}}</small></td></tr>{{end}}</tbody>
@@ -233,7 +233,7 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if or $v.MonthKM $v.YearKM}}
 {{$prevKey := "travel.prev"}}{{if $v.Year}}{{$prevKey = "travel.prev_year"}}{{end}}
-<div class="tile-head"><b class="tile-value">{{num $v.HeadKM 0}} km</b><span class="tile-note">{{if $v.Year}}{{t "travel.this_year"}}{{else}}{{t "travel.month"}}{{end}}{{if $v.PrevKM}} · {{t $prevKey "km" (num $v.PrevKM 0)}}{{end}}</span></div>
+<div class="tile-head"><b class="tile-value" data-live>{{num $v.HeadKM 0}} km</b><span class="tile-note">{{if $v.Year}}{{t "travel.this_year"}}{{else}}{{t "travel.month"}}{{end}}{{if $v.PrevKM}} · {{t $prevKey "km" (num $v.PrevKM 0)}}{{end}}</span></div>
 {{with $v.Bar}}<div class="store-bar" title="{{t $prevKey "km" (num $v.PrevKM 0)}}"><i data-style="--w:{{.}}%;background:var(--cyan)"></i></div>{{end}}
 {{if $v.Year}}<p class="small">{{t "travel.places" "countries" $v.Countries "cities" $v.Cities}} · {{t "travel.month"}} {{num $v.MonthKM 0}} km</p>
 {{else}}<p class="small">{{t "travel.year" "km" (num $v.YearKM 0) "countries" $v.Countries "cities" $v.Cities}}</p>{{end}}
@@ -243,7 +243,7 @@
 
 {{define "widgets/subscriptions"}}
 {{with $v := .Frag.View}}{{if $v.Source}}
-<div class="tile-head"><b class="tile-value">{{money $v.Monthly $v.Currency}}</b><span class="tile-note">{{if $v.Yearly}}{{t "subs.per_year" "n" $v.Count}}{{else}}{{t "subs.per_month" "n" $v.Count}}{{end}} · {{t (print "service." $v.Source)}}</span></div>
+<div class="tile-head"><b class="tile-value" data-live>{{money $v.Monthly $v.Currency}}</b><span class="tile-note">{{if $v.Yearly}}{{t "subs.per_year" "n" $v.Count}}{{else}}{{t "subs.per_month" "n" $v.Count}}{{end}} · {{t (print "service." $v.Source)}}</span></div>
 {{with $v.Rows}}<ul class="sub-rows">
   {{range .}}<li><span class="sub-name">{{.Name}}<small class="muted">{{with .Category}}{{.}} · {{end}}{{if .Next}}{{day .Next}}{{end}}</small></span><span class="sub-price">{{money .Price $v.Currency}}</span></li>{{end}}
 </ul>{{end}}
@@ -256,7 +256,7 @@
 {{/* From work to account: one bar, each stage a link to where it moves. */}}
 {{$v := .Frag.View}}
 {{if $v.Stages}}
-<p class="kpi"><span class="kpi-label">{{t "flow.total"}}</span><b class="kpi-value">{{money $v.Total $v.Currency}}</b></p>
+<p class="kpi"><span class="kpi-label">{{t "flow.total"}}</span><b class="kpi-value" data-live>{{money $v.Total $v.Currency}}</b></p>
 <div class="flow-bar" role="img" aria-label="{{t "flow.total"}}">{{range $v.Stages}}{{if .Amount}}<i data-stage="{{.Key}}" data-style="--w:{{.W}}%"></i>{{end}}{{end}}</div>
 <ul class="flow-legend">{{range $v.Stages}}<li data-stage="{{.Key}}"><span class="sq" aria-hidden="true"></span>{{if .Link}}<a href="{{.Link}}">{{t (print "flow." .Key)}}</a>{{else}}{{t (print "flow." .Key)}}{{end}} <b>{{money .Amount $v.Currency}}</b></li>{{end}}
 {{with $v.Paid}}<li data-stage="paid"><span class="sq" aria-hidden="true"></span>{{t "flow.paid"}} <b>{{money . $v.Currency}}</b></li>{{end}}</ul>

@@ -173,7 +173,7 @@
   <input type="hidden" name="board_id" value="{{.Board.ID}}">
   <input type="hidden" name="version" value="{{.Board.Version}}">
   <span class="tile-grip" aria-hidden="true"><i class="ico ico-grip"></i></span>
-  <label class="pick-check"><input type="checkbox" data-pick></label>
+  <label class="check pick-check"><input type="checkbox" data-pick><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
   <span class="tile-repeat" title="{{t "edit.repeated"}}" data-repeat hidden></span>
   <span class="tile-strip-gap"></span>
   <a class="btn btn-quiet btn-icon btn-sm tile-ico" href="/widgets" data-href="/widgets/{widget}/edit?board={{.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><i class="ico ico-edit"></i></a>
@@ -278,7 +278,7 @@
   {{- if or $b.Edit $b.LayerEdit}} data-widget="{{.WidgetID}}" data-title="{{.Title}}"{{if gt .Placed 1}} data-placed="{{.Placed}}"{{end}} tabindex="0"{{end}}>
   {{if eq .Type "link"}}
     {{$c := .Config}}
-    <a class="launch" data-click="{{.PlacementID}}" href="{{$c.URL}}"{{if eq (print $c.Target) "newtab"}} target="_blank" rel="noopener noreferrer"{{end}}
+    <a class="launch" data-click="{{.PlacementID}}" data-live-tile href="{{$c.URL}}"{{if eq (print $c.Target) "newtab"}} target="_blank" rel="noopener noreferrer"{{end}}
        data-search="{{.Title}} {{$c.Description}} {{$c.URL}}{{range $c.Tags}} #{{.}}{{end}}{{range .Items}} {{.Title}}{{end}}"{{if $c.Hotkey}} data-hotkey="{{$c.Hotkey}}"{{end}}{{with $c.Color}} data-color="{{.}}"{{end}}>
       <span class="launch-icon"{{if ne $c.IconSize "normal"}} data-size="{{$c.IconSize}}"{{end}}>{{if .IconEmoji}}<span class="emoji" aria-hidden="true">{{.IconEmoji}}</span>{{else if .IconURL}}<img src="{{.IconURL}}" alt="" loading="lazy"{{if .IconGlyph}} class="is-glyph"{{end}}>{{else}}<span class="mono">{{monogram .Title}}</span>{{end}}</span>
       <span class="launch-body">
@@ -301,7 +301,7 @@
     </ul>
     {{end}}
   {{else}}
-    <article class="card"{{with .Frame.Accent}} data-accent="{{.}}"{{end}}{{if .Frame.Dense}} data-density="compact"{{end}}>
+    <article class="card" data-live-tile{{with .Frame.Accent}} data-accent="{{.}}"{{end}}{{if .Frame.Dense}} data-density="compact"{{end}}>
       {{template "card_head" dict "Title" .Title "Frame" .Frame "Icon" .FrameIcon}}
       {{with index $b.Bodies .PlacementID}}
       {{/* Rendered with the page; htmx only refreshes. */}}

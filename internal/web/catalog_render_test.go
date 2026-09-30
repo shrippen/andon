@@ -133,3 +133,32 @@ func TestGatewayTileOpenWrt(t *testing.T) {
 		t.Fatalf("shows what OpenWrt does not report:\n%s", body)
 	}
 }
+
+// TestStaleSlotMarksTile: a tile that shows old data because the last fetch
+// failed carries data-stale with the age, which andon.js hands to Kante.stale
+// (dimmed tile, warning stripes on the bottom edge). A tile with fresh data
+// carries none.
+func TestStaleSlotMarksTile(t *testing.T) {
+	now := time.Now()
+	kind, _ := widgets.Get("disks")
+	cfg, _ := widgets.Decode("disks", map[string]any{})
+	data := sources.DemoScrutiny(now)
+	view := kind.View(cfg, map[string]any{"data": data}, widgets.ViewCtx{Today: now.Format(time.DateOnly)})
+
+	render := func(slot widgetlib.Slot) string {
+		frag := &widgetlib.Fragment{Type: "disks", View: view, Slots: map[string]widgetlib.Slot{"data": slot}}
+		rec := httptest.NewRecorder()
+		if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, kind.Template, http.StatusOK, map[string]any{"ThemeURL": "", "Frag": frag}); err != nil {
+			t.Fatal(err)
+		}
+		return rec.Body.String()
+	}
+
+	stale := render(widgetlib.Slot{Data: data, Error: "err.upstream", OkAt: now.Add(-12 * time.Minute)})
+	if !strings.Contains(stale, `data-stale="vor 12 Minuten"`) {
+		t.Fatalf("stale slot not marked:\n%s", stale)
+	}
+	if fresh := render(widgetlib.Slot{Data: data, OkAt: now}); strings.Contains(fresh, "data-stale") {
+		t.Fatalf("fresh slot marked stale:\n%s", fresh)
+	}
+}

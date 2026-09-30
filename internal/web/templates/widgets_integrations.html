@@ -15,7 +15,7 @@
 {{define "widgets/mediaserver"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with .Frag.View.Data}}
-<p class="kpi"><span class="kpi-label">{{t "mediaserver.now"}}</span> <b class="kpi-value">{{len .Streams}}</b></p>
+<p class="kpi"><span class="kpi-label">{{t "mediaserver.now"}}</span> <b class="kpi-value" data-live>{{len .Streams}}</b></p>
 {{with .Streams}}<ul class="plain-list">{{range .}}<li>{{.Title}}{{if $.Frag.View.Users}} <small class="muted">{{.User}}</small>{{end}}</li>{{end}}</ul>{{end}}
 <p class="small muted">{{t "mediaserver.library" "movies" .Movies "series" .Series}}</p>
 {{end}}
@@ -84,8 +84,8 @@
 {{define "widgets/energy"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $v.Data}}
-<p class="kpi"><span class="kpi-label">{{t "energy.now"}}{{if $v.EnergyOnly}} · {{t "energy.energy_only"}}{{end}}</span> <b class="kpi-value">{{money .Current .Currency}}</b> {{with .Level}}<small class="muted">{{t (print "energy.level." .)}}</small>{{end}}</p>
-{{with $v.Power}}<p class="kpi"><span class="kpi-label">{{t "energy.power"}}</span> <b class="kpi-value">{{.}} {{$v.PowerUnit}}</b></p>{{end}}
+<p class="kpi"><span class="kpi-label">{{t "energy.now"}}{{if $v.EnergyOnly}} · {{t "energy.energy_only"}}{{end}}</span> <b class="kpi-value" data-live>{{money .Current .Currency}}</b> {{with .Level}}<small class="muted">{{t (print "energy.level." .)}}</small>{{end}}</p>
+{{with $v.Power}}<p class="kpi"><span class="kpi-label">{{t "energy.power"}}</span> <b class="kpi-value" data-live>{{.}} {{$v.PowerUnit}}</b></p>{{end}}
 {{if $v.Path}}<svg class="chart spark-lg price-steps" viewBox="0 0 {{$v.W}} {{$v.H}}" preserveAspectRatio="none" role="img" aria-label="{{t "energy.prices"}}">
   {{with $v.CheapW}}<rect class="price-cheap" x="{{$v.CheapX}}" y="0" width="{{.}}" height="{{$v.H}}"/>{{end}}
   <path class="trend-line" d="{{$v.Path}}"/>
@@ -124,7 +124,7 @@
 
 {{define "widgets/homelab_cost"}}
 {{with $v := .Frag.View}}{{with $b := $v.Bill}}
-<p class="kpi"><span class="kpi-label">{{if $v.Yearly}}{{t "cost.per_year"}}{{else}}{{t "cost.per_month"}}{{end}}</span> <b class="kpi-value">{{money $b.Total}}</b></p>
+<p class="kpi"><span class="kpi-label">{{if $v.Yearly}}{{t "cost.per_year"}}{{else}}{{t "cost.per_month"}}{{end}}</span> <b class="kpi-value" data-live>{{money $b.Total}}</b></p>
 {{with $b.Items}}<ul class="plain-list small">{{range .}}<li>{{t (print "cost." .Key)}} <span class="muted">{{.Name}}</span> · {{money .Monthly}}</li>{{end}}</ul>
 {{else}}<p class="small muted">{{t "cost.none"}}</p>{{end}}
 {{if $b.Cloud}}<p class="small">{{t "cost.cloud" "amount" (money $b.Cloud)}}</p>{{end}}
@@ -143,7 +143,7 @@
 {{/* Connection health: healthy count, the troubled ones as day strips. */}}
 {{define "widgets/conn_health"}}
 {{with $v := .Frag.View}}
-<div class="tile-head"><b class="tile-value">{{$v.Healthy}} / {{$v.Total}}</b><span class="tile-note">{{t "health.healthy" "days" $v.Days}}</span></div>
+<div class="tile-head"><b class="tile-value" data-live>{{$v.Healthy}} / {{$v.Total}}</b><span class="tile-note">{{t "health.healthy" "days" $v.Days}}</span></div>
 {{range $v.Rows}}
 <div class="daybar-row">
   <span class="daybar-name">{{.Name}}</span>
@@ -159,7 +159,7 @@
 {{define "widgets/invoice_aging"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Count}}
-<div class="tile-head"><b class="tile-value">{{money $v.Total}}</b><span class="tile-note">{{t "aging.count" "n" $v.Count}}</span></div>
+<div class="tile-head"><b class="tile-value" data-live>{{money $v.Total}}</b><span class="tile-note">{{t "aging.count" "n" $v.Count}}</span></div>
 <div class="stack" role="img" aria-label="{{range $v.Bands}}{{if .Count}}{{template "aging_band" .}} {{money .Amount}}; {{end}}{{end}}">
   {{range $v.Bands}}{{if .Pct}}<i data-style="--w:{{.Pct}}%" data-tier="{{.Tier}}"></i>{{end}}{{end}}
 </div>

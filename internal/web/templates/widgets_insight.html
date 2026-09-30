@@ -10,7 +10,7 @@
   {{else if and .Error (not .Data)}}
     <p class="slot-note is-error"><span class="pill" data-state="failed">{{t "widget.error"}}</span> <code>{{t .Error}}</code></p>
   {{else if .Error}}
-    <p class="slot-note"><span class="pill" data-state="reviewing">{{t "widget.stale"}}</span> {{t "widget.as_of" "when" (ago .OkAt)}}</p>
+    <p class="slot-note" data-stale="{{ago .OkAt}}"><span class="pill" data-state="reviewing">{{t "widget.stale"}}</span> {{t "widget.as_of" "when" (ago .OkAt)}}</p>
   {{end}}
 {{end}}
 
@@ -19,7 +19,7 @@
 {{with $k := .Frag.View.KPI}}
 <div class="kpi">
   <span class="kpi-label">{{t (printf "opt.%s" $.Frag.Config.Metric)}}</span>
-  <b class="kpi-value"{{with $k.Target}} data-target="{{.}}"{{end}}>
+  <b class="kpi-value" data-live{{with $k.Target}} data-target="{{.}}"{{end}}>
     {{if eq $k.Kind "money"}}{{money $k.Value $k.Currency}}
     {{else if eq $k.Kind "percent"}}{{pct $k.Value}}
     {{else if eq $k.Kind "hours"}}{{num $k.Value 1}} h
@@ -134,7 +134,7 @@
 {{$v := .Frag.View}}
 {{if $v.Path}}
 <p class="kpi"><span class="kpi-label">{{t (printf "opt.%s" .Frag.Config.Metric)}}</span>
-  <b class="kpi-value">{{if eq $v.Unit "money"}}{{money $v.Now}}{{else}}{{num $v.Now 1}} h{{end}}</b></p>
+  <b class="kpi-value" data-live>{{if eq $v.Unit "money"}}{{money $v.Now}}{{else}}{{num $v.Now 1}} h{{end}}</b></p>
 <svg class="chart spark-lg" viewBox="0 0 {{$v.W}} {{$v.H}}" preserveAspectRatio="none" role="img" aria-label="{{t (printf "opt.%s" .Frag.Config.Metric)}}">
   {{with $v.TargetY}}<line class="goal-line" x1="0" y1="{{.}}" x2="{{$v.W}}" y2="{{.}}"/>{{end}}
   <path class="trend-line" d="{{$v.Path}}"/>
@@ -241,7 +241,7 @@
 {{with $v := .Frag.View}}{{if $v.Rate}}
 <div class="kpi">
   <span class="kpi-label">{{$v.Month}}</span>
-  <b class="kpi-value">{{money $v.Rate $v.Currency}}{{t "rate.per_hour"}}</b>
+  <b class="kpi-value" data-live>{{money $v.Rate $v.Currency}}{{t "rate.per_hour"}}</b>
   {{with $v.Prev}}<span class="kpi-delta" data-trend="{{if ge $v.Delta 0.0}}up{{else}}down{{end}}" title="{{t "rate.vs_prev" "rate" (money . $v.Currency)}}">{{if ge $v.Delta 0.0}}▲{{else}}▼{{end}} {{money (abs $v.Delta) $v.Currency}}</span>{{end}}
   {{with $v.Spark}}{{template "spark" .}}{{end}}
   <span class="kpi-sub">{{if $v.Target}}{{t "rate.target" "rate" (money $v.Target $v.Currency)}} · {{end}}{{t "kpi.spark_months" "n" 12}}</span>
@@ -262,7 +262,7 @@
 
 {{define "widgets/hint_noise"}}
 {{with $v := .Frag.View}}{{if $v.Spark}}
-<div class="tile-head"><b class="tile-value">{{$v.Total}}</b><span class="tile-note">{{t "noise.new" "days" $v.Days}}</span></div>
+<div class="tile-head"><b class="tile-value" data-live>{{$v.Total}}</b><span class="tile-note">{{t "noise.new" "days" $v.Days}}</span></div>
 {{template "spark" $v.Spark}}
 {{with $v.Flaps}}<ul class="hint-lines">{{range .}}<li><a href="/spaces/settings#rule-{{.Rule}}">{{t (print "rule_name." .Rule)}}</a><small>{{t "noise.returns" "n" .Returns}}</small></li>{{end}}</ul>
 {{else}}<p class="small muted">{{t "noise.calm"}}</p>{{end}}

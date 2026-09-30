@@ -115,7 +115,7 @@ func TestLinkTileAndLayout(t *testing.T) {
 			}
 		}
 	}
-	expect(string(mustGet(t, srv, client, boardURL)), "board", `class="dsec-hidden"`, "1 ausgeblendet")
+	expect(string(mustGet(t, srv, client, boardURL)), "board", `class="dsec-hidden"`, "1 ausgeblendet", " data-live-tile")
 	expect(string(mustGet(t, srv, client, boardURL+"?layout")), "layout mode",
 		`class="modebar is-layout"`, "Änderungen gelten nur für dich", `id="tile-strip" class="tile-strip"`,
 		`data-show="Einblenden"`, `data-tall="Doppelte Höhe"`, `is-hidden" data-placement=`, ">Kachelgröße<")

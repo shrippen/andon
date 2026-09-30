@@ -1157,6 +1157,84 @@
   applyStyles(d);
   d.addEventListener("htmx:load", function (e) { applyStyles(e.target); });
 
+  // ── Live data: Kante's motion for changing values (window.Kante) ──
+  //
+  //   htmx swaps a tile's fragment ─► its nodes are replaced, so a changed
+  //   value shows only when the [data-live] texts before and after are compared
+  //     L1  value changed   Kante.tick counts the number up, a cyan strip fades
+  //     L2  fresh data      Kante.fresh: a line runs along the tile's bottom edge
+  //     L3  old data        Kante.stale: the tile dims, warning stripes and the
+  //                         age sit on the bottom edge (the fragment marks it
+  //                         with data-stale="<age>")
+  //   Without Kante's script the page works the same, only without the motion.
+  var liveBefore = new WeakMap();
+
+  d.addEventListener("htmx:beforeSwap", function (e) {
+    var target = e.detail.target;
+    if (!window.Kante || e.detail.boosted || !target || !target.querySelectorAll) {
+      return;
+    }
+    liveBefore.set(target, [].map.call(target.querySelectorAll("[data-live]"), function (el) { return el.textContent; }));
+  });
+
+  d.addEventListener("htmx:afterSwap", function (e) {
+    var target = e.detail.target;
+    var before = target && liveBefore.get(target);
+    if (!window.Kante || !before) {
+      return;
+    }
+    liveBefore.delete(target);
+    [].forEach.call(target.querySelectorAll("[data-live]"), function (el, i) {
+      var next = el.textContent;
+      if (before[i] === undefined || before[i] === next) {
+        return;
+      }
+      el.textContent = before[i];
+      window.Kante.tick(el, next);
+    });
+  });
+
+  // syncTile shows a tile as stale (its fragment carries data-stale) or as
+  // fresh (a line runs once).
+  function syncTile(tile, motion) {
+    var note = tile.querySelector("[data-stale]");
+    window.Kante.stale(tile, !!note, note ? note.getAttribute("data-stale") : undefined);
+    if (!note && motion) {
+      window.Kante.fresh(tile);
+    }
+  }
+
+  d.addEventListener("htmx:afterSettle", function (e) {
+    if (!window.Kante || e.detail.boosted || !e.target.closest) {
+      return;
+    }
+    var own = e.target.closest("[data-live-tile]");
+    var tiles = own ? [own] : [].slice.call(e.target.querySelectorAll("[data-live-tile]"));
+    tiles.forEach(function (tile) { syncTile(tile, true); });
+  });
+
+  // andonKante runs fn with Kante once its script has set window.Kante: it
+  // does that on DOMContentLoaded, after the deferred scripts ran. Nothing
+  // happens when the script is missing.
+  window.andonKante = function (fn) {
+    if (window.Kante) {
+      fn(window.Kante);
+      return;
+    }
+    d.addEventListener("DOMContentLoaded", function () {
+      if (window.Kante) {
+        fn(window.Kante);
+      }
+    });
+  };
+
+  // Fragments rendered with the page can be stale from the start.
+  window.andonPage(function () {
+    window.andonKante(function () {
+      [].forEach.call(d.querySelectorAll("[data-live-tile]:has([data-stale])"), function (tile) { syncTile(tile, false); });
+    });
+  });
+
   // A toast (Kante .toast) stays as long as its life line runs (--life on
   // .toast-life, 4 s by default), then goes.
   var TOAST_LIFE_MS = 4000;

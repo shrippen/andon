@@ -122,7 +122,7 @@
 {{define "widgets/monitors"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Total}}
-<div class="tile-head"><b class="tile-value">{{$v.Up}} / {{$v.Total}}</b><span class="tile-note">{{t "kuma.online"}}{{with $v.AvgMS}} · Ø {{num . 0}} ms{{end}}</span></div>
+<div class="tile-head"><b class="tile-value" data-live>{{$v.Up}} / {{$v.Total}}</b><span class="tile-note">{{t "kuma.online"}}{{with $v.AvgMS}} · Ø {{num . 0}} ms{{end}}</span></div>
 {{if $v.Lines}}
 {{/* One line per monitor: state now, its last 14 days, response time. */}}
 <ul class="mon-lines"{{if $v.HideMS}} data-no-ms{{end}}>
@@ -153,7 +153,7 @@
       <button type="submit" class="switch hass-switch" role="switch" aria-checked="{{.On}}" aria-label="{{.Name}}" title="{{if .On}}{{t "hass.on"}}{{else}}{{t "hass.off"}}{{end}}"><span class="switch-track"></span></button>
     </form>
     {{else if .Level}}<span class="pill" data-state="{{pill .Level}}">{{.Value}}{{with .Unit}} {{.}}{{end}}</span>
-    {{else}}<b class="hass-value{{if .Low}} is-low{{end}}">{{if .Low}}<span aria-hidden="true">▮ </span>{{end}}{{.Value}}{{with .Unit}} <small>{{.}}</small>{{end}}</b>{{end}}
+    {{else}}<b class="hass-value{{if .Low}} is-low{{end}}" data-live>{{if .Low}}<span aria-hidden="true">▮ </span>{{end}}{{.Value}}{{with .Unit}} <small>{{.}}</small>{{end}}</b>{{end}}
   </li>
   {{end}}
 </ul>

@@ -49,10 +49,10 @@
     <p class="muted">{{$c.SpaceName}}{{with $c.LastWork}} · {{t "clients.last_work" "day" (day .)}}{{end}}{{if not $c.Matched}} · {{t "clients.no_ninja"}}{{end}}</p>
 
     <div class="client-kpis">
-      <div class="kpi"><span class="kpi-label">{{t "clients.hours_year"}}</span><b class="kpi-value">{{num $c.HoursYear 1}} h</b><span class="kpi-sub">{{t "clients.hours_month" "hours" (num $c.HoursMonth 1)}}</span></div>
-      <div class="kpi"><span class="kpi-label">{{t "clients.unbilled"}}</span><b class="kpi-value">{{money $c.Unbilled $c.Currency}}</b>{{if $c.Unbilled}}<a class="kpi-sub" href="/billing#drafts">{{t "clients.to_billing"}}</a>{{end}}</div>
-      <div class="kpi"><span class="kpi-label">{{t "clients.open"}}</span><b class="kpi-value">{{money $c.Open $c.Currency}}</b>{{if $c.Overdue}}<span class="kpi-sub late">{{t "clients.overdue" "amount" (money $c.Overdue $c.Currency)}}</span>{{end}}</div>
-      <div class="kpi"><span class="kpi-label">{{t "clients.revenue"}}</span><b class="kpi-value">{{money $c.RevenueYTD $c.Currency}}</b>{{if $c.PaymentDays}}<span class="kpi-sub">{{t "clients.pays_in" "days" $c.PaymentDays}}</span>{{end}}</div>
+      <div class="kpi"><span class="kpi-label">{{t "clients.hours_year"}}</span><b class="kpi-value" data-live>{{num $c.HoursYear 1}} h</b><span class="kpi-sub">{{t "clients.hours_month" "hours" (num $c.HoursMonth 1)}}</span></div>
+      <div class="kpi"><span class="kpi-label">{{t "clients.unbilled"}}</span><b class="kpi-value" data-live>{{money $c.Unbilled $c.Currency}}</b>{{if $c.Unbilled}}<a class="kpi-sub" href="/billing#drafts">{{t "clients.to_billing"}}</a>{{end}}</div>
+      <div class="kpi"><span class="kpi-label">{{t "clients.open"}}</span><b class="kpi-value" data-live>{{money $c.Open $c.Currency}}</b>{{if $c.Overdue}}<span class="kpi-sub late">{{t "clients.overdue" "amount" (money $c.Overdue $c.Currency)}}</span>{{end}}</div>
+      <div class="kpi"><span class="kpi-label">{{t "clients.revenue"}}</span><b class="kpi-value" data-live>{{money $c.RevenueYTD $c.Currency}}</b>{{if $c.PaymentDays}}<span class="kpi-sub">{{t "clients.pays_in" "days" $c.PaymentDays}}</span>{{end}}</div>
     </div>
 
     {{with $c.Invoices}}<h2>{{t "clients.invoices"}}</h2>

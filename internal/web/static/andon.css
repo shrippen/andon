@@ -278,10 +278,9 @@ label.pick-check { margin: 0 .3rem; }
 .quick-link { display: flex; gap: .3rem; margin: 0; }
 .quick-link input { flex: 1; min-width: 0; width: auto; margin: 0; }
 .quick-link button { margin: 0; }
-/* Dragging: the gap shows where the tile lands, the tile lifts. */
-.sortable-ghost { outline: 2px dashed var(--yellow); outline-offset: -2px; background: none; }
-.sortable-ghost > * { visibility: hidden; }
-.sortable-drag { transform: rotate(-1.2deg); box-shadow: 0 10px 24px var(--shadow); outline: 1px solid var(--yellow); opacity: .95; }
+/* Dragging: Kante's .drop-gap marks where the tile lands and .is-picked is the
+   tile in hand; editing marks every tile with Kante's brackets (.is-editing). */
+.is-editing > .tile-slot > .card { border-top-color: var(--tier, var(--tint, var(--bg2))); }
 .dsec-hidden { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .04em; color: var(--fg3); text-decoration: none; }
 .dsec-hidden:hover { color: var(--fg1); text-decoration: underline; }
 .size-pick { display: inline-flex; align-items: center; gap: .45rem; margin: 0; font-family: var(--font-mono); font-size: .68rem; letter-spacing: .06em; color: var(--fg3); }
