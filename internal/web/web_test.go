@@ -1209,3 +1209,24 @@ func TestClientsPageWithoutKimai(t *testing.T) {
 		t.Fatalf("unknown customer: %d", resp.StatusCode)
 	}
 }
+
+// TestLoginPasskeyGerman: the German login page labels the passkey
+// button in German, not "Sign in with a passkey".
+func TestLoginPasskeyGerman(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/login", nil)
+	req.Header.Set("Accept-Language", "de-DE,de;q=0.9")
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("login page: %v", err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	page := string(body)
+	if !strings.Contains(page, "Mit Passkey anmelden") || strings.Contains(page, "Sign in with a passkey") {
+		t.Fatalf("German login page lacks the German passkey label:\n%s", page)
+	}
+}
