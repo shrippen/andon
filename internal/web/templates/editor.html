@@ -292,7 +292,7 @@
           <h2 id="preview-h">{{t "edit.preview"}}</h2>
           {{if .Kind.Service}}<span class="pill src-live" data-state="ok">{{t "gallery.live"}}</span><span class="pill src-demo" data-state="warn">{{t "gallery.sample"}}</span>{{end}}
         </div>
-        <div class="dsec-body size-{{or .Dest.Size "medium"}}">
+        <div class="dsec-body" data-size="{{or .Dest.Size "medium"}}">
           {{if .Target.Place}}<div class="tile-slot gal-ghost" aria-hidden="true"></div><div class="tile-slot gal-ghost" aria-hidden="true"></div>{{end}}
           <div class="tile-slot w-{{.Kind.Key}} wf-slot">
             {{/* The live preview swaps in the whole tile: frame, title and body. */}}
@@ -316,7 +316,7 @@
      fragment template into the form's static preview card. */}}
 {{define "widget_preview"}}
 {{$c := .Frag.Config}}
-<a class="launch" href="#preview"><span class="launch-icon">{{with .Icon}}{{if .Emoji}}<span class="emoji" aria-hidden="true">{{.Emoji}}</span>{{else if .URL}}<img src="{{.URL}}" alt=""{{if .Glyph}} class="is-glyph"{{end}}>{{else}}<span class="mono">{{monogram $.Frag.Title}}</span>{{end}}{{else}}<span class="mono">{{monogram .Frag.Title}}</span>{{end}}</span>
+<a class="launch" href="#preview"><span class="launch-icon">{{with .Icon}}{{if .Emoji}}<span class="emoji" aria-hidden="true">{{.Emoji}}</span>{{else if .URL}}<img src="{{.URL}}" alt=""{{if .Glyph}} class="is-glyph"{{end}}>{{else}}<span class="monogram">{{monogram $.Frag.Title}}</span>{{end}}{{else}}<span class="monogram">{{monogram .Frag.Title}}</span>{{end}}</span>
   <span class="launch-body"><b class="launch-title">{{.Frag.Title}}</b>{{if $c.Description}}<small class="launch-desc">{{$c.Description}}</small>{{end}}
   <span class="launch-live">{{template "widgets/link" .}}</span></span></a>
 {{end}}

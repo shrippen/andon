@@ -86,12 +86,12 @@
 {{with $v := .Frag.View}}{{with $v.Data}}
 <p class="kpi"><span class="kpi-label">{{t "energy.now"}}{{if $v.EnergyOnly}} · {{t "energy.energy_only"}}{{end}}</span> <b class="kpi-value" data-live>{{money .Current .Currency}}</b> {{with .Level}}<small class="muted">{{t (print "energy.level." .)}}</small>{{end}}</p>
 {{with $v.Power}}<p class="kpi"><span class="kpi-label">{{t "energy.power"}}</span> <b class="kpi-value" data-live>{{.}} {{$v.PowerUnit}}</b></p>{{end}}
-{{if $v.Path}}<svg class="chart spark-lg price-steps" viewBox="0 0 {{$v.W}} {{$v.H}}" preserveAspectRatio="none" role="img" aria-label="{{t "energy.prices"}}">
-  {{with $v.CheapW}}<rect class="price-cheap" x="{{$v.CheapX}}" y="0" width="{{.}}" height="{{$v.H}}"/>{{end}}
+{{if $v.Path}}<svg class="chart spark-lg" viewBox="0 0 {{$v.W}} {{$v.H}}" preserveAspectRatio="none" role="img" aria-label="{{t "energy.prices"}}">
+  {{with $v.CheapW}}<rect class="window" x="{{$v.CheapX}}" y="0" width="{{.}}" height="{{$v.H}}"/>{{end}}
   <path class="line s2" d="{{$v.Path}}"/>
-  {{with $v.NowX}}<line class="price-now" x1="{{.}}" y1="0" x2="{{.}}" y2="{{$v.H}}"/>{{end}}
+  {{with $v.NowX}}<line class="now" x1="{{.}}" y1="0" x2="{{.}}" y2="{{$v.H}}"/>{{end}}
 </svg>
-<p class="legend"><span><i class="cheap"></i>{{t "energy.cheap_band"}}</span><span><i class="now"></i>{{t "energy.now_line"}}</span></p>{{end}}
+<p class="legend"><span><i class="window"></i>{{t "energy.cheap_band"}}</span><span><i class="now"></i>{{t "energy.now_line"}}</span></p>{{end}}
 {{with $v.CheapStart}}<p class="small">{{t "energy.cheap" "hours" $v.CheapHours "time" (print (day .) " " (.Local.Format "15:04")) "price" (money $v.CheapAvg $v.Data.Currency)}}</p>{{end}}
 {{if $v.Days}}<p class="small muted">{{t "energy.cost" "days" $v.Days "cost" (money $v.Cost .Currency)}} · {{num $v.KWh 0}} kWh</p>{{end}}
 {{end}}{{end}}

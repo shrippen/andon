@@ -158,6 +158,7 @@ board:
   search: Suchen
   search_hint: Suchen oder Websuche …
   no_match: Keine Treffer. Enter startet die Websuche.
+  search_web: "↵ Web"
   untitled: Ohne Titel
   hidden_n: '{n} ausgeblendet'
   new: Neues Board

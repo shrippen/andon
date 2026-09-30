@@ -158,6 +158,7 @@ board:
   search: Search
   search_hint: Search or web search …
   no_match: No match. Enter starts a web search.
+  search_web: "↵ web"
   untitled: Untitled
   hidden_n: '{n} hidden'
   new: New board

@@ -11,6 +11,7 @@ import (
 	"andon/internal/metrics"
 	"andon/internal/services/hints"
 	"andon/internal/services/widgetlib"
+	"andon/internal/sources"
 	"andon/internal/widgets"
 )
 
@@ -51,6 +52,24 @@ func TestFreelanceTilesRender(t *testing.T) {
 		want := map[string]string{"widgets/cashflow": "Feste Kosten", "widgets/heatmap": `data-l="4"`}[name]
 		if body := rec.Body.String(); !strings.Contains(body, want) {
 			t.Fatalf("%s:\n%s", name, body)
+		}
+	}
+}
+
+// The weather tile renders as Kante .weather with its days and rain columns.
+func TestWeatherTileRenders(t *testing.T) {
+	view := map[string]any{"Temp": 17.0, "Code": 3, "Label": "Berlin", "Rain": []int{10, 60},
+		"Spark": widgets.SparkOf([]float64{15, 17}), "RainFrom": "14:00",
+		"Days": []sources.WeatherDay{{Day: "2026-10-01", Max: 18, Min: 9, Code: 61}}}
+	rec := httptest.NewRecorder()
+	frag := &widgetlib.Fragment{View: view, Slots: map[string]widgetlib.Slot{}}
+	if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, "widgets/weather", http.StatusOK, map[string]any{"ThemeURL": "", "Frag": frag}); err != nil {
+		t.Fatal(err)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{`<div class="weather">`, `<ol class="weather-days">`, `class="rain-cols"`, "<b>17°</b>"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("missing %q:\n%s", want, body)
 		}
 	}
 }

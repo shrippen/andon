@@ -5,12 +5,12 @@
      with the board (see "tile" in boards.html). */}}
 {{define "widgets/link"}}
 {{with $s := index .Frag.Slots "status"}}{{with $d := $s.Data}}
-<span class="dot" data-up="{{if $d.Up}}yes{{else}}no{{end}}" title="{{if $d.Code}}HTTP {{$d.Code}}{{else}}{{$d.Error}}{{end}}">{{if $d.Up}}{{t "status.up"}}{{if $d.Ms}}<span class="dot-ms"> · {{$d.Ms}} ms</span>{{end}}{{else}}{{t "status.down"}}{{end}}</span>
+<span class="launch-state" data-state="{{if $d.Up}}ok{{else}}bad{{end}}" title="{{if $d.Code}}HTTP {{$d.Code}}{{else}}{{$d.Error}}{{end}}">{{if $d.Up}}{{t "status.up"}}{{else}}{{t "status.down"}}{{end}}</span>{{if and $d.Up $d.Ms}}<span class="launch-info">{{$d.Ms}} ms</span>{{end}}
 {{end}}{{end}}
 {{with $info := index .Frag.View "Info"}}<span class="launch-info">{{range $i, $p := $info}}{{if $i}} · {{end}}{{tt (print "info." $p.Key) $p.Params}}{{end}}</span>
 {{else}}{{with $slot := index .Frag.Slots "info"}}{{if $slot.MissingCredential}}<span class="launch-info">{{t "widget.setup_access_short"}}</span>{{else if $slot.Error}}<span class="launch-info is-error">{{t "widget.error"}}</span>{{end}}{{end}}{{end}}
-{{/* Hint count with the level as a shape too: ▲ critical, ■ warning, ● info. */}}
-{{if .Frag.HintCount}}<span class="launch-hints" data-level="{{.Frag.HintLevel}}" data-hints="/connections/{{.Frag.HintConn}}/hints" title="{{t "hints.badge" "n" .Frag.HintCount}}" aria-label="{{t "hints.badge" "n" .Frag.HintCount}}"><span aria-hidden="true">{{if ge .Frag.HintLevel 30}}▲{{else if ge .Frag.HintLevel 20}}■{{else}}●{{end}}</span> {{.Frag.HintCount}}</span>{{end}}
+{{/* Hint count in the tier's colour; Kante fills red, so the shape tells it too. */}}
+{{if .Frag.HintCount}}<span class="launch-hints"{{if ge .Frag.HintLevel 30}} data-tier="red"{{else if ge .Frag.HintLevel 20}} data-tier="yellow"{{end}} data-hints="/connections/{{.Frag.HintConn}}/hints" title="{{t "hints.badge" "n" .Frag.HintCount}}" aria-label="{{t "hints.badge" "n" .Frag.HintCount}}">{{.Frag.HintCount}}</span>{{end}}
 {{with $u := index .Frag.View "Uptime"}}<span class="uptime" title="{{t "uptime.summary" "share" (pct $u.Share) "ms" $u.AvgMs}}">{{range $u.Bars}}<i data-state="{{.State}}" title="{{day .Day}} · {{pct .Share}}"></i>{{end}}</span>{{end}}
 {{end}}
 
@@ -32,7 +32,7 @@
 
 {{define "widgets/clock"}}
 {{$c := .Frag.Config}}
-<div class="clock-tile{{if $c.Analog}} is-analog{{end}}">
+<div class="clock-zones">
   {{range $c.Timezones}}
     <div class="clock-zone" data-clock data-tz="{{.}}" data-locale="{{$.Ctx.Locale}}" data-seconds="{{if $c.Seconds}}yes{{else}}no{{end}}" data-h12="{{if $c.H12}}yes{{else}}no{{end}}">
       {{if $c.Analog}}{{with $h := clockHands .}}<svg class="clock" viewBox="0 0 100 100" aria-hidden="true">
@@ -43,8 +43,8 @@
         {{if $c.Seconds}}<line class="s" x1="50" y1="56" x2="50" y2="10" data-style="--a:{{$h.S}}deg"/>{{end}}
         <rect class="pin" x="47.5" y="47.5" width="5" height="5"/>
       </svg>{{end}}{{end}}
-      <span class="muted small">{{.}}</span> <strong class="clock-time">{{clockShow . $c.Seconds $c.H12}}</strong>
-      {{if $c.Date}}<span class="muted small clock-date">{{clockDate .}}</span>{{end}}
+      <small>{{.}}</small> <strong class="clock-time">{{clockShow . $c.Seconds $c.H12}}</strong>
+      {{if $c.Date}}<small class="clock-date">{{clockDate .}}</small>{{end}}
     </div>
   {{end}}
 </div>
@@ -53,8 +53,8 @@
 {{define "widgets/weather"}}
 {{with $slot := index .Frag.Slots "weather"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $w := .Frag.View}}
-<div class="weather-tile">
-  <div class="weather-now">
+<div>
+  <div class="weather">
     <b>{{num $w.Temp 0}}°{{if $w.Fahrenheit}}F{{end}}</b>
     <span>{{t (printf "weather.%s" (weatherKind $w.Code))}}</span>
     {{if $w.Label}}<small>{{$w.Label}}</small>{{end}}

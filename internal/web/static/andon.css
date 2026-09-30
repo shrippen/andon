@@ -155,10 +155,7 @@ a > .count, summary > .count { margin-left: .35rem; }
 .board-kicker { display: block; font-family: var(--font-mono); font-size: .68rem; font-weight: 400; letter-spacing: .14em; color: var(--fg3); }
 .board-tools { display: flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; align-items: center; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.search { position: relative; flex: 1 1 18rem; max-width: 34rem; display: flex; align-items: center; margin: 0; }
-.search input { margin: 0; padding-right: 2.6rem; }
-.search kbd { position: absolute; right: .6rem; }
-.search-empty { color: var(--fg3); font-family: var(--font-mono); font-size: .8rem; }
+.search { max-width: 34rem; }
 .board { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.4rem; align-items: start; }
 .board.has-side { grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem); }
 .board-col { display: flex; flex-direction: column; gap: 1.2rem; min-width: 0; }
@@ -211,8 +208,8 @@ a > .count, summary > .count { margin-left: .35rem; }
 /* --cols caps the number of columns; tiles never get narrower than --tile. */
 .dsec-body { --tile: 13.5rem; --cols: 12; display: grid; gap: .8rem; grid-auto-flow: row dense;
   grid-template-columns: repeat(auto-fill, minmax(max(min(var(--tile), 100%), calc(100% / var(--cols) - .8rem)), 1fr)); }
-.dsec-body.size-small { --tile: 10.5rem; gap: 2px .4rem; }
-.dsec-body.size-large { --tile: 5.6rem; gap: .25rem; }
+.dsec-body[data-size="small"] { --tile: 10.5rem; gap: 2px .4rem; }
+.dsec-body[data-size="large"] { --tile: 5.6rem; gap: .25rem; }
 .board-side .dsec-body { grid-template-columns: minmax(0, 1fr); }
 .tile-slot { position: relative; min-width: 0; display: flex; flex-direction: column; }
 .tile-slot.w-rss, .tile-slot.w-iframe, .tile-slot.w-deadlines, .tile-slot.w-hints, .tile-slot.w-table, .tile-slot.w-chart,
@@ -233,12 +230,11 @@ a > .count, summary > .count { margin-left: .35rem; }
 .tile-slot.is-hidden { opacity: .35; }
 /* ── edit and layout mode: Kante .tile-tools, "+" tile, dragging ──
    Kante's band (.has-tools) holds one strip, moved to the tile at hand. */
+/* Kante's [hidden] rule sits in base.css, which Andon does not load (its
+   reset and language rules are for landing pages). */
+:is(.tile-tools, .bulk-bar)[hidden] { display: none; }
 .board[data-mode="board"] .tile-slot, .board[data-mode="overlay"] .tile-slot { cursor: grab; outline: 1px dashed var(--bg2); outline-offset: 2px; }
 .board[data-mode] .tile-slot:hover, .board[data-mode] .tile-slot:focus-within { outline-color: var(--hl); }
-/* Kante draws both with display: flex, over the hidden attribute. */
-:is(.tile-tools, .bulk-bar)[hidden] { display: none; }
-/* The shared strip floats outside its slot, where Kante sets the band height. */
-.tile-tools.is-floating { --tools-h: var(--h-s); }
 .board[data-mode] .tile-slot.is-selected { outline: 2px solid var(--hl); }
 .edit-touch { display: none; margin: 0 0 .8rem; font-size: .8rem; color: var(--fg3); }
 @media (hover: none) {
@@ -272,76 +268,22 @@ label.pick-check { margin: 0 .3rem; }
 .size-pick { display: inline-flex; align-items: center; gap: .45rem; margin: 0; font-family: var(--font-mono); font-size: .68rem; letter-spacing: .06em; color: var(--fg3); }
 .size-pick select { width: auto; margin: 0; }
 
-/* ── launch tile (link widget): medium = row with description,
-      small = compact row (two per section column), large = icon tile ── */
-.launch { position: relative; display: flex; align-items: center; gap: .75rem; height: 100%; padding: .5rem .6rem; color: var(--fg1); text-decoration: none; background: none; border: 0; transition: background var(--dur-fast); }
-.launch:hover { background: var(--bg1); color: var(--fg0); }
-.launch:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
-.launch.is-first { outline: 1px solid var(--hl); outline-offset: -1px; }
-.launch-icon { flex: 0 0 2.1rem; width: 2.1rem; height: 2.1rem; display: grid; place-items: center; }
-.launch .launch-icon[data-size="small"] { flex-basis: 1.5rem; width: 1.5rem; height: 1.5rem; }
-.launch .launch-icon[data-size="large"] { flex-basis: 2.8rem; width: 2.8rem; height: 2.8rem; }
-.launch-icon img { width: 100%; height: 100%; object-fit: contain; }
-.launch-icon .emoji { font-size: 1.6rem; line-height: 1; }
-/* Glyph sets (si-, mdi-, Font Awesome) are black shapes: invert on dark. */
-.launch-icon img.is-glyph { filter: invert(1); }
-:root[data-theme="light"] .launch-icon img.is-glyph { filter: none; }
-@media (prefers-color-scheme: light) { :root:not([data-theme]) .launch-icon img.is-glyph { filter: none; } }
-.launch-icon .mono { width: 100%; height: 100%; display: grid; place-items: center; background: var(--bg-hard); color: var(--tint, var(--accent)); border-bottom: 2px solid currentColor; font-family: var(--font-heading); font-weight: 700; font-size: .95rem; letter-spacing: .02em; }
-.launch-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-.launch-title { font-family: var(--font-sans); font-weight: 600; font-size: .92rem; color: var(--fg0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.launch-host { font-family: var(--font-mono); font-weight: 400; font-size: .68rem; color: var(--fg3); }
-.launch-desc { color: var(--fg3); font-size: .76rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.launch-live { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .6rem; margin-top: .15rem; font-family: var(--font-mono); font-size: .66rem; color: var(--fg2); min-height: 1em; }
-.launch-info { color: var(--fg2); }
-.launch-info.is-error { color: var(--danger-text); }
-.launch-key { align-self: flex-start; font-size: .65rem; }
-.dot { display: inline-flex; align-items: center; gap: .3rem; text-transform: uppercase; letter-spacing: .08em; color: var(--ok-text); }
-.dot::before { content: ""; width: .45rem; height: .45rem; background: var(--aqua); }
-.dot[data-up="no"] { color: var(--danger-text); }
-.dot[data-up="no"]::before { background: var(--red); }
-/* Hint count: outlined in the level's colour, the shape repeats the level. */
-.launch-hints { display: inline-flex; align-items: center; gap: .2rem; min-width: 1.2rem; height: 1.1rem; padding: 0 .3rem; background: none; color: var(--link); border: 1px solid currentColor; font-weight: 500; font-size: .62rem; margin: 0; cursor: pointer; font-family: var(--font-mono); }
-.launch-hints[data-level="20"] { color: var(--warn-text); }
-.launch-hints[data-level="30"] { color: var(--danger-text); }
-.launch-hints:hover { background: var(--bg1); }
+/* ── launch tile: Kante .launch; sizes by data-size (the section's). ── */
+.launch-icon[data-size="small"] { --icon: 1.5rem; }
+.launch-icon[data-size="large"] { --icon: 2.8rem; }
 /* 30-day uptime strip: one bar per day; state also in the title text. */
-/* Days of reachability as even cells, readable at a glance. */
 .uptime { display: inline-flex; gap: 2px; height: .4rem; flex-basis: 100%; max-width: 8rem; }
 .uptime i { flex: 1; height: 100%; background: var(--bg2); }
 .uptime i[data-state="up"] { background: var(--green-n); }
 .uptime i[data-state="partial"] { background: var(--yellow); }
 .uptime i[data-state="down"] { background: var(--red); }
-.dot-ms { text-transform: none; letter-spacing: 0; color: var(--fg3); }
-
-/* small: name, status square and hint badge on one line */
-.size-small .launch { padding: 0 .45rem; height: 2.15rem; gap: .55rem; }
-.size-small .launch-icon { flex-basis: 1.5rem; width: 1.5rem; height: 1.5rem; }
-.size-small .launch-icon .emoji { font-size: 1.1rem; }
-.size-small .mono { font-size: .72rem; }
-.size-small .launch-body { flex-direction: row; align-items: center; gap: .5rem; }
-.size-small .launch-title { font-weight: 400; font-size: .88rem; color: var(--fg1); flex: 1; }
-.size-small .launch-desc, .size-small .launch-tags, .size-small .launch-info, .size-small .uptime, .size-small .launch-key { display: none; }
-.size-small .launch-live { margin: 0; flex-wrap: nowrap; gap: .4rem; flex: none; }
-.size-small .dot, .size-large .dot { font-size: 0; gap: 0; }
-
-/* large: icon tile, badges in the corners */
-.size-large .launch { flex-direction: column; justify-content: flex-start; gap: .45rem; padding: .65rem .25rem .5rem; text-align: center; }
-.size-large .launch-icon { flex: 0 0 2.8rem; width: 2.8rem; height: 2.8rem; }
-.size-large .mono { font-size: 1.2rem; border-bottom-width: 3px; }
-.size-large .launch-icon .emoji { font-size: 2rem; }
-.size-large .launch-body { width: 100%; align-items: center; }
-.size-large .launch-title { font-weight: 400; font-size: .76rem; color: var(--fg2); width: 100%; }
-.size-large .launch-desc, .size-large .launch-tags, .size-large .launch-info, .size-large .uptime, .size-large .launch-key { display: none; }
-.size-large .launch-live { position: absolute; inset: .3rem .35rem auto .35rem; margin: 0; justify-content: space-between; pointer-events: none; }
-.size-large .launch-live > * { pointer-events: auto; }
+.launch[data-size] .uptime { display: none; }
 
 /* Accent per tile or section: data-color names a theme token. */
 [data-color="yellow"] { --tint: var(--yellow); } [data-color="green"] { --tint: var(--green); }
 [data-color="red"] { --tint: var(--red); } [data-color="blue"] { --tint: var(--blue); }
 [data-color="purple"] { --tint: var(--purple); } [data-color="aqua"] { --tint: var(--aqua); }
 [data-color="orange"] { --tint: var(--orange); }
-.launch-tags { display: flex; flex-wrap: wrap; gap: .1rem .5rem; font-family: var(--font-mono); font-size: .65rem; color: var(--fg3); }
 .tile-slot:has(.launch-items) .launch { height: auto; }
 .launch-items { list-style: none; margin: 0; padding: .2rem .6rem .5rem 3.4rem; display: flex; flex-wrap: wrap; gap: .2rem .9rem; font-family: var(--font-mono); font-size: .72rem; }
 .launch-items a { color: var(--fg2); text-decoration: none; display: inline-flex; align-items: center; gap: .3rem; }
@@ -373,7 +315,7 @@ label.pick-check { margin: 0 .3rem; }
   .board.has-side { grid-template-columns: minmax(0, 1fr); }
   .board-main > .dsec[data-span] { grid-column: 1 / -1; }
 }
-@media (max-width: 640px) { .nav-search kbd { display: none; } .app-side { flex-wrap: wrap; gap: .5rem 1rem; } .board-tools { margin-left: 0; } .dsec-body:not(.size-small):not(.size-large) { --tile: 100%; } .dsec-flow { column-count: 1; } .nav-search { min-width: 0; } }
+@media (max-width: 640px) { .nav-search kbd { display: none; } .app-side { flex-wrap: wrap; gap: .5rem 1rem; } .board-tools { margin-left: 0; } .dsec-body[data-size="medium"] { --tile: 100%; } .dsec-flow { column-count: 1; } .nav-search { min-width: 0; } }
 /* Phone layout per section: pinned to the top or left out. */
 @media (max-width: 640px) {
   .board-main > .dsec[data-mobile="first"] { order: -1; }
@@ -400,19 +342,9 @@ label.pick-check { margin: 0 .3rem; }
 .sysinfo-tile p { margin: 0 0 .5rem; font-family: var(--font-mono); font-size: .82rem; color: var(--fg2); }
 .sysinfo-tile ul { list-style: none; margin: 0; padding: 0; font-family: var(--font-mono); font-size: .78rem; color: var(--fg2); }
 
-.clock-tile { display: flex; flex-direction: column; gap: .4rem; }
-.clock-zone { display: flex; flex-wrap: wrap; align-content: flex-start; align-items: baseline; gap: .2rem .6rem; font-family: var(--font-heading); }
-.clock-zone > * { white-space: nowrap; }
-.clock-zone strong { font-size: 1.3rem; font-variant-numeric: tabular-nums; color: var(--fg0); }
-.clock-tile.is-analog .clock-zone { display: grid; grid-template-columns: 4.2rem minmax(0, 1fr); grid-template-rows: auto auto auto; column-gap: .8rem; align-items: center; }
 /* Analog face: Kante .clock; andon.js turns the hands through --a. */
-.clock-tile .clock { --size: 4.2rem; grid-row: span 3; }
-.clock-tile .clock line { transform: rotate(var(--a)); transform-origin: 50px 50px; }
-.clock-tile.is-analog .clock-date { white-space: normal; }
-
-.weather-now { display: flex; align-items: baseline; gap: .6rem; }
-.weather-now b { font-family: var(--font-heading); font-size: 1.5rem; color: var(--fg0); }
-.weather-days { display: flex; flex-direction: column; gap: .3rem; margin: .6rem 0 0; padding: 0; list-style: none; font-size: .8rem; color: var(--fg2); }
+.clock-zone .clock line { transform: rotate(var(--a)); transform-origin: 50px 50px; }
+.clock-zone .clock-date { white-space: normal; }
 
 .link-tile { display: flex; flex-direction: column; gap: .2rem; text-decoration: none; color: inherit; }
 .frame { width: 100%; border: 1px solid var(--bg2); }
@@ -659,7 +591,6 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 
 /* ── chart / trend: Kante .chart and .legend ── */
 .legend { margin: .4rem 0 0; }
-.legend i.prev { background: none; border: 1px dashed var(--fg3); }
 
 /* ── table: Kante's .table in a .table-wrap ── */
 /* In a tile the header row must fit without scrolling. */
@@ -746,7 +677,6 @@ dialog.dialog::backdrop { background: var(--scrim); }
 .bulk-bar select { width: auto; margin: 0; }
 .bulk-bar .btn { margin: 0; }
 main:has(.bulk-bar:not([hidden])) { padding-bottom: 6rem; }
-.dropzone { border: 2px dashed var(--bg2); padding: 1rem; display: flex; flex-wrap: wrap; gap: .7rem; background: var(--bg0); }
 
 /* ── login: Kante .login; the page has Andon's header above it ── */
 :root { --login-min-h: 70vh; }
@@ -1170,15 +1100,9 @@ table.table th.num, table.table td.num { text-align: right; font-variant-numeric
 .hint-runbook-text { white-space: pre-wrap; margin: .2rem 0 .4rem; }
 
 /* ── energy: hourly price steps, cheapest window, now ── */
-.price-cheap { fill: color-mix(in srgb, var(--aqua) 22%, transparent); }
-.price-now { stroke: var(--fg0); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
-.legend i.cheap { background: color-mix(in srgb, var(--aqua) 40%, transparent); }
-.legend i.now { background: none; border-left: 2px dashed var(--fg0); width: 0; }
 
 /* ── weather: next 24 hours, temperature line over rain chance ── */
 .weather-hours { display: flex; flex-direction: column; gap: .15rem; margin: .4rem 0; }
-.rain-cols { display: flex; align-items: flex-end; gap: 1px; height: 1rem; }
-.rain-cols i { flex: 1; height: var(--h); min-height: 1px; background: var(--cyan); opacity: .75; }
 
 /* ── Home Assistant: switches are Kante's .switch, low batteries red ── */
 .hass-value small { font-size: .7em; color: var(--fg3); font-weight: 400; }
@@ -1290,9 +1214,7 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 .kpi-value[data-target="good"] { color: var(--ok-text); }
 .kpi-value[data-target="bad"] { color: var(--danger-text); }
 
-/* ── chart and trend options: values, goal lines; heatmap by goal ── */
-.chart .bar-value { fill: var(--fg2); font-family: var(--font-mono); font-size: 13px; }
-.legend i.goal { background: none; border-top: 2px dashed var(--yellow); height: 0; }
+/* ── sparks in table cells ── */
 .spark-cell { width: 5rem; }
 .spark-cell .spark { height: 1.1rem; margin: 0; }
 
@@ -1334,6 +1256,3 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 .share > .add > select[name="grantee_id"] { flex: 1 1 12rem; min-width: 0; }
 .share > .add > .btn, .share > .row .btn { margin: 0; }
 .share > .row > .select { margin: 0; }
-
-/* Kante's .timeline counts on base.css's list reset, which Andon does not load. */
-ol.timeline { margin: 0; padding: 0; }

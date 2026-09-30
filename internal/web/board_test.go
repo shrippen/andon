@@ -65,7 +65,7 @@ func TestLinkTileAndLayout(t *testing.T) {
 	board := readAll(t, resp)
 	resp.Body.Close()
 	boardURL := resp.Request.URL.Path
-	for _, want := range []string{`data-hotkey="k"`, `src="/icons/`, `<span class="mono">WD</span>`, `data-search="Kimai `, `id="search"`} {
+	for _, want := range []string{`data-hotkey="k"`, `src="/icons/`, `<span class="monogram">WD</span>`, `data-search="Kimai `, `id="search"`} {
 		if !strings.Contains(board, want) {
 			t.Fatalf("board missing %q:\n%s", want, board)
 		}
@@ -241,7 +241,7 @@ func TestLinkExtrasAndPage(t *testing.T) {
 		"description": {"Alles hier"}, "nav": {"Wiki | https://wiki.example\nBad | javascript:alert(1)"}, "footer": {"Privat"}})
 
 	page := string(mustGet(t, srv, client, "/boards/"+board))
-	for _, want := range []string{`href="https://git.example/admin"`, `#code`, `data-color="green"`, `data-span="2"`, `data-rows="3"`, `data-mobile="first"`,
+	for _, want := range []string{`href="https://git.example/admin"`, `#code`, `data-style="--c:var(--green)"`, `data-span="2"`, `data-rows="3"`, `data-mobile="first"`,
 		`data-color="blue"`, `id="ctx-menu"`, `<small class="board-kicker">Heim</small>`, `Alles hier`, `href="https://wiki.example"`, `class="page-foot">Privat`} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("board missing %q:\n%s", want, page)
