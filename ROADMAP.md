@@ -546,13 +546,10 @@ Nicht im Einsatz, weil Andon eigene Strukturen hat: `.nav`/`.foot` (Andon: `.app
 |---|---|
 | `.launch` | Link-Kachel: Icon, Titel, Beschreibung, Statuspunkt (mit Text/Tooltip), Infozeile, Hinweis-Zähler; Größen `small`, `medium`, `large` |
 | `.launch-grid` | Raster für Kacheln eines Abschnitts, Spaltenzahl aus `cols` |
-| `.dsec` mit `.fold-btn` | Board-Abschnitt, Einklappen serverseitig gespeichert (Kante `.fold` ist ein `<details>` ohne Speicherung) |
 | `.search` | Suchfeld für Filter und Websuche, Hotkey-Hinweis in Mono |
-| `.clock`, `.weather` | Kompakte Kopf-Widgets (Rajdhani, tabellarische Ziffern) |
+| `.clock-zone`, `.weather` | Kompakte Kopf-Widgets (Rajdhani, tabellarische Ziffern); das Zifferblatt ist Kante `.clock` |
 | `.dropzone` | Ablagefläche beim Ziehen |
-| Freigabe-Seite (`shares.html`) | noch nicht auf Kante `.share` umgestellt |
-| Theme-Editor | Farbfeld und Kontrast noch nicht auf Kante `.swatch`/`.contrast` umgestellt |
-| Diagramm-Palette | Reihenfolge `--blue`, `--aqua`, `--yellow`, `--orange`, `--purple`, `--green`; Achsen `--fg3`, Gitter `--bg2` |
+| Legendenmarken `i.prev`, `i.goal`, `i.cheap`, `i.now`, `.bar-value` | Vorjahr gestrichelt, Ziellinie, günstiges Fenster, Jetzt-Linie, Werte über Balken |
 
 Die Komponenten nutzen ausschließlich Theme-Tokens (`var(--…)`), keine eigenen Hex-Werte (per Stylelint geprüft). Nur so funktionieren sie mit jedem Theme. Ob sie später ins Design System wandern, ist eine eigene Entscheidung außerhalb dieses Projekts.
 
@@ -596,7 +593,7 @@ Die Komponenten nutzen ausschließlich Theme-Tokens (`var(--…)`), keine eigene
 
 **Offen: UI auf Kante-Tokens umstellen**
 
-Die Oberfläche läuft auf den Tokens und Komponenten von **Kante 1.7** (siehe „Einbindung“ oben). Schaltflächen, Felder, Pills, Menüs, Dialoge, Toasts, Tabellen, Fortschritt und die Live-Daten-Bewegung kommen aus dem vendorten Kante; `andon.css` behält nur Board-Layout und Widget-Innenleben. Aus Kante seit 1.5 bis 1.7: Kennzahl (`.kpi`, `.delta`, `.kpi-row`), Chips und Chip-Auswahl, Feed, Hinweis-Karte, Fristen (`.timeline`, `.date-tile`), Bearbeitungsleiste (`.editbar`), Anmeldung (`.login`). Offen: siehe Tabelle „Andon-Bausteine“. Sie gehören zuerst nach Kante. Entwürfe für vier Bildschirme (Start, Übersicht, Editor, Anmeldung): <https://claude.ai/artifact/K1SEJhy4Pm4wyn4zDJ9vLH>.
+Die Oberfläche läuft auf den Tokens und Komponenten von **Kante 1.9** (siehe „Einbindung“ oben). Schaltflächen, Felder, Pills, Menüs, Dialoge, Toasts, Tabellen, Fortschritt und die Live-Daten-Bewegung kommen aus dem vendorten Kante; `andon.css` behält nur Board-Layout und Widget-Innenleben. Aus Kante seit 1.5 bis 1.7: Kennzahl (`.kpi`, `.delta`, `.kpi-row`), Chips und Chip-Auswahl, Feed, Hinweis-Karte, Fristen (`.timeline`, `.date-tile`), Bearbeitungsleiste (`.editbar`), Anmeldung (`.login`); seit 1.8/1.9: Kachel-Werkzeugleiste (`.tile-tools`), gespeichertes Einklappen (`details.fold` + `kante:fold`), Sammelleiste (`.bulk-bar`), Freigaben (`.share`), Kontrast und Farbfeld (`.contrast`, `.swatch`, `input[type=color]`), Diagramme (`.chart`, `.spark`, `.heat`, `.legend`, Datenpalette `--d1…--d6`). Offen: siehe Tabelle „Andon-Bausteine“. Sie gehören zuerst nach Kante. Entwürfe für vier Bildschirme (Start, Übersicht, Editor, Anmeldung): <https://claude.ai/artifact/K1SEJhy4Pm4wyn4zDJ9vLH>.
 
 - [x] `andon.css` in `internal/web/static/` angelegt: nur Tokens (`var(--…)`), keine Hex-Werte außerhalb `themes/`
 - [x] `base.html`: `system-ui`-Fallback durch `.app-nav`/`.app-links`/`.app-side` und echte Formularstile ersetzt; jede Seite lädt jetzt ihr aktives Theme (`Deps.Page` setzt `ThemeURL`, vorher nur die Board-Seite)
