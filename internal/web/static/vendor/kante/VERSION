@@ -1,5 +1,5 @@
-Kante 1.6
+Kante 1.7
 source: https://github.com/shrippen/shrippen.github.io (kante/)
 branch: ccr-ba8bde18-s8jxa6
-commit: 4a2e5db0a370aea4ee0ff1e70919d10afeb87a61
+commit: 58899fe1e62fb926546f56168f6bb114b7f365b0
 files: base.css components.css shrippen.js fonts/OFL.txt fonts/*.woff2 (Latin subsets, see tools/sync-design.sh)

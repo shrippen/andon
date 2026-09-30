@@ -33,6 +33,9 @@
 .nav-links a{font-family:var(--font-mono);font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--fg3)}
 .nav-links a:hover{color:var(--fg0);text-decoration:none}
 .nav-links a.nav-hl{color:var(--yellow)}
+.nav-inner.is-wrap{flex-wrap:wrap;gap:.5rem 1rem}
+.nav-inner.is-wrap .nav-links{flex-wrap:wrap;gap:.5rem 1.1rem;margin-left:0}
+.nav-inner.is-wrap .nav-tools{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .8rem;margin-left:auto}
 .lang{display:flex;border:1px solid var(--bg2)}
 .lang button{background:none;border:0;padding:.3rem .6rem;font-family:var(--font-mono);font-size:.72rem;
   letter-spacing:.1em;color:var(--fg3);cursor:pointer}
@@ -207,7 +210,7 @@ main,.foot{position:relative;z-index:1}
 .faq details>div p{margin-bottom:.6rem}
 
 /* ── Key caps ── */
-kbd{font-family:var(--font-mono);font-size:.78em;padding:.05rem .4rem;border:1px solid var(--bg2);border-bottom-width:2px;background:var(--bg-hard);color:var(--fg1)}
+kbd{white-space:nowrap;font-family:var(--font-mono);font-size:.78em;padding:.05rem .4rem;border:1px solid var(--bg2);border-bottom-width:2px;background:var(--bg-hard);color:var(--fg1)}
 
 /* ── Badges (shields.io, optional) ── */
 .badges{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
@@ -554,6 +557,11 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
   .check-dia::after{transition:transform 160ms var(--ease-snap)}
   .tabs :is(button,a){transition:color var(--dur),background var(--dur-fast)}
   .tabs-ind{transition:left 260ms cubic-bezier(.3,.9,.3,1),width 260ms cubic-bezier(.3,.9,.3,1)}
+  .chip-pick,.chip-pick>span::before{transition:background-color var(--dur-fast),border-color var(--dur-fast),color var(--dur-fast)}
+  .fold>summary::before{transition:transform var(--dur) var(--ease-snap),background-color var(--dur-fast)}
+  .modebar>:is(button,a){transition:color var(--dur-fast),background-color var(--dur-fast)}
+  .login-code{transition:background-color var(--dur-fast)}
+  .editbar.is-fixed,.editbar.is-sticky{animation:k-fade var(--dur) var(--ease-out) both}
   .pill[data-state="analyzing"]::before,.led[data-rhythm="atem"]{animation:k-breathe 3s ease-in-out infinite}
   .led[data-rhythm="puls"]{animation:k-breathe 1.2s ease-in-out infinite}
   .led[data-rhythm="takt"]{animation:k-tick 1s steps(1) infinite}
@@ -660,7 +668,7 @@ details.dropdown>summary::-webkit-details-marker{display:none}
 details.dropdown>.menu{position:absolute;top:calc(100% + 4px);left:0;z-index:20}
 details.dropdown.is-right>.menu{left:auto;right:0}
 /* Toast stack: fixed corner, newest at the bottom, a live region */
-.toast-stack{position:fixed;right:1rem;bottom:1rem;z-index:50;display:flex;flex-direction:column;align-items:flex-end;gap:.6rem;pointer-events:none}
+.toast-stack{position:fixed;right:1rem;bottom:var(--toast-offset,1rem);z-index:50;display:flex;flex-direction:column;align-items:flex-end;gap:.6rem;pointer-events:none}
 .toast-stack>*{pointer-events:auto}
 /* File input */
 .input[type="file"]{padding:0;display:flex;align-items:center;color:var(--fg2)}
@@ -684,10 +692,10 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .fact[data-tier="red"]{border-top-color:var(--red)}.fact[data-tier="red"] b{color:var(--red)}
 .fact[data-tier="cyan"]{border-top-color:var(--cyan)}.fact[data-tier="cyan"] b{color:var(--cyan)}
 /* Swatch: entity colours are squares; the ring tells where the colour comes from */
-.swatch{--c:var(--cyan);display:inline-block;width:18px;height:18px;background:var(--c);flex:none}
-.swatch[data-src="own"]{outline:2px solid var(--c);outline-offset:2px}
-.swatch[data-src="inherited"]{outline:2px dashed var(--c);outline-offset:2px}
-.swatch[data-src="generated"]{outline:2px dotted var(--c);outline-offset:2px}
+.swatch{--c:var(--cyan);--ring:color-mix(in srgb,var(--c) 55%,var(--fg0));display:inline-block;width:18px;height:18px;background:var(--c);flex:none;box-shadow:inset 0 0 0 1px var(--bg2)}
+.swatch[data-src="own"]{outline:2px solid var(--ring);outline-offset:2px}
+.swatch[data-src="inherited"]{outline:2px dashed var(--ring);outline-offset:2px}
+.swatch[data-src="generated"]{outline:2px dotted var(--ring);outline-offset:2px}
 .swatch[aria-selected="true"]{outline:2px solid var(--fg0);outline-offset:2px}
 .swatch-grid{display:grid;grid-template-columns:repeat(auto-fill,26px);gap:8px}
 /* Table: numbers, group rows, total row */
@@ -761,16 +769,17 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .curve .pt{fill:var(--bg-panel);stroke:var(--yellow);stroke-width:2;cursor:grab}
 .curve .pt:focus,.curve .pt[aria-selected="true"]{fill:var(--yellow);stroke:var(--cyan);outline:0}
 .curve .pt:active{cursor:grabbing}
-.bands{display:grid;gap:.5rem}
-.bands>.row{display:flex;align-items:center;gap:.7rem}
-.bands>.row input{width:5.5rem;text-align:right}
-.bands>.row .unit{font-family:var(--font-mono);font-size:.72rem;color:var(--fg3);flex:1}
-.bands>.strip{display:flex;height:10px;background:var(--bg-hard)}
-.bands>.strip>i{display:block;background:var(--c);flex:var(--w) 1 0}
+.band-editor{display:grid;gap:.5rem}
+.band-editor>.row{display:flex;align-items:center;gap:.7rem}
+.band-editor>.row input{width:5.5rem;text-align:right}
+.band-editor>.row .unit{font-family:var(--font-mono);font-size:.72rem;color:var(--fg3);flex:1}
+.band-editor>.strip{display:flex;height:10px;background:var(--bg-hard)}
+.band-editor>.strip>i{display:block;background:var(--c);flex:var(--w) 1 0}
 /* KPI with change: the arrow is a shape, never colour alone */
-.kpi{display:flex;flex-direction:column;gap:.2rem}
-.kpi>b{font-family:var(--font-heading);font-weight:700;font-size:2.8rem;line-height:1;color:var(--fg0);font-variant-numeric:tabular-nums}
+.kpi{display:flex;flex-direction:column;gap:.2rem;container-type:inline-size;min-width:0}
+.kpi>b{font-family:var(--font-heading);font-weight:700;font-size:clamp(1.6rem,14cqi,2.8rem);line-height:1;overflow-wrap:anywhere;color:var(--fg0);font-variant-numeric:tabular-nums}
 .kpi>span{font-family:var(--font-mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3)}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:.8rem}
 .delta{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--font-mono);font-size:.7rem;letter-spacing:.06em;font-variant-numeric:tabular-nums;color:var(--fg3)}
 .delta::before{content:"";width:8px;height:2px;background:currentColor}
 .delta.up{color:var(--aqua)}.delta.up::before{width:0;height:0;background:none;border:5px solid transparent;border-bottom:8px solid var(--aqua);border-top:0}
@@ -782,6 +791,9 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .bulk-bar>.n small{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);font-weight:400;margin-left:.4rem}
 .bulk-bar>.grow{flex:1}
 .bulk-bar.is-sticky{position:sticky;bottom:1rem;z-index:5}
+.bulk-bar.is-fixed{position:fixed;left:0;right:0;bottom:0;z-index:20}
+/* A fixed bar lifts the toasts above it; --bar-h is the app's bar height */
+:root:has(.bulk-bar.is-fixed:not([hidden])) .toast-stack{bottom:calc(var(--toast-offset,1rem) + var(--bar-h,3.6rem))}
 /* Sheet: a panel from the bottom or the side, with an action row */
 .sheet{background:var(--bg-panel);border-top:4px solid var(--yellow);padding:1.1rem 1.3rem 1.3rem;display:flex;flex-direction:column;gap:.8rem;
   clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,0 100%)}
@@ -790,6 +802,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .sheet.is-side{position:fixed;top:0;right:0;bottom:0;width:min(26rem,100%);z-index:30;overflow-y:auto;clip-path:none;border-top-width:0;border-left:4px solid var(--yellow)}
 /* Setting row: label, hint, control; the reset button only when the value differs */
 .setting{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.15rem 1rem;align-items:center;padding-block:.7rem;border-bottom:1px solid var(--bg1)}
+.break{overflow-wrap:anywhere;word-break:break-word}
 .setting>b{font-weight:500;color:var(--fg0);font-size:.92rem}
 .setting>span{grid-column:1;font-size:.8rem;color:var(--fg3)}
 .setting>.ctl{grid-column:2;grid-row:1/3;display:flex;align-items:center;gap:.6rem}
@@ -853,6 +866,142 @@ a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;
 .cmd-row.is-plain .cmd-box{background:var(--bg-hard);color:var(--cyan)}
 .cmd-row.is-plain .copy-btn{background:var(--bg1);border-color:var(--bg1);color:var(--fg1)}
 
+/* Chip pick: a checkbox as a chip (multi-select filter). A real input inside keeps keyboard and forms working; hollow square = off, filled cyan = on */
+.chip-pick{position:relative;display:inline-flex;align-items:center;gap:.45rem;min-height:28px;padding-inline:.6rem;border:1px solid var(--bg2);color:var(--fg2);cursor:pointer;
+  font-family:var(--font-mono);font-size:.72rem;letter-spacing:.06em;white-space:nowrap}
+.chip-pick>input{position:absolute;opacity:0;width:1px;height:1px}
+.chip-pick>span::before{content:"";display:inline-block;width:8px;height:8px;margin-right:.45rem;border:2px solid var(--fg3);vertical-align:-1px}
+.chip-pick>small{font-size:.66rem;color:var(--fg3);font-variant-numeric:tabular-nums}
+.chip-pick:hover{border-color:var(--fg3);color:var(--fg0)}
+.chip-pick:has(input:checked){border-color:var(--cyan);background:var(--cyan-tint);color:var(--fg0)}
+.chip-pick:has(input:checked)>span::before{background:var(--cyan);border-color:var(--cyan)}
+.chip-pick:has(input:focus-visible){outline:2px solid var(--focus);outline-offset:2px}
+.chip-pick:has(input:disabled){opacity:.5;cursor:not-allowed}
+/* Fold: collapsible section with title and count; a <details>, no script. The cut square turns a quarter when open */
+.fold{border-bottom:1px solid var(--bg1)}
+.fold>summary{display:flex;align-items:baseline;gap:.6rem;min-height:var(--h-m);padding-block:.5rem;cursor:pointer;list-style:none;
+  font-family:var(--font-heading);font-weight:700;font-size:1.08rem;letter-spacing:.03em;text-transform:uppercase;color:var(--fg0)}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary::before{content:"";flex:none;align-self:center;width:10px;height:10px;background:var(--fg3);clip-path:polygon(0 0,60% 0,100% 40%,100% 100%,0 100%);transform:rotate(-90deg)}
+.fold[open]>summary::before{background:var(--cyan);transform:none}
+.fold>summary:hover::before{background:var(--fg0)}
+.fold[open]>summary:hover::before{background:var(--cyan)}
+.fold>summary:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.fold>summary>.count{align-self:center;min-width:0;height:auto;padding:0;background:none;color:var(--fg3);font-weight:400}
+.fold>.body{padding:.2rem 0 1rem}
+/* Feed: title, source and relative age; .is-compact is one line with the age at the right */
+.feed{list-style:none;display:flex;flex-direction:column}
+.feed>li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.1rem .8rem;padding:.55rem .1rem;border-bottom:1px solid var(--bg1)}
+.feed>li:last-child{border-bottom:0}
+.feed>li>a{grid-column:1/-1;color:var(--fg1);font-size:.88rem;line-height:1.35}
+.feed>li>a:hover{color:var(--link)}
+.feed>li>a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.feed>li>.src,.feed>li>time{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);font-variant-numeric:tabular-nums}
+.feed>li>time{text-align:right}
+.feed.is-compact>li{grid-template-columns:minmax(0,1fr) auto auto;align-items:baseline;padding-block:.35rem}
+.feed.is-compact>li>a{grid-column:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Mode bar: a segmented filter row (tag or mode) with counts; scrolls sideways when it does not fit */
+.modebar{display:flex;overflow-x:auto;border:1px solid var(--bg2);scrollbar-width:thin;scrollbar-color:var(--bg2) transparent}
+.modebar>:is(button,a){flex:none;display:inline-flex;align-items:center;gap:.5rem;min-height:calc(var(--h-m) - 2px);padding:0 .9rem;background:none;border:0;border-right:1px solid var(--bg2);
+  color:var(--fg3);font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;white-space:nowrap;cursor:pointer}
+.modebar>:is(button,a):last-child{border-right:0}
+.modebar>:is(button,a):hover{color:var(--fg0);text-decoration:none}
+.modebar>:is(button,a)>small{font-size:.66rem;color:var(--fg3);font-variant-numeric:tabular-nums}
+.modebar>:is(button,a):is([aria-pressed="true"],[aria-current="true"],[aria-current="page"]){background:var(--cyan-tint);color:var(--fg0);box-shadow:inset 0 -2px 0 var(--cyan)}
+.modebar>:is(button,a):focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
+
+/* Tier: --tier colours the bar of a tier card, hint card and timeline row (same names as .feat and .tile) */
+.tier-card,.hint-card,.timeline>li{--tier:var(--bg2)}
+.hint-card{--tier:var(--info)}
+:is(.tier-card,.hint-card,.timeline>li)[data-tier="green"]{--tier:var(--aqua)}
+:is(.tier-card,.hint-card,.timeline>li)[data-tier="yellow"]{--tier:var(--yellow)}
+:is(.tier-card,.hint-card,.timeline>li)[data-tier="red"]{--tier:var(--red)}
+:is(.tier-card,.hint-card,.timeline>li)[data-tier="blue"],:is(.tier-card,.hint-card,.timeline>li)[data-tier="cyan"]{--tier:var(--info)}
+/* Tier card: a card with a tier bar and no click behaviour (a status, not a link) */
+.tier-card{display:flex;flex-direction:column;gap:.3rem;padding:.8rem 1rem .9rem;background:var(--bg-panel);border-top:4px solid var(--tier);color:var(--fg2);font-size:.88rem;
+  clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
+.tier-card>h3,.tier-card>b{font-family:var(--font-heading);font-weight:700;font-size:1.05rem;letter-spacing:.05em;text-transform:uppercase;color:var(--fg0)}
+.tier-card>small{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;color:var(--fg3)}
+/* Hint card: tier as icon shape + text + colour (never colour alone), source, expandable "why", actions.
+   Icon: red = triangle, yellow = diamond, blue = square, green = check */
+.hint-card{display:flex;flex-direction:column;gap:.35rem;padding:.6rem .8rem .7rem;background:var(--bg-panel);border-top:4px solid var(--tier);
+  clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
+.hint-card>header{display:flex;justify-content:space-between;align-items:center;gap:.6rem;font-family:var(--font-mono);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3)}
+.hint-card .tier{display:inline-flex;align-items:center;gap:.4rem;color:var(--tier)}
+.hint-card .tier::before{content:"";width:10px;height:10px;background:currentColor}
+.hint-card[data-tier="red"] .tier::before{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.hint-card[data-tier="yellow"] .tier::before{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.hint-card[data-tier="green"] .tier::before{clip-path:polygon(0 55%,20% 35%,40% 55%,85% 5%,100% 25%,40% 95%)}
+.hint-card>.title{color:var(--fg0);font-weight:600;font-size:.92rem;line-height:1.35}
+a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
+.hint-card>.due{font-family:var(--font-mono);font-size:.72rem;color:var(--fg2)}
+.hint-card>details>summary{cursor:pointer;width:max-content;max-width:100%;font-family:var(--font-mono);font-size:.72rem;color:var(--link)}
+.hint-card>details>summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.hint-card>details>p{margin-top:.35rem;padding-left:.7rem;border-left:2px solid var(--bg2);font-size:.84rem;color:var(--fg2)}
+.hint-card>.actions{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-top:.15rem}
+/* Date tile: a date in a fixed column; day large, month and weekday small; a range may take a second line */
+.date-tile{display:grid;justify-items:center;align-content:center;width:3.6rem;flex:none;line-height:1.1;text-align:center;overflow-wrap:anywhere;font-family:var(--font-mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3)}
+.date-tile>b{font-family:var(--font-heading);font-weight:700;font-size:1.5rem;letter-spacing:0;color:var(--fg0);font-variant-numeric:tabular-nums}
+/* Timeline: deadlines, a date column and a 4 px state bar; the state is also written out (.state) */
+.timeline{list-style:none;display:flex;flex-direction:column;gap:2px}
+.timeline>li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:.8rem;padding:.5rem .8rem .5rem 0;background:var(--bg-panel);border-left:4px solid var(--tier)}
+.timeline>li>.date-tile{width:4rem}
+.timeline>li>.what{display:flex;flex-direction:column;min-width:0;color:var(--fg1);font-size:.9rem;line-height:1.3}
+.timeline>li>.what>small{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.06em;color:var(--fg3)}
+.timeline>li>.state{font-family:var(--font-mono);font-style:normal;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2);white-space:nowrap}
+.timeline>li[data-tier="red"]>.state{color:var(--danger)}
+.timeline>li[data-tier="yellow"]>.state{color:var(--yellow)}
+
+/* Edit bar: the edit mode of a page (save, discard, history). Cyan, because editing is selection; .is-sticky sticks to the top, .is-fixed to the bottom edge */
+.editbar{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .8rem;background:var(--bg1);border-top:3px solid var(--cyan);padding:.5rem .8rem;
+  clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
+.editbar>.mode{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--font-heading);font-weight:700;font-size:1.15rem;letter-spacing:.06em;text-transform:uppercase;color:var(--fg0)}
+.editbar>.mode::before{content:"";width:10px;height:10px;background:var(--cyan)}
+.editbar>.mode small{font-family:var(--font-mono);font-size:.64rem;font-weight:400;letter-spacing:.1em;color:var(--fg3)}
+.editbar>.grow{flex:1}
+.editbar.is-sticky{position:sticky;top:var(--editbar-top,0);z-index:5}
+.editbar.is-fixed{position:fixed;left:0;right:0;bottom:0;z-index:20;padding-bottom:calc(.5rem + env(safe-area-inset-bottom,0px))}
+:root:has(.editbar.is-fixed:not([hidden])) .toast-stack{bottom:calc(var(--toast-offset,1rem) + var(--bar-h,3.6rem))}
+/* Share dialog: one row per subject (user or team) with a right select; a warning callout when credentials go along */
+.share{display:flex;flex-direction:column}
+.share>.row{display:grid;grid-template-columns:minmax(0,1fr) 10rem auto;align-items:center;gap:.6rem;padding:.55rem 0;border-bottom:1px solid var(--bg1)}
+.share .subject{display:flex;align-items:center;gap:.6rem;min-width:0;color:var(--fg0);font-size:.92rem}
+.share .subject::before{content:"";flex:none;width:10px;height:10px;background:var(--fg3)}
+.share .subject[data-kind="team"]::before{background:var(--purple);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.share .subject>small{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3)}
+.share>.callout{margin:.8rem 0 0}
+.share>.add{display:flex;gap:.6rem;margin-top:.8rem}
+.share>.add>.input{flex:1;min-width:0}
+/* Login: card on a centred page; setup and second factor use the same card. .login-code is one input drawn as six digit boxes */
+.login-wrap{min-height:100vh;display:grid;place-items:center;padding:2rem var(--gutter)}
+.login{width:100%;max-width:24rem;display:flex;flex-direction:column;gap:1rem;padding:1.6rem 1.6rem 1.4rem;background:var(--bg-panel);border-top:4px solid var(--yellow);
+  clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,0 100%)}
+.login.is-wide{max-width:30rem}
+.login>.brand{display:flex;align-items:center;gap:.6rem;font-family:var(--font-heading);font-weight:700;font-size:1.1rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.login>.brand>:is(img,svg){width:30px;height:30px}
+.login>h1{font-family:var(--font-heading);font-weight:700;font-size:1.6rem;letter-spacing:.03em;text-transform:uppercase;color:var(--fg0);line-height:1.05}
+.login form{display:flex;flex-direction:column;gap:.8rem}
+.login label{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3)}
+.login .btn{width:100%}
+.login .error{color:var(--danger);font-size:.85rem;border-left:3px solid var(--danger);padding-left:.6rem}
+.login>.links{display:flex;justify-content:space-between;gap:1rem;font-size:.78rem}
+.login-secret{padding:.6rem .8rem;background:var(--bg-hard);border:1px solid var(--bg1);color:var(--cyan);font-family:var(--font-mono);font-size:.8rem;letter-spacing:.12em;overflow-wrap:anywhere}
+.login-code{--cell:3rem;--gap:.5rem;--pitch:calc(var(--cell) + var(--gap));display:block;width:calc(6 * var(--pitch) - var(--gap));max-width:100%;height:3.4rem;border:0;border-radius:0;
+  padding:0 0 0 calc((var(--cell) - 1ch) / 2);color:var(--fg0);caret-color:var(--cyan);font-family:var(--font-mono);font-size:1.7rem;letter-spacing:calc(var(--pitch) - 1ch);font-variant-numeric:tabular-nums;
+  background:linear-gradient(90deg,var(--field) var(--cell),transparent 0) 0 0/var(--pitch) 100% repeat-x,linear-gradient(90deg,var(--bg2) var(--cell),transparent 0) 0 100%/var(--pitch) 2px repeat-x}
+.login-code:focus{outline:none;background:linear-gradient(90deg,var(--cyan-tint) var(--cell),transparent 0) 0 0/var(--pitch) 100% repeat-x,linear-gradient(90deg,var(--cyan) var(--cell),transparent 0) 0 100%/var(--pitch) 2px repeat-x}
+.login-code[aria-invalid="true"]{background:linear-gradient(90deg,var(--field) var(--cell),transparent 0) 0 0/var(--pitch) 100% repeat-x,linear-gradient(90deg,var(--danger) var(--cell),transparent 0) 0 100%/var(--pitch) 2px repeat-x}
+/* Contrast read-out (theme editor): sample, ratio and a badge; the badge carries a mark and text, so colour is never alone */
+.contrast{display:inline-flex;align-items:center;gap:.8rem;padding:.35rem .6rem .35rem .35rem;border:1px solid var(--bg2);background:var(--bg-panel)}
+.contrast>.sample{display:grid;place-items:center;width:2.4rem;height:2.4rem;border:1px solid var(--bg2);font-family:var(--font-heading);font-weight:700;font-size:1.2rem}
+.contrast>.ratio{font-family:var(--font-mono);font-size:.9rem;font-variant-numeric:tabular-nums;color:var(--fg0)}
+.contrast>.badge{--k:var(--fg3);display:inline-flex;align-items:center;gap:.3rem;padding:.1rem .45rem;border:1px solid var(--k);color:var(--k);font-family:var(--font-mono);font-weight:500;font-size:.68rem;letter-spacing:.1em}
+.contrast>.badge::before{content:"✓";font-size:.75rem;line-height:1}
+.contrast[data-level="aaa"]>.badge{--k:var(--aqua);background:var(--k);color:var(--on-state)}
+.contrast[data-level="aa"]>.badge{--k:var(--aqua)}
+.contrast[data-level="fail"]>.badge{--k:var(--danger)}
+.contrast[data-level="fail"]>.badge::before{content:"✕"}
+
 /* ── Kante Light (apps, <html data-kante="light">) ─────────────────────
    Kante shapes on the platform look: controls get the system font, normal
    case and a small radius; cards keep the cut corner and the accent bar;
@@ -890,6 +1039,18 @@ a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;
 }
 @media(max-width:640px){
   .bands{grid-template-columns:minmax(0,1fr)}
+  .setting{grid-template-columns:minmax(0,1fr)}
+  .setting>.ctl{grid-column:1;grid-row:auto;flex-wrap:wrap}
+  .bulk-bar{flex-wrap:nowrap;overflow-x:auto;gap:.5rem}
+  .bulk-bar>*{flex:none}
+  .editbar>.mode{flex:1 0 100%}
+  .editbar>.btn{flex:1 1 0;padding-inline:.3rem}
+  .editbar>.grow{display:none}
+  .share>.row{grid-template-columns:minmax(0,1fr) auto}
+  .share>.row>.select{grid-column:1;grid-row:2}
+  .login-code{--cell:2.4rem;--gap:.35rem;font-size:1.45rem}
+  .toolbar-sep{display:none}
+  .nav-inner.is-wrap .nav-links a{display:inline}
   .nav-links a{display:none}
   .install-card{padding:1.25rem 1.2rem 1.4rem}
   .cmd-box{font-size:.75rem}

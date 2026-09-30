@@ -509,7 +509,7 @@ Alle Beträge, Sätze und Fristen werden im Editor je Bereich gepflegt, typische
 
 ## 9. Design: Kante (shrippen Design System)
 
-Das Dashboard ist eine **App** im Sinne des Design Systems und nutzt daher die App-Komponenten. Das Design System liefert zugleich das einzige mitgelieferte Theme (Abschnitt 6). Stand: **Kante 1.6**. Regel für die Oberfläche (`agent.md`, „GUI rule“; Text in `kante/AGENT-RULE.md` des Design-System-Repos): Sie wird aus Kante erzeugt, nicht davon inspiriert. Was Kante fehlt, kommt zuerst nach Kante und erst dann hierher; lokal gebaut wird es nicht.
+Das Dashboard ist eine **App** im Sinne des Design Systems und nutzt daher die App-Komponenten. Das Design System liefert zugleich das einzige mitgelieferte Theme (Abschnitt 6). Stand: **Kante 1.7**. Regel für die Oberfläche (`agent.md`, „GUI rule“; Text in `kante/AGENT-RULE.md` des Design-System-Repos): Sie wird aus Kante erzeugt, nicht davon inspiriert. Was Kante fehlt, kommt zuerst nach Kante und erst dann hierher; lokal gebaut wird es nicht.
 
 **Einbindung**
 
@@ -601,7 +601,7 @@ Die Komponenten nutzen ausschließlich Theme-Tokens (`var(--…)`), keine eigene
 
 **Offen: UI auf Kante-Tokens umstellen**
 
-Die Oberfläche läuft auf den Tokens und Komponenten von **Kante 1.6** (siehe „Einbindung“ oben). Schaltflächen, Felder, Pills, Menüs, Dialoge, Toasts, Tabellen, Fortschritt und die Live-Daten-Bewegung kommen aus dem vendorten Kante; `andon.css` behält nur Board-Layout und Widget-Innenleben. Seit 1.5/1.6 aus Kante: Kennzahl (`.kpi`, `.delta`) und Filter-Chips (`.chip`, `aria-pressed`). Offen: die Andon-Bausteine, die Kante noch nicht hat (Kachelkarte mit Tier-Balken ohne Klick-Verhalten, Tag-/Modusleiste, ankreuzbare Chips). Sie gehören zuerst nach Kante. Entwürfe für vier Bildschirme (Start, Übersicht, Editor, Anmeldung): <https://claude.ai/artifact/K1SEJhy4Pm4wyn4zDJ9vLH>.
+Die Oberfläche läuft auf den Tokens und Komponenten von **Kante 1.7** (siehe „Einbindung“ oben). Schaltflächen, Felder, Pills, Menüs, Dialoge, Toasts, Tabellen, Fortschritt und die Live-Daten-Bewegung kommen aus dem vendorten Kante; `andon.css` behält nur Board-Layout und Widget-Innenleben. Seit 1.5/1.6 aus Kante: Kennzahl (`.kpi`, `.delta`) und Filter-Chips (`.chip`, `aria-pressed`). Offen: die Andon-Bausteine, die Kante noch nicht hat (Kachelkarte mit Tier-Balken ohne Klick-Verhalten, Tag-/Modusleiste, ankreuzbare Chips). Sie gehören zuerst nach Kante. Entwürfe für vier Bildschirme (Start, Übersicht, Editor, Anmeldung): <https://claude.ai/artifact/K1SEJhy4Pm4wyn4zDJ9vLH>.
 
 - [x] `andon.css` in `internal/web/static/` angelegt: nur Tokens (`var(--…)`), keine Hex-Werte außerhalb `themes/`
 - [x] `base.html`: `system-ui`-Fallback durch `.app-nav`/`.app-links`/`.app-side` und echte Formularstile ersetzt; jede Seite lädt jetzt ihr aktives Theme (`Deps.Page` setzt `ThemeURL`, vorher nur die Board-Seite)
