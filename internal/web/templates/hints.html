@@ -20,10 +20,10 @@
     {{if .DoneDays}}<p class="small"><a href="/hints">{{t "hints.open_link"}}</a></p>
     <h2>{{t "hints.done_title" "days" .DoneDays}}</h2>
     <ul class="hints">{{range .Done}}
-      <li class="hint" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}">
-        <span class="hint-level">{{t "hints.done_when" "when" (ago .ResolvedAt)}}</span>
-        <div class="hint-main"><div class="hint-head"><b>{{.Title}}</b></div><p class="hint-why">{{.Why}}</p>
-          <p class="hint-meta-line">{{.SpaceName}} · {{t "hints.since" "when" (ago .FirstSeen)}}</p></div>
+      <li class="hint-card" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}">
+        <header><span class="tier">{{t "hints.done_when" "when" (ago .ResolvedAt)}}</span><span>{{.SpaceName}} · {{t "hints.since" "when" (ago .FirstSeen)}}</span></header>
+        <span class="title">{{.Title}}</span>
+        <p class="hint-why">{{.Why}}</p>
       </li>{{else}}<li class="hint-empty">{{t "hints.done_none"}}</li>{{end}}
     </ul>{{end}}
     {{with .Noisy}}<details class="card"><summary>{{t "hints.noisy" "count" (len .)}}</summary>
@@ -133,10 +133,9 @@
 
 {{/* One hint card; P is the page. */}}
 {{define "hint_item"}}{{$p := .P}}{{with .H}}
-      <li class="hint" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}" id="hint-{{.ID}}">
-        <span class="hint-level">{{if ge .Severity 30}}{{t "severity.critical"}}{{else if ge .Severity 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}</span>
-        <div class="hint-main">
-          <div class="hint-head"><b>{{.Title}}</b>{{if .Value}}<span class="pill">{{money .Value .Currency}}</span>{{end}}</div>
+      <li class="hint-card" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}" id="hint-{{.ID}}">
+        <header><span class="tier">{{if ge .Severity 30}}{{t "severity.critical"}}{{else if ge .Severity 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}</span><span>{{.SpaceName}} · {{t "hints.since" "when" (ago .FirstSeen)}}</span></header>
+        <span class="title">{{.Title}}{{if .Value}} <span class="pill">{{money .Value .Currency}}</span>{{end}}</span>
           {{if or .Assignee (ne (print .Work) "open") .Flapping .Maintenance}}<p class="hint-tags">
             {{if .Maintenance}}<span class="pill" data-state="reviewing" title="{{t "hints.maintenance_hint"}}">{{t "hints.maintenance"}}</span>{{end}}
             {{with .Assignee}}<span class="pill">{{t "hints.assigned_to" "name" .}}</span>{{end}}
@@ -144,8 +143,9 @@
             {{if .Flapping}}<span class="pill" data-state="locked" title="{{t "hints.flapping_hint"}}">{{t "hints.flapping"}}</span>{{end}}
           </p>{{end}}
           <p class="hint-why">{{.Why}}</p>
-          <p class="hint-meta-line">{{.SpaceName}} · {{t "hints.since" "when" (ago .FirstSeen)}}{{if .Sources}} · {{range $i, $s := .Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}{{end}}</p>
-          <div class="hint-actions">
+          {{if .Sources}}<p class="hint-meta-line">{{range $i, $s := .Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}</p>{{end}}
+          {{if .Due}}<span class="due">{{day .Due}}</span>{{end}}
+          <div class="actions">
             {{if .ActionURL}}<a class="btn btn-accent btn-sm hint-go" href="{{.ActionURL}}" target="_blank" rel="noopener noreferrer">{{if .ActionLabel}}{{.ActionLabel}}{{else}}{{t "action.open"}}{{end}}</a>{{end}}
             {{if not $p.Embed}}
             <form method="post" action="/hints/{{.ID}}/ack" class="hint-ack" id="ack-{{.ID}}">
@@ -165,7 +165,5 @@
             </details>
             {{end}}
           </div>
-        </div>
-        {{if .Due}}<span class="hint-due">{{day .Due}}</span>{{end}}
       </li>
 {{end}}{{end}}

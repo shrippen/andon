@@ -174,14 +174,14 @@
   // one done, s pauses it for 7 days ──
   function filterHints(query) {
     var q = query.trim().toLowerCase();
-    [].forEach.call(d.querySelectorAll(".hints-page li.hint"), function (li) {
+    [].forEach.call(d.querySelectorAll(".hints-page li.hint-card"), function (li) {
       li.hidden = q !== "" && li.textContent.toLowerCase().indexOf(q) < 0;
     });
     [].forEach.call(d.querySelectorAll(".hints-page .hint-rest"), function (rest) {
       rest.open = rest.open || q !== "";
     });
     [].forEach.call(d.querySelectorAll(".hints-page .hint-rule"), function (sec) {
-      sec.hidden = q !== "" && !sec.querySelector("li.hint:not([hidden])");
+      sec.hidden = q !== "" && !sec.querySelector("li.hint-card:not([hidden])");
     });
   }
 
@@ -195,10 +195,10 @@
       if (!d.querySelector(".hints-page") || e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target)) {
         return;
       }
-      var list = [].filter.call(d.querySelectorAll(".hints-page li.hint[id]"), function (li) {
+      var list = [].filter.call(d.querySelectorAll(".hints-page li.hint-card[id]"), function (li) {
         return li.offsetParent !== null;
       });
-      var current = d.activeElement && d.activeElement.closest ? d.activeElement.closest("li.hint") : null;
+      var current = d.activeElement && d.activeElement.closest ? d.activeElement.closest("li.hint-card") : null;
       var at = list.indexOf(current);
       var target = null;
       switch (e.key) {

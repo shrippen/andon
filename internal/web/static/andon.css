@@ -145,6 +145,7 @@ a > .count, summary > .count { margin-left: .35rem; }
   padding: .35rem 0;
 }
 .nav-menu > summary::-webkit-details-marker { display: none; }
+.nav-menu > summary { white-space: nowrap; }
 .nav-menu > summary::after { content: " ▾"; }
 .nav-menu > summary:hover, .nav-menu[open] > summary { color: var(--fg0); }
 .nav-menu > summary.name { color: var(--hl); }
@@ -235,10 +236,11 @@ a > .count, summary > .count { margin-left: .35rem; }
 .tile-slot[data-rows="2"] > .card { height: 100%; }
 .tile-slot.is-hidden { opacity: .35; }
 /* ── edit and layout mode: tile strip, "+" tile, dragging ──
-   The strip sits on the tile's top edge and shows on hover or focus
+   The strip sits in a band above the tile (reserved, so it never covers the name) and shows on hover or focus
    (always on touch screens, on hidden and on selected tiles). */
 .board[data-mode="board"] .tile-slot, .board[data-mode="overlay"] .tile-slot { cursor: grab; outline: 1px dashed var(--bg2); outline-offset: 2px; }
 .board[data-mode] .tile-slot:hover, .board[data-mode] .tile-slot:focus-within { outline-color: var(--hl); }
+@media (hover: hover) { .board[data-mode] .tile-slot { padding-top: 2.4rem; } }
 .tile-strip { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: .1rem;
   padding: .15rem .25rem; background: var(--bg1); opacity: 0; pointer-events: none; transition: opacity var(--dur-fast); }
 .tile-slot:hover > .tile-strip, .tile-slot:focus-within > .tile-strip, .tile-slot.is-active > .tile-strip,
@@ -387,7 +389,7 @@ label.pick-check { margin: 0 .3rem; }
   .board.has-side { grid-template-columns: minmax(0, 1fr); }
   .board-main > .dsec[data-span] { grid-column: 1 / -1; }
 }
-@media (max-width: 640px) { .board-tools { margin-left: 0; } .dsec-body:not(.size-small):not(.size-large) { --tile: 100%; } .dsec-flow { column-count: 1; } .nav-search { min-width: 0; } }
+@media (max-width: 640px) { .nav-search kbd { display: none; } .app-side { flex-wrap: wrap; gap: .5rem 1rem; } .board-tools { margin-left: 0; } .dsec-body:not(.size-small):not(.size-large) { --tile: 100%; } .dsec-flow { column-count: 1; } .nav-search { min-width: 0; } }
 /* Phone layout per section: pinned to the top or left out. */
 @media (max-width: 640px) {
   .board-main > .dsec[data-mobile="first"] { order: -1; }
@@ -400,31 +402,23 @@ label.pick-check { margin: 0 .3rem; }
 .slot-note.is-error code { color: var(--danger-text); }
 
 /* ── feed / sysinfo (start widgets) ── */
-.feed-list { display: flex; flex-direction: column; gap: .55rem; margin: 0; padding: 0; list-style: none; }
-.feed-list li { display: flex; flex-direction: column; gap: .1rem; padding-bottom: .55rem; border-bottom: 1px solid var(--bg2); }
-.feed-list li:last-child { border-bottom: 0; padding-bottom: 0; }
-.feed-list li.has-image { display: grid; grid-template-columns: 4.5rem 1fr; column-gap: .7rem; }
-.feed-list li.has-image > :not(.feed-image) { grid-column: 2; }
+/* Feed image and summary sit next to Kante's .feed rows. */
+.feed > li.has-image { grid-template-columns: 4.5rem minmax(0, 1fr) auto; column-gap: .7rem; }
+.feed > li.has-image > :not(.feed-image) { grid-column: 2 / -1; }
 .feed-image { grid-row: span 3; width: 4.5rem; height: 3.2rem; object-fit: cover; }
-.feed-list a { color: var(--fg1); font-size: .86rem; text-decoration: none; }
-.feed-list a:hover { color: var(--link); }
-.feed-list time { font-family: var(--font-mono); font-size: .68rem; color: var(--fg3); text-transform: uppercase; letter-spacing: .04em; }
-/* Compact feed: one line per item, day at the right. */
-.feed-list[data-compact] { gap: .3rem; }
-.feed-list[data-compact] li { flex-direction: row; align-items: baseline; gap: .6rem; padding-bottom: .3rem; }
-.feed-list[data-compact] a { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.feed-list[data-compact] time { flex: none; }
+.feed > li > p { grid-column: 1 / -1; margin: 0; }
 /* Fixed height: the list scrolls inside the tile. */
-.feed-list[data-height] { overflow-y: auto; padding-right: .3rem; }
-.feed-list[data-height="short"] { max-height: 12rem; }
-.feed-list[data-height="medium"] { max-height: 22rem; }
-.feed-list[data-height="tall"] { max-height: 36rem; }
+.feed[data-height] { overflow-y: auto; padding-right: .3rem; }
+.feed[data-height="short"] { max-height: 12rem; }
+.feed[data-height="medium"] { max-height: 22rem; }
+.feed[data-height="tall"] { max-height: 36rem; }
 
 .sysinfo-tile p { margin: 0 0 .5rem; font-family: var(--font-mono); font-size: .82rem; color: var(--fg2); }
 .sysinfo-tile ul { list-style: none; margin: 0; padding: 0; font-family: var(--font-mono); font-size: .78rem; color: var(--fg2); }
 
 .clock-tile { display: flex; flex-direction: column; gap: .4rem; }
-.clock-zone { display: flex; align-items: baseline; gap: .6rem; font-family: var(--font-heading); }
+.clock-zone { display: flex; flex-wrap: wrap; align-content: flex-start; align-items: baseline; gap: .2rem .6rem; font-family: var(--font-heading); }
+.clock-zone > * { white-space: nowrap; }
 .clock-zone strong { font-size: 1.3rem; font-variant-numeric: tabular-nums; color: var(--fg0); }
 .clock-tile.is-analog .clock-zone { display: grid; grid-template-columns: 4.2rem 1fr; grid-template-rows: auto auto auto; column-gap: .8rem; align-items: center; }
 .clock-face { grid-row: span 3; width: 4.2rem; height: 4.2rem; }
@@ -470,7 +464,6 @@ label.pick-check { margin: 0 .3rem; }
 .footbar a { color: var(--link); text-decoration: none; }
 
 /* ── KPI ── */
-.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--bg2); border: 1px solid var(--bg2); margin-bottom: 1rem; }
 .kpi { background: var(--bg-panel); padding: .9rem 1rem; }
 /* A KPI tile is already a card: no second frame inside it. */
 .card-body > .kpi { background: none; padding: 0; }
@@ -489,23 +482,11 @@ label.pick-check { margin: 0 .3rem; }
 .hint-group[data-tier="yellow"] .sq { background: var(--yellow); }
 .hint-group-count { margin-left: auto; font-family: var(--font-mono); font-weight: 400; font-size: .7rem; color: var(--fg3); }
 .hints { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
-.hint { display: flex; flex-direction: column; gap: .3rem; padding: .55rem .7rem .6rem; background: var(--bg-panel); border-top: 4px solid var(--info);
-  clip-path: polygon(0 0, calc(100% - var(--cut-m)) 0, 100% var(--cut-m), 100% 100%, 0 100%); }
-.dsec:not(.is-bare) .hint { background: var(--bg-hard); }
-.hint[data-tier="red"] { border-top-color: var(--red); }
-.hint[data-tier="yellow"] { border-top-color: var(--yellow); }
-.hint-meta { display: flex; gap: .6rem; justify-content: space-between; font-family: var(--font-mono); font-size: .64rem; letter-spacing: .1em; text-transform: uppercase; color: var(--fg3); }
-.hint-title { color: var(--fg0); font-weight: 600; font-size: .9rem; line-height: 1.35; text-decoration: none; }
-.hint-title:hover { color: var(--link); }
-.hint-due { font-family: var(--font-mono); font-size: .72rem; color: var(--warn-text); }
-.hint-actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
-.hint-actions form { margin: 0; }
-.hint-actions .btn { margin: 0; }
-.hint-head { display: flex; flex-wrap: wrap; gap: .3rem .6rem; align-items: baseline; }
-.hint-head b { margin: 0; }
+.hint-card .actions form { margin: 0; }
+.hint-card .actions .btn { margin: 0; }
 .hint-filters { display: flex; flex-direction: column; gap: .5rem; margin: 1rem 0 1.4rem; }
 .chips { display: flex; flex-wrap: wrap; gap: .4rem; }
-.chip { text-decoration: none; }
+.chip { --c: var(--cyan); text-decoration: none; }
 .chip span { opacity: .75; }
 .chip[data-tier="critical"] { --c: var(--red); }
 .chip[data-tier="warn"] { --c: var(--orange); }
@@ -519,12 +500,7 @@ label.pick-check { margin: 0 .3rem; }
 .hint-all { margin: .3rem 0 0; font-family: var(--font-mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; }
 .hint-pop { position: fixed; inset: auto; margin: 0; width: min(360px, calc(100vw - 16px)); max-height: 60vh; overflow: auto;
   padding: .6rem; background: var(--bg-hard); color: var(--fg1); border: 1px solid var(--bg2); border-top: 4px solid var(--yellow); }
-.hint-pop .hint { background: var(--bg-panel); }
 /* hints page and detail (hints.html) keep these */
-.hint-level { font-family: var(--font-mono); font-size: .64rem; letter-spacing: .08em; text-transform: uppercase; color: var(--link); }
-.hint[data-tier="red"] .hint-level { color: var(--danger-text); }
-.hint[data-tier="yellow"] .hint-level { color: var(--warn-text); }
-.hint-main { flex: 1; display: flex; flex-direction: column; gap: .3rem; }
 .hint-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0; }
 .hint-ack { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
 .hint-ack input { flex: 1 1 12rem; margin: 0; }
@@ -532,10 +508,9 @@ label.pick-check { margin: 0 .3rem; }
 .hint-flow { display: flex; flex-direction: column; gap: .5rem; padding-top: .5rem; }
 .hint-history { list-style: none; margin: 0; padding: 0; font-size: .8rem; color: var(--fg2); display: flex; flex-direction: column; gap: .2rem; }
 .hint-history time { font-family: var(--font-mono); font-size: .7rem; color: var(--fg3); margin-right: .3rem; }
-.hint-main b { font-size: .92rem; color: var(--fg0); font-weight: 600; display: block; margin-top: .1rem; }
-.hint-main details summary { cursor: pointer; color: var(--fg3); font-family: var(--font-mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; list-style: none; }
-.hint-main details summary::-webkit-details-marker { display: none; }
-.hint-main details p { margin: .4rem 0 0; color: var(--fg2); font-size: .84rem; }
+.hint-card details summary { cursor: pointer; color: var(--fg3); font-family: var(--font-mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; list-style: none; }
+.hint-card details summary::-webkit-details-marker { display: none; }
+.hint-card details p { margin: .4rem 0 0; color: var(--fg2); font-size: .84rem; }
 /* Compact card: reason as text, note and history open on demand. */
 .hint-why { margin: 0; color: var(--fg2); font-size: .84rem; }
 .hint-meta-line { margin: 0; color: var(--fg3); font-size: .74rem; }
@@ -549,13 +524,8 @@ label.pick-check { margin: 0 .3rem; }
 
 /* ── chips to tick (notification sources) ── */
 .chip-picks { border: 0; margin: .4rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip-picks .chip-pick { margin: 0; }
 .chip-picks legend { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--fg3); margin-bottom: .35rem; padding: 0; }
-.chip-pick { display: inline-flex; margin: 0; cursor: pointer; }
-.chip-pick input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.chip-pick span { padding: .3rem .65rem; border: 1px solid var(--bg2); color: var(--fg1); font-family: var(--font-mono); font-size: .74rem; }
-.chip-pick:hover span { border-color: var(--fg3); }
-.chip-pick input:checked + span { border-color: var(--hl); background: var(--bg-panel); color: var(--fg0); }
-.chip-pick input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 1px; }
 
 /* ── my credentials: replace on demand ── */
 /* The cell stays a table cell (its lines line up with the row); the
@@ -710,12 +680,6 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .progress-bar > i.progress-over { background: repeating-linear-gradient(135deg, var(--aqua) 0 3px, transparent 3px 6px); }
 .progress-soll { position: absolute; left: var(--x); top: -3px; bottom: -3px; width: 2px; background: var(--fg0); }
 
-/* ── timeline (deadlines) ── */
-.timeline { list-style: none; margin: 0; padding: 0; }
-.timeline li { display: flex; gap: .8rem; padding: .55rem 0; border-bottom: 1px dashed var(--bg2); }
-.timeline li:last-child { border-bottom: 0; }
-.timeline time { font-family: var(--font-mono); font-size: .76rem; color: var(--warn-text); white-space: nowrap; }
-.timeline li.soon time { color: var(--danger-text); }
 
 /* ── chart / trend ── */
 .chart { width: 100%; height: auto; }
@@ -730,6 +694,8 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .legend i.prev { background: none; border: 1px dashed var(--fg3); }
 
 /* ── table: Kante's .table in a .table-wrap ── */
+/* In a tile the header row must fit without scrolling. */
+.table.compact th { letter-spacing: .05em; padding-inline: .5rem; }
 .late { color: var(--danger-text); }
 .custom-rules input, .custom-rules select { margin: 0; min-width: 6rem; }
 .custom-if { display: flex; gap: .3rem; }
@@ -803,28 +769,19 @@ dialog.dialog::backdrop { background: var(--scrim); }
 .connector-strip { display: flex; gap: .8rem; flex-wrap: wrap; align-items: center; }
 
 /* ── generic edit forms ── */
-.inline-form { display: inline-flex; gap: .4rem; align-items: center; margin: 0; }
+.inline-form { display: inline-flex; flex-wrap: wrap; max-width: 100%; gap: .4rem; align-items: center; margin: 0; }
 .inline-form select, .inline-form input { width: auto; }
 .inline-form button { margin: 0; }
 
-/* ── mode bars: edit (yellow, for everybody) and "Mein Layout" (blue, only
-      for you); one line, the rest behind "Board" ── */
-.modebar { --bar: var(--yellow); display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
-  padding: .55rem 1rem; background: var(--bar); color: var(--bg-void); position: relative; z-index: 5; }
-.modebar.is-layout { --bar: var(--cyan); }
-.modebar-title { font-family: var(--font-heading); text-transform: uppercase; font-size: .85rem; letter-spacing: .04em; }
-.modebar-hint { font-size: .82rem; }
-.modebar-gap { flex: 1; }
-.modebar summary { list-style: none; }
-.modebar summary::-webkit-details-marker { display: none; }
-.modebar .btn { margin: 0; }
-/* Kante's focus ring is cyan; on the bar it is the dark ground with a bar-coloured gap. */
-.modebar .btn:focus-visible { box-shadow: inset 0 0 0 2px var(--bg-void), inset 0 0 0 4px var(--bar); }
-.modebar-pop, .modebar-menu { position: relative; }
-.modebar-pop > form { position: absolute; left: 0; top: calc(100% + .35rem); z-index: 40; padding: .6rem; background: var(--bg-hard); border: 1px solid var(--bg2); border-top: 4px solid var(--bar); }
-.modebar-pop input { width: 14rem; margin: 0; }
-/* The board menu is Kante's .menu, placed under its summary. */
-.modebar-menu > .menu { position: absolute; right: 0; top: calc(100% + .35rem); z-index: 40; }
+/* ── edit bars: Kante .editbar; popovers and the board menu hang under their summary ── */
+.editbar-hint { font-size: .82rem; color: var(--fg2); }
+.editbar summary { list-style: none; }
+.editbar summary::-webkit-details-marker { display: none; }
+.editbar .btn { margin: 0; }
+.editbar-pop, .editbar-menu { position: relative; }
+.editbar-pop > form { position: absolute; left: 0; top: calc(100% + .35rem); z-index: 40; padding: .6rem; background: var(--bg-hard); border: 1px solid var(--bg2); border-top: 4px solid var(--cyan); }
+.editbar-pop input { width: 14rem; margin: 0; }
+.editbar-menu > .menu { position: absolute; right: 0; top: calc(100% + .35rem); z-index: 40; }
 /* Selection bar: only once tiles are selected. */
 .selbar { display: none; align-items: center; gap: .5rem; flex-wrap: wrap; margin: 0; padding: .5rem 1rem; background: var(--bg1); border-left: 4px solid var(--yellow);
   position: sticky; top: 0; z-index: 4; }
@@ -834,21 +791,8 @@ dialog.dialog::backdrop { background: var(--scrim); }
 .selbar button { margin: 0; }
 .dropzone { border: 2px dashed var(--bg2); padding: 1rem; display: flex; flex-wrap: wrap; gap: .7rem; background: var(--bg0); }
 
-/* ── login ── */
-.login-wrap {
-  min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem;
-  background: radial-gradient(ellipse at top, var(--bg-panel), var(--bg-void));
-}
-.login-card { width: 100%; max-width: 22rem; background: var(--bg-panel); border: 1px solid var(--bg2); padding: 2rem 1.8rem; }
-.login-card-wide { max-width: 26rem; }
-.login-title { font-size: 1.1rem; margin-bottom: 1rem; }
-.login-brand { display: flex; align-items: center; gap: .6rem; margin-bottom: 1.6rem; }
-.login-brand .mark { width: 30px; height: 30px; }
-.login-brand b { font-family: var(--font-heading); text-transform: uppercase; letter-spacing: .1em; font-size: 1.1rem; color: var(--fg0); }
-.login-btn { width: 100%; }
-.login-foot { margin-top: 1.2rem; display: flex; justify-content: space-between; font-size: .78rem; }
-.login-foot a { color: var(--fg3); text-decoration: none; }
-.login-foot a:hover { color: var(--link); }
+/* ── login: Kante .login; the page has Andon's header above it ── */
+.login-wrap { min-height: 70vh; }
 
 /* ── Theme editor ── */
 .editor-split { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.4rem; align-items: start; }
@@ -985,7 +929,7 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .rule-params input[type=number] { width: 6rem; }
 
 /* Wall display: board only, dimmed at night. */
-.is-kiosk .board-nav, .is-kiosk .board-tools, .is-kiosk .search, .is-kiosk .modebar, .is-kiosk .selbar { display: none; }
+.is-kiosk .board-nav, .is-kiosk .board-tools, .is-kiosk .search, .is-kiosk .editbar, .is-kiosk .selbar { display: none; }
 .is-kiosk .board-page { padding-top: 1rem; }
 .is-kiosk.is-dim { filter: brightness(.35); }
 
@@ -995,10 +939,6 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 /* "Was tun?" answer: the model's line breaks carry the steps. */
 .advice { white-space: pre-line; }
 
-/* Timeline: time, kind, subject on one line. */
-.timeline { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
-.timeline li { display: flex; flex-wrap: wrap; gap: .5rem; align-items: baseline; }
-.timeline time { font-variant-numeric: tabular-nums; color: var(--fg2); min-width: 9rem; }
 
 /* ── greeting widget ── */
 .greet { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .85fr) minmax(0, 1.1fr); gap: 1.4rem; align-items: stretch; }
@@ -1188,21 +1128,11 @@ a.flow-node { text-decoration: none; }
 .boards-order form { display: inline-flex; gap: .25rem; }
 .boards-order .btn { margin: 0; }
 
-/* ── deadlines: countdown block, then what and when ── */
-.deadlines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.deadlines li { display: grid; grid-template-columns: 3.2rem 1fr; gap: .7rem; align-items: center; padding: .45rem 0; border-bottom: 1px solid var(--bg2); }
-.deadlines li:last-child { border-bottom: 0; }
-.deadlines time { display: block; font-family: var(--font-mono); font-size: .72rem; color: var(--fg3); }
-.countdown { font-family: var(--font-heading); font-weight: 700; font-size: 1.3rem; line-height: 1.2; text-align: center; background: var(--bg1); color: var(--fg0); font-variant-numeric: tabular-nums; }
-.countdown em { font-style: normal; font-size: .7rem; margin-left: .1rem; color: var(--fg3); }
-.deadlines li[data-urgency="yellow"] .countdown { background: var(--yellow); color: var(--bg-void); }
-.deadlines li[data-urgency="red"] .countdown { background: var(--red); color: var(--bg-void); }
-.deadlines li[data-urgency] .countdown em { color: inherit; }
 
 /* ── tables: numbers right, shares as a bar, lateness as a chip ── */
 table.table th.num, table.table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.share { display: inline-flex; align-items: center; gap: .45rem; font-variant-numeric: tabular-nums; }
-.share i { display: inline-block; width: 60px; height: 6px; background: linear-gradient(to right, var(--cyan) var(--p), var(--bg1) var(--p)); }
+.pct-bar { display: inline-flex; align-items: center; gap: .45rem; font-variant-numeric: tabular-nums; }
+.pct-bar i { display: inline-block; width: 60px; height: 6px; background: linear-gradient(to right, var(--cyan) var(--p), var(--bg1) var(--p)); }
 .chip-late { display: inline-block; border: 1px solid var(--red); color: var(--danger-text); padding: 0 .35rem; font-size: .78rem; }
 
 /* ── monitors: one line per monitor with its last days ── */
@@ -1302,13 +1232,13 @@ table.table th.num, table.table td.num { text-align: right; font-variant-numeric
 .hass-value.is-low { color: var(--danger-text); }
 
 /* ── backups: one dot per day (filled: backed up, ring: missed) ── */
-.backup-dots { display: inline-flex; gap: 3px; align-items: center; margin-left: auto; }
+.backup-dots { display: inline-flex; gap: 3px; align-items: center; margin-left: auto; min-width: 0; overflow: hidden; }
 .backup-dots i { width: 7px; height: 7px; background: var(--bg2); }
 .backup-dots i[data-state="ok"] { background: var(--aqua); }
 .backup-dots i[data-state="miss"] { background: none; border: 1px solid var(--red); }
 .backup-lines[data-wide] .backup-dots { gap: 1px; }
 .backup-lines[data-wide] .backup-dots i { width: 4px; height: 7px; }
-.backup-lines li b { margin-left: .6rem; }
+.backup-lines li b { margin-left: .6rem; flex: none; }
 
 /* ── payment days: dots per invoice, mark = typical, dashed = target ── */
 .pay-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .45rem; }

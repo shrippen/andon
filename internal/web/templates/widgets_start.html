@@ -17,7 +17,7 @@
 {{define "widgets/rss"}}
 {{with $slot := index .Frag.Slots "feed"}}{{template "widget-slot-state" $slot}}
 {{with $feed := $slot.Data}}
-<ul class="feed-list"{{if $.Frag.Config.Compact}} data-compact{{end}}{{if ne $.Frag.Config.Height "auto"}} data-height="{{$.Frag.Config.Height}}"{{end}}>
+<ul class="feed{{if $.Frag.Config.Compact}} is-compact{{end}}"{{if ne $.Frag.Config.Height "auto"}} data-height="{{$.Frag.Config.Height}}"{{end}}>
   {{range $feed.Items}}
   <li{{if and .Image (not $.Frag.Config.Compact)}} class="has-image"{{end}}>
     {{if not $.Frag.Config.Compact}}{{with .Image}}<img class="feed-image" src="{{. | dataURI}}" alt="" loading="lazy">{{end}}{{end}}

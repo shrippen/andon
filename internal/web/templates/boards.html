@@ -54,15 +54,15 @@
   {{if .Edit}}
   {{/* Edit bar: the everyday actions up front, the board's own settings
        behind "Board"; bulk actions appear once tiles are selected. */}}
-  <div class="modebar is-edit">
-    <b class="modebar-title">{{t "edit.mode"}} · {{.Board.Space.Name}} · v<span data-board-version>{{.Board.Version}}</span></b>
+  <div class="editbar is-edit">
+    <b class="mode">{{t "edit.mode"}} · {{.Board.Space.Name}} · v<span data-board-version>{{.Board.Version}}</span></b>
     {{/* Undo and bulk touch several sections: the new page is morphed in,
          only changed nodes are replaced (a 240-tile swap took seconds). */}}
     <form method="post" action="/boards/{{.Board.ID}}/undo" class="inline-form" hx-ext="morph" hx-swap="morph:innerHTML show:none">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <button type="submit" class="btn btn-primary btn-sm{{if .UndoHint}} is-hint{{end}}">↶ {{t "edit.undo"}}</button>
     </form>
-    <details class="modebar-pop">
+    <details class="editbar-pop">
       <summary class="btn btn-primary btn-sm">+ {{t "edit.section"}}</summary>
       <form method="post" action="/boards/{{.Board.ID}}/sections" class="inline-form">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
@@ -71,10 +71,10 @@
         <button type="submit" class="btn btn-primary btn-sm">{{t "edit.add_section"}}</button>
       </form>
     </details>
-    <span class="modebar-gap"></span>
-    <a class="btn btn-ghost btn-sm modebar-main" href="/boards/{{.Board.ID}}/suggest">{{t "suggest.button"}}</a>
-    <span class="modebar-gap"></span>
-    <details class="modebar-menu">
+    <span class="grow"></span>
+    <a class="btn btn-ghost btn-sm editbar-main" href="/boards/{{.Board.ID}}/suggest">{{t "suggest.button"}}</a>
+    <span class="grow"></span>
+    <details class="editbar-menu">
       <summary class="btn btn-primary btn-sm">{{t "edit.board_menu"}} ▾</summary>
       <div class="menu">
         <a href="/boards/{{.Board.ID}}/settings">{{t "edit.board_settings"}}</a>
@@ -89,7 +89,7 @@
         <a href="/spaces/{{.Board.Space.ID}}/settings">{{t "nav.space_settings"}}</a>
       </div>
     </details>
-    <a class="btn btn-primary btn-sm modebar-done" href="/boards/{{.Board.ID}}">{{t "edit.done"}}</a>
+    <a class="btn btn-primary btn-sm editbar-done" href="/boards/{{.Board.ID}}">{{t "edit.done"}}</a>
   </div>
   <form id="bulk" method="post" action="/boards/{{.Board.ID}}/bulk" class="selbar" hx-ext="morph" hx-swap="morph:innerHTML show:none">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
@@ -108,17 +108,17 @@
   {{else if .LayerEdit}}
   {{/* "Mein Layout": its own colour, so it never passes for the board
        everybody sees. */}}
-  <div class="modebar is-layout">
-    <b class="modebar-title">{{t "edit.my_layout"}}</b>
-    <span class="modebar-hint">{{t "edit.layout_hint"}}</span>
-    <span class="modebar-gap"></span>
+  <div class="editbar is-layout">
+    <b class="mode">{{t "edit.my_layout"}}</b>
+    <span class="editbar-hint">{{t "edit.layout_hint"}}</span>
+    <span class="grow"></span>
     {{if .Board.HasOverlay}}
     <form method="post" action="/boards/{{.Board.ID}}/overlay/reset" class="inline-form">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <button type="submit" class="btn btn-primary btn-sm">{{t "edit.reset_layout"}}</button>
     </form>
     {{end}}
-    <a class="btn btn-primary btn-sm modebar-done" href="/boards/{{.Board.ID}}">{{t "edit.done"}}</a>
+    <a class="btn btn-primary btn-sm editbar-done" href="/boards/{{.Board.ID}}">{{t "edit.done"}}</a>
   </div>
   {{end}}
   {{end}}

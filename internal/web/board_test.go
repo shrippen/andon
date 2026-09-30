@@ -117,11 +117,11 @@ func TestLinkTileAndLayout(t *testing.T) {
 	}
 	expect(string(mustGet(t, srv, client, boardURL)), "board", `class="dsec-hidden"`, "1 ausgeblendet", " data-live-tile")
 	expect(string(mustGet(t, srv, client, boardURL+"?layout")), "layout mode",
-		`class="modebar is-layout"`, "Änderungen gelten nur für dich", `id="tile-strip" class="tile-strip"`,
+		`class="editbar is-layout"`, "Änderungen gelten nur für dich", `id="tile-strip" class="tile-strip"`,
 		`data-show="Einblenden"`, `data-tall="Doppelte Höhe"`, `is-hidden" data-placement=`, ">Kachelgröße<")
 	expect(string(mustGet(t, srv, client, boardURL+"?edit")), "edit mode",
-		`class="modebar is-edit"`, `id="tile-strip" class="tile-strip"`, `aria-label="Entfernen"`, `aria-label="Bearbeiten"`,
-		`id="bulk" method="post" action="`+boardURL+`/bulk" class="selbar"`, `class="add-tile"`, `class="modebar-menu"`)
+		`class="editbar is-edit"`, `id="tile-strip" class="tile-strip"`, `aria-label="Entfernen"`, `aria-label="Bearbeiten"`,
+		`id="bulk" method="post" action="`+boardURL+`/bulk" class="selbar"`, `class="add-tile"`, `class="editbar-menu"`)
 
 	version := regexp.MustCompile(`data-version="(\d+)"`).FindStringSubmatch(string(mustGet(t, srv, client, boardURL)))[1]
 	payload := []byte(`{"version":` + version + `,"layout":{"` + section + `":[` + placements[1][1] + `,` + placements[0][1] + `]},"mode":"board"}`)

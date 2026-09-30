@@ -11,21 +11,21 @@
 <body>
   {{template "header" .}}
   <div class="login-wrap">
-    <div class="login-card">
-      <div class="login-brand">{{template "mark"}}<b>Andon</b></div>
+    <div class="login">
+      <div class="brand">{{template "mark"}}<b>Andon</b></div>
       {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
       <form method="post" action="/login">
         <label for="email">{{t "field.email"}}</label>
         <input class="input" id="email" name="email" type="email" value="{{.Email}}" required autofocus>
         <label for="password">{{t "field.password"}}</label>
         <input class="input" id="password" name="password" type="password" required>
-        <button class="btn btn-accent login-btn" type="submit">{{t "login.submit"}}</button>
+        <button class="btn btn-accent" type="submit">{{t "login.submit"}}</button>
       </form>
       <p class="error" hidden data-passkey-error>{{t "passkey.failed"}}</p>
-      <button class="login-btn btn btn-outline" type="button" hidden data-passkey="login">{{t "login.passkey"}}</button>
+      <button class="btn btn-outline" type="button" hidden data-passkey="login">{{t "login.passkey"}}</button>
       {{if .OIDCLabel}}
       <p class="small muted">{{t "login.or"}}</p>
-      <a class="btn btn-accent login-btn" href="/auth/oidc/login">{{t "login.with" "provider" .OIDCLabel}}</a>
+      <a class="btn btn-accent" href="/auth/oidc/login">{{t "login.with" "provider" .OIDCLabel}}</a>
       {{end}}
       <p class="small muted"><a href="/reset">{{t "login.forgot"}}</a>{{if .RegistrationOpen}} · <a href="/register">{{t "register.title"}}</a>{{end}}</p>
     </div>
@@ -46,16 +46,16 @@
 <body>
   {{template "header" .}}
   <div class="login-wrap">
-    <div class="login-card">
-      <div class="login-brand">{{template "mark"}}<b>Andon</b></div>
-      <h1 class="login-title">{{t "totp.title"}}</h1>
+    <div class="login">
+      <div class="brand">{{template "mark"}}<b>Andon</b></div>
+      <h1>{{t "totp.title"}}</h1>
       {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
       <form method="post" action="/login/totp">
         <input type="hidden" name="token" value="{{.Token}}">
         <label for="code">{{t "totp.code"}}</label>
         <input class="input" id="code" name="code" required autofocus autocomplete="one-time-code">
         <p class="small muted">{{t "totp.recovery_hint"}}</p>
-        <button class="btn btn-accent login-btn" type="submit">{{t "totp.submit"}}</button>
+        <button class="btn btn-accent" type="submit">{{t "totp.submit"}}</button>
       </form>
     </div>
   </div>
@@ -75,8 +75,8 @@
 <body>
   {{template "header" .}}
   <div class="login-wrap">
-    <div class="login-card login-card-wide">
-      <div class="login-brand">{{template "mark"}}<b>Andon</b></div>
+    <div class="login is-wide">
+      <div class="brand">{{template "mark"}}<b>Andon</b></div>
       <p class="small muted">{{t "setup.lead"}}</p>
       {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
       <form method="post" action="/setup">
@@ -88,7 +88,7 @@
         <input class="input" id="name" name="name" required>
         <label for="password">{{t "field.password"}} ({{t "password.rules"}})</label>
         <input class="input" id="password" name="password" type="password" required minlength="12">
-        <button class="btn btn-accent login-btn" type="submit">{{t "setup.submit"}}</button>
+        <button class="btn btn-accent" type="submit">{{t "setup.submit"}}</button>
       </form>
     </div>
   </div>
