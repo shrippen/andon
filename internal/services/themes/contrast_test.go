@@ -8,12 +8,12 @@ import (
 
 // Text colours sit on these surfaces; some text sits on fills instead and
 // is checked against those: --bg-void on badges, --on-primary on buttons
-// (--accent on hover).
+// (--yellow-hi on hover).
 var (
 	textColor  = regexp.MustCompile(`(?:^|[\s;{])color:\s*var\((--[a-z0-9-]+)\)`)
 	filledText = map[string][]string{
 		"--bg-void":    {"--blue", "--yellow", "--orange", "--red"},
-		"--on-primary": {"--primary", "--accent"},
+		"--on-primary": {"--primary", "--yellow-hi"},
 	}
 	dashboardCSS = "../../web/static/andon.css"
 )

@@ -20,6 +20,8 @@ import (
 const (
 	neutralShare = 0.25 // --*-n: quieter semantic colors
 	hoverShare   = 0.15 // --blue-hover
+	tintShare    = 0.12 // --cyan-tint: the background with a hint of cyan
+	stepShare    = 0.15 // --yellow-hi / --yellow-lo: primary hover and pressed
 )
 
 // Palette is the minimal color set a preset defines.
@@ -84,8 +86,13 @@ func (p Palette) tokens() map[string]string {
 		"--blue": p.Blue, "--aqua": p.Aqua, "--green": p.Green, "--yellow": p.Yellow,
 		"--orange": p.Orange, "--red": p.Red, "--purple": p.Purple,
 		"--blue-hover": mixHex(p.Blue, p.Bg, hoverShare),
+		// The palette's blue is its link and focus colour: Kante's cyan role.
+		"--cyan":      p.Blue,
+		"--cyan-tint": mixHex(p.Bg, p.Blue, tintShare),
+		"--yellow-hi": mixHex(p.Yellow, p.Fg0, stepShare),
+		"--yellow-lo": mixHex(p.Yellow, p.Bg, stepShare),
 	}
-	for _, name := range []string{"blue", "aqua", "green", "yellow", "orange", "red", "purple"} {
+	for _, name := range []string{"blue", "aqua", "green", "yellow", "orange", "red", "purple", "cyan"} {
 		out["--"+name+"-n"] = mixHex(out["--"+name], p.Bg, neutralShare)
 	}
 	return out

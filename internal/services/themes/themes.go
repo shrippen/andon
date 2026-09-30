@@ -56,7 +56,7 @@ var (
 
 var textPairs = [][2]string{
 	{"--fg1", "--bg-void"}, {"--fg1", "--bg-panel"}, {"--fg2", "--bg-panel"},
-	{"--fg0", "--bg-void"}, {"--blue", "--bg-void"}, {"--fg3", "--bg-panel"},
+	{"--fg0", "--bg-void"}, {"--blue", "--bg-void"}, {"--cyan", "--bg-void"}, {"--fg3", "--bg-panel"},
 }
 
 var (
@@ -100,7 +100,7 @@ type Ref struct {
 
 // swatchTokens are the colours a theme list shows: ground, text, main
 // action, then the semantic colours.
-var swatchTokens = []string{"--bg-void", "--fg1", "--primary", "--blue", "--aqua", "--yellow", "--orange", "--red"}
+var swatchTokens = []string{"--bg-void", "--fg1", "--primary", "--cyan", "--aqua", "--yellow", "--orange", "--red"}
 
 // swatches resolves swatchTokens in a theme's dark mode; references like
 // "var(--yellow)" follow to their colour.
@@ -317,14 +317,18 @@ func ContrastIssues(dark, light map[string]string) []ContrastIssue {
 	return issues
 }
 
-// textRoles are status colours for text: the semantic colour, mixed
-// toward --fg1 just enough to reach AA on every text surface. Borders and
-// fills keep the pure colour.
-var textRoles = map[string]string{"--ok-text": "--aqua", "--warn-text": "--yellow", "--danger-text": "--red"}
+// textRoles are status colours for text: the role's colour, mixed toward
+// --fg1 just enough to reach AA on every text surface. Borders and fills
+// keep the pure colour. The sources are roles (--warn, --danger), so a
+// theme that repoints a role changes its text colour too.
+var textRoles = map[string]string{"--ok-text": "--aqua", "--warn-text": "--warn", "--danger-text": "--danger"}
 
 var textSurfaces = []string{"--bg-void", "--bg-panel", "--bg-hard", "--bg0"}
 
-const mixStep = 0.05
+const (
+	mixStep    = 0.05
+	maxVarHops = 4
+)
 
 // TextRoles derives the text-role tokens for one mode's resolved tokens,
 // e.g. light --aqua #427b58 → --ok-text #3b6d4e.
@@ -333,7 +337,7 @@ func TextRoles(tokens map[string]string) map[string]string {
 	fg := tokens["--fg1"]
 	for role, src := range textRoles {
 		out[role] = "var(" + src + ")"
-		base := tokens[src]
+		base := resolveVar(tokens, src)
 		if !hexColor.MatchString(base) || !hexColor.MatchString(fg) {
 			continue
 		}
@@ -346,6 +350,16 @@ func TextRoles(tokens map[string]string) map[string]string {
 		}
 	}
 	return out
+}
+
+// resolveVar follows var(--x) references, e.g. --warn → var(--orange) →
+// #fe8019. A cycle or a dangling reference returns the last value seen.
+func resolveVar(tokens map[string]string, name string) string {
+	v := tokens[name]
+	for i := 0; i < maxVarHops && strings.HasPrefix(v, "var(") && strings.HasSuffix(v, ")"); i++ {
+		v = tokens[strings.TrimSuffix(strings.TrimPrefix(v, "var("), ")")]
+	}
+	return v
 }
 
 func passesOn(color string, tokens map[string]string) bool {

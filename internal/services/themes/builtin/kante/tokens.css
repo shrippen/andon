@@ -33,6 +33,10 @@
   --orange:   #fe8019;   /* active, highlight */
   --red:      #fb4934;   /* error, destructive */
   --purple:   #d3869b;   /* tags, categories */
+  --cyan:     #5ccfc4;   /* technical layer: focus, links, data, brackets. Lines and text, never large fills */
+  --cyan-tint: #1e2b2a;  /* ground of a selected row or a focused field */
+  --yellow-hi: #fdc94a;  /* primary hover (one step lighter) */
+  --yellow-lo: #e5a823;  /* primary pressed */
 
   /* ── Semantic colors (Gruvbox neutral — for quieter contexts) ── */
   --blue-n:   #458588;
@@ -42,11 +46,18 @@
   --orange-n: #d65d0e;
   --red-n:    #cc241d;
   --purple-n: #b16286;
+  --cyan-n:   #3f9a94;   /* quiet lines only (4.4:1 on cards) */
 
   /* ── Roles (follow the theme; see Light theme below) ── */
   --field:    var(--bg-hard); /* input fields, nested surfaces */
   --score:    var(--yellow);  /* scores, points, "how good is it" */
-  --hl:       var(--orange);  /* active nav item, current selection */
+  --hl:       var(--cyan);    /* current selection (selected tile, active row) */
+  --focus:    var(--cyan);    /* focus ring, everywhere */
+  --link:     var(--cyan);    /* links in running text */
+  --info:     var(--cyan);    /* info callouts and toasts, third feature tier */
+  --warn:     var(--orange);  /* warnings: callout, banner, middle tier of states */
+  --danger:   var(--red);     /* errors, destructive actions */
+  --on-state: var(--bg-void); /* text on a filled state colour (danger button, counters) */
   --scrim:    rgba(20,19,18,.62); /* dimmed area behind dialogs and outside a crop */
   --primary:  var(--yellow);  /* primary action, pressed segment, switch on, focus ring */
   --on-primary: var(--bg-void); /* text on --primary */
@@ -56,7 +67,19 @@
   --max-w:    860px;
   --max-w-wide: 1280px;  /* landing hero and feature rows */
   --gutter:   clamp(1rem, 5.6vw, 4.5rem);
-  --chamfer:  16px;      /* top-right corner cut on boxes */
+  --chamfer:  16px;      /* top-right corner cut on boxes (surfaces) */
+  --cut-m:    10px;      /* buttons, tiles, tabs, menus */
+  --cut-s:    6px;       /* small buttons, stickers */
+  --h-s:      32px;      /* control heights: small, medium, large */
+  --h-m:      40px;
+  --h-l:      48px;
+
+  /* ── Motion (only under prefers-reduced-motion: no-preference) ── */
+  --dur-fast: 120ms;     /* colour and border changes */
+  --dur:      200ms;     /* cut grows, lift, slide */
+  --dur-slow: 450ms;     /* entrances: bar, scan, cascade */
+  --ease-out: cubic-bezier(.2,.8,.2,1);
+  --ease-snap: cubic-bezier(.3,1.5,.5,1); /* mechanical snap with a small overshoot */
 
   /* ── Typography ── */
   --font-heading: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
@@ -103,7 +126,14 @@
   --orange:   #af3a03;
   --red:      #9d0006;
   --purple:   #8f3f71;
+  --cyan:     #0f6b66;   /* 5.2:1 on the ground */
+  --cyan-tint: #d9ebe4;
 
   --field:    var(--bg1);
   --scrim:    rgba(40,40,40,.5);
+  --primary:  #fabd2f;   /* yellow fill with ink, as in the dark theme (not ochre with brown text) */
+  --on-primary: #141312;
+  --yellow-hi: #fcc845;
+  --yellow-lo: #e5a823;
+  --on-state: #fbf8ee;
 }

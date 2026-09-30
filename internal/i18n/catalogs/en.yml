@@ -1528,6 +1528,7 @@ tokens:
   semantic: Signal colours
   roles: Roles
   shape: Shape and sizes
+  motion: Motion
   fonts: Fonts
 styleguide:
   title: Components

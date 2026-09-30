@@ -89,7 +89,7 @@ button {
   text-transform: uppercase;
   letter-spacing: .04em;
 }
-button:hover { background: var(--accent); }
+button:hover { background: var(--yellow-hi); }
 button.ghost, .link-btn {
   background: none;
   color: var(--blue);
@@ -580,7 +580,7 @@ input[type="file"]::file-selector-button:hover { color: var(--orange); border-co
 .hint-actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
 .hint-actions form { margin: 0; }
 .hint-go { font-family: var(--font-heading); font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; background: var(--primary); color: var(--on-primary); padding: .25rem .6rem; text-decoration: none; }
-.hint-go:hover { background: var(--accent); }
+.hint-go:hover { background: var(--yellow-hi); }
 .hint-actions button.ghost { margin: 0; padding: .2rem .55rem; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--fg2); }
 .hint-head { display: flex; flex-wrap: wrap; gap: .3rem .6rem; align-items: baseline; }
 .hint-head b { margin: 0; }

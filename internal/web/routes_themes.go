@@ -30,9 +30,10 @@ var tokenGroups = []struct {
 }{
 	{"background", []string{"--bg-void", "--bg-hard", "--bg0", "--bg-panel", "--bg1", "--bg2", "--nav-bg"}},
 	{"text", []string{"--fg0", "--fg1", "--fg2", "--fg3", "--accent"}},
-	{"semantic", []string{"--blue", "--blue-hover", "--aqua", "--green", "--yellow", "--orange", "--red", "--purple"}},
-	{"roles", []string{"--primary", "--on-primary", "--field", "--score", "--hl", "--scrim", "--shadow"}},
-	{"shape", []string{"--radius", "--chamfer", "--gutter", "--max-w", "--max-w-wide"}},
+	{"semantic", []string{"--cyan", "--cyan-n", "--cyan-tint", "--blue", "--blue-hover", "--aqua", "--green", "--yellow", "--yellow-hi", "--yellow-lo", "--orange", "--red", "--purple"}},
+	{"roles", []string{"--primary", "--on-primary", "--field", "--score", "--hl", "--focus", "--link", "--info", "--warn", "--danger", "--on-state", "--scrim", "--shadow"}},
+	{"shape", []string{"--radius", "--chamfer", "--cut-m", "--cut-s", "--h-s", "--h-m", "--h-l", "--gutter", "--max-w", "--max-w-wide"}},
+	{"motion", []string{"--dur-fast", "--dur", "--dur-slow", "--ease-out", "--ease-snap"}},
 	{"fonts", []string{"--font-heading", "--font-sans", "--font-mono"}},
 }
 

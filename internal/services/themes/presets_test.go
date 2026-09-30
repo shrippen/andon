@@ -23,3 +23,31 @@ func TestDashyPalette(t *testing.T) {
 		t.Fatal("unknown theme without colors used")
 	}
 }
+
+// A preset colours Kante's link and focus role (--cyan) with its blue.
+func TestPresetCyan(t *testing.T) {
+	p := presets["nord"]
+	tokens := p.tokens()
+	if tokens["--cyan"] != p.Blue {
+		t.Fatalf("--cyan = %s, want %s", tokens["--cyan"], p.Blue)
+	}
+	for _, name := range []string{"--cyan-n", "--cyan-tint", "--yellow-hi", "--yellow-lo"} {
+		if !hexColor.MatchString(tokens[name]) {
+			t.Errorf("%s = %q, want a colour", name, tokens[name])
+		}
+	}
+}
+
+// The text roles start from the warning and error roles, so a theme that
+// repoints --warn gets a matching --warn-text.
+func TestTextRolesFollowRoles(t *testing.T) {
+	dark, _ := Contract()
+	tokens := merge(dark, map[string]string{"--warn": "var(--purple)"})
+	roles := TextRoles(tokens)
+	if roles["--warn-text"] == roles["--danger-text"] || !hexColor.MatchString(roles["--warn-text"]) {
+		t.Fatalf("warn-text %q, danger-text %q", roles["--warn-text"], roles["--danger-text"])
+	}
+	if resolveVar(tokens, "--warn") != tokens["--purple"] {
+		t.Fatal("resolveVar did not follow --warn")
+	}
+}
