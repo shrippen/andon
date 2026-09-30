@@ -19,13 +19,13 @@
         <input id="email" name="email" type="email" value="{{.Email}}" required autofocus>
         <label for="password">{{t "field.password"}}</label>
         <input id="password" name="password" type="password" required>
-        <button class="login-btn" type="submit">{{t "login.submit"}}</button>
+        <button class="btn btn-accent login-btn" type="submit">{{t "login.submit"}}</button>
       </form>
       <p class="error" hidden data-passkey-error>{{t "passkey.failed"}}</p>
-      <button class="login-btn ghost" type="button" hidden data-passkey="login">{{t "login.passkey"}}</button>
+      <button class="login-btn btn btn-outline" type="button" hidden data-passkey="login">{{t "login.passkey"}}</button>
       {{if .OIDCLabel}}
       <p class="small muted">{{t "login.or"}}</p>
-      <a class="login-btn" href="/auth/oidc/login">{{t "login.with" "provider" .OIDCLabel}}</a>
+      <a class="btn btn-accent login-btn" href="/auth/oidc/login">{{t "login.with" "provider" .OIDCLabel}}</a>
       {{end}}
       <p class="small muted"><a href="/reset">{{t "login.forgot"}}</a>{{if .RegistrationOpen}} · <a href="/register">{{t "register.title"}}</a>{{end}}</p>
     </div>
@@ -55,7 +55,7 @@
         <label for="code">{{t "totp.code"}}</label>
         <input id="code" name="code" required autofocus autocomplete="one-time-code">
         <p class="small muted">{{t "totp.recovery_hint"}}</p>
-        <button class="login-btn" type="submit">{{t "totp.submit"}}</button>
+        <button class="btn btn-accent login-btn" type="submit">{{t "totp.submit"}}</button>
       </form>
     </div>
   </div>
@@ -88,7 +88,7 @@
         <input id="name" name="name" required>
         <label for="password">{{t "field.password"}} ({{t "password.rules"}})</label>
         <input id="password" name="password" type="password" required minlength="12">
-        <button class="login-btn" type="submit">{{t "setup.submit"}}</button>
+        <button class="btn btn-accent login-btn" type="submit">{{t "setup.submit"}}</button>
       </form>
     </div>
   </div>

@@ -7,23 +7,23 @@
 <div class="kl">
   <div class="kl-head">
     <span class="label">{{if $v.Running}}{{t "timer.running"}}{{else}}{{t "timer.idle"}}{{end}}</span>
-    {{if $.Ctx.CSRF}}<button type="button" class="kl-ib" hx-get="/widget-fragments/{{$.PlacementID}}/kimai/new" hx-target="closest .card-body" hx-swap="innerHTML" aria-label="{{t "timer.add"}}" title="{{t "timer.add"}}">
+    {{if $.Ctx.CSRF}}<button type="button" class="btn btn-outline btn-icon btn-sm kl-ib" hx-get="/widget-fragments/{{$.PlacementID}}/kimai/new" hx-target="closest .card-body" hx-swap="innerHTML" aria-label="{{t "timer.add"}}" title="{{t "timer.add"}}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
-    <button type="button" class="kl-ib" hx-get="/widget-fragments/{{$.PlacementID}}/kimai/day" hx-target="closest .card-body" hx-swap="innerHTML" aria-label="{{t "timer.day_list"}}" title="{{t "timer.day_list"}}">
+    <button type="button" class="btn btn-outline btn-icon btn-sm kl-ib" hx-get="/widget-fragments/{{$.PlacementID}}/kimai/day" hx-target="closest .card-body" hx-swap="innerHTML" aria-label="{{t "timer.day_list"}}" title="{{t "timer.day_list"}}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg></button>{{end}}
-    <a class="kl-ib" href="{{$v.URL}}/{{$lang}}/reporting/" target="_blank" rel="noopener noreferrer" aria-label="{{t "timer.stats"}}" title="{{t "timer.stats"}}">
+    <a class="btn btn-outline btn-icon btn-sm kl-ib" href="{{$v.URL}}/{{$lang}}/reporting/" target="_blank" rel="noopener noreferrer" aria-label="{{t "timer.stats"}}" title="{{t "timer.stats"}}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 20v-6M12 20V9M18 20V4"/></svg></a>
   </div>
   {{with $v.Running}}
   <div class="kl-clock"><span class="kl-time" data-begin="{{.Begin}}" role="timer">{{.Elapsed}}</span>{{with .Customer}}<span class="kl-cust">{{.}}</span>{{end}}</div>
   <div class="kl-run">
     <b class="kl-proj">{{.Project}} · {{.Activity}}</b>
-    {{if $.Ctx.CSRF}}<button type="button" class="kl-ib" hx-get="/widget-fragments/{{$.PlacementID}}/kimai/edit?sheet={{.ID}}" hx-target="closest .card-body" hx-swap="innerHTML" aria-label="{{t "timer.edit"}}" title="{{t "timer.edit"}}">
+    {{if $.Ctx.CSRF}}<button type="button" class="btn btn-outline btn-icon btn-sm kl-ib" hx-get="/widget-fragments/{{$.PlacementID}}/kimai/edit?sheet={{.ID}}" hx-target="closest .card-body" hx-swap="innerHTML" aria-label="{{t "timer.edit"}}" title="{{t "timer.edit"}}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>
     <form class="kl-pin-f" hx-post="/widget-fragments/{{$.PlacementID}}/kimai/pin" hx-target="closest .card-body" hx-swap="innerHTML">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
       <input type="hidden" name="project" value="{{.ProjectID}}"><input type="hidden" name="activity" value="{{.ActivityID}}">
-      <button type="submit" class="kl-ib kl-pin"{{if .Pinned}} data-pinned{{end}} aria-label="{{if .Pinned}}{{t "timer.unpin"}}{{else}}{{t "timer.pin"}}{{end}}" aria-pressed="{{.Pinned}}" title="{{if .Pinned}}{{t "timer.unpin"}}{{else}}{{t "timer.pin"}}{{end}}">
+      <button type="submit" class="btn btn-outline btn-icon btn-sm kl-ib kl-pin"{{if .Pinned}} data-pinned{{end}} aria-label="{{if .Pinned}}{{t "timer.unpin"}}{{else}}{{t "timer.pin"}}{{end}}" aria-pressed="{{.Pinned}}" title="{{if .Pinned}}{{t "timer.unpin"}}{{else}}{{t "timer.pin"}}{{end}}">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9z"/></svg></button>
     </form>{{end}}
   </div>
@@ -41,7 +41,7 @@
     <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
     <input type="hidden" name="action" value="stop"><input type="hidden" name="sheet" value="{{$r.ID}}">
     <input name="note" placeholder="{{t "timer.note"}}" aria-label="{{t "timer.note"}}" autocomplete="off">
-    <button type="submit"><span class="kl-sq" aria-hidden="true"></span>{{t "timer.stop"}}</button>
+    <button type="submit" class="btn btn-accent"><span class="kl-sq" aria-hidden="true"></span>{{t "timer.stop"}}</button>
   </form>{{end}}{{end}}
   {{with $v.Target}}<p class="kl-target"{{if $v.Over}} data-over{{end}}>{{if $v.Over}}{{t "timer.over" "time" $v.Left}}{{else}}{{t "timer.left" "time" $v.Left}}{{end}}</p>{{end}}
   {{if and $v.Lists $v.AskNote $.Ctx.CSRF}}<input class="kl-start-note" id="kl-sn-{{$.PlacementID}}" name="start_note" placeholder="{{t "timer.start_note"}}" aria-label="{{t "timer.start_note"}}" autocomplete="off">{{end}}
@@ -56,13 +56,13 @@
         <input type="hidden" name="action" value="{{if $v.Running}}switch{{else}}start{{end}}">
         <input type="hidden" name="project" value="{{.ProjectID}}"><input type="hidden" name="activity" value="{{.ActivityID}}">
         {{with $v.Running}}<input type="hidden" name="sheet" value="{{.ID}}">{{end}}
-        <button type="submit" class="kl-play" aria-label="{{t "timer.play" "name" (print .Project " · " .Activity)}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg></button>
+        <button type="submit" class="btn btn-accent btn-icon btn-sm kl-play" aria-label="{{t "timer.play" "name" (print .Project " · " .Activity)}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg></button>
       </form>{{end}}
       <span class="kl-pair"><b>{{.Project}}</b><small>{{.Activity}}{{with .Customer}} · {{.}}{{end}}</small></span>
       {{if $.Ctx.CSRF}}<form class="kl-pin-f" hx-post="/widget-fragments/{{$.PlacementID}}/kimai/pin" hx-target="closest .card-body" hx-swap="innerHTML">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
       <input type="hidden" name="project" value="{{.ProjectID}}"><input type="hidden" name="activity" value="{{.ActivityID}}">
-      <button type="submit" class="kl-ib kl-pin"{{if .Pinned}} data-pinned{{end}} aria-label="{{if .Pinned}}{{t "timer.unpin"}}{{else}}{{t "timer.pin"}}{{end}}" aria-pressed="{{.Pinned}}" title="{{if .Pinned}}{{t "timer.unpin"}}{{else}}{{t "timer.pin"}}{{end}}">
+      <button type="submit" class="btn btn-outline btn-icon btn-sm kl-ib kl-pin"{{if .Pinned}} data-pinned{{end}} aria-label="{{if .Pinned}}{{t "timer.unpin"}}{{else}}{{t "timer.pin"}}{{end}}" aria-pressed="{{.Pinned}}" title="{{if .Pinned}}{{t "timer.unpin"}}{{else}}{{t "timer.pin"}}{{end}}">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9z"/></svg></button>
     </form>{{end}}
     </li>
@@ -114,8 +114,8 @@
       </select></div>
   </div>
   <div class="kl-actions">
-    <button type="submit">{{t "action.save"}}</button>
-    <button type="button" class="ghost" hx-get="/widget-fragments/{{.PlacementID}}{{if .Back}}/kimai/day{{end}}" hx-target="closest .card-body" hx-swap="innerHTML">{{t "action.cancel"}}</button>
+    <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
+    <button type="button" class="btn btn-outline btn-sm" hx-get="/widget-fragments/{{.PlacementID}}{{if .Back}}/kimai/day{{end}}" hx-target="closest .card-body" hx-swap="innerHTML">{{t "action.cancel"}}</button>
   </div>
   {{if and $edit (not $running)}}
   {{/* Split and delete send the form with another action; hx-vals wins
@@ -123,8 +123,8 @@
   <label for="kl-s-{{.PlacementID}}">{{t "timer.split_at"}}</label>
   <div class="kl-actions">
     <input id="kl-s-{{.PlacementID}}" name="at" type="datetime-local" value="{{.Split.At}}" min="{{.Split.Min}}" max="{{.Split.Max}}">
-    <button type="button" class="ghost" hx-post="/widget-fragments/{{.PlacementID}}/kimai" hx-vals='{"action": "split", "back": "day"}' hx-target="closest .card-body" hx-swap="innerHTML">{{t "timer.split"}}</button>
-    <button type="button" class="ghost kl-del" hx-post="/widget-fragments/{{.PlacementID}}/kimai" hx-vals='{"action": "delete", "back": "day"}' hx-confirm="{{t "timer.delete_confirm"}}" hx-target="closest .card-body" hx-swap="innerHTML">{{t "action.delete"}}</button>
+    <button type="button" class="btn btn-outline btn-sm" hx-post="/widget-fragments/{{.PlacementID}}/kimai" hx-vals='{"action": "split", "back": "day"}' hx-target="closest .card-body" hx-swap="innerHTML">{{t "timer.split"}}</button>
+    <button type="button" class="btn btn-outline btn-sm kl-del" hx-post="/widget-fragments/{{.PlacementID}}/kimai" hx-vals='{"action": "delete", "back": "day"}' hx-confirm="{{t "timer.delete_confirm"}}" hx-target="closest .card-body" hx-swap="innerHTML">{{t "action.delete"}}</button>
   </div>
   {{end}}
 </form>
@@ -135,7 +135,7 @@
 <div class="kl kl-daylist">
   <div class="kl-head">
     <span class="label">{{t "timer.day_list"}}</span>
-    <button type="button" class="kl-ib" hx-get="/widget-fragments/{{.PlacementID}}" hx-target="closest .card-body" hx-swap="innerHTML" aria-label="{{t "action.close"}}" title="{{t "action.close"}}">
+    <button type="button" class="btn btn-outline btn-icon btn-sm kl-ib" hx-get="/widget-fragments/{{.PlacementID}}" hx-target="closest .card-body" hx-swap="innerHTML" aria-label="{{t "action.close"}}" title="{{t "action.close"}}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   {{with .Error}}<p class="error">{{t .}}</p>{{end}}
@@ -146,7 +146,7 @@
       <span class="kl-color"{{with .Color}} data-style="--c:{{.}}"{{end}} aria-hidden="true"></span>
       <span class="kl-pair"><b>{{.Project}} · {{.Activity}}</b>
         <small>{{.From}}–{{if .To}}{{.To}}{{else}}{{t "timer.running"}}{{end}} · {{.Duration}}{{if .Billable}} · {{t "timer.billable"}}{{end}}{{with .Note}} · {{.}}{{end}}{{range .Tags}} · #{{.}}{{end}}</small></span>
-      <button type="button" class="kl-ib" hx-get="/widget-fragments/{{$.PlacementID}}/kimai/edit?sheet={{.ID}}&amp;back=day" hx-target="closest .card-body" hx-swap="innerHTML" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}">
+      <button type="button" class="btn btn-outline btn-icon btn-sm kl-ib" hx-get="/widget-fragments/{{$.PlacementID}}/kimai/edit?sheet={{.ID}}&amp;back=day" hx-target="closest .card-body" hx-swap="innerHTML" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>
     </li>
     {{end}}

@@ -157,8 +157,8 @@
 <ul class="hint-lines">
   {{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><a href="/hints#hint-{{.ID}}" title="{{.Title}}">{{.Title}}</a><small>{{ago .FirstSeen}}</small>
     {{if and $.Frag.View.Buttons $.Ctx.CSRF}}<span class="hint-line-acts">
-      <form method="post" action="/hints/{{.ID}}/ack"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer"><button type="submit" class="ghost" aria-label="{{t "hints.ack"}}: {{.Title}}">{{t "hints.ack"}}</button></form>
-      <form method="post" action="/hints/{{.ID}}/snooze"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="days" value="1"><input type="hidden" name="back" value="referer"><button type="submit" class="ghost" aria-label="{{t "hints.later"}}: {{.Title}}">{{t "hints.later"}}</button></form>
+      <form method="post" action="/hints/{{.ID}}/ack"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer"><button type="submit" class="btn btn-outline btn-sm" aria-label="{{t "hints.ack"}}: {{.Title}}">{{t "hints.ack"}}</button></form>
+      <form method="post" action="/hints/{{.ID}}/snooze"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="days" value="1"><input type="hidden" name="back" value="referer"><button type="submit" class="btn btn-outline btn-sm" aria-label="{{t "hints.later"}}: {{.Title}}">{{t "hints.later"}}</button></form>
     </span>{{end}}</li>{{end}}
 </ul>
 {{else}}<p class="hint-empty">{{t "hints.none"}}</p>
@@ -188,11 +188,11 @@
   <a class="hint-title" href="/hints#hint-{{.ID}}">{{.Title}}</a>
   {{if .Due}}<span class="hint-due">{{day .Due}}</span>{{end}}
   <div class="hint-actions">
-    {{if .ActionURL}}<a class="hint-go" href="{{.ActionURL}}" target="_blank" rel="noopener noreferrer">{{if .ActionLabel}}{{.ActionLabel}}{{else}}{{t "action.open"}}{{end}}</a>{{end}}
+    {{if .ActionURL}}<a class="btn btn-accent btn-sm" href="{{.ActionURL}}" target="_blank" rel="noopener noreferrer">{{if .ActionLabel}}{{.ActionLabel}}{{else}}{{t "action.open"}}{{end}}</a>{{end}}
     {{if $r.Ctx.CSRF}}<form method="post" action="/hints/{{.ID}}/snooze">
       <input type="hidden" name="{{$r.CSRFField}}" value="{{$r.Ctx.CSRF}}">
       <input type="hidden" name="days" value="1"><input type="hidden" name="back" value="referer">
-      <button type="submit" class="ghost">{{t "hints.later"}}</button>
+      <button type="submit" class="btn btn-outline btn-sm">{{t "hints.later"}}</button>
     </form>{{end}}
   </div>
 </li>

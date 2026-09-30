@@ -34,9 +34,9 @@
         <option value="masonry"{{if eq (print .Board.Layout) "masonry"}} selected{{end}}>{{t "board_layout.masonry"}}</option>
       </select>
       <p class="small muted">{{t "field.board_layout_hint"}}</p>
-      <button type="submit">{{t "action.save"}}</button>
+      <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
     </form>
-    <p><a class="link-btn" href="/boards/{{.Board.ID}}/export">{{t "action.export"}}</a></p>
+    <p><a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}/export">{{t "action.export"}}</a></p>
     {{template "danger_zone" dict "Action" (print "/boards/" .Board.ID "/delete") "Text" (t "board.delete_hint") "Button" (t "board.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
   </main>
 </body>
@@ -61,7 +61,7 @@
     <p class="muted">{{t "library.lead"}}</p>
     <div class="gal-tools">
       <input type="search" id="gal-q" placeholder="{{t "library.search"}}" aria-label="{{t "library.search"}}">
-      <a class="link-btn" href="/widgets/new">+ {{t "gallery.title"}}</a>
+      <a class="btn btn-outline btn-sm" href="/widgets/new">+ {{t "gallery.title"}}</a>
     </div>
     {{range .Groups}}
     <section class="gal-group lib-group">
@@ -75,14 +75,14 @@
           <td><b>{{.Name}}</b>{{if .Title}}<small class="muted"> · {{$type}}</small>{{end}}</td>
           <td class="small muted">{{.Space.Name}}</td>
           <td class="small muted">{{if .Uses}}{{t "gallery.uses" "n" .Uses}}{{else}}{{t "gallery.unused"}}{{end}}</td>
-          <td class="row-actions">{{if .CanEdit}}<a class="link-btn" href="/widgets/{{.ID}}/edit">{{t "action.edit"}}</a>{{end}}
-            <details class="row-more"><summary class="link-btn" aria-label="{{t "action.more"}}" title="{{t "action.more"}}">⋯</summary>
+          <td class="row-actions">{{if .CanEdit}}<a class="btn btn-outline btn-sm" href="/widgets/{{.ID}}/edit">{{t "action.edit"}}</a>{{end}}
+            <details class="row-more"><summary class="btn btn-outline btn-sm" aria-label="{{t "action.more"}}" title="{{t "action.more"}}">⋯</summary>
               <div class="row-more-body">
-                <a class="link-btn" href="/shares/widget/{{.ID}}">{{t "edit.share"}}</a>
+                <a class="btn btn-outline btn-sm" href="/shares/widget/{{.ID}}">{{t "edit.share"}}</a>
                 <form method="post" action="/widgets/{{.ID}}/copy" class="inline-form">
                   <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
                   <select name="space_id" aria-label="{{t "field.space"}}">{{range $.Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
-                  <button type="submit" class="ghost">{{t "library.copy"}}</button>
+                  <button type="submit" class="btn btn-outline btn-sm">{{t "library.copy"}}</button>
                 </form>
               </div>
             </details>
@@ -162,7 +162,7 @@
               <small class="muted">{{.Desc}}</small>
             </div>
             <div class="gal-actions">
-              <a class="link-btn" href="/widgets/new?type={{.Kind.Key}}&space={{$.Target.SpaceID}}{{if $.Target.Place}}&section={{$.Target.SectionID}}&board={{$.Target.BoardID}}&version={{$.Target.Version}}{{end}}">{{t "gallery.setup"}}</a>
+              <a class="btn btn-outline btn-sm" href="/widgets/new?type={{.Kind.Key}}&space={{$.Target.SpaceID}}{{if $.Target.Place}}&section={{$.Target.SectionID}}&board={{$.Target.BoardID}}&version={{$.Target.Version}}{{end}}">{{t "gallery.setup"}}</a>
               {{if and .Kind.Service (not .ConnID)}}<a class="small" href="/connections/new?service={{.Kind.Service}}">{{t "gallery.connect"}}</a>{{end}}
             </div>
           </article>
@@ -195,7 +195,7 @@
               <b>{{.Name}}</b>
               <small class="muted">{{if .Uses}}{{t "gallery.uses" "n" .Uses}}{{else}}{{t "gallery.unused"}}{{end}}</small>
             </div>
-            <div class="gal-actions"><button type="button" data-open="reuse-{{.ID}}">{{t "gallery.add"}}</button></div>
+            <div class="gal-actions"><button type="button" class="btn btn-accent" data-open="reuse-{{.ID}}">{{t "gallery.add"}}</button></div>
 
             <dialog id="reuse-{{.ID}}" class="gal-dialog" aria-labelledby="reuse-{{.ID}}-h">
               <span class="label">{{t "gallery.existing"}} · {{$type}}</span>
@@ -211,7 +211,7 @@
                 {{template "target_fields" $p.Target}}
                 <button type="submit" class="gal-opt"><b>{{t "gallery.copy"}}</b><small>{{t "gallery.copy_hint"}}</small></button>
               </form>
-              <form method="dialog"><button type="submit" class="ghost">{{t "action.cancel"}}</button></form>
+              <form method="dialog"><button type="submit" class="btn btn-outline btn-sm">{{t "action.cancel"}}</button></form>
             </dialog>
           </article>
 {{end}}{{end}}
@@ -282,8 +282,8 @@
         </fieldset>
 
         <div class="row-actions">
-          <button type="submit">{{if and .Target.Place (not .Widget)}}{{with .Dest.Section}}{{t "gallery.add_to" "section" .}}{{else}}{{t "gallery.add"}}{{end}}{{else}}{{t "action.save"}}{{end}}</button>
-          <a class="link-btn" href="{{.Target.Back}}">{{t "action.cancel"}}</a>
+          <button type="submit" class="btn btn-accent">{{if and .Target.Place (not .Widget)}}{{with .Dest.Section}}{{t "gallery.add_to" "section" .}}{{else}}{{t "gallery.add"}}{{end}}{{else}}{{t "action.save"}}{{end}}</button>
+          <a class="btn btn-outline btn-sm" href="{{.Target.Back}}">{{t "action.cancel"}}</a>
         </div>
       </form>
 

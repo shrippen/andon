@@ -40,7 +40,7 @@
         <input type="hidden" name="space_id" value="{{.SpaceID}}">
         <input type="hidden" name="customer_id" value="{{.CustomerID}}">
         <label class="check"><input type="checkbox" name="mark_exported" checked> {{t "billing.mark_exported"}}</label>
-        <button type="submit">{{t "billing.create" "client" .Client}}</button>
+        <button type="submit" class="btn btn-accent">{{t "billing.create" "client" .Client}}</button>
       </form>
       {{else}}<p class="small late">{{t "billing.no_client"}}</p>{{end}}
     </section>
@@ -61,7 +61,7 @@
           <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
           <input type="hidden" name="space_id" value="{{.SpaceID}}"><input type="hidden" name="txn" value="{{.Txn.ID}}">
           <input type="hidden" name="invoice_id" value="{{.Invoice.ID}}"><input type="hidden" name="number" value="{{.Invoice.Number}}">
-          {{if .Sure}}<button type="submit">{{t "billing.book"}}</button>{{else}}<button type="submit" class="ghost">{{t "billing.book_anyway"}}</button>{{end}}
+          {{if .Sure}}<button type="submit" class="btn btn-accent">{{t "billing.book"}}</button>{{else}}<button type="submit" class="btn btn-outline btn-sm">{{t "billing.book_anyway"}}</button>{{end}}
         </form></td></tr>
       {{end}}
     </table></div>
@@ -78,8 +78,8 @@
         <td>{{if and .Paperless .Attachments}}<form method="post" action="/billing/mail" class="inline-form">
           <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
           <input type="hidden" name="conn" value="{{.MailConn}}"><input type="hidden" name="uid" value="{{.UID}}">
-          <button type="submit" class="ghost">{{t "billing.to_paperless"}}</button>
-          {{if and $.Assist (not .Read)}}<button type="submit" class="ghost" formaction="/billing/mail/read" title="{{t "assist.read_privacy"}}">{{t "assist.read"}}</button>{{end}}
+          <button type="submit" class="btn btn-outline btn-sm">{{t "billing.to_paperless"}}</button>
+          {{if and $.Assist (not .Read)}}<button type="submit" class="btn btn-outline btn-sm" formaction="/billing/mail/read" title="{{t "assist.read_privacy"}}">{{t "assist.read"}}</button>{{end}}
         </form>{{else if not .Paperless}}<small class="muted">{{t "billing.no_paperless"}}</small>{{end}}</td></tr>
       {{end}}
     </table></div>
@@ -89,7 +89,7 @@
     <form method="get" action="/billing/export" class="card inline-form">
       {{template "space_select" .Spaces}}
       <select name="year" aria-label="{{t "billing.year"}}">{{range .Years}}<option>{{.}}</option>{{end}}</select>
-      <button type="submit" class="ghost">{{t "billing.download"}}</button>
+      <button type="submit" class="btn btn-outline btn-sm">{{t "billing.download"}}</button>
     </form>
     <p class="small muted">{{t "billing.export_hint"}}</p>
   </main>

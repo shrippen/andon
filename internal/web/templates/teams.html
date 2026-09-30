@@ -21,7 +21,7 @@
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <label for="new_team_name">{{t "teams.new"}}</label>
         <input id="new_team_name" name="name" required>
-        <button type="submit">{{t "action.create"}}</button>
+        <button type="submit" class="btn btn-accent">{{t "action.create"}}</button>
       </form>
     </div>
     {{end}}
@@ -35,7 +35,7 @@
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
         <label for="rename_{{.ID}}">{{t "field.name"}}</label>
         <input id="rename_{{.ID}}" name="name" value="{{.Name}}">
-        <button type="submit">{{t "action.save"}}</button>
+        <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
       </form>
 
       <div class="table-wrap"><table class="table">
@@ -48,7 +48,7 @@
           <td>
             <form method="post" action="/teams/{{$.ID}}/members/{{.UserID}}/remove">
               <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-              <button type="submit" class="link-btn">{{t "teams.remove"}}</button>
+              <button type="submit" class="btn btn-outline btn-sm">{{t "teams.remove"}}</button>
             </form>
           </td>
         </tr>
@@ -68,7 +68,7 @@
           <option value="editor">{{t "role.editor"}}</option>
           <option value="viewer">{{t "role.viewer"}}</option>
         </select>
-        <button type="submit">{{t "teams.set_member"}}</button>
+        <button type="submit" class="btn btn-accent">{{t "teams.set_member"}}</button>
       </form>
 
       {{if and .MyRole (eq (print (deref .MyRole)) "owner")}}
@@ -86,15 +86,15 @@
           <option value="">{{t "theme.none"}}</option>
           {{range $.Themes}}<option value="{{.ID}}"{{if eq .ID $theme}} selected{{end}}>{{.Name}}</option>{{end}}
         </select>
-        <button type="submit" class="ghost">{{t "action.save"}}</button>
-        <a class="link-btn" href="/spaces/{{.SpaceID}}/settings">{{t "nav.space_settings"}}</a>
+        <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
+        <a class="btn btn-outline btn-sm" href="/spaces/{{.SpaceID}}/settings">{{t "nav.space_settings"}}</a>
       </form>
       {{end}}
 
       {{if $.Who.IsAdmin}}
       <form method="post" action="/teams/{{.ID}}/delete" data-confirm="{{t "teams.confirm_delete"}}">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-        <button type="submit" class="ghost">{{t "teams.delete"}}</button>
+        <button type="submit" class="btn btn-outline btn-sm">{{t "teams.delete"}}</button>
       </form>
       {{end}}
     </div>

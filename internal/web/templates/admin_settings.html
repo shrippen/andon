@@ -23,7 +23,7 @@
       {{else}}<p class="small muted">{{t "admin.analysis_none"}}</p>{{end}}
       <form method="post" action="/admin/settings/analysis">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <button type="submit">{{t "admin.analysis_run"}}</button>
+        <button type="submit" class="btn btn-accent">{{t "admin.analysis_run"}}</button>
       </form>
     </div>
 
@@ -50,7 +50,7 @@
       {{with .BackupFiles}}<ul class="plain-list small">{{range .}}<li>{{.Name}} <span class="muted">{{num .MB 1}} MB</span></li>{{end}}</ul>{{end}}
       <form method="post" action="/admin/settings/backup">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <button type="submit">{{t "admin.backup_run"}}</button>
+        <button type="submit" class="btn btn-accent">{{t "admin.backup_run"}}</button>
       </form>
     </div>
 
@@ -69,7 +69,7 @@
         <label class="check"><input type="checkbox" name="force_admin_totp"{{if .ForceTOTP}} checked{{end}}> {{t "admin.force_totp"}}</label>
         <label class="check"><input type="checkbox" name="registration"{{if .Registration}} checked{{end}}> {{t "admin.registration"}}</label>
         <label class="check"><input type="checkbox" name="location_shared"{{if .Location}} checked{{end}}> {{t "admin.location_shared"}}</label>
-        <button type="submit">{{t "action.save"}}</button>
+        <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
       </form>
     </div>
 
@@ -86,7 +86,7 @@
         <textarea id="networks" name="networks" rows="3" placeholder="192.168.10.0/24">{{.Networks}}</textarea>
         <label for="hosts">{{t "admin.net_hosts"}}</label>
         <textarea id="hosts" name="hosts" rows="2" placeholder="kimai.example.lan">{{.Hosts}}</textarea>
-        <button type="submit">{{t "action.save"}}</button>
+        <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
       </form>
     </div>
 
@@ -124,8 +124,8 @@
           </tr>
           {{end}}
         </table></div>
-        <button type="submit">{{t "action.save"}}</button>
-        <button type="submit" class="ghost" formaction="/admin/settings/oidc/test">{{t "conn.test"}}</button>
+        <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
+        <button type="submit" class="btn btn-outline btn-sm" formaction="/admin/settings/oidc/test">{{t "conn.test"}}</button>
       </form>
     </div>
   </main>
@@ -153,8 +153,8 @@
       <p>{{t "nav.teams"}}: {{range $i, $m := .Plan.Teams}}{{if $i}}, {{end}}{{$m.Team}} ({{t (print "role." $m.Role)}}){{else}}–{{end}}</p>
       <form method="post" action="/admin/users/{{.UserID}}/reapply">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <button type="submit">{{t "admin.reapply_do"}}</button>
-        <a class="link-btn" href="/admin/users">{{t "action.cancel"}}</a>
+        <button type="submit" class="btn btn-accent">{{t "admin.reapply_do"}}</button>
+        <a class="btn btn-outline btn-sm" href="/admin/users">{{t "action.cancel"}}</a>
       </form>
     </div>
   </main>

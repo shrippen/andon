@@ -32,7 +32,7 @@
               <option value="user"{{if eq (print .Role) "user"}} selected{{end}}>{{t "irole.user"}}</option>
               <option value="admin"{{if eq (print .Role) "admin"}} selected{{end}}>{{t "irole.admin"}}</option>
             </select>
-            <button type="submit" class="ghost">{{t "action.save"}}</button>
+            <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
           </form>
         </td>
         <td>{{range $i, $m := .Teams}}{{if $i}}, {{end}}{{$m.Name}} ({{t (print "role." $m.Role)}}){{else}}–{{end}}</td>
@@ -44,21 +44,21 @@
           <form method="post" action="/admin/users/{{.ID}}/active">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
             <input type="hidden" name="state" value="{{if .IsActive}}off{{else}}on{{end}}">
-            <button type="submit" class="link-btn">{{if .IsActive}}{{t "admin.deactivate"}}{{else}}{{t "admin.activate"}}{{end}}</button>
+            <button type="submit" class="btn btn-outline btn-sm">{{if .IsActive}}{{t "admin.deactivate"}}{{else}}{{t "admin.activate"}}{{end}}</button>
           </form>
           <form method="post" action="/admin/users/{{.ID}}/breakglass">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
             <input type="hidden" name="state" value="{{if .IsBreakglass}}off{{else}}on{{end}}">
-            <button type="submit" class="link-btn">{{if .IsBreakglass}}{{t "admin.breakglass_off"}}{{else}}{{t "admin.breakglass_on"}}{{end}}</button>
+            <button type="submit" class="btn btn-outline btn-sm">{{if .IsBreakglass}}{{t "admin.breakglass_off"}}{{else}}{{t "admin.breakglass_on"}}{{end}}</button>
           </form>
           <form method="post" action="/admin/users/{{.ID}}/reset">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" class="link-btn">{{t "admin.reset"}}</button>
+            <button type="submit" class="btn btn-outline btn-sm">{{t "admin.reset"}}</button>
           </form>
-          {{if .OIDCSub}}<a class="link-btn" href="/admin/users/{{.ID}}/reapply">{{t "admin.reapply"}}</a>{{end}}
+          {{if .OIDCSub}}<a class="btn btn-outline btn-sm" href="/admin/users/{{.ID}}/reapply">{{t "admin.reapply"}}</a>{{end}}
           <form method="post" action="/admin/users/{{.ID}}/delete" data-confirm="{{t "admin.confirm_delete"}}">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" class="link-btn">{{t "action.delete"}}</button>
+            <button type="submit" class="btn btn-outline btn-sm">{{t "action.delete"}}</button>
           </form>
           {{end}}
         </td>
@@ -94,7 +94,7 @@
           <option value="owner">{{t "role.owner"}}</option>
         </select>
         {{end}}
-        <button type="submit">{{t "admin.send_invite"}}</button>
+        <button type="submit" class="btn btn-accent">{{t "admin.send_invite"}}</button>
       </form>
     </div>
 
@@ -108,7 +108,7 @@
         <td>
           <form method="post" action="/admin/invites/{{.ID}}/delete">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" class="link-btn">{{t "action.delete"}}</button>
+            <button type="submit" class="btn btn-outline btn-sm">{{t "action.delete"}}</button>
           </form>
         </td>
       </tr>

@@ -12,7 +12,7 @@
   <main>
     <h1>{{t "nav.connections"}}</h1>
     {{template "intro" dict "Page" "connections" "Chapter" "connections" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
-    <p><a class="link-btn" href="/connections/new">+ {{t "action.create"}}</a></p>
+    <p><a class="btn btn-outline btn-sm" href="/connections/new">+ {{t "action.create"}}</a></p>
     {{with .Summary}}<p class="conn-summary">
       {{if .Failing}}<span data-state="failing"><b>{{.Failing}}</b> {{t "conn.state_failing"}}</span>{{end}}
       {{if .Shaky}}<span data-state="shaky"><b>{{.Shaky}}</b> {{t "conn.state_shaky"}}</span>{{end}}
@@ -28,14 +28,14 @@
         <td class="small">{{.URL}}</td>
         <td>{{template "conn_health_cell" .}}</td>
         <td class="nowrap small">{{if not .SecretAt.IsZero}}{{ago .SecretAt}}{{else}}–{{end}}{{with .SecretExpires}}<br><small class="muted">{{t "conn.expires"}} {{day .}}</small>{{end}}</td>
-        <td class="row-actions nowrap"><a class="link-btn" href="/connections/{{.ID}}/edit">{{t "action.edit"}}</a>
-          <details class="row-more"><summary class="link-btn" aria-label="{{t "action.more"}}" title="{{t "action.more"}}">⋯</summary>
+        <td class="row-actions nowrap"><a class="btn btn-outline btn-sm" href="/connections/{{.ID}}/edit">{{t "action.edit"}}</a>
+          <details class="row-more"><summary class="btn btn-outline btn-sm" aria-label="{{t "action.more"}}" title="{{t "action.more"}}">⋯</summary>
             <div class="row-more-body">
               <form method="post" action="/connections/{{.ID}}/test" class="inline-form" hx-post="/connections/{{.ID}}/check" hx-target="#toast">
                 <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-                <button type="submit" class="ghost">{{t "conn.test"}}</button>
+                <button type="submit" class="btn btn-outline btn-sm">{{t "conn.test"}}</button>
               </form>
-              <a class="link-btn" href="/shares/connection/{{.ID}}">{{t "share.title"}}</a>
+              <a class="btn btn-outline btn-sm" href="/shares/connection/{{.ID}}">{{t "share.title"}}</a>
             </div>
           </details></td>
       </tr>
@@ -158,10 +158,10 @@
           <input id="client_id" name="client_id" form="oauth-client-form" autocomplete="off">
           <label for="client_secret">{{t "connect.client_secret"}}</label>
           <input id="client_secret" name="client_secret" type="password" form="oauth-client-form" autocomplete="off">
-          <button type="submit" class="ghost" form="oauth-client-form">{{t "connect.client_save"}}</button>
+          <button type="submit" class="btn btn-outline btn-sm" form="oauth-client-form">{{t "connect.client_save"}}</button>
         {{end}}
         {{if or (not .SignIn.NeedsClient) .SignIn.HasClient}}
-          <button type="submit" form="connect-form">{{t "connect.button" "service" (t (print "service." .Conn.Service))}}</button>
+          <button type="submit" class="btn btn-accent" form="connect-form">{{t "connect.button" "service" (t (print "service." .Conn.Service))}}</button>
         {{end}}
       </div>
       {{else if .IsNew}}{{if canSignIn .Service}}
@@ -195,7 +195,7 @@
       </details>
       {{end}}
 
-      <button type="submit">{{t "action.save"}}</button>
+      <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
     </form>
     {{if .SignIn}}
     {{/* Sign-in leaves for the service's own page: no soft page change. */}}
@@ -217,7 +217,7 @@
         <pre class="mono">{"event": "execution_failed", "name": "kimai"}</pre>
         <form method="post" action="/connections/{{.Conn.ID}}/hook/rotate" data-confirm="{{t "conn.hook_rotate_confirm"}}">
           <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-          <button type="submit" class="link-btn">{{t "conn.hook_rotate"}}</button>
+          <button type="submit" class="btn btn-outline btn-sm">{{t "conn.hook_rotate"}}</button>
         </form>
       </div>
     {{end}}
@@ -237,9 +237,9 @@
       <div class="row-actions">
         <form method="post" action="/connections/{{.Conn.ID}}/test" class="inline-form" hx-post="/connections/{{.Conn.ID}}/check" hx-target="#toast">
           <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-          <button type="submit" class="ghost">{{t "conn.test"}}</button>
+          <button type="submit" class="btn btn-outline btn-sm">{{t "conn.test"}}</button>
         </form>
-        <a class="link-btn" href="/shares/connection/{{.Conn.ID}}">{{t "share.title"}}</a>
+        <a class="btn btn-outline btn-sm" href="/shares/connection/{{.Conn.ID}}">{{t "share.title"}}</a>
       </div>
       {{template "danger_zone" dict "Action" (print "/connections/" .Conn.ID "/delete") "Text" (t "conn.delete_hint") "Button" (t "conn.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{end}}
@@ -301,7 +301,7 @@
     {{end}}
     {{if .Step.Link}}
       <p>{{t "connect.link_hint"}}</p>
-      <p><a class="btn" href="{{.Step.Link}}" target="_blank" rel="noopener">{{t "connect.open_login"}}</a></p>
+      <p><a class="btn btn-outline" href="{{.Step.Link}}" target="_blank" rel="noopener">{{t "connect.open_login"}}</a></p>
     {{end}}
     <p class="muted" hx-get="{{.PollURL}}" hx-trigger="every 2s" hx-swap="none">{{t "connect.waiting"}}</p>
     <p><a href="{{.Back}}">{{t "action.cancel"}}</a></p>
@@ -349,8 +349,8 @@
       {{end}}
       {{if .SecretDropped}}<li>{{t "mode_switch.secret_dropped"}}</li>{{end}}
       </ul>
-      <button type="submit">{{t "mode_switch.confirm"}}</button>
-      <a class="link-btn" href="/connections/{{.Conn.ID}}/edit">{{t "action.cancel"}}</a>
+      <button type="submit" class="btn btn-accent">{{t "mode_switch.confirm"}}</button>
+      <a class="btn btn-outline btn-sm" href="/connections/{{.Conn.ID}}/edit">{{t "action.cancel"}}</a>
     </form>
   </main>
 </body>
@@ -375,7 +375,7 @@
   <form method="post" action="{{.Action}}" data-confirm="{{.Confirm}}">
     <input type="hidden" name="{{.CSRFField}}" value="{{.CSRF}}">
     {{with .Extra}}{{range $k, $v := .}}<input type="hidden" name="{{$k}}" value="{{$v}}">{{end}}{{end}}
-    <button type="submit" class="danger">{{.Button}} …</button>
+    <button type="submit" class="btn btn-danger">{{.Button}} …</button>
   </form>
 </section>
 {{end}}

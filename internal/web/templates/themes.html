@@ -29,16 +29,16 @@
           {{if eq .ID $.InstanceTheme}} <span class="pill">{{t "themes.instance_default"}}</span>{{end}}
           {{if eq .ID $.MyTheme}} <span class="pill">{{t "themes.mine"}}</span>{{end}}</td>
         <td class="row-actions">
-          <a class="link-btn" href="/themes/{{.ID}}">{{if .CanEdit}}{{t "action.edit"}}{{else}}{{t "themes.view"}}{{end}}</a>
-          <a class="link-btn" href="/themes/{{.ID}}/export">{{t "action.export"}}</a>
-          {{if not .Builtin}}<a class="link-btn" href="/shares/theme/{{.ID}}">{{t "share.title"}}</a>{{end}}
-          <details class="inline-details"><summary class="link-btn">{{t "themes.duplicate"}}</summary>
+          <a class="btn btn-outline btn-sm" href="/themes/{{.ID}}">{{if .CanEdit}}{{t "action.edit"}}{{else}}{{t "themes.view"}}{{end}}</a>
+          <a class="btn btn-outline btn-sm" href="/themes/{{.ID}}/export">{{t "action.export"}}</a>
+          {{if not .Builtin}}<a class="btn btn-outline btn-sm" href="/shares/theme/{{.ID}}">{{t "share.title"}}</a>{{end}}
+          <details class="inline-details"><summary class="btn btn-outline btn-sm">{{t "themes.duplicate"}}</summary>
             <form method="post" action="/themes/duplicate" class="inline-form">
               <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
               <input type="hidden" name="theme_id" value="{{.ID}}">
               <input name="name" value="{{.Name}} 2" required aria-label="{{t "field.name"}}">
               {{template "space_select" $.Spaces}}
-              <button type="submit" class="ghost">{{t "themes.duplicate"}}</button>
+              <button type="submit" class="btn btn-outline btn-sm">{{t "themes.duplicate"}}</button>
             </form>
           </details>
         </td>
@@ -51,7 +51,7 @@
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <select name="preset" aria-label="{{t "themes.preset"}}">{{range .Presets}}<option value="{{.}}">{{.}}</option>{{end}}</select>
       {{template "space_select" .Spaces}}
-      <button type="submit" class="ghost">{{t "themes.preset_create"}}</button>
+      <button type="submit" class="btn btn-outline btn-sm">{{t "themes.preset_create"}}</button>
     </form>
     <p class="small muted">{{t "themes.preset_hint"}}</p>
 
@@ -60,9 +60,9 @@
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       {{template "space_select" .Spaces}}
       <input type="file" name="file" accept=".zip" required aria-label="{{t "import.file"}}">
-      <button type="submit" class="ghost">{{t "import.run"}}</button>
+      <button type="submit" class="btn btn-outline btn-sm">{{t "import.run"}}</button>
     </form>
-    <p><a class="link-btn" href="/styleguide">{{t "styleguide.title"}}</a></p>
+    <p><a class="btn btn-outline btn-sm" href="/styleguide">{{t "styleguide.title"}}</a></p>
   </main>
 </body>
 </html>
@@ -116,7 +116,7 @@
         <textarea class="code-area short" name="custom_css" rows="8" spellcheck="false" data-code="css" aria-label="{{t "themes.custom_css"}}">{{.Theme.CustomCSS}}</textarea>
         <p class="small muted">{{t "themes.custom_css_hint"}}</p>
         {{end}}
-        {{if .Editable}}<button type="submit">{{t "action.save"}}</button>{{end}}
+        {{if .Editable}}<button type="submit" class="btn btn-accent">{{t "action.save"}}</button>{{end}}
       </form>
 
       <aside class="theme-preview" id="theme-preview" data-mode="dark">
@@ -136,13 +136,13 @@
         <li><code>{{.}}</code>
           <form method="post" action="/themes/{{$.Theme.ID}}/fonts/{{.}}/delete" class="inline-form">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" class="link-btn">{{t "action.delete"}}</button>
+            <button type="submit" class="btn btn-outline btn-sm">{{t "action.delete"}}</button>
           </form></li>{{end}}
       </ul>{{end}}
       <form method="post" action="/themes/{{.Theme.ID}}/fonts" enctype="multipart/form-data" class="inline-form">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <input type="file" name="file" accept=".woff2,.woff,.ttf,.otf" required aria-label="{{t "themes.fonts"}}">
-        <button type="submit" class="ghost">{{t "themes.upload"}}</button>
+        <button type="submit" class="btn btn-outline btn-sm">{{t "themes.upload"}}</button>
       </form>
     </div>
     {{end}}
@@ -171,7 +171,7 @@
     <li class="hint" data-tier="yellow"><span class="hint-level">{{t "severity.warn"}}</span><div class="hint-main"><b>{{t "sample.hint2"}}</b></div></li>
   </ul>
   <div class="progress"><div class="progress-head"><span>{{t "sample.budget"}}</span><span>72 %</span></div><div class="progress-bar"><i data-style="--p:72%" data-tier="yellow"></i></div></div>
-  <p><button type="button">{{t "action.save"}}</button> <button type="button" class="ghost">{{t "action.cancel"}}</button> <a href="#sample">Link</a></p>
+  <p><button type="button" class="btn btn-accent">{{t "action.save"}}</button> <button type="button" class="btn btn-outline btn-sm">{{t "action.cancel"}}</button> <a href="#sample">Link</a></p>
   <label for="sample_input">{{t "field.name"}}</label><input id="sample_input" value="Input">
 </div>
 {{end}}

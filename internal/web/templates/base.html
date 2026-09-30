@@ -38,7 +38,7 @@
   <div><b>{{t "intro.title"}}</b> {{t (print "intro." .Page)}} <a href="/welcome#c-{{.Chapter}}">{{t "intro.more"}}</a></div>
   <form method="post" action="/welcome/intro/{{.Page}}" hx-post="/welcome/intro/{{.Page}}" hx-target="closest .intro" hx-swap="outerHTML">
     <input type="hidden" name="{{.CSRFField}}" value="{{.CSRF}}">
-    <button type="submit" class="ghost" aria-label="{{t "intro.close"}}" title="{{t "intro.close"}}">×</button>
+    <button type="submit" class="btn btn-quiet btn-icon btn-sm" aria-label="{{t "intro.close"}}" title="{{t "intro.close"}}">×</button>
   </form>
 </aside>
 {{end}}{{end}}{{end}}
@@ -140,7 +140,7 @@
     <dt>{{t "keys.tile_key"}}</dt><dd>{{t "keys.tile"}}</dd>
     <dt>{{t "keys.shift_click"}}</dt><dd>{{t "keys.context"}}</dd>
   </dl>
-  <form method="dialog"><button type="submit" class="ghost">{{t "action.close"}}</button></form>
+  <form method="dialog"><button type="submit" class="btn btn-outline btn-sm">{{t "action.close"}}</button></form>
 </dialog>
 {{end}}
 {{end}}

@@ -33,7 +33,7 @@
           <td>
             <form method="post" action="/shares/{{$.Kind}}/{{$.ResourceID}}/{{.ID}}/revoke">
               <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-              <button type="submit" class="link-btn">{{t "share.revoke"}}</button>
+              <button type="submit" class="btn btn-outline btn-sm">{{t "share.revoke"}}</button>
             </form>
           </td>
         </tr>
@@ -60,7 +60,7 @@
           <option value="edit">{{t "right.edit"}}</option>
           <option value="manage">{{t "right.manage"}}</option>
         </select>
-        <button type="submit">{{t "share.grant"}}</button>
+        <button type="submit" class="btn btn-accent">{{t "share.grant"}}</button>
       </form>
     </div>
   </main>

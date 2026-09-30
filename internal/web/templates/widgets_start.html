@@ -150,7 +150,7 @@
     <form hx-post="/widget-fragments/{{$.PlacementID}}/toggle" hx-target="closest .card-body" hx-swap="innerHTML">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
       <input type="hidden" name="entity" value="{{.ID}}">
-      <button type="submit" class="hass-switch" role="switch" aria-checked="{{.On}}" aria-label="{{.Name}}" title="{{if .On}}{{t "hass.on"}}{{else}}{{t "hass.off"}}{{end}}"></button>
+      <button type="submit" class="switch hass-switch" role="switch" aria-checked="{{.On}}" aria-label="{{.Name}}" title="{{if .On}}{{t "hass.on"}}{{else}}{{t "hass.off"}}{{end}}"><span class="switch-track"></span></button>
     </form>
     {{else if .Level}}<span class="pill" data-state="{{.Level}}">{{.Value}}{{with .Unit}} {{.}}{{end}}</span>
     {{else}}<b class="hass-value{{if .Low}} is-low{{end}}">{{if .Low}}<span aria-hidden="true">▮ </span>{{end}}{{.Value}}{{with .Unit}} <small>{{.}}</small>{{end}}</b>{{end}}

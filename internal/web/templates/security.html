@@ -25,7 +25,7 @@
         {{end}}
         <label for="new">{{t "security.new"}}</label>
         <input id="new" name="new" type="password" required minlength="12">
-        <button type="submit">{{t "action.save"}}</button>
+        <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
       </form>
     </div>
 
@@ -40,7 +40,7 @@
           <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
           <label for="disable_code">{{t "security.code_or_recovery"}}</label>
           <input id="disable_code" name="code" required autocomplete="one-time-code">
-          <button type="submit" class="ghost">{{t "security.disable"}}</button>
+          <button type="submit" class="btn btn-outline btn-sm">{{t "security.disable"}}</button>
         </form>
       {{else if .TOTPSecret}}
         <p class="muted">{{t "security.scan"}}</p>
@@ -50,13 +50,13 @@
           <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
           <label for="confirm_code">{{t "totp.code"}}</label>
           <input id="confirm_code" name="code" required autocomplete="one-time-code">
-          <button type="submit">{{t "security.confirm"}}</button>
+          <button type="submit" class="btn btn-accent">{{t "security.confirm"}}</button>
         </form>
       {{else}}
         {{if .TOTPRequired}}<p class="error">{{t "security.totp_required"}}</p>{{end}}
         <form method="post" action="/me/security/totp/begin">
           <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-          <button type="submit">{{t "security.enable"}}</button>
+          <button type="submit" class="btn btn-accent">{{t "security.enable"}}</button>
         </form>
       {{end}}
     </div>
@@ -73,7 +73,7 @@
           <td>
             <form method="post" action="/me/passkeys/{{.ID}}/delete" data-confirm="{{t "edit.confirm_delete"}}">
               <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-              <button type="submit" class="link-btn">{{t "action.delete"}}</button>
+              <button type="submit" class="btn btn-outline btn-sm">{{t "action.delete"}}</button>
             </form>
           </td>
         </tr>
@@ -84,7 +84,7 @@
       <p class="error" hidden data-passkey-error>{{t "passkey.failed"}}</p>
       <label for="passkey_name">{{t "field.name"}}</label>
       <input id="passkey_name" placeholder="{{t "security.passkey_placeholder"}}">
-      <button type="button" hidden data-passkey="register" data-name-field="passkey_name">{{t "security.passkey_add"}}</button>
+      <button type="button" class="btn btn-accent" hidden data-passkey="register" data-name-field="passkey_name">{{t "security.passkey_add"}}</button>
     </div>
 
     {{if .OIDCLabel}}
@@ -95,7 +95,7 @@
       {{else}}
       <form method="post" action="/me/oidc/link">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <button type="submit">{{t "security.oidc_link" "provider" .OIDCLabel}}</button>
+        <button type="submit" class="btn btn-accent">{{t "security.oidc_link" "provider" .OIDCLabel}}</button>
       </form>
       {{end}}
     </div>
@@ -112,7 +112,7 @@
           <td>
             <form method="post" action="/me/security/sessions/{{.ID}}/end">
               <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-              <button type="submit" class="link-btn">{{t "security.end"}}</button>
+              <button type="submit" class="btn btn-outline btn-sm">{{t "security.end"}}</button>
             </form>
           </td>
         </tr>
@@ -120,7 +120,7 @@
       </table></div>
       <form method="post" action="/me/security/sessions/others/end">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <button type="submit" class="ghost">{{t "security.end_others"}}</button>
+        <button type="submit" class="btn btn-outline btn-sm">{{t "security.end_others"}}</button>
       </form>
     </div>
 
@@ -137,7 +137,7 @@
           <td>
             <form method="post" action="/me/security/tokens/{{.ID}}/revoke">
               <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-              <button type="submit" class="link-btn">{{t "action.delete"}}</button>
+              <button type="submit" class="btn btn-outline btn-sm">{{t "action.delete"}}</button>
             </form>
           </td>
         </tr>
@@ -155,7 +155,7 @@
         </select>
         <label for="token_days">{{t "security.days"}}</label>
         <input id="token_days" name="days" type="number" min="1">
-        <button type="submit">{{t "action.create"}}</button>
+        <button type="submit" class="btn btn-accent">{{t "action.create"}}</button>
       </form>
     </div>
   </main>

@@ -12,7 +12,7 @@
   <main>
     <h1>{{t "boards.title"}}</h1>
     {{template "intro" dict "Page" "boards" "Chapter" "boards" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
-    <p><a class="link-btn" href="/boards/new">+ {{t "board.new"}}</a></p>
+    <p><a class="btn btn-outline btn-sm" href="/boards/new">+ {{t "board.new"}}</a></p>
     <div class="table-wrap"><table class="table boards-table">
       <thead><tr><th>{{t "field.name"}}</th><th>{{t "field.space"}}</th><th>{{t "boards.order"}}</th><th>{{t "boards.in_nav"}}</th><th></th></tr></thead>
       <tbody>
@@ -23,20 +23,20 @@
         <td class="boards-order">
           <form method="post" action="/boards/{{.ID}}/nav">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" name="move" value="up" class="ghost" aria-label="{{t "boards.up"}}" title="{{t "boards.up"}}"{{if eq $i 0}} disabled{{end}}>↑</button>
-            <button type="submit" name="move" value="down" class="ghost" aria-label="{{t "boards.down"}}" title="{{t "boards.down"}}"{{if eq $i $.Last}} disabled{{end}}>↓</button>
+            <button type="submit" name="move" value="up" class="btn btn-outline btn-sm" aria-label="{{t "boards.up"}}" title="{{t "boards.up"}}"{{if eq $i 0}} disabled{{end}}>↑</button>
+            <button type="submit" name="move" value="down" class="btn btn-outline btn-sm" aria-label="{{t "boards.down"}}" title="{{t "boards.down"}}"{{if eq $i $.Last}} disabled{{end}}>↓</button>
           </form>
         </td>
         <td>
           <form method="post" action="/boards/{{.ID}}/nav">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" name="move" value="toggle" class="link-btn">{{if .Hidden}}{{t "boards.show"}}{{else}}{{t "boards.hide"}}{{end}}</button>
+            <button type="submit" name="move" value="toggle" class="btn btn-outline btn-sm">{{if .Hidden}}{{t "boards.show"}}{{else}}{{t "boards.hide"}}{{end}}</button>
           </form>
         </td>
         <td class="row-actions">
-          {{if .CanEdit}}<a class="link-btn" href="/boards/{{.ID}}?edit">{{t "boards.edit"}}</a>
-          <a class="link-btn" href="/boards/{{.ID}}/settings">{{t "boards.settings"}}</a>{{end}}
-          <a class="link-btn" href="/boards/{{.ID}}?layout">{{t "boards.my_layout"}}</a>
+          {{if .CanEdit}}<a class="btn btn-outline btn-sm" href="/boards/{{.ID}}?edit">{{t "boards.edit"}}</a>
+          <a class="btn btn-outline btn-sm" href="/boards/{{.ID}}/settings">{{t "boards.settings"}}</a>{{end}}
+          <a class="btn btn-outline btn-sm" href="/boards/{{.ID}}?layout">{{t "boards.my_layout"}}</a>
         </td>
       </tr>
       {{end}}
@@ -67,7 +67,7 @@
       <input id="board_name" name="name" required autofocus>
       <label for="board_space">{{t "field.space"}}</label>
       <select id="board_space" name="space_id">{{range .Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
-      <button type="submit">{{t "action.create"}}</button>
+      <button type="submit" class="btn btn-accent">{{t "action.create"}}</button>
     </form>
 
     <h2>{{t "board.from_template"}}</h2>
@@ -75,7 +75,7 @@
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <select name="template" aria-label="{{t "board.from_template"}}">{{range .Templates}}<option value="{{.}}">{{t (print "template." .)}}</option>{{end}}</select>
       <select name="space_id" aria-label="{{t "field.space"}}">{{range .Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
-      <button type="submit" class="ghost">{{t "action.create"}}</button>
+      <button type="submit" class="btn btn-outline btn-sm">{{t "action.create"}}</button>
     </form>
     <p class="small muted">{{t "board.template_hint"}}</p>
   </main>
@@ -108,7 +108,7 @@
         <td>{{.Name}} <span class="muted">({{t (print "service." .Service)}})</span><br><small class="muted">{{.URL}}</small></td>
         <td class="nowrap">{{if .HasMine}}<span class="pill" data-state="ok">{{t "cred.set"}}</span>{{if not .SecretAt.IsZero}}<br><small class="muted">{{ago .SecretAt}}</small>{{end}}{{else}}<span class="pill" data-state="warn">{{t "cred.missing"}}</span>{{end}}</td>
         <td><div class="cred-actions">
-          {{if .HasMine}}<details class="cred-replace"><summary class="cred-btn">{{t "cred.replace"}}</summary>{{end}}
+          {{if .HasMine}}<details class="cred-replace"><summary class="btn btn-outline btn-sm">{{t "cred.replace"}}</summary>{{end}}
           <form method="post" action="/me/credentials/{{.ID}}" class="inline-form cred-form">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
             {{$shape := credShape .Service}}
@@ -125,7 +125,7 @@
               {{$label := t "field.token"}}{{if eq $shape "ical"}}{{$label = t "conn.ical_private"}}{{else if eq $shape "password"}}{{$label = t "field.password"}}{{end}}
               <input name="secret" type="password" autocomplete="off" required placeholder="{{$label}}" aria-label="{{$label}}">
             {{end}}
-            <button type="submit" class="ghost">{{t "action.save"}}</button>
+            <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
           </form>
           <p class="small muted">{{t (print "conn.options_hint_" .Service)}}</p>
           {{if .HasMine}}</details>{{end}}
@@ -135,14 +135,14 @@
             <form method="post" action="/connections/{{$item.ID}}/connect" class="inline-form" hx-boost="false">
               <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
               <input type="hidden" name="back" value="/me/credentials">
-              <button type="submit" class="ghost cred-btn">{{t "connect.button" "service" (t (print "service." $item.Service))}}</button>
+              <button type="submit" class="btn btn-outline btn-sm">{{t "connect.button" "service" (t (print "service." $item.Service))}}</button>
             </form>
             {{else}}<p class="small muted">{{t "connect.client_missing"}}</p>{{end}}
           {{end}}
           {{if .HasMine}}
           <form method="post" action="/me/credentials/{{.ID}}/delete" class="inline-form" data-confirm="{{t "edit.confirm_delete"}}">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" class="ghost cred-btn">{{t "action.delete"}}</button>
+            <button type="submit" class="btn btn-outline btn-sm">{{t "action.delete"}}</button>
           </form>
           {{end}}
         </div></td>

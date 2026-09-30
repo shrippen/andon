@@ -52,8 +52,8 @@
       <form method="post" action="/hints/bulk" class="hint-bulk">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
         {{range .Shown}}<input type="hidden" name="id" value="{{.ID}}">{{end}}{{range .Rest}}<input type="hidden" name="id" value="{{.ID}}">{{end}}
-        <button type="submit" name="action" value="ack" class="ghost">{{t "hints.bulk_ack" "n" .Count}}</button>
-        <button type="submit" name="action" value="snooze" class="ghost">{{t "hints.bulk_snooze"}}</button>
+        <button type="submit" name="action" value="ack" class="btn btn-outline btn-sm">{{t "hints.bulk_ack" "n" .Count}}</button>
+        <button type="submit" name="action" value="snooze" class="btn btn-outline btn-sm">{{t "hints.bulk_snooze"}}</button>
       </form>{{end}}
       <ul class="hints">
         {{range .Shown}}{{template "hint_item" dict "H" . "P" $}}{{end}}
@@ -81,22 +81,22 @@
       <option value="0">{{t "hints.nobody"}}</option>
       {{range .People}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
     </select></label>
-    <button type="submit" class="ghost">{{t "action.save"}}</button>
+    <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
   </form>
   <form method="post" action="/hints/{{.ID}}/work" class="inline-form">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
     <label>{{t "hints.work"}} <select name="state">{{range .States}}<option value="{{.}}">{{t (print "hints.work_" .)}}</option>{{end}}</select></label>
-    <button type="submit" class="ghost">{{t "action.save"}}</button>
+    <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
   </form>
   <form method="post" action="/hints/{{.ID}}/snooze" class="inline-form">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
     <span class="small">{{t "hints.snooze_until"}}</span>
-    {{range .SnoozeChoices}}<button type="submit" name="for" value="{{.}}" class="ghost">{{t (print "hints.snooze_" .)}}</button>{{end}}
+    {{range .SnoozeChoices}}<button type="submit" name="for" value="{{.}}" class="btn btn-outline btn-sm">{{t (print "hints.snooze_" .)}}</button>{{end}}
   </form>
   <form method="post" action="/hints/{{.ID}}/note" class="inline-form">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
     <input name="note" maxlength="500" required placeholder="{{t "hints.note"}}" aria-label="{{t "hints.note"}}">
-    <button type="submit" class="ghost">{{t "hints.add_note"}}</button>
+    <button type="submit" class="btn btn-outline btn-sm">{{t "hints.add_note"}}</button>
   </form>
   {{with .Runbook}}{{if or .Text .CanEdit}}<div class="hint-runbook">
     {{with .Text}}<b class="small">{{t "hints.runbook"}}</b><p class="hint-runbook-text">{{.}}</p>{{end}}
@@ -105,14 +105,14 @@
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
         <textarea name="text" rows="5" maxlength="4000" aria-label="{{t "hints.runbook"}}">{{.Text}}</textarea>
         <p class="small muted">{{t "hints.runbook_hint"}}</p>
-        <button type="submit" class="ghost">{{t "action.save"}}</button>
+        <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
       </form>
     </details>{{end}}
   </div>{{end}}{{end}}
   {{if .Assist}}<div class="hint-advice">
     <form method="post" action="/hints/{{.ID}}/advice" hx-post="/hints/{{.ID}}/advice" hx-target="closest .hint-advice" hx-swap="innerHTML" class="inline-form">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-      <button type="submit" class="ghost">{{t "assist.ask"}}</button>
+      <button type="submit" class="btn btn-outline btn-sm">{{t "assist.ask"}}</button>
       <small class="muted">{{t "assist.privacy"}}</small>
     </form>
   </div>{{end}}
@@ -146,13 +146,13 @@
           <p class="hint-why">{{.Why}}</p>
           <p class="hint-meta-line">{{.SpaceName}} · {{t "hints.since" "when" (ago .FirstSeen)}}{{if .Sources}} · {{range $i, $s := .Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}{{end}}</p>
           <div class="hint-actions">
-            {{if .ActionURL}}<a class="hint-go" href="{{.ActionURL}}" target="_blank" rel="noopener noreferrer">{{if .ActionLabel}}{{.ActionLabel}}{{else}}{{t "action.open"}}{{end}}</a>{{end}}
+            {{if .ActionURL}}<a class="btn btn-accent btn-sm hint-go" href="{{.ActionURL}}" target="_blank" rel="noopener noreferrer">{{if .ActionLabel}}{{.ActionLabel}}{{else}}{{t "action.open"}}{{end}}</a>{{end}}
             {{if not $p.Embed}}
             <form method="post" action="/hints/{{.ID}}/ack" class="hint-ack" id="ack-{{.ID}}">
               <input type="hidden" name="{{$p.CSRFField}}" value="{{$p.Ctx.CSRF}}">
               <input type="hidden" name="days" value="7">
-              <button type="submit" class="ghost">{{t "hints.ack"}}</button>
-              <button type="submit" class="ghost" formaction="/hints/{{.ID}}/snooze">{{t "hints.snooze"}}</button>
+              <button type="submit" class="btn btn-outline btn-sm">{{t "hints.ack"}}</button>
+              <button type="submit" class="btn btn-outline btn-sm" formaction="/hints/{{.ID}}/snooze">{{t "hints.snooze"}}</button>
             </form>
             {{/* The note goes with "done" or "pause", but only when wanted. */}}
             <details class="hint-note">

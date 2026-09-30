@@ -23,7 +23,7 @@ func TestHintsPageCompactAndBulk(t *testing.T) {
 	runAnalysis(t, srv)
 
 	page := string(mustGet(t, srv, client, "/hints"))
-	for _, want := range []string{`class="hint-go"`, `class="hint-why"`, `class="hint-note"`, `class="hint-bulk"`} {
+	for _, want := range []string{`class="btn btn-accent btn-sm hint-go"`, `class="hint-why"`, `class="hint-note"`, `class="hint-bulk"`} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("hints page lacks %q:\n%s", want, page)
 		}
