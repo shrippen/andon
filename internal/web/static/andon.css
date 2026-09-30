@@ -416,13 +416,11 @@ label.pick-check { margin: 0 .3rem; }
 .clock-zone { display: flex; flex-wrap: wrap; align-content: flex-start; align-items: baseline; gap: .2rem .6rem; font-family: var(--font-heading); }
 .clock-zone > * { white-space: nowrap; }
 .clock-zone strong { font-size: 1.3rem; font-variant-numeric: tabular-nums; color: var(--fg0); }
-.clock-tile.is-analog .clock-zone { display: grid; grid-template-columns: 4.2rem 1fr; grid-template-rows: auto auto auto; column-gap: .8rem; align-items: center; }
-.clock-face { grid-row: span 3; width: 4.2rem; height: 4.2rem; }
-.clock-face circle { fill: var(--bg-hard); stroke: var(--bg2); stroke-width: 2; }
-.clock-face line { stroke: var(--fg0); stroke-linecap: round; transform: rotate(var(--a)); transform-origin: 50px 50px; }
-.clock-face .hand-h { stroke-width: 5; }
-.clock-face .hand-m { stroke-width: 3; }
-.clock-face .hand-s { stroke: var(--red); stroke-width: 1.5; }
+.clock-tile.is-analog .clock-zone { display: grid; grid-template-columns: 4.2rem minmax(0, 1fr); grid-template-rows: auto auto auto; column-gap: .8rem; align-items: center; }
+/* Analog face: Kante .clock; andon.js turns the hands through --a. */
+.clock-tile .clock { --size: 4.2rem; grid-row: span 3; }
+.clock-tile .clock line { transform: rotate(var(--a)); transform-origin: 50px 50px; }
+.clock-tile.is-analog .clock-date { white-space: normal; }
 
 .weather-now { display: flex; align-items: baseline; gap: .6rem; }
 .weather-now b { font-family: var(--font-heading); font-size: 1.5rem; color: var(--fg0); }

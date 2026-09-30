@@ -604,7 +604,7 @@
   function tick() {
     tickTimers();
     reloadFrames();
-    [].forEach.call(d.querySelectorAll(".clock"), function (el) {
+    [].forEach.call(d.querySelectorAll("[data-clock]"), function (el) {
       var zone = el.getAttribute("data-tz");
       var locale = el.getAttribute("data-locale") || undefined;
       var seconds = el.getAttribute("data-seconds") === "yes";
@@ -617,14 +617,14 @@
         time.hour = "numeric";
         time.hour12 = true;
       }
-      var face = el.querySelector(".clock-face");
+      var face = el.querySelector("svg.clock");
       if (face) {
         try {
           var hms = now.toLocaleTimeString("en-GB", { hour12: false, timeZone: zone }).split(":").map(Number);
           var m = hms[1] + hms[2] / 60;
-          face.querySelector(".hand-h").style.setProperty("--a", ((hms[0] % 12) * 30 + m / 2) + "deg");
-          face.querySelector(".hand-m").style.setProperty("--a", (m * 6) + "deg");
-          var sec = face.querySelector(".hand-s");
+          face.querySelector(".h").style.setProperty("--a", ((hms[0] % 12) * 30 + m / 2) + "deg");
+          face.querySelector(".m").style.setProperty("--a", (m * 6) + "deg");
+          var sec = face.querySelector(".s");
           if (sec) {
             sec.style.setProperty("--a", (hms[2] * 6) + "deg");
           }

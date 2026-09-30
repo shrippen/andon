@@ -34,12 +34,14 @@
 {{$c := .Frag.Config}}
 <div class="clock-tile{{if $c.Analog}} is-analog{{end}}">
   {{range $c.Timezones}}
-    <div class="clock clock-zone" data-tz="{{.}}" data-locale="{{$.Ctx.Locale}}" data-seconds="{{if $c.Seconds}}yes{{else}}no{{end}}" data-h12="{{if $c.H12}}yes{{else}}no{{end}}">
-      {{if $c.Analog}}{{with $h := clockHands .}}<svg class="clock-face" viewBox="0 0 100 100" role="img" aria-hidden="true">
-        <circle cx="50" cy="50" r="46"/>
-        <line class="hand-h" x1="50" y1="50" x2="50" y2="26" data-style="--a:{{$h.H}}deg"/>
-        <line class="hand-m" x1="50" y1="50" x2="50" y2="12" data-style="--a:{{$h.M}}deg"/>
-        {{if $c.Seconds}}<line class="hand-s" x1="50" y1="56" x2="50" y2="10" data-style="--a:{{$h.S}}deg"/>{{end}}
+    <div class="clock-zone" data-clock data-tz="{{.}}" data-locale="{{$.Ctx.Locale}}" data-seconds="{{if $c.Seconds}}yes{{else}}no{{end}}" data-h12="{{if $c.H12}}yes{{else}}no{{end}}">
+      {{if $c.Analog}}{{with $h := clockHands .}}<svg class="clock" viewBox="0 0 100 100" aria-hidden="true">
+        <rect class="face" x="4" y="4" width="92" height="92"/>
+        <path class="tick" d="M50 8L50 14M71 13.6L69 17.1M86.4 29L82.9 31M92 50L86 50M86.4 71L82.9 69M71 86.4L69 82.9M50 92L50 86M29 86.4L31 82.9M13.6 71L17.1 69M8 50L14 50M13.6 29L17.1 31M29 13.6L31 17.1"/>
+        <line class="h" x1="50" y1="50" x2="50" y2="26" stroke-width="3" data-style="--a:{{$h.H}}deg"/>
+        <line class="m" x1="50" y1="50" x2="50" y2="14" stroke-width="2" data-style="--a:{{$h.M}}deg"/>
+        {{if $c.Seconds}}<line class="s" x1="50" y1="56" x2="50" y2="10" data-style="--a:{{$h.S}}deg"/>{{end}}
+        <rect class="pin" x="47.5" y="47.5" width="5" height="5"/>
       </svg>{{end}}{{end}}
       <span class="muted small">{{.}}</span> <strong class="clock-time">{{clockShow . $c.Seconds $c.H12}}</strong>
       {{if $c.Date}}<span class="muted small clock-date">{{clockDate .}}</span>{{end}}
@@ -176,7 +178,7 @@
 {{$v := .Frag.View}}
 <div class="greet">
   <div class="greet-hello">
-    <p class="clock greet-when" data-tz="{{$v.Timezone}}" data-locale="{{.Ctx.Locale}}"><span class="clock-date">{{clockDate $v.Timezone}}</span> · <span class="clock-time">{{clockNow $v.Timezone}}</span></p>
+    <p class="greet-when" data-clock data-tz="{{$v.Timezone}}" data-locale="{{.Ctx.Locale}}"><span class="clock-date">{{clockDate $v.Timezone}}</span> · <span class="clock-time">{{clockNow $v.Timezone}}</span></p>
     <h2 class="greet-title">{{t (print "greeting." $v.Part)}},<br>{{$v.Name}}.</h2>
     {{if $v.ShowHints}}<p class="greet-sub">{{if $v.OpenHints}}<a href="/hints">{{t "greeting.open" "n" $v.OpenHints}}</a>{{else}}{{t "greeting.calm"}}{{end}}</p>{{end}}
   </div>
