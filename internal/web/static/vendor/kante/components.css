@@ -561,6 +561,7 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
   .chip-pick,.chip-pick>span::before{transition:background-color var(--dur-fast),border-color var(--dur-fast),color var(--dur-fast)}
   .fold>summary::before{transition:transform var(--dur) var(--ease-snap),background-color var(--dur-fast)}
   .modebar>:is(button,a){transition:color var(--dur-fast),background-color var(--dur-fast)}
+  .tile-tools{transition:opacity var(--dur-fast),visibility var(--dur-fast)}
   .login-code{transition:background-color var(--dur-fast)}
   .editbar.is-fixed,.editbar.is-sticky{animation:k-fade var(--dur) var(--ease-out) both}
   .pill[data-state="analyzing"]::before,.led[data-rhythm="atem"]{animation:k-breathe 3s ease-in-out infinite}
@@ -670,7 +671,7 @@ details.dropdown>summary::-webkit-details-marker{display:none}
 details.dropdown>.menu{position:absolute;top:calc(100% + 4px);left:0;z-index:20}
 details.dropdown.is-right>.menu{left:auto;right:0}
 /* Toast stack: fixed corner, newest at the bottom, a live region */
-.toast-stack{position:fixed;right:1rem;bottom:var(--toast-offset,1rem);z-index:50;display:flex;flex-direction:column;align-items:flex-end;gap:.6rem;pointer-events:none}
+.toast-stack{--safe-bottom:env(safe-area-inset-bottom,0px);position:fixed;right:1rem;bottom:calc(var(--toast-offset,1rem) + var(--safe-bottom));z-index:50;display:flex;flex-direction:column;align-items:flex-end;gap:.6rem;pointer-events:none}
 .toast-stack>*{pointer-events:auto}
 /* File input */
 .input[type="file"]{padding:0;display:flex;align-items:center;color:var(--fg2)}
@@ -707,7 +708,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .table tfoot td.num{color:var(--yellow)}
 /* Charts: SVG with the data palette --d1 to --d6; squares for marks, 1 px grid */
 .chart{display:block;width:100%;height:auto}
-.chart text{font-family:var(--font-mono);font-size:8px;letter-spacing:.08em;fill:var(--fg3)}
+.chart text{font-family:var(--font-mono);font-size:var(--chart-text,8px);letter-spacing:.08em;fill:var(--fg3)}
 .chart .grid{stroke:var(--bg1);stroke-width:1}
 .chart .goal{stroke:var(--yellow);stroke-width:1.5;stroke-dasharray:4 3}
 .chart .line{fill:none;stroke-width:2;stroke-linejoin:miter}
@@ -795,7 +796,10 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .bulk-bar.is-sticky{position:sticky;bottom:1rem;z-index:5}
 .bulk-bar.is-fixed{position:fixed;left:0;right:0;bottom:0;z-index:20}
 /* A fixed bar lifts the toasts above it; --bar-h is the app's bar height */
-:root:has(.bulk-bar.is-fixed:not([hidden])) .toast-stack{bottom:calc(var(--toast-offset,1rem) + var(--bar-h,3.6rem))}
+:root:has(.bulk-bar.is-fixed:not([hidden])) .toast-stack{bottom:calc(var(--toast-offset,1rem) + var(--bar-h,3.6rem) + var(--safe-bottom))}
+/* ... unless something covers the bar (a full-screen overlay, an open sheet): an element with
+   data-covers-bar that is present and not [hidden] (a <dialog> only while open) keeps the toasts down */
+:root:has([data-covers-bar]:not([hidden]):not(dialog:not([open]))) .toast-stack.toast-stack{bottom:calc(var(--toast-offset,1rem) + var(--safe-bottom))}
 /* Sheet: a panel from the bottom or the side, with an action row */
 .sheet{background:var(--bg-panel);border-top:4px solid var(--yellow);padding:1.1rem 1.3rem 1.3rem;display:flex;flex-direction:column;gap:.8rem;
   clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,0 100%)}
@@ -811,11 +815,12 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .setting>.ctl .reset{visibility:hidden}
 .setting.is-modified>.ctl .reset{visibility:visible}
 .setting.is-modified>b::after{content:"";display:inline-block;width:6px;height:6px;margin-left:.5rem;background:var(--cyan);vertical-align:middle}
-/* Day strip: one day as a bar, segments at their time, a 2 px "now" mark, hours below */
+/* Day strip: one day as a bar, segments at their time, a 2 px "now" mark, hours below.
+   A segment's --c (e.g. its project colour) replaces the colour of its kind (Kante 1.8) */
 .day-strip{position:relative;height:44px;background:var(--bg-hard);margin-bottom:1.2rem}
-.day-strip>i{position:absolute;top:0;bottom:0;background:var(--yellow)}
+.day-strip>i{position:absolute;top:0;bottom:0;background:var(--c,var(--yellow))}
 .day-strip>i.is-dim{opacity:.6}
-.day-strip>i.is-event{top:auto;height:12px;background:var(--cyan)}
+.day-strip>i.is-event{top:auto;height:12px;background:var(--c,var(--cyan))}
 .day-strip>.now{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--cyan)}
 .day-strip>.ticks{position:absolute;left:0;right:0;bottom:-1.1rem;display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.58rem;color:var(--fg3)}
 /* Status light of a service */
@@ -862,8 +867,8 @@ a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;
 .map-frame{position:relative;border:1px solid var(--bg2);background:var(--bg-hard);
   clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,0 100%)}
 .map-frame .leaflet-tile-pane{filter:grayscale(1) invert(1) brightness(.6) contrast(.9) sepia(.25)}
-.map-pin{display:block;width:14px;height:14px;background:var(--cyan);border:2px solid var(--bg-void)}
-.map-frame{--route:var(--yellow)}
+.map-pin{display:block;width:14px;height:14px;background:var(--map-marker);border:2px solid var(--bg-void)}
+.map-frame{--route:var(--map-route)}
 /* A command line outside the yellow install box */
 .cmd-row.is-plain .cmd-box{background:var(--bg-hard);color:var(--cyan)}
 .cmd-row.is-plain .copy-btn{background:var(--bg1);border-color:var(--bg1);color:var(--fg1)}
@@ -942,7 +947,7 @@ a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
 .hint-card>details>p{margin-top:.35rem;padding-left:.7rem;border-left:2px solid var(--bg2);font-size:.84rem;color:var(--fg2)}
 .hint-card>.actions{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-top:.15rem}
 /* Date tile: a date in a fixed column; day large, month and weekday small; a range may take a second line */
-.date-tile{display:grid;justify-items:center;align-content:center;width:3.6rem;flex:none;line-height:1.1;text-align:center;overflow-wrap:anywhere;font-family:var(--font-mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3)}
+.date-tile{display:grid;justify-items:center;align-content:center;width:3.6rem;flex:none;line-height:1.1;text-align:center;white-space:nowrap;font-family:var(--font-mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3)}
 .date-tile>b{font-family:var(--font-heading);font-weight:700;font-size:1.5rem;letter-spacing:0;color:var(--fg0);font-variant-numeric:tabular-nums}
 /* Timeline: deadlines, a date column and a 4 px state bar; the state is also written out (.state) */
 .timeline{list-style:none;display:flex;flex-direction:column;gap:2px}
@@ -965,7 +970,7 @@ a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
 .editbar>.grow{flex:1}
 .editbar.is-sticky{position:sticky;top:var(--editbar-top,0);z-index:5}
 .editbar.is-fixed{position:fixed;left:0;right:0;bottom:0;z-index:20;padding-bottom:calc(.5rem + env(safe-area-inset-bottom,0px))}
-:root:has(.editbar.is-fixed:not([hidden])) .toast-stack{bottom:calc(var(--toast-offset,1rem) + var(--bar-h,3.6rem))}
+:root:has(.editbar.is-fixed:not([hidden])) .toast-stack{bottom:calc(var(--toast-offset,1rem) + var(--bar-h,3.6rem) + var(--safe-bottom))}
 /* Share dialog: one row per subject (user or team) with a right select; a warning callout when credentials go along */
 .share{display:flex;flex-direction:column}
 .share>.row{display:grid;grid-template-columns:minmax(0,1fr) 10rem auto;align-items:center;gap:.6rem;padding:.55rem 0;border-bottom:1px solid var(--bg1)}
@@ -974,8 +979,9 @@ a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
 .share .subject[data-kind="team"]::before{background:var(--purple);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
 .share .subject>small{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3)}
 .share>.callout{margin:.8rem 0 0}
-.share>.add{display:flex;gap:.6rem;margin-top:.8rem}
-.share>.add>.input{flex:1;min-width:0}
+/* The field takes its own line when the row is narrow (phone, small dialog) */
+.share>.add{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.8rem}
+.share>.add>.input{flex:1 1 12rem;min-width:0}
 /* Login: card on a centred page; setup and second factor use the same card. .login-code is one input drawn as six digit boxes */
 .login-wrap{min-height:var(--login-min-h,100vh);display:grid;place-items:center;padding:2rem var(--gutter)}
 .login{width:100%;max-width:24rem;display:flex;flex-direction:column;gap:1rem;padding:1.6rem 1.6rem 1.4rem;background:var(--bg-panel);border-top:4px solid var(--yellow);
@@ -1005,6 +1011,126 @@ a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
 .contrast[data-level="aa"]>.badge{--k:var(--aqua)}
 .contrast[data-level="fail"]>.badge{--k:var(--danger)}
 .contrast[data-level="fail"]>.badge::before{content:"✕"}
+
+/* 10 · Kante 1.8: day sky, charts by the hour, inputs, tile tools ─────
+   Day strip sky and work band: .day (daylight, before the segments so they lie on it), .sun and
+   .moon above sunrise and sunset (icons, so round), .work (work hours) under the track.
+   .has-sky makes room above the strip, .has-work below it */
+.day-strip{--daylight:color-mix(in srgb,var(--yellow) 14%,transparent)}
+.day-strip.has-sky{margin-top:1.1rem}
+.day-strip.has-work{margin-bottom:1.75rem}
+.day-strip.has-work>.ticks{bottom:-1.65rem}
+.day-strip>.day{position:absolute;top:0;bottom:0;background:var(--daylight)}
+.day-strip>.work{position:absolute;bottom:-8px;height:4px;background:var(--fg3)}
+.day-strip>:is(.sun,.moon){position:absolute;top:-17px;width:12px;height:12px;margin-left:-6px;border-radius:50%}
+.day-strip>.sun{background:radial-gradient(circle,var(--yellow) 0 3px,transparent 3.5px),repeating-conic-gradient(from -6deg,var(--yellow) 0 12deg,transparent 12deg 45deg);
+  -webkit-mask:radial-gradient(circle,black 0 3.2px,transparent 3.4px 4.4px,black 4.6px 6px,transparent 6px);mask:radial-gradient(circle,black 0 3.2px,transparent 3.4px 4.4px,black 4.6px 6px,transparent 6px)}
+.day-strip>.moon{box-shadow:inset 3px -1px 0 0 var(--fg2)}
+/* Stacked bars with own colours: a part with class .c takes --c (e.g. the project colour);
+   .axis labels the scale on the left (text-anchor end); durations are written as h:mm */
+.chart .c{fill:var(--c);stroke:var(--c)}
+.chart .axis{text-anchor:end}
+/* Week timeline: one row per day over the hours, entries as blocks in their colour, the sum right.
+   <b> day, .track (+ .today) with <i style="--from:8.25;--to:12;--c:…"> blocks and .now (--at),
+   <small> the sum (.is-zero muted). --start and --span set the window (0 and 24 h) */
+.week-line{--start:0;--span:24;display:grid;grid-template-columns:2.2rem minmax(0,1fr) auto;align-items:center;gap:3px .7rem;font-family:var(--font-mono);font-size:.64rem;color:var(--fg3)}
+.week-line>.scale{grid-column:2;display:flex;justify-content:space-between;font-size:.58rem;line-height:1.6}
+.week-line>b{grid-column:1;font-weight:400;letter-spacing:.1em}
+.week-line>b.today{color:var(--yellow);font-weight:700}
+.week-line>.track{grid-column:2;position:relative;height:22px;background:var(--bg-hard);
+  background-image:repeating-linear-gradient(90deg,transparent 0 calc(25% - 1px),var(--bg1) calc(25% - 1px) 25%)}
+.week-line>.track.today{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--yellow) 60%,transparent)}
+.week-line>.track>i{position:absolute;top:3px;bottom:3px;left:calc((var(--from) - var(--start)) / var(--span) * 100%);
+  width:max(2px,calc((var(--to) - var(--from)) / var(--span) * 100% - 1px));background:var(--c,var(--entity-fallback))}
+.week-line>.track>.now{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;left:calc((var(--at) - var(--start)) / var(--span) * 100%);background:var(--cyan)}
+.week-line>small{grid-column:3;color:var(--fg1);font-size:.72rem;font-variant-numeric:tabular-nums;text-align:right}
+.week-line>small.is-zero{color:var(--fg3)}
+/* Date and time: the native <input type="date|time"> as a Kante field, figures in mono; the
+   picker icon follows the theme (color-scheme) */
+.date-field{font-variant-numeric:tabular-nums;max-width:12rem;color-scheme:dark}
+:root[data-theme="light"] .date-field{color-scheme:light}
+:root[data-kante] .date-field{color-scheme:inherit}
+.date-field::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.8}
+.date-field::-webkit-calendar-picker-indicator:hover{opacity:1}
+/* Search combo: a field that filters a list under it (the app filters, e.g. with htmx); the list
+   shows while the input has aria-expanded="true". .has-colors gives every option an entity square
+   (--c, or --entity-fallback); the keyboard row is aria-selected; .is-new adds the typed text */
+.combo-search{position:relative;align-self:start}
+.combo-search>.input{padding-right:2rem;background-image:linear-gradient(45deg,transparent 50%,var(--fg2) 50%),linear-gradient(135deg,var(--fg2) 50%,transparent 50%);
+  background-position:calc(100% - 1.05rem) 55%,calc(100% - .75rem) 55%;background-size:.3rem .3rem;background-repeat:no-repeat}
+.combo-search>[role="listbox"]{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:30;margin:0;padding:.3rem 0;list-style:none;max-height:16rem;overflow:auto;
+  background:var(--bg-panel);border:1px solid var(--bg2);border-top:3px solid var(--cyan)}
+.combo-search>[aria-expanded="false"]~[role="listbox"],.combo-search>[role="listbox"][hidden]{display:none}
+.combo-search [role="option"]{display:flex;align-items:center;gap:.6rem;min-height:var(--h-s);padding:0 .8rem;color:var(--fg1);font-size:.9rem;cursor:pointer}
+.combo-search.has-colors [role="option"]:not(.is-new)::before{content:"";flex:none;width:10px;height:10px;background:var(--c,var(--entity-fallback))}
+.combo-search [role="option"]:hover{background:var(--tint-1)}
+.combo-search [role="option"][aria-selected="true"]{background:var(--cyan-tint);box-shadow:inset 3px 0 0 var(--cyan);color:var(--fg0)}
+.combo-search [role="option"].is-new{color:var(--cyan)}
+.combo-search [role="option"].is-new::before{content:"+";font-family:var(--font-mono);font-weight:700}
+/* Tile tools (edit mode): a strip in its own band above the tile, so it never covers the tile's
+   name. The slot (.has-tools, set in edit mode) reserves the band; the strip shows on hover and
+   focus, always on touch screens (40 px band), on .is-active slots and when .is-floating (one
+   shared strip moved between slots) */
+.has-tools{--tools-h:var(--h-s);position:relative;padding-top:calc(var(--tools-h) + 2px)}
+.tile-tools{position:absolute;top:0;left:0;right:0;z-index:3;height:var(--tools-h);display:flex;align-items:center;gap:2px;padding:0 .2rem;
+  background:var(--bg1);border-top:2px solid var(--cyan);visibility:hidden;opacity:0}
+.has-tools:is(:hover,:focus-within,.is-active)>.tile-tools,.tile-tools.is-floating{visibility:visible;opacity:1}
+.tile-tools>.gap{flex:1}
+.tile-tools>small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-mono);font-size:.64rem;color:var(--fg3)}
+.tile-tools>:is(button,a){display:inline-grid;place-items:center;flex:none;min-width:calc(var(--tools-h) - 2px);height:calc(var(--tools-h) - 2px);padding:0 .35rem;
+  background:none;border:0;color:var(--fg2);cursor:pointer;font-family:var(--font-mono);font-size:.72rem;text-decoration:none}
+.tile-tools>:is(button,a):hover,.tile-tools>:is(button,a):focus-visible{outline:none;background:var(--tint-2);color:var(--fg0)}
+.tile-tools>:is(button,a):focus-visible{box-shadow:inset 0 0 0 2px var(--focus)}
+.tile-tools>[aria-pressed="true"]{color:var(--cyan)}
+.tile-tools>.is-danger:is(:hover,:focus-visible){color:var(--danger)}
+.tile-tools>.grip{margin:0 .35rem}
+@media (hover:none),(pointer:coarse){.has-tools{--tools-h:var(--h-m)}.tile-tools{visibility:visible;opacity:1}}
+
+/* 11 · Kante 1.9: chips as links, chart details, heat goals, colour input, phone fixes ───── */
+/* A chip may be a link (a filter that navigates): never underlined. Filter chips carry the
+   tier of what they filter: data-tier="critical" red, "warn" orange */
+a.chip,a.chip:hover{text-decoration:none}
+.chip.is-filter[data-tier="critical"]{--c:var(--danger)}
+.chip.is-filter[data-tier="warn"]{--c:var(--warn)}
+/* Charts drawn with preserveAspectRatio="none" (stretched to the card): lines keep their width.
+   The spark end mark as a zero-length path <path class="end" d="M x y h0"> stays square.
+   .bar.is-prev is the last period (dashed outline, no fill); .goal.is-danger a limit (red).
+   Wide viewBoxes (e.g. 0 0 1000 200) scale text down: set --chart-text in viewBox units */
+.chart .line,.chart .grid,.chart .goal,.chart .probe,.spark path{vector-effect:non-scaling-stroke}
+.spark .end{fill:none;stroke:var(--d4);stroke-width:5px;stroke-linecap:square}
+.chart .bar.is-prev{fill:none;stroke-width:1.5;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.chart .bar.is-prev:not(.s1,.s2,.s3,.s4,.s5,.s6,.c){stroke:var(--fg3)}
+.chart .goal.is-danger{stroke:var(--danger)}
+/* Heat map: .met reached the day's goal (aqua bar), .under missed it (orange bar); --rows fills
+   column by column (a year of weeks: --rows:7). .heat-legend shows the scale, less to more */
+/* A 1 px ground line keeps the bar apart from a cell of the same hue */
+.heat i.met{box-shadow:inset 0 -3px 0 var(--aqua),inset 0 -4px 0 var(--bg-void)}
+.heat i.under{box-shadow:inset 0 -3px 0 var(--warn),inset 0 -4px 0 var(--bg-void)}
+.heat[style*="--rows"]{grid-auto-flow:column;grid-template-rows:repeat(var(--rows),auto);grid-auto-columns:minmax(0,1fr)}
+.heat-legend{display:flex;align-items:center;gap:3px;font-family:var(--font-mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3)}
+.heat-legend>i{width:10px;height:10px;background:var(--bg-hard)}
+.heat-legend>i[data-l="1"]{background:color-mix(in srgb,var(--cyan) 22%,var(--bg-hard))}
+.heat-legend>i[data-l="2"]{background:color-mix(in srgb,var(--cyan) 44%,var(--bg-hard))}
+.heat-legend>i[data-l="3"]{background:color-mix(in srgb,var(--cyan) 66%,var(--bg-hard))}
+.heat-legend>i[data-l="4"]{background:var(--cyan)}
+.heat-legend>i.met{box-shadow:inset 0 -3px 0 var(--aqua),inset 0 -4px 0 var(--bg-void)}.heat-legend>i.under{box-shadow:inset 0 -3px 0 var(--warn),inset 0 -4px 0 var(--bg-void)}
+.heat-legend>span{margin-inline:.35rem}
+/* Colour input: a square swatch in the Kante field frame */
+input[type="color"],.input[type="color"]{appearance:none;-webkit-appearance:none;flex:none;width:var(--h-m);height:var(--h-m);min-height:0;padding:4px;
+  background:var(--field);border:1px solid var(--bg2);border-bottom-width:2px;border-radius:0;cursor:pointer}
+input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+input[type="color"]::-webkit-color-swatch{border:0;border-radius:0}
+input[type="color"]::-moz-color-swatch{border:0;border-radius:0}
+input[type="color"]:hover{border-color:var(--fg3)}
+input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+/* Pills in a tile or a badge row shorten with an ellipsis instead of widening the tile */
+.tile-badges{display:flex;flex-wrap:wrap;gap:.3rem;min-width:0}
+.tile .pill,.tile-badges .pill{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+.tile .pill::before,.tile-badges .pill::before{display:inline-block;margin-right:.45rem;vertical-align:1px}
+/* App page head: the title with its actions, apart from the first card or panel under it */
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.6rem 1rem;margin-bottom:1.25rem}
+.page-head>h1,.page-head>h2{margin:0}
+:is(main,.app)>h1+:is(.card,.panel,.feat,.tiles,.panel-grid,.table,.callout,.hint-card,form){margin-top:1.25rem}
 
 /* ── Kante Light (apps, <html data-kante="light">) ─────────────────────
    Kante shapes on the platform look: controls get the system font, normal

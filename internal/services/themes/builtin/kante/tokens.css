@@ -61,6 +61,9 @@
   --scrim:    rgba(20,19,18,.62); /* dimmed area behind dialogs and outside a crop */
   --primary:  var(--yellow);  /* primary action, pressed segment, switch on, focus ring */
   --on-primary: var(--bg-void); /* text on --primary */
+  --map-marker: var(--focus);   /* pins on a map (QML mapMarkerColor) */
+  --map-route:  var(--primary); /* a route or track on a map (QML mapRouteColor) */
+  --entity-fallback: var(--fg3); /* an entity without a colour of its own (QML entityFallbackColor) */
 
   /* ── Tints: translucent steps of the theme colours for hover, drop targets, selection, outlines ── */
   --tint-1:    color-mix(in srgb, var(--fg1) 8%, transparent);

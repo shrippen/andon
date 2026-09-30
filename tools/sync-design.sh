@@ -52,8 +52,10 @@ dirty=""
 if [ -n "$(git -C "$src" status --porcelain kante 2>/dev/null)" ]; then
 	dirty=" plus uncommitted changes"
 fi
+# The newest "Added in Kante X.Y" heading of Kante's README names the version.
+version="$(grep -o '^### Added in Kante [0-9.]*' "$src/kante/README.md" | tail -n 1 | awk '{print $NF}')"
 cat > "$dest/VERSION" <<VER
-Kante 1.7
+Kante ${version:-unknown}
 source: https://github.com/shrippen/shrippen.github.io (kante/)
 branch: $branch
 commit: $commit$dirty

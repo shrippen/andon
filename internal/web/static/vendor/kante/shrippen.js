@@ -265,6 +265,33 @@
       [].forEach.call(t.querySelectorAll('[data-live-tile]'), K.fresh);
     });
 
+    // ── Fold state (Kante 1.8) ───────────────────────────────────────────
+    // details.fold[data-key]: data-open ("true" / "false", written by the server) sets the fold at
+    // load and after an htmx swap. Every open or close by the user fires "kante:fold" (bubbles)
+    // with detail {key, open}, so the app can keep it on the server:
+    //   document.addEventListener('kante:fold', function (e) { post('/fold', e.detail); });
+    var FOLD = 'details.fold[data-key]';
+    K.folds = function (root) {
+      root = root || d;
+      var all = [].slice.call(root.querySelectorAll ? root.querySelectorAll(FOLD) : []);
+      if (root.matches && root.matches(FOLD)) all.push(root);
+      all.forEach(function (f) {
+        if (f.dataset.open === undefined) { f.dataset.open = String(f.open); return; }
+        f.open = f.dataset.open === 'true';
+      });
+    };
+    K.folds();
+    d.addEventListener('htmx:afterSettle', function (e) { if (e.target) K.folds(e.target); });
+    // toggle does not bubble: listen while capturing. A toggle that matches data-open was ours.
+    d.addEventListener('toggle', function (e) {
+      var f = e.target;
+      if (!f.matches || !f.matches(FOLD)) return;
+      var open = String(f.open);
+      if (f.dataset.open === undefined || f.dataset.open === open) { f.dataset.open = open; return; }
+      f.dataset.open = open;
+      f.dispatchEvent(new CustomEvent('kante:fold', { bubbles: true, detail: { key: f.dataset.key, open: f.open } }));
+    }, true);
+
     if (!h.classList.contains('motion')) return;
 
     // Counter (A06): figures in the facts strip roll up digit by digit.
