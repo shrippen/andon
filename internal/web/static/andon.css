@@ -569,7 +569,7 @@ form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .receipt-ignore form { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; margin-top: .3rem; }
 .receipt-sure ul { margin: .4rem 0 .8rem; display: flex; flex-direction: column; gap: .3rem; }
 .receipt-sure label.check { display: flex; gap: .6rem; align-items: baseline; margin: 0; font-family: var(--font-sans); font-size: .9rem; text-transform: none; letter-spacing: 0; color: var(--fg1); }
-.receipt-sure label.check span:not(.receipt-score) { flex: 1; min-width: 0; }
+.receipt-sure label.check span:not(.receipt-score, .check-box) { flex: 1; min-width: 0; }
 .receipts-nav .chip[data-empty] { opacity: .55; }
 .receipts-note { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 0 0 1rem; }
 .receipts-note .pill { margin: 0; }
