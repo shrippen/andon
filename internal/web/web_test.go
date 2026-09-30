@@ -452,7 +452,7 @@ func TestStaticAssetsAreCached(t *testing.T) {
 
 // TestPagesLoadKante: every page links the vendored Kante components
 // before andon.css (Andon builds on them, not the other way round) and
-// runs Kante's script after the one that hands it Andon's language.
+// keeps Kante's language handling off.
 func TestPagesLoadKante(t *testing.T) {
 	srv, client, _ := newTestServer(t)
 
@@ -463,10 +463,13 @@ func TestPagesLoadKante(t *testing.T) {
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	page := string(body)
+	if !strings.Contains(page, "data-own-lang") {
+		t.Fatalf("expected data-own-lang on <html> in:\n%s", page)
+	}
 
 	order := []string{
 		"/static/vendor/kante/components.css?v=", "/static/andon.css?v=",
-		"/static/kante-lang.js?v=", "/static/vendor/kante/shrippen.js?v=",
+		"/static/vendor/kante/shrippen.js?v=",
 	}
 	last := -1
 	for _, want := range order {

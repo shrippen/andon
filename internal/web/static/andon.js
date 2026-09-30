@@ -5,12 +5,6 @@
   var d = document;
   var CLOCK_TICK_MS = 1000;
 
-  // Kante's script (vendor/kante/shrippen.js) may set html.lang to its own
-  // choice when storage is blocked; the server's locale wins (kante-lang.js).
-  var locale = d.documentElement.getAttribute("data-locale");
-  if (locale) {
-    d.documentElement.lang = locale;
-  }
   var SEARCH_KEY = "/";
 
   function csrf() {
