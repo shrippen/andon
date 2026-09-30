@@ -253,7 +253,7 @@ a.feat:focus-visible::after{inset:6px;background:var(--brk)}
 .section li strong{color:var(--fg1)}
 
 /* ── Steps (numbered) ── */
-.steps{list-style:none;counter-reset:step;padding:0}
+.steps{list-style:none;counter-reset:step;margin:0;padding:0}
 .steps>li{counter-increment:step;position:relative;padding-left:2.6rem;margin-bottom:1.1rem}
 .steps>li::before{content:counter(step);position:absolute;left:0;top:.05rem;width:1.8rem;height:1.8rem;
   background:var(--bg-panel);border:1px solid var(--bg2);color:var(--yellow);
@@ -507,7 +507,7 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 .pager :is(a,button):hover{border-color:var(--fg3);color:var(--fg0)}
 .pager [aria-current="page"]{background:var(--yellow);border-color:var(--yellow);color:var(--bg-void)}
 /* Menu */
-.menu{background:var(--bg-panel);border-top:3px solid var(--cyan);padding:.35rem 0;min-width:15rem;
+.menu{margin:0;list-style:none;background:var(--bg-panel);border-top:3px solid var(--cyan);padding:.35rem 0;min-width:15rem;
   clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
 .menu :is(button,a){display:flex;width:100%;align-items:center;gap:.7rem;min-height:36px;padding-inline:.9rem;background:none;border:0;color:var(--fg1);cursor:pointer;font-size:.9rem;text-align:left;text-decoration:none}
 .menu :is(button,a):hover,.menu :is(button,a):focus-visible{outline:none;background:var(--cyan-tint);box-shadow:inset 3px 0 0 var(--cyan)}
@@ -562,6 +562,9 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
   .fold>summary::before{transition:transform var(--dur) var(--ease-snap),background-color var(--dur-fast)}
   .modebar>:is(button,a){transition:color var(--dur-fast),background-color var(--dur-fast)}
   .tile-tools{transition:opacity var(--dur-fast),visibility var(--dur-fast)}
+  .launch,a.link-tile{transition:background-color var(--dur-fast)}
+  .dropzone{transition:border-color var(--dur-fast),background-color var(--dur-fast)}
+  .search>:is(kbd,.engine){transition:opacity var(--dur-fast)}
   .login-code{transition:background-color var(--dur-fast)}
   .editbar.is-fixed,.editbar.is-sticky{animation:k-fade var(--dur) var(--ease-out) both}
   .pill[data-state="analyzing"]::before,.led[data-rhythm="atem"]{animation:k-breathe 3s ease-in-out infinite}
@@ -718,7 +721,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .spark{display:block;width:100%;height:auto}
 .spark path{fill:none;stroke:var(--d4);stroke-width:1.6}
 .spark rect{fill:var(--d4)}
-.legend{display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2)}
+.legend{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2)}
 .legend i{display:inline-block;width:10px;height:10px;margin-right:.4rem;vertical-align:-1px;background:var(--c,var(--d1))}
 .heat{display:grid;gap:3px}
 .heat i{aspect-ratio:1;background:var(--bg-hard)}
@@ -754,7 +757,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .week>.ev{--c:var(--yellow);position:relative;margin:1px 3px;padding:.15rem .3rem .15rem .6rem;background:color-mix(in srgb,var(--c) 18%,var(--bg-panel));color:var(--fg0);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:var(--font-sans);font-size:.72rem;cursor:pointer}
 .week>.ev::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
 .week>.ev.warn{--c:var(--orange)}.week>.ev.info{--c:var(--cyan)}.week>.ev.ok{--c:var(--aqua)}
-.agenda{display:grid;gap:.9rem}
+.agenda{display:grid;gap:.9rem;margin:0;padding:0;list-style:none}
 .agenda>h4{display:flex;align-items:center;gap:.6rem;margin:0;font-family:var(--font-mono);font-size:.7rem;font-weight:400;letter-spacing:.1em;color:var(--fg3)}
 .agenda>h4::after{content:"";flex:1;height:1px;background:var(--bg1)}
 .agenda>h4.today{color:var(--yellow);font-weight:700}
@@ -850,10 +853,12 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .palette>.r{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.5rem .9rem;font-size:.88rem;color:var(--fg1);cursor:pointer}
 .palette>.r[aria-selected="true"]{background:var(--cyan-tint);box-shadow:inset 3px 0 0 var(--cyan)}
 /* Link tile: icon, name, state, hints */
-a.link-tile{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.2rem .8rem;align-items:center;padding:.8rem 1rem;background:var(--bg-panel);border-top:4px solid var(--bg2);color:var(--fg1);text-decoration:none;
+/* One surface with .launch (section 11): a.link-tile is the short form, .launch the full one */
+:is(a.link-tile,.launch){background:var(--bg-panel);border-top:4px solid var(--c,var(--bg2));color:var(--fg1);text-decoration:none;
   clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
-a.link-tile:hover{background-color:var(--tint-1);text-decoration:none}
-a.link-tile:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
+:is(a.link-tile,.launch):hover{background-color:color-mix(in srgb,var(--fg1) 8%,var(--bg-panel));color:var(--fg1);text-decoration:none}
+:is(a.link-tile,.launch):focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
+a.link-tile{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.2rem .8rem;align-items:center;padding:.8rem 1rem}
 a.link-tile>img,a.link-tile>svg{width:28px;height:28px;grid-row:1/3}
 a.link-tile>.name{font-family:var(--font-heading);font-weight:700;font-size:1.05rem;letter-spacing:.05em;text-transform:uppercase;color:var(--fg0)}
 a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;color:var(--fg3)}
@@ -897,7 +902,7 @@ a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;
 .fold>summary>.count{align-self:center;min-width:0;height:auto;padding:0;background:none;color:var(--fg3);font-weight:400}
 .fold>.body{padding:.2rem 0 1rem}
 /* Feed: title, source and relative age; .is-compact is one line with the age at the right */
-.feed{list-style:none;display:flex;flex-direction:column}
+.feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .feed>li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.1rem .8rem;padding:.55rem .1rem;border-bottom:1px solid var(--bg1)}
 .feed>li:last-child{border-bottom:0}
 .feed>li>a{grid-column:1/-1;color:var(--fg1);font-size:.88rem;line-height:1.35}
@@ -950,7 +955,7 @@ a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
 .date-tile{display:grid;justify-items:center;align-content:center;width:3.6rem;flex:none;line-height:1.1;text-align:center;white-space:nowrap;font-family:var(--font-mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3)}
 .date-tile>b{font-family:var(--font-heading);font-weight:700;font-size:1.5rem;letter-spacing:0;color:var(--fg0);font-variant-numeric:tabular-nums}
 /* Timeline: deadlines, a date column and a 4 px state bar; the state is also written out (.state) */
-.timeline{list-style:none;display:flex;flex-direction:column;gap:2px}
+.timeline{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
 .timeline>li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:.8rem;padding:.5rem .8rem .5rem 0;background:var(--bg-panel);border-left:4px solid var(--tier)}
 .timeline>li>.date-tile{width:4rem}
 .timeline>li>.what{display:flex;flex-direction:column;min-width:0;color:var(--fg1);font-size:.9rem;line-height:1.3}
@@ -1084,7 +1089,9 @@ a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
 .tile-tools>[aria-pressed="true"]{color:var(--cyan)}
 .tile-tools>.is-danger:is(:hover,:focus-visible){color:var(--danger)}
 .tile-tools>.grip{margin:0 .35rem}
-@media (hover:none),(pointer:coarse){.has-tools{--tools-h:var(--h-m)}.tile-tools{visibility:visible;opacity:1}}
+/* A floating strip outside a .has-tools slot sets its own band height */
+:not(.has-tools)>.tile-tools{--tools-h:var(--h-s)}
+@media (hover:none),(pointer:coarse){.has-tools,:not(.has-tools)>.tile-tools{--tools-h:var(--h-m)}.tile-tools{visibility:visible;opacity:1}}
 
 /* 11 · Kante 1.9: chips as links, chart details, heat goals, colour input, phone fixes ───── */
 /* A chip may be a link (a filter that navigates): never underlined. Filter chips carry the
@@ -1096,7 +1103,7 @@ a.chip,a.chip:hover{text-decoration:none}
    The spark end mark as a zero-length path <path class="end" d="M x y h0"> stays square.
    .bar.is-prev is the last period (dashed outline, no fill); .goal.is-danger a limit (red).
    Wide viewBoxes (e.g. 0 0 1000 200) scale text down: set --chart-text in viewBox units */
-.chart .line,.chart .grid,.chart .goal,.chart .probe,.spark path{vector-effect:non-scaling-stroke}
+.chart .line,.chart .grid,.chart .goal,.chart .probe,.chart .now,.spark path{vector-effect:non-scaling-stroke}
 .spark .end{fill:none;stroke:var(--d4);stroke-width:5px;stroke-linecap:square}
 .chart .bar.is-prev{fill:none;stroke-width:1.5;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
 .chart .bar.is-prev:not(.s1,.s2,.s3,.s4,.s5,.s6,.c){stroke:var(--fg3)}
@@ -1125,12 +1132,114 @@ input[type="color"]:hover{border-color:var(--fg3)}
 input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 /* Pills in a tile or a badge row shorten with an ellipsis instead of widening the tile */
 .tile-badges{display:flex;flex-wrap:wrap;gap:.3rem;min-width:0}
-.tile .pill,.tile-badges .pill{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
-.tile .pill::before,.tile-badges .pill::before{display:inline-block;margin-right:.45rem;vertical-align:1px}
+.tile .pill,.tile-badges .pill{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;letter-spacing:.06em;padding-inline:.4rem}
+.tile .pill::before,.tile-badges .pill::before{display:inline-block;margin-right:.3rem;vertical-align:1px}
 /* App page head: the title with its actions, apart from the first card or panel under it */
 .page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.6rem 1rem;margin-bottom:1.25rem}
 .page-head>h1,.page-head>h2{margin:0}
 :is(main,.app)>h1+:is(.card,.panel,.feat,.tiles,.panel-grid,.table,.callout,.hint-card,form){margin-top:1.25rem}
+
+/* Launch tile (start page link): icon or monogram, title with host, description, a live line with
+   state, info and hint count, a hotkey. Sizes: data-size="small" (one line), "large" (icon tile),
+   on the tile or on its .launch-grid. --c tints the top bar and the monogram */
+.launch-grid{--tile:15rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(var(--tile),100%),1fr));gap:4px;margin:0;padding:0;list-style:none}
+.launch-grid[style*="--cols"]{grid-template-columns:repeat(var(--cols),minmax(0,1fr))}
+.launch-grid[data-size="small"]{--tile:10rem}.launch-grid[data-size="large"]{--tile:7rem}
+.launch{--icon:2.2rem;position:relative;display:flex;align-items:center;gap:.75rem;min-width:0;height:100%;padding:.6rem .8rem .6rem .7rem}
+.launch.is-first{box-shadow:inset 0 0 0 1px var(--hl)}
+.launch-icon{flex:none;display:grid;place-items:center;width:var(--icon);height:var(--icon)}
+.launch-icon>img,.launch-icon>svg{width:100%;height:100%;object-fit:contain}
+.launch-icon>.emoji{font-size:calc(var(--icon) * .75);line-height:1}
+.launch-icon>.monogram{width:100%;height:100%;display:grid;place-items:center;background:var(--bg-hard);color:var(--c,var(--accent));border-bottom:2px solid currentColor;
+  font-family:var(--font-heading);font-weight:700;font-size:calc(var(--icon) * .45);letter-spacing:.02em;text-transform:uppercase}
+/* Glyph sets (black shapes, e.g. simple-icons) turn light on a dark ground */
+.launch-icon>img.is-glyph{filter:invert(.9)}
+:root:is([data-theme="light"],[data-kante="light"]) .launch-icon>img.is-glyph{filter:none}
+@media (prefers-color-scheme:dark){:root[data-kante="light"] .launch-icon>img.is-glyph{filter:invert(.9)}}
+.launch-body{display:flex;flex-direction:column;flex:1;min-width:0}
+.launch-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-heading);font-weight:700;font-size:1.05rem;line-height:1.25;letter-spacing:.05em;text-transform:uppercase;color:var(--fg0)}
+.launch-title>small{font-family:var(--font-mono);font-weight:400;font-size:.62rem;letter-spacing:.02em;text-transform:none;color:var(--fg3)}
+.launch-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem;line-height:1.35;color:var(--fg2)}
+.launch-tags{display:flex;flex-wrap:wrap;gap:0 .5rem;font-family:var(--font-mono);font-size:.62rem;color:var(--fg3)}
+.launch-live{display:flex;flex-wrap:wrap;align-items:center;gap:.2rem .7rem;min-height:1.1rem;margin-top:.2rem;font-family:var(--font-mono);font-size:.64rem;letter-spacing:.04em;color:var(--fg2)}
+/* State: square plus word (data-state ok, warn, bad, off), like .status */
+.launch-state{--k:var(--aqua);display:inline-flex;align-items:center;gap:.35rem;text-transform:uppercase;letter-spacing:.1em}
+.launch-state::before{content:"";flex:none;width:7px;height:7px;background:var(--k)}
+.launch-state[data-state="warn"]{--k:var(--warn)}.launch-state[data-state="bad"]{--k:var(--danger);color:var(--danger)}.launch-state[data-state="off"]{--k:var(--bg2);color:var(--fg3)}
+.launch-info.is-error{color:var(--danger)}
+/* Hint count: outlined in the tier colour; red is filled, so the shape tells the tier too */
+.launch-hints{--k:var(--info);display:inline-grid;place-items:center;min-width:1.25rem;height:1.1rem;margin:0;padding:0 .3rem;background:none;border:1px solid var(--k);color:var(--k);
+  font-family:var(--font-mono);font-weight:500;font-size:.62rem;font-variant-numeric:tabular-nums;text-decoration:none;cursor:pointer}
+.launch-hints[data-tier="yellow"]{--k:var(--warn)}
+.launch-hints[data-tier="red"]{--k:var(--danger);background:var(--danger);color:var(--on-state)}
+.launch-hints:hover{background:var(--tint-2)}.launch-hints[data-tier="red"]:hover{background:var(--danger)}
+.launch-hints:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.launch-key{align-self:flex-start;font-size:.62rem}
+/* small: one line, the state as a square only (the word stays for screen readers) */
+:is(.launch[data-size="small"],.launch-grid[data-size="small"] .launch){--icon:1.5rem;gap:.55rem;min-height:var(--h-m);padding:.3rem .6rem .3rem .45rem;border-top-width:2px}
+:is(.launch[data-size="small"],.launch-grid[data-size="small"] .launch) .launch-body{flex-direction:row;align-items:center;gap:.5rem}
+:is(.launch[data-size="small"],.launch-grid[data-size="small"] .launch) .launch-title{flex:1;font-size:.95rem}
+:is(.launch[data-size="small"],.launch-grid[data-size="small"] .launch) .launch-live{flex:none;flex-wrap:nowrap;gap:.4rem;margin:0}
+:is(.launch[data-size="large"],.launch-grid[data-size="large"] .launch){--icon:2.8rem;flex-direction:column;justify-content:center;gap:.45rem;padding:1.4rem .4rem .6rem;text-align:center}
+:is(.launch[data-size="large"],.launch-grid[data-size="large"] .launch) .launch-body{width:100%;align-items:center}
+:is(.launch[data-size="large"],.launch-grid[data-size="large"] .launch) .launch-title{width:100%;font-size:.85rem}
+:is(.launch[data-size="large"],.launch-grid[data-size="large"] .launch) .launch-live{position:absolute;inset:.35rem .4rem auto;margin:0;justify-content:space-between}
+:is(.launch[data-size="small"],.launch-grid[data-size="small"] .launch,.launch[data-size="large"],.launch-grid[data-size="large"] .launch) :is(.launch-desc,.launch-tags,.launch-info,.launch-key,.launch-title>small){display:none}
+:is(.launch[data-size="small"],.launch-grid[data-size="small"] .launch,.launch[data-size="large"],.launch-grid[data-size="large"] .launch) .launch-state{font-size:0;gap:0}
+/* Search: filter the page, Enter searches the web. Hotkey in mono on the right; while typing,
+   .engine names where Enter goes. .search-empty says nothing matched */
+.search{position:relative;display:flex;align-items:center;flex:1 1 16rem;min-width:0;margin:0}
+.search::before{content:"›";position:absolute;left:.75rem;font-family:var(--font-mono);font-size:1rem;line-height:1;color:var(--cyan);pointer-events:none}
+.search>input{flex:1;min-width:0;margin:0;padding-left:1.8rem;padding-right:3.2rem}
+.search>:is(kbd,.engine){position:absolute;right:.55rem;pointer-events:none}
+.search>.engine{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);opacity:0}
+.search:focus-within>kbd,.search:has(>input:not(:placeholder-shown))>kbd{opacity:0}
+.search:has(>input:not(:placeholder-shown))>.engine{opacity:1}
+.search-empty{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.06em;color:var(--fg3)}
+/* Clock and weather: compact head widgets. Time and temperature in Rajdhani with tabular digits,
+   place and date in mono. A .clock face in a .clock-zone sits left of the text */
+.clock-zones{display:flex;flex-wrap:wrap;gap:.6rem 1.6rem}
+.clock-zone{display:flex;flex-wrap:wrap;align-items:baseline;align-content:flex-start;gap:0 .5rem;min-width:0}
+.clock-zone>*{white-space:nowrap}
+.clock-zone>strong,.weather>b{font-family:var(--font-heading);font-weight:700;font-size:1.4rem;line-height:1.1;letter-spacing:.02em;color:var(--fg0);font-variant-numeric:tabular-nums}
+.clock-zone>:is(small,span),.weather>small{font-family:var(--font-mono);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3)}
+.clock-zone:has(>.clock){display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:.8rem}
+.clock-zone>.clock{--size:4.2rem;grid-row:span 3}
+.weather{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 .5rem;min-width:0}
+.weather>:is(img,svg){align-self:center;width:1.5rem;height:1.5rem}
+.weather>span{font-size:.85rem;color:var(--fg1)}
+.weather-days{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:.25rem .9rem;margin:.6rem 0 0;padding:0;list-style:none;font-size:.8rem;color:var(--fg2)}
+.weather-days>li{display:contents}
+.weather-days>li>:first-child{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3)}
+.weather-days>li>:nth-child(2){font-family:var(--font-mono);color:var(--fg0);font-variant-numeric:tabular-nums}
+.weather-days>li>:nth-child(3){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rain-cols{display:flex;align-items:flex-end;gap:1px;height:1rem}
+.rain-cols>i{flex:1;height:var(--h,0%);min-height:1px;background:var(--cyan-n)}
+/* Chart legend marks: last period (dashed outline), goal (dashed line), a highlighted window (e.g. the
+   cheapest window), now (dashed upright). In the chart: .window, .now, and .bar-value above a bar
+   (.is-in: inside it, on the series colour) */
+.legend i.prev{background:none;border:1px dashed var(--c,var(--fg3))}
+.legend i.goal{width:14px;height:0;vertical-align:3px;background:none;border-top:2px dashed var(--yellow)}
+.legend i.goal.is-danger{border-top-color:var(--danger)}
+.legend i.window{background:color-mix(in srgb,var(--c,var(--aqua)) 40%,transparent)}
+.legend i.now{width:0;margin-inline:4px calc(.4rem + 4px);background:none;border-left:2px dashed var(--fg0)}
+.chart .window{fill:color-mix(in srgb,var(--c,var(--aqua)) 22%,transparent);stroke:none}
+.chart .now{stroke:var(--fg0);stroke-width:1;stroke-dasharray:3 3}
+.chart .bar-value{fill:var(--fg1);font-weight:500;letter-spacing:0;text-anchor:middle;font-variant-numeric:tabular-nums}
+.chart .bar-value.is-in{fill:var(--on-state)}
+/* Drop zone: a tray that takes dragged items (tiles, files). .hint shows while it is empty;
+   .is-armed while a drag is under way, .is-over while the item hovers it (like .drop) */
+.dropzone{display:flex;flex-wrap:wrap;align-content:flex-start;gap:.6rem;min-height:4.5rem;padding:.8rem;background:var(--bg-hard);border:2px dashed var(--bg2)}
+.dropzone>.hint{flex:1 1 100%;align-self:center;text-align:center;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3)}
+.dropzone>.hint:not(:only-child){display:none}
+.dropzone:has(>.hint:only-child){align-content:center}
+.dropzone.is-armed{border-color:var(--cyan-n)}
+.dropzone.is-over{border-color:var(--cyan);background:var(--cyan-tint)}
+.dropzone.is-over>.hint{color:var(--cyan)}
+@media(max-width:640px){
+  .launch-grid[style*="--cols"]{grid-template-columns:repeat(auto-fill,minmax(min(var(--tile),100%),1fr))}
+  .search>kbd{display:none}
+}
 
 /* ── Kante Light (apps, <html data-kante="light">) ─────────────────────
    Kante shapes on the platform look: controls get the system font, normal
