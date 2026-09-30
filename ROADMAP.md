@@ -540,16 +540,14 @@ Das Dashboard ist eine **App** im Sinne des Design Systems und nutzt daher die A
 
 Nicht im Einsatz, weil Andon eigene Strukturen hat: `.nav`/`.foot` (Andon: `.app-nav`), `.field` (Beschriftungen stehen ohne Wrapper), `.scrim`, `.range`, `.tabs`, `.tile`/`.feat` (Kacheln entstehen per htmx nach dem Laden und würden von den Einblend-Effekten versteckt bleiben).
 
-**Andon-Bausteine (in diesem Repo, `internal/web/static/andon.css`; fehlen in Kante und gehören nach Kante, siehe Pull-Request „Missing in Kante“)**
+**Andon-Bausteine (in diesem Repo, `internal/web/static/andon.css`; fehlen in Kante)**
 
 | Komponente | Zweck |
 |---|---|
-| `.launch` | Link-Kachel: Icon, Titel, Beschreibung, Statuspunkt (mit Text/Tooltip), Infozeile, Hinweis-Zähler; Größen `small`, `medium`, `large` |
-| `.launch-grid` | Raster für Kacheln eines Abschnitts, Spaltenzahl aus `cols` |
-| `.search` | Suchfeld für Filter und Websuche, Hotkey-Hinweis in Mono |
-| `.clock-zone`, `.weather` | Kompakte Kopf-Widgets (Rajdhani, tabellarische Ziffern); das Zifferblatt ist Kante `.clock` |
-| `.dropzone` | Ablagefläche beim Ziehen |
-| Legendenmarken `i.prev`, `i.goal`, `i.cheap`, `i.now`, `.bar-value` | Vorjahr gestrichelt, Ziellinie, günstiges Fenster, Jetzt-Linie, Werte über Balken |
+| `.launch-items` | Unterlinks unter einer Link-Kachel |
+| `.uptime` | 30-Tage-Erreichbarkeit als Tagesstreifen in der Link-Kachel |
+
+Alles andere (Link-Kachel `.launch`, Suche, Uhr, Wetter, Ablagefläche, Diagramm-Legenden) kommt aus Kante 1.9.
 
 Die Komponenten nutzen ausschließlich Theme-Tokens (`var(--…)`), keine eigenen Hex-Werte (per Stylelint geprüft). Nur so funktionieren sie mit jedem Theme. Ob sie später ins Design System wandern, ist eine eigene Entscheidung außerhalb dieses Projekts.
 
