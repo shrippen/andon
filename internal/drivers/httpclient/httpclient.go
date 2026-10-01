@@ -15,12 +15,15 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -47,6 +50,61 @@ type Guard func(host string, addrs []net.IP) bool
 
 var guard atomic.Pointer[Guard]
 
+// lookupIP resolves a host; a var so tests can count or slow lookups.
+var lookupIP = net.DefaultResolver.LookupIP
+
+// resolved caches lookups: host → dnsEntry.
+var resolved sync.Map
+
+// lookups joins concurrent lookups of one host.
+var lookups singleflight.Group
+
+// dnsTTL keeps an answer: a burst of status checks (guard, dial, every
+// redirect hop) asks the resolver once per host instead of hundreds of
+// times, which a small resolver answers with dropped packets and 5 s
+// client timeouts.
+const dnsTTL = time.Minute
+
+// dnsEntry is one cached answer.
+type dnsEntry struct {
+	ips   []net.IP
+	until time.Time
+}
+
+// resolve looks host up through the cache. A miss is reported to the
+// caller's httptrace (DNSStart/DNSDone) including any wait for a joined
+// lookup, so a timing caller can leave DNS out:
+//
+//	cache hit ─────────────────────────────► ips
+//	miss ─► DNSStart ─► singleflight(lookupIP) ─► DNSDone ─► cache ─► ips
+func resolve(ctx context.Context, host string) ([]net.IP, error) {
+	if e, ok := resolved.Load(host); ok && time.Now().Before(e.(dnsEntry).until) {
+		return e.(dnsEntry).ips, nil
+	}
+
+	trace := httptrace.ContextClientTrace(ctx)
+	if trace != nil && trace.DNSStart != nil {
+		trace.DNSStart(httptrace.DNSStartInfo{Host: host})
+	}
+
+	// Detached: one caller giving up must not fail the others joined.
+	out, err, _ := lookups.Do(host, func() (any, error) {
+		lookupCtx, cancel := context.WithTimeout(context.Background(), ConnectTimeout)
+		defer cancel()
+		return lookupIP(lookupCtx, "ip", host)
+	})
+	ips, _ := out.([]net.IP)
+	if trace != nil && trace.DNSDone != nil {
+		trace.DNSDone(httptrace.DNSDoneInfo{Err: err})
+	}
+	if err != nil || len(ips) == 0 {
+		return nil, err
+	}
+
+	resolved.Store(host, dnsEntry{ips: ips, until: time.Now().Add(dnsTTL)})
+	return ips, nil
+}
+
 // SetGuard installs the process-wide egress guard, or nil to allow all.
 // Safe while requests run: the admin changes the policy at any time.
 func SetGuard(g Guard) {
@@ -67,7 +125,7 @@ func currentGuard() Guard {
 // checkGuard rejects a URL early, before any connection. The binding
 // check happens again at dial time (dialGuarded), on the address
 // actually connected to.
-func checkGuard(rawURL string) error {
+func checkGuard(ctx context.Context, rawURL string) error {
 	g := currentGuard()
 	if g == nil {
 		return nil
@@ -76,7 +134,7 @@ func checkGuard(rawURL string) error {
 	if err != nil {
 		return HttpError{"bad url"}
 	}
-	addrs, err := net.LookupIP(u.Hostname())
+	addrs, err := resolve(ctx, u.Hostname())
 	if err != nil {
 		return HttpError{"dns: " + u.Hostname()}
 	}
@@ -103,7 +161,7 @@ func Dial(ctx context.Context, network, addr string) (net.Conn, error) {
 	if err != nil {
 		return nil, HttpError{"bad host"}
 	}
-	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+	ips, err := resolve(ctx, host)
 	if err != nil || len(ips) == 0 {
 		return nil, HttpError{"dns: " + host}
 	}
@@ -144,7 +202,7 @@ type proxyGuard struct{ base *http.Transport }
 
 func (p proxyGuard) RoundTrip(req *http.Request) (*http.Response, error) {
 	if proxy, err := p.base.Proxy(req); err == nil && proxy != nil {
-		if err := checkGuard(req.URL.String()); err != nil {
+		if err := checkGuard(req.Context(), req.URL.String()); err != nil {
 			return nil, err
 		}
 	}
@@ -180,7 +238,7 @@ type Options struct {
 // Request performs one guarded HTTP call and returns the raw response. The
 // caller must close resp.Body.
 func Request(ctx context.Context, method, rawURL string, opts Options) (*http.Response, error) {
-	if err := checkGuard(rawURL); err != nil {
+	if err := checkGuard(ctx, rawURL); err != nil {
 		return nil, err
 	}
 
@@ -356,7 +414,7 @@ func PeerCert(ctx context.Context, hostPort string) (*x509.Certificate, error) {
 	if err != nil {
 		return nil, HttpError{"bad host"}
 	}
-	if err := checkGuard("https://" + hostPort); err != nil {
+	if err := checkGuard(ctx, "https://"+hostPort); err != nil {
 		return nil, err
 	}
 
@@ -406,5 +464,5 @@ func ClientTLS(timeout time.Duration, mode TLS) *http.Client {
 
 // CheckHost applies the egress guard to a non-HTTP connection (IMAP).
 func CheckHost(host string) error {
-	return checkGuard("https://" + host)
+	return checkGuard(context.Background(), "https://"+host)
 }
