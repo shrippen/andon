@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"log/slog"
 	"math"
+	"math/rand/v2"
 	"net/http"
 	"strconv"
 	"strings"
@@ -63,6 +64,8 @@ func mustParse() *template.Template {
 		// so unlike the above they're the real implementation, not a
 		// placeholder.
 		"barPct":      barPct,
+		"every":       every,
+		"launchEvery": func() string { return every(launchRefreshS) },
 		"abs":         math.Abs,
 		"thousands":   func(v float64) float64 { return v / 1000 },
 		"sparkOf":     widgets.SparkOf,
@@ -478,4 +481,23 @@ func monogram(title string) string {
 		return "?"
 	}
 	return strings.ToUpper(string(letters))
+}
+
+// refreshShare: a tile polls every seconds ± seconds/refreshShare/2;
+// launchRefreshS is a link tile's poll.
+const (
+	refreshShare   = 10
+	launchRefreshS = 300
+)
+
+// every is a tile's htmx poll trigger with a period picked at random
+// per render, so a board's tiles drift apart instead of reaching the
+// server, and through it the services, all in the same second:
+//
+//	300 → "every 286s" … "every 314s"
+func every(seconds int) string {
+	if spread := seconds / refreshShare; spread > 0 {
+		seconds += rand.IntN(spread) - spread/2
+	}
+	return "every " + strconv.Itoa(seconds) + "s"
 }

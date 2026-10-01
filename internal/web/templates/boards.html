@@ -293,9 +293,9 @@
         {{with $c.Tags}}<small class="launch-tags">{{range .}}<span>#{{.}}</span>{{end}}</small>{{end}}
         {{if or (ne (print $c.Status) "off") $c.InfoConn}}
         {{with index $b.Bodies .PlacementID}}
-        <span class="launch-live" hx-get="{{$frag}}" hx-trigger="{{if .Load}}load, {{end}}wake, every 300s" hx-swap="innerHTML">{{fragment .}}</span>
+        <span class="launch-live" hx-get="{{$frag}}" hx-trigger="{{if .Load}}load, {{end}}wake, {{launchEvery}}" hx-swap="innerHTML">{{fragment .}}</span>
         {{else}}
-        <span class="launch-live" hx-get="{{$frag}}" hx-trigger="load, wake, every 300s" hx-swap="innerHTML"></span>
+        <span class="launch-live" hx-get="{{$frag}}" hx-trigger="load, wake, {{launchEvery}}" hx-swap="innerHTML"></span>
         {{end}}
         {{end}}
       </span>
@@ -311,11 +311,11 @@
       {{template "card_head" dict "Title" .Title "Frame" .Frame "Icon" .FrameIcon}}
       {{with index $b.Bodies .PlacementID}}
       {{/* Rendered with the page; htmx only refreshes. */}}
-      {{$every := ""}}{{if $.T.RefreshS}}{{$every = print "every " $.T.RefreshS "s"}}{{end}}
+      {{$every := ""}}{{if $.T.RefreshS}}{{$every = every $.T.RefreshS}}{{end}}
       {{$trigger := "retry, wake"}}{{if .Load}}{{$trigger = "load, retry, wake"}}{{end}}{{with $every}}{{$trigger = print $trigger ", " .}}{{end}}
       <div class="card-body" hx-get="{{$frag}}" hx-trigger="{{$trigger}}" hx-swap="innerHTML">{{fragment .}}</div>
       {{else}}
-      <div class="card-body" hx-get="{{$frag}}" hx-trigger="load, retry, wake{{if .RefreshS}}, every {{.RefreshS}}s{{end}}" hx-swap="innerHTML">
+      <div class="card-body" hx-get="{{$frag}}" hx-trigger="load, retry, wake{{if .RefreshS}}, {{every .RefreshS}}{{end}}" hx-swap="innerHTML">
         <span class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{t "widget.loading"}}</span>
       </div>
       {{end}}
