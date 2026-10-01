@@ -798,6 +798,10 @@ Jede Quelle liefert einen gecachten Datensatz (`<dienst>.data`), Regeln, eine In
 - [x] Borg Backup Server: Clients offline/Fehler, fehlgeschlagene Jobs, Alter des letzten Backups, Speicher, Updates
 - [x] PG Back Web (keine Lese-API): signierte Webhook-URL je Verbindung; fehlgeschlagene/veraltete Backups, nicht erreichbare Datenbanken/Ziele, ausbleibende Webhooks
 - [ ] Obsidian – zurückgestellt, bis ein konkreter Nutzen feststeht (Wege zum Lesen des Vaults unten)
+- [ ] Obsidian: Doku-Abgleich Compose ↔ Notizen, nur lesend. Hansei erzeugt die Notizen aus den `compose.yaml`
+  (siehe Hansei-Roadmap, „Compose → Doku“), andon schreibt nie. Regeln: Dienst ohne Notiz, Notiz mit anderem
+  Image-Tag oder Port als im Compose-Repo, Notiz zu einem entfernten Dienst. Liest Vault und Compose-Repos über die
+  Gitea-Verbindung (Contents-API)
 - [x] Docker *(über einen Socket-Proxy, der nur Container zeigt; Regeln `docker.unhealthy`, `docker.crashed`, Kachel „Container“, Container ohne Kachel)*
 
 ### Phase 11: Dashy-Abgleich und weitere Integrationen
