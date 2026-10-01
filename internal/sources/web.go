@@ -6,11 +6,13 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"andon/internal/drivers/httpclient"
@@ -59,6 +61,37 @@ func (r *HTTPStatusResult) Outcome() (bool, int) {
 
 var HTTPStatusSource = source{key: "http_status", ttl: httpStatusTTL, fetch: fetchHTTPStatus}
 
+// serviceTimer measures a request without its DNS waits, which belong
+// to the resolver, not the service:
+//
+//	total 5,3 s = DNS 5,1 s (dropped packet, retry) + service 0,2 s → 0,2 s
+//
+// Every lookup (each redirect hop has one) is subtracted.
+func serviceTimer(ctx context.Context) (context.Context, func() time.Duration) {
+	var mu sync.Mutex
+	var dnsStart time.Time
+	var dns time.Duration
+	started := time.Now()
+
+	traced := httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+		DNSStart: func(httptrace.DNSStartInfo) {
+			mu.Lock()
+			dnsStart = time.Now()
+			mu.Unlock()
+		},
+		DNSDone: func(httptrace.DNSDoneInfo) {
+			mu.Lock()
+			dns += time.Since(dnsStart)
+			mu.Unlock()
+		},
+	})
+	return traced, func() time.Duration {
+		mu.Lock()
+		defer mu.Unlock()
+		return time.Since(started) - dns
+	}
+}
+
 // Fetch checks a URL's reachability. A failed check is data, not an error
 // — the widget shows "down", it doesn't fail to load.
 func fetchHTTPStatus(ctx context.Context, sctx Ctx) (any, error) {
@@ -86,7 +119,7 @@ func fetchHTTPStatus(ctx context.Context, sctx Ctx) (any, error) {
 	if s := asFloat(sctx.Params["timeout"]); s > 0 {
 		opts.Timeout = time.Duration(s * float64(time.Second))
 	}
-	started := time.Now()
+	ctx, took := serviceTimer(ctx)
 	resp, err := httpclient.Request(ctx, method, target, opts)
 	if err != nil {
 		msg := "egress"
@@ -98,7 +131,7 @@ func fetchHTTPStatus(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	defer resp.Body.Close()
 
-	ms := int(time.Since(started).Milliseconds())
+	ms := int(took().Milliseconds())
 	code := resp.StatusCode
 	// accept adds codes to 2xx/3xx, e.g. 401 for a login wall (Dashy's
 	// statusCheckAcceptCodes means the same).

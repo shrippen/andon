@@ -12,6 +12,7 @@ package scheduler
 import (
 	"context"
 	"log/slog"
+	"math/rand/v2"
 	"slices"
 	"strings"
 	"sync"
@@ -91,10 +92,10 @@ func Runs() []NamedRun {
 	return out
 }
 
-// Start runs every job on its own ticker until ctx is cancelled. Each job
-// gets its own goroutine and runs strictly one tick at a time (a slow run
-// coalesces any ticks queued behind it — time.Ticker only buffers one); a
-// panicking or erroring job is logged and never stops the others.
+// Start runs every job on its own timer until ctx is cancelled. Each job
+// gets its own goroutine and runs strictly one at a time (the next wait,
+// interval ± jitter, starts after a run ends); a panicking or erroring
+// job is logged and never stops the others.
 //
 // The returned wait blocks until every job has stopped after ctx ends,
 // so a running job finishes before the database closes.
@@ -120,8 +121,8 @@ func jobNames(jobs []Job) []string {
 }
 
 func runJob(ctx context.Context, job Job, kick <-chan struct{}) {
-	ticker := time.NewTicker(job.Interval)
-	defer ticker.Stop()
+	timer := time.NewTimer(nextWait(job.Interval))
+	defer timer.Stop()
 	if job.Start == AtStart {
 		safeRun(ctx, job)
 	}
@@ -130,12 +131,28 @@ func runJob(ctx context.Context, job Job, kick <-chan struct{}) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
+		case <-timer.C:
 			safeRun(ctx, job)
+			timer.Reset(nextWait(job.Interval))
 		case <-kick:
 			safeRun(ctx, job)
 		}
 	}
+}
+
+// jitterShare: a run waits interval ± interval/jitterShare/2.
+const jitterShare = 10
+
+// nextWait is the pause before a job's next run, spread at random so
+// jobs started together drift apart instead of probing in one burst:
+//
+//	10 min → 9:30 … 10:30
+func nextWait(interval time.Duration) time.Duration {
+	spread := interval / jitterShare
+	if spread <= 0 {
+		return interval
+	}
+	return interval - spread/2 + rand.N(spread)
 }
 
 func safeRun(ctx context.Context, job Job) {
