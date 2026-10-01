@@ -436,7 +436,8 @@ label.pick-check { margin: 0 .3rem; }
 .hint-card .actions form { margin: 0; }
 .hint-card .actions .btn { margin: 0; }
 .hint-filters { display: flex; flex-direction: column; gap: .5rem; margin: 1rem 0 1.4rem; }
-.chip span { opacity: .75; }
+/* The count is dimmed, except on tier chips: there it carries the tier colour and must keep 4.5:1. */
+.chip:not([data-tier]) span { opacity: .75; }
 .hint-rule { margin-bottom: 1.2rem; }
 .hint-rule .hint-group-head { font-size: 1rem; margin-bottom: .5rem; }
 .hint-rule[data-tier="red"] .sq { background: var(--red); }

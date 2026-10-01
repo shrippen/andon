@@ -50,6 +50,8 @@
   display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:3rem;align-items:end;
   position:relative}
 .hero>*{position:relative;z-index:1}
+/* The watermark bleeds right; clip it at the hero so the page never scrolls sideways. */
+.hero:has(>.hero-wm){overflow-x:clip}
 /* Watermark: the monochrome logo, huge and faint behind the hero. Scrolls with the page (not fixed).
    It may bleed below a short hero; the content after the hero (main, footer) paints above it. */
 main,.foot{position:relative;z-index:1}
@@ -404,6 +406,8 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 .seg{display:inline-flex;border:1px solid var(--bg2);flex-wrap:wrap}
 .seg button{background:none;border:0;min-height:calc(var(--h-m) - 2px);padding:0 .9rem;font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;color:var(--fg3);cursor:pointer}
 .seg button:hover{color:var(--fg0)}.seg button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary)}
+/* .seg-fill: segments share the full width in one row (narrow side panels); a label that does not fit ends in … */
+.seg.seg-fill{display:flex;flex-wrap:nowrap}.seg-fill button{flex:1 1 auto;min-width:0;padding:0 .5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .range{--zones:var(--bg2);display:flex;flex-direction:column;gap:.4rem}
 .range-row{display:flex;align-items:center;gap:.9rem}
 .range input{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:22px;background:transparent;cursor:pointer}
@@ -790,8 +794,11 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:.8rem}
 .delta{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--font-mono);font-size:.7rem;letter-spacing:.06em;font-variant-numeric:tabular-nums;color:var(--fg3)}
 .delta::before{content:"";width:8px;height:2px;background:currentColor}
-.delta.up{color:var(--aqua)}.delta.up::before{width:0;height:0;background:none;border:5px solid transparent;border-bottom:8px solid var(--aqua);border-top:0}
-.delta.dn{color:var(--red)}.delta.dn::before{width:0;height:0;background:none;border:5px solid transparent;border-top:8px solid var(--red);border-bottom:0}
+.delta.up{color:var(--aqua)}.delta.up::before{width:0;height:0;background:none;border:5px solid transparent;border-bottom:8px solid currentColor;border-top:0}
+.delta.dn{color:var(--red)}.delta.dn::before{width:0;height:0;background:none;border:5px solid transparent;border-top:8px solid currentColor;border-bottom:0}
+/* Polarity: data-good="down" where falling is good (costs, errors: up red, down green); "none" = arrow only, no judgement */
+.delta[data-good="down"].up{color:var(--red)}.delta[data-good="down"].dn{color:var(--aqua)}
+.delta[data-good="none"]:is(.up,.dn){color:var(--fg2)}
 /* Bulk bar: appears when something is selected; cyan bar because selection is cyan */
 .bulk-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem;background:var(--bg1);border-top:3px solid var(--cyan);padding:.5rem .8rem;
   clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
@@ -897,8 +904,9 @@ a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;
   font-family:var(--font-heading);font-weight:700;font-size:1.08rem;letter-spacing:.03em;text-transform:uppercase;color:var(--fg0)}
 .fold>summary::-webkit-details-marker{display:none}
 .fold>summary::before{content:"";flex:none;align-self:center;width:10px;height:10px;background:var(--fg3);clip-path:polygon(0 0,60% 0,100% 40%,100% 100%,0 100%);transform:rotate(-90deg)}
+.fold:not([open])>summary::before{background:none;box-shadow:inset 0 0 0 2px var(--fg3)}
 .fold[open]>summary::before{background:var(--cyan);transform:none}
-.fold>summary:hover::before{background:var(--fg0)}
+.fold:not([open])>summary:hover::before{box-shadow:inset 0 0 0 2px var(--fg0)}
 .fold[open]>summary:hover::before{background:var(--cyan)}
 .fold>summary:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
 .fold>summary>.count{align-self:center;min-width:0;height:auto;padding:0;background:none;color:var(--fg3);font-weight:400}
@@ -944,6 +952,7 @@ a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;
 .hint-card .tier{display:inline-flex;align-items:center;gap:.4rem;color:var(--tier)}
 .hint-card .tier::before{content:"";width:10px;height:10px;background:currentColor}
 .hint-card[data-tier="red"] .tier::before{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.hint-card[data-tier="red"] .tier{color:var(--danger-text)}
 .hint-card[data-tier="yellow"] .tier::before{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
 .hint-card[data-tier="green"] .tier::before{clip-path:polygon(0 55%,20% 35%,40% 55%,85% 5%,100% 25%,40% 95%)}
 .hint-card>.title{color:var(--fg0);font-weight:600;font-size:.92rem;line-height:1.35}
@@ -1100,6 +1109,7 @@ a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
    tier of what they filter: data-tier="critical" red, "warn" orange */
 a.chip,a.chip:hover{text-decoration:none}
 .chip.is-filter[data-tier="critical"]{--c:var(--danger)}
+.chip.is-filter[data-tier="critical"]:not([aria-pressed="true"]){color:var(--danger-text)}
 .chip.is-filter[data-tier="warn"]{--c:var(--warn)}
 /* Charts drawn with preserveAspectRatio="none" (stretched to the card): lines keep their width.
    The spark end mark as a zero-length path <path class="end" d="M x y h0"> stays square.
@@ -1170,12 +1180,16 @@ input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:
 .launch-state[data-state="warn"]{--k:var(--warn)}.launch-state[data-state="bad"]{--k:var(--danger);color:var(--danger)}.launch-state[data-state="off"]{--k:var(--bg2);color:var(--fg3)}
 .launch-info.is-error{color:var(--danger)}
 /* Hint count: outlined in the tier colour; red is filled, so the shape tells the tier too */
-.launch-hints{--k:var(--info);display:inline-grid;place-items:center;min-width:1.25rem;height:1.1rem;margin:0;padding:0 .3rem;background:none;border:1px solid var(--k);color:var(--k);
+.launch-hints{--k:var(--info);display:inline-flex;align-items:center;justify-content:center;gap:.2rem;min-width:1.25rem;height:1.1rem;margin:0;padding:0 .3rem;background:none;border:1px solid var(--k);color:var(--k);
   font-family:var(--font-mono);font-weight:500;font-size:.62rem;font-variant-numeric:tabular-nums;text-decoration:none;cursor:pointer}
 .launch-hints[data-tier="yellow"]{--k:var(--warn)}
 .launch-hints[data-tier="red"]{--k:var(--danger);background:var(--danger);color:var(--on-state)}
 .launch-hints:hover{background:var(--tint-2)}.launch-hints[data-tier="red"]:hover{background:var(--danger)}
 .launch-hints:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+/* Tier by shape as well as colour (as in .hint-card .tier): square info, diamond warning, triangle critical. */
+.launch-hints::before{content:"";flex:none;width:6px;height:6px;background:currentColor}
+.launch-hints[data-tier="yellow"]::before{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.launch-hints[data-tier="red"]::before{clip-path:polygon(50% 0,100% 100%,0 100%)}
 .launch-key{align-self:flex-start;font-size:.62rem}
 /* small: one line, the state as a square only (the word stays for screen readers) */
 :is(.launch[data-size="small"],.launch-grid[data-size="small"] .launch){--icon:1.5rem;gap:.55rem;min-height:var(--h-m);padding:.3rem .6rem .3rem .45rem;border-top-width:2px}

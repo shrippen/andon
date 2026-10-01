@@ -36,6 +36,7 @@
   --cyan:     #5ccfc4;   /* technical layer: focus, links, data, brackets. Lines and text, never large fills */
   --cyan-tint: #1e2b2a;  /* ground of a selected row or a focused field */
   --yellow-hi: #fdc94a;  /* primary hover (one step lighter) */
+  --red-text: #ff7d6b;   /* red as small text: 4.5:1 on every dark ground, bg1 included */
   --yellow-lo: #e5a823;  /* primary pressed */
 
   /* ── Semantic colors (Gruvbox neutral — for quieter contexts) ── */
@@ -57,6 +58,7 @@
   --info:     var(--cyan);    /* info callouts and toasts, third feature tier */
   --warn:     var(--orange);  /* warnings: callout, banner, middle tier of states */
   --danger:   var(--red);     /* errors, destructive actions */
+  --danger-text: var(--red-text); /* error text, critical labels and counts (not fills) */
   --on-state: var(--bg-void); /* text on a filled state colour (danger button, counters) */
   --scrim:    rgba(20,19,18,.62); /* dimmed area behind dialogs and outside a crop */
   --primary:  var(--yellow);  /* primary action, pressed segment, switch on, focus ring */
@@ -150,6 +152,7 @@
   --purple:   #8f3f71;
   --cyan:     #0f6b66;   /* 5.2:1 on the ground */
   --cyan-tint: #d9ebe4;
+  --red-text: #9d0006;
 
   --field:    var(--bg1);
   --scrim:    rgba(40,40,40,.5);
