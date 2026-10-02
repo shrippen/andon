@@ -204,3 +204,11 @@ func dataDetail[C, D any](f func(cfg C, data D, ctx ViewCtx, results map[string]
 		return f(cfg, data, ctx, results)
 	}
 }
+
+// dayOf is a date as a typed value, "–" for none.
+func dayOf(t time.Time) any {
+	if t.IsZero() {
+		return "–"
+	}
+	return Day(t)
+}

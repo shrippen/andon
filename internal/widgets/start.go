@@ -606,7 +606,7 @@ func init() {
 		Decode: decodeSysinfo, View: sysinfoView,
 		Queries: func(SysinfoConfig) []Query { return []Query{{Name: "stats", Source: "glances", Conn: ConnWidget}} }}.add()
 
-	Tile[PublicIPConfig]{Key: "public_ip", Category: CategoryStart, Topic: TopicNetwork, RefreshS: 60 * 60, Extra: ExtraIPWatch,
+	Tile[PublicIPConfig]{Key: "public_ip", Detail: publicIPDetail, Category: CategoryStart, Topic: TopicNetwork, RefreshS: 60 * 60, Extra: ExtraIPWatch,
 		Fields: []Field{{Key: "ipv6", Input: InputCheck}, {Key: "watch", Input: InputCheck}},
 		Decode: decodePublicIP, View: publicIPView, Queries: func(cfg PublicIPConfig) []Query {
 			return []Query{{Name: "ip", Source: "public_ip", Params: map[string]any{"v6": cfg.V6}}}

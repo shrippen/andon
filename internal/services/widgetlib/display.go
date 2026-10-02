@@ -441,12 +441,15 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		}
 	}
 	frag.results, frag.viewCtx = results, viewCtx
+	// Hints of the tile's own service; a tile without one (backups, costs)
+	// reads others, so theirs.
 	if kind.Service != "" {
-		frag.services = append(frag.services, string(kind.Service))
-	}
-	for _, q := range kind.Queries(cfg) {
-		if q.Conn == widgets.ConnPeer {
-			frag.services = append(frag.services, string(q.Service))
+		frag.services = []string{string(kind.Service)}
+	} else {
+		for _, q := range kind.Queries(cfg) {
+			if q.Conn == widgets.ConnPeer {
+				frag.services = append(frag.services, string(q.Service))
+			}
 		}
 	}
 	if kind.View != nil {

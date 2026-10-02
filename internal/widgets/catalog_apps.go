@@ -318,7 +318,7 @@ type AuthentikConfig struct {
 }
 
 func init() {
-	Tile[AuthentikConfig]{Key: "authentik_logins", Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceAuthentik, RefreshS: 15 * 60,
+	Tile[AuthentikConfig]{Key: "authentik_logins", Detail: dataDetail(authentikDetail), Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceAuthentik, RefreshS: 15 * 60,
 		Fields:  []Field{sel("period", "7d", "24h", "7d"), {Key: "only_problems", Input: InputCheck}},
 		Renames: []rename{{from: "only_failures", to: "only_problems"}, {from: "span", to: "period"}},
 		Decode: func(r Raw) AuthentikConfig {
@@ -353,7 +353,7 @@ func authentikView(cfg AuthentikConfig, data *sources.AuthentikDataset, _ ViewCt
 type VaultConfig struct{ List bool }
 
 func init() {
-	Tile[VaultConfig]{Key: "vaultwarden_2fa", Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceVaultwarden, RefreshS: 60 * 60,
+	Tile[VaultConfig]{Key: "vaultwarden_2fa", Detail: dataDetail(vaultDetail), Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceVaultwarden, RefreshS: 60 * 60,
 		Fields:  []Field{{Key: "list_without", Input: InputCheck, Default: true}},
 		Decode:  func(r Raw) VaultConfig { return VaultConfig{List: r.Bool("list_without")} },
 		Queries: ownData[VaultConfig], View: dataView(vaultwardenView)}.add()

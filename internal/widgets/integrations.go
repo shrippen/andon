@@ -312,7 +312,7 @@ func init() {
 		Fields: []Field{sel("min_level", "minor", "minor", "moderate", "severe", "extreme")},
 		Decode: decodeDWD, Queries: ownData[DWDConfig], View: dataView(dwdView)}.add()
 
-	Tile[TailscaleConfig]{Key: "tailscale", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceTailscale, RefreshS: integrationTTL,
+	Tile[TailscaleConfig]{Key: "tailscale", Detail: dataDetail(tailscaleDetail), Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceTailscale, RefreshS: integrationTTL,
 		Fields: []Field{{Key: "only_problems", Input: InputCheck}, {Key: "hide_after", Input: InputNumber, Default: 0, Min: "0", Max: "3650"},
 			{Key: "tags", Input: InputList}},
 		Renames: []rename{{from: "only_trouble", to: "only_problems"}},

@@ -27,7 +27,7 @@ const dnsTop = 5
 
 func init() {
 	for key, service := range map[string]enums.ServiceType{"pihole": enums.ServicePihole, "adguard": enums.ServiceAdGuard} {
-		Tile[DNSConfig]{Key: key, Category: CategoryInsight, Topic: TopicNetwork, Service: service, RefreshS: 5 * 60,
+		Tile[DNSConfig]{Key: key, Detail: dataDetail(dnsDetail), Category: CategoryInsight, Topic: TopicNetwork, Service: service, RefreshS: 5 * 60,
 			Fields: []Field{{Key: "top_clients", Input: InputCheck}, {Key: "top_domains", Input: InputCheck}},
 			Decode: decodeDNS, Queries: ownData[DNSConfig], View: dataView(dnsFilterView)}.add()
 	}
@@ -51,7 +51,7 @@ func dnsFilterView(cfg DNSConfig, data *sources.DNSFilterDataset, _ ViewCtx) map
 type VPNConfig struct{ Country string }
 
 func init() {
-	Tile[VPNConfig]{Key: "vpn", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceGluetun, RefreshS: 5 * 60,
+	Tile[VPNConfig]{Key: "vpn", Detail: dataDetail(vpnDetail), Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceGluetun, RefreshS: 5 * 60,
 		Fields: []Field{{Key: "expected_country", Input: InputText}},
 		Decode: func(r Raw) VPNConfig {
 			return VPNConfig{Country: strings.TrimSpace(r.String("expected_country"))}
@@ -88,7 +88,7 @@ type GatewayConfig struct {
 }
 
 func init() {
-	Tile[GatewayConfig]{Key: "gateway", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceGateway, RefreshS: 5 * 60,
+	Tile[GatewayConfig]{Key: "gateway", Detail: dataDetail(gatewayDetail), Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceGateway, RefreshS: 5 * 60,
 		Fields: []Field{{Key: "hide_measures", Input: InputCheck}, {Key: "device_list", Input: InputCheck}},
 		Decode: func(r Raw) GatewayConfig {
 			return GatewayConfig{HideMeasures: r.Bool("hide_measures"), DeviceList: r.Bool("device_list")}
@@ -180,7 +180,7 @@ func decodeExpiry(r Raw) ExpiryConfig {
 }
 
 func init() {
-	Tile[ExpiryConfig]{Key: "expiry", Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceCerts, RefreshS: 60 * 60,
+	Tile[ExpiryConfig]{Key: "expiry", Detail: expiryDetail, Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceCerts, RefreshS: 60 * 60,
 		Fields: []Field{{Key: "max_days", Input: InputNumber, Min: "0", Max: "3650"}, sel("kinds", expiryBoth, expiryBoth, "certs", "domains")},
 		Decode: decodeExpiry, View: expiryView,
 		Queries: func(ExpiryConfig) []Query {
@@ -235,7 +235,7 @@ func expiryView(cfg ExpiryConfig, results map[string]any, ctx ViewCtx) map[strin
 type SpeedHistoryConfig struct{ Days int }
 
 func init() {
-	Tile[SpeedHistoryConfig]{Key: "speed_history", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest,
+	Tile[SpeedHistoryConfig]{Key: "speed_history", Detail: speedHistoryDetail, Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest,
 		RefreshS: 60 * 60, Extra: ExtraHistory,
 		Fields:  []Field{{Key: "days", Input: InputNumber, Default: speedDays, Min: "2", Max: "90"}},
 		Decode:  func(r Raw) SpeedHistoryConfig { return SpeedHistoryConfig{Days: r.Int("days")} },
