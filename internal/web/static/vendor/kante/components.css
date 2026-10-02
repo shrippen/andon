@@ -737,6 +737,13 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .spark{display:block;width:100%;height:auto}
 .spark path{fill:none;stroke:var(--d4);stroke-width:1.6}
 .spark rect{fill:var(--d4)}
+/* Uptime strip: one SVG, one column per day, one path per state (ok, warn, bad, off), so a board
+   with a hundred strips lays out a hundred elements instead of thousands of flex items:
+   <svg class="uptime" viewBox="0 0 30 1" preserveAspectRatio="none" role="img" aria-label="…">
+   <path data-state="ok" d="M0 0h.7v1h-.7zM1 0h.7v1h-.7z"/><path data-state="bad" d="M2 0h.7v1h-.7z"/></svg> */
+.uptime{display:block;width:100%;max-width:8rem;height:.4rem}
+.uptime path{fill:var(--aqua)}
+.uptime path[data-state="warn"]{fill:var(--warn)}.uptime path[data-state="bad"]{fill:var(--danger)}.uptime path[data-state="off"]{fill:var(--bg2)}
 .legend{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2)}
 .legend i{display:inline-block;width:10px;height:10px;margin-right:.4rem;vertical-align:-1px;background:var(--c,var(--d1))}
 .heat{display:grid;gap:3px}
@@ -1315,6 +1322,63 @@ input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:
 
 /* ── Nav: the current page ── */
 .nav-links a[aria-current="page"]{color:var(--fg0);box-shadow:inset 0 -2px 0 var(--primary)}
+
+/* ── App bar for phones: the main pages of an app as a bar at the bottom (Leuchtfeuer).
+   .bottom-nav > a|button (icon + label), aria-current="page" marks the page; shown below 640px only,
+   the normal tabs stay for wider screens. A last item can open more pages (details.dropdown with a .menu). ── */
+.bottom-nav{display:none}
+@media(max-width:640px){
+  .bottom-nav{--safe-bottom:env(safe-area-inset-bottom,0px);position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:var(--bg-panel);border-top:2px solid var(--bg2);padding-bottom:var(--safe-bottom)}
+  .bottom-nav>:is(a,button,details){flex:1 1 0;min-width:0}
+  .bottom-nav :is(a,button,summary){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;width:100%;min-height:var(--h-l);padding:.35rem .2rem;background:none;border:0;color:var(--fg3);cursor:pointer;text-decoration:none;
+    font-family:var(--font-mono);font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;list-style:none}
+  .bottom-nav summary::-webkit-details-marker{display:none}
+  .bottom-nav svg{width:20px;height:20px;fill:none;stroke:currentColor}
+  .bottom-nav :is(a,button)[aria-current="page"]{color:var(--fg0);box-shadow:inset 0 2px 0 var(--primary)}
+  .bottom-nav :is(a,button,summary):focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+  .bottom-nav details.dropdown>.menu{top:auto;bottom:calc(100% + 4px);left:auto;right:0}
+  :root:has(.bottom-nav) body{padding-bottom:calc(var(--h-l) + 1rem + env(safe-area-inset-bottom,0px))}
+  :root:has(.bottom-nav) .toast-stack{bottom:calc(var(--h-l) + 1rem + var(--safe-bottom))}
+  :root:has(.bottom-nav) .editbar.is-fixed{bottom:calc(var(--h-l) + env(safe-area-inset-bottom,0px))}
+}
+
+/* ── Help: a small "?" beside a label that opens a short explanation (term, unit, where to find a value).
+   details.help > summary (the "?", aria-label) + .help-text. Opens on click or keyboard, closes on a second click. ── */
+details.help{position:relative;display:inline-block;vertical-align:middle;margin-left:.3rem;text-transform:none;letter-spacing:0}
+details.help>summary{display:inline-grid;place-items:center;width:18px;height:18px;border:1px solid var(--cyan);color:var(--cyan);font-family:var(--font-mono);font-size:.68rem;line-height:1;cursor:pointer;list-style:none}
+details.help>summary::-webkit-details-marker{display:none}
+details.help>summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+details.help[open]>summary{background:var(--cyan-tint)}
+details.help>.help-text{position:absolute;z-index:25;top:calc(100% + 6px);left:-.5rem;width:max-content;max-width:min(20rem,80vw);background:var(--bg-panel);border-top:3px solid var(--cyan);padding:.6rem .8rem;
+  font-family:var(--font-sans);font-size:.82rem;line-height:1.4;color:var(--fg1);border-inline:1px solid var(--bg2);border-bottom:1px solid var(--bg2)}
+details.help.is-right>.help-text{left:auto;right:-.5rem}
+
+/* ── Toast with an action, e.g. "Undo" after a delete: .toast > .toast-action (a quiet button) ── */
+.toast>.toast-action{margin-left:auto;flex:none;background:none;border:1px solid currentColor;color:var(--fg0);padding:.2rem .6rem;cursor:pointer;
+  font-family:var(--font-mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase}
+.toast>.toast-action:hover{background:var(--cyan-tint)}
+.toast>.toast-action:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* ── Ring picker: one of N marks on a circle, e.g. the start LED of a light ring or a dial position.
+   .ring-pick (--n marks, default 12; --r radius) > button[role="radio"][aria-checked][style="--i:k"] for k = 0…n-1,
+   mark 0 at the top, clockwise; .ring-pick-n shows the value in the middle. Markers are squares (Kante rule). ── */
+.ring-pick{--n:12;--r:4.1rem;position:relative;width:calc(var(--r) * 2 + 2rem);aspect-ratio:1;margin:.3rem 0}
+.ring-pick>button{position:absolute;left:calc(50% - .65rem);top:calc(50% - .65rem);width:1.3rem;height:1.3rem;padding:0;border:2px solid var(--fg3);background:var(--bg-hard);cursor:pointer;
+  transform:rotate(calc(var(--i) * 360deg / var(--n))) translateY(calc(var(--r) * -1))}
+.ring-pick>button:hover{border-color:var(--fg0)}
+.ring-pick>button[aria-checked="true"]{background:var(--primary);border-color:var(--primary)}
+.ring-pick>button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.ring-pick>.ring-pick-n{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-mono);font-size:1.4rem;color:var(--fg2);pointer-events:none}
+
+/* ── Touch: chips get the small control height, so a finger hits them ── */
+@media (pointer:coarse){.chip{height:var(--h-s)}}
+
+/* ── Keyboard focus on segments and switches (they had none) ── */
+.seg button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.switch:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* ── Screen-reader only: a label that is read out but not shown (e.g. a column of number fields with a visible head) ── */
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
 /* ── Seam (Kante Gold, from Kintsugi): the gold seam, a drawn line that mends a break.
    Divider under the nav (.nav > .seam) and under titles (.seam.is-short). Drawn in --yellow. */

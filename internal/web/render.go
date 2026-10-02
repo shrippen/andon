@@ -65,6 +65,7 @@ func mustParse() *template.Template {
 		// placeholder.
 		"barPct":      barPct,
 		"every":       every,
+		"uptimePaths": uptimePaths,
 		"launchEvery": func() string { return every(launchRefreshS) },
 		"abs":         math.Abs,
 		"thousands":   func(v float64) float64 { return v / 1000 },
