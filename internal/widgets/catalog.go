@@ -42,14 +42,11 @@ const (
 	workDays      = 5
 	defaultWeekH  = 40
 	expiryHorizon = 90 // days a full expiry bar stands for
-	expiryWarn    = 30
-	expiryHigh    = 14
 	tempWarn      = 45
 	tempHigh      = 55
 	hoursPerDay   = 24
 	speedDays     = 7
-	speedWarn     = 0.8 // share of the contract below which a day is slow
-	splitShown    = 4   // customers with their own colour, the rest is "other"
+	splitShown    = 4 // customers with their own colour, the rest is "other"
 )
 
 // splitTiers colours customers in the kimai_split stack.

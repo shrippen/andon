@@ -150,12 +150,9 @@ func cashflowView(cfg CashflowConfig, results map[string]any, ctx ViewCtx) map[s
 		return map[string]any{}
 	}
 
-	low, high := points[0].Balance, points[0].Balance
-	lowDay := points[0].Day
+	low, lowDay := metrics.CashLow(points)
+	high := low
 	for _, p := range points {
-		if p.Balance < low {
-			low, lowDay = p.Balance, p.Day
-		}
 		high = max(high, p.Balance)
 	}
 	if cfg.MinBalance != 0 {
@@ -175,17 +172,14 @@ func cashflowView(cfg CashflowConfig, results map[string]any, ctx ViewCtx) map[s
 		"End": points[len(points)-1].Balance, "Relative": in.Sure == nil, "Events": shown, "Currency": ninja.Currency, "Delay": cfg.Delay}
 	if cfg.MinBalance != 0 {
 		out["MinY"] = fnum(trendHeight - (cfg.MinBalance-low)/span*(trendHeight-2*chartMargin) - chartMargin)
-		out["Min"], out["BelowMin"] = cfg.MinBalance, lowest(points) < cfg.MinBalance
+		out["Min"], out["BelowMin"] = cfg.MinBalance, lowDayBalance(points) < cfg.MinBalance
 	}
 	return out
 }
 
-// lowest is the lowest balance of a projection.
-func lowest(points []metrics.CashPoint) float64 {
-	low := points[0].Balance
-	for _, p := range points {
-		low = min(low, p.Balance)
-	}
+// lowDayBalance is the lowest balance of a projection.
+func lowDayBalance(points []metrics.CashPoint) float64 {
+	low, _ := metrics.CashLow(points)
 	return low
 }
 

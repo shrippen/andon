@@ -26,23 +26,20 @@ import (
 	"strings"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/sources"
 )
 
 const (
-	ciFailure     = "failure"
 	arrError      = "error"
 	weekDays      = 7
 	costRuleID    = "energy.cost_rising"
 	dwdWarningKey = "dwd.warning"
 )
 
-// dwdLevels maps warning severities to hint levels; minor warnings stay silent.
-var dwdLevels = map[string]enums.Severity{
-	sources.WarnModerate: enums.SeverityInfo,
-	sources.WarnSevere:   enums.SeverityWarn,
-	sources.WarnExtreme:  enums.SeverityCritical,
-}
+// dwdLevels maps warning ranks (metrics.WarningRank) to hint levels;
+// unknown (0) and minor (1) warnings stay silent.
+var dwdLevels = map[int]enums.Severity{2: enums.SeverityInfo, 3: enums.SeverityWarn, 4: enums.SeverityCritical}
 
 // arrChecks are the Sonarr/Radarr health checks with a catalog title.
 var arrChecks = map[string]bool{
@@ -72,14 +69,10 @@ func registerNetworkRules() {
 func keyExpiry(data *sources.TailscaleDataset, cfg map[string]any, env Env) []Finding {
 	var found []Finding
 	for _, d := range data.Devices {
-		gone := !d.Online && !d.LastSeen.IsZero() && env.Today.Sub(d.LastSeen).Hours()/hoursPerDay > cfgFloat(cfg, "offline_days")
-		if d.KeyExpiry.IsZero() || gone {
+		if !metrics.KeyExpiring(d, env.Today, cfgFloat(cfg, "warn_days")) || metrics.DeviceGone(d, env.Today, cfgFloat(cfg, "offline_days")) {
 			continue
 		}
 		left := int(d.KeyExpiry.Sub(env.Today).Hours() / hoursPerDay)
-		if left > cfgInt(cfg, "warn_days") {
-			continue
-		}
 		level, msg := enums.SeverityWarn, "tailscale.key_expiry"
 		if left < 0 {
 			level, msg = enums.SeverityCritical, "tailscale.key_expired"
@@ -93,7 +86,7 @@ func keyExpiry(data *sources.TailscaleDataset, cfg map[string]any, env Env) []Fi
 func tailscaleOffline(data *sources.TailscaleDataset, cfg map[string]any, env Env) []Finding {
 	var names []string
 	for _, d := range data.Devices {
-		if !d.Online && !d.LastSeen.IsZero() && env.Today.Sub(d.LastSeen).Hours()/hoursPerDay > cfgFloat(cfg, "days") {
+		if metrics.DeviceGone(d, env.Today, cfgFloat(cfg, "days")) {
 			names = append(names, d.Name)
 		}
 	}
@@ -214,7 +207,7 @@ func githubFinding(rule string, level enums.Severity, i sources.Issue, days int)
 func no2fa(data *sources.VaultwardenDataset, _ map[string]any, _ Env) []Finding {
 	var names []string
 	for _, u := range data.Users {
-		if u.Enabled && !u.TwoFactor {
+		if metrics.No2FA(u) {
 			names = append(names, u.Email)
 		}
 	}
@@ -237,11 +230,12 @@ func speedtestSlow(data *sources.SpeedtestDataset, cfg map[string]any, _ Env) []
 }
 
 func grocyExpired(data *sources.GrocyDataset, _ map[string]any, _ Env) []Finding {
-	if len(data.Expired) == 0 {
+	past := metrics.GrocyPastDue(data)
+	if len(past) == 0 {
 		return nil
 	}
 	return []Finding{svcFinding(grocySvc, "grocy.expired", "expired", "grocy.expired", enums.SeverityWarn, strings.TrimRight(data.URL, "/")+"/stockoverview",
-		map[string]any{"count": len(data.Expired), "names": shortList(productNames(data.Expired))})}
+		map[string]any{"count": len(past), "names": shortList(productNames(past))})}
 }
 
 func grocyMissing(data *sources.GrocyDataset, _ map[string]any, _ Env) []Finding {
@@ -254,10 +248,8 @@ func grocyMissing(data *sources.GrocyDataset, _ map[string]any, _ Env) []Finding
 
 func choresOverdue(data *sources.GrocyDataset, _ map[string]any, env Env) []Finding {
 	var due []string
-	for _, c := range data.Chores {
-		if c.Due.Before(env.Today) {
-			due = append(due, c.Name)
-		}
+	for _, c := range metrics.GrocyLateChores(data, env.Today) {
+		due = append(due, c.Name)
 	}
 	if len(due) == 0 {
 		return nil
@@ -269,7 +261,7 @@ func choresOverdue(data *sources.GrocyDataset, _ map[string]any, env Env) []Find
 func dwdWarning(data *sources.DWDDataset, _ map[string]any, _ Env) []Finding {
 	var found []Finding
 	for _, w := range data.Warnings {
-		level, ok := dwdLevels[w.Severity]
+		level, ok := dwdLevels[metrics.WarningRank(w.Severity)]
 		if !ok {
 			continue
 		}
@@ -302,7 +294,7 @@ func githubStalePr(data *sources.GitHubDataset, cfg map[string]any, env Env) []F
 func ciFailed(data *sources.GitHubDataset, _ map[string]any, _ Env) []Finding {
 	var found []Finding
 	for _, r := range data.Repos {
-		if r.CI == ciFailure {
+		if metrics.RedCI(r) {
 			found = append(found, Finding{Fingerprint: "ci:" + r.Name, Severity: enums.SeverityWarn,
 				Message: "github.ci_failed", Params: map[string]any{"repo": r.Name}, ActionURL: r.CIURL, ActionLabel: "open_in_github", Sources: []string{githubSvc}})
 		}
@@ -314,15 +306,9 @@ func costRising(data *sources.TibberDataset, cfg map[string]any, _ Env) []Findin
 	if len(data.Days) < 2*weekDays {
 		return nil
 	}
-	sum := func(days []sources.EnergyDay) float64 {
-		total := 0.0
-		for _, d := range days {
-			total += d.Cost
-		}
-		return total
-	}
 	n := len(data.Days)
-	recent, before := sum(data.Days[n-weekDays:]), sum(data.Days[n-2*weekDays:n-weekDays])
+	recent, _ := metrics.EnergyTotals(data.Days[n-weekDays:])
+	before, _ := metrics.EnergyTotals(data.Days[n-2*weekDays : n-weekDays])
 	if before <= 0 || recent < before*cfgFloat(cfg, "factor") {
 		return nil
 	}

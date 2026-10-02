@@ -8,6 +8,7 @@ import (
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -159,9 +160,18 @@ const (
 	meterGoal
 )
 
+// budgetLimits are kimai.budget_burn's shares: yellow from warn, red from
+// critical.
+type budgetLimits struct{ warn, critical float64 }
+
+// budgetLimitsOf reads them from the space's rule settings.
+func budgetLimitsOf(ctx ViewCtx) budgetLimits {
+	return budgetLimits{rules.Setting(ctx.Settings, "kimai.budget_burn", "warn"), rules.Setting(ctx.Settings, "kimai.budget_burn", "critical")}
+}
+
 // shape fills in the drawn bar and its colour from Pct and the share of
 // the period that has passed (soll, 0 if unknown).
-func (p *ProgressItem) shape(kind meterKind, soll, slack float64) {
+func (p *ProgressItem) shape(kind meterKind, soll, slack float64, limits budgetLimits) {
 	scale := max(p.Pct, 1)
 	p.Fill = min(p.Pct, 1) / scale * pctFull
 	p.Over = max(p.Pct-1, 0) / scale * pctFull
@@ -173,17 +183,14 @@ func (p *ProgressItem) shape(kind meterKind, soll, slack float64) {
 		p.Tier = "green"
 	case kind == meterGoal:
 		p.Tier = "yellow"
-	case p.Pct >= 1:
+	case p.Pct >= limits.critical:
 		p.Tier = "red"
-	case soll > 0 && p.Pct > soll+slack, soll == 0 && p.Pct >= budgetWarn:
+	case soll > 0 && p.Pct > soll+slack, soll == 0 && p.Pct >= limits.warn:
 		p.Tier = "yellow"
 	default:
 		p.Tier = "green"
 	}
 }
-
-// budgetWarn colours a budget without a period from this share on.
-const budgetWarn = 0.8
 
 // passed is the share of the period around today that is over (today counted).
 func passed(today time.Time, start, end time.Time) float64 {
@@ -209,7 +216,7 @@ func progressView(cfg ProgressConfig, results map[string]any, ctx ViewCtx) map[s
 				start := metrics.MonthStart(today)
 				soll = passed(today, start, metrics.AddMonths(start, 1))
 			}
-			item.shape(meterBudget, soll, cfg.Warn)
+			item.shape(meterBudget, soll, cfg.Warn, budgetLimitsOf(ctx))
 			if !cfg.Soll {
 				item.Soll, item.SollPct = 0, 0
 			}
@@ -221,7 +228,7 @@ func progressView(cfg ProgressConfig, results map[string]any, ctx ViewCtx) map[s
 		ytd := metrics.NinjaSummaryOf(data.(*sources.NinjaDataset), today, "", "").RevenueYTD
 		item := ProgressItem{LabelKey: "progress.revenue_goal", Pct: ytd / goal, HasGoal: true, Value: ytd, Goal: goal}
 		start := time.Date(today.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
-		item.shape(meterGoal, passed(today, start, start.AddDate(1, 0, 0)), cfg.Warn)
+		item.shape(meterGoal, passed(today, start, start.AddDate(1, 0, 0)), cfg.Warn, budgetLimitsOf(ctx))
 		if !cfg.Soll {
 			item.Soll, item.SollPct = 0, 0
 		}

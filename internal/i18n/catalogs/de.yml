@@ -3186,7 +3186,7 @@ detail:
   rss:
     feeds: 'Feeds'
     unread: 'ungelesen'
-    quiet: 'seit 30 T still'
+    quiet: 'seit {n} T still'
     by_category: 'Ungelesen je Kategorie'
     list: 'Feeds'
     feed: 'Feed'

@@ -203,10 +203,10 @@ func dockerDetail(cfg DockerConfig, data *sources.DockerDataset, ctx ViewCtx, re
 	for _, c := range data.Containers {
 		state := "ok"
 		switch {
-		case c.Health == sources.HealthUnhealthy:
-			state, unhealthy = "warn", unhealthy+1
-		case c.State == sources.StateRestarting, c.State == sources.StateExited && c.ExitCode != 0:
+		case metrics.ContainerCrashed(c):
 			state, exited = "bad", exited+1
+		case metrics.ContainerUnhealthy(c):
+			state, unhealthy = "warn", unhealthy+1
 		case c.State != sources.StateRunning:
 			state = "off"
 		}
@@ -596,7 +596,7 @@ func immichDetail(_ struct{}, data *sources.ImmichDataset, ctx ViewCtx, results 
 			{Label: T("detail.immich.photos"), Value: Num(float64(data.Photos), 0)}, {Label: T("detail.immich.videos"), Value: Num(float64(data.Videos), 0)},
 			{Label: T("detail.immich.disk"), Value: data.DiskAvailable}},
 		Facts: []Kpi{{Value: Num(float64(data.Photos+data.Videos), 0), Label: T("detail.immich.items")},
-			{Value: NumU(data.DiskPercent, 0, "%"), Label: T("detail.immich.disk_used"), Tier: tierIf(data.DiskPercent >= immichDiskRed, "red", tierIf(data.DiskPercent >= immichDiskYellow, "yellow", ""))},
+			{Value: NumU(data.DiskPercent, 0, "%"), Label: T("detail.immich.disk_used"), Tier: immichDiskTier(data, ctx)},
 			{Value: failed, Label: T("detail.immich.failed"), Tier: tierIf(failed > 0, "yellow", "")}},
 	}
 	if items := dailySeries(h, metrics.SampleKey("immich", "items"), now, historyDetailDays); hasValues(items) {
@@ -616,7 +616,8 @@ func immichDetail(_ struct{}, data *sources.ImmichDataset, ctx ViewCtx, results 
 }
 
 // umamiDetail (list and detail): the sites, the biggest change chosen.
-func umamiDetail(cfg UmamiConfig, data *sources.UmamiDataset, _ ViewCtx, results map[string]any) DetailView {
+func umamiDetail(cfg UmamiConfig, data *sources.UmamiDataset, ctx ViewCtx, results map[string]any) DetailView {
+	drop, minPrev := umamiLimits(ctx)
 	var sites []sources.Site
 	for _, s := range data.Sites {
 		if matchesAny(s.Name, cfg.Only) || matchesAny(s.Domain, cfg.Only) {
@@ -624,16 +625,14 @@ func umamiDetail(cfg UmamiConfig, data *sources.UmamiDataset, _ ViewCtx, results
 		}
 	}
 	change := func(s sources.Site) int {
-		if s.PrevVisit == 0 {
-			return 0
-		}
-		return (s.Visitors - s.PrevVisit) * pctFull / s.PrevVisit
+		share, _ := metrics.VisitorChange(s)
+		return int(share * pctFull)
 	}
 	sort.SliceStable(sites, func(a, b int) bool { return change(sites[a]) < change(sites[b]) })
 	list := &ObjList{Label: T("detail.umami.sites")}
 	for _, s := range sites {
 		state := "ok"
-		if change(s) <= -umamiDrop {
+		if metrics.VisitorDrop(s, drop, minPrev) {
 			state = "bad"
 		}
 		list.Items = append(list.Items, LitRow{Name: s.Name, Meta: fmt.Sprintf("%d · %+d %%", s.Visitors, change(s)), State: state})

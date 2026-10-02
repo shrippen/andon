@@ -50,13 +50,15 @@ func TestKimaiSplitGroupsSmallCustomers(t *testing.T) {
 	}
 }
 
+// TestExpirySoonestFirst: soonest first, coloured with the rules' days
+// (certs.expiring warns at 14, domains.expiring at 30).
 func TestExpirySoonestFirst(t *testing.T) {
 	today, _ := time.Parse(time.DateOnly, catalogToday)
 	certs := &sources.CertDataset{Certs: []sources.Cert{{Host: "a", NotAfter: today.AddDate(0, 0, 40)}, {Host: "b", NotAfter: today.AddDate(0, 0, 10)}}}
 	doms := &sources.DomainsDataset{Domains: []sources.DomainInfo{{Name: "c.org", Expires: today.AddDate(0, 0, 20)}}}
 	v := run("expiry", nil, map[string]any{"data": certs, peerDomains: doms}, ViewCtx{Today: catalogToday})
 	bars := v["Bars"].([]HBar)
-	if bars[0].Label != "b" || bars[0].Tier != "red" || bars[1].Tier != "yellow" || bars[2].Tier != "" || bars[2].Value != "40" {
+	if bars[0].Label != "b" || bars[0].Tier != "red" || bars[1].Tier != "red" || bars[2].Tier != "" || bars[2].Value != "40" {
 		t.Fatalf("bars: %+v", bars)
 	}
 }

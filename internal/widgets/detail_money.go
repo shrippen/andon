@@ -4,11 +4,13 @@ package widgets
 // Wallos.
 
 import (
+	"cmp"
 	"sort"
 	"strings"
 	"time"
 
 	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -39,12 +41,7 @@ func cashflowDetail(cfg CashflowConfig, results map[string]any, ctx ViewCtx) Det
 		body.Blocks = []Block{{Kind: BlockText, Data: Txt("detail.cash.none")}}
 		return DetailView{Body: body}
 	}
-	low, lowDay := points[0].Balance, points[0].Day
-	for _, p := range points {
-		if p.Balance < low {
-			low, lowDay = p.Balance, p.Day
-		}
-	}
+	low, lowDay := metrics.CashLow(points)
 
 	// The stored balance before today (Sure), then the forecast.
 	past := dailySeries(historyOf(results), metrics.SampleKey("sure", "cash"), today, cashPastDays)
@@ -332,7 +329,10 @@ func paperlessDetail(cfg PaperlessConfig, data *sources.PaperlessDataset, ctx Vi
 		oldest = int(today.Sub(added).Hours() / hoursPerDay)
 		body.Side = append(body.Side, Fact{Label: T("detail.paperless.oldest"), Value: TxtA("detail.paperless.oldest_doc", "title", data.OldestTitle, "n", oldest)})
 	}
-	body.Facts = []Kpi{{Value: data.Inbox, Label: T("detail.paperless.inbox"), Tier: tierIf(data.Inbox > 0, "yellow", "green")}, {Value: TxtA("detail.days", "n", oldest), Label: T("detail.paperless.oldest_label")}}
+	late := float64(oldest) > rules.Setting(ctx.Settings, "paperless.inbox", "warn_days")
+	body.Facts = []Kpi{{Value: data.Inbox, Label: T("detail.paperless.inbox"), Tier: tierIf(data.Inbox > 0, "yellow", "green")},
+		{Value: TxtA("detail.days", "n", oldest), Label: T("detail.paperless.oldest_label"), Tier: tierIf(late, "yellow", "")}}
+	warn, info := expiryLimits(ctx.Settings, "paperless.contract_notice")
 	var newest [][]Cell
 	for _, d := range data.Newest {
 		newest = append(newest, []Cell{{Value: DayS(d.Added)}, {Value: d.Title}})
@@ -343,11 +343,8 @@ func paperlessDetail(cfg PaperlessConfig, data *sources.PaperlessDataset, ctx Vi
 			continue
 		}
 		left := int(c.Deadline.Sub(today).Hours() / hoursPerDay)
-		tier := "cyan"
-		if left < expiryWarnDays {
-			tier = "yellow"
-		}
-		deadlines = append(deadlines, Event{At: c.Deadline, Title: c.Title, Sub: c.Correspondent, State: TxtA("detail.days", "n", left), Tier: tier})
+		deadlines = append(deadlines, Event{At: c.Deadline, Title: c.Title, Sub: c.Correspondent, State: TxtA("detail.days", "n", left),
+			Tier: cmp.Or(dueTier(left, warn, info), "cyan")})
 	}
 	sort.Slice(deadlines, func(a, b int) bool { return deadlines[a].At.Before(deadlines[b].At) })
 	pair := []Block{}

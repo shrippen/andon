@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -354,31 +355,53 @@ func customAPIDetail(cfg CustomAPIConfig, results map[string]any, ctx ViewCtx) D
 	return DetailView{Body: body}
 }
 
+// issueMarks are the rule limits an issue table marks: waiting this many
+// days (warn), and due within dueWarn days (warn) or past (bad). A table
+// with dueWarn 0 has no due column.
+type issueMarks struct{ wait, dueWarn float64 }
+
 // issueRows lists issues or pull requests.
-func issueRows(list []sources.Issue, due bool) [][]Cell {
+func issueRows(list []sources.Issue, marks issueMarks, today time.Time) [][]Cell {
 	var rows [][]Cell
-	now := time.Now()
 	for _, it := range firstN(list, gitListLimit) {
-		row := []Cell{{Value: it.Repo}, {Value: fmt.Sprintf("#%d", it.Number)}, {Value: it.Title}, {Value: agoOf(it.Updated)}}
-		if due {
-			row = append(row, Cell{Value: dayOf(it.Due), State: stateIf(!it.Due.IsZero() && it.Due.Before(now), "bad")})
+		waited := today.Sub(it.Updated).Hours() / hoursPerDay
+		row := []Cell{{Value: it.Repo}, {Value: fmt.Sprintf("#%d", it.Number)}, {Value: it.Title},
+			{Value: agoOf(it.Updated), State: stateIf(marks.wait > 0 && waited >= marks.wait, "warn")}}
+		if marks.dueWarn > 0 {
+			row = append(row, Cell{Value: dayOf(it.Due), State: dueState(it.Due, today, marks.dueWarn)})
 		}
 		rows = append(rows, row)
 	}
 	return rows
 }
 
+// dueState: bad when past, warn within warn days, "" otherwise or undated.
+func dueState(due, today time.Time, warn float64) string {
+	switch {
+	case due.IsZero():
+		return ""
+	case due.Before(today):
+		return "bad"
+	case due.Sub(today).Hours()/hoursPerDay <= warn:
+		return "warn"
+	}
+	return ""
+}
+
 // issueHead is the head of an issue table.
-func issueHead(due bool) []Text {
+func issueHead(marks issueMarks) []Text {
 	head := []Text{T("detail.git.repo"), T("detail.git.number"), T("detail.git.title"), T("detail.git.updated")}
-	if due {
+	if marks.dueWarn > 0 {
 		head = append(head, T("detail.git.due"))
 	}
 	return head
 }
 
 // giteaDetail (record): reviews waiting, assigned issues, failed runs.
-func giteaDetail(cfg PickConfig, data *sources.GiteaDataset, _ ViewCtx, results map[string]any) DetailView {
+func giteaDetail(cfg PickConfig, data *sources.GiteaDataset, ctx ViewCtx, results map[string]any) DetailView {
+	today := todayOf(ctx)
+	reviews := issueMarks{wait: rules.Setting(ctx.Settings, "gitea.review_waiting", "days")}
+	assigned := issueMarks{dueWarn: rules.Setting(ctx.Settings, "gitea.due", "warn_days")}
 	var failed []LitRow
 	for _, r := range data.Repos {
 		if r.FailedWorkflow != "" {
@@ -392,10 +415,10 @@ func giteaDetail(cfg PickConfig, data *sources.GiteaDataset, _ ViewCtx, results 
 			{Value: len(failed), Label: T("detail.git.failed"), Tier: tierIf(len(failed) > 0, "red", "")}},
 	}
 	if cfg.Only != "issues" && len(data.Reviews) > 0 {
-		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("gitea.reviews"), Data: Table{Head: issueHead(false), Rows: issueRows(data.Reviews, false)}})
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("gitea.reviews"), Data: Table{Head: issueHead(reviews), Rows: issueRows(data.Reviews, reviews, today)}})
 	}
 	if cfg.Only != "reviews" && len(data.Assigned) > 0 {
-		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("gitea.assigned"), Data: Table{Head: issueHead(true), Rows: issueRows(data.Assigned, true)}})
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("gitea.assigned"), Data: Table{Head: issueHead(assigned), Rows: issueRows(data.Assigned, assigned, today)}})
 	}
 	if len(failed) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockRows, Label: T("detail.git.failed_runs"), Data: failed})
@@ -412,11 +435,14 @@ var ciStates = map[string]string{"success": "ok", "failure": "bad", "cancelled":
 
 // githubDetail (record): repos with CI and release, reviews, own PRs.
 func githubDetail(cfg GitHubConfig, data *sources.GitHubDataset, ctx ViewCtx, results map[string]any) DetailView {
+	today := todayOf(ctx)
+	reviews := issueMarks{wait: rules.Setting(ctx.Settings, "github.review_waiting", "days")}
+	mine := issueMarks{wait: rules.Setting(ctx.Settings, "github.stale_pr", "days")}
 	shown, _ := githubView(cfg, data, ctx)["Data"].(*sources.GitHubDataset)
 	red := 0
 	var repos [][]Cell
 	for _, r := range shown.Repos {
-		if r.CI == "failure" {
+		if metrics.RedCI(r) {
 			red++
 		}
 		release := any("–")
@@ -433,10 +459,10 @@ func githubDetail(cfg GitHubConfig, data *sources.GitHubDataset, ctx ViewCtx, re
 			Rows: repos, Num: []int{1, 2}}}},
 	}
 	if len(shown.Reviews) > 0 {
-		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.git.reviews"), Data: Table{Head: issueHead(false), Rows: issueRows(shown.Reviews, false)}})
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.git.reviews"), Data: Table{Head: issueHead(reviews), Rows: issueRows(shown.Reviews, reviews, today)}})
 	}
 	if len(shown.MyPRs) > 0 {
-		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.git.mine"), Data: Table{Head: issueHead(false), Rows: issueRows(shown.MyPRs, false)}})
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.git.mine"), Data: Table{Head: issueHead(mine), Rows: issueRows(shown.MyPRs, mine, today)}})
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: "https://github.com/notifications", Primary: true}}}, Body: body}

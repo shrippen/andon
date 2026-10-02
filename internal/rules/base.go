@@ -181,6 +181,18 @@ func Config(spec Spec, settings map[string]any) map[string]any {
 	return out
 }
 
+// Setting is a rule's number setting as a space has it (its override, or
+// the default): tiles and dialogs colour with the same limits as the
+// hints, e.g. Setting(settings, "hass.battery_low", "warn") = 20.
+// 0 for an unknown rule or key.
+func Setting(settings map[string]any, rule, key string) float64 {
+	spec, ok := registry[rule]
+	if !ok {
+		return 0
+	}
+	return cfgFloat(Config(spec, settings), key)
+}
+
 // Money is a typed finding parameter, formatted per reader locale.
 func Money(value float64, currency string) map[string]any {
 	if currency == "" {

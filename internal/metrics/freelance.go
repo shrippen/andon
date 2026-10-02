@@ -118,6 +118,20 @@ type CashPoint struct {
 	Balance float64
 }
 
+// CashLow is a projection's lowest balance and its first day.
+func CashLow(points []CashPoint) (low float64, day time.Time) {
+	if len(points) == 0 {
+		return 0, time.Time{}
+	}
+	low, day = points[0].Balance, points[0].Day
+	for _, p := range points {
+		if p.Balance < low {
+			low, day = p.Balance, p.Day
+		}
+	}
+	return low, day
+}
+
 // CashInputs are the figures a cashflow needs; nil datasets are skipped.
 type CashInputs struct {
 	Ninja        *sources.NinjaDataset

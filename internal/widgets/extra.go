@@ -11,6 +11,7 @@ import (
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -128,11 +129,8 @@ func monitorLines(mons []sources.KumaMonitor, h *metrics.History, today time.Tim
 	return out
 }
 
-// Limits of the monitors tile: problems listed, certificate warning.
-const (
-	monitorProblems = 4
-	certSoonDays    = 30
-)
+// monitorProblems is how many problems the monitors tile lists.
+const monitorProblems = 4
 
 // monitorsView sums up the instance in a few lines: how many are up, one
 // strip cell per monitor (down first) and only the monitors that are not
@@ -155,6 +153,7 @@ func decodeMonitors(r Raw) MonitorsConfig {
 }
 
 func monitorsView(cfg MonitorsConfig, results map[string]any, ctx ViewCtx) map[string]any {
+	certNotice := rules.Setting(ctx.Settings, "kuma.cert_expiring", "info_days")
 	// No config (a nil one): the default days.
 	if cfg.Days == 0 {
 		cfg.Days = uptimeDays
@@ -194,7 +193,7 @@ func monitorsView(cfg MonitorsConfig, results map[string]any, ctx ViewCtx) map[s
 		} else {
 			more++
 		}
-		if m.CertDays >= 0 && m.CertDays < certSoonDays && (soon.CertDays < 0 || m.CertDays < soon.CertDays) {
+		if m.CertDays >= 0 && float64(m.CertDays) < certNotice && (soon.CertDays < 0 || m.CertDays < soon.CertDays) {
 			soon = m
 		}
 	}

@@ -4,6 +4,7 @@ package widgets
 // hints, timeline, today, week story, calendar, clock.
 
 import (
+	"cmp"
 	"fmt"
 	"sort"
 	"strings"
@@ -11,6 +12,7 @@ import (
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -77,6 +79,7 @@ func deadlinesDetail(cfg DeadlinesConfig, results map[string]any, ctx ViewCtx) D
 	}
 	today := todayOf(ctx)
 	var events []Event
+	taxWarn, taxNotice := rules.Setting(ctx.Settings, "tax.deadlines", "warn_days"), rules.Setting(ctx.Settings, "tax.deadlines", "notice_days")
 	for _, d := range metrics.UpcomingDeadlines(tax, today, max(cfg.Days, deadlineDetailDays)) {
 		left := int(d.Due.Sub(today).Hours() / hoursPerDay)
 		state := any(TxtA("detail.days", "n", left))
@@ -84,7 +87,7 @@ func deadlinesDetail(cfg DeadlinesConfig, results map[string]any, ctx ViewCtx) D
 			state = Money(*d.Amount, "EUR")
 		}
 		events = append(events, Event{At: d.Due, Title: TxtA("deadline."+d.Kind, "period", d.Period, "year", d.Year), Sub: TxtA("detail.deadlines.in", "n", left),
-			State: state, Tier: tierIf(left < expiryRedDays, "yellow", "cyan")})
+			State: state, Tier: cmp.Or(dueTier(left, taxWarn, taxNotice), "cyan")})
 	}
 	body := &DetailBody{Blocks: []Block{{Kind: BlockTimeline, Label: T("detail.deadlines.list"), Data: events}}}
 	if len(events) > 0 {

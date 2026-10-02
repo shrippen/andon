@@ -112,19 +112,8 @@ func unbilledHours(data *sources.KimaiDataset, cfg map[string]any, env Env) []Fi
 func budgetBurn(data *sources.KimaiDataset, cfg map[string]any, env Env) []Finding {
 	var found []Finding
 	for _, p := range data.Projects {
-		money, minutes := budgetUsed(p, data, env)
-		var ratios []float64
-		if p.Budget != 0 {
-			ratios = append(ratios, money/p.Budget)
-		}
-		if p.TimeBudgetMin != 0 {
-			ratios = append(ratios, float64(minutes)/float64(p.TimeBudgetMin))
-		}
-		if len(ratios) == 0 {
-			continue
-		}
-		ratio := maxOf(ratios)
-		if ratio < cfgFloat(cfg, "warn") {
+		ratio, ok := metrics.BudgetUse(p, data, env.Today)
+		if !ok || ratio < cfgFloat(cfg, "warn") {
 			continue
 		}
 		level := enums.SeverityWarn
@@ -229,33 +218,4 @@ func monthlyClose(data *sources.KimaiDataset, cfg map[string]any, env Env) []Fin
 		Params:    map[string]any{"month": start.Format("01/2006"), "hours": hoursParam(float64(openMin))},
 		ActionURL: kimaiURL(data, "abrechnung"), ActionLabel: kimaiOpen, Sources: []string{kimaiSource},
 	}}
-}
-
-// budgetUsed returns (money, minutes) used against a project's budget;
-// monthly budgets count only the current month.
-func budgetUsed(p sources.KimaiProject, data *sources.KimaiDataset, env Env) (float64, int) {
-	if p.BudgetType != "month" {
-		return p.UsedMoney, p.UsedMinutes
-	}
-	start := metrics.MonthStart(env.Today)
-	var money float64
-	var minutes int
-	for _, s := range data.Timesheets {
-		d, ok := metrics.ParseDay(s.Begin)
-		if s.ProjectID == p.ID && ok && !d.Before(start) {
-			money += s.Rate
-			minutes += s.Minutes
-		}
-	}
-	return money, minutes
-}
-
-func maxOf(vs []float64) float64 {
-	m := vs[0]
-	for _, v := range vs[1:] {
-		if v > m {
-			m = v
-		}
-	}
-	return m
 }

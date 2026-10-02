@@ -224,3 +224,30 @@ func KimaiSummaryOf(data *sources.KimaiDataset, today time.Time) KimaiSummary {
 func round2(f float64) float64 {
 	return math.Round(f*100) / 100
 }
+
+// BudgetUse is how much of a project's budget is used, as a share: the
+// higher of money and time when it has both. A monthly budget counts this
+// month's timesheets only. ok is false for a project without budget.
+func BudgetUse(p sources.KimaiProject, data *sources.KimaiDataset, today time.Time) (share float64, ok bool) {
+	money, minutes := p.UsedMoney, p.UsedMinutes
+	if p.BudgetType == budgetMonthly {
+		money, minutes = 0, 0
+		start := MonthStart(today)
+		for _, s := range data.Timesheets {
+			if d, found := sheetDay(s); s.ProjectID == p.ID && found && !d.Before(start) {
+				money += s.Rate
+				minutes += s.Minutes
+			}
+		}
+	}
+	if p.Budget != 0 {
+		share, ok = money/p.Budget, true
+	}
+	if p.TimeBudgetMin != 0 {
+		share, ok = max(share, float64(minutes)/float64(p.TimeBudgetMin)), true
+	}
+	return share, ok
+}
+
+// budgetMonthly is Kimai's budget type of a budget per month.
+const budgetMonthly = "month"

@@ -20,6 +20,7 @@ import (
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -99,17 +100,14 @@ func grocyView(cfg GrocyConfig, data *sources.GrocyDataset, _ ViewCtx) map[strin
 // DWDConfig is the "dwd" widget's config.
 type DWDConfig struct{ MinLevel int }
 
-// dwdLevels ranks DWD severities.
-var dwdLevels = map[string]int{"minor": 1, "moderate": 2, "severe": 3, "extreme": 4}
-
-func decodeDWD(r Raw) DWDConfig { return DWDConfig{MinLevel: dwdLevels[r.Pick("min_level")]} }
+func decodeDWD(r Raw) DWDConfig { return DWDConfig{MinLevel: metrics.WarningRank(r.Pick("min_level"))} }
 
 func dwdView(cfg DWDConfig, data *sources.DWDDataset, _ ViewCtx) map[string]any {
 	shown := *data
 	shown.Warnings = nil
 	for _, w := range data.Warnings {
 		// Unknown severities stay: better one warning too many.
-		if rank, known := dwdLevels[strings.ToLower(w.Severity)]; !known || rank >= cfg.MinLevel {
+		if rank := metrics.WarningRank(w.Severity); rank == 0 || rank >= cfg.MinLevel {
 			shown.Warnings = append(shown.Warnings, w)
 		}
 	}
@@ -118,13 +116,10 @@ func dwdView(cfg DWDConfig, data *sources.DWDDataset, _ ViewCtx) map[string]any 
 
 // TailscaleConfig is the "tailscale" widget's config.
 type TailscaleConfig struct {
-	OnlyTrouble bool     // offline, or the key runs out within tailKeyDays
+	OnlyTrouble bool     // offline, or the key runs out (tailscale.key_expiry's warn_days)
 	Tags        []string // any of these tags ("server" or "tag:server"), empty = all
 	HideAfter   int      // hide devices offline longer than this many days, 0 = show all
 }
-
-// tailKeyDays is when an expiring key counts as trouble.
-const tailKeyDays = 14
 
 func decodeTailscale(r Raw) TailscaleConfig {
 	var tags []string
@@ -137,9 +132,10 @@ func decodeTailscale(r Raw) TailscaleConfig {
 	return TailscaleConfig{OnlyTrouble: r.Bool("only_problems"), Tags: tags, HideAfter: r.Int("hide_after")}
 }
 
-func tailscaleView(cfg TailscaleConfig, data *sources.TailscaleDataset, _ ViewCtx) map[string]any {
+func tailscaleView(cfg TailscaleConfig, data *sources.TailscaleDataset, ctx ViewCtx) map[string]any {
 	now := time.Now()
-	soon := now.AddDate(0, 0, tailKeyDays)
+	warn := rules.Setting(ctx.Settings, "tailscale.key_expiry", "warn_days")
+	soon := now.AddDate(0, 0, int(warn))
 	shown := *data
 	shown.Devices = nil
 	for _, d := range data.Devices {
@@ -149,7 +145,7 @@ func tailscaleView(cfg TailscaleConfig, data *sources.TailscaleDataset, _ ViewCt
 		if cfg.HideAfter > 0 && !d.Online && !d.LastSeen.IsZero() && d.LastSeen.Before(now.AddDate(0, 0, -cfg.HideAfter)) {
 			continue
 		}
-		trouble := !d.Online || (!d.KeyExpiry.IsZero() && d.KeyExpiry.Before(soon))
+		trouble := !d.Online || metrics.KeyExpiring(d, now, warn)
 		if cfg.OnlyTrouble && !trouble {
 			continue
 		}
@@ -172,7 +168,7 @@ func githubView(cfg GitHubConfig, data *sources.GitHubDataset, _ ViewCtx) map[st
 	shown := *data
 	shown.Repos = nil
 	for _, r := range data.Repos {
-		if matchesAny(r.Name, cfg.Only) && (!cfg.RedCI || r.CI == "failure") {
+		if matchesAny(r.Name, cfg.Only) && (!cfg.RedCI || metrics.RedCI(r)) {
 			shown.Repos = append(shown.Repos, r)
 		}
 	}
@@ -274,14 +270,11 @@ func energyView(cfg EnergyConfig, results map[string]any, _ ViewCtx) map[string]
 		out["CheapStart"], out["CheapAvg"], out["CheapHours"] = start, avg, cfg.CheapHours
 	}
 
-	cost, kwh := 0.0, 0.0
 	days := data.Days
 	if len(days) > energyDaysCost {
 		days = days[len(days)-energyDaysCost:]
 	}
-	for _, d := range days {
-		cost, kwh = cost+d.Cost, kwh+d.KWh
-	}
+	cost, kwh := metrics.EnergyTotals(days)
 	out["Cost"], out["KWh"], out["Days"] = cost, kwh, len(days)
 
 	if hass, ok := results[peerHass].(*sources.HassDataset); ok && cfg.PowerEntity != "" {
