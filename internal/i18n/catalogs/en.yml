@@ -3003,6 +3003,76 @@ keys:
   shift_click: Shift + right click
   context: Browser menu instead of the tile menu
 detail:
+  hints_open: 'open'
+  hints_critical: 'critical'
+  hints_warn: 'warnings'
+  hints_info: 'infos'
+  hints_none: 'No open hints.'
+  hints_all: 'All hints'
+  today_label: 'Today'
+  today_day: 'The day: appointments, timer, departures'
+  today_list: 'What is on'
+  links:
+    down: 'unreachable'
+    longest: 'longest outage'
+    list: 'Links without an answer'
+    title: 'Link'
+    url: 'Address'
+    since_label: 'without an answer'
+    since: 'since {day} ({n} d)'
+    today: 'since today'
+    all_up: 'All checked links answer.'
+    n_down: '{n} down'
+  conn:
+    healthy: 'without errors'
+    days: 'Fetches per day'
+  deadlines:
+    setup: 'Tax deadlines appear once the tax details are set in the space settings.'
+    list: 'Deadlines in the next year'
+    in: 'in {n} days'
+    next: 'next'
+    count: 'deadlines'
+  expiries:
+    none: 'Nothing expires in this span.'
+  noise:
+    span: 'Span'
+    new: 'New hints'
+    rules: 'Rules that come and go'
+    returns: 'came back {n}×'
+    tune: 'Adjust the rule''s threshold or quiet time'
+    per_day: 'New hints per day'
+    how: 'A rule whose hints disappear and come back on their own is set too sensitive. Pick a higher threshold in the rule settings.'
+    settings: 'Rule settings'
+  trend:
+    open: 'Open hints per day'
+  light:
+    green: 'green'
+    yellow: 'yellow'
+    red: 'red'
+    now: 'Light'
+    why_count: 'hints behind it'
+    why: 'Why this colour'
+    calm: 'Nothing turns the light.'
+  recent:
+    updates: 'Updates'
+    opened: 'new hints'
+    list: 'What happened'
+    burst: '{n} hints at once'
+    all: 'Timeline'
+  story:
+    week: 'The week'
+    empty: 'Nothing to report for this week yet.'
+  calendar:
+    count: 'Appointments'
+    weeks: 'The next two weeks'
+    day: '{wd} {d}'
+    list: 'All appointments'
+    date: 'Date'
+    time: 'Time'
+    title: 'Appointment'
+    place: 'Place'
+  clock:
+    work: 'Working hours 9–18 of the zones, in your time'
   center:
     mean: 'Mean'
     median: 'Median'

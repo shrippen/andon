@@ -582,7 +582,7 @@ func init() {
 				"images": cfg.Images, "max_age": float64(cfg.MaxAge)}}}
 		}}.add()
 
-	Tile[ClockConfig]{Key: "clock", Category: CategoryStart, Topic: TopicOverview, Inline: true, RefreshS: 30,
+	Tile[ClockConfig]{Key: "clock", Detail: clockDetail, Category: CategoryStart, Topic: TopicOverview, Inline: true, RefreshS: 30,
 		Fields: []Field{{Key: "timezones", Input: InputList, Default: []any{defaultTimezone}}, {Key: "seconds", Input: InputCheck}, {Key: "date", Input: InputCheck, Default: true},
 			sel("format", "24", "24", "12"), {Key: "analog", Input: InputCheck}},
 		Decode: decodeClock}.add()

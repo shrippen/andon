@@ -477,7 +477,7 @@ func init() {
 		hour   = 60 * minute
 	)
 
-	Tile[CalendarConfig]{Key: "calendar", Category: CategoryStart, Topic: TopicOverview, RefreshS: 15 * minute,
+	Tile[CalendarConfig]{Key: "calendar", Detail: calendarDetail, Category: CategoryStart, Topic: TopicOverview, RefreshS: 15 * minute,
 		Fields: []Field{{Key: "ical_url", Input: InputSecret}, {Key: "days", Input: InputNumber, Default: defaultCalDays, Min: "1", Max: "90"},
 			{Key: "limit", Input: InputNumber, Default: defaultListLimit, Min: "1", Max: "50"}, {Key: "hide_all_day", Input: InputCheck},
 			sel("color_1", "none", accentColors...), {Key: "ical_url_2", Input: InputSecret}, sel("color_2", "none", accentColors...),

@@ -80,7 +80,7 @@ type ConnHealthConfig struct {
 const connShakyDays = 2
 
 func init() {
-	Tile[ConnHealthConfig]{Key: "conn_health", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 10 * 60, Extra: ExtraConnHealth,
+	Tile[ConnHealthConfig]{Key: "conn_health", Detail: connHealthDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 10 * 60, Extra: ExtraConnHealth,
 		Fields:  []Field{{Key: "limit", Input: InputNumber, Default: 4, Min: "1", Max: "20"}, {Key: "only_problems", Input: InputCheck}},
 		Renames: []rename{{from: "only_shaky", to: "only_problems"}},
 		Decode: func(r Raw) ConnHealthConfig {

@@ -3004,6 +3004,76 @@ keys:
   shift_click: Umschalt + Rechtsklick
   context: Browser-Menü statt Kachel-Menü
 detail:
+  hints_open: 'offen'
+  hints_critical: 'kritisch'
+  hints_warn: 'Warnungen'
+  hints_info: 'Infos'
+  hints_none: 'Keine offenen Hinweise.'
+  hints_all: 'Alle Hinweise'
+  today_label: 'Heute'
+  today_day: 'Der Tag: Termine, Timer, Abfahrten'
+  today_list: 'Was ansteht'
+  links:
+    down: 'nicht erreichbar'
+    longest: 'längster Ausfall'
+    list: 'Links ohne Antwort'
+    title: 'Link'
+    url: 'Adresse'
+    since_label: 'ohne Antwort'
+    since: 'seit {day} ({n} T)'
+    today: 'seit heute'
+    all_up: 'Alle geprüften Links antworten.'
+    n_down: '{n} unten'
+  conn:
+    healthy: 'ohne Fehler'
+    days: 'Abrufe je Tag'
+  deadlines:
+    setup: 'Die Steuerfristen erscheinen, sobald in den Bereichseinstellungen die Steuerdaten eingetragen sind.'
+    list: 'Fristen im nächsten Jahr'
+    in: 'in {n} Tagen'
+    next: 'nächste'
+    count: 'Fristen'
+  expiries:
+    none: 'In diesem Zeitraum läuft nichts ab.'
+  noise:
+    span: 'Zeitraum'
+    new: 'Neue Hinweise'
+    rules: 'Regeln, die kommen und gehen'
+    returns: '{n}× wiedergekommen'
+    tune: 'Schwelle oder Ruhezeit der Regel anpassen'
+    per_day: 'Neue Hinweise je Tag'
+    how: 'Eine Regel, deren Hinweise von selbst verschwinden und wiederkommen, ist zu empfindlich eingestellt. In den Regel-Einstellungen eine höhere Schwelle wählen.'
+    settings: 'Regeln einstellen'
+  trend:
+    open: 'Offene Hinweise je Tag'
+  light:
+    green: 'grün'
+    yellow: 'gelb'
+    red: 'rot'
+    now: 'Ampel'
+    why_count: 'Hinweise dafür'
+    why: 'Warum diese Farbe'
+    calm: 'Nichts schaltet die Ampel um.'
+  recent:
+    updates: 'Updates'
+    opened: 'neue Hinweise'
+    list: 'Was passiert ist'
+    burst: '{n} Hinweise auf einmal'
+    all: 'Zeitleiste'
+  story:
+    week: 'Die Woche'
+    empty: 'Für diese Woche gibt es noch nichts zu berichten.'
+  calendar:
+    count: 'Termine'
+    weeks: 'Die nächsten zwei Wochen'
+    day: '{wd} {d}.'
+    list: 'Alle Termine'
+    date: 'Datum'
+    time: 'Zeit'
+    title: 'Termin'
+    place: 'Ort'
+  clock:
+    work: 'Arbeitszeit 9–18 Uhr der Zonen, in deiner Zeit'
   center:
     mean: 'Mittelwert'
     median: 'Median'

@@ -303,7 +303,7 @@ func init() {
 
 	// expiries: every hint with a due date (certificates, domains,
 	// warranties, contracts, renewals, tax) on one timeline.
-	Tile[HintsConfig]{Key: "expiries", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600, Extra: ExtraHints,
+	Tile[HintsConfig]{Key: "expiries", Detail: expiriesDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600, Extra: ExtraHints,
 		Fields: []Field{{Key: "days", Input: InputNumber, Default: 90, Min: "7", Max: "400"}, {Key: "limit", Input: InputNumber, Default: 15, Min: "1", Max: "50"}, {Key: "sources", Input: InputList}},
 		Decode: func(r Raw) HintsConfig {
 			return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: r.Int("limit"),
@@ -317,7 +317,7 @@ var severityChoices = []string{strconv.Itoa(int(enums.SeverityInfo)), strconv.It
 	strconv.Itoa(int(enums.SeverityCritical))}
 
 func init() {
-	Tile[HintsConfig]{Key: "hints", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 300, Extra: ExtraHints,
+	Tile[HintsConfig]{Key: "hints", Detail: hintsDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 300, Extra: ExtraHints,
 		Fields: []Field{{Key: "sources", Input: InputList}, sel("min_severity", severityChoices[0], severityChoices...), {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
 			{Key: "show_buttons", Input: InputCheck}, sel("sort", hintSortUrgency, hintSortUrgency, HintSortValue, HintSortAge),
 			{Key: "show_levels", Input: InputCheck, Default: true}},
@@ -375,7 +375,7 @@ type DeadlinesConfig struct {
 }
 
 func init() {
-	Tile[DeadlinesConfig]{Key: "deadlines", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600,
+	Tile[DeadlinesConfig]{Key: "deadlines", Detail: deadlinesDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600,
 		Fields: []Field{{Key: "days", Input: InputNumber, Default: 45, Min: "7", Max: "400"}, {Key: "show_vat", Input: InputCheck, Default: true},
 			{Key: "show_prepayment", Input: InputCheck, Default: true}, {Key: "show_annual", Input: InputCheck, Default: true},
 			{Key: "amounts", Input: InputCheck, Default: true}},

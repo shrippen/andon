@@ -113,7 +113,7 @@ func storyView(cfg StoryConfig, results map[string]any, _ ViewCtx) map[string]an
 }
 
 func init() {
-	Tile[StoryConfig]{Key: "week_story", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600, Extra: ExtraStory,
+	Tile[StoryConfig]{Key: "week_story", Detail: storyDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600, Extra: ExtraStory,
 		Fields: []Field{sel("period", "days7", "days7", "calendar"), {Key: "show_hours", Input: InputCheck, Default: true},
 			{Key: "show_money", Input: InputCheck, Default: true}, {Key: "show_storage", Input: InputCheck, Default: true},
 			{Key: "show_power", Input: InputCheck, Default: true}, {Key: "show_hints", Input: InputCheck, Default: true}},
