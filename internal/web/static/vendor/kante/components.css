@@ -804,6 +804,10 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .detail-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:1rem}
 .detail-facts .fact b{font-size:2rem}
 .detail-hero .chart,.detail-hero .chart-wrap{height:13rem}
+/* Stacked check columns fill their .chart-wrap (its height comes from the context, e.g. .detail-hero) */
+.chart-wrap>svg.uptime{max-width:none;width:100%;height:100%;background:var(--bg-hard)}
+/* A table cell in a state colour, the word stays: <td data-state="bad">HTTP 502</td> (ok, warn, bad) */
+.table td[data-state="ok"]{color:var(--aqua)}.table td[data-state="warn"]{color:var(--warn)}.table td[data-state="bad"]{color:var(--danger-text)}
 .detail-ticks{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.62rem;color:var(--fg3)}
 .detail-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.25rem;align-items:start}
 .detail-day{gap:.5rem}
