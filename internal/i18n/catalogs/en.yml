@@ -3002,11 +3002,13 @@ keys:
   tile: opens the tile (set in the editor)
   shift_click: Shift + right click
   context: Browser menu instead of the tile menu
+detail:
+  close: 'Close'
+  open: 'Details'
 linkdetail:
   open_aria: History and details
   open: Open
   check_now: Check now
-  close: Close
   never: Not checked yet
   facts: Profile
   address: Address

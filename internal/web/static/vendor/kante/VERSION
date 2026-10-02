@@ -1,5 +1,5 @@
-Kante 1.13
+Kante 1.14
 source: https://github.com/shrippen/Kante
-branch: coherence-1-13
-commit: 93ea67e5b8122d5e57d7c9d697ad7e66b2c42911
+branch: main
+commit: 4df50ffd7ce909dae518a65883ad95b9ad2e616a
 files: base.css components.css shrippen.js fonts/OFL.txt fonts/*.woff2 (Latin subsets, see tools/sync-design.sh)

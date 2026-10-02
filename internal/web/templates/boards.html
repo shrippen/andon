@@ -308,7 +308,8 @@
     {{end}}
   {{else}}
     <article class="card" data-live-tile{{with .Frame.Accent}} data-accent="{{.}}"{{end}}{{if .Frame.Dense}} data-density="compact"{{end}}>
-      {{template "card_head" dict "Title" .Title "Frame" .Frame "Icon" .FrameIcon}}
+      {{$detail := ""}}{{if and .HasDetail (not $b.EmbedToken)}}{{$detail = print "/details/" .PlacementID}}{{end}}
+      {{template "card_head" dict "Title" .Title "Frame" .Frame "Icon" .FrameIcon "Detail" $detail}}
       {{with index $b.Bodies .PlacementID}}
       {{/* Rendered with the page; htmx only refreshes. */}}
       {{$every := ""}}{{if $.T.RefreshS}}{{$every = every $.T.RefreshS}}{{end}}
@@ -411,5 +412,9 @@
 {{define "card_head"}}{{if and .Title (ne (print .Frame.Header) "off")}}
 <h3 class="card-title"{{if eq (print .Frame.Header) "small"}} data-size="small"{{end}}>
   {{with .Icon}}{{if .Emoji}}<span class="card-icon" aria-hidden="true">{{.Emoji}}</span>{{else if .URL}}<img class="card-icon{{if .Glyph}} is-glyph{{end}}" src="{{.URL}}" alt="">{{end}}{{end}}
-  {{if .Frame.Link}}<a href="{{.Frame.Link}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a>{{else}}{{.Title}}{{end}}</h3>
+  {{if .Frame.Link}}<a href="{{.Frame.Link}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a>{{else}}{{.Title}}{{end}}{{template "card_detail" .Detail}}</h3>
+{{else if .Detail}}<div class="card-title">{{template "card_detail" .Detail}}</div>
 {{end}}{{end}}
+
+{{/* The detail button of a card (Kante .launch-detail); "" = none. */}}
+{{define "card_detail"}}{{with .}}<button type="button" class="launch-detail" data-details="{{.}}" aria-label="{{t "detail.open"}}" title="{{t "detail.open"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></button>{{end}}{{end}}

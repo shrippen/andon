@@ -1,0 +1,132 @@
+{{/* Detail dialogs (Kante 1.14 .detail). Every type starts with
+     "detail_head" and draws its body in one of Kante's layouts:
+
+       detail-side + detail-main            record (link)
+       detail-list + detail-main            list and detail
+       detail-main + detail-side.is-end     large view
+       detail-main alone                    timeline, grid, wall, tabs, tasks
+
+     The day picker writes a button's data-v-NAME into [data-v="NAME"],
+     data-state-NAME into its data-state and data-x into [data-pick-x]
+     (andon.js). */}}
+
+{{/* Head: monogram, name, state, actions, close. */}}
+{{define "detail_head"}}{{$h := .Dialog.Head}}
+<header class="detail-head">
+  <span class="launch-icon"><span class="monogram">{{monogram $h.Title}}</span></span>
+  <div class="detail-name">
+    <h3 id="detail-title">{{$h.Title}}</h3>
+    {{with $h.Sub}}<span class="detail-sub">{{.}}</span>{{end}}
+  </div>
+  {{with $h.State}}<span class="launch-state" data-state="{{.}}">{{t $h.StateKey}}</span>{{end}}
+  {{range $h.Actions}}
+  {{if .Refresh}}<button type="button" class="btn btn-outline btn-sm" data-detail-refresh="/widget-fragments/{{$.PlacementID}}?refresh">{{t .LabelKey}}</button>
+  {{else}}<a class="btn {{if .Primary}}btn-accent{{else}}btn-outline{{end}} btn-sm" href="{{.Href}}" target="_blank" rel="noopener noreferrer">{{t .LabelKey}}</a>{{end}}
+  {{end}}
+  <button type="button" class="btn btn-outline btn-sm btn-icon" data-detail-close aria-label="{{t "detail.close"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</header>
+{{end}}
+
+{{/* Link tile (record): facts left; checks per day with a day picker,
+     response time, the chosen day and incidents right. */}}
+{{define "details/link"}}{{template "detail_head" .}}{{$d := .D}}{{$h := $d.History}}{{$last := lastIndex (len $h.Days)}}{{$i := $d.Info}}{{$tls := $d.TLSDaysLeft}}
+<div class="detail-body">
+  <aside class="detail-side">
+    <div class="h-label">{{t "linkdetail.facts"}}</div>
+    {{with $d.Tags}}<div class="chips-row">{{range .}}<span class="chip">#{{.}}</span>{{end}}</div>{{end}}
+    <table class="table">
+      <tbody>
+        <tr><td>{{t "linkdetail.address"}}</td><td>{{$d.URL}}</td></tr>
+        {{with $d.StatusURL}}<tr><td>{{t "linkdetail.checked"}}</td><td>{{.}}</td></tr>{{end}}
+        {{with $i}}
+        {{with .IPs}}<tr><td>{{t "linkdetail.dns"}}</td><td>{{range $n, $ip := .}}{{if $n}}<br>{{end}}<code>{{$ip}}</code>{{end}}</td></tr>{{end}}
+        {{with .Hops}}<tr><td>{{t "linkdetail.answer"}}</td><td>{{range $n, $hop := .}}{{if $n}} → {{end}}{{$hop.Code}}{{with $hop.Target}} {{.}}{{end}}{{end}}</td></tr>{{end}}
+        {{with .Error}}<tr><td>{{t "linkdetail.answer"}}</td><td data-state="bad">{{.}}</td></tr>{{end}}
+        {{if not .TLSUntil.IsZero}}<tr><td>{{t "linkdetail.tls"}}</td><td>{{t "linkdetail.tls_until" "issuer" .TLSIssuer "day" (day .TLSUntil)}}</td></tr>{{end}}
+        {{if .HasSkew}}<tr><td>{{t "linkdetail.clock"}}</td><td>{{t "linkdetail.clock_skew" "s" (num (seconds .Skew) 1)}}</td></tr>{{end}}
+        {{end}}
+        <tr><td>{{t "linkdetail.expect"}}</td><td>2xx, 3xx{{range $d.Accept}}, {{.}}{{end}}</td></tr>
+        <tr><td>{{t "linkdetail.check"}}</td><td>{{if $d.Timeout}}{{t "linkdetail.every" "min" (num (minutes $d.Interval) 0) "s" (num (seconds $d.Timeout) 0)}}{{else}}{{t "linkdetail.every_default" "min" (num (minutes $d.Interval) 0)}}{{end}}{{with $d.Method}} · {{.}}{{end}}</td></tr>
+      </tbody>
+    </table>
+    {{if and (ge $tls 0) (lt $tls 30)}}<div class="callout callout-warn">{{t "linkdetail.tls_soon" "n" $tls}}</div>{{end}}
+  </aside>
+
+  <section class="detail-main">
+    <div class="detail-facts">
+      {{if $h.Checks}}
+      <div class="fact" data-tier="{{if ge $h.Share30 0.99}}green{{else if ge $h.Share30 0.95}}yellow{{else}}red{{end}}"><b>{{num (percent $h.Share30) 1}} %</b><span>{{t "linkdetail.up30"}}</span></div>
+      <div class="fact"><b>{{if $h.AvgMs30}}{{$h.AvgMs30}} ms{{else}}–{{end}}</b><span>{{t "linkdetail.avg30"}}</span></div>
+      {{else}}
+      <div class="fact"><b>–</b><span>{{t "linkdetail.up30"}}</span></div>
+      <div class="fact"><b>–</b><span>{{t "linkdetail.avg30"}}</span></div>
+      {{end}}
+      {{with $d.Status}}<div class="fact" data-tier="cyan"><b>{{if .Ms}}{{.Ms}} ms{{else}}–{{end}}</b><span>{{t "linkdetail.last"}} · {{ago $d.CheckedAt}}</span></div>{{end}}
+      <div class="fact"{{if $h.Incidents}} data-tier="red"{{end}}><b>{{len $h.Incidents}}</b><span>{{t "linkdetail.incidents60"}}</span></div>
+      {{if ge $tls 0}}<div class="fact"{{if lt $tls 30}} data-tier="yellow"{{end}}><b>{{t "linkdetail.cert_days" "n" $tls}}</b><span>{{t "linkdetail.cert"}}</span></div>{{end}}
+    </div>
+
+    <div class="detail-block detail-hero">
+      <div class="h-label detail-label"><span>{{t "linkdetail.checks_head"}}</span><span>{{t "linkdetail.checks_total" "n" $h.Checks}}</span></div>
+      {{$s := stackPaths $h.Days}}
+      <div class="chart-wrap">
+        <svg class="uptime" viewBox="0 0 {{len $h.Days}} 100" preserveAspectRatio="none" role="img" aria-label="{{t "linkdetail.checks_head"}}"><path data-state="ok" d="{{$s.OK}}"/><path data-state="bad" d="{{$s.Fail}}"/><path data-state="off" d="{{$s.None}}"/></svg>
+        <div class="day-pick" data-pick>
+          {{range $n, $day := $h.Days}}
+          <button type="button" aria-pressed="{{if eq $n $last}}true{{else}}false{{end}}" aria-label="{{weekday $day.Day}} {{day $day.Day}}: {{t (print "linkdetail.state." $day.State)}}"
+            data-v-day="{{weekday $day.Day}} {{day $day.Day}}" data-v-state="{{t (print "linkdetail.state." $day.State)}}" data-state-state="{{kanteState $day.State}}"
+            data-v-ok="{{$day.OK}}" data-v-fail="{{$day.Fail}}" data-v-ms="{{if $day.AvgMs}}{{$day.AvgMs}} ms{{else}}–{{end}}"
+            data-v-down="{{template "ld_down" $day}}" data-v-error="{{if $day.Error}}{{$day.Error}}{{else if eq (print $day.State) "none"}}{{t "linkdetail.not_measured"}}{{else}}{{t "linkdetail.no_error"}}{{end}}"
+            data-x="{{msX $n (len $h.Days)}}"></button>
+          {{end}}
+        </div>
+      </div>
+      <div class="detail-ticks"><span>{{day (index $h.Days 0).Day}}</span>{{if not $h.Since.IsZero}}<span>{{t "linkdetail.since" "day" (day $h.Since)}}</span>{{end}}<span>{{t "linkdetail.today"}}</span></div>
+    </div>
+
+    <div class="detail-block">
+      {{$m := msChartOf $h.Days}}
+      <div class="h-label detail-label"><span>{{t "linkdetail.ms_head"}}</span><span>{{t "linkdetail.ms_goal"}}</span></div>
+      <svg class="chart" viewBox="0 0 600 140" preserveAspectRatio="none" role="img" aria-label="{{t "linkdetail.ms_head"}}">
+        <line class="goal is-danger" x1="0" y1="{{$m.GoalY}}" x2="600" y2="{{$m.GoalY}}"/>
+        <line class="now" data-pick-x x1="{{msX $last (len $h.Days)}}" y1="0" x2="{{msX $last (len $h.Days)}}" y2="140"/>
+        <path class="line s4" d="{{$m.Line}}"/>
+      </svg>
+    </div>
+
+    <div class="detail-pair">
+      {{with index $h.Days $last}}
+      <div class="sheet detail-day" aria-live="polite">
+        <div class="detail-day-head">
+          <h3 data-v="day">{{weekday .Day}} {{day .Day}}</h3>
+          <span class="launch-state" data-v="state" data-state="{{kanteState .State}}">{{t (print "linkdetail.state." .State)}}</span>
+        </div>
+        <div class="kpi-row">
+          <div class="kpi"><b data-v="ok">{{.OK}}</b><span>{{t "linkdetail.day_ok"}}</span></div>
+          <div class="kpi"><b data-v="fail">{{.Fail}}</b><span>{{t "linkdetail.day_fail"}}</span></div>
+          <div class="kpi"><b data-v="ms">{{if .AvgMs}}{{.AvgMs}} ms{{else}}–{{end}}</b><span>{{t "linkdetail.day_ms"}}</span></div>
+          <div class="kpi"><b data-v="down">{{template "ld_down" .}}</b><span>{{t "linkdetail.day_down"}}</span></div>
+        </div>
+        <span class="detail-sub">{{t "linkdetail.day_error"}} <span data-v="error">{{if .Error}}{{.Error}}{{else if eq (print .State) "none"}}{{t "linkdetail.not_measured"}}{{else}}{{t "linkdetail.no_error"}}{{end}}</span></span>
+      </div>
+      {{end}}
+      {{if $h.Incidents}}
+      <ol class="timeline">
+        {{range $n, $c := $h.Incidents}}{{if lt $n 3}}
+        <li data-tier="{{if $c.Down}}red{{else}}yellow{{end}}">
+          <time class="date-tile" datetime="{{$c.From.Format "2006-01-02"}}"><b>{{mday $c.From}}</b>{{month $c.From}}</time>
+          <span class="what">{{if and $c.Down (eq $c.Days 1)}}{{t "linkdetail.inc_down_one"}}{{else if $c.Down}}{{t "linkdetail.inc_down" "n" $c.Days}}{{else}}{{t "linkdetail.inc_short"}}{{end}}<small>{{t "linkdetail.inc_detail" "n" $c.Failed "e" $c.Error}}</small></span>
+          <em class="state">{{template "ld_down" $c}}</em>
+        </li>
+        {{end}}{{end}}
+      </ol>
+      {{else}}
+      <p class="detail-sub">{{t "linkdetail.inc_none"}}</p>
+      {{end}}
+    </div>
+  </section>
+</div>
+{{end}}
+
+{{/* Time without an answer: "≈ 40 min", "≈ 30 h 20 min", "0 min". */}}
+{{define "ld_down"}}{{if ge .DownH 1}}{{t "linkdetail.hours" "h" .DownH "m" .DownM}}{{else}}{{t "linkdetail.minutes" "m" .DownM}}{{end}}{{end}}
