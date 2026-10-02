@@ -24,7 +24,7 @@ type Graph struct {
 	GoalDanger bool     // the goal is a limit (red), not a target (yellow)
 	Lo, Hi     float64  // value range; both 0 = from the values
 	Mark       int      // index of the "now" line, -1 = none
-	Ticks      []string // labels under the chart, spread evenly
+	Ticks      []any    // labels under the chart (text or typed values), spread evenly
 	States     []string // cols: a Kante state per column (ok, warn, bad, off), "" = series colour
 }
 
@@ -53,5 +53,5 @@ func ColGraph(values []float64, class string) Graph {
 type Strip struct {
 	Name   string
 	States []string
-	Value  string
+	Value  any // text or typed value
 }

@@ -235,7 +235,7 @@ func init() {
 			return []Query{{Name: "rates", Source: "exchange_rates", Params: map[string]any{"base": cfg.Base, "symbols": cfg.Symbols, "change": cfg.Change}}}
 		}}.add()
 
-	Tile[MonitorsConfig]{Key: "monitors", Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceUptimeKuma, RefreshS: 60,
+	Tile[MonitorsConfig]{Key: "monitors", Detail: monitorsDetail, Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceUptimeKuma, RefreshS: 60,
 		Live: true, DataChoice: true, Extra: ExtraHistory,
 		Fields: []Field{{Key: "filter", Input: InputList}, sel("days", "14", "7", "14", "30"), {Key: "response_time", Input: InputCheck, Default: true}},
 		Decode: decodeMonitors, Queries: ownData[MonitorsConfig], View: monitorsView,

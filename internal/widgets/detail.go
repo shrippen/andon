@@ -40,7 +40,7 @@ type DetailHead struct {
 	Sub       string
 	State     string // "" = none
 	StateKey  string
-	StateArgs []any // catalog parameters of StateKey ("n", 3)
+	StateArgs map[string]any // catalog parameters of StateKey ({"n": 3})
 	Actions   []DetailAction
 }
 
@@ -61,4 +61,5 @@ type DetailHint struct {
 	Title     string
 	Why       string
 	FirstSeen time.Time
+	Due       string // "2026-10-02", "" = none
 }

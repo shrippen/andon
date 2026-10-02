@@ -98,8 +98,8 @@ type Block struct {
 	Kind  BlockKind
 	Label Text
 	Meta  any
-	Hero  bool     // the dialog's main chart: taller
-	Ticks []string // labels under strips
+	Hero  bool  // the dialog's main chart: taller
+	Ticks []any // labels under strips (text or typed values)
 	Data  any
 }
 
@@ -163,7 +163,7 @@ type Task struct {
 type Heat struct {
 	Rows   int
 	Levels []int
-	Ticks  []string
+	Ticks  []any
 }
 
 // DayCard is the chosen day or object in a sheet.
@@ -192,3 +192,28 @@ func Day(t time.Time) map[string]any { return map[string]any{"$day": t.Format(ti
 
 // Txt is a catalog text.
 func Txt(key string) map[string]any { return map[string]any{"$t": key} }
+
+// NumU is a number with a unit: NumU(47, 0, "°C") → "47 °C".
+func NumU(v float64, digits int, unit string) map[string]any {
+	return map[string]any{"$num": v, "digits": digits, "unit": unit}
+}
+
+// DayS is a date given as "2026-09-16".
+func DayS(day string) map[string]any { return map[string]any{"$day": day} }
+
+// TxtA is a catalog text with parameters, given as pairs; values may be
+// typed: TxtA("detail.days", "n", 3), TxtA("detail.per_year", "amount", Money(…)).
+func TxtA(key string, kv ...any) map[string]any {
+	args := map[string]any{}
+	for i := 0; i+1 < len(kv); i += 2 {
+		if k, ok := kv[i].(string); ok {
+			args[k] = kv[i+1]
+		}
+	}
+	return map[string]any{"$t": key, "args": args}
+}
+
+// Plain is a label that is no catalog text (a pool, a mount point).
+func Plain(text string) Text {
+	return Text{Key: "detail.plain", Args: map[string]any{"text": text}}
+}

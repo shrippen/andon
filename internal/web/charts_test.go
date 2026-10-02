@@ -22,7 +22,7 @@ func TestColsLastPeriod(t *testing.T) {
 	c.Series = append(c.Series, widgets.Series{Values: []float64{3, 3}})
 	c.States = []string{"", "bad"}
 	g := geomOf(c)
-	if len(g.Bars) != 4 || g.Bars[0].Class != "bar is-prev" || g.Bars[3].Style != "--c:var(--danger)" {
+	if len(g.Bars) != 4 || g.Bars[0].Class != "bar is-prev" || g.Bars[3].Colour != "danger" {
 		t.Fatalf("bars %+v", g.Bars)
 	}
 }

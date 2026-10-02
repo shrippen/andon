@@ -16,7 +16,7 @@ import (
 type DockerConfig struct{ OnlyProblems bool }
 
 func init() {
-	Tile[DockerConfig]{Key: "docker_containers", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceDocker, RefreshS: 5 * 60,
+	Tile[DockerConfig]{Key: "docker_containers", Detail: dataDetail(dockerDetail), Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceDocker, RefreshS: 5 * 60,
 		Fields:  []Field{{Key: "only_problems", Input: InputCheck}},
 		Decode:  func(r Raw) DockerConfig { return DockerConfig{OnlyProblems: r.Bool("only_problems")} },
 		Queries: ownData[DockerConfig], View: dataView(dockerView)}.add()
@@ -59,7 +59,7 @@ func dockerView(cfg DockerConfig, data *sources.DockerDataset, _ ViewCtx) map[st
 type UmamiConfig struct{ Only []string }
 
 func init() {
-	Tile[UmamiConfig]{Key: "umami_sites", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceUmami, RefreshS: 30 * 60,
+	Tile[UmamiConfig]{Key: "umami_sites", Detail: dataDetail(umamiDetail), Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceUmami, RefreshS: 30 * 60,
 		Fields:  []Field{{Key: "filter", Input: InputList}},
 		Decode:  func(r Raw) UmamiConfig { return UmamiConfig{Only: r.Lower("filter")} },
 		Queries: ownData[UmamiConfig], View: dataView(umamiView)}.add()
@@ -102,7 +102,7 @@ const umamiDrop = 30
 // ── immich ──
 
 func init() {
-	Tile[struct{}]{Key: "immich_library", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceImmich, RefreshS: 30 * 60,
+	Tile[struct{}]{Key: "immich_library", Detail: dataDetail(immichDetail), Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceImmich, RefreshS: 30 * 60,
 		Fields: []Field{}, Queries: ownData[struct{}], View: dataView(immichView)}.add()
 }
 

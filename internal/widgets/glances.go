@@ -62,7 +62,7 @@ func glancesChartView(cfg GlancesChartConfig, results map[string]any, _ ViewCtx)
 }
 
 func init() {
-	Tile[GlancesChartConfig]{Key: "glances_chart", Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceGlances, RefreshS: 60,
+	Tile[GlancesChartConfig]{Key: "glances_chart", Detail: glancesDetail, Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceGlances, RefreshS: 60,
 		Live: true, DataChoice: true,
 		Fields: []Field{sel("metric", defaultGlancesMetric, "cpu", "mem", "load", "swap"),
 			{Key: "points", Input: InputNumber, Default: defaultGlancesPoints, Min: "10", Max: "300"}, {Key: "warn_line", Input: InputNumber, Min: "0"}},

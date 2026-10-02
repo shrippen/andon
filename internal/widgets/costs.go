@@ -26,7 +26,7 @@ type CostConfig struct {
 }
 
 func init() {
-	Tile[CostConfig]{Key: "homelab_cost", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 3600,
+	Tile[CostConfig]{Key: "homelab_cost", Detail: homelabCostDetail, Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 3600,
 		Fields: []Field{sel("period", "month", "month", "year"), {Key: "power_split", Input: InputCheck, Default: true}},
 		Decode: func(r Raw) CostConfig {
 			return CostConfig{Yearly: r.Pick("period") == "year", PowerSplit: r.Bool("power_split")}

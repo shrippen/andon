@@ -108,17 +108,26 @@ func loadTileDetail(ctx context.Context, d *sql.DB, who *access.Principal, widge
 		if err != nil {
 			return nil, err
 		}
-		list := make([]widgets.DetailHint, len(found))
-		for i, h := range found {
-			list[i] = widgets.DetailHint{ID: h.ID, Rule: h.Rule, Severity: h.Severity, Title: h.Title, Why: h.Why, FirstSeen: h.FirstSeen}
-		}
-		results[widgets.DetailHintsSlot] = list
+		results[widgets.DetailHintsSlot] = detailHintsOf(found)
 	}
 	if frag.View != nil {
 		results[widgets.TileViewSlot] = frag.View
+		// A hint tile's own list (topic, filter) beats the service filter.
+		if own, ok := frag.View["Hints"].([]hints.View); ok {
+			results[widgets.DetailHintsSlot] = detailHintsOf(own)
+		}
 	}
 
 	view := kind.Detail(frag.Config, results, frag.viewCtx)
 	view.Head.Title = widget.Title
 	return &DetailDialog{Type: widget.Type, Head: view.Head, Body: view.Body}, nil
+}
+
+// detailHintsOf turns hints into the form a dialog lists.
+func detailHintsOf(found []hints.View) []widgets.DetailHint {
+	list := make([]widgets.DetailHint, len(found))
+	for i, h := range found {
+		list[i] = widgets.DetailHint{ID: h.ID, Rule: h.Rule, Severity: h.Severity, Title: h.Title, Why: h.Why, FirstSeen: h.FirstSeen, Due: h.Due}
+	}
+	return list
 }

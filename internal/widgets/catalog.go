@@ -382,7 +382,7 @@ func warnFrom(r Raw, key string) float64 {
 }
 
 func init() {
-	Tile[DisksConfig]{Key: "disks", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceScrutiny, RefreshS: 60 * 60,
+	Tile[DisksConfig]{Key: "disks", Detail: disksDetail, Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceScrutiny, RefreshS: 60 * 60,
 		Fields: []Field{{Key: "temp_warn", Input: InputNumber, Default: tempWarn, Min: "1", Max: "100"}, {Key: "only_problems", Input: InputCheck}},
 		Decode: func(r Raw) DisksConfig {
 			return DisksConfig{TempWarn: warnFrom(r, "temp_warn"), OnlyProblems: r.Bool("only_problems")}
@@ -458,7 +458,7 @@ type KomodoConfig struct {
 }
 
 func init() {
-	Tile[KomodoConfig]{Key: "komodo_stacks", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceKomodo, RefreshS: 5 * 60,
+	Tile[KomodoConfig]{Key: "komodo_stacks", Detail: dataDetail(komodoDetail), Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceKomodo, RefreshS: 5 * 60,
 		Fields:  []Field{{Key: "filter", Input: InputList}, {Key: "only_problems", Input: InputCheck}},
 		Renames: []rename{{from: "only_issues", to: "only_problems"}},
 		Decode: func(r Raw) KomodoConfig {
@@ -525,7 +525,7 @@ func decodeTrueNAS(r Raw) TrueNASConfig {
 }
 
 func init() {
-	Tile[TrueNASConfig]{Key: "truenas_pools", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceTrueNAS, RefreshS: 10 * 60,
+	Tile[TrueNASConfig]{Key: "truenas_pools", Detail: truenasDetail, Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceTrueNAS, RefreshS: 10 * 60,
 		Extra: ExtraHistory, // the pool forecast
 		Fields: []Field{{Key: "warn_pct", Input: InputNumber, Default: loadWarn, Min: "1", Max: "100"}, {Key: "app_updates", Input: InputCheck},
 			{Key: "forecast", Input: InputCheck}},

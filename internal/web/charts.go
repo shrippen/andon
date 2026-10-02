@@ -40,11 +40,12 @@ type geomLine struct{ D, Class string }
 type geomBar struct {
 	X, Y, W, H string
 	Class      string
-	Style      string // data-style, "" = none
+	Colour     string // Kante token of a state colour ("danger"), "" = series colour
 }
 
-// stateColour is the Kante role of a column's state.
-var stateColour = map[string]string{"ok": "--c:var(--aqua)", "warn": "--c:var(--warn)", "bad": "--c:var(--danger)", "off": "--c:var(--bg2)", "info": "--c:var(--cyan)"}
+// stateToken is the Kante colour token of a state: the template writes
+// "--c:var(--{{token}})", as html/template refuses var() in a style value.
+var stateToken = map[string]string{"ok": "aqua", "warn": "warn", "bad": "danger", "off": "bg2", "info": "cyan"}
 
 func fmtF(v float64) string { return strconv.FormatFloat(v, 'f', 1, 64) }
 
@@ -99,9 +100,9 @@ func geomOf(c widgets.Graph) chartGeom {
 	if c.Kind == widgets.GraphCols {
 		slot := float64(chartWidth) / float64(n)
 		base := y(lo)
-		bar := func(i int, v float64, class, style string) geomBar {
+		bar := func(i int, v float64, class, colour string) geomBar {
 			top := y(v)
-			return geomBar{X: fmtF(float64(i)*slot + slot*(1-chartBarFill)/2), Y: fmtF(top), W: fmtF(slot * chartBarFill), H: fmtF(max(base-top, 0)), Class: class, Style: style}
+			return geomBar{X: fmtF(float64(i)*slot + slot*(1-chartBarFill)/2), Y: fmtF(top), W: fmtF(slot * chartBarFill), H: fmtF(max(base-top, 0)), Class: class, Colour: colour}
 		}
 		if len(c.Series) > 1 {
 			for i, v := range c.Series[1].Values {
@@ -114,11 +115,11 @@ func geomOf(c widgets.Graph) chartGeom {
 			if math.IsNaN(v) {
 				continue
 			}
-			class, style := "bar "+c.Series[0].Class, ""
+			class, colour := "bar "+c.Series[0].Class, ""
 			if i < len(c.States) && c.States[i] != "" {
-				class, style = "bar c", stateColour[c.States[i]]
+				class, colour = "bar c", stateToken[c.States[i]]
 			}
-			g.Bars = append(g.Bars, bar(i, v, class, style))
+			g.Bars = append(g.Bars, bar(i, v, class, colour))
 		}
 		if c.Mark >= 0 && c.Mark < n {
 			g.Mark = fmtF((float64(c.Mark) + .5) * slot)
@@ -205,20 +206,20 @@ func sevTier(s enums.Severity) string {
 	return "cyan"
 }
 
-// stateVar is the Kante colour of a row's state light: "ok" → "var(--aqua)".
+// stateVar is the Kante colour token of a row's state light: "ok" → "aqua".
 func stateVar(s string) string {
-	if v, ok := stateColour[s]; ok {
-		return v[len("--c:"):]
+	if v, ok := stateToken[s]; ok {
+		return v
 	}
-	return "var(--fg3)"
+	return "fg3"
 }
 
-// seriesVar is the data colour of a series class: "s3" → "var(--d3)".
+// seriesVar is the data colour token of a series class: "s3" → "d3".
 func seriesVar(class string) string {
 	if len(class) == 2 && class[0] == 's' {
-		return "var(--d" + class[1:] + ")"
+		return "d" + class[1:]
 	}
-	return "var(--fg3)"
+	return "fg3"
 }
 
 // numCol tells whether column i is a number column (right-aligned).

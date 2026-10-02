@@ -25,7 +25,7 @@ func TestDetailBodyBlocks(t *testing.T) {
 		Blocks: []widgets.Block{
 			{Kind: widgets.BlockGraph, Label: widgets.T("detail.facts"), Hero: true, Data: graph},
 			{Kind: widgets.BlockTable, Data: widgets.Table{Head: []widgets.Text{widgets.T("detail.facts")}, Rows: [][]widgets.Cell{{{Value: "sdc", State: "bad"}}}, Num: []int{0}}},
-			{Kind: widgets.BlockStrips, Ticks: []string{"a", "b"}, Data: []widgets.Strip{{Name: "borg", States: []string{"ok", "bad"}, Value: "5 h"}}},
+			{Kind: widgets.BlockStrips, Ticks: []any{"a", "b"}, Data: []widgets.Strip{{Name: "borg", States: []string{"ok", "bad"}, Value: "5 h"}}},
 			{Kind: widgets.BlockPair, Data: []widgets.Block{
 				{Kind: widgets.BlockBars, Data: []widgets.ShareBar{{Name: "tank", Pct: 71, Value: "5,7 TB", Tier: "yellow"}}},
 				{Kind: widgets.BlockTimeline, Data: []widgets.Event{{At: day, Title: "update", Sub: "1 → 2", State: widgets.Txt("status.up"), Tier: "cyan"}}},
@@ -55,7 +55,7 @@ func TestDetailBodyBlocks(t *testing.T) {
 		`<td class="num" data-state="bad">sdc</td>`, `<path data-state="bad" d="M1.1 0h.8v1h-.8z"/>`, `data-style="--p:71%"`,
 		`class="date-tile" datetime="2026-09-16"`, `class="status" data-state="ok"`, `<pre class="codeblock">log line</pre>`,
 		`class="tier-card" data-tier="red"`, `class="spark"`, `1 / 2`, `class="heat is-weeks"`, `class="sheet detail-day"`,
-		`class="chip">#a`, `data-detail-tabs`, `data-detail-panel hidden`, `second`,
+		`class="chip">#a`, `data-style="--c:var(--warn)"`, `data-style="--c:var(--d1)"`, `data-detail-tabs`, `data-detail-panel hidden`, `second`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q", want)

@@ -18,7 +18,7 @@
     <h3 id="detail-title">{{$h.Title}}</h3>
     {{with $h.Sub}}<span class="detail-sub">{{.}}</span>{{end}}
   </div>
-  {{with $h.State}}<span class="launch-state" data-state="{{.}}">{{t $h.StateKey}}</span>{{end}}
+  {{with $h.State}}<span class="launch-state" data-state="{{.}}">{{tt $h.StateKey $h.StateArgs}}</span>{{end}}
   {{range $h.Actions}}
   {{if .Refresh}}<button type="button" class="btn btn-outline btn-sm" data-detail-refresh="/widget-fragments/{{$.PlacementID}}?refresh">{{t .LabelKey}}</button>
   {{else}}<a class="btn {{if .Primary}}btn-accent{{else}}btn-outline{{end}} btn-sm" href="{{.Href}}" target="_blank" rel="noopener noreferrer">{{t .LabelKey}}</a>{{end}}
@@ -141,7 +141,7 @@
   {{with $b.List}}
   <nav class="detail-list" aria-label="{{tt .Label.Key .Label.Args}}">
     <div class="h-label">{{tt .Label.Key .Label.Args}}</div>
-    {{$sel := .Sel}}{{range $i, $r := .Items}}<div class="list-row"{{if eq $i $sel}} aria-selected="true"{{end}}><span class="led" data-style="--c:{{stateVar $r.State}}"></span><span>{{tv $r.Name}}</span><span class="meta">{{tv $r.Meta}}</span></div>{{end}}
+    {{$sel := .Sel}}{{range $i, $r := .Items}}<div class="list-row"{{if eq $i $sel}} aria-selected="true"{{end}}><span class="led" data-style="--c:var(--{{stateVar $r.State}})"></span><span>{{tv $r.Name}}</span><span class="meta">{{tv $r.Meta}}</span></div>{{end}}
   </nav>
   {{end}}
   <section class="detail-main">
@@ -173,14 +173,14 @@
     {{with .Foot}}<tfoot><tr>{{range $i, $c := .}}<td{{if numCol $.Data.Num $i}} class="num"{{end}}>{{tv $c.Value}}</td>{{end}}</tr></tfoot>{{end}}
   </table></div>{{end}}
   {{else if eq $k "strips"}}
-  <div class="detail-rows">{{range .Data}}<span>{{.Name}}</span><svg class="uptime" viewBox="0 0 {{len .States}} 1" preserveAspectRatio="none" role="img" aria-label="{{.Name}}">{{range stripPaths .States}}<path data-state="{{.State}}" d="{{.D}}"/>{{end}}</svg><span>{{.Value}}</span>{{end}}</div>
-  {{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{.}}</span>{{end}}</div>{{end}}
+  <div class="detail-rows">{{range .Data}}<span>{{.Name}}</span><svg class="uptime" viewBox="0 0 {{len .States}} 1" preserveAspectRatio="none" role="img" aria-label="{{.Name}}">{{range stripPaths .States}}<path data-state="{{.State}}" d="{{.D}}"/>{{end}}</svg><span>{{tv .Value}}</span>{{end}}</div>
+  {{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
   {{else if eq $k "bars"}}
   <div class="detail-rows">{{range .Data}}<span>{{tv .Name}}</span><div class="progress-bar"><i data-style="--p:{{.Pct}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i></div><span>{{tv .Value}}</span>{{end}}</div>
   {{else if eq $k "timeline"}}
   <ol class="timeline">{{range .Data}}<li{{with .Tier}} data-tier="{{.}}"{{end}}><time class="date-tile" datetime="{{.At.Format "2006-01-02"}}"><b>{{mday .At}}</b>{{month .At}}</time><span class="what">{{tv .Title}}{{with .Sub}}<small>{{tv .}}</small>{{end}}</span><em class="state">{{tv .State}}</em></li>{{end}}</ol>
   {{else if eq $k "rows"}}
-  <div>{{range .Data}}<div class="list-row"><span class="led" data-style="--c:{{stateVar .State}}"></span><span>{{tv .Name}}</span><span class="meta">{{tv .Meta}}</span></div>{{end}}</div>
+  <div>{{range .Data}}<div class="list-row"><span class="led" data-style="--c:var(--{{stateVar .State}})"></span><span>{{tv .Name}}</span><span class="meta">{{tv .Meta}}</span></div>{{end}}</div>
   {{else if eq $k "status"}}
   <div class="detail-wall">{{range .Data}}<div class="status" data-state="{{.State}}"><span class="name">{{tv .Name}}</span><span class="row">{{tv .Meta}}</span></div>{{end}}</div>
   {{else if eq $k "text"}}<p>{{tv .Data}}</p>
@@ -191,11 +191,11 @@
   <div class="detail-wall">{{range .Data}}<div class="detail-card"{{with .Tier}} data-tier="{{.}}"{{end}}><span>{{tt .Label.Key .Label.Args}}</span><b>{{tv .Value}}</b>{{with .Spark}}<svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true"><path d="{{sparkPath .}}"/></svg>{{end}}{{with .Sub}}<small>{{tv .}}</small>{{end}}</div>{{end}}</div>
   {{else if eq $k "tasks"}}{{with .Data}}
   <div class="detail-progress"><div class="progress-bar"><i data-style="--p:{{if .Total}}{{pctOf .Done .Total}}{{else}}0{{end}}%" data-tier="{{if and .Total (eq .Done .Total)}}green{{else}}yellow{{end}}"></i></div><span>{{.Done}} / {{.Total}} · {{tt .Label.Key .Label.Args}}</span></div>
-  <div class="detail-tasks">{{range .Items}}<div class="detail-task{{if eq .State "ok"}} is-done{{end}}"><span class="led" data-style="--c:{{stateVar .State}}"></span><span>{{tv .Text}}{{with .Meta}}<small>{{tv .}}</small>{{end}}</span>{{if .Href}}<a class="btn btn-outline btn-sm" href="{{.Href}}" target="_blank" rel="noopener noreferrer">{{tt .Action.Key .Action.Args}}</a>{{else}}<span></span>{{end}}</div>{{end}}</div>
+  <div class="detail-tasks">{{range .Items}}<div class="detail-task{{if eq .State "ok"}} is-done{{end}}"><span class="led" data-style="--c:var(--{{stateVar .State}})"></span><span>{{tv .Text}}{{with .Meta}}<small>{{tv .}}</small>{{end}}</span>{{if .Href}}<a class="btn btn-outline btn-sm" href="{{.Href}}" target="_blank" rel="noopener noreferrer">{{tt .Action.Key .Action.Args}}</a>{{else}}<span></span>{{end}}</div>{{end}}</div>
   {{end}}
   {{else if eq $k "heat"}}{{with .Data}}
   <div class="heat is-weeks">{{range .Levels}}<i data-l="{{.}}"></i>{{end}}</div>
-  {{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{.}}</span>{{end}}</div>{{end}}
+  {{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
   {{end}}
   {{else if eq $k "day"}}{{with .Data}}
   <div class="sheet detail-day"><div class="detail-day-head"><h3>{{tv .Title}}</h3>{{with .State}}<span class="launch-state" data-state="{{.}}">{{tt $.Data.StateText.Key $.Data.StateText.Args}}</span>{{end}}</div>
@@ -210,11 +210,11 @@
 {{define "detail_graph"}}{{$g := chartGeom .}}
 <svg class="chart" viewBox="0 0 {{$g.W}} {{$g.H}}" preserveAspectRatio="none" role="img" aria-hidden="true">
   {{range $g.Grid}}<line class="grid" x1="0" x2="{{$g.W}}" y1="{{.}}" y2="{{.}}"/>{{end}}
-  {{range $g.Bars}}<rect class="{{.Class}}" x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}"{{with .Style}} data-style="{{.}}"{{end}}/>{{end}}
+  {{range $g.Bars}}<rect class="{{.Class}}" x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}"{{with .Colour}} data-style="--c:var(--{{.}})"{{end}}/>{{end}}
   {{with $g.Goal}}<line class="goal{{if $.GoalDanger}} is-danger{{end}}" x1="0" x2="{{$g.W}}" y1="{{.}}" y2="{{.}}"/>{{end}}
   {{range $g.Lines}}<path class="{{.Class}}" d="{{.D}}"/>{{end}}
   {{with $g.Mark}}<line class="now" x1="{{.}}" x2="{{.}}" y1="0" y2="{{$g.H}}"/>{{end}}
 </svg>
-{{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{.}}</span>{{end}}</div>{{end}}
-{{if graphLegend .}}<ul class="legend">{{range .Series}}{{if .Label}}<li><i data-style="--c:{{seriesVar .Class}}"></i>{{.Label}}</li>{{end}}{{end}}{{if .HasGoal}}<li><i class="goal{{if .GoalDanger}} is-danger{{end}}"></i>{{t "detail.goal"}}</li>{{end}}</ul>{{end}}
+{{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
+{{if graphLegend .}}<ul class="legend">{{range .Series}}{{if .Label}}<li><i data-style="--c:var(--{{seriesVar .Class}})"></i>{{.Label}}</li>{{end}}{{end}}{{if .HasGoal}}<li><i class="goal{{if .GoalDanger}} is-danger{{end}}"></i>{{t "detail.goal"}}</li>{{end}}</ul>{{end}}
 {{end}}
