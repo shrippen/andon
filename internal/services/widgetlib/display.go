@@ -58,6 +58,11 @@ type Fragment struct {
 	HintConn  int64 // connection the hint count belongs to, 0 = none
 	View      map[string]any
 	Frame     widgets.Frame
+
+	// What View got, kept for the detail dialog (detail.go).
+	results  map[string]any
+	viewCtx  widgets.ViewCtx
+	services []string // services the tile reads, for its hints
 }
 
 // Calm tells whether the tile has nothing to do and asks to be hidden then.
@@ -425,17 +430,26 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		frag.Slots[widgets.HistorySlot] = Slot{Data: h}
 	}
 
+	viewCtx := widgets.ViewCtx{Today: time.Now().UTC().Format("2006-01-02"), Settings: settings, PeerOptions: peerOptions}
+	if serviceConn != nil {
+		viewCtx.Service, viewCtx.Options = serviceConn.Service, serviceConn.Options
+	}
+	results := map[string]any{}
+	for name, slot := range frag.Slots {
+		if slot.Data != nil {
+			results[name] = slot.Data
+		}
+	}
+	frag.results, frag.viewCtx = results, viewCtx
+	if kind.Service != "" {
+		frag.services = append(frag.services, string(kind.Service))
+	}
+	for _, q := range kind.Queries(cfg) {
+		if q.Conn == widgets.ConnPeer {
+			frag.services = append(frag.services, string(q.Service))
+		}
+	}
 	if kind.View != nil {
-		viewCtx := widgets.ViewCtx{Today: time.Now().UTC().Format("2006-01-02"), Settings: settings, PeerOptions: peerOptions}
-		if serviceConn != nil {
-			viewCtx.Service, viewCtx.Options = serviceConn.Service, serviceConn.Options
-		}
-		results := map[string]any{}
-		for name, slot := range frag.Slots {
-			if slot.Data != nil {
-				results[name] = slot.Data
-			}
-		}
 		frag.View = kind.View(cfg, results, viewCtx)
 	}
 	if link, ok := cfg.(widgets.LinkConfig); ok && link.Status == widgets.StatusHTTP {

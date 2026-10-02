@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"embed"
 	"errors"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"math"
@@ -46,6 +47,7 @@ func mustParse() *template.Template {
 		"ago":       func(any) string { return "" },
 		"clockDate": func(string) string { return "" },
 		"tt":        func(string, map[string]any) string { return "" },
+		"tv":        func(any) string { return "" },
 		"here":      func(string) bool { return false },
 		"fragment":  func(*tileBody) (template.HTML, error) { return "", nil },
 
@@ -67,6 +69,15 @@ func mustParse() *template.Template {
 		"every":       every,
 		"uptimePaths": uptimePaths,
 		"stackPaths":  stackPaths,
+		"chartGeom":   geomOf,
+		"sevTier":     sevTier,
+		"stateVar":    stateVar,
+		"seriesVar":   seriesVar,
+		"numCol":      numCol,
+		"graphLegend": graphLegend,
+		"pctOf":       pctOf,
+		"stripPaths":  stripPaths,
+		"sparkPath":   sparkPath,
 		"msChartOf":   msChartOf,
 		"msX":         msX,
 		"kanteState":  kanteState,
@@ -288,6 +299,14 @@ func newPageSet() *pageSet {
 		// tt translates with typed params ({"$money": 12.5} -> "12,50 €").
 		"tt": func(key string, params map[string]any) string {
 			return i18n.T(key, st.locale, i18n.Typed(params, st.locale))
+		},
+		// tv shows a value of a detail dialog: text as is, a typed value
+		// ({"$num": 3.5, "digits": 1}) per locale.
+		"tv": func(v any) string {
+			if v == nil {
+				return ""
+			}
+			return fmt.Sprint(i18n.Typed(map[string]any{"v": v}, st.locale)["v"])
 		},
 		"fragment": set.fragment,
 	})

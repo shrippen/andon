@@ -3004,6 +3004,8 @@ keys:
   shift_click: Umschalt + Rechtsklick
   context: Browser-Menü statt Kachel-Menü
 detail:
+  facts: 'Fakten'
+  goal: 'Grenze'
   close: 'Schließen'
   open: 'Details'
 linkdetail:

@@ -42,6 +42,7 @@ type Tile[C any] struct {
 	Decode     func(r Raw) C                   // nil: the zero C
 	Queries    func(cfg C) []Query
 	View       func(cfg C, results map[string]any, ctx ViewCtx) map[string]any
+	Detail     func(cfg C, results map[string]any, ctx ViewCtx) DetailView // the detail dialog, nil = none
 }
 
 // add registers the tile.
@@ -65,6 +66,11 @@ func (t Tile[C]) add() {
 	if t.View != nil {
 		kind.View = func(cfg any, results map[string]any, ctx ViewCtx) map[string]any {
 			return t.View(configOf[C](cfg), results, ctx)
+		}
+	}
+	if t.Detail != nil {
+		kind.Detail = func(cfg any, results map[string]any, ctx ViewCtx) DetailView {
+			return t.Detail(configOf[C](cfg), results, ctx)
 		}
 	}
 	Register(kind)

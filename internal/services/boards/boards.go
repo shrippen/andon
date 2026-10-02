@@ -660,5 +660,5 @@ func Detail(ctx context.Context, d *sql.DB, who *access.Principal, placementID i
 	if err != nil {
 		return nil, err
 	}
-	return widgetlib.LoadDetail(ctx, d, w, time.Now().UTC())
+	return widgetlib.LoadDetail(ctx, d, who, w, time.Now().UTC())
 }
