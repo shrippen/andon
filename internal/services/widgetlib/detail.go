@@ -74,15 +74,20 @@ func LoadDetail(ctx context.Context, d *sql.DB, who *access.Principal, widget *m
 	if !HasDetail(widget.Type) {
 		return nil, ErrNoDetail
 	}
-	return loadTileDetail(ctx, d, who, widget, now)
+	return loadTileDetail(ctx, d, who, widget, now, originStored)
 }
 
 // loadTileDetail runs the tile's own pipeline (stored data, so opening a
 // dialog fetches nothing), adds the space's history, the open hints of the
 // tile's services and the tile's view, and hands all to kind.Detail.
-func loadTileDetail(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, now time.Time) (*DetailDialog, error) {
+// from = originDemo draws it from demo datasets (tests).
+func loadTileDetail(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, now time.Time, from origin) (*DetailDialog, error) {
 	kind, _ := widgets.Get(widget.Type)
-	frag, err := load(ctx, d, who, widget, svcdata.Stored, originStored)
+	fresh := svcdata.Stored
+	if from == originDemo {
+		fresh = svcdata.Cached
+	}
+	frag, err := load(ctx, d, who, widget, fresh, from)
 	if err != nil {
 		return nil, err
 	}
