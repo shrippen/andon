@@ -293,37 +293,37 @@ func energyView(cfg EnergyConfig, results map[string]any, _ ViewCtx) map[string]
 }
 
 func init() {
-	Tile[MediaConfig]{Key: "mediaserver", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceMediaServer, RefreshS: integrationTTL,
+	Tile[MediaConfig]{Key: "mediaserver", Detail: mediaDetail, Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceMediaServer, RefreshS: integrationTTL,
 		Fields:  []Field{{Key: "show_users", Input: InputCheck, Default: true}},
 		Decode:  func(r Raw) MediaConfig { return MediaConfig{Users: r.Bool("show_users")} },
 		Queries: ownData[MediaConfig], View: mediaView}.add()
 
-	Tile[ArrConfig]{Key: "arr_upcoming", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceArr, RefreshS: integrationTTL,
+	Tile[ArrConfig]{Key: "arr_upcoming", Detail: dataDetail(arrDetail), Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceArr, RefreshS: integrationTTL,
 		Fields:  []Field{{Key: "days", Input: InputNumber, Default: arrDays, Min: "1", Max: "30"}},
 		Decode:  func(r Raw) ArrConfig { return ArrConfig{Days: r.Int("days")} },
 		Queries: ownData[ArrConfig], View: dataView(arrView)}.add()
 
-	Tile[GrocyConfig]{Key: "grocy", Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceGrocy, RefreshS: integrationTTL,
+	Tile[GrocyConfig]{Key: "grocy", Detail: dataDetail(grocyDetail), Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceGrocy, RefreshS: integrationTTL,
 		Fields: []Field{{Key: "show_stock", Input: InputCheck, Default: true}, {Key: "show_shopping", Input: InputCheck, Default: true},
 			{Key: "show_chores", Input: InputCheck, Default: true}, {Key: "days", Input: InputNumber, Default: 0, Min: "0", Max: "60"}},
 		Decode: decodeGrocy, Queries: ownData[GrocyConfig], View: dataView(grocyView)}.add()
 
-	Tile[DWDConfig]{Key: "dwd", Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceDWD, RefreshS: integrationTTL,
+	Tile[DWDConfig]{Key: "dwd", Detail: dataDetail(dwdDetail), Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceDWD, RefreshS: integrationTTL,
 		Fields: []Field{sel("min_level", "minor", "minor", "moderate", "severe", "extreme")},
 		Decode: decodeDWD, Queries: ownData[DWDConfig], View: dataView(dwdView)}.add()
 
-	Tile[TailscaleConfig]{Key: "tailscale", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceTailscale, RefreshS: integrationTTL,
+	Tile[TailscaleConfig]{Key: "tailscale", Detail: dataDetail(tailscaleDetail), Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceTailscale, RefreshS: integrationTTL,
 		Fields: []Field{{Key: "only_problems", Input: InputCheck}, {Key: "hide_after", Input: InputNumber, Default: 0, Min: "0", Max: "3650"},
 			{Key: "tags", Input: InputList}},
 		Renames: []rename{{from: "only_trouble", to: "only_problems"}},
 		Decode:  decodeTailscale, Queries: ownData[TailscaleConfig], View: dataView(tailscaleView)}.add()
 
-	Tile[GitHubConfig]{Key: "github", Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitHub, RefreshS: integrationTTL,
+	Tile[GitHubConfig]{Key: "github", Detail: dataDetail(githubDetail), Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitHub, RefreshS: integrationTTL,
 		Fields:  []Field{{Key: "filter", Input: InputList}, {Key: "only_problems", Input: InputCheck}},
 		Renames: []rename{{from: "only_red", to: "only_problems"}},
 		Decode:  decodeGitHub, Queries: ownData[GitHubConfig], View: dataView(githubView)}.add()
 
-	Tile[EnergyConfig]{Key: "energy", Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceTibber, RefreshS: integrationTTL,
+	Tile[EnergyConfig]{Key: "energy", Detail: energyDetail, Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceTibber, RefreshS: integrationTTL,
 		Fields: []Field{{Key: "power_entity", Input: InputText}, {Key: "cheap_hours", Input: InputNumber, Default: metrics.CheapHours, Min: "1", Max: "12"},
 			{Key: "tomorrow", Input: InputCheck, Default: true}, sel("price", "total", "total", "energy")},
 		Decode: decodeEnergy, Queries: energyQueries, View: energyView}.add()

@@ -127,16 +127,34 @@ func typedValue(value any, locale enums.Locale) any {
 	}
 	if v, ok := m["$money"]; ok {
 		currency := DefaultCurrency
-		if c, ok := m["currency"].(string); ok {
+		if c, ok := m["currency"].(string); ok && c != "" {
 			currency = c
 		}
 		return Money(toFloat(v), locale, currency)
+	}
+	if unit, ok := m["unit"].(string); ok && unit != "" {
+		// A number with its unit: {"$num": 47, "unit": "°C"} → "47 °C".
+		plain := make(map[string]any, len(m))
+		for k, v := range m {
+			if k != "unit" {
+				plain[k] = v
+			}
+		}
+		return fmt.Sprint(typedValue(plain, locale)) + " " + unit
 	}
 	if v, ok := m["$day"]; ok {
 		return Day(v, locale)
 	}
 	if key, ok := m["$t"].(string); ok {
-		return T(key, locale, nil)
+		args, _ := m["args"].(map[string]any)
+		return T(key, locale, Typed(args, locale))
+	}
+	if v, ok := m["$ago"].(string); ok {
+		at, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			return v
+		}
+		return Ago(&at, locale)
 	}
 	if v, ok := m["$num"]; ok {
 		digits := 0

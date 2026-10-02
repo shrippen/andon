@@ -907,6 +907,19 @@
       if (!e.target.closest || !e.target.closest("#detail")) {
         return;
       }
+      var tab = e.target.closest("[data-detail-tabs] > [role=tab]");
+      if (tab) {
+        // Tabs: the n-th tab shows the n-th panel after the tab row.
+        var tabs = [].slice.call(tab.parentNode.children);
+        var panels = [].slice.call(tab.parentNode.parentNode.querySelectorAll(":scope > [data-detail-panel]"));
+        tabs.forEach(function (t, i) {
+          t.setAttribute("aria-selected", t === tab ? "true" : "false");
+          if (panels[i]) {
+            panels[i].hidden = t !== tab;
+          }
+        });
+        return;
+      }
       var entry = e.target.closest("[data-pick] > button");
       if (entry) {
         pick(entry);

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"andon/internal/model"
+	"andon/internal/services/access"
 	"andon/internal/services/linkstatus"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/util"
@@ -37,7 +38,7 @@ type LinkDetail struct {
 
 // loadLinkDetail loads a link tile's dialog: only links with a status
 // check have one.
-func loadLinkDetail(ctx context.Context, d *sql.DB, widget *model.Widget, today time.Time) (*DetailDialog, error) {
+func loadLinkDetail(ctx context.Context, d *sql.DB, _ *access.Principal, widget *model.Widget, today time.Time) (*DetailDialog, error) {
 	cfg, _ := widgets.Decode(widget.Type, util.OpenSecrets(widget.Config))
 	link, ok := cfg.(widgets.LinkConfig)
 	if !ok || link.Status != widgets.StatusHTTP {

@@ -840,6 +840,12 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .detail-task.is-done>span:nth-child(2){color:var(--fg3);text-decoration:line-through}
 /* Reading text of the large view */
 .detail-read{font-size:1rem;line-height:1.7;color:var(--fg1);max-width:65ch}
+.detail-read>h3{margin-bottom:.6rem}
+.detail-read>p+p{margin-top:.8rem}
+/* A picture of the large view: full width, its caption under it */
+.detail-figure{display:flex;flex-direction:column;gap:.5rem;margin:0;min-width:0}
+.detail-figure>img{display:block;max-width:100%;height:auto;margin:0 auto;background:var(--bg-hard)}
+.detail-figure>iframe{display:block;width:100%;height:70vh;border:0;background:var(--bg-hard)}
 /* Waiting for the content: <div class="detail-wait"><span class="loader">…</span></div> */
 .detail-wait{display:grid;place-items:center;min-height:12rem}
 @media(max-width:60rem){
@@ -857,6 +863,8 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .heat i[data-l="2"]{background:color-mix(in srgb,var(--cyan) 44%,var(--bg-hard))}
 .heat i[data-l="3"]{background:color-mix(in srgb,var(--cyan) 66%,var(--bg-hard))}
 .heat i[data-l="4"]{background:var(--cyan)}
+/* A year of days: one column per week, Monday on top (<div class="heat is-weeks">, days in order) */
+.heat.is-weeks{grid-template-rows:repeat(7,minmax(0,1fr));grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
 /* Month grid: today = yellow frame, holiday = orange bar, absence = cyan bar, both = split */
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
 .cal>b{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.1em;color:var(--fg3);font-weight:400;text-align:center;padding-bottom:.2rem}

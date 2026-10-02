@@ -6,11 +6,15 @@ import (
 
 	"andon/internal/services/boards"
 	"andon/internal/services/widgetlib"
+	"andon/internal/widgets"
 )
 
 // detailTemplate is the prefix of a type's dialog template:
 // "details/link" draws the link tile's dialog.
 const detailTemplate = "details/"
+
+// detailBlocks draws any widgets.DetailBody (most types).
+const detailBlocks = "details/body"
 
 // handleDetail answers a tile's detail dialog (opened by [data-details],
 // see andon.js). Every type shares the head ("detail_head"); its template
@@ -36,5 +40,9 @@ func (d Deps) handleDetail(w http.ResponseWriter, r *http.Request) {
 		d.handleBoardError(w, r, err)
 		return
 	}
-	_ = d.Page(w, ctx, detailTemplate+dialog.Type, http.StatusOK, map[string]any{"Dialog": dialog, "D": dialog.Body, "PlacementID": id, "ThemeURL": ""})
+	name := detailTemplate + dialog.Type
+	if _, blocks := dialog.Body.(*widgets.DetailBody); blocks {
+		name = detailBlocks
+	}
+	_ = d.Page(w, ctx, name, http.StatusOK, map[string]any{"Dialog": dialog, "D": dialog.Body, "PlacementID": id, "ThemeURL": ""})
 }

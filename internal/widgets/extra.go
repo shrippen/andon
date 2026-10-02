@@ -221,21 +221,21 @@ func monitorsView(cfg MonitorsConfig, results map[string]any, ctx ViewCtx) map[s
 }
 
 func init() {
-	Tile[ImageConfig]{Key: "image", Category: CategoryStart, Topic: TopicMedia, RefreshS: 60 * 60,
+	Tile[ImageConfig]{Key: "image", Detail: imageDetail, Category: CategoryStart, Topic: TopicMedia, RefreshS: 60 * 60,
 		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "height", Input: InputNumber, Default: defaultImageHeight, Min: "40", Max: "1200"},
 			{Key: "link", Input: InputText}, {Key: "reload", Input: InputNumber, Min: "0", Max: "1440"}, sel("fit", "contain", "contain", "cover")},
 		Decode: decodeImage, Queries: func(cfg ImageConfig) []Query {
 			return []Query{{Name: "image", Source: "image", Params: map[string]any{"url": cfg.URL, "fresh": freshBucket(cfg.ReloadM * secondsPerMinute)}}}
 		}}.add()
 
-	Tile[RatesConfig]{Key: "rates", Category: CategoryStart, Topic: TopicWorld, RefreshS: 6 * 60 * 60,
+	Tile[RatesConfig]{Key: "rates", Detail: ratesDetail, Category: CategoryStart, Topic: TopicWorld, RefreshS: 6 * 60 * 60,
 		Fields: []Field{{Key: "base", Input: InputText, Default: defaultRatesBase}, {Key: "symbols", Input: InputList, Default: anyList(defaultRates)},
 			{Key: "change", Input: InputCheck}, {Key: "invert", Input: InputCheck}},
 		Decode: decodeRates, Queries: func(cfg RatesConfig) []Query {
 			return []Query{{Name: "rates", Source: "exchange_rates", Params: map[string]any{"base": cfg.Base, "symbols": cfg.Symbols, "change": cfg.Change}}}
 		}}.add()
 
-	Tile[MonitorsConfig]{Key: "monitors", Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceUptimeKuma, RefreshS: 60,
+	Tile[MonitorsConfig]{Key: "monitors", Detail: monitorsDetail, Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceUptimeKuma, RefreshS: 60,
 		Live: true, DataChoice: true, Extra: ExtraHistory,
 		Fields: []Field{{Key: "filter", Input: InputList}, sel("days", "14", "7", "14", "30"), {Key: "response_time", Input: InputCheck, Default: true}},
 		Decode: decodeMonitors, Queries: ownData[MonitorsConfig], View: monitorsView,

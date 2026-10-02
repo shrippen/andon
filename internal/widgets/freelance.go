@@ -144,12 +144,7 @@ func cashflowView(cfg CashflowConfig, results map[string]any, ctx ViewCtx) map[s
 	if !ok {
 		return map[string]any{}
 	}
-	in := metrics.CashInputs{Ninja: ninja, FixedMonthly: settingsFloat(settingsMap(ctx.Settings, "costs"), "fixed_monthly", 0),
-		VATInterval: metrics.TaxVATInterval(ctx.Settings), VATMethod: metrics.TaxVATMethod(ctx.Settings), Center: metrics.CenterOf(ctx.Settings), DelayDays: cfg.Delay}
-	in.Tax, in.HasTax = metrics.ParseTaxSettings(ctx.Settings)
-	if sure, ok := results[peerSure].(*sources.SureDataset); ok {
-		in.Sure = sure
-	}
+	in := cashInputsOf(cfg, ninja, results, ctx)
 	points, events := metrics.Cashflow(in, todayOf(ctx), cfg.Days)
 	if len(points) < 2 {
 		return map[string]any{}
@@ -195,7 +190,7 @@ func lowest(points []metrics.CashPoint) float64 {
 }
 
 func init() {
-	Tile[HeatConfig]{Key: "heatmap", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 3600,
+	Tile[HeatConfig]{Key: "heatmap", Detail: dataDetail(heatmapDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 3600,
 		Fields: []Field{{Key: "months", Input: InputNumber, Default: 12, Min: "1", Max: "12"}, {Key: "weekdays", Input: InputCheck},
 			{Key: "by_goal", Input: InputCheck}},
 		Decode: func(r Raw) HeatConfig {
@@ -203,16 +198,27 @@ func init() {
 		},
 		Queries: ownData[HeatConfig], View: dataView(heatmapView)}.add()
 
-	Tile[MoneyFlowConfig]{Key: "money_flow", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
+	Tile[MoneyFlowConfig]{Key: "money_flow", Detail: moneyFlowDetail, Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
 		Fields:  []Field{{Key: "show_paid", Input: InputCheck, Default: true}},
 		Decode:  func(r Raw) MoneyFlowConfig { return MoneyFlowConfig{Paid: r.Bool("show_paid")} },
 		Queries: func(MoneyFlowConfig) []Query { return append(dataQuery(nil), kimaiPeer) }, View: moneyFlowView}.add()
 
-	Tile[CashflowConfig]{Key: "cashflow", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
+	Tile[CashflowConfig]{Key: "cashflow", Detail: cashflowDetail, Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
 		Fields: []Field{{Key: "days", Input: InputNumber, Default: defaultCashDays, Min: "14", Max: "365"}, {Key: "min_balance", Input: InputNumber},
 			{Key: "delay", Input: InputNumber, Min: "0", Max: "180"}},
 		Decode: func(r Raw) CashflowConfig {
 			return CashflowConfig{Days: r.Int("days"), MinBalance: r.Float("min_balance"), Delay: r.Int("delay")}
 		},
 		Queries: func(CashflowConfig) []Query { return append(dataQuery(nil), surePeer) }, View: cashflowView}.add()
+}
+
+// cashInputsOf gathers what the cashflow forecast reads.
+func cashInputsOf(cfg CashflowConfig, ninja *sources.NinjaDataset, results map[string]any, ctx ViewCtx) metrics.CashInputs {
+	in := metrics.CashInputs{Ninja: ninja, FixedMonthly: settingsFloat(settingsMap(ctx.Settings, "costs"), "fixed_monthly", 0),
+		VATInterval: metrics.TaxVATInterval(ctx.Settings), VATMethod: metrics.TaxVATMethod(ctx.Settings), Center: metrics.CenterOf(ctx.Settings), DelayDays: cfg.Delay}
+	in.Tax, in.HasTax = metrics.ParseTaxSettings(ctx.Settings)
+	if sure, ok := results[peerSure].(*sources.SureDataset); ok {
+		in.Sure = sure
+	}
+	return in
 }

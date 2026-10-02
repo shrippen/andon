@@ -80,7 +80,7 @@ func hassView(cfg HassConfig, data *sources.HassDataset, _ ViewCtx) map[string]a
 }
 
 func init() {
-	Tile[HassConfig]{Key: "hass", Category: CategoryStart, Topic: TopicHome, Service: enums.ServiceHomeAssistant, RefreshS: 60,
+	Tile[HassConfig]{Key: "hass", Detail: dataDetail(hassDetail), Category: CategoryStart, Topic: TopicHome, Service: enums.ServiceHomeAssistant, RefreshS: 60,
 		Live: true, DataChoice: true,
 		Fields: []Field{{Key: "entities", Input: InputList, Required: true}, {Key: "labels", Input: InputArea}, {Key: "thresholds", Input: InputArea},
 			{Key: "two_columns", Input: InputCheck}},

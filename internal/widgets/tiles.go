@@ -80,7 +80,7 @@ type ConnHealthConfig struct {
 const connShakyDays = 2
 
 func init() {
-	Tile[ConnHealthConfig]{Key: "conn_health", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 10 * 60, Extra: ExtraConnHealth,
+	Tile[ConnHealthConfig]{Key: "conn_health", Detail: connHealthDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 10 * 60, Extra: ExtraConnHealth,
 		Fields:  []Field{{Key: "limit", Input: InputNumber, Default: 4, Min: "1", Max: "20"}, {Key: "only_problems", Input: InputCheck}},
 		Renames: []rename{{from: "only_shaky", to: "only_problems"}},
 		Decode: func(r Raw) ConnHealthConfig {
@@ -217,7 +217,7 @@ var agingLimits = []struct {
 }
 
 func init() {
-	Tile[AgingConfig]{Key: "invoice_aging", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 30 * 60,
+	Tile[AgingConfig]{Key: "invoice_aging", Detail: dataDetail(invoiceAgingDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 30 * 60,
 		Fields: []Field{agingBands, {Key: "hide_clients", Input: InputList}},
 		Decode: decodeAging, Queries: ownData[AgingConfig], View: dataView(invoiceAgingView),
 		Calm: func(v map[string]any) bool { return v["Count"] == 0 }}.add()
@@ -274,7 +274,7 @@ func invoiceAgingView(cfg AgingConfig, data *sources.NinjaDataset, ctx ViewCtx) 
 type SpeedConfig struct{ Ping bool }
 
 func init() {
-	Tile[SpeedConfig]{Key: "speedtest", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest, RefreshS: integrationTTL,
+	Tile[SpeedConfig]{Key: "speedtest", Detail: dataDetail(speedDetail), Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest, RefreshS: integrationTTL,
 		Fields:  []Field{{Key: "ping", Input: InputCheck, Default: true}},
 		Decode:  func(r Raw) SpeedConfig { return SpeedConfig{Ping: r.Bool("ping")} },
 		Queries: ownData[SpeedConfig], View: dataView(speedView)}.add()

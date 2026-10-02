@@ -87,11 +87,11 @@ func hintTrendView(_ NoiseConfig, results map[string]any, _ ViewCtx) map[string]
 }
 
 func init() {
-	Tile[NoiseConfig]{Key: "hint_trend", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 1800, Extra: ExtraNoise,
+	Tile[NoiseConfig]{Key: "hint_trend", Detail: hintTrendDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 1800, Extra: ExtraNoise,
 		Fields:  []Field{sel("days", "30", "14", "30", "90")},
 		Renames: []rename{{from: "period", to: "days"}},
 		Decode:  decodeNoise, View: hintTrendView}.add()
-	Tile[NoiseConfig]{Key: "hint_noise", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 1800, Extra: ExtraNoise,
+	Tile[NoiseConfig]{Key: "hint_noise", Detail: noiseDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 1800, Extra: ExtraNoise,
 		Fields:  []Field{sel("days", "14", "14", "30", "90")},
 		Renames: []rename{{from: "period", to: "days"}},
 		Decode:  decodeNoise, View: noiseView}.add()

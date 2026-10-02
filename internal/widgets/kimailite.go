@@ -252,7 +252,7 @@ func dayTicks(from, to int) []DayTick {
 
 func init() {
 	// recent: at most what the source fetches (10).
-	Tile[KimaiLiteConfig]{Key: "kimai_timer", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 60,
+	Tile[KimaiLiteConfig]{Key: "kimai_timer", Detail: timerDetail, Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 60,
 		Live: true, DataChoice: true, Extra: ExtraKimaiFavs,
 		Fields: []Field{{Key: "recent", Input: InputNumber, Default: recentShown, Min: "0", Max: "10"}, {Key: "ask_note", Input: InputCheck}},
 		Decode: func(r Raw) KimaiLiteConfig {

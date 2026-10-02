@@ -572,7 +572,7 @@ func init() {
 		},
 		Decode: decodeLink, Queries: linkQueries, View: linkView}.add()
 
-	Tile[RssConfig]{Key: "rss", Category: CategoryStart, Topic: TopicMedia, RefreshS: 30 * 60,
+	Tile[RssConfig]{Key: "rss", Detail: rssDetail, Category: CategoryStart, Topic: TopicMedia, RefreshS: 30 * 60,
 		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
 			{Key: "summary", Input: InputCheck}, {Key: "more_urls", Input: InputList}, {Key: "images", Input: InputCheck},
 			{Key: "max_age", Input: InputNumber, Min: "0", Max: "365"}, {Key: "titles_only", Input: InputCheck},
@@ -582,31 +582,31 @@ func init() {
 				"images": cfg.Images, "max_age": float64(cfg.MaxAge)}}}
 		}}.add()
 
-	Tile[ClockConfig]{Key: "clock", Category: CategoryStart, Topic: TopicOverview, Inline: true, RefreshS: 30,
+	Tile[ClockConfig]{Key: "clock", Detail: clockDetail, Category: CategoryStart, Topic: TopicOverview, Inline: true, RefreshS: 30,
 		Fields: []Field{{Key: "timezones", Input: InputList, Default: []any{defaultTimezone}}, {Key: "seconds", Input: InputCheck}, {Key: "date", Input: InputCheck, Default: true},
 			sel("format", "24", "24", "12"), {Key: "analog", Input: InputCheck}},
 		Decode: decodeClock}.add()
 
-	Tile[WeatherConfig]{Key: "weather", Category: CategoryStart, Topic: TopicHome, RefreshS: 30 * 60,
+	Tile[WeatherConfig]{Key: "weather", Detail: weatherDetail, Category: CategoryStart, Topic: TopicHome, RefreshS: 30 * 60,
 		Fields: []Field{{Key: "label", Input: InputText}, {Key: placeKey, Input: InputPlace, Required: true}, sel("unit", "c", "c", "f"),
 			{Key: "hourly", Input: InputCheck, Default: true}, {Key: "days", Input: InputNumber, Default: weatherDays, Min: "0", Max: "7"}},
 		Decode: decodeWeather, View: weatherView, Queries: func(cfg WeatherConfig) []Query {
 			return []Query{{Name: "weather", Source: "open_meteo", Params: map[string]any{"lat": cfg.Lat, "lon": cfg.Lon, "days": float64(cfg.Days)}}}
 		}}.add()
 
-	Tile[IframeConfig]{Key: "iframe", Category: CategoryStart, Topic: TopicDev, Inline: true,
+	Tile[IframeConfig]{Key: "iframe", Detail: iframeDetail, Category: CategoryStart, Topic: TopicDev, Inline: true,
 		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "height", Input: InputNumber, Default: 320, Min: "80", Max: "2000"},
 			{Key: "reload", Input: InputNumber, Min: "0", Max: "1440"}},
 		Decode: decodeIframe}.add()
 
-	Tile[SysinfoConfig]{Key: "sysinfo", Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceGlances, RefreshS: 60, Live: true, DataChoice: true,
+	Tile[SysinfoConfig]{Key: "sysinfo", Detail: sysinfoDetail, Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceGlances, RefreshS: 60, Live: true, DataChoice: true,
 		Fields: []Field{{Key: "show_cpu", Input: InputCheck, Default: true}, {Key: "show_mem", Input: InputCheck, Default: true},
 			{Key: "show_swap", Input: InputCheck, Default: true}, {Key: "show_disks", Input: InputCheck, Default: true},
 			{Key: "warn_pct", Input: InputNumber, Default: loadWarn, Min: "1", Max: "100"}},
 		Decode: decodeSysinfo, View: sysinfoView,
 		Queries: func(SysinfoConfig) []Query { return []Query{{Name: "stats", Source: "glances", Conn: ConnWidget}} }}.add()
 
-	Tile[PublicIPConfig]{Key: "public_ip", Category: CategoryStart, Topic: TopicNetwork, RefreshS: 60 * 60, Extra: ExtraIPWatch,
+	Tile[PublicIPConfig]{Key: "public_ip", Detail: publicIPDetail, Category: CategoryStart, Topic: TopicNetwork, RefreshS: 60 * 60, Extra: ExtraIPWatch,
 		Fields: []Field{{Key: "ipv6", Input: InputCheck}, {Key: "watch", Input: InputCheck}},
 		Decode: decodePublicIP, View: publicIPView, Queries: func(cfg PublicIPConfig) []Query {
 			return []Query{{Name: "ip", Source: "public_ip", Params: map[string]any{"v6": cfg.V6}}}
