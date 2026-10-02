@@ -1,41 +1,11 @@
 package web
 
 import (
-	"errors"
-	"net/http"
 	"strconv"
 	"strings"
 
-	"andon/internal/services/boards"
 	"andon/internal/services/linkstatus"
-	"andon/internal/services/widgetlib"
 )
-
-// handleLinkDetail answers a link tile's detail dialog (opened by the
-// icon next to its uptime strip).
-func (d Deps) handleLinkDetail(w http.ResponseWriter, r *http.Request) {
-	ctx, err := d.Viewer(r)
-	if err != nil {
-		d.handleAuthError(w, r, err)
-		return
-	}
-	id, err := pathID(r, "id")
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	detail, err := boards.LinkDetail(r.Context(), d.DB, ctx.Who, id)
-	if errors.Is(err, widgetlib.ErrNoStatus) {
-		http.NotFound(w, r)
-		return
-	}
-	if err != nil {
-		d.handleBoardError(w, r, err)
-		return
-	}
-	_ = d.Page(w, ctx, "link_detail", http.StatusOK, map[string]any{"D": detail, "PlacementID": id, "ThemeURL": ""})
-}
 
 // stackPath draws checks per day as columns: successful ones below,
 // failed ones on top, a low mark for days without checks. The viewBox

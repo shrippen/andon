@@ -3,7 +3,6 @@ package widgetlib
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"time"
 
 	"andon/internal/model"
@@ -16,10 +15,6 @@ import (
 
 // linkInfoSource gathers a link's address facts for its detail dialog.
 const linkInfoSource = "link_info"
-
-// ErrNoStatus: the tile is no link with a status check, so it has no
-// details to show.
-var ErrNoStatus = errors.New("link tile without status check")
 
 // LinkDetail is a link tile's detail dialog: latest check, kept days and
 // the facts of its address. Secrets of the tile (status headers) stay out.
@@ -40,13 +35,13 @@ type LinkDetail struct {
 	Info        *sources.LinkInfo // nil if it could not be read
 }
 
-// LoadLinkDetail loads a link tile's details; the caller checked the
-// viewer's right on the widget.
-func LoadLinkDetail(ctx context.Context, d *sql.DB, widget *model.Widget, today time.Time) (*LinkDetail, error) {
+// loadLinkDetail loads a link tile's dialog: only links with a status
+// check have one.
+func loadLinkDetail(ctx context.Context, d *sql.DB, widget *model.Widget, today time.Time) (*DetailDialog, error) {
 	cfg, _ := widgets.Decode(widget.Type, util.OpenSecrets(widget.Config))
 	link, ok := cfg.(widgets.LinkConfig)
 	if !ok || link.Status != widgets.StatusHTTP {
-		return nil, ErrNoStatus
+		return nil, ErrNoDetail
 	}
 	kind, _ := widgets.Get(widget.Type)
 	var params map[string]any
@@ -75,7 +70,21 @@ func LoadLinkDetail(ctx context.Context, d *sql.DB, widget *model.Widget, today 
 	if res, err := svcdata.Get(ctx, d, linkInfoSource, params, nil, nil, svcdata.Cached); err == nil {
 		out.Info, _ = res.Data.(*sources.LinkInfo)
 	}
-	return out, nil
+	return &DetailDialog{Type: widget.Type, Head: out.head(), Body: out}, nil
+}
+
+// head: up, down or never checked; check now and open the address.
+func (l *LinkDetail) head() DetailHead {
+	h := DetailHead{Title: l.Title, Sub: l.Description, State: "off", StateKey: "linkdetail.never",
+		Actions: []DetailAction{{LabelKey: "linkdetail.check_now", Refresh: true}, {LabelKey: "linkdetail.open", Href: l.URL, Primary: true}}}
+	switch {
+	case l.Status == nil:
+	case l.Status.Up:
+		h.State, h.StateKey = "ok", "status.up"
+	default:
+		h.State, h.StateKey = "bad", "status.down"
+	}
+	return h
 }
 
 // TLSDaysLeft counts the days until the certificate expires, -1 when
