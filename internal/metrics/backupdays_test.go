@@ -12,8 +12,8 @@ import (
 // today; the widget reads the marks back day by day.
 func TestBackupDays(t *testing.T) {
 	now := time.Date(2026, 9, 27, 14, 0, 0, 0, time.UTC)
-	marks := metrics.BackupMarks(map[string]any{"borg": &sources.BorgDataset{Clients: []sources.BorgClient{
-		{Name: "nas", LastBackup: now.Add(-3 * time.Hour)}, {Name: "shop-db", LastBackup: now.AddDate(0, 0, -3)}}}}, now)
+	marks := metrics.Read(map[string]any{"borg": &sources.BorgDataset{Clients: []sources.BorgClient{
+		{Name: "nas", LastBackup: now.Add(-3 * time.Hour)}, {Name: "shop-db", LastBackup: now.AddDate(0, 0, -3)}}}}, now).Values
 	if marks["backup.borgbackup.nas"] != 1 || marks["backup.borgbackup.shop-db"] != 0 {
 		t.Fatalf("marks: %v", marks)
 	}

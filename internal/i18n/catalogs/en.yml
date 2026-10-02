@@ -3951,6 +3951,7 @@ timeline:
   opened: 'New'
   resolved: 'Resolved'
   reopened: 'Back'
+  change: 'Change'
   empty: 'Nothing recorded yet.'
   today: 'Today'
   yesterday: 'Yesterday'

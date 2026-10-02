@@ -12,24 +12,18 @@ import (
 	"andon/internal/sources"
 )
 
-// Tallies are this run's counts, added to the day's (see data.AddSamples).
-func Tallies(datasets map[string]any) map[string]float64 {
-	out := map[string]float64{}
-	for _, raw := range datasets {
-		kuma, ok := raw.(*sources.KumaDataset)
-		if !ok {
-			continue
-		}
-		for _, m := range kuma.Monitors {
+// Each run counts once per monitor, and once more when it is up.
+func init() {
+	Record(func(d *sources.KumaDataset, _ time.Time, r *Readings) {
+		for _, m := range d.Monitors {
 			up := 0.0
 			if m.Status == sources.KumaUp {
 				up = 1
 			}
-			out[key("kuma", "runs", m.Name)] = 1
-			out[key("kuma", "up", m.Name)] = up
+			r.Count(key("kuma", "runs", m.Name), 1)
+			r.Count(key("kuma", "up", m.Name), up)
 		}
-	}
-	return out
+	})
 }
 
 // dayTotals sums a series per day.

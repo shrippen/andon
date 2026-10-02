@@ -41,10 +41,10 @@ func TestTrendAndVersionEvent(t *testing.T) {
 // "authentik") must not share its version slot; the greeting showed
 // "authentik 2026.8.3 → pending:".
 func TestVersionsKeepStackApart(t *testing.T) {
-	v := metrics.Versions(map[string]any{
+	v := metrics.Read(map[string]any{
 		"authentik": &sources.AuthentikDataset{Version: "2026.8.3"},
 		"komodo":    &sources.KomodoDataset{Stacks: []sources.KStack{{Name: "authentik"}}},
-	})
+	}, time.Now()).Versions
 	if v["authentik"] != "2026.8.3" || len(v) != 2 {
 		t.Fatalf("versions: %v", v)
 	}

@@ -258,7 +258,7 @@ func recentDetail(cfg RecentConfig, results map[string]any, ctx ViewCtx) DetailV
 	var events []Event
 	updates, opened := 0, 0
 	for _, it := range all {
-		if cfg.Kinds != "" && (cfg.Kinds == "hints") != (it.Kind != kindUpdate) {
+		if cfg.Kinds != "" && (cfg.Kinds == "hints") != isHintKind(it.Kind) {
 			continue
 		}
 		tier := "cyan"
