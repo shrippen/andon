@@ -3003,11 +3003,13 @@ keys:
   tile: öffnet die Kachel (im Editor festgelegt)
   shift_click: Umschalt + Rechtsklick
   context: Browser-Menü statt Kachel-Menü
+detail:
+  close: 'Schließen'
+  open: 'Details'
 linkdetail:
   open_aria: Verlauf und Details
   open: Öffnen
   check_now: Jetzt prüfen
-  close: Schließen
   never: Noch nicht geprüft
   facts: Steckbrief
   address: Adresse

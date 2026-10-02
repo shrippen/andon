@@ -808,76 +808,93 @@
     }, true);
   }
 
-  // ── Link tile details: the icon next to the uptime strip opens a dialog ──
+  // ── Detail dialogs: one dialog for every tile type (templates/details.html) ──
   //
-  //   .launch-detail[data-details] ─fetch─► <dialog class="dialog link-detail">
-  //   .day-pick > button (data-day, data-ok, …) ─► [data-ld] fields of the chosen day
+  //   [data-details="/details/42"] ─fetch─► <dialog id="detail" class="dialog detail">
+  //   [data-pick] > button: data-v-NAME ─► text of [data-v="NAME"], data-state-NAME ─► its
+  //                         data-state, data-x ─► x1/x2 of [data-pick-x] (the chosen day's mark)
+  //   [data-detail-refresh] ─► forced fetch of the tile, then the dialog anew
   //
-  // The icon sits inside the tile's link, so it stops the link like the hint badge.
-  var LD_FIELDS = ["day", "ok", "fail", "ms", "down", "error"];
+  // A trigger may sit inside a tile's link, so it stops the link like the hint badge.
+  var DETAIL_WAIT = '<div class="detail-wait"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span></div>';
+  var detailURL = "";
 
-  function linkDialog() {
-    var dlg = d.getElementById("link-detail");
+  function detailDialog() {
+    var dlg = d.getElementById("detail");
     if (!dlg) {
       dlg = d.createElement("dialog");
-      dlg.id = "link-detail";
-      dlg.className = "dialog link-detail";
-      dlg.setAttribute("aria-labelledby", "ld-title");
+      dlg.id = "detail";
+      dlg.className = "dialog detail";
+      dlg.setAttribute("aria-labelledby", "detail-title");
       d.body.appendChild(dlg);
     }
     return dlg;
   }
 
-  function openLinkDetail(url) {
+  // openDetail shows the frame at once and fills it when the answer is in;
+  // a later open wins over an earlier one still on its way.
+  function openDetail(url) {
+    var dlg = detailDialog();
+    detailURL = url;
+    if (!dlg.open) {
+      dlg.innerHTML = DETAIL_WAIT;
+      dlg.setAttribute("aria-busy", "true");
+      dlg.showModal();
+    }
     fetch(url, { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.text() : ""; })
       .then(function (html) {
+        if (url !== detailURL) {
+          return;
+        }
+        dlg.removeAttribute("aria-busy");
         if (!html) {
+          dlg.close();
           return;
         }
         // Server-rendered html/template output from our own origin.
-        var dlg = linkDialog();
         dlg.innerHTML = html;
         applyStyles(dlg);
-        if (!dlg.open) {
-          dlg.showModal();
-        }
       });
   }
 
-  // pickDay shows one day's numbers in the dialog's day card.
-  function pickDay(btn) {
+  // pick shows one entry's values (a day of the link history) in the dialog.
+  function pick(btn) {
     var dlg = btn.closest("dialog");
     [].forEach.call(btn.parentNode.children, function (b) {
       b.setAttribute("aria-pressed", b === btn ? "true" : "false");
     });
-    LD_FIELDS.forEach(function (f) {
-      var el = dlg.querySelector('[data-ld="' + f + '"]');
-      if (el) {
-        el.textContent = btn.getAttribute("data-" + f);
+    [].forEach.call(btn.attributes, function (a) {
+      var m = /^data-(v|state)-(.+)$/.exec(a.name);
+      if (!m) {
+        return;
       }
+      dlg.querySelectorAll('[data-v="' + m[2] + '"]').forEach(function (el) {
+        if (m[1] === "v") {
+          el.textContent = a.value;
+        } else {
+          el.setAttribute("data-state", a.value);
+        }
+      });
     });
-    var state = dlg.querySelector('[data-ld="state"]');
-    if (state) {
-      state.textContent = btn.getAttribute("data-word");
-      state.setAttribute("data-state", btn.getAttribute("data-state"));
-    }
-    var now = dlg.querySelector("[data-ld-now]");
-    if (now) {
-      now.setAttribute("x1", btn.getAttribute("data-x"));
-      now.setAttribute("x2", btn.getAttribute("data-x"));
+    var x = btn.getAttribute("data-x");
+    if (x) {
+      dlg.querySelectorAll("[data-pick-x]").forEach(function (el) {
+        el.setAttribute("x1", x);
+        el.setAttribute("x2", x);
+      });
     }
   }
 
-  function setupLinkDetail() {
+  function setupDetail() {
     function open(e) {
-      var icon = e.target.closest && e.target.closest(".launch-detail[data-details]");
-      if (!icon) {
+      var trigger = e.target.closest && e.target.closest("[data-details]");
+      if (!trigger) {
         return;
       }
       e.preventDefault();
       e.stopPropagation();
-      openLinkDetail(icon.getAttribute("data-details"));
+      openDetail(trigger.getAttribute("data-details"));
     }
     d.addEventListener("click", open, true);
     d.addEventListener("keydown", function (e) {
@@ -887,26 +904,26 @@
     }, true);
 
     d.addEventListener("click", function (e) {
-      if (!e.target.closest || !e.target.closest("#link-detail")) {
+      if (!e.target.closest || !e.target.closest("#detail")) {
         return;
       }
-      var day = e.target.closest(".day-pick > button");
-      if (day) {
-        pickDay(day);
+      var entry = e.target.closest("[data-pick] > button");
+      if (entry) {
+        pick(entry);
         return;
       }
-      if (e.target.closest("[data-ld-close]")) {
-        linkDialog().close();
+      if (e.target.closest("[data-detail-close]")) {
+        detailDialog().close();
         return;
       }
-      var check = e.target.closest("[data-ld-refresh]");
+      var check = e.target.closest("[data-detail-refresh]");
       if (!check) {
         return;
       }
-      // A forced check (at most once a minute per tile), then the dialog anew.
+      // A forced fetch of the tile (at most once a minute), then the dialog anew.
       check.disabled = true;
-      fetch(check.getAttribute("data-ld-refresh"), { credentials: "same-origin" })
-        .then(function () { openLinkDetail(check.getAttribute("data-ld-reload")); });
+      fetch(check.getAttribute("data-detail-refresh"), { credentials: "same-origin" })
+        .then(function () { openDetail(detailURL); });
     });
   }
 
@@ -1417,7 +1434,7 @@
     setupAutosubmit();
     setupMenus();
     setupHintPop();
-    setupLinkDetail();
+    setupDetail();
     setupKimaiForm();
     setupOffline();
     setupHotkeys();

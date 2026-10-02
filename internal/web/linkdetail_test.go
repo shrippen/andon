@@ -62,15 +62,18 @@ func TestLinkDetailRenders(t *testing.T) {
 			TLSIssuer: "R11", TLSUntil: time.Now().AddDate(0, 0, 23)},
 	}
 
+	dialog := &widgetlib.DetailDialog{Type: "link", Body: detail, Head: widgetlib.DetailHead{Title: "Nextcloud", State: "ok", StateKey: "status.up",
+		Actions: []widgetlib.DetailAction{{LabelKey: "linkdetail.check_now", Refresh: true}, {LabelKey: "linkdetail.open", Href: detail.URL, Primary: true}}}}
+
 	rec := httptest.NewRecorder()
-	if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, "link_detail", http.StatusOK, map[string]any{"D": detail, "PlacementID": int64(7), "ThemeURL": ""}); err != nil {
+	if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, "details/link", http.StatusOK, map[string]any{"Dialog": dialog, "D": detail, "PlacementID": int64(7), "ThemeURL": ""}); err != nil {
 		t.Fatal(err)
 	}
 	body := rec.Body.String()
 	for _, want := range []string{
-		`id="ld-title">Nextcloud`, `<code>203.0.113.24</code>`, `302 /login → 200`, `2xx, 3xx, 401`,
-		`data-fail="144"`, `data-error="HTTP 502"`, `aria-pressed="true"`, `data-ld-refresh="/widget-fragments/7?refresh"`,
-		`Ausfall an einem Tag`, `Zertifikat läuft in`,
+		`id="detail-title">Nextcloud`, `data-state="ok"`, `<code>203.0.113.24</code>`, `302 /login → 200`, `2xx, 3xx, 401`,
+		`data-v-fail="144"`, `data-v-error="HTTP 502"`, `aria-pressed="true"`, `data-detail-refresh="/widget-fragments/7?refresh"`,
+		`href="https://cloud.example.test"`, `Ausfall an einem Tag`, `Zertifikat läuft in`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
