@@ -771,6 +771,79 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .day-pick>button:hover{background:var(--tint-1)}
 .day-pick>button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--focus)}
 .day-pick>button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+/* Detail dialog (Kante 1.14): one frame for every detail view of an app, the layout follows from what
+   .detail-body holds, so a new layout is a new combination, not a new component:
+   <dialog class="dialog detail"><header class="detail-head">…</header>[<div class="detail-line">…</div>]
+   <div class="detail-body">[<aside class="detail-side">|<nav class="detail-list">]<section class="detail-main">…</section>[<aside class="detail-side is-end">]</div></dialog>
+     side + main = record · list + main = list and detail · main + side.is-end = large view · main alone = timeline, grid, wall, tabs, tasks */
+.dialog.detail{max-width:min(82rem,calc(100vw - 2rem));width:100%;max-height:calc(100dvh - 2rem);padding:0;gap:0;overflow:auto}
+.detail-head{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem;padding:1.1rem 1.5rem;border-bottom:1px solid var(--bg1)}
+.detail-head>.launch-icon{--icon:2.75rem}
+.detail-name{flex:1 1 12rem;display:flex;flex-direction:column;gap:.15rem;min-width:0}
+.dialog .detail-name>h3{margin:0;overflow-wrap:anywhere}
+.detail-sub{font-family:var(--font-mono);font-size:.72rem;color:var(--fg3);overflow-wrap:anywhere}
+.detail-head>.launch-state{font-family:var(--font-mono);font-size:.72rem}
+/* Facts as one line under the head: <div class="detail-line"><span><small>Host</small> <b>nas</b></span>…</div> */
+.detail-line{display:flex;flex-wrap:wrap;gap:.3rem 1.4rem;padding:.7rem 1.5rem;border-bottom:1px solid var(--bg1);font-size:.8rem}
+.detail-line small{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3)}
+.detail-line b{font-weight:500;color:var(--fg1)}
+.detail-body{display:grid;grid-template-columns:minmax(0,1fr)}
+.detail-body:has(>.detail-side:first-child){grid-template-columns:20rem minmax(0,1fr)}
+.detail-body:has(>.detail-list:first-child){grid-template-columns:minmax(14rem,19rem) minmax(0,1fr)}
+.detail-body:has(>.detail-side.is-end){grid-template-columns:minmax(0,1fr) 18rem}
+.detail-side,.detail-list{background:var(--bg1);padding:1.1rem 1.25rem;display:flex;flex-direction:column;gap:.75rem;min-width:0}
+.detail-list{padding-inline:.6rem;gap:.15rem}
+.detail-list>.h-label{margin:0 .5rem .4rem}
+.detail-side .table{font-size:.78rem}
+.detail-side .table td{overflow-wrap:anywhere}
+.detail-side .table td:first-child{color:var(--fg3);white-space:nowrap}
+.detail-main{padding:1.1rem 1.5rem;display:flex;flex-direction:column;gap:1rem;min-width:0}
+/* Blocks: a label row (text left, meta right) over a chart, table, list … */
+.detail-block{display:flex;flex-direction:column;gap:.4rem;min-width:0}
+.detail-label{display:flex;justify-content:space-between;gap:1rem}
+.detail-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:1rem}
+.detail-facts .fact b{font-size:2rem}
+.detail-hero .chart,.detail-hero .chart-wrap{height:13rem}
+.detail-ticks{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.62rem;color:var(--fg3)}
+.detail-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.25rem;align-items:start}
+.detail-day{gap:.5rem}
+.detail-day-head{display:flex;align-items:baseline;gap:.75rem}
+.detail-day-head>h3{margin:0;font-size:1.3rem}
+.detail-day .kpi-row{grid-template-columns:repeat(auto-fit,minmax(7.5rem,1fr));gap:.5rem}
+.detail-day .kpi>b{font-size:1.3rem}
+/* Rows of name | strip or bar | value: <div class="detail-rows"><span>nas</span><svg class="uptime">…</svg><span>vor 5 h</span>…</div> */
+.detail-rows{display:grid;grid-template-columns:minmax(6rem,12rem) minmax(0,1fr) auto;gap:.4rem .8rem;align-items:center;font-size:.8rem}
+.detail-rows>:nth-child(3n+1){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.detail-rows>:nth-child(3n){font-family:var(--font-mono);font-size:.72rem;color:var(--fg2);text-align:right;font-variant-numeric:tabular-nums}
+.detail-rows>.uptime{max-width:none;height:.7rem}
+/* Wall of figures: <div class="detail-wall"><div class="detail-card" data-tier="…"><span>label</span><b>value</b><svg class="spark">…</svg><small>sub</small></div>…</div> */
+.detail-wall{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr));gap:.8rem}
+.detail-card{background:var(--bg-panel);border-top:4px solid var(--bg2);padding:.8rem .9rem;display:flex;flex-direction:column;gap:.35rem;min-width:0}
+.detail-card[data-tier="green"]{border-top-color:var(--aqua)}.detail-card[data-tier="yellow"]{border-top-color:var(--warn)}
+.detail-card[data-tier="red"]{border-top-color:var(--danger)}.detail-card[data-tier="cyan"]{border-top-color:var(--cyan)}
+.detail-card>span{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3)}
+.detail-card>b{font-family:var(--font-heading);font-weight:700;font-size:1.9rem;line-height:1;color:var(--fg0);font-variant-numeric:tabular-nums}
+.detail-card[data-tier="yellow"]>b{color:var(--warn)}.detail-card[data-tier="red"]>b{color:var(--danger-text)}
+.detail-card>.spark{height:2rem}
+.detail-card>small{font-size:.75rem;color:var(--fg2)}
+/* Tasks: progress, then one row per task with its action: <div class="detail-task [is-done]"><span class="led"></span><span>text<small>meta</small></span><button class="btn btn-outline btn-sm">…</button></div> */
+.detail-progress{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1rem;align-items:center;font-family:var(--font-mono);font-size:.75rem;color:var(--fg2)}
+.detail-tasks{display:flex;flex-direction:column}
+.detail-task{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.8rem;align-items:center;padding:.6rem .2rem;border-bottom:1px solid var(--bg1)}
+.detail-task>span:nth-child(2){display:flex;flex-direction:column;font-size:.86rem;color:var(--fg1);min-width:0}
+.detail-task small{font-family:var(--font-mono);font-size:.66rem;color:var(--fg3)}
+.detail-task.is-done>span:nth-child(2){color:var(--fg3);text-decoration:line-through}
+/* Reading text of the large view */
+.detail-read{font-size:1rem;line-height:1.7;color:var(--fg1);max-width:65ch}
+/* Waiting for the content: <div class="detail-wait"><span class="loader">…</span></div> */
+.detail-wait{display:grid;place-items:center;min-height:12rem}
+@media(max-width:60rem){
+  .detail-body,.detail-body:has(>.detail-side:first-child),.detail-body:has(>.detail-list:first-child),.detail-body:has(>.detail-side.is-end),.detail-pair{grid-template-columns:minmax(0,1fr)}
+  .detail-head,.detail-line,.detail-main{padding-inline:1rem}
+  .detail-rows{grid-template-columns:minmax(0,7rem) minmax(0,1fr) auto}
+  .detail-facts{grid-template-columns:repeat(auto-fit,minmax(7rem,1fr))}
+  .detail-facts .fact b{font-size:1.6rem}
+}
 .legend{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2)}
 .legend i{display:inline-block;width:10px;height:10px;margin-right:.4rem;vertical-align:-1px;background:var(--c,var(--d1))}
 .heat{display:grid;gap:3px}
@@ -1446,7 +1519,7 @@ details.help.is-right>.help-text{left:auto;right:-.5rem}
 :root[data-kante="gold"] .btn{font-weight:600}
 :root[data-kante="gold"] .feat-icon{stroke-width:1.5}
 /* Less weight: 2 px bars, gold hairlines */
-:root[data-kante="gold"] :is(.flow-node,.faq details,.feat,.callout,.band,.toast,.dialog,.sheet,.status,.palette,a.link-tile,.launch,.tier-card,.hint-card,.login,.tile,.option,.editbar,.bulk-bar){border-top-width:var(--bar)}
+:root[data-kante="gold"] :is(.flow-node,.faq details,.feat,.callout,.band,.toast,.dialog,.sheet,.status,.palette,a.link-tile,.launch,.tier-card,.hint-card,.login,.tile,.option,.editbar,.bulk-bar,.detail-card){border-top-width:var(--bar)}
 :root[data-kante="gold"] .timeline>li{border-left-width:var(--bar)}
 :root[data-kante="gold"] .option{border-color:var(--gold-line)}
 :root[data-kante="gold"] .feat::before{top:calc(-1 * var(--bar));height:var(--bar)}
