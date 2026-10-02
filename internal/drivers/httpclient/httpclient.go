@@ -105,6 +105,12 @@ func resolve(ctx context.Context, host string) ([]net.IP, error) {
 	return ips, nil
 }
 
+// LookupIP resolves host through the shared cache, e.g. for a link's
+// detail dialog.
+func LookupIP(ctx context.Context, host string) ([]net.IP, error) {
+	return resolve(ctx, host)
+}
+
 // SetGuard installs the process-wide egress guard, or nil to allow all.
 // Safe while requests run: the admin changes the policy at any time.
 func SetGuard(g Guard) {

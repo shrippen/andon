@@ -744,6 +744,14 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .uptime{display:block;width:100%;max-width:8rem;height:.4rem}
 .uptime path{fill:var(--aqua)}
 .uptime path[data-state="warn"]{fill:var(--warn)}.uptime path[data-state="bad"]{fill:var(--danger)}.uptime path[data-state="off"]{fill:var(--bg2)}
+/* Stacked columns use the same states: viewBox="0 0 <days> 100", per day a column of ok checks with the failed ones on top.
+   Day picker: a row of buttons over a chart in .chart-wrap, one per column; the chosen one framed in the focus colour:
+   <div class="day-pick"><button type="button" aria-pressed="true" aria-label="Mo 15.09.: outage"></button>…</div> */
+.day-pick{position:absolute;inset:0;display:flex}
+.day-pick>button{flex:1 1 0;min-width:0;padding:0;background:none;border:0;cursor:pointer}
+.day-pick>button:hover{background:var(--tint-1)}
+.day-pick>button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--focus)}
+.day-pick>button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
 .legend{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2)}
 .legend i{display:inline-block;width:10px;height:10px;margin-right:.4rem;vertical-align:-1px;background:var(--c,var(--d1))}
 .heat{display:grid;gap:3px}
@@ -1196,6 +1204,14 @@ input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:
 .launch-state::before{content:"";flex:none;width:7px;height:7px;background:var(--k)}
 .launch-state[data-state="warn"]{--k:var(--warn)}.launch-state[data-state="bad"]{--k:var(--danger);color:var(--danger)}.launch-state[data-state="off"]{--k:var(--bg2);color:var(--fg3)}
 .launch-info.is-error{color:var(--danger)}
+/* Uptime strip with its detail button on one line: <span class="launch-trend"><svg class="uptime">…</svg>
+   <span class="launch-detail" role="button" tabindex="0" aria-label="…"><svg>…</svg></span></span>; a span, as the tile is a link */
+.launch-trend{flex-basis:100%;display:flex;align-items:center;gap:.4rem;min-width:0}
+.launch-detail{flex:none;display:inline-grid;place-items:center;width:1.6rem;height:1.25rem;padding:0;background:none;border:1px solid transparent;color:var(--fg3);cursor:pointer}
+.launch-detail svg{width:14px;height:14px}
+.launch-detail:hover{color:var(--fg0);border-color:var(--bg2)}
+.launch-detail:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
+@media (pointer:coarse){.launch-detail{width:2.2rem;height:2rem}}
 /* Hint count: outlined in the tier colour; red is filled, so the shape tells the tier too */
 .launch-hints{--k:var(--info);display:inline-flex;align-items:center;justify-content:center;gap:.2rem;min-width:1.25rem;height:1.1rem;margin:0;padding:0 .3rem;background:none;border:1px solid var(--k);color:var(--k);
   font-family:var(--font-mono);font-weight:500;font-size:.62rem;font-variant-numeric:tabular-nums;text-decoration:none;cursor:pointer}

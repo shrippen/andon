@@ -1,5 +1,5 @@
 Kante 1.12
 source: https://github.com/shrippen/Kante
 branch: uptime-strip
-commit: 4097987da6c98a4d1a339eff05852cc043b65647
+commit: 727bc038b136e154391919a3e45cb938b6f9f2f1
 files: base.css components.css shrippen.js fonts/OFL.txt fonts/*.woff2 (Latin subsets, see tools/sync-design.sh)

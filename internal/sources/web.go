@@ -5,6 +5,7 @@ package sources
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
@@ -22,6 +23,8 @@ import (
 
 const (
 	httpStatusTTL = 5 * time.Minute
+	linkInfoTTL   = time.Hour
+	maxHops       = 5
 	feedTTL       = 30 * time.Minute
 	weatherTTL    = 30 * time.Minute
 	glancesTTL    = time.Minute
@@ -57,6 +60,18 @@ func (r *HTTPStatusResult) Outcome() (bool, int) {
 		return false, 0
 	}
 	return true, r.Ms
+}
+
+// Failure says why a check failed ("HTTP 502", a transport error), ""
+// when it succeeded.
+func (r *HTTPStatusResult) Failure() string {
+	switch {
+	case r.Error != "":
+		return r.Error
+	case !r.Up:
+		return "HTTP " + strconv.Itoa(r.Code)
+	}
+	return ""
 }
 
 var HTTPStatusSource = source{key: "http_status", ttl: httpStatusTTL, fetch: fetchHTTPStatus}
@@ -137,6 +152,106 @@ func fetchHTTPStatus(ctx context.Context, sctx Ctx) (any, error) {
 	// statusCheckAcceptCodes means the same).
 	up := code >= httpOKMin && code <= httpOKMax || slices.Contains(accept, code)
 	return &HTTPStatusResult{Up: up, Code: code, Ms: ms}, nil
+}
+
+// ── link_info ──
+
+// LinkHop is one answer on the way to a link's page.
+type LinkHop struct {
+	Code   int
+	Target string // where a redirect points (path, or URL without query), "" for the last
+}
+
+// LinkInfo is what a link's detail dialog shows beside its checks.
+type LinkInfo struct {
+	IPs       []string
+	Hops      []LinkHop
+	TLSIssuer string
+	TLSUntil  time.Time // zero for http or a failed handshake
+	Skew      time.Duration
+	HasSkew   bool
+	Error     string // why the hops stop early, "" if they reached a page
+}
+
+var LinkInfoSource = source{key: "link_info", ttl: linkInfoTTL, fetch: fetchLinkInfo}
+
+// fetchLinkInfo gathers a link's address, redirects, certificate and
+// clock. Like a status check, a failure is data, not an error.
+func fetchLinkInfo(ctx context.Context, sctx Ctx) (any, error) {
+	target := asStr(sctx.Params["url"])
+	u, err := url.Parse(target)
+	if err != nil || u.Hostname() == "" {
+		return &LinkInfo{Error: "bad url"}, nil
+	}
+	insecure, _ := sctx.Params["insecure"].(bool)
+	headers, _ := sctx.Params["headers"].(map[string]string)
+
+	info := &LinkInfo{}
+	if ips, err := httpclient.LookupIP(ctx, u.Hostname()); err == nil {
+		for _, ip := range ips {
+			info.IPs = append(info.IPs, ip.String())
+		}
+	}
+	info.Hops, info.Error = hops(ctx, target, insecure, headers)
+
+	if u.Scheme == "https" {
+		port := u.Port()
+		if port == "" {
+			port = httpsPort
+		}
+		if c, err := services.PeerCert(ctx, net.JoinHostPort(u.Hostname(), port)); err == nil {
+			info.TLSIssuer, info.TLSUntil = c.Issuer, c.NotAfter
+		}
+	}
+	info.Skew, info.HasSkew = httpclient.ClockSkew(u.Hostname())
+	return info, nil
+}
+
+// hops follows a link's redirects by hand, so each answer shows:
+//
+//	GET /  →  302 /login  →  200
+func hops(ctx context.Context, target string, insecure bool, headers map[string]string) ([]LinkHop, string) {
+	withAccept := map[string]string{"Accept": pageAccept}
+	for k, v := range headers {
+		withAccept[k] = v
+	}
+	opts := httpclient.Options{SkipVerify: insecure, NoRedirect: true, Headers: withAccept}
+
+	var out []LinkHop
+	for range maxHops {
+		resp, err := httpclient.Request(ctx, http.MethodGet, target, opts)
+		if err != nil {
+			var denied httpclient.EgressDenied
+			if errors.As(err, &denied) {
+				return out, "egress"
+			}
+			return out, err.Error()
+		}
+		resp.Body.Close()
+
+		hop := LinkHop{Code: resp.StatusCode}
+		loc := resp.Header.Get("Location")
+		if resp.StatusCode < http.StatusMultipleChoices || resp.StatusCode > httpOKMax || loc == "" {
+			return append(out, hop), ""
+		}
+		next, err := resp.Request.URL.Parse(loc)
+		if err != nil {
+			return append(out, hop), "bad redirect"
+		}
+		hop.Target = shortTarget(resp.Request.URL, next)
+		out = append(out, hop)
+		target = next.String()
+	}
+	return out, ""
+}
+
+// shortTarget names a redirect target without its query, which may hold
+// tokens: "/login" on the same host, "https://auth.example.org/flow" else.
+func shortTarget(from, to *url.URL) string {
+	if to.Host == from.Host {
+		return to.Path
+	}
+	return to.Scheme + "://" + to.Host + to.Path
 }
 
 // ── rss ──
@@ -406,6 +521,7 @@ func fetchPublicIP(ctx context.Context, sctx Ctx) (any, error) {
 
 func init() {
 	Register(HTTPStatusSource)
+	Register(LinkInfoSource)
 	Register(FeedSource)
 	Register(WeatherSource)
 	Register(GlancesSource)

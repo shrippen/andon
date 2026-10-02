@@ -808,6 +808,108 @@
     }, true);
   }
 
+  // ── Link tile details: the icon next to the uptime strip opens a dialog ──
+  //
+  //   .launch-detail[data-details] ─fetch─► <dialog class="dialog link-detail">
+  //   .day-pick > button (data-day, data-ok, …) ─► [data-ld] fields of the chosen day
+  //
+  // The icon sits inside the tile's link, so it stops the link like the hint badge.
+  var LD_FIELDS = ["day", "ok", "fail", "ms", "down", "error"];
+
+  function linkDialog() {
+    var dlg = d.getElementById("link-detail");
+    if (!dlg) {
+      dlg = d.createElement("dialog");
+      dlg.id = "link-detail";
+      dlg.className = "dialog link-detail";
+      dlg.setAttribute("aria-labelledby", "ld-title");
+      d.body.appendChild(dlg);
+    }
+    return dlg;
+  }
+
+  function openLinkDetail(url) {
+    fetch(url, { credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (html) {
+        if (!html) {
+          return;
+        }
+        // Server-rendered html/template output from our own origin.
+        var dlg = linkDialog();
+        dlg.innerHTML = html;
+        applyStyles(dlg);
+        if (!dlg.open) {
+          dlg.showModal();
+        }
+      });
+  }
+
+  // pickDay shows one day's numbers in the dialog's day card.
+  function pickDay(btn) {
+    var dlg = btn.closest("dialog");
+    [].forEach.call(btn.parentNode.children, function (b) {
+      b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+    });
+    LD_FIELDS.forEach(function (f) {
+      var el = dlg.querySelector('[data-ld="' + f + '"]');
+      if (el) {
+        el.textContent = btn.getAttribute("data-" + f);
+      }
+    });
+    var state = dlg.querySelector('[data-ld="state"]');
+    if (state) {
+      state.textContent = btn.getAttribute("data-word");
+      state.setAttribute("data-state", btn.getAttribute("data-state"));
+    }
+    var now = dlg.querySelector("[data-ld-now]");
+    if (now) {
+      now.setAttribute("x1", btn.getAttribute("data-x"));
+      now.setAttribute("x2", btn.getAttribute("data-x"));
+    }
+  }
+
+  function setupLinkDetail() {
+    function open(e) {
+      var icon = e.target.closest && e.target.closest(".launch-detail[data-details]");
+      if (!icon) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      openLinkDetail(icon.getAttribute("data-details"));
+    }
+    d.addEventListener("click", open, true);
+    d.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        open(e);
+      }
+    }, true);
+
+    d.addEventListener("click", function (e) {
+      if (!e.target.closest || !e.target.closest("#link-detail")) {
+        return;
+      }
+      var day = e.target.closest(".day-pick > button");
+      if (day) {
+        pickDay(day);
+        return;
+      }
+      if (e.target.closest("[data-ld-close]")) {
+        linkDialog().close();
+        return;
+      }
+      var check = e.target.closest("[data-ld-refresh]");
+      if (!check) {
+        return;
+      }
+      // A forced check (at most once a minute per tile), then the dialog anew.
+      check.disabled = true;
+      fetch(check.getAttribute("data-ld-refresh"), { credentials: "same-origin" })
+        .then(function () { openLinkDetail(check.getAttribute("data-ld-reload")); });
+    });
+  }
+
   // ── Kimai Lite add form: offer only the chosen project's and global activities ──
   function filterActivities(form) {
     var project = form.querySelector("[data-kimai-project]");
@@ -1315,6 +1417,7 @@
     setupAutosubmit();
     setupMenus();
     setupHintPop();
+    setupLinkDetail();
     setupKimaiForm();
     setupOffline();
     setupHotkeys();

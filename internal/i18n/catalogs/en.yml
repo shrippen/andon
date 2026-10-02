@@ -3002,6 +3002,57 @@ keys:
   tile: opens the tile (set in the editor)
   shift_click: Shift + right click
   context: Browser menu instead of the tile menu
+linkdetail:
+  open_aria: History and details
+  open: Open
+  check_now: Check now
+  close: Close
+  never: Not checked yet
+  facts: Profile
+  address: Address
+  checked: Checked
+  dns: DNS
+  answer: Answer
+  tls: TLS
+  tls_until: '{issuer}, until {day}'
+  clock: Clock
+  clock_skew: '{s} s off'
+  expect: Expected
+  check: Check
+  every: 'every {min} min, {s} s limit'
+  every_default: 'every {min} min, default limit'
+  tls_soon: 'Certificate expires in {n} days.'
+  up30: Reachable · 30 days
+  avg30: Avg answer · 30 days
+  last: Last
+  incidents60: Incidents · 60 days
+  cert: Certificate
+  cert_days: '{n} d'
+  checks_head: Checks per day · pick a day
+  checks_total: '{n} checks'
+  since: 'Measured since {day}'
+  today: today
+  ms_head: Answer time · daily avg, without DNS
+  ms_goal: 'Line: 1,000 ms'
+  day_ok: succeeded
+  day_fail: failed
+  day_ms: Avg answer
+  day_down: without answer
+  day_error: 'Error:'
+  no_error: none
+  not_measured: not measured yet
+  inc_down: 'Outage over {n} days'
+  inc_down_one: Outage on one day
+  inc_short: Short disruption
+  inc_detail: '{n} checks without answer · {e}'
+  inc_none: No incidents in 60 days.
+  minutes: '{m} min'
+  hours: '≈ {h} h {m} min'
+  state:
+    up: Reachable
+    partial: Partly
+    down: Outage
+    none: No data
 uptime:
   summary: '{share} reachable in 30 days, avg {ms} ms'
   month: 'Uptime {month}'
