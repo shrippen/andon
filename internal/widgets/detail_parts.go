@@ -77,17 +77,6 @@ func spanTicks(now time.Time, n int) []any {
 // percentScale turns shares into percent.
 const percentScale = 100
 
-// stripState maps a tile strip cell (ok, miss, none) to Kante's states.
-func stripState(s string) string {
-	switch s {
-	case "ok":
-		return "ok"
-	case "miss":
-		return "bad"
-	}
-	return "off"
-}
-
 // agoOf is the time since t as a typed value ("vor 5 h"), "–" for zero.
 func agoOf(t time.Time) any {
 	if t.IsZero() {
