@@ -102,6 +102,7 @@
         <summary class="name">{{.Who.Name}}{{with .Onboarding}}{{if .Open}}<span class="count" data-kind="info" title="{{t "welcome.title"}}">{{.Done}}/{{len .Steps}}</span>{{end}}{{end}}</summary>
         <div class="menu">
           <a href="/welcome"{{if here "/welcome"}} aria-current="page"{{end}}>{{t "welcome.title"}}{{with .Onboarding}}{{if .Open}} <span class="count" data-kind="info">{{.Done}}/{{len .Steps}}</span>{{end}}{{end}}</a>
+          <a href="/about"{{if here "/about"}} aria-current="page"{{end}}>{{t "about.title"}}</a>
           <a href="/me/profile"{{if here "/me/profile"}} aria-current="page"{{end}}>{{t "nav.profile"}}</a>
           <a href="/me/security"{{if here "/me/security"}} aria-current="page"{{end}}>{{t "nav.security"}}</a>
           <a href="/me/credentials"{{if here "/me/credentials"}} aria-current="page"{{end}}>{{t "nav.credentials"}}</a>
