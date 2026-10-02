@@ -1,0 +1,30 @@
+{{/* About: what Andon is, the running build, source and license (routes_about.go). */}}
+{{define "about"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "about.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <h1>{{t "about.title"}}</h1>
+    <p class="lead">{{t "about.lead"}}</p>
+    <div class="table-wrap"><table class="table">
+      <tbody>
+        <tr><th scope="row">{{t "about.version"}}</th><td>{{.About.Version}}</td></tr>
+        <tr><th scope="row">{{t "about.runtime"}}</th><td>{{.About.Go}}</td></tr>
+        <tr><th scope="row">{{t "about.schema"}}</th><td>{{.About.Schema}} · {{.About.Migrations}} {{t "about.migrations"}}</td></tr>
+        <tr><th scope="row">{{t "about.uptime"}}</th><td>{{ago .About.Started}}</td></tr>
+        <tr><th scope="row">{{t "about.license"}}</th><td>GPL-3.0</td></tr>
+        <tr><th scope="row">{{t "about.source"}}</th><td><a href="https://git.arianw.de/shrippen/andon" rel="noopener">git.arianw.de/shrippen/andon</a></td></tr>
+        <tr><th scope="row">{{t "about.design"}}</th><td><a href="https://github.com/shrippen/Kante" rel="noopener">Kante</a></td></tr>
+      </tbody>
+    </table></div>
+  </main>
+</body>
+</html>
+{{end}}

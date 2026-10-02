@@ -88,6 +88,13 @@ func Migrations(q Queryer) (int, error) {
 	return n, err
 }
 
+// LastMigration names the newest applied migration, e.g. "0016_link_status_error.sql".
+func LastMigration(q Queryer) (string, error) {
+	var name string
+	err := q.QueryRow("SELECT name FROM schema_migrations ORDER BY name DESC LIMIT 1").Scan(&name)
+	return name, err
+}
+
 // countable are the tables a restore test compares.
 var countable = map[string]bool{"users": true, "spaces": true, "connections": true, "widgets": true, "boards": true, "hints": true}
 

@@ -161,6 +161,7 @@ func run() int {
 	deps.RegisterSpaceRoutes(mux)
 	deps.RegisterMoreRoutes(mux)
 	deps.RegisterWelcomeRoutes(mux)
+	deps.RegisterAboutRoutes(mux)
 	deps.RegisterPasskeyRoutes(mux)
 	deps.RegisterHookRoutes(mux)
 	deps.RegisterBillingRoutes(mux)

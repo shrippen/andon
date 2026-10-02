@@ -15,5 +15,5 @@ run:
 
 # Release build: no demo mode, no demo data (scripts/release-check.sh).
 build:
-	CGO_ENABLED=0 go build -tags release -trimpath -ldflags="-s -w" -o bin/andon ./cmd/andon
+	CGO_ENABLED=0 go build -tags release -trimpath -ldflags="-s -w -X andon/internal/services/about.version=$(shell git describe --tags --always)" -o bin/andon ./cmd/andon
 	scripts/release-check.sh bin/andon

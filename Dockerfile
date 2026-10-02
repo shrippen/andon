@@ -11,9 +11,10 @@ COPY internal ./internal
 COPY scripts/release-check.sh ./scripts/
 ARG TARGETOS
 ARG TARGETARCH
+ARG VERSION=
 # -tags release leaves out the demo mode and Studio Weber (the gallery
 # previews use a neutral sample); the check fails the build on any rest.
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -tags release -trimpath -ldflags="-s -w" -o /out/andon ./cmd/andon \
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -tags release -trimpath -ldflags="-s -w -X andon/internal/services/about.version=${VERSION}" -o /out/andon ./cmd/andon \
  && sh scripts/release-check.sh /out/andon
 
 # ── Runtime ──

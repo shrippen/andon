@@ -3515,6 +3515,17 @@ mode_switch:
   confirm: Switch
 pangolin:
   url: 'This URL is not the Pangolin integration API. It ends in /v1 and runs on its own address (port 3003), e.g. https://api.pangolin.example.org/v1; enable_integration_api must be on in config.yml.'
+about:
+  title: 'About Andon'
+  lead: 'Self-hosted dashboard: start page and analysis of your services, with hints.'
+  version: 'Version'
+  schema: 'Database schema'
+  migrations: 'migrations'
+  uptime: 'Started'
+  runtime: 'Runtime'
+  license: 'License'
+  source: 'Source'
+  design: 'Design'
 welcome:
   title: 'Getting started'
   lead: 'Andon is your start page: links and status like Dashy, plus numbers and hints from your services. This page shows how it fits together and walks you through the first steps. You find it any time in the menu under your name.'

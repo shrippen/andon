@@ -3516,6 +3516,17 @@ mode_switch:
   confirm: Umstellen
 pangolin:
   url: 'Unter dieser URL antwortet nicht die Pangolin-Integration-API. Sie endet auf /v1 und läuft auf einer eigenen Adresse (Port 3003), z. B. https://api.pangolin.example.org/v1; in der config.yml muss enable_integration_api eingeschaltet sein.'
+about:
+  title: 'Über Andon'
+  lead: 'Selbst gehostetes Dashboard: Startseite und Auswertung deiner Dienste mit Hinweisen.'
+  version: 'Version'
+  schema: 'Datenbank-Schema'
+  migrations: 'Migrationen'
+  uptime: 'Gestartet'
+  runtime: 'Laufzeit'
+  license: 'Lizenz'
+  source: 'Quellcode'
+  design: 'Design'
 welcome:
   title: 'Erste Schritte'
   lead: 'Andon ist deine Startseite: Links und Status wie bei Dashy, dazu Zahlen und Hinweise aus deinen Diensten. Diese Seite zeigt, wie alles zusammenhängt, und führt dich durch die ersten Schritte. Du findest sie jederzeit im Menü unter deinem Namen.'
