@@ -67,3 +67,41 @@ func TestDetailBodyBlocks(t *testing.T) {
 		}
 	}
 }
+
+// TestDetailListItems: a list row with an Item opens that entry in the
+// dialog; one without stays a plain row.
+func TestDetailListItems(t *testing.T) {
+	body := &widgets.DetailBody{List: &widgets.ObjList{Label: widgets.T("detail.facts"), Sel: 0, Title: "nas",
+		Items: []widgets.LitRow{{Name: "nas", State: "ok", Item: "nas lan"}, {Name: "shop", State: "warn"}}}}
+	dialog := &widgetlib.DetailDialog{Type: "monitors", Body: body}
+	rec := httptest.NewRecorder()
+	if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, detailBlocks, http.StatusOK, map[string]any{"Dialog": dialog, "D": body, "PlacementID": int64(3), "ThemeURL": ""}); err != nil {
+		t.Fatal(err)
+	}
+	got := rec.Body.String()
+	for _, want := range []string{`<button type="button" class="list-row" data-details="/details/3?item=nas&#43;lan" aria-selected="true">`, `<div class="list-row">`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in %s", want, got)
+		}
+	}
+}
+
+// TestDetailTableCSV: tables in pairs and tabs count in drawing order; the
+// CSV holds head, rows and foot as the reader sees them.
+func TestDetailTableCSV(t *testing.T) {
+	first := widgets.Table{Head: []widgets.Text{widgets.T("detail.csv")}, Rows: [][]widgets.Cell{{{Value: widgets.Money(1234.5, "EUR")}}}, Foot: []widgets.Cell{{Value: "Σ"}}}
+	body := &widgets.DetailBody{
+		Blocks: []widgets.Block{{Kind: widgets.BlockPair, Data: []widgets.Block{{Kind: widgets.BlockTable, Data: first}}}},
+		Tabs:   []widgets.Tab{{Blocks: []widgets.Block{{Kind: widgets.BlockTable, Data: widgets.Table{}}}}},
+	}
+	if n := len(tablesOf(body)); n != 2 {
+		t.Fatalf("tables: %d", n)
+	}
+	blob, err := tableCSV(first, enums.LocaleDE)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(blob); got != "CSV\n\"1.234,50 €\"\nΣ\n" {
+		t.Fatalf("csv: %q", got)
+	}
+}

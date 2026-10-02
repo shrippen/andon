@@ -801,6 +801,8 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 /* Blocks: a label row (text left, meta right) over a chart, table, list … */
 .detail-block{display:flex;flex-direction:column;gap:.4rem;min-width:0}
 .detail-label{display:flex;justify-content:space-between;gap:1rem}
+/* A download or link at the label's end: <a href="….csv" download>CSV</a> */
+.detail-label>a{color:var(--fg2);text-decoration:none}.detail-label>a:hover,.detail-label>a:focus-visible{color:var(--fg0)}
 .detail-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:1rem}
 .detail-facts .fact b{font-size:2rem}
 .detail-block>.chart,.detail-block>.chart-wrap{height:8rem}
@@ -1006,6 +1008,7 @@ a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;
 .list-row:hover{background:var(--tint-1)}
 .list-row[aria-selected="true"]{background:var(--cyan-tint);box-shadow:inset 3px 0 0 var(--cyan)}
 .list-row:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
+button.list-row{width:100%;border:0;border-bottom:1px solid var(--bg1);background:none;font:inherit;text-align:start}
 .list-row>.meta{font-family:var(--font-mono);font-size:.7rem;color:var(--fg3);font-variant-numeric:tabular-nums}
 /* Map frame around a Leaflet (or similar) map: cut corner, dark tiles, square pins, yellow route */
 .map-frame{position:relative;border:1px solid var(--bg2);background:var(--bg-hard);

@@ -141,7 +141,7 @@
   {{with $b.List}}
   <nav class="detail-list" aria-label="{{tt .Label.Key .Label.Args}}">
     <div class="h-label">{{tt .Label.Key .Label.Args}}</div>
-    {{$sel := .Sel}}{{range $i, $r := .Items}}<div class="list-row"{{if eq $i $sel}} aria-selected="true"{{end}}><span class="led" data-style="--c:var(--{{stateVar $r.State}})"></span><span>{{tv $r.Name}}</span><span class="meta">{{tv $r.Meta}}</span></div>{{end}}
+    {{$sel := .Sel}}{{range $i, $r := .Items}}{{if $r.Item}}<button type="button" class="list-row" data-details="/details/{{$.PlacementID}}?item={{urlquery $r.Item}}"{{if eq $i $sel}} aria-selected="true"{{end}}>{{else}}<div class="list-row"{{if eq $i $sel}} aria-selected="true"{{end}}>{{end}}<span class="led" data-style="--c:var(--{{stateVar $r.State}})"></span><span>{{tv $r.Name}}</span><span class="meta">{{tv $r.Meta}}</span>{{if $r.Item}}</button>{{else}}</div>{{end}}{{end}}
   </nav>
   {{end}}
   <section class="detail-main">
@@ -164,7 +164,7 @@
 {{if eq $k "pair"}}<div class="detail-pair">{{range .Data}}{{template "detail_block" .}}{{end}}</div>
 {{else}}
 <div class="detail-block{{if .Hero}} detail-hero{{end}}">
-  {{if .Label.Key}}<div class="h-label detail-label"><span>{{tt .Label.Key .Label.Args}}</span><span>{{tv .Meta}}</span></div>{{end}}
+  {{if .Label.Key}}<div class="h-label detail-label"><span>{{tt .Label.Key .Label.Args}}</span>{{if and (eq $k "table") .Data.CSV}}<a href="{{.Data.CSV}}" download>{{t "detail.csv"}}</a>{{else}}<span>{{tv .Meta}}</span>{{end}}</div>{{end}}
   {{if eq $k "graph"}}{{template "detail_graph" .Data}}
   {{else if eq $k "table"}}{{with .Data}}
   <div class="table-wrap"><table class="table">

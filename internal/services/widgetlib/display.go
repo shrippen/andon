@@ -175,8 +175,16 @@ func peerConnection(q db.Queryer, who *access.Principal, widget *model.Widget, s
 // caching and credential resolution apply) and shapes the results via its
 // type's View function.
 func Load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, fresh svcdata.Freshness) (*Fragment, error) {
-	return load(ctx, d, who, widget, fresh, originStored)
+	return load(ctx, d, who, widget, fresh, originStored, loadTile)
 }
+
+// loadMode says whether a load also runs the type's DetailQueries.
+type loadMode int
+
+const (
+	loadTile   loadMode = iota // the tile's own queries
+	loadDetail                 // plus the dialog's, fetched when not cached
+)
 
 // origin says where a fragment's connection data comes from.
 type origin int
@@ -198,7 +206,7 @@ func demoConn(service enums.ServiceType) *model.Connection {
 	return &model.Connection{Service: string(service), URL: demoURL}
 }
 
-func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, fresh svcdata.Freshness, from origin) (*Fragment, error) {
+func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, fresh svcdata.Freshness, from origin, mode loadMode) (*Fragment, error) {
 	kind, ok := widgets.Get(widget.Type)
 	if !ok {
 		return nil, ErrUnknownType
@@ -257,7 +265,12 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		own = svcdata.Cached
 	}
 	peerOptions := map[string]map[string]any{}
-	for _, q := range kind.Queries(cfg) {
+	queries := kind.Queries(cfg)
+	openFrom := len(queries)
+	if mode == loadDetail && kind.DetailQueries != nil {
+		queries = append(queries, kind.DetailQueries(cfg)...)
+	}
+	for i, q := range queries {
 		var target *model.Connection
 		switch q.Conn {
 		case widgets.ConnWidget:
@@ -290,7 +303,12 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		if target != nil && (tileOwn || kind.Service == "") {
 			frag.hintConns = append(frag.hintConns, target.ID)
 		}
-		frag.Slots[q.Name] = runQuery(ctx, d, sourceFor(q, target), q.Params, target, who.UserID, integrationFreshness(q, target, own, fresh))
+		qFresh := integrationFreshness(q, target, own, fresh)
+		if i >= openFrom {
+			// A dialog's own data is fetched on open, then cached.
+			qFresh = svcdata.Cached
+		}
+		frag.Slots[q.Name] = runQuery(ctx, d, sourceFor(q, target), q.Params, target, who.UserID, qFresh)
 	}
 
 	serviceConn := conn
@@ -686,7 +704,7 @@ func Demo(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64, 
 		return nil, err
 	}
 	w := &model.Widget{SpaceID: spaceID, Type: typeKey, Title: title, Config: config}
-	return load(ctx, d, who, w, svcdata.Cached, originDemo)
+	return load(ctx, d, who, w, svcdata.Cached, originDemo, loadTile)
 }
 
 // mailForwardedKey marks a mail sent to Paperless (see mailfwd).

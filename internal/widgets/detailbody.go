@@ -64,10 +64,12 @@ type ObjList struct {
 }
 
 // LitRow is a list row with a state light: name, meta right, state.
+// In a dialog's object list, Item opens that entry ("" = not clickable).
 type LitRow struct {
 	Name  any
 	Meta  any
 	State string // ok, warn, bad, off, info
+	Item  string
 }
 
 // BlockKind is how a block draws its Data.
@@ -114,6 +116,7 @@ type Table struct {
 	Rows [][]Cell
 	Num  []int
 	Foot []Cell
+	CSV  string // its download, set by the web layer ("" = none)
 }
 
 // Cell is a table cell; State colours it (ok, warn, bad).

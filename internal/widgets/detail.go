@@ -12,6 +12,7 @@ import (
 //	results[HistorySlot]     *metrics.History  stored daily values and events of the space
 //	results[DetailHintsSlot] []DetailHint      open hints of the tile's services
 //	results[TileViewSlot]    map[string]any    the tile's own View, to reuse its numbers
+//	results[DetailItemSlot]  string            the list entry the viewer picked, "" = none
 //
 // and returns the head (state, actions) and the body: a *DetailBody of
 // blocks (detailbody.go), or data for a template "details/<key>".
@@ -20,6 +21,7 @@ import (
 const (
 	DetailHintsSlot = "detail_hints"
 	TileViewSlot    = "tile_view"
+	DetailItemSlot  = "detail_item"
 )
 
 // DetailFunc shapes results into a dialog.

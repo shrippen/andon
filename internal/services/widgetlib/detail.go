@@ -20,7 +20,7 @@ import (
 // a loader of its own) and its template "details/<type>", which picks one
 // of Kante's layouts:
 //
-//	GET /details/{id} ─► boards.Detail (right check) ─► LoadDetail
+//	GET /details/{id}[?item=x] ─► boards.Detail (right check) ─► LoadDetail
 //	    ├─ detailKinds[type]   own loader (link: its check history)
 //	    └─ loadTileDetail      the tile's pipeline + history + hints ─► kind.Detail
 //	─► DetailDialog{Head, Body} ─► template "details/<type>"
@@ -68,35 +68,37 @@ func HasDetail(widgetType string) bool {
 
 // LoadDetail loads a placed tile's dialog; the caller checked the
 // viewer's right on the widget.
-func LoadDetail(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, now time.Time) (*DetailDialog, error) {
+// item is the list entry the viewer picked ("" = none).
+func LoadDetail(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, item string, now time.Time) (*DetailDialog, error) {
 	if load, ok := detailKinds[widget.Type]; ok {
 		return load(ctx, d, who, widget, now)
 	}
 	if !HasDetail(widget.Type) {
 		return nil, ErrNoDetail
 	}
-	return loadTileDetail(ctx, d, who, widget, now, originStored)
+	return loadTileDetail(ctx, d, who, widget, item, now, originStored)
 }
 
 // loadTileDetail runs the tile's own pipeline (stored data, so opening a
 // dialog fetches nothing), adds the space's history, the open hints of the
 // tile's services and the tile's view, and hands all to kind.Detail.
 // from = originDemo draws it from demo datasets (tests).
-func loadTileDetail(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, now time.Time, from origin) (*DetailDialog, error) {
+func loadTileDetail(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, item string, now time.Time, from origin) (*DetailDialog, error) {
 	kind, _ := widgets.Get(widget.Type)
 	fresh := svcdata.Stored
 	if from == originDemo {
 		fresh = svcdata.Cached
 	}
-	frag, err := load(ctx, d, who, widget, fresh, from)
+	frag, err := load(ctx, d, who, widget, fresh, from, loadDetail)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make(map[string]any, len(frag.results)+3)
+	results := make(map[string]any, len(frag.results)+4)
 	for k, v := range frag.results {
 		results[k] = v
 	}
+	results[widgets.DetailItemSlot] = item
 	if _, ok := results[widgets.HistorySlot]; !ok {
 		h, err := history.Load(d, widget.SpaceID, 0, now)
 		if err != nil {

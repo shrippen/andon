@@ -3003,6 +3003,7 @@ keys:
   shift_click: Shift + right click
   context: Browser menu instead of the tile menu
 detail:
+  csv: 'CSV'
   api:
     answer: 'Answer'
     field: 'Field'

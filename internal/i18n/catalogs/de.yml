@@ -3004,6 +3004,7 @@ keys:
   shift_click: Umschalt + Rechtsklick
   context: Browser-Menü statt Kachel-Menü
 detail:
+  csv: 'CSV'
   api:
     answer: 'Antwort'
     field: 'Feld'
