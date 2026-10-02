@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 	"time"
 
 	"andon/internal/model"
@@ -104,11 +105,11 @@ func loadTileDetail(ctx context.Context, d *sql.DB, who *access.Principal, widge
 		results[widgets.HistorySlot] = h
 	}
 	if len(frag.services) > 0 {
-		found, err := hints.Filtered(d, who, hints.Filter{Sources: frag.services}, detailHints)
+		found, err := hints.Filtered(d, who, hints.Filter{Sources: frag.services}, 0)
 		if err != nil {
 			return nil, err
 		}
-		results[widgets.DetailHintsSlot] = detailHintsOf(found)
+		results[widgets.DetailHintsSlot] = detailHintsOf(ofConnections(found, frag.hintConns))
 	}
 	if frag.View != nil {
 		results[widgets.TileViewSlot] = frag.View
@@ -130,4 +131,21 @@ func detailHintsOf(found []hints.View) []widgets.DetailHint {
 		list[i] = widgets.DetailHint{ID: h.ID, Rule: h.Rule, Severity: h.Severity, Title: h.Title, Why: h.Why, FirstSeen: h.FirstSeen, Due: h.Due}
 	}
 	return list
+}
+
+// ofConnections keeps the hints of the given connections (and those tied
+// to none), at most detailHints: a viewer with two Paperless connections
+// sees only the tile's.
+func ofConnections(found []hints.View, conns []int64) []hints.View {
+	var out []hints.View
+	for _, h := range found {
+		if h.ConnectionID != nil && !slices.Contains(conns, *h.ConnectionID) {
+			continue
+		}
+		out = append(out, h)
+		if len(out) == detailHints {
+			break
+		}
+	}
+	return out
 }

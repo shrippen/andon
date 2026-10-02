@@ -79,7 +79,7 @@ func paymentDaysView(cfg PaymentDaysConfig, data *sources.NinjaDataset, ctx View
 }
 
 func init() {
-	Tile[PaymentDaysConfig]{Key: "payment_days", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
+	Tile[PaymentDaysConfig]{Key: "payment_days", Detail: dataDetail(paymentDaysDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
 		Fields: []Field{{Key: "target_days", Input: InputNumber, Default: defaultPayTarget, Min: "1", Max: "365"},
 			{Key: "limit", Input: InputNumber, Default: defaultPayRows, Min: "1", Max: "20"},
 			{Key: "months", Input: InputNumber, Min: "0", Max: "120"}, {Key: "hide_clients", Input: InputList}},

@@ -51,7 +51,7 @@ func rateTrendView(cfg RateTrendConfig, results map[string]any, ctx ViewCtx) map
 }
 
 func init() {
-	Tile[RateTrendConfig]{Key: "rate_trend", Category: CategoryInsight, Topic: TopicAnalysis, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
+	Tile[RateTrendConfig]{Key: "rate_trend", Detail: rateTrendDetail, Category: CategoryInsight, Topic: TopicAnalysis, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
 		Fields: []Field{{Key: "target_value", Input: InputNumber, Min: "0"}, {Key: "months", Input: InputNumber, Default: sparkMonths, Min: "3", Max: "36"},
 			{Key: "billable_only", Input: InputCheck}},
 		Renames: []rename{{from: "target", to: "target_value"}},

@@ -135,7 +135,7 @@ func sureCategories(sure *sources.SureDataset) map[string]string {
 }
 
 func init() {
-	Tile[SubsConfig]{Key: "subscriptions", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600,
+	Tile[SubsConfig]{Key: "subscriptions", Detail: subsDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600,
 		Fields: []Field{{Key: "limit", Input: InputNumber, Default: defaultSubRows, Min: "1", Max: "30"}, sel("sort", "next", "next", "price"),
 			{Key: "yearly", Input: InputCheck}, {Key: "categories", Input: InputList}},
 		Decode: decodeSubs, View: subsView,

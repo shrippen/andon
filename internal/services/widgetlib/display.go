@@ -60,9 +60,10 @@ type Fragment struct {
 	Frame     widgets.Frame
 
 	// What View got, kept for the detail dialog (detail.go).
-	results  map[string]any
-	viewCtx  widgets.ViewCtx
-	services []string // services the tile reads, for its hints
+	results   map[string]any
+	viewCtx   widgets.ViewCtx
+	services  []string // services the tile reads, for its hints
+	hintConns []int64  // connections whose hints the dialog lists
 }
 
 // Calm tells whether the tile has nothing to do and asks to be hidden then.
@@ -282,6 +283,12 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		if from == originDemo && target != nil {
 			frag.Slots[q.Name] = demoQuery(ctx, sourceFor(q, target), q.Params)
 			continue
+		}
+		// The dialog lists the hints of the tile's own connection, or of
+		// its peers when it has no service of its own (backups, costs).
+		tileOwn := q.Conn == widgets.ConnWidget || q.Conn == widgets.ConnInfo
+		if target != nil && (tileOwn || kind.Service == "") {
+			frag.hintConns = append(frag.hintConns, target.ID)
 		}
 		frag.Slots[q.Name] = runQuery(ctx, d, sourceFor(q, target), q.Params, target, who.UserID, integrationFreshness(q, target, own, fresh))
 	}

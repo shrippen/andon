@@ -307,7 +307,7 @@ type PaperlessConfig struct {
 }
 
 func init() {
-	Tile[PaperlessConfig]{Key: "paperless_inbox", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServicePaperless, RefreshS: 30 * 60,
+	Tile[PaperlessConfig]{Key: "paperless_inbox", Detail: dataDetail(paperlessDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServicePaperless, RefreshS: 30 * 60,
 		Fields: []Field{{Key: "newest_docs", Input: InputNumber, Default: 0, Min: "0", Max: "10"}, {Key: "tag", Input: InputText}},
 		Decode: func(r Raw) PaperlessConfig {
 			return PaperlessConfig{Newest: r.Int("newest_docs"), Tag: strings.ToLower(strings.TrimSpace(r.String("tag")))}
@@ -346,7 +346,7 @@ type MailConfig struct {
 }
 
 func init() {
-	Tile[MailConfig]{Key: "mail_invoices", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceMail, RefreshS: 60 * 60,
+	Tile[MailConfig]{Key: "mail_invoices", Detail: mailInvoicesDetail, Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceMail, RefreshS: 60 * 60,
 		Extra:   ExtraForwarded,
 		Fields:  []Field{{Key: "only_open", Input: InputCheck}, {Key: "limit", Input: InputNumber, Default: listShown, Min: "1", Max: "30"}},
 		Decode:  func(r Raw) MailConfig { return MailConfig{OnlyOpen: r.Bool("only_open"), Limit: r.Int("limit")} },

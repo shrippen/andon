@@ -217,7 +217,7 @@ var agingLimits = []struct {
 }
 
 func init() {
-	Tile[AgingConfig]{Key: "invoice_aging", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 30 * 60,
+	Tile[AgingConfig]{Key: "invoice_aging", Detail: dataDetail(invoiceAgingDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 30 * 60,
 		Fields: []Field{agingBands, {Key: "hide_clients", Input: InputList}},
 		Decode: decodeAging, Queries: ownData[AgingConfig], View: dataView(invoiceAgingView),
 		Calm: func(v map[string]any) bool { return v["Count"] == 0 }}.add()
