@@ -803,6 +803,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .detail-label{display:flex;justify-content:space-between;gap:1rem}
 .detail-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:1rem}
 .detail-facts .fact b{font-size:2rem}
+.detail-block>.chart,.detail-block>.chart-wrap{height:8rem}
 .detail-hero .chart,.detail-hero .chart-wrap{height:13rem}
 /* Stacked check columns fill their .chart-wrap (its height comes from the context, e.g. .detail-hero) */
 .chart-wrap>svg.uptime{max-width:none;width:100%;height:100%;background:var(--bg-hard)}
