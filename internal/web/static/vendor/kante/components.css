@@ -226,7 +226,7 @@ kbd{white-space:nowrap;font-family:var(--font-mono);font-size:.78em;padding:.05r
 .feat{--tier:var(--info);position:relative;background:var(--bg-panel);border-top:4px solid transparent;
   padding:1.6rem 1.75rem 2rem;display:flex;flex-direction:column;gap:.75rem}
 .feat[data-tier="red"]{--tier:var(--red)}
-.feat[data-tier="yellow"]{--tier:var(--warn)}
+.feat[data-tier="yellow"]{--tier:var(--yellow)}
 .feat[data-tier="blue"],.feat[data-tier="cyan"]{--tier:var(--info)}
 .feat::before{content:"";position:absolute;left:0;right:0;top:-4px;height:4px;background:var(--tier);transform-origin:left}
 a.feat{color:inherit;text-decoration:none}
@@ -332,6 +332,11 @@ a.feat:focus-visible::after{inset:6px;background:var(--brk)}
 .tile{--tier:var(--aqua);position:relative;display:flex;flex-direction:column;text-align:left;cursor:pointer;background:var(--bg-panel);border:0;border-top:4px solid var(--tier);padding:0;
   clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,0 100%)}
 .tile[data-tier="green"]{--tier:var(--aqua)}.tile[data-tier="yellow"]{--tier:var(--warn)}.tile[data-tier="red"]{--tier:var(--red)}
+/* Colour labels: data-label names a colour that is the data itself (e.g. the darktable / Lightroom
+   colour label Kader writes), not a tier, so "yellow" stays yellow. Tiers (data-tier) carry meaning */
+:is(.tile,.band,.strip button)[data-label="green"]{--tier:var(--aqua)}:is(.tile,.band,.strip button)[data-label="yellow"]{--tier:var(--yellow)}
+:is(.tile,.band,.strip button)[data-label="red"]{--tier:var(--red)}:is(.tile,.band,.strip button)[data-label="blue"]{--tier:var(--blue)}
+:is(.tile,.band,.strip button)[data-label="purple"]{--tier:var(--purple)}
 .tile::after{content:"";position:absolute;inset:0;border:2px solid transparent;pointer-events:none;transition:border-color .12s}
 .tile:hover::after{border-color:var(--bg2)}
 .tile:focus-visible{outline:0}.tile:focus-visible::after{border-color:transparent;inset:5px;background:var(--brk)}
@@ -674,8 +679,10 @@ dialog.dialog::backdrop{background:var(--scrim)}
 .chip[aria-pressed="true"]::before{background:var(--on-state)}
 .chip:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .chip.is-filter{--c:var(--cyan)}
-/* A filter chip reads like .chip-pick: hollow square off; on = filled square on a tint (a fill in the entity colour is for entity chips) */
-.chip.is-filter:not([aria-pressed="true"])::before{background:none;box-shadow:inset 0 0 0 2px var(--c)}
+/* A filter chip reads like .chip-pick: hollow square off; on = filled square on a tint (a fill in the entity colour is for entity chips).
+   Off is a toggle button with aria-pressed="false" or a filter link without aria-pressed="true"; a chip without
+   a state (an action, a suggested question) keeps its filled square */
+:is(.chip.is-filter[aria-pressed="false"],a.chip.is-filter:not([aria-pressed="true"]))::before{background:none;box-shadow:inset 0 0 0 2px var(--c)}
 .chip.is-filter[aria-pressed="true"]{background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--fg0)}
 .chip.is-filter[aria-pressed="true"]::before{background:var(--c)}
 .chip-x{background:none;border:0;color:inherit;cursor:pointer;width:16px;height:16px;line-height:1;padding:0;font-family:var(--font-mono)}
@@ -717,9 +724,14 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .flow-node.done{border-top-color:var(--aqua)}
 .flow-node.done b::before{content:"✓ ";color:var(--aqua)}
 .fact[data-tier="green"]{border-top-color:var(--aqua)}.fact[data-tier="green"] b{color:var(--aqua)}
-.fact[data-tier="yellow"]{border-top-color:var(--warn)}.fact[data-tier="yellow"] b{color:var(--warn)}
+.fact[data-tier="yellow"]{border-top-color:var(--yellow)}.fact[data-tier="yellow"] b{color:var(--yellow)}
 .fact[data-tier="red"]{border-top-color:var(--red)}.fact[data-tier="red"] b{color:var(--red)}
 .fact[data-tier="cyan"]{border-top-color:var(--cyan)}.fact[data-tier="cyan"] b{color:var(--cyan)}
+.fact[data-label]{--l:var(--fg3);border-top-color:var(--l)}.fact[data-label] b{color:var(--l)}
+.progress-bar>i[data-label]{--l:var(--primary);background:var(--l)}
+:is(.fact,.progress-bar>i)[data-label="green"]{--l:var(--aqua)}:is(.fact,.progress-bar>i)[data-label="yellow"]{--l:var(--yellow)}
+:is(.fact,.progress-bar>i)[data-label="red"]{--l:var(--red)}:is(.fact,.progress-bar>i)[data-label="blue"]{--l:var(--blue)}
+:is(.fact,.progress-bar>i)[data-label="purple"]{--l:var(--purple)}
 /* Swatch: entity colours are squares; the ring tells where the colour comes from */
 .swatch{--c:var(--cyan);--ring:color-mix(in srgb,var(--c) 55%,var(--fg0));display:inline-block;width:18px;height:18px;background:var(--c);flex:none;box-shadow:inset 0 0 0 1px var(--bg2)}
 .swatch[data-src="own"]{outline:2px solid var(--ring);outline-offset:2px}
@@ -969,6 +981,10 @@ a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;
 .hint-card{--tier:var(--info)}
 :is(.tier-card,.hint-card,.timeline>li)[data-tier="green"]{--tier:var(--aqua)}
 :is(.tier-card,.hint-card,.timeline>li)[data-tier="yellow"]{--tier:var(--warn)}
+/* Emphasis, not a state: the card of the main thing on a page, or the main kind of a hint (e.g. Kintsugi's
+   pitch, progress and acquisition suggestions). The bar takes the primary fill, the text the text-safe yellow */
+:is(.tier-card,.hint-card)[data-tier="primary"]{--tier:var(--primary)}
+.hint-card[data-tier="primary"] .tier{color:var(--yellow)}
 :is(.tier-card,.hint-card,.timeline>li)[data-tier="red"]{--tier:var(--red)}
 :is(.tier-card,.hint-card,.timeline>li)[data-tier="blue"],:is(.tier-card,.hint-card,.timeline>li)[data-tier="cyan"]{--tier:var(--info)}
 /* Tier card: a card with a tier bar and no click behaviour (a status, not a link) */
