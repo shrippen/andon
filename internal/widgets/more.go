@@ -497,7 +497,7 @@ func init() {
 		Renames: []rename{{from: "columns", to: "two_columns", value: func(v any) (any, bool) { return v == "2", true }}},
 		Decode:  decodeList}.add()
 
-	Tile[HolidaysConfig]{Key: "holidays", Category: CategoryStart, Topic: TopicWorld, RefreshS: 12 * hour,
+	Tile[HolidaysConfig]{Key: "holidays", Detail: holidaysDetail, Category: CategoryStart, Topic: TopicWorld, RefreshS: 12 * hour,
 		Fields: []Field{{Key: "country", Input: InputText, Default: defaultCountry}, {Key: "state", Input: InputText},
 			{Key: "limit", Input: InputNumber, Default: 5, Min: "1", Max: "30"}, {Key: "bridges", Input: InputCheck}},
 		Decode: decodeHolidays, View: holidaysView,
@@ -523,7 +523,7 @@ func init() {
 			return map[string]any{"category": cfg.Category, "lang": cfg.Lang, "fresh": freshBucket(cfg.RefreshSeconds())}
 		})}.add()
 
-	Tile[CryptoConfig]{Key: "crypto", Category: CategoryStart, Topic: TopicWorld, RefreshS: 10 * minute,
+	Tile[CryptoConfig]{Key: "crypto", Detail: cryptoDetail, Category: CategoryStart, Topic: TopicWorld, RefreshS: 10 * minute,
 		Fields: []Field{{Key: "coins", Input: InputList, Default: anyList(defaultCoins)}, {Key: "currency", Input: InputText, Default: defaultCurrency},
 			{Key: "spark", Input: InputCheck}, {Key: "digits", Input: InputNumber, Default: cryptoDigits, Min: "0", Max: "8"}},
 		Decode: decodeCrypto,
@@ -531,12 +531,12 @@ func init() {
 			return map[string]any{"coins": cfg.Coins, "currency": cfg.Currency, "spark": cfg.Spark}
 		})}.add()
 
-	Tile[StocksConfig]{Key: "stocks", Category: CategoryStart, Topic: TopicWorld, RefreshS: 15 * minute,
+	Tile[StocksConfig]{Key: "stocks", Detail: stocksDetail, Category: CategoryStart, Topic: TopicWorld, RefreshS: 15 * minute,
 		Fields:  []Field{{Key: "tickers", Input: InputList, Default: anyList(defaultTickers)}, sel("change", "day", "day", "week"), {Key: "spark", Input: InputCheck}},
 		Decode:  decodeStocks,
 		Queries: one("quotes", "stocks", func(cfg StocksConfig) map[string]any { return map[string]any{"symbols": cfg.Symbols} })}.add()
 
-	Tile[FlightsConfig]{Key: "flights", Template: "widgets/board", Category: CategoryStart, Topic: TopicWorld, RefreshS: 10 * minute,
+	Tile[FlightsConfig]{Key: "flights", Detail: flightsDetail, Template: "widgets/board", Category: CategoryStart, Topic: TopicWorld, RefreshS: 10 * minute,
 		Fields: []Field{{Key: "airport", Input: InputText, Required: true}, sel("direction", "Departure", "Departure", "Arrival"),
 			{Key: "limit", Input: InputNumber, Default: defaultListLimit, Min: "1", Max: "30"}, {Key: "api_key", Input: InputSecret}, {Key: "airlines", Input: InputList}},
 		Decode: decodeFlights, View: flightsView,
@@ -544,7 +544,7 @@ func init() {
 			return map[string]any{"airport": cfg.Airport, "direction": cfg.Direction, "api_key": cfg.APIKey}
 		})}.add()
 
-	Tile[TransitConfig]{Key: "transit", Template: "widgets/board", Category: CategoryStart, Topic: TopicWorld, RefreshS: minute,
+	Tile[TransitConfig]{Key: "transit", Detail: transitDetail, Template: "widgets/board", Category: CategoryStart, Topic: TopicWorld, RefreshS: minute,
 		Fields: []Field{{Key: "stop", Input: InputText, Required: true}, {Key: "limit", Input: InputNumber, Default: defaultListLimit, Min: "1", Max: "30"},
 			{Key: "lines", Input: InputList}, {Key: "walk", Input: InputNumber, Default: 0, Min: "0", Max: "60"}},
 		Decode: decodeTransit, View: transitView,

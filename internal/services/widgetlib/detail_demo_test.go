@@ -101,6 +101,11 @@ func checkBody(b *widgets.DetailBody) []error {
 			if !ok {
 				errs = append(errs, fmt.Errorf("block %d (%s): data %T", i, bl.Kind, bl.Data))
 			}
+
+			// Meta is drawn as a value: a Text label there shows raw.
+			if _, isText := bl.Meta.(widgets.Text); isText {
+				errs = append(errs, fmt.Errorf("block %d (%s): Meta is a Text, want a value (Txt)", i, bl.Kind))
+			}
 		}
 	}
 	walk(b.Blocks)

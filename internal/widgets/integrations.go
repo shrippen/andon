@@ -303,12 +303,12 @@ func init() {
 		Decode:  func(r Raw) ArrConfig { return ArrConfig{Days: r.Int("days")} },
 		Queries: ownData[ArrConfig], View: dataView(arrView)}.add()
 
-	Tile[GrocyConfig]{Key: "grocy", Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceGrocy, RefreshS: integrationTTL,
+	Tile[GrocyConfig]{Key: "grocy", Detail: dataDetail(grocyDetail), Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceGrocy, RefreshS: integrationTTL,
 		Fields: []Field{{Key: "show_stock", Input: InputCheck, Default: true}, {Key: "show_shopping", Input: InputCheck, Default: true},
 			{Key: "show_chores", Input: InputCheck, Default: true}, {Key: "days", Input: InputNumber, Default: 0, Min: "0", Max: "60"}},
 		Decode: decodeGrocy, Queries: ownData[GrocyConfig], View: dataView(grocyView)}.add()
 
-	Tile[DWDConfig]{Key: "dwd", Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceDWD, RefreshS: integrationTTL,
+	Tile[DWDConfig]{Key: "dwd", Detail: dataDetail(dwdDetail), Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceDWD, RefreshS: integrationTTL,
 		Fields: []Field{sel("min_level", "minor", "minor", "moderate", "severe", "extreme")},
 		Decode: decodeDWD, Queries: ownData[DWDConfig], View: dataView(dwdView)}.add()
 
@@ -323,7 +323,7 @@ func init() {
 		Renames: []rename{{from: "only_red", to: "only_problems"}},
 		Decode:  decodeGitHub, Queries: ownData[GitHubConfig], View: dataView(githubView)}.add()
 
-	Tile[EnergyConfig]{Key: "energy", Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceTibber, RefreshS: integrationTTL,
+	Tile[EnergyConfig]{Key: "energy", Detail: energyDetail, Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceTibber, RefreshS: integrationTTL,
 		Fields: []Field{{Key: "power_entity", Input: InputText}, {Key: "cheap_hours", Input: InputNumber, Default: metrics.CheapHours, Min: "1", Max: "12"},
 			{Key: "tomorrow", Input: InputCheck, Default: true}, sel("price", "total", "total", "energy")},
 		Decode: decodeEnergy, Queries: energyQueries, View: energyView}.add()

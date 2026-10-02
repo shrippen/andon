@@ -587,7 +587,7 @@ func init() {
 			sel("format", "24", "24", "12"), {Key: "analog", Input: InputCheck}},
 		Decode: decodeClock}.add()
 
-	Tile[WeatherConfig]{Key: "weather", Category: CategoryStart, Topic: TopicHome, RefreshS: 30 * 60,
+	Tile[WeatherConfig]{Key: "weather", Detail: weatherDetail, Category: CategoryStart, Topic: TopicHome, RefreshS: 30 * 60,
 		Fields: []Field{{Key: "label", Input: InputText}, {Key: placeKey, Input: InputPlace, Required: true}, sel("unit", "c", "c", "f"),
 			{Key: "hourly", Input: InputCheck, Default: true}, {Key: "days", Input: InputNumber, Default: weatherDays, Min: "0", Max: "7"}},
 		Decode: decodeWeather, View: weatherView, Queries: func(cfg WeatherConfig) []Query {

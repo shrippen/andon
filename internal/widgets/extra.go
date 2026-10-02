@@ -228,7 +228,7 @@ func init() {
 			return []Query{{Name: "image", Source: "image", Params: map[string]any{"url": cfg.URL, "fresh": freshBucket(cfg.ReloadM * secondsPerMinute)}}}
 		}}.add()
 
-	Tile[RatesConfig]{Key: "rates", Category: CategoryStart, Topic: TopicWorld, RefreshS: 6 * 60 * 60,
+	Tile[RatesConfig]{Key: "rates", Detail: ratesDetail, Category: CategoryStart, Topic: TopicWorld, RefreshS: 6 * 60 * 60,
 		Fields: []Field{{Key: "base", Input: InputText, Default: defaultRatesBase}, {Key: "symbols", Input: InputList, Default: anyList(defaultRates)},
 			{Key: "change", Input: InputCheck}, {Key: "invert", Input: InputCheck}},
 		Decode: decodeRates, Queries: func(cfg RatesConfig) []Query {
