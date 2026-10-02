@@ -60,15 +60,17 @@ func LastClicks(q db.Queryer) (map[int64]time.Time, error) {
 
 // DayStatus is one tile's checks of one day.
 type DayStatus struct {
-	Day      string
-	OK, Fail int
-	MsSum    int
+	Day       string
+	OK, Fail  int
+	MsSum     int
+	LastError string // the day's latest failure, "" if none
 }
 
 // Check is one status check's outcome.
 type Check struct {
-	Up bool
-	MS int
+	Up    bool
+	MS    int
+	Error string // why a failed check failed, e.g. "HTTP 502"
 }
 
 // RecordStatus adds one check result to today's row.
@@ -77,15 +79,20 @@ func RecordStatus(q db.Queryer, widgetID int64, day string, check Check) error {
 	if check.Up {
 		ok, fail = 1, 0
 	}
-	_, err := q.Exec(`INSERT INTO link_status (widget_id, day, ok, fail, ms_sum) VALUES (?,?,?,?,?)
-		ON CONFLICT (widget_id, day) DO UPDATE SET ok = ok + excluded.ok, fail = fail + excluded.fail, ms_sum = ms_sum + excluded.ms_sum`,
-		widgetID, day, ok, fail, ms)
+	failure := ""
+	if !check.Up {
+		failure = check.Error
+	}
+	_, err := q.Exec(`INSERT INTO link_status (widget_id, day, ok, fail, ms_sum, last_error) VALUES (?,?,?,?,?,?)
+		ON CONFLICT (widget_id, day) DO UPDATE SET ok = ok + excluded.ok, fail = fail + excluded.fail, ms_sum = ms_sum + excluded.ms_sum,
+			last_error = CASE WHEN excluded.fail > 0 THEN excluded.last_error ELSE last_error END`,
+		widgetID, day, ok, fail, ms, failure)
 	return err
 }
 
 // StatusSince returns a tile's days from a day on, oldest first.
 func StatusSince(q db.Queryer, widgetID int64, since string) ([]DayStatus, error) {
-	rows, err := q.Query("SELECT day, ok, fail, ms_sum FROM link_status WHERE widget_id = ? AND day >= ? ORDER BY day", widgetID, since)
+	rows, err := q.Query("SELECT day, ok, fail, ms_sum, last_error FROM link_status WHERE widget_id = ? AND day >= ? ORDER BY day", widgetID, since)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +100,7 @@ func StatusSince(q db.Queryer, widgetID int64, since string) ([]DayStatus, error
 	var out []DayStatus
 	for rows.Next() {
 		var s DayStatus
-		if err := rows.Scan(&s.Day, &s.OK, &s.Fail, &s.MsSum); err != nil {
+		if err := rows.Scan(&s.Day, &s.OK, &s.Fail, &s.MsSum, &s.LastError); err != nil {
 			return nil, err
 		}
 		out = append(out, s)

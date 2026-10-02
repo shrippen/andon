@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"andon/internal/db"
 	"andon/internal/enums"
@@ -649,4 +650,14 @@ func orNotFound(err error) error {
 		return err
 	}
 	return ErrNotFound
+}
+
+// LinkDetail loads the detail dialog of a placed link tile the viewer
+// may see.
+func LinkDetail(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64) (*widgetlib.LinkDetail, error) {
+	w, err := PlacedWidget(d, who, placementID)
+	if err != nil {
+		return nil, err
+	}
+	return widgetlib.LoadLinkDetail(ctx, d, w, time.Now().UTC())
 }

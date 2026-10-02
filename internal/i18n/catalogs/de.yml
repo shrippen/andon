@@ -3003,6 +3003,57 @@ keys:
   tile: öffnet die Kachel (im Editor festgelegt)
   shift_click: Umschalt + Rechtsklick
   context: Browser-Menü statt Kachel-Menü
+linkdetail:
+  open_aria: Verlauf und Details
+  open: Öffnen
+  check_now: Jetzt prüfen
+  close: Schließen
+  never: Noch nicht geprüft
+  facts: Steckbrief
+  address: Adresse
+  checked: Geprüft
+  dns: DNS
+  answer: Antwort
+  tls: TLS
+  tls_until: '{issuer}, bis {day}'
+  clock: Uhr
+  clock_skew: '{s} s Abweichung'
+  expect: Erwartet
+  check: Prüfung
+  every: 'alle {min} min, Zeitlimit {s} s'
+  every_default: 'alle {min} min, Standard-Zeitlimit'
+  tls_soon: 'Zertifikat läuft in {n} Tagen ab.'
+  up30: Erreichbar · 30 Tage
+  avg30: Ø Antwort · 30 Tage
+  last: Letzte
+  incidents60: Störungen · 60 Tage
+  cert: Zertifikat
+  cert_days: '{n} T'
+  checks_head: Prüfungen je Tag · Tag anklicken
+  checks_total: '{n} Prüfungen'
+  since: 'Messung seit {day}'
+  today: heute
+  ms_head: Antwortzeit · Ø je Tag, ohne DNS
+  ms_goal: 'Linie: 1.000 ms'
+  day_ok: gelungen
+  day_fail: fehlgeschlagen
+  day_ms: Ø Antwort
+  day_down: ohne Antwort
+  day_error: 'Fehler:'
+  no_error: keine
+  not_measured: noch nicht gemessen
+  inc_down: 'Ausfall über {n} Tage'
+  inc_down_one: Ausfall an einem Tag
+  inc_short: Kurze Störung
+  inc_detail: '{n} Prüfungen ohne Antwort · {e}'
+  inc_none: Keine Störungen in 60 Tagen.
+  minutes: '{m} min'
+  hours: '≈ {h} h {m} min'
+  state:
+    up: Erreichbar
+    partial: Teilweise
+    down: Ausfall
+    none: Keine Daten
 uptime:
   summary: '{share} erreichbar in 30 Tagen, Ø {ms} ms'
   month: 'Verfügbarkeit {month}'
