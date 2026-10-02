@@ -287,7 +287,7 @@ func speedHistoryView(cfg SpeedHistoryConfig, results map[string]any, _ ViewCtx)
 type SabConfig struct{ Queue int }
 
 func init() {
-	Tile[SabConfig]{Key: "sabnzbd", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceSabnzbd, RefreshS: 5 * 60,
+	Tile[SabConfig]{Key: "sabnzbd", Detail: dataDetail(sabDetail), Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceSabnzbd, RefreshS: 5 * 60,
 		Fields:  []Field{{Key: "queue", Input: InputNumber, Default: 0, Min: "0", Max: "20"}},
 		Decode:  func(r Raw) SabConfig { return SabConfig{Queue: r.Int("queue")} },
 		Queries: ownData[SabConfig], View: dataView(sabnzbdView)}.add()
@@ -385,7 +385,7 @@ type FreshRSSConfig struct {
 }
 
 func init() {
-	Tile[FreshRSSConfig]{Key: "freshrss_feeds", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceFreshRSS, RefreshS: 30 * 60,
+	Tile[FreshRSSConfig]{Key: "freshrss_feeds", Detail: dataDetail(freshrssDetail), Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceFreshRSS, RefreshS: 30 * 60,
 		Fields: []Field{{Key: "filter", Input: InputList}, {Key: "only_unread", Input: InputCheck, Default: true}},
 		Decode: func(r Raw) FreshRSSConfig {
 			return FreshRSSConfig{Only: r.Lower("filter"), OnlyUnread: r.Bool("only_unread")}

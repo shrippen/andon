@@ -1,5 +1,5 @@
 Kante 1.14
 source: https://github.com/shrippen/Kante
 branch: main
-commit: 4c2a4856b81cb8fb9ff95f4959a9e62f381fc4f0
+commit: 43b95c7f684f8c90c670436cb5d35729ab3b0c91
 files: base.css components.css shrippen.js fonts/OFL.txt fonts/*.woff2 (Latin subsets, see tools/sync-design.sh)

@@ -92,6 +92,8 @@ const (
 	BlockChips    BlockKind = "chips"    // Data []string
 	BlockWeek     BlockKind = "week"     // Data Week: days as rows over the hours
 	BlockDayStrip BlockKind = "daystrip" // Data DayStrip: one day over 24 hours
+	BlockImage    BlockKind = "image"    // Data Image: a picture at full width
+	BlockRead     BlockKind = "read"     // Data Reading: a text to read
 )
 
 // Block is one part of the main area: a label row (text left, Meta right)
@@ -249,4 +251,19 @@ type DayStrip struct {
 	Spans  []HourSpan
 	Events []HourSpan
 	Now    float64
+}
+
+// Image is a picture the server fetched (data: URI), with a caption.
+type Image struct {
+	DataURI string
+	Alt     string
+	Caption string
+}
+
+// Reading is a text to read (Kante .detail-read): a title, paragraphs,
+// a link to the original.
+type Reading struct {
+	Title string
+	Text  []string
+	Link  string
 }

@@ -41,6 +41,8 @@ func TestDetailBodyBlocks(t *testing.T) {
 			{Kind: widgets.BlockDay, Data: widgets.DayCard{Title: "Mi", State: "ok", StateText: widgets.T("status.up"), Kpis: []widgets.Kpi{{Value: 1, Label: widgets.T("detail.facts")}}}},
 			{Kind: widgets.BlockChips, Data: []string{"#a"}},
 			{Kind: widgets.BlockWeek, Data: widgets.Week{Start: 6, Span: 16, Days: []widgets.WeekDay{{Label: "Mo", Spans: []widgets.HourSpan{{From: 8.25, To: 12, Colour: "#fe8019"}}, Sum: "3:45", Today: true, Now: 14.5}}}},
+			{Kind: widgets.BlockImage, Data: widgets.Image{DataURI: "data:image/png;base64,AAAA", Alt: "x"}},
+			{Kind: widgets.BlockRead, Data: widgets.Reading{Title: "Titel", Text: []string{"Absatz"}, Link: "https://x.example/a"}},
 			{Kind: widgets.BlockDayStrip, Data: widgets.DayStrip{Spans: []widgets.HourSpan{{From: 6, To: 12, Colour: "d1"}}, Now: 12}},
 		},
 		Tabs: []widgets.Tab{{Label: widgets.T("detail.facts"), Count: 3}, {Label: widgets.T("detail.open"), Blocks: []widgets.Block{{Kind: widgets.BlockText, Data: "second"}}}},
@@ -57,7 +59,7 @@ func TestDetailBodyBlocks(t *testing.T) {
 		`<td class="num" data-state="bad">sdc</td>`, `<path data-state="bad" d="M1.1 0h.8v1h-.8z"/>`, `data-style="--p:71%"`,
 		`class="date-tile" datetime="2026-09-16"`, `class="status" data-state="ok"`, `<pre class="codeblock">log line</pre>`,
 		`class="tier-card" data-tier="red"`, `class="spark"`, `1 / 2`, `class="heat is-weeks"`, `class="sheet detail-day"`,
-		`class="chip">#a`, `data-style="--from:8.25;--to:12;--c:#fe8019"`, `data-style="--at:14.5"`, `data-style="left:25.0%;width:25.0%;--c:var(--d1)"`, `<span>06</span><span>10</span>`, `data-style="--c:var(--warn)"`, `data-style="--c:var(--d1)"`, `data-detail-tabs`, `data-detail-panel hidden`, `second`,
+		`class="chip">#a`, `src="data:image/png;base64,AAAA"`, `<p>Absatz</p>`, `data-style="--from:8.25;--to:12;--c:#fe8019"`, `data-style="--at:14.5"`, `data-style="left:25.0%;width:25.0%;--c:var(--d1)"`, `<span>06</span><span>10</span>`, `data-style="--c:var(--warn)"`, `data-style="--c:var(--d1)"`, `data-detail-tabs`, `data-detail-panel hidden`, `second`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q", want)

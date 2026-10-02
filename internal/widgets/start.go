@@ -572,7 +572,7 @@ func init() {
 		},
 		Decode: decodeLink, Queries: linkQueries, View: linkView}.add()
 
-	Tile[RssConfig]{Key: "rss", Category: CategoryStart, Topic: TopicMedia, RefreshS: 30 * 60,
+	Tile[RssConfig]{Key: "rss", Detail: rssDetail, Category: CategoryStart, Topic: TopicMedia, RefreshS: 30 * 60,
 		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
 			{Key: "summary", Input: InputCheck}, {Key: "more_urls", Input: InputList}, {Key: "images", Input: InputCheck},
 			{Key: "max_age", Input: InputNumber, Min: "0", Max: "365"}, {Key: "titles_only", Input: InputCheck},

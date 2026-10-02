@@ -840,6 +840,11 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .detail-task.is-done>span:nth-child(2){color:var(--fg3);text-decoration:line-through}
 /* Reading text of the large view */
 .detail-read{font-size:1rem;line-height:1.7;color:var(--fg1);max-width:65ch}
+.detail-read>h3{margin-bottom:.6rem}
+.detail-read>p+p{margin-top:.8rem}
+/* A picture of the large view: full width, its caption under it */
+.detail-figure{display:flex;flex-direction:column;gap:.5rem;margin:0;min-width:0}
+.detail-figure>img{display:block;max-width:100%;height:auto;margin:0 auto;background:var(--bg-hard)}
 /* Waiting for the content: <div class="detail-wait"><span class="loader">…</span></div> */
 .detail-wait{display:grid;place-items:center;min-height:12rem}
 @media(max-width:60rem){

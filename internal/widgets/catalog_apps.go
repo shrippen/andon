@@ -140,7 +140,7 @@ type LinkwardenConfig struct {
 const linksNewest = 5
 
 func init() {
-	Tile[LinkwardenConfig]{Key: "linkwarden", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceLinkwarden, RefreshS: 60 * 60,
+	Tile[LinkwardenConfig]{Key: "linkwarden", Detail: dataDetail(linkwardenDetail), Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceLinkwarden, RefreshS: 60 * 60,
 		Fields: []Field{{Key: "filter", Input: InputList}, {Key: "newest", Input: InputCheck}},
 		Decode: func(r Raw) LinkwardenConfig {
 			return LinkwardenConfig{Only: r.Lower("filter"), Newest: r.Bool("newest")}

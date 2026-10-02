@@ -505,12 +505,12 @@ func init() {
 			return map[string]any{"country": cfg.Country, "state": cfg.State}
 		})}.add()
 
-	Tile[PictureConfig]{Key: "xkcd", Template: "widgets/picture", Category: CategoryStart, Topic: TopicMedia, RefreshS: 6 * hour,
+	Tile[PictureConfig]{Key: "xkcd", Detail: pictureDetail, Template: "widgets/picture", Category: CategoryStart, Topic: TopicMedia, RefreshS: 6 * hour,
 		Fields: []Field{{Key: "random", Input: InputCheck}, {Key: "image_only", Input: InputCheck}},
 		Decode: decodePicture, View: pictureView,
 		Queries: one("picture", "xkcd", func(cfg PictureConfig) map[string]any { return map[string]any{"random": cfg.Random} })}.add()
 
-	Tile[PictureConfig]{Key: "apod", Template: "widgets/picture", Category: CategoryStart, Topic: TopicMedia, RefreshS: 6 * hour,
+	Tile[PictureConfig]{Key: "apod", Detail: pictureDetail, Template: "widgets/picture", Category: CategoryStart, Topic: TopicMedia, RefreshS: 6 * hour,
 		Fields: []Field{{Key: "api_key", Input: InputSecret}, {Key: "image_only", Input: InputCheck}},
 		Decode: decodePicture, View: pictureView,
 		Queries: one("picture", "apod", func(cfg PictureConfig) map[string]any { return map[string]any{"api_key": cfg.APIKey} })}.add()

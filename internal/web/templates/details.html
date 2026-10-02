@@ -202,6 +202,12 @@
   <div class="kpi-row">{{range .Kpis}}<div class="kpi"><b>{{tv .Value}}</b><span>{{tt .Label.Key .Label.Args}}</span></div>{{end}}</div>{{with .Sub}}<span class="detail-sub">{{tv .}}</span>{{end}}</div>
   {{end}}
   {{else if eq $k "chips"}}<div class="chips-row">{{range .Data}}<span class="chip">{{.}}</span>{{end}}</div>
+  {{else if eq $k "image"}}{{with .Data}}
+  <figure class="detail-figure"><img src="{{.DataURI | dataURI}}" alt="{{.Alt}}">{{with .Caption}}<figcaption class="detail-sub">{{.}}</figcaption>{{end}}</figure>
+  {{end}}
+  {{else if eq $k "read"}}{{with .Data}}
+  <div class="detail-read">{{with .Title}}<h3>{{.}}</h3>{{end}}{{range .Text}}<p>{{.}}</p>{{end}}{{with .Link}}<p><a href="{{.}}" target="_blank" rel="noopener noreferrer">{{t "detail.read_original"}} →</a></p>{{end}}</div>
+  {{end}}
   {{else if eq $k "week"}}{{with .Data}}
   <div class="week-line" data-style="--start:{{.Start}};--span:{{.Span}}">
     <span></span><div class="scale">{{range weekScale .Start .Span}}<span>{{.}}</span>{{end}}</div><span></span>

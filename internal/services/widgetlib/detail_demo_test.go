@@ -86,6 +86,10 @@ func checkBody(b *widgets.DetailBody) []error {
 				_, ok = bl.Data.(widgets.Week)
 			case widgets.BlockDayStrip:
 				_, ok = bl.Data.(widgets.DayStrip)
+			case widgets.BlockImage:
+				_, ok = bl.Data.(widgets.Image)
+			case widgets.BlockRead:
+				_, ok = bl.Data.(widgets.Reading)
 			case widgets.BlockText:
 			case widgets.BlockPair:
 				pair, isPair := bl.Data.([]widgets.Block)
