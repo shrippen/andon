@@ -202,6 +202,15 @@
   <div class="kpi-row">{{range .Kpis}}<div class="kpi"><b>{{tv .Value}}</b><span>{{tt .Label.Key .Label.Args}}</span></div>{{end}}</div>{{with .Sub}}<span class="detail-sub">{{tv .}}</span>{{end}}</div>
   {{end}}
   {{else if eq $k "chips"}}<div class="chips-row">{{range .Data}}<span class="chip">{{.}}</span>{{end}}</div>
+  {{else if eq $k "week"}}{{with .Data}}
+  <div class="week-line" data-style="--start:{{.Start}};--span:{{.Span}}">
+    <span></span><div class="scale">{{range weekScale .Start .Span}}<span>{{.}}</span>{{end}}</div><span></span>
+    {{range .Days}}<b{{if .Today}} class="today"{{end}}>{{tv .Label}}</b><div class="track{{if .Today}} today{{end}}">{{range .Spans}}<i data-style="--from:{{.From}};--to:{{.To}};{{template "detail_colour" .Colour}}"></i>{{end}}{{if ge .Now 0.0}}<span class="now" data-style="--at:{{.Now}}"></span>{{end}}</div><small>{{tv .Sum}}</small>{{end}}
+  </div>
+  {{end}}
+  {{else if eq $k "daystrip"}}{{with .Data}}
+  <div class="day-strip">{{range .Spans}}<i data-style="left:{{hourPct .From}}%;width:{{hourPct (spanLen .From .To)}}%;{{template "detail_colour" .Colour}}"></i>{{end}}{{range .Events}}<i class="is-event" data-style="left:{{hourPct .From}}%;width:{{hourPct (spanLen .From .To)}}%;{{template "detail_colour" .Colour}}"></i>{{end}}{{if ge .Now 0.0}}<span class="now" data-style="left:{{hourPct .Now}}%"></span>{{end}}<span class="ticks"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></span></div>
+  {{end}}
   {{end}}
 </div>
 {{end}}{{end}}
@@ -218,3 +227,6 @@
 {{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
 {{if graphLegend .}}<ul class="legend">{{range .Series}}{{if .Label}}<li><i data-style="--c:var(--{{seriesVar .Class}})"></i>{{.Label}}</li>{{end}}{{end}}{{if .HasGoal}}<li><i class="goal{{if .GoalDanger}} is-danger{{end}}"></i>{{t "detail.goal"}}</li>{{end}}</ul>{{end}}
 {{end}}
+
+{{/* --c of a block: a Kante token ("d1") as var(), a service's hex colour as is. */}}
+{{define "detail_colour"}}{{if isHex .}}--c:{{.}}{{else}}--c:var(--{{.}}){{end}}{{end}}

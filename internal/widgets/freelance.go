@@ -195,7 +195,7 @@ func lowest(points []metrics.CashPoint) float64 {
 }
 
 func init() {
-	Tile[HeatConfig]{Key: "heatmap", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 3600,
+	Tile[HeatConfig]{Key: "heatmap", Detail: dataDetail(heatmapDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 3600,
 		Fields: []Field{{Key: "months", Input: InputNumber, Default: 12, Min: "1", Max: "12"}, {Key: "weekdays", Input: InputCheck},
 			{Key: "by_goal", Input: InputCheck}},
 		Decode: func(r Raw) HeatConfig {

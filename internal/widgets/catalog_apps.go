@@ -207,7 +207,7 @@ func decodePick(only string) func(Raw) PickConfig {
 var pickLimit = Field{Key: "limit", Input: InputNumber, Default: listShown, Min: "1", Max: "20"}
 
 func init() {
-	Tile[PickConfig]{Key: "kintsugi", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKintsugi, RefreshS: 15 * 60,
+	Tile[PickConfig]{Key: "kintsugi", Detail: dataDetail(kintsugiDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKintsugi, RefreshS: 15 * 60,
 		Fields: []Field{pickLimit, sel("kind", pickAll, pickAll, "acquisition", "development")},
 		Decode: decodePick("kind"), Queries: ownData[PickConfig], View: dataView(kintsugiView)}.add()
 	Tile[PickConfig]{Key: "gitea_reviews", Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitea, RefreshS: 15 * 60,
@@ -271,7 +271,7 @@ type PlaceRow struct {
 type DawarichConfig struct{ Yesterday bool }
 
 func init() {
-	Tile[DawarichConfig]{Key: "dawarich_day", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceDawarich, RefreshS: 30 * 60,
+	Tile[DawarichConfig]{Key: "dawarich_day", Detail: dataDetail(dawarichDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceDawarich, RefreshS: 30 * 60,
 		Fields:  []Field{sel("day", "today", "today", "yesterday")},
 		Decode:  func(r Raw) DawarichConfig { return DawarichConfig{Yesterday: r.Pick("day") == "yesterday"} },
 		Queries: ownData[DawarichConfig], View: dataView(dawarichDayView)}.add()

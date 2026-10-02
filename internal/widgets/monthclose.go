@@ -156,7 +156,7 @@ func monthCloseView(cfg MonthCloseConfig, results map[string]any, ctx ViewCtx) m
 }
 
 func init() {
-	Tile[MonthCloseConfig]{Key: "month_close", Category: CategoryInsight, Topic: TopicWork, RefreshS: 1800, Extra: ExtraCloseTicks,
+	Tile[MonthCloseConfig]{Key: "month_close", Detail: monthCloseDetail, Category: CategoryInsight, Topic: TopicWork, RefreshS: 1800, Extra: ExtraCloseTicks,
 		Fields: []Field{sel("month", "previous", "previous", "current"), {Key: "manual", Input: InputCheck},
 			{Key: "close_hours", Input: InputCheck, Default: true}, {Key: "close_drafts", Input: InputCheck, Default: true},
 			{Key: "close_receipts", Input: InputCheck, Default: true}, {Key: "close_inbox", Input: InputCheck, Default: true},

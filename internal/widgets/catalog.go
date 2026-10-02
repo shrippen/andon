@@ -150,7 +150,7 @@ type KimaiWeekConfig struct {
 }
 
 func init() {
-	Tile[KimaiWeekConfig]{Key: "kimai_week", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 10 * 60,
+	Tile[KimaiWeekConfig]{Key: "kimai_week", Detail: dataDetail(kimaiWeekDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 10 * 60,
 		Fields:  []Field{{Key: "billable_only", Input: InputCheck}},
 		Decode:  func(r Raw) KimaiWeekConfig { return KimaiWeekConfig{BillableOnly: r.Bool("billable_only")} },
 		Queries: ownData[KimaiWeekConfig], View: dataView(kimaiWeekView)}.add()
@@ -208,7 +208,7 @@ type KimaiSplitConfig struct {
 }
 
 func init() {
-	Tile[KimaiSplitConfig]{Key: "kimai_split", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 10 * 60,
+	Tile[KimaiSplitConfig]{Key: "kimai_split", Detail: dataDetail(kimaiSplitDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 10 * 60,
 		Fields: []Field{sel("week", "this", "this", "last"), sel("group", "customer", "customer", "project")},
 		Decode: func(r Raw) KimaiSplitConfig {
 			return KimaiSplitConfig{LastWeek: r.Pick("week") == "last", ByProject: r.Pick("group") == "project"}
@@ -293,7 +293,7 @@ type UnbilledRow struct {
 }
 
 func init() {
-	Tile[AgingConfig]{Key: "unbilled_age", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 60 * 60,
+	Tile[AgingConfig]{Key: "unbilled_age", Detail: dataDetail(unbilledAgeDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKimai, RefreshS: 60 * 60,
 		Fields: []Field{agingBands, {Key: "hide_internal", Input: InputCheck}, {Key: "hide_clients", Input: InputList}},
 		Decode: decodeAging, Queries: ownData[AgingConfig], View: dataView(unbilledAgeView),
 		Calm: func(v map[string]any) bool { return isZero(v["Total"]) }}.add()

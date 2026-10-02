@@ -2,6 +2,7 @@ package web
 
 import (
 	"andon/internal/enums"
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -249,3 +250,29 @@ func pctOf(part, total int) int {
 	}
 	return part * 100 / total
 }
+
+// weekScale labels a week line's hours every four: 6, 16 → 06 10 14 18 22.
+func weekScale(start, span int) []string {
+	var out []string
+	for h := start; h <= start+span; h += weekScaleStep {
+		out = append(out, fmt.Sprintf("%02d", h))
+	}
+	return out
+}
+
+const weekScaleStep = 4
+
+// hourPct is an hour of the day as percent of 24 hours.
+func hourPct(h float64) string { return fmtF(h * percent / hoursPerDay) }
+
+// spanLen is a block's length in hours, at least a sliver.
+func spanLen(from, to float64) float64 { return max(to-from, minSpanHours) }
+
+// isHex tells a service's colour ("#fe8019") from a Kante token.
+func isHex(c string) bool { return strings.HasPrefix(c, "#") }
+
+const (
+	percent      = 100
+	hoursPerDay  = 24
+	minSpanHours = .1
+)

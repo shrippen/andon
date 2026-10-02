@@ -857,6 +857,8 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .heat i[data-l="2"]{background:color-mix(in srgb,var(--cyan) 44%,var(--bg-hard))}
 .heat i[data-l="3"]{background:color-mix(in srgb,var(--cyan) 66%,var(--bg-hard))}
 .heat i[data-l="4"]{background:var(--cyan)}
+/* A year of days: one column per week, Monday on top (<div class="heat is-weeks">, days in order) */
+.heat.is-weeks{grid-template-rows:repeat(7,minmax(0,1fr));grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
 /* Month grid: today = yellow frame, holiday = orange bar, absence = cyan bar, both = split */
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
 .cal>b{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.1em;color:var(--fg3);font-weight:400;text-align:center;padding-bottom:.2rem}

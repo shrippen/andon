@@ -90,6 +90,8 @@ const (
 	BlockHeat     BlockKind = "heat"     // Data Heat
 	BlockDay      BlockKind = "day"      // Data DayCard
 	BlockChips    BlockKind = "chips"    // Data []string
+	BlockWeek     BlockKind = "week"     // Data Week: days as rows over the hours
+	BlockDayStrip BlockKind = "daystrip" // Data DayStrip: one day over 24 hours
 )
 
 // Block is one part of the main area: a label row (text left, Meta right)
@@ -216,4 +218,35 @@ func TxtA(key string, kv ...any) map[string]any {
 // Plain is a label that is no catalog text (a pool, a mount point).
 func Plain(text string) Text {
 	return Text{Key: "detail.plain", Args: map[string]any{"text": text}}
+}
+
+// Week is Kante's .week-line: one row per day over the hours Start to
+// Start+Span, blocks in their colour, the sum right.
+type Week struct {
+	Start, Span int
+	Days        []WeekDay
+}
+
+// WeekDay is one row; Now is the hour of the "now" mark, -1 = none.
+type WeekDay struct {
+	Label any
+	Spans []HourSpan
+	Sum   any
+	Today bool
+	Now   float64
+}
+
+// HourSpan is a block from hour From to To (8.25 = 08:15); Colour is a
+// Kante token ("d1", "aqua") or a hex colour from a service ("#fe8019").
+type HourSpan struct {
+	From, To float64
+	Colour   string
+}
+
+// DayStrip is Kante's .day-strip: blocks over 24 hours, events as thin
+// bars at the bottom, a "now" mark (-1 = none).
+type DayStrip struct {
+	Spans  []HourSpan
+	Events []HourSpan
+	Now    float64
 }
