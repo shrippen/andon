@@ -42,7 +42,7 @@
 .lang button{background:none;border:0;padding:.3rem .6rem;font-family:var(--font-mono);font-size:.72rem;
   letter-spacing:.1em;color:var(--fg3);cursor:pointer}
 .lang button:hover{color:var(--fg0)}
-.lang button[aria-pressed="true"]{background:var(--yellow);color:var(--bg-void)}
+.lang button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary)}
 .nav a:focus-visible,.lang button:focus-visible,.copy-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 /* ── Hero: name and tagline left, install box and screenshot right ── */
@@ -226,7 +226,7 @@ kbd{white-space:nowrap;font-family:var(--font-mono);font-size:.78em;padding:.05r
 .feat{--tier:var(--info);position:relative;background:var(--bg-panel);border-top:4px solid transparent;
   padding:1.6rem 1.75rem 2rem;display:flex;flex-direction:column;gap:.75rem}
 .feat[data-tier="red"]{--tier:var(--red)}
-.feat[data-tier="yellow"]{--tier:var(--yellow)}
+.feat[data-tier="yellow"]{--tier:var(--warn)}
 .feat[data-tier="blue"],.feat[data-tier="cyan"]{--tier:var(--info)}
 .feat::before{content:"";position:absolute;left:0;right:0;top:-4px;height:4px;background:var(--tier);transform-origin:left}
 a.feat{color:inherit;text-decoration:none}
@@ -331,7 +331,7 @@ a.feat:focus-visible::after{inset:6px;background:var(--brk)}
 /* 1 · Bildkachel */
 .tile{--tier:var(--aqua);position:relative;display:flex;flex-direction:column;text-align:left;cursor:pointer;background:var(--bg-panel);border:0;border-top:4px solid var(--tier);padding:0;
   clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,0 100%)}
-.tile[data-tier="green"]{--tier:var(--aqua)}.tile[data-tier="yellow"]{--tier:var(--yellow)}.tile[data-tier="red"]{--tier:var(--red)}
+.tile[data-tier="green"]{--tier:var(--aqua)}.tile[data-tier="yellow"]{--tier:var(--warn)}.tile[data-tier="red"]{--tier:var(--red)}
 .tile::after{content:"";position:absolute;inset:0;border:2px solid transparent;pointer-events:none;transition:border-color .12s}
 .tile:hover::after{border-color:var(--bg2)}
 .tile:focus-visible{outline:0}.tile:focus-visible::after{border-color:transparent;inset:5px;background:var(--brk)}
@@ -373,14 +373,14 @@ a.feat:focus-visible::after{inset:6px;background:var(--brk)}
 .readout{white-space:nowrap;pointer-events:none;position:absolute;right:.5rem;bottom:.5rem;background:var(--bg-void);border:1px solid var(--bg2);padding:.15rem .5rem;font-family:var(--font-mono);font-size:.68rem;color:var(--fg2);font-variant-numeric:tabular-nums}
 .strip{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.3rem}
 .strip button{--tier:var(--aqua);flex:0 0 5.2rem;aspect-ratio:3/2;background:var(--bg0);border:2px solid transparent;border-top:3px solid var(--tier);padding:0;cursor:pointer;overflow:hidden}
-.strip button[data-tier="yellow"]{--tier:var(--yellow)}.strip button[data-tier="red"]{--tier:var(--red)}
+.strip button[data-tier="yellow"]{--tier:var(--warn)}.strip button[data-tier="red"]{--tier:var(--red)}
 .strip button[aria-current="true"]{border-color:var(--primary);border-top-color:var(--tier)}
 .strip svg{display:block;width:100%;height:100%}
 
 /* 3 · Umsortieren (Drag-and-drop) */
 .bands{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem}
 .band{--tier:var(--aqua);background:var(--bg-hard);border-top:4px solid var(--tier);padding:.6rem;min-height:9.5rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:.5rem;align-content:start;transition:background .12s}
-.band[data-tier="yellow"]{--tier:var(--yellow)}.band[data-tier="red"]{--tier:var(--red)}
+.band[data-tier="yellow"]{--tier:var(--warn)}.band[data-tier="red"]{--tier:var(--red)}
 .band-head{grid-column:1/-1;display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--tier)}
 .band-head span:last-child{color:var(--fg3);font-variant-numeric:tabular-nums}
 .band.is-over{outline:2px dashed var(--tier);outline-offset:-4px;background:var(--bg-panel)}
@@ -425,10 +425,10 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 .panel-grid .wide{grid-column:1/-1}
 
 /* 5 · Status & Fortschritt */
-.pill{--c:var(--fg3);display:inline-flex;align-items:center;gap:.45rem;padding:.18rem .6rem;border:1px solid var(--c);color:var(--c);font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.pill{--c:var(--fg3);display:inline-flex;align-items:center;gap:.45rem;min-height:var(--h-xs);padding:0 .6rem;border:1px solid var(--c);color:var(--c);font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
 .pill::before{content:"";width:.45rem;height:.45rem;background:var(--c)}
 .pill[data-state="analyzing"]{--c:var(--info)}
-.pill[data-state="reviewing"]{--c:var(--yellow)}.pill[data-state="reviewing"]::before{background:none;border:2px solid var(--c)}
+.pill[data-state="reviewing"]{--c:var(--info)}.pill[data-state="reviewing"]::before{background:none;border:2px solid var(--c)}
 .pill[data-state="locked"]{--c:var(--warn)}.pill[data-state="locked"]::before{clip-path:polygon(50% 0,100% 100%,0 100%)}
 .pill[data-state="applied"]{--c:var(--aqua)}.pill[data-state="applied"]::before{content:"✓";width:auto;height:auto;background:none;font-size:.75rem;line-height:1}
 .pill[data-state="failed"]{--c:var(--red)}.pill[data-state="failed"]::before{content:"✕";width:auto;height:auto;background:none;font-size:.75rem;line-height:1}
@@ -441,9 +441,9 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 .progress-segs>i.on{background:var(--primary)}
 .progress-segs[data-tier="green"]>i.on{background:var(--aqua)}.progress-segs[data-tier="red"]>i.on{background:var(--red)}
 .progress-bar.is-indeterminate{background:repeating-linear-gradient(-45deg,var(--yellow) 0 8px,var(--bg-hard) 8px 16px);background-size:22.63px 22.63px}
-.progress-bar>i[data-tier="green"]{background:var(--aqua)}.progress-bar>i[data-tier="yellow"]{background:var(--yellow)}.progress-bar>i[data-tier="red"]{background:var(--red)}
+.progress-bar>i[data-tier="green"]{background:var(--aqua)}.progress-bar>i[data-tier="yellow"]{background:var(--warn)}.progress-bar>i[data-tier="red"]{background:var(--red)}
 .toast{position:relative;overflow:hidden;background:var(--bg-panel);border-top:4px solid var(--info);padding:.7rem 1rem;display:flex;align-items:center;gap:.8rem;font-family:var(--font-mono);font-size:.75rem;letter-spacing:.04em;color:var(--fg1);max-width:26rem;
-  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%)}
+  clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
 .toast[data-kind="ok"]{border-top-color:var(--aqua)}.toast[data-kind="warn"]{border-top-color:var(--warn)}.toast[data-kind="error"]{border-top-color:var(--danger)}
 /* Remaining time: a 2px line in the kind's colour, shrinking over --life (A14) */
 .toast-life{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--info);transform-origin:left}
@@ -456,7 +456,7 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 .dialog{background:var(--bg-panel);border-top:4px solid var(--yellow);padding:1.4rem 1.5rem 1.5rem;display:flex;flex-direction:column;gap:1rem;max-width:30rem;width:100%;
   clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,var(--chamfer) 100%,0 calc(100% - var(--chamfer)))}
 .dialog.is-danger{border-top-color:var(--danger)}
-.dialog h3{font-family:var(--font-heading);font-weight:700;font-size:1.6rem;text-transform:uppercase;letter-spacing:.03em;color:var(--fg0);line-height:1.05}
+.dialog h3{font-family:var(--font-heading);font-weight:700;font-size:var(--title-m);text-transform:uppercase;letter-spacing:var(--title-track);color:var(--fg0);line-height:1.05}
 .dialog-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
 .dialog-facts .fact b{font-size:2rem}
 .dialog-actions{display:flex;flex-wrap:wrap;gap:.7rem;justify-content:flex-end}
@@ -472,10 +472,10 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
   font-family:var(--font-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;
   clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
 .tabs :is(button,a):hover{color:var(--fg0);text-decoration:none}
-.tabs :is(button,a)[aria-selected="true"],.tabs :is(button,a)[aria-current="page"]{background:var(--yellow);color:var(--bg-void)}
+.tabs :is(button,a)[aria-selected="true"],.tabs :is(button,a)[aria-current="page"]{background:var(--primary);color:var(--on-primary)}
 .tabs :is(button,a):focus-visible{outline:none;box-shadow:inset 0 -3px 0 var(--focus)}
 .tabs.has-ind :is(button,a)[aria-selected="true"],.tabs.has-ind :is(button,a)[aria-current="page"]{background:transparent}
-.tabs-ind{position:absolute;top:0;bottom:0;left:0;width:0;background:var(--yellow);clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%);pointer-events:none}
+.tabs-ind{position:absolute;top:0;bottom:0;left:0;width:0;background:var(--primary);clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%);pointer-events:none}
 .tabs .count{margin-left:.45rem}
 /* Check box and radio: square box with a drawn tick (A15), radio as a diamond */
 .check{position:relative;display:inline-flex;align-items:center;gap:.65rem;cursor:pointer;font-size:.92rem;color:var(--fg1)}
@@ -495,15 +495,15 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 .check:has(input:disabled){color:var(--fg3);cursor:not-allowed}
 .check input:disabled+:is(.check-box,.check-dia){opacity:.45}
 /* Counter, sticker, status lamp, HUD line */
-.count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding-inline:.3rem;background:var(--yellow);color:var(--bg-void);font-family:var(--font-mono);font-size:.68rem;font-weight:500;font-variant-numeric:tabular-nums}
+.count{display:inline-grid;place-items:center;min-width:var(--h-mark);height:var(--h-mark);padding-inline:.3rem;background:var(--primary);color:var(--on-primary);font-family:var(--font-mono);font-size:.68rem;font-weight:500;font-variant-numeric:tabular-nums}
 .count[data-kind="info"]{background:var(--info);color:var(--on-state)}.count[data-kind="error"]{background:var(--danger);color:var(--on-state)}
-.sticker{display:inline-flex;align-items:center;gap:.5rem;min-height:28px;padding:0 .9rem 0 .6rem;background:var(--paper);color:var(--on-paper);font-family:var(--font-mono);font-size:.7rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+.sticker{display:inline-flex;align-items:center;gap:.5rem;min-height:var(--h-xs);padding:0 .9rem 0 .6rem;background:var(--paper);color:var(--on-paper);font-family:var(--font-mono);font-size:.7rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
   clip-path:polygon(0 0,calc(100% - var(--cut-s)) 0,100% var(--cut-s),100% 100%,0 100%)}
 .sticker::before{content:"";width:7px;height:7px;background:var(--dot,var(--on-paper))}
 .led{display:inline-block;width:10px;height:10px;background:var(--c,var(--info))}
 .hud{display:flex;flex-wrap:wrap;gap:.2rem .9rem;font-family:var(--font-mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--fg3)}
 .hud b{color:var(--yellow);font-weight:500}.hud em{font-style:normal;color:var(--cyan)}
-[data-type].is-typing::after{content:"";display:inline-block;width:.6em;height:1.05em;margin-left:.15em;vertical-align:-.18em;background:var(--yellow)}
+[data-type].is-typing::after{content:"";display:inline-block;width:.6em;height:1.05em;margin-left:.15em;vertical-align:-.18em;background:var(--primary)}
 /* Path and pages */
 .crumbs{display:flex;flex-wrap:wrap;gap:.4rem;font-family:var(--font-mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3)}
 .crumbs a{color:var(--fg2)}.crumbs [aria-current]{color:var(--fg0)}
@@ -511,22 +511,22 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 .pager{display:flex;flex-wrap:wrap;gap:.3rem}
 .pager :is(a,button){display:inline-grid;place-items:center;min-width:var(--h-s);height:var(--h-s);padding-inline:.4rem;background:var(--bg-hard);border:1px solid var(--bg2);color:var(--fg2);cursor:pointer;font-family:var(--font-mono);font-size:.76rem;font-variant-numeric:tabular-nums;text-decoration:none}
 .pager :is(a,button):hover{border-color:var(--fg3);color:var(--fg0)}
-.pager [aria-current="page"]{background:var(--yellow);border-color:var(--yellow);color:var(--bg-void)}
+.pager [aria-current="page"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
 /* Menu */
-.menu{margin:0;list-style:none;background:var(--bg-panel);border-top:3px solid var(--cyan);padding:.35rem 0;min-width:15rem;
+.menu{margin:0;list-style:none;background:var(--bg-panel);border-top:2px solid var(--cyan);padding:.35rem 0;min-width:15rem;
   clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
 .menu :is(button,a){display:flex;width:100%;align-items:center;gap:.7rem;min-height:36px;padding-inline:.9rem;background:none;border:0;color:var(--fg1);cursor:pointer;font-size:.9rem;text-align:left;text-decoration:none}
 .menu :is(button,a):hover,.menu :is(button,a):focus-visible{outline:none;background:var(--cyan-tint);box-shadow:inset 3px 0 0 var(--cyan)}
 .menu kbd{margin-left:auto}.menu .is-danger{color:var(--danger)}
 .menu hr{border:0;border-top:1px solid var(--bg1);margin:.3rem 0}
 /* Loading: three squares, a placeholder */
-.loader{display:inline-flex;gap:4px}.loader i{width:9px;height:9px;background:var(--yellow)}
+.loader{display:inline-flex;gap:4px}.loader i{width:9px;height:9px;background:var(--primary)}
 .skel{display:flex;flex-direction:column;gap:.5rem}
 .skel i{display:block;height:12px;background:linear-gradient(90deg,var(--bg1) 0 40%,var(--bg2) 50%,var(--bg1) 60%);background-size:300% 100%}
 .skel i:nth-child(2){width:80%}.skel i:nth-child(3){width:55%}
 /* Empty state and drop zone */
 .empty{border:1px dashed var(--bg2);padding:1.6rem 1.2rem;display:flex;flex-direction:column;align-items:center;gap:.6rem;text-align:center}
-.empty b{font-family:var(--font-heading);font-size:1.25rem;letter-spacing:.06em;text-transform:uppercase;color:var(--fg0)}
+.empty b{font-family:var(--font-heading);font-size:var(--title-s);letter-spacing:var(--title-track);text-transform:uppercase;color:var(--fg0)}
 .empty p{font-size:.86rem;color:var(--fg2)}
 .drop{border:2px dashed var(--bg2);padding:1.3rem;display:flex;flex-direction:column;align-items:center;gap:.4rem;text-align:center;color:var(--fg2);font-size:.88rem}
 .drop:hover,.drop.is-over{border-color:var(--cyan);background:var(--cyan-tint)}
@@ -534,7 +534,7 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 .table tbody tr[aria-selected="true"] td:first-child{box-shadow:inset 3px 0 0 var(--cyan)}
 /* Running light (A21): put <span class="runner" aria-hidden="true"></span> in a positioned surface that is working */
 .runner{position:absolute;inset:0;padding:2px;pointer-events:none;
-  background:conic-gradient(from var(--run),transparent 0 78%,var(--yellow) 90%,transparent 100%);
+  background:conic-gradient(from var(--run),transparent 0 78%,var(--primary) 90%,transparent 100%);
   -webkit-mask:linear-gradient(black 0 0) content-box exclude,linear-gradient(black 0 0);mask:linear-gradient(black 0 0) content-box exclude,linear-gradient(black 0 0)}
 
 /* ── Motion ────────────────────────────────────────────────────────────
@@ -660,28 +660,35 @@ dialog.dialog::backdrop{background:var(--scrim)}
 /* Toggle state of a button (aria-pressed) */
 .btn-outline[aria-pressed="true"],.btn-data[aria-pressed="true"],.btn-quiet[aria-pressed="true"]{--bc:var(--cyan);background-color:var(--cyan-tint);color:var(--fg0);box-shadow:inset 0 -2px 0 var(--cyan)}
 /* Inline button for dense rows (hints, tables): the one exception to the 32/40/48 heights */
-.btn-inline{--cut:0px;--grow:0px;min-height:0;padding:.1rem .5rem;font-size:.78rem;letter-spacing:.1em}
+.btn-inline{--cut:0px;--grow:0px;min-height:var(--h-xs);padding:0 .5rem;font-size:.78rem;letter-spacing:.1em}
 /* Chip: an entity or a filter, a colour square and a name; pressed = filled; .chip-x removes it */
 .chips-row{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
-.chip{--c:var(--purple);display:inline-flex;align-items:center;gap:.4rem;height:24px;padding-inline:.5rem;border:1px solid var(--c);background:none;color:var(--c);cursor:pointer;
+.chip{--c:var(--purple);display:inline-flex;align-items:center;gap:.4rem;height:var(--h-xs);padding-inline:.5rem;border:1px solid var(--c);background:none;color:var(--c);cursor:pointer;
   font-family:var(--font-mono);font-size:.7rem;letter-spacing:.06em;white-space:nowrap}
 .chip::before{content:"";width:8px;height:8px;background:var(--c)}
 /* A chip never runs out of its row; .is-wrap lets a long chip (a question, a sentence) break onto more lines */
 .chip{max-width:100%}
 .chip::before{flex:none}
-.chip.is-wrap{height:auto;min-height:24px;padding-block:.25rem;white-space:normal;text-align:left;line-height:1.35}
+.chip.is-wrap{height:auto;min-height:var(--h-xs);padding-block:.25rem;white-space:normal;text-align:left;line-height:1.35}
 .chip[aria-pressed="true"]{background:var(--c);color:var(--on-state)}
 .chip[aria-pressed="true"]::before{background:var(--on-state)}
 .chip:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .chip.is-filter{--c:var(--cyan)}
+/* A filter chip reads like .chip-pick: hollow square off; on = filled square on a tint (a fill in the entity colour is for entity chips) */
+.chip.is-filter:not([aria-pressed="true"])::before{background:none;box-shadow:inset 0 0 0 2px var(--c)}
+.chip.is-filter[aria-pressed="true"]{background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--fg0)}
+.chip.is-filter[aria-pressed="true"]::before{background:var(--c)}
 .chip-x{background:none;border:0;color:inherit;cursor:pointer;width:16px;height:16px;line-height:1;padding:0;font-family:var(--font-mono)}
 /* Pill over an image */
 .pill.is-solid{background:color-mix(in srgb,var(--bg-void) 85%,transparent)}
 /* Selectable option card (radio card): aria-checked or aria-selected marks the choice */
-.option{position:relative;display:flex;gap:.8rem;align-items:flex-start;padding:.9rem 1rem 1rem;background:var(--bg-panel);border-top:4px solid var(--bg2);cursor:pointer;color:var(--fg1);text-align:left;font:inherit;
+.option{position:relative;display:flex;gap:.8rem;align-items:flex-start;padding:.9rem 1rem 1rem;background:var(--bg-panel);border:1px solid transparent;border-top:4px solid var(--bg2);cursor:pointer;
+  background-origin:border-box;background-repeat:no-repeat;background-position:top right;background-size:var(--cut-m) var(--cut-m);color:var(--fg1);text-align:left;font:inherit;
   clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
 .option:hover{background-color:var(--tint-1)}
-.option[aria-checked="true"],.option[aria-selected="true"]{border-top-color:var(--cyan);background-color:var(--cyan-tint);box-shadow:inset 0 0 0 1px var(--cyan)}
+/* The frame is a border plus the drawn diagonal (as .btn-outline), so it follows the cut */
+.option[aria-checked="true"],.option[aria-selected="true"]{border-color:var(--cyan);background-color:var(--cyan-tint);
+  background-image:linear-gradient(to bottom left,transparent 50%,var(--cyan) 50%,var(--cyan) calc(50% + 1px),transparent calc(50% + 1px))}
 .option:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
 /* Dropdown: a <details> that shows a .menu */
 details.dropdown{position:relative;display:inline-block}
@@ -710,7 +717,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .flow-node.done{border-top-color:var(--aqua)}
 .flow-node.done b::before{content:"✓ ";color:var(--aqua)}
 .fact[data-tier="green"]{border-top-color:var(--aqua)}.fact[data-tier="green"] b{color:var(--aqua)}
-.fact[data-tier="yellow"]{border-top-color:var(--yellow)}.fact[data-tier="yellow"] b{color:var(--yellow)}
+.fact[data-tier="yellow"]{border-top-color:var(--warn)}.fact[data-tier="yellow"] b{color:var(--warn)}
 .fact[data-tier="red"]{border-top-color:var(--red)}.fact[data-tier="red"] b{color:var(--red)}
 .fact[data-tier="cyan"]{border-top-color:var(--cyan)}.fact[data-tier="cyan"] b{color:var(--cyan)}
 /* Swatch: entity colours are squares; the ring tells where the colour comes from */
@@ -825,7 +832,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .delta[data-good="down"].up{color:var(--red)}.delta[data-good="down"].dn{color:var(--aqua)}
 .delta[data-good="none"]:is(.up,.dn){color:var(--fg2)}
 /* Bulk bar: appears when something is selected; cyan bar because selection is cyan */
-.bulk-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem;background:var(--bg1);border-top:3px solid var(--cyan);padding:.5rem .8rem;
+.bulk-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem;background:var(--bg1);border-top:4px solid var(--cyan);padding:.5rem .8rem;
   clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
 .bulk-bar>.n{font-family:var(--font-heading);font-weight:700;font-size:1.3rem;color:var(--fg0);font-variant-numeric:tabular-nums}
 .bulk-bar>.n small{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);font-weight:400;margin-left:.4rem}
@@ -840,7 +847,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 /* Sheet: a panel from the bottom or the side, with an action row */
 .sheet{background:var(--bg-panel);border-top:4px solid var(--yellow);padding:1.1rem 1.3rem 1.3rem;display:flex;flex-direction:column;gap:.8rem;
   clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,0 100%)}
-.sheet>h3{font-family:var(--font-heading);font-weight:700;font-size:1.4rem;text-transform:uppercase;letter-spacing:.03em;color:var(--fg0);line-height:1.05}
+.sheet>h3{font-family:var(--font-heading);font-weight:700;font-size:var(--title-m);text-transform:uppercase;letter-spacing:var(--title-track);color:var(--fg0);line-height:1.05}
 .sheet>.actions{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:flex-end}
 .sheet.is-side{position:fixed;top:0;right:0;bottom:0;width:min(26rem,100%);z-index:30;overflow-y:auto;clip-path:none;border-top-width:0;border-left:4px solid var(--yellow)}
 /* Setting row: label, hint, control; the reset button only when the value differs */
@@ -864,7 +871,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .status{--k:var(--aqua);background:var(--bg-panel);border-top:4px solid var(--k);padding:.7rem .9rem .8rem;display:flex;flex-direction:column;gap:.3rem;
   clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
 .status[data-state="warn"]{--k:var(--warn)}.status[data-state="bad"]{--k:var(--danger)}.status[data-state="off"]{--k:var(--bg2)}
-.status>.name{font-family:var(--font-heading);font-weight:700;font-size:1.05rem;letter-spacing:.06em;text-transform:uppercase;color:var(--fg0)}
+.status>.name{font-family:var(--font-heading);font-weight:700;font-size:var(--title-s);letter-spacing:var(--title-track);text-transform:uppercase;color:var(--fg0)}
 .status>.row{display:flex;align-items:center;gap:.5rem;font-family:var(--font-mono);font-size:.68rem;color:var(--fg2)}
 .status>.row::before{content:"";width:9px;height:9px;background:var(--k)}
 /* Board editor: add tile, grip, hover strip */
@@ -894,7 +901,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 :is(a.link-tile,.launch):focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
 a.link-tile{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.2rem .8rem;align-items:center;padding:.8rem 1rem}
 a.link-tile>img,a.link-tile>svg{width:28px;height:28px;grid-row:1/3}
-a.link-tile>.name{font-family:var(--font-heading);font-weight:700;font-size:1.05rem;letter-spacing:.05em;text-transform:uppercase;color:var(--fg0)}
+a.link-tile>.name{font-family:var(--font-heading);font-weight:700;font-size:var(--title-s);letter-spacing:var(--title-track);text-transform:uppercase;color:var(--fg0)}
 a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;color:var(--fg3)}
 /* List row: marker, text, meta; selected = cyan tint with a bar */
 .list-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:.7rem;min-height:var(--h-m);padding-inline:.8rem;border-bottom:1px solid var(--bg1);color:var(--fg1);cursor:pointer}
@@ -913,7 +920,7 @@ a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;
 .cmd-row.is-plain .copy-btn{background:var(--bg1);border-color:var(--bg1);color:var(--fg1)}
 
 /* Chip pick: a checkbox as a chip (multi-select filter). A real input inside keeps keyboard and forms working; hollow square = off, filled cyan = on */
-.chip-pick{position:relative;display:inline-flex;align-items:center;gap:.45rem;min-height:28px;padding-inline:.6rem;border:1px solid var(--bg2);color:var(--fg2);cursor:pointer;
+.chip-pick{position:relative;display:inline-flex;align-items:center;gap:.45rem;min-height:var(--h-xs);padding-inline:.6rem;border:1px solid var(--bg2);color:var(--fg2);cursor:pointer;
   font-family:var(--font-mono);font-size:.72rem;letter-spacing:.06em;white-space:nowrap}
 .chip-pick>input{position:absolute;opacity:0;width:1px;height:1px}
 .chip-pick>span::before{content:"";display:inline-block;width:8px;height:8px;margin-right:.45rem;border:2px solid var(--fg3);vertical-align:-1px}
@@ -926,7 +933,7 @@ a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;
 /* Fold: collapsible section with title and count; a <details>, no script. The cut square turns a quarter when open */
 .fold{border-bottom:1px solid var(--bg1)}
 .fold>summary{display:flex;align-items:baseline;gap:.6rem;min-height:var(--h-m);padding-block:.5rem;cursor:pointer;list-style:none;
-  font-family:var(--font-heading);font-weight:700;font-size:1.08rem;letter-spacing:.03em;text-transform:uppercase;color:var(--fg0)}
+  font-family:var(--font-heading);font-weight:700;font-size:var(--title-s);letter-spacing:var(--title-track);text-transform:uppercase;color:var(--fg0)}
 .fold>summary::-webkit-details-marker{display:none}
 .fold>summary::before{content:"";flex:none;align-self:center;width:10px;height:10px;background:var(--fg3);clip-path:polygon(0 0,60% 0,100% 40%,100% 100%,0 100%);transform:rotate(-90deg)}
 .fold:not([open])>summary::before{background:none;box-shadow:inset 0 0 0 2px var(--fg3)}
@@ -961,13 +968,13 @@ a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;
 .tier-card,.hint-card,.timeline>li{--tier:var(--bg2)}
 .hint-card{--tier:var(--info)}
 :is(.tier-card,.hint-card,.timeline>li)[data-tier="green"]{--tier:var(--aqua)}
-:is(.tier-card,.hint-card,.timeline>li)[data-tier="yellow"]{--tier:var(--yellow)}
+:is(.tier-card,.hint-card,.timeline>li)[data-tier="yellow"]{--tier:var(--warn)}
 :is(.tier-card,.hint-card,.timeline>li)[data-tier="red"]{--tier:var(--red)}
 :is(.tier-card,.hint-card,.timeline>li)[data-tier="blue"],:is(.tier-card,.hint-card,.timeline>li)[data-tier="cyan"]{--tier:var(--info)}
 /* Tier card: a card with a tier bar and no click behaviour (a status, not a link) */
 .tier-card{display:flex;flex-direction:column;gap:.3rem;padding:.8rem 1rem .9rem;background:var(--bg-panel);border-top:4px solid var(--tier);color:var(--fg2);font-size:.88rem;
   clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
-.tier-card>h3,.tier-card>b{font-family:var(--font-heading);font-weight:700;font-size:1.05rem;letter-spacing:.05em;text-transform:uppercase;color:var(--fg0)}
+.tier-card>h3,.tier-card>b{font-family:var(--font-heading);font-weight:700;font-size:var(--title-s);letter-spacing:var(--title-track);text-transform:uppercase;color:var(--fg0)}
 .tier-card>small{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;color:var(--fg3)}
 /* Hint card: tier as icon shape + text + colour (never colour alone), source, expandable "why", actions.
    Icon: red = triangle, yellow = diamond, blue = square, green = check */
@@ -998,14 +1005,14 @@ a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
 .timeline>li>.what>small{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.06em;color:var(--fg3)}
 .timeline>li>.state{font-family:var(--font-mono);font-style:normal;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2);white-space:nowrap}
 .timeline>li[data-tier="red"]>.state{color:var(--danger)}
-.timeline>li[data-tier="yellow"]>.state{color:var(--yellow)}
+.timeline>li[data-tier="yellow"]>.state{color:var(--warn)}
 
 /* Edit bar: the edit mode of a page (save, discard, history). Cyan, because editing is selection; .is-sticky sticks to the top, .is-fixed to the bottom edge */
-.editbar{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .8rem;background:var(--bg1);border-top:3px solid var(--cyan);padding:.5rem .8rem;
+.editbar{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .8rem;background:var(--bg1);border-top:4px solid var(--cyan);padding:.5rem .8rem;
   clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
 /* Popovers hanging below the bar need the clip off: the cut corner is given up */
 .editbar.has-menu{clip-path:none}
-.editbar>.mode{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--font-heading);font-weight:700;font-size:1.15rem;letter-spacing:.06em;text-transform:uppercase;color:var(--fg0)}
+.editbar>.mode{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--font-heading);font-weight:700;font-size:var(--title-s);letter-spacing:var(--title-track);text-transform:uppercase;color:var(--fg0)}
 .editbar>.mode::before{content:"";width:10px;height:10px;background:var(--cyan)}
 .editbar>.mode small{font-family:var(--font-mono);font-size:.64rem;font-weight:400;letter-spacing:.1em;color:var(--fg3)}
 .editbar>.grow{flex:1}
@@ -1030,7 +1037,7 @@ a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
 .login.is-wide{max-width:30rem}
 .login>.brand{display:flex;align-items:center;gap:.6rem;font-family:var(--font-heading);font-weight:700;font-size:1.1rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
 .login>.brand>:is(img,svg){width:30px;height:30px}
-.login>h1{font-family:var(--font-heading);font-weight:700;font-size:1.6rem;letter-spacing:.03em;text-transform:uppercase;color:var(--fg0);line-height:1.05}
+.login>h1{font-family:var(--font-heading);font-weight:700;font-size:var(--title-m);letter-spacing:var(--title-track);text-transform:uppercase;color:var(--fg0);line-height:1.05}
 .login form{display:flex;flex-direction:column;gap:.8rem}
 .login label{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3)}
 .login .btn{width:100%}
@@ -1100,7 +1107,7 @@ a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
 .combo-search>.input{padding-right:2rem;background-image:linear-gradient(45deg,transparent 50%,var(--fg2) 50%),linear-gradient(135deg,var(--fg2) 50%,transparent 50%);
   background-position:calc(100% - 1.05rem) 55%,calc(100% - .75rem) 55%;background-size:.3rem .3rem;background-repeat:no-repeat}
 .combo-search>[role="listbox"]{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:30;margin:0;padding:.3rem 0;list-style:none;max-height:16rem;overflow:auto;
-  background:var(--bg-panel);border:1px solid var(--bg2);border-top:3px solid var(--cyan)}
+  background:var(--bg-panel);border:1px solid var(--bg2);border-top:2px solid var(--cyan)}
 .combo-search>[aria-expanded="false"]~[role="listbox"],.combo-search>[role="listbox"][hidden]{display:none}
 .combo-search [role="option"]{display:flex;align-items:center;gap:.6rem;min-height:var(--h-s);padding:0 .8rem;color:var(--fg1);font-size:.9rem;cursor:pointer}
 .combo-search.has-colors [role="option"]:not(.is-new)::before{content:"";flex:none;width:10px;height:10px;background:var(--c,var(--entity-fallback))}
@@ -1169,7 +1176,7 @@ input[type="color"]:hover{border-color:var(--fg3)}
 input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 /* Pills in a tile or a badge row shorten with an ellipsis instead of widening the tile */
 .tile-badges{display:flex;flex-wrap:wrap;gap:.3rem;min-width:0}
-.tile .pill,.tile-badges .pill{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;letter-spacing:.06em;padding-inline:.4rem}
+.tile .pill,.tile-badges .pill{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;line-height:calc(var(--h-xs) - 2px);letter-spacing:.06em;padding-inline:.4rem}
 .tile .pill::before,.tile-badges .pill::before{display:inline-block;margin-right:.3rem;vertical-align:1px}
 /* App page head: the title with its actions, apart from the first card or panel under it */
 .page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.6rem 1rem;margin-bottom:1.25rem}
@@ -1194,7 +1201,7 @@ input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:
 :root:is([data-theme="light"],[data-kante="light"]) .launch-icon>img.is-glyph{filter:none}
 @media (prefers-color-scheme:dark){:root[data-kante="light"] .launch-icon>img.is-glyph{filter:invert(.9)}}
 .launch-body{display:flex;flex-direction:column;flex:1;min-width:0}
-.launch-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-heading);font-weight:700;font-size:1.05rem;line-height:1.25;letter-spacing:.05em;text-transform:uppercase;color:var(--fg0)}
+.launch-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-heading);font-weight:700;font-size:var(--title-s);line-height:1.25;letter-spacing:var(--title-track);text-transform:uppercase;color:var(--fg0)}
 .launch-title>small{font-family:var(--font-mono);font-weight:400;font-size:.62rem;letter-spacing:.02em;text-transform:none;color:var(--fg3)}
 .launch-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem;line-height:1.35;color:var(--fg2)}
 .launch-tags{display:flex;flex-wrap:wrap;gap:0 .5rem;font-family:var(--font-mono);font-size:.62rem;color:var(--fg3)}
@@ -1207,13 +1214,13 @@ input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:
 /* Uptime strip with its detail button on one line: <span class="launch-trend"><svg class="uptime">…</svg>
    <span class="launch-detail" role="button" tabindex="0" aria-label="…"><svg>…</svg></span></span>; a span, as the tile is a link */
 .launch-trend{flex-basis:100%;display:flex;align-items:center;gap:.4rem;min-width:0}
-.launch-detail{flex:none;display:inline-grid;place-items:center;width:1.6rem;height:1.25rem;padding:0;background:none;border:1px solid transparent;color:var(--fg3);cursor:pointer}
+.launch-detail{flex:none;display:inline-grid;place-items:center;width:1.6rem;height:var(--h-mark);padding:0;background:none;border:1px solid transparent;color:var(--fg3);cursor:pointer}
 .launch-detail svg{width:14px;height:14px}
 .launch-detail:hover{color:var(--fg0);border-color:var(--bg2)}
 .launch-detail:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
 @media (pointer:coarse){.launch-detail{width:2.2rem;height:2rem}}
 /* Hint count: outlined in the tier colour; red is filled, so the shape tells the tier too */
-.launch-hints{--k:var(--info);display:inline-flex;align-items:center;justify-content:center;gap:.2rem;min-width:1.25rem;height:1.1rem;margin:0;padding:0 .3rem;background:none;border:1px solid var(--k);color:var(--k);
+.launch-hints{--k:var(--info);display:inline-flex;align-items:center;justify-content:center;gap:.2rem;min-width:var(--h-mark);height:var(--h-mark);margin:0;padding:0 .3rem;background:none;border:1px solid var(--k);color:var(--k);
   font-family:var(--font-mono);font-weight:500;font-size:.62rem;font-variant-numeric:tabular-nums;text-decoration:none;cursor:pointer}
 .launch-hints[data-tier="yellow"]{--k:var(--warn)}
 .launch-hints[data-tier="red"]{--k:var(--danger);background:var(--danger);color:var(--on-state)}
@@ -1310,6 +1317,14 @@ input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:
 :root[data-kante="light"] .tile,:root[data-kante="light"] .flow-node,:root[data-kante="light"] .dialog,:root[data-kante="light"] .toast{box-shadow:inset 0 0 0 1px var(--bg2)}
 :root[data-kante="light"] .toolbar{background:var(--bg-panel);border-color:var(--bg2);border-radius:4px}
 :root[data-kante="light"] .pill{border-radius:1rem}
+/* Kante 1.13: the parts added since 1.5 follow the same rule (controls in the system font, normal case, small radius; card titles in the system font) */
+:root[data-kante="light"] :is(.sheet>h3,.tier-card>h3,.tier-card>b,.status>.name,a.link-tile>.name,.launch-title,.editbar>.mode,.fold>summary,.empty b){font-family:var(--font-sans);text-transform:none;letter-spacing:0}
+:root[data-kante="light"] .tabs{gap:0}
+:root[data-kante="light"] .tabs :is(button,a),:root[data-kante="light"] .tabs-ind{clip-path:none;border-radius:4px 4px 0 0}
+:root[data-kante="light"] :is(.tabs :is(button,a),.modebar>:is(button,a),.pager :is(a,button),.chip,.chip-pick,.toast>.toast-action){font-family:var(--font-sans);font-size:.85rem;letter-spacing:0;text-transform:none}
+:root[data-kante="light"] :is(.modebar,.pager :is(a,button),.chip,.chip-pick,.toast>.toast-action,.combo-search>[role="listbox"],details.help>.help-text){border-radius:4px}
+:root[data-kante="light"] .modebar{overflow:hidden}
+:root[data-kante="light"] details.help>summary{border-radius:50%}
 
 /* ── Thread: a conversation (Kintsugi's chat, Hansei's talk with the AI) ──
    .thread > .msg[data-from="ai"|"me"] > header (who, time) + text. The other side sits left
@@ -1324,8 +1339,8 @@ input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:
 .msg :is(ul,ol){padding-left:1.2rem}
 
 /* ── App page titles: the h1 of an app page and the heading of a block on it ── */
-.page-title{font-family:var(--font-heading);font-weight:700;font-size:clamp(1.8rem,4.2vw,2.5rem);line-height:1.02;text-transform:uppercase;letter-spacing:.02em;color:var(--fg0);text-wrap:balance}
-.block-title{font-family:var(--font-heading);font-weight:700;font-size:1.3rem;line-height:1.1;text-transform:uppercase;letter-spacing:.04em;color:var(--fg0)}
+.page-title{font-family:var(--font-heading);font-weight:700;font-size:var(--title-l);line-height:1.02;text-transform:uppercase;letter-spacing:.02em;color:var(--fg0);text-wrap:balance}
+.block-title{font-family:var(--font-heading);font-weight:700;font-size:var(--title-m);line-height:1.1;text-transform:uppercase;letter-spacing:var(--title-track);color:var(--fg0)}
 
 /* ── Steps with state: .is-done ticks the number, aria-current="step" marks where you are;
    .steps.is-row lays a short process out in one line (setup wizards) ── */
@@ -1361,16 +1376,16 @@ input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:
 /* ── Help: a small "?" beside a label that opens a short explanation (term, unit, where to find a value).
    details.help > summary (the "?", aria-label) + .help-text. Opens on click or keyboard, closes on a second click. ── */
 details.help{position:relative;display:inline-block;vertical-align:middle;margin-left:.3rem;text-transform:none;letter-spacing:0}
-details.help>summary{display:inline-grid;place-items:center;width:18px;height:18px;border:1px solid var(--cyan);color:var(--cyan);font-family:var(--font-mono);font-size:.68rem;line-height:1;cursor:pointer;list-style:none}
+details.help>summary{display:inline-grid;place-items:center;width:var(--h-mark);height:var(--h-mark);border:1px solid var(--cyan);color:var(--cyan);font-family:var(--font-mono);font-size:.68rem;line-height:1;cursor:pointer;list-style:none}
 details.help>summary::-webkit-details-marker{display:none}
 details.help>summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 details.help[open]>summary{background:var(--cyan-tint)}
-details.help>.help-text{position:absolute;z-index:25;top:calc(100% + 6px);left:-.5rem;width:max-content;max-width:min(20rem,80vw);background:var(--bg-panel);border-top:3px solid var(--cyan);padding:.6rem .8rem;
+details.help>.help-text{position:absolute;z-index:25;top:calc(100% + 6px);left:-.5rem;width:max-content;max-width:min(20rem,80vw);background:var(--bg-panel);border-top:2px solid var(--cyan);padding:.6rem .8rem;
   font-family:var(--font-sans);font-size:.82rem;line-height:1.4;color:var(--fg1);border-inline:1px solid var(--bg2);border-bottom:1px solid var(--bg2)}
 details.help.is-right>.help-text{left:auto;right:-.5rem}
 
 /* ── Toast with an action, e.g. "Undo" after a delete: .toast > .toast-action (a quiet button) ── */
-.toast>.toast-action{margin-left:auto;flex:none;background:none;border:1px solid currentColor;color:var(--fg0);padding:.2rem .6rem;cursor:pointer;
+.toast>.toast-action{margin-left:auto;flex:none;display:inline-flex;align-items:center;min-height:var(--h-xs);background:none;border:1px solid currentColor;color:var(--fg0);padding:0 .6rem;cursor:pointer;
   font-family:var(--font-mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase}
 .toast>.toast-action:hover{background:var(--cyan-tint)}
 .toast>.toast-action:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
@@ -1387,7 +1402,7 @@ details.help.is-right>.help-text{left:auto;right:-.5rem}
 .ring-pick>.ring-pick-n{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-mono);font-size:1.4rem;color:var(--fg2);pointer-events:none}
 
 /* ── Touch: chips get the small control height, so a finger hits them ── */
-@media (pointer:coarse){.chip{height:var(--h-s)}}
+@media (pointer:coarse){.chip{height:var(--h-s)}.chip-pick{min-height:var(--h-s)}}
 
 /* ── Keyboard focus on segments and switches (they had none) ── */
 .seg button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
@@ -1415,7 +1430,9 @@ details.help.is-right>.help-text{left:auto;right:-.5rem}
 :root[data-kante="gold"] .btn{font-weight:600}
 :root[data-kante="gold"] .feat-icon{stroke-width:1.5}
 /* Less weight: 2 px bars, gold hairlines */
-:root[data-kante="gold"] :is(.flow-node,.faq details,.feat,.callout,.band,.toast,.dialog,.sheet,.status,.palette,a.link-tile,.launch,.tier-card,.hint-card,.login,.tile){border-top-width:var(--bar)}
+:root[data-kante="gold"] :is(.flow-node,.faq details,.feat,.callout,.band,.toast,.dialog,.sheet,.status,.palette,a.link-tile,.launch,.tier-card,.hint-card,.login,.tile,.option,.editbar,.bulk-bar){border-top-width:var(--bar)}
+:root[data-kante="gold"] .timeline>li{border-left-width:var(--bar)}
+:root[data-kante="gold"] .option{border-color:var(--gold-line)}
 :root[data-kante="gold"] .feat::before{top:calc(-1 * var(--bar));height:var(--bar)}
 :root[data-kante="gold"] .msg{border-left-width:var(--bar)}
 :root[data-kante="gold"] .msg[data-from="me"]{border-right-width:var(--bar)}
@@ -1433,8 +1450,8 @@ details.help.is-right>.help-text{left:auto;right:-.5rem}
 :root[data-kante="gold"] .tabs.has-ind :is(button,a):is([aria-selected="true"],[aria-current="page"]){box-shadow:none}
 /* The gilded edge: a gold line along the cut of every surface */
 :root[data-kante="gold"] :is(.ch,.feat:not(a),.callout,.codeblock,.table-wrap,.flow-node,.faq details,.dialog,.sheet,.palette,.login){--gc:var(--chamfer)}
-:root[data-kante="gold"] :is(.status,.tier-card,.hint-card,.menu,.bulk-bar){--gc:var(--cut-m)}
-:root[data-kante="gold"] :is(.ch,.feat:not(a),.callout,.codeblock,.table-wrap,.flow-node,.faq details,.dialog,.sheet,.palette,.login,.status,.tier-card,.hint-card,.menu,.bulk-bar){
+:root[data-kante="gold"] :is(.status,.tier-card,.hint-card,.menu,.bulk-bar,.launch,a.link-tile,.option,.editbar:not(.has-menu),.toast){--gc:var(--cut-m)}
+:root[data-kante="gold"] :is(.ch,.feat:not(a),.callout,.codeblock,.table-wrap,.flow-node,.faq details,.dialog,.sheet,.palette,.login,.status,.tier-card,.hint-card,.menu,.bulk-bar,.launch,a.link-tile,.option,.editbar:not(.has-menu),.toast){
   background-image:linear-gradient(to bottom left,transparent calc(50% - var(--gild) / 2),var(--yellow) calc(50% - var(--gild) / 2),var(--yellow) calc(50% + var(--gild) / 2),transparent calc(50% + var(--gild) / 2));
   background-repeat:no-repeat;background-position:top right;background-size:var(--gc) var(--gc);background-origin:border-box}
 /* Busy: a slow shimmer instead of marching hazard stripes */

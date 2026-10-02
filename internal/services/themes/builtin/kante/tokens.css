@@ -97,6 +97,12 @@
   --h-s:      32px;      /* control heights: small, medium, large */
   --h-m:      40px;
   --h-l:      48px;
+  --h-xs:     24px;      /* dense parts below the control heights: chips, pills, stickers, inline buttons (touch: --h-s) */
+  --h-mark:   20px;      /* counters and markers: .count, hint counts, the help "?" */
+  --title-s:  1.1rem;    /* titles of cards, rows, tiles and bars (Rajdhani, uppercase) */
+  --title-m:  1.4rem;    /* titles of blocks, sheets, dialogs and the login card */
+  --title-l:  clamp(1.8rem, 4.2vw, 2.5rem); /* the title of an app page */
+  --title-track: .04em;  /* letter spacing of --title-s and --title-m */
 
   /* ── Motion (only under prefers-reduced-motion: no-preference) ── */
   --dur-fast: 120ms;     /* colour and border changes */

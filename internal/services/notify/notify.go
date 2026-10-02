@@ -208,9 +208,10 @@ const (
 // Weekdays are the digest weekday keys, Monday first (catalog "weekday.<key>").
 var Weekdays = []string{"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
 
-// levelColor colours a digest row by severity (Kante blue/yellow/red).
+// levelColor colours a digest row by severity: Kante's info, warn and
+// danger roles (cyan, orange, red); yellow is the primary action, not a level.
 var levelColor = map[enums.Severity]string{
-	enums.SeverityInfo: "#83a598", enums.SeverityWarn: "#fabd2f", enums.SeverityCritical: "#fb4934",
+	enums.SeverityInfo: "#5ccfc4", enums.SeverityWarn: "#fe8019", enums.SeverityCritical: "#fb4934",
 }
 
 // GetPrefs reads a user's quiet-hours preference.
