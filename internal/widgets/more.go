@@ -484,7 +484,7 @@ func init() {
 			{Key: "ical_url_3", Input: InputSecret}, sel("color_3", "none", accentColors...)},
 		Decode: decodeCalendar, Queries: calendarQueries, View: calendarView}.add()
 
-	Tile[CustomAPIConfig]{Key: "custom_api", Category: CategoryStart, Topic: TopicAnalysis, RefreshS: 5 * minute,
+	Tile[CustomAPIConfig]{Key: "custom_api", Detail: customAPIDetail, Category: CategoryStart, Topic: TopicAnalysis, RefreshS: 5 * minute,
 		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "fields", Input: InputArea}, {Key: "headers", Input: InputHeaders},
 			{Key: "thresholds", Input: InputArea}, {Key: "units", Input: InputArea}},
 		Decode: decodeCustomAPI, View: customAPIView,

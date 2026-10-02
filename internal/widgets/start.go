@@ -594,7 +594,7 @@ func init() {
 			return []Query{{Name: "weather", Source: "open_meteo", Params: map[string]any{"lat": cfg.Lat, "lon": cfg.Lon, "days": float64(cfg.Days)}}}
 		}}.add()
 
-	Tile[IframeConfig]{Key: "iframe", Category: CategoryStart, Topic: TopicDev, Inline: true,
+	Tile[IframeConfig]{Key: "iframe", Detail: iframeDetail, Category: CategoryStart, Topic: TopicDev, Inline: true,
 		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "height", Input: InputNumber, Default: 320, Min: "80", Max: "2000"},
 			{Key: "reload", Input: InputNumber, Min: "0", Max: "1440"}},
 		Decode: decodeIframe}.add()

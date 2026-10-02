@@ -58,7 +58,7 @@ func jsonAPIView(cfg JSONAPIConfig, data *sources.JSONAPIDataset, _ ViewCtx) map
 }
 
 func init() {
-	Tile[JSONAPIConfig]{Key: "jsonapi", Category: CategoryInsight, Topic: TopicAnalysis, Service: enums.ServiceJSONAPI, RefreshS: jsonAPIRefresh,
+	Tile[JSONAPIConfig]{Key: "jsonapi", Detail: dataDetail(jsonAPIDetail), Category: CategoryInsight, Topic: TopicAnalysis, Service: enums.ServiceJSONAPI, RefreshS: jsonAPIRefresh,
 		Fields: []Field{{Key: "thresholds", Input: InputArea}, {Key: "units", Input: InputArea}},
 		Decode: decodeJSONAPI, Queries: ownData[JSONAPIConfig], View: dataView(jsonAPIView)}.add()
 }

@@ -210,7 +210,7 @@ func init() {
 	Tile[PickConfig]{Key: "kintsugi", Detail: dataDetail(kintsugiDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKintsugi, RefreshS: 15 * 60,
 		Fields: []Field{pickLimit, sel("kind", pickAll, pickAll, "acquisition", "development")},
 		Decode: decodePick("kind"), Queries: ownData[PickConfig], View: dataView(kintsugiView)}.add()
-	Tile[PickConfig]{Key: "gitea_reviews", Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitea, RefreshS: 15 * 60,
+	Tile[PickConfig]{Key: "gitea_reviews", Detail: dataDetail(giteaDetail), Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitea, RefreshS: 15 * 60,
 		Fields: []Field{sel("show", pickAll, pickAll, "reviews", "issues"), pickLimit},
 		Decode: decodePick("show"), Queries: ownData[PickConfig], View: dataView(giteaView)}.add()
 }

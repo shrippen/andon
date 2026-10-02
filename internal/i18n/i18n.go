@@ -127,7 +127,7 @@ func typedValue(value any, locale enums.Locale) any {
 	}
 	if v, ok := m["$money"]; ok {
 		currency := DefaultCurrency
-		if c, ok := m["currency"].(string); ok {
+		if c, ok := m["currency"].(string); ok && c != "" {
 			currency = c
 		}
 		return Money(toFloat(v), locale, currency)

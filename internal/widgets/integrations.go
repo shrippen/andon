@@ -318,7 +318,7 @@ func init() {
 		Renames: []rename{{from: "only_trouble", to: "only_problems"}},
 		Decode:  decodeTailscale, Queries: ownData[TailscaleConfig], View: dataView(tailscaleView)}.add()
 
-	Tile[GitHubConfig]{Key: "github", Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitHub, RefreshS: integrationTTL,
+	Tile[GitHubConfig]{Key: "github", Detail: dataDetail(githubDetail), Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitHub, RefreshS: integrationTTL,
 		Fields:  []Field{{Key: "filter", Input: InputList}, {Key: "only_problems", Input: InputCheck}},
 		Renames: []rename{{from: "only_red", to: "only_problems"}},
 		Decode:  decodeGitHub, Queries: ownData[GitHubConfig], View: dataView(githubView)}.add()

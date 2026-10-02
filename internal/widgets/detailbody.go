@@ -94,6 +94,7 @@ const (
 	BlockDayStrip BlockKind = "daystrip" // Data DayStrip: one day over 24 hours
 	BlockImage    BlockKind = "image"    // Data Image: a picture at full width
 	BlockRead     BlockKind = "read"     // Data Reading: a text to read
+	BlockFrame    BlockKind = "frame"    // Data Embed: an embedded page
 )
 
 // Block is one part of the main area: a label row (text left, Meta right)
@@ -259,6 +260,9 @@ type Image struct {
 	Alt     string
 	Caption string
 }
+
+// Embed is an embedded page of the large view (Kante figure.detail-figure).
+type Embed struct{ URL string }
 
 // Reading is a text to read (Kante .detail-read): a title, paragraphs,
 // a link to the original.

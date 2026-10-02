@@ -90,6 +90,8 @@ func checkBody(b *widgets.DetailBody) []error {
 				_, ok = bl.Data.(widgets.Image)
 			case widgets.BlockRead:
 				_, ok = bl.Data.(widgets.Reading)
+			case widgets.BlockFrame:
+				_, ok = bl.Data.(widgets.Embed)
 			case widgets.BlockText:
 			case widgets.BlockPair:
 				pair, isPair := bl.Data.([]widgets.Block)

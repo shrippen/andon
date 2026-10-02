@@ -112,7 +112,7 @@ const (
 var lowerBetter = map[Metric]bool{MetricOpenAmount: true, MetricOverdueAmount: true, MetricVATLiability: true, MetricUnbilled: true}
 
 func init() {
-	Tile[KpiConfig]{Key: "kpi", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
+	Tile[KpiConfig]{Key: "kpi", Detail: kpiDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
 		Fields: []Field{sel("metric", string(MetricRevenueYTD), "hours_today", "hours_week", "hours_month", "utilization", "unbilled",
 			"revenue_ytd", "revenue_month", "open_amount", "overdue_amount", "vat_liability", "tax_reserve",
 			"asset_value", "assets_ready", "revenue_forecast", "cash_30", "liquidity_30", "effective_rate", "net_worth", "cash", "safe_to_spend"),
@@ -191,7 +191,7 @@ type TableConfig struct {
 }
 
 func init() {
-	Tile[TableConfig]{Key: "table", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
+	Tile[TableConfig]{Key: "table", Detail: tableDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
 		Fields: []Field{sel("table", "open_invoices", "open_invoices", "unbilled", "budgets", "client_shares", "asset_dates", "trips", "effective_rates", "app_usage", "payment_morale",
 			"full_rates", "unbilled_aging", "payment_matches", "missing_receipts", "subscriptions", "budget_forecast", "project_margins", "exposure", "domain_chain"),
 			{Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"}, {Key: "hide_cols", Input: InputList},
@@ -218,7 +218,7 @@ type ChartConfig struct {
 }
 
 func init() {
-	Tile[ChartConfig]{Key: "chart", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600, DataChoice: true,
+	Tile[ChartConfig]{Key: "chart", Detail: chartDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600, DataChoice: true,
 		Fields: []Field{sel("chart", "revenue", "revenue", "hours", "seasonal"), {Key: "months", Input: InputNumber, Default: 12, Min: "3", Max: "24"},
 			{Key: "show_prev", Input: InputCheck, Default: true}, {Key: "values", Input: InputCheck}, {Key: "goal_line", Input: InputCheck}},
 		Decode: func(r Raw) ChartConfig {
@@ -246,7 +246,7 @@ type ProgressConfig struct {
 }
 
 func init() {
-	Tile[ProgressConfig]{Key: "progress", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
+	Tile[ProgressConfig]{Key: "progress", Detail: progressDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
 		Fields: []Field{{Key: "goal", Input: InputCheck, Default: true}, {Key: "projects", Input: InputList}, {Key: "soll", Input: InputCheck, Default: true},
 			{Key: "warn_ahead", Input: InputNumber, Default: 10, Min: "1", Max: "100"}},
 		Decode: decodeProgress, Queries: ownData[ProgressConfig], View: progressView}.add()
@@ -357,7 +357,7 @@ const smoothDays = 7
 const MaxTrendDays = 730
 
 func init() {
-	Tile[TrendConfig]{Key: "trend", Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600, Extra: ExtraPoints,
+	Tile[TrendConfig]{Key: "trend", Detail: trendDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600, Extra: ExtraPoints,
 		Fields: []Field{sel("metric", string(TrendOpenAmount), "revenue_ytd", "open_amount", "month_min"), {Key: "days", Input: InputNumber, Default: 90, Min: "7", Max: strconv.Itoa(MaxTrendDays)},
 			{Key: "target_value", Input: InputNumber, Min: "0"}, {Key: "smooth", Input: InputCheck}},
 		Decode: func(r Raw) TrendConfig {
@@ -474,6 +474,12 @@ func kimaiMonthHoursOf(data *sources.KimaiDataset, today time.Time, n int, kind 
 // kpiSpark is the monthly line behind a metric, nil when it has none. It
 // ends with last month: the running month would always dip.
 func kpiSpark(metric Metric, data any, today time.Time) *Spark {
+	return SparkOf(kpiSeries(metric, data, today))
+}
+
+// kpiSeries is the history behind a KPI's line: months, or days for a
+// balance; nil where the metric has none.
+func kpiSeries(metric Metric, data any, today time.Time) []float64 {
 	lastMonth := metrics.AddMonths(today, -1)
 	switch d := data.(type) {
 	case *sources.NinjaDataset:
@@ -484,18 +490,18 @@ func kpiSpark(metric Metric, data any, today time.Time) *Spark {
 		for _, m := range metrics.NinjaByMonth(d, lastMonth, sparkMonths) {
 			values = append(values, m.Net)
 		}
-		return SparkOf(values)
+		return values
 	case *sources.KimaiDataset:
 		if metric != MetricHoursMonth && metric != MetricHoursWeek && metric != MetricUtilization {
 			return nil
 		}
 		cur, _ := kimaiMonthHours(d, lastMonth, sparkMonths)
-		return SparkOf(cur)
+		return cur
 	case *sources.SureDataset:
 		if metric != MetricCash {
 			return nil
 		}
-		return SparkOf(metrics.SureCashDays(d, today, cashDays))
+		return metrics.SureCashDays(d, today, cashDays)
 	}
 	return nil
 }

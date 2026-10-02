@@ -236,7 +236,7 @@ func numCol(cols []int, i int) bool {
 // graphLegend tells whether a graph names its series.
 func graphLegend(g widgets.Graph) bool {
 	for _, s := range g.Series {
-		if s.Label != "" {
+		if s.Label != nil && s.Label != "" {
 			return true
 		}
 	}

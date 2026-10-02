@@ -32,7 +32,7 @@ type Graph struct {
 type Series struct {
 	Values []float64
 	Class  string // Kante data colour s1 … s6
-	Label  string // legend
+	Label  any    // legend: text or typed value
 }
 
 // Gap marks a missing value in a line.
