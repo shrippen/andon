@@ -186,3 +186,19 @@ func TestKomodoStoppedOnPurpose(t *testing.T) {
 		t.Fatalf("found: %+v", got)
 	}
 }
+
+// TestScrubOld: a pool whose last scrub is too old is a note, scrub
+// errors a warning, a pool without a known scrub nothing.
+func TestScrubOld(t *testing.T) {
+	env := todayEnv(nil)
+	data := &sources.TrueNASDataset{Pools: []sources.Pool{
+		{Name: "tank", ScrubEnd: env.Today.AddDate(0, 0, -40)},
+		{Name: "fast", ScrubEnd: env.Today.AddDate(0, 0, -3), ScrubErrors: 2},
+		{Name: "new"},
+		{Name: "ok", ScrubEnd: env.Today.AddDate(0, 0, -10)},
+	}}
+	got := run(t, "truenas.scrub_old", data, env)
+	if len(got) != 2 || got[0].Message != "truenas.scrub_old" || got[1].Message != "truenas.scrub_errors" || got[1].Severity != enums.SeverityWarn {
+		t.Fatalf("findings: %+v", got)
+	}
+}

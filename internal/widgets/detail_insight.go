@@ -7,7 +7,9 @@ import (
 	"cmp"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"slices"
+	"strconv"
 	"time"
 
 	"andon/internal/metrics"
@@ -48,6 +50,9 @@ func kpiDetail(cfg KpiConfig, results map[string]any, ctx ViewCtx) DetailView {
 	label := T("opt." + string(cfg.Metric))
 	body := &DetailBody{Side: []Fact{{Label: T("detail.kpi.metric"), Value: Txt("opt." + string(cfg.Metric))}}}
 	body.Facts = []Kpi{{Value: kpiValue(k, k.Value), Label: label, Tier: map[string]string{"good": "green", "bad": "red"}[k.Target]}}
+
+	// How the value comes about, in one sentence.
+	body.Blocks = append(body.Blocks, Block{Kind: BlockText, Label: T("detail.kpi.how"), Data: Txt("kpi_how." + string(cfg.Metric))})
 	if k.HasDelta {
 		body.Facts = append(body.Facts, changeKpi(k.Delta*percentScale, T(k.DeltaKey)))
 	}
@@ -152,8 +157,31 @@ func progressDetail(cfg ProgressConfig, results map[string]any, ctx ViewCtx) Det
 		Blocks: []Block{{Kind: BlockBars, Label: T("detail.progress.state"), Data: bars},
 			{Kind: BlockTable, Label: T("detail.progress.list"), Data: Table{Head: []Text{T("detail.progress.name"), T("detail.progress.used"), T("detail.progress.should")}, Rows: rows, Num: []int{1, 2}}}},
 	}
+
+	// Budget use over the last weeks, one line per project (recorded daily).
+	now := time.Now()
+	var lines []Series
+	for _, it := range items {
+		if it.Series == "" || len(lines) == progressLines {
+			continue
+		}
+		if values := dailySeries(historyOf(results), it.Series, now, progressDays); hasValues(values) {
+			lines = append(lines, Series{Values: scaled(values, percentScale), Class: dataClass(len(lines)), Label: it.Label})
+		}
+	}
+	if len(lines) > 0 {
+		g := LineGraph(lines...)
+		g.Goal, g.HasGoal, g.GoalDanger, g.Ticks = percentScale, true, true, spanTicks(now, progressDays)
+		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.progress.history"), Meta: "%", Data: g})
+	}
 	return DetailView{Body: body}
 }
+
+// progressDays is the span of the budget lines, at most progressLines.
+const (
+	progressDays  = 60
+	progressLines = 6 // Kante has six data colours
+)
 
 // tableCell formats a table tile's value as its column says.
 func tableCell(format string, v any) Cell {
@@ -214,14 +242,16 @@ func tableDetail(cfg TableConfig, results map[string]any, ctx ViewCtx) DetailVie
 		}
 	}
 	var cells [][]Cell
+	var keys []string
 	list := &ObjList{Label: textArgs("detail.table.rows", "n", len(rows))}
-	for _, r := range rows {
+	for n, r := range rows {
 		line := make([]Cell, len(cols))
 		for i, c := range cols {
 			line[i] = tableCell(c.Format, r.Values[i])
 		}
 		cells = append(cells, line)
-		item := LitRow{Name: line[0].Value, State: "info"}
+		keys = append(keys, strconv.Itoa(n))
+		item := LitRow{Name: line[0].Value, State: "info", Item: keys[n]}
 		if len(num) > 0 {
 			item.Meta = line[num[len(num)-1]].Value
 		}
@@ -235,11 +265,13 @@ func tableDetail(cfg TableConfig, results map[string]any, ctx ViewCtx) DetailVie
 	}
 	body := &DetailBody{}
 	if len(cells) > 0 {
-		list.Title = cells[0][0].Value
+		// A clicked row shows all its columns.
+		list.Sel = pickIndex(results, keys)
+		list.Title = cells[list.Sel][0].Value
 		body.List = list
 		var facts [][]Cell
 		for i := range cols {
-			facts = append(facts, []Cell{{Value: Txt("col." + cols[i].Label)}, cells[0][i]})
+			facts = append(facts, []Cell{{Value: Txt("col." + cols[i].Label)}, cells[list.Sel][i]})
 		}
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Data: Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: facts}})
 	}
@@ -278,8 +310,34 @@ func trendDetail(cfg TrendConfig, results map[string]any, _ ViewCtx) DetailView 
 	if cfg.Target > 0 {
 		body.Line = append(body.Line, Fact{Label: T("detail.kpi.target"), Value: format(cfg.Target)})
 	}
+
+	// The biggest jumps, explained by the invoices and payments of their days.
+	if ninja, ok := results[peerNinja].(*sources.NinjaDataset); ok {
+		var days []string
+		for _, i := range metrics.Jumps(values, trendJumps) {
+			days = append(days, fmt.Sprint(points[i][0]))
+		}
+		var rows [][]Cell
+		for _, m := range metrics.NinjaMoves(ninja, days) {
+			what := any(m.What)
+			if m.What == "" {
+				what = Txt("detail.series.payment")
+			}
+			rows = append(rows, []Cell{{Value: DayS(m.Day)}, {Value: what}, {Value: m.Client}, {Value: Money(m.Amount, ninja.Currency), State: stateIf(m.Amount < 0, "ok")}})
+		}
+		if len(rows) > 0 {
+			body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.series.moves"),
+				Data: Table{Head: []Text{T("detail.series.day"), T("detail.series.what"), T("detail.series.client"), T("detail.series.amount")}, Rows: rows, Num: []int{3}}})
+		}
+	}
 	return DetailView{Body: body}
 }
+
+// jsonSparkDays is the span of a JSON field's line.
+const jsonSparkDays = 30
+
+// trendJumps is how many jumps the trend dialog explains.
+const trendJumps = 3
 
 // levelTier maps a threshold level to a card tier.
 func levelTier(level string) string {
@@ -289,6 +347,7 @@ func levelTier(level string) string {
 // jsonAPIDetail (wall): the key figures as cards, the list under them.
 func jsonAPIDetail(cfg JSONAPIConfig, data *sources.JSONAPIDataset, ctx ViewCtx, results map[string]any) DetailView {
 	fields, _ := jsonAPIView(cfg, data, ctx)["Fields"].([]JSONFieldView)
+	now := time.Now()
 	var cards []Card
 	for _, f := range fields {
 		card := Card{Label: Plain(f.Label), Value: f.Text, Tier: levelTier(f.Level), Sub: f.Path}
@@ -297,6 +356,11 @@ func jsonAPIDetail(cfg JSONAPIConfig, data *sources.JSONAPIDataset, ctx ViewCtx,
 			card.Value, card.Tier = "–", "red"
 		case f.Numeric:
 			card.Value = NumU(f.Value, 2, f.Unit)
+
+			// The field's last month, recorded daily.
+			if past := dailySeries(historyOf(results), metrics.JSONFieldKey(data.Host, f.Label), now, jsonSparkDays); hasValues(past) {
+				card.Spark = filled(past)
+			}
 		}
 		cards = append(cards, card)
 	}
@@ -352,8 +416,24 @@ func customAPIDetail(cfg CustomAPIConfig, results map[string]any, ctx ViewCtx) D
 		Tabs: []Tab{{Label: T("detail.api.values"), Count: len(values), Blocks: []Block{{Kind: BlockWall, Data: cards},
 			{Kind: BlockTable, Data: Table{Head: []Text{T("detail.api.field"), T("detail.api.path"), T("detail.api.value")}, Rows: rows}}}},
 			{Label: T("detail.api.answer"), Blocks: []Block{{Kind: BlockCode, Data: text}}}}}
+
+	// Every value of the answer not shown yet, to add as a field by click.
+	var add []Task
+	for _, path := range scalarPaths(data.Body, "", apiPathsShown, nil) {
+		if slices.ContainsFunc(cfg.Fields, func(f APIField) bool { return f.Path == path }) {
+			continue
+		}
+		v, _ := jsonPath(data.Body, path)
+		add = append(add, Task{Text: path, Meta: textOf(v), State: "info", Action: T("detail.api.add"), Do: "add_field", Args: map[string]string{"path": path}})
+	}
+	if len(add) > 0 {
+		body.Tabs = append(body.Tabs, Tab{Label: T("detail.api.paths"), Count: len(add), Blocks: []Block{{Kind: BlockTasks, Data: Tasks{Items: add}}}})
+	}
 	return DetailView{Body: body}
 }
+
+// apiPathsShown caps the paths offered as new fields.
+const apiPathsShown = 40
 
 // issueMarks are the rule limits an issue table marks: waiting this many
 // days (warn), and due within dueWarn days (warn) or past (bad). A table
@@ -423,12 +503,53 @@ func giteaDetail(cfg PickConfig, data *sources.GiteaDataset, ctx ViewCtx, result
 	if len(failed) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockRows, Label: T("detail.git.failed_runs"), Data: failed})
 	}
+	if act, ok := results[openName].(*sources.GiteaActivity); ok {
+		body.Blocks = append(body.Blocks, giteaActivity(act)...)
+	}
 	if len(body.Blocks) == 0 {
 		body.Blocks = []Block{{Kind: BlockText, Data: Txt("detail.git.calm")}}
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}, Body: body}
 }
+
+// giteaActivity: commits per week of the active repos as small columns,
+// the push mirrors with their last sync (late after mirrorLate).
+func giteaActivity(act *sources.GiteaActivity) []Block {
+	var out []Block
+	var cards []Card
+	for _, name := range slices.Sorted(maps.Keys(act.Weeks)) {
+		weeks := act.Weeks[name]
+		total := 0
+		spark := make([]float64, len(weeks))
+		for i, n := range weeks {
+			spark[i], total = float64(n), total+n
+		}
+		cards = append(cards, Card{Label: Plain(name), Value: total, Spark: spark, Sub: Txt("detail.git.commits_8w")})
+	}
+	if len(cards) > 0 {
+		out = append(out, Block{Kind: BlockWall, Label: T("detail.git.activity"), Data: cards})
+	}
+	var mirrors [][]Cell
+	for _, m := range act.Mirrors {
+		state := ""
+		switch {
+		case m.Error != "":
+			state = "bad"
+		case time.Since(m.Synced) > mirrorLate:
+			state = "warn"
+		}
+		mirrors = append(mirrors, []Cell{{Value: m.Repo}, {Value: m.Remote}, {Value: agoOf(m.Synced), State: state}, {Value: cmp.Or(m.Error, "–")}})
+	}
+	if len(mirrors) > 0 {
+		out = append(out, Block{Kind: BlockTable, Label: T("detail.git.mirrors"),
+			Data: Table{Head: []Text{T("detail.git.repo"), T("detail.git.remote"), T("detail.git.synced"), T("detail.git.error")}, Rows: mirrors}})
+	}
+	return out
+}
+
+// mirrorLate: a push mirror syncs on every push and every 8 h by default.
+const mirrorLate = 24 * time.Hour
 
 // ciStates maps a GitHub run conclusion to a state.
 var ciStates = map[string]string{"success": "ok", "failure": "bad", "cancelled": "warn", "timed_out": "bad"}
@@ -449,13 +570,21 @@ func githubDetail(cfg GitHubConfig, data *sources.GitHubDataset, ctx ViewCtx, re
 		if r.Release != "" {
 			release = TxtA("detail.git.release", "name", r.Release, "day", Day(r.ReleasedAt))
 		}
-		repos = append(repos, []Cell{{Value: r.Name}, {Value: r.Issues}, {Value: r.PRs}, {Value: cmp.Or(r.CI, "–"), State: ciStates[r.CI]}, {Value: release}})
+		ci := Cell{Value: cmp.Or(r.CI, "–"), State: ciStates[r.CI], Href: r.CIURL}
+		if r.CIStep != "" {
+			ci.Value = r.CIStep
+		}
+		pushed := any("–")
+		if !r.PushedAt.IsZero() {
+			pushed = agoOf(r.PushedAt)
+		}
+		repos = append(repos, []Cell{{Value: r.Name}, {Value: r.Issues}, {Value: r.PRs}, ci, {Value: pushed}, {Value: release}})
 	}
 	body := &DetailBody{
 		Side: []Fact{{Label: T("detail.git.repos"), Value: len(shown.Repos)}, {Label: T("detail.git.notifications"), Value: shown.Notifications}},
 		Facts: []Kpi{{Value: red, Label: T("detail.git.ci_red"), Tier: tierIf(red > 0, "red", "")}, {Value: len(shown.Reviews), Label: T("detail.git.reviews"), Tier: tierIf(len(shown.Reviews) > 0, "yellow", "")},
 			{Value: len(shown.MyPRs), Label: T("detail.git.mine")}},
-		Blocks: []Block{{Kind: BlockTable, Label: T("detail.git.repos"), Data: Table{Head: []Text{T("detail.git.repo"), T("detail.git.issues"), T("detail.git.prs"), T("detail.git.ci"), T("detail.git.latest")},
+		Blocks: []Block{{Kind: BlockTable, Label: T("detail.git.repos"), Data: Table{Head: []Text{T("detail.git.repo"), T("detail.git.issues"), T("detail.git.prs"), T("detail.git.ci"), T("detail.git.pushed"), T("detail.git.latest")},
 			Rows: repos, Num: []int{1, 2}}}},
 	}
 	if len(shown.Reviews) > 0 {

@@ -43,6 +43,9 @@ type Tile[C any] struct {
 	Queries    func(cfg C) []Query
 	View       func(cfg C, results map[string]any, ctx ViewCtx) map[string]any
 	Detail     func(cfg C, results map[string]any, ctx ViewCtx) DetailView // the detail dialog, nil = none
+	// DetailQueries are fetched only when the dialog opens (cached for the
+	// source's TTL); their results join the dialog's.
+	DetailQueries func(cfg C) []Query
 }
 
 // add registers the tile.
@@ -67,6 +70,9 @@ func (t Tile[C]) add() {
 		kind.View = func(cfg any, results map[string]any, ctx ViewCtx) map[string]any {
 			return t.View(configOf[C](cfg), results, ctx)
 		}
+	}
+	if t.DetailQueries != nil {
+		kind.DetailQueries = func(cfg any) []Query { return t.DetailQueries(configOf[C](cfg)) }
 	}
 	if t.Detail != nil {
 		kind.Detail = func(cfg any, results map[string]any, ctx ViewCtx) DetailView {

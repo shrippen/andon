@@ -89,11 +89,11 @@ func Backups(borg *sources.BorgDataset, pg *sources.PGBackDataset, nas *sources.
 // Stored once a day (the last run wins), the marks give the item's history
 // even though the tools report only the newest backup.
 func init() {
-	RecordScope(func(datasets map[string]any, now time.Time, r *Readings) {
+	RecordScope(func(s Scope, now time.Time, r *Readings) {
 		var borg *sources.BorgDataset
 		var pg *sources.PGBackDataset
 		var nas *sources.TrueNASDataset
-		for _, raw := range datasets {
+		for _, raw := range s.Datasets {
 			switch d := raw.(type) {
 			case *sources.BorgDataset:
 				borg = d

@@ -37,6 +37,7 @@ type VaultUser struct {
 	Email              string
 	TwoFactor, Enabled bool
 	LastActive         time.Time
+	Orgs               []string // organizations the account belongs to
 }
 
 type VaultwardenDataset struct {
@@ -63,8 +64,14 @@ func fetchVaultwarden(ctx context.Context, sctx Ctx) (any, error) {
 	data := &VaultwardenDataset{URL: sctx.URL, Version: api.Version(ctx)}
 	for _, raw := range asList(users) {
 		u := asMap(raw)
-		data.Users = append(data.Users, VaultUser{Email: asStr(u["email"]), TwoFactor: asBool(u["twoFactorEnabled"]),
-			Enabled: asBool(u["userEnabled"]), LastActive: vaultTime(u["lastActive"])})
+		user := VaultUser{Email: asStr(u["email"]), TwoFactor: asBool(u["twoFactorEnabled"]),
+			Enabled: asBool(u["userEnabled"]), LastActive: vaultTime(u["lastActive"])}
+		for _, o := range asList(u["organizations"]) {
+			if name := asStr(asMap(o)["name"]); name != "" {
+				user.Orgs = append(user.Orgs, name)
+			}
+		}
+		data.Users = append(data.Users, user)
 	}
 	return data, nil
 }
@@ -86,6 +93,70 @@ type SpeedtestDataset struct {
 	Jitter               float64 // ms, 0 = unknown
 	At                   time.Time
 	ExpectDown, ExpectUp float64 // from the options, 0 = none
+}
+
+// SpeedResult is one measurement.
+type SpeedResult struct {
+	At             time.Time
+	Down, Up, Ping float64 // Mbit/s, ms
+}
+
+// SpeedResults are the measurements of the last weeks, oldest first:
+// what the dialogs need for the provider and the time of day.
+type SpeedResults struct{ List []SpeedResult }
+
+var SpeedResultsSource = source{key: "speedtest.results", ttl: detailTTL, service: enums.ServiceSpeedtest, fetch: fetchSpeedResults}
+
+// speedResultsMax is how many measurements the dialog reads (four a day
+// for a month and some).
+const speedResultsMax = 150
+
+func fetchSpeedResults(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return DemoSpeedResults(time.Now().UTC()), nil
+	}
+	// Only the v1 API with a token lists results.
+	if sctx.Secret == "" || asStr(sctx.Options["kind"]) == speedMySpeed {
+		return &SpeedResults{}, nil
+	}
+	api := services.BearerApi(sctx.URL, sctx.Secret, sctx.TLS())
+	body, err := api.Get(ctx, "api/v1/results", url.Values{"sort": {"-created_at"}, "page[size]": {strconv.Itoa(speedResultsMax)}})
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	return parseSpeedResults(body), nil
+}
+
+// parseSpeedResults reads the v1 result list, failed runs left out.
+func parseSpeedResults(body any) *SpeedResults {
+	out := &SpeedResults{}
+	for _, raw := range asList(asMap(body)["data"]) {
+		r := asMap(raw)
+		if s := asStr(r["status"]); s != "" && s != "completed" {
+			continue
+		}
+		out.List = append(out.List, SpeedResult{At: parseTime(r["created_at"]), Down: asFloat(r["download_bits"]) / bitsPerMbit,
+			Up: asFloat(r["upload_bits"]) / bitsPerMbit, Ping: asFloat(r["ping"])})
+	}
+	sort.Slice(out.List, func(a, b int) bool { return out.List[a].At.Before(out.List[b].At) })
+	return out
+}
+
+// DemoSpeedResults are four measurements a day for a month; evenings
+// are slower.
+func DemoSpeedResults(now time.Time) *SpeedResults {
+	out := &SpeedResults{}
+	for d := 30; d > 0; d-- {
+		for _, hour := range []int{3, 9, 15, 21} {
+			at := time.Date(now.Year(), now.Month(), now.Day()-d, hour, 0, 0, 0, time.UTC)
+			down := 248 - float64((d*7)%19)
+			if hour == 21 {
+				down -= 70 + float64(d%5)*8
+			}
+			out.List = append(out.List, SpeedResult{At: at, Down: down, Up: 41, Ping: 12})
+		}
+	}
+	return out
 }
 
 var SpeedtestData = source{key: "speedtest.data", ttl: opsTTL, service: enums.ServiceSpeedtest, fetch: fetchSpeedtest}
@@ -295,6 +366,8 @@ type WeatherWarning struct {
 	Headline      string
 	Severity      string
 	Onset, Expire time.Time
+	Description   string // what is coming, in full
+	Instruction   string // what to do, "" = nothing
 }
 
 type DWDDataset struct {
@@ -324,7 +397,8 @@ func fetchDWD(ctx context.Context, sctx Ctx) (any, error) {
 		a := asMap(raw)
 		data.Warnings = append(data.Warnings, WeatherWarning{ID: asStr(a["alert_id"]), Event: firstStr(asStr(a["event_de"]), asStr(a["event_en"])),
 			Headline: firstStr(asStr(a["headline_de"]), asStr(a["headline_en"])), Severity: strings.ToLower(asStr(a["severity"])),
-			Onset: parseTime(a["onset"]), Expire: parseTime(a["expires"])})
+			Onset: parseTime(a["onset"]), Expire: parseTime(a["expires"]),
+			Description: firstStr(asStr(a["description_de"]), asStr(a["description_en"])), Instruction: firstStr(asStr(a["instruction_de"]), asStr(a["instruction_en"]))})
 	}
 	return data, nil
 }
@@ -340,8 +414,10 @@ type GitRepo struct {
 	PRs        int
 	CI         string // conclusion of the latest run on the default branch, "" = none
 	CIURL      string
+	CIStep     string // a failed run's first failed job and step: "test › go test"
 	Release    string
 	ReleasedAt time.Time
+	PushedAt   time.Time // the last push to any branch
 }
 
 type GitHubDataset struct {
@@ -410,7 +486,7 @@ func loadRepo(ctx context.Context, api services.KeyedApi, name string) (GitRepo,
 		return GitRepo{}, err
 	}
 	i := asMap(info)
-	repo := GitRepo{Name: name, PRs: len(asList(pulls))}
+	repo := GitRepo{Name: name, PRs: len(asList(pulls)), PushedAt: parseTime(i["pushed_at"])}
 	// open_issues_count includes pull requests.
 	repo.Issues = max(int(asFloat(i["open_issues_count"]))-repo.PRs, 0)
 
@@ -419,6 +495,9 @@ func loadRepo(ctx context.Context, api services.KeyedApi, name string) (GitRepo,
 		if list := asList(asMap(runs)["workflow_runs"]); len(list) > 0 {
 			run := asMap(list[0])
 			repo.CI, repo.CIURL = asStr(run["conclusion"]), asStr(run["html_url"])
+			if repo.CI == ciFailure {
+				repo.CIStep = failedStep(ctx, api, path+"/actions/runs/"+strconv.FormatInt(asInt64(run["id"]), 10)+"/jobs")
+			}
 		}
 	}
 	if release, err := api.Get(ctx, path+"/releases/latest", nil); err == nil && release != nil {
@@ -426,6 +505,31 @@ func loadRepo(ctx context.Context, api services.KeyedApi, name string) (GitRepo,
 		repo.Release, repo.ReleasedAt = asStr(r["tag_name"]), parseTime(r["published_at"])
 	}
 	return repo, nil
+}
+
+// ciFailure is GitHub's conclusion of a failed run.
+const ciFailure = "failure"
+
+// failedStep names a run's first failed job and step: "test › go test";
+// "" when the jobs cannot be read.
+func failedStep(ctx context.Context, api services.KeyedApi, jobsPath string) string {
+	jobs, err := api.Get(ctx, jobsPath, nil)
+	if err != nil {
+		return ""
+	}
+	for _, raw := range asList(asMap(jobs)["jobs"]) {
+		job := asMap(raw)
+		if asStr(job["conclusion"]) != ciFailure {
+			continue
+		}
+		for _, st := range asList(job["steps"]) {
+			if step := asMap(st); asStr(step["conclusion"]) == ciFailure {
+				return asStr(job["name"]) + " › " + asStr(step["name"])
+			}
+		}
+		return asStr(job["name"])
+	}
+	return ""
 }
 
 // ── Tibber ──
@@ -535,8 +639,8 @@ func addTemperatures(ctx context.Context, days []EnergyDay, options map[string]a
 
 func DemoVaultwarden(now time.Time) *VaultwardenDataset {
 	return &VaultwardenDataset{URL: "https://vault.demo", Version: "1.34.3", Users: []VaultUser{
-		{Email: demoWorld.Person("mara").Email, TwoFactor: true, Enabled: true, LastActive: now.AddDate(0, 0, -1)},
-		{Email: demoWorld.Person("lena").Email, Enabled: true, LastActive: now.AddDate(0, 0, -3)},
+		{Email: demoWorld.Person("mara").Email, TwoFactor: true, Enabled: true, LastActive: now.AddDate(0, 0, -1), Orgs: []string{demoWorld.Studio.Name}},
+		{Email: demoWorld.Person("lena").Email, Enabled: true, LastActive: now.AddDate(0, 0, -3), Orgs: []string{demoWorld.Studio.Name}},
 	}}
 }
 
@@ -557,8 +661,8 @@ func DemoDWD(now time.Time) *DWDDataset {
 
 func DemoGitHub(now time.Time) *GitHubDataset {
 	return &GitHubDataset{URL: "https://api.github.com", Notifications: 4, Repos: []GitRepo{
-		{Name: "studio/website", Issues: 3, PRs: 1, CI: "success", Release: "v0.12.0", ReleasedAt: now.AddDate(0, 0, -6)},
-		{Name: "studio/showreel", Issues: 0, PRs: 0, CI: "failure"},
+		{Name: "studio/website", Issues: 3, PRs: 1, CI: "success", Release: "v0.12.0", ReleasedAt: now.AddDate(0, 0, -6), PushedAt: now.AddDate(0, 0, -1)},
+		{Name: "studio/showreel", Issues: 0, PRs: 0, CI: "failure", CIStep: "test › go test", PushedAt: now.Add(-3 * time.Hour)},
 	},
 		Reviews: []Issue{{Repo: "studio/website", Title: "Kontaktformular prüfen", URL: "https://github.com/studio/website/pull/42",
 			Number: 42, Pull: true, Updated: now.AddDate(0, 0, -3)}},
@@ -591,6 +695,7 @@ func init() {
 	Register(VaultwardenData)
 	Register(testOf{VaultwardenData, func(d any) map[string]any { return map[string]any{"version": d.(*VaultwardenDataset).Version} }})
 	Register(SpeedtestData)
+	Register(SpeedResultsSource)
 	Register(testOf{SpeedtestData, func(d any) map[string]any { return map[string]any{"down": d.(*SpeedtestDataset).Down} }})
 	Register(GrocyData)
 	Register(testOf{GrocyData, func(d any) map[string]any { return map[string]any{"missing": len(d.(*GrocyDataset).Missing)} }})

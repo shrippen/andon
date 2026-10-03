@@ -4,6 +4,9 @@ package widgets
 // Jellyfin/Plex, SABnzbd, feeds and pictures.
 
 import (
+	"cmp"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -44,6 +47,19 @@ func arrDetail(cfg ArrConfig, data *sources.ArrDataset, _ ViewCtx, results map[s
 	if len(events) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTimeline, Label: T("detail.arr.upcoming"), Data: events})
 	}
+
+	// Posters of the next items (fetched on open).
+	if posters, ok := results[openName].(*sources.ArrPosters); ok {
+		var pics []Image
+		for _, it := range data.Upcoming {
+			if uri := posters.ByTitle[it.Title]; uri != "" {
+				pics = append(pics, Image{DataURI: uri, Alt: it.Title, Caption: it.Title})
+			}
+		}
+		if len(pics) > 0 {
+			body.Blocks = append(body.Blocks, Block{Kind: BlockThumbs, Label: T("detail.arr.posters"), Data: pics})
+		}
+	}
 	pair := []Block{}
 	if len(health) > 0 {
 		pair = append(pair, Block{Kind: BlockRows, Label: T("detail.arr.health"), Data: health})
@@ -58,6 +74,33 @@ func arrDetail(cfg ArrConfig, data *sources.ArrDataset, _ ViewCtx, results map[s
 		head.State, head.StateKey = "warn", "detail.arr.warnings"
 	}
 	return DetailView{Head: head, Body: body}
+}
+
+// playBlocks: plays per day over the last month, the most played titles.
+func playBlocks(p *sources.MediaPlays) []Block {
+	now := time.Now()
+	days := make([]float64, sources.PlayDays)
+	total := 0
+	for i := range days {
+		n := p.Daily[now.AddDate(0, 0, i-sources.PlayDays+1).Format(time.DateOnly)]
+		days[i], total = float64(n), total+n
+	}
+	if total == 0 {
+		return nil
+	}
+	g := ColGraph(days, "s1")
+	g.Ticks = spanTicks(now, sources.PlayDays)
+	out := []Block{{Kind: BlockGraph, Label: T("detail.media.plays"), Meta: total, Data: g}}
+	titles := slices.Collect(maps.Keys(p.Titles))
+	slices.SortFunc(titles, func(a, b string) int { return cmp.Or(cmp.Compare(p.Titles[b], p.Titles[a]), cmp.Compare(a, b)) })
+	var bars []ShareBar
+	for _, t := range firstN(titles, mediaListLimit) {
+		bars = append(bars, ShareBar{Name: t, Pct: float64(p.Titles[t]) * percentScale / float64(p.Titles[titles[0]]), Value: p.Titles[t]})
+	}
+	if len(bars) > 0 {
+		out = append(out, Block{Kind: BlockBars, Label: T("detail.media.top"), Data: bars})
+	}
+	return out
 }
 
 // arrInDays labels the upcoming count with its span.
@@ -94,6 +137,13 @@ func freshrssDetail(cfg FreshRSSConfig, data *sources.FreshRSSDataset, ctx ViewC
 		Blocks: []Block{{Kind: BlockBars, Label: T("detail.rss.by_category"), Data: bars},
 			{Kind: BlockTable, Label: T("detail.rss.list"), Data: Table{Head: []Text{T("detail.rss.feed"), T("detail.rss.category"), T("detail.rss.unread"), T("detail.rss.newest")}, Rows: firstN(rows, mediaListLimit), Num: []int{2}}}},
 	}
+	// Unread per day: does the pile grow?
+	now := time.Now()
+	if unread := dailySeries(historyOf(results), metrics.SampleKey("freshrss", "unread"), now, historyDetailDays); hasValues(unread) {
+		g := LineGraph(Series{Values: unread, Class: "s1"})
+		g.Ticks = spanTicks(now, historyDetailDays)
+		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.rss.unread_days"), Data: g})
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}, Body: body}
 }
@@ -125,6 +175,13 @@ func linkwardenDetail(cfg LinkwardenConfig, data *sources.LinkwardenDataset, _ V
 		Blocks: []Block{{Kind: BlockBars, Label: T("detail.linkwarden.by_collection"), Data: bars},
 			{Kind: BlockTable, Label: T("detail.linkwarden.newest"), Data: Table{Head: []Text{T("detail.linkwarden.saved"), T("detail.linkwarden.name"), T("detail.linkwarden.collection")}, Rows: rows}}},
 	}
+	if pre, ok := results[openName].(*sources.LinkwardenPreviews); ok && len(pre.List) > 0 {
+		var pics []Image
+		for _, t := range pre.List {
+			pics = append(pics, Image{DataURI: t.DataURI, Alt: t.Title, Caption: t.Title})
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockThumbs, Label: T("detail.linkwarden.previews"), Data: pics})
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}, Body: body}
 }
@@ -154,6 +211,9 @@ func mediaDetail(cfg MediaConfig, results map[string]any, _ ViewCtx) DetailView 
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.media.now"), Data: Table{Head: []Text{T("detail.media.user"), T("detail.media.title")}, Rows: streams}})
 	} else {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.media.idle")})
+	}
+	if plays, ok := results[openName].(*sources.MediaPlays); ok {
+		body.Blocks = append(body.Blocks, playBlocks(plays)...)
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	head := DetailHead{State: "ok", StateKey: "detail.immich.current", Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}
@@ -186,6 +246,19 @@ func sabDetail(cfg SabConfig, data *sources.SabnzbdDataset, _ ViewCtx, results m
 	if len(failed) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTimeline, Label: T("detail.sab.failures"), Data: failed})
 	}
+	// Loaded per day over four weeks (server_stats, fetched on open).
+	if st, ok := results[openName].(*sources.SabStats); ok {
+		now := time.Now()
+		days := make([]float64, sabDays)
+		for i := range days {
+			days[i] = st.Daily[now.AddDate(0, 0, i-sabDays+1).Format(time.DateOnly)] / bytesPerGB
+		}
+		g := ColGraph(days, "s1")
+		g.Ticks = spanTicks(now, sabDays)
+		body.Line = append(body.Line, Fact{Label: T("detail.sab.month"), Value: NumU(st.Month/bytesPerGB, 0, "GB")},
+			Fact{Label: T("detail.sab.total"), Value: NumU(st.Total/bytesPerTB, 1, "TB")})
+		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.sab.volume"), Meta: NumU(st.Week/bytesPerGB, 0, "GB"), Data: g})
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	head := DetailHead{State: "ok", StateKey: "detail.sab.loading", Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}
 	if data.Paused {
@@ -194,7 +267,10 @@ func sabDetail(cfg SabConfig, data *sources.SabnzbdDataset, _ ViewCtx, results m
 	return DetailView{Head: head, Body: body}
 }
 
-const kbPerMB = 1024
+const (
+	kbPerMB = 1024
+	sabDays = 28
+)
 
 // rssDetail (large view): the newest entry to read, the others aside.
 func rssDetail(cfg RssConfig, results map[string]any, _ ViewCtx) DetailView {
@@ -208,6 +284,11 @@ func rssDetail(cfg RssConfig, results map[string]any, _ ViewCtx) DetailView {
 		if p = strings.TrimSpace(p); p != "" {
 			read.Text = append(read.Text, p)
 		}
+	}
+
+	// The page's full text, read on open, replaces the feed's summary.
+	if full, ok := results[openName].(*sources.Article); ok && full.Link == first.Link && len(full.Paragraphs) > 0 {
+		read.Text = full.Paragraphs
 	}
 	body := &DetailBody{End: []Fact{{Label: T("detail.rss.feed"), Value: feed.Title}, {Label: T("detail.rss.published"), Value: dayOrDash(isoDayOf(first.Published))}}}
 	if first.Image != "" {
@@ -235,9 +316,20 @@ func pictureDetail(cfg PictureConfig, results map[string]any, _ ViewCtx) DetailV
 	if p.Text != "" {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockRead, Data: Reading{Text: []string{p.Text}, Link: p.Link}})
 	}
+	// APOD: the days before, as a strip (fetched on open).
+	if past, ok := results[openName].(*sources.PictureList); ok && len(past.Items) > 0 {
+		var thumbs []Image
+		for _, x := range past.Items {
+			thumbs = append(thumbs, Image{DataURI: x.DataURI, Alt: x.Title, Caption: x.Day + " · " + x.Title})
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockThumbs, Label: T("detail.picture.archive"), Data: thumbs})
+	}
 	head := DetailHead{}
 	if p.Link != "" {
 		head.Actions = []DetailAction{{LabelKey: "detail.picture.original", Href: p.Link, Primary: true}}
+	}
+	if p.Explain != "" {
+		head.Actions = append(head.Actions, DetailAction{LabelKey: "detail.picture.explain", Href: p.Explain})
 	}
 	return DetailView{Head: head, Body: body}
 }

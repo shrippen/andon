@@ -10,7 +10,9 @@ package metrics
 // Recorders: see record.go.
 
 import (
+	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -84,6 +86,38 @@ func Trend(points []Point, min int) (slopePerDay, last float64, ok bool) {
 	return (n*sxy - sx*sy) / den, points[len(points)-1].Value, true
 }
 
+// SlopeError is the standard error of Trend's slope: how far the daily
+// pace may be off given how the points scatter around the line. ok is
+// false with fewer than three points.
+func SlopeError(points []Point) (float64, bool) {
+	n := float64(len(points))
+	if len(points) < 3 {
+		return 0, false
+	}
+	origin := points[0].Day
+	xs := make([]float64, len(points))
+	var sx, sy float64
+	for i, p := range points {
+		xs[i] = p.Day.Sub(origin).Hours() / hoursPerDay
+		sx, sy = sx+xs[i], sy+p.Value
+	}
+	mx, my := sx/n, sy/n
+	var sxx, sxy float64
+	for i, p := range points {
+		sxx, sxy = sxx+(xs[i]-mx)*(xs[i]-mx), sxy+(xs[i]-mx)*(p.Value-my)
+	}
+	if sxx == 0 {
+		return 0, false
+	}
+	slope := sxy / sxx
+	var rss float64
+	for i, p := range points {
+		r := p.Value - (my + slope*(xs[i]-mx))
+		rss += r * r
+	}
+	return math.Sqrt(rss / (n - 2) / sxx), true
+}
+
 // Typical is the mean or median of the points within [from, to), and
 // how many there were.
 func Typical(points []Point, from, to time.Time, center Center) (float64, int) {
@@ -139,10 +173,43 @@ func init() {
 			}
 		}
 	})
+	Record(func(d *sources.ScrutinyDataset, _ time.Time, r *Readings) {
+		for _, disk := range d.Disks {
+			if disk.Temp > 0 {
+				r.Set(key("scrutiny", "temp", disk.Name), disk.Temp)
+			}
+		}
+	})
 	Record(func(d *sources.BorgDataset, _ time.Time, r *Readings) {
 		if d.TotalBytes > 0 {
 			r.Set(key("borg", "used"), d.UsedBytes/d.TotalBytes)
 		}
+		// A client's repository that jumps or stops growing shows a
+		// backup that took far more, or nothing at all.
+		for _, c := range d.Clients {
+			if c.RepoBytes > 0 {
+				r.Set(key("borg", "size", c.Name), c.RepoBytes)
+			}
+		}
+	})
+	// Tibber reports a day's consumption the day after.
+	Record(func(d *sources.TibberDataset, _ time.Time, r *Readings) {
+		for _, day := range d.Days {
+			r.SetOn(day.Day, EnergyKWhKey, day.KWh)
+		}
+	})
+	Record(func(d *sources.JSONAPIDataset, _ time.Time, r *Readings) {
+		for _, f := range d.Fields {
+			if f.Found && f.Numeric {
+				r.Set(JSONFieldKey(d.Host, f.Label), f.Value)
+			}
+		}
+	})
+	Record(func(d *sources.TandoorDataset, _ time.Time, r *Readings) {
+		r.Set(key("tandoor", "open"), float64(len(d.Items)))
+	})
+	Record(func(d *sources.FreshRSSDataset, _ time.Time, r *Readings) {
+		r.Set(key("freshrss", "unread"), float64(d.Unread))
 	})
 	Record(func(d *sources.ImmichDataset, _ time.Time, r *Readings) {
 		r.Set(key("immich", "items"), float64(d.Photos+d.Videos))
@@ -154,6 +221,15 @@ func init() {
 	Record(func(d *sources.NextcloudDataset, _ time.Time, r *Readings) {
 		r.Set(key("nextcloud", "files"), float64(d.Files))
 		r.Version("Nextcloud", d.Version)
+	})
+	// A certificate's end as a day number: when it jumps forward, it was
+	// renewed.
+	Record(func(d *sources.CertDataset, _ time.Time, r *Readings) {
+		for _, c := range d.Certs {
+			if !c.NotAfter.IsZero() {
+				r.Set(key("certs", "until", c.Host), float64(c.NotAfter.Unix()/secondsPerDay))
+			}
+		}
 	})
 	Record(func(d *sources.SpeedtestDataset, _ time.Time, r *Readings) {
 		if !d.At.IsZero() {
@@ -189,6 +265,25 @@ func init() {
 		r.Version("authentik", d.Version)
 	})
 	Record(func(d *sources.MediaServerDataset, _ time.Time, r *Readings) { r.Version(d.Kind, d.Version) })
+	// A subscription's price: a change (an increase) is on the timeline.
+	Record(func(d *sources.WallosDataset, _ time.Time, r *Readings) {
+		for _, s := range d.Subs {
+			if !s.Inactive && s.Price > 0 {
+				r.State(SubscriptionSubject(s.Name), strconv.FormatFloat(s.Price, 'f', 2, 64)+" "+d.Currency)
+			}
+		}
+	})
+	// Kintsugi's share of suggestions taken up, once decided.
+	Record(func(d *sources.KintsugiDataset, _ time.Time, r *Readings) {
+		if d.Rate >= 0 {
+			r.Set(key("kintsugi", "rate"), float64(d.Rate))
+		}
+	})
+	// The tunnel's state and exit: a drop or a new exit is on the timeline.
+	Record(func(d *sources.GluetunDataset, _ time.Time, r *Readings) {
+		r.State(SubjectVPN, d.Status)
+		r.State(SubjectVPNExit, strings.TrimSpace(d.ExitIP+" "+d.Country))
+	})
 	Record(func(d *sources.ArrDataset, _ time.Time, r *Readings) { r.Version(d.App, d.Version) })
 	Record(func(d *sources.GatewayDataset, _ time.Time, r *Readings) { r.Version(d.Kind, d.Version) })
 	Record(func(d *sources.VaultwardenDataset, _ time.Time, r *Readings) { r.Version("Vaultwarden", d.Version) })
@@ -220,4 +315,85 @@ func VersionEvent(subject, old, now string, at time.Time) (Event, bool) {
 		return Event{At: at, Kind: EventUpdate, Subject: strings.TrimPrefix(subject, stackPrefix), Detail: strings.TrimPrefix(old, pendingPrefix)}, true
 	}
 	return Event{At: at, Kind: EventUpdate, Subject: subject, Detail: old + " → " + now}, true
+}
+
+// secondsPerDay turns Unix times into day numbers.
+const secondsPerDay = 24 * 60 * 60
+
+// LastRenewal is the day a certificate's stored end last moved forward;
+// zero when the history never saw it change.
+func LastRenewal(h *History, host string) time.Time {
+	points := h.SeriesOf(key("certs", "until", host))
+	var last time.Time
+	for i := 1; i < len(points); i++ {
+		if points[i].Value > points[i-1].Value {
+			last = points[i].Day
+		}
+	}
+	return last
+}
+
+// subscriptionPrefix marks a subscription's price among the changes.
+const subscriptionPrefix = "Abo "
+
+// SubscriptionSubject is the change subject of a subscription's price.
+func SubscriptionSubject(name string) string { return subscriptionPrefix + name }
+
+// MonthSums adds a daily series up per month: the n months up to now's,
+// oldest first; a month without a value is NaN.
+//
+//	MonthSums(h, EnergyKWhKey, 2026-10-03, 2) → [Sep total, Oct so far]
+func MonthSums(h *History, key string, now time.Time, n int) []float64 {
+	first := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1-n, 0)
+	out := make([]float64, n)
+	seen := make([]bool, n)
+	for _, p := range h.SeriesOf(key) {
+		i := (p.Day.Year()-first.Year())*monthsPerYear + int(p.Day.Month()-first.Month())
+		if i < 0 || i >= n {
+			continue
+		}
+		out[i] += p.Value
+		seen[i] = true
+	}
+	for i := range out {
+		if !seen[i] {
+			out[i] = math.NaN()
+		}
+	}
+	return out
+}
+
+// JSONFieldKey is the series of a numeric field of an own JSON API.
+func JSONFieldKey(host, label string) string { return key("jsonapi", host, label) }
+
+// EnergyKWhKey is the daily power consumption series (Tibber).
+var EnergyKWhKey = key("tibber", "kwh")
+
+// LinkClicksKey is the series of a link tile's openings (services/clicks).
+func LinkClicksKey(widgetID int64) string {
+	return key("link", "clicks", strconv.FormatInt(widgetID, 10))
+}
+
+// LightKey counts the runs whose worst open hint had this level.
+func LightKey(severity int) string { return key("light", "top", strconv.Itoa(severity)) }
+
+// LightDays is, for each of the last n days (oldest first), the worst
+// level the shared hints reached in any run; -1 for a day without runs.
+func LightDays(h *History, now time.Time, n int, levels []int) []int {
+	runs := dayTotals(h.SeriesOf(key("light", "runs")))
+	out := make([]int, n)
+	for i := range out {
+		day := Today(now).AddDate(0, 0, i-n+1)
+		out[i] = -1
+		if runs[day] == 0 {
+			continue
+		}
+		out[i] = 0
+		for _, level := range levels {
+			if dayTotals(h.SeriesOf(LightKey(level)))[day] > 0 {
+				out[i] = max(out[i], level)
+			}
+		}
+	}
+	return out
 }

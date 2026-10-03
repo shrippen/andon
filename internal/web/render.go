@@ -96,7 +96,7 @@ func mustParse() *template.Template {
 		"tier":        tier,
 		"pill":        pillState,
 		"eqID":        func(a *int64, b int64) bool { return a != nil && *a == b },
-		"weatherKind": weatherKind,
+		"weatherKind": widgets.WeatherKind,
 		"clockNow":    func(tz string) string { return clockNow(tz, clockMinutes) },
 		"clockNowSec": func(tz string) string { return clockNow(tz, clockSeconds) },
 		// clockShow is a clock tile's time: 12 or 24 hours, with or without seconds.
@@ -146,25 +146,6 @@ func barPct(ratio float64) int {
 	default:
 		return int(ratio*100 + 0.5)
 	}
-}
-
-// weatherThresholds maps a WMO weather code's upper bound to its icon key
-// (e.g. code 61 -> "rain"): the first threshold the code doesn't exceed.
-var weatherThresholds = []struct {
-	max  int
-	kind string
-}{
-	{0, "clear"}, {3, "cloudy"}, {48, "fog"}, {57, "drizzle"}, {67, "rain"},
-	{77, "snow"}, {82, "showers"}, {86, "snow"}, {99, "thunder"},
-}
-
-func weatherKind(code int) string {
-	for _, t := range weatherThresholds {
-		if code <= t.max {
-			return t.kind
-		}
-	}
-	return "unknown"
 }
 
 // pillStates maps the states services report (ok, warn, fail) to the

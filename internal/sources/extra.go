@@ -5,12 +5,15 @@ package sources
 // ECB exchange rates.
 
 import (
+	"cmp"
 	"context"
 	"encoding/base64"
 	"io"
+	"maps"
 	"mime"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -147,7 +150,48 @@ func ratesChange(ctx context.Context, out *RatesResult, query url.Values, today 
 	}
 }
 
+// ratesHistoryDays is the span of the rates dialog's lines.
+const ratesHistoryDays = 90
+
+// RatesHistory is the daily rate per currency over ratesHistoryDays,
+// oldest first (ECB days only: no weekends).
+type RatesHistory struct {
+	Days   []string
+	ByCode map[string][]float64
+}
+
+// RatesHistorySource reads the rates' last months when the dialog opens.
+var RatesHistorySource = source{key: "exchange_rates.history", ttl: ratesTTL, fetch: fetchRatesHistory}
+
+func fetchRatesHistory(ctx context.Context, sctx Ctx) (any, error) {
+	base := cmp.Or(strings.ToUpper(asStr(sctx.Params["base"])), defaultBase)
+	query := url.Values{"from": {base}}
+	symbols, _ := sctx.Params["symbols"].([]string)
+	if len(symbols) > 0 {
+		query.Set("to", strings.ToUpper(strings.Join(symbols[:min(len(symbols), symbolsLimit)], ",")))
+	}
+	from := time.Now().AddDate(0, 0, -ratesHistoryDays).Format(time.DateOnly)
+	body, _, err := httpclient.GetJSON(ctx, frankfurterBase+"/"+from+"..", httpclient.Options{Params: query})
+	if err != nil {
+		return nil, newSourceError("%s", err.Error())
+	}
+	return parseRatesHistory(asMap(asMap(body)["rates"])), nil
+}
+
+// parseRatesHistory turns {"2026-09-30": {"USD": 1.1}, …} into lines.
+func parseRatesHistory(rates map[string]any) *RatesHistory {
+	out := &RatesHistory{ByCode: map[string][]float64{}}
+	out.Days = slices.Sorted(maps.Keys(rates))
+	for _, day := range out.Days {
+		for code, v := range asMap(rates[day]) {
+			out.ByCode[code] = append(out.ByCode[code], asFloat(v))
+		}
+	}
+	return out
+}
+
 func init() {
+	Register(RatesHistorySource)
 	Register(ImageSource)
 	Register(RatesSource)
 }

@@ -126,6 +126,7 @@ const (
 	ServiceVaultwarden   ServiceType = "vaultwarden"
 	ServiceSpeedtest     ServiceType = "speedtest"
 	ServiceGrocy         ServiceType = "grocy"
+	ServiceTandoor       ServiceType = "tandoor"
 	ServiceDWD           ServiceType = "dwd"
 	ServiceGitHub        ServiceType = "github"
 	ServiceTibber        ServiceType = "tibber"
@@ -143,7 +144,7 @@ var Services = []ServiceType{
 	ServiceTrueNAS, ServiceKomodo, ServicePangolin, ServiceAuthentik,
 	ServicePihole, ServiceAdGuard, ServiceNextcloud, ServiceSabnzbd, ServiceGluetun, ServiceDomains, ServiceBlacklist,
 	ServiceTailscale, ServiceGateway, ServiceMediaServer, ServiceArr, ServiceVaultwarden,
-	ServiceSpeedtest, ServiceGrocy, ServiceDWD, ServiceGitHub, ServiceTibber, ServiceCalendar,
+	ServiceSpeedtest, ServiceGrocy, ServiceTandoor, ServiceDWD, ServiceGitHub, ServiceTibber, ServiceCalendar,
 	ServiceKintsugi, ServiceWallos, ServiceJSONAPI,
 }
 

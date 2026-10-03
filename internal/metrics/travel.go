@@ -5,6 +5,7 @@ package metrics
 import (
 	"math"
 	"sort"
+	"strings"
 	"time"
 
 	"andon/internal/sources"
@@ -192,3 +193,33 @@ func Trips(data *sources.DawarichDataset, mapping map[string]AreaMapping, start,
 }
 
 func round1(f float64) float64 { return math.Round(f*10) / 10 }
+
+// DawarichYear is one year's block of Dawarich's stats, nil if missing.
+func DawarichYear(stats map[string]any, year int) map[string]any {
+	list, _ := stats["yearlyStats"].([]any)
+	for _, raw := range list {
+		y, _ := raw.(map[string]any)
+		if n, _ := y["year"].(float64); int(n) == year {
+			return y
+		}
+	}
+	return nil
+}
+
+// DawarichMonthKM is one month's distance ("september" in the year's
+// monthlyDistanceKm).
+func DawarichMonthKM(stats map[string]any, day time.Time) float64 {
+	months, _ := DawarichYear(stats, day.Year())["monthlyDistanceKm"].(map[string]any)
+	km, _ := months[strings.ToLower(day.Month().String())].(float64)
+	return km
+}
+
+// The month's distance so far, once a day: the last value of a month is
+// its total, kept beyond what Dawarich's stats reach back.
+func init() {
+	Record(func(d *sources.DawarichDataset, now time.Time, r *Readings) {
+		if km := DawarichMonthKM(d.Stats, now); km > 0 {
+			r.Set(key("dawarich", "km", "month"), km)
+		}
+	})
+}

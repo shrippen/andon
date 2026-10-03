@@ -1,7 +1,6 @@
 package web
 
 import (
-	"andon/internal/services/closeticks"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -9,6 +8,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"andon/internal/services/clicks"
+	"andon/internal/services/closeticks"
 
 	"andon/internal/enums"
 	"andon/internal/services/accounts"
@@ -29,9 +31,13 @@ func (d Deps) RegisterBoardRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /boards/{id}", d.authed(d.handleBoardView))
 	mux.HandleFunc("GET /widget-fragments/{id}", d.handleWidgetFragment)
 	mux.HandleFunc("GET /details/{id}", d.handleDetail)
+	mux.HandleFunc("GET /details/{id}/csv/{n}", d.handleDetailCSV)
+	mux.HandleFunc("POST /details/{id}/do/{act}", d.authed(d.handleDetailDo))
+	mux.HandleFunc("GET /details/{id}/file", d.authed(d.handleDetailFile))
 	mux.HandleFunc("POST /widget-fragments/{id}/toggle", d.authed(d.handleHassToggle))
 	mux.HandleFunc("POST /widget-fragments/{id}/kimai", d.authed(d.handleKimaiTimer))
 	mux.HandleFunc("POST /widget-fragments/{id}/close", d.authed(d.handleCloseTick))
+	mux.HandleFunc("POST /widget-fragments/{id}/click", d.authed(d.handleLinkClick))
 	mux.HandleFunc("GET /widget-fragments/{id}/kimai/new", d.authed(d.handleKimaiNew))
 	mux.HandleFunc("GET /widget-fragments/{id}/kimai/edit", d.authed(d.handleKimaiEdit))
 	mux.HandleFunc("GET /widget-fragments/{id}/kimai/day", d.authed(d.handleKimaiDay))
@@ -634,4 +640,23 @@ func (d Deps) handleSuggestApply(w http.ResponseWriter, r *http.Request, ctx Ctx
 		return
 	}
 	http.Redirect(w, r, "/boards/"+strconv.FormatInt(id, 10)+"?edit&undo", http.StatusSeeOther)
+}
+
+// handleLinkClick counts one opening of a link tile (a beacon from
+// andon.js); nothing to answer.
+func (d Deps) handleLinkClick(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := clicks.Count(d.DB, ctx.Who, id, time.Now().UTC()); err != nil {
+		if errors.Is(err, clicks.ErrNotLink) {
+			http.Error(w, "not a link", http.StatusBadRequest)
+			return
+		}
+		d.handleBoardError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

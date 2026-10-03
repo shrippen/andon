@@ -3,6 +3,7 @@ package sources
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 
@@ -56,7 +57,7 @@ var (
 func demoKimaiCustomers() []KimaiCustomer {
 	out := make([]KimaiCustomer, len(demoCustomerIDs))
 	for i, id := range demoCustomerIDs {
-		out[i] = KimaiCustomer{int64(i + 1), demoWorld.Customer(id).Name}
+		out[i] = KimaiCustomer{ID: int64(i + 1), Name: demoWorld.Customer(id).Name}
 	}
 	return out
 }
@@ -196,6 +197,7 @@ func DemoNinja(now time.Time) *NinjaDataset {
 
 	overdue := &invoices[len(invoices)-3]
 	overdue.Status, overdue.Balance, overdue.DueDate = "sent", overdue.Amount, iso(today.AddDate(0, 0, -21))
+	overdue.Reminded, overdue.NextSend = iso(today.AddDate(0, 0, -7)), iso(today.AddDate(0, 0, 7))
 	kept := payments[:0]
 	for _, p := range payments {
 		if p.ID != overdue.ID {
@@ -339,6 +341,16 @@ func DemoGlances() *GlancesResult {
 		Disks: []GlancesDisk{{Mount: "/", Percent: 52}, {Mount: "/data", Percent: 87}}}
 }
 
+// DemoGlancesDetail is the demo host's processes, sensors and network.
+func DemoGlancesDetail() *GlancesDetail {
+	return &GlancesDetail{
+		Processes: []GProcess{{"immich-server", 18.2, 9.4}, {"postgres", 6.1, 4.8}, {"jellyfin", 4.4, 3.1}, {"node", 2.0, 2.2}},
+		Sensors:   []GSensor{{"Package id 0", "C", 54}, {"nvme0", "C", 41}, {"fan1", "R", 920}},
+		Networks:  []GNetwork{{"eth0", 1.8e6, 0.4e6}, {"tailscale0", 12e3, 9e3}},
+		Uptime:    "12 days, 4:13:08",
+	}
+}
+
 // DemoGlancesHistory is one demo metric over the last hour, a sample a minute.
 func DemoGlancesHistory(now time.Time, metric string, points int) *GlancesHistory {
 	rnd := rand.New(rand.NewSource(demoSeed))
@@ -403,7 +415,23 @@ func DemoScrutiny(now time.Time) *ScrutinyDataset {
 // DemoImmich is the demo Immich dataset.
 func DemoImmich() *ImmichDataset {
 	return &ImmichDataset{URL: "https://photos.demo", Photos: 48213, Videos: 1920, DiskPercent: 87.4,
-		DiskAvailable: "412 GiB", FailedJobs: map[string]int{"faceDetection": 3}, Version: "v1.131.0", Latest: "v1.132.3"}
+		DiskAvailable: "412 GiB", FailedJobs: map[string]int{"faceDetection": 3}, Version: "v1.131.0", Latest: "v1.132.3",
+		Users: []ImmichUser{{Name: "Mara", Photos: 30112, Videos: 1210, Bytes: 1.4e12}, {Name: "Lena", Photos: 18101, Videos: 710, Bytes: 0.9e12}}}
+}
+
+// DemoUmamiDetail is the demo sites' pages, referrers and days.
+func DemoUmamiDetail(now time.Time) *UmamiDetail {
+	days := func(base int) []Count {
+		var out []Count
+		for i := 29; i >= 0; i-- {
+			out = append(out, Count{Name: now.AddDate(0, 0, -i).Format(time.DateOnly), N: base + (i*7)%23})
+		}
+		return out
+	}
+	return &UmamiDetail{Sites: map[string]UmamiSite{
+		"1": {Pages: []Count{{"/", 820}, {"/projekte/licht-an", 412}, {"/kontakt", 160}}, Referrers: []Count{{"–", 540}, {"google.com", 210}, {"instagram.com", 64}}, Days: days(50)},
+		"2": {Pages: []Count{{"/", 120}, {"/impressum", 12}}, Referrers: []Count{{"–", 96}}, Days: days(4)},
+	}}
 }
 
 // DemoUmami is the demo Umami dataset.
@@ -446,8 +474,10 @@ func DemoBorg(now time.Time) *BorgDataset {
 	return &BorgDataset{URL: "https://borg.demo", Failed24h: 1, Completed24h: 5, UsedBytes: 3.1e12, TotalBytes: 4e12,
 		LastBackup: now.UTC().Add(-7 * time.Hour), AgentsOutdated: 1,
 		Clients: []BorgClient{
-			{Name: "nas", Status: "online", LastSeen: now.UTC().Add(-time.Minute), LastBackup: now.UTC().Add(-7 * time.Hour)},
-			{Name: "laptop", Status: "offline", LastSeen: now.UTC().AddDate(0, 0, -6), LastBackup: now.UTC().AddDate(0, 0, -6)},
+			{Name: "nas", Status: "online", LastSeen: now.UTC().Add(-time.Minute), LastBackup: now.UTC().Add(-7 * time.Hour),
+				RepoBytes: 2.4e12, LastBytes: 3.8e9, LastSeconds: 1260},
+			{Name: "laptop", Status: "offline", LastSeen: now.UTC().AddDate(0, 0, -6), LastBackup: now.UTC().AddDate(0, 0, -6),
+				RepoBytes: 0.7e12, LastBytes: 1.1e9, LastSeconds: 540},
 		}}
 }
 
@@ -463,6 +493,31 @@ func DemoHass(now time.Time) *HassDataset {
 		{ID: "switch.kaffeemaschine", Name: "Kaffeemaschine", Domain: "switch", State: "off", Changed: ago(3)},
 		{ID: "update.home_assistant_core_update", Name: "Home Assistant Core", Domain: "update", State: HassOn, Changed: ago(20)},
 	}}
+}
+
+// DemoGiteaActivity is the demo's commits per week and its GitHub mirror.
+func DemoGiteaActivity(now time.Time) *GiteaActivity {
+	return &GiteaActivity{Weeks: map[string][]int{"studio/showreel": {2, 5, 0, 3, 8, 4, 6, 9}, "studio/website": {1, 0, 0, 2, 0, 4, 1, 0}},
+		Mirrors: []PushMirror{{Repo: "studio/website", Remote: "https://github.com/studio/website.git", Synced: now.Add(-20 * time.Minute)}}}
+}
+
+// DemoHassHistory is a day of the demo entities: the living room warms
+// in the morning, the office light goes on and off.
+func DemoHassHistory(now time.Time, ids []string) *HassHistory {
+	out := &HassHistory{ByID: map[string][]HassPoint{}}
+	start := now.UTC().Add(-HassHistoryHours * time.Hour)
+	for _, id := range ids {
+		for h := range HassHistoryHours {
+			at := start.Add(time.Duration(h) * time.Hour)
+			switch id {
+			case "sensor.wohnzimmer_temperatur":
+				out.ByID[id] = append(out.ByID[id], HassPoint{At: at, State: strconv.FormatFloat(19.5+float64((at.Hour()+18)%24)/12, 'f', 1, 64)})
+			case "light.buero":
+				out.ByID[id] = append(out.ByID[id], HassPoint{At: at, State: map[bool]string{true: HassOn, false: "off"}[at.Hour() >= 8 && at.Hour() < 18]})
+			}
+		}
+	}
+	return out
 }
 
 // DemoSure is the demo Sure dataset; one income matches the open demo
@@ -544,8 +599,8 @@ func DemoMail(now time.Time) *MailDataset {
 func DemoTrueNAS() *TrueNASDataset {
 	return &TrueNASDataset{URL: "https://nas.demo", Host: "truenas", Version: "25.04.2",
 		Pools: []Pool{
-			{Name: "tank", Status: "ONLINE", Healthy: true, Size: 16e12, Allocated: 14.1e12},
-			{Name: "fast", Status: "DEGRADED", Healthy: false, Size: 2e12, Allocated: 0.6e12},
+			{Name: "tank", Status: "ONLINE", Healthy: true, Size: 16e12, Allocated: 14.1e12, ScrubEnd: time.Now().UTC().AddDate(0, 0, -12)},
+			{Name: "fast", Status: "DEGRADED", Healthy: false, Size: 2e12, Allocated: 0.6e12, ScrubEnd: time.Now().UTC().AddDate(0, 0, -41), ScrubErrors: 2},
 		},
 		Alerts: []TNAlert{{ID: "a1", Level: "WARNING", Text: "Device /dev/sdc is causing slow I/O on pool fast."}},
 		Apps:   []TNApp{{Name: "jellyfin", State: "RUNNING", Update: true}, {Name: "syncthing", State: "RUNNING"}},
@@ -554,6 +609,14 @@ func DemoTrueNAS() *TrueNASDataset {
 			{Dataset: "fast/vms", State: "ERROR", Enabled: true, Last: time.Now().UTC().Add(-26 * time.Hour)},
 		},
 	}
+}
+
+// DemoTrueNASDatasets are the demo pools' largest datasets.
+func DemoTrueNASDatasets() *TrueNASDatasets {
+	return &TrueNASDatasets{List: []TNDataset{
+		{Name: "tank/photos", Used: 6.2e12, Available: 1.9e12}, {Name: "tank/media", Used: 4.8e12, Available: 1.9e12},
+		{Name: "tank/backups", Used: 2.6e12, Available: 1.9e12}, {Name: "fast/vms", Used: 0.5e12, Available: 1.4e12},
+	}}
 }
 
 // DemoKomodo is the demo Komodo dataset.
@@ -565,6 +628,23 @@ func DemoKomodo(now time.Time) *KomodoDataset {
 			{Name: "gitea", State: "running"},
 		},
 		Alerts: []KAlert{{Level: "CRITICAL", Kind: "ServerUnreachable", Name: "pi-backup", At: now.UTC().Add(-3 * time.Hour)}},
+	}
+}
+
+// DemoKomodoDetail is the demo servers' load and the stacks' last
+// deployments.
+func DemoKomodoDetail(now time.Time) *KomodoDetail {
+	return &KomodoDetail{
+		Servers: []KServerLoad{
+			{Name: "nas", State: "ok", CPU: 23, MemUsed: 21.4, MemTotal: 32, DiskUsed: 412, DiskMax: 950},
+			{Name: "docker-host", State: "ok", CPU: 61, MemUsed: 13.8, MemTotal: 16, DiskUsed: 188, DiskMax: 480},
+			{Name: "pi-backup", State: "unhealthy"},
+		},
+		Deploys: map[string]KDeploy{
+			"immich":    {At: now.UTC().AddDate(0, 0, -6), Operation: "DeployStack", By: "mara", OK: true},
+			"paperless": {At: now.UTC().Add(-26 * time.Hour), Operation: "DeployStack", By: "lena", OK: false},
+			"gitea":     {At: now.UTC().AddDate(0, 0, -19), Operation: "DeployStack", By: "mara", OK: true},
+		},
 	}
 }
 
@@ -588,6 +668,8 @@ func DemoAuthentik(now time.Time) *AuthentikDataset {
 	ago := func(d int) time.Time { return now.UTC().AddDate(0, 0, -d) }
 	return &AuthentikDataset{URL: "https://auth.demo", Version: "2025.6.3", Latest: "2025.8.1", Outdated: true,
 		Logins7d: 214, Logins24h: 31, Failed7d: 61, Failed24h: 38,
+		Days: []AKDay{{ago(6).Format(time.DateOnly), 28, 2}, {ago(5).Format(time.DateOnly), 33, 1}, {ago(4).Format(time.DateOnly), 30, 4},
+			{ago(3).Format(time.DateOnly), 25, 3}, {ago(2).Format(time.DateOnly), 36, 6}, {ago(1).Format(time.DateOnly), 31, 7}, {ago(0).Format(time.DateOnly), 31, 38}},
 		Apps:   []AKApp{{Name: "Immich", Events: 96, Users: 4}, {Name: "Gitea", Events: 41, Users: 2}, {Name: "Andon", Events: 30, Users: 3}},
 		Users:  []AKUser{{Name: "alex", LastLogin: ago(0)}, {Name: "sam", LastLogin: ago(2)}, {Name: "kim", LastLogin: ago(240)}, {Name: "test", LastLogin: time.Time{}}},
 		Logins: []AKLogin{{User: "alex", IP: "203.0.113.7", Country: "DE", City: "Berlin", Lat: 52.52, Lon: 13.40, At: now.UTC().Add(-time.Hour)}},
@@ -601,14 +683,28 @@ func DemoPihole(now time.Time) *DNSFilterDataset {
 	return &DNSFilterDataset{URL: "https://pihole.demo", Queries: 48210, Blocked: 9120, Percent: 18.9,
 		Enabled: false, ListsUpdated: now.UTC().AddDate(0, 0, -21), Clients: 14,
 		TopClients: []DNSClient{{IP: "192.168.1.20", Name: "laptop", Queries: 9120, Blocked: 1400}, {IP: "192.168.1.87", Queries: 14200, Blocked: 8700}},
-		TopBlocked: []DNSDomain{{Domain: "telemetry.tv.example", Count: 6100}, {Domain: "ads.example.net", Count: 1900}}}
+		TopBlocked: []DNSDomain{{Domain: "telemetry.tv.example", Count: 6100}, {Domain: "ads.example.net", Count: 1900}},
+		Hourly:     demoHours(2000, 900), HourlyBlocked: demoHours(380, 160)}
+}
+
+// demoHours is a day of hourly counts: quiet at night, busy evenings.
+func demoHours(base, swing int) []int {
+	out := make([]int, 24)
+	for h := range out {
+		out[h] = base + swing*((h+6)%24)/24
+		if h < 6 {
+			out[h] = base / 4
+		}
+	}
+	return out
 }
 
 // DemoAdGuard is the demo AdGuard Home dataset.
 func DemoAdGuard() *DNSFilterDataset {
 	return &DNSFilterDataset{URL: "https://adguard.demo", Queries: 30500, Blocked: 4100, Percent: 13.4, Enabled: true,
 		TopClients: []DNSClient{{IP: "192.168.1.31", Queries: 8800}, {IP: "192.168.1.12", Queries: 5100}},
-		TopBlocked: []DNSDomain{{Domain: "metrics.app.example", Count: 1300}}}
+		TopBlocked: []DNSDomain{{Domain: "metrics.app.example", Count: 1300}},
+		Hourly:     demoHours(1300, 600), HourlyBlocked: demoHours(170, 80)}
 }
 
 // DemoNextcloud is the demo Nextcloud dataset.
@@ -625,10 +721,30 @@ func DemoSabnzbd(now time.Time) *SabnzbdDataset {
 			{Name: "Photos.Backup", Percent: 0, Left: "1:20:00"}}}
 }
 
+// DemoSabStats is the demo SABnzbd volume: four weeks, quieter weekends.
+func DemoSabStats(now time.Time) *SabStats {
+	const gb = 1e9
+	out := &SabStats{Daily: map[string]float64{}, Servers: map[string]float64{"news.demo": 38 * gb, "block.demo": 6 * gb}}
+	for i := range 28 {
+		day := now.AddDate(0, 0, -i)
+		v := float64(2+i%5) * gb
+		if wd := day.Weekday(); wd == time.Saturday || wd == time.Sunday {
+			v /= 2
+		}
+		out.Daily[day.Format(time.DateOnly)] = v
+		out.Month += v
+		if i < 7 {
+			out.Week += v
+		}
+	}
+	out.Day, out.Total = out.Daily[now.Format(time.DateOnly)], out.Month*12
+	return out
+}
+
 // DemoGluetun is the demo Gluetun dataset: tunnel up, wrong country.
 func DemoGluetun() *GluetunDataset {
 	return &GluetunDataset{URL: "http://gluetun.demo:8000", Status: "running", ExitIP: "185.65.134.10", Country: "Netherlands",
-		OwnIP: "93.184.216.34", ExpectedCountry: "Sweden"}
+		OwnIP: "93.184.216.34", ExpectedCountry: "Sweden", Port: 51413}
 }
 
 // DemoDomains is the demo domain dataset.

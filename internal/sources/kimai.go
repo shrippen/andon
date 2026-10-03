@@ -75,7 +75,7 @@ func kimaiProject(raw any) KimaiProject {
 	return KimaiProject{
 		ID: asInt64(m["id"]), Name: asStr(m["name"]), CustomerID: refID(m["customer"]),
 		Budget: asFloat(m["budget"]), TimeBudgetMin: int(math.Round(asFloat(m["timeBudget"]) / secondsPerMinute)),
-		BudgetType: asStr(m["budgetType"]), End: asStr(m["end"]),
+		BudgetType: asStr(m["budgetType"]), End: asStr(m["end"]), Color: asStr(m["color"]),
 	}
 }
 
@@ -154,7 +154,7 @@ func loadKimai(ctx context.Context, api services.KimaiApi, sctx Ctx) (*KimaiData
 	customers := make([]KimaiCustomer, 0, len(asList(customersRaw)))
 	for _, c := range asList(customersRaw) {
 		cm := asMap(c)
-		customers = append(customers, KimaiCustomer{ID: asInt64(cm["id"]), Name: asStr(cm["name"])})
+		customers = append(customers, KimaiCustomer{ID: asInt64(cm["id"]), Name: asStr(cm["name"]), Color: asStr(cm["color"])})
 	}
 
 	activeRaw, err := api.Get(ctx, "timesheets/active", nil)

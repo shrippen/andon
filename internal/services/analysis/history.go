@@ -33,12 +33,17 @@ func recordHistory(d *sql.DB, sc *scope, now time.Time) (*metrics.History, error
 	owner := ownerID(sc.owner)
 	day := now.Format(time.DateOnly)
 	err := db.WithTx(d, func(tx *sql.Tx) error {
-		read := metrics.Read(sc.datasets, now)
+		read := metrics.Read(metrics.Scope{Datasets: sc.datasets, Settings: sc.settings}, now)
 		if err := data.PutSamples(tx, sc.spaceID, owner, day, read.Values); err != nil {
 			return err
 		}
 		if err := data.AddSamples(tx, sc.spaceID, owner, day, read.Counts); err != nil {
 			return err
+		}
+		for past, values := range read.Past {
+			if err := data.PutSamples(tx, sc.spaceID, owner, past, values); err != nil {
+				return err
+			}
 		}
 		known, err := data.Versions(tx, sc.spaceID, owner)
 		if err != nil {
@@ -87,5 +92,27 @@ func PruneHistory(d *sql.DB, now time.Time) error {
 func PrunePoints(d *sql.DB, now time.Time) error {
 	return db.WithTx(d, func(tx *sql.Tx) error {
 		return data.PrunePoints(tx, now.AddDate(0, 0, -widgets.MaxTrendDays).Format(time.DateOnly))
+	})
+}
+
+// recordLight counts, per run, the worst level among the space's shared
+// open hints: over a day that is how often the status light was red.
+//
+//	light.runs  288   light.top.30  12   (critical in 12 runs)
+func recordLight(d *sql.DB, spaceID int64, now time.Time) error {
+	return db.WithTx(d, func(tx *sql.Tx) error {
+		open, err := data.HintsIn(tx, []int64{spaceID}, 0)
+		if err != nil {
+			return err
+		}
+		top := 0
+		for _, h := range open {
+			top = max(top, int(h.Severity))
+		}
+		counts := map[string]float64{metrics.SampleKey("light", "runs"): 1}
+		if top > 0 {
+			counts[metrics.LightKey(top)] = 1
+		}
+		return data.AddSamples(tx, spaceID, 0, now.Format(time.DateOnly), counts)
 	})
 }

@@ -24,7 +24,7 @@ type ExposedRow struct {
 type ExposureConfig struct{ OnlyOpen bool }
 
 func init() {
-	Tile[ExposureConfig]{Key: "exposure", Detail: exposureDetail, Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServicePangolin, RefreshS: 1800,
+	Tile[ExposureConfig]{Key: "exposure", Detail: exposureDetail, DetailQueries: openQuery[ExposureConfig]("pangolin.access"), Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServicePangolin, RefreshS: 1800,
 		Fields:  []Field{{Key: "only_problems", Input: InputCheck}},
 		Renames: []rename{{from: "only_open", to: "only_problems"}},
 		Decode:  func(r Raw) ExposureConfig { return ExposureConfig{OnlyOpen: r.Bool("only_problems")} },

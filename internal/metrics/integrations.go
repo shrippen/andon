@@ -154,6 +154,22 @@ func GrocyPastDue(d *sources.GrocyDataset) []sources.Product {
 	return append(append([]sources.Product(nil), d.Expired...), d.Overdue...)
 }
 
+// NotOnList are the products Grocy misses (below minimum stock) that are
+// not on Tandoor's shopping list, matched by name ignoring case.
+func NotOnList(grocy *sources.GrocyDataset, tandoor *sources.TandoorDataset) []sources.Product {
+	listed := map[string]bool{}
+	for _, it := range tandoor.Items {
+		listed[strings.ToLower(strings.TrimSpace(it.Food))] = true
+	}
+	var out []sources.Product
+	for _, p := range grocy.Missing {
+		if !listed[strings.ToLower(strings.TrimSpace(p.Name))] {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 // GrocyLateChores are the chores due before today.
 func GrocyLateChores(d *sources.GrocyDataset, today time.Time) []sources.Chore {
 	var out []sources.Chore

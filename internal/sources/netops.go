@@ -14,6 +14,7 @@ import (
 	"context"
 	"net"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -56,6 +57,9 @@ type DNSFilterDataset struct {
 	Clients          int
 	TopClients       []DNSClient // busiest clients (Pi-hole v6, AdGuard)
 	TopBlocked       []DNSDomain // most blocked domains (Pi-hole v6, AdGuard)
+	// Hourly and HourlyBlocked count the last hours, oldest first
+	// (AdGuard, Pi-hole v6); empty when unknown.
+	Hourly, HourlyBlocked []int
 }
 
 // DNSDomain is one blocked domain and how often.
@@ -109,6 +113,9 @@ func fetchPihole(ctx context.Context, sctx Ctx) (any, error) {
 		Percent: asFloat(q["percent_blocked"]), Enabled: asStr(asMap(blocking)["blocking"]) == pihole5Enabled,
 		ListsUpdated: time.Unix(asInt64(g["last_update"]), 0).UTC(), Clients: int(asFloat(asMap(asMap(summary)["clients"])["active"]))}
 	data.TopClients = piholeClients(ctx, session)
+	if hist, err := session.Get(ctx, "history"); err == nil {
+		data.Hourly, data.HourlyBlocked = piholeHours(hist)
+	}
 	if top, err := session.Get(ctx, "stats/top_domains?blocked=true&count="+topClientCount); err == nil {
 		for _, raw := range asList(asMap(top)["domains"]) {
 			d := asMap(raw)
@@ -139,6 +146,10 @@ func fetchAdGuard(ctx context.Context, sctx Ctx) (any, error) {
 	if data.Queries > 0 {
 		data.Percent = float64(data.Blocked) / float64(data.Queries) * percentOf
 	}
+	// Per hour over a day (or per day over a longer interval: then none).
+	if asStr(s["time_units"]) != "days" {
+		data.Hourly, data.HourlyBlocked = ints(asList(s["dns_queries"])), ints(asList(s["blocked_filtering"]))
+	}
 	// top_clients: [{"192.168.1.5": 1234}, …]
 	for _, raw := range asList(s["top_clients"]) {
 		for ip, n := range asMap(raw) {
@@ -153,6 +164,34 @@ func fetchAdGuard(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	return data, nil
 }
+
+// ints reads a list of counts.
+func ints(list []any) []int {
+	out := make([]int, len(list))
+	for i, v := range list {
+		out[i] = int(asFloat(v))
+	}
+	return out
+}
+
+// piholeHours sums Pi-hole's 10-minute history into hours, oldest first.
+func piholeHours(hist any) (total, blocked []int) {
+	var hour int64 = -1
+	for _, raw := range asList(asMap(hist)["history"]) {
+		m := asMap(raw)
+		h := asInt64(m["timestamp"]) / secondsPerHour
+		if h != hour {
+			total, blocked = append(total, 0), append(blocked, 0)
+			hour = h
+		}
+		total[len(total)-1] += int(asFloat(m["total"]))
+		blocked[len(blocked)-1] += int(asFloat(m["blocked"]))
+	}
+	return total, blocked
+}
+
+// secondsPerHour buckets Unix times into hours.
+const secondsPerHour = 3600
 
 // piholeClients reads the busiest clients and their blocked counts;
 // nil when the API does not offer them.
@@ -278,6 +317,48 @@ func fetchSabnzbd(ctx context.Context, sctx Ctx) (any, error) {
 	return data, nil
 }
 
+// SabStats is what SABnzbd loaded (server_stats), in bytes.
+type SabStats struct {
+	Day, Week, Month, Total float64
+	Daily                   map[string]float64 // "2026-09-30" → bytes, all servers
+	Servers                 map[string]float64 // name → bytes this month
+}
+
+// SabnzbdStats reads the loaded volume when the dialog opens.
+var SabnzbdStats = source{key: "sabnzbd.stats", ttl: detailTTL, service: enums.ServiceSabnzbd, fetch: fetchSabStats}
+
+func fetchSabStats(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return DemoSabStats(time.Now()), nil
+	}
+	secret, err := needSecret(sctx)
+	if err != nil {
+		return nil, err
+	}
+	api := services.SabnzbdApi{URL: sctx.URL, Key: secret, Verify: sctx.VerifyTLS}
+	body, err := api.Mode(ctx, "server_stats", nil)
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	return parseSabStats(asMap(body)), nil
+}
+
+// parseSabStats sums the servers' daily volumes:
+//
+//	{"day": 1e9, …, "servers": {"news.example": {"month": 5e10, "daily": {"2026-09-30": 1e9}}}}
+func parseSabStats(m map[string]any) *SabStats {
+	out := &SabStats{Day: asFloat(m["day"]), Week: asFloat(m["week"]), Month: asFloat(m["month"]), Total: asFloat(m["total"]),
+		Daily: map[string]float64{}, Servers: map[string]float64{}}
+	for name, raw := range asMap(m["servers"]) {
+		srv := asMap(raw)
+		out.Servers[name] = asFloat(srv["month"])
+		for day, v := range asMap(srv["daily"]) {
+			out.Daily[day] += asFloat(v)
+		}
+	}
+	return out
+}
+
 // ── gluetun ──
 
 type GluetunDataset struct {
@@ -285,6 +366,7 @@ type GluetunDataset struct {
 	ExitIP, Country string
 	OwnIP           string // the dashboard's own public IP; equal to ExitIP = leak
 	ExpectedCountry string
+	Port            int // forwarded port for downloads, 0 = none or unknown
 }
 
 var GluetunData = source{key: "gluetun.data", ttl: opsTTL, service: enums.ServiceGluetun, fetch: fetchGluetun}
@@ -313,6 +395,14 @@ func fetchGluetun(ctx context.Context, sctx Ctx) (any, error) {
 		return nil, fetchError(err)
 	}
 	data.ExitIP, data.Country = asStr(asMap(ip)["public_ip"]), asStr(asMap(ip)["country"])
+
+	// Gluetun ≥ 3.40 names the forwarded port /portforward, older
+	// versions /openvpn/portforwarded.
+	if port, err := api.Get(ctx, "portforward"); err == nil {
+		data.Port = int(asFloat(asMap(port)["port"]))
+	} else if port, err := api.Get(ctx, "openvpn/portforwarded"); err == nil {
+		data.Port = int(asFloat(asMap(port)["port"]))
+	}
 
 	// Our own address, to tell a tunnel from a leak.
 	if own, _, err := httpclient.GetJSON(ctx, ownIPURL, httpclient.Options{Params: url.Values{"format": {"json"}}}); err == nil {
@@ -363,6 +453,52 @@ func fetchDomains(ctx context.Context, sctx Ctx) (any, error) {
 		data.Domains = append(data.Domains, info)
 	}
 	return data, nil
+}
+
+// HostAddrs is a host name and the addresses DNS gives for it.
+type HostAddrs struct {
+	Host  string
+	Addrs []string
+	Error string
+}
+
+// DomainsResolved are the domain connection's hosts as DNS answers now,
+// for the public-IP dialog's "does DynDNS still point here".
+type DomainsResolved struct{ Hosts []HostAddrs }
+
+var DomainsResolveSource = source{key: "domains.resolve", ttl: detailTTL, service: enums.ServiceDomains, fetch: fetchDomainsResolve}
+
+func fetchDomainsResolve(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return &DomainsResolved{Hosts: []HostAddrs{{Host: "example.de", Addrs: []string{"203.0.113.7"}}, {Host: "cloud.example.org", Addrs: []string{"198.51.100.20"}}}}, nil
+	}
+	out := &DomainsResolved{}
+	for _, host := range domainHosts(sctx) {
+		entry := HostAddrs{Host: host}
+		ips, err := httpclient.LookupIP(ctx, host)
+		if err != nil {
+			entry.Error = err.Error()
+		}
+		for _, ip := range ips {
+			entry.Addrs = append(entry.Addrs, ip.String())
+		}
+		out.Hosts = append(out.Hosts, entry)
+	}
+	return out, nil
+}
+
+// domainHosts are the connection's host names as given (no reduction).
+func domainHosts(sctx Ctx) []string {
+	var out []string
+	if u, err := url.Parse(sctx.URL); err == nil && u.Hostname() != "" {
+		out = append(out, strings.ToLower(u.Hostname()))
+	}
+	for _, d := range asList(sctx.Options["domains"]) {
+		if h := strings.ToLower(strings.TrimSpace(asStr(d))); h != "" && !slices.Contains(out, h) {
+			out = append(out, h)
+		}
+	}
+	return out
 }
 
 // registeredDomains reduces hosts to registered domains, deduplicated:
@@ -456,7 +592,9 @@ func fetchBlacklist(ctx context.Context, sctx Ctx) (any, error) {
 }
 
 func init() {
+	Register(SabnzbdStats)
 	Register(PiholeData)
+	Register(DomainsResolveSource)
 	Register(testOf{PiholeData, func(d any) map[string]any { return map[string]any{"queries": d.(*DNSFilterDataset).Queries} }})
 	Register(AdGuardData)
 	Register(testOf{AdGuardData, func(d any) map[string]any { return map[string]any{"queries": d.(*DNSFilterDataset).Queries} }})

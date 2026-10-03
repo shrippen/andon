@@ -1,8 +1,6 @@
 package widgetlib
 
 import (
-	"andon/internal/metrics"
-	"andon/internal/repos/users"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -14,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"andon/internal/metrics"
+	"andon/internal/repos/users"
 
 	"andon/internal/db"
 	"andon/internal/enums"
@@ -175,8 +176,16 @@ func peerConnection(q db.Queryer, who *access.Principal, widget *model.Widget, s
 // caching and credential resolution apply) and shapes the results via its
 // type's View function.
 func Load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, fresh svcdata.Freshness) (*Fragment, error) {
-	return load(ctx, d, who, widget, fresh, originStored)
+	return load(ctx, d, who, widget, fresh, originStored, loadTile)
 }
+
+// loadMode says whether a load also runs the type's DetailQueries.
+type loadMode int
+
+const (
+	loadTile   loadMode = iota // the tile's own queries
+	loadDetail                 // plus the dialog's, fetched when not cached
+)
 
 // origin says where a fragment's connection data comes from.
 type origin int
@@ -198,7 +207,7 @@ func demoConn(service enums.ServiceType) *model.Connection {
 	return &model.Connection{Service: string(service), URL: demoURL}
 }
 
-func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, fresh svcdata.Freshness, from origin) (*Fragment, error) {
+func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, fresh svcdata.Freshness, from origin, mode loadMode) (*Fragment, error) {
 	kind, ok := widgets.Get(widget.Type)
 	if !ok {
 		return nil, ErrUnknownType
@@ -257,7 +266,12 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		own = svcdata.Cached
 	}
 	peerOptions := map[string]map[string]any{}
-	for _, q := range kind.Queries(cfg) {
+	queries := kind.Queries(cfg)
+	openFrom := len(queries)
+	if mode == loadDetail && kind.DetailQueries != nil {
+		queries = append(queries, kind.DetailQueries(cfg)...)
+	}
+	for i, q := range queries {
 		var target *model.Connection
 		switch q.Conn {
 		case widgets.ConnWidget:
@@ -290,7 +304,12 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		if target != nil && (tileOwn || kind.Service == "") {
 			frag.hintConns = append(frag.hintConns, target.ID)
 		}
-		frag.Slots[q.Name] = runQuery(ctx, d, sourceFor(q, target), q.Params, target, who.UserID, integrationFreshness(q, target, own, fresh))
+		qFresh := integrationFreshness(q, target, own, fresh)
+		if i >= openFrom {
+			// A dialog's own data is fetched on open, then cached.
+			qFresh = svcdata.Cached
+		}
+		frag.Slots[q.Name] = runQuery(ctx, d, sourceFor(q, target), q.Params, target, who.UserID, qFresh)
 	}
 
 	serviceConn := conn
@@ -385,6 +404,9 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		items := make([]widgets.TimelineItem, len(entries))
 		for i, e := range entries {
 			items[i] = widgets.TimelineItem{At: e.At, Kind: e.Kind, Subject: e.Subject, Detail: e.Detail, HintID: e.HintID, Count: e.Count}
+			if e.Cause != nil {
+				items[i].Cause, items[i].CauseMin = strings.TrimSpace(e.Cause.Subject+" "+e.Cause.Detail), e.CauseMin
+			}
 		}
 		frag.Slots[widgets.TimelineSlot] = Slot{Data: items}
 	}
@@ -416,6 +438,11 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		if u != nil {
 			all, _ := u.Prefs[widgets.KimaiFavsPref].(map[string]any)
 			frag.Slots[widgets.KimaiFavsPref] = Slot{Data: widgets.KimaiFavsOf(all[strconv.FormatInt(conn.ID, 10)])}
+		}
+	}
+	if ip, ok := frag.Slots["ip"].Data.(*sources.PublicIPResult); ok && kind.Extra == widgets.ExtraIPWatch && ip.IP != "" && from == originStored {
+		if err := recordIP(d, widget.SpaceID, ip.IP, time.Now().UTC()); err != nil {
+			return nil, err
 		}
 	}
 	if kind.Extra == widgets.ExtraIPWatch {
@@ -462,6 +489,13 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 	if kind.View != nil {
 		frag.View = kind.View(cfg, results, viewCtx)
 	}
+	// A month seen complete for the first time is a timeline event: over
+	// the year that shows how soon after a month's end it was closed.
+	if month, _ := frag.View["MonthKey"].(string); kind.Extra == widgets.ExtraCloseTicks && frag.View["Pct"] == pctFull && month != "" && from == originStored {
+		if err := markOnce(d, widget.SpaceID, metrics.EventClose, month, time.Now().UTC()); err != nil {
+			return nil, err
+		}
+	}
 	if link, ok := cfg.(widgets.LinkConfig); ok && link.Status == widgets.StatusHTTP {
 		if up, ok := linkstatus.Bars(d, widget.ID, time.Now().UTC()); ok {
 			if frag.View == nil {
@@ -504,6 +538,43 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		frag.View[widgets.CalmSlot] = true
 	}
 	return frag, nil
+}
+
+// pctFull is a view's "all done".
+const pctFull = 100
+
+// markOnce adds an event of kind about subject the first time it is
+// seen; the versions table remembers it.
+func markOnce(d *sql.DB, spaceID int64, kind, subject string, now time.Time) error {
+	return db.WithTx(d, func(tx *sql.Tx) error {
+		key := kind + ":" + subject
+		known, err := data.Versions(tx, spaceID, 0)
+		if err != nil || known[key] != "" {
+			return err
+		}
+		if err := data.AddEvent(tx, spaceID, data.Event{At: now, Kind: kind, Subject: subject}); err != nil {
+			return err
+		}
+		return data.SetVersion(tx, spaceID, 0, key, now.Format(time.DateOnly), now)
+	})
+}
+
+// recordIP keeps the space's public IP as a state: a change is a timeline
+// event once, however many viewers see it.
+func recordIP(d *sql.DB, spaceID int64, ip string, now time.Time) error {
+	return db.WithTx(d, func(tx *sql.Tx) error {
+		key := metrics.StateKey(metrics.SubjectIP)
+		known, err := data.Versions(tx, spaceID, 0)
+		if err != nil || known[key] == ip {
+			return err
+		}
+		if e, ok := metrics.StateEvent(key, known[key], ip, now); ok {
+			if err := data.AddEvent(tx, spaceID, data.Event{At: e.At, Kind: e.Kind, Subject: e.Subject, Detail: e.Detail}); err != nil {
+				return err
+			}
+		}
+		return data.SetVersion(tx, spaceID, 0, key, ip, now)
+	})
 }
 
 // ipSeenPref is the user pref that remembers the last public IP.
@@ -686,7 +757,7 @@ func Demo(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64, 
 		return nil, err
 	}
 	w := &model.Widget{SpaceID: spaceID, Type: typeKey, Title: title, Config: config}
-	return load(ctx, d, who, w, svcdata.Cached, originDemo)
+	return load(ctx, d, who, w, svcdata.Cached, originDemo, loadTile)
 }
 
 // mailForwardedKey marks a mail sent to Paperless (see mailfwd).
@@ -784,7 +855,7 @@ const greetingChanges = 200
 func connStrips(strips []connections.Strip) []widgets.ConnStrip {
 	out := make([]widgets.ConnStrip, len(strips))
 	for i, s := range strips {
-		out[i] = widgets.ConnStrip{Name: s.Name, Service: s.Service, FailPct: s.FailPct}
+		out[i] = widgets.ConnStrip{Name: s.Name, Service: s.Service, FailPct: s.FailPct, ID: s.ID, LastError: s.LastError, AvgMs: s.AvgMs, Tiles: s.Tiles}
 		for _, d := range s.Days {
 			out[i].Days = append(out[i].Days, widgets.ConnDayState{Day: d.Day, OK: d.OK, Fail: d.Fail})
 		}

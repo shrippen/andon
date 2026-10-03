@@ -480,6 +480,9 @@ func viewSection(q db.Queryer, who *access.Principal, section model.Section, boa
 		}
 		tile.FrameIcon = IconOf(tile.Frame.Icon)
 		tile.HasDetail = widgetlib.HasDetail(w.Type)
+		if own, ok := cfg.(widgets.Detailer); ok {
+			tile.HasDetail = tile.HasDetail && own.OffersDetail()
+		}
 		if v, ok := myRows[strconv.FormatInt(placement.ID, 10)]; ok {
 			tile.Rows = tileRows(int(int64FromAny(v)))
 		}
@@ -655,10 +658,10 @@ func orNotFound(err error) error {
 }
 
 // Detail loads the detail dialog of a placed tile the viewer may see.
-func Detail(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64) (*widgetlib.DetailDialog, error) {
+func Detail(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64, item string) (*widgetlib.DetailDialog, error) {
 	w, err := PlacedWidget(d, who, placementID)
 	if err != nil {
 		return nil, err
 	}
-	return widgetlib.LoadDetail(ctx, d, who, w, time.Now().UTC())
+	return widgetlib.LoadDetail(ctx, d, who, w, item, time.Now().UTC())
 }

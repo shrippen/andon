@@ -105,6 +105,10 @@ type ConnStrip struct {
 	Name, Service string
 	FailPct       int
 	Days          []ConnDayState
+	ID            int64
+	LastError     string
+	AvgMs         int
+	Tiles         int // widgets that use it
 }
 
 // ConnDayState is one day of a strip.
@@ -274,7 +278,7 @@ func invoiceAgingView(cfg AgingConfig, data *sources.NinjaDataset, ctx ViewCtx) 
 type SpeedConfig struct{ Ping bool }
 
 func init() {
-	Tile[SpeedConfig]{Key: "speedtest", Detail: dataDetail(speedDetail), Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest, RefreshS: integrationTTL,
+	Tile[SpeedConfig]{Key: "speedtest", Detail: dataDetail(speedDetail), DetailQueries: openQuery[SpeedConfig]("speedtest.results"), Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest, RefreshS: integrationTTL,
 		Fields:  []Field{{Key: "ping", Input: InputCheck, Default: true}},
 		Decode:  func(r Raw) SpeedConfig { return SpeedConfig{Ping: r.Bool("ping")} },
 		Queries: ownData[SpeedConfig], View: dataView(speedView)}.add()

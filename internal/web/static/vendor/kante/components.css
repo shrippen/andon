@@ -801,6 +801,10 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 /* Blocks: a label row (text left, meta right) over a chart, table, list … */
 .detail-block{display:flex;flex-direction:column;gap:.4rem;min-width:0}
 .detail-label{display:flex;justify-content:space-between;gap:1rem}
+/* A small form in a block: fields stacked, the button under them */
+.detail-block>form{display:flex;flex-direction:column;gap:.75rem;align-items:flex-start}.detail-block>form>.field{align-self:stretch}
+/* A download or link at the label's end: <a href="….csv" download>CSV</a> */
+.detail-label>a{color:var(--fg2);text-decoration:none}.detail-label>a:hover,.detail-label>a:focus-visible{color:var(--fg0)}
 .detail-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:1rem}
 .detail-facts .fact b{font-size:2rem}
 .detail-block>.chart,.detail-block>.chart-wrap{height:8rem}
@@ -823,7 +827,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .detail-rows>.uptime{max-width:none;height:.7rem}
 /* Wall of figures: <div class="detail-wall"><div class="detail-card" data-tier="…"><span>label</span><b>value</b><svg class="spark">…</svg><small>sub</small></div>…</div> */
 .detail-wall{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr));gap:.8rem}
-.detail-card{background:var(--bg-panel);border-top:4px solid var(--bg2);padding:.8rem .9rem;display:flex;flex-direction:column;gap:.35rem;min-width:0}
+.detail-card{background:var(--bg-panel);border-top:4px solid var(--c,var(--bg2));padding:.8rem .9rem;display:flex;flex-direction:column;gap:.35rem;min-width:0}
 .detail-card[data-tier="green"]{border-top-color:var(--aqua)}.detail-card[data-tier="yellow"]{border-top-color:var(--warn)}
 .detail-card[data-tier="red"]{border-top-color:var(--danger)}.detail-card[data-tier="cyan"]{border-top-color:var(--cyan)}
 .detail-card>span{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3)}
@@ -846,6 +850,10 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .detail-figure{display:flex;flex-direction:column;gap:.5rem;margin:0;min-width:0}
 .detail-figure>img{display:block;max-width:100%;height:auto;margin:0 auto;background:var(--bg-hard)}
 .detail-figure>iframe{display:block;width:100%;height:70vh;border:0;background:var(--bg-hard)}
+/* Thumbnails: <div class="detail-thumbs"><figure class="detail-figure"><img><figcaption></figcaption></figure>…</div> */
+.detail-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(9rem,1fr));gap:.75rem}
+.detail-thumbs>.detail-figure>img{height:12rem;width:100%;object-fit:contain}
+.detail-thumbs>.detail-figure>figcaption{font-size:.75rem;color:var(--fg2);overflow-wrap:anywhere}
 /* Waiting for the content: <div class="detail-wait"><span class="loader">…</span></div> */
 .detail-wait{display:grid;place-items:center;min-height:12rem}
 @media(max-width:60rem){
@@ -972,6 +980,10 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .status>.name{font-family:var(--font-heading);font-weight:700;font-size:var(--title-s);letter-spacing:var(--title-track);text-transform:uppercase;color:var(--fg0)}
 .status>.row{display:flex;align-items:center;gap:.5rem;font-family:var(--font-mono);font-size:.68rem;color:var(--fg2)}
 .status>.row::before{content:"";width:9px;height:9px;background:var(--k)}
+/* A status that opens its entry: <button class="status"> */
+button.status{width:100%;border-left:0;border-right:0;border-bottom:0;font:inherit;color:inherit;text-align:start;cursor:pointer}
+button.status:hover{background:var(--tint-1)}button.status:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
+button.status[aria-pressed="true"]{box-shadow:inset 3px 0 0 var(--cyan)}
 /* Board editor: add tile, grip, hover strip */
 .tile-add{display:grid;place-items:center;min-height:5rem;border:2px dashed var(--bg2);background:none;color:var(--fg3);cursor:pointer;font-family:var(--font-mono);font-size:1.4rem}
 .tile-add:hover,.tile-add:focus-visible{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-tint);outline:none}
@@ -1006,6 +1018,7 @@ a.link-tile>.hint{grid-column:2/4;font-family:var(--font-mono);font-size:.66rem;
 .list-row:hover{background:var(--tint-1)}
 .list-row[aria-selected="true"]{background:var(--cyan-tint);box-shadow:inset 3px 0 0 var(--cyan)}
 .list-row:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
+button.list-row{width:100%;border:0;border-bottom:1px solid var(--bg1);background:none;font:inherit;text-align:start}
 .list-row>.meta{font-family:var(--font-mono);font-size:.7rem;color:var(--fg3);font-variant-numeric:tabular-nums}
 /* Map frame around a Leaflet (or similar) map: cut corner, dark tiles, square pins, yellow route */
 .map-frame{position:relative;border:1px solid var(--bg2);background:var(--bg-hard);

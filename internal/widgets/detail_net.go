@@ -5,10 +5,13 @@ package widgets
 import (
 	"cmp"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 	"time"
 
+	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/rules"
 	"andon/internal/sources"
@@ -38,6 +41,22 @@ func dnsDetail(_ DNSConfig, data *sources.DNSFilterDataset, ctx ViewCtx, results
 	}
 	if !data.ListsUpdated.IsZero() {
 		body.Side = append(body.Side, Fact{Label: T("detail.dns.lists"), Value: agoOf(data.ListsUpdated)})
+	}
+	if len(data.Hourly) >= minPoints {
+		total, blocked := make([]float64, len(data.Hourly)), make([]float64, len(data.Hourly))
+		for i, n := range data.Hourly {
+			total[i] = float64(n)
+			if i < len(data.HourlyBlocked) {
+				blocked[i] = float64(data.HourlyBlocked[i])
+			}
+		}
+		g := LineGraph(Series{Values: total, Class: "s1", Label: Txt("detail.dns.queries")}, Series{Values: blocked, Class: "s2", Label: Txt("detail.dns.blocked")})
+		g.Lo, g.Ticks = 0, []any{TxtA("detail.hours_ago", "n", len(total)), Txt("detail.now")}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.dns.per_hour"), Hero: true, Data: g})
+	}
+	if data.Enabled {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTasks, Data: Tasks{Label: T("detail.dns.pause_label"), Items: []Task{{
+			Text: Txt("detail.dns.pause_what"), Meta: Txt("detail.dns.pause_back"), State: "info", Action: T("detail.dns.pause"), Do: "pause"}}}})
 	}
 	var clients [][]Cell
 	var series []Series
@@ -77,7 +96,7 @@ func dnsDetail(_ DNSConfig, data *sources.DNSFilterDataset, ctx ViewCtx, results
 }
 
 // gatewayDetail: the router, its uplinks and devices.
-func gatewayDetail(_ GatewayConfig, data *sources.GatewayDataset, _ ViewCtx, results map[string]any) DetailView {
+func gatewayDetail(_ GatewayConfig, data *sources.GatewayDataset, ctx ViewCtx, results map[string]any) DetailView {
 	up := 0
 	var links [][]Cell
 	for _, g := range data.Gateways {
@@ -123,6 +142,25 @@ func gatewayDetail(_ GatewayConfig, data *sources.GatewayDataset, _ ViewCtx, res
 		body.Facts = append(body.Facts, Kpi{Value: fmt.Sprintf("%d / %d", online, len(data.Devices)), Label: T("detail.gateway.devices_up")})
 		body.Blocks = append(body.Blocks, Block{Kind: BlockRows, Label: T("detail.gateway.devices"), Data: devs})
 	}
+	hist, now := historyOf(results), todayOf(ctx)
+	var series []Series
+	for i, g := range data.Gateways {
+		if ms := dailySeries(hist, metrics.SampleKey("gateway", "ms", g.Name), now, linkDays); hasValues(ms) {
+			series = append(series, Series{Values: ms, Class: dataClass(i), Label: g.Name})
+		}
+	}
+	if len(series) > 0 {
+		g := LineGraph(series...)
+		g.Lo, g.Ticks = 0, spanTicks(now, linkDays)
+		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.gateway.delay_days"), Meta: "ms", Data: g})
+	}
+	if fresh := metrics.NewLeases(hist, now, newLeaseDays); len(fresh) > 0 {
+		var rows []LitRow
+		for _, dev := range fresh {
+			rows = append(rows, LitRow{Name: dev.Name, Meta: Day(dev.First), State: "info"})
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockRows, Label: textArgs("detail.gateway.new_devices", "n", newLeaseDays), Data: rows})
+	}
 	if len(data.ClientNames) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockChips, Label: T("detail.gateway.client_names"), Meta: len(data.ClientNames), Data: data.ClientNames})
 	}
@@ -160,6 +198,9 @@ func speedDetail(_ SpeedConfig, data *sources.SpeedtestDataset, ctx ViewCtx, res
 	}
 	if data.ExpectDown > 0 {
 		body.Facts = append(body.Facts, Kpi{Value: NumU(data.Down/data.ExpectDown*percentScale, 0, "%"), Label: T("detail.speed.of_contract")})
+	}
+	if more, ok := results[openName].(*sources.SpeedResults); ok && len(more.List) > 0 {
+		body.Blocks = append(body.Blocks, speedResultBlocks(more.List, data, contractShare(ctx), todayOf(ctx))...)
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
@@ -213,6 +254,11 @@ func speedHistoryDetail(cfg SpeedHistoryConfig, results map[string]any, ctx View
 	} else {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.speed.none")})
 	}
+	if more, ok := results[openName].(*sources.SpeedResults); ok && expect > 0 {
+		if heat, found := speedHourHeat(more.List, expect); found {
+			body.Blocks = append(body.Blocks, Block{Kind: BlockHeat, Label: T("detail.speed.by_hour"), Meta: Txt("detail.speed.by_hour_scale"), Data: heat})
+		}
+	}
 	return DetailView{Body: body}
 }
 
@@ -223,6 +269,7 @@ func tailscaleDetail(cfg TailscaleConfig, data *sources.TailscaleDataset, ctx Vi
 	online, expiring, updates := 0, 0, 0
 	var cards []LitRow
 	var rows [][]Cell
+	var strips []Strip
 	for _, d := range data.Devices {
 		state := "off"
 		if d.Online {
@@ -243,13 +290,24 @@ func tailscaleDetail(cfg TailscaleConfig, data *sources.TailscaleDataset, ctx Vi
 			updates++
 		}
 		cards = append(cards, LitRow{Name: d.Name, Meta: agoOf(d.LastSeen), State: state})
-		rows = append(rows, []Cell{{Value: d.Name}, {Value: agoOf(d.LastSeen), State: stateIf(!d.Online, "bad")}, {Value: key, State: keyState}, {Value: strings.Join(d.Tags, ", ")}})
+		client := any("–")
+		if d.Client != "" {
+			client = strings.TrimSpace(d.OS + " " + d.Client)
+		}
+		rows = append(rows, []Cell{{Value: d.Name}, {Value: agoOf(d.LastSeen), State: stateIf(!d.Online, "bad")}, {Value: key, State: keyState},
+			{Value: client, State: stateIf(d.Update, "warn")}, {Value: strings.Join(d.Tags, ", ")}})
+		strip := Strip{Name: d.Name}
+		for _, share := range metrics.OnlineDays(historyOf(results), "tailscale", d.Name, now, uptimeDetailDays) {
+			strip.States = append(strip.States, shareState(share))
+		}
+		strips = append(strips, strip)
 	}
 	sort.SliceStable(cards, func(a, b int) bool { return stateRank(cards[a].State) < stateRank(cards[b].State) })
 	body := &DetailBody{Facts: []Kpi{{Value: fmt.Sprintf("%d / %d", online, len(data.Devices)), Label: T("detail.tailscale.online"), Tier: tierIf(online < len(data.Devices), "yellow", "green")},
 		{Value: expiring, Label: T("detail.tailscale.keys"), Tier: tierIf(expiring > 0, "yellow", "")}, {Value: updates, Label: T("detail.tailscale.updates"), Tier: tierIf(updates > 0, "cyan", "")}},
 		Blocks: []Block{{Kind: BlockStatus, Label: T("detail.tailscale.devices"), Data: cards},
-			{Kind: BlockTable, Data: Table{Head: []Text{T("detail.tailscale.device"), T("detail.tailscale.seen"), T("detail.tailscale.key"), T("detail.tailscale.tags")}, Rows: rows}}}}
+			{Kind: BlockStrips, Label: T("detail.tailscale.online_days"), Ticks: spanTicks(now, uptimeDetailDays), Data: strips},
+			{Kind: BlockTable, Label: T("detail.tailscale.devices"), Data: Table{Head: []Text{T("detail.tailscale.device"), T("detail.tailscale.seen"), T("detail.tailscale.key"), T("detail.tailscale.client"), T("detail.tailscale.tags")}, Rows: rows}}}}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	sub := "Tailscale"
 	if data.Headscale {
@@ -274,6 +332,22 @@ func vpnDetail(cfg VPNConfig, raw *sources.GluetunDataset, ctx ViewCtx, results 
 	if data.ExpectedCountry != "" {
 		body.Side = append(body.Side, Fact{Label: T("detail.vpn.expected"), Value: data.ExpectedCountry})
 	}
+	port := any(Txt("detail.vpn.no_port"))
+	if data.Port > 0 {
+		port = data.Port
+	}
+	body.Side = append(body.Side, Fact{Label: T("detail.vpn.port"), Value: port})
+	var changes []Event
+	if h := historyOf(results); h != nil {
+		for _, e := range h.Events {
+			if e.Kind == metrics.EventChange && (e.Subject == metrics.SubjectVPN || e.Subject == metrics.SubjectVPNExit) {
+				changes = append(changes, Event{At: e.At, Title: e.Subject, Sub: e.Detail, State: agoOf(e.At), Tier: tierIf(e.Subject == metrics.SubjectVPN, "yellow", "cyan")})
+			}
+		}
+	}
+	if len(changes) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTimeline, Label: T("detail.vpn.changes"), Data: firstN(changes, ipChangesShown)})
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	head := DetailHead{State: "ok", StateKey: "detail.vpn.connected"}
 	switch {
@@ -295,13 +369,63 @@ func publicIPDetail(cfg PublicIPConfig, results map[string]any, ctx ViewCtx) Det
 	if ip.IPv6 != "" {
 		body.Line = append(body.Line, Fact{Label: T("detail.ip.v6"), Value: ip.IPv6})
 	}
-	if seen, ok := results[IPSeenSlot].(IPSeen); ok && seen.Prev != "" {
-		body.Blocks = append(body.Blocks, Block{Kind: BlockTimeline, Label: T("detail.ip.changes"), Hero: true,
-			Data: []Event{{At: seen.Since, Title: seen.Prev + " → " + seen.IP, State: agoOf(seen.Since), Tier: "yellow"}}})
+	var changes []Event
+	if h := historyOf(results); h != nil {
+		for _, e := range h.Events {
+			if e.Kind == metrics.EventChange && e.Subject == metrics.SubjectIP {
+				changes = append(changes, Event{At: e.At, Title: e.Detail, State: agoOf(e.At), Tier: "yellow"})
+			}
+		}
+	}
+	if len(changes) == 0 {
+		if seen, ok := results[IPSeenSlot].(IPSeen); ok && seen.Prev != "" {
+			changes = []Event{{At: seen.Since, Title: seen.Prev + " → " + seen.IP, State: agoOf(seen.Since), Tier: "yellow"}}
+		}
+	}
+	if len(changes) >= minPoints {
+		// Newest first: the mean gap is the line's forced reconnect rhythm.
+		span := changes[0].At.Sub(changes[len(changes)-1].At).Hours() / hoursPerDay
+		body.Line = append(body.Line, Fact{Label: T("detail.ip.every"), Value: TxtA("detail.days", "n", int(span/float64(len(changes)-1)+0.5))})
+	}
+	if len(changes) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTimeline, Label: T("detail.ip.changes"), Hero: true, Data: firstN(changes, ipChangesShown)})
 	} else {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.ip.no_change")})
 	}
+	if dns, ok := results[openName].(*sources.DomainsResolved); ok && len(dns.Hosts) > 0 {
+		var rows [][]Cell
+		for _, hst := range dns.Hosts {
+			state, note := "bad", any(Txt("detail.ip.dns_other"))
+			switch {
+			case hst.Error != "":
+				state, note = "warn", hst.Error
+			case slices.Contains(hst.Addrs, ip.IP) || (ip.IPv6 != "" && slices.Contains(hst.Addrs, ip.IPv6)):
+				state, note = "ok", Txt("detail.ip.dns_here")
+			}
+			rows = append(rows, []Cell{{Value: hst.Host}, {Value: strings.Join(hst.Addrs, ", ")}, {Value: note, State: state}})
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.ip.dns"),
+			Data: Table{Head: []Text{T("detail.ip.host"), T("detail.ip.addrs"), T("detail.state")}, Rows: rows}})
+	}
 	return DetailView{Body: body}
+}
+
+// renewalDue: Let's Encrypt and most ACME clients renew 30 days ahead;
+// below 25 days left the renewal is late.
+const renewalDue = 25
+
+// The gateway dialog's spans: latency days, days a device counts as new.
+const (
+	linkDays     = 30
+	newLeaseDays = 7
+)
+
+// ipChangesShown is how many address changes the dialog lists.
+const ipChangesShown = 12
+
+// domainsResolve reads the space's domains as DNS answers when the dialog opens.
+func domainsResolve(PublicIPConfig) []Query {
+	return []Query{{Name: openName, Source: "domains.resolve", Conn: ConnPeer, Service: enums.ServiceDomains}}
 }
 
 // authentikDetail (tabs): logins, failures, applications, accounts.
@@ -342,6 +466,15 @@ func authentikDetail(cfg AuthentikConfig, data *sources.AuthentikDataset, ctx Vi
 		{Label: T("detail.authentik.apps"), Count: len(data.Apps), Blocks: []Block{{Kind: BlockBars, Data: apps}}},
 		{Label: T("detail.authentik.accounts"), Count: len(data.Users), Blocks: []Block{{Kind: BlockTable, Data: Table{Head: []Text{T("detail.authentik.user"), T("detail.authentik.last_login")}, Rows: users}}}},
 	}
+	if len(data.Days) >= minPoints {
+		logins, failed := make([]float64, len(data.Days)), make([]float64, len(data.Days))
+		for i, d := range data.Days {
+			logins[i], failed[i] = float64(d.Logins), float64(d.Failed)
+		}
+		g := LineGraph(Series{Values: logins, Class: "s1", Label: Txt("detail.authentik.logins")}, Series{Values: failed, Class: "s2", Label: Txt("detail.authentik.failures")})
+		g.Lo, g.Ticks = 0, []any{DayS(data.Days[0].Day), DayS(data.Days[len(data.Days)-1].Day)}
+		body.Blocks = append([]Block{{Kind: BlockGraph, Label: T("detail.authentik.per_day"), Hero: true, Data: g}}, body.Blocks...)
+	}
 	h := DetailHead{State: "ok", StateKey: "detail.authentik.current"}
 	if data.Outdated || data.Outposts {
 		h.State, h.StateKey = "warn", "detail.update_available"
@@ -360,6 +493,7 @@ func expiryDetail(cfg ExpiryConfig, results map[string]any, ctx ViewCtx) DetailV
 		}
 		return cmp.Or(dueTier(left, warn, info), "cyan")
 	}
+	var renewals [][]Cell
 	if certs, ok := results["data"].(*sources.CertDataset); ok && cfg.Kinds != "domains" {
 		warn, info := expiryLimits(ctx.Settings, "certs.expiring")
 		for _, c := range certs.Certs {
@@ -369,6 +503,12 @@ func expiryDetail(cfg ExpiryConfig, results map[string]any, ctx ViewCtx) DetailV
 				sub = c.Error
 			}
 			events = append(events, Event{At: c.NotAfter, Title: c.Host, Sub: sub, State: TxtA("detail.days", "n", left), Tier: tier(left, c.Error, warn, info)})
+			// Automatic renewal runs a month ahead; a certificate this
+			// close without one waits for a renewal that hangs.
+			renewed := metrics.LastRenewal(historyOf(results), c.Host)
+			late := c.Error == "" && left < renewalDue
+			renewals = append(renewals, []Cell{{Value: c.Host}, {Value: dayOf(renewed)},
+				{Value: Txt(map[bool]string{true: "detail.expiry.renewal_late", false: "detail.expiry.renewal_ok"}[late]), State: stateIf(late, "warn")}})
 		}
 	}
 	if d, ok := results[peerDomains].(*sources.DomainsDataset); ok && cfg.Kinds != "certs" {
@@ -394,6 +534,10 @@ func expiryDetail(cfg ExpiryConfig, results map[string]any, ctx ViewCtx) DetailV
 		body.Line = []Fact{{Label: T("detail.expiry.next"), Value: events[0].Title}, {Label: T("detail.expiry.in"), Value: TxtA("detail.days", "n", next)}}
 	}
 	body.Blocks = append(body.Blocks, Block{Kind: BlockTimeline, Label: T("detail.expiry.list"), Hero: true, Data: events})
+	if len(renewals) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.expiry.renewals"),
+			Data: Table{Head: []Text{T("detail.expiry.host"), T("detail.expiry.renewed"), T("detail.state")}, Rows: renewals}})
+	}
 	if len(doms) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.expiry.domains"), Data: Table{Head: []Text{T("detail.expiry.domain"), T("detail.expiry.spf"), T("detail.expiry.dmarc"), T("detail.expiry.until")}, Rows: doms}})
 	}
@@ -409,12 +553,15 @@ func exposureDetail(cfg ExposureConfig, results map[string]any, ctx ViewCtx) Det
 	data, _ := results["data"].(*sources.PangolinDataset)
 	list := &ObjList{Label: T("detail.exposure.resources")}
 	riskState := []string{"ok", "warn", "bad"}
-	for _, r := range rows {
-		list.Items = append(list.Items, LitRow{Name: r.Name, Meta: Txt("detail.exposure.risk_" + riskState[min(r.Risk, 2)]), State: riskState[min(r.Risk, 2)]})
+	names := make([]string, len(rows))
+	for i, r := range rows {
+		names[i] = r.Name
+		list.Items = append(list.Items, LitRow{Name: r.Name, Meta: Txt("detail.exposure.risk_" + riskState[min(r.Risk, 2)]), State: riskState[min(r.Risk, 2)], Item: r.Name})
 	}
 	body := &DetailBody{List: list}
 	if len(rows) > 0 {
-		r := rows[0]
+		list.Sel = pickIndex(results, names)
+		r := rows[list.Sel]
 		list.Title, list.Sub, list.State, list.StateText = r.Name, r.Domain, riskState[min(r.Risk, 2)], T("detail.exposure.risk_"+riskState[min(r.Risk, 2)])
 		cert := any("–")
 		if r.CertDays >= 0 {
@@ -424,9 +571,20 @@ func exposureDetail(cfg ExposureConfig, results map[string]any, ctx ViewCtx) Det
 		if r.Login {
 			login = Cell{Value: Txt("detail.answer_yes"), State: "ok"}
 		}
-		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Data: Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")},
-			Rows: [][]Cell{{{Value: Txt("detail.exposure.login")}, login}, {{Value: Txt("detail.exposure.updates")}, {Value: r.Updates, State: stateIf(r.Updates > 0, "warn")}},
-				{{Value: Txt("detail.exposure.cert")}, {Value: cert}}}}})
+		facts := [][]Cell{{{Value: Txt("detail.exposure.login")}, login}, {{Value: Txt("detail.exposure.updates")}, {Value: r.Updates, State: stateIf(r.Updates > 0, "warn")}},
+			{{Value: Txt("detail.exposure.cert")}, {Value: cert}}}
+		if access, ok := results[openName].(*sources.PangolinAccess); ok {
+			if a, found := access.ByResource[r.Name]; found {
+				var countries []string
+				for _, c := range a.Countries {
+					countries = append(countries, fmt.Sprintf("%s %d", c.Name, c.N))
+				}
+				facts = append(facts, []Cell{{Value: Txt("detail.exposure.requests")}, {Value: Num(float64(a.Requests), 0)}},
+					[]Cell{{Value: Txt("detail.exposure.blocked")}, {Value: Num(float64(a.Blocked), 0), State: stateIf(a.Blocked > 0, "warn")}},
+					[]Cell{{Value: Txt("detail.exposure.from")}, {Value: cmp.Or(strings.Join(countries, " · "), "–")}})
+			}
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Data: Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: facts}})
 	}
 	if data != nil {
 		var sites []LitRow
@@ -474,6 +632,77 @@ func vaultDetail(cfg VaultConfig, data *sources.VaultwardenDataset, _ ViewCtx, r
 		tasks.Items = append(tasks.Items, Task{Text: strings.Join(done, ", "), Meta: Txt("detail.vault.have_2fa"), State: "ok"})
 	}
 	body := &DetailBody{Blocks: []Block{{Kind: BlockTasks, Data: tasks}}}
+	byOrg := map[string]int{}
+	for _, u := range data.Users {
+		for _, o := range u.Orgs {
+			byOrg[o]++
+		}
+	}
+	if len(byOrg) > 0 {
+		var orgs [][]Cell
+		for _, name := range slices.Sorted(maps.Keys(byOrg)) {
+			orgs = append(orgs, []Cell{{Value: name}, {Value: byOrg[name]}})
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.vault.orgs"),
+			Data: Table{Head: []Text{T("detail.vault.org"), T("detail.vault.members")}, Rows: orgs, Num: []int{1}}})
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Head: DetailHead{Sub: "Vaultwarden " + data.Version}, Body: body}
+}
+
+// speedResultBlocks: today's measurements, and the ones below the
+// contract as a list for the provider (§ 57 TKG wants measurements on
+// several days).
+func speedResultBlocks(list []sources.SpeedResult, data *sources.SpeedtestDataset, share float64, today time.Time) []Block {
+	zone := clockZone()
+	var day [][]Cell
+	var below [][]Cell
+	days := map[string]bool{}
+	for _, r := range list {
+		local := r.At.In(zone)
+		if local.Format(isoDate) == today.Format(isoDate) {
+			day = append(day, []Cell{{Value: local.Format(timeOfDay)}, {Value: NumU(r.Down, 0, "Mbit/s"), State: stateIf(metrics.BelowContract(r.Down, data.ExpectDown, share), "warn")},
+				{Value: NumU(r.Up, 0, "Mbit/s")}, {Value: NumU(r.Ping, 0, "ms")}})
+		}
+		if metrics.BelowContract(r.Down, data.ExpectDown, share) {
+			days[local.Format(isoDate)] = true
+			below = append(below, []Cell{{Value: Day(local)}, {Value: local.Format(timeOfDay)}, {Value: NumU(r.Down, 0, "Mbit/s")},
+				{Value: NumU(r.Down/data.ExpectDown*percentScale, 0, "%"), State: "warn"}})
+		}
+	}
+	var out []Block
+	head := []Text{T("detail.speed.time"), T("detail.speed.down"), T("detail.speed.up"), T("detail.speed.ping")}
+	if len(day) > 0 {
+		out = append(out, Block{Kind: BlockTable, Label: T("detail.speed.today"), Data: Table{Head: head, Rows: reversed(day), Num: []int{1, 2, 3}}})
+	}
+	if len(below) > 0 {
+		out = append(out, Block{Kind: BlockTable, Label: T("detail.speed.below"), Meta: TxtA("detail.speed.below_count", "n", len(below), "days", len(days)),
+			Data: Table{Head: []Text{T("detail.speed.day"), T("detail.speed.time"), T("detail.speed.down"), T("detail.speed.of_contract")}, Rows: reversed(below), Num: []int{2, 3}}})
+	}
+	return out
+}
+
+// speedHourHeat: the mean shortfall against the contract per weekday
+// (rows) and hour (columns); darker is slower.
+func speedHourHeat(list []sources.SpeedResult, expect float64) (Heat, bool) {
+	var sum, n [7][24]float64
+	for _, r := range list {
+		local := r.At.In(clockZone())
+		wd, h := (int(local.Weekday())+6)%weekDays, local.Hour()
+		sum[wd][h] += max(1-r.Down/expect, 0)
+		n[wd][h]++
+	}
+	heat := Heat{Rows: weekDays, Ticks: []any{"00:00", "12:00", "23:00"}}
+	found := false
+	for h := range hoursPerDay {
+		for wd := range weekDays {
+			level := 0
+			if n[wd][h] > 0 {
+				found = true
+				level = min(int(sum[wd][h]/n[wd][h]*heatSteps*2)+1, heatSteps)
+			}
+			heat.Levels = append(heat.Levels, level)
+		}
+	}
+	return heat, found
 }

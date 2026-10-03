@@ -201,3 +201,30 @@ func dayOf(t time.Time) any {
 	}
 	return Day(t)
 }
+
+// pickedItem is the list entry the viewer picked, "" for none.
+func pickedItem(results map[string]any) string {
+	item, _ := results[DetailItemSlot].(string)
+	return item
+}
+
+// pickIndex is the index of the picked entry among keys, 0 when none
+// matches: the first entry is shown until one is picked.
+func pickIndex(results map[string]any, keys []string) int {
+	item := pickedItem(results)
+	for i, k := range keys {
+		if k == item {
+			return i
+		}
+	}
+	return 0
+}
+
+// openName is the result name of a dialog's own data (DetailQueries).
+const openName = "open"
+
+// openQuery is a dialog's fetch on open from the tile's connection:
+// DetailQueries: openQuery[DockerConfig]("docker.detail").
+func openQuery[C any](source string) func(C) []Query {
+	return func(C) []Query { return []Query{{Name: openName, Source: source, Conn: ConnWidget}} }
+}

@@ -30,6 +30,10 @@ func registerTrueNAS() {
 
 	Register("truenas.alerts", truenasSvc, nil, on(truenasAlerts))
 
+	// ZFS finds silent damage only when it reads: a pool needs a scrub
+	// now and then, and the scrub's errors deserve attention.
+	Register("truenas.scrub_old", truenasSvc, map[string]any{"days": 35.0}, on(scrubOld))
+
 	Register("truenas.app_updates", truenasSvc, nil, on(truenasAppUpdates))
 }
 
@@ -60,6 +64,22 @@ func poolFull(data *sources.TrueNASDataset, cfg map[string]any, env Env) []Findi
 		}
 		found = append(found, svcFinding(truenasSvc, "truenas.pool_full", "full:"+p.Name, "truenas.pool_full",
 			level, data.URL, map[string]any{"pool": p.Name, "percent": int(share*percentScale + 0.5)}))
+	}
+	return found
+}
+
+func scrubOld(data *sources.TrueNASDataset, cfg map[string]any, env Env) []Finding {
+	var found []Finding
+	for _, p := range data.Pools {
+		switch {
+		case p.ScrubErrors > 0:
+			found = append(found, svcFinding(truenasSvc, "truenas.scrub_old", "scrub_errors:"+p.Name, "truenas.scrub_errors",
+				enums.SeverityWarn, data.URL, map[string]any{"pool": p.Name, "count": p.ScrubErrors, "day": Day(p.ScrubEnd)}))
+		case p.ScrubEnd.IsZero():
+		case env.Today.Sub(p.ScrubEnd).Hours()/hoursPerDay > cfgFloat(cfg, "days"):
+			found = append(found, svcFinding(truenasSvc, "truenas.scrub_old", "scrub_old:"+p.Name, "truenas.scrub_old",
+				enums.SeverityInfo, data.URL, map[string]any{"pool": p.Name, "day": Day(p.ScrubEnd)}))
+		}
 	}
 	return found
 }

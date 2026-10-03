@@ -5,6 +5,7 @@ package sources
 
 import (
 	"context"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -53,6 +54,7 @@ type Disk struct {
 	Hours       int
 	Seen        time.Time // last collector run
 	WWN         string
+	Serial      string
 	Failing     string // failed disks: flagged attributes, "Reallocated Sectors Count 8"
 }
 
@@ -128,7 +130,7 @@ func parseScrutiny(base string, body any) *ScrutinyDataset {
 		data.Disks = append(data.Disks, Disk{
 			Name: asStr(dev["device_name"]), Model: asStr(dev["model_name"]),
 			Status: int(asFloat(dev["device_status"])), Temp: asFloat(smart["temp"]),
-			Hours: int(asFloat(smart["power_on_hours"])), Seen: seen.UTC(), WWN: asStr(dev["wwn"]),
+			Hours: int(asFloat(smart["power_on_hours"])), Seen: seen.UTC(), WWN: asStr(dev["wwn"]), Serial: asStr(dev["serial_number"]),
 		})
 	}
 	sort.Slice(data.Disks, func(i, j int) bool { return data.Disks[i].Name < data.Disks[j].Name })
@@ -146,6 +148,14 @@ type ImmichDataset struct {
 	FailedJobs    map[string]int // queue → failed count; nil if unreadable
 	Version       string         // "v1.132.3"
 	Latest        string         // newest release, "" if unknown
+	Users         []ImmichUser   // admin key only
+}
+
+// ImmichUser is one account's share of the library.
+type ImmichUser struct {
+	Name           string
+	Photos, Videos int
+	Bytes          float64
 }
 
 var ImmichData = source{key: "immich.data", ttl: opsTTL, service: enums.ServiceImmich, fetch: fetchImmich}
@@ -170,6 +180,10 @@ func fetchImmich(ctx context.Context, sctx Ctx) (any, error) {
 	// Admin-only endpoints: without an admin key they stay empty.
 	if stats, err := api.Get(ctx, "server/statistics"); err == nil {
 		data.Photos, data.Videos = int(asFloat(asMap(stats)["photos"])), int(asFloat(asMap(stats)["videos"]))
+		for _, raw := range asList(asMap(stats)["usageByUser"]) {
+			u := asMap(raw)
+			data.Users = append(data.Users, ImmichUser{Name: asStr(u["userName"]), Photos: int(asFloat(u["photos"])), Videos: int(asFloat(u["videos"])), Bytes: asFloat(u["usage"])})
+		}
 	}
 	if jobs, err := api.Get(ctx, "jobs"); err == nil {
 		data.FailedJobs = map[string]int{}
@@ -190,6 +204,106 @@ func fetchImmich(ctx context.Context, sctx Ctx) (any, error) {
 }
 
 // ── Umami ──
+
+// UmamiSite is what the dialog adds to a site when it opens: its top
+// pages and referrers of the week, its views per day of the month.
+type UmamiSite struct {
+	Pages, Referrers []Count
+	Days             []Count // "2026-09-27", views
+}
+
+// Count is a name with a number.
+type Count struct {
+	Name string
+	N    int
+}
+
+// UmamiDetail is the dialog's extra per site id.
+type UmamiDetail struct{ Sites map[string]UmamiSite }
+
+var UmamiDetailSource = source{key: "umami.detail", ttl: detailTTL, service: enums.ServiceUmami, fetch: fetchUmamiDetail}
+
+// Limits of the dialog's fetch.
+const (
+	umamiTop      = 10
+	umamiSites    = 8
+	umamiDayRange = 30 * 24 * time.Hour
+)
+
+func fetchUmamiDetail(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return DemoUmamiDetail(time.Now()), nil
+	}
+	secret, err := needSecret(sctx)
+	if err != nil {
+		return nil, err
+	}
+	session, err := services.UmamiApi{URL: sctx.URL, Secret: secret, Verify: sctx.VerifyTLS}.Open(ctx)
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	data, err := loadUmami(ctx, session, sctx.URL, time.Now())
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	now := time.Now()
+	week := urlValues("startAt", now.Add(-umamiWindow).UnixMilli(), "endAt", now.UnixMilli())
+	out := &UmamiDetail{Sites: map[string]UmamiSite{}}
+	for _, s := range firstOf(data.Sites, umamiSites) {
+		site := UmamiSite{}
+		// Umami 3 names the page metric "path", older versions "url".
+		for _, kind := range []string{"url", "path"} {
+			if site.Pages = umamiCounts(ctx, session, s.ID, kind, week); len(site.Pages) > 0 {
+				break
+			}
+		}
+		site.Referrers = umamiCounts(ctx, session, s.ID, "referrer", week)
+		month := url.Values(urlValues("startAt", now.Add(-umamiDayRange).UnixMilli(), "endAt", now.UnixMilli()))
+		month.Set("unit", "day")
+		month.Set("timezone", time.Local.String())
+		if views, err := session.Get(ctx, "websites/"+s.ID+"/pageviews", month); err == nil {
+			for _, raw := range asList(asMap(views)["pageviews"]) {
+				m := asMap(raw)
+				at := firstStr(asStr(m["x"]), asStr(m["t"]))
+				site.Days = append(site.Days, Count{Name: at[:min(len(at), len(time.DateOnly))], N: int(asFloat(m["y"]))})
+			}
+		}
+		out.Sites[s.ID] = site
+	}
+	return out, nil
+}
+
+// umamiCounts reads one metric list ([{x, y}]) of the week.
+func umamiCounts(ctx context.Context, session services.UmamiSession, id, kind string, span map[string][]string) []Count {
+	params := url.Values{}
+	for k, v := range span {
+		params[k] = v
+	}
+	params.Set("type", kind)
+	params.Set("limit", strconv.Itoa(umamiTop))
+	raw, err := session.Get(ctx, "websites/"+id+"/metrics", params)
+	if err != nil {
+		return nil
+	}
+	var out []Count
+	for _, item := range firstOf(asList(raw), umamiTop) {
+		m := asMap(item)
+		name := asStr(m["x"])
+		if name == "" {
+			name = "–"
+		}
+		out = append(out, Count{Name: name, N: int(asFloat(m["y"]))})
+	}
+	return out
+}
+
+// firstOf is at most the first n of list.
+func firstOf[T any](list []T, n int) []T {
+	if len(list) > n {
+		return list[:n]
+	}
+	return list
+}
 
 // Site is one website's last 7 days against the 7 before.
 type Site struct {
@@ -276,5 +390,6 @@ func init() {
 	Register(ImmichData)
 	Register(testOf{ImmichData, func(d any) map[string]any { return map[string]any{"version": d.(*ImmichDataset).Version} }})
 	Register(UmamiData)
+	Register(UmamiDetailSource)
 	Register(testOf{UmamiData, func(d any) map[string]any { return map[string]any{"sites": len(d.(*UmamiDataset).Sites)} }})
 }

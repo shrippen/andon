@@ -64,10 +64,16 @@ type ObjList struct {
 }
 
 // LitRow is a list row with a state light: name, meta right, state.
+// In a dialog's object list, Item opens that entry ("" = not clickable).
 type LitRow struct {
 	Name  any
 	Meta  any
 	State string // ok, warn, bad, off, info
+	Item  string
+	// Open and Picked are set by the web layer: the entry's dialog URL,
+	// and whether it is the one shown.
+	Open   string
+	Picked bool
 }
 
 // BlockKind is how a block draws its Data.
@@ -95,6 +101,8 @@ const (
 	BlockImage    BlockKind = "image"    // Data Image: a picture at full width
 	BlockRead     BlockKind = "read"     // Data Reading: a text to read
 	BlockFrame    BlockKind = "frame"    // Data Embed: an embedded page
+	BlockThumbs   BlockKind = "thumbs"   // Data []Image: small pictures with captions
+	BlockForm     BlockKind = "form"     // Data Form: fields posted to a dialog act
 )
 
 // Block is one part of the main area: a label row (text left, Meta right)
@@ -114,12 +122,14 @@ type Table struct {
 	Rows [][]Cell
 	Num  []int
 	Foot []Cell
+	CSV  string // its download, set by the web layer ("" = none)
 }
 
 // Cell is a table cell; State colours it (ok, warn, bad).
 type Cell struct {
 	Value any
 	State string
+	Href  string // the cell links there (a new tab), "" = plain
 }
 
 // ShareBar is a share bar: name, 0–100, value, Kante tier (green, yellow, red).
@@ -141,11 +151,12 @@ type Event struct {
 
 // Card is a figure of a wall: label, value, sparkline, line under it.
 type Card struct {
-	Label Text
-	Value any
-	Tier  string
-	Spark []float64
-	Sub   any
+	Label  Text
+	Value  any
+	Tier   string
+	Spark  []float64
+	Sub    any
+	Colour string // its own colour ("#rrggbb" or a token), "" = by tier
 }
 
 // Tasks is a progress line over tasks with an action each.
@@ -161,7 +172,10 @@ type Task struct {
 	Meta   any
 	State  string // ok = done
 	Action Text
-	Href   string
+	Href   string            // the action opens this page, or
+	Do     string            // the action runs this dialog act (services/detailacts)
+	Args   map[string]string // with these fields
+	Post   string            // set by the web layer: where Do posts to
 }
 
 // Heat is a grid of levels 0–4, Rows high (Kante .heat), labels under it.
@@ -261,8 +275,45 @@ type Image struct {
 	Caption string
 }
 
+// Form is a few fields a dialog act takes (a note, an assignee); the web
+// layer sets Post as for a Task.
+type Form struct {
+	Do     string
+	Args   map[string]string
+	Fields []FormField
+	Submit Text
+	Post   string
+}
+
+// FormField is one field: text, area or select.
+type FormField struct {
+	Name    string
+	Label   Text
+	Kind    FieldKind
+	Value   string
+	Options []FormOption
+}
+
+// FieldKind is how a form field is drawn.
+type FieldKind string
+
+const (
+	FieldText   FieldKind = "text"
+	FieldArea   FieldKind = "area"
+	FieldSelect FieldKind = "select"
+)
+
+// FormOption is one choice of a select.
+type FormOption struct {
+	Value string
+	Label any
+}
+
 // Embed is an embedded page of the large view (Kante figure.detail-figure).
-type Embed struct{ URL string }
+type Embed struct {
+	URL  string
+	File string // or a file of the dialog's tile: the query of /details/{id}/file, set into URL by the web layer
+}
 
 // Reading is a text to read (Kante .detail-read): a title, paragraphs,
 // a link to the original.

@@ -105,7 +105,64 @@ func parseHass(base string, states any) *HassDataset {
 	return data
 }
 
+// HassPoint is one state of an entity from its start on.
+type HassPoint struct {
+	At    time.Time
+	State string
+}
+
+// HassHistory is the last day of the tile's entities, read when the
+// dialog opens (nothing stored).
+type HassHistory struct{ ByID map[string][]HassPoint }
+
+// HassHistoryHours is the span of the dialog's history.
+const HassHistoryHours = 24
+
+var HassHistorySource = source{key: "homeassistant.history", ttl: detailTTL, service: enums.ServiceHomeAssistant, fetch: fetchHassHistory}
+
+// fetchHassHistory reads params "entities" (the tile's entity ids).
+func fetchHassHistory(ctx context.Context, sctx Ctx) (any, error) {
+	ids, _ := sctx.Params["entities"].([]string)
+	if isDemo(sctx) {
+		return DemoHassHistory(time.Now(), ids), nil
+	}
+	if len(ids) == 0 {
+		return &HassHistory{ByID: map[string][]HassPoint{}}, nil
+	}
+	secret, err := needSecret(sctx)
+	if err != nil {
+		return nil, err
+	}
+	api := services.HassApi{URL: sctx.URL, Token: secret, Verify: sctx.VerifyTLS}
+	body, err := api.History(ctx, time.Now().Add(-HassHistoryHours*time.Hour), ids)
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	return parseHassHistory(body), nil
+}
+
+// parseHassHistory reads minimal responses: per entity a list whose first
+// entry names the entity, the others only state and time.
+//
+//	[[{"entity_id": "sensor.t", "state": "21.0", "last_changed": "…"}, {"state": "21.5", "last_changed": "…"}]]
+func parseHassHistory(body any) *HassHistory {
+	out := &HassHistory{ByID: map[string][]HassPoint{}}
+	for _, raw := range asList(body) {
+		list := asList(raw)
+		if len(list) == 0 {
+			continue
+		}
+		id := asStr(asMap(list[0])["entity_id"])
+		for _, p := range list {
+			m := asMap(p)
+			out.ByID[id] = append(out.ByID[id], HassPoint{At: parseTime(m["last_changed"]), State: asStr(m["state"])})
+		}
+	}
+	return out
+}
+
 func init() {
+	Register(HassHistorySource)
 	Register(HassData)
 	Register(testOf{HassData, func(d any) map[string]any { return map[string]any{"entities": len(d.(*HassDataset).Entities)} }})
 }

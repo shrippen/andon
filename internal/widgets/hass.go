@@ -86,5 +86,8 @@ func init() {
 		Live: true, DataChoice: true,
 		Fields: []Field{{Key: "entities", Input: InputList, Required: true}, {Key: "labels", Input: InputArea}, {Key: "thresholds", Input: InputArea},
 			{Key: "two_columns", Input: InputCheck}},
-		Decode: decodeHass, Queries: ownData[HassConfig], View: dataView(hassView)}.add()
+		Decode: decodeHass, Queries: ownData[HassConfig], View: dataView(hassView),
+		DetailQueries: func(cfg HassConfig) []Query {
+			return []Query{{Name: openName, Source: "homeassistant.history", Conn: ConnWidget, Params: map[string]any{"entities": cfg.Entities}}}
+		}}.add()
 }

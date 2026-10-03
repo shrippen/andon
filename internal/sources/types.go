@@ -31,11 +31,13 @@ type KimaiProject struct {
 	End           string
 	UsedMoney     float64
 	UsedMinutes   int
+	Color         string // "#rrggbb", "" = none
 }
 
 type KimaiCustomer struct {
-	ID   int64
-	Name string
+	ID    int64
+	Name  string
+	Color string // "#rrggbb", "" = none
 }
 
 type KimaiAbsence struct {
@@ -78,6 +80,9 @@ type NinjaInvoice struct {
 	Balance  float64
 	Taxes    float64
 	Net      float64
+	// Reminded is when the last reminder went out, NextSend when the
+	// next one goes (or the invoice is sent again); "" = none.
+	Reminded, NextSend string
 }
 
 type NinjaPayment struct {
@@ -161,6 +166,7 @@ type SnipeAsset struct {
 	LastChange      string
 	AssignedTo      string // who has it (person, location or asset name)
 	ExpectedCheckin string // agreed return date, "" if none
+	Serial          string
 }
 
 type SnipeLicense struct {

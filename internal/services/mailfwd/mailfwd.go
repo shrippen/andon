@@ -27,6 +27,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/assist"
 	auditsvc "andon/internal/services/audit"
+	"andon/internal/services/boards"
 	"andon/internal/services/connections"
 	"andon/internal/services/svcdata"
 	"andon/internal/sources"
@@ -262,4 +263,34 @@ func invoiceOf(fields map[string]any) *assist.Invoice {
 		slog.Warn("mailfwd: stored read", "err", err)
 	}
 	return &inv
+}
+
+// ErrNoFile: the mail has no attachment at that position.
+var ErrNoFile = errors.New("mail.no_file")
+
+// File is one attachment of a mail behind a placed tile, for a preview in
+// its dialog: the viewer must see the tile and may use its mailbox.
+func File(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64, uid uint32, n int) (sources.MailFile, error) {
+	w, err := boards.PlacedWidget(d, who, placementID)
+	if err != nil {
+		return sources.MailFile{}, err
+	}
+	if w.ConnectionID == nil {
+		return sources.MailFile{}, ErrNoFile
+	}
+	if _, err := connections.Get(d, who, *w.ConnectionID); err != nil {
+		return sources.MailFile{}, err
+	}
+	mail, err := connections.ByID(d, *w.ConnectionID)
+	if err != nil {
+		return sources.MailFile{}, err
+	}
+	files, err := mailFiles(ctx, d, who, mail, uid)
+	if err != nil {
+		return sources.MailFile{}, err
+	}
+	if n < 0 || n >= len(files) {
+		return sources.MailFile{}, ErrNoFile
+	}
+	return files[n], nil
 }

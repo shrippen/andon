@@ -6,7 +6,10 @@ package widgets
 import (
 	"cmp"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +22,8 @@ import (
 const (
 	calendarDetailDays = 14
 	recentDetailMax    = 30
+	freeFrom, freeTo   = 9, 18 // working hours checked for free time
+	freeMin            = 2     // hours; shorter gaps are no free time
 )
 
 // linksDownDetail (record without facts column): every link without an
@@ -36,7 +41,18 @@ func linksDownDetail(_ LinksDownConfig, results map[string]any, ctx ViewCtx) Det
 			longest = max(longest, days)
 			since = TxtA("detail.links.since", "day", Day(l.Since), "n", days)
 		}
-		rows = append(rows, []Cell{{Value: l.Title}, {Value: l.URL}, {Value: since, State: "bad"}})
+		rows = append(rows, []Cell{{Value: l.Title}, {Value: l.URL}, {Value: since, State: "bad"}, {Value: cmp.Or(l.Cause, "–")}})
+	}
+	// Several links with one cause are one problem: a host or a proxy.
+	byCause := map[string]int{}
+	for _, l := range links {
+		byCause[cmp.Or(l.Cause, "–")]++
+	}
+	causes := slices.Collect(maps.Keys(byCause))
+	sort.Slice(causes, func(a, b int) bool { return byCause[causes[a]] > byCause[causes[b]] })
+	var groups []ShareBar
+	for _, c := range causes {
+		groups = append(groups, ShareBar{Name: c, Pct: float64(byCause[c]) * percentScale / float64(max(len(links), 1)), Value: byCause[c], Tier: "red"})
 	}
 	body := &DetailBody{Facts: []Kpi{{Value: len(links), Label: T("detail.links.down"), Tier: tierIf(len(links) > 0, "red", "green")}}}
 	if len(links) == 0 {
@@ -44,7 +60,8 @@ func linksDownDetail(_ LinksDownConfig, results map[string]any, ctx ViewCtx) Det
 		return DetailView{Body: body}
 	}
 	body.Facts = append(body.Facts, Kpi{Value: TxtA("detail.days", "n", longest), Label: T("detail.links.longest")})
-	body.Blocks = []Block{{Kind: BlockTable, Label: T("detail.links.list"), Data: Table{Head: []Text{T("detail.links.title"), T("detail.links.url"), T("detail.links.since_label")}, Rows: rows}}}
+	body.Blocks = []Block{{Kind: BlockBars, Label: T("detail.links.causes"), Data: groups},
+		{Kind: BlockTable, Label: T("detail.links.list"), Data: Table{Head: []Text{T("detail.links.title"), T("detail.links.url"), T("detail.links.since_label"), T("detail.links.cause")}, Rows: rows}}}
 	return DetailView{Head: DetailHead{State: "bad", StateKey: "detail.links.n_down", StateArgs: map[string]any{"n": len(links)}}, Body: body}
 }
 
@@ -66,7 +83,30 @@ func connHealthDetail(_ ConnHealthConfig, results map[string]any, ctx ViewCtx) D
 		rows = append(rows, row)
 	}
 	body := &DetailBody{Facts: []Kpi{{Value: fmt.Sprintf("%d / %d", healthy, len(strips)), Label: T("detail.conn.healthy"), Tier: tierIf(healthy < len(strips), "yellow", "green")}}}
-	body.Blocks = []Block{{Kind: BlockStrips, Label: T("detail.conn.days"), Ticks: spanTicks(todayOf(ctx), ConnHealthDays), Data: rows}}
+	ticks := spanTicks(todayOf(ctx), ConnHealthDays)
+	var open []LitRow
+	for _, s := range strips {
+		id := strconv.FormatInt(s.ID, 10)
+		open = append(open, LitRow{Name: s.Name, Meta: s.Service, State: stateIf(s.FailPct > 0, "warn"), Item: id})
+		if id != pickedItem(results) {
+			continue
+		}
+		// One connection picked: its days as fetches, its error, its tiles.
+		okDays, failDays := make([]float64, len(s.Days)), make([]float64, len(s.Days))
+		for i, d := range s.Days {
+			okDays[i], failDays[i] = float64(d.OK), float64(d.Fail)
+		}
+		g := LineGraph(Series{Values: okDays, Class: "s1", Label: Txt("detail.conn.ok")}, Series{Values: failDays, Class: "s2", Label: Txt("detail.conn.failed")})
+		g.Lo, g.Ticks = 0, ticks
+		facts := Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: [][]Cell{
+			{{Value: Txt("detail.conn.service")}, {Value: s.Service}},
+			{{Value: Txt("detail.conn.last_error")}, {Value: cmp.Or(s.LastError, "–"), State: stateIf(s.LastError != "", "warn")}},
+			{{Value: Txt("detail.conn.avg_ms")}, {Value: NumU(float64(s.AvgMs), 0, "ms")}},
+			{{Value: Txt("detail.conn.tiles")}, {Value: s.Tiles}}}}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: Plain(s.Name), Data: facts}, Block{Kind: BlockGraph, Label: T("detail.conn.fetches"), Hero: true, Data: g})
+	}
+	body.Blocks = append(body.Blocks, Block{Kind: BlockStrips, Label: T("detail.conn.days"), Ticks: ticks, Data: rows},
+		Block{Kind: BlockRows, Label: T("detail.conn.open"), Data: open})
 	return DetailView{Body: body}
 }
 
@@ -92,6 +132,30 @@ func deadlinesDetail(cfg DeadlinesConfig, results map[string]any, ctx ViewCtx) D
 	body := &DetailBody{Blocks: []Block{{Kind: BlockTimeline, Label: T("detail.deadlines.list"), Data: events}}}
 	if len(events) > 0 {
 		body.Facts = []Kpi{{Value: Day(events[0].At), Label: T("detail.deadlines.next")}, {Value: len(events), Label: T("detail.deadlines.count")}}
+	}
+
+	// Hand in: tick a deadline of the next weeks once it is filed.
+	filed := map[string]time.Time{}
+	if h := historyOf(results); h != nil {
+		for _, e := range h.Events {
+			if e.Kind == metrics.EventFiled {
+				filed[e.Subject] = e.At
+			}
+		}
+	}
+	tasks := Tasks{Label: T("detail.deadlines.filed")}
+	for _, d := range metrics.UpcomingDeadlines(tax, today, deadlineTickDays) {
+		key := metrics.DeadlineKey(d.Kind, d.Period, d.Year)
+		t := Task{Text: TxtA("deadline."+d.Kind, "period", d.Period, "year", d.Year), Meta: Day(d.Due), State: "warn",
+			Action: T("detail.deadlines.mark_filed"), Do: "deadline_filed", Args: map[string]string{"key": key}}
+		if at, ok := filed[key]; ok {
+			t.State, t.Meta, t.Do, tasks.Done = "ok", TxtA("detail.deadlines.filed_on", "day", Day(at)), "", tasks.Done+1
+		}
+		tasks.Total++
+		tasks.Items = append(tasks.Items, t)
+	}
+	if tasks.Total > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTasks, Data: tasks})
 	}
 	return DetailView{Body: body}
 }
@@ -149,12 +213,42 @@ func hintsDetail(_ HintsConfig, results map[string]any, _ ViewCtx) DetailView {
 	}
 	body := &DetailBody{Facts: []Kpi{{Value: len(list), Label: T("detail.hints_open")}, {Value: crit, Label: T("detail.hints_critical"), Tier: tierIf(crit > 0, "red", "")},
 		{Value: warn, Label: T("detail.hints_warn"), Tier: tierIf(warn > 0, "yellow", "")}}}
+	// Hints with a due date are in the personal iCal feed (/calendar.ics).
+	head := DetailHead{Actions: []DetailAction{{LabelKey: "detail.hints_all", Href: "/hints", Primary: true}, {LabelKey: "detail.hints_ics", Href: "/me/notify"}}}
 	if len(list) == 0 {
 		body.Blocks = []Block{{Kind: BlockText, Data: Txt("detail.hints_none")}}
-	} else {
-		body.Blocks = []Block{{Kind: BlockHints, Data: list}}
+		return DetailView{Head: head, Body: body}
 	}
-	head := DetailHead{Actions: []DetailAction{{LabelKey: "detail.hints_all", Href: "/hints", Primary: true}}}
+	// Every hint opens by click: its why, its history, a note or a
+	// colleague to take it over.
+	objs := &ObjList{Label: T("detail.hints_open"), Sel: -1}
+	for i, h := range list {
+		id := strconv.FormatInt(h.ID, 10)
+		objs.Items = append(objs.Items, LitRow{Name: h.Title, Meta: h.Rule, State: tierState(sevTierName(h.Severity)), Item: id})
+		if id == pickedItem(results) {
+			objs.Sel = i
+		}
+	}
+	work, picked := results[HintWorkSlot].(HintWork)
+	if !picked || objs.Sel < 0 {
+		body.Blocks = []Block{{Kind: BlockRows, Label: T("detail.hints_pick"), Data: objs.Items}, {Kind: BlockHints, Data: list}}
+		return DetailView{Head: head, Body: body}
+	}
+	objs.Title, objs.Sub = work.Title, cmp.Or(work.Assignee, "–")
+	body.List, body.Facts = objs, nil
+	body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: work.Why})
+	var steps []Event
+	for _, s := range work.History {
+		steps = append(steps, Event{At: s.At, Title: Txt("hints.event_" + s.Kind), Sub: s.Note, State: s.Actor, Tier: "cyan"})
+	}
+	if len(steps) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTimeline, Label: T("detail.hints_history"), Data: steps})
+	}
+	people := append([]FormOption{{Value: "", Label: Txt("detail.hints_nobody")}}, work.People...)
+	body.Blocks = append(body.Blocks, Block{Kind: BlockForm, Label: T("detail.hints_work"), Data: Form{Do: "work", Args: map[string]string{"hint": strconv.FormatInt(work.ID, 10)},
+		Submit: T("detail.hints_save"), Fields: []FormField{
+			{Name: "assignee", Label: T("detail.hints_assignee"), Kind: FieldSelect, Value: assigneeValue(work.AssigneeID), Options: people},
+			{Name: "note", Label: T("detail.hints_note"), Kind: FieldArea}}}})
 	return DetailView{Head: head, Body: body}
 }
 
@@ -174,19 +268,36 @@ func noiseDetail(_ NoiseConfig, results map[string]any, ctx ViewCtx) DetailView 
 		daily[i] = float64(n)
 	}
 	body := &DetailBody{Line: []Fact{{Label: T("detail.noise.span"), Value: TxtA("detail.days", "n", len(data.Daily))}, {Label: T("detail.noise.new"), Value: total}}}
+	var settings []Block
 	if len(flaps) > 0 {
 		list := &ObjList{Label: T("detail.noise.rules")}
-		for _, f := range flaps {
-			list.Items = append(list.Items, LitRow{Name: f.Rule, Meta: TxtA("detail.noise.returns", "n", f.Returns), State: tierState(tierIf(f.Returns > noiseLoud, "yellow", ""))})
+		ruleIDs := make([]string, len(flaps))
+		for i, f := range flaps {
+			ruleIDs[i] = f.Rule
+			list.Items = append(list.Items, LitRow{Name: Txt("rule_name." + f.Rule), Meta: TxtA("detail.noise.returns", "n", f.Returns), State: tierState(tierIf(f.Returns > noiseLoud, "yellow", "")), Item: f.Rule})
 		}
-		list.Title, list.State, list.StateText = flaps[0].Rule, "warn", textArgs("detail.noise.returns", "n", flaps[0].Returns)
-		list.Sub = Txt("detail.noise.tune")
+		list.Sel = pickIndex(results, ruleIDs)
+		f := flaps[list.Sel]
+		list.Title, list.State, list.StateText = Txt("rule_name."+f.Rule), "warn", textArgs("detail.noise.returns", "n", f.Returns)
+		list.Sub = f.Rule
 		body.List = list
+		// The rule's limits as the space has them, with the way to them.
+		var rows [][]Cell
+		values := rules.NumberSettings(ctx.Settings, f.Rule)
+		for _, k := range slices.Sorted(maps.Keys(values)) {
+			rows = append(rows, []Cell{{Value: Txt("param." + k)}, {Value: Num(values[k], 2)}})
+		}
+		if len(rows) > 0 {
+			settings = append(settings, Block{Kind: BlockTable, Label: T("detail.noise.limits"), Data: Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: rows, Num: []int{1}}})
+		}
+		settings = append(settings, Block{Kind: BlockTasks, Data: Tasks{Items: []Task{{Text: Txt("detail.noise.tune"), State: "info",
+			Action: T("detail.noise.settings"), Href: "/spaces/settings#rule-" + f.Rule}}}})
 	}
 	g := ColGraph(daily, "s4")
 	g.Ticks = spanTicks(todayOf(ctx), len(daily))
 	body.Blocks = []Block{{Kind: BlockGraph, Label: T("detail.noise.per_day"), Data: g}}
 	if len(flaps) > 0 {
+		body.Blocks = append(body.Blocks, settings...)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.noise.how")})
 	}
 	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.noise.settings", Href: "/spaces/settings#rules", Primary: true}}}, Body: body}
@@ -251,6 +362,26 @@ func statusLightDetail(cfg StatusLightConfig, results map[string]any, ctx ViewCt
 	} else {
 		body.Blocks = []Block{{Kind: BlockText, Data: Txt("detail.light.calm")}}
 	}
+	// How the light stood each day: red where any run had a hint at the
+	// red level, yellow at the yellow one.
+	now := todayOf(ctx)
+	days := metrics.LightDays(historyOf(results), now, lightDays, []int{int(enums.SeverityInfo), int(enums.SeverityWarn), int(enums.SeverityCritical)})
+	strip := Strip{Name: "", States: make([]string, len(days))}
+	red := 0
+	for i, top := range days {
+		switch {
+		case top < 0:
+			strip.States[i] = "off"
+		case top >= int(cfg.Red):
+			strip.States[i], red = "bad", red+1
+		case cfg.Yellow > 0 && top >= int(cfg.Yellow):
+			strip.States[i] = "warn"
+		default:
+			strip.States[i] = "ok"
+		}
+	}
+	strip.Value = TxtA("detail.light.red_days", "n", red)
+	body.Blocks = append(body.Blocks, Block{Kind: BlockStrips, Label: T("detail.light.history"), Ticks: spanTicks(now, lightDays), Data: []Strip{strip}})
 	ks := map[string]string{"green": "ok", "yellow": "warn", "red": "bad"}
 	return DetailView{Head: DetailHead{State: ks[state], StateKey: "detail.light." + state}, Body: body}
 }
@@ -277,7 +408,11 @@ func recentDetail(cfg RecentConfig, results map[string]any, ctx ViewCtx) DetailV
 		if it.Count > 1 {
 			title = TxtA("detail.recent.burst", "n", it.Count)
 		}
-		events = append(events, Event{At: it.At, Title: title, Sub: it.Detail, State: Txt("timeline." + it.Kind), Tier: tier})
+		sub := any(it.Detail)
+		if it.Cause != "" {
+			sub = TxtA("detail.recent.after_update", "update", it.Cause, "n", it.CauseMin)
+		}
+		events = append(events, Event{At: it.At, Title: title, Sub: sub, State: Txt("timeline." + it.Kind), Tier: tier})
 		if len(events) == recentDetailMax {
 			break
 		}
@@ -348,6 +483,15 @@ func storyDetail(cfg StoryConfig, results map[string]any, ctx ViewCtx) DetailVie
 	for _, l := range lines {
 		rows = append(rows, LitRow{Name: TxtA("week."+l.Key, storyArgs(l.Params)...), State: "info"})
 	}
+	// The weeks before: each opens its story (drawn anew from the history).
+	monday := weekStart(todayOf(ctx))
+	weeks := []LitRow{{Name: Txt("detail.story.this_week"), Meta: Day(monday), State: "info", Item: "0"}}
+	for back := 1; back <= storyWeeksBack; back++ {
+		start := monday.AddDate(0, 0, -weekDays*back)
+		weeks = append(weeks, LitRow{Name: TxtA("detail.story.week_of", "n", isoWeek(start)), Meta: Day(start), State: "info", Item: strconv.Itoa(back)})
+	}
+	sel, _ := strconv.Atoi(pickedItem(results))
+	body.List = &ObjList{Label: T("detail.story.weeks"), Items: weeks, Sel: min(max(sel, 0), storyWeeksBack), Title: weeks[min(max(sel, 0), storyWeeksBack)].Name}
 	if len(rows) == 0 {
 		body.Blocks = []Block{{Kind: BlockText, Data: Txt("detail.story.empty")}}
 	} else {
@@ -365,16 +509,82 @@ func storyArgs(params map[string]any) []any {
 	return out
 }
 
+// calEvent is an appointment with its calendar's colour.
+type calEvent struct {
+	e     sources.Event
+	color string
+}
+
+// freeGaps are the workdays' free stretches of at least freeMin hours
+// between freeFrom and freeTo; appointments count as one hour, all-day
+// ones fill the day. "Di 7.  13:00  18:00  5".
+func freeGaps(evs []calEvent, today time.Time, zone *time.Location) [][]Cell {
+	var rows [][]Cell
+	for d := range calendarDetailDays {
+		day := today.AddDate(0, 0, d)
+		if wd := day.Weekday(); wd == time.Saturday || wd == time.Sunday {
+			continue
+		}
+		var busy [][2]float64
+		for _, x := range evs {
+			at := x.e.Start.In(zone)
+			if at.Format(isoDate) != day.Format(isoDate) {
+				continue
+			}
+			if x.e.AllDay {
+				busy = append(busy, [2]float64{freeFrom, freeTo})
+				continue
+			}
+			busy = append(busy, [2]float64{hourOf(at), hourOf(at) + 1})
+		}
+		slices.SortFunc(busy, func(a, b [2]float64) int { return cmp.Compare(a[0], b[0]) })
+		from := float64(freeFrom)
+		for _, b := range append(busy, [2]float64{freeTo, freeTo}) {
+			to := min(b[0], freeTo)
+			if to-from >= freeMin {
+				rows = append(rows, []Cell{{Value: Day(day)}, {Value: hourClock(day, from)}, {Value: hourClock(day, to)}, {Value: to - from}})
+			}
+			from = max(from, b[1])
+		}
+	}
+	return rows
+}
+
+// hourClock writes an hour of a day: 13.5 → "13:30".
+func hourClock(day time.Time, h float64) string {
+	return day.Add(time.Duration(h * float64(time.Hour))).Format(timeOfDay)
+}
+
+// unbookedRows are the last weeks' appointments of the dialog's look back
+// that name a Kimai customer or project without a booking that day.
+func unbookedRows(results map[string]any, today time.Time, zone *time.Location) [][]Cell {
+	kimai, ok := results[peerKimai].(*sources.KimaiDataset)
+	if !ok {
+		return nil
+	}
+	var past sources.CalendarResult
+	for i := range calendarSlots {
+		name := pastName
+		if i > 0 {
+			name += strconv.Itoa(i + 1)
+		}
+		if r, ok := results[name].(*sources.CalendarResult); ok {
+			past.Events = append(past.Events, r.Events...)
+		}
+	}
+	var rows [][]Cell
+	for _, e := range metrics.UnbookedEvents(&past, kimai, today) {
+		rows = append(rows, []Cell{{Value: Day(e.Start.In(zone))}, {Value: e.Start.In(zone).Format(timeOfDay)}, {Value: e.Title}})
+	}
+	return rows
+}
+
 // calendarDetail (timeline with the list): the next two weeks as hour
 // lines, then every appointment with its place.
 func calendarDetail(cfg CalendarConfig, results map[string]any, ctx ViewCtx) DetailView {
 	zone := clockZone()
 	today := todayOf(ctx)
-	type ev struct {
-		e     sources.Event
-		color string
-	}
-	var evs []ev
+	var evs []calEvent
 	for i := range calendarSlots {
 		name := "events"
 		if i > 0 {
@@ -389,7 +599,7 @@ func calendarDetail(cfg CalendarConfig, results map[string]any, ctx ViewCtx) Det
 			color = cfg.Colors[i]
 		}
 		for _, e := range data.Events {
-			evs = append(evs, ev{e, color})
+			evs = append(evs, calEvent{e, color})
 		}
 	}
 	sort.SliceStable(evs, func(a, b int) bool { return evs[a].e.Start.Before(evs[b].e.Start) })
@@ -430,6 +640,14 @@ func calendarDetail(cfg CalendarConfig, results map[string]any, ctx ViewCtx) Det
 	if len(rows) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.calendar.list"), Data: Table{Head: []Text{T("detail.calendar.date"),
 			T("detail.calendar.time"), T("detail.calendar.title"), T("detail.calendar.place")}, Rows: rows}})
+	}
+	if gaps := freeGaps(evs, today, zone); len(gaps) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.calendar.free"), Data: Table{Head: []Text{T("detail.calendar.date"),
+			T("detail.calendar.from"), T("detail.calendar.to"), T("detail.calendar.hours")}, Rows: gaps}})
+	}
+	if rows := unbookedRows(results, today, zone); len(rows) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.calendar.unbooked"), Meta: TxtA("detail.calendar.unbooked_note", "n", metrics.UnbookedDays),
+			Data: Table{Head: []Text{T("detail.calendar.date"), T("detail.calendar.time"), T("detail.calendar.title")}, Rows: rows}})
 	}
 	return DetailView{Body: body}
 }
@@ -473,3 +691,21 @@ func clampSpans(from, to float64) []HourSpan {
 	}
 	return out
 }
+
+// assigneeValue is the select value of a hint's assignee, "" for nobody.
+func assigneeValue(id int64) string {
+	if id == 0 {
+		return ""
+	}
+	return strconv.FormatInt(id, 10)
+}
+
+// deadlineTickDays is how far ahead deadlines can be ticked as filed.
+const deadlineTickDays = 45
+
+// lightDays is the span of the status light's history.
+const lightDays = 30
+
+// storyWeeksBack is how many past weeks the story dialog lists (as
+// widgetlib's storyArchive loads them).
+const storyWeeksBack = 8

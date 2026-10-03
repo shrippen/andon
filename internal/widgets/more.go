@@ -6,12 +6,14 @@ package widgets
 
 import (
 	"cmp"
+	"maps"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"andon/internal/metrics"
 	"andon/internal/sources"
 )
 
@@ -62,6 +64,26 @@ func calendarQueries(cfg CalendarConfig) []Query {
 	}
 	return q
 }
+
+// calendarPast reads the last weeks of every calendar ("past", "past2",
+// …) and Kimai's bookings, for the dialog's unbooked appointments.
+func calendarPast(cfg CalendarConfig) []Query {
+	var q []Query
+	for i, u := range append([]string{cfg.URL}, cfg.More...) {
+		if u == "" {
+			continue
+		}
+		name := pastName
+		if i > 0 {
+			name += strconv.Itoa(i + 1)
+		}
+		q = append(q, Query{Name: name, Source: "ical", Params: map[string]any{"url": u, "days": 0.0, "back": float64(metrics.UnbookedDays)}})
+	}
+	return append(q, kimaiPeer)
+}
+
+// pastName names the dialog's look back at a calendar.
+const pastName = "past"
 
 // APIField is one value picked from a JSON body: "Temp = main.temp".
 type APIField struct {
@@ -354,6 +376,49 @@ func jsonPath(body any, path string) (any, bool) {
 	return cur, true
 }
 
+// scalarPaths lists the paths of a body's numbers, texts and flags,
+// depth first, at most limit: {"main": {"temp": 3}} → ["main.temp"].
+func scalarPaths(body any, prefix string, limit int, out []string) []string {
+	join := func(k string) string {
+		if prefix == "" {
+			return k
+		}
+		return prefix + pathSep + k
+	}
+	switch node := body.(type) {
+	case map[string]any:
+		for _, k := range slices.Sorted(maps.Keys(node)) {
+			if len(out) >= limit {
+				break
+			}
+			out = scalarPaths(node[k], join(k), limit, out)
+		}
+	case []any:
+		for i, v := range node {
+			if len(out) >= limit {
+				break
+			}
+			out = scalarPaths(v, join(strconv.Itoa(i)), limit, out)
+		}
+	default:
+		if prefix != "" && len(out) < limit {
+			out = append(out, prefix)
+		}
+	}
+	return out
+}
+
+// AddAPIField appends a field "label = path" to a custom_api tile's
+// fields text; the label is the path's last part.
+func AddAPIField(fields, path string) string {
+	label := path[strings.LastIndex(path, pathSep)+1:]
+	line := label + " " + fieldSep + " " + path
+	if strings.TrimSpace(fields) == "" {
+		return line
+	}
+	return strings.TrimRight(fields, "\n") + "\n" + line
+}
+
 // HolidayRow is one upcoming holiday with the days left.
 type HolidayRow struct {
 	Day, Name string
@@ -404,6 +469,7 @@ type MoveRow struct {
 	Time, Line, Place, Status, Platform string
 	Delay                               int
 	Canceled                            bool
+	Remarks                             []string
 }
 
 func boardView(limit int, data *sources.BoardResult) map[string]any {
@@ -414,7 +480,7 @@ func boardView(limit int, data *sources.BoardResult) map[string]any {
 			break
 		}
 		rows = append(rows, MoveRow{Time: m.When.In(zone).Format(timeOfDay), Line: m.Line, Place: m.Place,
-			Status: m.Status, Platform: m.Platform, Delay: m.Delay, Canceled: m.Canceled})
+			Status: m.Status, Platform: m.Platform, Delay: m.Delay, Canceled: m.Canceled, Remarks: m.Remarks})
 	}
 	return map[string]any{"Stop": data.Stop, "Rows": rows}
 }
@@ -482,7 +548,7 @@ func init() {
 			{Key: "limit", Input: InputNumber, Default: defaultListLimit, Min: "1", Max: "50"}, {Key: "hide_all_day", Input: InputCheck},
 			sel("color_1", "none", accentColors...), {Key: "ical_url_2", Input: InputSecret}, sel("color_2", "none", accentColors...),
 			{Key: "ical_url_3", Input: InputSecret}, sel("color_3", "none", accentColors...)},
-		Decode: decodeCalendar, Queries: calendarQueries, View: calendarView}.add()
+		Decode: decodeCalendar, Queries: calendarQueries, DetailQueries: calendarPast, View: calendarView}.add()
 
 	Tile[CustomAPIConfig]{Key: "custom_api", Detail: customAPIDetail, Category: CategoryStart, Topic: TopicAnalysis, RefreshS: 5 * minute,
 		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "fields", Input: InputArea}, {Key: "headers", Input: InputHeaders},
@@ -503,7 +569,8 @@ func init() {
 		Decode: decodeHolidays, View: holidaysView,
 		Queries: one("days", "holidays", func(cfg HolidaysConfig) map[string]any {
 			return map[string]any{"country": cfg.Country, "state": cfg.State}
-		})}.add()
+		}),
+		DetailQueries: func(HolidaysConfig) []Query { return []Query{kimaiPeer} }}.add()
 
 	Tile[PictureConfig]{Key: "xkcd", Detail: pictureDetail, Template: "widgets/picture", Category: CategoryStart, Topic: TopicMedia, RefreshS: 6 * hour,
 		Fields: []Field{{Key: "random", Input: InputCheck}, {Key: "image_only", Input: InputCheck}},
@@ -513,7 +580,8 @@ func init() {
 	Tile[PictureConfig]{Key: "apod", Detail: pictureDetail, Template: "widgets/picture", Category: CategoryStart, Topic: TopicMedia, RefreshS: 6 * hour,
 		Fields: []Field{{Key: "api_key", Input: InputSecret}, {Key: "image_only", Input: InputCheck}},
 		Decode: decodePicture, View: pictureView,
-		Queries: one("picture", "apod", func(cfg PictureConfig) map[string]any { return map[string]any{"api_key": cfg.APIKey} })}.add()
+		Queries:       one("picture", "apod", func(cfg PictureConfig) map[string]any { return map[string]any{"api_key": cfg.APIKey} }),
+		DetailQueries: one(openName, "apod.archive", func(cfg PictureConfig) map[string]any { return map[string]any{"api_key": cfg.APIKey} })}.add()
 
 	Tile[JokeConfig]{Key: "joke", Category: CategoryStart, Topic: TopicMedia, RefreshS: hour,
 		Fields: []Field{sel("category", "Any", "Any", "Programming", "Misc", "Pun", "Spooky", "Christmas"), sel("lang", "de", "de", "en"),
@@ -529,6 +597,9 @@ func init() {
 		Decode: decodeCrypto,
 		Queries: one("prices", "crypto", func(cfg CryptoConfig) map[string]any {
 			return map[string]any{"coins": cfg.Coins, "currency": cfg.Currency, "spark": cfg.Spark}
+		}),
+		DetailQueries: one(openName, "crypto.history", func(cfg CryptoConfig) map[string]any {
+			return map[string]any{"coins": cfg.Coins, "currency": cfg.Currency}
 		})}.add()
 
 	Tile[StocksConfig]{Key: "stocks", Detail: stocksDetail, Category: CategoryStart, Topic: TopicWorld, RefreshS: 15 * minute,

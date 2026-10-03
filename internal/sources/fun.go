@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/text/language"
@@ -328,7 +329,41 @@ func fetchJSONAPISource(ctx context.Context, sctx Ctx) (any, error) {
 	return &JSONResult{Body: body}, nil
 }
 
+// coinHistoryDays is the span of the crypto dialog's lines.
+const coinHistoryDays = 30
+
+// CoinHistory is daily prices per coin, oldest first.
+type CoinHistory struct{ ByID map[string][]float64 }
+
+// CryptoHistorySource reads a month of daily prices when the dialog opens.
+var CryptoHistorySource = source{key: "crypto.history", ttl: cryptoTTL, fetch: fetchCryptoHistory}
+
+func fetchCryptoHistory(ctx context.Context, sctx Ctx) (any, error) {
+	ids := limitList(sctx.Params["coins"])
+	currency := strings.ToLower(asStr(sctx.Params["currency"]))
+	out := &CoinHistory{ByID: map[string][]float64{}}
+	var mu sync.Mutex
+	parallel(ctx, len(ids), releasesParallel, func(i int) {
+		query := url.Values{"vs_currency": {currency}, "days": {strconv.Itoa(coinHistoryDays)}, "interval": {"daily"}}
+		body, _, err := httpclient.GetJSON(ctx, coingeckoBase+"/api/v3/coins/"+url.PathEscape(ids[i])+"/market_chart", httpclient.Options{Params: query})
+		if err != nil {
+			return
+		}
+		var prices []float64
+		for _, p := range asList(asMap(body)["prices"]) {
+			if pair := asList(p); len(pair) == 2 {
+				prices = append(prices, asFloat(pair[1]))
+			}
+		}
+		mu.Lock()
+		out.ByID[ids[i]] = prices
+		mu.Unlock()
+	})
+	return out, nil
+}
+
 func init() {
+	Register(CryptoHistorySource)
 	Register(HolidaysSource)
 	Register(JokesSource)
 	Register(CryptoSource)

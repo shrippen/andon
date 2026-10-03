@@ -9,16 +9,16 @@ import "time"
 // TimelineSlot carries []TimelineItem for ExtraTimeline.
 const TimelineSlot = "timeline"
 
-// kindUpdate is a version change; kindChange another recorded change
-// (public IP, price). Neither is a hint.
-const (
-	kindUpdate = "update"
-	kindChange = "change"
-)
+// kindUpdate is a version change; other events (a recorded change, a
+// restore test) are no hints either.
+const kindUpdate = "update"
+
+// hintKinds are the timeline entries of hints.
+var hintKinds = map[string]bool{"opened": true, "resolved": true, "reopened": true}
 
 // isHintKind tells hint entries (opened, resolved, reopened) from updates
-// and changes.
-func isHintKind(kind string) bool { return kind != kindUpdate && kind != kindChange }
+// and other events.
+func isHintKind(kind string) bool { return hintKinds[kind] }
 
 // TimelineDays is how far back the tile looks.
 const TimelineDays = 7
@@ -29,6 +29,10 @@ type TimelineItem struct {
 	Kind, Subject, Detail string // Kind: update, opened, resolved, reopened
 	HintID                int64
 	Count                 int // > 1: a burst of this many hints
+	// Cause is the update shortly before a new hint ("Immich v1 → v2"),
+	// CauseMin how many minutes before; "" = none.
+	Cause    string
+	CauseMin int
 }
 
 // RecentConfig is the "timeline_recent" widget's config.

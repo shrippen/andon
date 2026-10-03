@@ -1,6 +1,7 @@
 package metrics_test
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -41,5 +42,35 @@ func TestCashflowEvents(t *testing.T) {
 	}
 	if points[0].Balance != 500 || low != -300 || points[len(points)-1].Balance != 700 {
 		t.Fatalf("points: start %v low %v end %v", points[0].Balance, low, points[len(points)-1].Balance)
+	}
+}
+
+// TestCashflowLate: the scenario moves only the picked invoice and keeps
+// its number on the event.
+func TestCashflowLate(t *testing.T) {
+	today := time.Date(2026, 9, 25, 0, 0, 0, 0, time.UTC)
+	ninja := &sources.NinjaDataset{Invoices: []sources.NinjaInvoice{
+		{Number: "7", ClientID: 1, Status: "sent", Date: "2026-09-20", Balance: 1000},
+		{Number: "8", ClientID: 1, Status: "sent", Date: "2026-09-20", Balance: 500},
+	}}
+	_, events := metrics.Cashflow(metrics.CashInputs{Ninja: ninja, LateRef: "7", LateDays: 10}, today, 30)
+	days := map[string]time.Time{}
+	for _, e := range events {
+		days[e.Ref] = e.Day
+	}
+	if !days["7"].Equal(time.Date(2026, 10, 14, 0, 0, 0, 0, time.UTC)) || !days["8"].Equal(time.Date(2026, 10, 4, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("days: %v", days)
+	}
+}
+
+// TestPayTerms: a 1000 € invoice paid 20 days after issue against a
+// 14-day target is 6 late days; 9 % a year on that and 2 % discount.
+func TestPayTerms(t *testing.T) {
+	data := &sources.NinjaDataset{
+		Invoices: []sources.NinjaInvoice{{ClientID: 1, Status: "paid", Date: "2026-09-01", Amount: 1000}},
+		Payments: []sources.NinjaPayment{{ClientID: 1, Date: "2026-09-21"}}}
+	p := metrics.NinjaPayTerms(data, 1, 14, time.Time{})
+	if p.Revenue != 1000 || p.LateAmounts != 6000 || p.Discount(0.02) != 20 || math.Abs(p.Interest(0.09)-6000*0.09/365) > 1e-9 {
+		t.Fatalf("terms: %+v", p)
 	}
 }

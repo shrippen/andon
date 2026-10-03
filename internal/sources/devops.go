@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"andon/internal/drivers/services"
@@ -210,6 +211,76 @@ func loadGitea(ctx context.Context, api services.GiteaApi, base string, now time
 	return data, nil
 }
 
+// activityWeeks and activityRepos bound the dialog's commit columns.
+const (
+	activityWeeks = 8
+	activityRepos = 8
+)
+
+// PushMirror is a repo's push mirror (Gitea → GitHub) and its last sync.
+type PushMirror struct {
+	Repo, Remote string
+	Synced       time.Time
+	Error        string
+}
+
+// GiteaActivity is what the dialog reads on open: commits per week of
+// the recently active repos (oldest week first) and the push mirrors.
+type GiteaActivity struct {
+	Weeks   map[string][]int
+	Mirrors []PushMirror
+}
+
+var GiteaActivitySource = source{key: "gitea.activity", ttl: detailTTL, service: enums.ServiceGitea, fetch: fetchGiteaActivity}
+
+func fetchGiteaActivity(ctx context.Context, sctx Ctx) (any, error) {
+	now := time.Now().UTC()
+	if isDemo(sctx) {
+		return DemoGiteaActivity(now), nil
+	}
+	secret, err := needSecret(sctx)
+	if err != nil {
+		return nil, err
+	}
+	api := services.GiteaApi{URL: sctx.URL, Token: secret, Verify: sctx.VerifyTLS}
+	repos, err := api.Get(ctx, "user/repos", url.Values{"limit": {strconv.Itoa(giteaPage)}})
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	since := now.AddDate(0, 0, -activityWeeks*daysPerWeek)
+	var names []string
+	for _, raw := range asList(repos) {
+		m := asMap(raw)
+		if !asBool(m["archived"]) && !asBool(m["mirror"]) && parseTime(m["updated_at"]).After(since) && len(names) < activityRepos {
+			names = append(names, asStr(m["full_name"]))
+		}
+	}
+	out := &GiteaActivity{Weeks: map[string][]int{}}
+	var mu sync.Mutex
+	parallel(ctx, len(names), activityRepos, func(i int) {
+		weeks := make([]int, activityWeeks)
+		commits, err := api.Get(ctx, "repos/"+names[i]+"/commits", url.Values{"since": {since.Format(time.RFC3339)}, "limit": {strconv.Itoa(giteaPage)}, "stat": {"false"}})
+		if err == nil {
+			for _, c := range asList(commits) {
+				at := parseTime(asMap(asMap(asMap(c)["commit"])["author"])["date"])
+				if w := int(now.Sub(at).Hours() / 24 / daysPerWeek); w >= 0 && w < activityWeeks {
+					weeks[activityWeeks-1-w]++
+				}
+			}
+		}
+		mirrors, _ := api.Get(ctx, "repos/"+names[i]+"/push_mirrors", nil)
+		mu.Lock()
+		defer mu.Unlock()
+		out.Weeks[names[i]] = weeks
+		for _, raw := range asList(mirrors) {
+			m := asMap(raw)
+			out.Mirrors = append(out.Mirrors, PushMirror{Repo: names[i], Remote: asStr(m["remote_address"]), Synced: parseTime(m["last_update"]), Error: asStr(m["last_error"])})
+		}
+	})
+	sort.Slice(out.Mirrors, func(a, b int) bool { return out.Mirrors[a].Repo < out.Mirrors[b].Repo })
+	return out, nil
+}
+
 // latestFailedRun returns the latest Actions run's name when it failed.
 // Servers without Actions answer 404; that counts as none.
 func latestFailedRun(ctx context.Context, api services.GiteaApi, repo string) string {
@@ -239,6 +310,10 @@ type BorgClient struct {
 	LastSeen     time.Time
 	LastBackup   time.Time // newest successful backup; zero when unknown
 	LastFailed   bool      // an enabled plan's latest run failed
+	// From /metrics (BBS 2.65+), 0 when unknown: the repositories' size,
+	// the newest successful run's archive size and duration.
+	RepoBytes, LastBytes float64
+	LastSeconds          int
 }
 
 // borgJobCompleted is a backup job's result when it succeeded.
@@ -293,6 +368,9 @@ func fetchBorg(ctx context.Context, sctx Ctx) (any, error) {
 	if summary, err := api.Get(ctx, "summary"); err == nil {
 		addBorgSummary(data, summary)
 	}
+	if m, err := api.Get(ctx, "metrics"); err == nil {
+		addBorgMetrics(data, m)
+	}
 	return data, nil
 }
 
@@ -318,6 +396,31 @@ func addBorgSummary(data *BorgDataset, summary any) {
 			if at := borgTime(last["completed_at"]); at.After(c.LastBackup) {
 				c.LastBackup = at
 			}
+		}
+	}
+}
+
+// addBorgMetrics adds sizes and durations from /metrics: per client its
+// repositories' size and its newest successful run over all plans.
+func addBorgMetrics(data *BorgDataset, metrics any) {
+	m := asMap(metrics)
+	names := map[int64]string{}
+	newest := map[string]float64{}
+	for _, raw := range asList(m["plans"]) {
+		p := asMap(raw)
+		name := asStr(p["client"])
+		names[asInt64(p["client_id"])] = name
+		c := data.client(name)
+		if c == nil || asFloat(p["last_success_ts"]) <= newest[name] {
+			continue
+		}
+		newest[name] = asFloat(p["last_success_ts"])
+		c.LastBytes, c.LastSeconds = asFloat(p["last_success_bytes"]), int(asFloat(p["last_success_duration_seconds"]))
+	}
+	for _, raw := range asList(m["repositories"]) {
+		r := asMap(raw)
+		if c := data.client(names[asInt64(r["client_id"])]); c != nil {
+			c.RepoBytes += asFloat(r["size_bytes"])
 		}
 	}
 }
@@ -354,6 +457,7 @@ func init() {
 	Register(FreshRSSData)
 	Register(testOf{FreshRSSData, func(d any) map[string]any { return map[string]any{"feeds": len(d.(*FreshRSSDataset).Feeds)} }})
 	Register(GiteaData)
+	Register(GiteaActivitySource)
 	Register(testOf{GiteaData, func(d any) map[string]any { return map[string]any{"user": d.(*GiteaDataset).User} }})
 	Register(BorgData)
 	Register(testOf{BorgData, func(d any) map[string]any { return map[string]any{"clients": len(d.(*BorgDataset).Clients)} }})

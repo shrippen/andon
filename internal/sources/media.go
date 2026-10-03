@@ -5,6 +5,7 @@ package sources
 // contacts the image host.
 
 import (
+	"cmp"
 	"context"
 	"math/rand/v2"
 	"net/url"
@@ -22,14 +23,17 @@ const (
 )
 
 var (
-	xkcdBase = "https://xkcd.com"
-	nasaBase = "https://api.nasa.gov"
+	xkcdBase    = "https://xkcd.com"
+	explainBase = "https://www.explainxkcd.com/wiki/index.php/"
+	nasaBase    = "https://api.nasa.gov"
 )
 
 // Picture is a titled image; DataURI is "" when only Link can be shown
 // (a video, or an image too large to inline).
 type Picture struct {
 	Title, Text, Link, DataURI string
+	Explain                    string // xkcd: the comic on explainxkcd.com
+	Day                        string // APOD: its date, "2026-09-30"
 }
 
 // ── xkcd ──
@@ -58,7 +62,8 @@ func fetchXkcd(ctx context.Context, sctx Ctx) (any, error) {
 			m = asMap(one)
 		}
 	}
-	pic := &Picture{Title: asStr(m["safe_title"]), Text: asStr(m["alt"]), Link: xkcdBase + "/" + strconv.Itoa(int(asFloat(m["num"]))) + "/"}
+	num := strconv.Itoa(int(asFloat(m["num"])))
+	pic := &Picture{Title: asStr(m["safe_title"]), Text: asStr(m["alt"]), Link: xkcdBase + "/" + num + "/", Explain: explainBase + num}
 	img, err := fetchImage(ctx, asStr(m["img"]), imageMax)
 	if err != nil {
 		return nil, err
@@ -94,7 +99,50 @@ func fetchApod(ctx context.Context, sctx Ctx) (any, error) {
 	return pic, nil
 }
 
+// PictureList is a few pictures, newest first.
+type PictureList struct{ Items []Picture }
+
+// apodArchiveDays is how many earlier pictures the APOD dialog shows.
+const apodArchiveDays = 7
+
+// ApodArchiveSource reads the pictures of the days before today, when the
+// dialog opens; videos and pictures too large to inline are left out.
+var ApodArchiveSource = source{key: "apod.archive", ttl: pictureTTL, fetch: fetchApodArchive}
+
+func fetchApodArchive(ctx context.Context, sctx Ctx) (any, error) {
+	key := cmp.Or(asStr(sctx.Params["api_key"]), nasaDemo)
+	today := time.Now().UTC()
+	params := url.Values{"api_key": {key}, "start_date": {today.AddDate(0, 0, -apodArchiveDays).Format(time.DateOnly)},
+		"end_date": {today.AddDate(0, 0, -1).Format(time.DateOnly)}}
+	body, _, err := httpclient.GetJSON(ctx, nasaBase+"/planetary/apod", httpclient.Options{Params: params})
+	if err != nil {
+		return nil, newSourceError("%s", err.Error())
+	}
+	var pics []Picture
+	for _, raw := range asList(body) {
+		m := asMap(raw)
+		if asStr(m["media_type"]) == apodImage {
+			pics = append(pics, Picture{Title: asStr(m["title"]), Link: asStr(m["url"]), Day: asStr(m["date"])})
+		}
+	}
+
+	// Inline each picture, at most imageMax: the archive shows thumbnails.
+	parallel(ctx, len(pics), releasesParallel, func(i int) {
+		if img, err := fetchImage(ctx, pics[i].Link, imageMax); err == nil {
+			pics[i].DataURI = img.DataURI
+		}
+	})
+	out := &PictureList{}
+	for i := len(pics) - 1; i >= 0; i-- {
+		if pics[i].DataURI != "" {
+			out.Items = append(out.Items, pics[i])
+		}
+	}
+	return out, nil
+}
+
 func init() {
 	Register(XkcdSource)
 	Register(ApodSource)
+	Register(ApodArchiveSource)
 }

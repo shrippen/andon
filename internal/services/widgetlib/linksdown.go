@@ -3,6 +3,7 @@ package widgetlib
 import (
 	"context"
 	"database/sql"
+	"strconv"
 	"time"
 
 	"andon/internal/enums"
@@ -11,6 +12,7 @@ import (
 	"andon/internal/services/linkstatus"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/util"
+	"andon/internal/sources"
 	"andon/internal/widgets"
 )
 
@@ -53,6 +55,12 @@ func linksDown(ctx context.Context, d *sql.DB, who *access.Principal, spaceID in
 			}
 			link, _ := cfg.(widgets.LinkConfig)
 			down := widgets.DownLink{Title: w.Title, URL: link.URL}
+			if r, ok := res.Data.(*sources.HTTPStatusResult); ok {
+				down.Cause = r.Error
+				if down.Cause == "" && r.Code > 0 {
+					down.Cause = "HTTP " + strconv.Itoa(r.Code)
+				}
+			}
 			if days := linkstatus.DownDays(d, w.ID, today); days > 0 {
 				down.Since = today.AddDate(0, 0, 1-days)
 			}

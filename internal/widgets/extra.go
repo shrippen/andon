@@ -39,6 +39,10 @@ func (c ImageConfig) RefreshSeconds() int { return c.ReloadM * secondsPerMinute 
 // Refresher is a config that sets its tile's refresh itself.
 type Refresher interface{ RefreshSeconds() int }
 
+// Detailer is a config whose dialog depends on its settings: one clock
+// zone has nothing to compare.
+type Detailer interface{ OffersDetail() bool }
+
 const secondsPerMinute = 60
 
 // freshBucket names the current period of a reload pace, so a query with
@@ -232,6 +236,9 @@ func init() {
 			{Key: "change", Input: InputCheck}, {Key: "invert", Input: InputCheck}},
 		Decode: decodeRates, Queries: func(cfg RatesConfig) []Query {
 			return []Query{{Name: "rates", Source: "exchange_rates", Params: map[string]any{"base": cfg.Base, "symbols": cfg.Symbols, "change": cfg.Change}}}
+		},
+		DetailQueries: func(cfg RatesConfig) []Query {
+			return []Query{{Name: openName, Source: "exchange_rates.history", Params: map[string]any{"base": cfg.Base, "symbols": cfg.Symbols}}}
 		}}.add()
 
 	Tile[MonitorsConfig]{Key: "monitors", Detail: monitorsDetail, Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceUptimeKuma, RefreshS: 60,

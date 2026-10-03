@@ -23,7 +23,7 @@ func TestHasDetail(t *testing.T) {
 // TestLoadDetailUnknownType: a type without a loader answers ErrNoDetail
 // before it touches the database.
 func TestLoadDetailUnknownType(t *testing.T) {
-	_, err := LoadDetail(context.Background(), nil, nil, &model.Widget{Type: "note"}, time.Now())
+	_, err := LoadDetail(context.Background(), nil, nil, &model.Widget{Type: "note"}, "", time.Now())
 	if !errors.Is(err, ErrNoDetail) {
 		t.Fatalf("err = %v", err)
 	}

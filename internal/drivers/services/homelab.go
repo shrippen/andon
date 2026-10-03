@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"andon/internal/drivers/httpclient"
 )
@@ -96,6 +97,24 @@ type DockerApi struct {
 // Containers returns /containers/json?all=1: running and stopped.
 func (a DockerApi) Containers(ctx context.Context) (any, error) {
 	return fetchJSON(ctx, joinURL(a.URL, "containers/json"), nil, url.Values{"all": {"1"}}, httpclient.TLSOf(a.Verify))
+}
+
+// Inspect returns /containers/{id}/json: restart count, OOM kill.
+func (a DockerApi) Inspect(ctx context.Context, id string) (any, error) {
+	return fetchJSON(ctx, joinURL(a.URL, "containers/"+url.PathEscape(id)+"/json"), nil, nil, httpclient.TLSOf(a.Verify))
+}
+
+// Stats returns one /containers/{id}/stats sample (Docker waits a moment
+// to fill the previous CPU reading).
+func (a DockerApi) Stats(ctx context.Context, id string) (any, error) {
+	return fetchJSON(ctx, joinURL(a.URL, "containers/"+url.PathEscape(id)+"/stats"), nil, url.Values{"stream": {"false"}}, httpclient.TLSOf(a.Verify))
+}
+
+// Logs returns the last lines of a container's output, as Docker sends
+// them (multiplexed frames without a TTY).
+func (a DockerApi) Logs(ctx context.Context, id string, tail int) (string, error) {
+	params := url.Values{"stdout": {"1"}, "stderr": {"1"}, "tail": {fmt.Sprint(tail)}}
+	return httpclient.GetText(ctx, joinURL(a.URL, "containers/"+url.PathEscape(id)+"/logs"), httpclient.Options{Params: params, SkipVerify: !a.Verify})
 }
 
 // ── Immich ──
@@ -237,6 +256,13 @@ func (a HassApi) Template(ctx context.Context, template string) (any, error) {
 	return postJSON(ctx, joinURL(a.URL, "api/template"), a.headers(), map[string]string{"template": template}, httpclient.TLSOf(a.Verify))
 }
 
+// History reads the state changes of entities since start
+// (/api/history/period/<start>): one list per entity, oldest first.
+func (a HassApi) History(ctx context.Context, start time.Time, ids []string) (any, error) {
+	params := url.Values{"filter_entity_id": {strings.Join(ids, ",")}, "minimal_response": {""}, "no_attributes": {""}}
+	return fetchJSON(ctx, joinURL(a.URL, "api/history/period/"+start.UTC().Format(time.RFC3339)), a.headers(), params, httpclient.TLSOf(a.Verify))
+}
+
 // Call runs a service on one entity, e.g. ("switch", "toggle", "switch.fan").
 func (a HassApi) Call(ctx context.Context, domain, service, entityID string) error {
 	path := "api/services/" + url.PathEscape(domain) + "/" + url.PathEscape(service)
@@ -272,4 +298,10 @@ func (a LinkwardenApi) Get(ctx context.Context, path string, params url.Values) 
 		return nil, err
 	}
 	return asMap(body)["response"], nil
+}
+
+// Bytes reads a binary answer of /api/v1/<path> (a link's preview image)
+// with its content type.
+func (a LinkwardenApi) Bytes(ctx context.Context, path string) ([]byte, string, error) {
+	return fetchBytes(ctx, joinURL(a.URL, "api/v1/"+path), map[string]string{"Authorization": "Bearer " + a.Token}, a.Verify)
 }

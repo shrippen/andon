@@ -11,6 +11,7 @@ package sources
 import (
 	"context"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -39,9 +40,10 @@ type Movement struct {
 	Line     string // flight number or line name
 	Place    string // other airport or direction
 	Status   string
-	Delay    int // minutes, transit only
-	Platform string
+	Delay    int    // minutes, transit only
+	Platform string // track, or a flight's terminal and gate ("T1 · A12")
 	Canceled bool
+	Remarks  []string // transit: warnings and status notes ("Bauarbeiten")
 }
 
 // BoardResult is a departure or arrival board, soonest first.
@@ -83,10 +85,22 @@ func fetchFlights(ctx context.Context, sctx Ctx) (any, error) {
 		when := flightTime(asStr(asMap(move["scheduledTime"])["utc"]))
 		out.Movements = append(out.Movements, Movement{
 			When: when, Line: asStr(f["number"]), Place: asStr(asMap(move["airport"])["name"]), Status: asStr(f["status"]),
-			Canceled: strings.EqualFold(asStr(f["status"]), "Canceled"),
+			Canceled: strings.EqualFold(asStr(f["status"]), "Canceled"), Platform: gateOf(move),
 		})
 	}
 	return out, nil
+}
+
+// gateOf joins a flight's terminal and gate: "T1 · A12", "" = unknown.
+func gateOf(move map[string]any) string {
+	var parts []string
+	if t := asStr(move["terminal"]); t != "" {
+		parts = append(parts, "T"+t)
+	}
+	if g := asStr(move["gate"]); g != "" {
+		parts = append(parts, g)
+	}
+	return strings.Join(parts, " · ")
 }
 
 // flightLayouts: AeroDataBox writes "2026-09-25 10:15Z".
@@ -138,9 +152,26 @@ func fetchTransit(ctx context.Context, sctx Ctx) (any, error) {
 		out.Movements = append(out.Movements, Movement{
 			When: when, Line: asStr(asMap(d["line"])["name"]), Place: asStr(d["direction"]),
 			Delay: int(asFloat(d["delay"])) / secondsPerMin, Platform: asStr(d["platform"]), Canceled: asBool(d["cancelled"]),
+			Remarks: transitRemarks(d["remarks"]),
 		})
 	}
 	return out, nil
+}
+
+// transitRemarks keeps warnings and status notes; hints ("bicycles
+// allowed") are the same on every trip.
+func transitRemarks(raw any) []string {
+	var out []string
+	for _, r := range asList(raw) {
+		m := asMap(r)
+		if asStr(m["type"]) == "hint" {
+			continue
+		}
+		if text := firstNonBlank(asStr(m["summary"]), asStr(m["text"])); text != "" && !slices.Contains(out, text) {
+			out = append(out, text)
+		}
+	}
+	return out
 }
 
 // findStop resolves a stop name to its id.

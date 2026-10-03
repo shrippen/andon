@@ -145,6 +145,7 @@ func tableRows(kind TableKind, results map[string]any, ctx ViewCtx) ([]Row, bool
 
 // budgetRow is one Kimai project's budget usage.
 type budgetRow struct {
+	ID      int64
 	Name    string
 	Pct     float64
 	Monthly bool // a monthly time budget: the month is its period
@@ -155,7 +156,7 @@ func kimaiBudgets(data *sources.KimaiDataset, today time.Time) []budgetRow {
 	var rows []budgetRow
 	for _, p := range data.Projects {
 		if share, ok := metrics.BudgetUse(p, data, today); ok {
-			rows = append(rows, budgetRow{Name: p.Name, Pct: share, Monthly: p.BudgetType == "month"})
+			rows = append(rows, budgetRow{ID: p.ID, Name: p.Name, Pct: share, Monthly: p.BudgetType == "month"})
 		}
 	}
 	sort.Slice(rows, func(i, j int) bool { return rows[i].Pct > rows[j].Pct })

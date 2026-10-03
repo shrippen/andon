@@ -528,6 +528,7 @@ field:
   free: 'Frei verfügbaren Betrag zeigen (Kontostand)'
   titles_only: 'Nur Titel (eine Zeile je Eintrag)'
   list_height: 'Listenhöhe'
+  show_meals: 'Essensplan zeigen'
 opt:
   exposure: 'Angriffsfläche'
   domain_chain: 'Domain-Kette'
@@ -967,6 +968,9 @@ wtype:
   links_down:
     name: 'Was ist rot?'
     desc: 'Alle Links des Bereichs, deren Statusprüfung fehlschlägt, mit Dauer.'
+  tandoor:
+    name: 'Einkaufsliste (Tandoor)'
+    desc: 'Offene Einträge der Einkaufsliste und die nächsten geplanten Essen.'
 widget:
   bad_window: 'Wartungsfenster nicht lesbar: z. B. 22:00-06:00 oder 22-6.'
   bad_timezone: 'Unbekannte Zeitzone: z. B. Europe/Berlin.'
@@ -1306,6 +1310,9 @@ conn:
   what_docker: 'Docker: Zustand aller Container eines Hosts, gelesen über einen Socket-Proxy, der nur Container anzeigen darf.'
   about_docker: 'Container-Zustand'
   options_hint_docker: 'Kein Token. Adresse eines Socket-Proxys, nie den Docker-Socket selbst, z. B. tecnativa/docker-socket-proxy mit CONTAINERS=1 und sonst nichts: http://docker-proxy:2375.'
+  what_tandoor: 'Tandoor Recipes verwaltet Rezepte, Essenspläne und die Einkaufsliste dazu.'
+  about_tandoor: 'Einkaufsliste und Essensplan'
+  options_hint_tandoor: 'Keine Optionen. Token = API-Token aus Tandoor → Einstellungen → API (Bereich read write: Abhaken braucht Schreibrecht).'
 mode:
   shared: Geteilt
   personal: Persönlich
@@ -1363,6 +1370,7 @@ service:
   wallos: Wallos
   tax: 'Steuer'
   docker: 'Docker'
+  tandoor: 'Tandoor'
 test:
   ok: OK
   failed: Fehler
@@ -1658,6 +1666,9 @@ hint:
     updates:
       title: 'Router: {count} Updates'
       why: 'Installiert: {version}.'
+    new_device:
+      title: 'Neues Gerät im Netz: {name}'
+      why: 'Seit {day} im Netz. Kennst du es nicht, im Router sperren.'
   mediaserver:
     update:
       title: 'Mediaserver-Update verfügbar'
@@ -1817,6 +1828,12 @@ hint:
     app_updates:
       title: '{count} App-Updates in TrueNAS'
       why: '{apps}'
+    scrub_old:
+      title: 'Pool {pool}: letzter Scrub am {day}'
+      why: 'ZFS findet stille Schäden nur beim Lesen. In TrueNAS eine Scrub-Aufgabe planen (monatlich).'
+    scrub_errors:
+      title: 'Scrub fand {count} Fehler in {pool}'
+      why: 'Platten des Pools prüfen (SMART), betroffene Dateien aus dem Backup holen.'
   komodo:
     alert:
       title: 'Komodo: {kind} bei {name}'
@@ -2376,6 +2393,8 @@ info:
     cpu: CPU {percent} %
   wallos:
     subs: '{count} Abos · {amount}/Monat'
+  tandoor:
+    items: '{count} Einträge offen'
 kpi:
   safe: 'Konto {in}, zurückzulegen {out}'
   liquidity: Eingang {in} − Fixkosten {out}
@@ -2651,6 +2670,8 @@ rule_name:
   backups.restore_untested: 'Wiederherstellung testen'
   docker.unhealthy: 'Container ungesund'
   docker.crashed: 'Container abgestürzt'
+  truenas.scrub_old: 'Pool-Scrub'
+  gateway.new_device: 'Neue Geräte im Netz'
 param:
   new_watts: 'Neues Gerät (W)'
   new_cost: 'Neues Gerät (€)'
@@ -3004,6 +3025,7 @@ keys:
   shift_click: Umschalt + Rechtsklick
   context: Browser-Menü statt Kachel-Menü
 detail:
+  csv: 'CSV'
   api:
     answer: 'Antwort'
     field: 'Feld'
@@ -3013,6 +3035,8 @@ detail:
     url: 'Adresse'
     value: 'Wert'
     values: 'Werte'
+    add: 'Als Feld'
+    paths: 'Weitere Werte'
   chart:
     change: 'Änderung'
     diff: 'Differenz'
@@ -3039,6 +3063,13 @@ detail:
     title: 'Titel'
     updated: 'geändert'
     user: 'Nutzer'
+    activity: 'Aktivität'
+    commits_8w: 'Commits in 8 Wochen'
+    error: 'Fehler'
+    mirrors: 'Push-Spiegel'
+    pushed: 'Letzter Push'
+    remote: 'Ziel'
+    synced: 'Abgeglichen'
   kpi:
     amount: 'Betrag'
     days: 'Die letzten 30 Tage'
@@ -3047,6 +3078,7 @@ detail:
     note: 'Hinweis'
     target: 'Ziel'
     what: 'Posten'
+    how: 'So entsteht der Wert'
   progress:
     list: 'Alle Budgets und Ziele'
     meters: 'Budgets und Ziele'
@@ -3057,6 +3089,7 @@ detail:
     should: 'Soll heute'
     state: 'Stand'
     used: 'Stand'
+    history: 'Budgetverbrauch (60 Tage)'
   table:
     answer_no: 'nein'
     rows: '{n} Zeilen'
@@ -3067,6 +3100,12 @@ detail:
     low: 'tiefster'
     now: 'jetzt'
     start: 'zu Beginn'
+    amount: 'Betrag'
+    client: 'Kunde'
+    day: 'Tag'
+    moves: 'Größte Sprünge'
+    payment: 'Zahlung'
+    what: 'Beleg'
   board:
     airport: 'Flughafen'
     canceled: 'annulliert'
@@ -3085,6 +3124,7 @@ detail:
     stop: 'Haltestelle'
     time: 'Zeit'
     walk: 'Fußweg'
+    remarks: 'Meldungen'
   dwd:
     active: 'Warnung aktiv'
     calm: 'keine Warnung'
@@ -3109,6 +3149,9 @@ detail:
     prices: 'Preis je Stunde'
     temp: 'Außentemperatur'
     window: 'ab {time} · {price}'
+    months: 'Verbrauch je Monat (kWh)'
+    months_this: 'Letzte 12 Monate'
+    months_prev: 'Vorjahr'
   grocy:
     amount: 'Menge'
     below_min: 'Unter Mindestbestand'
@@ -3121,6 +3164,8 @@ detail:
     product: 'Produkt'
     soon: 'bald fällig'
     stock: 'Haltbarkeit'
+    add_missing: 'Auf die Einkaufsliste'
+    to_list: '{n} Produkte unter Mindestbestand'
   hass:
     changed: 'geändert'
     entities: 'Entitäten'
@@ -3129,13 +3174,15 @@ detail:
     name: 'Name'
     trouble: '{n} auffällig'
     value: 'Wert'
+    day: 'Letzte 24 Stunden (an = grün)'
   holidays:
     bridges: 'Brückentage'
     count: 'Feiertage'
-    legend: 'Feiertag dunkel, Brückentag hell'
+    legend: 'Feiertag dunkel, frei (Kimai) mittel, Brückentag hell'
     next: 'Als Nächstes'
     raster: 'Ein halbes Jahr'
     region: 'Region'
+    absent: 'Frei laut Kimai'
   market:
     close: 'Schluss'
     coin: 'Coin'
@@ -3158,6 +3205,7 @@ detail:
     in_base: '1 Einheit in {base}'
     list: 'Kurse'
     per_base: 'für 1 {base}'
+    history: 'Letzte 3 Monate'
   weather:
     day: 'Tag'
     days: 'Die nächsten Tage'
@@ -3171,6 +3219,11 @@ detail:
     rain: 'Regen höchstens'
     today: 'heute max / min'
     wind: 'Wind'
+    gusts: 'Böen {n}'
+    gusts_col: 'Böen'
+    sky: 'Wetter'
+    sun: 'Sonne {rise}–{set}'
+    sun_col: 'Sonne'
   read_original: 'Original lesen'
   arr:
     app: 'App'
@@ -3183,6 +3236,7 @@ detail:
     stuck_items: 'Hängt in der Warteschlange'
     healthy: 'gesund'
     warnings: 'Warnungen'
+    posters: 'Als Nächstes'
   rss:
     feeds: 'Feeds'
     unread: 'ungelesen'
@@ -3195,6 +3249,7 @@ detail:
     empty: 'Der Feed hat keine Einträge.'
     published: 'veröffentlicht'
     more: 'Weitere Einträge'
+    unread_days: 'Ungelesen je Tag'
   linkwarden:
     links: 'Links'
     collections: 'Sammlungen'
@@ -3203,6 +3258,7 @@ detail:
     saved: 'gespeichert'
     name: 'Name'
     collection: 'Sammlung'
+    previews: 'Vorschau der neuesten Links'
   media:
     server: 'Server'
     movies: 'Filme'
@@ -3213,6 +3269,8 @@ detail:
     user: 'Nutzer'
     title: 'Titel'
     idle: 'Gerade schaut niemand.'
+    plays: 'Wiedergaben je Tag (30 Tage)'
+    top: 'Am meisten gespielt'
   sab:
     loading: 'lädt'
     paused: 'pausiert'
@@ -3223,11 +3281,16 @@ detail:
     queue: 'Warteschlange'
     failures: 'Fehlgeschlagen'
     failed_one: 'fehlgeschlagen'
+    month: 'Diesen Monat'
+    total: 'Insgesamt'
+    volume: 'Geladen je Tag (4 Wochen)'
   picture:
     none: 'Das Bild ließ sich nicht laden.'
     title: 'Titel'
     original: 'Original'
     source: 'Quelle'
+    archive: 'Die Tage davor'
+    explain: 'Erklärung'
   hints_open: 'offen'
   hints_critical: 'kritisch'
   hints_warn: 'Warnungen'
@@ -3248,15 +3311,28 @@ detail:
     today: 'seit heute'
     all_up: 'Alle geprüften Links antworten.'
     n_down: '{n} unten'
+    cause: 'Ursache'
+    causes: 'Nach Ursache'
   conn:
     healthy: 'ohne Fehler'
     days: 'Abrufe je Tag'
+    avg_ms: 'Antwort Ø ms'
+    failed: 'fehlgeschlagen'
+    fetches: 'Abrufe'
+    last_error: 'Letzter Fehler'
+    ok: 'erfolgreich'
+    open: 'Verbindung bearbeiten'
+    service: 'Dienst'
+    tiles: 'Kacheln'
   deadlines:
     setup: 'Die Steuerfristen erscheinen, sobald in den Bereichseinstellungen die Steuerdaten eingetragen sind.'
     list: 'Fristen im nächsten Jahr'
     in: 'in {n} Tagen'
     next: 'nächste'
     count: 'Fristen'
+    filed: 'Abgegeben'
+    filed_on: 'abgegeben am {day}'
+    mark_filed: 'Abgegeben'
   expiries:
     none: 'In diesem Zeitraum läuft nichts ab.'
   noise:
@@ -3268,6 +3344,7 @@ detail:
     per_day: 'Neue Hinweise je Tag'
     how: 'Eine Regel, deren Hinweise von selbst verschwinden und wiederkommen, ist zu empfindlich eingestellt. In den Regel-Einstellungen eine höhere Schwelle wählen.'
     settings: 'Regeln einstellen'
+    limits: 'Grenzwerte'
   trend:
     open: 'Offene Hinweise je Tag'
   light:
@@ -3278,15 +3355,21 @@ detail:
     why_count: 'Hinweise dafür'
     why: 'Warum diese Farbe'
     calm: 'Nichts schaltet die Ampel um.'
+    history: 'Ampel der letzten Tage'
+    red_days: '{n} Tage rot'
   recent:
     updates: 'Updates'
     opened: 'neue Hinweise'
     list: 'Was passiert ist'
     burst: '{n} Hinweise auf einmal'
     all: 'Zeitleiste'
+    after_update: '{n} min nach Update {update}'
   story:
     week: 'Die Woche'
     empty: 'Für diese Woche gibt es noch nichts zu berichten.'
+    this_week: 'Diese Woche'
+    week_of: 'KW {n}'
+    weeks: 'Wochen'
   calendar:
     count: 'Termine'
     weeks: 'Die nächsten zwei Wochen'
@@ -3296,6 +3379,12 @@ detail:
     time: 'Zeit'
     title: 'Termin'
     place: 'Ort'
+    free: 'Freie Zeit (Werktage 9–18 Uhr, ab 2 h)'
+    from: 'von'
+    to: 'bis'
+    hours: 'Stunden'
+    unbooked: 'Termine ohne Buchung'
+    unbooked_note: 'letzte {n} Tage, Kunde oder Projekt im Titel'
   clock:
     work: 'Arbeitszeit 9–18 Uhr der Zonen, in deiner Zeit'
   center:
@@ -3310,6 +3399,9 @@ detail:
     change: 'Änderung in {n} T'
     moves: 'Größte Bewegungen'
     none: 'Für eine Vorschau fehlen Rechnungen oder ein Kontostand.'
+    if_late: 'wenn {ref} {n} T später zahlt'
+    lowest_if: 'Tiefster Stand ohne {ref}'
+    what_if: 'Was, wenn eine Rechnung {n} T später kommt?'
   invoices:
     band_current: 'nicht fällig'
     band_d30: '1–{to} T überfällig'
@@ -3326,6 +3418,10 @@ detail:
     due: 'fällig'
     balance: 'offen'
     late: 'überfällig'
+    next_reminder: 'nächste Erinnerung {day}'
+    not_reminded: 'noch nicht erinnert'
+    reminded: 'erinnert {day}'
+    reminder: 'Erinnerung'
   money:
     on_way: 'Unterwegs'
     paid30: 'bezahlt 30 T'
@@ -3333,6 +3429,8 @@ detail:
     per_month: 'Umsatz netto je Monat'
     year_ago: 'vor einem Jahr'
     this_month: 'dieser Monat'
+    pay_days: 'Rechnung → Zahlung Ø'
+    work_age: 'Arbeit offen Ø'
   paydays:
     target: 'Zahlungsziel'
     center: 'Gerechnet mit'
@@ -3341,6 +3439,9 @@ detail:
     typical_label: 'typische Zahldauer'
     invoices: 'Rechnungen'
     per_invoice: 'Tage bis Zahlung je Rechnung'
+    discount: '{pct} % Skonto hätte gekostet'
+    interest: '{pct} % Verzugszins hätte gebracht'
+    revenue_year: 'Umsatz 12 Monate'
   rate:
     month: 'Monat'
     target: 'Ziel'
@@ -3350,6 +3451,11 @@ detail:
     per_month: 'Effektiver Satz je Monat'
     revenue: 'Umsatz netto je Monat'
     none: 'Noch zu wenig Rechnungen und Stunden für einen Satz.'
+    budget: 'Budget'
+    fixed: 'Festpreis-Projekte'
+    hours: 'Stunden'
+    per_hour: 'je Stunde'
+    project: 'Projekt'
   mail:
     invoices: 'Rechnungs-Mails'
     box: 'Postfach'
@@ -3373,6 +3479,7 @@ detail:
     title: 'Titel'
     notice: 'Kündigungsfristen'
     growth: 'Dokumente · 90 Tage'
+    inbox_pages: 'Im Eingang'
   receipts:
     missing: 'Ohne Beleg'
     span: 'Zeitraum'
@@ -3384,6 +3491,9 @@ detail:
     search: 'In Paperless suchen'
     amount: 'Betrag'
     date: 'Datum'
+    match: 'Ausgabe mit Beleg verknüpfen'
+    match_how: 'im Belegabgleich (Invoice Ninja ↔ Paperless)'
+    match_open: 'Belegabgleich'
   subs:
     none: 'Keine Abos gefunden (Wallos oder wiederkehrende Zahlungen in Sure).'
     count: 'Abos'
@@ -3396,6 +3506,7 @@ detail:
     per_month: 'je Monat'
     by_category: 'Nach Kategorie'
     not_in_wallos: 'Nicht in Wallos'
+    price_changes: 'Preisänderungen'
   open_in: 'Öffnen'
   wd:
     mon: 'Mo'
@@ -3417,6 +3528,7 @@ detail:
     note: 'Beschreibung'
     day: 'Heute · gebuchte Zeit'
     recent: 'Zuletzt genutzt'
+    budget_used: 'Budget verbraucht'
   kimai:
     booked: 'Gebucht'
     target: 'Soll'
@@ -3436,6 +3548,8 @@ detail:
     longest: 'Längster Tag'
     at_day: '{time} am {day}'
     per_day: 'Stunden je Tag'
+    by_hour: 'Wann gearbeitet wird (Woche × Stunde)'
+    by_hour_scale: 'dunkler = mehr Stunden'
   aging:
     bands: 'Stufen'
     days: 'bis {mid} T, bis {old} T, älter'
@@ -3448,6 +3562,7 @@ detail:
     mid: 'mittel'
     old: 'alt'
     sum: 'Summe'
+    history: 'Nicht abgerechnet · 90 Tage'
   kintsugi:
     last_run: 'Letzter Lauf'
     gaps: 'Lücken offen'
@@ -3467,6 +3582,7 @@ detail:
     kind_development: 'Entwicklung'
     run_ok: 'letzter Lauf ok'
     run_failed: 'letzter Lauf fehlgeschlagen'
+    rate_history: 'Annahmequote · 90 Tage'
   dawarich:
     day: 'Tag'
     places: 'Orte'
@@ -3490,9 +3606,14 @@ detail:
     compare: 'Im Vergleich'
     this_month: 'dieser Monat'
     last_month: 'Vormonat'
+    by_month: 'Kilometer je Monat'
   month_close:
     steps: 'Schritte erledigt'
     by_hand: 'von Hand abgehakt'
+    after: 'nach Monatsende'
+    closed: 'abgeschlossen am'
+    history: 'Abschlüsse'
+    month: 'Monat'
   answer_yes: 'ja'
   answer_no: 'nein'
   dns:
@@ -3509,6 +3630,11 @@ detail:
     top_clients: 'Häufigste Clients'
     top_blocked: 'Am häufigsten geblockt'
     per_day: 'Anfragen je Tag · 30 Tage'
+    pause: '10 min aus'
+    pause_back: 'schaltet sich danach selbst wieder ein'
+    pause_label: 'Filter'
+    pause_what: 'Filter kurz aussetzen, wenn eine Seite nicht lädt'
+    per_hour: 'Anfragen je Stunde'
   gateway:
     router: 'Router'
     version: 'Version'
@@ -3526,6 +3652,8 @@ detail:
     state_bad: 'unten'
     all_up: 'alle Leitungen oben'
     link_down: 'Leitung unten'
+    delay_days: 'Latenz je Tag'
+    new_devices: 'Neue Geräte ({n} T)'
   speed:
     last: 'Letzte Messung'
     contract: 'Vertrag'
@@ -3540,6 +3668,13 @@ detail:
     slow_days: 'langsame Tage'
     per_day: 'Download je Tag (Mbit/s)'
     none: 'Noch keine gespeicherten Messungen: Andon merkt sich einen Wert je Tag.'
+    below: 'Unter Vertrag (für den Anbieter)'
+    below_count: '{n} Messungen an {days} Tagen'
+    by_hour: 'Wann es langsam ist (Woche × Stunde)'
+    by_hour_scale: 'dunkler = weiter unter Vertrag'
+    day: 'Tag'
+    time: 'Zeit'
+    today: 'Messungen heute'
   tailscale:
     online: 'online'
     keys: 'Schlüssel laufen bald ab'
@@ -3550,6 +3685,8 @@ detail:
     key: 'Schlüssel bis'
     tags: 'Tags'
     never: 'läuft nie ab'
+    client: 'System · Client'
+    online_days: 'Online je Tag'
   vpn:
     status: 'Status'
     exit: 'Ausgangs-IP'
@@ -3562,11 +3699,20 @@ detail:
     connected: 'verbunden'
     broken: 'Tunnel unten oder Leck'
     wrong_country: 'falsches Land'
+    changes: 'Wechsel von Tunnel und Ausgang'
+    no_port: 'keiner'
+    port: 'Weitergeleiteter Port'
   ip:
     v4: 'IPv4'
     v6: 'IPv6'
     changes: 'Letzter Wechsel'
     no_change: 'Seit Andon die Adresse beobachtet, hat sie sich nicht geändert.'
+    addrs: 'DNS zeigt auf'
+    dns: 'Eigene Domains'
+    dns_here: 'zeigt hierher'
+    dns_other: 'zeigt woandershin'
+    every: 'Wechsel alle'
+    host: 'Host'
   authentik:
     logins7: 'Anmeldungen 7 T'
     failed7: 'fehlgeschlagen 7 T'
@@ -3583,6 +3729,7 @@ detail:
     ip: 'IP'
     last_login: 'Zuletzt angemeldet'
     current: 'aktuell'
+    per_day: 'Anmeldungen je Tag'
   expiry:
     next: 'Als Nächstes'
     in: 'in'
@@ -3592,6 +3739,11 @@ detail:
     spf: 'SPF'
     dmarc: 'DMARC'
     until: 'läuft ab'
+    host: 'Host'
+    renewal_late: 'Verlängerung überfällig'
+    renewal_ok: 'im Plan'
+    renewals: 'Verlängerungen'
+    renewed: 'zuletzt verlängert'
   exposure:
     resources: 'Öffentliche Ressourcen'
     risk_ok: 'geringes Risiko'
@@ -3605,11 +3757,17 @@ detail:
     sites: 'Sites'
     all_login: 'alles hinter Anmeldung'
     n_open: '{n} ohne Anmeldung'
+    blocked: 'abgewiesen (7 T)'
+    from: 'Herkunft'
+    requests: 'Aufrufe (7 T)'
   vault:
     with_2fa: 'Konten mit zweitem Faktor'
     set_up: '{who}: zweiten Faktor einrichten lassen'
     check: '{who}: Konto prüfen (lange inaktiv, ohne zweiten Faktor)'
     have_2fa: 'mit zweitem Faktor'
+    members: 'Mitglieder'
+    org: 'Organisation'
+    orgs: 'Organisationen'
   plain: '{text}'
   hints: 'Hinweise zu dieser Kachel'
   today: 'heute'
@@ -3642,6 +3800,16 @@ detail:
     problems: 'Veraltet und fehlgeschlagen'
     all_ok: 'alles gesichert'
     n_open: '{n} offen'
+    change: 'Änderung {n} T'
+    client: 'Client'
+    duration: 'Dauer'
+    last_archive: 'letztes Archiv'
+    mark_tested: 'Getestet'
+    never: 'noch nie'
+    repo_size: 'Repository'
+    restore_task: 'Wiederherstellung von {system} getestet'
+    restored: 'Wiederherstellung je Quartal getestet'
+    sizes: 'Größe je Client'
   disks:
     list: 'Platten'
     state_ok: 'gesund'
@@ -3658,6 +3826,10 @@ detail:
     smart: 'SMART'
     all_ok: 'alle gesund'
     n_bad: '{n} auffällig'
+    asset: 'Inventar'
+    bought: 'gekauft'
+    temp_history: 'Temperatur · 30 Tage'
+    warranty: 'Garantie bis'
   docker:
     running: 'laufen'
     exited: 'beendet'
@@ -3670,6 +3842,13 @@ detail:
     all_ok: 'alle laufen'
     n_exited: '{n} beendet'
     n_unhealthy: '{n} unhealthy'
+    containers: 'Container'
+    cpu: 'CPU'
+    log_of: 'Log von {name}'
+    mem: 'Speicher'
+    oom: 'Speicher voll (beendet)'
+    restart_count: 'Neustarts'
+    restarts: '{n} Neustarts'
   komodo:
     servers: 'Server gesund'
     stacks: 'Stacks laufen'
@@ -3683,6 +3862,14 @@ detail:
     all_ok: 'alles läuft'
     n_down: '{n} unten'
     n_updates: '{n} Updates'
+    by: 'von'
+    deploy_failed: 'fehlgeschlagen'
+    deploy_ok: 'erfolgreich'
+    deployed: 'ausgerollt'
+    deploys: 'Letztes Ausrollen'
+    mem_disk: 'RAM {mem} · Platte {disk}'
+    no_stats: 'keine Werte'
+    server_load: 'Server-Auslastung'
   truenas:
     host: 'Host'
     version: 'Version'
@@ -3696,15 +3883,30 @@ detail:
     alerts_apps: 'Alarme und Apps'
     healthy: 'gesund'
     unhealthy: 'Pool nicht gesund'
+    datasets: 'Größte Datasets'
+    pool: 'Pool'
+    scrub_errors: 'Fehler'
+    scrub_last: 'letzter Scrub'
+    scrubs: 'Scrubs'
   storage:
     full_on: 'voll am {day}'
     not_filling: 'füllt nicht'
     none: 'Noch keine gespeicherten Belegungen: Andon sammelt sie täglich, die Prognose erscheint nach einigen Tagen.'
+    events: 'Ereignisse im Zeitraum'
+    full_between: 'voll zwischen {from} und {to}'
+    full_from: 'voll frühestens {day}'
   cost:
     month: 'je Monat'
     cloud: 'zur Cloud'
     business: 'betrieblich'
     power_split: 'Strom je Dienst'
+    amount: 'Kosten'
+    at_hour_prices: 'gemessen, mit Stundenpreisen'
+    day: 'Tag'
+    kwh: 'Verbrauch'
+    per_month: 'Monatskosten im Verlauf'
+    power_days: 'Stromkosten je Tag'
+    power_table: 'Verbrauch je Tag'
   updates:
     open: 'Offene Updates'
     oldest: 'ältestes'
@@ -3715,6 +3917,12 @@ detail:
     done: 'erledigt'
     none: 'alles aktuell'
     n_open: '{n} offen'
+    note: 'Hinweis'
+    at_day: 'am'
+    security: 'Sicherheits-Release'
+    security_count: 'Sicherheits-Releases'
+    service: 'Dienst'
+    version: 'Version'
   window:
     span: 'Fenster'
     always: 'immer'
@@ -3731,6 +3939,11 @@ detail:
     ok_working: 'Kein Kimai-Timer läuft'
     ok_meeting: 'Kein Termin in der nächsten Stunde'
     ok_expensive: 'Strom ist nicht teuer'
+    busy: 'Wann etwas läuft (Woche × Stunde)'
+    busy_scale: 'dunkler = öfter belegt'
+    night: 'Die Nacht: Preis je Stunde, gelb = oft belegt'
+    suggest: 'Ruhigste Zeit'
+    suggest_at: '{from}–{to} ({share} belegt)'
   immich:
     version: 'Version'
     photos: 'Fotos'
@@ -3742,6 +3955,10 @@ detail:
     growth: 'Objekte · 90 Tage'
     jobs: 'Fehlgeschlagene Jobs je Warteschlange'
     current: 'aktuell'
+    size: 'Größe'
+    uploads: 'Neu je Tag'
+    user: 'Nutzer'
+    users: 'Je Nutzer'
   umami:
     sites: 'Websites'
     change: '{n} % zur Vorwoche'
@@ -3750,6 +3967,9 @@ detail:
     prev: 'Besucher Vorwoche'
     week: '7 Tage'
     week_before: '7 Tage davor'
+    pages: 'Seiten der Woche'
+    per_day: 'Aufrufe je Tag'
+    referrers: 'Herkunft der Woche'
   glances:
     metric: 'Kennzahl'
     points: 'Messpunkte'
@@ -3759,6 +3979,17 @@ detail:
   sys:
     load: 'Last je Kern'
     per_core: '{n} Kerne'
+    daily: 'Tagesmittel · 30 Tage'
+    interface: 'Schnittstelle'
+    network: 'Netzwerk'
+    process: 'Prozess'
+    processes: 'Größte Prozesse'
+    rx: 'empfangen'
+    sensor: 'Sensor'
+    sensors: 'Sensoren'
+    tx: 'gesendet'
+    uptime: 'Laufzeit'
+    value: 'Wert'
   uptime:
     month: 'Monat'
     days_of: '{n} Tage gemessen'
@@ -3779,10 +4010,34 @@ detail:
     ms: 'Antwortzeit je Tag · Mittel aller (ms)'
     all_up: 'alle oben'
     n_down: '{n} unten'
+    cert: 'Zertifikat noch'
+    ms_one: 'Antwortzeit · 30 Tage'
+    state: 'Zustand'
+    target: 'Ziel'
+    type: 'Art'
+    uptime_days: 'Verfügbarkeit {n} T'
+    value: 'Wert'
+    what: 'Angabe'
   facts: 'Fakten'
   goal: 'Grenze'
   close: 'Schließen'
   open: 'Details'
+  hints_assignee: 'Zuständig'
+  hints_history: 'Verlauf'
+  hints_ics: 'Als Kalender abonnieren'
+  hints_nobody: 'niemand'
+  hints_note: 'Notiz'
+  hints_pick: 'Hinweis wählen'
+  hints_save: 'Speichern'
+  hints_work: 'Bearbeiten'
+  tandoor:
+    open: 'Offen'
+    meals: 'Geplante Essen'
+    check: 'Abhaken'
+    other: 'Ohne Kategorie'
+    empty: 'Nichts auf der Einkaufsliste.'
+    plan: 'Essensplan der Woche'
+    from_grocy: 'Fehlt laut Grocy, nicht auf der Liste'
 linkdetail:
   open_aria: Verlauf und Details
   open: Öffnen
@@ -3833,6 +4088,10 @@ linkdetail:
     partial: Teilweise
     down: Ausfall
     none: Keine Daten
+  clicks: 'Aufrufe von hier'
+  clicks_total: '{n} in 30 Tagen'
+  no_clicks: 'Noch nicht von hier aufgerufen.'
+  not_checked: 'aus (Prüfung abgeschaltet)'
 uptime:
   summary: '{share} erreichbar in 30 Tagen, Ø {ms} ms'
   month: 'Verfügbarkeit {month}'
@@ -3958,6 +4217,8 @@ timeline:
   yesterday: 'Gestern'
   band: 'Ereignisse je Vierteltag der letzten {days} Tage'
   before_min: '{min} min davor'
+  close: 'Monat abgeschlossen'
+  restore: 'Wiederherstellung getestet'
 isp:
   title: 'Internet gegen Vertrag'
   lead: 'Tägliche Messungen der letzten {days} Tage (Speedtest Tracker) und WAN-Ausfälle (Router). Ein Tag zählt als zu langsam unter {share} % des gebuchten Downloads.'
@@ -4755,3 +5016,28 @@ links_down:
   none: 'Alle Links antworten.'
 token:
   boards: 'Ein Einbettungs-Token braucht Boards, die du siehst.'
+kpi_how:
+  hours_today: 'Alle Zeiten in Kimai von heute, abrechenbar oder nicht.'
+  hours_week: 'Alle Zeiten in Kimai seit Montag.'
+  hours_month: 'Alle Zeiten in Kimai seit dem Monatsersten.'
+  utilization: 'Abrechenbare Stunden des Monats geteilt durch die Sollstunden bis heute (Arbeitstage ohne Feiertage und Abwesenheiten).'
+  unbilled: 'Abrechenbare Zeiten in Kimai, die noch nicht exportiert sind, zum jeweiligen Stundensatz, je Kunde.'
+  revenue_ytd: 'Rechnungen netto nach Rechnungsdatum seit 1.1., verglichen mit demselben Zeitraum im Vorjahr.'
+  revenue_month: 'Rechnungen netto nach Rechnungsdatum seit dem Monatsersten.'
+  open_amount: 'Offene Beträge aller versendeten, nicht bezahlten Rechnungen.'
+  overdue_amount: 'Offene Beträge der Rechnungen nach ihrem Fälligkeitstag.'
+  vat_liability: 'Umsatzsteuer des laufenden Voranmeldungszeitraums abzüglich Vorsteuer, nach der eingestellten Methode (Ist oder Soll).'
+  tax_reserve: 'Umsatzsteuerschuld plus Einkommensteuer-Satz × (Umsatz seit 1.1. − Ausgaben netto seit 1.1.).'
+  asset_value: 'Summe der Kaufpreise aller Geräte in Snipe-IT.'
+  assets_ready: 'Einsatzbereite Geräte, die niemandem zugewiesen sind.'
+  revenue_forecast: 'Umsatz seit 1.1. geteilt durch die vergangenen Tage, mal Tage des Jahres.'
+  cash_30: 'Offene Rechnungen plus wiederkehrende Rechnungen, die in den nächsten 30 Tagen fällig werden (brutto).'
+  liquidity_30: 'Erwartete Eingänge der nächsten 30 Tage minus Fixkosten (aus Sure, sonst die eingestellten Fixkosten).'
+  effective_rate: 'Umsatz netto je Kunde geteilt durch die in Kimai gebuchten Stunden desselben Kunden, über alle zugeordneten Kunden.'
+  net_worth: 'Vermögen minus Schulden aller Konten in Sure.'
+  cash: 'Saldo aller Bankkonten in Sure.'
+  safe_to_spend: 'Bankguthaben minus Umsatzsteuerschuld, Einkommensteuer-Rücklage und Fixkosten der nächsten 30 Tage.'
+tandoor:
+  open: '{count} offen'
+  empty: 'Einkaufsliste leer'
+  plan: 'Essensplan'

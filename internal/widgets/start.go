@@ -336,6 +336,14 @@ type ClockConfig struct {
 	Analog    bool // a face with hands
 }
 
+// rssParams are the feed's query params, shared by its dialog's article.
+func rssParams(cfg RssConfig) map[string]any {
+	return map[string]any{"url": cfg.URL, "limit": cfg.Limit, "urls": cfg.More, "images": cfg.Images, "max_age": float64(cfg.MaxAge)}
+}
+
+// OffersDetail: the dialog compares zones, one zone needs none.
+func (c ClockConfig) OffersDetail() bool { return len(c.Timezones) > 1 }
+
 // decodeClock keeps the zones Go knows: a typo would show "?".
 func decodeClock(r Raw) ClockConfig {
 	var tz []string
@@ -348,6 +356,27 @@ func decodeClock(r Raw) ClockConfig {
 		tz = asStringList(r.field("timezones").Default)
 	}
 	return ClockConfig{Timezones: tz, Seconds: r.Bool("seconds"), Date: r.Bool("date"), H12: r.Pick("format") == "12", Analog: r.Bool("analog")}
+}
+
+// weatherThresholds maps a WMO weather code's upper bound to its icon key
+// (e.g. code 61 -> "rain"): the first threshold the code doesn't exceed.
+var weatherThresholds = []struct {
+	max  int
+	kind string
+}{
+	{0, "clear"}, {3, "cloudy"}, {48, "fog"}, {57, "drizzle"}, {67, "rain"},
+	{77, "snow"}, {82, "showers"}, {86, "snow"}, {99, "thunder"},
+}
+
+// WeatherKind names a WMO weather code's condition ("rain"), the
+// catalog key weather.<kind>.
+func WeatherKind(code int) string {
+	for _, t := range weatherThresholds {
+		if code <= t.max {
+			return t.kind
+		}
+	}
+	return "unknown"
 }
 
 // weatherView drops today from the forecast (the current conditions
@@ -578,8 +607,10 @@ func init() {
 			{Key: "max_age", Input: InputNumber, Min: "0", Max: "365"}, {Key: "titles_only", Input: InputCheck},
 			sel("list_height", rssHeightAuto, rssHeightAuto, "short", "medium", "tall")},
 		Decode: decodeRss, Queries: func(cfg RssConfig) []Query {
-			return []Query{{Name: "feed", Source: "rss", Params: map[string]any{"url": cfg.URL, "limit": cfg.Limit, "urls": cfg.More,
-				"images": cfg.Images, "max_age": float64(cfg.MaxAge)}}}
+			return []Query{{Name: "feed", Source: "rss", Params: rssParams(cfg)}}
+		},
+		DetailQueries: func(cfg RssConfig) []Query {
+			return []Query{{Name: openName, Source: "rss.article", Params: rssParams(cfg)}}
 		}}.add()
 
 	Tile[ClockConfig]{Key: "clock", Detail: clockDetail, Category: CategoryStart, Topic: TopicOverview, Inline: true, RefreshS: 30,
@@ -599,14 +630,14 @@ func init() {
 			{Key: "reload", Input: InputNumber, Min: "0", Max: "1440"}},
 		Decode: decodeIframe}.add()
 
-	Tile[SysinfoConfig]{Key: "sysinfo", Detail: sysinfoDetail, Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceGlances, RefreshS: 60, Live: true, DataChoice: true,
+	Tile[SysinfoConfig]{Key: "sysinfo", Detail: sysinfoDetail, DetailQueries: openQuery[SysinfoConfig]("glances.detail"), Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceGlances, RefreshS: 60, Live: true, DataChoice: true,
 		Fields: []Field{{Key: "show_cpu", Input: InputCheck, Default: true}, {Key: "show_mem", Input: InputCheck, Default: true},
 			{Key: "show_swap", Input: InputCheck, Default: true}, {Key: "show_disks", Input: InputCheck, Default: true},
 			{Key: "warn_pct", Input: InputNumber, Default: loadWarn, Min: "1", Max: "100"}},
 		Decode: decodeSysinfo, View: sysinfoView,
 		Queries: func(SysinfoConfig) []Query { return []Query{{Name: "stats", Source: "glances", Conn: ConnWidget}} }}.add()
 
-	Tile[PublicIPConfig]{Key: "public_ip", Detail: publicIPDetail, Category: CategoryStart, Topic: TopicNetwork, RefreshS: 60 * 60, Extra: ExtraIPWatch,
+	Tile[PublicIPConfig]{Key: "public_ip", Detail: publicIPDetail, DetailQueries: domainsResolve, Category: CategoryStart, Topic: TopicNetwork, RefreshS: 60 * 60, Extra: ExtraIPWatch,
 		Fields: []Field{{Key: "ipv6", Input: InputCheck}, {Key: "watch", Input: InputCheck}},
 		Decode: decodePublicIP, View: publicIPView, Queries: func(cfg PublicIPConfig) []Query {
 			return []Query{{Name: "ip", Source: "public_ip", Params: map[string]any{"v6": cfg.V6}}}

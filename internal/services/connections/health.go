@@ -139,6 +139,10 @@ type Strip struct {
 	Name, Service string
 	FailPct       int
 	Days          []DayState
+	ID            int64
+	LastError     string // of the newest day with a failure
+	AvgMs         int    // mean time of the successful fetches, 0 = none
+	Tiles         int    // widgets of the space that use it
 }
 
 // stripFailPct is the share of failed fetches in percent, rounded up:
@@ -175,8 +179,21 @@ func Strips(d *sql.DB, who *access.Principal, days int, now time.Time) ([]Strip,
 				ok, fail = ok+r.OK, fail+r.Fail
 			}
 
-			strip := Strip{Name: c.Name, Service: string(c.Service)}
+			strip := Strip{Name: c.Name, Service: string(c.Service), ID: c.ID}
 			strip.FailPct = stripFailPct(ok, fail)
+			if h, err := data.HealthSince(tx, c.ID, since); err == nil {
+				strip.LastError = h.LastError
+				if h.OK > 0 {
+					strip.AvgMs = int(h.MsSum / int64(h.OK))
+				}
+			}
+			if ws, err := content.Widgets(tx, []int64{c.SpaceID}); err == nil {
+				for _, w := range ws {
+					if w.ConnectionID != nil && *w.ConnectionID == c.ID {
+						strip.Tiles++
+					}
+				}
+			}
 			for i := range days {
 				day := first.AddDate(0, 0, i).Format(time.DateOnly)
 				r := byDay[day]

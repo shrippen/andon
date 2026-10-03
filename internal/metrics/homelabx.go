@@ -16,7 +16,9 @@ package metrics
 //	DomainChains       what depends on each domain
 
 import (
+	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,7 +47,13 @@ type StorageForecast struct {
 	Label  string
 	Used   float64 // share now
 	FullIn int     // days until full at the recent pace, -1 = not filling
+	// Earliest and Latest bound FullIn by the scatter of the points (two
+	// standard errors of the pace); Latest -1 = maybe never.
+	Earliest, Latest int
 }
+
+// spreadErrors is how many standard errors of the pace the range spans.
+const spreadErrors = 2
 
 // usedSuffix marks share-of-capacity series.
 const usedSuffix = ".used"
@@ -71,6 +79,14 @@ func StorageForecasts(h *History, now time.Time) []StorageForecast {
 		f := StorageForecast{Key: k, Label: storageLabel(k), Used: last, FullIn: -1}
 		if slope > 0 {
 			f.FullIn = int((fullShare - last) / slope)
+			f.Earliest, f.Latest = f.FullIn, f.FullIn
+			if se, ok := SlopeError(recent); ok {
+				f.Earliest = int((fullShare - last) / (slope + spreadErrors*se))
+				f.Latest = -1
+				if slow := slope - spreadErrors*se; slow > 0 {
+					f.Latest = int((fullShare - last) / slow)
+				}
+			}
 		}
 		out = append(out, f)
 	}
@@ -657,4 +673,194 @@ func VisitorChange(s sources.Site) (float64, bool) {
 func VisitorDrop(s sources.Site, drop, minPrev float64) bool {
 	change, ok := VisitorChange(s)
 	return ok && float64(s.PrevVisit) >= minPrev && -change >= drop
+}
+
+// ── Quiet hours ──
+
+// Each run counts, per weekday and hour (server time), whether something
+// was going on: a stream, a running timer, an appointment begun within
+// the hour. Over weeks that shows when maintenance disturbs nobody.
+//
+//	window.runs.3.22  runs on Wednesdays 22:00–23:00
+//	window.busy.3.22  of them busy
+func init() {
+	RecordScope(func(s Scope, now time.Time, r *Readings) {
+		busy := 0.0
+		for _, raw := range s.Datasets {
+			if isBusy(raw, now) {
+				busy = 1
+			}
+		}
+		local := now.In(time.Local)
+		wd, h := strconv.Itoa(int(local.Weekday())), strconv.Itoa(local.Hour())
+		r.Count(key("window", "runs", wd, h), 1)
+		r.Count(key("window", "busy", wd, h), busy)
+	})
+}
+
+// isBusy tells a dataset that shows someone using the homelab now.
+func isBusy(raw any, now time.Time) bool {
+	switch d := raw.(type) {
+	case *sources.MediaServerDataset:
+		return len(d.Streams) > 0
+	case *sources.KimaiDataset:
+		return len(d.Active) > 0
+	case *sources.CalendarResult:
+		for _, e := range d.Events {
+			if !e.AllDay && !e.Start.After(now) && now.Sub(e.Start) < time.Hour {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// BusyShares is, per weekday (Sunday 0) and hour, the share of runs that
+// found something going on; -1 where nothing was recorded.
+func BusyShares(h *History) [7][24]float64 {
+	var runs, busy [7][24]float64
+	add := func(kind string, into *[7][24]float64) {
+		for _, k := range h.Keys("window." + kind + ".") {
+			parts := strings.Split(k, ".")
+			wd, err1 := strconv.Atoi(parts[len(parts)-2])
+			hour, err2 := strconv.Atoi(parts[len(parts)-1])
+			if err1 != nil || err2 != nil || wd < 0 || wd > 6 || hour < 0 || hour > 23 {
+				continue
+			}
+			for _, p := range h.SeriesOf(k) {
+				into[wd][hour] += p.Value
+			}
+		}
+	}
+	add("runs", &runs)
+	add("busy", &busy)
+	var out [7][24]float64
+	for wd := range out {
+		for hour := range out[wd] {
+			out[wd][hour] = -1
+			if runs[wd][hour] > 0 {
+				out[wd][hour] = busy[wd][hour] / runs[wd][hour]
+			}
+		}
+	}
+	return out
+}
+
+// QuietestHours finds the run of hours a day (across weekdays) with the
+// least going on; ok is false without records.
+func QuietestHours(shares [7][24]float64, length int) (start int, share float64, ok bool) {
+	var mean [24]float64
+	known := false
+	for hour := range mean {
+		n := 0.0
+		for wd := range shares {
+			if shares[wd][hour] >= 0 {
+				mean[hour] += shares[wd][hour]
+				n++
+			}
+		}
+		if n == 0 {
+			mean[hour] = 1
+			continue
+		}
+		mean[hour] /= n
+		known = true
+	}
+	if !known {
+		return 0, 0, false
+	}
+	best := -1.0
+	for s := range mean {
+		sum := 0.0
+		for i := range length {
+			sum += mean[(s+i)%len(mean)]
+		}
+		if best < 0 || sum < best {
+			best, start = sum, s
+		}
+	}
+	return start, best / float64(length), true
+}
+
+// ── Host load ──
+
+// Glances shows minutes to hours; each run adds CPU and memory to the
+// day, so the dialog has daily means for months.
+func init() {
+	Record(func(d *sources.GlancesResult, _ time.Time, r *Readings) {
+		r.Count(key("glances", "runs"), 1)
+		r.Count(key("glances", "cpu"), d.CPU)
+		r.Count(key("glances", "mem"), d.Mem)
+	})
+}
+
+// LoadDays are the daily mean CPU and memory (percent) of the last n
+// days, oldest first; NaN for a day without runs.
+func LoadDays(h *History, now time.Time, n int) (cpu, mem []float64) {
+	runs := dayTotals(h.SeriesOf(key("glances", "runs")))
+	cpus := dayTotals(h.SeriesOf(key("glances", "cpu")))
+	mems := dayTotals(h.SeriesOf(key("glances", "mem")))
+	cpu, mem = make([]float64, n), make([]float64, n)
+	for i := range n {
+		day := Today(now).AddDate(0, 0, i-n+1)
+		cpu[i], mem[i] = math.NaN(), math.NaN()
+		if r := runs[day]; r > 0 {
+			cpu[i], mem[i] = cpus[day]/r, mems[day]/r
+		}
+	}
+	return cpu, mem
+}
+
+// ── Network ──
+
+// Each run keeps the WAN links' latency and loss, and marks the devices
+// that hold a lease: the first mark of a name is the day it joined.
+//
+//	gateway.ms.wan_dhcp    11.4   gateway.seen.laptop-mara   1
+func init() {
+	Record(func(d *sources.GatewayDataset, _ time.Time, r *Readings) {
+		for _, g := range d.Gateways {
+			if g.Up {
+				r.Set(key("gateway", "ms", g.Name), g.DelayMS)
+			}
+			r.Set(key("gateway", "loss", g.Name), g.Loss)
+		}
+		for _, name := range d.ClientNames {
+			r.Set(key("gateway", "seen", name), 1)
+		}
+	})
+}
+
+// gatewaySeen is the key prefix of device marks.
+const gatewaySeen = "gateway.seen."
+
+// NewLeases are the devices first marked within the last days, newest
+// first. Before the history is older than that window nothing counts as
+// new: the first run would see every device for the first time.
+func NewLeases(h *History, now time.Time, days int) []NewDevice {
+	since := Today(now).AddDate(0, 0, -days)
+	var out []NewDevice
+	older := false
+	for _, k := range h.Keys(gatewaySeen) {
+		points := h.SeriesOf(k)
+		if len(points) == 0 {
+			continue
+		}
+		if points[0].Day.Before(since) {
+			older = true
+			continue
+		}
+		out = append(out, NewDevice{Name: strings.TrimPrefix(k, gatewaySeen), First: points[0].Day})
+	}
+	if !older {
+		return nil
+	}
+	sort.Slice(out, func(a, b int) bool { return out[a].First.After(out[b].First) })
+	return out
+}
+
+// NewDevice is a device seen for the first time.
+type NewDevice struct {
+	Name  string
+	First time.Time
 }

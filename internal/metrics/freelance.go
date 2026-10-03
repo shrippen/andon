@@ -110,6 +110,7 @@ type CashEvent struct {
 	Day    time.Time
 	Label  string
 	Amount float64 // + in, − out
+	Ref    string  // the invoice number of an expected payment, "" else
 }
 
 // CashPoint is the expected balance at the end of a day.
@@ -143,6 +144,8 @@ type CashInputs struct {
 	VATMethod    string
 	Center       Center // typical payment delay per client
 	DelayDays    int    // scenario: every open invoice paid this much later
+	LateRef      string // scenario: this invoice (number) paid LateDays later
+	LateDays     int
 }
 
 // Cashflow projects the balance for days ahead. Without Sure the start
@@ -158,6 +161,17 @@ func Cashflow(in CashInputs, today time.Time, days int) ([]CashPoint, []CashEven
 			return
 		}
 		events = append(events, CashEvent{Day: day, Label: label, Amount: round2(amount)})
+	}
+	// addPaid is an expected payment of an invoice; the scenario moves one.
+	addPaid := func(day time.Time, number, label string, amount float64) {
+		if number == in.LateRef && number != "" {
+			day = day.AddDate(0, 0, in.LateDays)
+		}
+		n := len(events)
+		add(day, label, amount)
+		if len(events) > n {
+			events[n].Ref = number
+		}
 	}
 
 	start := 0.0
@@ -189,7 +203,7 @@ func Cashflow(in CashInputs, today time.Time, days int) ([]CashPoint, []CashEven
 			if !known {
 				wait = defaultTerms
 			}
-			add(issued.AddDate(0, 0, wait+in.DelayDays), i.Number+" "+i.Client, i.Balance)
+			addPaid(issued.AddDate(0, 0, wait+in.DelayDays), i.Number, i.Number+" "+i.Client, i.Balance)
 		}
 		for _, r := range in.Ninja.Recurring {
 			if d, ok := ParseDay(r.NextSendDate); ok && r.Active {

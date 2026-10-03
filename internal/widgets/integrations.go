@@ -97,6 +97,27 @@ func grocyView(cfg GrocyConfig, data *sources.GrocyDataset, _ ViewCtx) map[strin
 	return map[string]any{"Data": &shown}
 }
 
+// TandoorConfig is the "tandoor" widget's config.
+type TandoorConfig struct {
+	Limit int  // list entries shown
+	Meals bool // the next planned meals under the list
+}
+
+// peerGrocy names the space's Grocy dataset (what is below minimum stock).
+const peerGrocy = "grocy"
+
+// tandoorView: the first entries of the shopping list, the next meals.
+func tandoorView(cfg TandoorConfig, data *sources.TandoorDataset, _ ViewCtx) map[string]any {
+	view := map[string]any{"Items": firstN(data.Items, cfg.Limit), "Open": len(data.Items)}
+	if cfg.Meals {
+		view["Meals"] = firstN(data.Meals, tandoorMealsShown)
+	}
+	return view
+}
+
+// tandoorMealsShown is how many planned meals the tile lists.
+const tandoorMealsShown = 3
+
 // DWDConfig is the "dwd" widget's config.
 type DWDConfig struct{ MinLevel int }
 
@@ -289,17 +310,23 @@ func init() {
 	Tile[MediaConfig]{Key: "mediaserver", Detail: mediaDetail, Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceMediaServer, RefreshS: integrationTTL,
 		Fields:  []Field{{Key: "show_users", Input: InputCheck, Default: true}},
 		Decode:  func(r Raw) MediaConfig { return MediaConfig{Users: r.Bool("show_users")} },
-		Queries: ownData[MediaConfig], View: mediaView}.add()
+		Queries: ownData[MediaConfig], DetailQueries: openQuery[MediaConfig]("mediaserver.plays"), View: mediaView}.add()
 
 	Tile[ArrConfig]{Key: "arr_upcoming", Detail: dataDetail(arrDetail), Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceArr, RefreshS: integrationTTL,
 		Fields:  []Field{{Key: "days", Input: InputNumber, Default: arrDays, Min: "1", Max: "30"}},
 		Decode:  func(r Raw) ArrConfig { return ArrConfig{Days: r.Int("days")} },
-		Queries: ownData[ArrConfig], View: dataView(arrView)}.add()
+		Queries: ownData[ArrConfig], DetailQueries: openQuery[ArrConfig]("arr.posters"), View: dataView(arrView)}.add()
 
 	Tile[GrocyConfig]{Key: "grocy", Detail: dataDetail(grocyDetail), Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceGrocy, RefreshS: integrationTTL,
 		Fields: []Field{{Key: "show_stock", Input: InputCheck, Default: true}, {Key: "show_shopping", Input: InputCheck, Default: true},
 			{Key: "show_chores", Input: InputCheck, Default: true}, {Key: "days", Input: InputNumber, Default: 0, Min: "0", Max: "60"}},
 		Decode: decodeGrocy, Queries: ownData[GrocyConfig], View: dataView(grocyView)}.add()
+
+	Tile[TandoorConfig]{Key: "tandoor", Detail: dataDetail(tandoorDetail), Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceTandoor, RefreshS: integrationTTL,
+		Fields:  []Field{pickLimit, {Key: "show_meals", Input: InputCheck, Default: true}},
+		Decode:  func(r Raw) TandoorConfig { return TandoorConfig{Limit: r.Int("limit"), Meals: r.Bool("show_meals")} },
+		Queries: ownData[TandoorConfig], View: dataView(tandoorView),
+		DetailQueries: func(TandoorConfig) []Query { return []Query{peer(peerGrocy, enums.ServiceGrocy)} }}.add()
 
 	Tile[DWDConfig]{Key: "dwd", Detail: dataDetail(dwdDetail), Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceDWD, RefreshS: integrationTTL,
 		Fields: []Field{sel("min_level", "minor", "minor", "moderate", "severe", "extreme")},

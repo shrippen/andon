@@ -129,7 +129,10 @@ type WidgetType struct {
 	Queries QueriesFunc
 	View    ViewFunc
 	Detail  DetailFunc // nil: no detail dialog (see detail.go)
-	Extra   Extra
+	// DetailQueries run only when the dialog opens: data too large or too
+	// rarely needed for every view (logs, a history from the service).
+	DetailQueries QueriesFunc
+	Extra         Extra
 
 	Topic      Topic
 	DataChoice bool // the user may pick live or background data

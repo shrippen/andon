@@ -2,6 +2,8 @@
 package metrics
 
 import (
+	"math"
+	"slices"
 	"sort"
 	"time"
 
@@ -97,6 +99,46 @@ func NinjaOpenInvoices(data *sources.NinjaDataset, today time.Time) []NinjaOpenI
 	}
 	sort.Slice(out, func(a, b int) bool { return out[a].OverdueDays > out[b].OverdueDays })
 	return out
+}
+
+// NinjaMove is an invoice or payment on one day, for explaining a jump.
+type NinjaMove struct {
+	Day, What, Client string  // What: invoice number, or "" for a payment
+	Amount            float64 // payments negative: they lower what is open
+}
+
+// NinjaMoves lists invoices (by date) and payments of the given days.
+func NinjaMoves(data *sources.NinjaDataset, days []string) []NinjaMove {
+	clients := ninjaClientNames(data)
+	var out []NinjaMove
+	for _, i := range data.Invoices {
+		if slices.Contains(days, i.Date) {
+			out = append(out, NinjaMove{Day: i.Date, What: i.Number, Client: clients[i.ClientID], Amount: i.Amount})
+		}
+	}
+	for _, p := range data.Payments {
+		if slices.Contains(days, p.Date) {
+			out = append(out, NinjaMove{Day: p.Date, Client: clients[p.ClientID], Amount: -p.Amount})
+		}
+	}
+	sort.SliceStable(out, func(a, b int) bool { return out[a].Day < out[b].Day })
+	return out
+}
+
+// Jumps are the indexes of the n largest changes of a series (the later
+// point of each pair), largest first.
+//
+//	Jumps([10, 10, 40, 35], 2) → [2, 3]
+func Jumps(values []float64, n int) []int {
+	var idx []int
+	for i := 1; i < len(values); i++ {
+		if values[i] != values[i-1] {
+			idx = append(idx, i)
+		}
+	}
+	delta := func(i int) float64 { return math.Abs(values[i] - values[i-1]) }
+	sort.SliceStable(idx, func(a, b int) bool { return delta(idx[a]) > delta(idx[b]) })
+	return idx[:min(len(idx), n)]
 }
 
 func ninjaClientNames(data *sources.NinjaDataset) map[int64]string {
@@ -357,4 +399,45 @@ func NinjaCashExpected(data *sources.NinjaDataset, today time.Time, days int) fl
 		}
 	}
 	return round2(openAmount + recurring)
+}
+
+// PayTerms is what a client's paid invoices since a day were worth:
+// their sum, and the sum of amount × days paid after the target.
+type PayTerms struct {
+	Revenue     float64
+	LateAmounts float64 // € × days beyond the target
+}
+
+// Discount is what a discount of share on every invoice would have cost.
+func (p PayTerms) Discount(share float64) float64 { return p.Revenue * share }
+
+// Interest is what yearly rate on the late days would have brought.
+func (p PayTerms) Interest(rate float64) float64 { return p.LateAmounts * rate / daysPerYear }
+
+// NinjaPayTerms sums a client's paid invoices dated since, each with the
+// days its payment came after target (payment: the first on or after the
+// invoice date, as NinjaPaymentGaps pairs them).
+func NinjaPayTerms(data *sources.NinjaDataset, clientID int64, target int, since time.Time) PayTerms {
+	var paid []time.Time
+	for _, p := range data.Payments {
+		if d, ok := ParseDay(p.Date); ok && p.ClientID == clientID {
+			paid = append(paid, d)
+		}
+	}
+	sort.Slice(paid, func(a, b int) bool { return paid[a].Before(paid[b]) })
+	var out PayTerms
+	for _, i := range NinjaCounted(data) {
+		d, ok := ParseDay(i.Date)
+		if i.ClientID != clientID || i.Status != "paid" || !ok || d.Before(since) {
+			continue
+		}
+		out.Revenue += i.Amount
+		for _, pd := range paid {
+			if !pd.Before(d) {
+				out.LateAmounts += i.Amount * float64(max(int(pd.Sub(d).Hours()/hoursPerDay)-target, 0))
+				break
+			}
+		}
+	}
+	return out
 }

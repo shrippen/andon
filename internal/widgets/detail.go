@@ -12,6 +12,7 @@ import (
 //	results[HistorySlot]     *metrics.History  stored daily values and events of the space
 //	results[DetailHintsSlot] []DetailHint      open hints of the tile's services
 //	results[TileViewSlot]    map[string]any    the tile's own View, to reuse its numbers
+//	results[DetailItemSlot]  string            the list entry the viewer picked, "" = none
 //
 // and returns the head (state, actions) and the body: a *DetailBody of
 // blocks (detailbody.go), or data for a template "details/<key>".
@@ -20,6 +21,8 @@ import (
 const (
 	DetailHintsSlot = "detail_hints"
 	TileViewSlot    = "tile_view"
+	DetailItemSlot  = "detail_item"
+	HintWorkSlot    = "hint_work" // the picked hint's work (HintWork), hint dialogs
 )
 
 // DetailFunc shapes results into a dialog.
@@ -62,4 +65,23 @@ type DetailHint struct {
 	Why       string
 	FirstSeen time.Time
 	Due       string // "2026-10-02", "" = none
+}
+
+// HintWork is a picked hint's state of work for its dialog: who has it,
+// what happened, who may take it.
+type HintWork struct {
+	ID         int64
+	Title, Why string
+	Assignee   string
+	AssigneeID int64
+	Work       string
+	History    []HintStep
+	People     []FormOption // who may take it over: id, name
+}
+
+// HintStep is one entry of a hint's history.
+type HintStep struct {
+	At         time.Time
+	Kind, Note string
+	Actor      string
 }

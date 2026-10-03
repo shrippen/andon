@@ -4,6 +4,8 @@ package metrics
 import (
 	"math"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"andon/internal/sources"
@@ -36,6 +38,15 @@ func KimaiFreeDays(data *sources.KimaiDataset) map[time.Time]bool {
 			days[d] = true
 		}
 	}
+	for d := range AbsentDays(data) {
+		days[d] = true
+	}
+	return days
+}
+
+// AbsentDays are the full days of approved absences (vacation, sickness).
+func AbsentDays(data *sources.KimaiDataset) map[time.Time]bool {
+	days := map[time.Time]bool{}
 	for _, a := range data.Absences {
 		if a.HalfDay || (a.Status != "" && a.Status != "approved") {
 			continue
@@ -251,3 +262,96 @@ func BudgetUse(p sources.KimaiProject, data *sources.KimaiDataset, today time.Ti
 
 // budgetMonthly is Kimai's budget type of a budget per month.
 const budgetMonthly = "month"
+
+// KimaiHourPattern spreads the entries in [start, end] over weekday
+// (Monday 0) and hour of day: minutes worked in each slot, in loc.
+func KimaiHourPattern(data *sources.KimaiDataset, start, end time.Time, loc *time.Location) [7][24]float64 {
+	var out [7][24]float64
+	for _, s := range data.Timesheets {
+		begin, err := time.Parse(time.RFC3339, s.Begin)
+		if err != nil || begin.Before(start) || begin.After(end) {
+			continue
+		}
+		at := begin.In(loc)
+		left := float64(s.Minutes)
+		for left > 0 {
+			hourEnd := at.Truncate(time.Hour).Add(time.Hour)
+			part := min(left, hourEnd.Sub(at).Minutes())
+			out[(int(at.Weekday())+6)%7][at.Hour()] += part
+			left -= part
+			at = hourEnd
+		}
+	}
+	return out
+}
+
+// The work not yet billed, once a day: a curve that keeps rising shows
+// billing falling behind.
+func init() {
+	Record(func(d *sources.KimaiDataset, now time.Time, r *Readings) {
+		total := 0.0
+		for _, g := range KimaiUnbilled(d, Today(now)) {
+			total += g.Amount
+		}
+		r.Set(key("kimai", "unbilled"), total)
+
+		// Budget use per project: the curve, not only today's level.
+		for _, p := range d.Projects {
+			if share, ok := BudgetUse(p, d, Today(now)); ok {
+				r.Set(BudgetKey(p.ID), share)
+			}
+		}
+	})
+}
+
+// BudgetKey is the series of a project's budget use (share, 1 = used up).
+func BudgetKey(projectID int64) string {
+	return key("kimai", "budget", strconv.FormatInt(projectID, 10))
+}
+
+// UnbookedDays is how far back appointments are checked against Kimai.
+const UnbookedDays = 14
+
+// unbookedMatch keeps short names ("IT") from matching every title.
+const unbookedMatch = 4
+
+// UnbookedEvents are the appointments of the last UnbookedDays whose title
+// names a Kimai customer or project, without any entry for that customer
+// on the day: work that may not be booked yet.
+func UnbookedEvents(cal *sources.CalendarResult, kimai *sources.KimaiDataset, today time.Time) []sources.Event {
+	type target struct {
+		name       string
+		customerID int64
+	}
+	var targets []target
+	for _, c := range kimai.Customers {
+		targets = append(targets, target{c.Name, c.ID})
+	}
+	for _, p := range kimai.Projects {
+		targets = append(targets, target{p.Name, p.CustomerID})
+	}
+	booked := map[[2]any]bool{}
+	for _, s := range kimai.Timesheets {
+		if d, ok := ParseDay(s.Begin); ok {
+			booked[[2]any{d, s.CustomerID}] = true
+		}
+	}
+	since := today.AddDate(0, 0, -UnbookedDays)
+	var out []sources.Event
+	for _, e := range cal.Events {
+		if e.AllDay || e.Start.Before(since) || !e.Start.Before(today) {
+			continue
+		}
+		title := strings.ToLower(e.Title)
+		for _, t := range targets {
+			if len(t.name) < unbookedMatch || !strings.Contains(title, strings.ToLower(t.name)) {
+				continue
+			}
+			if !booked[[2]any{Today(e.Start), t.customerID}] {
+				out = append(out, e)
+			}
+			break
+		}
+	}
+	return out
+}

@@ -248,7 +248,7 @@ func expiryView(cfg ExpiryConfig, results map[string]any, ctx ViewCtx) map[strin
 type SpeedHistoryConfig struct{ Days int }
 
 func init() {
-	Tile[SpeedHistoryConfig]{Key: "speed_history", Detail: speedHistoryDetail, Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest,
+	Tile[SpeedHistoryConfig]{Key: "speed_history", Detail: speedHistoryDetail, DetailQueries: openQuery[SpeedHistoryConfig]("speedtest.results"), Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest,
 		RefreshS: 60 * 60, Extra: ExtraHistory,
 		Fields:  []Field{{Key: "days", Input: InputNumber, Default: speedDays, Min: "2", Max: "90"}},
 		Decode:  func(r Raw) SpeedHistoryConfig { return SpeedHistoryConfig{Days: r.Int("days")} },
@@ -310,7 +310,7 @@ func init() {
 	Tile[SabConfig]{Key: "sabnzbd", Detail: dataDetail(sabDetail), Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceSabnzbd, RefreshS: 5 * 60,
 		Fields:  []Field{{Key: "queue", Input: InputNumber, Default: 0, Min: "0", Max: "20"}},
 		Decode:  func(r Raw) SabConfig { return SabConfig{Queue: r.Int("queue")} },
-		Queries: ownData[SabConfig], View: dataView(sabnzbdView)}.add()
+		Queries: ownData[SabConfig], DetailQueries: openQuery[SabConfig]("sabnzbd.stats"), View: dataView(sabnzbdView)}.add()
 }
 
 func sabnzbdView(cfg SabConfig, data *sources.SabnzbdDataset, _ ViewCtx) map[string]any {
@@ -327,7 +327,7 @@ type PaperlessConfig struct {
 }
 
 func init() {
-	Tile[PaperlessConfig]{Key: "paperless_inbox", Detail: dataDetail(paperlessDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServicePaperless, RefreshS: 30 * 60,
+	Tile[PaperlessConfig]{Key: "paperless_inbox", Detail: dataDetail(paperlessDetail), DetailQueries: openQuery[PaperlessConfig]("paperless.thumbs"), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServicePaperless, RefreshS: 30 * 60,
 		Fields: []Field{{Key: "newest_docs", Input: InputNumber, Default: 0, Min: "0", Max: "10"}, {Key: "tag", Input: InputText}},
 		Decode: func(r Raw) PaperlessConfig {
 			return PaperlessConfig{Newest: r.Int("newest_docs"), Tag: strings.ToLower(strings.TrimSpace(r.String("tag")))}
