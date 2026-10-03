@@ -1248,6 +1248,10 @@ a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
 .tile-tools{position:absolute;top:0;left:0;right:0;z-index:3;height:var(--tools-h);display:flex;align-items:center;gap:2px;padding:0 .2rem;
   background:var(--bg1);border-top:2px solid var(--cyan);visibility:hidden;opacity:0}
 .has-tools:is(:hover,:focus-within,.is-active)>.tile-tools,.tile-tools.is-floating{visibility:visible;opacity:1}
+/* The strip's empty parts and its grip let the pointer through to the slot below, so a tile can be picked up by its
+   band too; only the buttons and links take the pointer */
+.tile-tools{pointer-events:none}
+.tile-tools>:is(button,a){pointer-events:auto}
 .tile-tools>.gap{flex:1}
 .tile-tools>small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-mono);font-size:.64rem;color:var(--fg3)}
 .tile-tools>:is(button,a){display:inline-grid;place-items:center;flex:none;min-width:calc(var(--tools-h) - 2px);height:calc(var(--tools-h) - 2px);padding:0 .35rem;
