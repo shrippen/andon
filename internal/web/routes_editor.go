@@ -371,7 +371,17 @@ type widgetForm struct {
 	Widget  *model.Widget
 	Target  widgetTarget
 	Error   string
+	View    formView
 }
+
+// formView is where the widget editor shows: its own page or the
+// board's dialog.
+type formView string
+
+const (
+	formPage   formView = ""
+	formDialog formView = "dialog"
+)
 
 func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widgetForm) {
 	conns, err := connections.Listing(d.DB, ctx.Who, enums.RightUse)
@@ -393,7 +403,12 @@ func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widge
 	if f.Target.Place {
 		dest = d.targetNames(ctx, f.Target)
 	}
-	_ = d.Page(w, ctx, "widget_form", status, map[string]any{
+	page := "widget_form"
+	if f.View == formDialog {
+		page = "widget_dialog"
+	}
+	_ = d.Page(w, ctx, page, status, map[string]any{
+		"Dialog": f.View == formDialog, "Partial": f.View == formDialog,
 		"Dest": dest, "Topic": widgets.TopicOf(f.Kind.Key), "RowOptions": spanOptions(boards.MaxTileRows), "ColOptions": spanOptions(boards.MaxTileCols),
 		"Kind": f.Kind, "Title": f.Title, "Fields": widgets.FormValues(f.Kind.Key, f.Config),
 		"FrameFields": widgets.FrameFormValues(f.Kind.Key, f.Config),
@@ -522,8 +537,12 @@ func (d Deps) handleWidgetEditForm(w http.ResponseWriter, r *http.Request, ctx C
 	}
 	target := targetOf(r.URL.Query().Get)
 	target.SpaceID = widget.SpaceID
+	view := formPage
+	if r.URL.Query().Has(string(formDialog)) {
+		view = formDialog
+	}
 	d.widgetFormPage(w, ctx, http.StatusOK, widgetForm{Kind: kind, Title: widget.Title, Config: widget.Config,
-		ConnID: widget.ConnectionID, MinRole: role, Widget: widget, Target: target})
+		ConnID: widget.ConnectionID, MinRole: role, Widget: widget, Target: target, View: view})
 }
 
 func (d Deps) handleWidgetUpdate(w http.ResponseWriter, r *http.Request, ctx Ctx) {

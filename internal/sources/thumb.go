@@ -16,50 +16,70 @@ import (
 
 // Thumbnail box: a feed tile shows its picture at 4.5 × 3.2 rem
 // (72 × 51 CSS px), cropped to cover; three device pixels per CSS pixel
-// keep it sharp on phones.
+// keep it sharp on phones. The detail dialog shows one up to wideW wide.
 const (
 	thumbW       = 216
 	thumbH       = 154
 	thumbQuality = 75
-	// thumbPixels caps what is decoded: a 150 KB PNG may claim 20000 ×
+	wideW        = 960
+	wideQuality  = 80
+	// thumbPixels caps what is decoded: a small PNG may claim 20000 ×
 	// 20000 pixels (1.6 GB once decoded).
 	thumbPixels = 8_000_000
 	dataPrefix  = "data:"
 	base64Mark  = ";base64,"
 )
 
-// thumbnail scales a data: URI picture down to cover the thumbnail box,
-// as a JPEG data: URI. "" when it cannot (WebP, SVG, broken data) or
-// when the picture is small already: the caller then shows the original.
+// pictureSizes scales a data: URI picture down, decoded once: thumb
+// covers the tile's box, wide fits wideW across for the detail dialog.
+// Either is "" when the picture is that small already or cannot be
+// scaled (WebP, SVG, broken data); the caller keeps the original then.
 //
-//	1920 × 1080 JPEG, 140 KB  ─►  274 × 154 JPEG, ~10 KB
-func thumbnail(uri string) string {
+//	1920 × 1080 JPEG, 190 KB  ─►  thumb 274 × 154 (~10 KB), wide 960 × 540 (~60 KB)
+func pictureSizes(uri string) (thumb, wide string) {
+	src := decodePicture(uri)
+	if src == nil {
+		return "", ""
+	}
+	size := src.Bounds().Size()
+	thumb = scaledJPEG(src, max(float64(thumbW)/float64(size.X), float64(thumbH)/float64(size.Y)), thumbQuality)
+	wide = scaledJPEG(src, float64(wideW)/float64(size.X), wideQuality)
+	return thumb, wide
+}
+
+// decodePicture decodes a data: URI picture, nil if it is not one the
+// standard library reads or claims too many pixels.
+func decodePicture(uri string) image.Image {
 	head, payload, ok := strings.Cut(strings.TrimPrefix(uri, dataPrefix), base64Mark)
 	if !ok || !strings.HasPrefix(head, imagePrefix) {
-		return ""
+		return nil
 	}
 	raw, err := base64.StdEncoding.DecodeString(payload)
 	if err != nil {
-		return ""
+		return nil
 	}
 	cfg, _, err := image.DecodeConfig(bytes.NewReader(raw))
 	if err != nil || cfg.Width*cfg.Height > thumbPixels {
-		return ""
+		return nil
 	}
 	src, _, err := image.Decode(bytes.NewReader(raw))
 	if err != nil {
-		return ""
+		return nil
 	}
+	return src
+}
 
-	size := src.Bounds().Size()
-	scale := max(float64(thumbW)/float64(size.X), float64(thumbH)/float64(size.Y))
+// scaledJPEG is src scaled by scale as a JPEG data: URI, "" for a scale
+// that would not shrink it.
+func scaledJPEG(src image.Image, scale float64, quality int) string {
 	if scale >= 1 {
 		return ""
 	}
+	size := src.Bounds().Size()
 	w, h := max(1, int(float64(size.X)*scale)), max(1, int(float64(size.Y)*scale))
 
 	var out bytes.Buffer
-	if err := jpeg.Encode(&out, shrink(src, w, h), &jpeg.Options{Quality: thumbQuality}); err != nil {
+	if err := jpeg.Encode(&out, shrink(src, w, h), &jpeg.Options{Quality: quality}); err != nil {
 		return ""
 	}
 	return dataPrefix + "image/jpeg" + base64Mark + base64.StdEncoding.EncodeToString(out.Bytes())

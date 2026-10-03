@@ -4,6 +4,7 @@ package sources
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net"
 	"net/http"
@@ -267,10 +268,13 @@ type FeedItem struct {
 	imageURL  string
 }
 
-// Feed pictures: how many items get one, and how large one may be.
+// Feed pictures: how large a download may be, how large one may stay
+// embedded as it is (larger ones are embedded scaled), how many load at
+// once. News feeds link 1920 px JPEGs of 150–200 KB.
 const (
-	feedImages   = 6
-	feedImageMax = 150 << 10
+	feedImageFetch   = 4 << 20
+	feedImageMax     = 150 << 10
+	feedImageWorkers = 6
 )
 
 // FeedResult is a parsed RSS/Atom feed.
@@ -349,15 +353,16 @@ func fetchFeedSource(ctx context.Context, sctx Ctx) (any, error) {
 		merged.Items = merged.Items[:limit]
 	}
 	if asBool(sctx.Params["images"]) {
-		feedPictures(ctx, merged.Items[:min(len(merged.Items), feedImages)])
+		feedPictures(ctx, merged.Items)
 	}
 	return merged, nil
 }
 
-// feedPictures loads the items' pictures side by side: the full one for
-// the detail dialog, a thumbnail for the tile (a tile of six pictures
-// carried ~600 KB of data: URIs on every page view before).
+// feedPictures loads every item's picture, a few side by side: a
+// thumbnail for the tile, the picture for the detail dialog (scaled when
+// large). A tile of six pictures carried ~600 KB of data: URIs before.
 func feedPictures(ctx context.Context, items []FeedItem) {
+	slots := make(chan struct{}, feedImageWorkers)
 	var wg sync.WaitGroup
 	for i := range items {
 		u := items[i].imageURL
@@ -365,11 +370,18 @@ func feedPictures(ctx context.Context, items []FeedItem) {
 			continue
 		}
 		wg.Go(func() {
-			img, err := fetchImage(ctx, u, feedImageMax)
+			slots <- struct{}{}
+			defer func() { <-slots }()
+			img, err := fetchImage(ctx, u, feedImageFetch)
 			if err != nil {
 				return
 			}
-			items[i].Image, items[i].Thumb = img.DataURI, thumbnail(img.DataURI)
+			thumb, wide := pictureSizes(img.DataURI)
+			full := img.DataURI
+			if base64.StdEncoding.DecodedLen(len(full)) > feedImageMax {
+				full = wide
+			}
+			items[i].Image, items[i].Thumb = full, thumb
 		})
 	}
 	wg.Wait()

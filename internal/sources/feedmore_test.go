@@ -130,3 +130,53 @@ func TestFeedImageThumb(t *testing.T) {
 		}
 	}
 }
+
+// TestFeedBigPictures: news feeds link 1920 px JPEGs of 150–200 KB. They
+// were dropped as too large, so a tile showed pictures only now and then;
+// and only the first six items got one. Every shown item gets a thumbnail
+// now, and the full picture stays small enough to embed.
+func TestFeedBigPictures(t *testing.T) {
+	const items = 8
+	big := image.NewRGBA(image.Rect(0, 0, 1920, 1080))
+	rnd := uint32(1)
+	for i := range big.Pix {
+		rnd = rnd*1664525 + 1013904223
+		big.Pix[i] = byte(rnd >> 24)
+	}
+	var pic bytes.Buffer
+	if err := jpeg.Encode(&pic, big, &jpeg.Options{Quality: 50}); err != nil {
+		t.Fatal(err)
+	}
+	if pic.Len() <= 150<<10 {
+		t.Fatalf("test picture only %d KB", pic.Len()>>10)
+	}
+
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/feed" {
+			var list strings.Builder
+			for i := range items {
+				fmt.Fprintf(&list, `<item><title>N%d</title><media:thumbnail url="%s/p%d.jpg"/></item>`, i, srv.URL, i)
+			}
+			w.Write([]byte(`<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel><title>News</title>` + list.String() + `</channel></rss>`))
+			return
+		}
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Write(pic.Bytes())
+	}))
+	defer srv.Close()
+
+	source, _ := sources.Get("rss")
+	out, err := source.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"url": srv.URL + "/feed", "images": true, "limit": float64(items)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, it := range out.(*sources.FeedResult).Items {
+		if it.Thumb == "" || it.Image == "" {
+			t.Fatalf("%s: thumb %d B, image %d B", it.Title, len(it.Thumb), len(it.Image))
+		}
+		if len(it.Image) > len(pic.Bytes()) {
+			t.Errorf("%s: embedded picture %d KB, larger than the original", it.Title, len(it.Image)>>10)
+		}
+	}
+}
