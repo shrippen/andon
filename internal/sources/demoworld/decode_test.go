@@ -6,15 +6,12 @@ import (
 	"time"
 )
 
-// Texts, references, relative times and snake_case keys resolve as
-// Decode promises.
+// Texts, relative times and snake_case keys resolve as Decode promises.
 func TestDecode(t *testing.T) {
 	saved := generic
 	defer func() { generic = saved }()
 	if err := json.Unmarshal([]byte(`{
-		"vendors": [{"id": "nordhost", "name": "Nordhost", "monthly": 29.5}],
-		"it": {"thing": {"title": {"de": "Rechnung {{vendors.nordhost.name}}", "en": "Invoice"},
-			"amount": "{{vendors.nordhost.monthly}}", "seen": "@-1d3h", "due": "@date+2", "call": "@date-1 09:05", "cert_days": 9}}
+		"it": {"thing": {"title": {"de": "Rechnung Nordhost", "en": "Invoice"}, "amount": 29.5, "seen": "@-1d3h", "due": "@date+2", "call": "@date-1 09:05", "cert_days": 9}}
 	}`), &generic); err != nil {
 		t.Fatal(err)
 	}

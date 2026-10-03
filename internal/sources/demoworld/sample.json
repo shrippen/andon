@@ -1021,7 +1021,7 @@
   "disks": [
    {
     "name": "sda",
-    "model": "{{inventory.disks.0}}",
+    "model": "Speicherwerk HD4 4TB",
     "status": 0,
     "temp": 38,
     "hours": 31000,
@@ -1029,7 +1029,7 @@
    },
    {
     "name": "sdb",
-    "model": "{{inventory.disks.1}}",
+    "model": "Tiefgang NAS 4TB",
     "status": 1,
     "temp": 41,
     "hours": 42000,
@@ -1037,7 +1037,7 @@
    },
    {
     "name": "nvme0",
-    "model": "{{inventory.disks.2}}",
+    "model": "Blitz 980 NVMe",
     "status": 0,
     "temp": 56,
     "hours": 9000,
@@ -1624,20 +1624,20 @@
   "version": "1.34.3",
   "users": [
    {
-    "email": "{{people.mara.email}}",
+    "email": "person-a@example.test",
     "two_factor": true,
     "enabled": true,
     "last_active": "@-1d",
     "orgs": [
-     "{{studio.name}}"
+     "Kunde D GmbH"
     ]
    },
    {
-    "email": "{{people.lena.email}}",
+    "email": "person-e@example.test",
     "enabled": true,
     "last_active": "@-3d",
     "orgs": [
-     "{{studio.name}}"
+     "Kunde D GmbH"
     ]
    }
   ]
@@ -1697,8 +1697,8 @@
     {
      "repo": "studio/showreel",
      "title": {
-      "de": "Neue Szenen für {{projects.harbour.short}}",
-      "en": "New {{projects.harbour.short}} scenes"
+      "de": "Neue Szenen für Projekt 1",
+      "en": "New Projekt 1 scenes"
      },
      "url": "https://git.demo/studio/showreel/issues/12",
      "number": 12,
@@ -2053,7 +2053,7 @@
  },
  "weather": {
   "url": "https://api.brightsky.dev",
-  "place": "{{studio.city}}",
+  "place": "Musterstadt",
   "warnings": [
    {
     "id": "demo-1",
@@ -2216,14 +2216,14 @@
    {
     "uid": 1,
     "date": "@-4d",
-    "sender": "{{vendors.nordhost.name}}",
-    "addr": "billing@{{vendors.nordhost.domain}}",
-    "domain": "{{vendors.nordhost.domain}}",
+    "sender": "Lieferant 2",
+    "addr": "billing@lieferant-2.example.test",
+    "domain": "lieferant-2.example.test",
     "subject": {
      "de": "Ihre Rechnung R0012345",
      "en": "Your invoice R0012345"
     },
-    "amount": "{{vendors.nordhost.monthly}}",
+    "amount": 41.65,
     "attachments": [
      "Rechnung_R0012345.pdf"
     ]
@@ -2231,9 +2231,9 @@
    {
     "uid": 2,
     "date": "@-9d",
-    "sender": "{{vendors.farbraum.name}}",
-    "addr": "sales@{{vendors.farbraum.domain}}",
-    "domain": "{{vendors.farbraum.domain}}",
+    "sender": "Lieferant 3",
+    "addr": "sales@lieferant-3.example.test",
+    "domain": "lieferant-3.example.test",
     "subject": "Invoice for your order",
     "amount": 289,
     "attachments": [
@@ -2247,13 +2247,13 @@
    {
     "start": "@date-2 14:00",
     "title": {
-     "de": "Drehplan {{customers.northlight.name}}",
-     "en": "Shooting plan {{customers.northlight.name}}"
+     "de": "Drehplan Kunde A GmbH",
+     "en": "Shooting plan Kunde A GmbH"
     }
    },
    {
     "start": "@date+0 16:00",
-    "title": "Call {{customers.speiche.name}}"
+    "title": "Call Kunde C GmbH"
    },
    {
     "start": "@date+3 14:00",
@@ -2277,13 +2277,13 @@
   "latest": "v1.132.3",
   "users": [
    {
-    "name": "{{people.mara.alias}}",
+    "name": "Person A",
     "photos": 30112,
     "videos": 1210,
     "bytes": 1400000000000.0
    },
    {
-    "name": "{{people.lena.alias}}",
+    "name": "Person E",
     "photos": 18101,
     "videos": 710,
     "bytes": 900000000000.0
@@ -2299,25 +2299,34 @@
   "episodes": 4310,
   "streams": [
    {
-    "user": "{{people.selin.alias}}",
-    "title": "{{projects.harbour.name}}"
+    "user": "Person C",
+    "title": {
+     "de": "Projekt 1",
+     "en": "Project 1"
+    }
    },
    {
-    "user": "{{people.theo.alias}}",
-    "title": "{{media.album.title}}"
+    "user": "Person D",
+    "title": "Album"
    }
   ],
   "titles": [
    {
-    "title": "{{projects.harbour.name}}",
+    "title": {
+     "de": "Projekt 1",
+     "en": "Project 1"
+    },
     "plays": 9
    },
    {
-    "title": "{{media.album.title}}",
+    "title": "Album",
     "plays": 6
    },
    {
-    "title": "{{projects.spring.name}}",
+    "title": {
+     "de": "Projekt 3",
+     "en": "Project 3"
+    },
     "plays": 4
    }
   ]
@@ -2329,7 +2338,7 @@
   "queue": 3,
   "missing": 12,
   "stuck": [
-   "{{projects.harbour.short}} S02E04"
+   "Projekt 1 S02E04"
   ],
   "health": [
    {
@@ -2339,11 +2348,11 @@
   ],
   "upcoming": [
    {
-    "title": "{{projects.harbour.short}} 2x05",
+    "title": "Projekt 1 2x05",
     "at": "@+26h"
    },
    {
-    "title": "{{projects.harbour.short}} 2x06",
+    "title": "Projekt 1 2x06",
     "at": "@+80h"
    }
   ]
@@ -2513,8 +2522,8 @@
   "total": 1843,
   "inbox": 7,
   "oldest_title": {
-   "de": "Rechnung {{vendors.elbnetz.name}}",
-   "en": "Invoice {{vendors.elbnetz.name}}"
+   "de": "Rechnung Lieferant 1",
+   "en": "Invoice Lieferant 1"
   },
   "oldest_added": "@date-23",
   "invoices": [
@@ -2524,16 +2533,19 @@
      "de": "Rechnung 09/2026",
      "en": "Invoice 09/2026"
     },
-    "correspondent": "{{vendors.elbnetz.name}}",
+    "correspondent": "Lieferant 1",
     "created": "@date-23",
-    "amount": "{{vendors.elbnetz.monthly}}"
+    "amount": 39.95
    }
   ],
   "contracts": [
    {
     "id": 88,
-    "title": "{{vendors.elbnetz.contract}}",
-    "correspondent": "{{vendors.elbnetz.name}}",
+    "title": {
+     "de": "Mobilfunkvertrag",
+     "en": "Mobile contract"
+    },
+    "correspondent": "Lieferant 1",
     "end": "@+111d",
     "notice_months": 3,
     "deadline": "@+20d",
@@ -2552,8 +2564,8 @@
    {
     "id": 1842,
     "title": {
-     "de": "Rechnung {{vendors.nordhost.name}}",
-     "en": "Invoice {{vendors.nordhost.name}}"
+     "de": "Rechnung Lieferant 2",
+     "en": "Invoice Lieferant 2"
     },
     "added": "@date-1"
    },
@@ -2605,13 +2617,13 @@
       {
        "id": 201,
        "title": {
-        "de": "Rechnung {{receipts.1.number}}",
-        "en": "Invoice {{receipts.1.number}}"
+        "de": "Rechnung FE-2026-0917",
+        "en": "Invoice FE-2026-0917"
        },
-       "correspondent": "{{receipts.1.vendor}} GmbH",
+       "correspondent": "Lieferant 6 GmbH",
        "text": {
-        "de": "Rechnungsnr. {{receipts.1.number}} Gesamtbetrag {amount} EUR",
-        "en": "Invoice no. {{receipts.1.number}} total {amount} EUR"
+        "de": "Rechnungsnr. FE-2026-0917 Gesamtbetrag {amount} EUR",
+        "en": "Invoice no. FE-2026-0917 total {amount} EUR"
        },
        "amount": true,
        "day": 1
@@ -2628,13 +2640,13 @@
       {
        "id": 202,
        "title": {
-        "de": "Rechnung {{receipts.2.vendor}}",
-        "en": "Invoice {{receipts.2.vendor}}"
+        "de": "Rechnung Lieferant 7",
+        "en": "Invoice Lieferant 7"
        },
-       "correspondent": "{{receipts.2.vendor}}",
+       "correspondent": "Lieferant 7",
        "text": {
-        "de": "Rechnung {{receipts.2.number}} Summe {amount} EUR",
-        "en": "Invoice {{receipts.2.number}} sum {amount} EUR"
+        "de": "Rechnung KW-55821 Summe {amount} EUR",
+        "en": "Invoice KW-55821 sum {amount} EUR"
        },
        "amount": true
       }
@@ -2647,8 +2659,8 @@
      "scans": [
       {
        "id": 203,
-       "title": "{{receipts.3.vendor}}",
-       "correspondent": "{{receipts.3.vendor}}",
+       "title": "Lieferant 8",
+       "correspondent": "Lieferant 8",
        "text": "Total {amount} EUR",
        "day": 1
       }
@@ -2666,7 +2678,7 @@
         "de": "Rechnung 09/2026",
         "en": "Invoice 09/2026"
        },
-       "correspondent": "{{vendors.elbnetz.name}}",
+       "correspondent": "Lieferant 1",
        "text": {
         "de": "Rechnungsbetrag {amount} EUR",
         "en": "Invoice amount {amount} EUR"
@@ -2683,10 +2695,10 @@
       {
        "id": 204,
        "title": {
-        "de": "Quittung {{receipts.4.vendor}}",
-        "en": "Receipt {{receipts.4.vendor}}"
+        "de": "Quittung Lieferant 9",
+        "en": "Receipt Lieferant 9"
        },
-       "correspondent": "{{receipts.4.vendor}}",
+       "correspondent": "Lieferant 9",
        "text": {
         "de": "Summe {amount}",
         "en": "Sum {amount}"
@@ -2697,10 +2709,10 @@
       {
        "id": 205,
        "title": {
-        "de": "Quittung {{receipts.4.vendor}}",
-        "en": "Receipt {{receipts.4.vendor}}"
+        "de": "Quittung Lieferant 9",
+        "en": "Receipt Lieferant 9"
        },
-       "correspondent": "{{receipts.4.vendor}}",
+       "correspondent": "Lieferant 9",
        "text": {
         "de": "Summe {amount}",
         "en": "Sum {amount}"
@@ -2725,7 +2737,7 @@
         "de": "Tankquittung",
         "en": "Fuel receipt"
        },
-       "correspondent": "{{receipts.5.vendor}}",
+       "correspondent": "Lieferant 10",
        "text": {
         "de": "Betrag {amount} EUR",
         "en": "Amount {amount} EUR"
@@ -2789,7 +2801,7 @@
     "warranty_expires": "@date+1000",
     "next_audit": "@date+200",
     "last_change": "@date-60",
-    "assigned_to": "{{people.jonas.name}}",
+    "assigned_to": "Person B",
     "expected_checkin": "@date-5"
    }
   ],
@@ -2849,7 +2861,7 @@
    {
     "id": "t1",
     "date": "@date-3",
-    "name": "{{customers.northlight.name}} RE-2026-017",
+    "name": "Kunde A GmbH RE-2026-017",
     "amount": 2380,
     "category": {
      "de": "Einnahmen",
@@ -2863,11 +2875,14 @@
    {
     "id": "t2",
     "date": "@date-5",
-    "name": "{{vendors.nordhost.name}}",
-    "amount": "{{vendors.nordhost.monthly}}",
+    "name": "Lieferant 2",
+    "amount": 41.65,
     "expense": true,
-    "category": "{{vendors.nordhost.kind}}",
-    "merchant": "{{vendors.nordhost.name}}",
+    "category": {
+     "de": "Hosting",
+     "en": "Hosting"
+    },
+    "merchant": "Lieferant 2",
     "account": {
      "de": "Geschäftskonto",
      "en": "Business account"
@@ -2876,7 +2891,7 @@
    {
     "id": "t3",
     "date": "@date-8",
-    "name": "{{receipts.2.vendor}}",
+    "name": "Lieferant 7",
     "amount": -899,
     "account": {
      "de": "Geschäftskonto",
@@ -2899,11 +2914,14 @@
    {
     "id": "t5",
     "date": "@date-40",
-    "name": "{{vendors.nordhost.name}}",
-    "amount": "{{vendors.nordhost.monthly}}",
+    "name": "Lieferant 2",
+    "amount": 41.65,
     "expense": true,
-    "category": "{{vendors.nordhost.kind}}",
-    "merchant": "{{vendors.nordhost.name}}",
+    "category": {
+     "de": "Hosting",
+     "en": "Hosting"
+    },
+    "merchant": "Lieferant 2",
     "account": {
      "de": "Geschäftskonto",
      "en": "Business account"
@@ -2912,9 +2930,9 @@
   ],
   "recurring": [
    {
-    "name": "{{vendors.nordhost.name}}",
+    "name": "Lieferant 2",
     "status": "active",
-    "amount": "{{vendors.nordhost.monthly}}",
+    "amount": 41.65,
     "expense": true,
     "next": "@date+25",
     "last": "@date-5"
@@ -2942,9 +2960,12 @@
     "last": "@date-24"
    },
    {
-    "name": "{{vendors.farbraum.contract}}",
+    "name": {
+     "de": "Farbraum Grade, Abo",
+     "en": "Farbraum Grade subscription"
+    },
     "status": "active",
-    "amount": "{{vendors.farbraum.monthly}}",
+    "amount": 66.45,
     "expense": true,
     "next": "@date+11",
     "last": "@date-19"
@@ -2964,11 +2985,14 @@
     "next": "@date+18"
    },
    {
-    "name": "Domain {{studio.domain}}",
+    "name": "Domain example.test",
     "price": 24,
     "monthly": 2,
     "next": "@date+21",
-    "category": "{{vendors.nordhost.kind}}"
+    "category": {
+     "de": "Hosting",
+     "en": "Hosting"
+    }
    },
    {
     "vendor": "wellenklang",
@@ -3062,6 +3086,127 @@
   "route": {
    "steps": 24,
    "step_minutes": 2
+  },
+  "day": {
+   "areas": [
+    {
+     "id": 1,
+     "place": "home-mara",
+     "radius": 150
+    },
+    {
+     "id": 2,
+     "place": "studio",
+     "radius": 150
+    }
+   ],
+   "suggested": [
+    {
+     "id": 11,
+     "place": "speiche-workshop",
+     "visits": 3
+    }
+   ],
+   "segments": [
+    [
+     "home-mara",
+     "home-mara",
+     "06:00",
+     "07:30",
+     "stationary"
+    ],
+    [
+     "home-mara",
+     "studio",
+     "07:30",
+     "07:50",
+     "driving"
+    ],
+    [
+     "studio",
+     "studio",
+     "07:50",
+     "10:00",
+     "stationary"
+    ],
+    [
+     "studio",
+     "fishmarket",
+     "10:00",
+     "10:25",
+     "walking"
+    ],
+    [
+     "fishmarket",
+     "fishmarket",
+     "10:25",
+     "10:40",
+     "stationary"
+    ],
+    [
+     "fishmarket",
+     "studio",
+     "10:40",
+     "11:05",
+     "walking"
+    ],
+    [
+     "studio",
+     "studio",
+     "11:05",
+     "12:00",
+     "stationary"
+    ],
+    [
+     "studio",
+     "speiche-workshop",
+     "12:00",
+     "12:35",
+     "driving"
+    ],
+    [
+     "speiche-workshop",
+     "speiche-workshop",
+     "12:35",
+     "16:00",
+     "stationary"
+    ],
+    [
+     "speiche-workshop",
+     "home-mara",
+     "16:00",
+     "16:45",
+     "driving"
+    ],
+    [
+     "home-mara",
+     "home-mara",
+     "16:45",
+     "18:00",
+     "stationary"
+    ],
+    [
+     "home-mara",
+     "beach",
+     "18:00",
+     "18:40",
+     "cycling"
+    ],
+    [
+     "beach",
+     "beach",
+     "18:40",
+     "19:10",
+     "stationary"
+    ],
+    [
+     "beach",
+     "home-mara",
+     "19:10",
+     "19:50",
+     "cycling"
+    ]
+   ]
   }
  }
 }

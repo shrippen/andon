@@ -28,7 +28,11 @@
    "title": {
     "de": "Inhaberin, Produzentin",
     "en": "Owner, producer"
-   }
+   },
+   "since": "2024-01-01",
+   "holidays_per_year": 30,
+   "hourly_rate": 85,
+   "commute_km": 3.2
   },
   {
    "id": "jonas",
@@ -41,7 +45,11 @@
    "title": {
     "de": "Kamera",
     "en": "Camera"
-   }
+   },
+   "since": "2024-01-01",
+   "holidays_per_year": 30,
+   "hourly_rate": 85,
+   "commute_km": 14.5
   },
   {
    "id": "selin",
@@ -54,7 +62,10 @@
    "title": {
     "de": "Schnitt",
     "en": "Editing"
-   }
+   },
+   "since": "2024-01-01",
+   "holidays_per_year": 30,
+   "hourly_rate": 85
   },
   {
    "id": "theo",
@@ -67,7 +78,10 @@
    "title": {
     "de": "Ton und Musik",
     "en": "Sound and music"
-   }
+   },
+   "since": "2024-01-01",
+   "holidays_per_year": 30,
+   "hourly_rate": 85
   },
   {
    "id": "lena",
@@ -80,7 +94,10 @@
    "title": {
     "de": "Produktionsassistenz",
     "en": "Production assistant"
-   }
+   },
+   "since": "2024-01-01",
+   "holidays_per_year": 30,
+   "hourly_rate": 85
   }
  ],
  "demo_password": "demo-password-1",
@@ -493,7 +510,20 @@
      "en": "Episode 5, beach in fog"
     }
    }
-  ]
+  ],
+  "pay": {
+   "kind": "weekly",
+   "day_rate": 380,
+   "hourly": 38,
+   "catering_deduction": 9.5,
+   "catering_every": 3,
+   "default_break_min": 45,
+   "ruleset_name": "TV FFS 2024"
+  },
+  "travel": {
+   "leave_min": 40,
+   "arrive_min": 5
+  }
  },
  "vendors": [
   {
@@ -1396,8 +1426,8 @@
   "total": 1843,
   "inbox": 7,
   "oldest_title": {
-   "de": "Rechnung {{vendors.elbnetz.name}}",
-   "en": "Invoice {{vendors.elbnetz.name}}"
+   "de": "Rechnung Elbnetz Mobilfunk",
+   "en": "Invoice Elbnetz Mobilfunk"
   },
   "oldest_added": "@date-23",
   "invoices": [
@@ -1407,16 +1437,19 @@
      "de": "Rechnung 09/2026",
      "en": "Invoice 09/2026"
     },
-    "correspondent": "{{vendors.elbnetz.name}}",
+    "correspondent": "Elbnetz Mobilfunk",
     "created": "@date-23",
-    "amount": "{{vendors.elbnetz.monthly}}"
+    "amount": 39.95
    }
   ],
   "contracts": [
    {
     "id": 88,
-    "title": "{{vendors.elbnetz.contract}}",
-    "correspondent": "{{vendors.elbnetz.name}}",
+    "title": {
+     "de": "Mobilfunkvertrag",
+     "en": "Mobile contract"
+    },
+    "correspondent": "Elbnetz Mobilfunk",
     "end": "@+111d",
     "notice_months": 3,
     "deadline": "@+20d",
@@ -1435,8 +1468,8 @@
    {
     "id": 1842,
     "title": {
-     "de": "Rechnung {{vendors.nordhost.name}}",
-     "en": "Invoice {{vendors.nordhost.name}}"
+     "de": "Rechnung Nordhost Server",
+     "en": "Invoice Nordhost Server"
     },
     "added": "@date-1"
    },
@@ -1489,13 +1522,13 @@
       {
        "id": 201,
        "title": {
-        "de": "Rechnung {{receipts.1.number}}",
-        "en": "Invoice {{receipts.1.number}}"
+        "de": "Rechnung FE-2026-0917",
+        "en": "Invoice FE-2026-0917"
        },
-       "correspondent": "{{receipts.1.vendor}} GmbH",
+       "correspondent": "Fotohaus Elbe GmbH",
        "text": {
-        "de": "Rechnungsnr. {{receipts.1.number}} Gesamtbetrag {amount} EUR",
-        "en": "Invoice no. {{receipts.1.number}} total {amount} EUR"
+        "de": "Rechnungsnr. FE-2026-0917 Gesamtbetrag {amount} EUR",
+        "en": "Invoice no. FE-2026-0917 total {amount} EUR"
        },
        "amount": true,
        "day": 1
@@ -1512,13 +1545,13 @@
       {
        "id": 202,
        "title": {
-        "de": "Rechnung {{receipts.2.vendor}}",
-        "en": "Invoice {{receipts.2.vendor}}"
+        "de": "Rechnung Kabelwerk Studiobedarf",
+        "en": "Invoice Kabelwerk Studiobedarf"
        },
-       "correspondent": "{{receipts.2.vendor}}",
+       "correspondent": "Kabelwerk Studiobedarf",
        "text": {
-        "de": "Rechnung {{receipts.2.number}} Summe {amount} EUR",
-        "en": "Invoice {{receipts.2.number}} sum {amount} EUR"
+        "de": "Rechnung KW-55821 Summe {amount} EUR",
+        "en": "Invoice KW-55821 sum {amount} EUR"
        },
        "amount": true
       }
@@ -1531,8 +1564,8 @@
      "scans": [
       {
        "id": 203,
-       "title": "{{receipts.3.vendor}}",
-       "correspondent": "{{receipts.3.vendor}}",
+       "title": "Kombüse Catering",
+       "correspondent": "Kombüse Catering",
        "text": "Total {amount} EUR",
        "day": 1
       }
@@ -1550,7 +1583,7 @@
         "de": "Rechnung 09/2026",
         "en": "Invoice 09/2026"
        },
-       "correspondent": "{{vendors.elbnetz.name}}",
+       "correspondent": "Elbnetz Mobilfunk",
        "text": {
         "de": "Rechnungsbetrag {amount} EUR",
         "en": "Invoice amount {amount} EUR"
@@ -1567,10 +1600,10 @@
       {
        "id": 204,
        "title": {
-        "de": "Quittung {{receipts.4.vendor}}",
-        "en": "Receipt {{receipts.4.vendor}}"
+        "de": "Quittung Mietwagen Nord",
+        "en": "Receipt Mietwagen Nord"
        },
-       "correspondent": "{{receipts.4.vendor}}",
+       "correspondent": "Mietwagen Nord",
        "text": {
         "de": "Summe {amount}",
         "en": "Sum {amount}"
@@ -1581,10 +1614,10 @@
       {
        "id": 205,
        "title": {
-        "de": "Quittung {{receipts.4.vendor}}",
-        "en": "Receipt {{receipts.4.vendor}}"
+        "de": "Quittung Mietwagen Nord",
+        "en": "Receipt Mietwagen Nord"
        },
-       "correspondent": "{{receipts.4.vendor}}",
+       "correspondent": "Mietwagen Nord",
        "text": {
         "de": "Summe {amount}",
         "en": "Sum {amount}"
@@ -1609,7 +1642,7 @@
         "de": "Tankquittung",
         "en": "Fuel receipt"
        },
-       "correspondent": "{{receipts.5.vendor}}",
+       "correspondent": "Tankstelle Elbchaussee",
        "text": {
         "de": "Betrag {amount} EUR",
         "en": "Amount {amount} EUR"
@@ -1674,7 +1707,7 @@
     "warranty_expires": "@date+1000",
     "next_audit": "@date+200",
     "last_change": "@date-60",
-    "assigned_to": "{{people.jonas.name}}",
+    "assigned_to": "Jonas Brandt",
     "expected_checkin": "@date-5"
    }
   ],
@@ -1735,7 +1768,7 @@
    {
     "id": "t1",
     "date": "@date-3",
-    "name": "{{customers.northlight.name}} RE-2026-017",
+    "name": "Northlight Pictures RE-2026-017",
     "amount": 2380,
     "category": {
      "de": "Einnahmen",
@@ -1749,11 +1782,14 @@
    {
     "id": "t2",
     "date": "@date-5",
-    "name": "{{vendors.nordhost.name}}",
-    "amount": "{{vendors.nordhost.monthly}}",
+    "name": "Nordhost Server",
+    "amount": 41.65,
     "expense": true,
-    "category": "{{vendors.nordhost.kind}}",
-    "merchant": "{{vendors.nordhost.name}}",
+    "category": {
+     "de": "Hosting",
+     "en": "Hosting"
+    },
+    "merchant": "Nordhost Server",
     "account": {
      "de": "Geschäftskonto",
      "en": "Business account"
@@ -1762,7 +1798,7 @@
    {
     "id": "t3",
     "date": "@date-8",
-    "name": "{{receipts.2.vendor}}",
+    "name": "Kabelwerk Studiobedarf",
     "amount": -899,
     "account": {
      "de": "Geschäftskonto",
@@ -1785,11 +1821,14 @@
    {
     "id": "t5",
     "date": "@date-40",
-    "name": "{{vendors.nordhost.name}}",
-    "amount": "{{vendors.nordhost.monthly}}",
+    "name": "Nordhost Server",
+    "amount": 41.65,
     "expense": true,
-    "category": "{{vendors.nordhost.kind}}",
-    "merchant": "{{vendors.nordhost.name}}",
+    "category": {
+     "de": "Hosting",
+     "en": "Hosting"
+    },
+    "merchant": "Nordhost Server",
     "account": {
      "de": "Geschäftskonto",
      "en": "Business account"
@@ -1798,9 +1837,9 @@
   ],
   "recurring": [
    {
-    "name": "{{vendors.nordhost.name}}",
+    "name": "Nordhost Server",
     "status": "active",
-    "amount": "{{vendors.nordhost.monthly}}",
+    "amount": 41.65,
     "expense": true,
     "next": "@date+25",
     "last": "@date-5"
@@ -1828,9 +1867,12 @@
     "last": "@date-24"
    },
    {
-    "name": "{{vendors.farbraum.contract}}",
+    "name": {
+     "de": "Farbraum Grade, Abo",
+     "en": "Farbraum Grade subscription"
+    },
     "status": "active",
-    "amount": "{{vendors.farbraum.monthly}}",
+    "amount": 66.45,
     "expense": true,
     "next": "@date+11",
     "last": "@date-19"
@@ -1851,11 +1893,14 @@
     "next": "@date+18"
    },
    {
-    "name": "Domain {{studio.domain}}",
+    "name": "Domain studio-weber.example.test",
     "price": 24,
     "monthly": 2,
     "next": "@date+21",
-    "category": "{{vendors.nordhost.kind}}"
+    "category": {
+     "de": "Hosting",
+     "en": "Hosting"
+    }
    },
    {
     "vendor": "wellenklang",
@@ -1916,6 +1961,108 @@
   "research": true,
   "budget_usd": 5,
   "used_usd": 1.25
+ },
+ "archive": {
+  "note": "Older projects and activities, booked in the same weeks as the current work: their colours clash with current ones or are missing (Kimai Farbfächer).",
+  "projects": [
+   {
+    "customer": "northlight",
+    "name": {
+     "de": "Harbour Lights – Staffel 1",
+     "en": "Harbour Lights – Season 1"
+    },
+    "color": "#fe8019"
+   },
+   {
+    "customer": "speiche",
+    "name": {
+     "de": "Herbstspot",
+     "en": "Autumn commercial"
+    },
+    "color": "#83a598"
+   },
+   {
+    "customer": "elbgruen",
+    "name": {
+     "de": "Jahresbericht-Video",
+     "en": "Annual report video"
+    },
+    "color": "#8ec07c"
+   },
+   {
+    "customer": "studio",
+    "name": "Showreel 2025",
+    "color": null
+   }
+  ],
+  "activities": [
+   {
+    "name": {
+     "de": "Farbkorrektur",
+     "en": "Colour grading"
+    },
+    "color": "#83a598"
+   },
+   {
+    "name": {
+     "de": "Drehvorbereitung",
+     "en": "Shoot prep"
+    },
+    "color": "#d3869b"
+   },
+   {
+    "name": {
+     "de": "Sichtung",
+     "en": "Footage review"
+    },
+    "color": null
+   },
+   {
+    "name": {
+     "de": "Tonschnitt",
+     "en": "Dialogue edit"
+    },
+    "color": "#8ec07c"
+   }
+  ],
+  "bookings": {
+   "weeks": [
+    -6,
+    -1
+   ],
+   "people": [
+    {
+     "user": "mara",
+     "weekday": 1
+    },
+    {
+     "user": "selin",
+     "weekday": 3
+    }
+   ],
+   "slots": [
+    "09:00",
+    "14:00"
+   ],
+   "hours": 2
+  }
+ },
+ "approvals": {
+  "note": "Who approves and locks: Lena approves absences a week before they start, closes the previous month for everyone; trips of last month are approved, Jonas has submitted this month's.",
+  "by": "lena",
+  "days_before": 7,
+  "time": "10:00",
+  "month_lock_time": "18:00",
+  "trips": {
+   "approved_last_month": [
+    "mara",
+    "jonas",
+    "lena"
+   ],
+   "submitted_this_month": [
+    "jonas"
+   ]
+  }
  },
  "timesheet_weeks": {
   "from_week": -8,
@@ -2874,6 +3021,17 @@
    }
   }
  },
+ "standby_timer": {
+  "note": "Jonas' timer when no shoot day is running (Plasmai).",
+  "user": "jonas",
+  "project": "showreel",
+  "activity": "edit",
+  "minutes_ago": 85,
+  "description": {
+   "de": "Kamera-Reel schneiden",
+   "en": "Cut the camera reel"
+  }
+ },
  "places": [
   {
    "id": "studio",
@@ -3324,7 +3482,175 @@
   "route": {
    "steps": 24,
    "step_minutes": 2
+  },
+  "day": {
+   "note": "One of Mara's days as Dawarich tracks it (home, studio, fish market, Speiche, the beach in the evening); the areas and a suggested place for Kimai Anfahrten. visits: the stops Dawarich confirms; geocoded: the places its reverse geocoder knows.",
+   "areas": [
+    {
+     "id": 1,
+     "place": "home-mara",
+     "radius": 150
+    },
+    {
+     "id": 2,
+     "place": "studio",
+     "radius": 150
+    }
+   ],
+   "suggested": [
+    {
+     "id": 11,
+     "place": "speiche-workshop",
+     "visits": 3
+    }
+   ],
+   "segments": [
+    [
+     "home-mara",
+     "home-mara",
+     "06:00",
+     "07:30",
+     "stationary"
+    ],
+    [
+     "home-mara",
+     "studio",
+     "07:30",
+     "07:50",
+     "driving"
+    ],
+    [
+     "studio",
+     "studio",
+     "07:50",
+     "10:00",
+     "stationary"
+    ],
+    [
+     "studio",
+     "fishmarket",
+     "10:00",
+     "10:25",
+     "walking"
+    ],
+    [
+     "fishmarket",
+     "fishmarket",
+     "10:25",
+     "10:40",
+     "stationary"
+    ],
+    [
+     "fishmarket",
+     "studio",
+     "10:40",
+     "11:05",
+     "walking"
+    ],
+    [
+     "studio",
+     "studio",
+     "11:05",
+     "12:00",
+     "stationary"
+    ],
+    [
+     "studio",
+     "speiche-workshop",
+     "12:00",
+     "12:35",
+     "driving"
+    ],
+    [
+     "speiche-workshop",
+     "speiche-workshop",
+     "12:35",
+     "16:00",
+     "stationary"
+    ],
+    [
+     "speiche-workshop",
+     "home-mara",
+     "16:00",
+     "16:45",
+     "driving"
+    ],
+    [
+     "home-mara",
+     "home-mara",
+     "16:45",
+     "18:00",
+     "stationary"
+    ],
+    [
+     "home-mara",
+     "beach",
+     "18:00",
+     "18:40",
+     "cycling"
+    ],
+    [
+     "beach",
+     "beach",
+     "18:40",
+     "19:10",
+     "stationary"
+    ],
+    [
+     "beach",
+     "home-mara",
+     "19:10",
+     "19:50",
+     "cycling"
+    ],
+    [
+     "home-mara",
+     "home-mara",
+     "19:50",
+     "22:00",
+     "stationary"
+    ]
+   ],
+   "visits": [
+    [
+     "studio",
+     "07:50",
+     "12:00"
+    ],
+    [
+     "speiche-workshop",
+     "12:35",
+     "16:00"
+    ]
+   ],
+   "geocoded": [
+    "home-mara",
+    "studio",
+    "speiche-workshop"
+   ]
   }
+ },
+ "logbook": {
+  "note": "Kimai Anfahrten: places get a radius, vehicles count from a date, trips leave in the morning and come back in the evening, driving takes minutes_per_km; a rental costs rent + fuel and stops at the workshop and the studio. Road km = straight line × road_factor.",
+  "place_radius": 150,
+  "vehicles_since": "2024-01-01",
+  "times": {
+   "out": "08:15",
+   "back": "17:30",
+   "rental": "09:00"
+  },
+  "minutes_per_km": 2.5,
+  "min_minutes": 10,
+  "road_factor": 1.3,
+  "rental_split": {
+   "rent": 0.8,
+   "fuel": 0.2
+  },
+  "rental_stops": [
+   "speiche-workshop",
+   "studio"
+  ],
+  "vehicle": "van"
  },
  "inventory": {
   "assets": [
@@ -3416,7 +3742,54 @@
   "scenario": {
    "de": "Rendern: der Kolk, Nacht 3",
    "en": "Rendering: the Kolk, night 3"
-  }
+  },
+  "render": {
+   "note": "The render job's load 0..1: started minutes ago, base ± swing with small bursts, never below floor.",
+   "started_min": 20,
+   "base": 0.55,
+   "swing": 0.35,
+   "burst": 0.1,
+   "floor": 0.15
+  },
+  "sensors": {
+   "APU": [
+    48,
+    38
+   ],
+   "CPU": [
+    46,
+    40
+   ],
+   "Battery": [
+    31,
+    4
+   ],
+   "SSD": [
+    38,
+    9
+   ]
+  },
+  "fan": {
+   "name": "Fan 1",
+   "sensor": "APU",
+   "rpm": [
+    1800,
+    3600
+   ]
+  },
+  "tdp_watts": 28,
+  "charging": {
+   "rate_ma": 2100,
+   "voltage_mv": 16800
+  },
+  "epp": "balance_performance",
+  "history_min": 30,
+  "log": [
+   "framework-control demo",
+   "fan curve active (APU)",
+   "charge limit {charge_limit} %"
+  ],
+  "nominal_voltage": 15.4
  },
  "terminal": {
   "user": "mara",
@@ -3614,6 +3987,248 @@
    "bluetoothd",
    "btagent",
    "bluealsa"
+  ],
+  "demo_time": "18:20",
+  "config": {
+   "bluetooth_pairing": "button",
+   "sendspin_port": 8927,
+   "airplay": "on",
+   "web_password": "demo"
+  },
+  "briefing": {
+   "place": "Hamburg",
+   "lat": 53.55,
+   "lon": 9.99,
+   "tts": "ha",
+   "then": "radio:0",
+   "podcast": 0,
+   "items": [
+    {
+     "type": "greeting"
+    },
+    {
+     "type": "weather"
+    },
+    {
+     "type": "warnings"
+    },
+    {
+     "type": "calendar",
+     "name": "Studio",
+     "url": "https://cloud.studio-weber.example.test/remote.php/dav/public-calendars/studio?export",
+     "days": 0
+    },
+    {
+     "type": "calendar",
+     "name": {
+      "de": "Müllabfuhr",
+      "en": "Waste collection"
+     },
+     "url": "https://www.stadtreinigung.example.test/abfuhr.ics",
+     "days": 1
+    },
+    {
+     "type": "ha",
+     "text": {
+      "de": "Fahrzeit ins Studio: {{ states('sensor.fahrzeit') }} Minuten.",
+      "en": "Travel time to the studio: {{ states('sensor.travel_time') }} minutes."
+     }
+    },
+    {
+     "type": "podcast"
+    }
+   ]
+  },
+  "home_assistant": {
+   "url": "http://homeassistant.local:8123",
+   "token": "x",
+   "tts_engine": "tts.piper"
+  },
+  "voice": {
+   "port": 10700,
+   "mic": "leuchtfeuer_mic",
+   "mode": "wake",
+   "area": "Studio",
+   "duck_db": 20,
+   "heard": {
+    "de": "Wie warm ist es im Studio?",
+    "en": "How warm is it in the studio?"
+   },
+   "answer": {
+    "de": "Im Studio sind es 21,5 Grad.",
+    "en": "It is 21.5 degrees in the studio."
+   }
+  },
+  "eq": {
+   "version": 1,
+   "bass": 2,
+   "loudness": true,
+   "room_on": true,
+   "room": [
+    {
+     "hz": 52,
+     "db": -6.4,
+     "q": 4.6
+    },
+    {
+     "hz": 118,
+     "db": -3.8,
+     "q": 3.2
+    }
+   ]
+  },
+  "source_limits": {
+   "bluetooth": {
+    "max": 80,
+    "trim_db": 4
+   },
+   "radio": {
+    "start": 25
+   }
+  },
+  "syslog": {
+   "host": "192.168.10.20",
+   "port": 514,
+   "proto": "udp"
+  },
+  "system": {
+   "load1": 0.31,
+   "mem_total_mb": 462,
+   "mem_free_mb": 398,
+   "data_free_mb": 68,
+   "data_size_mb": 123,
+   "uptime_extra_hours": 5
+  },
+  "clock": {
+   "offset_ms": 38,
+   "checked_min_ago": 12,
+   "server": "pool.ntp.org",
+   "last_sync_hours_ago": 3
+  },
+  "hidden_service_groups": [
+   "tidal",
+   "snapcast"
+  ],
+  "audio_cards": [
+   {
+    "id": "wm8904",
+    "name": "HK Invoke DSP"
+   },
+   {
+    "id": "HDMI",
+    "name": {
+     "de": "HDMI Ausgang",
+     "en": "HDMI output"
+    }
+   }
+  ],
+  "bluetooth_devices": [
+   {
+    "addr": "00:1A:7D:DA:71:13",
+    "name": "JBL Flip 6",
+    "paired": true,
+    "connected": true
+   },
+   {
+    "addr": "F4:6D:04:12:34:56",
+    "name": "Bose SoundLink",
+    "rssi": -58
+   }
+  ],
+  "peers": [
+   {
+    "name": {
+     "de": "Küche",
+     "en": "Kitchen"
+    },
+    "url": "http://invoke-kueche.lan",
+    "online": true,
+    "volume": 22,
+    "temp_c": 61,
+    "playing": "spotify: Nils Frahm – Says"
+   },
+   {
+    "name": {
+     "de": "Lager",
+     "en": "Store room"
+    },
+    "url": "https://invoke-lager.lan",
+    "error": "dial tcp 192.168.10.47:443: i/o timeout"
+   }
+  ],
+  "found_peers": [
+   {
+    "id": "aabbccddeeff",
+    "name": {
+     "de": "Empfang",
+     "en": "Reception"
+    },
+    "url": "http://192.168.10.53"
+   }
+  ],
+  "logs": [
+   {
+    "ago_secs": 95,
+    "source": "hook",
+    "text": {
+     "de": "Dienst librespot gestartet (pid 2817)",
+     "en": "Service librespot started (pid 2817)"
+    }
+   },
+   {
+    "ago_secs": 80,
+    "source": "librespot",
+    "text": "[INFO librespot_playback::player] Loading <Says> with Spotify URI <spotify:track:1C1Z1Ry9Lo6pKyx1Rj5DnN>"
+   },
+   {
+    "ago_secs": 62,
+    "source": "leuchtfeuerd",
+    "text": {
+     "de": "Quelle radio stumm (andere Quelle hat Vorrang)",
+     "en": "Source radio muted (another source has priority)"
+    }
+   },
+   {
+    "ago_secs": 41,
+    "source": "bluetooth-4-aplay",
+    "text": "underrun!!! (at least 3.412 ms long)"
+   },
+   {
+    "ago_secs": 12,
+    "source": "leuchtfeuerd",
+    "text": {
+     "de": "Webradio http://stream.example/radio: error, neuer Versuch in 2s",
+     "en": "Web radio http://stream.example/radio: error, retry in 2s"
+    }
+   },
+   {
+    "ago_secs": 9,
+    "source": "leuchtfeuerd",
+    "text": {
+     "de": "Briefing für 06:45 vorbereitet (4 Abschnitte)",
+     "en": "Briefing for 06:45 prepared (4 sections)"
+    }
+   }
+  ],
+  "ssh_keys": [
+   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKLvR49qGA+o0okpI4l2wDksoS1Vptf26qrGl9IK/0uh mara@schnitt-laptop",
+   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFcHtOPWPaWZCXPIgw0tkATbFTkDx1MQn982m5FMFiI7 backup@nebelhorn"
+  ],
+  "vendor_sounds": {
+   "power_on.wav": 2.4,
+   "network_error.wav": 1.1,
+   "bt_connected.wav": 0.8,
+   "setup_mode.wav": 1.6
+  },
+  "tokens": [
+   {
+    "name": "Home Assistant",
+    "scope": "full"
+   },
+   {
+    "name": "Prometheus",
+    "scope": "read"
+   }
   ]
  },
  "dashboard": {
@@ -3868,7 +4483,7 @@
   "disks": [
    {
     "name": "sda",
-    "model": "{{inventory.disks.0}}",
+    "model": "Speicherwerk HD4 4TB",
     "status": 0,
     "temp": 38,
     "hours": 31000,
@@ -3876,7 +4491,7 @@
    },
    {
     "name": "sdb",
-    "model": "{{inventory.disks.1}}",
+    "model": "Tiefgang NAS 4TB",
     "status": 1,
     "temp": 41,
     "hours": 42000,
@@ -3884,7 +4499,7 @@
    },
    {
     "name": "nvme0",
-    "model": "{{inventory.disks.2}}",
+    "model": "Blitz 980 NVMe",
     "status": 0,
     "temp": 56,
     "hours": 9000,
@@ -4485,20 +5100,20 @@
   "version": "1.34.3",
   "users": [
    {
-    "email": "{{people.mara.email}}",
+    "email": "mara@studio-weber.example.test",
     "two_factor": true,
     "enabled": true,
     "last_active": "@-1d",
     "orgs": [
-     "{{studio.name}}"
+     "Studio Weber"
     ]
    },
    {
-    "email": "{{people.lena.email}}",
+    "email": "lena@studio-weber.example.test",
     "enabled": true,
     "last_active": "@-3d",
     "orgs": [
-     "{{studio.name}}"
+     "Studio Weber"
     ]
    }
   ]
@@ -4561,8 +5176,8 @@
     {
      "repo": "studio/showreel",
      "title": {
-      "de": "Neue Szenen für {{projects.harbour.short}}",
-      "en": "New {{projects.harbour.short}} scenes"
+      "de": "Neue Szenen für Harbour Lights",
+      "en": "New Harbour Lights scenes"
      },
      "url": "https://git.demo/studio/showreel/issues/12",
      "number": 12,
@@ -4923,7 +5538,7 @@
  "weather": {
   "note": "German weather service warnings for the studio's city.",
   "url": "https://api.brightsky.dev",
-  "place": "{{studio.city}}",
+  "place": "Hamburg",
   "warnings": [
    {
     "id": "demo-1",
@@ -5090,14 +5705,14 @@
    {
     "uid": 1,
     "date": "@-4d",
-    "sender": "{{vendors.nordhost.name}}",
-    "addr": "billing@{{vendors.nordhost.domain}}",
-    "domain": "{{vendors.nordhost.domain}}",
+    "sender": "Nordhost Server",
+    "addr": "billing@nordhost.example.test",
+    "domain": "nordhost.example.test",
     "subject": {
      "de": "Ihre Rechnung R0012345",
      "en": "Your invoice R0012345"
     },
-    "amount": "{{vendors.nordhost.monthly}}",
+    "amount": 41.65,
     "attachments": [
      "Rechnung_R0012345.pdf"
     ]
@@ -5105,9 +5720,9 @@
    {
     "uid": 2,
     "date": "@-9d",
-    "sender": "{{vendors.farbraum.name}}",
-    "addr": "sales@{{vendors.farbraum.domain}}",
-    "domain": "{{vendors.farbraum.domain}}",
+    "sender": "Farbraum Software",
+    "addr": "sales@farbraum.example.test",
+    "domain": "farbraum.example.test",
     "subject": "Invoice for your order",
     "amount": 289,
     "attachments": [
@@ -5122,13 +5737,13 @@
    {
     "start": "@date-2 14:00",
     "title": {
-     "de": "Drehplan {{customers.northlight.name}}",
-     "en": "Shooting plan {{customers.northlight.name}}"
+     "de": "Drehplan Northlight Pictures",
+     "en": "Shooting plan Northlight Pictures"
     }
    },
    {
     "start": "@date+0 16:00",
-    "title": "Call {{customers.speiche.name}}"
+    "title": "Call Speiche Fahrradmanufaktur"
    },
    {
     "start": "@date+3 14:00",
@@ -5216,17 +5831,40 @@
    {
     "name": "Rolle 03 – Övelgönne",
     "frames": 12,
-    "stock": "Farbnegativ 35 mm"
+    "stock": "Farbnegativ 35 mm",
+    "underexposed": {
+     "5": 0.8,
+     "10": 0.9
+    }
    },
    {
     "name": "Rolle 04 – Speiche",
     "frames": 10,
-    "stock": "Farbnegativ 35 mm"
+    "stock": "Farbnegativ 35 mm",
+    "underexposed": {
+     "5": 0.8,
+     "10": 0.9,
+     "7": 0.95
+    }
    },
    {
     "name": "Rolle 05 – Graufeld",
     "frames": 8,
-    "stock": "Farbnegativ 35 mm"
+    "stock": "Farbnegativ 35 mm",
+    "underexposed": {
+     "5": 0.8,
+     "10": 0.9,
+     "7": 0.95
+    }
+   }
+  ],
+  "video_files": [
+   {
+    "name": "hl_s02e03_landungsbruecken_take4.mp4",
+    "seconds": 20,
+    "tone": 330,
+    "size": "1280x720",
+    "rate": 25
    }
   ]
  },
@@ -5244,13 +5882,13 @@
   "latest": "v1.132.3",
   "users": [
    {
-    "name": "{{people.mara.alias}}",
+    "name": "Mara",
     "photos": 30112,
     "videos": 1210,
     "bytes": 1400000000000.0
    },
    {
-    "name": "{{people.lena.alias}}",
+    "name": "Lena",
     "photos": 18101,
     "videos": 710,
     "bytes": 900000000000.0
@@ -5267,25 +5905,34 @@
   "episodes": 4310,
   "streams": [
    {
-    "user": "{{people.selin.alias}}",
-    "title": "{{projects.harbour.name}}"
+    "user": "Selin",
+    "title": {
+     "de": "Harbour Lights – Staffel 2",
+     "en": "Harbour Lights – Season 2"
+    }
    },
    {
-    "user": "{{people.theo.alias}}",
-    "title": "{{media.album.title}}"
+    "user": "Theo",
+    "title": "Harbour Lights (Original Score)"
    }
   ],
   "titles": [
    {
-    "title": "{{projects.harbour.name}}",
+    "title": {
+     "de": "Harbour Lights – Staffel 2",
+     "en": "Harbour Lights – Season 2"
+    },
     "plays": 9
    },
    {
-    "title": "{{media.album.title}}",
+    "title": "Harbour Lights (Original Score)",
     "plays": 6
    },
    {
-    "title": "{{projects.spring.name}}",
+    "title": {
+     "de": "Herbstspot „Licht an“",
+     "en": "Autumn spot “Lights on”"
+    },
     "plays": 4
    }
   ]
@@ -5298,7 +5945,7 @@
   "queue": 3,
   "missing": 12,
   "stuck": [
-   "{{projects.harbour.short}} S02E04"
+   "Harbour Lights S02E04"
   ],
   "health": [
    {
@@ -5308,11 +5955,11 @@
   ],
   "upcoming": [
    {
-    "title": "{{projects.harbour.short}} 2x05",
+    "title": "Harbour Lights 2x05",
     "at": "@+26h"
    },
    {
-    "title": "{{projects.harbour.short}} 2x06",
+    "title": "Harbour Lights 2x06",
     "at": "@+80h"
    }
   ]
@@ -6189,7 +6836,100 @@
    17,
    6,
    23
-  ]
+  ],
+  "ai_script": {
+   "note": "The demo AI's answers and the edits it proposes per batch kind; code names come from hosts (old → name).",
+   "replies": {
+    "secrets": {
+     "de": "Klartext-Werte durch Vaultwarden-Verweise ersetzt.",
+     "en": "Replaced plain-text values with Vaultwarden references."
+    },
+    "names": {
+     "de": "Alte Codenamen durch die Seezeichen-Namen ersetzt.",
+     "en": "Replaced old code names with the sea mark names."
+    },
+    "switch": {
+     "de": "Switch in der Netzwerkübersicht aktualisiert.",
+     "en": "Updated the switch in the network overview."
+    },
+    "borg": {
+     "de": "Verstanden. Restic durch Borg auf [[Nebelhorn]] ersetzt.",
+     "en": "Understood. Replaced Restic with Borg to [[Nebelhorn]]."
+    },
+    "generic": {
+     "de": "Verstanden, in der Demo antwortet eine vorbereitete KI ohne echtes Modell.",
+     "en": "Understood; in the demo a prepared AI answers without a real model."
+    },
+    "question": {
+     "de": "Welche Notizen genau meinst du? Die Demo-KI kennt Secrets, Codenamen und den Switch.",
+     "en": "Which notes exactly? The demo AI knows secrets, code names and the switch."
+    }
+   },
+   "topics": {
+    "secrets": {
+     "de": "Secrets",
+     "en": "Secrets"
+    },
+    "names": {
+     "de": "Namen",
+     "en": "Names"
+    },
+    "switch": {
+     "de": "Netzwerk",
+     "en": "Network"
+    },
+    "borg": {
+     "de": "Backup",
+     "en": "Backup"
+    },
+    "other": "Demo"
+   },
+   "secret_value": "siehe Vaultwarden: Admin",
+   "switch": {
+    "from": "Knotenwerk KS-8, 8 Ports, alle belegt.",
+    "to": "Knotenwerk KS-24, 24 Ports."
+   },
+   "borg": [
+    {
+     "from": "Nächtlich mit Restic",
+     "to": "Nächtlich mit Borg auf [[Nebelhorn]]."
+    },
+    {
+     "from": "Nightly with Restic",
+     "to": "Nightly with Borg to [[Nebelhorn]]."
+    }
+   ]
+  },
+  "review": {
+   "field": "letzte Prüfung",
+   "days": 180
+  },
+  "providers": [
+   {
+    "name": "studio-ki",
+    "kind": "demo",
+    "model": "demo",
+    "local": true
+   },
+   {
+    "name": "claude",
+    "kind": "anthropic",
+    "model": "claude-opus-5",
+    "fallback": "default"
+   },
+   {
+    "name": "ollama",
+    "kind": "openai",
+    "model": "qwen3",
+    "base_url": "http://localhost:11434/v1",
+    "local": true
+   }
+  ],
+  "provider": "studio-ki",
+  "local_only": [
+   "IT/Anleitungen"
+  ],
+  "batch_spacing_min": 47
  },
  "timesheets": [
   {

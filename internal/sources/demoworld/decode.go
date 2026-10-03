@@ -9,12 +9,11 @@ import (
 	"time"
 )
 
-// Decode fills v from the world's section at path ("it.monitoring"), the
-// way the demo datasets read it:
+// Decode fills v from the world's section at path ("dns.pihole"), the way
+// the demo datasets read it ({{…}} references are resolved when the world
+// is built):
 //
 //	{"de": …, "en": …}       → the German text
-//	"{{vendors.nordhost.name}}" → that value (a list entry by its id);
-//	                            inside a longer text, its text
 //	"@-3h", "@+2d", "@-1d6h" → a time relative to now (RFC 3339; the
 //	                            sign holds for every part)
 //	"@date-2"                → a day relative to today in UTC, like the
@@ -42,7 +41,6 @@ func MustDecode(path string, now time.Time, v any) {
 
 var (
 	generic any
-	refPat  = regexp.MustCompile(`\{\{([a-z_]+(?:\.[A-Za-z0-9_-]+)+)\}\}`)
 	relPat  = regexp.MustCompile(`^@[+-](\d+[dhm])+$`)
 	partPat = regexp.MustCompile(`(\d+)([dhm])`)
 	datePat = regexp.MustCompile(`^@date([+-]\d+)(?: (\d\d):(\d\d))?$`)
@@ -59,7 +57,7 @@ func tree() any {
 }
 
 // lookup walks keys; in a list a key names the entry with that id, or
-// else its index ("inventory.disks.0").
+// else its index.
 func lookup(node any, keys []string) (any, error) {
 	for _, k := range keys {
 		switch n := node.(type) {
@@ -146,20 +144,5 @@ func resolveText(s string, now time.Time) any {
 		}
 		return at.Format(time.RFC3339)
 	}
-
-	// A whole-string reference keeps its type (a number stays a number).
-	if m := refPat.FindStringSubmatch(s); m != nil && m[0] == s {
-		return resolve(ref(m[1]), now)
-	}
-	return refPat.ReplaceAllStringFunc(s, func(r string) string {
-		return fmt.Sprint(resolve(ref(refPat.FindStringSubmatch(r)[1]), now))
-	})
-}
-
-func ref(path string) any {
-	v, err := lookup(tree(), strings.Split(path, "."))
-	if err != nil {
-		panic("demoworld: " + err.Error())
-	}
-	return v
+	return s
 }

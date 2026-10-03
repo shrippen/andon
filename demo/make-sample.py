@@ -20,9 +20,9 @@ DIR = Path(__file__).resolve().parent.parent / "internal" / "sources" / "demowor
 LETTERS = string.ascii_uppercase
 
 
-# Sections the demo datasets read as they are: they name no one of Studio
-# Weber directly, only through {{…}} references, which then resolve to the
-# sample's neutral names. COPY_CHECK fails the run if one does.
+# Sections the demo datasets read as they are, with Studio Weber's names
+# swapped for the sample's (neutral() maps them; the world resolved its
+# {{…}} references when it was built). The run fails if a name is left.
 COPY = ["public_holidays", "monitoring", "server", "virtualization", "storage", "disk_health", "containers",
         "stacks", "backups", "certs", "domains", "mail_blacklist", "dns", "gateway", "vpn", "tailnet", "tunnel",
         "speed", "identity", "passwords", "cloud", "downloads", "code", "json_api", "smart_home", "pantry",
@@ -37,6 +37,23 @@ def without_notes(node):
     if isinstance(node, list):
         return [without_notes(v) for v in node]
     return node
+
+
+def neutral(world, sample):
+    """Studio Weber's names → the sample's, longest first (entries pair up by position)."""
+    pairs = {world["studio"][k]: sample["studio"][k] for k in ("name", "domain", "city")}
+    for kind, keys in (("people", ("name", "alias", "email")), ("customers", ("name",)), ("vendors", ("name", "domain"))):
+        for a, b in zip(world[kind], sample[kind]):
+            pairs.update({a[k]: b[k] for k in keys})
+    for a, b in zip(world["projects"], sample["projects"]):
+        pairs.update({a["name"][l]: b["name"][l] for l in ("de", "en")})
+        pairs[a.get("short") or a["name"]["de"]] = b["short"]
+    for a, b in zip(world["receipts"], sample["receipts"]):
+        pairs[a["vendor"]] = b["vendor"]
+    pairs[world["media"]["album"]["title"]] = sample["media"]["album"]["title"]
+    pairs = {k: v for k, v in pairs.items() if k}
+    return lambda text: re.sub("|".join(re.escape(k) for k in sorted(pairs, key=len, reverse=True)),
+                               lambda m: pairs[m.group(0)], text)
 
 
 def identity(world):
@@ -114,12 +131,11 @@ def main():
         },
         "media": {"album": {"title": "Album", "artist": "Künstler"}},
     }
-    copy = {k: without_notes(world[k]) for k in COPY}
-    copied = json.dumps(copy, ensure_ascii=False)
+    copied = neutral(world, sample)(json.dumps({k: without_notes(world[k]) for k in COPY}, ensure_ascii=False))
     leaks = sorted(n for n in identity(world) if n in copied)
     if leaks:
-        raise SystemExit(f"make-sample: {leaks} in the copied sections; reference them with {{{{…}}}} instead")
-    sample.update(copy)
+        raise SystemExit(f"make-sample: {leaks} left in the copied sections; reference them with {{{{…}}}} in the world")
+    sample.update(json.loads(copied))
     out = json.dumps(sample, ensure_ascii=False, indent=1) + "\n"
     (DIR / "sample.json").write_text(out, encoding="utf-8")
 
