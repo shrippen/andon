@@ -254,3 +254,13 @@ func TestUpcomingDeadlinesAnnual(t *testing.T) {
 		t.Fatalf("expected annual deadline for 2025, got %+v", items)
 	}
 }
+
+// TestKimaiHourPattern: an entry across the full hour is split into the
+// hours it touches.
+func TestKimaiHourPattern(t *testing.T) {
+	data := &sources.KimaiDataset{Timesheets: []sources.KimaiSheet{{Begin: "2026-09-28T09:30:00Z", Minutes: 90}}} // a Monday
+	got := metrics.KimaiHourPattern(data, time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), time.UTC)
+	if got[0][9] != 30 || got[0][10] != 60 || got[1][9] != 0 {
+		t.Fatalf("pattern: %v %v", got[0][9], got[0][10])
+	}
+}

@@ -251,3 +251,37 @@ func BudgetUse(p sources.KimaiProject, data *sources.KimaiDataset, today time.Ti
 
 // budgetMonthly is Kimai's budget type of a budget per month.
 const budgetMonthly = "month"
+
+// KimaiHourPattern spreads the entries in [start, end] over weekday
+// (Monday 0) and hour of day: minutes worked in each slot, in loc.
+func KimaiHourPattern(data *sources.KimaiDataset, start, end time.Time, loc *time.Location) [7][24]float64 {
+	var out [7][24]float64
+	for _, s := range data.Timesheets {
+		begin, err := time.Parse(time.RFC3339, s.Begin)
+		if err != nil || begin.Before(start) || begin.After(end) {
+			continue
+		}
+		at := begin.In(loc)
+		left := float64(s.Minutes)
+		for left > 0 {
+			hourEnd := at.Truncate(time.Hour).Add(time.Hour)
+			part := min(left, hourEnd.Sub(at).Minutes())
+			out[(int(at.Weekday())+6)%7][at.Hour()] += part
+			left -= part
+			at = hourEnd
+		}
+	}
+	return out
+}
+
+// The work not yet billed, once a day: a curve that keeps rising shows
+// billing falling behind.
+func init() {
+	Record(func(d *sources.KimaiDataset, now time.Time, r *Readings) {
+		total := 0.0
+		for _, g := range KimaiUnbilled(d, Today(now)) {
+			total += g.Amount
+		}
+		r.Set(key("kimai", "unbilled"), total)
+	})
+}

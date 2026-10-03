@@ -3428,6 +3428,7 @@ detail:
     note: 'Description'
     day: 'Today · booked time'
     recent: 'Recently used'
+    budget_used: 'Budget used'
   kimai:
     booked: 'Booked'
     target: 'Target'
@@ -3447,6 +3448,8 @@ detail:
     longest: 'Longest day'
     at_day: '{time} on {day}'
     per_day: 'Hours per day'
+    by_hour: 'When work happens (week × hour)'
+    by_hour_scale: 'darker = more hours'
   aging:
     bands: 'Bands'
     days: 'up to {mid} d, up to {old} d, older'
@@ -3459,6 +3462,7 @@ detail:
     mid: 'middle'
     old: 'old'
     sum: 'Sum'
+    history: 'Unbilled · 90 days'
   kintsugi:
     last_run: 'Last run'
     gaps: 'Gaps open'
@@ -3478,6 +3482,7 @@ detail:
     kind_development: 'Development'
     run_ok: 'last run ok'
     run_failed: 'last run failed'
+    rate_history: 'Acceptance rate · 90 days'
   dawarich:
     day: 'Day'
     places: 'Places'
@@ -3501,9 +3506,14 @@ detail:
     compare: 'Compared'
     this_month: 'this month'
     last_month: 'last month'
+    by_month: 'Kilometres per month'
   month_close:
     steps: 'steps done'
     by_hand: 'ticked by hand'
+    after: 'after month end'
+    closed: 'closed on'
+    history: 'Closings'
+    month: 'Month'
   answer_yes: 'yes'
   answer_no: 'no'
   dns:
@@ -4087,6 +4097,8 @@ timeline:
   yesterday: 'Yesterday'
   band: 'Events per quarter day over the last {days} days'
   before_min: '{min} min before'
+  close: 'Month closed'
+  restore: 'Restore tested'
 isp:
   title: 'Internet against contract'
   lead: 'Daily measurements of the last {days} days (Speedtest Tracker) and WAN outages (router). A day counts as too slow below {share} % of the booked download.'

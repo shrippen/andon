@@ -31,11 +31,13 @@ type KimaiProject struct {
 	End           string
 	UsedMoney     float64
 	UsedMinutes   int
+	Color         string // "#rrggbb", "" = none
 }
 
 type KimaiCustomer struct {
-	ID   int64
-	Name string
+	ID    int64
+	Name  string
+	Color string // "#rrggbb", "" = none
 }
 
 type KimaiAbsence struct {

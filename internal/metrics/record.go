@@ -101,9 +101,11 @@ func Read(s Scope, now time.Time) Readings {
 
 // EventChange marks a state change (public IP, VPN exit, price);
 // EventRestore a restore test marked by hand (subject: the service).
+// EventClose a month seen complete in the month close (subject "2026-08").
 const (
 	EventChange  = "change"
 	EventRestore = "restore"
+	EventClose   = "close"
 )
 
 // StateEvent turns a state change into a timeline event; a first

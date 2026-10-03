@@ -56,7 +56,7 @@ var (
 func demoKimaiCustomers() []KimaiCustomer {
 	out := make([]KimaiCustomer, len(demoCustomerIDs))
 	for i, id := range demoCustomerIDs {
-		out[i] = KimaiCustomer{int64(i + 1), demoWorld.Customer(id).Name}
+		out[i] = KimaiCustomer{ID: int64(i + 1), Name: demoWorld.Customer(id).Name}
 	}
 	return out
 }

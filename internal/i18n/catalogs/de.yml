@@ -3429,6 +3429,7 @@ detail:
     note: 'Beschreibung'
     day: 'Heute · gebuchte Zeit'
     recent: 'Zuletzt genutzt'
+    budget_used: 'Budget verbraucht'
   kimai:
     booked: 'Gebucht'
     target: 'Soll'
@@ -3448,6 +3449,8 @@ detail:
     longest: 'Längster Tag'
     at_day: '{time} am {day}'
     per_day: 'Stunden je Tag'
+    by_hour: 'Wann gearbeitet wird (Woche × Stunde)'
+    by_hour_scale: 'dunkler = mehr Stunden'
   aging:
     bands: 'Stufen'
     days: 'bis {mid} T, bis {old} T, älter'
@@ -3460,6 +3463,7 @@ detail:
     mid: 'mittel'
     old: 'alt'
     sum: 'Summe'
+    history: 'Nicht abgerechnet · 90 Tage'
   kintsugi:
     last_run: 'Letzter Lauf'
     gaps: 'Lücken offen'
@@ -3479,6 +3483,7 @@ detail:
     kind_development: 'Entwicklung'
     run_ok: 'letzter Lauf ok'
     run_failed: 'letzter Lauf fehlgeschlagen'
+    rate_history: 'Annahmequote · 90 Tage'
   dawarich:
     day: 'Tag'
     places: 'Orte'
@@ -3502,9 +3507,14 @@ detail:
     compare: 'Im Vergleich'
     this_month: 'dieser Monat'
     last_month: 'Vormonat'
+    by_month: 'Kilometer je Monat'
   month_close:
     steps: 'Schritte erledigt'
     by_hand: 'von Hand abgehakt'
+    after: 'nach Monatsende'
+    closed: 'abgeschlossen am'
+    history: 'Abschlüsse'
+    month: 'Monat'
   answer_yes: 'ja'
   answer_no: 'nein'
   dns:
@@ -4088,6 +4098,8 @@ timeline:
   yesterday: 'Gestern'
   band: 'Ereignisse je Vierteltag der letzten {days} Tage'
   before_min: '{min} min davor'
+  close: 'Monat abgeschlossen'
+  restore: 'Wiederherstellung getestet'
 isp:
   title: 'Internet gegen Vertrag'
   lead: 'Tägliche Messungen der letzten {days} Tage (Speedtest Tracker) und WAN-Ausfälle (Router). Ein Tag zählt als zu langsam unter {share} % des gebuchten Downloads.'

@@ -149,11 +149,12 @@ type Event struct {
 
 // Card is a figure of a wall: label, value, sparkline, line under it.
 type Card struct {
-	Label Text
-	Value any
-	Tier  string
-	Spark []float64
-	Sub   any
+	Label  Text
+	Value  any
+	Tier   string
+	Spark  []float64
+	Sub    any
+	Colour string // its own colour ("#rrggbb" or a token), "" = by tier
 }
 
 // Tasks is a progress line over tasks with an action each.

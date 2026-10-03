@@ -825,7 +825,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .detail-rows>.uptime{max-width:none;height:.7rem}
 /* Wall of figures: <div class="detail-wall"><div class="detail-card" data-tier="…"><span>label</span><b>value</b><svg class="spark">…</svg><small>sub</small></div>…</div> */
 .detail-wall{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr));gap:.8rem}
-.detail-card{background:var(--bg-panel);border-top:4px solid var(--bg2);padding:.8rem .9rem;display:flex;flex-direction:column;gap:.35rem;min-width:0}
+.detail-card{background:var(--bg-panel);border-top:4px solid var(--c,var(--bg2));padding:.8rem .9rem;display:flex;flex-direction:column;gap:.35rem;min-width:0}
 .detail-card[data-tier="green"]{border-top-color:var(--aqua)}.detail-card[data-tier="yellow"]{border-top-color:var(--warn)}
 .detail-card[data-tier="red"]{border-top-color:var(--danger)}.detail-card[data-tier="cyan"]{border-top-color:var(--cyan)}
 .detail-card>span{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3)}

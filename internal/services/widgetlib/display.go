@@ -486,6 +486,13 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 	if kind.View != nil {
 		frag.View = kind.View(cfg, results, viewCtx)
 	}
+	// A month seen complete for the first time is a timeline event: over
+	// the year that shows how soon after a month's end it was closed.
+	if month, _ := frag.View["MonthKey"].(string); kind.Extra == widgets.ExtraCloseTicks && frag.View["Pct"] == pctFull && month != "" && from == originStored {
+		if err := markOnce(d, widget.SpaceID, metrics.EventClose, month, time.Now().UTC()); err != nil {
+			return nil, err
+		}
+	}
 	if link, ok := cfg.(widgets.LinkConfig); ok && link.Status == widgets.StatusHTTP {
 		if up, ok := linkstatus.Bars(d, widget.ID, time.Now().UTC()); ok {
 			if frag.View == nil {
@@ -528,6 +535,25 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		frag.View[widgets.CalmSlot] = true
 	}
 	return frag, nil
+}
+
+// pctFull is a view's "all done".
+const pctFull = 100
+
+// markOnce adds an event of kind about subject the first time it is
+// seen; the versions table remembers it.
+func markOnce(d *sql.DB, spaceID int64, kind, subject string, now time.Time) error {
+	return db.WithTx(d, func(tx *sql.Tx) error {
+		key := kind + ":" + subject
+		known, err := data.Versions(tx, spaceID, 0)
+		if err != nil || known[key] != "" {
+			return err
+		}
+		if err := data.AddEvent(tx, spaceID, data.Event{At: now, Kind: kind, Subject: subject}); err != nil {
+			return err
+		}
+		return data.SetVersion(tx, spaceID, 0, key, now.Format(time.DateOnly), now)
+	})
 }
 
 // recordIP keeps the space's public IP as a state: a change is a timeline

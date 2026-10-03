@@ -3,6 +3,7 @@ package widgets
 // Detail dialogs of the work tiles: Kimai, Kintsugi, Dawarich, month close.
 
 import (
+	"cmp"
 	"fmt"
 	"sort"
 	"strings"
@@ -34,7 +35,7 @@ func spanColour(own string, key int64) string {
 
 // timerDetail (timeline): today as a strip of booked spans, the running
 // timer, the recent combinations to switch to.
-func timerDetail(_ KimaiLiteConfig, results map[string]any, _ ViewCtx) DetailView {
+func timerDetail(_ KimaiLiteConfig, results map[string]any, ctx ViewCtx) DetailView {
 	data, ok := results["live"].(*sources.KimaiLive)
 	if !ok {
 		return DetailView{Body: &DetailBody{}}
@@ -58,6 +59,17 @@ func timerDetail(_ KimaiLiteConfig, results map[string]any, _ ViewCtx) DetailVie
 		if t.Description != "" {
 			body.Line = append(body.Line, Fact{Label: T("detail.timer.note"), Value: t.Description})
 		}
+		// What is left of the project's budget, so booking shows when it
+		// gets tight.
+		if kimai, ok := results[openName].(*sources.KimaiDataset); ok {
+			for _, p := range kimai.Projects {
+				if share, has := metrics.BudgetUse(p, kimai, todayOf(ctx)); p.ID == t.ProjectID && has {
+					limits := budgetLimitsOf(ctx)
+					body.Facts = append(body.Facts, Kpi{Value: NumU(share*percentScale, 0, "%"), Label: T("detail.timer.budget_used"),
+						Tier: tierIf(share >= limits.critical, "red", tierIf(share >= limits.warn, "yellow", "green"))})
+				}
+			}
+		}
 	}
 	body.Blocks = append(body.Blocks, Block{Kind: BlockDayStrip, Label: T("detail.timer.day"), Hero: true, Data: strip})
 	var recent []LitRow
@@ -76,6 +88,7 @@ func weekLines(data *sources.KimaiDataset, today time.Time, kind metrics.Hours) 
 	w := Week{Start: weekLineStart, Span: weekLineSpan}
 	sums := make([]int, weekDays)
 	spans := make([][]HourSpan, weekDays)
+	colours := kimaiColours(data)
 	for _, s := range data.Timesheets {
 		if kind == metrics.HoursBillable && !s.Billable {
 			continue
@@ -90,7 +103,10 @@ func weekLines(data *sources.KimaiDataset, today time.Time, kind metrics.Hours) 
 		}
 		sums[i] += s.Minutes
 		from := hourOf(begin)
-		spans[i] = append(spans[i], HourSpan{From: from, To: from + float64(s.Minutes)/minutesPerHour, Colour: spanColour("", s.ProjectID)})
+		spans[i] = append(spans[i], HourSpan{From: from, To: from + float64(s.Minutes)/minutesPerHour, Colour: spanColour(colours[s.ProjectID], s.ProjectID)})
+	}
+	for i := range spans {
+		spans[i] = append(spans[i], dayGaps(spans[i])...)
 	}
 	todayIdx := int(today.Sub(monday).Hours() / hoursPerDay)
 	now := hourOf(time.Now())
@@ -103,6 +119,45 @@ func weekLines(data *sources.KimaiDataset, today time.Time, kind metrics.Hours) 
 	}
 	return w
 }
+
+// kimaiColours are the projects' colours as Kimai shows them: the
+// project's own, else its customer's.
+func kimaiColours(data *sources.KimaiDataset) map[int64]string {
+	byCustomer := map[int64]string{}
+	for _, c := range data.Customers {
+		byCustomer[c.ID] = c.Color
+	}
+	out := map[int64]string{}
+	for _, p := range data.Projects {
+		out[p.ID] = cmp.Or(p.Color, byCustomer[p.CustomerID])
+	}
+	return out
+}
+
+// dayGaps are the stretches between a day's first and last entry that
+// nothing covers: a forgotten booking or a long break.
+func dayGaps(spans []HourSpan) []HourSpan {
+	if len(spans) < minPoints {
+		return nil
+	}
+	sorted := append([]HourSpan(nil), spans...)
+	sort.Slice(sorted, func(a, b int) bool { return sorted[a].From < sorted[b].From })
+	var gaps []HourSpan
+	end := sorted[0].To
+	for _, s := range sorted[1:] {
+		if s.From-end >= gapMinHours {
+			gaps = append(gaps, HourSpan{From: end, To: s.From, Colour: gapColour})
+		}
+		end = max(end, s.To)
+	}
+	return gaps
+}
+
+// A gap counts from a quarter hour; it is drawn in the divider colour.
+const (
+	gapMinHours = 0.25
+	gapColour   = "bg2"
+)
 
 // weekdayKeys name the days of a week line, Monday first.
 var weekdayKeys = []string{"detail.wd.mon", "detail.wd.tue", "detail.wd.wed", "detail.wd.thu", "detail.wd.fri", "detail.wd.sat", "detail.wd.sun"}
@@ -156,7 +211,12 @@ func isoWeek(t time.Time) int {
 func kimaiSplitDetail(cfg KimaiSplitConfig, data *sources.KimaiDataset, ctx ViewCtx, _ map[string]any) DetailView {
 	today := todayOf(ctx)
 	names := metrics.KimaiCustomerNames(data)
+	colours := map[int64]string{}
+	for _, c := range data.Customers {
+		colours[c.ID] = c.Color
+	}
 	if cfg.ByProject {
+		colours = kimaiColours(data)
 		names = map[int64]string{}
 		for _, p := range data.Projects {
 			names[p.ID] = p.Name
@@ -194,7 +254,8 @@ func kimaiSplitDetail(cfg KimaiSplitConfig, data *sources.KimaiDataset, ctx View
 		if name == "" {
 			name = "?"
 		}
-		cards = append(cards, Card{Label: Plain(name), Value: clockMinutes(current[k]), Spark: spark, Sub: NumU(float64(current[k])*percentScale/float64(max(total, 1)), 0, "%")})
+		cards = append(cards, Card{Label: Plain(name), Value: clockMinutes(current[k]), Spark: spark, Sub: NumU(float64(current[k])*percentScale/float64(max(total, 1)), 0, "%"),
+			Colour: colours[k]})
 	}
 	body := &DetailBody{Line: []Fact{{Label: T("detail.kimai.booked"), Value: clockMinutes(total)}}}
 	if len(cards) == 0 {
@@ -237,6 +298,28 @@ func heatmapDetail(cfg HeatConfig, data *sources.KimaiDataset, ctx ViewCtx, _ ma
 		body.Line = append(body.Line, Fact{Label: T("detail.heat.longest"), Value: TxtA("detail.heat.at_day", "time", clockMinutes(longest), "day", DayS(longestDay))})
 	}
 	body.Blocks = []Block{{Kind: BlockHeat, Label: T("detail.heat.per_day"), Hero: true, Data: heat}}
+
+	// When in the week the hours fall: evenings and Fridays that run long.
+	pattern := metrics.KimaiHourPattern(data, first, today.AddDate(0, 0, 1), clockZone())
+	most := 0.0
+	for _, day := range pattern {
+		for _, m := range day {
+			most = max(most, m)
+		}
+	}
+	if most > 0 {
+		hours := Heat{Rows: weekDays, Ticks: []any{"00:00", "12:00", "23:00"}}
+		for h := range hoursPerDay {
+			for wd := range weekDays {
+				level := 0
+				if m := pattern[wd][h]; m > 0 {
+					level = min(int(m/most*heatSteps)+1, heatSteps)
+				}
+				hours.Levels = append(hours.Levels, level)
+			}
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockHeat, Label: T("detail.heat.by_hour"), Meta: Txt("detail.heat.by_hour_scale"), Data: hours})
+	}
 	return DetailView{Body: body}
 }
 
@@ -270,9 +353,18 @@ func unbilledAgeDetail(cfg AgingConfig, data *sources.KimaiDataset, ctx ViewCtx,
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.aging.by_customer"), Data: Table{Head: []Text{T("detail.aging.customer"),
 			T("detail.aging.fresh"), T("detail.aging.mid"), T("detail.aging.old"), T("detail.aging.sum")}, Rows: table, Num: []int{1, 2, 3, 4}}})
 	}
+	now := todayOf(ctx)
+	if open := dailySeries(historyOf(results), metrics.SampleKey("kimai", "unbilled"), now, historyDetailDays); hasValues(open) {
+		g := LineGraph(Series{Values: open, Class: "s4"})
+		g.Lo, g.Ticks = 0, spanTicks(now, historyDetailDays)
+		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.aging.history"), Data: g})
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}, Body: body}
 }
+
+// closeLateDays: a month closed later than this after its end is late.
+const closeLateDays = 10
 
 // textArgs is a label Text with parameters given as pairs.
 func textArgs(key string, kv ...any) Text {
@@ -287,7 +379,7 @@ func textArgs(key string, kv ...any) Text {
 
 // kintsugiDetail: suggestions by status, the open ones, the last run and
 // the research budget.
-func kintsugiDetail(cfg PickConfig, data *sources.KintsugiDataset, _ ViewCtx, results map[string]any) DetailView {
+func kintsugiDetail(cfg PickConfig, data *sources.KintsugiDataset, ctx ViewCtx, results map[string]any) DetailView {
 	body := &DetailBody{}
 	if data.LastRun != nil {
 		body.Side = append(body.Side, Fact{Label: T("detail.kintsugi.last_run"), Value: agoOf(data.LastRun.At)},
@@ -316,6 +408,12 @@ func kintsugiDetail(cfg PickConfig, data *sources.KintsugiDataset, _ ViewCtx, re
 			bar("snoozed", data.Snoozed, ""), bar("done", data.Done, "green"), bar("rejected", data.Rejected, "")}},
 		{Kind: BlockTable, Label: T("detail.kintsugi.open"), Data: Table{Head: []Text{T("detail.kintsugi.kind"), T("detail.kintsugi.title"), T("detail.kintsugi.since")}, Rows: open}},
 	})...)
+	now := todayOf(ctx)
+	if rate := dailySeries(historyOf(results), metrics.SampleKey("kintsugi", "rate"), now, historyDetailDays); hasValues(rate) {
+		g := LineGraph(Series{Values: rate, Class: "s2"})
+		g.Lo, g.Hi, g.Ticks = 0, percentScale, spanTicks(now, historyDetailDays)
+		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.kintsugi.rate_history"), Data: g})
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	head := DetailHead{State: "ok", StateKey: "detail.kintsugi.run_ok", Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}
 	if data.LastRun != nil && data.LastRun.Status == sources.KintsugiRunFailed {
@@ -378,14 +476,17 @@ func travelDetail(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, 
 	trips := metrics.Trips(data, metrics.ParseAreaMapping(ctx.Options), metrics.MonthStart(today), today)
 	currency := "EUR"
 	list := &ObjList{Label: T("detail.travel.trips")}
-	for _, t := range trips {
-		list.Items = append(list.Items, LitRow{Name: DayS(t.Day), Meta: NumU(t.KM, 0, "km"), State: "info"})
+	days := make([]string, len(trips))
+	for i, t := range trips {
+		days[i] = t.Day
+		list.Items = append(list.Items, LitRow{Name: DayS(t.Day), Meta: NumU(t.KM, 0, "km"), State: "info", Item: t.Day})
 	}
 	body := &DetailBody{Facts: []Kpi{{Value: NumU(asF(view["MonthKM"]), 0, "km"), Label: T("detail.travel.month")},
 		{Value: Money(asF(view["TripKM"])*cfg.KMRate, currency), Label: T("detail.travel.money"), Tier: "cyan"},
 		{Value: NumU(asF(view["YearKM"]), 0, "km"), Label: T("detail.travel.year")}}}
 	if len(trips) > 0 {
-		t := trips[0]
+		list.Sel = pickIndex(results, days)
+		t := trips[list.Sel]
 		list.Title, list.Sub = DayS(t.Day), t.Area
 		body.List = list
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Data: Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: [][]Cell{
@@ -399,6 +500,18 @@ func travelDetail(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, 
 	body.Blocks = append(body.Blocks, Block{Kind: BlockBars, Label: T("detail.travel.compare"), Data: []ShareBar{
 		{Name: Txt("detail.travel.this_month"), Pct: pctOfF(month, top), Value: NumU(month, 0, "km")},
 		{Name: Txt("detail.travel.last_month"), Pct: pctOfF(prev, top), Value: NumU(prev, 0, "km")}}})
+
+	// The year by month against the year before, from Dawarich's stats.
+	thisYear, lastYear := make([]float64, monthsPerYear), make([]float64, monthsPerYear)
+	for m := range monthsPerYear {
+		thisYear[m] = metrics.DawarichMonthKM(data.Stats, time.Date(today.Year(), time.Month(m+1), 1, 0, 0, 0, 0, time.UTC))
+		lastYear[m] = metrics.DawarichMonthKM(data.Stats, time.Date(today.Year()-1, time.Month(m+1), 1, 0, 0, 0, 0, time.UTC))
+	}
+	if hasValues(thisYear) {
+		g := Graph{Kind: GraphCols, Mark: int(today.Month()) - 1, Series: []Series{{Values: thisYear, Class: "s1", Label: fmt.Sprint(today.Year())},
+			{Values: lastYear, Class: "s3", Label: fmt.Sprint(today.Year() - 1)}}, Ticks: []any{"01", "12"}}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.travel.by_month"), Meta: "km", Data: g})
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
 }
@@ -447,5 +560,22 @@ func monthCloseDetail(cfg MonthCloseConfig, results map[string]any, ctx ViewCtx)
 	if len(steps) == 0 {
 		return DetailView{Body: &DetailBody{Blocks: []Block{{Kind: BlockText, Data: Txt("close.none")}}}}
 	}
-	return DetailView{Body: &DetailBody{Blocks: []Block{{Kind: BlockTasks, Data: tasks}}}}
+	body := &DetailBody{Blocks: []Block{{Kind: BlockTasks, Data: tasks}}}
+	// When each month was seen closed, days after its end.
+	var closed [][]Cell
+	if h := historyOf(results); h != nil {
+		for _, e := range h.Events {
+			month, err := time.Parse("2006-01", e.Subject)
+			if e.Kind != metrics.EventClose || err != nil {
+				continue
+			}
+			after := int(e.At.Sub(metrics.AddMonths(month, 1)).Hours() / hoursPerDay)
+			closed = append(closed, []Cell{{Value: month.Format("01/2006")}, {Value: Day(e.At)}, {Value: TxtA("detail.days", "n", after), State: stateIf(after > closeLateDays, "warn")}})
+		}
+	}
+	if len(closed) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.month_close.history"),
+			Data: Table{Head: []Text{T("detail.month_close.month"), T("detail.month_close.closed"), T("detail.month_close.after")}, Rows: closed, Num: []int{2}}})
+	}
+	return DetailView{Body: body}
 }

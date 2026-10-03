@@ -245,6 +245,12 @@ func init() {
 		r.Version("authentik", d.Version)
 	})
 	Record(func(d *sources.MediaServerDataset, _ time.Time, r *Readings) { r.Version(d.Kind, d.Version) })
+	// Kintsugi's share of suggestions taken up, once decided.
+	Record(func(d *sources.KintsugiDataset, _ time.Time, r *Readings) {
+		if d.Rate >= 0 {
+			r.Set(key("kintsugi", "rate"), float64(d.Rate))
+		}
+	})
 	// The tunnel's state and exit: a drop or a new exit is on the timeline.
 	Record(func(d *sources.GluetunDataset, _ time.Time, r *Readings) {
 		r.State(SubjectVPN, d.Status)
