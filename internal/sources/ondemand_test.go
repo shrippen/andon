@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"andon/internal/drivers/httpclient"
 	"andon/internal/drivers/services"
@@ -93,5 +94,47 @@ func TestFailedStep(t *testing.T) {
 	api := services.BearerApi(srv.URL, "", httpclient.TLSVerify)
 	if got := failedStep(context.Background(), api, "repos/a/b/actions/runs/7/jobs"); got != "test › go test" {
 		t.Fatalf("got %q", got)
+	}
+}
+
+// Points come sorted, positions as numbers or strings; empty ones drop out.
+func TestParseRoute(t *testing.T) {
+	r := parseRoute([]any{
+		map[string]any{"latitude": "53.6", "longitude": "9.9", "timestamp": 200.0},
+		map[string]any{"latitude": 53.5, "longitude": 9.8, "timestamp": 100.0},
+		map[string]any{"timestamp": 150.0},
+	})
+	if len(r.Points) != 2 || r.Points[0].Lat != 53.5 || r.Points[1].Lon != 9.9 {
+		t.Fatalf("%+v", r.Points)
+	}
+}
+
+// A long track keeps its ends and shrinks to the cap.
+func TestThinRoute(t *testing.T) {
+	var points []RoutePoint
+	for i := range 5 {
+		points = append(points, RoutePoint{Lat: float64(i)})
+	}
+	got := thinRoute(points, 3)
+	if len(got) != 3 || got[0].Lat != 0 || got[1].Lat != 2 || got[2].Lat != 4 {
+		t.Fatalf("%+v", got)
+	}
+}
+
+// The demo track follows the demo visits: a visit day has one, the day
+// after the last visit none.
+func TestDemoRoute(t *testing.T) {
+	now := time.Now()
+	visits := DemoDawarich(now).Visits
+	if len(visits) == 0 {
+		t.Skip("no demo visits")
+	}
+	begin, _ := time.Parse(time.RFC3339, visits[0].Start)
+	day := demoDay(begin)
+	if len(DemoDawarichRoute(day, day.AddDate(0, 0, 1), now).Points) == 0 {
+		t.Fatal("no track on a visit day")
+	}
+	if n := len(DemoDawarichRoute(now.Add(time.Hour), now.Add(25*time.Hour), now).Points); n != 0 {
+		t.Fatalf("%d points without a visit", n)
 	}
 }

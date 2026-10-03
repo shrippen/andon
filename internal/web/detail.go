@@ -17,6 +17,7 @@ import (
 	"andon/internal/services/boards"
 	"andon/internal/services/detailacts"
 	"andon/internal/services/mailfwd"
+	"andon/internal/services/system"
 	"andon/internal/services/widgetlib"
 	"andon/internal/widgets"
 )
@@ -65,6 +66,7 @@ func (d Deps) renderDetail(w http.ResponseWriter, r *http.Request, ctx Ctx, id i
 		openItems(body, id, item)
 		postTasks(body, id, item)
 		fileFrames(body, id)
+		mapSources(body, system.MapSource(d.DB))
 		for i, b := range tablesOf(body) {
 			t := b.Data.(widgets.Table)
 			t.CSV = fmt.Sprintf("/details/%d/csv/%d?%s=%s", id, i+1, detailItemParam, url.QueryEscape(item))
@@ -72,6 +74,25 @@ func (d Deps) renderDetail(w http.ResponseWriter, r *http.Request, ctx Ctx, id i
 		}
 	}
 	_ = d.Page(w, ctx, name, http.StatusOK, map[string]any{"Dialog": dialog, "D": dialog.Body, "PlacementID": id, "ThemeURL": ""})
+}
+
+// mapSources gives every map of a body the admin's tile source.
+func mapSources(body *widgets.DetailBody, source string) {
+	var walk func(blocks []widgets.Block)
+	walk = func(blocks []widgets.Block) {
+		for _, b := range blocks {
+			switch data := b.Data.(type) {
+			case *widgets.MapData:
+				data.Source = source
+			case []widgets.Block:
+				walk(data)
+			}
+		}
+	}
+	walk(body.Blocks)
+	for _, tab := range body.Tabs {
+		walk(tab.Blocks)
+	}
 }
 
 // tablesOf lists a body's table blocks in drawing order, pairs and tabs

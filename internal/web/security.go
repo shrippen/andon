@@ -32,10 +32,19 @@ func (d Deps) csp(path string) string {
 	if strings.HasPrefix(path, iconPrefix) {
 		styles += " 'unsafe-inline'"
 	}
+	// Dialog maps read tiles from the admin's source, glyphs and sprites
+	// from Protomaps (kante-map.js).
+	connect := "'self'"
+	if origin := system.OriginOf(system.MapSource(d.DB)); origin != "" {
+		connect += " " + origin + " " + mapAssets
+	}
 	return "default-src 'self'; script-src 'self'; style-src " + styles + "; " +
-		"img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; " +
+		"img-src 'self' data:; font-src 'self'; connect-src " + connect + "; object-src 'none'; " +
 		"frame-src " + frames + "; frame-ancestors " + ancestors + "; base-uri 'self'; form-action 'self'"
 }
+
+// mapAssets serves the map's glyphs and sprites.
+const mapAssets = "https://protomaps.github.io"
 
 // crossOrigin refuses state-changing requests a browser marks as sent
 // by another site (Sec-Fetch-Site, Origin): login CSRF and forged resets

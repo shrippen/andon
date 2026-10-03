@@ -1,10 +1,12 @@
 package web
 
 import (
-	"andon/internal/services/analysis"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"andon/internal/services/analysis"
 
 	"andon/internal/enums"
 	"andon/internal/services/admin"
@@ -81,6 +83,7 @@ func (d Deps) settingsPage(w http.ResponseWriter, ctx Ctx, status int, extra map
 		"Net": net, "NetModes": []system.NetMode{system.NetOpen, system.NetAllowlist},
 		"Networks": strings.Join(net.Networks, "\n"), "Hosts": strings.Join(net.Hosts, "\n"),
 		"Iframe":        strings.Join(system.IframeOrigins(d.DB), ", "),
+		"MapSource":     system.MapSource(d.DB),
 		"ForceTOTP":     system.Flag(d.DB, system.SecurityKey, "force_admin_totp"),
 		"Registration":  registration,
 		"Location":      system.Flag(d.DB, system.LocationKey, "allowed"),
@@ -132,6 +135,9 @@ func (d Deps) settingsAction(w http.ResponseWriter, r *http.Request, run func(Ct
 	http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
 }
 
+// errBadMapSource: the map source is no plain http(s) URL.
+var errBadMapSource = errors.New("admin.map_source_bad")
+
 func checked(r *http.Request, name string) bool { return r.FormValue(name) != "" }
 
 func (d Deps) handleSettingsGeneral(w http.ResponseWriter, r *http.Request) {
@@ -143,11 +149,16 @@ func (d Deps) handleSettingsGeneral(w http.ResponseWriter, r *http.Request) {
 				origins = append(origins, o)
 			}
 		}
+		mapSource := strings.TrimSpace(r.FormValue("map_source"))
+		if mapSource != "" && !system.IsMapSource(mapSource) {
+			return errBadMapSource
+		}
 		puts := []struct {
 			key   string
 			value map[string]any
 		}{
 			{system.IframeKey, map[string]any{"origins": origins}},
+			{system.MapKey, map[string]any{"source": mapSource}},
 			{system.SecurityKey, map[string]any{"force_admin_totp": checked(r, "force_admin_totp")}},
 			{system.RegistrationKey, map[string]any{"open": checked(r, "registration")}},
 			{system.LocationKey, map[string]any{"allowed": checked(r, "location_shared")}},

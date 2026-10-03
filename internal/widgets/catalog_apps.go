@@ -273,11 +273,22 @@ type PlaceRow struct {
 // DawarichConfig is the "dawarich_day" widget's config.
 type DawarichConfig struct{ Yesterday bool }
 
+// dawarichRoute reads the shown day's track for the dialog's map.
+func dawarichRoute(cfg DawarichConfig) []Query {
+	now := time.Now().In(clockZone())
+	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	if cfg.Yesterday {
+		day = day.AddDate(0, 0, -1)
+	}
+	return []Query{{Name: openName, Source: "dawarich.route", Conn: ConnWidget,
+		Params: map[string]any{"from": day.Format(time.RFC3339), "to": day.AddDate(0, 0, 1).Format(time.RFC3339)}}}
+}
+
 func init() {
 	Tile[DawarichConfig]{Key: "dawarich_day", Detail: dataDetail(dawarichDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceDawarich, RefreshS: 30 * 60,
 		Fields:  []Field{sel("day", "today", "today", "yesterday")},
 		Decode:  func(r Raw) DawarichConfig { return DawarichConfig{Yesterday: r.Pick("day") == "yesterday"} },
-		Queries: ownData[DawarichConfig], View: dataView(dawarichDayView)}.add()
+		Queries: ownData[DawarichConfig], View: dataView(dawarichDayView), DetailQueries: dawarichRoute}.add()
 }
 
 func dawarichDayView(cfg DawarichConfig, data *sources.DawarichDataset, ctx ViewCtx) map[string]any {

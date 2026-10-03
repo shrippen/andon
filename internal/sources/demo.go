@@ -326,6 +326,32 @@ func DemoDawarich(now time.Time) *DawarichDataset {
 	}
 }
 
+// DemoDawarichRoute is the track of the demo visits between from and to:
+// home to the client before each visit and back after it, a point every
+// few minutes along the straight line.
+func DemoDawarichRoute(from, to, now time.Time) *DawarichRoute {
+	const steps = 24
+	const pace = 2 * time.Minute
+	out := &DawarichRoute{}
+	leg := func(a, b demoworld.Place, start time.Time) {
+		for i := range steps + 1 {
+			f := float64(i) / steps
+			out.Points = append(out.Points, RoutePoint{Lat: a.Lat + (b.Lat-a.Lat)*f, Lon: a.Lon + (b.Lon-a.Lon)*f,
+				At: start.Add(time.Duration(i) * pace)})
+		}
+	}
+	for _, v := range DemoDawarich(now).Visits {
+		begin, _ := time.Parse(time.RFC3339, v.Start)
+		end, _ := time.Parse(time.RFC3339, v.End)
+		if begin.Before(from) || !begin.Before(to) {
+			continue
+		}
+		leg(demoHome, demoSite, begin.Add(-steps*pace))
+		leg(demoSite, demoHome, end)
+	}
+	return out
+}
+
 // DemoKuma is the demo Uptime Kuma dataset.
 func DemoKuma() *KumaDataset {
 	return &KumaDataset{URL: "https://status.demo", Monitors: []KumaMonitor{
@@ -673,8 +699,8 @@ func DemoAuthentik(now time.Time) *AuthentikDataset {
 		Apps:   []AKApp{{Name: "Immich", Events: 96, Users: 4}, {Name: "Gitea", Events: 41, Users: 2}, {Name: "Andon", Events: 30, Users: 3}},
 		Users:  []AKUser{{Name: "alex", LastLogin: ago(0)}, {Name: "sam", LastLogin: ago(2)}, {Name: "kim", LastLogin: ago(240)}, {Name: "test", LastLogin: time.Time{}}},
 		Logins: []AKLogin{{User: "alex", IP: "203.0.113.7", Country: "DE", City: "Berlin", Lat: 52.52, Lon: 13.40, At: now.UTC().Add(-time.Hour)}},
-		Failures: []AKLogin{{User: "admin", IP: "198.51.100.23", Country: "NL", City: "Amsterdam", At: now.UTC().Add(-20 * time.Minute)},
-			{User: "alex", IP: "203.0.113.7", Country: "DE", City: "Berlin", At: now.UTC().Add(-3 * time.Hour)}},
+		Failures: []AKLogin{{User: "admin", IP: "198.51.100.23", Country: "NL", City: "Amsterdam", Lat: 52.37, Lon: 4.90, At: now.UTC().Add(-20 * time.Minute)},
+			{User: "alex", IP: "203.0.113.7", Country: "DE", City: "Berlin", Lat: 52.52, Lon: 13.40, At: now.UTC().Add(-3 * time.Hour)}},
 	}
 }
 

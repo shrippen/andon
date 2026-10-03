@@ -3,6 +3,8 @@ package sources
 import (
 	"context"
 	"net/url"
+	"sort"
+	"strconv"
 	"time"
 
 	"andon/internal/drivers/services"
@@ -125,6 +127,85 @@ func lastPoint(points any) string {
 	return created
 }
 
+// RoutePoint is one tracked position.
+type RoutePoint struct {
+	Lat, Lon float64
+	At       time.Time
+}
+
+// DawarichRoute is a day's track, oldest first.
+type DawarichRoute struct{ Points []RoutePoint }
+
+// A phone tracks every few seconds: a day is read in pages of routePage
+// points (at most routePages) and thinned to routeMax for the map.
+const (
+	routePage  = 1000
+	routePages = 20
+	routeMax   = 2000
+)
+
+// DawarichRouteSource reads a day's points when the dialog opens:
+// params from, to (RFC 3339).
+var DawarichRouteSource = source{key: "dawarich.route", ttl: detailTTL, service: enums.ServiceDawarich, fetch: fetchDawarichRoute}
+
+func fetchDawarichRoute(ctx context.Context, sctx Ctx) (any, error) {
+	from, _ := time.Parse(time.RFC3339, asStr(sctx.Params["from"]))
+	to, _ := time.Parse(time.RFC3339, asStr(sctx.Params["to"]))
+	if isDemo(sctx) {
+		return DemoDawarichRoute(from, to, time.Now()), nil
+	}
+	secret, err := needSecret(sctx)
+	if err != nil {
+		return nil, err
+	}
+	api := services.DawarichApi{URL: sctx.URL, Token: secret, Verify: sctx.VerifyTLS}
+	var all []any
+	for page := 1; page <= routePages; page++ {
+		raw, err := api.Get(ctx, "points", url.Values{"start_at": {from.Format(time.RFC3339)}, "end_at": {to.Format(time.RFC3339)},
+			"per_page": {strconv.Itoa(routePage)}, "page": {strconv.Itoa(page)}, "order": {"asc"}})
+		if err != nil {
+			return nil, fetchError(err)
+		}
+		list := asList(raw)
+		all = append(all, list...)
+		if len(list) < routePage {
+			break
+		}
+	}
+	route := parseRoute(all)
+	route.Points = thinRoute(route.Points, routeMax)
+	return route, nil
+}
+
+// thinRoute keeps every nth point, first and last included, so at most
+// limit remain: 5 points, limit 3 → 1st, 3rd, 5th.
+func thinRoute(points []RoutePoint, limit int) []RoutePoint {
+	if len(points) <= limit || limit < 2 {
+		return points
+	}
+	step := float64(len(points)-1) / float64(limit-1)
+	out := make([]RoutePoint, 0, limit)
+	for i := range limit {
+		out = append(out, points[int(float64(i)*step+0.5)])
+	}
+	return out
+}
+
+// parseRoute reads points ({latitude, longitude, timestamp}, numbers or
+// strings), oldest first; points without a position are left out.
+func parseRoute(raw any) *DawarichRoute {
+	out := &DawarichRoute{}
+	for _, p := range asList(raw) {
+		m := asMap(p)
+		pt := RoutePoint{Lat: asFloat(m["latitude"]), Lon: asFloat(m["longitude"]), At: time.Unix(asInt64(m["timestamp"]), 0).UTC()}
+		if pt.Lat != 0 || pt.Lon != 0 {
+			out.Points = append(out.Points, pt)
+		}
+	}
+	sort.SliceStable(out.Points, func(i, j int) bool { return out.Points[i].At.Before(out.Points[j].At) })
+	return out
+}
+
 // DawarichTest is the "dawarich.test" source: a lightweight connection check.
 var DawarichTest = source{key: "dawarich.test", ttl: testTTL, service: enums.ServiceDawarich, fetch: fetchDawarichTest}
 
@@ -145,6 +226,7 @@ func fetchDawarichTest(ctx context.Context, sctx Ctx) (any, error) {
 
 func init() {
 	Register(KimaiData)
+	Register(DawarichRouteSource)
 	Register(KimaiTest)
 	Register(NinjaData)
 	Register(NinjaTest)
