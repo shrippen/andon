@@ -459,6 +459,22 @@ func authentikDetail(cfg AuthentikConfig, data *sources.AuthentikDataset, ctx Vi
 	body := &DetailBody{Facts: []Kpi{{Value: data.Logins7d, Label: T("detail.authentik.logins7")}, {Value: data.Failed7d, Label: T("detail.authentik.failed7"), Tier: tierIf(data.Failed7d > 0, "yellow", "")},
 		{Value: data.Logins24h, Label: T("detail.authentik.logins24")}, {Value: version, Label: T("detail.authentik.version"), Tier: tierIf(data.Outdated, "yellow", "")}}}
 	overview := []Block{{Kind: BlockTable, Label: T("detail.authentik.latest"), Data: Table{Head: head, Rows: loginRows(data.Logins)}}}
+
+	// Where logins (green) and failures (red) came from; a place without
+	// coordinates stays off the map.
+	var marks []MapMark
+	add := func(list []sources.AKLogin, state string) {
+		for _, l := range list {
+			if l.Lat != 0 || l.Lon != 0 {
+				marks = append(marks, Pin(GeoPoint{l.Lat, l.Lon}, strings.Trim(l.User+" · "+l.City, " ·"), state))
+			}
+		}
+	}
+	add(data.Logins, "ok")
+	add(data.Failures, "bad")
+	if m, ok := NewMap(nil, marks); ok {
+		overview = append([]Block{{Kind: BlockMap, Label: T("detail.authentik.map"), Data: m}}, overview...)
+	}
 	overview = append(overview, hintsBlock(results)...)
 	body.Tabs = []Tab{
 		{Label: T("detail.authentik.logins"), Blocks: overview},

@@ -45,6 +45,7 @@ func TestDetailBodyBlocks(t *testing.T) {
 			{Kind: widgets.BlockRead, Data: widgets.Reading{Title: "Titel", Text: []string{"Absatz"}, Link: "https://x.example/a"}},
 			{Kind: widgets.BlockFrame, Data: widgets.Embed{URL: "https://x.example/f"}},
 			{Kind: widgets.BlockDayStrip, Data: widgets.DayStrip{Spans: []widgets.HourSpan{{From: 6, To: 12, Colour: "d1"}}, Now: 12}},
+			{Kind: widgets.BlockMap, Data: mapOf(t)},
 			{Kind: widgets.BlockGraph, Data: widgets.Graph{Kind: widgets.GraphCols, Mark: -1,
 				Series: []widgets.Series{{Values: []float64{2}, Class: "s1", Label: "2026"}, {Values: []float64{1}, Class: "s1", Label: "2025"}}}},
 		},
@@ -64,11 +65,22 @@ func TestDetailBodyBlocks(t *testing.T) {
 		`class="tier-card" data-tier="red"`, `class="spark"`, `1 / 2`, `class="heat is-weeks"`, `class="sheet detail-day"`,
 		`class="chip">#a`, `src="data:image/png;base64,AAAA"`, `<p>Absatz</p>`, `data-style="--from:8.25;--to:12;--c:#fe8019"`, `data-style="--at:14.5"`, `data-style="left:25.0%;width:25.0%;--c:var(--d1)"`, `<span>06</span><span>10</span>`, `data-style="--c:var(--warn)"`, `data-style="--c:var(--d1)"`, `data-detail-tabs`, `data-detail-panel hidden`, `second`,
 		`<i class="prev" data-style="--c:var(--d1)"></i>2025`,
+		`class="map-frame" data-map="{&#34;marks&#34;:[{&#34;lon&#34;:9.99,&#34;lat&#34;:53.55,&#34;title&#34;:&#34;admin&#34;,&#34;state&#34;:&#34;bad&#34;}]}" data-map-source="https://tiles.example/de.pmtiles"`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q", want)
 		}
 	}
+}
+
+// mapOf is a map with one failed login.
+func mapOf(t *testing.T) *widgets.MapData {
+	m, ok := widgets.NewMap(nil, []widgets.MapMark{widgets.Pin(widgets.GeoPoint{Lat: 53.55, Lon: 9.99}, "admin", "bad")})
+	if !ok {
+		t.Fatal("no map")
+	}
+	m.Source = "https://tiles.example/de.pmtiles"
+	return m
 }
 
 // TestDetailListItems: a list row with an Item opens that entry in the

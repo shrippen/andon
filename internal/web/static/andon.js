@@ -855,6 +855,7 @@
         // Server-rendered html/template output from our own origin.
         dlg.innerHTML = html;
         applyStyles(dlg);
+        mountMaps(dlg);
       });
   }
 
@@ -887,6 +888,7 @@
         // Server-rendered html/template output from our own origin.
         dlg.innerHTML = html;
         applyStyles(dlg);
+        mountMaps(dlg);
       });
   }
 
@@ -940,6 +942,7 @@
           // Server-rendered html/template output from our own origin.
           dlg.innerHTML = html;
           applyStyles(dlg);
+          mountMaps(dlg);
         });
     }, true);
     d.addEventListener("auxclick", countClick, true);
@@ -1328,6 +1331,13 @@
   // so only known properties and plain values pass: no url(), no ";".
   var STYLE_PROP = /^(--[a-z][a-z-]*|width|left|top|color|background)$/;
   var STYLE_VALUE = /^(-?[\d.]+(%|deg|rem|px|s)?|#[0-9a-fA-F]{3,8}|var\(--[a-z0-9-]+\)|[a-z]+)$/;
+
+  // mountMaps draws a dialog's maps (Kante's kante-map.js).
+  function mountMaps(root) {
+    if (window.Kante && window.Kante.map) {
+      window.Kante.map.mount(root);
+    }
+  }
 
   function applyStyles(root) {
     var els = [].slice.call(root.querySelectorAll ? root.querySelectorAll("[data-style]") : []);

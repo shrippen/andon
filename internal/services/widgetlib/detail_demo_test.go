@@ -94,6 +94,8 @@ func checkBody(b *widgets.DetailBody) []error {
 				_, ok = bl.Data.(widgets.Form)
 			case widgets.BlockThumbs:
 				_, ok = bl.Data.([]widgets.Image)
+			case widgets.BlockMap:
+				_, ok = bl.Data.(*widgets.MapData)
 			case widgets.BlockFrame:
 				_, ok = bl.Data.(widgets.Embed)
 			case widgets.BlockText:

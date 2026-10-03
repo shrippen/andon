@@ -1538,6 +1538,9 @@ admin:
   oidc_rules_hint: Only applies when an account is created automatically. Afterwards role and teams are managed in Andon.
   group: authentik group
   team: Team
+  map_source: 'Map source'
+  map_source_hint: 'Vector tiles for maps in dialogs (Protomaps): a .pmtiles file (e.g. self-hosted with pmtiles extract) or a TileJSON URL like https://api.protomaps.com/tiles/v4.json?key=…. Empty = no maps.'
+  map_source_bad: 'The map source must be an http(s) address.'
 net:
   open: Open (except loopback and link-local, e.g. 169.254.169.254)
   allowlist: Allowed networks only
@@ -3593,6 +3596,7 @@ detail:
     to: 'to'
     time: 'Duration'
     none: 'No visits on this day.'
+    route: 'The day''s route'
   travel:
     trips: 'Trips this month'
     month: 'Kilometres this month'
@@ -3729,6 +3733,7 @@ detail:
     last_login: 'Last login'
     current: 'current'
     per_day: 'Logins per day'
+    map: 'Where logins came from'
   expiry:
     next: 'Next'
     in: 'in'
@@ -4037,6 +4042,7 @@ detail:
     empty: 'Nothing on the shopping list.'
     plan: 'This week''s meal plan'
     from_grocy: 'Missing in Grocy, not on the list'
+  map_unset: 'Map: set a map source in the settings.'
 linkdetail:
   open_aria: History and details
   open: Open

@@ -215,6 +215,9 @@
   {{end}}
   {{else if eq $k "thumbs"}}
   <div class="detail-thumbs">{{range .Data}}<figure class="detail-figure">{{with .DataURI}}<img src="{{. | dataURI}}" alt="">{{end}}<figcaption>{{.Caption}}</figcaption></figure>{{end}}</div>
+  {{else if eq $k "map"}}{{with .Data}}
+  {{if .Source}}<div class="map-frame" data-map="{{json .}}" data-map-source="{{.Source}}"></div>{{else}}<p class="detail-sub">{{t "detail.map_unset"}}</p>{{end}}
+  {{end}}
   {{else if eq $k "frame"}}{{with .Data}}
   <figure class="detail-figure"><iframe src="{{.URL}}" loading="lazy" referrerpolicy="no-referrer"></iframe></figure>
   {{end}}

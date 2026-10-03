@@ -102,6 +102,7 @@ const (
 	BlockRead     BlockKind = "read"     // Data Reading: a text to read
 	BlockFrame    BlockKind = "frame"    // Data Embed: an embedded page
 	BlockThumbs   BlockKind = "thumbs"   // Data []Image: small pictures with captions
+	BlockMap      BlockKind = "map"      // Data *MapData: a route and pins on a vector map
 	BlockForm     BlockKind = "form"     // Data Form: fields posted to a dialog act
 )
 

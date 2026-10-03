@@ -423,7 +423,7 @@ func kintsugiDetail(cfg PickConfig, data *sources.KintsugiDataset, ctx ViewCtx, 
 }
 
 // dawarichDetail (timeline): the day's places as a strip, the visits.
-func dawarichDetail(cfg DawarichConfig, data *sources.DawarichDataset, ctx ViewCtx, _ map[string]any) DetailView {
+func dawarichDetail(cfg DawarichConfig, data *sources.DawarichDataset, ctx ViewCtx, results map[string]any) DetailView {
 	now := time.Now()
 	day := ctx.Today
 	strip := DayStrip{Now: hourOf(now)}
@@ -453,6 +453,9 @@ func dawarichDetail(cfg DawarichConfig, data *sources.DawarichDataset, ctx ViewC
 	body := &DetailBody{Line: []Fact{{Label: T("detail.dawarich.day"), Value: DayS(day)}, {Label: T("detail.dawarich.places"), Value: n},
 		{Label: T("detail.dawarich.last_point"), Value: agoOf(dawarichTime(data.LastPoint))}},
 		Blocks: []Block{{Kind: BlockDayStrip, Label: T("detail.dawarich.strip"), Hero: true, Data: strip}}}
+	if m, ok := dawarichMap(data, results, day, now.Location()); ok {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockMap, Label: T("detail.dawarich.route"), Data: m})
+	}
 	if len(visits) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.dawarich.visits"), Data: Table{Head: []Text{T("detail.dawarich.place"),
 			T("detail.dawarich.from"), T("detail.dawarich.to"), T("detail.dawarich.time")}, Rows: visits}})
@@ -460,6 +463,26 @@ func dawarichDetail(cfg DawarichConfig, data *sources.DawarichDataset, ctx ViewC
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.dawarich.none")})
 	}
 	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}, Body: body}
+}
+
+// dawarichMap: the day's track (read on open) with the day's visits as
+// points.
+func dawarichMap(data *sources.DawarichDataset, results map[string]any, day string, zone *time.Location) (*MapData, bool) {
+	var route []GeoPoint
+	if r, ok := results[openName].(*sources.DawarichRoute); ok {
+		for _, p := range r.Points {
+			route = append(route, GeoPoint{p.Lat, p.Lon})
+		}
+	}
+	var marks []MapMark
+	for _, v := range data.Visits {
+		begin := dawarichTime(v.Start)
+		if v.Lat == nil || v.Lon == nil || begin.In(zone).Format(time.DateOnly) != day {
+			continue
+		}
+		marks = append(marks, Pin(GeoPoint{*v.Lat, *v.Lon}, v.Name, "ok"))
+	}
+	return NewMap(route, marks)
 }
 
 // dataClassToken is the colour token of the i-th data colour: d1 … d6.

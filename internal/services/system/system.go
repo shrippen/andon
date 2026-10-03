@@ -32,6 +32,7 @@ import (
 const (
 	NetworkKey      = "network"
 	IframeKey       = "iframe"
+	MapKey          = "map"
 	SecurityKey     = "security"
 	RegistrationKey = "registration"
 	LocationKey     = "dawarich_shared"
@@ -150,6 +151,9 @@ func Put(d *sql.DB, who *access.Principal, key string, value map[string]any, ip 
 	if key == IframeKey {
 		iframeCache.Store(nil)
 	}
+	if key == MapKey {
+		mapCache.Store(nil)
+	}
 	return err
 }
 
@@ -179,6 +183,40 @@ func IframeOrigins(q db.Queryer) []string {
 	origins := stringList(raw["origins"])
 	iframeCache.Store(&origins)
 	return origins
+}
+
+// mapCache holds MapSource: the CSP of every response names its host.
+var mapCache atomic.Pointer[string]
+
+// MapSource is the vector tile source of dialog maps: a .pmtiles file or a
+// TileJSON URL (the Protomaps API with its key); "" = no maps.
+func MapSource(q db.Queryer) string {
+	if cached := mapCache.Load(); cached != nil {
+		return *cached
+	}
+	raw, err := misc.Setting(q, MapKey)
+	if err != nil {
+		return ""
+	}
+	source, _ := raw["source"].(string)
+	mapCache.Store(&source)
+	return source
+}
+
+// IsMapSource accepts an http(s) URL without characters that could extend
+// the CSP or the markup it lands in.
+func IsMapSource(s string) bool {
+	u, err := url.Parse(s)
+	return err == nil && (u.Scheme == "https" || u.Scheme == "http") && u.Host != "" && !strings.ContainsAny(s, " ;,'\"<>")
+}
+
+// OriginOf is a URL's origin ("https://tiles.example.org"), "" if none.
+func OriginOf(s string) string {
+	u, err := url.Parse(s)
+	if err != nil || u.Host == "" {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host
 }
 
 // IsOrigin accepts a bare http(s) origin ("https://grafana.lan:3000"),

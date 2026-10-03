@@ -1,9 +1,9 @@
 package web
 
 import (
-	"andon/internal/widgets"
 	"bytes"
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"andon/internal/widgets"
 
 	"andon/internal/crypto"
 	"andon/internal/enums"
@@ -97,6 +99,7 @@ func mustParse() *template.Template {
 		"pill":        pillState,
 		"eqID":        func(a *int64, b int64) bool { return a != nil && *a == b },
 		"weatherKind": widgets.WeatherKind,
+		"json":        toJSON,
 		"clockNow":    func(tz string) string { return clockNow(tz, clockMinutes) },
 		"clockNowSec": func(tz string) string { return clockNow(tz, clockSeconds) },
 		// clockShow is a clock tile's time: 12 or 24 hours, with or without seconds.
@@ -146,6 +149,12 @@ func barPct(ratio float64) int {
 	default:
 		return int(ratio*100 + 0.5)
 	}
+}
+
+// toJSON writes a value as JSON for a data attribute (a map's route).
+func toJSON(v any) (string, error) {
+	b, err := json.Marshal(v)
+	return string(b), err
 }
 
 // pillStates maps the states services report (ok, warn, fail) to the

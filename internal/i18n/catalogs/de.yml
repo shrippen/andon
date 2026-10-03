@@ -1538,6 +1538,9 @@ admin:
   oidc_rules_hint: Gilt nur beim automatischen Anlegen eines Kontos. Danach werden Rolle und Teams in Andon gepflegt.
   group: authentik-Gruppe
   team: Team
+  map_source: 'Kartenquelle'
+  map_source_hint: 'Vektorkacheln für die Karten in Dialogen (Protomaps): eine .pmtiles-Datei (z. B. per pmtiles extract selbst gehostet) oder eine TileJSON-URL wie https://api.protomaps.com/tiles/v4.json?key=…. Leer = keine Karten.'
+  map_source_bad: 'Die Kartenquelle muss eine http(s)-Adresse sein.'
 net:
   open: Offen (außer Loopback und Link-Local, z. B. 169.254.169.254)
   allowlist: Nur erlaubte Netze
@@ -3594,6 +3597,7 @@ detail:
     to: 'bis'
     time: 'Dauer'
     none: 'An diesem Tag gibt es keine Besuche.'
+    route: 'Weg des Tages'
   travel:
     trips: 'Fahrten im Monat'
     month: 'Kilometer im Monat'
@@ -3730,6 +3734,7 @@ detail:
     last_login: 'Zuletzt angemeldet'
     current: 'aktuell'
     per_day: 'Anmeldungen je Tag'
+    map: 'Herkunft der Anmeldungen'
   expiry:
     next: 'Als Nächstes'
     in: 'in'
@@ -4038,6 +4043,7 @@ detail:
     empty: 'Nichts auf der Einkaufsliste.'
     plan: 'Essensplan der Woche'
     from_grocy: 'Fehlt laut Grocy, nicht auf der Liste'
+  map_unset: 'Karte: Kartenquelle in den Einstellungen festlegen.'
 linkdetail:
   open_aria: Verlauf und Details
   open: Öffnen
