@@ -90,6 +90,9 @@ internal/services/scheduler/    Background-Jobs (Timer je Job, ±5 % gestreut, p
 - DB-Datei ist verschlüsselt (Adiantum-VFS, Schlüssel = Argon2id(MASTER_KEY, `andon.db.salt`)); öffnen nur über `maintenance.Unlock`, Kopien nur über `db.Snapshot`/`db.OpenReadOnly` (tragen ihr `.salt` mit), nie per Dateikopie oder `sql.Open`. Neue verschlüsselte Daten: Spalte `*_enc` bzw. JSON-Schlüssel `*_enc` und Zweck in `maintenance.sealedPurpose`, sonst verweigert `rotate-key`. Reine Lesepfade über `db.WithRead`, `db.WithTx` nimmt die Schreibsperre sofort.
 - Board-Freigabe muss Widgets aus dem Bereich des Boards sichtbar machen (`boards.seenRight`).
 - `html/template` behandelt Attribute, deren Name ohne `data-` mit `on` beginnt (`data-on`), als Event-Handler (JS-Kontext); ein `{{if}}` darum bricht mit "branches end in different contexts". Anderen Namen wählen (`data-pinned`).
+- CSS-Spalten (`column-count`): Chrome bricht den ganzen Spaltenfluss bei jeder Änderung in einem Block-Kind neu um (35 ms je Tastendruck), Firefox immer (200 ms je Fragment-Swap). Kinder als `inline-block`, und viele Einzel-Swaps im Fluss bündeln (`/boards/{id}/live`).
+- Formulare mit `<select>` in eingeklappten Menüs (`details`) scannt Chrome beim Laden (1,7 s für 112 Selects). Erst beim Öffnen laden (htmx) oder aus einem `<template>` klonen.
+- Gleichzeitige DNS-Abfragen begrenzen (`httpclient.dnsParallel`): Der Heim-Resolver verwirft ab ~30 parallelen Abfragen, jede kostet dann 5 s Timeout.
 
 ## GUI rule
 
