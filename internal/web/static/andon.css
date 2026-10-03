@@ -387,8 +387,9 @@ label.pick-check { margin: 0 .3rem; }
 /* ── feed / sysinfo (start widgets) ── */
 /* Feed image and summary sit next to Kante's .feed rows. */
 .feed > li.has-image { grid-template-columns: 4.5rem minmax(0, 1fr) auto; column-gap: .7rem; }
-.feed > li.has-image > :not(.feed-image) { grid-column: 2 / -1; }
-.feed-image { grid-row: span 3; width: 4.5rem; height: 3.2rem; object-fit: cover; }
+/* Picture beside title and date; the summary runs full width below. */
+.feed > li.has-image > :not(.feed-image, p) { grid-column: 2 / -1; }
+.feed-image { grid-row: span 2; width: 4.5rem; height: 3.2rem; object-fit: cover; }
 .feed > li > p { grid-column: 1 / -1; margin: 0; }
 /* Fixed height: the list scrolls inside the tile. */
 .feed[data-height] { overflow-y: auto; padding-right: .3rem; }
