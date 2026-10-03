@@ -55,3 +55,22 @@ func TestParseSabStats(t *testing.T) {
 		t.Fatalf("%+v", s)
 	}
 }
+
+// A minimal history names the entity in its first entry only.
+func TestParseHassHistory(t *testing.T) {
+	h := parseHassHistory([]any{[]any{
+		map[string]any{"entity_id": "sensor.t", "state": "21.0", "last_changed": "2026-10-01T08:00:00Z"},
+		map[string]any{"state": "21.5", "last_changed": "2026-10-01T09:00:00Z"},
+	}})
+	if p := h.ByID["sensor.t"]; len(p) != 2 || p[1].State != "21.5" || p[1].At.Hour() != 9 {
+		t.Fatalf("%+v", h)
+	}
+}
+
+// Days come out sorted, each currency as one line.
+func TestParseRatesHistory(t *testing.T) {
+	h := parseRatesHistory(map[string]any{"2026-09-30": map[string]any{"USD": 1.2}, "2026-09-29": map[string]any{"USD": 1.1}})
+	if len(h.Days) != 2 || h.Days[0] != "2026-09-29" || h.ByCode["USD"][1] != 1.2 {
+		t.Fatalf("%+v", h)
+	}
+}

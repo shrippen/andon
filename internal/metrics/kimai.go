@@ -37,6 +37,15 @@ func KimaiFreeDays(data *sources.KimaiDataset) map[time.Time]bool {
 			days[d] = true
 		}
 	}
+	for d := range AbsentDays(data) {
+		days[d] = true
+	}
+	return days
+}
+
+// AbsentDays are the full days of approved absences (vacation, sickness).
+func AbsentDays(data *sources.KimaiDataset) map[time.Time]bool {
+	days := map[time.Time]bool{}
 	for _, a := range data.Absences {
 		if a.HalfDay || (a.Status != "" && a.Status != "approved") {
 			continue

@@ -22,6 +22,7 @@ import (
 // Readings are one run's records of a scope.
 type Readings struct {
 	Values   map[string]float64
+	Past     map[string]map[string]float64 // day → key → value
 	Counts   map[string]float64
 	Versions map[string]string
 	States   map[string]string
@@ -29,6 +30,15 @@ type Readings struct {
 
 // Set records the day's value of a series.
 func (r *Readings) Set(key string, v float64) { r.Values[key] = v }
+
+// SetOn records a past day's value of a series ("2026-09-30"): figures a
+// service reports a day late, like Tibber's consumption.
+func (r *Readings) SetOn(day, key string, v float64) {
+	if r.Past[day] == nil {
+		r.Past[day] = map[string]float64{}
+	}
+	r.Past[day][key] = v
+}
 
 // Count adds v to the day's total of a series.
 func (r *Readings) Count(key string, v float64) { r.Counts[key] += v }
@@ -93,7 +103,7 @@ func RecordScope(f func(s Scope, now time.Time, r *Readings)) {
 
 // Read runs every recorder over a scope.
 func Read(s Scope, now time.Time) Readings {
-	r := Readings{Values: map[string]float64{}, Counts: map[string]float64{}, Versions: map[string]string{}, States: map[string]string{}}
+	r := Readings{Values: map[string]float64{}, Past: map[string]map[string]float64{}, Counts: map[string]float64{}, Versions: map[string]string{}, States: map[string]string{}}
 	for _, rec := range recorders {
 		rec(s, now, &r)
 	}

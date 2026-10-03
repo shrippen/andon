@@ -45,6 +45,8 @@ func TestDetailBodyBlocks(t *testing.T) {
 			{Kind: widgets.BlockRead, Data: widgets.Reading{Title: "Titel", Text: []string{"Absatz"}, Link: "https://x.example/a"}},
 			{Kind: widgets.BlockFrame, Data: widgets.Embed{URL: "https://x.example/f"}},
 			{Kind: widgets.BlockDayStrip, Data: widgets.DayStrip{Spans: []widgets.HourSpan{{From: 6, To: 12, Colour: "d1"}}, Now: 12}},
+			{Kind: widgets.BlockGraph, Data: widgets.Graph{Kind: widgets.GraphCols, Mark: -1,
+				Series: []widgets.Series{{Values: []float64{2}, Class: "s1", Label: "2026"}, {Values: []float64{1}, Class: "s1", Label: "2025"}}}},
 		},
 		Tabs: []widgets.Tab{{Label: widgets.T("detail.facts"), Count: 3}, {Label: widgets.T("detail.open"), Blocks: []widgets.Block{{Kind: widgets.BlockText, Data: "second"}}}},
 	}
@@ -61,6 +63,7 @@ func TestDetailBodyBlocks(t *testing.T) {
 		`class="date-tile" datetime="2026-09-16"`, `class="status" data-state="ok"`, `<pre class="codeblock">log line</pre>`, `<iframe src="https://x.example/f"`,
 		`class="tier-card" data-tier="red"`, `class="spark"`, `1 / 2`, `class="heat is-weeks"`, `class="sheet detail-day"`,
 		`class="chip">#a`, `src="data:image/png;base64,AAAA"`, `<p>Absatz</p>`, `data-style="--from:8.25;--to:12;--c:#fe8019"`, `data-style="--at:14.5"`, `data-style="left:25.0%;width:25.0%;--c:var(--d1)"`, `<span>06</span><span>10</span>`, `data-style="--c:var(--warn)"`, `data-style="--c:var(--d1)"`, `data-detail-tabs`, `data-detail-panel hidden`, `second`,
+		`<i class="prev" data-style="--c:var(--d1)"></i>2025`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q", want)

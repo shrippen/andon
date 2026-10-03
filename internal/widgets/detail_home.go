@@ -6,6 +6,7 @@ package widgets
 import (
 	"cmp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ const (
 	centsPerUnit     = 100 // prices come per kWh in the currency, shown in cents
 	percentBase      = 100 // a market line starts at 100
 	holidayLevel     = 4   // heat level of a holiday
+	absentLevel      = 3   // heat level of a day off in Kimai
 	bridgeLevel      = 2   // heat level of a bridge day
 )
 
@@ -52,9 +54,41 @@ func dwdDetail(cfg DWDConfig, data *sources.DWDDataset, _ ViewCtx, results map[s
 		head.State = "info"
 	}
 	body.Facts = []Kpi{{Value: len(events), Label: T("detail.dwd.count"), Tier: "yellow"}, {Value: Day(until.In(zone)), Label: T("detail.dwd.until")}}
-	body.Blocks = append([]Block{{Kind: BlockTimeline, Label: T("detail.dwd.warnings"), Data: events}}, hintsBlock(results)...)
+	body.Blocks = []Block{{Kind: BlockTimeline, Label: T("detail.dwd.warnings"), Data: events}}
+
+	// The DWD's full text and what to do, per warning.
+	for _, w := range shown.Warnings {
+		if w.Description == "" {
+			continue
+		}
+		read := Reading{Title: w.Headline, Text: []string{w.Description}}
+		if w.Instruction != "" {
+			read.Text = append(read.Text, w.Instruction)
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockRead, Data: read})
+	}
+	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Head: head, Body: body}
 }
+
+// energyMonths: consumption of the last twelve months against the year
+// before (dashed), from the recorded days.
+func energyMonths(h *metrics.History, now time.Time) (Block, bool) {
+	all := metrics.MonthSums(h, metrics.EnergyKWhKey, now, 2*monthsPerYear)
+	prev, this := all[:monthsPerYear], all[monthsPerYear:]
+	if !hasValues(this) {
+		return Block{}, false
+	}
+	g := Graph{Kind: GraphCols, Mark: -1, Series: []Series{{Values: this, Class: "s1", Label: T("detail.energy.months_this")}}}
+	if hasValues(prev) {
+		g.Series = append(g.Series, Series{Values: prev, Class: "s1", Label: T("detail.energy.months_prev")})
+	}
+	g.Ticks = []any{now.AddDate(0, 1-monthsPerYear, 0).Format(monthTick), now.Format(monthTick)}
+	return Block{Kind: BlockGraph, Label: T("detail.energy.months"), Data: g}, true
+}
+
+// monthTick labels a month under a chart: "10/26".
+const monthTick = "01/06"
 
 // energyDetail (time): prices of today and tomorrow, the cheap window,
 // consumption per day.
@@ -95,6 +129,9 @@ func energyDetail(cfg EnergyConfig, results map[string]any, _ ViewCtx) DetailVie
 		body.Facts = append(body.Facts, Kpi{Value: Money(cost, data.Currency), Label: textDays("detail.energy.cost", len(rows))})
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.energy.days"),
 			Data: Table{Head: []Text{T("detail.energy.day"), T("detail.energy.kwh"), T("detail.energy.cost_col"), T("detail.energy.temp")}, Rows: rows, Num: []int{1, 2, 3}}})
+	}
+	if b, ok := energyMonths(historyOf(results), now); ok {
+		body.Blocks = append(body.Blocks, b)
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: raw.URL, Primary: true}}}, Body: body}
@@ -179,6 +216,10 @@ func grocyDetail(cfg GrocyConfig, data *sources.GrocyDataset, ctx ViewCtx, resul
 		pair = append(pair, Block{Kind: BlockTable, Label: T("detail.grocy.below_min"), Data: Table{Head: []Text{T("detail.grocy.product"), T("detail.grocy.amount")}, Rows: missing, Num: []int{1}}})
 	}
 	body.Blocks = pairOf(pair)
+	if len(missing) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTasks, Data: Tasks{Items: []Task{{Text: TxtA("detail.grocy.to_list", "n", len(shown.Missing)),
+			State: "warn", Action: T("detail.grocy.add_missing"), Do: "shopping_add"}}}})
+	}
 	if len(chores) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockRows, Label: T("grocy.chores"), Data: chores})
 	}
@@ -222,12 +263,90 @@ func hassDetail(cfg HassConfig, data *sources.HassDataset, ctx ViewCtx, results 
 	}
 	body := &DetailBody{Blocks: []Block{{Kind: BlockWall, Data: cards},
 		{Kind: BlockTable, Label: T("detail.hass.entities"), Data: Table{Head: []Text{T("detail.hass.name"), T("detail.hass.id"), T("detail.hass.value"), T("detail.hass.changed")}, Rows: table}}}}
+	if h, ok := results[openName].(*sources.HassHistory); ok {
+		body.Blocks = append(body.Blocks, hassHistory(rows, h, time.Now())...)
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	head := DetailHead{State: "ok", StateKey: "detail.hass.fine", Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}
 	if trouble > 0 {
 		head.State, head.StateKey, head.StateArgs = "warn", "detail.hass.trouble", map[string]any{"n": trouble}
 	}
 	return DetailView{Head: head, Body: body}
+}
+
+// hassHistory: the last day per entity, hour by hour; numbers as a line,
+// switches and sensors as a strip (on = ok).
+//
+//	Wohnzimmer °C  ╱‾‾╲__╱‾
+//	Büro Licht     ░░▓▓▓▓▓░░
+func hassHistory(rows []HassRow, h *sources.HassHistory, now time.Time) []Block {
+	start := now.Add(-sources.HassHistoryHours * time.Hour)
+	var out []Block
+	var strips []Strip
+	for _, r := range rows {
+		points := h.ByID[r.ID]
+		if len(points) == 0 {
+			continue
+		}
+		states := make([]string, sources.HassHistoryHours)
+		for i := range states {
+			end := start.Add(time.Duration(i+1) * time.Hour)
+			for _, p := range points {
+				if !p.At.After(end) {
+					states[i] = p.State
+				}
+			}
+		}
+		if values, numeric := hassNumbers(states); numeric {
+			g := LineGraph(Series{Values: values, Class: "s1"})
+			g.Ticks = []any{start.In(clockZone()).Format(timeOfDay), now.In(clockZone()).Format(timeOfDay)}
+			out = append(out, Block{Kind: BlockGraph, Label: Plain(strings.TrimSpace(r.Name + " " + r.Unit)), Data: g})
+			continue
+		}
+		strip := Strip{Name: r.Name, States: make([]string, len(states)), Value: r.Value}
+		for i, st := range states {
+			strip.States[i] = "off"
+			if st == sources.HassOn {
+				strip.States[i] = "ok"
+			}
+		}
+		strips = append(strips, strip)
+	}
+	if len(strips) > 0 {
+		out = append(out, Block{Kind: BlockStrips, Label: T("detail.hass.day"), Data: strips})
+	}
+	return out
+}
+
+// hassNumbers reads hourly states as numbers; numeric is false when a
+// known state is no number. An hour without a state is a Gap.
+func hassNumbers(states []string) ([]float64, bool) {
+	values := make([]float64, len(states))
+	seen := false
+	for i, st := range states {
+		values[i] = Gap
+		if st == "" || st == sources.HassUnavailable {
+			continue
+		}
+		v, err := strconv.ParseFloat(st, 64)
+		if err != nil {
+			return nil, false
+		}
+		values[i], seen = v, true
+	}
+	return values, seen
+}
+
+// stormGusts (km/h) are gusts that matter outdoors: Beaufort 8, gale.
+const stormGusts = 62
+
+// clockPart is the time of a local ISO time: "2026-10-03T07:21" → "07:21";
+// "" stays "–".
+func clockPart(iso string) string {
+	if _, t, ok := strings.Cut(iso, "T"); ok {
+		return t
+	}
+	return "–"
 }
 
 // weatherDetail (wall): now, rain and the next days as cards, the next
@@ -248,7 +367,8 @@ func weatherDetail(cfg WeatherConfig, results map[string]any, ctx ViewCtx) Detai
 	for i, h := range data.Hours {
 		temps[i], rain[i] = conv(h.Temp), h.Rain
 	}
-	cards := []Card{{Label: T("detail.weather.now"), Value: NumU(conv(data.Temp), 0, unit), Spark: temps}, {Label: T("detail.weather.wind"), Value: NumU(data.Wind, 0, "km/h")}}
+	cards := []Card{{Label: T("detail.weather.now"), Value: NumU(conv(data.Temp), 0, unit), Spark: temps}, {Label: T("detail.weather.wind"), Value: NumU(data.Wind, 0, "km/h"),
+		Sub: TxtA("detail.weather.gusts", "n", NumU(data.Gusts, 0, "km/h")), Tier: tierIf(data.Gusts >= stormGusts, "yellow", "")}}
 	if len(rain) > 0 {
 		wet := slices.Max(rain)
 		card := Card{Label: T("detail.weather.rain"), Value: NumU(wet, 0, "%"), Spark: rain, Tier: tierIf(wet >= rainLikely, "cyan", "")}
@@ -259,7 +379,8 @@ func weatherDetail(cfg WeatherConfig, results map[string]any, ctx ViewCtx) Detai
 	}
 	if len(data.Days) > 0 {
 		today := data.Days[0]
-		cards = append(cards, Card{Label: T("detail.weather.today"), Value: TxtA("detail.weather.max_min", "max", NumU(conv(today.Max), 0, unit), "min", NumU(conv(today.Min), 0, unit))})
+		cards = append(cards, Card{Label: T("detail.weather.today"), Value: TxtA("detail.weather.max_min", "max", NumU(conv(today.Max), 0, unit), "min", NumU(conv(today.Min), 0, unit)),
+			Sub: TxtA("detail.weather.sun", "rise", clockPart(today.Sunrise), "set", clockPart(today.Sunset))})
 	}
 	body := &DetailBody{Blocks: []Block{{Kind: BlockWall, Data: cards}}}
 	if hasValues(temps) {
@@ -277,11 +398,13 @@ func weatherDetail(cfg WeatherConfig, results map[string]any, ctx ViewCtx) Detai
 	}
 	var days [][]Cell
 	for _, d := range data.Days {
-		days = append(days, []Cell{{Value: DayS(d.Day)}, {Value: NumU(conv(d.Max), 0, unit)}, {Value: NumU(conv(d.Min), 0, unit)}})
+		days = append(days, []Cell{{Value: DayS(d.Day)}, {Value: Txt("weather." + WeatherKind(d.Code))}, {Value: NumU(conv(d.Max), 0, unit)}, {Value: NumU(conv(d.Min), 0, unit)},
+			{Value: NumU(d.Gusts, 0, "km/h"), State: stateIf(d.Gusts >= stormGusts, "warn")}, {Value: clockPart(d.Sunrise) + "–" + clockPart(d.Sunset)}})
 	}
 	if len(days) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.weather.days"),
-			Data: Table{Head: []Text{T("detail.weather.day"), T("detail.weather.max"), T("detail.weather.min")}, Rows: days, Num: []int{1, 2}}})
+			Data: Table{Head: []Text{T("detail.weather.day"), T("detail.weather.sky"), T("detail.weather.max"), T("detail.weather.min"), T("detail.weather.gusts_col"), T("detail.weather.sun_col")},
+				Rows: days, Num: []int{2, 3, 4}}})
 	}
 	return DetailView{Body: body}
 }
@@ -321,6 +444,17 @@ func cryptoDetail(cfg CryptoConfig, results map[string]any, _ ViewCtx) DetailVie
 	}
 	if g, found := marketLines(names, lines); found {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.market.week"), Meta: Txt("detail.market.indexed"), Hero: true, Data: g})
+	}
+
+	// The month, read on open, in place of the tile's week.
+	if h, found := results[openName].(*sources.CoinHistory); found {
+		var month [][]float64
+		for _, id := range names {
+			month = append(month, h.ByID[id])
+		}
+		if g, found := marketLines(names, month); found {
+			body.Blocks = append(body.Blocks[:0:0], Block{Kind: BlockGraph, Label: T("detail.market.month"), Meta: Txt("detail.market.indexed"), Hero: true, Data: g})
+		}
 	}
 	body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.market.coins"),
 		Data: Table{Head: []Text{T("detail.market.coin"), T("detail.market.price"), T("detail.market.day")}, Rows: rows, Num: []int{1, 2}}})
@@ -367,6 +501,19 @@ func ratesDetail(cfg RatesConfig, results map[string]any, _ ViewCtx) DetailView 
 	body.Blocks = []Block{{Kind: BlockTable, Label: T("detail.rates.list"),
 		Data: Table{Head: []Text{T("detail.rates.code"), textArgs("detail.rates.per_base", "base", data.Base), textArgs("detail.rates.in_base", "base", data.Base), T("detail.rates.change")},
 			Rows: rows, Num: []int{1, 2, 3}}}}
+
+	// The last three months, read on open, indexed to their first day.
+	if h, found := results[openName].(*sources.RatesHistory); found && len(h.Days) > 0 {
+		var names []string
+		var lines [][]float64
+		for _, r := range data.Rates {
+			names, lines = append(names, r.Code), append(lines, h.ByCode[r.Code])
+		}
+		if g, found := marketLines(names, lines); found {
+			g.Ticks = []any{DayS(h.Days[0]), DayS(h.Days[len(h.Days)-1])}
+			body.Blocks = append([]Block{{Kind: BlockGraph, Label: T("detail.rates.history"), Meta: Txt("detail.market.indexed"), Hero: true, Data: g}}, body.Blocks...)
+		}
+	}
 	return DetailView{Body: body}
 }
 
@@ -433,6 +580,27 @@ func transitDetail(cfg TransitConfig, results map[string]any, ctx ViewCtx) Detai
 	}
 	body.Facts = append(body.Facts, Kpi{Value: delayed, Label: T("detail.board.delayed"), Tier: tierIf(delayed > 0, "yellow", "")})
 	body.Blocks = []Block{boardTable(rows, T("detail.board.departures"))}
+
+	// Disruption notes, once per text with the lines they touch.
+	var texts []string
+	lines := map[string][]string{}
+	for _, r := range rows {
+		for _, text := range r.Remarks {
+			if _, ok := lines[text]; !ok {
+				texts = append(texts, text)
+			}
+			if !slices.Contains(lines[text], r.Line) {
+				lines[text] = append(lines[text], r.Line)
+			}
+		}
+	}
+	var notes []LitRow
+	for _, text := range texts {
+		notes = append(notes, LitRow{Name: text, Meta: strings.Join(lines[text], ", "), State: "warn"})
+	}
+	if len(notes) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockRows, Label: T("detail.board.remarks"), Data: notes})
+	}
 	return DetailView{Body: body}
 }
 
@@ -463,11 +631,24 @@ func holidaysDetail(cfg HolidaysConfig, results map[string]any, ctx ViewCtx) Det
 		}
 		events = append(events, ev)
 	}
+	// Days off booked in Kimai (holiday plugin) join the raster.
+	var absent map[time.Time]bool
+	if kimai, found := results[peerKimai].(*sources.KimaiDataset); found {
+		absent = metrics.AbsentDays(kimai)
+	}
+	off := 0
 	heat := Heat{Rows: weekDays, Ticks: []any{Day(first), Day(last)}}
 	for d := first; !d.After(last); d = d.AddDate(0, 0, 1) {
-		heat.Levels = append(heat.Levels, level[d.Format(isoDate)])
+		l := level[d.Format(isoDate)]
+		if absent[d] && !d.Before(today) {
+			l, off = max(l, absentLevel), off+1
+		}
+		heat.Levels = append(heat.Levels, l)
 	}
 	body := &DetailBody{Line: []Fact{{Label: T("detail.holidays.region"), Value: cmp.Or(cfg.State, cfg.Country)}}}
+	if absent != nil {
+		body.Line = append(body.Line, Fact{Label: T("detail.holidays.absent"), Value: off})
+	}
 	if len(events) > 0 {
 		body.Facts = []Kpi{{Value: events[0].State, Label: Plain(events[0].Title.(string)), Tier: "cyan"}, {Value: len(events), Label: T("detail.holidays.count")},
 			{Value: bridges, Label: T("detail.holidays.bridges")}}

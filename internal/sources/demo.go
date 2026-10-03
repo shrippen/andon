@@ -3,6 +3,7 @@ package sources
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 
@@ -492,6 +493,25 @@ func DemoHass(now time.Time) *HassDataset {
 		{ID: "switch.kaffeemaschine", Name: "Kaffeemaschine", Domain: "switch", State: "off", Changed: ago(3)},
 		{ID: "update.home_assistant_core_update", Name: "Home Assistant Core", Domain: "update", State: HassOn, Changed: ago(20)},
 	}}
+}
+
+// DemoHassHistory is a day of the demo entities: the living room warms
+// in the morning, the office light goes on and off.
+func DemoHassHistory(now time.Time, ids []string) *HassHistory {
+	out := &HassHistory{ByID: map[string][]HassPoint{}}
+	start := now.UTC().Add(-HassHistoryHours * time.Hour)
+	for _, id := range ids {
+		for h := range HassHistoryHours {
+			at := start.Add(time.Duration(h) * time.Hour)
+			switch id {
+			case "sensor.wohnzimmer_temperatur":
+				out.ByID[id] = append(out.ByID[id], HassPoint{At: at, State: strconv.FormatFloat(19.5+float64((at.Hour()+18)%24)/12, 'f', 1, 64)})
+			case "light.buero":
+				out.ByID[id] = append(out.ByID[id], HassPoint{At: at, State: map[bool]string{true: HassOn, false: "off"}[at.Hour() >= 8 && at.Hour() < 18]})
+			}
+		}
+	}
+	return out
 }
 
 // DemoSure is the demo Sure dataset; one income matches the open demo

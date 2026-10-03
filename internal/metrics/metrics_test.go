@@ -1,6 +1,7 @@
 package metrics_test
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -262,5 +263,15 @@ func TestKimaiHourPattern(t *testing.T) {
 	got := metrics.KimaiHourPattern(data, time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), time.UTC)
 	if got[0][9] != 30 || got[0][10] != 60 || got[1][9] != 0 {
 		t.Fatalf("pattern: %v %v", got[0][9], got[0][10])
+	}
+}
+
+// Daily values add up per month; a month without values is NaN.
+func TestMonthSums(t *testing.T) {
+	day := func(s string) time.Time { d, _ := time.Parse(time.DateOnly, s); return d }
+	h := &metrics.History{Series: map[string][]metrics.Point{metrics.EnergyKWhKey: {{Day: day("2025-12-31"), Value: 9}, {Day: day("2026-01-02"), Value: 1}, {Day: day("2026-03-01"), Value: 2}, {Day: day("2026-03-02"), Value: 3}}}}
+	got := metrics.MonthSums(h, metrics.EnergyKWhKey, day("2026-03-15"), 3)
+	if got[0] != 1 || !math.IsNaN(got[1]) || got[2] != 5 {
+		t.Fatalf("got %v", got)
 	}
 }

@@ -244,7 +244,7 @@
   {{with $g.Mark}}<line class="now" x1="{{.}}" x2="{{.}}" y1="0" y2="{{$g.H}}"/>{{end}}
 </svg>
 {{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
-{{if graphLegend .}}<ul class="legend">{{range .Series}}{{if .Label}}<li><i data-style="--c:var(--{{seriesVar .Class}})"></i>{{tv .Label}}</li>{{end}}{{end}}{{if .HasGoal}}<li><i class="goal{{if .GoalDanger}} is-danger{{end}}"></i>{{t "detail.goal"}}</li>{{end}}</ul>{{end}}
+{{if graphLegend .}}<ul class="legend">{{$cols := eq (print .Kind) "cols"}}{{range $i, $s := .Series}}{{if .Label}}<li><i{{if and $cols (eq $i 1)}} class="prev"{{end}} data-style="--c:var(--{{seriesVar .Class}})"></i>{{tv .Label}}</li>{{end}}{{end}}{{if .HasGoal}}<li><i class="goal{{if .GoalDanger}} is-danger{{end}}"></i>{{t "detail.goal"}}</li>{{end}}</ul>{{end}}
 {{end}}
 
 {{/* --c of a block: a Kante token ("d1") as var(), a service's hex colour as is. */}}

@@ -3096,6 +3096,7 @@ detail:
     stop: 'Stop'
     time: 'Time'
     walk: 'Walk'
+    remarks: 'Notices'
   dwd:
     active: 'Warning active'
     calm: 'no warning'
@@ -3120,6 +3121,9 @@ detail:
     prices: 'Price per hour'
     temp: 'Outside temperature'
     window: 'from {time} · {price}'
+    months: 'Consumption per month (kWh)'
+    months_this: 'Last 12 months'
+    months_prev: 'Year before'
   grocy:
     amount: 'Amount'
     below_min: 'Below minimum stock'
@@ -3132,6 +3136,8 @@ detail:
     product: 'Product'
     soon: 'due soon'
     stock: 'Best before'
+    add_missing: 'Add to shopping list'
+    to_list: '{n} products below minimum stock'
   hass:
     changed: 'changed'
     entities: 'Entities'
@@ -3140,13 +3146,15 @@ detail:
     name: 'Name'
     trouble: '{n} need a look'
     value: 'Value'
+    day: 'Last 24 hours (on = green)'
   holidays:
     bridges: 'Bridge days'
     count: 'Holidays'
-    legend: 'holiday dark, bridge day light'
+    legend: 'holiday dark, day off (Kimai) medium, bridge day light'
     next: 'Coming up'
     raster: 'Half a year'
     region: 'Region'
+    absent: 'Days off in Kimai'
   market:
     close: 'Close'
     coin: 'Coin'
@@ -3169,6 +3177,7 @@ detail:
     in_base: '1 unit in {base}'
     list: 'Rates'
     per_base: 'per 1 {base}'
+    history: 'Last 3 months'
   weather:
     day: 'Day'
     days: 'The next days'
@@ -3182,6 +3191,11 @@ detail:
     rain: 'Rain at most'
     today: 'today max / min'
     wind: 'Wind'
+    gusts: 'Gusts {n}'
+    gusts_col: 'Gusts'
+    sky: 'Weather'
+    sun: 'Sun {rise}–{set}'
+    sun_col: 'Sun'
   read_original: 'Read the original'
   arr:
     app: 'App'

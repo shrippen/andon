@@ -22,6 +22,21 @@ const dnsPause = 10 * time.Minute
 func init() {
 	register("pihole", "pause", pauseDNS(outbound.DNSPihole))
 	register("adguard", "pause", pauseDNS(outbound.DNSAdGuard))
+	register("grocy", "shopping_add", grocyShopping)
+}
+
+// grocyShopping puts the products below their minimum on Grocy's
+// shopping list.
+func grocyShopping(ctx context.Context, d *sql.DB, who *access.Principal, c Call) error {
+	conn, target, err := useConnection(d, who, c.Widget)
+	if err != nil {
+		return err
+	}
+	if err := outbound.GrocyAddMissing(ctx, target); err != nil {
+		return err
+	}
+	svcdata.Forget(conn.ID)
+	return auditsvc.Log(d, &who.UserID, "grocy.shopping_add", conn.Name, c.IP, nil)
 }
 
 // pauseDNS switches the tile's DNS filter off for ten minutes.

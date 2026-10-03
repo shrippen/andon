@@ -3097,6 +3097,7 @@ detail:
     stop: 'Haltestelle'
     time: 'Zeit'
     walk: 'Fußweg'
+    remarks: 'Meldungen'
   dwd:
     active: 'Warnung aktiv'
     calm: 'keine Warnung'
@@ -3121,6 +3122,9 @@ detail:
     prices: 'Preis je Stunde'
     temp: 'Außentemperatur'
     window: 'ab {time} · {price}'
+    months: 'Verbrauch je Monat (kWh)'
+    months_this: 'Letzte 12 Monate'
+    months_prev: 'Vorjahr'
   grocy:
     amount: 'Menge'
     below_min: 'Unter Mindestbestand'
@@ -3133,6 +3137,8 @@ detail:
     product: 'Produkt'
     soon: 'bald fällig'
     stock: 'Haltbarkeit'
+    add_missing: 'Auf die Einkaufsliste'
+    to_list: '{n} Produkte unter Mindestbestand'
   hass:
     changed: 'geändert'
     entities: 'Entitäten'
@@ -3141,13 +3147,15 @@ detail:
     name: 'Name'
     trouble: '{n} auffällig'
     value: 'Wert'
+    day: 'Letzte 24 Stunden (an = grün)'
   holidays:
     bridges: 'Brückentage'
     count: 'Feiertage'
-    legend: 'Feiertag dunkel, Brückentag hell'
+    legend: 'Feiertag dunkel, frei (Kimai) mittel, Brückentag hell'
     next: 'Als Nächstes'
     raster: 'Ein halbes Jahr'
     region: 'Region'
+    absent: 'Frei laut Kimai'
   market:
     close: 'Schluss'
     coin: 'Coin'
@@ -3170,6 +3178,7 @@ detail:
     in_base: '1 Einheit in {base}'
     list: 'Kurse'
     per_base: 'für 1 {base}'
+    history: 'Letzte 3 Monate'
   weather:
     day: 'Tag'
     days: 'Die nächsten Tage'
@@ -3183,6 +3192,11 @@ detail:
     rain: 'Regen höchstens'
     today: 'heute max / min'
     wind: 'Wind'
+    gusts: 'Böen {n}'
+    gusts_col: 'Böen'
+    sky: 'Wetter'
+    sun: 'Sonne {rise}–{set}'
+    sun_col: 'Sonne'
   read_original: 'Original lesen'
   arr:
     app: 'App'

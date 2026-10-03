@@ -366,6 +366,8 @@ type WeatherWarning struct {
 	Headline      string
 	Severity      string
 	Onset, Expire time.Time
+	Description   string // what is coming, in full
+	Instruction   string // what to do, "" = nothing
 }
 
 type DWDDataset struct {
@@ -395,7 +397,8 @@ func fetchDWD(ctx context.Context, sctx Ctx) (any, error) {
 		a := asMap(raw)
 		data.Warnings = append(data.Warnings, WeatherWarning{ID: asStr(a["alert_id"]), Event: firstStr(asStr(a["event_de"]), asStr(a["event_en"])),
 			Headline: firstStr(asStr(a["headline_de"]), asStr(a["headline_en"])), Severity: strings.ToLower(asStr(a["severity"])),
-			Onset: parseTime(a["onset"]), Expire: parseTime(a["expires"])})
+			Onset: parseTime(a["onset"]), Expire: parseTime(a["expires"]),
+			Description: firstStr(asStr(a["description_de"]), asStr(a["description_en"])), Instruction: firstStr(asStr(a["instruction_de"]), asStr(a["instruction_en"]))})
 	}
 	return data, nil
 }

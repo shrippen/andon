@@ -367,9 +367,11 @@ func fetchFeed(ctx context.Context, target string) (*FeedResult, error) {
 
 // WeatherDay is one forecast day.
 type WeatherDay struct {
-	Day      string
-	Code     int
-	Max, Min float64
+	Day             string
+	Code            int
+	Max, Min        float64
+	Gusts           float64 // strongest gust, km/h
+	Sunrise, Sunset string  // local "2006-01-02T15:04"
 }
 
 // WeatherHour is one hour ahead: temperature and rain probability (0–100).
@@ -381,6 +383,7 @@ type WeatherHour struct {
 // WeatherResult is the current conditions plus a short forecast.
 type WeatherResult struct {
 	Temp, Wind float64
+	Gusts      float64 // km/h
 	Code       int
 	IsDay      bool
 	Days       []WeatherDay
@@ -393,8 +396,8 @@ func fetchWeather(ctx context.Context, sctx Ctx) (any, error) {
 	params := url.Values{
 		"latitude":       {strconv.FormatFloat(asFloat(sctx.Params["lat"]), 'f', -1, 64)},
 		"longitude":      {strconv.FormatFloat(asFloat(sctx.Params["lon"]), 'f', -1, 64)},
-		"current":        {"temperature_2m,weather_code,wind_speed_10m,is_day"},
-		"daily":          {"weather_code,temperature_2m_max,temperature_2m_min"},
+		"current":        {"temperature_2m,weather_code,wind_speed_10m,wind_gusts_10m,is_day"},
+		"daily":          {"weather_code,temperature_2m_max,temperature_2m_min,wind_gusts_10m_max,sunrise,sunset"},
 		"hourly":         {"temperature_2m,precipitation_probability"},
 		"forecast_hours": {strconv.Itoa(forecastHrs)},
 		"timezone":       {"auto"},
@@ -413,15 +416,18 @@ func fetchWeather(ctx context.Context, sctx Ctx) (any, error) {
 	codes := asList(daily["weather_code"])
 	highs := asList(daily["temperature_2m_max"])
 	lows := asList(daily["temperature_2m_min"])
+	gusts, rises, sets := asList(daily["wind_gusts_10m_max"]), asList(daily["sunrise"]), asList(daily["sunset"])
 
 	var forecast []WeatherDay
 	for i := range days {
 		if i >= len(codes) || i >= len(highs) || i >= len(lows) {
 			break
 		}
-		forecast = append(forecast, WeatherDay{
-			Day: asStr(days[i]), Code: int(asFloat(codes[i])), Max: asFloat(highs[i]), Min: asFloat(lows[i]),
-		})
+		day := WeatherDay{Day: asStr(days[i]), Code: int(asFloat(codes[i])), Max: asFloat(highs[i]), Min: asFloat(lows[i])}
+		if i < len(gusts) && i < len(rises) && i < len(sets) {
+			day.Gusts, day.Sunrise, day.Sunset = asFloat(gusts[i]), asStr(rises[i]), asStr(sets[i])
+		}
+		forecast = append(forecast, day)
 	}
 
 	hourly := asMap(raw["hourly"])
@@ -439,7 +445,7 @@ func fetchWeather(ctx context.Context, sctx Ctx) (any, error) {
 		isDay = asFloat(v) != 0
 	}
 	return &WeatherResult{
-		Temp: asFloat(current["temperature_2m"]), Wind: asFloat(current["wind_speed_10m"]),
+		Temp: asFloat(current["temperature_2m"]), Wind: asFloat(current["wind_speed_10m"]), Gusts: asFloat(current["wind_gusts_10m"]),
 		Code: int(asFloat(current["weather_code"])), IsDay: isDay, Days: forecast, Hours: hours,
 	}, nil
 }

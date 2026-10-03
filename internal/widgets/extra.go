@@ -236,6 +236,9 @@ func init() {
 			{Key: "change", Input: InputCheck}, {Key: "invert", Input: InputCheck}},
 		Decode: decodeRates, Queries: func(cfg RatesConfig) []Query {
 			return []Query{{Name: "rates", Source: "exchange_rates", Params: map[string]any{"base": cfg.Base, "symbols": cfg.Symbols, "change": cfg.Change}}}
+		},
+		DetailQueries: func(cfg RatesConfig) []Query {
+			return []Query{{Name: openName, Source: "exchange_rates.history", Params: map[string]any{"base": cfg.Base, "symbols": cfg.Symbols}}}
 		}}.add()
 
 	Tile[MonitorsConfig]{Key: "monitors", Detail: monitorsDetail, Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceUptimeKuma, RefreshS: 60,

@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"andon/internal/drivers/httpclient"
 )
@@ -253,6 +254,13 @@ func (a HassApi) States(ctx context.Context) (any, error) {
 // the template must render JSON.
 func (a HassApi) Template(ctx context.Context, template string) (any, error) {
 	return postJSON(ctx, joinURL(a.URL, "api/template"), a.headers(), map[string]string{"template": template}, httpclient.TLSOf(a.Verify))
+}
+
+// History reads the state changes of entities since start
+// (/api/history/period/<start>): one list per entity, oldest first.
+func (a HassApi) History(ctx context.Context, start time.Time, ids []string) (any, error) {
+	params := url.Values{"filter_entity_id": {strings.Join(ids, ",")}, "minimal_response": {""}, "no_attributes": {""}}
+	return fetchJSON(ctx, joinURL(a.URL, "api/history/period/"+start.UTC().Format(time.RFC3339)), a.headers(), params, httpclient.TLSOf(a.Verify))
 }
 
 // Call runs a service on one entity, e.g. ("switch", "toggle", "switch.fan").

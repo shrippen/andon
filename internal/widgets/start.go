@@ -358,6 +358,27 @@ func decodeClock(r Raw) ClockConfig {
 	return ClockConfig{Timezones: tz, Seconds: r.Bool("seconds"), Date: r.Bool("date"), H12: r.Pick("format") == "12", Analog: r.Bool("analog")}
 }
 
+// weatherThresholds maps a WMO weather code's upper bound to its icon key
+// (e.g. code 61 -> "rain"): the first threshold the code doesn't exceed.
+var weatherThresholds = []struct {
+	max  int
+	kind string
+}{
+	{0, "clear"}, {3, "cloudy"}, {48, "fog"}, {57, "drizzle"}, {67, "rain"},
+	{77, "snow"}, {82, "showers"}, {86, "snow"}, {99, "thunder"},
+}
+
+// WeatherKind names a WMO weather code's condition ("rain"), the
+// catalog key weather.<kind>.
+func WeatherKind(code int) string {
+	for _, t := range weatherThresholds {
+		if code <= t.max {
+			return t.kind
+		}
+	}
+	return "unknown"
+}
+
 // weatherView drops today from the forecast (the current conditions
 // already show it) so the template only lists the days ahead.
 func weatherView(cfg WeatherConfig, results map[string]any, _ ViewCtx) map[string]any {

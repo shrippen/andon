@@ -40,6 +40,11 @@ func recordHistory(d *sql.DB, sc *scope, now time.Time) (*metrics.History, error
 		if err := data.AddSamples(tx, sc.spaceID, owner, day, read.Counts); err != nil {
 			return err
 		}
+		for past, values := range read.Past {
+			if err := data.PutSamples(tx, sc.spaceID, owner, past, values); err != nil {
+				return err
+			}
+		}
 		known, err := data.Versions(tx, sc.spaceID, owner)
 		if err != nil {
 			return err

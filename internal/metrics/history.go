@@ -192,6 +192,12 @@ func init() {
 			}
 		}
 	})
+	// Tibber reports a day's consumption the day after.
+	Record(func(d *sources.TibberDataset, _ time.Time, r *Readings) {
+		for _, day := range d.Days {
+			r.SetOn(day.Day, EnergyKWhKey, day.KWh)
+		}
+	})
 	Record(func(d *sources.FreshRSSDataset, _ time.Time, r *Readings) {
 		r.Set(key("freshrss", "unread"), float64(d.Unread))
 	})
@@ -322,6 +328,33 @@ const subscriptionPrefix = "Abo "
 
 // SubscriptionSubject is the change subject of a subscription's price.
 func SubscriptionSubject(name string) string { return subscriptionPrefix + name }
+
+// MonthSums adds a daily series up per month: the n months up to now's,
+// oldest first; a month without a value is NaN.
+//
+//	MonthSums(h, EnergyKWhKey, 2026-10-03, 2) → [Sep total, Oct so far]
+func MonthSums(h *History, key string, now time.Time, n int) []float64 {
+	first := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1-n, 0)
+	out := make([]float64, n)
+	seen := make([]bool, n)
+	for _, p := range h.SeriesOf(key) {
+		i := (p.Day.Year()-first.Year())*monthsPerYear + int(p.Day.Month()-first.Month())
+		if i < 0 || i >= n {
+			continue
+		}
+		out[i] += p.Value
+		seen[i] = true
+	}
+	for i := range out {
+		if !seen[i] {
+			out[i] = math.NaN()
+		}
+	}
+	return out
+}
+
+// EnergyKWhKey is the daily power consumption series (Tibber).
+var EnergyKWhKey = key("tibber", "kwh")
 
 // LinkClicksKey is the series of a link tile's openings (services/clicks).
 func LinkClicksKey(widgetID int64) string {

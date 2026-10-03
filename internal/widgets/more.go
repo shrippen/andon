@@ -425,6 +425,7 @@ type MoveRow struct {
 	Time, Line, Place, Status, Platform string
 	Delay                               int
 	Canceled                            bool
+	Remarks                             []string
 }
 
 func boardView(limit int, data *sources.BoardResult) map[string]any {
@@ -435,7 +436,7 @@ func boardView(limit int, data *sources.BoardResult) map[string]any {
 			break
 		}
 		rows = append(rows, MoveRow{Time: m.When.In(zone).Format(timeOfDay), Line: m.Line, Place: m.Place,
-			Status: m.Status, Platform: m.Platform, Delay: m.Delay, Canceled: m.Canceled})
+			Status: m.Status, Platform: m.Platform, Delay: m.Delay, Canceled: m.Canceled, Remarks: m.Remarks})
 	}
 	return map[string]any{"Stop": data.Stop, "Rows": rows}
 }
@@ -524,7 +525,8 @@ func init() {
 		Decode: decodeHolidays, View: holidaysView,
 		Queries: one("days", "holidays", func(cfg HolidaysConfig) map[string]any {
 			return map[string]any{"country": cfg.Country, "state": cfg.State}
-		})}.add()
+		}),
+		DetailQueries: func(HolidaysConfig) []Query { return []Query{kimaiPeer} }}.add()
 
 	Tile[PictureConfig]{Key: "xkcd", Detail: pictureDetail, Template: "widgets/picture", Category: CategoryStart, Topic: TopicMedia, RefreshS: 6 * hour,
 		Fields: []Field{{Key: "random", Input: InputCheck}, {Key: "image_only", Input: InputCheck}},
@@ -551,6 +553,9 @@ func init() {
 		Decode: decodeCrypto,
 		Queries: one("prices", "crypto", func(cfg CryptoConfig) map[string]any {
 			return map[string]any{"coins": cfg.Coins, "currency": cfg.Currency, "spark": cfg.Spark}
+		}),
+		DetailQueries: one(openName, "crypto.history", func(cfg CryptoConfig) map[string]any {
+			return map[string]any{"coins": cfg.Coins, "currency": cfg.Currency}
 		})}.add()
 
 	Tile[StocksConfig]{Key: "stocks", Detail: stocksDetail, Category: CategoryStart, Topic: TopicWorld, RefreshS: 15 * minute,
