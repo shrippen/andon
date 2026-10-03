@@ -58,6 +58,12 @@ type Fragment struct {
 	HintConn  int64 // connection the hint count belongs to, 0 = none
 	View      map[string]any
 	Frame     widgets.Frame
+
+	// What View got, kept for the detail dialog (detail.go).
+	results   map[string]any
+	viewCtx   widgets.ViewCtx
+	services  []string // services the tile reads, for its hints
+	hintConns []int64  // connections whose hints the dialog lists
 }
 
 // Calm tells whether the tile has nothing to do and asks to be hidden then.
@@ -278,6 +284,12 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 			frag.Slots[q.Name] = demoQuery(ctx, sourceFor(q, target), q.Params)
 			continue
 		}
+		// The dialog lists the hints of the tile's own connection, or of
+		// its peers when it has no service of its own (backups, costs).
+		tileOwn := q.Conn == widgets.ConnWidget || q.Conn == widgets.ConnInfo
+		if target != nil && (tileOwn || kind.Service == "") {
+			frag.hintConns = append(frag.hintConns, target.ID)
+		}
 		frag.Slots[q.Name] = runQuery(ctx, d, sourceFor(q, target), q.Params, target, who.UserID, integrationFreshness(q, target, own, fresh))
 	}
 
@@ -425,17 +437,29 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		frag.Slots[widgets.HistorySlot] = Slot{Data: h}
 	}
 
-	if kind.View != nil {
-		viewCtx := widgets.ViewCtx{Today: time.Now().UTC().Format("2006-01-02"), Settings: settings, PeerOptions: peerOptions}
-		if serviceConn != nil {
-			viewCtx.Service, viewCtx.Options = serviceConn.Service, serviceConn.Options
+	viewCtx := widgets.ViewCtx{Today: time.Now().UTC().Format("2006-01-02"), Settings: settings, PeerOptions: peerOptions}
+	if serviceConn != nil {
+		viewCtx.Service, viewCtx.Options = serviceConn.Service, serviceConn.Options
+	}
+	results := map[string]any{}
+	for name, slot := range frag.Slots {
+		if slot.Data != nil {
+			results[name] = slot.Data
 		}
-		results := map[string]any{}
-		for name, slot := range frag.Slots {
-			if slot.Data != nil {
-				results[name] = slot.Data
+	}
+	frag.results, frag.viewCtx = results, viewCtx
+	// Hints of the tile's own service; a tile without one (backups, costs)
+	// reads others, so theirs.
+	if kind.Service != "" {
+		frag.services = []string{string(kind.Service)}
+	} else {
+		for _, q := range kind.Queries(cfg) {
+			if q.Conn == widgets.ConnPeer {
+				frag.services = append(frag.services, string(q.Service))
 			}
 		}
+	}
+	if kind.View != nil {
 		frag.View = kind.View(cfg, results, viewCtx)
 	}
 	if link, ok := cfg.(widgets.LinkConfig); ok && link.Status == widgets.StatusHTTP {

@@ -146,7 +146,7 @@
           {{if .Sources}}<p class="hint-meta-line">{{range $i, $s := .Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}</p>{{end}}
           {{if .Due}}<span class="due">{{day .Due}}</span>{{end}}
           <div class="actions">
-            {{if .ActionURL}}<a class="btn btn-accent btn-sm hint-go" href="{{.ActionURL}}" target="_blank" rel="noopener noreferrer">{{if .ActionLabel}}{{.ActionLabel}}{{else}}{{t "action.open"}}{{end}}</a>{{end}}
+            {{if .ActionURL}}<a class="btn btn-outline btn-sm hint-go" href="{{.ActionURL}}" target="_blank" rel="noopener noreferrer">{{if .ActionLabel}}{{.ActionLabel}}{{else}}{{t "action.open"}}{{end}}</a>{{end}}
             {{if not $p.Embed}}
             <form method="post" action="/hints/{{.ID}}/ack" class="hint-ack" id="ack-{{.ID}}">
               <input type="hidden" name="{{$p.CSRFField}}" value="{{$p.Ctx.CSRF}}">

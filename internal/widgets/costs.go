@@ -26,7 +26,7 @@ type CostConfig struct {
 }
 
 func init() {
-	Tile[CostConfig]{Key: "homelab_cost", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 3600,
+	Tile[CostConfig]{Key: "homelab_cost", Detail: homelabCostDetail, Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 3600,
 		Fields: []Field{sel("period", "month", "month", "year"), {Key: "power_split", Input: InputCheck, Default: true}},
 		Decode: func(r Raw) CostConfig {
 			return CostConfig{Yearly: r.Pick("period") == "year", PowerSplit: r.Bool("power_split")}
@@ -113,7 +113,7 @@ func storyView(cfg StoryConfig, results map[string]any, _ ViewCtx) map[string]an
 }
 
 func init() {
-	Tile[StoryConfig]{Key: "week_story", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600, Extra: ExtraStory,
+	Tile[StoryConfig]{Key: "week_story", Detail: storyDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600, Extra: ExtraStory,
 		Fields: []Field{sel("period", "days7", "days7", "calendar"), {Key: "show_hours", Input: InputCheck, Default: true},
 			{Key: "show_money", Input: InputCheck, Default: true}, {Key: "show_storage", Input: InputCheck, Default: true},
 			{Key: "show_power", Input: InputCheck, Default: true}, {Key: "show_hints", Input: InputCheck, Default: true}},

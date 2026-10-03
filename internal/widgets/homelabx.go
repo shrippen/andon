@@ -73,7 +73,7 @@ var windowFactors = map[string]string{metrics.WindowNoBackup: "use_backup", metr
 const WindowOutside = "outside"
 
 func init() {
-	Tile[WindowConfig]{Key: "update_window", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: windowRefreshS,
+	Tile[WindowConfig]{Key: "update_window", Detail: updateWindowDetail, Category: CategoryInsight, Topic: TopicHomelab, RefreshS: windowRefreshS,
 		Fields: []Field{{Key: "window", Input: InputText}, {Key: "timezone", Input: InputText, Default: defaultTimezone},
 			{Key: "use_backup", Input: InputCheck, Default: true}, {Key: "use_streams", Input: InputCheck, Default: true},
 			{Key: "use_timer", Input: InputCheck, Default: true}, {Key: "use_meetings", Input: InputCheck, Default: true},
@@ -189,7 +189,7 @@ type StorageConfig struct {
 }
 
 func init() {
-	Tile[StorageConfig]{Key: "storage_forecast", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 3600, Extra: ExtraHistory,
+	Tile[StorageConfig]{Key: "storage_forecast", Detail: storageDetail, Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 3600, Extra: ExtraHistory,
 		Fields: []Field{{Key: "filter", Input: InputList}, {Key: "ahead", Input: InputNumber, Default: storageAhead, Min: "1", Max: "365"}},
 		Decode: func(r Raw) StorageConfig { return StorageConfig{Only: r.Lower("filter"), Ahead: r.Int("ahead")} },
 		View:   storageView}.add()

@@ -25,11 +25,11 @@
           ({{if eq .MinSeverity 30}}{{t "severity.critical"}}{{else if eq .MinSeverity 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}{{if .Sources}} · {{range $i, $s := .Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}{{end}})
           <form method="post" action="/me/notify/channels/{{.ID}}/test">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" class="btn btn-accent">{{t "conn.test"}}</button>
+            <button type="submit" class="btn btn-outline">{{t "conn.test"}}</button>
           </form>
           <form method="post" action="/me/notify/channels/{{.ID}}/delete">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" class="btn btn-accent">{{t "action.delete"}}</button>
+            <button type="submit" class="btn btn-outline">{{t "action.delete"}}</button>
           </form>
         </li>
         {{end}}

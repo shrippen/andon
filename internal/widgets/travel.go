@@ -70,7 +70,7 @@ func travelView(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx) ma
 }
 
 func init() {
-	Tile[TravelConfig]{Key: "travel", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceDawarich, RefreshS: 3600,
+	Tile[TravelConfig]{Key: "travel", Detail: dataDetail(travelDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceDawarich, RefreshS: 3600,
 		Fields: []Field{{Key: "km_rate", Input: InputNumber, Default: defaultKMRate, Min: "0"}, sel("period", "month", "month", "year"),
 			{Key: "hide_bar", Input: InputCheck}},
 		Decode: func(r Raw) TravelConfig {

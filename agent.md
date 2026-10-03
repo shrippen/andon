@@ -76,7 +76,7 @@ internal/metrics/*.go           reine Funktionen: Datensatz → Kennzahlen (kein
 internal/rules/*.go             Register(id, scope, defaults, run): Datensatz → Finding (kein I/O)
 internal/widgets/*.go           Tile[C]: Felder, Thema, Decode(Raw), Queries, View (rein), Calm
 internal/services/analysis/     Job: Datensätze laden, Regeln anwenden, hints.Sync()
-internal/services/scheduler/    Background-Jobs (Ticker je Job, panic-/error-isoliert)
+internal/services/scheduler/    Background-Jobs (Timer je Job, ±5 % gestreut, panic-/error-isoliert)
 ```
 - Neue Regel: Funktion in `internal/rules/`, Texte `hint.<message>.title|why` in beiden Katalogen, Test in `internal/rules/*_test.go`.
 - Neues Widget: `Tile[XConfig]{…}.add()` in `internal/widgets/` (Grenzen/Defaults nur im Field, gelesen über `Raw`), Template-Define `widgets/<key>` in `internal/web/templates/widgets_*.html`, `wtype.<key>` in den Katalogen.
@@ -95,20 +95,20 @@ internal/services/scheduler/    Background-Jobs (Ticker je Job, panic-/error-iso
 
 - Every GUI of this project is generated from Kante, not inspired by it: landing pages,
   web apps, Qt Quick / Kirigami apps, Plasma widgets, dialogs, e-mail and print layouts.
-  Source: https://github.com/shrippen/shrippen.github.io (`kante/`).
+  Source: https://github.com/shrippen/Kante (checkout `../Kante`).
   Web: link `https://shrippen.github.io/v1/shrippen.css` and `shrippen.js`, or vendor them
-  unchanged. Apps: copy `kante/qml/Kante` (and `KantePlasma` for Plasma widgets) unchanged.
+  unchanged. Apps: copy `qml/Kante` (and `KantePlasma` for Plasma widgets) unchanged.
 - Use Kante's tokens, roles, components, classes, QML components and motion as they are.
   No own colours, fonts, sizes, radii, cuts, shadows, animation timings, no own copy or
   variant of a component that Kante has. Raw values (`#hex`, `px` for controls) are a bug;
   use roles (`--primary`, `--focus`, `--warn`, `KanteStyle.*`).
 - A missing element is added to Kante first (CSS or QML, docs, catalogue), then used here.
   Never solve it locally in this project and never wait with a "temporary" copy.
-- Exception: Kimai plugins take their GUI from Knust (`shrippen/kimai-knust-bundle`), the
+- Exception: Kimai plugins take their GUI from Knust (`kimai/knust/` in shrippen/Kante), the
   Kante spinoff that adapts Kante to Kimai's look. The same rule applies to Knust: use it
   as it is, and add missing elements to Knust.
 - A project without a GUI (library, CLI, scripts) has nothing to do here.
-- Rule text: https://github.com/shrippen/shrippen.github.io/blob/main/kante/AGENT-RULE.md
+- Rule text: https://github.com/shrippen/Kante/blob/main/AGENT-RULE.md
 
 ## Repository rule
 

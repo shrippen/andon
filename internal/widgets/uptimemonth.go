@@ -88,7 +88,7 @@ func uptimeMonthView(cfg UptimeMonthConfig, results map[string]any, ctx ViewCtx)
 }
 
 func init() {
-	Tile[UptimeMonthConfig]{Key: "uptime_month", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceUptimeKuma, RefreshS: 1800,
+	Tile[UptimeMonthConfig]{Key: "uptime_month", Detail: uptimeMonthDetail, Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceUptimeKuma, RefreshS: 1800,
 		Extra:  ExtraHistory,
 		Fields: []Field{{Key: "sla", Input: InputNumber, Min: "0", Max: "100"}, {Key: "filter", Input: InputList}},
 		Decode: decodeUptimeMonth, Queries: ownData[UptimeMonthConfig], View: uptimeMonthView,

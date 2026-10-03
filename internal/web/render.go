@@ -5,9 +5,11 @@ import (
 	"bytes"
 	"embed"
 	"errors"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"math"
+	"math/rand/v2"
 	"net/http"
 	"strconv"
 	"strings"
@@ -45,6 +47,7 @@ func mustParse() *template.Template {
 		"ago":       func(any) string { return "" },
 		"clockDate": func(string) string { return "" },
 		"tt":        func(string, map[string]any) string { return "" },
+		"tv":        func(any) string { return "" },
 		"here":      func(string) bool { return false },
 		"fragment":  func(*tileBody) (template.HTML, error) { return "", nil },
 
@@ -63,6 +66,30 @@ func mustParse() *template.Template {
 		// so unlike the above they're the real implementation, not a
 		// placeholder.
 		"barPct":      barPct,
+		"every":       every,
+		"uptimePaths": uptimePaths,
+		"stackPaths":  stackPaths,
+		"chartGeom":   geomOf,
+		"sevTier":     sevTier,
+		"stateVar":    stateVar,
+		"seriesVar":   seriesVar,
+		"numCol":      numCol,
+		"graphLegend": graphLegend,
+		"pctOf":       pctOf,
+		"weekScale":   weekScale,
+		"hourPct":     hourPct,
+		"spanLen":     spanLen,
+		"isHex":       isHex,
+		"stripPaths":  stripPaths,
+		"sparkPath":   sparkPath,
+		"msChartOf":   msChartOf,
+		"msX":         msX,
+		"kanteState":  kanteState,
+		"percent":     func(v float64) float64 { return v * pctScale },
+		"seconds":     func(v time.Duration) float64 { return v.Seconds() },
+		"minutes":     func(v time.Duration) float64 { return v.Minutes() },
+		"lastIndex":   func(n int) int { return n - 1 },
+		"launchEvery": func() string { return every(launchRefreshS) },
 		"abs":         math.Abs,
 		"thousands":   func(v float64) float64 { return v / 1000 },
 		"sparkOf":     widgets.SparkOf,
@@ -277,6 +304,14 @@ func newPageSet() *pageSet {
 		"tt": func(key string, params map[string]any) string {
 			return i18n.T(key, st.locale, i18n.Typed(params, st.locale))
 		},
+		// tv shows a value of a detail dialog: text as is, a typed value
+		// ({"$num": 3.5, "digits": 1}) per locale.
+		"tv": func(v any) string {
+			if v == nil {
+				return ""
+			}
+			return fmt.Sprint(i18n.Typed(map[string]any{"v": v}, st.locale)["v"])
+		},
 		"fragment": set.fragment,
 	})
 	return set
@@ -478,4 +513,23 @@ func monogram(title string) string {
 		return "?"
 	}
 	return strings.ToUpper(string(letters))
+}
+
+// refreshShare: a tile polls every seconds ± seconds/refreshShare/2;
+// launchRefreshS is a link tile's poll.
+const (
+	refreshShare   = 10
+	launchRefreshS = 300
+)
+
+// every is a tile's htmx poll trigger with a period picked at random
+// per render, so a board's tiles drift apart instead of reaching the
+// server, and through it the services, all in the same second:
+//
+//	300 → "every 286s" … "every 314s"
+func every(seconds int) string {
+	if spread := seconds / refreshShare; spread > 0 {
+		seconds += rand.IntN(spread) - spread/2
+	}
+	return "every " + strconv.Itoa(seconds) + "s"
 }

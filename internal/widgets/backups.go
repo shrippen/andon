@@ -25,7 +25,7 @@ type BackupsConfig struct {
 }
 
 func init() {
-	Tile[BackupsConfig]{Key: "backups", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 600, Extra: ExtraHistory,
+	Tile[BackupsConfig]{Key: "backups", Detail: backupsDetail, Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 600, Extra: ExtraHistory,
 		Fields: []Field{{Key: "max_hours", Input: InputNumber, Default: defaultBackupHours, Min: "1", Max: "336"}, {Key: "tools", Input: InputList},
 			{Key: "only_problems", Input: InputCheck}, sel("days", strconv.Itoa(backupDays), "7", "14", "30")},
 		Decode: func(r Raw) BackupsConfig {

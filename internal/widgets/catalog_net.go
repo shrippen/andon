@@ -27,7 +27,7 @@ const dnsTop = 5
 
 func init() {
 	for key, service := range map[string]enums.ServiceType{"pihole": enums.ServicePihole, "adguard": enums.ServiceAdGuard} {
-		Tile[DNSConfig]{Key: key, Category: CategoryInsight, Topic: TopicNetwork, Service: service, RefreshS: 5 * 60,
+		Tile[DNSConfig]{Key: key, Detail: dataDetail(dnsDetail), Category: CategoryInsight, Topic: TopicNetwork, Service: service, RefreshS: 5 * 60,
 			Fields: []Field{{Key: "top_clients", Input: InputCheck}, {Key: "top_domains", Input: InputCheck}},
 			Decode: decodeDNS, Queries: ownData[DNSConfig], View: dataView(dnsFilterView)}.add()
 	}
@@ -51,7 +51,7 @@ func dnsFilterView(cfg DNSConfig, data *sources.DNSFilterDataset, _ ViewCtx) map
 type VPNConfig struct{ Country string }
 
 func init() {
-	Tile[VPNConfig]{Key: "vpn", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceGluetun, RefreshS: 5 * 60,
+	Tile[VPNConfig]{Key: "vpn", Detail: dataDetail(vpnDetail), Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceGluetun, RefreshS: 5 * 60,
 		Fields: []Field{{Key: "expected_country", Input: InputText}},
 		Decode: func(r Raw) VPNConfig {
 			return VPNConfig{Country: strings.TrimSpace(r.String("expected_country"))}
@@ -88,7 +88,7 @@ type GatewayConfig struct {
 }
 
 func init() {
-	Tile[GatewayConfig]{Key: "gateway", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceGateway, RefreshS: 5 * 60,
+	Tile[GatewayConfig]{Key: "gateway", Detail: dataDetail(gatewayDetail), Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceGateway, RefreshS: 5 * 60,
 		Fields: []Field{{Key: "hide_measures", Input: InputCheck}, {Key: "device_list", Input: InputCheck}},
 		Decode: func(r Raw) GatewayConfig {
 			return GatewayConfig{HideMeasures: r.Bool("hide_measures"), DeviceList: r.Bool("device_list")}
@@ -180,7 +180,7 @@ func decodeExpiry(r Raw) ExpiryConfig {
 }
 
 func init() {
-	Tile[ExpiryConfig]{Key: "expiry", Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceCerts, RefreshS: 60 * 60,
+	Tile[ExpiryConfig]{Key: "expiry", Detail: expiryDetail, Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceCerts, RefreshS: 60 * 60,
 		Fields: []Field{{Key: "max_days", Input: InputNumber, Min: "0", Max: "3650"}, sel("kinds", expiryBoth, expiryBoth, "certs", "domains")},
 		Decode: decodeExpiry, View: expiryView,
 		Queries: func(ExpiryConfig) []Query {
@@ -235,7 +235,7 @@ func expiryView(cfg ExpiryConfig, results map[string]any, ctx ViewCtx) map[strin
 type SpeedHistoryConfig struct{ Days int }
 
 func init() {
-	Tile[SpeedHistoryConfig]{Key: "speed_history", Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest,
+	Tile[SpeedHistoryConfig]{Key: "speed_history", Detail: speedHistoryDetail, Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest,
 		RefreshS: 60 * 60, Extra: ExtraHistory,
 		Fields:  []Field{{Key: "days", Input: InputNumber, Default: speedDays, Min: "2", Max: "90"}},
 		Decode:  func(r Raw) SpeedHistoryConfig { return SpeedHistoryConfig{Days: r.Int("days")} },
@@ -287,7 +287,7 @@ func speedHistoryView(cfg SpeedHistoryConfig, results map[string]any, _ ViewCtx)
 type SabConfig struct{ Queue int }
 
 func init() {
-	Tile[SabConfig]{Key: "sabnzbd", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceSabnzbd, RefreshS: 5 * 60,
+	Tile[SabConfig]{Key: "sabnzbd", Detail: dataDetail(sabDetail), Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceSabnzbd, RefreshS: 5 * 60,
 		Fields:  []Field{{Key: "queue", Input: InputNumber, Default: 0, Min: "0", Max: "20"}},
 		Decode:  func(r Raw) SabConfig { return SabConfig{Queue: r.Int("queue")} },
 		Queries: ownData[SabConfig], View: dataView(sabnzbdView)}.add()
@@ -307,7 +307,7 @@ type PaperlessConfig struct {
 }
 
 func init() {
-	Tile[PaperlessConfig]{Key: "paperless_inbox", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServicePaperless, RefreshS: 30 * 60,
+	Tile[PaperlessConfig]{Key: "paperless_inbox", Detail: dataDetail(paperlessDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServicePaperless, RefreshS: 30 * 60,
 		Fields: []Field{{Key: "newest_docs", Input: InputNumber, Default: 0, Min: "0", Max: "10"}, {Key: "tag", Input: InputText}},
 		Decode: func(r Raw) PaperlessConfig {
 			return PaperlessConfig{Newest: r.Int("newest_docs"), Tag: strings.ToLower(strings.TrimSpace(r.String("tag")))}
@@ -346,7 +346,7 @@ type MailConfig struct {
 }
 
 func init() {
-	Tile[MailConfig]{Key: "mail_invoices", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceMail, RefreshS: 60 * 60,
+	Tile[MailConfig]{Key: "mail_invoices", Detail: mailInvoicesDetail, Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceMail, RefreshS: 60 * 60,
 		Extra:   ExtraForwarded,
 		Fields:  []Field{{Key: "only_open", Input: InputCheck}, {Key: "limit", Input: InputNumber, Default: listShown, Min: "1", Max: "30"}},
 		Decode:  func(r Raw) MailConfig { return MailConfig{OnlyOpen: r.Bool("only_open"), Limit: r.Int("limit")} },
@@ -385,7 +385,7 @@ type FreshRSSConfig struct {
 }
 
 func init() {
-	Tile[FreshRSSConfig]{Key: "freshrss_feeds", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceFreshRSS, RefreshS: 30 * 60,
+	Tile[FreshRSSConfig]{Key: "freshrss_feeds", Detail: dataDetail(freshrssDetail), Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceFreshRSS, RefreshS: 30 * 60,
 		Fields: []Field{{Key: "filter", Input: InputList}, {Key: "only_unread", Input: InputCheck, Default: true}},
 		Decode: func(r Raw) FreshRSSConfig {
 			return FreshRSSConfig{Only: r.Lower("filter"), OnlyUnread: r.Bool("only_unread")}

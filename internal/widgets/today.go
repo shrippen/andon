@@ -129,7 +129,7 @@ func todayView(cfg TodayConfig, results map[string]any, ctx ViewCtx) map[string]
 }
 
 func init() {
-	Tile[TodayConfig]{Key: "today", Category: CategoryInsight, Topic: TopicOverview, RefreshS: 300,
+	Tile[TodayConfig]{Key: "today", Detail: todayDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 300,
 		Fields: []Field{{Key: "timezone", Input: InputText, Default: defaultTimezone}, {Key: "stop", Input: InputText},
 			{Key: "days", Input: InputNumber, Default: todayDeadlineDays, Min: "1", Max: "60"},
 			{Key: "show_calendar", Input: InputCheck, Default: true}, {Key: "show_timer", Input: InputCheck, Default: true},

@@ -56,7 +56,7 @@
         <input type="hidden" name="action" value="{{if $v.Running}}switch{{else}}start{{end}}">
         <input type="hidden" name="project" value="{{.ProjectID}}"><input type="hidden" name="activity" value="{{.ActivityID}}">
         {{with $v.Running}}<input type="hidden" name="sheet" value="{{.ID}}">{{end}}
-        <button type="submit" class="btn btn-accent btn-icon btn-sm kl-play" aria-label="{{t "timer.play" "name" (print .Project " · " .Activity)}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg></button>
+        <button type="submit" class="btn btn-outline btn-icon btn-sm kl-play" aria-label="{{t "timer.play" "name" (print .Project " · " .Activity)}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg></button>
       </form>{{end}}
       <span class="kl-pair"><b>{{.Project}}</b><small>{{.Activity}}{{with .Customer}} · {{.}}{{end}}</small></span>
       {{if $.Ctx.CSRF}}<form class="kl-pin-f" hx-post="/widget-fragments/{{$.PlacementID}}/kimai/pin" hx-target="closest .card-body" hx-swap="innerHTML">

@@ -117,6 +117,7 @@ func newTestServer(t *testing.T) (*httptest.Server, *http.Client, string) {
 	deps.RegisterSpaceRoutes(mux)
 	deps.RegisterMoreRoutes(mux)
 	deps.RegisterWelcomeRoutes(mux)
+	deps.RegisterAboutRoutes(mux)
 	deps.RegisterPasskeyRoutes(mux)
 	deps.RegisterHookRoutes(mux)
 	deps.RegisterBillingRoutes(mux)
@@ -491,7 +492,7 @@ func TestPagesLoadKante(t *testing.T) {
 		if res.StatusCode != http.StatusOK || len(got) == 0 {
 			t.Fatalf("%s: status %d, %d bytes", path, res.StatusCode, len(got))
 		}
-		if strings.HasSuffix(path, "VERSION") && !strings.HasPrefix(string(got), "Kante 1.9") {
+		if strings.HasSuffix(path, "VERSION") && !strings.HasPrefix(string(got), "Kante 1.14") {
 			t.Fatalf("VERSION: %q", got)
 		}
 	}

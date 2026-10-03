@@ -1,0 +1,241 @@
+{{/* Detail dialogs (Kante 1.14 .detail). Every type starts with
+     "detail_head" and draws its body in one of Kante's layouts:
+
+       detail-side + detail-main            record (link)
+       detail-list + detail-main            list and detail
+       detail-main + detail-side.is-end     large view
+       detail-main alone                    timeline, grid, wall, tabs, tasks
+
+     The day picker writes a button's data-v-NAME into [data-v="NAME"],
+     data-state-NAME into its data-state and data-x into [data-pick-x]
+     (andon.js). */}}
+
+{{/* Head: monogram, name, state, actions, close. */}}
+{{define "detail_head"}}{{$h := .Dialog.Head}}
+<header class="detail-head">
+  <span class="launch-icon"><span class="monogram">{{monogram $h.Title}}</span></span>
+  <div class="detail-name">
+    <h3 id="detail-title">{{$h.Title}}</h3>
+    {{with $h.Sub}}<span class="detail-sub">{{.}}</span>{{end}}
+  </div>
+  {{with $h.State}}<span class="launch-state" data-state="{{.}}">{{tt $h.StateKey $h.StateArgs}}</span>{{end}}
+  {{range $h.Actions}}
+  {{if .Refresh}}<button type="button" class="btn btn-outline btn-sm" data-detail-refresh="/widget-fragments/{{$.PlacementID}}?refresh">{{t .LabelKey}}</button>
+  {{else}}<a class="btn {{if .Primary}}btn-accent{{else}}btn-outline{{end}} btn-sm" href="{{.Href}}" target="_blank" rel="noopener noreferrer">{{t .LabelKey}}</a>{{end}}
+  {{end}}
+  <button type="button" class="btn btn-outline btn-sm btn-icon" data-detail-close aria-label="{{t "detail.close"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</header>
+{{end}}
+
+{{/* Link tile (record): facts left; checks per day with a day picker,
+     response time, the chosen day and incidents right. */}}
+{{define "details/link"}}{{template "detail_head" .}}{{$d := .D}}{{$h := $d.History}}{{$last := lastIndex (len $h.Days)}}{{$i := $d.Info}}{{$tls := $d.TLSDaysLeft}}
+<div class="detail-body">
+  <aside class="detail-side">
+    <div class="h-label">{{t "linkdetail.facts"}}</div>
+    {{with $d.Tags}}<div class="chips-row">{{range .}}<span class="chip">#{{.}}</span>{{end}}</div>{{end}}
+    <table class="table">
+      <tbody>
+        <tr><td>{{t "linkdetail.address"}}</td><td>{{$d.URL}}</td></tr>
+        {{with $d.StatusURL}}<tr><td>{{t "linkdetail.checked"}}</td><td>{{.}}</td></tr>{{end}}
+        {{with $i}}
+        {{with .IPs}}<tr><td>{{t "linkdetail.dns"}}</td><td>{{range $n, $ip := .}}{{if $n}}<br>{{end}}<code>{{$ip}}</code>{{end}}</td></tr>{{end}}
+        {{with .Hops}}<tr><td>{{t "linkdetail.answer"}}</td><td>{{range $n, $hop := .}}{{if $n}} → {{end}}{{$hop.Code}}{{with $hop.Target}} {{.}}{{end}}{{end}}</td></tr>{{end}}
+        {{with .Error}}<tr><td>{{t "linkdetail.answer"}}</td><td data-state="bad">{{.}}</td></tr>{{end}}
+        {{if not .TLSUntil.IsZero}}<tr><td>{{t "linkdetail.tls"}}</td><td>{{t "linkdetail.tls_until" "issuer" .TLSIssuer "day" (day .TLSUntil)}}</td></tr>{{end}}
+        {{if .HasSkew}}<tr><td>{{t "linkdetail.clock"}}</td><td>{{t "linkdetail.clock_skew" "s" (num (seconds .Skew) 1)}}</td></tr>{{end}}
+        {{end}}
+        <tr><td>{{t "linkdetail.expect"}}</td><td>2xx, 3xx{{range $d.Accept}}, {{.}}{{end}}</td></tr>
+        <tr><td>{{t "linkdetail.check"}}</td><td>{{if $d.Timeout}}{{t "linkdetail.every" "min" (num (minutes $d.Interval) 0) "s" (num (seconds $d.Timeout) 0)}}{{else}}{{t "linkdetail.every_default" "min" (num (minutes $d.Interval) 0)}}{{end}}{{with $d.Method}} · {{.}}{{end}}</td></tr>
+      </tbody>
+    </table>
+    {{if and (ge $tls 0) (lt $tls 30)}}<div class="callout callout-warn">{{t "linkdetail.tls_soon" "n" $tls}}</div>{{end}}
+  </aside>
+
+  <section class="detail-main">
+    <div class="detail-facts">
+      {{if $h.Checks}}
+      <div class="fact" data-tier="{{if ge $h.Share30 0.99}}green{{else if ge $h.Share30 0.95}}yellow{{else}}red{{end}}"><b>{{num (percent $h.Share30) 1}} %</b><span>{{t "linkdetail.up30"}}</span></div>
+      <div class="fact"><b>{{if $h.AvgMs30}}{{$h.AvgMs30}} ms{{else}}–{{end}}</b><span>{{t "linkdetail.avg30"}}</span></div>
+      {{else}}
+      <div class="fact"><b>–</b><span>{{t "linkdetail.up30"}}</span></div>
+      <div class="fact"><b>–</b><span>{{t "linkdetail.avg30"}}</span></div>
+      {{end}}
+      {{with $d.Status}}<div class="fact" data-tier="cyan"><b>{{if .Ms}}{{.Ms}} ms{{else}}–{{end}}</b><span>{{t "linkdetail.last"}} · {{ago $d.CheckedAt}}</span></div>{{end}}
+      <div class="fact"{{if $h.Incidents}} data-tier="red"{{end}}><b>{{len $h.Incidents}}</b><span>{{t "linkdetail.incidents60"}}</span></div>
+      {{if ge $tls 0}}<div class="fact"{{if lt $tls 30}} data-tier="yellow"{{end}}><b>{{t "linkdetail.cert_days" "n" $tls}}</b><span>{{t "linkdetail.cert"}}</span></div>{{end}}
+    </div>
+
+    <div class="detail-block detail-hero">
+      <div class="h-label detail-label"><span>{{t "linkdetail.checks_head"}}</span><span>{{t "linkdetail.checks_total" "n" $h.Checks}}</span></div>
+      {{$s := stackPaths $h.Days}}
+      <div class="chart-wrap">
+        <svg class="uptime" viewBox="0 0 {{len $h.Days}} 100" preserveAspectRatio="none" role="img" aria-label="{{t "linkdetail.checks_head"}}"><path data-state="ok" d="{{$s.OK}}"/><path data-state="bad" d="{{$s.Fail}}"/><path data-state="off" d="{{$s.None}}"/></svg>
+        <div class="day-pick" data-pick>
+          {{range $n, $day := $h.Days}}
+          <button type="button" aria-pressed="{{if eq $n $last}}true{{else}}false{{end}}" aria-label="{{weekday $day.Day}} {{day $day.Day}}: {{t (print "linkdetail.state." $day.State)}}"
+            data-v-day="{{weekday $day.Day}} {{day $day.Day}}" data-v-state="{{t (print "linkdetail.state." $day.State)}}" data-state-state="{{kanteState $day.State}}"
+            data-v-ok="{{$day.OK}}" data-v-fail="{{$day.Fail}}" data-v-ms="{{if $day.AvgMs}}{{$day.AvgMs}} ms{{else}}–{{end}}"
+            data-v-down="{{template "ld_down" $day}}" data-v-error="{{if $day.Error}}{{$day.Error}}{{else if eq (print $day.State) "none"}}{{t "linkdetail.not_measured"}}{{else}}{{t "linkdetail.no_error"}}{{end}}"
+            data-x="{{msX $n (len $h.Days)}}"></button>
+          {{end}}
+        </div>
+      </div>
+      <div class="detail-ticks"><span>{{day (index $h.Days 0).Day}}</span>{{if not $h.Since.IsZero}}<span>{{t "linkdetail.since" "day" (day $h.Since)}}</span>{{end}}<span>{{t "linkdetail.today"}}</span></div>
+    </div>
+
+    <div class="detail-block">
+      {{$m := msChartOf $h.Days}}
+      <div class="h-label detail-label"><span>{{t "linkdetail.ms_head"}}</span><span>{{t "linkdetail.ms_goal"}}</span></div>
+      <svg class="chart" viewBox="0 0 600 140" preserveAspectRatio="none" role="img" aria-label="{{t "linkdetail.ms_head"}}">
+        <line class="goal is-danger" x1="0" y1="{{$m.GoalY}}" x2="600" y2="{{$m.GoalY}}"/>
+        <line class="now" data-pick-x x1="{{msX $last (len $h.Days)}}" y1="0" x2="{{msX $last (len $h.Days)}}" y2="140"/>
+        <path class="line s4" d="{{$m.Line}}"/>
+      </svg>
+    </div>
+
+    <div class="detail-pair">
+      {{with index $h.Days $last}}
+      <div class="sheet detail-day" aria-live="polite">
+        <div class="detail-day-head">
+          <h3 data-v="day">{{weekday .Day}} {{day .Day}}</h3>
+          <span class="launch-state" data-v="state" data-state="{{kanteState .State}}">{{t (print "linkdetail.state." .State)}}</span>
+        </div>
+        <div class="kpi-row">
+          <div class="kpi"><b data-v="ok">{{.OK}}</b><span>{{t "linkdetail.day_ok"}}</span></div>
+          <div class="kpi"><b data-v="fail">{{.Fail}}</b><span>{{t "linkdetail.day_fail"}}</span></div>
+          <div class="kpi"><b data-v="ms">{{if .AvgMs}}{{.AvgMs}} ms{{else}}–{{end}}</b><span>{{t "linkdetail.day_ms"}}</span></div>
+          <div class="kpi"><b data-v="down">{{template "ld_down" .}}</b><span>{{t "linkdetail.day_down"}}</span></div>
+        </div>
+        <span class="detail-sub">{{t "linkdetail.day_error"}} <span data-v="error">{{if .Error}}{{.Error}}{{else if eq (print .State) "none"}}{{t "linkdetail.not_measured"}}{{else}}{{t "linkdetail.no_error"}}{{end}}</span></span>
+      </div>
+      {{end}}
+      {{if $h.Incidents}}
+      <ol class="timeline">
+        {{range $n, $c := $h.Incidents}}{{if lt $n 3}}
+        <li data-tier="{{if $c.Down}}red{{else}}yellow{{end}}">
+          <time class="date-tile" datetime="{{$c.From.Format "2006-01-02"}}"><b>{{mday $c.From}}</b>{{month $c.From}}</time>
+          <span class="what">{{if and $c.Down (eq $c.Days 1)}}{{t "linkdetail.inc_down_one"}}{{else if $c.Down}}{{t "linkdetail.inc_down" "n" $c.Days}}{{else}}{{t "linkdetail.inc_short"}}{{end}}<small>{{t "linkdetail.inc_detail" "n" $c.Failed "e" $c.Error}}</small></span>
+          <em class="state">{{template "ld_down" $c}}</em>
+        </li>
+        {{end}}{{end}}
+      </ol>
+      {{else}}
+      <p class="detail-sub">{{t "linkdetail.inc_none"}}</p>
+      {{end}}
+    </div>
+  </section>
+</div>
+{{end}}
+
+{{/* Time without an answer: "≈ 40 min", "≈ 30 h 20 min", "0 min". */}}
+{{define "ld_down"}}{{if ge .DownH 1}}{{t "linkdetail.hours" "h" .DownH "m" .DownM}}{{else}}{{t "linkdetail.minutes" "m" .DownM}}{{end}}{{end}}
+
+{{/* Any type's dialog from a widgets.DetailBody: the layout follows from
+     what is set (Side: record, List: list and detail, End: large view,
+     none: plain), the blocks from their Kind (see detailbody.go). */}}
+{{define "details/body"}}{{template "detail_head" .}}{{$b := .D}}
+{{with $b.Line}}<div class="detail-line">{{range .}}<span><small>{{tt .Label.Key .Label.Args}}</small> <b>{{tv .Value}}</b></span>{{end}}</div>{{end}}
+<div class="detail-body">
+  {{with $b.Side}}<aside class="detail-side"><div class="h-label">{{t "detail.facts"}}</div>{{template "detail_facttable" .}}</aside>{{end}}
+  {{with $b.List}}
+  <nav class="detail-list" aria-label="{{tt .Label.Key .Label.Args}}">
+    <div class="h-label">{{tt .Label.Key .Label.Args}}</div>
+    {{$sel := .Sel}}{{range $i, $r := .Items}}<div class="list-row"{{if eq $i $sel}} aria-selected="true"{{end}}><span class="led" data-style="--c:var(--{{stateVar $r.State}})"></span><span>{{tv $r.Name}}</span><span class="meta">{{tv $r.Meta}}</span></div>{{end}}
+  </nav>
+  {{end}}
+  <section class="detail-main">
+    {{with $b.List}}<div class="detail-day-head"><h3>{{tv .Title}}</h3>{{with .State}}<span class="launch-state" data-state="{{.}}">{{tt $b.List.StateText.Key $b.List.StateText.Args}}</span>{{end}}</div>{{with .Sub}}<span class="detail-sub">{{tv .}}</span>{{end}}{{end}}
+    {{with $b.Facts}}<div class="detail-facts">{{range .}}<div class="fact"{{with .Tier}} data-tier="{{.}}"{{end}}><b>{{tv .Value}}</b><span>{{tt .Label.Key .Label.Args}}</span></div>{{end}}</div>{{end}}
+    {{range $b.Blocks}}{{template "detail_block" .}}{{end}}
+    {{with $b.Tabs}}
+    <div class="tabs" role="tablist" data-detail-tabs>{{range $i, $tab := .}}<button type="button" role="tab" aria-selected="{{if eq $i 0}}true{{else}}false{{end}}">{{tt $tab.Label.Key $tab.Label.Args}}{{with $tab.Count}} <span class="count">{{tv .}}</span>{{end}}</button>{{end}}</div>
+    {{range $i, $tab := .}}<div class="detail-main" role="tabpanel" data-detail-panel{{if $i}} hidden{{end}}>{{range $tab.Blocks}}{{template "detail_block" .}}{{end}}</div>{{end}}
+    {{end}}
+  </section>
+  {{with $b.End}}<aside class="detail-side is-end">{{template "detail_facttable" .}}</aside>{{end}}
+</div>
+{{end}}
+
+{{define "detail_facttable"}}<table class="table"><tbody>{{range .}}<tr><td>{{tt .Label.Key .Label.Args}}</td><td{{with .State}} data-state="{{.}}"{{end}}>{{tv .Value}}</td></tr>{{end}}</tbody></table>{{end}}
+
+{{/* One block: a label row (text, meta) over its content. */}}
+{{define "detail_block"}}{{$k := print .Kind}}
+{{if eq $k "pair"}}<div class="detail-pair">{{range .Data}}{{template "detail_block" .}}{{end}}</div>
+{{else}}
+<div class="detail-block{{if .Hero}} detail-hero{{end}}">
+  {{if .Label.Key}}<div class="h-label detail-label"><span>{{tt .Label.Key .Label.Args}}</span><span>{{tv .Meta}}</span></div>{{end}}
+  {{if eq $k "graph"}}{{template "detail_graph" .Data}}
+  {{else if eq $k "table"}}{{with .Data}}
+  <div class="table-wrap"><table class="table">
+    <thead><tr>{{range $i, $h := .Head}}<th{{if numCol $.Data.Num $i}} class="num"{{end}}>{{tt $h.Key $h.Args}}</th>{{end}}</tr></thead>
+    <tbody>{{range .Rows}}<tr>{{range $i, $c := .}}<td{{if numCol $.Data.Num $i}} class="num"{{end}}{{with $c.State}} data-state="{{.}}"{{end}}>{{tv $c.Value}}</td>{{end}}</tr>{{end}}</tbody>
+    {{with .Foot}}<tfoot><tr>{{range $i, $c := .}}<td{{if numCol $.Data.Num $i}} class="num"{{end}}>{{tv $c.Value}}</td>{{end}}</tr></tfoot>{{end}}
+  </table></div>{{end}}
+  {{else if eq $k "strips"}}
+  <div class="detail-rows">{{range .Data}}<span>{{.Name}}</span><svg class="uptime" viewBox="0 0 {{len .States}} 1" preserveAspectRatio="none" role="img" aria-label="{{.Name}}">{{range stripPaths .States}}<path data-state="{{.State}}" d="{{.D}}"/>{{end}}</svg><span>{{tv .Value}}</span>{{end}}</div>
+  {{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
+  {{else if eq $k "bars"}}
+  <div class="detail-rows">{{range .Data}}<span>{{tv .Name}}</span><div class="progress-bar"><i data-style="--p:{{.Pct}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i></div><span>{{tv .Value}}</span>{{end}}</div>
+  {{else if eq $k "timeline"}}
+  <ol class="timeline">{{range .Data}}<li{{with .Tier}} data-tier="{{.}}"{{end}}><time class="date-tile" datetime="{{.At.Format "2006-01-02"}}"><b>{{mday .At}}</b>{{month .At}}</time><span class="what">{{tv .Title}}{{with .Sub}}<small>{{tv .}}</small>{{end}}</span><em class="state">{{tv .State}}</em></li>{{end}}</ol>
+  {{else if eq $k "rows"}}
+  <div>{{range .Data}}<div class="list-row"><span class="led" data-style="--c:var(--{{stateVar .State}})"></span><span>{{tv .Name}}</span><span class="meta">{{tv .Meta}}</span></div>{{end}}</div>
+  {{else if eq $k "status"}}
+  <div class="detail-wall">{{range .Data}}<div class="status" data-state="{{.State}}"><span class="name">{{tv .Name}}</span><span class="row">{{tv .Meta}}</span></div>{{end}}</div>
+  {{else if eq $k "text"}}<p>{{tv .Data}}</p>
+  {{else if eq $k "code"}}<pre class="codeblock">{{.Data}}</pre>
+  {{else if eq $k "hints"}}
+  {{range .Data}}<div class="tier-card" data-tier="{{sevTier .Severity}}"><h3>{{.Title}}</h3><small>{{.Rule}} · {{ago .FirstSeen}}</small>{{.Why}}</div>{{end}}
+  {{else if eq $k "wall"}}
+  <div class="detail-wall">{{range .Data}}<div class="detail-card"{{with .Tier}} data-tier="{{.}}"{{end}}><span>{{tt .Label.Key .Label.Args}}</span><b>{{tv .Value}}</b>{{with .Spark}}<svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true"><path d="{{sparkPath .}}"/></svg>{{end}}{{with .Sub}}<small>{{tv .}}</small>{{end}}</div>{{end}}</div>
+  {{else if eq $k "tasks"}}{{with .Data}}
+  <div class="detail-progress"><div class="progress-bar"><i data-style="--p:{{if .Total}}{{pctOf .Done .Total}}{{else}}0{{end}}%" data-tier="{{if and .Total (eq .Done .Total)}}green{{else}}yellow{{end}}"></i></div><span>{{.Done}} / {{.Total}} · {{tt .Label.Key .Label.Args}}</span></div>
+  <div class="detail-tasks">{{range .Items}}<div class="detail-task{{if eq .State "ok"}} is-done{{end}}"><span class="led" data-style="--c:var(--{{stateVar .State}})"></span><span>{{tv .Text}}{{with .Meta}}<small>{{tv .}}</small>{{end}}</span>{{if .Href}}<a class="btn btn-outline btn-sm" href="{{.Href}}" target="_blank" rel="noopener noreferrer">{{tt .Action.Key .Action.Args}}</a>{{else}}<span></span>{{end}}</div>{{end}}</div>
+  {{end}}
+  {{else if eq $k "heat"}}{{with .Data}}
+  <div class="heat is-weeks">{{range .Levels}}<i data-l="{{.}}"></i>{{end}}</div>
+  {{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
+  {{end}}
+  {{else if eq $k "day"}}{{with .Data}}
+  <div class="sheet detail-day"><div class="detail-day-head"><h3>{{tv .Title}}</h3>{{with .State}}<span class="launch-state" data-state="{{.}}">{{tt $.Data.StateText.Key $.Data.StateText.Args}}</span>{{end}}</div>
+  <div class="kpi-row">{{range .Kpis}}<div class="kpi"><b>{{tv .Value}}</b><span>{{tt .Label.Key .Label.Args}}</span></div>{{end}}</div>{{with .Sub}}<span class="detail-sub">{{tv .}}</span>{{end}}</div>
+  {{end}}
+  {{else if eq $k "chips"}}<div class="chips-row">{{range .Data}}<span class="chip">{{.}}</span>{{end}}</div>
+  {{else if eq $k "image"}}{{with .Data}}
+  <figure class="detail-figure"><img src="{{.DataURI | dataURI}}" alt="{{.Alt}}">{{with .Caption}}<figcaption class="detail-sub">{{.}}</figcaption>{{end}}</figure>
+  {{end}}
+  {{else if eq $k "frame"}}{{with .Data}}
+  <figure class="detail-figure"><iframe src="{{.URL}}" loading="lazy" referrerpolicy="no-referrer"></iframe></figure>
+  {{end}}
+  {{else if eq $k "read"}}{{with .Data}}
+  <div class="detail-read">{{with .Title}}<h3>{{.}}</h3>{{end}}{{range .Text}}<p>{{.}}</p>{{end}}{{with .Link}}<p><a href="{{.}}" target="_blank" rel="noopener noreferrer">{{t "detail.read_original"}} →</a></p>{{end}}</div>
+  {{end}}
+  {{else if eq $k "week"}}{{with .Data}}
+  <div class="week-line" data-style="--start:{{.Start}};--span:{{.Span}}">
+    <span></span><div class="scale">{{range weekScale .Start .Span}}<span>{{.}}</span>{{end}}</div><span></span>
+    {{range .Days}}<b{{if .Today}} class="today"{{end}}>{{tv .Label}}</b><div class="track{{if .Today}} today{{end}}">{{range .Spans}}<i data-style="--from:{{.From}};--to:{{.To}};{{template "detail_colour" .Colour}}"></i>{{end}}{{if ge .Now 0.0}}<span class="now" data-style="--at:{{.Now}}"></span>{{end}}</div><small>{{tv .Sum}}</small>{{end}}
+  </div>
+  {{end}}
+  {{else if eq $k "daystrip"}}{{with .Data}}
+  <div class="day-strip">{{range .Spans}}<i data-style="left:{{hourPct .From}}%;width:{{hourPct (spanLen .From .To)}}%;{{template "detail_colour" .Colour}}"></i>{{end}}{{range .Events}}<i class="is-event" data-style="left:{{hourPct .From}}%;width:{{hourPct (spanLen .From .To)}}%;{{template "detail_colour" .Colour}}"></i>{{end}}{{if ge .Now 0.0}}<span class="now" data-style="left:{{hourPct .Now}}%"></span>{{end}}<span class="ticks"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></span></div>
+  {{end}}
+  {{end}}
+</div>
+{{end}}{{end}}
+
+{{/* A widgets.Graph in Kante's .chart, with ticks and legend. */}}
+{{define "detail_graph"}}{{$g := chartGeom .}}
+<svg class="chart" viewBox="0 0 {{$g.W}} {{$g.H}}" preserveAspectRatio="none" role="img" aria-hidden="true">
+  {{range $g.Grid}}<line class="grid" x1="0" x2="{{$g.W}}" y1="{{.}}" y2="{{.}}"/>{{end}}
+  {{range $g.Bars}}<rect class="{{.Class}}" x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}"{{with .Colour}} data-style="--c:var(--{{.}})"{{end}}/>{{end}}
+  {{with $g.Goal}}<line class="goal{{if $.GoalDanger}} is-danger{{end}}" x1="0" x2="{{$g.W}}" y1="{{.}}" y2="{{.}}"/>{{end}}
+  {{range $g.Lines}}<path class="{{.Class}}" d="{{.D}}"/>{{end}}
+  {{with $g.Mark}}<line class="now" x1="{{.}}" x2="{{.}}" y1="0" y2="{{$g.H}}"/>{{end}}
+</svg>
+{{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
+{{if graphLegend .}}<ul class="legend">{{range .Series}}{{if .Label}}<li><i data-style="--c:var(--{{seriesVar .Class}})"></i>{{tv .Label}}</li>{{end}}{{end}}{{if .HasGoal}}<li><i class="goal{{if .GoalDanger}} is-danger{{end}}"></i>{{t "detail.goal"}}</li>{{end}}</ul>{{end}}
+{{end}}
+
+{{/* --c of a block: a Kante token ("d1") as var(), a service's hex colour as is. */}}
+{{define "detail_colour"}}{{if isHex .}}--c:{{.}}{{else}}--c:var(--{{.}}){{end}}{{end}}

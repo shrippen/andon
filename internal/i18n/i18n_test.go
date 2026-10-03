@@ -111,3 +111,11 @@ func TestGBScales(t *testing.T) {
 		}
 	}
 }
+
+// An empty currency means the default, not none.
+func TestTypedMoneyEmptyCurrency(t *testing.T) {
+	out := i18n.Typed(map[string]any{"amount": map[string]any{"$money": 12.5, "currency": ""}}, enums.LocaleDE)
+	if out["amount"] != "12,50 €" {
+		t.Fatalf("expected the default currency, got %v", out["amount"])
+	}
+}

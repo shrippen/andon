@@ -265,3 +265,29 @@ func TestHTTPStatusMethodAndTimeout(t *testing.T) {
 		t.Fatalf("timeout: %+v", res)
 	}
 }
+
+// TestLinkInfoFollowsRedirects: the detail dialog shows each answer on
+// the way to the page, a foreign target without its query.
+func TestLinkInfoFollowsRedirects(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			http.Redirect(w, r, "/login?next=%2F", http.StatusFound)
+			return
+		}
+	}))
+	defer srv.Close()
+
+	source, _ := sources.Get("link_info")
+	out, err := source.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"url": srv.URL + "/"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	info := out.(*sources.LinkInfo)
+	want := []sources.LinkHop{{Code: http.StatusFound, Target: "/login"}, {Code: http.StatusOK}}
+	if len(info.Hops) != len(want) || info.Hops[0] != want[0] || info.Hops[1] != want[1] || info.Error != "" {
+		t.Fatalf("hops %+v, error %q", info.Hops, info.Error)
+	}
+	if len(info.IPs) != 1 || info.IPs[0] != "127.0.0.1" {
+		t.Fatalf("ips %v", info.IPs)
+	}
+}

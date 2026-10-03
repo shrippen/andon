@@ -11,7 +11,8 @@
 {{else}}{{with $slot := index .Frag.Slots "info"}}{{if $slot.MissingCredential}}<span class="launch-info">{{t "widget.setup_access_short"}}</span>{{else if $slot.Error}}<span class="launch-info is-error">{{t "widget.error"}}</span>{{end}}{{end}}{{end}}
 {{/* Hint count in the tier's colour; Kante fills red, so the shape tells it too. */}}
 {{if .Frag.HintCount}}<span class="launch-hints"{{if ge .Frag.HintLevel 30}} data-tier="red"{{else if ge .Frag.HintLevel 20}} data-tier="yellow"{{end}} data-hints="/connections/{{.Frag.HintConn}}/hints" title="{{t "hints.badge" "n" .Frag.HintCount}}" aria-label="{{t "hints.badge" "n" .Frag.HintCount}}">{{.Frag.HintCount}}</span>{{end}}
-{{with $u := index .Frag.View "Uptime"}}<span class="uptime" title="{{t "uptime.summary" "share" (pct $u.Share) "ms" $u.AvgMs}}">{{range $u.Bars}}<i data-state="{{.State}}" title="{{day .Day}} · {{pct .Share}}"></i>{{end}}</span>{{end}}
+{{with $u := index .Frag.View "Uptime"}}{{$sum := t "uptime.summary" "share" (pct $u.Share) "ms" $u.AvgMs}}<span class="launch-trend"><svg class="uptime" viewBox="0 0 {{len $u.Bars}} 1" preserveAspectRatio="none" role="img" aria-label="{{$sum}}"><title>{{$sum}}</title>{{range uptimePaths $u}}<path data-state="{{.State}}" d="{{.D}}"/>{{end}}</svg>
+{{- if $.PlacementID}}<span class="launch-detail" role="button" tabindex="0" data-details="/details/{{$.PlacementID}}" aria-label="{{t "linkdetail.open_aria"}}" title="{{t "linkdetail.open_aria"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></span>{{end}}</span>{{end}}
 {{end}}
 
 {{define "widgets/rss"}}

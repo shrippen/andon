@@ -31,6 +31,12 @@ const (
 	statusKey  = "http_status"
 )
 
+// outcome is a status check's result as the tally needs it.
+type outcome interface {
+	Outcome() (bool, int)
+	Failure() string
+}
+
 // check is one tile to probe.
 type check struct {
 	widgetID int64
@@ -85,12 +91,12 @@ func Check(ctx context.Context, d *sql.DB) error {
 
 			// Cached: the same result the tiles show, no extra traffic.
 			res, err := svcdata.Get(ctx, d, statusKey, c.params, nil, nil, svcdata.Cached)
-			status, ok := res.Data.(interface{ Outcome() (bool, int) })
+			status, ok := res.Data.(outcome)
 			if err != nil || !ok {
 				return
 			}
 			up, ms := status.Outcome()
-			if err := data.RecordStatus(d, c.widgetID, today, data.Check{Up: up, MS: ms}); err != nil {
+			if err := data.RecordStatus(d, c.widgetID, today, data.Check{Up: up, MS: ms, Error: status.Failure()}); err != nil {
 				mu.Lock()
 				if firstErr == nil {
 					firstErr = err

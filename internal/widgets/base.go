@@ -128,6 +128,7 @@ type WidgetType struct {
 	Inline  bool
 	Queries QueriesFunc
 	View    ViewFunc
+	Detail  DetailFunc // nil: no detail dialog (see detail.go)
 	Extra   Extra
 
 	Topic      Topic

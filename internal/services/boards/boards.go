@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"andon/internal/db"
 	"andon/internal/enums"
@@ -68,6 +69,7 @@ type Tile struct {
 	Items       []TileItem
 	Frame       widgets.Frame
 	FrameIcon   TileIcon // the frame's title icon
+	HasDetail   bool     // the frame offers a detail dialog (widgetlib.HasDetail)
 	Host        string   // link tiles: host, when another link has the same title
 	Placed      int      // how often the widget is on the board; editors see "2×"
 }
@@ -477,6 +479,7 @@ func viewSection(q db.Queryer, who *access.Principal, section model.Section, boa
 			tile.RefreshS = tile.Frame.RefreshS
 		}
 		tile.FrameIcon = IconOf(tile.Frame.Icon)
+		tile.HasDetail = widgetlib.HasDetail(w.Type)
 		if v, ok := myRows[strconv.FormatInt(placement.ID, 10)]; ok {
 			tile.Rows = tileRows(int(int64FromAny(v)))
 		}
@@ -649,4 +652,13 @@ func orNotFound(err error) error {
 		return err
 	}
 	return ErrNotFound
+}
+
+// Detail loads the detail dialog of a placed tile the viewer may see.
+func Detail(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64) (*widgetlib.DetailDialog, error) {
+	w, err := PlacedWidget(d, who, placementID)
+	if err != nil {
+		return nil, err
+	}
+	return widgetlib.LoadDetail(ctx, d, who, w, time.Now().UTC())
 }

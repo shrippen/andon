@@ -808,6 +808,138 @@
     }, true);
   }
 
+  // ── Detail dialogs: one dialog for every tile type (templates/details.html) ──
+  //
+  //   [data-details="/details/42"] ─fetch─► <dialog id="detail" class="dialog detail">
+  //   [data-pick] > button: data-v-NAME ─► text of [data-v="NAME"], data-state-NAME ─► its
+  //                         data-state, data-x ─► x1/x2 of [data-pick-x] (the chosen day's mark)
+  //   [data-detail-refresh] ─► forced fetch of the tile, then the dialog anew
+  //
+  // A trigger may sit inside a tile's link, so it stops the link like the hint badge.
+  var DETAIL_WAIT = '<div class="detail-wait"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span></div>';
+  var detailURL = "";
+
+  function detailDialog() {
+    var dlg = d.getElementById("detail");
+    if (!dlg) {
+      dlg = d.createElement("dialog");
+      dlg.id = "detail";
+      dlg.className = "dialog detail";
+      dlg.setAttribute("aria-labelledby", "detail-title");
+      d.body.appendChild(dlg);
+    }
+    return dlg;
+  }
+
+  // openDetail shows the frame at once and fills it when the answer is in;
+  // a later open wins over an earlier one still on its way.
+  function openDetail(url) {
+    var dlg = detailDialog();
+    detailURL = url;
+    if (!dlg.open) {
+      dlg.innerHTML = DETAIL_WAIT;
+      dlg.setAttribute("aria-busy", "true");
+      dlg.showModal();
+    }
+    fetch(url, { credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (html) {
+        if (url !== detailURL) {
+          return;
+        }
+        dlg.removeAttribute("aria-busy");
+        if (!html) {
+          dlg.close();
+          return;
+        }
+        // Server-rendered html/template output from our own origin.
+        dlg.innerHTML = html;
+        applyStyles(dlg);
+      });
+  }
+
+  // pick shows one entry's values (a day of the link history) in the dialog.
+  function pick(btn) {
+    var dlg = btn.closest("dialog");
+    [].forEach.call(btn.parentNode.children, function (b) {
+      b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+    });
+    [].forEach.call(btn.attributes, function (a) {
+      var m = /^data-(v|state)-(.+)$/.exec(a.name);
+      if (!m) {
+        return;
+      }
+      dlg.querySelectorAll('[data-v="' + m[2] + '"]').forEach(function (el) {
+        if (m[1] === "v") {
+          el.textContent = a.value;
+        } else {
+          el.setAttribute("data-state", a.value);
+        }
+      });
+    });
+    var x = btn.getAttribute("data-x");
+    if (x) {
+      dlg.querySelectorAll("[data-pick-x]").forEach(function (el) {
+        el.setAttribute("x1", x);
+        el.setAttribute("x2", x);
+      });
+    }
+  }
+
+  function setupDetail() {
+    function open(e) {
+      var trigger = e.target.closest && e.target.closest("[data-details]");
+      if (!trigger) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      openDetail(trigger.getAttribute("data-details"));
+    }
+    d.addEventListener("click", open, true);
+    d.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        open(e);
+      }
+    }, true);
+
+    d.addEventListener("click", function (e) {
+      if (!e.target.closest || !e.target.closest("#detail")) {
+        return;
+      }
+      var tab = e.target.closest("[data-detail-tabs] > [role=tab]");
+      if (tab) {
+        // Tabs: the n-th tab shows the n-th panel after the tab row.
+        var tabs = [].slice.call(tab.parentNode.children);
+        var panels = [].slice.call(tab.parentNode.parentNode.querySelectorAll(":scope > [data-detail-panel]"));
+        tabs.forEach(function (t, i) {
+          t.setAttribute("aria-selected", t === tab ? "true" : "false");
+          if (panels[i]) {
+            panels[i].hidden = t !== tab;
+          }
+        });
+        return;
+      }
+      var entry = e.target.closest("[data-pick] > button");
+      if (entry) {
+        pick(entry);
+        return;
+      }
+      if (e.target.closest("[data-detail-close]")) {
+        detailDialog().close();
+        return;
+      }
+      var check = e.target.closest("[data-detail-refresh]");
+      if (!check) {
+        return;
+      }
+      // A forced fetch of the tile (at most once a minute), then the dialog anew.
+      check.disabled = true;
+      fetch(check.getAttribute("data-detail-refresh"), { credentials: "same-origin" })
+        .then(function () { openDetail(detailURL); });
+    });
+  }
+
   // ── Kimai Lite add form: offer only the chosen project's and global activities ──
   function filterActivities(form) {
     var project = form.querySelector("[data-kimai-project]");
@@ -1315,6 +1447,7 @@
     setupAutosubmit();
     setupMenus();
     setupHintPop();
+    setupDetail();
     setupKimaiForm();
     setupOffline();
     setupHotkeys();

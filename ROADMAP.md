@@ -20,7 +20,7 @@ Das Projekt ist vollständig von Python auf **Go** umgestellt (Zielplattform: Ra
 | Editor, Bibliothek, Revisionen, YAML-/Dashy-Import, Code-Ansicht (CodeMirror) | umgesetzt |
 | Themes (Editor, Import/Export, Schriften, Styleguide, WCAG-AA-Prüfung) | umgesetzt |
 | Kimai, Invoice Ninja, Snipe-IT, Dawarich | Adapter, Regeln, Insight-Widgets umgesetzt |
-| Homelab-Dienste (Phase 10) | 17 weitere Quellen mit Regeln; Obsidian zurückgestellt, Docker offen |
+| Homelab-Dienste (Phase 10) | 17 weitere Quellen mit Regeln; Obsidian geplant in Phase 15, Docker offen |
 | Prüflauf | Hintergrund-Job holt alle Integrationen (Start + alle `ANALYSIS_MINUTES`); Seiten zeigen nur diesen Stand, live nur der Status-Ping |
 | Benachrichtigungen | Apprise, Digest-Mail (SMTP), Wochenrückblick mit optionaler LLM-Zusammenfassung, iCal |
 | Trends, Prognosen | Snapshots, Verlauf, Saisonvergleich, Jahresprognose, Liquidität |
@@ -797,11 +797,7 @@ Jede Quelle liefert einen gecachten Datensatz (`<dienst>.data`), Regeln, eine In
 - [x] Scrutiny: SMART-Fehler, Temperatur, schweigender Collector
 - [x] Borg Backup Server: Clients offline/Fehler, fehlgeschlagene Jobs, Alter des letzten Backups, Speicher, Updates
 - [x] PG Back Web (keine Lese-API): signierte Webhook-URL je Verbindung; fehlgeschlagene/veraltete Backups, nicht erreichbare Datenbanken/Ziele, ausbleibende Webhooks
-- [ ] Obsidian – zurückgestellt, bis ein konkreter Nutzen feststeht (Wege zum Lesen des Vaults unten)
-- [ ] Obsidian: Doku-Abgleich Compose ↔ Notizen, nur lesend. Hansei erzeugt die Notizen aus den `compose.yaml`
-  (siehe Hansei-Roadmap, „Compose → Doku“), andon schreibt nie. Regeln: Dienst ohne Notiz, Notiz mit anderem
-  Image-Tag oder Port als im Compose-Repo, Notiz zu einem entfernten Dienst. Liest Vault und Compose-Repos über die
-  Gitea-Verbindung (Contents-API)
+- [ ] Obsidian – geplant in Phase 15 (Abgleich Doku ↔ Compose, Ansicht in Homelable)
 - [x] Docker *(über einen Socket-Proxy, der nur Container zeigt; Regeln `docker.unhealthy`, `docker.crashed`, Kachel „Container“, Container ohne Kachel)*
 
 ### Phase 11: Dashy-Abgleich und weitere Integrationen
@@ -893,7 +889,9 @@ Auswahl vom 25.09.2026 (Checkliste „Dashboard-Ausbau“). Nicht gewählt: Hell
 | Vault per Syncthing auf den Server, schreibgeschützt ins Dashboard gemountet | Syncthing | Einfach, wenn Syncthing schon läuft; kein API-Token nötig. |
 | Plugin „Local REST API“ | Obsidian-Desktop läuft | Nur solange der Rechner an ist – für Hinweise ungeeignet. |
 
-Mögliche Auswertungen: offene Aufgaben `- [ ]` mit Fälligkeit (Tasks-Plugin `📅 2026-10-01`) als Hinweise und in den Fristen; Notizen mit `wiedervorlage:` im Frontmatter; fehlende Tagesnotiz; wachsender Eingangsordner; Kundennotizen, deren letzte Änderung lange zurückliegt, während in Kimai für diesen Kunden gebucht wird.
+**Entschieden (01.10.2026):** Der Vault liegt bereits im privaten Repo `ObsidianPrivat` auf Gitea (der Fast-Note-Sync-Server committet selbst, kein Push-Mirror; das bleibt so, im Repo liegt der ganze Vault). Andon liest von dort; erster Nutzen ist der Abgleich mit den Compose-Repos, siehe Phase 15.
+
+Weitere mögliche Auswertungen: offene Aufgaben `- [ ]` mit Fälligkeit (Tasks-Plugin `📅 2026-10-01`) als Hinweise und in den Fristen; Notizen mit `wiedervorlage:` im Frontmatter; fehlende Tagesnotiz; wachsender Eingangsordner; Kundennotizen, deren letzte Änderung lange zurückliegt, während in Kimai für diesen Kunden gebucht wird.
 
 ### Phase 13: Datenkreuzungen
 
@@ -967,6 +965,49 @@ Drei Durchgänge durch den Code; umgesetzt, jeweils mit Test.
 - [x] Ablauf-Zeitstrahl, Geldfluss, Hinweis-Verlauf, Umami, Immich, Container; KPI-Details
 - [x] Kundenseiten (`/clients`), Host-Seiten (`/hosts`)
 - Nicht umgesetzt: `system.version_drift` (die Versionstabelle hält eine Version je Dienst und Bereich, nicht je Host), „Wichtigster Hinweis groß“ (deckt die Wandampel ab), „Seit gestern“-Seite (deckt die Begrüßung ab)
+
+### Phase 15: IT-Doku-Abgleich und Homelable (geplant 01.10.2026)
+
+Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose-Dateien auseinanderlaufen, und gibt die Befunde an Hansei weiter; nur Hansei schreibt in den Vault, und nur nach Freigabe. Zusätzlich zeichnet Andon die Doku als Grafik in eine Homelable-Instanz auf Regis. **Beginn erst nach Abschluss der Kante-Überarbeitung.**
+
+| | liest | schreibt |
+|---|---|---|
+| Hansei | Vault, Andon-Befunde | Obsidian (nach Freigabe im Diff) |
+| Andon | Vault-Frontmatter, Compose-Repos, Komodo | Hinweise; Homelable (abgeleitete Ansicht) |
+| Homelable | nur, was Andon schickt | nichts |
+
+**Ausgangslage (Abgleich vom 01.10.2026, nur über Namen):** Regis 79 Stacks, Eredin 28, Plötze 11 in `docker-compose-{regis,eredin,ploetze}`; 225 Notizen in `IT/Dienste` (92 davon deprecated), nur 18 verlinken ihre `compose.yaml`. Rund 27 Stacks ließen sich keiner Notiz zuordnen; ein Teil sind nur abweichende Namen (`kometa` = Plex-Meta-Manager, `seerr` = Jellyseer, `digikam_db`), ein Teil echte Lücken (`beets-flask`, `journiv`, `stirling-pdf`, `sure`, `hievents`, `lauti`, `andon`), `tdarr` und `tubesync` sind nur als deprecated-Notiz da. Deshalb Zuordnung über ein festes Feld, nicht über Namen.
+
+**Voraussetzungen (Vault, über Hansei – siehe `hansei/ROADMAP.md`)**
+- Frontmatter-Feld `Compose`: URL zur `compose.yaml` in Gitea, als Liste erlaubt. Schlüssel für den Abgleich und zugleich der Link, den `IT/Design.md` ohnehin verlangt
+- Infrastruktur-Stacks (`komodo_periphery*`, `newt-*`, `glances-*`, `tailscale-*`, `caddy-*` …) stehen im `Compose`-Feld der Gerätenotiz. Netze (Tailscale, Pangolin/newt …) haben eine eigene Netz-Notiz (z. B. `IT/Allgemeines/Tailscale.md`, `IT/Netzwerk/`), die ihre Stacks ebenfalls unter `Compose` führt; die genaue Kennzeichnung (Tag oder Feld) wird in `IT/Design.md` festgelegt
+- `Compose` ist Pflichtfeld für `IT/Dienste/{Regis,Eredin,Plötze}` (Hansei-Prüfregel)
+
+**Quellen**
+- [ ] Compose-Repos: `docker-compose-*` über die vorhandene Gitea-Verbindung (`git/trees`), Host aus dem Repo-Namen (`ploetze` → Plötze); je Stack Dienste, Images, Ports, Labels. `environment`-Werte werden beim Lesen verworfen
+- [ ] Obsidian: Repo `ObsidianPrivat`, nur die Teilbäume `IT/Dienste`, `IT/Geräte`, `IT/Orte` und die Netz-Notizen, nur Frontmatter (`Compose`, `Gerät`, `deprecated`, `URL`, Ports, `Backup via`, `SSO …`, `abhängig von`, `letzte Prüfung`, `Orte`). Nie den ganzen Baum laden: Gitea kürzt ihn bei rund 3000 Einträgen (`truncated`), und Andon sieht so keine Pfade anderer Ordner
+- [ ] Hansei-Statusnotiz (`status_note`) für das Widget „Batches warten“
+- [ ] Später: Komodo-Stand dazu (Stack im Repo, aber nicht deployt und umgekehrt)
+
+**Regeln und Widgets**
+- [ ] `docs.missing`: Stack ohne aktive Notiz (bzw. ohne Eintrag in einer Geräte- oder Netz-Notiz)
+- [ ] `docs.orphan`: aktive Notiz, deren `Compose`-Link auf keinen Stack zeigt
+- [ ] `docs.deprecated_live`: Notiz deprecated, Stack liegt noch im Repo
+- [ ] `docs.drift` (später): URL, Ports oder Image im Frontmatter weichen von der Compose-Datei ab
+- [ ] Widget „Doku-Abdeckung“ je Host (X von Y Stacks dokumentiert, Liste der Lücken); Widget „Batches warten“
+
+**Übergabe an Hansei**
+- [ ] API-Endpunkt für die `docs.*`-Befunde (Token wie bisher): Regel, Host, Stack, Notizpfad, Compose-Auszug ohne Secrets. Hansei holt sie ab und macht daraus Batches; nach Freigabe und Sync verschwindet der Hinweis beim nächsten Prüflauf von selbst
+
+**Homelable als Ansicht**
+- [ ] Homelable (github.com/Pouzor/homelable, MIT) als Stack `docker-compose-regis/homelable`, Version gepinnt (Renovate), nur intern (LAN/Tailscale, keine Pangolin-Resource: Swagger unter `/docs` ist ohne Anmeldung). Lokaler Login, weil der OIDC-Modus keinen Skriptzugang hat (Issue #291). Nicht genutzt: eigene Dokumentation (zweites Wiki neben Obsidian), Netzwerk-Scanner, Live View, Docs View
+- [ ] Ausgang `outbound/homelable`: Andon baut aus Quellen und Regeln ein Graph-Modell und gleicht es über die REST-API ab. Eigener Canvas „IT-Doku (aus Obsidian)“; von Hand gezeichnete Canvases bleiben unberührt. JWT läuft nach 24 h ab → bei `401` neu anmelden, Passwort verschlüsselt wie andere Zugangsdaten
+- [ ] Abbildung: Geräte als Host-Knoten in ihrer Zone (`Orte`), Dienste im Host verschachtelt (`Gerät`), `abhängig von` als Verbindungen; Eigenschaften URL, Ports, Backup, SSO, `letzte Prüfung`, `obsidian://`-Link zur Notiz
+- [ ] Infrastruktur-Stacks: Knoten im Host **und** zusätzlich ein eigenes Netz (z. B. Tailscale, Pangolin), verbunden mit allen Hosts, auf denen ein zugehöriger Stack läuft
+- [ ] `docs.*`-Befunde sichtbar: Stacks ohne Notiz als blasse Knoten „Doku fehlt“, veraltete `letzte Prüfung` markiert
+- [ ] Live-Status in Homelable an (`check_method` aus URL/Ports), **ohne Benachrichtigungen**; alarmiert wird weiter nur über Andon und Uptime Kuma
+- [ ] Abgleich idempotent: Andon speichert je Notizpfad bzw. Stack die Homelable-ID, sendet nur Änderungen und nie Positionen (eigenes Layout bleibt), entfernt Knoten, deren Notiz fehlt oder deprecated ist
+- [ ] Demo: Homelable-Verbindung als `demo://` mit Studio-Weber-Daten (nur im Demo-Build)
 
 ---
 
@@ -1139,6 +1180,8 @@ dashboard/
 | Benachrichtigungen | Alle Kanäle über Apprise, je Benutzer konfigurierbar |
 | Steuerstatus | Freiberuflich, umsatzsteuerpflichtig (keine Kleinunternehmerregelung, keine Gewerbesteuer). Die Kleinunternehmer-Regel entfällt; dazu kommen Regeln zu USt-Zahllast, Vorsteuer und fehlender Umsatzsteuer |
 | Sprache | Deutsch und Englisch, je Benutzer wählbar; Hinweise und E-Mails in der Sprache des Empfängers |
+| IT-Doku | Andon erkennt Lücken zwischen Obsidian und den Compose-Repos, schreibt aber nie in den Vault; Änderungen macht Hansei nach Freigabe (Phase 15) |
+| Visualisierung | Homelable als reine Ansicht auf Regis, von Andon befüllt; Obsidian bleibt die einzige Quelle, Homelables eigene Doku wird nicht genutzt; Live-Status an, keine Benachrichtigungen (Phase 15) |
 | authentik-Gruppen | Bestimmen beim automatischen Anlegen eines Kontos die Start-Rolle und Start-Teams; danach werden Rollen und Teams nur im Dashboard gepflegt, kein Abgleich bei späteren Anmeldungen |
 
 ## 14. Offene Fragen

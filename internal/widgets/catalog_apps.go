@@ -16,7 +16,7 @@ import (
 type DockerConfig struct{ OnlyProblems bool }
 
 func init() {
-	Tile[DockerConfig]{Key: "docker_containers", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceDocker, RefreshS: 5 * 60,
+	Tile[DockerConfig]{Key: "docker_containers", Detail: dataDetail(dockerDetail), Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceDocker, RefreshS: 5 * 60,
 		Fields:  []Field{{Key: "only_problems", Input: InputCheck}},
 		Decode:  func(r Raw) DockerConfig { return DockerConfig{OnlyProblems: r.Bool("only_problems")} },
 		Queries: ownData[DockerConfig], View: dataView(dockerView)}.add()
@@ -59,7 +59,7 @@ func dockerView(cfg DockerConfig, data *sources.DockerDataset, _ ViewCtx) map[st
 type UmamiConfig struct{ Only []string }
 
 func init() {
-	Tile[UmamiConfig]{Key: "umami_sites", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceUmami, RefreshS: 30 * 60,
+	Tile[UmamiConfig]{Key: "umami_sites", Detail: dataDetail(umamiDetail), Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceUmami, RefreshS: 30 * 60,
 		Fields:  []Field{{Key: "filter", Input: InputList}},
 		Decode:  func(r Raw) UmamiConfig { return UmamiConfig{Only: r.Lower("filter")} },
 		Queries: ownData[UmamiConfig], View: dataView(umamiView)}.add()
@@ -102,7 +102,7 @@ const umamiDrop = 30
 // ── immich ──
 
 func init() {
-	Tile[struct{}]{Key: "immich_library", Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceImmich, RefreshS: 30 * 60,
+	Tile[struct{}]{Key: "immich_library", Detail: dataDetail(immichDetail), Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceImmich, RefreshS: 30 * 60,
 		Fields: []Field{}, Queries: ownData[struct{}], View: dataView(immichView)}.add()
 }
 
@@ -140,7 +140,7 @@ type LinkwardenConfig struct {
 const linksNewest = 5
 
 func init() {
-	Tile[LinkwardenConfig]{Key: "linkwarden", Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceLinkwarden, RefreshS: 60 * 60,
+	Tile[LinkwardenConfig]{Key: "linkwarden", Detail: dataDetail(linkwardenDetail), Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceLinkwarden, RefreshS: 60 * 60,
 		Fields: []Field{{Key: "filter", Input: InputList}, {Key: "newest", Input: InputCheck}},
 		Decode: func(r Raw) LinkwardenConfig {
 			return LinkwardenConfig{Only: r.Lower("filter"), Newest: r.Bool("newest")}
@@ -207,10 +207,10 @@ func decodePick(only string) func(Raw) PickConfig {
 var pickLimit = Field{Key: "limit", Input: InputNumber, Default: listShown, Min: "1", Max: "20"}
 
 func init() {
-	Tile[PickConfig]{Key: "kintsugi", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKintsugi, RefreshS: 15 * 60,
+	Tile[PickConfig]{Key: "kintsugi", Detail: dataDetail(kintsugiDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceKintsugi, RefreshS: 15 * 60,
 		Fields: []Field{pickLimit, sel("kind", pickAll, pickAll, "acquisition", "development")},
 		Decode: decodePick("kind"), Queries: ownData[PickConfig], View: dataView(kintsugiView)}.add()
-	Tile[PickConfig]{Key: "gitea_reviews", Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitea, RefreshS: 15 * 60,
+	Tile[PickConfig]{Key: "gitea_reviews", Detail: dataDetail(giteaDetail), Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitea, RefreshS: 15 * 60,
 		Fields: []Field{sel("show", pickAll, pickAll, "reviews", "issues"), pickLimit},
 		Decode: decodePick("show"), Queries: ownData[PickConfig], View: dataView(giteaView)}.add()
 }
@@ -271,7 +271,7 @@ type PlaceRow struct {
 type DawarichConfig struct{ Yesterday bool }
 
 func init() {
-	Tile[DawarichConfig]{Key: "dawarich_day", Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceDawarich, RefreshS: 30 * 60,
+	Tile[DawarichConfig]{Key: "dawarich_day", Detail: dataDetail(dawarichDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceDawarich, RefreshS: 30 * 60,
 		Fields:  []Field{sel("day", "today", "today", "yesterday")},
 		Decode:  func(r Raw) DawarichConfig { return DawarichConfig{Yesterday: r.Pick("day") == "yesterday"} },
 		Queries: ownData[DawarichConfig], View: dataView(dawarichDayView)}.add()
@@ -318,7 +318,7 @@ type AuthentikConfig struct {
 }
 
 func init() {
-	Tile[AuthentikConfig]{Key: "authentik_logins", Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceAuthentik, RefreshS: 15 * 60,
+	Tile[AuthentikConfig]{Key: "authentik_logins", Detail: dataDetail(authentikDetail), Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceAuthentik, RefreshS: 15 * 60,
 		Fields:  []Field{sel("period", "7d", "24h", "7d"), {Key: "only_problems", Input: InputCheck}},
 		Renames: []rename{{from: "only_failures", to: "only_problems"}, {from: "span", to: "period"}},
 		Decode: func(r Raw) AuthentikConfig {
@@ -353,7 +353,7 @@ func authentikView(cfg AuthentikConfig, data *sources.AuthentikDataset, _ ViewCt
 type VaultConfig struct{ List bool }
 
 func init() {
-	Tile[VaultConfig]{Key: "vaultwarden_2fa", Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceVaultwarden, RefreshS: 60 * 60,
+	Tile[VaultConfig]{Key: "vaultwarden_2fa", Detail: dataDetail(vaultDetail), Category: CategoryInsight, Topic: TopicSecurity, Service: enums.ServiceVaultwarden, RefreshS: 60 * 60,
 		Fields:  []Field{{Key: "list_without", Input: InputCheck, Default: true}},
 		Decode:  func(r Raw) VaultConfig { return VaultConfig{List: r.Bool("list_without")} },
 		Queries: ownData[VaultConfig], View: dataView(vaultwardenView)}.add()

@@ -38,7 +38,7 @@ func downSince(l DownLink) time.Time {
 }
 
 func init() {
-	Tile[LinksDownConfig]{Key: "links_down", Category: CategoryStart, Topic: TopicOverview, RefreshS: 300, Extra: ExtraLinksDown,
+	Tile[LinksDownConfig]{Key: "links_down", Detail: linksDownDetail, Category: CategoryStart, Topic: TopicOverview, RefreshS: 300, Extra: ExtraLinksDown,
 		Fields: []Field{{Key: "limit", Input: InputNumber, Default: defaultLinksDown, Min: "1", Max: "50"}},
 		Decode: func(r Raw) LinksDownConfig { return LinksDownConfig{Limit: r.Int("limit")} },
 		View:   linksDownView}.add()
