@@ -4,6 +4,7 @@ package metrics
 import (
 	"math"
 	"sort"
+	"strings"
 	"time"
 
 	"andon/internal/sources"
@@ -284,4 +285,51 @@ func init() {
 		}
 		r.Set(key("kimai", "unbilled"), total)
 	})
+}
+
+// UnbookedDays is how far back appointments are checked against Kimai.
+const UnbookedDays = 14
+
+// unbookedMatch keeps short names ("IT") from matching every title.
+const unbookedMatch = 4
+
+// UnbookedEvents are the appointments of the last UnbookedDays whose title
+// names a Kimai customer or project, without any entry for that customer
+// on the day: work that may not be booked yet.
+func UnbookedEvents(cal *sources.CalendarResult, kimai *sources.KimaiDataset, today time.Time) []sources.Event {
+	type target struct {
+		name       string
+		customerID int64
+	}
+	var targets []target
+	for _, c := range kimai.Customers {
+		targets = append(targets, target{c.Name, c.ID})
+	}
+	for _, p := range kimai.Projects {
+		targets = append(targets, target{p.Name, p.CustomerID})
+	}
+	booked := map[[2]any]bool{}
+	for _, s := range kimai.Timesheets {
+		if d, ok := ParseDay(s.Begin); ok {
+			booked[[2]any{d, s.CustomerID}] = true
+		}
+	}
+	since := today.AddDate(0, 0, -UnbookedDays)
+	var out []sources.Event
+	for _, e := range cal.Events {
+		if e.AllDay || e.Start.Before(since) || !e.Start.Before(today) {
+			continue
+		}
+		title := strings.ToLower(e.Title)
+		for _, t := range targets {
+			if len(t.name) < unbookedMatch || !strings.Contains(title, strings.ToLower(t.name)) {
+				continue
+			}
+			if !booked[[2]any{Today(e.Start), t.customerID}] {
+				out = append(out, e)
+			}
+			break
+		}
+	}
+	return out
 }

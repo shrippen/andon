@@ -858,6 +858,19 @@
       });
   }
 
+  // countClick tells the server a link tile was opened (its dialog shows
+  // the days); a beacon survives the page change.
+  function countClick(e) {
+    var a = e.target.closest && e.target.closest(".tile-slot.w-link a[href]");
+    if (!a || a.hasAttribute("data-details") || !navigator.sendBeacon) {
+      return;
+    }
+    var slot = a.closest(".tile-slot");
+    var form = new FormData();
+    form.append("csrf", csrf());
+    navigator.sendBeacon("/widget-fragments/" + slot.getAttribute("data-placement") + "/click", form);
+  }
+
   // doDetail runs an act of the dialog (mark done, add to a list) and
   // shows the dialog the server draws after it.
   function doDetail(btn) {
@@ -906,6 +919,30 @@
   }
 
   function setupDetail() {
+    d.addEventListener("click", countClick, true);
+    // A dialog form posts like an act and shows the dialog drawn anew.
+    d.addEventListener("submit", function (e) {
+      var form = e.target.closest && e.target.closest("#detail form[data-detail-form]");
+      if (!form) {
+        return;
+      }
+      e.preventDefault();
+      var fields = {};
+      new FormData(form).forEach(function (v, k) { fields[k] = v; });
+      var dlg = detailDialog();
+      post(form.getAttribute("action"), fields)
+        .then(function (r) { return r.ok ? r.text() : ""; })
+        .then(function (html) {
+          if (!html) {
+            form.setAttribute("aria-invalid", "true");
+            return;
+          }
+          // Server-rendered html/template output from our own origin.
+          dlg.innerHTML = html;
+          applyStyles(dlg);
+        });
+    }, true);
+    d.addEventListener("auxclick", countClick, true);
     function open(e) {
       var trigger = e.target.closest && e.target.closest("[data-details]");
       if (!trigger) {

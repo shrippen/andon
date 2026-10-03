@@ -45,14 +45,16 @@
         {{if not .TLSUntil.IsZero}}<tr><td>{{t "linkdetail.tls"}}</td><td>{{t "linkdetail.tls_until" "issuer" .TLSIssuer "day" (day .TLSUntil)}}</td></tr>{{end}}
         {{if .HasSkew}}<tr><td>{{t "linkdetail.clock"}}</td><td>{{t "linkdetail.clock_skew" "s" (num (seconds .Skew) 1)}}</td></tr>{{end}}
         {{end}}
-        <tr><td>{{t "linkdetail.expect"}}</td><td>2xx, 3xx{{range $d.Accept}}, {{.}}{{end}}</td></tr>
-        <tr><td>{{t "linkdetail.check"}}</td><td>{{if $d.Timeout}}{{t "linkdetail.every" "min" (num (minutes $d.Interval) 0) "s" (num (seconds $d.Timeout) 0)}}{{else}}{{t "linkdetail.every_default" "min" (num (minutes $d.Interval) 0)}}{{end}}{{with $d.Method}} · {{.}}{{end}}</td></tr>
+        {{if $d.Checked}}<tr><td>{{t "linkdetail.expect"}}</td><td>2xx, 3xx{{range $d.Accept}}, {{.}}{{end}}</td></tr>
+        <tr><td>{{t "linkdetail.check"}}</td><td>{{if $d.Timeout}}{{t "linkdetail.every" "min" (num (minutes $d.Interval) 0) "s" (num (seconds $d.Timeout) 0)}}{{else}}{{t "linkdetail.every_default" "min" (num (minutes $d.Interval) 0)}}{{end}}{{with $d.Method}} · {{.}}{{end}}</td></tr>{{else}}
+        <tr><td>{{t "linkdetail.check"}}</td><td>{{t "linkdetail.not_checked"}}</td></tr>{{end}}
       </tbody>
     </table>
     {{if and (ge $tls 0) (lt $tls 30)}}<div class="callout callout-warn">{{t "linkdetail.tls_soon" "n" $tls}}</div>{{end}}
   </aside>
 
   <section class="detail-main">
+    {{if $d.Checked}}
     <div class="detail-facts">
       {{if $h.Checks}}
       <div class="fact" data-tier="{{if ge $h.Share30 0.99}}green{{else if ge $h.Share30 0.95}}yellow{{else}}red{{end}}"><b>{{num (percent $h.Share30) 1}} %</b><span>{{t "linkdetail.up30"}}</span></div>
@@ -124,6 +126,9 @@
       <p class="detail-sub">{{t "linkdetail.inc_none"}}</p>
       {{end}}
     </div>
+    {{end}}
+    {{if $d.ClickTotal}}<div class="detail-block"><div class="h-label detail-label"><span>{{t "linkdetail.clicks"}}</span><span>{{t "linkdetail.clicks_total" "n" $d.ClickTotal}}</span></div>{{template "detail_graph" $d.Clicks}}</div>
+    {{else if not $d.Checked}}<p class="detail-sub">{{t "linkdetail.no_clicks"}}</p>{{end}}
   </section>
 </div>
 {{end}}
@@ -204,6 +209,9 @@
   {{else if eq $k "chips"}}<div class="chips-row">{{range .Data}}<span class="chip">{{.}}</span>{{end}}</div>
   {{else if eq $k "image"}}{{with .Data}}
   <figure class="detail-figure"><img src="{{.DataURI | dataURI}}" alt="{{.Alt}}">{{with .Caption}}<figcaption class="detail-sub">{{.}}</figcaption>{{end}}</figure>
+  {{end}}
+  {{else if eq $k "form"}}{{with .Data}}
+  <form data-detail-form action="{{.Post}}">{{range .Fields}}<div class="field"><label for="df-{{.Name}}">{{tt .Label.Key .Label.Args}}</label>{{if eq (print .Kind) "area"}}<textarea class="input" id="df-{{.Name}}" name="{{.Name}}">{{.Value}}</textarea>{{else if eq (print .Kind) "select"}}<select class="select" id="df-{{.Name}}" name="{{.Name}}">{{$v := .Value}}{{range .Options}}<option value="{{.Value}}"{{if eq .Value $v}} selected{{end}}>{{tv .Label}}</option>{{end}}</select>{{else}}<input class="input" id="df-{{.Name}}" name="{{.Name}}" value="{{.Value}}">{{end}}</div>{{end}}<button type="submit" class="btn btn-outline btn-sm">{{tt .Submit.Key .Submit.Args}}</button></form>
   {{end}}
   {{else if eq $k "thumbs"}}
   <div class="detail-thumbs">{{range .Data}}<figure class="detail-figure">{{with .DataURI}}<img src="{{. | dataURI}}" alt="">{{end}}<figcaption>{{.Caption}}</figcaption></figure>{{end}}</div>

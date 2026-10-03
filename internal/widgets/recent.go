@@ -29,6 +29,10 @@ type TimelineItem struct {
 	Kind, Subject, Detail string // Kind: update, opened, resolved, reopened
 	HintID                int64
 	Count                 int // > 1: a burst of this many hints
+	// Cause is the update shortly before a new hint ("Immich v1 → v2"),
+	// CauseMin how many minutes before; "" = none.
+	Cause    string
+	CauseMin int
 }
 
 // RecentConfig is the "timeline_recent" widget's config.

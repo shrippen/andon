@@ -15,6 +15,7 @@ package metrics
 //	  States   a change is a "change" event           ──► versions + events
 
 import (
+	"strconv"
 	"time"
 )
 
@@ -106,7 +107,13 @@ const (
 	EventChange  = "change"
 	EventRestore = "restore"
 	EventClose   = "close"
+	EventFiled   = "filed" // a deadline handed in, subject DeadlineKey
 )
+
+// DeadlineKey names one deadline for its "filed" mark: "vat_return:2026-08".
+func DeadlineKey(kind, period string, year int) string {
+	return kind + ":" + period + ":" + strconv.Itoa(year)
+}
 
 // StateEvent turns a state change into a timeline event; a first
 // sighting is none. The subject loses its table prefix.

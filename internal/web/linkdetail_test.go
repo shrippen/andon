@@ -11,6 +11,7 @@ import (
 	"andon/internal/services/linkstatus"
 	"andon/internal/services/widgetlib"
 	"andon/internal/sources"
+	"andon/internal/widgets"
 )
 
 // TestStackPaths: columns scale to the busiest day, failed checks sit on
@@ -53,7 +54,7 @@ func TestLinkDetailRenders(t *testing.T) {
 		days[i] = linkstatus.Day{Day: today.AddDate(0, 0, i-2), State: linkstatus.BarUp, OK: 144, AvgMs: 180}
 	}
 	days[1] = linkstatus.Day{Day: today.AddDate(0, 0, -1), State: linkstatus.BarDown, Fail: 144, Error: "HTTP 502"}
-	detail := &widgetlib.LinkDetail{
+	detail := &widgetlib.LinkDetail{Checked: true,
 		Title: "Nextcloud", URL: "https://cloud.example.test", Accept: []int{401}, Interval: 10 * time.Minute,
 		Status: &sources.HTTPStatusResult{Up: true, Code: 200, Ms: 142}, CheckedAt: time.Now(),
 		History: linkstatus.History{Days: days, Share30: .66, AvgMs30: 180, Checks: 432,
@@ -81,5 +82,21 @@ func TestLinkDetailRenders(t *testing.T) {
 	}
 	if n := strings.Count(body, `<button type="button" aria-pressed=`); n != len(days) {
 		t.Errorf("day buttons: %d", n)
+	}
+}
+
+// TestLinkDetailUnchecked: a link without a status check shows its facts
+// and its openings, no check history.
+func TestLinkDetailUnchecked(t *testing.T) {
+	detail := &widgetlib.LinkDetail{Title: "Wiki", URL: "https://wiki.example.test", ClickTotal: 3,
+		Clicks: widgets.ColGraph([]float64{1, 0, 2}, "s1")}
+	dialog := &widgetlib.DetailDialog{Type: "link", Body: detail, Head: widgetlib.DetailHead{Title: "Wiki"}}
+	rec := httptest.NewRecorder()
+	if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, "details/link", http.StatusOK, map[string]any{"Dialog": dialog, "D": detail, "PlacementID": int64(7), "ThemeURL": ""}); err != nil {
+		t.Fatal(err)
+	}
+	body := rec.Body.String()
+	if strings.Contains(body, `class="uptime"`) || !strings.Contains(body, "https://wiki.example.test") || !strings.Contains(body, `class="chart`) {
+		t.Fatalf("body: %s", body)
 	}
 }

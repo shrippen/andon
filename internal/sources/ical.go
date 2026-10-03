@@ -51,9 +51,10 @@ func fetchCalendarSource(ctx context.Context, sctx Ctx) (any, error) {
 	if err != nil {
 		return nil, newSourceError("%s", err.Error())
 	}
-	days := int(asFloat(sctx.Params["days"]))
+	// "back" reaches into the past (the dialog's unbooked appointments).
+	days, back := int(asFloat(sctx.Params["days"])), int(asFloat(sctx.Params["back"]))
 	now := time.Now()
-	return &CalendarResult{Events: Occurrences(text, now, now.AddDate(0, 0, days))}, nil
+	return &CalendarResult{Events: Occurrences(text, now.AddDate(0, 0, -back), now.AddDate(0, 0, days))}, nil
 }
 
 // vevent is one parsed VEVENT: property name → value, params.

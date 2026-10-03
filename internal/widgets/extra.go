@@ -39,6 +39,10 @@ func (c ImageConfig) RefreshSeconds() int { return c.ReloadM * secondsPerMinute 
 // Refresher is a config that sets its tile's refresh itself.
 type Refresher interface{ RefreshSeconds() int }
 
+// Detailer is a config whose dialog depends on its settings: one clock
+// zone has nothing to compare.
+type Detailer interface{ OffersDetail() bool }
+
 const secondsPerMinute = 60
 
 // freshBucket names the current period of a reload pace, so a query with

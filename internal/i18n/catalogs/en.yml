@@ -3259,15 +3259,28 @@ detail:
     today: 'since today'
     all_up: 'All checked links answer.'
     n_down: '{n} down'
+    cause: 'Cause'
+    causes: 'By cause'
   conn:
     healthy: 'without errors'
     days: 'Fetches per day'
+    avg_ms: 'Avg. response ms'
+    failed: 'failed'
+    fetches: 'Fetches'
+    last_error: 'Last error'
+    ok: 'succeeded'
+    open: 'Edit connection'
+    service: 'Service'
+    tiles: 'Tiles'
   deadlines:
     setup: 'Tax deadlines appear once the tax details are set in the space settings.'
     list: 'Deadlines in the next year'
     in: 'in {n} days'
     next: 'next'
     count: 'deadlines'
+    filed: 'Filed'
+    filed_on: 'filed on {day}'
+    mark_filed: 'Mark filed'
   expiries:
     none: 'Nothing expires in this span.'
   noise:
@@ -3279,6 +3292,7 @@ detail:
     per_day: 'New hints per day'
     how: 'A rule whose hints disappear and come back on their own is set too sensitive. Pick a higher threshold in the rule settings.'
     settings: 'Rule settings'
+    limits: 'Limits'
   trend:
     open: 'Open hints per day'
   light:
@@ -3289,15 +3303,21 @@ detail:
     why_count: 'hints behind it'
     why: 'Why this colour'
     calm: 'Nothing turns the light.'
+    history: 'Light of the last days'
+    red_days: '{n} days red'
   recent:
     updates: 'Updates'
     opened: 'new hints'
     list: 'What happened'
     burst: '{n} hints at once'
     all: 'Timeline'
+    after_update: '{n} min after update {update}'
   story:
     week: 'The week'
     empty: 'Nothing to report for this week yet.'
+    this_week: 'This week'
+    week_of: 'Week {n}'
+    weeks: 'Weeks'
   calendar:
     count: 'Appointments'
     weeks: 'The next two weeks'
@@ -3307,6 +3327,12 @@ detail:
     time: 'Time'
     title: 'Appointment'
     place: 'Place'
+    free: 'Free time (workdays 9–18, 2 h or more)'
+    from: 'from'
+    to: 'to'
+    hours: 'Hours'
+    unbooked: 'Appointments without a booking'
+    unbooked_note: 'last {n} days, customer or project in the title'
   clock:
     work: 'Working hours 9–18 of the zones, in your time'
   center:
@@ -3944,6 +3970,14 @@ detail:
   goal: 'Limit'
   close: 'Close'
   open: 'Details'
+  hints_assignee: 'Assignee'
+  hints_history: 'History'
+  hints_ics: 'Subscribe as calendar'
+  hints_nobody: 'nobody'
+  hints_note: 'Note'
+  hints_pick: 'Pick a hint'
+  hints_save: 'Save'
+  hints_work: 'Work on it'
 linkdetail:
   open_aria: History and details
   open: Open
@@ -3994,6 +4028,10 @@ linkdetail:
     partial: Partly
     down: Outage
     none: No data
+  clicks: 'Opened from here'
+  clicks_total: '{n} in 30 days'
+  no_clicks: 'Not opened from here yet.'
+  not_checked: 'off (check disabled)'
 uptime:
   summary: '{share} reachable in 30 days, avg {ms} ms'
   month: 'Uptime {month}'

@@ -404,6 +404,9 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		items := make([]widgets.TimelineItem, len(entries))
 		for i, e := range entries {
 			items[i] = widgets.TimelineItem{At: e.At, Kind: e.Kind, Subject: e.Subject, Detail: e.Detail, HintID: e.HintID, Count: e.Count}
+			if e.Cause != nil {
+				items[i].Cause, items[i].CauseMin = strings.TrimSpace(e.Cause.Subject+" "+e.Cause.Detail), e.CauseMin
+			}
 		}
 		frag.Slots[widgets.TimelineSlot] = Slot{Data: items}
 	}
@@ -852,7 +855,7 @@ const greetingChanges = 200
 func connStrips(strips []connections.Strip) []widgets.ConnStrip {
 	out := make([]widgets.ConnStrip, len(strips))
 	for i, s := range strips {
-		out[i] = widgets.ConnStrip{Name: s.Name, Service: s.Service, FailPct: s.FailPct}
+		out[i] = widgets.ConnStrip{Name: s.Name, Service: s.Service, FailPct: s.FailPct, ID: s.ID, LastError: s.LastError, AvgMs: s.AvgMs, Tiles: s.Tiles}
 		for _, d := range s.Days {
 			out[i].Days = append(out[i].Days, widgets.ConnDayState{Day: d.Day, OK: d.OK, Fail: d.Fail})
 		}

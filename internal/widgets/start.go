@@ -336,6 +336,9 @@ type ClockConfig struct {
 	Analog    bool // a face with hands
 }
 
+// OffersDetail: the dialog compares zones, one zone needs none.
+func (c ClockConfig) OffersDetail() bool { return len(c.Timezones) > 1 }
+
 // decodeClock keeps the zones Go knows: a typo would show "?".
 func decodeClock(r Raw) ClockConfig {
 	var tz []string

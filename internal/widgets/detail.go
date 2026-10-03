@@ -22,6 +22,7 @@ const (
 	DetailHintsSlot = "detail_hints"
 	TileViewSlot    = "tile_view"
 	DetailItemSlot  = "detail_item"
+	HintWorkSlot    = "hint_work" // the picked hint's work (HintWork), hint dialogs
 )
 
 // DetailFunc shapes results into a dialog.
@@ -64,4 +65,23 @@ type DetailHint struct {
 	Why       string
 	FirstSeen time.Time
 	Due       string // "2026-10-02", "" = none
+}
+
+// HintWork is a picked hint's state of work for its dialog: who has it,
+// what happened, who may take it.
+type HintWork struct {
+	ID         int64
+	Title, Why string
+	Assignee   string
+	AssigneeID int64
+	Work       string
+	History    []HintStep
+	People     []FormOption // who may take it over: id, name
+}
+
+// HintStep is one entry of a hint's history.
+type HintStep struct {
+	At         time.Time
+	Kind, Note string
+	Actor      string
 }

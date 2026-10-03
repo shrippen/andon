@@ -89,3 +89,25 @@ func PrunePoints(d *sql.DB, now time.Time) error {
 		return data.PrunePoints(tx, now.AddDate(0, 0, -widgets.MaxTrendDays).Format(time.DateOnly))
 	})
 }
+
+// recordLight counts, per run, the worst level among the space's shared
+// open hints: over a day that is how often the status light was red.
+//
+//	light.runs  288   light.top.30  12   (critical in 12 runs)
+func recordLight(d *sql.DB, spaceID int64, now time.Time) error {
+	return db.WithTx(d, func(tx *sql.Tx) error {
+		open, err := data.HintsIn(tx, []int64{spaceID}, 0)
+		if err != nil {
+			return err
+		}
+		top := 0
+		for _, h := range open {
+			top = max(top, int(h.Severity))
+		}
+		counts := map[string]float64{metrics.SampleKey("light", "runs"): 1}
+		if top > 0 {
+			counts[metrics.LightKey(top)] = 1
+		}
+		return data.AddSamples(tx, spaceID, 0, now.Format(time.DateOnly), counts)
+	})
+}

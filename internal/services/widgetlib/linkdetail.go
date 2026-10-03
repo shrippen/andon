@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"time"
 
+	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/services/access"
+	"andon/internal/services/history"
 	"andon/internal/services/linkstatus"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/util"
@@ -34,18 +36,24 @@ type LinkDetail struct {
 	CheckedAt   time.Time
 	History     linkstatus.History
 	Info        *sources.LinkInfo // nil if it could not be read
+	Checked     bool              // the tile checks its address (else only facts)
+	Clicks      widgets.Graph     // openings from boards per day, the last weeks
+	ClickTotal  int
 }
 
-// loadLinkDetail loads a link tile's dialog: only links with a status
-// check have one.
+// clickDays is the span of a link's openings in its dialog.
+const clickDays = 30
+
+// loadLinkDetail loads a link tile's dialog: a link with a status check
+// shows its history, any other one the facts of its address.
 func loadLinkDetail(ctx context.Context, d *sql.DB, _ *access.Principal, widget *model.Widget, today time.Time) (*DetailDialog, error) {
 	cfg, _ := widgets.Decode(widget.Type, util.OpenSecrets(widget.Config))
 	link, ok := cfg.(widgets.LinkConfig)
-	if !ok || link.Status != widgets.StatusHTTP {
+	if !ok {
 		return nil, ErrNoDetail
 	}
 	kind, _ := widgets.Get(widget.Type)
-	var params map[string]any
+	params := map[string]any{"url": link.URL}
 	for _, q := range kind.Queries(cfg) {
 		if q.Source == statusSource {
 			params = q.Params
@@ -55,17 +63,33 @@ func loadLinkDetail(ctx context.Context, d *sql.DB, _ *access.Principal, widget 
 	out := &LinkDetail{
 		WidgetID: widget.ID, Title: widget.Title, URL: link.URL, Description: link.Description, Tags: link.Tags,
 		Accept: link.Accept, Method: link.Method, Interval: linkstatus.Interval,
-		Timeout: time.Duration(link.TimeoutS * float64(time.Second)),
+		Timeout: time.Duration(link.TimeoutS * float64(time.Second)), Checked: link.Status == widgets.StatusHTTP,
 	}
 	if link.StatusURL != link.URL {
 		out.StatusURL = link.StatusURL
 	}
 
-	if res, err := svcdata.Get(ctx, d, statusSource, params, nil, nil, svcdata.Stored); err == nil {
-		out.Status, _ = res.Data.(*sources.HTTPStatusResult)
-		out.CheckedAt = res.FetchedAt
+	if out.Checked {
+		if res, err := svcdata.Get(ctx, d, statusSource, params, nil, nil, svcdata.Stored); err == nil {
+			out.Status, _ = res.Data.(*sources.HTTPStatusResult)
+			out.CheckedAt = res.FetchedAt
+		}
+		out.History = linkstatus.HistoryOf(d, widget.ID, today)
 	}
-	out.History = linkstatus.HistoryOf(d, widget.ID, today)
+
+	if h, err := history.Load(d, widget.SpaceID, 0, today); err == nil {
+		perDay := map[string]float64{}
+		for _, p := range h.SeriesOf(metrics.LinkClicksKey(widget.ID)) {
+			perDay[p.Day.Format(time.DateOnly)] += p.Value
+		}
+		values := make([]float64, clickDays)
+		for i := range values {
+			values[i] = perDay[today.AddDate(0, 0, i-clickDays+1).Format(time.DateOnly)]
+			out.ClickTotal += int(values[i])
+		}
+		out.Clicks = widgets.ColGraph(values, "s1")
+		out.Clicks.Ticks = []any{widgets.Day(today.AddDate(0, 0, 1-clickDays)), widgets.Day(today)}
+	}
 
 	// Fetched on demand, kept an hour: redirects, certificate, clock.
 	if res, err := svcdata.Get(ctx, d, linkInfoSource, params, nil, nil, svcdata.Cached); err == nil {
@@ -78,6 +102,10 @@ func loadLinkDetail(ctx context.Context, d *sql.DB, _ *access.Principal, widget 
 func (l *LinkDetail) head() DetailHead {
 	h := DetailHead{Title: l.Title, Sub: l.Description, State: "off", StateKey: "linkdetail.never",
 		Actions: []DetailAction{{LabelKey: "linkdetail.check_now", Refresh: true}, {LabelKey: "linkdetail.open", Href: l.URL, Primary: true}}}
+	if !l.Checked {
+		h.State, h.StateKey = "", ""
+		h.Actions = h.Actions[1:]
+	}
 	switch {
 	case l.Status == nil:
 	case l.Status.Up:

@@ -801,6 +801,8 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 /* Blocks: a label row (text left, meta right) over a chart, table, list … */
 .detail-block{display:flex;flex-direction:column;gap:.4rem;min-width:0}
 .detail-label{display:flex;justify-content:space-between;gap:1rem}
+/* A small form in a block: fields stacked, the button under them */
+.detail-block>form{display:flex;flex-direction:column;gap:.75rem;align-items:flex-start}.detail-block>form>.field{align-self:stretch}
 /* A download or link at the label's end: <a href="….csv" download>CSV</a> */
 .detail-label>a{color:var(--fg2);text-decoration:none}.detail-label>a:hover,.detail-label>a:focus-visible{color:var(--fg0)}
 .detail-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:1rem}

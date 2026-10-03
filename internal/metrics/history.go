@@ -319,3 +319,32 @@ const subscriptionPrefix = "Abo "
 
 // SubscriptionSubject is the change subject of a subscription's price.
 func SubscriptionSubject(name string) string { return subscriptionPrefix + name }
+
+// LinkClicksKey is the series of a link tile's openings (services/clicks).
+func LinkClicksKey(widgetID int64) string {
+	return key("link", "clicks", strconv.FormatInt(widgetID, 10))
+}
+
+// LightKey counts the runs whose worst open hint had this level.
+func LightKey(severity int) string { return key("light", "top", strconv.Itoa(severity)) }
+
+// LightDays is, for each of the last n days (oldest first), the worst
+// level the shared hints reached in any run; -1 for a day without runs.
+func LightDays(h *History, now time.Time, n int, levels []int) []int {
+	runs := dayTotals(h.SeriesOf(key("light", "runs")))
+	out := make([]int, n)
+	for i := range out {
+		day := Today(now).AddDate(0, 0, i-n+1)
+		out[i] = -1
+		if runs[day] == 0 {
+			continue
+		}
+		out[i] = 0
+		for _, level := range levels {
+			if dayTotals(h.SeriesOf(LightKey(level)))[day] > 0 {
+				out[i] = max(out[i], level)
+			}
+		}
+	}
+	return out
+}

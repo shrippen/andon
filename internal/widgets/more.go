@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/metrics"
 	"andon/internal/sources"
 )
 
@@ -62,6 +63,26 @@ func calendarQueries(cfg CalendarConfig) []Query {
 	}
 	return q
 }
+
+// calendarPast reads the last weeks of every calendar ("past", "past2",
+// …) and Kimai's bookings, for the dialog's unbooked appointments.
+func calendarPast(cfg CalendarConfig) []Query {
+	var q []Query
+	for i, u := range append([]string{cfg.URL}, cfg.More...) {
+		if u == "" {
+			continue
+		}
+		name := pastName
+		if i > 0 {
+			name += strconv.Itoa(i + 1)
+		}
+		q = append(q, Query{Name: name, Source: "ical", Params: map[string]any{"url": u, "days": 0.0, "back": float64(metrics.UnbookedDays)}})
+	}
+	return append(q, kimaiPeer)
+}
+
+// pastName names the dialog's look back at a calendar.
+const pastName = "past"
 
 // APIField is one value picked from a JSON body: "Temp = main.temp".
 type APIField struct {
@@ -482,7 +503,7 @@ func init() {
 			{Key: "limit", Input: InputNumber, Default: defaultListLimit, Min: "1", Max: "50"}, {Key: "hide_all_day", Input: InputCheck},
 			sel("color_1", "none", accentColors...), {Key: "ical_url_2", Input: InputSecret}, sel("color_2", "none", accentColors...),
 			{Key: "ical_url_3", Input: InputSecret}, sel("color_3", "none", accentColors...)},
-		Decode: decodeCalendar, Queries: calendarQueries, View: calendarView}.add()
+		Decode: decodeCalendar, Queries: calendarQueries, DetailQueries: calendarPast, View: calendarView}.add()
 
 	Tile[CustomAPIConfig]{Key: "custom_api", Detail: customAPIDetail, Category: CategoryStart, Topic: TopicAnalysis, RefreshS: 5 * minute,
 		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "fields", Input: InputArea}, {Key: "headers", Input: InputHeaders},

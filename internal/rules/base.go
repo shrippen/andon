@@ -193,6 +193,22 @@ func Setting(settings map[string]any, rule, key string) float64 {
 	return cfgFloat(Config(spec, settings), key)
 }
 
+// NumberSettings are a rule's number settings as a space has them, by
+// key (catalog param.<key>), the general escalation and age left out.
+func NumberSettings(settings map[string]any, rule string) map[string]float64 {
+	spec, ok := registry[rule]
+	if !ok {
+		return nil
+	}
+	out := map[string]float64{}
+	for k, v := range Config(spec, settings) {
+		if f, isNum := v.(float64); isNum && k != Escalate && k != MaxAge {
+			out[k] = f
+		}
+	}
+	return out
+}
+
 // Money is a typed finding parameter, formatted per reader locale.
 func Money(value float64, currency string) map[string]any {
 	if currency == "" {

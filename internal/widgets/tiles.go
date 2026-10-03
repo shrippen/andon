@@ -105,6 +105,10 @@ type ConnStrip struct {
 	Name, Service string
 	FailPct       int
 	Days          []ConnDayState
+	ID            int64
+	LastError     string
+	AvgMs         int
+	Tiles         int // widgets that use it
 }
 
 // ConnDayState is one day of a strip.

@@ -87,6 +87,9 @@ func RunAll(ctx context.Context, d *sql.DB, today time.Time) (int, error) {
 		if err != nil {
 			slog.Error("analysis: space failed", "space", sp.ID, "err", err)
 		}
+		if err := recordLight(d, sp.ID, time.Now().UTC()); err != nil {
+			slog.Error("analysis: light failed", "space", sp.ID, "err", err)
+		}
 		fresh += n
 	}
 	syncBackup(d, today)

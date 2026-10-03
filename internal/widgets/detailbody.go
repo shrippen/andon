@@ -102,6 +102,7 @@ const (
 	BlockRead     BlockKind = "read"     // Data Reading: a text to read
 	BlockFrame    BlockKind = "frame"    // Data Embed: an embedded page
 	BlockThumbs   BlockKind = "thumbs"   // Data []Image: small pictures with captions
+	BlockForm     BlockKind = "form"     // Data Form: fields posted to a dialog act
 )
 
 // Block is one part of the main area: a label row (text left, Meta right)
@@ -272,6 +273,40 @@ type Image struct {
 	DataURI string
 	Alt     string
 	Caption string
+}
+
+// Form is a few fields a dialog act takes (a note, an assignee); the web
+// layer sets Post as for a Task.
+type Form struct {
+	Do     string
+	Args   map[string]string
+	Fields []FormField
+	Submit Text
+	Post   string
+}
+
+// FormField is one field: text, area or select.
+type FormField struct {
+	Name    string
+	Label   Text
+	Kind    FieldKind
+	Value   string
+	Options []FormOption
+}
+
+// FieldKind is how a form field is drawn.
+type FieldKind string
+
+const (
+	FieldText   FieldKind = "text"
+	FieldArea   FieldKind = "area"
+	FieldSelect FieldKind = "select"
+)
+
+// FormOption is one choice of a select.
+type FormOption struct {
+	Value string
+	Label any
 }
 
 // Embed is an embedded page of the large view (Kante figure.detail-figure).

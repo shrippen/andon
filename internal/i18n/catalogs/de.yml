@@ -3260,15 +3260,28 @@ detail:
     today: 'seit heute'
     all_up: 'Alle geprüften Links antworten.'
     n_down: '{n} unten'
+    cause: 'Ursache'
+    causes: 'Nach Ursache'
   conn:
     healthy: 'ohne Fehler'
     days: 'Abrufe je Tag'
+    avg_ms: 'Antwort Ø ms'
+    failed: 'fehlgeschlagen'
+    fetches: 'Abrufe'
+    last_error: 'Letzter Fehler'
+    ok: 'erfolgreich'
+    open: 'Verbindung bearbeiten'
+    service: 'Dienst'
+    tiles: 'Kacheln'
   deadlines:
     setup: 'Die Steuerfristen erscheinen, sobald in den Bereichseinstellungen die Steuerdaten eingetragen sind.'
     list: 'Fristen im nächsten Jahr'
     in: 'in {n} Tagen'
     next: 'nächste'
     count: 'Fristen'
+    filed: 'Abgegeben'
+    filed_on: 'abgegeben am {day}'
+    mark_filed: 'Abgegeben'
   expiries:
     none: 'In diesem Zeitraum läuft nichts ab.'
   noise:
@@ -3280,6 +3293,7 @@ detail:
     per_day: 'Neue Hinweise je Tag'
     how: 'Eine Regel, deren Hinweise von selbst verschwinden und wiederkommen, ist zu empfindlich eingestellt. In den Regel-Einstellungen eine höhere Schwelle wählen.'
     settings: 'Regeln einstellen'
+    limits: 'Grenzwerte'
   trend:
     open: 'Offene Hinweise je Tag'
   light:
@@ -3290,15 +3304,21 @@ detail:
     why_count: 'Hinweise dafür'
     why: 'Warum diese Farbe'
     calm: 'Nichts schaltet die Ampel um.'
+    history: 'Ampel der letzten Tage'
+    red_days: '{n} Tage rot'
   recent:
     updates: 'Updates'
     opened: 'neue Hinweise'
     list: 'Was passiert ist'
     burst: '{n} Hinweise auf einmal'
     all: 'Zeitleiste'
+    after_update: '{n} min nach Update {update}'
   story:
     week: 'Die Woche'
     empty: 'Für diese Woche gibt es noch nichts zu berichten.'
+    this_week: 'Diese Woche'
+    week_of: 'KW {n}'
+    weeks: 'Wochen'
   calendar:
     count: 'Termine'
     weeks: 'Die nächsten zwei Wochen'
@@ -3308,6 +3328,12 @@ detail:
     time: 'Zeit'
     title: 'Termin'
     place: 'Ort'
+    free: 'Freie Zeit (Werktage 9–18 Uhr, ab 2 h)'
+    from: 'von'
+    to: 'bis'
+    hours: 'Stunden'
+    unbooked: 'Termine ohne Buchung'
+    unbooked_note: 'letzte {n} Tage, Kunde oder Projekt im Titel'
   clock:
     work: 'Arbeitszeit 9–18 Uhr der Zonen, in deiner Zeit'
   center:
@@ -3945,6 +3971,14 @@ detail:
   goal: 'Grenze'
   close: 'Schließen'
   open: 'Details'
+  hints_assignee: 'Zuständig'
+  hints_history: 'Verlauf'
+  hints_ics: 'Als Kalender abonnieren'
+  hints_nobody: 'niemand'
+  hints_note: 'Notiz'
+  hints_pick: 'Hinweis wählen'
+  hints_save: 'Speichern'
+  hints_work: 'Bearbeiten'
 linkdetail:
   open_aria: Verlauf und Details
   open: Öffnen
@@ -3995,6 +4029,10 @@ linkdetail:
     partial: Teilweise
     down: Ausfall
     none: Keine Daten
+  clicks: 'Aufrufe von hier'
+  clicks_total: '{n} in 30 Tagen'
+  no_clicks: 'Noch nicht von hier aufgerufen.'
+  not_checked: 'aus (Prüfung abgeschaltet)'
 uptime:
   summary: '{share} erreichbar in 30 Tagen, Ø {ms} ms'
   month: 'Verfügbarkeit {month}'

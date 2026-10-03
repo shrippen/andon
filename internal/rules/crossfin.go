@@ -25,7 +25,6 @@ const (
 	rateWindowDays   = 90
 	marginWindowDays = 180
 	orderGapDays     = 28
-	unbookedDays     = 14
 	defaultTaxRate   = 0.3
 )
 
@@ -231,43 +230,13 @@ func marginLow(_ any, cfg map[string]any, env Env) []Finding {
 // unbooked finds past appointments naming a Kimai customer or project on
 // a day without a booking for that customer.
 func unbooked(cal *sources.CalendarResult, kimai *sources.KimaiDataset, today time.Time) []Finding {
-	type target struct {
-		name       string
-		customerID int64
-	}
-	var targets []target
-	for _, c := range kimai.Customers {
-		targets = append(targets, target{c.Name, c.ID})
-	}
-	for _, p := range kimai.Projects {
-		targets = append(targets, target{p.Name, p.CustomerID})
-	}
-	bookedDays := booked(kimai)
-	since := today.AddDate(0, 0, -unbookedDays)
-
 	var found []Finding
-	for _, e := range cal.Events {
-		if e.AllDay || e.Start.Before(since) || !e.Start.Before(today) {
-			continue
-		}
-		title := strings.ToLower(e.Title)
-		for _, t := range targets {
-			if len(t.name) < minMatchLen || !strings.Contains(title, strings.ToLower(t.name)) {
-				continue
-			}
-			day := metrics.Today(e.Start)
-			if bookedDays[[2]any{day, t.customerID}] {
-				break
-			}
-			found = append(found, Finding{Fingerprint: fmt.Sprintf("unbooked:%s:%s", day.Format(time.DateOnly), title),
-				Rule: "calendar.unbooked", Severity: enums.SeverityInfo, Message: "calendar.unbooked",
-				Params:  map[string]any{"title": e.Title, "day": Day(day)},
-				Sources: []string{string(enums.ServiceCalendar), string(enums.ServiceKimai)}})
-			break
-		}
+	for _, e := range metrics.UnbookedEvents(cal, kimai, today) {
+		day := metrics.Today(e.Start)
+		found = append(found, Finding{Fingerprint: fmt.Sprintf("unbooked:%s:%s", day.Format(time.DateOnly), strings.ToLower(e.Title)),
+			Rule: "calendar.unbooked", Severity: enums.SeverityInfo, Message: "calendar.unbooked",
+			Params:  map[string]any{"title": e.Title, "day": Day(day)},
+			Sources: []string{string(enums.ServiceCalendar), string(enums.ServiceKimai)}})
 	}
 	return found
 }
-
-// minMatchLen keeps short names ("IT") from matching every title.
-const minMatchLen = 4

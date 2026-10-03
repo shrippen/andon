@@ -480,6 +480,9 @@ func viewSection(q db.Queryer, who *access.Principal, section model.Section, boa
 		}
 		tile.FrameIcon = IconOf(tile.Frame.Icon)
 		tile.HasDetail = widgetlib.HasDetail(w.Type)
+		if own, ok := cfg.(widgets.Detailer); ok {
+			tile.HasDetail = tile.HasDetail && own.OffersDetail()
+		}
 		if v, ok := myRows[strconv.FormatInt(placement.ID, 10)]; ok {
 			tile.Rows = tileRows(int(int64FromAny(v)))
 		}

@@ -216,6 +216,13 @@ func postTasks(body *widgets.DetailBody, id int64, item string) {
 	walk = func(blocks []widgets.Block) {
 		for i := range blocks {
 			switch data := blocks[i].Data.(type) {
+			case widgets.Form:
+				q := url.Values{detailItemParam: {item}}
+				for k, v := range data.Args {
+					q.Set(k, v)
+				}
+				data.Post = fmt.Sprintf("/details/%d/do/%s?%s", id, url.PathEscape(data.Do), q.Encode())
+				blocks[i].Data = data
 			case widgets.Tasks:
 				for j := range data.Items {
 					t := &data.Items[j]

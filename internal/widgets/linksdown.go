@@ -16,6 +16,7 @@ const LinksDownSlot = "links_down"
 type DownLink struct {
 	Title, URL string
 	Since      time.Time // first day without any answer; zero = answered earlier today
+	Cause      string    // the check's error ("connection refused: nas.lan") or "HTTP 502"
 }
 
 // LinksDownConfig is the "links_down" widget's config.
