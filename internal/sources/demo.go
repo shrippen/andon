@@ -196,6 +196,7 @@ func DemoNinja(now time.Time) *NinjaDataset {
 
 	overdue := &invoices[len(invoices)-3]
 	overdue.Status, overdue.Balance, overdue.DueDate = "sent", overdue.Amount, iso(today.AddDate(0, 0, -21))
+	overdue.Reminded, overdue.NextSend = iso(today.AddDate(0, 0, -7)), iso(today.AddDate(0, 0, 7))
 	kept := payments[:0]
 	for _, p := range payments {
 		if p.ID != overdue.ID {

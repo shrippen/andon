@@ -3321,6 +3321,9 @@ detail:
     change: 'Change in {n} d'
     moves: 'Largest moves'
     none: 'A forecast needs invoices or a balance.'
+    if_late: 'if {ref} pays {n} d later'
+    lowest_if: 'Lowest without {ref}'
+    what_if: 'What if an invoice comes {n} d later?'
   invoices:
     band_current: 'not due'
     band_d30: '1–{to} d overdue'
@@ -3337,6 +3340,10 @@ detail:
     due: 'due'
     balance: 'open'
     late: 'overdue'
+    next_reminder: 'next reminder {day}'
+    not_reminded: 'not reminded yet'
+    reminded: 'reminded {day}'
+    reminder: 'Reminder'
   money:
     on_way: 'On its way'
     paid30: 'paid 30 d'
@@ -3344,6 +3351,8 @@ detail:
     per_month: 'Net revenue per month'
     year_ago: 'a year ago'
     this_month: 'this month'
+    pay_days: 'Invoice → payment avg'
+    work_age: 'Work open avg'
   paydays:
     target: 'Payment term'
     center: 'Computed with'
@@ -3352,6 +3361,9 @@ detail:
     typical_label: 'typical days to pay'
     invoices: 'Invoices'
     per_invoice: 'Days to payment per invoice'
+    discount: 'a {pct} % discount would have cost'
+    interest: '{pct} % late interest would have brought'
+    revenue_year: 'Revenue 12 months'
   rate:
     month: 'Month'
     target: 'Target'
@@ -3361,6 +3373,11 @@ detail:
     per_month: 'Effective rate per month'
     revenue: 'Net revenue per month'
     none: 'Too few invoices and hours for a rate yet.'
+    budget: 'Budget'
+    fixed: 'Fixed-price projects'
+    hours: 'Hours'
+    per_hour: 'per hour'
+    project: 'Project'
   mail:
     invoices: 'Invoice mails'
     box: 'Mailbox'
@@ -3384,6 +3401,7 @@ detail:
     title: 'Title'
     notice: 'Notice deadlines'
     growth: 'Documents · 90 days'
+    inbox_pages: 'In the inbox'
   receipts:
     missing: 'Without receipt'
     span: 'Span'
@@ -3395,6 +3413,9 @@ detail:
     search: 'Search in Paperless'
     amount: 'Amount'
     date: 'Date'
+    match: 'Link expense and receipt'
+    match_how: 'in receipt matching (Invoice Ninja ↔ Paperless)'
+    match_open: 'Receipt matching'
   subs:
     none: 'No subscriptions found (Wallos or recurring payments in Sure).'
     count: 'Subscriptions'
@@ -3407,6 +3428,7 @@ detail:
     per_month: 'per month'
     by_category: 'By category'
     not_in_wallos: 'Not in Wallos'
+    price_changes: 'Price changes'
   open_in: 'Open'
   wd:
     mon: 'Mon'

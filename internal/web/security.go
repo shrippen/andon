@@ -17,13 +17,11 @@ const (
 const hsts = "max-age=31536000"
 
 // csp builds the Content-Security-Policy: everything same-origin, iframe
-// widgets only from admin-listed origins, and only /embed/ pages may be
-// framed by other sites.
+// widgets only from admin-listed origins (and Andon's own pages, e.g. an
+// attachment a dialog shows), and only /embed/ pages may be framed by
+// other sites.
 func (d Deps) csp(path string) string {
-	frames := strings.Join(system.IframeOrigins(d.DB), " ")
-	if frames == "" {
-		frames = "'none'"
-	}
+	frames := strings.TrimSpace("'self' " + strings.Join(system.IframeOrigins(d.DB), " "))
 	ancestors := "'self'"
 	if strings.HasPrefix(path, embedPrefix) {
 		ancestors = "*"

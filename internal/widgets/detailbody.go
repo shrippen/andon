@@ -101,6 +101,7 @@ const (
 	BlockImage    BlockKind = "image"    // Data Image: a picture at full width
 	BlockRead     BlockKind = "read"     // Data Reading: a text to read
 	BlockFrame    BlockKind = "frame"    // Data Embed: an embedded page
+	BlockThumbs   BlockKind = "thumbs"   // Data []Image: small pictures with captions
 )
 
 // Block is one part of the main area: a label row (text left, Meta right)
@@ -274,7 +275,10 @@ type Image struct {
 }
 
 // Embed is an embedded page of the large view (Kante figure.detail-figure).
-type Embed struct{ URL string }
+type Embed struct {
+	URL  string
+	File string // or a file of the dialog's tile: the query of /details/{id}/file, set into URL by the web layer
+}
 
 // Reading is a text to read (Kante .detail-read): a title, paragraphs,
 // a link to the original.

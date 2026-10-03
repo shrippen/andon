@@ -358,3 +358,44 @@ func NinjaCashExpected(data *sources.NinjaDataset, today time.Time, days int) fl
 	}
 	return round2(openAmount + recurring)
 }
+
+// PayTerms is what a client's paid invoices since a day were worth:
+// their sum, and the sum of amount × days paid after the target.
+type PayTerms struct {
+	Revenue     float64
+	LateAmounts float64 // € × days beyond the target
+}
+
+// Discount is what a discount of share on every invoice would have cost.
+func (p PayTerms) Discount(share float64) float64 { return p.Revenue * share }
+
+// Interest is what yearly rate on the late days would have brought.
+func (p PayTerms) Interest(rate float64) float64 { return p.LateAmounts * rate / daysPerYear }
+
+// NinjaPayTerms sums a client's paid invoices dated since, each with the
+// days its payment came after target (payment: the first on or after the
+// invoice date, as NinjaPaymentGaps pairs them).
+func NinjaPayTerms(data *sources.NinjaDataset, clientID int64, target int, since time.Time) PayTerms {
+	var paid []time.Time
+	for _, p := range data.Payments {
+		if d, ok := ParseDay(p.Date); ok && p.ClientID == clientID {
+			paid = append(paid, d)
+		}
+	}
+	sort.Slice(paid, func(a, b int) bool { return paid[a].Before(paid[b]) })
+	var out PayTerms
+	for _, i := range NinjaCounted(data) {
+		d, ok := ParseDay(i.Date)
+		if i.ClientID != clientID || i.Status != "paid" || !ok || d.Before(since) {
+			continue
+		}
+		out.Revenue += i.Amount
+		for _, pd := range paid {
+			if !pd.Before(d) {
+				out.LateAmounts += i.Amount * float64(max(int(pd.Sub(d).Hours()/hoursPerDay)-target, 0))
+				break
+			}
+		}
+	}
+	return out
+}

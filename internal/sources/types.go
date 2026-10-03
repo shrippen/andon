@@ -80,6 +80,9 @@ type NinjaInvoice struct {
 	Balance  float64
 	Taxes    float64
 	Net      float64
+	// Reminded is when the last reminder went out, NextSend when the
+	// next one goes (or the invoice is sent again); "" = none.
+	Reminded, NextSend string
 }
 
 type NinjaPayment struct {

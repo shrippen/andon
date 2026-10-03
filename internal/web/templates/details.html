@@ -205,6 +205,8 @@
   {{else if eq $k "image"}}{{with .Data}}
   <figure class="detail-figure"><img src="{{.DataURI | dataURI}}" alt="{{.Alt}}">{{with .Caption}}<figcaption class="detail-sub">{{.}}</figcaption>{{end}}</figure>
   {{end}}
+  {{else if eq $k "thumbs"}}
+  <div class="detail-thumbs">{{range .Data}}<figure class="detail-figure">{{with .DataURI}}<img src="{{. | dataURI}}" alt="">{{end}}<figcaption>{{.Caption}}</figcaption></figure>{{end}}</div>
   {{else if eq $k "frame"}}{{with .Data}}
   <figure class="detail-figure"><iframe src="{{.URL}}" loading="lazy" referrerpolicy="no-referrer"></iframe></figure>
   {{end}}

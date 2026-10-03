@@ -848,6 +848,10 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .detail-figure{display:flex;flex-direction:column;gap:.5rem;margin:0;min-width:0}
 .detail-figure>img{display:block;max-width:100%;height:auto;margin:0 auto;background:var(--bg-hard)}
 .detail-figure>iframe{display:block;width:100%;height:70vh;border:0;background:var(--bg-hard)}
+/* Thumbnails: <div class="detail-thumbs"><figure class="detail-figure"><img><figcaption></figcaption></figure>…</div> */
+.detail-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(9rem,1fr));gap:.75rem}
+.detail-thumbs>.detail-figure>img{height:12rem;width:100%;object-fit:contain}
+.detail-thumbs>.detail-figure>figcaption{font-size:.75rem;color:var(--fg2);overflow-wrap:anywhere}
 /* Waiting for the content: <div class="detail-wait"><span class="loader">…</span></div> */
 .detail-wait{display:grid;place-items:center;min-height:12rem}
 @media(max-width:60rem){

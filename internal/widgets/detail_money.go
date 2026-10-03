@@ -6,6 +6,7 @@ package widgets
 import (
 	"cmp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -81,9 +82,68 @@ func cashflowDetail(cfg CashflowConfig, results map[string]any, ctx ViewCtx) Det
 	if len(moves) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTimeline, Label: T("detail.cash.moves"), Data: moves})
 	}
+
+	// What if one invoice is paid a month later: pick it, see the curve.
+	var payments []LitRow
+	for _, e := range events {
+		if e.Ref != "" {
+			payments = append(payments, LitRow{Name: e.Label, Meta: Money(e.Amount, currency), State: "info", Item: e.Ref})
+		}
+	}
+	if late := pickedItem(results); late != "" {
+		in.LateRef, in.LateDays = late, cashLateDays
+		if alt, _ := metrics.Cashflow(in, today, days); len(alt) == len(points) {
+			values := make([]float64, len(ahead))
+			for i := range values {
+				values[i] = Gap
+			}
+			for i, p := range alt {
+				values[len(past)-1+i] = p.Balance
+			}
+			g.Series = append(g.Series, Series{Values: values, Class: "s2", Label: TxtA("detail.cash.if_late", "ref", late, "n", cashLateDays)})
+			for i := range body.Blocks {
+				if body.Blocks[i].Hero {
+					body.Blocks[i].Data = g
+				}
+			}
+			altLow, altDay := metrics.CashLow(alt)
+			body.Line = append(body.Line, Fact{Label: textArgs("detail.cash.lowest_if", "ref", late), Value: TxtA("detail.cash.at_day", "amount", Money(altLow, currency), "day", Day(altDay)),
+				State: stateIf(cfg.MinBalance != 0 && altLow < cfg.MinBalance, "bad")})
+		}
+	}
+	if len(payments) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockRows, Label: textArgs("detail.cash.what_if", "n", cashLateDays), Data: payments})
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
 }
+
+// The payment-days dialog's what-ifs: a 2 % discount for fast payment,
+// 9 % a year on late days (B2B late payment interest is 9 points over
+// the base rate; the base rate is left out).
+const (
+	payDiscountPct = 2.0
+	payInterestPct = 9.0
+)
+
+// flowLine: how many days money spends as open work and as an invoice.
+func flowLine(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today time.Time) []Fact {
+	var line []Fact
+	work, workOK, pay, payOK := metrics.FlowDays(kimai, ninja, today)
+	if workOK {
+		line = append(line, Fact{Label: T("detail.money.work_age"), Value: TxtA("detail.days", "n", int(work+0.5))})
+	}
+	if payOK {
+		line = append(line, Fact{Label: T("detail.money.pay_days"), Value: TxtA("detail.days", "n", int(pay+0.5))})
+	}
+	return line
+}
+
+// receiptsPage is Andon's receipt matching (Invoice Ninja ↔ Paperless).
+const receiptsPage = "/receipts"
+
+// cashLateDays is how much later the scenario lets an invoice be paid.
+const cashLateDays = 30
 
 func abs(v float64) float64 {
 	if v < 0 {
@@ -117,8 +177,17 @@ func invoiceAgingDetail(cfg AgingConfig, data *sources.NinjaDataset, ctx ViewCtx
 			}
 		}
 		oldest = max(oldest, inv.OverdueDays)
+		reminder := any("–")
+		switch {
+		case inv.Reminded != "":
+			reminder = TxtA("detail.invoices.reminded", "day", DayS(inv.Reminded))
+		case inv.OverdueDays > 0 && inv.NextSend != "":
+			reminder = TxtA("detail.invoices.next_reminder", "day", DayS(inv.NextSend))
+		case inv.OverdueDays > 0:
+			reminder = Txt("detail.invoices.not_reminded")
+		}
 		rows = append(rows, []Cell{{Value: inv.Number}, {Value: inv.Client}, {Value: DayS(inv.DueDate)}, {Value: Money(inv.Balance, currency)},
-			{Value: TxtA("detail.days", "n", max(inv.OverdueDays, 0)), State: state}})
+			{Value: TxtA("detail.days", "n", max(inv.OverdueDays, 0)), State: state}, {Value: reminder, State: stateIf(inv.OverdueDays > 0 && inv.Reminded == "" && inv.NextSend == "", "warn")}})
 	}
 	body := &DetailBody{
 		Side: []Fact{{Label: T("detail.invoices.open"), Value: TxtA("detail.invoices.n_of", "n", len(rows), "amount", Money(total, currency))},
@@ -129,7 +198,7 @@ func invoiceAgingDetail(cfg AgingConfig, data *sources.NinjaDataset, ctx ViewCtx
 	}
 	if len(rows) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.invoices.list"), Data: Table{Head: []Text{T("detail.invoices.number"),
-			T("detail.invoices.client"), T("detail.invoices.due"), T("detail.invoices.balance"), T("detail.invoices.late")}, Rows: rows, Num: []int{3, 4}}})
+			T("detail.invoices.client"), T("detail.invoices.due"), T("detail.invoices.balance"), T("detail.invoices.late"), T("detail.invoices.reminder")}, Rows: rows, Num: []int{3, 4}}})
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}, Body: body}
@@ -168,6 +237,7 @@ func moneyFlowDetail(cfg MoneyFlowConfig, results map[string]any, ctx ViewCtx) D
 	}
 	body := &DetailBody{
 		Side:   []Fact{{Label: T("detail.money.on_way"), Value: Money(f.Total(), currency)}, {Label: T("detail.money.paid30"), Value: Money(f.Paid, currency)}},
+		Line:   flowLine(kimai, ninja, today),
 		Facts:  []Kpi{{Value: Money(f.Unbilled, currency), Label: T("flow.unbilled"), Tier: tierIf(f.Unbilled > 0, "yellow", "")}, {Value: Money(f.Sent, currency), Label: T("flow.sent")}, {Value: Money(f.Paid, currency), Label: T("detail.money.paid30"), Tier: "green"}},
 		Blocks: []Block{{Kind: BlockBars, Label: T("detail.money.stages"), Data: bars}},
 	}
@@ -193,13 +263,27 @@ func paymentDaysDetail(cfg PaymentDaysConfig, data *sources.NinjaDataset, ctx Vi
 	center := metrics.CenterOf(ctx.Settings)
 	gaps := metrics.NinjaPaymentGapsSince(data, time.Time{})
 	list := &ObjList{Label: T("detail.paydays.clients")}
-	for _, r := range rows {
-		list.Items = append(list.Items, LitRow{Name: r.Client, Meta: TxtA("detail.days", "n", r.Typical), State: tierIf(r.Late, "warn", "ok")})
+	names := make([]string, len(rows))
+	for i, r := range rows {
+		names[i] = r.Client
+		list.Items = append(list.Items, LitRow{Name: r.Client, Meta: TxtA("detail.days", "n", r.Typical), State: tierIf(r.Late, "warn", "ok"), Item: r.Client})
 	}
 	body := &DetailBody{Line: []Fact{{Label: T("detail.paydays.target"), Value: TxtA("detail.days", "n", cfg.Target)}, {Label: T("detail.paydays.center"), Value: Txt("detail.center." + string(center))}}, List: list}
 	if len(rows) > 0 {
-		r := rows[0]
+		list.Sel = pickIndex(results, names)
+		r := rows[list.Sel]
 		list.Title, list.State, list.StateText = r.Client, tierIf(r.Late, "warn", "ok"), textDays("detail.paydays.typical", r.Typical)
+		// A year of the client's invoices: what a discount for fast payment
+		// would cost, what interest on the late days would bring.
+		for _, c := range data.Clients {
+			if c.Name != r.Client {
+				continue
+			}
+			terms := metrics.NinjaPayTerms(data, c.ID, cfg.Target, todayOf(ctx).AddDate(-1, 0, 0))
+			body.Line = append(body.Line, Fact{Label: T("detail.paydays.revenue_year"), Value: Money(terms.Revenue, data.Currency)},
+				Fact{Label: textArgs("detail.paydays.discount", "pct", payDiscountPct), Value: Money(terms.Discount(payDiscountPct/percentScale), data.Currency)},
+				Fact{Label: textArgs("detail.paydays.interest", "pct", payInterestPct), Value: Money(terms.Interest(payInterestPct/percentScale), data.Currency), State: stateIf(terms.LateAmounts > 0, "warn")})
+		}
 		var days []float64
 		for id, l := range gaps {
 			if metrics.NinjaClientName(data, id) == r.Client {
@@ -263,6 +347,15 @@ func rateTrendDetail(cfg RateTrendConfig, results map[string]any, ctx ViewCtx) D
 		cols := ColGraph(revenue, "s4")
 		cols.Ticks = g.Ticks
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.rate.revenue"), Data: cols})
+		var fixed [][]Cell
+		for _, f := range metrics.FixedRates(kimai) {
+			fixed = append(fixed, []Cell{{Value: f.Project}, {Value: Money(f.Budget, ninja.Currency)}, {Value: NumU(f.Hours, 1, "h")},
+				{Value: Money(f.Rate, ninja.Currency), State: stateIf(cfg.Target > 0 && f.Rate < cfg.Target, "warn")}})
+		}
+		if len(fixed) > 0 {
+			body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.rate.fixed"),
+				Data: Table{Head: []Text{T("detail.rate.project"), T("detail.rate.budget"), T("detail.rate.hours"), T("detail.rate.per_hour")}, Rows: fixed, Num: []int{1, 2, 3}}})
+		}
 	} else {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.rate.none")})
 	}
@@ -293,7 +386,7 @@ func mailInvoicesDetail(cfg MailConfig, results map[string]any, ctx ViewCtx) Det
 			}
 		}
 		sum += m.Amount
-		list.Items = append(list.Items, LitRow{Name: m.Sender, Meta: Day(m.Date), State: state})
+		list.Items = append(list.Items, LitRow{Name: m.Sender, Meta: Day(m.Date), State: state, Item: strconv.FormatUint(uint64(m.UID), 10)})
 	}
 	body := &DetailBody{Line: []Fact{{Label: T("detail.mail.box"), Value: data.Mailbox}, {Label: T("detail.mail.scanned"), Value: data.Scanned}}}
 	if len(mails) == 0 {
@@ -302,6 +395,11 @@ func mailInvoicesDetail(cfg MailConfig, results map[string]any, ctx ViewCtx) Det
 	}
 	if chosen < 0 {
 		chosen = 0
+	}
+	for i, m := range mails {
+		if strconv.FormatUint(uint64(m.UID), 10) == pickedItem(results) {
+			chosen = i
+		}
 	}
 	m := mails[chosen]
 	list.Sel, list.Title, list.Sub = chosen, m.Subject, m.Addr
@@ -315,6 +413,10 @@ func mailInvoicesDetail(cfg MailConfig, results map[string]any, ctx ViewCtx) Det
 	body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Data: Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: [][]Cell{
 		{{Value: Txt("detail.mail.from")}, {Value: m.Sender + " · " + m.Addr}}, {{Value: Txt("detail.mail.date")}, {Value: Day(m.Date)}},
 		{{Value: Txt("detail.mail.files")}, {Value: strings.Join(m.Attachments, ", ")}}}}})
+	// The first attachment as the mail brought it (a PDF the browser shows).
+	if len(m.Attachments) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockFrame, Label: Plain(m.Attachments[0]), Data: Embed{File: "uid=" + strconv.FormatUint(uint64(m.UID), 10) + "&n=0"}})
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
 }
@@ -354,6 +456,13 @@ func paperlessDetail(cfg PaperlessConfig, data *sources.PaperlessDataset, ctx Vi
 	if len(deadlines) > 0 {
 		pair = append(pair, Block{Kind: BlockTimeline, Label: T("detail.paperless.notice"), Data: deadlines})
 	}
+	if thumbs, ok := results[openName].(*sources.PaperlessThumbs); ok && len(thumbs.List) > 0 {
+		var pics []Image
+		for _, t := range thumbs.List {
+			pics = append(pics, Image{DataURI: t.DataURI, Alt: t.Title, Caption: t.Title})
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockThumbs, Label: T("detail.paperless.inbox_pages"), Data: pics})
+	}
 	body.Blocks = append(body.Blocks, pairOf(pair)...)
 	if docs := dailySeries(historyOf(results), metrics.SampleKey("paperless", "docs"), today, historyDetailDays); hasValues(docs) {
 		g := LineGraph(Series{Values: docs, Class: "s1"})
@@ -378,18 +487,23 @@ func receiptsDetail(cfg ReceiptsConfig, results map[string]any, ctx ViewCtx) Det
 		return DetailView{Body: &DetailBody{Blocks: []Block{{Kind: BlockText, Data: Txt("close.receipts_setup")}}}}
 	}
 	list := &ObjList{Label: T("detail.receipts.missing")}
-	for _, r := range rows {
-		list.Items = append(list.Items, LitRow{Name: r.Name, Meta: Money(r.Amount, currency), State: "warn"})
+	keys := make([]string, len(rows))
+	for i, r := range rows {
+		keys[i] = r.Date + " " + r.Name
+		list.Items = append(list.Items, LitRow{Name: r.Name, Meta: Money(r.Amount, currency), State: "warn", Item: keys[i]})
 	}
 	body := &DetailBody{Line: []Fact{{Label: T("detail.receipts.span"), Value: TxtA("detail.days", "n", cfg.Days)}, {Label: T("detail.receipts.sum"), Value: Money(asF(view["Sum"]), currency)}}}
 	if len(rows) == 0 {
 		body.Blocks = []Block{{Kind: BlockText, Data: Txt("detail.receipts.none")}}
 		return DetailView{Body: body}
 	}
-	r := rows[0]
+	list.Sel = pickIndex(results, keys)
+	r := rows[list.Sel]
 	list.Title, list.Sub, list.State, list.StateText = r.Name, r.Account, "warn", T("detail.receipts.no_receipt")
 	body.List = list
-	tasks := Tasks{Label: T("detail.receipts.found"), Total: 1, Items: []Task{{Text: TxtA("detail.receipts.look", "name", r.Name), Meta: DayS(r.Date), State: "warn", Action: T("detail.receipts.search"), Href: r.Search}}}
+	tasks := Tasks{Label: T("detail.receipts.found"), Total: 2, Items: []Task{
+		{Text: TxtA("detail.receipts.look", "name", r.Name), Meta: DayS(r.Date), State: "warn", Action: T("detail.receipts.search"), Href: r.Search},
+		{Text: Txt("detail.receipts.match"), Meta: Txt("detail.receipts.match_how"), State: "info", Action: T("detail.receipts.match_open"), Href: receiptsPage}}}
 	body.Facts = []Kpi{{Value: Money(r.Amount, currency), Label: T("detail.receipts.amount")}, {Value: DayS(r.Date), Label: T("detail.receipts.date")}}
 	body.Blocks = append(body.Blocks, Block{Kind: BlockTasks, Data: tasks})
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
@@ -437,6 +551,17 @@ func subsDetail(cfg SubsConfig, results map[string]any, ctx ViewCtx) DetailView 
 	}
 	if missing, _ := view["Missing"].(string); missing != "" {
 		body.Side = append(body.Side, Fact{Label: T("detail.subs.not_in_wallos"), Value: missing, State: "warn"})
+	}
+	var changes []Event
+	if h := historyOf(results); h != nil {
+		for _, e := range h.Events {
+			if e.Kind == metrics.EventChange && strings.HasPrefix(e.Subject, metrics.SubscriptionSubject("")) {
+				changes = append(changes, Event{At: e.At, Title: strings.TrimPrefix(e.Subject, metrics.SubscriptionSubject("")), Sub: e.Detail, State: agoOf(e.At), Tier: "yellow"})
+			}
+		}
+	}
+	if len(changes) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTimeline, Label: T("detail.subs.price_changes"), Data: changes})
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}

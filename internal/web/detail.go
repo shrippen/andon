@@ -5,14 +5,18 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"mime"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"andon/internal/enums"
 	"andon/internal/i18n"
 	"andon/internal/services/boards"
 	"andon/internal/services/detailacts"
+	"andon/internal/services/mailfwd"
 	"andon/internal/services/widgetlib"
 	"andon/internal/widgets"
 )
@@ -60,6 +64,7 @@ func (d Deps) renderDetail(w http.ResponseWriter, r *http.Request, ctx Ctx, id i
 		name = detailBlocks
 		openItems(body, id, item)
 		postTasks(body, id, item)
+		fileFrames(body, id)
 		for i, b := range tablesOf(body) {
 			t := b.Data.(widgets.Table)
 			t.CSV = fmt.Sprintf("/details/%d/csv/%d?%s=%s", id, i+1, detailItemParam, url.QueryEscape(item))
@@ -256,4 +261,63 @@ func (d Deps) handleDetailDo(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	d.renderDetail(w, r, ctx, id, r.Form.Get(detailItemParam))
+}
+
+// fileFrames points embeds of a dialog file at /details/{id}/file.
+func fileFrames(body *widgets.DetailBody, id int64) {
+	var walk func(blocks []widgets.Block)
+	walk = func(blocks []widgets.Block) {
+		for i := range blocks {
+			switch data := blocks[i].Data.(type) {
+			case widgets.Embed:
+				if data.File != "" {
+					data.URL = fmt.Sprintf("/details/%d/file?%s", id, data.File)
+					blocks[i].Data = data
+				}
+			case []widgets.Block:
+				walk(data)
+			}
+		}
+	}
+	walk(body.Blocks)
+	for _, tab := range body.Tabs {
+		walk(tab.Blocks)
+	}
+}
+
+// fileTypes are the attachment types a dialog shows inline.
+var fileTypes = map[string]string{".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
+
+// handleDetailFile answers an attachment of a dialog's mail for the
+// dialog to show inline.
+func (d Deps) handleDetailFile(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	uid, err1 := strconv.ParseUint(r.URL.Query().Get("uid"), 10, 32)
+	n, err2 := strconv.Atoi(r.URL.Query().Get("n"))
+	if err1 != nil || err2 != nil {
+		http.NotFound(w, r)
+		return
+	}
+	file, err := mailfwd.File(r.Context(), d.DB, ctx.Who, id, uint32(uid), n)
+	if errors.Is(err, mailfwd.ErrNoFile) || errors.Is(err, mailfwd.ErrNoFiles) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		d.handleBoardError(w, r, err)
+		return
+	}
+	kind, ok := fileTypes[strings.ToLower(filepath.Ext(file.Name))]
+	if !ok {
+		http.Error(w, "unsupported", http.StatusUnsupportedMediaType)
+		return
+	}
+	w.Header().Set("Content-Type", kind)
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("inline", map[string]string{"filename": file.Name}))
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.Write(file.Content)
 }

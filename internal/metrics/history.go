@@ -12,6 +12,7 @@ package metrics
 import (
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -245,6 +246,14 @@ func init() {
 		r.Version("authentik", d.Version)
 	})
 	Record(func(d *sources.MediaServerDataset, _ time.Time, r *Readings) { r.Version(d.Kind, d.Version) })
+	// A subscription's price: a change (an increase) is on the timeline.
+	Record(func(d *sources.WallosDataset, _ time.Time, r *Readings) {
+		for _, s := range d.Subs {
+			if !s.Inactive && s.Price > 0 {
+				r.State(SubscriptionSubject(s.Name), strconv.FormatFloat(s.Price, 'f', 2, 64)+" "+d.Currency)
+			}
+		}
+	})
 	// Kintsugi's share of suggestions taken up, once decided.
 	Record(func(d *sources.KintsugiDataset, _ time.Time, r *Readings) {
 		if d.Rate >= 0 {
@@ -304,3 +313,9 @@ func LastRenewal(h *History, host string) time.Time {
 	}
 	return last
 }
+
+// subscriptionPrefix marks a subscription's price among the changes.
+const subscriptionPrefix = "Abo "
+
+// SubscriptionSubject is the change subject of a subscription's price.
+func SubscriptionSubject(name string) string { return subscriptionPrefix + name }

@@ -327,7 +327,7 @@ type PaperlessConfig struct {
 }
 
 func init() {
-	Tile[PaperlessConfig]{Key: "paperless_inbox", Detail: dataDetail(paperlessDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServicePaperless, RefreshS: 30 * 60,
+	Tile[PaperlessConfig]{Key: "paperless_inbox", Detail: dataDetail(paperlessDetail), DetailQueries: openQuery[PaperlessConfig]("paperless.thumbs"), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServicePaperless, RefreshS: 30 * 60,
 		Fields: []Field{{Key: "newest_docs", Input: InputNumber, Default: 0, Min: "0", Max: "10"}, {Key: "tag", Input: InputText}},
 		Decode: func(r Raw) PaperlessConfig {
 			return PaperlessConfig{Newest: r.Int("newest_docs"), Tag: strings.ToLower(strings.TrimSpace(r.String("tag")))}

@@ -21,7 +21,7 @@ func TestSettingsOpenRegistrationAndCSP(t *testing.T) {
 	}
 	resp.Body.Close()
 	csp := resp.Header.Get("Content-Security-Policy")
-	if !strings.Contains(csp, "frame-src 'none'") || !strings.Contains(csp, "frame-ancestors 'self'") {
+	if !strings.Contains(csp, "frame-src 'self';") || !strings.Contains(csp, "frame-ancestors 'self'") {
 		t.Fatalf("unexpected CSP: %q", csp)
 	}
 
@@ -42,7 +42,7 @@ func TestSettingsOpenRegistrationAndCSP(t *testing.T) {
 	resp, _ = guest.Get(srv.URL + "/embed/hints")
 	resp.Body.Close()
 	csp = resp.Header.Get("Content-Security-Policy")
-	if !strings.Contains(csp, "frame-src https://grafana.lan;") || !strings.Contains(csp, "frame-ancestors *") {
+	if !strings.Contains(csp, "frame-src 'self' https://grafana.lan;") || !strings.Contains(csp, "frame-ancestors *") {
 		t.Fatalf("expected iframe origin and open ancestors on embeds: %q", csp)
 	}
 	if strings.Contains(csp, "evil.lan") {

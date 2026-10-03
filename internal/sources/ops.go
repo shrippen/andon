@@ -6,6 +6,7 @@ package sources
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -369,6 +370,55 @@ func fetchPaperless(ctx context.Context, sctx Ctx) (any, error) {
 	return data, nil
 }
 
+// Thumb is a picture of a document's first page for a dialog.
+type Thumb struct {
+	ID           int64
+	Title, Added string
+	DataURI      string // "data:image/webp;base64,…"
+}
+
+// PaperlessThumbs are the inbox's newest documents with their first page.
+type PaperlessThumbs struct{ List []Thumb }
+
+var PaperlessThumbsSource = source{key: "paperless.thumbs", ttl: detailTTL, service: enums.ServicePaperless, fetch: fetchPaperlessThumbs}
+
+// paperlessThumbs is how many inbox documents the dialog pictures.
+const paperlessThumbs = 6
+
+func fetchPaperlessThumbs(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return &PaperlessThumbs{}, nil
+	}
+	api, err := paperlessAPI(sctx)
+	if err != nil {
+		return nil, err
+	}
+	filter, err := inboxFilter(ctx, api)
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	if filter == nil {
+		return &PaperlessThumbs{}, nil
+	}
+	filter.Set("ordering", "-added")
+	filter.Set("page_size", strconv.Itoa(paperlessThumbs))
+	docs, err := api.Get(ctx, "documents/", filter)
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	list := asList(asMap(docs)["results"])
+	out := &PaperlessThumbs{List: make([]Thumb, len(list))}
+	parallel(ctx, len(list), paperlessThumbs, func(i int) {
+		doc := asMap(list[i])
+		t := Thumb{ID: asInt64(doc["id"]), Title: asStr(doc["title"]), Added: day(doc["added"])}
+		if body, kind, err := api.Bytes(ctx, "documents/"+strconv.FormatInt(t.ID, 10)+"/thumb/"); err == nil && strings.HasPrefix(kind, "image/") {
+			t.DataURI = "data:" + kind + ";base64," + base64.StdEncoding.EncodeToString(body)
+		}
+		out.List[i] = t
+	})
+	return out, nil
+}
+
 func loadPaperless(ctx context.Context, api services.PaperlessApi, sctx Ctx) (*PaperlessDataset, error) {
 	filter, err := inboxFilter(ctx, api)
 	if err != nil {
@@ -613,6 +663,7 @@ func init() {
 	Register(KumaTest)
 	Register(ProxmoxData)
 	Register(ProxmoxTest)
+	Register(PaperlessThumbsSource)
 	Register(PaperlessData)
 	Register(PaperlessTest)
 	Register(CertData)

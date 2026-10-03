@@ -3322,6 +3322,9 @@ detail:
     change: 'Änderung in {n} T'
     moves: 'Größte Bewegungen'
     none: 'Für eine Vorschau fehlen Rechnungen oder ein Kontostand.'
+    if_late: 'wenn {ref} {n} T später zahlt'
+    lowest_if: 'Tiefster Stand ohne {ref}'
+    what_if: 'Was, wenn eine Rechnung {n} T später kommt?'
   invoices:
     band_current: 'nicht fällig'
     band_d30: '1–{to} T überfällig'
@@ -3338,6 +3341,10 @@ detail:
     due: 'fällig'
     balance: 'offen'
     late: 'überfällig'
+    next_reminder: 'nächste Erinnerung {day}'
+    not_reminded: 'noch nicht erinnert'
+    reminded: 'erinnert {day}'
+    reminder: 'Erinnerung'
   money:
     on_way: 'Unterwegs'
     paid30: 'bezahlt 30 T'
@@ -3345,6 +3352,8 @@ detail:
     per_month: 'Umsatz netto je Monat'
     year_ago: 'vor einem Jahr'
     this_month: 'dieser Monat'
+    pay_days: 'Rechnung → Zahlung Ø'
+    work_age: 'Arbeit offen Ø'
   paydays:
     target: 'Zahlungsziel'
     center: 'Gerechnet mit'
@@ -3353,6 +3362,9 @@ detail:
     typical_label: 'typische Zahldauer'
     invoices: 'Rechnungen'
     per_invoice: 'Tage bis Zahlung je Rechnung'
+    discount: '{pct} % Skonto hätte gekostet'
+    interest: '{pct} % Verzugszins hätte gebracht'
+    revenue_year: 'Umsatz 12 Monate'
   rate:
     month: 'Monat'
     target: 'Ziel'
@@ -3362,6 +3374,11 @@ detail:
     per_month: 'Effektiver Satz je Monat'
     revenue: 'Umsatz netto je Monat'
     none: 'Noch zu wenig Rechnungen und Stunden für einen Satz.'
+    budget: 'Budget'
+    fixed: 'Festpreis-Projekte'
+    hours: 'Stunden'
+    per_hour: 'je Stunde'
+    project: 'Projekt'
   mail:
     invoices: 'Rechnungs-Mails'
     box: 'Postfach'
@@ -3385,6 +3402,7 @@ detail:
     title: 'Titel'
     notice: 'Kündigungsfristen'
     growth: 'Dokumente · 90 Tage'
+    inbox_pages: 'Im Eingang'
   receipts:
     missing: 'Ohne Beleg'
     span: 'Zeitraum'
@@ -3396,6 +3414,9 @@ detail:
     search: 'In Paperless suchen'
     amount: 'Betrag'
     date: 'Datum'
+    match: 'Ausgabe mit Beleg verknüpfen'
+    match_how: 'im Belegabgleich (Invoice Ninja ↔ Paperless)'
+    match_open: 'Belegabgleich'
   subs:
     none: 'Keine Abos gefunden (Wallos oder wiederkehrende Zahlungen in Sure).'
     count: 'Abos'
@@ -3408,6 +3429,7 @@ detail:
     per_month: 'je Monat'
     by_category: 'Nach Kategorie'
     not_in_wallos: 'Nicht in Wallos'
+    price_changes: 'Preisänderungen'
   open_in: 'Öffnen'
   wd:
     mon: 'Mo'

@@ -31,6 +31,7 @@ func (d Deps) RegisterBoardRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /details/{id}", d.handleDetail)
 	mux.HandleFunc("GET /details/{id}/csv/{n}", d.handleDetailCSV)
 	mux.HandleFunc("POST /details/{id}/do/{act}", d.authed(d.handleDetailDo))
+	mux.HandleFunc("GET /details/{id}/file", d.authed(d.handleDetailFile))
 	mux.HandleFunc("POST /widget-fragments/{id}/toggle", d.authed(d.handleHassToggle))
 	mux.HandleFunc("POST /widget-fragments/{id}/kimai", d.authed(d.handleKimaiTimer))
 	mux.HandleFunc("POST /widget-fragments/{id}/close", d.authed(d.handleCloseTick))
