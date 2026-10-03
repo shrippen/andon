@@ -1,5 +1,5 @@
 /* Gallery and library: filter cards by search text and "only my connections",
-   open the reuse dialog of a set-up tile. */
+   open the reuse dialog of a set-up tile, fill a library row's menu. */
 (function () {
   "use strict";
 
@@ -32,10 +32,51 @@
       return;
     }
     var dialog = d.getElementById(opener.getAttribute("data-open"));
-    if (dialog && dialog.showModal && !dialog.open) {
-      dialog.showModal();
+    if (!dialog || !dialog.showModal || dialog.open) {
+      return;
     }
+    if (opener.hasAttribute("data-reuse")) {
+      fillReuse(dialog, opener);
+    }
+    dialog.showModal();
   });
+
+  // fillReuse points the shared reuse dialog at the card's tile:
+  // widget id into the place form and the copy action, name and kind
+  // into the texts. The copy action keeps {widget} in data-action.
+  function fillReuse(dialog, opener) {
+    var id = opener.getAttribute("data-reuse");
+    dialog.querySelector('input[name="widget_id"]').value = id;
+    [].forEach.call(dialog.querySelectorAll('form[action*="{widget}"], form[data-action]'), function (form) {
+      if (!form.hasAttribute("data-action")) {
+        form.setAttribute("data-action", form.getAttribute("action"));
+      }
+      form.setAttribute("action", form.getAttribute("data-action").replace("{widget}", id));
+    });
+    [].forEach.call(dialog.querySelectorAll("[data-fill]"), function (el) {
+      el.textContent = opener.getAttribute("data-" + el.getAttribute("data-fill")) || "";
+    });
+  }
+
+  // A library row's menu, on first open: the page's one template with
+  // the row's widget id in its links and form actions.
+  d.addEventListener("toggle", function (e) {
+    var menu = e.target;
+    if (!menu.matches || !menu.matches("details.row-more[data-widget]") || !menu.open || menu.querySelector(".row-more-body")) {
+      return;
+    }
+    var tpl = d.getElementById("row-more");
+    if (!tpl) {
+      return;
+    }
+    var id = menu.getAttribute("data-widget");
+    var body = tpl.content.cloneNode(true);
+    [].forEach.call(body.querySelectorAll("[href*=\"{widget}\"], [action*=\"{widget}\"]"), function (el) {
+      var attr = el.hasAttribute("href") ? "href" : "action";
+      el.setAttribute(attr, el.getAttribute(attr).replace("{widget}", id));
+    });
+    menu.appendChild(body);
+  }, true);
 
   window.andonPage(function () {
     var q = d.getElementById("gal-q");

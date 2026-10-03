@@ -195,10 +195,44 @@
 </form>
 {{end}}
 {{if or .Edit .LayerEdit}}<p class="edit-touch">{{t "edit.touch_hint"}}</p>{{end}}
+{{/* One poll for every link status line: one request and one layout
+     instead of one per tile (107 per 5 minutes on a big board). */}}
+{{if not .EmbedToken}}<span hidden hx-get="/boards/{{.Board.ID}}/live" hx-trigger="wake, {{launchEvery}}" hx-swap="none"></span>{{end}}
 {{end}}
+
+{{/* The board's link status lines, swapped in by id (GET /boards/{id}/live). */}}
+{{define "board_live"}}{{range .Lives}}<span id="live-{{.PlacementID}}" hx-swap-oob="innerHTML">{{fragment .}}</span>{{end}}{{end}}
 
 {{/* One section alone: the answer to an action on it (see boardPart). */}}
 {{define "board_section"}}{{range .Board.Sections}}{{if eq .ID $.Section}}{{template "section" dict "S" . "B" $}}{{end}}{{end}}{{end}}
+
+{{/* A section's form and delete button (GET …/sections/{id}/tools). */}}
+{{define "section_tools"}}{{$b := .}}{{range .Board.Sections}}{{if eq .ID $.Section}}
+<form method="post" action="/sections/{{.ID}}/edit" class="section-form" hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false">
+  <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
+  <input type="hidden" name="was_area" value="{{.Area}}">
+  <input type="hidden" name="was_span" value="{{.Span}}">
+  <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
+  <input type="hidden" name="version" value="{{$b.Board.Version}}">
+  <label>{{t "field.title"}}<input class="input" name="title" value="{{.Title}}"></label>
+  <label>{{t "field.cols"}}<input class="input" name="cols" type="number" min="1" max="12" value="{{with .Cols}}{{.}}{{end}}"></label>
+  <label>{{t "field.size"}}<select class="select" name="size">{{$size := .Size}}{{range $b.Sizes}}<option value="{{.}}"{{if eq . $size}} selected{{end}}>{{t (print "size." .)}}</option>{{end}}</select></label>
+  <label>{{t "field.sort"}}<select class="select" name="sort">{{$sort := .Sort}}{{range $b.Sorts}}<option value="{{.}}"{{if eq . $sort}} selected{{end}}>{{t (print "sort." .)}}</option>{{end}}</select></label>
+  <label>{{t "field.area"}}<select class="select" name="area">{{$area := .Area}}{{range $b.Areas}}<option value="{{.}}"{{if eq . $area}} selected{{end}}>{{t (print "area." .)}}</option>{{end}}</select></label>
+  <label>{{t "field.span"}}<select class="select" name="span">{{$span := .Span}}{{range $b.Spans}}<option value="{{.}}"{{if eq . $span}} selected{{end}}>{{t (print "span." .)}}</option>{{end}}</select></label>
+  <label>{{t "field.rows"}}<select class="select" name="rows">{{$rows := .Rows}}{{if eq $rows 0}}{{$rows = 1}}{{end}}{{range $b.RowSpans}}<option value="{{.}}"{{if eq . $rows}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+  <label>{{t "field.color"}}<select class="select" name="color">{{$color := .Color}}<option value="">{{t "opt.none"}}</option>{{range $b.Colors}}<option value="{{.}}"{{if eq (print .) $color}} selected{{end}}>{{t (print "opt." .)}}</option>{{end}}</select></label>
+  <label>{{t "field.mobile"}}<select class="select" name="mobile">{{$mobile := .Mobile}}{{range $b.Mobiles}}<option value="{{.}}"{{if eq . $mobile}} selected{{end}}>{{t (print "mobile." (or (print .) "normal"))}}</option>{{end}}</select></label>
+  <label class="check"><input type="checkbox" name="collapsed"{{if .Collapsed}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "field.collapsed"}}</label>
+  <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
+</form>
+<form method="post" action="/sections/{{.ID}}/delete" data-confirm="{{t "edit.confirm_delete"}}">
+  <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
+  <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
+  <input type="hidden" name="version" value="{{$b.Board.Version}}">
+  <button type="submit" class="btn btn-outline btn-sm">{{t "edit.delete_section"}}</button>
+</form>
+{{end}}{{end}}{{end}}
 
 {{/* "dict" packs the section and the root context into one pipeline,
      since {{template}} takes a single argument. */}}
@@ -212,30 +246,9 @@
     {{if $b.Edit}}
     <details class="section-tools">
       <summary class="btn btn-outline btn-sm">{{t "edit.section"}}</summary>
-      <form method="post" action="/sections/{{.ID}}/edit" class="section-form" hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false">
-        <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-        <input type="hidden" name="was_area" value="{{.Area}}">
-        <input type="hidden" name="was_span" value="{{.Span}}">
-        <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
-        <input type="hidden" name="version" value="{{$b.Board.Version}}">
-        <label>{{t "field.title"}}<input class="input" name="title" value="{{.Title}}"></label>
-        <label>{{t "field.cols"}}<input class="input" name="cols" type="number" min="1" max="12" value="{{with .Cols}}{{.}}{{end}}"></label>
-        <label>{{t "field.size"}}<select class="select" name="size">{{$size := .Size}}{{range $b.Sizes}}<option value="{{.}}"{{if eq . $size}} selected{{end}}>{{t (print "size." .)}}</option>{{end}}</select></label>
-        <label>{{t "field.sort"}}<select class="select" name="sort">{{$sort := .Sort}}{{range $b.Sorts}}<option value="{{.}}"{{if eq . $sort}} selected{{end}}>{{t (print "sort." .)}}</option>{{end}}</select></label>
-        <label>{{t "field.area"}}<select class="select" name="area">{{$area := .Area}}{{range $b.Areas}}<option value="{{.}}"{{if eq . $area}} selected{{end}}>{{t (print "area." .)}}</option>{{end}}</select></label>
-        <label>{{t "field.span"}}<select class="select" name="span">{{$span := .Span}}{{range $b.Spans}}<option value="{{.}}"{{if eq . $span}} selected{{end}}>{{t (print "span." .)}}</option>{{end}}</select></label>
-        <label>{{t "field.rows"}}<select class="select" name="rows">{{$rows := .Rows}}{{if eq $rows 0}}{{$rows = 1}}{{end}}{{range $b.RowSpans}}<option value="{{.}}"{{if eq . $rows}} selected{{end}}>{{.}}</option>{{end}}</select></label>
-        <label>{{t "field.color"}}<select class="select" name="color">{{$color := .Color}}<option value="">{{t "opt.none"}}</option>{{range $b.Colors}}<option value="{{.}}"{{if eq (print .) $color}} selected{{end}}>{{t (print "opt." .)}}</option>{{end}}</select></label>
-        <label>{{t "field.mobile"}}<select class="select" name="mobile">{{$mobile := .Mobile}}{{range $b.Mobiles}}<option value="{{.}}"{{if eq . $mobile}} selected{{end}}>{{t (print "mobile." (or (print .) "normal"))}}</option>{{end}}</select></label>
-        <label class="check"><input type="checkbox" name="collapsed"{{if .Collapsed}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "field.collapsed"}}</label>
-        <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
-      </form>
-      <form method="post" action="/sections/{{.ID}}/delete" data-confirm="{{t "edit.confirm_delete"}}">
-        <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
-        <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
-        <input type="hidden" name="version" value="{{$b.Board.Version}}">
-        <button type="submit" class="btn btn-outline btn-sm">{{t "edit.delete_section"}}</button>
-      </form>
+      {{/* Loaded on first open: 16 inline forms of 7 selects each cost
+           Chrome 1.7 s per edit page (form scanning). */}}
+      <div hx-get="/boards/{{$b.Board.ID}}/sections/{{.ID}}/tools" hx-trigger="toggle once from:closest details" hx-swap="outerHTML"></div>
     </details>
     {{else if $b.LayerEdit}}
     <form method="post" action="/boards/{{$b.Board.ID}}/size/{{.ID}}" class="inline-form section-tools">
@@ -293,7 +306,8 @@
         {{with $c.Tags}}<small class="launch-tags">{{range .}}<span>#{{.}}</span>{{end}}</small>{{end}}
         {{if or (ne (print $c.Status) "off") $c.InfoConn}}
         {{with index $b.Bodies .PlacementID}}
-        <span class="launch-live" hx-get="{{$frag}}" hx-trigger="{{if .Load}}load, {{end}}wake, {{launchEvery}}" hx-swap="innerHTML">{{fragment .}}</span>
+        {{if $b.EmbedToken}}<span class="launch-live" hx-get="{{$frag}}" hx-trigger="{{if .Load}}load, {{end}}wake, {{launchEvery}}" hx-swap="innerHTML">{{fragment .}}</span>
+        {{- else}}{{/* Refreshed with all others by the board's poll (board_live). */}}<span class="launch-live" id="live-{{.PlacementID}}"{{if .Load}} hx-get="{{$frag}}" hx-trigger="load" hx-swap="innerHTML"{{end}}>{{fragment .}}</span>{{end}}
         {{else}}
         <span class="launch-live" hx-get="{{$frag}}" hx-trigger="load, wake, {{launchEvery}}" hx-swap="innerHTML"></span>
         {{end}}

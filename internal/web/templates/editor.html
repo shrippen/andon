@@ -76,16 +76,7 @@
           <td class="small muted">{{.Space.Name}}</td>
           <td class="small muted">{{if .Uses}}{{t "gallery.uses" "n" .Uses}}{{else}}{{t "gallery.unused"}}{{end}}</td>
           <td class="row-actions">{{if .CanEdit}}<a class="btn btn-outline btn-sm" href="/widgets/{{.ID}}/edit">{{t "action.edit"}}</a>{{end}}
-            <details class="row-more"><summary class="btn btn-outline btn-sm" aria-label="{{t "action.more"}}" title="{{t "action.more"}}">⋯</summary>
-              <div class="row-more-body">
-                <a class="btn btn-outline btn-sm" href="/shares/widget/{{.ID}}">{{t "edit.share"}}</a>
-                <form method="post" action="/widgets/{{.ID}}/copy" class="inline-form">
-                  <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-                  <select class="select" name="space_id" aria-label="{{t "field.space"}}">{{range $.Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
-                  <button type="submit" class="btn btn-outline btn-sm">{{t "library.copy"}}</button>
-                </form>
-              </div>
-            </details>
+            <details class="row-more" data-widget="{{.ID}}"><summary class="btn btn-outline btn-sm" aria-label="{{t "action.more"}}" title="{{t "action.more"}}">⋯</summary></details>
           </td>
         </tr>
         {{end}}
@@ -93,6 +84,18 @@
     </section>
     {{else}}<p class="muted">{{t "library.empty"}}</p>{{end}}
     <p class="gal-none muted" hidden>{{t "gallery.none"}}</p>
+    {{/* Every row's menu, filled with {widget} when it opens (gallery.js):
+         a copy form with a space picker per row cost Chrome 280 ms. */}}
+    <template id="row-more">
+      <div class="row-more-body">
+        <a class="btn btn-outline btn-sm" href="/shares/widget/{widget}">{{t "edit.share"}}</a>
+        <form method="post" action="/widgets/{widget}/copy" class="inline-form">
+          <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+          <select class="select" name="space_id" aria-label="{{t "field.space"}}">{{range .Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
+          <button type="submit" class="btn btn-outline btn-sm">{{t "library.copy"}}</button>
+        </form>
+      </div>
+    </template>
   </main>
 </body>
 </html>
@@ -181,12 +184,33 @@
       <p class="gal-none muted" hidden>{{t "gallery.none"}}</p>
     </div>
   </main>
+  {{if or .Tiles .Links}}
+  {{/* One dialog for every set-up tile: {widget} and the texts are
+       filled from the card's button. One per tile made 226 tiles 580 KB. */}}
+  <dialog id="reuse" class="dialog gal-dialog" aria-labelledby="reuse-h">
+    <span class="label">{{t "gallery.existing"}} · <span data-fill="kind"></span></span>
+    <h3 id="reuse-h" data-fill="name"></h3>
+    <form method="post" action="/boards/{{.Target.BoardID}}/sections/{{.Target.SectionID}}/place">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+      <input type="hidden" name="version" value="{{.Target.Version}}">
+      <input type="hidden" name="widget_id" value="">
+      <button type="submit" class="gal-opt"><b>{{t "gallery.show_here"}}</b><small>{{t "gallery.show_here_hint"}}</small></button>
+    </form>
+    <form method="post" action="/widgets/{widget}/copy">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+      {{template "target_fields" .Target}}
+      <button type="submit" class="gal-opt"><b>{{t "gallery.copy"}}</b><small>{{t "gallery.copy_hint"}}</small></button>
+    </form>
+    <form method="dialog"><button type="submit" class="btn btn-outline btn-sm">{{t "action.cancel"}}</button></form>
+  </dialog>
+  {{end}}
 </body>
 </html>
 {{end}}
 
-{{/* A set-up widget in the gallery with its reuse dialog; P is the page. */}}
-{{define "gal_tile"}}{{$p := .P}}{{with .T}}
+{{/* A set-up widget in the gallery; its button fills and opens the
+     page's one reuse dialog (gallery.js). */}}
+{{define "gal_tile"}}{{with .T}}
           {{$type := t (print "wtype." .Type ".name")}}
           <article class="gal-card" data-q="{{.Name}} {{$type}}" data-mine>
             <div class="gal-preview" aria-hidden="true"><div class="gal-thumb" data-loading="{{t "gallery.preview_loading"}}" hx-get="/widgets/{{.ID}}/preview" hx-trigger="intersect once"></div></div>
@@ -195,24 +219,7 @@
               <b>{{.Name}}</b>
               <small class="muted">{{if .Uses}}{{t "gallery.uses" "n" .Uses}}{{else}}{{t "gallery.unused"}}{{end}}</small>
             </div>
-            <div class="gal-actions"><button type="button" class="btn btn-accent" data-open="reuse-{{.ID}}">{{t "gallery.add"}}</button></div>
-
-            <dialog id="reuse-{{.ID}}" class="dialog gal-dialog" aria-labelledby="reuse-{{.ID}}-h">
-              <span class="label">{{t "gallery.existing"}} · {{$type}}</span>
-              <h3 id="reuse-{{.ID}}-h">{{.Name}}</h3>
-              <form method="post" action="/boards/{{$p.Target.BoardID}}/sections/{{$p.Target.SectionID}}/place">
-                <input type="hidden" name="{{$p.CSRFField}}" value="{{$p.Ctx.CSRF}}">
-                <input type="hidden" name="version" value="{{$p.Target.Version}}">
-                <input type="hidden" name="widget_id" value="{{.ID}}">
-                <button type="submit" class="gal-opt"><b>{{t "gallery.show_here"}}</b><small>{{t "gallery.show_here_hint"}}</small></button>
-              </form>
-              <form method="post" action="/widgets/{{.ID}}/copy">
-                <input type="hidden" name="{{$p.CSRFField}}" value="{{$p.Ctx.CSRF}}">
-                {{template "target_fields" $p.Target}}
-                <button type="submit" class="gal-opt"><b>{{t "gallery.copy"}}</b><small>{{t "gallery.copy_hint"}}</small></button>
-              </form>
-              <form method="dialog"><button type="submit" class="btn btn-outline btn-sm">{{t "action.cancel"}}</button></form>
-            </dialog>
+            <div class="gal-actions"><button type="button" class="btn btn-accent" data-open="reuse" data-reuse="{{.ID}}" data-name="{{.Name}}" data-kind="{{$type}}">{{t "gallery.add"}}</button></div>
           </article>
 {{end}}{{end}}
 

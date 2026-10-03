@@ -172,3 +172,41 @@ func TestPruneRevisionsKeepsOnlyMostRecent(t *testing.T) {
 		t.Fatalf("expected newest first, got version %d", revs[0].Version)
 	}
 }
+
+// TestSpaceSettingsNotShared: settings read twice are separate maps, a
+// change to one never shows in the next read (they are cached decoded);
+// a stored change shows at once.
+func TestSpaceSettingsNotShared(t *testing.T) {
+	q := openTestDB(t)
+	sp := addSpace(t, q)
+	if err := content.UpdateSpaceSettings(q, sp.ID, map[string]any{"rules": map[string]any{"a": map[string]any{"enabled": true}}, "nav": []any{"x"}}, 2); err != nil {
+		t.Fatal(err)
+	}
+
+	first, err := content.Space(q, sp.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first.Settings["rules"].(map[string]any)["a"].(map[string]any)["enabled"] = false
+	first.Settings["nav"].([]any)[0] = "changed"
+	first.Settings["new"] = 1
+
+	second, err := content.Space(q, sp.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.Settings["rules"].(map[string]any)["a"].(map[string]any)["enabled"] != true || second.Settings["nav"].([]any)[0] != "x" || second.Settings["new"] != nil {
+		t.Fatalf("a change to a read leaked into the next: %v", second.Settings)
+	}
+
+	if err := content.UpdateSpaceSettings(q, sp.ID, map[string]any{"nav": []any{"y"}}, 3); err != nil {
+		t.Fatal(err)
+	}
+	third, err := content.Space(q, sp.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if third.Settings["nav"].([]any)[0] != "y" || third.Settings["rules"] != nil {
+		t.Fatalf("stored change not read: %v", third.Settings)
+	}
+}
