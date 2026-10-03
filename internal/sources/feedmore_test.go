@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -60,9 +61,11 @@ func TestFeedsMergeAgeAndImages(t *testing.T) {
 
 // TestFeedImageThumb: the tile gets a small copy of a big feed picture;
 // the full picture stays for the detail dialog. Pictures and feeds load
-// side by side, so six slow pictures cost one wait, not six.
+// side by side: counted by requests in flight, not by wall time, which
+// a slow CI runner (race detector) stretches.
 func TestFeedImageThumb(t *testing.T) {
-	const pictures, delay = 6, 300 * time.Millisecond
+	const pictures, delay = 6, 100 * time.Millisecond
+	var inFlight, peak atomic.Int32
 	big := image.NewRGBA(image.Rect(0, 0, 1920, 1080))
 	for y := range 1080 {
 		for x := range 1920 {
@@ -85,6 +88,10 @@ func TestFeedImageThumb(t *testing.T) {
 			}
 			w.Write([]byte(`<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel><title>A</title>` + items.String() + `</channel></rss>`))
 		default:
+			n := inFlight.Add(1)
+			defer inFlight.Add(-1)
+			for p := peak.Load(); n > p && !peak.CompareAndSwap(p, n); p = peak.Load() {
+			}
 			time.Sleep(delay)
 			w.Header().Set("Content-Type", "image/jpeg")
 			w.Write(pic.Bytes())
@@ -93,14 +100,13 @@ func TestFeedImageThumb(t *testing.T) {
 	defer srv.Close()
 
 	source, _ := sources.Get("rss")
-	start := time.Now()
 	out, err := source.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"url": srv.URL + "/a", "urls": []string{srv.URL + "/b"},
 		"images": true}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if took := time.Since(start); took > 4*delay {
-		t.Errorf("fetch took %v: feeds or pictures load one after the other", took)
+	if p := peak.Load(); p < pictures {
+		t.Errorf("%d pictures in flight at most, want %d: they load one after the other", p, pictures)
 	}
 
 	items := out.(*sources.FeedResult).Items
