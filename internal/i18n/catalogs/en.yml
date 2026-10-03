@@ -1658,6 +1658,9 @@ hint:
     updates:
       title: 'Router: {count} updates'
       why: 'Installed: {version}.'
+    new_device:
+      title: 'New device on the network: {name}'
+      why: 'On the network since {day}. If you don''t know it, block it in the router.'
   mediaserver:
     update:
       title: 'Media server update available'
@@ -2657,6 +2660,7 @@ rule_name:
   docker.unhealthy: 'Container unhealthy'
   docker.crashed: 'Container crashed'
   truenas.scrub_old: 'Pool scrub'
+  gateway.new_device: 'New devices on the network'
 param:
   new_watts: 'New device (W)'
   new_cost: 'New device (€)'
@@ -3516,6 +3520,11 @@ detail:
     top_clients: 'Busiest clients'
     top_blocked: 'Most blocked'
     per_day: 'Queries per day · 30 days'
+    pause: 'Off 10 min'
+    pause_back: 'turns itself back on afterwards'
+    pause_label: 'Filter'
+    pause_what: 'Pause the filter when a site won''t load'
+    per_hour: 'Queries per hour'
   gateway:
     router: 'Router'
     version: 'Version'
@@ -3533,6 +3542,8 @@ detail:
     state_bad: 'down'
     all_up: 'all uplinks up'
     link_down: 'uplink down'
+    delay_days: 'Latency per day'
+    new_devices: 'New devices ({n} d)'
   speed:
     last: 'Last test'
     contract: 'Contract'
@@ -3547,6 +3558,13 @@ detail:
     slow_days: 'slow days'
     per_day: 'Download per day (Mbit/s)'
     none: 'No stored results yet: Andon keeps one value per day.'
+    below: 'Below contract (for the provider)'
+    below_count: '{n} measurements on {days} days'
+    by_hour: 'When it is slow (week × hour)'
+    by_hour_scale: 'darker = further below contract'
+    day: 'Day'
+    time: 'Time'
+    today: 'Measurements today'
   tailscale:
     online: 'online'
     keys: 'keys expiring soon'
@@ -3557,6 +3575,8 @@ detail:
     key: 'Key until'
     tags: 'Tags'
     never: 'never expires'
+    client: 'System · client'
+    online_days: 'Online per day'
   vpn:
     status: 'Status'
     exit: 'Exit IP'
@@ -3569,11 +3589,20 @@ detail:
     connected: 'connected'
     broken: 'tunnel down or leak'
     wrong_country: 'wrong country'
+    changes: 'Tunnel and exit changes'
+    no_port: 'none'
+    port: 'Forwarded port'
   ip:
     v4: 'IPv4'
     v6: 'IPv6'
     changes: 'Last change'
     no_change: 'The address has not changed since Andon started watching it.'
+    addrs: 'DNS points to'
+    dns: 'Own domains'
+    dns_here: 'points here'
+    dns_other: 'points elsewhere'
+    every: 'Changes every'
+    host: 'Host'
   authentik:
     logins7: 'Logins 7 d'
     failed7: 'failed 7 d'
@@ -3590,6 +3619,7 @@ detail:
     ip: 'IP'
     last_login: 'Last login'
     current: 'current'
+    per_day: 'Logins per day'
   expiry:
     next: 'Next'
     in: 'in'
@@ -3599,6 +3629,11 @@ detail:
     spf: 'SPF'
     dmarc: 'DMARC'
     until: 'expires'
+    host: 'Host'
+    renewal_late: 'renewal overdue'
+    renewal_ok: 'on schedule'
+    renewals: 'Renewals'
+    renewed: 'last renewed'
   exposure:
     resources: 'Public resources'
     risk_ok: 'low risk'
@@ -3612,11 +3647,17 @@ detail:
     sites: 'Sites'
     all_login: 'all behind a login'
     n_open: '{n} without login'
+    blocked: 'blocked (7 d)'
+    from: 'From'
+    requests: 'Requests (7 d)'
   vault:
     with_2fa: 'accounts with a second factor'
     set_up: '{who}: have a second factor set up'
     check: '{who}: check the account (long inactive, no second factor)'
     have_2fa: 'with a second factor'
+    members: 'Members'
+    org: 'Organisation'
+    orgs: 'Organisations'
   plain: '{text}'
   hints: 'Hints for this tile'
   today: 'today'

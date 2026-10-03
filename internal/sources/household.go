@@ -37,6 +37,7 @@ type VaultUser struct {
 	Email              string
 	TwoFactor, Enabled bool
 	LastActive         time.Time
+	Orgs               []string // organizations the account belongs to
 }
 
 type VaultwardenDataset struct {
@@ -63,8 +64,14 @@ func fetchVaultwarden(ctx context.Context, sctx Ctx) (any, error) {
 	data := &VaultwardenDataset{URL: sctx.URL, Version: api.Version(ctx)}
 	for _, raw := range asList(users) {
 		u := asMap(raw)
-		data.Users = append(data.Users, VaultUser{Email: asStr(u["email"]), TwoFactor: asBool(u["twoFactorEnabled"]),
-			Enabled: asBool(u["userEnabled"]), LastActive: vaultTime(u["lastActive"])})
+		user := VaultUser{Email: asStr(u["email"]), TwoFactor: asBool(u["twoFactorEnabled"]),
+			Enabled: asBool(u["userEnabled"]), LastActive: vaultTime(u["lastActive"])}
+		for _, o := range asList(u["organizations"]) {
+			if name := asStr(asMap(o)["name"]); name != "" {
+				user.Orgs = append(user.Orgs, name)
+			}
+		}
+		data.Users = append(data.Users, user)
 	}
 	return data, nil
 }
@@ -86,6 +93,70 @@ type SpeedtestDataset struct {
 	Jitter               float64 // ms, 0 = unknown
 	At                   time.Time
 	ExpectDown, ExpectUp float64 // from the options, 0 = none
+}
+
+// SpeedResult is one measurement.
+type SpeedResult struct {
+	At             time.Time
+	Down, Up, Ping float64 // Mbit/s, ms
+}
+
+// SpeedResults are the measurements of the last weeks, oldest first:
+// what the dialogs need for the provider and the time of day.
+type SpeedResults struct{ List []SpeedResult }
+
+var SpeedResultsSource = source{key: "speedtest.results", ttl: detailTTL, service: enums.ServiceSpeedtest, fetch: fetchSpeedResults}
+
+// speedResultsMax is how many measurements the dialog reads (four a day
+// for a month and some).
+const speedResultsMax = 150
+
+func fetchSpeedResults(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return DemoSpeedResults(time.Now().UTC()), nil
+	}
+	// Only the v1 API with a token lists results.
+	if sctx.Secret == "" || asStr(sctx.Options["kind"]) == speedMySpeed {
+		return &SpeedResults{}, nil
+	}
+	api := services.BearerApi(sctx.URL, sctx.Secret, sctx.TLS())
+	body, err := api.Get(ctx, "api/v1/results", url.Values{"sort": {"-created_at"}, "page[size]": {strconv.Itoa(speedResultsMax)}})
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	return parseSpeedResults(body), nil
+}
+
+// parseSpeedResults reads the v1 result list, failed runs left out.
+func parseSpeedResults(body any) *SpeedResults {
+	out := &SpeedResults{}
+	for _, raw := range asList(asMap(body)["data"]) {
+		r := asMap(raw)
+		if s := asStr(r["status"]); s != "" && s != "completed" {
+			continue
+		}
+		out.List = append(out.List, SpeedResult{At: parseTime(r["created_at"]), Down: asFloat(r["download_bits"]) / bitsPerMbit,
+			Up: asFloat(r["upload_bits"]) / bitsPerMbit, Ping: asFloat(r["ping"])})
+	}
+	sort.Slice(out.List, func(a, b int) bool { return out.List[a].At.Before(out.List[b].At) })
+	return out
+}
+
+// DemoSpeedResults are four measurements a day for a month; evenings
+// are slower.
+func DemoSpeedResults(now time.Time) *SpeedResults {
+	out := &SpeedResults{}
+	for d := 30; d > 0; d-- {
+		for _, hour := range []int{3, 9, 15, 21} {
+			at := time.Date(now.Year(), now.Month(), now.Day()-d, hour, 0, 0, 0, time.UTC)
+			down := 248 - float64((d*7)%19)
+			if hour == 21 {
+				down -= 70 + float64(d%5)*8
+			}
+			out.List = append(out.List, SpeedResult{At: at, Down: down, Up: 41, Ping: 12})
+		}
+	}
+	return out
 }
 
 var SpeedtestData = source{key: "speedtest.data", ttl: opsTTL, service: enums.ServiceSpeedtest, fetch: fetchSpeedtest}
@@ -535,8 +606,8 @@ func addTemperatures(ctx context.Context, days []EnergyDay, options map[string]a
 
 func DemoVaultwarden(now time.Time) *VaultwardenDataset {
 	return &VaultwardenDataset{URL: "https://vault.demo", Version: "1.34.3", Users: []VaultUser{
-		{Email: demoWorld.Person("mara").Email, TwoFactor: true, Enabled: true, LastActive: now.AddDate(0, 0, -1)},
-		{Email: demoWorld.Person("lena").Email, Enabled: true, LastActive: now.AddDate(0, 0, -3)},
+		{Email: demoWorld.Person("mara").Email, TwoFactor: true, Enabled: true, LastActive: now.AddDate(0, 0, -1), Orgs: []string{demoWorld.Studio.Name}},
+		{Email: demoWorld.Person("lena").Email, Enabled: true, LastActive: now.AddDate(0, 0, -3), Orgs: []string{demoWorld.Studio.Name}},
 	}}
 }
 
@@ -591,6 +662,7 @@ func init() {
 	Register(VaultwardenData)
 	Register(testOf{VaultwardenData, func(d any) map[string]any { return map[string]any{"version": d.(*VaultwardenDataset).Version} }})
 	Register(SpeedtestData)
+	Register(SpeedResultsSource)
 	Register(testOf{SpeedtestData, func(d any) map[string]any { return map[string]any{"down": d.(*SpeedtestDataset).Down} }})
 	Register(GrocyData)
 	Register(testOf{GrocyData, func(d any) map[string]any { return map[string]any{"missing": len(d.(*GrocyDataset).Missing)} }})

@@ -810,3 +810,57 @@ func LoadDays(h *History, now time.Time, n int) (cpu, mem []float64) {
 	}
 	return cpu, mem
 }
+
+// ── Network ──
+
+// Each run keeps the WAN links' latency and loss, and marks the devices
+// that hold a lease: the first mark of a name is the day it joined.
+//
+//	gateway.ms.wan_dhcp    11.4   gateway.seen.laptop-mara   1
+func init() {
+	Record(func(d *sources.GatewayDataset, _ time.Time, r *Readings) {
+		for _, g := range d.Gateways {
+			if g.Up {
+				r.Set(key("gateway", "ms", g.Name), g.DelayMS)
+			}
+			r.Set(key("gateway", "loss", g.Name), g.Loss)
+		}
+		for _, name := range d.ClientNames {
+			r.Set(key("gateway", "seen", name), 1)
+		}
+	})
+}
+
+// gatewaySeen is the key prefix of device marks.
+const gatewaySeen = "gateway.seen."
+
+// NewLeases are the devices first marked within the last days, newest
+// first. Before the history is older than that window nothing counts as
+// new: the first run would see every device for the first time.
+func NewLeases(h *History, now time.Time, days int) []NewDevice {
+	since := Today(now).AddDate(0, 0, -days)
+	var out []NewDevice
+	older := false
+	for _, k := range h.Keys(gatewaySeen) {
+		points := h.SeriesOf(k)
+		if len(points) == 0 {
+			continue
+		}
+		if points[0].Day.Before(since) {
+			older = true
+			continue
+		}
+		out = append(out, NewDevice{Name: strings.TrimPrefix(k, gatewaySeen), First: points[0].Day})
+	}
+	if !older {
+		return nil
+	}
+	sort.Slice(out, func(a, b int) bool { return out[a].First.After(out[b].First) })
+	return out
+}
+
+// NewDevice is a device seen for the first time.
+type NewDevice struct {
+	Name  string
+	First time.Time
+}

@@ -20,3 +20,17 @@ func TestBorgMetrics(t *testing.T) {
 		t.Fatalf("client: %+v", c)
 	}
 }
+
+// TestSpeedResults: failed runs are left out, results come oldest first
+// in Mbit/s.
+func TestSpeedResults(t *testing.T) {
+	var body any
+	_ = json.Unmarshal([]byte(`{"data": [
+		{"created_at": "2026-09-27T20:00:00Z", "download_bits": 100000000, "upload_bits": 20000000, "ping": 12, "status": "completed"},
+		{"created_at": "2026-09-27T21:00:00Z", "status": "failed"},
+		{"created_at": "2026-09-27T08:00:00Z", "download_bits": 250000000, "upload_bits": 40000000, "ping": 9}]}`), &body)
+	got := parseSpeedResults(body).List
+	if len(got) != 2 || got[0].Down != 250 || got[1].Down != 100 || got[1].Up != 20 {
+		t.Fatalf("results: %+v", got)
+	}
+}

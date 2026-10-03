@@ -1,8 +1,6 @@
 package widgetlib
 
 import (
-	"andon/internal/metrics"
-	"andon/internal/repos/users"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -14,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"andon/internal/metrics"
+	"andon/internal/repos/users"
 
 	"andon/internal/db"
 	"andon/internal/enums"
@@ -436,6 +437,11 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 			frag.Slots[widgets.KimaiFavsPref] = Slot{Data: widgets.KimaiFavsOf(all[strconv.FormatInt(conn.ID, 10)])}
 		}
 	}
+	if ip, ok := frag.Slots["ip"].Data.(*sources.PublicIPResult); ok && kind.Extra == widgets.ExtraIPWatch && ip.IP != "" && from == originStored {
+		if err := recordIP(d, widget.SpaceID, ip.IP, time.Now().UTC()); err != nil {
+			return nil, err
+		}
+	}
 	if kind.Extra == widgets.ExtraIPWatch {
 		if w, ok := cfg.(interface{ WatchesIP() bool }); ok && w.WatchesIP() {
 			if ip, ok := frag.Slots["ip"].Data.(*sources.PublicIPResult); ok && ip.IP != "" {
@@ -522,6 +528,24 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		frag.View[widgets.CalmSlot] = true
 	}
 	return frag, nil
+}
+
+// recordIP keeps the space's public IP as a state: a change is a timeline
+// event once, however many viewers see it.
+func recordIP(d *sql.DB, spaceID int64, ip string, now time.Time) error {
+	return db.WithTx(d, func(tx *sql.Tx) error {
+		key := metrics.StateKey(metrics.SubjectIP)
+		known, err := data.Versions(tx, spaceID, 0)
+		if err != nil || known[key] == ip {
+			return err
+		}
+		if e, ok := metrics.StateEvent(key, known[key], ip, now); ok {
+			if err := data.AddEvent(tx, spaceID, data.Event{At: e.At, Kind: e.Kind, Subject: e.Subject, Detail: e.Detail}); err != nil {
+				return err
+			}
+		}
+		return data.SetVersion(tx, spaceID, 0, key, ip, now)
+	})
 }
 
 // ipSeenPref is the user pref that remembers the last public IP.

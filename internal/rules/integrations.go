@@ -315,3 +315,18 @@ func costRising(data *sources.TibberDataset, cfg map[string]any, _ Env) []Findin
 	return []Finding{{Fingerprint: "cost", Rule: costRuleID, Severity: enums.SeverityInfo, Message: costRuleID,
 		Params: map[string]any{"recent": Money(recent, data.Currency), "before": Money(before, data.Currency)}, Sources: []string{tibberSvc}}}
 }
+
+func init() {
+	// A device on the network that was never there before: a guest, a
+	// new gadget or someone who should not be there.
+	Register("gateway.new_device", Cross, map[string]any{"days": 1.0}, gatewayNewDevice)
+}
+
+func gatewayNewDevice(_ any, cfg map[string]any, env Env) []Finding {
+	var found []Finding
+	for _, dev := range metrics.NewLeases(historyOf(env), env.Today, cfgInt(cfg, "days")) {
+		found = append(found, Finding{Fingerprint: "device:" + dev.Name, Severity: enums.SeverityInfo, Message: "gateway.new_device",
+			Params: map[string]any{"name": dev.Name, "day": Day(dev.First)}, Sources: []string{gatewaySvc}})
+	}
+	return found
+}

@@ -1658,6 +1658,9 @@ hint:
     updates:
       title: 'Router: {count} Updates'
       why: 'Installiert: {version}.'
+    new_device:
+      title: 'Neues Gerät im Netz: {name}'
+      why: 'Seit {day} im Netz. Kennst du es nicht, im Router sperren.'
   mediaserver:
     update:
       title: 'Mediaserver-Update verfügbar'
@@ -2658,6 +2661,7 @@ rule_name:
   docker.unhealthy: 'Container ungesund'
   docker.crashed: 'Container abgestürzt'
   truenas.scrub_old: 'Pool-Scrub'
+  gateway.new_device: 'Neue Geräte im Netz'
 param:
   new_watts: 'Neues Gerät (W)'
   new_cost: 'Neues Gerät (€)'
@@ -3517,6 +3521,11 @@ detail:
     top_clients: 'Häufigste Clients'
     top_blocked: 'Am häufigsten geblockt'
     per_day: 'Anfragen je Tag · 30 Tage'
+    pause: '10 min aus'
+    pause_back: 'schaltet sich danach selbst wieder ein'
+    pause_label: 'Filter'
+    pause_what: 'Filter kurz aussetzen, wenn eine Seite nicht lädt'
+    per_hour: 'Anfragen je Stunde'
   gateway:
     router: 'Router'
     version: 'Version'
@@ -3534,6 +3543,8 @@ detail:
     state_bad: 'unten'
     all_up: 'alle Leitungen oben'
     link_down: 'Leitung unten'
+    delay_days: 'Latenz je Tag'
+    new_devices: 'Neue Geräte ({n} T)'
   speed:
     last: 'Letzte Messung'
     contract: 'Vertrag'
@@ -3548,6 +3559,13 @@ detail:
     slow_days: 'langsame Tage'
     per_day: 'Download je Tag (Mbit/s)'
     none: 'Noch keine gespeicherten Messungen: Andon merkt sich einen Wert je Tag.'
+    below: 'Unter Vertrag (für den Anbieter)'
+    below_count: '{n} Messungen an {days} Tagen'
+    by_hour: 'Wann es langsam ist (Woche × Stunde)'
+    by_hour_scale: 'dunkler = weiter unter Vertrag'
+    day: 'Tag'
+    time: 'Zeit'
+    today: 'Messungen heute'
   tailscale:
     online: 'online'
     keys: 'Schlüssel laufen bald ab'
@@ -3558,6 +3576,8 @@ detail:
     key: 'Schlüssel bis'
     tags: 'Tags'
     never: 'läuft nie ab'
+    client: 'System · Client'
+    online_days: 'Online je Tag'
   vpn:
     status: 'Status'
     exit: 'Ausgangs-IP'
@@ -3570,11 +3590,20 @@ detail:
     connected: 'verbunden'
     broken: 'Tunnel unten oder Leck'
     wrong_country: 'falsches Land'
+    changes: 'Wechsel von Tunnel und Ausgang'
+    no_port: 'keiner'
+    port: 'Weitergeleiteter Port'
   ip:
     v4: 'IPv4'
     v6: 'IPv6'
     changes: 'Letzter Wechsel'
     no_change: 'Seit Andon die Adresse beobachtet, hat sie sich nicht geändert.'
+    addrs: 'DNS zeigt auf'
+    dns: 'Eigene Domains'
+    dns_here: 'zeigt hierher'
+    dns_other: 'zeigt woandershin'
+    every: 'Wechsel alle'
+    host: 'Host'
   authentik:
     logins7: 'Anmeldungen 7 T'
     failed7: 'fehlgeschlagen 7 T'
@@ -3591,6 +3620,7 @@ detail:
     ip: 'IP'
     last_login: 'Zuletzt angemeldet'
     current: 'aktuell'
+    per_day: 'Anmeldungen je Tag'
   expiry:
     next: 'Als Nächstes'
     in: 'in'
@@ -3600,6 +3630,11 @@ detail:
     spf: 'SPF'
     dmarc: 'DMARC'
     until: 'läuft ab'
+    host: 'Host'
+    renewal_late: 'Verlängerung überfällig'
+    renewal_ok: 'im Plan'
+    renewals: 'Verlängerungen'
+    renewed: 'zuletzt verlängert'
   exposure:
     resources: 'Öffentliche Ressourcen'
     risk_ok: 'geringes Risiko'
@@ -3613,11 +3648,17 @@ detail:
     sites: 'Sites'
     all_login: 'alles hinter Anmeldung'
     n_open: '{n} ohne Anmeldung'
+    blocked: 'abgewiesen (7 T)'
+    from: 'Herkunft'
+    requests: 'Aufrufe (7 T)'
   vault:
     with_2fa: 'Konten mit zweitem Faktor'
     set_up: '{who}: zweiten Faktor einrichten lassen'
     check: '{who}: Konto prüfen (lange inaktiv, ohne zweiten Faktor)'
     have_2fa: 'mit zweitem Faktor'
+    members: 'Mitglieder'
+    org: 'Organisation'
+    orgs: 'Organisationen'
   plain: '{text}'
   hints: 'Hinweise zu dieser Kachel'
   today: 'heute'

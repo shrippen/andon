@@ -202,6 +202,15 @@ func init() {
 		r.Set(key("nextcloud", "files"), float64(d.Files))
 		r.Version("Nextcloud", d.Version)
 	})
+	// A certificate's end as a day number: when it jumps forward, it was
+	// renewed.
+	Record(func(d *sources.CertDataset, _ time.Time, r *Readings) {
+		for _, c := range d.Certs {
+			if !c.NotAfter.IsZero() {
+				r.Set(key("certs", "until", c.Host), float64(c.NotAfter.Unix()/secondsPerDay))
+			}
+		}
+	})
 	Record(func(d *sources.SpeedtestDataset, _ time.Time, r *Readings) {
 		if !d.At.IsZero() {
 			r.Set(key("speedtest", "down"), d.Down)
@@ -236,6 +245,11 @@ func init() {
 		r.Version("authentik", d.Version)
 	})
 	Record(func(d *sources.MediaServerDataset, _ time.Time, r *Readings) { r.Version(d.Kind, d.Version) })
+	// The tunnel's state and exit: a drop or a new exit is on the timeline.
+	Record(func(d *sources.GluetunDataset, _ time.Time, r *Readings) {
+		r.State(SubjectVPN, d.Status)
+		r.State(SubjectVPNExit, strings.TrimSpace(d.ExitIP+" "+d.Country))
+	})
 	Record(func(d *sources.ArrDataset, _ time.Time, r *Readings) { r.Version(d.App, d.Version) })
 	Record(func(d *sources.GatewayDataset, _ time.Time, r *Readings) { r.Version(d.Kind, d.Version) })
 	Record(func(d *sources.VaultwardenDataset, _ time.Time, r *Readings) { r.Version("Vaultwarden", d.Version) })
@@ -267,4 +281,20 @@ func VersionEvent(subject, old, now string, at time.Time) (Event, bool) {
 		return Event{At: at, Kind: EventUpdate, Subject: strings.TrimPrefix(subject, stackPrefix), Detail: strings.TrimPrefix(old, pendingPrefix)}, true
 	}
 	return Event{At: at, Kind: EventUpdate, Subject: subject, Detail: old + " → " + now}, true
+}
+
+// secondsPerDay turns Unix times into day numbers.
+const secondsPerDay = 24 * 60 * 60
+
+// LastRenewal is the day a certificate's stored end last moved forward;
+// zero when the history never saw it change.
+func LastRenewal(h *History, host string) time.Time {
+	points := h.SeriesOf(key("certs", "until", host))
+	var last time.Time
+	for i := 1; i < len(points); i++ {
+		if points[i].Value > points[i-1].Value {
+			last = points[i].Day
+		}
+	}
+	return last
 }

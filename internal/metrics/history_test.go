@@ -99,3 +99,22 @@ func TestQuietHours(t *testing.T) {
 		t.Fatalf("quiet: %v %v %v", start, share, ok)
 	}
 }
+
+// TestNewLeases: a device first marked today is new once the history is
+// older than the window; on the first day nothing is.
+func TestNewLeases(t *testing.T) {
+	now := time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC)
+	day := func(back int) time.Time { return time.Date(2026, 9, 27-back, 0, 0, 0, 0, time.UTC) }
+	h := &metrics.History{Series: map[string][]metrics.Point{
+		"gateway.seen.nas":    {{Day: day(9), Value: 1}, {Day: day(0), Value: 1}},
+		"gateway.seen.guest1": {{Day: day(0), Value: 1}},
+	}}
+	got := metrics.NewLeases(h, now, 1)
+	if len(got) != 1 || got[0].Name != "guest1" {
+		t.Fatalf("new: %+v", got)
+	}
+	first := &metrics.History{Series: map[string][]metrics.Point{"gateway.seen.nas": {{Day: day(0), Value: 1}}}}
+	if got := metrics.NewLeases(first, now, 1); len(got) != 0 {
+		t.Fatalf("first day: %+v", got)
+	}
+}

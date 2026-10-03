@@ -641,6 +641,8 @@ func DemoAuthentik(now time.Time) *AuthentikDataset {
 	ago := func(d int) time.Time { return now.UTC().AddDate(0, 0, -d) }
 	return &AuthentikDataset{URL: "https://auth.demo", Version: "2025.6.3", Latest: "2025.8.1", Outdated: true,
 		Logins7d: 214, Logins24h: 31, Failed7d: 61, Failed24h: 38,
+		Days: []AKDay{{ago(6).Format(time.DateOnly), 28, 2}, {ago(5).Format(time.DateOnly), 33, 1}, {ago(4).Format(time.DateOnly), 30, 4},
+			{ago(3).Format(time.DateOnly), 25, 3}, {ago(2).Format(time.DateOnly), 36, 6}, {ago(1).Format(time.DateOnly), 31, 7}, {ago(0).Format(time.DateOnly), 31, 38}},
 		Apps:   []AKApp{{Name: "Immich", Events: 96, Users: 4}, {Name: "Gitea", Events: 41, Users: 2}, {Name: "Andon", Events: 30, Users: 3}},
 		Users:  []AKUser{{Name: "alex", LastLogin: ago(0)}, {Name: "sam", LastLogin: ago(2)}, {Name: "kim", LastLogin: ago(240)}, {Name: "test", LastLogin: time.Time{}}},
 		Logins: []AKLogin{{User: "alex", IP: "203.0.113.7", Country: "DE", City: "Berlin", Lat: 52.52, Lon: 13.40, At: now.UTC().Add(-time.Hour)}},
@@ -654,14 +656,28 @@ func DemoPihole(now time.Time) *DNSFilterDataset {
 	return &DNSFilterDataset{URL: "https://pihole.demo", Queries: 48210, Blocked: 9120, Percent: 18.9,
 		Enabled: false, ListsUpdated: now.UTC().AddDate(0, 0, -21), Clients: 14,
 		TopClients: []DNSClient{{IP: "192.168.1.20", Name: "laptop", Queries: 9120, Blocked: 1400}, {IP: "192.168.1.87", Queries: 14200, Blocked: 8700}},
-		TopBlocked: []DNSDomain{{Domain: "telemetry.tv.example", Count: 6100}, {Domain: "ads.example.net", Count: 1900}}}
+		TopBlocked: []DNSDomain{{Domain: "telemetry.tv.example", Count: 6100}, {Domain: "ads.example.net", Count: 1900}},
+		Hourly:     demoHours(2000, 900), HourlyBlocked: demoHours(380, 160)}
+}
+
+// demoHours is a day of hourly counts: quiet at night, busy evenings.
+func demoHours(base, swing int) []int {
+	out := make([]int, 24)
+	for h := range out {
+		out[h] = base + swing*((h+6)%24)/24
+		if h < 6 {
+			out[h] = base / 4
+		}
+	}
+	return out
 }
 
 // DemoAdGuard is the demo AdGuard Home dataset.
 func DemoAdGuard() *DNSFilterDataset {
 	return &DNSFilterDataset{URL: "https://adguard.demo", Queries: 30500, Blocked: 4100, Percent: 13.4, Enabled: true,
 		TopClients: []DNSClient{{IP: "192.168.1.31", Queries: 8800}, {IP: "192.168.1.12", Queries: 5100}},
-		TopBlocked: []DNSDomain{{Domain: "metrics.app.example", Count: 1300}}}
+		TopBlocked: []DNSDomain{{Domain: "metrics.app.example", Count: 1300}},
+		Hourly:     demoHours(1300, 600), HourlyBlocked: demoHours(170, 80)}
 }
 
 // DemoNextcloud is the demo Nextcloud dataset.
@@ -681,7 +697,7 @@ func DemoSabnzbd(now time.Time) *SabnzbdDataset {
 // DemoGluetun is the demo Gluetun dataset: tunnel up, wrong country.
 func DemoGluetun() *GluetunDataset {
 	return &GluetunDataset{URL: "http://gluetun.demo:8000", Status: "running", ExitIP: "185.65.134.10", Country: "Netherlands",
-		OwnIP: "93.184.216.34", ExpectedCountry: "Sweden"}
+		OwnIP: "93.184.216.34", ExpectedCountry: "Sweden", Port: 51413}
 }
 
 // DemoDomains is the demo domain dataset.

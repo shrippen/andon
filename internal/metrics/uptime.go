@@ -24,6 +24,17 @@ func init() {
 			r.Count(key("kuma", "up", m.Name), up)
 		}
 	})
+	// Tailscale devices the same way: how often each was online.
+	Record(func(d *sources.TailscaleDataset, _ time.Time, r *Readings) {
+		for _, dev := range d.Devices {
+			up := 0.0
+			if dev.Online {
+				up = 1
+			}
+			r.Count(key("tailscale", "runs", dev.Name), 1)
+			r.Count(key("tailscale", "up", dev.Name), up)
+		}
+	})
 }
 
 // dayTotals sums a series per day.
@@ -38,8 +49,13 @@ func dayTotals(points []Point) map[time.Time]float64 {
 // UptimeDays is the share of runs a monitor was up on each of the last
 // n days, oldest first; -1 for a day without runs.
 func UptimeDays(h *History, monitor string, now time.Time, n int) []float64 {
-	runs := dayTotals(h.SeriesOf(key("kuma", "runs", monitor)))
-	ups := dayTotals(h.SeriesOf(key("kuma", "up", monitor)))
+	return OnlineDays(h, "kuma", monitor, now, n)
+}
+
+// OnlineDays is UptimeDays for any counted service ("kuma", "tailscale").
+func OnlineDays(h *History, service, name string, now time.Time, n int) []float64 {
+	runs := dayTotals(h.SeriesOf(key(service, "runs", name)))
+	ups := dayTotals(h.SeriesOf(key(service, "up", name)))
 	out := make([]float64, n)
 	for i := range out {
 		day := Today(now).AddDate(0, 0, i-n+1)

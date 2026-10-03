@@ -248,7 +248,7 @@ func expiryView(cfg ExpiryConfig, results map[string]any, ctx ViewCtx) map[strin
 type SpeedHistoryConfig struct{ Days int }
 
 func init() {
-	Tile[SpeedHistoryConfig]{Key: "speed_history", Detail: speedHistoryDetail, Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest,
+	Tile[SpeedHistoryConfig]{Key: "speed_history", Detail: speedHistoryDetail, DetailQueries: openQuery[SpeedHistoryConfig]("speedtest.results"), Category: CategoryInsight, Topic: TopicNetwork, Service: enums.ServiceSpeedtest,
 		RefreshS: 60 * 60, Extra: ExtraHistory,
 		Fields:  []Field{{Key: "days", Input: InputNumber, Default: speedDays, Min: "2", Max: "90"}},
 		Decode:  func(r Raw) SpeedHistoryConfig { return SpeedHistoryConfig{Days: r.Int("days")} },

@@ -50,6 +50,17 @@ func (r *Readings) State(subject, state string) {
 // statePrefix keeps states apart from versions in the shared table.
 const statePrefix = "state:"
 
+// StateKey is a state's key in the versions table, for states recorded
+// outside an analysis run (the public IP a tile sees).
+func StateKey(subject string) string { return statePrefix + subject }
+
+// Subjects of recorded changes.
+const (
+	SubjectIP      = "IPv4"
+	SubjectVPN     = "VPN"
+	SubjectVPNExit = "VPN-Exit"
+)
+
 // Scope is what recorders read: a scope's datasets (keyed by service) and
 // its space's settings.
 type Scope struct {

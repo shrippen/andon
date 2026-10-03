@@ -39,6 +39,8 @@ type TailDevice struct {
 	KeyExpiry time.Time // zero = never expires
 	Update    bool
 	Tags      []string // "tag:server"
+	OS        string   // "linux", "iOS"; Tailscale only
+	Client    string   // client version, "1.86.2-…"; Tailscale only
 }
 
 // tailTags merges the tag lists a device or node carries, without doubles.
@@ -87,7 +89,7 @@ func fetchTailscale(ctx context.Context, sctx Ctx) (any, error) {
 		for _, raw := range asList(asMap(body)["devices"]) {
 			d := asMap(raw)
 			dev := TailDevice{Name: firstStr(asStr(d["hostname"]), asStr(d["name"])), LastSeen: parseTime(d["lastSeen"]), Update: asBool(d["updateAvailable"]),
-				Tags: tailTags(d, "tags")}
+				Tags: tailTags(d, "tags"), OS: asStr(d["os"]), Client: asStr(d["clientVersion"])}
 			dev.Online = asBool(d["connectedToControl"]) || now.Sub(dev.LastSeen) < onlineWindow
 			if !asBool(d["keyExpiryDisabled"]) {
 				dev.KeyExpiry = parseTime(d["expires"])
@@ -330,9 +332,9 @@ func defaultRoute(iface map[string]any) bool {
 
 func DemoTailscale(now time.Time) *TailscaleDataset {
 	return &TailscaleDataset{URL: "https://api.tailscale.com", Devices: []TailDevice{
-		{Name: "nas", Online: true, LastSeen: now, Tags: []string{"tag:server"}},
-		{Name: "laptop", Online: true, LastSeen: now, KeyExpiry: now.AddDate(0, 0, 9)},
-		{Name: "pi", LastSeen: now.AddDate(0, 0, -12), Update: true, Tags: []string{"tag:server", "tag:iot"}},
+		{Name: "nas", Online: true, LastSeen: now, Tags: []string{"tag:server"}, OS: "linux", Client: "1.88.1"},
+		{Name: "laptop", Online: true, LastSeen: now, KeyExpiry: now.AddDate(0, 0, 9), OS: "macOS", Client: "1.88.1"},
+		{Name: "pi", LastSeen: now.AddDate(0, 0, -12), Update: true, Tags: []string{"tag:server", "tag:iot"}, OS: "linux", Client: "1.80.3"},
 	}}
 }
 

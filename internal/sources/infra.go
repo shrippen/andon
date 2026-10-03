@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"andon/internal/drivers/services"
@@ -330,6 +331,7 @@ type PSite struct {
 }
 
 type PResource struct {
+	ID                   int64
 	Name, Domain, Health string
 	Enabled              bool
 	SSO                  bool // behind Pangolin's login (or an identity provider)
@@ -388,10 +390,66 @@ func fetchPangolin(ctx context.Context, sctx Ctx) (any, error) {
 		if health == "" {
 			health = asStr(r["health"])
 		}
-		data.Resources = append(data.Resources, PResource{Name: asStr(r["name"]), Domain: asStr(r["fullDomain"]),
+		data.Resources = append(data.Resources, PResource{ID: asInt64(r["resourceId"]), Name: asStr(r["name"]), Domain: asStr(r["fullDomain"]),
 			Enabled: asBool(r["enabled"]), Health: health, SSO: asBool(r["sso"])})
 	}
 	return data, nil
+}
+
+// PAccess is one resource's requests of the last week (Pangolin's
+// request audit log).
+type PAccess struct {
+	Requests, Blocked int
+	Countries         []Count // the top ones
+}
+
+// PangolinAccess is the dialog's extra per resource name.
+type PangolinAccess struct{ ByResource map[string]PAccess }
+
+var PangolinAccessSource = source{key: "pangolin.access", ttl: detailTTL, service: enums.ServicePangolin, fetch: fetchPangolinAccess}
+
+// Limits of the access fetch.
+const (
+	pangolinAccessMax = 12
+	pangolinCountries = 3
+)
+
+func fetchPangolinAccess(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return &PangolinAccess{ByResource: map[string]PAccess{
+			"Immich": {Requests: 18420, Blocked: 12, Countries: []Count{{"DE", 18100}, {"NL", 240}}},
+			"Gitea":  {Requests: 2210, Blocked: 960, Countries: []Count{{"DE", 1100}, {"US", 620}, {"CN", 410}}},
+		}}, nil
+	}
+	data, err := fetchPangolin(ctx, sctx)
+	if err != nil {
+		return nil, err
+	}
+	p := data.(*PangolinDataset)
+	secret, _ := needSecret(sctx)
+	api := services.PangolinApi{URL: sctx.URL, Key: secret, Verify: sctx.VerifyTLS}
+	out := &PangolinAccess{ByResource: map[string]PAccess{}}
+	var mu sync.Mutex
+	list := firstOf(p.Resources, pangolinAccessMax)
+	parallel(ctx, len(list), releasesParallel, func(i int) {
+		r := list[i]
+		if !r.Enabled || r.ID == 0 {
+			return
+		}
+		body, err := api.Get(ctx, "org/"+url.PathEscape(p.Org)+"/logs/analytics", url.Values{"resourceId": {strconv.FormatInt(r.ID, 10)}})
+		if err != nil {
+			return
+		}
+		m := asMap(body)
+		acc := PAccess{Requests: int(asFloat(m["totalRequests"])), Blocked: int(asFloat(m["totalBlocked"]))}
+		for _, c := range firstOf(asList(m["requestsPerCountry"]), pangolinCountries) {
+			acc.Countries = append(acc.Countries, Count{Name: asStr(asMap(c)["code"]), N: int(asFloat(asMap(c)["count"]))})
+		}
+		mu.Lock()
+		out.ByResource[r.Name] = acc
+		mu.Unlock()
+	})
+	return out, nil
 }
 
 // ── authentik ──
@@ -423,6 +481,13 @@ type AuthentikDataset struct {
 	Users                []AKUser  // active human accounts
 	Logins               []AKLogin // latest logins, newest first
 	Failures             []AKLogin // latest failed logins, newest first
+	Days                 []AKDay   // logins per day of the week, oldest first
+}
+
+// AKDay is one day's logins and failed logins.
+type AKDay struct {
+	Day            string // "2026-09-27"
+	Logins, Failed int
 }
 
 var AuthentikData = source{key: "authentik.data", ttl: opsTTL, service: enums.ServiceAuthentik, fetch: fetchAuthentik}
@@ -480,17 +545,33 @@ func loadAuthentik(ctx context.Context, api services.AuthentikApi, base string, 
 	if err != nil {
 		return nil, err
 	}
+	days := map[string]*AKDay{}
+	dayOf := func(at time.Time) *AKDay {
+		key := at.Format(time.DateOnly)
+		if days[key] == nil {
+			days[key] = &AKDay{Day: key}
+		}
+		return days[key]
+	}
+	defer func() {
+		for _, d := range days {
+			data.Days = append(data.Days, *d)
+		}
+		sort.Slice(data.Days, func(a, b int) bool { return data.Days[a].Day < data.Days[b].Day })
+	}()
 	for _, raw := range asList(volume) {
 		b := asMap(raw)
 		n := int(asFloat(b["count"]))
 		at, _ := time.Parse(time.RFC3339, asStr(b["time"]))
 		switch asStr(b["action"]) {
 		case "login":
+			dayOf(at).Logins += n
 			data.Logins7d += n
 			if now.Sub(at) <= 24*time.Hour {
 				data.Logins24h += n
 			}
 		case "login_failed":
+			dayOf(at).Failed += n
 			data.Failed7d += n
 			if now.Sub(at) <= 24*time.Hour {
 				data.Failed24h += n
@@ -541,6 +622,7 @@ func init() {
 	}})
 	Register(KomodoData)
 	Register(KomodoDetailSource)
+	Register(PangolinAccessSource)
 	Register(TrueNASDatasetsSource)
 	Register(testOf{KomodoData, func(d any) map[string]any { return map[string]any{"stacks": len(d.(*KomodoDataset).Stacks)} }})
 	Register(PangolinData)

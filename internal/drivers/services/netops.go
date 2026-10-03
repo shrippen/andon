@@ -13,7 +13,9 @@ package services
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -63,6 +65,19 @@ func (s *PiholeSession) Get(ctx context.Context, path string) (any, error) {
 	return fetchJSON(ctx, joinURL(s.api.URL, "api/"+path), map[string]string{"X-FTL-SID": s.sid}, nil, httpclient.TLSOf(s.api.Verify))
 }
 
+// Post sends one v6 write, e.g. ("dns/blocking", {"blocking": false}).
+func (s *PiholeSession) Post(ctx context.Context, path string, body any) error {
+	_, err := postJSON(ctx, joinURL(s.api.URL, "api/"+path), map[string]string{"X-FTL-SID": s.sid}, body, httpclient.TLSOf(s.api.Verify))
+	return err
+}
+
+// DisableV5 pauses blocking on a v5 system for seconds.
+func (s *PiholeSession) DisableV5(ctx context.Context, seconds int) error {
+	query := url.Values{"disable": {strconv.Itoa(seconds)}, "auth": {s.api.Password}}
+	_, err := fetchJSON(ctx, joinURL(s.api.URL, "admin/api.php"), nil, query, httpclient.TLSOf(s.api.Verify))
+	return err
+}
+
 // Summary reads the v5 summary.
 func (s *PiholeSession) Summary(ctx context.Context) (any, error) {
 	query := url.Values{"summaryRaw": {""}, "auth": {s.api.Password}}
@@ -92,6 +107,26 @@ type AdGuardApi struct {
 // Get reads /control/<path>.
 func (a AdGuardApi) Get(ctx context.Context, path string) (any, error) {
 	return fetchJSON(ctx, joinURL(a.URL, "control/"+path), basicAuth(a.Secret), nil, httpclient.TLSOf(a.Verify))
+}
+
+// Post sends /control/<path> a JSON body; AdGuard answers with plain
+// text, so only the status counts.
+func (a AdGuardApi) Post(ctx context.Context, path string, body any) error {
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	headers := basicAuth(a.Secret)
+	headers["Content-Type"] = "application/json"
+	resp, err := httpclient.Request(ctx, http.MethodPost, joinURL(a.URL, "control/"+path), httpclient.Options{Headers: headers, Body: raw, SkipVerify: !a.Verify})
+	if err != nil {
+		return ApiError{err.Error()}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= http.StatusBadRequest {
+		return ApiError{fmt.Sprintf("HTTP %d", resp.StatusCode)}
+	}
+	return nil
 }
 
 func basicAuth(secret string) map[string]string {
