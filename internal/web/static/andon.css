@@ -175,11 +175,18 @@ a > .count, summary > .count { margin-left: .35rem; }
 .board-main > .dsec[data-rows="4"] { grid-row: span 4; }
 /* Flowing link groups: newspaper columns, no gaps under short groups. */
 .dsec-flow { column-count: 3; column-gap: 1rem; }
-.dsec-flow > .dsec { break-inside: avoid; margin-bottom: 1rem; }
+/* Sections in columns are inline blocks: never split, so Chrome lays out
+   only the one that changed. A block section made every keystroke, hover
+   strip or swap lay out the whole column flow again (35 ms per key on a
+   16-section board, 0.5 ms as inline blocks). */
+.dsec-flow > .dsec { break-inside: avoid; margin-bottom: 1rem; display: inline-block; width: 100%; vertical-align: top; }
+/* A column no longer drops its last section's margin: take it back. */
+.dsec-flow { margin-bottom: -1rem; }
 /* Masonry layout: sections flow into columns and close the gaps a grid
    leaves under short sections; spans do not apply. */
 .board[data-layout="masonry"] .board-main { display: block; column-width: 34rem; column-gap: 1rem; }
 .board[data-layout="masonry"] .board-main > * { break-inside: avoid; margin-bottom: 1.2rem; }
+.board[data-layout="masonry"] .board-main > .dsec { display: inline-block; width: 100%; vertical-align: top; }
 .board[data-layout="masonry"] .dsec-flow { column-count: 1; }
 /* Compact view: only link tiles. */
 .board.is-compact .tile-slot:not(.w-link), .board.is-compact .dsec:not(:has(.w-link)) { display: none; }
