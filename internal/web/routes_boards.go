@@ -51,6 +51,7 @@ func (d Deps) RegisterBoardRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /boards/{id}/size/{sectionID}", d.handleSize)
 	mux.HandleFunc("POST /boards/{id}/overlay/reset", d.authed(d.handleOverlayReset))
 	mux.HandleFunc("GET /boards/{id}/sections/{sectionID}/tools", d.authed(d.handleSectionTools))
+	mux.HandleFunc("GET /boards/{id}/live", d.authed(d.handleBoardLive))
 	mux.HandleFunc("GET /boards/{id}/history", d.authed(d.handleHistory))
 	mux.HandleFunc("GET /boards/{id}/suggest", d.authed(d.handleSuggest))
 	mux.HandleFunc("POST /boards/{id}/suggest", d.authed(d.handleSuggestApply))
@@ -267,6 +268,49 @@ func (d Deps) handleSectionTools(w http.ResponseWriter, r *http.Request, ctx Ctx
 	_ = d.Page(w, ctx, "section_tools", http.StatusOK, withChoices(map[string]any{
 		"Board": view, "Section": sectionID, "Partial": true, "ThemeURL": "",
 	}))
+}
+
+// handleBoardLive answers every link status line of a board at once, as
+// out-of-band swaps by id: the board polls once instead of every tile
+// (one layout, not 107, and one request). Fetches what is due, as a
+// tile's own poll did.
+func (d Deps) handleBoardLive(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	boardID, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	view, err := boards.View(d.DB, ctx.Who, boardID, boards.LayoutBoard)
+	if err != nil {
+		d.handleBoardError(w, r, err)
+		return
+	}
+
+	// Visible link tiles with a status or info line.
+	var ids []int64
+	for _, sec := range view.Sections {
+		for _, tile := range sec.Tiles {
+			kind, ok := widgets.Get(tile.Type)
+			if !ok || tile.Type != linkType || tile.Hidden || len(kind.Queries(tile.Config)) == 0 {
+				continue
+			}
+			ids = append(ids, tile.PlacementID)
+		}
+	}
+	frags, err := boards.Fragments(r.Context(), d.DB, ctx.Who, boardID, ids, svcdata.Cached)
+	if err != nil {
+		d.handleBoardError(w, r, err)
+		return
+	}
+
+	kind, _ := widgets.Get(linkType)
+	lives := make([]*tileBody, 0, len(ids))
+	for _, id := range ids {
+		if frag, ok := frags[id]; ok {
+			lives = append(lives, &tileBody{PlacementID: id, Template: kind.Template, Frag: frag})
+		}
+	}
+	_ = d.Page(w, ctx, "board_live", http.StatusOK, map[string]any{"Lives": lives, "Partial": true, "ThemeURL": ""})
 }
 
 // formBoard is the board a form names in its board_id field.

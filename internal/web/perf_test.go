@@ -75,13 +75,15 @@ func TestEditBoardFiftyLinks(t *testing.T) {
 	if icons := bytes.Count(page, []byte("<svg")); icons >= editTiles {
 		t.Errorf("edit page has %d SVG icons: each costs a shadow tree", icons)
 	}
-	frags := fragmentRe.FindAllSubmatch(page, -1)
+	// Status lines refresh through the board's poll; each tile's
+	// fragment still answers on its own (first load, embeds).
+	frags := placementRe.FindAllSubmatch(page, -1)
 	if len(frags) != editTiles {
-		t.Fatalf("expected %d fragments, got %d", editTiles, len(frags))
+		t.Fatalf("expected %d tiles, got %d", editTiles, len(frags))
 	}
 	fragBytes := allocated(func() {
 		for _, f := range frags {
-			fetchOK(t, srv, client, string(f[1]))
+			fetchOK(t, srv, client, "/widget-fragments/"+string(f[1]))
 		}
 	}) / editTiles
 
@@ -333,5 +335,50 @@ func TestSectionToolsOnOpen(t *testing.T) {
 	}
 	if strings.Contains(form, "<nav") {
 		t.Fatal("section tools render the whole page")
+	}
+}
+
+// TestLinkStatusOnePoll: a board's link status lines refresh in one
+// request, not one each: 107 polls per 5 minutes made Firefox lay out
+// a column flow 107 times (200 ms each).
+func TestLinkStatusOnePoll(t *testing.T) {
+	const links = 3
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+
+	resp := getFollowingRedirect(t, srv, client, "/")
+	resp.Body.Close()
+	boardURL := resp.Request.URL.Path
+	for i := range links {
+		add := addLinkRe.FindSubmatch(mustGet(t, srv, client, boardURL+"?edit"))
+		postForm(t, client, srv.URL+"/sections/"+string(add[1])+"/quick-link", url.Values{"csrf": {csrf},
+			"version": {string(add[2])}, "board_id": {boardIDFrom(boardURL)}, "url": {fmt.Sprintf("https://s%d.example", i)}})
+	}
+
+	page := mustGet(t, srv, client, boardURL)
+	lives := regexp.MustCompile(`<span class="launch-live" id="live-(\d+)"[^>]*>`).FindAllSubmatch(page, -1)
+	if len(lives) != links {
+		t.Fatalf("expected %d status lines with an id, got %d:\n%s", links, len(lives), page)
+	}
+	for _, l := range lives {
+		if bytes.Contains(l[0], []byte("every ")) {
+			t.Fatalf("status line polls on its own: %s", l[0])
+		}
+	}
+	poll := regexp.MustCompile(`hx-get="(/boards/\d+/live)" hx-trigger="wake, every \d+s"`).FindSubmatch(page)
+	if poll == nil {
+		t.Fatalf("no board poll for status lines:\n%s", page)
+	}
+
+	answer := string(mustGet(t, srv, client, string(poll[1])))
+	for _, l := range lives {
+		if !strings.Contains(answer, `<span id="live-`+string(l[1])+`" hx-swap-oob="innerHTML">`) {
+			t.Fatalf("poll lacks status line %s:\n%s", l[1], answer)
+		}
+	}
+	if strings.Contains(answer, "<nav") {
+		t.Fatal("poll renders the whole page")
 	}
 }

@@ -195,7 +195,13 @@
 </form>
 {{end}}
 {{if or .Edit .LayerEdit}}<p class="edit-touch">{{t "edit.touch_hint"}}</p>{{end}}
+{{/* One poll for every link status line: one request and one layout
+     instead of one per tile (107 per 5 minutes on a big board). */}}
+{{if not .EmbedToken}}<span hidden hx-get="/boards/{{.Board.ID}}/live" hx-trigger="wake, {{launchEvery}}" hx-swap="none"></span>{{end}}
 {{end}}
+
+{{/* The board's link status lines, swapped in by id (GET /boards/{id}/live). */}}
+{{define "board_live"}}{{range .Lives}}<span id="live-{{.PlacementID}}" hx-swap-oob="innerHTML">{{fragment .}}</span>{{end}}{{end}}
 
 {{/* One section alone: the answer to an action on it (see boardPart). */}}
 {{define "board_section"}}{{range .Board.Sections}}{{if eq .ID $.Section}}{{template "section" dict "S" . "B" $}}{{end}}{{end}}{{end}}
@@ -300,7 +306,8 @@
         {{with $c.Tags}}<small class="launch-tags">{{range .}}<span>#{{.}}</span>{{end}}</small>{{end}}
         {{if or (ne (print $c.Status) "off") $c.InfoConn}}
         {{with index $b.Bodies .PlacementID}}
-        <span class="launch-live" hx-get="{{$frag}}" hx-trigger="{{if .Load}}load, {{end}}wake, {{launchEvery}}" hx-swap="innerHTML">{{fragment .}}</span>
+        {{if $b.EmbedToken}}<span class="launch-live" hx-get="{{$frag}}" hx-trigger="{{if .Load}}load, {{end}}wake, {{launchEvery}}" hx-swap="innerHTML">{{fragment .}}</span>
+        {{- else}}{{/* Refreshed with all others by the board's poll (board_live). */}}<span class="launch-live" id="live-{{.PlacementID}}"{{if .Load}} hx-get="{{$frag}}" hx-trigger="load" hx-swap="innerHTML"{{end}}>{{fragment .}}</span>{{end}}
         {{else}}
         <span class="launch-live" hx-get="{{$frag}}" hx-trigger="load, wake, {{launchEvery}}" hx-swap="innerHTML"></span>
         {{end}}
