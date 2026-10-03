@@ -733,6 +733,9 @@ main:has(.bulk-bar:not([hidden])) { padding-bottom: 6rem; }
 main .CodeMirror { font-family: var(--font-mono); background: var(--bg-hard); color: var(--fg1); border: 1px solid var(--bg2); height: auto; }
 main .CodeMirror.code-area { min-height: 24rem; }
 main .CodeMirror.code-area.short { min-height: 8rem; }
+/* The editor scrolls inside: grown to its content, CodeMirror drew every
+   line (3,000 lines of space code: 23,000 nodes, a 2 s long task). */
+main .CodeMirror-scroll { max-height: 75vh; }
 main .CodeMirror-gutters { background: var(--bg-hard); border-right: 1px solid var(--bg2); }
 main .CodeMirror-linenumber { color: var(--fg3); }
 main .CodeMirror-cursor { border-left-color: var(--fg0); }
