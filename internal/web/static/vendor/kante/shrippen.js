@@ -178,9 +178,25 @@
     // settle(el, from) after a drop: the element glides from `from` (a DOMRect) into place with a small overshoot
     var K = window.Kante = window.Kante || {};
     var moving = h.classList.contains('motion');
+    // restart replays a class animation. The class comes back two frames later, for all elements
+    // restarted meanwhile at once: a style pass without it lies in between, and nothing forces a
+    // layout (void el.offsetWidth per element cost ~20 ms each, 230 ms for 11 tiles on a big page).
+    var replay = [];
     function restart(el, cls, ms) {
-      el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
-      setTimeout(function () { el.classList.remove(cls); }, ms);
+      el.classList.remove(cls);
+      if (!replay.length) {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            var due = replay;
+            replay = [];
+            due.forEach(function (r) {
+              r.el.classList.add(r.cls);
+              setTimeout(function () { r.el.classList.remove(r.cls); }, r.ms);
+            });
+          });
+        });
+      }
+      replay.push({ el: el, cls: cls, ms: ms });
     }
     function lineOf(el) {
       var l = el.querySelector(':scope > .live-line');

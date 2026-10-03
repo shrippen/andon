@@ -1528,6 +1528,9 @@ details.help.is-right>.help-text{left:auto;right:-.5rem}
 
 /* ── Touch: chips get the small control height, so a finger hits them ── */
 @media (pointer:coarse){.chip{height:var(--h-s)}.chip-pick{min-height:var(--h-s)}}
+/* Touch: also the language toggle, switches and the help "?" reach the control height --h-s (the "?" keeps its look and
+   gets a larger hit area instead) */
+@media (pointer:coarse){.lang button,.switch{min-height:var(--h-s)}details.help>summary{position:relative}details.help>summary::before{content:"";position:absolute;inset:-6px}}
 
 /* ── Keyboard focus on segments and switches (they had none) ── */
 .seg button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
