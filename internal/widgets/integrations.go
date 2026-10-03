@@ -289,12 +289,12 @@ func init() {
 	Tile[MediaConfig]{Key: "mediaserver", Detail: mediaDetail, Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceMediaServer, RefreshS: integrationTTL,
 		Fields:  []Field{{Key: "show_users", Input: InputCheck, Default: true}},
 		Decode:  func(r Raw) MediaConfig { return MediaConfig{Users: r.Bool("show_users")} },
-		Queries: ownData[MediaConfig], View: mediaView}.add()
+		Queries: ownData[MediaConfig], DetailQueries: openQuery[MediaConfig]("mediaserver.plays"), View: mediaView}.add()
 
 	Tile[ArrConfig]{Key: "arr_upcoming", Detail: dataDetail(arrDetail), Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceArr, RefreshS: integrationTTL,
 		Fields:  []Field{{Key: "days", Input: InputNumber, Default: arrDays, Min: "1", Max: "30"}},
 		Decode:  func(r Raw) ArrConfig { return ArrConfig{Days: r.Int("days")} },
-		Queries: ownData[ArrConfig], View: dataView(arrView)}.add()
+		Queries: ownData[ArrConfig], DetailQueries: openQuery[ArrConfig]("arr.posters"), View: dataView(arrView)}.add()
 
 	Tile[GrocyConfig]{Key: "grocy", Detail: dataDetail(grocyDetail), Category: CategoryInsight, Topic: TopicHome, Service: enums.ServiceGrocy, RefreshS: integrationTTL,
 		Fields: []Field{{Key: "show_stock", Input: InputCheck, Default: true}, {Key: "show_shopping", Input: InputCheck, Default: true},

@@ -3195,6 +3195,7 @@ detail:
     stuck_items: 'Hängt in der Warteschlange'
     healthy: 'gesund'
     warnings: 'Warnungen'
+    posters: 'Als Nächstes'
   rss:
     feeds: 'Feeds'
     unread: 'ungelesen'
@@ -3207,6 +3208,7 @@ detail:
     empty: 'Der Feed hat keine Einträge.'
     published: 'veröffentlicht'
     more: 'Weitere Einträge'
+    unread_days: 'Ungelesen je Tag'
   linkwarden:
     links: 'Links'
     collections: 'Sammlungen'
@@ -3215,6 +3217,7 @@ detail:
     saved: 'gespeichert'
     name: 'Name'
     collection: 'Sammlung'
+    previews: 'Vorschau der neuesten Links'
   media:
     server: 'Server'
     movies: 'Filme'
@@ -3225,6 +3228,8 @@ detail:
     user: 'Nutzer'
     title: 'Titel'
     idle: 'Gerade schaut niemand.'
+    plays: 'Wiedergaben je Tag (30 Tage)'
+    top: 'Am meisten gespielt'
   sab:
     loading: 'lädt'
     paused: 'pausiert'
@@ -3235,11 +3240,16 @@ detail:
     queue: 'Warteschlange'
     failures: 'Fehlgeschlagen'
     failed_one: 'fehlgeschlagen'
+    month: 'Diesen Monat'
+    total: 'Insgesamt'
+    volume: 'Geladen je Tag (4 Wochen)'
   picture:
     none: 'Das Bild ließ sich nicht laden.'
     title: 'Titel'
     original: 'Original'
     source: 'Quelle'
+    archive: 'Die Tage davor'
+    explain: 'Erklärung'
   hints_open: 'offen'
   hints_critical: 'kritisch'
   hints_warn: 'Warnungen'

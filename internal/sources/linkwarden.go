@@ -2,6 +2,7 @@ package sources
 
 import (
 	"context"
+	"encoding/base64"
 	"net/url"
 	"strconv"
 	"strings"
@@ -102,7 +103,47 @@ func collectionLinks(ctx context.Context, api services.LinkwardenApi, id int64, 
 	return out, nil
 }
 
+// lwPreviews is how many of the newest links the dialog shows with
+// their preview picture.
+const lwPreviews = 8
+
+// LinkwardenPreviews are the newest links with Linkwarden's preview
+// picture, read when the dialog opens.
+type LinkwardenPreviews struct{ List []Thumb }
+
+var LinkwardenPreviewsSource = source{key: "linkwarden.previews", ttl: detailTTL, service: enums.ServiceLinkwarden, fetch: fetchLinkwardenPreviews}
+
+func fetchLinkwardenPreviews(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return &LinkwardenPreviews{}, nil
+	}
+	secret, err := needSecret(sctx)
+	if err != nil {
+		return nil, err
+	}
+	api := services.LinkwardenApi{URL: sctx.URL, Token: secret, Verify: sctx.VerifyTLS}
+
+	// sort 0: newest first, across all collections.
+	page, err := api.Get(ctx, "links", url.Values{"sort": {"0"}})
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	list := asList(page)
+	list = list[:min(len(list), lwPreviews)]
+	out := &LinkwardenPreviews{List: make([]Thumb, len(list))}
+	parallel(ctx, len(list), lwPreviews, func(i int) {
+		l := asMap(list[i])
+		t := Thumb{ID: asInt64(l["id"]), Title: asStr(l["name"]), Added: day(l["createdAt"])}
+		if body, kind, err := api.Bytes(ctx, "archives/"+strconv.FormatInt(t.ID, 10)+"?preview=true"); err == nil && strings.HasPrefix(kind, "image/") {
+			t.DataURI = "data:" + kind + ";base64," + base64.StdEncoding.EncodeToString(body)
+		}
+		out.List[i] = t
+	})
+	return out, nil
+}
+
 func init() {
 	Register(LinkwardenData)
+	Register(LinkwardenPreviewsSource)
 	Register(testOf{LinkwardenData, func(d any) map[string]any { return map[string]any{"links": len(d.(*LinkwardenDataset).Links)} }})
 }

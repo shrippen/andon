@@ -534,7 +534,8 @@ func init() {
 	Tile[PictureConfig]{Key: "apod", Detail: pictureDetail, Template: "widgets/picture", Category: CategoryStart, Topic: TopicMedia, RefreshS: 6 * hour,
 		Fields: []Field{{Key: "api_key", Input: InputSecret}, {Key: "image_only", Input: InputCheck}},
 		Decode: decodePicture, View: pictureView,
-		Queries: one("picture", "apod", func(cfg PictureConfig) map[string]any { return map[string]any{"api_key": cfg.APIKey} })}.add()
+		Queries:       one("picture", "apod", func(cfg PictureConfig) map[string]any { return map[string]any{"api_key": cfg.APIKey} }),
+		DetailQueries: one(openName, "apod.archive", func(cfg PictureConfig) map[string]any { return map[string]any{"api_key": cfg.APIKey} })}.add()
 
 	Tile[JokeConfig]{Key: "joke", Category: CategoryStart, Topic: TopicMedia, RefreshS: hour,
 		Fields: []Field{sel("category", "Any", "Any", "Programming", "Misc", "Pun", "Spooky", "Christmas"), sel("lang", "de", "de", "en"),

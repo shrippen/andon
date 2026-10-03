@@ -192,6 +192,9 @@ func init() {
 			}
 		}
 	})
+	Record(func(d *sources.FreshRSSDataset, _ time.Time, r *Readings) {
+		r.Set(key("freshrss", "unread"), float64(d.Unread))
+	})
 	Record(func(d *sources.ImmichDataset, _ time.Time, r *Readings) {
 		r.Set(key("immich", "items"), float64(d.Photos+d.Videos))
 		if d.DiskPercent > 0 {

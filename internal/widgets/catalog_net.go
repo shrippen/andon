@@ -310,7 +310,7 @@ func init() {
 	Tile[SabConfig]{Key: "sabnzbd", Detail: dataDetail(sabDetail), Category: CategoryInsight, Topic: TopicMedia, Service: enums.ServiceSabnzbd, RefreshS: 5 * 60,
 		Fields:  []Field{{Key: "queue", Input: InputNumber, Default: 0, Min: "0", Max: "20"}},
 		Decode:  func(r Raw) SabConfig { return SabConfig{Queue: r.Int("queue")} },
-		Queries: ownData[SabConfig], View: dataView(sabnzbdView)}.add()
+		Queries: ownData[SabConfig], DetailQueries: openQuery[SabConfig]("sabnzbd.stats"), View: dataView(sabnzbdView)}.add()
 }
 
 func sabnzbdView(cfg SabConfig, data *sources.SabnzbdDataset, _ ViewCtx) map[string]any {

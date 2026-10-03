@@ -695,6 +695,26 @@ func DemoSabnzbd(now time.Time) *SabnzbdDataset {
 			{Name: "Photos.Backup", Percent: 0, Left: "1:20:00"}}}
 }
 
+// DemoSabStats is the demo SABnzbd volume: four weeks, quieter weekends.
+func DemoSabStats(now time.Time) *SabStats {
+	const gb = 1e9
+	out := &SabStats{Daily: map[string]float64{}, Servers: map[string]float64{"news.demo": 38 * gb, "block.demo": 6 * gb}}
+	for i := range 28 {
+		day := now.AddDate(0, 0, -i)
+		v := float64(2+i%5) * gb
+		if wd := day.Weekday(); wd == time.Saturday || wd == time.Sunday {
+			v /= 2
+		}
+		out.Daily[day.Format(time.DateOnly)] = v
+		out.Month += v
+		if i < 7 {
+			out.Week += v
+		}
+	}
+	out.Day, out.Total = out.Daily[now.Format(time.DateOnly)], out.Month*12
+	return out
+}
+
 // DemoGluetun is the demo Gluetun dataset: tunnel up, wrong country.
 func DemoGluetun() *GluetunDataset {
 	return &GluetunDataset{URL: "http://gluetun.demo:8000", Status: "running", ExitIP: "185.65.134.10", Country: "Netherlands",

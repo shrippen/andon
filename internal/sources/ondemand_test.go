@@ -44,3 +44,14 @@ func TestContainerLoad(t *testing.T) {
 		t.Fatalf("load: %v %v %v", cpu, mem, limit)
 	}
 }
+
+// Two servers' daily volumes add up per day.
+func TestParseSabStats(t *testing.T) {
+	s := parseSabStats(map[string]any{"month": 3.0, "servers": map[string]any{
+		"a": map[string]any{"month": 2.0, "daily": map[string]any{"2026-09-30": 1.0}},
+		"b": map[string]any{"month": 1.0, "daily": map[string]any{"2026-09-30": 2.0, "2026-09-29": 4.0}},
+	}})
+	if s.Daily["2026-09-30"] != 3 || s.Daily["2026-09-29"] != 4 || s.Servers["a"] != 2 || s.Month != 3 {
+		t.Fatalf("%+v", s)
+	}
+}

@@ -291,3 +291,9 @@ func (a LinkwardenApi) Get(ctx context.Context, path string, params url.Values) 
 	}
 	return asMap(body)["response"], nil
 }
+
+// Bytes reads a binary answer of /api/v1/<path> (a link's preview image)
+// with its content type.
+func (a LinkwardenApi) Bytes(ctx context.Context, path string) ([]byte, string, error) {
+	return fetchBytes(ctx, joinURL(a.URL, "api/v1/"+path), map[string]string{"Authorization": "Bearer " + a.Token}, a.Verify)
+}

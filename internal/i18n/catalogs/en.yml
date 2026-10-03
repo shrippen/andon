@@ -3194,6 +3194,7 @@ detail:
     stuck_items: 'Stuck in the queue'
     healthy: 'healthy'
     warnings: 'warnings'
+    posters: 'Up next'
   rss:
     feeds: 'Feeds'
     unread: 'unread'
@@ -3206,6 +3207,7 @@ detail:
     empty: 'The feed has no entries.'
     published: 'published'
     more: 'More entries'
+    unread_days: 'Unread per day'
   linkwarden:
     links: 'Links'
     collections: 'Collections'
@@ -3214,6 +3216,7 @@ detail:
     saved: 'saved'
     name: 'Name'
     collection: 'Collection'
+    previews: 'Preview of the newest links'
   media:
     server: 'Server'
     movies: 'Movies'
@@ -3224,6 +3227,8 @@ detail:
     user: 'User'
     title: 'Title'
     idle: 'Nobody is watching right now.'
+    plays: 'Plays per day (30 days)'
+    top: 'Most played'
   sab:
     loading: 'downloading'
     paused: 'paused'
@@ -3234,11 +3239,16 @@ detail:
     queue: 'Queue'
     failures: 'Failed'
     failed_one: 'failed'
+    month: 'This month'
+    total: 'Total'
+    volume: 'Loaded per day (4 weeks)'
   picture:
     none: 'The picture could not be loaded.'
     title: 'Title'
     original: 'Original'
     source: 'Source'
+    archive: 'The days before'
+    explain: 'Explanation'
   hints_open: 'open'
   hints_critical: 'critical'
   hints_warn: 'warnings'

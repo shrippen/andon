@@ -336,6 +336,11 @@ type ClockConfig struct {
 	Analog    bool // a face with hands
 }
 
+// rssParams are the feed's query params, shared by its dialog's article.
+func rssParams(cfg RssConfig) map[string]any {
+	return map[string]any{"url": cfg.URL, "limit": cfg.Limit, "urls": cfg.More, "images": cfg.Images, "max_age": float64(cfg.MaxAge)}
+}
+
 // OffersDetail: the dialog compares zones, one zone needs none.
 func (c ClockConfig) OffersDetail() bool { return len(c.Timezones) > 1 }
 
@@ -581,8 +586,10 @@ func init() {
 			{Key: "max_age", Input: InputNumber, Min: "0", Max: "365"}, {Key: "titles_only", Input: InputCheck},
 			sel("list_height", rssHeightAuto, rssHeightAuto, "short", "medium", "tall")},
 		Decode: decodeRss, Queries: func(cfg RssConfig) []Query {
-			return []Query{{Name: "feed", Source: "rss", Params: map[string]any{"url": cfg.URL, "limit": cfg.Limit, "urls": cfg.More,
-				"images": cfg.Images, "max_age": float64(cfg.MaxAge)}}}
+			return []Query{{Name: "feed", Source: "rss", Params: rssParams(cfg)}}
+		},
+		DetailQueries: func(cfg RssConfig) []Query {
+			return []Query{{Name: openName, Source: "rss.article", Params: rssParams(cfg)}}
 		}}.add()
 
 	Tile[ClockConfig]{Key: "clock", Detail: clockDetail, Category: CategoryStart, Topic: TopicOverview, Inline: true, RefreshS: 30,

@@ -317,6 +317,48 @@ func fetchSabnzbd(ctx context.Context, sctx Ctx) (any, error) {
 	return data, nil
 }
 
+// SabStats is what SABnzbd loaded (server_stats), in bytes.
+type SabStats struct {
+	Day, Week, Month, Total float64
+	Daily                   map[string]float64 // "2026-09-30" → bytes, all servers
+	Servers                 map[string]float64 // name → bytes this month
+}
+
+// SabnzbdStats reads the loaded volume when the dialog opens.
+var SabnzbdStats = source{key: "sabnzbd.stats", ttl: detailTTL, service: enums.ServiceSabnzbd, fetch: fetchSabStats}
+
+func fetchSabStats(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return DemoSabStats(time.Now()), nil
+	}
+	secret, err := needSecret(sctx)
+	if err != nil {
+		return nil, err
+	}
+	api := services.SabnzbdApi{URL: sctx.URL, Key: secret, Verify: sctx.VerifyTLS}
+	body, err := api.Mode(ctx, "server_stats", nil)
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	return parseSabStats(asMap(body)), nil
+}
+
+// parseSabStats sums the servers' daily volumes:
+//
+//	{"day": 1e9, …, "servers": {"news.example": {"month": 5e10, "daily": {"2026-09-30": 1e9}}}}
+func parseSabStats(m map[string]any) *SabStats {
+	out := &SabStats{Day: asFloat(m["day"]), Week: asFloat(m["week"]), Month: asFloat(m["month"]), Total: asFloat(m["total"]),
+		Daily: map[string]float64{}, Servers: map[string]float64{}}
+	for name, raw := range asMap(m["servers"]) {
+		srv := asMap(raw)
+		out.Servers[name] = asFloat(srv["month"])
+		for day, v := range asMap(srv["daily"]) {
+			out.Daily[day] += asFloat(v)
+		}
+	}
+	return out
+}
+
 // ── gluetun ──
 
 type GluetunDataset struct {
@@ -550,6 +592,7 @@ func fetchBlacklist(ctx context.Context, sctx Ctx) (any, error) {
 }
 
 func init() {
+	Register(SabnzbdStats)
 	Register(PiholeData)
 	Register(DomainsResolveSource)
 	Register(testOf{PiholeData, func(d any) map[string]any { return map[string]any{"queries": d.(*DNSFilterDataset).Queries} }})

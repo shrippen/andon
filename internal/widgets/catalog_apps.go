@@ -148,7 +148,7 @@ func init() {
 		Decode: func(r Raw) LinkwardenConfig {
 			return LinkwardenConfig{Only: r.Lower("filter"), Newest: r.Bool("newest")}
 		},
-		Queries: ownData[LinkwardenConfig], View: dataView(linkwardenView)}.add()
+		Queries: ownData[LinkwardenConfig], DetailQueries: openQuery[LinkwardenConfig]("linkwarden.previews"), View: dataView(linkwardenView)}.add()
 }
 
 func linkwardenView(cfg LinkwardenConfig, data *sources.LinkwardenDataset, _ ViewCtx) map[string]any {

@@ -7,6 +7,7 @@ package sources
 
 import (
 	"context"
+	"encoding/base64"
 	"net/url"
 	"sort"
 	"strconv"
@@ -137,6 +138,79 @@ func plex(ctx context.Context, api services.KeyedApi) (*MediaServerDataset, erro
 	return data, nil
 }
 
+// PlayDays is the span of the play statistics.
+const PlayDays = 30
+
+// MediaPlays counts playbacks over the last PlayDays.
+type MediaPlays struct {
+	Daily  map[string]int // "2026-09-30" → plays
+	Titles map[string]int // series or movie → plays
+}
+
+// add counts one playback.
+func (p *MediaPlays) add(at time.Time, title string) {
+	if at.IsZero() {
+		return
+	}
+	p.Daily[at.Format(time.DateOnly)]++
+	if title != "" {
+		p.Titles[title]++
+	}
+}
+
+// MediaPlaysSource reads the play history when the dialog opens: Plex's
+// watch history, Jellyfin's activity log.
+var MediaPlaysSource = source{key: "mediaserver.plays", ttl: detailTTL, service: enums.ServiceMediaServer, fetch: fetchMediaPlays}
+
+// jellyfinPlaying splits an activity "selin is playing Title" (English
+// server language; otherwise the whole entry is the title).
+const jellyfinPlaying = " is playing "
+
+// mediaPlaysMax caps the read history.
+const mediaPlaysMax = "1000"
+
+func fetchMediaPlays(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return DemoMediaPlays(time.Now()), nil
+	}
+	secret, err := needSecret(sctx)
+	if err != nil {
+		return nil, err
+	}
+	since := time.Now().AddDate(0, 0, -PlayDays)
+	out := &MediaPlays{Daily: map[string]int{}, Titles: map[string]int{}}
+	if asStr(sctx.Options["kind"]) == mediaPlex {
+		api := services.HeaderApi(sctx.URL, "X-Plex-Token", secret, sctx.TLS())
+		hist, err := api.Get(ctx, "status/sessions/history/all", url.Values{"sort": {"viewedAt:desc"},
+			"viewedAt>": {strconv.FormatInt(since.Unix(), 10)}, "X-Plex-Container-Size": {mediaPlaysMax}})
+		if err != nil {
+			return nil, fetchError(err)
+		}
+		for _, raw := range asList(asMap(asMap(hist)["MediaContainer"])["Metadata"]) {
+			m := asMap(raw)
+			out.add(time.Unix(asInt64(m["viewedAt"]), 0), firstStr(asStr(m["grandparentTitle"]), asStr(m["title"])))
+		}
+		return out, nil
+	}
+	api := services.HeaderApi(sctx.URL, "Authorization", `MediaBrowser Token="`+secret+`"`, sctx.TLS())
+	log, err := api.Get(ctx, "System/ActivityLog/Entries", url.Values{"minDate": {since.UTC().Format(time.RFC3339)}, "limit": {mediaPlaysMax}})
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	for _, raw := range asList(asMap(log)["Items"]) {
+		m := asMap(raw)
+		if asStr(m["Type"]) != "VideoPlayback" && asStr(m["Type"]) != "AudioPlayback" {
+			continue
+		}
+		name := asStr(m["Name"])
+		if _, title, ok := strings.Cut(name, jellyfinPlaying); ok {
+			name = title
+		}
+		out.add(parseTime(m["Date"]), name)
+	}
+	return out, nil
+}
+
 // ── Sonarr / Radarr ──
 
 // ArrHealth is one health check message.
@@ -149,6 +223,7 @@ type ArrHealth struct {
 type ArrItem struct {
 	Title string
 	At    time.Time
+	Cover string // poster path below the app: "api/v3/mediacover/12/poster-250.jpg"
 }
 
 type ArrDataset struct {
@@ -209,16 +284,71 @@ func loadArr(ctx context.Context, api services.KeyedApi, now time.Time) (*ArrDat
 		data.Missing = int(asFloat(asMap(missing)["totalRecords"]))
 	}
 
+	data.Upcoming, err = arrUpcoming(ctx, api, data.App, now)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// arrUpcoming reads the calendar of the coming arrUpcomingDays, soonest first.
+func arrUpcoming(ctx context.Context, api services.KeyedApi, app string, now time.Time) ([]ArrItem, error) {
 	params := url.Values{"start": {now.Format(time.DateOnly)}, "end": {now.AddDate(0, 0, arrUpcomingDays).Format(time.DateOnly)}, "includeSeries": {"true"}}
 	calendar, err := api.Get(ctx, "api/v3/calendar", params)
 	if err != nil {
 		return nil, err
 	}
+	var out []ArrItem
 	for _, raw := range asList(calendar) {
-		data.Upcoming = append(data.Upcoming, arrItem(asMap(raw), data.App, now))
+		out = append(out, arrItem(asMap(raw), app, now))
 	}
-	sort.Slice(data.Upcoming, func(i, j int) bool { return data.Upcoming[i].At.Before(data.Upcoming[j].At) })
-	return data, nil
+	sort.Slice(out, func(i, j int) bool { return out[i].At.Before(out[j].At) })
+	return out, nil
+}
+
+// arrPosters is how many of the coming items the dialog shows with poster.
+const arrPosters = 8
+
+// ArrPosters maps an upcoming item's title to its poster as data: URI.
+type ArrPosters struct{ ByTitle map[string]string }
+
+// ArrPostersSource reads the posters of the coming items when the dialog opens.
+var ArrPostersSource = source{key: "arr.posters", ttl: detailTTL, service: enums.ServiceArr, fetch: fetchArrPosters}
+
+func fetchArrPosters(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return &ArrPosters{}, nil
+	}
+	secret, err := needSecret(sctx)
+	if err != nil {
+		return nil, err
+	}
+	api := services.HeaderApi(sctx.URL, "X-Api-Key", secret, sctx.TLS())
+	status, err := api.Get(ctx, "api/v3/system/status", nil)
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	items, err := arrUpcoming(ctx, api, asStr(asMap(status)["appName"]), time.Now().UTC())
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	items = items[:min(len(items), arrPosters)]
+	pics := make([]string, len(items))
+	parallel(ctx, len(items), arrPosters, func(i int) {
+		if items[i].Cover == "" {
+			return
+		}
+		if body, kind, err := api.Bytes(ctx, items[i].Cover); err == nil && strings.HasPrefix(kind, "image/") {
+			pics[i] = "data:" + kind + ";base64," + base64.StdEncoding.EncodeToString(body)
+		}
+	})
+	out := &ArrPosters{ByTitle: map[string]string{}}
+	for i, it := range items {
+		if pics[i] != "" {
+			out.ByTitle[it.Title] = pics[i]
+		}
+	}
+	return out, nil
 }
 
 // arrItem names an episode "Show 2x05" or a movie by its title and next
@@ -227,7 +357,7 @@ func loadArr(ctx context.Context, api services.KeyedApi, now time.Time) (*ArrDat
 func arrItem(m map[string]any, app string, now time.Time) ArrItem {
 	if app == sonarrApp {
 		title := asStr(asMap(m["series"])["title"]) + " " + strconv.Itoa(int(asFloat(m["seasonNumber"]))) + "x" + pad2(int(asFloat(m["episodeNumber"])))
-		return ArrItem{Title: title, At: parseTime(m["airDateUtc"])}
+		return ArrItem{Title: title, At: parseTime(m["airDateUtc"]), Cover: arrCover(asInt64(m["seriesId"]))}
 	}
 	today := now.Truncate(24 * time.Hour)
 	at := time.Time{}
@@ -240,7 +370,15 @@ func arrItem(m map[string]any, app string, now time.Time) ArrItem {
 			at = t
 		}
 	}
-	return ArrItem{Title: asStr(m["title"]), At: at}
+	return ArrItem{Title: asStr(m["title"]), At: at, Cover: arrCover(asInt64(m["id"]))}
+}
+
+// arrCover is the small poster of a series or movie; 0 has none.
+func arrCover(id int64) string {
+	if id == 0 {
+		return ""
+	}
+	return "api/v3/mediacover/" + strconv.FormatInt(id, 10) + "/poster-250.jpg"
 }
 
 func pad2(n int) string {
@@ -251,6 +389,20 @@ func pad2(n int) string {
 }
 
 // ── Demo ──
+
+// DemoMediaPlays is a month of evenings: more at weekends.
+func DemoMediaPlays(now time.Time) *MediaPlays {
+	out := &MediaPlays{Daily: map[string]int{}, Titles: map[string]int{demoProjectName(0): 9, demoWorld.Media.Album.Title: 6, demoProjectName(1): 4}}
+	for i := range PlayDays {
+		day := now.AddDate(0, 0, -i)
+		n := 1 + i%3
+		if wd := day.Weekday(); wd == time.Saturday || wd == time.Sunday {
+			n += 3
+		}
+		out.Daily[day.Format(time.DateOnly)] = n
+	}
+	return out
+}
 
 func DemoMediaServer() *MediaServerDataset {
 	return &MediaServerDataset{URL: "https://jellyfin.demo", Kind: mediaJellyfin, Version: "10.10.7", Movies: 1204, Series: 86, Episodes: 4310,
@@ -270,6 +422,8 @@ func init() {
 	Register(MediaServerData)
 	Register(testOf{MediaServerData, func(d any) map[string]any { return map[string]any{"version": d.(*MediaServerDataset).Version} }})
 	Register(ArrData)
+	Register(ArrPostersSource)
+	Register(MediaPlaysSource)
 	Register(testOf{ArrData, func(d any) map[string]any {
 		a := d.(*ArrDataset)
 		return map[string]any{"version": a.App + " " + a.Version}

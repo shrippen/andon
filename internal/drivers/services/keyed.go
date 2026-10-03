@@ -18,6 +18,8 @@ package services
 import (
 	"context"
 	"encoding/base64"
+	"io"
+	"net/http"
 	"net/url"
 
 	"andon/internal/drivers/httpclient"
@@ -63,4 +65,26 @@ func (a KeyedApi) Post(ctx context.Context, path string, body any) (any, error) 
 		target = joinURL(a.URL, path)
 	}
 	return postJSON(ctx, target, a.Headers, body, httpclient.TLSOf(a.Verify))
+}
+
+// Bytes reads a binary answer (a poster, a preview) with its content type.
+func (a KeyedApi) Bytes(ctx context.Context, path string) ([]byte, string, error) {
+	return fetchBytes(ctx, joinURL(a.URL, path), a.Headers, a.Verify)
+}
+
+// fetchBytes GETs a binary answer of at most httpclient.MaxBody bytes.
+func fetchBytes(ctx context.Context, target string, headers map[string]string, verify bool) ([]byte, string, error) {
+	resp, err := httpclient.Request(ctx, http.MethodGet, target, httpclient.Options{Headers: headers, SkipVerify: !verify})
+	if err != nil {
+		return nil, "", ApiError{err.Error()}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= http.StatusBadRequest {
+		return nil, "", ApiError{resp.Status}
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, httpclient.MaxBody))
+	if err != nil {
+		return nil, "", ApiError{err.Error()}
+	}
+	return body, resp.Header.Get("Content-Type"), nil
 }
