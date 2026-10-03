@@ -14,6 +14,7 @@ package services
 //	grocy                   GROCY-API-KEY
 //	github                  Authorization: Bearer (optional)
 //	tibber                  Authorization: Bearer, GraphQL
+//	tandoor                 Authorization: Bearer
 
 import (
 	"context"
@@ -65,6 +66,11 @@ func (a KeyedApi) Post(ctx context.Context, path string, body any) (any, error) 
 		target = joinURL(a.URL, path)
 	}
 	return postJSON(ctx, target, a.Headers, body, httpclient.TLSOf(a.Verify))
+}
+
+// Patch changes fields of one object (a shopping list entry).
+func (a KeyedApi) Patch(ctx context.Context, path string, body any) (any, error) {
+	return sendJSON(ctx, http.MethodPatch, joinURL(a.URL, path), a.Headers, body, httpclient.TLSOf(a.Verify))
 }
 
 // Bytes reads a binary answer (a poster, a preview) with its content type.

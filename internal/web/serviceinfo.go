@@ -41,6 +41,7 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServiceVaultwarden:   "https://github.com/dani-garcia/vaultwarden",
 	enums.ServiceSpeedtest:     "https://github.com/alexjustesen/speedtest-tracker",
 	enums.ServiceGrocy:         "https://grocy.info",
+	enums.ServiceTandoor:       "https://tandoor.dev",
 	enums.ServiceDWD:           "https://brightsky.dev",
 	enums.ServiceGitHub:        "https://github.com",
 	enums.ServiceTibber:        "https://tibber.com",

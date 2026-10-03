@@ -283,3 +283,12 @@ func TestJumps(t *testing.T) {
 		t.Fatalf("got %v", got)
 	}
 }
+
+// Grocy's missing products already on Tandoor's list drop out.
+func TestNotOnList(t *testing.T) {
+	grocy := &sources.GrocyDataset{Missing: []sources.Product{{Name: "Kaffee"}, {Name: "Milch"}}}
+	tandoor := &sources.TandoorDataset{Items: []sources.ShopItem{{Food: " milch"}}}
+	if got := metrics.NotOnList(grocy, tandoor); len(got) != 1 || got[0].Name != "Kaffee" {
+		t.Fatalf("got %+v", got)
+	}
+}

@@ -20,6 +20,7 @@ func TestIntegrationWidgetsRender(t *testing.T) {
 		{"mediaserver", "mediaserver", "Harbour Lights (Original Score)"},
 		{"arr", "arr_upcoming", "Harbour Lights 2x05"},
 		{"grocy", "grocy", "Joghurt"},
+		{"tandoor", "tandoor", "Milch"},
 		{"dwd", "dwd", "STURMBÖEN"},
 		{"github", "github", "studio/showreel"},
 		{"speedtest", "speedtest", "243"},

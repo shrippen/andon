@@ -205,6 +205,9 @@ func init() {
 			}
 		}
 	})
+	Record(func(d *sources.TandoorDataset, _ time.Time, r *Readings) {
+		r.Set(key("tandoor", "open"), float64(len(d.Items)))
+	})
 	Record(func(d *sources.FreshRSSDataset, _ time.Time, r *Readings) {
 		r.Set(key("freshrss", "unread"), float64(d.Unread))
 	})

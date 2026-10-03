@@ -45,6 +45,18 @@
 {{end}}
 {{end}}
 
+{{define "widgets/tandoor"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with .Frag.View}}{{if .Items}}
+<ul class="plain-list">
+  {{range .Items}}<li>{{.Food}}{{if .Amount}} <small class="muted">{{num .Amount 0}} {{.Unit}}</small>{{end}}</li>{{end}}
+</ul>
+<p class="small muted">{{t "tandoor.open" "count" .Open}}</p>
+{{else}}<p class="small muted">{{t "tandoor.empty"}}</p>{{end}}
+{{with .Meals}}<h4>{{t "tandoor.plan"}}</h4><ul class="plain-list">{{range .}}<li><time>{{day .Day}}</time> {{.Title}}</li>{{end}}</ul>{{end}}
+{{end}}
+{{end}}
+
 {{define "widgets/dwd"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with .Frag.View.Data}}

@@ -528,6 +528,7 @@ field:
   free: 'Show amount free to spend (balance)'
   titles_only: 'Titles only (one line per item)'
   list_height: 'List height'
+  show_meals: 'Show meal plan'
 opt:
   exposure: 'Exposure'
   domain_chain: 'Domain chain'
@@ -967,6 +968,9 @@ wtype:
   links_down:
     name: 'What is red?'
     desc: 'Every link of the space whose status check fails, with how long.'
+  tandoor:
+    name: 'Shopping list (Tandoor)'
+    desc: 'Open shopping list entries and the next planned meals.'
 widget:
   bad_window: 'Maintenance window not readable: e.g. 22:00-06:00 or 22-6.'
   bad_timezone: 'Unknown time zone: e.g. Europe/Berlin.'
@@ -1306,6 +1310,9 @@ conn:
   what_docker: 'Docker: state of every container on a host, read through a socket proxy that may only list containers.'
   about_docker: 'Container state'
   options_hint_docker: 'No token. Address of a socket proxy, never the Docker socket itself, e.g. tecnativa/docker-socket-proxy with CONTAINERS=1 and nothing else: http://docker-proxy:2375.'
+  what_tandoor: 'Tandoor Recipes manages recipes, meal plans and their shopping list.'
+  about_tandoor: 'Shopping list and meal plan'
+  options_hint_tandoor: 'No options. Token = API token from Tandoor → Settings → API (scope read write: checking off needs write access).'
 mode:
   shared: Shared
   personal: Personal
@@ -1363,6 +1370,7 @@ service:
   wallos: Wallos
   tax: 'Tax'
   docker: 'Docker'
+  tandoor: 'Tandoor'
 test:
   ok: OK
   failed: Failed
@@ -2384,6 +2392,8 @@ info:
     cpu: CPU {percent} %
   wallos:
     subs: '{count} subscriptions · {amount}/month'
+  tandoor:
+    items: '{count} entries open'
 kpi:
   safe: 'Cash {in}, to set aside {out}'
   liquidity: income {in} − fixed costs {out}
@@ -4019,6 +4029,14 @@ detail:
   hints_pick: 'Pick a hint'
   hints_save: 'Save'
   hints_work: 'Work on it'
+  tandoor:
+    open: 'Open'
+    meals: 'Planned meals'
+    check: 'Check off'
+    other: 'No category'
+    empty: 'Nothing on the shopping list.'
+    plan: 'This week''s meal plan'
+    from_grocy: 'Missing in Grocy, not on the list'
 linkdetail:
   open_aria: History and details
   open: Open
@@ -5018,3 +5036,7 @@ kpi_how:
   net_worth: 'Assets less liabilities of all accounts in Sure.'
   cash: 'Balance of all bank accounts in Sure.'
   safe_to_spend: 'Bank balance less VAT owed, income tax reserve and the fixed costs of the next 30 days.'
+tandoor:
+  open: '{count} open'
+  empty: 'Shopping list empty'
+  plan: 'Meal plan'

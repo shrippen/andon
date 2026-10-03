@@ -5,6 +5,7 @@ package widgets
 
 import (
 	"cmp"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -272,6 +273,67 @@ func hassDetail(cfg HassConfig, data *sources.HassDataset, ctx ViewCtx, results 
 		head.State, head.StateKey, head.StateArgs = "warn", "detail.hass.trouble", map[string]any{"n": trouble}
 	}
 	return DetailView{Head: head, Body: body}
+}
+
+// tandoorDetail (tasks): the shopping list by aisle, each entry checked
+// off by click; the week's meals; what Grocy misses and the list lacks.
+func tandoorDetail(cfg TandoorConfig, data *sources.TandoorDataset, ctx ViewCtx, results map[string]any) DetailView {
+	body := &DetailBody{Line: []Fact{{Label: T("detail.tandoor.open"), Value: len(data.Items)}, {Label: T("detail.tandoor.meals"), Value: len(data.Meals)}}}
+
+	// One task list per supermarket category, in the list's order.
+	var cats []string
+	byCat := map[string][]Task{}
+	for _, it := range data.Items {
+		if _, ok := byCat[it.Category]; !ok {
+			cats = append(cats, it.Category)
+		}
+		text := it.Food
+		if it.Recipe != "" {
+			text += " · " + it.Recipe
+		}
+		task := Task{Text: text, State: "info", Action: T("detail.tandoor.check"), Do: "check",
+			Args: map[string]string{"id": strconv.FormatInt(it.ID, 10)}}
+		if it.Amount > 0 {
+			digits := 0
+			if it.Amount != math.Trunc(it.Amount) {
+				digits = 1
+			}
+			task.Meta = NumU(it.Amount, digits, it.Unit)
+		}
+		byCat[it.Category] = append(byCat[it.Category], task)
+	}
+	for _, c := range cats {
+		label := Plain(c)
+		if c == "" {
+			label = T("detail.tandoor.other")
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTasks, Data: Tasks{Label: label, Items: byCat[c]}})
+	}
+	if len(data.Items) == 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.tandoor.empty")})
+	}
+
+	var meals []Event
+	for _, m := range data.Meals {
+		if at, err := time.Parse(time.DateOnly, m.Day); err == nil {
+			meals = append(meals, Event{At: at, Title: m.Title, Sub: m.Type, Tier: "cyan"})
+		}
+	}
+	if len(meals) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTimeline, Label: T("detail.tandoor.plan"), Data: meals})
+	}
+
+	if grocy, ok := results[peerGrocy].(*sources.GrocyDataset); ok {
+		var rows []LitRow
+		for _, p := range metrics.NotOnList(grocy, data) {
+			rows = append(rows, LitRow{Name: p.Name, Meta: Num(p.Missing, 0), State: "warn"})
+		}
+		if len(rows) > 0 {
+			body.Blocks = append(body.Blocks, Block{Kind: BlockRows, Label: T("detail.tandoor.from_grocy"), Data: rows})
+		}
+	}
+	body.Blocks = append(body.Blocks, hintsBlock(results)...)
+	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}, Body: body}
 }
 
 // hassHistory: the last day per entity, hour by hour; numbers as a line,

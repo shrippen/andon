@@ -6,6 +6,7 @@ package detailacts
 import (
 	"context"
 	"database/sql"
+	"strconv"
 	"time"
 
 	"andon/internal/model"
@@ -23,6 +24,24 @@ func init() {
 	register("pihole", "pause", pauseDNS(outbound.DNSPihole))
 	register("adguard", "pause", pauseDNS(outbound.DNSAdGuard))
 	register("grocy", "shopping_add", grocyShopping)
+	register("tandoor", "check", tandoorCheck)
+}
+
+// tandoorCheck checks an entry of Tandoor's shopping list off.
+func tandoorCheck(ctx context.Context, d *sql.DB, who *access.Principal, c Call) error {
+	id, err := strconv.ParseInt(c.Form.Get("id"), 10, 64)
+	if err != nil || id <= 0 {
+		return ErrBadMark
+	}
+	conn, target, err := useConnection(d, who, c.Widget)
+	if err != nil {
+		return err
+	}
+	if err := outbound.TandoorCheck(ctx, target, id); err != nil {
+		return err
+	}
+	svcdata.Forget(conn.ID)
+	return auditsvc.Log(d, &who.UserID, "tandoor.check", conn.Name, c.IP, nil)
 }
 
 // grocyShopping puts the products below their minimum on Grocy's

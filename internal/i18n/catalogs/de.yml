@@ -528,6 +528,7 @@ field:
   free: 'Frei verfügbaren Betrag zeigen (Kontostand)'
   titles_only: 'Nur Titel (eine Zeile je Eintrag)'
   list_height: 'Listenhöhe'
+  show_meals: 'Essensplan zeigen'
 opt:
   exposure: 'Angriffsfläche'
   domain_chain: 'Domain-Kette'
@@ -967,6 +968,9 @@ wtype:
   links_down:
     name: 'Was ist rot?'
     desc: 'Alle Links des Bereichs, deren Statusprüfung fehlschlägt, mit Dauer.'
+  tandoor:
+    name: 'Einkaufsliste (Tandoor)'
+    desc: 'Offene Einträge der Einkaufsliste und die nächsten geplanten Essen.'
 widget:
   bad_window: 'Wartungsfenster nicht lesbar: z. B. 22:00-06:00 oder 22-6.'
   bad_timezone: 'Unbekannte Zeitzone: z. B. Europe/Berlin.'
@@ -1306,6 +1310,9 @@ conn:
   what_docker: 'Docker: Zustand aller Container eines Hosts, gelesen über einen Socket-Proxy, der nur Container anzeigen darf.'
   about_docker: 'Container-Zustand'
   options_hint_docker: 'Kein Token. Adresse eines Socket-Proxys, nie den Docker-Socket selbst, z. B. tecnativa/docker-socket-proxy mit CONTAINERS=1 und sonst nichts: http://docker-proxy:2375.'
+  what_tandoor: 'Tandoor Recipes verwaltet Rezepte, Essenspläne und die Einkaufsliste dazu.'
+  about_tandoor: 'Einkaufsliste und Essensplan'
+  options_hint_tandoor: 'Keine Optionen. Token = API-Token aus Tandoor → Einstellungen → API (Bereich read write: Abhaken braucht Schreibrecht).'
 mode:
   shared: Geteilt
   personal: Persönlich
@@ -1363,6 +1370,7 @@ service:
   wallos: Wallos
   tax: 'Steuer'
   docker: 'Docker'
+  tandoor: 'Tandoor'
 test:
   ok: OK
   failed: Fehler
@@ -2385,6 +2393,8 @@ info:
     cpu: CPU {percent} %
   wallos:
     subs: '{count} Abos · {amount}/Monat'
+  tandoor:
+    items: '{count} Einträge offen'
 kpi:
   safe: 'Konto {in}, zurückzulegen {out}'
   liquidity: Eingang {in} − Fixkosten {out}
@@ -4020,6 +4030,14 @@ detail:
   hints_pick: 'Hinweis wählen'
   hints_save: 'Speichern'
   hints_work: 'Bearbeiten'
+  tandoor:
+    open: 'Offen'
+    meals: 'Geplante Essen'
+    check: 'Abhaken'
+    other: 'Ohne Kategorie'
+    empty: 'Nichts auf der Einkaufsliste.'
+    plan: 'Essensplan der Woche'
+    from_grocy: 'Fehlt laut Grocy, nicht auf der Liste'
 linkdetail:
   open_aria: Verlauf und Details
   open: Öffnen
@@ -5019,3 +5037,7 @@ kpi_how:
   net_worth: 'Vermögen minus Schulden aller Konten in Sure.'
   cash: 'Saldo aller Bankkonten in Sure.'
   safe_to_spend: 'Bankguthaben minus Umsatzsteuerschuld, Einkommensteuer-Rücklage und Fixkosten der nächsten 30 Tage.'
+tandoor:
+  open: '{count} offen'
+  empty: 'Einkaufsliste leer'
+  plan: 'Essensplan'
