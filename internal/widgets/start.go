@@ -599,7 +599,7 @@ func init() {
 			{Key: "reload", Input: InputNumber, Min: "0", Max: "1440"}},
 		Decode: decodeIframe}.add()
 
-	Tile[SysinfoConfig]{Key: "sysinfo", Detail: sysinfoDetail, Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceGlances, RefreshS: 60, Live: true, DataChoice: true,
+	Tile[SysinfoConfig]{Key: "sysinfo", Detail: sysinfoDetail, DetailQueries: openQuery[SysinfoConfig]("glances.detail"), Category: CategoryStart, Topic: TopicHomelab, Service: enums.ServiceGlances, RefreshS: 60, Live: true, DataChoice: true,
 		Fields: []Field{{Key: "show_cpu", Input: InputCheck, Default: true}, {Key: "show_mem", Input: InputCheck, Default: true},
 			{Key: "show_swap", Input: InputCheck, Default: true}, {Key: "show_disks", Input: InputCheck, Default: true},
 			{Key: "warn_pct", Input: InputNumber, Default: loadWarn, Min: "1", Max: "100"}},

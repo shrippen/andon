@@ -339,6 +339,16 @@ func DemoGlances() *GlancesResult {
 		Disks: []GlancesDisk{{Mount: "/", Percent: 52}, {Mount: "/data", Percent: 87}}}
 }
 
+// DemoGlancesDetail is the demo host's processes, sensors and network.
+func DemoGlancesDetail() *GlancesDetail {
+	return &GlancesDetail{
+		Processes: []GProcess{{"immich-server", 18.2, 9.4}, {"postgres", 6.1, 4.8}, {"jellyfin", 4.4, 3.1}, {"node", 2.0, 2.2}},
+		Sensors:   []GSensor{{"Package id 0", "C", 54}, {"nvme0", "C", 41}, {"fan1", "R", 920}},
+		Networks:  []GNetwork{{"eth0", 1.8e6, 0.4e6}, {"tailscale0", 12e3, 9e3}},
+		Uptime:    "12 days, 4:13:08",
+	}
+}
+
 // DemoGlancesHistory is one demo metric over the last hour, a sample a minute.
 func DemoGlancesHistory(now time.Time, metric string, points int) *GlancesHistory {
 	rnd := rand.New(rand.NewSource(demoSeed))
@@ -403,7 +413,23 @@ func DemoScrutiny(now time.Time) *ScrutinyDataset {
 // DemoImmich is the demo Immich dataset.
 func DemoImmich() *ImmichDataset {
 	return &ImmichDataset{URL: "https://photos.demo", Photos: 48213, Videos: 1920, DiskPercent: 87.4,
-		DiskAvailable: "412 GiB", FailedJobs: map[string]int{"faceDetection": 3}, Version: "v1.131.0", Latest: "v1.132.3"}
+		DiskAvailable: "412 GiB", FailedJobs: map[string]int{"faceDetection": 3}, Version: "v1.131.0", Latest: "v1.132.3",
+		Users: []ImmichUser{{Name: "Mara", Photos: 30112, Videos: 1210, Bytes: 1.4e12}, {Name: "Lena", Photos: 18101, Videos: 710, Bytes: 0.9e12}}}
+}
+
+// DemoUmamiDetail is the demo sites' pages, referrers and days.
+func DemoUmamiDetail(now time.Time) *UmamiDetail {
+	days := func(base int) []Count {
+		var out []Count
+		for i := 29; i >= 0; i-- {
+			out = append(out, Count{Name: now.AddDate(0, 0, -i).Format(time.DateOnly), N: base + (i*7)%23})
+		}
+		return out
+	}
+	return &UmamiDetail{Sites: map[string]UmamiSite{
+		"1": {Pages: []Count{{"/", 820}, {"/projekte/licht-an", 412}, {"/kontakt", 160}}, Referrers: []Count{{"–", 540}, {"google.com", 210}, {"instagram.com", 64}}, Days: days(50)},
+		"2": {Pages: []Count{{"/", 120}, {"/impressum", 12}}, Referrers: []Count{{"–", 96}}, Days: days(4)},
+	}}
 }
 
 // DemoUmami is the demo Umami dataset.
@@ -446,8 +472,10 @@ func DemoBorg(now time.Time) *BorgDataset {
 	return &BorgDataset{URL: "https://borg.demo", Failed24h: 1, Completed24h: 5, UsedBytes: 3.1e12, TotalBytes: 4e12,
 		LastBackup: now.UTC().Add(-7 * time.Hour), AgentsOutdated: 1,
 		Clients: []BorgClient{
-			{Name: "nas", Status: "online", LastSeen: now.UTC().Add(-time.Minute), LastBackup: now.UTC().Add(-7 * time.Hour)},
-			{Name: "laptop", Status: "offline", LastSeen: now.UTC().AddDate(0, 0, -6), LastBackup: now.UTC().AddDate(0, 0, -6)},
+			{Name: "nas", Status: "online", LastSeen: now.UTC().Add(-time.Minute), LastBackup: now.UTC().Add(-7 * time.Hour),
+				RepoBytes: 2.4e12, LastBytes: 3.8e9, LastSeconds: 1260},
+			{Name: "laptop", Status: "offline", LastSeen: now.UTC().AddDate(0, 0, -6), LastBackup: now.UTC().AddDate(0, 0, -6),
+				RepoBytes: 0.7e12, LastBytes: 1.1e9, LastSeconds: 540},
 		}}
 }
 
@@ -544,8 +572,8 @@ func DemoMail(now time.Time) *MailDataset {
 func DemoTrueNAS() *TrueNASDataset {
 	return &TrueNASDataset{URL: "https://nas.demo", Host: "truenas", Version: "25.04.2",
 		Pools: []Pool{
-			{Name: "tank", Status: "ONLINE", Healthy: true, Size: 16e12, Allocated: 14.1e12},
-			{Name: "fast", Status: "DEGRADED", Healthy: false, Size: 2e12, Allocated: 0.6e12},
+			{Name: "tank", Status: "ONLINE", Healthy: true, Size: 16e12, Allocated: 14.1e12, ScrubEnd: time.Now().UTC().AddDate(0, 0, -12)},
+			{Name: "fast", Status: "DEGRADED", Healthy: false, Size: 2e12, Allocated: 0.6e12, ScrubEnd: time.Now().UTC().AddDate(0, 0, -41), ScrubErrors: 2},
 		},
 		Alerts: []TNAlert{{ID: "a1", Level: "WARNING", Text: "Device /dev/sdc is causing slow I/O on pool fast."}},
 		Apps:   []TNApp{{Name: "jellyfin", State: "RUNNING", Update: true}, {Name: "syncthing", State: "RUNNING"}},
@@ -554,6 +582,14 @@ func DemoTrueNAS() *TrueNASDataset {
 			{Dataset: "fast/vms", State: "ERROR", Enabled: true, Last: time.Now().UTC().Add(-26 * time.Hour)},
 		},
 	}
+}
+
+// DemoTrueNASDatasets are the demo pools' largest datasets.
+func DemoTrueNASDatasets() *TrueNASDatasets {
+	return &TrueNASDatasets{List: []TNDataset{
+		{Name: "tank/photos", Used: 6.2e12, Available: 1.9e12}, {Name: "tank/media", Used: 4.8e12, Available: 1.9e12},
+		{Name: "tank/backups", Used: 2.6e12, Available: 1.9e12}, {Name: "fast/vms", Used: 0.5e12, Available: 1.4e12},
+	}}
 }
 
 // DemoKomodo is the demo Komodo dataset.
@@ -565,6 +601,23 @@ func DemoKomodo(now time.Time) *KomodoDataset {
 			{Name: "gitea", State: "running"},
 		},
 		Alerts: []KAlert{{Level: "CRITICAL", Kind: "ServerUnreachable", Name: "pi-backup", At: now.UTC().Add(-3 * time.Hour)}},
+	}
+}
+
+// DemoKomodoDetail is the demo servers' load and the stacks' last
+// deployments.
+func DemoKomodoDetail(now time.Time) *KomodoDetail {
+	return &KomodoDetail{
+		Servers: []KServerLoad{
+			{Name: "nas", State: "ok", CPU: 23, MemUsed: 21.4, MemTotal: 32, DiskUsed: 412, DiskMax: 950},
+			{Name: "docker-host", State: "ok", CPU: 61, MemUsed: 13.8, MemTotal: 16, DiskUsed: 188, DiskMax: 480},
+			{Name: "pi-backup", State: "unhealthy"},
+		},
+		Deploys: map[string]KDeploy{
+			"immich":    {At: now.UTC().AddDate(0, 0, -6), Operation: "DeployStack", By: "mara", OK: true},
+			"paperless": {At: now.UTC().Add(-26 * time.Hour), Operation: "DeployStack", By: "lena", OK: false},
+			"gitea":     {At: now.UTC().AddDate(0, 0, -19), Operation: "DeployStack", By: "mara", OK: true},
+		},
 	}
 }
 

@@ -28,6 +28,8 @@ type Pool struct {
 	Name, Status    string
 	Healthy         bool
 	Size, Allocated float64
+	ScrubEnd        time.Time // last finished scrub, zero = none known
+	ScrubErrors     int
 }
 
 type TNAlert struct {
@@ -86,8 +88,13 @@ func fetchTrueNAS(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	for _, raw := range asList(pools) {
 		p := asMap(raw)
-		data.Pools = append(data.Pools, Pool{Name: asStr(p["name"]), Status: asStr(p["status"]), Healthy: asBool(p["healthy"]),
-			Size: asFloat(p["size"]), Allocated: asFloat(p["allocated"])})
+		pool := Pool{Name: asStr(p["name"]), Status: asStr(p["status"]), Healthy: asBool(p["healthy"]),
+			Size: asFloat(p["size"]), Allocated: asFloat(p["allocated"])}
+		if scan := asMap(p["scan"]); asStr(scan["function"]) == "SCRUB" && asStr(scan["state"]) == "FINISHED" {
+			pool.ScrubEnd = time.UnixMilli(asInt64(asMap(scan["end_time"])["$date"])).UTC()
+			pool.ScrubErrors = int(asFloat(scan["errors"]))
+		}
+		data.Pools = append(data.Pools, pool)
 	}
 	if alerts, err := session.Call(ctx, "alert.list"); err == nil {
 		for _, raw := range asList(alerts) {
@@ -114,6 +121,55 @@ func fetchTrueNAS(ctx context.Context, sctx Ctx) (any, error) {
 		}
 	}
 	return data, nil
+}
+
+// TNDataset is one dataset's use, for the dialog's "who fills the pool".
+type TNDataset struct {
+	Name            string // "tank/photos"
+	Used, Available float64
+}
+
+// TrueNASDatasets are the datasets, largest first, fetched on open.
+type TrueNASDatasets struct{ List []TNDataset }
+
+var TrueNASDatasetsSource = source{key: "truenas.datasets", ttl: detailTTL, service: enums.ServiceTrueNAS, fetch: fetchTrueNASDatasets}
+
+func fetchTrueNASDatasets(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return DemoTrueNASDatasets(), nil
+	}
+	secret, err := needSecret(sctx)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.HasPrefix(strings.ToLower(sctx.URL), "https://") {
+		return nil, newSourceError("truenas.https_required")
+	}
+	session, err := services.TrueNASApi{URL: sctx.URL, Key: secret, Verify: sctx.VerifyTLS}.Open(ctx)
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	defer session.Close()
+	raw, err := session.Call(ctx, "pool.dataset.query")
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	return parseTNDatasets(raw), nil
+}
+
+// parseTNDatasets keeps the datasets below a pool's root, largest first.
+func parseTNDatasets(raw any) *TrueNASDatasets {
+	out := &TrueNASDatasets{}
+	for _, item := range asList(raw) {
+		d := asMap(item)
+		name := asStr(d["name"])
+		if !strings.Contains(name, "/") {
+			continue
+		}
+		out.List = append(out.List, TNDataset{Name: name, Used: asFloat(asMap(d["used"])["parsed"]), Available: asFloat(asMap(d["available"])["parsed"])})
+	}
+	sort.SliceStable(out.List, func(a, b int) bool { return out.List[a].Used > out.List[b].Used })
+	return out
 }
 
 // ── Komodo ──
@@ -180,6 +236,88 @@ func fetchKomodo(ctx context.Context, sctx Ctx) (any, error) {
 		}
 	}
 	return data, nil
+}
+
+// KServerLoad is one Komodo server's load when the dialog opens.
+type KServerLoad struct {
+	Name              string
+	State             string  // ok, warning, unhealthy, …
+	CPU               float64 // percent
+	MemUsed, MemTotal float64 // GB
+	DiskUsed, DiskMax float64 // GB, all disks
+}
+
+// KDeploy is a stack's latest deployment.
+type KDeploy struct {
+	At        time.Time
+	Operation string // DeployStack, …
+	By        string
+	OK        bool
+}
+
+// KomodoDetail is what the dialog fetches on open.
+type KomodoDetail struct {
+	Servers []KServerLoad
+	Deploys map[string]KDeploy // by stack name
+}
+
+var KomodoDetailSource = source{key: "komodo.detail", ttl: detailTTL, service: enums.ServiceKomodo, fetch: fetchKomodoDetail}
+
+// komodoParallel is how many servers are asked at once.
+const komodoParallel = 4
+
+func fetchKomodoDetail(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return DemoKomodoDetail(time.Now()), nil
+	}
+	secret, err := needSecret(sctx)
+	if err != nil {
+		return nil, err
+	}
+	api := services.KomodoApi{URL: sctx.URL, Secret: secret, Verify: sctx.VerifyTLS}
+	servers, err := api.Read(ctx, "ListServers", nil)
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	list := asList(servers)
+	out := &KomodoDetail{Servers: make([]KServerLoad, len(list)), Deploys: map[string]KDeploy{}}
+	parallel(ctx, len(list), komodoParallel, func(i int) {
+		s := asMap(list[i])
+		load := KServerLoad{Name: asStr(s["name"]), State: strings.ToLower(asStr(asMap(s["info"])["state"]))}
+		if stats, err := api.Read(ctx, "GetSystemStats", map[string]any{"server": asStr(s["id"])}); err == nil {
+			m := asMap(stats)
+			load.CPU, load.MemUsed, load.MemTotal = asFloat(m["cpu_perc"]), asFloat(m["mem_used_gb"]), asFloat(m["mem_total_gb"])
+			for _, d := range asList(m["disks"]) {
+				load.DiskUsed += asFloat(asMap(d)["used_gb"])
+				load.DiskMax += asFloat(asMap(d)["total_gb"])
+			}
+		}
+		out.Servers[i] = load
+	})
+
+	stacks, err := api.Read(ctx, "ListStacks", nil)
+	if err != nil {
+		return out, nil
+	}
+	names := map[string]string{}
+	for _, raw := range asList(stacks) {
+		names[asStr(asMap(raw)["id"])] = asStr(asMap(raw)["name"])
+	}
+	// Newest first: the first update of a stack is its latest.
+	updates, err := api.Read(ctx, "ListUpdates", map[string]any{"query": map[string]any{"target.type": "Stack"}})
+	if err != nil {
+		return out, nil
+	}
+	for _, raw := range asList(asMap(updates)["updates"]) {
+		u := asMap(raw)
+		name := names[asStr(asMap(u["target"])["id"])]
+		if _, seen := out.Deploys[name]; name == "" || seen {
+			continue
+		}
+		out.Deploys[name] = KDeploy{At: time.UnixMilli(asInt64(u["start_ts"])).UTC(), Operation: asStr(u["operation"]),
+			By: asStr(u["username"]), OK: asBool(u["success"])}
+	}
+	return out, nil
 }
 
 // ── Pangolin ──
@@ -402,6 +540,8 @@ func init() {
 		return map[string]any{"version": t.Version, "pools": len(t.Pools)}
 	}})
 	Register(KomodoData)
+	Register(KomodoDetailSource)
+	Register(TrueNASDatasetsSource)
 	Register(testOf{KomodoData, func(d any) map[string]any { return map[string]any{"stacks": len(d.(*KomodoDataset).Stacks)} }})
 	Register(PangolinData)
 	Register(testOf{PangolinData, func(d any) map[string]any { return map[string]any{"sites": len(d.(*PangolinDataset).Sites)} }})

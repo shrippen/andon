@@ -39,7 +39,7 @@ func snipeAsset(raw any) SnipeAsset {
 		WarrantyExpires: day(m["warranty_expires"]), EOLDate: day(m["asset_eol_date"]),
 		NextAudit:  day(m["next_audit_date"]),
 		LastChange: cmp.Or(day(m["last_checkin"]), day(m["last_checkout"]), day(m["updated_at"])),
-		AssignedTo: nameOf(m["assigned_to"]), ExpectedCheckin: day(m["expected_checkin"]),
+		AssignedTo: nameOf(m["assigned_to"]), ExpectedCheckin: day(m["expected_checkin"]), Serial: asStr(m["serial"]),
 	}
 }
 

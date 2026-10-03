@@ -858,6 +858,25 @@
       });
   }
 
+  // doDetail runs an act of the dialog (mark done, add to a list) and
+  // shows the dialog the server draws after it.
+  function doDetail(btn) {
+    var dlg = detailDialog();
+    btn.disabled = true;
+    post(btn.getAttribute("data-detail-do"))
+      .then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (html) {
+        if (!html) {
+          btn.disabled = false;
+          btn.setAttribute("aria-invalid", "true");
+          return;
+        }
+        // Server-rendered html/template output from our own origin.
+        dlg.innerHTML = html;
+        applyStyles(dlg);
+      });
+  }
+
   // pick shows one entry's values (a day of the link history) in the dialog.
   function pick(btn) {
     var dlg = btn.closest("dialog");
@@ -905,6 +924,11 @@
 
     d.addEventListener("click", function (e) {
       if (!e.target.closest || !e.target.closest("#detail")) {
+        return;
+      }
+      var act = e.target.closest("[data-detail-do]");
+      if (act) {
+        doDetail(act);
         return;
       }
       var tab = e.target.closest("[data-detail-tabs] > [role=tab]");

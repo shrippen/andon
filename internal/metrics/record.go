@@ -8,7 +8,7 @@ package metrics
 //		r.Count(key("kuma", "runs", m.Name), 1)
 //	})
 //
-//	datasets ──Read──► Readings
+//	Scope{datasets, settings} ──Read──► Readings
 //	  Values   the day's value, the last run wins     ──► samples
 //	  Counts   added up over the day's runs           ──► samples
 //	  Versions a change is an "update" event          ──► versions + events
@@ -50,15 +50,22 @@ func (r *Readings) State(subject, state string) {
 // statePrefix keeps states apart from versions in the shared table.
 const statePrefix = "state:"
 
+// Scope is what recorders read: a scope's datasets (keyed by service) and
+// its space's settings.
+type Scope struct {
+	Datasets map[string]any
+	Settings map[string]any
+}
+
 // recorder reads one dataset (or, scope-wide, all of them).
-type recorder func(datasets map[string]any, now time.Time, r *Readings)
+type recorder func(s Scope, now time.Time, r *Readings)
 
 var recorders []recorder
 
 // Record registers what a dataset type contributes to the history.
 func Record[D any](f func(d D, now time.Time, r *Readings)) {
-	recorders = append(recorders, func(datasets map[string]any, now time.Time, r *Readings) {
-		for _, raw := range datasets {
+	recorders = append(recorders, func(s Scope, now time.Time, r *Readings) {
+		for _, raw := range s.Datasets {
 			if d, ok := raw.(D); ok {
 				f(d, now, r)
 			}
@@ -67,22 +74,26 @@ func Record[D any](f func(d D, now time.Time, r *Readings)) {
 }
 
 // RecordScope registers a recorder that needs several datasets at once
-// (backups across Borg, PG Back Web and TrueNAS).
-func RecordScope(f func(datasets map[string]any, now time.Time, r *Readings)) {
+// (backups across Borg, PG Back Web and TrueNAS) or the settings.
+func RecordScope(f func(s Scope, now time.Time, r *Readings)) {
 	recorders = append(recorders, f)
 }
 
-// Read runs every recorder over a scope's datasets.
-func Read(datasets map[string]any, now time.Time) Readings {
+// Read runs every recorder over a scope.
+func Read(s Scope, now time.Time) Readings {
 	r := Readings{Values: map[string]float64{}, Counts: map[string]float64{}, Versions: map[string]string{}, States: map[string]string{}}
 	for _, rec := range recorders {
-		rec(datasets, now, &r)
+		rec(s, now, &r)
 	}
 	return r
 }
 
-// EventChange marks a state change (public IP, VPN exit, price).
-const EventChange = "change"
+// EventChange marks a state change (public IP, VPN exit, price);
+// EventRestore a restore test marked by hand (subject: the service).
+const (
+	EventChange  = "change"
+	EventRestore = "restore"
+)
 
 // StateEvent turns a state change into a timeline event; a first
 // sighting is none. The subject loses its table prefix.

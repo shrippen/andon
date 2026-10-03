@@ -72,14 +72,17 @@ func TestDetailBodyBlocks(t *testing.T) {
 // dialog; one without stays a plain row.
 func TestDetailListItems(t *testing.T) {
 	body := &widgets.DetailBody{List: &widgets.ObjList{Label: widgets.T("detail.facts"), Sel: 0, Title: "nas",
-		Items: []widgets.LitRow{{Name: "nas", State: "ok", Item: "nas lan"}, {Name: "shop", State: "warn"}}}}
+		Items: []widgets.LitRow{{Name: "nas", State: "ok", Item: "nas lan"}, {Name: "shop", State: "warn"}}},
+		Blocks: []widgets.Block{{Kind: widgets.BlockStatus, Data: []widgets.LitRow{{Name: "nas", State: "ok", Item: "nas lan"}}}}}
+	openItems(body, 3, "nas lan")
 	dialog := &widgetlib.DetailDialog{Type: "monitors", Body: body}
 	rec := httptest.NewRecorder()
 	if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, detailBlocks, http.StatusOK, map[string]any{"Dialog": dialog, "D": body, "PlacementID": int64(3), "ThemeURL": ""}); err != nil {
 		t.Fatal(err)
 	}
 	got := rec.Body.String()
-	for _, want := range []string{`<button type="button" class="list-row" data-details="/details/3?item=nas&#43;lan" aria-selected="true">`, `<div class="list-row">`} {
+	for _, want := range []string{`<button type="button" class="list-row" data-details="/details/3?item=nas&#43;lan" aria-selected="true">`, `<div class="list-row">`,
+		`<button type="button" class="status" data-state="ok" data-details="/details/3?item=nas&#43;lan" aria-pressed="true">`} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in %s", want, got)
 		}

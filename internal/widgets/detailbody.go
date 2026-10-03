@@ -70,6 +70,10 @@ type LitRow struct {
 	Meta  any
 	State string // ok, warn, bad, off, info
 	Item  string
+	// Open and Picked are set by the web layer: the entry's dialog URL,
+	// and whether it is the one shown.
+	Open   string
+	Picked bool
 }
 
 // BlockKind is how a block draws its Data.
@@ -123,6 +127,7 @@ type Table struct {
 type Cell struct {
 	Value any
 	State string
+	Href  string // the cell links there (a new tab), "" = plain
 }
 
 // ShareBar is a share bar: name, 0–100, value, Kante tier (green, yellow, red).
@@ -164,7 +169,10 @@ type Task struct {
 	Meta   any
 	State  string // ok = done
 	Action Text
-	Href   string
+	Href   string            // the action opens this page, or
+	Do     string            // the action runs this dialog act (services/detailacts)
+	Args   map[string]string // with these fields
+	Post   string            // set by the web layer: where Do posts to
 }
 
 // Heat is a grid of levels 0–4, Rows high (Kante .heat), labels under it.

@@ -10,6 +10,7 @@ package metrics
 // Recorders: see record.go.
 
 import (
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -84,6 +85,38 @@ func Trend(points []Point, min int) (slopePerDay, last float64, ok bool) {
 	return (n*sxy - sx*sy) / den, points[len(points)-1].Value, true
 }
 
+// SlopeError is the standard error of Trend's slope: how far the daily
+// pace may be off given how the points scatter around the line. ok is
+// false with fewer than three points.
+func SlopeError(points []Point) (float64, bool) {
+	n := float64(len(points))
+	if len(points) < 3 {
+		return 0, false
+	}
+	origin := points[0].Day
+	xs := make([]float64, len(points))
+	var sx, sy float64
+	for i, p := range points {
+		xs[i] = p.Day.Sub(origin).Hours() / hoursPerDay
+		sx, sy = sx+xs[i], sy+p.Value
+	}
+	mx, my := sx/n, sy/n
+	var sxx, sxy float64
+	for i, p := range points {
+		sxx, sxy = sxx+(xs[i]-mx)*(xs[i]-mx), sxy+(xs[i]-mx)*(p.Value-my)
+	}
+	if sxx == 0 {
+		return 0, false
+	}
+	slope := sxy / sxx
+	var rss float64
+	for i, p := range points {
+		r := p.Value - (my + slope*(xs[i]-mx))
+		rss += r * r
+	}
+	return math.Sqrt(rss / (n - 2) / sxx), true
+}
+
 // Typical is the mean or median of the points within [from, to), and
 // how many there were.
 func Typical(points []Point, from, to time.Time, center Center) (float64, int) {
@@ -139,9 +172,23 @@ func init() {
 			}
 		}
 	})
+	Record(func(d *sources.ScrutinyDataset, _ time.Time, r *Readings) {
+		for _, disk := range d.Disks {
+			if disk.Temp > 0 {
+				r.Set(key("scrutiny", "temp", disk.Name), disk.Temp)
+			}
+		}
+	})
 	Record(func(d *sources.BorgDataset, _ time.Time, r *Readings) {
 		if d.TotalBytes > 0 {
 			r.Set(key("borg", "used"), d.UsedBytes/d.TotalBytes)
+		}
+		// A client's repository that jumps or stops growing shows a
+		// backup that took far more, or nothing at all.
+		for _, c := range d.Clients {
+			if c.RepoBytes > 0 {
+				r.Set(key("borg", "size", c.Name), c.RepoBytes)
+			}
 		}
 	})
 	Record(func(d *sources.ImmichDataset, _ time.Time, r *Readings) {

@@ -15,7 +15,7 @@ type testSet struct{ IP string }
 func TestRecordState(t *testing.T) {
 	metrics.Record(func(d *testSet, _ time.Time, r *metrics.Readings) { r.State("IPv4", d.IP) })
 	now := time.Now()
-	read := metrics.Read(map[string]any{"x": &testSet{IP: "5.6.7.8"}}, now)
+	read := metrics.Read(metrics.Scope{Datasets: map[string]any{"x": &testSet{IP: "5.6.7.8"}}}, now)
 	if len(read.States) != 1 {
 		t.Fatalf("states: %v", read.States)
 	}

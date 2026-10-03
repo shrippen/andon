@@ -219,3 +219,12 @@ func pickIndex(results map[string]any, keys []string) int {
 	}
 	return 0
 }
+
+// openName is the result name of a dialog's own data (DetailQueries).
+const openName = "open"
+
+// openQuery is a dialog's fetch on open from the tile's connection:
+// DetailQueries: openQuery[DockerConfig]("docker.detail").
+func openQuery[C any](source string) func(C) []Query {
+	return func(C) []Query { return []Query{{Name: openName, Source: source, Conn: ConnWidget}} }
+}

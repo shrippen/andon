@@ -33,7 +33,7 @@ func recordHistory(d *sql.DB, sc *scope, now time.Time) (*metrics.History, error
 	owner := ownerID(sc.owner)
 	day := now.Format(time.DateOnly)
 	err := db.WithTx(d, func(tx *sql.Tx) error {
-		read := metrics.Read(sc.datasets, now)
+		read := metrics.Read(metrics.Scope{Datasets: sc.datasets, Settings: sc.settings}, now)
 		if err := data.PutSamples(tx, sc.spaceID, owner, day, read.Values); err != nil {
 			return err
 		}

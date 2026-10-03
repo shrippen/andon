@@ -493,6 +493,73 @@ func fetchGlances(ctx context.Context, sctx Ctx) (any, error) {
 	}, nil
 }
 
+// GlancesDetail is what the sysinfo and Glances dialogs fetch on open: the
+// busiest processes, the sensors, the network and the uptime.
+type GlancesDetail struct {
+	Processes []GProcess
+	Sensors   []GSensor
+	Networks  []GNetwork
+	Uptime    string // "3 days, 2:01:05" as Glances says it
+}
+
+// GProcess is one process by CPU.
+type GProcess struct {
+	Name     string
+	CPU, Mem float64 // percent
+}
+
+// GSensor is one reading: temperature, fan, battery.
+type GSensor struct {
+	Label, Unit string
+	Value       float64
+}
+
+// GNetwork is one interface's rates in bytes per second.
+type GNetwork struct {
+	Name   string
+	Rx, Tx float64
+}
+
+var GlancesDetailSource = source{key: "glances.detail", ttl: glancesTTL, service: enums.ServiceGlances, fetch: fetchGlancesDetail}
+
+// glancesTop is how many processes the dialog lists.
+const glancesTop = 8
+
+func fetchGlancesDetail(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return DemoGlancesDetail(), nil
+	}
+	api := services.GlancesApi{URL: sctx.URL, Token: sctx.Secret, Verify: sctx.VerifyTLS, Version: int(asFloat(sctx.Options["api_version"]))}
+	out := &GlancesDetail{}
+	if procs, err := api.Get(ctx, "processlist/top/"+strconv.Itoa(glancesTop)); err == nil {
+		for _, raw := range asList(procs) {
+			m := asMap(raw)
+			out.Processes = append(out.Processes, GProcess{Name: asStr(m["name"]), CPU: asFloat(m["cpu_percent"]), Mem: asFloat(m["memory_percent"])})
+		}
+	}
+	if sensors, err := api.Get(ctx, "sensors"); err == nil {
+		for _, raw := range asList(sensors) {
+			m := asMap(raw)
+			out.Sensors = append(out.Sensors, GSensor{Label: asStr(m["label"]), Unit: asStr(m["unit"]), Value: asFloat(m["value"])})
+		}
+	}
+	if nets, err := api.Get(ctx, "network"); err == nil {
+		for _, raw := range asList(nets) {
+			m := asMap(raw)
+			// API 4 names the rates, API 3 calls them rx and tx.
+			rx, tx := asFloat(m["bytes_recv_rate_per_sec"]), asFloat(m["bytes_sent_rate_per_sec"])
+			if rx == 0 && tx == 0 {
+				rx, tx = asFloat(m["rx"]), asFloat(m["tx"])
+			}
+			out.Networks = append(out.Networks, GNetwork{Name: asStr(m["interface_name"]), Rx: rx, Tx: tx})
+		}
+	}
+	if up, err := api.Get(ctx, "uptime"); err == nil {
+		out.Uptime = asStr(up)
+	}
+	return out, nil
+}
+
 // ── public_ip ──
 
 // PublicIPResult is the container's outbound public IP; IPv6 only when
@@ -525,5 +592,6 @@ func init() {
 	Register(FeedSource)
 	Register(WeatherSource)
 	Register(GlancesSource)
+	Register(GlancesDetailSource)
 	Register(PublicIPSource)
 }

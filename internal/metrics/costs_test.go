@@ -1,6 +1,7 @@
 package metrics_test
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -47,5 +48,21 @@ func TestWeekStory(t *testing.T) {
 	lines := metrics.StorySince(map[string]any{"kimai": kimai, "invoiceninja": ninja}, h, metrics.Today(now).AddDate(0, 0, -7), now)
 	if len(lines) != 3 || lines[0].Key != "hours" || lines[0].Params["customer"] != "Acme" || lines[1].Key != "paid" || lines[2].Key != "storage" {
 		t.Fatalf("lines: %+v", lines)
+	}
+}
+
+// TestPowerDays: a day's runs give its mean draw and its cost at the
+// hours' prices.
+func TestPowerDays(t *testing.T) {
+	now := time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC)
+	day := time.Date(2026, 9, 27, 0, 0, 0, 0, time.UTC)
+	h := &metrics.History{Series: map[string][]metrics.Point{
+		"homelab.power.runs":  {{Day: day, Value: 2}},
+		"homelab.power.watts": {{Day: day, Value: 200}},       // 100 W mean
+		"homelab.power.cost":  {{Day: day, Value: 200 * 0.3}}, // at 0,30 €/kWh
+	}}
+	got := metrics.PowerDays(h, now, 3)
+	if len(got) != 1 || got[0].KWh != 2.4 || math.Abs(got[0].Cost-0.72) > 1e-9 {
+		t.Fatalf("days: %+v", got)
 	}
 }

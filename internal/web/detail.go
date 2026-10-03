@@ -12,6 +12,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/i18n"
 	"andon/internal/services/boards"
+	"andon/internal/services/detailacts"
 	"andon/internal/services/widgetlib"
 	"andon/internal/widgets"
 )
@@ -40,8 +41,11 @@ func (d Deps) handleDetail(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	d.renderDetail(w, r, ctx, id, r.URL.Query().Get(detailItemParam))
+}
 
-	item := r.URL.Query().Get(detailItemParam)
+// renderDetail draws a placement's dialog with an entry picked.
+func (d Deps) renderDetail(w http.ResponseWriter, r *http.Request, ctx Ctx, id int64, item string) {
 	dialog, err := boards.Detail(r.Context(), d.DB, ctx.Who, id, item)
 	if errors.Is(err, widgetlib.ErrNoDetail) {
 		http.NotFound(w, r)
@@ -54,6 +58,8 @@ func (d Deps) handleDetail(w http.ResponseWriter, r *http.Request) {
 	name := detailTemplate + dialog.Type
 	if body, blocks := dialog.Body.(*widgets.DetailBody); blocks {
 		name = detailBlocks
+		openItems(body, id, item)
+		postTasks(body, id, item)
 		for i, b := range tablesOf(body) {
 			t := b.Data.(widgets.Table)
 			t.CSV = fmt.Sprintf("/details/%d/csv/%d?%s=%s", id, i+1, detailItemParam, url.QueryEscape(item))
@@ -164,4 +170,90 @@ func tableCSV(t widgets.Table, locale enums.Locale) ([]byte, error) {
 	}
 	out.Flush()
 	return buf.Bytes(), out.Error()
+}
+
+// openItems gives every entry with an Item its dialog URL, in the list
+// and in status and row blocks, and marks the one shown.
+func openItems(body *widgets.DetailBody, id int64, picked string) {
+	link := func(rows []widgets.LitRow) {
+		for i := range rows {
+			if rows[i].Item == "" {
+				continue
+			}
+			rows[i].Open = fmt.Sprintf("/details/%d?%s=%s", id, detailItemParam, url.QueryEscape(rows[i].Item))
+			rows[i].Picked = rows[i].Item == picked
+		}
+	}
+	if body.List != nil {
+		link(body.List.Items)
+	}
+	var walk func(blocks []widgets.Block)
+	walk = func(blocks []widgets.Block) {
+		for _, b := range blocks {
+			switch data := b.Data.(type) {
+			case []widgets.LitRow:
+				link(data)
+			case []widgets.Block:
+				walk(data)
+			}
+		}
+	}
+	walk(body.Blocks)
+	for _, tab := range body.Tabs {
+		walk(tab.Blocks)
+	}
+}
+
+// postTasks gives every task with a Do its POST address: the act, its
+// fields and the entry shown, so the dialog comes back as it was.
+func postTasks(body *widgets.DetailBody, id int64, item string) {
+	var walk func(blocks []widgets.Block)
+	walk = func(blocks []widgets.Block) {
+		for i := range blocks {
+			switch data := blocks[i].Data.(type) {
+			case widgets.Tasks:
+				for j := range data.Items {
+					t := &data.Items[j]
+					if t.Do == "" {
+						continue
+					}
+					q := url.Values{detailItemParam: {item}}
+					for k, v := range t.Args {
+						q.Set(k, v)
+					}
+					t.Post = fmt.Sprintf("/details/%d/do/%s?%s", id, url.PathEscape(t.Do), q.Encode())
+				}
+			case []widgets.Block:
+				walk(data)
+			}
+		}
+	}
+	walk(body.Blocks)
+	for _, tab := range body.Tabs {
+		walk(tab.Blocks)
+	}
+}
+
+// handleDetailDo runs an act a dialog offers and answers with the dialog
+// drawn anew.
+func (d Deps) handleDetailDo(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	err = detailacts.Run(r.Context(), d.DB, ctx.Who, id, r.PathValue("act"), r.Form, d.clientIP(r))
+	switch {
+	case errors.Is(err, detailacts.ErrUnknownAct), errors.Is(err, detailacts.ErrBadMark):
+		http.Error(w, "bad act", http.StatusBadRequest)
+		return
+	case err != nil:
+		d.handleBoardError(w, r, err)
+		return
+	}
+	d.renderDetail(w, r, ctx, id, r.Form.Get(detailItemParam))
 }

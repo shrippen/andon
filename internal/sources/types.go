@@ -161,6 +161,7 @@ type SnipeAsset struct {
 	LastChange      string
 	AssignedTo      string // who has it (person, location or asset name)
 	ExpectedCheckin string // agreed return date, "" if none
+	Serial          string
 }
 
 type SnipeLicense struct {

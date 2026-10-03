@@ -98,6 +98,24 @@ func (a DockerApi) Containers(ctx context.Context) (any, error) {
 	return fetchJSON(ctx, joinURL(a.URL, "containers/json"), nil, url.Values{"all": {"1"}}, httpclient.TLSOf(a.Verify))
 }
 
+// Inspect returns /containers/{id}/json: restart count, OOM kill.
+func (a DockerApi) Inspect(ctx context.Context, id string) (any, error) {
+	return fetchJSON(ctx, joinURL(a.URL, "containers/"+url.PathEscape(id)+"/json"), nil, nil, httpclient.TLSOf(a.Verify))
+}
+
+// Stats returns one /containers/{id}/stats sample (Docker waits a moment
+// to fill the previous CPU reading).
+func (a DockerApi) Stats(ctx context.Context, id string) (any, error) {
+	return fetchJSON(ctx, joinURL(a.URL, "containers/"+url.PathEscape(id)+"/stats"), nil, url.Values{"stream": {"false"}}, httpclient.TLSOf(a.Verify))
+}
+
+// Logs returns the last lines of a container's output, as Docker sends
+// them (multiplexed frames without a TTY).
+func (a DockerApi) Logs(ctx context.Context, id string, tail int) (string, error) {
+	params := url.Values{"stdout": {"1"}, "stderr": {"1"}, "tail": {fmt.Sprint(tail)}}
+	return httpclient.GetText(ctx, joinURL(a.URL, "containers/"+url.PathEscape(id)+"/logs"), httpclient.Options{Params: params, SkipVerify: !a.Verify})
+}
+
 // ── Immich ──
 
 type ImmichApi struct {

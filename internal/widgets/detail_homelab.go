@@ -4,17 +4,25 @@ package widgets
 // review: record unless noted).
 
 import (
+	"cmp"
 	"fmt"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
 const (
+	uploadDays        = 30
+	bytesPerGB        = 1e9
+	serverBusy        = 85 // percent CPU or memory that marks a server busy
+	datasetsShown     = 8
+	bytesPerTB        = 1e12
 	backupDetailDays  = 14
 	historyDetailDays = 90
 	uptimeDetailDays  = 14
@@ -103,6 +111,29 @@ func backupsDetail(cfg BackupsConfig, results map[string]any, ctx ViewCtx) Detai
 		g.Lo, g.Hi, g.Ticks = 0, percentScale, spanTicks(now, historyDetailDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.backups.repo_history"), Data: g})
 	}
+	if borg != nil {
+		var sizes [][]Cell
+		for _, c := range borg.Clients {
+			if c.RepoBytes == 0 {
+				continue
+			}
+			change := any("–")
+			if series := dailySeries(h, metrics.SampleKey("borg", "size", c.Name), now, backupDetailDays); hasValues(series) {
+				first := firstValue(series)
+				change = NumU((c.RepoBytes-first)/bytesPerGB, 1, "GB")
+			}
+			sizes = append(sizes, []Cell{{Value: c.Name}, {Value: NumU(c.RepoBytes/bytesPerGB, 0, "GB")}, {Value: change},
+				{Value: NumU(c.LastBytes/bytesPerGB, 1, "GB")}, {Value: clockMinutes(c.LastSeconds / secondsPerMinute)}})
+		}
+		if len(sizes) > 0 {
+			body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.backups.sizes"), Data: Table{
+				Head: []Text{T("detail.backups.client"), T("detail.backups.repo_size"), textArgs("detail.backups.change", "n", backupDetailDays), T("detail.backups.last_archive"), T("detail.backups.duration")},
+				Rows: sizes, Num: []int{1, 2, 3, 4}}})
+		}
+	}
+	if tasks := restoreTasks(results, h, now); tasks.Total > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTasks, Data: tasks})
+	}
 	var pair []Block
 	if len(failures) > 0 {
 		pair = append(pair, Block{Kind: BlockTimeline, Label: T("detail.backups.problems"), Data: failures})
@@ -137,7 +168,9 @@ func disksDetail(cfg DisksConfig, results map[string]any, ctx ViewCtx) DetailVie
 	}
 
 	list := &ObjList{Label: T("detail.disks.list")}
-	for _, r := range rows {
+	names := make([]string, len(rows))
+	for i, r := range rows {
+		names[i] = r.Name
 		state := "ok"
 		switch {
 		case !r.OK && !r.Stale:
@@ -147,16 +180,17 @@ func disksDetail(cfg DisksConfig, results map[string]any, ctx ViewCtx) DetailVie
 		case r.TempTier != "":
 			state = "warn"
 		}
-		list.Items = append(list.Items, LitRow{Name: r.Name + " · " + r.Model, Meta: NumU(r.Temp, 0, "°C"), State: state})
+		list.Items = append(list.Items, LitRow{Name: r.Name + " · " + r.Model, Meta: NumU(r.Temp, 0, "°C"), State: state, Item: r.Name})
 	}
+	list.Sel = pickIndex(results, names)
 	if len(rows) > 0 {
-		chosen := byName[rows[0].Name]
+		chosen := byName[rows[list.Sel].Name]
 		list.Title, list.Sub = chosen.Name+" · "+chosen.Model, chosen.WWN
-		list.State, list.StateText = list.Items[0].State, T("detail.disks.state_"+list.Items[0].State)
+		list.State, list.StateText = list.Items[list.Sel].State, T("detail.disks.state_"+list.Items[list.Sel].State)
 	}
 	body := &DetailBody{List: list}
 	if len(rows) > 0 {
-		chosen := byName[rows[0].Name]
+		chosen := byName[rows[list.Sel].Name]
 		body.Facts = []Kpi{
 			{Value: NumU(chosen.Temp, 0, "°C"), Label: T("detail.disks.temp"), Tier: tempTier(chosen.Temp, cfg.TempWarn)},
 			{Value: Num(float64(chosen.Hours)/hoursPerDay/365, 1), Label: T("detail.disks.years")},
@@ -167,7 +201,24 @@ func disksDetail(cfg DisksConfig, results map[string]any, ctx ViewCtx) DetailVie
 		if chosen.Failing != "" {
 			facts.Rows = append(facts.Rows, []Cell{{Value: Txt("detail.disks.failing")}, {Value: chosen.Failing, State: "bad"}})
 		}
+		// The disk as an asset: bought when, warranty until (by serial).
+		if snipe, ok := results[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset); ok && chosen.Serial != "" {
+			for _, a := range snipe.Assets {
+				if !strings.EqualFold(a.Serial, chosen.Serial) {
+					continue
+				}
+				facts.Rows = append(facts.Rows, []Cell{{Value: Txt("detail.disks.asset")}, {Value: a.Name + " · " + a.Tag}},
+					[]Cell{{Value: Txt("detail.disks.bought")}, {Value: dayOrDash(a.PurchaseDate)}},
+					[]Cell{{Value: Txt("detail.disks.warranty")}, {Value: dayOrDash(a.WarrantyExpires), State: stateIf(a.WarrantyExpires != "" && a.WarrantyExpires < todayOf(ctx).Format(isoDate), "warn")}})
+			}
+		}
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.disks.smart"), Data: facts})
+		now := todayOf(ctx)
+		if temps := dailySeries(historyOf(results), metrics.SampleKey("scrutiny", "temp", chosen.Name), now, uptimeLongDays); hasValues(temps) {
+			g := LineGraph(Series{Values: temps, Class: "s5"})
+			g.Goal, g.HasGoal, g.GoalDanger, g.Ticks = cfg.TempWarn, true, true, spanTicks(now, uptimeLongDays)
+			body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.disks.temp_history"), Meta: "°C", Hero: true, Data: g})
+		}
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 
@@ -197,9 +248,14 @@ func dockerDetail(cfg DockerConfig, data *sources.DockerDataset, ctx ViewCtx, re
 	rows, _ := view["Rows"].([]DockerRow)
 	running, _ := view["Running"].(int)
 
+	info := map[string]sources.ContainerInfo{}
+	if more, ok := results[openName].(*sources.DockerDetail); ok {
+		info = more.Info
+	}
 	var cards, problems []LitRow
 	var all [][]Cell
-	unhealthy, exited := 0, 0
+	var logs []Block
+	unhealthy, exited, restarts := 0, 0, 0
 	for _, c := range data.Containers {
 		state := "ok"
 		switch {
@@ -211,13 +267,35 @@ func dockerDetail(cfg DockerConfig, data *sources.DockerDataset, ctx ViewCtx, re
 			state = "off"
 		}
 		cards = append(cards, LitRow{Name: c.Name, Meta: c.Status, State: state})
-		if state == "bad" || state == "warn" {
-			problems = append(problems, LitRow{Name: c.Name, Meta: c.Status, State: state})
+		in := info[c.Name]
+		restarts += in.Restarts
+		if state != "bad" && state != "warn" {
+			continue
+		}
+		meta := any(c.Status)
+		switch {
+		case in.OOMKilled:
+			meta = Txt("detail.docker.oom")
+		case in.Restarts > 0:
+			meta = TxtA("detail.docker.restarts", "n", in.Restarts)
+		}
+		problems = append(problems, LitRow{Name: c.Name, Meta: meta, State: state})
+		if len(in.Logs) > 0 {
+			logs = append(logs, Block{Kind: BlockCode, Label: textArgs("detail.docker.log_of", "name", c.Name), Data: strings.Join(in.Logs, "\n")})
 		}
 	}
 	sort.SliceStable(cards, func(a, b int) bool { return stateRank(cards[a].State) < stateRank(cards[b].State) })
 	for _, r := range rows {
-		all = append(all, []Cell{{Value: r.Name}, {Value: r.Image}, {Value: r.Status, State: tierState(r.Tier)}})
+		in := info[r.Name]
+		cpu, mem := any("–"), any("–")
+		if in.MemMB > 0 {
+			cpu, mem = NumU(in.CPU, 1, "%"), NumU(in.MemMB, 0, "MB")
+			if in.MemLimitMB > 0 {
+				mem = fmt.Sprintf("%.0f / %.0f MB", in.MemMB, in.MemLimitMB)
+			}
+		}
+		all = append(all, []Cell{{Value: r.Name}, {Value: r.Image}, {Value: r.Status, State: tierState(r.Tier)}, {Value: cpu}, {Value: mem},
+			{Value: in.Restarts, State: stateIf(in.Restarts > 0, "warn")}})
 	}
 
 	body := &DetailBody{Facts: []Kpi{{Value: fmt.Sprintf("%d / %d", running, len(data.Containers)), Label: T("detail.docker.running"), Tier: tierIf(running < len(data.Containers), "yellow", "green")}}}
@@ -227,6 +305,9 @@ func dockerDetail(cfg DockerConfig, data *sources.DockerDataset, ctx ViewCtx, re
 	if unhealthy > 0 {
 		body.Facts = append(body.Facts, Kpi{Value: unhealthy, Label: T("detail.docker.unhealthy"), Tier: "yellow"})
 	}
+	if restarts > 0 {
+		body.Facts = append(body.Facts, Kpi{Value: restarts, Label: T("detail.docker.restart_count"), Tier: "yellow"})
+	}
 	overview := []Block{{Kind: BlockStatus, Label: T("detail.docker.by_state"), Data: cards}}
 	if len(problems) > 0 {
 		overview = append([]Block{{Kind: BlockRows, Label: T("detail.docker.striking"), Data: problems}}, overview...)
@@ -234,8 +315,10 @@ func dockerDetail(cfg DockerConfig, data *sources.DockerDataset, ctx ViewCtx, re
 	overview = append(overview, hintsBlock(results)...)
 	body.Tabs = []Tab{
 		{Label: T("detail.tab.overview"), Blocks: overview},
-		{Label: T("detail.tab.problems"), Count: len(problems), Blocks: []Block{{Kind: BlockRows, Data: problems}}},
-		{Label: T("detail.tab.all"), Count: len(data.Containers), Blocks: []Block{{Kind: BlockTable, Data: Table{Head: []Text{T("detail.docker.name"), T("detail.docker.image"), T("detail.docker.status")}, Rows: all}}}},
+		{Label: T("detail.tab.problems"), Count: len(problems), Blocks: append([]Block{{Kind: BlockRows, Data: problems}}, logs...)},
+		{Label: T("detail.tab.all"), Count: len(data.Containers), Blocks: []Block{{Kind: BlockTable, Label: T("detail.docker.containers"),
+			Data: Table{Head: []Text{T("detail.docker.name"), T("detail.docker.image"), T("detail.docker.status"), T("detail.docker.cpu"), T("detail.docker.mem"), T("detail.docker.restart_count")},
+				Rows: all, Num: []int{3, 4, 5}}}}},
 	}
 	head := DetailHead{State: "ok", StateKey: "detail.docker.all_ok"}
 	switch {
@@ -284,13 +367,40 @@ func komodoDetail(cfg KomodoConfig, data *sources.KomodoDataset, ctx ViewCtx, re
 		}
 	}
 
+	more, _ := results[openName].(*sources.KomodoDetail)
+	var loads []Card
+	var deploys [][]Cell
+	if more != nil {
+		for _, s := range more.Servers {
+			card := Card{Label: Plain(s.Name), Value: Txt("detail.komodo.no_stats"), Tier: tierIf(s.State != "ok", "red", "")}
+			if s.MemTotal > 0 {
+				card.Value = NumU(s.CPU, 0, "% CPU")
+				card.Sub = TxtA("detail.komodo.mem_disk", "mem", NumU(s.MemUsed/s.MemTotal*percentScale, 0, "%"), "disk", NumU(pctOfF(s.DiskUsed, s.DiskMax), 0, "%"))
+				card.Tier = tierIf(card.Tier == "" && (s.CPU >= serverBusy || s.MemUsed/s.MemTotal*percentScale >= serverBusy), "yellow", card.Tier)
+			}
+			loads = append(loads, card)
+		}
+		for _, c := range cards {
+			if d, ok := more.Deploys[fmt.Sprint(c.Name)]; ok {
+				deploys = append(deploys, []Cell{{Value: c.Name}, {Value: Day(d.At)}, {Value: d.By}, {Value: Txt(map[bool]string{true: "detail.komodo.deploy_ok", false: "detail.komodo.deploy_failed"}[d.OK]), State: stateIf(!d.OK, "bad")}})
+			}
+		}
+	}
 	body := &DetailBody{Facts: []Kpi{
 		{Value: fmt.Sprintf("%d / %d", data.ServersHealthy, data.ServersTotal), Label: T("detail.komodo.servers"), Tier: tierIf(data.ServersHealthy < data.ServersTotal, "red", "green")},
 		{Value: fmt.Sprintf("%d / %d", len(cards)-down, len(cards)), Label: T("detail.komodo.stacks"), Tier: tierIf(down > 0, "red", "")},
 		{Value: len(updates), Label: T("detail.komodo.updates"), Tier: tierIf(len(updates) > 0, "cyan", "")},
 		{Value: len(alerts), Label: T("detail.komodo.alerts"), Tier: tierIf(len(alerts) > 0, "yellow", "")},
 	}}
-	overview := []Block{{Kind: BlockStatus, Label: T("detail.komodo.by_state"), Data: cards}}
+	overview := []Block{}
+	if len(loads) > 0 {
+		overview = append(overview, Block{Kind: BlockWall, Label: T("detail.komodo.server_load"), Data: loads})
+	}
+	overview = append(overview, Block{Kind: BlockStatus, Label: T("detail.komodo.by_state"), Data: cards})
+	if len(deploys) > 0 {
+		overview = append(overview, Block{Kind: BlockTable, Label: T("detail.komodo.deploys"),
+			Data: Table{Head: []Text{T("detail.komodo.stack"), T("detail.komodo.deployed"), T("detail.komodo.by"), T("detail.state")}, Rows: deploys}})
+	}
 	overview = append(overview, hintsBlock(results)...)
 	body.Tabs = []Tab{
 		{Label: T("detail.tab.overview"), Blocks: overview},
@@ -381,6 +491,25 @@ func truenasDetail(cfg TrueNASConfig, results map[string]any, ctx ViewCtx) Detai
 		body.Facts = append(body.Facts, Kpi{Value: NumU(float64(p.W), 0, "%"), Label: Text{Key: "detail.truenas.pool_used", Args: map[string]any{"pool": name}}, Tier: p.Tier})
 	}
 	body.Blocks = append(body.Blocks, Block{Kind: BlockBars, Label: T("detail.truenas.pools"), Data: bars})
+	scrubDays := rules.Setting(ctx.Settings, "truenas.scrub_old", "days")
+	var scrubs [][]Cell
+	for _, p := range data.Pools {
+		state := stateIf(p.ScrubErrors > 0, "bad")
+		if state == "" && !p.ScrubEnd.IsZero() && now.Sub(p.ScrubEnd).Hours()/hoursPerDay > scrubDays {
+			state = "warn"
+		}
+		scrubs = append(scrubs, []Cell{{Value: p.Name}, {Value: dayOf(p.ScrubEnd), State: state}, {Value: p.ScrubErrors, State: stateIf(p.ScrubErrors > 0, "bad")}})
+	}
+	if more, ok := results[openName].(*sources.TrueNASDatasets); ok && len(more.List) > 0 {
+		top := more.List[0].Used
+		var sets []ShareBar
+		for _, d := range firstN(more.List, datasetsShown) {
+			sets = append(sets, ShareBar{Name: d.Name, Pct: pctOfF(d.Used, top), Value: NumU(d.Used/bytesPerTB, 1, "TB")})
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockBars, Label: T("detail.truenas.datasets"), Data: sets})
+	}
+	body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.truenas.scrubs"),
+		Data: Table{Head: []Text{T("detail.truenas.pool"), T("detail.truenas.scrub_last"), T("detail.truenas.scrub_errors")}, Rows: scrubs, Num: []int{2}}})
 	if len(series) > 0 {
 		g := LineGraph(series...)
 		g.Lo, g.Hi, g.Goal, g.HasGoal, g.Ticks = 0, percentScale, cfg.WarnPct, true, spanTicks(now, historyDetailDays)
@@ -420,11 +549,11 @@ func storageDetail(cfg StorageConfig, results map[string]any, ctx ViewCtx) Detai
 	rows, _ := view["Rows"].([]StorageRow)
 	now := todayOf(ctx)
 	h := historyOf(results)
-	var keys []string
+	var forecasts []metrics.StorageForecast
 	if h != nil {
 		for _, f := range metrics.StorageForecasts(h, now) {
 			if matchesAny(f.Label, cfg.Only) {
-				keys = append(keys, f.Key)
+				forecasts = append(forecasts, f)
 			}
 		}
 	}
@@ -436,9 +565,17 @@ func storageDetail(cfg StorageConfig, results map[string]any, ctx ViewCtx) Detai
 		if r.FullIn >= 0 {
 			card.Sub = TxtA("detail.storage.full_on", "day", DayS(r.FullOn))
 		}
-		if i < len(keys) {
-			if s := dailySeries(h, keys[i], now, storageAhead); hasValues(s) {
+		if i < len(forecasts) {
+			f := forecasts[i]
+			if s := dailySeries(h, f.Key, now, storageAhead); hasValues(s) {
 				card.Spark = filled(scaled(s, percentScale))
+			}
+			switch {
+			case f.FullIn < 0 || f.Earliest == f.Latest:
+			case f.Latest < 0:
+				card.Sub = TxtA("detail.storage.full_from", "day", Day(now.AddDate(0, 0, f.Earliest)))
+			default:
+				card.Sub = TxtA("detail.storage.full_between", "from", Day(now.AddDate(0, 0, f.Earliest)), "to", Day(now.AddDate(0, 0, f.Latest)))
 			}
 		}
 		cards = append(cards, card)
@@ -447,6 +584,19 @@ func storageDetail(cfg StorageConfig, results map[string]any, ctx ViewCtx) Detai
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.storage.none")})
 	} else {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockWall, Data: cards})
+	}
+	// What happened in the same span: an update often explains a jump.
+	var events []Event
+	if h != nil {
+		since := now.AddDate(0, 0, -storageAhead)
+		for _, e := range h.Events {
+			if e.Kind == metrics.EventUpdate && e.At.After(since) {
+				events = append(events, Event{At: e.At, Title: e.Subject, Sub: e.Detail, State: Txt("timeline.update"), Tier: "cyan"})
+			}
+		}
+	}
+	if len(events) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTimeline, Label: T("detail.storage.events"), Data: firstN(events, listShown)})
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
@@ -480,7 +630,48 @@ func homelabCostDetail(cfg CostConfig, results map[string]any, ctx ViewCtx) Deta
 		}
 		body.Blocks = append(body.Blocks, Block{Kind: BlockBars, Label: T("detail.cost.power_split"), Meta: NumU(asF(view["Watts"]), 0, "W"), Data: bars})
 	}
+	h, now := historyOf(results), todayOf(ctx)
+	if days := metrics.PowerDays(h, now, costDays); len(days) > 0 {
+		var rows [][]Cell
+		cost := make([]float64, len(days))
+		for i, d := range days {
+			cost[i] = d.Cost
+			rows = append(rows, []Cell{{Value: Day(d.Day)}, {Value: NumU(d.KWh, 1, "kWh")}, {Value: Money(d.Cost, currency)}})
+		}
+		g := ColGraph(cost, "s4")
+		g.Ticks = []any{Day(days[0].Day), Day(days[len(days)-1].Day)}
+		body.Blocks = append(body.Blocks, pairOf([]Block{{Kind: BlockGraph, Label: T("detail.cost.power_days"), Meta: Txt("detail.cost.at_hour_prices"), Data: g},
+			{Kind: BlockTable, Label: T("detail.cost.power_table"), Data: Table{Head: []Text{T("detail.cost.day"), T("detail.cost.kwh"), T("detail.cost.amount")}, Rows: reversed(rows), Num: []int{1, 2}}}})...)
+	}
+	if months := monthEnds(h, metrics.SampleKey("homelab", "cost"), now, monthsPerYear); hasValues(months) {
+		g := ColGraph(months, "s1")
+		g.Ticks = []any{metrics.AddMonths(now, 1-monthsPerYear).Format("01/2006"), now.Format("01/2006")}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.cost.per_month"), Data: g})
+	}
 	return DetailView{Body: body}
+}
+
+// costDays is how many days of measured power the dialog shows.
+const costDays = 30
+
+// monthEnds is a daily series' last value of each of the last n months,
+// oldest first; Gap for a month without one.
+func monthEnds(h *metrics.History, key string, now time.Time, n int) []float64 {
+	out := make([]float64, n)
+	for i := range out {
+		out[i] = Gap
+	}
+	start := metrics.MonthStart(metrics.AddMonths(now, 1-n))
+	for _, p := range h.SeriesOf(key) {
+		if p.Day.Before(start) {
+			continue
+		}
+		i := (p.Day.Year()-start.Year())*monthsPerYear + int(p.Day.Month()-start.Month())
+		if i >= 0 && i < n {
+			out[i] = p.Value
+		}
+	}
+	return out
 }
 
 // updatesDetail: the open updates with their age, recent rollouts.
@@ -494,12 +685,30 @@ func updatesDetail(cfg HintsConfig, results map[string]any, ctx ViewCtx) DetailV
 		oldest = max(oldest, days)
 		rows = append(rows, []Cell{{Value: h.Title}, {Value: h.Why}, {Value: TxtA("detail.days", "n", days), State: stateIf(days > updateOldDays, "warn")}})
 	}
-	var rolled []Event
+	releases, _ := results[openName].(*sources.ReleasesResult)
+	var rolled [][]Cell
+	security := 0
 	if h := historyOf(results); h != nil {
 		for _, e := range h.Events {
-			if e.Kind == metrics.EventUpdate && len(rolled) < listShown {
-				rolled = append(rolled, Event{At: e.At, Title: e.Subject, Sub: e.Detail, State: Txt("detail.updates.done"), Tier: "green"})
+			if e.Kind != metrics.EventUpdate || len(rolled) == updatesShown {
+				continue
 			}
+			to := e.Detail[strings.LastIndex(e.Detail, " ")+1:]
+			row := []Cell{{Value: e.Subject}, {Value: e.Detail}, {Value: Day(e.At)}, {Value: "–"}}
+			if repo, known := releaseRepos[strings.ToLower(e.Subject)]; known {
+				row[1].Href = "https://github.com/" + repo + "/releases?q=" + url.QueryEscape(to) + "&expanded=true"
+				rel, found := sources.Release{}, false
+				if releases != nil {
+					rel, found = releases.FindRelease(repo, to)
+				}
+				if found {
+					row[1].Href = rel.URL
+				}
+				if found && rel.Security {
+					row[3], security = Cell{Value: Txt("detail.updates.security"), State: "warn"}, security+1
+				}
+			}
+			rolled = append(rolled, row)
 		}
 	}
 	body := &DetailBody{Facts: []Kpi{{Value: len(list), Label: T("detail.updates.open"), Tier: tierIf(len(list) > 0, "yellow", "green")}}}
@@ -507,8 +716,12 @@ func updatesDetail(cfg HintsConfig, results map[string]any, ctx ViewCtx) DetailV
 		body.Facts = append(body.Facts, Kpi{Value: TxtA("detail.days", "n", oldest), Label: T("detail.updates.oldest"), Tier: tierIf(oldest > updateOldDays, "yellow", "")})
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.updates.open"), Data: Table{Head: []Text{T("detail.updates.what"), T("detail.updates.why"), T("detail.updates.since")}, Rows: rows}})
 	}
+	if security > 0 {
+		body.Facts = append(body.Facts, Kpi{Value: security, Label: T("detail.updates.security_count"), Tier: "yellow"})
+	}
 	if len(rolled) > 0 {
-		body.Blocks = append(body.Blocks, Block{Kind: BlockTimeline, Label: T("detail.updates.recent"), Data: rolled})
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.updates.recent"),
+			Data: Table{Head: []Text{T("detail.updates.service"), T("detail.updates.version"), T("detail.updates.at_day"), T("detail.updates.note")}, Rows: rolled}})
 	}
 	head := DetailHead{State: "ok", StateKey: "detail.updates.none"}
 	if len(list) > 0 {
@@ -517,8 +730,31 @@ func updatesDetail(cfg HintsConfig, results map[string]any, ctx ViewCtx) DetailV
 	return DetailView{Head: head, Body: body}
 }
 
-// updateOldDays marks an update left lying for longer.
-const updateOldDays = 14
+// updateOldDays marks an update left lying for longer; updatesShown is how
+// many rollouts the dialog lists.
+const (
+	updateOldDays = 14
+	updatesShown  = 12
+)
+
+// releaseRepos are the GitHub projects of services Andon reads versions
+// of, by the subject their updates carry (lower case).
+var releaseRepos = map[string]string{
+	"immich": "immich-app/immich", "authentik": "goauthentik/authentik", "vaultwarden": "dani-garcia/vaultwarden",
+	"nextcloud": "nextcloud/server", "jellyfin": "jellyfin/jellyfin", "sonarr": "Sonarr/Sonarr", "radarr": "Radarr/Radarr",
+	"lidarr": "Lidarr/Lidarr", "readarr": "Readarr/Readarr", "gitea": "go-gitea/gitea", "paperless": "paperless-ngx/paperless-ngx",
+	"uptime-kuma": "louislam/uptime-kuma", "komodo": "moghtech/komodo", "home assistant": "home-assistant/core",
+}
+
+// releaseQuery reads the projects' latest releases when the dialog opens.
+func releaseQuery(HintsConfig) []Query {
+	repos := make([]string, 0, len(releaseRepos))
+	for _, r := range releaseRepos {
+		repos = append(repos, r)
+	}
+	sort.Strings(repos)
+	return []Query{{Name: openName, Source: "github.releases", Params: map[string]any{"repos": repos}}}
+}
 
 // updateWindowDetail: the factors for and against now, the waiting updates.
 func updateWindowDetail(cfg WindowConfig, results map[string]any, ctx ViewCtx) DetailView {
@@ -560,12 +796,78 @@ func updateWindowDetail(cfg WindowConfig, results map[string]any, ctx ViewCtx) D
 	if len(ups) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.window.waiting"), Data: Table{Head: []Text{T("detail.window.service"), T("detail.window.update")}, Rows: ups}})
 	}
+	shares := metrics.BusyShares(historyOf(results))
+	if start, share, ok := metrics.QuietestHours(shares, quietHours); ok {
+		body.Side = append(body.Side, Fact{Label: T("detail.window.suggest"),
+			Value: TxtA("detail.window.suggest_at", "from", fmt.Sprintf("%02d:00", start), "to", fmt.Sprintf("%02d:00", (start+quietHours)%hoursPerDay), "share", NumU(share*percentScale, 0, "%"))})
+		body.Blocks = append(body.Blocks, Block{Kind: BlockHeat, Label: T("detail.window.busy"), Meta: Txt("detail.window.busy_scale"), Data: busyHeat(shares)})
+	}
+	if tibber, ok := peerDatasets(results, windowPeers)[string(enums.ServiceTibber)].(*sources.TibberDataset); ok {
+		if night := nightPrices(tibber, shares, time.Now()); night != nil {
+			body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.window.night"), Meta: Txt("detail.energy.ct"), Data: *night})
+		}
+	}
 	head := DetailHead{State: "warn", StateKey: "window.wait"}
 	if good {
 		head.State, head.StateKey = "ok", "window.good"
 	}
 	return DetailView{Head: head, Body: body}
 }
+
+// quietHours is the length of the maintenance window the dialog suggests.
+const quietHours = 2
+
+// busyHeat draws the busy shares as hours (columns) over weekdays (rows,
+// Monday first); unknown hours stay empty.
+func busyHeat(shares [7][24]float64) Heat {
+	heat := Heat{Rows: weekDays, Ticks: []any{"00:00", "12:00", "23:00"}}
+	for hour := range hoursPerDay {
+		for i := range weekDays {
+			s := shares[(i+1)%weekDays][hour]
+			level := 0
+			if s > 0 {
+				level = min(int(s*heatSteps)+1, heatSteps)
+			}
+			heat.Levels = append(heat.Levels, level)
+		}
+	}
+	return heat
+}
+
+// heatSteps are Kante's heat levels above empty.
+const heatSteps = 4
+
+// nightPrices are tonight's hourly prices from 22:00 to 06:00, an hour
+// often busy marked yellow; nil without prices for the night.
+func nightPrices(tibber *sources.TibberDataset, shares [7][24]float64, now time.Time) *Graph {
+	local := now.In(time.Local)
+	start := time.Date(local.Year(), local.Month(), local.Day(), nightStart, 0, 0, 0, time.Local)
+	var values []float64
+	var states []string
+	for i := range nightHours {
+		at := start.Add(time.Duration(i) * time.Hour)
+		price := metrics.PriceAt(tibber, at, -1)
+		if price < 0 {
+			return nil
+		}
+		values = append(values, price*centsPerUnit)
+		state := ""
+		if s := shares[at.Weekday()][at.Hour()]; s >= busyShare {
+			state = "warn"
+		}
+		states = append(states, state)
+	}
+	g := ColGraph(values, "s1")
+	g.States, g.Ticks = states, []any{fmt.Sprintf("%02d:00", nightStart), fmt.Sprintf("%02d:00", (nightStart+nightHours-1)%hoursPerDay)}
+	return &g
+}
+
+// The night the dialog previews, and the busy share that marks an hour.
+const (
+	nightStart = 22
+	nightHours = 8
+	busyShare  = 0.2
+)
 
 // windowFactorOrder lists the update window's factors as the dialog shows them.
 var windowFactorOrder = []string{"no_backup", "streaming", "working", "meeting", "expensive"}
@@ -603,6 +905,29 @@ func immichDetail(_ struct{}, data *sources.ImmichDataset, ctx ViewCtx, results 
 		g := LineGraph(Series{Values: items, Class: "s1"})
 		g.Ticks = spanTicks(now, historyDetailDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.immich.growth"), Hero: true, Data: g})
+
+		// Uploads per day: a phone that stopped syncing shows as a gap.
+		added := make([]float64, uploadDays)
+		recent := items[len(items)-uploadDays-1:]
+		for i := range added {
+			added[i] = Gap
+			if recent[i] == recent[i] && recent[i+1] == recent[i+1] {
+				added[i] = max(recent[i+1]-recent[i], 0)
+			}
+		}
+		if hasValues(added) {
+			cols := ColGraph(added, "s1")
+			cols.Ticks = spanTicks(now, uploadDays)
+			body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.immich.uploads"), Data: cols})
+		}
+	}
+	if len(data.Users) > 0 {
+		var users [][]Cell
+		for _, u := range data.Users {
+			users = append(users, []Cell{{Value: u.Name}, {Value: Num(float64(u.Photos), 0)}, {Value: Num(float64(u.Videos), 0)}, {Value: NumU(u.Bytes/bytesPerGB, 0, "GB")}})
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.immich.users"),
+			Data: Table{Head: []Text{T("detail.immich.user"), T("detail.immich.photos"), T("detail.immich.videos"), T("detail.immich.size")}, Rows: users, Num: []int{1, 2, 3}}})
 	}
 	if len(jobs) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockBars, Label: T("detail.immich.jobs"), Data: jobs})
@@ -630,22 +955,28 @@ func umamiDetail(cfg UmamiConfig, data *sources.UmamiDataset, ctx ViewCtx, resul
 	}
 	sort.SliceStable(sites, func(a, b int) bool { return change(sites[a]) < change(sites[b]) })
 	list := &ObjList{Label: T("detail.umami.sites")}
-	for _, s := range sites {
+	ids := make([]string, len(sites))
+	for i, s := range sites {
 		state := "ok"
 		if metrics.VisitorDrop(s, drop, minPrev) {
 			state = "bad"
 		}
-		list.Items = append(list.Items, LitRow{Name: s.Name, Meta: fmt.Sprintf("%d · %+d %%", s.Visitors, change(s)), State: state})
+		ids[i] = s.ID
+		list.Items = append(list.Items, LitRow{Name: s.Name, Meta: fmt.Sprintf("%d · %+d %%", s.Visitors, change(s)), State: state, Item: s.ID})
 	}
 	body := &DetailBody{List: list}
 	if len(sites) > 0 {
-		s := sites[0]
-		list.Title, list.Sub, list.State, list.StateText = s.Name, s.Domain, list.Items[0].State, Text{Key: "detail.umami.change", Args: map[string]any{"n": change(s)}}
+		list.Sel = pickIndex(results, ids)
+		s := sites[list.Sel]
+		list.Title, list.Sub, list.State, list.StateText = s.Name, s.Domain, list.Items[list.Sel].State, Text{Key: "detail.umami.change", Args: map[string]any{"n": change(s)}}
 		body.Facts = []Kpi{{Value: s.Views, Label: T("detail.umami.views")}, {Value: s.Visitors, Label: T("detail.umami.visitors")},
 			{Value: s.PrevVisit, Label: T("detail.umami.prev")}}
 		g := ColGraph([]float64{float64(s.PrevViews), float64(s.Views)}, "s1")
 		g.Ticks = []any{Txt("detail.umami.week_before"), Txt("detail.umami.week")}
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.umami.views"), Data: g})
+		if more, ok := results[openName].(*sources.UmamiDetail); ok {
+			body.Blocks = append(body.Blocks, umamiSiteBlocks(more.Sites[s.ID])...)
+		}
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
@@ -688,8 +1019,56 @@ func glancesDetail(cfg GlancesChartConfig, results map[string]any, ctx ViewCtx) 
 	if cfg.Warn > 0 {
 		body.Facts = append(body.Facts, Kpi{Value: above, Label: T("detail.glances.above"), Tier: tierIf(above > 0, "yellow", "")})
 	}
+	body.Blocks = append(body.Blocks, hostBlocks(results, todayOf(ctx))...)
 	return DetailView{Body: body}
 }
+
+// hostBlocks: what a Glances dialog adds beyond the tile, the daily means
+// of the last weeks and, fetched on open, processes, sensors, network.
+func hostBlocks(results map[string]any, now time.Time) []Block {
+	var out []Block
+	if cpu, mem := metrics.LoadDays(historyOf(results), now, loadDays); hasValues(cpu) {
+		g := LineGraph(Series{Values: cpu, Class: "s1", Label: "CPU"}, Series{Values: mem, Class: "s3", Label: "RAM"})
+		g.Lo, g.Hi, g.Ticks = 0, percentScale, spanTicks(now, loadDays)
+		out = append(out, Block{Kind: BlockGraph, Label: T("detail.sys.daily"), Data: g})
+	}
+	more, ok := results[openName].(*sources.GlancesDetail)
+	if !ok {
+		return out
+	}
+	var procs, sensors, nets [][]Cell
+	for _, p := range more.Processes {
+		procs = append(procs, []Cell{{Value: p.Name}, {Value: NumU(p.CPU, 1, "%")}, {Value: NumU(p.Mem, 1, "%")}})
+	}
+	for _, s := range more.Sensors {
+		sensors = append(sensors, []Cell{{Value: s.Label}, {Value: NumU(s.Value, 0, sensorUnits[s.Unit])}})
+	}
+	for _, n := range more.Networks {
+		nets = append(nets, []Cell{{Value: n.Name}, {Value: NumU(n.Rx*bitsPerByte/bitsPerMbit, 1, "Mbit/s")}, {Value: NumU(n.Tx*bitsPerByte/bitsPerMbit, 1, "Mbit/s")}})
+	}
+	if len(procs) > 0 {
+		out = append(out, Block{Kind: BlockTable, Label: T("detail.sys.processes"), Meta: more.Uptime,
+			Data: Table{Head: []Text{T("detail.sys.process"), T("sys.cpu"), T("sys.mem")}, Rows: procs, Num: []int{1, 2}}})
+	}
+	var pair []Block
+	if len(sensors) > 0 {
+		pair = append(pair, Block{Kind: BlockTable, Label: T("detail.sys.sensors"), Data: Table{Head: []Text{T("detail.sys.sensor"), T("detail.sys.value")}, Rows: sensors, Num: []int{1}}})
+	}
+	if len(nets) > 0 {
+		pair = append(pair, Block{Kind: BlockTable, Label: T("detail.sys.network"), Data: Table{Head: []Text{T("detail.sys.interface"), T("detail.sys.rx"), T("detail.sys.tx")}, Rows: nets, Num: []int{1, 2}}})
+	}
+	return append(out, pairOf(pair)...)
+}
+
+// sensorUnits shows Glances' units: C(elsius), R(PM), %.
+var sensorUnits = map[string]string{"C": "°C", "F": "°F", "R": "rpm", "%": "%", "V": "V", "W": "W"}
+
+// Units of the host dialog.
+const (
+	loadDays    = 30
+	bitsPerByte = 8
+	bitsPerMbit = 1e6
+)
 
 // sysinfoDetail (wall): every reading as a card.
 func sysinfoDetail(cfg SysinfoConfig, results map[string]any, ctx ViewCtx) DetailView {
@@ -713,7 +1092,12 @@ func sysinfoDetail(cfg SysinfoConfig, results map[string]any, ctx ViewCtx) Detai
 	for _, d := range s.Disks {
 		cards = append(cards, Card{Label: Plain(d.Mount), Value: NumU(d.Percent, 0, "%"), Tier: meterTierName(d.Percent, cfg.Warn)})
 	}
-	return DetailView{Body: &DetailBody{Blocks: []Block{{Kind: BlockWall, Data: cards}}}}
+	body := &DetailBody{Blocks: []Block{{Kind: BlockWall, Data: cards}}}
+	if more, ok := results[openName].(*sources.GlancesDetail); ok && more.Uptime != "" {
+		body.Line = []Fact{{Label: T("detail.sys.uptime"), Value: more.Uptime}}
+	}
+	body.Blocks = append(body.Blocks, hostBlocks(results, todayOf(ctx))...)
+	return DetailView{Body: body}
 }
 
 func meterTierName(v, warn float64) string {
@@ -813,7 +1197,7 @@ func monitorsDetail(cfg MonitorsConfig, results map[string]any, ctx ViewCtx) Det
 		if m.MS > 0 {
 			meta = NumU(m.MS, 0, "ms")
 		}
-		cards = append(cards, LitRow{Name: m.Name, Meta: meta, State: state})
+		cards = append(cards, LitRow{Name: m.Name, Meta: meta, State: state, Item: m.Name})
 		strip := Strip{Name: m.Name}
 		if m.CertDays >= 0 {
 			strip.Value = fmt.Sprintf("TLS %d d", m.CertDays)
@@ -825,9 +1209,12 @@ func monitorsDetail(cfg MonitorsConfig, results map[string]any, ctx ViewCtx) Det
 		msDays = append(msDays, dailySeries(h, metrics.SampleKey("kuma", "ms", m.Name), now, uptimeDetailDays))
 	}
 	sort.SliceStable(cards, func(a, b int) bool { return stateRank(cards[a].State) < stateRank(cards[b].State) })
-	body := &DetailBody{Facts: []Kpi{{Value: fmt.Sprintf("%d / %d", up, len(cards)), Label: T("detail.monitors.up"), Tier: tierIf(up < len(cards), "red", "green")}},
-		Blocks: []Block{{Kind: BlockStatus, Label: T("detail.monitors.now"), Data: cards},
-			{Kind: BlockStrips, Label: T("detail.monitors.days"), Ticks: spanTicks(now, uptimeDetailDays), Data: strips}}}
+	body := &DetailBody{Facts: []Kpi{{Value: fmt.Sprintf("%d / %d", up, len(cards)), Label: T("detail.monitors.up"), Tier: tierIf(up < len(cards), "red", "green")}}}
+	if picked := pickedItem(results); picked != "" {
+		body.Blocks = append(body.Blocks, monitorBlocks(data, picked, h, now)...)
+	}
+	body.Blocks = append(body.Blocks, []Block{{Kind: BlockStatus, Label: T("detail.monitors.now"), Data: cards},
+		{Kind: BlockStrips, Label: T("detail.monitors.days"), Ticks: spanTicks(now, uptimeDetailDays), Data: strips}}...)
 	if mean := meanSeries(msDays); hasValues(mean) {
 		g := LineGraph(Series{Values: mean, Class: "s1"})
 		g.Goal, g.HasGoal, g.GoalDanger, g.Lo, g.Ticks = slowMs, true, true, 0, spanTicks(now, uptimeDetailDays)
@@ -843,3 +1230,114 @@ func monitorsDetail(cfg MonitorsConfig, results map[string]any, ctx ViewCtx) Det
 
 // slowMs is the response time that counts as slow.
 const slowMs = 1000
+
+// reversed is a copy of list, last first.
+func reversed[T any](list []T) []T {
+	out := make([]T, len(list))
+	for i, v := range list {
+		out[len(list)-1-i] = v
+	}
+	return out
+}
+
+// umamiSiteBlocks: views per day of the month, the week's pages and
+// referrers.
+func umamiSiteBlocks(site sources.UmamiSite) []Block {
+	var out []Block
+	if len(site.Days) >= minPoints {
+		views := make([]float64, len(site.Days))
+		for i, d := range site.Days {
+			views[i] = float64(d.N)
+		}
+		g := ColGraph(views, "s1")
+		g.Ticks = []any{DayS(site.Days[0].Name), DayS(site.Days[len(site.Days)-1].Name)}
+		out = append(out, Block{Kind: BlockGraph, Label: T("detail.umami.per_day"), Hero: true, Data: g})
+	}
+	bars := func(list []sources.Count) []ShareBar {
+		var out []ShareBar
+		for _, c := range list {
+			out = append(out, ShareBar{Name: c.Name, Pct: pctOfF(float64(c.N), float64(list[0].N)), Value: c.N})
+		}
+		return out
+	}
+	var pair []Block
+	if len(site.Pages) > 0 {
+		pair = append(pair, Block{Kind: BlockBars, Label: T("detail.umami.pages"), Data: bars(site.Pages)})
+	}
+	if len(site.Referrers) > 0 {
+		pair = append(pair, Block{Kind: BlockBars, Label: T("detail.umami.referrers"), Data: bars(site.Referrers)})
+	}
+	return append(out, pairOf(pair)...)
+}
+
+// monitorBlocks: one monitor picked from the grid, its answer times and
+// days of the last weeks.
+func monitorBlocks(data *sources.KumaDataset, name string, h *metrics.History, now time.Time) []Block {
+	for _, m := range data.Monitors {
+		if m.Name != name {
+			continue
+		}
+		facts := Table{Head: []Text{T("detail.monitors.what"), T("detail.monitors.value")}, Rows: [][]Cell{
+			{{Value: Txt("detail.monitors.target")}, {Value: cmp.Or(m.Target, "–")}},
+			{{Value: Txt("detail.monitors.type")}, {Value: cmp.Or(m.Type, "–")}},
+			{{Value: Txt("detail.monitors.state")}, {Value: Txt("kuma." + kumaStates[m.Status][1]), State: map[int]string{sources.KumaUp: "ok", sources.KumaDown: "bad"}[m.Status]}}}}
+		if share, ok := metrics.Uptime(h, m.Name, now.AddDate(0, 0, -uptimeLongDays), now); ok {
+			facts.Rows = append(facts.Rows, []Cell{{Value: TxtA("detail.monitors.uptime_days", "n", uptimeLongDays)}, {Value: NumU(share*percentScale, 2, "%")}})
+		}
+		if m.CertDays >= 0 {
+			facts.Rows = append(facts.Rows, []Cell{{Value: Txt("detail.monitors.cert")}, {Value: TxtA("detail.days", "n", m.CertDays)}})
+		}
+		out := []Block{{Kind: BlockTable, Label: Plain(m.Name), Data: facts}}
+		if ms := dailySeries(h, metrics.SampleKey("kuma", "ms", m.Name), now, uptimeLongDays); hasValues(ms) {
+			g := LineGraph(Series{Values: ms, Class: "s1"})
+			g.Goal, g.HasGoal, g.GoalDanger, g.Lo, g.Ticks = slowMs, true, true, 0, spanTicks(now, uptimeLongDays)
+			out = append(out, Block{Kind: BlockGraph, Label: T("detail.monitors.ms_one"), Hero: true, Data: g})
+		}
+		return out
+	}
+	return nil
+}
+
+// uptimeLongDays is the span of one picked monitor's history.
+const uptimeLongDays = 30
+
+// restoreTasks: one restore test a quarter per backup system the tile
+// shows, done when marked (event "restore") this quarter.
+func restoreTasks(results map[string]any, h *metrics.History, now time.Time) Tasks {
+	start := metrics.QuarterStart(now)
+	last := map[string]time.Time{}
+	if h != nil {
+		for _, e := range h.Events {
+			if e.Kind == metrics.EventRestore && e.At.After(last[e.Subject]) {
+				last[e.Subject] = e.At
+			}
+		}
+	}
+	tasks := Tasks{Label: T("detail.backups.restored")}
+	for _, svc := range []enums.ServiceType{enums.ServiceBorgBackup, enums.ServicePGBackWeb, enums.ServiceTrueNAS} {
+		if results[string(svc)] == nil {
+			continue
+		}
+		tasks.Total++
+		task := Task{Text: TxtA("detail.backups.restore_task", "system", Txt("service."+string(svc))), Meta: Txt("detail.backups.never"), State: "warn",
+			Action: T("detail.backups.mark_tested"), Do: "restore_tested", Args: map[string]string{"system": string(svc)}}
+		if at, ok := last[string(svc)]; ok {
+			task.Meta = Day(at)
+			if !at.Before(start) {
+				task.State, tasks.Done = "ok", tasks.Done+1
+			}
+		}
+		tasks.Items = append(tasks.Items, task)
+	}
+	return tasks
+}
+
+// firstValue is a series' first value that is no gap.
+func firstValue(series []float64) float64 {
+	for _, v := range series {
+		if v == v {
+			return v
+		}
+	}
+	return 0
+}

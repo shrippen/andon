@@ -293,7 +293,7 @@ func hintsCalm(v map[string]any) bool { return v["Hints"] != nil && lenOf(v["Hin
 
 func init() {
 	// updates: a hints list limited to the update rules.
-	Tile[HintsConfig]{Key: "updates", Detail: updatesDetail, Template: "widgets/topic", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 600, Extra: ExtraHints,
+	Tile[HintsConfig]{Key: "updates", Detail: updatesDetail, DetailQueries: releaseQuery, Template: "widgets/topic", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 600, Extra: ExtraHints,
 		Fields: []Field{{Key: "limit", Input: InputNumber, Default: 20, Min: "1", Max: "50"}, {Key: "sources", Input: InputList}, sel("sort", "urgency", "urgency", "age")},
 		Calm:   hintsCalm,
 		Decode: func(r Raw) HintsConfig {

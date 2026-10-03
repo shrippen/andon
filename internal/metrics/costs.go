@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/enums"
 	"andon/internal/sources"
 )
 
@@ -459,3 +460,68 @@ func linearFit(xs, ys []float64) (float64, float64, bool) {
 
 // hdd is a day's heating degree days below the heating limit.
 func hdd(tempC float64) float64 { return max(heatingBaseC-tempC, 0) }
+
+// PriceAt is the price of the hour that holds at; without a price for
+// it, fallback.
+func PriceAt(tibber *sources.TibberDataset, at time.Time, fallback float64) float64 {
+	if tibber == nil {
+		return fallback
+	}
+	for _, p := range tibber.Prices {
+		if !at.Before(p.At) && at.Before(p.At.Add(time.Hour)) {
+			return p.Total
+		}
+	}
+	return fallback
+}
+
+// The homelab's bill once a day, and each run its measured draw with the
+// hour's price: averaged over a day's runs that is the day's real cost.
+//
+//	homelab.cost                 monthly bill (last run of the day)
+//	homelab.power.runs / .watts  runs, summed draw   → mean watts
+//	homelab.power.cost           summed draw × price → mean € per watt-hour
+func init() {
+	RecordScope(func(s Scope, now time.Time, r *Readings) {
+		in := CostInputs{}
+		in.Hass, _ = s.Datasets[string(enums.ServiceHomeAssistant)].(*sources.HassDataset)
+		in.Tibber, _ = s.Datasets[string(enums.ServiceTibber)].(*sources.TibberDataset)
+		in.Snipe, _ = s.Datasets[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset)
+		in.Sure, _ = s.Datasets[string(enums.ServiceSure)].(*sources.SureDataset)
+		in.Domains, _ = s.Datasets[string(enums.ServiceDomains)].(*sources.DomainsDataset)
+		settings := HomelabSettingsOf(s.Settings)
+		if bill := HomelabCost(in, settings, now); bill.Total > 0 {
+			r.Set(key("homelab", "cost"), bill.Total)
+		}
+		w, ok := PowerWatts(in.Hass, settings.PowerEntity)
+		if !ok {
+			return
+		}
+		r.Count(key("homelab", "power", "runs"), 1)
+		r.Count(key("homelab", "power", "watts"), w)
+		r.Count(key("homelab", "power", "cost"), w*PriceAt(in.Tibber, now, settings.PowerPrice))
+	})
+}
+
+// PowerDay is one day's real draw and cost of the homelab.
+type PowerDay struct {
+	Day       time.Time
+	KWh, Cost float64
+}
+
+// PowerDays reads the last n days of measured draw, oldest first; days
+// without runs are left out.
+func PowerDays(h *History, now time.Time, n int) []PowerDay {
+	runs := dayTotals(h.SeriesOf(key("homelab", "power", "runs")))
+	watts := dayTotals(h.SeriesOf(key("homelab", "power", "watts")))
+	cost := dayTotals(h.SeriesOf(key("homelab", "power", "cost")))
+	var out []PowerDay
+	for i := n - 1; i >= 0; i-- {
+		day := Today(now).AddDate(0, 0, -i)
+		if runs[day] == 0 {
+			continue
+		}
+		out = append(out, PowerDay{Day: day, KWh: watts[day] / runs[day] * hoursPerDay / wattsPerKW, Cost: cost[day] / runs[day] * hoursPerDay / wattsPerKW})
+	}
+	return out
+}

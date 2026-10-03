@@ -239,6 +239,10 @@ type BorgClient struct {
 	LastSeen     time.Time
 	LastBackup   time.Time // newest successful backup; zero when unknown
 	LastFailed   bool      // an enabled plan's latest run failed
+	// From /metrics (BBS 2.65+), 0 when unknown: the repositories' size,
+	// the newest successful run's archive size and duration.
+	RepoBytes, LastBytes float64
+	LastSeconds          int
 }
 
 // borgJobCompleted is a backup job's result when it succeeded.
@@ -293,6 +297,9 @@ func fetchBorg(ctx context.Context, sctx Ctx) (any, error) {
 	if summary, err := api.Get(ctx, "summary"); err == nil {
 		addBorgSummary(data, summary)
 	}
+	if m, err := api.Get(ctx, "metrics"); err == nil {
+		addBorgMetrics(data, m)
+	}
 	return data, nil
 }
 
@@ -318,6 +325,31 @@ func addBorgSummary(data *BorgDataset, summary any) {
 			if at := borgTime(last["completed_at"]); at.After(c.LastBackup) {
 				c.LastBackup = at
 			}
+		}
+	}
+}
+
+// addBorgMetrics adds sizes and durations from /metrics: per client its
+// repositories' size and its newest successful run over all plans.
+func addBorgMetrics(data *BorgDataset, metrics any) {
+	m := asMap(metrics)
+	names := map[int64]string{}
+	newest := map[string]float64{}
+	for _, raw := range asList(m["plans"]) {
+		p := asMap(raw)
+		name := asStr(p["client"])
+		names[asInt64(p["client_id"])] = name
+		c := data.client(name)
+		if c == nil || asFloat(p["last_success_ts"]) <= newest[name] {
+			continue
+		}
+		newest[name] = asFloat(p["last_success_ts"])
+		c.LastBytes, c.LastSeconds = asFloat(p["last_success_bytes"]), int(asFloat(p["last_success_duration_seconds"]))
+	}
+	for _, raw := range asList(m["repositories"]) {
+		r := asMap(raw)
+		if c := data.client(names[asInt64(r["client_id"])]); c != nil {
+			c.RepoBytes += asFloat(r["size_bytes"])
 		}
 	}
 }

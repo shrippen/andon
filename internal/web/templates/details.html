@@ -141,7 +141,7 @@
   {{with $b.List}}
   <nav class="detail-list" aria-label="{{tt .Label.Key .Label.Args}}">
     <div class="h-label">{{tt .Label.Key .Label.Args}}</div>
-    {{$sel := .Sel}}{{range $i, $r := .Items}}{{if $r.Item}}<button type="button" class="list-row" data-details="/details/{{$.PlacementID}}?item={{urlquery $r.Item}}"{{if eq $i $sel}} aria-selected="true"{{end}}>{{else}}<div class="list-row"{{if eq $i $sel}} aria-selected="true"{{end}}>{{end}}<span class="led" data-style="--c:var(--{{stateVar $r.State}})"></span><span>{{tv $r.Name}}</span><span class="meta">{{tv $r.Meta}}</span>{{if $r.Item}}</button>{{else}}</div>{{end}}{{end}}
+    {{$sel := .Sel}}{{range $i, $r := .Items}}{{if $r.Open}}<button type="button" class="list-row" data-details="{{$r.Open}}"{{if eq $i $sel}} aria-selected="true"{{end}}>{{else}}<div class="list-row"{{if eq $i $sel}} aria-selected="true"{{end}}>{{end}}<span class="led" data-style="--c:var(--{{stateVar $r.State}})"></span><span>{{tv $r.Name}}</span><span class="meta">{{tv $r.Meta}}</span>{{if $r.Open}}</button>{{else}}</div>{{end}}{{end}}
   </nav>
   {{end}}
   <section class="detail-main">
@@ -169,7 +169,7 @@
   {{else if eq $k "table"}}{{with .Data}}
   <div class="table-wrap"><table class="table">
     <thead><tr>{{range $i, $h := .Head}}<th{{if numCol $.Data.Num $i}} class="num"{{end}}>{{tt $h.Key $h.Args}}</th>{{end}}</tr></thead>
-    <tbody>{{range .Rows}}<tr>{{range $i, $c := .}}<td{{if numCol $.Data.Num $i}} class="num"{{end}}{{with $c.State}} data-state="{{.}}"{{end}}>{{tv $c.Value}}</td>{{end}}</tr>{{end}}</tbody>
+    <tbody>{{range .Rows}}<tr>{{range $i, $c := .}}<td{{if numCol $.Data.Num $i}} class="num"{{end}}{{with $c.State}} data-state="{{.}}"{{end}}>{{if $c.Href}}<a href="{{$c.Href}}" target="_blank" rel="noopener noreferrer">{{tv $c.Value}}</a>{{else}}{{tv $c.Value}}{{end}}</td>{{end}}</tr>{{end}}</tbody>
     {{with .Foot}}<tfoot><tr>{{range $i, $c := .}}<td{{if numCol $.Data.Num $i}} class="num"{{end}}>{{tv $c.Value}}</td>{{end}}</tr></tfoot>{{end}}
   </table></div>{{end}}
   {{else if eq $k "strips"}}
@@ -180,9 +180,9 @@
   {{else if eq $k "timeline"}}
   <ol class="timeline">{{range .Data}}<li{{with .Tier}} data-tier="{{.}}"{{end}}><time class="date-tile" datetime="{{.At.Format "2006-01-02"}}"><b>{{mday .At}}</b>{{month .At}}</time><span class="what">{{tv .Title}}{{with .Sub}}<small>{{tv .}}</small>{{end}}</span><em class="state">{{tv .State}}</em></li>{{end}}</ol>
   {{else if eq $k "rows"}}
-  <div>{{range .Data}}<div class="list-row"><span class="led" data-style="--c:var(--{{stateVar .State}})"></span><span>{{tv .Name}}</span><span class="meta">{{tv .Meta}}</span></div>{{end}}</div>
+  <div>{{range .Data}}{{if .Open}}<button type="button" class="list-row" data-details="{{.Open}}"{{if .Picked}} aria-selected="true"{{end}}>{{else}}<div class="list-row">{{end}}<span class="led" data-style="--c:var(--{{stateVar .State}})"></span><span>{{tv .Name}}</span><span class="meta">{{tv .Meta}}</span>{{if .Open}}</button>{{else}}</div>{{end}}{{end}}</div>
   {{else if eq $k "status"}}
-  <div class="detail-wall">{{range .Data}}<div class="status" data-state="{{.State}}"><span class="name">{{tv .Name}}</span><span class="row">{{tv .Meta}}</span></div>{{end}}</div>
+  <div class="detail-wall">{{range .Data}}{{if .Open}}<button type="button" class="status" data-state="{{.State}}" data-details="{{.Open}}" aria-pressed="{{.Picked}}">{{else}}<div class="status" data-state="{{.State}}">{{end}}<span class="name">{{tv .Name}}</span><span class="row">{{tv .Meta}}</span>{{if .Open}}</button>{{else}}</div>{{end}}{{end}}</div>
   {{else if eq $k "text"}}<p>{{tv .Data}}</p>
   {{else if eq $k "code"}}<pre class="codeblock">{{.Data}}</pre>
   {{else if eq $k "hints"}}
@@ -191,7 +191,7 @@
   <div class="detail-wall">{{range .Data}}<div class="detail-card"{{with .Tier}} data-tier="{{.}}"{{end}}><span>{{tt .Label.Key .Label.Args}}</span><b>{{tv .Value}}</b>{{with .Spark}}<svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true"><path d="{{sparkPath .}}"/></svg>{{end}}{{with .Sub}}<small>{{tv .}}</small>{{end}}</div>{{end}}</div>
   {{else if eq $k "tasks"}}{{with .Data}}
   <div class="detail-progress"><div class="progress-bar"><i data-style="--p:{{if .Total}}{{pctOf .Done .Total}}{{else}}0{{end}}%" data-tier="{{if and .Total (eq .Done .Total)}}green{{else}}yellow{{end}}"></i></div><span>{{.Done}} / {{.Total}} · {{tt .Label.Key .Label.Args}}</span></div>
-  <div class="detail-tasks">{{range .Items}}<div class="detail-task{{if eq .State "ok"}} is-done{{end}}"><span class="led" data-style="--c:var(--{{stateVar .State}})"></span><span>{{tv .Text}}{{with .Meta}}<small>{{tv .}}</small>{{end}}</span>{{if .Href}}<a class="btn btn-outline btn-sm" href="{{.Href}}" target="_blank" rel="noopener noreferrer">{{tt .Action.Key .Action.Args}}</a>{{else}}<span></span>{{end}}</div>{{end}}</div>
+  <div class="detail-tasks">{{range .Items}}<div class="detail-task{{if eq .State "ok"}} is-done{{end}}"><span class="led" data-style="--c:var(--{{stateVar .State}})"></span><span>{{tv .Text}}{{with .Meta}}<small>{{tv .}}</small>{{end}}</span>{{if .Post}}<button type="button" class="btn btn-outline btn-sm" data-detail-do="{{.Post}}">{{tt .Action.Key .Action.Args}}</button>{{else if .Href}}<a class="btn btn-outline btn-sm" href="{{.Href}}" target="_blank" rel="noopener noreferrer">{{tt .Action.Key .Action.Args}}</a>{{else}}<span></span>{{end}}</div>{{end}}</div>
   {{end}}
   {{else if eq $k "heat"}}{{with .Data}}
   <div class="heat is-weeks">{{range .Levels}}<i data-l="{{.}}"></i>{{end}}</div>
