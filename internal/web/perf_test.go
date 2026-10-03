@@ -302,3 +302,36 @@ func TestCSRFMasked(t *testing.T) {
 		t.Fatalf("masked token rejected: %d", res.StatusCode)
 	}
 }
+
+// TestSectionToolsOnOpen: the edit page carries no section form; opening
+// a section's menu loads it, with the board's current version. 16 forms
+// of 7 selects each cost Chrome 1.7 s per edit page (form scanning).
+func TestSectionToolsOnOpen(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	resp := getFollowingRedirect(t, srv, client, "/")
+	resp.Body.Close()
+	boardURL := resp.Request.URL.Path
+
+	page := mustGet(t, srv, client, boardURL+"?edit")
+	if bytes.Contains(page, []byte(`class="section-form"`)) || bytes.Contains(page, []byte(`name="span"`)) {
+		t.Fatal("edit page carries section forms")
+	}
+	tools := regexp.MustCompile(`hx-get="(/boards/\d+/sections/(\d+)/tools)"`).FindSubmatch(page)
+	if tools == nil {
+		t.Fatalf("no section tools to load:\n%s", page)
+	}
+	version := regexp.MustCompile(`data-version="(\d+)"`).FindSubmatch(page)[1]
+
+	form := string(mustGet(t, srv, client, string(tools[1])))
+	for _, want := range []string{`action="/sections/` + string(tools[2]) + `/edit"`, `name="span"`, `name="version" value="` + string(version) + `"`,
+		`action="/sections/` + string(tools[2]) + `/delete"`} {
+		if !strings.Contains(form, want) {
+			t.Fatalf("section tools miss %q:\n%s", want, form)
+		}
+	}
+	if strings.Contains(form, "<nav") {
+		t.Fatal("section tools render the whole page")
+	}
+}

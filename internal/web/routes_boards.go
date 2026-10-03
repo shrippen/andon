@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -49,6 +50,7 @@ func (d Deps) RegisterBoardRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /boards/{id}/cols/{placementID}", d.handleMyCols)
 	mux.HandleFunc("POST /boards/{id}/size/{sectionID}", d.handleSize)
 	mux.HandleFunc("POST /boards/{id}/overlay/reset", d.authed(d.handleOverlayReset))
+	mux.HandleFunc("GET /boards/{id}/sections/{sectionID}/tools", d.authed(d.handleSectionTools))
 	mux.HandleFunc("GET /boards/{id}/history", d.authed(d.handleHistory))
 	mux.HandleFunc("GET /boards/{id}/suggest", d.authed(d.handleSuggest))
 	mux.HandleFunc("POST /boards/{id}/suggest", d.authed(d.handleSuggestApply))
@@ -237,6 +239,34 @@ func (d Deps) boardPart(w http.ResponseWriter, r *http.Request, ctx Ctx, boardID
 		"Edit": mode == partEdit && view.CanEdit, "LayerEdit": mode == partLayer,
 	}))
 	return true
+}
+
+// handleSectionTools answers a section's form, loaded when its menu is
+// first opened in edit mode, with the board's current version.
+func (d Deps) handleSectionTools(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	boardID, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	sectionID, err := pathID(r, "sectionID")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	view, err := boards.View(d.DB, ctx.Who, boardID, boards.LayoutBoard)
+	if err != nil {
+		d.handleBoardError(w, r, err)
+		return
+	}
+	if !view.CanEdit || !slices.ContainsFunc(view.Sections, func(s boards.SectionView) bool { return s.ID == sectionID }) {
+		http.NotFound(w, r)
+		return
+	}
+
+	_ = d.Page(w, ctx, "section_tools", http.StatusOK, withChoices(map[string]any{
+		"Board": view, "Section": sectionID, "Partial": true, "ThemeURL": "",
+	}))
 }
 
 // formBoard is the board a form names in its board_id field.
