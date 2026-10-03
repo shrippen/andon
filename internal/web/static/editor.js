@@ -4,6 +4,12 @@
 
   var d = document;
 
+  // Touch: hold this long before a tile lifts, move less than this to keep holding.
+  var TOUCH_HOLD_MS = 200;
+  var TOUCH_SLOP_PX = 8;
+  // A click this soon after a drop ends the drag.
+  var CLICK_AFTER_DROP_MS = 300;
+
   function csrf() {
     var meta = d.querySelector('meta[name="csrf"]');
     return meta ? meta.getAttribute("content") || "" : "";
@@ -110,6 +116,19 @@
   // drop, so its last position is kept while the pointer moves.
   var held = null;
 
+  // The mouse button comes up over the tile that was dragged, often a
+  // link: that click is the end of the drag, not a visit.
+  var carrying = false;
+  var droppedAt = -Infinity;
+  // On window, capturing: before the page's click counting, which sits
+  // on the document.
+  window.addEventListener("click", function (e) {
+    if (carrying || performance.now() - droppedAt < CLICK_AFTER_DROP_MS) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+
   function follow() {
     var copy = d.querySelector(".is-picked");
     if (copy) {
@@ -136,17 +155,26 @@
         group: shared ? { name: shared } : "section-" + list.getAttribute("data-sortable"),
         animation: 120,
         draggable: ".tile-slot[data-placement]",
-        filter: "[data-static], a, button, input, select, label",
+        // A tile is picked up anywhere, links and buttons included: a
+        // click without movement still works. Only fields keep the pointer.
+        filter: "[data-static], input, select, textarea",
         preventOnFilter: false,
         forceFallback: true,
+        // Touch picks up after a short press, so the page still scrolls.
+        delay: TOUCH_HOLD_MS,
+        delayOnTouchOnly: true,
+        touchStartThreshold: TOUCH_SLOP_PX,
         fallbackClass: "is-picked",
         ghostClass: "drop-gap",
         onStart: function () {
+          carrying = true;
           held = null;
           d.addEventListener("pointermove", follow);
           d.dispatchEvent(new CustomEvent("andon:drag", { detail: true }));
         },
         onEnd: function (evt) {
+          droppedAt = performance.now();
+          setTimeout(function () { carrying = false; }, CLICK_AFTER_DROP_MS);
           d.removeEventListener("pointermove", follow);
           d.dispatchEvent(new CustomEvent("andon:drag", { detail: false }));
           if (held && window.Kante) {
