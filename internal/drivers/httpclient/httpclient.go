@@ -65,9 +65,18 @@ var lookups singleflight.Group
 // client timeouts.
 const dnsTTL = time.Minute
 
-// dnsEntry is one cached answer.
+// dnsParallel caps lookups in flight: a home resolver (Pi-hole) drops
+// queries from ~30 at once on, and each costs a 5 s timeout then.
+const dnsParallel = 8
+
+// dnsSlots holds one token per lookup in flight.
+var dnsSlots = make(chan struct{}, dnsParallel)
+
+// dnsEntry is one cached answer; err is set for a name the resolver
+// does not know (a timeout is never cached).
 type dnsEntry struct {
 	ips   []net.IP
+	err   error
 	until time.Time
 }
 
@@ -79,7 +88,7 @@ type dnsEntry struct {
 //	miss ─► DNSStart ─► singleflight(lookupIP) ─► DNSDone ─► cache ─► ips
 func resolve(ctx context.Context, host string) ([]net.IP, error) {
 	if e, ok := resolved.Load(host); ok && time.Now().Before(e.(dnsEntry).until) {
-		return e.(dnsEntry).ips, nil
+		return e.(dnsEntry).ips, e.(dnsEntry).err
 	}
 
 	trace := httptrace.ContextClientTrace(ctx)
@@ -88,20 +97,39 @@ func resolve(ctx context.Context, host string) ([]net.IP, error) {
 	}
 
 	// Detached: one caller giving up must not fail the others joined.
-	out, err, _ := lookups.Do(host, func() (any, error) {
+	// A slot first, the timeout after: waiting in line is no lookup.
+	done := lookups.DoChan(host, func() (any, error) {
+		dnsSlots <- struct{}{}
+		defer func() { <-dnsSlots }()
 		lookupCtx, cancel := context.WithTimeout(context.Background(), ConnectTimeout)
 		defer cancel()
-		return lookupIP(lookupCtx, "ip", host)
+		ips, err := lookupIP(lookupCtx, "ip", host)
+
+		// Cached before the joined callers are released: one arriving
+		// right after finds the answer instead of asking again.
+		var dnsErr *net.DNSError
+		switch {
+		case err == nil && len(ips) > 0:
+			resolved.Store(host, dnsEntry{ips: ips, until: time.Now().Add(dnsTTL)})
+		case errors.As(err, &dnsErr) && dnsErr.IsNotFound:
+			resolved.Store(host, dnsEntry{err: err, until: time.Now().Add(dnsTTL)})
+		}
+		return ips, err
 	})
-	ips, _ := out.([]net.IP)
+	var out singleflight.Result
+	select {
+	case out = <-done:
+	case <-ctx.Done():
+		out.Err = ctx.Err()
+	}
+	ips, _ := out.Val.([]net.IP)
+	err := out.Err
 	if trace != nil && trace.DNSDone != nil {
 		trace.DNSDone(httptrace.DNSDoneInfo{Err: err})
 	}
 	if err != nil || len(ips) == 0 {
 		return nil, err
 	}
-
-	resolved.Store(host, dnsEntry{ips: ips, until: time.Now().Add(dnsTTL)})
 	return ips, nil
 }
 
