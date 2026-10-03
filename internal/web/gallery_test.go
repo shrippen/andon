@@ -236,3 +236,34 @@ func TestGalleryOneReuseDialog(t *testing.T) {
 		t.Fatal("reuse dialog lacks the copy form")
 	}
 }
+
+// TestLibraryOneRowMenu: the library's row menus come from one template,
+// filled when a menu opens; a copy form with a space picker per row cost
+// Chrome 280 ms on a 226-tile library.
+func TestLibraryOneRowMenu(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	for _, title := range []string{"Note A", "Note B"} {
+		resp, err := client.PostForm(srv.URL+"/widgets", url.Values{
+			"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space)}, "type": {"note"}, "title": {title}, "cfg.text": {"hi"},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+	}
+
+	page := string(mustGet(t, srv, client, "/widgets"))
+	if n := strings.Count(page, `name="space_id"`); n != 1 {
+		t.Fatalf("expected one space picker, got %d", n)
+	}
+	if n := len(regexp.MustCompile(`<details class="row-more" data-widget="\d+">`).FindAllString(page, -1)); n != 2 {
+		t.Fatalf("expected 2 row menus to fill, got %d", n)
+	}
+	if !strings.Contains(page, `<template id="row-more">`) || !strings.Contains(page, `action="/widgets/{widget}/copy"`) {
+		t.Fatal("row menu template missing")
+	}
+}

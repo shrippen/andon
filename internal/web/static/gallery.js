@@ -1,5 +1,5 @@
 /* Gallery and library: filter cards by search text and "only my connections",
-   open the reuse dialog of a set-up tile. */
+   open the reuse dialog of a set-up tile, fill a library row's menu. */
 (function () {
   "use strict";
 
@@ -57,6 +57,26 @@
       el.textContent = opener.getAttribute("data-" + el.getAttribute("data-fill")) || "";
     });
   }
+
+  // A library row's menu, on first open: the page's one template with
+  // the row's widget id in its links and form actions.
+  d.addEventListener("toggle", function (e) {
+    var menu = e.target;
+    if (!menu.matches || !menu.matches("details.row-more[data-widget]") || !menu.open || menu.querySelector(".row-more-body")) {
+      return;
+    }
+    var tpl = d.getElementById("row-more");
+    if (!tpl) {
+      return;
+    }
+    var id = menu.getAttribute("data-widget");
+    var body = tpl.content.cloneNode(true);
+    [].forEach.call(body.querySelectorAll("[href*=\"{widget}\"], [action*=\"{widget}\"]"), function (el) {
+      var attr = el.hasAttribute("href") ? "href" : "action";
+      el.setAttribute(attr, el.getAttribute(attr).replace("{widget}", id));
+    });
+    menu.appendChild(body);
+  }, true);
 
   window.andonPage(function () {
     var q = d.getElementById("gal-q");
