@@ -20,6 +20,35 @@ DIR = Path(__file__).resolve().parent.parent / "internal" / "sources" / "demowor
 LETTERS = string.ascii_uppercase
 
 
+# Sections the demo datasets read as they are: they name no one of Studio
+# Weber directly, only through {{…}} references, which then resolve to the
+# sample's neutral names. COPY_CHECK fails the run if one does.
+COPY = ["public_holidays", "monitoring", "server", "virtualization", "storage", "disk_health", "containers",
+        "stacks", "backups", "certs", "domains", "mail_blacklist", "dns", "gateway", "vpn", "tailnet", "tunnel",
+        "speed", "identity", "passwords", "cloud", "downloads", "code", "json_api", "smart_home", "pantry",
+        "kitchen", "energy", "weather", "sites", "feeds", "bookmarks", "mail", "calendar", "photos", "library",
+        "series", "bookkeeping", "documents", "assets_state", "bank", "subscriptions", "suggestions", "location"]
+
+
+def without_notes(node):
+    """The value without its "note" keys (they tell the story by name)."""
+    if isinstance(node, dict):
+        return {k: without_notes(v) for k, v in node.items() if k != "note"}
+    if isinstance(node, list):
+        return [without_notes(v) for v in node]
+    return node
+
+
+def identity(world):
+    """Names that tell Studio Weber apart (as scripts/release-check.sh lists them)."""
+    names = {world["studio"]["name"], world["studio"]["domain"], world["studio"]["city"]}
+    names |= {p["name"] for p in world["people"]} | {c["name"] for c in world["customers"]}
+    names |= {v["name"] for v in world["vendors"]} | {r["vendor"] for r in world["receipts"]}
+    names |= {p["short"] for p in world["projects"] if p.get("short")}
+    names |= {t for p in world["projects"] for t in p["name"].values()}
+    return {n for n in names if len(n) >= 5}
+
+
 def text(de, en):
     return {"de": de, "en": en}
 
@@ -85,6 +114,12 @@ def main():
         },
         "media": {"album": {"title": "Album", "artist": "Künstler"}},
     }
+    copy = {k: without_notes(world[k]) for k in COPY}
+    copied = json.dumps(copy, ensure_ascii=False)
+    leaks = sorted(n for n in identity(world) if n in copied)
+    if leaks:
+        raise SystemExit(f"make-sample: {leaks} in the copied sections; reference them with {{{{…}}}} instead")
+    sample.update(copy)
     out = json.dumps(sample, ensure_ascii=False, indent=1) + "\n"
     (DIR / "sample.json").write_text(out, encoding="utf-8")
 

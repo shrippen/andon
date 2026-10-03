@@ -20,6 +20,7 @@ import (
 	"andon/internal/drivers/httpclient"
 	"andon/internal/drivers/services"
 	"andon/internal/enums"
+	"andon/internal/sources/demoworld"
 )
 
 const (
@@ -145,15 +146,21 @@ func parseSpeedResults(body any) *SpeedResults {
 // DemoSpeedResults are four measurements a day for a month; evenings
 // are slower.
 func DemoSpeedResults(now time.Time) *SpeedResults {
+	var p struct {
+		Hours                    []int
+		Down, Up, Ping           float64
+		EveningHour, EveningDrop int
+	}
+	demoworld.MustDecode("speed", now, &p)
 	out := &SpeedResults{}
 	for d := 30; d > 0; d-- {
-		for _, hour := range []int{3, 9, 15, 21} {
+		for _, hour := range p.Hours {
 			at := time.Date(now.Year(), now.Month(), now.Day()-d, hour, 0, 0, 0, time.UTC)
-			down := 248 - float64((d*7)%19)
-			if hour == 21 {
-				down -= 70 + float64(d%5)*8
+			down := p.Down - float64((d*7)%19)
+			if hour == p.EveningHour {
+				down -= float64(p.EveningDrop) + float64(d%5)*8
 			}
-			out.List = append(out.List, SpeedResult{At: at, Down: down, Up: 41, Ping: 12})
+			out.List = append(out.List, SpeedResult{At: at, Down: down, Up: p.Up, Ping: p.Ping})
 		}
 	}
 	return out
@@ -164,7 +171,7 @@ var SpeedtestData = source{key: "speedtest.data", ttl: opsTTL, service: enums.Se
 func fetchSpeedtest(ctx context.Context, sctx Ctx) (any, error) {
 	data := &SpeedtestDataset{URL: sctx.URL, ExpectDown: asFloat(sctx.Options["expect_down"]), ExpectUp: asFloat(sctx.Options["expect_up"])}
 	if isDemo(sctx) {
-		data.Down, data.Up, data.Ping, data.Jitter, data.At = 243, 41, 12, 1.8, time.Now().UTC().Add(-20*time.Minute)
+		demoworld.MustDecode("speed.latest", time.Now(), data)
 		return data, nil
 	}
 
@@ -638,57 +645,52 @@ func addTemperatures(ctx context.Context, days []EnergyDay, options map[string]a
 // ── Demo ──
 
 func DemoVaultwarden(now time.Time) *VaultwardenDataset {
-	return &VaultwardenDataset{URL: "https://vault.demo", Version: "1.34.3", Users: []VaultUser{
-		{Email: demoWorld.Person("mara").Email, TwoFactor: true, Enabled: true, LastActive: now.AddDate(0, 0, -1), Orgs: []string{demoWorld.Studio.Name}},
-		{Email: demoWorld.Person("lena").Email, Enabled: true, LastActive: now.AddDate(0, 0, -3), Orgs: []string{demoWorld.Studio.Name}},
-	}}
+	data := &VaultwardenDataset{}
+	demoworld.MustDecode("passwords", now, data)
+	return data
 }
 
 func DemoGrocy(now time.Time) *GrocyDataset {
-	today := now.Format(time.DateOnly)
-	return &GrocyDataset{URL: "https://grocy.demo",
-		Expired: []Product{{Name: "Joghurt", Due: now.AddDate(0, 0, -2).Format(time.DateOnly)}},
-		Soon:    []Product{{Name: "Milch", Due: today}, {Name: "Brot", Due: now.AddDate(0, 0, 2).Format(time.DateOnly)}},
-		Missing: []Product{{Name: "Kaffee", Missing: 1}},
-		Chores:  []Chore{{Name: "Bad putzen", Due: now.Add(-30 * time.Hour)}, {Name: "Pflanzen gießen", Due: now.Add(30 * time.Hour)}}}
+	data := &GrocyDataset{}
+	demoworld.MustDecode("pantry", now, data)
+	return data
 }
 
 func DemoDWD(now time.Time) *DWDDataset {
-	return &DWDDataset{URL: "https://api.brightsky.dev", Place: demoWorld.Studio.City, Warnings: []WeatherWarning{
-		{ID: "demo-1", Event: "STURMBÖEN", Headline: "Amtliche WARNUNG vor STURMBÖEN", Severity: WarnModerate, Onset: now, Expire: now.Add(8 * time.Hour)},
-	}}
+	data := &DWDDataset{}
+	demoworld.MustDecode("weather", now, data)
+	return data
 }
 
 func DemoGitHub(now time.Time) *GitHubDataset {
-	return &GitHubDataset{URL: "https://api.github.com", Notifications: 4, Repos: []GitRepo{
-		{Name: "studio/website", Issues: 3, PRs: 1, CI: "success", Release: "v0.12.0", ReleasedAt: now.AddDate(0, 0, -6), PushedAt: now.AddDate(0, 0, -1)},
-		{Name: "studio/showreel", Issues: 0, PRs: 0, CI: "failure", CIStep: "test › go test", PushedAt: now.Add(-3 * time.Hour)},
-	},
-		Reviews: []Issue{{Repo: "studio/website", Title: "Kontaktformular prüfen", URL: "https://github.com/studio/website/pull/42",
-			Number: 42, Pull: true, Updated: now.AddDate(0, 0, -3)}},
-		MyPRs: []Issue{{Repo: "studio/website", Title: "Bilder verkleinern", URL: "https://github.com/studio/website/pull/38",
-			Number: 38, Pull: true, Updated: now.AddDate(0, 0, -20)}},
-	}
+	data := &GitHubDataset{}
+	demoworld.MustDecode("code.github", now, data)
+	return data
 }
 
-// demoGridAndTax is the demo's grid fees and taxes per kWh.
-const demoGridAndTax = 0.17
-
 func DemoTibber(now time.Time) *TibberDataset {
+	var p struct {
+		TibberDataset
+		Price struct{ Base, Swing, GridAndTax float64 }
+		Day   struct{ KWh, Cost, CostStep, TempC, TempStep float64 }
+	}
+	demoworld.MustDecode("energy", now, &p)
+	data := p.TibberDataset
+
 	// Local midnight: Truncate cuts at UTC midnight, which is 22:00 or
 	// 23:00 the day before in Berlin.
 	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	data := &TibberDataset{URL: "https://api.tibber.com/v1-beta/gql", Home: "Zuhause", Currency: "EUR", Level: "CHEAP"}
 	for h := range 48 { // today and tomorrow
-		total := 0.24 + 0.08*float64((h+6)%24)/24
-		data.Prices = append(data.Prices, PricePoint{At: start.Add(time.Duration(h) * time.Hour), Total: total, Energy: total - demoGridAndTax})
+		total := p.Price.Base + p.Price.Swing*float64((h+6)%24)/24
+		data.Prices = append(data.Prices, PricePoint{At: start.Add(time.Duration(h) * time.Hour), Total: total, Energy: total - p.Price.GridAndTax})
 	}
 	data.Current, data.CurrentEnergy = data.Prices[now.Hour()].Total, data.Prices[now.Hour()].Energy
 	for d := tibberDays; d > 0; d-- {
-		data.Days = append(data.Days, EnergyDay{Day: now.AddDate(0, 0, -d).Format(time.DateOnly), KWh: 7 + float64(d%5), Cost: 2 + float64(d%5)*0.3,
-			TempC: 18 - float64(d%5)*2, HasTemp: true})
+		step := float64(d % 5)
+		data.Days = append(data.Days, EnergyDay{Day: now.AddDate(0, 0, -d).Format(time.DateOnly), KWh: p.Day.KWh + step,
+			Cost: p.Day.Cost + step*p.Day.CostStep, TempC: p.Day.TempC - step*p.Day.TempStep, HasTemp: true})
 	}
-	return data
+	return &data
 }
 
 func init() {

@@ -17,9 +17,11 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"andon/internal/drivers/httpclient"
 	"andon/internal/enums"
+	"andon/internal/sources/demoworld"
 )
 
 const (
@@ -55,7 +57,9 @@ var JSONAPIData = source{key: "jsonapi.data", ttl: opsTTL, service: enums.Servic
 
 func fetchJSONAPIData(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
-		return shapeJSON(map[string]any{"stats": map[string]any{"users": 42.0, "queue": 3.0}}, sctx.Options), nil
+		var body map[string]any
+		demoworld.MustDecode("json_api.body", time.Now(), &body)
+		return shapeJSON(body, sctx.Options), nil
 	}
 	headers := map[string]string{"Accept": "application/json"}
 	if sctx.Secret != "" {

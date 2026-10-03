@@ -14,6 +14,7 @@ import (
 
 	"andon/internal/drivers/services"
 	"andon/internal/enums"
+	"andon/internal/sources/demoworld"
 )
 
 const (
@@ -416,10 +417,9 @@ const (
 
 func fetchPangolinAccess(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
-		return &PangolinAccess{ByResource: map[string]PAccess{
-			"Immich": {Requests: 18420, Blocked: 12, Countries: []Count{{"DE", 18100}, {"NL", 240}}},
-			"Gitea":  {Requests: 2210, Blocked: 960, Countries: []Count{{"DE", 1100}, {"US", 620}, {"CN", 410}}},
-		}}, nil
+		access := &PangolinAccess{}
+		demoworld.MustDecode("tunnel.access", time.Now(), &access.ByResource)
+		return access, nil
 	}
 	data, err := fetchPangolin(ctx, sctx)
 	if err != nil {

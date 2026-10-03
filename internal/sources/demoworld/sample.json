@@ -661,5 +661,2407 @@
    "title": "Album",
    "artist": "Künstler"
   }
+ },
+ "public_holidays": {
+  "region": "DE-HH",
+  "dates": {
+   "2025-01-01": {
+    "de": "Neujahr",
+    "en": "New Year's Day"
+   },
+   "2025-04-18": {
+    "de": "Karfreitag",
+    "en": "Good Friday"
+   },
+   "2025-04-21": {
+    "de": "Ostermontag",
+    "en": "Easter Monday"
+   },
+   "2025-05-01": {
+    "de": "Tag der Arbeit",
+    "en": "Labour Day"
+   },
+   "2025-05-29": {
+    "de": "Christi Himmelfahrt",
+    "en": "Ascension Day"
+   },
+   "2025-06-09": {
+    "de": "Pfingstmontag",
+    "en": "Whit Monday"
+   },
+   "2025-10-03": {
+    "de": "Tag der Deutschen Einheit",
+    "en": "German Unity Day"
+   },
+   "2025-10-31": {
+    "de": "Reformationstag",
+    "en": "Reformation Day"
+   },
+   "2025-12-25": {
+    "de": "1. Weihnachtstag",
+    "en": "Christmas Day"
+   },
+   "2025-12-26": {
+    "de": "2. Weihnachtstag",
+    "en": "Boxing Day"
+   },
+   "2026-01-01": {
+    "de": "Neujahr",
+    "en": "New Year's Day"
+   },
+   "2026-04-03": {
+    "de": "Karfreitag",
+    "en": "Good Friday"
+   },
+   "2026-04-06": {
+    "de": "Ostermontag",
+    "en": "Easter Monday"
+   },
+   "2026-05-01": {
+    "de": "Tag der Arbeit",
+    "en": "Labour Day"
+   },
+   "2026-05-14": {
+    "de": "Christi Himmelfahrt",
+    "en": "Ascension Day"
+   },
+   "2026-05-25": {
+    "de": "Pfingstmontag",
+    "en": "Whit Monday"
+   },
+   "2026-10-03": {
+    "de": "Tag der Deutschen Einheit",
+    "en": "German Unity Day"
+   },
+   "2026-10-31": {
+    "de": "Reformationstag",
+    "en": "Reformation Day"
+   },
+   "2026-12-25": {
+    "de": "1. Weihnachtstag",
+    "en": "Christmas Day"
+   },
+   "2026-12-26": {
+    "de": "2. Weihnachtstag",
+    "en": "Boxing Day"
+   },
+   "2027-01-01": {
+    "de": "Neujahr",
+    "en": "New Year's Day"
+   },
+   "2027-03-26": {
+    "de": "Karfreitag",
+    "en": "Good Friday"
+   },
+   "2027-03-29": {
+    "de": "Ostermontag",
+    "en": "Easter Monday"
+   },
+   "2027-05-01": {
+    "de": "Tag der Arbeit",
+    "en": "Labour Day"
+   },
+   "2027-05-06": {
+    "de": "Christi Himmelfahrt",
+    "en": "Ascension Day"
+   },
+   "2027-05-17": {
+    "de": "Pfingstmontag",
+    "en": "Whit Monday"
+   },
+   "2027-10-03": {
+    "de": "Tag der Deutschen Einheit",
+    "en": "German Unity Day"
+   },
+   "2027-10-31": {
+    "de": "Reformationstag",
+    "en": "Reformation Day"
+   },
+   "2027-12-25": {
+    "de": "1. Weihnachtstag",
+    "en": "Christmas Day"
+   },
+   "2027-12-26": {
+    "de": "2. Weihnachtstag",
+    "en": "Boxing Day"
+   }
+  }
+ },
+ "monitoring": {
+  "url": "https://status.demo",
+  "monitors": [
+   {
+    "name": "Kimai",
+    "type": "http",
+    "target": "https://zeit.demo",
+    "status": 1,
+    "cert_days": 54,
+    "ms": 180
+   },
+   {
+    "name": "NAS",
+    "type": "ping",
+    "status": 0,
+    "cert_days": -1
+   },
+   {
+    "name": "Shop",
+    "type": "http",
+    "target": "https://shop.demo",
+    "status": 1,
+    "cert_days": 9,
+    "ms": 420
+   }
+  ]
+ },
+ "server": {
+  "url": "https://glances.demo",
+  "cpu": 38,
+  "mem": 64,
+  "swap": 4,
+  "load": 1.2,
+  "cores": 4,
+  "disks": [
+   {
+    "mount": "/",
+    "percent": 52
+   },
+   {
+    "mount": "/data",
+    "percent": 87
+   }
+  ],
+  "processes": [
+   {
+    "name": "immich-server",
+    "cpu": 18.2,
+    "mem": 9.4
+   },
+   {
+    "name": "postgres",
+    "cpu": 6.1,
+    "mem": 4.8
+   },
+   {
+    "name": "jellyfin",
+    "cpu": 4.4,
+    "mem": 3.1
+   },
+   {
+    "name": "node",
+    "cpu": 2.0,
+    "mem": 2.2
+   }
+  ],
+  "sensors": [
+   {
+    "label": "Package id 0",
+    "unit": "C",
+    "value": 54
+   },
+   {
+    "label": "nvme0",
+    "unit": "C",
+    "value": 41
+   },
+   {
+    "label": "fan1",
+    "unit": "R",
+    "value": 920
+   }
+  ],
+  "networks": [
+   {
+    "name": "eth0",
+    "rx": 1800000.0,
+    "tx": 400000.0
+   },
+   {
+    "name": "tailscale0",
+    "rx": 12000.0,
+    "tx": 9000.0
+   }
+  ],
+  "uptime": "12 days, 4:13:08",
+  "history": {
+   "base": 20,
+   "swing": 40
+  }
+ },
+ "virtualization": {
+  "url": "https://pve.demo:8006",
+  "nodes": [
+   {
+    "name": "pve",
+    "online": true,
+    "updates": 12,
+    "storages": [
+     {
+      "name": "local-lvm",
+      "used": 430000000000.0,
+      "total": 480000000000.0
+     },
+     {
+      "name": "backup",
+      "used": 1100000000000.0,
+      "total": 4000000000000.0
+     }
+    ]
+   }
+  ],
+  "guests": [
+   {
+    "vmid": 100,
+    "name": "docker",
+    "node": "pve",
+    "running": true,
+    "cpu": 1.2,
+    "mem_bytes": 6000000000.0
+   },
+   {
+    "vmid": 101,
+    "name": "homeassistant",
+    "node": "pve",
+    "running": true,
+    "cpu": 0.3,
+    "mem_bytes": 2000000000.0
+   },
+   {
+    "vmid": 9000,
+    "name": "debian-template",
+    "node": "pve",
+    "template": true
+   }
+  ],
+  "backups": {
+   "100": "@-1d",
+   "101": "@-9d"
+  }
+ },
+ "storage": {
+  "url": "https://nas.demo",
+  "host": "truenas",
+  "version": "25.04.2",
+  "pools": [
+   {
+    "name": "tank",
+    "status": "ONLINE",
+    "healthy": true,
+    "size": 16000000000000.0,
+    "allocated": 14100000000000.0,
+    "scrub_end": "@-12d"
+   },
+   {
+    "name": "fast",
+    "status": "DEGRADED",
+    "healthy": false,
+    "size": 2000000000000.0,
+    "allocated": 600000000000.0,
+    "scrub_end": "@-41d",
+    "scrub_errors": 2
+   }
+  ],
+  "alerts": [
+   {
+    "id": "a1",
+    "level": "WARNING",
+    "text": "Device /dev/sdc is causing slow I/O on pool fast."
+   }
+  ],
+  "apps": [
+   {
+    "name": "jellyfin",
+    "state": "RUNNING",
+    "update": true
+   },
+   {
+    "name": "syncthing",
+    "state": "RUNNING"
+   }
+  ],
+  "snapshots": [
+   {
+    "dataset": "tank/photos",
+    "state": "FINISHED",
+    "enabled": true,
+    "last": "@-2h"
+   },
+   {
+    "dataset": "fast/vms",
+    "state": "ERROR",
+    "enabled": true,
+    "last": "@-26h"
+   }
+  ],
+  "datasets": [
+   {
+    "name": "tank/photos",
+    "used": 6200000000000.0,
+    "available": 1900000000000.0
+   },
+   {
+    "name": "tank/media",
+    "used": 4800000000000.0,
+    "available": 1900000000000.0
+   },
+   {
+    "name": "tank/backups",
+    "used": 2600000000000.0,
+    "available": 1900000000000.0
+   },
+   {
+    "name": "fast/vms",
+    "used": 500000000000.0,
+    "available": 1400000000000.0
+   }
+  ]
+ },
+ "disk_health": {
+  "url": "https://disks.demo",
+  "disks": [
+   {
+    "name": "sda",
+    "model": "{{inventory.disks.0}}",
+    "status": 0,
+    "temp": 38,
+    "hours": 31000,
+    "seen": "@-3h"
+   },
+   {
+    "name": "sdb",
+    "model": "{{inventory.disks.1}}",
+    "status": 1,
+    "temp": 41,
+    "hours": 42000,
+    "seen": "@-3h"
+   },
+   {
+    "name": "nvme0",
+    "model": "{{inventory.disks.2}}",
+    "status": 0,
+    "temp": 56,
+    "hours": 9000,
+    "seen": "@-3h"
+   }
+  ]
+ },
+ "containers": {
+  "url": "http://docker-proxy.demo:2375",
+  "list": [
+   {
+    "name": "gitea",
+    "image": "gitea/gitea:1.24",
+    "state": "running",
+    "status": "Up 6 days (healthy)",
+    "health": "healthy",
+    "cpu": 1.2,
+    "mem_mb": 182,
+    "mem_limit_mb": 1024
+   },
+   {
+    "name": "immich-server",
+    "image": "ghcr.io/immich-app/immich-server:v1.131.0",
+    "state": "running",
+    "status": "Up 2 days (healthy)",
+    "health": "healthy",
+    "cpu": 14.5,
+    "mem_mb": 1630,
+    "mem_limit_mb": 4096
+   },
+   {
+    "name": "paperless",
+    "image": "paperlessngx/paperless-ngx",
+    "state": "running",
+    "status": "Up 3 hours (unhealthy)",
+    "health": "unhealthy",
+    "cpu": 3.1,
+    "mem_mb": 640,
+    "restarts": 2,
+    "logs": [
+     "[2026-10-02 07:58:12] celery.worker: Connected to redis://broker:6379/0",
+     "[2026-10-02 08:01:40] paperless.consumer: Waiting for redis… health check failed",
+     "[2026-10-02 08:01:40] password=*** (masked)"
+    ]
+   },
+   {
+    "name": "restic-nightly",
+    "image": "restic/restic",
+    "state": "exited",
+    "status": "Exited (0) 5 hours ago"
+   },
+   {
+    "name": "umami",
+    "image": "ghcr.io/umami-software/umami",
+    "state": "exited",
+    "status": "Exited (137) 40 minutes ago",
+    "exit_code": 137,
+    "restarts": 5,
+    "oom_killed": true,
+    "logs": [
+     "Listening on port 3000",
+     "FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory"
+    ]
+   }
+  ]
+ },
+ "stacks": {
+  "url": "https://komodo.demo",
+  "servers_total": 3,
+  "servers_healthy": 2,
+  "servers_problem": 1,
+  "stacks": [
+   {
+    "name": "immich",
+    "state": "running",
+    "updates": [
+     "immich-server",
+     "immich-machine-learning"
+    ]
+   },
+   {
+    "name": "paperless",
+    "state": "unhealthy"
+   },
+   {
+    "name": "gitea",
+    "state": "running"
+   }
+  ],
+  "alerts": [
+   {
+    "level": "CRITICAL",
+    "kind": "ServerUnreachable",
+    "name": "pi-backup",
+    "at": "@-3h"
+   }
+  ],
+  "servers": [
+   {
+    "name": "nas",
+    "state": "ok",
+    "cpu": 23,
+    "mem_used": 21.4,
+    "mem_total": 32,
+    "disk_used": 412,
+    "disk_max": 950
+   },
+   {
+    "name": "docker-host",
+    "state": "ok",
+    "cpu": 61,
+    "mem_used": 13.8,
+    "mem_total": 16,
+    "disk_used": 188,
+    "disk_max": 480
+   },
+   {
+    "name": "pi-backup",
+    "state": "unhealthy"
+   }
+  ],
+  "deploys": {
+   "immich": {
+    "at": "@-6d",
+    "operation": "DeployStack",
+    "by": "mara",
+    "ok": true
+   },
+   "paperless": {
+    "at": "@-26h",
+    "operation": "DeployStack",
+    "by": "lena",
+    "ok": false
+   },
+   "gitea": {
+    "at": "@-19d",
+    "operation": "DeployStack",
+    "by": "mara",
+    "ok": true
+   }
+  }
+ },
+ "backups": {
+  "server": {
+   "url": "https://borg.demo",
+   "failed24h": 1,
+   "completed24h": 5,
+   "used_bytes": 3100000000000.0,
+   "total_bytes": 4000000000000.0,
+   "last_backup": "@-7h",
+   "agents_outdated": 1,
+   "clients": [
+    {
+     "name": "nas",
+     "status": "online",
+     "last_seen": "@-1m",
+     "last_backup": "@-7h",
+     "repo_bytes": 2400000000000.0,
+     "last_bytes": 3800000000.0,
+     "last_seconds": 1260
+    },
+    {
+     "name": "laptop",
+     "status": "offline",
+     "last_seen": "@-6d",
+     "last_backup": "@-6d",
+     "repo_bytes": 700000000000.0,
+     "last_bytes": 1100000000.0,
+     "last_seconds": 540
+    }
+   ]
+  },
+  "databases": {
+   "url": "https://pgback.demo",
+   "last_event": "@-2h",
+   "backups": [
+    {
+     "name": "kimai",
+     "last_success": "@-2h"
+    },
+    {
+     "name": "invoiceninja",
+     "last_success": "@-50h",
+     "last_failure": "@-26h"
+    },
+    {
+     "name": "immich",
+     "last_success": "@-80h"
+    }
+   ]
+  }
+ },
+ "certs": {
+  "certs": [
+   {
+    "host": "shop.demo:443",
+    "not_after": "@+9d",
+    "issuer": "R11"
+   },
+   {
+    "host": "zeit.demo:443",
+    "not_after": "@+54d",
+    "issuer": "R10"
+   }
+  ]
+ },
+ "domains": {
+  "domains": [
+   {
+    "name": "example.de",
+    "mail_checked": true,
+    "spf": true,
+    "dmarc": true
+   },
+   {
+    "name": "example.org",
+    "expires": "@+18d",
+    "mail_checked": true,
+    "spf": true
+   }
+  ],
+  "hosts": [
+   {
+    "host": "example.de",
+    "addrs": [
+     "203.0.113.7"
+    ]
+   },
+   {
+    "host": "cloud.example.org",
+    "addrs": [
+     "198.51.100.20"
+    ]
+   }
+  ]
+ },
+ "mail_blacklist": {
+  "checked": [
+   "93.184.216.34"
+  ],
+  "listings": [
+   {
+    "ip": "93.184.216.34",
+    "zone": "bl.spamcop.net",
+    "code": "127.0.0.2"
+   }
+  ]
+ },
+ "dns": {
+  "pihole": {
+   "url": "https://pihole.demo",
+   "queries": 48210,
+   "blocked": 9120,
+   "percent": 18.9,
+   "enabled": false,
+   "lists_updated": "@-21d",
+   "clients": 14,
+   "top_clients": [
+    {
+     "ip": "192.168.1.20",
+     "name": "laptop",
+     "queries": 9120,
+     "blocked": 1400
+    },
+    {
+     "ip": "192.168.1.87",
+     "queries": 14200,
+     "blocked": 8700
+    }
+   ],
+   "top_blocked": [
+    {
+     "domain": "telemetry.tv.example",
+     "count": 6100
+    },
+    {
+     "domain": "ads.example.net",
+     "count": 1900
+    }
+   ],
+   "curve": {
+    "queries": [
+     2000,
+     900
+    ],
+    "blocked": [
+     380,
+     160
+    ]
+   }
+  },
+  "adguard": {
+   "url": "https://adguard.demo",
+   "queries": 30500,
+   "blocked": 4100,
+   "percent": 13.4,
+   "enabled": true,
+   "top_clients": [
+    {
+     "ip": "192.168.1.31",
+     "queries": 8800
+    },
+    {
+     "ip": "192.168.1.12",
+     "queries": 5100
+    }
+   ],
+   "top_blocked": [
+    {
+     "domain": "metrics.app.example",
+     "count": 1300
+    }
+   ],
+   "curve": {
+    "queries": [
+     1300,
+     600
+    ],
+    "blocked": [
+     170,
+     80
+    ]
+   }
+  }
+ },
+ "gateway": {
+  "url": "https://opnsense.demo",
+  "kind": "opnsense",
+  "version": "25.7.3",
+  "updates": 2,
+  "gateways": [
+   {
+    "name": "WAN_DHCP",
+    "up": true,
+    "delay_ms": 11.4
+   },
+   {
+    "name": "LTE",
+    "up": false,
+    "loss": 100
+   }
+  ]
+ },
+ "vpn": {
+  "url": "http://gluetun.demo:8000",
+  "status": "running",
+  "exit_ip": "185.65.134.10",
+  "country": "Netherlands",
+  "own_ip": "93.184.216.34",
+  "expected_country": "Sweden",
+  "port": 51413
+ },
+ "tailnet": {
+  "url": "https://api.tailscale.com",
+  "devices": [
+   {
+    "name": "nas",
+    "online": true,
+    "last_seen": "@+0m",
+    "tags": [
+     "tag:server"
+    ],
+    "os": "linux",
+    "client": "1.88.1"
+   },
+   {
+    "name": "laptop",
+    "online": true,
+    "last_seen": "@+0m",
+    "key_expiry": "@+9d",
+    "os": "macOS",
+    "client": "1.88.1"
+   },
+   {
+    "name": "pi",
+    "last_seen": "@-12d",
+    "update": true,
+    "tags": [
+     "tag:server",
+     "tag:iot"
+    ],
+    "os": "linux",
+    "client": "1.80.3"
+   }
+  ]
+ },
+ "tunnel": {
+  "url": "https://pangolin.demo/v1",
+  "org": "home",
+  "sites": [
+   {
+    "name": "homelab",
+    "type": "newt",
+    "online": true,
+    "mb_in": 18400,
+    "mb_out": 92100,
+    "update": true
+   },
+   {
+    "name": "eltern",
+    "type": "newt",
+    "online": false,
+    "mb_in": 120,
+    "mb_out": 340
+   }
+  ],
+  "resources": [
+   {
+    "name": "Immich",
+    "domain": "photos.example.org",
+    "enabled": true,
+    "health": "healthy",
+    "sso": true
+   },
+   {
+    "name": "Vaultwarden",
+    "domain": "vault.example.org",
+    "enabled": true,
+    "health": "unhealthy"
+   }
+  ],
+  "access": {
+   "Immich": {
+    "requests": 18420,
+    "blocked": 12,
+    "countries": [
+     {
+      "name": "DE",
+      "n": 18100
+     },
+     {
+      "name": "NL",
+      "n": 240
+     }
+    ]
+   },
+   "Gitea": {
+    "requests": 2210,
+    "blocked": 960,
+    "countries": [
+     {
+      "name": "DE",
+      "n": 1100
+     },
+     {
+      "name": "US",
+      "n": 620
+     },
+     {
+      "name": "CN",
+      "n": 410
+     }
+    ]
+   }
+  }
+ },
+ "speed": {
+  "hours": [
+   3,
+   9,
+   15,
+   21
+  ],
+  "down": 248,
+  "up": 41,
+  "ping": 12,
+  "evening_hour": 21,
+  "evening_drop": 70,
+  "latest": {
+   "down": 243,
+   "up": 41,
+   "ping": 12,
+   "jitter": 1.8,
+   "at": "@-20m"
+  }
+ },
+ "identity": {
+  "url": "https://auth.demo",
+  "version": "2025.6.3",
+  "latest": "2025.8.1",
+  "outdated": true,
+  "logins7d": 214,
+  "logins24h": 31,
+  "failed7d": 61,
+  "failed24h": 38,
+  "apps": [
+   {
+    "name": "Immich",
+    "events": 96,
+    "users": 4
+   },
+   {
+    "name": "Gitea",
+    "events": 41,
+    "users": 2
+   },
+   {
+    "name": "Andon",
+    "events": 30,
+    "users": 3
+   }
+  ],
+  "users": [
+   {
+    "name": "alex",
+    "last_login": "@-0d"
+   },
+   {
+    "name": "sam",
+    "last_login": "@-2d"
+   },
+   {
+    "name": "kim",
+    "last_login": "@-240d"
+   },
+   {
+    "name": "test"
+   }
+  ],
+  "logins": [
+   {
+    "user": "alex",
+    "ip": "203.0.113.7",
+    "country": "DE",
+    "city": "Berlin",
+    "lat": 52.52,
+    "lon": 13.4,
+    "at": "@-1h"
+   }
+  ],
+  "failures": [
+   {
+    "user": "admin",
+    "ip": "198.51.100.23",
+    "country": "NL",
+    "city": "Amsterdam",
+    "lat": 52.37,
+    "lon": 4.9,
+    "at": "@-20m"
+   },
+   {
+    "user": "alex",
+    "ip": "203.0.113.7",
+    "country": "DE",
+    "city": "Berlin",
+    "lat": 52.52,
+    "lon": 13.4,
+    "at": "@-3h"
+   }
+  ],
+  "per_day": [
+   [
+    28,
+    2
+   ],
+   [
+    33,
+    1
+   ],
+   [
+    30,
+    4
+   ],
+   [
+    25,
+    3
+   ],
+   [
+    36,
+    6
+   ],
+   [
+    31,
+    7
+   ],
+   [
+    31,
+    38
+   ]
+  ]
+ },
+ "passwords": {
+  "url": "https://vault.demo",
+  "version": "1.34.3",
+  "users": [
+   {
+    "email": "{{people.mara.email}}",
+    "two_factor": true,
+    "enabled": true,
+    "last_active": "@-1d",
+    "orgs": [
+     "{{studio.name}}"
+    ]
+   },
+   {
+    "email": "{{people.lena.email}}",
+    "enabled": true,
+    "last_active": "@-3d",
+    "orgs": [
+     "{{studio.name}}"
+    ]
+   }
+  ]
+ },
+ "cloud": {
+  "url": "https://cloud.demo",
+  "version": "31.0.8.1",
+  "free_bytes": 8053063680,
+  "users": 6,
+  "active24": 3,
+  "files": 182340,
+  "app_updates": 4
+ },
+ "downloads": {
+  "url": "https://sab.demo",
+  "slots": 3,
+  "speed_kb": 42000,
+  "free_gb": 14.2,
+  "failures": [
+   {
+    "name": "Linux.ISO.2026",
+    "reason": "Unpacking failed, CRC error",
+    "at": "@-5h"
+   }
+  ],
+  "queue": [
+   {
+    "name": "Debian.13.netinst",
+    "percent": 64,
+    "left": "0:03:10"
+   },
+   {
+    "name": "Podcast.Archive.2025",
+    "percent": 12,
+    "left": "0:41:55"
+   },
+   {
+    "name": "Photos.Backup",
+    "percent": 0,
+    "left": "1:20:00"
+   }
+  ],
+  "stats": {
+   "days": 28,
+   "servers": {
+    "news.demo": 38000000000.0,
+    "block.demo": 6000000000.0
+   }
+  }
+ },
+ "code": {
+  "gitea": {
+   "url": "https://git.demo",
+   "user": "mara",
+   "notifications": 4,
+   "assigned": [
+    {
+     "repo": "studio/showreel",
+     "title": {
+      "de": "Neue Szenen für {{projects.harbour.short}}",
+      "en": "New {{projects.harbour.short}} scenes"
+     },
+     "url": "https://git.demo/studio/showreel/issues/12",
+     "number": 12,
+     "due": "@-2d",
+     "updated": "@-10d"
+    },
+    {
+     "repo": "studio/website",
+     "title": {
+      "de": "Neues Theme",
+      "en": "New theme"
+     },
+     "url": "https://git.demo/studio/website/pulls/4",
+     "number": 4,
+     "pull": true,
+     "updated": "@-21d"
+    }
+   ],
+   "reviews": [
+    {
+     "repo": "team/infra",
+     "title": {
+      "de": "Traefik 3 Migration",
+      "en": "Traefik 3 migration"
+     },
+     "url": "https://git.demo/team/infra/pulls/7",
+     "number": 7,
+     "pull": true,
+     "updated": "@-4d"
+    }
+   ],
+   "repos": [
+    {
+     "name": "studio/showreel",
+     "url": "https://git.demo/studio/showreel",
+     "updated": "@-0d",
+     "failed_workflow": "test"
+    },
+    {
+     "name": "mirror/linux",
+     "url": "https://git.demo/mirror/linux",
+     "mirror": true,
+     "mirror_updated": "@-12d",
+     "updated": "@-12d"
+    }
+   ],
+   "weeks": {
+    "studio/showreel": [
+     2,
+     5,
+     0,
+     3,
+     8,
+     4,
+     6,
+     9
+    ],
+    "studio/website": [
+     1,
+     0,
+     0,
+     2,
+     0,
+     4,
+     1,
+     0
+    ]
+   },
+   "mirrors": [
+    {
+     "repo": "studio/website",
+     "remote": "https://github.com/studio/website.git",
+     "synced": "@-20m"
+    }
+   ]
+  },
+  "github": {
+   "url": "https://api.github.com",
+   "notifications": 4,
+   "repos": [
+    {
+     "name": "studio/website",
+     "issues": 3,
+     "prs": 1,
+     "ci": "success",
+     "release": "v0.12.0",
+     "released_at": "@-6d",
+     "pushed_at": "@-1d"
+    },
+    {
+     "name": "studio/showreel",
+     "issues": 0,
+     "prs": 0,
+     "ci": "failure",
+     "ci_step": "test › go test",
+     "pushed_at": "@-3h"
+    }
+   ],
+   "reviews": [
+    {
+     "repo": "studio/website",
+     "title": {
+      "de": "Kontaktformular prüfen",
+      "en": "Check the contact form"
+     },
+     "url": "https://github.com/studio/website/pull/42",
+     "number": 42,
+     "pull": true,
+     "updated": "@-3d"
+    }
+   ],
+   "my_prs": [
+    {
+     "repo": "studio/website",
+     "title": {
+      "de": "Bilder verkleinern",
+      "en": "Shrink images"
+     },
+     "url": "https://github.com/studio/website/pull/38",
+     "number": 38,
+     "pull": true,
+     "updated": "@-20d"
+    }
+   ]
+  }
+ },
+ "json_api": {
+  "body": {
+   "stats": {
+    "users": 42,
+    "queue": 3
+   }
+  }
+ },
+ "smart_home": {
+  "url": "https://home.demo",
+  "entities": [
+   {
+    "id": "binary_sensor.keller_wasser",
+    "name": {
+     "de": "Keller Wasser",
+     "en": "Basement water"
+    },
+    "domain": "binary_sensor",
+    "state": "off",
+    "device_class": "moisture",
+    "changed": "@-200h"
+   },
+   {
+    "id": "light.buero",
+    "name": {
+     "de": "Büro Licht",
+     "en": "Office light"
+    },
+    "domain": "light",
+    "state": "on",
+    "changed": "@-1h"
+   },
+   {
+    "id": "sensor.fenster_bad_batterie",
+    "name": {
+     "de": "Fenster Bad Batterie",
+     "en": "Bathroom window battery"
+    },
+    "domain": "sensor",
+    "state": "8",
+    "unit": "%",
+    "device_class": "battery",
+    "changed": "@-5h"
+   },
+   {
+    "id": "sensor.wohnzimmer_temperatur",
+    "name": {
+     "de": "Wohnzimmer",
+     "en": "Living room"
+    },
+    "domain": "sensor",
+    "state": "21.4",
+    "unit": "°C",
+    "device_class": "temperature",
+    "changed": "@-0h"
+   },
+   {
+    "id": "sensor.zigbee_steckdose_power",
+    "name": {
+     "de": "Steckdose Leistung",
+     "en": "Plug power"
+    },
+    "domain": "sensor",
+    "state": "unavailable",
+    "unit": "W",
+    "changed": "@-30h"
+   },
+   {
+    "id": "switch.kaffeemaschine",
+    "name": {
+     "de": "Kaffeemaschine",
+     "en": "Coffee machine"
+    },
+    "domain": "switch",
+    "state": "off",
+    "changed": "@-3h"
+   },
+   {
+    "id": "update.home_assistant_core_update",
+    "name": "Home Assistant Core",
+    "domain": "update",
+    "state": "on",
+    "changed": "@-20h"
+   }
+  ],
+  "history": {
+   "temperature": {
+    "entity": "sensor.wohnzimmer_temperatur",
+    "base": 19.5,
+    "swing": 2
+   },
+   "light": {
+    "entity": "light.buero",
+    "on_from": 8,
+    "on_to": 18
+   }
+  }
+ },
+ "pantry": {
+  "url": "https://grocy.demo",
+  "expired": [
+   {
+    "name": {
+     "de": "Joghurt",
+     "en": "Yoghurt"
+    },
+    "due": "@date-2"
+   }
+  ],
+  "soon": [
+   {
+    "name": {
+     "de": "Milch",
+     "en": "Milk"
+    },
+    "due": "@date+0"
+   },
+   {
+    "name": {
+     "de": "Brot",
+     "en": "Bread"
+    },
+    "due": "@date+2"
+   }
+  ],
+  "missing": [
+   {
+    "name": {
+     "de": "Kaffee",
+     "en": "Coffee"
+    },
+    "missing": 1
+   }
+  ],
+  "chores": [
+   {
+    "name": {
+     "de": "Bad putzen",
+     "en": "Clean the bathroom"
+    },
+    "due": "@-30h"
+   },
+   {
+    "name": {
+     "de": "Pflanzen gießen",
+     "en": "Water the plants"
+    },
+    "due": "@+30h"
+   }
+  ]
+ },
+ "kitchen": {
+  "url": "https://tandoor.demo",
+  "items": [
+   {
+    "id": 1,
+    "food": {
+     "de": "Milch",
+     "en": "Milk"
+    },
+    "amount": 2,
+    "unit": "l",
+    "category": {
+     "de": "Kühlregal",
+     "en": "Chilled"
+    }
+   },
+   {
+    "id": 2,
+    "food": {
+     "de": "Brot",
+     "en": "Bread"
+    },
+    "amount": 1,
+    "category": {
+     "de": "Bäckerei",
+     "en": "Bakery"
+    }
+   }
+  ],
+  "meals": [
+   {
+    "day": "@date+0",
+    "title": {
+     "de": "Linsensuppe",
+     "en": "Lentil soup"
+    },
+    "type": {
+     "de": "Mittagessen",
+     "en": "Lunch"
+    }
+   },
+   {
+    "day": "@date+2",
+    "title": {
+     "de": "Ofengemüse",
+     "en": "Roast vegetables"
+    },
+    "type": {
+     "de": "Abendessen",
+     "en": "Dinner"
+    }
+   }
+  ]
+ },
+ "energy": {
+  "url": "https://api.tibber.com/v1-beta/gql",
+  "home": {
+   "de": "Zuhause",
+   "en": "Home"
+  },
+  "currency": "EUR",
+  "level": "CHEAP",
+  "price": {
+   "base": 0.24,
+   "swing": 0.08,
+   "grid_and_tax": 0.17
+  },
+  "day": {
+   "kwh": 7,
+   "cost": 2,
+   "cost_step": 0.3,
+   "temp_c": 18,
+   "temp_step": 2
+  }
+ },
+ "weather": {
+  "url": "https://api.brightsky.dev",
+  "place": "{{studio.city}}",
+  "warnings": [
+   {
+    "id": "demo-1",
+    "event": {
+     "de": "STURMBÖEN",
+     "en": "GALE GUSTS"
+    },
+    "headline": {
+     "de": "Amtliche WARNUNG vor STURMBÖEN",
+     "en": "Official WARNING of GALE GUSTS"
+    },
+    "severity": "moderate",
+    "onset": "@+0m",
+    "expire": "@+8h"
+   }
+  ]
+ },
+ "sites": {
+  "url": "https://stats.demo",
+  "sites": [
+   {
+    "id": "1",
+    "name": "Blog",
+    "domain": "blog.demo",
+    "views": 1840,
+    "visitors": 610,
+    "prev_views": 1720,
+    "prev_visit": 590
+   },
+   {
+    "id": "2",
+    "name": "Shop",
+    "domain": "shop.demo",
+    "views": 120,
+    "visitors": 41,
+    "prev_views": 980,
+    "prev_visit": 305
+   }
+  ],
+  "detail": {
+   "1": {
+    "pages": [
+     {
+      "name": "/",
+      "n": 820
+     },
+     {
+      "name": "/projekte/licht-an",
+      "n": 412
+     },
+     {
+      "name": "/kontakt",
+      "n": 160
+     }
+    ],
+    "referrers": [
+     {
+      "name": "–",
+      "n": 540
+     },
+     {
+      "name": "google.com",
+      "n": 210
+     },
+     {
+      "name": "instagram.com",
+      "n": 64
+     }
+    ],
+    "day_base": 50
+   },
+   "2": {
+    "pages": [
+     {
+      "name": "/",
+      "n": 120
+     },
+     {
+      "name": "/impressum",
+      "n": 12
+     }
+    ],
+    "referrers": [
+     {
+      "name": "–",
+      "n": 96
+     }
+    ],
+    "day_base": 4
+   }
+  }
+ },
+ "feeds": {
+  "url": "https://rss.demo",
+  "unread": 812,
+  "feeds": [
+   {
+    "id": "feed/1",
+    "title": "heise online",
+    "category": "News",
+    "unread": 540,
+    "newest": "@-0d"
+   },
+   {
+    "id": "feed/2",
+    "title": "Go Blog",
+    "category": "Tech",
+    "unread": 12,
+    "newest": "@-9d"
+   },
+   {
+    "id": "feed/3",
+    "title": {
+     "de": "Altes Projektblog",
+     "en": "Old project blog"
+    },
+    "category": "Tech",
+    "unread": 0,
+    "newest": "@-400d"
+   },
+   {
+    "id": "feed/4",
+    "title": "Selfhosted Weekly",
+    "category": "Tech",
+    "unread": 260,
+    "newest": "@-2d"
+   }
+  ]
+ },
+ "bookmarks": {
+  "url": "https://links.demo",
+  "collections": [
+   "Homelab"
+  ],
+  "links": [
+   {
+    "name": "Kimai",
+    "url": "https://www.kimai.org/",
+    "collection": "Homelab",
+    "created": "@-30d"
+   },
+   {
+    "name": "Invoice Ninja",
+    "url": "https://invoiceninja.com",
+    "collection": "Homelab",
+    "created": "@-3d"
+   },
+   {
+    "name": "Grafana",
+    "url": "https://grafana.com",
+    "collection": "Homelab",
+    "created": "@-1d"
+   }
+  ]
+ },
+ "mail": {
+  "mailbox": "INBOX",
+  "scanned": 214,
+  "invoices": [
+   {
+    "uid": 1,
+    "date": "@-4d",
+    "sender": "{{vendors.nordhost.name}}",
+    "addr": "billing@{{vendors.nordhost.domain}}",
+    "domain": "{{vendors.nordhost.domain}}",
+    "subject": {
+     "de": "Ihre Rechnung R0012345",
+     "en": "Your invoice R0012345"
+    },
+    "amount": "{{vendors.nordhost.monthly}}",
+    "attachments": [
+     "Rechnung_R0012345.pdf"
+    ]
+   },
+   {
+    "uid": 2,
+    "date": "@-9d",
+    "sender": "{{vendors.farbraum.name}}",
+    "addr": "sales@{{vendors.farbraum.domain}}",
+    "domain": "{{vendors.farbraum.domain}}",
+    "subject": "Invoice for your order",
+    "amount": 289,
+    "attachments": [
+     "invoice.pdf"
+    ]
+   }
+  ]
+ },
+ "calendar": {
+  "events": [
+   {
+    "start": "@date-2 14:00",
+    "title": {
+     "de": "Drehplan {{customers.northlight.name}}",
+     "en": "Shooting plan {{customers.northlight.name}}"
+    }
+   },
+   {
+    "start": "@date+0 16:00",
+    "title": "Call {{customers.speiche.name}}"
+   },
+   {
+    "start": "@date+3 14:00",
+    "title": {
+     "de": "Zahnarzt",
+     "en": "Dentist"
+    }
+   }
+  ]
+ },
+ "photos": {
+  "url": "https://photos.demo",
+  "photos": 48213,
+  "videos": 1920,
+  "disk_percent": 87.4,
+  "disk_available": "412 GiB",
+  "failed_jobs": {
+   "faceDetection": 3
+  },
+  "version": "v1.131.0",
+  "latest": "v1.132.3",
+  "users": [
+   {
+    "name": "{{people.mara.alias}}",
+    "photos": 30112,
+    "videos": 1210,
+    "bytes": 1400000000000.0
+   },
+   {
+    "name": "{{people.lena.alias}}",
+    "photos": 18101,
+    "videos": 710,
+    "bytes": 900000000000.0
+   }
+  ]
+ },
+ "library": {
+  "url": "https://jellyfin.demo",
+  "kind": "jellyfin",
+  "version": "10.10.7",
+  "movies": 1204,
+  "series": 86,
+  "episodes": 4310,
+  "streams": [
+   {
+    "user": "{{people.selin.alias}}",
+    "title": "{{projects.harbour.name}}"
+   },
+   {
+    "user": "{{people.theo.alias}}",
+    "title": "{{media.album.title}}"
+   }
+  ],
+  "titles": [
+   {
+    "title": "{{projects.harbour.name}}",
+    "plays": 9
+   },
+   {
+    "title": "{{media.album.title}}",
+    "plays": 6
+   },
+   {
+    "title": "{{projects.spring.name}}",
+    "plays": 4
+   }
+  ]
+ },
+ "series": {
+  "url": "https://sonarr.demo",
+  "app": "Sonarr",
+  "version": "4.0.15",
+  "queue": 3,
+  "missing": 12,
+  "stuck": [
+   "{{projects.harbour.short}} S02E04"
+  ],
+  "health": [
+   {
+    "level": "warning",
+    "message": "Indexer Elbindex is unavailable"
+   }
+  ],
+  "upcoming": [
+   {
+    "title": "{{projects.harbour.short}} 2x05",
+    "at": "@+26h"
+   },
+   {
+    "title": "{{projects.harbour.short}} 2x06",
+    "at": "@+80h"
+   }
+  ]
+ },
+ "bookkeeping": {
+  "seed": 7,
+  "rate": 95,
+  "vat": 0.19,
+  "currency": "EUR",
+  "customers": [
+   "northlight",
+   "speiche",
+   "donaulicht"
+  ],
+  "projects": [
+   "harbour",
+   "spring",
+   "trailer"
+  ],
+  "countries": {
+   "DE": "276",
+   "AT": "40"
+  },
+  "time": {
+   "history_days": 600,
+   "hours": [
+    5,
+    8
+   ],
+   "client_window": 25,
+   "client_days": [
+    1,
+    3,
+    8,
+    10,
+    15
+   ],
+   "skip_day": 3,
+   "unbilled_days": 40,
+   "exported_after_days": 5,
+   "running_hours": 11,
+   "on_site": {
+    "de": "vor Ort",
+    "en": "on site"
+   },
+   "edit": "edit",
+   "visit": "shoot",
+   "meeting": "meeting",
+   "mix": [
+    1,
+    2,
+    2,
+    3
+   ],
+   "running_id": 9999,
+   "running_customer": 2
+  },
+  "contract_minutes": [
+   480,
+   480,
+   480,
+   480,
+   480,
+   0,
+   0
+  ],
+  "budgets": [
+   {},
+   {
+    "budget": 40000,
+    "used_money": 34000,
+    "end": "@date+60"
+   },
+   {
+    "time_budget_min": 2400,
+    "budget_type": "month"
+   }
+  ],
+  "absences": [
+   {
+    "start": "@date+20",
+    "end": "@date+24",
+    "type": "holiday",
+    "status": "approved"
+   }
+  ],
+  "invoices": {
+   "months": 20,
+   "net": [
+    2500,
+    6500
+   ],
+   "issued_day": 3,
+   "due_days": 14,
+   "paid_days": 10,
+   "number": "R-{year}-{n}",
+   "overdue": {
+    "from_end": 3,
+    "due": "@date-21",
+    "reminded": "@date-7",
+    "next_send": "@date+7"
+   },
+   "draft": {
+    "client_id": 2,
+    "status": "draft",
+    "date": "@date-10",
+    "amount": 1190,
+    "balance": 1190,
+    "taxes": 190,
+    "net": 1000
+   },
+   "quote": {
+    "id": 1,
+    "number": "A-{year}-004",
+    "status": "sent",
+    "date": "@date-20",
+    "amount": 8330,
+    "client_id": 2
+   },
+   "recurring": {
+    "id": 1,
+    "number": "W-01",
+    "active": true,
+    "next_send_date": "@date+12",
+    "remaining_cycles": 1,
+    "amount": 595,
+    "client_id": 1
+   }
+  },
+  "live": {
+   "today_min": 312,
+   "week_min": 1590,
+   "running_min": 47,
+   "spans": [
+    {
+     "begin": "@date+0 09:05",
+     "end": "@date+0 11:40"
+    },
+    {
+     "begin": "@date+0 12:15",
+     "end": "@date+0 13:05"
+    }
+   ],
+   "activities": {
+    "edit": 7,
+    "meeting": 2
+   },
+   "timer_id": 901,
+   "sheet_ids": [
+    899,
+    900
+   ],
+   "tags": [
+    {
+     "de": "Schnitt",
+     "en": "Edit"
+    }
+   ]
+  },
+  "urls": {
+   "time": "https://kimai.demo",
+   "invoices": "https://invoice.demo"
+  }
+ },
+ "documents": {
+  "url": "https://docs.demo",
+  "total": 1843,
+  "inbox": 7,
+  "oldest_title": {
+   "de": "Rechnung {{vendors.elbnetz.name}}",
+   "en": "Invoice {{vendors.elbnetz.name}}"
+  },
+  "oldest_added": "@date-23",
+  "invoices": [
+   {
+    "id": 311,
+    "title": {
+     "de": "Rechnung 09/2026",
+     "en": "Invoice 09/2026"
+    },
+    "correspondent": "{{vendors.elbnetz.name}}",
+    "created": "@date-23",
+    "amount": "{{vendors.elbnetz.monthly}}"
+   }
+  ],
+  "contracts": [
+   {
+    "id": 88,
+    "title": "{{vendors.elbnetz.contract}}",
+    "correspondent": "{{vendors.elbnetz.name}}",
+    "end": "@+111d",
+    "notice_months": 3,
+    "deadline": "@+20d",
+    "renews_automatic": true
+   }
+  ],
+  "newest": [
+   {
+    "id": 1843,
+    "title": {
+     "de": "Kontoauszug 09/2026",
+     "en": "Bank statement 09/2026"
+    },
+    "added": "@date+0"
+   },
+   {
+    "id": 1842,
+    "title": {
+     "de": "Rechnung {{vendors.nordhost.name}}",
+     "en": "Invoice {{vendors.nordhost.name}}"
+    },
+    "added": "@date-1"
+   },
+   {
+    "id": 1841,
+    "title": {
+     "de": "Versicherungsschein",
+     "en": "Insurance policy"
+    },
+    "added": "@date-2"
+   }
+  ],
+  "tag_counts": {
+   "steuer 2026": 64,
+   "belege": 212
+  },
+  "receipts": {
+   "url": "https://invoices.demo",
+   "tag": "Beleg",
+   "slots": [
+    {
+     "de": "Rechnungsnummer",
+     "en": "Invoice number"
+    },
+    "Paperless"
+   ],
+   "fields": [
+    {
+     "de": "Rechnungsnummer",
+     "en": "Invoice number"
+    },
+    {
+     "de": "Ausgabe",
+     "en": "Expense"
+    },
+    "Invoice Ninja",
+    {
+     "de": "Betrag",
+     "en": "Amount"
+    }
+   ],
+   "cases": [
+    {
+     "receipt": 1,
+     "expense": "demo1",
+     "number": "EX-0041",
+     "invoice": true,
+     "scans": [
+      {
+       "id": 201,
+       "title": {
+        "de": "Rechnung {{receipts.1.number}}",
+        "en": "Invoice {{receipts.1.number}}"
+       },
+       "correspondent": "{{receipts.1.vendor}} GmbH",
+       "text": {
+        "de": "Rechnungsnr. {{receipts.1.number}} Gesamtbetrag {amount} EUR",
+        "en": "Invoice no. {{receipts.1.number}} total {amount} EUR"
+       },
+       "amount": true,
+       "day": 1
+      }
+     ]
+    },
+    {
+     "receipt": 2,
+     "expense": "demo2",
+     "number": "EX-0042",
+     "invoice": true,
+     "linked": true,
+     "scans": [
+      {
+       "id": 202,
+       "title": {
+        "de": "Rechnung {{receipts.2.vendor}}",
+        "en": "Invoice {{receipts.2.vendor}}"
+       },
+       "correspondent": "{{receipts.2.vendor}}",
+       "text": {
+        "de": "Rechnung {{receipts.2.number}} Summe {amount} EUR",
+        "en": "Invoice {{receipts.2.number}} sum {amount} EUR"
+       },
+       "amount": true
+      }
+     ]
+    },
+    {
+     "receipt": 3,
+     "expense": "demo3",
+     "number": "EX-0043",
+     "scans": [
+      {
+       "id": 203,
+       "title": "{{receipts.3.vendor}}",
+       "correspondent": "{{receipts.3.vendor}}",
+       "text": "Total {amount} EUR",
+       "day": 1
+      }
+     ]
+    },
+    {
+     "vendor": "elbnetz",
+     "expense": "demo4",
+     "number": "EX-0044",
+     "day": -23,
+     "scans": [
+      {
+       "id": 311,
+       "title": {
+        "de": "Rechnung 09/2026",
+        "en": "Invoice 09/2026"
+       },
+       "correspondent": "{{vendors.elbnetz.name}}",
+       "text": {
+        "de": "Rechnungsbetrag {amount} EUR",
+        "en": "Invoice amount {amount} EUR"
+       },
+       "amount": true
+      }
+     ]
+    },
+    {
+     "receipt": 4,
+     "expense": "demo5",
+     "number": "EX-0045",
+     "scans": [
+      {
+       "id": 204,
+       "title": {
+        "de": "Quittung {{receipts.4.vendor}}",
+        "en": "Receipt {{receipts.4.vendor}}"
+       },
+       "correspondent": "{{receipts.4.vendor}}",
+       "text": {
+        "de": "Summe {amount}",
+        "en": "Sum {amount}"
+       },
+       "part": 99,
+       "tagged": true
+      },
+      {
+       "id": 205,
+       "title": {
+        "de": "Quittung {{receipts.4.vendor}}",
+        "en": "Receipt {{receipts.4.vendor}}"
+       },
+       "correspondent": "{{receipts.4.vendor}}",
+       "text": {
+        "de": "Summe {amount}",
+        "en": "Sum {amount}"
+       },
+       "rest": true,
+       "tagged": true,
+       "day": 1
+      }
+     ]
+    },
+    {
+     "receipt": 6,
+     "expense": "demo6",
+     "number": "EX-0046"
+    },
+    {
+     "receipt": 5,
+     "scans": [
+      {
+       "id": 206,
+       "title": {
+        "de": "Tankquittung",
+        "en": "Fuel receipt"
+       },
+       "correspondent": "{{receipts.5.vendor}}",
+       "text": {
+        "de": "Betrag {amount} EUR",
+        "en": "Amount {amount} EUR"
+       },
+       "amount": true,
+       "tagged": true
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "assets_state": {
+  "url": "https://assets.demo",
+  "assets": [
+   {
+    "status": {
+     "de": "Ausgegeben",
+     "en": "Deployed"
+    },
+    "deployable": true,
+    "assigned": true,
+    "purchase_date": "@date-30",
+    "warranty_expires": "@date+10",
+    "eol_date": "@date+900",
+    "next_audit": "@date+100",
+    "last_change": "@date-30"
+   },
+   {
+    "status": {
+     "de": "In Betrieb",
+     "en": "In use"
+    },
+    "deployable": true,
+    "assigned": true,
+    "purchase_date": "@date-1900",
+    "warranty_expires": "@date-800",
+    "eol_date": "@date-20",
+    "next_audit": "@date-15",
+    "last_change": "@date-400"
+   },
+   {
+    "status": {
+     "de": "Bereit",
+     "en": "Ready"
+    },
+    "deployable": true,
+    "purchase_date": "@date-500",
+    "warranty_expires": "@date+230",
+    "next_audit": "@date+60",
+    "last_change": "@date-140"
+   },
+   {
+    "status": {
+     "de": "Ausgegeben",
+     "en": "Deployed"
+    },
+    "deployable": true,
+    "assigned": true,
+    "purchase_date": "@date-60",
+    "warranty_expires": "@date+1000",
+    "next_audit": "@date+200",
+    "last_change": "@date-60",
+    "assigned_to": "{{people.jonas.name}}",
+    "expected_checkin": "@date-5"
+   }
+  ],
+  "licenses": [
+   {
+    "expires": "@date+20"
+   },
+   {
+    "expires": "@date+200",
+    "free": 2
+   }
+  ],
+  "consumables": [
+   {
+    "id": 1,
+    "name": {
+     "de": "Toner schwarz",
+     "en": "Black toner"
+    },
+    "remaining": 1,
+    "min": 2
+   }
+  ],
+  "audit_overdue": [
+   2
+  ]
+ },
+ "bank": {
+  "url": "https://money.demo",
+  "currency": "EUR",
+  "net_worth": 48210,
+  "accounts": [
+   {
+    "id": "a1",
+    "name": {
+     "de": "Geschäftskonto",
+     "en": "Business account"
+    },
+    "type": "depository",
+    "classification": "asset",
+    "balance": 6120,
+    "currency": "EUR"
+   },
+   {
+    "id": "a2",
+    "name": {
+     "de": "Tagesgeld",
+     "en": "Savings"
+    },
+    "type": "depository",
+    "classification": "asset",
+    "balance": 150,
+    "currency": "EUR"
+   }
+  ],
+  "transactions": [
+   {
+    "id": "t1",
+    "date": "@date-3",
+    "name": "{{customers.northlight.name}} RE-2026-017",
+    "amount": 2380,
+    "category": {
+     "de": "Einnahmen",
+     "en": "Income"
+    },
+    "account": {
+     "de": "Geschäftskonto",
+     "en": "Business account"
+    }
+   },
+   {
+    "id": "t2",
+    "date": "@date-5",
+    "name": "{{vendors.nordhost.name}}",
+    "amount": "{{vendors.nordhost.monthly}}",
+    "expense": true,
+    "category": "{{vendors.nordhost.kind}}",
+    "merchant": "{{vendors.nordhost.name}}",
+    "account": {
+     "de": "Geschäftskonto",
+     "en": "Business account"
+    }
+   },
+   {
+    "id": "t3",
+    "date": "@date-8",
+    "name": "{{receipts.2.vendor}}",
+    "amount": -899,
+    "account": {
+     "de": "Geschäftskonto",
+     "en": "Business account"
+    }
+   },
+   {
+    "id": "t4",
+    "date": "@date-12",
+    "name": {
+     "de": "Bäckerei",
+     "en": "Bakery"
+    },
+    "amount": -6.4,
+    "account": {
+     "de": "Tagesgeld",
+     "en": "Savings"
+    }
+   },
+   {
+    "id": "t5",
+    "date": "@date-40",
+    "name": "{{vendors.nordhost.name}}",
+    "amount": "{{vendors.nordhost.monthly}}",
+    "expense": true,
+    "category": "{{vendors.nordhost.kind}}",
+    "merchant": "{{vendors.nordhost.name}}",
+    "account": {
+     "de": "Geschäftskonto",
+     "en": "Business account"
+    }
+   }
+  ],
+  "recurring": [
+   {
+    "name": "{{vendors.nordhost.name}}",
+    "status": "active",
+    "amount": "{{vendors.nordhost.monthly}}",
+    "expense": true,
+    "next": "@date+25",
+    "last": "@date-5"
+   },
+   {
+    "name": {
+     "de": "Krankenversicherung",
+     "en": "Health insurance"
+    },
+    "status": "active",
+    "amount": 612,
+    "expense": true,
+    "next": "@date-9",
+    "last": "@date-39"
+   },
+   {
+    "name": {
+     "de": "Miete Studio",
+     "en": "Studio rent"
+    },
+    "status": "active",
+    "amount": 450,
+    "expense": true,
+    "next": "@date+6",
+    "last": "@date-24"
+   },
+   {
+    "name": "{{vendors.farbraum.contract}}",
+    "status": "active",
+    "amount": "{{vendors.farbraum.monthly}}",
+    "expense": true,
+    "next": "@date+11",
+    "last": "@date-19"
+   }
+  ]
+ },
+ "subscriptions": {
+  "url": "https://wallos.demo",
+  "currency": "EUR",
+  "subs": [
+   {
+    "vendor": "nordhost",
+    "next": "@date+4"
+   },
+   {
+    "vendor": "elbstrom",
+    "next": "@date+18"
+   },
+   {
+    "name": "Domain {{studio.domain}}",
+    "price": 24,
+    "monthly": 2,
+    "next": "@date+21",
+    "category": "{{vendors.nordhost.kind}}"
+   },
+   {
+    "vendor": "wellenklang",
+    "next": "@date+9"
+   }
+  ]
+ },
+ "suggestions": {
+  "url": "https://kintsugi.demo",
+  "new": 3,
+  "accepted": 2,
+  "snoozed": 1,
+  "done": 4,
+  "rejected": 2,
+  "rate": 75,
+  "gaps_open": 2,
+  "open": [
+   {
+    "id": 42,
+    "kind": "acquisition",
+    "title": {
+     "de": "Imagefilm für Stadtwerke anbieten",
+     "en": "Offer an image film to the public utility"
+    },
+    "url": "https://kintsugi.demo/vorschlaege#s-42",
+    "created": "@-0d"
+   },
+   {
+    "id": 41,
+    "kind": "development",
+    "title": {
+     "de": "Drohnenführerschein A2 machen",
+     "en": "Get the A2 drone licence"
+    },
+    "url": "https://kintsugi.demo/vorschlaege#s-41",
+    "created": "@-2d"
+   },
+   {
+    "id": 37,
+    "kind": "acquisition",
+    "title": {
+     "de": "Agentur Nordlicht nachfassen",
+     "en": "Follow up with Agentur Nordlicht"
+    },
+    "url": "https://kintsugi.demo/vorschlaege#s-37",
+    "created": "@-8d"
+   }
+  ],
+  "last_run": {
+   "status": "failed",
+   "detail": {
+    "de": "LLM nicht erreichbar",
+    "en": "LLM unreachable"
+   },
+   "at": "@-0d"
+  },
+  "research": true,
+  "budget_usd": 5,
+  "used_usd": 1.25
+ },
+ "location": {
+  "url": "https://dawarich.demo",
+  "home": "home-mara",
+  "site": "northlight-office",
+  "visit": {
+   "from": "08:30",
+   "to": "17:45",
+   "minutes": 555
+  },
+  "areas": [
+   {
+    "id": 1,
+    "place": "home-mara",
+    "radius": 100
+   },
+   {
+    "id": 2,
+    "place": "northlight-office",
+    "radius": 150
+   }
+  ],
+  "stats": {
+   "total_km": 18450,
+   "year_km": 3100,
+   "countries": 2,
+   "cities": 14,
+   "month_km": 412,
+   "last_month_km": 530
+  },
+  "last_point": "@-2h",
+  "route": {
+   "steps": 24,
+   "step_minutes": 2
+  }
  }
 }
