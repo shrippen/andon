@@ -1,7 +1,6 @@
 package sources
 
 import (
-	"fmt"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -11,68 +10,85 @@ import (
 )
 
 // Generated demo datasets for demo:// connections, relative to today and
-// deterministic. Names, places and receipts come from Studio Weber, the demo
-// world shared by all shrippen projects (package demoworld). The datasets fit
-// together so every rule fires once:
+// deterministic. Every value comes from Studio Weber, the demo world shared
+// by all shrippen projects (package demoworld); this file only shapes it.
+// The datasets fit together so every rule fires once (world "bookkeeping"):
 //
-//	Northlight Pictures  visited on demoSkipDay without a Kimai entry, unbilled hours, overdue invoice
+//	Northlight Pictures  visited on the skip day without a Kimai entry, unbilled hours, overdue invoice
 //	Speiche              budget at 85 %, quote without reaction
 //	Donaulicht Film      EU client (Austria), invoice at 0 % without VAT id
 
-const (
-	demoSeed         = 7
-	demoRate         = 95.0
-	demoVAT          = 0.19
-	demoSkipDay      = 3
-	demoUnbilledDays = 40
-	demoHistoryDays  = 600
-	demoClientWindow = 25
-	demoRunningHours = 11
-	demoInvoiceMonth = 20
-	demoHomeCountry  = "276"
-	demoEUCountry    = "40"
-	demoGearReceipt  = 2 // a studio supplier's receipt, its vendor paid from the business account
-)
+// demoBook is the world's bookkeeping scenario.
+type demoBook struct {
+	Seed      int64
+	Rate, VAT float64
+	Currency  string
+	URLs      struct{ Time, Invoices string }
+	Customers []string
+	Projects  []string
+	Countries map[string]string
+	Time      struct {
+		HistoryDays, ClientWindow, SkipDay int
+		UnbilledDays, ExportedAfterDays    int
+		RunningHours                       int
+		Hours                              [2]int
+		ClientDays                         []int
+		Mix                                []int64
+		OnSite, Edit, Visit, Meeting       string
+		RunningID, RunningCustomer         int64
+	}
+	ContractMinutes [7]int
+	Budgets         []KimaiProject
+	Absences        []KimaiAbsence
+	Invoices        struct {
+		Months, IssuedDay, DueDays, PaidDays int
+		Net                                  [2]float64
+		Number                               string
+		Overdue                              struct {
+			FromEnd                 int
+			Due, Reminded, NextSend string
+		}
+		Draft     NinjaInvoice
+		Quote     NinjaQuote
+		Recurring NinjaRecurring
+	}
+	Live struct {
+		TodayMin, WeekMin, RunningMin int
+		Spans                         []KimaiSpan
+		Activities                    struct{ Edit, Meeting int64 }
+		TimerID                       int64
+		SheetIDs                      [2]int64
+		Tags                          []string
+	}
+}
+
+// bookOf reads the scenario with its dates around now.
+func bookOf(now time.Time) *demoBook {
+	b := &demoBook{}
+	demoworld.MustDecode("bookkeeping", now, b)
+	return b
+}
 
 var (
-	demoWorld      = demoworld.Get()
-	demoClientDays = []int{1, 3, 8, 10, 15}
-	// Customer ids 1-3 in every demo dataset: on-site client, budget client, EU client.
-	demoCustomerIDs = []string{"northlight", "speiche", "donaulicht"}
-	demoProjectIDs  = []string{"harbour", "spring", "trailer"}
-	demoHome        = demoWorld.Place("home-mara")
-	demoSite        = demoWorld.Place("northlight-office")
-	demoCustomers   = demoKimaiCustomers()
-	demoEdit        = demoWorld.Activity("edit").Name.DE()
-	demoOnSite      = demoWorld.Activity("shoot").Name.DE() + " vor Ort"
-	demoMeeting     = demoWorld.Activity("meeting").Name.DE()
-	// Suppliers: the mobile contract in Paperless, the hosting that Sure,
-	// Wallos and the mailbox know, the software subscription missing in Wallos.
-	demoMobile   = demoWorld.Vendor("elbnetz")
-	demoHosting  = demoWorld.Vendor("nordhost")
-	demoSoftware = demoWorld.Vendor("farbraum")
-	demoDisks    = demoWorld.Inventory.Disks
+	demoWorld = demoworld.Get()
+	book      = bookOf(time.Now())
+	// Customers and projects 1-3 in every demo dataset: on-site client,
+	// budget client, EU client.
+	demoCustomers = demoKimaiCustomers()
+	demoEdit      = demoWorld.Activity(book.Time.Edit).Name.DE()
+	demoOnSite    = demoWorld.Activity(book.Time.Visit).Name.DE() + " " + book.Time.OnSite
+	demoMeeting   = demoWorld.Activity(book.Time.Meeting).Name.DE()
 )
 
 func demoKimaiCustomers() []KimaiCustomer {
-	out := make([]KimaiCustomer, len(demoCustomerIDs))
-	for i, id := range demoCustomerIDs {
+	out := make([]KimaiCustomer, len(book.Customers))
+	for i, id := range book.Customers {
 		out[i] = KimaiCustomer{ID: int64(i + 1), Name: demoWorld.Customer(id).Name}
 	}
 	return out
 }
 
-func demoProjectName(i int) string { return demoWorld.Project(demoProjectIDs[i]).Name.DE() }
-
-// demoSiteName is the Dawarich area of the on-site client.
-func demoSiteName() string { return demoSite.Name.DE() }
-
-func demoCountry(code string) string {
-	if code == "AT" {
-		return demoEUCountry
-	}
-	return demoHomeCountry
-}
+func demoProjectName(i int) string { return demoWorld.Project(book.Projects[i]).Name.DE() }
 
 func demoDay(t time.Time) time.Time {
 	t = t.UTC()
@@ -103,8 +119,8 @@ func weekdaysBack(today time.Time, days int) []time.Time {
 }
 
 func clientDays(today time.Time) []time.Time {
-	days := weekdaysBack(today, demoClientWindow)
-	limit := demoClientDays[len(demoClientDays)-1] + 1
+	days := weekdaysBack(today, book.Time.ClientWindow)
+	limit := book.Time.ClientDays[len(book.Time.ClientDays)-1] + 1
 	if len(days) > limit {
 		days = days[:limit]
 	}
@@ -114,28 +130,29 @@ func clientDays(today time.Time) []time.Time {
 // DemoKimai is the demo Kimai dataset.
 func DemoKimai(now time.Time) *KimaiDataset {
 	today := demoDay(now)
-	rnd := rand.New(rand.NewSource(demoSeed))
+	b := bookOf(now)
+	rnd := rand.New(rand.NewSource(b.Seed))
 	clients := clientDays(today)
 	visits := map[time.Time]bool{}
-	for _, i := range demoClientDays {
+	for _, i := range b.Time.ClientDays {
 		if i < len(clients) {
 			visits[clients[i]] = true
 		}
 	}
-	skip := clients[demoSkipDay]
+	skip := clients[b.Time.SkipDay]
 
-	history := weekdaysBack(today, demoHistoryDays)
+	history := weekdaysBack(today, b.Time.HistoryDays)
 	sheets := make([]KimaiSheet, 0, len(history))
 	for i := len(history) - 1; i >= 0; i-- {
 		d := history[i]
-		customer := []int64{1, 2, 2, 3}[rnd.Intn(4)]
+		customer := b.Time.Mix[rnd.Intn(len(b.Time.Mix))]
 		if visits[d] {
 			customer = 1
 		}
 		if d.Equal(skip) {
 			customer = 2
 		}
-		hours := 5 + rnd.Intn(4)
+		hours := b.Time.Hours[0] + rnd.Intn(b.Time.Hours[1]-b.Time.Hours[0]+1)
 		age := int(today.Sub(d).Hours() / 24)
 		activity := demoEdit
 		if visits[d] {
@@ -143,99 +160,124 @@ func DemoKimai(now time.Time) *KimaiDataset {
 		}
 		sheets = append(sheets, KimaiSheet{
 			ID: int64(len(sheets) + 1), Begin: stamp(d, 9, 0), End: stamp(d, 9+hours, 0),
-			Minutes: hours * 60, Rate: float64(hours) * demoRate, Billable: true,
-			Exported:  !(customer == 1 && age <= demoUnbilledDays) && age > 5,
+			Minutes: hours * 60, Rate: float64(hours) * b.Rate, Billable: true,
+			Exported:  !(customer == 1 && age <= b.Time.UnbilledDays) && age > b.Time.ExportedAfterDays,
 			ProjectID: customer, CustomerID: customer, Activity: activity, UserID: 1,
 		})
 	}
 
-	running := now.UTC().Add(-demoRunningHours * time.Hour)
+	projects := make([]KimaiProject, len(b.Projects))
+	for i := range b.Projects {
+		p := KimaiProject{}
+		if i < len(b.Budgets) {
+			p = b.Budgets[i]
+		}
+		p.ID, p.Name, p.CustomerID = int64(i+1), demoProjectName(i), int64(i+1)
+		projects[i] = p
+	}
+
+	running := now.UTC().Add(-time.Duration(b.Time.RunningHours) * time.Hour)
 	return &KimaiDataset{
-		URL:        "https://kimai.demo",
+		URL:        b.URLs.Time,
 		Contract:   DemoContract(),
 		Timesheets: sheets,
-		Active: []KimaiSheet{{ID: 9999, Begin: running.Format(time.RFC3339), Billable: true,
-			ProjectID: 2, CustomerID: 2, Activity: demoEdit, UserID: 1}},
-		Projects: []KimaiProject{
-			{ID: 1, Name: demoProjectName(0), CustomerID: 1},
-			{ID: 2, Name: demoProjectName(1), CustomerID: 2, Budget: 40000, End: iso(today.AddDate(0, 0, 60)), UsedMoney: 34000},
-			{ID: 3, Name: demoProjectName(2), CustomerID: 3, TimeBudgetMin: 40 * 60, BudgetType: "month"},
-		},
-		Customers: demoCustomers,
-		Absences: []KimaiAbsence{{Start: iso(today.AddDate(0, 0, 20)), End: iso(today.AddDate(0, 0, 24)),
-			Type: "holiday", Status: "approved"}},
-		Holidays:      []KimaiHoliday{{Date: time.Date(today.Year(), time.December, 25, 0, 0, 0, 0, time.UTC).Format(time.DateOnly), Name: "1. Weihnachtstag"}},
+		Active: []KimaiSheet{{ID: b.Time.RunningID, Begin: running.Format(time.RFC3339), Billable: true,
+			ProjectID: b.Time.RunningCustomer, CustomerID: b.Time.RunningCustomer, Activity: demoEdit, UserID: 1}},
+		Projects:      projects,
+		Customers:     demoCustomers,
+		Absences:      b.Absences,
+		Holidays:      demoHolidays(today),
 		HolidayBundle: true,
 	}
+}
+
+// demoHolidays are the world's public holidays of today's year.
+func demoHolidays(today time.Time) []KimaiHoliday {
+	var dates map[string]string
+	demoworld.MustDecode("public_holidays.dates", today, &dates)
+	var out []KimaiHoliday
+	for day, name := range dates {
+		if strings.HasPrefix(day, strconv.Itoa(today.Year())) {
+			out = append(out, KimaiHoliday{Date: day, Name: name})
+		}
+	}
+	return out
 }
 
 // DemoNinja is the demo Invoice Ninja dataset.
 func DemoNinja(now time.Time) *NinjaDataset {
 	today := demoDay(now)
-	rnd := rand.New(rand.NewSource(demoSeed))
+	b := bookOf(now)
+	inv := b.Invoices
+	rnd := rand.New(rand.NewSource(b.Seed))
 	var invoices []NinjaInvoice
 	var payments []NinjaPayment
 	number := int64(1)
 
-	for back := demoInvoiceMonth; back > 0; back-- {
+	for back := inv.Months; back > 0; back-- {
 		start := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -back, 0)
 		for _, c := range demoCustomers {
-			net := round2(2500 + rnd.Float64()*4000)
-			tax := round2(net * demoVAT)
+			net := round2(inv.Net[0] + rnd.Float64()*(inv.Net[1]-inv.Net[0]))
+			tax := round2(net * b.VAT)
 			if c.ID == 3 && back == 1 {
 				tax = 0
 			}
-			issued := start.AddDate(0, 0, 2)
+			issued := start.AddDate(0, 0, inv.IssuedDay-1)
 			invoices = append(invoices, NinjaInvoice{
-				ID: number, Number: "R-" + issued.Format("2006") + "-" + pad3(number), ClientID: c.ID, Status: "paid",
-				Date: iso(issued), DueDate: iso(issued.AddDate(0, 0, 14)), Amount: net + tax, Taxes: tax, Net: net,
+				ID: number, Number: demoNumber(inv.Number, issued, number), ClientID: c.ID, Status: "paid",
+				Date: iso(issued), DueDate: iso(issued.AddDate(0, 0, inv.DueDays)), Amount: net + tax, Taxes: tax, Net: net,
 			})
-			payments = append(payments, NinjaPayment{ID: number, Date: iso(issued.AddDate(0, 0, 10)), Amount: net + tax, ClientID: c.ID})
+			payments = append(payments, NinjaPayment{ID: number, Date: iso(issued.AddDate(0, 0, inv.PaidDays)), Amount: net + tax, ClientID: c.ID})
 			number++
 		}
 	}
 
-	overdue := &invoices[len(invoices)-3]
-	overdue.Status, overdue.Balance, overdue.DueDate = "sent", overdue.Amount, iso(today.AddDate(0, 0, -21))
-	overdue.Reminded, overdue.NextSend = iso(today.AddDate(0, 0, -7)), iso(today.AddDate(0, 0, 7))
+	overdue := &invoices[len(invoices)-inv.Overdue.FromEnd]
+	overdue.Status, overdue.Balance, overdue.DueDate = "sent", overdue.Amount, inv.Overdue.Due
+	overdue.Reminded, overdue.NextSend = inv.Overdue.Reminded, inv.Overdue.NextSend
 	kept := payments[:0]
 	for _, p := range payments {
 		if p.ID != overdue.ID {
 			kept = append(kept, p)
 		}
 	}
-	invoices = append(invoices, NinjaInvoice{ID: number, ClientID: 2, Status: "draft", Date: iso(today.AddDate(0, 0, -10)),
-		Amount: 1190, Balance: 1190, Taxes: 190, Net: 1000})
+	draft := inv.Draft
+	draft.ID = number
+	quote := inv.Quote
+	quote.Number = demoNumber(quote.Number, today, 0)
 
 	return &NinjaDataset{
-		URL: "https://invoice.demo", Currency: "EUR", Invoices: invoices, Payments: kept,
-		Clients:  demoNinjaClients(),
-		Expenses: demoNinjaExpenses(today),
-		Quotes: []NinjaQuote{{ID: 1, Number: "A-" + today.Format("2006") + "-004", ClientID: 2, Status: "sent",
-			Date: iso(today.AddDate(0, 0, -20)), Amount: 8330}},
-		Recurring: []NinjaRecurring{{ID: 1, Number: "W-01", ClientID: 1, Active: true,
-			NextSendDate: iso(today.AddDate(0, 0, 12)), RemainingCycles: 1, Amount: 595}},
-		HomeCountryID: demoHomeCountry,
+		URL: b.URLs.Invoices, Currency: b.Currency, Invoices: append(invoices, draft), Payments: kept,
+		Clients:       demoNinjaClients(b),
+		Expenses:      demoNinjaExpenses(today, b),
+		Quotes:        []NinjaQuote{quote},
+		Recurring:     []NinjaRecurring{inv.Recurring},
+		HomeCountryID: b.Countries["DE"],
 	}
 }
 
-func demoNinjaClients() []NinjaClient {
-	out := make([]NinjaClient, len(demoCustomerIDs))
-	for i, id := range demoCustomerIDs {
+// demoNumber fills a number pattern: "R-{year}-{n}" → "R-2026-007".
+func demoNumber(pattern string, issued time.Time, n int64) string {
+	return strings.NewReplacer("{year}", issued.Format("2006"), "{n}", pad3(n)).Replace(pattern)
+}
+
+func demoNinjaClients(b *demoBook) []NinjaClient {
+	out := make([]NinjaClient, len(b.Customers))
+	for i, id := range b.Customers {
 		c := demoWorld.Customer(id)
-		out[i] = NinjaClient{ID: int64(i + 1), Name: c.Name, VATNumber: c.VATID, CountryID: demoCountry(c.Country)}
+		out[i] = NinjaClient{ID: int64(i + 1), Name: c.Name, VATNumber: c.VATID, CountryID: b.Countries[c.Country]}
 	}
 	return out
 }
 
 // demoNinjaExpenses are the receipts of the demo world. Their days are
 // offsets from Monday of the current week.
-func demoNinjaExpenses(today time.Time) []NinjaExpense {
+func demoNinjaExpenses(today time.Time, b *demoBook) []NinjaExpense {
 	monday := demoMonday(today)
 	out := make([]NinjaExpense, 0, len(demoWorld.Receipts))
 	for _, r := range demoWorld.Receipts {
 		out = append(out, NinjaExpense{ID: int64(r.ID), Date: iso(monday.AddDate(0, 0, r.Day)), Amount: r.Amount,
-			Tax: round2(r.Amount * demoVAT / (1 + demoVAT)), Notes: r.Vendor + " · " + r.Note.DE(), VendorID: int64(r.ID)})
+			Tax: round2(r.Amount * b.VAT / (1 + b.VAT)), Notes: r.Vendor + " · " + r.Note.DE(), VendorID: int64(r.ID)})
 	}
 	return out
 }
@@ -249,93 +291,103 @@ func pad3(n int64) string {
 	return string(s)
 }
 
-// demoSnipeAssets gives the studio's assets from the demo world their
-// states: the notebook's warranty ends soon, the NAS is past end of life
-// and overdue for an audit, the fourth asset should have come back.
-func demoSnipeAssets(ago, ahead func(int) string) []SnipeAsset {
-	states := []SnipeAsset{
-		{Status: "Ausgegeben", Deployable: true, Assigned: true, PurchaseDate: ago(30), WarrantyExpires: ahead(10),
-			EOLDate: ahead(900), NextAudit: ahead(100), LastChange: ago(30)},
-		{Status: "In Betrieb", Deployable: true, Assigned: true, PurchaseDate: ago(1900), WarrantyExpires: ago(800),
-			EOLDate: ago(20), NextAudit: ago(15), LastChange: ago(400)},
-		{Status: "Bereit", Deployable: true, PurchaseDate: ago(500), WarrantyExpires: ahead(230),
-			NextAudit: ahead(60), LastChange: ago(140)},
-		{Status: "Ausgegeben", Deployable: true, Assigned: true, PurchaseDate: ago(60), WarrantyExpires: ahead(1000),
-			NextAudit: ahead(200), LastChange: ago(60), AssignedTo: demoWorld.Person("jonas").Name, ExpectedCheckin: ago(5)},
-	}
-	out := make([]SnipeAsset, len(states))
-	for i, a := range demoWorld.Inventory.Assets[:len(states)] {
-		s := states[i]
-		s.ID, s.Name, s.Tag, s.Model, s.Category, s.PurchaseCost = int64(i+1), a.Name, a.Tag, a.Model, a.Category.DE(), a.Cost
-		out[i] = s
-	}
-	return out
-}
-
-// demoSnipeLicenses: the first licence expires soon, the second has free seats.
-func demoSnipeLicenses(ahead func(int) string) []SnipeLicense {
-	l := demoWorld.Inventory.Licenses
-	return []SnipeLicense{
-		{ID: 1, Name: l[0].Name, Expires: ahead(20), Seats: l[0].Seats},
-		{ID: 2, Name: l[1].Name, Expires: ahead(200), Seats: l[1].Seats, Free: 2},
-	}
-}
-
-// DemoSnipe is the demo Snipe-IT dataset.
+// DemoSnipe is the demo Snipe-IT dataset: the world's assets and licences
+// with the states of "assets_state".
 func DemoSnipe(now time.Time) *SnipeDataset {
-	today := demoDay(now)
-	ago := func(n int) string { return iso(today.AddDate(0, 0, -n)) }
-	ahead := func(n int) string { return iso(today.AddDate(0, 0, n)) }
-	return &SnipeDataset{
-		URL:          "https://assets.demo",
-		Assets:       demoSnipeAssets(ago, ahead),
-		Licenses:     demoSnipeLicenses(ahead),
-		Consumables:  []SnipeConsumable{{ID: 1, Name: "Toner schwarz", Remaining: 1, Min: 2}},
-		AuditOverdue: []int64{2},
+	data := &SnipeDataset{}
+	demoworld.MustDecode("assets_state", now, data)
+	for i := range data.Assets {
+		a, s := demoWorld.Inventory.Assets[i], &data.Assets[i]
+		s.ID, s.Name, s.Tag, s.Model, s.Category, s.PurchaseCost = int64(i+1), a.Name, a.Tag, a.Model, a.Category.DE(), a.Cost
 	}
+	for i := range data.Licenses {
+		l, s := demoWorld.Inventory.Licenses[i], &data.Licenses[i]
+		s.ID, s.Name, s.Seats = int64(i+1), l.Name, l.Seats
+	}
+	return data
 }
 
-// DemoDawarich is the demo Dawarich dataset.
+// demoLocation is the world's Dawarich setup.
+type demoLocation struct {
+	URL, Home, Site string
+	Visit           struct {
+		From, To string
+		Minutes  int
+	}
+	Areas []struct {
+		ID     int64
+		Place  string
+		Radius float64
+	}
+	Stats struct {
+		TotalKm, YearKm, Countries, Cities, MonthKm, LastMonthKm float64
+	}
+	LastPoint string
+	Route     struct{ Steps, StepMinutes int }
+}
+
+func locationOf(now time.Time) *demoLocation {
+	l := &demoLocation{}
+	demoworld.MustDecode("location", now, l)
+	return l
+}
+
+// demoClock is "08:30" as hour and minute.
+func demoClock(hhmm string) (int, int) {
+	h, _ := strconv.Atoi(hhmm[:2])
+	m, _ := strconv.Atoi(hhmm[3:])
+	return h, m
+}
+
+// DemoDawarich is the demo Dawarich dataset: a visit at the site on each
+// client day.
 func DemoDawarich(now time.Time) *DawarichDataset {
-	today := demoDay(now)
-	days := clientDays(today)
-	lat, lon := demoSite.Lat, demoSite.Lon
+	loc := locationOf(now)
+	site := demoWorld.Place(loc.Site)
+	days := clientDays(demoDay(now))
+	fromH, fromM := demoClock(loc.Visit.From)
+	toH, toM := demoClock(loc.Visit.To)
 	var visits []DawarichVisit
-	for _, i := range demoClientDays {
+	for _, i := range book.Time.ClientDays {
 		if i >= len(days) {
 			continue
 		}
-		visits = append(visits, DawarichVisit{ID: int64(i), Start: stamp(days[i], 8, 30), End: stamp(days[i], 17, 45),
-			Minutes: 555, AreaID: 2, Name: demoSiteName(), Lat: &lat, Lon: &lon})
+		lat, lon := site.Lat, site.Lon
+		visits = append(visits, DawarichVisit{ID: int64(i), Start: stamp(days[i], fromH, fromM), End: stamp(days[i], toH, toM),
+			Minutes: loc.Visit.Minutes, AreaID: 2, Name: site.Name.DE(), Lat: &lat, Lon: &lon})
+	}
+	var areas []DawarichArea
+	for _, a := range loc.Areas {
+		p := demoWorld.Place(a.Place)
+		areas = append(areas, DawarichArea{ID: a.ID, Name: p.Name.DE(), Lat: p.Lat, Lon: p.Lon, Radius: a.Radius})
 	}
 	return &DawarichDataset{
-		URL: "https://dawarich.demo",
-		Areas: []DawarichArea{
-			{ID: 1, Name: demoHome.Name.DE(), Lat: demoHome.Lat, Lon: demoHome.Lon, Radius: 100},
-			{ID: 2, Name: demoSiteName(), Lat: lat, Lon: lon, Radius: 150},
-		},
+		URL:    loc.URL,
+		Areas:  areas,
 		Visits: visits,
-		Stats: map[string]any{"totalDistanceKm": 18450.0, "yearlyStats": []any{map[string]any{
-			"year": float64(now.Year()), "totalDistanceKm": 3100.0, "totalCountriesVisited": 2.0, "totalCitiesVisited": 14.0,
+		Stats: map[string]any{"totalDistanceKm": loc.Stats.TotalKm, "yearlyStats": []any{map[string]any{
+			"year": float64(now.Year()), "totalDistanceKm": loc.Stats.YearKm, "totalCountriesVisited": loc.Stats.Countries,
+			"totalCitiesVisited": loc.Stats.Cities,
 			"monthlyDistanceKm": map[string]any{
-				strings.ToLower(now.Month().String()):                   412.0,
-				strings.ToLower(now.AddDate(0, -1, 0).Month().String()): 530.0,
+				strings.ToLower(now.Month().String()):                   loc.Stats.MonthKm,
+				strings.ToLower(now.AddDate(0, -1, 0).Month().String()): loc.Stats.LastMonthKm,
 			},
 		}}},
-		LastPoint: now.UTC().Add(-2 * time.Hour).Format(time.RFC3339),
+		LastPoint: loc.LastPoint,
 	}
 }
 
 // DemoDawarichRoute is the track of the demo visits between from and to:
-// home to the client before each visit and back after it, a point every
+// home to the site before each visit and back after it, a point every
 // few minutes along the straight line.
 func DemoDawarichRoute(from, to, now time.Time) *DawarichRoute {
-	const steps = 24
-	const pace = 2 * time.Minute
+	loc := locationOf(now)
+	home, site := demoWorld.Place(loc.Home), demoWorld.Place(loc.Site)
+	steps, pace := loc.Route.Steps, time.Duration(loc.Route.StepMinutes)*time.Minute
 	out := &DawarichRoute{}
 	leg := func(a, b demoworld.Place, start time.Time) {
 		for i := range steps + 1 {
-			f := float64(i) / steps
+			f := float64(i) / float64(steps)
 			out.Points = append(out.Points, RoutePoint{Lat: a.Lat + (b.Lat-a.Lat)*f, Lon: a.Lon + (b.Lon-a.Lon)*f,
 				At: start.Add(time.Duration(i) * pace)})
 		}
@@ -346,200 +398,166 @@ func DemoDawarichRoute(from, to, now time.Time) *DawarichRoute {
 		if begin.Before(from) || !begin.Before(to) {
 			continue
 		}
-		leg(demoHome, demoSite, begin.Add(-steps*pace))
-		leg(demoSite, demoHome, end)
+		leg(home, site, begin.Add(-time.Duration(steps)*pace))
+		leg(site, home, end)
 	}
 	return out
 }
 
 // DemoKuma is the demo Uptime Kuma dataset.
 func DemoKuma() *KumaDataset {
-	return &KumaDataset{URL: "https://status.demo", Monitors: []KumaMonitor{
-		{Name: "Kimai", Type: "http", Target: "https://zeit.demo", Status: KumaUp, CertDays: 54, MS: 180},
-		{Name: "NAS", Type: "ping", Status: KumaDown, CertDays: -1},
-		{Name: "Shop", Type: "http", Target: "https://shop.demo", Status: KumaUp, CertDays: 9, MS: 420},
-	}}
+	data := &KumaDataset{}
+	demoworld.MustDecode("monitoring", time.Now(), data)
+	return data
 }
 
 // DemoGlances is the demo Glances host: busy CPU, one disk filling up.
 func DemoGlances() *GlancesResult {
-	return &GlancesResult{URL: "https://glances.demo", CPU: 38, Mem: 64, Swap: 4, Load: 1.2, Cores: 4,
-		Disks: []GlancesDisk{{Mount: "/", Percent: 52}, {Mount: "/data", Percent: 87}}}
+	data := &GlancesResult{}
+	demoworld.MustDecode("server", time.Now(), data)
+	return data
 }
 
 // DemoGlancesDetail is the demo host's processes, sensors and network.
 func DemoGlancesDetail() *GlancesDetail {
-	return &GlancesDetail{
-		Processes: []GProcess{{"immich-server", 18.2, 9.4}, {"postgres", 6.1, 4.8}, {"jellyfin", 4.4, 3.1}, {"node", 2.0, 2.2}},
-		Sensors:   []GSensor{{"Package id 0", "C", 54}, {"nvme0", "C", 41}, {"fan1", "R", 920}},
-		Networks:  []GNetwork{{"eth0", 1.8e6, 0.4e6}, {"tailscale0", 12e3, 9e3}},
-		Uptime:    "12 days, 4:13:08",
-	}
+	data := &GlancesDetail{}
+	demoworld.MustDecode("server", time.Now(), data)
+	return data
 }
 
 // DemoGlancesHistory is one demo metric over the last hour, a sample a minute.
 func DemoGlancesHistory(now time.Time, metric string, points int) *GlancesHistory {
-	rnd := rand.New(rand.NewSource(demoSeed))
+	var curve struct{ Base, Swing float64 }
+	demoworld.MustDecode("server.history", now, &curve)
+	rnd := rand.New(rand.NewSource(book.Seed))
 	out := &GlancesHistory{Metric: metric}
 	for i := points; i > 0; i-- {
 		at := now.UTC().Add(-time.Duration(i) * time.Minute).Format("2006-01-02T15:04:05")
-		out.Samples = append(out.Samples, Sample{At: at, Value: 20 + rnd.Float64()*40})
+		out.Samples = append(out.Samples, Sample{At: at, Value: curve.Base + rnd.Float64()*curve.Swing})
 	}
 	return out
 }
 
 // DemoProxmox is the demo Proxmox VE dataset.
 func DemoProxmox(now time.Time) *ProxmoxDataset {
-	today := demoDay(now)
-	return &ProxmoxDataset{
-		URL: "https://pve.demo:8006",
-		Nodes: []ProxmoxNode{{Name: "pve", Online: true, Updates: 12, Storages: []ProxmoxStorage{
-			{Name: "local-lvm", Used: 430e9, Total: 480e9}, {Name: "backup", Used: 1.1e12, Total: 4e12},
-		}}},
-		Guests: []ProxmoxGuest{
-			{VMID: 100, Name: "docker", Node: "pve", Running: true, CPU: 1.2, MemBytes: 6e9},
-			{VMID: 101, Name: "homeassistant", Node: "pve", Running: true, CPU: 0.3, MemBytes: 2e9},
-			{VMID: 9000, Name: "debian-template", Node: "pve", Template: true},
-		},
-		Backups: map[int64]time.Time{100: today.AddDate(0, 0, -1), 101: today.AddDate(0, 0, -9)},
-	}
+	data := &ProxmoxDataset{}
+	demoworld.MustDecode("virtualization", now, data)
+	return data
 }
 
 // DemoPaperless is the demo Paperless-ngx dataset.
 func DemoPaperless(now time.Time) *PaperlessDataset {
-	today := demoDay(now)
-	return &PaperlessDataset{URL: "https://docs.demo", Total: 1843, Inbox: 7, OldestTitle: "Rechnung " + demoMobile.Name,
-		OldestAdded: iso(today.AddDate(0, 0, -23)),
-		Invoices: []PaperlessDoc{{ID: 311, Title: "Rechnung 09/2026", Correspondent: demoMobile.Name,
-			Created: iso(today.AddDate(0, 0, -23)), Amount: demoMobile.Monthly}},
-		Contracts: []PaperlessContract{{ID: 88, Title: demoMobile.Contract.DE(), Correspondent: demoMobile.Name,
-			End: today.AddDate(0, 3, 20), NoticeMonths: 3, Deadline: today.AddDate(0, 0, 20), RenewsAutomatic: true}},
-		Newest: []PaperlessNew{{ID: 1843, Title: "Kontoauszug 09/2026", Added: iso(today)}, {ID: 1842, Title: "Rechnung " + demoHosting.Name, Added: iso(today.AddDate(0, 0, -1))},
-			{ID: 1841, Title: "Versicherungsschein", Added: iso(today.AddDate(0, 0, -2))}},
-		TagCounts: map[string]int{"steuer 2026": 64, "belege": 212}}
+	data := &PaperlessDataset{}
+	demoworld.MustDecode("documents", now, data)
+	return data
 }
 
 // DemoCerts is the demo certificate dataset.
 func DemoCerts(now time.Time) *CertDataset {
-	today := demoDay(now)
-	return &CertDataset{Certs: []Cert{
-		{Host: "shop.demo:443", NotAfter: today.AddDate(0, 0, 9), Issuer: "R11"},
-		{Host: "zeit.demo:443", NotAfter: today.AddDate(0, 0, 54), Issuer: "R10"},
-	}}
+	data := &CertDataset{}
+	demoworld.MustDecode("certs", now, data)
+	return data
 }
 
 // DemoScrutiny is the demo Scrutiny dataset.
 func DemoScrutiny(now time.Time) *ScrutinyDataset {
-	seen := now.UTC().Add(-3 * time.Hour)
-	return &ScrutinyDataset{URL: "https://disks.demo", Disks: []Disk{
-		{Name: "sda", Model: demoDisks[0], Status: ScrutinyPassed, Temp: 38, Hours: 31000, Seen: seen},
-		{Name: "sdb", Model: demoDisks[1], Status: 1, Temp: 41, Hours: 42000, Seen: seen},
-		{Name: "nvme0", Model: demoDisks[2], Status: ScrutinyPassed, Temp: 56, Hours: 9000, Seen: seen},
-	}}
+	data := &ScrutinyDataset{}
+	demoworld.MustDecode("disk_health", now, data)
+	return data
 }
 
 // DemoImmich is the demo Immich dataset.
 func DemoImmich() *ImmichDataset {
-	return &ImmichDataset{URL: "https://photos.demo", Photos: 48213, Videos: 1920, DiskPercent: 87.4,
-		DiskAvailable: "412 GiB", FailedJobs: map[string]int{"faceDetection": 3}, Version: "v1.131.0", Latest: "v1.132.3",
-		Users: []ImmichUser{{Name: "Mara", Photos: 30112, Videos: 1210, Bytes: 1.4e12}, {Name: "Lena", Photos: 18101, Videos: 710, Bytes: 0.9e12}}}
+	data := &ImmichDataset{}
+	demoworld.MustDecode("photos", time.Now(), data)
+	return data
 }
 
 // DemoUmamiDetail is the demo sites' pages, referrers and days.
 func DemoUmamiDetail(now time.Time) *UmamiDetail {
-	days := func(base int) []Count {
-		var out []Count
-		for i := 29; i >= 0; i-- {
-			out = append(out, Count{Name: now.AddDate(0, 0, -i).Format(time.DateOnly), N: base + (i*7)%23})
-		}
-		return out
+	var sites map[string]struct {
+		UmamiSite
+		DayBase int
 	}
-	return &UmamiDetail{Sites: map[string]UmamiSite{
-		"1": {Pages: []Count{{"/", 820}, {"/projekte/licht-an", 412}, {"/kontakt", 160}}, Referrers: []Count{{"–", 540}, {"google.com", 210}, {"instagram.com", 64}}, Days: days(50)},
-		"2": {Pages: []Count{{"/", 120}, {"/impressum", 12}}, Referrers: []Count{{"–", 96}}, Days: days(4)},
-	}}
+	demoworld.MustDecode("sites.detail", now, &sites)
+	out := &UmamiDetail{Sites: map[string]UmamiSite{}}
+	for id, s := range sites {
+		for i := 29; i >= 0; i-- {
+			s.Days = append(s.Days, Count{Name: now.AddDate(0, 0, -i).Format(time.DateOnly), N: s.DayBase + (i*7)%23})
+		}
+		out.Sites[id] = s.UmamiSite
+	}
+	return out
 }
 
 // DemoUmami is the demo Umami dataset.
 func DemoUmami() *UmamiDataset {
-	return &UmamiDataset{URL: "https://stats.demo", Sites: []Site{
-		{ID: "1", Name: "Blog", Domain: "blog.demo", Views: 1840, Visitors: 610, PrevViews: 1720, PrevVisit: 590},
-		{ID: "2", Name: "Shop", Domain: "shop.demo", Views: 120, Visitors: 41, PrevViews: 980, PrevVisit: 305},
-	}}
+	data := &UmamiDataset{}
+	demoworld.MustDecode("sites", time.Now(), data)
+	return data
 }
 
 // DemoFreshRSS is the demo FreshRSS dataset.
 func DemoFreshRSS(now time.Time) *FreshRSSDataset {
-	day := func(n int) time.Time { return now.UTC().AddDate(0, 0, -n) }
-	return &FreshRSSDataset{URL: "https://rss.demo", Unread: 812, Feeds: []Feed{
-		{ID: "feed/1", Title: "heise online", Category: "News", Unread: 540, Newest: day(0)},
-		{ID: "feed/2", Title: "Go Blog", Category: "Tech", Unread: 12, Newest: day(9)},
-		{ID: "feed/3", Title: "Altes Projektblog", Category: "Tech", Unread: 0, Newest: day(400)},
-		{ID: "feed/4", Title: "Selfhosted Weekly", Category: "Tech", Unread: 260, Newest: day(2)},
-	}}
+	data := &FreshRSSDataset{}
+	demoworld.MustDecode("feeds", now, data)
+	return data
 }
 
 // DemoGitea is the demo Gitea dataset.
 func DemoGitea(now time.Time) *GiteaDataset {
-	day := func(n int) time.Time { return now.UTC().AddDate(0, 0, n) }
-	return &GiteaDataset{URL: "https://git.demo", User: "mara", Notifications: 4,
-		Assigned: []Issue{
-			{Repo: "studio/showreel", Title: "Neue Harbour-Lights-Szenen", URL: "https://git.demo/studio/showreel/issues/12", Number: 12, Due: day(-2), Updated: day(-10)},
-			{Repo: "studio/website", Title: "Neues Theme", URL: "https://git.demo/studio/website/pulls/4", Number: 4, Pull: true, Updated: day(-21)},
-		},
-		Reviews: []Issue{{Repo: "team/infra", Title: "Traefik 3 Migration", URL: "https://git.demo/team/infra/pulls/7", Number: 7, Pull: true, Updated: day(-4)}},
-		Repos: []Repo{
-			{Name: "studio/showreel", URL: "https://git.demo/studio/showreel", Updated: day(0), FailedWorkflow: "test"},
-			{Name: "mirror/linux", URL: "https://git.demo/mirror/linux", Mirror: true, MirrorUpdated: day(-12), Updated: day(-12)},
-		},
-	}
+	data := &GiteaDataset{}
+	demoworld.MustDecode("code.gitea", now, data)
+	return data
 }
 
 // DemoBorg is the demo Borg Backup Server dataset.
 func DemoBorg(now time.Time) *BorgDataset {
-	return &BorgDataset{URL: "https://borg.demo", Failed24h: 1, Completed24h: 5, UsedBytes: 3.1e12, TotalBytes: 4e12,
-		LastBackup: now.UTC().Add(-7 * time.Hour), AgentsOutdated: 1,
-		Clients: []BorgClient{
-			{Name: "nas", Status: "online", LastSeen: now.UTC().Add(-time.Minute), LastBackup: now.UTC().Add(-7 * time.Hour),
-				RepoBytes: 2.4e12, LastBytes: 3.8e9, LastSeconds: 1260},
-			{Name: "laptop", Status: "offline", LastSeen: now.UTC().AddDate(0, 0, -6), LastBackup: now.UTC().AddDate(0, 0, -6),
-				RepoBytes: 0.7e12, LastBytes: 1.1e9, LastSeconds: 540},
-		}}
+	data := &BorgDataset{}
+	demoworld.MustDecode("backups.server", now, data)
+	return data
 }
 
 // DemoHass is the demo Home Assistant dataset.
 func DemoHass(now time.Time) *HassDataset {
-	ago := func(h int) time.Time { return now.UTC().Add(-time.Duration(h) * time.Hour) }
-	return &HassDataset{URL: "https://home.demo", Entities: []Entity{
-		{ID: "binary_sensor.keller_wasser", Name: "Keller Wasser", Domain: "binary_sensor", State: "off", DeviceClass: "moisture", Changed: ago(200)},
-		{ID: "light.buero", Name: "Büro Licht", Domain: "light", State: "on", Changed: ago(1)},
-		{ID: "sensor.fenster_bad_batterie", Name: "Fenster Bad Batterie", Domain: "sensor", State: "8", Unit: "%", DeviceClass: "battery", Changed: ago(5)},
-		{ID: "sensor.wohnzimmer_temperatur", Name: "Wohnzimmer", Domain: "sensor", State: "21.4", Unit: "°C", DeviceClass: "temperature", Changed: ago(0)},
-		{ID: "sensor.zigbee_steckdose_power", Name: "Steckdose Leistung", Domain: "sensor", State: HassUnavailable, Unit: "W", Changed: ago(30)},
-		{ID: "switch.kaffeemaschine", Name: "Kaffeemaschine", Domain: "switch", State: "off", Changed: ago(3)},
-		{ID: "update.home_assistant_core_update", Name: "Home Assistant Core", Domain: "update", State: HassOn, Changed: ago(20)},
-	}}
+	data := &HassDataset{}
+	demoworld.MustDecode("smart_home", now, data)
+	return data
 }
 
 // DemoGiteaActivity is the demo's commits per week and its GitHub mirror.
 func DemoGiteaActivity(now time.Time) *GiteaActivity {
-	return &GiteaActivity{Weeks: map[string][]int{"studio/showreel": {2, 5, 0, 3, 8, 4, 6, 9}, "studio/website": {1, 0, 0, 2, 0, 4, 1, 0}},
-		Mirrors: []PushMirror{{Repo: "studio/website", Remote: "https://github.com/studio/website.git", Synced: now.Add(-20 * time.Minute)}}}
+	data := &GiteaActivity{}
+	demoworld.MustDecode("code.gitea", now, data)
+	return data
 }
 
 // DemoHassHistory is a day of the demo entities: the living room warms
 // in the morning, the office light goes on and off.
 func DemoHassHistory(now time.Time, ids []string) *HassHistory {
+	var curves struct {
+		Temperature struct {
+			Entity      string
+			Base, Swing float64
+		}
+		Light struct {
+			Entity       string
+			OnFrom, OnTo int
+		}
+	}
+	demoworld.MustDecode("smart_home.history", now, &curves)
 	out := &HassHistory{ByID: map[string][]HassPoint{}}
 	start := now.UTC().Add(-HassHistoryHours * time.Hour)
 	for _, id := range ids {
 		for h := range HassHistoryHours {
 			at := start.Add(time.Duration(h) * time.Hour)
 			switch id {
-			case "sensor.wohnzimmer_temperatur":
-				out.ByID[id] = append(out.ByID[id], HassPoint{At: at, State: strconv.FormatFloat(19.5+float64((at.Hour()+18)%24)/12, 'f', 1, 64)})
-			case "light.buero":
-				out.ByID[id] = append(out.ByID[id], HassPoint{At: at, State: map[bool]string{true: HassOn, false: "off"}[at.Hour() >= 8 && at.Hour() < 18]})
+			case curves.Temperature.Entity:
+				t := curves.Temperature.Base + curves.Temperature.Swing*float64((at.Hour()+18)%24)/24
+				out.ByID[id] = append(out.ByID[id], HassPoint{At: at, State: strconv.FormatFloat(t, 'f', 1, 64)})
+			case curves.Light.Entity:
+				on := at.Hour() >= curves.Light.OnFrom && at.Hour() < curves.Light.OnTo
+				out.ByID[id] = append(out.ByID[id], HassPoint{At: at, State: map[bool]string{true: HassOn, false: "off"}[on]})
 			}
 		}
 	}
@@ -549,172 +567,127 @@ func DemoHassHistory(now time.Time, ids []string) *HassHistory {
 // DemoSure is the demo Sure dataset; one income matches the open demo
 // invoice, one expected payment is overdue.
 func DemoSure(now time.Time) *SureDataset {
-	today := demoDay(now)
-	day := func(n int) string { return iso(today.AddDate(0, 0, n)) }
-	return &SureDataset{URL: "https://money.demo", Currency: "EUR", NetWorth: 48210,
-		Accounts: []SureAccount{
-			{ID: "a1", Name: "Geschäftskonto", Type: "depository", Classification: "asset", Balance: 6120, Currency: "EUR"},
-			{ID: "a2", Name: "Tagesgeld", Type: "depository", Classification: "asset", Balance: 150, Currency: "EUR"},
-		},
-		Transactions: []SureTxn{
-			{ID: "t1", Date: day(-3), Name: fmt.Sprintf("%s RE-2026-017", demoCustomers[0].Name), Amount: 2380, Category: "Einnahmen", Account: "Geschäftskonto"},
-			{ID: "t2", Date: day(-5), Name: demoHosting.Name, Amount: -demoHosting.Monthly, Category: demoHosting.Kind.DE(), Merchant: demoHosting.Name, Account: "Geschäftskonto"},
-			{ID: "t3", Date: day(-8), Name: demoWorld.Receipt(demoGearReceipt).Vendor, Amount: -899, Account: "Geschäftskonto"},
-			{ID: "t4", Date: day(-12), Name: "Bäckerei", Amount: -6.4, Account: "Tagesgeld"},
-			{ID: "t5", Date: day(-40), Name: demoHosting.Name, Amount: -demoHosting.Monthly, Category: demoHosting.Kind.DE(), Merchant: demoHosting.Name, Account: "Geschäftskonto"},
-		},
-		Recurring: []SureRecurring{
-			{Name: demoHosting.Name, Status: "active", Amount: demoHosting.Monthly, Expense: true, Next: day(25), Last: day(-5)},
-			{Name: "Krankenversicherung", Status: "active", Amount: 612, Expense: true, Next: day(-9), Last: day(-39)},
-			{Name: "Miete Studio", Status: "active", Amount: 450, Expense: true, Next: day(6), Last: day(-24)},
-			{Name: demoSoftware.Contract.DE(), Status: "active", Amount: demoSoftware.Monthly, Expense: true, Next: day(11), Last: day(-19)},
-		},
+	var data struct {
+		SureDataset
+		Transactions []struct {
+			SureTxn
+			Expense bool
+		}
 	}
+	demoworld.MustDecode("bank", now, &data)
+	out := data.SureDataset
+	for _, t := range data.Transactions {
+		if t.Expense {
+			t.Amount = -t.Amount
+		}
+		out.Transactions = append(out.Transactions, t.SureTxn)
+	}
+	return &out
 }
 
 // DemoLinkwarden is the demo Linkwarden dataset: two bookmarks match
 // Homelab tiles, one is missing there.
 func DemoLinkwarden() *LinkwardenDataset {
-	now := time.Now().UTC()
-	return &LinkwardenDataset{URL: "https://links.demo", Collections: []string{"Homelab"}, Links: []Bookmark{
-		{Name: "Kimai", URL: "https://www.kimai.org/", Collection: "Homelab", Created: now.AddDate(0, 0, -30)},
-		{Name: "Invoice Ninja", URL: "https://invoiceninja.com", Collection: "Homelab", Created: now.AddDate(0, 0, -3)},
-		{Name: "Grafana", URL: "https://grafana.com", Collection: "Homelab", Created: now.AddDate(0, 0, -1)},
-	}}
+	data := &LinkwardenDataset{}
+	demoworld.MustDecode("bookmarks", time.Now(), data)
+	return data
 }
 
 // DemoKintsugi is the demo Kintsugi dataset: three open suggestions, the
 // oldest a week old, and a failed last run.
 func DemoKintsugi(now time.Time) *KintsugiDataset {
-	ago := func(d int) time.Time { return now.AddDate(0, 0, -d) }
-	base := "https://kintsugi.demo"
-	return &KintsugiDataset{URL: base, New: 3, Accepted: 2, Snoozed: 1, Done: 4, Rejected: 2, Rate: 75, GapsOpen: 2,
-		Open: []KintsugiSuggestion{
-			{ID: 42, Kind: KintsugiAcquisition, Title: "Imagefilm für Stadtwerke anbieten", URL: base + "/vorschlaege#s-42", Created: ago(0)},
-			{ID: 41, Kind: KintsugiDevelopment, Title: "Drohnenführerschein A2 machen", URL: base + "/vorschlaege#s-41", Created: ago(2)},
-			{ID: 37, Kind: KintsugiAcquisition, Title: "Agentur Nordlicht nachfassen", URL: base + "/vorschlaege#s-37", Created: ago(8)},
-		},
-		LastRun:  &KintsugiRun{Status: KintsugiRunFailed, Detail: "LLM nicht erreichbar", At: ago(0)},
-		Research: true, BudgetUSD: 5, UsedUSD: 1.25,
-	}
+	data := &KintsugiDataset{}
+	demoworld.MustDecode("suggestions", now, data)
+	return data
 }
 
 // DemoPGBack is the demo PG Back Web dataset.
 func DemoPGBack(now time.Time) *PGBackDataset {
-	ago := func(h int) time.Time { return now.UTC().Add(-time.Duration(h) * time.Hour) }
-	return &PGBackDataset{URL: "https://pgback.demo", LastEvent: ago(2), Backups: []PGBackup{
-		{Name: "kimai", LastSuccess: ago(2)},
-		{Name: "invoiceninja", LastSuccess: ago(50), LastFailure: ago(26)},
-		{Name: "immich", LastSuccess: ago(80)},
-	}}
+	data := &PGBackDataset{}
+	demoworld.MustDecode("backups.databases", now, data)
+	return data
 }
 
 // DemoMail is the demo mailbox: one invoice matches a demo expense
 // amount, one does not.
 func DemoMail(now time.Time) *MailDataset {
-	day := func(n int) time.Time { return now.UTC().AddDate(0, 0, -n) }
-	return &MailDataset{Mailbox: "INBOX", Scanned: 214, Invoices: []MailInvoice{
-		{UID: 1, Date: day(4), Sender: demoHosting.Name, Addr: "billing@" + demoHosting.Domain, Domain: demoHosting.Domain,
-			Subject: "Ihre Rechnung R0012345", Amount: demoHosting.Monthly, Attachments: []string{"Rechnung_R0012345.pdf"}},
-		{UID: 2, Date: day(9), Sender: demoSoftware.Name, Addr: "sales@" + demoSoftware.Domain, Domain: demoSoftware.Domain,
-			Subject: "Invoice for your order", Amount: 289, Attachments: []string{"invoice.pdf"}},
-	}}
+	data := &MailDataset{}
+	demoworld.MustDecode("mail", now, data)
+	return data
 }
 
 // DemoTrueNAS is the demo TrueNAS dataset.
 func DemoTrueNAS() *TrueNASDataset {
-	return &TrueNASDataset{URL: "https://nas.demo", Host: "truenas", Version: "25.04.2",
-		Pools: []Pool{
-			{Name: "tank", Status: "ONLINE", Healthy: true, Size: 16e12, Allocated: 14.1e12, ScrubEnd: time.Now().UTC().AddDate(0, 0, -12)},
-			{Name: "fast", Status: "DEGRADED", Healthy: false, Size: 2e12, Allocated: 0.6e12, ScrubEnd: time.Now().UTC().AddDate(0, 0, -41), ScrubErrors: 2},
-		},
-		Alerts: []TNAlert{{ID: "a1", Level: "WARNING", Text: "Device /dev/sdc is causing slow I/O on pool fast."}},
-		Apps:   []TNApp{{Name: "jellyfin", State: "RUNNING", Update: true}, {Name: "syncthing", State: "RUNNING"}},
-		Snapshots: []SnapTask{
-			{Dataset: "tank/photos", State: "FINISHED", Enabled: true, Last: time.Now().UTC().Add(-2 * time.Hour)},
-			{Dataset: "fast/vms", State: "ERROR", Enabled: true, Last: time.Now().UTC().Add(-26 * time.Hour)},
-		},
-	}
+	data := &TrueNASDataset{}
+	demoworld.MustDecode("storage", time.Now(), data)
+	return data
 }
 
 // DemoTrueNASDatasets are the demo pools' largest datasets.
 func DemoTrueNASDatasets() *TrueNASDatasets {
-	return &TrueNASDatasets{List: []TNDataset{
-		{Name: "tank/photos", Used: 6.2e12, Available: 1.9e12}, {Name: "tank/media", Used: 4.8e12, Available: 1.9e12},
-		{Name: "tank/backups", Used: 2.6e12, Available: 1.9e12}, {Name: "fast/vms", Used: 0.5e12, Available: 1.4e12},
-	}}
+	var data struct{ Datasets []TNDataset }
+	demoworld.MustDecode("storage", time.Now(), &data)
+	return &TrueNASDatasets{List: data.Datasets}
 }
 
 // DemoKomodo is the demo Komodo dataset.
 func DemoKomodo(now time.Time) *KomodoDataset {
-	return &KomodoDataset{URL: "https://komodo.demo", ServersTotal: 3, ServersHealthy: 2, ServersProblem: 1,
-		Stacks: []KStack{
-			{Name: "immich", State: "running", Updates: []string{"immich-server", "immich-machine-learning"}},
-			{Name: "paperless", State: "unhealthy"},
-			{Name: "gitea", State: "running"},
-		},
-		Alerts: []KAlert{{Level: "CRITICAL", Kind: "ServerUnreachable", Name: "pi-backup", At: now.UTC().Add(-3 * time.Hour)}},
-	}
+	data := &KomodoDataset{}
+	demoworld.MustDecode("stacks", now, data)
+	return data
 }
 
 // DemoKomodoDetail is the demo servers' load and the stacks' last
 // deployments.
 func DemoKomodoDetail(now time.Time) *KomodoDetail {
-	return &KomodoDetail{
-		Servers: []KServerLoad{
-			{Name: "nas", State: "ok", CPU: 23, MemUsed: 21.4, MemTotal: 32, DiskUsed: 412, DiskMax: 950},
-			{Name: "docker-host", State: "ok", CPU: 61, MemUsed: 13.8, MemTotal: 16, DiskUsed: 188, DiskMax: 480},
-			{Name: "pi-backup", State: "unhealthy"},
-		},
-		Deploys: map[string]KDeploy{
-			"immich":    {At: now.UTC().AddDate(0, 0, -6), Operation: "DeployStack", By: "mara", OK: true},
-			"paperless": {At: now.UTC().Add(-26 * time.Hour), Operation: "DeployStack", By: "lena", OK: false},
-			"gitea":     {At: now.UTC().AddDate(0, 0, -19), Operation: "DeployStack", By: "mara", OK: true},
-		},
-	}
+	data := &KomodoDetail{}
+	demoworld.MustDecode("stacks", now, data)
+	return data
 }
 
 // DemoPangolin is the demo Pangolin dataset.
 func DemoPangolin() *PangolinDataset {
-	on, off := true, false
-	return &PangolinDataset{URL: "https://pangolin.demo/v1", Org: "home",
-		Sites: []PSite{
-			{Name: "homelab", Type: "newt", Online: &on, MBIn: 18400, MBOut: 92100, Update: true},
-			{Name: "eltern", Type: "newt", Online: &off, MBIn: 120, MBOut: 340},
-		},
-		Resources: []PResource{
-			{Name: "Immich", Domain: "photos.example.org", Enabled: true, Health: "healthy", SSO: true},
-			{Name: "Vaultwarden", Domain: "vault.example.org", Enabled: true, Health: "unhealthy"},
-		},
-	}
+	data := &PangolinDataset{}
+	demoworld.MustDecode("tunnel", time.Now(), data)
+	return data
 }
 
 // DemoAuthentik is the demo authentik dataset.
 func DemoAuthentik(now time.Time) *AuthentikDataset {
-	ago := func(d int) time.Time { return now.UTC().AddDate(0, 0, -d) }
-	return &AuthentikDataset{URL: "https://auth.demo", Version: "2025.6.3", Latest: "2025.8.1", Outdated: true,
-		Logins7d: 214, Logins24h: 31, Failed7d: 61, Failed24h: 38,
-		Days: []AKDay{{ago(6).Format(time.DateOnly), 28, 2}, {ago(5).Format(time.DateOnly), 33, 1}, {ago(4).Format(time.DateOnly), 30, 4},
-			{ago(3).Format(time.DateOnly), 25, 3}, {ago(2).Format(time.DateOnly), 36, 6}, {ago(1).Format(time.DateOnly), 31, 7}, {ago(0).Format(time.DateOnly), 31, 38}},
-		Apps:   []AKApp{{Name: "Immich", Events: 96, Users: 4}, {Name: "Gitea", Events: 41, Users: 2}, {Name: "Andon", Events: 30, Users: 3}},
-		Users:  []AKUser{{Name: "alex", LastLogin: ago(0)}, {Name: "sam", LastLogin: ago(2)}, {Name: "kim", LastLogin: ago(240)}, {Name: "test", LastLogin: time.Time{}}},
-		Logins: []AKLogin{{User: "alex", IP: "203.0.113.7", Country: "DE", City: "Berlin", Lat: 52.52, Lon: 13.40, At: now.UTC().Add(-time.Hour)}},
-		Failures: []AKLogin{{User: "admin", IP: "198.51.100.23", Country: "NL", City: "Amsterdam", Lat: 52.37, Lon: 4.90, At: now.UTC().Add(-20 * time.Minute)},
-			{User: "alex", IP: "203.0.113.7", Country: "DE", City: "Berlin", Lat: 52.52, Lon: 13.40, At: now.UTC().Add(-3 * time.Hour)}},
+	var data struct {
+		AuthentikDataset
+		PerDay [][2]int
 	}
+	demoworld.MustDecode("identity", now, &data)
+	out := data.AuthentikDataset
+	for i, d := range data.PerDay {
+		day := now.UTC().AddDate(0, 0, i-len(data.PerDay)+1).Format(time.DateOnly)
+		out.Days = append(out.Days, AKDay{Day: day, Logins: d[0], Failed: d[1]})
+	}
+	return &out
 }
 
 // DemoPihole is the demo Pi-hole dataset: blocking switched off.
 func DemoPihole(now time.Time) *DNSFilterDataset {
-	return &DNSFilterDataset{URL: "https://pihole.demo", Queries: 48210, Blocked: 9120, Percent: 18.9,
-		Enabled: false, ListsUpdated: now.UTC().AddDate(0, 0, -21), Clients: 14,
-		TopClients: []DNSClient{{IP: "192.168.1.20", Name: "laptop", Queries: 9120, Blocked: 1400}, {IP: "192.168.1.87", Queries: 14200, Blocked: 8700}},
-		TopBlocked: []DNSDomain{{Domain: "telemetry.tv.example", Count: 6100}, {Domain: "ads.example.net", Count: 1900}},
-		Hourly:     demoHours(2000, 900), HourlyBlocked: demoHours(380, 160)}
+	return demoDNS("dns.pihole", now)
+}
+
+// demoDNS is a DNS filter from the world; its hourly counts follow the
+// curve [base, swing].
+func demoDNS(path string, now time.Time) *DNSFilterDataset {
+	var data struct {
+		DNSFilterDataset
+		Curve struct{ Queries, Blocked [2]int }
+	}
+	demoworld.MustDecode(path, now, &data)
+	out := data.DNSFilterDataset
+	out.Hourly, out.HourlyBlocked = demoHours(data.Curve.Queries), demoHours(data.Curve.Blocked)
+	return &out
 }
 
 // demoHours is a day of hourly counts: quiet at night, busy evenings.
-func demoHours(base, swing int) []int {
+func demoHours(curve [2]int) []int {
+	base, swing := curve[0], curve[1]
 	out := make([]int, 24)
 	for h := range out {
 		out[h] = base + swing*((h+6)%24)/24
@@ -727,31 +700,33 @@ func demoHours(base, swing int) []int {
 
 // DemoAdGuard is the demo AdGuard Home dataset.
 func DemoAdGuard() *DNSFilterDataset {
-	return &DNSFilterDataset{URL: "https://adguard.demo", Queries: 30500, Blocked: 4100, Percent: 13.4, Enabled: true,
-		TopClients: []DNSClient{{IP: "192.168.1.31", Queries: 8800}, {IP: "192.168.1.12", Queries: 5100}},
-		TopBlocked: []DNSDomain{{Domain: "metrics.app.example", Count: 1300}},
-		Hourly:     demoHours(1300, 600), HourlyBlocked: demoHours(170, 80)}
+	return demoDNS("dns.adguard", time.Now())
 }
 
 // DemoNextcloud is the demo Nextcloud dataset.
 func DemoNextcloud() *NextcloudDataset {
-	return &NextcloudDataset{URL: "https://cloud.demo", Version: "31.0.8.1", FreeBytes: 7.5 * (1 << 30), Users: 6, Active24: 3,
-		Files: 182340, AppUpdates: 4}
+	data := &NextcloudDataset{}
+	demoworld.MustDecode("cloud", time.Now(), data)
+	return data
 }
 
 // DemoSabnzbd is the demo Sabnzbd dataset.
 func DemoSabnzbd(now time.Time) *SabnzbdDataset {
-	return &SabnzbdDataset{URL: "https://sab.demo", Slots: 3, SpeedKB: 42000, FreeGB: 14.2,
-		Failures: []SabFailure{{Name: "Linux.ISO.2026", Reason: "Unpacking failed, CRC error", At: now.UTC().Add(-5 * time.Hour)}},
-		Queue: []SabItem{{Name: "Debian.13.netinst", Percent: 64, Left: "0:03:10"}, {Name: "Podcast.Archive.2025", Percent: 12, Left: "0:41:55"},
-			{Name: "Photos.Backup", Percent: 0, Left: "1:20:00"}}}
+	data := &SabnzbdDataset{}
+	demoworld.MustDecode("downloads", now, data)
+	return data
 }
 
 // DemoSabStats is the demo SABnzbd volume: four weeks, quieter weekends.
 func DemoSabStats(now time.Time) *SabStats {
 	const gb = 1e9
-	out := &SabStats{Daily: map[string]float64{}, Servers: map[string]float64{"news.demo": 38 * gb, "block.demo": 6 * gb}}
-	for i := range 28 {
+	var stats struct {
+		Days    int
+		Servers map[string]float64
+	}
+	demoworld.MustDecode("downloads.stats", now, &stats)
+	out := &SabStats{Daily: map[string]float64{}, Servers: stats.Servers}
+	for i := range stats.Days {
 		day := now.AddDate(0, 0, -i)
 		v := float64(2+i%5) * gb
 		if wd := day.Weekday(); wd == time.Saturday || wd == time.Sunday {
@@ -769,71 +744,74 @@ func DemoSabStats(now time.Time) *SabStats {
 
 // DemoGluetun is the demo Gluetun dataset: tunnel up, wrong country.
 func DemoGluetun() *GluetunDataset {
-	return &GluetunDataset{URL: "http://gluetun.demo:8000", Status: "running", ExitIP: "185.65.134.10", Country: "Netherlands",
-		OwnIP: "93.184.216.34", ExpectedCountry: "Sweden", Port: 51413}
+	data := &GluetunDataset{}
+	demoworld.MustDecode("vpn", time.Now(), data)
+	return data
 }
 
 // DemoDomains is the demo domain dataset.
 func DemoDomains(now time.Time) *DomainsDataset {
-	return &DomainsDataset{Domains: []DomainInfo{
-		{Name: "example.de", MailChecked: true, SPF: true, DMARC: true},
-		{Name: "example.org", Expires: now.UTC().AddDate(0, 0, 18), MailChecked: true, SPF: true},
-	}}
+	data := &DomainsDataset{}
+	demoworld.MustDecode("domains", now, data)
+	return data
 }
 
 // DemoBlacklist is the demo blacklist dataset.
 func DemoBlacklist() *BlacklistDataset {
-	return &BlacklistDataset{Checked: []string{"93.184.216.34"},
-		Listings: []Listing{{IP: "93.184.216.34", Zone: "bl.spamcop.net", Code: "127.0.0.2"}}}
+	data := &BlacklistDataset{}
+	demoworld.MustDecode("mail_blacklist", time.Now(), data)
+	return data
 }
 
 // demoTimer is a timer on demo project i (Kimai id i+1, as in DemoKimai).
 func demoTimer(i int, activityID int64, activity string, begin time.Time) KimaiTimer {
-	project := demoWorld.Project(demoProjectIDs[i])
+	project := demoWorld.Project(book.Projects[i])
 	t := KimaiTimer{ProjectID: int64(i + 1), ActivityID: activityID, Project: project.Name.DE(), Activity: activity,
 		Customer: demoCustomers[i].Name, Color: project.Color, Begin: begin}
 	if !begin.IsZero() {
-		t.ID = 901
+		t.ID = book.Live.TimerID
 	}
 	return t
 }
 
 // DemoContract is a 40-hour week, Monday to Friday.
 func DemoContract() *WorkContract {
-	const day = 8 * 60
-	return &WorkContract{Day: [7]int{day, day, day, day, day, 0, 0}}
+	return &WorkContract{Day: book.ContractMinutes}
 }
 
 // DemoKimaiLive is the demo live Kimai view: one timer running.
 func DemoKimaiLive(now time.Time) *KimaiLive {
-	begin := now.Add(-47 * time.Minute)
-	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	at := func(h, m int) time.Time { return day.Add(time.Duration(h)*time.Hour + time.Duration(m)*time.Minute) }
-	return &KimaiLive{URL: "https://kimai.demo", TodayMin: 312, WeekMin: 1590, Contract: DemoContract(),
-		Active: []KimaiTimer{demoTimer(1, 7, demoEdit, begin)},
+	b := bookOf(now)
+	edit, meeting := b.Live.Activities.Edit, b.Live.Activities.Meeting
+	begin := now.Add(-time.Duration(b.Live.RunningMin) * time.Minute)
+	return &KimaiLive{URL: b.URLs.Time, TodayMin: b.Live.TodayMin, WeekMin: b.Live.WeekMin, Contract: DemoContract(),
+		Active: []KimaiTimer{demoTimer(1, edit, demoEdit, begin)},
 		Recent: []KimaiTimer{
-			demoTimer(1, 7, demoEdit, time.Time{}),
-			demoTimer(0, 2, demoMeeting, time.Time{}),
+			demoTimer(1, edit, demoEdit, time.Time{}),
+			demoTimer(0, meeting, demoMeeting, time.Time{}),
 		},
-		Today: []KimaiSpan{{Begin: at(9, 5), End: at(11, 40)}, {Begin: at(12, 15), End: at(13, 5)}}}
+		Today: b.Live.Spans}
 }
 
 // DemoKimaiDay is the demo day list: the live view's two blocks plus the
 // running timer.
 func DemoKimaiDay(now time.Time) *KimaiDay {
-	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	at := func(h, m int) time.Time { return day.Add(time.Duration(h)*time.Hour + time.Duration(m)*time.Minute) }
-	first, second := demoTimer(0, 2, demoMeeting, at(9, 5)), demoTimer(1, 7, demoEdit, at(12, 15))
-	first.ID, first.End, first.Billable = 899, at(11, 40), true
-	second.ID, second.End, second.Tags = 900, at(13, 5), []string{"Schnitt"}
-	return &KimaiDay{Sheets: []KimaiTimer{first, second, demoTimer(1, 7, demoEdit, now.Add(-47*time.Minute))}}
+	b := bookOf(now)
+	edit, meeting := b.Live.Activities.Edit, b.Live.Activities.Meeting
+	spans := b.Live.Spans
+	first, second := demoTimer(0, meeting, demoMeeting, spans[0].Begin), demoTimer(1, edit, demoEdit, spans[1].Begin)
+	first.ID, first.End, first.Billable = b.Live.SheetIDs[0], spans[0].End, true
+	second.ID, second.End, second.Tags = b.Live.SheetIDs[1], spans[1].End, b.Live.Tags
+	running := demoTimer(1, edit, demoEdit, now.Add(-time.Duration(b.Live.RunningMin)*time.Minute))
+	return &KimaiDay{Sheets: []KimaiTimer{first, second, running}}
 }
 
 // DemoKimaiCatalog is the demo add-entry choice: two projects, one global
 // and one project activity.
 func DemoKimaiCatalog() *KimaiCatalog {
+	edit, meeting := book.Live.Activities.Edit, book.Live.Activities.Meeting
 	return &KimaiCatalog{
 		Projects:   []KimaiPick{{ID: 2, Name: demoProjectName(1), Customer: demoCustomers[1].Name}, {ID: 1, Name: demoProjectName(0), Customer: demoCustomers[0].Name}},
-		Activities: []KimaiActivityPick{{ID: 7, Name: demoEdit}, {ID: 2, Name: demoMeeting, ProjectID: 1}},
+		Activities: []KimaiActivityPick{{ID: edit, Name: demoEdit}, {ID: meeting, Name: demoMeeting, ProjectID: 1}},
 	}
 }

@@ -24,6 +24,7 @@ import (
 	"andon/internal/drivers/httpclient"
 	"andon/internal/drivers/services"
 	"andon/internal/enums"
+	"andon/internal/sources/demoworld"
 )
 
 const (
@@ -470,7 +471,9 @@ var DomainsResolveSource = source{key: "domains.resolve", ttl: detailTTL, servic
 
 func fetchDomainsResolve(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
-		return &DomainsResolved{Hosts: []HostAddrs{{Host: "example.de", Addrs: []string{"203.0.113.7"}}, {Host: "cloud.example.org", Addrs: []string{"198.51.100.20"}}}}, nil
+		resolved := &DomainsResolved{}
+		demoworld.MustDecode("domains", time.Now(), resolved)
+		return resolved, nil
 	}
 	out := &DomainsResolved{}
 	for _, host := range domainHosts(sctx) {

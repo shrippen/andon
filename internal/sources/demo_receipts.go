@@ -11,23 +11,47 @@ import (
 )
 
 // Demo receipts: the demo Invoice Ninja's expenses and the demo
-// Paperless' scans, taken from the receipts of Studio Weber (package
-// demoworld, the same ones as in DemoInvoiceNinja), set up so each view of
-// the receipts page shows something:
-//
-//	Fotohaus Elbe           invoice number in both → sure match
-//	Kabelwerk Studiobedarf  linked already
-//	Kombüse Catering        amount and vendor only
-//	Elbnetz Mobilfunk       the demo Paperless' invoice (311)
-//	Mietwagen Nord          two receipts that add up (1∶n)
-//	Druckerei Nordlicht     no scan yet
-//	Tankstelle Elbchaussee  a scan tagged "Beleg" without expense (receipts first)
+// Paperless' scans, from the world's receipts and the cases in
+// "documents.receipts", set up so each view of the receipts page shows
+// something: a sure match, a link, amount and vendor only, the Paperless
+// invoice, two scans that add up (1∶n), no scan yet, a scan without expense.
 
-const (
-	demoDocsURL = "https://docs.demo"
-	// DemoReceiptTag is the demo Paperless' tag of scans waiting for an expense.
-	DemoReceiptTag = "Beleg"
-)
+// demoReceiptSetup is the world's "documents.receipts".
+type demoReceiptSetup struct {
+	URL, Tag string
+	Slots    []string
+	Fields   [4]string
+	Cases    []struct {
+		Receipt         int
+		Vendor          string
+		Day             int
+		Expense, Number string
+		Invoice, Linked bool
+		Scans           []struct {
+			ID                         int64
+			Title, Correspondent, Text string
+			Amount, Rest, Tagged       bool
+			Part                       float64
+			Day                        int
+		}
+	}
+}
+
+func receiptsOf(now time.Time) *demoReceiptSetup {
+	r := &demoReceiptSetup{}
+	demoworld.MustDecode("documents.receipts", now, r)
+	return r
+}
+
+// demoDocsURL is the demo Paperless.
+func demoDocsURL() string {
+	var docs struct{ URL string }
+	demoworld.MustDecode("documents", time.Now(), &docs)
+	return docs.URL
+}
+
+// DemoReceiptTag is the demo Paperless' tag of scans waiting for an expense.
+func DemoReceiptTag() string { return receiptsOf(time.Now()).Tag }
 
 // Demo Paperless custom field ids.
 const (
@@ -57,46 +81,50 @@ type demoScan struct {
 // receipts are days from Monday of this week.
 func demoReceipts(today time.Time) []demoReceipt {
 	monday := demoMonday(today)
-	w := func(id int) (demoworld.Receipt, time.Time) {
-		r := demoWorld.Receipt(id)
-		return r, monday.AddDate(0, 0, r.Day)
-	}
 	euro := func(v float64) string { return strings.Replace(strconv.FormatFloat(v, 'f', 2, 64), ".", ",", 1) }
+	var out []demoReceipt
+	for _, c := range receiptsOf(today).Cases {
+		r := demoReceipt{expense: c.Expense, number: c.Number, linked: c.Linked}
+		if c.Vendor != "" {
+			v := demoWorld.Vendor(c.Vendor)
+			r.vendor, r.notes, r.amount, r.day = v.Name, v.Kind.DE(), v.Monthly, today.AddDate(0, 0, c.Day)
+		} else {
+			w := demoWorld.Receipt(c.Receipt)
+			r.vendor, r.notes, r.amount, r.day = w.Vendor, w.Note.DE(), w.Amount, monday.AddDate(0, 0, w.Day)
+			if c.Invoice {
+				r.invoice = w.Number
+			}
+		}
 
-	film, filmDay := w(1)
-	cable, cableDay := w(2)
-	catering, cateringDay := w(3)
-	car, carDay := w(4)
-	fuel, fuelDay := w(5)
-	printing, printingDay := w(6)
-	phoneDay := today.AddDate(0, 0, -23) // DemoPaperless' invoice 311
-	phone := demoMobile
-	return []demoReceipt{
-		{expense: "demo1", number: "EX-0041", vendor: film.Vendor, notes: film.Note.DE(), invoice: film.Number, amount: film.Amount, day: filmDay,
-			docs: []demoScan{{id: 201, title: "Rechnung " + film.Number, correspondent: film.Vendor + " GmbH",
-				text: "Rechnungsnr. " + film.Number + " Gesamtbetrag " + euro(film.Amount) + " EUR", amount: film.Amount, day: filmDay.AddDate(0, 0, 1)}}},
-		{expense: "demo2", number: "EX-0042", vendor: cable.Vendor, notes: cable.Note.DE(), invoice: cable.Number, amount: cable.Amount, day: cableDay, linked: true,
-			docs: []demoScan{{id: 202, title: "Rechnung " + cable.Vendor, correspondent: cable.Vendor,
-				text: "Rechnung " + cable.Number + " Summe " + euro(cable.Amount) + " EUR", amount: cable.Amount, day: cableDay}}},
-		{expense: "demo3", number: "EX-0043", vendor: catering.Vendor, notes: catering.Note.DE(), amount: catering.Amount, day: cateringDay,
-			docs: []demoScan{{id: 203, title: catering.Vendor, correspondent: catering.Vendor, text: "Total " + euro(catering.Amount) + " EUR",
-				day: cateringDay.AddDate(0, 0, 1)}}},
-		{expense: "demo4", number: "EX-0044", vendor: phone.Name, notes: phone.Kind.DE(), amount: phone.Monthly, day: phoneDay,
-			docs: []demoScan{{id: 311, title: "Rechnung 09/2026", correspondent: phone.Name, text: "Rechnungsbetrag " + euro(phone.Monthly) + " EUR", amount: phone.Monthly, day: phoneDay}}},
-		{expense: "demo5", number: "EX-0045", vendor: car.Vendor, notes: car.Note.DE(), amount: car.Amount, day: carDay,
-			docs: []demoScan{{id: 204, title: "Quittung " + car.Vendor, correspondent: car.Vendor, text: "Summe 99,00", amount: 99, day: carDay, tagged: true},
-				{id: 205, title: "Quittung " + car.Vendor, correspondent: car.Vendor, text: "Summe " + euro(car.Amount-99), amount: round2(car.Amount - 99),
-					day: carDay.AddDate(0, 0, 1), tagged: true}}},
-		{expense: "demo6", number: "EX-0046", vendor: printing.Vendor, notes: printing.Note.DE(), amount: printing.Amount, day: printingDay},
-		{docs: []demoScan{{id: 206, title: "Tankquittung", correspondent: fuel.Vendor, text: "Betrag " + euro(fuel.Amount) + " EUR",
-			amount: fuel.Amount, day: fuelDay, tagged: true}}},
+		// A scan carries the whole amount, a part of it or the rest.
+		rest := r.amount
+		for _, s := range c.Scans {
+			amount := r.amount
+			switch {
+			case s.Part > 0:
+				amount = s.Part
+				rest -= s.Part
+			case s.Rest:
+				amount = round2(rest)
+			}
+			scan := demoScan{id: s.ID, title: s.Title, correspondent: s.Correspondent, day: r.day.AddDate(0, 0, s.Day),
+				text: strings.ReplaceAll(s.Text, "{amount}", euro(amount)), tagged: s.Tagged}
+			if s.Amount || s.Part > 0 || s.Rest {
+				scan.amount = amount
+			}
+			r.docs = append(r.docs, scan)
+		}
+		out = append(out, r)
 	}
+	return out
 }
 
 // DemoExpenses is the demo Invoice Ninja's expense list.
 func DemoExpenses(now time.Time) *ExpenseSet {
 	today := demoDay(now)
-	set := &ExpenseSet{URL: "https://invoices.demo", Slots: [NinjaSlots]string{"Rechnungsnummer", "Paperless"}}
+	setup := receiptsOf(today)
+	set := &ExpenseSet{URL: setup.URL}
+	copy(set.Slots[:], setup.Slots)
 	for _, r := range demoReceipts(today) {
 		if r.expense == "" {
 			continue
@@ -115,9 +143,11 @@ func DemoExpenses(now time.Time) *ExpenseSet {
 // DemoDocs is the demo Paperless' documents of one year (0 = all).
 func DemoDocs(now time.Time, year int) *DocSet {
 	today := demoDay(now)
-	set := &DocSet{URL: demoDocsURL, Tags: map[string]int64{strings.ToLower(DemoReceiptTag): 1}, TagNames: []string{DemoReceiptTag},
-		Fields: []DocField{{demoFieldInvoice, "Rechnungsnummer", "string"}, {demoFieldExpense, "Ausgabe", "string"},
-			{demoFieldLink, "Invoice Ninja", "url"}, {demoFieldAmount, "Betrag", "monetary"}}}
+	setup := receiptsOf(today)
+	f := setup.Fields
+	set := &DocSet{URL: demoDocsURL(), Tags: map[string]int64{strings.ToLower(setup.Tag): 1}, TagNames: []string{setup.Tag},
+		Fields: []DocField{{demoFieldInvoice, f[0], "string"}, {demoFieldExpense, f[1], "string"},
+			{demoFieldLink, f[2], "url"}, {demoFieldAmount, f[3], "monetary"}}}
 	for _, r := range demoReceipts(today) {
 		for _, s := range r.docs {
 			created := s.day
@@ -132,7 +162,7 @@ func DemoDocs(now time.Time, year int) *DocSet {
 			if r.linked {
 				doc.Custom[demoFieldExpense] = r.number
 				doc.Custom[demoFieldInvoice] = r.invoice
-				doc.Custom[demoFieldLink] = "https://invoices.demo/expenses/" + r.expense + "/edit"
+				doc.Custom[demoFieldLink] = setup.URL + "/expenses/" + r.expense + "/edit"
 			}
 			if s.tagged {
 				doc.Tags = []int64{1}
@@ -148,7 +178,7 @@ func DemoDocs(now time.Time, year int) *DocSet {
 func DemoReceiptOptions() (ninja, paperless map[string]any) {
 	return map[string]any{"receipt_invoice_slot": 1, "receipt_link_slot": 2},
 		map[string]any{"receipt_field_invoice": demoFieldInvoice, "receipt_field_expense": demoFieldExpense,
-			"receipt_field_link": demoFieldLink, "receipt_field_amount": demoFieldAmount, "receipt_queue_tag": DemoReceiptTag}
+			"receipt_field_link": demoFieldLink, "receipt_field_amount": demoFieldAmount, "receipt_queue_tag": DemoReceiptTag()}
 }
 
 // demoThumb draws a demo scan as a small paper receipt (SVG): who,
@@ -191,7 +221,7 @@ func shortText(s string, n int) string {
 }
 
 func demoDocURL(id int64) string {
-	return demoDocsURL + "/documents/" + strconv.FormatInt(id, 10) + "/"
+	return demoDocsURL() + "/documents/" + strconv.FormatInt(id, 10) + "/"
 }
 
 // demoSearch filters the demo documents like Paperless would, roughly.

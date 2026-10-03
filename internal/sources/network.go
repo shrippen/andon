@@ -16,6 +16,7 @@ import (
 
 	"andon/internal/drivers/services"
 	"andon/internal/enums"
+	"andon/internal/sources/demoworld"
 )
 
 const (
@@ -331,16 +332,15 @@ func defaultRoute(iface map[string]any) bool {
 // ── Demo ──
 
 func DemoTailscale(now time.Time) *TailscaleDataset {
-	return &TailscaleDataset{URL: "https://api.tailscale.com", Devices: []TailDevice{
-		{Name: "nas", Online: true, LastSeen: now, Tags: []string{"tag:server"}, OS: "linux", Client: "1.88.1"},
-		{Name: "laptop", Online: true, LastSeen: now, KeyExpiry: now.AddDate(0, 0, 9), OS: "macOS", Client: "1.88.1"},
-		{Name: "pi", LastSeen: now.AddDate(0, 0, -12), Update: true, Tags: []string{"tag:server", "tag:iot"}, OS: "linux", Client: "1.80.3"},
-	}}
+	data := &TailscaleDataset{}
+	demoworld.MustDecode("tailnet", now, data)
+	return data
 }
 
 func DemoGateway() *GatewayDataset {
-	return &GatewayDataset{URL: "https://opnsense.demo", Kind: gatewayOPNsense, Version: "25.7.3", Updates: 2,
-		Gateways: []GatewayLink{{Name: "WAN_DHCP", Up: true, DelayMS: 11.4}, {Name: "LTE", Up: false, Loss: 100}}}
+	data := &GatewayDataset{}
+	demoworld.MustDecode("gateway", time.Now(), data)
+	return data
 }
 
 func init() {

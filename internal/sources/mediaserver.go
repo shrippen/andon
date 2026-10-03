@@ -16,6 +16,7 @@ import (
 
 	"andon/internal/drivers/services"
 	"andon/internal/enums"
+	"andon/internal/sources/demoworld"
 )
 
 const (
@@ -392,7 +393,17 @@ func pad2(n int) string {
 
 // DemoMediaPlays is a month of evenings: more at weekends.
 func DemoMediaPlays(now time.Time) *MediaPlays {
-	out := &MediaPlays{Daily: map[string]int{}, Titles: map[string]int{demoProjectName(0): 9, demoWorld.Media.Album.Title: 6, demoProjectName(1): 4}}
+	var data struct {
+		Titles []struct {
+			Title string
+			Plays int
+		}
+	}
+	demoworld.MustDecode("library", now, &data)
+	out := &MediaPlays{Daily: map[string]int{}, Titles: map[string]int{}}
+	for _, t := range data.Titles {
+		out.Titles[t.Title] = t.Plays
+	}
 	for i := range PlayDays {
 		day := now.AddDate(0, 0, -i)
 		n := 1 + i%3
@@ -405,17 +416,15 @@ func DemoMediaPlays(now time.Time) *MediaPlays {
 }
 
 func DemoMediaServer() *MediaServerDataset {
-	return &MediaServerDataset{URL: "https://jellyfin.demo", Kind: mediaJellyfin, Version: "10.10.7", Movies: 1204, Series: 86, Episodes: 4310,
-		Streams: []Stream{{User: demoWorld.Person("selin").Alias, Title: demoProjectName(0)},
-			{User: demoWorld.Person("theo").Alias, Title: demoWorld.Media.Album.Title}}}
+	data := &MediaServerDataset{}
+	demoworld.MustDecode("library", time.Now(), data)
+	return data
 }
 
 func DemoArr(now time.Time) *ArrDataset {
-	show := demoWorld.Project(demoProjectIDs[0]).Short
-	return &ArrDataset{URL: "https://sonarr.demo", App: sonarrApp, Version: "4.0.15", Queue: 3, Missing: 12,
-		Stuck:    []string{strings.ReplaceAll(show, " ", ".") + ".S02E04"},
-		Health:   []ArrHealth{{Level: arrWarning, Message: "Indexer Elbindex is unavailable"}},
-		Upcoming: []ArrItem{{Title: show + " 2x05", At: now.Add(26 * time.Hour)}, {Title: show + " 2x06", At: now.Add(80 * time.Hour)}}}
+	data := &ArrDataset{}
+	demoworld.MustDecode("series", now, data)
+	return data
 }
 
 func init() {

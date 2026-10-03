@@ -13,9 +13,11 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"andon/internal/drivers/services"
 	"andon/internal/enums"
+	"andon/internal/sources/demoworld"
 )
 
 // Container health as Docker reports it in the status text.
@@ -89,13 +91,12 @@ func parseDocker(base string, body any) *DockerDataset {
 
 // DemoDocker is the demo Docker dataset: one unhealthy, one crashed.
 func DemoDocker() *DockerDataset {
-	return &DockerDataset{URL: "http://docker-proxy.demo:2375", Containers: []Container{
-		{Name: "gitea", Image: "gitea/gitea:1.24", State: StateRunning, Status: "Up 6 days (healthy)", Health: HealthHealthy},
-		{Name: "immich-server", Image: "ghcr.io/immich-app/immich-server:v1.131.0", State: StateRunning, Status: "Up 2 days (healthy)", Health: HealthHealthy},
-		{Name: "paperless", Image: "paperlessngx/paperless-ngx", State: StateRunning, Status: "Up 3 hours (unhealthy)", Health: HealthUnhealthy},
-		{Name: "restic-nightly", Image: "restic/restic", State: StateExited, Status: "Exited (0) 5 hours ago"},
-		{Name: "umami", Image: "ghcr.io/umami-software/umami", State: StateExited, Status: "Exited (137) 40 minutes ago", ExitCode: 137},
-	}}
+	var data struct {
+		URL  string
+		List []Container
+	}
+	demoworld.MustDecode("containers", time.Now(), &data)
+	return &DockerDataset{URL: data.URL, Containers: data.List}
 }
 
 // ContainerInfo is what a dialog adds to a container when it opens.
@@ -209,18 +210,18 @@ const dockerFrameHead = 8
 // DemoDockerDetail adds restarts, a memory kill and log lines to the demo
 // containers.
 func DemoDockerDetail() *DockerDetail {
-	return &DockerDetail{Info: map[string]ContainerInfo{
-		"gitea":         {CPU: 1.2, MemMB: 182, MemLimitMB: 1024},
-		"immich-server": {CPU: 14.5, MemMB: 1630, MemLimitMB: 4096},
-		"paperless": {CPU: 3.1, MemMB: 640, Restarts: 2, Logs: []string{
-			"[2026-10-02 07:58:12] celery.worker: Connected to redis://broker:6379/0",
-			"[2026-10-02 08:01:40] paperless.consumer: Waiting for redis… health check failed",
-			"[2026-10-02 08:01:40] password=*** (masked)"}},
-		"restic-nightly": {},
-		"umami": {Restarts: 5, OOMKilled: true, Logs: []string{
-			"Listening on port 3000",
-			"FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory"}},
-	}}
+	var data struct {
+		List []struct {
+			Name string
+			ContainerInfo
+		}
+	}
+	demoworld.MustDecode("containers", time.Now(), &data)
+	out := &DockerDetail{Info: map[string]ContainerInfo{}}
+	for _, c := range data.List {
+		out.Info[c.Name] = c.ContainerInfo
+	}
+	return out
 }
 
 func init() {

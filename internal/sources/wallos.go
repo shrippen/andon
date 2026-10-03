@@ -105,16 +105,23 @@ func fetchWallos(ctx context.Context, sctx Ctx) (any, error) {
 // DemoWallos is the demo Wallos dataset: the studio's suppliers from the
 // demo world plus its domain; the software subscription in Sure is missing.
 func DemoWallos(now time.Time) *WallosDataset {
-	next := func(days int) string { return now.AddDate(0, 0, days).Format(time.DateOnly) }
-	sub := func(v demoworld.Vendor, days int) WallosSub {
-		return WallosSub{Name: v.Name, Price: v.Monthly, Monthly: v.Monthly, Next: next(days), Category: v.Kind.DE()}
+	var data struct {
+		URL, Currency string
+		Subs          []struct {
+			WallosSub
+			Vendor string
+		}
 	}
-	return &WallosDataset{URL: "https://wallos.demo", Currency: "EUR", Subs: []WallosSub{
-		sub(demoHosting, 4),
-		sub(demoWorld.Vendor("elbstrom"), 18),
-		{Name: "Domain " + demoWorld.Studio.Domain, Price: 24, Monthly: 2, Next: next(21), Category: demoHosting.Kind.DE()},
-		sub(demoWorld.Vendor("wellenklang"), 9),
-	}}
+	demoworld.MustDecode("subscriptions", now, &data)
+	out := &WallosDataset{URL: data.URL, Currency: data.Currency}
+	for _, s := range data.Subs {
+		if s.Vendor != "" {
+			v := demoWorld.Vendor(s.Vendor)
+			s.Name, s.Price, s.Monthly, s.Category = v.Name, v.Monthly, v.Monthly, v.Kind.DE()
+		}
+		out.Subs = append(out.Subs, s.WallosSub)
+	}
+	return out
 }
 
 func init() {

@@ -15,6 +15,7 @@ import (
 
 	"andon/internal/drivers/services"
 	"andon/internal/enums"
+	"andon/internal/sources/demoworld"
 )
 
 const (
@@ -116,10 +117,9 @@ func dateOf(s string) string { return s[:min(len(s), len(time.DateOnly))] }
 // DemoTandoor is the demo shopping list: what the demo Grocy misses, and
 // the week's plan.
 func DemoTandoor(now time.Time) *TandoorDataset {
-	day := func(n int) string { return now.AddDate(0, 0, n).Format(time.DateOnly) }
-	return &TandoorDataset{URL: "https://tandoor.demo",
-		Items: []ShopItem{{ID: 1, Food: "Milch", Amount: 2, Unit: "l", Category: "Kühlregal"}, {ID: 2, Food: "Brot", Amount: 1, Category: "Bäckerei"}},
-		Meals: []Meal{{Day: day(0), Title: "Linsensuppe", Type: "Mittagessen"}, {Day: day(2), Title: "Ofengemüse", Type: "Abendessen"}}}
+	data := &TandoorDataset{}
+	demoworld.MustDecode("kitchen", now, data)
+	return data
 }
 
 func init() {
