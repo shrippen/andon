@@ -400,3 +400,41 @@ func TestHomeFollowsProfileStartBoard(t *testing.T) {
 		t.Fatalf("home goes to %q, want the profile's start board %q", got, second)
 	}
 }
+
+// TestTileEditDialog: the tile strip's edit link opens the editor in a
+// dialog instead of swapping the editor page into the section (the strip
+// is a form aimed at its section; boosted links inherited that target).
+func TestTileEditDialog(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	postForm(t, client, srv.URL+"/widgets", url.Values{"csrf": {csrf}, "space_id": {string(space)}, "type": {"note"}, "title": {"My Note"}, "cfg.text": {"hi"}})
+	boardURL, section, version, widget := placeTarget(t, srv, client, "My Note")
+	board := boardIDFrom(boardURL)
+	postForm(t, client, srv.URL+"/boards/"+board+"/sections/"+section+"/place", url.Values{"csrf": {csrf}, "widget_id": {widget}, "version": {version}})
+
+	page := string(mustGet(t, srv, client, boardURL+"?edit"))
+	strip := regexp.MustCompile(`(?s)<form id="tile-strip".*?</form>`).FindString(page)
+	edit := regexp.MustCompile(`<a [^>]*data-dialog="(/widgets/\{widget\}/edit\?board=\d+&(?:amp;)?dialog)"[^>]*>`).FindStringSubmatch(strip)
+	if edit == nil {
+		t.Fatalf("strip has no edit dialog link:\n%s", strip)
+	}
+	for _, a := range regexp.MustCompile(`<a [^>]*>`).FindAllString(strip, -1) {
+		if !strings.Contains(a, `hx-boost="false"`) {
+			t.Fatalf("strip link inherits the section target: %s", a)
+		}
+	}
+
+	dialog := string(mustGet(t, srv, client, strings.ReplaceAll(strings.ReplaceAll(edit[1], "&amp;", "&"), "{widget}", widget)))
+	for _, want := range []string{`class="detail-head"`, `id="detail-title"`, `id="widget-form"`, `action="/widgets/` + widget + `/edit"`, `data-detail-close`, `id="preview"`} {
+		if !strings.Contains(dialog, want) {
+			t.Fatalf("edit dialog misses %q:\n%s", want, dialog)
+		}
+	}
+	if strings.Contains(dialog, "<html") || strings.Contains(dialog, "<nav") {
+		t.Fatal("edit dialog renders a whole page")
+	}
+}

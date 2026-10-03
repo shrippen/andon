@@ -856,6 +856,10 @@
         dlg.innerHTML = html;
         applyStyles(dlg);
         mountMaps(dlg);
+        // The widget editor's live preview is an htmx form.
+        if (window.htmx) {
+          htmx.process(dlg);
+        }
       });
   }
 

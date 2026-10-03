@@ -265,6 +265,10 @@
       b.setAttribute("formaction", b.getAttribute("data-act").replace("{placement}", id));
     });
     // Boosted links keep the href htmx saw first: process them again.
+    [].forEach.call(s.querySelectorAll("[data-dialog]"), function (a) {
+      // andon.js opens [data-details] in the detail dialog; the href stays for a new tab.
+      a.setAttribute("data-details", a.getAttribute("data-dialog").replace("{widget}", tile.getAttribute("data-widget")));
+    });
     [].forEach.call(s.querySelectorAll("[data-href]"), function (a) {
       a.setAttribute("href", a.getAttribute("data-href").replace("{widget}", tile.getAttribute("data-widget")));
       if (typeof htmx !== "undefined") {

@@ -177,8 +177,9 @@
   <label class="check pick-check"><input type="checkbox" data-pick><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
   <small title="{{t "edit.repeated"}}" data-repeat hidden></small>
   <span class="gap"></span>
-  <a href="/widgets" data-href="/widgets/{widget}/edit?board={{.Board.ID}}" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><i class="ico ico-edit"></i></a>
-  <a href="/widgets" data-href="/shares/widget/{widget}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><i class="ico ico-share"></i></a>
+  {{/* Plain links: inside this form, boosted links would load into the section. */}}
+  <a href="/widgets" hx-boost="false" data-href="/widgets/{widget}/edit?board={{.Board.ID}}" data-dialog="/widgets/{widget}/edit?board={{.Board.ID}}&dialog" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}"><i class="ico ico-edit"></i></a>
+  <a href="/widgets" hx-boost="false" data-href="/shares/widget/{widget}" aria-label="{{t "edit.share"}}" title="{{t "edit.share"}}"><i class="ico ico-share"></i></a>
   <button type="submit" name="rows" data-act="/placements/{placement}/rows" data-toggle="rows"><i class="ico ico-height"></i></button>
   <button type="submit" name="cols" data-act="/placements/{placement}/cols" data-toggle="cols"><i class="ico ico-width"></i></button>
   <button class="is-danger" type="submit" data-act="/placements/{placement}/unplace" aria-label="{{t "edit.remove"}}" title="{{t "edit.remove"}}"><i class="ico ico-x"></i></button>

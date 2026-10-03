@@ -236,12 +236,21 @@
 <body>
   {{template "header" .}}
   <main>
+    {{template "widget_editor" .}}
+  </main>
+</body>
+</html>
+{{end}}
+
+{{/* The widget editor: form, live preview, delete. On its own page
+     (widget_form) and in the board's dialog (widget_dialog). */}}
+{{define "widget_editor"}}
     <div class="editor-split">
       <form method="post" action="{{if .Widget}}/widgets/{{.Widget.ID}}/edit{{else}}/widgets{{end}}" class="card wf" id="widget-form"
             hx-post="/widget-preview" hx-trigger="input changed delay:350ms from:#widget-form, load" hx-target="#preview" hx-swap="innerHTML">
-        {{if not .Widget}}<a class="label" href="/widgets/new?space={{.Target.SpaceID}}{{if .Target.Place}}&section={{.Target.SectionID}}&board={{.Target.BoardID}}&version={{.Target.Version}}{{end}}">← {{t "gallery.other"}}</a>{{end}}
-        <span class="label">{{t (print "topic." .Topic)}}{{with .Dest.Section}} · {{t "gallery.into"}} {{$.Dest.Board}} › {{.}}{{end}}</span>
-        <h1>{{t (print "wtype." .Kind.Key ".name")}}</h1>
+        {{if and (not .Widget) (not .Dialog)}}<a class="label" href="/widgets/new?space={{.Target.SpaceID}}{{if .Target.Place}}&section={{.Target.SectionID}}&board={{.Target.BoardID}}&version={{.Target.Version}}{{end}}">← {{t "gallery.other"}}</a>{{end}}
+        {{if not .Dialog}}<span class="label">{{t (print "topic." .Topic)}}{{with .Dest.Section}} · {{t "gallery.into"}} {{$.Dest.Board}} › {{.}}{{end}}</span>{{end}}
+        {{if not .Dialog}}<h1>{{t (print "wtype." .Kind.Key ".name")}}</h1>{{end}}
         <p class="muted">{{t (print "wtype." .Kind.Key ".desc")}}</p>
         {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
 
@@ -292,7 +301,8 @@
 
         <div class="row-actions">
           <button type="submit" class="btn btn-accent">{{if and .Target.Place (not .Widget)}}{{with .Dest.Section}}{{t "gallery.add_to" "section" .}}{{else}}{{t "gallery.add"}}{{end}}{{else}}{{t "action.save"}}{{end}}</button>
-          <a class="btn btn-outline btn-sm" href="{{.Target.Back}}">{{t "action.cancel"}}</a>
+          {{if .Dialog}}<button type="button" class="btn btn-outline btn-sm" data-detail-close>{{t "action.cancel"}}</button>
+          {{- else}}<a class="btn btn-outline btn-sm" href="{{.Target.Back}}">{{t "action.cancel"}}</a>{{end}}
         </div>
       </form>
 
@@ -316,9 +326,19 @@
     {{if .Widget}}
       {{template "danger_zone" dict "Action" (print "/widgets/" .Widget.ID "/delete") "Text" (t "widget.delete_hint") "Button" (t "action.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{end}}
-  </main>
-</body>
-</html>
+{{end}}
+
+{{/* The editor in the board's detail dialog (GET /widgets/{id}/edit?dialog):
+     a section is often too narrow for it. Saving reloads the board. */}}
+{{define "widget_dialog"}}
+<header class="detail-head">
+  <div class="detail-name">
+    <span class="detail-sub">{{t (print "topic." .Topic)}}</span>
+    <h3 id="detail-title">{{if .Title}}{{.Title}}{{else}}{{t (print "wtype." .Kind.Key ".name")}}{{end}}</h3>
+  </div>
+  <button type="button" class="btn btn-outline btn-sm btn-icon" data-detail-close aria-label="{{t "detail.close"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</header>
+<div class="detail-body"><section class="detail-main">{{template "widget_editor" .}}</section></div>
 {{end}}
 
 {{/* Preview of an unsaved link tile; other types render their own
