@@ -599,7 +599,7 @@ func placeTarget(t *testing.T, srv *httptest.Server, client *http.Client, title 
 		t.Fatalf("no add link in edit mode:\n%s", board)
 	}
 	gallery := mustGet(t, srv, client, strings.ReplaceAll(string(add[0]), "&amp;", "&"))
-	widget := regexp.MustCompile(`<b>` + regexp.QuoteMeta(title) + `</b>[\s\S]*?name="widget_id" value="(\d+)"`).FindSubmatch(gallery)
+	widget := regexp.MustCompile(`<b>` + regexp.QuoteMeta(title) + `</b>[\s\S]*?data-reuse="(\d+)"`).FindSubmatch(gallery)
 	if widget == nil {
 		t.Fatalf("expected %q in the gallery:\n%s", title, gallery)
 	}

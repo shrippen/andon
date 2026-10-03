@@ -32,10 +32,31 @@
       return;
     }
     var dialog = d.getElementById(opener.getAttribute("data-open"));
-    if (dialog && dialog.showModal && !dialog.open) {
-      dialog.showModal();
+    if (!dialog || !dialog.showModal || dialog.open) {
+      return;
     }
+    if (opener.hasAttribute("data-reuse")) {
+      fillReuse(dialog, opener);
+    }
+    dialog.showModal();
   });
+
+  // fillReuse points the shared reuse dialog at the card's tile:
+  // widget id into the place form and the copy action, name and kind
+  // into the texts. The copy action keeps {widget} in data-action.
+  function fillReuse(dialog, opener) {
+    var id = opener.getAttribute("data-reuse");
+    dialog.querySelector('input[name="widget_id"]').value = id;
+    [].forEach.call(dialog.querySelectorAll('form[action*="{widget}"], form[data-action]'), function (form) {
+      if (!form.hasAttribute("data-action")) {
+        form.setAttribute("data-action", form.getAttribute("action"));
+      }
+      form.setAttribute("action", form.getAttribute("data-action").replace("{widget}", id));
+    });
+    [].forEach.call(dialog.querySelectorAll("[data-fill]"), function (el) {
+      el.textContent = opener.getAttribute("data-" + el.getAttribute("data-fill")) || "";
+    });
+  }
 
   window.andonPage(function () {
     var q = d.getElementById("gal-q");
