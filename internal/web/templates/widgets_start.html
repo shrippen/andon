@@ -21,7 +21,7 @@
 <ul class="feed{{if $.Frag.Config.Compact}} is-compact{{end}}"{{if ne $.Frag.Config.Height "auto"}} data-height="{{$.Frag.Config.Height}}"{{end}}>
   {{range $feed.Items}}
   <li{{if and .Image (not $.Frag.Config.Compact)}} class="has-image"{{end}}>
-    {{if not $.Frag.Config.Compact}}{{with .Image}}<img class="feed-image" src="{{. | dataURI}}" alt="" loading="lazy">{{end}}{{end}}
+    {{if not $.Frag.Config.Compact}}{{with or .Thumb .Image}}<img class="feed-image" src="{{. | dataURI}}" alt="" loading="lazy">{{end}}{{end}}
     {{if .Link}}<a href="{{.Link}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a>{{else}}{{.Title}}{{end}}
     {{if .Published}}<time datetime="{{.Published}}">{{day .Published}}</time>{{end}}
     {{if and $.Frag.Config.Summary .Summary (not $.Frag.Config.Compact)}}<p class="muted small">{{.Summary}}</p>{{end}}

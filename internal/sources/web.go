@@ -263,6 +263,7 @@ type FeedItem struct {
 	Published string // ISO 8601, "" if unknown
 	Summary   string
 	Image     string // data: URI, only when asked for
+	Thumb     string // Image scaled down for the tile, "" if Image is small or not scalable
 	imageURL  string
 }
 
@@ -292,9 +293,18 @@ func fetchFeedSource(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	targets = slices.DeleteFunc(targets[1:], func(u string) bool { return u == "" })
 	targets = append([]string{asStr(sctx.Params["url"])}, targets...)
-	var merged *FeedResult
+	// All feeds at once: a slow one costs its own wait, not the sum.
+	parsedAll := make([]*FeedResult, len(targets))
+	errs := make([]error, len(targets))
+	var wg sync.WaitGroup
 	for i, target := range targets {
-		parsed, err := fetchFeed(ctx, target)
+		wg.Go(func() { parsedAll[i], errs[i] = fetchFeed(ctx, target) })
+	}
+	wg.Wait()
+
+	var merged *FeedResult
+	for i := range targets {
+		parsed, err := parsedAll[i], errs[i]
 		if err != nil {
 			if i == 0 {
 				return nil, err
@@ -339,15 +349,30 @@ func fetchFeedSource(ctx context.Context, sctx Ctx) (any, error) {
 		merged.Items = merged.Items[:limit]
 	}
 	if asBool(sctx.Params["images"]) {
-		for i := range merged.Items[:min(len(merged.Items), feedImages)] {
-			if u := merged.Items[i].imageURL; u != "" {
-				if img, err := fetchImage(ctx, u, feedImageMax); err == nil {
-					merged.Items[i].Image = img.DataURI
-				}
-			}
-		}
+		feedPictures(ctx, merged.Items[:min(len(merged.Items), feedImages)])
 	}
 	return merged, nil
+}
+
+// feedPictures loads the items' pictures side by side: the full one for
+// the detail dialog, a thumbnail for the tile (a tile of six pictures
+// carried ~600 KB of data: URIs on every page view before).
+func feedPictures(ctx context.Context, items []FeedItem) {
+	var wg sync.WaitGroup
+	for i := range items {
+		u := items[i].imageURL
+		if u == "" {
+			continue
+		}
+		wg.Go(func() {
+			img, err := fetchImage(ctx, u, feedImageMax)
+			if err != nil {
+				return
+			}
+			items[i].Image, items[i].Thumb = img.DataURI, thumbnail(img.DataURI)
+		})
+	}
+	wg.Wait()
 }
 
 func fetchFeed(ctx context.Context, target string) (*FeedResult, error) {

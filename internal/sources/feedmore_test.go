@@ -1,7 +1,13 @@
 package sources_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"fmt"
+	"image"
+	"image/color"
+	"image/jpeg"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -48,6 +54,73 @@ func TestFeedsMergeAgeAndImages(t *testing.T) {
 	for _, it := range items {
 		if !strings.HasPrefix(it.Image, "data:image/png;base64,") {
 			t.Fatalf("image of %s: %q", it.Title, it.Image)
+		}
+	}
+}
+
+// TestFeedImageThumb: the tile gets a small copy of a big feed picture;
+// the full picture stays for the detail dialog. Pictures and feeds load
+// side by side, so six slow pictures cost one wait, not six.
+func TestFeedImageThumb(t *testing.T) {
+	const pictures, delay = 6, 300 * time.Millisecond
+	big := image.NewRGBA(image.Rect(0, 0, 1920, 1080))
+	for y := range 1080 {
+		for x := range 1920 {
+			big.Set(x, y, color.RGBA{R: uint8(x / 8), G: uint8(y / 5), B: 128, A: 255})
+		}
+	}
+	var pic bytes.Buffer
+	if err := jpeg.Encode(&pic, big, &jpeg.Options{Quality: 60}); err != nil {
+		t.Fatal(err)
+	}
+
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/a", "/b":
+			time.Sleep(delay)
+			var items strings.Builder
+			for i := range pictures / 2 {
+				fmt.Fprintf(&items, `<item><title>%s%d</title><media:thumbnail url="%s/pic%s%d.jpg"/></item>`, r.URL.Path, i, srv.URL, r.URL.Path[1:], i)
+			}
+			w.Write([]byte(`<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel><title>A</title>` + items.String() + `</channel></rss>`))
+		default:
+			time.Sleep(delay)
+			w.Header().Set("Content-Type", "image/jpeg")
+			w.Write(pic.Bytes())
+		}
+	}))
+	defer srv.Close()
+
+	source, _ := sources.Get("rss")
+	start := time.Now()
+	out, err := source.Fetch(context.Background(), sources.Ctx{Params: map[string]any{"url": srv.URL + "/a", "urls": []string{srv.URL + "/b"},
+		"images": true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if took := time.Since(start); took > 4*delay {
+		t.Errorf("fetch took %v: feeds or pictures load one after the other", took)
+	}
+
+	items := out.(*sources.FeedResult).Items
+	if len(items) != pictures {
+		t.Fatalf("%d items", len(items))
+	}
+	for _, it := range items {
+		if it.Image == "" || it.Thumb == "" {
+			t.Fatalf("%s: image %d B, thumb %d B", it.Title, len(it.Image), len(it.Thumb))
+		}
+		raw, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(it.Thumb, "data:image/jpeg;base64,"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := jpeg.DecodeConfig(bytes.NewReader(raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.Width > 400 || cfg.Height > 200 || len(it.Thumb) > len(it.Image)/4 {
+			t.Errorf("thumb %dx%d, %d of %d B", cfg.Width, cfg.Height, len(it.Thumb), len(it.Image))
 		}
 	}
 }
