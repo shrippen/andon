@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -35,8 +37,7 @@ func dockerView(cfg DockerConfig, data *sources.DockerDataset, _ ViewCtx) map[st
 	for _, c := range data.Containers {
 		tier := "green"
 		switch {
-		case c.Health == sources.HealthUnhealthy, c.State == sources.StateRestarting,
-			c.State == sources.StateExited && c.ExitCode != 0:
+		case metrics.ContainerUnhealthy(c), metrics.ContainerCrashed(c):
 			tier = "red"
 		case c.State != sources.StateRunning:
 			tier = ""
@@ -67,7 +68,8 @@ func init() {
 
 // umamiView: visitors of the last 7 days per site, with the change
 // against the week before (a drop in red).
-func umamiView(cfg UmamiConfig, data *sources.UmamiDataset, _ ViewCtx) map[string]any {
+func umamiView(cfg UmamiConfig, data *sources.UmamiDataset, ctx ViewCtx) map[string]any {
+	drop, minPrev := umamiLimits(ctx)
 	var sites []sources.Site
 	visitors := 0
 	for _, s := range data.Sites {
@@ -84,10 +86,9 @@ func umamiView(cfg UmamiConfig, data *sources.UmamiDataset, _ ViewCtx) map[strin
 	var bars []HBar
 	for _, s := range sites[:min(len(sites), barsShown)] {
 		bar := HBar{Label: s.Name, Value: strconv.Itoa(s.Visitors), W: pctOf(float64(s.Visitors), float64(top))}
-		if s.PrevVisit > 0 {
-			change := (s.Visitors - s.PrevVisit) * pctFull / s.PrevVisit
-			bar.Value += fmt.Sprintf(" (%+d %%)", change)
-			if change <= -umamiDrop {
+		if change, ok := metrics.VisitorChange(s); ok {
+			bar.Value += fmt.Sprintf(" (%+d %%)", int(change*pctFull))
+			if metrics.VisitorDrop(s, drop, minPrev) {
 				bar.Tier = "red"
 			}
 		}
@@ -96,8 +97,10 @@ func umamiView(cfg UmamiConfig, data *sources.UmamiDataset, _ ViewCtx) map[strin
 	return map[string]any{"Visitors": visitors, "Sites": len(sites), "Bars": bars}
 }
 
-// umamiDrop marks a site whose visitors fell by this many percent.
-const umamiDrop = 30
+// umamiLimits are umami.traffic_drop's drop share and minimum visitors.
+func umamiLimits(ctx ViewCtx) (drop, minPrev float64) {
+	return rules.Setting(ctx.Settings, "umami.traffic_drop", "drop"), rules.Setting(ctx.Settings, "umami.traffic_drop", "min_visitors")
+}
 
 // ── immich ──
 
@@ -107,26 +110,26 @@ func init() {
 }
 
 // immichView: library size, disk use, failed jobs and a pending update.
-func immichView(_ struct{}, data *sources.ImmichDataset, _ ViewCtx) map[string]any {
+func immichView(_ struct{}, data *sources.ImmichDataset, ctx ViewCtx) map[string]any {
 	failed := 0
 	for _, n := range data.FailedJobs {
 		failed += n
 	}
-	tier := ""
-	switch {
-	case data.DiskPercent >= immichDiskRed:
-		tier = "red"
-	case data.DiskPercent >= immichDiskYellow:
-		tier = "yellow"
-	}
-	return map[string]any{"Data": data, "Photos": float64(data.Photos), "Failed": failed, "DiskTier": tier, "Disk": int(data.DiskPercent),
+	return map[string]any{"Data": data, "Photos": float64(data.Photos), "Failed": failed, "DiskTier": immichDiskTier(data, ctx), "Disk": int(data.DiskPercent),
 		"Update": data.Latest != "" && data.Latest != data.Version}
 }
 
-const (
-	immichDiskYellow = 80
-	immichDiskRed    = 90
-)
+// immichDiskTier colours the disk use with immich.storage's limits.
+func immichDiskTier(data *sources.ImmichDataset, ctx ViewCtx) string {
+	share := data.DiskPercent / percentScale
+	switch {
+	case share >= rules.Setting(ctx.Settings, "immich.storage", "critical"):
+		return "red"
+	case share >= rules.Setting(ctx.Settings, "immich.storage", "warn"):
+		return "yellow"
+	}
+	return ""
+}
 
 // ── linkwarden ──
 

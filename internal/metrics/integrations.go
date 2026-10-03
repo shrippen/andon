@@ -3,6 +3,7 @@ package metrics
 // Info lines and views of the network, media and everyday integrations.
 
 import (
+	"strings"
 	"time"
 
 	"andon/internal/sources"
@@ -63,7 +64,7 @@ func ArrInfo(data *sources.ArrDataset) []InfoPart {
 func VaultwardenInfo(data *sources.VaultwardenDataset) []InfoPart {
 	without := 0
 	for _, u := range data.Users {
-		if u.Enabled && !u.TwoFactor {
+		if No2FA(u) {
 			without++
 		}
 	}
@@ -82,7 +83,7 @@ func SpeedtestInfo(data *sources.SpeedtestDataset) []InfoPart {
 // GrocyInfo: "1 expired · 2 due soon · 1 missing".
 func GrocyInfo(data *sources.GrocyDataset) []InfoPart {
 	var found []InfoPart
-	if n := len(data.Expired) + len(data.Overdue); n > 0 {
+	if n := len(GrocyPastDue(data)); n > 0 {
 		found = append(found, part("grocy.expired", map[string]any{"count": n}))
 	}
 	soon := data.SoonWithin(sources.GrocySoonDays, time.Now())
@@ -106,7 +107,7 @@ func GitHubInfo(data *sources.GitHubDataset) []InfoPart {
 	prs, failed := 0, 0
 	for _, r := range data.Repos {
 		prs += r.PRs
-		if r.CI == "failure" {
+		if RedCI(r) {
 			failed++
 		}
 	}
@@ -145,4 +146,65 @@ func CheapWindow(prices []sources.PricePoint, now time.Time, hours int) (start t
 		return time.Time{}, 0, false
 	}
 	return start, best / float64(hours), true
+}
+
+// GrocyPastDue are the products past their date: expired (use-by) and
+// overdue (best-before), as Grocy's stock overview marks both.
+func GrocyPastDue(d *sources.GrocyDataset) []sources.Product {
+	return append(append([]sources.Product(nil), d.Expired...), d.Overdue...)
+}
+
+// GrocyLateChores are the chores due before today.
+func GrocyLateChores(d *sources.GrocyDataset, today time.Time) []sources.Chore {
+	var out []sources.Chore
+	for _, c := range d.Chores {
+		if c.Due.Before(today) {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// No2FA tells an active account without a second factor.
+func No2FA(u sources.VaultUser) bool { return u.Enabled && !u.TwoFactor }
+
+// RedCI tells a repo whose latest run on the default branch failed.
+func RedCI(r sources.GitRepo) bool { return r.CI == ciFailure }
+
+// ciFailure is GitHub's conclusion of a failed run.
+const ciFailure = "failure"
+
+// DeviceGone tells a device unseen for more than days; it no longer
+// counts for key or update checks.
+func DeviceGone(d sources.TailDevice, today time.Time, days float64) bool {
+	return !d.Online && !d.LastSeen.IsZero() && today.Sub(d.LastSeen).Hours()/hoursPerDay > days
+}
+
+// KeyExpiring tells a device key that runs out within days (or already has).
+func KeyExpiring(d sources.TailDevice, today time.Time, days float64) bool {
+	return !d.KeyExpiry.IsZero() && d.KeyExpiry.Sub(today).Hours()/hoursPerDay <= days
+}
+
+// StaleUser tells an account without a login for more than days (or never).
+func StaleUser(u sources.AKUser, today time.Time, days float64) bool {
+	return u.LastLogin.IsZero() || today.Sub(u.LastLogin).Hours()/hoursPerDay > days
+}
+
+// FeedSilent tells a feed without a new entry for more than days.
+func FeedSilent(f sources.Feed, today time.Time, days float64) bool {
+	return !f.Newest.IsZero() && today.Sub(f.Newest).Hours()/hoursPerDay > days
+}
+
+// EnergyTotals adds up the cost and consumption of days.
+func EnergyTotals(days []sources.EnergyDay) (cost, kwh float64) {
+	for _, d := range days {
+		cost, kwh = cost+d.Cost, kwh+d.KWh
+	}
+	return cost, kwh
+}
+
+// WarningRank orders weather warning severities: minor 1 … extreme 4,
+// 0 for an unknown one.
+func WarningRank(severity string) int {
+	return map[string]int{sources.WarnMinor: 1, sources.WarnModerate: 2, sources.WarnSevere: 3, sources.WarnExtreme: 4}[strings.ToLower(severity)]
 }

@@ -15,6 +15,7 @@ import (
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -173,14 +174,24 @@ type StorageRow struct {
 	Label        string
 	Used, Ahead  float64
 	FullIn       int    // days, -1 = not filling
-	FullOn, Tier string // Tier: red within 30 days, yellow within 90
+	FullOn, Tier string // Tier: red within system.storage_forecast's critical days, yellow within its warning days
 }
 
-const (
-	storageAhead = 30
-	storageRed   = 30
-	storageWarn  = 90
-)
+const storageAhead = 30
+
+// fullTier colours days until full with system.storage_forecast's
+// limits: red within its critical days, yellow within its warning days.
+func fullTier(fullIn int, ctx ViewCtx) string {
+	switch {
+	case fullIn < 0:
+		return ""
+	case float64(fullIn) < rules.Setting(ctx.Settings, "system.storage_forecast", "critical_days"):
+		return "red"
+	case float64(fullIn) < rules.Setting(ctx.Settings, "system.storage_forecast", "warn_days"):
+		return "yellow"
+	}
+	return ""
+}
 
 // StorageConfig is the "storage_forecast" widget's config.
 type StorageConfig struct {
@@ -229,12 +240,7 @@ func storageView(cfg StorageConfig, results map[string]any, ctx ViewCtx) map[str
 			perDay := (1 - f.Used) / float64(max(f.FullIn, 1))
 			row.Ahead = min(perDay*float64(cfg.Ahead), 1-f.Used) * pctFull
 		}
-		switch {
-		case f.FullIn >= 0 && f.FullIn < storageRed:
-			row.Tier = "red"
-		case f.FullIn >= 0 && f.FullIn < storageWarn:
-			row.Tier = "yellow"
-		}
+		row.Tier = fullTier(f.FullIn, ctx)
 		rows = append(rows, row)
 	}
 	return map[string]any{"Rows": rows, "Ahead": cfg.Ahead}

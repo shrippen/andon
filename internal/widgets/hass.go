@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -29,12 +31,9 @@ type HassRow struct {
 	ID, Name, Value, Unit string
 	Toggle, On            bool
 	Missing               bool
-	Low                   bool   // a battery below batteryLow
+	Low                   bool   // a battery below hass.battery_low's warning level
 	Level                 string // from the tile's thresholds: warn, fail
 }
-
-// batteryLow is the charge (%) below which a battery shows red.
-const batteryLow = 15
 
 // HassToggleable reports whether a configured entity can be switched.
 func HassToggleable(cfg any, entityID string) bool {
@@ -51,7 +50,8 @@ func HassToggleable(cfg any, entityID string) bool {
 	return false
 }
 
-func hassView(cfg HassConfig, data *sources.HassDataset, _ ViewCtx) map[string]any {
+func hassView(cfg HassConfig, data *sources.HassDataset, ctx ViewCtx) map[string]any {
+	warn := rules.Setting(ctx.Settings, "hass.battery_low", "warn")
 	rows := make([]HassRow, 0, len(cfg.Entities))
 	for _, id := range cfg.Entities {
 		e, found := data.Find(id)
@@ -67,8 +67,10 @@ func hassView(cfg HassConfig, data *sources.HassDataset, _ ViewCtx) map[string]a
 		if own := cfg.Labels[strings.ToLower(id)]; own != "" {
 			row.Name = own
 		}
+		if level, isBattery := metrics.BatteryLevel(e); isBattery {
+			row.Low = level < warn
+		}
 		if n, err := strconv.ParseFloat(e.State, 64); err == nil {
-			row.Low = e.DeviceClass == "battery" && n < batteryLow
 			row.Level = levelOf(id, n, cfg.Thresholds)
 			if row.Level == "" {
 				row.Level = levelOf(row.Name, n, cfg.Thresholds)

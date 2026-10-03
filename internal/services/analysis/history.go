@@ -3,10 +3,10 @@ package analysis
 // Each run stores the scope's key figures and version changes, then
 // hands the stored history to the rules:
 //
-//	datasets → metrics.Samples  → samples (one value per key and day)
-//	datasets → metrics.Tallies  → samples, added up per day (monitor uptime)
-//	datasets → metrics.BackupMarks → samples, 1 on days with a backup
-//	datasets → metrics.Versions → versions; a change → events ("update")
+//	datasets → metrics.Read → Values   → samples (one value per key and day)
+//	                          Counts   → samples, added up per day (monitor uptime)
+//	                          Versions → versions; a change → events ("update")
+//	                          States   → versions; a change → events ("change")
 //	samples (history.SeriesDays) + events (eventDays) → Datasets["history"]
 
 import (
@@ -33,37 +33,46 @@ func recordHistory(d *sql.DB, sc *scope, now time.Time) (*metrics.History, error
 	owner := ownerID(sc.owner)
 	day := now.Format(time.DateOnly)
 	err := db.WithTx(d, func(tx *sql.Tx) error {
-		if err := data.PutSamples(tx, sc.spaceID, owner, day, metrics.Samples(sc.datasets)); err != nil {
+		read := metrics.Read(sc.datasets, now)
+		if err := data.PutSamples(tx, sc.spaceID, owner, day, read.Values); err != nil {
 			return err
 		}
-		if err := data.AddSamples(tx, sc.spaceID, owner, day, metrics.Tallies(sc.datasets)); err != nil {
-			return err
-		}
-		if err := data.PutSamples(tx, sc.spaceID, owner, day, metrics.BackupMarks(sc.datasets, now)); err != nil {
+		if err := data.AddSamples(tx, sc.spaceID, owner, day, read.Counts); err != nil {
 			return err
 		}
 		known, err := data.Versions(tx, sc.spaceID, owner)
 		if err != nil {
 			return err
 		}
-		for subject, version := range metrics.Versions(sc.datasets) {
-			if e, ok := metrics.VersionEvent(subject, known[subject], version, now); ok {
-				if err := data.AddEvent(tx, sc.spaceID, data.Event{At: e.At, Kind: e.Kind, Subject: e.Subject, Detail: e.Detail, Owner: owner}); err != nil {
-					return err
-				}
-			}
-			if known[subject] != version {
-				if err := data.SetVersion(tx, sc.spaceID, owner, subject, version, now); err != nil {
-					return err
-				}
-			}
+		if err := recordChanges(tx, sc.spaceID, owner, known, read.Versions, metrics.VersionEvent, now); err != nil {
+			return err
 		}
-		return nil
+		return recordChanges(tx, sc.spaceID, owner, known, read.States, metrics.StateEvent, now)
 	})
 	if err != nil {
 		return nil, err
 	}
 	return history.Load(d, sc.spaceID, owner, now)
+}
+
+// recordChanges stores the current values of subjects and an event for
+// each change the event function sees.
+func recordChanges(tx *sql.Tx, spaceID, owner int64, known, current map[string]string,
+	event func(subject, old, now string, at time.Time) (metrics.Event, bool), now time.Time) error {
+	for subject, value := range current {
+		if e, ok := event(subject, known[subject], value, now); ok {
+			if err := data.AddEvent(tx, spaceID, data.Event{At: e.At, Kind: e.Kind, Subject: e.Subject, Detail: e.Detail, Owner: owner}); err != nil {
+				return err
+			}
+		}
+		if known[subject] == value {
+			continue
+		}
+		if err := data.SetVersion(tx, spaceID, owner, subject, value, now); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // PruneHistory drops samples older than history.SeriesDays and events older

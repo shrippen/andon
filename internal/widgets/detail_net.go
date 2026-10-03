@@ -3,19 +3,20 @@ package widgets
 // Detail dialogs of the network and security tiles.
 
 import (
+	"cmp"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
 	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
 const (
 	speedDetailDays = 30
 	dnsTopDetail    = 10
-	tailKeyWarnDays = 14
 	inactiveDays    = 90
 )
 
@@ -151,8 +152,8 @@ func speedDetail(_ SpeedConfig, data *sources.SpeedtestDataset, ctx ViewCtx, res
 		}
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.speed.history"), Hero: true, Data: g})
 	}
-	body.Facts = []Kpi{{Value: NumU(data.Down, 0, "Mbit/s"), Label: T("detail.speed.down"), Tier: speedTier(data.Down, data.ExpectDown)},
-		{Value: NumU(data.Up, 0, "Mbit/s"), Label: T("detail.speed.up"), Tier: speedTier(data.Up, data.ExpectUp)},
+	body.Facts = []Kpi{{Value: NumU(data.Down, 0, "Mbit/s"), Label: T("detail.speed.down"), Tier: speedTier(data.Down, data.ExpectDown, contractShare(ctx))},
+		{Value: NumU(data.Up, 0, "Mbit/s"), Label: T("detail.speed.up"), Tier: speedTier(data.Up, data.ExpectUp, contractShare(ctx))},
 		{Value: NumU(data.Ping, 0, "ms"), Label: T("detail.speed.ping")}}
 	if data.Jitter > 0 {
 		body.Facts = append(body.Facts, Kpi{Value: NumU(data.Jitter, 1, "ms"), Label: T("detail.speed.jitter")})
@@ -164,11 +165,11 @@ func speedDetail(_ SpeedConfig, data *sources.SpeedtestDataset, ctx ViewCtx, res
 	return DetailView{Body: body}
 }
 
-func speedTier(got, want float64) string {
+func speedTier(got, want, share float64) string {
 	if want <= 0 {
 		return ""
 	}
-	return tierIf(got < want*speedWarn, "yellow", "green")
+	return tierIf(metrics.BelowContract(got, want, share), "yellow", "green")
 }
 
 // speedHistoryDetail (grid): every stored day as a column, slow days marked.
@@ -195,7 +196,7 @@ func speedHistoryDetail(cfg SpeedHistoryConfig, results map[string]any, ctx View
 		if worst == 0 || v < worst {
 			worst = v
 		}
-		if expect > 0 && v < expect*speedWarn {
+		if metrics.BelowContract(v, expect, contractShare(ctx)) {
 			states[i], slow = "warn", slow+1
 		}
 	}
@@ -216,9 +217,9 @@ func speedHistoryDetail(cfg SpeedHistoryConfig, results map[string]any, ctx View
 }
 
 // tailscaleDetail (grid): every device with its state, key and tags.
-func tailscaleDetail(cfg TailscaleConfig, data *sources.TailscaleDataset, _ ViewCtx, results map[string]any) DetailView {
+func tailscaleDetail(cfg TailscaleConfig, data *sources.TailscaleDataset, ctx ViewCtx, results map[string]any) DetailView {
 	now := time.Now()
-	soon := now.AddDate(0, 0, tailKeyWarnDays)
+	warn := rules.Setting(ctx.Settings, "tailscale.key_expiry", "warn_days")
 	online, expiring, updates := 0, 0, 0
 	var cards []LitRow
 	var rows [][]Cell
@@ -231,7 +232,7 @@ func tailscaleDetail(cfg TailscaleConfig, data *sources.TailscaleDataset, _ View
 		keyState := ""
 		if !d.KeyExpiry.IsZero() {
 			key = Day(d.KeyExpiry)
-			if d.KeyExpiry.Before(soon) {
+			if metrics.KeyExpiring(d, now, warn) {
 				keyState, expiring = "warn", expiring+1
 				if state == "ok" {
 					state = "warn"
@@ -304,7 +305,7 @@ func publicIPDetail(cfg PublicIPConfig, results map[string]any, ctx ViewCtx) Det
 }
 
 // authentikDetail (tabs): logins, failures, applications, accounts.
-func authentikDetail(cfg AuthentikConfig, data *sources.AuthentikDataset, _ ViewCtx, results map[string]any) DetailView {
+func authentikDetail(cfg AuthentikConfig, data *sources.AuthentikDataset, ctx ViewCtx, results map[string]any) DetailView {
 	loginRows := func(list []sources.AKLogin) [][]Cell {
 		var rows [][]Cell
 		for _, l := range list {
@@ -322,10 +323,10 @@ func authentikDetail(cfg AuthentikConfig, data *sources.AuthentikDataset, _ View
 	for _, a := range data.Apps {
 		apps = append(apps, ShareBar{Name: a.Name, Pct: float64(a.Events) * percentScale / float64(most), Value: a.Events})
 	}
-	stale := time.Now().AddDate(0, 0, -inactiveDays)
+	staleDays := rules.Setting(ctx.Settings, "authentik.stale_users", "days")
 	var users [][]Cell
 	for _, u := range data.Users {
-		users = append(users, []Cell{{Value: u.Name}, {Value: agoOf(u.LastLogin), State: stateIf(u.LastLogin.IsZero() || u.LastLogin.Before(stale), "warn")}})
+		users = append(users, []Cell{{Value: u.Name}, {Value: agoOf(u.LastLogin), State: stateIf(metrics.StaleUser(u, time.Now(), staleDays), "warn")}})
 	}
 	version := data.Version
 	if data.Outdated && data.Latest != "" {
@@ -353,30 +354,29 @@ func expiryDetail(cfg ExpiryConfig, results map[string]any, ctx ViewCtx) DetailV
 	today := todayOf(ctx)
 	var events []Event
 	var doms [][]Cell
-	tier := func(left int, failed string) string {
-		switch {
-		case failed != "" || left < expiryRedDays:
+	tier := func(left int, failed string, warn, info float64) string {
+		if failed != "" {
 			return "red"
-		case left < expiryWarnDays:
-			return "yellow"
 		}
-		return "cyan"
+		return cmp.Or(dueTier(left, warn, info), "cyan")
 	}
 	if certs, ok := results["data"].(*sources.CertDataset); ok && cfg.Kinds != "domains" {
+		warn, info := expiryLimits(ctx.Settings, "certs.expiring")
 		for _, c := range certs.Certs {
 			left := int(c.NotAfter.Sub(today).Hours() / hoursPerDay)
 			sub := any(c.Issuer)
 			if c.Error != "" {
 				sub = c.Error
 			}
-			events = append(events, Event{At: c.NotAfter, Title: c.Host, Sub: sub, State: TxtA("detail.days", "n", left), Tier: tier(left, c.Error)})
+			events = append(events, Event{At: c.NotAfter, Title: c.Host, Sub: sub, State: TxtA("detail.days", "n", left), Tier: tier(left, c.Error, warn, info)})
 		}
 	}
 	if d, ok := results[peerDomains].(*sources.DomainsDataset); ok && cfg.Kinds != "certs" {
+		warn, info := expiryLimits(ctx.Settings, "domains.expiring")
 		for _, dm := range d.Domains {
 			left := int(dm.Expires.Sub(today).Hours() / hoursPerDay)
 			if !dm.Expires.IsZero() {
-				events = append(events, Event{At: dm.Expires, Title: dm.Name, Sub: Txt("detail.expiry.domain"), State: TxtA("detail.days", "n", left), Tier: tier(left, dm.Error)})
+				events = append(events, Event{At: dm.Expires, Title: dm.Name, Sub: Txt("detail.expiry.domain"), State: TxtA("detail.days", "n", left), Tier: tier(left, dm.Error, warn, info)})
 			}
 			mail := func(ok bool) Cell {
 				if !dm.MailChecked {
@@ -400,12 +400,6 @@ func expiryDetail(cfg ExpiryConfig, results map[string]any, ctx ViewCtx) DetailV
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
 }
-
-// Days left that turn an expiry red or yellow.
-const (
-	expiryRedDays  = 14
-	expiryWarnDays = 30
-)
 
 // exposureDetail (list and detail): public resources by risk.
 func exposureDetail(cfg ExposureConfig, results map[string]any, ctx ViewCtx) DetailView {

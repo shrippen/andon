@@ -150,29 +150,12 @@ type budgetRow struct {
 	Monthly bool // a monthly time budget: the month is its period
 }
 
-// kimaiBudgets: money budgets use their running total, monthly time
-// budgets are recomputed from this month's timesheets.
+// kimaiBudgets: each project's budget use as kimai.budget_burn counts it.
 func kimaiBudgets(data *sources.KimaiDataset, today time.Time) []budgetRow {
 	var rows []budgetRow
 	for _, p := range data.Projects {
-		switch {
-		case p.Budget > 0:
-			rows = append(rows, budgetRow{Name: p.Name, Pct: p.UsedMoney / p.Budget})
-		case p.TimeBudgetMin > 0:
-			used := p.UsedMinutes
-			if p.BudgetType == "month" {
-				start := metrics.MonthStart(today)
-				used = 0
-				for _, s := range data.Timesheets {
-					if s.ProjectID != p.ID {
-						continue
-					}
-					if d, ok := metrics.ParseDay(s.Begin); ok && !d.Before(start) {
-						used += s.Minutes
-					}
-				}
-			}
-			rows = append(rows, budgetRow{Name: p.Name, Pct: float64(used) / float64(p.TimeBudgetMin), Monthly: p.BudgetType == "month"})
+		if share, ok := metrics.BudgetUse(p, data, today); ok {
+			rows = append(rows, budgetRow{Name: p.Name, Pct: share, Monthly: p.BudgetType == "month"})
 		}
 	}
 	sort.Slice(rows, func(i, j int) bool { return rows[i].Pct > rows[j].Pct })

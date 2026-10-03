@@ -85,32 +85,35 @@ func Backups(borg *sources.BorgDataset, pg *sources.PGBackDataset, nas *sources.
 	return rows
 }
 
-// BackupMarks is, per backup item, 1 when its newest backup falls on
-// now's day, else 0. Stored once a day (the last run wins), the marks give
-// the item's history even though the tools report only the newest backup.
-func BackupMarks(datasets map[string]any, now time.Time) map[string]float64 {
-	var borg *sources.BorgDataset
-	var pg *sources.PGBackDataset
-	var nas *sources.TrueNASDataset
-	for _, raw := range datasets {
-		switch d := raw.(type) {
-		case *sources.BorgDataset:
-			borg = d
-		case *sources.PGBackDataset:
-			pg = d
-		case *sources.TrueNASDataset:
-			nas = d
+// Per backup item, 1 when its newest backup falls on now's day, else 0.
+// Stored once a day (the last run wins), the marks give the item's history
+// even though the tools report only the newest backup.
+func init() {
+	RecordScope(func(datasets map[string]any, now time.Time, r *Readings) {
+		var borg *sources.BorgDataset
+		var pg *sources.PGBackDataset
+		var nas *sources.TrueNASDataset
+		for _, raw := range datasets {
+			switch d := raw.(type) {
+			case *sources.BorgDataset:
+				borg = d
+			case *sources.PGBackDataset:
+				pg = d
+			case *sources.TrueNASDataset:
+				nas = d
+			}
 		}
-	}
-	out := map[string]float64{}
-	for _, row := range Backups(borg, pg, nas, now, 0) {
-		mark := 0.0
-		if !row.Last.IsZero() && Today(row.Last).Equal(Today(now)) {
-			mark = 1
+		if borg == nil && pg == nil && nas == nil {
+			return
 		}
-		out[backupKey(row.Tool, row.Item)] = mark
-	}
-	return out
+		for _, row := range Backups(borg, pg, nas, now, 0) {
+			mark := 0.0
+			if !row.Last.IsZero() && Today(row.Last).Equal(Today(now)) {
+				mark = 1
+			}
+			r.Set(backupKey(row.Tool, row.Item), mark)
+		}
+	})
 }
 
 // backupKey keeps the item's own spelling apart from key()'s dot rule.

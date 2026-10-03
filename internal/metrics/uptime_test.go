@@ -11,8 +11,8 @@ import (
 // TestUptimeDays: each run counts once per monitor; a day's share is up
 // runs over all runs, days without runs are unknown (-1).
 func TestUptimeDays(t *testing.T) {
-	tally := metrics.Tallies(map[string]any{"kuma": &sources.KumaDataset{Monitors: []sources.KumaMonitor{
-		{Name: "NAS", Status: sources.KumaDown}, {Name: "Shop", Status: sources.KumaUp}}}})
+	tally := metrics.Read(map[string]any{"kuma": &sources.KumaDataset{Monitors: []sources.KumaMonitor{
+		{Name: "NAS", Status: sources.KumaDown}, {Name: "Shop", Status: sources.KumaUp}}}}, time.Now()).Counts
 	if tally["kuma.runs.nas"] != 1 || tally["kuma.up.nas"] != 0 || tally["kuma.up.shop"] != 1 {
 		t.Fatalf("tallies: %v", tally)
 	}

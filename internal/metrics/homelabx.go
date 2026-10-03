@@ -495,6 +495,10 @@ type SpeedReport struct {
 // wanRule names the hint whose history holds WAN outages.
 const wanRule = "gateway.wan_down"
 
+// BelowContract tells a download speed under share of the booked one
+// (none booked: never).
+func BelowContract(down, expect, share float64) bool { return expect > 0 && down < expect*share }
+
 // SpeedDays reads the stored daily speeds and WAN outages of the last days.
 func SpeedDays(h *History, expectDown, share float64, now time.Time, days int) SpeedReport {
 	var r SpeedReport
@@ -505,7 +509,7 @@ func SpeedDays(h *History, expectDown, share float64, now time.Time, days int) S
 			continue
 		}
 		u, _ := ValueOn(up, p.Day)
-		d := SpeedDay{Day: p.Day, Down: p.Value, Up: u, Below: expectDown > 0 && p.Value < expectDown*share}
+		d := SpeedDay{Day: p.Day, Down: p.Value, Up: u, Below: BelowContract(p.Value, expectDown, share)}
 		if d.Below {
 			r.BelowDays++
 		}
@@ -637,4 +641,20 @@ func hostOnly(raw string) string {
 	}
 	raw = strings.SplitN(raw, "/", 2)[0]
 	return strings.SplitN(raw, ":", 2)[0]
+}
+
+// VisitorChange is a site's change in visitors against the week before,
+// as a share (-0.4 = 40 % fewer); ok is false without a week before.
+func VisitorChange(s sources.Site) (float64, bool) {
+	if s.PrevVisit == 0 {
+		return 0, false
+	}
+	return float64(s.Visitors-s.PrevVisit) / float64(s.PrevVisit), true
+}
+
+// VisitorDrop tells a site whose visitors fell by at least drop, judged
+// only with at least minPrev visitors the week before.
+func VisitorDrop(s sources.Site, drop, minPrev float64) bool {
+	change, ok := VisitorChange(s)
+	return ok && float64(s.PrevVisit) >= minPrev && -change >= drop
 }

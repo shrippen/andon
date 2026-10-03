@@ -38,3 +38,18 @@ func TestOnSkipsOtherData(t *testing.T) {
 		t.Fatalf("found = %v", found)
 	}
 }
+
+// TestSetting: a space's override wins over the default; unknown rules
+// and keys are 0.
+func TestSetting(t *testing.T) {
+	if got := Setting(nil, "hass.battery_low", "warn"); got != 20 {
+		t.Fatalf("default: %v", got)
+	}
+	own := map[string]any{"rules": map[string]any{"hass.battery_low": map[string]any{"warn": 30.0}}}
+	if got := Setting(own, "hass.battery_low", "warn"); got != 30 {
+		t.Fatalf("override: %v", got)
+	}
+	if Setting(own, "no.such", "warn") != 0 || Setting(own, "hass.battery_low", "nope") != 0 {
+		t.Fatal("unknown not 0")
+	}
+}

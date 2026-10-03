@@ -189,7 +189,7 @@ func hostOf(all map[string]*Host, name string) *Host {
 
 // versionOf is the version a dataset reports, "" if none.
 func versionOf(service string, data any) string {
-	for _, v := range metrics.Versions(map[string]any{service: data}) {
+	for _, v := range metrics.Read(map[string]any{service: data}, time.Now()).Versions {
 		if !strings.HasPrefix(v, "pending:") {
 			return v
 		}

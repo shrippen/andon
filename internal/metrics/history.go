@@ -3,9 +3,11 @@ package metrics
 // Key figure history: what the analysis stores each run and what rules
 // read back as trends.
 //
-//	datasets ──Samples──► {"truenas.pool.tank.used": 0.81, …} ──► table samples (daily)
-//	datasets ──Versions─► {"immich": "v1.132.3", …}         ──► change = event "update"
+//	datasets ──Read──► Values {"truenas.pool.tank.used": 0.81, …} ──► table samples (daily)
+//	                   Versions {"immich": "v1.132.3", …}      ──► change = event "update"
 //	samples + events ──► History ──► rules (forecast, before/after)
+//
+// Recorders: see record.go.
 
 import (
 	"sort"
@@ -117,103 +119,85 @@ func key(parts ...string) string {
 // SampleKey builds a series key from parts ("kuma", "ms", "NAS.lan") → "kuma.ms.nas_lan".
 func SampleKey(parts ...string) string { return key(parts...) }
 
-// Samples extracts today's key figures from a scope's datasets.
-func Samples(datasets map[string]any) map[string]float64 {
-	out := map[string]float64{}
-	for _, raw := range datasets {
-		switch d := raw.(type) {
-		case *sources.TrueNASDataset:
-			for _, p := range d.Pools {
-				if p.Size > 0 {
-					out[key("truenas", "pool", p.Name, "used")] = p.Allocated / p.Size
-				}
+// The history of the services without a file of their own: daily
+// figures and running versions.
+func init() {
+	Record(func(d *sources.TrueNASDataset, _ time.Time, r *Readings) {
+		for _, p := range d.Pools {
+			if p.Size > 0 {
+				r.Set(key("truenas", "pool", p.Name, "used"), p.Allocated/p.Size)
 			}
-		case *sources.ProxmoxDataset:
-			for _, n := range d.Nodes {
-				for _, s := range n.Storages {
-					if s.Total > 0 {
-						out[key("proxmox", "storage", n.Name+"/"+s.Name, "used")] = s.Used / s.Total
-					}
-				}
-			}
-		case *sources.BorgDataset:
-			if d.TotalBytes > 0 {
-				out[key("borg", "used")] = d.UsedBytes / d.TotalBytes
-			}
-		case *sources.ImmichDataset:
-			out[key("immich", "items")] = float64(d.Photos + d.Videos)
-			if d.DiskPercent > 0 {
-				out[key("immich", "disk", "used")] = d.DiskPercent / percentScale
-			}
-		case *sources.NextcloudDataset:
-			out[key("nextcloud", "files")] = float64(d.Files)
-		case *sources.SpeedtestDataset:
-			if !d.At.IsZero() {
-				out[key("speedtest", "down")] = d.Down
-				out[key("speedtest", "up")] = d.Up
-			}
-		case *sources.SureDataset:
-			out[key("sure", "cash")] = SureCash(d)
-		case *sources.KumaDataset:
-			for _, m := range d.Monitors {
-				if m.MS > 0 {
-					out[key("kuma", "ms", m.Name)] = m.MS
-				}
-			}
-		case *sources.DNSFilterDataset:
-			for _, c := range d.TopClients {
-				out[key("dns", "q", c.IP)] = float64(c.Queries)
-			}
-		case *sources.PaperlessDataset:
-			if d.Total >= 0 {
-				out[key("paperless", "docs")] = float64(d.Total)
-			}
-		case *sources.AuthentikDataset:
-			// One marker per user and country a login came from.
-			for _, l := range d.Logins {
-				if l.Country != "" {
-					out[key("authentik", "country", l.User, l.Country)] = 1
+		}
+		r.Version("TrueNAS", d.Version)
+	})
+	Record(func(d *sources.ProxmoxDataset, _ time.Time, r *Readings) {
+		for _, n := range d.Nodes {
+			for _, s := range n.Storages {
+				if s.Total > 0 {
+					r.Set(key("proxmox", "storage", n.Name+"/"+s.Name, "used"), s.Used/s.Total)
 				}
 			}
 		}
-	}
-	return out
-}
-
-// Versions extracts the running versions of a scope's services.
-func Versions(datasets map[string]any) map[string]string {
-	out := map[string]string{}
-	put := func(subject, version string) {
-		if version != "" {
-			out[subject] = version
+	})
+	Record(func(d *sources.BorgDataset, _ time.Time, r *Readings) {
+		if d.TotalBytes > 0 {
+			r.Set(key("borg", "used"), d.UsedBytes/d.TotalBytes)
 		}
-	}
-	for _, raw := range datasets {
-		switch d := raw.(type) {
-		case *sources.ImmichDataset:
-			put("Immich", d.Version)
-		case *sources.AuthentikDataset:
-			put("authentik", d.Version)
-		case *sources.TrueNASDataset:
-			put("TrueNAS", d.Version)
-		case *sources.NextcloudDataset:
-			put("Nextcloud", d.Version)
-		case *sources.MediaServerDataset:
-			put(d.Kind, d.Version)
-		case *sources.ArrDataset:
-			put(d.App, d.Version)
-		case *sources.GatewayDataset:
-			put(d.Kind, d.Version)
-		case *sources.VaultwardenDataset:
-			put("Vaultwarden", d.Version)
-		case *sources.KomodoDataset:
-			// A stack whose pending image updates disappear was redeployed.
-			for _, s := range d.Stacks {
-				out[stackPrefix+s.Name] = pendingPrefix + strings.Join(s.Updates, ",")
+	})
+	Record(func(d *sources.ImmichDataset, _ time.Time, r *Readings) {
+		r.Set(key("immich", "items"), float64(d.Photos+d.Videos))
+		if d.DiskPercent > 0 {
+			r.Set(key("immich", "disk", "used"), d.DiskPercent/percentScale)
+		}
+		r.Version("Immich", d.Version)
+	})
+	Record(func(d *sources.NextcloudDataset, _ time.Time, r *Readings) {
+		r.Set(key("nextcloud", "files"), float64(d.Files))
+		r.Version("Nextcloud", d.Version)
+	})
+	Record(func(d *sources.SpeedtestDataset, _ time.Time, r *Readings) {
+		if !d.At.IsZero() {
+			r.Set(key("speedtest", "down"), d.Down)
+			r.Set(key("speedtest", "up"), d.Up)
+		}
+	})
+	Record(func(d *sources.SureDataset, _ time.Time, r *Readings) { r.Set(key("sure", "cash"), SureCash(d)) })
+	Record(func(d *sources.KumaDataset, _ time.Time, r *Readings) {
+		for _, m := range d.Monitors {
+			if m.MS > 0 {
+				r.Set(key("kuma", "ms", m.Name), m.MS)
 			}
 		}
-	}
-	return out
+	})
+	Record(func(d *sources.DNSFilterDataset, _ time.Time, r *Readings) {
+		for _, c := range d.TopClients {
+			r.Set(key("dns", "q", c.IP), float64(c.Queries))
+		}
+	})
+	Record(func(d *sources.PaperlessDataset, _ time.Time, r *Readings) {
+		if d.Total >= 0 {
+			r.Set(key("paperless", "docs"), float64(d.Total))
+		}
+	})
+	Record(func(d *sources.AuthentikDataset, _ time.Time, r *Readings) {
+		// One marker per user and country a login came from.
+		for _, l := range d.Logins {
+			if l.Country != "" {
+				r.Set(key("authentik", "country", l.User, l.Country), 1)
+			}
+		}
+		r.Version("authentik", d.Version)
+	})
+	Record(func(d *sources.MediaServerDataset, _ time.Time, r *Readings) { r.Version(d.Kind, d.Version) })
+	Record(func(d *sources.ArrDataset, _ time.Time, r *Readings) { r.Version(d.App, d.Version) })
+	Record(func(d *sources.GatewayDataset, _ time.Time, r *Readings) { r.Version(d.Kind, d.Version) })
+	Record(func(d *sources.VaultwardenDataset, _ time.Time, r *Readings) { r.Version("Vaultwarden", d.Version) })
+	Record(func(d *sources.KomodoDataset, _ time.Time, r *Readings) {
+		// A stack whose pending image updates disappear was redeployed.
+		for _, s := range d.Stacks {
+			r.Versions[stackPrefix+s.Name] = pendingPrefix + strings.Join(s.Updates, ",")
+		}
+	})
 }
 
 const (

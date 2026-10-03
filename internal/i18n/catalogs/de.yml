@@ -3186,7 +3186,7 @@ detail:
   rss:
     feeds: 'Feeds'
     unread: 'ungelesen'
-    quiet: 'seit 30 T still'
+    quiet: 'seit {n} T still'
     by_category: 'Ungelesen je Kategorie'
     list: 'Feeds'
     feed: 'Feed'
@@ -3952,6 +3952,7 @@ timeline:
   opened: 'Neu'
   resolved: 'Erledigt'
   reopened: 'Wieder da'
+  change: 'Wechsel'
   empty: 'Noch nichts aufgezeichnet.'
   today: 'Heute'
   yesterday: 'Gestern'

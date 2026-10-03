@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -62,16 +64,16 @@ func arrDetail(cfg ArrConfig, data *sources.ArrDataset, _ ViewCtx, results map[s
 func arrInDays(days int) Text { return textArgs("detail.arr.in_days", "n", days) }
 
 // freshrssDetail: unread per feed and category, quiet feeds.
-func freshrssDetail(cfg FreshRSSConfig, data *sources.FreshRSSDataset, _ ViewCtx, results map[string]any) DetailView {
+func freshrssDetail(cfg FreshRSSConfig, data *sources.FreshRSSDataset, ctx ViewCtx, results map[string]any) DetailView {
 	feeds := append([]sources.Feed(nil), data.Feeds...)
 	sort.Slice(feeds, func(a, b int) bool { return feeds[a].Unread > feeds[b].Unread })
 	byCat := map[string]int{}
 	quiet := 0
-	stale := time.Now().AddDate(0, 0, -staleFeedDays)
+	quietDays := rules.Setting(ctx.Settings, "freshrss.stale_feed", "days")
 	var rows [][]Cell
 	for _, f := range feeds {
 		byCat[f.Category] += f.Unread
-		isQuiet := !f.Newest.IsZero() && f.Newest.Before(stale)
+		isQuiet := metrics.FeedSilent(f, time.Now(), quietDays)
 		if isQuiet {
 			quiet++
 		}
@@ -87,17 +89,14 @@ func freshrssDetail(cfg FreshRSSConfig, data *sources.FreshRSSDataset, _ ViewCtx
 		bars = append(bars, ShareBar{Name: c, Pct: float64(byCat[c]) * percentScale / float64(max(byCat[cats[0]], 1)), Value: byCat[c]})
 	}
 	body := &DetailBody{
-		Side:  []Fact{{Label: T("detail.rss.feeds"), Value: len(feeds)}, {Label: T("detail.rss.unread"), Value: data.Unread}, {Label: T("detail.rss.quiet"), Value: quiet, State: stateIf(quiet > 0, "warn")}},
-		Facts: []Kpi{{Value: data.Unread, Label: T("detail.rss.unread"), Tier: tierIf(data.Unread > 0, "yellow", "")}, {Value: quiet, Label: T("detail.rss.quiet")}},
+		Side:  []Fact{{Label: T("detail.rss.feeds"), Value: len(feeds)}, {Label: T("detail.rss.unread"), Value: data.Unread}, {Label: textArgs("detail.rss.quiet", "n", int(quietDays)), Value: quiet, State: stateIf(quiet > 0, "warn")}},
+		Facts: []Kpi{{Value: data.Unread, Label: T("detail.rss.unread"), Tier: tierIf(data.Unread > 0, "yellow", "")}, {Value: quiet, Label: textArgs("detail.rss.quiet", "n", int(quietDays))}},
 		Blocks: []Block{{Kind: BlockBars, Label: T("detail.rss.by_category"), Data: bars},
 			{Kind: BlockTable, Label: T("detail.rss.list"), Data: Table{Head: []Text{T("detail.rss.feed"), T("detail.rss.category"), T("detail.rss.unread"), T("detail.rss.newest")}, Rows: firstN(rows, mediaListLimit), Num: []int{2}}}},
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}, Body: body}
 }
-
-// staleFeedDays marks a feed without a new entry for this long.
-const staleFeedDays = 30
 
 // linkwardenDetail: collections and the newest links.
 func linkwardenDetail(cfg LinkwardenConfig, data *sources.LinkwardenDataset, _ ViewCtx, results map[string]any) DetailView {

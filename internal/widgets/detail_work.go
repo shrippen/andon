@@ -71,13 +71,13 @@ func timerDetail(_ KimaiLiteConfig, results map[string]any, _ ViewCtx) DetailVie
 }
 
 // weekLines draws a week of Kimai entries as Kante week lines.
-func weekLines(data *sources.KimaiDataset, today time.Time, billable bool) Week {
+func weekLines(data *sources.KimaiDataset, today time.Time, kind metrics.Hours) Week {
 	monday := weekStart(today)
 	w := Week{Start: weekLineStart, Span: weekLineSpan}
 	sums := make([]int, weekDays)
 	spans := make([][]HourSpan, weekDays)
 	for _, s := range data.Timesheets {
-		if billable && !s.Billable {
+		if kind == metrics.HoursBillable && !s.Billable {
 			continue
 		}
 		begin, err := time.Parse(time.RFC3339, s.Begin)
@@ -119,7 +119,11 @@ func kimaiWeekDetail(cfg KimaiWeekConfig, data *sources.KimaiDataset, ctx ViewCt
 		}
 		body.Line = append(body.Line, Fact{Label: T("detail.kimai.target"), Value: clockMinutes(week)}, Fact{Label: T(key), Value: view["Left"]})
 	}
-	body.Blocks = append(body.Blocks, Block{Kind: BlockWeek, Label: T("detail.kimai.this_week"), Hero: true, Data: weekLines(data, today, cfg.BillableOnly)})
+	kind := metrics.HoursAll
+	if cfg.BillableOnly {
+		kind = metrics.HoursBillable
+	}
+	body.Blocks = append(body.Blocks, Block{Kind: BlockWeek, Label: T("detail.kimai.this_week"), Hero: true, Data: weekLines(data, today, kind)})
 
 	// The last weeks' sums against the contract.
 	var sums []float64

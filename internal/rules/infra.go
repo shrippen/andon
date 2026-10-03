@@ -232,7 +232,7 @@ func failedLogins(data *sources.AuthentikDataset, cfg map[string]any, env Env) [
 func staleUsers(data *sources.AuthentikDataset, cfg map[string]any, env Env) []Finding {
 	var names []string
 	for _, u := range data.Users {
-		if !u.LastLogin.IsZero() && env.Today.Sub(u.LastLogin).Hours()/hoursPerDay <= cfgFloat(cfg, "days") {
+		if !metrics.StaleUser(u, env.Today, cfgFloat(cfg, "days")) {
 			continue
 		}
 		names = append(names, u.Name)

@@ -9,8 +9,16 @@ import "time"
 // TimelineSlot carries []TimelineItem for ExtraTimeline.
 const TimelineSlot = "timeline"
 
-// kindUpdate is a timeline entry that is no hint change.
-const kindUpdate = "update"
+// kindUpdate is a version change; kindChange another recorded change
+// (public IP, price). Neither is a hint.
+const (
+	kindUpdate = "update"
+	kindChange = "change"
+)
+
+// isHintKind tells hint entries (opened, resolved, reopened) from updates
+// and changes.
+func isHintKind(kind string) bool { return kind != kindUpdate && kind != kindChange }
 
 // TimelineDays is how far back the tile looks.
 const TimelineDays = 7
@@ -51,7 +59,7 @@ func recentView(cfg RecentConfig, results map[string]any, _ ViewCtx) map[string]
 	var items []TimelineItem
 	for _, it := range all {
 		// Bursts of hints have no single HintID: tell kinds by Kind.
-		if cfg.Kinds == "" || (cfg.Kinds == "hints") == (it.Kind != kindUpdate) {
+		if cfg.Kinds == "" || (cfg.Kinds == "hints") == isHintKind(it.Kind) {
 			items = append(items, it)
 		}
 	}

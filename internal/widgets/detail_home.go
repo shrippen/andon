@@ -33,7 +33,7 @@ func dwdDetail(cfg DWDConfig, data *sources.DWDDataset, _ ViewCtx, results map[s
 	worst, until := 0, time.Time{}
 	for _, w := range shown.Warnings {
 		sev := strings.ToLower(w.Severity)
-		worst = max(worst, dwdLevels[sev])
+		worst = max(worst, metrics.WarningRank(sev))
 		if w.Expire.After(until) {
 			until = w.Expire
 		}
@@ -73,20 +73,23 @@ func energyDetail(cfg EnergyConfig, results map[string]any, _ ViewCtx) DetailVie
 			Value: TxtA("detail.energy.window", "time", start.In(clockZone()).Format(timeOfDay), "price", cents(avg))})
 	}
 	if len(data.Prices) >= minPoints {
-		body.Blocks = append(body.Blocks, energyGraph(data.Prices, now, start, cfg.CheapHours, cheap))
+		window := cheapWindow{}
+		if cheap {
+			window = cheapWindow{from: start, hours: cfg.CheapHours}
+		}
+		body.Blocks = append(body.Blocks, energyGraph(data.Prices, now, window))
 		low, high := slices.MinFunc(data.Prices, byTotal), slices.MaxFunc(data.Prices, byTotal)
 		body.Facts = []Kpi{{Value: cents(data.Current), Label: T("detail.energy.now")}, {Value: cents(low.Total), Label: T("detail.energy.low"), Tier: "green"},
 			{Value: cents(high.Total), Label: T("detail.energy.high"), Tier: "red"}}
 	}
 	var rows [][]Cell
-	cost := 0.0
+	cost, _ := metrics.EnergyTotals(data.Days)
 	for _, d := range slices.Backward(data.Days) {
 		temp := any("–")
 		if d.HasTemp {
 			temp = NumU(d.TempC, 0, "°C")
 		}
 		rows = append(rows, []Cell{{Value: DayS(d.Day)}, {Value: Num(d.KWh, 1)}, {Value: Money(d.Cost, data.Currency)}, {Value: temp}})
-		cost += d.Cost
 	}
 	if len(rows) > 0 {
 		body.Facts = append(body.Facts, Kpi{Value: Money(cost, data.Currency), Label: textDays("detail.energy.cost", len(rows))})
@@ -100,9 +103,15 @@ func energyDetail(cfg EnergyConfig, results map[string]any, _ ViewCtx) DetailVie
 // byTotal orders prices.
 func byTotal(a, b sources.PricePoint) int { return cmp.Compare(a.Total, b.Total) }
 
+// cheapWindow is the cheapest run of hours; zero is none.
+type cheapWindow struct {
+	from  time.Time
+	hours int
+}
+
 // energyGraph: one column per hour; the cheap window green, the dearest
 // quarter yellow, a line for now.
-func energyGraph(prices []sources.PricePoint, now, cheapFrom time.Time, hours int, cheap bool) Block {
+func energyGraph(prices []sources.PricePoint, now time.Time, window cheapWindow) Block {
 	values := make([]float64, len(prices))
 	for i, p := range prices {
 		values[i] = p.Total * centsPerUnit
@@ -111,10 +120,10 @@ func energyGraph(prices []sources.PricePoint, now, cheapFrom time.Time, hours in
 	dear := sorted[len(sorted)-len(sorted)/pricesQuarter-1]
 	g := ColGraph(values, "s1")
 	g.States = make([]string, len(prices))
-	cheapTo := cheapFrom.Add(time.Duration(hours) * time.Hour)
+	cheapTo := window.from.Add(time.Duration(window.hours) * time.Hour)
 	for i, p := range prices {
 		switch {
-		case cheap && !p.At.Before(cheapFrom) && p.At.Before(cheapTo):
+		case window.hours > 0 && !p.At.Before(window.from) && p.At.Before(cheapTo):
 			g.States[i] = "ok"
 		case values[i] > dear:
 			g.States[i] = "warn"
@@ -149,18 +158,13 @@ func grocyDetail(cfg GrocyConfig, data *sources.GrocyDataset, ctx ViewCtx, resul
 	for _, p := range shown.Missing {
 		missing = append(missing, []Cell{{Value: p.Name}, {Value: Num(p.Missing, 0)}})
 	}
-	now := time.Now()
+	lateChores := metrics.GrocyLateChores(shown, todayOf(ctx))
+	late := len(lateChores)
 	var chores []LitRow
-	late := 0
 	for _, c := range shown.Chores {
-		row := LitRow{Name: c.Name, Meta: Day(c.Due), State: "ok"}
-		if c.Due.Before(now) {
-			row.State = "warn"
-			late++
-		}
-		chores = append(chores, row)
+		chores = append(chores, LitRow{Name: c.Name, Meta: Day(c.Due), State: cmp.Or(stateIf(slices.Contains(lateChores, c), "warn"), "ok")})
 	}
-	expired := len(shown.Expired) + len(shown.Overdue)
+	expired := len(metrics.GrocyPastDue(shown))
 	body := &DetailBody{
 		Line: []Fact{{Label: T("detail.grocy.expired"), Value: expired, State: stateIf(expired > 0, "bad")}, {Label: T("detail.grocy.soon"), Value: len(shown.Soon)},
 			{Label: T("detail.grocy.missing"), Value: len(shown.Missing)}, {Label: T("detail.grocy.chores"), Value: late, State: stateIf(late > 0, "warn")}},

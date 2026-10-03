@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/sources"
 )
 
@@ -45,11 +46,10 @@ func freshrssBacklog(data *sources.FreshRSSDataset, cfg map[string]any, env Env)
 func staleFeed(data *sources.FreshRSSDataset, cfg map[string]any, env Env) []Finding {
 	var silent []aged
 	for _, f := range data.Feeds {
-		days := env.Today.Sub(f.Newest).Hours() / hoursPerDay
-		if f.Newest.IsZero() || days <= cfgFloat(cfg, "days") {
+		if !metrics.FeedSilent(f, env.Today, cfgFloat(cfg, "days")) {
 			continue
 		}
-		silent = append(silent, aged{f.Title, int(days)})
+		silent = append(silent, aged{f.Title, int(env.Today.Sub(f.Newest).Hours() / hoursPerDay)})
 	}
 	if len(silent) == 0 {
 		return nil

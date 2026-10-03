@@ -1,13 +1,13 @@
 package rules
 
 import (
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/sources"
 )
 
@@ -59,13 +59,13 @@ func hassAlarm(data *sources.HassDataset, cfg map[string]any, env Env) []Finding
 
 func batteryLow(data *sources.HassDataset, cfg map[string]any, env Env) []Finding {
 	var found []Finding
-	for _, b := range lowBatteries(data, cfgFloat(cfg, "warn")) {
+	for _, b := range metrics.LowBatteries(data, cfgFloat(cfg, "warn")) {
 		sev := enums.SeverityWarn
-		if b.level < cfgFloat(cfg, "critical") {
+		if b.Level < cfgFloat(cfg, "critical") {
 			sev = enums.SeverityCritical
 		}
-		found = append(found, svcFinding(hassSvc, "hass.battery_low", "battery:"+b.entity.ID, "hass.battery", sev,
-			hassEntities(data), map[string]any{"entity": b.entity.Name, "percent": int(b.level)}))
+		found = append(found, svcFinding(hassSvc, "hass.battery_low", "battery:"+b.Entity.ID, "hass.battery", sev,
+			hassEntities(data), map[string]any{"entity": b.Entity.Name, "percent": int(b.Level)}))
 	}
 	return found
 }
@@ -110,35 +110,4 @@ func hasPrefix(id string, prefixes []string) bool {
 		}
 	}
 	return false
-}
-
-// battery is one battery below the warning level, named by its first
-// sensor.
-type battery struct {
-	entity sources.Entity
-	level  float64
-}
-
-// lowBatteries lists batteries under warn. Sensors of one device
-// ("Batterie", "Batterie+") are one battery at their lowest level, named
-// by the sensor first in id order so its hint stays the same.
-func lowBatteries(data *sources.HassDataset, warn float64) []battery {
-	var out []battery
-	byDevice := map[string]int{}
-	for _, e := range data.Entities {
-		level, err := strconv.ParseFloat(e.State, 64)
-		if e.DeviceClass != "battery" || e.Unit != "%" || err != nil {
-			continue
-		}
-		i, seen := byDevice[e.Device]
-		if e.Device == "" || !seen {
-			if e.Device != "" {
-				byDevice[e.Device] = len(out)
-			}
-			out = append(out, battery{e, level})
-			continue
-		}
-		out[i].level = min(out[i].level, level)
-	}
-	return slices.DeleteFunc(out, func(b battery) bool { return b.level >= warn })
 }

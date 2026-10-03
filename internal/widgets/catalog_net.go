@@ -10,6 +10,7 @@ import (
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -139,23 +140,33 @@ const (
 	expiryNever   = math.MaxInt32
 )
 
+// dueTier colours days left with a rule's limits: red below its warning,
+// yellow below its notice (info) days, the same days its hints start.
+func dueTier(left int, warnDays, infoDays float64) string {
+	switch {
+	case float64(left) < warnDays:
+		return "red"
+	case float64(left) < infoDays:
+		return "yellow"
+	}
+	return ""
+}
+
+// expiryLimits are a rule's warning and notice days.
+func expiryLimits(settings map[string]any, rule string) (warn, info float64) {
+	return rules.Setting(settings, rule, "warn_days"), rules.Setting(settings, rule, "info_days")
+}
+
 // expiryBar: days left as a bar; an error or an unknown end as text
 // without a bar (W 0).
-func expiryBar(label string, left int, err string) HBar {
+func expiryBar(label string, left int, err string, warn, info float64) HBar {
 	if err != "" {
 		return HBar{Label: label, Value: err, Tier: "red"}
 	}
 	if left == expiryNever {
 		return HBar{Label: label, Value: expiryUnknown}
 	}
-	tier := ""
-	switch {
-	case left < expiryHigh:
-		tier = "red"
-	case left < expiryWarn:
-		tier = "yellow"
-	}
-	return HBar{Label: label, Value: strconv.Itoa(left), W: max(pctOf(float64(left), expiryHorizon), 2), Tier: tier}
+	return HBar{Label: label, Value: strconv.Itoa(left), W: max(pctOf(float64(left), expiryHorizon), 2), Tier: dueTier(left, warn, info)}
 }
 
 // expiryView lists certificates and domains soonest first:
@@ -205,16 +216,18 @@ func expiryView(cfg ExpiryConfig, results map[string]any, ctx ViewCtx) map[strin
 	var items []item
 	keep := func(left int, failed string) bool { return cfg.MaxDays == 0 || left <= cfg.MaxDays || failed != "" }
 	if certs, ok := results["data"].(*sources.CertDataset); ok && cfg.Kinds != "domains" {
+		warn, info := expiryLimits(ctx.Settings, "certs.expiring")
 		for _, c := range certs.Certs {
 			if left := daysTo(c.NotAfter); keep(left, c.Error) {
-				items = append(items, item{expiryBar(c.Host, left, c.Error), left})
+				items = append(items, item{expiryBar(c.Host, left, c.Error, warn, info), left})
 			}
 		}
 	}
 	if doms, ok := results[peerDomains].(*sources.DomainsDataset); ok && cfg.Kinds != "certs" {
+		warn, info := expiryLimits(ctx.Settings, "domains.expiring")
 		for _, dm := range doms.Domains {
 			if left := daysTo(dm.Expires); keep(left, dm.Error) {
-				items = append(items, item{expiryBar(dm.Name, left, dm.Error), left})
+				items = append(items, item{expiryBar(dm.Name, left, dm.Error, warn, info), left})
 			}
 		}
 	}
@@ -242,7 +255,8 @@ func init() {
 		Queries: ownData[SpeedHistoryConfig], View: speedHistoryView}.add()
 }
 
-func speedHistoryView(cfg SpeedHistoryConfig, results map[string]any, _ ViewCtx) map[string]any {
+func speedHistoryView(cfg SpeedHistoryConfig, results map[string]any, ctx ViewCtx) map[string]any {
+	share := contractShare(ctx)
 	days := speedDays
 	if cfg.Days > 0 {
 		days = cfg.Days
@@ -268,7 +282,7 @@ func speedHistoryView(cfg SpeedHistoryConfig, results map[string]any, _ ViewCtx)
 	slow := 0
 	for _, p := range points {
 		tier := ""
-		if expect > 0 && p.Value < expect*speedWarn {
+		if metrics.BelowContract(p.Value, expect, share) {
 			tier = "yellow"
 			slow++
 		}
@@ -279,6 +293,12 @@ func speedHistoryView(cfg SpeedHistoryConfig, results map[string]any, _ ViewCtx)
 		out["Data"] = data
 	}
 	return out
+}
+
+// contractShare is the share of the booked speed below which a day is
+// slow, as speedtest.contract counts it.
+func contractShare(ctx ViewCtx) float64 {
+	return rules.Setting(ctx.Settings, "speedtest.contract", "share")
 }
 
 // ── sabnzbd ──

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/sources"
 )
 
@@ -152,10 +153,11 @@ func trafficDrop(data *sources.UmamiDataset, cfg map[string]any, env Env) []Find
 				enums.SeverityWarn, url, map[string]any{"site": s.Name, "prev": s.PrevVisit}))
 			continue
 		}
-		change := 1 - float64(s.Visitors)/float64(s.PrevVisit)
-		if change < cfgFloat(cfg, "drop") {
+		if !metrics.VisitorDrop(s, cfgFloat(cfg, "drop"), cfgFloat(cfg, "min_visitors")) {
 			continue
 		}
+		change, _ := metrics.VisitorChange(s)
+		change = -change
 		found = append(found, svcFinding(umamiSvc, "umami.traffic_drop", "drop:"+s.ID, "umami.drop",
 			enums.SeverityWarn, url, map[string]any{"site": s.Name, "percent": int(change*percentScale + 0.5),
 				"visitors": s.Visitors, "prev": s.PrevVisit}))
