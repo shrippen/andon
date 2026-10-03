@@ -5,6 +5,8 @@
 #   <kante>/css/base.css        -> internal/web/static/vendor/kante/base.css
 #   <kante>/css/components.css  -> internal/web/static/vendor/kante/components.css
 #   <kante>/js/shrippen.js      -> internal/web/static/vendor/kante/shrippen.js
+#   <kante>/js/kante-map.js     -> internal/web/static/vendor/kante/kante-map.js
+#   <kante>/js/map/*            -> internal/web/static/vendor/kante/map/ (MapLibre, pmtiles, basemaps)
 #   <kante>/fonts/OFL.txt       -> internal/web/static/vendor/kante/fonts/OFL.txt
 #   <kante>/fonts/*.woff2       -> internal/web/static/vendor/kante/fonts/ (only the faces Andon already has)
 #   <kante>/tokens/variables.css (:root and light theme)
@@ -30,7 +32,9 @@ dest="$root/internal/web/static/vendor/kante"
 tokens="$root/internal/services/themes/builtin/kante/tokens.css"
 mkdir -p "$dest/fonts"
 
-cp "$src/css/base.css" "$src/css/components.css" "$src/js/shrippen.js" "$dest/"
+cp "$src/css/base.css" "$src/css/components.css" "$src/js/shrippen.js" "$src/js/kante-map.js" "$dest/"
+mkdir -p "$dest/map"
+cp "$src"/js/map/* "$dest/map/"
 cp "$src/fonts/OFL.txt" "$dest/fonts/OFL.txt"
 for f in "$src"/fonts/*.woff2; do
 	[ -e "$f" ] && [ -e "$dest/fonts/$(basename "$f")" ] && cp "$f" "$dest/fonts/"
@@ -60,7 +64,7 @@ Kante ${version:-unknown}
 source: https://github.com/shrippen/Kante
 branch: $branch
 commit: $commit$dirty
-files: base.css components.css shrippen.js fonts/OFL.txt fonts/*.woff2 (Latin subsets, see tools/sync-design.sh)
+files: base.css components.css shrippen.js kante-map.js map/ fonts/OFL.txt fonts/*.woff2 (Latin subsets, see tools/sync-design.sh)
 VER
 
 echo "Kante synced from $src ($commit)"

@@ -1026,6 +1026,16 @@ button.list-row{width:100%;border:0;border-bottom:1px solid var(--bg1);backgroun
 .map-frame .leaflet-tile-pane{filter:grayscale(1) invert(1) brightness(.6) contrast(.9) sepia(.25)}
 .map-pin{display:block;width:14px;height:14px;background:var(--map-marker);border:2px solid var(--bg-void)}
 .map-frame{--route:var(--map-route)}
+/* Vector map (js/kante-map.js): MapLibre draws a Protomaps basemap in the frame, in Kante's colours.
+   <div class="map-frame" data-map='{"route":[[lon,lat],…],"marks":[{"lon":…,"lat":…,"title":"…","state":"bad"}]}'
+        data-map-source="….pmtiles | TileJSON URL"></div>; pins are .map-pin, the route --map-route */
+.map-frame[data-map]{aspect-ratio:2/1;min-height:12rem;overflow:hidden}
+.map-pin[data-state="ok"]{background:var(--aqua)}.map-pin[data-state="warn"]{background:var(--warn)}.map-pin[data-state="bad"]{background:var(--danger)}
+.map-frame .maplibregl-ctrl-attrib,.map-frame .maplibregl-ctrl-attrib.maplibregl-compact{background:var(--bg-hard);color:var(--fg3);font-size:.6rem}
+.map-frame .maplibregl-ctrl-attrib a{color:var(--fg2)}
+.map-frame .maplibregl-ctrl-group{background:var(--bg1);border-radius:0;box-shadow:none;border:1px solid var(--bg2)}
+.map-frame .maplibregl-ctrl-group button+button{border-top-color:var(--bg2)}
+:root:not([data-theme="light"]) .map-frame .maplibregl-ctrl-icon{filter:invert(.85)}
 /* A command line outside the yellow install box */
 .cmd-row.is-plain .cmd-box{background:var(--bg-hard);color:var(--cyan)}
 .cmd-row.is-plain .copy-btn{background:var(--bg1);border-color:var(--bg1);color:var(--fg1)}
