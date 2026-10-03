@@ -14,6 +14,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -41,6 +42,7 @@ type JSONField struct {
 // JSONAPIDataset is the decoded body plus the configured view of it.
 // It marshals as the body, so rule paths address the service's fields.
 type JSONAPIDataset struct {
+	Host    string // the API's host, names its recorded series
 	Body    any
 	Fields  []JSONField
 	Columns []string
@@ -67,7 +69,11 @@ func fetchJSONAPIData(ctx context.Context, sctx Ctx) (any, error) {
 	if err != nil {
 		return nil, newSourceError("%s", err.Error())
 	}
-	return shapeJSON(body, sctx.Options), nil
+	data := shapeJSON(body, sctx.Options)
+	if u, err := url.Parse(sctx.URL); err == nil {
+		data.Host = u.Host
+	}
+	return data, nil
 }
 
 // shapeJSON applies the connection's field and list options to a body.

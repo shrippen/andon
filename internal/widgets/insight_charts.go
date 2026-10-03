@@ -145,6 +145,7 @@ type ProgressItem struct {
 	// today (0 = no mark).
 	Fill, Over, Soll float64
 	SollPct          float64 // share of the period passed (0..1), for the caption
+	Series           string  // its recorded history (metrics key), "" = none
 	Tier             string  // green, yellow, red
 }
 
@@ -210,7 +211,7 @@ func progressView(cfg ProgressConfig, results map[string]any, ctx ViewCtx) map[s
 			if len(cfg.Projects) > 0 && !slices.Contains(cfg.Projects, strings.ToLower(b.Name)) {
 				continue
 			}
-			item := ProgressItem{Label: b.Name, Pct: b.Pct}
+			item := ProgressItem{Label: b.Name, Pct: b.Pct, Series: metrics.BudgetKey(b.ID)}
 			soll := 0.0
 			if b.Monthly {
 				start := metrics.MonthStart(today)

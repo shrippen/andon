@@ -2,6 +2,8 @@
 package metrics
 
 import (
+	"math"
+	"slices"
 	"sort"
 	"time"
 
@@ -97,6 +99,46 @@ func NinjaOpenInvoices(data *sources.NinjaDataset, today time.Time) []NinjaOpenI
 	}
 	sort.Slice(out, func(a, b int) bool { return out[a].OverdueDays > out[b].OverdueDays })
 	return out
+}
+
+// NinjaMove is an invoice or payment on one day, for explaining a jump.
+type NinjaMove struct {
+	Day, What, Client string  // What: invoice number, or "" for a payment
+	Amount            float64 // payments negative: they lower what is open
+}
+
+// NinjaMoves lists invoices (by date) and payments of the given days.
+func NinjaMoves(data *sources.NinjaDataset, days []string) []NinjaMove {
+	clients := ninjaClientNames(data)
+	var out []NinjaMove
+	for _, i := range data.Invoices {
+		if slices.Contains(days, i.Date) {
+			out = append(out, NinjaMove{Day: i.Date, What: i.Number, Client: clients[i.ClientID], Amount: i.Amount})
+		}
+	}
+	for _, p := range data.Payments {
+		if slices.Contains(days, p.Date) {
+			out = append(out, NinjaMove{Day: p.Date, Client: clients[p.ClientID], Amount: -p.Amount})
+		}
+	}
+	sort.SliceStable(out, func(a, b int) bool { return out[a].Day < out[b].Day })
+	return out
+}
+
+// Jumps are the indexes of the n largest changes of a series (the later
+// point of each pair), largest first.
+//
+//	Jumps([10, 10, 40, 35], 2) → [2, 3]
+func Jumps(values []float64, n int) []int {
+	var idx []int
+	for i := 1; i < len(values); i++ {
+		if values[i] != values[i-1] {
+			idx = append(idx, i)
+		}
+	}
+	delta := func(i int) float64 { return math.Abs(values[i] - values[i-1]) }
+	sort.SliceStable(idx, func(a, b int) bool { return delta(idx[a]) > delta(idx[b]) })
+	return idx[:min(len(idx), n)]
 }
 
 func ninjaClientNames(data *sources.NinjaDataset) map[int64]string {

@@ -198,6 +198,13 @@ func init() {
 			r.SetOn(day.Day, EnergyKWhKey, day.KWh)
 		}
 	})
+	Record(func(d *sources.JSONAPIDataset, _ time.Time, r *Readings) {
+		for _, f := range d.Fields {
+			if f.Found && f.Numeric {
+				r.Set(JSONFieldKey(d.Host, f.Label), f.Value)
+			}
+		}
+	})
 	Record(func(d *sources.FreshRSSDataset, _ time.Time, r *Readings) {
 		r.Set(key("freshrss", "unread"), float64(d.Unread))
 	})
@@ -352,6 +359,9 @@ func MonthSums(h *History, key string, now time.Time, n int) []float64 {
 	}
 	return out
 }
+
+// JSONFieldKey is the series of a numeric field of an own JSON API.
+func JSONFieldKey(host, label string) string { return key("jsonapi", host, label) }
 
 // EnergyKWhKey is the daily power consumption series (Tibber).
 var EnergyKWhKey = key("tibber", "kwh")

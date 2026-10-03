@@ -1,6 +1,14 @@
 package sources
 
-import "testing"
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"andon/internal/drivers/httpclient"
+	"andon/internal/drivers/services"
+)
 
 // TestMaskSecrets: credential values vanish, the rest of the line stays.
 func TestMaskSecrets(t *testing.T) {
@@ -72,5 +80,18 @@ func TestParseRatesHistory(t *testing.T) {
 	h := parseRatesHistory(map[string]any{"2026-09-30": map[string]any{"USD": 1.2}, "2026-09-29": map[string]any{"USD": 1.1}})
 	if len(h.Days) != 2 || h.Days[0] != "2026-09-29" || h.ByCode["USD"][1] != 1.2 {
 		t.Fatalf("%+v", h)
+	}
+}
+
+// A red run names its first failed job and step.
+func TestFailedStep(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"jobs": [{"name": "lint", "conclusion": "success", "steps": []},
+			{"name": "test", "conclusion": "failure", "steps": [{"name": "checkout", "conclusion": "success"}, {"name": "go test", "conclusion": "failure"}]}]}`))
+	}))
+	defer srv.Close()
+	api := services.BearerApi(srv.URL, "", httpclient.TLSVerify)
+	if got := failedStep(context.Background(), api, "repos/a/b/actions/runs/7/jobs"); got != "test › go test" {
+		t.Fatalf("got %q", got)
 	}
 }

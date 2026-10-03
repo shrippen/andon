@@ -215,7 +215,7 @@ func init() {
 		Decode: decodePick("kind"), Queries: ownData[PickConfig], View: dataView(kintsugiView)}.add()
 	Tile[PickConfig]{Key: "gitea_reviews", Detail: dataDetail(giteaDetail), Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitea, RefreshS: 15 * 60,
 		Fields: []Field{sel("show", pickAll, pickAll, "reviews", "issues"), pickLimit},
-		Decode: decodePick("show"), Queries: ownData[PickConfig], View: dataView(giteaView)}.add()
+		Decode: decodePick("show"), Queries: ownData[PickConfig], DetailQueries: openQuery[PickConfig]("gitea.activity"), View: dataView(giteaView)}.add()
 }
 
 func firstN[T any](list []T, n int) []T {

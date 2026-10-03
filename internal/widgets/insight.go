@@ -364,7 +364,13 @@ func init() {
 			return TrendConfig{Metric: TrendMetric(r.Pick("metric")), Days: r.Int("days"), Target: r.Float("target_value"),
 				Smooth: r.Bool("smooth")}
 		},
-		View: trendView}.add()
+		View: trendView,
+		DetailQueries: func(cfg TrendConfig) []Query {
+			if cfg.Metric == TrendMonthMinute {
+				return nil
+			}
+			return []Query{peer(peerNinja, enums.ServiceInvoiceNinja)}
+		}}.add()
 }
 
 // DeadlinesConfig is the "deadlines" widget's config.

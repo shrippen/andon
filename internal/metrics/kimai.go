@@ -4,6 +4,7 @@ package metrics
 import (
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -293,7 +294,19 @@ func init() {
 			total += g.Amount
 		}
 		r.Set(key("kimai", "unbilled"), total)
+
+		// Budget use per project: the curve, not only today's level.
+		for _, p := range d.Projects {
+			if share, ok := BudgetUse(p, d, Today(now)); ok {
+				r.Set(BudgetKey(p.ID), share)
+			}
+		}
 	})
+}
+
+// BudgetKey is the series of a project's budget use (share, 1 = used up).
+func BudgetKey(projectID int64) string {
+	return key("kimai", "budget", strconv.FormatInt(projectID, 10))
 }
 
 // UnbookedDays is how far back appointments are checked against Kimai.

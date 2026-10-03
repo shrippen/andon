@@ -275,3 +275,11 @@ func TestMonthSums(t *testing.T) {
 		t.Fatalf("got %v", got)
 	}
 }
+
+// The largest steps come first; flat stretches never count.
+func TestJumps(t *testing.T) {
+	got := metrics.Jumps([]float64{10, 10, 40, 35}, 2)
+	if len(got) != 2 || got[0] != 2 || got[1] != 3 {
+		t.Fatalf("got %v", got)
+	}
+}

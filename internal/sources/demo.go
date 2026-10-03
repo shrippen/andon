@@ -495,6 +495,12 @@ func DemoHass(now time.Time) *HassDataset {
 	}}
 }
 
+// DemoGiteaActivity is the demo's commits per week and its GitHub mirror.
+func DemoGiteaActivity(now time.Time) *GiteaActivity {
+	return &GiteaActivity{Weeks: map[string][]int{"studio/showreel": {2, 5, 0, 3, 8, 4, 6, 9}, "studio/website": {1, 0, 0, 2, 0, 4, 1, 0}},
+		Mirrors: []PushMirror{{Repo: "studio/website", Remote: "https://github.com/studio/website.git", Synced: now.Add(-20 * time.Minute)}}}
+}
+
 // DemoHassHistory is a day of the demo entities: the living room warms
 // in the morning, the office light goes on and off.
 func DemoHassHistory(now time.Time, ids []string) *HassHistory {

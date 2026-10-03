@@ -414,8 +414,10 @@ type GitRepo struct {
 	PRs        int
 	CI         string // conclusion of the latest run on the default branch, "" = none
 	CIURL      string
+	CIStep     string // a failed run's first failed job and step: "test › go test"
 	Release    string
 	ReleasedAt time.Time
+	PushedAt   time.Time // the last push to any branch
 }
 
 type GitHubDataset struct {
@@ -484,7 +486,7 @@ func loadRepo(ctx context.Context, api services.KeyedApi, name string) (GitRepo,
 		return GitRepo{}, err
 	}
 	i := asMap(info)
-	repo := GitRepo{Name: name, PRs: len(asList(pulls))}
+	repo := GitRepo{Name: name, PRs: len(asList(pulls)), PushedAt: parseTime(i["pushed_at"])}
 	// open_issues_count includes pull requests.
 	repo.Issues = max(int(asFloat(i["open_issues_count"]))-repo.PRs, 0)
 
@@ -493,6 +495,9 @@ func loadRepo(ctx context.Context, api services.KeyedApi, name string) (GitRepo,
 		if list := asList(asMap(runs)["workflow_runs"]); len(list) > 0 {
 			run := asMap(list[0])
 			repo.CI, repo.CIURL = asStr(run["conclusion"]), asStr(run["html_url"])
+			if repo.CI == ciFailure {
+				repo.CIStep = failedStep(ctx, api, path+"/actions/runs/"+strconv.FormatInt(asInt64(run["id"]), 10)+"/jobs")
+			}
 		}
 	}
 	if release, err := api.Get(ctx, path+"/releases/latest", nil); err == nil && release != nil {
@@ -500,6 +505,31 @@ func loadRepo(ctx context.Context, api services.KeyedApi, name string) (GitRepo,
 		repo.Release, repo.ReleasedAt = asStr(r["tag_name"]), parseTime(r["published_at"])
 	}
 	return repo, nil
+}
+
+// ciFailure is GitHub's conclusion of a failed run.
+const ciFailure = "failure"
+
+// failedStep names a run's first failed job and step: "test › go test";
+// "" when the jobs cannot be read.
+func failedStep(ctx context.Context, api services.KeyedApi, jobsPath string) string {
+	jobs, err := api.Get(ctx, jobsPath, nil)
+	if err != nil {
+		return ""
+	}
+	for _, raw := range asList(asMap(jobs)["jobs"]) {
+		job := asMap(raw)
+		if asStr(job["conclusion"]) != ciFailure {
+			continue
+		}
+		for _, st := range asList(job["steps"]) {
+			if step := asMap(st); asStr(step["conclusion"]) == ciFailure {
+				return asStr(job["name"]) + " › " + asStr(step["name"])
+			}
+		}
+		return asStr(job["name"])
+	}
+	return ""
 }
 
 // ── Tibber ──
@@ -631,8 +661,8 @@ func DemoDWD(now time.Time) *DWDDataset {
 
 func DemoGitHub(now time.Time) *GitHubDataset {
 	return &GitHubDataset{URL: "https://api.github.com", Notifications: 4, Repos: []GitRepo{
-		{Name: "studio/website", Issues: 3, PRs: 1, CI: "success", Release: "v0.12.0", ReleasedAt: now.AddDate(0, 0, -6)},
-		{Name: "studio/showreel", Issues: 0, PRs: 0, CI: "failure"},
+		{Name: "studio/website", Issues: 3, PRs: 1, CI: "success", Release: "v0.12.0", ReleasedAt: now.AddDate(0, 0, -6), PushedAt: now.AddDate(0, 0, -1)},
+		{Name: "studio/showreel", Issues: 0, PRs: 0, CI: "failure", CIStep: "test › go test", PushedAt: now.Add(-3 * time.Hour)},
 	},
 		Reviews: []Issue{{Repo: "studio/website", Title: "Kontaktformular prüfen", URL: "https://github.com/studio/website/pull/42",
 			Number: 42, Pull: true, Updated: now.AddDate(0, 0, -3)}},

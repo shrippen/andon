@@ -6,6 +6,7 @@ package widgets
 
 import (
 	"cmp"
+	"maps"
 	"slices"
 	"sort"
 	"strconv"
@@ -373,6 +374,49 @@ func jsonPath(body any, path string) (any, bool) {
 		}
 	}
 	return cur, true
+}
+
+// scalarPaths lists the paths of a body's numbers, texts and flags,
+// depth first, at most limit: {"main": {"temp": 3}} → ["main.temp"].
+func scalarPaths(body any, prefix string, limit int, out []string) []string {
+	join := func(k string) string {
+		if prefix == "" {
+			return k
+		}
+		return prefix + pathSep + k
+	}
+	switch node := body.(type) {
+	case map[string]any:
+		for _, k := range slices.Sorted(maps.Keys(node)) {
+			if len(out) >= limit {
+				break
+			}
+			out = scalarPaths(node[k], join(k), limit, out)
+		}
+	case []any:
+		for i, v := range node {
+			if len(out) >= limit {
+				break
+			}
+			out = scalarPaths(v, join(strconv.Itoa(i)), limit, out)
+		}
+	default:
+		if prefix != "" && len(out) < limit {
+			out = append(out, prefix)
+		}
+	}
+	return out
+}
+
+// AddAPIField appends a field "label = path" to a custom_api tile's
+// fields text; the label is the path's last part.
+func AddAPIField(fields, path string) string {
+	label := path[strings.LastIndex(path, pathSep)+1:]
+	line := label + " " + fieldSep + " " + path
+	if strings.TrimSpace(fields) == "" {
+		return line
+	}
+	return strings.TrimRight(fields, "\n") + "\n" + line
 }
 
 // HolidayRow is one upcoming holiday with the days left.

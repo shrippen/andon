@@ -1,6 +1,7 @@
 package widgets
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -68,5 +69,17 @@ func TestHeatmapLevels(t *testing.T) {
 	}
 	if !found || cells[len(cells)-1].Day != "2026-09-25" || view["Total"] != 6 || view["Rows"] != 7 {
 		t.Fatalf("heatmap: last %+v total %v", cells[len(cells)-1], view["Total"])
+	}
+}
+
+// Paths come sorted and depth first; a new field takes the last part as label.
+func TestScalarPathsAndAddField(t *testing.T) {
+	body := map[string]any{"main": map[string]any{"temp": 3.0, "hum": 70.0}, "list": []any{"a"}}
+	got := scalarPaths(body, "", 10, nil)
+	if strings.Join(got, ",") != "list.0,main.hum,main.temp" {
+		t.Fatalf("paths %v", got)
+	}
+	if f := AddAPIField("Wind = wind.speed\n", "main.temp"); f != "Wind = wind.speed\ntemp = main.temp" {
+		t.Fatalf("fields %q", f)
 	}
 }
