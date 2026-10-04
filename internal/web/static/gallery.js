@@ -88,13 +88,6 @@
     [].forEach.call(d.querySelectorAll(".gal-card[aria-current]"), function (c) { c.removeAttribute("aria-current"); });
   });
 
-  // On a narrow screen the panel sits above the grid: bring it into view.
-  d.addEventListener("htmx:afterSwap", function (e) {
-    if (e.target.id === "gal-side" && window.matchMedia("(max-width: 800px)").matches) {
-      e.target.scrollIntoView({ block: "start" });
-    }
-  });
-
   // Picking unused tiles in the side panel: "all" toggles every box, the
   // bar shows the count and the delete button while any is picked.
   d.addEventListener("change", function (e) {
