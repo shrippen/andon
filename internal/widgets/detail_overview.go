@@ -442,7 +442,7 @@ func todayDetail(cfg TodayConfig, results map[string]any, ctx ViewCtx) DetailVie
 		at := it.at.In(loc)
 		switch it.Kind {
 		case "event":
-			strip.Events = append(strip.Events, HourSpan{From: hourOf(at), To: hourOf(at) + 1, Colour: "cyan"})
+			strip.addEvent(it, at, loc)
 			rows = append(rows, LitRow{Name: it.Text, Meta: dashIfEmpty(it.At), State: tierIf(it.Past, "off", "info")})
 		case "timer":
 			strip.Spans = append(strip.Spans, HourSpan{From: hourOf(at), To: hourOf(now), Colour: "d4"})
@@ -462,6 +462,29 @@ func todayDetail(cfg TodayConfig, results map[string]any, ctx ViewCtx) DetailVie
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("today.empty")})
 	}
 	return DetailView{Body: body}
+}
+
+// eventColour is an appointment's colour in the day strip.
+const eventColour = "cyan"
+
+// addEvent puts an appointment on the strip: all-day ones into the lane
+// above it, others as a bar from their start, one hour long or, when
+// known, to their end (a night shift since yesterday: 0–2 h).
+func (s *DayStrip) addEvent(it TodayItem, at time.Time, loc *time.Location) {
+	if it.AllDay {
+		s.AllDay = append(s.AllDay, AllDayEvent{Title: it.Text, Colour: eventColour})
+		return
+	}
+
+	to := hourOf(at) + 1
+	if !it.end.IsZero() {
+		end := it.end.In(loc)
+		to = hoursPerDay
+		if end.YearDay() == at.YearDay() && end.Year() == at.Year() {
+			to = hourOf(end)
+		}
+	}
+	s.Events = append(s.Events, HourSpan{From: hourOf(at), To: to, Colour: eventColour})
 }
 
 // minSpanH is how wide a moment (a departure) is drawn: a quarter hour.

@@ -58,7 +58,9 @@ type TodayItem struct {
 	Year             int
 	Past             bool // before now
 	Now              bool // running (timer)
+	AllDay           bool // event without a time of day
 	at               time.Time
+	end              time.Time // event: zero without a length
 }
 
 func todayQueries(cfg TodayConfig) []Query {
@@ -89,14 +91,20 @@ func todayView(cfg TodayConfig, results map[string]any, ctx ViewCtx) map[string]
 	var items []TodayItem
 	if cal, ok := results[peerCalendar].(*sources.CalendarResult); ok {
 		for _, e := range cal.Events {
-			if e.Start.Before(start) || !e.Start.Before(end) {
+			// Begun on an earlier day and still running (holiday, night
+			// shift): first of the day, without a time, past once over.
+			ongoing := e.Start.Before(start) && e.End.After(start)
+			if !e.Start.Before(end) || (e.Start.Before(start) && !ongoing) {
 				continue
 			}
-			item := TodayItem{Kind: "event", Text: e.Title, at: e.Start, Past: e.Start.Before(now)}
+			item := TodayItem{Kind: "event", Text: e.Title, at: e.Start, end: e.End, AllDay: e.AllDay, Past: e.Start.Before(now)}
+			if ongoing {
+				item.at, item.Past = start, !e.End.After(now)
+			}
 			if cfg.HidePast && item.Past && !e.AllDay {
 				continue
 			}
-			if !e.AllDay {
+			if !e.AllDay && !ongoing {
 				item.At = clock(e.Start)
 			}
 			items = append(items, item)

@@ -231,7 +231,7 @@
   </div>
   {{end}}
   {{else if eq $k "daystrip"}}{{with .Data}}
-  <div class="day-strip">{{range .Spans}}<i data-style="left:{{hourPct .From}}%;width:{{hourPct (spanLen .From .To)}}%;{{template "detail_colour" .Colour}}"></i>{{end}}{{range .Events}}<i class="is-event" data-style="left:{{hourPct .From}}%;width:{{hourPct (spanLen .From .To)}}%;{{template "detail_colour" .Colour}}"></i>{{end}}{{if ge .Now 0.0}}<span class="now" data-style="left:{{hourPct .Now}}%"></span>{{end}}<span class="ticks"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></span></div>
+  {{if .AllDay}}<div class="day-allday">{{range .AllDay}}<span data-style="{{template "detail_colour" .Colour}}">{{.Title}}</span>{{end}}</div>{{end}}<div class="day-strip">{{range .Spans}}<i data-style="left:{{hourPct .From}}%;width:{{hourPct (spanLen .From .To)}}%;{{template "detail_colour" .Colour}}"></i>{{end}}{{range .Events}}<i class="is-event" data-style="left:{{hourPct .From}}%;width:{{hourPct (spanLen .From .To)}}%;{{template "detail_colour" .Colour}}"></i>{{end}}{{if ge .Now 0.0}}<span class="now" data-style="left:{{hourPct .Now}}%"></span>{{end}}<span class="ticks"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></span></div>
   {{end}}
   {{end}}
 </div>
