@@ -32,18 +32,21 @@ type Article struct {
 
 var ArticleSource = source{key: "rss.article", ttl: feedTTL, fetch: fetchArticle}
 
-// fetchArticle reads the tile's feeds (same params as "rss") and the page
-// of their newest entry.
+// fetchArticle reads the page of the param "link", else the tile's feeds
+// (same params as "rss") and the page of their newest entry.
 func fetchArticle(ctx context.Context, sctx Ctx) (any, error) {
-	raw, err := fetchFeedSource(ctx, sctx)
-	if err != nil {
-		return nil, err
+	link := asStr(sctx.Params["link"])
+	if link == "" {
+		raw, err := fetchFeedSource(ctx, sctx)
+		if err != nil {
+			return nil, err
+		}
+		feed, ok := raw.(*FeedResult)
+		if !ok || len(feed.Items) == 0 || feed.Items[0].Link == "" {
+			return &Article{}, nil
+		}
+		link = feed.Items[0].Link
 	}
-	feed, ok := raw.(*FeedResult)
-	if !ok || len(feed.Items) == 0 || feed.Items[0].Link == "" {
-		return &Article{}, nil
-	}
-	link := feed.Items[0].Link
 	resp, err := httpclient.Request(ctx, "GET", link, httpclient.Options{})
 	if err != nil {
 		return nil, newSourceError("%s", err.Error())

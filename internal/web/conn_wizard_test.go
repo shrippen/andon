@@ -189,7 +189,7 @@ func TestPlaceSearchReused(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
-	for _, path := range []string{"/widgets/new?type=weather", "/connections/new?service=tibber"} {
+	for _, path := range []string{"/widgets/new?dialog&type=weather", "/connections/new?service=tibber"} {
 		if page := string(mustGet(t, srv, client, path)); !strings.Contains(page, `hx-get="/places"`) {
 			t.Errorf("%s has no place search", path)
 		}

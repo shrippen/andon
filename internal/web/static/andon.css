@@ -209,9 +209,12 @@ a > .count, summary > .count { margin-left: .35rem; }
 .dsec-head { margin: 0 .3rem .3rem; }
 .dsec:has(.dsec-tools > :not(.section-tools[open])) .dsec-head { padding-right: 8rem; }
 .dsec-head h2 { letter-spacing: .03em; font-size: 1.08rem; }
-/* Section tools beside the summary; an open section form flows above it. */
+/* Section tools beside the summary; an open section form flows above
+   the head while its button stays in the corner. */
 .dsec-tools { position: absolute; top: .75rem; right: .7rem; z-index: 1; display: flex; align-items: center; gap: .6rem; }
-.dsec-tools:has(.section-tools[open]) { position: static; margin: 0 .3rem .6rem; }
+.dsec-tools:has(.section-tools[open]) { display: contents; }
+.section-tools[open] { margin: 2.4rem .3rem .6rem; }
+.section-tools[open] > summary { position: absolute; top: .75rem; right: .7rem; z-index: 1; }
 .section-tools summary { list-style: none; cursor: pointer; }
 .section-form { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: end; margin-top: .6rem; }
 .section-form label { display: flex; flex-direction: column; gap: .2rem; }
@@ -811,14 +814,13 @@ label.check { margin: .8rem 0 .3rem; font-family: var(--font-sans); text-transfo
 .type-grid .option small { color: var(--fg3); }
 .type-grid .option .count { margin-left: .4rem; }
 /* ── gallery ("Kachel hinzufügen") ── */
-main.gallery { max-width: 90rem; display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: 2rem; align-items: start; }
-.gal-nav { position: sticky; top: 1rem; display: flex; flex-direction: column; gap: 2px; }
+.gallery { display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: 2rem; align-items: start; padding: 1.1rem 1.5rem; }
+.gal-nav { position: sticky; top: 0; display: flex; flex-direction: column; gap: 2px; }
 .gal-nav a { display: flex; justify-content: space-between; gap: .5rem; padding: .4rem .6rem; border-left: 4px solid transparent;
   color: var(--fg1); text-decoration: none; font-family: var(--font-heading); text-transform: uppercase; letter-spacing: .03em; }
 .gal-nav a:hover { border-left-color: var(--hl); background: var(--bg-panel); }
 .gal-nav span { font-family: var(--font-mono); font-size: .72rem; color: var(--fg3); }
 .gal-head { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1.4rem; }
-.gal-head h1 { font-size: 2rem; }
 .gal-head .label { color: var(--warn-text); }
 .gal-tools { display: flex; flex-wrap: wrap; gap: .6rem 1.2rem; align-items: center; margin-top: .4rem; }
 .gal-tools input[type=search] { flex: 1 1 18rem; max-width: 32rem; }
@@ -854,7 +856,7 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .gal-opt b { font-size: 1rem; color: var(--fg0); }
 .gal-opt small { font-family: var(--font-sans); text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--fg2); font-size: .82rem; }
 @media (max-width: 800px) {
-  main.gallery { grid-template-columns: minmax(0, 1fr); }
+  .gallery { grid-template-columns: minmax(0, 1fr); padding-inline: 1rem; }
   .gal-nav { position: static; flex-direction: row; flex-wrap: wrap; }
 }
 
@@ -865,6 +867,14 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .wf > a.label { color: var(--link); text-decoration: none; margin-bottom: .4rem; }
 .wf fieldset { border: 0; border-top: 1px solid var(--bg2); margin: 1rem 0 0; padding: .6rem 0 0; min-width: 0; }
 .wf legend { font-family: var(--font-heading); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--fg0); padding: 0 .5rem 0 0; }
+/* The head's options do nothing without a title: faded, with a hint. */
+.wf-titled { display: flex; flex-direction: column; gap: .3rem; }
+.wf-titled-hint { display: none; margin: 0; }
+.wf:has(#title:placeholder-shown) .wf-titled > :not(.wf-titled-hint) { opacity: .5; }
+.wf:has(#title:placeholder-shown) .wf-titled-hint { display: block; }
+/* Save stays in reach on a long form: the bar sticks to the dialog's foot. */
+#detail .wf > .row-actions { position: sticky; bottom: 0; z-index: 1; margin-top: 1rem; padding: .7rem 0; background: var(--bg-panel); border-top: 1px solid var(--bg2); }
+#detail .wf > .row-actions > .btn { margin-top: 0; }
 .wf-preview-head { display: flex; gap: .8rem; align-items: center; }
 .gal-ghost { min-height: 8rem; background: var(--bg-panel); border-top: 4px solid var(--bg2); opacity: .4; }
 .wf-slot { outline: 2px dashed var(--hl); outline-offset: 4px; }

@@ -72,7 +72,7 @@ func recentView(cfg RecentConfig, results map[string]any, _ ViewCtx) map[string]
 
 func init() {
 	Tile[RecentConfig]{Key: "timeline_recent", Detail: recentDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 900, Extra: ExtraTimeline,
-		Fields: []Field{{Key: "limit", Input: InputNumber, Default: defaultRecent, Min: "1", Max: "30"}, {Key: "days", Input: InputNumber, Default: TimelineDays, Min: "1", Max: "90"},
-			sel("kinds", recentAll, recentAll, "updates", "hints")},
+		Fields: []Field{sel("kinds", recentAll, recentAll, "updates", "hints"), {Key: "days", Input: InputNumber, Default: TimelineDays, Min: "1", Max: "90"},
+			{Key: "limit", Input: InputNumber, Default: defaultRecent, Min: "1", Max: "30"}},
 		Decode: decodeRecent, View: recentView}.add()
 }

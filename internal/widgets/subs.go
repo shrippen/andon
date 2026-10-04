@@ -136,8 +136,8 @@ func sureCategories(sure *sources.SureDataset) map[string]string {
 
 func init() {
 	Tile[SubsConfig]{Key: "subscriptions", Detail: subsDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600,
-		Fields: []Field{{Key: "limit", Input: InputNumber, Default: defaultSubRows, Min: "1", Max: "30"}, sel("sort", "next", "next", "price"),
-			{Key: "yearly", Input: InputCheck}, {Key: "categories", Input: InputList}},
+		Fields: []Field{{Key: "categories", Input: InputList}, sel("sort", "next", "next", "price"),
+			{Key: "limit", Input: InputNumber, Default: defaultSubRows, Min: "1", Max: "30"}, {Key: "yearly", Input: InputCheck}},
 		Decode: decodeSubs, View: subsView,
 		Queries: func(SubsConfig) []Query { return []Query{peer(peerWallos, enums.ServiceWallos), surePeer} }}.add()
 }

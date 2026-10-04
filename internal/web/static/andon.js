@@ -826,15 +826,48 @@
       dlg.id = "detail";
       dlg.className = "dialog detail";
       dlg.setAttribute("aria-labelledby", "detail-title");
+      // Its forms post through setupEditor, never as a soft page change.
+      dlg.setAttribute("hx-boost", "false");
+      dlg.addEventListener("cancel", function (e) {
+        if (!leaveOK(dlg)) {
+          e.preventDefault();
+        }
+      });
       d.body.appendChild(dlg);
     }
     return dlg;
+  }
+
+  // fillDetail puts the server's answer into the dialog and readies it:
+  // styles, maps, htmx (the editor's live preview), the first field.
+  function fillDetail(dlg, html) {
+    // Server-rendered html/template output from our own origin.
+    dlg.innerHTML = html;
+    applyStyles(dlg);
+    mountMaps(dlg);
+    if (window.htmx) {
+      htmx.process(dlg);
+    }
+    var first = dlg.querySelector("[autofocus]") ||
+      dlg.querySelector("#widget-form fieldset :is(input:not([type=hidden]), select, textarea)");
+    if (first) {
+      first.focus();
+    }
+  }
+
+  // leaveOK asks before the editor's unsaved changes are dropped.
+  function leaveOK(dlg) {
+    var form = dlg.querySelector("form[data-dirty][data-changed]");
+    return !form || window.confirm(form.getAttribute("data-dirty"));
   }
 
   // openDetail shows the frame at once and fills it when the answer is in;
   // a later open wins over an earlier one still on its way.
   function openDetail(url) {
     var dlg = detailDialog();
+    if (dlg.open && !leaveOK(dlg)) {
+      return;
+    }
     detailURL = url;
     if (!dlg.open) {
       dlg.innerHTML = DETAIL_WAIT;
@@ -852,15 +885,115 @@
           dlg.close();
           return;
         }
-        // Server-rendered html/template output from our own origin.
-        dlg.innerHTML = html;
-        applyStyles(dlg);
-        mountMaps(dlg);
-        // The widget editor's live preview is an htmx form.
-        if (window.htmx) {
-          htmx.process(dlg);
-        }
+        fillDetail(dlg, html);
       });
+  }
+
+  // ── The widget editor: only ever in the detail dialog ──
+  //
+  //   [data-details="/widgets/7/edit?dialog"] ─► dialog: form + live preview
+  //   submit ─fetch─┬─ redirected (saved) ─► the page it names, back at the tile
+  //                 └─ answer (refused)   ─► the dialog anew, with the message
+  //   ?editor=/widgets/…  a page opens that editor on load (its plain address)
+  //
+  // Any post form in the dialog goes this way: the editor, its delete, the
+  // gallery's reuse forms. The place is the tile or section it opened from.
+  var editorPlace = null;
+  var EDITOR_PARAM = /([?&])editor=([^&]*)(&|$)/;
+
+  function setupEditor() {
+    d.addEventListener("input", markChanged);
+    d.addEventListener("change", markChanged);
+    // Bubbling: setupConfirm (capturing) may have cancelled a delete.
+    d.addEventListener("submit", function (e) {
+      var form = e.target.closest && e.target.closest('#detail form[method="post"]:not([data-detail-form])');
+      if (!form || e.defaultPrevented) {
+        return;
+      }
+      e.preventDefault();
+      var button = e.submitter;
+      if (button) {
+        button.disabled = true;
+      }
+      fetch(form.getAttribute("action"), {
+        method: "POST",
+        headers: { "X-CSRF-Token": csrf() },
+        body: new URLSearchParams(new FormData(form)),
+        credentials: "same-origin"
+      }).then(function (r) {
+        if (r.redirected) {
+          keepPlace();
+          window.location.assign(r.url);
+          return;
+        }
+        return r.text().then(function (html) {
+          if (button) {
+            button.disabled = false;
+          }
+          fillDetail(detailDialog(), html);
+        });
+      });
+    });
+  }
+
+  function markChanged(e) {
+    var form = e.target.closest && e.target.closest("#detail form[data-dirty]");
+    if (form) {
+      form.setAttribute("data-changed", "");
+    }
+  }
+
+  // keepPlace hands the editor's origin to restorePlace on the next page.
+  function keepPlace() {
+    if (!editorPlace) {
+      return;
+    }
+    editorPlace.at = Date.now();
+    try {
+      window.sessionStorage.setItem(PLACE_KEY, JSON.stringify(editorPlace));
+    } catch (err) { /* storage blocked: the page starts at the top */ }
+  }
+
+  // openEditorParam opens the editor a page was asked for and drops the
+  // parameter from the address: a reload must not open it again.
+  function openEditorParam() {
+    var m = EDITOR_PARAM.exec(window.location.search);
+    if (!m) {
+      return;
+    }
+    var url = decodeURIComponent(m[2]);
+    var rest = window.location.search.replace(EDITOR_PARAM, function (all, before, value, after) { return after ? before : ""; });
+    window.history.replaceState(window.history.state, "", window.location.pathname + rest + window.location.hash);
+    if (url.indexOf("/widgets/") === 0) {
+      openDetail(url);
+    }
+  }
+
+  // ── Icon upload (widget editor): store the file, put the returned spec into the icon field ──
+  function setupIconUpload() {
+    d.addEventListener("change", function (e) {
+      var input = e.target;
+      if (!input.classList || !input.classList.contains("icon-upload") || !input.files.length) {
+        return;
+      }
+      var body = new FormData();
+      body.append("file", input.files[0]);
+      fetch("/icons/upload", {
+        method: "POST",
+        headers: { "X-CSRF-Token": csrf() },
+        body: body,
+        credentials: "same-origin"
+      }).then(function (res) { return res.text().then(function (text) { return [res.ok, text]; }); })
+        .then(function (pair) {
+          if (!pair[0]) {
+            window.alert(pair[1]);
+            return;
+          }
+          var field = input.form.querySelector('[name="' + input.getAttribute("data-target") + '"]');
+          field.value = pair[1];
+          field.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+    });
   }
 
   // countClick tells the server a link tile was opened (its dialog shows
@@ -957,6 +1090,9 @@
       }
       e.preventDefault();
       e.stopPropagation();
+      if (!trigger.closest("#detail")) {
+        editorPlace = placeOf(trigger);
+      }
       openDetail(trigger.getAttribute("data-details"));
     }
     d.addEventListener("click", open, true);
@@ -994,7 +1130,9 @@
         return;
       }
       if (e.target.closest("[data-detail-close]")) {
-        detailDialog().close();
+        if (leaveOK(detailDialog())) {
+          detailDialog().close();
+        }
         return;
       }
       var check = e.target.closest("[data-detail-refresh]");
@@ -1523,6 +1661,8 @@
     setupMenus();
     setupHintPop();
     setupDetail();
+    setupEditor();
+    setupIconUpload();
     setupKimaiForm();
     setupOffline();
     setupHotkeys();
@@ -1540,6 +1680,7 @@
   });
 
   window.andonPage(function () {
+    openEditorParam();
     restorePlace();
     retryPending(d);
     setupSearch();

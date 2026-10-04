@@ -167,6 +167,7 @@ board:
   full: Alles zeigen
   compact: Kompakt
 edit:
+  discard: Ungespeicherte Änderungen verwerfen?
   save_failed: 'Die neue Anordnung wurde nicht gespeichert. Verbindung prüfen und erneut versuchen.'
   tile_tall: Doppelte Höhe
   tile_normal: Normale Höhe
@@ -269,6 +270,8 @@ typefield:
   conn_health:
     only_problems: Nur aktuell wackelige (letzte 2 Tage)
 field:
+  title_none: Leer lassen für eine Kachel ohne Kopfzeile
+  title_needed: Kopfzeile, Icon und Titel-Link erscheinen erst mit einem Titel.
   place: Ort
   week_hours: Wochenziel (Stunden)
   timezone: Zeitzone
@@ -974,6 +977,7 @@ wtype:
 widget:
   bad_window: 'Wartungsfenster nicht lesbar: z. B. 22:00-06:00 oder 22-6.'
   bad_timezone: 'Unbekannte Zeitzone: z. B. Europe/Berlin.'
+  field_required: Bitte alle Pflichtfelder ausfüllen.
   delete_hint: 'Die Kachel verschwindet von allen Boards, auf denen sie steht.'
   pending: Wird beim nächsten Prüflauf geladen …
   loading: lädt …

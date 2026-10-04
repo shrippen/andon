@@ -132,7 +132,7 @@ func TestFreshCardSkipsLoad(t *testing.T) {
 	}))
 	defer feed.Close()
 
-	space := string(regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1])
+	space := string(regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1])
 	postForm(t, client, srv.URL+"/widgets", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space}, "type": {"rss"},
 		"title": {"News"}, "cfg.url": {feed.URL}})
 	boardURL, section, version, widget := placeTarget(t, srv, client, "News")

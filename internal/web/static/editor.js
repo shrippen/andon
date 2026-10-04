@@ -265,9 +265,13 @@
       b.setAttribute("formaction", b.getAttribute("data-act").replace("{placement}", id));
     });
     // Boosted links keep the href htmx saw first: process them again.
+    // The section's tile size and the tile's spans: the editor's preview
+    // shows the tile as it sits here.
+    var body = tile.closest("[data-size]");
+    var look = "&size=" + (body ? body.getAttribute("data-size") : "") + "&rows=" + rows + "&cols=" + cols;
     [].forEach.call(s.querySelectorAll("[data-dialog]"), function (a) {
       // andon.js opens [data-details] in the detail dialog; the href stays for a new tab.
-      a.setAttribute("data-details", a.getAttribute("data-dialog").replace("{widget}", tile.getAttribute("data-widget")));
+      a.setAttribute("data-details", a.getAttribute("data-dialog").replace("{widget}", tile.getAttribute("data-widget")) + look);
     });
     [].forEach.call(s.querySelectorAll("[data-href]"), function (a) {
       a.setAttribute("href", a.getAttribute("data-href").replace("{widget}", tile.getAttribute("data-widget")));
@@ -531,34 +535,5 @@
     [].forEach.call(e.target.querySelectorAll(".tile-slot[data-placement]"), function (t) {
       t.classList.toggle("is-selected", picked(t.getAttribute("data-placement")));
     });
-  });
-})();
-
-/* Icon upload: store the file, put the returned spec into the icon field. */
-(function () {
-  "use strict";
-
-  document.addEventListener("change", function (e) {
-    var input = e.target;
-    if (!input.classList || !input.classList.contains("icon-upload") || !input.files.length) {
-      return;
-    }
-    var body = new FormData();
-    body.append("file", input.files[0]);
-    fetch("/icons/upload", {
-      method: "POST",
-      headers: { "X-CSRF-Token": (document.querySelector('meta[name="csrf"]') || { content: "" }).content },
-      body: body,
-      credentials: "same-origin"
-    }).then(function (res) { return res.text().then(function (text) { return [res.ok, text]; }); })
-      .then(function (pair) {
-        if (!pair[0]) {
-          window.alert(pair[1]);
-          return;
-        }
-        var field = document.querySelector('[name="' + input.getAttribute("data-target") + '"]');
-        field.value = pair[1];
-        field.dispatchEvent(new Event("input", { bubbles: true }));
-      });
   });
 })();

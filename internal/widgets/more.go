@@ -544,15 +544,16 @@ func init() {
 	)
 
 	Tile[CalendarConfig]{Key: "calendar", Detail: calendarDetail, Category: CategoryStart, Topic: TopicOverview, RefreshS: 15 * minute,
-		Fields: []Field{{Key: "ical_url", Input: InputSecret}, {Key: "days", Input: InputNumber, Default: defaultCalDays, Min: "1", Max: "90"},
-			{Key: "limit", Input: InputNumber, Default: defaultListLimit, Min: "1", Max: "50"}, {Key: "hide_all_day", Input: InputCheck},
-			sel("color_1", "none", accentColors...), {Key: "ical_url_2", Input: InputSecret}, sel("color_2", "none", accentColors...),
-			{Key: "ical_url_3", Input: InputSecret}, sel("color_3", "none", accentColors...)},
+		Fields: []Field{{Key: "ical_url", Input: InputSecret}, sel("color_1", "none", accentColors...),
+			{Key: "ical_url_2", Input: InputSecret}, sel("color_2", "none", accentColors...),
+			{Key: "ical_url_3", Input: InputSecret}, sel("color_3", "none", accentColors...),
+			{Key: "days", Input: InputNumber, Default: defaultCalDays, Min: "1", Max: "90"},
+			{Key: "limit", Input: InputNumber, Default: defaultListLimit, Min: "1", Max: "50"}, {Key: "hide_all_day", Input: InputCheck}},
 		Decode: decodeCalendar, Queries: calendarQueries, DetailQueries: calendarPast, View: calendarView}.add()
 
 	Tile[CustomAPIConfig]{Key: "custom_api", Detail: customAPIDetail, Category: CategoryStart, Topic: TopicAnalysis, RefreshS: 5 * minute,
-		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "fields", Input: InputArea}, {Key: "headers", Input: InputHeaders},
-			{Key: "thresholds", Input: InputArea}, {Key: "units", Input: InputArea}},
+		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "headers", Input: InputHeaders}, {Key: "fields", Input: InputArea},
+			{Key: "units", Input: InputArea}, {Key: "thresholds", Input: InputArea}},
 		Decode: decodeCustomAPI, View: customAPIView,
 		Queries: one("body", "json_api", func(cfg CustomAPIConfig) map[string]any {
 			return map[string]any{"url": cfg.URL, "headers": cfg.Headers}
@@ -565,7 +566,7 @@ func init() {
 
 	Tile[HolidaysConfig]{Key: "holidays", Detail: holidaysDetail, Category: CategoryStart, Topic: TopicWorld, RefreshS: 12 * hour,
 		Fields: []Field{{Key: "country", Input: InputText, Default: defaultCountry}, {Key: "state", Input: InputText},
-			{Key: "limit", Input: InputNumber, Default: 5, Min: "1", Max: "30"}, {Key: "bridges", Input: InputCheck}},
+			{Key: "bridges", Input: InputCheck}, {Key: "limit", Input: InputNumber, Default: 5, Min: "1", Max: "30"}},
 		Decode: decodeHolidays, View: holidaysView,
 		Queries: one("days", "holidays", func(cfg HolidaysConfig) map[string]any {
 			return map[string]any{"country": cfg.Country, "state": cfg.State}
@@ -609,15 +610,15 @@ func init() {
 
 	Tile[FlightsConfig]{Key: "flights", Detail: flightsDetail, Template: "widgets/board", Category: CategoryStart, Topic: TopicWorld, RefreshS: 10 * minute,
 		Fields: []Field{{Key: "airport", Input: InputText, Required: true}, sel("direction", "Departure", "Departure", "Arrival"),
-			{Key: "limit", Input: InputNumber, Default: defaultListLimit, Min: "1", Max: "30"}, {Key: "api_key", Input: InputSecret}, {Key: "airlines", Input: InputList}},
+			{Key: "airlines", Input: InputList}, {Key: "limit", Input: InputNumber, Default: defaultListLimit, Min: "1", Max: "30"}, {Key: "api_key", Input: InputSecret}},
 		Decode: decodeFlights, View: flightsView,
 		Queries: one("board", "flights", func(cfg FlightsConfig) map[string]any {
 			return map[string]any{"airport": cfg.Airport, "direction": cfg.Direction, "api_key": cfg.APIKey}
 		})}.add()
 
 	Tile[TransitConfig]{Key: "transit", Detail: transitDetail, Template: "widgets/board", Category: CategoryStart, Topic: TopicWorld, RefreshS: minute,
-		Fields: []Field{{Key: "stop", Input: InputText, Required: true}, {Key: "limit", Input: InputNumber, Default: defaultListLimit, Min: "1", Max: "30"},
-			{Key: "lines", Input: InputList}, {Key: "walk", Input: InputNumber, Default: 0, Min: "0", Max: "60"}},
+		Fields: []Field{{Key: "stop", Input: InputText, Required: true}, {Key: "lines", Input: InputList},
+			{Key: "walk", Input: InputNumber, Default: 0, Min: "0", Max: "60"}, {Key: "limit", Input: InputNumber, Default: defaultListLimit, Min: "1", Max: "30"}},
 		Decode: decodeTransit, View: transitView,
 		Queries: one("board", "transit", func(cfg TransitConfig) map[string]any {
 			return map[string]any{"stop": cfg.Stop, "results": float64(boardFetch(cfg.Limit, len(cfg.Lines) > 0 || cfg.Walk > 0))}
