@@ -341,7 +341,7 @@ const ArticleSlot = openName
 
 // rssParams are the feed's query params, shared by its dialog's article.
 func rssParams(cfg RssConfig) map[string]any {
-	return map[string]any{"url": cfg.URL, "limit": cfg.Limit, "urls": cfg.More, "images": cfg.Images, "max_age": float64(cfg.MaxAge)}
+	return map[string]any{"url": cfg.URL, "limit": float64(cfg.Limit), "urls": cfg.More, "images": cfg.Images, "max_age": float64(cfg.MaxAge)}
 }
 
 // OffersDetail: the dialog compares zones, one zone needs none.
