@@ -61,11 +61,12 @@ type Tile struct {
 	RefreshS    int
 	Config      any
 	Hidden      bool
-	Rows        int    // grid rows the tile spans: the board's, or the viewer's overlay
-	Cols        int    // grid columns the tile spans, likewise
-	IconURL     string // link tiles: cached icon, "" = monogram
-	IconEmoji   string // link tiles: emoji instead of an image
-	IconGlyph   bool   // single-color icon, inverted on dark themes
+	Rows        int           // grid rows the tile spans: the board's, or the viewer's overlay
+	Cols        int           // grid columns the tile spans, likewise
+	Width       widgets.Width // WidthFull: the type always takes the section's width
+	IconURL     string        // link tiles: cached icon, "" = monogram
+	IconEmoji   string        // link tiles: emoji instead of an image
+	IconGlyph   bool          // single-color icon, inverted on dark themes
 	Items       []TileItem
 	Frame       widgets.Frame
 	FrameIcon   TileIcon // the frame's title icon
@@ -469,7 +470,7 @@ func viewSection(q db.Queryer, who *access.Principal, section model.Section, boa
 		tile := Tile{
 			PlacementID: placement.ID, WidgetID: w.ID, Type: w.Type, Title: w.Title, Template: kind.Template,
 			Category: kind.Category, Inline: kind.Inline, RefreshS: kind.RefreshS, Config: cfg, Hidden: hidden[placement.ID],
-			Rows: tileRows(placement.Rows), Cols: tileCols(placement.Cols),
+			Rows: tileRows(placement.Rows), Cols: tileCols(placement.Cols), Width: kind.Width,
 		}
 		tile.Frame = widgets.FrameOf(w.Config)
 		if own, ok := cfg.(widgets.Refresher); ok && own.RefreshSeconds() > 0 {
@@ -567,20 +568,22 @@ func PlacedWidget(d *sql.DB, who *access.Principal, placementID int64) (*model.W
 
 // Fragment loads one placed widget's live data for lazy tile rendering
 // (the board page's own render only shows title/type; the tile then
-// hx-gets this to fill in).
-func Fragment(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64, fresh svcdata.Freshness) (*widgetlib.Fragment, error) {
+// hx-gets this to fill in). rows is the tile's height as the page shows
+// it: the viewer's own layout may differ from the board's.
+func Fragment(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64, rows int, fresh svcdata.Freshness) (*widgetlib.Fragment, error) {
 	w, err := PlacedWidget(d, who, placementID)
 	if err != nil {
 		return nil, err
 	}
-	return widgetlib.Load(ctx, d, who, w, fresh)
+	return widgetlib.LoadRows(ctx, d, who, w, rows, fresh)
 }
 
 // Fragments loads the fragments of a board's placements for the page's
 // first render. One access check for the board, where Fragment per tile
 // re-read placement, section and board: on a 240-tile board that was
 // 15 % of the page. A tile that fails is left out; it loads lazily.
-func Fragments(ctx context.Context, d *sql.DB, who *access.Principal, boardID int64, placementIDs []int64, fresh svcdata.Freshness) (map[int64]*widgetlib.Fragment, error) {
+// rows holds the height of each tile spanning more than one row.
+func Fragments(ctx context.Context, d *sql.DB, who *access.Principal, boardID int64, placementIDs []int64, rows map[int64]int, fresh svcdata.Freshness) (map[int64]*widgetlib.Fragment, error) {
 	wanted := make(map[int64]bool, len(placementIDs))
 	for _, id := range placementIDs {
 		wanted[id] = true
@@ -628,7 +631,7 @@ func Fragments(ctx context.Context, d *sql.DB, who *access.Principal, boardID in
 		go func() {
 			defer wg.Done()
 			for id := range jobs {
-				frag, err := widgetlib.Load(ctx, d, who, seen[id], fresh)
+				frag, err := widgetlib.LoadRows(ctx, d, who, seen[id], rows[id], fresh)
 				if err != nil {
 					continue
 				}

@@ -179,6 +179,14 @@ func Load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 	return load(ctx, d, who, widget, fresh, originStored, loadTile)
 }
 
+// LoadRows is Load for a tile spanning rows grid rows: a list shows
+// more entries the taller its tile is (widgets.ForRows).
+func LoadRows(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.Widget, rows int, fresh svcdata.Freshness) (*Fragment, error) {
+	sized := *widget
+	sized.Config = widgets.ForRows(widget.Type, widget.Config, rows)
+	return load(ctx, d, who, &sized, fresh, originStored, loadTile)
+}
+
 // loadMode says whether a load also runs the type's DetailQueries.
 type loadMode int
 
@@ -502,6 +510,12 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 				frag.View = map[string]any{}
 			}
 			frag.View["Uptime"] = up
+		}
+		if trend, ok := linkstatus.TrendOf(d, widget.ID, time.Now().UTC()); ok {
+			if frag.View == nil {
+				frag.View = map[string]any{}
+			}
+			frag.View["Trend"] = trend
 		}
 	}
 

@@ -126,6 +126,7 @@ type WidgetType struct {
 	Live bool
 	// Inline widgets render with the page (search needs link tiles in the HTML).
 	Inline  bool
+	Width   Width // WidthFull: always the section's width
 	Queries QueriesFunc
 	View    ViewFunc
 	Detail  DetailFunc // nil: no detail dialog (see detail.go)

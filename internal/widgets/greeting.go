@@ -183,7 +183,7 @@ func greetingLines(changes []GreetingChange) []GreetingLine {
 }
 
 func init() {
-	Tile[GreetingConfig]{Key: "greeting", Category: CategoryStart, Topic: TopicOverview, RefreshS: 10 * 60, Extra: ExtraGreeting,
+	Tile[GreetingConfig]{Key: "greeting", Width: WidthFull, Category: CategoryStart, Topic: TopicOverview, RefreshS: 10 * 60, Extra: ExtraGreeting,
 		Fields: []Field{{Key: "label", Input: InputText}, {Key: placeKey, Input: InputPlace},
 			{Key: "timezone", Input: InputText, Default: defaultTimezone}, {Key: "since_hour", Input: InputNumber, Default: greetingSinceHour, Min: "0", Max: "23"},
 			{Key: "show_weather", Input: InputCheck, Default: true}, {Key: "show_since", Input: InputCheck, Default: true},

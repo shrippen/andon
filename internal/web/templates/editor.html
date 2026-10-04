@@ -284,8 +284,8 @@
         {{if and .Target.Place (not .Widget)}}
         <label for="rows">{{t "gallery.height"}}</label>
         <select class="select" id="rows" name="rows">{{range $n := .RowOptions}}<option value="{{$n}}">{{t (print "gallery.rows_" $n)}}</option>{{end}}</select>
-        <label for="cols">{{t "gallery.width"}}</label>
-        <select class="select" id="cols" name="cols">{{range $n := .ColOptions}}<option value="{{$n}}">{{t (print "gallery.cols_" $n)}}</option>{{end}}</select>
+        {{with .ColOptions}}<label for="cols">{{t "gallery.width"}}</label>
+        <select class="select" id="cols" name="cols">{{range $n := .}}<option value="{{$n}}">{{t (print "gallery.cols_" $n)}}</option>{{end}}</select>{{end}}
         {{end}}
         </fieldset>
 
@@ -333,8 +333,8 @@
 {{define "widget_dialog"}}
 <header class="detail-head">
   <div class="detail-name">
-    <span class="detail-sub">{{t (print "topic." .Topic)}}</span>
     <h3 id="detail-title">{{if .Title}}{{.Title}}{{else}}{{t (print "wtype." .Kind.Key ".name")}}{{end}}</h3>
+    <span class="detail-sub">{{t (print "topic." .Topic)}}</span>
   </div>
   <button type="button" class="btn btn-outline btn-sm btn-icon" data-detail-close aria-label="{{t "detail.close"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </header>

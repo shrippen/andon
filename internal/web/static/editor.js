@@ -277,6 +277,11 @@
     });
     toggle(s, "rows", rows > 1, rows > 1 ? "1" : "2", rows > 1 ? s.dataset.normal : s.dataset.tall);
     toggle(s, "cols", cols > 1, cols > 1 ? "1" : "2", cols > 1 ? s.dataset.narrow : s.dataset.wide);
+    // A full-width type cannot grow wider: no width button.
+    var wide = s.querySelector('[data-toggle="cols"]');
+    if (wide) {
+      wide.hidden = tile.getAttribute("data-width") === "full";
+    }
     toggle(s, "hidden", hidden, hidden ? "shown" : "hidden", hidden ? s.dataset.show : s.dataset.hide);
 
     var pick = s.querySelector("[data-pick]");

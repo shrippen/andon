@@ -4097,6 +4097,9 @@ linkdetail:
   clicks_total: '{n} in 30 days'
   no_clicks: 'Not opened from here yet.'
   not_checked: 'off (check disabled)'
+linktrend:
+  summary: 'Last 24 h: {min} to {max} ms'
+
 uptime:
   summary: '{share} reachable in 30 days, avg {ms} ms'
   month: 'Uptime {month}'

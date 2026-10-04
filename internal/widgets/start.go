@@ -601,7 +601,7 @@ func init() {
 		},
 		Decode: decodeLink, Queries: linkQueries, View: linkView}.add()
 
-	Tile[RssConfig]{Key: "rss", Detail: rssDetail, Category: CategoryStart, Topic: TopicMedia, RefreshS: 30 * 60,
+	Tile[RssConfig]{Key: "rss", Width: WidthFull, Detail: rssDetail, Category: CategoryStart, Topic: TopicMedia, RefreshS: 30 * 60,
 		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
 			{Key: "summary", Input: InputCheck}, {Key: "more_urls", Input: InputList}, {Key: "images", Input: InputCheck},
 			{Key: "max_age", Input: InputNumber, Min: "0", Max: "365"}, {Key: "titles_only", Input: InputCheck},
@@ -625,7 +625,7 @@ func init() {
 			return []Query{{Name: "weather", Source: "open_meteo", Params: map[string]any{"lat": cfg.Lat, "lon": cfg.Lon, "days": float64(cfg.Days)}}}
 		}}.add()
 
-	Tile[IframeConfig]{Key: "iframe", Detail: iframeDetail, Category: CategoryStart, Topic: TopicDev, Inline: true,
+	Tile[IframeConfig]{Key: "iframe", Width: WidthFull, Detail: iframeDetail, Category: CategoryStart, Topic: TopicDev, Inline: true,
 		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "height", Input: InputNumber, Default: 320, Min: "80", Max: "2000"},
 			{Key: "reload", Input: InputNumber, Min: "0", Max: "1440"}},
 		Decode: decodeIframe}.add()
@@ -643,7 +643,7 @@ func init() {
 			return []Query{{Name: "ip", Source: "public_ip", Params: map[string]any{"v6": cfg.V6}}}
 		}}.add()
 
-	Tile[NoteConfig]{Key: "note", Category: CategoryStart, Topic: TopicOverview, Inline: true,
+	Tile[NoteConfig]{Key: "note", Width: WidthFull, Category: CategoryStart, Topic: TopicOverview, Inline: true,
 		Fields: []Field{{Key: "text", Input: InputArea}, {Key: "markdown", Input: InputCheck}, sel("color", "none", accentColors...)},
 		Decode: decodeNote}.add()
 }

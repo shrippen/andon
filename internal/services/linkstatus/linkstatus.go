@@ -25,8 +25,11 @@ const (
 	Interval   = 10 * time.Minute
 	barDays    = 30
 	keepDays   = 60
+	trendHours = 24
+	keepHours  = 2 * trendHours
 	workers    = 8
 	isoDay     = "2006-01-02"
+	isoHour    = "2006-01-02T15"
 	linkWidget = "link"
 	statusKey  = "http_status"
 )
@@ -77,7 +80,8 @@ func Check(ctx context.Context, d *sql.DB) error {
 		return err
 	}
 
-	today := time.Now().UTC().Format(isoDay)
+	now := time.Now().UTC()
+	today, hour := now.Format(isoDay), now.Format(isoHour)
 	sem := make(chan struct{}, workers)
 	var wg sync.WaitGroup
 	var mu sync.Mutex
@@ -96,7 +100,12 @@ func Check(ctx context.Context, d *sql.DB) error {
 				return
 			}
 			up, ms := status.Outcome()
-			if err := data.RecordStatus(d, c.widgetID, today, data.Check{Up: up, MS: ms, Error: status.Failure()}); err != nil {
+			result := data.Check{Up: up, MS: ms, Error: status.Failure()}
+			err = data.RecordStatus(d, c.widgetID, today, result)
+			if err == nil {
+				err = data.RecordStatusHour(d, c.widgetID, hour, result)
+			}
+			if err != nil {
 				mu.Lock()
 				if firstErr == nil {
 					firstErr = err
@@ -109,7 +118,10 @@ func Check(ctx context.Context, d *sql.DB) error {
 	if firstErr != nil {
 		return firstErr
 	}
-	return data.PruneStatus(d, time.Now().UTC().AddDate(0, 0, -keepDays).Format(isoDay))
+	if err := data.PruneStatusHours(d, now.Add(-keepHours*time.Hour).Format(isoHour)); err != nil {
+		return err
+	}
+	return data.PruneStatus(d, now.AddDate(0, 0, -keepDays).Format(isoDay))
 }
 
 // BarState is one day's summary.
@@ -193,4 +205,34 @@ func DownDays(q db.Queryer, widgetID int64, today time.Time) int {
 		days++
 	}
 	return days
+}
+
+// Trend is a tile's mean response time per hour over the last day.
+type Trend struct {
+	Ms       []int // oldest first, hours without a successful check left out
+	Min, Max int
+}
+
+// TrendOf reads the last 24 hours; ok=false without a successful check.
+//
+//	hour 09: 100+200 ms, 10: failed, 12: 90 ms   →   Ms [150 90]
+func TrendOf(q db.Queryer, widgetID int64, now time.Time) (Trend, bool) {
+	since := now.UTC().Add(-(trendHours - 1) * time.Hour).Format(isoHour)
+	rows, err := data.StatusHoursSince(q, widgetID, since)
+	if err != nil {
+		return Trend{}, false
+	}
+	var t Trend
+	for _, r := range rows {
+		if r.OK == 0 {
+			continue
+		}
+		ms := r.MsSum / r.OK
+		if len(t.Ms) == 0 || ms < t.Min {
+			t.Min = ms
+		}
+		t.Max = max(t.Max, ms)
+		t.Ms = append(t.Ms, ms)
+	}
+	return t, len(t.Ms) > 0
 }

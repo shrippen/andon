@@ -137,7 +137,8 @@ func (d Deps) targetNames(ctx Ctx, target widgetTarget) galleryTarget {
 }
 
 // handleSample renders a type with default settings: live with the given
-// connection, else with demo data.
+// connection, else with demo data. ?rows=2 renders it as tall as a tile
+// spanning two rows (more entries), e.g. for tools/tile-sizes.py.
 func (d Deps) handleSample(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	var err error
 	kind, ok := widgets.Get(r.PathValue("type"))
@@ -146,12 +147,14 @@ func (d Deps) handleSample(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	space, _ := strconv.ParseInt(r.URL.Query().Get("space"), 10, 64)
+	rows, _ := strconv.Atoi(r.URL.Query().Get("rows"))
+	config := widgets.ForRows(kind.Key, map[string]any{}, min(rows, boards.MaxTileRows))
 
 	var frag *widgetlib.Fragment
 	if conn, _ := strconv.ParseInt(r.URL.Query().Get("conn"), 10, 64); conn > 0 {
-		frag, err = widgetlib.Preview(r.Context(), d.DB, ctx.Who, space, kind.Key, "", nil, &conn)
+		frag, err = widgetlib.Preview(r.Context(), d.DB, ctx.Who, space, kind.Key, "", config, &conn)
 	} else {
-		frag, err = widgetlib.Demo(r.Context(), d.DB, ctx.Who, space, kind.Key, "", nil)
+		frag, err = widgetlib.Demo(r.Context(), d.DB, ctx.Who, space, kind.Key, "", config)
 	}
 	d.renderPreview(w, ctx, kind, frag, err)
 }

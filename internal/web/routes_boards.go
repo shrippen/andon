@@ -297,7 +297,7 @@ func (d Deps) handleBoardLive(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 			ids = append(ids, tile.PlacementID)
 		}
 	}
-	frags, err := boards.Fragments(r.Context(), d.DB, ctx.Who, boardID, ids, svcdata.Cached)
+	frags, err := boards.Fragments(r.Context(), d.DB, ctx.Who, boardID, ids, nil, svcdata.Cached)
 	if err != nil {
 		d.handleBoardError(w, r, err)
 		return
@@ -337,6 +337,7 @@ func (d Deps) tileBodies(r *http.Request, ctx Ctx, view *boards.BoardView) map[i
 
 	// A link without status or info line has no body.
 	var ids []int64
+	rows := map[int64]int{}
 	for _, sec := range view.Sections {
 		for _, tile := range sec.Tiles {
 			kind, ok := widgets.Get(tile.Type)
@@ -344,9 +345,10 @@ func (d Deps) tileBodies(r *http.Request, ctx Ctx, view *boards.BoardView) map[i
 				continue
 			}
 			ids = append(ids, tile.PlacementID)
+			rows[tile.PlacementID] = tile.Rows
 		}
 	}
-	frags, err := boards.Fragments(r.Context(), d.DB, ctx.Who, view.ID, ids, svcdata.Stored)
+	frags, err := boards.Fragments(r.Context(), d.DB, ctx.Who, view.ID, ids, rows, svcdata.Stored)
 	if err != nil {
 		return nil
 	}
@@ -446,8 +448,22 @@ func forceAllowed(placementID int64, now time.Time) bool {
 	return true
 }
 
+// tileRowsHeader carries a tile's height on every htmx request from
+// inside it (hx-headers on .tile-slot), so a refresh or an action in the
+// tile renders as many entries as the first render.
+const tileRowsHeader = "X-Tile-Rows"
+
+// tileRowsOf is the height a request names, 1 when it names none.
+func tileRowsOf(r *http.Request) int {
+	n, err := strconv.Atoi(r.Header.Get(tileRowsHeader))
+	if err != nil {
+		return 1
+	}
+	return min(max(n, 1), boards.MaxTileRows)
+}
+
 func (d Deps) renderFragment(w http.ResponseWriter, r *http.Request, ctx Ctx, placementID int64, fresh svcdata.Freshness) {
-	frag, err := boards.Fragment(r.Context(), d.DB, ctx.Who, placementID, fresh)
+	frag, err := boards.Fragment(r.Context(), d.DB, ctx.Who, placementID, tileRowsOf(r), fresh)
 	if err != nil {
 		d.handleBoardError(w, r, err)
 		return
