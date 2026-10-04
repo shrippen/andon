@@ -158,7 +158,7 @@
         var lang = (document.documentElement.lang || 'en').slice(0, 2);
         resolve(el.getAttribute('data-map-source')).then(function (src) {
           var map = new maplibre.Map({ container: el, style: style(src, lang),
-            attributionControl: { compact: true }, scrollZoom: false, dragRotate: false, pitchWithRotate: false });
+            attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
           map.addControl(new maplibre.NavigationControl({ showCompass: false }), 'top-right');
           map.on('load', function () { draw(maplibre, map, el, data); });
         });
