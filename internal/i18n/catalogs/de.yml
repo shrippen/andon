@@ -4098,6 +4098,9 @@ linkdetail:
   clicks_total: '{n} in 30 Tagen'
   no_clicks: 'Noch nicht von hier aufgerufen.'
   not_checked: 'aus (Prüfung abgeschaltet)'
+linktrend:
+  summary: 'Letzte 24 h: {min} bis {max} ms'
+
 uptime:
   summary: '{share} erreichbar in 30 Tagen, Ø {ms} ms'
   month: 'Verfügbarkeit {month}'

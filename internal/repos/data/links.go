@@ -113,3 +113,46 @@ func PruneStatus(q db.Queryer, before string) error {
 	_, err := q.Exec("DELETE FROM link_status WHERE day < ?", before)
 	return err
 }
+
+// HourStatus is one tile's checks of one hour.
+type HourStatus struct {
+	Hour     string // "2006-01-02T15", UTC
+	OK, Fail int
+	MsSum    int
+}
+
+// RecordStatusHour adds one check result to an hour's row.
+func RecordStatusHour(q db.Queryer, widgetID int64, hour string, check Check) error {
+	ok, fail, ms := 0, 1, 0
+	if check.Up {
+		ok, fail, ms = 1, 0, check.MS
+	}
+	_, err := q.Exec(`INSERT INTO link_status_hour (widget_id, hour, ok, fail, ms_sum) VALUES (?,?,?,?,?)
+		ON CONFLICT (widget_id, hour) DO UPDATE SET ok = ok + excluded.ok, fail = fail + excluded.fail, ms_sum = ms_sum + excluded.ms_sum`,
+		widgetID, hour, ok, fail, ms)
+	return err
+}
+
+// StatusHoursSince returns a tile's hours from an hour on, oldest first.
+func StatusHoursSince(q db.Queryer, widgetID int64, since string) ([]HourStatus, error) {
+	rows, err := q.Query("SELECT hour, ok, fail, ms_sum FROM link_status_hour WHERE widget_id = ? AND hour >= ? ORDER BY hour", widgetID, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []HourStatus
+	for rows.Next() {
+		var s HourStatus
+		if err := rows.Scan(&s.Hour, &s.OK, &s.Fail, &s.MsSum); err != nil {
+			return nil, err
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+// PruneStatusHours drops rows before an hour.
+func PruneStatusHours(q db.Queryer, before string) error {
+	_, err := q.Exec("DELETE FROM link_status_hour WHERE hour < ?", before)
+	return err
+}

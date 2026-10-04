@@ -503,6 +503,12 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 			}
 			frag.View["Uptime"] = up
 		}
+		if trend, ok := linkstatus.TrendOf(d, widget.ID, time.Now().UTC()); ok {
+			if frag.View == nil {
+				frag.View = map[string]any{}
+			}
+			frag.View["Trend"] = trend
+		}
 	}
 
 	if kind.Extra == widgets.ExtraHints {

@@ -84,6 +84,7 @@ func mustParse() *template.Template {
 		"isHex":       isHex,
 		"stripPaths":  stripPaths,
 		"sparkPath":   sparkPath,
+		"trendPath":   trendPath,
 		"msChartOf":   msChartOf,
 		"msX":         msX,
 		"kanteState":  kanteState,

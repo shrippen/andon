@@ -53,3 +53,12 @@ func uptimePaths(u linkstatus.Uptime) []uptimePath {
 	}
 	return out
 }
+
+// trendPath is a response-time trend as Kante's sparkline path.
+func trendPath(t linkstatus.Trend) string {
+	values := make([]float64, len(t.Ms))
+	for i, ms := range t.Ms {
+		values[i] = float64(ms)
+	}
+	return sparkPath(values)
+}

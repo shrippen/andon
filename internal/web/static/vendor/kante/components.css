@@ -1343,6 +1343,15 @@ input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:
 /* Uptime strip with its detail button on one line: <span class="launch-trend"><svg class="uptime">…</svg>
    <span class="launch-detail" role="button" tabindex="0" aria-label="…"><svg>…</svg></span></span>; a span, as the tile is a link */
 .launch-trend{flex-basis:100%;display:flex;align-items:center;gap:.4rem;min-width:0}
+/* Right half of a wide tile (24rem of content width and up): a column beside the icon and text, e.g. a trend. Hidden on narrower tiles.
+   <span class="launch-wide"><svg class="spark">…</svg><span class="launch-info">…</span></span> in .launch-live; the text keeps the left half */
+.launch{container-type:inline-size}
+.launch-wide{display:none}
+@container (min-width:24rem){
+  .launch-body:has(.launch-wide){max-width:calc(50% - 4.2rem)}
+  .launch-wide{display:flex;flex-direction:column;justify-content:center;gap:.3rem;position:absolute;inset-block:.6rem;left:50%;right:2.4rem;padding-left:1rem;border-left:1px solid var(--bg2);white-space:nowrap}
+  .launch-wide .spark{height:1.8rem}
+}
 .launch-detail{flex:none;display:inline-grid;place-items:center;width:1.6rem;height:var(--h-mark);padding:0;background:none;border:1px solid transparent;color:var(--fg3);cursor:pointer}
 .launch-detail svg{width:14px;height:14px}
 .launch-detail:hover{color:var(--fg0);border-color:var(--bg2)}
