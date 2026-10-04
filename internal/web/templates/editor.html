@@ -170,11 +170,11 @@
       {{end}}
       <p class="gal-none muted" hidden>{{t "gallery.none"}}</p>
     </div>
-
-    {{/* The side panel of one type, filled by a card (hx-get) and empty
-         (hidden) until then; after a deletion it opens again. */}}
-    <aside class="sheet gal-side" id="gal-side" aria-label="{{t "gallery.tiles_of"}}"{{with .After.Open}} hx-get="/widget-tiles/{{.}}?{{$.Target.Query}}" hx-trigger="load"{{end}}></aside>
 </div>
+  {{/* The side panel of one type, filled by a card (hx-get) and empty
+       (hidden) until then; after a deletion it opens again. Outside the
+       scrolling gallery, so it covers the dialog's full height. */}}
+  <aside class="sheet gal-side" id="gal-side" aria-label="{{t "gallery.tiles_of"}}"{{with .After.Open}} hx-get="/widget-tiles/{{.}}?{{$.Target.Query}}" hx-trigger="load"{{end}}></aside>
   {{if and .Reuse .Target.Place}}
   {{/* One dialog for every set-up tile: {widget} and the texts are
        filled from the row's button. One per tile made 226 tiles 580 KB. */}}

@@ -862,14 +862,17 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .gal-opt:hover { background: var(--bg-panel); border-color: var(--hl); }
 .gal-opt b { font-size: 1rem; color: var(--fg0); }
 .gal-opt small { font-family: var(--font-sans); text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--fg2); font-size: .82rem; }
-/* The gallery dialog uses the screen's width: more cards per row. */
-#detail:has(> .gallery) { max-width: calc(100vw - 2rem); }
-/* Side panel of one type: an overlay on the right of the card grid. It
-   shares the grid's cell (grid items may overlap), so the layout stays;
-   sticky, so it stays in view while the grid scrolls. */
-.gal-main, .gal-side { grid-column: 2; grid-row: 1; }
-.gal-side { position: sticky; top: 0; z-index: 2; justify-self: end; width: min(44rem, 100%); max-height: calc(100dvh - 8rem); overflow-y: auto;
-  border-left: 1px solid var(--bg2); }
+/* The gallery dialog uses the screen's width and height (more cards per
+   row); the gallery scrolls inside it, not the dialog. */
+#detail:has(> .gallery) { max-width: calc(100vw - 2rem); height: calc(100dvh - 2rem); overflow: hidden; display: flex; flex-direction: column; }
+#detail > .gallery { flex: 1; min-height: 0; overflow-y: auto; }
+/* Side panel of one type: an overlay over the dialog's full height on
+   the right (the modal dialog is its containing block), sliding in like
+   a toast; the layout below stays. */
+.gal-side { position: absolute; top: 0; right: 0; bottom: 0; z-index: 2; width: min(44rem, 100%); overflow-y: auto; border-left: 1px solid var(--bg2); }
+@media (prefers-reduced-motion: no-preference) {
+  .gal-side:not(:empty) { animation: k-toast-in var(--dur-slow) var(--ease-out); }
+}
 .gal-side:empty { display: none; }
 .gal-side-head { display: grid; grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto; gap: 1rem; align-items: start; }
 .gal-side-head .gal-preview { height: 8rem; }
@@ -884,9 +887,7 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .gal-clean-list small { margin-left: auto; }
 @media (max-width: 800px) {
   .gallery { grid-template-columns: minmax(0, 1fr); padding-inline: 1rem; }
-  .gal-main, .gal-side { grid-column: 1; grid-row: 2; }
   .gal-nav { position: static; flex-direction: row; flex-wrap: wrap; }
-  .gal-side { width: 100%; }
   .gal-side-head { grid-template-columns: minmax(0, 1fr) auto; }
   .gal-side-head .gal-preview { display: none; }
 }
