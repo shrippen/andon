@@ -929,6 +929,14 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .kpi{display:flex;flex-direction:column;gap:.2rem;container-type:inline-size;min-width:0}
 .kpi>b{font-family:var(--font-heading);font-weight:700;font-size:clamp(1.6rem,14cqi,2.8rem);line-height:1;overflow-wrap:anywhere;color:var(--fg0);font-variant-numeric:tabular-nums}
 .kpi>span{font-family:var(--font-mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3)}
+/* Wide KPI with its spark line (24rem of content and up, container query on the .kpi): figures left, the line right
+   and as tall as the KPI; the value keeps one line, sized for its half */
+.kpi:has(>.spark){position:relative}
+@container (min-width:24rem){
+  .kpi:has(>.spark)>:not(.spark){max-width:calc(45% - .7rem)}
+  .kpi:has(>.spark)>b{white-space:nowrap;overflow-wrap:normal;font-size:clamp(1.6rem,6cqi,2.8rem)}
+  .kpi>.spark{position:absolute;inset-block:0;right:0;width:55%;height:auto;margin:0}
+}
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:.8rem}
 .delta{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--font-mono);font-size:.7rem;letter-spacing:.06em;font-variant-numeric:tabular-nums;color:var(--fg3)}
 .delta::before{content:"";width:8px;height:2px;background:currentColor}

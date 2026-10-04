@@ -268,18 +268,6 @@ a > .count, summary > .count { margin-left: .35rem; }
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.4rem; align-items: start; }
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .weather-days {
     grid-column: 2; grid-row: 1 / span 2; margin: 0; }
-  /* A figure with its spark line: figures left, a taller line right. */
-  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi:has(> .spark) {
-    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); column-gap: 1.4rem; align-content: start; }
-  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi:has(> .spark) > * { grid-column: 1; }
-  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi > .spark {
-    grid-column: 2; grid-row: 1 / span 3; height: auto; min-height: 3.2rem; margin: 0; }
-  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi > .spark + .kpi-sub { grid-column: 2; }
-  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi:has(> .spark) > .kpi-delta { justify-self: start; }
-  /* The figure has half the width now: size it for its column, one line. */
-  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi:has(> .spark) > b {
-    overflow-wrap: normal; white-space: nowrap; font-size: clamp(1.6rem, 6cqi, 2.8rem); }
-  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi > .kpi-details { grid-column: 1 / -1; }
   /* Pictures: caption and text next to the image. */
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .picture:has(figcaption) {
     display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: .4rem 1.2rem; align-items: start; }
