@@ -272,13 +272,19 @@ const (
 	sabDays = 28
 )
 
-// rssDetail (large view): the newest entry to read, the others aside.
+// rssDetail (large view): the picked entry (default newest) to read, the
+// entries aside.
 func rssDetail(cfg RssConfig, results map[string]any, _ ViewCtx) DetailView {
 	feed, ok := results["feed"].(*sources.FeedResult)
 	if !ok || len(feed.Items) == 0 {
 		return DetailView{Body: &DetailBody{Blocks: []Block{{Kind: BlockText, Data: Txt("detail.rss.empty")}}}}
 	}
 	first := feed.Items[0]
+	for _, it := range feed.Items {
+		if it.Link != "" && it.Link == pickedItem(results) {
+			first = it
+		}
+	}
 	read := Reading{Title: first.Title, Link: first.Link}
 	for _, p := range strings.Split(strings.TrimSpace(first.Summary), "\n") {
 		if p = strings.TrimSpace(p); p != "" {
@@ -296,8 +302,11 @@ func rssDetail(cfg RssConfig, results map[string]any, _ ViewCtx) DetailView {
 	}
 	body.Blocks = append(body.Blocks, Block{Kind: BlockRead, Data: read})
 	var more []LitRow
-	for _, it := range feed.Items[1:] {
-		more = append(more, LitRow{Name: it.Title, Meta: dayOrDash(isoDayOf(it.Published)), State: "info"})
+	for _, it := range feed.Items {
+		if it.Link == first.Link {
+			continue
+		}
+		more = append(more, LitRow{Name: it.Title, Meta: dayOrDash(isoDayOf(it.Published)), State: "info", Item: it.Link})
 	}
 	if len(more) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockRows, Label: T("detail.rss.more"), Data: firstN(more, mediaListLimit)})

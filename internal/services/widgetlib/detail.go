@@ -15,6 +15,7 @@ import (
 	"andon/internal/services/history"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/weekly"
+	"andon/internal/sources"
 	"andon/internal/widgets"
 )
 
@@ -54,7 +55,23 @@ type detailExtra func(ctx context.Context, d *sql.DB, who *access.Principal, ite
 // detailExtras are the types with such a loader.
 var detailExtras = map[string]detailExtra{
 	"hints":      hintWork,
+	"rss":        feedArticle,
 	"week_story": storyWeek,
+}
+
+// feedArticle reads the page of the picked entry; only links of the feed
+// qualify, so the dialog never fetches an arbitrary address.
+func feedArticle(ctx context.Context, d *sql.DB, _ *access.Principal, item string, results map[string]any) error {
+	feed, ok := results["feed"].(*sources.FeedResult)
+	if !ok || !slices.ContainsFunc(feed.Items, func(it sources.FeedItem) bool { return it.Link == item }) {
+		return nil
+	}
+	res, err := svcdata.Get(ctx, d, sources.ArticleSource.Key(), map[string]any{"link": item}, nil, nil, svcdata.Cached)
+	if err != nil || !res.Ok() {
+		return nil
+	}
+	results[widgets.ArticleSlot] = res.Data
+	return nil
 }
 
 // storyArchive is how many weeks back the story dialog reaches.

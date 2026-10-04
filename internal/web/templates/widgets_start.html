@@ -19,9 +19,9 @@
 {{with $slot := index .Frag.Slots "feed"}}{{template "widget-slot-state" $slot}}
 {{with $feed := $slot.Data}}
 <ul class="feed{{if $.Frag.Config.Compact}} is-compact{{end}}"{{if ne $.Frag.Config.Height "auto"}} data-height="{{$.Frag.Config.Height}}"{{end}}>
-  {{range $feed.Items}}
+  {{range $item := $feed.Items}}
   <li{{if and .Image (not $.Frag.Config.Compact)}} class="has-image"{{end}}>
-    {{if not $.Frag.Config.Compact}}{{with or .Thumb .Image}}<img class="feed-image" src="{{. | dataURI}}" alt="" loading="lazy">{{end}}{{end}}
+    {{if not $.Frag.Config.Compact}}{{with or .Thumb .Image}}{{if and $.PlacementID $item.Link}}<a class="feed-image-link" data-details="{{print "/details/" $.PlacementID "?item=" (urlquery $item.Link)}}" href="{{$item.Link}}" aria-label="{{t "detail.open"}}"><img class="feed-image" src="{{. | dataURI}}" alt="" loading="lazy"></a>{{else}}<img class="feed-image" src="{{. | dataURI}}" alt="" loading="lazy">{{end}}{{end}}{{end}}
     {{if .Link}}<a href="{{.Link}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a>{{else}}{{.Title}}{{end}}
     {{if .Published}}<time datetime="{{.Published}}">{{day .Published}}</time>{{end}}
     {{if and $.Frag.Config.Summary .Summary (not $.Frag.Config.Compact)}}<p class="muted small">{{.Summary}}</p>{{end}}
