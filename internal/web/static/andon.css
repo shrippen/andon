@@ -869,17 +869,9 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 /* The board behind stays put: a wheel over a panel too short to scroll
    would otherwise scroll the page. */
 html:has(#detail[open] > .gallery) { overflow: hidden; }
-/* Side panel of one type: an overlay over the dialog's height on the
-   right (the modal dialog is its containing block), inset so the
-   dialog's frame shows around it; slides in and out like a toast. The
-   layout below stays. */
-.gal-side { position: absolute; top: 1rem; right: 1rem; bottom: 1rem; z-index: 2; width: min(44rem, calc(100% - 2rem)); overflow-y: auto;
-  overscroll-behavior: contain; border-left: 1px solid var(--bg2); }
-@media (prefers-reduced-motion: no-preference) {
-  .gal-side:not(:empty) { animation: k-toast-in var(--dur-slow) var(--ease-out); }
-  .gal-side.is-closing { animation: k-toast-in var(--dur) var(--ease-out) reverse forwards; }
-}
-.gal-side:empty { display: none; }
+/* Side panel of one type: Kante's drawer (.sheet.is-drawer) with its
+   scrim, both hidden while the panel is empty. */
+.gal-side:empty, .gal-scrim:has(+ .gal-side:empty) { display: none; }
 .gal-side-head { display: grid; grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto; gap: 1rem; align-items: start; }
 .gal-side-head .gal-preview { height: 8rem; }
 .gal-side-meta { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }

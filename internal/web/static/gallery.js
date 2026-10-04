@@ -78,11 +78,13 @@
     }
   });
 
-  // closeSide slides the side panel out, then empties it; CSS hides it
-  // when empty. Without motion it empties at once.
+  var LEAVE_MAX_MS = 1000;
+
+  // closeSide slides the side panel out (Kante's .is-leaving), then
+  // empties it; CSS hides it when empty. Without motion at once.
   function closeSide() {
     var side = d.getElementById("gal-side");
-    if (!side || !side.firstChild || side.classList.contains("is-closing")) {
+    if (!side || !side.firstChild || side.classList.contains("is-leaving")) {
       return;
     }
     [].forEach.call(d.querySelectorAll(".gal-card[aria-current]"), function (c) { c.removeAttribute("aria-current"); });
@@ -90,16 +92,20 @@
       side.innerHTML = "";
       return;
     }
-    // Same keyframes as the slide in, played backwards: the finished
-    // animation must end first, or the browser sees no new one.
-    side.style.animation = "none";
-    void side.offsetWidth;
-    side.style.animation = "";
-    side.classList.add("is-closing");
-    side.addEventListener("animationend", function () {
-      side.classList.remove("is-closing");
+    side.classList.add("is-leaving");
+    // Emptied when the slide ends, at the latest after LEAVE_MAX_MS: a
+    // browser may pause animations of a window in the background.
+    var timer = window.setTimeout(done, LEAVE_MAX_MS);
+    function done(e) {
+      if (e && e.target !== side) {
+        return;
+      }
+      window.clearTimeout(timer);
+      side.removeEventListener("animationend", done);
+      side.classList.remove("is-leaving");
       side.innerHTML = "";
-    }, { once: true });
+    }
+    side.addEventListener("animationend", done);
   }
 
   // While the panel is open, a click elsewhere in the gallery dialog only

@@ -587,6 +587,11 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
   [data-type].is-typing::after{animation:k-blink 1s steps(1) infinite}
   .fact b .odo-r{transition:transform .9s var(--ease-out)}
   .toast{animation:k-toast-in 360ms cubic-bezier(.2,.9,.25,1) both}
+  /* Drawer: slides in from the right edge, its scrim fades; both reverse with .is-leaving */
+  .sheet.is-drawer{animation:k-drawer-in var(--dur-slow) var(--ease-out) both}
+  .sheet.is-drawer.is-leaving{animation:k-drawer-out var(--dur) var(--ease-out) both}
+  .scrim:has(+ .sheet.is-drawer){animation:k-fade var(--dur-slow) var(--ease-out) both}
+  .scrim:has(+ .sheet.is-drawer.is-leaving){animation:k-fade-out var(--dur) var(--ease-out) both}
   .toast-life{animation:k-life var(--life,4s) linear both}
   .tube{animation:k-warm 1.4s cubic-bezier(.4,0,.2,1) .2s both}
   .is-changed{animation:k-changed 1100ms ease-out}
@@ -623,6 +628,9 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 @keyframes k-run{to{--run:360deg}}
 @keyframes k-blink{50%{opacity:0}}
 @keyframes k-toast-in{from{transform:translateX(110%)}}
+@keyframes k-drawer-in{from{transform:translateX(calc(100% + 1rem))}}
+@keyframes k-drawer-out{to{transform:translateX(calc(100% + 1rem))}}
+@keyframes k-fade-out{to{opacity:0}}
 @keyframes k-life{to{transform:scaleX(0)}}
 @keyframes k-warm{0%{filter:drop-shadow(0 0 0 transparent) brightness(.55) saturate(.6)}60%{filter:drop-shadow(0 0 18px rgba(250,189,47,.42)) brightness(1.05)}100%{filter:drop-shadow(0 0 14px rgba(250,189,47,.42))}}
 @keyframes k-changed{0%{background-color:var(--cyan-tint);box-shadow:inset 3px 0 0 var(--cyan)}100%{background-color:transparent;box-shadow:inset 3px 0 0 transparent}}
@@ -964,6 +972,12 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .sheet>h3{font-family:var(--font-heading);font-weight:700;font-size:var(--title-m);text-transform:uppercase;letter-spacing:var(--title-track);color:var(--fg0);line-height:1.05}
 .sheet>.actions{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:flex-end}
 .sheet.is-side{position:fixed;top:0;right:0;bottom:0;width:min(26rem,100%);z-index:30;overflow-y:auto;clip-path:none;border-top-width:0;border-left:4px solid var(--yellow)}
+/* Drawer: a sheet over the content of its positioned parent (a dialog), on the right. Inset so the
+   parent's frame and bar show around it, one surface step raised, cut on the corner that faces the
+   content. A .scrim right before it dims what lies below; .is-leaving slides it out (remove the
+   drawer on animationend). Its scroll stays inside: a wheel over a short drawer moves nothing behind. */
+.sheet.is-drawer{position:absolute;top:1rem;right:1rem;bottom:1rem;z-index:3;width:min(44rem,calc(100% - 2rem));overflow-y:auto;overscroll-behavior:contain;
+  background:var(--bg1);clip-path:polygon(var(--chamfer) 0,100% 0,100% 100%,0 100%,0 var(--chamfer))}
 /* Setting row: label, hint, control; the reset button only when the value differs */
 .setting{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.15rem 1rem;align-items:center;padding-block:.7rem;border-bottom:1px solid var(--bg1)}
 .break{overflow-wrap:anywhere;word-break:break-word}
@@ -1603,6 +1617,10 @@ details.help.is-right>.help-text{left:auto;right:-.5rem}
 :root[data-kante="gold"] :is(.ch,.feat:not(a),.callout,.codeblock,.table-wrap,.flow-node,.faq details,.dialog,.sheet,.palette,.login,.status,.tier-card,.hint-card,.menu,.bulk-bar,.launch,a.link-tile,.option,.editbar:not(.has-menu),.toast){
   background-image:linear-gradient(to bottom left,transparent calc(50% - var(--gild) / 2),var(--yellow) calc(50% - var(--gild) / 2),var(--yellow) calc(50% + var(--gild) / 2),transparent calc(50% + var(--gild) / 2));
   background-repeat:no-repeat;background-position:top right;background-size:var(--gc) var(--gc);background-origin:border-box}
+/* The drawer's cut sits top left: its gilded edge too */
+:root[data-kante="gold"] .sheet.is-drawer{
+  background-image:linear-gradient(to bottom right,transparent calc(50% - var(--gild) / 2),var(--yellow) calc(50% - var(--gild) / 2),var(--yellow) calc(50% + var(--gild) / 2),transparent calc(50% + var(--gild) / 2));
+  background-position:top left}
 /* Busy: a slow shimmer instead of marching hazard stripes */
 :root[data-kante="gold"] .progress-bar.is-indeterminate{background:linear-gradient(90deg,var(--bg-hard) 0 30%,var(--yellow) 50%,var(--bg-hard) 70%) 0 0/250% 100%}
 :root[data-kante="gold"] .btn.is-busy{background-image:linear-gradient(90deg,var(--primary) 0 30%,var(--yellow-hi) 50%,var(--primary) 70%);background-size:250% 100%}
