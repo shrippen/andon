@@ -194,8 +194,8 @@ func init() {
 	Tile[TableConfig]{Key: "table", Detail: tableDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
 		Fields: []Field{sel("table", "open_invoices", "open_invoices", "unbilled", "budgets", "client_shares", "asset_dates", "trips", "effective_rates", "app_usage", "payment_morale",
 			"full_rates", "unbilled_aging", "payment_matches", "missing_receipts", "subscriptions", "budget_forecast", "project_margins", "exposure", "domain_chain"),
-			{Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"}, {Key: "hide_cols", Input: InputList},
-			sel("sort", sortAsIs, sortAsIs, sortAmountDesc, sortAmountAsc, sortName, sortDate), {Key: "sum_row", Input: InputCheck}},
+			sel("sort", sortAsIs, sortAsIs, sortAmountDesc, sortAmountAsc, sortName, sortDate), {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
+			{Key: "hide_cols", Input: InputList}, {Key: "sum_row", Input: InputCheck}},
 		Decode: decodeTable, Queries: tableQueries, View: tableView}.add()
 }
 
@@ -294,7 +294,7 @@ func hintsCalm(v map[string]any) bool { return v["Hints"] != nil && lenOf(v["Hin
 func init() {
 	// updates: a hints list limited to the update rules.
 	Tile[HintsConfig]{Key: "updates", Detail: updatesDetail, DetailQueries: releaseQuery, Template: "widgets/topic", Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 600, Extra: ExtraHints,
-		Fields: []Field{{Key: "limit", Input: InputNumber, Default: 20, Min: "1", Max: "50"}, {Key: "sources", Input: InputList}, sel("sort", "urgency", "urgency", "age")},
+		Fields: []Field{{Key: "sources", Input: InputList}, sel("sort", "urgency", "urgency", "age"), {Key: "limit", Input: InputNumber, Default: 20, Min: "1", Max: "50"}},
 		Calm:   hintsCalm,
 		Decode: func(r Raw) HintsConfig {
 			return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: r.Int("limit"), Topic: rules.TopicUpdates,
@@ -304,7 +304,7 @@ func init() {
 	// expiries: every hint with a due date (certificates, domains,
 	// warranties, contracts, renewals, tax) on one timeline.
 	Tile[HintsConfig]{Key: "expiries", Detail: expiriesDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600, Extra: ExtraHints,
-		Fields: []Field{{Key: "days", Input: InputNumber, Default: 90, Min: "7", Max: "400"}, {Key: "limit", Input: InputNumber, Default: 15, Min: "1", Max: "50"}, {Key: "sources", Input: InputList}},
+		Fields: []Field{{Key: "sources", Input: InputList}, {Key: "days", Input: InputNumber, Default: 90, Min: "7", Max: "400"}, {Key: "limit", Input: InputNumber, Default: 15, Min: "1", Max: "50"}},
 		Decode: func(r Raw) HintsConfig {
 			return HintsConfig{MinSeverity: int(enums.SeverityInfo), Limit: r.Int("limit"),
 				Sources: r.Lower("sources"), DueDays: r.Int("days"), NoLevels: true}
@@ -318,9 +318,9 @@ var severityChoices = []string{strconv.Itoa(int(enums.SeverityInfo)), strconv.It
 
 func init() {
 	Tile[HintsConfig]{Key: "hints", Detail: hintsDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 300, Extra: ExtraHints,
-		Fields: []Field{{Key: "sources", Input: InputList}, sel("min_severity", severityChoices[0], severityChoices...), {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
-			{Key: "show_buttons", Input: InputCheck}, sel("sort", hintSortUrgency, hintSortUrgency, HintSortValue, HintSortAge),
-			{Key: "show_levels", Input: InputCheck, Default: true}},
+		Fields: []Field{{Key: "sources", Input: InputList}, sel("min_severity", severityChoices[0], severityChoices...),
+			sel("sort", hintSortUrgency, hintSortUrgency, HintSortValue, HintSortAge), {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
+			{Key: "show_levels", Input: InputCheck, Default: true}, {Key: "show_buttons", Input: InputCheck}},
 		Renames: []rename{
 			{from: "by_value", to: "sort", value: func(v any) (any, bool) { return HintSortValue, asBool(v) }},
 			{from: "levels", to: "show_levels"},

@@ -71,7 +71,7 @@ func receiptsView(cfg ReceiptsConfig, results map[string]any, ctx ViewCtx) map[s
 func init() {
 	Tile[ReceiptsConfig]{Key: "receipts_missing", Detail: receiptsDetail, Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceSure, RefreshS: 3600,
 		Fields: []Field{{Key: "days", Input: InputNumber, Default: defaultReceiptDays, Min: "7", Max: "365"},
-			{Key: "limit", Input: InputNumber, Default: defaultReceiptRows, Min: "1", Max: "30"}, {Key: "min_amount", Input: InputNumber, Min: "0"}},
+			{Key: "min_amount", Input: InputNumber, Min: "0"}, {Key: "limit", Input: InputNumber, Default: defaultReceiptRows, Min: "1", Max: "30"}},
 		Decode: func(r Raw) ReceiptsConfig {
 			return ReceiptsConfig{Days: r.Int("days"), Limit: r.Int("limit"), MinAmount: r.Float("min_amount")}
 		},

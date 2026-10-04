@@ -225,8 +225,9 @@ func monitorsView(cfg MonitorsConfig, results map[string]any, ctx ViewCtx) map[s
 
 func init() {
 	Tile[ImageConfig]{Key: "image", Detail: imageDetail, Category: CategoryStart, Topic: TopicMedia, RefreshS: 60 * 60,
-		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "height", Input: InputNumber, Default: defaultImageHeight, Min: "40", Max: "1200"},
-			{Key: "link", Input: InputText}, {Key: "reload", Input: InputNumber, Min: "0", Max: "1440"}, sel("fit", "contain", "contain", "cover")},
+		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "link", Input: InputText},
+			{Key: "height", Input: InputNumber, Default: defaultImageHeight, Min: "40", Max: "1200"}, sel("fit", "contain", "contain", "cover"),
+			{Key: "reload", Input: InputNumber, Min: "0", Max: "1440"}},
 		Decode: decodeImage, Queries: func(cfg ImageConfig) []Query {
 			return []Query{{Name: "image", Source: "image", Params: map[string]any{"url": cfg.URL, "fresh": freshBucket(cfg.ReloadM * secondsPerMinute)}}}
 		}}.add()
