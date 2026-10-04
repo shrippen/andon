@@ -73,6 +73,20 @@ func TestDetailBodyBlocks(t *testing.T) {
 	}
 }
 
+// An untitled tile's dialog takes the tile type's name as its title.
+func TestDetailHeadUntitled(t *testing.T) {
+	dialog := &widgetlib.DetailDialog{Type: "disks", Body: &widgets.DetailBody{}}
+
+	rec := httptest.NewRecorder()
+	if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, detailBlocks, http.StatusOK, map[string]any{"Dialog": dialog, "D": dialog.Body, "PlacementID": int64(3), "ThemeURL": ""}); err != nil {
+		t.Fatal(err)
+	}
+	got := rec.Body.String()
+	if strings.Contains(got, `<h3 id="detail-title"></h3>`) || strings.Contains(got, `<span class="monogram">?</span>`) {
+		t.Errorf("empty title in %s", got)
+	}
+}
+
 // mapOf is a map with one failed login.
 func mapOf(t *testing.T) *widgets.MapData {
 	m, ok := widgets.NewMap(nil, []widgets.MapMark{widgets.Pin(widgets.GeoPoint{Lat: 53.55, Lon: 9.99}, "admin", "bad")})

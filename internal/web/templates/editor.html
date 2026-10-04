@@ -333,8 +333,8 @@
 {{define "widget_dialog"}}
 <header class="detail-head">
   <div class="detail-name">
-    <span class="detail-sub">{{t (print "topic." .Topic)}}</span>
     <h3 id="detail-title">{{if .Title}}{{.Title}}{{else}}{{t (print "wtype." .Kind.Key ".name")}}{{end}}</h3>
+    <span class="detail-sub">{{t (print "topic." .Topic)}}</span>
   </div>
   <button type="button" class="btn btn-outline btn-sm btn-icon" data-detail-close aria-label="{{t "detail.close"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </header>
