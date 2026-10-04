@@ -16,7 +16,7 @@ func TestPreviewShowsWholeTile(t *testing.T) {
 	login(t, srv, client)
 	csrf := csrfToken(t, srv, client)
 
-	form := string(mustGet(t, srv, client, "/widgets/new?type=note"))
+	form := string(mustGet(t, srv, client, "/widgets/new?dialog&type=note"))
 	for _, want := range []string{`name="cfg.frame_accent"`, `name="cfg.frame_header"`, `name="cfg.frame_round"`} {
 		if !strings.Contains(form, want) {
 			t.Fatalf("form lacks %s", want)

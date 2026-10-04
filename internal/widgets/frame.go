@@ -52,19 +52,26 @@ var (
 	roundModes    = []string{string(RoundExact), string(RoundEuro), string(RoundThousand)}
 )
 
+// titleFields shape the card's head, which only a titled tile shows.
+var titleFields = map[string]bool{"frame_header": true, "frame_icon": true, "frame_link": true}
+
+// NeedsTitle reports whether a frame field only shows with a title.
+func NeedsTitle(key string) bool { return titleFields[key] }
+
 // FrameFieldsOf returns the frame fields of a type; links draw no card.
+// In the form's order: the head (NeedsTitle), the look, then behaviour.
 func FrameFieldsOf(key string) []Field {
 	if key == "link" {
 		return nil
 	}
 	fields := []Field{
-		sel("frame_accent", "none", accentColors...),
 		sel("frame_header", string(HeaderNormal), headerModes...),
-		{Key: "frame_link", Input: InputText},
 		{Key: "frame_icon", Input: InputText},
-		sel("frame_refresh", "auto", refreshChoice...),
+		{Key: "frame_link", Input: InputText},
+		sel("frame_accent", "none", accentColors...),
 		sel("frame_density", "normal", densityModes...),
 		sel("frame_round", string(RoundExact), roundModes...),
+		sel("frame_refresh", "auto", refreshChoice...),
 	}
 	if registry[key].Calm != nil {
 		fields = append(fields, Field{Key: "frame_only_issues", Input: InputCheck})

@@ -336,9 +336,12 @@ type ClockConfig struct {
 	Analog    bool // a face with hands
 }
 
+// ArticleSlot holds the page of the entry a feed dialog shows.
+const ArticleSlot = openName
+
 // rssParams are the feed's query params, shared by its dialog's article.
 func rssParams(cfg RssConfig) map[string]any {
-	return map[string]any{"url": cfg.URL, "limit": cfg.Limit, "urls": cfg.More, "images": cfg.Images, "max_age": float64(cfg.MaxAge)}
+	return map[string]any{"url": cfg.URL, "limit": float64(cfg.Limit), "urls": cfg.More, "images": cfg.Images, "max_age": float64(cfg.MaxAge)}
 }
 
 // OffersDetail: the dialog compares zones, one zone needs none.
@@ -584,27 +587,27 @@ func init() {
 			{Key: "url", Input: InputText, Required: true},
 			{Key: "description", Input: InputArea},
 			{Key: "icon", Input: InputText},
-			sel("target", "newtab", "newtab", "sametab"),
-			sel("status", "http", "http", "off"),
-			{Key: "status_url", Input: InputText},
-			{Key: "accept", Input: InputNumbers},
-			{Key: "insecure", Input: InputCheck},
-			{Key: "hotkey", Input: InputText},
-			{Key: "info.connection", Input: InputConn},
+			sel("icon_size", "normal", "small", "normal", "large"),
+			sel("color", "none", "none", "yellow", "green", "red", "blue", "purple", "aqua", "orange"),
 			{Key: "tags", Input: InputList},
 			{Key: "items", Input: InputLinks},
-			sel("color", "none", "none", "yellow", "green", "red", "blue", "purple", "aqua", "orange"),
-			{Key: "headers", Input: InputHeaders},
+			sel("target", "newtab", "newtab", "sametab"),
+			{Key: "hotkey", Input: InputText},
+			{Key: "info.connection", Input: InputConn},
+			sel("status", "http", "http", "off"),
+			{Key: "status_url", Input: InputText},
 			sel("status_method", "GET", "GET", "HEAD"),
 			{Key: "status_timeout", Input: InputNumber, Min: "0", Max: "60"},
-			sel("icon_size", "normal", "small", "normal", "large"),
+			{Key: "accept", Input: InputNumbers},
+			{Key: "headers", Input: InputHeaders},
+			{Key: "insecure", Input: InputCheck},
 		},
 		Decode: decodeLink, Queries: linkQueries, View: linkView}.add()
 
 	Tile[RssConfig]{Key: "rss", Width: WidthFull, Detail: rssDetail, Category: CategoryStart, Topic: TopicMedia, RefreshS: 30 * 60,
-		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
-			{Key: "summary", Input: InputCheck}, {Key: "more_urls", Input: InputList}, {Key: "images", Input: InputCheck},
-			{Key: "max_age", Input: InputNumber, Min: "0", Max: "365"}, {Key: "titles_only", Input: InputCheck},
+		Fields: []Field{{Key: "url", Input: InputText, Required: true}, {Key: "more_urls", Input: InputList},
+			{Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"}, {Key: "max_age", Input: InputNumber, Min: "0", Max: "365"},
+			{Key: "titles_only", Input: InputCheck}, {Key: "summary", Input: InputCheck}, {Key: "images", Input: InputCheck},
 			sel("list_height", rssHeightAuto, rssHeightAuto, "short", "medium", "tall")},
 		Decode: decodeRss, Queries: func(cfg RssConfig) []Query {
 			return []Query{{Name: "feed", Source: "rss", Params: rssParams(cfg)}}
@@ -619,7 +622,7 @@ func init() {
 		Decode: decodeClock}.add()
 
 	Tile[WeatherConfig]{Key: "weather", Detail: weatherDetail, Category: CategoryStart, Topic: TopicHome, RefreshS: 30 * 60,
-		Fields: []Field{{Key: "label", Input: InputText}, {Key: placeKey, Input: InputPlace, Required: true}, sel("unit", "c", "c", "f"),
+		Fields: []Field{{Key: placeKey, Input: InputPlace, Required: true}, {Key: "label", Input: InputText}, sel("unit", "c", "c", "f"),
 			{Key: "hourly", Input: InputCheck, Default: true}, {Key: "days", Input: InputNumber, Default: weatherDays, Min: "0", Max: "7"}},
 		Decode: decodeWeather, View: weatherView, Queries: func(cfg WeatherConfig) []Query {
 			return []Query{{Name: "weather", Source: "open_meteo", Params: map[string]any{"lat": cfg.Lat, "lon": cfg.Lon, "days": float64(cfg.Days)}}}

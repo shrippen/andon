@@ -275,7 +275,8 @@
     {{if $b.Edit}}
     {{/* The "+" tile ends every section: gallery or a pasted link. */}}
     <div class="add-tile" data-static>
-      <a class="add-tile-main" href="/widgets/new?space={{$b.Board.Space.ID}}&section={{.ID}}&board={{$b.Board.ID}}&version={{$b.Board.Version}}"><span aria-hidden="true">+</span>{{t "gallery.title"}}</a>
+      {{$add := print "/widgets/new?space=" $b.Board.Space.ID "&section=" .ID "&board=" $b.Board.ID "&version=" $b.Board.Version}}
+      <a class="add-tile-main" href="{{$add}}" data-details="{{$add}}&dialog"><span aria-hidden="true">+</span>{{t "gallery.title"}}</a>
       <form method="post" action="/sections/{{.ID}}/quick-link" class="quick-link" hx-target="closest .dsec" hx-swap="outerHTML show:none" hx-push-url="false">
         <input type="hidden" name="{{$b.CSRFField}}" value="{{$b.Ctx.CSRF}}">
         <input type="hidden" name="board_id" value="{{$b.Board.ID}}">

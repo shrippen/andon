@@ -127,8 +127,9 @@ func statusLightView(cfg StatusLightConfig, results map[string]any, _ ViewCtx) m
 
 func init() {
 	Tile[StatusLightConfig]{Key: "status_light", Detail: statusLightDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 60, Extra: ExtraHintBriefs,
-		Fields: []Field{sel("red_from", "critical", "critical", "warn"), sel("yellow_from", "warn", "warn", "info", "off"), {Key: "sources", Input: InputList},
-			{Key: "direct", Input: InputCheck}, {Key: "text_green", Input: InputText}, {Key: "text_yellow", Input: InputText}, {Key: "text_red", Input: InputText}},
+		Fields: []Field{{Key: "sources", Input: InputList}, {Key: "direct", Input: InputCheck},
+			sel("red_from", "critical", "critical", "warn"), sel("yellow_from", "warn", "warn", "info", "off"),
+			{Key: "text_green", Input: InputText}, {Key: "text_yellow", Input: InputText}, {Key: "text_red", Input: InputText}},
 		Decode: decodeStatusLight, Queries: statusLightQueries, View: statusLightView,
 		Calm: func(v map[string]any) bool { return v["State"] == "green" }}.add()
 }

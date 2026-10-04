@@ -1,10 +1,10 @@
 package web
 
 // The gallery ("Kachel hinzufügen") replaces the type list and the library
-// picker: one page for placing an existing tile again or setting up a new
-// one, each card with a lazy preview.
+// picker: one dialog for placing an existing tile again or setting up a
+// new one, each card with a lazy preview.
 //
-//	/widgets/new ──► gallery ──┬─ set up: /widgets/new?type=… (form, preview among neighbours)
+//	/widgets/new?dialog ──► gallery ──┬─ set up: /widgets/new?type=…&dialog (editor in the same dialog)
 //	                           └─ existing: dialog ─┬─ show here too: POST …/place
 //	                                                └─ as a copy: POST /widgets/{id}/copy
 //
@@ -115,7 +115,7 @@ func (d Deps) handleGallery(w http.ResponseWriter, ctx Ctx, target widgetTarget,
 		dest = d.targetNames(ctx, target)
 	}
 
-	_ = d.Page(w, ctx, "widget_gallery", http.StatusOK, map[string]any{
+	_ = d.Page(w, ctx, "widget_gallery", http.StatusOK, map[string]any{"Partial": true, "ThemeURL": "",
 		"Topics": topics, "Tiles": tiles, "Links": links, "Reuse": len(tiles)+len(links) > 0, "Target": target, "Dest": dest, "Spaces": spaces,
 	})
 }

@@ -135,6 +135,10 @@ func TestCheckConfig(t *testing.T) {
 		{"today", map[string]any{"timezone": "Mars/Base"}, CheckBadTimezone},
 		{"greeting", map[string]any{"timezone": "Mars/Base"}, CheckBadTimezone},
 		{"note", map[string]any{"timezone": "Mars/Base"}, ""},
+		{"rss", map[string]any{"url": "https://example.org/feed"}, ""},
+		{"rss", map[string]any{"url": " "}, CheckRequired},
+		{"rss", map[string]any{}, CheckRequired},
+		{"hass", map[string]any{"entities": []any{}}, CheckRequired},
 	}
 	for _, c := range cases {
 		if got := Check(c.key, c.raw); got != c.want {

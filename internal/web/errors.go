@@ -47,6 +47,7 @@ var knownErrors = []struct {
 	{widgetlib.ErrConnRequired, "widget.connection_required"},
 	{widgetlib.ErrConnMissing, "widget.connection_missing"},
 	{widgetlib.ErrConnWrongService, "widget.connection_type"},
+	{util.ErrConflict, "error.conflict"},
 }
 
 // errKey returns the catalog key for err, for {{t .Error}} in templates.
