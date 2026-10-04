@@ -974,6 +974,7 @@ wtype:
 widget:
   bad_window: 'Maintenance window not readable: e.g. 22:00-06:00 or 22-6.'
   bad_timezone: 'Unknown time zone: e.g. Europe/Berlin.'
+  field_required: Please fill in all required fields.
   delete_hint: 'The tile disappears from every board it is on.'
   pending: Loading with the next check …
   loading: loading …

@@ -974,6 +974,7 @@ wtype:
 widget:
   bad_window: 'Wartungsfenster nicht lesbar: z. B. 22:00-06:00 oder 22-6.'
   bad_timezone: 'Unbekannte Zeitzone: z. B. Europe/Berlin.'
+  field_required: Bitte alle Pflichtfelder ausfüllen.
   delete_hint: 'Die Kachel verschwindet von allen Boards, auf denen sie steht.'
   pending: Wird beim nächsten Prüflauf geladen …
   loading: lädt …
