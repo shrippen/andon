@@ -995,6 +995,10 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 .day-strip>i.is-event{top:auto;height:12px;background:var(--c,var(--cyan))}
 .day-strip>.now{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--cyan)}
 .day-strip>.ticks{position:absolute;left:0;right:0;bottom:-1.1rem;display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.58rem;color:var(--fg3)}
+/* All-day lane: right before a .day-strip, one row per all-day event over the whole day,
+   named, the event colour as the bottom edge (cyan; --c replaces it) */
+.day-allday{display:flex;flex-direction:column;gap:2px;margin-bottom:4px}
+.day-allday>span{--c:var(--cyan);display:block;padding:.2rem .6rem;background:var(--bg-hard);border-bottom:4px solid var(--c);color:var(--fg2);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Status light of a service */
 .status{--k:var(--aqua);background:var(--bg-panel);border-top:4px solid var(--k);padding:.7rem .9rem .8rem;display:flex;flex-direction:column;gap:.3rem;
   clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
