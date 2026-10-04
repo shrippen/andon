@@ -294,7 +294,7 @@
 {{define "tile"}}
 {{$b := .B}}{{$size := .Size}}{{with .T}}
 {{$frag := print "/widget-fragments/" .PlacementID}}{{if $b.EmbedToken}}{{$frag = print $frag "?token=" $b.EmbedToken}}{{end}}
-<div class="tile-slot w-{{.Type}}{{if .Hidden}} is-hidden{{end}}{{if or $b.Edit $b.LayerEdit}} has-tools{{end}}" data-placement="{{.PlacementID}}"{{if gt .Rows 1}} data-rows="{{.Rows}}"{{end}}{{if gt .Cols 1}} data-cols="{{.Cols}}"{{end}}
+<div class="tile-slot w-{{.Type}}{{if .Hidden}} is-hidden{{end}}{{if or $b.Edit $b.LayerEdit}} has-tools{{end}}" data-placement="{{.PlacementID}}"{{if gt .Rows 1}} data-rows="{{.Rows}}" hx-headers='{"X-Tile-Rows": "{{.Rows}}"}'{{end}}{{if gt .Cols 1}} data-cols="{{.Cols}}"{{end}}{{with .Width}} data-width="{{.}}"{{end}}
   {{- if or $b.Edit $b.LayerEdit}} data-widget="{{.WidgetID}}" data-title="{{.Title}}"{{if gt .Placed 1}} data-placed="{{.Placed}}"{{end}} tabindex="0"{{end}}>
   {{if eq .Type "link"}}
     {{$c := .Config}}

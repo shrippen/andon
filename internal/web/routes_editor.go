@@ -407,9 +407,14 @@ func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widge
 	if f.View == formDialog {
 		page = "widget_dialog"
 	}
+	// A full-width type has no width to pick.
+	cols := spanOptions(boards.MaxTileCols)
+	if f.Kind.Width == widgets.WidthFull {
+		cols = nil
+	}
 	_ = d.Page(w, ctx, page, status, map[string]any{
 		"Dialog": f.View == formDialog, "Partial": f.View == formDialog,
-		"Dest": dest, "Topic": widgets.TopicOf(f.Kind.Key), "RowOptions": spanOptions(boards.MaxTileRows), "ColOptions": spanOptions(boards.MaxTileCols),
+		"Dest": dest, "Topic": widgets.TopicOf(f.Kind.Key), "RowOptions": spanOptions(boards.MaxTileRows), "ColOptions": cols,
 		"Kind": f.Kind, "Title": f.Title, "Fields": widgets.FormValues(f.Kind.Key, f.Config),
 		"FrameFields": widgets.FrameFormValues(f.Kind.Key, f.Config),
 		"Conns":       matching, "AllConns": conns, "ConnID": f.ConnID, "MinRole": f.MinRole,
@@ -578,7 +583,8 @@ func (d Deps) handleWidgetPreview(w http.ResponseWriter, r *http.Request, ctx Ct
 		return
 	}
 	space := formID(r, "space_id")
-	config := widgets.ParseForm(kind.Key, r.FormValue)
+	// As tall as picked for placing: a list shows its extra entries.
+	config := widgets.ForRows(kind.Key, widgets.ParseForm(kind.Key, r.FormValue), formInt(r, "rows"))
 
 	// Without a connection a service tile previews demo data.
 	conn := connectionID(r)

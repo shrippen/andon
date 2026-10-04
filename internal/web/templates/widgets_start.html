@@ -56,7 +56,7 @@
 {{define "widgets/weather"}}
 {{with $slot := index .Frag.Slots "weather"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $w := .Frag.View}}
-<div>
+<div class="weather-tile">
   <div class="weather">
     <b>{{num $w.Temp 0}}°{{if $w.Fahrenheit}}F{{end}}</b>
     <span>{{t (printf "weather.%s" (weatherKind $w.Code))}}</span>

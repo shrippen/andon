@@ -191,7 +191,7 @@ type TableConfig struct {
 }
 
 func init() {
-	Tile[TableConfig]{Key: "table", Detail: tableDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
+	Tile[TableConfig]{Key: "table", Width: WidthFull, Detail: tableDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
 		Fields: []Field{sel("table", "open_invoices", "open_invoices", "unbilled", "budgets", "client_shares", "asset_dates", "trips", "effective_rates", "app_usage", "payment_morale",
 			"full_rates", "unbilled_aging", "payment_matches", "missing_receipts", "subscriptions", "budget_forecast", "project_margins", "exposure", "domain_chain"),
 			{Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"}, {Key: "hide_cols", Input: InputList},
@@ -218,7 +218,7 @@ type ChartConfig struct {
 }
 
 func init() {
-	Tile[ChartConfig]{Key: "chart", Detail: chartDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600, DataChoice: true,
+	Tile[ChartConfig]{Key: "chart", Width: WidthFull, Detail: chartDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600, DataChoice: true,
 		Fields: []Field{sel("chart", "revenue", "revenue", "hours", "seasonal"), {Key: "months", Input: InputNumber, Default: 12, Min: "3", Max: "24"},
 			{Key: "show_prev", Input: InputCheck, Default: true}, {Key: "values", Input: InputCheck}, {Key: "goal_line", Input: InputCheck}},
 		Decode: func(r Raw) ChartConfig {
@@ -246,7 +246,7 @@ type ProgressConfig struct {
 }
 
 func init() {
-	Tile[ProgressConfig]{Key: "progress", Detail: progressDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
+	Tile[ProgressConfig]{Key: "progress", Width: WidthFull, Detail: progressDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
 		Fields: []Field{{Key: "goal", Input: InputCheck, Default: true}, {Key: "projects", Input: InputList}, {Key: "soll", Input: InputCheck, Default: true},
 			{Key: "warn_ahead", Input: InputNumber, Default: 10, Min: "1", Max: "100"}},
 		Decode: decodeProgress, Queries: ownData[ProgressConfig], View: progressView}.add()
@@ -317,7 +317,7 @@ var severityChoices = []string{strconv.Itoa(int(enums.SeverityInfo)), strconv.It
 	strconv.Itoa(int(enums.SeverityCritical))}
 
 func init() {
-	Tile[HintsConfig]{Key: "hints", Detail: hintsDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 300, Extra: ExtraHints,
+	Tile[HintsConfig]{Key: "hints", Width: WidthFull, Detail: hintsDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 300, Extra: ExtraHints,
 		Fields: []Field{{Key: "sources", Input: InputList}, sel("min_severity", severityChoices[0], severityChoices...), {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
 			{Key: "show_buttons", Input: InputCheck}, sel("sort", hintSortUrgency, hintSortUrgency, HintSortValue, HintSortAge),
 			{Key: "show_levels", Input: InputCheck, Default: true}},
@@ -381,7 +381,7 @@ type DeadlinesConfig struct {
 }
 
 func init() {
-	Tile[DeadlinesConfig]{Key: "deadlines", Detail: deadlinesDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600,
+	Tile[DeadlinesConfig]{Key: "deadlines", Width: WidthFull, Detail: deadlinesDetail, Category: CategoryInsight, Topic: TopicOverview, RefreshS: 3600,
 		Fields: []Field{{Key: "days", Input: InputNumber, Default: 45, Min: "7", Max: "400"}, {Key: "show_vat", Input: InputCheck, Default: true},
 			{Key: "show_prepayment", Input: InputCheck, Default: true}, {Key: "show_annual", Input: InputCheck, Default: true},
 			{Key: "amounts", Input: InputCheck, Default: true}},

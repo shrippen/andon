@@ -221,8 +221,8 @@ a > .count, summary > .count { margin-left: .35rem; }
 .dsec-body[data-size="large"] { --tile: 5.6rem; gap: .25rem; }
 .board-side .dsec-body { grid-template-columns: minmax(0, 1fr); }
 .tile-slot { position: relative; min-width: 0; display: flex; flex-direction: column; }
-.tile-slot.w-rss, .tile-slot.w-iframe, .tile-slot.w-deadlines, .tile-slot.w-hints, .tile-slot.w-table, .tile-slot.w-chart,
-.tile-slot.w-note, .tile-slot.w-progress, .tile-slot.w-greeting { grid-column: 1 / -1; }
+/* Types laid out at full width (widgets.WidthFull). */
+.tile-slot[data-width="full"] { grid-column: 1 / -1; }
 .tile-slot[data-rows="2"] { grid-row: span 2; }
 /* A wide tile spans two columns once the section fits two (13.5rem each);
    the side column and narrow sections keep it one column wide. */
@@ -249,17 +249,19 @@ a > .count, summary > .count { margin-left: .35rem; }
         .sub-rows, .store-rows, .close-steps, .kl-list, .topic-list, .flow-legend, .meters) {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.4rem; align-items: start; }
   /* Dated lists keep their order: down the first column, then the second. */
-  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) :is(.agenda, .deadlines) {
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) :is(.agenda, .deadlines, .day-line:not(.is-recent)) {
     display: block; columns: 2; column-gap: 1.4rem; }
-  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) :is(.agenda, .deadlines) > li {
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) :is(.agenda, .deadlines, .day-line:not(.is-recent)) > li {
     break-inside: avoid; }
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .agenda > li { margin-bottom: .4rem; }
   /* Key–value pairs: two pairs a line. */
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kv {
     grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); }
   /* Several clocks: next to each other. */
-  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .clock-tile {
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .clock-zones {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .6rem 1.4rem; }
+  /* One clock: its time large. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .clock-zone:only-child > strong { font-size: var(--title-l); }
   /* Weather: now and the next hours left, the days right. */
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .weather-tile {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.4rem; align-items: start; }
@@ -273,6 +275,9 @@ a > .count, summary > .count { margin-left: .35rem; }
     grid-column: 2; grid-row: 1 / span 3; height: auto; min-height: 3.2rem; margin: 0; }
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi > .spark + .kpi-sub { grid-column: 2; }
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi:has(> .spark) > .kpi-delta { justify-self: start; }
+  /* The figure has half the width now: size it for its column, one line. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi:has(> .spark) > b {
+    overflow-wrap: normal; white-space: nowrap; font-size: clamp(1.6rem, 6cqi, 2.8rem); }
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .kpi > .kpi-details { grid-column: 1 / -1; }
   /* Pictures: caption and text next to the image. */
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .picture:has(figcaption) {
@@ -284,6 +289,14 @@ a > .count, summary > .count { margin-left: .35rem; }
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); column-gap: 1.2rem; align-items: start; }
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .light) > * { grid-column: 2; }
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .light) > .light { grid-column: 1; grid-row: 1 / span 2; margin: 0; }
+  /* Figure with its bar (invoice aging): figure and bar left, the bands right. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .tile-head + .stack + .legend-list) {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.4rem; align-items: start; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .tile-head + .stack + .legend-list) > .legend-list { grid-column: 2; grid-row: 1 / span 2; margin: 0; display: flex; }
+  /* Public IP: v4 left, v6 and change right. */
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .kpi-value) {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 1.4rem; align-items: baseline; }
+  :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .kpi-value) > :not(.kpi-value) { grid-column: 2; margin: 0; }
   /* Connection strips: two a line. */
   :is(.tile-slot[data-cols="2"], .editor-split:has(#cols option[value="2"]:checked) .wf-slot) .card-body:has(> .strip-row) {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.4rem; align-items: center; }
@@ -292,6 +305,21 @@ a > .count, summary > .count { margin-left: .35rem; }
 /* A section's only tile takes the section's width. */
 .board-main .dsec-body > .tile-slot:only-child { grid-column: 1 / -1; }
 .tile-slot[data-rows="2"] > .card { height: 100%; }
+/* Tall tiles (two rows and more): the body takes the card's height.
+   Spark lines and charts grow into what is left; a tile without a list
+   holds its figure in the middle, larger.
+     ┌ 1 row ──────┐   ┌ 2 rows ─────┐   ┌ 2 rows ─────┐
+     │ 4.818 €     │   │ 4.818 €     │   │             │
+     │ ~~~~~~      │   │ ~~~~~~~~~~  │   │  12:18      │
+     └─────────────┘   │ ~~~~~~~~~~  │   │  SONNTAG    │
+                       │ ~~~~~~~~~~  │   │             │
+                       └─────────────┘   └─────────────┘ */
+.tile-slot[data-rows] > .card { display: flex; flex-direction: column; }
+.tile-slot[data-rows] > .card > .card-body { flex: 1 1 auto; display: flex; flex-direction: column; }
+.tile-slot[data-rows] .card-body > .kpi:has(> .spark) { flex: 1 1 auto; }
+.tile-slot[data-rows] .card-body :is(.card-body > .spark, .kpi > .spark, .card-body > .chart.spark-lg) { flex: 1 1 0; height: auto; min-height: 2rem; }
+.tile-slot[data-rows] > .card > .card-body:not(:has(> :is(ul, ol, dl, form, iframe, .table-wrap, .spark, .chart))) { justify-content: center; }
+.tile-slot[data-rows] .card-body:not(:has(> :is(ul, ol, dl, form, iframe, .table-wrap))) :is(.tile-value, .clock-zone > strong) { font-size: var(--title-l); }
 .tile-slot.is-hidden { opacity: .35; }
 /* ── edit and layout mode: Kante .tile-tools, "+" tile, dragging ──
    Kante's band (.has-tools) holds one strip, moved to the tile at hand. */
@@ -1075,6 +1103,25 @@ table.table th.num, table.table td.num { text-align: right; font-variant-numeric
   .tile-split { display: grid; grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
   .tile-split .legend-list { columns: 2; column-gap: 1.2rem; }
   .tile-split .legend-list li { break-inside: avoid; }
+}
+
+/* ── narrow tiles (one column): nothing runs over the edge ──
+   Long values end in "…", tables keep what fits; the detail dialog
+   and a wider tile show the rest. */
+@container (max-width: 18rem) {
+  /* Container status, a login count's badge: shortened. */
+  .legend-list b { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .tile-head .pill { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; line-height: var(--h-xs); }
+  /* Prices (crypto, stocks): the change below the price. */
+  :is(.table.rates, .table.rates tbody) { display: block; }
+  .table.rates tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .table.rates .spark-cell { display: none; }
+  .table.rates td:last-child { grid-column: 2; padding-top: 0; }
+  /* Recent timeline: the time above its line. */
+  .card-body .day-line.is-recent li { grid-template-columns: 10px 1fr; row-gap: 0; }
+  .card-body .day-line.is-recent .day-at { grid-column: 2; }
+  /* GitHub: repository and CI; PRs, issues and release in the dialog. */
+  .gh-repos :is(th, td):is(:nth-child(2), :nth-child(3), :nth-child(5)) { display: none; }
 }
 
 /* ── week columns: today outlined, days to come dimmed ── */

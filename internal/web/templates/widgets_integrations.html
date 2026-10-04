@@ -70,7 +70,7 @@
 {{define "widgets/github"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with .Frag.View.Data}}{{if and (not .Repos) $.Frag.View.RedCI}}<p class="tile-note">{{t "github.all_green"}}</p>{{else}}
-<div class="table-wrap"><table class="table">
+<div class="table-wrap"><table class="table gh-repos">
   <tr><th>{{t "github.repo"}}</th><th class="num">PRs</th><th class="num">{{t "github.issues"}}</th><th>CI</th><th>{{t "github.release"}}</th></tr>
   {{range .Repos}}<tr><td>{{.Name}}</td><td class="num">{{.PRs}}</td><td class="num">{{.Issues}}</td>
     <td>{{if .CI}}<span class="pill" data-state="{{if eq .CI "success"}}applied{{else if eq .CI "failure"}}failed{{else}}locked{{end}}">{{.CI}}</span>{{else}}–{{end}}</td>

@@ -34,6 +34,7 @@ type Tile[C any] struct {
 	Live       bool
 	DataChoice bool
 	Inline     bool
+	Width      Width
 	Extra      Extra
 	Fields     []Field
 	Renames    []rename
@@ -52,7 +53,7 @@ type Tile[C any] struct {
 func (t Tile[C]) add() {
 	kind := WidgetType{Key: t.Key, Template: t.Template, Category: t.Category, Topic: t.Topic,
 		Service: t.Service, RefreshS: t.RefreshS, Live: t.Live, DataChoice: t.DataChoice,
-		Inline: t.Inline, Extra: t.Extra, Fields: t.Fields, Renames: t.Renames, Check: t.Check,
+		Inline: t.Inline, Width: t.Width, Extra: t.Extra, Fields: t.Fields, Renames: t.Renames, Check: t.Check,
 		Calm: t.Calm, tile: true}
 
 	fields := t.Fields
