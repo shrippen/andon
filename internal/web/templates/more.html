@@ -123,7 +123,11 @@
               <input class="input" name="secret_b" type="password" autocomplete="off" required placeholder="{{t "conn.cred_secret"}}" aria-label="{{t "conn.cred_secret"}}">
             {{else}}
               {{$label := t "field.token"}}{{if eq $shape "ical"}}{{$label = t "conn.ical_private"}}{{else if eq $shape "password"}}{{$label = t "field.password"}}{{end}}
-              <input class="input" name="secret" type="password" autocomplete="off" required placeholder="{{$label}}" aria-label="{{$label}}">
+              <input class="input" name="secret" type="password" autocomplete="off"{{if ne $shape "ical"}} required{{end}} placeholder="{{$label}}" aria-label="{{$label}}">
+              {{if eq $shape "ical"}}
+              <input class="input" name="secret_a" autocomplete="off" placeholder="{{t "conn.cred_user"}}" aria-label="{{t "conn.cred_user"}}">
+              <input class="input" name="secret_b" type="password" autocomplete="off" placeholder="{{t "field.password"}}" aria-label="{{t "field.password"}}">
+              {{end}}
             {{end}}
             <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
           </form>

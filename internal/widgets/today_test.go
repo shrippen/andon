@@ -48,3 +48,25 @@ func TestTodayTimeline(t *testing.T) {
 		t.Fatalf("order/past: %v %+v", kinds, items)
 	}
 }
+
+// TestTodayOngoing: an appointment over several days that runs today is
+// listed first and not as past; one that ended yesterday is not.
+func TestTodayOngoing(t *testing.T) {
+	kind, _ := widgets.Get("today")
+	cfg, _ := widgets.Decode("today", map[string]any{"timezone": "UTC", "show_transit": false, "show_deadlines": false, "show_timer": false})
+	day := time.Now().UTC().Truncate(24 * time.Hour)
+	results := map[string]any{"calendar": &sources.CalendarResult{Events: []sources.Event{
+		{Start: day.Add(23 * time.Hour), Title: "Spät"},
+		{Start: day.AddDate(0, 0, -2), End: day.AddDate(0, 0, 3), AllDay: true, Title: "Urlaub"},
+		{Start: day.AddDate(0, 0, -1).Add(20 * time.Hour), End: day.Add(2 * time.Hour), Title: "Nachtschicht"},
+		{Start: day.AddDate(0, 0, -3), End: day, AllDay: true, Title: "Messe"},
+	}}}
+	items := kind.View(cfg, results, widgets.ViewCtx{})["Items"].([]widgets.TodayItem)
+	var titles []string
+	for _, it := range items {
+		titles = append(titles, it.Text)
+	}
+	if len(items) != 3 || items[0].Text != "Urlaub" || items[1].Text != "Nachtschicht" || items[0].Past {
+		t.Fatalf("items: %v %+v", titles, items)
+	}
+}

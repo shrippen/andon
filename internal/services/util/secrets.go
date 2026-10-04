@@ -25,7 +25,11 @@ const (
 )
 
 // secretKeys are the config keys holding secrets.
-var secretKeys = []string{"headers", "api_key", "ical_url", "ical_url_2", "ical_url_3"}
+var secretKeys = []string{"headers", "api_key", "ical_url", "ical_url_2", "ical_url_3", "ical_pass", "ical_pass_2", "ical_pass_3"}
+
+// boundSecrets: a password kept only while the secret address it logs in
+// to stays on the same host.
+var boundSecrets = map[string]string{"ical_pass": "ical_url", "ical_pass_2": "ical_url_2", "ical_pass_3": "ical_url_3"}
 
 func copyConfig(config map[string]any) map[string]any {
 	out := make(map[string]any, len(config))
@@ -56,12 +60,16 @@ func SealSecrets(config, prev map[string]any) (map[string]any, error) {
 	if !sameHosts(config, prev) {
 		prev = nil
 	}
+	opened := OpenSecrets(prev)
 	for _, key := range secretKeys {
 		raw := out[key]
 		delete(out, key)
 		delete(out, key+encSuffix)
 
 		if s, _ := raw.(string); s == SecretClear {
+			continue
+		}
+		if empty(raw) && movedFeed(config, opened, key) {
 			continue
 		}
 		if empty(raw) {
@@ -82,6 +90,19 @@ func SealSecrets(config, prev map[string]any) (map[string]any, error) {
 		out[key+encSuffix] = base64.StdEncoding.EncodeToString(blob)
 	}
 	return out, nil
+}
+
+// movedFeed: key is bound to an address that config sets to another host.
+func movedFeed(config, prev map[string]any, key string) bool {
+	feed, bound := boundSecrets[key]
+	if !bound || empty(config[feed]) {
+		return false
+	}
+	if s, _ := config[feed].(string); s == SecretClear {
+		return true
+	}
+
+	return hostOf(config[feed]) != hostOf(prev[feed])
 }
 
 // urlKeys are the config keys a tile's secrets are sent to.

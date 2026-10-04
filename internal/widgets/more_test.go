@@ -41,6 +41,17 @@ func TestCalendarAndBoardViews(t *testing.T) {
 	}
 }
 
+// TestCalendarOngoing: an event still running since an earlier day is
+// listed under today, not under its past start day.
+func TestCalendarOngoing(t *testing.T) {
+	now := time.Now().In(clockZone())
+	events := &sources.CalendarResult{Events: []sources.Event{{Start: now.AddDate(0, 0, -3), AllDay: true, Title: "Urlaub"}}}
+	rows := calendarView(CalendarConfig{Limit: 5}, map[string]any{"events": events}, ViewCtx{})["Rows"].([]CalRow)
+	if len(rows) != 1 || rows[0].Day != now.Format(isoDate) {
+		t.Fatalf("rows: %+v", rows)
+	}
+}
+
 func TestHolidaysView(t *testing.T) {
 	days := &sources.HolidaysResult{Days: []sources.Holiday{{Day: "2026-10-03", Name: "Einheit"}, {Day: "2026-12-25", Name: "Weihnachten"}}}
 	rows := holidaysView(HolidaysConfig{Limit: 1}, map[string]any{"days": days}, ViewCtx{Today: "2026-09-25"})["Rows"].([]HolidayRow)

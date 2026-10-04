@@ -262,11 +262,18 @@ type HourSpan struct {
 }
 
 // DayStrip is Kante's .day-strip: blocks over 24 hours, events as thin
-// bars at the bottom, a "now" mark (-1 = none).
+// bars at the bottom, a "now" mark (-1 = none); all-day events above it
+// in Kante's .day-allday lane.
 type DayStrip struct {
 	Spans  []HourSpan
 	Events []HourSpan
 	Now    float64
+	AllDay []AllDayEvent
+}
+
+// AllDayEvent is one named row of the all-day lane.
+type AllDayEvent struct {
+	Title, Colour string
 }
 
 // Image is a picture the server fetched (data: URI), with a caption.

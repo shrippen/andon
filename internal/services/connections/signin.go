@@ -195,3 +195,8 @@ func ShareMine(d *sql.DB, who *access.Principal, connID int64) error {
 		return audit.Log(tx, &who.UserID, "connection.secret_changed", conn.Name, "", nil)
 	})
 }
+
+// FeedWithLogin is a calendar address with Basic-Auth login.
+func FeedWithLogin(feed, user, password string) string {
+	return sources.WithLogin(feed, user, password)
+}
