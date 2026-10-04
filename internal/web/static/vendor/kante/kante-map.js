@@ -5,8 +5,8 @@
  *        data-map-source="https://example.org/germany.pmtiles"></div>
  *   <script src="…/kante-map.js"></script>   then Kante.map.mount(root) for frames added later
  *
- * data-map-source is a .pmtiles file (read in ranges) or a TileJSON URL (e.g. the Protomaps API
- * with its key). Every colour comes from Kante's tokens, read from the page, so the map follows
+ * data-map-source is a .pmtiles file (read in ranges), a TileJSON URL or a MapLibre style URL
+ * (e.g. the Protomaps API with its key); of a style only its vector source is used. Every colour comes from Kante's tokens, read from the page, so the map follows
  * the theme (dark, Leinen). The libraries sit in map/ next to this file (BSD-3, see the licences).
  */
 (function () {
@@ -96,10 +96,23 @@
     return { flavor: f, light: isLight };
   }
 
-  // style builds the MapLibre style for a source URL.
-  function style(source, lang) {
+  // resolve turns a source URL into a MapLibre vector source. A style URL (it has "sources")
+  // gives its first vector source; a TileJSON URL is passed on as it is.
+  function resolve(source) {
+    if (/\.pmtiles(\?|$)/.test(source)) { return Promise.resolve({ type: 'vector', url: 'pmtiles://' + source }); }
+    return fetch(source).then(function (r) { return r.json(); }).then(function (doc) {
+      var found = Object.keys(doc.sources || {}).map(function (k) { return doc.sources[k]; })
+        .filter(function (s) { return s.type === 'vector'; })[0];
+      if (!found) { return { type: 'vector', url: source }; }
+      var src = { type: 'vector' };
+      ['url', 'tiles', 'minzoom', 'maxzoom'].forEach(function (k) { if (found[k] !== undefined) { src[k] = found[k]; } });
+      return src;
+    });
+  }
+
+  // style builds the MapLibre style for a vector source.
+  function style(src, lang) {
     var fl = flavor();
-    var src = /\.pmtiles(\?|$)/.test(source) ? { type: 'vector', url: 'pmtiles://' + source } : { type: 'vector', url: source };
     src.attribution = '<a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · ' +
       '<a href="https://protomaps.com" target="_blank" rel="noopener">Protomaps</a>';
     var sources = {};
@@ -143,10 +156,12 @@
         el.setAttribute('data-mounted', '');
         var data = JSON.parse(el.getAttribute('data-map') || '{}');
         var lang = (document.documentElement.lang || 'en').slice(0, 2);
-        var map = new maplibre.Map({ container: el, style: style(el.getAttribute('data-map-source'), lang),
-          attributionControl: { compact: true }, scrollZoom: false, dragRotate: false, pitchWithRotate: false });
-        map.addControl(new maplibre.NavigationControl({ showCompass: false }), 'top-right');
-        map.on('load', function () { draw(maplibre, map, el, data); });
+        resolve(el.getAttribute('data-map-source')).then(function (src) {
+          var map = new maplibre.Map({ container: el, style: style(src, lang),
+            attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+          map.addControl(new maplibre.NavigationControl({ showCompass: false }), 'top-right');
+          map.on('load', function () { draw(maplibre, map, el, data); });
+        });
       });
     });
   }
