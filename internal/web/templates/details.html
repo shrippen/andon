@@ -11,11 +11,11 @@
      (andon.js). */}}
 
 {{/* Head: monogram, name, state, actions, close. */}}
-{{define "detail_head"}}{{$h := .Dialog.Head}}
+{{define "detail_head"}}{{$h := .Dialog.Head}}{{$title := $h.Title}}{{if not $title}}{{$title = t (print "wtype." .Dialog.Type ".name")}}{{end}}
 <header class="detail-head">
-  <span class="launch-icon"><span class="monogram">{{monogram $h.Title}}</span></span>
+  <span class="launch-icon"><span class="monogram">{{monogram $title}}</span></span>
   <div class="detail-name">
-    <h3 id="detail-title">{{$h.Title}}</h3>
+    <h3 id="detail-title">{{$title}}</h3>
     {{with $h.Sub}}<span class="detail-sub">{{.}}</span>{{end}}
   </div>
   {{with $h.State}}<span class="launch-state" data-state="{{.}}">{{tt $h.StateKey $h.StateArgs}}</span>{{end}}
