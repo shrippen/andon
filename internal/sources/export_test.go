@@ -32,3 +32,6 @@ func SetPublicIPv6(u string) func() {
 	publicIPv6URL = u
 	return func() { publicIPv6URL = saved }
 }
+
+// FeedURL exposes how a calendar address becomes a fetchable one.
+var FeedURL = feedURL

@@ -117,3 +117,20 @@ func TestTransportErrorsNameTheCause(t *testing.T) {
 		}
 	}
 }
+
+func TestURLUserinfoSendsBasicAuth(t *testing.T) {
+	var user, pass string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, pass, _ = r.BasicAuth()
+		w.Write([]byte("ok"))
+	}))
+	defer srv.Close()
+
+	target := strings.Replace(srv.URL, "http://", "http://anna:p%40ss@", 1)
+	if _, err := httpclient.GetText(context.Background(), target, httpclient.Options{}); err != nil {
+		t.Fatalf("get text: %v", err)
+	}
+	if user != "anna" || pass != "p@ss" {
+		t.Fatalf("basic auth = %q:%q", user, pass)
+	}
+}

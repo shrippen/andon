@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"andon/internal/enums"
+	"andon/internal/services/connections"
 )
 
 // credShape says whether a service's credential is one token or two named
@@ -80,7 +81,9 @@ func formSecret(r *http.Request, service enums.ServiceType) (string, error) {
 		return "", nil
 	case credPassword:
 		return r.FormValue("secret"), nil
-	case credSingle, credICal:
+	case credICal:
+		return icalSecret(r)
+	case credSingle:
 		// Tokens and URLs never hold edge whitespace; a pasted one often does.
 		return strings.TrimSpace(r.FormValue("secret")), nil
 	}
@@ -101,6 +104,27 @@ func formSecret(r *http.Request, service enums.ServiceType) (string, error) {
 		return a + "=" + b, nil
 	}
 	return a + ":" + b, nil
+}
+
+// icalSecret is a private feed address, a login for the calendar's own
+// address, or a private address with login:
+//
+//	secret ""         · user anna · password pw  →  anna:pw
+//	secret https://h/x · user anna · password pw  →  https://anna:pw@h/x
+func icalSecret(r *http.Request) (string, error) {
+	feed := strings.TrimSpace(r.FormValue("secret"))
+	user, password := strings.TrimSpace(r.FormValue("secret_a")), r.FormValue("secret_b")
+	if user == "" && password == "" {
+		return feed, nil
+	}
+	if user == "" || password == "" {
+		return "", errCredIncomplete
+	}
+	if feed == "" {
+		return user + ":" + password, nil
+	}
+
+	return connections.FeedWithLogin(feed, user, password), nil
 }
 
 // setupField is a connection option the setup form asks for directly,

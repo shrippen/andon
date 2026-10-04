@@ -279,7 +279,13 @@ field:
   mobile: Auf dem Handy
   max_hours: Höchstalter (Stunden)
   points: Messpunkte
-  ical_url: 'Kalender-Adresse (öffentliche iCal-Adresse)'
+  ical_url: 'Kalender-Adresse (iCal)'
+  ical_user: 'Benutzername (privater Kalender)'
+  ical_pass: 'Passwort (privater Kalender)'
+  ical_user_2: 'Benutzername (zweiter Kalender)'
+  ical_pass_2: 'Passwort (zweiter Kalender)'
+  ical_user_3: 'Benutzername (dritter Kalender)'
+  ical_pass_3: 'Passwort (dritter Kalender)'
   fields: Felder
   entries: Einträge
   country: Land
@@ -1213,6 +1219,7 @@ conn:
   existing: '{count} Verbindung(en) dieser Art vorhanden'
   cred_incomplete: 'Bitte beide Felder ausfüllen, z. B. Benutzername und Passwort.'
   ical_private: 'Private iCal-Adresse'
+  ical_login_hint: 'Privater Kalender mit Login: Benutzername und Passwort eintragen; es gilt die Adresse oben, außer eine private Adresse ist angegeben.'
   cred_tokenid: 'Token-ID'
   pick: 'Welchen Dienst willst du verbinden? Danach: Adresse und Token, Test, passende Kacheln.'
   about_kimai: 'Zeiterfassung: Stunden, Projekte, Budgets'

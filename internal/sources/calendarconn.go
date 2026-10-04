@@ -5,10 +5,13 @@ package sources
 // so it is taken from the token when one is stored:
 //
 //	token  https://cloud.example/remote.php/dav/…?export  (encrypted)
+//	   or  anna:app-password  → Basic-Auth login for url
 //	url    any address of the calendar, for the tile
 
 import (
 	"context"
+	"net/url"
+	"strings"
 	"time"
 
 	"andon/internal/drivers/httpclient"
@@ -27,14 +30,25 @@ func fetchCalendarData(ctx context.Context, sctx Ctx) (any, error) {
 		return DemoCalendar(now), nil
 	}
 	feed := sctx.URL
-	if sctx.Secret != "" {
+	switch {
+	case isFeed(sctx.Secret):
 		feed = sctx.Secret
+	case sctx.Secret != "":
+		user, password, _ := strings.Cut(sctx.Secret, ":")
+		feed = WithLogin(sctx.URL, user, password)
 	}
-	text, err := httpclient.GetText(ctx, feed, httpclient.Options{SkipVerify: !sctx.VerifyTLS})
+	text, err := httpclient.GetText(ctx, feedURL(feed), httpclient.Options{SkipVerify: !sctx.VerifyTLS})
 	if err != nil {
 		return nil, newSourceError("%s", err.Error())
 	}
 	return &CalendarResult{Events: Occurrences(text, now.AddDate(0, 0, -calendarDays), now.AddDate(0, 0, calendarDays))}, nil
+}
+
+// isFeed: secret is an address, not a login ("anna:pw"), e.g.
+// "https://h/x" or "webcal://h/x".
+func isFeed(secret string) bool {
+	u, err := url.Parse(secret)
+	return err == nil && u.Host != "" && strings.Contains(secret, "://")
 }
 
 // DemoCalendar has a customer appointment two days ago, a call today and

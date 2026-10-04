@@ -43,14 +43,25 @@ type CalendarConfig struct {
 const calendarSlots = 3
 
 func decodeCalendar(r Raw) CalendarConfig {
-	cfg := CalendarConfig{URL: r.URL("ical_url"), Days: r.Int("days"), Limit: r.Int("limit"), HideAllDay: r.Bool("hide_all_day")}
+	cfg := CalendarConfig{URL: calendarFeed(r, ""), Days: r.Int("days"), Limit: r.Int("limit"), HideAllDay: r.Bool("hide_all_day")}
 	for i := 2; i <= calendarSlots; i++ {
-		cfg.More = append(cfg.More, r.URL("ical_url_"+strconv.Itoa(i)))
+		cfg.More = append(cfg.More, calendarFeed(r, "_"+strconv.Itoa(i)))
 	}
 	for i := 1; i <= calendarSlots; i++ {
 		cfg.Colors = append(cfg.Colors, r.Pick("color_"+strconv.Itoa(i)))
 	}
 	return cfg
+}
+
+// calendarFeed is a calendar's address with its login, if any. Slot 1
+// has no suffix, the others "_2", "_3".
+func calendarFeed(r Raw, slot string) string {
+	feed := r.URL("ical_url" + slot)
+	if feed == "" {
+		return ""
+	}
+
+	return sources.WithLogin(feed, r.String("ical_user"+slot), r.String("ical_pass"+slot))
 }
 
 // calendarQueries asks each configured calendar; the first answers as
@@ -291,6 +302,7 @@ type CalRow struct {
 
 func calendarView(cfg CalendarConfig, results map[string]any, _ ViewCtx) map[string]any {
 	zone := clockZone()
+	today := time.Now().In(zone).Format(isoDate)
 	var rows []CalRow
 	found := false
 	for i := range calendarSlots {
@@ -313,6 +325,9 @@ func calendarView(cfg CalendarConfig, results map[string]any, _ ViewCtx) map[str
 			}
 			at := e.Start.In(zone)
 			row := CalRow{Day: at.Format(isoDate), Title: e.Title, Location: e.Location, Color: color, at: e.Start}
+
+			// Still running since an earlier day (a holiday week): today.
+			row.Day = max(row.Day, today)
 			if !e.AllDay {
 				row.Time = at.Format(timeOfDay)
 			}
@@ -544,9 +559,9 @@ func init() {
 	)
 
 	Tile[CalendarConfig]{Key: "calendar", Detail: calendarDetail, Category: CategoryStart, Topic: TopicOverview, RefreshS: 15 * minute,
-		Fields: []Field{{Key: "ical_url", Input: InputSecret}, sel("color_1", "none", accentColors...),
-			{Key: "ical_url_2", Input: InputSecret}, sel("color_2", "none", accentColors...),
-			{Key: "ical_url_3", Input: InputSecret}, sel("color_3", "none", accentColors...),
+		Fields: []Field{{Key: "ical_url", Input: InputSecret}, {Key: "ical_user", Input: InputText}, {Key: "ical_pass", Input: InputSecret}, sel("color_1", "none", accentColors...),
+			{Key: "ical_url_2", Input: InputSecret}, {Key: "ical_user_2", Input: InputText}, {Key: "ical_pass_2", Input: InputSecret}, sel("color_2", "none", accentColors...),
+			{Key: "ical_url_3", Input: InputSecret}, {Key: "ical_user_3", Input: InputText}, {Key: "ical_pass_3", Input: InputSecret}, sel("color_3", "none", accentColors...),
 			{Key: "days", Input: InputNumber, Default: defaultCalDays, Min: "1", Max: "90"},
 			{Key: "limit", Input: InputNumber, Default: defaultListLimit, Min: "1", Max: "50"}, {Key: "hide_all_day", Input: InputCheck}},
 		Decode: decodeCalendar, Queries: calendarQueries, DetailQueries: calendarPast, View: calendarView}.add()

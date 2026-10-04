@@ -64,3 +64,21 @@ func TestSealDropsSecretsForNewHost(t *testing.T) {
 		t.Fatal("headers kept for another host")
 	}
 }
+
+// TestSealDropsPasswordForNewFeed: a calendar's kept password follows its
+// address only on the same host, e.g. not from cloud.lan to evil.example.
+func TestSealDropsPasswordForNewFeed(t *testing.T) {
+	crypto.Init(crypto.Derive("test-secret-with-enough-length-0123456789", nil))
+	prev, err := SealSecrets(map[string]any{"ical_url": "https://cloud.lan/a", "ical_pass": "pw"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	same, _ := SealSecrets(map[string]any{"ical_url": "https://cloud.lan/b"}, prev)
+	if same["ical_pass"+encSuffix] == nil {
+		t.Fatal("same host lost its password")
+	}
+	moved, _ := SealSecrets(map[string]any{"ical_url": "https://evil.example/a"}, prev)
+	if moved["ical_pass"+encSuffix] != nil {
+		t.Fatal("password kept for another host")
+	}
+}

@@ -3,6 +3,7 @@ package web_test
 import (
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -27,6 +28,9 @@ func TestFormSecretShapes(t *testing.T) {
 		{enums.ServiceGateway, url.Values{"secret_a": {"key"}, "secret_b": {"secret"}}, "key:secret"},
 		{enums.ServiceGateway, url.Values{"secret_b": {"unifi-key"}}, "unifi-key"},
 		{enums.ServiceKimai, url.Values{"secret": {"tok"}}, "tok"},
+		{enums.ServiceCalendar, url.Values{"secret": {"https://h/cal?x=1"}}, "https://h/cal?x=1"},
+		{enums.ServiceCalendar, url.Values{"url": {"https://h/cal"}, "secret_a": {"anna"}, "secret_b": {"p@ss"}}, "anna:p@ss"},
+		{enums.ServiceCalendar, url.Values{"secret": {"https://h/priv"}, "url": {"https://h/cal"}, "secret_a": {"anna"}, "secret_b": {"pw"}}, "https://anna:pw@h/priv"},
 		{enums.ServiceScrutiny, url.Values{"secret": {"ignored"}}, ""},
 		// Pasted tokens lose stray whitespace; passwords keep theirs.
 		{enums.ServiceKintsugi, url.Values{"secret": {" tok\n"}}, "tok"},
@@ -48,7 +52,7 @@ func TestFormSecretShapes(t *testing.T) {
 // refuse half a credential instead of storing a broken one, e.g. a
 // FreshRSS API password without its user name.
 func TestFormSecretIncomplete(t *testing.T) {
-	for _, service := range []enums.ServiceType{enums.ServiceFreshRSS, enums.ServiceMail, enums.ServiceAdGuard, enums.ServiceProxmox} {
+	for _, service := range []enums.ServiceType{enums.ServiceFreshRSS, enums.ServiceMail, enums.ServiceAdGuard, enums.ServiceProxmox, enums.ServiceCalendar} {
 		for _, form := range []url.Values{{"secret_b": {"only-password"}}, {"secret_a": {"only-user"}}} {
 			r, _ := http.NewRequest(http.MethodPost, "/", strings.NewReader(form.Encode()))
 			r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -81,5 +85,12 @@ func TestSetupScreensGuide(t *testing.T) {
 	calendar := string(mustGet(t, srv, client, "/connections/new?service=calendar"))
 	if !strings.Contains(calendar, "Private iCal-Adresse") {
 		t.Fatalf("calendar fields not named:\n%s", calendar)
+	}
+	// Most calendars are public: shared needs no token per user.
+	if !regexp.MustCompile(`value="shared"\s+selected`).MatchString(calendar) {
+		t.Fatalf("calendar not shared by default:\n%s", calendar)
+	}
+	if regexp.MustCompile(`value="shared"\s+selected`).MatchString(github) {
+		t.Fatal("github shared by default")
 	}
 }

@@ -111,8 +111,10 @@
       {{else}}
       <label for="mode">{{t "conn.credentials"}}</label>
       <select class="select" id="mode" name="mode">
-        <option value="shared" {{if .Conn}}{{if eq (print .Conn.Mode) "shared"}}selected{{end}}{{end}}>{{t "mode.shared"}}</option>
-        <option value="personal" {{if .Conn}}{{if eq (print .Conn.Mode) "personal"}}selected{{end}}{{else}}selected{{end}}>{{t "mode.personal"}}</option>
+        {{/* New calendars start shared: most are public, no token per user. */}}
+        {{$shared := eq $shape "ical"}}{{if .Conn}}{{$shared = eq (print .Conn.Mode) "shared"}}{{end}}
+        <option value="shared" {{if $shared}}selected{{end}}>{{t "mode.shared"}}</option>
+        <option value="personal" {{if not $shared}}selected{{end}}>{{t "mode.personal"}}</option>
       </select>
       <p class="small muted">{{t "conn.mode_hint"}} {{t "conn.shared_warning"}}</p>
 
@@ -144,6 +146,13 @@
       {{else}}
         <label for="secret">{{if eq $shape "ical"}}{{t "conn.ical_private"}}{{else if eq $shape "password"}}{{t "field.password"}}{{else}}{{t (secretLabel (or .Service .Conn.Service))}}{{end}}</label>
         <input class="input" id="secret" name="secret" type="password" autocomplete="off" placeholder="{{$keep}}">
+        {{if eq $shape "ical"}}
+        <label for="secret_a">{{t "conn.cred_user"}}</label>
+        <input class="input" id="secret_a" name="secret_a" autocomplete="off" placeholder="{{$keep}}">
+        <label for="secret_b">{{t "field.password"}}</label>
+        <input class="input" id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
+        <p class="small muted">{{t "conn.ical_login_hint"}}</p>
+        {{end}}
       {{end}}
       <p class="small muted">{{t "conn.token_hint"}}</p>
       </div>
