@@ -78,14 +78,60 @@
     }
   });
 
-  // Closing the side panel empties it; CSS hides it when empty.
-  d.addEventListener("click", function (e) {
-    if (!e.target.closest || !e.target.closest("[data-side-close]")) {
+  // closeSide slides the side panel out, then empties it; CSS hides it
+  // when empty. Without motion it empties at once.
+  function closeSide() {
+    var side = d.getElementById("gal-side");
+    if (!side || !side.firstChild || side.classList.contains("is-closing")) {
       return;
     }
-    var side = d.getElementById("gal-side");
-    side.innerHTML = "";
     [].forEach.call(d.querySelectorAll(".gal-card[aria-current]"), function (c) { c.removeAttribute("aria-current"); });
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      side.innerHTML = "";
+      return;
+    }
+    // Same keyframes as the slide in, played backwards: the finished
+    // animation must end first, or the browser sees no new one.
+    side.style.animation = "none";
+    void side.offsetWidth;
+    side.style.animation = "";
+    side.classList.add("is-closing");
+    side.addEventListener("animationend", function () {
+      side.classList.remove("is-closing");
+      side.innerHTML = "";
+    }, { once: true });
+  }
+
+  // While the panel is open, a click elsewhere in the gallery dialog only
+  // closes it (like a click on a scrim); its own button too. Clicks in the
+  // dialogs opened from the panel (reuse, confirm) don't count. On window,
+  // capturing: before the document's handlers (htmx, data-details) see it.
+  window.addEventListener("click", function (e) {
+    var side = d.getElementById("gal-side");
+    if (!side || !side.firstChild || !e.target.closest) {
+      return;
+    }
+    if (e.target.closest("[data-side-close]")) {
+      closeSide();
+      return;
+    }
+    var dialog = e.target.closest("dialog");
+    if (!dialog || dialog.id !== "detail" || side.contains(e.target)) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    closeSide();
+  }, true);
+
+  // Escape closes the panel first, the dialog only after.
+  d.addEventListener("keydown", function (e) {
+    var side = d.getElementById("gal-side");
+    if (e.key !== "Escape" || !side || !side.firstChild || d.querySelector("#detail dialog[open]")) {
+      return;
+    }
+    e.preventDefault();
+    closeSide();
   });
 
   // Picking unused tiles in the side panel: "all" toggles every box, the

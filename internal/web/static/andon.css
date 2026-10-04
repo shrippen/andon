@@ -865,13 +865,19 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 /* The gallery dialog uses the screen's width and height (more cards per
    row); the gallery scrolls inside it, not the dialog. */
 #detail:has(> .gallery) { max-width: calc(100vw - 2rem); height: calc(100dvh - 2rem); overflow: hidden; display: flex; flex-direction: column; }
-#detail > .gallery { flex: 1; min-height: 0; overflow-y: auto; }
-/* Side panel of one type: an overlay over the dialog's full height on
-   the right (the modal dialog is its containing block), sliding in like
-   a toast; the layout below stays. */
-.gal-side { position: absolute; top: 0; right: 0; bottom: 0; z-index: 2; width: min(44rem, 100%); overflow-y: auto; border-left: 1px solid var(--bg2); }
+#detail > .gallery { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+/* The board behind stays put: a wheel over a panel too short to scroll
+   would otherwise scroll the page. */
+html:has(#detail[open] > .gallery) { overflow: hidden; }
+/* Side panel of one type: an overlay over the dialog's height on the
+   right (the modal dialog is its containing block), inset so the
+   dialog's frame shows around it; slides in and out like a toast. The
+   layout below stays. */
+.gal-side { position: absolute; top: 1rem; right: 1rem; bottom: 1rem; z-index: 2; width: min(44rem, calc(100% - 2rem)); overflow-y: auto;
+  overscroll-behavior: contain; border-left: 1px solid var(--bg2); }
 @media (prefers-reduced-motion: no-preference) {
   .gal-side:not(:empty) { animation: k-toast-in var(--dur-slow) var(--ease-out); }
+  .gal-side.is-closing { animation: k-toast-in var(--dur) var(--ease-out) reverse forwards; }
 }
 .gal-side:empty { display: none; }
 .gal-side-head { display: grid; grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto; gap: 1rem; align-items: start; }
