@@ -46,6 +46,8 @@ func (d Deps) RegisterEditorRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /widget-preview", d.authed(d.handleWidgetPreview))
 	mux.HandleFunc("GET /widget-sample/{type}", d.authed(d.handleSample))
 	mux.HandleFunc("GET /widgets/{id}/preview", d.authed(d.handleWidgetShow))
+	mux.HandleFunc("GET /widget-tiles/{type}", d.authed(d.handleGalleryTiles))
+	mux.HandleFunc("POST /widgets/unused/delete", d.authed(d.handleUnusedDelete))
 }
 
 func (d Deps) handleBoardSettingsForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -492,7 +494,7 @@ func (d Deps) handleWidgetNewForm(w http.ResponseWriter, r *http.Request, ctx Ct
 	}
 	kind, ok := widgets.Get(r.URL.Query().Get("type"))
 	if !ok {
-		d.handleGallery(w, ctx, target, spaces)
+		d.handleGallery(w, ctx, target, spaces, galleryAfter{})
 		return
 	}
 	d.widgetFormPage(w, ctx, http.StatusOK, widgetForm{Kind: kind, Target: target})

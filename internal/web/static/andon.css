@@ -831,6 +831,14 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .gal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .8rem; }
 .gal-card { display: flex; flex-direction: column; background: var(--bg-panel); border: 1px solid var(--bg1); border-top: 4px solid var(--bg2); }
 .gal-card:hover { border-top-color: var(--hl); }
+/* Set up at least once: coloured top; the open one: primary. */
+.gal-card { cursor: pointer; }
+.gal-card[data-tiles] { border-top-color: var(--aqua); }
+.gal-card[aria-current="true"] { border-top-color: var(--primary); background: var(--bg1); }
+.gal-preview > .count { position: absolute; top: .5rem; right: .5rem; z-index: 1; }
+.gal-open { background: none; border: 0; padding: 0; margin: 0; min-height: 0; text-align: left; cursor: pointer; color: inherit; }
+.gal-open:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.gal-count { font-family: var(--font-mono); font-size: .72rem; color: var(--fg3); }
 /* Previews are pictures of a tile: clipped, faded out, not clickable. */
 .gal-preview { position: relative; height: 10.5rem; overflow: hidden; padding: .8rem .9rem 0; background: var(--bg-hard); pointer-events: none; }
 .gal-preview::after { content: ""; position: absolute; inset: auto 0 0 0; height: 2.2rem; background: linear-gradient(transparent, var(--bg-hard)); }
@@ -843,7 +851,6 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
   .gal-thumb:empty { animation: gal-wait 1.4s ease-in-out infinite; }
 }
 @keyframes gal-wait { 50% { opacity: .25; } }
-.gal-compact .gal-preview { height: 4.8rem; }
 .gal-meta { display: flex; flex-direction: column; gap: .25rem; padding: .7rem .9rem 0; flex: 1; }
 .gal-meta .label { display: flex; gap: .5rem; align-items: center; justify-content: space-between; }
 .gal-meta b { font-family: var(--font-heading); text-transform: uppercase; letter-spacing: .03em; color: var(--fg0); font-size: 1.02rem; }
@@ -855,9 +862,32 @@ main > .gal-tools { margin: 1rem 0 1.4rem; }
 .gal-opt:hover { background: var(--bg-panel); border-color: var(--hl); }
 .gal-opt b { font-size: 1rem; color: var(--fg0); }
 .gal-opt small { font-family: var(--font-sans); text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--fg2); font-size: .82rem; }
+/* The gallery dialog uses the screen's width and height (more cards per
+   row); the gallery scrolls inside it, not the dialog. */
+#detail:has(> .gallery) { max-width: calc(100vw - 2rem); height: calc(100dvh - 2rem); overflow: hidden; display: flex; flex-direction: column; }
+#detail > .gallery { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+/* The board behind stays put: a wheel over a panel too short to scroll
+   would otherwise scroll the page. */
+html:has(#detail[open] > .gallery) { overflow: hidden; }
+/* Side panel of one type: Kante's drawer (.sheet.is-drawer) with its
+   scrim, both hidden while the panel is empty. */
+.gal-side:empty, .gal-scrim:has(+ .gal-side:empty) { display: none; }
+.gal-side-head { display: grid; grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto; gap: 1rem; align-items: start; }
+.gal-side-head .gal-preview { height: 8rem; }
+.gal-side-meta { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.gal-side-meta h3 { margin: 0; }
+.gal-side-meta p { margin: 0; }
+.gal-side-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.gal-side-actions .btn { margin: 0; }
+.gal-side-list { display: flex; flex-direction: column; gap: .6rem; margin: 0; }
+.gal-clean-list { display: flex; flex-direction: column; gap: .3rem; max-height: 16rem; overflow-y: auto; margin: .6rem 0; }
+.gal-clean-list label.check { margin: 0; }
+.gal-clean-list small { margin-left: auto; }
 @media (max-width: 800px) {
   .gallery { grid-template-columns: minmax(0, 1fr); padding-inline: 1rem; }
   .gal-nav { position: static; flex-direction: row; flex-wrap: wrap; }
+  .gal-side-head { grid-template-columns: minmax(0, 1fr) auto; }
+  .gal-side-head .gal-preview { display: none; }
 }
 
 /* Widget form: grouped fields, preview among ghost neighbours. */

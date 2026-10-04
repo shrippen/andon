@@ -226,11 +226,12 @@ func TestGalleryOneReuseDialog(t *testing.T) {
 	resp.Body.Close()
 	add := addLinkRe.Find(mustGet(t, srv, client, resp.Request.URL.Path+"?edit"))
 	page := string(mustGet(t, srv, client, strings.ReplaceAll(string(add), "&amp;", "&")+"&dialog"))
-	if n := strings.Count(page, `class="dialog gal-dialog"`); n != 1 {
+	if n := strings.Count(page, `<dialog id="reuse"`); n != 1 {
 		t.Fatalf("expected one reuse dialog, got %d", n)
 	}
-	if n := len(regexp.MustCompile(`data-open="reuse" data-reuse="\d+"`).FindAllString(page, -1)); n != 2 {
-		t.Fatalf("expected 2 cards opening the reuse dialog, got %d", n)
+	side := string(mustGet(t, srv, client, strings.ReplaceAll(sideLinkRe.FindStringSubmatch(page)[1], "&amp;", "&")))
+	if n := len(regexp.MustCompile(`data-open="reuse" data-reuse="\d+"`).FindAllString(side, -1)); n != 2 {
+		t.Fatalf("expected 2 rows opening the reuse dialog, got %d", n)
 	}
 	if !strings.Contains(page, `action="/widgets/{widget}/copy"`) {
 		t.Fatal("reuse dialog lacks the copy form")
@@ -265,5 +266,62 @@ func TestLibraryOneRowMenu(t *testing.T) {
 	}
 	if !strings.Contains(page, `<template id="row-more">`) || !strings.Contains(page, `action="/widgets/{widget}/copy"`) {
 		t.Fatal("row menu template missing")
+	}
+}
+
+// TestGalleryDeleteUnused: a card counts its tiles; the side panel offers
+// only unused tiles for deletion, and deleting answers with the gallery,
+// its side panel open again.
+func TestGalleryDeleteUnused(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1]
+	for _, title := range []string{"Placed", "Spare"} {
+		resp, err := client.PostForm(srv.URL+"/widgets", url.Values{
+			"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space)}, "type": {"note"}, "title": {title}, "cfg.text": {"hi"},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+	}
+	boardURL, section, version, placed := placeTarget(t, srv, client, "Placed")
+	resp, err := client.PostForm(srv.URL+"/boards/"+boardIDFrom(boardURL)+"/sections/"+section+"/place", url.Values{
+		"csrf": {csrfToken(t, srv, client)}, "widget_id": {placed}, "version": {version},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	page := string(mustGet(t, srv, client, "/widgets/new?dialog&space="+string(space)))
+	card := regexp.MustCompile(`<article class="gal-card"[^>]* data-tiles data-unused>[\s\S]*?</article>`).FindString(page)
+	if !strings.Contains(card, "2 eingerichtet") || !strings.Contains(card, "1 ungenutzt") {
+		t.Fatalf("expected the note card to count 2 tiles, 1 unused:\n%s", card)
+	}
+
+	side := string(mustGet(t, srv, client, "/widget-tiles/note?space="+string(space)))
+	boxes := regexp.MustCompile(`name="ids" value="(\d+)"`).FindAllStringSubmatch(side, -1)
+	if len(boxes) != 1 || boxes[0][1] == placed {
+		t.Fatalf("expected one box, for the unused tile:\n%s", side)
+	}
+
+	resp, err = client.PostForm(srv.URL+"/widgets/unused/delete", url.Values{
+		"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space)}, "open": {"note"}, "ids": {boxes[0][1] + "," + placed},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK || !strings.Contains(string(body), "Gelöscht: 1") ||
+		!strings.Contains(string(body), `hx-get="/widget-tiles/note?space=`+string(space)+`" hx-trigger="load"`) {
+		t.Fatalf("expected the gallery with one deleted and the note panel:\n%s", body)
+	}
+	side = string(mustGet(t, srv, client, "/widget-tiles/note?space="+string(space)))
+	if strings.Contains(side, "<b>Spare</b>") || !strings.Contains(side, "<b>Placed</b>") {
+		t.Fatalf("expected only the placed tile left:\n%s", side)
 	}
 }

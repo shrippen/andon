@@ -120,27 +120,26 @@
 </header>
 <div class="gallery">
     <nav class="gal-nav" aria-label="{{t "gallery.topics"}}">
-      {{if .Tiles}}<a href="#set">{{t "gallery.existing"}}<span>{{len .Tiles}}</span></a>{{end}}
-      {{if .Links}}<a href="#set-links">{{t "gallery.existing_links"}}<span>{{len .Links}}</span></a>{{end}}
       {{range .Topics}}<a href="#topic-{{.Topic}}">{{t (print "topic." .Topic)}}<span>{{len .Cards}}</span></a>{{end}}
     </nav>
 
     <div class="gal-main">
       <header class="gal-head">
-        <p class="muted">{{if .Reuse}}{{t "gallery.lead_both"}}{{else}}{{t "gallery.lead"}}{{end}}</p>
+        <p class="muted">{{t "gallery.lead"}}</p>
+        {{if .After.Done}}<p class="callout callout-ok" role="status">{{t "gallery.deleted" "n" .After.Deleted}}</p>{{end}}
         <div class="gal-tools">
           <input class="input" type="search" id="gal-q" placeholder="{{t "gallery.search"}}" aria-label="{{t "gallery.search"}}" autofocus>
+          {{/* Filter by tiles set up (gallery.js): data-tiles / data-unused on the cards. */}}
+          <div class="seg" role="group" id="gal-filter" aria-label="{{t "gallery.filter"}}">
+            <button type="button" data-filter="all" aria-pressed="true">{{t "gallery.filter_all"}}</button>
+            <button type="button" data-filter="set" aria-pressed="false">{{t "gallery.filter_set"}}</button>
+            <button type="button" data-filter="new" aria-pressed="false">{{t "gallery.filter_new"}}</button>
+            <button type="button" data-filter="unused" aria-pressed="false">{{t "gallery.filter_unused"}}</button>
+          </div>
           <label class="check"><input type="checkbox" id="gal-mine"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "gallery.mine"}}</label>
+          {{if .Clean}}<button type="button" class="btn btn-outline btn-sm" data-open="gal-clean">{{t "gallery.clean"}} <span class="count">{{.CleanN}}</span></button>{{end}}
         </div>
       </header>
-      {{if .Tiles}}
-      <section id="set" class="gal-group" aria-labelledby="set-h">
-        <h2 id="set-h">{{t "gallery.existing"}}</h2>
-        <div class="gal-grid">
-        {{range .Tiles}}{{template "gal_tile" dict "T" . "P" $}}{{end}}
-        </div>
-      </section>
-      {{end}}
 
       {{range .Topics}}
       <section id="topic-{{.Topic}}" class="gal-group" aria-labelledby="topic-{{.Topic}}-h">
@@ -148,16 +147,19 @@
         <div class="gal-grid">
         {{range .Cards}}
           {{$svc := ""}}{{with .Kind.Service}}{{$svc = t (print "service." .)}}{{end}}
-          <article class="gal-card" data-q="{{.Name}} {{$svc}} {{.Desc}}"{{if or .ConnID (not .Kind.Service)}} data-mine{{end}}>
-            <div class="gal-preview" aria-hidden="true"><div class="gal-thumb" data-loading="{{t "gallery.preview_loading"}}" hx-get="/widget-sample/{{.Kind.Key}}?space={{$.Target.SpaceID}}{{with .ConnID}}&conn={{.}}{{end}}" hx-trigger="intersect once"></div></div>
+          {{/* A click anywhere on the card opens its side panel (gallery.js clicks .gal-open). */}}
+          <article class="gal-card" data-q="{{.Name}} {{$svc}} {{.Desc}}"{{if or .ConnID (not .Kind.Service)}} data-mine{{end}}{{if .Tiles}} data-tiles{{end}}{{if .Unused}} data-unused{{end}}>
+            <div class="gal-preview" aria-hidden="true"><div class="gal-thumb" data-loading="{{t "gallery.preview_loading"}}" hx-get="/widget-sample/{{.Kind.Key}}?space={{$.Target.SpaceID}}{{with .ConnID}}&conn={{.}}{{end}}" hx-trigger="intersect once"></div>
+              {{if .Tiles}}<span class="count">{{.Tiles}}</span>{{end}}</div>
             <div class="gal-meta">
               {{if .Kind.Service}}<span class="label">{{$svc}}
                 {{if .ConnID}}<span class="pill" data-state="applied">{{t "gallery.live"}}</span>{{else}}<span class="pill" data-state="locked">{{t "gallery.sample"}}</span>{{end}}</span>{{end}}
-              <b>{{.Name}}</b>
+              <button type="button" class="gal-open" hx-get="/widget-tiles/{{.Kind.Key}}?{{$.Target.Query}}" hx-target="#gal-side" aria-controls="gal-side"><b>{{.Name}}</b></button>
               <small class="muted">{{.Desc}}</small>
+              <small class="gal-count">{{if .Tiles}}{{t "gallery.count_tiles" "n" .Tiles}}{{if .Unused}} · <span class="warn-text">{{t "gallery.count_unused" "n" .Unused}}</span>{{end}}{{else}}{{t "gallery.count_none"}}{{end}}</small>
             </div>
             <div class="gal-actions">
-              {{$setup := print "/widgets/new?type=" .Kind.Key "&space=" $.Target.SpaceID}}{{if $.Target.Place}}{{$setup = print $setup "&section=" $.Target.SectionID "&board=" $.Target.BoardID "&version=" $.Target.Version}}{{end}}
+              {{$setup := $.Target.SetupURL .Kind.Key}}
               <a class="btn btn-outline btn-sm" href="{{$setup}}" data-details="{{$setup}}&dialog">{{t "gallery.setup"}}</a>
               {{if and .Kind.Service (not .ConnID)}}<a class="small" href="/connections/new?service={{.Kind.Service}}">{{t "gallery.connect"}}</a>{{end}}
             </div>
@@ -166,20 +168,18 @@
         </div>
       </section>
       {{end}}
-      {{if .Links}}
-      <section id="set-links" class="gal-group gal-compact" aria-labelledby="set-links-h">
-        <h2 id="set-links-h">{{t "gallery.existing_links"}}</h2>
-        <div class="gal-grid">
-        {{range .Links}}{{template "gal_tile" dict "T" . "P" $}}{{end}}
-        </div>
-      </section>
-      {{end}}
       <p class="gal-none muted" hidden>{{t "gallery.none"}}</p>
     </div>
 </div>
-  {{if or .Tiles .Links}}
+  {{/* The side panel of one type: Kante's drawer over the gallery, its
+       scrim before it. Filled by a card (hx-get), empty (hidden) until
+       then; after a deletion it opens again. Outside the scrolling
+       gallery, so it spans the dialog's height. */}}
+  <div class="scrim gal-scrim"></div>
+  <aside class="sheet is-drawer gal-side" id="gal-side" aria-label="{{t "gallery.tiles_of"}}"{{with .After.Open}} hx-get="/widget-tiles/{{.}}?{{$.Target.Query}}" hx-trigger="load"{{end}}></aside>
+  {{if and .Reuse .Target.Place}}
   {{/* One dialog for every set-up tile: {widget} and the texts are
-       filled from the card's button. One per tile made 226 tiles 580 KB. */}}
+       filled from the row's button. One per tile made 226 tiles 580 KB. */}}
   <dialog id="reuse" class="dialog gal-dialog" aria-labelledby="reuse-h">
     <span class="label">{{t "gallery.existing"}} · <span data-fill="kind"></span></span>
     <h3 id="reuse-h" data-fill="name"></h3>
@@ -197,22 +197,80 @@
     <form method="dialog"><button type="submit" class="btn btn-outline btn-sm">{{t "action.cancel"}}</button></form>
   </dialog>
   {{end}}
+  {{if .Clean}}
+  {{/* Delete every unused tile the caller may delete, by type. */}}
+  <dialog id="gal-clean" class="dialog gal-dialog" aria-labelledby="gal-clean-h">
+    <h3 id="gal-clean-h">{{t "gallery.clean"}}</h3>
+    <p class="small muted">{{t "gallery.clean_lead"}}</p>
+    <form method="post" action="/widgets/unused/delete" class="gal-clean">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+      {{template "target_fields" .Target}}
+      <div class="gal-clean-list">
+      {{range .Clean}}<label class="check"><input type="checkbox" name="ids" value="{{.IDs}}" checked><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{.Name}} <small class="muted">{{.N}}</small></label>{{end}}
+      </div>
+      <div class="dialog-actions">
+        <button type="submit" class="btn btn-danger btn-sm">{{t "gallery.clean_go"}}</button>
+      </div>
+    </form>
+    <form method="dialog"><button type="submit" class="btn btn-outline btn-sm">{{t "action.cancel"}}</button></form>
+  </dialog>
+  {{end}}
 {{end}}
 
-{{/* A set-up widget in the gallery; its button fills and opens the
-     page's one reuse dialog (gallery.js). */}}
-{{define "gal_tile"}}{{with .T}}
-          {{$type := t (print "wtype." .Type ".name")}}
-          <article class="gal-card" data-q="{{.Name}} {{$type}}" data-mine>
-            <div class="gal-preview" aria-hidden="true"><div class="gal-thumb" data-loading="{{t "gallery.preview_loading"}}" hx-get="/widgets/{{.ID}}/preview" hx-trigger="intersect once"></div></div>
-            <div class="gal-meta">
-              <span class="label">{{$type}} · {{.Space.Name}}</span>
-              <b>{{.Name}}</b>
-              <small class="muted">{{if .Uses}}{{t "gallery.uses" "n" .Uses}}{{else}}{{t "gallery.unused"}}{{end}}</small>
-            </div>
-            <div class="gal-actions"><button type="button" class="btn btn-accent" data-open="reuse" data-reuse="{{.ID}}" data-name="{{.Name}}" data-kind="{{$type}}">{{t "gallery.add"}}</button></div>
-          </article>
-{{end}}{{end}}
+{{/* The side panel of one type (GET /widget-tiles/{type}): preview,
+     set up, and its tiles; unused ones can be picked and deleted. */}}
+{{define "gal_side"}}
+{{$setup := .Target.SetupURL .Kind.Key}}
+<div class="gal-side-head">
+  <div class="gal-preview" aria-hidden="true"><div class="gal-thumb" data-loading="{{t "gallery.preview_loading"}}" hx-get="/widget-sample/{{.Kind.Key}}?space={{.Target.SpaceID}}{{with .ConnID}}&conn={{.}}{{end}}" hx-trigger="load"></div></div>
+  <div class="gal-side-meta">
+    {{if .Kind.Service}}<span class="label">{{t (print "service." .Kind.Service)}}
+      {{if .ConnID}}<span class="pill" data-state="applied">{{t "gallery.live"}}</span>{{else}}<span class="pill" data-state="locked">{{t "gallery.sample"}}</span>{{end}}</span>{{end}}
+    <h3 id="gal-side-h">{{.Name}}</h3>
+    <p class="small muted">{{.Desc}}</p>
+    <div class="gal-side-actions">
+      <a class="btn btn-primary btn-sm" href="{{$setup}}" data-details="{{$setup}}&dialog">{{t "gallery.setup"}}</a>
+      <small class="gal-count">{{if .Total}}{{t "gallery.count_tiles" "n" .Total}}{{if .Unused}} · <span class="warn-text">{{t "gallery.count_unused" "n" .Unused}}</span>{{end}}{{else}}{{t "gallery.count_none"}}{{end}}</small>
+    </div>
+  </div>
+  <button type="button" class="btn btn-outline btn-sm btn-icon" data-side-close aria-label="{{t "action.close"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
+{{if .Search}}<input class="input" type="search" name="q" value="{{.Q}}" placeholder="{{t "gallery.search_tiles"}}" aria-label="{{t "gallery.search_tiles"}}"
+  hx-get="/widget-tiles/{{.Kind.Key}}?{{.Target.Query}}" hx-trigger="input changed delay:300ms, search" hx-target="#gal-side-list" hx-select="#gal-side-list" hx-swap="outerHTML">{{end}}
+<form method="post" action="/widgets/unused/delete" id="gal-side-list" class="gal-side-list" data-confirm="{{t "gallery.delete_confirm"}}">
+  <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+  <input type="hidden" name="open" value="{{.Kind.Key}}">
+  {{template "target_fields" .Target}}
+  {{if .Tiles}}
+  <div class="table-wrap"><table class="table">
+    <thead><tr>
+      <th>{{if .Unused}}<label class="check"><input type="checkbox" data-pick-all aria-label="{{t "gallery.select_all"}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>{{end}}</th>
+      <th>{{t "gallery.tile"}}</th><th>{{t "field.space"}}</th><th>{{t "gallery.placed"}}</th><th></th>
+    </tr></thead>
+    <tbody>
+    {{range .Tiles}}
+      <tr>
+        <td>{{if and (not .Uses) .CanDelete}}<label class="check"><input type="checkbox" name="ids" value="{{.ID}}" aria-label="{{.Name}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>{{end}}</td>
+        <td><b>{{.Name}}</b></td>
+        <td class="small muted">{{.Space.Name}}</td>
+        <td class="small{{if not .Uses}} warn-text{{else}} muted{{end}}">{{if .Uses}}{{t "gallery.uses" "n" .Uses}}{{else}}{{t "gallery.unused"}}{{end}}</td>
+        <td class="row-actions">{{if $.Target.Place}}<button type="button" class="btn btn-accent btn-sm" data-open="reuse" data-reuse="{{.ID}}" data-name="{{.Name}}" data-kind="{{$.Name}}">{{t "gallery.add"}}</button>{{end}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table></div>
+  {{if lt (len .Tiles) .Found}}<p class="small muted">{{t "gallery.shown" "n" (len .Tiles) "total" .Found}}</p>{{end}}
+  {{if .Unused}}
+  <div class="bulk-bar is-sticky" data-picked-bar hidden>
+    <span class="n"><span data-picked>0</span><small>{{t "gallery.picked"}}</small></span>
+    <span class="grow"></span>
+    <button type="submit" class="btn btn-danger btn-sm">{{t "action.delete"}}</button>
+  </div>
+  {{end}}
+  {{else if .Total}}<p class="muted">{{t "gallery.none"}}</p>
+  {{else}}<div class="empty"><span class="muted">{{t "gallery.tiles_none"}}</span></div>{{end}}
+</form>
+{{end}}
 
 {{/* The widget editor: form, live preview, delete. Only ever in the
      dialog (widget_dialog); andon.js posts it and asks before closing it
