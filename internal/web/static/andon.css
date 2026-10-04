@@ -209,9 +209,12 @@ a > .count, summary > .count { margin-left: .35rem; }
 .dsec-head { margin: 0 .3rem .3rem; }
 .dsec:has(.dsec-tools > :not(.section-tools[open])) .dsec-head { padding-right: 8rem; }
 .dsec-head h2 { letter-spacing: .03em; font-size: 1.08rem; }
-/* Section tools beside the summary; an open section form flows above it. */
+/* Section tools beside the summary; an open section form flows above
+   the head while its button stays in the corner. */
 .dsec-tools { position: absolute; top: .75rem; right: .7rem; z-index: 1; display: flex; align-items: center; gap: .6rem; }
-.dsec-tools:has(.section-tools[open]) { position: static; margin: 0 .3rem .6rem; }
+.dsec-tools:has(.section-tools[open]) { display: contents; }
+.section-tools[open] { margin: 2.4rem .3rem .6rem; }
+.section-tools[open] > summary { position: absolute; top: .75rem; right: .7rem; z-index: 1; }
 .section-tools summary { list-style: none; cursor: pointer; }
 .section-form { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: end; margin-top: .6rem; }
 .section-form label { display: flex; flex-direction: column; gap: .2rem; }

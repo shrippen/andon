@@ -345,8 +345,9 @@
      fragment template into the form's static preview card. */}}
 {{define "widget_preview"}}
 {{$c := .Frag.Config}}
-<a class="launch" href="#preview"><span class="launch-icon">{{with .Icon}}{{if .Emoji}}<span class="emoji" aria-hidden="true">{{.Emoji}}</span>{{else if .URL}}<img src="{{.URL}}" alt=""{{if .Glyph}} class="is-glyph"{{end}}>{{else}}<span class="monogram">{{monogram $.Frag.Title}}</span>{{end}}{{else}}<span class="monogram">{{monogram .Frag.Title}}</span>{{end}}</span>
+<a class="launch" href="#preview"{{with $c.Color}} data-style="--c:var(--{{.}})"{{end}}><span class="launch-icon"{{if ne $c.IconSize "normal"}} data-size="{{$c.IconSize}}"{{end}}>{{with .Icon}}{{if .Emoji}}<span class="emoji" aria-hidden="true">{{.Emoji}}</span>{{else if .URL}}<img src="{{.URL}}" alt=""{{if .Glyph}} class="is-glyph"{{end}}>{{else}}<span class="monogram">{{monogram $.Frag.Title}}</span>{{end}}{{else}}<span class="monogram">{{monogram .Frag.Title}}</span>{{end}}</span>
   <span class="launch-body"><b class="launch-title">{{.Frag.Title}}</b>{{if $c.Description}}<small class="launch-desc">{{$c.Description}}</small>{{end}}
+  {{with $c.Tags}}<small class="launch-tags">{{range .}}<span>#{{.}}</span>{{end}}</small>{{end}}
   <span class="launch-live">{{template "widgets/link" .}}</span></span></a>
 {{end}}
 
