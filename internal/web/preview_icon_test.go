@@ -15,7 +15,7 @@ func TestLinkPreviewShowsIcon(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 	csrf := csrfToken(t, srv, client)
-	space := string(regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1])
+	space := string(regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1])
 
 	preview := func(icon string) string {
 		t.Helper()

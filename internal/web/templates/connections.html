@@ -224,7 +224,7 @@
     {{with .Suggest}}
       <h2>{{t "conn.suggest"}}</h2>
       <div class="type-grid">
-        {{range .}}<a class="option" href="/widgets/new?type={{.Key}}&space={{$.Conn.SpaceID}}"><b>{{t (print "wtype." .Key ".name")}}</b><small>{{t (print "wtype." .Key ".desc")}}</small></a>{{end}}
+        {{range .}}{{$new := print "/widgets/new?type=" .Key "&space=" $.Conn.SpaceID}}<a class="option" href="{{$new}}" data-details="{{$new}}&dialog"><b>{{t (print "wtype." .Key ".name")}}</b><small>{{t (print "wtype." .Key ".desc")}}</small></a>{{end}}
       </div>
     {{end}}
     {{if not .IsNew}}

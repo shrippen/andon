@@ -51,7 +51,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{t "nav.library"}} · Andon</title>
   {{template "style" .}}
-  <script src="{{asset "gallery.js"}}" defer></script>
 </head>
 <body>
   {{template "header" .}}
@@ -61,7 +60,7 @@
     <p class="muted">{{t "library.lead"}}</p>
     <div class="gal-tools">
       <input class="input" type="search" id="gal-q" placeholder="{{t "library.search"}}" aria-label="{{t "library.search"}}">
-      <a class="btn btn-outline btn-sm" href="/widgets/new">+ {{t "gallery.title"}}</a>
+      <a class="btn btn-outline btn-sm" href="/widgets/new" data-details="/widgets/new?dialog">+ {{t "gallery.title"}}</a>
     </div>
     {{range .Groups}}
     <section class="gal-group lib-group">
@@ -75,7 +74,7 @@
           <td><b>{{.Name}}</b>{{if .Title}}<small class="muted"> · {{$type}}</small>{{end}}</td>
           <td class="small muted">{{.Space.Name}}</td>
           <td class="small muted">{{if .Uses}}{{t "gallery.uses" "n" .Uses}}{{else}}{{t "gallery.unused"}}{{end}}</td>
-          <td class="row-actions">{{if .CanEdit}}<a class="btn btn-outline btn-sm" href="/widgets/{{.ID}}/edit">{{t "action.edit"}}</a>{{end}}
+          <td class="row-actions">{{if .CanEdit}}<a class="btn btn-outline btn-sm" href="/widgets/{{.ID}}/edit" data-details="/widgets/{{.ID}}/edit?dialog">{{t "action.edit"}}</a>{{end}}
             <details class="row-more" data-widget="{{.ID}}"><summary class="btn btn-outline btn-sm" aria-label="{{t "action.more"}}" title="{{t "action.more"}}">⋯</summary></details>
           </td>
         </tr>
@@ -108,21 +107,18 @@
 {{if .Place}}<input type="hidden" name="version" value="{{.Version}}">{{end}}
 {{end}}
 
-{{/* One page to add a tile: place a set-up one again or set up a new
-     one. Previews load when a card scrolls into view. */}}
+{{/* The dialog to add a tile: place a set-up one again or set up a new
+     one (the editor then opens in the same dialog). Previews load when a
+     card scrolls into view. */}}
 {{define "widget_gallery"}}
-<!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{t "gallery.title"}} · Andon</title>
-  {{template "style" .}}
-  <script src="{{asset "gallery.js"}}" defer></script>
-</head>
-<body>
-  {{template "header" .}}
-  <main class="gallery">
+<header class="detail-head">
+  <div class="detail-name">
+    <h3 id="detail-title">{{t "gallery.title"}}</h3>
+    {{if .Dest.Section}}<span class="detail-sub">{{t "gallery.into"}} {{.Dest.Board}} › {{.Dest.Section}}</span>{{end}}
+  </div>
+  <button type="button" class="btn btn-outline btn-sm btn-icon" data-detail-close aria-label="{{t "detail.close"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</header>
+<div class="gallery">
     <nav class="gal-nav" aria-label="{{t "gallery.topics"}}">
       {{if .Tiles}}<a href="#set">{{t "gallery.existing"}}<span>{{len .Tiles}}</span></a>{{end}}
       {{if .Links}}<a href="#set-links">{{t "gallery.existing_links"}}<span>{{len .Links}}</span></a>{{end}}
@@ -131,16 +127,12 @@
 
     <div class="gal-main">
       <header class="gal-head">
-        {{if .Dest.Section}}<span class="label">{{t "gallery.into"}} {{.Dest.Board}} › {{.Dest.Section}}</span>{{end}}
-        <h1>{{t "gallery.title"}}</h1>
-    {{template "intro" dict "Page" "gallery" "Chapter" "tiles" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
         <p class="muted">{{if .Reuse}}{{t "gallery.lead_both"}}{{else}}{{t "gallery.lead"}}{{end}}</p>
         <div class="gal-tools">
-          <input class="input" type="search" id="gal-q" placeholder="{{t "gallery.search"}}" aria-label="{{t "gallery.search"}}">
+          <input class="input" type="search" id="gal-q" placeholder="{{t "gallery.search"}}" aria-label="{{t "gallery.search"}}" autofocus>
           <label class="check"><input type="checkbox" id="gal-mine"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "gallery.mine"}}</label>
         </div>
       </header>
-
       {{if .Tiles}}
       <section id="set" class="gal-group" aria-labelledby="set-h">
         <h2 id="set-h">{{t "gallery.existing"}}</h2>
@@ -165,7 +157,8 @@
               <small class="muted">{{.Desc}}</small>
             </div>
             <div class="gal-actions">
-              <a class="btn btn-outline btn-sm" href="/widgets/new?type={{.Kind.Key}}&space={{$.Target.SpaceID}}{{if $.Target.Place}}&section={{$.Target.SectionID}}&board={{$.Target.BoardID}}&version={{$.Target.Version}}{{end}}">{{t "gallery.setup"}}</a>
+              {{$setup := print "/widgets/new?type=" .Kind.Key "&space=" $.Target.SpaceID}}{{if $.Target.Place}}{{$setup = print $setup "&section=" $.Target.SectionID "&board=" $.Target.BoardID "&version=" $.Target.Version}}{{end}}
+              <a class="btn btn-outline btn-sm" href="{{$setup}}" data-details="{{$setup}}&dialog">{{t "gallery.setup"}}</a>
               {{if and .Kind.Service (not .ConnID)}}<a class="small" href="/connections/new?service={{.Kind.Service}}">{{t "gallery.connect"}}</a>{{end}}
             </div>
           </article>
@@ -183,7 +176,7 @@
       {{end}}
       <p class="gal-none muted" hidden>{{t "gallery.none"}}</p>
     </div>
-  </main>
+</div>
   {{if or .Tiles .Links}}
   {{/* One dialog for every set-up tile: {widget} and the texts are
        filled from the card's button. One per tile made 226 tiles 580 KB. */}}
@@ -204,8 +197,6 @@
     <form method="dialog"><button type="submit" class="btn btn-outline btn-sm">{{t "action.cancel"}}</button></form>
   </dialog>
   {{end}}
-</body>
-</html>
 {{end}}
 
 {{/* A set-up widget in the gallery; its button fills and opens the
@@ -223,34 +214,15 @@
           </article>
 {{end}}{{end}}
 
-{{define "widget_form"}}
-<!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{t (print "wtype." .Kind.Key ".name")}} · Andon</title>
-  {{template "style" .}}
-  <script src="{{asset "editor.js"}}" defer></script>
-</head>
-<body>
-  {{template "header" .}}
-  <main>
-    {{template "widget_editor" .}}
-  </main>
-</body>
-</html>
-{{end}}
-
-{{/* The widget editor: form, live preview, delete. On its own page
-     (widget_form) and in the board's dialog (widget_dialog). */}}
+{{/* The widget editor: form, live preview, delete. Only ever in the
+     dialog (widget_dialog); andon.js posts it and asks before closing it
+     with unsaved changes (data-dirty). */}}
 {{define "widget_editor"}}
     <div class="editor-split">
       <form method="post" action="{{if .Widget}}/widgets/{{.Widget.ID}}/edit{{else}}/widgets{{end}}" class="card wf" id="widget-form"
-            hx-post="/widget-preview" hx-trigger="input changed delay:350ms from:#widget-form, load" hx-target="#preview" hx-swap="innerHTML">
-        {{if and (not .Widget) (not .Dialog)}}<a class="label" href="/widgets/new?space={{.Target.SpaceID}}{{if .Target.Place}}&section={{.Target.SectionID}}&board={{.Target.BoardID}}&version={{.Target.Version}}{{end}}">← {{t "gallery.other"}}</a>{{end}}
-        {{if not .Dialog}}<span class="label">{{t (print "topic." .Topic)}}{{with .Dest.Section}} · {{t "gallery.into"}} {{$.Dest.Board}} › {{.}}{{end}}</span>{{end}}
-        {{if not .Dialog}}<h1>{{t (print "wtype." .Kind.Key ".name")}}</h1>{{end}}
+            hx-post="/widget-preview" hx-trigger="input changed delay:350ms from:#widget-form, load" hx-target="#preview" hx-swap="innerHTML" data-dirty="{{t "edit.discard"}}">
+        {{if not .Widget}}{{$back := print "/widgets/new?space=" .Target.SpaceID}}{{if .Target.Place}}{{$back = print $back "&section=" .Target.SectionID "&board=" .Target.BoardID "&version=" .Target.Version}}{{end}}
+        <a class="label" href="{{$back}}" data-details="{{$back}}&dialog">← {{t "gallery.other"}}</a>{{end}}
         <p class="muted">{{t (print "wtype." .Kind.Key ".desc")}}</p>
         {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
 
@@ -258,6 +230,10 @@
         <input type="hidden" name="type" value="{{.Kind.Key}}">
         {{template "target_fields" .Target}}
         {{if .Widget}}<input type="hidden" name="widget_version" value="{{.Widget.Version}}">{{end}}
+
+        {{/* The title first: every tile has one, and the head's options depend on it. */}}
+        <label for="title">{{t "field.title"}}</label>
+        <input class="input" id="title" name="title" value="{{.Title}}" placeholder="{{t "field.title_none"}}">
 
         {{if or .NeedsConn .Fields}}
         <fieldset>
@@ -278,8 +254,10 @@
 
         <fieldset>
         <legend>{{t "gallery.display"}}</legend>
-        <label for="title">{{t "field.title"}}</label>
-        <input class="input" id="title" name="title" value="{{.Title}}">
+        {{with .TitleFields}}<div class="wf-titled">
+          <p class="small muted wf-titled-hint">{{t "field.title_needed"}}</p>
+          {{template "cfg_fields" dict "Fields" . "Root" $}}
+        </div>{{end}}
         {{template "cfg_fields" dict "Fields" .FrameFields "Root" $}}
         {{if and .Target.Place (not .Widget)}}
         <label for="rows">{{t "gallery.height"}}</label>
@@ -301,8 +279,7 @@
 
         <div class="row-actions">
           <button type="submit" class="btn btn-accent">{{if and .Target.Place (not .Widget)}}{{with .Dest.Section}}{{t "gallery.add_to" "section" .}}{{else}}{{t "gallery.add"}}{{end}}{{else}}{{t "action.save"}}{{end}}</button>
-          {{if .Dialog}}<button type="button" class="btn btn-outline btn-sm" data-detail-close>{{t "action.cancel"}}</button>
-          {{- else}}<a class="btn btn-outline btn-sm" href="{{.Target.Back}}">{{t "action.cancel"}}</a>{{end}}
+          <button type="button" class="btn btn-outline btn-sm" data-detail-close>{{t "action.cancel"}}</button>
         </div>
       </form>
 
@@ -311,9 +288,9 @@
           <h2 id="preview-h">{{t "edit.preview"}}</h2>
           {{if .Kind.Service}}<span class="pill src-live" data-state="ok">{{t "gallery.live"}}</span><span class="pill src-demo" data-state="warn">{{t "gallery.sample"}}</span>{{end}}
         </div>
-        <div class="dsec-body" data-size="{{or .Dest.Size "medium"}}">
+        <div class="dsec-body" data-size="{{or .Look.Size .Dest.Size "medium"}}">
           {{if .Target.Place}}<div class="tile-slot gal-ghost" aria-hidden="true"></div><div class="tile-slot gal-ghost" aria-hidden="true"></div>{{end}}
-          <div class="tile-slot w-{{.Kind.Key}} wf-slot">
+          <div class="tile-slot w-{{.Kind.Key}} wf-slot"{{with .Look.Rows}} data-rows="{{.}}"{{end}}{{with .Look.Cols}} data-cols="{{.}}"{{end}}>
             {{/* The live preview swaps in the whole tile: frame, title and body. */}}
             <div id="preview">{{if ne .Kind.Key "link"}}<article class="card"><h3 class="card-title">{{.Title}}</h3><div class="card-body"></div></article>{{end}}</div>
           </div>
@@ -324,17 +301,19 @@
     </div>
 
     {{if .Widget}}
-      {{template "danger_zone" dict "Action" (print "/widgets/" .Widget.ID "/delete") "Text" (t "widget.delete_hint") "Button" (t "action.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
+      {{$delete := print "/widgets/" .Widget.ID "/delete"}}{{with .Target.BoardID}}{{$delete = print $delete "?board=" .}}{{end}}
+      {{template "danger_zone" dict "Action" $delete "Text" (t "widget.delete_hint") "Button" (t "action.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{end}}
 {{end}}
 
-{{/* The editor in the board's detail dialog (GET /widgets/{id}/edit?dialog):
-     a section is often too narrow for it. Saving reloads the board. */}}
+{{/* The editor in the detail dialog (GET /widgets/{id}/edit?dialog,
+     /widgets/new?type=…&dialog): a section is often too narrow for it.
+     Saving reloads the page it was opened on. */}}
 {{define "widget_dialog"}}
 <header class="detail-head">
   <div class="detail-name">
     <h3 id="detail-title">{{if .Title}}{{.Title}}{{else}}{{t (print "wtype." .Kind.Key ".name")}}{{end}}</h3>
-    <span class="detail-sub">{{t (print "topic." .Topic)}}</span>
+    <span class="detail-sub">{{t (print "topic." .Topic)}}{{with .Dest.Section}} · {{t "gallery.into"}} {{$.Dest.Board}} › {{.}}{{end}}</span>
   </div>
   <button type="button" class="btn btn-outline btn-sm btn-icon" data-detail-close aria-label="{{t "detail.close"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </header>

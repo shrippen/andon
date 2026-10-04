@@ -24,7 +24,7 @@ func TestGallerySortsByName(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
-	page := string(mustGet(t, srv, client, "/widgets/new"))
+	page := string(mustGet(t, srv, client, "/widgets/new?dialog"))
 	sorter := collate.New(language.German, collate.IgnoreCase)
 	sections := regexp.MustCompile(`(?s)<section id="topic-(\w+)".*?</section>`).FindAllStringSubmatch(page, -1)
 	if len(sections) < 5 {
@@ -57,7 +57,7 @@ func TestGalleryCopyAndRows(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
-	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1]
 	resp, err := client.PostForm(srv.URL+"/widgets", url.Values{
 		"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space)}, "type": {"note"}, "title": {"My Note"}, "cfg.text": {"hi"},
 	})
@@ -124,7 +124,7 @@ func TestBoardRendersTilesWithPage(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
-	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1]
 	resp, err := client.PostForm(srv.URL+"/widgets", url.Values{
 		"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space)}, "type": {"note"}, "title": {"My Note"}, "cfg.text": {"Inline body"},
 	})
@@ -155,8 +155,8 @@ func TestFieldLabelPerType(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
-	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
-	body := string(mustGet(t, srv, client, "/widgets/new?type=payment_days&space="+string(space)))
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1]
+	body := string(mustGet(t, srv, client, "/widgets/new?dialog&type=payment_days&space="+string(space)))
 	label := regexp.MustCompile(`<label for="cfg.target_days">([^<]*)</label>`).FindStringSubmatch(body)
 	if label == nil {
 		t.Fatalf("no target field:\n%s", body)
@@ -175,7 +175,7 @@ func TestWidgetBadWindowRefused(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
-	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1]
 	resp, err := client.PostForm(srv.URL+"/widgets", url.Values{
 		"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space)}, "type": {"update_window"}, "cfg.window": {"25-3"},
 	})
@@ -196,8 +196,8 @@ func TestNumberFieldHasRange(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
-	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
-	body := string(mustGet(t, srv, client, "/widgets/new?type=hints&space="+string(space)))
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1]
+	body := string(mustGet(t, srv, client, "/widgets/new?dialog&type=hints&space="+string(space)))
 	if !strings.Contains(body, `name="cfg.limit" type="number" step="any" value="8" min="1" max="50"`) {
 		t.Fatalf("no range on limit:\n%s", body)
 	}
@@ -211,7 +211,7 @@ func TestGalleryOneReuseDialog(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
-	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1]
 	for _, title := range []string{"Note A", "Note B"} {
 		resp, err := client.PostForm(srv.URL+"/widgets", url.Values{
 			"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space)}, "type": {"note"}, "title": {title}, "cfg.text": {"hi"},
@@ -225,7 +225,7 @@ func TestGalleryOneReuseDialog(t *testing.T) {
 	resp := getFollowingRedirect(t, srv, client, "/")
 	resp.Body.Close()
 	add := addLinkRe.Find(mustGet(t, srv, client, resp.Request.URL.Path+"?edit"))
-	page := string(mustGet(t, srv, client, strings.ReplaceAll(string(add), "&amp;", "&")))
+	page := string(mustGet(t, srv, client, strings.ReplaceAll(string(add), "&amp;", "&")+"&dialog"))
 	if n := strings.Count(page, `class="dialog gal-dialog"`); n != 1 {
 		t.Fatalf("expected one reuse dialog, got %d", n)
 	}
@@ -245,7 +245,7 @@ func TestLibraryOneRowMenu(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
-	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1]
 	for _, title := range []string{"Note A", "Note B"} {
 		resp, err := client.PostForm(srv.URL+"/widgets", url.Values{
 			"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space)}, "type": {"note"}, "title": {title}, "cfg.text": {"hi"},

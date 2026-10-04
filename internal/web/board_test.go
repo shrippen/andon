@@ -50,7 +50,7 @@ func TestLinkTileAndLayout(t *testing.T) {
 		t.Fatalf("uploaded SVG not cleaned: %s", icon)
 	}
 
-	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1]
 	for _, w := range []struct{ title, url, icon, hotkey string }{
 		{"Kimai", "https://kimai.example", spec, "k"},
 		{"Wiki Docs", "https://wiki.example", "", ""},
@@ -167,11 +167,11 @@ func TestNewWidgetFromSectionIsPlaced(t *testing.T) {
 		t.Fatalf("no new-widget link:\n%s", edit)
 	}
 
-	picker := string(mustGet(t, srv, client, "/widgets/new?space="+link[1]+"&section="+link[2]+"&board="+link[3]+"&version="+link[4]))
+	picker := string(mustGet(t, srv, client, "/widgets/new?dialog&space="+link[1]+"&section="+link[2]+"&board="+link[3]+"&version="+link[4]))
 	if !strings.Contains(picker, "type=note") {
 		t.Fatalf("type picker incomplete:\n%s", picker)
 	}
-	form := string(mustGet(t, srv, client, "/widgets/new?type=note&space="+link[1]+"&section="+link[2]+"&board="+link[3]+"&version="+link[4]))
+	form := string(mustGet(t, srv, client, "/widgets/new?dialog&type=note&space="+link[1]+"&section="+link[2]+"&board="+link[3]+"&version="+link[4]))
 	if !strings.Contains(form, `name="cfg.text"`) || !strings.Contains(form, `name="section_id"`) {
 		t.Fatalf("generated form incomplete:\n%s", form)
 	}
@@ -224,7 +224,7 @@ func TestLinkExtrasAndPage(t *testing.T) {
 	login(t, srv, client)
 	csrf := csrfToken(t, srv, client)
 
-	space := string(regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1])
+	space := string(regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1])
 	postForm(t, client, srv.URL+"/widgets", url.Values{"csrf": {csrf}, "space_id": {space}, "type": {"link"}, "title": {"Gitea"},
 		"cfg.url": {"https://git.example"}, "cfg.status": {"off"}, "cfg.tags": {"code"}, "cfg.color": {"green"},
 		"cfg.items": {"Admin | https://git.example/admin"}, "cfg.headers": {"X-Api: secret-token"}})
@@ -250,7 +250,7 @@ func TestLinkExtrasAndPage(t *testing.T) {
 	if strings.Contains(page, "javascript:") {
 		t.Fatal("unsafe nav link rendered")
 	}
-	if strings.Contains(string(mustGet(t, srv, client, "/widgets/"+widget+"/edit")), "secret-token") {
+	if strings.Contains(string(mustGet(t, srv, client, "/widgets/"+widget+"/edit?dialog")), "secret-token") {
 		t.Fatal("stored header shown in the form")
 	}
 }
@@ -410,7 +410,7 @@ func TestTileEditDialog(t *testing.T) {
 	login(t, srv, client)
 	csrf := csrfToken(t, srv, client)
 
-	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1]
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1]
 	postForm(t, client, srv.URL+"/widgets", url.Values{"csrf": {csrf}, "space_id": {string(space)}, "type": {"note"}, "title": {"My Note"}, "cfg.text": {"hi"}})
 	boardURL, section, version, widget := placeTarget(t, srv, client, "My Note")
 	board := boardIDFrom(boardURL)

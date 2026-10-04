@@ -1,17 +1,18 @@
-/* Gallery and library: filter cards by search text and "only my connections",
+/* Gallery (in the detail dialog) and library: filter cards by search text and "only my connections",
    open the reuse dialog of a set-up tile, fill a library row's menu. */
 (function () {
   "use strict";
 
   var d = document;
 
-  // filter hides cards that don't match, then groups left empty.
-  function filter() {
-    var q = d.getElementById("gal-q").value.trim().toLowerCase();
-    var box = d.getElementById("gal-mine");
+  // filter hides cards that don't match, then groups left empty; root is
+  // the gallery dialog or the library page.
+  function filter(root) {
+    var q = root.querySelector("#gal-q").value.trim().toLowerCase();
+    var box = root.querySelector("#gal-mine");
     var mine = box ? box.checked : false;
     var any = false;
-    [].forEach.call(d.querySelectorAll(".gal-group"), function (group) {
+    [].forEach.call(root.querySelectorAll(".gal-group"), function (group) {
       var shown = 0;
       [].forEach.call(group.querySelectorAll("[data-q]"), function (card) {
         var hit = (!q || (card.getAttribute("data-q") || "").toLowerCase().indexOf(q) >= 0) &&
@@ -22,8 +23,18 @@
       group.hidden = shown === 0;
       any = any || shown > 0;
     });
-    d.querySelector(".gal-none").hidden = any;
+    root.querySelector(".gal-none").hidden = any;
   }
+
+  // Delegated: the gallery arrives in the detail dialog after page load.
+  function refilter(e) {
+    if (e.target.id !== "gal-q" && e.target.id !== "gal-mine") {
+      return;
+    }
+    filter(e.target.closest(".gallery") || d);
+  }
+  d.addEventListener("input", refilter);
+  d.addEventListener("change", refilter);
 
   // Registered once: this script stays loaded across soft page changes.
   d.addEventListener("click", function (e) {
@@ -78,15 +89,4 @@
     menu.appendChild(body);
   }, true);
 
-  window.andonPage(function () {
-    var q = d.getElementById("gal-q");
-    if (!q) {
-      return;
-    }
-    q.addEventListener("input", filter);
-    var box = d.getElementById("gal-mine");
-    if (box) {
-      box.addEventListener("change", filter);
-    }
-  });
 })();

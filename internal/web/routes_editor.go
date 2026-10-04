@@ -3,8 +3,10 @@ package web
 import (
 	"cmp"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
+	"strings"
 
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
@@ -360,6 +362,63 @@ func (t widgetTarget) Back() string {
 	return "/widgets"
 }
 
+// The editor and the gallery exist only as the board's dialog. Their
+// plain address (a link opened in a new tab, the redirect after a copy)
+// leads to the page they belong to, which opens them on load (andon.js):
+//
+//	GET /widgets/7/edit?board=2 ─► /boards/2?edit&editor=/widgets/7/edit?board=2&dialog
+const (
+	dialogParam = "dialog"
+	editorParam = "editor"
+)
+
+// toDialog sends a request for the plain editor address to its page;
+// false when the request asks for the dialog itself.
+func toDialog(w http.ResponseWriter, r *http.Request, target widgetTarget) bool {
+	if r.URL.Query().Has(dialogParam) {
+		return false
+	}
+	editor := r.URL.Path + "?" + dialogParam
+	if r.URL.RawQuery != "" {
+		editor = r.URL.Path + "?" + r.URL.RawQuery + "&" + dialogParam
+	}
+	back := target.Back()
+	sep := "?"
+	if strings.Contains(back, "?") {
+		sep = "&"
+	}
+	http.Redirect(w, r, back+sep+editorParam+"="+url.QueryEscape(editor), http.StatusSeeOther)
+	return true
+}
+
+// tileLook is how the edited tile sits on its board, so the preview
+// shows it that way: the section's tile size, rows and columns.
+type tileLook struct {
+	Size       enums.TileSize
+	Rows, Cols int
+}
+
+// lookOf reads the look from the dialog's address (editor.js puts the
+// tile's values there); anything unknown means the default.
+//
+//	?size=small&rows=2 → {small 2 0}
+func lookOf(q url.Values) tileLook {
+	var look tileLook
+	if size := enums.TileSize(q.Get("size")); slices.Contains(tileSizes, size) {
+		look.Size = size
+	}
+	if n, _ := strconv.Atoi(q.Get("rows")); n > 1 && n <= boards.MaxTileRows {
+		look.Rows = n
+	}
+	if n, _ := strconv.Atoi(q.Get("cols")); n > 1 && n <= boards.MaxTileCols {
+		look.Cols = n
+	}
+	return look
+}
+
+// tileSizes are the sizes a section can give its tiles.
+var tileSizes = []enums.TileSize{enums.TileSmall, enums.TileMedium, enums.TileLarge}
+
 const linkType = "link"
 
 type widgetForm struct {
@@ -370,18 +429,9 @@ type widgetForm struct {
 	MinRole string
 	Widget  *model.Widget
 	Target  widgetTarget
+	Look    tileLook
 	Error   string
-	View    formView
 }
-
-// formView is where the widget editor shows: its own page or the
-// board's dialog.
-type formView string
-
-const (
-	formPage   formView = ""
-	formDialog formView = "dialog"
-)
 
 func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widgetForm) {
 	conns, err := connections.Listing(d.DB, ctx.Who, enums.RightUse)
@@ -403,16 +453,22 @@ func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widge
 	if f.Target.Place {
 		dest = d.targetNames(ctx, f.Target)
 	}
-	page := "widget_form"
-	if f.View == formDialog {
-		page = "widget_dialog"
+
+	// The head's fields sit under the title: without one they do nothing.
+	var titled, frame []widgets.FormValue
+	for _, v := range widgets.FrameFormValues(f.Kind.Key, f.Config) {
+		if widgets.NeedsTitle(v.Key) {
+			titled = append(titled, v)
+			continue
+		}
+		frame = append(frame, v)
 	}
-	_ = d.Page(w, ctx, page, status, map[string]any{
-		"Dialog": f.View == formDialog, "Partial": f.View == formDialog,
-		"Dest": dest, "Topic": widgets.TopicOf(f.Kind.Key), "RowOptions": spanOptions(boards.MaxTileRows), "ColOptions": spanOptions(boards.MaxTileCols),
+	_ = d.Page(w, ctx, "widget_dialog", status, map[string]any{
+		"Partial": true, "ThemeURL": "",
+		"Dest": dest, "Look": f.Look, "Topic": widgets.TopicOf(f.Kind.Key), "RowOptions": spanOptions(boards.MaxTileRows), "ColOptions": spanOptions(boards.MaxTileCols),
 		"Kind": f.Kind, "Title": f.Title, "Fields": widgets.FormValues(f.Kind.Key, f.Config),
-		"FrameFields": widgets.FrameFormValues(f.Kind.Key, f.Config),
-		"Conns":       matching, "AllConns": conns, "ConnID": f.ConnID, "MinRole": f.MinRole,
+		"TitleFields": titled, "FrameFields": frame,
+		"Conns": matching, "AllConns": conns, "ConnID": f.ConnID, "MinRole": f.MinRole,
 		"Widget": f.Widget, "Target": f.Target, "Error": f.Error,
 		"NeedsConn":  f.Kind.Service != "" || f.Kind.Category == widgets.CategoryInsight,
 		"TeamRoles":  []enums.TeamRole{enums.TeamViewer, enums.TeamEditor, enums.TeamOwner},
@@ -422,6 +478,9 @@ func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widge
 
 func (d Deps) handleWidgetNewForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	target := targetOf(r.URL.Query().Get)
+	if toDialog(w, r, target) {
+		return
+	}
 	spaces := access.EditableSpaces(ctx.Who)
 	if target.SpaceID == 0 && len(spaces) > 0 {
 		target.SpaceID = spaces[0].ID
@@ -537,12 +596,11 @@ func (d Deps) handleWidgetEditForm(w http.ResponseWriter, r *http.Request, ctx C
 	}
 	target := targetOf(r.URL.Query().Get)
 	target.SpaceID = widget.SpaceID
-	view := formPage
-	if r.URL.Query().Has(string(formDialog)) {
-		view = formDialog
+	if toDialog(w, r, target) {
+		return
 	}
 	d.widgetFormPage(w, ctx, http.StatusOK, widgetForm{Kind: kind, Title: widget.Title, Config: widget.Config,
-		ConnID: widget.ConnectionID, MinRole: role, Widget: widget, Target: target, View: view})
+		ConnID: widget.ConnectionID, MinRole: role, Widget: widget, Target: target, Look: lookOf(r.URL.Query())})
 }
 
 func (d Deps) handleWidgetUpdate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -612,5 +670,5 @@ func (d Deps) handleWidgetDelete(w http.ResponseWriter, r *http.Request, ctx Ctx
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/widgets", http.StatusSeeOther)
+	http.Redirect(w, r, targetOf(r.FormValue).Back(), http.StatusSeeOther)
 }

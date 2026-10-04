@@ -598,7 +598,7 @@ func placeTarget(t *testing.T, srv *httptest.Server, client *http.Client, title 
 	if add == nil {
 		t.Fatalf("no add link in edit mode:\n%s", board)
 	}
-	gallery := mustGet(t, srv, client, strings.ReplaceAll(string(add[0]), "&amp;", "&"))
+	gallery := mustGet(t, srv, client, strings.ReplaceAll(string(add[0]), "&amp;", "&")+"&dialog")
 	widget := regexp.MustCompile(`<b>` + regexp.QuoteMeta(title) + `</b>[\s\S]*?data-reuse="(\d+)"`).FindSubmatch(gallery)
 	if widget == nil {
 		t.Fatalf("expected %q in the gallery:\n%s", title, gallery)
@@ -614,7 +614,7 @@ func TestEditorCreateWidgetPlaceUnplace(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
-	spaceMatch := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))
+	spaceMatch := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))
 	if spaceMatch == nil {
 		t.Fatal("no space option found in new-widget form")
 	}
@@ -779,7 +779,7 @@ func TestWidgetFragmentRendersRssFeed(t *testing.T) {
 	}))
 	defer feed.Close()
 
-	spaceMatch := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))
+	spaceMatch := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))
 	if spaceMatch == nil {
 		t.Fatal("no space option found in new-widget form")
 	}

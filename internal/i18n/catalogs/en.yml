@@ -167,6 +167,7 @@ board:
   full: Show all
   compact: Compact
 edit:
+  discard: Discard unsaved changes?
   save_failed: 'The new arrangement was not saved. Check the connection and try again.'
   tile_tall: Double height
   tile_normal: Normal height
@@ -269,6 +270,8 @@ typefield:
   conn_health:
     only_problems: Only shaky now (last 2 days)
 field:
+  title_none: Leave empty for a tile without a head
+  title_needed: Head, icon and title link only show with a title.
   place: Place
   week_hours: Weekly target (hours)
   timezone: Time zone

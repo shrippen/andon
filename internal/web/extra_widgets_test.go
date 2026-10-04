@@ -24,7 +24,7 @@ func TestImageWidgetInlinesPicture(t *testing.T) {
 	}))
 	defer img.Close()
 
-	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))
 	if space == nil {
 		t.Fatal("no space")
 	}
@@ -58,7 +58,7 @@ func TestCustomAPIWidgetUsesSealedHeader(t *testing.T) {
 	}))
 	defer api.Close()
 
-	space := string(regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1])
+	space := string(regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1])
 	postForm(t, client, srv.URL+"/widgets", url.Values{"csrf": {csrf}, "space_id": {space}, "type": {"custom_api"}, "title": {"Stats"},
 		"cfg.url": {api.URL}, "cfg.fields": {"Users = stats.users"}, "cfg.headers": {"X-Key: top-secret"}})
 	boardURL, section, version, widget := placeTarget(t, srv, client, "Stats")
@@ -68,7 +68,7 @@ func TestCustomAPIWidgetUsesSealedHeader(t *testing.T) {
 	if frag := string(awaitFragment(t, srv, client, string(placement), "42")); !strings.Contains(frag, "<dd>42</dd>") {
 		t.Fatalf("fragment:\n%s", frag)
 	}
-	if strings.Contains(string(mustGet(t, srv, client, "/widgets/"+widget+"/edit")), "top-secret") {
+	if strings.Contains(string(mustGet(t, srv, client, "/widgets/"+widget+"/edit?dialog")), "top-secret") {
 		t.Fatal("header shown in the form")
 	}
 }
@@ -81,7 +81,7 @@ func TestOverviewWidgetsAndCustomRules(t *testing.T) {
 	login(t, srv, client)
 	csrf := csrfToken(t, srv, client)
 
-	space := string(regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new"))[1])
+	space := string(regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1])
 	for _, w := range []struct{ kind, title, want string }{{"updates", "Updates", "Alles aktuell"}, {"backups", "Backups", "Keine Backup-Werkzeuge"}} {
 		postForm(t, client, srv.URL+"/widgets", url.Values{"csrf": {csrf}, "space_id": {space}, "type": {w.kind}, "title": {w.title}})
 		boardURL, section, version, widget := placeTarget(t, srv, client, w.title)
