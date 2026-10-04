@@ -4398,13 +4398,10 @@ vault:
 
 gallery:
   preview_loading: 'Vorschau lädt …'
-  existing_links: Schon eingerichtete Links
   title: Kachel hinzufügen
   topics: Themen
   existing: Schon eingerichtet
   into: in
-  lead: 'Wähle einen Typ. Die Vorschau zeigt deine Daten (Live) oder Beispieldaten.'
-  lead_both: 'Schon eingerichtete Kacheln lassen sich hier noch einmal zeigen, darunter richtest du eine neue ein. Die Vorschau zeigt deine Daten (Live) oder Beispieldaten.'
   search: 'Suchen: Name, Dienst, Beschreibung'
   mine: Nur mit meinen Verbindungen
   uses: '{n}× platziert'
@@ -4432,6 +4429,28 @@ gallery:
   cols_2: 2 Spalten
   add_to: 'Zu „{section}“ hinzufügen'
   preview_hint: So sitzt die Kachel zwischen ihren Nachbarn.
+  lead: 'Wähle eine Vorlage. Ein Klick zeigt die Kacheln, die du daraus schon eingerichtet hast: Dort richtest du eine neue ein oder zeigst eine vorhandene hier noch einmal. Die Vorschau zeigt deine Daten (Live) oder Beispieldaten.'
+  filter: Filter
+  filter_all: Alle
+  filter_set: Eingerichtet
+  filter_new: Nicht eingerichtet
+  filter_unused: Ungenutzte
+  count_tiles: '{n} eingerichtet'
+  count_unused: '{n} ungenutzt'
+  count_none: Noch keine
+  tiles_of: Kacheln dieser Vorlage
+  tiles_none: Noch keine Kachel dieser Vorlage.
+  tile: Kachel
+  placed: Platziert
+  search_tiles: Kachel suchen
+  select_all: Alle ungenutzten wählen
+  picked: ausgewählt
+  shown: '{n} von {total}, Suche grenzt ein'
+  delete_confirm: 'Die gewählten Kacheln löschen? Sie liegen auf keinem Board.'
+  clean: Ungenutzte löschen
+  clean_lead: 'Diese Kacheln liegen auf keinem Board. Gelöscht werden nur ihre Einstellungen; Verbindungen und Daten bleiben.'
+  clean_go: Gewählte löschen
+  deleted: 'Gelöscht: {n}'
 audit_action:
   billing:
     draft: 'Rechnungsentwurf angelegt'

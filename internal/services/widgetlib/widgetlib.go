@@ -48,6 +48,7 @@ type Ref struct {
 	ConnectionID *int64
 	Uses         int
 	CanEdit      bool
+	CanDelete    bool
 }
 
 func widgetRight(q db.Queryer, who *access.Principal, w *model.Widget) (enums.Right, error) {
@@ -100,7 +101,7 @@ func Library(d *sql.DB, who *access.Principal) ([]Ref, error) {
 				return err
 			}
 			ref := Ref{ID: w.ID, Key: w.Key, Type: w.Type, Title: w.Title, ConnectionID: w.ConnectionID,
-				Uses: uses, CanEdit: granted >= enums.RightEdit}
+				Uses: uses, CanEdit: granted >= enums.RightEdit, CanDelete: granted >= enums.RightManage}
 			if space != nil {
 				ref.Space = *space
 			}
@@ -301,4 +302,48 @@ func Delete(d *sql.DB, who *access.Principal, widgetID int64) error {
 		}
 		return content.RemoveWidget(tx, widget.ID)
 	})
+}
+
+// DeleteUnused removes the given widgets that sit on no board and that
+// who may manage; others are skipped. In one transaction, so a tile
+// placed meanwhile stays. Returns how many were removed.
+func DeleteUnused(d *sql.DB, who *access.Principal, ids []int64) (int, error) {
+	removed := 0
+	err := db.WithTx(d, func(tx *sql.Tx) error {
+		for _, id := range ids {
+			widget, err := content.Widget(tx, id)
+			if err != nil {
+				return err
+			}
+			if widget == nil {
+				continue
+			}
+
+			granted, err := widgetRight(tx, who, widget)
+			if err != nil {
+				return err
+			}
+			if granted < enums.RightManage {
+				continue
+			}
+
+			uses, err := content.WidgetUses(tx, id)
+			if err != nil {
+				return err
+			}
+			if uses > 0 {
+				continue
+			}
+
+			if err := content.RemoveWidget(tx, id); err != nil {
+				return err
+			}
+			removed++
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	return removed, nil
 }

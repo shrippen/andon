@@ -4397,13 +4397,10 @@ vault:
 
 gallery:
   preview_loading: 'Loading preview …'
-  existing_links: Links already set up
   title: Add tile
   topics: Topics
   existing: Already set up
   into: into
-  lead: 'Pick a type. The preview shows your data (live) or sample data.'
-  lead_both: 'Show a tile you already set up here too, or set up a new one below. The preview shows your data (live) or sample data.'
   search: 'Search: name, service, description'
   mine: Only with my connections
   uses: 'placed {n}×'
@@ -4431,6 +4428,28 @@ gallery:
   cols_2: 2 columns
   add_to: 'Add to “{section}”'
   preview_hint: How the tile sits among its neighbours.
+  lead: 'Pick a template. A click shows the tiles you already set up from it: set up a new one there, or show an existing one here too. The preview shows your data (live) or sample data.'
+  filter: Filter
+  filter_all: All
+  filter_set: Set up
+  filter_new: Not set up
+  filter_unused: Unused
+  count_tiles: '{n} set up'
+  count_unused: '{n} unused'
+  count_none: None yet
+  tiles_of: Tiles of this template
+  tiles_none: No tile of this template yet.
+  tile: Tile
+  placed: Placed
+  search_tiles: Search tiles
+  select_all: Select all unused
+  picked: selected
+  shown: '{n} of {total}, search narrows'
+  delete_confirm: 'Delete the selected tiles? They are on no board.'
+  clean: Delete unused
+  clean_lead: 'These tiles are on no board. Only their settings are deleted; connections and data stay.'
+  clean_go: Delete selected
+  deleted: 'Deleted: {n}'
 audit_action:
   billing:
     draft: 'Invoice draft created'

@@ -587,6 +587,9 @@ func TestConnectionsCreateEditDelete(t *testing.T) {
 // placeTarget finds, via the board's edit mode and the gallery, where to
 // place the widget titled title: board path, section id, board version
 // and widget id.
+// sideLinkRe finds the side panel address of every gallery card with tiles.
+var sideLinkRe = regexp.MustCompile(`<article class="gal-card"[^>]* data-tiles[\s\S]*?hx-get="(/widget-tiles/[^"]+)"`)
+
 func placeTarget(t *testing.T, srv *httptest.Server, client *http.Client, title string) (string, string, string, string) {
 	t.Helper()
 	resp := getFollowingRedirect(t, srv, client, "/")
@@ -599,11 +602,17 @@ func placeTarget(t *testing.T, srv *httptest.Server, client *http.Client, title 
 		t.Fatalf("no add link in edit mode:\n%s", board)
 	}
 	gallery := mustGet(t, srv, client, strings.ReplaceAll(string(add[0]), "&amp;", "&")+"&dialog")
-	widget := regexp.MustCompile(`<b>` + regexp.QuoteMeta(title) + `</b>[\s\S]*?data-reuse="(\d+)"`).FindSubmatch(gallery)
-	if widget == nil {
-		t.Fatalf("expected %q in the gallery:\n%s", title, gallery)
+
+	// Set-up tiles sit in the side panel of their type's card.
+	tile := regexp.MustCompile(`<b>` + regexp.QuoteMeta(title) + `</b>[\s\S]*?data-reuse="(\d+)"`)
+	for _, side := range sideLinkRe.FindAllSubmatch(gallery, -1) {
+		panel := mustGet(t, srv, client, strings.ReplaceAll(string(side[1]), "&amp;", "&"))
+		if widget := tile.FindSubmatch(panel); widget != nil {
+			return boardURL, string(add[1]), string(add[2]), string(widget[1])
+		}
 	}
-	return boardURL, string(add[1]), string(add[2]), string(widget[1])
+	t.Fatalf("expected %q in the gallery:\n%s", title, gallery)
+	return "", "", "", ""
 }
 
 // TestEditorCreateWidgetPlaceUnplace drives the editor flow end to end:

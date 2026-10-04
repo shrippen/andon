@@ -1,9 +1,19 @@
-/* Gallery (in the detail dialog) and library: filter cards by search text and "only my connections",
-   open the reuse dialog of a set-up tile, fill a library row's menu. */
+/* Gallery (in the detail dialog) and library: filter cards by search text, "only my connections"
+   and tiles set up, open a card's side panel, pick unused tiles to delete, open the reuse dialog
+   of a set-up tile, fill a library row's menu. */
 (function () {
   "use strict";
 
   var d = document;
+
+  // FILTERS test a card for the pressed filter button (data-filter):
+  // "set" = has tiles, "new" = none yet, "unused" = some on no board.
+  var FILTERS = {
+    all: function () { return true; },
+    set: function (card) { return card.hasAttribute("data-tiles"); },
+    "new": function (card) { return !card.hasAttribute("data-tiles"); },
+    unused: function (card) { return card.hasAttribute("data-unused"); }
+  };
 
   // filter hides cards that don't match, then groups left empty; root is
   // the gallery dialog or the library page.
@@ -11,12 +21,14 @@
     var q = root.querySelector("#gal-q").value.trim().toLowerCase();
     var box = root.querySelector("#gal-mine");
     var mine = box ? box.checked : false;
+    var pressed = root.querySelector("#gal-filter [aria-pressed=\"true\"]");
+    var kind = FILTERS[pressed ? pressed.getAttribute("data-filter") : "all"];
     var any = false;
     [].forEach.call(root.querySelectorAll(".gal-group"), function (group) {
       var shown = 0;
       [].forEach.call(group.querySelectorAll("[data-q]"), function (card) {
         var hit = (!q || (card.getAttribute("data-q") || "").toLowerCase().indexOf(q) >= 0) &&
-          (!mine || card.hasAttribute("data-mine"));
+          (!mine || card.hasAttribute("data-mine")) && (!kind || kind(card));
         card.hidden = !hit;
         shown += hit ? 1 : 0;
       });
@@ -35,6 +47,70 @@
   }
   d.addEventListener("input", refilter);
   d.addEventListener("change", refilter);
+
+  // A filter button: press it alone, then filter again.
+  d.addEventListener("click", function (e) {
+    var button = e.target.closest && e.target.closest("#gal-filter [data-filter]");
+    if (!button) {
+      return;
+    }
+    [].forEach.call(button.parentNode.children, function (b) {
+      b.setAttribute("aria-pressed", b === button ? "true" : "false");
+    });
+    filter(button.closest(".gallery") || d);
+  });
+
+  // A click anywhere on a card opens its side panel (the title button
+  // carries hx-get); links and buttons inside keep their own action.
+  d.addEventListener("click", function (e) {
+    var card = e.target.closest && e.target.closest(".gal-card");
+    if (!card) {
+      return;
+    }
+    var open = card.querySelector(".gal-open");
+    if (!e.target.closest("a, button, input, label")) {
+      open.click();
+      return;
+    }
+    if (e.target.closest(".gal-open")) {
+      [].forEach.call(d.querySelectorAll(".gal-card[aria-current]"), function (c) { c.removeAttribute("aria-current"); });
+      card.setAttribute("aria-current", "true");
+    }
+  });
+
+  // Closing the side panel empties it; CSS hides it when empty.
+  d.addEventListener("click", function (e) {
+    if (!e.target.closest || !e.target.closest("[data-side-close]")) {
+      return;
+    }
+    var side = d.getElementById("gal-side");
+    side.innerHTML = "";
+    [].forEach.call(d.querySelectorAll(".gal-card[aria-current]"), function (c) { c.removeAttribute("aria-current"); });
+  });
+
+  // On a narrow screen the panel sits above the grid: bring it into view.
+  d.addEventListener("htmx:afterSwap", function (e) {
+    if (e.target.id === "gal-side" && window.matchMedia("(max-width: 800px)").matches) {
+      e.target.scrollIntoView({ block: "start" });
+    }
+  });
+
+  // Picking unused tiles in the side panel: "all" toggles every box, the
+  // bar shows the count and the delete button while any is picked.
+  d.addEventListener("change", function (e) {
+    var list = e.target.closest && e.target.closest("#gal-side-list");
+    if (!list || e.target.type !== "checkbox") {
+      return;
+    }
+    var boxes = list.querySelectorAll('input[name="ids"]');
+    if (e.target.hasAttribute("data-pick-all")) {
+      [].forEach.call(boxes, function (b) { b.checked = e.target.checked; });
+    }
+    var n = list.querySelectorAll('input[name="ids"]:checked').length;
+    var bar = list.querySelector("[data-picked-bar]");
+    bar.querySelector("[data-picked]").textContent = n;
+    bar.hidden = n === 0;
+  });
 
   // Registered once: this script stays loaded across soft page changes.
   d.addEventListener("click", function (e) {
