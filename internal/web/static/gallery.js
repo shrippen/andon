@@ -42,6 +42,15 @@
       });
       group.hidden = shown === 0;
       any = any || shown > 0;
+      // Counters follow the filter: in the group's heading and in the topic list.
+      var count = group.querySelector(".hint-group-count, summary > .count");
+      if (count) {
+        count.textContent = shown;
+      }
+      var link = group.id && root.querySelector(".gal-nav a[href=\"#" + group.id + "\"] span");
+      if (link) {
+        link.textContent = shown;
+      }
       // A folded group (the links) opens when a search or filter finds rows in it.
       if (group.tagName === "DETAILS" && narrowed && shown > 0) {
         group.open = true;

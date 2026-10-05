@@ -1708,8 +1708,35 @@
   });
 
   // setupBoardOrder: board cards sort by their grip; the new order is
-  // saved at once (POST /boards/order, one id per board). Sortable comes
-  // with the page and may still load after a soft page change.
+  // saved at once (POST /boards/order, one id per board), then the header
+  // navigation and the cards (start tag, move items) come back from the
+  // server. Sortable comes with the page and may still load after a soft
+  // page change.
+  var boardOrderSeq = 0;
+
+  function refreshBoards(grid) {
+    var seq = ++boardOrderSeq;
+    return fetch("/boards", { credentials: "same-origin" }).then(function (resp) {
+      return resp.ok ? resp.text() : Promise.reject(resp.status);
+    }).then(function (html) {
+      // A later drag wins: its answer is the newer one.
+      if (seq !== boardOrderSeq) {
+        return;
+      }
+      var next = new DOMParser().parseFromString(html, "text/html");
+      var nav = d.querySelector(".app-links");
+      var nextNav = next.querySelector(".app-links");
+      var nextGrid = next.querySelector("[data-board-order]");
+      if (nav && nextNav) {
+        nav.innerHTML = nextNav.innerHTML;
+      }
+      if (nextGrid) {
+        grid.innerHTML = nextGrid.innerHTML;
+        applyStyles(grid);
+      }
+    });
+  }
+
   function setupBoardOrder() {
     var grid = d.querySelector("[data-board-order]");
     if (!grid) {
@@ -1737,7 +1764,12 @@
         [].forEach.call(grid.querySelectorAll("[data-board]"), function (card) {
           ids.append("id", card.getAttribute("data-board"));
         });
-        post("/boards/order", ids);
+        post("/boards/order", ids).then(function (resp) {
+          if (resp.ok) {
+            return refreshBoards(grid);
+          }
+          window.location.reload();
+        });
       }
     });
   }
