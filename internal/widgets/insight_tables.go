@@ -41,7 +41,7 @@ func colsFor(kind TableKind) []Col {
 	case TableAssetDates:
 		return []Col{{"name", "text"}, {"kind", "upcoming"}, {"due", "day"}}
 	case TableTrips:
-		return []Col{{"day", "day"}, {"from", "text"}, {"to", "text"}, {"class", "rideclass"}, {"km", "km"}, {"duration", "hours"}}
+		return []Col{{"day", "day"}, {"from", "text"}, {"to", "text"}, {"class", "rideclass"}, {"reason", "ridereason"}, {"km", "km"}, {"duration", "hours"}}
 	case TableTripCustomers:
 		return []Col{{"customer", "text"}, {"km", "km"}, {"hours", "hours"}, {"amount", "money"}}
 	case TableDestinations:
@@ -295,7 +295,7 @@ func tripRows(kind TableKind, geo *sources.DawarichDataset, results map[string]a
 	case TableTrips:
 		for i := len(rides) - 1; i >= 0; i-- {
 			r := rides[i]
-			rows = append(rows, Row{[]any{r.Day().Format(time.DateOnly), siteLabel(r.From), siteLabel(r.To), string(r.Class), r.KM, r.Minutes() / minutesPerHourInsight}})
+			rows = append(rows, Row{[]any{r.Day().Format(time.DateOnly), siteLabel(r.From), siteLabel(r.To), string(r.Class), string(r.Reason), r.KM, r.Minutes() / minutesPerHourInsight}})
 		}
 	case TableTripCustomers:
 		kimai, _ := results[peerKimai].(*sources.KimaiDataset)
@@ -309,7 +309,7 @@ func tripRows(kind TableKind, geo *sources.DawarichDataset, results map[string]a
 			if name == "" {
 				name = "?"
 			}
-			rows = append(rows, Row{[]any{name, s.KM, s.Minutes / minutesPerHourInsight, s.KM * rate}})
+			rows = append(rows, Row{[]any{name, s.KM, s.Minutes / minutesPerHourInsight, s.PayKM * rate}})
 		}
 		sort.Slice(rows, func(i, j int) bool { return rows[i].Values[1].(float64) > rows[j].Values[1].(float64) })
 	case TableDestinations:

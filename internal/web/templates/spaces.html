@@ -63,6 +63,19 @@
         <p class="small muted">{{t "settings.tax_hint"}}</p>
       </div>
 
+      <h2 id="travel">{{t "settings.travel"}}</h2>
+      <div class="card">
+        <label for="travel_base">{{t "settings.travel_base"}}</label>
+        <select class="select" id="travel_base" name="travel_base">{{range .TravelBases}}<option value="{{.}}"{{if eq . $.Travel.Base}} selected{{end}}>{{t (print "settings.travel_base_" .)}}</option>{{end}}</select>
+        <p class="small muted">{{t "settings.travel_base_hint"}}</p>
+        <label for="km_rate">{{t "settings.km_rate"}}</label>
+        <input class="input" id="km_rate" name="km_rate" type="number" step="0.01" min="0" value="{{.Travel.KMRate}}">
+        <label class="check"><input type="checkbox" name="company_car"{{if .Travel.CompanyCar}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "settings.company_car"}}</label>
+        <label for="fuel_words">{{t "settings.fuel_words"}}</label>
+        <input class="input" id="fuel_words" name="fuel_words" value="{{.FuelWords}}">
+        <p class="small muted">{{t "settings.travel_hint"}}</p>
+      </div>
+
       <h2 id="homelab">{{t "settings.homelab"}}</h2>
       <div class="card">
         <label for="power_entity">{{t "settings.power_entity"}}</label>

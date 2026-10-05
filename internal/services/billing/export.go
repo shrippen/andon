@@ -259,7 +259,7 @@ func tripRows(travel metrics.Travel, kimai *sources.KimaiDataset, year int, rate
 			continue
 		}
 		amount := 0.0
-		if r.Class == metrics.ClassBusiness {
+		if r.Class == metrics.ClassBusiness && metrics.Payable(r.Ride) {
 			amount = r.KM * rate
 		}
 		estimated := ""

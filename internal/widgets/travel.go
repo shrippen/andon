@@ -62,9 +62,13 @@ func travelView(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, re
 		before += prev[c].KM
 	}
 	business := now[metrics.ClassBusiness]
+	// Tracks start with this year: last year comes from Dawarich's stats.
+	if cfg.Year && before == 0 {
+		before = asFloat(metrics.DawarichYear(data.Stats, today.Year()-1)["totalDistanceKm"])
+	}
 	out["HeadKM"], out["PrevKM"] = head, before
 	out["BusinessKM"], out["CommuteKM"], out["PrivateKM"] = business.KM, now[metrics.ClassCommute].KM, now[metrics.ClassPrivate].KM
-	out["Trips"], out["TripAmount"] = business.Rides, business.KM*travelRate(cfg, ctx)
+	out["Trips"], out["TripAmount"] = business.Rides, business.PayKM*travelRate(cfg, ctx)
 	if head > 0 && !cfg.HideBar {
 		out["Bar"] = min(pctOf(business.KM, head), pctFull)
 	}

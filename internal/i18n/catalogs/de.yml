@@ -1137,6 +1137,7 @@ conn:
   tab_access: 'Zugang'
   tab_settings: 'Einstellungen'
   tab_history: 'Verlauf'
+  tab_places: 'Orte'
   record_tabs: 'Akte'
   level_instance: 'Instanz'
   level_team: 'Team'
@@ -2313,7 +2314,7 @@ hint:
       why: Kimai-Eintrag bei {customer} als vor Ort, Dawarich zeigt keinen Aufenthalt.
     travel_costs:
       title: 'Fahrtkosten {month}: {amount}'
-      why: '{trips} berufliche Fahrten, {km} km laut Dawarich. Als Ausgabe oder Rechnungsposition erfassen.'
+      why: '{trips} berufliche Fahrten, davon {km} km mit Auto oder Motorrad laut Dawarich. Als Ausgabe oder Rechnungsposition erfassen.'
     per_diem:
       title: 'Verpflegungsmehraufwand {month}: {amount}'
       why: '{days} Tage auswärts mit beruflicher Fahrt, davon {full} ganze Tage (14 € ab 8 h und An-/Abreisetag, 28 € ganzer Tag).'
@@ -2533,6 +2534,7 @@ kpi:
   free: 'frei verfügbar {amount}'
   spark_days: 'letzte {n} Tage'
 col:
+  reason: Grund
   from: Von
   to: Nach
   class: Art
@@ -2864,6 +2866,15 @@ param:
   bundle_from: 'Ab so vielen Rechnungen je Kunde bündeln (0 = nie)'
   exclude: 'Ausnehmen (Namen, * als Platzhalter, mit Komma)'
 settings:
+  travel: Fahrten
+  travel_base: Startpunkt beruflicher Fahrten
+  travel_base_home: Zuhause ist Betriebsstätte (kein Arbeitsweg)
+  travel_base_work: Eigener Arbeitsort (Zuhause – Arbeit ist Arbeitsweg)
+  travel_base_hint: 'Freiberufler mit Büro zu Hause: Zuhause. Mit festem Arbeitsort: eigener Arbeitsort; dafür einen Ort vom Typ Arbeit anlegen.'
+  km_rate: Kilometersatz (€)
+  company_car: Auto ist Betriebsfahrzeug (Hinweis bei über 50 % privat)
+  fuel_words: Tanken und Laden in Sure (Kategorien oder Händler)
+  travel_hint: 'Fahrten kommen aus Dawarich. Beruflich ist eine Fahrt, die zur Hälfte in gebuchter Kimai-Zeit liegt, zu oder von einem Kundenort führt oder in Kimai Anfahrten steht.'
   hints: 'Schwellen der Hinweise'
   lead_maintenance: 'Während einer Wartung bleiben Hinweise der gewählten Verbindungen still.'
   lead_rules: 'Ab wann Hinweise erscheinen, und eigene Regeln.'
@@ -3793,6 +3804,12 @@ detail:
     fuel_value: '{amount}, {per_km} je km'
     unplaced: 'Ziele ohne Ort'
     unplaced_value: '{n} – Orte zuordnen'
+    last_year: '{year} gesamt (Dawarich)'
+    pct: '{pct} %'
+    of_booked: 'Anteil an gebuchter Zeit'
+    weekend: 'Privat am Wochenende'
+    absent: 'Privat an freien Tagen (Kimai)'
+    off_value: '{n} Fahrten, {km}'
     year: 'Kilometer im Jahr'
     km: 'Strecke'
     away: 'unterwegs'
@@ -4573,6 +4590,38 @@ gitea:
   reviews: 'Reviews offen'
   notifications: '{n} Benachrichtigungen'
   assigned: 'Mir zugewiesen'
+sitebook:
+  suggested: 'Vorschlag nach Namen, noch nicht gespeichert'
+  lead: 'Was ein Ort ist, entscheidet, ob Fahrten dorthin beruflich zählen. Gespeichert in dieser Verbindung.'
+  lead_plugin: 'Gespeichert in Kimai Anfahrten; neue Orte werden auch als Area in Dawarich angelegt.'
+  lead_plugin_read: 'Kimai Anfahrten ist installiert, kann aber keine Orte anlegen (Plugin aktualisieren). Zuordnungen bleiben in dieser Verbindung.'
+  sync: Abgleichen
+  sync_hint: 'Legt für Dawarich-Areas ohne Ort einen in Kimai Anfahrten an und für Orte ohne Area eine in Dawarich. Gelöscht wird nichts.'
+  synced: 'Abgeglichen (Orte in Anfahrten / Areas in Dawarich angelegt): {counts}'
+  sites: Orte
+  what: Was ist das?
+  origin_plugin: Anfahrten
+  origin_andon: Andon
+  kind: Art
+  kind_none: nicht zugeordnet
+  kind_home: Zuhause
+  kind_work: Arbeit
+  kind_customer: Kunde
+  kind_private: privat
+  kind_other: sonstiger Ort
+  none: 'Dawarich hat noch keine Areas oder Orte.'
+  unplaced: Häufige Ziele ohne Ort
+  unplaced_lead: 'Hier enden Fahrten der letzten 90 Tage, ohne dass ein Ort zugeordnet ist. Als Ort anlegen: Area in Dawarich, mit Anfahrten auch dort.'
+  where: Wo
+  new: Neuer Ort
+  name: Name
+  create: Anlegen
+  assign_above: oben zuordnen
+sites:
+  not_dawarich: 'Das ist keine Dawarich-Verbindung.'
+  no_data: 'Dawarich hat noch nicht geantwortet.'
+  unknown: 'Diesen Ort gibt es nicht mehr.'
+  bad: 'Ein neuer Ort braucht Name und Position.'
 places:
   unknown: 'Unbekannter Ort'
   none: 'Heute noch keine Orte.'

@@ -96,9 +96,11 @@ func (t Travel) Between(start, end time.Time) []ClassedRide {
 
 // ── sums ──
 
-// RideSum is km, minutes and count of some rides.
+// RideSum is km, minutes and count of some rides; PayKM are the km
+// that earn the km rate (own car or motorbike).
 type RideSum struct {
 	KM      float64
+	PayKM   float64
 	Minutes float64
 	Rides   int
 }
@@ -107,7 +109,17 @@ func (s *RideSum) add(r ClassedRide) {
 	s.KM += r.KM
 	s.Minutes += r.Minutes()
 	s.Rides++
+	if Payable(r.Ride) {
+		s.PayKM += r.KM
+	}
 }
+
+// payModes earn the flat km rate; walks, bike rides and public transport
+// do not (tickets are costs of their own).
+var payModes = map[string]bool{ModeDriving: true, ModeMotorcycle: true}
+
+// Payable says whether a ride's km earn the km rate.
+func Payable(r Ride) bool { return payModes[r.Mode] }
 
 // ByClass sums rides per class.
 func ByClass(rides []ClassedRide) map[RideClass]RideSum {
@@ -401,4 +413,41 @@ func FuelSpent(sure *sources.SureDataset, words []string, from time.Time) float6
 		}
 	}
 	return sum
+}
+
+// ── days off ──
+
+// OffDays sums private rides on weekends and on absence days (holiday,
+// sick leave from the Kimai holiday bundle; kimai may be nil).
+func OffDays(rides []ClassedRide, kimai *sources.KimaiDataset) (weekend, absent RideSum) {
+	off := map[time.Time]bool{}
+	if kimai != nil {
+		off = AbsentDays(kimai)
+	}
+	for _, r := range rides {
+		if r.Class != ClassPrivate {
+			continue
+		}
+		d := r.Day()
+		if d.Weekday() == time.Saturday || d.Weekday() == time.Sunday {
+			weekend.add(r)
+		}
+		if off[d] {
+			absent.add(r)
+		}
+	}
+	return weekend, absent
+}
+
+// BookedMinutes is the Kimai minutes per customer in [start, end].
+func BookedMinutes(kimai *sources.KimaiDataset, start, end time.Time) map[int64]float64 {
+	out := map[int64]float64{}
+	for _, s := range kimai.Timesheets {
+		d, ok := ParseDay(s.Begin)
+		if !ok || d.Before(start) || d.After(end) {
+			continue
+		}
+		out[s.CustomerID] += float64(s.Minutes)
+	}
+	return out
 }

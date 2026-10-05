@@ -70,7 +70,7 @@ func travelDetail(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, 
 	}
 	body := &DetailBody{Facts: []Kpi{
 		{Value: NumU(sums[metrics.ClassBusiness].KM, 0, "km"), Label: T("detail.travel.business")},
-		{Value: Money(sums[metrics.ClassBusiness].KM*rate, ""), Label: T("detail.travel.money"), Tier: "cyan"},
+		{Value: Money(sums[metrics.ClassBusiness].PayKM*rate, ""), Label: T("detail.travel.money"), Tier: "cyan"},
 		{Value: NumU(sums[metrics.ClassPrivate].KM, 0, "km"), Label: T("detail.travel.private")},
 		{Value: Money(allowance, ""), Label: T("detail.travel.allowance")},
 	}}
@@ -83,9 +83,13 @@ func travelDetail(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, 
 
 	body.List, body.Blocks = rideList(period, names, results, body.Blocks)
 	body.Blocks = append(body.Blocks, classBars(sums))
-	body.Blocks = append(body.Blocks, travelYear(travel, today)...)
-	body.Blocks = append(body.Blocks, travelTables(period, names, rate)...)
-	body.Blocks = append(body.Blocks, travelFacts(travel, period, set, results, start)...)
+	body.Blocks = append(body.Blocks, travelYear(travel, data, today)...)
+	booked := map[int64]float64{}
+	if kimai != nil {
+		booked = metrics.BookedMinutes(kimai, start, today)
+	}
+	body.Blocks = append(body.Blocks, travelTables(period, names, booked, rate)...)
+	body.Blocks = append(body.Blocks, travelFacts(period, kimai, set, results, start)...)
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
 }
@@ -156,8 +160,9 @@ func classBars(sums map[metrics.RideClass]metrics.RideSum) Block {
 // minutesPerHourF converts ride minutes to hours.
 const minutesPerHourF = 60.0
 
-// travelYear: km per month and class this year, and when rides happen.
-func travelYear(travel metrics.Travel, today time.Time) []Block {
+// travelYear: km per month and class this year (with last year's total
+// from Dawarich's stats), and when rides happen.
+func travelYear(travel metrics.Travel, data *sources.DawarichDataset, today time.Time) []Block {
 	months := metrics.MonthKM(travel.Rides, today.Year())
 	g := Graph{Kind: GraphLine, Mark: int(today.Month()) - 1, Ticks: []any{"01", "12"}}
 	for _, c := range metrics.RideClasses {
@@ -168,6 +173,13 @@ func travelYear(travel metrics.Travel, today time.Time) []Block {
 		if hasValues(values) {
 			g.Series = append(g.Series, Series{Values: values, Class: classSeries[c], Label: Txt("ride.class." + string(c))})
 		}
+	}
+	lastYear := make([]float64, monthsPerYear)
+	for m := range monthsPerYear {
+		lastYear[m] = math.Round(metrics.DawarichMonthKM(data.Stats, time.Date(today.Year()-1, time.Month(m+1), 1, 0, 0, 0, 0, time.UTC)))
+	}
+	if len(g.Series) > 0 && hasValues(lastYear) {
+		g.Series = append(g.Series, Series{Values: lastYear, Class: "s4", Label: TxtA("detail.travel.last_year", "year", today.Year()-1)})
 	}
 	var out []Block
 	if len(g.Series) > 0 {
@@ -207,8 +219,9 @@ func travelYear(travel metrics.Travel, today time.Time) []Block {
 	return out
 }
 
-// travelTables: business per customer, destinations, modes.
-func travelTables(rides []metrics.ClassedRide, names map[int64]string, rate float64) []Block {
+// travelTables: business per customer (travel time against booked
+// time), destinations, modes.
+func travelTables(rides []metrics.ClassedRide, names map[int64]string, booked map[int64]float64, rate float64) []Block {
 	var out []Block
 
 	byCustomer := metrics.ByCustomer(rides)
@@ -224,11 +237,15 @@ func travelTables(rides []metrics.ClassedRide, names map[int64]string, rate floa
 		if id == 0 || name == "" {
 			name = "?"
 		}
-		rows = append(rows, []Cell{{Value: name}, {Value: NumU(s.KM, 0, "km")}, {Value: NumU(s.Minutes/minutesPerHourF, 1, "h")}, {Value: Money(s.KM*rate, "")}})
+		share := any("–")
+		if booked[id] > 0 {
+			share = TxtA("detail.travel.pct", "pct", Num(math.Round(s.Minutes/booked[id]*percentScale), 0))
+		}
+		rows = append(rows, []Cell{{Value: name}, {Value: NumU(s.KM, 0, "km")}, {Value: NumU(s.Minutes/minutesPerHourF, 1, "h")}, {Value: share}, {Value: Money(s.PayKM*rate, "")}})
 	}
 	if len(rows) > 0 {
 		out = append(out, Block{Kind: BlockTable, Label: T("detail.travel.by_customer"), Data: Table{
-			Head: []Text{T("col.customer"), T("col.km"), T("detail.travel.hours"), T("col.amount")}, Rows: rows, Num: []int{1, 2, 3}}})
+			Head: []Text{T("col.customer"), T("col.km"), T("detail.travel.hours"), T("detail.travel.of_booked"), T("col.amount")}, Rows: rows, Num: []int{1, 2, 3, 4}}})
 	}
 
 	rows = nil
@@ -265,9 +282,17 @@ func travelTables(rides []metrics.ClassedRide, names map[int64]string, rate floa
 	return out
 }
 
-// travelFacts: commute, business car, fuel, places without a site.
-func travelFacts(travel metrics.Travel, rides []metrics.ClassedRide, set metrics.TravelSettings, results map[string]any, start time.Time) []Block {
+// travelFacts: commute, days off, business car, fuel, places without a
+// site.
+func travelFacts(rides []metrics.ClassedRide, kimai *sources.KimaiDataset, set metrics.TravelSettings, results map[string]any, start time.Time) []Block {
 	var rows [][]Cell
+	weekend, absent := metrics.OffDays(rides, kimai)
+	if weekend.Rides > 0 {
+		rows = append(rows, []Cell{{Value: Txt("detail.travel.weekend")}, {Value: TxtA("detail.travel.off_value", "n", weekend.Rides, "km", NumU(weekend.KM, 0, "km"))}})
+	}
+	if absent.Rides > 0 {
+		rows = append(rows, []Cell{{Value: Txt("detail.travel.absent")}, {Value: TxtA("detail.travel.off_value", "n", absent.Rides, "km", NumU(absent.KM, 0, "km"))}})
+	}
 	if set.Base == metrics.BaseWork {
 		days, km := metrics.CommuteDays(rides)
 		rows = append(rows, []Cell{{Value: Txt("detail.travel.commute_days")}, {Value: TxtA("detail.travel.commute_value", "days", days, "km", NumU(km, 1, "km"))}})

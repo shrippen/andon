@@ -1137,6 +1137,7 @@ conn:
   tab_access: 'Access'
   tab_settings: 'Settings'
   tab_history: 'History'
+  tab_places: 'Places'
   record_tabs: 'Record'
   level_instance: 'Instance'
   level_team: 'Team'
@@ -2312,7 +2313,7 @@ hint:
       why: Kimai entry at {customer} marked on site, Dawarich shows no stay.
     travel_costs:
       title: 'Travel costs {month}: {amount}'
-      why: '{trips} business rides, {km} km as Dawarich tracked them. Record as expense or invoice item.'
+      why: '{trips} business rides, {km} km of them by car or motorbike as Dawarich tracked them. Record as expense or invoice item.'
     per_diem:
       title: 'Per diem {month}: {amount}'
       why: '{days} days away with a business ride, {full} of them full days (14 € from 8 h and on travel days, 28 € a full day).'
@@ -2532,6 +2533,7 @@ kpi:
   free: '{amount} free to spend'
   spark_days: 'last {n} days'
 col:
+  reason: Reason
   from: From
   to: To
   class: Kind
@@ -2863,6 +2865,15 @@ param:
   bundle_from: 'Bundle per client from this many invoices (0 = never)'
   exclude: 'Exclude (names, * as wildcard, comma-separated)'
 settings:
+  travel: Travel
+  travel_base: Where business travel starts
+  travel_base_home: Home is the place of business (no commute)
+  travel_base_work: A separate place of work (home – work is commuting)
+  travel_base_hint: 'Freelancer working from home: home. With a fixed place of work: separate; add a place of type work.'
+  km_rate: Rate per km (€)
+  company_car: The car is a business asset (hint above 50 % private)
+  fuel_words: Fuel and charging in Sure (categories or merchants)
+  travel_hint: 'Rides come from Dawarich. A ride is business when half of it lies in booked Kimai time, it goes to or from a client site, or it is a trip in Kimai mileage.'
   hints: 'Hint thresholds'
   lead_maintenance: 'During maintenance the chosen connections stay quiet.'
   lead_rules: 'When hints appear, and your own rules.'
@@ -3792,6 +3803,12 @@ detail:
     fuel_value: '{amount}, {per_km} per km'
     unplaced: 'Destinations without place'
     unplaced_value: '{n} – assign places'
+    last_year: '{year} total (Dawarich)'
+    pct: '{pct} %'
+    of_booked: 'Share of booked time'
+    weekend: 'Private on weekends'
+    absent: 'Private on days off (Kimai)'
+    off_value: '{n} rides, {km}'
     year: 'Kilometres this year'
     km: 'Distance'
     away: 'away'
@@ -4572,6 +4589,38 @@ gitea:
   reviews: 'reviews open'
   notifications: '{n} notifications'
   assigned: 'Assigned to me'
+sitebook:
+  suggested: 'Suggested by name, not saved yet'
+  lead: 'What a place is decides whether rides there count as business. Stored in this connection.'
+  lead_plugin: 'Stored in Kimai mileage; new places also become Dawarich areas.'
+  lead_plugin_read: 'Kimai mileage is installed but cannot create places (update the plugin). Assignments stay in this connection.'
+  sync: Sync
+  sync_hint: 'Creates a Kimai mileage place for each Dawarich area without one and a Dawarich area for each place without one. Nothing is deleted.'
+  synced: 'Synced (places in mileage / areas in Dawarich created): {counts}'
+  sites: Places
+  what: What is it?
+  origin_plugin: Mileage
+  origin_andon: Andon
+  kind: Kind
+  kind_none: not assigned
+  kind_home: Home
+  kind_work: Work
+  kind_customer: Client
+  kind_private: private
+  kind_other: other place
+  none: 'Dawarich has no areas or places yet.'
+  unplaced: Frequent destinations without place
+  unplaced_lead: 'Rides of the last 90 days end here without an assigned place. Create one: a Dawarich area, and with mileage there too.'
+  where: Where
+  new: New place
+  name: Name
+  create: Create
+  assign_above: assign above
+sites:
+  not_dawarich: 'This is no Dawarich connection.'
+  no_data: 'Dawarich has not answered yet.'
+  unknown: 'This place is gone.'
+  bad: 'A new place needs a name and a position.'
 places:
   unknown: 'Unknown place'
   none: 'No places today yet.'

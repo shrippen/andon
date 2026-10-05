@@ -33,6 +33,7 @@ const (
 	ModeWalking    = "walking"
 	ModeRunning    = "running"
 	ModeCycling    = "cycling"
+	ModeMotorcycle = "motorcycle"
 )
 
 // activeModes move by muscle; everything else that moves is motorized.

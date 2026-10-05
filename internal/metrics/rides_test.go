@@ -131,6 +131,9 @@ func TestClassifyRules(t *testing.T) {
 	rides := metrics.Classify(metrics.Rides(geo), book, kimai, metrics.BaseWork, at("23:00"))
 
 	sameList(t, classes(rides), []string{"commute/commute", "business/kimai", "business/customer", "business/customer", "private/rest", "private/rest"})
+	if sum := metrics.ByClass(rides)[metrics.ClassBusiness]; sum.KM != 56.5 || sum.PayKM != 55 {
+		t.Fatalf("the walk earns no km rate: %+v", sum)
+	}
 	if rides[1].CustomerID != 5 || rides[2].CustomerID != 12 {
 		t.Fatalf("customers: %d %d", rides[1].CustomerID, rides[2].CustomerID)
 	}
@@ -222,5 +225,20 @@ func TestEstimatedRidesWithoutTracks(t *testing.T) {
 
 	if !travel.Estimated || len(travel.Rides) != 2 || travel.Rides[0].Class != metrics.ClassBusiness {
 		t.Fatalf("got %+v", travel)
+	}
+}
+
+func TestOffDaysAndBookedMinutes(t *testing.T) {
+	geo, kimai := testData()
+	kimai.Absences = []sources.KimaiAbsence{{Start: "2026-01-05", End: "2026-01-05", Status: "approved"}}
+	kimai.Timesheets = []sources.KimaiSheet{{Begin: "2026-01-05T09:00:00+01:00", Minutes: 120, CustomerID: 12}}
+	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), nil, metrics.BaseHome, at("23:00"))
+
+	weekend, absent := metrics.OffDays(rides, kimai)
+	if weekend.Rides != 0 || absent.KM != 26.5 {
+		t.Fatalf("a Monday off: weekend %+v, absent %+v", weekend, absent)
+	}
+	if m := metrics.BookedMinutes(kimai, day("2026-01-01"), day("2026-01-31")); m[12] != 120 {
+		t.Fatalf("booked: %v", m)
 	}
 }

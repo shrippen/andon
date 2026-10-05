@@ -72,14 +72,14 @@ func travelCosts(_ any, _ map[string]any, env Env) []Finding {
 		return nil
 	}
 	sum := metrics.ByClass(rides)[metrics.ClassBusiness]
-	if sum.KM == 0 {
+	if sum.PayKM == 0 {
 		return nil
 	}
 	rate := metrics.TravelSettingsOf(env.Settings).KMRate
 	return []Finding{{
 		Fingerprint: "travel:" + start.Format("2006-01"), Severity: enums.SeverityInfo, Message: "geo.travel_costs",
 		Params: map[string]any{
-			"trips": sum.Rides, "km": Num(sum.KM, 0), "amount": Money(sum.KM*rate, ""), "month": start.Format("01/2006"),
+			"trips": sum.Rides, "km": Num(sum.PayKM, 0), "amount": Money(sum.PayKM*rate, ""), "month": start.Format("01/2006"),
 		},
 		Sources: []string{dawarichSvc},
 	}}
@@ -133,14 +133,14 @@ func travelUnbilled(_ any, cfg map[string]any, env Env) []Finding {
 	var found []Finding
 	for customer, sum := range metrics.ByCustomer(rides) {
 		client, known := clients[strings.ToLower(strings.TrimSpace(names[customer]))]
-		if customer == 0 || !known || billedTravel(ninja, client, start, words) {
+		if customer == 0 || !known || sum.PayKM == 0 || billedTravel(ninja, client, start, words) {
 			continue
 		}
 		found = append(found, Finding{
 			Fingerprint: fmt.Sprintf("travelbill:%s:%d", start.Format("2006-01"), customer), Severity: enums.SeverityInfo,
 			Message: "geo.travel_unbilled",
-			Params: map[string]any{"customer": names[customer], "month": start.Format("01/2006"), "km": Num(sum.KM, 0),
-				"amount": Money(sum.KM*rate, ninja.Currency)},
+			Params: map[string]any{"customer": names[customer], "month": start.Format("01/2006"), "km": Num(sum.PayKM, 0),
+				"amount": Money(sum.PayKM*rate, ninja.Currency)},
 			Sources: []string{dawarichSvc, ninjaSvc},
 		})
 	}
@@ -189,7 +189,7 @@ func unplaced(_ any, cfg map[string]any, env Env) []Finding {
 }
 
 // pluginMissing: the plugin is in use (it has trips last month), but
-// business rides of last month are not in it.
+// business rides by car of last month are not in it.
 func pluginMissing(_ any, _ map[string]any, env Env) []Finding {
 	_, rides, start, ok := lastMonthRides(env)
 	kimai, ok1 := env.Datasets[kimaiSvc].(*sources.KimaiDataset)
@@ -204,7 +204,7 @@ func pluginMissing(_ any, _ map[string]any, env Env) []Finding {
 	}
 	missing, km := 0, 0.0
 	for _, r := range rides {
-		if r.Class == metrics.ClassBusiness && r.Reason != metrics.ReasonPlugin && !r.Estimated {
+		if r.Class == metrics.ClassBusiness && r.Reason != metrics.ReasonPlugin && !r.Estimated && metrics.Payable(r.Ride) {
 			missing++
 			km += r.KM
 		}

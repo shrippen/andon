@@ -75,6 +75,9 @@ func (d Deps) recordPage(w http.ResponseWriter, r *http.Request, ctx Ctx, tab st
 	}
 
 	tabs := []string{tabOverview, tabAccess}
+	if conn.Service == enums.ServiceDawarich {
+		tabs = append(tabs, tabPlaces)
+	}
 	if conn.Right >= enums.RightManage {
 		tabs = append(tabs, tabSettings)
 	}
@@ -94,7 +97,7 @@ func (d Deps) recordValues(r *http.Request, ctx Ctx, conn connections.View) (map
 	q := r.URL.Query()
 	values := map[string]any{
 		"Conn": conn, "Services": serviceOptions, "IsNew": false,
-		"OptionsYAML": porting.DumpMap(conn.Options), "Error": q.Get("error"),
+		"OptionsYAML": porting.DumpMap(conn.Options), "Error": q.Get("error"), "Note": q.Get("note"),
 		"SignIn": d.signInOf(conn), "CanManage": conn.Right >= enums.RightManage,
 	}
 	if ref, ok := ctx.Who.Spaces[conn.SpaceID]; ok {
