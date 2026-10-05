@@ -1115,7 +1115,34 @@ history:
   sections: Sections
   restore: Restore
 conn:
-  personal_where: 'Personal: everybody stores their own token under'
+  deactivate_confirm: 'Remove your login? Your tiles of this template then show nothing.'
+  deactivate: 'Deactivate'
+  reactivate_new_host: 'The address points to another server. Your old login is not sent there; enter it again.'
+  reactivate_keep: 'Same server: your login stays.'
+  reactivate: 'Activate with the new values'
+  activate: 'Activate'
+  tls_false: 'do not check'
+  tls_true: 'check'
+  diff_verify_tls: 'Certificate'
+  diff_url: 'Address'
+  diff_option: 'Option'
+  diff_now: 'Now'
+  diff_was: 'Before'
+  diff_field: 'Field'
+  paused_lead: 'The template changed. Until you activate it again your tiles show “activate again”.'
+  activated: 'activated {when}'
+  inactive: 'not active'
+  active: 'active'
+  templates_team_lead: 'One login for the whole team: tiles in the team space use it, people''s own boards keep their own.'
+  templates_team: 'Instance templates for the team'
+  templates_mine_lead: 'Enter your login and your tiles show your data.'
+  templates_mine: 'Templates for you'
+  none_here: 'No connections on this level yet.'
+  kind_template: 'Template'
+  level_lead_instance: 'Connections for everybody on this instance. Fixed: one login for all. Template: each person (or a team) enters their own.'
+  level_lead_team: 'This team''s connections. Fixed: one login for the whole team. Template: each member enters their own.'
+  level_lead_personal: 'Your own connections, just for you. Below, the templates from the instance and your teams that take your login.'
+  personal_where: 'Template: everybody enters their own login under'
   tls: Certificate
   tls_verify: Verify (recommended)
   tls_skip: Don''t verify (self-signed)
@@ -1218,7 +1245,7 @@ conn:
   what_tibber: 'Tibber is an electricity supplier with hourly prices and an API for usage and cost.'
   what_calendar: 'Built-in: Andon reads a calendar in iCal format, e.g. from Nextcloud, Google or Outlook.'
   project_site: Project website
-  space_hint: 'Who the connection belongs to: your personal space = only you use it. Instance = every user of this installation may use it, only admins may change it. A team = the team''s members. Tiles can only use connections from spaces their viewer may see.'
+  space_hint: 'Who the connection belongs to: your personal space = only you use it, always with a fixed login. Instance = every user of this installation may use it, only admins may change it. A team = the team''s members. Tiles can only use connections from spaces their viewer may see.'
   pangolin_org: 'Organisation ID'
   existing: '{count} connection(s) of this kind exist'
   cred_incomplete: 'Please fill in both fields, e.g. user name and password.'
@@ -1293,8 +1320,8 @@ conn:
   options_hint_certs: 'hosts: [shop.example.org, mail.example.org:993] – checks the URL host and these hosts. With auto: true also every https tile and Pangolin resource. No token needed.'
   lead: Connections to services. Tokens are stored encrypted and never shown again.
   new: New connection
-  credentials: Credentials
-  mode_hint: Shared = one token for everybody. Personal = everybody stores their own.
+  credentials: 'For whom?'
+  mode_hint: 'Fixed = one login for everybody who uses this connection. Template = everybody enters their own.'
   token_hint: Leave empty for personal credentials.
   no_login: This service needs no credentials.
   test: Test
@@ -1329,8 +1356,8 @@ conn:
   about_tandoor: 'Shopping list and meal plan'
   options_hint_tandoor: 'No options. Token = API token from Tandoor → Settings → API (scope read write: checking off needs write access).'
 mode:
-  shared: Shared
-  personal: Personal
+  shared: 'Fixed: one login for all'
+  personal: 'Template: everybody signs in'
   auto: Automatic
   dark: Dark
   light: Light
@@ -1485,10 +1512,6 @@ security:
   boards_only: Only these boards (optional)
 cred:
   replace: Replace
-  state: State
-  set: stored
-  missing: missing
-  none: No connections with personal credentials.
 credential:
   missing: No personal access stored.
   paused: The template changed; activate your access again.
@@ -4680,7 +4703,7 @@ intro:
   more: 'More in the guide'
   close: 'Got it, hide'
   board: 'A board shows your tiles in sections. “Edit” changes it for everyone, “My layout” only for you; both can be undone.'
-  connections: 'Here are the accesses to your services. Each connection can be tested right away; with personal credentials each person adds their own token.'
+  connections: 'Connections exist for you, per team and for the whole instance. Each is fixed (one login for all) or a template (everybody enters their own).'
   library: 'The library holds all tiles of your spaces, including those not on any board right now. A tile can sit on several boards.'
   gallery: 'Pick what a new tile should show. The preview uses your connections, or sample data if none fits yet.'
   hints: 'Hints come from rules over your services'' data. Each says why it appears and where you resolve it.'

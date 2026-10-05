@@ -210,16 +210,21 @@ Rechte lassen sich innerhalb eines Teams auch **einschränken**: Ein Team-Widget
 - **Persönliche Einstellungen:** Theme, hell/dunkel, Sprache, Start-Board, Benachrichtigungskanäle, Ruhezeiten, eigene Suchmaschine.
 - **Vorlagen:** Boards lassen sich als Vorlage speichern (ohne Zugangsdaten) und von anderen Benutzern oder Teams übernehmen, z. B. „Freelance-Übersicht“.
 
-### 4.4 Verbindungen: geteilte und persönliche Zugangsdaten
+### 4.4 Verbindungen: Ebenen, fest und Vorlage
 
-Eine geteilte Verbindung heißt **geteilte Daten**: Wer ein Widget auf einer Verbindung sehen darf, sieht, was deren Token sieht. Deshalb gibt es zwei Arten:
+Eine Verbindung gehört zu genau einer Ebene und ist **fest** oder eine **Vorlage**. Wer sie sieht, folgt aus der Ebene; Freigaben für Verbindungen gibt es nicht.
 
-| Art | Beispiel | Wirkung |
+| Ebene | Fest (ein Zugang) | Vorlage (Zugang je Person) |
 |---|---|---|
-| **Geteilte Zugangsdaten** | Snipe-IT des Teams mit einem Lese-Token | Alle mit Zugriff sehen dieselben Daten; ein Abruf für alle |
-| **Persönliche Zugangsdaten** | Kimai des Teams, jeder hinterlegt sein eigenes Token | Dasselbe Team-Widget zeigt jedem Benutzer seine eigenen Daten; wer kein Token hinterlegt hat, sieht einen Hinweis „Zugang einrichten“ |
+| **Instanz** | Admins legen an, alle nutzen denselben Zugang | Admins legen an; jede Person trägt ihren Zugang ein, oder ein Team-Owner einen für sein Team |
+| **Team** | Team-Owner legen an, das Team nutzt denselben Zugang | Team-Owner legen an, jedes Mitglied trägt seinen Zugang ein |
+| **Persönlich** | eigene Verbindung, nur für die Besitzerin | – |
 
-Beim Freigeben einer Verbindung mit geteilten Zugangsdaten warnt der Editor ausdrücklich. **Dawarich** ist standardmäßig nur als persönliche Verbindung erlaubt; eine Freigabe muss ein Instanz-Admin für die Instanz einschalten.
+Fest heißt **geteilte Daten**: Wer eine Kachel auf der Verbindung sehen darf, sieht, was ihr Token sieht. Eine Vorlage zeigt jedem seine eigenen Daten; wer keinen Zugang eingetragen hat, sieht „Zugang einrichten“. Kacheln im Team-Bereich nutzen für eine Instanz-Vorlage den Team-Zugang, eigene Boards den eigenen.
+
+Ändert ein Admin eine Vorlage (Adresse, Zertifikat, Optionen), pausieren alle Aktivierungen: Die Kacheln zeigen „neu aktivieren“, die Seite *Verbindungen* zeigt Bisher und Jetzt je Feld. Bleibt der Server gleich, reicht „Aktivieren“; ein neuer Server verlangt den Zugang neu, der alte wird nicht dorthin geschickt.
+
+**Dawarich** ist außerhalb des persönlichen Bereichs nur als Vorlage erlaubt; fest muss ein Instanz-Admin für die Instanz einschalten.
 
 ### 4.5 Szenarien
 

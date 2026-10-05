@@ -34,7 +34,7 @@ type settingsLink struct {
 
 // settingsPages are the templates shown inside the settings frame.
 var settingsPages = map[string]bool{
-	"profile": true, "security": true, "notify": true, "credentials": true,
+	"profile": true, "security": true, "notify": true,
 	"connections": true, "space_settings": true, "space_code": true, "themes": true, "import": true,
 	"teams": true, "team": true, "admin_users": true, "admin_settings": true, "admin_ops": true, "admin_audit": true,
 }
@@ -73,7 +73,6 @@ func settingsNav(who *access.Principal) []settingsGroup {
 			{Label: "nav.profile", Href: "/me/profile"},
 			{Label: "nav.security", Href: "/me/security"},
 			{Label: "nav.notify", Href: "/me/notify"},
-			{Label: "nav.credentials", Href: "/me/credentials"},
 		}
 		links = append(links, spaceLinks(mine.ID)...)
 		links = append(links, settingsLink{Label: "nav.themes", Href: "/themes"}, settingsLink{Label: "nav.import", Href: "/import"})

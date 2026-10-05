@@ -1115,7 +1115,34 @@ history:
   sections: Abschnitte
   restore: Wiederherstellen
 conn:
-  personal_where: 'Persönlich: Jede Person hinterlegt ihr eigenes Token unter'
+  deactivate_confirm: 'Zugang entfernen? Deine Kacheln dieser Vorlage zeigen dann nichts mehr.'
+  deactivate: 'Deaktivieren'
+  reactivate_new_host: 'Die Adresse zeigt auf einen anderen Server. Dein bisheriger Zugang wird nicht dorthin geschickt; trag ihn neu ein.'
+  reactivate_keep: 'Der Server ist derselbe, dein Zugang bleibt.'
+  reactivate: 'Mit neuen Werten aktivieren'
+  activate: 'Aktivieren'
+  tls_false: 'nicht prüfen'
+  tls_true: 'prüfen'
+  diff_verify_tls: 'Zertifikat'
+  diff_url: 'Adresse'
+  diff_option: 'Option'
+  diff_now: 'Jetzt'
+  diff_was: 'Bisher'
+  diff_field: 'Feld'
+  paused_lead: 'Die Vorlage hat sich geändert. Bis du sie wieder aktivierst, zeigen deine Kacheln „neu aktivieren“.'
+  activated: 'aktiviert {when}'
+  inactive: 'nicht aktiv'
+  active: 'aktiv'
+  templates_team_lead: 'Ein Zugang für das ganze Team: Kacheln im Team-Bereich nutzen ihn, eigene Boards weiter den eigenen.'
+  templates_team: 'Instanz-Vorlagen fürs Team'
+  templates_mine_lead: 'Trag deinen Zugang ein, dann zeigen deine Kacheln deine Daten.'
+  templates_mine: 'Vorlagen für dich'
+  none_here: 'Noch keine Verbindungen auf dieser Ebene.'
+  kind_template: 'Vorlage'
+  level_lead_instance: 'Verbindungen für alle auf dieser Instanz. Fest: ein Zugang für alle. Vorlage: jede Person (oder ein Team) trägt ihren eigenen ein.'
+  level_lead_team: 'Verbindungen dieses Teams. Fest: ein Zugang für alle im Team. Vorlage: jedes Mitglied trägt seinen eigenen ein.'
+  level_lead_personal: 'Deine eigenen Verbindungen, nur für dich. Darunter die Vorlagen aus Instanz und Teams, für die du deinen Zugang einträgst.'
+  personal_where: 'Vorlage: jede Person trägt ihren Zugang ein unter'
   tls: Zertifikat
   tls_verify: Prüfen (empfohlen)
   tls_skip: Nicht prüfen (selbst signiert)
@@ -1218,7 +1245,7 @@ conn:
   what_tibber: 'Tibber ist ein Stromanbieter mit stündlich wechselnden Preisen und einer API für Verbrauch und Kosten.'
   what_calendar: 'Eingebaut: Andon liest einen Kalender im iCal-Format, etwa aus Nextcloud, Google oder Outlook.'
   project_site: Projektseite
-  space_hint: 'Wem die Verbindung gehört: Dein persönlicher Bereich = nur du nutzt sie. Instanz = alle Nutzer dieser Installation dürfen sie nutzen, ändern dürfen nur Admins. Ein Team = die Mitglieder des Teams. Kacheln können nur Verbindungen aus Bereichen nutzen, die ihr Betrachter sehen darf.'
+  space_hint: 'Wem die Verbindung gehört: Dein persönlicher Bereich = nur du nutzt sie, immer mit festem Zugang. Instanz = alle Nutzer dieser Installation dürfen sie nutzen, ändern dürfen nur Admins. Ein Team = die Mitglieder des Teams. Kacheln können nur Verbindungen aus Bereichen nutzen, die ihr Betrachter sehen darf.'
   pangolin_org: 'Organisations-ID'
   existing: '{count} Verbindung(en) dieser Art vorhanden'
   cred_incomplete: 'Bitte beide Felder ausfüllen, z. B. Benutzername und Passwort.'
@@ -1293,8 +1320,8 @@ conn:
   options_hint_certs: 'hosts: [shop.example.org, mail.example.org:993] – geprüft werden URL-Host und diese Hosts. Mit auto: true zusätzlich alle https-Kacheln und Pangolin-Ressourcen. Kein Token nötig.'
   lead: Verbindungen zu Diensten. Tokens werden verschlüsselt gespeichert und nie wieder angezeigt.
   new: Neue Verbindung
-  credentials: Zugangsdaten
-  mode_hint: Geteilt = ein Token für alle. Persönlich = jeder hinterlegt sein eigenes.
+  credentials: 'Für wen?'
+  mode_hint: 'Fest = ein Zugang für alle, die diese Verbindung nutzen. Vorlage = jede Person trägt ihren eigenen ein.'
   token_hint: Leer lassen bei persönlichen Zugangsdaten.
   no_login: Dieser Dienst braucht keine Zugangsdaten.
   test: Testen
@@ -1329,8 +1356,8 @@ conn:
   about_tandoor: 'Einkaufsliste und Essensplan'
   options_hint_tandoor: 'Keine Optionen. Token = API-Token aus Tandoor → Einstellungen → API (Bereich read write: Abhaken braucht Schreibrecht).'
 mode:
-  shared: Geteilt
-  personal: Persönlich
+  shared: 'Fest: ein Zugang für alle'
+  personal: 'Vorlage: jede Person meldet sich an'
   auto: Automatisch
   dark: Dunkel
   light: Hell
@@ -1485,10 +1512,6 @@ security:
   boards_only: Nur diese Boards (optional)
 cred:
   replace: Ersetzen
-  state: Status
-  set: hinterlegt
-  missing: fehlt
-  none: Keine Verbindungen mit persönlichen Zugangsdaten.
 credential:
   missing: Kein persönlicher Zugang hinterlegt.
   paused: Die Vorlage hat sich geändert; Zugang neu aktivieren.
@@ -4681,7 +4704,7 @@ intro:
   more: 'Mehr im Leitfaden'
   close: 'Verstanden, ausblenden'
   board: 'Ein Board zeigt deine Kacheln in Abschnitten. „Bearbeiten“ ändert es für alle, „Mein Layout“ nur für dich; beides lässt sich rückgängig machen.'
-  connections: 'Hier stehen die Zugänge zu deinen Diensten. Jede Verbindung lässt sich direkt testen; bei persönlichen Zugangsdaten hinterlegt jede Person ihr eigenes Token.'
+  connections: 'Verbindungen gibt es für dich, je Team und für die ganze Instanz. Jede ist fest (ein Zugang für alle) oder eine Vorlage (jede Person trägt ihren eigenen ein).'
   library: 'Die Bibliothek enthält alle Kacheln deiner Bereiche, auch die, die gerade auf keinem Board stehen. Eine Kachel kann auf mehreren Boards stehen.'
   gallery: 'Wähle, was eine neue Kachel zeigen soll. Die Vorschau nutzt deine Verbindungen oder Beispieldaten, wenn noch keine passende da ist.'
   hints: 'Hinweise entstehen aus Regeln über die Daten deiner Dienste. Jeder sagt, warum er erscheint und wo du ihn erledigst.'

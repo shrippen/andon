@@ -26,8 +26,8 @@ func (d Deps) RegisterMoreRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /boards/new", d.authed(d.handleBoardNewForm))
 	mux.HandleFunc("POST /boards/new", d.authed(d.handleBoardCreate))
 	mux.HandleFunc("GET /me/credentials", d.authed(d.handleCredentials))
-	mux.HandleFunc("POST /me/credentials/{id}", d.handleCredentialSave)
-	mux.HandleFunc("POST /me/credentials/{id}/delete", d.handleCredentialDelete)
+	mux.HandleFunc("POST /connections/{id}/activate", d.handleActivate)
+	mux.HandleFunc("POST /connections/{id}/deactivate", d.handleDeactivate)
 	mux.HandleFunc("POST /connections/{id}/options", d.authed(d.handleConnectionOptions))
 	mux.HandleFunc("POST /me/security/sessions/others/end", d.authed(d.handleEndOthers))
 	mux.HandleFunc("POST /spaces/{id}/team-settings", d.authed(d.handleTeamSpaceSettings))
@@ -104,23 +104,21 @@ func (d Deps) handleBoardCreate(w http.ResponseWriter, r *http.Request, ctx Ctx)
 	http.Redirect(w, r, boardPath(id)+"?edit", http.StatusSeeOther)
 }
 
+// handleCredentials: one's own logins live with the connections now; the
+// old address (tile links, bookmarks) leads there.
 func (d Deps) handleCredentials(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	items, err := connections.PersonalNeeded(d.DB, ctx.Who)
-	if err != nil {
-		d.fail(w, err, http.StatusInternalServerError)
+	mine := access.Personal(ctx.Who)
+	if mine == nil {
+		http.NotFound(w, r)
 		return
 	}
-	signIns := map[int64]*signIn{}
-	for _, item := range items {
-		signIns[item.ID] = d.signInOf(item)
-	}
-	_ = d.Page(w, ctx, "credentials", http.StatusOK, map[string]any{
-		"Items": items, "SignIn": signIns, "Connected": r.URL.Query().Has("connected"), "Error": r.URL.Query().Get("error"),
-	})
+	http.Redirect(w, r, spacePath(mine.ID)+"/connections", http.StatusSeeOther)
 }
 
-// credentialAction runs a personal-credential change and returns to the list.
-func (d Deps) credentialAction(w http.ResponseWriter, r *http.Request, run func(Ctx, int64) error) {
+// activationAction runs a change of a login to a template, for the caller
+// or (form field team) a team the caller owns, and returns to the page it
+// came from.
+func (d Deps) activationAction(w http.ResponseWriter, r *http.Request, run func(Ctx, int64, model.Holder) error) {
 	ctx, err := d.Require(r)
 	if err != nil {
 		d.handleAuthError(w, r, err)
@@ -131,15 +129,19 @@ func (d Deps) credentialAction(w http.ResponseWriter, r *http.Request, run func(
 		http.NotFound(w, r)
 		return
 	}
-	if err := run(ctx, id); err != nil {
+	h := model.UserHolder(ctx.Who.UserID)
+	if team, err := strconv.ParseInt(r.FormValue("team"), 10, 64); err == nil && team > 0 {
+		h = model.TeamHolder(team)
+	}
+	if err := run(ctx, id, h); err != nil {
 		d.handleBoardError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/me/credentials", http.StatusSeeOther)
+	http.Redirect(w, r, backTo(r, "/me/credentials"), http.StatusSeeOther)
 }
 
-func (d Deps) handleCredentialSave(w http.ResponseWriter, r *http.Request) {
-	d.credentialAction(w, r, func(ctx Ctx, id int64) error {
+func (d Deps) handleActivate(w http.ResponseWriter, r *http.Request) {
+	d.activationAction(w, r, func(ctx Ctx, id int64, h model.Holder) error {
 		conn, err := connections.Get(d.DB, ctx.Who, id)
 		if err != nil {
 			return err
@@ -148,13 +150,13 @@ func (d Deps) handleCredentialSave(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
-		return connections.Activate(d.DB, ctx.Who, id, model.UserHolder(ctx.Who.UserID), secret)
+		return connections.Activate(d.DB, ctx.Who, id, h, secret)
 	})
 }
 
-func (d Deps) handleCredentialDelete(w http.ResponseWriter, r *http.Request) {
-	d.credentialAction(w, r, func(ctx Ctx, id int64) error {
-		return connections.Deactivate(d.DB, ctx.Who, id, model.UserHolder(ctx.Who.UserID))
+func (d Deps) handleDeactivate(w http.ResponseWriter, r *http.Request) {
+	d.activationAction(w, r, func(ctx Ctx, id int64, h model.Holder) error {
+		return connections.Deactivate(d.DB, ctx.Who, id, h)
 	})
 }
 

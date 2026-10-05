@@ -24,11 +24,11 @@ func TestSmallerActions(t *testing.T) {
 	resp = postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {instanceSpace(t, srv, client)}, "service": {"kimai"},
 		"name": {"Mine"}, "url": {"https://kimai.lan"}, "mode": {"personal"}, "tls": {"verify"}})
 	conn := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))[1]
-	if !strings.Contains(string(mustGet(t, srv, client, "/me/credentials")), "Mine") {
-		t.Fatal("personal connection missing on credentials page")
+	if !strings.Contains(ownConnections(t, srv, client), "Mine") {
+		t.Fatal("template missing on the own connections page")
 	}
-	postForm(t, client, srv.URL+"/me/credentials/"+conn, url.Values{"csrf": {csrf}, "secret": {"tok"}})
-	if !strings.Contains(string(mustGet(t, srv, client, "/me/credentials")), `data-state="applied"`) {
+	postForm(t, client, srv.URL+"/connections/"+conn+"/activate", url.Values{"csrf": {csrf}, "secret": {"tok"}})
+	if !strings.Contains(ownConnections(t, srv, client), `data-state="active"`) {
 		t.Fatal("personal token not stored")
 	}
 

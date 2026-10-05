@@ -9,10 +9,10 @@ import (
 	"testing"
 )
 
-// TestCredentialsTableCells: the actions stay a table cell (a flex cell
-// drew its row lines apart from the other columns) and every action is
-// one kind of button, so rows keep one height.
-func TestCredentialsTableCells(t *testing.T) {
+// TestTemplateActivation drives a template through the own connections
+// page: activate it, see it active; after the admin moves it the page
+// shows what changed and activates it again without a new token.
+func TestTemplateActivation(t *testing.T) {
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
@@ -21,20 +21,36 @@ func TestCredentialsTableCells(t *testing.T) {
 	resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {instanceSpace(t, srv, client)}, "service": {"kimai"},
 		"name": {"Mine"}, "url": {"https://kimai.lan"}, "mode": {"personal"}, "tls": {"verify"}})
 	conn := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))[1]
-	postForm(t, client, srv.URL+"/me/credentials/"+conn, url.Values{"csrf": {csrf}, "secret": {"tok"}})
-
-	page := string(mustGet(t, srv, client, "/me/credentials"))
-	if strings.Contains(page, `<td class="row-actions">`) {
-		t.Fatal("actions cell is a flex container, not a table cell")
-	}
-	if !strings.Contains(page, `<div class="cred-actions">`) {
-		t.Fatalf("actions not wrapped:\n%s", page)
-	}
-	actions := regexp.MustCompile(`(?s)<div class="cred-actions">(.*?)</td>`).FindStringSubmatch(page)[1]
-	for _, kind := range []string{`class="link-btn"`, `summary class="link-btn`} {
-		if strings.Contains(actions, kind) {
-			t.Fatalf("mixed button kinds (%s):\n%s", kind, actions)
+	state := func() string {
+		page := ownConnections(t, srv, client)
+		m := regexp.MustCompile(`id="conn-` + conn + `" data-state="(\w+)"`).FindStringSubmatch(page)
+		if m == nil {
+			t.Fatalf("template not on the page:\n%s", page)
 		}
+		return m[1]
+	}
+	if s := state(); s != "off" {
+		t.Fatalf("new template: %s", s)
+	}
+
+	postForm(t, client, srv.URL+"/connections/"+conn+"/activate", url.Values{"csrf": {csrf}, "secret": {"tok"}})
+	if s := state(); s != "active" {
+		t.Fatalf("activated: %s", s)
+	}
+
+	postForm(t, client, srv.URL+"/connections/"+conn+"/edit", url.Values{"csrf": {csrf}, "name": {"Mine"}, "url": {"https://kimai.lan/v2"},
+		"mode": {"personal"}, "tls": {"verify"}})
+	if s := state(); s != "paused" {
+		t.Fatalf("after the edit: %s", s)
+	}
+	page := ownConnections(t, srv, client)
+	if !strings.Contains(page, `<td class="was">https://kimai.lan</td><td class="now">https://kimai.lan/v2</td>`) {
+		t.Fatalf("no diff:\n%s", page)
+	}
+
+	postForm(t, client, srv.URL+"/connections/"+conn+"/activate", url.Values{"csrf": {csrf}})
+	if s := state(); s != "active" {
+		t.Fatalf("activated again: %s", s)
 	}
 }
 
@@ -48,4 +64,13 @@ func instanceSpace(t *testing.T, srv *httptest.Server, client *http.Client) stri
 		t.Fatalf("no instance space in:\n%s", form)
 	}
 	return m[1]
+}
+
+// ownConnections is the page /me/credentials leads to: the viewer's own
+// connections and the templates to activate.
+func ownConnections(t *testing.T, srv *httptest.Server, client *http.Client) string {
+	t.Helper()
+	resp := getFollowingRedirect(t, srv, client, "/me/credentials")
+	defer resp.Body.Close()
+	return readAll(t, resp)
 }
