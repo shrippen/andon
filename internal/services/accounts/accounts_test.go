@@ -13,6 +13,7 @@ import (
 	"andon/internal/model"
 	authrepo "andon/internal/repos/auth"
 	"andon/internal/repos/content"
+	"andon/internal/repos/users"
 	"andon/internal/services/access"
 	"andon/internal/services/accounts"
 )
@@ -123,5 +124,27 @@ func TestChangePasswordEndsOtherSessions(t *testing.T) {
 	}
 	if s, _ := authrepo.SessionByHash(q, "mine"); s == nil {
 		t.Fatal("own session ended")
+	}
+}
+
+// TestJoinTeamsCreatesTeamSpace: a team that JoinTeams creates (OIDC
+// groups, demo) gets its space like one created by hand; without it the
+// team has no connections, boards or settings.
+func TestJoinTeamsCreatesTeamSpace(t *testing.T) {
+	d := openTestDB(t)
+	pw := "long-enough-password"
+	u, err := accounts.Create(d, "a@b.de", "A", &pw, enums.RoleUser, enums.LocaleDE, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := accounts.JoinTeams(d, u.ID, []accounts.TeamAssignment{{Team: "Studio", Role: enums.TeamOwner}}); err != nil {
+		t.Fatal(err)
+	}
+	team, err := users.TeamByName(d, "Studio")
+	if err != nil || team == nil {
+		t.Fatalf("team: %v", err)
+	}
+	if sp, err := content.TeamSpace(d, team.ID); err != nil || sp == nil {
+		t.Fatalf("no team space: %v", err)
 	}
 }
