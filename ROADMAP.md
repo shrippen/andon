@@ -485,7 +485,7 @@ Alle Abrufe laufen read-only mit eigenen API-Tokens über die Verbindungen eines
 
 **Daten:** `GET /api/v1/points` (`start_at`, `end_at`), `/api/v1/visits`, `/api/v1/areas`, `/api/v1/stats`. Authentifizierung per API-Key. **Sensible Daten:** Es werden nur Aggregate gespeichert (Aufenthalte in definierten Bereichen, Tages-km), keine Rohpunkte.
 
-**Idee:** In Dawarich werden **Areas** für Kundenstandorte, Büro und Zuhause angelegt. Im Editor wird jede Area einem Kimai-Kunden zugeordnet.
+**Idee:** In Dawarich werden **Areas** für Kundenstandorte, Büro und Zuhause angelegt. Zugeordnet werden sie im Kimai-Plugin Anfahrten (*Fahrten → Orte*: Area übernehmen, Kunde bzw. Typ „Zuhause“ setzen); Andon liest das über `GET /api/mileage/places` der Kimai-Verbindung. Die Option `areas` der Dawarich-Verbindung (Area-Name → `customer_id` bzw. `home`) überschreibt einzelne Areas oder ersetzt das Plugin.
 
 **Kennzahlen:** Tage beim Kunden je Monat, Fahrtstrecke je Tag, Abwesenheitsdauer von zu Hause, besuchte Länder/Orte (Reisen).
 
@@ -1196,6 +1196,8 @@ dashboard/
 
 ## 14. Offene Fragen
 
-1. **Dashy:** Welche Widgets nutzt die aktuelle `conf.yml` wirklich? Eine anonymisierte Kopie dient als Testfall für den Import und korrigiert die Prioritäten in 7.1.
-2. **Umsatzsteuer im Detail:** Ist-Versteuerung (bei Freiberuflern üblich) oder Soll-Versteuerung? Voranmeldung monatlich oder quartalsweise, mit Dauerfristverlängerung? Das sind nur Standardwerte, sie sind im Editor änderbar.
-3. **Dawarich:** Sind Kundenstandorte schon als Areas angelegt, und ist der Abgleich mit Kimai gewünscht?
+Keine. Geklärt am 06.10.2026:
+
+- **Dashy:** erledigt (Dashy-Abgleich vom 25.09.2026).
+- **Umsatzsteuer:** Soll-Versteuerung, Voranmeldung quartalsweise mit Dauerfristverlängerung (in den Bereichseinstellungen einzutragen).
+- **Dawarich:** Abgleich mit Kimai gewünscht; Areas noch anzulegen, Zuordnung über das Plugin Anfahrten (Abschnitt 8.4).

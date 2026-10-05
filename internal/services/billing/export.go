@@ -126,7 +126,7 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64
 		files["stunden.csv"] = hourRows(kimai, year)
 	}
 	if geo != nil && kimai != nil {
-		files["fahrten.csv"] = tripRows(geo, metrics.ParseAreaMapping(geoOptions), kimai, year, kmRate(settings))
+		files["fahrten.csv"] = tripRows(geo, metrics.AreaMap(geo, kimai, geoOptions), kimai, year, kmRate(settings))
 	}
 	if rows := itCostRows(costData, kimai, settings); len(rows) > 1 {
 		files["it-kosten.csv"] = rows

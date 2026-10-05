@@ -132,10 +132,12 @@ func tableRows(kind TableKind, results map[string]any, ctx ViewCtx) ([]Row, bool
 		return rows, true
 
 	case kind == TableTrips && service == enums.ServiceDawarich:
-		mapping := metrics.ParseAreaMapping(ctx.Options)
+		geo := data.(*sources.DawarichDataset)
+		kimai, _ := results[peerKimai].(*sources.KimaiDataset)
+		mapping := metrics.AreaMap(geo, kimai, ctx.Options)
 		start := metrics.AddMonths(today, -1)
 		var rows []Row
-		for _, t := range metrics.Trips(data.(*sources.DawarichDataset), mapping, start, today) {
+		for _, t := range metrics.Trips(geo, mapping, start, today) {
 			rows = append(rows, Row{[]any{t.Area, t.Day, t.KM, float64(t.AwayMin) / minutesPerHourInsight}})
 		}
 		return rows, true

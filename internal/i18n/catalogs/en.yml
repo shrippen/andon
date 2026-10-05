@@ -1386,7 +1386,7 @@ conn:
   options_hint_kimai: 'Token = API token (profile → API access). Rights follow the Kimai role: viewing your own times, customers, projects and activities is enough. Starting timers and marking times as exported need write access to timesheets. Options: all_users: true counts all users'' time (the role must see other users'' times).'
   options_hint_invoiceninja: 'Token = API token (settings → account management → API tokens). Rights follow the token''s user: view clients, invoices, quotes, payments, expenses and vendors; draft invoices from Kimai also need “create invoices”. Options: currency: EUR · home_country_id: 276 (Germany). “Match receipts” also needs “edit expenses”.'
   options_hint_snipeit: 'No options needed. Token = personal API key (user menu → manage API keys). Rights follow the user: view assets, licenses and consumables.'
-  options_hint_dawarich: 'Token = API key (account → settings). Options: areas: {"Client office": {customer_id: 12}, "Home": {home: true}} – area names from Dawarich, customer_id from Kimai.'
+  options_hint_dawarich: 'Token = API key (account → settings). Options: areas: {"Client office": {customer_id: 12}, "Home": {home: true}} – area names from Dawarich, customer_id from Kimai. With the Kimai mileage plugin the mapping comes from its places; areas overrides it.'
   options_hint_glances: 'Token only when the Glances web server runs with a password. Options: api_version: 4 (default) or 3 for older Glances.'
   what_wallos: 'Wallos keeps track of subscriptions: prices, payment dates and categories.'
   about_wallos: 'Subscriptions and payment dates'

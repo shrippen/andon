@@ -1386,7 +1386,7 @@ conn:
   options_hint_kimai: 'Token = API-Token (Profil → API-Zugang). Rechte folgen der Kimai-Rolle: eigene Zeiten, Kunden, Projekte und Tätigkeiten ansehen genügt. Timer starten und Zeiten als exportiert markieren brauchen Schreibrechte auf Zeiteinträge. Optionen: all_users: true zählt Zeiten aller Benutzer (Rolle muss fremde Zeiten sehen dürfen).'
   options_hint_invoiceninja: 'Token = API-Token (Einstellungen → Kontoverwaltung → API-Tokens). Rechte folgen dem Nutzer des Tokens: Kunden, Rechnungen, Angebote, Zahlungen, Ausgaben und Lieferanten ansehen; Rechnungsentwürfe aus Kimai brauchen zusätzlich „Rechnungen erstellen“. Optionen: currency: EUR · home_country_id: 276 (Deutschland). „Belege zuordnen“ braucht zusätzlich „Ausgaben bearbeiten“.'
   options_hint_snipeit: 'Keine Optionen nötig. Token = persönlicher API-Schlüssel (Benutzermenü → API-Schlüssel verwalten). Rechte folgen dem Nutzer: Assets, Lizenzen und Verbrauchsmaterial ansehen.'
-  options_hint_dawarich: 'Token = API-Schlüssel (Konto → Einstellungen). Optionen: areas: {"Muster GmbH Büro": {customer_id: 12}, "Home": {home: true}} – Area-Namen aus Dawarich, customer_id aus Kimai.'
+  options_hint_dawarich: 'Token = API-Schlüssel (Konto → Einstellungen). Optionen: areas: {"Muster GmbH Büro": {customer_id: 12}, "Home": {home: true}} – Area-Namen aus Dawarich, customer_id aus Kimai. Mit dem Kimai-Plugin Anfahrten kommt die Zuordnung aus dessen Orten; areas überschreibt sie.'
   options_hint_glances: 'Token nur, wenn der Glances-Webserver mit Passwort läuft. Optionen: api_version: 4 (Standard) oder 3 für ältere Glances.'
   what_wallos: 'Wallos verwaltet Abonnements: Preise, Zahlungstermine und Kategorien.'
   about_wallos: 'Abos und Zahlungstermine'

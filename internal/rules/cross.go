@@ -21,7 +21,9 @@ const (
 )
 
 func areaMapping(env Env) map[string]metrics.AreaMapping {
-	return metrics.ParseAreaMapping(env.Options[string(enums.ServiceDawarich)])
+	geo, _ := env.Datasets[string(enums.ServiceDawarich)].(*sources.DawarichDataset)
+	kimai, _ := env.Datasets[string(enums.ServiceKimai)].(*sources.KimaiDataset)
+	return metrics.AreaMap(geo, kimai, env.Options[string(enums.ServiceDawarich)])
 }
 
 func booked(kimai *sources.KimaiDataset) map[[2]any]bool {
