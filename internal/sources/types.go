@@ -54,12 +54,30 @@ type KimaiHoliday struct {
 	HalfDay bool
 }
 
-// KimaiPlace is a place of the Kimai mileage plugin linked to a Dawarich
-// area: a customer site or home.
+// KimaiPlace is a place of the Kimai mileage plugin: home, work, a
+// customer site or another place, maybe imported from a Dawarich area
+// (AreaID) or place (PlaceID).
 type KimaiPlace struct {
-	AreaID     int64
+	ID         int64
+	Name       string
+	Type       string // "home", "work", "customer", "other"
 	CustomerID int64
-	Home       bool
+	Lat, Lon   float64
+	Radius     float64 // metres
+	AreaID     int64
+	PlaceID    int64
+}
+
+// KimaiMileageTrip is a trip of the Kimai mileage plugin. Departure and
+// Arrival are RFC 3339 times, "" if not entered.
+type KimaiMileageTrip struct {
+	ID                 int64
+	Date               string
+	Departure, Arrival string
+	Purpose            string // "commute", "business", "private"
+	KM                 float64
+	Project            int64
+	Timesheet          int64
 }
 
 type KimaiDataset struct {
@@ -73,6 +91,9 @@ type KimaiDataset struct {
 	HolidayBundle bool
 	Contract      *WorkContract // working time from Kimai, nil if none
 	Places        []KimaiPlace  // mileage plugin, nil without it
+	Mileage       bool          // the mileage plugin answered
+	MileageTrips  []KimaiMileageTrip
+	PlacesWrite   bool // the plugin creates and changes places (feature placesWrite)
 }
 
 // ── Invoice Ninja ──
@@ -92,6 +113,7 @@ type NinjaInvoice struct {
 	// Reminded is when the last reminder went out, NextSend when the
 	// next one goes (or the invoice is sent again); "" = none.
 	Reminded, NextSend string
+	Items              []string // line items: product key and notes, lower case
 }
 
 type NinjaPayment struct {
@@ -222,10 +244,51 @@ type DawarichVisit struct {
 	Lon     *float64
 }
 
+// DawarichPlace is a place Dawarich knows (its "places", not areas).
+type DawarichPlace struct {
+	ID       int64
+	Name     string
+	Lat, Lon float64
+}
+
+// DawarichSegment is one part of a track with one transportation mode
+// ("driving", "walking", "stationary" …). Times are Unix seconds; only the
+// ends of its line are kept.
+type DawarichSegment struct {
+	Start, End       int64
+	Mode             string
+	Meters           float64
+	FromLat, FromLon float64
+	ToLat, ToLon     float64
+}
+
+// DawarichTrack is one journey Dawarich computed between two recording
+// gaps, split into segments.
+type DawarichTrack struct {
+	ID         int64
+	Start, End int64
+	Segments   []DawarichSegment
+}
+
+// TracksState says how complete DawarichDataset.Tracks is.
+type TracksState string
+
+const (
+	TracksNone    TracksState = ""        // not read
+	TracksOK      TracksState = "ok"      // every track of the window
+	TracksPartial TracksState = "partial" // more are read on the next fetches
+	TracksMissing TracksState = "missing" // this Dawarich has no tracks API
+	TracksFailed  TracksState = "failed"  // reading them failed
+)
+
 type DawarichDataset struct {
-	URL       string
-	Areas     []DawarichArea
-	Visits    []DawarichVisit
-	Stats     map[string]any
-	LastPoint string
+	URL         string
+	Areas       []DawarichArea
+	Places      []DawarichPlace
+	Visits      []DawarichVisit
+	Tracks      []DawarichTrack // oldest first
+	TracksFrom  string          // start of the window the tracks cover (RFC 3339)
+	TracksState TracksState
+	Stats       map[string]any
+	LastPoint   string
 }

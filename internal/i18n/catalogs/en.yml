@@ -75,6 +75,7 @@ action:
   export: Export
   open: Open
   open_in_kimai: Open in Kimai
+  assign_places: Assign places
   open_in_invoiceninja: Open in Invoice Ninja
   open_in_snipeit: Open in Snipe-IT
   open_in_dawarich: Open in Dawarich
@@ -546,6 +547,8 @@ field:
   list_height: 'List height'
   show_meals: 'Show meal plan'
 opt:
+  trip_customers: Rides per client
+  destinations: Frequent destinations
   exposure: 'Exposure'
   domain_chain: 'Domain chain'
   full_rates: 'Full-cost rate per client'
@@ -950,7 +953,7 @@ wtype:
     desc: 'Business spending from Sure without a receipt in Invoice Ninja, Paperless or the mailbox, largest first, with a Paperless search.'
   travel:
     name: 'On the road'
-    desc: 'Distance this month and year from Dawarich, countries and cities, trips to clients at a mileage rate.'
+    desc: 'Rides from Dawarich, business and private apart (Kimai time, client sites, Kimai mileage), with mileage allowance, per diem and analyses in the dialog.'
   exposure:
     name: 'Publicly reachable'
     desc: 'What Pangolin makes public, riskiest first: without login, with pending updates or a certificate about to expire.'
@@ -2309,10 +2312,28 @@ hint:
       why: Kimai entry at {customer} marked on site, Dawarich shows no stay.
     travel_costs:
       title: 'Travel costs {month}: {amount}'
-      why: '{trips} trips, about {km} km. Record as expense or invoice item.'
+      why: '{trips} business rides, {km} km as Dawarich tracked them. Record as expense or invoice item.'
     per_diem:
       title: 'Per diem {month}: {amount}'
-      why: '{days} days away for more than 8 h (rate configurable).'
+      why: '{days} days away with a business ride, {full} of them full days (14 € from 8 h and on travel days, 28 € a full day).'
+    travel_unbilled:
+      title: 'Travel {customer} {month}: {amount} not invoiced'
+      why: '{km} business km to this client, no invoice since has a travel line.'
+    unplaced:
+      title: '{count} frequent destinations without a place'
+      why: 'Rides of the last {days} days end there; unassigned they stay private. {names}'
+    plugin_missing:
+      title: '{count} business rides {month} missing in Kimai mileage'
+      why: '{km} km as Dawarich tracked them, no plugin trip at the same time.'
+    car_private_share:
+      title: 'Business car {year}: {share} % private'
+      why: 'Of {km} km by car. Above 50 % private the 1 % method is not allowed (logbook or private asset).'
+    tracks_missing:
+      title: Dawarich without tracks
+      why: 'This Dawarich version has no tracks; distances and times are estimated from visits (straight line × 1.3).'
+    tracks_failed:
+      title: Dawarich tracks unreadable
+      why: 'The tracks could not be read; distances and times are estimated from visits.'
     no_data:
       title: No location data for {hours} h
       why: Tracking app off or offline?
@@ -2511,6 +2532,12 @@ kpi:
   free: '{amount} free to spend'
   spark_days: 'last {n} days'
 col:
+  from: From
+  to: To
+  class: Kind
+  duration: Duration
+  place: Place
+  rides: Rides
   storage: 'Storage'
   full_in: 'Full in'
   login: 'Login'
@@ -2750,6 +2777,11 @@ rule_name:
   geo.travel_costs: Travel costs
   geo.per_diem: Per diem
   geo.no_data: No location data
+  geo.travel_unbilled: Travel not invoiced
+  geo.unplaced: Destinations without place
+  geo.plugin_missing: Rides missing in mileage plugin
+  geo.car_private_share: Business car private share
+  geo.tracks_missing: Dawarich without tracks
   tax.deadlines: Tax deadlines
   kintsugi.run_failed: Kintsugi run failed
   kintsugi.budget: Kintsugi budget used up
@@ -2771,6 +2803,10 @@ rule_name:
   truenas.scrub_old: 'Pool scrub'
   gateway.new_device: 'New devices on the network'
 param:
+  min_km: 'From km'
+  words: 'Keywords in invoice lines'
+  rides: 'From rides'
+  private_share: 'Maximum private share'
   new_watts: 'New device (W)'
   new_cost: 'New device (€)'
   max_months: 'At most months'
@@ -3718,14 +3754,49 @@ detail:
     none: 'No visits on this day.'
     route: 'The day''s route'
   travel:
-    trips: 'Trips this month'
+    trips: 'Rides'
     month: 'Kilometres this month'
     money: 'Mileage allowance'
+    business: 'business'
+    private: 'private'
+    allowance: 'Per diem'
+    estimated: 'This Dawarich version has no tracks: rides are estimated from visits (straight line × 1.3).'
+    partial: 'Dawarich tracks are still being read; older rides are missing for now.'
+    ride: '{time} {from} → {to}'
+    from: 'From'
+    to: 'To'
+    time: 'Time'
+    mode: 'Mode'
+    customer: 'Client'
+    unconfirmed: 'Unconfirmed'
+    unconfirmed_why: 'Client site, but no time booked for the client that day'
+    map: 'Route'
+    by_class: 'Business and private'
+    class_sum: '{km} · {n} rides · {hours} h'
+    when: 'When rides happen (this year)'
+    per_week: 'Hours on the move per week'
+    by_customer: 'Business per client'
+    hours: 'Travel time'
+    destinations: 'Frequent destinations'
+    unknown_place: 'no place'
+    place: 'Place'
+    rides: 'Rides'
+    last: 'Last'
+    by_mode: 'Modes'
+    facts: 'Also'
+    commute_days: 'Commutes'
+    commute_value: '{days} days, one way {km}'
+    car_private: 'Car private'
+    car_value: '{share} % of {km}'
+    fuel: 'Fuel and charging (Sure)'
+    fuel_value: '{amount}, {per_km} per km'
+    unplaced: 'Destinations without place'
+    unplaced_value: '{n} – assign places'
     year: 'Kilometres this year'
     km: 'Distance'
     away: 'away'
     amount: 'Amount'
-    none: 'No trips to customers this month yet.'
+    none: 'No rides in this period yet.'
     compare: 'Compared'
     this_month: 'this month'
     last_month: 'last month'
@@ -5043,13 +5114,41 @@ receipts:
   why_combo_amount: '{count} receipts add up to {sum}, the expense is {expense}.'
   why_combo_date: 'Mean date closeness of the {count} receipts.'
   why_combo_invoice: 'Split receipts check no single invoice number.'
+ride:
+  class:
+    business: business
+    commute: commute
+    private: private
+  reason:
+    plugin: trip in Kimai mileage
+    kimai: in booked Kimai time
+    customer: to or from a client site
+    commute: home – work
+    chain: between two business rides
+    rest: no business trace
+  mode:
+    driving: car
+    walking: walking
+    running: running
+    cycling: bike
+    bus: bus
+    train: train
+    flying: flight
+    boat: boat
+    motorcycle: motorbike
+    stationary: standing
+    unknown: unknown
 travel:
   month: this month
   prev: 'last month {km} km'
   year: 'This year {km} km · {countries} countries · {cities} cities'
-  trips: '{n} trips to clients, {km} km'
+  trips: '{n} business rides'
   amount: '{amount} at {rate} €/km'
-  none: Dawarich has no statistics yet.
+  none: No rides yet.
+  split: 'business {business} km · private {private} km'
+  commute: 'commute {km} km'
+  business_share: '{pct} % business'
+  estimated: 'Estimated from visits (Dawarich without tracks).'
   this_year: this year
   prev_year: 'last year {km} km'
   places: '{countries} countries · {cities} cities'

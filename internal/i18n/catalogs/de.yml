@@ -75,6 +75,7 @@ action:
   export: Exportieren
   open: Öffnen
   open_in_kimai: In Kimai öffnen
+  assign_places: Orte zuordnen
   open_in_invoiceninja: In Invoice Ninja öffnen
   open_in_snipeit: In Snipe-IT öffnen
   open_in_dawarich: In Dawarich öffnen
@@ -546,6 +547,8 @@ field:
   list_height: 'Listenhöhe'
   show_meals: 'Essensplan zeigen'
 opt:
+  trip_customers: Fahrten je Kunde
+  destinations: Häufige Ziele
   exposure: 'Angriffsfläche'
   domain_chain: 'Domain-Kette'
   full_rates: 'Vollkosten-Stundensatz je Kunde'
@@ -950,7 +953,7 @@ wtype:
     desc: 'Geschäftliche Ausgaben aus Sure ohne Beleg in Invoice Ninja, Paperless oder Postfach, größte zuerst, mit Suche in Paperless.'
   travel:
     name: 'Unterwegs'
-    desc: 'Kilometer im Monat und Jahr aus Dawarich, Länder und Städte, Fahrten zu Kunden mit Kilometerpauschale.'
+    desc: 'Fahrten aus Dawarich, beruflich und privat getrennt (Kimai-Zeit, Kundenorte, Kimai Anfahrten), mit Kilometergeld, Verpflegung und Auswertungen im Dialog.'
   exposure:
     name: 'Öffentlich erreichbar'
     desc: 'Was Pangolin öffentlich macht, riskanteste zuerst: ohne Anmeldung, mit offenen Updates oder bald ablaufendem Zertifikat.'
@@ -2310,10 +2313,28 @@ hint:
       why: Kimai-Eintrag bei {customer} als vor Ort, Dawarich zeigt keinen Aufenthalt.
     travel_costs:
       title: 'Fahrtkosten {month}: {amount}'
-      why: '{trips} Fahrten, rund {km} km. Als Ausgabe oder Rechnungsposition erfassen.'
+      why: '{trips} berufliche Fahrten, {km} km laut Dawarich. Als Ausgabe oder Rechnungsposition erfassen.'
     per_diem:
       title: 'Verpflegungsmehraufwand {month}: {amount}'
-      why: '{days} Tage über 8 h auswärts (Pauschale einstellbar).'
+      why: '{days} Tage auswärts mit beruflicher Fahrt, davon {full} ganze Tage (14 € ab 8 h und An-/Abreisetag, 28 € ganzer Tag).'
+    travel_unbilled:
+      title: 'Fahrtkosten {customer} {month}: {amount} nicht abgerechnet'
+      why: '{km} km beruflich zu diesem Kunden, keine Rechnung seitdem hat eine Fahrt-Position.'
+    unplaced:
+      title: '{count} häufige Ziele ohne Ort'
+      why: 'Fahrten der letzten {days} Tage enden dort, ohne Zuordnung bleiben sie privat. {names}'
+    plugin_missing:
+      title: '{count} berufliche Fahrten {month} fehlen in Kimai Anfahrten'
+      why: '{km} km laut Dawarich, im Plugin keine Fahrt zur selben Zeit.'
+    car_private_share:
+      title: 'Betriebsfahrzeug {year} zu {share} % privat'
+      why: 'Von {km} km mit dem Auto. Über 50 % privat ist die 1-%-Regelung nicht zulässig (Fahrtenbuch oder Privatvermögen).'
+    tracks_missing:
+      title: Dawarich ohne Tracks
+      why: 'Diese Dawarich-Version hat keine Tracks; Strecken und Zeiten sind aus Besuchen geschätzt (Luftlinie × 1,3).'
+    tracks_failed:
+      title: Dawarich-Tracks nicht lesbar
+      why: 'Die Tracks ließen sich nicht abrufen; Strecken und Zeiten sind aus Besuchen geschätzt.'
     no_data:
       title: Seit {hours} h keine Standortdaten
       why: Tracking-App aus oder keine Verbindung?
@@ -2512,6 +2533,12 @@ kpi:
   free: 'frei verfügbar {amount}'
   spark_days: 'letzte {n} Tage'
 col:
+  from: Von
+  to: Nach
+  class: Art
+  duration: Dauer
+  place: Ort
+  rides: Fahrten
   storage: 'Speicher'
   full_in: 'Voll in'
   login: 'Anmeldung'
@@ -2751,6 +2778,11 @@ rule_name:
   geo.travel_costs: Fahrtkosten
   geo.per_diem: Verpflegungsmehraufwand
   geo.no_data: Keine Standortdaten
+  geo.travel_unbilled: Fahrtkosten nicht abgerechnet
+  geo.unplaced: Ziele ohne Ort
+  geo.plugin_missing: Fahrten fehlen in Anfahrten
+  geo.car_private_share: Privatanteil Betriebsfahrzeug
+  geo.tracks_missing: Dawarich ohne Tracks
   tax.deadlines: Steuerfristen
   kintsugi.run_failed: Kintsugi-Lauf fehlgeschlagen
   kintsugi.budget: Kintsugi-Budget aufgebraucht
@@ -2772,6 +2804,10 @@ rule_name:
   truenas.scrub_old: 'Pool-Scrub'
   gateway.new_device: 'Neue Geräte im Netz'
 param:
+  min_km: 'Ab km'
+  words: 'Stichworte in Rechnungspositionen'
+  rides: 'Ab Fahrten'
+  private_share: 'Höchstens Anteil privat'
   new_watts: 'Neues Gerät (W)'
   new_cost: 'Neues Gerät (€)'
   max_months: 'Höchstens Monate'
@@ -3719,14 +3755,49 @@ detail:
     none: 'An diesem Tag gibt es keine Besuche.'
     route: 'Weg des Tages'
   travel:
-    trips: 'Fahrten im Monat'
+    trips: 'Fahrten'
     month: 'Kilometer im Monat'
     money: 'Kilometergeld'
+    business: 'beruflich'
+    private: 'privat'
+    allowance: 'Verpflegung'
+    estimated: 'Diese Dawarich-Version hat keine Tracks: Fahrten sind aus Besuchen geschätzt (Luftlinie × 1,3).'
+    partial: 'Dawarich-Tracks werden noch gelesen; ältere Fahrten fehlen vorerst.'
+    ride: '{time} {from} → {to}'
+    from: 'Von'
+    to: 'Nach'
+    time: 'Zeit'
+    mode: 'Verkehrsmittel'
+    customer: 'Kunde'
+    unconfirmed: 'Unbestätigt'
+    unconfirmed_why: 'Kundenort, aber an diesem Tag keine Zeit für den Kunden gebucht'
+    map: 'Strecke'
+    by_class: 'Beruflich und privat'
+    class_sum: '{km} · {n} Fahrten · {hours} h'
+    when: 'Wann gefahren wird (dieses Jahr)'
+    per_week: 'Stunden unterwegs je Woche'
+    by_customer: 'Beruflich je Kunde'
+    hours: 'Fahrzeit'
+    destinations: 'Häufige Ziele'
+    unknown_place: 'ohne Ort'
+    place: 'Ort'
+    rides: 'Fahrten'
+    last: 'Zuletzt'
+    by_mode: 'Verkehrsmittel'
+    facts: 'Außerdem'
+    commute_days: 'Arbeitswege'
+    commute_value: '{days} Tage, einfach {km}'
+    car_private: 'Auto privat'
+    car_value: '{share} % von {km}'
+    fuel: 'Tanken und Laden (Sure)'
+    fuel_value: '{amount}, {per_km} je km'
+    unplaced: 'Ziele ohne Ort'
+    unplaced_value: '{n} – Orte zuordnen'
     year: 'Kilometer im Jahr'
     km: 'Strecke'
     away: 'unterwegs'
     amount: 'Betrag'
-    none: 'In diesem Monat gibt es noch keine Fahrten zu Kunden.'
+    none: 'In diesem Zeitraum gibt es noch keine Fahrten.'
     compare: 'Im Vergleich'
     this_month: 'dieser Monat'
     last_month: 'Vormonat'
@@ -5044,13 +5115,41 @@ receipts:
   why_combo_amount: '{count} Belege ergeben zusammen {sum}, die Ausgabe {expense}.'
   why_combo_date: 'Mittlere Datumsnähe der {count} Belege.'
   why_combo_invoice: 'Sammelbelege prüfen keine einzelne Rechnungsnummer.'
+ride:
+  class:
+    business: beruflich
+    commute: Arbeitsweg
+    private: privat
+  reason:
+    plugin: Fahrt in Kimai Anfahrten
+    kimai: in gebuchter Kimai-Zeit
+    customer: zu oder von einem Kundenort
+    commute: Wohnung – Arbeit
+    chain: zwischen zwei beruflichen Fahrten
+    rest: keine berufliche Spur
+  mode:
+    driving: Auto
+    walking: zu Fuß
+    running: Laufen
+    cycling: Rad
+    bus: Bus
+    train: Bahn
+    flying: Flug
+    boat: Schiff
+    motorcycle: Motorrad
+    stationary: Stillstand
+    unknown: unbekannt
 travel:
   month: diesen Monat
   prev: 'Vormonat {km} km'
   year: 'Dieses Jahr {km} km · {countries} Länder · {cities} Städte'
-  trips: '{n} Fahrten zu Kunden, {km} km'
+  trips: '{n} berufliche Fahrten'
   amount: '{amount} bei {rate} €/km'
-  none: Dawarich liefert noch keine Statistik.
+  none: Noch keine Fahrten.
+  split: 'beruflich {business} km · privat {private} km'
+  commute: 'Arbeitsweg {km} km'
+  business_share: '{pct} % beruflich'
+  estimated: 'Geschätzt aus Besuchen (Dawarich ohne Tracks).'
   this_year: dieses Jahr
   prev_year: 'Vorjahr {km} km'
   places: '{countries} Länder · {cities} Städte'

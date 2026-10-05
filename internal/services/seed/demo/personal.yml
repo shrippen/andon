@@ -5,6 +5,7 @@ settings:
     prepayments: {amount: 1200}
     annual_due: "07-31"
     income_tax_rate: 0.3
+  travel: {base: work}
 connections:
   - {id: kimai, type: kimai, name: Kimai, url: "demo://kimai", credentials: shared}
   - {id: invoiceninja, type: invoiceninja, name: Invoice Ninja, url: "demo://invoiceninja", credentials: shared}
@@ -20,10 +21,6 @@ connections:
     name: Dawarich
     url: "demo://dawarich"
     credentials: shared
-    options:
-      areas:
-        "Northlight Pictures": {customer_id: 1}
-        "Zuhause": {home: true}
 widgets:
   - {id: kimai-link, type: link, title: Kimai, config: {url: "https://www.kimai.org", icon: "hl-kimai", description: Zeiterfassung, status: "off", info: {connection: kimai}, hotkey: "k"}}
   - {id: in-link, type: link, title: Invoice Ninja, config: {url: "https://invoiceninja.com", icon: "hl-invoice-ninja", description: Rechnungen, status: "off", info: {connection: invoiceninja}, hotkey: "i"}}

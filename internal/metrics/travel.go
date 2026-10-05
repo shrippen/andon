@@ -4,7 +4,6 @@ package metrics
 
 import (
 	"math"
-	"sort"
 	"strings"
 	"time"
 
@@ -58,27 +57,29 @@ func ParseAreaMapping(options map[string]any) map[string]AreaMapping {
 	return out
 }
 
-// AreaMap is a Dawarich connection's area mapping: the places of the Kimai
-// mileage plugin (area id -> customer or home), overridden by name through
-// the connection's "areas" option. geo and kimai may be nil.
+// AreaMap is a Dawarich connection's area mapping by area name, for the
+// visit-based rules: the areas the site book (Kimai mileage places,
+// Andon's assignments) marks as customer or home. geo and kimai may be
+// nil.
 func AreaMap(geo *sources.DawarichDataset, kimai *sources.KimaiDataset, options map[string]any) map[string]AreaMapping {
 	out := map[string]AreaMapping{}
-	if geo != nil && kimai != nil {
-		names := map[int64]string{}
-		for _, a := range geo.Areas {
-			names[a.ID] = a.Name
+	for _, s := range BookOf(geo, kimai, options).Sites {
+		if s.AreaID == 0 {
+			continue
 		}
-		for _, p := range kimai.Places {
-			name, ok := names[p.AreaID]
-			if !ok {
-				continue
-			}
-			out[name] = AreaMapping{CustomerID: p.CustomerID, Home: p.Home}
+		switch s.Kind {
+		case KindCustomer:
+			out[s.Name] = AreaMapping{CustomerID: s.CustomerID}
+		case KindHome:
+			out[s.Name] = AreaMapping{Home: true}
 		}
 	}
 
-	for name, m := range ParseAreaMapping(options) {
-		out[name] = m
+	// Without the areas (no Dawarich data) the option still names them.
+	if geo == nil {
+		for name, m := range ParseAreaMapping(options) {
+			out[name] = m
+		}
 	}
 	return out
 }
@@ -142,77 +143,6 @@ func ClientVisits(data *sources.DawarichDataset, mapping map[string]AreaMapping)
 			cv.End = &end
 		}
 		out = append(out, cv)
-	}
-	return out
-}
-
-// Home returns the area mapped as home, if any.
-func Home(data *sources.DawarichDataset, mapping map[string]AreaMapping) *sources.DawarichArea {
-	for i := range data.Areas {
-		if mapping[data.Areas[i].Name].Home {
-			return &data.Areas[i]
-		}
-	}
-	return nil
-}
-
-// Trip is one round trip to a client on one day.
-type Trip struct {
-	Day        string
-	CustomerID int64
-	KM         float64
-	AwayMin    int
-	Area       string
-}
-
-// Trips returns one round trip per client day in [start, end]: straight
-// line x road factor, there and back.
-func Trips(data *sources.DawarichDataset, mapping map[string]AreaMapping, start, end time.Time) []Trip {
-	base := Home(data, mapping)
-	perDay := map[time.Time][]ClientVisit{}
-	var days []time.Time
-	for _, v := range ClientVisits(data, mapping) {
-		if v.Day.Before(start) || v.Day.After(end) {
-			continue
-		}
-		if _, ok := perDay[v.Day]; !ok {
-			days = append(days, v.Day)
-		}
-		perDay[v.Day] = append(perDay[v.Day], v)
-	}
-	sort.Slice(days, func(i, j int) bool { return days[i].Before(days[j]) })
-
-	out := make([]Trip, 0, len(days))
-	for _, day := range days {
-		visits := perDay[day]
-		area := visits[0].Area
-		var km float64
-		if base != nil {
-			km = 2 * DistanceKM(base.Lat, base.Lon, area.Lat, area.Lon) * roadFactor
-		}
-
-		var first, last *time.Time
-		for _, v := range visits {
-			if v.Start != nil && (first == nil || v.Start.Before(*first)) {
-				first = v.Start
-			}
-			if v.End != nil && (last == nil || v.End.After(*last)) {
-				last = v.End
-			}
-		}
-		away := 0
-		if first != nil && last != nil {
-			away = int(last.Sub(*first).Minutes())
-		} else {
-			for _, v := range visits {
-				away += v.Minutes
-			}
-		}
-
-		out = append(out, Trip{
-			Day: day.Format("2006-01-02"), CustomerID: visits[0].CustomerID, KM: round1(km),
-			AwayMin: away, Area: area.Name,
-		})
 	}
 	return out
 }

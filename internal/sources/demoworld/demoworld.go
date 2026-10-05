@@ -59,6 +59,7 @@ type Place struct {
 	Name     Text
 	Lat, Lon float64
 	Customer string
+	Kind     string // office, home, customer, location, other
 }
 
 type Receipt struct {

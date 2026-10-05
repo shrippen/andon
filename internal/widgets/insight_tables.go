@@ -41,7 +41,11 @@ func colsFor(kind TableKind) []Col {
 	case TableAssetDates:
 		return []Col{{"name", "text"}, {"kind", "upcoming"}, {"due", "day"}}
 	case TableTrips:
-		return []Col{{"area", "text"}, {"day", "day"}, {"km", "km"}, {"away", "hours"}}
+		return []Col{{"day", "day"}, {"from", "text"}, {"to", "text"}, {"class", "rideclass"}, {"km", "km"}, {"duration", "hours"}}
+	case TableTripCustomers:
+		return []Col{{"customer", "text"}, {"km", "km"}, {"hours", "hours"}, {"amount", "money"}}
+	case TableDestinations:
+		return []Col{{"place", "text"}, {"rides", "text"}, {"km", "km"}, {"last", "day"}}
 	case TableRates:
 		return []Col{{"customer", "text"}, {"hours", "hours"}, {"amount", "money"}, {"rate", "money"}}
 	case TableAppUsage:
@@ -131,16 +135,8 @@ func tableRows(kind TableKind, results map[string]any, ctx ViewCtx) ([]Row, bool
 		}
 		return rows, true
 
-	case kind == TableTrips && service == enums.ServiceDawarich:
-		geo := data.(*sources.DawarichDataset)
-		kimai, _ := results[peerKimai].(*sources.KimaiDataset)
-		mapping := metrics.AreaMap(geo, kimai, ctx.Options)
-		start := metrics.AddMonths(today, -1)
-		var rows []Row
-		for _, t := range metrics.Trips(geo, mapping, start, today) {
-			rows = append(rows, Row{[]any{t.Area, t.Day, t.KM, float64(t.AwayMin) / minutesPerHourInsight}})
-		}
-		return rows, true
+	case service == enums.ServiceDawarich:
+		return tripRows(kind, data.(*sources.DawarichDataset), results, ctx, today)
 	}
 	return nil, false
 }
@@ -287,4 +283,45 @@ func hideCols(cols []Col, rows []Row, sum Row, hide []string) ([]Col, []Row, Row
 		rows[i] = pick(rows[i])
 	}
 	return kept, rows, pick(sum)
+}
+
+// tripRows are the Dawarich tables of the last month: the rides, business
+// per customer, destinations.
+func tripRows(kind TableKind, geo *sources.DawarichDataset, results map[string]any, ctx ViewCtx, today time.Time) ([]Row, bool) {
+	travel := travelOf(geo, ctx, results)
+	rides := travel.Between(metrics.AddMonths(today, -1), today)
+	var rows []Row
+	switch kind {
+	case TableTrips:
+		for i := len(rides) - 1; i >= 0; i-- {
+			r := rides[i]
+			rows = append(rows, Row{[]any{r.Day().Format(time.DateOnly), siteLabel(r.From), siteLabel(r.To), string(r.Class), r.KM, r.Minutes() / minutesPerHourInsight}})
+		}
+	case TableTripCustomers:
+		kimai, _ := results[peerKimai].(*sources.KimaiDataset)
+		names := map[int64]string{}
+		if kimai != nil {
+			names = metrics.KimaiCustomerNames(kimai)
+		}
+		rate := metrics.TravelSettingsOf(ctx.Settings).KMRate
+		for id, s := range metrics.ByCustomer(rides) {
+			name := names[id]
+			if name == "" {
+				name = "?"
+			}
+			rows = append(rows, Row{[]any{name, s.KM, s.Minutes / minutesPerHourInsight, s.KM * rate}})
+		}
+		sort.Slice(rows, func(i, j int) bool { return rows[i].Values[1].(float64) > rows[j].Values[1].(float64) })
+	case TableDestinations:
+		for _, d := range metrics.Destinations(rides) {
+			name := "?"
+			if d.Site != nil {
+				name = d.Site.Name
+			}
+			rows = append(rows, Row{[]any{name, d.Rides, d.KM, d.Last.In(time.Local).Format(time.DateOnly)}})
+		}
+	default:
+		return nil, false
+	}
+	return rows, true
 }

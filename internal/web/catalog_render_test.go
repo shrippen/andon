@@ -61,7 +61,7 @@ func TestCatalogTilesRender(t *testing.T) {
 		"month_close":        {want: "close-steps", peers: map[string]any{"kimai": sources.DemoKimai(now), "invoiceninja": sources.DemoNinja(now)}},
 		"today":              {want: "day-line", peers: map[string]any{"calendar": sources.DemoCalendar(now), "kimai": sources.DemoKimai(now)}},
 		"receipts_missing":   {data: sources.DemoSure(now), want: "slot-note"},
-		"travel":             {data: sources.DemoDawarich(now), want: "412 km"},
+		"travel":             {data: sources.DemoDawarich(now), want: "% beruflich", peers: map[string]any{"kimai": sources.DemoKimai(now)}},
 		"exposure":           {data: sources.DemoPangolin(), want: "expo-rows"},
 		"subscriptions":      {want: "Nordhost", peers: map[string]any{"wallos": sources.DemoWallos(now), "sure": sources.DemoSure(now)}},
 		"rate_trend":         {data: sources.DemoNinja(now), want: "spark", peers: map[string]any{"kimai": sources.DemoKimai(now)}},

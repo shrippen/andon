@@ -32,7 +32,6 @@ import (
 
 const (
 	hoursPerDay    = 24
-	defaultKMRate  = 0.30 // € per km (Entfernungs- und Dienstreisepauschale)
 	csvComma       = ';'
 	utf8BOM        = "\ufeff"
 	monthsInYear   = 12
@@ -92,7 +91,7 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64
 			continue
 		case enums.ServiceKimai, enums.ServiceInvoiceNinja:
 		case enums.ServiceDawarich:
-			// Visits back to the start of the tax year.
+			// Visits and tracks back to the start of the tax year.
 			params = map[string]any{"days": float64(time.Since(time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)).Hours()/hoursPerDay + 1)}
 			geoOptions = c.Options
 		default:
@@ -126,7 +125,8 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64
 		files["stunden.csv"] = hourRows(kimai, year)
 	}
 	if geo != nil && kimai != nil {
-		files["fahrten.csv"] = tripRows(geo, metrics.AreaMap(geo, kimai, geoOptions), kimai, year, kmRate(settings))
+		set := metrics.TravelSettingsOf(settings)
+		files["fahrten.csv"] = tripRows(metrics.TravelOf(geo, kimai, geoOptions, set, time.Now()), kimai, year, set.KMRate)
 	}
 	if rows := itCostRows(costData, kimai, settings); len(rows) > 1 {
 		files["it-kosten.csv"] = rows
@@ -238,24 +238,45 @@ func hourRows(kimai *sources.KimaiDataset, year int) [][]string {
 }
 
 // kmRate is the geo.travel_costs rule's rate of the space, else the default.
-func kmRate(settings map[string]any) float64 {
-	rulesCfg, _ := settings["rules"].(map[string]any)
-	travel, _ := rulesCfg["geo.travel_costs"].(map[string]any)
-	if v, ok := travel["km_rate"].(float64); ok && v > 0 {
-		return v
-	}
-	return defaultKMRate
+// classLabels name ride classes in the mileage log.
+var classLabels = map[metrics.RideClass]string{metrics.ClassBusiness: "beruflich", metrics.ClassCommute: "Arbeitsweg"}
+
+// reasonLabels say why a ride counts as business or commute.
+var reasonLabels = map[metrics.RideReason]string{
+	metrics.ReasonPlugin: "Kimai Anfahrten", metrics.ReasonKimai: "Zeit in Kimai", metrics.ReasonCustomer: "Kundenort",
+	metrics.ReasonChain: "zwischen Kundenfahrten", metrics.ReasonCommute: "Wohnung – Arbeit",
 }
 
-// tripRows is the mileage log: one round trip per client day.
-func tripRows(geo *sources.DawarichDataset, mapping map[string]metrics.AreaMapping, kimai *sources.KimaiDataset, year int, rate float64) [][]string {
+// tripRows is the mileage log: the year's business rides and commutes
+// as Dawarich tracked them; business km are priced at the km rate.
+func tripRows(travel metrics.Travel, kimai *sources.KimaiDataset, year int, rate float64) [][]string {
 	customers := metrics.KimaiCustomerNames(kimai)
 	start := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
-	rows := [][]string{{"Datum", "Kunde", "Ort", "Kilometer", "Betrag"}}
-	for _, t := range metrics.Trips(geo, mapping, start, start.AddDate(1, 0, -1)) {
-		rows = append(rows, []string{t.Day, customers[t.CustomerID], t.Area, money(t.KM), money(t.KM * rate)})
+	rows := [][]string{{"Datum", "Abfahrt", "Ankunft", "Von", "Nach", "Art", "Kunde", "Verkehrsmittel", "Kilometer", "Betrag", "Grund", "Geschätzt"}}
+	for _, r := range travel.Between(start, start.AddDate(1, 0, -1)) {
+		label, ok := classLabels[r.Class]
+		if !ok {
+			continue
+		}
+		amount := 0.0
+		if r.Class == metrics.ClassBusiness {
+			amount = r.KM * rate
+		}
+		estimated := ""
+		if r.Estimated {
+			estimated = "ja"
+		}
+		rows = append(rows, []string{r.Day().Format("2006-01-02"), r.Start.In(time.Local).Format("15:04"), r.End.In(time.Local).Format("15:04"),
+			siteName(r.From), siteName(r.To), label, customers[r.CustomerID], r.Mode, money(r.KM), money(amount), reasonLabels[r.Reason], estimated})
 	}
 	return rows
+}
+
+func siteName(s *metrics.Site) string {
+	if s == nil {
+		return ""
+	}
+	return s.Name
 }
 
 // itCostRows lists the homelab's monthly costs with the business share

@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"andon/internal/drivers/services"
@@ -36,7 +37,26 @@ func ninjaInvoice(raw any) NinjaInvoice {
 		Status: statusFor(ninjaStatus, m["status_id"]), Date: day(m["date"]), DueDate: day(m["due_date"]),
 		Amount: amount, Balance: asFloat(m["balance"]), Taxes: taxes, Net: amount - taxes,
 		Reminded: day(m["reminder_last_sent"]), NextSend: day(m["next_send_date"]),
+		Items: ninjaItems(m["line_items"]),
 	}
+}
+
+// itemChars caps a line item's text: enough to find "Fahrtkosten".
+const itemChars = 80
+
+func ninjaItems(raw any) []string {
+	var out []string
+	for _, l := range asList(raw) {
+		lm := asMap(l)
+		text := strings.ToLower(strings.TrimSpace(asStr(lm["product_key"]) + " " + asStr(lm["notes"])))
+		if r := []rune(text); len(r) > itemChars {
+			text = string(r[:itemChars])
+		}
+		if text != "" {
+			out = append(out, text)
+		}
+	}
+	return out
 }
 
 func statusFor(table map[string]string, raw any) string {
