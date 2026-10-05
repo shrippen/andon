@@ -1016,8 +1016,8 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 
 ### Phase 16: Icons für Kachelgruppen und Abschnitte (notiert 05.10.2026)
 
-- [ ] Ein Icon je Kachelgruppe (Thema: Überblick, Arbeit & Geld, Auswertung, Homelab, Sicherheit, Zuhause, Links), zuerst in Kante, dann in der Kachel-Bibliothek vor dem Gruppennamen und in der Themen-Navigation
-- [ ] Abschnitte dürfen vor ihrem Namen ein Icon haben, mit derselben Icon-Logik wie Kacheln (Favicon, `si-*`, `hl-*`, `sh-*`, `mdi-*`, Font Awesome, URL, Upload, Emoji); wählbar in den Abschnittseinstellungen, auch in der Code-Ansicht und im Export
+- [x] Ein Icon je Kachelgruppe (Thema: Überblick, Arbeit & Geld, Auswertung, Homelab, Sicherheit, Zuhause, Links), zuerst in Kante, dann in der Kachel-Bibliothek vor dem Gruppennamen und in der Themen-Navigation
+- [x] Abschnitte dürfen vor ihrem Namen ein Icon haben, mit derselben Icon-Logik wie Kacheln (Favicon, `si-*`, `hl-*`, `sh-*`, `mdi-*`, Font Awesome, URL, Upload, Emoji); wählbar in den Abschnittseinstellungen, auch in der Code-Ansicht und im Export
 
 ---
 

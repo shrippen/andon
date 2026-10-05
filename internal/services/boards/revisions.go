@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"strings"
 	"time"
 
 	"andon/internal/db"
@@ -31,6 +32,7 @@ type snapshotSection struct {
 	Span      int     `json:"span,omitempty"`
 	Rows      int     `json:"rows,omitempty"`
 	Color     string  `json:"color,omitempty"`
+	Icon      string  `json:"icon,omitempty"`
 	Mobile    string  `json:"mobile,omitempty"`
 	Widgets   []int64 `json:"widgets"`
 	Tall      []int64 `json:"tall,omitempty"` // widgets of Widgets placed MaxTileRows high
@@ -51,7 +53,7 @@ func snapshot(q db.Queryer, who *access.Principal, board *model.Board) error {
 	for _, sec := range fresh.Sections {
 		row := snapshotSection{
 			Title: sec.Title, Cols: sec.Cols, Size: string(sec.Size), Sort: string(sec.Sort),
-			Collapsed: sec.Collapsed, Area: sec.Area, Span: sec.Span, Rows: sec.Rows, Color: sec.Color, Mobile: string(sec.Mobile),
+			Collapsed: sec.Collapsed, Area: sec.Area, Span: sec.Span, Rows: sec.Rows, Color: sec.Color, Icon: sec.Icon, Mobile: string(sec.Mobile),
 		}
 		for _, p := range sec.Placements {
 			row.Widgets = append(row.Widgets, p.WidgetID)
@@ -198,7 +200,7 @@ func rebuild(tx *sql.Tx, board *model.Board, snap snapshotBoard) error {
 		newSection := &model.Section{
 			BoardID: board.ID, Title: sec.Title, Position: index, Cols: sec.Cols,
 			Size: size, Sort: sortOrder, Collapsed: sec.Collapsed, Area: area,
-			Span: clampLayout(sec.Span, MaxSpan), Rows: clampLayout(sec.Rows, MaxRows), Color: sectionColor(sec.Color),
+			Span: clampLayout(sec.Span, MaxSpan), Rows: clampLayout(sec.Rows, MaxRows), Color: sectionColor(sec.Color), Icon: strings.TrimSpace(sec.Icon),
 			Mobile: mobileMode(enums.MobileMode(sec.Mobile)),
 		}
 		if err := content.AddSection(tx, newSection); err != nil {

@@ -61,7 +61,7 @@
     {{if .Groups}}
     <div class="library">
       <nav class="gal-nav" aria-label="{{t "gallery.topics"}}">
-        {{range .Groups}}<a href="#topic-{{or .Topic "links"}}">{{if .Topic}}{{t (print "topic." .Topic)}}{{else}}{{t "library.links"}}{{end}}<span>{{len .Tiles}}</span></a>{{end}}
+        {{range .Groups}}<a href="#topic-{{or .Topic "links"}}"><span class="topic-icon" data-topic="{{or .Topic "links"}}" aria-hidden="true"></span>{{if .Topic}}{{t (print "topic." .Topic)}}{{else}}{{t "library.links"}}{{end}}<span>{{len .Tiles}}</span></a>{{end}}
       </nav>
 
       <div>
@@ -86,11 +86,11 @@
 
         {{range .Groups}}
         {{if .Topic}}<section class="gal-group lib-group" id="topic-{{.Topic}}">
-          <h2>{{t (print "topic." .Topic)}} <span class="hint-group-count">{{len .Tiles}}</span></h2>
+          <h2><span class="topic-icon" data-topic="{{.Topic}}" aria-hidden="true"></span> {{t (print "topic." .Topic)}} <span class="hint-group-count">{{len .Tiles}}</span></h2>
           {{template "library_rows" .Tiles}}
         </section>
         {{else}}<details class="gal-group lib-group fold" id="topic-links">
-          <summary>{{t "library.links"}} <span class="count">{{len .Tiles}}</span></summary>
+          <summary><span class="topic-icon" data-topic="links" aria-hidden="true"></span> {{t "library.links"}} <span class="count">{{len .Tiles}}</span></summary>
           <div class="body">{{template "library_rows" .Tiles}}</div>
         </details>{{end}}
         {{end}}
@@ -155,7 +155,7 @@
 </header>
 <div class="gallery">
     <nav class="gal-nav" aria-label="{{t "gallery.topics"}}">
-      {{range .Topics}}<a href="#topic-{{.Topic}}">{{t (print "topic." .Topic)}}<span>{{len .Cards}}</span></a>{{end}}
+      {{range .Topics}}<a href="#topic-{{.Topic}}"><span class="topic-icon" data-topic="{{.Topic}}" aria-hidden="true"></span>{{t (print "topic." .Topic)}}<span>{{len .Cards}}</span></a>{{end}}
     </nav>
 
     <div class="gal-main">
@@ -178,7 +178,7 @@
 
       {{range .Topics}}
       <section id="topic-{{.Topic}}" class="gal-group" aria-labelledby="topic-{{.Topic}}-h">
-        <h2 id="topic-{{.Topic}}-h">{{t (print "topic." .Topic)}}</h2>
+        <h2 id="topic-{{.Topic}}-h"><span class="topic-icon" data-topic="{{.Topic}}" aria-hidden="true"></span> {{t (print "topic." .Topic)}}</h2>
         <div class="gal-grid">
         {{range .Cards}}
           {{$svc := ""}}{{with .Kind.Service}}{{$svc = t (print "service." .)}}{{end}}
