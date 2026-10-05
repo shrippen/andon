@@ -495,8 +495,8 @@ func travelDetail(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, 
 		cfg.KMRate = defaultKMRate
 	}
 	today := todayOf(ctx)
-	view := travelView(cfg, data, ctx)
-	trips := metrics.Trips(data, metrics.ParseAreaMapping(ctx.Options), metrics.MonthStart(today), today)
+	view := travelView(cfg, data, ctx, results)
+	trips := metrics.Trips(data, travelAreas(data, ctx, results), metrics.MonthStart(today), today)
 	currency := "EUR"
 	list := &ObjList{Label: T("detail.travel.trips")}
 	days := make([]string, len(trips))

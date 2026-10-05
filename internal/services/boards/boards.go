@@ -111,6 +111,8 @@ type SectionView struct {
 	Span      int
 	Rows      int
 	Color     string
+	Icon      TileIcon
+	IconSpec  string // as stored, for the section form
 	Mobile    enums.MobileMode
 	Tiles     []Tile
 }
@@ -417,7 +419,7 @@ func viewSection(q db.Queryer, who *access.Principal, section model.Section, boa
 	}
 
 	view := SectionView{ID: section.ID, Title: section.Title, Cols: section.Cols, Size: size, Sort: section.Sort,
-		Collapsed: collapsed, Area: area, Span: section.Span, Rows: section.Rows, Color: section.Color, Mobile: section.Mobile}
+		Collapsed: collapsed, Area: area, Span: section.Span, Rows: section.Rows, Color: section.Color, Icon: IconOf(section.Icon), IconSpec: section.Icon, Mobile: section.Mobile}
 
 	myRows, _ := layer[layerRows].(map[string]any)
 	myCols, _ := layer[layerCols].(map[string]any)

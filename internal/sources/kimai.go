@@ -176,7 +176,32 @@ func loadKimai(ctx context.Context, api services.KimaiApi, sctx Ctx) (*KimaiData
 	}
 	loadKimaiHolidays(ctx, api, today, data)
 	data.Contract = loadContract(ctx, api)
+	data.Places = loadKimaiPlaces(ctx, api)
 	return data, nil
+}
+
+// placeHome is the mileage plugin's place type for home.
+const placeHome = "home"
+
+// loadKimaiPlaces reads the places of the mileage plugin that come from a
+// Dawarich area. Without the plugin (404) or its permission (403) there
+// are none.
+func loadKimaiPlaces(ctx context.Context, api services.KimaiApi) []KimaiPlace {
+	raw, err := api.Get(ctx, "mileage/places", nil)
+	if err != nil {
+		return nil
+	}
+
+	var places []KimaiPlace
+	for _, p := range asList(raw) {
+		pm := asMap(p)
+		area := asInt64(pm["dawarichAreaId"])
+		if area == 0 {
+			continue
+		}
+		places = append(places, KimaiPlace{AreaID: area, CustomerID: asInt64(pm["customerId"]), Home: asStr(pm["type"]) == placeHome})
+	}
+	return places
 }
 
 // loadKimaiHolidays reads the kimai-holiday-bundle: absences and public

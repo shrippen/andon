@@ -157,6 +157,7 @@ type SectionChanges struct {
 	Span      *int
 	Rows      *int
 	Color     *string
+	Icon      *string
 	Mobile    *enums.MobileMode
 }
 
@@ -203,6 +204,9 @@ func EditSection(d *sql.DB, who *access.Principal, sectionID int64, version int,
 		}
 		if changes.Color != nil {
 			section.Color = sectionColor(*changes.Color)
+		}
+		if changes.Icon != nil {
+			section.Icon = strings.TrimSpace(*changes.Icon)
 		}
 		if changes.Mobile != nil {
 			section.Mobile = mobileMode(*changes.Mobile)

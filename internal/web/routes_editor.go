@@ -148,9 +148,10 @@ func (d Deps) handleSectionEdit(w http.ResponseWriter, r *http.Request, ctx Ctx)
 	span := formInt(r, "span")
 	rows := formInt(r, "rows")
 	color := r.FormValue("color")
+	icon := r.FormValue("icon")
 	mobile := enums.MobileMode(r.FormValue("mobile"))
 	changes := boards.SectionChanges{Title: &title, Size: &size, Sort: &sortOrder, Area: &area,
-		Collapsed: &collapsed, Cols: &cols, Span: &span, Rows: &rows, Color: &color, Mobile: &mobile}
+		Collapsed: &collapsed, Cols: &cols, Span: &span, Rows: &rows, Color: &color, Icon: &icon, Mobile: &mobile}
 
 	boardID := r.FormValue("board_id")
 	if err := boards.EditSection(d.DB, ctx.Who, id, version, changes); err != nil {

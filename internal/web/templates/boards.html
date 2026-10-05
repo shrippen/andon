@@ -223,6 +223,9 @@
   <label>{{t "field.span"}}<select class="select" name="span">{{$span := .Span}}{{range $b.Spans}}<option value="{{.}}"{{if eq . $span}} selected{{end}}>{{t (print "span." .)}}</option>{{end}}</select></label>
   <label>{{t "field.rows"}}<select class="select" name="rows">{{$rows := .Rows}}{{if eq $rows 0}}{{$rows = 1}}{{end}}{{range $b.RowSpans}}<option value="{{.}}"{{if eq . $rows}} selected{{end}}>{{.}}</option>{{end}}</select></label>
   <label>{{t "field.color"}}<select class="select" name="color">{{$color := .Color}}<option value="">{{t "opt.none"}}</option>{{range $b.Colors}}<option value="{{.}}"{{if eq (print .) $color}} selected{{end}}>{{t (print "opt." .)}}</option>{{end}}</select></label>
+  <label>{{t "field.icon"}}<input class="input" id="sec-icon-{{.ID}}" name="icon" value="{{.IconSpec}}"></label>
+  <p class="small muted">{{t "field.section_icon_hint"}}</p>
+  <input class="input icon-upload" type="file" accept="image/svg+xml,image/png,image/webp,image/jpeg,image/x-icon" data-target="icon" aria-label="{{t "field.icon"}}">
   <label>{{t "field.mobile"}}<select class="select" name="mobile">{{$mobile := .Mobile}}{{range $b.Mobiles}}<option value="{{.}}"{{if eq . $mobile}} selected{{end}}>{{t (print "mobile." (or (print .) "normal"))}}</option>{{end}}</select></label>
   <label class="check"><input type="checkbox" name="collapsed"{{if .Collapsed}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "field.collapsed"}}</label>
   <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
@@ -265,7 +268,7 @@
   {{$open := or (not .Collapsed) $bare}}
   <details class="fold" data-key="{{.ID}}" data-open="{{$open}}" data-fold="/boards/{{$b.Board.ID}}/fold/{{.ID}}"{{if $open}} open{{end}}>
   <summary class="dsec-head">
-    <h2>{{if .Title}}{{.Title}}{{else}}{{t "board.untitled"}}{{end}}</h2>
+    <h2>{{template "card_icon" .Icon}}{{if .Title}}{{.Title}}{{else}}{{t "board.untitled"}}{{end}}</h2>
     <span class="count dsec-count">{{len .Tiles}}</span>
   </summary>
   <div class="body dsec-body" data-size="{{.Size}}"{{with .Cols}} data-style="--cols:{{.}}"{{end}} data-sortable="{{.ID}}">
@@ -425,9 +428,11 @@
 
 {{/* card_head: a card's title as its frame asks (widgets.Frame): size or
      none, an icon before it, a link on it. */}}
+{{define "card_icon"}}{{with .}}{{if .Emoji}}<span class="card-icon" aria-hidden="true">{{.Emoji}}</span>{{else if .URL}}<img class="card-icon{{if .Glyph}} is-glyph{{end}}" src="{{.URL}}" alt="">{{end}}{{end}}{{end}}
+
 {{define "card_head"}}{{if and .Title (ne (print .Frame.Header) "off")}}
 <h3 class="card-title"{{if eq (print .Frame.Header) "small"}} data-size="small"{{end}}>
-  {{with .Icon}}{{if .Emoji}}<span class="card-icon" aria-hidden="true">{{.Emoji}}</span>{{else if .URL}}<img class="card-icon{{if .Glyph}} is-glyph{{end}}" src="{{.URL}}" alt="">{{end}}{{end}}
+  {{template "card_icon" .Icon}}
   {{if .Frame.Link}}<a href="{{.Frame.Link}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a>{{else}}{{.Title}}{{end}}{{template "card_detail" .Detail}}</h3>
 {{else if .Detail}}<div class="card-title">{{template "card_detail" .Detail}}</div>
 {{end}}{{end}}

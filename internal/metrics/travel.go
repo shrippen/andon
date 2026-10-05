@@ -58,6 +58,31 @@ func ParseAreaMapping(options map[string]any) map[string]AreaMapping {
 	return out
 }
 
+// AreaMap is a Dawarich connection's area mapping: the places of the Kimai
+// mileage plugin (area id -> customer or home), overridden by name through
+// the connection's "areas" option. geo and kimai may be nil.
+func AreaMap(geo *sources.DawarichDataset, kimai *sources.KimaiDataset, options map[string]any) map[string]AreaMapping {
+	out := map[string]AreaMapping{}
+	if geo != nil && kimai != nil {
+		names := map[int64]string{}
+		for _, a := range geo.Areas {
+			names[a.ID] = a.Name
+		}
+		for _, p := range kimai.Places {
+			name, ok := names[p.AreaID]
+			if !ok {
+				continue
+			}
+			out[name] = AreaMapping{CustomerID: p.CustomerID, Home: p.Home}
+		}
+	}
+
+	for name, m := range ParseAreaMapping(options) {
+		out[name] = m
+	}
+	return out
+}
+
 func areaOf(visit sources.DawarichVisit, areas []sources.DawarichArea) *sources.DawarichArea {
 	if visit.AreaID != 0 {
 		for i := range areas {

@@ -21,14 +21,14 @@ type TravelConfig struct {
 // defaultKMRate is the German flat rate for business trips by car (€/km).
 const defaultKMRate = 0.30
 
-func travelView(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx) map[string]any {
+func travelView(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, results map[string]any) map[string]any {
 	today := todayOf(ctx)
 	year := metrics.DawarichYear(data.Stats, today.Year())
 	out := map[string]any{"MonthKM": metrics.DawarichMonthKM(data.Stats, today), "PrevKM": metrics.DawarichMonthKM(data.Stats, metrics.AddMonths(today, -1)),
 		"YearKM": asFloat(year["totalDistanceKm"]), "Countries": int(asFloat(year["totalCountriesVisited"])),
 		"Cities": int(asFloat(year["totalCitiesVisited"])), "Rate": cfg.KMRate}
 
-	trips := metrics.Trips(data, metrics.ParseAreaMapping(ctx.Options), metrics.MonthStart(today), today)
+	trips := metrics.Trips(data, travelAreas(data, ctx, results), metrics.MonthStart(today), today)
 	km := 0.0
 	for _, t := range trips {
 		km += t.KM
@@ -55,5 +55,20 @@ func init() {
 		Decode: func(r Raw) TravelConfig {
 			return TravelConfig{KMRate: r.Float("km_rate"), Year: r.Pick("period") == "year", HideBar: r.Bool("hide_bar")}
 		},
-		Queries: ownData[TravelConfig], View: dataView(travelView)}.add()
+		Queries: func(TravelConfig) []Query { return append(dataQuery(nil), kimaiPeer) }, View: travelTile}.add()
+}
+
+// travelTile is travelView on the tile's own Dawarich data.
+func travelTile(cfg TravelConfig, results map[string]any, ctx ViewCtx) map[string]any {
+	data, ok := results[dataName].(*sources.DawarichDataset)
+	if !ok {
+		return map[string]any{}
+	}
+	return travelView(cfg, data, ctx, results)
+}
+
+// travelAreas is the area mapping with the places of the Kimai peer.
+func travelAreas(data *sources.DawarichDataset, ctx ViewCtx, results map[string]any) map[string]metrics.AreaMapping {
+	kimai, _ := results[peerKimai].(*sources.KimaiDataset)
+	return metrics.AreaMap(data, kimai, ctx.Options)
 }

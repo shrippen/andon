@@ -59,6 +59,8 @@ func crossQueries(kind TableKind) []Query {
 		return []Query{peer(peerPaperless, enums.ServicePaperless), peer(peerAuthentik, enums.ServiceAuthentik)}
 	case TableMargins:
 		return []Query{peer(peerNinja, enums.ServiceInvoiceNinja)}
+	case TableTrips:
+		return []Query{kimaiPeer}
 	}
 	return nil
 }
@@ -108,7 +110,7 @@ func crossRows(kind TableKind, data any, results map[string]any, ctx ViewCtx) ([
 			return nil, true
 		}
 		geo, _ := results[peerDawarich].(*sources.DawarichDataset)
-		mapping := metrics.ParseAreaMapping(ctx.PeerOptions[peerDawarich])
+		mapping := metrics.AreaMap(geo, kimai, ctx.PeerOptions[peerDawarich])
 		for _, r := range metrics.FullCostRates(kimai, d, geo, mapping, today, crossRateDays) {
 			rows = append(rows, Row{[]any{r.Customer, r.BillableH, r.OtherH, r.TravelH, r.Nominal, r.Full}})
 		}

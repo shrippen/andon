@@ -54,6 +54,14 @@ type KimaiHoliday struct {
 	HalfDay bool
 }
 
+// KimaiPlace is a place of the Kimai mileage plugin linked to a Dawarich
+// area: a customer site or home.
+type KimaiPlace struct {
+	AreaID     int64
+	CustomerID int64
+	Home       bool
+}
+
 type KimaiDataset struct {
 	URL           string
 	Timesheets    []KimaiSheet
@@ -64,6 +72,7 @@ type KimaiDataset struct {
 	Holidays      []KimaiHoliday
 	HolidayBundle bool
 	Contract      *WorkContract // working time from Kimai, nil if none
+	Places        []KimaiPlace  // mileage plugin, nil without it
 }
 
 // ── Invoice Ninja ──

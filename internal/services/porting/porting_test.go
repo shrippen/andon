@@ -151,6 +151,13 @@ func TestExportImportRoundtrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// A section icon travels with the export.
+	icon := "🔥"
+	view, _ = boards.View(d, a, visible[0].ID, boards.LayoutOverlay)
+	if err := boards.EditSection(d, a, view.Sections[0].ID, view.Version, boards.SectionChanges{Icon: &icon}); err != nil {
+		t.Fatal(err)
+	}
+
 	text, err := porting.ExportSpace(d, a, spaceA)
 	if err != nil {
 		t.Fatal(err)
@@ -169,6 +176,9 @@ func TestExportImportRoundtrip(t *testing.T) {
 	}
 	visibleB, _ := boards.Visible(d, b)
 	viewB, _ := boards.View(d, b, visibleB[0].ID, boards.LayoutOverlay)
+	if viewB.Sections[0].Icon.Emoji != icon {
+		t.Fatalf("section icon lost on import: %+v", viewB.Sections[0].Icon)
+	}
 	if viewB.Sections[0].Tiles[0].Rows != boards.MaxTileRows {
 		t.Fatalf("tall tile lost on import: %+v", viewB.Sections[0].Tiles[0])
 	}
