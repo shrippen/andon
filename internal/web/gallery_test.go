@@ -261,7 +261,7 @@ func TestLibraryOneRowMenu(t *testing.T) {
 	if n := strings.Count(page, `name="space_id"`); n != 1 {
 		t.Fatalf("expected one space picker, got %d", n)
 	}
-	if n := len(regexp.MustCompile(`<details class="row-more" data-widget="\d+">`).FindAllString(page, -1)); n != 2 {
+	if n := len(regexp.MustCompile(`<details class="dropdown is-right row-more" data-widget="\d+">`).FindAllString(page, -1)); n != 2 {
 		t.Fatalf("expected 2 row menus to fill, got %d", n)
 	}
 	if !strings.Contains(page, `<template id="row-more">`) || !strings.Contains(page, `action="/widgets/{widget}/copy"`) {
@@ -323,5 +323,34 @@ func TestGalleryDeleteUnused(t *testing.T) {
 	side = string(mustGet(t, srv, client, "/widget-tiles/note?space="+string(space)))
 	if strings.Contains(side, "<b>Spare</b>") || !strings.Contains(side, "<b>Placed</b>") {
 		t.Fatalf("expected only the placed tile left:\n%s", side)
+	}
+}
+
+// TestLibraryRowsShowPlace: a library row names the boards its tile is on
+// (as links), marks a tile without its own name and one on no board.
+func TestLibraryRowsShowPlace(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := regexp.MustCompile(`space=(\d+)`).FindSubmatch(mustGet(t, srv, client, "/widgets/new?dialog"))[1]
+	for _, title := range []string{"Placed", ""} {
+		postForm(t, client, srv.URL+"/widgets", url.Values{
+			"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space)}, "type": {"note"}, "title": {title}, "cfg.text": {"hi"},
+		})
+	}
+	boardURL, section, version, placed := placeTarget(t, srv, client, "Placed")
+	board := boardIDFrom(boardURL)
+	postForm(t, client, srv.URL+"/boards/"+board+"/sections/"+section+"/place", url.Values{
+		"csrf": {csrfToken(t, srv, client)}, "widget_id": {placed}, "version": {version},
+	})
+
+	page := string(mustGet(t, srv, client, "/widgets"))
+	row := regexp.MustCompile(`<tr data-q="Placed[^"]*"[^>]*>[\s\S]*?</tr>`).FindString(page)
+	if !strings.Contains(row, `<a class="chip" href="/boards/`+board+`">`) || strings.Contains(row, "data-unused") {
+		t.Fatalf("placed row lacks its board:\n%s", row)
+	}
+	if !regexp.MustCompile(`<tr data-q="[^"]*" data-space="personal" data-unnamed data-unused>`).MatchString(page) {
+		t.Fatalf("unnamed, unused row not marked:\n%s", page)
 	}
 }

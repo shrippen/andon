@@ -175,3 +175,24 @@ func ToggleNav(d *sql.DB, who *access.Principal, boardID int64) error {
 		return order
 	})
 }
+
+// SetNavOrder puts boards in the given order (a board dragged to its new
+// place); boards the list leaves out or repeats keep their place after it.
+func SetNavOrder(d *sql.DB, who *access.Principal, ids []int64) error {
+	return changeNav(d, who, func(order []int64, _ *navPrefs) []int64 {
+		known := map[int64]bool{}
+		for _, id := range order {
+			known[id] = true
+		}
+
+		out := make([]int64, 0, len(order))
+		placed := map[int64]bool{}
+		for _, id := range append(ids, order...) {
+			if known[id] && !placed[id] {
+				placed[id] = true
+				out = append(out, id)
+			}
+		}
+		return out
+	})
+}

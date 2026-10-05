@@ -298,22 +298,57 @@ func (d Deps) handleWidgetLibrary(w http.ResponseWriter, r *http.Request, ctx Ct
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
-	_ = d.Page(w, ctx, "widgets", http.StatusOK, map[string]any{"Groups": libraryGroups(ctx, lib), "Count": len(lib),
-		"Spaces": access.EditableSpaces(ctx.Who)})
+	seen, err := boards.Visible(d.DB, ctx.Who)
+	if err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	groups := libraryGroups(ctx, lib, seen)
+	_ = d.Page(w, ctx, "widgets", http.StatusOK, map[string]any{"Groups": groups, "Count": len(lib),
+		"Tally": tallyLibrary(groups), "Spaces": access.EditableSpaces(ctx.Who)})
 }
 
 // libraryGroup is one topic of the library ("" = links), A–Z by name.
 type libraryGroup struct {
 	Topic widgets.Topic
-	Tiles []galleryTile
+	Tiles []libraryTile
+}
+
+// libraryTile is a library row: where the tile is placed (only boards the
+// viewer sees) and whether it lacks its own name ("Kennzahl" eleven times).
+type libraryTile struct {
+	galleryTile
+	Service enums.ServiceType
+	Boards  []boards.BoardRef
+	Unnamed bool
+}
+
+// libraryTally counts the rows per filter: space kind, unnamed, unused.
+type libraryTally struct {
+	Kinds           map[string]int // by space kind, for the template's index
+	Unnamed, Unused int
 }
 
 // libraryGroups sorts the library like the gallery: by topic, links last.
-func libraryGroups(ctx Ctx, lib []widgetlib.Ref) []libraryGroup {
+func libraryGroups(ctx Ctx, lib []widgetlib.Ref, seen []boards.BoardRef) []libraryGroup {
 	sorter := collate.New(language.Make(string(ctx.Locale)), collate.IgnoreCase)
-	byTopic := map[widgets.Topic][]galleryTile{}
+	boardByID := make(map[int64]boards.BoardRef, len(seen))
+	for _, b := range seen {
+		boardByID[b.ID] = b
+	}
+
+	byTopic := map[widgets.Topic][]libraryTile{}
 	for _, ref := range lib {
-		tile := galleryTile{Ref: ref, Name: cmp.Or(ref.Title, i18n.T("wtype."+ref.Type+".name", ctx.Locale, nil))}
+		tile := libraryTile{galleryTile: galleryTile{Ref: ref, Name: cmp.Or(ref.Title, i18n.T("wtype."+ref.Type+".name", ctx.Locale, nil))},
+			Unnamed: ref.Title == "" && ref.Type != linkType}
+		if kind, ok := widgets.Get(ref.Type); ok {
+			tile.Service = kind.Service
+		}
+		for _, id := range ref.Boards {
+			if b, ok := boardByID[id]; ok {
+				tile.Boards = append(tile.Boards, b)
+			}
+		}
 		topic := widgets.TopicOf(ref.Type)
 		if ref.Type == linkType {
 			topic = ""
@@ -326,8 +361,24 @@ func libraryGroups(ctx Ctx, lib []widgetlib.Ref) []libraryGroup {
 		if len(tiles) == 0 {
 			continue
 		}
-		slices.SortFunc(tiles, func(a, b galleryTile) int { return sorter.CompareString(a.Name, b.Name) })
+		slices.SortFunc(tiles, func(a, b libraryTile) int { return sorter.CompareString(a.Name, b.Name) })
 		out = append(out, libraryGroup{Topic: topic, Tiles: tiles})
+	}
+	return out
+}
+
+func tallyLibrary(groups []libraryGroup) libraryTally {
+	out := libraryTally{Kinds: map[string]int{}}
+	for _, g := range groups {
+		for _, tile := range g.Tiles {
+			out.Kinds[string(tile.Space.Kind)]++
+			if tile.Unnamed {
+				out.Unnamed++
+			}
+			if tile.Uses == 0 {
+				out.Unused++
+			}
+		}
 	}
 	return out
 }

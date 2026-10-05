@@ -12,6 +12,7 @@ import (
 	"andon/internal/services/auth"
 	"andon/internal/services/boards"
 	"andon/internal/services/connections"
+	"andon/internal/services/hints"
 	"andon/internal/services/porting"
 	"andon/internal/services/spaces"
 	"andon/internal/services/widgetlib"
@@ -23,6 +24,7 @@ import (
 func (d Deps) RegisterMoreRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /boards", d.authed(d.handleBoardList))
 	mux.HandleFunc("POST /boards/{id}/nav", d.authed(d.handleBoardNav))
+	mux.HandleFunc("POST /boards/order", d.authed(d.handleBoardOrder))
 	mux.HandleFunc("GET /boards/new", d.authed(d.handleBoardNewForm))
 	mux.HandleFunc("POST /boards/new", d.authed(d.handleBoardCreate))
 	mux.HandleFunc("GET /me/credentials", d.authed(d.handleCredentials))
@@ -49,7 +51,93 @@ func (d Deps) handleBoardList(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	} else if len(list) > 0 {
 		start = list[0].ID
 	}
-	_ = d.Page(w, ctx, "boards", http.StatusOK, map[string]any{"Boards": list, "Start": start, "Last": len(list) - 1})
+	cards, err := d.boardCards(ctx, list)
+	if err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	_ = d.Page(w, ctx, "boards", http.StatusOK, map[string]any{"Boards": cards, "Start": start, "Last": len(list) - 1})
+}
+
+// boardCard is a board in the list with its floor plan: tiles by section,
+// each tinted by the open hints of its connection.
+type boardCard struct {
+	boards.BoardRef
+	Sections []planSection
+	Tiles    int
+	Hints    int
+}
+
+type planSection struct {
+	Cols  int
+	Tiles []planTile
+}
+
+type planTile struct {
+	Cols, Rows int
+	Tier       string // Kante tier of its most severe hint, "" = none
+}
+
+func (d Deps) boardCards(ctx Ctx, list []boards.BoardRef) ([]boardCard, error) {
+	sketches, err := boards.Sketches(d.DB, list)
+	if err != nil {
+		return nil, err
+	}
+	badges, err := hints.Badges(d.DB, ctx.Who)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]boardCard, 0, len(list))
+	for _, ref := range list {
+		sketch := sketches[ref.ID]
+		card := boardCard{BoardRef: ref, Tiles: sketch.Tiles}
+		counted := map[int64]bool{}
+		for _, sec := range sketch.Sections {
+			part := planSection{Cols: sec.Cols}
+			for _, tile := range sec.Tiles {
+				plan := planTile{Cols: tile.Cols, Rows: tile.Rows}
+				if tile.ConnectionID != nil {
+					badge := badges[*tile.ConnectionID]
+					if badge.Count > 0 {
+						plan.Tier = sevTier(badge.Top)
+					}
+					// A connection's hints count once, however many tiles show it.
+					if !counted[*tile.ConnectionID] {
+						counted[*tile.ConnectionID] = true
+						card.Hints += badge.Count
+					}
+				}
+				part.Tiles = append(part.Tiles, plan)
+			}
+			card.Sections = append(card.Sections, part)
+		}
+		out = append(out, card)
+	}
+	return out, nil
+}
+
+// handleBoardOrder saves the board order after a drag (form field id,
+// one per board, in the new order); answers 204, the page has moved it.
+func (d Deps) handleBoardOrder(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	var ids []int64
+	for _, raw := range r.Form["id"] {
+		id, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil {
+			http.Error(w, "bad form", http.StatusBadRequest)
+			return
+		}
+		ids = append(ids, id)
+	}
+	if err := boards.SetNavOrder(d.DB, ctx.Who, ids); err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleBoardNav moves a board up or down in the viewer's order, or

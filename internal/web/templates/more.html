@@ -6,40 +6,48 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{t "boards.title"}} · Andon</title>
   {{template "style" .}}
+  <script src="{{asset "vendor/sortable/Sortable.min.js"}}" defer></script>
 </head>
 <body>
   {{template "header" .}}
   <main>
     <h1>{{t "boards.title"}}</h1>
     {{template "intro" dict "Page" "boards" "Chapter" "boards" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
-    <p><a class="btn btn-outline btn-sm" href="/boards/new">+ {{t "board.new"}}</a></p>
-    <div class="table-wrap"><table class="table boards-table">
-      <thead><tr><th>{{t "field.name"}}</th><th>{{t "field.space"}}</th><th>{{t "boards.order"}}</th><th>{{t "boards.in_nav"}}</th><th></th></tr></thead>
-      <tbody>
+    {{/* Cards in the viewer's order: drag a card by its grip (andon.js
+         setupBoardOrder), or move it in its menu without script. */}}
+    <div class="board-grid" data-board-order>
       {{range $i, $b := .Boards}}
-      <tr id="board-{{.ID}}"{{if .Hidden}} class="is-hidden"{{end}}>
-        <td><a href="/boards/{{.ID}}">{{.Name}}</a>{{if eq .ID $.Start}} <span class="pill">{{t "boards.start"}}</span>{{end}}</td>
-        <td class="small muted">{{.Space.Name}}</td>
-        <td><form method="post" action="/boards/{{.ID}}/nav" class="btn-row">
-          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-          <span class="btn-group">
-            <button type="submit" name="move" value="up" class="btn btn-outline btn-sm" aria-label="{{t "boards.up"}}" title="{{t "boards.up"}}"{{if eq $i 0}} disabled{{end}}>↑</button>
-            <button type="submit" name="move" value="down" class="btn btn-outline btn-sm" aria-label="{{t "boards.down"}}" title="{{t "boards.down"}}"{{if eq $i $.Last}} disabled{{end}}>↓</button>
-          </span>
-        </form></td>
-        <td><div class="btn-row">
-          <form method="post" action="/boards/{{.ID}}/nav">
-            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" name="move" value="toggle" class="btn btn-outline btn-sm">{{if .Hidden}}{{t "boards.show"}}{{else}}{{t "boards.hide"}}{{end}}</button>
-          </form></div></td>
-        <td><div class="btn-row">
-          {{if .CanEdit}}<a class="btn btn-outline btn-sm" href="/boards/{{.ID}}?edit">{{t "boards.edit"}}</a>
-          <a class="btn btn-outline btn-sm" href="/boards/{{.ID}}/settings">{{t "boards.settings"}}</a>{{end}}
-          <a class="btn btn-outline btn-sm" href="/boards/{{.ID}}?layout">{{t "boards.my_layout"}}</a></div></td>
-      </tr>
+      <article class="board-card{{if eq .ID $.Start}} is-start{{end}}{{if .Hidden}} is-off{{end}}" id="board-{{.ID}}" data-board="{{.ID}}">
+        <span class="grip" title="{{t "boards.drag"}}" aria-hidden="true"></span>
+        <a class="plan" href="/boards/{{.ID}}" tabindex="-1" aria-hidden="true">{{range .Sections}}<div data-style="--cols:{{.Cols}}">{{range .Tiles}}<i{{if or (gt .Cols 1) (gt .Rows 1)}} data-style="--w:{{.Cols}};--h:{{.Rows}}"{{end}}{{with .Tier}} data-tier="{{.}}"{{end}}></i>{{end}}</div>{{end}}</a>
+        <div class="board-body">
+          <div class="board-name"><a href="/boards/{{.ID}}">{{.Name}}</a>{{if eq .ID $.Start}}<span class="pill">{{t "boards.start"}}</span>{{end}}</div>
+          <div class="board-meta"><span>{{template "space_label" .Space}}</span><span>{{t "boards.tiles" "n" .Tiles}}</span>{{with .Hints}}<span class="is-warn">{{t "boards.hints" "n" .}}</span>{{end}}</div>
+          <div class="board-foot">
+            <form method="post" action="/boards/{{.ID}}/nav">
+              <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+              <button type="submit" name="move" value="toggle" class="switch" role="switch" aria-checked="{{not .Hidden}}"><span class="switch-track"></span>{{t "boards.in_nav"}}</button>
+            </form>
+            {{if .CanEdit}}<a class="btn btn-outline btn-sm" href="/boards/{{.ID}}?edit">{{t "boards.edit"}}</a>
+            {{else}}<a class="btn btn-outline btn-sm" href="/boards/{{.ID}}?layout">{{t "boards.my_layout"}}</a>{{end}}
+            <details class="dropdown is-right">
+              <summary class="btn btn-outline btn-sm btn-icon" aria-label="{{t "action.more"}}" title="{{t "action.more"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></summary>
+              <div class="menu">
+                {{if .CanEdit}}<a href="/boards/{{.ID}}/settings">{{t "boards.settings"}}</a>
+                <a href="/boards/{{.ID}}?layout">{{t "boards.my_layout"}}</a>{{end}}
+                <form method="post" action="/boards/{{.ID}}/nav">
+                  <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+                  {{if ne $i 0}}<button type="submit" name="move" value="up">{{t "boards.up"}}</button>{{end}}
+                  {{if ne $i $.Last}}<button type="submit" name="move" value="down">{{t "boards.down"}}</button>{{end}}
+                </form>
+              </div>
+            </details>
+          </div>
+        </div>
+      </article>
       {{end}}
-      </tbody>
-    </table></div>
+      <a class="board-add" href="/boards/new"><b aria-hidden="true">+</b>{{t "board.new"}}</a>
+    </div>
     <p class="small muted">{{t "boards.start_hint"}} <a href="/me/profile">{{t "nav.profile"}}</a></p>
   </main>
 </body>

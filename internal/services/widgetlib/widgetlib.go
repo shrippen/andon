@@ -47,6 +47,7 @@ type Ref struct {
 	Space        access.SpaceRef
 	ConnectionID *int64
 	Uses         int
+	Boards       []int64 // the boards it is placed on, also ones who does not see
 	CanEdit      bool
 	CanDelete    bool
 }
@@ -100,8 +101,12 @@ func Library(d *sql.DB, who *access.Principal) ([]Ref, error) {
 			if err != nil {
 				return err
 			}
+			placed, err := content.WidgetBoards(tx, w.ID)
+			if err != nil {
+				return err
+			}
 			ref := Ref{ID: w.ID, Key: w.Key, Type: w.Type, Title: w.Title, ConnectionID: w.ConnectionID,
-				Uses: uses, CanEdit: granted >= enums.RightEdit, CanDelete: granted >= enums.RightManage}
+				Uses: uses, Boards: placed, CanEdit: granted >= enums.RightEdit, CanDelete: granted >= enums.RightManage}
 			if space != nil {
 				ref.Space = *space
 			}

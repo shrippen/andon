@@ -777,12 +777,23 @@ main .cm-s-default .cm-error { color: var(--danger-text); }
 .inline-details[open] { display: block; margin-top: .3rem; }
 /* Library: one column grid for all groups. */
 .lib-table { table-layout: fixed; width: 100%; }
-.lib-table .lib-name { width: 38%; }
-.lib-table .lib-space { width: 14%; }
-.lib-table .lib-uses { width: 14%; }
-.lib-table .lib-actions { width: 34%; }
+.lib-table .lib-name { width: 46%; }
+.lib-table .lib-where { width: 30%; }
+.lib-table .lib-actions { width: 24%; }
 .lib-table td { overflow-wrap: anywhere; }
-@media (max-width: 640px) { .lib-table { table-layout: auto; } .lib-table col { width: auto; } }
+.lib-table td:last-child .btn-row { justify-content: flex-end; }
+/* Narrow: name and actions on one line, the boards below them. */
+@media (max-width: 640px) {
+  .lib-table, .lib-table tbody { display: block; }
+  .lib-table colgroup { display: none; }
+  .lib-table tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-top: 1px solid var(--bg1); }
+  .lib-table tr:first-child { border-top: 0; }
+  .lib-table td { display: block; border-top: 0; }
+  .lib-table td:first-child { grid-area: 1 / 1; }
+  .lib-table td:last-child { grid-area: 1 / 2; }
+  .lib-table td:nth-child(2) { grid-area: 2 / 1 / 3 / 3; padding-top: 0; }
+  .lib-table td:nth-child(2):empty { display: none; }
+}
 .nowrap { white-space: nowrap; }
 .row-actions.nowrap { flex-wrap: nowrap; }
 main > * + h2 { margin-top: 1.8rem; }
@@ -795,10 +806,6 @@ form > .row-actions:last-child { margin-top: 1rem; }
 .row-actions > .select, .row-actions > .input { width: auto; }
 /* ⋯ holds a row's further actions; it opens in the cell, since the
    scrolling table wrapper would clip a floating menu. */
-.row-more > summary { list-style: none; }
-.row-more > summary::-webkit-details-marker { display: none; }
-.row-more-body { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-top: .4rem; white-space: normal; }
-.row-more-body form, .row-more-body button { margin: 0; }
 /* One option per line: a check in a form never shares a line with the
    next one or the save button. */
 label.check { display: flex; width: fit-content; margin: .8rem 0 .3rem; font-family: var(--font-sans); text-transform: none; letter-spacing: 0; }
@@ -826,6 +833,11 @@ label.check { display: flex; width: fit-content; margin: .8rem 0 .3rem; font-fam
 .gal-tools input[type=search] { flex: 1 1 18rem; max-width: 32rem; }
 .gal-tools label.check { margin: 0; }
 main > .gal-tools { margin: 1rem 0 1.4rem; }
+/* Library page: topics on the left (like the gallery dialog), rows on the right. */
+.library { display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: 2rem; align-items: start; margin-top: 1rem; }
+.library .gal-tools { margin: 0 0 1rem; }
+.library .gal-nav { top: 1rem; }
+.lib-group.fold > summary { font-size: 1.15rem; }
 .gal-group { margin-bottom: 2rem; scroll-margin-top: 1rem; }
 .gal-group > h2 { font-size: 1.15rem; padding-bottom: .4rem; margin-bottom: .8rem; border-bottom: 1px solid var(--bg2); }
 .gal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .8rem; }
@@ -885,6 +897,7 @@ html:has(#detail[open] > .gallery) { overflow: hidden; }
 .gal-clean-list small { margin-left: auto; }
 @media (max-width: 800px) {
   .gallery { grid-template-columns: minmax(0, 1fr); padding-inline: 1rem; }
+  .library { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
   .gal-nav { position: static; flex-direction: row; flex-wrap: wrap; }
   .gal-side-head { grid-template-columns: minmax(0, 1fr) auto; }
   .gal-side-head .gal-preview { display: none; }
@@ -1108,8 +1121,6 @@ a.flow-node { text-decoration: none; }
 .chapters summary { cursor: pointer; font-weight: 600; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* ── boards list ── */
-.boards-table tr.is-hidden td:first-child a { color: var(--fg3); }
 
 
 /* ── tables: numbers right, shares as a bar, lateness as a chip ── */
