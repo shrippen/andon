@@ -10,19 +10,23 @@ import (
 )
 
 // The settings side navigation: one group per level the viewer reaches,
-// the same pages on each level, plus what only that level has.
+// the same pages on each level, plus what only that level has. The own
+// level opens from the account menu, the setup levels (teams the viewer
+// owns, the instance for admins) from "Einrichten"; a page shows only
+// the side it belongs to.
 //
-//	Ich            Profil · Sicherheit · Benachrichtigungen ·
-//	               Verbindungen · Startseite · Finanzen · Regeln · Wartung ·
-//	               Code · Themes · Import
-//	Team <name>    Mitglieder · Verbindungen · Startseite · … · Code
-//	Instanz        Verbindungen · Startseite · … · Code ·
-//	(admins)       Benutzer · Teams · Einstellungen · Betrieb · Audit-Log
+//	account menu   Ich            Profil · Sicherheit · Benachrichtigungen ·
+//	                              Verbindungen · Startseite · Finanzen ·
+//	                              Regeln · Wartung · Code · Themes · Import
+//	Einrichten     Team <name>    Mitglieder · Verbindungen · Startseite · … · Code
+//	               Instanz        Verbindungen · Startseite · … · Code ·
+//	               (admins)       Benutzer · Teams · Einstellungen · Betrieb · Audit-Log
 
 // settingsGroup is one level: a catalog key, or a team's name.
 type settingsGroup struct {
 	Label string
 	Team  string
+	Setup bool // a team or the instance, not the viewer's own level
 	Links []settingsLink
 }
 
@@ -64,8 +68,8 @@ func spaceLinks(id int64) []settingsLink {
 	return append(out, settingsLink{Label: "edit.code", Href: spacePath(id) + "/code"})
 }
 
-// settingsNav builds the groups for who: own space, each team, and the
-// instance for admins.
+// settingsNav builds the groups for who: own space, each team who owns
+// (every team for admins), and the instance for admins.
 func settingsNav(who *access.Principal) []settingsGroup {
 	var out []settingsGroup
 	if mine := access.Personal(who); mine != nil {
@@ -81,14 +85,17 @@ func settingsNav(who *access.Principal) []settingsGroup {
 
 	var teams []access.SpaceRef
 	for _, sp := range who.Spaces {
-		if sp.Kind == enums.SpaceTeam && sp.TeamID != nil {
+		if sp.Kind != enums.SpaceTeam || sp.TeamID == nil {
+			continue
+		}
+		if who.IsAdmin() || who.Teams[*sp.TeamID] == enums.TeamOwner {
 			teams = append(teams, sp)
 		}
 	}
 	slices.SortFunc(teams, func(a, b access.SpaceRef) int { return cmp.Compare(a.Name, b.Name) })
 	for _, sp := range teams {
 		links := []settingsLink{{Label: "settings.members", Href: "/teams/" + strconv.FormatInt(*sp.TeamID, 10)}}
-		out = append(out, settingsGroup{Team: sp.Name, Links: append(links, spaceLinks(sp.ID)...)})
+		out = append(out, settingsGroup{Team: sp.Name, Setup: true, Links: append(links, spaceLinks(sp.ID)...)})
 	}
 
 	if !who.IsAdmin() {
@@ -107,5 +114,30 @@ func settingsNav(who *access.Principal) []settingsGroup {
 		settingsLink{Label: "nav.admin_ops", Href: "/admin/operations"},
 		settingsLink{Label: "nav.audit", Href: "/admin/audit"},
 	)
-	return append(out, settingsGroup{Label: "settings.level_instance", Links: links})
+	return append(out, settingsGroup{Label: "settings.level_instance", Setup: true, Links: links})
+}
+
+// navScope keeps the side the page at belongs to: the setup groups when
+// one of them links to at, else the own group.
+func navScope(groups []settingsGroup, at string) (shown []settingsGroup, setup bool) {
+	setup = slices.ContainsFunc(groups, func(g settingsGroup) bool {
+		return g.Setup && slices.ContainsFunc(g.Links, func(l settingsLink) bool { return l.Href == at })
+	})
+	for _, g := range groups {
+		if g.Setup == setup {
+			shown = append(shown, g)
+		}
+	}
+	return shown, setup
+}
+
+// setupHref is the first setup page ("Einrichten › Einstellungen"), ""
+// when who owns no team and is no admin.
+func setupHref(groups []settingsGroup) string {
+	for _, g := range groups {
+		if g.Setup {
+			return g.Links[0].Href
+		}
+	}
+	return ""
 }

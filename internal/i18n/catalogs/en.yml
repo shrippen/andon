@@ -321,7 +321,7 @@ field:
   locale: Language
   color_mode: Light/dark
   theme: Theme
-  theme_hint: 'Just for you. “Default” follows the instance theme (Settings › Instance › Settings). A board that forces a theme keeps its own.'
+  theme_hint: 'Just for you. “Default” follows the instance theme (Setup › Settings › Instance › Settings). A board that forces a theme keeps its own.'
   theme_forced: Force theme
   start_board: Start board
   search_engine: Search engine

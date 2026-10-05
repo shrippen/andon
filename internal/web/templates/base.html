@@ -88,7 +88,7 @@
         <div class="menu">
           <a href="/boards"{{if eq .Ctx.Path "/boards"}} aria-current="page"{{end}}>{{t "boards.title"}}</a>
           <a href="/widgets"{{if here "/widgets"}} aria-current="page"{{end}}>{{t "nav.library"}}</a>
-          <a href="/me/profile"{{if .SettingsNav}} aria-current="page"{{end}}>{{t "settings.nav"}}</a>
+          {{with .SetupHref}}<a href="{{.}}"{{if $.SettingsSetup}} aria-current="page"{{end}}>{{t "settings.nav"}}</a>{{end}}
         </div>
       </details>
       <details class="nav-menu">
@@ -96,7 +96,7 @@
         <div class="menu">
           <a href="/welcome"{{if here "/welcome"}} aria-current="page"{{end}}>{{t "welcome.title"}}{{with .Onboarding}}{{if .Open}} <span class="count" data-kind="info">{{.Done}}/{{len .Steps}}</span>{{end}}{{end}}</a>
           <a href="/about"{{if here "/about"}} aria-current="page"{{end}}>{{t "about.title"}}</a>
-          <a href="/me/profile">{{t "settings.nav"}}</a>
+          <a href="/me/profile"{{if and .SettingsNav (not .SettingsSetup)}} aria-current="page"{{end}}>{{t "settings.nav"}}</a>
           <hr>
           <form method="post" action="/me/locale">
             <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
