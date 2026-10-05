@@ -33,6 +33,25 @@ func openTestDB(t *testing.T) *sql.DB {
 	return d
 }
 
+// addInstance adds the instance space, where templates live.
+func addInstance(t *testing.T, q db.Queryer) *model.Space {
+	t.Helper()
+	sp := &model.Space{Kind: enums.SpaceInstance, Name: "Instanz", Version: 1}
+	if err := content.AddSpace(q, sp); err != nil {
+		t.Fatalf("add instance space: %v", err)
+	}
+	return sp
+}
+
+// setAdmin makes u an instance admin.
+func setAdmin(t *testing.T, q db.Queryer, u *model.User) {
+	t.Helper()
+	u.Role = enums.RoleAdmin
+	if _, err := q.Exec("UPDATE users SET role = ? WHERE id = ?", u.Role, u.ID); err != nil {
+		t.Fatalf("set admin: %v", err)
+	}
+}
+
 func addUser(t *testing.T, q db.Queryer, email string) *model.User {
 	t.Helper()
 	u := &model.User{Email: email, Name: email, Role: enums.RoleUser, IsActive: true,
@@ -85,11 +104,12 @@ func TestCreateGetUpdateDelete(t *testing.T) {
 	}
 }
 
-func TestSetMineAndDropMine(t *testing.T) {
+func TestActivateAndDeactivate(t *testing.T) {
 	d := openTestDB(t)
 	u := addUser(t, d, "a@b.c")
+	space := addInstance(t, d)
+	setAdmin(t, d, u)
 	who, _ := access.Load(d, u.ID)
-	space, _ := content.PersonalSpace(d, u.ID)
 
 	id, err := connections.Create(d, who, space.ID, enums.ServiceKimai, "Kimai", "https://kimai.example",
 		enums.CredentialPersonal, "", connections.TLSVerify, nil)
@@ -101,14 +121,14 @@ func TestSetMineAndDropMine(t *testing.T) {
 	if view.HasMine {
 		t.Fatal("expected no personal credential yet")
 	}
-	if err := connections.SetMine(d, who, id, "my-token"); err != nil {
+	if err := connections.Activate(d, who, id, model.UserHolder(who.UserID), "my-token"); err != nil {
 		t.Fatalf("set mine: %v", err)
 	}
 	view, _ = connections.Get(d, who, id)
 	if !view.HasMine {
 		t.Fatal("expected personal credential set")
 	}
-	if err := connections.DropMine(d, who, id); err != nil {
+	if err := connections.Deactivate(d, who, id, model.UserHolder(who.UserID)); err != nil {
 		t.Fatalf("drop mine: %v", err)
 	}
 	view, _ = connections.Get(d, who, id)

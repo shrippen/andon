@@ -12,6 +12,7 @@ import (
 	"andon/internal/db"
 	"andon/internal/db/dbtest"
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/services/svcdata"
 	"andon/internal/sources"
 )
@@ -47,7 +48,7 @@ func TestConcurrentGetsShareOneFetch(t *testing.T) {
 	var wg sync.WaitGroup
 	for range 5 {
 		wg.Go(func() {
-			res, err := svcdata.Get(context.Background(), d, "test.gate", nil, nil, nil, svcdata.Cached)
+			res, err := svcdata.Get(context.Background(), d, "test.gate", nil, nil, model.NoHolder, svcdata.Cached)
 			if err != nil || res.Data != "ok" {
 				t.Errorf("get: %+v %v", res, err)
 			}
@@ -83,7 +84,7 @@ func TestCacheStaysBounded(t *testing.T) {
 	sources.Register(paramSource{})
 
 	for i := range svcdata.MaxEntries + 50 {
-		if _, err := svcdata.Get(context.Background(), d, "test.params", map[string]any{"q": fmt.Sprint(i)}, nil, nil, svcdata.Force); err != nil {
+		if _, err := svcdata.Get(context.Background(), d, "test.params", map[string]any{"q": fmt.Sprint(i)}, nil, model.NoHolder, svcdata.Force); err != nil {
 			t.Fatal(err)
 		}
 	}

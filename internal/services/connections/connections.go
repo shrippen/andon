@@ -1,8 +1,14 @@
 // Package connections manages connections to services and their
-// credentials.
+// credentials. A connection lives on one level and is fixed or a template:
 //
-//	shared credentials   one token, stored on the connection, same data for all
-//	personal credentials every user stores his own token, data per user
+//	level      fixed (shared)               template (personal)
+//	instance   admins set the one login     each user, or a team, activates it
+//	team       the team owner sets it       each member activates it
+//	personal   the owner's own connection   –
+//
+// Activating stores the holder's login with the template's revision; an
+// edit of the template raises the revision and pauses every activation
+// until its holder activates it again (a new host also drops the login).
 //
 // Tokens are write-only: they are encrypted and never shown again.
 package connections
@@ -10,6 +16,7 @@ package connections
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	neturl "net/url"
 	"strings"
@@ -41,6 +48,10 @@ var ErrNotFound = util.ErrNotFound
 // entered again; the stored one must not go there.
 var ErrSecretForHost = errors.New("connection.secret_for_host")
 
+// ErrNotTemplate: only a template takes activations, only an instance
+// template a team's.
+var ErrNotTemplate = errors.New("connection.not_template")
+
 // TLS selects certificate verification for a connection.
 type TLS string
 
@@ -57,8 +68,10 @@ type View struct {
 	Service   enums.ServiceType
 	URL       string
 	Mode      enums.CredentialMode
+	Level     enums.SpaceKind
 	HasSecret bool
 	HasMine   bool
+	Paused    bool // the caller's activation predates the template's last edit
 	VerifyTLS bool
 	Options   map[string]any
 	SpaceID   int64
@@ -79,9 +92,17 @@ func rightOf(q db.Queryer, who *access.Principal, conn *model.Connection) (enums
 }
 
 func viewOf(q db.Queryer, who *access.Principal, conn *model.Connection, granted enums.Right) (View, error) {
-	cred, err := content.Credential(q, conn.ID, who.UserID)
+	cred, err := content.Credential(q, conn.ID, model.UserHolder(who.UserID))
 	if err != nil {
 		return View{}, err
+	}
+	space, err := access.SpaceOf(q, who, conn.SpaceID)
+	if err != nil {
+		return View{}, err
+	}
+	var level enums.SpaceKind
+	if space != nil {
+		level = space.Kind
 	}
 	health, err := healthOf(q, conn.ID, time.Now().UTC())
 	if err != nil {
@@ -96,10 +117,23 @@ func viewOf(q db.Queryer, who *access.Principal, conn *model.Connection, granted
 	}
 	return View{
 		ID: conn.ID, Key: conn.Key, Name: conn.Name, Service: enums.ServiceType(conn.Service), URL: conn.URL,
-		Mode: conn.CredentialMode, HasSecret: len(conn.SecretEnc) > 0, HasMine: cred != nil,
+		Mode: conn.CredentialMode, Level: level, HasSecret: len(conn.SecretEnc) > 0, HasMine: cred != nil,
+		Paused:    cred != nil && paused(conn, cred),
 		VerifyTLS: conn.VerifyTLS, Options: conn.Options, SpaceID: conn.SpaceID, Right: granted,
 		SecretAt: secretAt, SecretExpires: conn.SecretExpires, DailyBudget: conn.DailyBudget, Health: health,
 	}, nil
+}
+
+// paused reports whether an activation waits for its holder after an
+// edit of the template.
+func paused(conn *model.Connection, cred *model.Credential) bool {
+	return cred.SecretEnc == nil || cred.Revision < conn.Revision
+}
+
+// snapshotOf is what an activation remembers of its template, to show
+// what changed later (never the secret).
+func snapshotOf(conn *model.Connection) map[string]any {
+	return map[string]any{"name": conn.Name, "url": conn.URL, "verify_tls": conn.VerifyTLS, "options": orEmpty(conn.Options)}
 }
 
 // Listing returns the connections visible to who with at least `minimum`
@@ -117,18 +151,6 @@ func Listing(d *sql.DB, who *access.Principal, minimum enums.Right) ([]View, err
 		found, err := content.Connections(tx, spaceIDs)
 		if err != nil {
 			return err
-		}
-		for _, id := range access.GrantedResourceIDs(who, enums.ResourceConnection) {
-			c, err := content.Connection(tx, id)
-			if err != nil {
-				return err
-			}
-			if c == nil {
-				continue
-			}
-			if _, inOwnSpace := who.Spaces[c.SpaceID]; !inOwnSpace {
-				found = append(found, c)
-			}
 		}
 
 		for _, conn := range found {
@@ -190,6 +212,15 @@ func Get(d *sql.DB, who *access.Principal, connID int64) (View, error) {
 	return out, err
 }
 
+// modeAt is the mode a connection may have on its level: a personal
+// space holds only fixed connections.
+func modeAt(space *access.SpaceRef, mode enums.CredentialMode) enums.CredentialMode {
+	if space != nil && space.Kind == enums.SpacePersonal {
+		return enums.CredentialShared
+	}
+	return mode
+}
+
 func checkLocationSharing(q db.Queryer, service enums.ServiceType, mode enums.CredentialMode, space *access.SpaceRef) error {
 	if service != enums.ServiceDawarich || mode == enums.CredentialPersonal {
 		return nil
@@ -223,6 +254,7 @@ func Create(d *sql.DB, who *access.Principal, spaceID int64, service enums.Servi
 		if err := access.Need(access.SpaceRight(who, space), need); err != nil {
 			return err
 		}
+		mode = modeAt(space, mode)
 		if err := checkLocationSharing(tx, service, mode, space); err != nil {
 			return err
 		}
@@ -258,8 +290,8 @@ func Create(d *sql.DB, who *access.Principal, spaceID int64, service enums.Servi
 			secretAt = time.Now().UTC()
 		}
 		conn := &model.Connection{
-			SecretAt: secretAt,
-			SpaceID:  spaceID, Key: util.Unique(util.Slug(label, string(service)), taken), Name: label,
+			SecretAt: secretAt, Revision: 1,
+			SpaceID: spaceID, Key: util.Unique(util.Slug(label, string(service)), taken), Name: label,
 			Service: string(service), URL: strings.TrimRight(strings.TrimSpace(url), "/"),
 			CredentialMode: mode, SecretEnc: secretEnc, VerifyTLS: tls == TLSVerify, Options: orEmpty(options),
 			CreatedAt: time.Now().UTC(),
@@ -269,7 +301,7 @@ func Create(d *sql.DB, who *access.Principal, spaceID int64, service enums.Servi
 		}
 		id = conn.ID
 		if ownEnc != nil {
-			if err := content.SetCredential(tx, conn.ID, who.UserID, ownEnc); err != nil {
+			if err := content.SetCredential(tx, conn.ID, model.UserHolder(who.UserID), ownEnc, conn.Revision, snapshotOf(conn)); err != nil {
 				return err
 			}
 		}
@@ -302,9 +334,11 @@ func Update(d *sql.DB, who *access.Principal, connID int64, name, url string, mo
 		if err != nil {
 			return err
 		}
+		mode = modeAt(space, mode)
 		if err := checkLocationSharing(tx, enums.ServiceType(conn.Service), mode, space); err != nil {
 			return err
 		}
+		before := snapshotOf(conn)
 
 		if n := strings.TrimSpace(name); n != "" {
 			conn.Name = n
@@ -324,6 +358,9 @@ func Update(d *sql.DB, who *access.Principal, connID int64, name, url string, mo
 		conn.VerifyTLS = tls == TLSVerify
 		if options != nil {
 			conn.Options = options
+		}
+		if conn.CredentialMode == enums.CredentialPersonal && changed(before, snapshotOf(conn)) {
+			conn.Revision++
 		}
 		if secret != nil && *secret != "" {
 			enc, err := crypto.Encrypt(*secret, crypto.PurposeCredential, nil)
@@ -353,22 +390,30 @@ func hostOf(raw string) string {
 	return strings.ToLower(u.Scheme + "://" + u.Host)
 }
 
+// changed reports whether a template's activations must be renewed: any
+// value they were activated for differs (name only labels it).
+func changed(before, after map[string]any) bool {
+	for _, k := range []string{"url", "verify_tls", "options"} {
+		a, _ := json.Marshal(before[k])
+		b, _ := json.Marshal(after[k])
+		if string(a) != string(b) {
+			return true
+		}
+	}
+	return false
+}
+
 // forgetSecrets: a connection moved to another host must not send the
 // stored tokens there. A shared token has to be entered again (given);
-// the users' own tokens are dropped, each enters theirs anew.
+// the holders' own tokens are dropped, each enters theirs anew. Their
+// activations stay, so they still see what changed.
 func forgetSecrets(tx *sql.Tx, who *access.Principal, conn *model.Connection, mode enums.CredentialMode, given bool) error {
 	if mode == enums.CredentialShared && len(conn.SecretEnc) > 0 && !given {
 		return ErrSecretForHost
 	}
 	conn.SecretEnc = nil
-	own, err := content.Credentials(tx, conn.ID)
-	if err != nil {
+	if err := content.ClearSecrets(tx, conn.ID); err != nil {
 		return err
-	}
-	for _, c := range own {
-		if err := content.RemoveCredential(tx, conn.ID, c.UserID); err != nil {
-			return err
-		}
 	}
 	return audit.Log(tx, &who.UserID, "connection.host_changed", conn.Name, "", nil)
 }
@@ -377,7 +422,7 @@ func forgetSecrets(tx *sql.Tx, who *access.Principal, conn *model.Connection, mo
 // connection when shared, as the editor's own token when personal.
 func storeSecret(tx *sql.Tx, who *access.Principal, conn *model.Connection, enc []byte) error {
 	if conn.CredentialMode == enums.CredentialPersonal {
-		return content.SetCredential(tx, conn.ID, who.UserID, enc)
+		return content.SetCredential(tx, conn.ID, model.UserHolder(who.UserID), enc, conn.Revision, snapshotOf(conn))
 	}
 	conn.SecretEnc = enc
 	conn.SecretAt = time.Now().UTC()
@@ -391,11 +436,11 @@ func keepEditorToken(tx *sql.Tx, who *access.Principal, conn *model.Connection, 
 	if mode != enums.CredentialPersonal || conn.CredentialMode == enums.CredentialPersonal || len(conn.SecretEnc) == 0 {
 		return nil
 	}
-	own, err := content.Credential(tx, conn.ID, who.UserID)
+	own, err := content.Credential(tx, conn.ID, model.UserHolder(who.UserID))
 	if err != nil || own != nil {
 		return err
 	}
-	return content.SetCredential(tx, conn.ID, who.UserID, conn.SecretEnc)
+	return content.SetCredential(tx, conn.ID, model.UserHolder(who.UserID), conn.SecretEnc, conn.Revision, snapshotOf(conn))
 }
 
 // SetOptions replaces a connection's service-specific options (e.g. the
@@ -474,45 +519,92 @@ func RotateHook(d *sql.DB, who *access.Principal, connID int64) error {
 	})
 }
 
-// SetMine stores the caller's own personal token for a connection they may use.
-func SetMine(d *sql.DB, who *access.Principal, connID int64, secret string) error {
+// Activate stores a holder's login to a template, for its current
+// revision. The holder is the caller, or a team the caller owns, which
+// activates an instance template for its team space. An empty secret
+// renews the activation with the login stored before (after an edit of
+// the template on the same host).
+func Activate(d *sql.DB, who *access.Principal, connID int64, h model.Holder, secret string) error {
 	defer svcdata.Forget(connID) // cached data may be stale now
 
 	return db.WithTx(d, func(tx *sql.Tx) error {
-		conn, err := content.Connection(tx, connID)
+		conn, err := activatable(tx, who, connID, h)
 		if err != nil {
 			return err
 		}
-		if conn == nil {
-			return ErrNotFound
+
+		var enc []byte
+		if secret != "" {
+			if enc, err = crypto.Encrypt(secret, crypto.PurposeCredential, nil); err != nil {
+				return err
+			}
+		} else {
+			held, err := content.Credential(tx, conn.ID, h)
+			if err != nil {
+				return err
+			}
+			if held == nil || held.SecretEnc == nil {
+				return svcdata.ErrMissingCredential
+			}
 		}
-		granted, err := rightOf(tx, who, conn)
-		if err != nil {
-			return err
-		}
-		if err := access.Need(granted, enums.RightView); err != nil {
-			return err
-		}
-		enc, err := crypto.Encrypt(secret, crypto.PurposeCredential, nil)
-		if err != nil {
-			return err
-		}
-		if err := content.SetCredential(tx, conn.ID, who.UserID, enc); err != nil {
+		if err := content.SetCredential(tx, conn.ID, h, enc, conn.Revision, snapshotOf(conn)); err != nil {
 			return err
 		}
 		return audit.Log(tx, &who.UserID, "credential.set", conn.Name, "", nil)
 	})
 }
 
-// DropMine removes the caller's own personal token for a connection.
-func DropMine(d *sql.DB, who *access.Principal, connID int64) error {
+// activatable checks that who may hold or set h's login to connID.
+func activatable(tx *sql.Tx, who *access.Principal, connID int64, h model.Holder) (*model.Connection, error) {
+	conn, err := content.Connection(tx, connID)
+	if err != nil {
+		return nil, err
+	}
+	if conn == nil {
+		return nil, ErrNotFound
+	}
+	granted, err := rightOf(tx, who, conn)
+	if err != nil {
+		return nil, err
+	}
+	if err := access.Need(granted, enums.RightView); err != nil {
+		return nil, err
+	}
+	if conn.CredentialMode != enums.CredentialPersonal {
+		return nil, ErrNotTemplate
+	}
+	if h.User() > 0 {
+		if h.User() != who.UserID {
+			return nil, access.ErrDenied
+		}
+		return conn, nil
+	}
+
+	space, err := access.SpaceOf(tx, who, conn.SpaceID)
+	if err != nil {
+		return nil, err
+	}
+	if space == nil || space.Kind != enums.SpaceInstance {
+		return nil, ErrNotTemplate
+	}
+	if who.Teams[h.Team()] != enums.TeamOwner {
+		return nil, access.ErrDenied
+	}
+	return conn, nil
+}
+
+// Deactivate removes a holder's login to a template.
+func Deactivate(d *sql.DB, who *access.Principal, connID int64, h model.Holder) error {
 	defer svcdata.Forget(connID) // cached data may be stale now
 
 	return db.WithTx(d, func(tx *sql.Tx) error {
-		if err := content.RemoveGrant(tx, connID, who.UserID); err != nil {
+		if _, err := activatable(tx, who, connID, h); err != nil {
 			return err
 		}
-		return content.RemoveCredential(tx, connID, who.UserID)
+		if err := content.RemoveGrant(tx, connID, int64(h)); err != nil {
+			return err
+		}
+		return content.RemoveCredential(tx, connID, h)
 	})
 }
 
@@ -565,10 +657,13 @@ func Test(ctx context.Context, d *sql.DB, who *access.Principal, connID int64) (
 		return TestResult{}, err
 	}
 
-	result, err := svcdata.Get(ctx, d, conn.Service+".test", nil, conn, &who.UserID, svcdata.Force)
+	result, err := svcdata.Get(ctx, d, conn.Service+".test", nil, conn, model.UserHolder(who.UserID), svcdata.Force)
 	if err != nil {
 		if errors.Is(err, svcdata.ErrMissingCredential) {
 			return TestResult{Ok: false, Message: "credential.missing"}, nil
+		}
+		if errors.Is(err, svcdata.ErrTemplateChanged) {
+			return TestResult{Ok: false, Message: "credential.paused"}, nil
 		}
 		return TestResult{}, err
 	}

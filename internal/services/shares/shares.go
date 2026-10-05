@@ -25,12 +25,6 @@ var ErrRight = errors.New("shares: right not shareable")
 // ErrNotFound means the resource does not exist.
 var ErrNotFound = errors.New("shares: not found")
 
-// ErrLocationPersonal means a Dawarich connection may not be shared while
-// location sharing is disabled instance-wide.
-var ErrLocationPersonal = errors.New("shares: location data must stay personal")
-
-const sharedLocationKey = "dawarich_shared"
-
 func shareableRight(r enums.Right) bool {
 	return r == enums.RightView || r == enums.RightUse || r == enums.RightEdit || r == enums.RightManage
 }
@@ -41,8 +35,6 @@ type resource struct {
 	spaceID     int64
 	name        string
 	minTeamRole *enums.TeamRole
-	service     string               // connections only
-	credMode    enums.CredentialMode // connections only
 }
 
 func loadResource(q db.Queryer, kind enums.ResourceKind, resourceID int64) (*resource, error) {
@@ -59,12 +51,6 @@ func loadResource(q db.Queryer, kind enums.ResourceKind, resourceID int64) (*res
 			return nil, orNotFound(err)
 		}
 		return &resource{id: w.ID, spaceID: w.SpaceID, name: w.Title, minTeamRole: w.MinTeamRole}, nil
-	case enums.ResourceConnection:
-		c, err := content.Connection(q, resourceID)
-		if err != nil || c == nil {
-			return nil, orNotFound(err)
-		}
-		return &resource{id: c.ID, spaceID: c.SpaceID, name: c.Name, service: c.Service, credMode: c.CredentialMode}, nil
 	case enums.ResourceTheme:
 		t, err := misc.Theme(q, resourceID)
 		if err != nil || t == nil {
@@ -120,14 +106,13 @@ type MemberRole struct {
 
 // ShareInfo is everything the sharing dialog needs.
 type ShareInfo struct {
-	Title          string
-	Kind           enums.ResourceKind
-	ResourceID     int64
-	Shares         []View
-	Audience       Audience
-	WarnSharedData bool
-	Users          []NamedID
-	Teams          []NamedID
+	Title      string
+	Kind       enums.ResourceKind
+	ResourceID int64
+	Shares     []View
+	Audience   Audience
+	Users      []NamedID
+	Teams      []NamedID
 }
 
 // NamedID is an id/name pair for the grantee picker.
@@ -225,15 +210,14 @@ func Info(d *sql.DB, who *access.Principal, kind enums.ResourceKind, resourceID 
 			}
 		}
 
-		warn := kind == enums.ResourceConnection && item.credMode == enums.CredentialShared
 		spaceName, spaceKind := "", enums.SpaceKind("")
 		if space != nil {
 			spaceName, spaceKind = space.Name, space.Kind
 		}
 		out = &ShareInfo{
 			Title: item.name, Kind: kind, ResourceID: resourceID, Shares: views,
-			Audience:       Audience{SpaceName: spaceName, SpaceKind: spaceKind, Members: members},
-			WarnSharedData: warn, Users: namedUsers, Teams: namedTeams,
+			Audience: Audience{SpaceName: spaceName, SpaceKind: spaceKind, Members: members},
+			Users:    namedUsers, Teams: namedTeams,
 		}
 		return nil
 	})
@@ -252,17 +236,6 @@ func Grant(d *sql.DB, who *access.Principal, kind enums.ResourceKind, resourceID
 		}
 		if err := needManage(tx, who, kind, item); err != nil {
 			return err
-		}
-
-		if kind == enums.ResourceConnection && item.service == string(enums.ServiceDawarich) &&
-			item.credMode == enums.CredentialShared {
-			setting, err := misc.Setting(tx, sharedLocationKey)
-			if err != nil {
-				return err
-			}
-			if allowed, _ := setting["allowed"].(bool); !allowed {
-				return ErrLocationPersonal
-			}
 		}
 
 		existing, err := misc.SharesFor(tx, kind, resourceID)

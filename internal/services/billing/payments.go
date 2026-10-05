@@ -77,11 +77,11 @@ func banks(d *sql.DB, who *access.Principal, spaceID int64) ([]bank, error) {
 
 func loadBank(ctx context.Context, d *sql.DB, who *access.Principal, b bank, fresh svcdata.Freshness) (*sources.SureDataset, *sources.NinjaDataset, error) {
 	uid := who.UserID
-	s, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceSure), nil, b.sure, &uid, fresh)
+	s, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceSure), nil, b.sure, model.UserHolder(uid), fresh)
 	if err != nil {
 		return nil, nil, err
 	}
-	n, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceInvoiceNinja), nil, b.ninja, &uid, fresh)
+	n, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceInvoiceNinja), nil, b.ninja, model.UserHolder(uid), fresh)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -148,7 +148,7 @@ func Book(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64, 
 			clientKey = c.Key
 		}
 	}
-	token, err := svcdata.Secret(d, b.ninja, who.UserID)
+	token, err := svcdata.Secret(d, b.ninja, model.UserHolder(who.UserID))
 	if err != nil {
 		return err
 	}

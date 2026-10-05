@@ -47,6 +47,10 @@ const (
 // user has none yet.
 var ErrMissingCredential = errors.New("svcdata: missing personal credential")
 
+// ErrTemplateChanged means the holder's login was entered for an older
+// version of the template: it stays paused until activated again.
+var ErrTemplateChanged = errors.New("svcdata: template changed")
+
 // Result is one source fetch's outcome. Data is the source's own typed
 // dataset (e.g. *sources.KimaiDataset), or nil on failure. Pending means
 // no background run has fetched it yet.
@@ -61,16 +65,37 @@ type Result struct {
 // Ok reports whether the fetch succeeded.
 func (r Result) Ok() bool { return r.Error == "" && r.Data != nil }
 
-// CredentialOwner is the cache partition: nil for shared data, the user for
-// personal credentials.
-func CredentialOwner(conn *model.Connection, userID *int64) *int64 {
+// HolderOf is the cache partition and login of a fetch: nobody for a
+// fixed connection, else the holder asked for.
+func HolderOf(conn *model.Connection, h model.Holder) model.Holder {
 	if conn == nil || conn.CredentialMode != enums.CredentialPersonal {
-		return nil
+		return model.NoHolder
 	}
-	return userID
+	return h
 }
 
-func cacheKey(sourceKey string, connID *int64, owner *int64, params map[string]any) string {
+// Place is a space as far as logins care: where a connection lives, or
+// where a widget shows it.
+type Place struct {
+	Kind enums.SpaceKind
+	Team int64 // the team of a team space
+}
+
+// HolderAt is whose login shows a template living at from to userID on a
+// widget at: a team space uses the team's login to an instance template,
+// everywhere else it is the user's own.
+//
+//	instance template, team board      → the team's login
+//	instance template, personal board  → the user's login
+//	team template, team board          → the user's login
+func HolderAt(from, at Place, userID int64) model.Holder {
+	if from.Kind == enums.SpaceInstance && at.Kind == enums.SpaceTeam && at.Team > 0 {
+		return model.TeamHolder(at.Team)
+	}
+	return model.UserHolder(userID)
+}
+
+func cacheKey(sourceKey string, connID *int64, owner model.Holder, params map[string]any) string {
 	keys := make([]string, 0, len(params))
 	for k := range params {
 		keys = append(keys, k)
@@ -87,35 +112,24 @@ func cacheKey(sourceKey string, connID *int64, owner *int64, params map[string]a
 
 // SourceCtx builds the source context of a connection for one-off calls
 // outside the cache (downloads a user asked for).
-func SourceCtx(d *sql.DB, conn *model.Connection, userID int64) (sources.Ctx, error) {
+func SourceCtx(d *sql.DB, conn *model.Connection, h model.Holder) (sources.Ctx, error) {
 	var sctx sources.Ctx
 	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
-		sctx, err = buildCtx(tx, conn, &userID, nil)
+		sctx, err = buildCtx(tx, conn, h, nil)
 		return err
 	})
 	return sctx, err
 }
 
-func buildCtx(q db.Queryer, conn *model.Connection, userID *int64, params map[string]any) (sources.Ctx, error) {
+func buildCtx(q db.Queryer, conn *model.Connection, h model.Holder, params map[string]any) (sources.Ctx, error) {
 	if conn == nil {
 		return sources.Ctx{Params: params}, nil
 	}
 
 	var secret string
 	if conn.CredentialMode == enums.CredentialPersonal {
-		owner := int64(0)
-		if userID != nil {
-			owner = *userID
-		}
-		cred, err := content.Credential(q, conn.ID, owner)
-		if err != nil {
-			return sources.Ctx{}, err
-		}
-		if cred == nil {
-			return sources.Ctx{}, ErrMissingCredential
-		}
-		s, err := crypto.Decrypt(cred.SecretEnc, crypto.PurposeCredential)
+		s, err := heldSecret(q, conn, HolderOf(conn, h))
 		if err != nil {
 			return sources.Ctx{}, err
 		}
@@ -131,6 +145,25 @@ func buildCtx(q db.Queryer, conn *model.Connection, userID *int64, params map[st
 	return sources.Ctx{
 		URL: conn.URL, Secret: secret, VerifyTLS: conn.VerifyTLS, Options: conn.Options, Params: params,
 	}, nil
+}
+
+// heldSecret is a holder's login to a template: missing without one,
+// paused when entered for an older revision or another host.
+func heldSecret(q db.Queryer, conn *model.Connection, h model.Holder) (string, error) {
+	if h == model.NoHolder {
+		return "", ErrMissingCredential
+	}
+	cred, err := content.Credential(q, conn.ID, h)
+	if err != nil {
+		return "", err
+	}
+	if cred == nil {
+		return "", ErrMissingCredential
+	}
+	if cred.SecretEnc == nil || cred.Revision < conn.Revision {
+		return "", ErrTemplateChanged
+	}
+	return crypto.Decrypt(cred.SecretEnc, crypto.PurposeCredential)
 }
 
 // connVersion changes whenever what a fetch depends on changes (URL,
@@ -293,13 +326,13 @@ func Due(sourceKey string, r Result, now time.Time) bool {
 
 // Get fetches source sourceKey (never raises for a service error — it
 // comes back as Result.Error) and persists the outcome to the cache table.
-func Get(ctx context.Context, d *sql.DB, sourceKey string, params map[string]any, conn *model.Connection, userID *int64, fresh Freshness) (Result, error) {
+func Get(ctx context.Context, d *sql.DB, sourceKey string, params map[string]any, conn *model.Connection, h model.Holder, fresh Freshness) (Result, error) {
 	source, err := sources.Get(sourceKey)
 	if err != nil {
 		return Result{}, err
 	}
 
-	owner := CredentialOwner(conn, userID)
+	owner := HolderOf(conn, h)
 	var connID *int64
 	if conn != nil {
 		connID = &conn.ID
@@ -322,7 +355,7 @@ func Get(ctx context.Context, d *sql.DB, sourceKey string, params map[string]any
 
 	var sctx sources.Ctx
 	err = db.WithRead(d, func(tx *sql.Tx) error {
-		sctx, err = buildCtx(tx, conn, userID, params)
+		sctx, err = buildCtx(tx, conn, owner, params)
 		return err
 	})
 	if err != nil {
@@ -502,13 +535,13 @@ func Prune(d *sql.DB) error {
 	})
 }
 
-// Secret returns the credential a user would fetch conn with, for the few
-// calls that act instead of read (e.g. switching a light).
-func Secret(d *sql.DB, conn *model.Connection, userID int64) (string, error) {
+// Secret returns the credential a holder would fetch conn with, for the
+// few calls that act instead of read (e.g. switching a light).
+func Secret(d *sql.DB, conn *model.Connection, h model.Holder) (string, error) {
 	var sctx sources.Ctx
 	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
-		sctx, err = buildCtx(tx, conn, &userID, nil)
+		sctx, err = buildCtx(tx, conn, h, nil)
 		return err
 	})
 	return sctx.Secret, err

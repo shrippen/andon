@@ -19,6 +19,7 @@ import (
 	data "andon/internal/repos/data"
 	"andon/internal/services/accounts"
 	"andon/internal/services/analysis"
+	"andon/internal/services/teams"
 )
 
 func openTestDB(t *testing.T) *sql.DB {
@@ -329,7 +330,7 @@ func TestDeadlinesOncePerSpace(t *testing.T) {
 	if err := content.AddConnection(d, conn); err != nil {
 		t.Fatal(err)
 	}
-	if err := content.SetCredential(d, conn.ID, u.ID, encryptedSecret(t, "tok")); err != nil {
+	if err := content.SetCredential(d, conn.ID, model.UserHolder(u.ID), encryptedSecret(t, "tok"), 1, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -346,5 +347,51 @@ func TestDeadlinesOncePerSpace(t *testing.T) {
 	}
 	if total == 0 || dupes != 0 {
 		t.Fatalf("tax hints: %d, duplicated fingerprints: %d", total, dupes)
+	}
+}
+
+// TestTeamLoginRunsInTeamSpace: an instance template a team activated
+// for itself is fetched with the team's login in the team's space, and
+// its hints go to the whole team (no user), not to the instance.
+func TestTeamLoginRunsInTeamSpace(t *testing.T) {
+	d := openTestDB(t)
+	instance := &model.Space{Kind: enums.SpaceInstance, Name: "Instanz", Version: 1}
+	if err := content.AddSpace(d, instance); err != nil {
+		t.Fatal(err)
+	}
+	team, err := teams.CreateIn(d, "Studio")
+	if err != nil {
+		t.Fatal(err)
+	}
+	teamSpace, _ := content.TeamSpace(d, team.ID)
+	conn := &model.Connection{
+		SpaceID: instance.ID, Key: "kimai", Name: "Kimai", Service: "kimai", URL: "http://127.0.0.1:1",
+		CredentialMode: enums.CredentialPersonal, VerifyTLS: true, CreatedAt: time.Now().UTC(), Revision: 1,
+	}
+	if err := content.AddConnection(d, conn); err != nil {
+		t.Fatal(err)
+	}
+	if err := content.SetCredential(d, conn.ID, model.TeamHolder(team.ID), encryptedSecret(t, "tok"), 1, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	for range 2 { // the second failure in a row is an outage
+		if _, err := analysis.RunAll(context.Background(), d, time.Now().UTC()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	count := func(spaceID int64) int {
+		var n int
+		if err := d.QueryRow(`SELECT COUNT(*) FROM hints WHERE rule = 'system.connector_down' AND resolved_at IS NULL
+			AND space_id = ? AND user_id IS NULL`, spaceID).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	if count(teamSpace.ID) == 0 {
+		t.Fatal("no team hint for the team's login")
+	}
+	if n := count(instance.ID); n != 0 {
+		t.Fatalf("instance got %d hints for a team's login", n)
 	}
 }

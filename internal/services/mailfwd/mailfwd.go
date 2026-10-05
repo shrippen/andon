@@ -113,7 +113,7 @@ func List(ctx context.Context, d *sql.DB, who *access.Principal) (items []Item, 
 	uid := who.UserID
 	var out []Item
 	for mail, paperless := range boxes {
-		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceMail), nil, mail, &uid, svcdata.Stored)
+		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceMail), nil, mail, model.UserHolder(uid), svcdata.Stored)
 		if err != nil {
 			continue
 		}
@@ -168,7 +168,7 @@ func Forward(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID i
 	if err != nil {
 		return 0, err
 	}
-	token, err := svcdata.Secret(d, paperless, who.UserID)
+	token, err := svcdata.Secret(d, paperless, model.UserHolder(who.UserID))
 	if err != nil {
 		return 0, err
 	}
@@ -197,7 +197,7 @@ func Forward(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID i
 // mailFiles downloads one mail's attachments; USE on the mailbox is
 // checked by the caller.
 func mailFiles(ctx context.Context, d *sql.DB, who *access.Principal, mail *model.Connection, uid uint32) ([]sources.MailFile, error) {
-	sctx, err := svcdata.SourceCtx(d, mail, who.UserID)
+	sctx, err := svcdata.SourceCtx(d, mail, model.UserHolder(who.UserID))
 	if err != nil {
 		return nil, err
 	}

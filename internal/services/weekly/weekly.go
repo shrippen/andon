@@ -10,6 +10,7 @@ import (
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
+	"andon/internal/model"
 	data "andon/internal/repos/data"
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
@@ -52,7 +53,7 @@ func StorySince(ctx context.Context, d *sql.DB, who *access.Principal, start, no
 			continue
 		}
 		uid := who.UserID
-		res, err := svcdata.Get(ctx, d, sources.DataKey(v.Service), nil, conn, &uid, svcdata.Stored)
+		res, err := svcdata.Get(ctx, d, sources.DataKey(v.Service), nil, conn, model.UserHolder(uid), svcdata.Stored)
 		if err == nil && res.Data != nil {
 			datasets[string(v.Service)] = res.Data
 		}

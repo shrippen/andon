@@ -10,6 +10,7 @@ import (
 	"andon/internal/db"
 	"andon/internal/db/dbtest"
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/services/svcdata"
 	"andon/internal/sources"
 )
@@ -39,14 +40,14 @@ func TestGetHonorsTTL(t *testing.T) {
 	params := map[string]any{"q": "x"}
 
 	for range 2 {
-		if _, err := svcdata.Get(context.Background(), d, "test.counting", params, nil, nil, svcdata.Cached); err != nil {
+		if _, err := svcdata.Get(context.Background(), d, "test.counting", params, nil, model.NoHolder, svcdata.Cached); err != nil {
 			t.Fatal(err)
 		}
 	}
 	if calls != 1 {
 		t.Fatalf("cached reads fetched %d times", calls)
 	}
-	if _, err := svcdata.Get(context.Background(), d, "test.counting", params, nil, nil, svcdata.Force); err != nil {
+	if _, err := svcdata.Get(context.Background(), d, "test.counting", params, nil, model.NoHolder, svcdata.Force); err != nil {
 		t.Fatal(err)
 	}
 	if calls != 2 {
@@ -76,13 +77,13 @@ func TestStoredNeverFetchesInRequest(t *testing.T) {
 	calls := 0
 	sources.Register(slowSource{&calls})
 
-	first, _ := svcdata.Get(context.Background(), d, "test.stored", nil, nil, nil, svcdata.Stored)
+	first, _ := svcdata.Get(context.Background(), d, "test.stored", nil, nil, model.NoHolder, svcdata.Stored)
 	if !first.Pending || first.Data != nil {
 		t.Fatalf("first read: %+v", first)
 	}
 	var got svcdata.Result
 	for range 50 {
-		got, _ = svcdata.Get(context.Background(), d, "test.stored", nil, nil, nil, svcdata.Stored)
+		got, _ = svcdata.Get(context.Background(), d, "test.stored", nil, nil, model.NoHolder, svcdata.Stored)
 		if !got.Pending {
 			break
 		}
@@ -104,7 +105,7 @@ func TestCacheRowHoldsNoData(t *testing.T) {
 
 	calls := 0
 	sources.Register(countingSource{&calls})
-	res, err := svcdata.Get(context.Background(), d, "test.counting", map[string]any{"q": "row"}, nil, nil, svcdata.Force)
+	res, err := svcdata.Get(context.Background(), d, "test.counting", map[string]any{"q": "row"}, nil, model.NoHolder, svcdata.Force)
 	if err != nil || !res.Ok() {
 		t.Fatalf("fetch: %+v %v", res, err)
 	}
@@ -143,12 +144,12 @@ func TestFailedFetchKeepsLastData(t *testing.T) {
 	fail := false
 	sources.Register(flakySource{&fail})
 
-	if first, _ := svcdata.Get(context.Background(), d, "test.flaky", nil, nil, nil, svcdata.Force); !first.Ok() {
+	if first, _ := svcdata.Get(context.Background(), d, "test.flaky", nil, nil, model.NoHolder, svcdata.Force); !first.Ok() {
 		t.Fatalf("first: %+v", first)
 	}
 	fail = true
 	for _, mode := range []svcdata.Freshness{svcdata.Force, svcdata.Cached} {
-		got, _ := svcdata.Get(context.Background(), d, "test.flaky", nil, nil, nil, mode)
+		got, _ := svcdata.Get(context.Background(), d, "test.flaky", nil, nil, model.NoHolder, mode)
 		if got.Ok() || got.Error == "" || got.Data != "stacks" || got.OkAt.IsZero() {
 			t.Fatalf("mode %v after failure: %+v", mode, got)
 		}
@@ -166,12 +167,12 @@ func TestStoredReadSkipsDatabase(t *testing.T) {
 	calls := 0
 	sources.Register(countingSource{&calls})
 	params := map[string]any{"q": "stored-fast"}
-	if _, err := svcdata.Get(context.Background(), d, "test.counting", params, nil, nil, svcdata.Force); err != nil {
+	if _, err := svcdata.Get(context.Background(), d, "test.counting", params, nil, model.NoHolder, svcdata.Force); err != nil {
 		t.Fatal(err)
 	}
 
 	d.Close()
-	res, err := svcdata.Get(context.Background(), d, "test.counting", params, nil, nil, svcdata.Stored)
+	res, err := svcdata.Get(context.Background(), d, "test.counting", params, nil, model.NoHolder, svcdata.Stored)
 	if err != nil || res.Pending || res.Data == nil {
 		t.Fatalf("stored read needed the database: %+v %v", res, err)
 	}

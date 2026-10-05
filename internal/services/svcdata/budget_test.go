@@ -57,7 +57,7 @@ func TestBudgetStopsFetching(t *testing.T) {
 	sources.Register(budgetSource{&calls})
 	var last svcdata.Result
 	for range 4 {
-		if last, err = svcdata.Get(context.Background(), d, "test.budget", nil, conn, nil, svcdata.Force); err != nil {
+		if last, err = svcdata.Get(context.Background(), d, "test.budget", nil, conn, model.NoHolder, svcdata.Force); err != nil {
 			t.Fatal(err)
 		}
 	}

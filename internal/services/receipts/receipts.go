@@ -293,7 +293,7 @@ func (p pair) matcher() matcher { return matcher{mapping: p.mapping, aliases: p.
 
 func (p pair) expenses(ctx context.Context, d *sql.DB, who *access.Principal) (*sources.ExpenseSet, error) {
 	uid := who.UserID
-	res, err := svcdata.Get(ctx, d, expenseSource, nil, p.ninja, &uid, svcdata.Cached)
+	res, err := svcdata.Get(ctx, d, expenseSource, nil, p.ninja, model.UserHolder(uid), svcdata.Cached)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +306,7 @@ func (p pair) expenses(ctx context.Context, d *sql.DB, who *access.Principal) (*
 
 func (p pair) docSet(ctx context.Context, d *sql.DB, who *access.Principal, year int) (*sources.DocSet, error) {
 	uid := who.UserID
-	res, err := svcdata.Get(ctx, d, docSource, map[string]any{"year": year}, p.docs, &uid, svcdata.Cached)
+	res, err := svcdata.Get(ctx, d, docSource, map[string]any{"year": year}, p.docs, model.UserHolder(uid), svcdata.Cached)
 	if err != nil {
 		return nil, err
 	}
@@ -318,7 +318,7 @@ func (p pair) docSet(ctx context.Context, d *sql.DB, who *access.Principal, year
 }
 
 func (p pair) sourceCtx(d *sql.DB, who *access.Principal, conn *model.Connection) (sources.Ctx, error) {
-	return svcdata.SourceCtx(d, conn, who.UserID)
+	return svcdata.SourceCtx(d, conn, model.UserHolder(who.UserID))
 }
 
 // Links are the addresses a page links to.

@@ -86,7 +86,7 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64
 		case enums.ServiceHomeAssistant, enums.ServiceTibber, enums.ServiceSnipeIT, enums.ServiceSure, enums.ServiceDomains,
 			enums.ServiceKomodo, enums.ServiceGitea, enums.ServiceGitHub:
 			// The last background run is enough for the cost overview.
-			if res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(c.Service)), nil, c, &uid, svcdata.Stored); err == nil && res.Data != nil {
+			if res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(c.Service)), nil, c, model.UserHolder(uid), svcdata.Stored); err == nil && res.Data != nil {
 				costData[c.Service] = res.Data
 			}
 			continue
@@ -98,7 +98,7 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64
 		default:
 			continue
 		}
-		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(c.Service)), params, c, &uid, svcdata.Force)
+		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(c.Service)), params, c, model.UserHolder(uid), svcdata.Force)
 		if err != nil {
 			continue
 		}

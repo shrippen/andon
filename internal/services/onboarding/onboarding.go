@@ -15,6 +15,7 @@ import (
 
 	"andon/internal/db"
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/repos/auth"
 	"andon/internal/repos/content"
 	data "andon/internal/repos/data"
@@ -127,7 +128,7 @@ func steps(tx *sql.Tx, who *access.Principal, totp bool, visited map[string]bool
 			continue
 		}
 		personal = true
-		cred, err := content.Credential(tx, c.ID, who.UserID)
+		cred, err := content.Credential(tx, c.ID, model.UserHolder(who.UserID))
 		if err != nil {
 			return nil, err
 		}

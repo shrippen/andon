@@ -1,7 +1,8 @@
 // Package analysis runs all rules and reconciles hints (scheduler job,
 // every 5 minutes).
 //
-//	for each space
+//	for each space (its own connections, a team's also the instance
+//	                templates the team activated)
 //	  for each owner (nil = shared data, user id = personal credentials)
 //	    datasets  ← <service>.data per connection (cached, 10 min)
 //	    service rules  → hints (per connection)
@@ -61,7 +62,7 @@ func newScope(spaceID int64, owner *int64, settings map[string]any) *scope {
 func RunAll(ctx context.Context, d *sql.DB, today time.Time) (int, error) {
 	var spaces []*model.Space
 	var conns []*model.Connection
-	var owners map[int64][]int64
+	var holders map[int64][]model.Holder
 
 	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
@@ -73,17 +74,17 @@ func RunAll(ctx context.Context, d *sql.DB, today time.Time) (int, error) {
 		if err != nil {
 			return err
 		}
-		owners, err = content.CredentialOwners(tx)
+		holders, err = content.CredentialHolders(tx)
 		return err
 	})
 	if err != nil {
 		return 0, err
 	}
 
-	warm(ctx, d, conns, owners)
+	warm(ctx, d, conns, holders)
 	fresh := 0
 	for _, sp := range spaces {
-		n, err := runSpace(ctx, d, sp, connectionsOf(conns, sp.ID), owners, today)
+		n, err := runSpace(ctx, d, sp, connectionsOf(conns, holders, sp), holders, today)
 		if err != nil {
 			slog.Error("analysis: space failed", "space", sp.ID, "err", err)
 		}
@@ -99,10 +100,10 @@ func RunAll(ctx context.Context, d *sql.DB, today time.Time) (int, error) {
 // warmWorkers bounds the parallel fetches of warm.
 const warmWorkers = 4
 
-// target is one connection fetched for one credential owner.
+// target is one connection fetched with one holder's login.
 type target struct {
-	conn  *model.Connection
-	owner *int64
+	conn   *model.Connection
+	holder model.Holder
 }
 
 // warm fetches every connection in parallel before the spaces run one
@@ -110,13 +111,13 @@ type target struct {
 // the results widgets show (Stored) in the time of the slowest service,
 // not of all services together. Certificate checks wait for their hosts
 // in runSpace.
-func warm(ctx context.Context, d *sql.DB, conns []*model.Connection, owners map[int64][]int64) {
+func warm(ctx context.Context, d *sql.DB, conns []*model.Connection, holders map[int64][]model.Holder) {
 	jobs := make(chan target)
 	var wg sync.WaitGroup
 	for range warmWorkers {
 		wg.Go(func() {
 			for t := range jobs {
-				_, _ = svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(t.conn.Service)), nil, t.conn, t.owner, svcdata.Cached) // errors surface in runSpace
+				_, _ = svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(t.conn.Service)), nil, t.conn, t.holder, svcdata.Cached) // errors surface in runSpace
 			}
 		})
 	}
@@ -125,9 +126,9 @@ func warm(ctx context.Context, d *sql.DB, conns []*model.Connection, owners map[
 		if conn.Service == string(enums.ServiceCerts) {
 			continue
 		}
-		for _, owner := range owningUsers(conn, owners[conn.ID]) {
+		for _, h := range holdersOf(conn, holders[conn.ID]) {
 			select {
-			case jobs <- target{conn: conn, owner: owner}:
+			case jobs <- target{conn: conn, holder: h}:
 			case <-ctx.Done():
 			}
 		}
@@ -139,13 +140,14 @@ func warm(ctx context.Context, d *sql.DB, conns []*model.Connection, owners map[
 // run is one fetched connection for one credential owner.
 type run struct {
 	conn   *model.Connection
+	login  login
 	owner  *int64
 	result svcdata.Result
 }
 
 // runSpace fetches every connection first, then evaluates: rules see all
 // datasets and failures of the space, so one outage becomes one hint.
-func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Connection, owners map[int64][]int64, today time.Time) (int, error) {
+func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Connection, holders map[int64][]model.Holder, today time.Time) (int, error) {
 	settings := sp.Settings
 	if settings == nil {
 		settings = map[string]any{}
@@ -155,9 +157,9 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 		slog.Error("analysis: links failed", "space", sp.ID, "err", err)
 	}
 
-	scopes := map[ownerKey]*scope{{nil}: newScope(sp.ID, nil, settings)}
+	scopes := map[int64]*scope{0: newScope(sp.ID, nil, settings)}
 	scopeOf := func(owner *int64) *scope {
-		key := ownerKey{owner}
+		key := ownerID(owner)
 		if _, ok := scopes[key]; !ok {
 			scopes[key] = newScope(sp.ID, owner, settings)
 		}
@@ -170,14 +172,15 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 	// Certificate checks go last: they may pick up hosts found by others.
 	var runs []run
 	for _, conn := range certsLast(mine) {
-		for _, owner := range owningUsers(conn, owners[conn.ID]) {
+		for _, l := range loginsOf(conn, holders[conn.ID], sp) {
+			owner := l.owner
 			sc := scopeOf(owner)
 			target := conn
 			if conn.Service == string(enums.ServiceCerts) {
 				target = withAutoHosts(conn, links, sc.datasets)
 			}
-			result, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(conn.Service)), nil, target, owner, svcdata.Cached)
-			if errors.Is(err, svcdata.ErrMissingCredential) {
+			result, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(conn.Service)), nil, target, l.holder, svcdata.Cached)
+			if errors.Is(err, svcdata.ErrMissingCredential) || errors.Is(err, svcdata.ErrTemplateChanged) {
 				continue
 			}
 			if err != nil {
@@ -186,7 +189,7 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 				sc.datasets[rules.FailedDataset] = append(failed, rules.Failed{Service: conn.Service, Name: conn.Name, Host: rules.HostOf(conn.URL)})
 				continue
 			}
-			runs = append(runs, run{conn: conn, owner: owner, result: result})
+			runs = append(runs, run{conn: conn, login: l, owner: owner, result: result})
 			if result.Data != nil {
 				sc.datasets[conn.Service] = result.Data
 				sc.options[conn.Service] = conn.Options
@@ -202,7 +205,7 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 		sc.datasets[rules.LinksDataset] = links
 		sc.datasets[rules.ClockDataset] = clocks
 	}
-	if err := addSecrets(d, mine, owners, scopeOf); err != nil {
+	if err := addSecrets(d, sp, mine, holders, scopeOf); err != nil {
 		slog.Error("analysis: secrets failed", "space", sp.ID, "err", err)
 	}
 	for _, sc := range scopes {
@@ -254,12 +257,13 @@ func clocksOf(conns []*model.Connection) []rules.Clock {
 
 // addSecrets lists each scope's stored secrets for the token rule: the
 // shared token, or the owner's own personal one.
-func addSecrets(d *sql.DB, conns []*model.Connection, owners map[int64][]int64, scopeOf func(*int64) *scope) error {
+func addSecrets(d *sql.DB, sp *model.Space, conns []*model.Connection, holders map[int64][]model.Holder, scopeOf func(*int64) *scope) error {
 	for _, conn := range conns {
-		for _, owner := range owningUsers(conn, owners[conn.ID]) {
+		for _, l := range loginsOf(conn, holders[conn.ID], sp) {
+			owner := l.owner
 			c := rules.Conn{Name: conn.Name, SecretAt: conn.SecretAt, Expires: conn.SecretExpires}
-			if owner != nil {
-				cred, err := content.Credential(d, conn.ID, *owner)
+			if l.holder != model.NoHolder {
+				cred, err := content.Credential(d, conn.ID, l.holder)
 				if err != nil {
 					return err
 				}
@@ -297,18 +301,18 @@ func evaluate(d *sql.DB, r run, sc *scope, settings map[string]any, today time.T
 
 	// A connection on a host that is down as a whole is part of the outage hint.
 	var down []rules.Finding
-	failing := reportDown(fetcher{r.conn.ID, ownerID(r.owner)}, r.result.Ok())
+	failing := reportDown(fetcher{r.conn.ID, int64(r.login.holder)}, r.result.Ok())
 	if _, inOutage := outages[rules.OutageRoot(env, rules.HostOf(r.conn.URL))]; failing && !inOutage {
 		down = []rules.Finding{downFinding(r.conn, r.result.Error)}
 	}
-	fresh, err := syncHints(d, r.conn.SpaceID, r.owner, &r.conn.ID, []string{connectorRule}, down)
+	fresh, err := syncHints(d, sc.spaceID, r.owner, &r.conn.ID, []string{connectorRule}, down)
 	if err != nil || r.result.Data == nil {
 		return fresh, err
 	}
 
 	// Stale data (a failed fetch) keeps the hints but is no reading for today.
 	if r.result.Ok() {
-		if err := snapshot(d, r.conn, r.owner, r.result.Data, today); err != nil {
+		if err := snapshot(d, r.conn, r.login.holder, r.result.Data, today); err != nil {
 			slog.Error("analysis: snapshot failed", "connection", r.conn.Name, "err", err)
 		}
 	}
@@ -319,7 +323,7 @@ func evaluate(d *sql.DB, r run, sc *scope, settings map[string]any, today time.T
 			kept = append(kept, f)
 		}
 	}
-	n, err := syncHints(d, r.conn.SpaceID, r.owner, &r.conn.ID, ids, kept)
+	n, err := syncHints(d, sc.spaceID, r.owner, &r.conn.ID, ids, kept)
 	return fresh + n, err
 }
 
@@ -345,33 +349,73 @@ func spaceLinks(d *sql.DB, spaceID int64) ([]rules.Link, error) {
 	return links, nil
 }
 
-// ownerKey wraps *int64 so it can key a map (nil vs non-nil user ids are
-// distinct owners; two nils are the same "shared" owner).
-type ownerKey struct{ id *int64 }
-
-func connectionsOf(conns []*model.Connection, spaceID int64) []*model.Connection {
+// connectionsOf lists what a space's run fetches: its own connections,
+// and in a team space the templates the team activated for itself.
+func connectionsOf(conns []*model.Connection, holders map[int64][]model.Holder, sp *model.Space) []*model.Connection {
 	var out []*model.Connection
 	for _, c := range conns {
-		if c.SpaceID == spaceID {
+		if c.SpaceID == sp.ID || teamHolds(holders[c.ID], sp) {
 			out = append(out, c)
 		}
 	}
 	return out
 }
 
-func owningUsers(conn *model.Connection, users []int64) []*int64 {
+// login is one fetch of a connection in a space: whose login it uses
+// (holder) and whose hints its result feeds (owner, nil = the space's).
+type login struct {
+	holder model.Holder
+	owner  *int64
+}
+
+// loginsOf lists the fetches of conn in space sp:
+//
+//	fixed connection                    once, the space's hints
+//	template in its own space           once per user who activated it
+//	instance template in a team space   once with the team's login
+func loginsOf(conn *model.Connection, holders []model.Holder, sp *model.Space) []login {
 	if conn.CredentialMode != enums.CredentialPersonal {
-		return []*int64{nil}
+		return []login{{}}
 	}
-	out := make([]*int64, len(users))
-	for i := range users {
-		out[i] = &users[i]
+	var out []login
+	for _, h := range holders {
+		if conn.SpaceID != sp.ID {
+			if sp.TeamID != nil && h.Team() == *sp.TeamID {
+				out = append(out, login{holder: h})
+			}
+			continue
+		}
+		if uid := h.User(); uid > 0 {
+			out = append(out, login{holder: h, owner: &uid})
+		}
 	}
 	return out
 }
 
+// teamHolds reports whether sp is a team space whose team activated a
+// template for itself.
+func teamHolds(holders []model.Holder, sp *model.Space) bool {
+	if sp.TeamID == nil {
+		return false
+	}
+	for _, h := range holders {
+		if h.Team() == *sp.TeamID {
+			return true
+		}
+	}
+	return false
+}
+
+// holdersOf lists every login conn is fetched with.
+func holdersOf(conn *model.Connection, holders []model.Holder) []model.Holder {
+	if conn.CredentialMode != enums.CredentialPersonal {
+		return []model.Holder{model.NoHolder}
+	}
+	return holders
+}
+
 // snapshot stores one value per metric and day, for the trend widget.
-func snapshot(d *sql.DB, conn *model.Connection, owner *int64, dataset any, today time.Time) error {
+func snapshot(d *sql.DB, conn *model.Connection, h model.Holder, dataset any, today time.Time) error {
 	values := map[string]float64{}
 	switch conn.Service {
 	case "invoiceninja":
@@ -386,11 +430,7 @@ func snapshot(d *sql.DB, conn *model.Connection, owner *int64, dataset any, toda
 		return nil
 	}
 
-	ownerID := int64(0)
-	if owner != nil {
-		ownerID = *owner
-	}
-	scope := fmt.Sprintf("%d:%d", conn.ID, ownerID)
+	scope := fmt.Sprintf("%d:%d", conn.ID, int64(h))
 	day := today.Format("2006-01-02")
 	return db.WithTx(d, func(tx *sql.Tx) error {
 		for metric, value := range values {

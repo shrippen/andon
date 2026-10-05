@@ -210,7 +210,7 @@ func RemoveSpace(q db.Queryer, spaceID int64) error {
 // ── Connections ──
 
 const connCols = `id, space_id, key, name, service, url, credential_mode, secret_enc,
-	options, verify_tls, created_at, secret_at, secret_expires, daily_budget`
+	options, verify_tls, created_at, secret_at, secret_expires, daily_budget, revision`
 
 func scanConnection(row interface{ Scan(...any) error }) (*model.Connection, error) {
 	var c model.Connection
@@ -218,7 +218,7 @@ func scanConnection(row interface{ Scan(...any) error }) (*model.Connection, err
 
 	err := row.Scan(
 		&c.ID, &c.SpaceID, &c.Key, &c.Name, &c.Service, &c.URL, &c.CredentialMode,
-		&c.SecretEnc, &options, &c.VerifyTLS, &createdAt, &secretAt, &c.SecretExpires, &c.DailyBudget,
+		&c.SecretEnc, &options, &c.VerifyTLS, &createdAt, &secretAt, &c.SecretExpires, &c.DailyBudget, &c.Revision,
 	)
 	if err != nil {
 		return nil, err
@@ -315,10 +315,10 @@ func AddConnection(q db.Queryer, c *model.Connection) error {
 	}
 	res, err := q.Exec(`INSERT INTO connections
 		(space_id, key, name, service, url, credential_mode, secret_enc, options, verify_tls, created_at,
-		 secret_at, secret_expires, daily_budget)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		 secret_at, secret_expires, daily_budget, revision)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		c.SpaceID, c.Key, c.Name, c.Service, c.URL, c.CredentialMode, c.SecretEnc, options,
-		c.VerifyTLS, db.TimeStr(c.CreatedAt), optTimeStr(c.SecretAt), c.SecretExpires, c.DailyBudget,
+		c.VerifyTLS, db.TimeStr(c.CreatedAt), optTimeStr(c.SecretAt), c.SecretExpires, c.DailyBudget, max(c.Revision, 1),
 	)
 	if err != nil {
 		return err
@@ -339,10 +339,10 @@ func UpdateConnection(q db.Queryer, c *model.Connection) error {
 	}
 	_, err = q.Exec(`UPDATE connections SET
 		name=?, service=?, url=?, credential_mode=?, secret_enc=?, options=?, verify_tls=?,
-		secret_at=?, secret_expires=?, daily_budget=?
+		secret_at=?, secret_expires=?, daily_budget=?, revision=?
 		WHERE id=?`,
 		c.Name, c.Service, c.URL, c.CredentialMode, c.SecretEnc, options, c.VerifyTLS,
-		optTimeStr(c.SecretAt), c.SecretExpires, c.DailyBudget, c.ID,
+		optTimeStr(c.SecretAt), c.SecretExpires, c.DailyBudget, max(c.Revision, 1), c.ID,
 	)
 	return err
 }
@@ -353,88 +353,131 @@ func RemoveConnection(q db.Queryer, connID int64) error {
 	return err
 }
 
-// Credential returns one user's personal credential for a connection, or nil.
-func Credential(q db.Queryer, connID, userID int64) (*model.UserCredential, error) {
-	var c model.UserCredential
-	var secretAt string
-	err := q.QueryRow(
-		"SELECT id, connection_id, user_id, secret_enc, secret_at FROM user_credentials WHERE connection_id = ? AND user_id = ?",
-		connID, userID,
-	).Scan(&c.ID, &c.ConnectionID, &c.UserID, &c.SecretEnc, &secretAt)
+// credCols reads a credential; holder folds user_id and team_id into one
+// model.Holder (team ids negative).
+const credCols = `id, connection_id, COALESCE(user_id, -team_id), secret_enc, secret_at, revision, snapshot`
+
+func scanCredential(row interface{ Scan(...any) error }) (*model.Credential, error) {
+	var c model.Credential
+	var secretAt, snapshot string
+	if err := row.Scan(&c.ID, &c.ConnectionID, &c.Holder, &c.SecretEnc, &secretAt, &c.Revision, &snapshot); err != nil {
+		return nil, err
+	}
+	var err error
+	if c.SecretAt, err = optTime(secretAt); err != nil {
+		return nil, err
+	}
+	c.Snapshot = map[string]any{}
+	return &c, db.FromJSON(snapshot, &c.Snapshot)
+}
+
+// holderWhere selects one holder's row: "user_id = ?" or "team_id = ?".
+func holderWhere(h model.Holder) (string, int64) {
+	if h.Team() > 0 {
+		return "team_id = ?", h.Team()
+	}
+	return "user_id = ?", h.User()
+}
+
+// Credential returns one holder's login to a connection, or nil.
+func Credential(q db.Queryer, connID int64, h model.Holder) (*model.Credential, error) {
+	where, id := holderWhere(h)
+	row := q.QueryRow("SELECT "+credCols+" FROM credentials WHERE connection_id = ? AND "+where, connID, id)
+	c, err := scanCredential(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
+	return c, err
+}
+
+// Credentials returns every login to a connection.
+func Credentials(q db.Queryer, connID int64) ([]*model.Credential, error) {
+	rows, err := q.Query("SELECT "+credCols+" FROM credentials WHERE connection_id = ? ORDER BY id", connID)
 	if err != nil {
 		return nil, err
 	}
-	c.SecretAt, err = optTime(secretAt)
-	return &c, err
+	defer rows.Close()
+
+	var out []*model.Credential
+	for rows.Next() {
+		c, err := scanCredential(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
 }
 
-// Credentials returns every personal credential of a connection.
-func Credentials(q db.Queryer, connID int64) ([]*model.UserCredential, error) {
-	rows, err := q.Query(
-		"SELECT id, connection_id, user_id, secret_enc FROM user_credentials WHERE connection_id = ?",
-		connID,
+// CredentialHolders maps every connection to the holders of a login to
+// it, in one query (the analysis run needs all).
+func CredentialHolders(q db.Queryer) (map[int64][]model.Holder, error) {
+	rows, err := q.Query("SELECT connection_id, COALESCE(user_id, -team_id) FROM credentials ORDER BY connection_id, id")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := map[int64][]model.Holder{}
+	for rows.Next() {
+		var connID int64
+		var h model.Holder
+		if err := rows.Scan(&connID, &h); err != nil {
+			return nil, err
+		}
+		out[connID] = append(out[connID], h)
+	}
+	return out, rows.Err()
+}
+
+// SetCredential inserts or replaces one holder's login, activated for the
+// template's revision and values (snapshot). A nil secretEnc keeps the
+// stored secret.
+func SetCredential(q db.Queryer, connID int64, h model.Holder, secretEnc []byte, revision int, snapshot map[string]any) error {
+	snap, err := db.ToJSON(orEmpty(snapshot))
+	if err != nil {
+		return err
+	}
+	existing, err := Credential(q, connID, h)
+	if err != nil {
+		return err
+	}
+	now := db.TimeStr(time.Now().UTC())
+	if existing != nil {
+		if secretEnc == nil {
+			_, err = q.Exec("UPDATE credentials SET revision = ?, snapshot = ? WHERE id = ?", revision, snap, existing.ID)
+			return err
+		}
+		_, err = q.Exec("UPDATE credentials SET secret_enc = ?, secret_at = ?, revision = ?, snapshot = ? WHERE id = ?",
+			secretEnc, now, revision, snap, existing.ID)
+		return err
+	}
+
+	var userID, teamID *int64
+	if t := h.Team(); t > 0 {
+		teamID = &t
+	} else {
+		u := h.User()
+		userID = &u
+	}
+	_, err = q.Exec(
+		"INSERT INTO credentials (connection_id, user_id, team_id, secret_enc, secret_at, revision, snapshot) VALUES (?,?,?,?,?,?,?)",
+		connID, userID, teamID, secretEnc, now, revision, snap,
 	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var out []*model.UserCredential
-	for rows.Next() {
-		var c model.UserCredential
-		if err := rows.Scan(&c.ID, &c.ConnectionID, &c.UserID, &c.SecretEnc); err != nil {
-			return nil, err
-		}
-		out = append(out, &c)
-	}
-	return out, rows.Err()
-}
-
-// CredentialOwners maps every connection to the users who stored a
-// personal credential for it, in one query (the analysis run needs all).
-func CredentialOwners(q db.Queryer) (map[int64][]int64, error) {
-	rows, err := q.Query("SELECT connection_id, user_id FROM user_credentials ORDER BY connection_id, id")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	out := map[int64][]int64{}
-	for rows.Next() {
-		var connID, userID int64
-		if err := rows.Scan(&connID, &userID); err != nil {
-			return nil, err
-		}
-		out[connID] = append(out[connID], userID)
-	}
-	return out, rows.Err()
-}
-
-// SetCredential inserts or replaces one user's personal credential.
-func SetCredential(q db.Queryer, connID, userID int64, secretEnc []byte) error {
-	existing, err := Credential(q, connID, userID)
-	if err != nil {
-		return err
-	}
-	if existing == nil {
-		_, err := q.Exec(
-			"INSERT INTO user_credentials (connection_id, user_id, secret_enc, secret_at) VALUES (?,?,?,?)",
-			connID, userID, secretEnc, db.TimeStr(time.Now().UTC()),
-		)
-		return err
-	}
-	_, err = q.Exec("UPDATE user_credentials SET secret_enc = ?, secret_at = ? WHERE id = ?", secretEnc, db.TimeStr(time.Now().UTC()), existing.ID)
 	return err
 }
 
-// RemoveCredential deletes one user's personal credential, if any.
-func RemoveCredential(q db.Queryer, connID, userID int64) error {
-	_, err := q.Exec(
-		"DELETE FROM user_credentials WHERE connection_id = ? AND user_id = ?", connID, userID,
-	)
+// ClearSecrets forgets every login's secret to a connection but keeps the
+// rows, so their holders still see what changed.
+func ClearSecrets(q db.Queryer, connID int64) error {
+	_, err := q.Exec("UPDATE credentials SET secret_enc = NULL, secret_at = '' WHERE connection_id = ?", connID)
+	return err
+}
+
+// RemoveCredential deletes one holder's login, if any.
+func RemoveCredential(q db.Queryer, connID int64, h model.Holder) error {
+	where, id := holderWhere(h)
+	_, err := q.Exec("DELETE FROM credentials WHERE connection_id = ? AND "+where, connID, id)
 	return err
 }
 

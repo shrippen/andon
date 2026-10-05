@@ -7,6 +7,8 @@
     <p class="slot-note" data-pending>{{t "widget.pending"}}</p>
   {{else if .MissingCredential}}
     <p class="slot-note"><a href="/me/credentials">{{t "widget.setup_access" "name" .MissingCredential}}</a></p>
+  {{else if .PausedCredential}}
+    <p class="slot-note"><span class="pill" data-state="reviewing">{{t "widget.paused"}}</span> <a href="/me/credentials">{{t "widget.reactivate" "name" .PausedCredential}}</a></p>
   {{else if and .Error (not .Data)}}
     <p class="slot-note is-error"><span class="pill" data-state="failed">{{t "widget.error"}}</span> <code>{{t .Error}}</code></p>
   {{else if .Error}}

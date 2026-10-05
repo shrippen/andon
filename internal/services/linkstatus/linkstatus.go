@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"andon/internal/db"
+	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/repos/data"
 	"andon/internal/services/svcdata"
@@ -94,7 +95,7 @@ func Check(ctx context.Context, d *sql.DB) error {
 			defer func() { <-sem }()
 
 			// Cached: the same result the tiles show, no extra traffic.
-			res, err := svcdata.Get(ctx, d, statusKey, c.params, nil, nil, svcdata.Cached)
+			res, err := svcdata.Get(ctx, d, statusKey, c.params, nil, model.NoHolder, svcdata.Cached)
 			status, ok := res.Data.(outcome)
 			if err != nil || !ok {
 				return

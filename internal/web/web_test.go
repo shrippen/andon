@@ -992,30 +992,28 @@ func TestAdminUsersListsAndGuardsLastAdmin(t *testing.T) {
 }
 
 // TestSharesGrantAndRevoke drives the "who has access?" dialog for a
-// connection: grant the admin's own account a share, see it listed, revoke it.
+// board: grant the admin's own account a share, see it listed, revoke it.
 func TestSharesGrantAndRevoke(t *testing.T) {
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
-	body := mustGet(t, srv, client, "/connections/new?service=kimai")
+	body := mustGet(t, srv, client, "/boards/new")
 	spaceMatch := regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(body)
 	if spaceMatch == nil {
-		t.Fatalf("no space option found in new-connection form:\n%s", body)
+		t.Fatalf("no space option found in new-board form:\n%s", body)
 	}
 	csrf := csrfToken(t, srv, client)
-	resp, err := client.PostForm(srv.URL+"/connections", url.Values{
-		"csrf": {csrf}, "space_id": {string(spaceMatch[1])}, "service": {"kimai"}, "name": {"Shared Kimai"},
-		"url": {"https://kimai.example"}, "mode": {"shared"}, "secret": {"tok"}, "tls": {"verify"},
-	})
+	noFollow := *client
+	noFollow.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	resp, err := noFollow.PostForm(srv.URL+"/boards/new", url.Values{"csrf": {csrf}, "name": {"Geteilt"}, "space_id": {string(spaceMatch[1])}})
 	if err != nil {
-		t.Fatalf("create connection: %v", err)
+		t.Fatalf("create board: %v", err)
 	}
 	resp.Body.Close()
-	editLocation, _, _ := strings.Cut(resp.Header.Get("Location"), "?")
-	connID := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(editLocation)[1]
+	connID := regexp.MustCompile(`/boards/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1]
 
-	body = mustGet(t, srv, client, "/shares/connection/"+connID)
+	body = mustGet(t, srv, client, "/shares/board/"+connID)
 	if !strings.Contains(string(body), "Wer hat Zugriff") {
 		t.Fatalf("expected shares dialog to render:\n%s", body)
 	}
@@ -1025,7 +1023,7 @@ func TestSharesGrantAndRevoke(t *testing.T) {
 	}
 
 	csrf = csrfToken(t, srv, client)
-	resp, err = client.PostForm(srv.URL+"/shares/connection/"+connID, url.Values{
+	resp, err = client.PostForm(srv.URL+"/shares/board/"+connID, url.Values{
 		"csrf": {csrf}, "grantee_kind": {"user"}, "grantee_id": {string(userMatch[1])}, "right": {"view"},
 	})
 	if err != nil {
@@ -1036,22 +1034,48 @@ func TestSharesGrantAndRevoke(t *testing.T) {
 		t.Fatalf("expected 303 after grant, got %d", resp.StatusCode)
 	}
 
-	body = mustGet(t, srv, client, "/shares/connection/"+connID)
-	shareMatch := regexp.MustCompile(`/shares/connection/` + connID + `/(\d+)/revoke`).FindSubmatch(body)
+	body = mustGet(t, srv, client, "/shares/board/"+connID)
+	shareMatch := regexp.MustCompile(`/shares/board/` + connID + `/(\d+)/revoke`).FindSubmatch(body)
 	if shareMatch == nil {
 		t.Fatalf("expected the granted share listed:\n%s", body)
 	}
 
 	csrf = csrfToken(t, srv, client)
-	resp, err = client.PostForm(srv.URL+"/shares/connection/"+connID+"/"+string(shareMatch[1])+"/revoke", url.Values{"csrf": {csrf}})
+	resp, err = client.PostForm(srv.URL+"/shares/board/"+connID+"/"+string(shareMatch[1])+"/revoke", url.Values{"csrf": {csrf}})
 	if err != nil {
 		t.Fatalf("revoke share: %v", err)
 	}
 	resp.Body.Close()
 
-	body = mustGet(t, srv, client, "/shares/connection/"+connID)
+	body = mustGet(t, srv, client, "/shares/board/"+connID)
 	if strings.Contains(string(body), "/revoke\"") {
 		t.Fatalf("expected no shares left after revoke:\n%s", body)
+	}
+}
+
+// TestConnectionsNotShareable: who sees a connection follows from its
+// level alone, so there is no share dialog for one.
+func TestConnectionsNotShareable(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+
+	resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {instanceSpace(t, srv, client)},
+		"service": {"kimai"}, "name": {"K"}, "url": {"https://kimai.example"}, "mode": {"shared"}, "secret": {"tok"}, "tls": {"verify"}})
+	editLocation, _, _ := strings.Cut(resp.Header.Get("Location"), "?")
+	connID := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(editLocation)[1]
+
+	page, err := client.Get(srv.URL + "/shares/connection/" + connID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page.Body.Close()
+	if page.StatusCode < http.StatusBadRequest {
+		t.Fatalf("share dialog for a connection: %d", page.StatusCode)
+	}
+	if list := string(mustGet(t, srv, client, "/connections")); strings.Contains(list, "/shares/connection/") {
+		t.Fatal("connection list still links a share dialog")
 	}
 }
 

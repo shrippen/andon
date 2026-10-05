@@ -4,7 +4,7 @@
 //	  │                          │
 //	  └── Space(personal)        └── Space(team)          Space(instance)
 //	         │
-//	         ├── Connection ── UserCredential (personal tokens)
+//	         ├── Connection ── Credential (a user's or a team's login to a template)
 //	         ├── Widget ◄── Placement ── Section ── Board ◄── Overlay (per user)
 //	         ├── Theme
 //	         └── Hint ── HintMark (per user or team-wide)
@@ -78,15 +78,43 @@ type Connection struct {
 	SecretAt       time.Time // zero = unknown
 	SecretExpires  string    // "2026-12-31", "" = unknown
 	DailyBudget    int       // fetches per day, 0 = unlimited
+	Revision       int       // grows with every edit of a template
 }
 
-type UserCredential struct {
+// Credential is one holder's login to a template connection. Revision
+// and Snapshot are the template's as it was activated; an older revision
+// pauses it. SecretEnc is nil once the template moved to another host.
+type Credential struct {
 	ID           int64
 	ConnectionID int64
-	UserID       int64
+	Holder       Holder
 	SecretEnc    []byte
 	SecretAt     time.Time // zero = unknown
+	Revision     int
+	Snapshot     map[string]any
 }
+
+// Holder is whose login a fetch uses:
+//
+//	0    nobody: a fixed connection's own login
+//	> 0  a user (their id)
+//	< 0  a team (minus its id), for an instance template it activated
+type Holder int64
+
+// NoHolder is a fixed connection's own login.
+const NoHolder Holder = 0
+
+// UserHolder is a user's own login.
+func UserHolder(userID int64) Holder { return Holder(userID) }
+
+// TeamHolder is a team's login.
+func TeamHolder(teamID int64) Holder { return Holder(-teamID) }
+
+// User is the holder's user id, 0 for none.
+func (h Holder) User() int64 { return max(int64(h), 0) }
+
+// Team is the holder's team id, 0 for none.
+func (h Holder) Team() int64 { return max(-int64(h), 0) }
 
 type Widget struct {
 	ID           int64

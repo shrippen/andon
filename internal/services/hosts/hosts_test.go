@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/services/hosts"
 	"andon/internal/services/svcdata"
@@ -43,7 +44,7 @@ func TestListGroupsConnectionsByHost(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := svcdata.Get(ctx, d, sources.DataKey(s.service), nil, conn, &who.UserID, svcdata.Force); err != nil {
+		if _, err := svcdata.Get(ctx, d, sources.DataKey(s.service), nil, conn, model.UserHolder(who.UserID), svcdata.Force); err != nil {
 			t.Fatalf("seed %s: %v", s.url, err)
 		}
 	}

@@ -21,7 +21,7 @@ func TestSmallerActions(t *testing.T) {
 		t.Fatalf("new board: %d %s", resp.StatusCode, resp.Header.Get("Location"))
 	}
 
-	resp = postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {space}, "service": {"kimai"},
+	resp = postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {instanceSpace(t, srv, client)}, "service": {"kimai"},
 		"name": {"Mine"}, "url": {"https://kimai.lan"}, "mode": {"personal"}, "tls": {"verify"}})
 	conn := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))[1]
 	if !strings.Contains(string(mustGet(t, srv, client, "/me/credentials")), "Mine") {

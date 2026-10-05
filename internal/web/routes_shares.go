@@ -21,7 +21,7 @@ var errBadKind = errors.New("shares: unknown resource kind")
 
 func parseKind(raw string) (enums.ResourceKind, error) {
 	switch enums.ResourceKind(raw) {
-	case enums.ResourceBoard, enums.ResourceWidget, enums.ResourceConnection, enums.ResourceTheme:
+	case enums.ResourceBoard, enums.ResourceWidget, enums.ResourceTheme:
 		return enums.ResourceKind(raw), nil
 	default:
 		return "", errBadKind

@@ -88,11 +88,11 @@ func pairs(d *sql.DB, who *access.Principal, spaceID int64) ([]pair, error) {
 
 func load(ctx context.Context, d *sql.DB, who *access.Principal, p pair, fresh svcdata.Freshness) (*sources.KimaiDataset, *sources.NinjaDataset, error) {
 	uid := who.UserID
-	k, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceKimai), nil, p.kimai, &uid, fresh)
+	k, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceKimai), nil, p.kimai, model.UserHolder(uid), fresh)
 	if err != nil {
 		return nil, nil, err
 	}
-	n, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceInvoiceNinja), nil, p.ninja, &uid, fresh)
+	n, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceInvoiceNinja), nil, p.ninja, model.UserHolder(uid), fresh)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -191,7 +191,7 @@ func Create(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, cust
 		return "", ErrNoClient
 	}
 
-	ninjaSecret, err := svcdata.Secret(d, p.ninja, who.UserID)
+	ninjaSecret, err := svcdata.Secret(d, p.ninja, model.UserHolder(who.UserID))
 	if err != nil {
 		return "", err
 	}
@@ -205,7 +205,7 @@ func Create(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, cust
 	}
 
 	if mode == MarkSheets {
-		kimaiSecret, err := svcdata.Secret(d, p.kimai, who.UserID)
+		kimaiSecret, err := svcdata.Secret(d, p.kimai, model.UserHolder(who.UserID))
 		if err != nil {
 			return number, err
 		}

@@ -273,7 +273,7 @@ func target(d *sql.DB, who *access.Principal, placementID int64) (*model.Connect
 	if err != nil {
 		return nil, "", err
 	}
-	secret, err := svcdata.Secret(d, conn, who.UserID)
+	secret, err := svcdata.Secret(d, conn, model.UserHolder(who.UserID))
 	return conn, secret, err
 }
 
@@ -425,7 +425,7 @@ func dayOf(ctx context.Context, d *sql.DB, who *access.Principal, conn *model.Co
 
 // load runs one Kimai source for the viewer.
 func load(ctx context.Context, d *sql.DB, who *access.Principal, conn *model.Connection, source string, fresh svcdata.Freshness) (any, error) {
-	res, err := svcdata.Get(ctx, d, source, nil, conn, &who.UserID, fresh)
+	res, err := svcdata.Get(ctx, d, source, nil, conn, model.UserHolder(who.UserID), fresh)
 	if err != nil {
 		return nil, err
 	}

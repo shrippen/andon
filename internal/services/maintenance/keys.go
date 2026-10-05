@@ -138,7 +138,7 @@ func rekeyTo(d *sql.DB, path string, m []byte) (int, error) {
 var sealedPurpose = map[string]crypto.Purpose{
 	"connections.secret_enc":       crypto.PurposeCredential,
 	"connections.oauth_client_enc": crypto.PurposeCredential,
-	"user_credentials.secret_enc":  crypto.PurposeCredential,
+	"credentials.secret_enc":       crypto.PurposeCredential,
 	"oauth_grants.grant_enc":       crypto.PurposeCredential,
 	"users.totp_secret_enc":        crypto.PurposeTOTP,
 	"notify_channels.url_enc":      crypto.PurposeNotify,
