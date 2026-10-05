@@ -1040,7 +1040,7 @@ Anfahrten-Fahrten ──►   │
 | # | Bedingung | Klasse | Grund |
 |---|---|---|---|
 | 1 | Fahrt im Plugin im selben Zeitfenster | deren Art | `plugin` |
-| 2 | Fahrt überschneidet gebuchte Kimai-Zeit (jede Buchung, auch interne Projekte; Anteil egal) | beruflich, Kunde aus der Buchung (intern: ohne Kunde) | `kimai` |
+| 2 | mindestens 50 % der Fahrzeit liegen in gebuchter Kimai-Zeit (jede Buchung, auch interne Projekte) | beruflich, Kunde aus der Buchung (intern: ohne Kunde) | `kimai` |
 | 3 | Start oder Ziel ist ein Kundenort | beruflich, Kunde aus dem Ort | `kunde` |
 | 4 | Zuhause ↔ Arbeitsort (nur wenn ein eigener Arbeitsort eingestellt ist) | Pendeln | `pendel` |
 | 5 | sonst | privat | `rest` |
