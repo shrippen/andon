@@ -60,6 +60,7 @@ type Result struct {
 	OkAt      time.Time
 	Error     string
 	Pending   bool
+	NextAt    time.Time // when the query may run again (see Pace)
 }
 
 // Ok reports whether the fetch succeeded.
@@ -249,10 +250,7 @@ func remembered(key string, now time.Time) (Result, bool) {
 
 // remember caches a fetch and returns what callers get: after a failure
 // the last good data (Error set, so Ok stays false) for up to staleFor.
-func remember(key string, connID int64, result Result, ttl time.Duration) Result {
-	if !result.Ok() {
-		ttl = min(ttl, errorTTL)
-	}
+func remember(key string, connID int64, result Result) Result {
 	memMu.Lock()
 	defer memMu.Unlock()
 
@@ -273,7 +271,7 @@ func remember(key string, connID int64, result Result, ttl time.Duration) Result
 	if kept.Data != nil && now.Sub(kept.OkAt) <= staleFor {
 		served = kept
 	}
-	mem[key] = memEntry{result: served, connID: connID, expires: now.Add(ttl), used: now}
+	mem[key] = memEntry{result: served, connID: connID, expires: result.NextAt, used: now}
 	evict(mem, now)
 	evict(latest, now)
 	return served
@@ -310,12 +308,16 @@ func Forget(connID int64) {
 }
 
 // Due reports whether a Cached read of r would reach the source again:
-// nothing stored yet, or older than the source's TTL (errorTTL after a
-// failure). A tile whose data is not due gains nothing from a reload.
+// nothing stored yet, or past its NextAt (a result from before the pace:
+// older than the source's TTL, errorTTL after a failure). A tile whose
+// data is not due gains nothing from a reload.
 func Due(sourceKey string, r Result, now time.Time) bool {
 	source, err := sources.Get(sourceKey)
 	if err != nil || r.Pending {
 		return true
+	}
+	if !r.NextAt.IsZero() {
+		return !now.Before(r.NextAt)
 	}
 	ttl := source.TTL()
 	if !r.Ok() {
@@ -473,20 +475,23 @@ func fetch(ctx context.Context, d *sql.DB, key, sourceKey string, source sources
 			return Result{FetchedAt: now, Error: err.Error()}
 		}
 	}
-	out, fetchErr := source.Fetch(ctx, sctx)
+	metered, usage := sources.Metered(ctx)
+	out, fetchErr := source.Fetch(metered, sctx)
 	took := time.Since(now).Milliseconds()
 	result := Result{FetchedAt: now}
+	outcome := fetchFailed
 	if fetchErr != nil {
 		result.Error = fetchErr.Error()
 	} else {
-		result.Data, result.OkAt = out, now
+		result.Data, result.OkAt, outcome = out, now, fetchOK
 	}
 
 	memConn := int64(0)
 	if conn != nil {
 		memConn = conn.ID
 	}
-	served := remember(key, memConn, result, source.TTL())
+	result.NextAt = pace.next(paceKey{conn: memConn, query: key, main: isMain(source, conn)}, ruleOf(source, conn), usage(), outcome, now)
+	served := remember(key, memConn, result)
 	_ = persistCache(d, key, sourceKey, result) // best-effort; a cache write failure must not fail the fetch
 	if conn != nil {
 		_ = data.RecordFetch(d, conn.ID, now, took, result.Error) // best-effort, health view only

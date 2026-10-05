@@ -80,6 +80,9 @@ type View struct {
 	SecretAt      time.Time // shared token, or the caller's own; zero = unknown
 	SecretExpires string
 	DailyBudget   int
+	Refresh       int // main query interval in minutes, 0 = automatic
+	AutoRefresh   int // the service's own interval in minutes
+	Pace          svcdata.Pace
 	Health        Health
 }
 
@@ -121,6 +124,7 @@ func viewOf(q db.Queryer, who *access.Principal, conn *model.Connection, granted
 		Paused:    cred != nil && paused(conn, cred),
 		VerifyTLS: conn.VerifyTLS, Options: conn.Options, SpaceID: conn.SpaceID, Right: granted,
 		SecretAt: secretAt, SecretExpires: conn.SecretExpires, DailyBudget: conn.DailyBudget, Health: health,
+		Refresh: conn.RefreshMinutes, AutoRefresh: svcdata.DefaultMinutes(enums.ServiceType(conn.Service)), Pace: svcdata.PaceOf(conn.ID),
 	}, nil
 }
 

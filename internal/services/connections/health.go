@@ -127,6 +127,34 @@ func SetHygiene(d *sql.DB, who *access.Principal, connID int64, expires string, 
 	})
 }
 
+// SetRefresh stores how often the connection's main query runs, in
+// minutes (0 = automatic, see svcdata.Pace). Requires MANAGE.
+func SetRefresh(d *sql.DB, who *access.Principal, connID int64, minutes int) error {
+	defer svcdata.Forget(connID) // the interval applies from the next fetch
+
+	return db.WithTx(d, func(tx *sql.Tx) error {
+		conn, err := content.Connection(tx, connID)
+		if err != nil {
+			return err
+		}
+		if conn == nil {
+			return ErrNotFound
+		}
+		granted, err := rightOf(tx, who, conn)
+		if err != nil {
+			return err
+		}
+		if err := access.Need(granted, enums.RightManage); err != nil {
+			return err
+		}
+		conn.RefreshMinutes = max(minutes, 0)
+		if err := content.UpdateConnection(tx, conn); err != nil {
+			return err
+		}
+		return audit.Log(tx, &who.UserID, "connection.refresh", conn.Name, "", nil)
+	})
+}
+
 // DayState is one day of a connection's health strip.
 type DayState struct {
 	Day      string

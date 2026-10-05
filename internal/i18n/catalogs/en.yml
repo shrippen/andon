@@ -1180,7 +1180,7 @@ conn:
   tls: Certificate
   tls_verify: Verify (recommended)
   tls_skip: Don''t verify (self-signed)
-  advanced: 'Advanced: expiry, fetches per day, options'
+  advanced: 'Advanced: expiry, fetches per day, query interval, options'
   delete_hint: 'The connection is gone for everybody using it. Tiles on it show no data afterwards.'
   state_failing: failing
   state_failing_one: Failing
@@ -1206,7 +1206,7 @@ conn:
   about_grocy: 'Stock, shopping list, chores'
   options_hint_dwd: 'URL https://api.brightsky.dev, no token. Pick the place with the search: Andon shows the German Weather Service warnings for its coordinates.'
   about_dwd: 'Weather warnings for a place'
-  options_hint_github: 'URL https://api.github.com. Options: repos: [owner/repo], owner: name (all repos of the owner; with a token also private ones and those of its organisations), forks: true, archived: true (left out otherwise), downloads_minutes: minutes between two download counts (default auto: hourly, less often with many repos). Token optional (fine-grained, read: actions, contents, issues, pull requests; notifications need a classic token).'
+  options_hint_github: 'URL https://api.github.com. Options: repos: [owner/repo], owner: name (all repos of the owner; with a token also private ones and those of its organisations), forks: true, archived: true (left out otherwise), downloads_minutes: minutes between two download counts (default auto: hourly). Token optional (fine-grained, read: actions, contents, issues, pull requests; notifications need a classic token).'
   about_github: 'Repos: PRs, issues, CI, releases'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
@@ -1220,6 +1220,12 @@ conn:
   hygiene: 'Token and fetches'
   budget: 'Fetches per day'
   budget_hint: '0 = unlimited. Beyond it Andon shows the last state until tomorrow.'
+  refresh: 'Query every … minutes'
+  refresh_hint: '0 = automatic: the service default ({min} min), less often when the quota runs low, a pause after "rate limit exceeded". A pause applies to a fixed value too.'
+  pace_default: 'Queried every {min} min (automatic).'
+  pace_manual: 'Queried every {min} min (fixed).'
+  pace_tight: 'Queried every {min} min: automatic slows down, the service quota runs low.'
+  pace_refused: 'Rate limit exceeded: next query {until}.'
   failed: 'failure rate'
   never_ok: 'never succeeded'
   no_fetches: 'no fetches yet'

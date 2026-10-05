@@ -122,3 +122,14 @@ func DataKey(service enums.ServiceType) string {
 	}
 	return string(service) + ".data"
 }
+
+// Usage is what a fetch's calls cost and what the service allows (see
+// httpclient.Metered).
+type Usage = httpclient.Usage
+
+// Metered counts the calls a fetch makes under the returned context;
+// usage reads the count so far.
+func Metered(ctx context.Context) (metered context.Context, usage func() Usage) {
+	metered, m := httpclient.Metered(ctx)
+	return metered, m.Usage
+}

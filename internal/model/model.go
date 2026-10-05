@@ -78,6 +78,7 @@ type Connection struct {
 	SecretAt       time.Time // zero = unknown
 	SecretExpires  string    // "2026-12-31", "" = unknown
 	DailyBudget    int       // fetches per day, 0 = unlimited
+	RefreshMinutes int       // main query interval, 0 = automatic
 	Revision       int       // grows with every edit of a template
 }
 
