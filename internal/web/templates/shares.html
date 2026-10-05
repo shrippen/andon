@@ -39,7 +39,6 @@
         </form>
         {{else}}<p class="muted">{{t "share.none"}}</p>{{end}}
 
-        {{if .Info.WarnSharedData}}<div class="callout callout-warn">{{t "conn.shared_warning"}}</div>{{end}}
 
         <form class="add" method="post" action="/shares/{{.Kind}}/{{.ResourceID}}">
           <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">

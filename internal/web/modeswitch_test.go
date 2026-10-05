@@ -17,8 +17,7 @@ func TestModeSwitchAsksFirst(t *testing.T) {
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 	csrf := csrfToken(t, srv, client)
-	form := string(mustGet(t, srv, client, "/connections/new?service=kimai"))
-	space := regexp.MustCompile(`<option value="(\d+)">`).FindStringSubmatch(form)[1]
+	space := instanceSpace(t, srv, client)
 
 	noFollow := *client
 	noFollow.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }

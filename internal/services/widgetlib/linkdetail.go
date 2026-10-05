@@ -70,7 +70,7 @@ func loadLinkDetail(ctx context.Context, d *sql.DB, _ *access.Principal, widget 
 	}
 
 	if out.Checked {
-		if res, err := svcdata.Get(ctx, d, statusSource, params, nil, nil, svcdata.Stored); err == nil {
+		if res, err := svcdata.Get(ctx, d, statusSource, params, nil, model.NoHolder, svcdata.Stored); err == nil {
 			out.Status, _ = res.Data.(*sources.HTTPStatusResult)
 			out.CheckedAt = res.FetchedAt
 		}
@@ -92,7 +92,7 @@ func loadLinkDetail(ctx context.Context, d *sql.DB, _ *access.Principal, widget 
 	}
 
 	// Fetched on demand, kept an hour: redirects, certificate, clock.
-	if res, err := svcdata.Get(ctx, d, linkInfoSource, params, nil, nil, svcdata.Cached); err == nil {
+	if res, err := svcdata.Get(ctx, d, linkInfoSource, params, nil, model.NoHolder, svcdata.Cached); err == nil {
 		out.Info, _ = res.Data.(*sources.LinkInfo)
 	}
 	return &DetailDialog{Type: widget.Type, Head: out.head(), Body: out}, nil

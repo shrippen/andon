@@ -125,7 +125,7 @@ func spaces(d *sql.DB, who *access.Principal) ([]space, error) {
 // cardsOf builds the space's cards from the last background run.
 func cardsOf(ctx context.Context, d *sql.DB, who *access.Principal, sp space) ([]Card, error) {
 	uid := who.UserID
-	k, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceKimai), nil, sp.kimai, &uid, svcdata.Stored)
+	k, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceKimai), nil, sp.kimai, model.UserHolder(uid), svcdata.Stored)
 	if errors.Is(err, svcdata.ErrMissingCredential) {
 		return nil, nil
 	}
@@ -138,7 +138,7 @@ func cardsOf(ctx context.Context, d *sql.DB, who *access.Principal, sp space) ([
 	}
 	var ninja *sources.NinjaDataset
 	if sp.ninja != nil {
-		if n, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceInvoiceNinja), nil, sp.ninja, &uid, svcdata.Stored); err == nil {
+		if n, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceInvoiceNinja), nil, sp.ninja, model.UserHolder(uid), svcdata.Stored); err == nil {
 			ninja, _ = n.Data.(*sources.NinjaDataset)
 		}
 	}

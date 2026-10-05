@@ -74,7 +74,7 @@ func StoreSignIn(d *sql.DB, who *access.Principal, connID int64, secret string, 
 		}
 		owner := int64(sharedOwner)
 		if conn.CredentialMode == enums.CredentialPersonal {
-			owner = who.UserID
+			owner = int64(model.UserHolder(who.UserID))
 		}
 
 		if grant != nil {
@@ -91,7 +91,7 @@ func StoreSignIn(d *sql.DB, who *access.Principal, connID int64, secret string, 
 			return err
 		}
 		if conn.CredentialMode == enums.CredentialPersonal {
-			err = content.SetCredential(tx, conn.ID, who.UserID, enc)
+			err = content.SetCredential(tx, conn.ID, model.UserHolder(who.UserID), enc, conn.Revision, snapshotOf(conn))
 		} else {
 			conn.SecretEnc, conn.SecretAt = enc, time.Now().UTC()
 			err = content.UpdateConnection(tx, conn)
@@ -181,7 +181,7 @@ func ShareMine(d *sql.DB, who *access.Principal, connID int64) error {
 		if err := access.Need(granted, enums.RightManage); err != nil {
 			return err
 		}
-		mine, err := content.Credential(tx, conn.ID, who.UserID)
+		mine, err := content.Credential(tx, conn.ID, model.UserHolder(who.UserID))
 		if err != nil {
 			return err
 		}

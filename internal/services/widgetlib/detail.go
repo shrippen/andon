@@ -66,7 +66,7 @@ func feedArticle(ctx context.Context, d *sql.DB, _ *access.Principal, item strin
 	if !ok || !slices.ContainsFunc(feed.Items, func(it sources.FeedItem) bool { return it.Link == item }) {
 		return nil
 	}
-	res, err := svcdata.Get(ctx, d, sources.ArticleSource.Key(), map[string]any{"link": item}, nil, nil, svcdata.Cached)
+	res, err := svcdata.Get(ctx, d, sources.ArticleSource.Key(), map[string]any{"link": item}, nil, model.NoHolder, svcdata.Cached)
 	if err != nil || !res.Ok() {
 		return nil
 	}

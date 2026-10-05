@@ -86,7 +86,7 @@ func useConnection(d *sql.DB, who *access.Principal, w *model.Widget) (*model.Co
 	if err != nil {
 		return nil, outbound.Target{}, err
 	}
-	secret, err := svcdata.Secret(d, conn, who.UserID)
+	secret, err := svcdata.Secret(d, conn, model.UserHolder(who.UserID))
 	if err != nil {
 		return nil, outbound.Target{}, err
 	}

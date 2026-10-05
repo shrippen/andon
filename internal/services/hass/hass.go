@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"andon/internal/model"
 	"andon/internal/outbound"
 	"andon/internal/services/access"
 	auditsvc "andon/internal/services/audit"
@@ -41,7 +42,7 @@ func Toggle(ctx context.Context, d *sql.DB, who *access.Principal, placementID i
 	if err != nil {
 		return err
 	}
-	secret, err := svcdata.Secret(d, conn, who.UserID)
+	secret, err := svcdata.Secret(d, conn, model.UserHolder(who.UserID))
 	if err != nil {
 		return err
 	}

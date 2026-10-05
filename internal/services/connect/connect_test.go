@@ -15,6 +15,7 @@ import (
 
 	"andon/internal/crypto"
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/services/connect"
 	"andon/internal/services/connections"
@@ -120,8 +121,12 @@ func TestNextcloudPersonalSignIn(t *testing.T) {
 	defer srv.Close()
 
 	d := testkit.DB(t)
-	who, space := testkit.User(t, d, "a@b.c", enums.RoleAdmin)
-	id, err := connections.Create(d, who, space, enums.ServiceNextcloud, "NC", srv.URL, enums.CredentialPersonal, "", connections.TLSVerify, nil)
+	who, _ := testkit.User(t, d, "a@b.c", enums.RoleAdmin)
+	instance := &model.Space{Kind: enums.SpaceInstance, Name: "Instanz", Version: 1}
+	if err := content.AddSpace(d, instance); err != nil {
+		t.Fatal(err)
+	}
+	id, err := connections.Create(d, who, instance.ID, enums.ServiceNextcloud, "NC", srv.URL, enums.CredentialPersonal, "", connections.TLSVerify, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +142,7 @@ func TestNextcloudPersonalSignIn(t *testing.T) {
 	if step, _, err = connect.Poll(ctx, d, who, step.Flow); err != nil || !step.Done {
 		t.Fatalf("second poll: %+v %v", step, err)
 	}
-	cred, _ := content.Credential(d, id, who.UserID)
+	cred, _ := content.Credential(d, id, model.UserHolder(who.UserID))
 	if cred == nil || secretOf(t, cred.SecretEnc) != "arian:pw" {
 		t.Fatal("personal credential not stored")
 	}

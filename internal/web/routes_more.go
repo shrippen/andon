@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/services/access"
 	"andon/internal/services/accounts"
 	"andon/internal/services/auth"
@@ -147,13 +148,13 @@ func (d Deps) handleCredentialSave(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
-		return connections.SetMine(d.DB, ctx.Who, id, secret)
+		return connections.Activate(d.DB, ctx.Who, id, model.UserHolder(ctx.Who.UserID), secret)
 	})
 }
 
 func (d Deps) handleCredentialDelete(w http.ResponseWriter, r *http.Request) {
 	d.credentialAction(w, r, func(ctx Ctx, id int64) error {
-		return connections.DropMine(d.DB, ctx.Who, id)
+		return connections.Deactivate(d.DB, ctx.Who, id, model.UserHolder(ctx.Who.UserID))
 	})
 }
 

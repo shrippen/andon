@@ -1,6 +1,8 @@
 package web_test
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
@@ -16,8 +18,7 @@ func TestCredentialsTableCells(t *testing.T) {
 	login(t, srv, client)
 	csrf := csrfToken(t, srv, client)
 
-	space := regexp.MustCompile(`<option value="(\d+)">`).FindStringSubmatch(string(mustGet(t, srv, client, "/boards/new")))[1]
-	resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {space}, "service": {"kimai"},
+	resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {instanceSpace(t, srv, client)}, "service": {"kimai"},
 		"name": {"Mine"}, "url": {"https://kimai.lan"}, "mode": {"personal"}, "tls": {"verify"}})
 	conn := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))[1]
 	postForm(t, client, srv.URL+"/me/credentials/"+conn, url.Values{"csrf": {csrf}, "secret": {"tok"}})
@@ -35,4 +36,16 @@ func TestCredentialsTableCells(t *testing.T) {
 			t.Fatalf("mixed button kinds (%s):\n%s", kind, actions)
 		}
 	}
+}
+
+// instanceSpace is the id of the instance space, where templates live (a
+// personal space holds only fixed connections).
+func instanceSpace(t *testing.T, srv *httptest.Server, client *http.Client) string {
+	t.Helper()
+	form := string(mustGet(t, srv, client, "/connections/new?service=kimai"))
+	m := regexp.MustCompile(`<option value="(\d+)">Instanz</option>`).FindStringSubmatch(form)
+	if m == nil {
+		t.Fatalf("no instance space in:\n%s", form)
+	}
+	return m[1]
 }

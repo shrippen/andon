@@ -42,6 +42,7 @@ type Slot struct {
 	Error             string
 	OkAt              time.Time
 	MissingCredential string // connection name, "" if credentials are fine
+	PausedCredential  string // connection name, the template changed since its activation
 	Pending           bool   // not fetched by a background run yet
 	Due               bool   // a Cached read would fetch again (see svcdata.Due)
 }
@@ -226,6 +227,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 
 	var conn, infoConn, hostConn *model.Connection
 	var settings map[string]any
+	var here svcdata.Place
 	infoKey := infoKeyOf(cfg)
 	host := linkHost(cfg)
 	err := db.WithRead(d, func(tx *sql.Tx) error {
@@ -256,6 +258,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		}
 		if space != nil {
 			settings = space.Settings
+			here = svcdata.Place{Kind: space.Kind, Team: deref(space.TeamID)}
 		}
 		return nil
 	})
@@ -317,7 +320,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 			// A dialog's own data is fetched on open, then cached.
 			qFresh = svcdata.Cached
 		}
-		frag.Slots[q.Name] = runQuery(ctx, d, sourceFor(q, target), q.Params, target, who.UserID, qFresh)
+		frag.Slots[q.Name] = runQuery(ctx, d, sourceFor(q, target), q.Params, target, holderAt(who, here, target), qFresh)
 	}
 
 	serviceConn := conn
@@ -337,7 +340,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 
 	if kind.Extra == widgets.ExtraPoints && conn != nil && from == originStored {
 		trend := cfg.(widgets.TrendConfig)
-		points, err := loadPoints(d, conn, who.UserID, string(trend.Metric), trend.Days)
+		points, err := loadPoints(d, conn, holderAt(who, here, conn), string(trend.Metric), trend.Days)
 		if err != nil {
 			return nil, err
 		}
@@ -655,15 +658,37 @@ func integrationFreshness(q widgets.Query, target *model.Connection, own, fresh 
 	return svcdata.Stored
 }
 
-func runQuery(ctx context.Context, d *sql.DB, source string, params map[string]any, conn *model.Connection, userID int64, fresh svcdata.Freshness) Slot {
-	res, err := svcdata.Get(ctx, d, source, params, conn, &userID, fresh)
+// holderAt is whose login a widget shown at here uses for target (see
+// svcdata.HolderAt).
+func holderAt(who *access.Principal, here svcdata.Place, target *model.Connection) model.Holder {
+	if target == nil {
+		return model.NoHolder
+	}
+	ref := who.Spaces[target.SpaceID]
+	from := svcdata.Place{Kind: ref.Kind, Team: deref(ref.TeamID)}
+	return svcdata.HolderOf(target, svcdata.HolderAt(from, here, who.UserID))
+}
+
+// deref is a nullable id, 0 for none.
+func deref(id *int64) int64 {
+	if id == nil {
+		return 0
+	}
+	return *id
+}
+
+func runQuery(ctx context.Context, d *sql.DB, source string, params map[string]any, conn *model.Connection, h model.Holder, fresh svcdata.Freshness) Slot {
+	res, err := svcdata.Get(ctx, d, source, params, conn, h, fresh)
 	if err != nil {
+		name := ""
+		if conn != nil {
+			name = conn.Name
+		}
 		if errors.Is(err, svcdata.ErrMissingCredential) {
-			name := ""
-			if conn != nil {
-				name = conn.Name
-			}
 			return Slot{MissingCredential: name}
+		}
+		if errors.Is(err, svcdata.ErrTemplateChanged) {
+			return Slot{PausedCredential: name}
 		}
 		return Slot{Error: "source.unknown"}
 	}
@@ -686,13 +711,8 @@ func demoQuery(ctx context.Context, source string, params map[string]any) Slot {
 
 // loadPoints returns a trend widget's daily snapshots (written by the
 // analysis job), scoped to the connection and credential owner.
-func loadPoints(d *sql.DB, conn *model.Connection, userID int64, metric string, days int) ([][2]any, error) {
-	owner := svcdata.CredentialOwner(conn, &userID)
-	ownerID := int64(0)
-	if owner != nil {
-		ownerID = *owner
-	}
-	scope := fmt.Sprintf("%d:%d", conn.ID, ownerID)
+func loadPoints(d *sql.DB, conn *model.Connection, h model.Holder, metric string, days int) ([][2]any, error) {
+	scope := fmt.Sprintf("%d:%d", conn.ID, int64(svcdata.HolderOf(conn, h)))
 	since := time.Now().UTC().AddDate(0, 0, -days).Format("2006-01-02")
 
 	var out [][2]any

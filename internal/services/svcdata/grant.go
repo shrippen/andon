@@ -18,16 +18,12 @@ import (
 // once it was used, so two parallel renewals would lock the second out.
 var grantMu sync.Mutex
 
-// sharedOwner is the grant row of a shared credential.
-const sharedOwner = 0
-
 // grantToken turns a connection's grant into a current access token,
 // renewing and storing it when it is about to expire.
-func grantToken(ctx context.Context, d *sql.DB, conn *model.Connection, owner *int64) (string, error) {
-	user := int64(sharedOwner)
-	if owner != nil {
-		user = *owner
-	}
+//
+// Grant rows are keyed by holder: 0 fixed, a user id, or minus a team id.
+func grantToken(ctx context.Context, d *sql.DB, conn *model.Connection, owner model.Holder) (string, error) {
+	user := int64(owner)
 
 	grantMu.Lock()
 	defer grantMu.Unlock()
@@ -73,8 +69,8 @@ func grantToken(ctx context.Context, d *sql.DB, conn *model.Connection, owner *i
 	return next.Access, nil
 }
 
-// StoreGrant encrypts and stores a grant for a connection and user (0 =
-// shared).
+// StoreGrant encrypts and stores a grant for a connection and holder (0 =
+// fixed, see grantToken).
 func StoreGrant(q db.Queryer, connID, userID int64, g sources.Grant) error {
 	raw, err := json.Marshal(g)
 	if err != nil {

@@ -993,6 +993,9 @@ widget:
   empty: Keine Einträge.
   setup_access: Zugang für {name} einrichten
   setup_access_short: Zugang einrichten
+  paused: Pausiert
+  reactivate: '{name}: Vorlage geändert, neu aktivieren'
+  reactivate_short: Neu aktivieren
   unknown_type: Unbekannter Kacheltyp.
   connection_required: Diese Kachel braucht eine Verbindung.
   connection_missing: Verbindung nicht gefunden.
@@ -1487,6 +1490,7 @@ cred:
   none: Keine Verbindungen mit persönlichen Zugangsdaten.
 credential:
   missing: Kein persönlicher Zugang hinterlegt.
+  paused: Die Vorlage hat sich geändert; Zugang neu aktivieren.
 admin:
   backup: 'Sicherung von Andon'
   backup_hint: 'Täglich eine Kopie der Datenbank nach data/backups; jede Kopie wird probeweise geöffnet (Integrität, Migrationen, Zeilen, Zugangsdaten entschlüsselbar). Die neuesten {keep} bleiben. Die Kopien liegen im selben Volume wie die Datenbank: das Verzeichnis zusätzlich extern sichern und den Master-Schlüssel getrennt aufbewahren.'

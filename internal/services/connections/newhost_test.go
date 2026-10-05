@@ -5,15 +5,15 @@ import (
 	"testing"
 
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
-	"andon/internal/services/shares"
 )
 
 // TestNewHostDropsSecrets: pointing a connection at another host must
 // not send the stored token there; the shared one must be entered again
-// and the users' own tokens are dropped.
+// and the users' own tokens are dropped (their activations stay).
 func TestNewHostDropsSecrets(t *testing.T) {
 	d := openTestDB(t)
 	owner := addUser(t, d, "owner@x.de")
@@ -35,23 +35,23 @@ func TestNewHostDropsSecrets(t *testing.T) {
 		t.Fatalf("same host: %v", err)
 	}
 
-	personal, err := connections.Create(d, ownerWho, space.ID, enums.ServiceKimai, "P", "https://kimai.lan",
+	instance := addInstance(t, d)
+	setAdmin(t, d, owner)
+	ownerWho, _ = access.Load(d, owner.ID)
+	personal, err := connections.Create(d, ownerWho, instance.ID, enums.ServiceKimai, "P", "https://kimai.lan",
 		enums.CredentialPersonal, "", connections.TLSVerify, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := shares.Grant(d, ownerWho, enums.ResourceConnection, personal, enums.GranteeUser, member.ID, enums.RightUse); err != nil {
-		t.Fatal(err)
-	}
 	memberWho, _ := access.Load(d, member.ID)
-	if err := connections.SetMine(d, memberWho, personal, "member-token"); err != nil {
+	if err := connections.Activate(d, memberWho, personal, model.UserHolder(memberWho.UserID), "member-token"); err != nil {
 		t.Fatal(err)
 	}
 	if err := connections.Update(d, ownerWho, personal, "P", "https://attacker.example", enums.CredentialPersonal, nil,
 		connections.TLSVerify, nil); err != nil {
 		t.Fatal(err)
 	}
-	if c, _ := content.Credential(d, personal, member.ID); c != nil {
+	if c, _ := content.Credential(d, personal, model.UserHolder(member.ID)); c == nil || c.SecretEnc != nil {
 		t.Fatal("member's token kept for the new host")
 	}
 }

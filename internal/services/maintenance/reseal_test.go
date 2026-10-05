@@ -71,7 +71,7 @@ func storeEverything(t *testing.T, d *sql.DB) []sealed {
 		t.Fatal(err)
 	}
 	steps := []error{
-		content.SetCredential(d, conn.ID, u.ID, seal(t, "secret", crypto.PurposeCredential)),
+		content.SetCredential(d, conn.ID, model.UserHolder(u.ID), seal(t, "secret", crypto.PurposeCredential), 1, nil),
 		content.SetOAuthClient(d, conn.ID, seal(t, "secret", crypto.PurposeCredential)),
 		content.SetGrant(d, conn.ID, u.ID, seal(t, "secret", crypto.PurposeCredential)),
 		users.UpdateTOTPSecret(d, u.ID, seal(t, "secret", crypto.PurposeTOTP)),
@@ -88,7 +88,10 @@ func storeEverything(t *testing.T, d *sql.DB) []sealed {
 
 	return []sealed{
 		{"connection secret", crypto.PurposeCredential, func(q db.Queryer) []byte { c, _ := content.Connection(q, conn.ID); return c.SecretEnc }},
-		{"personal credential", crypto.PurposeCredential, func(q db.Queryer) []byte { c, _ := content.Credential(q, conn.ID, u.ID); return c.SecretEnc }},
+		{"personal credential", crypto.PurposeCredential, func(q db.Queryer) []byte {
+			c, _ := content.Credential(q, conn.ID, model.UserHolder(u.ID))
+			return c.SecretEnc
+		}},
 		{"oauth client", crypto.PurposeCredential, func(q db.Queryer) []byte { b, _ := content.OAuthClient(q, conn.ID); return b }},
 		{"oauth grant", crypto.PurposeCredential, func(q db.Queryer) []byte { b, _ := content.Grant(q, conn.ID, u.ID); return b }},
 		{"totp", crypto.PurposeTOTP, func(q db.Queryer) []byte { x, _ := users.Get(q, u.ID); return x.TOTPSecretEnc }},

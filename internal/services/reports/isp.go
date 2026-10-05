@@ -16,6 +16,7 @@ import (
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
+	"andon/internal/model"
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
 	"andon/internal/services/history"
@@ -56,7 +57,7 @@ func ISPReports(ctx context.Context, d *sql.DB, who *access.Principal) ([]ISP, e
 			continue
 		}
 		uid := who.UserID
-		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceSpeedtest), nil, conn, &uid, svcdata.Stored)
+		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceSpeedtest), nil, conn, model.UserHolder(uid), svcdata.Stored)
 		if err != nil {
 			continue
 		}

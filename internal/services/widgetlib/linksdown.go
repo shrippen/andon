@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/services/access"
 	"andon/internal/services/linkstatus"
@@ -45,7 +46,7 @@ func linksDown(ctx context.Context, d *sql.DB, who *access.Principal, spaceID in
 			if q.Source != statusSource {
 				continue
 			}
-			res, err := svcdata.Get(ctx, d, statusSource, q.Params, nil, nil, svcdata.Stored)
+			res, err := svcdata.Get(ctx, d, statusSource, q.Params, nil, model.NoHolder, svcdata.Stored)
 			status, ok := res.Data.(interface{ Outcome() (bool, int) })
 			if err != nil || !ok {
 				continue

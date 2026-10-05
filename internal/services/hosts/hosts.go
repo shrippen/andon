@@ -127,7 +127,7 @@ func collect(ctx context.Context, d *sql.DB, who *access.Principal) (map[string]
 	var kuma []*sources.KumaDataset
 	var certs []*sources.CertDataset
 	for _, c := range conns {
-		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(c.Service)), nil, c, &uid, svcdata.Stored)
+		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(c.Service)), nil, c, model.UserHolder(uid), svcdata.Stored)
 		if err != nil || res.Pending {
 			continue
 		}

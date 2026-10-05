@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/services/clients"
 	"andon/internal/services/svcdata"
@@ -32,7 +33,7 @@ func TestListAndOneShowSpaceCustomers(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := svcdata.Get(ctx, d, sources.DataKey(service), nil, conn, &who.UserID, svcdata.Force); err != nil {
+		if _, err := svcdata.Get(ctx, d, sources.DataKey(service), nil, conn, model.UserHolder(who.UserID), svcdata.Force); err != nil {
 			t.Fatalf("seed %s: %v", service, err)
 		}
 	}

@@ -10,6 +10,7 @@ import (
 
 	"andon/internal/crypto"
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/services/svcdata"
 	"andon/internal/sources"
@@ -58,7 +59,7 @@ func TestGrantRenewedBeforeFetch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := svcdata.Get(context.Background(), d, "jsonapi.data", nil, conn, &who.UserID, svcdata.Force)
+	result, err := svcdata.Get(context.Background(), d, "jsonapi.data", nil, conn, model.UserHolder(who.UserID), svcdata.Force)
 	if err != nil || !result.Ok() {
 		t.Fatalf("fetch with renewed grant: %+v err=%v", result, err)
 	}
