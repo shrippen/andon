@@ -1,5 +1,7 @@
 package sources
 
+import "time"
+
 // SetBases points the public-API sources at a test server; the returned
 // func restores them.
 func SetBases(base string) func() {
@@ -35,3 +37,13 @@ func SetPublicIPv6(u string) func() {
 
 // FeedURL exposes how a calendar address becomes a fetchable one.
 var FeedURL = feedURL
+
+// SetClock fixes the time the GitHub download memo sees.
+func SetClock(at func() time.Time) func() {
+	saved := clockNow
+	clockNow = at
+	return func() { clockNow = saved }
+}
+
+// DownloadsEvery is downloadsEvery for tests.
+var DownloadsEvery = downloadsEvery

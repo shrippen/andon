@@ -416,16 +416,17 @@ func fmtCoord(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
 // ── GitHub ──
 
 type GitRepo struct {
-	Name       string
-	Issues     int // without pull requests
-	PRs        int
-	CI         string // conclusion of the latest run on the default branch, "" = none
-	CIURL      string
-	CIStep     string // a failed run's first failed job and step: "test › go test"
-	Release    string
-	ReleasedAt time.Time
-	PushedAt   time.Time // the last push to any branch
-	Downloads  int       // release asset downloads over all releases, 0 = unknown
+	Name        string
+	Issues      int // without pull requests
+	PRs         int
+	CI          string // conclusion of the latest run on the default branch, "" = none
+	CIURL       string
+	CIStep      string // a failed run's first failed job and step: "test › go test"
+	Release     string
+	ReleasedAt  time.Time
+	PushedAt    time.Time // the last push to any branch
+	Downloads   int       // release asset downloads over all releases, 0 = unknown
+	DownloadsAt time.Time // when Downloads was read (see addDownloads)
 	// DownloadDays are earlier day totals, oldest first. GitHub keeps
 	// none; the history records Downloads day by day instead.
 	DownloadDays []DownloadDay
@@ -443,6 +444,10 @@ type GitHubDataset struct {
 	Notifications int
 	Reviews       []Issue // open PRs waiting for my review (token only)
 	MyPRs         []Issue // my own open PRs (token only)
+	// DownloadsEvery is how often the downloads are read; DownloadsAuto
+	// whether that interval was picked by repo count (see downloadsEvery).
+	DownloadsEvery time.Duration
+	DownloadsAuto  bool
 }
 
 var GitHubData = source{key: "github.data", ttl: opsTTL, service: enums.ServiceGitHub, fetch: fetchGitHub}
@@ -464,6 +469,7 @@ func fetchGitHub(ctx context.Context, sctx Ctx) (any, error) {
 		}
 		data.Repos = append(data.Repos, repo)
 	}
+	addDownloads(ctx, api, sctx, data)
 	if sctx.Secret != "" {
 		if list, err := api.Get(ctx, "notifications", url.Values{"per_page": {githubPerPage}}); err == nil {
 			data.Notifications = len(asList(list))
@@ -593,38 +599,7 @@ func loadRepo(ctx context.Context, api services.KeyedApi, name string) (GitRepo,
 		r := asMap(release)
 		repo.Release, repo.ReleasedAt = asStr(r["tag_name"]), parseTime(r["published_at"])
 	}
-	if repo.Release != "" {
-		repo.Downloads = repoDownloads(ctx, api, path)
-	}
 	return repo, nil
-}
-
-const (
-	githubPageSize = 100
-	githubPages    = 10 // read at most 1000 releases or repos
-)
-
-// repoDownloads adds up the downloads of every release asset. A failed
-// page gives 0 (unknown): a partial sum would look like a drop.
-func repoDownloads(ctx context.Context, api services.KeyedApi, path string) int {
-	total := 0
-	for page := 1; page <= githubPages; page++ {
-		raw, err := api.Get(ctx, path+"/releases", url.Values{"per_page": {strconv.Itoa(githubPageSize)}, "page": {strconv.Itoa(page)}})
-		if err != nil {
-			return 0
-		}
-
-		list := asList(raw)
-		for _, rel := range list {
-			for _, asset := range asList(asMap(rel)["assets"]) {
-				total += int(asFloat(asMap(asset)["download_count"]))
-			}
-		}
-		if len(list) < githubPageSize {
-			break
-		}
-	}
-	return total
 }
 
 // ciFailure is GitHub's conclusion of a failed run.

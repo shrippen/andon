@@ -1206,7 +1206,7 @@ conn:
   about_grocy: 'Vorräte, Einkaufsliste, Hausarbeit'
   options_hint_dwd: 'URL https://api.brightsky.dev, kein Token. Den Ort über die Suche wählen: Andon zeigt die amtlichen Warnungen des Deutschen Wetterdienstes für diese Koordinaten.'
   about_dwd: 'Wetterwarnungen für einen Ort'
-  options_hint_github: 'URL https://api.github.com. Optionen: repos: [besitzer/repo], owner: name (alle Repos des Besitzers; mit Token auch private und die seiner Organisationen), forks: true, archived: true (sonst ohne). Token optional (Feingranular, Lesen: Actions, Contents, Issues, Pull Requests; Benachrichtigungen nur mit klassischem Token).'
+  options_hint_github: 'URL https://api.github.com. Optionen: repos: [besitzer/repo], owner: name (alle Repos des Besitzers; mit Token auch private und die seiner Organisationen), forks: true, archived: true (sonst ohne), downloads_minutes: Minuten zwischen zwei Download-Zählungen (Standard auto: stündlich, bei vielen Repos seltener). Token optional (Feingranular, Lesen: Actions, Contents, Issues, Pull Requests; Benachrichtigungen nur mit klassischem Token).'
   about_github: 'Repos: PRs, Issues, CI, Releases'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
@@ -3133,8 +3133,12 @@ detail:
     sum: 'Summe'
   downloads:
     best: 'Bester Tag: {n} am {day}'
+    every: 'Abfrage'
+    every_auto: 'alle {time}, automatisch'
+    every_fixed: 'alle {time}'
     gained: 'In {days} Tagen'
     per_day: 'Pro Tag'
+    read: 'Gezählt'
     total: 'Gesamt'
     window: 'Im Zeitraum'
   git:

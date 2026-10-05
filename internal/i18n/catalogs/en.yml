@@ -1206,7 +1206,7 @@ conn:
   about_grocy: 'Stock, shopping list, chores'
   options_hint_dwd: 'URL https://api.brightsky.dev, no token. Pick the place with the search: Andon shows the German Weather Service warnings for its coordinates.'
   about_dwd: 'Weather warnings for a place'
-  options_hint_github: 'URL https://api.github.com. Options: repos: [owner/repo], owner: name (all repos of the owner; with a token also private ones and those of its organisations), forks: true, archived: true (left out otherwise). Token optional (fine-grained, read: actions, contents, issues, pull requests; notifications need a classic token).'
+  options_hint_github: 'URL https://api.github.com. Options: repos: [owner/repo], owner: name (all repos of the owner; with a token also private ones and those of its organisations), forks: true, archived: true (left out otherwise), downloads_minutes: minutes between two download counts (default auto: hourly, less often with many repos). Token optional (fine-grained, read: actions, contents, issues, pull requests; notifications need a classic token).'
   about_github: 'Repos: PRs, issues, CI, releases'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
@@ -3132,8 +3132,12 @@ detail:
     sum: 'Sum'
   downloads:
     best: 'Best day: {n} on {day}'
+    every: 'Read'
+    every_auto: 'every {time}, automatic'
+    every_fixed: 'every {time}'
     gained: 'In {days} days'
     per_day: 'Per day'
+    read: 'Counted'
     total: 'Total'
     window: 'In the window'
   git:
