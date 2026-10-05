@@ -1014,6 +1014,11 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 - [ ] Abgleich idempotent: Andon speichert je Notizpfad bzw. Stack die Homelable-ID, sendet nur Änderungen und nie Positionen (eigenes Layout bleibt), entfernt Knoten, deren Notiz fehlt oder deprecated ist
 - [ ] Demo: Homelable-Verbindung als `demo://` mit Studio-Weber-Daten (nur im Demo-Build)
 
+### Phase 16: Icons für Kachelgruppen und Abschnitte (notiert 05.10.2026)
+
+- [ ] Ein Icon je Kachelgruppe (Thema: Überblick, Arbeit & Geld, Auswertung, Homelab, Sicherheit, Zuhause, Links), zuerst in Kante, dann in der Kachel-Bibliothek vor dem Gruppennamen und in der Themen-Navigation
+- [ ] Abschnitte dürfen vor ihrem Namen ein Icon haben, mit derselben Icon-Logik wie Kacheln (Favicon, `si-*`, `hl-*`, `sh-*`, `mdi-*`, Font Awesome, URL, Upload, Emoji); wählbar in den Abschnittseinstellungen, auch in der Code-Ansicht und im Export
+
 ---
 
 ## 11. Betrieb und Sicherheit
