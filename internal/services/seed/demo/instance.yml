@@ -10,6 +10,7 @@ connections:
   - {id: umami, type: umami, name: Umami, url: "demo://umami", credentials: shared}
   - {id: freshrss, type: freshrss, name: FreshRSS, url: "demo://freshrss", credentials: shared}
   - {id: gitea, type: gitea, name: Gitea, url: "demo://gitea", credentials: shared}
+  - {id: kdestore, type: kdestore, name: KDE Store, url: "demo://kdestore", credentials: shared, options: {user: studioweber}}
   - {id: github, type: github, name: GitHub, url: "demo://github", credentials: shared, options: {repos: [studio/website, studio/showreel]}}
   - {id: borg, type: borgbackup, name: Borg Backup, url: "demo://borg", credentials: shared}
   - {id: linkwarden, type: linkwarden, name: Linkwarden, url: "demo://linkwarden", credentials: shared}
@@ -53,6 +54,7 @@ widgets:
   - {id: monitors, type: monitors, title: Monitore, connection: kuma, config: {}}
   - {id: uptime, type: uptime_month, title: Verfügbarkeit, connection: kuma, config: {}}
   - {id: downloads, type: github_downloads, title: Downloads, connection: github, config: {}}
+  - {id: store-downloads, type: kdestore_downloads, title: KDE Store, connection: kdestore, config: {}}
   - {id: exposure, type: exposure, title: Öffentlich, connection: pangolin, config: {}}
   - {id: certs-link, type: link, title: Zertifikate, config: {url: "https://letsencrypt.org", icon: "hl-letsencrypt", description: TLS, status: "off", info: {connection: certs}}}
   - {id: clock, type: clock, title: Zeit, config: {timezones: [Europe/Berlin]}}
@@ -69,5 +71,5 @@ boards:
       - {title: Betrieb, cols: 4, widgets: [kuma-link, pve-link, paperless-link, certs-link, scrutiny-link, immich-link, umami-link, freshrss-link, gitea-link, borg-link, hass-link, truenas-link, komodo-link, pangolin-link, authentik-link]}
       - {title: Netz, cols: 4, span: 2, color: blue, widgets: [pihole-link, nextcloud-link, sabnzbd-link, gluetun-link, domains-link, blacklist-link]}
       - {title: Info, area: side, widgets: [clock, note]}
-      - {title: Status, area: side, widgets: [monitors, uptime, hass-panel, authentik-apps, updates, backups, downloads]}
+      - {title: Status, area: side, widgets: [monitors, uptime, hass-panel, authentik-apps, updates, backups, downloads, store-downloads]}
       - {title: Sicherheit, widgets: [exposure]}

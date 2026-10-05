@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/enums"
 	"andon/internal/sources"
 )
 
@@ -225,9 +226,11 @@ func WarningRank(severity string) int {
 	return map[string]int{sources.WarnMinor: 1, sources.WarnModerate: 2, sources.WarnSevere: 3, sources.WarnExtreme: 4}[strings.ToLower(severity)]
 }
 
-// DownloadsKey is a repo's series of download totals:
-// "studio/website" → "github.downloads.studio/website".
-func DownloadsKey(repo string) string { return key("github", "downloads", repo) }
+// DownloadsKey is an item's series of download totals:
+// ("github", "studio/website") → "github.downloads.studio/website".
+func DownloadsKey(service enums.ServiceType, id string) string {
+	return key(string(service), "downloads", id)
+}
 
 // DailyGains turns day totals into what each day added, oldest first.
 // The first total adds nothing it can be measured against; a drop
@@ -242,18 +245,25 @@ func DailyGains(totals []Point) []Point {
 	return out
 }
 
-// GitHub records each repo's download total once a day: GitHub only
-// counts, the history makes the trend. Earlier totals (none from GitHub)
-// fill their own days.
+// GitHub and the KDE Store record each item's download total once a
+// day: they only count, the history makes the trend. Earlier totals
+// (demo only) fill their own days.
 func init() {
 	Record(func(d *sources.GitHubDataset, _ time.Time, r *Readings) {
-		for _, repo := range d.Repos {
-			for _, past := range repo.DownloadDays {
-				r.SetOn(past.Day, DownloadsKey(repo.Name), float64(past.Total))
-			}
-			if repo.Downloads > 0 {
-				r.Set(DownloadsKey(repo.Name), float64(repo.Downloads))
-			}
-		}
+		recordDownloads(enums.ServiceGitHub, d.Downloads(), r)
 	})
+	Record(func(d *sources.KDEStoreDataset, _ time.Time, r *Readings) {
+		recordDownloads(enums.ServiceKDEStore, d.Downloads(), r)
+	})
+}
+
+func recordDownloads(service enums.ServiceType, items []sources.DownloadItem, r *Readings) {
+	for _, it := range items {
+		for _, past := range it.Days {
+			r.SetOn(past.Day, DownloadsKey(service, it.ID), float64(past.Total))
+		}
+		if it.Total > 0 {
+			r.Set(DownloadsKey(service, it.ID), float64(it.Total))
+		}
+	}
 }

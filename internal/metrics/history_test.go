@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/sources"
 )
@@ -124,13 +125,13 @@ func TestNewLeases(t *testing.T) {
 func TestDownloadsRecorded(t *testing.T) {
 	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
 	data := &sources.GitHubDataset{Repos: []sources.GitRepo{
-		{Name: "Studio/Website", Downloads: 40, DownloadDays: []sources.DownloadDay{{Day: "2026-10-04", Total: 30}}}, {Name: "a/none"}}}
+		{Name: "Studio/Website", Release: "v1", Downloads: 40, DownloadDays: []sources.DownloadDay{{Day: "2026-10-04", Total: 30}}}, {Name: "a/none"}}}
 	r := metrics.Read(metrics.Scope{Datasets: map[string]any{"github": data}}, now)
-	key := metrics.DownloadsKey("Studio/Website")
+	key := metrics.DownloadsKey(enums.ServiceGitHub, "Studio/Website")
 	if r.Values[key] != 40 || r.Past["2026-10-04"][key] != 30 {
 		t.Fatalf("readings: %+v %+v", r.Values, r.Past)
 	}
-	if _, ok := r.Values[metrics.DownloadsKey("a/none")]; ok {
+	if _, ok := r.Values[metrics.DownloadsKey(enums.ServiceGitHub, "a/none")]; ok {
 		t.Fatal("recorded a repo without downloads")
 	}
 }

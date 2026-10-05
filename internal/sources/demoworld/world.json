@@ -5167,7 +5167,7 @@
   }
  },
  "code": {
-  "note": "Gitea (issues, reviews, a failed workflow, a stale mirror, commits per week) and GitHub (downloads_daily: release downloads per day, oldest first, today last; a spike after the release).",
+  "note": "Gitea (issues, reviews, a failed workflow, a stale mirror, commits per week) GitHub and the KDE Store (downloads_daily: downloads per day, oldest first, today last; a spike after a release).",
   "gitea": {
    "url": "https://git.demo",
    "user": "mara",
@@ -5251,6 +5251,94 @@
      "repo": "studio/website",
      "remote": "https://github.com/studio/website.git",
      "synced": "@-20m"
+    }
+   ]
+  },
+  "kde_store": {
+   "url": "https://api.kde-look.org",
+   "user": "studioweber",
+   "items": [
+    {
+     "id": 2391004,
+     "name": "Timecode Clock",
+     "version": "2.1.0",
+     "typename": "Plasma 6 Applets",
+     "downloads": 1284,
+     "changed": "@-15d",
+     "detailpage": "https://store.kde.org/p/2391004",
+     "downloads_daily": [
+      9,
+      11,
+      8,
+      10,
+      12,
+      9,
+      7,
+      10,
+      11,
+      13,
+      9,
+      8,
+      10,
+      12,
+      31,
+      48,
+      36,
+      25,
+      19,
+      16,
+      14,
+      12,
+      11,
+      13,
+      10,
+      9,
+      12,
+      11,
+      10,
+      4
+     ]
+    },
+    {
+     "id": 2393417,
+     "name": "Shot List",
+     "version": "0.8.2",
+     "typename": "Plasma 6 Applets",
+     "downloads": 214,
+     "changed": "@-41d",
+     "detailpage": "https://store.kde.org/p/2393417",
+     "downloads_daily": [
+      2,
+      1,
+      3,
+      2,
+      2,
+      1,
+      4,
+      2,
+      3,
+      1,
+      2,
+      2,
+      3,
+      1,
+      2,
+      3,
+      2,
+      1,
+      2,
+      4,
+      3,
+      2,
+      1,
+      2,
+      3,
+      2,
+      1,
+      2,
+      3,
+      1
+     ]
     }
    ]
   },

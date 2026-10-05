@@ -32,6 +32,7 @@ const (
 // when such a connection is set up.
 var defaultURLs = map[enums.ServiceType]string{
 	enums.ServiceGitHub:    "https://api.github.com",
+	enums.ServiceKDEStore:  "https://api.kde-look.org",
 	enums.ServiceTibber:    "https://api.tibber.com/v1-beta/gql",
 	enums.ServiceDWD:       "https://api.brightsky.dev",
 	enums.ServiceTailscale: "https://api.tailscale.com",
@@ -54,7 +55,7 @@ func credShapeOf(service enums.ServiceType) credShape {
 	case enums.ServicePihole:
 		return credPassword
 	case enums.ServiceScrutiny, enums.ServiceDocker, enums.ServiceCerts, enums.ServiceDomains, enums.ServiceBlacklist,
-		enums.ServiceDWD, enums.ServicePGBackWeb:
+		enums.ServiceDWD, enums.ServicePGBackWeb, enums.ServiceKDEStore:
 		return credNone
 	default:
 		return credSingle

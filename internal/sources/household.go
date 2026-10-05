@@ -432,12 +432,6 @@ type GitRepo struct {
 	DownloadDays []DownloadDay
 }
 
-// DownloadDay is a repo's download total at the end of a day.
-type DownloadDay struct {
-	Day   string // 2006-01-02
-	Total int
-}
-
 type GitHubDataset struct {
 	URL           string
 	Repos         []GitRepo
@@ -761,12 +755,7 @@ func DemoGitHub(now time.Time) *GitHubDataset {
 	}
 	demoworld.MustDecode("code.github", now, &daily)
 	for i, r := range daily.Repos {
-		total := data.Repos[i].Downloads
-		for back, n := 0, len(r.DownloadsDaily); back < n-1; back++ {
-			total -= r.DownloadsDaily[n-1-back]
-			day := now.AddDate(0, 0, -(back + 1)).Format(time.DateOnly)
-			data.Repos[i].DownloadDays = append([]DownloadDay{{Day: day, Total: total}}, data.Repos[i].DownloadDays...)
-		}
+		data.Repos[i].DownloadDays = daysBack(data.Repos[i].Downloads, r.DownloadsDaily, now)
 	}
 	return data
 }

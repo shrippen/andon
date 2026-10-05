@@ -354,3 +354,38 @@ func TestDownloadsEvery(t *testing.T) {
 		}
 	}
 }
+
+// TestKDEStore: option user lists all of a user's entries over pages,
+// option ids adds others once; an empty count is unknown (0).
+func TestKDEStore(t *testing.T) {
+	entry := func(id, downloads string) string {
+		return `{"id":` + id + `,"name":"E` + id + `","version":"1.0","typename":"Plasma 6 Applets","downloads":` + downloads +
+			`,"changed":"2026-09-20T14:54:06+00:00","detailpage":"https://store.kde.org/p/` + id + `"}`
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		switch {
+		case r.URL.Path == "/ocs/v1/content/data" && q.Get("user") == "me" && q.Get("page") == "0":
+			w.Write([]byte(`{"status":"ok","totalitems":3,"itemsperpage":2,"data":[` + entry("1", "39") + `,` + entry("2", `""`) + `]}`))
+		case r.URL.Path == "/ocs/v1/content/data" && q.Get("user") == "me" && q.Get("page") == "1":
+			w.Write([]byte(`{"status":"ok","totalitems":3,"itemsperpage":2,"data":[` + entry("3", "7") + `]}`))
+		case r.URL.Path == "/ocs/v1/content/data/9":
+			w.Write([]byte(`{"status":"ok","data":[` + entry("9", "5") + `]}`))
+		case r.URL.Path == "/ocs/v1/content/data/1":
+			w.Write([]byte(`{"status":"ok","data":[` + entry("1", "39") + `]}`))
+		default:
+			w.Write([]byte(`{"status":"failed","statuscode":101,"data":[]}`))
+		}
+	}))
+	defer srv.Close()
+
+	raw, err := sources.KDEStoreData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Options: map[string]any{"user": "me", "ids": []any{9.0, "1"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := raw.(*sources.KDEStoreDataset).Downloads()
+	if len(items) != 4 || items[0].ID != "9" || items[1].ID != "1" || items[1].Total != 39 || items[2].Total != 0 ||
+		items[3].URL != "https://store.kde.org/p/3" || items[1].Released.IsZero() {
+		t.Fatalf("items %+v", items)
+	}
+}

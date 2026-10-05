@@ -1,11 +1,12 @@
 package widgets
 
-// "github_downloads": release downloads of the connection's repos. GitHub
-// only keeps a total per asset; the analysis records it daily (see
-// metrics.DownloadsKey), so the trend is the difference between days:
+// "github_downloads", "kdestore_downloads": downloads of a connection's
+// published items (sources.Downloadable). The services only keep a
+// running total; the analysis records it daily (see metrics.DownloadsKey),
+// so the trend is the difference between days:
 //
-//	totals  4012 4050 4092 …   (history, per repo)
-//	gains        38   42 …     (metrics.DailyGains) ─► bars, repo rows
+//	totals  4012 4050 4092 …   (history, per item)
+//	gains        38   42 …     (metrics.DailyGains) ─► bars, item rows
 
 import (
 	"sort"
@@ -20,44 +21,59 @@ import (
 // downloadDays is the default window of the trend.
 const downloadDays = 30
 
-// DownloadsConfig is the "github_downloads" widget's config.
+// DownloadsConfig is the downloads widgets' config.
 type DownloadsConfig struct {
-	Only  []string // repo name parts (lower case), empty = all
+	Only  []string // item name parts (lower case), empty = all
 	Days  int
-	Limit int // repo rows on the tile
+	Limit int // item rows on the tile
 }
 
-// RepoDownloads is one repo's downloads: total, and per day in the window.
-type RepoDownloads struct {
+// ItemDownloads is one item's downloads: total, and per day in the window.
+type ItemDownloads struct {
 	Name    string
+	URL     string
 	Total   float64
 	Gain    float64   // added within the window
-	Pct     int       // Gain against the best repo's, for the bar
+	Pct     int       // Gain against the best item's, for the bar
 	Days    []float64 // per day, oldest first; Gap = not recorded
-	Release string
+	Version string
 	At      time.Time
 }
 
-func init() {
-	Tile[DownloadsConfig]{Key: "github_downloads", Detail: downloadsDetail, Category: CategoryInsight, Topic: TopicDev, Service: enums.ServiceGitHub,
-		RefreshS: integrationTTL, Extra: ExtraHistory,
-		Fields: []Field{{Key: "filter", Input: InputList}, {Key: "days", Input: InputNumber, Default: downloadDays, Min: "2", Max: "90"}, pickLimit},
-		Decode: func(r Raw) DownloadsConfig {
-			return DownloadsConfig{Only: r.Lower("filter"), Days: r.Int("days"), Limit: r.Int("limit")}
-		},
-		Queries: ownData[DownloadsConfig], View: downloadsView}.add()
+// downloadsKind is what differs between the services: their own words
+// for an item and its version in the detail table.
+type downloadsKind struct {
+	service              enums.ServiceType
+	item, items, version string // catalog keys
 }
 
-// repoDownloads lists the shown repos with downloads, most gained first.
-func repoDownloads(cfg DownloadsConfig, data *sources.GitHubDataset, h *metrics.History, now time.Time) []RepoDownloads {
-	var out []RepoDownloads
-	for _, r := range data.Repos {
-		if r.Downloads == 0 || !matchesAny(r.Name, cfg.Only) {
+var downloadKinds = map[string]downloadsKind{
+	"github_downloads":   {service: enums.ServiceGitHub, item: "detail.git.repo", items: "detail.git.repos", version: "detail.git.latest"},
+	"kdestore_downloads": {service: enums.ServiceKDEStore, item: "detail.downloads.entry", items: "detail.downloads.entries", version: "detail.downloads.version"},
+}
+
+func init() {
+	for key, kind := range downloadKinds {
+		Tile[DownloadsConfig]{Key: key, Detail: downloadsDetail(kind), Category: CategoryInsight, Topic: TopicDev, Service: kind.service,
+			RefreshS: integrationTTL, Extra: ExtraHistory,
+			Fields: []Field{{Key: "filter", Input: InputList}, {Key: "days", Input: InputNumber, Default: downloadDays, Min: "2", Max: "90"}, pickLimit},
+			Decode: func(r Raw) DownloadsConfig {
+				return DownloadsConfig{Only: r.Lower("filter"), Days: r.Int("days"), Limit: r.Int("limit")}
+			},
+			Queries: ownData[DownloadsConfig], View: downloadsView(kind)}.add()
+	}
+}
+
+// itemDownloads lists the shown items with downloads, most gained first.
+func itemDownloads(cfg DownloadsConfig, service enums.ServiceType, items []sources.DownloadItem, h *metrics.History, now time.Time) []ItemDownloads {
+	var out []ItemDownloads
+	for _, it := range items {
+		if it.Total == 0 || !matchesAny(it.Name, cfg.Only) {
 			continue
 		}
 
-		row := RepoDownloads{Name: r.Name, Total: float64(r.Downloads), Release: r.Release, At: r.ReleasedAt,
-			Days: onDays(metrics.DailyGains(h.SeriesOf(metrics.DownloadsKey(r.Name))), now, cfg.Days)}
+		row := ItemDownloads{Name: it.Name, URL: it.URL, Total: float64(it.Total), Version: it.Version, At: it.Released,
+			Days: onDays(metrics.DailyGains(h.SeriesOf(metrics.DownloadsKey(service, it.ID))), now, cfg.Days)}
 		for _, v := range row.Days {
 			if v == v {
 				row.Gain += v
@@ -73,8 +89,8 @@ func repoDownloads(cfg DownloadsConfig, data *sources.GitHubDataset, h *metrics.
 	return out
 }
 
-// sumDays adds the repos up per day; a day no repo recorded is a Gap.
-func sumDays(repos []RepoDownloads, n int) []float64 {
+// sumDays adds the items up per day; a day no item recorded is a Gap.
+func sumDays(repos []ItemDownloads, n int) []float64 {
 	out := make([]float64, n)
 	for i := range out {
 		out[i] = Gap
@@ -93,13 +109,18 @@ func sumDays(repos []RepoDownloads, n int) []float64 {
 	return out
 }
 
-func downloadsView(cfg DownloadsConfig, results map[string]any, ctx ViewCtx) map[string]any {
-	data, ok := results[dataName].(*sources.GitHubDataset)
-	if !ok {
-		return map[string]any{}
+func downloadsView(kind downloadsKind) func(DownloadsConfig, map[string]any, ViewCtx) map[string]any {
+	return func(cfg DownloadsConfig, results map[string]any, ctx ViewCtx) map[string]any {
+		data, ok := results[dataName].(sources.Downloadable)
+		if !ok {
+			return map[string]any{}
+		}
+		return downloadsTile(cfg, itemDownloads(cfg, kind.service, data.Downloads(), historyOf(results), todayOf(ctx)), ctx)
 	}
+}
 
-	repos := repoDownloads(cfg, data, historyOf(results), todayOf(ctx))
+// downloadsTile is the tile's view of the shown items.
+func downloadsTile(cfg DownloadsConfig, repos []ItemDownloads, ctx ViewCtx) map[string]any {
 	daily := sumDays(repos, cfg.Days)
 	total, gain, top := 0.0, 0.0, 0.0
 	for _, r := range repos {
@@ -128,16 +149,21 @@ func downloadsView(cfg DownloadsConfig, results map[string]any, ctx ViewCtx) map
 	return out
 }
 
-// downloadsDetail (grid): the window per day, then every repo with its
-// total, its gain and its latest release.
-func downloadsDetail(cfg DownloadsConfig, results map[string]any, ctx ViewCtx) DetailView {
-	data, ok := results[dataName].(*sources.GitHubDataset)
-	if !ok {
-		return DetailView{Body: &DetailBody{Blocks: hintsBlock(results)}}
+// downloadsDetail (grid): the window per day, then every item with its
+// total, its gain and its latest version.
+func downloadsDetail(kind downloadsKind) func(DownloadsConfig, map[string]any, ViewCtx) DetailView {
+	return func(cfg DownloadsConfig, results map[string]any, ctx ViewCtx) DetailView {
+		data, ok := results[dataName].(sources.Downloadable)
+		if !ok {
+			return DetailView{Body: &DetailBody{Blocks: hintsBlock(results)}}
+		}
+		return downloadsSheet(cfg, kind, data, results, todayOf(ctx))
 	}
+}
 
-	now := todayOf(ctx)
-	repos := repoDownloads(cfg, data, historyOf(results), now)
+// downloadsSheet is the detail of the shown items.
+func downloadsSheet(cfg DownloadsConfig, kind downloadsKind, data sources.Downloadable, results map[string]any, now time.Time) DetailView {
+	repos := itemDownloads(cfg, kind.service, data.Downloads(), historyOf(results), now)
 	daily := sumDays(repos, cfg.Days)
 	total, gain := 0.0, 0.0
 	for _, r := range repos {
@@ -167,17 +193,19 @@ func downloadsDetail(cfg DownloadsConfig, results map[string]any, ctx ViewCtx) D
 
 	var rows [][]Cell
 	for _, r := range repos {
-		release := any("–")
-		if r.Release != "" {
-			release = TxtA("detail.git.release", "name", r.Release, "day", Day(r.At))
+		version := any("–")
+		if r.Version != "" {
+			version = TxtA("detail.git.release", "name", r.Version, "day", Day(r.At))
 		}
-		rows = append(rows, []Cell{{Value: r.Name, Href: githubWeb + r.Name + "/releases"}, {Value: Num(r.Total, 0)}, {Value: Num(r.Gain, 0)}, {Value: release}})
+		rows = append(rows, []Cell{{Value: r.Name, Href: r.URL}, {Value: Num(r.Total, 0)}, {Value: Num(r.Gain, 0)}, {Value: version}})
 	}
 	if len(rows) > 0 {
-		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.git.repos"), Data: Table{
-			Head: []Text{T("detail.git.repo"), T("detail.downloads.total"), T("detail.downloads.window"), T("detail.git.latest")}, Rows: rows, Num: []int{1, 2}}})
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T(kind.items), Data: Table{
+			Head: []Text{T(kind.item), T("detail.downloads.total"), T("detail.downloads.window"), T(kind.version)}, Rows: rows, Num: []int{1, 2}}})
 	}
-	body.Side = downloadsRead(data)
+	if gh, ok := data.(*sources.GitHubDataset); ok {
+		body.Side = downloadsRead(gh)
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
 }
@@ -205,6 +233,3 @@ func downloadsRead(data *sources.GitHubDataset) []Fact {
 	}
 	return []Fact{{Label: T("detail.downloads.read"), Value: agoOf(oldest)}, {Label: T("detail.downloads.every"), Value: TxtA(key, "time", every)}}
 }
-
-// githubWeb precedes "owner/name" on GitHub's site.
-const githubWeb = "https://github.com/"
