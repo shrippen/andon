@@ -20,24 +20,22 @@
       <tr id="board-{{.ID}}"{{if .Hidden}} class="is-hidden"{{end}}>
         <td><a href="/boards/{{.ID}}">{{.Name}}</a>{{if eq .ID $.Start}} <span class="pill">{{t "boards.start"}}</span>{{end}}</td>
         <td class="small muted">{{.Space.Name}}</td>
-        <td class="boards-order">
-          <form method="post" action="/boards/{{.ID}}/nav">
-            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+        <td><form method="post" action="/boards/{{.ID}}/nav" class="btn-row">
+          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+          <span class="btn-group">
             <button type="submit" name="move" value="up" class="btn btn-outline btn-sm" aria-label="{{t "boards.up"}}" title="{{t "boards.up"}}"{{if eq $i 0}} disabled{{end}}>↑</button>
             <button type="submit" name="move" value="down" class="btn btn-outline btn-sm" aria-label="{{t "boards.down"}}" title="{{t "boards.down"}}"{{if eq $i $.Last}} disabled{{end}}>↓</button>
-          </form>
-        </td>
-        <td class="row-actions">
+          </span>
+        </form></td>
+        <td><div class="btn-row">
           <form method="post" action="/boards/{{.ID}}/nav">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
             <button type="submit" name="move" value="toggle" class="btn btn-outline btn-sm">{{if .Hidden}}{{t "boards.show"}}{{else}}{{t "boards.hide"}}{{end}}</button>
-          </form>
-        </td>
-        <td class="row-actions">
+          </form></div></td>
+        <td><div class="btn-row">
           {{if .CanEdit}}<a class="btn btn-outline btn-sm" href="/boards/{{.ID}}?edit">{{t "boards.edit"}}</a>
           <a class="btn btn-outline btn-sm" href="/boards/{{.ID}}/settings">{{t "boards.settings"}}</a>{{end}}
-          <a class="btn btn-outline btn-sm" href="/boards/{{.ID}}?layout">{{t "boards.my_layout"}}</a>
-        </td>
+          <a class="btn btn-outline btn-sm" href="/boards/{{.ID}}?layout">{{t "boards.my_layout"}}</a></div></td>
       </tr>
       {{end}}
       </tbody>

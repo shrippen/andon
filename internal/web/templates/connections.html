@@ -24,22 +24,22 @@
       {{if .Unknown}}<span data-state="unknown"><b>{{.Unknown}}</b> {{t "conn.state_unknown"}}</span>{{end}}
     </p>{{end}}{{end}}
     <div class="table-wrap"><table class="table">
-      <tr><th>{{t "field.name"}}</th><th>{{t "field.service"}}</th><th>{{t "field.url"}}</th><th>{{t "conn.health"}}</th><th>{{t "conn.token_age"}}</th><th></th></tr>
+      <tr><th>{{t "field.name"}}</th><th>{{t "field.url"}}</th><th>{{t "conn.health"}}</th><th></th></tr>
       {{range .Connections}}
       <tr>
-        <td><a href="/connections/{{.ID}}">{{.Name}}</a>{{if eq (print .Mode) "personal"}} <span class="pill">{{t "conn.kind_template"}}</span>{{end}}</td>
-        <td>{{t (print "service." .Service)}}</td>
+        <td><a href="/connections/{{.ID}}">{{.Name}}</a>{{if eq (print .Mode) "personal"}} <span class="pill">{{t "conn.kind_template"}}</span>{{end}}
+          <br><small class="muted">{{t (print "service." .Service)}}</small></td>
         <td class="small">{{.URL}}</td>
-        <td>{{template "conn_health_cell" .}}</td>
-        <td class="nowrap small">{{if not .SecretAt.IsZero}}{{ago .SecretAt}}{{else}}–{{end}}{{with .SecretExpires}}<br><small class="muted">{{t "conn.expires"}} {{day .}}</small>{{end}}</td>
-        <td class="row-actions nowrap">
+        <td>{{template "conn_health_cell" .}}
+          {{if not .SecretAt.IsZero}}<br><small class="muted">{{t "conn.token_age"}}: {{ago .SecretAt}}</small>{{end}}{{with .SecretExpires}}<br><small class="muted">{{t "conn.expires"}} {{day .}}</small>{{end}}</td>
+        <td><div class="btn-row">
           <form method="post" action="/connections/{{.ID}}/test" class="inline-form" hx-post="/connections/{{.ID}}/check" hx-target="#toast">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
             <button type="submit" class="btn btn-outline btn-sm">{{t "conn.test"}}</button>
           </form>
-          <a class="btn btn-outline btn-sm" href="/connections/{{.ID}}?tab=settings">{{t "action.edit"}}</a></td>
+          <a class="btn btn-outline btn-sm" href="/connections/{{.ID}}?tab=settings">{{t "action.edit"}}</a></div></td>
       </tr>
-      {{else}}<tr><td colspan="6" class="muted">{{t "conn.none_here"}}</td></tr>
+      {{else}}<tr><td colspan="4" class="muted">{{t "conn.none_here"}}</td></tr>
       {{end}}
     </table></div>
 

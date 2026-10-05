@@ -74,9 +74,8 @@
           <td><b>{{.Name}}</b>{{if .Title}}<small class="muted"> · {{$type}}</small>{{end}}</td>
           <td class="small muted">{{.Space.Name}}</td>
           <td class="small muted">{{if .Uses}}{{t "gallery.uses" "n" .Uses}}{{else}}{{t "gallery.unused"}}{{end}}</td>
-          <td class="row-actions">{{if .CanEdit}}<a class="btn btn-outline btn-sm" href="/widgets/{{.ID}}/edit" data-details="/widgets/{{.ID}}/edit?dialog">{{t "action.edit"}}</a>{{end}}
-            <details class="row-more" data-widget="{{.ID}}"><summary class="btn btn-outline btn-sm" aria-label="{{t "action.more"}}" title="{{t "action.more"}}">⋯</summary></details>
-          </td>
+          <td><div class="btn-row">{{if .CanEdit}}<a class="btn btn-outline btn-sm" href="/widgets/{{.ID}}/edit" data-details="/widgets/{{.ID}}/edit?dialog">{{t "action.edit"}}</a>{{end}}
+            <details class="row-more" data-widget="{{.ID}}"><summary class="btn btn-outline btn-sm btn-icon" aria-label="{{t "action.more"}}" title="{{t "action.more"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></summary></details></div></td>
         </tr>
         {{end}}
       </table></div>
@@ -254,7 +253,7 @@
         <td><b>{{.Name}}</b></td>
         <td class="small muted">{{.Space.Name}}</td>
         <td class="small{{if not .Uses}} warn-text{{else}} muted{{end}}">{{if .Uses}}{{t "gallery.uses" "n" .Uses}}{{else}}{{t "gallery.unused"}}{{end}}</td>
-        <td class="row-actions">{{if $.Target.Place}}<button type="button" class="btn btn-accent btn-sm" data-open="reuse" data-reuse="{{.ID}}" data-name="{{.Name}}" data-kind="{{$.Name}}">{{t "gallery.add"}}</button>{{end}}</td>
+        <td><div class="btn-row">{{if $.Target.Place}}<button type="button" class="btn btn-accent btn-sm" data-open="reuse" data-reuse="{{.ID}}" data-name="{{.Name}}" data-kind="{{$.Name}}">{{t "gallery.add"}}</button>{{end}}</div></td>
       </tr>
     {{end}}
     </tbody>

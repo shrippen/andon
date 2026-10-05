@@ -18,6 +18,7 @@ import (
 	"andon/internal/services/connections"
 	"andon/internal/services/places"
 	"andon/internal/services/porting"
+	"andon/internal/services/spaces"
 	"andon/internal/widgets"
 )
 
@@ -50,7 +51,7 @@ func (d Deps) handleConnectionsList(w http.ResponseWriter, r *http.Request, ctx 
 // handleSpaceConnections lists one level's connections (settings frame).
 func (d Deps) handleSpaceConnections(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
-	if _, known := ctx.Who.Spaces[id]; err != nil || !known {
+	if _, known := ctx.Who.Spaces[id]; err != nil || !known || spaces.OpenSettings(d.DB, ctx.Who, id) != nil {
 		http.NotFound(w, r)
 		return
 	}

@@ -7,6 +7,7 @@ import (
 
 	"andon/internal/services/access"
 	"andon/internal/services/porting"
+	"andon/internal/services/spaces"
 )
 
 const (
@@ -111,7 +112,7 @@ func (d Deps) codePage(w http.ResponseWriter, ctx Ctx, space int64, status int, 
 
 func (d Deps) handleSpaceCode(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	space, err := pathID(r, "id")
-	if err != nil {
+	if err != nil || spaces.OpenSettings(d.DB, ctx.Who, space) != nil {
 		http.NotFound(w, r)
 		return
 	}

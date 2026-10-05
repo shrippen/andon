@@ -127,6 +127,11 @@ main,.foot{position:relative;z-index:1}
 .btn-group{display:inline-flex;flex-wrap:wrap}
 .btn-group .btn{--cut:0px;--grow:0px}.btn-group .btn:last-child{--cut:var(--cut-m);--grow:6px}
 .btn-group .btn+.btn{margin-left:-2px}
+/* Button row: buttons side by side, centred on one line; a form in the row gives its buttons to the row */
+.btn-row{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem}
+.btn-row>form{display:contents}
+/* A table row whose cell holds a .btn-row centres every cell, so the text sits level with the buttons */
+.table tr:has(>td>.btn-row)>td{vertical-align:middle}
 /* Stanze (A02): wrap a button in .press; it sits on a hard shadow and presses into it */
 .press{display:inline-flex;filter:drop-shadow(4px 4px 0 var(--bg2))}
 .press .btn:active{transform:translate(4px,4px)}
