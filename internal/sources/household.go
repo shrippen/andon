@@ -453,8 +453,12 @@ func fetchGitHub(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	api := services.BearerApi(sctx.URL, sctx.Secret, sctx.TLS())
 	data := &GitHubDataset{URL: sctx.URL}
-	for _, raw := range asList(sctx.Options["repos"]) {
-		repo, err := loadRepo(ctx, api, asStr(raw))
+	names, err := githubRepoNames(ctx, api, sctx)
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	for _, name := range names {
+		repo, err := loadRepo(ctx, api, name)
 		if err != nil {
 			return nil, fetchError(err)
 		}
@@ -468,6 +472,74 @@ func fetchGitHub(ctx context.Context, sctx Ctx) (any, error) {
 		data.MyPRs = githubSearch(ctx, api, "is:open is:pr author:@me")
 	}
 	return data, nil
+}
+
+// githubRepoNames are the repos to read: option repos as given, then
+// those of option owner ("shrippen") not yet named, by name. Forks and
+// archived repos join only with options forks and archived.
+func githubRepoNames(ctx context.Context, api services.KeyedApi, sctx Ctx) ([]string, error) {
+	var names []string
+	seen := map[string]bool{}
+	add := func(name string) {
+		if name != "" && !seen[strings.ToLower(name)] {
+			seen[strings.ToLower(name)] = true
+			names = append(names, name)
+		}
+	}
+	for _, raw := range asList(sctx.Options["repos"]) {
+		add(asStr(raw))
+	}
+
+	owner := strings.TrimSpace(asStr(sctx.Options["owner"]))
+	if owner == "" {
+		return names, nil
+	}
+	owned, err := ownerRepos(ctx, api, owner, sctx.Secret != "")
+	if err != nil {
+		return nil, err
+	}
+
+	forks, archived := asBool(sctx.Options["forks"]), asBool(sctx.Options["archived"])
+	var found []string
+	for _, raw := range owned {
+		m := asMap(raw)
+		if !strings.EqualFold(asStr(asMap(m["owner"])["login"]), owner) || (asBool(m["fork"]) && !forks) || (asBool(m["archived"]) && !archived) {
+			continue
+		}
+		found = append(found, asStr(m["full_name"]))
+	}
+	sort.Strings(found)
+	for _, name := range found {
+		add(name)
+	}
+	return names, nil
+}
+
+// ownerRepos lists an owner's repos. With a token it asks for the
+// token user's own and their organisations' repos, private ones
+// included; without, only the public ones of the owner.
+func ownerRepos(ctx context.Context, api services.KeyedApi, owner string, token bool) ([]any, error) {
+	path, params := "users/"+url.PathEscape(owner)+"/repos", url.Values{"type": {"owner"}}
+	if token {
+		path, params = "user/repos", url.Values{"affiliation": {"owner,organization_member"}}
+	}
+
+	var out []any
+	for page := 1; page <= githubPages; page++ {
+		params.Set("per_page", strconv.Itoa(githubPageSize))
+		params.Set("page", strconv.Itoa(page))
+		raw, err := api.Get(ctx, path, params)
+		if err != nil {
+			return nil, err
+		}
+
+		list := asList(raw)
+		out = append(out, list...)
+		if len(list) < githubPageSize {
+			break
+		}
+	}
+	return out, nil
 }
 
 // githubSearch lists open issues or PRs for a search query; best effort,
@@ -529,7 +601,7 @@ func loadRepo(ctx context.Context, api services.KeyedApi, name string) (GitRepo,
 
 const (
 	githubPageSize = 100
-	githubPages    = 10 // read at most 1000 releases
+	githubPages    = 10 // read at most 1000 releases or repos
 )
 
 // repoDownloads adds up the downloads of every release asset. A failed
