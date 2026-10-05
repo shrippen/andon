@@ -11,9 +11,11 @@ import (
 	"andon/internal/db"
 	"andon/internal/db/dbtest"
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/repos/users"
 	"andon/internal/services/access"
 	"andon/internal/services/boards"
+	"andon/internal/services/connections"
 	"andon/internal/services/hints"
 	"andon/internal/services/seed"
 	"andon/internal/services/system"
@@ -54,6 +56,19 @@ func TestDemoFillsBoardsAndFiresRules(t *testing.T) {
 		if !rules[want] {
 			t.Errorf("expected hint %s from the demo data, got %v", want, rules)
 		}
+	}
+
+	// Templates: the user's Nextcloud login is current, Immich's paused.
+	activations, err := connections.Activations(d, who, model.UserHolder(user.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := map[enums.ServiceType]string{}
+	for _, a := range activations {
+		state[a.Template.Service] = map[bool]string{true: "active", false: "paused"}[a.Active]
+	}
+	if state[enums.ServiceNextcloud] != "active" || state[enums.ServiceImmich] != "paused" {
+		t.Errorf("demo templates: %v", state)
 	}
 
 	if err := seed.Demo(context.Background(), d); err != nil {

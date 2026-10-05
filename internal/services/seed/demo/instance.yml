@@ -6,7 +6,7 @@ connections:
   - {id: paperless, type: paperless, name: Paperless, url: "demo://paperless", credentials: shared}
   - {id: certs, type: certs, name: Zertifikate, url: "demo://certs", credentials: shared}
   - {id: scrutiny, type: scrutiny, name: Scrutiny, url: "demo://scrutiny", credentials: shared}
-  - {id: immich, type: immich, name: Immich, url: "demo://immich", credentials: shared}
+  - {id: immich, type: immich, name: Immich, url: "demo://immich", credentials: personal}
   - {id: umami, type: umami, name: Umami, url: "demo://umami", credentials: shared}
   - {id: freshrss, type: freshrss, name: FreshRSS, url: "demo://freshrss", credentials: shared}
   - {id: gitea, type: gitea, name: Gitea, url: "demo://gitea", credentials: shared}
@@ -19,7 +19,7 @@ connections:
   - {id: pangolin, type: pangolin, name: Pangolin, url: "demo://pangolin", credentials: shared}
   - {id: authentik, type: authentik, name: authentik, url: "demo://authentik", credentials: shared}
   - {id: pihole, type: pihole, name: Pi-hole, url: "demo://pihole", credentials: shared}
-  - {id: nextcloud, type: nextcloud, name: Nextcloud, url: "demo://nextcloud", credentials: shared}
+  - {id: nextcloud, type: nextcloud, name: Nextcloud, url: "demo://nextcloud", credentials: personal}
   - {id: sabnzbd, type: sabnzbd, name: SABnzbd, url: "demo://sabnzbd", credentials: shared}
   - {id: gluetun, type: gluetun, name: Gluetun, url: "demo://gluetun", credentials: shared}
   - {id: domains, type: domains, name: Domains, url: "demo://domains", credentials: shared}
