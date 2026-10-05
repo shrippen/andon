@@ -91,6 +91,8 @@
 {{else if $v}}<p class="tile-note">{{t "downloads.none"}}</p>{{end}}{{end}}
 {{end}}
 
+{{define "widgets/kdestore_downloads"}}{{template "widgets/github_downloads" .}}{{end}}
+
 {{define "widgets/speedtest"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}

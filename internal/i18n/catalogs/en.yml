@@ -38,6 +38,7 @@ action:
   open_in_grocy: 'Open in Grocy'
   open_in_dwd: 'Open in DWD weather warnings'
   open_in_github: 'Open in GitHub'
+  open_in_kdestore: 'Open in KDE Store'
   open_in_tibber: 'Open in Tibber (electricity)'
   close: Close
   open_in_jsonapi: Open API
@@ -241,6 +242,8 @@ typefield:
   speed_history:
     days: History (days)
   github_downloads:
+    days: History (days)
+  kdestore_downloads:
     days: History (days)
   hints:
     sort_value: Largest amount first
@@ -808,6 +811,9 @@ wtype:
   github_downloads:
     name: 'GitHub downloads'
     desc: 'Release downloads per repo with a daily history.'
+  kdestore_downloads:
+    name: 'KDE Store downloads'
+    desc: 'Downloads of the KDE Store entries with a daily history.'
   speedtest:
     name: 'Internet speed'
     desc: 'Latest result from Speedtest Tracker.'
@@ -1208,6 +1214,8 @@ conn:
   about_dwd: 'Weather warnings for a place'
   options_hint_github: 'URL https://api.github.com. Options: repos: [owner/repo], owner: name (all repos of the owner; with a token also private ones and those of its organisations), forks: true, archived: true (left out otherwise), downloads_minutes: minutes between two download counts (default auto: hourly). Token optional (fine-grained, read: actions, contents, issues, pull requests; notifications need a classic token).'
   about_github: 'Repos: PRs, issues, CI, releases'
+  options_hint_kdestore: 'URL https://api.kde-look.org, no token. Options: user: name (all entries of the user), ids: [2368175] (single entries, from store.kde.org/p/<id>).'
+  about_kdestore: 'Entries: downloads, version'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
   health: 'Health'
@@ -1282,6 +1290,7 @@ conn:
   what_grocy: 'Grocy manages groceries, shopping lists and chores.'
   what_dwd: 'Bright Sky serves the open weather data and warnings of the German Weather Service as an API.'
   what_github: 'GitHub is a hosted Git service with issues, pull requests and CI.'
+  what_kdestore: 'The KDE Store (store.kde.org) hands out Plasma widgets, themes and add-ons; its OCS API tells the downloads per entry.'
   what_tibber: 'Tibber is an electricity supplier with hourly prices and an API for usage and cost.'
   what_calendar: 'Built-in: Andon reads a calendar in iCal format, e.g. from Nextcloud, Google or Outlook.'
   project_site: Project website
@@ -1412,6 +1421,7 @@ service:
   grocy: 'Grocy'
   dwd: 'DWD weather warnings'
   github: 'GitHub'
+  kdestore: 'KDE Store'
   tibber: 'Tibber (electricity)'
   links: Tiles
   jsonapi: Custom API (JSON)
@@ -3138,6 +3148,8 @@ detail:
     sum: 'Sum'
   downloads:
     best: 'Best day: {n} on {day}'
+    entries: 'Entries'
+    entry: 'Entry'
     every: 'Read'
     every_auto: 'every {time}, automatic'
     every_fixed: 'every {time}'
@@ -3145,6 +3157,7 @@ detail:
     per_day: 'Per day'
     read: 'Counted'
     total: 'Total'
+    version: 'Version'
     window: 'In the window'
   git:
     calm: 'Nothing waits for you.'
@@ -4413,6 +4426,8 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image updates: {n}'
   alerts: 'Alerts: {n}'
+kdestore:
+  not_found: 'Entry or user not found in the KDE Store.'
 truenas:
   https_required: 'Connect TrueNAS over https:// only: TrueNAS revokes an API key as soon as it is used over http. Please change the URL to https:// and create a new key.'
   alerts: 'Alerts: {n}'
