@@ -237,7 +237,7 @@ func TestLinkExtrasAndPage(t *testing.T) {
 		"title": {"Code"}, "size": {"medium"}, "sort": {"manual"}, "area": {"main"}, "span": {"2"}, "rows": {"3"}, "color": {"blue"}, "mobile": {"first"}})
 	// Page texts belong to the board's space, which may differ from the widget's.
 	boardSpace := string(regexp.MustCompile(`/spaces/(\d+)/settings`).FindSubmatch(mustGet(t, srv, client, "/boards/"+board+"?edit"))[1])
-	postForm(t, client, srv.URL+"/spaces/"+boardSpace+"/settings", url.Values{"csrf": {csrf}, "title": {"Heim"},
+	postForm(t, client, srv.URL+"/spaces/"+boardSpace+"/settings/page", url.Values{"csrf": {csrf}, "title": {"Heim"},
 		"description": {"Alles hier"}, "nav": {"Wiki | https://wiki.example\nBad | javascript:alert(1)"}, "footer": {"Privat"}})
 
 	page := string(mustGet(t, srv, client, "/boards/"+board))

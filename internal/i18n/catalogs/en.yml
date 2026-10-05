@@ -1,5 +1,6 @@
 saved: Saved.
 nav:
+  admin_ops: 'Operations'
   main: Main navigation
   setup: Setup
   timeline: 'Timeline'
@@ -18,7 +19,7 @@ nav:
   credentials: My access tokens
   notify: Notifications
   admin_users: Users
-  admin_settings: Instance
+  admin_settings: 'Settings'
   audit: Audit log
   logout: Log out
   space_settings: Space settings
@@ -320,7 +321,7 @@ field:
   locale: Language
   color_mode: Light/dark
   theme: Theme
-  theme_hint: 'Just for you. “Default” follows the instance theme (Setup → Instance). A board that forces a theme keeps its own.'
+  theme_hint: 'Just for you. “Default” follows the instance theme (Settings › Instance › Settings). A board that forces a theme keeps its own.'
   theme_forced: Force theme
   start_board: Start board
   search_engine: Search engine
@@ -2746,6 +2747,17 @@ param:
   bundle_from: 'Bundle per client from this many invoices (0 = never)'
   exclude: 'Exclude (names, * as wildcard, comma-separated)'
 settings:
+  hints: 'Hint thresholds'
+  lead_maintenance: 'During maintenance the chosen connections stay quiet.'
+  lead_rules: 'When hints appear, and your own rules.'
+  lead_finance: 'Goals, costs and tax; tiles and deadlines compute from them.'
+  lead_page: 'Header, links and footer of this space''s start page.'
+  members: 'Members'
+  level_instance: 'Instance'
+  level_team: 'Team {name}'
+  level_me: 'Me'
+  nav: 'Settings'
+  finance: 'Finances'
   billing_internal: Internal customers
   billing_internal_hint: 'Kimai customers whose time is never invoiced, comma separated. Customers at rate 0 always count as internal.'
   hourly_cost: 'Cost rate per hour (€)'
@@ -2766,7 +2778,7 @@ settings:
   custom_value: Value
   custom_level: Level
   custom_new: new
-  page: Page
+  page: 'Start page'
   page_title: Title
   page_description: Description
   page_nav: Navigation links
@@ -2790,7 +2802,7 @@ settings:
   annual_due: Tax return deadline (MM-DD)
   income_tax_rate: Income tax reserve rate (0–0.6)
   tax_hint: Reminders and estimates, not tax advice. Check the values every year.
-  rules: Hints
+  rules: 'Rules'
   rule: Rule
   params: Values
   stats: Analysis

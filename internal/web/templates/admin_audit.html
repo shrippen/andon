@@ -10,6 +10,9 @@
 <body>
   {{template "header" .}}
   <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
     <h1>{{t "nav.audit"}}</h1>
     {{template "intro" dict "Page" "audit" "Chapter" "security" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <div class="table-wrap"><table class="table">
@@ -23,6 +26,8 @@
       </tr>
       {{end}}
     </table></div>
+    </div>
+    </div>
   </main>
 </body>
 </html>

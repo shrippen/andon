@@ -13,23 +13,28 @@ func TestSpaceSettingsSaveGoalsAndRules(t *testing.T) {
 	login(t, srv, client)
 	csrf := csrfToken(t, srv, client)
 
-	resp := getFollowingRedirect(t, srv, client, "/spaces/settings")
+	resp := getFollowingRedirect(t, srv, client, "/spaces/settings?section=rules")
 	page := readAll(t, resp)
 	resp.Body.Close()
-	settingsURL := resp.Request.URL.Path
+	rulesURL := resp.Request.URL.Path
+	financeURL := strings.TrimSuffix(rulesURL, "rules") + "finance"
 	if !strings.Contains(page, `name="rule.kimai.timer_running_long.hours"`) {
 		t.Fatalf("rule parameters missing:\n%s", page)
 	}
 
-	resp = postForm(t, client, srv.URL+settingsURL, url.Values{
-		"csrf": {csrf}, "revenue_year": {"90000"}, "hours_per_day": {"7"}, "vat_method": {"soll"},
-		"rule.kimai.timer_running_long.hours": {"6"}, "billing_internal": {"Intern, Verein"},
-		"center": {"median"},
-	})
-	if resp.StatusCode != http.StatusSeeOther {
-		t.Fatalf("save: %d", resp.StatusCode)
+	// Each section saves alone and keeps the others' values.
+	for _, save := range []struct {
+		url  string
+		form url.Values
+	}{
+		{financeURL, url.Values{"csrf": {csrf}, "revenue_year": {"90000"}, "vat_method": {"soll"}, "billing_internal": {"Intern, Verein"}}},
+		{rulesURL, url.Values{"csrf": {csrf}, "rule.kimai.timer_running_long.hours": {"6"}, "center": {"median"}}},
+	} {
+		if resp := postForm(t, client, srv.URL+save.url, save.form); resp.StatusCode != http.StatusSeeOther {
+			t.Fatalf("save %s: %d", save.url, resp.StatusCode)
+		}
 	}
-	page = string(mustGet(t, srv, client, settingsURL))
+	page = string(mustGet(t, srv, client, financeURL)) + string(mustGet(t, srv, client, rulesURL))
 	for _, want := range []string{`value="90000"`, `<option value="soll" selected>`, `name="rule.kimai.timer_running_long.hours" value="6"`,
 		`name="billing_internal" value="Intern, Verein"`, `<option value="median" selected>`} {
 		if !strings.Contains(page, want) {

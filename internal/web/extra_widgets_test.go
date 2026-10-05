@@ -93,9 +93,9 @@ func TestOverviewWidgetsAndCustomRules(t *testing.T) {
 		}
 	}
 
-	postForm(t, client, srv.URL+"/spaces/"+space+"/settings", url.Values{"csrf": {csrf}, "cr_count": {"1"},
+	postForm(t, client, srv.URL+"/spaces/"+space+"/settings/rules", url.Values{"csrf": {csrf}, "cr_count": {"1"},
 		"cr.0.title": {"Queue"}, "cr.0.service": {"sabnzbd"}, "cr.0.path": {"Slots"}, "cr.0.op": {">"}, "cr.0.value": {"10"}, "cr.0.severity": {"30"}})
-	page := string(mustGet(t, srv, client, "/spaces/"+space+"/settings"))
+	page := string(mustGet(t, srv, client, "/spaces/"+space+"/settings/rules"))
 	if !strings.Contains(page, `name="cr.0.title" value="Queue"`) || !strings.Contains(page, `name="cr.0.value" value="10"`) {
 		t.Fatalf("custom rule not saved:\n%s", page)
 	}

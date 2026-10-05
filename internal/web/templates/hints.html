@@ -29,7 +29,7 @@
     {{with .Noisy}}<details class="card"><summary>{{t "hints.noisy" "count" (len .)}}</summary>
       <p class="small muted">{{t "hints.noisy_hint"}}</p>
       <ul class="plain-list small">{{range .}}<li>{{t (print "rule_name." .Rule)}} · {{.Space}} · {{t "hints.noisy_line" "dismissed" .Dismissed "opened" .Opened}}
-        <a href="/spaces/{{.SpaceID}}/settings">{{t "hints.noisy_adjust"}}</a></li>{{end}}</ul>
+        <a href="/spaces/{{.SpaceID}}/settings/rules">{{t "hints.noisy_adjust"}}</a></li>{{end}}</ul>
     </details>{{end}}
     {{end}}
     {{if and (not .Embed) (not .DoneDays)}}

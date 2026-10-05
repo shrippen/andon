@@ -53,7 +53,7 @@ func TestIntegrationWidgetsRender(t *testing.T) {
 	}
 }
 
-// TestBackupNow: an admin starts a backup; the settings page shows the
+// TestBackupNow: an admin starts a backup; the operations page shows the
 // verified copy.
 func TestBackupNow(t *testing.T) {
 	srv, client, code := newTestServer(t)
@@ -61,7 +61,7 @@ func TestBackupNow(t *testing.T) {
 	login(t, srv, client)
 
 	postForm(t, client, srv.URL+"/admin/settings/backup", url.Values{"csrf": {csrfToken(t, srv, client)}})
-	page := string(mustGet(t, srv, client, "/admin/settings"))
+	page := string(mustGet(t, srv, client, "/admin/operations"))
 	if !strings.Contains(page, `data-state="applied"`) || !regexp.MustCompile(`andon-\d{8}-\d{6}\.db`).MatchString(page) {
 		t.Fatalf("no verified backup:\n%s", page)
 	}

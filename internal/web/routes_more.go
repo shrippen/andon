@@ -203,7 +203,7 @@ func (d Deps) handleTeamSpaceSettings(w http.ResponseWriter, r *http.Request, ct
 		d.handleBoardError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/teams", http.StatusSeeOther)
+	http.Redirect(w, r, backTo(r, "/teams"), http.StatusSeeOther)
 }
 
 func (d Deps) handleWidgetCopy(w http.ResponseWriter, r *http.Request, ctx Ctx) {

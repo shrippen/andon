@@ -10,6 +10,9 @@
 <body>
   {{template "header" .}}
   <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
     <h1>{{t "nav.admin_users"}}</h1>
     {{template "intro" dict "Page" "users" "Chapter" "spaces" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
@@ -115,6 +118,8 @@
       {{end}}
     </table></div>
     {{end}}
+    </div>
+    </div>
   </main>
 </body>
 </html>

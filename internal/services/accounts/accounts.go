@@ -18,6 +18,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/audit"
 	"andon/internal/services/mail"
+	"andon/internal/services/teams"
 )
 
 // MinPassword is the minimum accepted password length.
@@ -122,7 +123,7 @@ func JoinTeams(q db.Queryer, userID int64, assignments []TeamAssignment) error {
 			return err
 		}
 		if team == nil {
-			team, err = users.AddTeam(q, a.Team)
+			team, err = teams.CreateIn(q, a.Team)
 			if err != nil {
 				return err
 			}

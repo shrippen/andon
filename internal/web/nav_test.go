@@ -6,7 +6,8 @@ import (
 )
 
 // TestNavCurrent: the menu marks the page you are on, including pages
-// below a menu entry, and nothing else.
+// below a menu entry, and nothing else; the settings navigation marks
+// exactly its page.
 func TestNavCurrent(t *testing.T) {
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)
@@ -14,7 +15,8 @@ func TestNavCurrent(t *testing.T) {
 
 	cases := []struct{ path, cur, other string }{
 		{"/hints", `href="/hints" aria-current="page"`, `href="/billing" aria-current`},
-		{"/connections/new", `href="/connections" aria-current="page"`, `href="/hints" aria-current`},
+		{"/hosts", `href="/hosts" aria-current="page"`, `href="/hints" aria-current`},
+		{"/me/security", `<a href="/me/security" aria-current="page">`, `<a href="/me/notify" aria-current`},
 	}
 	for _, c := range cases {
 		page := string(mustGet(t, srv, client, c.path))

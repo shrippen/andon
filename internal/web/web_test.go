@@ -1119,6 +1119,10 @@ func TestTeamCreateMemberRenameDelete(t *testing.T) {
 	if !strings.Contains(string(body), "Admin") {
 		t.Fatalf("expected member listed:\n%s", body)
 	}
+	// The member's remove button names the team.
+	if !strings.Contains(string(body), `action="/teams/`+teamIDStr+`/members/`+userIDStr+`/remove"`) {
+		t.Fatalf("remove form misses the team:\n%s", body)
+	}
 
 	resp, err = client.PostForm(srv.URL+"/teams/"+teamIDStr+"/rename", url.Values{"csrf": {csrf}, "name": {"Operations"}})
 	if err != nil {
