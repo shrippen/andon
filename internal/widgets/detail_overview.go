@@ -78,7 +78,7 @@ func connHealthDetail(_ ConnHealthConfig, results map[string]any, ctx ViewCtx) D
 		}
 		row := Strip{Name: s.Name, Value: NumU(float64(100-s.FailPct), 0, "%")}
 		for _, d := range s.Days {
-			row.States = append(row.States, map[string]string{"ok": "ok", "mid": "warn", "bad": "bad", "none": "off"}[cellState(d)])
+			row.States = append(row.States, map[string]string{"ok": "ok", "mid": "warn", "bad": "bad", "none": "off"}[CellState(d)])
 		}
 		rows = append(rows, row)
 	}

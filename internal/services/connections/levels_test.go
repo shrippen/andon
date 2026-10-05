@@ -252,3 +252,31 @@ func TestActivationsShowChanges(t *testing.T) {
 		t.Fatalf("team: %+v %v", list, err)
 	}
 }
+
+// TestActivationsOf: a record lists the viewer's own activation, and the
+// teams they own for an instance template; a member sees only theirs.
+func TestActivationsOf(t *testing.T) {
+	l := newLevels(t)
+	if err := connections.Activate(l.d, l.owner, l.template, model.TeamHolder(l.team.ID), "team-token"); err != nil {
+		t.Fatal(err)
+	}
+
+	holders := func(who *access.Principal) []model.Holder {
+		list, err := connections.ActivationsOf(l.d, who, l.template)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []model.Holder
+		for _, a := range list {
+			out = append(out, a.Holder)
+		}
+		return out
+	}
+	owner := holders(l.owner)
+	if want := []model.Holder{model.UserHolder(l.owner.UserID), model.TeamHolder(l.team.ID)}; !slices.Equal(owner, want) {
+		t.Errorf("owner: %v, want %v", owner, want)
+	}
+	if member := holders(l.member); !slices.Equal(member, []model.Holder{model.UserHolder(l.member.UserID)}) {
+		t.Errorf("member: %v", member)
+	}
+}

@@ -23,7 +23,7 @@ func TestSmallerActions(t *testing.T) {
 
 	resp = postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {instanceSpace(t, srv, client)}, "service": {"kimai"},
 		"name": {"Mine"}, "url": {"https://kimai.lan"}, "mode": {"personal"}, "tls": {"verify"}})
-	conn := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))[1]
+	conn := regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1]
 	if !strings.Contains(ownConnections(t, srv, client), "Mine") {
 		t.Fatal("template missing on the own connections page")
 	}

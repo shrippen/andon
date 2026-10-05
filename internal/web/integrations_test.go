@@ -31,7 +31,7 @@ func TestIntegrationWidgetsRender(t *testing.T) {
 			"csrf": {csrfToken(t, srv, client)}, "space_id": {space}, "service": {c.service}, "name": {c.service},
 			"url": {"demo://" + c.service}, "mode": {"shared"}, "tls": {"verify"},
 		})
-		conn := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))
+		conn := regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))
 		if conn == nil {
 			t.Fatalf("%s: no connection", c.service)
 		}

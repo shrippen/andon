@@ -57,7 +57,7 @@ func TestHassToggle(t *testing.T) {
 		"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space[1])}, "service": {"homeassistant"}, "name": {"HA"},
 		"url": {ha.URL}, "mode": {"shared"}, "secret": {"tok"}, "tls": {"verify"},
 	})
-	connID := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))[1]
+	connID := regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1]
 
 	resp = postForm(t, client, srv.URL+"/widgets", url.Values{
 		"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space[1])}, "type": {"hass"}, "title": {"Home"},

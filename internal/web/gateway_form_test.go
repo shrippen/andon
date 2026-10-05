@@ -26,7 +26,7 @@ func TestGatewayFormRouterKind(t *testing.T) {
 	resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "service": {"gateway"}, "space_id": {space},
 		"name": {"Router"}, "url": {"https://192.0.2.1"}, "mode": {"shared"}, "opt_kind": {"openwrt"},
 		"secret_a": {"root"}, "secret_b": {"pw"}, "tls": {"verify"}})
-	id := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))
+	id := regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))
 	if id == nil {
 		t.Fatalf("create: %d %s", resp.StatusCode, resp.Header.Get("Location"))
 	}

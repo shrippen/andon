@@ -543,7 +543,7 @@ func TestConnectionsCreateEditDelete(t *testing.T) {
 	}
 
 	csrf = csrfToken(t, srv, client)
-	resp, err = client.PostForm(srv.URL+editLocation, url.Values{
+	resp, err = client.PostForm(srv.URL+editLocation+"/edit", url.Values{
 		"csrf": {csrf}, "name": {"Renamed Kimai"}, "url": {"https://kimai2.example"},
 		"mode": {"shared"}, "tls": {"verify"}, "secret": {"tok2"}, // a new host needs the token again
 	})
@@ -566,7 +566,7 @@ func TestConnectionsCreateEditDelete(t *testing.T) {
 	}
 
 	csrf = csrfToken(t, srv, client)
-	deleteURL := strings.TrimSuffix(editLocation, "/edit") + "/delete"
+	deleteURL := editLocation + "/delete"
 	resp, err = client.PostForm(srv.URL+deleteURL, url.Values{"csrf": {csrf}})
 	if err != nil {
 		t.Fatalf("delete: %v", err)
@@ -714,7 +714,7 @@ func TestWidgetFragmentRendersKimaiKpi(t *testing.T) {
 	}
 	resp.Body.Close()
 	editLocation, _, _ := strings.Cut(resp.Header.Get("Location"), "?")
-	connMatch := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(editLocation)
+	connMatch := regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(editLocation)
 	if connMatch == nil {
 		t.Fatalf("no connection id in redirect %q", editLocation)
 	}
@@ -1064,7 +1064,7 @@ func TestConnectionsNotShareable(t *testing.T) {
 	resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {instanceSpace(t, srv, client)},
 		"service": {"kimai"}, "name": {"K"}, "url": {"https://kimai.example"}, "mode": {"shared"}, "secret": {"tok"}, "tls": {"verify"}})
 	editLocation, _, _ := strings.Cut(resp.Header.Get("Location"), "?")
-	connID := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(editLocation)[1]
+	connID := regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(editLocation)[1]
 
 	page, err := client.Get(srv.URL + "/shares/connection/" + connID)
 	if err != nil {

@@ -1115,6 +1115,33 @@ history:
   sections: Abschnitte
   restore: Wiederherstellen
 conn:
+  tab_overview: 'Überblick'
+  tab_access: 'Zugang'
+  tab_settings: 'Einstellungen'
+  tab_history: 'Verlauf'
+  record_tabs: 'Akte'
+  level_instance: 'Instanz'
+  level_team: 'Team'
+  level_personal: 'Persönlich'
+  kind_fixed: 'Fest'
+  record_fixed: 'Fest: ein Zugang für alle, die diese Verbindung nutzen.'
+  record_template: 'Vorlage: Jede Person trägt ihren eigenen Zugang ein und sieht nur ihre Daten.'
+  editors_instance: 'Ändern können Admins.'
+  editors_team: 'Ändern können die Owner des Teams.'
+  editors_personal: 'Nur du siehst und änderst sie.'
+  fact_reach: 'erreichbar {days} T'
+  fact_ms: 'Ø Antwort'
+  fact_tiles: 'Kacheln'
+  login_fixed: 'Zugang für alle'
+  login_set: 'hinterlegt'
+  login_missing: 'fehlt'
+  login_set_at: 'eingetragen {when}'
+  login_managed: 'Ersetzen kann nur, wer die Verbindung verwaltet.'
+  access_mine: 'Dein Zugang'
+  access_team: 'Team {name}'
+  history_lead: 'Abrufe der letzten {days} Tage, je Tag.'
+  history_none: 'Keine Abrufe in diesem Zeitraum.'
+  fetch_fail_pct: '{pct} % fehlgeschlagen'
   deactivate_confirm: 'Zugang entfernen? Deine Kacheln dieser Vorlage zeigen dann nichts mehr.'
   deactivate: 'Deaktivieren'
   reactivate_new_host: 'Die Adresse zeigt auf einen anderen Server. Dein bisheriger Zugang wird nicht dorthin geschickt; trag ihn neu ein.'
@@ -1142,7 +1169,6 @@ conn:
   level_lead_instance: 'Verbindungen für alle auf dieser Instanz. Fest: ein Zugang für alle. Vorlage: jede Person (oder ein Team) trägt ihren eigenen ein.'
   level_lead_team: 'Verbindungen dieses Teams. Fest: ein Zugang für alle im Team. Vorlage: jedes Mitglied trägt seinen eigenen ein.'
   level_lead_personal: 'Deine eigenen Verbindungen, nur für dich. Darunter die Vorlagen aus Instanz und Teams, für die du deinen Zugang einträgst.'
-  personal_where: 'Vorlage: jede Person trägt ihren Zugang ein unter'
   tls: Zertifikat
   tls_verify: Prüfen (empfohlen)
   tls_skip: Nicht prüfen (selbst signiert)

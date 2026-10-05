@@ -138,6 +138,7 @@ type DayState struct {
 type Strip struct {
 	Name, Service string
 	FailPct       int
+	Fetches       int // in the window
 	Days          []DayState
 	ID            int64
 	LastError     string // of the newest day with a failure
@@ -163,45 +164,70 @@ func Strips(d *sql.DB, who *access.Principal, days int, now time.Time) ([]Strip,
 		return nil, err
 	}
 	first := now.AddDate(0, 0, -days+1)
-	since := first.Format(time.DateOnly)
 
 	var out []Strip
 	err = db.WithRead(d, func(tx *sql.Tx) error {
 		for _, c := range list {
-			raw, err := data.DaysSince(tx, c.ID, since)
+			strip, err := stripOf(tx, c, first, days)
 			if err != nil {
 				return err
-			}
-			byDay := map[string]data.ConnDay{}
-			ok, fail := 0, 0
-			for _, r := range raw {
-				byDay[r.Day] = r
-				ok, fail = ok+r.OK, fail+r.Fail
-			}
-
-			strip := Strip{Name: c.Name, Service: string(c.Service), ID: c.ID}
-			strip.FailPct = stripFailPct(ok, fail)
-			if h, err := data.HealthSince(tx, c.ID, since); err == nil {
-				strip.LastError = h.LastError
-				if h.OK > 0 {
-					strip.AvgMs = int(h.MsSum / int64(h.OK))
-				}
-			}
-			if ws, err := content.Widgets(tx, []int64{c.SpaceID}); err == nil {
-				for _, w := range ws {
-					if w.ConnectionID != nil && *w.ConnectionID == c.ID {
-						strip.Tiles++
-					}
-				}
-			}
-			for i := range days {
-				day := first.AddDate(0, 0, i).Format(time.DateOnly)
-				r := byDay[day]
-				strip.Days = append(strip.Days, DayState{Day: day, OK: r.OK, Fail: r.Fail})
 			}
 			out = append(out, strip)
 		}
 		return nil
 	})
 	return out, err
+}
+
+// History returns one connection's strip over the last days (its record).
+// Requires USE.
+func History(d *sql.DB, who *access.Principal, connID int64, days int, now time.Time) (Strip, error) {
+	c, err := Get(d, who, connID)
+	if err != nil {
+		return Strip{}, err
+	}
+	var out Strip
+	err = db.WithRead(d, func(tx *sql.Tx) error {
+		out, err = stripOf(tx, c, now.AddDate(0, 0, -days+1), days)
+		return err
+	})
+	return out, err
+}
+
+// stripOf counts c's fetches per day from first on, and the widgets of
+// its space that use it.
+func stripOf(tx *sql.Tx, c View, first time.Time, days int) (Strip, error) {
+	since := first.Format(time.DateOnly)
+	raw, err := data.DaysSince(tx, c.ID, since)
+	if err != nil {
+		return Strip{}, err
+	}
+	byDay := map[string]data.ConnDay{}
+	ok, fail := 0, 0
+	for _, r := range raw {
+		byDay[r.Day] = r
+		ok, fail = ok+r.OK, fail+r.Fail
+	}
+
+	strip := Strip{Name: c.Name, Service: string(c.Service), ID: c.ID}
+	strip.FailPct, strip.Fetches = stripFailPct(ok, fail), ok+fail
+	if h, err := data.HealthSince(tx, c.ID, since); err == nil {
+		strip.LastError = h.LastError
+		if h.OK > 0 {
+			strip.AvgMs = int(h.MsSum / int64(h.OK))
+		}
+	}
+	if ws, err := content.Widgets(tx, []int64{c.SpaceID}); err == nil {
+		for _, w := range ws {
+			if w.ConnectionID != nil && *w.ConnectionID == c.ID {
+				strip.Tiles++
+			}
+		}
+	}
+	for i := range days {
+		day := first.AddDate(0, 0, i).Format(time.DateOnly)
+		r := byDay[day]
+		strip.Days = append(strip.Days, DayState{Day: day, OK: r.OK, Fail: r.Fail})
+	}
+	return strip, nil
 }

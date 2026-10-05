@@ -138,3 +138,41 @@ func text(v any) string {
 	raw, _ := json.Marshal(v)
 	return string(raw)
 }
+
+// ActivationsOf lists who's activations of one template: their own, and
+// for an instance template each team they own.
+func ActivationsOf(d *sql.DB, who *access.Principal, connID int64) ([]Activation, error) {
+	v, err := Get(d, who, connID)
+	if err != nil {
+		return nil, err
+	}
+	if v.Mode != enums.CredentialPersonal {
+		return nil, nil
+	}
+	holders := []model.Holder{model.UserHolder(who.UserID)}
+	if v.Level == enums.SpaceInstance {
+		var teams []int64
+		for t, role := range who.Teams {
+			if role == enums.TeamOwner {
+				teams = append(teams, t)
+			}
+		}
+		slices.Sort(teams)
+		for _, t := range teams {
+			holders = append(holders, model.TeamHolder(t))
+		}
+	}
+
+	var out []Activation
+	err = db.WithRead(d, func(tx *sql.Tx) error {
+		for _, h := range holders {
+			a, err := activationOf(tx, v, h)
+			if err != nil {
+				return err
+			}
+			out = append(out, a)
+		}
+		return nil
+	})
+	return out, err
+}

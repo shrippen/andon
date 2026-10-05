@@ -26,7 +26,7 @@ func TestReceiptsPage(t *testing.T) {
 	for _, c := range []struct{ service, name string }{{"invoiceninja", "Ninja"}, {"paperless", "Archiv A"}, {"paperless", "Archiv B"}} {
 		resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
 			"service": {c.service}, "name": {c.name}, "url": {"demo://" + c.service}, "mode": {"shared"}, "tls": {"verify"}})
-		conns[c.name] = regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))[1]
+		conns[c.name] = regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1]
 	}
 
 	page = string(mustGet(t, srv, client, "/receipts"))

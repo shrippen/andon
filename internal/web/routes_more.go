@@ -172,10 +172,10 @@ func (d Deps) handleConnectionOptions(w http.ResponseWriter, r *http.Request, ct
 		err = connections.SetOptions(d.DB, ctx.Who, id, options)
 	}
 	if err != nil {
-		http.Redirect(w, r, "/connections/"+strconv.FormatInt(id, 10)+"/edit?error="+url.QueryEscape(errKey(err)), http.StatusSeeOther)
+		http.Redirect(w, r, withQuery(recordPath(id, tabSettings), "error", errKey(err)), http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, "/connections/"+strconv.FormatInt(id, 10)+"/edit", http.StatusSeeOther)
+	http.Redirect(w, r, recordPath(id, tabSettings), http.StatusSeeOther)
 }
 
 func (d Deps) handleEndOthers(w http.ResponseWriter, r *http.Request, ctx Ctx) {

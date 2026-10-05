@@ -132,7 +132,8 @@ type StripRow struct {
 	lately  bool // failed within connShakyDays
 }
 
-func cellState(d ConnDayState) string {
+// CellState is how a strip draws a day (see StripCell).
+func CellState(d ConnDayState) string {
 	switch {
 	case d.OK+d.Fail == 0:
 		return "none"
@@ -157,7 +158,7 @@ func connHealthView(cfg ConnHealthConfig, results map[string]any, _ ViewCtx) map
 		}
 		row := StripRow{Name: s.Name, FailPct: s.FailPct, lately: failingLately(s)}
 		for _, d := range s.Days {
-			row.Cells = append(row.Cells, StripCell{State: cellState(d), Title: d.Day})
+			row.Cells = append(row.Cells, StripCell{State: CellState(d), Title: d.Day})
 		}
 		rows = append(rows, row)
 	}

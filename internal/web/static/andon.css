@@ -523,8 +523,6 @@ label.pick-check { margin: 0 .3rem; }
 .danger-zone form { margin: 0; }
 
 /* ── connection form: personal access lives under "Meine Zugänge" ── */
-.cred-personal { display: none; }
-form:has(#mode option[value="personal"]:checked) .cred-personal { display: block; }
 form:has(#mode option[value="personal"]:checked) .cred-shared { display: none; }
 .advanced { margin: 1rem 0; }
 .advanced > summary { cursor: pointer; font-family: var(--font-mono); font-size: .78rem; letter-spacing: .04em; color: var(--fg2); }

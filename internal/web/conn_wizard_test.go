@@ -32,7 +32,7 @@ func TestConnectionWizard(t *testing.T) {
 	resp := postForm(t, &noFollow, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {space}, "service": {"kimai"},
 		"name": {"K"}, "url": {"http://127.0.0.1:1"}, "mode": {"shared"}, "secret": {"tok"}, "tls": {"verify"}})
 	welcome := resp.Header.Get("Location")
-	if !strings.HasSuffix(welcome, "/edit?welcome") {
+	if !strings.HasSuffix(welcome, "?welcome") {
 		t.Fatalf("redirect: %q", welcome)
 	}
 	page := string(mustGet(t, srv, client, welcome))
@@ -40,7 +40,7 @@ func TestConnectionWizard(t *testing.T) {
 		t.Fatalf("welcome page lacks test or widgets:\n%s", page)
 	}
 
-	base := strings.TrimSuffix(welcome, "/edit?welcome")
+	base := strings.TrimSuffix(welcome, "?welcome")
 	postForm(t, client, srv.URL+base+"/hygiene", url.Values{"csrf": {csrf}, "expires": {"2027-01-31"}, "budget": {"50"}})
 	page = string(mustGet(t, srv, client, base+"/edit"))
 	if !strings.Contains(page, `value="2027-01-31"`) || !strings.Contains(page, `name="budget" type="number" min="0" value="50"`) {
@@ -70,7 +70,7 @@ func TestConnectionTwoPartCredential(t *testing.T) {
 	resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {space}, "service": {"freshrss"},
 		"name": {"F"}, "url": {"http://127.0.0.1:1"}, "mode": {"shared"}, "secret_a": {"bob"}, "secret_b": {"pw123"}, "tls": {"verify"}})
 	welcome := resp.Header.Get("Location")
-	base := strings.TrimSuffix(welcome, "/edit?welcome")
+	base := strings.TrimSuffix(welcome, "?welcome")
 
 	page := string(mustGet(t, srv, client, base+"/edit"))
 	if strings.Count(page, "(unverändert lassen)") != 2 {
