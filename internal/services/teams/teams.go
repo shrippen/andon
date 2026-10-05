@@ -108,8 +108,9 @@ func Overview(d *sql.DB, who *access.Principal) ([]View, error) {
 			byID[u.ID] = u
 		}
 		for _, team := range all {
+			// A viewer uses the team's boards, not its page.
 			role, mine := who.Teams[team.ID]
-			if !mine && !who.IsAdmin() {
+			if !who.IsAdmin() && (!mine || role == enums.TeamViewer) {
 				continue
 			}
 

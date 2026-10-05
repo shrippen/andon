@@ -75,11 +75,7 @@ func RuleGroups(settings map[string]any) []RuleGroup {
 
 // Settings returns a space's settings. Requires VIEW.
 func Settings(d *sql.DB, who *access.Principal, spaceID int64) (map[string]any, error) {
-	ref, err := access.SpaceOf(d, who, spaceID)
-	if err != nil {
-		return nil, err
-	}
-	if err := access.Need(access.SpaceRight(who, ref), enums.RightView); err != nil {
+	if err := OpenSettings(d, who, spaceID); err != nil {
 		return nil, err
 	}
 	sp, err := content.Space(d, spaceID)
@@ -90,6 +86,20 @@ func Settings(d *sql.DB, who *access.Principal, spaceID int64) (map[string]any, 
 		return map[string]any{}, nil
 	}
 	return sp.Settings, nil
+}
+
+// OpenSettings reports whether who may open a space's settings pages: a
+// team's are for its owners and editors, a viewer only uses its boards.
+func OpenSettings(q db.Queryer, who *access.Principal, spaceID int64) error {
+	ref, err := access.SpaceOf(q, who, spaceID)
+	if err != nil {
+		return err
+	}
+	need := enums.RightView
+	if ref.Kind == enums.SpaceTeam {
+		need = enums.RightEdit
+	}
+	return access.Need(access.SpaceRight(who, ref), need)
 }
 
 // CanChange reports whether who may change a space's settings.

@@ -12,7 +12,7 @@ import (
 // The settings side navigation: one group per level the viewer reaches,
 // the same pages on each level, plus what only that level has. The own
 // level opens from the account menu, the setup levels (teams the viewer
-// owns, the instance for admins) from "Einrichten"; a page shows only
+// owns or edits, the instance for admins) from "Einrichten"; a page shows only
 // the side it belongs to.
 //
 //	account menu   Ich            Profil · Sicherheit · Benachrichtigungen ·
@@ -69,7 +69,7 @@ func spaceLinks(id int64) []settingsLink {
 }
 
 // settingsNav builds the groups for who: own space, each team who owns
-// (every team for admins), and the instance for admins.
+// or edits (every team for admins), and the instance for admins.
 func settingsNav(who *access.Principal) []settingsGroup {
 	var out []settingsGroup
 	if mine := access.Personal(who); mine != nil {
@@ -88,7 +88,7 @@ func settingsNav(who *access.Principal) []settingsGroup {
 		if sp.Kind != enums.SpaceTeam || sp.TeamID == nil {
 			continue
 		}
-		if who.IsAdmin() || who.Teams[*sp.TeamID] == enums.TeamOwner {
+		if role := who.Teams[*sp.TeamID]; who.IsAdmin() || role == enums.TeamOwner || role == enums.TeamEditor {
 			teams = append(teams, sp)
 		}
 	}
