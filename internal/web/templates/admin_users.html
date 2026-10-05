@@ -19,55 +19,59 @@
     {{if .InviteLink}}<div class="card"><p>{{t "admin.invite_sent"}}</p><pre class="mono">{{.InviteLink}}</pre></div>{{end}}
     {{if .ResetLink}}<div class="card"><p>{{t "admin.reset_link"}}</p><pre class="mono">{{.ResetLink}}</pre></div>{{end}}
 
-    <div class="table-wrap"><table class="table">
-      <tr><th>{{t "field.name"}}</th><th>{{t "field.role"}}</th><th>{{t "nav.teams"}}</th><th>{{t "admin.login"}}</th><th></th></tr>
+    {{/* One row per account: who, role, and the rarer actions behind a
+         menu, so the list fits without scrolling sideways. */}}
+    <div class="user-list">
       {{range .Users}}
-      <tr{{if not .IsActive}} class="muted"{{end}}>
-        <td>{{.Name}}<br><small>{{.Email}}</small>
-          {{if .TOTPEnabled}}<span class="pill" data-state="applied">2FA</span>{{end}}
-          {{if .OIDCSub}}<span class="pill">SSO</span>{{end}}
-          {{if .IsBreakglass}}<span class="pill" data-state="locked">{{t "admin.breakglass"}}</span>{{end}}
-        </td>
-        <td>
-          <form method="post" action="/admin/users/{{.ID}}/role" class="inline-form">
-            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <select class="select" name="role" aria-label="{{t "field.role"}}">
-              <option value="user"{{if eq (print .Role) "user"}} selected{{end}}>{{t "irole.user"}}</option>
-              <option value="admin"{{if eq (print .Role) "admin"}} selected{{end}}>{{t "irole.admin"}}</option>
-            </select>
-            <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
-          </form>
-        </td>
-        <td>{{range $i, $m := .Teams}}{{if $i}}, {{end}}{{$m.Name}} ({{t (print "role." $m.Role)}}){{else}}–{{end}}</td>
-        <td>{{if .LastLoginAt}}{{ago .LastLoginAt}}{{else}}–{{end}}</td>
-        <td class="row-actions">
-          {{if eq .ID $.Who.UserID}}
-          <span class="small muted">{{t "admin.self"}}</span>
-          {{else}}
-          <form method="post" action="/admin/users/{{.ID}}/active">
-            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <input type="hidden" name="state" value="{{if .IsActive}}off{{else}}on{{end}}">
-            <button type="submit" class="btn btn-outline btn-sm">{{if .IsActive}}{{t "admin.deactivate"}}{{else}}{{t "admin.activate"}}{{end}}</button>
-          </form>
-          <form method="post" action="/admin/users/{{.ID}}/breakglass">
-            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <input type="hidden" name="state" value="{{if .IsBreakglass}}off{{else}}on{{end}}">
-            <button type="submit" class="btn btn-outline btn-sm">{{if .IsBreakglass}}{{t "admin.breakglass_off"}}{{else}}{{t "admin.breakglass_on"}}{{end}}</button>
-          </form>
-          <form method="post" action="/admin/users/{{.ID}}/reset">
-            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" class="btn btn-outline btn-sm">{{t "admin.reset"}}</button>
-          </form>
-          {{if .OIDCSub}}<a class="btn btn-outline btn-sm" href="/admin/users/{{.ID}}/reapply">{{t "admin.reapply"}}</a>{{end}}
-          <form method="post" action="/admin/users/{{.ID}}/delete" data-confirm="{{t "admin.confirm_delete"}}">
-            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <button type="submit" class="btn btn-outline btn-sm">{{t "action.delete"}}</button>
-          </form>
-          {{end}}
-        </td>
-      </tr>
+      <div class="user-row{{if not .IsActive}} muted{{end}}">
+        <div class="user-who">
+          <b>{{.Name}}</b> <small>{{.Email}}</small>
+          <span class="pill-row">{{if .TOTPEnabled}}<span class="pill" data-state="applied">2FA</span>{{end}}
+            {{if .OIDCSub}}<span class="pill">SSO</span>{{end}}
+            {{if .IsBreakglass}}<span class="pill" data-state="locked">{{t "admin.breakglass"}}</span>{{end}}</span>
+          <small class="muted">{{t "nav.teams"}}: {{range $i, $m := .Teams}}{{if $i}}, {{end}}{{$m.Name}} ({{t (print "role." $m.Role)}}){{else}}–{{end}}
+            · {{t "admin.login"}}: {{if .LastLoginAt}}{{ago .LastLoginAt}}{{else}}–{{end}}</small>
+        </div>
+        <form method="post" action="/admin/users/{{.ID}}/role" class="row-actions nowrap">
+          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+          <select class="select" name="role" aria-label="{{t "field.role"}}">
+            <option value="user"{{if eq (print .Role) "user"}} selected{{end}}>{{t "irole.user"}}</option>
+            <option value="admin"{{if eq (print .Role) "admin"}} selected{{end}}>{{t "irole.admin"}}</option>
+          </select>
+          <button type="submit" class="btn btn-outline">{{t "action.save"}}</button>
+        </form>
+        {{if eq .ID $.Who.UserID}}
+        <span class="small muted user-self">{{t "admin.self"}}</span>
+        {{else}}
+        <details class="dropdown is-right">
+          <summary class="btn btn-outline">{{t "action.more"}} ▾</summary>
+          <div class="menu">
+            <form method="post" action="/admin/users/{{.ID}}/active">
+              <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+              <input type="hidden" name="state" value="{{if .IsActive}}off{{else}}on{{end}}">
+              <button type="submit">{{if .IsActive}}{{t "admin.deactivate"}}{{else}}{{t "admin.activate"}}{{end}}</button>
+            </form>
+            <form method="post" action="/admin/users/{{.ID}}/breakglass">
+              <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+              <input type="hidden" name="state" value="{{if .IsBreakglass}}off{{else}}on{{end}}">
+              <button type="submit">{{if .IsBreakglass}}{{t "admin.breakglass_off"}}{{else}}{{t "admin.breakglass_on"}}{{end}}</button>
+            </form>
+            <form method="post" action="/admin/users/{{.ID}}/reset">
+              <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+              <button type="submit">{{t "admin.reset"}}</button>
+            </form>
+            {{if .OIDCSub}}<a href="/admin/users/{{.ID}}/reapply">{{t "admin.reapply"}}</a>{{end}}
+            <hr>
+            <form method="post" action="/admin/users/{{.ID}}/delete" data-confirm="{{t "admin.confirm_delete"}}">
+              <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+              <button type="submit" class="is-danger">{{t "action.delete"}}</button>
+            </form>
+          </div>
+        </details>
+        {{end}}
+      </div>
       {{end}}
-    </table></div>
+    </div>
 
     <h2>{{t "admin.invite"}}</h2>
     <div class="card">

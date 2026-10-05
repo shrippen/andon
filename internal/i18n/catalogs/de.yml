@@ -321,7 +321,7 @@ field:
   locale: Sprache
   color_mode: Hell/Dunkel
   theme: Theme
-  theme_hint: 'Nur für dich. „Standard“ folgt dem Theme der Instanz (Einstellungen › Instanz › Einstellungen). Ein Board, das ein Theme erzwingt, behält seins.'
+  theme_hint: 'Nur für dich. „Standard“ folgt dem Theme der Instanz (Einrichten › Einstellungen › Instanz › Einstellungen). Ein Board, das ein Theme erzwingt, behält seins.'
   theme_forced: Theme erzwingen
   start_board: Start-Board
   search_engine: Suchmaschine
@@ -1619,6 +1619,7 @@ teams:
   no_members: Keine Mitglieder.
   set_member: Mitglied setzen
   hint_ack: Hinweise quittieren
+  settings: Team-Einstellungen
   theme: Team-Theme
   delete: Team löschen
   confirm_delete: Team mit allen Inhalten löschen?

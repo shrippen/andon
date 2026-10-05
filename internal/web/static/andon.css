@@ -788,6 +788,11 @@ main .cm-s-default .cm-error { color: var(--danger-text); }
 main > * + h2 { margin-top: 1.8rem; }
 .row-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
 .row-actions form { margin: 0; }
+/* In a row every control sits on the same line: no form gap above a
+   button, no field stretched to the full width. */
+.row-actions .btn { margin: 0; }
+form > .row-actions:last-child { margin-top: 1rem; }
+.row-actions > .select, .row-actions > .input { width: auto; }
 /* ⋯ holds a row's further actions; it opens in the cell, since the
    scrolling table wrapper would clip a floating menu. */
 .row-more > summary { list-style: none; }
@@ -796,10 +801,13 @@ main > * + h2 { margin-top: 1.8rem; }
 .row-more-body form, .row-more-body button { margin: 0; }
 /* In a table the cell stays a cell, so row lines stay level. */
 td.row-actions { display: table-cell; }
-td.row-actions > * { display: inline-block; vertical-align: middle; margin: .15rem .4rem .15rem 0; }
-td.row-actions button { margin: 0; }
+td.row-actions > * { vertical-align: middle; margin: .15rem .4rem .15rem 0; }
+/* A .btn keeps its own inline-flex: inline-block lifts its label. */
+td.row-actions > :not(.btn, .inline-form) { display: inline-block; }
 .boards-table button { margin: 0; }
-label.check { margin: .8rem 0 .3rem; font-family: var(--font-sans); text-transform: none; letter-spacing: 0; }
+/* One option per line: a check in a form never shares a line with the
+   next one or the save button. */
+label.check { display: flex; width: fit-content; margin: .8rem 0 .3rem; font-family: var(--font-sans); text-transform: none; letter-spacing: 0; }
 @media (max-width: 800px) {
   .editor-split, .token-grid { grid-template-columns: minmax(0, 1fr); }
 }
@@ -1382,3 +1390,20 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 .share > .add > .btn, .share > .row .btn { margin: 0; }
 .share > .row > .select { margin: 0; }
 
+/* Tags under a row's name, so a long name and its tags never split the
+   tags over the name's line (themes list). */
+.pill-row { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .3rem; }
+/* Team card: name, members, settings and delete as parts with a rule
+   between, each with its own action row. */
+.team-part + .team-part { margin-top: 1.4rem; padding-top: 1rem; border-top: 1px solid var(--bg2); }
+.team-part > form.row-actions { margin-top: .8rem; }
+/* Users: who on the left, role and the action menu on the right (the
+   menu in a fixed slot, so the role fields line up); narrow, they wrap
+   below. */
+.user-list { border-top: 1px solid var(--bg2); }
+.user-row { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: center; padding: .8rem 0; border-bottom: 1px solid var(--bg2); }
+.user-who { flex: 1 1 16rem; display: flex; flex-direction: column; gap: .15rem; min-width: 0; overflow-wrap: anywhere; }
+.user-who > .pill-row { margin-top: 0; }
+.user-row > .dropdown, .user-self { flex: 0 1 14rem; margin-left: auto; text-align: right; }
+.user-row .menu { text-align: left; }
+.user-row .menu form { margin: 0; }

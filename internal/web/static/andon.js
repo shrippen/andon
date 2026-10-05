@@ -751,10 +751,11 @@
     });
   }
 
-  // ── Header menus (<details>): one open at a time, closed by outside click or Esc ──
+  // ── Header menus and dropdowns (<details>): one open at a time, closed by outside click or Esc ──
+  var MENUS = "details.nav-menu[open], details.dropdown[open]";
   function setupMenus() {
     d.addEventListener("click", function (e) {
-      d.querySelectorAll("details.nav-menu[open]").forEach(function (m) {
+      d.querySelectorAll(MENUS).forEach(function (m) {
         if (!m.contains(e.target)) {
           m.open = false;
         }
@@ -762,7 +763,7 @@
     });
     d.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
-        d.querySelectorAll("details.nav-menu[open]").forEach(function (m) { m.open = false; });
+        d.querySelectorAll(MENUS).forEach(function (m) { m.open = false; });
       }
     });
   }

@@ -366,8 +366,11 @@ func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, valu
 	_, partial := data["Partial"]
 	if ctx.Who != nil && !fragment && !partial {
 		d.addNav(data, ctx.Who)
+		groups := settingsNav(ctx.Who)
+		data["SetupHref"] = setupHref(groups)
 		if settingsPages[name] {
-			data["SettingsNav"] = settingsNav(ctx.Who)
+			nav, _ := values[navPath].(string)
+			data["SettingsNav"], data["SettingsSetup"] = navScope(groups, cmp.Or(nav, ctx.Path))
 		}
 		// Menu progress and page intros (see routes_welcome.go).
 		if _, ok := data["Onboarding"]; !ok {

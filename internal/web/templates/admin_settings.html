@@ -90,8 +90,10 @@
           </tr>
           {{end}}
         </table></div>
-        <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
-        <button type="submit" class="btn btn-outline btn-sm" formaction="/admin/settings/oidc/test">{{t "conn.test"}}</button>
+        <div class="row-actions">
+          <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
+          <button type="submit" class="btn btn-outline" formaction="/admin/settings/oidc/test">{{t "conn.test"}}</button>
+        </div>
       </form>
     </div>
     </div>
@@ -121,8 +123,10 @@
       <p>{{t "nav.teams"}}: {{range $i, $m := .Plan.Teams}}{{if $i}}, {{end}}{{$m.Team}} ({{t (print "role." $m.Role)}}){{else}}–{{end}}</p>
       <form method="post" action="/admin/users/{{.UserID}}/reapply">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <button type="submit" class="btn btn-accent">{{t "admin.reapply_do"}}</button>
-        <a class="btn btn-outline btn-sm" href="/admin/users">{{t "action.cancel"}}</a>
+        <div class="row-actions">
+          <button type="submit" class="btn btn-accent">{{t "admin.reapply_do"}}</button>
+          <a class="btn btn-outline" href="/admin/users">{{t "action.cancel"}}</a>
+        </div>
       </form>
     </div>
   </main>

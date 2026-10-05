@@ -36,8 +36,8 @@ func TestThemeDuplicateEditFontExportImport(t *testing.T) {
 	csrf := csrfToken(t, srv, client)
 
 	list := mustGet(t, srv, client, "/themes")
-	builtin := regexp.MustCompile(`name="theme_id" value="(\d+)"`).FindSubmatch(list)
-	space := regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(list)
+	builtin := regexp.MustCompile(`name="theme_id"[^>]*><option value="(\d+)">`).FindSubmatch(list)
+	space := regexp.MustCompile(`name="space_id"[^>]*>\s*<option value="(\d+)">`).FindSubmatch(list)
 	if builtin == nil || space == nil {
 		t.Fatalf("theme list incomplete:\n%s", list)
 	}
