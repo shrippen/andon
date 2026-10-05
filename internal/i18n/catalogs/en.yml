@@ -1817,6 +1817,10 @@ hint:
     stale_pr:
       title: 'PR {repo}#{number} idle for {days} days'
       why: '“{title}”: finish or close it.'
+  kdestore:
+    behind_github:
+      title: '{item}: KDE Store still at {store}'
+      why: 'GitHub has had {github} since {day}. Upload it to the store.'
   energy:
     shift_jobs:
       title: '{job} runs at {hour}:00 when power is expensive'
@@ -2632,6 +2636,7 @@ rule_name:
   grocy.chores_overdue: 'Overdue chores'
   dwd.warning: 'Weather warning'
   github.ci_failed: 'CI failed'
+  kdestore.behind_github: 'KDE Store behind GitHub'
   energy.cost_rising: 'Electricity cost rising'
   jsonapi.threshold: 'Own integration: threshold exceeded'
   system.token_age: 'Token old or expiring'

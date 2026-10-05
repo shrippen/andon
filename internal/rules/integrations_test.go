@@ -98,3 +98,33 @@ func TestArrHealthKnownChecks(t *testing.T) {
 		t.Fatalf("check param: %+v", known.Params)
 	}
 }
+
+func TestStoreBehindGitHub(t *testing.T) {
+	released := day("2026-10-05")
+	github := &sources.GitHubDataset{Repos: []sources.GitRepo{
+		{Name: "shrippen/Plasmai", Release: "v2.3.1", ReleasedAt: released.Add(21 * time.Hour)},
+		{Name: "shrippen/Kurrent", Release: "v0.4.0", ReleasedAt: released},
+		{Name: "shrippen/plasma-frame", Release: "v1.3", ReleasedAt: released},
+		{Name: "shrippen/Fresh", Release: "v1.1", ReleasedAt: day("2026-10-06")},
+	}}
+	store := &sources.KDEStoreDataset{Items: []sources.StoreItem{
+		{ID: 1, Name: "Plasmai", Version: "1.6.3", URL: "https://store.kde.org/p/1"},          // behind, matched by name
+		{ID: 2, Name: "Kurrent", Version: "0.4.0"},                                            // current
+		{ID: 3, Name: "FrameWidge", Version: "1.2", Repos: []string{"shrippen/plasma-frame"}}, // behind, matched by link
+		{ID: 4, Name: "Fresh", Version: "1.0"},                                                // released today: within days
+		{ID: 5, Name: "Other", Version: "0.1"},                                                // no repo
+	}}
+	env := crossEnv("2026-10-06", map[string]any{"github": github, "kdestore": store})
+
+	got := run(t, "kdestore.behind_github", nil, env)
+	if len(got) != 2 || got[0].Params["item"] != "Plasmai" || got[0].Params["github"] != "v2.3.1" || got[0].Params["store"] != "1.6.3" ||
+		got[0].ActionURL != "https://store.kde.org/p/1" || got[1].Params["item"] != "FrameWidge" {
+		t.Fatalf("behind: %+v", got)
+	}
+
+	// A newer release is a new hint, not the old one still open.
+	github.Repos[0].Release = "v2.4.0"
+	if again := run(t, "kdestore.behind_github", nil, env); again[0].Fingerprint == got[0].Fingerprint {
+		t.Fatalf("fingerprint kept across releases: %s", got[0].Fingerprint)
+	}
+}

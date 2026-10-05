@@ -11,6 +11,8 @@ package sources
 import (
 	"context"
 	"net/url"
+	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -37,6 +39,7 @@ type StoreItem struct {
 	URL          string // its store page
 	Downloads    int    // 0 = unknown
 	Changed      time.Time
+	Repos        []string      // GitHub repos its description links: "shrippen/plasmai"
 	DownloadDays []DownloadDay // demo only, see DownloadItem.Days
 }
 
@@ -116,7 +119,24 @@ func storeGet(ctx context.Context, api services.KeyedApi, path string, params ur
 
 func storeItem(m map[string]any) StoreItem {
 	return StoreItem{ID: int64(asFloat(m["id"])), Name: asStr(m["name"]), Version: asStr(m["version"]), Type: asStr(m["typename"]),
-		URL: asStr(m["detailpage"]), Downloads: int(asFloat(m["downloads"])), Changed: parseTime(m["changed"])}
+		URL: asStr(m["detailpage"]), Downloads: int(asFloat(m["downloads"])), Changed: parseTime(m["changed"]),
+		Repos: githubLinks(asStr(m["description"]))}
+}
+
+// githubLink is a repo link in an entry's description:
+// "https://github.com/shrippen/Plasmai/issues" names shrippen/plasmai.
+var githubLink = regexp.MustCompile(`github\.com/([\w.-]+)/([\w.-]+)`)
+
+// githubLinks are the repos a description links, lower case, each once.
+func githubLinks(description string) []string {
+	var out []string
+	for _, m := range githubLink.FindAllStringSubmatch(description, -1) {
+		repo := strings.ToLower(m[1] + "/" + strings.TrimSuffix(m[2], ".git"))
+		if !slices.Contains(out, repo) {
+			out = append(out, repo)
+		}
+	}
+	return out
 }
 
 // Downloads lists every entry.

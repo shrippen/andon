@@ -19,10 +19,13 @@ package rules
 //	github.ci_failed        latest CI run on the default branch failed
 //	github.review_waiting   a PR has waited N days for my review
 //	github.stale_pr         my own PR has not moved for N days
+//	kdestore.behind_github  a KDE Store entry still has an older version than its GitHub release
 //	energy.cost_rising      last 7 days cost more than factor × the 7 before
 
 import (
 	"fmt"
+	"path"
+	"slices"
 	"strings"
 
 	"andon/internal/enums"
@@ -35,6 +38,7 @@ const (
 	weekDays      = 7
 	costRuleID    = "energy.cost_rising"
 	dwdWarningKey = "dwd.warning"
+	storeBehindID = "kdestore.behind_github"
 )
 
 // dwdLevels maps warning ranks (metrics.WarningRank) to hint levels;
@@ -186,6 +190,10 @@ func registerEverydayRules() {
 	Register("github.stale_pr", githubSvc, map[string]any{"days": 14.0}, on(githubStalePr))
 	Register("github.ci_failed", githubSvc, nil, on(ciFailed))
 
+	// The store learns nothing of a release: its upload is easy to forget.
+	Register(storeBehindID, Cross, map[string]any{"days": 1.0}, storeBehind)
+	Needs(storeBehindID, githubSvc, kdestoreSvc)
+
 	Register(costRuleID, tibberSvc, map[string]any{"factor": 1.3}, on(costRising))
 }
 
@@ -329,4 +337,49 @@ func gatewayNewDevice(_ any, cfg map[string]any, env Env) []Finding {
 			Params: map[string]any{"name": dev.Name, "day": Day(dev.First)}, Sources: []string{gatewaySvc}})
 	}
 	return found
+}
+
+// storeBehind finds store entries whose repo released a newer version at
+// least days ago. An entry's repo is the one its description links, else
+// the one of its name: "Plasmai" is shrippen/Plasmai.
+func storeBehind(_ any, cfg map[string]any, env Env) []Finding {
+	github, ok1 := env.Datasets[githubSvc].(*sources.GitHubDataset)
+	store, ok2 := env.Datasets[kdestoreSvc].(*sources.KDEStoreDataset)
+	if !ok1 || !ok2 || github == nil || store == nil {
+		return nil
+	}
+	since := env.Today.AddDate(0, 0, -cfgInt(cfg, "days"))
+
+	var found []Finding
+	for _, item := range store.Items {
+		repo, ok := storeRepo(item, github.Repos)
+		if !ok || metrics.Today(repo.ReleasedAt).After(since) || !newerVersion(repo.Release, item.Version) {
+			continue
+		}
+		found = append(found, Finding{Fingerprint: fmt.Sprintf("store:%d:%s", item.ID, repo.Release), Severity: enums.SeverityWarn,
+			Message: storeBehindID, Params: map[string]any{"item": item.Name, "github": repo.Release, "store": item.Version, "day": Day(repo.ReleasedAt)},
+			ActionURL: item.URL, ActionLabel: "open_in_kdestore", Sources: []string{kdestoreSvc, githubSvc}})
+	}
+	return found
+}
+
+// storeRepo is the released repo of a store entry, if any.
+func storeRepo(item sources.StoreItem, repos []sources.GitRepo) (sources.GitRepo, bool) {
+	byName := -1
+	for i, r := range repos {
+		if r.Release == "" {
+			continue
+		}
+		name := strings.ToLower(r.Name)
+		if slices.Contains(item.Repos, name) {
+			return r, true
+		}
+		if byName < 0 && strings.EqualFold(path.Base(name), item.Name) {
+			byName = i
+		}
+	}
+	if byName < 0 {
+		return sources.GitRepo{}, false
+	}
+	return repos[byName], true
 }
