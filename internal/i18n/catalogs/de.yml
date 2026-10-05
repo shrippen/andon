@@ -1619,6 +1619,7 @@ teams:
   no_members: Keine Mitglieder.
   set_member: Mitglied setzen
   hint_ack: Hinweise quittieren
+  settings: Team-Einstellungen
   theme: Team-Theme
   delete: Team löschen
   confirm_delete: Team mit allen Inhalten löschen?

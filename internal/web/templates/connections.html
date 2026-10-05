@@ -32,15 +32,12 @@
         <td class="small">{{.URL}}</td>
         <td>{{template "conn_health_cell" .}}</td>
         <td class="nowrap small">{{if not .SecretAt.IsZero}}{{ago .SecretAt}}{{else}}–{{end}}{{with .SecretExpires}}<br><small class="muted">{{t "conn.expires"}} {{day .}}</small>{{end}}</td>
-        <td class="row-actions nowrap"><a class="btn btn-outline btn-sm" href="/connections/{{.ID}}?tab=settings">{{t "action.edit"}}</a>
-          <details class="row-more"><summary class="btn btn-outline btn-sm" aria-label="{{t "action.more"}}" title="{{t "action.more"}}">⋯</summary>
-            <div class="row-more-body">
-              <form method="post" action="/connections/{{.ID}}/test" class="inline-form" hx-post="/connections/{{.ID}}/check" hx-target="#toast">
-                <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-                <button type="submit" class="btn btn-outline btn-sm">{{t "conn.test"}}</button>
-              </form>
-            </div>
-          </details></td>
+        <td class="row-actions nowrap">
+          <form method="post" action="/connections/{{.ID}}/test" class="inline-form" hx-post="/connections/{{.ID}}/check" hx-target="#toast">
+            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+            <button type="submit" class="btn btn-outline btn-sm">{{t "conn.test"}}</button>
+          </form>
+          <a class="btn btn-outline btn-sm" href="/connections/{{.ID}}?tab=settings">{{t "action.edit"}}</a></td>
       </tr>
       {{else}}<tr><td colspan="6" class="muted">{{t "conn.none_here"}}</td></tr>
       {{end}}

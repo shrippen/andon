@@ -35,8 +35,10 @@
         <input type="hidden" name="space_id" value="{{$.SpaceID}}">
         <input type="hidden" name="kind" value="{{$.Kind}}">
         <textarea name="text" hidden>{{$.Text}}</textarea>
-        <button type="submit" class="btn btn-accent" name="confirm" value="1">{{t "import.confirm"}}</button>
-        <a class="btn btn-outline btn-sm" href="/import">{{t "action.cancel"}}</a>
+        <div class="row-actions">
+          <button type="submit" class="btn btn-accent" name="confirm" value="1">{{t "import.confirm"}}</button>
+          <a class="btn btn-outline" href="/import">{{t "action.cancel"}}</a>
+        </div>
       </form>
     </section>
     {{else}}
@@ -84,7 +86,7 @@
       <div class="row-actions">
         <select class="select" name="mode" aria-label="{{t "code.replace"}}"><option value="replace">{{t "code.replace"}}</option><option value="merge">{{t "code.merge"}}</option></select>
         <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
-        <a class="btn btn-outline btn-sm" href="/spaces/{{.SpaceID}}/export">{{t "action.export"}}</a>
+        <a class="btn btn-outline" href="/spaces/{{.SpaceID}}/export">{{t "action.export"}}</a>
       </div>
     </form>
     </div>

@@ -27,34 +27,35 @@
       <tr><th>{{t "field.name"}}</th><th></th></tr>
       {{range .Items}}
       <tr>
-        <td>{{with .Swatches}}<span class="swatches" aria-hidden="true">{{range .}}<span class="swatch" data-style="--c:{{.}}"></span>{{end}}</span>{{end}}{{.Name}}{{if .Builtin}} <span class="pill">{{t "themes.builtin"}}</span>{{end}}
-          {{if eq .ID $.ActiveTheme}} <span class="pill" data-state="applied">{{t "themes.active"}}</span>{{end}}
-          {{if eq .ID $.InstanceTheme}} <span class="pill">{{t "themes.instance_default"}}</span>{{end}}
-          {{if eq .ID $.MyTheme}} <span class="pill">{{t "themes.mine"}}</span>{{end}}</td>
-        <td class="row-actions">
+        <td>{{with .Swatches}}<span class="swatches" aria-hidden="true">{{range .}}<span class="swatch" data-style="--c:{{.}}"></span>{{end}}</span>{{end}}{{.Name}}
+          <span class="pill-row">{{if .Builtin}}<span class="pill">{{t "themes.builtin"}}</span>{{end}}
+          {{if eq .ID $.ActiveTheme}}<span class="pill" data-state="applied">{{t "themes.active"}}</span>{{end}}
+          {{if eq .ID $.InstanceTheme}}<span class="pill">{{t "themes.instance_default"}}</span>{{end}}
+          {{if eq .ID $.MyTheme}}<span class="pill">{{t "themes.mine"}}</span>{{end}}</span></td>
+        <td class="row-actions nowrap">
           <a class="btn btn-outline btn-sm" href="/themes/{{.ID}}">{{if .CanEdit}}{{t "action.edit"}}{{else}}{{t "themes.view"}}{{end}}</a>
           <a class="btn btn-outline btn-sm" href="/themes/{{.ID}}/export">{{t "action.export"}}</a>
           {{if not .Builtin}}<a class="btn btn-outline btn-sm" href="/shares/theme/{{.ID}}">{{t "share.title"}}</a>{{end}}
-          <details class="inline-details"><summary class="btn btn-outline btn-sm">{{t "themes.duplicate"}}</summary>
-            <form method="post" action="/themes/duplicate" class="inline-form">
-              <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-              <input type="hidden" name="theme_id" value="{{.ID}}">
-              <input class="input" name="name" value="{{.Name}} 2" required aria-label="{{t "field.name"}}">
-              {{template "space_select" $.Spaces}}
-              <button type="submit" class="btn btn-outline btn-sm">{{t "themes.duplicate"}}</button>
-            </form>
-          </details>
         </td>
       </tr>
       {{end}}
     </table></div>
+
+    <h2>{{t "themes.duplicate"}}</h2>
+    <form method="post" action="/themes/duplicate" class="card inline-form">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+      <select class="select" name="theme_id" aria-label="{{t "themes.duplicate"}}">{{range .Items}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
+      <input class="input" name="name" required placeholder="{{t "field.name"}}" aria-label="{{t "field.name"}}">
+      {{template "space_select" .Spaces}}
+      <button type="submit" class="btn btn-outline">{{t "themes.duplicate"}}</button>
+    </form>
 
     <h2>{{t "themes.preset"}}</h2>
     <form method="post" action="/themes/preset" class="card inline-form">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <select class="select" name="preset" aria-label="{{t "themes.preset"}}">{{range .Presets}}<option value="{{.}}">{{.}}</option>{{end}}</select>
       {{template "space_select" .Spaces}}
-      <button type="submit" class="btn btn-outline btn-sm">{{t "themes.preset_create"}}</button>
+      <button type="submit" class="btn btn-outline">{{t "themes.preset_create"}}</button>
     </form>
     <p class="small muted">{{t "themes.preset_hint"}}</p>
 
@@ -63,7 +64,7 @@
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       {{template "space_select" .Spaces}}
       <input class="input" type="file" name="file" accept=".zip" required aria-label="{{t "import.file"}}">
-      <button type="submit" class="btn btn-outline btn-sm">{{t "import.run"}}</button>
+      <button type="submit" class="btn btn-outline">{{t "import.run"}}</button>
     </form>
     <p><a class="btn btn-outline btn-sm" href="/styleguide">{{t "styleguide.title"}}</a></p>
     </div>

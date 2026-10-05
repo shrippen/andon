@@ -27,7 +27,7 @@
             <button type="submit" name="move" value="down" class="btn btn-outline btn-sm" aria-label="{{t "boards.down"}}" title="{{t "boards.down"}}"{{if eq $i $.Last}} disabled{{end}}>↓</button>
           </form>
         </td>
-        <td>
+        <td class="row-actions">
           <form method="post" action="/boards/{{.ID}}/nav">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
             <button type="submit" name="move" value="toggle" class="btn btn-outline btn-sm">{{if .Hidden}}{{t "boards.show"}}{{else}}{{t "boards.hide"}}{{end}}</button>

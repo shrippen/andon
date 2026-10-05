@@ -1619,6 +1619,7 @@ teams:
   no_members: No members.
   set_member: Set member
   hint_ack: Acknowledging hints
+  settings: Team settings
   theme: Team theme
   delete: Delete team
   confirm_delete: Delete team with all content?

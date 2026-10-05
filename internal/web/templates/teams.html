@@ -34,49 +34,53 @@
     <div class="card">
       {{if not $.Single}}<h2><a href="/teams/{{.ID}}">{{.Name}}</a></h2>{{end}}
 
-      {{if .CanManage}}<form method="post" action="/teams/{{.ID}}/rename">
+      {{if .CanManage}}<form method="post" action="/teams/{{.ID}}/rename" class="team-part">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
         <label for="rename_{{.ID}}">{{t "field.name"}}</label>
-        <input class="input" id="rename_{{.ID}}" name="name" value="{{.Name}}">
-        <button type="submit" class="btn btn-outline">{{t "action.save"}}</button>
+        <div class="row-actions">
+          <input class="input" id="rename_{{.ID}}" name="name" value="{{.Name}}">
+          <button type="submit" class="btn btn-outline">{{t "action.save"}}</button>
+        </div>
       </form>{{end}}
 
-      <div class="table-wrap"><table class="table">
-        <tr><th>{{t "field.name"}}</th><th>{{t "field.email"}}</th><th>{{t "field.team_role"}}</th><th></th></tr>
-        {{range .Members}}
-        <tr>
-          <td>{{.Name}}</td>
-          <td>{{.Email}}</td>
-          <td>{{t (print "role." .Role)}}</td>
-          <td>
-            {{if $team.CanManage}}<form method="post" action="/teams/{{$team.ID}}/members/{{.UserID}}/remove">
-              <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
-              <button type="submit" class="btn btn-outline btn-sm">{{t "teams.remove"}}</button>
-            </form>{{end}}
-          </td>
-        </tr>
-        {{end}}
-        {{if not .Members}}<tr><td colspan="4" class="muted">{{t "teams.no_members"}}</td></tr>{{end}}
-      </table></div>
+      <section class="team-part">
+        <span class="h-label">{{t "settings.members"}}</span>
+        <div class="table-wrap"><table class="table">
+          <tr><th>{{t "field.name"}}</th><th>{{t "field.email"}}</th><th>{{t "field.team_role"}}</th><th></th></tr>
+          {{range .Members}}
+          <tr>
+            <td>{{.Name}}</td>
+            <td>{{.Email}}</td>
+            <td>{{t (print "role." .Role)}}</td>
+            <td class="row-actions">
+              {{if $team.CanManage}}<form method="post" action="/teams/{{$team.ID}}/members/{{.UserID}}/remove">
+                <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
+                <button type="submit" class="btn btn-outline btn-sm">{{t "teams.remove"}}</button>
+              </form>{{end}}
+            </td>
+          </tr>
+          {{end}}
+          {{if not .Members}}<tr><td colspan="4" class="muted">{{t "teams.no_members"}}</td></tr>{{end}}
+        </table></div>
 
-      {{if .CanManage}}<form method="post" action="/teams/{{.ID}}/members">
-        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
-        <label for="user_{{.ID}}">{{t "field.name"}}</label>
-        <select class="select" id="user_{{.ID}}" name="user_id">
-          {{range $.Users}}<option value="{{.ID}}">{{.Name}} ({{.Email}})</option>{{end}}
-        </select>
-        <label for="role_{{.ID}}">{{t "field.team_role"}}</label>
-        <select class="select" id="role_{{.ID}}" name="role">
-          <option value="owner">{{t "role.owner"}}</option>
-          <option value="editor">{{t "role.editor"}}</option>
-          <option value="viewer">{{t "role.viewer"}}</option>
-        </select>
-        <button type="submit" class="btn btn-outline">{{t "teams.set_member"}}</button>
-      </form>{{end}}
+        {{if .CanManage}}<form method="post" action="/teams/{{.ID}}/members" class="row-actions">
+          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
+          <select class="select" name="user_id" aria-label="{{t "field.name"}}">
+            {{range $.Users}}<option value="{{.ID}}">{{.Name}} ({{.Email}})</option>{{end}}
+          </select>
+          <select class="select" name="role" aria-label="{{t "field.team_role"}}">
+            <option value="owner">{{t "role.owner"}}</option>
+            <option value="editor">{{t "role.editor"}}</option>
+            <option value="viewer">{{t "role.viewer"}}</option>
+          </select>
+          <button type="submit" class="btn btn-outline">{{t "teams.set_member"}}</button>
+        </form>{{end}}
+      </section>
 
       {{if and .MyRole (eq (print (deref .MyRole)) "owner")}}
-      <form method="post" action="/spaces/{{.SpaceID}}/team-settings" class="inline-form">
+      <form method="post" action="/spaces/{{.SpaceID}}/team-settings" class="team-part">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
+        <span class="h-label">{{t "teams.settings"}}</span>
         <label for="ack_{{.ID}}">{{t "teams.hint_ack"}}</label>
         {{$ack := .AckTeam}}
         <select class="select" id="ack_{{.ID}}" name="hint_ack">
@@ -89,14 +93,14 @@
           <option value="">{{t "theme.none"}}</option>
           {{range $.Themes}}<option value="{{.ID}}"{{if eq .ID $theme}} selected{{end}}>{{.Name}}</option>{{end}}
         </select>
-        <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
+        <div class="row-actions"><button type="submit" class="btn btn-accent">{{t "action.save"}}</button></div>
       </form>
       {{end}}
 
       {{if $.Who.IsAdmin}}
-      <form method="post" action="/teams/{{.ID}}/delete" data-confirm="{{t "teams.confirm_delete"}}">
+      <form method="post" action="/teams/{{.ID}}/delete" class="team-part" data-confirm="{{t "teams.confirm_delete"}}">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-        <button type="submit" class="btn btn-outline btn-sm">{{t "teams.delete"}}</button>
+        <div class="row-actions"><button type="submit" class="btn btn-danger">{{t "teams.delete"}}</button></div>
       </form>
       {{end}}
     </div>
