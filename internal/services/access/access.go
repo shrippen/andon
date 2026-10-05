@@ -12,7 +12,9 @@
 package access
 
 import (
+	"cmp"
 	"errors"
+	"slices"
 
 	"andon/internal/db"
 	"andon/internal/enums"
@@ -232,7 +234,8 @@ func Need(granted, required enums.Right) error {
 }
 
 // EditableSpaces returns the principal's spaces where they have at least
-// EDIT right.
+// EDIT right: personal first, then teams by id, then the instance. The
+// first is the default target of a new widget, so the order is fixed.
 func EditableSpaces(who *Principal) []SpaceRef {
 	var out []SpaceRef
 	for _, sp := range who.Spaces {
@@ -241,7 +244,22 @@ func EditableSpaces(who *Principal) []SpaceRef {
 			out = append(out, space)
 		}
 	}
+
+	slices.SortFunc(out, func(a, b SpaceRef) int {
+		return cmp.Or(cmp.Compare(spaceRank[a.Kind], spaceRank[b.Kind]), cmp.Compare(teamOf(a), teamOf(b)), cmp.Compare(a.ID, b.ID))
+	})
 	return out
+}
+
+// spaceRank orders space kinds from the user's own to the shared one.
+var spaceRank = map[enums.SpaceKind]int{enums.SpacePersonal: 0, enums.SpaceTeam: 1, enums.SpaceInstance: 2}
+
+// teamOf is a space's team id, 0 outside teams.
+func teamOf(sp SpaceRef) int64 {
+	if sp.TeamID == nil {
+		return 0
+	}
+	return *sp.TeamID
 }
 
 // GrantedResourceIDs returns the ids of every resource of kind the
