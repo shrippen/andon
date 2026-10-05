@@ -248,3 +248,27 @@ func TestLoadReturnsNilForInactiveOrMissingUser(t *testing.T) {
 		t.Fatal("expected nil for inactive user")
 	}
 }
+
+// TestEditableSpacesOrder: personal first, then teams by id, then the
+// instance, on every call; a map's order must not leak into defaults
+// such as the space a new widget lands in.
+func TestEditableSpacesOrder(t *testing.T) {
+	me, teamA, teamB := int64(7), int64(4), int64(9)
+	who := &access.Principal{UserID: me, Role: enums.RoleAdmin,
+		Teams: map[int64]enums.TeamRole{teamA: enums.TeamEditor, teamB: enums.TeamOwner},
+		Spaces: map[int64]access.SpaceRef{
+			1: {ID: 1, Kind: enums.SpaceInstance},
+			2: {ID: 2, Kind: enums.SpaceTeam, TeamID: &teamB},
+			3: {ID: 3, Kind: enums.SpaceTeam, TeamID: &teamA},
+			4: {ID: 4, Kind: enums.SpacePersonal, OwnerUserID: &me},
+		}}
+	for range 50 {
+		var ids []int64
+		for _, sp := range access.EditableSpaces(who) {
+			ids = append(ids, sp.ID)
+		}
+		if len(ids) != 4 || ids[0] != 4 || ids[1] != 3 || ids[2] != 2 || ids[3] != 1 {
+			t.Fatalf("order %v", ids)
+		}
+	}
+}
