@@ -485,7 +485,7 @@ Alle Abrufe laufen read-only mit eigenen API-Tokens über die Verbindungen eines
 
 **Daten:** `GET /api/v1/points` (`start_at`, `end_at`), `/api/v1/visits`, `/api/v1/areas`, `/api/v1/stats`. Authentifizierung per API-Key. **Sensible Daten:** Es werden nur Aggregate gespeichert (Aufenthalte in definierten Bereichen, Tages-km), keine Rohpunkte.
 
-**Idee:** In Dawarich werden **Areas** für Kundenstandorte, Büro und Zuhause angelegt. Zugeordnet werden sie im Kimai-Plugin Anfahrten (*Fahrten → Orte*: Area übernehmen, Kunde bzw. Typ „Zuhause“ setzen); Andon liest das über `GET /api/mileage/places` der Kimai-Verbindung. Die Option `areas` der Dawarich-Verbindung (Area-Name → `customer_id` bzw. `home`) überschreibt einzelne Areas oder ersetzt das Plugin.
+**Idee:** In Dawarich werden **Areas** für Kundenstandorte, Büro und Zuhause angelegt. Zugeordnet werden sie im Kimai-Plugin Anfahrten (*Fahrten → Orte*: Area übernehmen, Kunde bzw. Typ „Zuhause“ setzen); Andon liest das über `GET /api/mileage/places` der Kimai-Verbindung. Die Option `areas` der Dawarich-Verbindung (Area-Name → `customer_id` bzw. `home`) überschreibt einzelne Areas oder ersetzt das Plugin. Fahrten aus Tracks und Einordnung privat/beruflich: Phase 17.
 
 **Kennzahlen:** Tage beim Kunden je Monat, Fahrtstrecke je Tag, Abwesenheitsdauer von zu Hause, besuchte Länder/Orte (Reisen).
 
@@ -1018,6 +1018,69 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 
 - [x] Ein Icon je Kachelgruppe (Thema: Überblick, Arbeit & Geld, Auswertung, Homelab, Sicherheit, Zuhause, Links), zuerst in Kante, dann in der Kachel-Bibliothek vor dem Gruppennamen und in der Themen-Navigation
 - [x] Abschnitte dürfen vor ihrem Namen ein Icon haben, mit derselben Icon-Logik wie Kacheln (Favicon, `si-*`, `hl-*`, `sh-*`, `mdi-*`, Font Awesome, URL, Upload, Emoji); wählbar in den Abschnittseinstellungen, auch in der Code-Ansicht und im Export
+
+### Phase 17: Fahrten aus Dawarich, privat und beruflich (geplant 06.10.2026)
+
+Ziel: jede Fahrt aus den Dawarich-Tracks mit echter Strecke, eingeordnet als beruflich, Pendeln oder privat, mit sichtbarem Grund; Auswertungen für beide Seiten. Ersetzt die Schätzung aus Aufenthalten (Luftlinie × 1,3, eine Fahrt je Kundentag). Das Kimai-Plugin Anfahrten ist nur ein zusätzlicher Datenpunkt; Andon muss ohne es und bei lückenhafter Nutzung funktionieren.
+
+```
+Dawarich tracks ──► Fahrten (Zeit, km, Verkehrsmittel, Start/Ziel)
+                        │
+Orte ───────────────────┤  Start/Ziel → Ort (Kunde, Zuhause, Arbeit, sonst)
+ (Andon ⇄ Anfahrten     │
+  ⇄ Dawarich-Areas)     ▼
+Kimai-Zeiten ──────► Einordnung ──► beruflich / Pendeln / privat + Grund
+Anfahrten-Fahrten ──►   │
+                        ▼
+              Kennzahlen, Regeln, Kacheln, Export
+```
+
+**Einordnung** (erste zutreffende Regel gilt)
+
+| # | Bedingung | Klasse | Grund |
+|---|---|---|---|
+| 1 | Fahrt im Plugin im selben Zeitfenster | deren Art | `plugin` |
+| 2 | mindestens 50 % der Fahrzeit liegen in gebuchter Kimai-Zeit (jede Buchung, auch interne Projekte) | beruflich, Kunde aus der Buchung (intern: ohne Kunde) | `kimai` |
+| 3 | Start oder Ziel ist ein Kundenort | beruflich, Kunde aus dem Ort | `kunde` |
+| 4 | Zuhause ↔ Arbeitsort (nur wenn ein eigener Arbeitsort eingestellt ist) | Pendeln | `pendel` |
+| 5 | sonst | privat | `rest` |
+
+Kettenregel: eine Fahrt zwischen zwei beruflichen Fahrten desselben Tages ist beruflich (Zuhause → Kunde A → Kunde B → Zuhause). Grund `kunde` ohne Kimai-Buchung am Tag = „beruflich, unbestätigt“ und Hinweis `geo.visit_without_time`.
+
+**Einstellung Startpunkt** (Bereichseinstellungen „Fahrten“): Standard „Zuhause ist Betriebsstätte“ (Freiberufler; jede berufliche Fahrt beginnt zu Hause, kein Pendeln); alternativ „eigener Arbeitsort“ (Ort vom Typ Arbeit; Zuhause ↔ Arbeit = Pendeln mit Entfernungspauschale). Bestimmt auch, ab wann die Verpflegungspauschale zählt.
+
+**Datenhaltung:** so wenig wie möglich in der Datenbank. Gerechnet wird direkt auf den Dawarich-Daten über den Quellen-Cache; gespeichert werden nur die Zuordnung der Orte (ohne Plugin) und die Einstellungen. Fahrten je Monat als kompakter Datensatz (Zeiten, km, Verkehrsmittel, Start-/Zielort); vergangene Monate mit langer Gültigkeit, der laufende kurz. Beim ersten Abruf wird das Jahr nachgeladen, danach nur neue Tracks.
+
+**1. Quelle Tracks**
+- [ ] `dawarich.tracks`: `/api/v1/tracks` (Seiten, Zeitfenster), Segmente mit Verkehrsmittel; `/tracks/{id}` nur für angeschnittene Tracks (die Liste liefert sie ohne Segmente). Drosselung wie alle Abfragen
+- [ ] `metrics`: Tracks → Fahrten. Folge gefahrener Segmente = Fahrt, Halt ab Stoppdauer oder Fußweg trennt; Fuß-, Rad- und ÖPNV-Wege bleiben als eigene Fahrten mit Verkehrsmittel (für private Auswertungen)
+- [ ] Ohne Tracks (alte Dawarich-Version, noch nicht berechnet): bisherige Schätzung, als „geschätzt“ markiert
+- [ ] Demowelt: Tracks für Studio Weber (`shrippen.github.io/demo/world/`, dann `sync-demo.py`)
+
+**2. Orte und Abgleich**
+- [ ] Start/Ziel → Ort über Dawarich-Areas und -Places, Orte des Plugins und die Andon-Zuordnung; Schlüssel ist die Area-ID, nicht der Name (Option `areas` migrieren)
+- [ ] Reiter „Orte“ in der Akte der Dawarich-Verbindung (MANAGE): je Area/Place Typ (Kunde, Zuhause, Arbeit, privat) und Kunde aus dem Kimai-Peer, Herkunft sichtbar; Orte mit Besuchen ohne Zuordnung oben; Vorschlag bei ähnlichem Kundennamen. Neuer Ort aus einem häufigen unbekannten Ziel einer Fahrt (Koordinaten aus der Fahrt, Adresse über den Geocoder). Kante-Bausteine; was fehlt, zuerst nach Kante
+- [ ] Abgleich in beide Richtungen: ein in Andon angelegter oder geänderter Ort wird als Area in Dawarich (`POST /api/v1/areas`) und als Ort im Plugin angelegt bzw. geändert (Kunde, Typ, `dawarichAreaId`). Area ohne Plugin-Ort → Ort im Plugin anlegen. Kein Löschen über Systeme hinweg. Mit Plugin ist es der Speicher der Zuordnung (Andon hält keine Kopie), ohne Plugin die Dawarich-Verbindung
+- [ ] Schreiben ist neu für diese Dienste: eigener Ausgang `outbound/dawarich` und `outbound/kimai` (Schicht wie Apprise), Token mit Schreibrecht, Verbindungstest prüft es; schlägt Schreiben fehl, Hinweis statt stiller Abweichung
+- [ ] Plugin Anfahrten: `POST/PATCH /api/mileage/places` (Name, Typ, Kunde, Koordinaten, Radius, `dawarichAreaId`), Feature im `ping`. Endpunkte von Dawarich vor dem Bau gegen `/api-docs` prüfen
+
+**3. Einordnung**
+- [ ] Reine Funktion nach der Tabelle oben, Test je Regel und für die Kettenregel; Plugin-Fahrten aus `/api/mileage/trips` (ohne Plugin entfällt Regel 1)
+
+**4. Bestehendes umstellen**
+- [ ] Fahrtkosten, `fahrten.csv` (Jahrespaket), Vollkosten-Stundensatz: echte km und Fahrzeit, nur berufliche Fahrten (heute zählt auch ein Besuch ohne Buchung)
+- [ ] `geo.per_diem`: Abwesenheit vom Startpunkt (erste Abfahrt bis letzte Ankunft an beruflichen Tagen) statt Zeit beim Kunden; `full_day` für mehrtägige Reisen (heute ungenutzt)
+- [ ] `geo.time_without_visit`: Buchung „vor Ort“ ohne berufliche Fahrt zum Kunden
+
+**5. Auswertungen**
+- [ ] Beruflich: km, Fahrzeit, Kosten je Kunde und Monat; Fahrzeit als Anteil der gebuchten Zeit; Pendeltage und Entfernungspauschale (nur mit Arbeitsort); Fahrtkosten, die in keiner Rechnung stehen (Invoice Ninja)
+- [ ] Privat: km je Monat und Verkehrsmittel, häufigste Ziele, Fahrten am Wochenende und im Urlaub (Holiday-Bundle), Vergleich zum Vorjahr
+- [ ] Beides: Anteil privat/beruflich, Heatmap Wochentag × Stunde, Fahrzeit je Woche, Privatanteil eines betrieblichen Fahrzeugs (> 50 %: 1-%-Regel nicht zulässig), km gegen Tankkosten aus Sure (Verbrauch, € je km)
+- [ ] Datenqualität: Ort mit Besuchen ohne Zuordnung, viele „unbestätigt“, Tracks nicht berechnet, Abweichung zum Plugin (andere Art oder km)
+- [ ] Kacheln: Reise-Kachel mit Balken privat/beruflich, Diagramm km je Monat gestapelt nach Klasse, Tabelle Fahrten mit Klasse und Grund, Detail je Fahrt mit Strecke (`dawarich.route`)
+
+**6. Später**
+- [ ] Klasse einer Fahrt in Andon von Hand ändern (für Nutzer ohne Plugin); mit Plugin dort als Fahrt anlegen
 
 ---
 
