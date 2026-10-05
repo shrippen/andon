@@ -861,6 +861,33 @@
     return !form || window.confirm(form.getAttribute("data-dirty"));
   }
 
+  // A click on the backdrop closes the dialog like Escape does (its cancel
+  // handlers may veto). Press and release must both land outside the box, so
+  // a text selection dragged out of it keeps the dialog. The box's padding
+  // counts as inside: the click target is the dialog itself there too.
+  var pressedOutside = null;
+
+  function outside(dlg, e) {
+    var r = dlg.getBoundingClientRect();
+    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  }
+
+  d.addEventListener("pointerdown", function (e) {
+    var dlg = e.target instanceof HTMLDialogElement ? e.target : null;
+    pressedOutside = dlg && outside(dlg, e) ? dlg : null;
+  }, true);
+
+  d.addEventListener("click", function (e) {
+    var dlg = pressedOutside;
+    pressedOutside = null;
+    if (!dlg || e.target !== dlg || !dlg.open || !outside(dlg, e)) {
+      return;
+    }
+    if (dlg.dispatchEvent(new Event("cancel", { cancelable: true }))) {
+      dlg.close();
+    }
+  });
+
   // openDetail shows the frame at once and fills it when the answer is in;
   // a later open wins over an earlier one still on its way.
   function openDetail(url) {
