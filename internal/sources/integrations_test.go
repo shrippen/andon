@@ -295,3 +295,65 @@ func TestGitHubOwnerRepos(t *testing.T) {
 		t.Fatalf("with token, all: %s", got)
 	}
 }
+
+// TestGitHubDownloadsMemo: within the interval the releases are not read
+// again; after it they are.
+func TestGitHubDownloadsMemo(t *testing.T) {
+	at := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	defer sources.SetClock(func() time.Time { return at })()
+	reads, count := 0, 10
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/repos/memo/b":
+			w.Write([]byte(`{"default_branch":"main"}`))
+		case "/repos/memo/b/releases/latest":
+			w.Write([]byte(`{"tag_name":"v1"}`))
+		case "/repos/memo/b/releases":
+			reads++
+			w.Write([]byte(`[{"assets":[{"download_count":` + strconv.Itoa(count) + `}]}]`))
+		default:
+			w.Write([]byte(`[]`))
+		}
+	}))
+	defer srv.Close()
+
+	fetch := func() *sources.GitHubDataset {
+		raw, err := sources.GitHubData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Options: map[string]any{"repos": []any{"memo/b"}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return raw.(*sources.GitHubDataset)
+	}
+	first := fetch()
+	count, at = 20, at.Add(30*time.Minute)
+	second := fetch()
+	at = at.Add(31 * time.Minute)
+	third := fetch()
+	if reads != 2 || first.Repos[0].Downloads != 10 || second.Repos[0].Downloads != 10 || third.Repos[0].Downloads != 20 || !first.DownloadsAuto {
+		t.Fatalf("reads %d: %d %d %d", reads, first.Repos[0].Downloads, second.Repos[0].Downloads, third.Repos[0].Downloads)
+	}
+}
+
+// TestDownloadsEvery: automatic is hourly until the repos would take more
+// than a tenth of GitHub's rate limit; a number of minutes overrides it.
+func TestDownloadsEvery(t *testing.T) {
+	cases := []struct {
+		opts   map[string]any
+		secret string
+		repos  int
+		want   time.Duration
+		auto   bool
+	}{
+		{nil, "t", 40, time.Hour, true},
+		{map[string]any{"downloads_minutes": "auto"}, "t", 1200, 3 * time.Hour, true},
+		{nil, "", 13, 3 * time.Hour, true},
+		{map[string]any{"downloads_minutes": 30.0}, "t", 1200, 30 * time.Minute, false},
+		{map[string]any{"downloads_minutes": 1.0}, "t", 1, 5 * time.Minute, false},
+	}
+	for _, c := range cases {
+		got, auto := sources.DownloadsEvery(sources.Ctx{Options: c.opts, Secret: c.secret}, c.repos)
+		if got != c.want || auto != c.auto {
+			t.Errorf("%v %d repos: %v %v", c.opts, c.repos, got, auto)
+		}
+	}
+}

@@ -9,6 +9,7 @@ package widgets
 
 import (
 	"sort"
+	"strconv"
 	"time"
 
 	"andon/internal/enums"
@@ -176,8 +177,33 @@ func downloadsDetail(cfg DownloadsConfig, results map[string]any, ctx ViewCtx) D
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.git.repos"), Data: Table{
 			Head: []Text{T("detail.git.repo"), T("detail.downloads.total"), T("detail.downloads.window"), T("detail.git.latest")}, Rows: rows, Num: []int{1, 2}}})
 	}
+	body.Side = downloadsRead(data)
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
+}
+
+// downloadsRead says when the oldest total was read and how often they
+// are: "Gezählt: vor 12 Minuten · Abfrage: alle 1 h, automatisch".
+func downloadsRead(data *sources.GitHubDataset) []Fact {
+	if data.DownloadsEvery == 0 {
+		return nil
+	}
+
+	var oldest time.Time
+	for _, r := range data.Repos {
+		if !r.DownloadsAt.IsZero() && (oldest.IsZero() || r.DownloadsAt.Before(oldest)) {
+			oldest = r.DownloadsAt
+		}
+	}
+	every := strconv.Itoa(int(data.DownloadsEvery.Minutes())) + " min"
+	if data.DownloadsEvery%time.Hour == 0 {
+		every = strconv.Itoa(int(data.DownloadsEvery.Hours())) + " h"
+	}
+	key := "detail.downloads.every_fixed"
+	if data.DownloadsAuto {
+		key = "detail.downloads.every_auto"
+	}
+	return []Fact{{Label: T("detail.downloads.read"), Value: agoOf(oldest)}, {Label: T("detail.downloads.every"), Value: TxtA(key, "time", every)}}
 }
 
 // githubWeb precedes "owner/name" on GitHub's site.

@@ -56,3 +56,18 @@ func TestDownloadsCollecting(t *testing.T) {
 		t.Fatalf("view: %+v", v)
 	}
 }
+
+// TestDownloadsRead: the side names the oldest read and the interval.
+func TestDownloadsRead(t *testing.T) {
+	at := time.Date(2026, 9, 15, 10, 0, 0, 0, time.UTC)
+	data := &sources.GitHubDataset{DownloadsEvery: 2 * time.Hour, DownloadsAuto: true,
+		Repos: []sources.GitRepo{{DownloadsAt: at.Add(time.Hour)}, {DownloadsAt: at}, {}}}
+	side := downloadsRead(data)
+	every := side[1].Value.(map[string]any)
+	if len(side) != 2 || side[0].Value.(map[string]any)["$ago"] != at.Format(time.RFC3339) || every["$t"] != "detail.downloads.every_auto" {
+		t.Fatalf("side: %+v", side)
+	}
+	if downloadsRead(&sources.GitHubDataset{}) != nil {
+		t.Fatal("demo without interval shows one")
+	}
+}
