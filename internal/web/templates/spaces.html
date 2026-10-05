@@ -4,20 +4,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{t "settings.title"}} · Andon</title>
+  <title>{{t (print "settings." .Section)}} · Andon</title>
   {{template "style" .}}
 </head>
 <body>
   {{template "header" .}}
   <main>
-    <h1>{{t "settings.title"}}</h1>
-    {{template "intro" dict "Page" "spaces" "Chapter" "spaces" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
-    <p class="muted">{{t "settings.lead"}}</p>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
+    <h1>{{t (print "settings." .Section)}} <small class="muted">{{.SpaceName}}</small></h1>
+    {{if eq .Section "page"}}{{template "intro" dict "Page" "spaces" "Chapter" "spaces" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}{{end}}
+    <p class="muted">{{t (print "settings.lead_" .Section)}}</p>
     {{if .Saved}}<p class="pill" data-state="applied">{{t "saved"}}</p>{{end}}
-    <nav class="toc" aria-label="{{t "settings.toc"}}">{{range list "page" "maintenance" "goals" "stats" "homelab" "tax" "custom" "rules"}}<a href="#{{.}}">{{t (print "settings." .)}}</a>{{end}}</nav>
-    <form method="post" action="/spaces/{{.SpaceID}}/settings">
+    <form method="post" action="/spaces/{{.SpaceID}}/settings/{{.Section}}">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-      <h2 id="page">{{t "settings.page"}}</h2>
+      {{if eq .Section "page"}}
       <div class="card">
         <label for="title">{{t "settings.page_title"}}</label>
         <input class="input" id="title" name="title" value="{{.Page.Title}}">
@@ -30,19 +32,7 @@
         <input class="input" id="footer" name="footer" value="{{.Page.Footer}}">
       </div>
 
-      <h2 id="maintenance">{{t "settings.maintenance"}}</h2>
-      <div class="card">
-        <p class="small muted">{{t "settings.maintenance_hint"}}</p>
-        {{if .Maint.Active .Now}}<p class="pill" data-state="reviewing">{{t "settings.maintenance_active" "until" (ago .Maint.Until)}}</p>{{end}}
-        <label for="maint_until">{{t "settings.maintenance_until"}}</label>
-        <input class="input" id="maint_until" name="maint_until" type="datetime-local" value="{{.MaintUntil}}">
-        {{with .Conns}}<fieldset class="chip-picks"><legend>{{t "settings.maintenance_conns"}}</legend>
-          {{range .}}<label class="chip-pick"><input type="checkbox" name="maint_conn" value="{{.ID}}"{{if index $.MaintConns .ID}} checked{{end}}><span>{{.Name}}</span></label>{{end}}
-        </fieldset>{{end}}
-        <label for="maint_note">{{t "settings.maintenance_note"}}</label>
-        <input class="input" id="maint_note" name="maint_note" value="{{.Maint.Note}}">
-      </div>
-
+      {{else if eq .Section "finance"}}
       <h2 id="goals">{{t "settings.goals"}}</h2>
       <div class="card">
         <label for="revenue_year">{{t "settings.revenue_year"}}</label>
@@ -57,13 +47,20 @@
         <p class="small muted">{{t "settings.billing_internal_hint"}}</p>
       </div>
 
-      <h2 id="stats">{{t "settings.stats"}}</h2>
+      <h2 id="tax">{{t "settings.tax"}}</h2>
       <div class="card">
-        <label for="center">{{t "settings.center"}}</label>
-        <select class="select" id="center" name="center">
-          {{range .Centers}}<option value="{{.}}"{{if eq . (print $.Center)}} selected{{end}}>{{t (print "settings.center_" .)}}</option>{{end}}
-        </select>
-        <p class="small muted">{{t "settings.center_hint"}}</p>
+        <label for="vat_method">{{t "settings.vat_method"}}</label>
+        <select class="select" id="vat_method" name="vat_method">{{$m := print (index .VAT "method")}}{{range .Methods}}<option value="{{.}}"{{if eq . $m}} selected{{end}}>{{t (print "settings.method_" .)}}</option>{{end}}</select>
+        <label for="vat_interval">{{t "settings.vat_interval"}}</label>
+        <select class="select" id="vat_interval" name="vat_interval">{{$i := print (index .VAT "return_interval")}}{{range .Intervals}}<option value="{{.}}"{{if eq . $i}} selected{{end}}>{{t (print "settings.interval_" .)}}</option>{{end}}</select>
+        <label class="check"><input type="checkbox" name="vat_extension"{{if index .VAT "extension"}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "settings.vat_extension"}}</label>
+        <label for="prepayment">{{t "settings.prepayment"}}</label>
+        <input class="input" id="prepayment" name="prepayment" type="number" step="10" value="{{index .Prepay "amount"}}">
+        <label for="annual_due">{{t "settings.annual_due"}}</label>
+        <input class="input" id="annual_due" name="annual_due" value="{{with index .Tax "annual_due"}}{{.}}{{else}}07-31{{end}}" pattern="\d\d-\d\d">
+        <label for="income_tax_rate">{{t "settings.income_tax_rate"}}</label>
+        <input class="input" id="income_tax_rate" name="income_tax_rate" type="number" step="0.01" min="0" max="0.6" value="{{with index .Tax "income_tax_rate"}}{{.}}{{else}}0.3{{end}}">
+        <p class="small muted">{{t "settings.tax_hint"}}</p>
       </div>
 
       <h2 id="homelab">{{t "settings.homelab"}}</h2>
@@ -83,20 +80,14 @@
         <p class="small muted">{{t "settings.homelab_hint"}}</p>
       </div>
 
-      <h2 id="tax">{{t "settings.tax"}}</h2>
+      {{else if eq .Section "rules"}}
+      <h2 id="stats">{{t "settings.stats"}}</h2>
       <div class="card">
-        <label for="vat_method">{{t "settings.vat_method"}}</label>
-        <select class="select" id="vat_method" name="vat_method">{{$m := print (index .VAT "method")}}{{range .Methods}}<option value="{{.}}"{{if eq . $m}} selected{{end}}>{{t (print "settings.method_" .)}}</option>{{end}}</select>
-        <label for="vat_interval">{{t "settings.vat_interval"}}</label>
-        <select class="select" id="vat_interval" name="vat_interval">{{$i := print (index .VAT "return_interval")}}{{range .Intervals}}<option value="{{.}}"{{if eq . $i}} selected{{end}}>{{t (print "settings.interval_" .)}}</option>{{end}}</select>
-        <label class="check"><input type="checkbox" name="vat_extension"{{if index .VAT "extension"}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "settings.vat_extension"}}</label>
-        <label for="prepayment">{{t "settings.prepayment"}}</label>
-        <input class="input" id="prepayment" name="prepayment" type="number" step="10" value="{{index .Prepay "amount"}}">
-        <label for="annual_due">{{t "settings.annual_due"}}</label>
-        <input class="input" id="annual_due" name="annual_due" value="{{with index .Tax "annual_due"}}{{.}}{{else}}07-31{{end}}" pattern="\d\d-\d\d">
-        <label for="income_tax_rate">{{t "settings.income_tax_rate"}}</label>
-        <input class="input" id="income_tax_rate" name="income_tax_rate" type="number" step="0.01" min="0" max="0.6" value="{{with index .Tax "income_tax_rate"}}{{.}}{{else}}0.3{{end}}">
-        <p class="small muted">{{t "settings.tax_hint"}}</p>
+        <label for="center">{{t "settings.center"}}</label>
+        <select class="select" id="center" name="center">
+          {{range .Centers}}<option value="{{.}}"{{if eq . (print $.Center)}} selected{{end}}>{{t (print "settings.center_" .)}}</option>{{end}}
+        </select>
+        <p class="small muted">{{t "settings.center_hint"}}</p>
       </div>
 
       <h2 id="custom">{{t "settings.custom"}}</h2>
@@ -117,7 +108,7 @@
         {{end}}
       </table></div>
 
-      <h2 id="rules">{{t "settings.rules"}}</h2>
+      <h2 id="rules">{{t "settings.hints"}}</h2>
       <input type="search" id="rule-q" class="input rule-search" placeholder="{{t "settings.rule_search"}}" aria-label="{{t "settings.rule_search"}}">
       {{range .RuleGroups}}
       <details class="rule-group" data-rule-group>
@@ -138,8 +129,24 @@
       </details>
       {{end}}
       <p class="rule-none muted" hidden>{{t "settings.rule_none"}}</p>
+      {{else if eq .Section "maintenance"}}
+      <div class="card">
+        <p class="small muted">{{t "settings.maintenance_hint"}}</p>
+        {{if .Maint.Active .Now}}<p class="pill" data-state="reviewing">{{t "settings.maintenance_active" "until" (ago .Maint.Until)}}</p>{{end}}
+        <label for="maint_until">{{t "settings.maintenance_until"}}</label>
+        <input class="input" id="maint_until" name="maint_until" type="datetime-local" value="{{.MaintUntil}}">
+        {{with .Conns}}<fieldset class="chip-picks"><legend>{{t "settings.maintenance_conns"}}</legend>
+          {{range .}}<label class="chip-pick"><input type="checkbox" name="maint_conn" value="{{.ID}}"{{if index $.MaintConns .ID}} checked{{end}}><span>{{.Name}}</span></label>{{end}}
+        </fieldset>{{end}}
+        <label for="maint_note">{{t "settings.maintenance_note"}}</label>
+        <input class="input" id="maint_note" name="maint_note" value="{{.Maint.Note}}">
+      </div>
+
+      {{end}}
       <div class="save-bar"><button type="submit" class="btn btn-accent">{{t "action.save"}}</button></div>
     </form>
+    </div>
+    </div>
   </main>
 </body>
 </html>

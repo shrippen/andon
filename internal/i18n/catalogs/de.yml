@@ -1,5 +1,6 @@
 saved: Gespeichert.
 nav:
+  admin_ops: 'Betrieb'
   main: Hauptnavigation
   setup: Einrichten
   timeline: 'Zeitleiste'
@@ -18,7 +19,7 @@ nav:
   credentials: Meine Zugänge
   notify: Benachrichtigungen
   admin_users: Benutzer
-  admin_settings: Instanz
+  admin_settings: 'Einstellungen'
   audit: Audit-Log
   logout: Abmelden
   space_settings: Bereich einstellen
@@ -320,7 +321,7 @@ field:
   locale: Sprache
   color_mode: Hell/Dunkel
   theme: Theme
-  theme_hint: 'Nur für dich. „Standard“ folgt dem Theme der Instanz (Einrichten → Instanz). Ein Board, das ein Theme erzwingt, behält seins.'
+  theme_hint: 'Nur für dich. „Standard“ folgt dem Theme der Instanz (Einstellungen › Instanz › Einstellungen). Ein Board, das ein Theme erzwingt, behält seins.'
   theme_forced: Theme erzwingen
   start_board: Start-Board
   search_engine: Suchmaschine
@@ -2747,6 +2748,17 @@ param:
   bundle_from: 'Ab so vielen Rechnungen je Kunde bündeln (0 = nie)'
   exclude: 'Ausnehmen (Namen, * als Platzhalter, mit Komma)'
 settings:
+  hints: 'Schwellen der Hinweise'
+  lead_maintenance: 'Während einer Wartung bleiben Hinweise der gewählten Verbindungen still.'
+  lead_rules: 'Ab wann Hinweise erscheinen, und eigene Regeln.'
+  lead_finance: 'Ziele, Kosten und Steuer; daraus rechnen Kacheln und Fristen.'
+  lead_page: 'Kopf, Links und Fußzeile der Startseite dieses Bereichs.'
+  members: 'Mitglieder'
+  level_instance: 'Instanz'
+  level_team: 'Team {name}'
+  level_me: 'Ich'
+  nav: 'Einstellungen'
+  finance: 'Finanzen'
   billing_internal: Interne Kunden
   billing_internal_hint: 'Kimai-Kunden, deren Zeiten nie in Rechnung gehen, durch Komma getrennt. Kunden mit Stundensatz 0 zählen immer als intern.'
   hourly_cost: 'Kostensatz je Stunde (€)'
@@ -2767,7 +2779,7 @@ settings:
   custom_value: Wert
   custom_level: Stufe
   custom_new: neu
-  page: Seite
+  page: 'Startseite'
   page_title: Titel
   page_description: Beschreibung
   page_nav: Navigationslinks
@@ -2791,7 +2803,7 @@ settings:
   annual_due: Frist Steuererklärungen (MM-TT)
   income_tax_rate: Rücklagesatz Einkommensteuer (0–0,6)
   tax_hint: Erinnerungen und Schätzungen, keine Steuerberatung. Werte jährlich prüfen.
-  rules: Hinweise
+  rules: 'Regeln'
   rule: Regel
   params: Werte
   stats: Auswertung

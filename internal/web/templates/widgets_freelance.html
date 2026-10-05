@@ -219,7 +219,7 @@
 {{define "widgets/receipts_missing"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}
-{{if $v.Setup}}<p class="slot-note">{{t "close.receipts_setup"}} <a href="/spaces/settings#rule-cross.expense_unrecorded">{{t "nav.space_settings"}}</a></p>
+{{if $v.Setup}}<p class="slot-note">{{t "close.receipts_setup"}} <a href="/spaces/settings?section=rules#rule-cross.expense_unrecorded">{{t "nav.space_settings"}}</a></p>
 {{else if $v.Rows}}
 <div class="tile-head"><b class="tile-value" data-live>{{money $v.Sum $v.Currency}}</b><span class="tile-note">{{t "receipts.count" "n" $v.Count}}</span></div>
 <div class="table-wrap"><table class="table compact">

@@ -23,6 +23,7 @@ import (
 // RegisterConnectionRoutes wires the connections list/create/edit/delete/test pages.
 func (d Deps) RegisterConnectionRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /connections", d.authed(d.handleConnectionsList))
+	mux.HandleFunc("GET /spaces/{id}/connections", d.authed(d.handleSpaceConnections))
 	mux.HandleFunc("GET /connections/new", d.authed(d.handleConnectionNewForm))
 	mux.HandleFunc("POST /connections", d.authed(d.handleConnectionCreate))
 	mux.HandleFunc("GET /connections/{id}/edit", d.authed(d.handleConnectionEditForm))
@@ -40,10 +41,31 @@ func (d Deps) RegisterConnectionRoutes(mux *http.ServeMux) {
 }
 
 func (d Deps) handleConnectionsList(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	list, err := connections.Listing(d.DB, ctx.Who, enums.RightView)
+	d.connectionsPage(w, ctx, 0)
+}
+
+// handleSpaceConnections lists one level's connections (settings frame).
+func (d Deps) handleSpaceConnections(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if _, known := ctx.Who.Spaces[id]; err != nil || !known {
+		http.NotFound(w, r)
+		return
+	}
+	d.connectionsPage(w, ctx, id)
+}
+
+// connectionsPage lists the connections who sees, of one space or all (0).
+func (d Deps) connectionsPage(w http.ResponseWriter, ctx Ctx, spaceID int64) {
+	all, err := connections.Listing(d.DB, ctx.Who, enums.RightView)
 	if err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
 		return
+	}
+	list := all[:0]
+	for _, c := range all {
+		if spaceID == 0 || c.SpaceID == spaceID {
+			list = append(list, c)
+		}
 	}
 	// Broken first, then shaky, not yet fetched, working; by name within.
 	sort.SliceStable(list, func(i, j int) bool {

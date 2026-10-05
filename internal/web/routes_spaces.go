@@ -5,6 +5,7 @@ import (
 	"andon/internal/metrics"
 	"andon/internal/rules"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -30,8 +31,9 @@ var (
 // values and rule thresholds.
 func (d Deps) RegisterSpaceRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /spaces/settings", d.authed(d.handleMySpaceSettings))
-	mux.HandleFunc("GET /spaces/{id}/settings", d.authed(d.handleSpaceSettings))
-	mux.HandleFunc("POST /spaces/{id}/settings", d.authed(d.handleSpaceSettingsSave))
+	mux.HandleFunc("GET /spaces/{id}/settings", d.authed(d.handleSpaceSettingsFirst))
+	mux.HandleFunc("GET /spaces/{id}/settings/{section}", d.authed(d.handleSpaceSettings))
+	mux.HandleFunc("POST /spaces/{id}/settings/{section}", d.authed(d.handleSpaceSettingsSave))
 }
 
 func (d Deps) handleMySpaceSettings(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -40,12 +42,36 @@ func (d Deps) handleMySpaceSettings(w http.ResponseWriter, r *http.Request, ctx 
 		http.NotFound(w, r)
 		return
 	}
-	http.Redirect(w, r, "/spaces/"+strconv.FormatInt(mine.ID, 10)+"/settings", http.StatusSeeOther)
+	section := r.URL.Query().Get("section")
+	if !slices.Contains(spaceSections, section) {
+		section = sectionPage
+	}
+	http.Redirect(w, r, sectionPath(mine.ID, section), http.StatusSeeOther)
+}
+
+// handleSpaceSettingsFirst opens a space's first settings section.
+func (d Deps) handleSpaceSettingsFirst(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	http.Redirect(w, r, sectionPath(id, sectionPage), http.StatusSeeOther)
+}
+
+// sectionOf is the settings section a request names, "" for none known.
+func sectionOf(r *http.Request) string {
+	section := r.PathValue("section")
+	if !slices.Contains(spaceSections, section) {
+		return ""
+	}
+	return section
 }
 
 func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
-	if err != nil {
+	section := sectionOf(r)
+	if err != nil || section == "" {
 		http.NotFound(w, r)
 		return
 	}
@@ -69,8 +95,12 @@ func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request, ctx Ct
 			}
 		}
 	}
+	var name string
+	if ref, err := access.SpaceOf(d.DB, ctx.Who, id); err == nil && ref != nil {
+		name = ref.Name
+	}
 	_ = d.Page(w, ctx, "space_settings", http.StatusOK, map[string]any{
-		"SpaceID": id, "Goals": goals, "Tax": tax, "VAT": asMap(tax["vat"]), "Prepay": asMap(tax["prepayments"]),
+		"SpaceID": id, "SpaceName": name, "Section": section, "Goals": goals, "Tax": tax, "VAT": asMap(tax["vat"]), "Prepay": asMap(tax["prepayments"]),
 		"Costs": asMap(settings["costs"]), "Homelab": asMap(settings["homelab"]), "Billing": asMap(settings["billing"]),
 		"Center": metrics.CenterOf(settings), "Centers": centers,
 		"RuleGroups": spaces.RuleGroups(settings), "Methods": vatMethods, "Intervals": vatIntervals,
@@ -110,15 +140,41 @@ func oneOf(value string, allowed []string) string {
 
 func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
-	if err != nil {
+	section := sectionOf(r)
+	if err != nil || section == "" {
 		http.NotFound(w, r)
 		return
 	}
+	if err := spaces.Update(d.DB, ctx.Who, id, sectionChanges(r, section), d.clientIP(r)); err != nil {
+		d.handleBoardError(w, r, err)
+		return
+	}
+	http.Redirect(w, r, sectionPath(id, section)+"?saved=1", http.StatusSeeOther)
+}
+
+// sectionChanges reads one section's form into the settings keys it owns;
+// the other sections' keys stay as they are.
+func sectionChanges(r *http.Request, section string) map[string]any {
+	_ = r.ParseForm() // r.Form below; a bad body leaves the fields empty
+	switch section {
+	case sectionPage:
+		return spaces.ParsePage(r.FormValue)
+	case sectionMaintenance:
+		return map[string]any{"maintenance": spaces.ParseMaintenance(r.FormValue, r.Form["maint_conn"], time.Local)}
+	case sectionRules:
+		return map[string]any{
+			// Mean or median for typical values (payment days, usual traffic).
+			"stats":         map[string]any{"center": oneOf(r.FormValue("center"), centers)},
+			"rules":         spaces.ParseRules(r.FormValue),
+			rules.CustomKey: spaces.ParseCustomRules(r.FormValue),
+		}
+	}
+
 	annual := strings.TrimSpace(r.FormValue("annual_due"))
 	if annual == "" {
 		annual = defaultAnnualDue
 	}
-	changes := map[string]any{
+	return map[string]any{
 		"goals": map[string]any{
 			"revenue_year": number(r.FormValue("revenue_year"), 0),
 		},
@@ -135,8 +191,6 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request, ct
 		"costs": map[string]any{"fixed_monthly": number(r.FormValue("fixed_monthly"), 0), "hourly_cost": number(r.FormValue("hourly_cost"), 0)},
 		// Customers whose time is never invoiced (own projects, clubs).
 		"billing": map[string]any{"internal": strings.TrimSpace(r.FormValue("billing_internal"))},
-		// Mean or median for typical values (payment days, usual traffic).
-		"stats": map[string]any{"center": oneOf(r.FormValue("center"), centers)},
 		"homelab": map[string]any{
 			"power_entity":   strings.TrimSpace(r.FormValue("power_entity")),
 			"power_price":    number(r.FormValue("power_price"), 0),
@@ -145,16 +199,5 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request, ct
 			"cloud_monthly":  number(r.FormValue("cloud_monthly"), 0),
 			"hosting_words":  strings.TrimSpace(r.FormValue("hosting_words")),
 		},
-		"rules": spaces.ParseRules(r.FormValue),
 	}
-	for k, v := range spaces.ParsePage(r.FormValue) {
-		changes[k] = v
-	}
-	changes[rules.CustomKey] = spaces.ParseCustomRules(r.FormValue)
-	changes["maintenance"] = spaces.ParseMaintenance(r.FormValue, r.Form["maint_conn"], time.Local)
-	if err := spaces.Update(d.DB, ctx.Who, id, changes, d.clientIP(r)); err != nil {
-		d.handleBoardError(w, r, err)
-		return
-	}
-	http.Redirect(w, r, "/spaces/"+strconv.FormatInt(id, 10)+"/settings?saved=1", http.StatusSeeOther)
 }

@@ -51,6 +51,7 @@ func mustParse() *template.Template {
 		"tt":        func(string, map[string]any) string { return "" },
 		"tv":        func(any) string { return "" },
 		"here":      func(string) bool { return false },
+		"at":        func(string) bool { return false },
 		"fragment":  func(*tileBody) (template.HTML, error) { return "", nil },
 
 		// known is the first of keys the catalog has, else "": picks a
@@ -291,6 +292,8 @@ func newPageSet() *pageSet {
 		"clockDate": func(tz string) string { return clockDate(tz, st.locale) },
 		// here tells whether the page lies at or below path (menu underline).
 		"here": func(path string) bool { return underPath(st.path, path) },
+		// at tells whether the page is exactly path (settings navigation).
+		"at": func(path string) bool { return st.path == path },
 		// tt translates with typed params ({"$money": 12.5} -> "12,50 €").
 		"tt": func(key string, params map[string]any) string {
 			return i18n.T(key, st.locale, i18n.Typed(params, st.locale))
@@ -361,6 +364,9 @@ func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, valu
 	_, partial := data["Partial"]
 	if ctx.Who != nil && !fragment && !partial {
 		d.addNav(data, ctx.Who)
+		if settingsPages[name] {
+			data["SettingsNav"] = settingsNav(ctx.Who)
+		}
 		// Menu progress and page intros (see routes_welcome.go).
 		if _, ok := data["Onboarding"]; !ok {
 			state, err := onboarding.Load(d.DB, ctx.Who)

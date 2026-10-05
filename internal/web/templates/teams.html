@@ -10,12 +10,15 @@
 <body>
   {{template "header" .}}
   <main>
-    <h1>{{t "nav.teams"}}</h1>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
+    {{if .Single}}{{with index .Teams 0}}<h1>{{.Name}}</h1>{{end}}{{else}}<h1>{{t "nav.teams"}}</h1>{{end}}
     {{template "intro" dict "Page" "teams" "Chapter" "spaces" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{t "teams.lead"}}</p>
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
 
-    {{if .Who.IsAdmin}}
+    {{if and .Who.IsAdmin (not .Single)}}
     <div class="card">
       <form method="post" action="/teams">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
@@ -27,16 +30,16 @@
     {{end}}
 
     {{if not .Teams}}<p class="muted">{{t "teams.none"}}</p>{{end}}
-    {{range .Teams}}
+    {{range $team := .Teams}}
     <div class="card">
-      <h2>{{.Name}}</h2>
+      {{if not $.Single}}<h2><a href="/teams/{{.ID}}">{{.Name}}</a></h2>{{end}}
 
-      <form method="post" action="/teams/{{.ID}}/rename">
-        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+      {{if .CanManage}}<form method="post" action="/teams/{{.ID}}/rename">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
         <label for="rename_{{.ID}}">{{t "field.name"}}</label>
         <input class="input" id="rename_{{.ID}}" name="name" value="{{.Name}}">
         <button type="submit" class="btn btn-outline">{{t "action.save"}}</button>
-      </form>
+      </form>{{end}}
 
       <div class="table-wrap"><table class="table">
         <tr><th>{{t "field.name"}}</th><th>{{t "field.email"}}</th><th>{{t "field.team_role"}}</th><th></th></tr>
@@ -46,10 +49,10 @@
           <td>{{.Email}}</td>
           <td>{{t (print "role." .Role)}}</td>
           <td>
-            <form method="post" action="/teams/{{$.ID}}/members/{{.UserID}}/remove">
-              <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+            {{if $team.CanManage}}<form method="post" action="/teams/{{$team.ID}}/members/{{.UserID}}/remove">
+              <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
               <button type="submit" class="btn btn-outline btn-sm">{{t "teams.remove"}}</button>
-            </form>
+            </form>{{end}}
           </td>
         </tr>
         {{end}}
@@ -57,7 +60,7 @@
       </table></div>
 
       {{if .CanManage}}<form method="post" action="/teams/{{.ID}}/members">
-        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
         <label for="user_{{.ID}}">{{t "field.name"}}</label>
         <select class="select" id="user_{{.ID}}" name="user_id">
           {{range $.Users}}<option value="{{.ID}}">{{.Name}} ({{.Email}})</option>{{end}}
@@ -73,7 +76,7 @@
 
       {{if and .MyRole (eq (print (deref .MyRole)) "owner")}}
       <form method="post" action="/spaces/{{.SpaceID}}/team-settings" class="inline-form">
-        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
         <label for="ack_{{.ID}}">{{t "teams.hint_ack"}}</label>
         {{$ack := .AckTeam}}
         <select class="select" id="ack_{{.ID}}" name="hint_ack">
@@ -87,7 +90,6 @@
           {{range $.Themes}}<option value="{{.ID}}"{{if eq .ID $theme}} selected{{end}}>{{.Name}}</option>{{end}}
         </select>
         <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
-        <a class="btn btn-outline btn-sm" href="/spaces/{{.SpaceID}}/settings">{{t "nav.space_settings"}}</a>
       </form>
       {{end}}
 
@@ -99,6 +101,8 @@
       {{end}}
     </div>
     {{end}}
+    </div>
+    </div>
   </main>
 </body>
 </html>

@@ -95,6 +95,9 @@
 <body>
   {{template "header" .}}
   <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
     <h1>{{t "nav.credentials"}}</h1>
     {{template "intro" dict "Page" "credentials" "Chapter" "connections" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Connected}}<p class="ok">{{t "connect.done"}}</p>{{end}}
@@ -153,6 +156,8 @@
       </tr>
       {{else}}<tr><td colspan="3" class="muted">{{t "cred.none"}}</td></tr>{{end}}
     </table></div>
+    </div>
+    </div>
   </main>
 </body>
 </html>

@@ -10,49 +10,12 @@
 <body>
   {{template "header" .}}
   <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
     <h1>{{t "nav.admin_settings"}}</h1>
     {{template "intro" dict "Page" "instance" "Chapter" "security" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
-
-    <h2>{{t "admin.analysis"}}</h2>
-    <div class="card">
-      <p class="small">{{t "admin.analysis_every" "minutes" .AnalysisEvery}}</p>
-      {{with .AnalysisRun}}
-      <p class="small muted">{{t "admin.analysis_last" "when" (ago .At) "seconds" (num .Duration.Seconds 1)}}</p>
-      {{if .Err}}<p class="error">{{.Err}}</p>{{end}}
-      {{else}}<p class="small muted">{{t "admin.analysis_none"}}</p>{{end}}
-      <form method="post" action="/admin/settings/analysis">
-        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <button type="submit" class="btn btn-accent">{{t "admin.analysis_run"}}</button>
-      </form>
-    </div>
-
-    {{with .Health}}
-    <h2 id="health">{{t "admin.health"}}</h2>
-    <div class="card">
-      <p class="small muted">{{t "admin.health_stats" "db" (num .DatabaseMB 1) "fresh" .CacheFresh "known" .CacheKnown "heap" (num .HeapMB 1) "goroutines" .Goroutines}}</p>
-      <div class="table-wrap"><table class="table">
-        <thead><tr><th>{{t "admin.health_job"}}</th><th>{{t "admin.health_last"}}</th><th>{{t "admin.health_took"}}</th><th>{{t "admin.health_every"}}</th><th>{{t "admin.health_error"}}</th></tr></thead>
-        <tbody>{{range .Jobs}}<tr><td><code>{{.Name}}</code></td><td>{{ago .At}}</td><td>{{num .Duration.Seconds 1}} s</td><td>{{num .Every.Minutes 0}} min</td><td>{{with .Err}}<span class="error">{{.}}</span>{{end}}</td></tr>{{end}}</tbody>
-      </table></div>
-    </div>
-    {{end}}
-
-    <h2 id="backup">{{t "admin.backup"}}</h2>
-    <div class="card">
-      <p class="small muted">{{t "admin.backup_hint" "keep" .BackupKeep}}</p>
-      {{with .Backup}}
-      <p><span class="pill" data-state="{{if .OK}}applied{{else}}failed{{end}}">{{if .OK}}{{t "admin.backup_ok"}}{{else}}{{t "admin.backup_failed"}}{{end}}</span>
-        <small class="muted">{{ago .At}}{{with .File}} · {{.}}{{end}}</small></p>
-      {{if .OK}}<p class="small muted">{{t "admin.backup_rows" "users" (index .Rows "users") "boards" (index .Rows "boards") "widgets" (index .Rows "widgets") "secrets" .Secrets}}</p>
-      {{else}}<p class="error">{{t .Problem}}</p>{{end}}
-      {{else}}<p class="small muted">{{t "admin.backup_none"}}</p>{{end}}
-      {{with .BackupFiles}}<ul class="plain-list small">{{range .}}<li>{{.Name}} <span class="muted">{{num .MB 1}} MB</span></li>{{end}}</ul>{{end}}
-      <form method="post" action="/admin/settings/backup">
-        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-        <button type="submit" class="btn btn-accent">{{t "admin.backup_run"}}</button>
-      </form>
-    </div>
 
     <h2>{{t "admin.general"}}</h2>
     <div class="card">
@@ -131,6 +94,8 @@
         <button type="submit" class="btn btn-outline btn-sm" formaction="/admin/settings/oidc/test">{{t "conn.test"}}</button>
       </form>
     </div>
+    </div>
+    </div>
   </main>
 </body>
 </html>
@@ -159,6 +124,71 @@
         <button type="submit" class="btn btn-accent">{{t "admin.reapply_do"}}</button>
         <a class="btn btn-outline btn-sm" href="/admin/users">{{t "action.cancel"}}</a>
       </form>
+    </div>
+  </main>
+</body>
+</html>
+{{end}}
+
+{{define "admin_ops"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "nav.admin_ops"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
+    <h1>{{t "nav.admin_ops"}}</h1>
+    {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
+
+    <h2>{{t "admin.analysis"}}</h2>
+    <div class="card">
+      <p class="small">{{t "admin.analysis_every" "minutes" .AnalysisEvery}}</p>
+      {{with .AnalysisRun}}
+      <p class="small muted">{{t "admin.analysis_last" "when" (ago .At) "seconds" (num .Duration.Seconds 1)}}</p>
+      {{if .Err}}<p class="error">{{.Err}}</p>{{end}}
+      {{else}}<p class="small muted">{{t "admin.analysis_none"}}</p>{{end}}
+      <form method="post" action="/admin/settings/analysis">
+        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
+        <button type="submit" class="btn btn-accent">{{t "admin.analysis_run"}}</button>
+      </form>
+    </div>
+
+    {{with .Health}}
+    <h2 id="health">{{t "admin.health"}}</h2>
+    <div class="card">
+      <p class="small muted">{{t "admin.health_stats" "db" (num .DatabaseMB 1) "fresh" .CacheFresh "known" .CacheKnown "heap" (num .HeapMB 1) "goroutines" .Goroutines}}</p>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>{{t "admin.health_job"}}</th><th>{{t "admin.health_last"}}</th><th>{{t "admin.health_took"}}</th><th>{{t "admin.health_every"}}</th><th>{{t "admin.health_error"}}</th></tr></thead>
+        <tbody>{{range .Jobs}}<tr><td><code>{{.Name}}</code></td><td>{{ago .At}}</td><td>{{num .Duration.Seconds 1}} s</td><td>{{num .Every.Minutes 0}} min</td><td>{{with .Err}}<span class="error">{{.}}</span>{{end}}</td></tr>{{end}}</tbody>
+      </table></div>
+    </div>
+    {{end}}
+
+    <h2 id="backup">{{t "admin.backup"}}</h2>
+    <div class="card">
+      <p class="small muted">{{t "admin.backup_hint" "keep" .BackupKeep}}</p>
+      {{with .Backup}}
+      <p><span class="pill" data-state="{{if .OK}}applied{{else}}failed{{end}}">{{if .OK}}{{t "admin.backup_ok"}}{{else}}{{t "admin.backup_failed"}}{{end}}</span>
+        <small class="muted">{{ago .At}}{{with .File}} · {{.}}{{end}}</small></p>
+      {{if .OK}}<p class="small muted">{{t "admin.backup_rows" "users" (index .Rows "users") "boards" (index .Rows "boards") "widgets" (index .Rows "widgets") "secrets" .Secrets}}</p>
+      {{else}}<p class="error">{{t .Problem}}</p>{{end}}
+      {{else}}<p class="small muted">{{t "admin.backup_none"}}</p>{{end}}
+      {{with .BackupFiles}}<ul class="plain-list small">{{range .}}<li>{{.Name}} <span class="muted">{{num .MB 1}} MB</span></li>{{end}}</ul>{{end}}
+      <form method="post" action="/admin/settings/backup">
+        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
+        <button type="submit" class="btn btn-accent">{{t "admin.backup_run"}}</button>
+      </form>
+    </div>
+
+  </div>
     </div>
   </main>
 </body>

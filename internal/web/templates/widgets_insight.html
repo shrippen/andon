@@ -119,7 +119,7 @@
 {{end}}
 
 {{define "widgets/deadlines"}}
-{{if not .Frag.View.Configured}}<p class="slot-note">{{t "deadlines.setup"}} <a href="/spaces/settings">{{t "nav.space_settings"}}</a></p>{{end}}
+{{if not .Frag.View.Configured}}<p class="slot-note">{{t "deadlines.setup"}} <a href="/spaces/settings?section=finance">{{t "nav.space_settings"}}</a></p>{{end}}
 <ol class="timeline">
 {{range .Frag.View.Items}}
   {{/* State first: red from tomorrow, yellow within a week. */}}
@@ -267,7 +267,7 @@
 {{with $v := .Frag.View}}{{if $v.Spark}}
 <div class="tile-head"><b class="tile-value" data-live>{{$v.Total}}</b><span class="tile-note">{{t "noise.new" "days" $v.Days}}</span></div>
 {{template "spark" $v.Spark}}
-{{with $v.Flaps}}<ul class="hint-lines">{{range .}}<li><a href="/spaces/settings#rule-{{.Rule}}">{{t (print "rule_name." .Rule)}}</a><small>{{t "noise.returns" "n" .Returns}}</small></li>{{end}}</ul>
+{{with $v.Flaps}}<ul class="hint-lines">{{range .}}<li><a href="/spaces/settings?section=rules#rule-{{.Rule}}">{{t (print "rule_name." .Rule)}}</a><small>{{t "noise.returns" "n" .Returns}}</small></li>{{end}}</ul>
 {{else}}<p class="small muted">{{t "noise.calm"}}</p>{{end}}
 {{else}}<p class="slot-note">{{t "noise.none"}}</p>{{end}}{{end}}
 {{end}}

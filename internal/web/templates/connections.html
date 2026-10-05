@@ -10,6 +10,9 @@
 <body>
   {{template "header" .}}
   <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
     <h1>{{t "nav.connections"}}</h1>
     {{template "intro" dict "Page" "connections" "Chapter" "connections" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p><a class="btn btn-outline btn-sm" href="/connections/new">+ {{t "action.create"}}</a></p>
@@ -40,6 +43,8 @@
       </tr>
       {{end}}
     </table></div>
+    </div>
+    </div>
   </main>
 </body>
 </html>

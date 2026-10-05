@@ -10,6 +10,9 @@
 <body>
   {{template "header" .}}
   <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
     <h1>{{t "nav.profile"}}</h1>
     {{template "intro" dict "Page" "profile" "Chapter" "security" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
@@ -51,6 +54,8 @@
 
         <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
       </form>
+    </div>
+    </div>
     </div>
   </main>
 </body>

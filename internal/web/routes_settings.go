@@ -22,6 +22,7 @@ const oidcBlankRules = 2
 // "reapply authentik groups" action.
 func (d Deps) RegisterSettingsRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/settings", d.authed(d.handleSettingsPage))
+	mux.HandleFunc("GET /admin/operations", d.authed(d.handleOpsPage))
 	mux.HandleFunc("POST /admin/settings/general", d.handleSettingsGeneral)
 	mux.HandleFunc("POST /admin/settings/network", d.handleSettingsNetwork)
 	mux.HandleFunc("POST /admin/settings/oidc", d.handleSettingsOIDC)
@@ -110,10 +111,21 @@ func (d Deps) settingsPage(w http.ResponseWriter, ctx Ctx, status int, extra map
 	for k, v := range extra {
 		values[k] = v
 	}
-	_ = d.Page(w, ctx, "admin_settings", status, values)
+	page := "admin_settings"
+	if ctx.Path == opsPath {
+		page = "admin_ops"
+	}
+	_ = d.Page(w, ctx, page, status, values)
 }
 
 func (d Deps) handleSettingsPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	d.settingsPage(w, ctx, http.StatusOK, nil)
+}
+
+// opsPath shows how the instance runs: analysis, jobs, backups.
+const opsPath = "/admin/operations"
+
+func (d Deps) handleOpsPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	d.settingsPage(w, ctx, http.StatusOK, nil)
 }
 
@@ -132,7 +144,7 @@ func (d Deps) settingsAction(w http.ResponseWriter, r *http.Request, run func(Ct
 		d.settingsPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
+	http.Redirect(w, r, backTo(r, "/admin/settings"), http.StatusSeeOther)
 }
 
 // errBadMapSource: the map source is no plain http(s) URL.

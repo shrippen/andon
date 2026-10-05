@@ -13,6 +13,7 @@ import (
 // set/remove, delete. Admins manage every team; owners manage their own.
 func (d Deps) RegisterTeamRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /teams", d.authed(d.handleTeamsPage))
+	mux.HandleFunc("GET /teams/{id}", d.authed(d.handleTeamPage))
 	mux.HandleFunc("POST /teams", d.authed(d.handleTeamCreate))
 	mux.HandleFunc("POST /teams/{id}/rename", d.authed(d.handleTeamRename))
 	mux.HandleFunc("POST /teams/{id}/members", d.authed(d.handleTeamMemberSet))
@@ -47,6 +48,28 @@ func (d Deps) handleTeamsPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	d.teamsPage(w, ctx, http.StatusOK, nil)
 }
 
+// handleTeamPage shows one team (members, its space's settings) as the
+// team's first page in the settings frame.
+func (d Deps) handleTeamPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := teamID(r)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	overview, err := teams.Overview(d.DB, ctx.Who)
+	if err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	for _, t := range overview {
+		if t.ID == id {
+			d.teamsPage(w, ctx, http.StatusOK, map[string]any{"Teams": []teams.View{t}, "Single": true})
+			return
+		}
+	}
+	http.NotFound(w, r)
+}
+
 func (d Deps) handleTeamCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	if err := r.ParseForm(); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
@@ -56,7 +79,7 @@ func (d Deps) handleTeamCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		d.teamsPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	http.Redirect(w, r, "/teams", http.StatusSeeOther)
+	http.Redirect(w, r, backTo(r, "/teams"), http.StatusSeeOther)
 }
 
 func teamID(r *http.Request) (int64, error) {
@@ -77,7 +100,7 @@ func (d Deps) handleTeamRename(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		d.teamsPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	http.Redirect(w, r, "/teams", http.StatusSeeOther)
+	http.Redirect(w, r, backTo(r, "/teams"), http.StatusSeeOther)
 }
 
 func (d Deps) handleTeamMemberSet(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -100,7 +123,7 @@ func (d Deps) handleTeamMemberSet(w http.ResponseWriter, r *http.Request, ctx Ct
 		d.teamsPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	http.Redirect(w, r, "/teams", http.StatusSeeOther)
+	http.Redirect(w, r, backTo(r, "/teams"), http.StatusSeeOther)
 }
 
 func (d Deps) handleTeamMemberRemove(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -118,7 +141,7 @@ func (d Deps) handleTeamMemberRemove(w http.ResponseWriter, r *http.Request, ctx
 		d.teamsPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	http.Redirect(w, r, "/teams", http.StatusSeeOther)
+	http.Redirect(w, r, backTo(r, "/teams"), http.StatusSeeOther)
 }
 
 func (d Deps) handleTeamDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -131,5 +154,5 @@ func (d Deps) handleTeamDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		d.teamsPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	http.Redirect(w, r, "/teams", http.StatusSeeOther)
+	http.Redirect(w, r, backTo(r, "/teams"), http.StatusSeeOther)
 }

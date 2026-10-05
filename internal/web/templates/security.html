@@ -11,6 +11,9 @@
 <body>
   {{template "header" .}}
   <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
     <h1>{{t "nav.security"}}</h1>
     {{template "intro" dict "Page" "security" "Chapter" "security" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
@@ -162,6 +165,8 @@
         <input class="input" id="token_days" name="days" type="number" min="1">
         <button type="submit" class="btn btn-accent">{{t "action.create"}}</button>
       </form>
+    </div>
+    </div>
     </div>
   </main>
 </body>

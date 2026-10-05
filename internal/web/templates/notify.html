@@ -10,6 +10,9 @@
 <body>
   {{template "header" .}}
   <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
     <h1>{{t "nav.notify"}}</h1>
     {{template "intro" dict "Page" "notify" "Chapter" "notify" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
@@ -88,6 +91,8 @@
       <h2>{{t "notify.calendar"}}</h2>
       <p class="muted">{{t "notify.calendar_hint"}}</p>
       <p class="mono break">{{.BaseURL}}/calendar.ics?token=…</p>
+    </div>
+    </div>
     </div>
   </main>
 </body>
