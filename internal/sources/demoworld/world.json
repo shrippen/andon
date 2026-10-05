@@ -5167,7 +5167,7 @@
   }
  },
  "code": {
-  "note": "Gitea (issues, reviews, a failed workflow, a stale mirror, commits per week) and GitHub.",
+  "note": "Gitea (issues, reviews, a failed workflow, a stale mirror, commits per week) and GitHub (downloads_daily: release downloads per day, oldest first, today last; a spike after the release).",
   "gitea": {
    "url": "https://git.demo",
    "user": "mara",
@@ -5265,7 +5265,40 @@
      "ci": "success",
      "release": "v0.12.0",
      "released_at": "@-6d",
-     "pushed_at": "@-1d"
+     "pushed_at": "@-1d",
+     "downloads": 4210,
+     "downloads_daily": [
+      41,
+      38,
+      44,
+      52,
+      47,
+      39,
+      36,
+      45,
+      50,
+      43,
+      40,
+      37,
+      48,
+      55,
+      46,
+      42,
+      39,
+      44,
+      51,
+      47,
+      43,
+      40,
+      38,
+      96,
+      142,
+      88,
+      67,
+      58,
+      54,
+      21
+     ]
     },
     {
      "name": "studio/showreel",

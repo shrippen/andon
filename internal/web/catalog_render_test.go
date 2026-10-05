@@ -22,6 +22,8 @@ func TestCatalogTilesRender(t *testing.T) {
 	for i := range 7 {
 		speed.Series[metrics.SampleKey("speedtest", "down")] = append(speed.Series[metrics.SampleKey("speedtest", "down")],
 			metrics.Point{Day: now.AddDate(0, 0, i-6), Value: float64(150 + i*15)})
+		speed.Series[metrics.DownloadsKey("a/b")] = append(speed.Series[metrics.DownloadsKey("a/b")],
+			metrics.Point{Day: now.AddDate(0, 0, i-6), Value: float64(100 + i*i)})
 	}
 
 	cases := map[string]struct {
@@ -63,6 +65,7 @@ func TestCatalogTilesRender(t *testing.T) {
 		"exposure":          {data: sources.DemoPangolin(), want: "expo-rows"},
 		"subscriptions":     {want: "Nordhost", peers: map[string]any{"wallos": sources.DemoWallos(now), "sure": sources.DemoSure(now)}},
 		"rate_trend":        {data: sources.DemoNinja(now), want: "spark", peers: map[string]any{"kimai": sources.DemoKimai(now)}},
+		"github_downloads":  {data: &sources.GitHubDataset{Repos: []sources.GitRepo{{Name: "a/b", Downloads: 120}}}, want: "bars-wrap"},
 	}
 	for key, c := range cases {
 		kind, ok := widgets.Get(key)
@@ -74,7 +77,7 @@ func TestCatalogTilesRender(t *testing.T) {
 		for name, peer := range c.peers {
 			results[name] = peer
 		}
-		if key == "speed_history" {
+		if key == "speed_history" || key == "github_downloads" {
 			results[widgets.HistorySlot] = speed
 		}
 		view := kind.View(cfg, results, widgets.ViewCtx{Today: today})

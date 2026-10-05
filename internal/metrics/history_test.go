@@ -118,3 +118,28 @@ func TestNewLeases(t *testing.T) {
 		t.Fatalf("first day: %+v", got)
 	}
 }
+
+// TestDownloadsRecorded: today's total and the earlier day totals land
+// in the repo's series; a repo without downloads records nothing.
+func TestDownloadsRecorded(t *testing.T) {
+	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	data := &sources.GitHubDataset{Repos: []sources.GitRepo{
+		{Name: "Studio/Website", Downloads: 40, DownloadDays: []sources.DownloadDay{{Day: "2026-10-04", Total: 30}}}, {Name: "a/none"}}}
+	r := metrics.Read(metrics.Scope{Datasets: map[string]any{"github": data}}, now)
+	key := metrics.DownloadsKey("Studio/Website")
+	if r.Values[key] != 40 || r.Past["2026-10-04"][key] != 30 {
+		t.Fatalf("readings: %+v %+v", r.Values, r.Past)
+	}
+	if _, ok := r.Values[metrics.DownloadsKey("a/none")]; ok {
+		t.Fatal("recorded a repo without downloads")
+	}
+}
+
+// TestDailyGains: a day adds its difference; a drop adds nothing.
+func TestDailyGains(t *testing.T) {
+	day := func(d int) time.Time { return time.Date(2026, 10, d, 0, 0, 0, 0, time.UTC) }
+	got := metrics.DailyGains([]metrics.Point{{Day: day(1), Value: 100}, {Day: day(2), Value: 140}, {Day: day(3), Value: 135}, {Day: day(4), Value: 160}})
+	if len(got) != 3 || got[0].Value != 40 || got[1].Value != 0 || got[2].Value != 25 || !got[2].Day.Equal(day(4)) {
+		t.Fatalf("gains: %+v", got)
+	}
+}

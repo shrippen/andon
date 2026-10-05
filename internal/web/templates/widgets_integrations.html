@@ -80,6 +80,17 @@
 {{end}}
 {{end}}
 
+{{define "widgets/github_downloads"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Count}}
+<div class="tile-head"><b class="tile-value" data-live>{{num $v.Total}}</b><span class="tile-note">{{t "downloads.gained" "n" (num $v.Gain) "days" $v.Days}}</span></div>
+{{if $v.Bars}}<div class="bars-wrap">
+  <div class="bars" role="img" aria-label="{{t "wtype.github_downloads.name"}}">{{range $v.Bars}}<i data-style="--h:{{.H}}%" title="{{day .Title}}"></i>{{end}}</div>
+</div>{{else}}<p class="tile-note">{{t "trend.collecting"}}</p>{{end}}
+<ul class="hbars">{{range $v.Repos}}<li><span class="hbar-label">{{.Name}}</span><span class="hbar"><i data-style="--w:{{.Pct}}%"></i></span><span class="hbar-value">+{{num .Gain}}</span></li>{{end}}</ul>
+{{else if $v}}<p class="tile-note">{{t "downloads.none"}}</p>{{end}}{{end}}
+{{end}}
+
 {{define "widgets/speedtest"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $d := $v.Data}}

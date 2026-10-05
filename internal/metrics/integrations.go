@@ -224,3 +224,36 @@ func EnergyTotals(days []sources.EnergyDay) (cost, kwh float64) {
 func WarningRank(severity string) int {
 	return map[string]int{sources.WarnMinor: 1, sources.WarnModerate: 2, sources.WarnSevere: 3, sources.WarnExtreme: 4}[strings.ToLower(severity)]
 }
+
+// DownloadsKey is a repo's series of download totals:
+// "studio/website" → "github.downloads.studio/website".
+func DownloadsKey(repo string) string { return key("github", "downloads", repo) }
+
+// DailyGains turns day totals into what each day added, oldest first.
+// The first total adds nothing it can be measured against; a drop
+// (deleted assets) counts as 0:
+//
+//	totals 100, 140, 135, 160 → gains 40, 0, 25
+func DailyGains(totals []Point) []Point {
+	var out []Point
+	for i := 1; i < len(totals); i++ {
+		out = append(out, Point{Day: totals[i].Day, Value: max(totals[i].Value-totals[i-1].Value, 0)})
+	}
+	return out
+}
+
+// GitHub records each repo's download total once a day: GitHub only
+// counts, the history makes the trend. Earlier totals (none from GitHub)
+// fill their own days.
+func init() {
+	Record(func(d *sources.GitHubDataset, _ time.Time, r *Readings) {
+		for _, repo := range d.Repos {
+			for _, past := range repo.DownloadDays {
+				r.SetOn(past.Day, DownloadsKey(repo.Name), float64(past.Total))
+			}
+			if repo.Downloads > 0 {
+				r.Set(DownloadsKey(repo.Name), float64(repo.Downloads))
+			}
+		}
+	})
+}

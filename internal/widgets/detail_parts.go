@@ -29,15 +29,18 @@ func historyOf(results map[string]any) *metrics.History {
 //
 //	"truenas.pool.tank.used", 30 days ─► [0.70, 0.70, Gap, 0.71, …]
 func dailySeries(h *metrics.History, key string, now time.Time, n int) []float64 {
+	return onDays(h.SeriesOf(key), now, n)
+}
+
+// onDays places points on the last n days, oldest first; a day without
+// one is a Gap.
+func onDays(points []metrics.Point, now time.Time, n int) []float64 {
 	out := make([]float64, n)
 	for i := range out {
 		out[i] = Gap
 	}
-	if h == nil {
-		return out
-	}
 	first := metrics.Today(now).AddDate(0, 0, -(n - 1))
-	for _, p := range h.SeriesOf(key) {
+	for _, p := range points {
 		i := int(metrics.Today(p.Day).Sub(first).Hours() / hoursPerDay)
 		if i >= 0 && i < n {
 			out[i] = p.Value
