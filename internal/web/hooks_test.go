@@ -41,7 +41,7 @@ func TestPGBackWebHook(t *testing.T) {
 		t.Fatalf("bad signature: %d", got)
 	}
 
-	id := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(edit)[1]
+	id := regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(edit)[1]
 	test := readAll(t, postForm2(t, client, srv.URL+"/connections/"+id+"/test", url.Values{"csrf": {csrfToken(t, srv, client)}}))
 	if !strings.Contains(test, "✓") {
 		t.Fatalf("connection test failed:\n%s", test)

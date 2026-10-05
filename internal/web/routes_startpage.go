@@ -169,7 +169,7 @@ func (d Deps) paletteConnections(ctx Ctx) []boards.PaletteItem {
 	for _, v := range views {
 		url := "/connections"
 		if v.Right >= enums.RightEdit {
-			url = fmt.Sprintf("/connections/%d/edit", v.ID)
+			url = fmt.Sprintf("/connections/%d", v.ID)
 		}
 		detail := i18n.T("conn.state_"+string(v.Health.State()), ctx.Locale, nil)
 		if v.Health.FailPct > 0 {

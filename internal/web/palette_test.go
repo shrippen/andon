@@ -35,7 +35,7 @@ func TestPaletteFindsConnectionsAndHints(t *testing.T) {
 		if it.Group == "" {
 			t.Fatalf("item without heading: %+v", it)
 		}
-		if it.Kind == "connection" && (it.Title != "Ninja" || !strings.HasSuffix(it.URL, "/edit") || it.Detail == "") {
+		if it.Kind == "connection" && (it.Title != "Ninja" || !strings.HasPrefix(it.URL, "/connections/") || it.Detail == "") {
 			t.Fatalf("connection item: %+v", it)
 		}
 		if it.Kind == "hints" && (!strings.HasPrefix(it.URL, "/hints#rule-") || it.Detail == "") {

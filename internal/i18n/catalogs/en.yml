@@ -1115,6 +1115,33 @@ history:
   sections: Sections
   restore: Restore
 conn:
+  tab_overview: 'Overview'
+  tab_access: 'Access'
+  tab_settings: 'Settings'
+  tab_history: 'History'
+  record_tabs: 'Record'
+  level_instance: 'Instance'
+  level_team: 'Team'
+  level_personal: 'Personal'
+  kind_fixed: 'Fixed'
+  record_fixed: 'Fixed: one login for everyone who uses this connection.'
+  record_template: 'Template: everyone enters their own login and sees only their data.'
+  editors_instance: 'Admins can change it.'
+  editors_team: 'The team''s owners can change it.'
+  editors_personal: 'Only you see and change it.'
+  fact_reach: 'reachable {days} d'
+  fact_ms: 'avg. response'
+  fact_tiles: 'tiles'
+  login_fixed: 'Login for everyone'
+  login_set: 'stored'
+  login_missing: 'missing'
+  login_set_at: 'entered {when}'
+  login_managed: 'Only who manages the connection can replace it.'
+  access_mine: 'Your login'
+  access_team: 'Team {name}'
+  history_lead: 'Fetches of the last {days} days, per day.'
+  history_none: 'No fetches in this period.'
+  fetch_fail_pct: '{pct} % failed'
   deactivate_confirm: 'Remove your login? Your tiles of this template then show nothing.'
   deactivate: 'Deactivate'
   reactivate_new_host: 'The address points to another server. Your old login is not sent there; enter it again.'
@@ -1142,7 +1169,6 @@ conn:
   level_lead_instance: 'Connections for everybody on this instance. Fixed: one login for all. Template: each person (or a team) enters their own.'
   level_lead_team: 'This team''s connections. Fixed: one login for the whole team. Template: each member enters their own.'
   level_lead_personal: 'Your own connections, just for you. Below, the templates from the instance and your teams that take your login.'
-  personal_where: 'Template: everybody enters their own login under'
   tls: Certificate
   tls_verify: Verify (recommended)
   tls_skip: Don''t verify (self-signed)

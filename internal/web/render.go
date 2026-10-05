@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"cmp"
 	"embed"
 	"encoding/json"
 	"errors"
@@ -230,6 +231,7 @@ func clockDate(tz string, locale enums.Locale) string {
 type renderState struct {
 	locale enums.Locale
 	path   string
+	nav    string // the settings page a page counts as (navPath), else path
 	round  widgets.RoundMode
 	data   map[string]any
 	tile   map[string]any // data plus one tile's fragment, reused per tile
@@ -293,7 +295,7 @@ func newPageSet() *pageSet {
 		// here tells whether the page lies at or below path (menu underline).
 		"here": func(path string) bool { return underPath(st.path, path) },
 		// at tells whether the page is exactly path (settings navigation).
-		"at": func(path string) bool { return st.path == path },
+		"at": func(path string) bool { return cmp.Or(st.nav, st.path) == path },
 		// tt translates with typed params ({"$money": 12.5} -> "12,50 €").
 		"tt": func(key string, params map[string]any) string {
 			return i18n.T(key, st.locale, i18n.Typed(params, st.locale))
@@ -386,7 +388,8 @@ func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, valu
 
 	set := takeSet()
 	defer returnSet(set)
-	*set.state = renderState{locale: ctx.Locale, path: ctx.Path, round: roundOf(values["Round"]), data: data}
+	nav, _ := values[navPath].(string)
+	*set.state = renderState{locale: ctx.Locale, path: ctx.Path, nav: nav, round: roundOf(values["Round"]), data: data}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)

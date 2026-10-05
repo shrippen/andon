@@ -93,7 +93,7 @@ func TestCrossTablesRender(t *testing.T) {
 	for _, service := range []string{"kimai", "invoiceninja", "sure"} {
 		resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
 			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
-		conns[service] = regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))[1]
+		conns[service] = regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1]
 	}
 
 	cases := []struct{ service, widget, kind, want string }{

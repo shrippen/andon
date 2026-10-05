@@ -17,6 +17,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/accounts"
 	"andon/internal/services/analysis"
+	"andon/internal/services/connections"
 	"andon/internal/services/porting"
 )
 
@@ -76,11 +77,61 @@ func Demo(ctx context.Context, d *sql.DB) error {
 	if err := importInto(d, userID, personalSpace, demoPersonal); err != nil {
 		return err
 	}
+	if err := demoTemplates(d, adminID, userID); err != nil {
+		return err
+	}
 	if _, err := analysis.RunAll(ctx, d, time.Now().UTC()); err != nil {
 		return err
 	}
 	slog.Warn("DEMO MODE", "admin", DemoAdmin, "user", DemoUser, "password", DemoPassword)
 	return nil
+}
+
+// The instance's templates (credentials: personal in instance.yml): the
+// user has activated them; the admin then stopped checking the paused
+// one's certificate, so that activation waits to be renewed. The admin
+// has activated none, so their tiles ask for a login.
+var demoActivated = []enums.ServiceType{enums.ServiceNextcloud, enums.ServiceImmich}
+
+const (
+	demoPaused = enums.ServiceImmich
+	demoLogin  = "demo" // demo:// sources take any login
+)
+
+func demoTemplates(d *sql.DB, adminID, userID int64) error {
+	admin, err := access.Load(d, adminID)
+	if err != nil {
+		return err
+	}
+	user, err := access.Load(d, userID)
+	if err != nil {
+		return err
+	}
+	list, err := connections.Listing(d, admin, enums.RightView)
+	if err != nil {
+		return err
+	}
+	templates := map[enums.ServiceType]connections.View{}
+	for _, c := range list {
+		if c.Mode == enums.CredentialPersonal && c.Level == enums.SpaceInstance {
+			templates[c.Service] = c
+		}
+	}
+
+	for _, service := range demoActivated {
+		c, ok := templates[service]
+		if !ok {
+			continue
+		}
+		if err := connections.Activate(d, user, c.ID, model.UserHolder(userID), demoLogin); err != nil {
+			return err
+		}
+	}
+	c, ok := templates[demoPaused]
+	if !ok {
+		return nil
+	}
+	return connections.Update(d, admin, c.ID, c.Name, c.URL, c.Mode, nil, connections.TLSSkip, nil)
 }
 
 type spaceOf func(q db.Queryer, who *access.Principal) (*model.Space, error)

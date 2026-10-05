@@ -4,7 +4,6 @@ import (
 	"andon/internal/services/util"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"andon/internal/enums"
@@ -62,7 +61,7 @@ func (d Deps) handleConnectStart(w http.ResponseWriter, r *http.Request, ctx Ctx
 		http.NotFound(w, r)
 		return
 	}
-	back := "/connections/" + strconv.FormatInt(id, 10) + "/edit"
+	back := recordPath(id, tabAccess)
 	if b := r.FormValue("back"); b != "" {
 		back = util.LocalPath(b)
 	}
@@ -108,7 +107,7 @@ func (d Deps) handleOAuthClient(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		http.NotFound(w, r)
 		return
 	}
-	back := "/connections/" + strconv.FormatInt(id, 10) + "/edit"
+	back := recordPath(id, tabAccess)
 	if err := connections.SetOAuthClient(d.DB, ctx.Who, id, strings.TrimSpace(r.FormValue("client_id")), strings.TrimSpace(r.FormValue("client_secret"))); err != nil {
 		http.Redirect(w, r, withQuery(back, "error", errKey(err)), http.StatusSeeOther)
 		return

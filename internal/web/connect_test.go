@@ -14,7 +14,7 @@ func createConnection(t *testing.T, srvURL string, client *http.Client, csrf, sp
 	t.Helper()
 	resp := postForm(t, client, srvURL+"/connections", url.Values{"csrf": {csrf}, "space_id": {space}, "service": {service},
 		"name": {service}, "url": {target}, "mode": {"shared"}, "tls": {"verify"}})
-	m := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))
+	m := regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))
 	if m == nil {
 		t.Fatalf("create %s: %s", service, resp.Header.Get("Location"))
 	}
@@ -38,7 +38,7 @@ func TestSignInNextToToken(t *testing.T) {
 
 	ha := createConnection(t, srv.URL, &noFollow, csrf, space, "homeassistant", "https://ha.example")
 	edit := string(mustGet(t, srv, client, "/connections/"+ha+"/edit"))
-	if !strings.Contains(edit, `id="connect-form"`) || !strings.Contains(edit, `hx-boost="false"`) || !strings.Contains(edit, `name="secret"`) {
+	if !strings.Contains(edit, `action="/connections/`+ha+`/connect"`) || !strings.Contains(edit, `hx-boost="false"`) || !strings.Contains(edit, `name="secret"`) {
 		t.Fatalf("edit page lacks token and sign-in side by side:\n%s", edit)
 	}
 	resp := postForm(t, &noFollow, srv.URL+"/connections/"+ha+"/connect", url.Values{"csrf": {csrf}})
@@ -57,12 +57,12 @@ func TestSignInNextToToken(t *testing.T) {
 
 	gitea := createConnection(t, srv.URL, &noFollow, csrf, space, "gitea", "https://git.example")
 	edit = string(mustGet(t, srv, client, "/connections/"+gitea+"/edit"))
-	if !strings.Contains(edit, `name="client_id"`) || strings.Contains(edit, `form="connect-form"`) {
+	if !strings.Contains(edit, `name="client_id"`) || strings.Contains(edit, `action="/connections/`+gitea+`/connect"`) {
 		t.Fatalf("gitea should ask for its client first:\n%s", edit)
 	}
 	postForm(t, &noFollow, srv.URL+"/connections/"+gitea+"/oauth-client", url.Values{"csrf": {csrf}, "client_id": {"cid"}, "client_secret": {"cs"}})
 	edit = string(mustGet(t, srv, client, "/connections/"+gitea+"/edit"))
-	if !strings.Contains(edit, `form="connect-form"`) {
+	if !strings.Contains(edit, `action="/connections/`+gitea+`/connect"`) {
 		t.Fatalf("gitea sign-in not offered after registering the client:\n%s", edit)
 	}
 }

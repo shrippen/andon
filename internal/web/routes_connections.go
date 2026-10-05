@@ -3,7 +3,6 @@ package web
 import (
 	"errors"
 	"sort"
-	"strconv"
 	"strings"
 
 	"net/http"
@@ -28,7 +27,9 @@ func (d Deps) RegisterConnectionRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /spaces/{id}/connections", d.authed(d.handleSpaceConnections))
 	mux.HandleFunc("GET /connections/new", d.authed(d.handleConnectionNewForm))
 	mux.HandleFunc("POST /connections", d.authed(d.handleConnectionCreate))
+	mux.HandleFunc("GET /connections/{id}", d.authed(d.handleConnectionRecord))
 	mux.HandleFunc("GET /connections/{id}/edit", d.authed(d.handleConnectionEditForm))
+	mux.HandleFunc("POST /connections/{id}/secret", d.authed(d.handleConnectionSecret))
 	mux.HandleFunc("POST /connections/{id}/edit", d.authed(d.handleConnectionUpdate))
 	mux.HandleFunc("POST /connections/{id}/delete", d.authed(d.handleConnectionDelete))
 	mux.HandleFunc("POST /connections/{id}/test", d.authed(d.handleConnectionTest))
@@ -206,43 +207,12 @@ func (d Deps) handleConnectionCreate(w http.ResponseWriter, r *http.Request, ctx
 		})
 		return
 	}
-	http.Redirect(w, r, "/connections/"+strconv.FormatInt(id, 10)+"/edit?welcome", http.StatusSeeOther)
+	http.Redirect(w, r, recordPath(id, tabOverview)+"?welcome", http.StatusSeeOther)
 }
 
+// handleConnectionEditForm is the record on its settings tab (old links).
 func (d Deps) handleConnectionEditForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	id, err := pathID(r, "id")
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	conn, err := connections.Get(d.DB, ctx.Who, id)
-	if err != nil {
-		d.handleBoardError(w, r, err)
-		return
-	}
-	values := map[string]any{
-		"Conn": conn, "Services": serviceOptions, "IsNew": false,
-		"OptionsYAML": porting.DumpMap(conn.Options), "Error": r.URL.Query().Get("error"),
-		"SignIn": d.signInOf(conn),
-	}
-	// Only who may rotate the webhook sees its URL (it is the secret).
-	if conn.Right >= enums.RightManage {
-		values["HookURL"], _ = connections.HookURL(d.DB, ctx.Who, conn.ID, d.Settings.BaseURL)
-	}
-	// Just signed in: show right away whether the service answers.
-	if r.URL.Query().Has("connected") {
-		if result, err := connections.Test(r.Context(), d.DB, ctx.Who, id); err == nil {
-			values["TestResult"] = result
-		}
-		values["Connected"] = true
-	}
-	if r.URL.Query().Has("welcome") {
-		if result, err := connections.Test(r.Context(), d.DB, ctx.Who, id); err == nil {
-			values["TestResult"] = result
-		}
-		values["Suggest"] = widgetsFor(conn.Service)
-	}
-	_ = d.Page(w, ctx, "connection_form", http.StatusOK, values)
+	d.recordPage(w, r, ctx, tabSettings, http.StatusOK, nil)
 }
 
 func (d Deps) handleConnectionUpdate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -294,13 +264,10 @@ func (d Deps) handleConnectionUpdate(w http.ResponseWriter, r *http.Request, ctx
 		err = d.saveAdvanced(r, ctx, conn)
 	}
 	if err != nil {
-		_ = d.Page(w, ctx, "connection_form", http.StatusBadRequest, map[string]any{
-			"Conn": conn, "Services": serviceOptions, "IsNew": false,
-			"OptionsYAML": porting.DumpMap(conn.Options), "Error": errKey(err),
-		})
+		d.recordPage(w, r, ctx, tabSettings, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	http.Redirect(w, r, "/connections", http.StatusSeeOther)
+	http.Redirect(w, r, recordPath(id, tabSettings), http.StatusSeeOther)
 }
 
 // saveAdvanced stores the form's "Erweitert" part: token expiry and
@@ -333,11 +300,15 @@ func (d Deps) handleConnectionDelete(w http.ResponseWriter, r *http.Request, ctx
 		http.NotFound(w, r)
 		return
 	}
+	back := "/connections"
+	if conn, err := connections.Get(d.DB, ctx.Who, id); err == nil {
+		back = spacePath(conn.SpaceID) + "/connections"
+	}
 	if err := connections.Delete(d.DB, ctx.Who, id); err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/connections", http.StatusSeeOther)
+	http.Redirect(w, r, back, http.StatusSeeOther)
 }
 
 func (d Deps) handleConnectionTest(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -351,12 +322,7 @@ func (d Deps) handleConnectionTest(w http.ResponseWriter, r *http.Request, ctx C
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
-	conn, _ := connections.Get(d.DB, ctx.Who, id)
-	_ = d.Page(w, ctx, "connection_form", http.StatusOK, map[string]any{
-		"Conn": conn, "Services": serviceOptions, "IsNew": false,
-		"OptionsYAML": porting.DumpMap(conn.Options), "Error": r.URL.Query().Get("error"), "TestResult": result,
-		"SignIn": d.signInOf(conn),
-	})
+	d.recordPage(w, r, ctx, tabOverview, http.StatusOK, map[string]any{"TestResult": result})
 }
 
 // handleConnectionHygiene stores token expiry and daily fetch budget.
@@ -367,10 +333,10 @@ func (d Deps) handleConnectionHygiene(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 	budget := formInt(r, "budget")
-	target := "/connections/" + strconv.FormatInt(id, 10) + "/edit"
+	target := recordPath(id, tabSettings)
 	err = connections.SetHygiene(d.DB, ctx.Who, id, r.FormValue("expires"), budget)
 	if errors.Is(err, connections.ErrBadDate) {
-		http.Redirect(w, r, target+"?error="+err.Error(), http.StatusSeeOther)
+		http.Redirect(w, r, withQuery(target, "error", err.Error()), http.StatusSeeOther)
 		return
 	}
 	if err != nil {
@@ -391,7 +357,7 @@ func (d Deps) handleHookRotate(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		d.handleBoardError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/connections/"+strconv.FormatInt(id, 10)+"/edit", http.StatusSeeOther)
+	http.Redirect(w, r, recordPath(id, tabSettings), http.StatusSeeOther)
 }
 
 // servicePick is one card of the service picker.

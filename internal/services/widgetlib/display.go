@@ -43,6 +43,7 @@ type Slot struct {
 	OkAt              time.Time
 	MissingCredential string // connection name, "" if credentials are fine
 	PausedCredential  string // connection name, the template changed since its activation
+	CredConn          int64  // the connection whose login is missing or paused
 	Pending           bool   // not fetched by a background run yet
 	Due               bool   // a Cached read would fetch again (see svcdata.Due)
 }
@@ -680,15 +681,15 @@ func deref(id *int64) int64 {
 func runQuery(ctx context.Context, d *sql.DB, source string, params map[string]any, conn *model.Connection, h model.Holder, fresh svcdata.Freshness) Slot {
 	res, err := svcdata.Get(ctx, d, source, params, conn, h, fresh)
 	if err != nil {
-		name := ""
+		name, id := "", int64(0)
 		if conn != nil {
-			name = conn.Name
+			name, id = conn.Name, conn.ID
 		}
 		if errors.Is(err, svcdata.ErrMissingCredential) {
-			return Slot{MissingCredential: name}
+			return Slot{MissingCredential: name, CredConn: id}
 		}
 		if errors.Is(err, svcdata.ErrTemplateChanged) {
-			return Slot{PausedCredential: name}
+			return Slot{PausedCredential: name, CredConn: id}
 		}
 		return Slot{Error: "source.unknown"}
 	}

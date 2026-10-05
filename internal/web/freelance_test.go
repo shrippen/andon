@@ -65,7 +65,7 @@ func TestKimaiTimerStops(t *testing.T) {
 	csrf := csrfToken(t, srv, client)
 	resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {space}, "service": {"kimai"}, "name": {"Kimai"},
 		"url": {kimai.URL}, "mode": {"shared"}, "secret": {"tok"}, "tls": {"verify"}})
-	connID := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))[1]
+	connID := regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1]
 
 	postForm(t, client, srv.URL+"/widgets", url.Values{"csrf": {csrf}, "space_id": {space}, "type": {"kimai_timer"}, "title": {"Timer"}, "connection_id": {connID}})
 	boardURL, section, version, widget := placeTarget(t, srv, client, "Timer")
@@ -164,7 +164,7 @@ func TestKimaiLiteEditsDay(t *testing.T) {
 	csrf := csrfToken(t, srv, client)
 	resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "space_id": {space}, "service": {"kimai"}, "name": {"Kimai"},
 		"url": {kimai.URL}, "mode": {"shared"}, "secret": {"tok"}, "tls": {"verify"}})
-	connID := regexp.MustCompile(`/connections/(\d+)/edit`).FindStringSubmatch(resp.Header.Get("Location"))[1]
+	connID := regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1]
 	postForm(t, client, srv.URL+"/widgets", url.Values{"csrf": {csrf}, "space_id": {space}, "type": {"kimai_timer"}, "title": {"Timer"}, "connection_id": {connID}})
 	boardURL, section, version, widget := placeTarget(t, srv, client, "Timer")
 	postForm(t, client, srv.URL+"/boards/"+boardIDFrom(boardURL)+"/sections/"+section+"/place", url.Values{"csrf": {csrf}, "widget_id": {widget}, "version": {version}})
