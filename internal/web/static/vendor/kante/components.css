@@ -1060,6 +1060,10 @@ button.list-row{width:100%;border:0;border-bottom:1px solid var(--bg1);backgroun
 .table.diff td.was{color:var(--fg3);text-decoration:line-through;overflow-wrap:anywhere}
 .table.diff td.now{color:var(--fg0);background:var(--cyan-tint);box-shadow:inset 3px 0 0 var(--cyan);overflow-wrap:anywhere}
 .table.diff td.same{color:var(--fg3)}
+/* Record on a page: the detail frame in the page flow (full width, no own scroll), tabs as links under the head:
+   <article class="dialog detail is-page"><header class="detail-head">…</header><nav class="tabs detail-tabs"><a aria-current="page">…</a>…</nav><div class="detail-body">… */
+.dialog.detail.is-page{max-width:none;max-height:none;overflow:visible}
+.detail-tabs{margin:.8rem 1.5rem 0}
 /* Map frame around a Leaflet (or similar) map: cut corner, dark tiles, square pins, yellow route */
 .map-frame{position:relative;border:1px solid var(--bg2);background:var(--bg-hard);
   clip-path:polygon(0 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% 100%,0 100%)}
