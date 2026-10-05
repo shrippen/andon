@@ -425,6 +425,16 @@ type GitRepo struct {
 	Release    string
 	ReleasedAt time.Time
 	PushedAt   time.Time // the last push to any branch
+	Downloads  int       // release asset downloads over all releases, 0 = unknown
+	// DownloadDays are earlier day totals, oldest first. GitHub keeps
+	// none; the history records Downloads day by day instead.
+	DownloadDays []DownloadDay
+}
+
+// DownloadDay is a repo's download total at the end of a day.
+type DownloadDay struct {
+	Day   string // 2006-01-02
+	Total int
 }
 
 type GitHubDataset struct {
@@ -511,7 +521,38 @@ func loadRepo(ctx context.Context, api services.KeyedApi, name string) (GitRepo,
 		r := asMap(release)
 		repo.Release, repo.ReleasedAt = asStr(r["tag_name"]), parseTime(r["published_at"])
 	}
+	if repo.Release != "" {
+		repo.Downloads = repoDownloads(ctx, api, path)
+	}
 	return repo, nil
+}
+
+const (
+	githubPageSize = 100
+	githubPages    = 10 // read at most 1000 releases
+)
+
+// repoDownloads adds up the downloads of every release asset. A failed
+// page gives 0 (unknown): a partial sum would look like a drop.
+func repoDownloads(ctx context.Context, api services.KeyedApi, path string) int {
+	total := 0
+	for page := 1; page <= githubPages; page++ {
+		raw, err := api.Get(ctx, path+"/releases", url.Values{"per_page": {strconv.Itoa(githubPageSize)}, "page": {strconv.Itoa(page)}})
+		if err != nil {
+			return 0
+		}
+
+		list := asList(raw)
+		for _, rel := range list {
+			for _, asset := range asList(asMap(rel)["assets"]) {
+				total += int(asFloat(asMap(asset)["download_count"]))
+			}
+		}
+		if len(list) < githubPageSize {
+			break
+		}
+	}
+	return total
 }
 
 // ciFailure is GitHub's conclusion of a failed run.
@@ -665,6 +706,21 @@ func DemoDWD(now time.Time) *DWDDataset {
 func DemoGitHub(now time.Time) *GitHubDataset {
 	data := &GitHubDataset{}
 	demoworld.MustDecode("code.github", now, data)
+
+	// downloads_daily: downloads per day, today last; the day totals
+	// before today count back from the current total.
+	var daily struct {
+		Repos []struct{ DownloadsDaily []int }
+	}
+	demoworld.MustDecode("code.github", now, &daily)
+	for i, r := range daily.Repos {
+		total := data.Repos[i].Downloads
+		for back, n := 0, len(r.DownloadsDaily); back < n-1; back++ {
+			total -= r.DownloadsDaily[n-1-back]
+			day := now.AddDate(0, 0, -(back + 1)).Format(time.DateOnly)
+			data.Repos[i].DownloadDays = append([]DownloadDay{{Day: day, Total: total}}, data.Repos[i].DownloadDays...)
+		}
+	}
 	return data
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -208,5 +209,53 @@ func TestGitHubReviewsAndOwnPRs(t *testing.T) {
 	data := raw.(*sources.GitHubDataset)
 	if len(data.Reviews) != 1 || data.Reviews[0].Repo != "a/b" || data.Reviews[0].Number != 7 || len(data.MyPRs) != 2 {
 		t.Fatalf("dataset: %+v", data)
+	}
+}
+
+// TestGitHubDownloads: a repo with a release adds up the downloads of
+// every asset over all release pages.
+func TestGitHubDownloads(t *testing.T) {
+	page := func(n, count int) string {
+		var list []string
+		for range n {
+			list = append(list, `{"assets":[{"download_count":`+strconv.Itoa(count)+`},{"download_count":1}]}`)
+		}
+		return "[" + strings.Join(list, ",") + "]"
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/repos/a/b":
+			w.Write([]byte(`{"default_branch":"main"}`))
+		case "/repos/a/b/releases/latest":
+			w.Write([]byte(`{"tag_name":"v2"}`))
+		case "/repos/a/b/releases":
+			if r.URL.Query().Get("page") == "1" {
+				w.Write([]byte(page(100, 2)))
+				return
+			}
+			w.Write([]byte(page(1, 5)))
+		default:
+			w.Write([]byte(`[]`))
+		}
+	}))
+	defer srv.Close()
+
+	raw, err := sources.GitHubData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Options: map[string]any{"repos": []any{"a/b"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := raw.(*sources.GitHubDataset).Repos[0].Downloads; got != 100*3+6 {
+		t.Fatalf("downloads %d", got)
+	}
+}
+
+// TestDemoGitHubDownloadDays: the demo's day totals count back from the
+// current total, yesterday last.
+func TestDemoGitHubDownloadDays(t *testing.T) {
+	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	repo := sources.DemoGitHub(now).Repos[0]
+	days := repo.DownloadDays
+	if len(days) == 0 || days[len(days)-1].Day != "2026-10-04" || days[len(days)-1].Total >= repo.Downloads || days[0].Total >= days[1].Total {
+		t.Fatalf("days %+v of %d", days, repo.Downloads)
 	}
 }

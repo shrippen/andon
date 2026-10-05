@@ -240,6 +240,8 @@ typefield:
     days: Verlauf (Tage)
   speed_history:
     days: Verlauf (Tage)
+  github_downloads:
+    days: Verlauf (Tage)
   hints:
     sort_value: Größter Betrag zuerst
     min_severity_10: Alle Stufen
@@ -803,6 +805,9 @@ wtype:
   github:
     name: 'GitHub-Repos'
     desc: 'PRs, Issues, CI-Status und letztes Release je Repo.'
+  github_downloads:
+    name: 'GitHub-Downloads'
+    desc: 'Release-Downloads je Repo mit Verlauf pro Tag.'
   speedtest:
     name: 'Internet-Geschwindigkeit'
     desc: 'Letzte Messung aus Speedtest Tracker.'
@@ -3126,6 +3131,12 @@ detail:
     month: 'Monat'
     months: 'Je Monat'
     sum: 'Summe'
+  downloads:
+    best: 'Bester Tag: {n} am {day}'
+    gained: 'In {days} Tagen'
+    per_day: 'Pro Tag'
+    total: 'Gesamt'
+    window: 'Im Zeitraum'
   git:
     calm: 'Nichts wartet auf dich.'
     ci: 'CI'
@@ -4223,6 +4234,9 @@ dwd:
   severe: 'Unwetter'
   extreme: 'Extrem'
   until: 'bis {day}'
+downloads:
+  gained: '+{n} in {days} Tagen'
+  none: Keine Release-Downloads.
 github:
   repo: 'Repo'
   issues: 'Issues'
