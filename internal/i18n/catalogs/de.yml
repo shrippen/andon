@@ -1110,6 +1110,9 @@ library:
   uses: Verwendet
   copy: Als Kopie übernehmen
   empty: Noch keine Kacheln.
+  unnamed: ohne Namen
+  filter_unnamed: Ohne Namen
+  name_it: Benennen
 history:
   when: Zeitpunkt
   sections: Abschnitte
@@ -4756,17 +4759,17 @@ danger:
   title: Löschen
 boards:
   title: Boards
-  order: Reihenfolge
   in_nav: Navigation
-  up: Nach oben
-  down: Nach unten
-  hide: Ausblenden
-  show: Einblenden
+  up: Nach vorn
+  down: Nach hinten
   edit: Bearbeiten
   settings: Einstellungen
   my_layout: Mein Layout
   start: Start
   start_hint: 'Welches Board sich bei „/“ öffnet, stellst du im Profil ein; ohne Wahl ist es das oberste.'
+  drag: Ziehen zum Sortieren
+  tiles: 'Kacheln: {n}'
+  hints: 'Hinweise: {n}'
 paydays:
   row: '{client}: im Mittel {days} Tage bis zur Zahlung, {count} Rechnungen'
   legend: 'Punkt = eine Rechnung · Strich = {center} · gestrichelt = Ziel {target} Tage'

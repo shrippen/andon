@@ -1707,7 +1707,43 @@
     window.setInterval(tick, CLOCK_TICK_MS);
   });
 
+  // setupBoardOrder: board cards sort by their grip; the new order is
+  // saved at once (POST /boards/order, one id per board). Sortable comes
+  // with the page and may still load after a soft page change.
+  function setupBoardOrder() {
+    var grid = d.querySelector("[data-board-order]");
+    if (!grid) {
+      return;
+    }
+    if (typeof Sortable === "undefined") {
+      var script = d.querySelector("script[src*=\"Sortable\"]");
+      if (script) {
+        script.addEventListener("load", setupBoardOrder, { once: true });
+      }
+      return;
+    }
+    if (Sortable.get(grid)) {
+      return;
+    }
+    Sortable.create(grid, {
+      handle: ".grip",
+      draggable: ".board-card",
+      animation: 150,
+      onEnd: function (e) {
+        if (e.oldIndex === e.newIndex) {
+          return;
+        }
+        var ids = new URLSearchParams();
+        [].forEach.call(grid.querySelectorAll("[data-board]"), function (card) {
+          ids.append("id", card.getAttribute("data-board"));
+        });
+        post("/boards/order", ids);
+      }
+    });
+  }
+
   window.andonPage(function () {
+    setupBoardOrder();
     openEditorParam();
     restorePlace();
     retryPending(d);

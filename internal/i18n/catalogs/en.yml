@@ -1110,6 +1110,9 @@ library:
   uses: Used
   copy: Take over as copy
   empty: No tiles yet.
+  unnamed: no name
+  filter_unnamed: No name
+  name_it: Name it
 history:
   when: When
   sections: Sections
@@ -4755,17 +4758,17 @@ danger:
   title: Delete
 boards:
   title: Boards
-  order: Order
   in_nav: Navigation
-  up: Move up
-  down: Move down
-  hide: Hide
-  show: Show
+  up: Move earlier
+  down: Move later
   edit: Edit
   settings: Settings
   my_layout: My layout
   start: Start
   start_hint: 'Which board opens at “/” is set in your profile; without a choice it is the top one.'
+  drag: Drag to sort
+  tiles: 'Tiles: {n}'
+  hints: 'Hints: {n}'
 paydays:
   row: '{client}: typically {days} days to payment, {count} invoices'
   legend: 'Dot = one invoice · mark = {center} · dashed = target {target} days'

@@ -592,6 +592,26 @@ func WidgetUses(q db.Queryer, widgetID int64) (int, error) {
 	return n, err
 }
 
+// WidgetBoards returns the boards a widget is placed on, each once.
+func WidgetBoards(q db.Queryer, widgetID int64) ([]int64, error) {
+	rows, err := q.Query(`SELECT DISTINCT s.board_id FROM placements p JOIN sections s ON s.id = p.section_id
+		WHERE p.widget_id = ? ORDER BY s.board_id`, widgetID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
 // AddWidget inserts a new widget.
 func AddWidget(q db.Queryer, w *model.Widget) error {
 	config, err := db.ToJSON(orEmpty(w.Config))

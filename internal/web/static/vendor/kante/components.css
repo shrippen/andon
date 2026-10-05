@@ -270,6 +270,8 @@ a.feat:focus-visible::after{inset:6px;background:var(--brk)}
 
 /* ── Table ── */
 .table-wrap{overflow-x:auto;border:1px solid var(--bg1);background:var(--bg-panel);margin-bottom:1rem}
+/* A menu open in a row leaves the frame: no cut and no scroll box while it is open */
+.table-wrap:has(details[open]){clip-path:none;overflow:visible}
 .table{width:100%;border-collapse:collapse;font-size:.9rem}
 .table th{font-family:var(--font-heading);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg0);
   text-align:left;background:var(--bg1);padding:.65rem .9rem;white-space:nowrap}
@@ -1597,6 +1599,44 @@ details.help.is-right>.help-text{left:auto;right:-.5rem}
 /* ── Keyboard focus on segments and switches (they had none) ── */
 .seg button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
 .switch:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* ── Board card: a board as a card with a floor plan of its tiles.
+   .board-grid > .board-card[.is-start][.is-off] > .grip, .plan > div[--cols] > i[--w,--h,data-tier], .board-body
+   (.board-name, .board-meta, .board-foot); .board-add is the dashed "new board" card ── */
+.board-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(18rem,100%),1fr));gap:1rem}
+.board-card{position:relative;display:flex;flex-direction:column;background:var(--bg-panel);border:1px solid var(--bg1);border-top:4px solid var(--bg2);
+  clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,0 100%)}
+.board-card:hover,.board-card:focus-within{border-top-color:var(--hl)}
+/* An open menu leaves the card: drop the cut while it is open */
+.board-card:has(details[open]){clip-path:none;z-index:2}
+.board-card.is-start{border-top-color:var(--primary)}
+.board-card.is-off :is(.plan,.board-name){opacity:.5}
+.board-card>.grip{position:absolute;top:.9rem;left:.6rem;z-index:1}
+.board-card>.grip~.plan{padding-left:1.8rem}
+.board-card.sortable-ghost{opacity:.4}
+.plan{display:flex;flex-direction:column;gap:6px;height:6.6rem;overflow:hidden;padding:.9rem;background:var(--bg-hard)}
+.plan>div{display:grid;grid-template-columns:repeat(var(--cols,6),minmax(0,1fr));grid-auto-rows:.55rem;gap:3px}
+.plan>div+div{padding-top:6px;border-top:2px solid var(--bg1)}
+.plan i{grid-column:span var(--w,1);grid-row:span var(--h,1);background:var(--bg2)}
+.plan i[data-tier="yellow"]{background:var(--warn)}
+.plan i[data-tier="red"]{background:var(--danger)}
+.plan i[data-tier="cyan"],.plan i[data-tier="blue"]{background:var(--cyan-n)}
+.board-body{display:flex;flex-direction:column;gap:.45rem;flex:1;padding:.8rem .9rem .9rem}
+.board-name{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;min-width:0}
+.board-name>a{font-family:var(--font-heading);font-weight:700;font-size:1.35rem;line-height:1.15;color:var(--fg0);text-decoration:none;overflow-wrap:anywhere}
+.board-name>a:hover{color:var(--hl)}
+.board-meta{display:flex;flex-wrap:wrap;gap:.2rem .8rem;font-family:var(--font-mono);font-size:.7rem;color:var(--fg3);font-variant-numeric:tabular-nums}
+.board-meta .is-warn{color:var(--warn-text)}
+.board-foot{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-top:auto;padding-top:.55rem;border-top:1px solid var(--bg1)}
+.board-foot>form{display:contents}
+.board-foot>.switch,.board-foot>form:first-child>.switch{margin-right:auto}
+.board-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3rem;min-height:14rem;border:1px dashed var(--bg2);
+  color:var(--fg3);font-family:var(--font-heading);font-weight:600;font-size:1.1rem;text-transform:uppercase;text-decoration:none}
+.board-add:hover{border-color:var(--hl);color:var(--fg0);text-decoration:none}
+.board-add>b{font-size:2rem;line-height:1;color:var(--fg2)}
+
+/* ── A field in a menu, e.g. a target picker above its button ── */
+.menu :is(.select,.input){display:block;width:calc(100% - 1.8rem);margin:.3rem .9rem}
 
 /* ── Screen-reader only: a label that is read out but not shown (e.g. a column of number fields with a visible head) ── */
 .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}

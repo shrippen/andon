@@ -58,45 +58,81 @@
     <h1>{{t "nav.library"}}</h1>
     {{template "intro" dict "Page" "library" "Chapter" "tiles" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{t "library.lead"}}</p>
-    <div class="gal-tools">
-      <input class="input" type="search" id="gal-q" placeholder="{{t "library.search"}}" aria-label="{{t "library.search"}}">
-      <a class="btn btn-outline btn-sm" href="/widgets/new" data-details="/widgets/new?dialog">+ {{t "gallery.title"}}</a>
-    </div>
-    {{range .Groups}}
-    <section class="gal-group lib-group">
-      <h2>{{if .Topic}}{{t (print "topic." .Topic)}}{{else}}{{t "library.links"}}{{end}} <span class="hint-group-count">{{len .Tiles}}</span></h2>
-      {{/* Same column widths in every group, so buttons line up. */}}
-      <div class="table-wrap"><table class="table lib-table">
-        <colgroup><col class="lib-name"><col class="lib-space"><col class="lib-uses"><col class="lib-actions"></colgroup>
-        {{range .Tiles}}
-        {{$type := t (print "wtype." .Type ".name")}}
-        <tr data-q="{{.Name}} {{$type}} {{.Space.Name}}">
-          <td><b>{{.Name}}</b>{{if .Title}}<small class="muted"> · {{$type}}</small>{{end}}</td>
-          <td class="small muted">{{.Space.Name}}</td>
-          <td class="small muted">{{if .Uses}}{{t "gallery.uses" "n" .Uses}}{{else}}{{t "gallery.unused"}}{{end}}</td>
-          <td><div class="btn-row">{{if .CanEdit}}<a class="btn btn-outline btn-sm" href="/widgets/{{.ID}}/edit" data-details="/widgets/{{.ID}}/edit?dialog">{{t "action.edit"}}</a>{{end}}
-            <details class="row-more" data-widget="{{.ID}}"><summary class="btn btn-outline btn-sm btn-icon" aria-label="{{t "action.more"}}" title="{{t "action.more"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></summary></details></div></td>
-        </tr>
+    {{if .Groups}}
+    <div class="library">
+      <nav class="gal-nav" aria-label="{{t "gallery.topics"}}">
+        {{range .Groups}}<a href="#topic-{{or .Topic "links"}}">{{if .Topic}}{{t (print "topic." .Topic)}}{{else}}{{t "library.links"}}{{end}}<span>{{len .Tiles}}</span></a>{{end}}
+      </nav>
+
+      <div>
+        <div class="gal-tools">
+          <input class="input" type="search" id="gal-q" placeholder="{{t "library.search"}}" aria-label="{{t "library.search"}}">
+          <a class="btn btn-accent btn-sm" href="/widgets/new" data-details="/widgets/new?dialog">+ {{t "gallery.title"}}</a>
+        </div>
+        {{/* Filters (gallery.js): the segment by space kind (data-space), the
+             chips by flag (data-unnamed, data-unused on the rows). */}}
+        <div class="gal-tools">
+          {{if gt (len .Tally.Kinds) 1}}<div class="seg" role="group" id="gal-filter" aria-label="{{t "field.space"}}">
+            <button type="button" data-filter="all" aria-pressed="true">{{t "gallery.filter_all"}}</button>
+            {{with index .Tally.Kinds "personal"}}<button type="button" data-filter="personal" aria-pressed="false">{{t "settings.level_me"}} <small>{{.}}</small></button>{{end}}
+            {{with index .Tally.Kinds "team"}}<button type="button" data-filter="team" aria-pressed="false">{{t "space.team"}} <small>{{.}}</small></button>{{end}}
+            {{with index .Tally.Kinds "instance"}}<button type="button" data-filter="instance" aria-pressed="false">{{t "space.instance"}} <small>{{.}}</small></button>{{end}}
+          </div>{{end}}
+          <div class="chips-row" id="lib-flags">
+            <label class="chip-pick"><input type="checkbox" data-flag="unnamed"><span>{{t "library.filter_unnamed"}}</span><small>{{.Tally.Unnamed}}</small></label>
+            <label class="chip-pick"><input type="checkbox" data-flag="unused"><span>{{t "gallery.filter_unused"}}</span><small>{{.Tally.Unused}}</small></label>
+          </div>
+        </div>
+
+        {{range .Groups}}
+        {{if .Topic}}<section class="gal-group lib-group" id="topic-{{.Topic}}">
+          <h2>{{t (print "topic." .Topic)}} <span class="hint-group-count">{{len .Tiles}}</span></h2>
+          {{template "library_rows" .Tiles}}
+        </section>
+        {{else}}<details class="gal-group lib-group fold" id="topic-links">
+          <summary>{{t "library.links"}} <span class="count">{{len .Tiles}}</span></summary>
+          <div class="body">{{template "library_rows" .Tiles}}</div>
+        </details>{{end}}
         {{end}}
-      </table></div>
-    </section>
+        <p class="gal-none muted" hidden>{{t "gallery.none"}}</p>
+      </div>
+    </div>
     {{else}}<p class="muted">{{t "library.empty"}}</p>{{end}}
-    <p class="gal-none muted" hidden>{{t "gallery.none"}}</p>
     {{/* Every row's menu, filled with {widget} when it opens (gallery.js):
          a copy form with a space picker per row cost Chrome 280 ms. */}}
     <template id="row-more">
-      <div class="row-more-body">
-        <a class="btn btn-outline btn-sm" href="/shares/widget/{widget}">{{t "edit.share"}}</a>
-        <form method="post" action="/widgets/{widget}/copy" class="inline-form">
+      <div class="menu row-more-body">
+        <a href="/shares/widget/{widget}">{{t "edit.share"}}</a>
+        <hr>
+        <form method="post" action="/widgets/{widget}/copy">
           <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
           <select class="select" name="space_id" aria-label="{{t "field.space"}}">{{range .Spaces}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
-          <button type="submit" class="btn btn-outline btn-sm">{{t "library.copy"}}</button>
+          <button type="submit">{{t "library.copy"}}</button>
         </form>
       </div>
     </template>
   </main>
 </body>
 </html>
+{{end}}
+
+{{/* Library rows of one topic: name over type, service and space; the
+     boards the tile is on (those the viewer sees); edit and a menu. */}}
+{{define "library_rows"}}
+<div class="table-wrap"><table class="table lib-table">
+  <colgroup><col class="lib-name"><col class="lib-where"><col class="lib-actions"></colgroup>
+  {{range .}}
+  {{$type := t (print "wtype." .Type ".name")}}{{$svc := ""}}{{with .Service}}{{$svc = t (print "service." .)}}{{end}}
+  <tr data-q="{{.Name}} {{$type}} {{$svc}} {{.Space.Name}}{{range .Boards}} {{.Name}}{{end}}" data-space="{{.Space.Kind}}"{{if .Unnamed}} data-unnamed{{end}}{{if not .Uses}} data-unused{{end}}>
+    <td><b{{if .Unnamed}} class="warn-text"{{end}}>{{.Name}}</b><br><small class="muted">{{if .Title}}{{$type}} · {{end}}{{with $svc}}{{.}} · {{end}}{{template "space_label" .Space}}{{if .Unnamed}} · <span class="warn-text">{{t "library.unnamed"}}</span>{{end}}</small></td>
+    <td>{{if .Boards}}<div class="chips-row">{{range .Boards}}<a class="chip" href="/boards/{{.ID}}">{{.Name}}</a>{{end}}</div>
+      {{else if .Uses}}<span class="small muted">{{t "gallery.uses" "n" .Uses}}</span>
+      {{else}}<span class="small warn-text">{{t "gallery.unused"}}</span>{{end}}</td>
+    <td><div class="btn-row">{{if .CanEdit}}<a class="btn btn-outline btn-sm" href="/widgets/{{.ID}}/edit" data-details="/widgets/{{.ID}}/edit?dialog">{{if .Unnamed}}{{t "library.name_it"}}{{else}}{{t "action.edit"}}{{end}}</a>{{end}}
+      <details class="dropdown is-right row-more" data-widget="{{.ID}}"><summary class="btn btn-outline btn-sm btn-icon" aria-label="{{t "action.more"}}" title="{{t "action.more"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></summary></details></div></td>
+  </tr>
+  {{end}}
+</table></div>
 {{end}}
 
 {{define "target_fields"}}

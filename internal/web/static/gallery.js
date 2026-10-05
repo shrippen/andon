@@ -22,25 +22,37 @@
     var box = root.querySelector("#gal-mine");
     var mine = box ? box.checked : false;
     var pressed = root.querySelector("#gal-filter [aria-pressed=\"true\"]");
-    var kind = FILTERS[pressed ? pressed.getAttribute("data-filter") : "all"];
+    var name = pressed ? pressed.getAttribute("data-filter") : "all";
+    // In the library a filter button names a space kind (data-space on the row).
+    var kind = FILTERS[name] || function (row) { return row.getAttribute("data-space") === name; };
+    // Library flag chips: a row needs every checked flag (data-unnamed, data-unused).
+    var flags = [].map.call(root.querySelectorAll("#lib-flags input:checked"), function (box) {
+      return "data-" + box.getAttribute("data-flag");
+    });
+    var narrowed = q || flags.length > 0 || name !== "all";
     var any = false;
     [].forEach.call(root.querySelectorAll(".gal-group"), function (group) {
       var shown = 0;
       [].forEach.call(group.querySelectorAll("[data-q]"), function (card) {
         var hit = (!q || (card.getAttribute("data-q") || "").toLowerCase().indexOf(q) >= 0) &&
-          (!mine || card.hasAttribute("data-mine")) && (!kind || kind(card));
+          (!mine || card.hasAttribute("data-mine")) && (!kind || kind(card)) &&
+          flags.every(function (flag) { return card.hasAttribute(flag); });
         card.hidden = !hit;
         shown += hit ? 1 : 0;
       });
       group.hidden = shown === 0;
       any = any || shown > 0;
+      // A folded group (the links) opens when a search or filter finds rows in it.
+      if (group.tagName === "DETAILS" && narrowed && shown > 0) {
+        group.open = true;
+      }
     });
     root.querySelector(".gal-none").hidden = any;
   }
 
   // Delegated: the gallery arrives in the detail dialog after page load.
   function refilter(e) {
-    if (e.target.id !== "gal-q" && e.target.id !== "gal-mine") {
+    if (e.target.id !== "gal-q" && e.target.id !== "gal-mine" && !e.target.closest("#lib-flags")) {
       return;
     }
     filter(e.target.closest(".gallery") || d);
