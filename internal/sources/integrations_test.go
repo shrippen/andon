@@ -259,3 +259,39 @@ func TestDemoGitHubDownloadDays(t *testing.T) {
 		t.Fatalf("days %+v of %d", days, repo.Downloads)
 	}
 }
+
+// TestGitHubOwnerRepos: option owner lists the owner's repos, forks and
+// archived ones left out unless asked for, explicit repos kept once.
+func TestGitHubOwnerRepos(t *testing.T) {
+	list := `[{"full_name":"me/app","owner":{"login":"me"}},{"full_name":"me/fork","fork":true,"owner":{"login":"me"}},
+		{"full_name":"me/old","archived":true,"owner":{"login":"me"}},{"full_name":"org/lib","owner":{"login":"org"}}]`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/users/me/repos", "/user/repos":
+			w.Write([]byte(list))
+		case "/repos/me/app", "/repos/me/fork", "/repos/me/old", "/repos/x/y":
+			w.Write([]byte(`{"default_branch":"main"}`))
+		default:
+			w.Write([]byte(`[]`))
+		}
+	}))
+	defer srv.Close()
+
+	names := func(opts map[string]any, secret string) []string {
+		raw, err := sources.GitHubData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: secret, Options: opts})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, r := range raw.(*sources.GitHubDataset).Repos {
+			out = append(out, r.Name)
+		}
+		return out
+	}
+	if got := strings.Join(names(map[string]any{"owner": "me", "repos": []any{"x/y", "Me/App"}}, ""), " "); got != "x/y Me/App" {
+		t.Fatalf("public: %s", got)
+	}
+	if got := strings.Join(names(map[string]any{"owner": "me", "forks": true, "archived": true}, "t"), " "); got != "me/app me/fork me/old" {
+		t.Fatalf("with token, all: %s", got)
+	}
+}
