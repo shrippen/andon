@@ -6,12 +6,14 @@ import (
 	"strconv"
 	"strings"
 
+	"net/http"
+
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
-	"net/http"
 
 	"andon/internal/enums"
 	"andon/internal/i18n"
+	"andon/internal/model"
 	"andon/internal/services/access"
 	"andon/internal/services/connect"
 	"andon/internal/services/connections"
@@ -71,9 +73,50 @@ func (d Deps) connectionsPage(w http.ResponseWriter, ctx Ctx, spaceID int64) {
 	sort.SliceStable(list, func(i, j int) bool {
 		return stateRank[list[i].Health.State()] < stateRank[list[j].Health.State()]
 	})
-	_ = d.Page(w, ctx, "connections", http.StatusOK, map[string]any{
-		"Connections": list, "Services": serviceOptions, "Summary": healthSummary(list),
-	})
+	values := map[string]any{"Connections": list, "Services": serviceOptions, "Summary": healthSummary(list)}
+	if spaceID != 0 {
+		if err := d.levelValues(ctx, spaceID, values); err != nil {
+			d.fail(w, err, http.StatusInternalServerError)
+			return
+		}
+	}
+	_ = d.Page(w, ctx, "connections", http.StatusOK, values)
+}
+
+// levelValues adds what a level's page shows besides its connections:
+// who may add one, and the templates to activate, the caller's own on
+// their personal level, the team's on a team level its owner sees.
+func (d Deps) levelValues(ctx Ctx, spaceID int64, values map[string]any) error {
+	ref := ctx.Who.Spaces[spaceID]
+	need := enums.RightManage
+	if ref.Kind == enums.SpacePersonal {
+		need = enums.RightEdit
+	}
+	values["Level"], values["LevelName"], values["SpaceID"] = string(ref.Kind), ref.Name, spaceID
+	values["CanCreate"] = access.SpaceRight(ctx.Who, &ref) >= need
+
+	var h model.Holder
+	switch {
+	case ref.Kind == enums.SpacePersonal:
+		h = model.UserHolder(ctx.Who.UserID)
+	case ref.Kind == enums.SpaceTeam && ref.TeamID != nil && ctx.Who.Teams[*ref.TeamID] == enums.TeamOwner:
+		h = model.TeamHolder(*ref.TeamID)
+		values["Team"] = *ref.TeamID
+	default:
+		return nil
+	}
+	list, err := connections.Activations(d.DB, ctx.Who, h)
+	if err != nil {
+		return err
+	}
+	signIns := map[int64]*signIn{}
+	if h.User() > 0 { // signing in stores a person's own login
+		for _, a := range list {
+			signIns[a.Template.ID] = d.signInOf(a.Template)
+		}
+	}
+	values["Activations"], values["SignIn"] = list, signIns
+	return nil
 }
 
 // stateRank orders the connection list, what needs care first.
@@ -114,12 +157,12 @@ func (d Deps) handleConnectionNewForm(w http.ResponseWriter, r *http.Request, ct
 			d.fail(w, err, http.StatusInternalServerError)
 			return
 		}
-		_ = d.Page(w, ctx, "connection_pick", http.StatusOK, map[string]any{"Services": picks})
+		_ = d.Page(w, ctx, "connection_pick", http.StatusOK, map[string]any{"Services": picks, "Space": formID(r, "space")})
 		return
 	}
 	spaces := access.EditableSpaces(ctx.Who)
 	_ = d.Page(w, ctx, "connection_form", http.StatusOK, map[string]any{
-		"Spaces": spaces, "Services": serviceOptions, "IsNew": true, "Service": service,
+		"Spaces": spaces, "Services": serviceOptions, "IsNew": true, "Service": service, "Space": formID(r, "space"),
 	})
 }
 

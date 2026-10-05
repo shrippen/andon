@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 	"testing"
 
 	"andon/internal/enums"
@@ -211,5 +212,43 @@ func TestPersonalIsFixed(t *testing.T) {
 	}
 	if res, _ := connections.Test(context.Background(), l.d, l.member, id); res.Message == "credential.missing" {
 		t.Fatal("own token not used")
+	}
+}
+
+// TestActivationsShowChanges: a paused activation lists what changed in
+// its template, so its holder can decide to activate it again.
+func TestActivationsShowChanges(t *testing.T) {
+	l := newLevels(t)
+	me := model.UserHolder(l.member.UserID)
+	if err := connections.Activate(l.d, l.member, l.template, me, "member-token"); err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Update(l.d, l.admin, l.template, "Kimai", "https://kimai.lan/v2", enums.CredentialPersonal, nil,
+		connections.TLSSkip, map[string]any{"all_users": true}); err != nil {
+		t.Fatal(err)
+	}
+
+	list, err := connections.Activations(l.d, l.member, me)
+	if err != nil || len(list) != 1 {
+		t.Fatalf("activations: %+v %v", list, err)
+	}
+	a := list[0]
+	if !a.Paused || a.Active || a.NeedsSecret {
+		t.Fatalf("state: %+v", a)
+	}
+	want := []connections.Change{
+		{Field: connections.FieldURL, Was: "https://kimai.lan", Now: "https://kimai.lan/v2"},
+		{Field: connections.FieldVerifyTLS, Was: "true", Now: "false"},
+		{Field: connections.FieldOption, Key: "all_users", Was: "", Now: "true"},
+	}
+	if !slices.Equal(a.Changes, want) {
+		t.Fatalf("changes:\n got %+v\nwant %+v", a.Changes, want)
+	}
+
+	if _, err := connections.Activations(l.d, l.member, model.TeamHolder(l.team.ID)); !errors.Is(err, access.ErrDenied) {
+		t.Fatalf("member listed the team's: %v", err)
+	}
+	if list, err := connections.Activations(l.d, l.owner, model.TeamHolder(l.team.ID)); err != nil || len(list) != 1 || list[0].Active {
+		t.Fatalf("team: %+v %v", list, err)
 	}
 }
