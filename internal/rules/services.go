@@ -17,6 +17,7 @@ const (
 	gatewaySvc     = string(enums.ServiceGateway)
 	giteaSvc       = string(enums.ServiceGitea)
 	githubSvc      = string(enums.ServiceGitHub)
+	kdestoreSvc    = string(enums.ServiceKDEStore)
 	glancesSvc     = string(enums.ServiceGlances)
 	gluetunSvc     = string(enums.ServiceGluetun)
 	grocySvc       = string(enums.ServiceGrocy)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -370,7 +371,8 @@ func TestKDEStore(t *testing.T) {
 		case r.URL.Path == "/ocs/v1/content/data" && q.Get("user") == "me" && q.Get("page") == "1":
 			w.Write([]byte(`{"status":"ok","totalitems":3,"itemsperpage":2,"data":[` + entry("3", "7") + `]}`))
 		case r.URL.Path == "/ocs/v1/content/data/9":
-			w.Write([]byte(`{"status":"ok","data":[` + entry("9", "5") + `]}`))
+			w.Write([]byte(`{"status":"ok","data":[{"id":9,"name":"E9","downloads":5,"description":` +
+				`"<a href=\"https://github.com/Me/E9/issues\">GitHub</a>, <a href=\"https://github.com/me/e9.git\">git</a>"}]}`))
 		case r.URL.Path == "/ocs/v1/content/data/1":
 			w.Write([]byte(`{"status":"ok","data":[` + entry("1", "39") + `]}`))
 		default:
@@ -387,5 +389,8 @@ func TestKDEStore(t *testing.T) {
 	if len(items) != 4 || items[0].ID != "9" || items[1].ID != "1" || items[1].Total != 39 || items[2].Total != 0 ||
 		items[3].URL != "https://store.kde.org/p/3" || items[1].Released.IsZero() {
 		t.Fatalf("items %+v", items)
+	}
+	if repos := raw.(*sources.KDEStoreDataset).Items[0].Repos; !slices.Equal(repos, []string{"me/e9"}) {
+		t.Fatalf("linked repos %v", repos)
 	}
 }
