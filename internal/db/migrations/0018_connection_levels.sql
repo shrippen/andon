@@ -40,6 +40,11 @@ UPDATE connections SET
 WHERE id IN (SELECT connection_id FROM own_templates);
 
 DELETE FROM credentials WHERE connection_id IN (SELECT connection_id FROM own_templates);
+-- A shared grant left from before the switch to personal yields to the owner's.
+DELETE FROM oauth_grants WHERE user_id = 0 AND EXISTS (
+    SELECT 1 FROM own_templates o JOIN oauth_grants g
+        ON g.connection_id = o.connection_id AND g.user_id = o.owner_id
+    WHERE o.connection_id = oauth_grants.connection_id);
 UPDATE oauth_grants SET user_id = 0
     WHERE user_id = (SELECT owner_id FROM own_templates o WHERE o.connection_id = oauth_grants.connection_id);
 DELETE FROM oauth_grants WHERE user_id <> 0 AND connection_id IN (SELECT connection_id FROM own_templates);
