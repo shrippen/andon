@@ -345,6 +345,7 @@
         </div>{{end}}
         {{with $c.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}{{if not $c.Health.LastFail.IsZero}} {{ago $c.Health.LastFail}}{{end}}: {{t .}}{{if $c.Health.ErrorSettled}} <span class="pill" data-state="applied">{{t "conn.ok_since"}}</span>{{end}}</p>{{end}}
         {{if $c.DailyBudget}}<p class="small muted">{{t "conn.budget_today" "n" $c.Health.Today "max" $c.DailyBudget}}</p>{{end}}
+        {{with $c.Pace}}{{if .Reason}}<p class="small muted">{{t (print "conn.pace_" .Reason) "min" .Minutes "until" (ago .Until)}}</p>{{end}}{{end}}
         <div class="row-actions">
           <form method="post" action="/connections/{{$c.ID}}/test" class="inline-form" hx-post="/connections/{{$c.ID}}/check" hx-target="#toast">
             <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
@@ -413,6 +414,9 @@
             <label for="budget">{{t "conn.budget"}}</label>
             <input class="input" id="budget" name="budget" type="number" min="0" value="{{$c.DailyBudget}}">
             <p class="small muted">{{t "conn.budget_hint"}}</p>
+            <label for="refresh">{{t "conn.refresh"}}</label>
+            <input class="input" id="refresh" name="refresh" type="number" min="0" value="{{$c.Refresh}}">
+            <p class="small muted">{{t "conn.refresh_hint" "min" $c.AutoRefresh}}</p>
             <label for="options_yaml">{{t "conn.options"}}</label>
             <textarea id="options_yaml" class="input code-area short" name="options_yaml" rows="6" spellcheck="false" data-code="yaml">{{.OptionsYAML}}</textarea>
             <input type="hidden" name="options_before" value="{{.OptionsYAML}}">

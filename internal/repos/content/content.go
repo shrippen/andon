@@ -210,7 +210,7 @@ func RemoveSpace(q db.Queryer, spaceID int64) error {
 // ── Connections ──
 
 const connCols = `id, space_id, key, name, service, url, credential_mode, secret_enc,
-	options, verify_tls, created_at, secret_at, secret_expires, daily_budget, revision`
+	options, verify_tls, created_at, secret_at, secret_expires, daily_budget, refresh_minutes, revision`
 
 func scanConnection(row interface{ Scan(...any) error }) (*model.Connection, error) {
 	var c model.Connection
@@ -218,7 +218,7 @@ func scanConnection(row interface{ Scan(...any) error }) (*model.Connection, err
 
 	err := row.Scan(
 		&c.ID, &c.SpaceID, &c.Key, &c.Name, &c.Service, &c.URL, &c.CredentialMode,
-		&c.SecretEnc, &options, &c.VerifyTLS, &createdAt, &secretAt, &c.SecretExpires, &c.DailyBudget, &c.Revision,
+		&c.SecretEnc, &options, &c.VerifyTLS, &createdAt, &secretAt, &c.SecretExpires, &c.DailyBudget, &c.RefreshMinutes, &c.Revision,
 	)
 	if err != nil {
 		return nil, err
@@ -315,10 +315,10 @@ func AddConnection(q db.Queryer, c *model.Connection) error {
 	}
 	res, err := q.Exec(`INSERT INTO connections
 		(space_id, key, name, service, url, credential_mode, secret_enc, options, verify_tls, created_at,
-		 secret_at, secret_expires, daily_budget, revision)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		 secret_at, secret_expires, daily_budget, refresh_minutes, revision)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		c.SpaceID, c.Key, c.Name, c.Service, c.URL, c.CredentialMode, c.SecretEnc, options,
-		c.VerifyTLS, db.TimeStr(c.CreatedAt), optTimeStr(c.SecretAt), c.SecretExpires, c.DailyBudget, max(c.Revision, 1),
+		c.VerifyTLS, db.TimeStr(c.CreatedAt), optTimeStr(c.SecretAt), c.SecretExpires, c.DailyBudget, c.RefreshMinutes, max(c.Revision, 1),
 	)
 	if err != nil {
 		return err
@@ -339,10 +339,10 @@ func UpdateConnection(q db.Queryer, c *model.Connection) error {
 	}
 	_, err = q.Exec(`UPDATE connections SET
 		name=?, service=?, url=?, credential_mode=?, secret_enc=?, options=?, verify_tls=?,
-		secret_at=?, secret_expires=?, daily_budget=?, revision=?
+		secret_at=?, secret_expires=?, daily_budget=?, refresh_minutes=?, revision=?
 		WHERE id=?`,
 		c.Name, c.Service, c.URL, c.CredentialMode, c.SecretEnc, options, c.VerifyTLS,
-		optTimeStr(c.SecretAt), c.SecretExpires, c.DailyBudget, max(c.Revision, 1), c.ID,
+		optTimeStr(c.SecretAt), c.SecretExpires, c.DailyBudget, c.RefreshMinutes, max(c.Revision, 1), c.ID,
 	)
 	return err
 }

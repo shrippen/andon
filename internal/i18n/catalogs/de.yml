@@ -1180,7 +1180,7 @@ conn:
   tls: Zertifikat
   tls_verify: Prüfen (empfohlen)
   tls_skip: Nicht prüfen (selbst signiert)
-  advanced: 'Erweitert: Ablaufdatum, Abrufe je Tag, Optionen'
+  advanced: 'Erweitert: Ablaufdatum, Abrufe je Tag, Abfrage-Takt, Optionen'
   delete_hint: 'Die Verbindung verschwindet für alle, die sie nutzen. Kacheln darauf zeigen danach keine Daten mehr.'
   state_failing: gestört
   state_failing_one: Gestört
@@ -1206,7 +1206,7 @@ conn:
   about_grocy: 'Vorräte, Einkaufsliste, Hausarbeit'
   options_hint_dwd: 'URL https://api.brightsky.dev, kein Token. Den Ort über die Suche wählen: Andon zeigt die amtlichen Warnungen des Deutschen Wetterdienstes für diese Koordinaten.'
   about_dwd: 'Wetterwarnungen für einen Ort'
-  options_hint_github: 'URL https://api.github.com. Optionen: repos: [besitzer/repo], owner: name (alle Repos des Besitzers; mit Token auch private und die seiner Organisationen), forks: true, archived: true (sonst ohne), downloads_minutes: Minuten zwischen zwei Download-Zählungen (Standard auto: stündlich, bei vielen Repos seltener). Token optional (Feingranular, Lesen: Actions, Contents, Issues, Pull Requests; Benachrichtigungen nur mit klassischem Token).'
+  options_hint_github: 'URL https://api.github.com. Optionen: repos: [besitzer/repo], owner: name (alle Repos des Besitzers; mit Token auch private und die seiner Organisationen), forks: true, archived: true (sonst ohne), downloads_minutes: Minuten zwischen zwei Download-Zählungen (Standard auto: stündlich). Token optional (Feingranular, Lesen: Actions, Contents, Issues, Pull Requests; Benachrichtigungen nur mit klassischem Token).'
   about_github: 'Repos: PRs, Issues, CI, Releases'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
@@ -1220,6 +1220,12 @@ conn:
   hygiene: 'Token und Abrufe'
   budget: 'Abrufe je Tag'
   budget_hint: '0 = unbegrenzt. Danach zeigt Andon den letzten Stand bis morgen.'
+  refresh: 'Abfrage alle … Minuten'
+  refresh_hint: '0 = Automatik: der Standard des Dienstes ({min} min), seltener bei knappem Kontingent, Pause nach „Rate-Limit überschritten“. Eine Pause gilt auch bei festem Wert.'
+  pace_default: 'Abfrage alle {min} min (Automatik).'
+  pace_manual: 'Abfrage alle {min} min (fest eingestellt).'
+  pace_tight: 'Abfrage alle {min} min: Automatik streckt, das Kontingent des Dienstes ist knapp.'
+  pace_refused: 'Rate-Limit überschritten: nächste Abfrage {until}.'
   failed: 'Fehlerquote'
   never_ok: 'noch nie erfolgreich'
   no_fetches: 'noch keine Abrufe'

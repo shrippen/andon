@@ -316,6 +316,7 @@ func Request(ctx context.Context, method, rawURL string, opts Options) (*http.Re
 		return nil, transportError(err, u.Hostname())
 	}
 	noteClock(u.Hostname(), resp.Header.Get("Date"), sent, time.Now())
+	noteUsage(ctx, resp, time.Now())
 	return resp, nil
 }
 

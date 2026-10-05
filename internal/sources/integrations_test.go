@@ -334,26 +334,23 @@ func TestGitHubDownloadsMemo(t *testing.T) {
 	}
 }
 
-// TestDownloadsEvery: automatic is hourly until the repos would take more
-// than a tenth of GitHub's rate limit; a number of minutes overrides it.
+// TestDownloadsEvery: automatic is hourly; a number of minutes overrides
+// it, at least the dataset's own interval.
 func TestDownloadsEvery(t *testing.T) {
 	cases := []struct {
-		opts   map[string]any
-		secret string
-		repos  int
-		want   time.Duration
-		auto   bool
+		opts map[string]any
+		want time.Duration
+		auto bool
 	}{
-		{nil, "t", 40, time.Hour, true},
-		{map[string]any{"downloads_minutes": "auto"}, "t", 1200, 3 * time.Hour, true},
-		{nil, "", 13, 3 * time.Hour, true},
-		{map[string]any{"downloads_minutes": 30.0}, "t", 1200, 30 * time.Minute, false},
-		{map[string]any{"downloads_minutes": 1.0}, "t", 1, 5 * time.Minute, false},
+		{nil, time.Hour, true},
+		{map[string]any{"downloads_minutes": "auto"}, time.Hour, true},
+		{map[string]any{"downloads_minutes": 30.0}, 30 * time.Minute, false},
+		{map[string]any{"downloads_minutes": 1.0}, 5 * time.Minute, false},
 	}
 	for _, c := range cases {
-		got, auto := sources.DownloadsEvery(sources.Ctx{Options: c.opts, Secret: c.secret}, c.repos)
+		got, auto := sources.DownloadsEvery(sources.Ctx{Options: c.opts})
 		if got != c.want || auto != c.auto {
-			t.Errorf("%v %d repos: %v %v", c.opts, c.repos, got, auto)
+			t.Errorf("%v: %v %v", c.opts, got, auto)
 		}
 	}
 }

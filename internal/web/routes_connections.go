@@ -271,8 +271,8 @@ func (d Deps) handleConnectionUpdate(w http.ResponseWriter, r *http.Request, ctx
 	http.Redirect(w, r, recordPath(id, tabSettings), http.StatusSeeOther)
 }
 
-// saveAdvanced stores the form's "Erweitert" part: token expiry and
-// daily budget when changed, the YAML options when edited (they win over
+// saveAdvanced stores the form's "Erweitert" part: token expiry, daily
+// budget and query interval when changed, the YAML options when edited (they win over
 // the setup fields above).
 func (d Deps) saveAdvanced(r *http.Request, ctx Ctx, conn connections.View) error {
 	if _, sent := r.PostForm["budget"]; !sent {
@@ -281,6 +281,11 @@ func (d Deps) saveAdvanced(r *http.Request, ctx Ctx, conn connections.View) erro
 	budget := formInt(r, "budget")
 	if expires := r.FormValue("expires"); expires != conn.SecretExpires || budget != conn.DailyBudget {
 		if err := connections.SetHygiene(d.DB, ctx.Who, conn.ID, expires, budget); err != nil {
+			return err
+		}
+	}
+	if refresh := formInt(r, "refresh"); refresh != conn.Refresh {
+		if err := connections.SetRefresh(d.DB, ctx.Who, conn.ID, refresh); err != nil {
 			return err
 		}
 	}
