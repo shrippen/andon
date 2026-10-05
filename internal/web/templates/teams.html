@@ -52,12 +52,11 @@
             <td>{{.Name}}</td>
             <td>{{.Email}}</td>
             <td>{{t (print "role." .Role)}}</td>
-            <td class="row-actions">
+            <td><div class="btn-row">
               {{if $team.CanManage}}<form method="post" action="/teams/{{$team.ID}}/members/{{.UserID}}/remove">
                 <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
                 <button type="submit" class="btn btn-outline btn-sm">{{t "teams.remove"}}</button>
-              </form>{{end}}
-            </td>
+              </form>{{end}}</div></td>
           </tr>
           {{end}}
           {{if not .Members}}<tr><td colspan="4" class="muted">{{t "teams.no_members"}}</td></tr>{{end}}

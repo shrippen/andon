@@ -32,11 +32,10 @@
           {{if eq .ID $.ActiveTheme}}<span class="pill" data-state="applied">{{t "themes.active"}}</span>{{end}}
           {{if eq .ID $.InstanceTheme}}<span class="pill">{{t "themes.instance_default"}}</span>{{end}}
           {{if eq .ID $.MyTheme}}<span class="pill">{{t "themes.mine"}}</span>{{end}}</span></td>
-        <td class="row-actions nowrap">
+        <td><div class="btn-row">
           <a class="btn btn-outline btn-sm" href="/themes/{{.ID}}">{{if .CanEdit}}{{t "action.edit"}}{{else}}{{t "themes.view"}}{{end}}</a>
           <a class="btn btn-outline btn-sm" href="/themes/{{.ID}}/export">{{t "action.export"}}</a>
-          {{if not .Builtin}}<a class="btn btn-outline btn-sm" href="/shares/theme/{{.ID}}">{{t "share.title"}}</a>{{end}}
-        </td>
+          {{if not .Builtin}}<a class="btn btn-outline btn-sm" href="/shares/theme/{{.ID}}">{{t "share.title"}}</a>{{end}}</div></td>
       </tr>
       {{end}}
     </table></div>
