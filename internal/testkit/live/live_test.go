@@ -5,6 +5,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"andon/internal/enums"
+	"andon/internal/services/maintenance"
+	"andon/internal/testkit"
 )
 
 // local points the package at an empty .local-test/ in a temp dir.
@@ -12,6 +16,7 @@ func local(t *testing.T) string {
 	t.Helper()
 	d := t.TempDir()
 	t.Setenv(dirEnv, d)
+	t.Setenv(runEnv, "1")
 	return d
 }
 
@@ -27,16 +32,53 @@ func TestTargetSkipsWithoutConfig(t *testing.T) {
 	}
 }
 
-func TestTargetReadsConfig(t *testing.T) {
+func TestTargetSkipsUnasked(t *testing.T) {
+	local(t)
+	t.Setenv(runEnv, "")
+	ran := false
+	t.Run("kimai", func(t *testing.T) {
+		Target(t, Kimai)
+		ran = true
+	})
+	if ran {
+		t.Fatal("live test ran without being asked for")
+	}
+}
+
+func TestTargetReadsInstance(t *testing.T) {
 	d := local(t)
-	conf := `{"url": "https://kimai.example/", "token": "tok", "verifyTLS": false}`
-	if err := os.WriteFile(filepath.Join(d, "kimai.json"), []byte(conf), 0o600); err != nil {
+	const key = "local-key"
+	if err := os.MkdirAll(filepath.Join(d, filepath.Dir(keyPath)), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(d, keyPath), []byte(key+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(d, filepath.Dir(dbPath)), 0o700); err != nil {
 		t.Fatal(err)
 	}
 
+	// The local instance with one Kimai connection, token "tok".
+	inst, _, err := maintenance.Unlock(filepath.Join(d, dbPath), key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	who, space := testkit.User(t, inst, "a@b.c", enums.RoleAdmin)
+	testkit.Conn(t, inst, who, space, enums.ServiceKimai, "https://kimai.example/")
+	inst.Close()
+
 	to := Target(t, Kimai)
-	if to.URL != "https://kimai.example" || to.Token != "tok" || to.VerifyTLS {
+	if to.URL != "https://kimai.example" || to.Token != "tok" || !to.VerifyTLS {
 		t.Fatalf("target = %+v", to)
+	}
+
+	ran := false
+	t.Run("paperless", func(t *testing.T) {
+		Target(t, Paperless)
+		ran = true
+	})
+	if ran {
+		t.Fatal("test ran without a paperless connection")
 	}
 }
 
@@ -68,5 +110,14 @@ func TestChangeOnlyOwnEntries(t *testing.T) {
 func TestNameMarksTestEntries(t *testing.T) {
 	if n := Name(t); !strings.HasPrefix(n, namePrefix+" TestNameMarksTestEntries ") {
 		t.Fatalf("name = %q", n)
+	}
+}
+
+func TestChangeTextIDs(t *testing.T) {
+	local(t)
+	Created(t, Ninja, "invoice", "Kx9")
+	Change(t, Ninja, Delete, "invoice", "Kx9")
+	if own(t, Ninja, "invoice", "Ab1") {
+		t.Fatal("foreign key counted as own")
 	}
 }

@@ -1095,11 +1095,12 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
   - Geklärt 06.10.2026: Die Regel gilt nur für Popups und Seiten; Kacheln bleiben ohne Achsen und Legenden, damit sie auf einen Blick lesbar sind
 - [x] Integrationen werden möglichst gegen eine reale Instanz getestet *(`internal/testkit/live`, `make live`; erster Test: Orte-Abgleich `places_live_test.go`)*:
   - [x] `.local-test/` in `.gitignore`
-  - Verzeichnis außerhalb von Git (`.local-test/`): echte Datenbank und Zugangsdaten je Dienst (`<dienst>.json`)
+  - Verzeichnis außerhalb von Git (`.local-test/`): lokale Andon-Instanz; die Tests nehmen je Dienst die erste geteilte Verbindung aus `data/andon.db` (Schlüssel `secrets/master_key`)
   - Schreiben nur mit neuen Testeinträgen (Name `andon-test …`); vorhandene Einträge nie schreibend anfassen (`live.Change` bricht ab)
   - Jeder schreibende Vorgang wird in `.local-test/writes.log` protokolliert (Zeit, Dienst, Aktion, Art, ID, Test)
   - In Cloud-Umgebungen und CI genügen Tests gegen Nachbauten; ohne Instanz wird der Live-Test übersprungen
-  - [ ] Live-Tests für die übrigen schreibenden Ausgänge (Kimai-Zeiten, Invoice Ninja, Paperless)
+  - [x] Live-Tests für die übrigen schreibenden Ausgänge (Kimai-Zeiten, Invoice Ninja, Paperless) *(`kimai_live_test.go` (Zeiten, Tags, Timer), `ninja_live_test.go` (Kunde, Entwurf, Zahlung, Ausgabe; hinterlässt Nummernlücken), `paperless_live_test.go` (Upload, Zusatzfeld); räumen am Ende auf. Erster Lauf 06.10.2026 grün. Laufen nur mit `ANDON_LIVE=1` (`make live`), nie in `make check`)*
+    - Ohne Test: `KimaiMarkExported` (exportierte Zeiten lassen sich nicht mehr löschen), `KimaiRenameCustomer`, Fahrten (`KimaiCreateTrip`, `KimaiTripPurpose`; Fahrtenbuch ohne Löschen)
 
 - [x] Einstellungen: möglichst viele bisher nur per Umgebungsvariable setzbare Einstellungen zusätzlich in den Servereinstellungen der Oberfläche anbieten; sind beide gesetzt, gewinnt die Umgebungsvariable (in der Oberfläche als „durch Umgebung gesetzt“ gesperrt anzeigen) *(Admin → Einstellungen → Server: SMTP, Apprise, Anthropic-Schlüssel, Prüflauf-Intervall, Sitzungsdauern, Log-Stufe; Geheimnisse verschlüsselt, wirken ohne Neustart. Nur Umgebung: `BASE_URL`, `MASTER_KEY`, Pfade, `TRUSTED_PROXIES`, `SCHEDULER_ENABLED`, Demo/Dev. `LOG_LEVEL` wurde vorher gar nicht ausgewertet)*
   - [x] OIDC: heute gewinnt die gespeicherte Konfiguration über `OIDC_*`; auf „Umgebung gewinnt, Feld gesperrt“ umstellen *(je Feld; Speichern lässt gespeicherte Werte gesperrter Felder unberührt)*
