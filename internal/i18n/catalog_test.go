@@ -144,3 +144,17 @@ func TestCapsKeysExist(t *testing.T) {
 		}
 	}
 }
+
+// TestTraitKeysExist: the record can name every trait.
+func TestTraitKeysExist(t *testing.T) {
+	ensureLoaded()
+	for _, s := range enums.Services {
+		for _, k := range caps.TraitsOf(s).Keys() {
+			for loc, cat := range catalogs {
+				if _, ok := cat["caps.trait."+k]; !ok {
+					t.Errorf("caps.trait.%s missing in %s", k, loc)
+				}
+			}
+		}
+	}
+}

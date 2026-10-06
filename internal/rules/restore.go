@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"andon/internal/caps"
 	"fmt"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 
 // BackupSystems are the services whose backups can be restored; each asks
 // for one restore test a quarter.
-var BackupSystems = []enums.ServiceType{enums.ServiceBorgBackup, enums.ServicePGBackWeb, enums.ServiceTrueNAS, enums.ServiceProxmox}
+var BackupSystems = caps.Restorable()
 
 const monthsPerQuarter = 3
 

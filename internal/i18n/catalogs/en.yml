@@ -5386,6 +5386,14 @@ tandoor:
   empty: 'Shopping list empty'
   plan: 'Meal plan'
 caps:
+  trait:
+    webhooks: Reports by webhook
+    restore: Backups with restore test
+    signin_redirect: Sign-in through the service
+    signin_link: Sign-in by link
+    signin_code: Sign-in by code
+    signin_client: Sign-in through a registered client
+    oauth_client: Needs an OAuth client
   refs: 'stores ids of'
   title: Capabilities
   have: available
