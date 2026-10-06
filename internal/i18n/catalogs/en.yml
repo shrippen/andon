@@ -5486,7 +5486,7 @@ verbund:
   delete: Delete Verbund
   none: No Verbund in this space yet.
   new: New Verbund
-  name_hint: 'e.g. Studio Weber'
+  name_hint: 'e.g. Freelance'
   members: Members
   other_space: other space
   create_hint: 'At least two connections of different services. You need edit rights on all of them.'

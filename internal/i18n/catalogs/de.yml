@@ -5487,7 +5487,7 @@ verbund:
   delete: Verbund löschen
   none: Noch kein Verbund in diesem Bereich.
   new: Neuer Verbund
-  name_hint: 'z. B. Studio Weber'
+  name_hint: 'z. B. Freelance'
   members: Mitglieder
   other_space: anderer Bereich
   create_hint: 'Mindestens zwei Verbindungen verschiedener Dienste. Du brauchst Bearbeiten-Rechte auf allen.'
