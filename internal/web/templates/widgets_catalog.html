@@ -294,6 +294,16 @@
 {{end}}{{end}}
 {{end}}
 
+{{define "widgets/hansei_batches"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Unset}}<p class="tile-note">{{t "hansei.unset"}}</p>{{else}}{{with $s := $v.Status}}
+<div class="tile-head"><b class="tile-value" data-live>{{$s.Review}}</b><span class="tile-note">{{t "hansei.review"}}</span>
+  {{with $s.Feedback}}<span class="pill" data-state="locked">{{t "hansei.feedback" "n" .}}</span>{{end}}</div>
+<div class="progress-bar"><i data-style="--p:{{$v.ConformityPct}}%" data-tier="{{if ge $v.ConformityPct 80}}green{{else}}yellow{{end}}"></i></div>
+<p class="tile-note">{{t "hansei.conformity" "n" $v.ConformityPct}} · {{t "hansei.done" "n" $s.Done}} · {{ago $s.Updated}}</p>
+{{end}}{{end}}{{end}}
+{{end}}
+
 {{define "widgets/payment_days"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Rows}}

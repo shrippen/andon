@@ -14,6 +14,7 @@ package sources
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/url"
 	"path"
@@ -31,10 +32,29 @@ import (
 
 // Connection options naming the vault.
 const (
-	docsRepoOption  = "docs_repo"
-	docsPathsOption = "docs_paths"
-	noteExt         = ".md"
+	docsRepoOption   = "docs_repo"
+	docsPathsOption  = "docs_paths"
+	hanseiNoteOption = "hansei_note" // Hansei's status_note, e.g. IT/Hansei-Status.md
+	noteExt          = ".md"
 )
+
+// Frontmatter keys of Hansei's status note (hansei core/service).
+const (
+	fmHanseiReview     = "hansei_review"
+	fmHanseiFeedback   = "hansei_feedback"
+	fmHanseiDone       = "hansei_done"
+	fmHanseiConformity = "hansei_conformity"
+	fmHanseiUpdated    = "hansei_updated"
+)
+
+// HanseiStatus is Hansei's status note: its batches by column and the
+// vault's conformity (0..1).
+type HanseiStatus struct {
+	Review, Feedback, Done int
+	Conformity             float64
+	Updated                time.Time
+	URL                    string // the note in Gitea
+}
 
 // Frontmatter keys of the vault (IT/Design.md).
 const (
@@ -200,17 +220,8 @@ func readNote(ctx context.Context, api services.GiteaApi, repo, sha string) (Doc
 // parseNote reads the frontmatter between the leading "---" lines; the
 // body is dropped. A note without valid frontmatter has none.
 func parseNote(body []byte) DocNote {
-	const fence = "---"
-	rest, ok := bytes.CutPrefix(body, []byte(fence+"\n"))
+	fm, ok := frontmatter(body)
 	if !ok {
-		return DocNote{}
-	}
-	head, _, ok := bytes.Cut(rest, []byte("\n"+fence))
-	if !ok {
-		return DocNote{}
-	}
-	var fm map[string]any
-	if err := yaml.Unmarshal(head, &fm); err != nil {
 		return DocNote{}
 	}
 
@@ -230,6 +241,62 @@ func parseNote(body []byte) DocNote {
 		DependsOn:      fmList(fm[fmDependsOn]),
 		Checked:        fmText(fm[fmChecked]),
 	}
+}
+
+// frontmatter decodes the YAML between a note's leading "---" lines.
+func frontmatter(body []byte) (map[string]any, bool) {
+	const fence = "---"
+	rest, ok := bytes.CutPrefix(body, []byte(fence+"\n"))
+	if !ok {
+		return nil, false
+	}
+	head, _, ok := bytes.Cut(rest, []byte("\n"+fence))
+	if !ok {
+		return nil, false
+	}
+	var fm map[string]any
+	if err := yaml.Unmarshal(head, &fm); err != nil {
+		return nil, false
+	}
+	return fm, true
+}
+
+// loadHansei reads Hansei's status note named by hansei_note; nil when
+// none is set or it cannot be read.
+func loadHansei(ctx context.Context, api services.GiteaApi, sctx Ctx) *HanseiStatus {
+	repo, note := asStr(sctx.Options[docsRepoOption]), strings.Trim(asStr(sctx.Options[hanseiNoteOption]), "/")
+	if repo == "" || note == "" {
+		return nil
+	}
+	file, err := api.Get(ctx, "repos/"+repo+"/contents/"+escapePath(note), nil)
+	if err != nil {
+		return nil
+	}
+	body, err := base64.StdEncoding.DecodeString(strings.ReplaceAll(asStr(asMap(file)["content"]), "\n", ""))
+	if err != nil {
+		return nil
+	}
+	fm, ok := frontmatter(body)
+	if !ok {
+		return nil
+	}
+
+	updated, _ := fm[fmHanseiUpdated].(time.Time)
+	if updated.IsZero() {
+		updated, _ = time.Parse(time.RFC3339, fmText(fm[fmHanseiUpdated]))
+	}
+	return &HanseiStatus{
+		Review: int(asFloat(fmNumber(fm[fmHanseiReview]))), Feedback: int(asFloat(fmNumber(fm[fmHanseiFeedback]))), Done: int(asFloat(fmNumber(fm[fmHanseiDone]))),
+		Conformity: asFloat(fmNumber(fm[fmHanseiConformity])), Updated: updated, URL: asStr(asMap(file)["html_url"]),
+	}
+}
+
+// fmNumber is a YAML number as float64 (YAML decodes integers as int).
+func fmNumber(v any) any {
+	if n, ok := v.(int); ok {
+		return float64(n)
+	}
+	return v
 }
 
 // fmList reads a value or a list of values; empty entries are dropped.

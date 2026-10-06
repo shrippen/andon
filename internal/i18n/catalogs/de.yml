@@ -796,6 +796,9 @@ wtype:
   docs_coverage:
     name: 'Doku-Abdeckung'
     desc: 'IT-Doku gegen Compose-Stacks: dokumentierte Stacks je Host und die Lücken.'
+  hansei_batches:
+    name: 'Hansei-Batches'
+    desc: 'Batches, die in Hansei auf Durchsicht oder Antwort warten, und die Konformität des Vaults.'
   vaultwarden_2fa:
     name: 'Zwei-Faktor im Tresor'
     desc: 'Vaultwarden: Konten mit und ohne Zwei-Faktor.'
@@ -1389,7 +1392,7 @@ conn:
   options_hint_sure: Keine Optionen nötig. Token = API-Schlüssel mit Leserecht (Einstellungen → API-Schlüssel).
   options_hint_homeassistant: 'Keine Optionen nötig. Token = langlebiges Zugriffstoken (Profil → Sicherheit). Es hat alle Rechte seines Nutzers: am besten ein eigener Nutzer ohne Admin-Rechte. Schalten dürfen nur Nutzer mit Recht „nutzen“ an dieser Verbindung.'
   options_hint_freshrss: 'Keine Optionen nötig. Benutzername und API-Passwort aus FreshRSS → Profil → API-Passwort; dort muss API-Zugriff erlaubt sein.'
-  options_hint_gitea: 'Keine Optionen nötig. Token = Zugriffstoken mit Leserechten (read:user, read:issue, read:repository, read:notification). Repos docker-compose-<host> werden als Compose-Stacks gelesen. Optional IT-Doku (Obsidian-Vault): docs_repo: besitzer/vault, docs_paths: [IT/Dienste, IT/Geräte] – nur diese Ordner, nur das Frontmatter.'
+  options_hint_gitea: 'Keine Optionen nötig. Token = Zugriffstoken mit Leserechten (read:user, read:issue, read:repository, read:notification). Repos docker-compose-<host> werden als Compose-Stacks gelesen. Optional IT-Doku (Obsidian-Vault): docs_repo: besitzer/vault, docs_paths: [IT/Dienste, IT/Geräte] – nur diese Ordner, nur das Frontmatter; hansei_note: IT/Hansei-Status.md (Hansei-Statusnotiz).'
   options_hint_borgbackup: Keine Optionen nötig. Token = API-Token bbs_tok_… (Einstellungen → API).
   options_hint_scrutiny: Keine Optionen, kein Token nötig.
   options_hint_immich: 'Keine Optionen nötig. Token = API-Schlüssel (Konto-Einstellungen → API-Schlüssel). Berechtigungen: server.storage (Pflicht); optional server.statistics und job.read (nur mit Schlüssel eines Admin-Kontos) sowie server.versionCheck für Update-Hinweise.'
@@ -4064,6 +4067,17 @@ detail:
     host: 'Host'
     documented_n: 'Dokumentiert'
     stacks: 'Stacks'
+  hansei:
+    columns: 'Stand in Hansei'
+    what: 'Spalte'
+    count: 'Anzahl'
+    review: 'Zur Durchsicht'
+    feedback: 'Rückfragen'
+    done: 'Erledigt'
+    conformity: 'Konformität (%)'
+    findings: 'Doku-Befunde für Hansei'
+    updated: 'Stand vom'
+    open: 'Statusnotiz öffnen'
   plain: '{text}'
   hints: 'Hinweise zu dieser Kachel'
   today: 'heute'
@@ -4728,6 +4742,13 @@ itdocs:
   gaps: 'Ohne Doku'
   problems: '{n} Links prüfen'
   unread: 'Doku oder Stacks nicht gelesen. An der Gitea-Verbindung docs_repo und docs_paths setzen.'
+
+hansei:
+  review: 'Batches warten auf Durchsicht'
+  feedback: '{n} mit Rückfragen'
+  conformity: '{n} % konform'
+  done: '{n} erledigt'
+  unset: 'Keine Hansei-Statusnotiz. In Hansei status_note setzen und an der Gitea-Verbindung hansei_note (mit docs_repo).'
 
 vault:
   with2fa: 'Konten mit Zwei-Faktor'

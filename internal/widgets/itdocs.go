@@ -84,3 +84,50 @@ func docsDetail(cfg DocsConfig, data *sources.GiteaDataset, _ ViewCtx, results m
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
 }
+
+// ── hansei_batches ──
+//
+// Hansei's status note: batches waiting for review or answers, and how
+// well the vault follows its rules.
+
+func init() {
+	Tile[struct{}]{Key: "hansei_batches", Detail: dataDetail(hanseiDetail), Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceGitea, RefreshS: 15 * 60,
+		Fields: []Field{}, Queries: ownData[struct{}], View: dataView(hanseiView)}.add()
+}
+
+func hanseiView(_ struct{}, data *sources.GiteaDataset, _ ViewCtx) map[string]any {
+	h := data.Hansei
+	if h == nil {
+		return map[string]any{"Unset": true}
+	}
+	return map[string]any{"Status": h, "ConformityPct": pctOf(h.Conformity, 1)}
+}
+
+// hanseiDetail shows the columns, the conformity and the docs findings
+// Hansei picks up next.
+func hanseiDetail(_ struct{}, data *sources.GiteaDataset, _ ViewCtx, results map[string]any) DetailView {
+	h := data.Hansei
+	if h == nil {
+		return DetailView{Body: &DetailBody{Blocks: hintsBlock(results)}}
+	}
+
+	rows := [][]Cell{
+		{{Value: T("detail.hansei.review")}, {Value: h.Review}},
+		{{Value: T("detail.hansei.feedback")}, {Value: h.Feedback}},
+		{{Value: T("detail.hansei.done")}, {Value: h.Done}},
+		{{Value: T("detail.hansei.conformity")}, {Value: pctOf(h.Conformity, 1)}},
+	}
+	if check, ok := metrics.CheckDocs(data); ok {
+		rows = append(rows, []Cell{{Value: T("detail.hansei.findings")}, {Value: len(check.Missing) + len(check.Orphans) + len(check.DeprecatedLive)}})
+	}
+	rows = append(rows, []Cell{{Value: T("detail.hansei.updated")}, {Value: dayOf(h.Updated)}})
+	body := &DetailBody{Blocks: []Block{{Kind: BlockTable, Label: T("detail.hansei.columns"),
+		Data: Table{Head: []Text{T("detail.hansei.what"), T("detail.hansei.count")}, Rows: rows, Num: []int{1}}}}}
+	body.Blocks = append(body.Blocks, hintsBlock(results)...)
+
+	head := DetailHead{}
+	if h.URL != "" {
+		head.Actions = []DetailAction{{LabelKey: "detail.hansei.open", Href: h.URL}}
+	}
+	return DetailView{Head: head, Body: body}
+}
