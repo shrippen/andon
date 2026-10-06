@@ -1,0 +1,66 @@
+package itdocs_test
+
+import (
+	"context"
+	"testing"
+
+	"andon/internal/enums"
+	"andon/internal/model"
+	"andon/internal/repos/content"
+	"andon/internal/services/itdocs"
+	"andon/internal/services/svcdata"
+	"andon/internal/sources"
+	"andon/internal/testkit"
+)
+
+// The findings are per stack and note, from the stored Gitea dataset of
+// the caller's connections; a stranger gets none and no complete read.
+func TestFindingsPerStack(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	stranger, _ := testkit.User(t, d, "other@x.de", enums.RoleUser)
+	ctx := context.Background()
+
+	id := testkit.Conn(t, d, who, space, enums.ServiceGitea, "demo://git")
+	conn, err := content.Connection(d, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceGitea), nil, conn, model.UserHolder(who.UserID), svcdata.Force); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := itdocs.Findings(ctx, d, who)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !report.Complete {
+		t.Fatal("not complete")
+	}
+
+	byKey := map[string]itdocs.Finding{}
+	for _, f := range report.Findings {
+		byKey[f.Rule+"|"+f.Host+"|"+f.Stack+"|"+f.Note] = f
+	}
+	gitea, ok := byKey["docs.missing|nebelhorn|gitea|"]
+	if !ok || len(gitea.Services) != 1 || gitea.Services[0].Image == "" || len(gitea.Services[0].Ports) != 2 || gitea.Compose == "" {
+		t.Fatalf("missing gitea: %+v in %+v", gitea, report.Findings)
+	}
+	if f, ok := byKey["docs.orphan|||Paperless-ngx"]; !ok || f.Link == "" || f.Path == "" {
+		t.Fatalf("orphan: %+v", report.Findings)
+	}
+	if _, ok := byKey["docs.deprecated_live|boje|dawarich|Dawarich"]; !ok {
+		t.Fatalf("deprecated live: %+v", report.Findings)
+	}
+	if len(report.Findings) != 6 {
+		t.Fatalf("findings: %d, want 4 missing + orphan + deprecated", len(report.Findings))
+	}
+
+	other, err := itdocs.Findings(ctx, d, stranger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if other.Complete || len(other.Findings) != 0 {
+		t.Fatalf("stranger: %+v", other)
+	}
+}

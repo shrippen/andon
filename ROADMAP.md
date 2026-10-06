@@ -1000,7 +1000,7 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 - [ ] Widget „Batches warten“
 
 **Übergabe an Hansei**
-- [ ] API-Endpunkt für die `docs.*`-Befunde (Token wie bisher): Regel, Host, Stack, Notizpfad, Compose-Auszug ohne Secrets. Hansei holt sie ab und macht daraus Batches; nach Freigabe und Sync verschwindet der Hinweis beim nächsten Prüflauf von selbst
+- [x] API-Endpunkt für die `docs.*`-Befunde (Token wie bisher): Regel, Host, Stack, Notizpfad, Compose-Auszug ohne Secrets. Hansei holt sie ab und macht daraus Batches; nach Freigabe und Sync verschwindet der Hinweis beim nächsten Prüflauf von selbst *(`GET /api/docs`, Token mit Leserecht; je Stack bzw. Notiz, `complete` = alles gelesen; Auszug ohne Labels)*
 
 **Homelable als Ansicht**
 - [ ] Homelable (github.com/Pouzor/homelable, MIT) als Stack `docker-compose-regis/homelable`, Version gepinnt (Renovate), nur intern (LAN/Tailscale, keine Pangolin-Resource: Swagger unter `/docs` ist ohne Anmeldung). Lokaler Login, weil der OIDC-Modus keinen Skriptzugang hat (Issue #291). Nicht genutzt: eigene Dokumentation (zweites Wiki neben Obsidian), Netzwerk-Scanner, Live View, Docs View
