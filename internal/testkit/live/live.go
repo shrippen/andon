@@ -58,6 +58,10 @@ const (
 	namePrefix = "andon-test"
 )
 
+// ID is an entry's id: a number (Kimai, Paperless) or a hashed key
+// (Invoice Ninja).
+type ID interface{ ~int | ~int64 | ~string }
+
 // conf is one service's file in .local-test/.
 type conf struct {
 	URL       string `json:"url"`
@@ -96,23 +100,23 @@ func Name(t testing.TB) string {
 }
 
 // Created logs an entry the test has just created.
-func Created(t testing.TB, svc Service, kind string, id int64) {
+func Created[I ID](t testing.TB, svc Service, kind string, id I) {
 	t.Helper()
 	write(t, svc, Create, kind, id)
 }
 
 // Change checks that id is the test's own entry and logs the write;
 // call it before sending the write.
-func Change(t testing.TB, svc Service, action Action, kind string, id int64) {
+func Change[I ID](t testing.TB, svc Service, action Action, kind string, id I) {
 	t.Helper()
 	if !own(t, svc, kind, id) {
-		t.Fatalf("%s %s %d was not created by a test: refusing %s", svc, kind, id, action)
+		t.Fatalf("%s %s %v was not created by a test: refusing %s", svc, kind, id, action)
 	}
 	write(t, svc, action, kind, id)
 }
 
 // own reports whether the log holds the creation of svc's kind id.
-func own(t testing.TB, svc Service, kind string, id int64) bool {
+func own[I ID](t testing.TB, svc Service, kind string, id I) bool {
 	t.Helper()
 	f, err := os.Open(filepath.Join(dir(t), logName))
 	if errors.Is(err, os.ErrNotExist) {
@@ -139,7 +143,7 @@ func own(t testing.TB, svc Service, kind string, id int64) bool {
 }
 
 // write appends one line to the write log.
-func write(t testing.TB, svc Service, action Action, kind string, id int64) {
+func write[I ID](t testing.TB, svc Service, action Action, kind string, id I) {
 	t.Helper()
 	f, err := os.OpenFile(filepath.Join(dir(t), logName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {

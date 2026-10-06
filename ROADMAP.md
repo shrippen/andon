@@ -1099,7 +1099,8 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
   - Schreiben nur mit neuen Testeinträgen (Name `andon-test …`); vorhandene Einträge nie schreibend anfassen (`live.Change` bricht ab)
   - Jeder schreibende Vorgang wird in `.local-test/writes.log` protokolliert (Zeit, Dienst, Aktion, Art, ID, Test)
   - In Cloud-Umgebungen und CI genügen Tests gegen Nachbauten; ohne Instanz wird der Live-Test übersprungen
-  - [ ] Live-Tests für die übrigen schreibenden Ausgänge (Kimai-Zeiten, Invoice Ninja, Paperless)
+  - [ ] Live-Tests für die übrigen schreibenden Ausgänge (Kimai-Zeiten, Invoice Ninja, Paperless) *(geschrieben: `kimai_live_test.go` (Zeiten, Tags, Timer), `ninja_live_test.go` (Kunde, Entwurf, Zahlung, Ausgabe; hinterlässt Nummernlücken), `paperless_live_test.go` (Upload, Zusatzfeld); räumen am Ende auf. Erster Lauf steht aus: `.local-test/{kimai,invoiceninja,paperless}.json` fehlen)*
+    - Ohne Test: `KimaiMarkExported` (exportierte Zeiten lassen sich nicht mehr löschen), `KimaiRenameCustomer`, Fahrten (`KimaiCreateTrip`, `KimaiTripPurpose`; Fahrtenbuch ohne Löschen)
 
 - [x] Einstellungen: möglichst viele bisher nur per Umgebungsvariable setzbare Einstellungen zusätzlich in den Servereinstellungen der Oberfläche anbieten; sind beide gesetzt, gewinnt die Umgebungsvariable (in der Oberfläche als „durch Umgebung gesetzt“ gesperrt anzeigen) *(Admin → Einstellungen → Server: SMTP, Apprise, Anthropic-Schlüssel, Prüflauf-Intervall, Sitzungsdauern, Log-Stufe; Geheimnisse verschlüsselt, wirken ohne Neustart. Nur Umgebung: `BASE_URL`, `MASTER_KEY`, Pfade, `TRUSTED_PROXIES`, `SCHEDULER_ENABLED`, Demo/Dev. `LOG_LEVEL` wurde vorher gar nicht ausgewertet)*
   - [x] OIDC: heute gewinnt die gespeicherte Konfiguration über `OIDC_*`; auf „Umgebung gewinnt, Feld gesperrt“ umstellen *(je Feld; Speichern lässt gespeicherte Werte gesperrter Felder unberührt)*

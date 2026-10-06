@@ -70,3 +70,12 @@ func TestNameMarksTestEntries(t *testing.T) {
 		t.Fatalf("name = %q", n)
 	}
 }
+
+func TestChangeTextIDs(t *testing.T) {
+	local(t)
+	Created(t, Ninja, "invoice", "Kx9")
+	Change(t, Ninja, Delete, "invoice", "Kx9")
+	if own(t, Ninja, "invoice", "Ab1") {
+		t.Fatal("foreign key counted as own")
+	}
+}
