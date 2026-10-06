@@ -1139,8 +1139,9 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
 - [ ] Klären, warum es die Umgebungsvariable `APPRISE_API_URL` gibt, obwohl jeder Nutzer eigene Benachrichtigungs-Einstellungen hat
 - [ ] Testmöglichkeit für jeden Benachrichtigungsweg (Mail, Apprise)
 - [ ] Einstellungen für E-Mails: wann, welcher Inhalt, Vorschau, Log
-- [ ] Kunden verknüpfen: Wie geht das mit nur einer Verbindung je Typ? Auf der Kundenseite ist dazu nichts zu sehen
+- [ ] Untersuchen, wie das Verknüpfen von Kunden grundsätzlich gedacht ist, je einmal mit und ohne Verbund (Anlass: nur eine Verbindung je Typ, auf der Kundenseite ist dazu nichts zu sehen)
 - [ ] Diagramme stärker beschriften: Bei Balkendiagrammen hat die Y-Achse je Linie eine Beschriftung, die X-Achse nur Anfang und Ende; das ist schwer lesbar. Der Hover nennt beide Achsen
+- [ ] Designdokument: alle Konzepte, die Andon kennt (z. B. Kunden, Orte), und was Andon mit ihnen tut bzw. wofür es sie verwendet
 - [ ] Recherche Kacheltypen:
   - Dashys mögliche Kacheln durchgehen und auflisten, welche in Andon fehlen
   - Andere Dashboards und Andon-ähnliche Programme ansehen, daraus Vorschläge für weitere Kacheltypen
