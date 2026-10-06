@@ -1,10 +1,12 @@
 package data
 
 import (
+	"strconv"
 	"time"
 
 	"andon/internal/db"
 	"andon/internal/model"
+	"andon/internal/repos/misc"
 )
 
 // AddHookEvent stores one pushed event.
@@ -46,4 +48,25 @@ func HookEvents(q db.Queryer, connID int64, since time.Time) ([]*model.HookEvent
 func PruneHookEvents(q db.Queryer, before time.Time) error {
 	_, err := q.Exec("DELETE FROM hook_events WHERE at < ?", db.TimeStr(before))
 	return err
+}
+
+// hookStateKey stores a connection's last pushed state (instance
+// settings): {"at": RFC 3339, "state": {…}}.
+const hookStateKey = "hookstate."
+
+// SetHookState replaces a connection's pushed state.
+func SetHookState(q db.Queryer, connID int64, state map[string]any, at time.Time) error {
+	return misc.SetSetting(q, hookStateKey+strconv.FormatInt(connID, 10), map[string]any{"at": db.TimeStr(at), "state": state})
+}
+
+// HookState is a connection's last pushed state; nil and zero if none.
+func HookState(q db.Queryer, connID int64) (map[string]any, time.Time, error) {
+	raw, err := misc.Setting(q, hookStateKey+strconv.FormatInt(connID, 10))
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+	state, _ := raw["state"].(map[string]any)
+	text, _ := raw["at"].(string)
+	at, _ := db.ParseTime(text)
+	return state, at, nil
 }

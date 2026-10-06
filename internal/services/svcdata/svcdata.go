@@ -475,6 +475,11 @@ func fetch(ctx context.Context, d *sql.DB, key, sourceKey string, source sources
 			return Result{FetchedAt: now, Error: err.Error()}
 		}
 	}
+	if _, ok := source.(sources.StateSource); ok && conn != nil {
+		if sctx.State, sctx.StateAt, err = data.HookState(d, conn.ID); err != nil {
+			return Result{FetchedAt: now, Error: err.Error()}
+		}
+	}
 	metered, usage := sources.Metered(ctx)
 	out, fetchErr := source.Fetch(metered, sctx)
 	took := time.Since(now).Milliseconds()

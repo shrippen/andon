@@ -121,6 +121,7 @@ type apiDocs struct {
 }
 
 type apiDocFinding struct {
+	ID       string          `json:"id"` // Hansei claims it in its pushed state
 	Rule     string          `json:"rule"`
 	Host     string          `json:"host,omitempty"`
 	Stack    string          `json:"stack,omitempty"`
@@ -154,7 +155,7 @@ func (d Deps) handleAPIDocs(w http.ResponseWriter, r *http.Request) {
 
 	out := apiDocs{Complete: report.Complete, Findings: make([]apiDocFinding, 0, len(report.Findings))}
 	for _, f := range report.Findings {
-		doc := apiDocFinding{Rule: f.Rule, Host: f.Host, Stack: f.Stack, Note: f.Note, Path: f.Path, Link: f.Link, NoteURL: f.NoteURL, Compose: f.Compose}
+		doc := apiDocFinding{ID: f.ID, Rule: f.Rule, Host: f.Host, Stack: f.Stack, Note: f.Note, Path: f.Path, Link: f.Link, NoteURL: f.NoteURL, Compose: f.Compose}
 		for _, s := range f.Services {
 			doc.Services = append(doc.Services, apiDocService{Name: s.Name, Image: s.Image, Ports: s.Ports})
 		}

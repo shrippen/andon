@@ -86,3 +86,33 @@ func TestDocsDemo(t *testing.T) {
 		t.Fatalf("deprecated live: %+v", got)
 	}
 }
+
+// Findings Hansei claims wait: kometa's hint names only the rest and
+// counts the claimed one, a claimed orphan or deprecated note is quiet.
+func TestDocsClaimedByHansei(t *testing.T) {
+	env := todayEnv(nil)
+	env.Datasets = map[string]any{string(enums.ServiceHansei): &sources.HanseiDataset{Claimed: []string{
+		"docs.missing:regis/kometa", "docs.orphan:IT/Dienste/Regis/Paperless.md", "docs.deprecated_live:regis/gotify"}}}
+
+	missing := run(t, "docs.missing", docsData(), env)
+	if len(missing) != 1 || missing[0].Params["names"] != "gotify" || missing[0].Params["count"] != 1 || missing[0].Params["claimed"] != 1 || missing[0].Message != "docs.missing_claimed" {
+		t.Fatalf("missing: %+v", missing)
+	}
+	for _, id := range []string{"docs.orphan", "docs.deprecated_live"} {
+		if got := run(t, id, docsData(), env); len(got) != 0 {
+			t.Fatalf("%s: %+v", id, got)
+		}
+	}
+
+	// The host's first gap claimed: the host still has its hint.
+	env.Datasets[string(enums.ServiceHansei)] = &sources.HanseiDataset{Claimed: []string{"docs.missing:regis/gotify"}}
+	if got := run(t, "docs.missing", docsData(), env); len(got) != 1 || got[0].Params["names"] != "kometa" {
+		t.Fatalf("first claimed: %+v", got)
+	}
+
+	// All of a host's gaps claimed: no hint for it.
+	env.Datasets[string(enums.ServiceHansei)] = &sources.HanseiDataset{Claimed: []string{"docs.missing:regis/kometa", "docs.missing:regis/gotify"}}
+	if got := run(t, "docs.missing", docsData(), env); len(got) != 0 {
+		t.Fatalf("all claimed: %+v", got)
+	}
+}

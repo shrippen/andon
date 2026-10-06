@@ -988,7 +988,7 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 **Quellen**
 - [x] Compose-Repos: `docker-compose-*` über die vorhandene Gitea-Verbindung (`git/trees`), Host aus dem Repo-Namen (`ploetze` → Plötze); je Stack Dienste, Images, Ports, Labels. `environment`-Werte werden beim Lesen verworfen *(`GiteaDataset.Stacks`, `internal/sources/compose.go`; Dateien je Blob-SHA nur einmal gelesen)*
 - [x] Obsidian: Repo `ObsidianPrivat`, nur die Teilbäume `IT/Dienste`, `IT/Geräte`, `IT/Orte` und die Netz-Notizen, nur Frontmatter (`Compose`, `Gerät`, `deprecated`, `URL`, Ports, `Backup via`, `SSO …`, `abhängig von`, `letzte Prüfung`, `Orte`). Nie den ganzen Baum laden: Gitea kürzt ihn bei rund 3000 Einträgen (`truncated`), und Andon sieht so keine Pfade anderer Ordner *(`GiteaDataset.Notes`, `internal/sources/itdocs.go`; Optionen `docs_repo`, `docs_paths` an der Gitea-Verbindung; `Ort` wie `Orte` gelesen)*
-- [x] Hansei-Statusnotiz (`status_note`) für das Widget „Batches warten“ *(Option `hansei_note` an der Gitea-Verbindung, gelesen aus `docs_repo`)*
+- [x] Hansei-Stand für das Widget „Batches warten“ *(statt Statusnotiz im Vault: Verbindung Hansei, Hansei schickt seinen ganzen Stand per Webhook `{"state": …}`; Andon behält den letzten)*
 - [ ] Später: Komodo-Stand dazu (Stack im Repo, aber nicht deployt und umgekehrt)
 
 **Regeln und Widgets**
@@ -1001,6 +1001,7 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 
 **Übergabe an Hansei**
 - [x] API-Endpunkt für die `docs.*`-Befunde (Token wie bisher): Regel, Host, Stack, Notizpfad, Compose-Auszug ohne Secrets. Hansei holt sie ab und macht daraus Batches; nach Freigabe und Sync verschwindet der Hinweis beim nächsten Prüflauf von selbst *(`GET /api/docs`, Token mit Leserecht; je Stack bzw. Notiz, `complete` = alles gelesen; Auszug ohne Labels)*
+- [x] Rückmeldung von Hansei: `claimed` im Stand nennt die Befund-IDs (`id` aus `/api/docs`), an denen ein Batch arbeitet; deren Hinweise warten, `docs.missing` zählt sie nur noch mit. Erledigt ist ein Befund erst, wenn der Vault ihn nicht mehr zeigt
 
 **Homelable als Ansicht**
 - [ ] Homelable (github.com/Pouzor/homelable, MIT) als Stack `docker-compose-regis/homelable`, Version gepinnt (Renovate), nur intern (LAN/Tailscale, keine Pangolin-Resource: Swagger unter `/docs` ist ohne Anmeldung). Lokaler Login, weil der OIDC-Modus keinen Skriptzugang hat (Issue #291). Nicht genutzt: eigene Dokumentation (zweites Wiki neben Obsidian), Netzwerk-Scanner, Live View, Docs View

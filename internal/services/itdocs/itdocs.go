@@ -40,6 +40,7 @@ type Report struct {
 // Finding is one stack or note to fix; Compose is the compose file's
 // link, Services its excerpt (no environment, it is never read).
 type Finding struct {
+	ID               string // what Hansei claims in its pushed state
 	Rule             string
 	Host, Stack      string // "" for an orphan link
 	Note, Path, Link string // note name, vault path, its Compose link; "" for a missing note
@@ -87,13 +88,13 @@ func Findings(ctx context.Context, d *sql.DB, who *access.Principal) (Report, er
 func findingsOf(check metrics.DocsCheck) []Finding {
 	var out []Finding
 	for _, s := range check.Missing {
-		out = append(out, Finding{Rule: RuleMissing, Host: s.Host, Stack: s.Name, Compose: s.URL, Services: s.Services})
+		out = append(out, Finding{ID: metrics.MissingID(s), Rule: RuleMissing, Host: s.Host, Stack: s.Name, Compose: s.URL, Services: s.Services})
 	}
 	for _, l := range check.Orphans {
-		out = append(out, Finding{Rule: RuleOrphan, Note: l.Note.Name, Path: l.Note.Path, Link: l.Link, NoteURL: l.Note.URL})
+		out = append(out, Finding{ID: metrics.OrphanID(l), Rule: RuleOrphan, Note: l.Note.Name, Path: l.Note.Path, Link: l.Link, NoteURL: l.Note.URL})
 	}
 	for _, l := range check.DeprecatedLive {
-		out = append(out, Finding{Rule: RuleDeprecatedLive, Host: l.Stack.Host, Stack: l.Stack.Name, Note: l.Note.Name, Path: l.Note.Path,
+		out = append(out, Finding{ID: metrics.DeprecatedID(l), Rule: RuleDeprecatedLive, Host: l.Stack.Host, Stack: l.Stack.Name, Note: l.Note.Name, Path: l.Note.Path,
 			Link: l.Link, NoteURL: l.Note.URL, Compose: l.Stack.URL, Services: l.Stack.Services})
 	}
 	return out

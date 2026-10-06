@@ -45,7 +45,7 @@ func TestTopicRulesExist(t *testing.T) {
 // ownServices are built into Andon or generic: no project to link.
 var ownServices = map[enums.ServiceType]bool{enums.ServiceCerts: true, enums.ServiceMail: true, enums.ServiceDomains: true,
 	enums.ServiceBlacklist: true, enums.ServiceGateway: true, enums.ServiceCalendar: true, enums.ServiceKintsugi: true,
-	enums.ServiceJSONAPI: true}
+	enums.ServiceJSONAPI: true, enums.ServiceHansei: true}
 
 // TestEveryServiceIsComplete: a connectable service has a dataset, a
 // name and, unless listed in ownServices, a project link.

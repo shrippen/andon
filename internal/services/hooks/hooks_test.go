@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"andon/internal/enums"
+	data "andon/internal/repos/data"
 	"andon/internal/services/hooks"
 	"andon/internal/testkit"
 )
@@ -74,5 +75,35 @@ func TestReceiveThrottles(t *testing.T) {
 	}
 	if !errors.Is(err, hooks.ErrThrottled) {
 		t.Fatalf("expected throttling, got %v", err)
+	}
+}
+
+// A state push replaces the previous state; signature and service are
+// checked as for events.
+func TestReceiveStateReplaces(t *testing.T) {
+	hooks.ResetFlood()
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	hansei := testkit.Conn(t, d, who, space, enums.ServiceHansei, "https://hansei.local")
+	kimai := testkit.Conn(t, d, who, space, enums.ServiceKimai, "https://kimai.example")
+	url, _ := hooks.URL(d, "https://dash.example", hansei)
+	sig := path.Base(url)
+
+	for _, review := range []float64{2, 3} {
+		if err := hooks.ReceiveState(d, hansei, sig, map[string]any{"review": review}); err != nil {
+			t.Fatalf("receive: %v", err)
+		}
+	}
+	state, at, err := data.HookState(d, hansei)
+	if err != nil || state["review"] != 3.0 || at.IsZero() {
+		t.Fatalf("state %v at %v: %v", state, at, err)
+	}
+
+	if err := hooks.ReceiveState(d, hansei, sig+"x", map[string]any{}); !errors.Is(err, hooks.ErrRejected) {
+		t.Fatalf("bad signature: %v", err)
+	}
+	kimaiURL, _ := hooks.URL(d, "https://dash.example", kimai)
+	if err := hooks.ReceiveState(d, kimai, path.Base(kimaiURL), map[string]any{}); !errors.Is(err, hooks.ErrRejected) {
+		t.Fatalf("non-push service: %v", err)
 	}
 }

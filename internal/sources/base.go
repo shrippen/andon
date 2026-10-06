@@ -33,7 +33,9 @@ type Ctx struct {
 	VerifyTLS bool
 	Options   map[string]any
 	Params    map[string]any
-	Events    []Pushed // push sources only, oldest first
+	Events    []Pushed       // push sources only, oldest first
+	State     map[string]any // state sources only: the last pushed state, nil if none
+	StateAt   time.Time      // when it arrived
 }
 
 // TLS is the connection's certificate check for driver calls.
@@ -93,6 +95,18 @@ type pushSource struct {
 }
 
 func (p pushSource) PushWindow() time.Duration { return p.window }
+
+// StateSource is a source whose data is the whole state a service pushed
+// last (Hansei): the caller loads it into Ctx.State.
+type StateSource interface {
+	Source
+	PushedState()
+}
+
+// stateSource is a source fed by the last pushed state.
+type stateSource struct{ source }
+
+func (stateSource) PushedState() {}
 
 var registry = map[string]Source{}
 

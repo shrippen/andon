@@ -48,6 +48,40 @@ func TestPGBackWebHook(t *testing.T) {
 	}
 }
 
+// TestHanseiStateHook: Hansei pushes its whole state to the same signed
+// URL; the connection test reads it back.
+func TestHanseiStateHook(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))
+	resp := postForm(t, client, srv.URL+"/connections", url.Values{
+		"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space[1])}, "service": {"hansei"}, "name": {"Hansei"},
+		"url": {"https://hansei.local"}, "mode": {"shared"}, "tls": {"verify"},
+	})
+	edit := resp.Header.Get("Location")
+	hook := regexp.MustCompile(`http://dash\.test(/hooks/\d+/[A-Za-z0-9_-]+)`).FindStringSubmatch(string(mustGet(t, srv, client, edit)))
+	if hook == nil {
+		t.Fatal("no hook URL on the edit page")
+	}
+
+	r, err := http.Post(srv.URL+hook[1], "application/json", strings.NewReader(`{"state":{"review":4,"feedback":1,"done":2,"conformity":0.5,"claimed":["docs.missing:regis/kometa"]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Body.Close()
+	if r.StatusCode != http.StatusNoContent {
+		t.Fatalf("hook: %d", r.StatusCode)
+	}
+
+	id := regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(edit)[1]
+	test := readAll(t, postForm2(t, client, srv.URL+"/connections/"+id+"/test", url.Values{"csrf": {csrfToken(t, srv, client)}}))
+	if !strings.Contains(test, "✓") || !strings.Contains(test, "4") {
+		t.Fatalf("connection test:\n%s", test)
+	}
+}
+
 // postForm2 posts and keeps the body open.
 func postForm2(t *testing.T, client *http.Client, target string, form url.Values) *http.Response {
 	t.Helper()

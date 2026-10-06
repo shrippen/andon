@@ -128,11 +128,10 @@ type GiteaDataset struct {
 	Assigned      []Issue
 	Reviews       []Issue // PRs waiting for the user's review
 	Repos         []Repo
-	Stacks        []Stack       // compose stacks, by host and name
-	StacksRead    bool          // false: a compose repo could not be read
-	Notes         []DocNote     // IT docs (options docs_repo, docs_paths), by path
-	NotesRead     bool          // false: no vault set, or a folder could not be read
-	Hansei        *HanseiStatus // option hansei_note; nil if none
+	Stacks        []Stack   // compose stacks, by host and name
+	StacksRead    bool      // false: a compose repo could not be read
+	Notes         []DocNote // IT docs (options docs_repo, docs_paths), by path
+	NotesRead     bool      // false: no vault set, or a folder could not be read
 }
 
 var GiteaData = source{key: "gitea.data", ttl: opsTTL, service: enums.ServiceGitea, fetch: fetchGitea}
@@ -151,7 +150,6 @@ func fetchGitea(ctx context.Context, sctx Ctx) (any, error) {
 		return nil, fetchError(err)
 	}
 	data.Notes, data.NotesRead = loadNotes(ctx, api, sctx)
-	data.Hansei = loadHansei(ctx, api, sctx)
 	return data, nil
 }
 
