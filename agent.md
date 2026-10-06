@@ -81,9 +81,13 @@ internal/rules/*.go             Register(id, scope, defaults, run): Datensatz �
 internal/widgets/*.go           Tile[C]: Felder, Thema, Decode(Raw), Queries, View (rein), Calm
 internal/services/analysis/     Job: Datensätze laden, Regeln anwenden, hints.Sync()
 internal/services/scheduler/    Background-Jobs (Timer je Job, ±5 % gestreut, panic-/error-isoliert)
+internal/caps/                  Fähigkeiten je Integration: Domäne × Operation (+ Arten, Voraussetzungen), kein I/O
+internal/services/verbund/      Verbünde: welche Verbindungen zusammenarbeiten (Partner) und ihre Zuordnungen
 ```
 - Neue Regel: Funktion in `internal/rules/`, Texte `hint.<message>.title|why` in beiden Katalogen, Test in `internal/rules/*_test.go`.
 - Neues Widget: `Tile[XConfig]{…}.add()` in `internal/widgets/` (Grenzen/Defaults nur im Field, gelesen über `Raw`), Template-Define `widgets/<key>` in `internal/web/templates/widgets_*.html`, `wtype.<key>` in den Katalogen.
+- Neue Integration: ihre Fähigkeiten in `internal/caps/declared.go` deklarieren (Domäne, Operation, Arten, Voraussetzungen wie Plugin, Recht, Schnittstelle, Einstellung). Die Quelle erkennt sie mit `caps.Detect`, der Datensatz liefert sie über `CapSet()`, die Test-Quelle unter `sources.TestCaps`; Texte `caps.*` in beiden Katalogen. Wer speichert, entscheidet `caps.Store`, nicht ein eigenes Flag im Datensatz (Tests: `TestDeclaredServicesReportCaps`, `TestCapsKeysExist`).
+- Braucht ein Service, eine Kachel oder eine Regel die Verbindung eines anderen Dienstes, fragt er `verbund.Partner` (bzw. `Pairs`/`Groups`), nie „die erste Verbindung im Bereich“. Daten, die nur zwischen Diensten bestehen (z. B. Kunde Kimai ↔ Invoice Ninja), sind Zuordnungen im Verbund (`link_entries`).
 - Hinweis-Parameter typisiert übergeben (`money()`, `day()`, `num()` aus `internal/i18n`).
 
 ## Gelernte Fehler

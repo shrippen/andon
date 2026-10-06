@@ -1,0 +1,71 @@
+{{define "verbund"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "verbund.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
+    <h1>{{t "verbund.title"}}{{with .LevelName}} <small class="muted">{{.}}</small>{{end}}</h1>
+    <p class="muted">{{t "verbund.lead"}}</p>
+    {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
+    {{with .Vague}}<div class="callout callout-warn">{{t "verbund.vague" "services" (serviceNames .)}}</div>{{end}}
+
+    {{range $v := .Verbuende}}
+    <section class="card" id="verbund-{{$v.ID}}">
+      {{if $v.CanEdit}}
+      <form method="post" action="/verbund/{{$v.ID}}/rename" class="inline-form">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}">
+        <input class="input" name="name" value="{{$v.Name}}" required aria-label="{{t "field.name"}}">
+        <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
+      </form>
+      {{else}}<h2>{{$v.Name}} <span class="pill" data-state="locked">{{t "verbund.read_only"}}</span></h2>{{end}}
+      <div class="table-wrap"><table class="table">
+        <tbody>{{range $v.Members}}<tr>
+          <td>{{t (print "service." .Service)}}</td>
+          <td><a href="/connections/{{.ConnID}}">{{.Name}}</a></td>
+          <td>{{if $v.CanEdit}}<div class="btn-row"><form method="post" action="/verbund/{{$v.ID}}/members/{{.ConnID}}/remove">
+            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}">
+            <button type="submit" class="btn btn-outline btn-sm">{{t "verbund.remove"}}</button></form></div>{{end}}</td>
+        </tr>{{end}}</tbody>
+      </table></div>
+      {{if $v.CanEdit}}
+      <div class="btn-row">
+        <form method="post" action="/verbund/{{$v.ID}}/members" class="inline-form">
+          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}">
+          <select class="select" name="conn" aria-label="{{t "verbund.add"}}">{{range $.Editable}}{{if not ($v.HasService .Service)}}<option value="{{.ID}}">{{t (print "service." .Service)}} · {{.Name}}</option>{{end}}{{end}}</select>
+          <button type="submit" class="btn btn-outline btn-sm">{{t "verbund.add"}}</button>
+        </form>
+        {{if and ($v.HasService "kimai") ($v.HasService "invoiceninja")}}<a class="btn btn-outline btn-sm" href="/verbund/{{$v.ID}}/customers?space={{$.SpaceID}}">{{t "verbund.customers"}}</a>{{end}}
+        <form method="post" action="/verbund/{{$v.ID}}/delete">
+          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}">
+          <button type="submit" class="btn btn-outline btn-sm">{{t "verbund.delete"}}</button>
+        </form>
+      </div>
+      {{end}}
+    </section>
+    {{else}}<p class="muted">{{t "verbund.none"}}</p>{{end}}
+
+    <h2>{{t "verbund.new"}}</h2>
+    <form method="post" action="/verbund" class="card">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="space" value="{{.SpaceID}}">
+      <label for="verbund-name">{{t "field.name"}}</label>
+      <input class="input" id="verbund-name" name="name" required placeholder="{{t "verbund.name_hint"}}">
+      <span class="h-label">{{t "verbund.members"}}</span>
+      {{range .Editable}}<label class="check"><input type="checkbox" name="conn" value="{{.ID}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t (print "service." .Service)}} · {{.Name}}{{if ne .SpaceID $.SpaceID}} <small class="muted">{{t "verbund.other_space"}}</small>{{end}}</label>{{end}}
+      <p class="small muted">{{t "verbund.create_hint"}}</p>
+      <button type="submit" class="btn btn-accent">{{t "action.create"}}</button>
+    </form>
+    </div>
+    </div>
+  </main>
+</body>
+</html>
+{{end}}

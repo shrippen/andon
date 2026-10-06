@@ -27,41 +27,41 @@ type RateRow struct {
 func nameKey(name string) string { return strings.ToLower(strings.TrimSpace(name)) }
 
 // EffectiveRates returns per-customer rates (highest revenue first) and the
-// overall rate across matched customers.
-func EffectiveRates(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today time.Time) ([]RateRow, float64) {
+// overall rate across matched customers; m ties customers to clients.
+func EffectiveRates(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today time.Time, m ClientMap) ([]RateRow, float64) {
 	start := today.AddDate(0, 0, -rateWindowDays)
 
-	minutes := map[string]int{}
-	names := KimaiCustomerNames(kimai)
+	minutes := map[int64]int{}
 	for _, s := range kimai.Timesheets {
 		begin, ok := ParseTime(s.Begin)
 		if !ok || begin.Before(start) || begin.After(today.AddDate(0, 0, 1)) {
 			continue
 		}
-		minutes[nameKey(names[s.CustomerID])] += s.Minutes
+		minutes[s.CustomerID] += s.Minutes
 	}
 
-	net := map[string]float64{}
-	display := map[string]string{}
+	net := map[int64]float64{}
+	display := map[int64]string{}
 	clients := ninjaClientNames(ninja)
+	customerOf := m.Customers(kimai, ninja)
 	for _, inv := range NinjaCounted(ninja) {
-		if d, ok := ParseDay(inv.Date); ok && !d.Before(start) {
-			key := nameKey(clients[inv.ClientID])
-			net[key] += inv.Net
-			display[key] = clients[inv.ClientID]
+		customer, linked := customerOf[inv.ClientID]
+		if d, ok := ParseDay(inv.Date); ok && linked && !d.Before(start) {
+			net[customer] += inv.Net
+			display[customer] = clients[inv.ClientID]
 		}
 	}
 
 	var rows []RateRow
 	var totalNet float64
 	var totalMin int
-	for key, amount := range net {
-		m, ok := minutes[key]
-		if !ok || m == 0 || key == "" {
+	for customer, amount := range net {
+		m := minutes[customer]
+		if m == 0 {
 			continue
 		}
 		hours := float64(m) / minutesPerHour
-		rows = append(rows, RateRow{Customer: display[key], Hours: round2(hours), Net: round2(amount), Rate: round2(amount / hours)})
+		rows = append(rows, RateRow{Customer: display[customer], Hours: round2(hours), Net: round2(amount), Rate: round2(amount / hours)})
 		totalNet += amount
 		totalMin += m
 	}

@@ -1,5 +1,12 @@
 package sources
 
+import (
+	"strconv"
+
+	"andon/internal/caps"
+	"andon/internal/enums"
+)
+
 // Normalized datasets: what widgets, metrics and rules actually consume,
 // after each service's raw API shape is flattened here. Typed structs, so
 // the metrics/rules layer gets compile-time field checks.
@@ -81,20 +88,17 @@ type KimaiMileageTrip struct {
 }
 
 type KimaiDataset struct {
-	URL           string
-	Timesheets    []KimaiSheet
-	Active        []KimaiSheet
-	Projects      []KimaiProject
-	Customers     []KimaiCustomer
-	Absences      []KimaiAbsence
-	Holidays      []KimaiHoliday
-	HolidayBundle bool
-	Contract      *WorkContract // working time from Kimai, nil if none
-	Places        []KimaiPlace  // mileage plugin, nil without it
-	Mileage       bool          // the mileage plugin answered
-	MileageTrips  []KimaiMileageTrip
-	PlacesWrite   bool // the plugin creates and changes places (feature placesWrite)
-	MileageEdit   bool // the token may write the user's trips and places (permission editOwn)
+	URL          string
+	Timesheets   []KimaiSheet
+	Active       []KimaiSheet
+	Projects     []KimaiProject
+	Customers    []KimaiCustomer
+	Absences     []KimaiAbsence
+	Holidays     []KimaiHoliday
+	Contract     *WorkContract // working time from Kimai, nil if none
+	Places       []KimaiPlace  // mileage plugin, nil without it
+	MileageTrips []KimaiMileageTrip
+	Caps         caps.Set // what the plugins, rights and settings allow
 }
 
 // ── Invoice Ninja ──
@@ -130,6 +134,14 @@ type NinjaClient struct {
 	Name      string
 	VATNumber string
 	CountryID string
+}
+
+// Ref is the client's stable reference for links: its key, else its id.
+func (c NinjaClient) Ref() string {
+	if c.Key != "" {
+		return c.Key
+	}
+	return strconv.FormatInt(c.ID, 10)
 }
 
 type NinjaExpense struct {
@@ -290,8 +302,18 @@ type DawarichDataset struct {
 	Tracks      []DawarichTrack // oldest first
 	TracksFrom  string          // start of the window the tracks cover (RFC 3339)
 	TracksState TracksState
-	TracksRead  int // of TracksTotal in the window; less while TracksPartial
+	Caps        caps.Set // places, and rides when the tracks API answers
+	TracksRead  int      // of TracksTotal in the window; less while TracksPartial
 	TracksTotal int
 	Stats       map[string]any
 	LastPoint   string
 }
+
+// CapSet: Invoice Ninja's capabilities need nothing beyond the token.
+func (d *NinjaDataset) CapSet() caps.Set { return caps.Full(caps.HolderOf(enums.ServiceInvoiceNinja)) }
+
+// CapSet reports what the Kimai connection allows.
+func (d *KimaiDataset) CapSet() caps.Set { return d.Caps }
+
+// CapSet reports what the Dawarich connection allows.
+func (d *DawarichDataset) CapSet() caps.Set { return d.Caps }

@@ -12,6 +12,7 @@ package rules
 //	geo.tracks_missing      no tracks: distances are estimates
 
 import (
+	"andon/internal/caps"
 	"fmt"
 	"math"
 	"strings"
@@ -123,17 +124,14 @@ func travelUnbilled(_ any, cfg map[string]any, env Env) []Finding {
 		return nil
 	}
 	names := metrics.KimaiCustomerNames(kimai)
-	clients := map[string]int64{}
-	for _, c := range ninja.Clients {
-		clients[strings.ToLower(strings.TrimSpace(c.Name))] = c.ID
-	}
+	links := clientMap(env)
 	words := stringsSlice(cfg["words"])
 	rate := metrics.TravelSettingsOf(env.Settings).KMRate
 
 	var found []Finding
 	for customer, sum := range metrics.ByCustomer(rides) {
-		client, known := clients[strings.ToLower(strings.TrimSpace(names[customer]))]
-		if customer == 0 || !known || sum.PayKM == 0 || billedTravel(ninja, client, start, words) {
+		client, known := links.ClientOf(ninja, customer, names[customer])
+		if customer == 0 || !known || sum.PayKM == 0 || billedTravel(ninja, client.ID, start, words) {
 			continue
 		}
 		found = append(found, Finding{
@@ -193,7 +191,7 @@ func unplaced(_ any, cfg map[string]any, env Env) []Finding {
 func pluginMissing(_ any, _ map[string]any, env Env) []Finding {
 	_, rides, start, ok := lastMonthRides(env)
 	kimai, ok1 := env.Datasets[kimaiSvc].(*sources.KimaiDataset)
-	if !ok || !ok1 || !kimai.Mileage {
+	if !ok || !ok1 || !kimai.Caps.Can(caps.Rides, caps.Read, "") {
 		return nil
 	}
 	used := false

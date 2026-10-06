@@ -19,11 +19,11 @@ import (
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/outbound"
-	"andon/internal/repos/content"
 	"andon/internal/services/access"
 	auditsvc "andon/internal/services/audit"
 	"andon/internal/services/connections"
 	"andon/internal/services/svcdata"
+	"andon/internal/services/verbund"
 	"andon/internal/sources"
 )
 
@@ -37,6 +37,7 @@ var ErrNoMatch = errors.New("billing.no_match")
 type Payment struct {
 	SpaceID   int64
 	SpaceName string
+	SureID    int64 // the pair's Sure connection
 	metrics.PaymentMatch
 }
 
@@ -46,31 +47,18 @@ type bank struct {
 	sure, ninja *model.Connection
 }
 
+// banks lists each Sure of the spaces the caller may EDIT with its
+// Invoice Ninja partner.
 func banks(d *sql.DB, who *access.Principal, spaceID int64) ([]bank, error) {
 	var out []bank
 	err := db.WithRead(d, func(tx *sql.Tx) error {
-		for id, ref := range who.Spaces {
-			if (spaceID != 0 && id != spaceID) || access.SpaceRight(who, &ref) < enums.RightEdit {
-				continue
-			}
-			conns, err := content.Connections(tx, []int64{id})
-			if err != nil {
-				return err
-			}
-			b := bank{space: ref}
-			for _, c := range conns {
-				switch enums.ServiceType(c.Service) {
-				case enums.ServiceSure:
-					b.sure = c
-				case enums.ServiceInvoiceNinja:
-					b.ninja = c
-				}
-			}
-			if b.sure != nil && b.ninja != nil {
-				out = append(out, b)
+		found, err := verbund.Pairs(tx, who, editable(who, spaceID), enums.ServiceSure, enums.ServiceInvoiceNinja)
+		for _, p := range found {
+			if ref, ok := writable(who, p.A, p.B); ok {
+				out = append(out, bank{space: ref, sure: p.A, ninja: p.B})
 			}
 		}
-		return nil
+		return err
 	})
 	return out, err
 }
@@ -103,22 +91,22 @@ func Payments(ctx context.Context, d *sql.DB, who *access.Principal) ([]Payment,
 			continue
 		}
 		for _, m := range metrics.PaymentMatches(sure, ninja, time.Now().UTC(), paymentDays) {
-			out = append(out, Payment{SpaceID: b.space.ID, SpaceName: b.space.Name, PaymentMatch: m})
+			out = append(out, Payment{SpaceID: b.space.ID, SpaceName: b.space.Name, SureID: b.sure.ID, PaymentMatch: m})
 		}
 	}
 	return out, nil
 }
 
 // Book records one matched income as a payment of its invoice.
-func Book(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64, txnID string, invoiceID int64, ip string) error {
+func Book(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, sureID int64, txnID string, invoiceID int64, ip string) error {
 	found, err := banks(d, who, spaceID)
 	if err != nil {
 		return err
 	}
-	if len(found) == 0 {
+	b, ok := pick(found, sureID, func(b bank) int64 { return b.sure.ID })
+	if !ok {
 		return access.ErrDenied
 	}
-	b := found[0]
 	for _, c := range []*model.Connection{b.sure, b.ninja} {
 		if _, err := connections.Get(d, who, c.ID); err != nil {
 			return err

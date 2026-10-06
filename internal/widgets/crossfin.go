@@ -113,7 +113,7 @@ func crossRows(kind TableKind, data any, results map[string]any, ctx ViewCtx) ([
 		if geo, ok := results[peerDawarich].(*sources.DawarichDataset); ok {
 			rides = metrics.TravelOf(geo, kimai, ctx.PeerOptions[peerDawarich], metrics.TravelSettingsOf(ctx.Settings), time.Now()).Rides
 		}
-		for _, r := range metrics.FullCostRates(kimai, d, rides, today, crossRateDays) {
+		for _, r := range metrics.FullCostRates(kimai, d, rides, today, crossRateDays, clientMapOf(results)) {
 			rows = append(rows, Row{[]any{r.Customer, r.BillableH, r.OtherH, r.TravelH, r.Nominal, r.Full}})
 		}
 	case *sources.KimaiDataset:

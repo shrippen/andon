@@ -114,7 +114,7 @@ func tableRows(kind TableKind, results map[string]any, ctx ViewCtx) ([]Row, bool
 		if !ok {
 			return nil, false
 		}
-		rates, _ := metrics.EffectiveRates(kimai, data.(*sources.NinjaDataset), today)
+		rates, _ := metrics.EffectiveRates(kimai, data.(*sources.NinjaDataset), today, clientMapOf(results))
 		var rows []Row
 		for _, r := range rates {
 			rows = append(rows, Row{[]any{r.Customer, r.Hours, r.Net, r.Rate}})

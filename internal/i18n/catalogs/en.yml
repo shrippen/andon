@@ -278,6 +278,7 @@ typefield:
   conn_health:
     only_problems: Only shaky now (last 2 days)
 field:
+  verbund: Verbund
   title_none: Leave empty for a tile without a head
   title_needed: Head, icon and title link only show with a title.
   place: Place
@@ -1472,8 +1473,6 @@ service:
 test:
   ok: OK
   failed: Failed
-  mileage_read_only: 'Kimai mileage is read-only: without the right to edit own trips, places and rides classed by hand stay in Andon.'
-  mileage_old: 'Kimai mileage is too old to create places (needs 0.10.0): places stay in Andon.'
 code:
   lead: Space as YAML. Credentials are never included.
   error: Not applied
@@ -2395,6 +2394,9 @@ hint:
     connector_down:
       title: '{name} unreachable'
       why: 'Last fetch failed: {error}. Tiles show the last data.'
+    partner_ambiguous:
+      title: 'Several connections for {services}'
+      why: 'Andon does not know which belongs with which connection of other services. Hints that need several services are missing for them. Assign them under Verbünde in the space settings.'
     backup_late:
       title: 'Andon backup {hours} hours old'
       why: 'The daily database copy did not happen. Check that the service runs and data/backups is writable.'
@@ -2653,6 +2655,7 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  system.partner_ambiguous: Verbund missing
   system.connector_down: Connection failing
   system.unused_service: 'Unused service'
   energy.shift_jobs: 'Maintenance at expensive hours'
@@ -3143,6 +3146,7 @@ cashflow:
   below_min: 'Falls below the minimum of {amount}.'
   delayed: 'Assumption: clients pay {days} days later.'
 billing:
+  pick_verbund: 'Several Verbünde in this space: choose one for the year package.'
   summary: Overview
   sum_unbilled: 'unbilled · {n} customers'
   sum_payments: incoming payments
@@ -4624,6 +4628,7 @@ gitea:
   notifications: '{n} notifications'
   assigned: 'Assigned to me'
 sitebook:
+  ambiguous: 'Several Kimai connections and no Verbund says which: places and rides stay in Andon until you put them into a Verbund.'
   suggested: 'Suggested by name, not saved yet'
   lead: 'What a place is decides whether rides there count as business. Stored in this connection.'
   lead_plugin: 'Stored in Kimai mileage; new places also become Dawarich areas.'
@@ -5378,6 +5383,86 @@ tandoor:
   open: '{count} open'
   empty: 'Shopping list empty'
   plan: 'Meal plan'
+caps:
+  title: Capabilities
+  have: available
+  unknown: not fetched yet
+  domain:
+    places: Places
+    rides: Rides
+    customers: Customers
+    absences: Absences
+    worktime: Working time
+    invoices: Invoices
+    payments: Payments
+    receipts: Receipts
+  op:
+    read: read
+    create: create
+    update: change
+  kind:
+    timesheets: Timesheets
+    target: Target time
+    home: Home
+    work: Work
+    customer: Customer
+    other: Other
+    driving: Car
+    motorcycle: Motorbike
+  plugin:
+    holiday: Holiday bundle
+    mileage: Anfahrten (mileage)
+  need:
+    plugin: 'Plugin {name} missing'
+    feature: 'Plugin too old ({name} missing)'
+    right: 'Right {name} missing'
+    api: 'API {name} missing (older version)'
+    setting: '{name} not set'
+  setting:
+    contract: Working time (user → working time)
+  note: 'Only partly usable:'
+verbund:
+  customers: Customers
+  customers_lead: 'Which Kimai customer is which Invoice Ninja client. Andon suggests the most similar name; only what you confirm is stored. Invoice Ninja holds the names: "Take name" writes it to Kimai. Without a link, the same name decides.'
+  confirm_all: Confirm all suggestions
+  state: State
+  state_confirmed: linked
+  state_suggested: suggestion
+  state_none: no counterpart
+  state_open: open
+  link: Link
+  unlink: Reset
+  none_client: No counterpart
+  align: Take name
+  no_customers: 'Customers exist only in a Verbund with Kimai and Invoice Ninja.'
+  client_taken: 'This Invoice Ninja client is linked to another Kimai customer already.'
+  unknown_customer: 'The services do not know this customer (any more). Reload the page.'
+  no_data: 'No data fetched from Kimai or Invoice Ninja yet.'
+  demo: 'Demo connections take no changes.'
+  auto: automatic
+  field_hint: 'Only needed when several connections of a partner service fit.'
+  title: Verbünde
+  lead: 'A Verbund says which connections of different services belong together, e.g. the Dawarich, Kimai and Invoice Ninja of one company. One member per service. Without one, each connection works with the only one of its partner service in the space.'
+  vague: 'Several connections without a Verbund: {services}. Andon does not guess which belong together; tiles and hints that need several services are missing for them until they are in a Verbund.'
+  read_only: read only
+  remove: Remove
+  add: Add
+  delete: Delete Verbund
+  none: No Verbund in this space yet.
+  new: New Verbund
+  name_hint: 'e.g. Studio Weber'
+  members: Members
+  other_space: other space
+  create_hint: 'At least two connections of different services. You need edit rights on all of them.'
+  implicit: Without Verbund
+  ambiguous: 'Several connections fit: choose one in a Verbund.'
+  not_found: Verbund not found.
+  too_few: 'A Verbund needs at least two connections.'
+  service_twice: 'One connection per service in a Verbund.'
+  no_name: The Verbund needs a name.
+  record: In a Verbund
+  record_none: 'In no Verbund: works with the only connection per partner service in the space.'
+  manage: Manage Verbünde
 task:
   dawarich_tracks: 'Read Dawarich tracks of {host}'
 server:

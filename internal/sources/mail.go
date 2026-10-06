@@ -8,6 +8,7 @@ package sources
 //	"Total due: EUR 1,234.56"      → 1234.56
 
 import (
+	"andon/internal/caps"
 	"context"
 	"net/url"
 	"regexp"
@@ -120,6 +121,9 @@ func mailConfig(sctx Ctx) (imapmail.Config, error) {
 	}
 	return cfg, nil
 }
+
+// CapSet: a mailbox's capabilities need nothing beyond the login.
+func (d *MailDataset) CapSet() caps.Set { return caps.Full(caps.HolderOf(enums.ServiceMail)) }
 
 var MailData = source{key: "mail.data", ttl: mailTTL, service: enums.ServiceMail, fetch: fetchMail}
 

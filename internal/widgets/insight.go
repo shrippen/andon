@@ -614,7 +614,7 @@ func kpiNinja(metric Metric, data *sources.NinjaDataset, peers map[string]any, c
 		if !ok {
 			return nil
 		}
-		rows, overall := metrics.EffectiveRates(kimai, data, today)
+		rows, overall := metrics.EffectiveRates(kimai, data, today, clientMapOf(peers))
 		return &KpiResult{Kind: "money", Value: overall, Currency: stats.Currency, SubKey: "kpi.per_hour", SubCount: len(rows)}
 	case MetricSafeToSpend:
 		sure, ok := peers[peerSure].(*sources.SureDataset)

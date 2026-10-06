@@ -39,7 +39,7 @@ type settingsLink struct {
 // settingsPages are the templates shown inside the settings frame.
 var settingsPages = map[string]bool{
 	"profile": true, "security": true, "notify": true,
-	"connections": true, "connection": true, "space_settings": true, "space_code": true, "themes": true, "import": true,
+	"connections": true, "connection": true, "verbund": true, "verbund_customers": true, "space_settings": true, "space_code": true, "themes": true, "import": true,
 	"teams": true, "team": true, "admin_users": true, "admin_settings": true, "admin_ops": true, "admin_audit": true,
 }
 
@@ -61,7 +61,7 @@ func sectionPath(id int64, section string) string { return spacePath(id) + "/set
 
 // spaceLinks are the pages every level has for its space.
 func spaceLinks(id int64) []settingsLink {
-	out := []settingsLink{{Label: "nav.connections", Href: spacePath(id) + "/connections"}}
+	out := []settingsLink{{Label: "nav.connections", Href: spacePath(id) + "/connections"}, {Label: "verbund.title", Href: verbundPath(id)}}
 	for _, s := range spaceSections {
 		out = append(out, settingsLink{Label: "settings." + s, Href: sectionPath(id, s)})
 	}

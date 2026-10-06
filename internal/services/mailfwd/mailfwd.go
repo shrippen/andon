@@ -30,6 +30,7 @@ import (
 	"andon/internal/services/boards"
 	"andon/internal/services/connections"
 	"andon/internal/services/svcdata"
+	"andon/internal/services/verbund"
 	"andon/internal/sources"
 )
 
@@ -49,8 +50,8 @@ type Item struct {
 	sources.MailInvoice
 }
 
-// mailboxes returns the mail connections who may use, with their space's
-// Paperless connection (nil if none).
+// mailboxes returns the mail connections who may use, with their
+// Paperless partner (nil if none, or several without a Verbund).
 func mailboxes(d *sql.DB, who *access.Principal) (map[*model.Connection]*model.Connection, error) {
 	out := map[*model.Connection]*model.Connection{}
 	views, err := connections.Listing(d, who, enums.RightUse)
@@ -66,16 +67,12 @@ func mailboxes(d *sql.DB, who *access.Principal) (map[*model.Connection]*model.C
 			if err != nil || mail == nil {
 				return err
 			}
-			out[mail] = nil
-			siblings, err := content.Connections(tx, []int64{mail.SpaceID})
+			// The mailbox's Paperless partner: Verbund, or the one there is.
+			paperless, _, err := verbund.Partner(tx, who, verbund.Asker{SpaceID: mail.SpaceID, ConnID: mail.ID}, enums.ServicePaperless)
 			if err != nil {
 				return err
 			}
-			for _, c := range siblings {
-				if enums.ServiceType(c.Service) == enums.ServicePaperless {
-					out[mail] = c
-				}
-			}
+			out[mail] = paperless
 		}
 		return nil
 	})

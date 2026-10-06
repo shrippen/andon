@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -122,6 +123,50 @@ func TestSetClassReadOnlyPlugin(t *testing.T) {
 		t.Fatalf("nothing written to Kimai: %+v", writes)
 	}
 	if got := ridesOption(t, d, conn); got[strconv.FormatInt(rideStart.Unix(), 10)] != "private" {
+		t.Fatalf("option: %+v", got)
+	}
+}
+
+// The old plugin still takes trips (editOwn is enough).
+func TestSetClassOldPlugin(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	rec := &recorder{}
+	geo, kimai := fakeDawarich(rec, oneRide()), fakeKimai(rec, pluginOld)
+	defer geo.Close()
+	defer kimai.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
+	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimai.URL)
+
+	if err := sites.SetClass(context.Background(), d, who, conn, rideStart.Unix(), metrics.ClassBusiness); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if writes := rec.list(); len(writes) != 1 || writes[0].Call != http.MethodPost+" /api/mileage/trips" {
+		t.Fatalf("writes: %+v", writes)
+	}
+}
+
+// A bicycle ride's class stays in Andon even with the plugin: it pays
+// only car and motorbike km.
+func TestSetClassBicycleStaysInAndon(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	rec := &recorder{}
+	answers := oneRide()
+	answers["/api/v1/tracks/1"] = strings.Replace(answers["/api/v1/tracks/1"], `"mode": "driving"`, `"mode": "cycling"`, 1)
+	geo, kimai := fakeDawarich(rec, answers), fakeKimai(rec, pluginWrites)
+	defer geo.Close()
+	defer kimai.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
+	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimai.URL)
+
+	if err := sites.SetClass(context.Background(), d, who, conn, rideStart.Unix(), metrics.ClassBusiness); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if writes := rec.list(); len(writes) != 0 {
+		t.Fatalf("written to the plugin: %+v", writes)
+	}
+	if got := ridesOption(t, d, conn); got[strconv.FormatInt(rideStart.Unix(), 10)] != "business" {
 		t.Fatalf("option: %+v", got)
 	}
 }

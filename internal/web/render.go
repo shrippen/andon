@@ -38,23 +38,24 @@ func mustParse() *template.Template {
 		// t/money/etc. are bound per-render in Page() via t.Funcs, since
 		// they close over the request's locale. These placeholders let the
 		// templates parse before that binding happens.
-		"t":         func(string, ...any) string { return "" },
-		"money":     func(float64, ...string) string { return "" },
-		"num":       func(float64, ...int) string { return "" },
-		"nums":      func([]float64, int) string { return "" },
-		"gb":        func(float64) string { return "" },
-		"day":       func(any) string { return "" },
-		"weekday":   func(any) string { return "" },
-		"mday":      func(any) string { return "" },
-		"month":     func(any) string { return "" },
-		"pct":       func(float64) string { return "" },
-		"ago":       func(any) string { return "" },
-		"clockDate": func(string) string { return "" },
-		"tt":        func(string, map[string]any) string { return "" },
-		"tv":        func(any) string { return "" },
-		"here":      func(string) bool { return false },
-		"at":        func(string) bool { return false },
-		"fragment":  func(*tileBody) (template.HTML, error) { return "", nil },
+		"t":            func(string, ...any) string { return "" },
+		"money":        func(float64, ...string) string { return "" },
+		"num":          func(float64, ...int) string { return "" },
+		"serviceNames": func([]string) string { return "" },
+		"nums":         func([]float64, int) string { return "" },
+		"gb":           func(float64) string { return "" },
+		"day":          func(any) string { return "" },
+		"weekday":      func(any) string { return "" },
+		"mday":         func(any) string { return "" },
+		"month":        func(any) string { return "" },
+		"pct":          func(float64) string { return "" },
+		"ago":          func(any) string { return "" },
+		"clockDate":    func(string) string { return "" },
+		"tt":           func(string, map[string]any) string { return "" },
+		"tv":           func(any) string { return "" },
+		"here":         func(string) bool { return false },
+		"at":           func(string) bool { return false },
+		"fragment":     func(*tileBody) (template.HTML, error) { return "", nil },
 
 		// known is the first of keys the catalog has, else "": picks a
 		// tile type's own label over the shared one.
@@ -296,6 +297,14 @@ func newPageSet() *pageSet {
 				out[i] = i18n.Num(v, st.locale, digits)
 			}
 			return strings.Join(out, "|")
+		},
+		// Service names of a list: "kimai", "sure" → "Kimai, Sure".
+		"serviceNames": func(services []string) string {
+			out := make([]string, len(services))
+			for i, s := range services {
+				out[i] = i18n.T("service."+s, st.locale, nil)
+			}
+			return strings.Join(out, ", ")
 		},
 		"gb":        func(v float64) string { return i18n.GB(v, st.locale) },
 		"day":       func(v any) string { return i18n.Day(v, st.locale) },

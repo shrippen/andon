@@ -1,6 +1,7 @@
 package web
 
 import (
+	"andon/internal/services/verbund"
 	"net/http"
 	"slices"
 	"strconv"
@@ -108,6 +109,13 @@ func (d Deps) recordValues(r *http.Request, ctx Ctx, conn connections.View) (map
 		if mine := access.Personal(ctx.Who); ref.Kind == enums.SpaceInstance && !ctx.Who.IsAdmin() && mine != nil {
 			values[navPath] = spacePath(mine.ID) + "/connections"
 		}
+	}
+
+	if rows, err := connections.Capabilities(r.Context(), d.DB, ctx.Who, conn.ID); err == nil {
+		values["Caps"] = rows
+	}
+	if groups, err := verbund.Of(d.DB, ctx.Who, conn.ID); err == nil {
+		values["InVerbund"] = groups
 	}
 
 	history, err := connections.History(d.DB, ctx.Who, conn.ID, recordDays, time.Now().UTC())

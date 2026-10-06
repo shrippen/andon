@@ -119,3 +119,11 @@ func KimaiMarkExported(ctx context.Context, to Target, timesheetID int64) error 
 	_, err := api.Send(ctx, http.MethodPatch, "timesheets/"+strconv.FormatInt(timesheetID, 10)+"/export", nil)
 	return err
 }
+
+// KimaiRenameCustomer sets a customer's name (PATCH /api/customers/{id}),
+// e.g. to the name Invoice Ninja holds.
+func KimaiRenameCustomer(ctx context.Context, to Target, customerID int64, name string) error {
+	api := services.KimaiApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}
+	_, err := api.Send(ctx, http.MethodPatch, "customers/"+strconv.FormatInt(customerID, 10), map[string]any{"name": name})
+	return err
+}

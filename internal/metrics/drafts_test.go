@@ -18,7 +18,7 @@ func TestDraftRates(t *testing.T) {
 		{ID: 4, Begin: "2026-09-03", End: "x", Minutes: 7, Rate: 5.8333, Billable: true, CustomerID: 2, Activity: "B"},
 	}}
 	rates := map[int64]DraftLine{}
-	for _, d := range Drafts(kimai, nil) {
+	for _, d := range Drafts(kimai, nil, nil) {
 		rates[d.CustomerID] = d.Lines[0]
 	}
 	if l := rates[1]; l.Rate != 50 || l.Hours != 1 {

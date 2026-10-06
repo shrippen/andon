@@ -10,6 +10,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -23,6 +24,7 @@ import (
 	auditsvc "andon/internal/services/audit"
 	"andon/internal/services/connections"
 	"andon/internal/services/svcdata"
+	"andon/internal/services/verbund"
 	"andon/internal/sources"
 )
 
@@ -45,6 +47,7 @@ const (
 type Candidate struct {
 	SpaceID   int64
 	SpaceName string
+	KimaiID   int64 // the pair's Kimai connection
 	metrics.Draft
 }
 
@@ -54,36 +57,61 @@ type pair struct {
 	kimai, ninja *model.Connection
 }
 
+// pairs lists each Kimai of the spaces the caller may EDIT with its
+// Invoice Ninja partner (Verbund, or the one there is).
 func pairs(d *sql.DB, who *access.Principal, spaceID int64) ([]pair, error) {
 	var out []pair
 	err := db.WithRead(d, func(tx *sql.Tx) error {
-		for id, ref := range who.Spaces {
-			if spaceID != 0 && id != spaceID {
-				continue
-			}
-			if access.SpaceRight(who, &ref) < enums.RightEdit {
-				continue
-			}
-			conns, err := content.Connections(tx, []int64{id})
-			if err != nil {
-				return err
-			}
-			p := pair{space: ref}
-			for _, c := range conns {
-				switch enums.ServiceType(c.Service) {
-				case enums.ServiceKimai:
-					p.kimai = c
-				case enums.ServiceInvoiceNinja:
-					p.ninja = c
-				}
-			}
-			if p.kimai != nil && p.ninja != nil {
-				out = append(out, p)
+		found, err := verbund.Pairs(tx, who, editable(who, spaceID), enums.ServiceKimai, enums.ServiceInvoiceNinja)
+		for _, p := range found {
+			if ref, ok := writable(who, p.A, p.B); ok {
+				out = append(out, pair{space: ref, kimai: p.A, ninja: p.B})
 			}
 		}
-		return nil
+		return err
 	})
 	return out, err
+}
+
+// editable lists the spaces (or the one asked for) the caller may EDIT.
+func editable(who *access.Principal, spaceID int64) []int64 {
+	var out []int64
+	for id, ref := range who.Spaces {
+		if spaceID != 0 && id != spaceID {
+			continue
+		}
+		if access.SpaceRight(who, &ref) >= enums.RightEdit {
+			out = append(out, id)
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
+// writable is the space of a, when the caller may EDIT the spaces of
+// both connections.
+func writable(who *access.Principal, a, b *model.Connection) (access.SpaceRef, bool) {
+	ref, ok := who.Spaces[a.SpaceID]
+	other, ok2 := who.Spaces[b.SpaceID]
+	if !ok || !ok2 || access.SpaceRight(who, &other) < enums.RightEdit {
+		return access.SpaceRef{}, false
+	}
+	return ref, true
+}
+
+// pick is the pair of the connection connID; 0 takes the space's only
+// pair (forms from before Verbünde).
+func pick[P any](list []P, connID int64, idOf func(P) int64) (P, bool) {
+	var zero P
+	if connID == 0 && len(list) == 1 {
+		return list[0], true
+	}
+	for _, p := range list {
+		if idOf(p) == connID {
+			return p, true
+		}
+	}
+	return zero, false
 }
 
 func load(ctx context.Context, d *sql.DB, who *access.Principal, p pair, fresh svcdata.Freshness) (*sources.KimaiDataset, *sources.NinjaDataset, error) {
@@ -117,8 +145,12 @@ func Candidates(ctx context.Context, d *sql.DB, who *access.Principal) ([]Candid
 		if err != nil {
 			return nil, err
 		}
-		for _, draft := range billable(metrics.Drafts(kimai, ninja), settings) {
-			out = append(out, Candidate{SpaceID: p.space.ID, SpaceName: p.space.Name, Draft: draft})
+		links, err := verbund.ClientMapFor(d, p.kimai.ID, p.ninja.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, draft := range billable(metrics.Drafts(kimai, ninja, links), settings) {
+			out = append(out, Candidate{SpaceID: p.space.ID, SpaceName: p.space.Name, KimaiID: p.kimai.ID, Draft: draft})
 		}
 	}
 	return out, nil
@@ -160,15 +192,15 @@ func spaceSettings(d *sql.DB, spaceID int64) (map[string]any, error) {
 }
 
 // Create writes one customer's draft to Invoice Ninja and returns its number.
-func Create(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, customerID int64, mode ExportMode, ip string) (string, error) {
+func Create(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, kimaiID, customerID int64, mode ExportMode, ip string) (string, error) {
 	found, err := pairs(d, who, spaceID)
 	if err != nil {
 		return "", err
 	}
-	if len(found) == 0 {
+	p, ok := pick(found, kimaiID, func(p pair) int64 { return p.kimai.ID })
+	if !ok {
 		return "", access.ErrDenied
 	}
-	p := found[0]
 	for _, c := range []*model.Connection{p.kimai, p.ninja} {
 		if _, err := connections.Get(d, who, c.ID); err != nil {
 			return "", err
@@ -183,7 +215,11 @@ func Create(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, cust
 	if kimai == nil || ninja == nil {
 		return "", ErrNothing
 	}
-	draft, ok := draftFor(metrics.Drafts(kimai, ninja), customerID)
+	links, err := verbund.ClientMapFor(d, p.kimai.ID, p.ninja.ID)
+	if err != nil {
+		return "", err
+	}
+	draft, ok := draftFor(metrics.Drafts(kimai, ninja, links), customerID)
 	if !ok {
 		return "", ErrNothing
 	}

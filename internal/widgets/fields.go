@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // Widget config forms are generated from a field list per type:
@@ -30,6 +31,7 @@ const (
 	InputHeaders Input = "headers" // one "Name: value" per line
 	InputSecret  Input = "secret"  // write-only: stored encrypted, never shown
 	InputPlace   Input = "place"   // search by name; stores place, lat and lon
+	InputVerbund Input = "verbund" // a Verbund's id; empty = automatic
 )
 
 const (
@@ -64,13 +66,73 @@ func sel(key string, def string, options ...string) Field {
 // dataModeField lets connection-bound widgets choose live or background data.
 var dataModeField = sel(DataModeKey, string(DataAuto), string(DataAuto), string(DataLive), string(DataStored))
 
+// VerbundKey is the config key of a tile's chosen Verbund.
+const VerbundKey = "verbund"
+
+// verbundField picks the Verbund a tile with partner services reads.
+var verbundField = Field{Key: VerbundKey, Input: InputVerbund}
+
 // FieldsOf returns the config fields of a widget type.
 func FieldsOf(key string) []Field {
 	kind := registry[key]
+	out := kind.Fields
 	if kind.DataChoice {
-		return append(append([]Field(nil), kind.Fields...), dataModeField)
+		out = append(append([]Field(nil), out...), dataModeField)
 	}
-	return kind.Fields
+	if usesPeers(key) {
+		out = append(append([]Field(nil), out...), verbundField)
+	}
+	return out
+}
+
+// peersIn reports whether cfg's queries read a partner service.
+func peersIn(kind WidgetType, cfg any) bool {
+	for _, list := range []QueriesFunc{kind.Queries, kind.DetailQueries} {
+		if list == nil {
+			continue
+		}
+		for _, q := range list(cfg) {
+			if q.Conn == ConnPeer {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+var (
+	peersMu sync.Mutex
+	peers   = map[string]bool{}
+)
+
+// usesPeers reports whether a type reads other services' connections
+// (ConnPeer) with its defaults or any option of its selects, e.g. the
+// KPI "effective rate" (Kimai).
+func usesPeers(key string) bool {
+	peersMu.Lock()
+	defer peersMu.Unlock()
+	if v, ok := peers[key]; ok {
+		return v
+	}
+	kind := registry[key]
+	found := false
+	func() {
+		defer func() { _ = recover() }() // a type whose defaults need data
+		if kind.Decode == nil {
+			return
+		}
+		raws := []map[string]any{{}}
+		for _, f := range kind.Fields {
+			for _, o := range f.Options {
+				raws = append(raws, map[string]any{f.Key: o})
+			}
+		}
+		for _, raw := range raws {
+			found = found || peersIn(kind, kind.Decode(raw))
+		}
+	}()
+	peers[key] = found
+	return found
 }
 
 // FormValue is one field with its current value, ready for a form.
@@ -212,6 +274,10 @@ func ParseForm(key string, get func(name string) string) map[string]any {
 		case InputNumber:
 			if n, err := strconv.ParseFloat(strings.ReplaceAll(raw, ",", "."), 64); err == nil {
 				set(config, f.Key, n)
+			}
+		case InputVerbund:
+			if n, err := strconv.ParseInt(raw, 10, 64); err == nil && n > 0 {
+				set(config, f.Key, float64(n))
 			}
 		case InputList:
 			list := []any{}

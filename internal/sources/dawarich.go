@@ -1,6 +1,7 @@
 package sources
 
 import (
+	"andon/internal/caps"
 	"context"
 	"net/url"
 	"sort"
@@ -114,6 +115,7 @@ func loadDawarich(ctx context.Context, api services.DawarichApi, sctx Ctx) (*Daw
 		Places: loadDawarichPlaces(ctx, api),
 	}
 	loadTracks(ctx, api, tracksFrom(now, days), now, data)
+	data.Caps = dawarichCaps(data.TracksState)
 	return data, nil
 }
 
@@ -247,4 +249,11 @@ func init() {
 	Register(SnipeTest)
 	Register(DawarichData)
 	Register(DawarichTest)
+}
+
+// dawarichCaps: rides need the tracks API (Dawarich 0.30 and later).
+func dawarichCaps(state TracksState) caps.Set {
+	return caps.Detect(caps.HolderOf(enums.ServiceDawarich), func(n caps.Need) bool {
+		return state != TracksMissing
+	})
 }

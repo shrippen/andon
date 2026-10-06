@@ -1,6 +1,7 @@
 package i18n
 
 import (
+	"andon/internal/caps"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -111,4 +112,32 @@ func missingIn(have, want map[string]string) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// TestCapsKeysExist: the record and the connection test can name every
+// declared capability and what it needs.
+func TestCapsKeysExist(t *testing.T) {
+	ensureLoaded()
+	for _, h := range caps.Holders() {
+		for _, c := range caps.Declared(h) {
+			keys := []string{"caps.domain." + string(c.Domain), "caps.op." + string(c.Op)}
+			for _, k := range c.Kinds {
+				keys = append(keys, "caps.kind."+k)
+			}
+			for _, n := range c.Needs {
+				keys = append(keys, "caps.need."+string(n.Kind))
+				switch n.Kind {
+				case caps.NeedPlugin, caps.NeedSetting:
+					keys = append(keys, "caps."+string(n.Kind)+"."+n.Name)
+				}
+			}
+			for _, k := range keys {
+				for loc, cat := range catalogs {
+					if _, ok := cat[k]; !ok {
+						t.Errorf("%s: %s missing in %s", h, k, loc)
+					}
+				}
+			}
+		}
+	}
 }

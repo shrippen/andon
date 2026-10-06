@@ -17,7 +17,7 @@
       <thead><tr><th>{{t "clients.customer"}}</th><th class="num">{{t "clients.hours_year"}}</th><th class="num">{{t "clients.unbilled"}}</th>
         <th class="num">{{t "clients.open"}}</th><th class="num">{{t "clients.revenue"}}</th><th class="num">{{t "clients.pay_days"}}</th></tr></thead>
       <tbody>{{range .Cards}}<tr>
-        <td><a href="/clients/{{.SpaceID}}/{{.CustomerID}}">{{.Name}}</a> <small class="muted">{{.SpaceName}}</small></td>
+        <td><a href="/clients/{{.SpaceID}}/{{.CustomerID}}?kimai={{.KimaiID}}">{{.Name}}</a> <small class="muted">{{.SpaceName}}</small></td>
         <td class="num">{{num .HoursYear 1}}</td>
         <td class="num">{{if .Unbilled}}{{money .Unbilled .Currency}}{{end}}</td>
         <td class="num">{{if .Open}}<span{{if .Overdue}} class="late"{{end}}>{{money .Open .Currency}}</span>{{end}}</td>

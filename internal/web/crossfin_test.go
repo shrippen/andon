@@ -64,12 +64,12 @@ func TestBookMatchedPayment(t *testing.T) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	form := regexp.MustCompile(`name="space_id" value="(\d+)"><input type="hidden" name="txn" value="([^"]+)">\s*<input type="hidden" name="invoice_id" value="(\d+)">`).FindStringSubmatch(billingPage)
+	form := regexp.MustCompile(`name="space_id" value="(\d+)"><input type="hidden" name="conn_id" value="(\d+)"><input type="hidden" name="txn" value="([^"]+)">\s*<input type="hidden" name="invoice_id" value="(\d+)">`).FindStringSubmatch(billingPage)
 	if form == nil {
 		t.Fatalf("no payment proposal:\n%s", billingPage)
 	}
 	resp := postForm(t, client, srv.URL+"/billing/payment", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {form[1]},
-		"txn": {form[2]}, "invoice_id": {form[3]}, "number": {"RE-2026-017"}})
+		"conn_id": {form[2]}, "txn": {form[3]}, "invoice_id": {form[4]}, "number": {"RE-2026-017"}})
 	if resp.StatusCode != http.StatusSeeOther || !strings.Contains(resp.Header.Get("Location"), "booked=RE-2026-017") {
 		t.Fatalf("book: %d %s", resp.StatusCode, resp.Header.Get("Location"))
 	}

@@ -14,6 +14,7 @@ import (
 	"andon/internal/services/assist"
 	"andon/internal/services/billing"
 	"andon/internal/services/mailfwd"
+	"andon/internal/services/verbund"
 
 	"andon/internal/services/svcdata"
 	"andon/internal/services/timer"
@@ -214,7 +215,7 @@ func (d Deps) RegisterBillingRoutes(mux *http.ServeMux) {
 func (d Deps) handlePaymentBook(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	space := formID(r, "space_id")
 	invoice := formID(r, "invoice_id")
-	if err := billing.Book(r.Context(), d.DB, ctx.Who, space, r.FormValue("txn"), invoice, d.clientIP(r)); err != nil {
+	if err := billing.Book(r.Context(), d.DB, ctx.Who, space, formID(r, "conn_id"), r.FormValue("txn"), invoice, d.clientIP(r)); err != nil {
 		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
@@ -240,7 +241,12 @@ func (d Deps) billingPage(w http.ResponseWriter, r *http.Request, ctx Ctx, statu
 	// Sure matches first; the rest wants a second look.
 	sort.SliceStable(payments, func(i, j int) bool { return payments[i].Sure() && !payments[j].Sure() })
 	year := time.Now().Year()
-	values := map[string]any{"Drafts": drafts, "Mails": mails, "Payments": payments, "Summary": billingSummary(drafts, payments, len(mails), sent), "Booked": r.URL.Query().Get("booked"), "Assist": assist.Enabled(), "Spaces": access.EditableSpaces(ctx.Who), "Years": []int{year, year - 1}}
+	groups, err := verbund.Visible(d.DB, ctx.Who)
+	if err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	values := map[string]any{"Verbuende": groups, "Drafts": drafts, "Mails": mails, "Payments": payments, "Summary": billingSummary(drafts, payments, len(mails), sent), "Booked": r.URL.Query().Get("booked"), "Assist": assist.Enabled(), "Spaces": access.EditableSpaces(ctx.Who), "Years": []int{year, year - 1}}
 	for k, v := range extra {
 		values[k] = v
 	}
@@ -259,7 +265,7 @@ func (d Deps) handleBillingDraft(w http.ResponseWriter, r *http.Request, ctx Ctx
 	if r.FormValue("mark_exported") != "" {
 		mode = billing.MarkSheets
 	}
-	number, err := billing.Create(r.Context(), d.DB, ctx.Who, space, customer, mode, d.clientIP(r))
+	number, err := billing.Create(r.Context(), d.DB, ctx.Who, space, formID(r, "conn_id"), customer, mode, d.clientIP(r))
 	if err != nil {
 		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
@@ -270,7 +276,7 @@ func (d Deps) handleBillingDraft(w http.ResponseWriter, r *http.Request, ctx Ctx
 func (d Deps) handleBillingExport(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	space := formID(r, "space_id")
 	year := formInt(r, "year")
-	name, blob, err := billing.Export(r.Context(), d.DB, ctx.Who, space, year, d.clientIP(r))
+	name, blob, err := billing.Export(r.Context(), d.DB, ctx.Who, space, formID(r, "link_id"), year, d.clientIP(r))
 	if err != nil {
 		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return

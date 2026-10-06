@@ -13,6 +13,7 @@
 package sites
 
 import (
+	"andon/internal/caps"
 	"context"
 	"database/sql"
 	"errors"
@@ -26,6 +27,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
 	"andon/internal/services/svcdata"
+	"andon/internal/services/verbund"
 	"andon/internal/sources"
 )
 
@@ -96,6 +98,7 @@ type View struct {
 	Writes    bool // it creates and changes places
 	CanManage bool
 	Estimated bool // no tracks: rides from visits
+	Ambiguous bool // several Kimai, no Verbund says which
 }
 
 // env is what every call reads: both connections and their data.
@@ -105,6 +108,7 @@ type env struct {
 	kimai              *sources.KimaiDataset
 	book               *metrics.Book
 	canManage          bool
+	ambiguous          bool // several Kimai, no Verbund says which
 }
 
 func open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, need enums.Right) (env, error) {
@@ -132,30 +136,44 @@ func open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, n
 	}
 	e.geo = geo
 
-	// The Kimai connection of the same space, if any.
-	all, err := connections.Listing(d, who, enums.RightUse)
+	// The Kimai partner of this Dawarich (Verbund, or the one there is);
+	// several without a Verbund count as none: nothing goes to a guess.
+	kimaiConn, state, err := verbund.Partner(d, who, verbund.Asker{SpaceID: view.SpaceID, ConnID: connID}, enums.ServiceKimai)
 	if err != nil {
 		return env{}, err
 	}
-	for _, c := range all {
-		if c.SpaceID != view.SpaceID || c.Service != enums.ServiceKimai {
-			continue
-		}
-		if e.kimaiConn, err = connections.ByID(d, c.ID); err != nil {
-			return env{}, err
-		}
+	e.ambiguous = state == verbund.PartnerAmbiguous
+	if kimaiConn != nil {
+		e.kimaiConn = kimaiConn
 		if res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceKimai), nil, e.kimaiConn, model.UserHolder(who.UserID), svcdata.Cached); err == nil {
 			e.kimai, _ = res.Data.(*sources.KimaiDataset)
 		}
-		break
 	}
 	e.book = metrics.BookOf(e.geo, e.kimai, e.geoConn.Options)
 	return e, nil
 }
 
-// pluginWrites says whether places go to the mileage plugin.
+// pluginLive says whether the Kimai connection takes writes at all.
+func (e env) pluginLive() bool {
+	return e.kimai != nil && e.kimaiConn != nil && !sources.IsDemo(e.kimaiConn.URL)
+}
+
+// kimaiHolder is the Kimai connection as a caps holder.
+var kimaiHolder = caps.HolderOf(enums.ServiceKimai)
+
+// pluginWrites says whether places go to the mileage plugin, whatever
+// their kind: a private place goes as "other".
 func (e env) pluginWrites() bool {
-	return e.kimai != nil && e.kimai.PlacesWrite && e.kimai.MileageEdit && e.kimaiConn != nil && !sources.IsDemo(e.kimaiConn.URL)
+	return e.pluginLive() && e.kimai.Caps.Can(caps.Places, caps.Update, "")
+}
+
+// kindHolder is who keeps what a place is: the plugin for its kinds,
+// Andon for "private" and without the plugin.
+func (e env) kindHolder(kind metrics.PlaceKind) caps.Holder {
+	if !e.pluginLive() {
+		return caps.Andon
+	}
+	return caps.Store(caps.Places, caps.Update, string(kind), e.kimai.Caps)
 }
 
 // Overview lists the sites, busiest first, and frequent destinations
@@ -178,7 +196,7 @@ func Overview(ctx context.Context, d *sql.DB, who *access.Principal, connID int6
 		}
 		used[dest.Site.Key] = &Row{Site: dest.Site, Rides: dest.Rides, KM: dest.KM, Last: dest.Last}
 	}
-	v := View{Kinds: metrics.PlaceKinds, CanManage: e.canManage, Estimated: travel.Estimated, Unplaced: metrics.Unplaced(rides, unplacedMin)}
+	v := View{Kinds: metrics.PlaceKinds, CanManage: e.canManage, Estimated: travel.Estimated, Unplaced: metrics.Unplaced(rides, unplacedMin), Ambiguous: e.ambiguous}
 	for _, s := range e.book.Sites {
 		if r, ok := used[s.Key]; ok {
 			v.Rows = append(v.Rows, *r)
@@ -193,7 +211,7 @@ func Overview(ctx context.Context, d *sql.DB, who *access.Principal, connID int6
 		return v.Rows[i].Name < v.Rows[j].Name
 	})
 	if e.kimai != nil {
-		v.Customers, v.Plugin = e.kimai.Customers, e.kimai.Mileage
+		v.Customers, v.Plugin = e.kimai.Customers, e.kimai.Caps.Can(caps.Places, caps.Read, "")
 		for i := range v.Rows {
 			if v.Rows[i].Kind == metrics.KindNone {
 				v.Rows[i].Suggest = suggest(v.Rows[i].Name, v.Customers)
