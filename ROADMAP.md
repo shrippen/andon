@@ -1095,6 +1095,17 @@ Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md
   - Jeder schreibende Vorgang wird in einer Logdatei im selben Verzeichnis protokolliert (Zeit, Dienst, Aktion, ID des Testeintrags)
   - Regel in `agent.md` aufnehmen, Hilfen fürs Protokollieren und Prüfen „nur eigene Einträge“ bauen
 
+- [ ] Einstellungen: möglichst viele bisher nur per Umgebungsvariable setzbare Einstellungen zusätzlich in den Servereinstellungen der Oberfläche anbieten; sind beide gesetzt, gewinnt die Umgebungsvariable (in der Oberfläche als „durch Umgebung gesetzt“ gesperrt anzeigen)
+- [ ] Wartungsseite: laufende Aufgaben, zuletzt abgeschlossene Aufgaben, Probleme, Logs
+- [ ] „Über Andon“: Dev-Builds zeigen keine Version. Auch Dev-Builds bekommen automatisch eine Versionsnummer nach dem Schema `Version/Branch/Build`, z. B. `0.5.0/main/#25`
+- [ ] Regel (in `agent.md` aufnehmen): Visualisierungen in Popups bekommen, wo möglich, Tooltips beim Hover (ergänzt die Regel zu Achsen und Legenden)
+- [ ] Dawarich: Orte
+  - Kimai „Anfahrten“ ist nur für Geschäftliches zuständig und kennt Kunde, Zuhause, Arbeitsplatz, Sonstiges, aber keine privaten Orte (so gewollt)
+  - Andon kennt zusätzlich private Orte; vorerst reicht die Kategorie „Privat“
+  - Struktur: jedes Backend unterstützt nur eine Teilmenge der Funktionen beim Abgleichen und Schreiben (Fähigkeiten je Integration)
+  - Prüfen, ob sich das abstrahieren lässt, damit weitere Integrationen es nutzen: welche Fähigkeiten eine Integration hat, wie sie sich mit anderen überlappt (Dawarich und Kimai Anfahrten kennen beide „Orte“, unterschiedlich und voneinander abhängig) und wie Integrationen voneinander abhängen
+- [ ] Dawarich: Der Hinweis „Dawarich-Tracks werden noch gelesen; ältere Fahrten fehlen vorerst.“ bekommt eine Fortschrittsanzeige und einen Link zur Wartungsseite
+
 ---
 
 ## 11. Betrieb und Sicherheit
