@@ -17,14 +17,11 @@ import (
 	"andon/internal/db"
 	"andon/internal/logbuf"
 	"andon/internal/outbound"
-	"andon/internal/services/assist"
 	"andon/internal/services/auth"
 	"andon/internal/services/icons"
-	"andon/internal/services/mail"
 	"andon/internal/services/maintenance"
 	"andon/internal/services/scheduler"
 	"andon/internal/services/seed"
-	"andon/internal/services/summary"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/system"
 	"andon/internal/services/themes"
@@ -57,10 +54,12 @@ func run() int {
 		os.Exit(healthcheck("http://127.0.0.1" + listenAddr()))
 	}
 
-	// Recent records also go to Admin → Operations (logbuf).
-	slog.SetDefault(slog.New(logbuf.Wrap(slog.NewTextHandler(os.Stderr, nil))))
+	// Recent records also go to Admin → Operations (logbuf); the level
+	// follows LOG_LEVEL or the UI's server settings.
+	slog.SetDefault(slog.New(logbuf.Wrap(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: settings.Level}))))
 
 	cfg := settings.Load()
+	settings.Publish(cfg)
 
 	masterKey := cfg.MasterKey
 	if masterKey == "" {
@@ -113,9 +112,11 @@ func run() int {
 		slog.Error("start", "err", err)
 		os.Exit(1)
 	}
-	mail.Init(cfg)
-	summary.Init(cfg)
-	assist.Init(cfg)
+	// Server settings saved in the UI fill what the environment left unset.
+	if err := system.ApplyServer(database, cfg); err != nil {
+		slog.Error("server settings", "err", err)
+		return 1
+	}
 	themes.InitFonts(cfg.ThemesDir())
 	icons.Init(cfg.IconsDir())
 

@@ -31,8 +31,17 @@ const (
 type Job struct {
 	Name     string
 	Interval time.Duration
+	Every    func() time.Duration // if set, read before each wait instead of Interval
 	Start    StartMode
 	Run      func(context.Context) error
+}
+
+// interval is the job's current interval.
+func (j Job) interval() time.Duration {
+	if j.Every != nil {
+		return j.Every()
+	}
+	return j.Interval
 }
 
 // Run is the outcome of a job's latest run.
@@ -152,7 +161,7 @@ func jobNames(jobs []Job) []string {
 }
 
 func runJob(ctx context.Context, job Job, kick <-chan struct{}) {
-	timer := time.NewTimer(nextWait(job.Interval))
+	timer := time.NewTimer(nextWait(job.interval()))
 	defer timer.Stop()
 	if job.Start == AtStart {
 		safeRun(ctx, job)
@@ -164,7 +173,7 @@ func runJob(ctx context.Context, job Job, kick <-chan struct{}) {
 			return
 		case <-timer.C:
 			safeRun(ctx, job)
-			timer.Reset(nextWait(job.Interval))
+			timer.Reset(nextWait(job.interval()))
 		case <-kick:
 			safeRun(ctx, job)
 		}
@@ -188,7 +197,7 @@ func nextWait(interval time.Duration) time.Duration {
 
 func safeRun(ctx context.Context, job Job) {
 	started := time.Now()
-	run := Run{At: started.UTC(), Every: job.Interval}
+	run := Run{At: started.UTC(), Every: job.interval()}
 	runsMu.Lock()
 	running[job.Name] = run.At
 	runsMu.Unlock()

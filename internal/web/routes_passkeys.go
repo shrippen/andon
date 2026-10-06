@@ -37,7 +37,7 @@ func jsonError(w http.ResponseWriter, status int, key string) {
 }
 
 func (d Deps) handlePasskeyBegin(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	options, err := passkeys.Begin(d.DB, d.Settings, ctx.Who)
+	options, err := passkeys.Begin(d.DB, d.live(), ctx.Who)
 	if err != nil {
 		jsonError(w, http.StatusBadRequest, errKey(err))
 		return
@@ -48,7 +48,7 @@ func (d Deps) handlePasskeyBegin(w http.ResponseWriter, r *http.Request, ctx Ctx
 func (d Deps) handlePasskeyFinish(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	var err error
 	body := http.MaxBytesReader(w, r.Body, passkeyBodyMax)
-	err = passkeys.Finish(d.DB, d.Settings, ctx.Who, r.URL.Query().Get("name"), body, d.clientIP(r))
+	err = passkeys.Finish(d.DB, d.live(), ctx.Who, r.URL.Query().Get("name"), body, d.clientIP(r))
 	if err != nil {
 		jsonError(w, http.StatusBadRequest, errKey(err))
 		return
@@ -76,7 +76,7 @@ type loginCeremony struct {
 }
 
 func (d Deps) handlePasskeyLoginBegin(w http.ResponseWriter, r *http.Request) {
-	id, options, err := passkeys.BeginLogin(d.Settings)
+	id, options, err := passkeys.BeginLogin(d.live())
 	if err != nil {
 		jsonError(w, http.StatusTooManyRequests, errKey(err))
 		return
@@ -93,7 +93,7 @@ func (d Deps) handlePasskeyLoginFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body := http.MaxBytesReader(w, r.Body, passkeyBodyMax)
-	token, err := passkeys.FinishLogin(d.DB, d.Settings, r.URL.Query().Get("ceremony"), body, d.clientIP(r), Agent(r))
+	token, err := passkeys.FinishLogin(d.DB, d.live(), r.URL.Query().Get("ceremony"), body, d.clientIP(r), Agent(r))
 	if err != nil {
 		key := "login.failed"
 		if errors.Is(err, auth.ErrOIDCOnly) {

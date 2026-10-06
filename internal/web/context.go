@@ -93,15 +93,18 @@ func Agent(r *http.Request) string { return r.Header.Get("User-Agent") }
 // Deps bundles what request handling needs from the rest of the app.
 type Deps struct {
 	DB       *sql.DB
-	Settings settings.Settings
+	Settings settings.Settings // from the environment
 }
+
+// live is Settings with the server settings saved in the UI.
+func (d Deps) live() settings.Settings { return settings.Live(d.Settings) }
 
 func (d Deps) session(r *http.Request) (*auth.SessionInfo, error) {
 	cookie, err := r.Cookie(CookieName)
 	if err != nil {
 		return nil, nil
 	}
-	return auth.Resolve(d.DB, d.Settings, cookie.Value)
+	return auth.Resolve(d.DB, d.live(), cookie.Value)
 }
 
 // Context builds a Ctx for any request, authenticated or not.

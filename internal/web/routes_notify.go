@@ -68,7 +68,7 @@ func (d Deps) handleNotifyChannelTest(w http.ResponseWriter, r *http.Request, ct
 		http.NotFound(w, r)
 		return
 	}
-	if err := notify.TestChannel(r.Context(), d.DB, d.Settings, ctx.Who, id); err != nil {
+	if err := notify.TestChannel(r.Context(), d.DB, d.live(), ctx.Who, id); err != nil {
 		d.notifyPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": err.Error()})
 		return
 	}
