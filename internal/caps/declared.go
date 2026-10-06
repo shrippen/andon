@@ -57,9 +57,17 @@ var declared = map[Holder][]Cap{
 		{Domain: Receipts, Op: Update},
 	},
 	HolderOf(enums.ServiceSure): {
-		{Domain: Payments, Op: Read}, // transactions of the bank accounts
+		{Domain: Payments, Op: Read},      // transactions of the bank accounts
+		{Domain: Subscriptions, Op: Read}, // recurring transactions
+	},
+	HolderOf(enums.ServiceWallos): {
+		{Domain: Subscriptions, Op: Read},
+	},
+	HolderOf(enums.ServiceCalendar): {
+		{Domain: Appointments, Op: Read}, // checked against Kimai's timesheets
 	},
 	HolderOf(enums.ServicePaperless): {
+		{Domain: Subscriptions, Op: Read}, // contracts with their deadlines
 		{Domain: Receipts, Op: Read, Needs: []Need{paperlessField}},
 		{Domain: Receipts, Op: Create},                                // upload
 		{Domain: Receipts, Op: Update, Needs: []Need{paperlessField}}, // custom fields
@@ -91,6 +99,12 @@ func Holders() []Holder {
 	slices.Sort(out)
 	return out
 }
+
+// Paired reports whether a service shares a domain with others: its
+// connection must belong to a partner's (a Verbund tells which when
+// there are several). Other services are read space-wide, e.g. every
+// Docker host by the cross checks.
+func Paired(s enums.ServiceType) bool { return len(declared[HolderOf(s)]) > 0 }
 
 // Declared is what a holder can do at best.
 func Declared(h Holder) []Cap { return declared[h] }

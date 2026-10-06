@@ -2,6 +2,7 @@ package verbund
 
 import (
 	"errors"
+	"slices"
 
 	"andon/internal/db"
 	"andon/internal/enums"
@@ -84,17 +85,37 @@ func Partner(q db.Queryer, who *access.Principal, at Asker, service enums.Servic
 	}
 
 	// 3 and 4: the implicit Verbund, own space first.
-	askerService, err := serviceOf(q, at.ConnID)
+	list, err := implicit(q, who, all, at, service)
 	if err != nil {
 		return nil, PartnerNone, err
+	}
+	c, state := single(list)
+	return c, state, nil
+}
+
+// Candidates lists the free connections of service for the asker: those
+// of its space, else those of the spaces the user reaches. A service that
+// pairs with nothing (caps.Paired) is read through all of them where
+// Partner says ambiguous, e.g. every Borg server by the backups tile.
+func Candidates(q db.Queryer, who *access.Principal, at Asker, service enums.ServiceType) ([]*model.Connection, error) {
+	all, err := linkrepo.All(q)
+	if err != nil {
+		return nil, err
+	}
+	return implicit(q, who, all, at, service)
+}
+
+// implicit is Partner's steps 3 and 4: the free connections of the
+// asker's space, else of the other spaces the user reaches.
+func implicit(q db.Queryer, who *access.Principal, all []linkrepo.Link, at Asker, service enums.ServiceType) ([]*model.Connection, error) {
+	askerService, err := serviceOf(q, at.ConnID)
+	if err != nil {
+		return nil, err
 	}
 	taken := takenFor(all, askerService, at.ConnID)
 	inSpace, err := candidates(q, []int64{at.SpaceID}, service, taken)
-	if err != nil {
-		return nil, PartnerNone, err
-	}
-	if c, state := single(inSpace); state != PartnerNone {
-		return c, state, nil
+	if err != nil || len(inSpace) > 0 {
+		return inSpace, err
 	}
 	var others []int64
 	for id := range who.Spaces {
@@ -102,12 +123,8 @@ func Partner(q db.Queryer, who *access.Principal, at Asker, service enums.Servic
 			others = append(others, id)
 		}
 	}
-	reached, err := candidates(q, others, service, taken)
-	if err != nil {
-		return nil, PartnerNone, err
-	}
-	c, state := single(reached)
-	return c, state, nil
+	slices.Sort(others)
+	return candidates(q, others, service, taken)
 }
 
 // chosen is the reachable member of service in the Verbund id.

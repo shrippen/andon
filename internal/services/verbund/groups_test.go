@@ -96,3 +96,42 @@ func TestGroupsOnlyOneAgrees(t *testing.T) {
 		t.Fatalf("firm 2 %v", got)
 	}
 }
+
+// Three Docker hosts and a Kuma, no Verbund: Docker is no partner of
+// anything, so it is not ambiguous; every group reads all its hosts.
+func TestGroupsSpaceWideServices(t *testing.T) {
+	d1, d2, d3, kuma, k1, k2 := conn(1, "docker"), conn(2, "docker"), conn(3, "docker"), conn(4, "uptimekuma"), conn(5, "kimai"), conn(6, "kimai")
+	daw := conn(7, "dawarich")
+	links := []linkrepo.Link{{ID: 9, Members: []linkrepo.Member{member(daw), member(k1)}}}
+	groups, amb := Groups([]*model.Connection{d1, d2, d3, kuma, k1, k2, daw}, links)
+	if amb != nil || len(groups) != 2 {
+		t.Fatalf("groups %+v amb %v", groups, amb)
+	}
+	for _, g := range groups {
+		if g.Conns["docker"] != nil || len(g.Fan["docker"]) != 3 || g.Conns["uptimekuma"] != kuma {
+			t.Fatalf("group %d: conns %v fan %v", g.LinkID, ids(g), g.Fan)
+		}
+	}
+
+	// Without any Verbund the implicit group still carries them.
+	groups, amb = Groups([]*model.Connection{d1, d2}, nil)
+	if amb != nil || len(groups) != 1 || len(groups[0].Fan["docker"]) != 2 {
+		t.Fatalf("groups %+v amb %v", groups, amb)
+	}
+}
+
+// A space-wide service someone put into a Verbund pairs like any other.
+func TestGroupsSpaceWideInVerbund(t *testing.T) {
+	d1, d2, kuma := conn(1, "docker"), conn(2, "docker"), conn(3, "uptimekuma")
+	links := []linkrepo.Link{{ID: 4, Members: []linkrepo.Member{member(d1), member(kuma)}}}
+	groups, amb := Groups([]*model.Connection{d1, d2, kuma}, links)
+	if amb != nil || len(groups) != 2 {
+		t.Fatalf("groups %+v amb %v", groups, amb)
+	}
+	if got := ids(groups[0]); got["docker"] != 1 || len(groups[0].Fan) != 0 {
+		t.Fatalf("stored %v fan %v", got, groups[0].Fan)
+	}
+	if got := ids(groups[1]); got["docker"] != 2 {
+		t.Fatalf("implicit %v", got)
+	}
+}

@@ -21,14 +21,16 @@ import (
 type Domain string
 
 const (
-	Places    Domain = "places"
-	Rides     Domain = "rides"
-	Customers Domain = "customers"
-	Absences  Domain = "absences"
-	WorkTime  Domain = "worktime"
-	Invoices  Domain = "invoices"
-	Payments  Domain = "payments"
-	Receipts  Domain = "receipts"
+	Places        Domain = "places"
+	Rides         Domain = "rides"
+	Customers     Domain = "customers"
+	Absences      Domain = "absences"
+	WorkTime      Domain = "worktime"
+	Invoices      Domain = "invoices"
+	Payments      Domain = "payments"
+	Receipts      Domain = "receipts"
+	Appointments  Domain = "appointments"
+	Subscriptions Domain = "subscriptions"
 )
 
 // Op is what a service does with a domain.

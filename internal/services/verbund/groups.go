@@ -1,6 +1,8 @@
 package verbund
 
 import (
+	"andon/internal/caps"
+	"andon/internal/enums"
 	"slices"
 	"strings"
 
@@ -13,6 +15,10 @@ import (
 type Group struct {
 	LinkID int64 // 0 = the space's implicit Verbund
 	Conns  map[string]*model.Connection
+	// Fan holds the free connections of services that pair with nothing
+	// (caps.Paired) and run several times in the space, e.g. Docker
+	// hosts: the cross checks read every one of them.
+	Fan map[string][]*model.Connection
 }
 
 // Groups splits a space's connections into the Verbünde its rules run
@@ -24,8 +30,10 @@ type Group struct {
 //	the rest ──────────────────────────► the implicit Verbund
 //
 // Unambiguous is the one connection of a service that is in no stored
-// Verbund ("free"), else the only one there is. Ambiguous lists services
-// with several free connections; they join no group by themselves.
+// Verbund ("free"), else the only one there is. Ambiguous lists paired
+// services with several free connections; they join no group by
+// themselves. Several free ones of other services go to every group's
+// Fan.
 func Groups(conns []*model.Connection, all []linkrepo.Link) ([]Group, []string) {
 	here := map[int64]*model.Connection{}
 	for _, c := range conns {
@@ -45,10 +53,10 @@ func Groups(conns []*model.Connection, all []linkrepo.Link) ([]Group, []string) 
 		}
 	}
 
-	free, only, ambiguous := unambiguous(conns, linked)
+	free, only, fan, ambiguous := unambiguous(conns, linked)
 	var out []Group
 	for _, l := range stored {
-		g := Group{LinkID: l.ID, Conns: map[string]*model.Connection{}}
+		g := Group{LinkID: l.ID, Conns: map[string]*model.Connection{}, Fan: fan}
 		for _, m := range l.Members {
 			if c := here[m.ConnID]; c != nil {
 				g.Conns[c.Service] = c
@@ -60,8 +68,8 @@ func Groups(conns []*model.Connection, all []linkrepo.Link) ([]Group, []string) 
 
 	// The implicit Verbund runs when it holds a free connection, or when
 	// there is no stored one at all (a space without Verbünde: as before).
-	if len(free) > 0 || len(stored) == 0 {
-		implicit := Group{Conns: map[string]*model.Connection{}}
+	if len(free) > 0 || len(fan) > 0 || len(stored) == 0 {
+		implicit := Group{Conns: map[string]*model.Connection{}, Fan: fan}
 		fillGroup(implicit, free, only, stored)
 		out = append(out, implicit)
 	}
@@ -103,7 +111,7 @@ func agrees(g Group, c *model.Connection, stored []linkrepo.Link) bool {
 
 // unambiguous picks per service the one free connection, else the only
 // (linked) one; services with several free ones are ambiguous.
-func unambiguous(conns []*model.Connection, linked map[int64]bool) (map[string]*model.Connection, map[string]*model.Connection, []string) {
+func unambiguous(conns []*model.Connection, linked map[int64]bool) (one, only map[string]*model.Connection, fan map[string][]*model.Connection, ambiguous []string) {
 	free := map[string][]*model.Connection{}
 	total := map[string][]*model.Connection{}
 	for _, c := range conns {
@@ -113,12 +121,13 @@ func unambiguous(conns []*model.Connection, linked map[int64]bool) (map[string]*
 		}
 	}
 
-	one, only := map[string]*model.Connection{}, map[string]*model.Connection{}
-	var ambiguous []string
+	one, only, fan = map[string]*model.Connection{}, map[string]*model.Connection{}, map[string][]*model.Connection{}
 	for s, list := range total {
 		switch {
 		case len(free[s]) == 1:
 			one[s] = free[s][0]
+		case len(free[s]) > 1 && !caps.Paired(enums.ServiceType(s)):
+			fan[s] = free[s]
 		case len(free[s]) > 1:
 			ambiguous = append(ambiguous, s)
 		case len(list) == 1:
@@ -126,5 +135,5 @@ func unambiguous(conns []*model.Connection, linked map[int64]bool) (map[string]*
 		}
 	}
 	slices.SortFunc(ambiguous, strings.Compare)
-	return one, only, ambiguous
+	return one, only, fan, ambiguous
 }

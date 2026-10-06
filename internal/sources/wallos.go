@@ -10,6 +10,7 @@ package sources
 //	cycle 5 once  0
 
 import (
+	"andon/internal/caps"
 	"context"
 	"net/url"
 	"time"
@@ -62,6 +63,9 @@ func wallosMonthly(price float64, cycle, frequency int) float64 {
 	}
 	return 0
 }
+
+// CapSet: Wallos's capabilities need nothing beyond the token.
+func (d *WallosDataset) CapSet() caps.Set { return caps.Full(caps.HolderOf(enums.ServiceWallos)) }
 
 var WallosData = source{key: "wallos.data", ttl: dataTTL, service: enums.ServiceWallos, fetch: fetchWallos}
 

@@ -9,6 +9,7 @@ package sources
 //	url    any address of the calendar, for the tile
 
 import (
+	"andon/internal/caps"
 	"context"
 	"net/url"
 	"strings"
@@ -21,6 +22,9 @@ import (
 
 // calendarDays is the window before and after today.
 const calendarDays = 30
+
+// CapSet: a calendar's capabilities need nothing beyond its address.
+func (r *CalendarResult) CapSet() caps.Set { return caps.Full(caps.HolderOf(enums.ServiceCalendar)) }
 
 var CalendarData = source{key: "calendar.data", ttl: icalTTL, service: enums.ServiceCalendar, fetch: fetchCalendarData}
 

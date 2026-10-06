@@ -53,6 +53,17 @@ func Capabilities(ctx context.Context, d *sql.DB, who *access.Principal, connID 
 	return out, nil
 }
 
+// CapSetOf is what the connection could do at its last background fetch;
+// known is false before the first one. Requires USE.
+func CapSetOf(ctx context.Context, d *sql.DB, who *access.Principal, connID int64) (set caps.Set, known bool, err error) {
+	conn, err := usable(d, who, connID)
+	if err != nil {
+		return caps.Set{}, false, err
+	}
+	set, known = storedSet(ctx, d, who, conn)
+	return set, known, nil
+}
+
 // rowOf finds c in set: had, missing (with the need) or unknown.
 func rowOf(c caps.Cap, set caps.Set, known bool) CapRow {
 	if !known {

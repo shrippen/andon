@@ -129,7 +129,7 @@ func TestGapByKinds(t *testing.T) {
 
 // Every declaration is well formed: known domain and op, needs named.
 func TestDeclarations(t *testing.T) {
-	domains := []Domain{Places, Rides, Customers, Absences, WorkTime, Invoices, Payments, Receipts}
+	domains := []Domain{Places, Rides, Customers, Absences, WorkTime, Invoices, Payments, Receipts, Appointments, Subscriptions}
 	for _, h := range Holders() {
 		list := Declared(h)
 		for i, c := range list {
@@ -146,6 +146,21 @@ func TestDeclarations(t *testing.T) {
 					t.Errorf("%s: %+v declared twice", h, c)
 				}
 			}
+		}
+	}
+}
+
+// Paired: business services pair, homelab services are read space-wide.
+func TestPaired(t *testing.T) {
+	for _, s := range []enums.ServiceType{enums.ServiceKimai, enums.ServiceInvoiceNinja, enums.ServiceSure, enums.ServicePaperless,
+		enums.ServiceDawarich, enums.ServiceMail, enums.ServiceCalendar, enums.ServiceWallos} {
+		if !Paired(s) {
+			t.Errorf("%s not paired", s)
+		}
+	}
+	for _, s := range []enums.ServiceType{enums.ServiceDocker, enums.ServiceProxmox, enums.ServiceUptimeKuma, enums.ServiceBorgBackup} {
+		if Paired(s) {
+			t.Errorf("%s paired", s)
 		}
 	}
 }
