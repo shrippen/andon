@@ -27,6 +27,7 @@ func (d Deps) RegisterSiteRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /connections/{id}/places/assign", d.authed(d.handleSiteAssign))
 	mux.HandleFunc("POST /connections/{id}/places/create", d.authed(d.handleSiteCreate))
 	mux.HandleFunc("POST /connections/{id}/places/sync", d.authed(d.handleSiteSync))
+	mux.HandleFunc("GET /connections/{id}/places/name", d.authed(d.handleSiteName))
 	mux.HandleFunc("GET /travel/places", d.authed(d.handleTravelPlaces))
 }
 
@@ -107,6 +108,21 @@ func (d Deps) handleSiteSync(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	}
 	res, err := sites.Sync(r.Context(), d.DB, ctx.Who, id)
 	placesBack(w, r, id, err, strconv.Itoa(res.PluginPlaces)+"/"+strconv.Itoa(res.Areas))
+}
+
+// handleSiteName fills a new place's name field with what Dawarich calls
+// the position; a name already typed stays.
+func (d Deps) handleSiteName(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		name, _ = sites.SuggestName(r.Context(), d.DB, ctx.Who, id, formFloat(r, "lat"), formFloat(r, "lon"))
+	}
+	_ = d.Page(w, ctx, "conn_place_name", http.StatusOK, map[string]any{"Partial": true, "Name": name})
 }
 
 func formFloat(r *http.Request, key string) float64 {

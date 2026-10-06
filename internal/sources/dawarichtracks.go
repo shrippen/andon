@@ -15,10 +15,12 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"andon/internal/drivers/services"
+	"andon/internal/enums"
 )
 
 const (
@@ -191,4 +193,61 @@ func loadDawarichPlaces(ctx context.Context, api services.DawarichApi) []Dawaric
 		out = append(out, DawarichPlace{ID: asInt64(pm["id"]), Name: asStr(pm["name"]), Lat: asFloat(pm["latitude"]), Lon: asFloat(pm["longitude"])})
 	}
 	return out
+}
+
+// DawarichNearby is a name for a position from Dawarich's own reverse
+// geocoder (whatever the user set up there); "" when it knows none.
+type DawarichNearby struct{ Name string }
+
+// nearbyTTL keeps a name for a day: places do not move.
+const nearbyTTL = 24 * time.Hour
+
+// nearbyUnknown is Dawarich's name when its geocoder found nothing.
+const nearbyUnknown = "Unknown Place"
+
+// DawarichNearbySource names a position: params lat, lon, radius (km).
+var DawarichNearbySource = source{key: "dawarich.nearby", ttl: nearbyTTL, service: enums.ServiceDawarich, fetch: fetchDawarichNearby}
+
+func fetchDawarichNearby(ctx context.Context, sctx Ctx) (any, error) {
+	lat, lon, radius := asFloat(sctx.Params["lat"]), asFloat(sctx.Params["lon"]), asFloat(sctx.Params["radius"])
+	if isDemo(sctx) {
+		return demoNearby(lat, lon, radius), nil
+	}
+	api, err := dawarichAPI(sctx)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := api.Get(ctx, "places/nearby", url.Values{"latitude": {fmtFloat(lat)}, "longitude": {fmtFloat(lon)},
+		"radius": {fmtFloat(radius)}, "limit": {"1"}})
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	return nearbyName(raw), nil
+}
+
+// nearbyName reads the first hit: its name, with the city when the name
+// is a street ("Hauptstraße 5, Weimar").
+func nearbyName(raw any) *DawarichNearby {
+	hits := asList(asMap(raw)["places"])
+	if len(hits) == 0 {
+		return &DawarichNearby{}
+	}
+	hit := asMap(hits[0])
+	name, city := asStr(hit["name"]), asStr(hit["city"])
+	if name == nearbyUnknown {
+		name = ""
+	}
+	if name == "" {
+		return &DawarichNearby{Name: city}
+	}
+	if asStr(hit["street"]) != "" && strings.HasPrefix(name, asStr(hit["street"])) && city != "" {
+		name += ", " + city
+	}
+	return &DawarichNearby{Name: name}
+}
+
+func fmtFloat(f float64) string { return strconv.FormatFloat(f, 'f', -1, 64) }
+
+func init() {
+	Register(DawarichNearbySource)
 }
