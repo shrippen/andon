@@ -24,7 +24,7 @@
 
 - Always use {}, even on a one-line "if" statement.
 
-- Every visualization (chart, graph, heatmap) has axis labels or a legend; without them it is useless. In popups, give it hover tooltips where possible.
+- Every visualization (chart, graph, heatmap) in a popup or page has axis labels or a legend; without them it is useless. Give it hover tooltips where possible. Tiles stay without axes and legends, so they read at a glance; their popup carries the details.
 
 When you write a commit message, follow these 7 rules:
 Rule 1: Separate the subject line from the body with a single blank line.
