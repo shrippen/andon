@@ -26,7 +26,7 @@ Das Projekt ist vollständig von Python auf **Go** umgestellt (Zielplattform: Ra
 | Trends, Prognosen | Snapshots, Verlauf, Saisonvergleich, Jahresprognose, Liquidität |
 | Betrieb | CLI `backup`, `rotate-key`, `import`; Demo-Modus; Icons-Dienst |
 | Anmelden statt Token | Home Assistant, Nextcloud, Jellyfin, Gitea, Snipe-IT, Tailscale: gleichwertig neben dem Token; ablaufende Tokens erneuert Andon (`oauth_grants`) |
-| Produktivbetrieb | **offen:** Parallelbetrieb neben Dashy und Umstieg (manuell, Abschnitt 7.4) |
+| Produktivbetrieb | Umstieg von Dashy abgeschlossen (Abschnitt 7.4, 06.10.2026) |
 
 **Abweichungen vom Plan:** Übersetzungen als YAML-Kataloge mit Schlüsseln (unverändert vom Python-Stand übernommen). Das mitgelieferte Theme liegt in `internal/web/templates/` (Builtin, eingebettet). Board-Vorlagen/Revisionen speichern den Board- bzw. Widget-eigenen Zustand, nicht die bereichsübergreifende YAML-Form aus `porting.py`.
 
@@ -357,7 +357,7 @@ Das Dashboard übernimmt die Rolle von Dashy als Startseite. Migriert werden die
 | Als App installieren (PWA) | Web-App-Manifest und Icon | Soll |
 | Cloud-Backup der Konfiguration | Export als YAML/ZIP, Datenbank-Backup des Volumes | Nein |
 | Keycloak-Anbindung | Single Sign-on über authentik per OIDC (Abschnitt 4.7) | Muss |
-| Übrige Dashy-Widgets (GitHub-Trending, Sport …) | Nicht migriert, der Import-Assistent listet sie auf. Bei Bedarf als eigener Widget-Typ; Krypto gibt es seit Phase 12 | Später |
+| Übrige Dashy-Widgets | Krypto (Phase 12), GitHub-Trends (`github_trending`, GitHub-Suche: neue Repos des Zeitraums nach Sternen; GitHub hat keine Trending-API) und Sport (`sports`, OpenLigaDB: Spieltag, Spiele einer Mannschaft, Tabelle) gibt es; der Import ordnet `github-trending-repos` und `sports-scores` zu (Team-IDs von TheSportsDB nicht übertragbar, der Bericht sagt es). Weitere listet der Import-Assistent | Erledigt (06.10.2026) |
 
 ### 7.2 Widget-Modell
 
@@ -706,7 +706,7 @@ Jede Phase endet mit einem lauffähigen, getaggten Image. Anmeldung und Bereichs
 - [x] Import/Export YAML, Dashy-Import-Assistent mit Bericht, getestet an der eigenen `conf.yml` *(Go: `services/porting`, `/import`, `/spaces/{id}/code`, CLI `andon import`)*
 - [x] Persönliche Einstellungen: Start-Board, hell/dunkel, Sprache, Suchmaschine
 - [x] Neue Komponenten `.launch`, `.launch-grid`, `.section-fold`, `.search`, `.feed`, `.clock`, `.weather`, Editor-Komponenten
-- [ ] Parallelbetrieb, dann Umstieg nach Checkliste (Abschnitt 7.4)
+- [x] Parallelbetrieb, dann Umstieg nach Checkliste (Abschnitt 7.4) *(abgeschlossen 06.10.2026)*
 
 **Ergebnis:** Dashy ist abgeschaltet, das Dashboard ist die Browser-Startseite, alles wird in der Oberfläche gepflegt.
 
@@ -1100,7 +1100,7 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
     - Invoice Ninja schreibend nur auf ausdrückliche Aufforderung (`ANDON_LIVE_NINJA=1`), um so wenige Nummernlücken wie möglich zu erzeugen
   - [x] Alle Integrationen lesend gegen die lokale Instanz: `sources_live_test.go` holt Verbindungstest und Datensatz jeder Verbindung *(06.10.2026: 34 von 37 grün)*
     - [x] Gitea und Tailscale: HTTP 401. Ursache in Andon: `svcdata.Secret` gab bei OAuth-Anmeldungen den Platzhalter `grant:v1` statt des Tokens aus; Timer, Licht, Abrechnung, Mail-Weiterleitung und Kachel-Aktionen auf solchen Verbindungen scheiterten *(behoben)*
-    - [ ] Snipe-IT: `/api/v1/hardware` antwortet mit HTTP 500. Ursache im Snipe-IT-Log: Tabelle `asset_external_sources` fehlt, 16 Migrationen von v8.8.0 stehen aus (beim Start am 01.10. war die Datenbank noch nicht erreichbar). Auf regis.lan: Datenbank sichern, dann `docker exec snipeit_app php artisan migrate --force`
+    - [x] Snipe-IT: `/api/v1/hardware` antwortet mit HTTP 500. Ursache im Snipe-IT-Log: Tabelle `asset_external_sources` fehlt, 16 Migrationen von v8.8.0 stehen aus (beim Start am 01.10. war die Datenbank noch nicht erreichbar). Auf regis.lan: Datenbank sichern, dann `docker exec snipeit_app php artisan migrate --force` *(Migration ausgeführt, live grün 06.10.2026)*
     - [x] KDE Store „shrippen“: Option `user` fehlte, der Datensatz blieb stumm leer. Jetzt Fehler „Nichts zu lesen“ ohne `user`/`ids`; lokal `user: shrippen` gesetzt
     - [x] Domains „arianw.de“: rdap.org kennt `.de` nicht (fehlt in IANAs RDAP-Liste), daher 404. `.de` fragt jetzt DENIC direkt; ein Ablaufdatum veröffentlicht DENIC nicht
   - [x] Weitere schreibende Ausgänge: Kimai-Export-Flag, Kunde umbenennen, Fahrten (`kimai_more_live_test.go`), Tandoor-Einkaufsliste (`tandoor_live_test.go`); `TestPlacesLive` löscht seine Dawarich-Area

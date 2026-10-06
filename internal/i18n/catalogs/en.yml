@@ -210,6 +210,11 @@ edit:
   tile_narrow: 'Normal width'
   touch_hint: 'Editing is made for desktop. Tap a tile for its tools; tap again to open it.'
 typefield:
+  github_trending:
+    language_hint: 'Programming language as on GitHub, e.g. go, rust, python. Empty = all.'
+  sports:
+    league_hint: 'OpenLigaDB shortcut, e.g. bl1 (Bundesliga), bl2, bl3, dfb (DFB Cup).'
+    team_hint: 'Part of the team name, e.g. Bayern. Matches: the team''s; table: its row highlighted.'
   payment_days:
     months: Period (months, empty = all)
   rate_trend:
@@ -278,6 +283,10 @@ typefield:
   conn_health:
     only_problems: Only shaky now (last 2 days)
 field:
+  language: Language
+  league: League
+  team: Team
+  since: Period
   verbund: Verbund
   title_none: Leave empty for a tile without a head
   title_needed: Head, icon and title link only show with a title.
@@ -549,6 +558,11 @@ field:
   list_height: 'List height'
   show_meals: 'Show meal plan'
 opt:
+  daily: Today
+  weekly: This week
+  monthly: This month
+  matches: Matches
+  table: Table
   trip_customers: Rides per client
   destinations: Frequent destinations
   exposure: 'Exposure'
@@ -709,6 +723,12 @@ area:
   main: Main column
   side: Side column
 wtype:
+  github_trending:
+    name: GitHub trends
+    desc: 'New repositories of the period with the most stars (GitHub search), optionally of one language.'
+  sports:
+    name: Sport
+    desc: 'Matchday, a team''s matches or a league table from OpenLigaDB (Bundesliga and more).'
   kimai_week:
     name: 'Kimai week'
     desc: 'Hours per weekday against the daily target.'
@@ -5492,3 +5512,13 @@ server:
   SESSION_ABSOLUTE_HOURS: Session at most … hours
   OIDC_SESSION_HOURS: 'Session via authentik at most … hours'
   LOG_LEVEL: Log level
+trending:
+  stars: '★ {n}'
+sports:
+  no_league: 'No league given, e.g. bl1.'
+  rank: '#'
+  team: Team
+  played: Pl.
+  diff: GD
+  points: Pts
+  live: live

@@ -8,6 +8,8 @@ func SetBases(base string) func() {
 	saved := []string{nagerBase, jokeBase, coingeckoBase, yahooBase, xkcdBase, nasaBase, flightsBase, transitBase, rdapBase, ownIPURL}
 	nagerBase, jokeBase, coingeckoBase, yahooBase, xkcdBase = base, base, base, base, base
 	nasaBase, flightsBase, transitBase, rdapBase, ownIPURL = base, base, base, base, base+"/ip"
+	trends, liga := githubSearchBase, openLigaBase
+	githubSearchBase, openLigaBase = base, base
 	servers := rdapServers
 	rdapServers = map[string]string{}
 	for tld := range servers {
@@ -15,6 +17,7 @@ func SetBases(base string) func() {
 	}
 	return func() {
 		rdapServers = servers
+		githubSearchBase, openLigaBase = trends, liga
 		nagerBase, jokeBase, coingeckoBase, yahooBase, xkcdBase = saved[0], saved[1], saved[2], saved[3], saved[4]
 		nasaBase, flightsBase, transitBase, rdapBase, ownIPURL = saved[5], saved[6], saved[7], saved[8], saved[9]
 	}

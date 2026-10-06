@@ -350,3 +350,39 @@ func TestDashyPreview(t *testing.T) {
 		t.Fatalf("preview created widgets: %d → %d", len(before), len(after))
 	}
 }
+
+const dashyTrendsSport = `
+sections:
+  - name: Extras
+    widgets:
+      - {type: github-trending-repos, options: {lang: rust, since: monthly, limit: 5}}
+      - {type: sports-scores, options: {teamId: 133604}}
+`
+
+// Dashy's GitHub trends and sport scores become github_trending and
+// sports; the sport team id (TheSportsDB) has no counterpart, the report
+// says to set league and team.
+func TestDashyImportTrendsSport(t *testing.T) {
+	d := setup(t)
+	who, space := user(t, d, "a@x.de")
+
+	report, err := porting.ImportDashy(d, who, space, dashyTrendsSport)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Widgets != 2 || !contains(report.Notes, "sports-scores") {
+		t.Fatalf("report: %+v", report)
+	}
+
+	visible, _ := boards.Visible(d, who)
+	view, err := boards.View(d, who, visible[0].ID, boards.LayoutOverlay)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tiles := view.Sections[0].Tiles
+	trends := tiles[0].Config.(widgets.TrendingConfig)
+	sport := tiles[1].Config.(widgets.SportsConfig)
+	if trends.Language != "rust" || trends.Since != "monthly" || trends.Limit != 5 || sport.League != "bl1" {
+		t.Fatalf("configs: %+v %+v", trends, sport)
+	}
+}
