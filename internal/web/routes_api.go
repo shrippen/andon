@@ -10,6 +10,7 @@ import (
 	"andon/internal/services/boards"
 	"andon/internal/services/calendar"
 	"andon/internal/services/hints"
+	"andon/internal/services/itdocs"
 )
 
 const embedHintLimit = 10
@@ -19,12 +20,14 @@ const embedHintLimit = 10
 //
 //	GET /api/summary     hint counts + visible boards (JSON)
 //	GET /api/hints       open hints (JSON)
+//	GET /api/docs        IT docs findings per stack, for Hansei (JSON)
 //	GET /calendar.ics    deadlines + due hints (iCal)
 //	GET /embed/hints     hint list without app chrome
 //	GET /embed/b/{id}    board without app chrome
 func (d Deps) RegisterAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/summary", d.handleAPISummary)
 	mux.HandleFunc("GET /api/hints", d.handleAPIHints)
+	mux.HandleFunc("GET /api/docs", d.handleAPIDocs)
 	mux.HandleFunc("GET /calendar.ics", d.handleCalendar)
 	mux.HandleFunc("GET /embed/hints", d.handleEmbedHints)
 	mux.HandleFunc("GET /embed/b/{id}", d.handleEmbedBoard)
@@ -107,6 +110,55 @@ func (d Deps) handleAPIHints(w http.ResponseWriter, r *http.Request) {
 	out := make([]apiHint, 0, len(open))
 	for _, h := range open {
 		out = append(out, apiHint{ID: h.ID, Rule: h.Rule, Severity: h.Severity.Key(), Title: h.Title, Why: h.Why, Due: h.Due, URL: h.ActionURL})
+	}
+	writeJSON(w, out)
+}
+
+// apiDocs is the docs findings as Hansei reads them.
+type apiDocs struct {
+	Complete bool            `json:"complete"` // false: a missing finding is no fix
+	Findings []apiDocFinding `json:"findings"`
+}
+
+type apiDocFinding struct {
+	Rule     string          `json:"rule"`
+	Host     string          `json:"host,omitempty"`
+	Stack    string          `json:"stack,omitempty"`
+	Note     string          `json:"note,omitempty"`
+	Path     string          `json:"path,omitempty"`
+	Link     string          `json:"link,omitempty"`
+	NoteURL  string          `json:"note_url,omitempty"`
+	Compose  string          `json:"compose,omitempty"`
+	Services []apiDocService `json:"services,omitempty"`
+}
+
+// apiDocService is the compose excerpt of a stack: no environment, and
+// no labels (they may carry credentials, e.g. basic-auth hashes).
+type apiDocService struct {
+	Name  string   `json:"name"`
+	Image string   `json:"image,omitempty"`
+	Ports []string `json:"ports,omitempty"`
+}
+
+func (d Deps) handleAPIDocs(w http.ResponseWriter, r *http.Request) {
+	who := d.apiPrincipal(r, enums.TokenRead)
+	if who == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	report, err := itdocs.Findings(r.Context(), d.DB, who)
+	if err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	out := apiDocs{Complete: report.Complete, Findings: make([]apiDocFinding, 0, len(report.Findings))}
+	for _, f := range report.Findings {
+		doc := apiDocFinding{Rule: f.Rule, Host: f.Host, Stack: f.Stack, Note: f.Note, Path: f.Path, Link: f.Link, NoteURL: f.NoteURL, Compose: f.Compose}
+		for _, s := range f.Services {
+			doc.Services = append(doc.Services, apiDocService{Name: s.Name, Image: s.Image, Ports: s.Ports})
+		}
+		out.Findings = append(out.Findings, doc)
 	}
 	writeJSON(w, out)
 }

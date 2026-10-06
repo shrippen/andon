@@ -42,6 +42,9 @@ func TestTokenAPIAndCalendar(t *testing.T) {
 		{"/api/summary", embed, "", http.StatusUnauthorized},
 		{"/api/summary", read, `"hints":{`, http.StatusOK},
 		{"/api/hints", read, `[]`, http.StatusOK},
+		{"/api/docs", "", "", http.StatusUnauthorized},
+		{"/api/docs", embed, "", http.StatusUnauthorized},
+		{"/api/docs", read, `{"complete":false,"findings":[]}`, http.StatusOK},
 		{"/calendar.ics", read, "BEGIN:VCALENDAR", http.StatusOK},
 		{"/embed/hints", embed, `class="hints"`, http.StatusOK},
 	}
