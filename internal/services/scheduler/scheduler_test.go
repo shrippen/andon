@@ -119,3 +119,79 @@ func TestWaitDrainsRunningJob(t *testing.T) {
 		t.Fatal("wait returned while the job ran")
 	}
 }
+
+func TestRunningListsJobUntilItEnds(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	release := make(chan struct{})
+
+	scheduler.Start(ctx, []scheduler.Job{{
+		Name: "slow", Interval: time.Hour, Start: scheduler.AtStart,
+		Run: func(context.Context) error { <-release; return nil },
+	}})
+
+	deadline := time.Now().Add(time.Second)
+	for !runningHas("slow") {
+		if time.Now().After(deadline) {
+			t.Fatal("slow job never listed as running")
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	close(release)
+	deadline = time.Now().Add(time.Second)
+	for runningHas("slow") {
+		if time.Now().After(deadline) {
+			t.Fatal("slow job still listed after it ended")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func runningHas(name string) bool {
+	for _, a := range scheduler.Running() {
+		if a.Name == name && !a.Since.IsZero() {
+			return true
+		}
+	}
+	return false
+}
+
+func TestRecentKeepsEveryRunNewestFirst(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var calls int32
+
+	scheduler.Start(ctx, []scheduler.Job{{
+		Name: "hist", Interval: 5 * time.Millisecond,
+		Run: func(context.Context) error {
+			if atomic.AddInt32(&calls, 1) == 1 {
+				return errors.New("first fails")
+			}
+			return nil
+		},
+	}})
+	time.Sleep(40 * time.Millisecond)
+	cancel()
+
+	var hist []scheduler.NamedRun
+	for _, r := range scheduler.Recent() {
+		if r.Name == "hist" {
+			hist = append(hist, r)
+		}
+	}
+	if len(hist) < 2 {
+		t.Fatalf("want several runs, got %d", len(hist))
+	}
+	if hist[len(hist)-1].Err != "first fails" {
+		t.Fatalf("oldest run = %+v, want the failed first one", hist[len(hist)-1])
+	}
+	for i := 1; i < len(hist); i++ {
+		if hist[i].At.After(hist[i-1].At) {
+			t.Fatal("runs not newest first")
+		}
+	}
+	if len(scheduler.Recent()) > scheduler.RecentMax {
+		t.Fatal("history not capped")
+	}
+}

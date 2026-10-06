@@ -1592,6 +1592,18 @@ admin:
   health_every: Intervall
   health_error: Fehler
   analysis_run: Jetzt prüfen
+  running: Laufende Aufgaben
+  running_none: Gerade läuft nichts.
+  running_since: 'läuft seit {when}'
+  recent: Zuletzt abgeschlossen
+  problems: Probleme
+  problems_none: Heute keine fehlgeschlagenen Abrufe.
+  problem_conn: '{fail} von {total} Abrufen heute fehlgeschlagen'
+  logs: Logs
+  logs_none: Noch keine Einträge seit dem Start.
+  log_time: Zeit
+  log_level: Stufe
+  log_message: Meldung
   login: Letzte Anmeldung
   invite: Einladen
   send_invite: Einladung senden

@@ -1592,6 +1592,18 @@ admin:
   health_every: Interval
   health_error: Error
   analysis_run: Check now
+  running: Running tasks
+  running_none: Nothing is running.
+  running_since: 'running since {when}'
+  recent: Recently finished
+  problems: Problems
+  problems_none: No failed fetches today.
+  problem_conn: '{fail} of {total} fetches failed today'
+  logs: Logs
+  logs_none: No records since start.
+  log_time: Time
+  log_level: Level
+  log_message: Message
   login: Last login
   invite: Invite
   send_invite: Send invitation

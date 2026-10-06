@@ -15,6 +15,7 @@ import (
 
 	"andon/internal/crypto"
 	"andon/internal/db"
+	"andon/internal/logbuf"
 	"andon/internal/outbound"
 	"andon/internal/services/assist"
 	"andon/internal/services/auth"
@@ -55,6 +56,9 @@ func run() int {
 	if len(os.Args) == 2 && os.Args[1] == "healthcheck" {
 		os.Exit(healthcheck("http://127.0.0.1" + listenAddr()))
 	}
+
+	// Recent records also go to Admin → Operations (logbuf).
+	slog.SetDefault(slog.New(logbuf.Wrap(slog.NewTextHandler(os.Stderr, nil))))
 
 	cfg := settings.Load()
 
