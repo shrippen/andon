@@ -175,10 +175,6 @@ func TestDistanceKMBerlinHamburg(t *testing.T) {
 	}
 }
 
-func round1Test(f float64) float64 {
-	return float64(int64(f*10+0.5)) / 10
-}
-
 // ── deadlines ──
 
 func TestUpcomingDeadlinesMonthlyVAT(t *testing.T) {
