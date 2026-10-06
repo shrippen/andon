@@ -1108,7 +1108,7 @@ Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md
   - Kimai „Anfahrten“ ist nur für Geschäftliches zuständig und kennt Kunde, Zuhause, Arbeitsplatz, Sonstiges, aber keine privaten Orte (so gewollt)
   - Andon kennt zusätzlich private Orte; vorerst reicht die Kategorie „Privat“
   - Struktur: jedes Backend unterstützt nur eine Teilmenge der Funktionen beim Abgleichen und Schreiben (Fähigkeiten je Integration)
-  - Prüfen, ob sich das abstrahieren lässt, damit weitere Integrationen es nutzen: welche Fähigkeiten eine Integration hat, wie sie sich mit anderen überlappt (Dawarich und Kimai Anfahrten kennen beide „Orte“, unterschiedlich und voneinander abhängig) und wie Integrationen voneinander abhängen
+  - Prüfen, ob sich das abstrahieren lässt, damit weitere Integrationen es nutzen: welche Fähigkeiten eine Integration hat, wie sie sich mit anderen überlappt (Dawarich und Kimai Anfahrten kennen beide „Orte“, unterschiedlich und voneinander abhängig) und wie Integrationen voneinander abhängen *(Entwurf: [`CAPABILITIES.md`](CAPABILITIES.md), offene Fragen dort)*
 - [ ] Dawarich: Der Hinweis „Dawarich-Tracks werden noch gelesen; ältere Fahrten fehlen vorerst.“ bekommt eine Fortschrittsanzeige und einen Link zur Wartungsseite
 
 ---
