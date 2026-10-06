@@ -181,3 +181,23 @@ func textKeys(b *widgets.DetailBody, h widgets.DetailHead) []string {
 	}
 	return out
 }
+
+// TestTravelDemoRoute: the travel dialog reads the shown ride's points
+// (PickQueries), so its map has more than start and end.
+func TestTravelDemoRoute(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "demo@x.y", enums.RoleAdmin)
+	dialog, err := widgetlib.DemoDetail(context.Background(), d, who, &model.Widget{SpaceID: space, Type: "travel"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, b := range dialog.Body.(*widgets.DetailBody).Blocks {
+		if m, ok := b.Data.(*widgets.MapData); ok {
+			if len(m.Route) <= 2 {
+				t.Fatalf("route: %+v", m.Route)
+			}
+			return
+		}
+	}
+	t.Fatal("no map")
+}
