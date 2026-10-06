@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"andon/internal/sources"
 )
@@ -50,6 +51,16 @@ Ort:
 ---
 `
 
+const hanseiNote = `---
+hansei_review: 2
+hansei_feedback: 1
+hansei_done: 7
+hansei_conformity: 0.82
+hansei_updated: 2026-10-07T09:30:00+02:00
+---
+# Hansei-Status
+`
+
 // docsServer is a Gitea whose vault has IT/Dienste (with a deprecated
 // note and a picture) and IT/Geräte; other folders are never listed.
 func docsServer(t *testing.T) *httptest.Server {
@@ -70,6 +81,9 @@ func docsServer(t *testing.T) *httptest.Server {
 			map[string]any{"path": "Eredin/deprecated/Gotify.md", "type": "blob", "sha": "n2"},
 			map[string]any{"path": "Regis/immich.png", "type": "blob", "sha": "p1"},
 		}},
+		"/api/v1/repos/alex/vault/contents/IT/Hansei-Status.md": map[string]any{"type": "file", "encoding": "base64",
+			"html_url": "https://git.example/alex/vault/src/branch/main/IT/Hansei-Status.md",
+			"content":  base64.StdEncoding.EncodeToString([]byte(hanseiNote))},
 		"/api/v1/repos/alex/vault/git/trees/d2": map[string]any{"truncated": false, "tree": []any{
 			map[string]any{"path": "Regis & Dettlaf.md", "type": "blob", "sha": "n3"},
 		}},
@@ -149,5 +163,31 @@ func TestGiteaWithoutDocsRepo(t *testing.T) {
 	}
 	if d := out.(*sources.GiteaDataset); d.NotesRead || len(d.Notes) != 0 {
 		t.Fatalf("notes: %+v", d.Notes)
+	}
+}
+
+// TestGiteaReadsHanseiStatus: hansei_note names Hansei's status note in
+// the vault; its counts become the dataset's Hansei status.
+func TestGiteaReadsHanseiStatus(t *testing.T) {
+	srv := docsServer(t)
+	sctx := sources.Ctx{URL: srv.URL, Secret: "t", VerifyTLS: true,
+		Options: map[string]any{"docs_repo": "alex/vault", "docs_paths": []any{"IT/Geräte"}, "hansei_note": "IT/Hansei-Status.md"}}
+
+	out, err := sources.GiteaData.Fetch(context.Background(), sctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := out.(*sources.GiteaDataset).Hansei
+	if h == nil || h.Review != 2 || h.Feedback != 1 || h.Done != 7 || h.Conformity != 0.82 || h.Updated.IsZero() || !strings.HasSuffix(h.URL, "/IT/Hansei-Status.md") {
+		t.Fatalf("hansei: %+v", h)
+	}
+}
+
+// The demo has Hansei's status note: two batches to review, one with
+// questions, one done, half conformant (world code.gitea.hansei).
+func TestDemoGiteaHansei(t *testing.T) {
+	h := sources.DemoGitea(time.Now()).Hansei
+	if h == nil || h.Review != 2 || h.Feedback != 1 || h.Done != 1 || h.Conformity != 0.5 || h.Updated.IsZero() {
+		t.Fatalf("hansei: %+v", h)
 	}
 }

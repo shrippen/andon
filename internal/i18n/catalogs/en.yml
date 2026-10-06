@@ -796,6 +796,9 @@ wtype:
   docs_coverage:
     name: 'Docs coverage'
     desc: 'IT docs against compose stacks: documented stacks per host and the gaps.'
+  hansei_batches:
+    name: 'Hansei batches'
+    desc: 'Batches waiting in Hansei for review or answers, and how well the vault conforms.'
   vaultwarden_2fa:
     name: 'Two-factor in the vault'
     desc: 'Vaultwarden: accounts with and without two-factor.'
@@ -1389,7 +1392,7 @@ conn:
   options_hint_sure: No options needed. Token = API key with read scope (settings → API keys).
   options_hint_homeassistant: 'No options needed. Token = long-lived access token (profile → security). It has all rights of its user: best a dedicated user without admin rights. Only users with the “use” right on this connection may switch.'
   options_hint_freshrss: 'No options needed. Username and API password from FreshRSS → profile → API password; API access must be enabled there.'
-  options_hint_gitea: 'No options needed. Token = access token with read scopes (read:user, read:issue, read:repository, read:notification). Repos docker-compose-<host> are read as compose stacks. Optional IT docs (Obsidian vault): docs_repo: owner/vault, docs_paths: [IT/Services, IT/Devices] – only these folders, only the frontmatter.'
+  options_hint_gitea: 'No options needed. Token = access token with read scopes (read:user, read:issue, read:repository, read:notification). Repos docker-compose-<host> are read as compose stacks. Optional IT docs (Obsidian vault): docs_repo: owner/vault, docs_paths: [IT/Services, IT/Devices] – only these folders, only the frontmatter; hansei_note: IT/Hansei-Status.md (Hansei''s status note).'
   options_hint_borgbackup: No options needed. Token = API token bbs_tok_… (settings → API).
   options_hint_scrutiny: No options, no token needed.
   options_hint_immich: 'No options needed. Token = API key (account settings → API keys). Permissions: server.storage (required); optional server.statistics and job.read (only with an admin account''s key) and server.versionCheck for update hints.'
@@ -4063,6 +4066,17 @@ detail:
     host: 'Host'
     documented_n: 'Documented'
     stacks: 'Stacks'
+  hansei:
+    columns: 'State in Hansei'
+    what: 'Column'
+    count: 'Count'
+    review: 'To review'
+    feedback: 'Questions'
+    done: 'Done'
+    conformity: 'Conformity (%)'
+    findings: 'Docs findings for Hansei'
+    updated: 'As of'
+    open: 'Open status note'
   plain: '{text}'
   hints: 'Hints for this tile'
   today: 'today'
@@ -4727,6 +4741,13 @@ itdocs:
   gaps: 'Without docs'
   problems: '{n} links to check'
   unread: 'Docs or stacks not read. Set docs_repo and docs_paths on the Gitea connection.'
+
+hansei:
+  review: 'batches waiting for review'
+  feedback: '{n} with questions'
+  conformity: '{n} % conformant'
+  done: '{n} done'
+  unset: 'No Hansei status note. Set status_note in Hansei and hansei_note (with docs_repo) on the Gitea connection.'
 
 vault:
   with2fa: 'accounts with two-factor'
