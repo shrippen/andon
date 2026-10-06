@@ -25,6 +25,7 @@ import (
 	"andon/internal/model"
 	"andon/internal/repos/content"
 	data "andon/internal/repos/data"
+	linkrepo "andon/internal/repos/links"
 	"andon/internal/rules"
 	"andon/internal/services/access"
 	"andon/internal/services/hints"
@@ -43,11 +44,23 @@ const (
 	linkType      = "link"
 )
 
-// scope is one space's datasets for one credential owner.
+// scope is one space's datasets for one credential owner. datasets
+// holds the space-wide inputs (failures, links, clocks, history) and,
+// last one wins, every service's; groups hold each Verbund's own.
 type scope struct {
 	spaceID  int64
 	owner    *int64
 	settings map[string]any
+	datasets map[string]any
+	options  map[string]map[string]any
+	fetched  []run
+	groups   []group
+	vague    []string // services with several free connections
+}
+
+// group is one Verbund's inputs: the space-wide ones plus its members'.
+type group struct {
+	conns    map[int64]bool
 	datasets map[string]any
 	options  map[string]map[string]any
 }
@@ -191,6 +204,7 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 			}
 			runs = append(runs, run{conn: conn, login: l, owner: owner, result: result})
 			if result.Data != nil {
+				sc.fetched = append(sc.fetched, runs[len(runs)-1])
 				sc.datasets[conn.Service] = result.Data
 				sc.options[conn.Service] = conn.Options
 			}
@@ -215,6 +229,14 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 			continue
 		}
 		sc.datasets[metrics.HistoryDataset] = history
+	}
+
+	stored, err := linkrepo.All(d)
+	if err != nil {
+		slog.Error("analysis: verbünde failed", "space", sp.ID, "err", err)
+	}
+	for _, sc := range scopes {
+		sc.split(stored)
 	}
 
 	fresh := 0
@@ -296,7 +318,8 @@ func certsLast(conns []*model.Connection) []*model.Connection {
 
 // evaluate turns one fetched connection into hints.
 func evaluate(d *sql.DB, r run, sc *scope, settings map[string]any, today time.Time) (int, error) {
-	env := rules.Env{Today: today, Settings: settings, Datasets: sc.datasets, Options: sc.options}
+	envs := sc.envsOf(r, settings, today)
+	env := envs[0]
 	outages := rules.Outages(env)
 
 	// A connection on a host that is down as a whole is part of the outage hint.
@@ -316,7 +339,7 @@ func evaluate(d *sql.DB, r run, sc *scope, settings map[string]any, today time.T
 			slog.Error("analysis: snapshot failed", "connection", r.conn.Name, "err", err)
 		}
 	}
-	findings, ids := apply(rules.ForScope(r.conn.Service), r.result.Data, env)
+	findings, ids := applyAll(rules.ForScope(r.conn.Service), r.result.Data, envs)
 	kept := findings[:0]
 	for _, f := range findings {
 		if !rules.Suppressed(f, env, outages) {
@@ -443,12 +466,19 @@ func snapshot(d *sql.DB, conn *model.Connection, h model.Holder, dataset any, to
 }
 
 func runScope(d *sql.DB, sc *scope, today time.Time) (int, error) {
-	env := rules.Env{Today: today, Settings: sc.settings, Datasets: sc.datasets, Options: sc.options}
+	var envs []rules.Env
+	for _, g := range sc.groups {
+		envs = append(envs, rules.Env{Today: today, Settings: sc.settings, Datasets: g.datasets, Options: g.options})
+	}
 	specs := rules.ForScope(rules.Cross)
 	if sc.owner == nil {
 		specs = append(specs, rules.ForScope(rules.Deadlines)...)
 	}
-	findings, ids := apply(specs, nil, env)
+	findings, ids := applyAll(specs, nil, envs)
+	if sc.owner == nil {
+		findings = append(findings, vagueFindings(sc.vague)...)
+		ids = append(ids, vagueRule)
+	}
 	if sc.owner != nil {
 		// Listed without findings: copies an owner's scope once made resolve.
 		for _, spec := range rules.ForScope(rules.Deadlines) {
@@ -456,6 +486,32 @@ func runScope(d *sql.DB, sc *scope, today time.Time) (int, error) {
 		}
 	}
 	return syncHints(d, sc.spaceID, sc.owner, nil, ids, findings)
+}
+
+// applyAll runs specs in every Verbund's env and merges the findings
+// (one per rule and fingerprint) and the rules that ran.
+func applyAll(specs []rules.Spec, dataset any, envs []rules.Env) ([]rules.Finding, []string) {
+	var findings []rules.Finding
+	var ids []string
+	seen := map[string]bool{}
+	ran := map[string]bool{}
+	for _, env := range envs {
+		found, listed := apply(specs, dataset, env)
+		for _, id := range listed {
+			if !ran[id] {
+				ran[id] = true
+				ids = append(ids, id)
+			}
+		}
+		for _, f := range found {
+			key := f.Rule + "\x00" + f.Fingerprint
+			if !seen[key] {
+				seen[key] = true
+				findings = append(findings, f)
+			}
+		}
+	}
+	return findings, ids
 }
 
 func apply(specs []rules.Spec, dataset any, env rules.Env) ([]rules.Finding, []string) {

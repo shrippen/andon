@@ -2378,6 +2378,9 @@ hint:
     connector_down:
       title: '{name} unreachable'
       why: 'Last fetch failed: {error}. Tiles show the last data.'
+    partner_ambiguous:
+      title: 'Several connections for {services}'
+      why: 'Andon does not know which belongs with which connection of other services. Hints that need several services are missing for them. Assign them under Verbünde in the space settings.'
     backup_late:
       title: 'Andon backup {hours} hours old'
       why: 'The daily database copy did not happen. Check that the service runs and data/backups is writable.'
@@ -2629,6 +2632,7 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  system.partner_ambiguous: Verbund missing
   system.connector_down: Connection failing
   system.unused_service: 'Unused service'
   energy.shift_jobs: 'Maintenance at expensive hours'

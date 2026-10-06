@@ -2379,6 +2379,9 @@ hint:
     connector_down:
       title: '{name} nicht erreichbar'
       why: 'Letzter Abruf fehlgeschlagen: {error}. Kacheln zeigen den letzten Stand.'
+    partner_ambiguous:
+      title: 'Mehrere Verbindungen für {services}'
+      why: 'Andon weiß nicht, welche zu welchen Verbindungen anderer Dienste gehört. Hinweise, die mehrere Dienste brauchen, fehlen dafür. In den Bereichseinstellungen unter Verbünde zuordnen.'
     backup_late:
       title: 'Andon-Sicherung {hours} Stunden alt'
       why: 'Die tägliche Kopie der Datenbank ist ausgeblieben. Prüfen, ob der Dienst läuft und data/backups beschreibbar ist.'
@@ -2630,6 +2633,7 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  system.partner_ambiguous: Verbund fehlt
   system.connector_down: Verbindung gestört
   system.unused_service: 'Ungenutzter Dienst'
   energy.shift_jobs: 'Wartung zu teuren Zeiten'
