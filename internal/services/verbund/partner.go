@@ -209,3 +209,32 @@ func candidates(q db.Queryer, spaces []int64, service enums.ServiceType, taken m
 	}
 	return out, nil
 }
+
+// Pair is a connection of one service with its partner of another.
+type Pair struct {
+	A, B *model.Connection
+}
+
+// Pairs pairs every connection of service a in spaces with its partner
+// of service b (Partner); connections without one, or with several to
+// choose from, are left out.
+func Pairs(q db.Queryer, who *access.Principal, spaces []int64, a, b enums.ServiceType) ([]Pair, error) {
+	list, err := content.Connections(q, spaces)
+	if err != nil {
+		return nil, err
+	}
+	var out []Pair
+	for _, c := range list {
+		if c.Service != string(a) {
+			continue
+		}
+		partner, state, err := Partner(q, who, Asker{SpaceID: c.SpaceID, ConnID: c.ID}, b)
+		if err != nil {
+			return nil, err
+		}
+		if state == PartnerFound {
+			out = append(out, Pair{A: c, B: partner})
+		}
+	}
+	return out, nil
+}

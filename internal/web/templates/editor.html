@@ -450,6 +450,9 @@
             <input class="input" id="{{.Name}}" name="{{.Name}}" type="password" autocomplete="off" value="">
           {{else if eq (print .Input) "place"}}
             {{template "place_pick" dict "ID" .Name "Place" .Text "Lat" .Lat "Lon" .Lon "PlaceName" .Name "LatName" "cfg.lat" "LonName" "cfg.lon"}}
+          {{else if eq (print .Input) "verbund"}}
+            <select class="select" id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}<option value="">{{t "verbund.auto"}}</option>{{range $.Root.Verbuende}}<option value="{{.ID}}"{{if eq (print .ID) $v}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+            <p class="small muted">{{t "verbund.field_hint"}}</p>
           {{else if eq (print .Input) "connection"}}
             <select class="select" id="{{.Name}}" name="{{.Name}}">{{$v := .Text}}<option value="">–</option>{{range $.Root.AllConns}}<option value="{{.Key}}"{{if eq .Key $v}} selected{{end}}>{{.Name}}</option>{{end}}</select>
           {{else}}

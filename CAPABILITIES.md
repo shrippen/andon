@@ -1,6 +1,6 @@
 # Entwurf: Fähigkeiten je Integration
 
-> Stand: Entwurf vom 06.10.2026, noch nicht umgesetzt. Anlass: ROADMAP „Regeln: noch umzusetzen“ → „Dawarich: Orte“.
+> Stand: umgesetzt 06.10.2026 (Abschnitt „Umsetzung“ am Ende nennt Abweichungen vom Entwurf). Anlass: ROADMAP „Regeln: noch umzusetzen“ → „Dawarich: Orte“.
 
 ## Problem
 
@@ -277,3 +277,15 @@ Entschieden 06.10.2026: klein beginnen; wenn stabil, auf alle Verbindungen auswe
 2. **Private Orte:** Der Ort liegt in Dawarich und im Plugin (dort „Sonstiges“, das Plugin braucht einen Typ); nur die Markierung „privat“ lebt in Andon. Entspricht dem heutigen Code.
 3. **Kunden:** feste Zuordnung über IDs mit Vorschlagsansicht, optional Namen angleichen; Invoice Ninja ist die Quelle der Namen.
 4. **Umfang:** klein beginnen (Orte, Fahrten), wenn stabil groß und als Standard für alle Integrationen.
+
+## Umsetzung (06.10.2026)
+
+Abweichungen vom Entwurf, und was er offen ließ:
+
+- **Partner** liegt in `services/verbund` (`verbund.Partner`, `verbund.Pairs`, `verbund.Groups`), nicht in `services/connections`, damit die Verbindungen keinen Zugriff nach außen öffnen müssen.
+- **„Frei“:** Eine Verbindung, die in einem Verbund mit einer *anderen* Verbindung des fragenden Dienstes steht, ist kein Kandidat (Kimai A gehört zu Dawarich 1, also bekommt Dawarich 2 das freie Kimai B). Ein verlinktes Mitglied, das der Nutzer nicht erreicht, ist kein Partner, und es wird auch kein anderes genommen.
+- **Prüflauf:** Verbünde zählen nur mit Mitgliedern aus demselben Bereich; Daten eines anderen (z. B. persönlichen) Bereichs gelangen nie in Hinweise eines Bereichs. Regeln einer Verbindung laufen in jedem Verbund, in dem sie steht; Funde werden nach Fingerprint zusammengeführt. Hinweis `system.partner_ambiguous` je Bereich.
+- **Abrechnung, Zahlungen, Kundenseiten** paaren je Kimai bzw. Sure; Formulare nennen die Verbindung (`conn_id`, Kundenseite `?kimai=`). Das Jahrespaket wird je Verbund gebaut (Auswahl im Formular).
+- **Belege:** Die eigene Wahl des Nutzers bleibt (Stufe 1); ist nur eine Seite eindeutig, ergänzt der Verbund die andere. Die Feldzuordnung `receipt_*` bleibt vorerst in den Optionen der Verbindung.
+- **Bereich → Verbünde** steht immer im Menü (nicht nur bei Bedarf); die Seite nennt mehrdeutige Dienste.
+- **Kachel-Feld „Verbund“** erscheint bei jedem Typ, der Partnerdienste liest (Vorgabe oder eine Auswahl seiner Felder), nicht nur ohne eigene Verbindung: es löst auch eine Verbindung, die in zwei Verbünden steht.

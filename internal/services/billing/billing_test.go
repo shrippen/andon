@@ -17,6 +17,7 @@ import (
 	"andon/internal/repos/content"
 	"andon/internal/services/access"
 	"andon/internal/services/billing"
+	"andon/internal/services/verbund"
 	"andon/internal/testkit"
 )
 
@@ -163,7 +164,7 @@ func TestCreateDraftsInvoiceAndMarksSheets(t *testing.T) {
 	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimaiFake(t, &kimai))
 	testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &ninja, "Acme GmbH"))
 
-	number, err := billing.Create(context.Background(), d, who, space, customerID, billing.MarkSheets, "")
+	number, err := billing.Create(context.Background(), d, who, space, 0, customerID, billing.MarkSheets, "")
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -199,7 +200,7 @@ func TestCreateKeepSheetsSendsNoKimaiWrite(t *testing.T) {
 	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimaiFake(t, &kimai))
 	testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &ninja, "Acme GmbH"))
 
-	if _, err := billing.Create(context.Background(), d, who, space, customerID, billing.KeepSheets, ""); err != nil {
+	if _, err := billing.Create(context.Background(), d, who, space, 0, customerID, billing.KeepSheets, ""); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 	if got := kimai.list(); len(got) != 0 {
@@ -217,10 +218,10 @@ func TestCreateRefusesUnknownClientOrCustomer(t *testing.T) {
 	testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &ninja, "Someone Else"))
 	ctx := context.Background()
 
-	if _, err := billing.Create(ctx, d, who, space, customerID, billing.MarkSheets, ""); !errors.Is(err, billing.ErrNoClient) {
+	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.MarkSheets, ""); !errors.Is(err, billing.ErrNoClient) {
 		t.Fatalf("unknown client: %v", err)
 	}
-	if _, err := billing.Create(ctx, d, who, space, 999, billing.MarkSheets, ""); !errors.Is(err, billing.ErrNothing) {
+	if _, err := billing.Create(ctx, d, who, space, 0, 999, billing.MarkSheets, ""); !errors.Is(err, billing.ErrNothing) {
 		t.Fatalf("unknown customer: %v", err)
 	}
 	if got := append(kimai.list(), ninja.list()...); len(got) != 0 {
@@ -236,7 +237,7 @@ func TestBookRecordsPayment(t *testing.T) {
 	testkit.Conn(t, d, who, space, enums.ServiceSure, sureFake(t, &sure))
 	testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &ninja, "Acme GmbH"))
 
-	if err := billing.Book(context.Background(), d, who, space, txnID, invoiceID, ""); err != nil {
+	if err := billing.Book(context.Background(), d, who, space, 0, txnID, invoiceID, ""); err != nil {
 		t.Fatalf("book: %v", err)
 	}
 
@@ -261,7 +262,7 @@ func TestBookRefusesStaleMatch(t *testing.T) {
 	testkit.Conn(t, d, who, space, enums.ServiceSure, sureFake(t, &sure))
 	testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &ninja, "Acme GmbH"))
 
-	if err := billing.Book(context.Background(), d, who, space, "t-other", invoiceID, ""); !errors.Is(err, billing.ErrNoMatch) {
+	if err := billing.Book(context.Background(), d, who, space, 0, "t-other", invoiceID, ""); !errors.Is(err, billing.ErrNoMatch) {
 		t.Fatalf("stale txn: %v", err)
 	}
 	if got := ninja.list(); len(got) != 0 {
@@ -294,15 +295,43 @@ func TestCreateAndBookNeedEditRight(t *testing.T) {
 	ctx := context.Background()
 
 	for name, target := range map[string]int64{"stranger's space": space, "instance space": instance.ID} {
-		if _, err := billing.Create(ctx, d, user, target, customerID, billing.MarkSheets, ""); !errors.Is(err, access.ErrDenied) {
+		if _, err := billing.Create(ctx, d, user, target, 0, customerID, billing.MarkSheets, ""); !errors.Is(err, access.ErrDenied) {
 			t.Fatalf("create in %s: %v", name, err)
 		}
-		if err := billing.Book(ctx, d, user, target, txnID, invoiceID, ""); !errors.Is(err, access.ErrDenied) {
+		if err := billing.Book(ctx, d, user, target, 0, txnID, invoiceID, ""); !errors.Is(err, access.ErrDenied) {
 			t.Fatalf("book in %s: %v", name, err)
 		}
 	}
 
 	if got := append(append(kimai.list(), ninja.list()...), sure.list()...); len(got) != 0 {
 		t.Fatalf("writes: %v", got)
+	}
+}
+
+// Two Kimai, one Ninja in a Verbund with the second: drafts come only
+// from that Kimai, and a draft names it; the other is not billed into a
+// guessed Ninja.
+func TestDraftsFollowVerbund(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	var k1, k2, ninja writes
+	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimaiFake(t, &k1))
+	second := testkit.Conn(t, d, who, space, enums.ServiceKimai, kimaiFake(t, &k2))
+	ninjaID := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &ninja, "Acme GmbH"))
+	ctx := context.Background()
+
+	// Both Kimai pair with the only Ninja: two pairs, a draft needs to say which.
+	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.KeepSheets, ""); !errors.Is(err, access.ErrDenied) {
+		t.Fatalf("which kimai: %v", err)
+	}
+
+	if _, err := verbund.Create(d, who, "Firma", []int64{second, ninjaID}, ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.MarkSheets, ""); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if len(k1.list()) != 0 || len(k2.list()) == 0 {
+		t.Fatalf("marked sheets: kimai 1 %v, kimai 2 %v", k1.list(), k2.list())
 	}
 }

@@ -21,6 +21,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/hints"
 	"andon/internal/services/svcdata"
+	"andon/internal/services/verbund"
 	"andon/internal/sources"
 )
 
@@ -31,6 +32,7 @@ var ErrNotFound = errors.New("clients: not found")
 type Card struct {
 	SpaceID   int64
 	SpaceName string
+	KimaiID   int64 // the Kimai connection the customer is from
 	Currency  string
 	metrics.ClientCard
 }
@@ -67,13 +69,13 @@ func List(ctx context.Context, d *sql.DB, who *access.Principal) ([]Card, error)
 }
 
 // One returns one customer with its hints.
-func One(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, customerID int64) (Detail, error) {
+func One(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, kimaiID, customerID int64) (Detail, error) {
 	found, err := spaces(d, who)
 	if err != nil {
 		return Detail{}, err
 	}
 	for _, sp := range found {
-		if sp.ref.ID != spaceID {
+		if sp.ref.ID != spaceID || (kimaiID != 0 && sp.kimai.ID != kimaiID) {
 			continue
 		}
 		cards, err := cardsOf(ctx, d, who, sp)
@@ -90,6 +92,8 @@ func One(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, custome
 	return Detail{}, ErrNotFound
 }
 
+// spaces lists every Kimai of the caller's spaces with its Invoice
+// Ninja partner (Verbund, or the one there is; nil when none or several).
 func spaces(d *sql.DB, who *access.Principal) ([]space, error) {
 	var out []space
 	err := db.WithRead(d, func(tx *sql.Tx) error {
@@ -101,20 +105,19 @@ func spaces(d *sql.DB, who *access.Principal) ([]space, error) {
 			if err != nil {
 				return err
 			}
-			sp := space{ref: ref}
+			var settings map[string]any
 			if row, err := content.Space(tx, id); err == nil && row != nil {
-				sp.settings = row.Settings
+				settings = row.Settings
 			}
 			for _, c := range conns {
-				switch enums.ServiceType(c.Service) {
-				case enums.ServiceKimai:
-					sp.kimai = c
-				case enums.ServiceInvoiceNinja:
-					sp.ninja = c
+				if enums.ServiceType(c.Service) != enums.ServiceKimai {
+					continue
 				}
-			}
-			if sp.kimai != nil {
-				out = append(out, sp)
+				ninja, _, err := verbund.Partner(tx, who, verbund.Asker{SpaceID: id, ConnID: c.ID}, enums.ServiceInvoiceNinja)
+				if err != nil {
+					return err
+				}
+				out = append(out, space{ref: ref, settings: settings, kimai: c, ninja: ninja})
 			}
 		}
 		return nil
@@ -148,7 +151,7 @@ func cardsOf(ctx context.Context, d *sql.DB, who *access.Principal, sp space) ([
 	}
 	var out []Card
 	for _, c := range metrics.ClientCards(kimai, ninja, time.Now(), metrics.CenterOf(sp.settings)) {
-		out = append(out, Card{SpaceID: sp.ref.ID, SpaceName: sp.ref.Name, Currency: currency, ClientCard: c})
+		out = append(out, Card{SpaceID: sp.ref.ID, SpaceName: sp.ref.Name, KimaiID: sp.kimai.ID, Currency: currency, ClientCard: c})
 	}
 	return out, nil
 }

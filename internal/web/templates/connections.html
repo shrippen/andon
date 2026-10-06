@@ -345,6 +345,11 @@
         </div>{{end}}
         {{with $c.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}{{if not $c.Health.LastFail.IsZero}} {{ago $c.Health.LastFail}}{{end}}: {{t .}}{{if $c.Health.ErrorSettled}} <span class="pill" data-state="applied">{{t "conn.ok_since"}}</span>{{end}}</p>{{end}}
         {{if $c.DailyBudget}}<p class="small muted">{{t "conn.budget_today" "n" $c.Health.Today "max" $c.DailyBudget}}</p>{{end}}
+        <div class="detail-block" id="verbund">
+          <div class="h-label detail-label"><span>{{t "verbund.record"}}</span><a href="/spaces/{{$c.SpaceID}}/verbund">{{t "verbund.manage"}}</a></div>
+          {{range .InVerbund}}<p><b>{{.Name}}</b> {{range $i, $m := .Members}}{{if ne $m.ConnID $c.ID}}<a class="chip" href="/connections/{{$m.ConnID}}">{{t (print "service." $m.Service)}} · {{$m.Name}}</a> {{end}}{{end}}</p>
+          {{else}}<p class="small muted">{{t "verbund.record_none"}}</p>{{end}}
+        </div>
         {{with .Caps}}<div class="detail-block">
           <div class="h-label detail-label"><span>{{t "caps.title"}}</span></div>
           <div class="table-wrap"><table class="table">
@@ -624,6 +629,7 @@
 {{else}}
 <p class="small muted">{{if $v.Writes}}{{t "sitebook.lead_plugin"}}{{else if $v.Plugin}}{{t "sitebook.lead_plugin_read"}}{{else}}{{t "sitebook.lead"}}{{end}}</p>
 {{if $v.Estimated}}<div class="callout callout-warn">{{t "detail.travel.estimated"}}</div>{{end}}
+{{if $v.Ambiguous}}<div class="callout callout-warn">{{t "sitebook.ambiguous"}} <a href="/connections/{{$id}}#verbund">{{t "verbund.title"}}</a></div>{{end}}
 {{if and $v.Writes $v.CanManage}}<form method="post" action="/connections/{{$id}}/places/sync" class="btn-row">
   <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
   <button type="submit" class="btn btn-outline btn-sm">{{t "sitebook.sync"}}</button>

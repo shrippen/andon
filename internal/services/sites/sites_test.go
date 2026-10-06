@@ -14,6 +14,7 @@ import (
 	"andon/internal/metrics"
 	"andon/internal/services/connections"
 	"andon/internal/services/sites"
+	"andon/internal/services/verbund"
 	"andon/internal/testkit"
 )
 
@@ -281,5 +282,44 @@ func TestOldPluginKeepsPlacesInAndon(t *testing.T) {
 	}
 	if got := metrics.ParseAssignments(c.Options)[metrics.AreaKey(2)]; got.Kind != metrics.KindCustomer || got.CustomerID != 12 {
 		t.Fatalf("option: %+v", got)
+	}
+}
+
+// Two Kimai with the plugin and no Verbund: nothing is written to either,
+// the view says so; a Verbund sends places to its Kimai only.
+func TestTwoKimaiNeedVerbund(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	rec1, rec2 := &recorder{}, &recorder{}
+	geo := fakeDawarich(&recorder{}, nil)
+	k1, k2 := fakeKimai(rec1, pluginWrites), fakeKimai(rec2, pluginWrites)
+	defer geo.Close()
+	defer k1.Close()
+	defer k2.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
+	kimai1 := testkit.Conn(t, d, who, space, enums.ServiceKimai, k1.URL)
+	testkit.Conn(t, d, who, space, enums.ServiceKimai, k2.URL)
+	ctx := context.Background()
+	acme := metrics.Assignment{Kind: metrics.KindCustomer, CustomerID: 12}
+
+	v, err := sites.Overview(ctx, d, who, conn)
+	if err != nil || !v.Ambiguous || v.Writes {
+		t.Fatalf("view: ambiguous %v writes %v %v", v.Ambiguous, v.Writes, err)
+	}
+	if err := sites.Assign(ctx, d, who, conn, metrics.AreaKey(2), acme); err != nil {
+		t.Fatal(err)
+	}
+	if len(rec1.list())+len(rec2.list()) != 0 {
+		t.Fatal("written to a guessed Kimai")
+	}
+
+	if _, err := verbund.Create(d, who, "Firma", []int64{conn, kimai1}, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := sites.Assign(ctx, d, who, conn, metrics.AreaKey(2), acme); err != nil {
+		t.Fatal(err)
+	}
+	if len(rec1.list()) != 1 || len(rec2.list()) != 0 {
+		t.Fatalf("writes: kimai 1 %d, kimai 2 %d", len(rec1.list()), len(rec2.list()))
 	}
 }

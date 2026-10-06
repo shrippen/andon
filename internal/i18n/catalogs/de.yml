@@ -277,6 +277,7 @@ typefield:
   conn_health:
     only_problems: Nur aktuell wackelige (letzte 2 Tage)
 field:
+  verbund: Verbund
   title_none: Leer lassen für eine Kachel ohne Kopfzeile
   title_needed: Kopfzeile, Icon und Titel-Link erscheinen erst mit einem Titel.
   place: Ort
@@ -3124,6 +3125,7 @@ cashflow:
   below_min: 'Fällt unter den Mindeststand von {amount}.'
   delayed: 'Annahme: Kunden zahlen {days} Tage später.'
 billing:
+  pick_verbund: 'Mehrere Verbünde im Bereich: für das Jahrespaket einen wählen.'
   summary: Überblick
   sum_unbilled: 'nicht abgerechnet · {n} Kunden'
   sum_payments: Zahlungseingänge
@@ -4601,6 +4603,7 @@ gitea:
   notifications: '{n} Benachrichtigungen'
   assigned: 'Mir zugewiesen'
 sitebook:
+  ambiguous: 'Mehrere Kimai-Verbindungen, kein Verbund sagt welche: Orte und Fahrten bleiben in Andon, bis du sie einem Verbund zuordnest.'
   suggested: 'Vorschlag nach Namen, noch nicht gespeichert'
   lead: 'Was ein Ort ist, entscheidet, ob Fahrten dorthin beruflich zählen. Gespeichert in dieser Verbindung.'
   lead_plugin: 'Gespeichert in Kimai Anfahrten; neue Orte werden auch als Area in Dawarich angelegt.'
@@ -5386,3 +5389,28 @@ caps:
     feature: 'Plugin zu alt ({name} fehlt)'
     right: 'Recht {name} fehlt'
     api: 'Schnittstelle {name} fehlt (ältere Version)'
+verbund:
+  auto: automatisch
+  field_hint: 'Nur nötig, wenn mehrere Verbindungen eines Partnerdienstes passen.'
+  title: Verbünde
+  lead: 'Ein Verbund sagt, welche Verbindungen verschiedener Dienste zusammengehören, z. B. Dawarich, Kimai und Invoice Ninja einer Firma. Je Dienst ein Mitglied. Ohne Verbund arbeitet jede Verbindung mit der einzigen ihres Partnerdienstes im Bereich.'
+  vague: 'Mehrere Verbindungen ohne Verbund: {services}. Andon rät nicht, welche zusammengehören; Kacheln und Hinweise, die mehrere Dienste brauchen, fehlen dafür, bis sie in einem Verbund stehen.'
+  read_only: nur lesen
+  remove: Entfernen
+  add: Aufnehmen
+  delete: Verbund löschen
+  none: Noch kein Verbund in diesem Bereich.
+  new: Neuer Verbund
+  name_hint: 'z. B. Studio Weber'
+  members: Mitglieder
+  other_space: anderer Bereich
+  create_hint: 'Mindestens zwei Verbindungen verschiedener Dienste. Du brauchst Bearbeiten-Rechte auf allen.'
+  implicit: Ohne Verbund
+  ambiguous: 'Mehrere Verbindungen möglich: in einem Verbund festlegen, welche gilt.'
+  not_found: Verbund nicht gefunden.
+  too_few: 'Ein Verbund braucht mindestens zwei Verbindungen.'
+  service_twice: 'Je Dienst nur eine Verbindung im Verbund.'
+  no_name: Der Verbund braucht einen Namen.
+  record: Im Verbund
+  record_none: 'In keinem Verbund: arbeitet mit der einzigen Verbindung je Partnerdienst im Bereich.'
+  manage: Verbünde verwalten

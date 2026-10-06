@@ -15,6 +15,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -24,9 +25,11 @@ import (
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/repos/content"
+	linkrepo "andon/internal/repos/links"
 	"andon/internal/services/access"
 	auditsvc "andon/internal/services/audit"
 	"andon/internal/services/svcdata"
+	"andon/internal/services/verbund"
 	"andon/internal/sources"
 )
 
@@ -50,8 +53,36 @@ func inYear(isoDay string, year int) bool {
 	return strings.HasPrefix(isoDay, strconv.Itoa(year)+"-")
 }
 
-// Export builds the year package of one space.
-func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64, year int, ip string) (string, []byte, error) {
+// ErrPickVerbund means the space holds several Verbünde: the package is
+// built for one of them.
+var ErrPickVerbund = errors.New("billing.pick_verbund")
+
+// groupOf is the connections of the space's Verbund linkID; 0 is the
+// implicit one, or the only Verbund there is.
+func groupOf(conns []*model.Connection, stored []linkrepo.Link, linkID int64) ([]*model.Connection, error) {
+	groups, _ := verbund.Groups(conns, stored)
+	if linkID == 0 && len(groups) == 1 {
+		return groupConns(groups[0]), nil
+	}
+	for _, g := range groups {
+		if g.LinkID == linkID {
+			return groupConns(g), nil
+		}
+	}
+	return nil, ErrPickVerbund
+}
+
+func groupConns(g verbund.Group) []*model.Connection {
+	out := make([]*model.Connection, 0, len(g.Conns))
+	for _, c := range g.Conns {
+		out = append(out, c)
+	}
+	slices.SortFunc(out, func(a, b *model.Connection) int { return int(a.ID - b.ID) })
+	return out
+}
+
+// Export builds the year package of one space (or one of its Verbünde).
+func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, linkID int64, year int, ip string) (string, []byte, error) {
 	ref, ok := who.Spaces[spaceID]
 	if !ok || access.SpaceRight(who, &ref) < enums.RightEdit {
 		return "", nil, access.ErrDenied
@@ -61,6 +92,13 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64
 	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		if conns, err = content.Connections(tx, []int64{spaceID}); err != nil {
+			return err
+		}
+		stored, err := linkrepo.All(tx)
+		if err != nil {
+			return err
+		}
+		if conns, err = groupOf(conns, stored, linkID); err != nil {
 			return err
 		}
 		sp, err := content.Space(tx, spaceID)

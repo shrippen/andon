@@ -277,6 +277,7 @@ typefield:
   conn_health:
     only_problems: Only shaky now (last 2 days)
 field:
+  verbund: Verbund
   title_none: Leave empty for a tile without a head
   title_needed: Head, icon and title link only show with a title.
   place: Place
@@ -3123,6 +3124,7 @@ cashflow:
   below_min: 'Falls below the minimum of {amount}.'
   delayed: 'Assumption: clients pay {days} days later.'
 billing:
+  pick_verbund: 'Several Verbünde in this space: choose one for the year package.'
   summary: Overview
   sum_unbilled: 'unbilled · {n} customers'
   sum_payments: incoming payments
@@ -4600,6 +4602,7 @@ gitea:
   notifications: '{n} notifications'
   assigned: 'Assigned to me'
 sitebook:
+  ambiguous: 'Several Kimai connections and no Verbund says which: places and rides stay in Andon until you put them into a Verbund.'
   suggested: 'Suggested by name, not saved yet'
   lead: 'What a place is decides whether rides there count as business. Stored in this connection.'
   lead_plugin: 'Stored in Kimai mileage; new places also become Dawarich areas.'
@@ -5385,3 +5388,28 @@ caps:
     feature: 'Plugin too old ({name} missing)'
     right: 'Right {name} missing'
     api: 'API {name} missing (older version)'
+verbund:
+  auto: automatic
+  field_hint: 'Only needed when several connections of a partner service fit.'
+  title: Verbünde
+  lead: 'A Verbund says which connections of different services belong together, e.g. the Dawarich, Kimai and Invoice Ninja of one company. One member per service. Without one, each connection works with the only one of its partner service in the space.'
+  vague: 'Several connections without a Verbund: {services}. Andon does not guess which belong together; tiles and hints that need several services are missing for them until they are in a Verbund.'
+  read_only: read only
+  remove: Remove
+  add: Add
+  delete: Delete Verbund
+  none: No Verbund in this space yet.
+  new: New Verbund
+  name_hint: 'e.g. Studio Weber'
+  members: Members
+  other_space: other space
+  create_hint: 'At least two connections of different services. You need edit rights on all of them.'
+  implicit: Without Verbund
+  ambiguous: 'Several connections fit: choose one in a Verbund.'
+  not_found: Verbund not found.
+  too_few: 'A Verbund needs at least two connections.'
+  service_twice: 'One connection per service in a Verbund.'
+  no_name: The Verbund needs a name.
+  record: In a Verbund
+  record_none: 'In no Verbund: works with the only connection per partner service in the space.'
+  manage: Manage Verbünde

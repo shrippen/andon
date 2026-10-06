@@ -3,6 +3,7 @@ package web
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"andon/internal/services/clients"
 )
@@ -30,7 +31,8 @@ func (d Deps) handleClient(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		http.NotFound(w, r)
 		return
 	}
-	detail, err := clients.One(r.Context(), d.DB, ctx.Who, spaceID, id)
+	kimai, _ := strconv.ParseInt(r.URL.Query().Get("kimai"), 10, 64)
+	detail, err := clients.One(r.Context(), d.DB, ctx.Who, spaceID, kimai, id)
 	if errors.Is(err, clients.ErrNotFound) {
 		http.NotFound(w, r)
 		return

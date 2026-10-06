@@ -37,7 +37,7 @@
       {{if .ClientKey}}
       <form method="post" action="/billing/draft" class="inline-form">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-        <input type="hidden" name="space_id" value="{{.SpaceID}}">
+        <input type="hidden" name="space_id" value="{{.SpaceID}}"><input type="hidden" name="conn_id" value="{{.KimaiID}}">
         <input type="hidden" name="customer_id" value="{{.CustomerID}}">
         <label class="check"><input type="checkbox" name="mark_exported" checked><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "billing.mark_exported"}}</label>
         <button type="submit" class="btn btn-outline">{{t "billing.create" "client" .Client}}</button>
@@ -59,7 +59,7 @@
           {{else}}<span class="pill" data-state="locked" title="{{t "match.check_hint"}}">{{t "match.amount_only"}}</span>{{end}}</td>
         <td><form method="post" action="/billing/payment" class="inline-form">
           <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-          <input type="hidden" name="space_id" value="{{.SpaceID}}"><input type="hidden" name="txn" value="{{.Txn.ID}}">
+          <input type="hidden" name="space_id" value="{{.SpaceID}}"><input type="hidden" name="conn_id" value="{{.SureID}}"><input type="hidden" name="txn" value="{{.Txn.ID}}">
           <input type="hidden" name="invoice_id" value="{{.Invoice.ID}}"><input type="hidden" name="number" value="{{.Invoice.Number}}">
           {{if .Sure}}<button type="submit" class="btn btn-outline btn-sm">{{t "billing.book"}}</button>{{else}}<button type="submit" class="btn btn-quiet btn-sm">{{t "billing.book_anyway"}}</button>{{end}}
         </form></td></tr>
@@ -88,6 +88,7 @@
     <h2 id="export">{{t "billing.export"}}</h2>
     <form method="get" action="/billing/export" class="card inline-form">
       {{template "space_select" .Spaces}}
+      {{with .Verbuende}}<select class="select" name="link_id" aria-label="{{t "verbund.title"}}"><option value="0">{{t "verbund.implicit"}}</option>{{range .}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>{{end}}
       <select class="select" name="year" aria-label="{{t "billing.year"}}">{{range .Years}}<option>{{.}}</option>{{end}}</select>
       <button type="submit" class="btn btn-outline btn-sm">{{t "billing.download"}}</button>
     </form>

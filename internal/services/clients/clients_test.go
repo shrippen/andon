@@ -55,18 +55,18 @@ func TestListAndOneShowSpaceCustomers(t *testing.T) {
 	}
 
 	first := cards[0]
-	detail, err := clients.One(ctx, d, who, space, first.CustomerID)
+	detail, err := clients.One(ctx, d, who, space, 0, first.CustomerID)
 	if err != nil || detail.Name != first.Name {
 		t.Fatalf("one: %+v, %v", detail.Card, err)
 	}
-	if _, err := clients.One(ctx, d, who, space, -1); !errors.Is(err, clients.ErrNotFound) {
+	if _, err := clients.One(ctx, d, who, space, 0, -1); !errors.Is(err, clients.ErrNotFound) {
 		t.Fatalf("unknown customer: %v", err)
 	}
 
 	if other, _ := clients.List(ctx, d, stranger); len(other) != 0 {
 		t.Fatalf("stranger sees %d cards", len(other))
 	}
-	if _, err := clients.One(ctx, d, stranger, space, first.CustomerID); !errors.Is(err, clients.ErrNotFound) {
+	if _, err := clients.One(ctx, d, stranger, space, 0, first.CustomerID); !errors.Is(err, clients.ErrNotFound) {
 		t.Fatalf("stranger reads customer: %v", err)
 	}
 }

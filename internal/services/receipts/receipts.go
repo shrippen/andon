@@ -28,6 +28,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
 	"andon/internal/services/svcdata"
+	"andon/internal/services/verbund"
 	"andon/internal/sources"
 )
 
@@ -174,9 +175,36 @@ func SetupOf(d *sql.DB, who *access.Principal) (Setup, error) {
 	savedPick := out.Ninja != 0 && out.Paperless != 0
 	if !savedPick {
 		out.Ninja, out.Paperless = only(out.Ninjas), only(out.Docs)
+		if err := fromVerbund(d, who, &out); err != nil {
+			return Setup{}, err
+		}
 		out.Pick = len(out.Ninjas) > 0 && len(out.Docs) > 0 && (out.Ninja == 0 || out.Paperless == 0)
 	}
 	return out, nil
+}
+
+// fromVerbund completes a half pick with the other side's partner: the
+// one Ninja's Paperless, or the one Paperless's Ninja.
+func fromVerbund(d *sql.DB, who *access.Principal, s *Setup) error {
+	complete := func(have int64, service enums.ServiceType, list []Choice) (int64, error) {
+		conn, err := connections.ByID(d, have)
+		if err != nil || conn == nil {
+			return 0, err
+		}
+		partner, _, err := verbund.Partner(d, who, verbund.Asker{SpaceID: conn.SpaceID, ConnID: conn.ID}, service)
+		if err != nil || partner == nil {
+			return 0, err
+		}
+		return pickOf(list, partner.ID), nil
+	}
+	var err error
+	switch {
+	case s.Ninja != 0 && s.Paperless == 0:
+		s.Paperless, err = complete(s.Ninja, enums.ServicePaperless, s.Docs)
+	case s.Paperless != 0 && s.Ninja == 0:
+		s.Ninja, err = complete(s.Paperless, enums.ServiceInvoiceNinja, s.Ninjas)
+	}
+	return err
 }
 
 // pickOf keeps a saved pick that is still usable.

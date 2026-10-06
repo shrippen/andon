@@ -68,6 +68,12 @@ func (v View) Has(service enums.ServiceType) (Member, bool) {
 	return Member{}, false
 }
 
+// HasService reports whether the Verbund has a member of service.
+func (v View) HasService(service enums.ServiceType) bool {
+	_, ok := v.Has(service)
+	return ok
+}
+
 // rightOn is the caller's right on a connection.
 func rightOn(q db.Queryer, who *access.Principal, conn *model.Connection) (enums.Right, error) {
 	space, err := access.SpaceOf(q, who, conn.SpaceID)
@@ -334,4 +340,37 @@ func unique(ids []int64) []int64 {
 		}
 	}
 	return out
+}
+
+// Visible lists every Verbund the caller sees.
+func Visible(d *sql.DB, who *access.Principal) ([]View, error) {
+	var out []View
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		var err error
+		out, err = visible(tx, who, func(linkrepo.Link) bool { return true })
+		return err
+	})
+	return out, err
+}
+
+// Ambiguous lists the services of the space with several connections
+// that no Verbund tells apart (the analysis' hint, for the page).
+func Ambiguous(d *sql.DB, who *access.Principal, spaceID int64) ([]string, error) {
+	if _, ok := who.Spaces[spaceID]; !ok {
+		return nil, access.ErrDenied
+	}
+	var out []string
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		conns, err := content.Connections(tx, []int64{spaceID})
+		if err != nil {
+			return err
+		}
+		stored, err := linkrepo.All(tx)
+		if err != nil {
+			return err
+		}
+		_, out = Groups(conns, stored)
+		return nil
+	})
+	return out, err
 }

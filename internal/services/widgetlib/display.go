@@ -29,6 +29,7 @@ import (
 	"andon/internal/services/linkstatus"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/util"
+	"andon/internal/services/verbund"
 	"andon/internal/services/weekly"
 	"andon/internal/sources"
 	"andon/internal/widgets"
@@ -152,28 +153,24 @@ func hostConnection(q db.Queryer, who *access.Principal, widget *model.Widget, h
 }
 
 // peerConnection finds a connection of a service for ConnPeer queries:
-// first in the widget's space, then in any space the viewer reaches.
+// the partner of the tile's connection or space (verbund.Partner);
+// verbund.ErrAmbiguous when several fit and the tile chose none.
 func peerConnection(q db.Queryer, who *access.Principal, widget *model.Widget, service enums.ServiceType) (*model.Connection, error) {
-	spaceIDs := []int64{widget.SpaceID}
-	for spaceID := range who.Spaces {
-		if spaceID != widget.SpaceID {
-			spaceIDs = append(spaceIDs, spaceID)
-		}
+	at := verbund.Asker{SpaceID: widget.SpaceID}
+	if widget.ConnectionID != nil {
+		at.ConnID = *widget.ConnectionID
 	}
-	slices.Sort(spaceIDs[1:])
-
-	for _, spaceID := range spaceIDs {
-		list, err := content.Connections(q, []int64{spaceID})
-		if err != nil {
-			return nil, err
-		}
-		for _, c := range list {
-			if c.Service == string(service) {
-				return c, nil
-			}
-		}
+	if id, ok := widget.Config[widgets.VerbundKey].(float64); ok {
+		at.LinkID = int64(id)
 	}
-	return nil, nil
+	c, state, err := verbund.Partner(q, who, at, service)
+	if err != nil {
+		return nil, err
+	}
+	if state == verbund.PartnerAmbiguous {
+		return nil, verbund.ErrAmbiguous
+	}
+	return c, nil
 }
 
 // Load runs a widget's queries against its connection (svcdata.Get, so
@@ -297,7 +294,12 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 				target = demoConn(q.Service)
 				break
 			}
-			if target, err = peerConnection(d, who, widget, q.Service); err != nil {
+			target, err = peerConnection(d, who, widget, q.Service)
+			if errors.Is(err, verbund.ErrAmbiguous) {
+				frag.Slots[q.Name] = Slot{Error: err.Error()}
+				continue
+			}
+			if err != nil {
 				return nil, err
 			}
 			if target != nil {

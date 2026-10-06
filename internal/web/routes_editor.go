@@ -1,6 +1,7 @@
 package web
 
 import (
+	"andon/internal/services/verbund"
 	"cmp"
 	"net/http"
 	"net/url"
@@ -522,8 +523,9 @@ func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widge
 	if f.Kind.Width == widgets.WidthFull {
 		cols = nil
 	}
+	groups, _ := verbund.Visible(d.DB, ctx.Who)
 	_ = d.Page(w, ctx, "widget_dialog", status, map[string]any{
-		"Partial": true, "ThemeURL": "",
+		"Partial": true, "ThemeURL": "", "Verbuende": groups,
 		"Dest": dest, "Look": f.Look, "Topic": widgets.TopicOf(f.Kind.Key), "RowOptions": spanOptions(boards.MaxTileRows), "ColOptions": cols,
 		"Kind": f.Kind, "Title": f.Title, "Fields": widgets.FormValues(f.Kind.Key, f.Config),
 		"TitleFields": titled, "FrameFields": frame,

@@ -214,3 +214,25 @@ func TestPartnerAcrossSpaces(t *testing.T) {
 		t.Fatalf("half-visible Verbund shown: %v", err)
 	}
 }
+
+// Two Kimai, one Ninja: both pair with it until a Verbund gives the
+// Ninja to one of them.
+func TestPairs(t *testing.T) {
+	w := newWorld(t)
+	k1 := w.conn(t, w.own, enums.ServiceKimai)
+	k2 := w.conn(t, w.own, enums.ServiceKimai)
+	ninja := w.conn(t, w.own, enums.ServiceInvoiceNinja)
+
+	pairs, err := verbund.Pairs(w.d, w.user, []int64{w.own}, enums.ServiceKimai, enums.ServiceInvoiceNinja)
+	if err != nil || len(pairs) != 2 {
+		t.Fatalf("pairs: %+v %v", pairs, err)
+	}
+	if _, err := verbund.Create(w.d, w.user, "Firma", []int64{k1, ninja}, ""); err != nil {
+		t.Fatal(err)
+	}
+	pairs, err = verbund.Pairs(w.d, w.user, []int64{w.own}, enums.ServiceKimai, enums.ServiceInvoiceNinja)
+	if err != nil || len(pairs) != 1 || pairs[0].A.ID != k1 || pairs[0].B.ID != ninja {
+		t.Fatalf("after verbund: %+v %v", pairs, err)
+	}
+	_ = k2
+}
