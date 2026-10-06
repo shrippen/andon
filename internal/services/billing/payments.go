@@ -144,7 +144,7 @@ func Book(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, sureID
 			clientKey = c.Key
 		}
 	}
-	token, err := svcdata.Secret(d, b.ninja, model.UserHolder(who.UserID))
+	token, err := svcdata.Secret(ctx, d, b.ninja, model.UserHolder(who.UserID))
 	if err != nil {
 		return err
 	}

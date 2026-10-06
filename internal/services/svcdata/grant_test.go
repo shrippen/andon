@@ -72,3 +72,30 @@ func TestGrantRenewedBeforeFetch(t *testing.T) {
 		t.Fatalf("renewed grant not stored: %+v", stored)
 	}
 }
+
+// TestSecretResolvesGrant: an acting call (timer, light, payment) on a
+// signed-in connection gets the current access token, not the marker.
+func TestSecretResolvesGrant(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"access_token":"fresh","refresh_token":"r2","expires_in":3600}`))
+	}))
+	defer srv.Close()
+
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleAdmin)
+	id := testkit.Conn(t, d, who, space, enums.ServiceGitea, "https://git.example")
+	conn, _ := content.Connection(d, id)
+	conn.SecretEnc, _ = crypto.Encrypt(sources.GrantMarker, crypto.PurposeCredential, nil)
+	if err := content.UpdateConnection(d, conn); err != nil {
+		t.Fatal(err)
+	}
+	expired := sources.Grant{Kind: sources.GrantRefresh, TokenURL: srv.URL, Access: "old", Refresh: "r1", Expires: time.Now().Add(-time.Hour)}
+	if err := svcdata.StoreGrant(d, id, 0, expired); err != nil {
+		t.Fatal(err)
+	}
+
+	secret, err := svcdata.Secret(context.Background(), d, conn, model.UserHolder(who.UserID))
+	if err != nil || secret != "fresh" {
+		t.Fatalf("secret = %q, err = %v; want the renewed token", secret, err)
+	}
+}

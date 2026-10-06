@@ -541,13 +541,17 @@ func Prune(d *sql.DB) error {
 }
 
 // Secret returns the credential a holder would fetch conn with, for the
-// few calls that act instead of read (e.g. switching a light).
-func Secret(d *sql.DB, conn *model.Connection, h model.Holder) (string, error) {
+// few calls that act instead of read (e.g. switching a light). A
+// signed-in connection's grant becomes its current access token.
+func Secret(ctx context.Context, d *sql.DB, conn *model.Connection, h model.Holder) (string, error) {
 	var sctx sources.Ctx
 	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		sctx, err = buildCtx(tx, conn, h, nil)
 		return err
 	})
-	return sctx.Secret, err
+	if err != nil || sctx.Secret != sources.GrantMarker {
+		return sctx.Secret, err
+	}
+	return grantToken(ctx, d, conn, HolderOf(conn, h))
 }

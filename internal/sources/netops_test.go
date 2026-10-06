@@ -125,3 +125,17 @@ func TestGlancesHistory(t *testing.T) {
 		t.Fatalf("history: %+v", out)
 	}
 }
+
+// TestDomainsRDAPRegistry: .de is missing from IANA's RDAP list, so
+// rdap.org answers 404; DENIC's own server answers instead.
+func TestDomainsRDAPRegistry(t *testing.T) {
+	bootstrap := jsonServer(t, map[string]any{}, nil)
+	denic := jsonServer(t, map[string]any{"/domain/example.de": map[string]any{"status": []any{"active"}}}, nil)
+	t.Cleanup(sources.SetBases(bootstrap.URL))
+	t.Cleanup(sources.SetRDAPServer("de", denic.URL))
+
+	data := fetchConn(t, "domains.data", sources.Ctx{URL: "https://example.de"}).(*sources.DomainsDataset)
+	if len(data.Domains) != 1 || data.Domains[0].Error != "" {
+		t.Fatalf("domains: %+v", data.Domains)
+	}
+}

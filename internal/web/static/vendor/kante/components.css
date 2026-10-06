@@ -1419,6 +1419,11 @@ input[type="color"]:focus-visible{outline:2px solid var(--focus);outline-offset:
 .launch-detail{flex:none;display:inline-grid;place-items:center;width:1.6rem;height:var(--h-mark);padding:0;background:none;border:1px solid transparent;color:var(--fg3);cursor:pointer}
 .launch-detail svg{width:14px;height:14px}
 .launch-detail:hover{color:var(--fg0);border-color:var(--bg2)}
+/* Sub-links under a launch tile (1.16): a list after the .launch, indented to its title (padding + icon + gap) */
+.launch-items{list-style:none;margin:0;padding:.2rem .6rem .5rem calc(.7rem + 2.2rem + .75rem);display:flex;flex-wrap:wrap;gap:.2rem .9rem;font-family:var(--font-mono);font-size:.72rem}
+.launch-items a{display:inline-flex;align-items:center;gap:.3rem;color:var(--fg2);text-decoration:none}
+.launch-items a:hover{color:var(--fg0)}
+.launch-items img{width:.9rem;height:.9rem;object-fit:contain}
 .launch-detail:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
 @media (pointer:coarse){.launch-detail{width:2.2rem;height:2rem}}
 /* Hint count: outlined in the tier colour; red is filled, so the shape tells the tier too */

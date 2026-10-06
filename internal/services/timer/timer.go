@@ -90,7 +90,7 @@ type Request struct {
 // Run starts, stops, switches, books, edits, deletes or splits a
 // timesheet behind a tile. Requires EDIT on the connection.
 func Run(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64, req Request, ip string) error {
-	conn, secret, err := target(d, who, placementID)
+	conn, secret, err := target(ctx, d, who, placementID)
 	if err != nil {
 		return err
 	}
@@ -256,7 +256,7 @@ func tagsOf(raw string) []string {
 }
 
 // target resolves the tile's connection and the viewer's secret for it.
-func target(d *sql.DB, who *access.Principal, placementID int64) (*model.Connection, string, error) {
+func target(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64) (*model.Connection, string, error) {
 	w, err := boards.PlacedWidget(d, who, placementID)
 	if err != nil {
 		return nil, "", err
@@ -273,14 +273,14 @@ func target(d *sql.DB, who *access.Principal, placementID int64) (*model.Connect
 	if err != nil {
 		return nil, "", err
 	}
-	secret, err := svcdata.Secret(d, conn, model.UserHolder(who.UserID))
+	secret, err := svcdata.Secret(ctx, d, conn, model.UserHolder(who.UserID))
 	return conn, secret, err
 }
 
 // Catalog lists the projects and activities the tile's Kimai offers for
 // a new entry (cached for a few minutes).
 func Catalog(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64) (*sources.KimaiCatalog, error) {
-	conn, _, err := target(d, who, placementID)
+	conn, _, err := target(ctx, d, who, placementID)
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +297,7 @@ func Catalog(ctx context.Context, d *sql.DB, who *access.Principal, placementID 
 
 // Day lists the viewer's timesheets of today behind a tile.
 func Day(ctx context.Context, d *sql.DB, who *access.Principal, placementID int64) (*sources.KimaiDay, error) {
-	conn, _, err := target(d, who, placementID)
+	conn, _, err := target(ctx, d, who, placementID)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +307,7 @@ func Day(ctx context.Context, d *sql.DB, who *access.Principal, placementID int6
 // Draft fills the edit form for a timesheet: the running one or one of
 // today's. A running sheet has no End.
 func Draft(ctx context.Context, d *sql.DB, who *access.Principal, placementID, sheetID int64) (Request, error) {
-	conn, _, err := target(d, who, placementID)
+	conn, _, err := target(ctx, d, who, placementID)
 	if err != nil {
 		return Request{}, err
 	}
@@ -346,7 +346,7 @@ func draftOf(t sources.KimaiTimer) Request {
 // Pin pins a pair from the tile's running or recent timers, or unpins it
 // if pinned. The names are taken from Kimai, not from the request.
 func Pin(ctx context.Context, d *sql.DB, who *access.Principal, placementID, projectID, activityID int64) error {
-	conn, _, err := target(d, who, placementID)
+	conn, _, err := target(ctx, d, who, placementID)
 	if err != nil {
 		return err
 	}

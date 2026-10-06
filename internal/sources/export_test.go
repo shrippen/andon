@@ -8,7 +8,13 @@ func SetBases(base string) func() {
 	saved := []string{nagerBase, jokeBase, coingeckoBase, yahooBase, xkcdBase, nasaBase, flightsBase, transitBase, rdapBase, ownIPURL}
 	nagerBase, jokeBase, coingeckoBase, yahooBase, xkcdBase = base, base, base, base, base
 	nasaBase, flightsBase, transitBase, rdapBase, ownIPURL = base, base, base, base, base+"/ip"
+	servers := rdapServers
+	rdapServers = map[string]string{}
+	for tld := range servers {
+		rdapServers[tld] = base
+	}
 	return func() {
+		rdapServers = servers
 		nagerBase, jokeBase, coingeckoBase, yahooBase, xkcdBase = saved[0], saved[1], saved[2], saved[3], saved[4]
 		nasaBase, flightsBase, transitBase, rdapBase, ownIPURL = saved[5], saved[6], saved[7], saved[8], saved[9]
 	}
@@ -47,3 +53,17 @@ func SetClock(at func() time.Time) func() {
 
 // DownloadsEvery is downloadsEvery for tests.
 var DownloadsEvery = downloadsEvery
+
+// SetRDAPServer points the RDAP lookup of one top-level domain at a test
+// server.
+func SetRDAPServer(tld, u string) func() {
+	saved, had := rdapServers[tld]
+	rdapServers[tld] = u
+	return func() {
+		if had {
+			rdapServers[tld] = saved
+			return
+		}
+		delete(rdapServers, tld)
+	}
+}
