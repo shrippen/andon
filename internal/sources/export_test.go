@@ -70,3 +70,10 @@ func SetRDAPServer(tld, u string) func() {
 		delete(rdapServers, tld)
 	}
 }
+
+// SetTrackBudget bounds the single-track reads of one Dawarich fetch.
+func SetTrackBudget(d time.Duration) func() {
+	saved := trackBudget
+	trackBudget = d
+	return func() { trackBudget = saved }
+}
