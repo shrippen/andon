@@ -184,7 +184,7 @@ func speedDetail(_ SpeedConfig, data *sources.SpeedtestDataset, ctx ViewCtx, res
 	upS := dailySeries(h, metrics.SampleKey("speedtest", "up"), now, speedDetailDays)
 	if hasValues(down) {
 		g := LineGraph(Series{Values: down, Class: "s1", Label: "↓"}, Series{Values: upS, Class: "s2", Label: "↑"})
-		g.Lo, g.Ticks = 0, spanTicks(now, speedDetailDays)
+		g.Lo, g.Ticks, g.Unit = 0, spanTicks(now, speedDetailDays), "Mbit/s"
 		if data.ExpectDown > 0 {
 			g.Goal, g.HasGoal = data.ExpectDown, true
 		}
@@ -246,7 +246,7 @@ func speedHistoryDetail(cfg SpeedHistoryConfig, results map[string]any, ctx View
 		body.Facts = []Kpi{{Value: NumU(sum/float64(n), 0, "Mbit/s"), Label: T("detail.speed.mean")}, {Value: NumU(worst, 0, "Mbit/s"), Label: T("detail.speed.worst")},
 			{Value: slow, Label: T("detail.speed.slow_days"), Tier: tierIf(slow > 0, "yellow", "green")}}
 		g := ColGraph(down, "s1")
-		g.States, g.Ticks = states, spanTicks(now, days)
+		g.States, g.Ticks, g.Unit = states, spanTicks(now, days), "Mbit/s"
 		if expect > 0 {
 			g.Goal, g.HasGoal = expect, true
 		}

@@ -225,7 +225,7 @@ const minutesPerHourF = 60.0
 // from Dawarich's stats), and when rides happen.
 func travelYear(travel metrics.Travel, data *sources.DawarichDataset, today time.Time) []Block {
 	months := metrics.MonthKM(travel.Rides, today.Year())
-	g := Graph{Kind: GraphLine, Mark: int(today.Month()) - 1, Ticks: []any{"01", "12"}}
+	g := Graph{Kind: GraphLine, Mark: int(today.Month()) - 1, Ticks: []any{"01", "12"}, Unit: "km"}
 	for _, c := range metrics.RideClasses {
 		values := make([]float64, monthsPerYear)
 		for m := range monthsPerYear {
@@ -275,7 +275,7 @@ func travelYear(travel metrics.Travel, data *sources.DawarichDataset, today time
 			values[i] = math.Round(values[i]*10) / 10
 		}
 		out = append(out, Block{Kind: BlockGraph, Label: T("detail.travel.per_week"), Meta: "h",
-			Data: Graph{Kind: GraphCols, Mark: -1, Series: []Series{{Values: values, Class: "s1"}}, Ticks: []any{Day(weeks[0].Week), Day(weeks[len(weeks)-1].Week)}}})
+			Data: Graph{Kind: GraphCols, Mark: -1, Unit: "h", Series: []Series{{Values: values, Class: "s1"}}, Ticks: []any{Day(weeks[0].Week), Day(weeks[len(weeks)-1].Week)}}})
 	}
 	return out
 }

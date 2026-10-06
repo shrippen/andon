@@ -15,12 +15,16 @@
     {{template "intro" dict "Page" "timeline" "Chapter" "freelance" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{t "timeline.lead" "days" .Days}}</p>
     {{/* Density band: how much happened per quarter day, oldest left. */}}
-    {{with .Band}}<figure class="tl-band">
+    {{with .Band}}<figure class="tl-band"><div class="chart-frame">
+      <div class="chart-axis"><span>{{$.BandTop}}</span><span>0</span></div>
+      <div class="chart-wrap" data-readout>
       <svg viewBox="0 0 {{len .}} 100" preserveAspectRatio="none" role="img" aria-label="{{t "timeline.band" "days" $.Days}}">
-        {{range $i, $b := .}}<rect x="{{$i}}" y="{{$b.Top}}" width=".8" height="{{$b.Pct}}"><title>{{day $b.At}} {{$b.At.Local.Format "15:04"}} · {{$b.N}}</title></rect>{{end}}
+        {{range $i, $b := .}}<rect x="{{$i}}" y="{{$b.Top}}" width=".8" height="{{$b.Pct}}" data-tip="{{day $b.At}} {{$b.At.Local.Format "15:04"}} · {{t "timeline.band_n" "n" $b.N}}"/>{{end}}
       </svg>
-      <figcaption><span>{{day $.Since}}</span><span>{{t "timeline.today"}}</span></figcaption>
-    </figure>{{end}}
+      <span class="readout"></span>
+      </div>
+      <div class="detail-ticks"><span>{{day $.Since}}</span><span>{{t "timeline.today"}}</span></div>
+    </div></figure>{{end}}
 
     {{/* Days, newest first; a new hint shows the update just before it. */}}
     <ol class="tl">

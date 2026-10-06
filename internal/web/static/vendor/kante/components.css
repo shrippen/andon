@@ -1254,6 +1254,19 @@ a.hint-card>.title:hover,.hint-card>a.title:hover{color:var(--link)}
    .axis labels the scale on the left (text-anchor end); durations are written as h:mm */
 .chart .c{fill:var(--c);stroke:var(--c)}
 .chart .axis{text-anchor:end}
+/* Value axis beside a stretched chart (1.15): SVG text distorts under preserveAspectRatio="none",
+   so the scale is HTML. .chart-frame > .chart-axis (labels top to bottom, e.g. max, half, 0; a first
+   .unit names the unit) + the chart or .chart-wrap. In a .detail-block the frame takes the chart's height */
+.chart-frame{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.3rem .4rem;align-items:stretch}
+.chart-axis{display:flex;flex-direction:column;justify-content:space-between;text-align:right;font-family:var(--font-mono);font-size:.6rem;line-height:1;color:var(--fg3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chart-axis .unit{letter-spacing:.08em;text-transform:uppercase}
+/* .is-rows: one label centred on each row (categories, e.g. the weekdays of a .heat) */
+.chart-axis.is-rows{justify-content:space-around;text-align:left}
+.chart-frame>:is(.chart,.chart-wrap),.chart-frame>.chart-wrap>svg.chart{min-width:0;height:100%}
+.chart-frame>.detail-ticks{grid-column:2}
+.detail-block>.chart-frame:has(>:is(.chart,.chart-wrap)){height:8rem;grid-template-rows:minmax(0,1fr)}.detail-hero .chart-frame:has(>:is(.chart,.chart-wrap)){height:13rem}
+/* Read-out of single elements (1.15): data-tip="Label · value" on a bar, cell or strip in a .chart-wrap[data-readout] */
+.chart-wrap[data-readout] [data-tip]:hover{opacity:.75}
 /* Week timeline: one row per day over the hours, entries as blocks in their colour, the sum right.
    <b> day, .track (+ .today) with <i style="--from:8.25;--to:12;--c:…"> blocks and .now (--at),
    <small> the sum (.is-zero muted). --start and --span set the window (0 and 24 h) */
@@ -1327,7 +1340,7 @@ a.chip,a.chip:hover{text-decoration:none}
    The spark end mark as a zero-length path <path class="end" d="M x y h0"> stays square.
    .bar.is-prev is the last period (dashed outline, no fill); .goal.is-danger a limit (red).
    Wide viewBoxes (e.g. 0 0 1000 200) scale text down: set --chart-text in viewBox units */
-.chart .line,.chart .grid,.chart .goal,.chart .probe,.chart .now,.spark path{vector-effect:non-scaling-stroke}
+.chart .line,.chart .grid,.chart .goal,.chart .probe,.chart .mark,.chart .now,.spark path{vector-effect:non-scaling-stroke}
 .spark .end{fill:none;stroke:var(--d4);stroke-width:5px;stroke-linecap:square}
 .chart .bar.is-prev{fill:none;stroke-width:1.5;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
 .chart .bar.is-prev:not(.s1,.s2,.s3,.s4,.s5,.s6,.c){stroke:var(--fg3)}

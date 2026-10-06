@@ -362,6 +362,7 @@ func hassHistory(rows []HassRow, h *sources.HassHistory, now time.Time) []Block 
 		if values, numeric := hassNumbers(states); numeric {
 			g := LineGraph(Series{Values: values, Class: "s1"})
 			g.Ticks = []any{start.In(clockZone()).Format(timeOfDay), now.In(clockZone()).Format(timeOfDay)}
+			g.Unit = r.Unit
 			out = append(out, Block{Kind: BlockGraph, Label: Plain(strings.TrimSpace(r.Name + " " + r.Unit)), Data: g})
 			continue
 		}
@@ -452,7 +453,7 @@ func weatherDetail(cfg WeatherConfig, results map[string]any, ctx ViewCtx) Detai
 			ticks[1] = t.Format(timeOfDay)
 		}
 		temp := LineGraph(Series{Values: temps, Class: "s5"})
-		temp.Ticks = ticks
+		temp.Ticks, temp.Unit = ticks, unit
 		chance := ColGraph(rain, "s1")
 		chance.Lo, chance.Hi, chance.Ticks = 0, percentScale, ticks
 		body.Blocks = append(body.Blocks, pairOf([]Block{{Kind: BlockGraph, Label: T("weather.next_hours"), Meta: unit, Data: temp},

@@ -26,6 +26,7 @@ type Graph struct {
 	Mark       int      // index of the "now" line, -1 = none
 	Ticks      []any    // labels under the chart (text or typed values), spread evenly
 	States     []string // cols: a Kante state per column (ok, warn, bad, off), "" = series colour
+	Unit       string   // of the values, on the axis and in hover read-outs ("ms", "km"), "" = none
 }
 
 // Series is one line or one row of columns.

@@ -32,10 +32,20 @@ func (d Deps) handleTimeline(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	band := history.Band(entries, since, now, timelineStep)
 	_ = d.Page(w, ctx, "timeline", http.StatusOK, map[string]any{
-		"Groups": history.ByDay(entries, time.Local), "Band": history.Band(entries, since, now, timelineStep),
+		"Groups": history.ByDay(entries, time.Local), "Band": band, "BandTop": bandTop(band),
 		"Since": since, "Today": today, "Yesterday": today.AddDate(0, 0, -1), "Days": timelineDays,
 	})
+}
+
+// bandTop is the busiest slot of the band, the top of its axis.
+func bandTop(bars []history.Bar) int {
+	top := 0
+	for _, b := range bars {
+		top = max(top, b.N)
+	}
+	return top
 }
 
 func (d Deps) handleISPReport(w http.ResponseWriter, r *http.Request, ctx Ctx) {

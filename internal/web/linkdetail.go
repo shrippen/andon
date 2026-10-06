@@ -3,6 +3,7 @@ package web
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"andon/internal/services/linkstatus"
 )
@@ -12,6 +13,7 @@ import (
 // is one unit per day and stackHeight high.
 type stackPath struct {
 	OK, Fail, None string
+	Most           int // checks of the busiest day, the top of the axis
 }
 
 const (
@@ -46,8 +48,11 @@ func stackPaths(days []linkstatus.Day) stackPath {
 			fail.WriteString(column(x, stackHeight-okH-failH, failH))
 		}
 	}
-	return stackPath{OK: ok.String(), Fail: fail.String(), None: none.String()}
+	return stackPath{OK: ok.String(), Fail: fail.String(), None: none.String(), Most: most}
 }
+
+// Half is the middle of the axis.
+func (s stackPath) Half() float64 { return float64(s.Most) / 2 }
 
 // column is one rectangle of a path: "M x y h.7 v h h-.7z".
 func column(x string, y, h float64) string {
@@ -57,8 +62,11 @@ func column(x string, y, h float64) string {
 // msChart is the response time line in a msWidth × msHeight viewBox,
 // with the slow line at msGoal.
 type msChart struct {
-	Line  string
-	GoalY string
+	Line   string
+	GoalY  string
+	Top    float64     // ms at the top edge, the axis runs from 0
+	Values []float64   // ms of each drawn point, for the hover read-out
+	Days   []time.Time // their days
 }
 
 const (
@@ -79,6 +87,8 @@ func msChartOf(days []linkstatus.Day) msChart {
 	step := float64(msWidth) / float64(max(len(days), 1))
 
 	var line strings.Builder
+	var values []float64
+	var drawn []time.Time
 	for i, d := range days {
 		if d.AvgMs == 0 {
 			continue
@@ -89,10 +99,14 @@ func msChartOf(days []linkstatus.Day) msChart {
 		}
 		y := msHeight - float64(d.AvgMs)/scale*msHeight
 		line.WriteString(cmd + strconv.FormatFloat((float64(i)+.5)*step, 'f', 1, 64) + " " + strconv.FormatFloat(y, 'f', 1, 64))
+		values, drawn = append(values, float64(d.AvgMs)), append(drawn, d.Day)
 	}
 	goal := msHeight - msGoal/scale*msHeight
-	return msChart{Line: line.String(), GoalY: strconv.FormatFloat(goal, 'f', 1, 64)}
+	return msChart{Line: line.String(), GoalY: strconv.FormatFloat(goal, 'f', 1, 64), Top: scale, Values: values, Days: drawn}
 }
+
+// Half is the middle of the axis.
+func (m msChart) Half() float64 { return m.Top / 2 }
 
 // msX is the x of day i on the response time chart (the chosen day's mark).
 func msX(i, days int) string {

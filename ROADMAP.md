@@ -1088,10 +1088,10 @@ Kettenregel: eine Fahrt zwischen zwei beruflichen Fahrten desselben Tages ist be
 Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md` bzw. `CLAUDE.md` übernommen und noch nicht angewendet.
 
 - [ ] Visualisierungen (Heatmaps, Graphen, Diagramme) haben immer Achsenbeschriftungen oder eine Legende, sonst sind sie nutzlos. Bestehende Kacheln und Diagramme prüfen und nachrüsten; Regel in `agent.md` aufnehmen *(Regel in `agent.md` und `eigene/CLAUDE.md` steht; geprüft 06.10.2026)*
-  - Popups: `detail_graph` ohne Werte-Achse, Legende nur bei mehreren Reihen; Link-Prüfungen und `strips` ohne Zustandslegende; Antwortzeit (ms) ohne Achsen; Heatmap ohne Stufenlegende (`.heat-legend`); Zeitstrahl-Band ohne Werte-Achse; nirgends Hover
+  - [x] Popups: `detail_graph` ohne Werte-Achse, Legende nur bei mehreren Reihen; Link-Prüfungen und `strips` ohne Zustandslegende; Antwortzeit (ms) ohne Achsen; Heatmap ohne Stufenlegende (`.heat-legend`); Zeitstrahl-Band ohne Werte-Achse; nirgends Hover *(Kante 1.15: Werte-Achse, Zeilen-Achse, Hover für Linien und Balken; Säulen mit runder Obergrenze; `Graph.Unit`)*
   - Kacheln: `widgets/chart` ohne Werte-Achse; Energie ohne Achsen; Mini-Balken (Glances, Speedtest, GitHub) ohne Werte-Achse; Sparklines ohne alles
   - In Ordnung: Tagesbalken (Prozent, `title`), `hbars`, Wochen- und Tagesleiste
-  - Kante zuerst: Werte-Achse für gestreckte SVGs (`preserveAspectRatio="none"` verzerrt SVG-Text, also HTML-Achse daneben); Hover-Anzeige für Balken und `path`-Linien (heute nur `polyline` in `.chart-wrap[data-readout]`)
+  - [x] Kante zuerst: Werte-Achse für gestreckte SVGs (`preserveAspectRatio="none"` verzerrt SVG-Text, also HTML-Achse daneben); Hover-Anzeige für Balken und `path`-Linien (heute nur `polyline` in `.chart-wrap[data-readout]`) *(Kante 1.15, Read-out jetzt delegiert, wirkt auch in nachgeladenen Dialogen)*
   - Offen: gelten die Regeln auch für Sparklines und Mini-Balken in Kacheln?
 - [ ] Integrationen werden möglichst gegen eine reale Instanz getestet:
   - [x] `.local-test/` in `.gitignore`

@@ -90,46 +90,84 @@
       if (d.fonts) d.fonts.ready.then(place);
     });
 
-    // ── Chart read-out and curve editor (Kante 1.6) ──────────────────────
-    // .chart-wrap[data-readout] > svg.chart: on hover a rule and marks sit on the nearest point,
-    //   .readout shows data-labels (svg) and data-values (each .line) at that index.
+    // ── Chart read-out and curve editor (Kante 1.6, 1.15) ────────────────
+    // .chart-wrap[data-readout] > svg.chart: on hover a rule and marks sit on the nearest point
+    //   of each .line (polyline points or path d), .readout shows data-labels (svg) and
+    //   data-values (each .line) at that index, split on "|" if present ("1,5|2,25"), else ",". An element with data-tip (a bar, a cell, a
+    //   strip) shows its own text instead. Delegated, so charts added later work too.
     // svg.curve[data-editable]: drag .pt squares, arrows move the focused one; fires "change"
     //   with detail = [{x, y}]. data-x/y-min/max and data-step give the range.
-    var NS = 'http://www.w3.org/2000/svg';
-    [].forEach.call(d.querySelectorAll('.chart-wrap[data-readout]'), function (wrap) {
-      var svg = wrap.querySelector('svg'), lines = svg.querySelectorAll('.line'), tip = wrap.querySelector('.readout');
-      if (!lines.length || !tip) return;
-      var pts = [].map.call(lines, function (l) {
-        return l.getAttribute('points').trim().split(/\s+/).map(function (p) { var a = p.split(','); return [+a[0], +a[1]]; });
-      });
-      var probe = d.createElementNS(NS, 'line'), marks = [];
-      probe.setAttribute('class', 'probe'); probe.style.display = 'none'; svg.appendChild(probe);
-      [].forEach.call(lines, function (l, i) {
-        var m = d.createElementNS(NS, 'rect');
-        m.setAttribute('class', 'mark ' + (l.getAttribute('class').match(/s\d/) || [''])[0]); m.setAttribute('width', 7); m.setAttribute('height', 7);
-        m.style.display = 'none'; svg.appendChild(m); marks.push(m);
-      });
-      function off() { probe.style.display = 'none'; marks.forEach(function (m) { m.style.display = 'none'; }); wrap.classList.remove('is-reading'); }
-      svg.addEventListener('pointerleave', off);
-      svg.addEventListener('pointermove', function (e) {
-        var r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, x = (e.clientX - r.left) / r.width * vb.width + vb.x;
-        var best = 0;
-        pts[0].forEach(function (p, i) { if (Math.abs(p[0] - x) < Math.abs(pts[0][best][0] - x)) best = i; });
-        var px = pts[0][best][0], labels = (svg.dataset.labels || '').split(',');
-        probe.setAttribute('x1', px); probe.setAttribute('x2', px); probe.setAttribute('y1', vb.y); probe.setAttribute('y2', vb.y + vb.height);
-        probe.style.display = '';
-        var html = labels[best] ? '<b>' + labels[best] + '</b>' : '';
-        [].forEach.call(lines, function (l, i) {
-          var p = pts[i][best]; if (!p) return;
-          marks[i].setAttribute('x', p[0] - 3.5); marks[i].setAttribute('y', p[1] - 3.5); marks[i].style.display = '';
-          html += (l.dataset.values || '').split(',')[best] + (svg.dataset.unit || '') + ' ';
+    var NS = 'http://www.w3.org/2000/svg', reading = null;
+    function linePoints(l) {
+      var raw = l.getAttribute('points') || l.getAttribute('d') || '', n = raw.match(/-?[\d.]+(?:e-?\d+)?/gi) || [], out = [];
+      for (var i = 0; i + 1 < n.length; i += 2) out.push([+n[i], +n[i + 1]]);
+      return out;
+    }
+    // data-labels / data-values: split on "|" when present (values with decimal commas), else ",".
+    function list(v) { v = v || ''; return v.split(v.indexOf('|') >= 0 ? '|' : ','); }
+    function esc(t) { var x = d.createElement('span'); x.textContent = t; return x.innerHTML; }
+    function readOff(wrap) {
+      if (!wrap) return;
+      [].forEach.call(wrap.querySelectorAll('.probe,.mark'), function (m) { m.style.display = 'none'; });
+      wrap.classList.remove('is-reading');
+    }
+    function readTip(wrap, tip, html, left, width) {
+      tip.innerHTML = html;
+      wrap.classList.add('is-reading');
+      var w = tip.offsetWidth;
+      tip.style.left = (left > width / 2 ? left - w - 8 : left + 8) + 'px';
+    }
+    function readLines(wrap, svg, tip, e) {
+      var lines = svg.querySelectorAll('.line');
+      if (!lines.length) return false;
+      var pts = [].map.call(lines, linePoints);
+      if (!pts[0].length) return false;
+      var probe = svg.querySelector('.probe');
+      if (!probe) {
+        probe = d.createElementNS(NS, 'line'); probe.setAttribute('class', 'probe'); svg.appendChild(probe);
+        [].forEach.call(lines, function (l) {
+          var m = d.createElementNS(NS, 'rect');
+          m.setAttribute('class', 'mark ' + ((l.getAttribute('class') || '').match(/s\d/) || [''])[0]); m.setAttribute('width', 7); m.setAttribute('height', 7);
+          svg.appendChild(m);
         });
-        tip.innerHTML = html;
-        wrap.classList.add('is-reading');
-        var w = tip.offsetWidth, left = (px - vb.x) / vb.width * r.width;
-        tip.style.left = (left > r.width / 2 ? left - w - 8 : left + 8) + 'px';
+      }
+      var marks = svg.querySelectorAll('.mark');
+      var r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, x = (e.clientX - r.left) / r.width * vb.width + vb.x;
+      var best = 0;
+      pts[0].forEach(function (p, i) { if (Math.abs(p[0] - x) < Math.abs(pts[0][best][0] - x)) best = i; });
+      var px = pts[0][best][0], labels = list(svg.dataset.labels);
+      probe.setAttribute('x1', px); probe.setAttribute('x2', px); probe.setAttribute('y1', vb.y); probe.setAttribute('y2', vb.y + vb.height);
+      probe.style.display = '';
+      var html = labels[best] ? '<b>' + labels[best] + '</b>' : '';
+      // 7 px marks also in a stretched chart (preserveAspectRatio="none").
+      var mw = 7 * vb.width / r.width, mh = 7 * vb.height / r.height;
+      [].forEach.call(lines, function (l, i) {
+        var p = pts[i][best]; if (!p) return;
+        marks[i].setAttribute('width', mw); marks[i].setAttribute('height', mh);
+        marks[i].setAttribute('x', p[0] - mw / 2); marks[i].setAttribute('y', p[1] - mh / 2); marks[i].style.display = '';
+        html += list(l.dataset.values)[best] + (svg.dataset.unit || '') + ' ';
       });
+      readTip(wrap, tip, html, (px - vb.x) / vb.width * r.width, r.width);
+      return true;
+    }
+    d.addEventListener('pointermove', function (e) {
+      var wrap = e.target.closest && e.target.closest('.chart-wrap[data-readout]');
+      if (wrap !== reading) { readOff(reading); reading = wrap; }
+      if (!wrap) return;
+      var tip = wrap.querySelector('.readout'), svg = wrap.querySelector('svg');
+      if (!tip) return;
+      var one = e.target.closest('[data-tip]');
+      if (one && wrap.contains(one)) {
+        readOff(wrap);
+        // "Label · value": the label above, as in the line read-out.
+        var r = wrap.getBoundingClientRect(), text = one.getAttribute('data-tip'), cut = text.indexOf(' · ');
+        var html = cut > 0 ? '<b>' + esc(text.slice(0, cut)) + '</b>' + esc(text.slice(cut + 3)) : esc(text);
+        readTip(wrap, tip, html, e.clientX - r.left, r.width);
+        return;
+      }
+      if (!svg || !readLines(wrap, svg, tip, e)) readOff(wrap);
     });
+    d.addEventListener('pointerleave', function () { readOff(reading); reading = null; });
     [].forEach.call(d.querySelectorAll('svg.curve[data-editable]'), function (svg) {
       var D = svg.dataset, X0 = +D.xMin, X1 = +D.xMax, Y0 = +D.yMin, Y1 = +D.yMax, step = +(D.step || 1);
       var box = svg.querySelector('.frame').getBBox(), line = svg.querySelector('.line');
