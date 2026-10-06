@@ -250,7 +250,7 @@ func (d Deps) handleSettingsOIDC(w http.ResponseWriter, r *http.Request) {
 			Label: r.FormValue("label"), Only: checked(r, "only"), AutoCreate: checked(r, "auto_create"),
 			EmailLink: checked(r, "email_link"), Rules: rules,
 		}
-		return oidc.Save(d.DB, ctx.Who, cfg, r.FormValue("secret"), d.clientIP(r))
+		return oidc.Save(d.DB, ctx.Who, d.Settings, cfg, r.FormValue("secret"), d.clientIP(r))
 	})
 }
 

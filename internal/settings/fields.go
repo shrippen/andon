@@ -86,10 +86,26 @@ func (f Field) Value(s Settings) string { return f.get(s) }
 // FromEnv reports whether the environment (or a Docker secret) set env.
 func (s Settings) FromEnv(env string) bool { return s.env[env] }
 
+// OIDC variables: set in Admin → Settings → Single sign-on, not in
+// Fields, but locked there the same way when the environment sets them.
+const (
+	EnvOIDCIssuer   = "OIDC_ISSUER"
+	EnvOIDCClientID = "OIDC_CLIENT_ID"
+	EnvOIDCSecret   = "OIDC_CLIENT_SECRET"
+)
+
 // envSet notes which fields the environment set; secrets are already
 // unset from it, so a value means it came from there.
 func envSet(s Settings) map[string]bool {
 	out := map[string]bool{}
+	for _, env := range []string{EnvOIDCIssuer, EnvOIDCClientID} {
+		if _, ok := os.LookupEnv(env); ok {
+			out[env] = true
+		}
+	}
+	if s.OIDCClientSecret != "" {
+		out[EnvOIDCSecret] = true
+	}
 	for _, f := range Fields {
 		_, ok := os.LookupEnv(f.Env)
 		if ok || (f.Kind == KindSecret && f.get(s) != "") {
