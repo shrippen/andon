@@ -12,7 +12,7 @@ test:
 
 # Live tests against the instances in .local-test/ (internal/testkit/live).
 live:
-	go test -count=1 -run Live ./...
+	ANDON_LIVE=1 go test -count=1 -run Live ./...
 
 VERSION_FLAG = -X andon/internal/services/about.version=$(shell scripts/version.sh)
 

@@ -101,6 +101,17 @@ func TestKimaiTimerLive(t *testing.T) {
 	live.Created(t, live.Kimai, kindSheet, id)
 	t.Cleanup(func() { kimaiDelete(t, kimai, id) })
 
+	// Kimai refuses to stop a timer of zero duration: start it earlier
+	// (an edit without End keeps it running).
+	begin := time.Now().Add(-5 * time.Minute).Format(kimaiTime)
+	live.Change(t, live.Kimai, live.Update, kindSheet, id)
+	if err := outbound.KimaiEdit(ctx, kimai, id, outbound.KimaiSheet{Begin: begin, Description: name}); err != nil {
+		t.Fatalf("edit running: %v", err)
+	}
+	if end := kimaiRead(t, api, id)["end"]; end != nil {
+		t.Fatalf("timer stopped by edit, end = %v", end)
+	}
+
 	live.Change(t, live.Kimai, live.Update, kindSheet, id)
 	if err := outbound.KimaiStop(ctx, kimai, id); err != nil {
 		t.Fatalf("stop: %v", err)

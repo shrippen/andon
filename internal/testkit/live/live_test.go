@@ -16,6 +16,7 @@ func local(t *testing.T) string {
 	t.Helper()
 	d := t.TempDir()
 	t.Setenv(dirEnv, d)
+	t.Setenv(runEnv, "1")
 	return d
 }
 
@@ -28,6 +29,19 @@ func TestTargetSkipsWithoutConfig(t *testing.T) {
 	})
 	if ran {
 		t.Fatal("test ran without a configured instance")
+	}
+}
+
+func TestTargetSkipsUnasked(t *testing.T) {
+	local(t)
+	t.Setenv(runEnv, "")
+	ran := false
+	t.Run("kimai", func(t *testing.T) {
+		Target(t, Kimai)
+		ran = true
+	})
+	if ran {
+		t.Fatal("live test ran without being asked for")
 	}
 }
 

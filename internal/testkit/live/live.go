@@ -5,8 +5,10 @@
 // the master key in secrets/master_key. Each service's first connection
 // with a shared login is used.
 //
+// The tests write to real instances, so they run only when asked for
+// (ANDON_LIVE=1, set by `make live`), never with `go test ./...`.
 // Without that database or a connection of the service the test is
-// skipped: CI and cloud runs test against the fakes (httptest) only.
+// skipped too: CI and cloud runs test against the fakes (httptest) only.
 //
 // Writes touch only entries a test created. Every write is appended to
 // .local-test/writes.log (time, service, action, kind, id, test); a
@@ -56,7 +58,9 @@ const (
 
 const (
 	// dirEnv overrides the directory (tests of this package).
-	dirEnv  = "ANDON_LOCAL_TEST"
+	dirEnv = "ANDON_LOCAL_TEST"
+	// runEnv must be set for live tests to run.
+	runEnv  = "ANDON_LIVE"
 	dirName = ".local-test"
 	logName = "writes.log"
 
@@ -84,6 +88,9 @@ var (
 // is configured.
 func Target(t testing.TB, svc Service) outbound.Target {
 	t.Helper()
+	if os.Getenv(runEnv) == "" {
+		t.Skipf("live tests write to real instances: run with %s=1 (make live)", runEnv)
+	}
 	all := instances(t)
 	to, ok := all[svc]
 	if !ok {
