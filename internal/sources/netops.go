@@ -44,6 +44,10 @@ const (
 var (
 	rdapBase = "https://rdap.org"
 	ownIPURL = publicIPURL
+
+	// rdapServers are registries missing from IANA's RDAP list, which
+	// rdap.org follows: it answers 404 for them.
+	rdapServers = map[string]string{"de": "https://rdap.denic.de"}
 )
 
 // ── DNS filters: pihole, adguard ──
@@ -439,7 +443,7 @@ func fetchDomains(ctx context.Context, sctx Ctx) (any, error) {
 		if spf, dmarc, err := services.MailAuth(ctx, name); err == nil {
 			info.MailChecked, info.SPF, info.DMARC = true, spf, dmarc
 		}
-		body, _, err := httpclient.GetJSON(ctx, rdapBase+"/domain/"+url.PathEscape(name), httpclient.Options{})
+		body, _, err := httpclient.GetJSON(ctx, rdapServer(name)+"/domain/"+url.PathEscape(name), httpclient.Options{})
 		if err != nil {
 			info.Error = err.Error()
 			data.Domains = append(data.Domains, info)
@@ -454,6 +458,16 @@ func fetchDomains(ctx context.Context, sctx Ctx) (any, error) {
 		data.Domains = append(data.Domains, info)
 	}
 	return data, nil
+}
+
+// rdapServer is where a domain's registration is asked: its registry's
+// own server when rdap.org cannot find it, e.g. example.de → DENIC.
+func rdapServer(domain string) string {
+	tld := domain[strings.LastIndex(domain, ".")+1:]
+	if server, ok := rdapServers[tld]; ok {
+		return server
+	}
+	return rdapBase
 }
 
 // HostAddrs is a host name and the addresses DNS gives for it.

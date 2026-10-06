@@ -4561,6 +4561,7 @@ komodo:
   alerts: 'Warnungen: {n}'
 kdestore:
   not_found: 'Eintrag oder Benutzer im KDE Store nicht gefunden.'
+  no_entries: 'Nichts zu lesen: Option user (alle Einträge eines Benutzers) oder ids (einzelne Einträge) setzen.'
 truenas:
   https_required: 'TrueNAS nur über https:// verbinden: TrueNAS widerruft einen API-Schlüssel, sobald er über http benutzt wird. Bitte die URL auf https:// ändern und einen neuen Schlüssel anlegen.'
   alerts: 'Warnungen: {n}'

@@ -58,6 +58,9 @@ func fetchKDEStore(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	api := services.BearerApi(sctx.URL, "", sctx.TLS())
 	data := &KDEStoreDataset{URL: sctx.URL, User: strings.TrimSpace(asStr(sctx.Options["user"]))}
+	if data.User == "" && len(asList(sctx.Options["ids"])) == 0 {
+		return nil, newSourceError("kdestore.no_entries")
+	}
 	seen := map[int64]bool{}
 	add := func(list []any) {
 		for _, raw := range list {

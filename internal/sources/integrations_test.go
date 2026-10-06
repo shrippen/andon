@@ -394,3 +394,12 @@ func TestKDEStore(t *testing.T) {
 		t.Fatalf("linked repos %v", repos)
 	}
 }
+
+// TestKDEStoreNeedsEntries: without user or ids there is nothing to read;
+// the connection says so instead of showing an empty list.
+func TestKDEStoreNeedsEntries(t *testing.T) {
+	_, err := sources.KDEStoreData.Fetch(context.Background(), sources.Ctx{URL: "https://api.kde-look.org"})
+	if err == nil || err.Error() != "kdestore.no_entries" {
+		t.Fatalf("err = %v, want kdestore.no_entries", err)
+	}
+}
