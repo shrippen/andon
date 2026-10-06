@@ -3,8 +3,10 @@ package sites_test
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -41,12 +43,17 @@ func (r *recorder) list() []write {
 }
 
 // fakeDawarich: areas home (1) and Acme (2), no tracks; a new area is 9.
-func fakeDawarich(rec *recorder) *httptest.Server {
+// extra replaces or adds answers by path.
+func fakeDawarich(rec *recorder, extra ...map[string]string) *httptest.Server {
 	mux := http.NewServeMux()
-	for path, body := range map[string]string{"/api/v1/points": `[]`, "/api/v1/visits": `[]`, "/api/v1/stats": `{}`, "/api/v1/places": `[]`,
+	bodies := map[string]string{"/api/v1/points": `[]`, "/api/v1/visits": `[]`, "/api/v1/stats": `{}`, "/api/v1/places": `[]`,
 		"/api/v1/areas": `[{"id": 1, "name": "Zuhause", "latitude": 52.52, "longitude": 13.4, "radius": 100},
 			{"id": 2, "name": "Acme", "latitude": 52.4, "longitude": 13.06, "radius": 100}]`,
-		"/api/v1/tracks": `{"features": []}`} {
+		"/api/v1/tracks": `{"features": []}`}
+	for _, e := range extra {
+		maps.Copy(bodies, e)
+	}
+	for path, body := range bodies {
 		mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(body)) })
 	}
 	mux.HandleFunc("POST /api/v1/areas", func(w http.ResponseWriter, r *http.Request) {
@@ -56,17 +63,27 @@ func fakeDawarich(rec *recorder) *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
+// pluginMode is what the fake Kimai's mileage plugin allows.
+type pluginMode int
+
+const (
+	noPlugin     pluginMode = iota
+	pluginWrites            // may edit own trips and places
+	pluginReads             // view only
+)
+
 // fakeKimai: customer Acme (12); with plugin a mileage place for home
 // (area 1) and one without Dawarich link.
-func fakeKimai(rec *recorder, plugin bool) *httptest.Server {
+func fakeKimai(rec *recorder, plugin pluginMode) *httptest.Server {
 	mux := http.NewServeMux()
 	for path, body := range map[string]string{"/api/timesheets": `[]`, "/api/timesheets/active": `[]`, "/api/projects": `[]`,
 		"/api/customers": `[{"id": 12, "name": "Acme"}]`} {
 		mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(body)) })
 	}
-	if plugin {
+	if plugin != noPlugin {
 		mux.HandleFunc("GET /api/mileage/ping", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(`{"permissions": {"view": true}, "features": ["places", "placesWrite"]}`))
+			edit := strconv.FormatBool(plugin == pluginWrites)
+			w.Write([]byte(`{"permissions": {"view": true, "editOwn": ` + edit + `}, "features": ["places", "placesWrite"]}`))
 		})
 		mux.HandleFunc("GET /api/mileage/places", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(`[{"id": 3, "name": "Zuhause", "type": "home", "dawarichAreaId": 1, "latitude": 52.52, "longitude": 13.4, "radius": 100},
@@ -81,6 +98,10 @@ func fakeKimai(rec *recorder, plugin bool) *httptest.Server {
 			rec.add(r)
 			w.Write([]byte(`{}`))
 		})
+		mux.HandleFunc("POST /api/mileage/trips", func(w http.ResponseWriter, r *http.Request) {
+			rec.add(r)
+			w.Write([]byte(`{"id": 7}`))
+		})
 	}
 	return httptest.NewServer(mux)
 }
@@ -90,7 +111,7 @@ func TestAssignWithoutPlugin(t *testing.T) {
 	d := testkit.DB(t)
 	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
 	rec := &recorder{}
-	geo, kimai := fakeDawarich(rec), fakeKimai(rec, false)
+	geo, kimai := fakeDawarich(rec), fakeKimai(rec, noPlugin)
 	defer geo.Close()
 	defer kimai.Close()
 	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
@@ -143,7 +164,7 @@ func TestAssignWithPlugin(t *testing.T) {
 	d := testkit.DB(t)
 	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
 	rec := &recorder{}
-	geo, kimai := fakeDawarich(rec), fakeKimai(rec, true)
+	geo, kimai := fakeDawarich(rec), fakeKimai(rec, pluginWrites)
 	defer geo.Close()
 	defer kimai.Close()
 	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
@@ -176,7 +197,7 @@ func TestCreate(t *testing.T) {
 	d := testkit.DB(t)
 	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
 	rec := &recorder{}
-	geo, kimai := fakeDawarich(rec), fakeKimai(rec, true)
+	geo, kimai := fakeDawarich(rec), fakeKimai(rec, pluginWrites)
 	defer geo.Close()
 	defer kimai.Close()
 	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
@@ -203,7 +224,7 @@ func TestSync(t *testing.T) {
 	d := testkit.DB(t)
 	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
 	rec := &recorder{}
-	geo, kimai := fakeDawarich(rec), fakeKimai(rec, true)
+	geo, kimai := fakeDawarich(rec), fakeKimai(rec, pluginWrites)
 	defer geo.Close()
 	defer kimai.Close()
 	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)

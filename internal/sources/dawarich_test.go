@@ -158,3 +158,33 @@ func TestDawarichDataWithoutTracks(t *testing.T) {
 		t.Fatalf("state %q", s)
 	}
 }
+
+// A position gets the name Dawarich's geocoder knows; a street gets its
+// city, "Unknown Place" none.
+func TestDawarichNearbyNames(t *testing.T) {
+	answers := map[string]string{
+		"52.5": `{"places": [{"name": "Bäckerei Kranz", "street": "Markt", "city": "Weimar"}]}`,
+		"52.6": `{"places": [{"name": "Markt 3", "street": "Markt", "housenumber": "3", "city": "Weimar"}]}`,
+		"52.7": `{"places": [{"name": "Unknown Place"}]}`,
+		"52.8": `{"places": []}`,
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/places/nearby" || r.URL.Query().Get("radius") != "0.15" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Write([]byte(answers[r.URL.Query().Get("latitude")]))
+	}))
+	defer srv.Close()
+
+	for lat, want := range map[float64]string{52.5: "Bäckerei Kranz", 52.6: "Markt 3, Weimar", 52.7: "", 52.8: ""} {
+		out, err := sources.DawarichNearbySource.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok",
+			Params: map[string]any{"lat": lat, "lon": 11.3, "radius": 0.15}})
+		if err != nil {
+			t.Fatalf("%v: %v", lat, err)
+		}
+		if got := out.(*sources.DawarichNearby).Name; got != want {
+			t.Fatalf("%v: %q, want %q", lat, got, want)
+		}
+	}
+}

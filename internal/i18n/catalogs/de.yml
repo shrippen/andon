@@ -1471,6 +1471,8 @@ service:
 test:
   ok: OK
   failed: Fehler
+  mileage_read_only: 'Kimai Anfahrten ist nur lesbar: Ohne das Recht, eigene Fahrten zu bearbeiten, bleiben Orte und von Hand eingeordnete Fahrten in Andon.'
+  mileage_old: 'Kimai Anfahrten ist zu alt, um Orte anzulegen (ab 0.10.0): Orte bleiben in Andon.'
 code:
   lead: Bereich als YAML. Zugangsdaten sind nie enthalten.
   error: Nicht übernommen
@@ -3782,6 +3784,10 @@ detail:
     customer: 'Kunde'
     unconfirmed: 'Unbestätigt'
     unconfirmed_why: 'Kundenort, aber an diesem Tag keine Zeit für den Kunden gebucht'
+    class_set: 'Einordnung ändern'
+    class: 'Art'
+    class_auto: 'automatisch'
+    class_save: 'Übernehmen'
     map: 'Strecke'
     by_class: 'Beruflich und privat'
     class_sum: '{km} · {n} Fahrten · {hours} h'
@@ -4622,6 +4628,8 @@ sites:
   no_data: 'Dawarich hat noch nicht geantwortet.'
   unknown: 'Diesen Ort gibt es nicht mehr.'
   bad: 'Ein neuer Ort braucht Name und Position.'
+  unknown_ride: 'Diese Fahrt gibt es nicht mehr.'
+  bad_class: 'Unbekannte Art einer Fahrt.'
 places:
   unknown: 'Unbekannter Ort'
   none: 'Heute noch keine Orte.'
@@ -5176,6 +5184,7 @@ ride:
     commute: Wohnung – Arbeit
     chain: zwischen zwei beruflichen Fahrten
     rest: keine berufliche Spur
+    manual: von Hand eingeordnet
   mode:
     driving: Auto
     walking: zu Fuß

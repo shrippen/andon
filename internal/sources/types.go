@@ -94,6 +94,7 @@ type KimaiDataset struct {
 	Mileage       bool          // the mileage plugin answered
 	MileageTrips  []KimaiMileageTrip
 	PlacesWrite   bool // the plugin creates and changes places (feature placesWrite)
+	MileageEdit   bool // the token may write the user's trips and places (permission editOwn)
 }
 
 // ── Invoice Ninja ──

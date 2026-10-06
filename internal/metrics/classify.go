@@ -1,6 +1,7 @@
 // Classify: each ride is business, commute or private, with the reason.
 // The first rule that matches wins:
 //
+//	0 manual    the user set the class by hand              → that class
 //	1 plugin    a Kimai mileage trip covers half the ride   → its purpose
 //	2 kimai     half the ride lies in booked Kimai time     → business
 //	3 customer  it starts or ends at a customer site        → business
@@ -12,6 +13,8 @@
 package metrics
 
 import (
+	"slices"
+	"strconv"
 	"time"
 
 	"andon/internal/sources"
@@ -24,6 +27,8 @@ const (
 	ClassPrivate  RideClass = "private"
 	ClassBusiness RideClass = "business"
 	ClassCommute  RideClass = "commute"
+	// ClassAuto is no class set by hand: the rules decide.
+	ClassAuto RideClass = ""
 )
 
 // RideClasses in display order.
@@ -39,6 +44,7 @@ const (
 	ReasonCustomer RideReason = "customer"
 	ReasonCommute  RideReason = "commute"
 	ReasonChain    RideReason = "chain"
+	ReasonManual   RideReason = "manual"
 )
 
 // TravelBase is where business travel starts for tax purposes.
@@ -64,9 +70,31 @@ const (
 
 var purposeClass = map[string]RideClass{purposeBusiness: ClassBusiness, purposeCommute: ClassCommute, purposePrivate: ClassPrivate}
 
+// OptionRides is the Dawarich connection's option of classes set by hand
+// without the plugin: {"1767600000": "private"} (ride start, Unix s).
+const OptionRides = "rides"
+
+// Overrides are classes set by hand, by ride start (Unix seconds).
+type Overrides map[int64]RideClass
+
+// ParseOverrides reads OptionRides; unknown classes and keys are left out.
+func ParseOverrides(options map[string]any) Overrides {
+	raw, _ := options[OptionRides].(map[string]any)
+	out := Overrides{}
+	for key, v := range raw {
+		start, err := strconv.ParseInt(key, 10, 64)
+		class, _ := v.(string)
+		if err != nil || !slices.Contains(RideClasses, RideClass(class)) {
+			continue
+		}
+		out[start] = RideClass(class)
+	}
+	return out
+}
+
 // ClassedRide is a ride with its sites and class. CustomerID is 0 when
 // unknown; Unconfirmed marks a customer-site ride without Kimai time for
-// that customer on its day.
+// that customer on its day. Trip is the covering plugin trip, 0 if none.
 type ClassedRide struct {
 	Ride
 	From, To    *Site
@@ -74,6 +102,7 @@ type ClassedRide struct {
 	Reason      RideReason
 	CustomerID  int64
 	Unconfirmed bool
+	Trip        int64
 }
 
 // Day is the ride's local day.
@@ -87,6 +116,7 @@ type span struct {
 	from, to time.Time
 	customer int64
 	class    RideClass
+	trip     int64
 }
 
 // overlap is how long [a, b) and s share.
@@ -151,7 +181,7 @@ func pluginSpans(kimai *sources.KimaiDataset) []span {
 		if !ok1 || !ok2 || !known {
 			continue
 		}
-		out = append(out, span{from: from, to: to, customer: customers[t.Project], class: class})
+		out = append(out, span{from: from, to: to, customer: customers[t.Project], class: class, trip: t.ID})
 	}
 	return out
 }
@@ -168,8 +198,8 @@ func bookedDays(kimai *sources.KimaiDataset) map[[2]any]bool {
 }
 
 // Classify sorts rides into business, commute and private; kimai may be
-// nil (rules 1 and 2 then do not apply).
-func Classify(rides []Ride, book *Book, kimai *sources.KimaiDataset, base TravelBase, now time.Time) []ClassedRide {
+// nil (rules 1 and 2 then do not apply), manual too.
+func Classify(rides []Ride, book *Book, kimai *sources.KimaiDataset, base TravelBase, manual Overrides, now time.Time) []ClassedRide {
 	var sheets, plugin []span
 	var booked map[[2]any]bool
 	if kimai != nil {
@@ -180,6 +210,9 @@ func Classify(rides []Ride, book *Book, kimai *sources.KimaiDataset, base Travel
 	for _, r := range rides {
 		c := ClassedRide{Ride: r, From: book.At(r.FromLat, r.FromLon), To: book.At(r.ToLat, r.ToLon), Class: ClassPrivate, Reason: ReasonRest}
 		classify(&c, sheets, plugin, booked, base)
+		if class, ok := manual[r.Start.Unix()]; ok {
+			byHand(&c, class)
+		}
 		out = append(out, c)
 	}
 	chain(out)
@@ -188,7 +221,7 @@ func Classify(rides []Ride, book *Book, kimai *sources.KimaiDataset, base Travel
 
 func classify(c *ClassedRide, sheets, plugin []span, booked map[[2]any]bool, base TravelBase) {
 	if s, ok := bestCover(plugin, c.Start, c.End); ok {
-		c.Class, c.Reason, c.CustomerID = s.class, ReasonPlugin, s.customer
+		c.Class, c.Reason, c.CustomerID, c.Trip = s.class, ReasonPlugin, s.customer, s.trip
 		return
 	}
 	if s, ok := bestCover(sheets, c.Start, c.End); ok {
@@ -206,6 +239,15 @@ func classify(c *ClassedRide, sheets, plugin []span, booked map[[2]any]bool, bas
 	if base == BaseWork && commutes(c.From, c.To) {
 		c.Class, c.Reason = ClassCommute, ReasonCommute
 	}
+}
+
+// byHand gives a classified ride the class set by hand; a business ride
+// keeps the customer the rules found, others have none.
+func byHand(c *ClassedRide, class RideClass) {
+	if class != ClassBusiness {
+		c.CustomerID = 0
+	}
+	c.Class, c.Reason, c.Unconfirmed = class, ReasonManual, false
 }
 
 // commutes says whether a ride goes between home and work.

@@ -20,6 +20,10 @@ const (
 	secondsPerMinute = 60
 )
 
+// TestNotes is the key of a test source's notes: catalog keys of what
+// works, but not fully ("the plugin is read-only").
+const TestNotes = "notes"
+
 func isDemo(sctx Ctx) bool {
 	return len(sctx.URL) >= len(demoScheme) && sctx.URL[:len(demoScheme)] == demoScheme
 }
@@ -187,18 +191,53 @@ const mileageDays = 365
 // mileageWrite is the ping feature for POST/PATCH /api/mileage/places.
 const mileageWrite = "placesWrite"
 
+// mileageRights is what the plugin's ping grants the token.
+type mileageRights struct{ view, edit, placesWrite bool }
+
+// mileagePing asks the plugin for the token's rights; ok is false
+// without the plugin.
+func mileagePing(ctx context.Context, api services.KimaiApi) (mileageRights, bool) {
+	ping, err := api.Get(ctx, "mileage/ping", nil)
+	if err != nil {
+		return mileageRights{}, false
+	}
+	perms := asMap(asMap(ping)["permissions"])
+	out := mileageRights{view: asBool(perms["view"]), edit: asBool(perms["editOwn"])}
+	for _, f := range asList(asMap(ping)["features"]) {
+		if asStr(f) == mileageWrite {
+			out.placesWrite = true
+		}
+	}
+	return out, true
+}
+
+// Notes of the connection test on the plugin (catalog keys).
+const (
+	noteMileageRead = "test.mileage_read_only"
+	noteMileageOld  = "test.mileage_old"
+)
+
+// mileageNotes says what the plugin lacks for Andon to write to it.
+func mileageNotes(r mileageRights) []string {
+	switch {
+	case !r.view:
+		return nil
+	case !r.edit:
+		return []string{noteMileageRead}
+	case !r.placesWrite:
+		return []string{noteMileageOld}
+	}
+	return nil
+}
+
 // loadMileage reads the mileage plugin: its places and trips since from.
 // Without the plugin (404) or its permission it stays empty.
 func loadMileage(ctx context.Context, api services.KimaiApi, from time.Time, data *KimaiDataset) {
-	ping, err := api.Get(ctx, "mileage/ping", nil)
-	if err != nil || !asBool(asMap(asMap(ping)["permissions"])["view"]) {
+	ping, ok := mileagePing(ctx, api)
+	if !ok || !ping.view {
 		return
 	}
-	for _, f := range asList(asMap(ping)["features"]) {
-		if asStr(f) == mileageWrite {
-			data.PlacesWrite = true
-		}
-	}
+	data.PlacesWrite, data.MileageEdit = ping.placesWrite, ping.edit
 
 	placesRaw, err := api.Get(ctx, "mileage/places", nil)
 	if err != nil {
@@ -275,5 +314,9 @@ func fetchKimaiTest(ctx context.Context, sctx Ctx) (any, error) {
 	if err != nil {
 		return nil, fetchError(err)
 	}
-	return map[string]any{"version": asStr(asMap(body)["version"])}, nil
+	out := map[string]any{"version": asStr(asMap(body)["version"])}
+	if ping, ok := mileagePing(ctx, api); ok {
+		out[TestNotes] = mileageNotes(ping)
+	}
+	return out, nil
 }

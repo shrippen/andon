@@ -190,6 +190,7 @@ func DemoKimai(now time.Time) *KimaiDataset {
 		HolidayBundle: true,
 		Mileage:       true,
 		PlacesWrite:   true,
+		MileageEdit:   true,
 		Places:        demoKimaiPlaces(now),
 		MileageTrips:  demoMileageTrips(now),
 	}
@@ -406,29 +407,44 @@ func DemoDawarich(now time.Time) *DawarichDataset {
 	}
 }
 
-// DemoDawarichRoute is the track of the demo visits between from and to:
-// home to the site before each visit and back after it, a point every
-// few minutes along the straight line.
+// DemoDawarichRoute is the demo track between from and to, a point every
+// few minutes along the straight line: the moving segments of past days'
+// tracks, else home to the site before each visit and back after it.
 func DemoDawarichRoute(from, to, now time.Time) *DawarichRoute {
 	loc := locationOf(now)
 	home, site := demoWorld.Place(loc.Home), demoWorld.Place(loc.Site)
 	steps, pace := loc.Route.Steps, time.Duration(loc.Route.StepMinutes)*time.Minute
 	out := &DawarichRoute{}
-	leg := func(a, b demoworld.Place, start time.Time) {
+	leg := func(a, b demoworld.Place, start time.Time, pace time.Duration) {
 		for i := range steps + 1 {
 			f := float64(i) / float64(steps)
 			out.Points = append(out.Points, RoutePoint{Lat: a.Lat + (b.Lat-a.Lat)*f, Lon: a.Lon + (b.Lon-a.Lon)*f,
 				At: start.Add(time.Duration(i) * pace)})
 		}
 	}
+	// Past days have tracks: their moving segments, point by point.
+	for _, t := range demoTracks(now, from) {
+		for _, seg := range t.Segments {
+			at := time.Unix(seg.Start, 0).UTC()
+			if seg.Mode == modeStationary || at.Before(from) || !at.Before(to) {
+				continue
+			}
+			a, b := demoworld.Place{Lat: seg.FromLat, Lon: seg.FromLon}, demoworld.Place{Lat: seg.ToLat, Lon: seg.ToLon}
+			leg(a, b, at, time.Duration(seg.End-seg.Start)*time.Second/time.Duration(steps))
+		}
+	}
+	if len(out.Points) > 0 {
+		return out
+	}
+
 	for _, v := range DemoDawarich(now).Visits {
 		begin, _ := time.Parse(time.RFC3339, v.Start)
 		end, _ := time.Parse(time.RFC3339, v.End)
 		if begin.Before(from) || !begin.Before(to) {
 			continue
 		}
-		leg(home, site, begin.Add(-time.Duration(steps)*pace))
-		leg(site, home, end)
+		leg(home, site, begin.Add(-time.Duration(steps)*pace), pace)
+		leg(site, home, end, pace)
 	}
 	return out
 }

@@ -33,6 +33,7 @@ import (
 	"andon/internal/services/hooks"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/util"
+	"andon/internal/sources"
 )
 
 const sharedLocationKey = "dawarich_shared"
@@ -633,6 +634,7 @@ type TestResult struct {
 	Ok      bool
 	Message string
 	Version string
+	Notes   []string // catalog keys: what works only in part
 }
 
 // Test calls the service's test source (a version check) with the stored
@@ -678,8 +680,10 @@ func Test(ctx context.Context, d *sql.DB, who *access.Principal, connID int64) (
 		}
 		return TestResult{Ok: false, Message: msg}, nil
 	}
-	version, _ := result.Data.(map[string]any)["version"].(string)
-	return TestResult{Ok: true, Message: "ok", Version: version}, nil
+	data, _ := result.Data.(map[string]any)
+	version, _ := data["version"].(string)
+	notes, _ := data[sources.TestNotes].([]string)
+	return TestResult{Ok: true, Message: "ok", Version: version, Notes: notes}, nil
 }
 
 // ByID returns a raw connection for internal jobs (rules). No access

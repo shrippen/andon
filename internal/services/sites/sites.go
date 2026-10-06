@@ -155,7 +155,7 @@ func open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, n
 
 // pluginWrites says whether places go to the mileage plugin.
 func (e env) pluginWrites() bool {
-	return e.kimai != nil && e.kimai.PlacesWrite && e.kimaiConn != nil && !sources.IsDemo(e.kimaiConn.URL)
+	return e.kimai != nil && e.kimai.PlacesWrite && e.kimai.MileageEdit && e.kimaiConn != nil && !sources.IsDemo(e.kimaiConn.URL)
 }
 
 // Overview lists the sites, busiest first, and frequent destinations

@@ -77,7 +77,7 @@ func TravelOf(geo *sources.DawarichDataset, kimai *sources.KimaiDataset, options
 	if !HasTracks(geo) {
 		rides, t.Estimated = EstimatedRides(geo, book), true
 	}
-	t.Rides = Classify(rides, book, kimai, set.Base, now)
+	t.Rides = Classify(rides, book, kimai, set.Base, ParseOverrides(options), now)
 	return t
 }
 

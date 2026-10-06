@@ -324,7 +324,7 @@
     <h1>{{t "nav.connections"}}{{with .LevelName}} <small class="muted">{{.}}</small>{{end}}</h1>
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
     {{if .Connected}}<p class="ok">{{t "connect.done"}}</p>{{end}}
-    {{with .TestResult}}<p class="{{if not .Ok}}error{{end}}">{{if .Ok}}✓ OK{{with .Version}} ({{.}}){{end}}{{else}}✗ {{.Message}}{{end}}</p>{{end}}
+    {{with .TestResult}}<p class="{{if not .Ok}}error{{end}}">{{if .Ok}}✓ OK{{with .Version}} ({{.}}){{end}}{{else}}✗ {{.Message}}{{end}}</p>{{range .Notes}}<p class="callout callout-warn">{{t .}}</p>{{end}}{{end}}
 
     <article class="dialog detail is-page">
       <header class="detail-head">
@@ -605,6 +605,10 @@
 </section>
 {{end}}
 
+{{/* conn_place_name: a new place's name field, filled with Dawarich's
+     name for the position (GET /connections/{id}/places/name). */}}
+{{define "conn_place_name"}}<input class="input" name="name" required aria-label="{{t "sitebook.name"}}" placeholder="{{t "sitebook.name"}}" value="{{.Name}}">{{end}}
+
 {{/* conn_places: the places tab of a Dawarich record (GET /connections/{id}/places).
      One row per area, place and mileage place: what it is, how often rides
      end there; below, frequent destinations without a place. */}}
@@ -653,7 +657,8 @@
     <td>{{day .Last}}</td>
     {{if $v.CanManage}}<td>{{if .Site}}{{t "sitebook.assign_above"}}{{else}}<form method="post" action="/connections/{{$id}}/places/create" class="btn-row">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="lat" value="{{.Lat}}"><input type="hidden" name="lon" value="{{.Lon}}">
-      <input class="input" name="name" required aria-label="{{t "sitebook.name"}}" placeholder="{{t "sitebook.name"}}">
+      <input class="input" name="name" required aria-label="{{t "sitebook.name"}}" placeholder="{{t "sitebook.name"}}"
+        hx-get="/connections/{{$id}}/places/name?lat={{.Lat}}&amp;lon={{.Lon}}" hx-trigger="load" hx-swap="outerHTML">
       <select class="select" name="kind" aria-label="{{t "sitebook.kind"}}">{{range $v.Kinds}}<option value="{{.}}">{{t (print "sitebook.kind_" .)}}</option>{{end}}</select>
       {{with $v.Customers}}<select class="select" name="customer" aria-label="{{t "col.customer"}}"><option value="0">–</option>{{range .}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>{{end}}
       <button type="submit" class="btn btn-outline btn-sm">{{t "sitebook.create"}}</button>

@@ -152,3 +152,15 @@ func demoMileageTrips(now time.Time) []KimaiMileageTrip {
 	}
 	return out
 }
+
+// demoNearby is the world place nearest to lat/lon within radius km,
+// named as Dawarich's geocoder would.
+func demoNearby(lat, lon, radius float64) *DawarichNearby {
+	here, best, out := demoworld.Place{Lat: lat, Lon: lon}, radius, &DawarichNearby{}
+	for _, p := range demoWorld.Places {
+		if km := demoKM(here, p, 1); km <= best {
+			best, out.Name = km, p.Name.DE()
+		}
+	}
+	return out
+}

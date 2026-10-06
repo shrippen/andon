@@ -67,6 +67,8 @@ type Fragment struct {
 	viewCtx   widgets.ViewCtx
 	services  []string // services the tile reads, for its hints
 	hintConns []int64  // connections whose hints the dialog lists
+	conn      *model.Connection
+	holder    model.Holder // the tile's connection and its holder
 }
 
 // Calm tells whether the tile has nothing to do and asks to be hidden then.
@@ -487,6 +489,9 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		}
 	}
 	frag.results, frag.viewCtx = results, viewCtx
+	if conn != nil {
+		frag.conn, frag.holder = conn, holderAt(who, here, conn)
+	}
 	// Hints of the tile's own service; a tile without one (backups, costs)
 	// reads others, so theirs.
 	if kind.Service != "" {

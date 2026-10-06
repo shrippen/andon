@@ -1039,6 +1039,7 @@ Anfahrten-Fahrten ──►   │
 
 | # | Bedingung | Klasse | Grund |
 |---|---|---|---|
+| 0 | von Hand eingeordnet (ohne Plugin oder kein Auto) | diese | `manual` |
 | 1 | Fahrt im Plugin im selben Zeitfenster | deren Art | `plugin` |
 | 2 | mindestens 50 % der Fahrzeit liegen in gebuchter Kimai-Zeit (jede Buchung, auch interne Projekte) | beruflich, Kunde aus der Buchung (intern: ohne Kunde) | `kimai` |
 | 3 | Start oder Ziel ist ein Kundenort | beruflich, Kunde aus dem Ort | `kunde` |
@@ -1059,9 +1060,9 @@ Kettenregel: eine Fahrt zwischen zwei beruflichen Fahrten desselben Tages ist be
 
 **2. Orte und Abgleich**
 - [x] Start/Ziel → Ort über Dawarich-Areas und -Places, Orte des Plugins und die Andon-Zuordnung; Schlüssel ist die Area-ID, nicht der Name (Option `areas` migrieren)
-- [x] Reiter „Orte“ in der Akte der Dawarich-Verbindung (MANAGE): je Area/Place Typ (Kunde, Zuhause, Arbeit, privat) und Kunde aus dem Kimai-Peer, Herkunft sichtbar; Orte mit Besuchen ohne Zuordnung oben; Vorschlag bei ähnlichem Kundennamen. Neuer Ort aus einem häufigen unbekannten Ziel einer Fahrt (Koordinaten aus der Fahrt). Kante-Bausteine. *Offen: Adresse/Namensvorschlag über den Geocoder*
+- [x] Reiter „Orte“ in der Akte der Dawarich-Verbindung (MANAGE): je Area/Place Typ (Kunde, Zuhause, Arbeit, privat) und Kunde aus dem Kimai-Peer, Herkunft sichtbar; Orte mit Besuchen ohne Zuordnung oben; Vorschlag bei ähnlichem Kundennamen. Neuer Ort aus einem häufigen unbekannten Ziel einer Fahrt (Koordinaten aus der Fahrt). Kante-Bausteine. Namensvorschlag aus Dawarichs eigenem Geocoder (`/api/v1/places/nearby`, Quelle `dawarich.nearby`, je Zeile nachgeladen); Andon fragt keinen Geocoder selbst
 - [x] Abgleich in beide Richtungen: ein in Andon angelegter oder geänderter Ort wird als Area in Dawarich (`POST /api/v1/areas`) und als Ort im Plugin angelegt bzw. geändert (Kunde, Typ, `dawarichAreaId`). Area ohne Plugin-Ort → Ort im Plugin anlegen. Kein Löschen über Systeme hinweg. Mit Plugin ist es der Speicher der Zuordnung (Andon hält keine Kopie), ohne Plugin die Dawarich-Verbindung
-- [x] Schreiben ist neu für diese Dienste: eigener Ausgang `outbound/places.go` (Schicht wie Apprise), Token mit Schreibrecht; schlägt Schreiben fehl, zeigt der Reiter den Fehler. *Offen: Verbindungstest prüft das Schreibrecht*
+- [x] Schreiben ist neu für diese Dienste: eigener Ausgang `outbound/places.go` (Schicht wie Apprise), Token mit Schreibrecht; schlägt Schreiben fehl, zeigt der Reiter den Fehler. Verbindungstest der Kimai-Verbindung meldet ein nur lesbares oder zu altes Plugin (`ping`: `editOwn`, `placesWrite`); ohne Schreibrecht bleiben Orte und Einordnungen in Andon. Dawarich-API-Keys kennen keine Rechtestufen, dort gibt es nichts zu prüfen
 - [x] Plugin Anfahrten: `POST/PATCH /api/mileage/places` (Name, Typ, Kunde, Koordinaten, Radius, `dawarichAreaId`), Feature im `ping`. Endpunkte von Dawarich vor dem Bau gegen `/api-docs` prüfen
 
 **3. Einordnung**
@@ -1077,10 +1078,10 @@ Kettenregel: eine Fahrt zwischen zwei beruflichen Fahrten desselben Tages ist be
 - [x] Privat: km je Monat und Verkehrsmittel, häufigste Ziele, Fahrten am Wochenende und im Urlaub (Holiday-Bundle), Vergleich zum Vorjahr (Gesamt-km aus Dawarichs Statistik, Tracks reichen bis Jahresbeginn)
 - [x] Beides: Anteil privat/beruflich, Heatmap Wochentag × Stunde, Fahrzeit je Woche, Privatanteil eines betrieblichen Fahrzeugs (> 50 %: 1-%-Regel nicht zulässig), km gegen Tankkosten aus Sure (Verbrauch, € je km)
 - [x] Datenqualität: Ort mit Besuchen ohne Zuordnung, viele „unbestätigt“, Tracks nicht berechnet, berufliche Autofahrten, die im Plugin fehlen (`geo.plugin_missing`); „unbestätigt“ über `geo.visit_without_time`
-- [x] Kacheln: Reise-Kachel mit Balken privat/beruflich, Dialog mit km je Monat und Klasse, Heatmap, Stunden je Woche, Kunden, Zielen, Verkehrsmitteln; Tabellen `trips` (Klasse, Grund), `trip_customers`, `destinations`. *Offen: Detail je Fahrt zeigt Start und Ziel als Linie, nicht die Strecke aus `dawarich.route`*
+- [x] Kacheln: Reise-Kachel mit Balken privat/beruflich, Dialog mit km je Monat und Klasse, Heatmap, Stunden je Woche, Kunden, Zielen, Verkehrsmitteln; Tabellen `trips` (Klasse, Grund), `trip_customers`, `destinations`. Detail je Fahrt zeigt die Strecke aus `dawarich.route` (`PickQueries`: Abfrage für den gewählten Eintrag)
 
 **6. Später**
-- [ ] Klasse einer Fahrt in Andon von Hand ändern (für Nutzer ohne Plugin); mit Plugin dort als Fahrt anlegen
+- [x] Klasse einer Fahrt in Andon von Hand ändern (für Nutzer ohne Plugin); mit Plugin dort als Fahrt anlegen *(Formular im Fahrt-Detail, `sites.SetClass`: Auto/Motorrad mit Plugin als Fahrt dort bzw. deren Art geändert, sonst Option `rides` der Dawarich-Verbindung, Regel 0 `manual`; „automatisch“ löscht nur die Option)*
 
 ---
 

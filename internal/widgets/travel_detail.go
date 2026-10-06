@@ -111,7 +111,7 @@ func rideList(rides []metrics.ClassedRide, names map[int64]string, results map[s
 		})
 	}
 	list.Sel = pickIndex(results, keys)
-	r := rides[len(rides)-1-list.Sel]
+	r := pickedRide(rides, results)
 	list.Title, list.Sub = Day(r.Day()), TxtA("ride.reason."+string(r.Reason))
 	list.State, list.StateText = rideState(r), T("ride.class."+string(r.Class))
 
@@ -132,11 +132,72 @@ func rideList(rides []metrics.ClassedRide, names map[int64]string, results map[s
 	}
 	blocks = append(blocks, Block{Kind: BlockTable, Data: Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: rows}})
 
+	blocks = append(blocks, classForm(r))
+
 	from, to := GeoPoint{Lat: r.FromLat, Lon: r.FromLon}, GeoPoint{Lat: r.ToLat, Lon: r.ToLon}
-	if m, ok := NewMap([]GeoPoint{from, to}, []MapMark{Pin(from, siteLabel(r.From), "ok"), Pin(to, siteLabel(r.To), rideState(r))}); ok {
+	if m, ok := NewMap(ridePath(r, results), []MapMark{Pin(from, siteLabel(r.From), "ok"), Pin(to, siteLabel(r.To), rideState(r))}); ok {
 		blocks = append(blocks, Block{Kind: BlockMap, Label: T("detail.travel.map"), Data: m})
 	}
 	return list, blocks
+}
+
+// classForm sets the ride's class by hand, or hands it back to the
+// rules (services/sites.SetClass).
+func classForm(r metrics.ClassedRide) Block {
+	options := []FormOption{{Value: string(metrics.ClassAuto), Label: Txt("detail.travel.class_auto")}}
+	for _, c := range metrics.RideClasses {
+		options = append(options, FormOption{Value: string(c), Label: Txt("ride.class." + string(c))})
+	}
+	value := string(metrics.ClassAuto)
+	if r.Reason == metrics.ReasonManual {
+		value = string(r.Class)
+	}
+	return Block{Kind: BlockForm, Label: T("detail.travel.class_set"), Data: Form{Do: "ride_class", Args: map[string]string{"ride": rideKey(r)},
+		Submit: T("detail.travel.class_save"), Fields: []FormField{{Name: "class", Label: T("detail.travel.class"), Kind: FieldSelect, Value: value, Options: options}}}}
+}
+
+// rideRouteName is the result name of the picked ride's points.
+const rideRouteName = "route"
+
+// pickedRide is the ride the viewer picked, else the newest.
+func pickedRide(rides []metrics.ClassedRide, results map[string]any) metrics.ClassedRide {
+	keys := make([]string, len(rides))
+	for i := range rides {
+		keys[i] = rideKey(rides[len(rides)-1-i])
+	}
+	return rides[len(rides)-1-pickIndex(results, keys)]
+}
+
+// rideRoute reads the points of the ride the dialog shows, so its map
+// draws the road taken instead of a straight line.
+func rideRoute(cfg TravelConfig, results map[string]any, ctx ViewCtx) []Query {
+	data, ok := results[dataName].(*sources.DawarichDataset)
+	if !ok {
+		return nil
+	}
+	start, _, _ := travelPeriod(cfg, todayOf(ctx))
+	rides := travelOf(data, ctx, results).Between(start, todayOf(ctx))
+	if len(rides) == 0 {
+		return nil
+	}
+	r := pickedRide(rides, results)
+	return []Query{{Name: rideRouteName, Source: "dawarich.route", Conn: ConnWidget,
+		Params: map[string]any{"from": r.Start.UTC().Format(time.RFC3339), "to": r.End.UTC().Format(time.RFC3339)}}}
+}
+
+// ridePath is the ride's tracked points, start and end alone when none
+// were read.
+func ridePath(r metrics.ClassedRide, results map[string]any) []GeoPoint {
+	path := []GeoPoint{{Lat: r.FromLat, Lon: r.FromLon}}
+	if route, ok := results[rideRouteName].(*sources.DawarichRoute); ok {
+		for _, p := range route.Points {
+			if p.At.Before(r.Start) || p.At.After(r.End) {
+				continue
+			}
+			path = append(path, GeoPoint{Lat: p.Lat, Lon: p.Lon})
+		}
+	}
+	return append(path, GeoPoint{Lat: r.ToLat, Lon: r.ToLon})
 }
 
 // classBars is km per class as share bars.

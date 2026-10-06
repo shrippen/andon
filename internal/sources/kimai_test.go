@@ -85,6 +85,27 @@ func TestKimaiTestReadsVersion(t *testing.T) {
 	}
 }
 
+// The test names a mileage plugin Andon cannot write to.
+func TestKimaiTestNotesReadOnlyPlugin(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/mileage/ping" {
+			w.Write([]byte(`{"permissions": {"view": true, "editOwn": false}, "features": ["placesWrite"]}`))
+			return
+		}
+		w.Write([]byte(`{"version": "2.30.0"}`))
+	}))
+	defer srv.Close()
+
+	out, err := sources.KimaiTest.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	notes, _ := out.(map[string]any)[sources.TestNotes].([]string)
+	if len(notes) != 1 || notes[0] != "test.mileage_read_only" {
+		t.Fatalf("notes: %+v", out)
+	}
+}
+
 // Kimai writes timestamps with a colon-less offset ("…+0200"); a running
 // timer must still know when it began.
 func TestKimaiLiveParsesKimaiTimestamps(t *testing.T) {

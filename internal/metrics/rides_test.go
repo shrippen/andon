@@ -1,6 +1,7 @@
 package metrics_test
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -128,7 +129,7 @@ func TestClassifyRules(t *testing.T) {
 	kimai.Timesheets = []sources.KimaiSheet{{Begin: at("07:45").Format(time.RFC3339), End: at("12:00").Format(time.RFC3339), CustomerID: 5}}
 	book := metrics.BookOf(geo, kimai, nil)
 
-	rides := metrics.Classify(metrics.Rides(geo), book, kimai, metrics.BaseWork, at("23:00"))
+	rides := metrics.Classify(metrics.Rides(geo), book, kimai, metrics.BaseWork, nil, at("23:00"))
 
 	sameList(t, classes(rides), []string{"commute/commute", "business/kimai", "business/customer", "business/customer", "private/rest", "private/rest"})
 	if sum := metrics.ByClass(rides)[metrics.ClassBusiness]; sum.KM != 56.5 || sum.PayKM != 55 {
@@ -142,7 +143,7 @@ func TestClassifyRules(t *testing.T) {
 	}
 
 	// With home as the place of business there is no commute.
-	rides = metrics.Classify(metrics.Rides(geo), book, kimai, metrics.BaseHome, at("23:00"))
+	rides = metrics.Classify(metrics.Rides(geo), book, kimai, metrics.BaseHome, nil, at("23:00"))
 	if rides[0].Class != metrics.ClassPrivate {
 		t.Fatalf("no commute from home: %s", rides[0].Class)
 	}
@@ -152,14 +153,14 @@ func TestClassifyHalfInBookedTime(t *testing.T) {
 	geo, kimai := testData()
 	// 07:41–08:00 covers 9 of the first drive's 20 minutes: not enough
 	kimai.Timesheets = []sources.KimaiSheet{{Begin: at("07:41").Format(time.RFC3339), End: at("08:00").Format(time.RFC3339), CustomerID: 5}}
-	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), kimai, metrics.BaseHome, at("23:00"))
+	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), kimai, metrics.BaseHome, nil, at("23:00"))
 	if rides[0].Reason == metrics.ReasonKimai {
 		t.Fatal("less than half booked")
 	}
 
 	// 07:39–08:00 covers 11 of 20
 	kimai.Timesheets[0].Begin = at("07:39").Format(time.RFC3339)
-	rides = metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), kimai, metrics.BaseHome, at("23:00"))
+	rides = metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), kimai, metrics.BaseHome, nil, at("23:00"))
 	if rides[0].Reason != metrics.ReasonKimai {
 		t.Fatalf("half booked: %s", rides[0].Reason)
 	}
@@ -169,9 +170,34 @@ func TestClassifyPluginWins(t *testing.T) {
 	geo, kimai := testData()
 	kimai.Projects = []sources.KimaiProject{{ID: 4, CustomerID: 12}}
 	kimai.MileageTrips = []sources.KimaiMileageTrip{{Departure: at("18:00").Format(time.RFC3339), Arrival: at("18:40").Format(time.RFC3339), Purpose: "business", Project: 4}}
-	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), kimai, metrics.BaseHome, at("23:00"))
+	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), kimai, metrics.BaseHome, nil, at("23:00"))
 	if r := rides[4]; r.Class != metrics.ClassBusiness || r.Reason != metrics.ReasonPlugin || r.CustomerID != 12 {
 		t.Fatalf("plugin trip: %+v", r)
+	}
+}
+
+// TestClassifyManual: a class set by hand beats every rule, even the
+// plugin's; the ride's start (Unix seconds) is its key in the option.
+func TestClassifyManual(t *testing.T) {
+	geo, kimai := testData()
+	kimai.MileageTrips = []sources.KimaiMileageTrip{{ID: 9, Departure: at("18:00").Format(time.RFC3339), Arrival: at("18:40").Format(time.RFC3339), Purpose: "business"}}
+	plain := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), kimai, metrics.BaseHome, nil, at("23:00"))
+	if plain[4].Trip != 9 {
+		t.Fatalf("the plugin trip's id: %+v", plain[4])
+	}
+
+	options := map[string]any{"rides": map[string]any{
+		strconv.FormatInt(plain[2].Start.Unix(), 10): "private", strconv.FormatInt(plain[4].Start.Unix(), 10): "commute", "x": "business"}}
+	manual := metrics.ParseOverrides(options)
+	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), kimai, metrics.BaseHome, manual, at("23:00"))
+	if r := rides[2]; r.Class != metrics.ClassPrivate || r.Reason != metrics.ReasonManual || r.CustomerID != 0 || r.Unconfirmed {
+		t.Fatalf("customer ride set private: %+v", r)
+	}
+	if r := rides[4]; r.Class != metrics.ClassCommute || r.Reason != metrics.ReasonManual || r.Trip != 9 {
+		t.Fatalf("plugin ride set commute: %+v", r)
+	}
+	if len(manual) != 2 {
+		t.Fatalf("a key that is no time is left out: %+v", manual)
 	}
 }
 
@@ -186,13 +212,13 @@ func TestClassifyChain(t *testing.T) {
 		seg(lake, customer, "13:00", "13:30", metrics.ModeDriving, 20),
 	}
 	geo.Tracks[0].Segments[2].FromLat, geo.Tracks[0].Segments[2].FromLon = office[0]+0.05, office[1] // leaves from nowhere known
-	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), nil, metrics.BaseHome, at("23:00"))
+	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), nil, metrics.BaseHome, nil, at("23:00"))
 	sameList(t, classes(rides), []string{"business/customer", "business/chain", "business/customer"})
 }
 
 func TestAllowances(t *testing.T) {
 	geo, kimai := testData()
-	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), nil, metrics.BaseHome, at("23:00"))
+	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), nil, metrics.BaseHome, nil, at("23:00"))
 
 	// home 07:30 → home 16:45 with business rides: 9 h 15 min
 	days := metrics.Allowances(rides, metrics.BaseHome)
@@ -203,7 +229,7 @@ func TestAllowances(t *testing.T) {
 
 func TestDestinationsAndUnplaced(t *testing.T) {
 	geo, kimai := testData()
-	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), nil, metrics.BaseHome, at("23:00"))
+	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), nil, metrics.BaseHome, nil, at("23:00"))
 
 	unplaced := metrics.Unplaced(rides, 1)
 	if len(unplaced) != 1 || unplaced[0].Site != nil || unplaced[0].Lat != lake[0] {
@@ -232,7 +258,7 @@ func TestOffDaysAndBookedMinutes(t *testing.T) {
 	geo, kimai := testData()
 	kimai.Absences = []sources.KimaiAbsence{{Start: "2026-01-05", End: "2026-01-05", Status: "approved"}}
 	kimai.Timesheets = []sources.KimaiSheet{{Begin: "2026-01-05T09:00:00+01:00", Minutes: 120, CustomerID: 12}}
-	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), nil, metrics.BaseHome, at("23:00"))
+	rides := metrics.Classify(metrics.Rides(geo), metrics.BookOf(geo, kimai, nil), nil, metrics.BaseHome, nil, at("23:00"))
 
 	weekend, absent := metrics.OffDays(rides, kimai)
 	if weekend.Rides != 0 || absent.KM != 26.5 {
