@@ -30,7 +30,11 @@ Fähigkeit     Domäne × Operation (lesen, anlegen, ändern, verknüpfen)
               + Varianten (z. B. Ortsarten) + Voraussetzung (Plugin, Recht, Version)
 Speicher      wer für ein Feld einer Domäne die Wahrheit hält
 Verweis       ein Dienst speichert die ID eines anderen (Kimai-Ort → Dawarich-Area)
-Partner       die Verbindung, mit der eine Verbindung zusammenarbeitet
+Verbund      Verbindungen verschiedener Dienste, die zusammenarbeiten, z. B.
+              Dawarich + Kimai + Invoice Ninja + Sure + Paperless; trägt eigene Daten
+Partner      die Verbindung eines Dienstes, die für eine andere im Verbund steht
+Zuordnung    ein Ding, das in mehreren Mitgliedern eines Verbunds existiert,
+             je Mitglied mit dessen ID (Kunde: Kimai 12, Ninja "Kx9", Sure "ACME")
 ```
 
 ## Modell
@@ -125,117 +129,126 @@ Ninja.expense  ◄── Paperless.document (Belegfelder)
 Daraus folgt:
 - **Reihenfolge beim Anlegen**: Erst das Ziel des Verweises, dann der Verweisende (heute schon so: Area vor Kimai-Ort). `Sync` liest sie aus den Verweisen.
 - **Hinweise bei fehlendem Partner**: Wer einen Verweis deklariert, braucht den Partner. `rules.Needs` (heute nur zweimal genutzt) wird daraus abgeleitet.
-- **Namensabgleich** (`~~`) wird durch eine feste Zuordnung über IDs ersetzt (Abschnitt „Kunden Kimai ↔ Invoice Ninja“).
+- **Namensabgleich** (`~~`) wird durch eine feste Zuordnung über IDs ersetzt (Abschnitt „Kunden“).
 
-## Partner-Verbindung
+## Verbund
 
-Eine Funktion, die zwei Dienste braucht (Fahrten: Dawarich + Kimai; Kundenseite: Kimai + Invoice Ninja), muss wissen, welche Verbindung des anderen Dienstes gemeint ist: ihren **Partner**. Gibt es nur eine, ist er eindeutig und es gibt nichts zu wählen (entschieden 06.10.2026: Wahl nur bei mehreren).
+Funktionen, die mehrere Dienste brauchen, müssen wissen, welche Verbindungen zusammengehören: Fahrten (Dawarich + Kimai), Kundenseite (Kimai + Invoice Ninja), Monatsabschluss (Kimai + Ninja + Sure + Paperless + Mail). Heute sucht jede Stelle anders: Kacheln die erste, der Prüflauf die letzte, `sites` die erste im Bereich, Belege die Wahl des Nutzers.
 
-Heute sucht jede Stelle anders: Kacheln die erste, der Prüflauf die letzte, `sites` die erste im Bereich, Belege die Wahl des Nutzers.
+Entschieden 06.10.2026: Die Zusammengehörigkeit ist ein eigener Datensatz, der **Verbund**, mit beliebig vielen Mitgliedern, und er trägt Daten, die keinem Mitglied allein gehören (Option C, auf mehr als zwei erweitert). Gewählt wird nur, wenn es mehrere Verbindungen eines Dienstes gibt.
+
+```
+                   Verbund "Studio Weber"
+        ┌──────────────────────────────────────────────┐
+        │ Dawarich #3   Kimai #7   Ninja #9   Sure #11 │   je Dienst höchstens ein Mitglied
+        │                              Paperless #14   │
+        └───────────────────────┬──────────────────────┘
+                                │ Zuordnungen (domain "customers")
+        ┌───────────────────────┴──────────────────────────────────────┐
+        │ #1  Kimai 12 ✓   Ninja "Kx9" ✓ (Namen)   Sure "ACME GmbH" ?  │
+        │ #2  Kimai 15 ✓   Ninja –  (kein Gegenstück)                  │
+        └──────────────────────────────────────────────────────────────┘
+          ✓ bestätigt   ? vorgeschlagen   – kein Gegenstück
+```
+
+### Datenmodell
+
+```sql
+CREATE TABLE links (                        -- ein Verbund
+  id         INTEGER PRIMARY KEY,
+  name       TEXT NOT NULL,                 -- "Studio Weber", "Auftraggeber Müller"
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL
+);
+CREATE TABLE link_members (
+  link_id    INTEGER NOT NULL REFERENCES links(id) ON DELETE CASCADE,
+  conn_id    INTEGER NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+  service    TEXT NOT NULL,                 -- Kopie von connections.service
+  PRIMARY KEY (link_id, conn_id),
+  UNIQUE (link_id, service)                 -- je Dienst ein Mitglied: Partner eindeutig
+);
+CREATE TABLE link_entries (                 -- eine Zuordnung
+  id         INTEGER PRIMARY KEY,
+  link_id    INTEGER NOT NULL REFERENCES links(id) ON DELETE CASCADE,
+  domain     TEXT NOT NULL,                 -- caps.Domain: customers, …
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE link_keys (                    -- die ID eines Mitglieds in einer Zuordnung
+  entry_id   INTEGER NOT NULL REFERENCES link_entries(id) ON DELETE CASCADE,
+  link_id    INTEGER NOT NULL,              -- Kopie, für die Eindeutigkeit
+  domain     TEXT NOT NULL,                 -- Kopie, für die Eindeutigkeit
+  conn_id    INTEGER NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+  key        TEXT NOT NULL DEFAULT '',      -- ID im Dienst, '' = kein Gegenstück
+  state      TEXT NOT NULL,                 -- suggested, confirmed, none
+  PRIMARY KEY (entry_id, conn_id),
+  UNIQUE (link_id, domain, conn_id, key)    -- eine ID steckt in höchstens einer Zuordnung
+);
+```
+
+- **Je Dienst ein Mitglied** pro Verbund: Innerhalb eines Verbunds ist der Partner eindeutig. Zwei Kimai-Instanzen ergeben zwei Verbünde.
+- **Eine Verbindung in mehreren Verbünden** ist erlaubt (ein Sure-Konto für zwei Firmen). Dann wird nach dem Verbund gefragt, wo es mehrdeutig ist (siehe Auflösung).
+- **Zuordnungen** halten je Mitglied eine ID mit eigenem Status, so lässt sich Ninja bestätigen, während Sure noch Vorschlag ist. Mitglieder, die eine Domäne nicht kennen (Dawarich bei Kunden), haben dort keinen Schlüssel; welche das sind, sagt `internal/caps`.
+- **Löschen** einer Verbindung entfernt ihre Mitgliedschaften und Schlüssel (`CASCADE`); eine Zuordnung mit weniger als zwei Schlüsseln wird mitgelöscht. In den Diensten selbst wird nichts gelöscht.
+- **Rechte:** Verbund anlegen, Mitglied aufnehmen oder entfernen, Zuordnungen ändern braucht EDIT auf allen beteiligten Verbindungen; lesen VIEW auf allen. Bereichsgrenzen sind erlaubt (persönliches Dawarich, Team-Kimai), solange die Rechte reichen.
+- **Export und Sicherung:** Verbünde, Mitglieder und Zuordnungen gehören zum Export; keine Geheimnisse darin.
+
+### Impliziter Verbund
+
+Hat ein Bereich je Dienst höchstens eine Verbindung, bilden diese stillschweigend einen Verbund: nichts wird gespeichert, nichts gefragt. Gespeichert wird ein Verbund erst,
+- wenn eine zweite Verbindung desselben Dienstes dazukommt und du zuordnest, oder
+- wenn er Daten bekommt (die erste bestätigte Zuordnung legt ihn an, mit den impliziten Mitgliedern).
+
+### Auflösung
 
 Eine Funktion in `services/connections`, die alle nutzen:
 
 ```go
-// Partner finds the connection of service a caller works with; Ambiguous
-// when several fit and none was chosen.
+// Partner finds the member of service in the group the asker works in;
+// Ambiguous when several groups or connections fit and none was chosen.
 func Partner(q db.Queryer, who *access.Principal, at Asker, service enums.ServiceType) (*model.Connection, PartnerState, error)
 
 // Asker is who needs the partner: a tile, a connection, or a space.
-type Asker struct{ SpaceID, ConnID, WidgetID int64 }
+type Asker struct{ SpaceID, ConnID, WidgetID, LinkID int64 }
 ```
 
-`widgetlib.peerConnection`, die Datensätze im Prüflauf (`analysis`: heute „letzte gewinnt“), `sites.open`, `billing.pairs`, `clients` und `mailfwd` rufen sie auf.
-Die heutige Auswahl in „Belege“ (Ninja + Paperless als Nutzer-Einstellung) und die Feldzuordnung `receipt_*` werden zu einer Verknüpfung Ninja ↔ Paperless mit Einträgen.
-
-### Verknüpfung als eigenes Datenmodell (entschieden 06.10.2026: Option C)
-
-Ein Paar von Verbindungen ist ein eigener Datensatz, die **Verknüpfung**. Sie trägt Daten, die nur in diesem Paar leben, etwa die Kunden-Zuordnung Kimai ↔ Invoice Ninja; keine der beiden Verbindungen besitzt sie allein.
-
 ```
-connections            links                          link_entries
-┌──────────────┐       ┌─────────────────────┐        ┌────────────────────────────────┐
-│ 3 Dawarich   │◄──a───│ 1  a=3  b=7         │        │ link 2  customers  12 → "Kx9"  │
-│ 7 Kimai      │◄──b───│ 2  a=7  b=9         │◄───────│         confirmed              │
-│ 9 Ninja      │◄──b───└─────────────────────┘        │ link 2  customers  15 → –      │
-└──────────────┘                                      │         none ("kein Gegenstück")│
-                                                      └────────────────────────────────┘
+gesucht: Mitglied im Dienst S für <Kachel | Verbindung>
+  1. Kachel mit gewähltem Verbund (Feld nur, wenn mehrere passen) → dessen S-Mitglied
+  2. Kachel bzw. Verbindung X in genau einem Verbund mit S-Mitglied → dieses
+  3. kein gespeicherter Verbund: impliziter Verbund des Bereichs (genau eine S-Verbindung;
+     sonst genau eine erreichbare) → diese
+  sonst: keiner → Hinweis „mehrere Verbünde/Verbindungen für S, zuordnen“
 ```
 
-Tabellen (Migration):
+`widgetlib.peerConnection`, `sites.open`, `billing.pairs`, `clients` und `mailfwd` rufen sie auf. Die heutige Auswahl in „Belege“ (Ninja + Paperless als Nutzer-Einstellung) und die Feldzuordnung `receipt_*` werden zu Mitgliedschaften und Daten eines Verbunds.
 
-```sql
-CREATE TABLE links (
-  id         INTEGER PRIMARY KEY,
-  a_conn     INTEGER NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
-  b_conn     INTEGER NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
-  created_by INTEGER REFERENCES users(id),
-  created_at TEXT NOT NULL,
-  UNIQUE (a_conn, b_conn), CHECK (a_conn < b_conn)
-);
-CREATE TABLE link_entries (
-  link_id    INTEGER NOT NULL REFERENCES links(id) ON DELETE CASCADE,
-  domain     TEXT NOT NULL,        -- caps.Domain: customers, …
-  a_key      TEXT NOT NULL,        -- id in a's service ("12")
-  b_key      TEXT NOT NULL DEFAULT '', -- id in b's service ("Kx9"), '' = none
-  state      TEXT NOT NULL,        -- suggested, confirmed, none
-  updated_at TEXT NOT NULL,
-  PRIMARY KEY (link_id, domain, a_key)
-);
-```
-
-- **Symmetrisch:** `a_conn < b_conn`; welche Seite welcher Dienst ist, sagt die Verbindung, nicht die Spalte.
-- **Mehrere Paare** sind möglich (zwei Kimai, je mit eigenem Ninja). Eine Verbindung hat je Partnerdienst höchstens eine Verknüpfung.
-- **Löschen** einer Verbindung löscht ihre Verknüpfungen samt Einträgen (`CASCADE`); in den Diensten selbst wird nichts gelöscht.
-- **Rechte:** anlegen, ändern, lösen braucht EDIT auf beiden Verbindungen; lesen braucht VIEW auf beiden. Bereichsgrenzen sind erlaubt (persönliches Dawarich, Team-Kimai), solange die Rechte reichen.
-- **Export und Sicherung:** Verknüpfungen und Einträge gehören zum Export des Bereichs der Verbindungen; keine Geheimnisse darin.
-
-### Auflösung mit Verknüpfungen
-
-```
-gesucht: Partner im Dienst S für <Kachel | Verbindung>
-  1. Kachel hat eine Verbindung → deren Verknüpfung zu S
-  2. Kachel ohne eigene Verbindung (Monatsabschluss …) → gewählte Verbindung an der Kachel (nur bei mehreren)
-  3. keine Verknüpfung, aber genau eine Verbindung von S im Bereich (sonst: erreichbar) → diese, implizit
-  sonst: keiner → Hinweis „mehrere S-Verbindungen, verknüpfen“
-```
-
-- **Implizit bleibt implizit:** Bei genau einer Verbindung wird nichts gespeichert und nichts gefragt. Eine gespeicherte Verknüpfung entsteht erst, wenn du wählst oder das Paar Daten bekommt (die erste bestätigte Kunden-Zuordnung legt sie an).
-- Der Prüflauf arbeitet je Bereich mit einem Datensatz je Dienst (`analysis`: heute „letzte gewinnt“). Er wird je Verknüpfung gerechnet: Regeln, die zwei Dienste brauchen, bekommen die Datensätze eines Paars, nicht „irgendeinen Kimai“.
+**Prüflauf:** Regeln, die mehrere Dienste brauchen, laufen je Verbund und bekommen genau die Datensätze seiner Mitglieder, statt je Bereich „irgendeinen Kimai“ (`analysis`: heute „letzte gewinnt“). Ohne gespeicherten Verbund ist das der implizite des Bereichs, also das heutige Verhalten, solange es je Dienst eine Verbindung gibt.
 
 ### Oberfläche
 
-- **Akte einer Verbindung → „Verknüpft mit“:** je Partnerdienst die Verknüpfung oder der implizite Partner („einzige“), mit Herkunft; „verknüpfen“ und „lösen“ nur, wenn es mehrere gibt oder eine Verknüpfung besteht.
-- **Reiter je Verknüpfungsdaten**, z. B. „Kunden“ (siehe unten), in der Akte beider Verbindungen sichtbar.
-- **Kachel-Einstellungen:** Feld je Partnerdienst nur für Kacheln ohne eigene Verbindung und nur bei mehreren.
-- **Hinweis** `conn.partner_ambiguous` führt zur Akte.
+- **Bereich → Verbünde:** Liste der Verbünde mit Mitgliedern; anlegen, umbenennen, Mitglied aufnehmen oder entfernen. Erscheint als eigener Punkt erst, wenn es gespeicherte Verbünde oder doppelte Dienste gibt.
+- **Akte einer Verbindung → „Im Verbund“:** die Verbünde mit den übrigen Mitgliedern, implizit oder gespeichert.
+- **Reiter je Zuordnungs-Domäne**, z. B. „Kunden“, am Verbund (und von jeder beteiligten Akte aus erreichbar).
+- **Kachel-Einstellungen:** Feld „Verbund“ nur, wenn mehrere passen.
+- **Hinweis** `conn.partner_ambiguous` führt zum Verbund.
 
-### Schichten
-
-```
-web       Akte: Verknüpft mit, Reiter der Verknüpfungsdaten
-services  connections.Partner, links (anlegen, lösen, Einträge; Rechte)
-repos     links, link_entries
-```
-
-## Kunden Kimai ↔ Invoice Ninja
+## Kunden (erste Zuordnung)
 
 Entschieden 06.10.2026: feste Zuordnung über IDs, mit Vorschlagsansicht; Invoice Ninja ist die Quelle der Namen.
 
-```
-Kimai-Kunde 12 ═══ Ninja-Kunde "Kx9"      link_entries der Verknüpfung Kimai ↔ Ninja,
-                                          domain "customers", state confirmed
-```
-
-- **Vorschlagsansicht** (Reiter „Kunden“ der Verknüpfung, in beiden Akten): je Kimai-Kunde der Ninja-Kunde mit dem ähnlichsten Namen als Vorschlag; bestätigen, ändern, „kein Gegenstück“. Ungeklärte oben, wie bei Orten.
-- **Angleichen (optional):** weicht der Kimai-Name ab, schreibt „Namen übernehmen“ den Ninja-Namen nach Kimai (`PATCH /api/customers/{id}`, neuer Ausgang `outbound/kimai.go`). Nie umgekehrt.
+- **Domäne `customers`**, Mitglieder laut `internal/caps`: Kimai (Kunde), Invoice Ninja (Client), später Sure (Gegenpartei), Paperless (Korrespondent).
+- **Namensquelle** je Domäne in `internal/caps` deklariert: `customers` → Invoice Ninja.
+- **Vorschlagsansicht** (Reiter „Kunden“ des Verbunds): je Zuordnung eine Zeile, je Mitglied eine Spalte; Vorschlag über den ähnlichsten Namen zur Namensquelle; bestätigen, ändern, „kein Gegenstück“. Ungeklärte oben, wie bei Orten.
+- **Angleichen (optional):** „Namen übernehmen“ schreibt den Ninja-Namen in die anderen Mitglieder, soweit deren Fähigkeiten das erlauben (Kimai: `PATCH /api/customers/{id}`, neuer Ausgang in `outbound/kimai.go`). Nie zurück nach Ninja.
 - **Nutzer** der Zuordnung statt Namensabgleich: Kundenseiten (`metrics/clients.go`), Vollkosten-Stundensatz, `geo.travel_unbilled`, Rechnungsentwürfe (`billing`).
 - Ohne Zuordnung gilt vorerst weiter der Namensabgleich, als „vorgeschlagen“ markiert.
 
 ## Schichten
 
 ```
-web        Akte: Fähigkeiten, Verknüpft mit, Reiter der Verknüpfungsdaten
-services   connections.Partner, links; sites, billing, clients …: caps.Store
+web        Akte: Fähigkeiten, Im Verbund; Bereich: Verbünde mit Reitern der Zuordnungen
+services   connections.Partner, links (Verbünde, Zuordnungen, Rechte); sites, billing, clients …: caps.Store
+repos      links, link_members, link_entries, link_keys
 sources    erkennen → caps.Set im Datensatz
 caps       Typen, Deklarationen je Dienst, Store, reine Funktionen (Blatt)
 ```
@@ -248,8 +261,8 @@ Entschieden 06.10.2026: klein beginnen; wenn stabil, auf alle Verbindungen auswe
 
 1. **Klein:** `internal/caps` mit Typen und Deklarationen nur für Orte und Fahrten (Dawarich, Kimai „Anfahrten“, Andon). Die Kimai-Quelle liefert dafür ein `caps.Set`; `pluginWrites` und `pluginTrips` werden zu `caps.Store`, ohne Verhaltensänderung, Tests je Reihenfolge.
 2. Verbindungstest und Akte zeigen Fähigkeiten und fehlende Voraussetzungen.
-3. Verknüpfungen: Tabellen `links`, `link_entries`, `connections.Partner`, „Verknüpft mit“; Kacheln, Prüflauf und Services stellen um.
-4. Kunden Kimai ↔ Invoice Ninja: Zuordnung, Vorschlagsansicht, Angleichen.
+3. Verbünde: Tabellen, impliziter Verbund, `connections.Partner`, „Im Verbund“, Bereich → Verbünde; Kacheln, Prüflauf (je Verbund) und Services stellen um.
+4. Kunden als erste Zuordnung (Kimai, Ninja; Sure und Paperless danach): Vorschlagsansicht, Angleichen.
 5. **Groß:** übrige Kimai-Erkennung (Holiday-Bundle, Vertrag), dann jede Integration mit Erkennung; Regel in `agent.md`: neue Integrationen deklarieren ihre Fähigkeiten in `internal/caps`. Später statische Tabellen (`hooks.pushServices`, `connect.MethodOf`, Backup-Systeme) in dieselben Deklarationen.
 
 ## Nicht-Ziele
@@ -260,7 +273,7 @@ Entschieden 06.10.2026: klein beginnen; wenn stabil, auf alle Verbindungen auswe
 
 ## Entscheidungen (06.10.2026)
 
-1. **Partner:** Wahl nur, wenn es mehrere gibt. Gespeichert als eigene Verknüpfung (Option C), die auch Daten des Paars trägt.
+1. **Partner:** Wahl nur, wenn es mehrere gibt. Zusammengehörigkeit als eigener Datensatz (Option C), erweitert auf beliebig viele Mitglieder: der **Verbund**, der auch Zuordnungen trägt.
 2. **Private Orte:** Der Ort liegt in Dawarich und im Plugin (dort „Sonstiges“, das Plugin braucht einen Typ); nur die Markierung „privat“ lebt in Andon. Entspricht dem heutigen Code.
-3. **Kunden Kimai ↔ Invoice Ninja:** feste Zuordnung über IDs mit Vorschlagsansicht, optional Namen angleichen; Invoice Ninja ist die Quelle der Namen.
+3. **Kunden:** feste Zuordnung über IDs mit Vorschlagsansicht, optional Namen angleichen; Invoice Ninja ist die Quelle der Namen.
 4. **Umfang:** klein beginnen (Orte, Fahrten), wenn stabil groß und als Standard für alle Integrationen.
