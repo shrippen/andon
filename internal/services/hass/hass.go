@@ -42,7 +42,7 @@ func Toggle(ctx context.Context, d *sql.DB, who *access.Principal, placementID i
 	if err != nil {
 		return err
 	}
-	secret, err := svcdata.Secret(d, conn, model.UserHolder(who.UserID))
+	secret, err := svcdata.Secret(ctx, d, conn, model.UserHolder(who.UserID))
 	if err != nil {
 		return err
 	}

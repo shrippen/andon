@@ -165,7 +165,7 @@ func Forward(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID i
 	if err != nil {
 		return 0, err
 	}
-	token, err := svcdata.Secret(d, paperless, model.UserHolder(who.UserID))
+	token, err := svcdata.Secret(ctx, d, paperless, model.UserHolder(who.UserID))
 	if err != nil {
 		return 0, err
 	}

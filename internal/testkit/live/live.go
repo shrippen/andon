@@ -18,6 +18,7 @@ package live
 
 import (
 	"bufio"
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -187,7 +188,7 @@ func read(path, key string) ([]Instance, error) {
 		if c.CredentialMode == enums.CredentialPersonal && len(holders[c.ID]) > 0 {
 			h = holders[c.ID][0]
 		}
-		secret, err := svcdata.Secret(d, c, h)
+		secret, err := svcdata.Secret(context.Background(), d, c, h)
 		all = append(all, Instance{
 			Service: Service(c.Service), Name: c.Name, Err: err,
 			Ctx: sources.Ctx{URL: strings.TrimRight(c.URL, "/"), Secret: secret, VerifyTLS: c.VerifyTLS, Options: c.Options},

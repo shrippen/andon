@@ -33,7 +33,7 @@ func tandoorCheck(ctx context.Context, d *sql.DB, who *access.Principal, c Call)
 	if err != nil || id <= 0 {
 		return ErrBadMark
 	}
-	conn, target, err := useConnection(d, who, c.Widget)
+	conn, target, err := useConnection(ctx, d, who, c.Widget)
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func tandoorCheck(ctx context.Context, d *sql.DB, who *access.Principal, c Call)
 // grocyShopping puts the products below their minimum on Grocy's
 // shopping list.
 func grocyShopping(ctx context.Context, d *sql.DB, who *access.Principal, c Call) error {
-	conn, target, err := useConnection(d, who, c.Widget)
+	conn, target, err := useConnection(ctx, d, who, c.Widget)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func grocyShopping(ctx context.Context, d *sql.DB, who *access.Principal, c Call
 // pauseDNS switches the tile's DNS filter off for ten minutes.
 func pauseDNS(kind outbound.DNSKind) act {
 	return func(ctx context.Context, d *sql.DB, who *access.Principal, c Call) error {
-		conn, target, err := useConnection(d, who, c.Widget)
+		conn, target, err := useConnection(ctx, d, who, c.Widget)
 		if err != nil {
 			return err
 		}
@@ -75,7 +75,7 @@ func pauseDNS(kind outbound.DNSKind) act {
 
 // useConnection is the tile's connection as a write target, once the
 // viewer may use it.
-func useConnection(d *sql.DB, who *access.Principal, w *model.Widget) (*model.Connection, outbound.Target, error) {
+func useConnection(ctx context.Context, d *sql.DB, who *access.Principal, w *model.Widget) (*model.Connection, outbound.Target, error) {
 	if w.ConnectionID == nil {
 		return nil, outbound.Target{}, ErrBadMark
 	}
@@ -86,7 +86,7 @@ func useConnection(d *sql.DB, who *access.Principal, w *model.Widget) (*model.Co
 	if err != nil {
 		return nil, outbound.Target{}, err
 	}
-	secret, err := svcdata.Secret(d, conn, model.UserHolder(who.UserID))
+	secret, err := svcdata.Secret(ctx, d, conn, model.UserHolder(who.UserID))
 	if err != nil {
 		return nil, outbound.Target{}, err
 	}

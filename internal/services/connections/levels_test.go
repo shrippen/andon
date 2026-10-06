@@ -71,7 +71,7 @@ func (l levels) conn(t *testing.T) *model.Connection {
 // secret is what a fetch with h's login would send.
 func (l levels) secret(t *testing.T, h model.Holder) (string, error) {
 	t.Helper()
-	return svcdata.Secret(l.d, l.conn(t), h)
+	return svcdata.Secret(t.Context(), l.d, l.conn(t), h)
 }
 
 // TestTemplateEditPauses: an edit of a template pauses every activation

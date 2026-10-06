@@ -227,7 +227,7 @@ func Create(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, kima
 		return "", ErrNoClient
 	}
 
-	ninjaSecret, err := svcdata.Secret(d, p.ninja, model.UserHolder(who.UserID))
+	ninjaSecret, err := svcdata.Secret(ctx, d, p.ninja, model.UserHolder(who.UserID))
 	if err != nil {
 		return "", err
 	}
@@ -241,7 +241,7 @@ func Create(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, kima
 	}
 
 	if mode == MarkSheets {
-		kimaiSecret, err := svcdata.Secret(d, p.kimai, model.UserHolder(who.UserID))
+		kimaiSecret, err := svcdata.Secret(ctx, d, p.kimai, model.UserHolder(who.UserID))
 		if err != nil {
 			return number, err
 		}
