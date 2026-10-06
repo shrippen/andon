@@ -2,6 +2,9 @@ package sources
 
 import (
 	"math/rand"
+	"path"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -574,11 +577,37 @@ func DemoFreshRSS(now time.Time) *FreshRSSDataset {
 	return data
 }
 
-// DemoGitea is the demo Gitea dataset.
+// DemoGitea is the demo Gitea dataset; its IT docs are the world's
+// vault (it_docs), read with the same frontmatter parser as a real one.
 func DemoGitea(now time.Time) *GiteaDataset {
 	data := &GiteaDataset{}
 	demoworld.MustDecode("code.gitea", now, data)
+	data.Notes = demoNotes(now)
 	return data
+}
+
+// vaultDay is a vault date placeholder: {{day:-12}} = 12 days ago.
+var vaultDay = regexp.MustCompile(`\{\{day:(-?\d+)\}\}`)
+
+// demoNotes are the vault's notes, linked below the world's docs_url.
+func demoNotes(now time.Time) []DocNote {
+	var vault struct{ DocsURL string }
+	demoworld.MustDecode("code.gitea", now, &vault)
+	var notes []struct{ Path, Content string }
+	demoworld.MustDecode("it_docs.notes", now, &notes)
+
+	out := make([]DocNote, 0, len(notes))
+	for _, n := range notes {
+		text := vaultDay.ReplaceAllStringFunc(n.Content, func(m string) string {
+			days, _ := strconv.Atoi(vaultDay.FindStringSubmatch(m)[1])
+			return now.AddDate(0, 0, days).Format(time.DateOnly)
+		})
+		note := parseNote([]byte(text))
+		note.Path, note.Name, note.URL = n.Path, strings.TrimSuffix(path.Base(n.Path), noteExt), vault.DocsURL+escapePath(n.Path)
+		out = append(out, note)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
+	return out
 }
 
 // DemoBorg is the demo Borg Backup Server dataset.
