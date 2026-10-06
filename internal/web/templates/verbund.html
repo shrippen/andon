@@ -43,6 +43,7 @@
           <select class="select" name="conn" aria-label="{{t "verbund.add"}}">{{range $.Editable}}{{if not ($v.HasService .Service)}}<option value="{{.ID}}">{{t (print "service." .Service)}} · {{.Name}}</option>{{end}}{{end}}</select>
           <button type="submit" class="btn btn-outline btn-sm">{{t "verbund.add"}}</button>
         </form>
+        {{if and ($v.HasService "kimai") ($v.HasService "invoiceninja")}}<a class="btn btn-outline btn-sm" href="/verbund/{{$v.ID}}/customers?space={{$.SpaceID}}">{{t "verbund.customers"}}</a>{{end}}
         <form method="post" action="/verbund/{{$v.ID}}/delete">
           <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}">
           <button type="submit" class="btn btn-outline btn-sm">{{t "verbund.delete"}}</button>

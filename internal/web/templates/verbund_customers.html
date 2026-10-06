@@ -1,0 +1,48 @@
+{{define "verbund_customers"}}{{$v := .View}}{{$id := $v.Verbund.ID}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "verbund.customers"}} · {{$v.Verbund.Name}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
+    <h1>{{t "verbund.customers"}} <small class="muted">{{$v.Verbund.Name}}</small></h1>
+    <p class="muted">{{t "verbund.customers_lead"}}</p>
+    <p><a href="/spaces/{{.SpaceID}}/verbund">← {{t "verbund.title"}}</a></p>
+    {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
+    {{with $v.Rows}}
+    {{if and $v.Verbund.CanEdit $v.Suggested}}<form method="post" action="/verbund/{{$id}}/customers/confirm" class="btn-row">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}">
+      <button type="submit" class="btn btn-accent btn-sm">{{t "verbund.confirm_all"}}</button>
+    </form>{{end}}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>{{t "service.kimai"}}</th><th>{{t "service.invoiceninja"}}</th><th>{{t "verbund.state"}}</th><th></th></tr></thead>
+      <tbody>{{range .}}<tr>
+        <td>{{.KimaiName}}</td>
+        <td>{{if $v.Verbund.CanEdit}}<form method="post" action="/verbund/{{$id}}/customers/{{.KimaiID}}/link" class="inline-form">
+            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}">
+            {{$key := .ClientKey}}<select class="select" name="client" aria-label="{{t "service.invoiceninja"}}"><option value="">–</option>{{range $v.Clients}}<option value="{{.Ref}}"{{if eq .Ref $key}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+            <button type="submit" class="btn btn-outline btn-sm">{{t "verbund.link"}}</button>
+          </form>{{else}}{{.ClientName}}{{end}}</td>
+        <td><span class="pill" data-state="{{if eq .State "confirmed"}}applied{{else if eq .State "suggested"}}reviewing{{else if eq .State "none"}}locked{{end}}">{{t (print "verbund.state_" .State)}}</span></td>
+        <td>{{if $v.Verbund.CanEdit}}<div class="btn-row">
+          {{if and .NameDiffers $v.CanAlign}}<form method="post" action="/verbund/{{$id}}/customers/{{.KimaiID}}/align"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}"><button type="submit" class="btn btn-outline btn-sm" title="{{.ClientName}}">{{t "verbund.align"}}</button></form>{{end}}
+          {{if or (eq .State "confirmed") (eq .State "none")}}<form method="post" action="/verbund/{{$id}}/customers/{{.KimaiID}}/unlink"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}"><button type="submit" class="btn btn-outline btn-sm">{{t "verbund.unlink"}}</button></form>
+          {{else}}<form method="post" action="/verbund/{{$id}}/customers/{{.KimaiID}}/none"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}"><button type="submit" class="btn btn-outline btn-sm">{{t "verbund.none_client"}}</button></form>{{end}}
+        </div>{{end}}</td>
+      </tr>{{end}}</tbody>
+    </table></div>
+    {{end}}
+    </div>
+    </div>
+  </main>
+</body>
+</html>
+{{end}}

@@ -28,7 +28,7 @@ func TestClientCards(t *testing.T) {
 			{ClientID: 7, Number: "R-0", Status: "paid", Date: "2026-03-01", Amount: 595, Net: 500},
 		},
 	}
-	cards := metrics.ClientCards(kimai, ninja, today, metrics.CenterMean)
+	cards := metrics.ClientCards(kimai, ninja, today, metrics.CenterMean, nil)
 	if len(cards) != 2 {
 		t.Fatalf("cards: %+v", cards)
 	}

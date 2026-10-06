@@ -27,6 +27,11 @@ var declared = map[Holder][]Cap{
 		{Domain: Rides, Op: Read, Needs: []Need{mileagePlugin, mileageView}},
 		{Domain: Rides, Op: Create, Kinds: mileageRideKinds, Needs: []Need{mileagePlugin, mileageView, mileageEdit}},
 		{Domain: Rides, Op: Update, Kinds: mileageRideKinds, Needs: []Need{mileagePlugin, mileageView, mileageEdit}},
+		{Domain: Customers, Op: Read},
+		{Domain: Customers, Op: Update}, // the name, e.g. taken from Invoice Ninja
+	},
+	HolderOf(enums.ServiceInvoiceNinja): {
+		{Domain: Customers, Op: Read},
 	},
 	HolderOf(enums.ServiceDawarich): {
 		{Domain: Places, Op: Read},
@@ -38,6 +43,10 @@ var declared = map[Holder][]Cap{
 		{Domain: Rides, Op: Update},
 	},
 }
+
+// NameSource is the service whose names count in a domain: Invoice
+// Ninja's client names for customers (decided 06.10.2026).
+var NameSource = map[Domain]Holder{Customers: HolderOf(enums.ServiceInvoiceNinja)}
 
 // Declared is what a holder can do at best.
 func Declared(h Holder) []Cap { return declared[h] }

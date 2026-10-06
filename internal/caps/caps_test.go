@@ -42,7 +42,7 @@ func TestDetectOldPlugin(t *testing.T) {
 
 func TestDetectWithoutPlugin(t *testing.T) {
 	s := Detect(kimai, metOnly())
-	if len(s.Have) != 0 || len(s.Missing) != len(Declared(kimai)) {
+	if s.Can(Places, Read, "") || s.Can(Rides, Read, "") || !s.Can(Customers, Update, "") {
 		t.Fatalf("set %+v", s)
 	}
 	if need, _ := s.Lacks(Places, Read); need != mileagePlugin {

@@ -28,7 +28,7 @@ func TestEnvsFollowVerbund(t *testing.T) {
 		sc.fetched = append(sc.fetched, runOf(c))
 		sc.datasets[c.Service] = c.ID // last one wins, as runSpace does
 	}
-	sc.split([]linkrepo.Link{{ID: 9, Members: []linkrepo.Member{{ConnID: 1, Service: "dawarich"}, {ConnID: 2, Service: "kimai"}}}})
+	sc.split([]linkrepo.Link{{ID: 9, Members: []linkrepo.Member{{ConnID: 1, Service: "dawarich"}, {ConnID: 2, Service: "kimai"}}}}, nil)
 
 	envs := sc.envsOf(runOf(daw), nil, time.Now())
 	if len(envs) != 1 || envs[0].Datasets["kimai"] != int64(2) {

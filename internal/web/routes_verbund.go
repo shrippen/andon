@@ -5,6 +5,7 @@ package web
 // create, rename, change members and delete.
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -23,6 +24,92 @@ func (d Deps) RegisterVerbundRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /verbund/{id}/members", d.authed(d.handleVerbundAdd))
 	mux.HandleFunc("POST /verbund/{id}/members/{conn}/remove", d.authed(d.handleVerbundRemove))
 	mux.HandleFunc("POST /verbund/{id}/delete", d.authed(d.handleVerbundDelete))
+	mux.HandleFunc("GET /verbund/{id}/customers", d.authed(d.handleVerbundCustomers))
+	mux.HandleFunc("POST /verbund/{id}/customers/confirm", d.authed(d.handleCustomersConfirm))
+	mux.HandleFunc("POST /verbund/{id}/customers/{customer}/{act}", d.authed(d.handleCustomerAct))
+}
+
+// customersPath is a Verbund's customers page.
+func customersPath(id, spaceID int64) string {
+	return "/verbund/" + strconv.FormatInt(id, 10) + "/customers?space=" + strconv.FormatInt(spaceID, 10)
+}
+
+// handleVerbundCustomers shows which Kimai customer is which Invoice
+// Ninja client, with suggestions.
+func (d Deps) handleVerbundCustomers(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	space, _ := strconv.ParseInt(r.URL.Query().Get("space"), 10, 64)
+	values := map[string]any{"SpaceID": space, "Error": r.URL.Query().Get("error")}
+	view, err := verbund.Customers(r.Context(), d.DB, ctx.Who, id)
+	switch {
+	case errors.Is(err, verbund.ErrNotFound):
+		http.NotFound(w, r)
+		return
+	case err != nil:
+		values["Error"] = errKey(err)
+		if v, gerr := verbund.Get(d.DB, ctx.Who, id); gerr == nil {
+			view.Verbund = v
+		}
+	}
+	values["View"] = view
+	if _, ok := ctx.Who.Spaces[space]; ok {
+		if err := d.levelValues(ctx, space, values); err != nil {
+			d.fail(w, err, http.StatusInternalServerError)
+			return
+		}
+		values[navPath] = verbundPath(space)
+	}
+	_ = d.Page(w, ctx, "verbund_customers", http.StatusOK, values)
+}
+
+// customersBack returns to the customers page, with an error key if any.
+func (d Deps) customersBack(w http.ResponseWriter, r *http.Request, id int64, err error) {
+	space, _ := strconv.ParseInt(r.FormValue("space"), 10, 64)
+	target := customersPath(id, space)
+	if err != nil {
+		target += "&error=" + errKey(err)
+	}
+	http.Redirect(w, r, target, http.StatusSeeOther)
+}
+
+func (d Deps) handleCustomersConfirm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	_, err = verbund.ConfirmSuggestions(r.Context(), d.DB, ctx.Who, id, d.clientIP(r))
+	d.customersBack(w, r, id, err)
+}
+
+// customerActs are what a row's buttons do: link (form value client,
+// "" = none), unlink, align the Kimai name to Ninja's.
+func (d Deps) handleCustomerAct(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err1 := pathID(r, "id")
+	customer, err2 := pathID(r, "customer")
+	if err1 != nil || err2 != nil {
+		http.NotFound(w, r)
+		return
+	}
+	var err error
+	switch r.PathValue("act") {
+	case "link":
+		err = verbund.LinkCustomer(r.Context(), d.DB, ctx.Who, id, customer, r.FormValue("client"), d.clientIP(r))
+	case "none":
+		err = verbund.LinkCustomer(r.Context(), d.DB, ctx.Who, id, customer, "", d.clientIP(r))
+	case "unlink":
+		err = verbund.UnlinkCustomer(d.DB, ctx.Who, id, customer, d.clientIP(r))
+	case "align":
+		err = verbund.AlignName(r.Context(), d.DB, ctx.Who, id, customer, d.clientIP(r))
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	d.customersBack(w, r, id, err)
 }
 
 // verbundPath is a space's Verbünde page.

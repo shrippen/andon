@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/model"
 	linkrepo "andon/internal/repos/links"
 	"andon/internal/rules"
@@ -20,7 +21,10 @@ const vagueRule = "system.partner_ambiguous"
 
 // split builds the scope's Verbund groups from its fetched connections;
 // call it once the space-wide datasets are in.
-func (sc *scope) split(stored []linkrepo.Link) {
+//
+// links reads the customer links of a Kimai and an Invoice Ninja that
+// share a group (verbund.ClientMapFor), for the cross rules.
+func (sc *scope) split(stored []linkrepo.Link, links func(kimai, ninja int64) metrics.ClientMap) {
 	byID := map[int64]run{}
 	var conns []*model.Connection
 	for _, r := range sc.fetched {
@@ -41,6 +45,10 @@ func (sc *scope) split(stored []linkrepo.Link) {
 			out.conns[c.ID] = true
 			out.datasets[service] = r.result.Data
 			out.options[service] = c.Options
+		}
+		kimai, ninja := g.Conns[string(enums.ServiceKimai)], g.Conns[string(enums.ServiceInvoiceNinja)]
+		if kimai != nil && ninja != nil && links != nil {
+			out.datasets[rules.ClientMapDataset] = links(kimai.ID, ninja.ID)
 		}
 		sc.groups = append(sc.groups, out)
 	}

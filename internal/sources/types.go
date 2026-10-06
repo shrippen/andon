@@ -1,6 +1,10 @@
 package sources
 
-import "andon/internal/caps"
+import (
+	"strconv"
+
+	"andon/internal/caps"
+)
 
 // Normalized datasets: what widgets, metrics and rules actually consume,
 // after each service's raw API shape is flattened here. Typed structs, so
@@ -130,6 +134,14 @@ type NinjaClient struct {
 	Name      string
 	VATNumber string
 	CountryID string
+}
+
+// Ref is the client's stable reference for links: its key, else its id.
+func (c NinjaClient) Ref() string {
+	if c.Key != "" {
+		return c.Key
+	}
+	return strconv.FormatInt(c.ID, 10)
 }
 
 type NinjaExpense struct {

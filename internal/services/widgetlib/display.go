@@ -282,6 +282,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 	if mode == loadDetail && kind.DetailQueries != nil {
 		queries = append(queries, kind.DetailQueries(cfg)...)
 	}
+	served := map[string]int64{} // connection per service, for the customer links
 	for i, q := range queries {
 		var target *model.Connection
 		switch q.Conn {
@@ -309,6 +310,9 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		if q.Conn != widgets.ConnNone && target == nil {
 			frag.Slots[q.Name] = Slot{Error: "connection.missing"}
 			continue
+		}
+		if target != nil {
+			served[target.Service] = target.ID
 		}
 		if from == originDemo && target != nil {
 			frag.Slots[q.Name] = demoQuery(ctx, sourceFor(q, target), q.Params)
@@ -478,6 +482,11 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 			return nil, err
 		}
 		frag.Slots[widgets.HistorySlot] = Slot{Data: h}
+	}
+
+	// Kimai and Invoice Ninja in one Verbund: its customer links.
+	if links, err := verbund.ClientMapFor(d, served[string(enums.ServiceKimai)], served[string(enums.ServiceInvoiceNinja)]); err == nil && len(links) > 0 {
+		frag.Slots[widgets.ClientMapSlot] = Slot{Data: links}
 	}
 
 	viewCtx := widgets.ViewCtx{Today: time.Now().UTC().Format("2006-01-02"), Settings: settings, PeerOptions: peerOptions}

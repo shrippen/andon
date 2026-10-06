@@ -5390,6 +5390,23 @@ caps:
     right: 'Recht {name} fehlt'
     api: 'Schnittstelle {name} fehlt (ältere Version)'
 verbund:
+  customers: Kunden
+  customers_lead: 'Welcher Kimai-Kunde welcher Kunde in Invoice Ninja ist. Andon schlägt den ähnlichsten Namen vor; gespeichert wird erst, was du bestätigst. Invoice Ninja führt die Namen: „Namen übernehmen“ schreibt ihn nach Kimai. Ohne Zuordnung entscheidet der gleiche Name.'
+  confirm_all: Alle Vorschläge bestätigen
+  state: Stand
+  state_confirmed: zugeordnet
+  state_suggested: Vorschlag
+  state_none: kein Gegenstück
+  state_open: offen
+  link: Zuordnen
+  unlink: Zurücksetzen
+  none_client: Kein Gegenstück
+  align: Namen übernehmen
+  no_customers: 'Kunden gibt es nur in einem Verbund mit Kimai und Invoice Ninja.'
+  client_taken: 'Dieser Kunde in Invoice Ninja ist schon einem anderen Kimai-Kunden zugeordnet.'
+  unknown_customer: 'Diesen Kunden kennen die Dienste nicht (mehr). Lade die Seite neu.'
+  no_data: 'Noch keine Daten von Kimai oder Invoice Ninja abgerufen.'
+  demo: 'Demo-Verbindungen nehmen keine Änderungen an.'
   auto: automatisch
   field_hint: 'Nur nötig, wenn mehrere Verbindungen eines Partnerdienstes passen.'
   title: Verbünde

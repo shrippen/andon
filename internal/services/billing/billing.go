@@ -145,7 +145,11 @@ func Candidates(ctx context.Context, d *sql.DB, who *access.Principal) ([]Candid
 		if err != nil {
 			return nil, err
 		}
-		for _, draft := range billable(metrics.Drafts(kimai, ninja), settings) {
+		links, err := verbund.ClientMapFor(d, p.kimai.ID, p.ninja.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, draft := range billable(metrics.Drafts(kimai, ninja, links), settings) {
 			out = append(out, Candidate{SpaceID: p.space.ID, SpaceName: p.space.Name, KimaiID: p.kimai.ID, Draft: draft})
 		}
 	}
@@ -211,7 +215,11 @@ func Create(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, kima
 	if kimai == nil || ninja == nil {
 		return "", ErrNothing
 	}
-	draft, ok := draftFor(metrics.Drafts(kimai, ninja), customerID)
+	links, err := verbund.ClientMapFor(d, p.kimai.ID, p.ninja.ID)
+	if err != nil {
+		return "", err
+	}
+	draft, ok := draftFor(metrics.Drafts(kimai, ninja, links), customerID)
 	if !ok {
 		return "", ErrNothing
 	}

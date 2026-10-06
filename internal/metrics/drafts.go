@@ -64,17 +64,11 @@ func (a *draftAgg) rate(hours float64) float64 {
 }
 
 // Drafts builds one draft per Kimai customer with unbilled time, oldest
-// work first.
-func Drafts(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset) []Draft {
+// work first; m ties customers to clients.
+func Drafts(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, m ClientMap) []Draft {
 	projects := map[int64]string{}
 	for _, p := range kimai.Projects {
 		projects[p.ID] = p.Name
-	}
-	clients := map[string]sources.NinjaClient{}
-	if ninja != nil {
-		for _, c := range ninja.Clients {
-			clients[nameKey(c.Name)] = c
-		}
 	}
 	names := KimaiCustomerNames(kimai)
 
@@ -111,7 +105,7 @@ func Drafts(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset) []Draft {
 	var out []Draft
 	for cid, groups := range byCustomer {
 		d := Draft{CustomerID: cid, Customer: names[cid], SheetIDs: sheets[cid]}
-		if c, ok := clients[nameKey(d.Customer)]; ok {
+		if c, ok := m.ClientOf(ninja, cid, d.Customer); ok {
 			d.ClientKey, d.Client = c.Key, c.Name
 		}
 		for key, agg := range groups {

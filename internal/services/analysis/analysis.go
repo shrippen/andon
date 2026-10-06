@@ -32,6 +32,7 @@ import (
 	"andon/internal/services/linkstatus"
 	"andon/internal/services/scheduler"
 	"andon/internal/services/svcdata"
+	"andon/internal/services/verbund"
 	"andon/internal/sources"
 )
 
@@ -235,8 +236,15 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 	if err != nil {
 		slog.Error("analysis: verbünde failed", "space", sp.ID, "err", err)
 	}
+	customerLinks := func(kimai, ninja int64) metrics.ClientMap {
+		m, err := verbund.ClientMapFor(d, kimai, ninja)
+		if err != nil {
+			slog.Error("analysis: customer links failed", "space", sp.ID, "err", err)
+		}
+		return m
+	}
 	for _, sc := range scopes {
-		sc.split(stored)
+		sc.split(stored, customerLinks)
 	}
 
 	fresh := 0

@@ -5389,6 +5389,23 @@ caps:
     right: 'Right {name} missing'
     api: 'API {name} missing (older version)'
 verbund:
+  customers: Customers
+  customers_lead: 'Which Kimai customer is which Invoice Ninja client. Andon suggests the most similar name; only what you confirm is stored. Invoice Ninja holds the names: "Take name" writes it to Kimai. Without a link, the same name decides.'
+  confirm_all: Confirm all suggestions
+  state: State
+  state_confirmed: linked
+  state_suggested: suggestion
+  state_none: no counterpart
+  state_open: open
+  link: Link
+  unlink: Reset
+  none_client: No counterpart
+  align: Take name
+  no_customers: 'Customers exist only in a Verbund with Kimai and Invoice Ninja.'
+  client_taken: 'This Invoice Ninja client is linked to another Kimai customer already.'
+  unknown_customer: 'The services do not know this customer (any more). Reload the page.'
+  no_data: 'No data fetched from Kimai or Invoice Ninja yet.'
+  demo: 'Demo connections take no changes.'
   auto: automatic
   field_hint: 'Only needed when several connections of a partner service fit.'
   title: Verbünde

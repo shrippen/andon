@@ -97,7 +97,7 @@ func rateBelow(_ any, cfg map[string]any, env Env) []Finding {
 	}
 	travel, _ := travelOf(env)
 	var found []Finding
-	for _, r := range metrics.FullCostRates(kimai, ninja, travel.Rides, env.Today, rateWindowDays) {
+	for _, r := range metrics.FullCostRates(kimai, ninja, travel.Rides, env.Today, rateWindowDays, clientMap(env)) {
 		if r.BillableH < cfgFloat(cfg, "min_hours") || r.Full >= r.Nominal*cfgFloat(cfg, "share") {
 			continue
 		}

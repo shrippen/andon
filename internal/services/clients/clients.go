@@ -150,7 +150,13 @@ func cardsOf(ctx context.Context, d *sql.DB, who *access.Principal, sp space) ([
 		currency = ninja.Currency
 	}
 	var out []Card
-	for _, c := range metrics.ClientCards(kimai, ninja, time.Now(), metrics.CenterOf(sp.settings)) {
+	var links metrics.ClientMap
+	if sp.ninja != nil {
+		if links, err = verbund.ClientMapFor(d, sp.kimai.ID, sp.ninja.ID); err != nil {
+			return nil, err
+		}
+	}
+	for _, c := range metrics.ClientCards(kimai, ninja, time.Now(), metrics.CenterOf(sp.settings), links) {
 		out = append(out, Card{SpaceID: sp.ref.ID, SpaceName: sp.ref.Name, KimaiID: sp.kimai.ID, Currency: currency, ClientCard: c})
 	}
 	return out, nil

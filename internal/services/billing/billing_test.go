@@ -335,3 +335,31 @@ func TestDraftsFollowVerbund(t *testing.T) {
 		t.Fatalf("marked sheets: kimai 1 %v, kimai 2 %v", k1.list(), k2.list())
 	}
 }
+
+// Names differ ("Acme GmbH" in Kimai, "ACME Holding" in Ninja): no client
+// until the Verbund links them; then the draft goes to that client.
+func TestDraftUsesCustomerLink(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	var kimai, ninja writes
+	k := testkit.Conn(t, d, who, space, enums.ServiceKimai, kimaiFake(t, &kimai))
+	n := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &ninja, "ACME Holding"))
+	ctx := context.Background()
+
+	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.KeepSheets, ""); !errors.Is(err, billing.ErrNoClient) {
+		t.Fatalf("by name: %v", err)
+	}
+	id, err := verbund.Create(d, who, "Firma", []int64{k, n}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := verbund.LinkCustomer(context.Background(), d, who, id, customerID, "C1", ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.KeepSheets, ""); err != nil {
+		t.Fatalf("linked: %v", err)
+	}
+	if body := ninja.body["POST /api/v1/invoices"]; body["client_id"] != "C1" {
+		t.Fatalf("invoice: %+v", body)
+	}
+}

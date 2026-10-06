@@ -45,44 +45,43 @@ type FullRate struct {
 
 // FullCostRates compares what a customer pays per billable hour with what
 // they pay per hour they actually cost; travel is the business rides'
-// time (none without Dawarich).
-func FullCostRates(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, rides []ClassedRide, today time.Time, days int) []FullRate {
+// time (none without Dawarich); m ties customers to clients.
+func FullCostRates(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, rides []ClassedRide, today time.Time, days int, m ClientMap) []FullRate {
 	start := today.AddDate(0, 0, -days)
-	names := KimaiCustomerNames(kimai)
 
-	billable, other, travel := map[string]int{}, map[string]int{}, map[string]float64{}
+	billable, other, travel := map[int64]int{}, map[int64]int{}, map[int64]float64{}
 	for _, s := range kimai.Timesheets {
 		begin, ok := ParseTime(s.Begin)
 		if !ok || begin.Before(start) || begin.After(today.AddDate(0, 0, 1)) {
 			continue
 		}
-		k := nameKey(names[s.CustomerID])
 		if s.Billable {
-			billable[k] += s.Minutes
+			billable[s.CustomerID] += s.Minutes
 		} else {
-			other[k] += s.Minutes
+			other[s.CustomerID] += s.Minutes
 		}
 	}
 	for _, r := range rides {
 		if r.Class != ClassBusiness || r.Start.Before(start) {
 			continue
 		}
-		travel[nameKey(names[r.CustomerID])] += r.Minutes() / minutesPerHour
+		travel[r.CustomerID] += r.Minutes() / minutesPerHour
 	}
 
-	net, display := map[string]float64{}, map[string]string{}
+	net, display := map[int64]float64{}, map[int64]string{}
 	clients := ninjaClientNames(ninja)
+	customerOf := m.Customers(kimai, ninja)
 	for _, inv := range NinjaCounted(ninja) {
-		if d, ok := ParseDay(inv.Date); ok && !d.Before(start) {
-			k := nameKey(clients[inv.ClientID])
-			net[k] += inv.Net
-			display[k] = clients[inv.ClientID]
+		customer, linked := customerOf[inv.ClientID]
+		if d, ok := ParseDay(inv.Date); ok && linked && !d.Before(start) {
+			net[customer] += inv.Net
+			display[customer] = clients[inv.ClientID]
 		}
 	}
 
 	var out []FullRate
 	for k, amount := range net {
-		if k == "" || billable[k] == 0 {
+		if billable[k] == 0 {
 			continue
 		}
 		r := FullRate{Customer: display[k], BillableH: float64(billable[k]) / minutesPerHour,

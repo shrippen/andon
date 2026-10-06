@@ -39,7 +39,7 @@ type settingsLink struct {
 // settingsPages are the templates shown inside the settings frame.
 var settingsPages = map[string]bool{
 	"profile": true, "security": true, "notify": true,
-	"connections": true, "connection": true, "verbund": true, "space_settings": true, "space_code": true, "themes": true, "import": true,
+	"connections": true, "connection": true, "verbund": true, "verbund_customers": true, "space_settings": true, "space_code": true, "themes": true, "import": true,
 	"teams": true, "team": true, "admin_users": true, "admin_settings": true, "admin_ops": true, "admin_audit": true,
 }
 

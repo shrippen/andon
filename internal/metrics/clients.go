@@ -33,7 +33,7 @@ type ClientProject struct {
 
 // ClientCards builds a card per Kimai customer, most hours this year
 // first. ninja may be nil.
-func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today time.Time, center Center) []ClientCard {
+func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today time.Time, center Center, m ClientMap) []ClientCard {
 	year, month := today.Format("2006"), today.Format("2006-01")
 	projects := map[int64]*sources.KimaiProject{}
 	for i := range kimai.Projects {
@@ -72,7 +72,7 @@ func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today
 	}
 
 	if ninja != nil {
-		joinNinja(cards, ninja, today, center)
+		joinNinja(cards, ninja, today, center, m)
 	}
 
 	out := make([]ClientCard, 0, len(cards))
@@ -93,18 +93,14 @@ func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today
 	return out
 }
 
-// joinNinja adds invoices, revenue and payment days of the client with
-// the same name as each customer.
-func joinNinja(cards map[int64]*ClientCard, ninja *sources.NinjaDataset, today time.Time, center Center) {
-	clientOf := map[string]int64{}
-	for _, c := range ninja.Clients {
-		clientOf[nameKey(c.Name)] = c.ID
-	}
+// joinNinja adds invoices, revenue and payment days of each customer's
+// client (m: stored link, else the same name).
+func joinNinja(cards map[int64]*ClientCard, ninja *sources.NinjaDataset, today time.Time, center Center, m ClientMap) {
 	byClient := map[int64]*ClientCard{}
-	for _, card := range cards {
-		if id, ok := clientOf[nameKey(card.Name)]; ok {
+	for id, card := range cards {
+		if c, ok := m.ClientOf(ninja, id, card.Name); ok {
 			card.Matched = true
-			byClient[id] = card
+			byClient[c.ID] = card
 		}
 	}
 
