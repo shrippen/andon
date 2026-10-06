@@ -23,4 +23,4 @@ if [ "${1:-}" = "demo" ]; then
 fi
 
 mkdir -p "$DATA_DIR"
-exec go run ./cmd/andon
+exec go run -ldflags="-X andon/internal/services/about.version=$(scripts/version.sh)" ./cmd/andon
