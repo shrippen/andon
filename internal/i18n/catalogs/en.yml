@@ -482,6 +482,7 @@ field:
   warn_pct: Yellow from (%)
   window: 'Maintenance window (e.g. 22:00-06:00)'
   list_without: List accounts without two-factor
+  list_gaps: List stacks without docs
   warn_line: Warning line at
   thresholds: Colour thresholds
   thresholds_hint: 'One rule per line: name, comparison, limit, colour. Example: "queue > 10 yellow" or "Temp >= 30 red".'
@@ -792,6 +793,9 @@ wtype:
   authentik_logins:
     name: 'Logins'
     desc: 'authentik: logins, failures, latest logins.'
+  docs_coverage:
+    name: 'Docs coverage'
+    desc: 'IT docs against compose stacks: documented stacks per host and the gaps.'
   vaultwarden_2fa:
     name: 'Two-factor in the vault'
     desc: 'Vaultwarden: accounts with and without two-factor.'
@@ -4048,6 +4052,17 @@ detail:
     members: 'Members'
     org: 'Organisation'
     orgs: 'Organisations'
+  itdocs:
+    documented: 'Stacks with docs'
+    write: 'Write docs for {stack} or link its compose.yaml'
+    orphan: '{note}: linked stack is missing'
+    deprecated: '{stack} runs, {note} is deprecated'
+    open_note: 'Open note'
+    open_compose: 'Open compose'
+    hosts: 'Per host'
+    host: 'Host'
+    documented_n: 'Documented'
+    stacks: 'Stacks'
   plain: '{text}'
   hints: 'Hints for this tile'
   today: 'today'
@@ -4707,6 +4722,12 @@ authentik:
   logins_24h: Logins in 24 hours
   failures_24h: Failed logins in 24 hours
   failures_7d: Failed logins in 7 days
+itdocs:
+  documented: 'stacks documented'
+  gaps: 'Without docs'
+  problems: '{n} links to check'
+  unread: 'Docs or stacks not read. Set docs_repo and docs_paths on the Gitea connection.'
+
 vault:
   with2fa: 'accounts with two-factor'
   without: 'Without'

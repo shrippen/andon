@@ -115,3 +115,31 @@ func repoName(repo string) string {
 	_, name, _ := strings.Cut(repo, "/")
 	return name
 }
+
+// HostDocs is a host's documented share of its stacks.
+type HostDocs struct {
+	Host              string
+	Documented, Total int
+}
+
+// ByHost counts documented stacks per host, hosts in stack order.
+func (c DocsCheck) ByHost(stacks []sources.Stack) []HostDocs {
+	missing := map[string]int{}
+	for _, s := range c.Missing {
+		missing[s.Host]++
+	}
+
+	var out []HostDocs
+	at := map[string]int{}
+	for _, s := range stacks {
+		i, ok := at[s.Host]
+		if !ok {
+			i = len(out)
+			at[s.Host] = i
+			out = append(out, HostDocs{Host: s.Host, Documented: -missing[s.Host]})
+		}
+		out[i].Total++
+		out[i].Documented++
+	}
+	return out
+}

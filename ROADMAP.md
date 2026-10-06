@@ -996,7 +996,8 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 - [x] `docs.orphan`: aktive Notiz, deren `Compose`-Link auf keinen Stack zeigt
 - [x] `docs.deprecated_live`: Notiz deprecated, Stack liegt noch im Repo
 - [ ] `docs.drift` (später): URL, Ports oder Image im Frontmatter weichen von der Compose-Datei ab
-- [ ] Widget „Doku-Abdeckung“ je Host (X von Y Stacks dokumentiert, Liste der Lücken); Widget „Batches warten“
+- [x] Widget „Doku-Abdeckung“ je Host (X von Y Stacks dokumentiert, Liste der Lücken) *(`docs_coverage`; Popup mit Aufgaben je Lücke und Links)*
+- [ ] Widget „Batches warten“
 
 **Übergabe an Hansei**
 - [ ] API-Endpunkt für die `docs.*`-Befunde (Token wie bisher): Regel, Host, Stack, Notizpfad, Compose-Auszug ohne Secrets. Hansei holt sie ab und macht daraus Batches; nach Freigabe und Sync verschwindet der Hinweis beim nächsten Prüflauf von selbst

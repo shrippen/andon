@@ -2,6 +2,7 @@ package rules_test
 
 import (
 	"testing"
+	"time"
 
 	"andon/internal/enums"
 	"andon/internal/sources"
@@ -61,5 +62,27 @@ func TestDocsUnread(t *testing.T) {
 		if got := run(t, id, data, todayEnv(nil)); len(got) != 0 {
 			t.Fatalf("%s: %+v", id, got)
 		}
+	}
+}
+
+// The demo tells the story of the world's code note: gitea, kimai and
+// stirling-pdf undocumented, dawarich only in a deprecated note,
+// paperless-ai linked but gone.
+func TestDocsDemo(t *testing.T) {
+	data := sources.DemoGitea(time.Now())
+	env := todayEnv(nil)
+
+	names := map[any]any{}
+	for _, f := range run(t, "docs.missing", data, env) {
+		names[f.Params["host"]] = f.Params["names"]
+	}
+	if names["nebelhorn"] != "gitea" || names["feuerschiff"] != "kimai, stirling-pdf" || names["boje"] != "dawarich" || len(names) != 3 {
+		t.Fatalf("missing: %v", names)
+	}
+	if got := run(t, "docs.orphan", data, env); len(got) != 1 || got[0].Params["note"] != "Paperless-ngx" {
+		t.Fatalf("orphan: %+v", got)
+	}
+	if got := run(t, "docs.deprecated_live", data, env); len(got) != 1 || got[0].Params["stack"] != "dawarich" {
+		t.Fatalf("deprecated live: %+v", got)
 	}
 }

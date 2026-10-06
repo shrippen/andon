@@ -1773,6 +1773,200 @@
      "remote": "https://github.com/studio/website.git",
      "synced": "@-20m"
     }
+   ],
+   "stacks_read": true,
+   "notes_read": true,
+   "docs_url": "https://git.demo/studio/it-docs/src/branch/main/",
+   "stacks": [
+    {
+     "host": "boje",
+     "name": "dawarich",
+     "repo": "studio/docker-compose-boje",
+     "path": "dawarich/compose.yaml",
+     "url": "https://git.demo/studio/docker-compose-boje/src/branch/main/dawarich/compose.yaml",
+     "services": [
+      {
+       "name": "app",
+       "image": "freikin/dawarich:0.30.6",
+       "ports": [
+        "3000:3000"
+       ]
+      },
+      {
+       "name": "db",
+       "image": "postgis/postgis:17-3.5",
+       "ports": []
+      }
+     ]
+    },
+    {
+     "host": "boje",
+     "name": "uptime-kuma",
+     "repo": "studio/docker-compose-boje",
+     "path": "uptime-kuma/compose.yaml",
+     "url": "https://git.demo/studio/docker-compose-boje/src/branch/main/uptime-kuma/compose.yaml",
+     "services": [
+      {
+       "name": "uptime-kuma",
+       "image": "louislam/uptime-kuma:2.0.2",
+       "ports": [
+        "3001:3001"
+       ]
+      }
+     ]
+    },
+    {
+     "host": "feuerschiff",
+     "name": "invoiceninja",
+     "repo": "studio/docker-compose-feuerschiff",
+     "path": "invoiceninja/compose.yaml",
+     "url": "https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml",
+     "services": [
+      {
+       "name": "app",
+       "image": "invoiceninja/invoiceninja-debian:5.12",
+       "ports": [
+        "8012:80"
+       ]
+      },
+      {
+       "name": "db",
+       "image": "mariadb:11.4",
+       "ports": []
+      }
+     ]
+    },
+    {
+     "host": "feuerschiff",
+     "name": "kimai",
+     "repo": "studio/docker-compose-feuerschiff",
+     "path": "kimai/compose.yaml",
+     "url": "https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/kimai/compose.yaml",
+     "services": [
+      {
+       "name": "kimai",
+       "image": "kimai/kimai2:apache-2.40",
+       "ports": [
+        "8001:8001"
+       ]
+      },
+      {
+       "name": "db",
+       "image": "mariadb:11.4",
+       "ports": []
+      }
+     ]
+    },
+    {
+     "host": "feuerschiff",
+     "name": "nextcloud",
+     "repo": "studio/docker-compose-feuerschiff",
+     "path": "nextcloud/compose.yaml",
+     "url": "https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml",
+     "services": [
+      {
+       "name": "app",
+       "image": "nextcloud:31-apache",
+       "ports": [
+        "8080:80"
+       ]
+      },
+      {
+       "name": "db",
+       "image": "postgres:16",
+       "ports": []
+      }
+     ]
+    },
+    {
+     "host": "feuerschiff",
+     "name": "stirling-pdf",
+     "repo": "studio/docker-compose-feuerschiff",
+     "path": "stirling-pdf/compose.yaml",
+     "url": "https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/stirling-pdf/compose.yaml",
+     "services": [
+      {
+       "name": "stirling-pdf",
+       "image": "stirlingtools/stirling-pdf:1.4",
+       "ports": [
+        "8090:8080"
+       ]
+      }
+     ]
+    },
+    {
+     "host": "nebelhorn",
+     "name": "gitea",
+     "repo": "studio/docker-compose-nebelhorn",
+     "path": "gitea/compose.yaml",
+     "url": "https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/gitea/compose.yaml",
+     "services": [
+      {
+       "name": "gitea",
+       "image": "gitea/gitea:1.24",
+       "ports": [
+        "3000:3000",
+        "2222:22"
+       ]
+      }
+     ]
+    },
+    {
+     "host": "nebelhorn",
+     "name": "immich",
+     "repo": "studio/docker-compose-nebelhorn",
+     "path": "immich/compose.yaml",
+     "url": "https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml",
+     "services": [
+      {
+       "name": "server",
+       "image": "ghcr.io/immich-app/immich-server:v2.1",
+       "ports": [
+        "2283:2283"
+       ]
+      },
+      {
+       "name": "db",
+       "image": "ghcr.io/immich-app/postgres:16",
+       "ports": []
+      }
+     ]
+    },
+    {
+     "host": "nebelhorn",
+     "name": "newt-nebelhorn",
+     "repo": "studio/docker-compose-nebelhorn",
+     "path": "newt-nebelhorn/compose.yaml",
+     "url": "https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/newt-nebelhorn/compose.yaml",
+     "services": [
+      {
+       "name": "newt",
+       "image": "fosrl/newt:1.5",
+       "ports": []
+      }
+     ]
+    },
+    {
+     "host": "nebelhorn",
+     "name": "paperless-ngx",
+     "repo": "studio/docker-compose-nebelhorn",
+     "path": "paperless-ngx/compose.yaml",
+     "url": "https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/paperless-ngx/compose.yaml",
+     "services": [
+      {
+       "name": "webserver",
+       "image": "ghcr.io/paperless-ngx/paperless-ngx:2.18",
+       "ports": [
+        "8000:8000"
+       ]
+      },
+      {
+       "name": "broker",
+       "image": "redis:8",
+       "ports": []
+      }
+     ]
+    }
    ]
   },
   "kde_store": {
@@ -3683,5 +3877,840 @@
    },
    "status": "draft"
   }
- ]
+ ],
+ "it_docs": {
+  "hosts": [
+   {
+    "name": "Nebelhorn",
+    "old": "SW-NAS01",
+    "asset": "SRV-002",
+    "ip": "192.168.40.10"
+   },
+   {
+    "name": "Feuerschiff",
+    "old": "SW-VPS",
+    "vendor": "nordhost",
+    "ip": "203.0.113.24"
+   },
+   {
+    "name": "Boje",
+    "old": "SW-PI",
+    "ip": "192.168.40.3"
+   }
+  ],
+  "allow": [
+   "IT"
+  ],
+  "block": [
+   "Tagebuch"
+  ],
+  "rulebook": {
+   "path": "IT/Design.md",
+   "content": {
+    "de": "---\ntags:\n  - IT\nletzte Prüfung: {{day:-9}}\n---\nEntscheidungslog für die IT-Doku von Kunde D GmbH. Bei Widerspruch zwischen einer Notiz und dieser Datei gilt diese Datei.\n\n# Namen\n\nHosts heißen nach Seezeichen der Elbe:\n\n| Name | Früher | Rolle |\n| --- | --- | --- |\n| [[Nebelhorn]] | SW-NAS01 | NAS im Studio |\n| [[Feuerschiff]] | SW-VPS | gemieteter Server bei Nordhost |\n| [[Boje]] | SW-PI | Raspberry Pi für DNS und Uptime |\n\nAlte Codenamen nur noch in deprecated-Notizen.\n\n# Dienstnotiz (Minimum)\n\nFrontmatter: `Gerät`, `URLs`, `Backup via`, `letzte Prüfung`. Body: Zweck, Erreichbarkeit, Link zur `compose.yaml` in Gitea. Keine Compose-Vollkopien.\n\n# Secrets\n\nKeine Passwörter, Tokens oder Schlüssel im Klartext. Stattdessen `siehe Vaultwarden: {Eintrag}` oder `${ENV_NAME}`.\n\n# Backup\n\nAlle Hosts sichern mit Borg auf [[Nebelhorn]]. Restic ist abgelöst.\n",
+    "en": "---\ntags:\n  - IT\nletzte Prüfung: {{day:-9}}\n---\nDecision log for Kunde D GmbH's IT documentation. If a note contradicts this file, this file wins.\n\n# Names\n\nHosts are named after Elbe sea marks:\n\n| Name | Former | Role |\n| --- | --- | --- |\n| [[Nebelhorn]] | SW-NAS01 | NAS in the studio |\n| [[Feuerschiff]] | SW-VPS | rented server at Nordhost |\n| [[Boje]] | SW-PI | Raspberry Pi for DNS and uptime |\n\nOld code names only in deprecated notes.\n\n# Service note (minimum)\n\nFrontmatter: `Gerät`, `URLs`, `Backup via`, `letzte Prüfung`. Body: purpose, reachability, link to the `compose.yaml` in Gitea. No full compose copies.\n\n# Secrets\n\nNo passwords, tokens or keys in plain text. Use `siehe Vaultwarden: {entry}` or `${ENV_NAME}` instead.\n\n# Backup\n\nAll hosts back up with Borg to [[Nebelhorn]]. Restic is retired.\n"
+   }
+  },
+  "agent": {
+   "path": "agent.md",
+   "content": {
+    "de": "# Agent-Richtlinien\n\n- Ändere nur, was der Auftrag verlangt.\n- Unklares als Frage markieren, nicht raten.\n- Sprache der Notiz beibehalten.\n",
+    "en": "# Agent guidelines\n\n- Change only what the task asks for.\n- Mark unclear things as a question, do not guess.\n- Keep the language of the note.\n"
+   }
+  },
+  "required": {
+   "IT/Dienste": [
+    "Gerät",
+    "Backup via",
+    "letzte Prüfung"
+   ]
+  },
+  "notes": [
+   {
+    "path": "IT/IT.md",
+    "content": {
+     "de": "# IT\n\nLandkarte der IT von Kunde D GmbH.\n\n- Geräte: [[Nebelhorn]], [[Feuerschiff]], [[Boje]]\n- Netzwerk: [[Netzwerkübersicht]]\n- Regeln: [[Design]]\n- Wiederherstellung: [[Restore Nebelhorn]]\n",
+     "en": "# IT\n\nMap of Kunde D GmbH's IT.\n\n- Hosts: [[Nebelhorn]], [[Feuerschiff]], [[Boje]]\n- Network: [[Netzwerkübersicht]]\n- Rules: [[Design]]\n- Recovery: [[Restore Nebelhorn]]\n"
+    }
+   },
+   {
+    "path": "IT/Geräte/Nebelhorn.md",
+    "content": {
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/newt-nebelhorn/compose.yaml\nIPs: [192.168.40.10]\nInventar: SRV-002\n---\n# Nebelhorn\n\nNAS im Studio, Speicherwerk NS-4 mit 4 × Tiefgang NAS 4TB. Früher SW-NAS01.\n\nNimmt die Borg-Backups aller Hosts an.\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/newt-nebelhorn/compose.yaml\nIPs: [192.168.40.10]\nInventar: SRV-002\n---\n# Nebelhorn\n\nNAS in the studio, Speicherwerk NS-4 with 4 × Tiefgang NAS 4TB. Formerly SW-NAS01.\n\nReceives the Borg backups of all hosts.\n"
+    }
+   },
+   {
+    "path": "IT/Geräte/Feuerschiff.md",
+    "content": {
+     "de": "---\nIPs: [203.0.113.24]\nAnbieter: Lieferant 2\n---\n# Feuerschiff\n\nGemieteter Server bei Nordhost für alles, was von außen erreichbar sein muss.\n",
+     "en": "---\nIPs: [203.0.113.24]\nAnbieter: Lieferant 2\n---\n# Feuerschiff\n\nRented server at Nordhost for everything that must be reachable from outside.\n"
+    }
+   },
+   {
+    "path": "IT/Geräte/Boje.md",
+    "content": {
+     "de": "---\nIPs: [192.168.40.3]\n---\n# Boje\n\nRaspberry Pi im Netzwerkschrank. DNS für das Studio und [[Uptime Kuma]].\n",
+     "en": "---\nIPs: [192.168.40.3]\n---\n# Boje\n\nRaspberry Pi in the network cabinet. DNS for the studio and [[Uptime Kuma]].\n"
+    }
+   },
+   {
+    "path": "IT/Dienste/Feuerschiff/Nextcloud.md",
+    "content": {
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.example.test]\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nDateiablage für Kunden und Team. Läuft auf SW-VPS.\n\n## Zugang\nProjekt 6-Login über die Weboberfläche.\n- Benutzer: admin\n- Passwort: Projekt 2-2026!\n\n## Backup\nNächtlich mit Restic nach Nordhost-Speicher.\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.example.test]\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nFile storage for customers and team. Runs on SW-VPS.\n\n## Access\nProjekt 6 login through the web interface.\n- User: admin\n- Passwort: Projekt 2-2026!\n\n## Backup\nNightly with Restic to Nordhost storage.\n"
+    }
+   },
+   {
+    "path": "IT/Dienste/Feuerschiff/Kimai.md",
+    "content": {
+     "de": "---\nGerät: \"[[Feuerschiff]]\"\nURLs: [zeit.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-260}}\n---\n# Kimai\n\nZeiterfassung für alle Projekte, mit Holiday- und Abrechnungs-Plugin.\n\nCompose: `docker-compose-feuerschiff/kimai/compose.yaml` in Gitea.\n",
+     "en": "---\nGerät: \"[[Feuerschiff]]\"\nURLs: [zeit.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-260}}\n---\n# Kimai\n\nTime tracking for all projects, with the holiday and billing plugins.\n\nCompose: `docker-compose-feuerschiff/kimai/compose.yaml` in Gitea.\n"
+    }
+   },
+   {
+    "path": "IT/Dienste/Feuerschiff/Invoice Ninja.md",
+    "content": {
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.example.test]\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nRechnungen und Angebote.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Genutzt von Kimai-Export und andon.\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.example.test]\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nInvoices and quotes.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Used by the Kimai export and andon.\n"
+    }
+   },
+   {
+    "path": "IT/Dienste/Nebelhorn/Immich.md",
+    "content": {
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nFotos vom Set und Referenzbilder.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nPhotos from the set and reference pictures.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n"
+    }
+   },
+   {
+    "path": "IT/Dienste/Nebelhorn/Paperless-ngx.md",
+    "content": {
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/paperless-ngx/compose.yaml\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/paperless-ai/compose.yaml\nURLs: [belege.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-40}}\n---\n# Paperless-ngx\n\nBelege und Verträge, OCR auf Deutsch und Englisch.\n\nBackup siehe [[Nebelhorn-Backup]].\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/paperless-ngx/compose.yaml\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/paperless-ai/compose.yaml\nURLs: [belege.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-40}}\n---\n# Paperless-ngx\n\nReceipts and contracts, OCR in German and English.\n\nBackup see [[Nebelhorn-Backup]].\n"
+    }
+   },
+   {
+    "path": "IT/Dienste/Nebelhorn/Gitea.md",
+    "content": {
+     "de": "---\nGerät: \"[[Nebelhorn]]\"\nURLs: [git.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-5}}\n---\n# Gitea\n\nRepos für Compose-Dateien (`docker-compose-nebelhorn`, `docker-compose-feuerschiff`) und Skripte.\n",
+     "en": "---\nGerät: \"[[Nebelhorn]]\"\nURLs: [git.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-5}}\n---\n# Gitea\n\nRepos for compose files (`docker-compose-nebelhorn`, `docker-compose-feuerschiff`) and scripts.\n"
+    }
+   },
+   {
+    "path": "IT/Dienste/Boje/Uptime Kuma.md",
+    "content": {
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-boje/src/branch/main/uptime-kuma/compose.yaml\nGerät: \"[[Boje]]\"\nURLs: [status.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-3}}\n---\n# Uptime Kuma\n\nÜberwacht alle Dienste. Meldet Ausfälle an das Team-Telefon.\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-boje/src/branch/main/uptime-kuma/compose.yaml\nGerät: \"[[Boje]]\"\nURLs: [status.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-3}}\n---\n# Uptime Kuma\n\nWatches all services. Reports outages to the team phone.\n"
+    }
+   },
+   {
+    "path": "IT/Dienste/deprecated/Dawarich.md",
+    "content": {
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-boje/src/branch/main/dawarich/compose.yaml\ndeprecated: true\n---\n# Dawarich\n\nLief bis 2025 auf SW-NAS01. Abgelöst, Daten liegen im Archiv.\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-boje/src/branch/main/dawarich/compose.yaml\ndeprecated: true\n---\n# Dawarich\n\nRan on SW-NAS01 until 2025. Retired, data is in the archive.\n"
+    }
+   },
+   {
+    "path": "IT/Netzwerk/Netzwerkübersicht.md",
+    "content": {
+     "de": "# Netzwerkübersicht\n\n| VLAN | Netz | Zweck |\n| --- | --- | --- |\n| 40 | 192.168.40.0/24 | Studio |\n| 50 | 192.168.50.0/24 | Gäste und Set-Geräte |\n\nSwitch im Netzwerkschrank: Knotenwerk KS-8, 8 Ports, alle belegt.\n\nDNS: SW-PI (Split-Horizon für `example.test`).\n",
+     "en": "# Netzwerkübersicht\n\n| VLAN | Network | Purpose |\n| --- | --- | --- |\n| 40 | 192.168.40.0/24 | Studio |\n| 50 | 192.168.50.0/24 | Guests and set devices |\n\nSwitch in the network cabinet: Knotenwerk KS-8, 8 ports, all in use.\n\nDNS: SW-PI (split horizon for `example.test`).\n"
+    }
+   },
+   {
+    "path": "IT/Anleitungen/Restore Nebelhorn.md",
+    "content": {
+     "de": "# Restore Nebelhorn\n\n1. Borg-Repo auf der externen Platte einhängen.\n2. `borg list` zeigt die Archive, das jüngste nehmen.\n3. `borg extract` nach `/srv`.\n\nHinweis vom {{day:-4}}: `seite-7.pdf` war am Vortag gelöscht und lag im Archiv von 03:13 wieder im Projekt 7-Ordner. Ursache unklar.\n",
+     "en": "# Restore Nebelhorn\n\n1. Mount the Borg repo on the external disk.\n2. `borg list` shows the archives, take the newest.\n3. `borg extract` to `/srv`.\n\nNote from {{day:-4}}: `seite-7.pdf` was deleted the day before and was back in the Projekt 7 folder in the 03:13 archive. Cause unknown.\n"
+    }
+   }
+  ],
+  "private": [
+   {
+    "path": "Projekte/Projekt 1.md",
+    "content": {
+     "de": "# Projekt 1\n\nStaffel 2, Folge 3 „Irrlicht“. Kein IT-Thema.\n",
+     "en": "# Projekt 1\n\nSeason 2, episode 3 “Irrlicht”. Not an IT topic.\n"
+    }
+   },
+   {
+    "path": "Tagebuch/Heute.md",
+    "content": {
+     "de": "# Tagebuch\n\nPrivat. Diese Notiz liegt in einem gesperrten Ordner.\n",
+     "en": "# Diary\n\nPrivate. This note is in a blocked folder.\n"
+    }
+   }
+  ],
+  "batches": [
+   {
+    "id": "secrets",
+    "source": "ai",
+    "provider": "demo",
+    "title": {
+     "de": "Klartext-Secrets entfernen",
+     "en": "Remove plain-text secrets"
+    },
+    "topic": {
+     "de": "Secrets",
+     "en": "Secrets"
+    },
+    "instruction": {
+     "de": "Entferne Klartext-Secrets aus den Dienstnotizen auf Feuerschiff.",
+     "en": "Remove plain-text secrets from the service notes on Feuerschiff."
+    },
+    "summary": {
+     "de": "Zwei Klartext-Werte durch Vaultwarden-Verweise ersetzt, Backup-Angaben ergänzt.",
+     "en": "Replaced two plain-text values with Vaultwarden references, added backup details."
+    },
+    "usage": {
+     "in": 41200,
+     "out": 5300
+    },
+    "files": [
+     {
+      "path": "IT/Dienste/Feuerschiff/Nextcloud.md",
+      "summary": {
+       "de": "Passwort durch Vaultwarden-Verweis ersetzt, Backup auf Borg umgestellt.",
+       "en": "Replaced the password with a Vaultwarden reference, switched the backup to Borg."
+      },
+      "versions": [
+       {
+        "author": "ai",
+        "edits": {
+         "de": [
+          [
+           "letzte Prüfung:",
+           "Backup via: Restic\nletzte Prüfung:"
+          ],
+          [
+           "- Passwort: Projekt 2-2026!",
+           "- Passwort: siehe Vaultwarden: Nextcloud Projekt 6"
+          ],
+          [
+           "Nächtlich mit Restic nach Nordhost-Speicher.",
+           "Nächtlich mit Restic nach Nordhost-Speicher, 14 Tage Aufbewahrung."
+          ]
+         ],
+         "en": [
+          [
+           "letzte Prüfung:",
+           "Backup via: Restic\nletzte Prüfung:"
+          ],
+          [
+           "- Passwort: Projekt 2-2026!",
+           "- Passwort: siehe Vaultwarden: Nextcloud Projekt 6"
+          ],
+          [
+           "Nightly with Restic to Nordhost storage.",
+           "Nightly with Restic to Nordhost storage, kept for 14 days."
+          ]
+         ]
+        },
+        "changes": {
+         "de": [
+          {
+           "before": "",
+           "after": "Backup via: Restic",
+           "reason": "Pflichtfeld Backup via ergänzt.",
+           "rule": "Design.md › Dienstnotiz"
+          },
+          {
+           "before": "Projekt 2-2026!",
+           "after": "siehe Vaultwarden: Nextcloud Projekt 6",
+           "reason": "Klartext-Passwort ersetzt.",
+           "rule": "Design.md › Secrets"
+          },
+          {
+           "before": "",
+           "after": "14 Tage Aufbewahrung",
+           "reason": "Aufbewahrung aus dem Backup-Plan ergänzt."
+          }
+         ],
+         "en": [
+          {
+           "before": "",
+           "after": "Backup via: Restic",
+           "reason": "Added the required Backup via field.",
+           "rule": "Design.md › Dienstnotiz"
+          },
+          {
+           "before": "Projekt 2-2026!",
+           "after": "siehe Vaultwarden: Nextcloud Projekt 6",
+           "reason": "Replaced the plain-text password.",
+           "rule": "Design.md › Secrets"
+          },
+          {
+           "before": "",
+           "after": "kept for 14 days",
+           "reason": "Added retention from the backup plan."
+          }
+         ]
+        }
+       },
+       {
+        "author": "ai",
+        "edits": {
+         "de": [
+          [
+           "letzte Prüfung:",
+           "Backup via: Borg\nletzte Prüfung:"
+          ],
+          [
+           "- Passwort: Projekt 2-2026!",
+           "- Passwort: siehe Vaultwarden: Nextcloud Projekt 6"
+          ],
+          [
+           "Nächtlich mit Restic nach Nordhost-Speicher.",
+           "Nächtlich mit Borg auf [[Nebelhorn]], siehe [[Restore Nebelhorn]]."
+          ]
+         ],
+         "en": [
+          [
+           "letzte Prüfung:",
+           "Backup via: Borg\nletzte Prüfung:"
+          ],
+          [
+           "- Passwort: Projekt 2-2026!",
+           "- Passwort: siehe Vaultwarden: Nextcloud Projekt 6"
+          ],
+          [
+           "Nightly with Restic to Nordhost storage.",
+           "Nightly with Borg to [[Nebelhorn]], see [[Restore Nebelhorn]]."
+          ]
+         ]
+        },
+        "changes": {
+         "de": [
+          {
+           "before": "",
+           "after": "Backup via: Borg",
+           "reason": "Pflichtfeld Backup via ergänzt.",
+           "rule": "Design.md › Dienstnotiz"
+          },
+          {
+           "before": "Projekt 2-2026!",
+           "after": "siehe Vaultwarden: Nextcloud Projekt 6",
+           "reason": "Klartext-Passwort ersetzt.",
+           "rule": "Design.md › Secrets"
+          },
+          {
+           "before": "Restic",
+           "after": "Borg auf [[Nebelhorn]]",
+           "reason": "Restic ist abgelöst, Backup läuft über Borg.",
+           "rule": "Design.md › Backup"
+          }
+         ],
+         "en": [
+          {
+           "before": "",
+           "after": "Backup via: Borg",
+           "reason": "Added the required Backup via field.",
+           "rule": "Design.md › Dienstnotiz"
+          },
+          {
+           "before": "Projekt 2-2026!",
+           "after": "siehe Vaultwarden: Nextcloud Projekt 6",
+           "reason": "Replaced the plain-text password.",
+           "rule": "Design.md › Secrets"
+          },
+          {
+           "before": "Restic",
+           "after": "Borg to [[Nebelhorn]]",
+           "reason": "Restic is retired, backups run with Borg.",
+           "rule": "Design.md › Backup"
+          }
+         ]
+        }
+       }
+      ],
+      "accept": [
+       1
+      ]
+     },
+     {
+      "path": "IT/Dienste/Feuerschiff/Invoice Ninja.md",
+      "summary": {
+       "de": "API-Token durch Vaultwarden-Verweis ersetzt.",
+       "en": "Replaced the API token with a Vaultwarden reference."
+      },
+      "versions": [
+       {
+        "author": "ai",
+        "edits": {
+         "de": [
+          [
+           "- API-Token: ninja_4f9e2c71b8a0d53e",
+           "- API-Token: siehe Vaultwarden: Invoice Ninja API"
+          ],
+          [
+           "letzte Prüfung:",
+           "Backup via: Borg\nletzte Prüfung:"
+          ]
+         ],
+         "en": [
+          [
+           "- API-Token: ninja_4f9e2c71b8a0d53e",
+           "- API-Token: siehe Vaultwarden: Invoice Ninja API"
+          ],
+          [
+           "letzte Prüfung:",
+           "Backup via: Borg\nletzte Prüfung:"
+          ]
+         ]
+        },
+        "changes": {
+         "de": [
+          {
+           "before": "ninja_4f9e2c71b8a0d53e",
+           "after": "siehe Vaultwarden",
+           "reason": "Token gehört in Vaultwarden.",
+           "rule": "Design.md › Secrets"
+          },
+          {
+           "before": "",
+           "after": "Backup via: Borg",
+           "reason": "Pflichtfeld ergänzt; Feuerschiff sichert mit Borg.",
+           "rule": "Design.md › Backup"
+          }
+         ],
+         "en": [
+          {
+           "before": "ninja_4f9e2c71b8a0d53e",
+           "after": "siehe Vaultwarden",
+           "reason": "The token belongs in Vaultwarden.",
+           "rule": "Design.md › Secrets"
+          },
+          {
+           "before": "",
+           "after": "Backup via: Borg",
+           "reason": "Added the required field; Feuerschiff backs up with Borg.",
+           "rule": "Design.md › Backup"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    ],
+    "thread": [
+     {
+      "role": "user",
+      "scope": "hunk",
+      "path": "IT/Dienste/Feuerschiff/Nextcloud.md",
+      "hunk_of_version": 1,
+      "hunk": 2,
+      "quick": "wrong-fact",
+      "text": {
+       "de": "Backup läuft über Borg auf Nebelhorn, nicht mehr über Restic.",
+       "en": "Backups run with Borg to Nebelhorn, not Restic anymore."
+      }
+     },
+     {
+      "role": "ai",
+      "text": {
+       "de": "Verstanden. Restic durch Borg ersetzt und [[Restore Nebelhorn]] verlinkt. Soll ich das auch in den anderen Dateien des Batches prüfen?",
+       "en": "Understood. Replaced Restic with Borg and linked [[Restore Nebelhorn]]. Should I check the other files of the batch too?"
+      }
+     },
+     {
+      "role": "user",
+      "scope": "batch",
+      "text": {
+       "de": "Ja, im ganzen Batch.",
+       "en": "Yes, in the whole batch."
+      }
+     },
+     {
+      "role": "ai",
+      "text": {
+       "de": "Invoice Ninja hatte kein Backup-Feld, dort Borg ergänzt. Sonst keine Restic-Stellen.",
+       "en": "Invoice Ninja had no backup field, added Borg there. No other Restic mentions."
+      }
+     }
+    ],
+    "suggestions": [
+     {
+      "text": {
+       "de": "Backup läuft über Borg auf Nebelhorn, nicht mehr über Restic.",
+       "en": "Backups run with Borg to Nebelhorn, not Restic anymore."
+      },
+      "count": 3
+     }
+    ]
+   },
+   {
+    "id": "codenames",
+    "source": "ai",
+    "provider": "demo",
+    "title": {
+     "de": "Codenamen → Seezeichen-Namen",
+     "en": "Code names → sea mark names"
+    },
+    "topic": {
+     "de": "Namen",
+     "en": "Names"
+    },
+    "instruction": {
+     "de": "Ersetze alte Codenamen durch die aktuellen Hostnamen.",
+     "en": "Replace old code names with the current host names."
+    },
+    "summary": {
+     "de": "SW-NAS01, SW-VPS und SW-PI durch Nebelhorn, Feuerschiff und Boje ersetzt.",
+     "en": "Replaced SW-NAS01, SW-VPS and SW-PI with Nebelhorn, Feuerschiff and Boje."
+    },
+    "usage": {
+     "in": 18400,
+     "out": 2100
+    },
+    "files": [
+     {
+      "path": "IT/Geräte/Nebelhorn.md",
+      "versions": [
+       {
+        "author": "ai",
+        "edits": {
+         "de": [
+          [
+           "Früher SW-NAS01.",
+           "Früher SW-NAS01 (historischer Alias)."
+          ]
+         ],
+         "en": [
+          [
+           "Formerly SW-NAS01.",
+           "Formerly SW-NAS01 (historical alias)."
+          ]
+         ]
+        },
+        "changes": {
+         "de": [
+          {
+           "before": "SW-NAS01.",
+           "after": "(historischer Alias)",
+           "reason": "Alter Name bleibt als historischer Alias erkennbar.",
+           "rule": "Design.md › Namen"
+          }
+         ],
+         "en": [
+          {
+           "before": "SW-NAS01.",
+           "after": "(historical alias)",
+           "reason": "The old name stays as a marked historical alias.",
+           "rule": "Design.md › Namen"
+          }
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "path": "IT/Netzwerk/Netzwerkübersicht.md",
+      "versions": [
+       {
+        "author": "ai",
+        "edits": {
+         "de": [
+          [
+           "DNS: SW-PI",
+           "DNS: [[Boje]]"
+          ]
+         ],
+         "en": [
+          [
+           "DNS: SW-PI",
+           "DNS: [[Boje]]"
+          ]
+         ]
+        },
+        "changes": {
+         "de": [
+          {
+           "before": "SW-PI",
+           "after": "[[Boje]]",
+           "reason": "SW-PI heißt jetzt Boje.",
+           "rule": "Design.md › Namen"
+          }
+         ],
+         "en": [
+          {
+           "before": "SW-PI",
+           "after": "[[Boje]]",
+           "reason": "SW-PI is now called Boje.",
+           "rule": "Design.md › Namen"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    ],
+    "thread": [
+     {
+      "role": "ai",
+      "question": true,
+      "text": {
+       "de": "In Nextcloud steht „Läuft auf SW-VPS“. Ist das dasselbe Feuerschiff, oder lief Nextcloud früher auf einem anderen Server?",
+       "en": "Nextcloud says “Runs on SW-VPS”. Is that the same Feuerschiff, or did Nextcloud run on another server before?"
+      }
+     },
+     {
+      "role": "ai",
+      "question": true,
+      "text": {
+       "de": "Soll SW-NAS01 in der Gerätenotiz als historischer Alias bleiben oder ganz raus?",
+       "en": "Should SW-NAS01 stay in the host note as a historical alias or go completely?"
+      }
+     }
+    ]
+   },
+   {
+    "id": "switch",
+    "source": "ai",
+    "provider": "demo",
+    "title": {
+     "de": "Switch-Tausch Knotenwerk KS-24",
+     "en": "Switch swap Knotenwerk KS-24"
+    },
+    "topic": {
+     "de": "Netzwerk",
+     "en": "Network"
+    },
+    "instruction": {
+     "de": "Im Netzwerkschrank hängt jetzt ein Knotenwerk KS-24 statt des KS-8. Alle Stellen aktualisieren.",
+     "en": "The network cabinet now has a Knotenwerk KS-24 instead of the KS-8. Update every mention."
+    },
+    "summary": {
+     "de": "Switch in der Netzwerkübersicht aktualisiert.",
+     "en": "Updated the switch in the network overview."
+    },
+    "usage": {
+     "in": 9800,
+     "out": 900
+    },
+    "files": [
+     {
+      "path": "IT/Netzwerk/Netzwerkübersicht.md",
+      "versions": [
+       {
+        "author": "ai",
+        "edits": {
+         "de": [
+          [
+           "Switch im Netzwerkschrank: Knotenwerk KS-8, 8 Ports, alle belegt.",
+           "Switch im Netzwerkschrank: Knotenwerk KS-24, 24 Ports."
+          ]
+         ],
+         "en": [
+          [
+           "Switch in the network cabinet: Knotenwerk KS-8, 8 ports, all in use.",
+           "Switch in the network cabinet: Knotenwerk KS-24, 24 ports."
+          ]
+         ]
+        },
+        "changes": {
+         "de": [
+          {
+           "before": "Knotenwerk KS-8, 8 Ports, alle belegt.",
+           "after": "Knotenwerk KS-24, 24 Ports.",
+           "reason": "Neuer Switch laut Auftrag; Belegung unbekannt, daher weggelassen."
+          }
+         ],
+         "en": [
+          {
+           "before": "Knotenwerk KS-8, 8 ports, all in use.",
+           "after": "Knotenwerk KS-24, 24 ports.",
+           "reason": "New switch as requested; port usage unknown, so left out."
+          }
+         ]
+        }
+       }
+      ]
+     }
+    ],
+    "thread": []
+   },
+   {
+    "id": "breakglass",
+    "source": "ai",
+    "provider": "demo",
+    "done": true,
+    "day": -2,
+    "title": {
+     "de": "Break-Glass-Zugang für Gitea",
+     "en": "Break-glass access for Gitea"
+    },
+    "topic": {
+     "de": "Zugang",
+     "en": "Access"
+    },
+    "instruction": {
+     "de": "Dokumentiere den SSO-Notzugang der Dienste.",
+     "en": "Document the SSO emergency access of the services."
+    },
+    "summary": {
+     "de": "Gitea nennt jetzt den Break-Glass-Eintrag in Vaultwarden.",
+     "en": "Gitea now names the break-glass entry in Vaultwarden."
+    },
+    "usage": {
+     "in": 7200,
+     "out": 600
+    },
+    "files": [
+     {
+      "path": "IT/Dienste/Nebelhorn/Gitea.md",
+      "versions": [
+       {
+        "author": "ai",
+        "edits": {
+         "de": [
+          [
+           "und Skripte.",
+           "und Skripte. Zugang über SSO, Break-Glass-Konto siehe Vaultwarden: Gitea Projekt 6."
+          ]
+         ],
+         "en": [
+          [
+           "and scripts.",
+           "and scripts. Access through SSO, break-glass account see Vaultwarden: Gitea Projekt 6."
+          ]
+         ]
+        },
+        "changes": {
+         "de": [
+          {
+           "before": "",
+           "after": "Break-Glass",
+           "reason": "SSO-Break-Glass dokumentiert.",
+           "rule": "Design.md › Dienstnotiz"
+          }
+         ],
+         "en": [
+          {
+           "before": "",
+           "after": "break-glass",
+           "reason": "Documented the SSO break-glass account.",
+           "rule": "Design.md › Dienstnotiz"
+          }
+         ]
+        }
+       }
+      ],
+      "accept": [
+       0
+      ]
+     }
+    ],
+    "thread": []
+   }
+  ],
+  "conformity_history": [
+   0.31,
+   0.34,
+   0.38,
+   0.41,
+   0.44,
+   0.47,
+   0.49,
+   0.5
+  ],
+  "reviewed_days": [
+   12,
+   9,
+   17,
+   6,
+   23
+  ],
+  "ai_script": {
+   "replies": {
+    "secrets": {
+     "de": "Klartext-Werte durch Vaultwarden-Verweise ersetzt.",
+     "en": "Replaced plain-text values with Vaultwarden references."
+    },
+    "names": {
+     "de": "Alte Codenamen durch die Seezeichen-Namen ersetzt.",
+     "en": "Replaced old code names with the sea mark names."
+    },
+    "switch": {
+     "de": "Switch in der Netzwerkübersicht aktualisiert.",
+     "en": "Updated the switch in the network overview."
+    },
+    "borg": {
+     "de": "Verstanden. Restic durch Borg auf [[Nebelhorn]] ersetzt.",
+     "en": "Understood. Replaced Restic with Borg to [[Nebelhorn]]."
+    },
+    "generic": {
+     "de": "Verstanden, in der Demo antwortet eine vorbereitete KI ohne echtes Modell.",
+     "en": "Understood; in the demo a prepared AI answers without a real model."
+    },
+    "question": {
+     "de": "Welche Notizen genau meinst du? Die Demo-KI kennt Secrets, Codenamen und den Switch.",
+     "en": "Which notes exactly? The demo AI knows secrets, code names and the switch."
+    }
+   },
+   "topics": {
+    "secrets": {
+     "de": "Secrets",
+     "en": "Secrets"
+    },
+    "names": {
+     "de": "Namen",
+     "en": "Names"
+    },
+    "switch": {
+     "de": "Netzwerk",
+     "en": "Network"
+    },
+    "borg": {
+     "de": "Backup",
+     "en": "Backup"
+    },
+    "other": "Demo"
+   },
+   "secret_value": "siehe Vaultwarden: Projekt 6",
+   "switch": {
+    "from": "Knotenwerk KS-8, 8 Ports, alle belegt.",
+    "to": "Knotenwerk KS-24, 24 Ports."
+   },
+   "borg": [
+    {
+     "from": "Nächtlich mit Restic",
+     "to": "Nächtlich mit Borg auf [[Nebelhorn]]."
+    },
+    {
+     "from": "Nightly with Restic",
+     "to": "Nightly with Borg to [[Nebelhorn]]."
+    }
+   ]
+  },
+  "review": {
+   "field": "letzte Prüfung",
+   "days": 180
+  },
+  "providers": [
+   {
+    "name": "studio-ki",
+    "kind": "demo",
+    "model": "demo",
+    "local": true
+   },
+   {
+    "name": "claude",
+    "kind": "anthropic",
+    "model": "claude-opus-5",
+    "fallback": "default"
+   },
+   {
+    "name": "ollama",
+    "kind": "openai",
+    "model": "qwen3",
+    "base_url": "http://localhost:11434/v1",
+    "local": true
+   }
+  ],
+  "provider": "studio-ki",
+  "local_only": [
+   "IT/Anleitungen"
+  ],
+  "batch_spacing_min": 47
+ }
 }
