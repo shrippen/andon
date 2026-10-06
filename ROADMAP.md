@@ -1093,12 +1093,13 @@ Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md
   - In Ordnung: Tagesbalken (Prozent, `title`), `hbars`, Wochen- und Tagesleiste
   - Kante zuerst: Werte-Achse für gestreckte SVGs (`preserveAspectRatio="none"` verzerrt SVG-Text, also HTML-Achse daneben); Hover-Anzeige für Balken und `path`-Linien (heute nur `polyline` in `.chart-wrap[data-readout]`)
   - Offen: gelten die Regeln auch für Sparklines und Mini-Balken in Kacheln?
-- [ ] Integrationen werden möglichst gegen eine reale Instanz getestet:
+- [x] Integrationen werden möglichst gegen eine reale Instanz getestet *(`internal/testkit/live`, `make live`; erster Test: Orte-Abgleich `places_live_test.go`)*:
   - [x] `.local-test/` in `.gitignore`
-  - Verzeichnis außerhalb von Git (`.local-test/`): echte Datenbank und Zugangsdaten je Dienst
-  - Schreiben nur mit neuen Testeinträgen; vorhandene Einträge nie schreibend anfassen
-  - Jeder schreibende Vorgang wird in einer Logdatei im selben Verzeichnis protokolliert (Zeit, Dienst, Aktion, ID des Testeintrags)
-  - Regel in `agent.md` aufnehmen, Hilfen fürs Protokollieren und Prüfen „nur eigene Einträge“ bauen
+  - Verzeichnis außerhalb von Git (`.local-test/`): echte Datenbank und Zugangsdaten je Dienst (`<dienst>.json`)
+  - Schreiben nur mit neuen Testeinträgen (Name `andon-test …`); vorhandene Einträge nie schreibend anfassen (`live.Change` bricht ab)
+  - Jeder schreibende Vorgang wird in `.local-test/writes.log` protokolliert (Zeit, Dienst, Aktion, Art, ID, Test)
+  - In Cloud-Umgebungen und CI genügen Tests gegen Nachbauten; ohne Instanz wird der Live-Test übersprungen
+  - [ ] Live-Tests für die übrigen schreibenden Ausgänge (Kimai-Zeiten, Invoice Ninja, Paperless)
 
 - [ ] Einstellungen: möglichst viele bisher nur per Umgebungsvariable setzbare Einstellungen zusätzlich in den Servereinstellungen der Oberfläche anbieten; sind beide gesetzt, gewinnt die Umgebungsvariable (in der Oberfläche als „durch Umgebung gesetzt“ gesperrt anzeigen)
 - [ ] Wartungsseite: laufende Aufgaben, zuletzt abgeschlossene Aufgaben, Probleme, Logs
