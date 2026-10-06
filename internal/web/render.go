@@ -41,6 +41,7 @@ func mustParse() *template.Template {
 		"t":         func(string, ...any) string { return "" },
 		"money":     func(float64, ...string) string { return "" },
 		"num":       func(float64, ...int) string { return "" },
+		"nums":      func([]float64, int) string { return "" },
 		"gb":        func(float64) string { return "" },
 		"day":       func(any) string { return "" },
 		"weekday":   func(any) string { return "" },
@@ -79,6 +80,10 @@ func mustParse() *template.Template {
 		"seriesVar":   seriesVar,
 		"numCol":      numCol,
 		"graphLegend": graphLegend,
+		"graphUnit":   graphUnit,
+		"stripStates": stripStates,
+		"stateFill":   stateFill,
+		"weekKeys":    weekKeys,
 		"pctOf":       pctOf,
 		"weekScale":   weekScale,
 		"hourPct":     hourPct,
@@ -283,7 +288,15 @@ func newPageSet() *pageSet {
 		"money": func(v float64, currency ...string) string {
 			return moneyFunc(st.locale, st.round)(v, currency...)
 		},
-		"num":       func(v float64, digits ...int) string { return i18n.Num(v, st.locale, firstOr(digits, 0)) },
+		"num": func(v float64, digits ...int) string { return i18n.Num(v, st.locale, firstOr(digits, 0)) },
+		// Hover values of a chart line, "|"-separated as decimals use commas: 1,5|2,25.
+		"nums": func(vs []float64, digits int) string {
+			out := make([]string, len(vs))
+			for i, v := range vs {
+				out[i] = i18n.Num(v, st.locale, digits)
+			}
+			return strings.Join(out, "|")
+		},
 		"gb":        func(v float64) string { return i18n.GB(v, st.locale) },
 		"day":       func(v any) string { return i18n.Day(v, st.locale) },
 		"weekday":   func(v any) string { return i18n.Weekday(v, st.locale) },

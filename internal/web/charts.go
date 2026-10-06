@@ -29,19 +29,56 @@ const (
 // chartGeom is a chart ready to draw.
 type chartGeom struct {
 	W, H  int
-	Grid  []string // y of the three grid lines
+	Grid  []string  // y of the three grid lines
+	Axis  []float64 // value at each grid line, top first (Kante .chart-axis)
+	Prec  int       // decimals of Axis and hover values
 	Lines []geomLine
 	Bars  []geomBar
 	Goal  string // y, "" = none
 	Mark  string // x of the "now" line, "" = none
 }
 
-type geomLine struct{ D, Class string }
+type geomLine struct {
+	D, Class string
+	Values   []float64 // the drawn points' values, for the hover read-out
+}
 
 type geomBar struct {
 	X, Y, W, H string
 	Class      string
 	Colour     string // Kante token of a state colour ("danger"), "" = series colour
+	Value      float64
+}
+
+// gridAt are the grid lines as shares of the height, top first.
+var gridAt = []float64{.25, .5, .75}
+
+// niceSteps are the round axis steps per power of ten.
+var niceSteps = []float64{1, 2, 2.5, 4, 5, 10}
+
+// niceTop rounds a column chart's top up so its quarters are round:
+// 153 → 160 (steps of 40).
+func niceTop(top float64) float64 {
+	quarter := top / float64(len(gridAt)+1)
+	scale := math.Pow(10, math.Floor(math.Log10(quarter)))
+	for _, s := range niceSteps {
+		if s*scale >= quarter {
+			return s * scale * float64(len(gridAt)+1)
+		}
+	}
+	return top
+}
+
+// axisPrec is the decimals the axis needs: steps of 25 → 0, of 0.4 → 1.
+func axisPrec(lo, hi float64) int {
+	step := (hi - lo) / float64(len(gridAt)+1)
+	switch {
+	case step >= 1:
+		return 0
+	case step >= .1:
+		return 1
+	}
+	return 2
 }
 
 // stateToken is the Kante colour token of a state: the template writes
@@ -71,7 +108,7 @@ func chartRange(c widgets.Graph) (lo, hi float64) {
 		return 0, 1
 	}
 	if c.Kind == widgets.GraphCols {
-		return 0, max(hi*chartHeadway, 1)
+		return 0, niceTop(max(hi*chartHeadway, 1))
 	}
 	if hi == lo {
 		hi = lo + 1
@@ -81,11 +118,17 @@ func chartRange(c widgets.Graph) (lo, hi float64) {
 
 func geomOf(c widgets.Graph) chartGeom {
 	g := chartGeom{W: chartWidth, H: chartHeight}
-	for _, f := range []float64{.25, .5, .75} {
-		g.Grid = append(g.Grid, fmtF(chartHeight*f))
-	}
 	lo, hi := chartRange(c)
 	y := func(v float64) float64 { return chartHeight - chartPad - (v-lo)/(hi-lo)*(chartHeight-2*chartPad) }
+
+	// Grid lines on the quarters of the range, top first: their values
+	// label the axis.
+	for _, f := range gridAt {
+		v := hi - f*(hi-lo)
+		g.Grid = append(g.Grid, fmtF(y(v)))
+		g.Axis = append(g.Axis, v)
+	}
+	g.Prec = axisPrec(lo, hi)
 	if c.HasGoal {
 		g.Goal = fmtF(y(c.Goal))
 	}
@@ -103,7 +146,7 @@ func geomOf(c widgets.Graph) chartGeom {
 		base := y(lo)
 		bar := func(i int, v float64, class, colour string) geomBar {
 			top := y(v)
-			return geomBar{X: fmtF(float64(i)*slot + slot*(1-chartBarFill)/2), Y: fmtF(top), W: fmtF(slot * chartBarFill), H: fmtF(max(base-top, 0)), Class: class, Colour: colour}
+			return geomBar{X: fmtF(float64(i)*slot + slot*(1-chartBarFill)/2), Y: fmtF(top), W: fmtF(slot * chartBarFill), H: fmtF(max(base-top, 0)), Class: class, Colour: colour, Value: v}
 		}
 		if len(c.Series) > 1 {
 			for i, v := range c.Series[1].Values {
@@ -131,6 +174,7 @@ func geomOf(c widgets.Graph) chartGeom {
 	step := float64(chartWidth) / float64(max(n-1, 1))
 	for _, s := range c.Series {
 		var d strings.Builder
+		var drawn []float64
 		pen := "M"
 		for i, v := range s.Values {
 			if math.IsNaN(v) {
@@ -138,9 +182,10 @@ func geomOf(c widgets.Graph) chartGeom {
 				continue
 			}
 			d.WriteString(pen + fmtF(float64(i)*step) + " " + fmtF(y(v)))
+			drawn = append(drawn, v)
 			pen = "L"
 		}
-		g.Lines = append(g.Lines, geomLine{D: d.String(), Class: "line " + s.Class})
+		g.Lines = append(g.Lines, geomLine{D: d.String(), Class: "line " + s.Class, Values: drawn})
 	}
 	if c.Mark >= 0 && c.Mark < n {
 		g.Mark = fmtF(float64(c.Mark) * step)
@@ -173,6 +218,29 @@ func stripPaths(states []string) []statePath {
 	}
 	return out
 }
+
+// stripStates lists the states strips use, in stripOrder (their legend).
+func stripStates(strips []widgets.Strip) []string {
+	used := map[string]bool{}
+	for _, s := range strips {
+		for _, st := range s.States {
+			used[st] = true
+		}
+	}
+	var out []string
+	for _, st := range stripOrder {
+		if used[st] {
+			out = append(out, st)
+		}
+	}
+	return out
+}
+
+// weekKeys name the rows of a heat map, Monday on top (Kante .heat.is-weeks).
+func weekKeys() []string { return []string{"mon", "tue", "wed", "thu", "fri", "sat", "sun"} }
+
+// stateFill is the Kante colour token a state is drawn in: "bad" → "danger".
+func stateFill(state string) string { return stateToken[state] }
 
 // sparkPath is a Kante .spark line in a 100 × 24 viewBox.
 func sparkPath(values []float64) string {
@@ -232,6 +300,17 @@ func numCol(cols []int, i int) bool {
 	}
 	return false
 }
+
+// graphUnit is a graph's unit; a 0–100 range without one is percent.
+func graphUnit(g widgets.Graph) string {
+	if g.Unit == "" && g.Lo == 0 && g.Hi == percentScale {
+		return "%"
+	}
+	return g.Unit
+}
+
+// percentScale is the top of a percent range.
+const percentScale = 100
 
 // graphLegend tells whether a graph names its series.
 func graphLegend(g widgets.Graph) bool {

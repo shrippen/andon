@@ -2626,6 +2626,13 @@ table:
   more: '{count} more'
   sum: Total
 chart:
+  less: less
+  more: more
+  state:
+    ok: fine
+    warn: degraded
+    bad: down
+    off: no data
   season_avg: Ø prior years
   seasonal: Seasonal revenue
   revenue: Net revenue per month
@@ -4276,6 +4283,8 @@ detail:
     from_grocy: 'Missing in Grocy, not on the list'
   map_unset: 'Map: set a map source in the settings.'
 linkdetail:
+  legend_ok: successful checks
+  legend_fail: failed checks
   open_aria: History and details
   open: Open
   check_now: Check now
@@ -4448,6 +4457,7 @@ forecast:
   full_on: 'full in {days} d ({day})'
   ahead_hint: 'Dashed: what the next {days} days add at the recent pace.'
 timeline:
+  band_n: '{n} events'
   title: 'Timeline'
   lead: 'Updates and hints of the last {days} days, newest first.'
   update: 'Update'

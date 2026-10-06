@@ -71,6 +71,8 @@
     <div class="detail-block detail-hero">
       <div class="h-label detail-label"><span>{{t "linkdetail.checks_head"}}</span><span>{{t "linkdetail.checks_total" "n" $h.Checks}}</span></div>
       {{$s := stackPaths $h.Days}}
+      <div class="chart-frame">
+      <div class="chart-axis"><span>{{$s.Most}}</span><span>{{num $s.Half 0}}</span><span>0</span></div>
       <div class="chart-wrap">
         <svg class="uptime" viewBox="0 0 {{len $h.Days}} 100" preserveAspectRatio="none" role="img" aria-label="{{t "linkdetail.checks_head"}}"><path data-state="ok" d="{{$s.OK}}"/><path data-state="bad" d="{{$s.Fail}}"/><path data-state="off" d="{{$s.None}}"/></svg>
         <div class="day-pick" data-pick>
@@ -84,16 +86,24 @@
         </div>
       </div>
       <div class="detail-ticks"><span>{{day (index $h.Days 0).Day}}</span>{{if not $h.Since.IsZero}}<span>{{t "linkdetail.since" "day" (day $h.Since)}}</span>{{end}}<span>{{t "linkdetail.today"}}</span></div>
+      </div>
+      <ul class="legend"><li><i data-style="--c:var(--aqua)"></i>{{t "linkdetail.legend_ok"}}</li><li><i data-style="--c:var(--danger)"></i>{{t "linkdetail.legend_fail"}}</li><li><i data-style="--c:var(--bg2)"></i>{{t "linkdetail.not_measured"}}</li></ul>
     </div>
 
     <div class="detail-block">
       {{$m := msChartOf $h.Days}}
       <div class="h-label detail-label"><span>{{t "linkdetail.ms_head"}}</span><span>{{t "linkdetail.ms_goal"}}</span></div>
-      <svg class="chart" viewBox="0 0 600 140" preserveAspectRatio="none" role="img" aria-label="{{t "linkdetail.ms_head"}}">
+      <div class="chart-frame">
+      <div class="chart-axis"><span>{{num $m.Top 0}} ms</span><span>{{num $m.Half 0}}</span><span>0</span></div>
+      <div class="chart-wrap" data-readout>
+      <svg class="chart" viewBox="0 0 600 140" preserveAspectRatio="none" role="img" aria-label="{{t "linkdetail.ms_head"}}" data-unit=" ms" data-labels="{{range $i, $d := $m.Days}}{{if $i}}|{{end}}{{day $d}}{{end}}">
         <line class="goal is-danger" x1="0" y1="{{$m.GoalY}}" x2="600" y2="{{$m.GoalY}}"/>
         <line class="now" data-pick-x x1="{{msX $last (len $h.Days)}}" y1="0" x2="{{msX $last (len $h.Days)}}" y2="140"/>
-        <path class="line s4" d="{{$m.Line}}"/>
+        <path class="line s4" d="{{$m.Line}}" data-values="{{nums $m.Values 0}}"/>
       </svg>
+      <span class="readout"></span>
+      </div>
+      </div>
     </div>
 
     <div class="detail-pair">
@@ -180,6 +190,7 @@
   {{else if eq $k "strips"}}
   <div class="detail-rows">{{range .Data}}<span>{{.Name}}</span><svg class="uptime" viewBox="0 0 {{len .States}} 1" preserveAspectRatio="none" role="img" aria-label="{{.Name}}">{{range stripPaths .States}}<path data-state="{{.State}}" d="{{.D}}"/>{{end}}</svg><span>{{tv .Value}}</span>{{end}}</div>
   {{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
+  {{template "state_legend" stripStates .Data}}
   {{else if eq $k "bars"}}
   <div class="detail-rows">{{range .Data}}<span>{{tv .Name}}</span><div class="progress-bar"><i data-style="--p:{{.Pct}}%"{{with .Tier}} data-tier="{{.}}"{{end}}></i></div><span>{{tv .Value}}</span>{{end}}</div>
   {{else if eq $k "timeline"}}
@@ -199,8 +210,12 @@
   <div class="detail-tasks">{{range .Items}}<div class="detail-task{{if eq .State "ok"}} is-done{{end}}"><span class="led" data-style="--c:var(--{{stateVar .State}})"></span><span>{{tv .Text}}{{with .Meta}}<small>{{tv .}}</small>{{end}}</span>{{if .Post}}<button type="button" class="btn btn-outline btn-sm" data-detail-do="{{.Post}}">{{tt .Action.Key .Action.Args}}</button>{{else if .Href}}<a class="btn btn-outline btn-sm" href="{{.Href}}" target="_blank" rel="noopener noreferrer">{{tt .Action.Key .Action.Args}}</a>{{else}}<span></span>{{end}}</div>{{end}}</div>
   {{end}}
   {{else if eq $k "heat"}}{{with .Data}}
+  <div class="chart-frame">
+  <div class="chart-axis is-rows">{{range weekKeys}}<span>{{t (print "detail.wd." .)}}</span>{{end}}</div>
   <div class="heat is-weeks">{{range .Levels}}<i data-l="{{.}}"></i>{{end}}</div>
   {{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
+  </div>
+  <div class="heat-legend"><span>{{t "chart.less"}}</span><i></i><i data-l="1"></i><i data-l="2"></i><i data-l="3"></i><i data-l="4"></i><span>{{t "chart.more"}}</span></div>
   {{end}}
   {{else if eq $k "day"}}{{with .Data}}
   <div class="sheet detail-day"><div class="detail-day-head"><h3>{{tv .Title}}</h3>{{with .State}}<span class="launch-state" data-state="{{.}}">{{tt $.Data.StateText.Key $.Data.StateText.Args}}</span>{{end}}</div>
@@ -238,17 +253,26 @@
 {{end}}{{end}}
 
 {{/* A widgets.Graph in Kante's .chart, with ticks and legend. */}}
-{{define "detail_graph"}}{{$g := chartGeom .}}
-<svg class="chart" viewBox="0 0 {{$g.W}} {{$g.H}}" preserveAspectRatio="none" role="img" aria-hidden="true">
+{{define "detail_graph"}}{{$g := chartGeom .}}{{$u := graphUnit .}}
+<div class="chart-frame">
+<div class="chart-axis"><span class="unit">{{$u}}</span>{{range $g.Axis}}<span>{{num . $g.Prec}}</span>{{end}}<span></span></div>
+<div class="chart-wrap" data-readout>
+<svg class="chart" viewBox="0 0 {{$g.W}} {{$g.H}}" preserveAspectRatio="none" role="img" aria-hidden="true"{{with $u}} data-unit=" {{.}}"{{end}}>
   {{range $g.Grid}}<line class="grid" x1="0" x2="{{$g.W}}" y1="{{.}}" y2="{{.}}"/>{{end}}
-  {{range $g.Bars}}<rect class="{{.Class}}" x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}"{{with .Colour}} data-style="--c:var(--{{.}})"{{end}}/>{{end}}
+  {{range $g.Bars}}<rect class="{{.Class}}" x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}"{{with .Colour}} data-style="--c:var(--{{.}})"{{end}} data-tip="{{num .Value $g.Prec}}{{with $u}} {{.}}{{end}}"/>{{end}}
   {{with $g.Goal}}<line class="goal{{if $.GoalDanger}} is-danger{{end}}" x1="0" x2="{{$g.W}}" y1="{{.}}" y2="{{.}}"/>{{end}}
-  {{range $g.Lines}}<path class="{{.Class}}" d="{{.D}}"/>{{end}}
+  {{range $g.Lines}}<path class="{{.Class}}" d="{{.D}}" data-values="{{nums .Values $g.Prec}}"/>{{end}}
   {{with $g.Mark}}<line class="now" x1="{{.}}" x2="{{.}}" y1="0" y2="{{$g.H}}"/>{{end}}
 </svg>
+<span class="readout"></span>
+</div>
 {{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
+</div>
 {{if graphLegend .}}<ul class="legend">{{$cols := eq (print .Kind) "cols"}}{{range $i, $s := .Series}}{{if .Label}}<li><i{{if and $cols (eq $i 1)}} class="prev"{{end}} data-style="--c:var(--{{seriesVar .Class}})"></i>{{tv .Label}}</li>{{end}}{{end}}{{if .HasGoal}}<li><i class="goal{{if .GoalDanger}} is-danger{{end}}"></i>{{t "detail.goal"}}</li>{{end}}</ul>{{end}}
 {{end}}
+
+{{/* Legend of strip states: one entry per state in its Kante colour. */}}
+{{define "state_legend"}}{{with .}}<ul class="legend">{{range .}}<li><i data-style="--c:var(--{{stateFill .}})"></i>{{t (print "chart.state." .)}}</li>{{end}}</ul>{{end}}{{end}}
 
 {{/* --c of a block: a Kante token ("d1") as var(), a service's hex colour as is. */}}
 {{define "detail_colour"}}{{if isHex .}}--c:{{.}}{{else}}--c:var(--{{.}}){{end}}{{end}}

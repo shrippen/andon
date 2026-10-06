@@ -2627,6 +2627,13 @@ table:
   more: '{count} weitere'
   sum: Summe
 chart:
+  less: weniger
+  more: mehr
+  state:
+    ok: in Ordnung
+    warn: eingeschränkt
+    bad: Ausfall
+    off: keine Daten
   season_avg: Ø Vorjahre
   seasonal: Saisonverlauf Umsatz
   revenue: Umsatz netto je Monat
@@ -4277,6 +4284,8 @@ detail:
     from_grocy: 'Fehlt laut Grocy, nicht auf der Liste'
   map_unset: 'Karte: Kartenquelle in den Einstellungen festlegen.'
 linkdetail:
+  legend_ok: erfolgreiche Prüfungen
+  legend_fail: fehlgeschlagene Prüfungen
   open_aria: Verlauf und Details
   open: Öffnen
   check_now: Jetzt prüfen
@@ -4449,6 +4458,7 @@ forecast:
   full_on: 'voll in {days} T ({day})'
   ahead_hint: 'Gestrichelt: was die nächsten {days} Tage beim bisherigen Tempo dazukommt.'
 timeline:
+  band_n: '{n} Ereignisse'
   title: 'Zeitleiste'
   lead: 'Updates und Hinweise der letzten {days} Tage, neueste zuerst.'
   update: 'Update'
