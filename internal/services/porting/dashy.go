@@ -38,6 +38,7 @@ var dashyWidgets = map[string]string{
 	"iframe": "iframe", "public-ip": "public_ip", "image": "image", "exchange-rates": "rates",
 	"hackernews-trending": "rss", "joke": "joke", "xkcd-comic": "xkcd", "apod": "apod", "nasa-apod": "apod",
 	"crypto-watch-list": "crypto", "public-holidays": "holidays", "flight-data": "flights", "stock-price-chart": "stocks",
+	"github-trending-repos": "github_trending", "sports-scores": "sports",
 }
 
 // hackerNewsFeed replaces Dashy's Hacker News widget with its RSS feed.
@@ -350,6 +351,15 @@ func dashyServiceless(target string, options map[string]any, report *Report) map
 	case "flights":
 		return map[string]any{"airport": str(options, "airport"), "api_key": str(options, "apiKey"),
 			"direction": map[string]string{"arrival": "Arrival"}[str(options, "direction")]}
+	case "github_trending":
+		config := map[string]any{"language": str(options, "lang"), "since": str(options, "since")}
+		if limit, ok := number(options["limit"]); ok {
+			config["limit"] = limit
+		}
+		return config
+	case "sports":
+		report.Notes = append(report.Notes, "sports-scores: now OpenLigaDB, set league and team")
+		return map[string]any{}
 	case "stocks":
 		report.Notes = append(report.Notes, "stock-price-chart: now quotes from stooq, no chart")
 		return map[string]any{"tickers": []any{strings.ToLower(str(options, "stock")) + usMarket}}

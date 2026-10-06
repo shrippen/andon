@@ -116,3 +116,32 @@
 {{if not (or $v.Fields $v.Rows)}}<p class="small muted">{{t "wtype.jsonapi.empty"}}</p>{{end}}
 {{end}}
 {{end}}
+
+{{define "widgets/github_trending"}}
+{{with $slot := index .Frag.Slots "repos"}}{{template "widget-slot-state" $slot}}
+{{with $r := $slot.Data}}
+<ul class="feed">
+  {{range $r.Repos}}<li><a href="{{.URL}}" target="_blank" rel="noopener noreferrer"{{with .Description}} title="{{.}}"{{end}}>{{.Name}}</a>
+    <span class="src">{{t "trending.stars" "n" .Stars}}{{with .Language}} · {{.}}{{end}}</span></li>
+  {{else}}<li class="muted">{{t "widget.empty"}}</li>{{end}}
+</ul>
+{{end}}{{end}}
+{{end}}
+
+{{define "widgets/sports"}}
+{{with $slot := index .Frag.Slots "sports"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{with or $v.Round $v.League}}<p class="small muted">{{.}}</p>{{end}}
+{{if $v.Table}}
+<div class="table-wrap"><table class="table">
+  <thead><tr><th class="num">{{t "sports.rank"}}</th><th>{{t "sports.team"}}</th><th class="num">{{t "sports.played"}}</th><th class="num">{{t "sports.diff"}}</th><th class="num">{{t "sports.points"}}</th></tr></thead>
+  <tbody>{{range $v.Table}}<tr{{if .Mine}} aria-selected="true"{{end}}><td class="num">{{.Rank}}</td><td>{{.Team}}</td><td class="num">{{.Played}}</td><td class="num">{{if gt .GoalDiff 0}}+{{end}}{{.GoalDiff}}</td><td class="num"><b>{{.Points}}</b></td></tr>{{end}}</tbody>
+</table></div>
+{{else}}
+<div class="table-wrap"><table class="table">
+  {{range $v.Matches}}<tr>
+    <td class="num">{{weekday .Kickoff}} {{.Day}} {{.Time}}</td><td>{{.Home}}</td>
+    <td class="num">{{if .Score}}<b>{{.Score}}</b>{{else}}–{{end}}{{if .Live}} <span class="pill" data-state="analyzing">{{t "sports.live"}}</span>{{end}}</td><td>{{.Away}}</td>
+  </tr>{{else}}<tr><td class="muted">{{t "widget.empty"}}</td></tr>{{end}}
+</table></div>
+{{end}}{{end}}
+{{end}}

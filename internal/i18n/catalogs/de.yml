@@ -210,6 +210,11 @@ edit:
   tile_narrow: 'Normale Breite'
   touch_hint: 'Bearbeiten ist für den Desktop gemacht. Kachel antippen für ihre Werkzeuge, noch einmal tippen öffnet sie.'
 typefield:
+  github_trending:
+    language_hint: 'Programmiersprache wie bei GitHub, z. B. go, rust, python. Leer = alle.'
+  sports:
+    league_hint: 'Kürzel bei OpenLigaDB, z. B. bl1 (Bundesliga), bl2, bl3, dfb (DFB-Pokal).'
+    team_hint: 'Teil des Mannschaftsnamens, z. B. Bayern. Spiele: die der Mannschaft; Tabelle: Zeile hervorgehoben.'
   payment_days:
     months: Zeitraum (Monate, leer = alle)
   rate_trend:
@@ -278,6 +283,10 @@ typefield:
   conn_health:
     only_problems: Nur aktuell wackelige (letzte 2 Tage)
 field:
+  language: Sprache
+  league: Liga
+  team: Mannschaft
+  since: Zeitraum
   verbund: Verbund
   title_none: Leer lassen für eine Kachel ohne Kopfzeile
   title_needed: Kopfzeile, Icon und Titel-Link erscheinen erst mit einem Titel.
@@ -549,6 +558,11 @@ field:
   list_height: 'Listenhöhe'
   show_meals: 'Essensplan zeigen'
 opt:
+  daily: Heute
+  weekly: Diese Woche
+  monthly: Dieser Monat
+  matches: Spiele
+  table: Tabelle
   trip_customers: Fahrten je Kunde
   destinations: Häufige Ziele
   exposure: 'Angriffsfläche'
@@ -709,6 +723,12 @@ area:
   main: Hauptspalte
   side: Seitenspalte
 wtype:
+  github_trending:
+    name: GitHub-Trends
+    desc: 'Neue Repositories des Zeitraums mit den meisten Sternen (GitHub-Suche), auf Wunsch einer Sprache.'
+  sports:
+    name: Sport
+    desc: 'Spieltag, Spiele einer Mannschaft oder Tabelle einer Liga von OpenLigaDB (Bundesliga u. a.).'
   kimai_week:
     name: 'Kimai-Woche'
     desc: 'Stunden je Wochentag gegen das Tagesziel.'
@@ -5493,3 +5513,13 @@ server:
   SESSION_ABSOLUTE_HOURS: Sitzung höchstens … Stunden
   OIDC_SESSION_HOURS: 'Sitzung über authentik höchstens … Stunden'
   LOG_LEVEL: Log-Stufe
+trending:
+  stars: '★ {n}'
+sports:
+  no_league: 'Keine Liga angegeben, z. B. bl1.'
+  rank: Pl.
+  team: Mannschaft
+  played: Sp.
+  diff: Diff.
+  points: Pkt.
+  live: läuft
