@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -353,7 +354,7 @@ func TestDraftUsesCustomerLink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := verbund.LinkCustomer(context.Background(), d, who, id, customerID, "C1", ""); err != nil {
+	if err := verbund.LinkCustomer(context.Background(), d, who, id, "C1", k, strconv.FormatInt(customerID, 10), ""); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.KeepSheets, ""); err != nil {

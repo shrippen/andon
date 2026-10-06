@@ -217,6 +217,13 @@ func SetKey(q db.Queryer, entryID, id int64, domain string, k Key) error {
 	return unique(err, ErrKeyTaken)
 }
 
+// DeleteKey removes one member's key of an entry; an entry left with one
+// key goes too (trigger link_keys_gone).
+func DeleteKey(q db.Queryer, entryID, connID int64) error {
+	_, err := q.Exec("DELETE FROM link_keys WHERE entry_id = ? AND connection_id = ?", entryID, connID)
+	return err
+}
+
 // DeleteEntry removes an entry with its keys.
 func DeleteEntry(q db.Queryer, entryID int64) error {
 	_, err := q.Exec("DELETE FROM link_entries WHERE id = ?", entryID)

@@ -305,6 +305,16 @@ type PaperlessDataset struct {
 	Newest      []PaperlessNew // latest added documents, newest first
 	TagCounts   map[string]int // documents per tag, by lower-case name
 	Caps        caps.Set       // receipts need the custom fields API
+	// Correspondents are who documents come from or go to, e.g. a
+	// customer whose contracts Paperless keeps (Verbund → Kunden).
+	Correspondents []PaperlessCorrespondent
+}
+
+// PaperlessCorrespondent is one sender or recipient with its documents.
+type PaperlessCorrespondent struct {
+	ID   int64
+	Name string
+	Docs int
 }
 
 // CapSet reports what the Paperless connection allows.
@@ -359,6 +369,12 @@ func fetchPaperless(ctx context.Context, sctx Ctx) (any, error) {
 		for _, raw := range asList(asMap(recent)["results"]) {
 			doc := asMap(raw)
 			data.Newest = append(data.Newest, PaperlessNew{ID: asInt64(doc["id"]), Title: asStr(doc["title"]), Added: day(doc["added"])})
+		}
+	}
+	if raw, err := api.Get(ctx, "correspondents/", url.Values{"page_size": {paperlessTagPage}}); err == nil {
+		for _, r := range asList(asMap(raw)["results"]) {
+			m := asMap(r)
+			data.Correspondents = append(data.Correspondents, PaperlessCorrespondent{ID: asInt64(m["id"]), Name: asStr(m["name"]), Docs: int(asFloat(m["document_count"]))})
 		}
 	}
 	if tags, err := api.Get(ctx, "tags/", url.Values{"page_size": {paperlessTagPage}}); err == nil {

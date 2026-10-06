@@ -49,39 +49,71 @@ func ClientMapFor(q db.Queryer, kimaiConn, ninjaConn int64) (metrics.ClientMap, 
 // "" for no counterpart. Suggestions are not stored, so only confirmed
 // and "none" keys count.
 func clientMapOf(q db.Queryer, linkID, kimaiConn, ninjaConn int64) (metrics.ClientMap, error) {
-	entries, err := linkrepo.Entries(q, linkID, string(caps.Customers))
+	keys, err := keysBetween(q, linkID, kimaiConn, ninjaConn)
 	if err != nil {
 		return nil, err
 	}
 	out := metrics.ClientMap{}
-	for _, e := range entries {
-		kimai, ninja, ok := pairKeys(e, kimaiConn, ninjaConn)
-		if !ok {
-			continue
+	for kimai, ninja := range keys {
+		if id, err := strconv.ParseInt(kimai, 10, 64); err == nil {
+			out[id] = ninja
 		}
-		id, err := strconv.ParseInt(kimai, 10, 64)
-		if err != nil {
-			continue
-		}
-		out[id] = ninja
 	}
 	return out, nil
 }
 
-// pairKeys reads an entry's Kimai id and Ninja key.
-func pairKeys(e linkrepo.Entry, kimaiConn, ninjaConn int64) (string, string, bool) {
-	var kimai, ninja string
-	var haveKimai, haveNinja bool
-	for _, k := range e.Keys {
-		switch k.ConnID {
-		case kimaiConn:
-			kimai, haveKimai = k.Key, k.Key != ""
-		case ninjaConn:
-			ninja, haveNinja = k.Key, true
-			if k.State == linkrepo.KeyNone {
-				ninja = ""
-			}
+// PayerMapFor is the customer links of the Verbund of a Sure and an
+// Invoice Ninja connection: payer → client reference.
+func PayerMapFor(q db.Queryer, sureConn, ninjaConn int64) (metrics.PayerMap, error) {
+	if sureConn == 0 || ninjaConn == 0 {
+		return nil, nil
+	}
+	id, err := LinkWith(q, sureConn, ninjaConn)
+	if err != nil || id == 0 {
+		return nil, err
+	}
+	keys, err := keysBetween(q, id, sureConn, ninjaConn)
+	return metrics.PayerMap(keys), err
+}
+
+// DocsMapFor is the customer links of the Verbund of an Invoice Ninja and
+// a Paperless connection: client reference → correspondent id.
+func DocsMapFor(q db.Queryer, ninjaConn, paperlessConn int64) (metrics.DocsMap, error) {
+	if ninjaConn == 0 || paperlessConn == 0 {
+		return nil, nil
+	}
+	id, err := LinkWith(q, ninjaConn, paperlessConn)
+	if err != nil || id == 0 {
+		return nil, err
+	}
+	keys, err := keysBetween(q, id, ninjaConn, paperlessConn)
+	if err != nil {
+		return nil, err
+	}
+	out := metrics.DocsMap{}
+	for ref, corr := range keys {
+		if n, err := strconv.ParseInt(corr, 10, 64); err == nil {
+			out[ref] = n
 		}
 	}
-	return kimai, ninja, haveKimai && haveNinja
+	return out, nil
+}
+
+// keysBetween reads the customer entries holding a key of connection a
+// and one of b: a's key → b's key, "" where b has none.
+func keysBetween(q db.Queryer, linkID, a, b int64) (map[string]string, error) {
+	entries, err := linkrepo.Entries(q, linkID, string(caps.Customers))
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]string{}
+	for _, e := range entries {
+		ka, okA := keyIn(e, a)
+		kb, okB := keyIn(e, b)
+		if !okA || !okB || ka.Key == "" {
+			continue
+		}
+		out[ka.Key] = kb.Key
+	}
+	return out, nil
 }

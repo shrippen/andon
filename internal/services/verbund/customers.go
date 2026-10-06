@@ -1,13 +1,16 @@
 package verbund
 
-// Customers of a Verbund: which Kimai customer is which Invoice Ninja
-// client. The view proposes the client of the most similar name; a link
-// is stored only when someone confirms it or says there is none.
-// Invoice Ninja holds the names: "align" writes its name to Kimai.
+// Customers of a Verbund: one customer across its members. Invoice Ninja
+// holds the names (caps.NameSource), so its clients are the rows; each
+// other member (Kimai, Sure, Paperless) is a column. The view proposes
+// the free entry of the most similar name; a link is stored only when
+// someone confirms it or says there is none. Without Invoice Ninja,
+// Kimai leads.
 //
-//	Kimai 12 "Acme"  ──confirmed──►  Ninja Kx9 "ACME GmbH"   (align → Kimai)
-//	Kimai 15 "Intern" ─none───────►  –
-//	Kimai 17 "Beta"   ┄suggested┄┄►  Ninja Zz1 "Beta KG"     (not stored)
+//	Ninja Kx9 "ACME GmbH" ── Kimai 12 "Acme" (align → "ACME GmbH")
+//	                      ── Sure "ACME GMBH" (payer)
+//	                      ── Paperless 7 "ACME" (correspondent)
+//	Ninja Zz1 "Beta KG"   ┄┄ Kimai 17 "Beta" (suggested, not stored)
 
 import (
 	"context"
@@ -22,6 +25,7 @@ import (
 	"andon/internal/caps"
 	"andon/internal/db"
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/outbound"
 	"andon/internal/repos/content"
@@ -33,102 +37,182 @@ import (
 )
 
 var (
-	// ErrNoCustomers: the Verbund lacks a Kimai or an Invoice Ninja.
+	// ErrNoCustomers: the Verbund has fewer than two members that know
+	// customers.
 	ErrNoCustomers = errors.New("verbund.no_customers")
-	// ErrClientTaken: that client belongs to another customer already.
+	// ErrClientTaken: that entry belongs to another customer already.
 	ErrClientTaken = errors.New("verbund.client_taken")
 	// ErrNoData: the datasets have not been fetched yet.
 	ErrNoData = errors.New("verbund.no_data")
-	// ErrUnknownCustomer: the customer or client is not in the fetched data.
+	// ErrUnknownCustomer: the customer or entry is not in the fetched data.
 	ErrUnknownCustomer = errors.New("verbund.unknown_customer")
 	// ErrDemo: demo connections take no writes.
 	ErrDemo = errors.New("verbund.demo")
 )
 
-// CustomerState says how a customer's client is known.
+// customerServices know customers, in the order that picks the rows:
+// Invoice Ninja holds the names.
+var customerServices = []enums.ServiceType{enums.ServiceInvoiceNinja, enums.ServiceKimai, enums.ServiceSure, enums.ServicePaperless}
+
+// CustomerState says how a customer is known in a member.
 type CustomerState string
 
 const (
 	CustomerConfirmed CustomerState = "confirmed"
-	CustomerNone      CustomerState = "none"      // no client, said so
+	CustomerNone      CustomerState = "none"      // no counterpart, said so
 	CustomerSuggested CustomerState = "suggested" // most similar name, not stored
 	CustomerOpen      CustomerState = "open"      // nothing similar
 )
 
-// CustomerRow is one Kimai customer with its client.
-type CustomerRow struct {
-	KimaiID     int64
-	KimaiName   string
-	ClientKey   string
-	ClientName  string
+// Party is a customer as one member knows it: a Kimai customer, a Ninja
+// client, a Sure payer, a Paperless correspondent.
+type Party struct {
+	Key, Name string
+}
+
+// Column is a member with the customers it knows.
+type Column struct {
+	ConnID  int64
+	Service enums.ServiceType
+	Name    string // the connection's
+	Parties []Party
+}
+
+// Cell is a row's customer in one column.
+type Cell struct {
+	Key, Name   string
 	State       CustomerState
-	NameDiffers bool // confirmed, but Kimai has another name than Ninja
+	NameDiffers bool // Kimai, confirmed, with another name than Ninja's
+}
+
+// CustomerRow is one customer of the leading member with its cells, in
+// the order of CustomerView.Columns.
+type CustomerRow struct {
+	Key, Name string
+	Cells     []Cell
+}
+
+// Orphan is a stored customer of a column that has no counterpart in the
+// leading member, e.g. Kimai "Intern" without an Invoice Ninja client.
+type Orphan struct {
+	EntryID int64
+	Service enums.ServiceType
+	Name    string
 }
 
 // CustomerView is a Verbund's customers.
 type CustomerView struct {
 	Verbund  View
-	Rows     []CustomerRow // open and suggested first, then by name
-	Clients  []sources.NinjaClient
-	CanAlign bool // Kimai takes names (caps)
+	Hub      Column
+	Columns  []Column
+	Rows     []CustomerRow // rows with open or suggested cells first, then by name
+	Orphans  []Orphan
+	CanAlign bool // Kimai takes names from Invoice Ninja (caps)
 }
 
-// Suggested says whether a row waits for a confirmed suggestion.
+// Suggested says whether a cell waits for a confirmed suggestion.
 func (v CustomerView) Suggested() bool {
 	for _, r := range v.Rows {
-		if r.State == CustomerSuggested && r.ClientKey != "" {
-			return true
+		for _, c := range r.Cells {
+			if c.State == CustomerSuggested {
+				return true
+			}
 		}
 	}
 	return false
 }
 
-// members is a Verbund's Kimai and Ninja connections.
-type members struct {
-	kimai, ninja *model.Connection
-}
+// members is a Verbund's connections that know customers, leader first.
+type members []*model.Connection
 
 func membersOf(q db.Queryer, v View) (members, error) {
-	var out members
+	byService := map[enums.ServiceType]*model.Connection{}
 	for _, m := range v.Members {
 		c, err := content.Connection(q, m.ConnID)
 		if err != nil {
-			return out, err
+			return nil, err
 		}
-		switch m.Service {
-		case enums.ServiceKimai:
-			out.kimai = c
-		case enums.ServiceInvoiceNinja:
-			out.ninja = c
+		if c != nil {
+			byService[m.Service] = c
 		}
 	}
-	if out.kimai == nil || out.ninja == nil {
-		return out, ErrNoCustomers
+	var out members
+	for _, s := range customerServices {
+		if c := byService[s]; c != nil && caps.Full(caps.HolderOf(s)).Can(caps.Customers, caps.Read, "") {
+			out = append(out, c)
+		}
+	}
+	if len(out) < 2 {
+		return nil, ErrNoCustomers
 	}
 	return out, nil
 }
 
-// datasets reads both members' data: cached, fetched when gone (a
-// settings page, not a board; after a rename the cache is dropped).
-func datasets(ctx context.Context, d *sql.DB, who *access.Principal, m members) (*sources.KimaiDataset, *sources.NinjaDataset, error) {
-	holder := model.UserHolder(who.UserID)
-	k, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceKimai), nil, m.kimai, holder, svcdata.Cached)
-	if err != nil {
-		return nil, nil, err
+func (m members) hub() *model.Connection { return m[0] }
+
+// of is the member of service, nil if none.
+func (m members) of(s enums.ServiceType) *model.Connection {
+	for _, c := range m {
+		if c.Service == string(s) {
+			return c
+		}
 	}
-	n, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceInvoiceNinja), nil, m.ninja, holder, svcdata.Cached)
-	if err != nil {
-		return nil, nil, err
-	}
-	kimai, ok1 := k.Data.(*sources.KimaiDataset)
-	ninja, ok2 := n.Data.(*sources.NinjaDataset)
-	if !ok1 || !ok2 {
-		return nil, nil, ErrNoData
-	}
-	return kimai, ninja, nil
+	return nil
 }
 
-// Customers lists a Verbund's customers with their clients. Requires
+// columnsOf reads every member's customers: cached data, fetched when
+// gone (a settings page, not a board).
+func columnsOf(ctx context.Context, d *sql.DB, who *access.Principal, m members) ([]Column, error) {
+	holder := model.UserHolder(who.UserID)
+	out := make([]Column, 0, len(m))
+	for _, c := range m {
+		service := enums.ServiceType(c.Service)
+		r, err := svcdata.Get(ctx, d, sources.DataKey(service), nil, c, holder, svcdata.Cached)
+		if err != nil {
+			return nil, err
+		}
+		parties, ok := partiesOf(r.Data)
+		if !ok {
+			return nil, ErrNoData
+		}
+		out = append(out, Column{ConnID: c.ID, Service: service, Name: c.Name, Parties: parties})
+	}
+	return out, nil
+}
+
+// partiesOf lists a dataset's customers, sorted by name; false for a
+// dataset that is not there (yet).
+func partiesOf(data any) ([]Party, bool) {
+	var out []Party
+	switch ds := data.(type) {
+	case *sources.NinjaDataset:
+		for _, c := range ds.Clients {
+			out = append(out, Party{c.Ref(), c.Name})
+		}
+	case *sources.KimaiDataset:
+		for _, c := range ds.Customers {
+			out = append(out, Party{strconv.FormatInt(c.ID, 10), c.Name})
+		}
+	case *sources.SureDataset:
+		seen := map[string]bool{}
+		for _, t := range ds.Transactions {
+			if p := metrics.Payer(t); t.Amount > 0 && p != "" && !seen[p] {
+				seen[p] = true
+				out = append(out, Party{p, p})
+			}
+		}
+	case *sources.PaperlessDataset:
+		for _, c := range ds.Correspondents {
+			out = append(out, Party{strconv.FormatInt(c.ID, 10), c.Name})
+		}
+	default:
+		return nil, false
+	}
+	sort.SliceStable(out, func(a, b int) bool { return strings.ToLower(out[a].Name) < strings.ToLower(out[b].Name) })
+	return out, true
+}
+
+// Customers lists a Verbund's customers across its members. Requires
 // VIEW on every member.
 func Customers(ctx context.Context, d *sql.DB, who *access.Principal, id int64) (CustomerView, error) {
 	v, err := Get(d, who, id)
@@ -139,48 +223,62 @@ func Customers(ctx context.Context, d *sql.DB, who *access.Principal, id int64) 
 	if err != nil {
 		return CustomerView{}, err
 	}
-	kimai, ninja, err := datasets(ctx, d, who, m)
+	cols, err := columnsOf(ctx, d, who, m)
 	if err != nil {
 		return CustomerView{}, err
 	}
-	links, err := clientMapOf(d, id, m.kimai.ID, m.ninja.ID)
+	entries, err := linkrepo.Entries(d, id, string(caps.Customers))
 	if err != nil {
 		return CustomerView{}, err
 	}
-
-	out := CustomerView{Verbund: v, Clients: ninja.Clients,
-		CanAlign: caps.Full(caps.HolderOf(enums.ServiceKimai)).Can(caps.Customers, caps.Update, "")}
-	out.Rows = customerRows(kimai, ninja, links)
+	out := CustomerView{Verbund: v, Hub: cols[0], Columns: cols[1:],
+		CanAlign: m.hub().Service == string(enums.ServiceInvoiceNinja) && m.of(enums.ServiceKimai) != nil &&
+			caps.Full(caps.HolderOf(enums.ServiceKimai)).Can(caps.Customers, caps.Update, "")}
+	out.Rows = customerRows(out.Hub, out.Columns, entries)
+	out.Orphans = orphans(out.Hub, out.Columns, entries)
 	return out, nil
 }
 
-// customerRows pairs each Kimai customer: stored link first, else the
-// free client of the most similar name.
-func customerRows(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, links map[int64]string) []CustomerRow {
-	byKey := map[string]sources.NinjaClient{}
-	taken := map[string]bool{}
-	for _, c := range ninja.Clients {
-		byKey[c.Ref()] = c
+// customerRows gives each leading customer its cells: stored keys first,
+// else the free customer of the most similar name.
+func customerRows(hub Column, cols []Column, entries []linkrepo.Entry) []CustomerRow {
+	byHub := map[string]linkrepo.Entry{}
+	taken := make([]map[string]bool, len(cols))
+	for i := range cols {
+		taken[i] = map[string]bool{}
 	}
-	for _, key := range links {
-		taken[key] = true
+	for _, e := range entries {
+		if k, ok := keyIn(e, hub.ConnID); ok && k.State == linkrepo.KeyConfirmed {
+			byHub[k.Key] = e
+		}
+		for i, c := range cols {
+			if k, ok := keyIn(e, c.ConnID); ok && k.Key != "" {
+				taken[i][k.Key] = true
+			}
+		}
 	}
 
-	var out []CustomerRow
-	for _, cust := range kimai.Customers {
-		row := CustomerRow{KimaiID: cust.ID, KimaiName: cust.Name, State: CustomerOpen}
-		key, stored := links[cust.ID]
-		switch {
-		case stored && key == "":
-			row.State = CustomerNone
-		case stored:
-			c := byKey[key]
-			row.State, row.ClientKey, row.ClientName = CustomerConfirmed, key, c.Name
-			row.NameDiffers = c.Name != "" && c.Name != cust.Name
-		default:
-			if c, ok := similar(cust.Name, ninja.Clients, taken); ok {
-				row.State, row.ClientKey, row.ClientName = CustomerSuggested, c.Ref(), c.Name
+	out := make([]CustomerRow, 0, len(hub.Parties))
+	for _, p := range hub.Parties {
+		row := CustomerRow{Key: p.Key, Name: p.Name, Cells: make([]Cell, len(cols))}
+		e, stored := byHub[p.Key]
+		for i, c := range cols {
+			cell := Cell{State: CustomerOpen}
+			k, has := keyIn(e, c.ConnID)
+			switch {
+			case stored && has && k.State == linkrepo.KeyNone:
+				cell.State = CustomerNone
+			case stored && has:
+				cell.State, cell.Key, cell.Name = CustomerConfirmed, k.Key, nameOf(c.Parties, k.Key)
+				cell.NameDiffers = c.Service == enums.ServiceKimai && hub.Service == enums.ServiceInvoiceNinja &&
+					cell.Name != "" && cell.Name != p.Name
+			default:
+				if s, ok := similar(p.Name, c.Parties, taken[i]); ok {
+					cell.State, cell.Key, cell.Name = CustomerSuggested, s.Key, s.Name
+					taken[i][s.Key] = true // one suggestion per customer
+				}
 			}
+			row.Cells[i] = cell
 		}
 		out = append(out, row)
 	}
@@ -188,12 +286,49 @@ func customerRows(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, link
 		if open(out[a]) != open(out[b]) {
 			return open(out[a])
 		}
-		return strings.ToLower(out[a].KimaiName) < strings.ToLower(out[b].KimaiName)
+		return strings.ToLower(out[a].Name) < strings.ToLower(out[b].Name)
 	})
 	return out
 }
 
-func open(r CustomerRow) bool { return r.State == CustomerOpen || r.State == CustomerSuggested }
+func open(r CustomerRow) bool {
+	return slices.ContainsFunc(r.Cells, func(c Cell) bool { return c.State == CustomerOpen || c.State == CustomerSuggested })
+}
+
+// orphans are stored entries without a leading customer: what a column
+// marked as having none there (Kimai "Intern": no Ninja client).
+func orphans(hub Column, cols []Column, entries []linkrepo.Entry) []Orphan {
+	var out []Orphan
+	for _, e := range entries {
+		if k, ok := keyIn(e, hub.ConnID); ok && k.State == linkrepo.KeyConfirmed {
+			continue
+		}
+		for _, c := range cols {
+			if k, ok := keyIn(e, c.ConnID); ok && k.Key != "" {
+				out = append(out, Orphan{EntryID: e.ID, Service: c.Service, Name: nameOf(c.Parties, k.Key)})
+			}
+		}
+	}
+	return out
+}
+
+func nameOf(list []Party, key string) string {
+	for _, p := range list {
+		if p.Key == key {
+			return p.Name
+		}
+	}
+	return key
+}
+
+func keyIn(e linkrepo.Entry, connID int64) (linkrepo.Key, bool) {
+	for _, k := range e.Keys {
+		if k.ConnID == connID {
+			return k, true
+		}
+	}
+	return linkrepo.Key{}, false
+}
 
 // legalForms are left out when names are compared: "Acme GmbH" ~ "ACME".
 var legalForms = map[string]bool{"gmbh": true, "co": true, "kg": true, "ag": true, "ug": true, "mbh": true, "ek": true,
@@ -202,17 +337,17 @@ var legalForms = map[string]bool{"gmbh": true, "co": true, "kg": true, "ag": tru
 // minSimilar is the share of name words two names must share.
 const minSimilar = 0.5
 
-// similar is the free client whose name shares the most words with name.
-func similar(name string, clients []sources.NinjaClient, taken map[string]bool) (sources.NinjaClient, bool) {
+// similar is the free party whose name shares the most words with name.
+func similar(name string, list []Party, taken map[string]bool) (Party, bool) {
 	want := words(name)
-	var best sources.NinjaClient
+	var best Party
 	bestScore := 0.0
-	for _, c := range clients {
-		if taken[c.Ref()] {
+	for _, p := range list {
+		if taken[p.Key] {
 			continue
 		}
-		if score := overlap(want, words(c.Name)); score > bestScore {
-			best, bestScore = c, score
+		if score := overlap(want, words(p.Name)); score > bestScore {
+			best, bestScore = p, score
 		}
 	}
 	return best, bestScore >= minSimilar
@@ -249,89 +384,79 @@ func overlap(a, b map[string]bool) float64 {
 	return float64(both) / float64(len(a)+len(b)-both)
 }
 
-// LinkCustomer stores a Kimai customer's client; clientKey "" says it
-// has none. Requires EDIT on every member.
-func LinkCustomer(ctx context.Context, d *sql.DB, who *access.Principal, id, customerID int64, clientKey, ip string) error {
-	if err := known(ctx, d, who, id, customerID, clientKey); err != nil {
+// LinkCustomer stores the customer of column connID for the leading
+// customer hubKey; key "" says the column has none. Only customers the
+// services have are taken. Requires EDIT on every member.
+func LinkCustomer(ctx context.Context, d *sql.DB, who *access.Principal, id int64, hubKey string, connID int64, key, ip string) error {
+	view, err := Customers(ctx, d, who, id)
+	if err != nil {
 		return err
 	}
+	col, ok := view.column(connID)
+	if !ok || !hasParty(view.Hub.Parties, hubKey) || (key != "" && !hasParty(col.Parties, key)) {
+		return ErrUnknownCustomer
+	}
 	return change(d, who, id, func(tx *sql.Tx, l *linkrepo.Link) error {
-		v, _, err := viewOf(tx, who, *l)
-		if err != nil {
+		if err := putCell(tx, id, view.Hub.ConnID, hubKey, connID, key); err != nil {
 			return err
 		}
-		m, err := membersOf(tx, v)
-		if err != nil {
-			return err
-		}
-		if err := putCustomer(tx, id, m, customerID, clientKey); err != nil {
-			return err
-		}
-		return audit.Log(tx, &who.UserID, "verbund.customer_linked", l.Name, ip, map[string]any{"customer": customerID, "client": clientKey})
+		return audit.Log(tx, &who.UserID, "verbund.customer_linked", l.Name, ip, map[string]any{"customer": hubKey, "service": col.Service, "key": key})
 	})
 }
 
-// known checks the customer and the client ("" = none) against the
-// fetched data: a link to something the services do not have is no link.
-func known(ctx context.Context, d *sql.DB, who *access.Principal, id, customerID int64, clientKey string) error {
-	v, err := Get(d, who, id)
-	if err != nil {
-		return err
+func (v CustomerView) column(connID int64) (Column, bool) {
+	for _, c := range v.Columns {
+		if c.ConnID == connID {
+			return c, true
+		}
 	}
-	m, err := membersOf(d, v)
-	if err != nil {
-		return err
-	}
-	kimai, ninja, err := datasets(ctx, d, who, m)
-	if err != nil {
-		return err
-	}
-	customer := slices.ContainsFunc(kimai.Customers, func(c sources.KimaiCustomer) bool { return c.ID == customerID })
-	client := clientKey == "" || slices.ContainsFunc(ninja.Clients, func(c sources.NinjaClient) bool { return c.Ref() == clientKey })
-	if !customer || !client {
-		return ErrUnknownCustomer
-	}
-	return nil
+	return Column{}, false
 }
 
-// putCustomer writes one customer's entry, replacing an earlier one.
-func putCustomer(tx *sql.Tx, id int64, m members, customerID int64, clientKey string) error {
-	ninja := linkrepo.Key{ConnID: m.ninja.ID, Key: clientKey, State: linkrepo.KeyConfirmed}
-	if clientKey == "" {
-		ninja.State = linkrepo.KeyNone
-	}
+func hasParty(list []Party, key string) bool {
+	return slices.ContainsFunc(list, func(p Party) bool { return p.Key == key })
+}
+
+// putCell sets one column's key in the leading customer's entry. A key
+// that sat in an orphan entry moves here.
+func putCell(tx *sql.Tx, id, hubConn int64, hubKey string, connID int64, key string) error {
 	domain := string(caps.Customers)
 	entries, err := linkrepo.Entries(tx, id, domain)
 	if err != nil {
 		return err
 	}
-	kimaiKey := strconv.FormatInt(customerID, 10)
+	var entryID int64
 	for _, e := range entries {
-		if keyOf(e, m.kimai.ID) == kimaiKey {
+		hk, hubbed := keyIn(e, hubConn)
+		anchored := hubbed && hk.State == linkrepo.KeyConfirmed
+		if anchored && hk.Key == hubKey {
+			entryID = e.ID
+			continue
+		}
+		if k, ok := keyIn(e, connID); ok && key != "" && k.Key == key && !anchored {
 			if err := linkrepo.DeleteEntry(tx, e.ID); err != nil {
 				return err
 			}
 		}
 	}
-	_, err = linkrepo.PutEntry(tx, id, domain, []linkrepo.Key{{ConnID: m.kimai.ID, Key: kimaiKey, State: linkrepo.KeyConfirmed}, ninja}, time.Now().UTC())
+	k := linkrepo.Key{ConnID: connID, Key: key, State: linkrepo.KeyConfirmed}
+	if key == "" {
+		k.State = linkrepo.KeyNone
+	}
+	if entryID != 0 {
+		err = linkrepo.SetKey(tx, entryID, id, domain, k)
+	} else {
+		_, err = linkrepo.PutEntry(tx, id, domain, []linkrepo.Key{{ConnID: hubConn, Key: hubKey, State: linkrepo.KeyConfirmed}, k}, time.Now().UTC())
+	}
 	if errors.Is(err, linkrepo.ErrKeyTaken) {
 		return ErrClientTaken
 	}
 	return err
 }
 
-func keyOf(e linkrepo.Entry, connID int64) string {
-	for _, k := range e.Keys {
-		if k.ConnID == connID {
-			return k.Key
-		}
-	}
-	return ""
-}
-
-// UnlinkCustomer forgets a customer's stored client: the name decides
-// again. Requires EDIT on every member.
-func UnlinkCustomer(d *sql.DB, who *access.Principal, id, customerID int64, ip string) error {
+// UnlinkCustomer forgets the column's key of a leading customer: the
+// name decides again. Requires EDIT on every member.
+func UnlinkCustomer(d *sql.DB, who *access.Principal, id int64, hubKey string, connID int64, ip string) error {
 	return change(d, who, id, func(tx *sql.Tx, l *linkrepo.Link) error {
 		v, _, err := viewOf(tx, who, *l)
 		if err != nil {
@@ -346,18 +471,36 @@ func UnlinkCustomer(d *sql.DB, who *access.Principal, id, customerID int64, ip s
 			return err
 		}
 		for _, e := range entries {
-			if keyOf(e, m.kimai.ID) == strconv.FormatInt(customerID, 10) {
-				if err := linkrepo.DeleteEntry(tx, e.ID); err != nil {
+			if hk, ok := keyIn(e, m.hub().ID); ok && hk.State == linkrepo.KeyConfirmed && hk.Key == hubKey {
+				// The trigger drops the entry once only the hub's key is left.
+				if err := linkrepo.DeleteKey(tx, e.ID, connID); err != nil {
 					return err
 				}
 			}
 		}
-		return audit.Log(tx, &who.UserID, "verbund.customer_unlinked", l.Name, ip, map[string]any{"customer": customerID})
+		return audit.Log(tx, &who.UserID, "verbund.customer_unlinked", l.Name, ip, map[string]any{"customer": hubKey, "connection": connID})
 	})
 }
 
-// ConfirmSuggestions stores every suggested client. Requires EDIT on
-// every member.
+// RemoveOrphan forgets an orphan entry. Requires EDIT on every member.
+func RemoveOrphan(d *sql.DB, who *access.Principal, id, entryID int64, ip string) error {
+	return change(d, who, id, func(tx *sql.Tx, l *linkrepo.Link) error {
+		entries, err := linkrepo.Entries(tx, id, string(caps.Customers))
+		if err != nil {
+			return err
+		}
+		if !slices.ContainsFunc(entries, func(e linkrepo.Entry) bool { return e.ID == entryID }) {
+			return ErrUnknownCustomer
+		}
+		if err := linkrepo.DeleteEntry(tx, entryID); err != nil {
+			return err
+		}
+		return audit.Log(tx, &who.UserID, "verbund.customer_unlinked", l.Name, ip, map[string]any{"entry": entryID})
+	})
+}
+
+// ConfirmSuggestions stores every suggested cell. Requires EDIT on every
+// member.
 func ConfirmSuggestions(ctx context.Context, d *sql.DB, who *access.Principal, id int64, ip string) (int, error) {
 	view, err := Customers(ctx, d, who, id)
 	if err != nil {
@@ -365,27 +508,25 @@ func ConfirmSuggestions(ctx context.Context, d *sql.DB, who *access.Principal, i
 	}
 	n := 0
 	err = change(d, who, id, func(tx *sql.Tx, l *linkrepo.Link) error {
-		m, err := membersOf(tx, view.Verbund)
-		if err != nil {
-			return err
-		}
 		for _, r := range view.Rows {
-			if r.State != CustomerSuggested || r.ClientKey == "" {
-				continue
+			for i, c := range r.Cells {
+				if c.State != CustomerSuggested {
+					continue
+				}
+				if err := putCell(tx, id, view.Hub.ConnID, r.Key, view.Columns[i].ConnID, c.Key); err != nil {
+					return err
+				}
+				n++
 			}
-			if err := putCustomer(tx, id, m, r.KimaiID, r.ClientKey); err != nil {
-				return err
-			}
-			n++
 		}
 		return audit.Log(tx, &who.UserID, "verbund.customers_confirmed", l.Name, ip, map[string]any{"count": n})
 	})
 	return n, err
 }
 
-// AlignName writes the client's name (Invoice Ninja holds the names) to
-// the Kimai customer. Requires EDIT on every member.
-func AlignName(ctx context.Context, d *sql.DB, who *access.Principal, id, customerID int64, ip string) error {
+// AlignName writes the Invoice Ninja client's name to its linked Kimai
+// customer. Requires EDIT on every member.
+func AlignName(ctx context.Context, d *sql.DB, who *access.Principal, id int64, hubKey string, ip string) error {
 	view, err := Customers(ctx, d, who, id)
 	if err != nil {
 		return err
@@ -393,32 +534,46 @@ func AlignName(ctx context.Context, d *sql.DB, who *access.Principal, id, custom
 	if !view.Verbund.CanEdit {
 		return access.ErrDenied
 	}
-	var row *CustomerRow
-	for i := range view.Rows {
-		if view.Rows[i].KimaiID == customerID && view.Rows[i].State == CustomerConfirmed {
-			row = &view.Rows[i]
+	if !view.CanAlign {
+		return nil
+	}
+	var cell Cell
+	var name string
+	for _, r := range view.Rows {
+		if r.Key != hubKey {
+			continue
+		}
+		for i, c := range r.Cells {
+			if view.Columns[i].Service == enums.ServiceKimai && c.State == CustomerConfirmed && c.NameDiffers {
+				cell, name = c, r.Name
+			}
 		}
 	}
-	if row == nil || !row.NameDiffers {
+	if name == "" {
 		return nil
+	}
+	customerID, err := strconv.ParseInt(cell.Key, 10, 64)
+	if err != nil {
+		return ErrUnknownCustomer
 	}
 	m, err := membersOf(d, view.Verbund)
 	if err != nil {
 		return err
 	}
-	if sources.IsDemo(m.kimai.URL) {
+	kimai := m.of(enums.ServiceKimai)
+	if sources.IsDemo(kimai.URL) {
 		return ErrDemo
 	}
-	sctx, err := svcdata.SourceCtx(d, m.kimai, model.UserHolder(who.UserID))
+	sctx, err := svcdata.SourceCtx(d, kimai, model.UserHolder(who.UserID))
 	if err != nil {
 		return err
 	}
-	to := outbound.Target{URL: m.kimai.URL, Token: sctx.Secret, VerifyTLS: m.kimai.VerifyTLS}
-	if err := outbound.KimaiRenameCustomer(ctx, to, customerID, row.ClientName); err != nil {
+	to := outbound.Target{URL: kimai.URL, Token: sctx.Secret, VerifyTLS: kimai.VerifyTLS}
+	if err := outbound.KimaiRenameCustomer(ctx, to, customerID, name); err != nil {
 		return err
 	}
-	svcdata.Forget(m.kimai.ID)
+	svcdata.Forget(kimai.ID)
 	return db.WithTx(d, func(tx *sql.Tx) error {
-		return audit.Log(tx, &who.UserID, "verbund.customer_renamed", row.ClientName, ip, map[string]any{"customer": customerID, "was": row.KimaiName})
+		return audit.Log(tx, &who.UserID, "verbund.customer_renamed", name, ip, map[string]any{"customer": customerID, "was": cell.Name})
 	})
 }

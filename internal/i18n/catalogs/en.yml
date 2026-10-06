@@ -5292,6 +5292,7 @@ immich:
   failed: '{n} failed jobs'
   update: 'Update to {version} available'
 clients:
+  docs: Documents in Paperless
   customer: 'Customer'
   hours_year: 'Hours (year)'
   hours_month: '{hours} h this month'
@@ -5426,7 +5427,8 @@ caps:
   note: 'Only partly usable:'
 verbund:
   customers: Customers
-  customers_lead: 'Which Kimai customer is which Invoice Ninja client. Andon suggests the most similar name; only what you confirm is stored. Invoice Ninja holds the names: "Take name" writes it to Kimai. Without a link, the same name decides.'
+  customers_lead: 'Which Invoice Ninja client is which Kimai customer, which Sure payer and which Paperless correspondent. Andon suggests the most similar name; only what you confirm is stored. Invoice Ninja holds the names: “Take name” writes it to Kimai. Without a link the same name decides.'
+  customers_how: 'Per field: “–” lets the name decide, “No counterpart” says there is none there.'
   confirm_all: Confirm all suggestions
   state: State
   state_confirmed: linked
@@ -5437,8 +5439,9 @@ verbund:
   unlink: Reset
   none_client: No counterpart
   align: Take name
-  no_customers: 'Customers exist only in a Verbund with Kimai and Invoice Ninja.'
-  client_taken: 'This Invoice Ninja client is linked to another Kimai customer already.'
+  no_customers: 'Customers need a Verbund with at least two of Invoice Ninja, Kimai, Sure and Paperless.'
+  orphans: 'Without a customer in {service}'
+  client_taken: 'This entry belongs to another customer already.'
   unknown_customer: 'The services do not know this customer (any more). Reload the page.'
   no_data: 'No data fetched from Kimai or Invoice Ninja yet.'
   demo: 'Demo connections take no changes.'

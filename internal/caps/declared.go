@@ -59,6 +59,7 @@ var declared = map[Holder][]Cap{
 	HolderOf(enums.ServiceSure): {
 		{Domain: Payments, Op: Read},      // transactions of the bank accounts
 		{Domain: Subscriptions, Op: Read}, // recurring transactions
+		{Domain: Customers, Op: Read},     // payers of incomes
 	},
 	HolderOf(enums.ServiceWallos): {
 		{Domain: Subscriptions, Op: Read},
@@ -68,6 +69,7 @@ var declared = map[Holder][]Cap{
 	},
 	HolderOf(enums.ServicePaperless): {
 		{Domain: Subscriptions, Op: Read}, // contracts with their deadlines
+		{Domain: Customers, Op: Read},     // correspondents
 		{Domain: Receipts, Op: Read, Needs: []Need{paperlessField}},
 		{Domain: Receipts, Op: Create},                                // upload
 		{Domain: Receipts, Op: Update, Needs: []Need{paperlessField}}, // custom fields

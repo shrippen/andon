@@ -90,7 +90,11 @@ func Payments(ctx context.Context, d *sql.DB, who *access.Principal) ([]Payment,
 		if err != nil || sure == nil || ninja == nil {
 			continue
 		}
-		for _, m := range metrics.PaymentMatches(sure, ninja, time.Now().UTC(), paymentDays) {
+		payers, err := verbund.PayerMapFor(d, b.sure.ID, b.ninja.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, m := range metrics.PaymentMatches(sure, ninja, time.Now().UTC(), paymentDays, payers) {
 			out = append(out, Payment{SpaceID: b.space.ID, SpaceName: b.space.Name, SureID: b.sure.ID, PaymentMatch: m})
 		}
 	}
@@ -121,8 +125,12 @@ func Book(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, sureID
 	if sure == nil || ninja == nil {
 		return ErrNoMatch
 	}
+	payers, err := verbund.PayerMapFor(d, b.sure.ID, b.ninja.ID)
+	if err != nil {
+		return err
+	}
 	var match *metrics.PaymentMatch
-	for _, m := range metrics.PaymentMatches(sure, ninja, time.Now().UTC(), paymentDays) {
+	for _, m := range metrics.PaymentMatches(sure, ninja, time.Now().UTC(), paymentDays, payers) {
 		if m.Txn.ID == txnID && m.Invoice.ID == invoiceID {
 			match = &m
 		}

@@ -28,7 +28,7 @@ func TestPaymentMatchesCheckName(t *testing.T) {
 	}}
 
 	got := map[string]metrics.PaymentMatch{}
-	for _, m := range metrics.PaymentMatches(sure, ninja, today, 120) {
+	for _, m := range metrics.PaymentMatches(sure, ninja, today, 120, nil) {
 		got[m.Txn.ID] = m
 	}
 	if m, ok := got["a"]; !ok || m.Invoice.ID != 38 || m.NameFits {
@@ -39,5 +39,52 @@ func TestPaymentMatchesCheckName(t *testing.T) {
 	}
 	if m, ok := got["c"]; !ok || m.Invoice.ID != 41 || !m.NameFits {
 		t.Errorf("c: %+v", m)
+	}
+}
+
+// A payer whose name says nothing ("NSH Treuhand" pays for Nivre) fits
+// once the Verbund links it to the client; its other incomes count as
+// the client's, while a payer linked to "no client" stays anybody's.
+func TestPaymentMatchesFollowPayerLinks(t *testing.T) {
+	today := time.Date(2026, 9, 26, 0, 0, 0, 0, time.UTC)
+	ninja := &sources.NinjaDataset{
+		Clients:  []sources.NinjaClient{{ID: 1, Key: "Nv1", Name: "Nivre Film & Studio GmbH"}},
+		Invoices: []sources.NinjaInvoice{{ID: 38, Number: "R2025/0038", ClientID: 1, Status: "sent", Date: "2026-06-01", Amount: 952, Balance: 952}},
+	}
+	sure := &sources.SureDataset{Transactions: []sources.SureTxn{
+		{ID: "a", Date: "2026-07-22", Name: "Gutschrift", Merchant: "NSH Treuhand", Amount: 952},
+		{ID: "b", Date: "2026-08-22", Name: "Gutschrift", Merchant: "NSH Treuhand", Amount: 120},
+		{ID: "c", Date: "2026-08-23", Name: "Erstattung", Merchant: "Finanzamt", Amount: 80},
+	}}
+
+	if m := metrics.PaymentMatches(sure, ninja, today, 120, nil); len(m) != 1 || m[0].NameFits {
+		t.Fatalf("unlinked: %+v", m)
+	}
+	payers := metrics.PayerMap{"NSH Treuhand": "Nv1", "Finanzamt": ""}
+	matches := metrics.PaymentMatches(sure, ninja, today, 120, payers)
+	if len(matches) != 1 || !matches[0].NameFits || !matches[0].Sure() {
+		t.Fatalf("linked: %+v", matches)
+	}
+	unmatched := metrics.UnmatchedIncome(sure, ninja, matches, today, 120, payers)
+	if len(unmatched) != 1 || unmatched[0].ID != "b" {
+		t.Fatalf("unmatched: %+v", unmatched)
+	}
+}
+
+// Without a merchant the booking text names the payer; invoice numbers
+// and dates in it vary per booking and are left out.
+func TestPayer(t *testing.T) {
+	for _, c := range []struct {
+		txn  sources.SureTxn
+		want string
+	}{
+		{sources.SureTxn{Name: "Gutschrift", Merchant: "ACME GmbH"}, "ACME GmbH"},
+		{sources.SureTxn{Name: "Northlight Pictures RE-2026-017"}, "Northlight Pictures"},
+		{sources.SureTxn{Name: "Northlight Pictures  RE-2026-021 vom 01.09."}, "Northlight Pictures vom"},
+		{sources.SureTxn{Name: "4711"}, "4711"},
+	} {
+		if got := metrics.Payer(c.txn); got != c.want {
+			t.Errorf("%+v: %q, want %q", c.txn, got, c.want)
+		}
 	}
 }

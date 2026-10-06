@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"errors"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,6 +35,7 @@ type Card struct {
 	SpaceName string
 	KimaiID   int64 // the Kimai connection the customer is from
 	Currency  string
+	DocsURL   string // the customer's documents in Paperless, "" unless the Verbund links them
 	metrics.ClientCard
 }
 
@@ -48,6 +50,7 @@ type space struct {
 	ref          access.SpaceRef
 	settings     map[string]any
 	kimai, ninja *model.Connection
+	paperless    *model.Connection // the Ninja's partner, nil if none
 }
 
 // List returns every customer of the caller's spaces, most hours first.
@@ -117,7 +120,13 @@ func spaces(d *sql.DB, who *access.Principal) ([]space, error) {
 				if err != nil {
 					return err
 				}
-				out = append(out, space{ref: ref, settings: settings, kimai: c, ninja: ninja})
+				sp := space{ref: ref, settings: settings, kimai: c, ninja: ninja}
+				if ninja != nil {
+					if sp.paperless, _, err = verbund.Partner(tx, who, verbund.Asker{SpaceID: id, ConnID: ninja.ID}, enums.ServicePaperless); err != nil {
+						return err
+					}
+				}
+				out = append(out, sp)
 			}
 		}
 		return nil
@@ -156,10 +165,30 @@ func cardsOf(ctx context.Context, d *sql.DB, who *access.Principal, sp space) ([
 			return nil, err
 		}
 	}
+	var docs metrics.DocsMap
+	if sp.ninja != nil && sp.paperless != nil {
+		if docs, err = verbund.DocsMapFor(d, sp.ninja.ID, sp.paperless.ID); err != nil {
+			return nil, err
+		}
+	}
 	for _, c := range metrics.ClientCards(kimai, ninja, time.Now(), metrics.CenterOf(sp.settings), links) {
-		out = append(out, Card{SpaceID: sp.ref.ID, SpaceName: sp.ref.Name, KimaiID: sp.kimai.ID, Currency: currency, ClientCard: c})
+		card := Card{SpaceID: sp.ref.ID, SpaceName: sp.ref.Name, KimaiID: sp.kimai.ID, Currency: currency, ClientCard: c}
+		if client, ok := links.ClientOf(ninja, c.CustomerID, c.Name); ok {
+			card.DocsURL = docsURL(sp.paperless, docs, client.Ref())
+		}
+		out = append(out, card)
 	}
 	return out, nil
+}
+
+// docsURL is the Paperless list of a client's correspondent, "" without
+// a link.
+func docsURL(paperless *model.Connection, docs metrics.DocsMap, ref string) string {
+	id, ok := docs[ref]
+	if paperless == nil || !ok || sources.IsDemo(paperless.URL) {
+		return ""
+	}
+	return strings.TrimRight(paperless.URL, "/") + "/documents?correspondent__id__in=" + strconv.FormatInt(id, 10)
 }
 
 // hintsNaming returns the open hints whose text names the customer.

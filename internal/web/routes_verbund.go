@@ -26,7 +26,7 @@ func (d Deps) RegisterVerbundRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /verbund/{id}/delete", d.authed(d.handleVerbundDelete))
 	mux.HandleFunc("GET /verbund/{id}/customers", d.authed(d.handleVerbundCustomers))
 	mux.HandleFunc("POST /verbund/{id}/customers/confirm", d.authed(d.handleCustomersConfirm))
-	mux.HandleFunc("POST /verbund/{id}/customers/{customer}/{act}", d.authed(d.handleCustomerAct))
+	mux.HandleFunc("POST /verbund/{id}/customers/{act}", d.authed(d.handleCustomerAct))
 }
 
 // customersPath is a Verbund's customers page.
@@ -34,8 +34,8 @@ func customersPath(id, spaceID int64) string {
 	return "/verbund/" + strconv.FormatInt(id, 10) + "/customers?space=" + strconv.FormatInt(spaceID, 10)
 }
 
-// handleVerbundCustomers shows which Kimai customer is which Invoice
-// Ninja client, with suggestions.
+// handleVerbundCustomers shows each customer across the Verbund's
+// members (Invoice Ninja, Kimai, Sure, Paperless), with suggestions.
 func (d Deps) handleVerbundCustomers(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {
@@ -86,25 +86,40 @@ func (d Deps) handleCustomersConfirm(w http.ResponseWriter, r *http.Request, ctx
 	d.customersBack(w, r, id, err)
 }
 
-// customerActs are what a row's buttons do: link (form value client,
-// "" = none), unlink, align the Kimai name to Ninja's.
+// noneKey is the select's choice "no counterpart" (keys are ids, Ninja
+// references or payer names, never this).
+const noneKey = "!none"
+
+// handleCustomerAct is what a cell does, for the customer "hub" of the
+// leading member and the column "conn": link the select's key ("" forgets
+// the link, noneKey says there is none), none, unlink, align the Kimai
+// name to Ninja's; orphan forgets a stored customer without a leading one
+// ("entry").
 func (d Deps) handleCustomerAct(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	id, err1 := pathID(r, "id")
-	customer, err2 := pathID(r, "customer")
-	if err1 != nil || err2 != nil {
+	id, err := pathID(r, "id")
+	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	var err error
-	switch r.PathValue("act") {
-	case "link":
-		err = verbund.LinkCustomer(r.Context(), d.DB, ctx.Who, id, customer, r.FormValue("client"), d.clientIP(r))
-	case "none":
-		err = verbund.LinkCustomer(r.Context(), d.DB, ctx.Who, id, customer, "", d.clientIP(r))
-	case "unlink":
-		err = verbund.UnlinkCustomer(d.DB, ctx.Who, id, customer, d.clientIP(r))
-	case "align":
-		err = verbund.AlignName(r.Context(), d.DB, ctx.Who, id, customer, d.clientIP(r))
+	hub := r.FormValue("hub")
+	conn, _ := strconv.ParseInt(r.FormValue("conn"), 10, 64)
+	ip := d.clientIP(r)
+	switch act, key := r.PathValue("act"), r.FormValue("key"); {
+	case act == "link" && key == "":
+		err = verbund.UnlinkCustomer(d.DB, ctx.Who, id, hub, conn, ip)
+	case act == "link" && key == noneKey:
+		err = verbund.LinkCustomer(r.Context(), d.DB, ctx.Who, id, hub, conn, "", ip)
+	case act == "link":
+		err = verbund.LinkCustomer(r.Context(), d.DB, ctx.Who, id, hub, conn, key, ip)
+	case act == "none":
+		err = verbund.LinkCustomer(r.Context(), d.DB, ctx.Who, id, hub, conn, "", ip)
+	case act == "unlink":
+		err = verbund.UnlinkCustomer(d.DB, ctx.Who, id, hub, conn, ip)
+	case act == "align":
+		err = verbund.AlignName(r.Context(), d.DB, ctx.Who, id, hub, ip)
+	case act == "orphan":
+		entry, _ := strconv.ParseInt(r.FormValue("entry"), 10, 64)
+		err = verbund.RemoveOrphan(d.DB, ctx.Who, id, entry, ip)
 	default:
 		http.NotFound(w, r)
 		return

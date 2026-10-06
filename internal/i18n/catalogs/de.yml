@@ -5293,6 +5293,7 @@ immich:
   failed: '{n} fehlgeschlagene Jobs'
   update: 'Update auf {version} verfügbar'
 clients:
+  docs: Dokumente in Paperless
   customer: 'Kunde'
   hours_year: 'Stunden (Jahr)'
   hours_month: '{hours} h diesen Monat'
@@ -5427,7 +5428,8 @@ caps:
   note: 'Nur teilweise nutzbar:'
 verbund:
   customers: Kunden
-  customers_lead: 'Welcher Kimai-Kunde welcher Kunde in Invoice Ninja ist. Andon schlägt den ähnlichsten Namen vor; gespeichert wird erst, was du bestätigst. Invoice Ninja führt die Namen: „Namen übernehmen“ schreibt ihn nach Kimai. Ohne Zuordnung entscheidet der gleiche Name.'
+  customers_lead: 'Welcher Kunde in Invoice Ninja welcher Kunde in Kimai, welcher Zahler in Sure und welcher Korrespondent in Paperless ist. Andon schlägt den ähnlichsten Namen vor; gespeichert wird erst, was du bestätigst. Invoice Ninja führt die Namen: „Namen übernehmen“ schreibt ihn nach Kimai. Ohne Zuordnung entscheidet der gleiche Name.'
+  customers_how: 'Je Feld: „–“ lässt den Namen entscheiden, „Kein Gegenstück“ sagt, dass es dort keinen gibt.'
   confirm_all: Alle Vorschläge bestätigen
   state: Stand
   state_confirmed: zugeordnet
@@ -5438,8 +5440,9 @@ verbund:
   unlink: Zurücksetzen
   none_client: Kein Gegenstück
   align: Namen übernehmen
-  no_customers: 'Kunden gibt es nur in einem Verbund mit Kimai und Invoice Ninja.'
-  client_taken: 'Dieser Kunde in Invoice Ninja ist schon einem anderen Kimai-Kunden zugeordnet.'
+  no_customers: 'Kunden gibt es in einem Verbund mit mindestens zwei von Invoice Ninja, Kimai, Sure und Paperless.'
+  orphans: 'Ohne Kunden in {service}'
+  client_taken: 'Dieser Eintrag ist schon einem anderen Kunden zugeordnet.'
   unknown_customer: 'Diesen Kunden kennen die Dienste nicht (mehr). Lade die Seite neu.'
   no_data: 'Noch keine Daten von Kimai oder Invoice Ninja abgerufen.'
   demo: 'Demo-Verbindungen nehmen keine Änderungen an.'

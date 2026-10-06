@@ -141,7 +141,7 @@ func crossRows(kind TableKind, data any, results map[string]any, ctx ViewCtx) ([
 			if !ok {
 				return nil, true
 			}
-			for _, m := range metrics.PaymentMatches(d, ninja, today, crossPaymentDays) {
+			for _, m := range metrics.PaymentMatches(d, ninja, today, crossPaymentDays, payerMapOf(results)) {
 				rows = append(rows, Row{[]any{m.Day.Format(time.DateOnly), m.Txn.Name, m.Txn.Amount, m.Invoice.Number, m.Reason}})
 			}
 		case TableReceipts:
