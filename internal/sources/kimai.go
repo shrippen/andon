@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"andon/internal/caps"
 	"andon/internal/drivers/services"
 	"andon/internal/enums"
 )
@@ -217,27 +218,44 @@ const (
 	noteMileageOld  = "test.mileage_old"
 )
 
+// mileageCaps is what the plugin lets Andon do: answered says the
+// plugin and its data could be read.
+func mileageCaps(r mileageRights, answered bool) caps.Set {
+	return caps.Detect(caps.HolderOf(enums.ServiceKimai), func(n caps.Need) bool {
+		switch n.Kind {
+		case caps.NeedPlugin:
+			return answered
+		case caps.NeedFeature:
+			return r.placesWrite
+		}
+		if n.Name == "editOwn" {
+			return r.edit
+		}
+		return r.view
+	})
+}
+
 // mileageNotes says what the plugin lacks for Andon to write to it.
-func mileageNotes(r mileageRights) []string {
+func mileageNotes(set caps.Set) []string {
+	need, ok := set.Lacks(caps.Places, caps.Update)
 	switch {
-	case !r.view:
+	case !ok || need.Kind == caps.NeedPlugin || need.Name == "view":
 		return nil
-	case !r.edit:
+	case need.Kind == caps.NeedRight:
 		return []string{noteMileageRead}
-	case !r.placesWrite:
-		return []string{noteMileageOld}
 	}
-	return nil
+	return []string{noteMileageOld}
 }
 
 // loadMileage reads the mileage plugin: its places and trips since from.
 // Without the plugin (404) or its permission it stays empty.
 func loadMileage(ctx context.Context, api services.KimaiApi, from time.Time, data *KimaiDataset) {
 	ping, ok := mileagePing(ctx, api)
+	answered := false
+	defer func() { data.Caps = mileageCaps(ping, answered) }()
 	if !ok || !ping.view {
 		return
 	}
-	data.PlacesWrite, data.MileageEdit = ping.placesWrite, ping.edit
 
 	placesRaw, err := api.Get(ctx, "mileage/places", nil)
 	if err != nil {
@@ -263,7 +281,7 @@ func loadMileage(ctx context.Context, api services.KimaiApi, from time.Time, dat
 			Purpose: asStr(tm["purpose"]), KM: asFloat(tm["totalKm"]), Project: asInt64(tm["project"]), Timesheet: asInt64(tm["timesheet"]),
 		})
 	}
-	data.Mileage = true
+	answered = true
 }
 
 // loadKimaiHolidays reads the kimai-holiday-bundle: absences and public
@@ -316,7 +334,7 @@ func fetchKimaiTest(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	out := map[string]any{"version": asStr(asMap(body)["version"])}
 	if ping, ok := mileagePing(ctx, api); ok {
-		out[TestNotes] = mileageNotes(ping)
+		out[TestNotes] = mileageNotes(mileageCaps(ping, true))
 	}
 	return out, nil
 }

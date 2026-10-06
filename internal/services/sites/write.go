@@ -90,7 +90,7 @@ func Assign(ctx context.Context, d *sql.DB, who *access.Principal, connID int64,
 		if err != nil {
 			return err
 		}
-		stored = a.Kind != metrics.KindPrivate
+		stored = e.kindHolder(a.Kind) == kimaiHolder
 	}
 	return e.keep(d, who, key, a, stored)
 }
@@ -165,7 +165,7 @@ func Create(ctx context.Context, d *sql.DB, who *access.Principal, connID int64,
 		if _, err := outbound.KimaiCreatePlace(ctx, kto, mileagePlace(site, a)); err != nil {
 			return err
 		}
-		stored = a.Kind != metrics.KindPrivate
+		stored = e.kindHolder(a.Kind) == kimaiHolder
 	}
 	return e.keep(d, who, site.Key, a, stored)
 }
@@ -204,7 +204,7 @@ func Sync(ctx context.Context, d *sql.DB, who *access.Principal, connID int64) (
 				return out, err
 			}
 			out.PluginPlaces++
-			if a.Kind != metrics.KindNone && a.Kind != metrics.KindPrivate {
+			if a.Kind != metrics.KindNone && e.kindHolder(a.Kind) == kimaiHolder {
 				if err := e.keep(d, who, s.Key, a, true); err != nil {
 					return out, err
 				}

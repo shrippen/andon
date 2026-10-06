@@ -13,6 +13,7 @@
 package sites
 
 import (
+	"andon/internal/caps"
 	"context"
 	"database/sql"
 	"errors"
@@ -153,9 +154,27 @@ func open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, n
 	return e, nil
 }
 
-// pluginWrites says whether places go to the mileage plugin.
+// pluginLive says whether the Kimai connection takes writes at all.
+func (e env) pluginLive() bool {
+	return e.kimai != nil && e.kimaiConn != nil && !sources.IsDemo(e.kimaiConn.URL)
+}
+
+// kimaiHolder is the Kimai connection as a caps holder.
+var kimaiHolder = caps.HolderOf(enums.ServiceKimai)
+
+// pluginWrites says whether places go to the mileage plugin, whatever
+// their kind: a private place goes as "other".
 func (e env) pluginWrites() bool {
-	return e.kimai != nil && e.kimai.PlacesWrite && e.kimai.MileageEdit && e.kimaiConn != nil && !sources.IsDemo(e.kimaiConn.URL)
+	return e.pluginLive() && e.kimai.Caps.Can(caps.Places, caps.Update, "")
+}
+
+// kindHolder is who keeps what a place is: the plugin for its kinds,
+// Andon for "private" and without the plugin.
+func (e env) kindHolder(kind metrics.PlaceKind) caps.Holder {
+	if !e.pluginLive() {
+		return caps.Andon
+	}
+	return caps.Store(caps.Places, caps.Update, string(kind), e.kimai.Caps)
 }
 
 // Overview lists the sites, busiest first, and frequent destinations
@@ -193,7 +212,7 @@ func Overview(ctx context.Context, d *sql.DB, who *access.Principal, connID int6
 		return v.Rows[i].Name < v.Rows[j].Name
 	})
 	if e.kimai != nil {
-		v.Customers, v.Plugin = e.kimai.Customers, e.kimai.Mileage
+		v.Customers, v.Plugin = e.kimai.Customers, e.kimai.Caps.Can(caps.Places, caps.Read, "")
 		for i := range v.Rows {
 			if v.Rows[i].Kind == metrics.KindNone {
 				v.Rows[i].Suggest = suggest(v.Rows[i].Name, v.Customers)

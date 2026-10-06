@@ -11,6 +11,7 @@ package sites
 // services).
 
 import (
+	"andon/internal/caps"
 	"context"
 	"database/sql"
 	"errors"
@@ -23,7 +24,6 @@ import (
 	"andon/internal/outbound"
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
-	"andon/internal/sources"
 )
 
 var (
@@ -54,7 +54,7 @@ func SetClass(ctx context.Context, d *sql.DB, who *access.Principal, connID, sta
 	}
 	defer e.forget()
 
-	if class != metrics.ClassAuto && e.pluginTrips() && metrics.Payable(ride.Ride) {
+	if class != metrics.ClassAuto && e.rideHolder(ride.Mode) == kimaiHolder {
 		if err := e.tripOf(ctx, d, who, ride, class); err != nil {
 			return err
 		}
@@ -63,9 +63,13 @@ func SetClass(ctx context.Context, d *sql.DB, who *access.Principal, connID, sta
 	return e.keepClass(d, who, start, class)
 }
 
-// pluginTrips says whether rides go to the mileage plugin.
-func (e env) pluginTrips() bool {
-	return e.kimai != nil && e.kimai.MileageEdit && e.kimaiConn != nil && !sources.IsDemo(e.kimaiConn.URL)
+// rideHolder is who keeps a ride's class: the plugin for the modes it
+// pays (car, motorbike), Andon otherwise.
+func (e env) rideHolder(mode string) caps.Holder {
+	if !e.pluginLive() {
+		return caps.Andon
+	}
+	return caps.Store(caps.Rides, caps.Update, mode, e.kimai.Caps)
 }
 
 // ride is the ride starting at start.

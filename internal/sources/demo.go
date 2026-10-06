@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/caps"
+	"andon/internal/enums"
 	"andon/internal/sources/demoworld"
 )
 
@@ -188,9 +190,7 @@ func DemoKimai(now time.Time) *KimaiDataset {
 		Absences:      b.Absences,
 		Holidays:      demoHolidays(today),
 		HolidayBundle: true,
-		Mileage:       true,
-		PlacesWrite:   true,
-		MileageEdit:   true,
+		Caps:          caps.Full(caps.HolderOf(enums.ServiceKimai)),
 		Places:        demoKimaiPlaces(now),
 		MileageTrips:  demoMileageTrips(now),
 	}
@@ -404,6 +404,7 @@ func DemoDawarich(now time.Time) *DawarichDataset {
 		LastPoint:   loc.LastPoint,
 		Tracks:      demoTracks(now, tracksFrom(now.UTC(), visitDays)),
 		TracksState: TracksOK,
+		Caps:        caps.Full(caps.HolderOf(enums.ServiceDawarich)),
 	}
 }
 

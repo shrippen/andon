@@ -1,6 +1,7 @@
 package rules_test
 
 import (
+	"andon/internal/caps"
 	"testing"
 	"time"
 
@@ -30,7 +31,7 @@ func travelEnv(settings map[string]any) rules.Env {
 				seg("2026-09-10", "17:00", "17:45", acme, home, "driving", 30)}},
 			{ID: 2, Segments: []sources.DawarichSegment{seg("2026-09-12", "10:00", "10:40", home, lake, "driving", 40)}},
 		}}
-	kimai := &sources.KimaiDataset{URL: "https://kimai.example", Mileage: true,
+	kimai := &sources.KimaiDataset{URL: "https://kimai.example", Caps: caps.Full(caps.HolderOf(enums.ServiceKimai)),
 		Customers:  []sources.KimaiCustomer{{ID: 5, Name: "Acme GmbH"}},
 		Places:     []sources.KimaiPlace{{ID: 1, AreaID: 1, Type: "home"}, {ID: 2, AreaID: 2, Type: "customer", CustomerID: 5}},
 		Timesheets: []sources.KimaiSheet{{Begin: "2026-09-10T09:00:00+02:00", End: "2026-09-10T16:00:00+02:00", CustomerID: 5}}}

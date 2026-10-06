@@ -1,5 +1,7 @@
 package sources
 
+import "andon/internal/caps"
+
 // Normalized datasets: what widgets, metrics and rules actually consume,
 // after each service's raw API shape is flattened here. Typed structs, so
 // the metrics/rules layer gets compile-time field checks.
@@ -91,10 +93,8 @@ type KimaiDataset struct {
 	HolidayBundle bool
 	Contract      *WorkContract // working time from Kimai, nil if none
 	Places        []KimaiPlace  // mileage plugin, nil without it
-	Mileage       bool          // the mileage plugin answered
 	MileageTrips  []KimaiMileageTrip
-	PlacesWrite   bool // the plugin creates and changes places (feature placesWrite)
-	MileageEdit   bool // the token may write the user's trips and places (permission editOwn)
+	Caps          caps.Set // places and rides of the mileage plugin
 }
 
 // ── Invoice Ninja ──
@@ -290,6 +290,7 @@ type DawarichDataset struct {
 	Tracks      []DawarichTrack // oldest first
 	TracksFrom  string          // start of the window the tracks cover (RFC 3339)
 	TracksState TracksState
+	Caps        caps.Set // places, and rides when the tracks API answers
 	Stats       map[string]any
 	LastPoint   string
 }

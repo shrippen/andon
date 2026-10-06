@@ -70,6 +70,7 @@ const (
 	noPlugin     pluginMode = iota
 	pluginWrites            // may edit own trips and places
 	pluginReads             // view only
+	pluginOld               // edits own trips, but has no placesWrite yet
 )
 
 // fakeKimai: customer Acme (12); with plugin a mileage place for home
@@ -82,8 +83,12 @@ func fakeKimai(rec *recorder, plugin pluginMode) *httptest.Server {
 	}
 	if plugin != noPlugin {
 		mux.HandleFunc("GET /api/mileage/ping", func(w http.ResponseWriter, r *http.Request) {
-			edit := strconv.FormatBool(plugin == pluginWrites)
-			w.Write([]byte(`{"permissions": {"view": true, "editOwn": ` + edit + `}, "features": ["places", "placesWrite"]}`))
+			edit := strconv.FormatBool(plugin != pluginReads)
+			features := `["places", "placesWrite"]`
+			if plugin == pluginOld {
+				features = `["places"]`
+			}
+			w.Write([]byte(`{"permissions": {"view": true, "editOwn": ` + edit + `}, "features": ` + features + `}`))
 		})
 		mux.HandleFunc("GET /api/mileage/places", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(`[{"id": 3, "name": "Zuhause", "type": "home", "dawarichAreaId": 1, "latitude": 52.52, "longitude": 13.4, "radius": 100},
@@ -245,5 +250,36 @@ func TestSync(t *testing.T) {
 		if !calls[c] {
 			t.Fatalf("missing %s: %v", c, rec.list())
 		}
+	}
+}
+
+// An old plugin (no placesWrite) gets no places: assignments stay in the
+// option, sync does nothing.
+func TestOldPluginKeepsPlacesInAndon(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	rec := &recorder{}
+	geo, kimai := fakeDawarich(rec, nil), fakeKimai(rec, pluginOld)
+	defer geo.Close()
+	defer kimai.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
+	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimai.URL)
+	ctx := context.Background()
+
+	if err := sites.Assign(ctx, d, who, conn, metrics.AreaKey(2), metrics.Assignment{Kind: metrics.KindCustomer, CustomerID: 12}); err != nil {
+		t.Fatalf("assign: %v", err)
+	}
+	if res, err := sites.Sync(ctx, d, who, conn); err != nil || res.PluginPlaces != 0 || res.Areas != 0 {
+		t.Fatalf("sync: %+v %v", res, err)
+	}
+	if writes := rec.list(); len(writes) != 0 {
+		t.Fatalf("written to the plugin: %+v", writes)
+	}
+	c, err := connections.ByID(d, conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := metrics.ParseAssignments(c.Options)[metrics.AreaKey(2)]; got.Kind != metrics.KindCustomer || got.CustomerID != 12 {
+		t.Fatalf("option: %+v", got)
 	}
 }

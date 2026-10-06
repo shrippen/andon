@@ -12,6 +12,7 @@ package rules
 //	geo.tracks_missing      no tracks: distances are estimates
 
 import (
+	"andon/internal/caps"
 	"fmt"
 	"math"
 	"strings"
@@ -193,7 +194,7 @@ func unplaced(_ any, cfg map[string]any, env Env) []Finding {
 func pluginMissing(_ any, _ map[string]any, env Env) []Finding {
 	_, rides, start, ok := lastMonthRides(env)
 	kimai, ok1 := env.Datasets[kimaiSvc].(*sources.KimaiDataset)
-	if !ok || !ok1 || !kimai.Mileage {
+	if !ok || !ok1 || !kimai.Caps.Can(caps.Rides, caps.Read, "") {
 		return nil
 	}
 	used := false
