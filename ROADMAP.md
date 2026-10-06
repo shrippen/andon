@@ -1087,7 +1087,7 @@ Kettenregel: eine Fahrt zwischen zwei beruflichen Fahrten desselben Tages ist be
 
 Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md` bzw. `CLAUDE.md` übernommen und noch nicht angewendet.
 
-- [ ] Visualisierungen (Heatmaps, Graphen, Diagramme) haben immer Achsenbeschriftungen oder eine Legende, sonst sind sie nutzlos. Bestehende Kacheln und Diagramme prüfen und nachrüsten; Regel in `agent.md` aufnehmen
+- [ ] Visualisierungen (Heatmaps, Graphen, Diagramme) haben immer Achsenbeschriftungen oder eine Legende, sonst sind sie nutzlos. Bestehende Kacheln und Diagramme prüfen und nachrüsten; Regel in `agent.md` aufnehmen *(Regel in `agent.md` und `eigene/CLAUDE.md` steht; Prüfen und Nachrüsten offen)*
 - [ ] Integrationen werden möglichst gegen eine reale Instanz getestet:
   - [x] `.local-test/` in `.gitignore`
   - Verzeichnis außerhalb von Git (`.local-test/`): echte Datenbank und Zugangsdaten je Dienst
@@ -1098,7 +1098,7 @@ Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md
 - [ ] Einstellungen: möglichst viele bisher nur per Umgebungsvariable setzbare Einstellungen zusätzlich in den Servereinstellungen der Oberfläche anbieten; sind beide gesetzt, gewinnt die Umgebungsvariable (in der Oberfläche als „durch Umgebung gesetzt“ gesperrt anzeigen)
 - [ ] Wartungsseite: laufende Aufgaben, zuletzt abgeschlossene Aufgaben, Probleme, Logs
 - [x] „Über Andon“: Dev-Builds zeigen keine Version. Auch Dev-Builds bekommen automatisch eine Versionsnummer nach dem Schema `Version/Branch/Build`, z. B. `0.5.0/main/#25` *(`scripts/version.sh`; Build = Commits seit dem letzten Tag, beginnt nach jedem Release neu)*
-- [ ] Regel (in `agent.md` aufnehmen): Visualisierungen in Popups bekommen, wo möglich, Tooltips beim Hover (ergänzt die Regel zu Achsen und Legenden)
+- [ ] Regel (in `agent.md` aufnehmen): Visualisierungen in Popups bekommen, wo möglich, Tooltips beim Hover (ergänzt die Regel zu Achsen und Legenden) *(Regel steht; Umsetzung offen)*
 - [ ] Dawarich: Orte
   - Kimai „Anfahrten“ ist nur für Geschäftliches zuständig und kennt Kunde, Zuhause, Arbeitsplatz, Sonstiges, aber keine privaten Orte (so gewollt)
   - Andon kennt zusätzlich private Orte; vorerst reicht die Kategorie „Privat“
