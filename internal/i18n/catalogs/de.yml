@@ -2124,6 +2124,16 @@ hint:
     mirror:
       title: 'Spiegel {repo} seit {day} nicht aktualisiert'
       why: Quelle erreichbar? Zugangsdaten abgelaufen?
+  docs:
+    missing:
+      title: '{count} Stacks auf {host} ohne Doku'
+      why: '{names}. Notiz anlegen oder die compose.yaml im Feld „Compose“ einer Dienst-, Geräte- oder Netz-Notiz verlinken.'
+    orphan:
+      title: 'Doku {note} verlinkt einen fehlenden Stack'
+      why: '{link} liegt in keinem Compose-Repo. Stack entfernt? Notiz als deprecated markieren oder Link korrigieren.'
+    deprecated_live:
+      title: 'Stack {stack} auf {host} läuft trotz veralteter Doku'
+      why: 'Die Notiz {note} ist als deprecated markiert. Stack aus dem Repo entfernen oder die Notiz wieder aktivieren.'
   borg:
     client_error:
       title: 'Backup-Client {client} meldet Fehler'
@@ -2778,6 +2788,9 @@ rule_name:
   gitea.stale_pr: Ruhende PRs
   gitea.actions_failed: Fehlgeschlagene Builds
   gitea.mirror_stale: Veraltete Spiegel
+  docs.missing: Stacks ohne Doku
+  docs.orphan: Doku ohne Stack
+  docs.deprecated_live: Veraltete Doku, Stack läuft
   borg.client_offline: Backup-Client offline
   borg.jobs_failed: Fehlgeschlagene Backups
   borg.backup_old: Backup veraltet (Borg)

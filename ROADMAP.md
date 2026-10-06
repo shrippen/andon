@@ -992,9 +992,9 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 - [ ] Später: Komodo-Stand dazu (Stack im Repo, aber nicht deployt und umgekehrt)
 
 **Regeln und Widgets**
-- [ ] `docs.missing`: Stack ohne aktive Notiz (bzw. ohne Eintrag in einer Geräte- oder Netz-Notiz)
-- [ ] `docs.orphan`: aktive Notiz, deren `Compose`-Link auf keinen Stack zeigt
-- [ ] `docs.deprecated_live`: Notiz deprecated, Stack liegt noch im Repo
+- [x] `docs.missing`: Stack ohne aktive Notiz (bzw. ohne Eintrag in einer Geräte- oder Netz-Notiz) *(ein Hinweis je Host; Zuordnung über `Compose`-Link auf Datei oder Stack-Ordner, `metrics.CheckDocs`)*
+- [x] `docs.orphan`: aktive Notiz, deren `Compose`-Link auf keinen Stack zeigt
+- [x] `docs.deprecated_live`: Notiz deprecated, Stack liegt noch im Repo
 - [ ] `docs.drift` (später): URL, Ports oder Image im Frontmatter weichen von der Compose-Datei ab
 - [ ] Widget „Doku-Abdeckung“ je Host (X von Y Stacks dokumentiert, Liste der Lücken); Widget „Batches warten“
 

@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	composePrefix   = "docker-compose-" // repo name: prefix + host
+	ComposePrefix   = "docker-compose-" // repo name: prefix + host
 	composeParallel = 8
 	composeMemoMax  = 4096 // remembered compose files, then forgotten
 	treePage        = 1000
@@ -79,7 +79,7 @@ var (
 // repo could not be read completely: the stacks are then unknown, not
 // missing.
 func loadStacks(ctx context.Context, api services.GiteaApi) ([]Stack, bool) {
-	found, err := api.Get(ctx, "repos/search", url.Values{"q": {composePrefix}, "limit": {strconv.Itoa(giteaPage)}})
+	found, err := api.Get(ctx, "repos/search", url.Values{"q": {ComposePrefix}, "limit": {strconv.Itoa(giteaPage)}})
 	if err != nil {
 		return nil, false
 	}
@@ -88,10 +88,10 @@ func loadStacks(ctx context.Context, api services.GiteaApi) ([]Stack, bool) {
 	for _, raw := range asList(asMap(found)["data"]) {
 		repo := asMap(raw)
 		name := asStr(repo["name"])
-		if !strings.HasPrefix(name, composePrefix) || asBool(repo["archived"]) {
+		if !strings.HasPrefix(name, ComposePrefix) || asBool(repo["archived"]) {
 			continue
 		}
-		list, err := repoStacks(ctx, api, repo, strings.TrimPrefix(name, composePrefix))
+		list, err := repoStacks(ctx, api, repo, strings.TrimPrefix(name, ComposePrefix))
 		if err != nil {
 			return nil, false
 		}
