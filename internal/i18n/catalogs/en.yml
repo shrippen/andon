@@ -2124,6 +2124,16 @@ hint:
     mirror:
       title: 'Mirror {repo} not updated since {day}'
       why: Source reachable? Credentials expired?
+  docs:
+    missing:
+      title: '{count} stacks on {host} without docs'
+      why: '{names}. Write a note or link the compose.yaml in the "Compose" field of a service, device or network note.'
+    orphan:
+      title: 'Doc {note} links a missing stack'
+      why: '{link} is in no compose repo. Stack removed? Mark the note deprecated or fix the link.'
+    deprecated_live:
+      title: 'Stack {stack} on {host} runs despite deprecated docs'
+      why: 'The note {note} is marked deprecated. Remove the stack from the repo or reactivate the note.'
   borg:
     client_error:
       title: 'Backup client {client} reports an error'
@@ -2777,6 +2787,9 @@ rule_name:
   gitea.stale_pr: Idle PRs
   gitea.actions_failed: Failed builds
   gitea.mirror_stale: Stale mirrors
+  docs.missing: Stacks without docs
+  docs.orphan: Docs without stack
+  docs.deprecated_live: Deprecated docs, stack runs
   borg.client_offline: Backup client offline
   borg.jobs_failed: Failed backups
   borg.backup_old: Backup outdated (Borg)
