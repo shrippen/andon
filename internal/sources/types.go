@@ -303,6 +303,8 @@ type DawarichDataset struct {
 	TracksFrom  string          // start of the window the tracks cover (RFC 3339)
 	TracksState TracksState
 	Caps        caps.Set // places, and rides when the tracks API answers
+	TracksRead  int      // of TracksTotal in the window; less while TracksPartial
+	TracksTotal int
 	Stats       map[string]any
 	LastPoint   string
 }

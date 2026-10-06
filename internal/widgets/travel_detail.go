@@ -78,7 +78,7 @@ func travelDetail(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, 
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.travel.estimated")})
 	}
 	if travel.Partial {
-		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.travel.partial")})
+		body.Blocks = append(body.Blocks, readingBlock(data, ctx))
 	}
 
 	body.List, body.Blocks = rideList(period, names, results, body.Blocks)
@@ -225,7 +225,7 @@ const minutesPerHourF = 60.0
 // from Dawarich's stats), and when rides happen.
 func travelYear(travel metrics.Travel, data *sources.DawarichDataset, today time.Time) []Block {
 	months := metrics.MonthKM(travel.Rides, today.Year())
-	g := Graph{Kind: GraphLine, Mark: int(today.Month()) - 1, Ticks: []any{"01", "12"}}
+	g := Graph{Kind: GraphLine, Mark: int(today.Month()) - 1, Ticks: []any{"01", "12"}, Unit: "km"}
 	for _, c := range metrics.RideClasses {
 		values := make([]float64, monthsPerYear)
 		for m := range monthsPerYear {
@@ -275,7 +275,7 @@ func travelYear(travel metrics.Travel, data *sources.DawarichDataset, today time
 			values[i] = math.Round(values[i]*10) / 10
 		}
 		out = append(out, Block{Kind: BlockGraph, Label: T("detail.travel.per_week"), Meta: "h",
-			Data: Graph{Kind: GraphCols, Mark: -1, Series: []Series{{Values: values, Class: "s1"}}, Ticks: []any{Day(weeks[0].Week), Day(weeks[len(weeks)-1].Week)}}})
+			Data: Graph{Kind: GraphCols, Mark: -1, Unit: "h", Series: []Series{{Values: values, Class: "s1"}}, Ticks: []any{Day(weeks[0].Week), Day(weeks[len(weeks)-1].Week)}}})
 	}
 	return out
 }
@@ -385,4 +385,17 @@ const travelPlacesURL = "/travel/places"
 func carKM(rides []metrics.ClassedRide) float64 {
 	_, km := metrics.CarShare(rides)
 	return km
+}
+
+// opsTasks is the maintenance page's list of running work.
+const opsTasks = "/admin/operations#tasks"
+
+// readingBlock shows how many tracks are read so far, e.g. "300 / 1200";
+// admins get a link to the maintenance page.
+func readingBlock(data *sources.DawarichDataset, ctx ViewCtx) Block {
+	tasks := Tasks{Done: data.TracksRead, Total: data.TracksTotal, Label: T("detail.travel.partial")}
+	if ctx.Admin {
+		tasks.Items = []Task{{Text: Txt("detail.travel.reading"), Action: T("action.open"), Href: opsTasks}}
+	}
+	return Block{Kind: BlockTasks, Data: tasks}
 }

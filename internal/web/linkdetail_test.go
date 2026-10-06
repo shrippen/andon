@@ -27,6 +27,7 @@ func TestStackPaths(t *testing.T) {
 		OK:   "M1.15 0.0h.7v100.0h-.7zM2.15 25.0h.7v75.0h-.7z",
 		Fail: "M2.15 0.0h.7v25.0h-.7z",
 		None: "M0.15 96.0h.7v4.0h-.7z",
+		Most: 4,
 	}
 	if got != want {
 		t.Fatalf("got %+v\nwant %+v", got, want)
@@ -42,6 +43,11 @@ func TestMsChartLeavesGaps(t *testing.T) {
 	}
 	if m.GoalY == "" || strings.HasPrefix(m.GoalY, "-") {
 		t.Fatalf("goal %q", m.GoalY)
+	}
+
+	// The axis spans 0 to the top of the scale; hover values per drawn day.
+	if m.Top <= 1000 || len(m.Values) != 2 || m.Values[1] != 200 || len(m.Days) != 2 {
+		t.Fatalf("scale %v values %v days %v", m.Top, m.Values, m.Days)
 	}
 }
 

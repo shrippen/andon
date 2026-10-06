@@ -489,7 +489,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		frag.Slots[widgets.ClientMapSlot] = Slot{Data: links}
 	}
 
-	viewCtx := widgets.ViewCtx{Today: time.Now().UTC().Format("2006-01-02"), Settings: settings, PeerOptions: peerOptions}
+	viewCtx := widgets.ViewCtx{Today: time.Now().UTC().Format("2006-01-02"), Settings: settings, PeerOptions: peerOptions, Admin: who != nil && who.IsAdmin()}
 	if serviceConn != nil {
 		viewCtx.Service, viewCtx.Options = serviceConn.Service, serviceConn.Options
 	}

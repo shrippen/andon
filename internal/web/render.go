@@ -42,6 +42,7 @@ func mustParse() *template.Template {
 		"money":        func(float64, ...string) string { return "" },
 		"num":          func(float64, ...int) string { return "" },
 		"serviceNames": func([]string) string { return "" },
+		"nums":         func([]float64, int) string { return "" },
 		"gb":           func(float64) string { return "" },
 		"day":          func(any) string { return "" },
 		"weekday":      func(any) string { return "" },
@@ -80,6 +81,10 @@ func mustParse() *template.Template {
 		"seriesVar":   seriesVar,
 		"numCol":      numCol,
 		"graphLegend": graphLegend,
+		"graphUnit":   graphUnit,
+		"stripStates": stripStates,
+		"stateFill":   stateFill,
+		"weekKeys":    weekKeys,
 		"pctOf":       pctOf,
 		"weekScale":   weekScale,
 		"hourPct":     hourPct,
@@ -285,6 +290,14 @@ func newPageSet() *pageSet {
 			return moneyFunc(st.locale, st.round)(v, currency...)
 		},
 		"num": func(v float64, digits ...int) string { return i18n.Num(v, st.locale, firstOr(digits, 0)) },
+		// Hover values of a chart line, "|"-separated as decimals use commas: 1,5|2,25.
+		"nums": func(vs []float64, digits int) string {
+			out := make([]string, len(vs))
+			for i, v := range vs {
+				out[i] = i18n.Num(v, st.locale, digits)
+			}
+			return strings.Join(out, "|")
+		},
 		// Service names of a list: "kimai", "sure" → "Kimai, Sure".
 		"serviceNames": func(services []string) string {
 			out := make([]string, len(services))

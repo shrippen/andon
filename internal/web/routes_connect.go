@@ -66,7 +66,7 @@ func (d Deps) handleConnectStart(w http.ResponseWriter, r *http.Request, ctx Ctx
 		back = util.LocalPath(b)
 	}
 
-	step, err := connect.Start(r.Context(), d.DB, ctx.Who, d.Settings, id, back)
+	step, err := connect.Start(r.Context(), d.DB, ctx.Who, d.live(), id, back)
 	switch {
 	case err != nil:
 		http.Redirect(w, r, withQuery(back, "error", errKey(err)), http.StatusSeeOther)
@@ -80,7 +80,7 @@ func (d Deps) handleConnectStart(w http.ResponseWriter, r *http.Request, ctx Ctx
 }
 
 func (d Deps) handleConnectCallback(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	back, err := connect.Callback(r.Context(), d.DB, ctx.Who, d.Settings, r.URL.Query())
+	back, err := connect.Callback(r.Context(), d.DB, ctx.Who, d.live(), r.URL.Query())
 	if err != nil {
 		http.Redirect(w, r, withQuery(back, "error", errKey(err)), http.StatusSeeOther)
 		return

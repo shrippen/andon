@@ -217,6 +217,7 @@ func disksDetail(cfg DisksConfig, results map[string]any, ctx ViewCtx) DetailVie
 		if temps := dailySeries(historyOf(results), metrics.SampleKey("scrutiny", "temp", chosen.Name), now, uptimeLongDays); hasValues(temps) {
 			g := LineGraph(Series{Values: temps, Class: "s5"})
 			g.Goal, g.HasGoal, g.GoalDanger, g.Ticks = cfg.TempWarn, true, true, spanTicks(now, uptimeLongDays)
+			g.Unit = "°C"
 			body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.disks.temp_history"), Meta: "°C", Hero: true, Data: g})
 		}
 	}
@@ -1291,6 +1292,7 @@ func monitorBlocks(data *sources.KumaDataset, name string, h *metrics.History, n
 		if ms := dailySeries(h, metrics.SampleKey("kuma", "ms", m.Name), now, uptimeLongDays); hasValues(ms) {
 			g := LineGraph(Series{Values: ms, Class: "s1"})
 			g.Goal, g.HasGoal, g.GoalDanger, g.Lo, g.Ticks = slowMs, true, true, 0, spanTicks(now, uptimeLongDays)
+			g.Unit = "ms"
 			out = append(out, Block{Kind: BlockGraph, Label: T("detail.monitors.ms_one"), Hero: true, Data: g})
 		}
 		return out

@@ -55,6 +55,9 @@ type Settings struct {
 	// TrustedProxies are the reverse proxies whose X-Forwarded-For names
 	// the client (TRUSTED_PROXIES="172.18.0.0/16,10.0.0.1").
 	TrustedProxies []netip.Prefix
+
+	// env names the Fields the environment set (FromEnv).
+	env map[string]bool
 }
 
 // DBPath returns the sqlite file path when DatabaseURL is unset.
@@ -221,5 +224,6 @@ func Load() Settings {
 		_ = os.Unsetenv(env + fdSuffix)
 	}
 
+	s.env = envSet(s)
 	return s
 }

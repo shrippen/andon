@@ -124,7 +124,7 @@ func setup(t *testing.T) (*sql.DB, settings.Settings, *access.Principal, *fakeId
 			{Group: "ops-lead", Team: "Ops", TeamRole: enums.TeamOwner},
 		},
 	}
-	if err := oidc.Save(d, who, cfg, "client-secret", ""); err != nil {
+	if err := oidc.Save(d, who, env, cfg, "client-secret", ""); err != nil {
 		t.Fatal(err)
 	}
 	return d, env, who, idp
@@ -261,7 +261,7 @@ func TestEmailLinkSkipsSelfRegistered(t *testing.T) {
 	d, env, who, idp := setup(t)
 	cfg, _ := oidc.Load(d, env)
 	cfg.EmailLink = true
-	if err := oidc.Save(d, who, cfg, "", ""); err != nil {
+	if err := oidc.Save(d, who, env, cfg, "", ""); err != nil {
 		t.Fatal(err)
 	}
 	if err := misc.SetSetting(d, "registration", map[string]any{"open": true}); err != nil {
@@ -276,5 +276,38 @@ func TestEmailLinkSkipsSelfRegistered(t *testing.T) {
 	result, err := login(t, d, env, idp, "good")
 	if err == nil && result.UserID == squatter.ID {
 		t.Fatal("SSO identity linked to the self-registered account")
+	}
+}
+
+// OIDC_* in the environment win field by field over the stored values,
+// and saving the form leaves the stored ones untouched.
+func TestEnvWinsOverStored(t *testing.T) {
+	d, _, who, idp := setup(t)
+	t.Setenv("OIDC_ISSUER", "https://env.example/")
+	t.Setenv("OIDC_CLIENT_SECRET", "env-secret")
+	env := settings.Load()
+
+	cfg, err := oidc.Load(d, env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Issuer != "https://env.example/" || !cfg.Locked.Issuer || !cfg.Locked.Secret || cfg.Locked.ClientID {
+		t.Fatalf("env not winning: %+v", cfg)
+	}
+	if cfg.ClientID != clientID {
+		t.Fatalf("stored client id lost: %q", cfg.ClientID)
+	}
+
+	// The form sends no issuer (the field is disabled): the stored one stays.
+	cfg.Issuer = ""
+	if err := oidc.Save(d, who, env, cfg, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	stored, err := oidc.Load(d, settings.Settings{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Issuer != idp.srv.URL+"/" {
+		t.Fatalf("stored issuer overwritten: %q", stored.Issuer)
 	}
 }
