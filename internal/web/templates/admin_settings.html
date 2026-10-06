@@ -82,12 +82,13 @@
         <label class="check"><input type="checkbox" name="enabled"{{if .OIDC.Enabled}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "admin.oidc_enabled"}}</label>
         <label for="label">{{t "admin.oidc_label"}}</label>
         <input class="input" id="label" name="label" value="{{.OIDC.Label}}">
-        <label for="issuer">{{t "admin.oidc_issuer"}}</label>
-        <input class="input" id="issuer" name="issuer" value="{{.OIDC.Issuer}}" placeholder="https://auth.example.lan/application/o/andon/">
-        <label for="client_id">Client-ID</label>
-        <input class="input" id="client_id" name="client_id" value="{{.OIDC.ClientID}}">
-        <label for="secret">Client-Secret</label>
-        <input class="input" id="secret" name="secret" type="password" autocomplete="off" placeholder="{{if .OIDC.HasSecret}}{{t "conn.secret_keep"}}{{end}}">
+        {{$env := .OIDC.Locked}}
+        <label for="issuer">{{t "admin.oidc_issuer"}} <span class="muted">· OIDC_ISSUER</span>{{if $env.Issuer}} <span class="pill" data-state="locked">{{t "admin.server_env"}}</span>{{end}}</label>
+        <input class="input" id="issuer" name="issuer" value="{{.OIDC.Issuer}}" placeholder="https://auth.example.lan/application/o/andon/"{{if $env.Issuer}} disabled{{end}}>
+        <label for="client_id">Client-ID <span class="muted">· OIDC_CLIENT_ID</span>{{if $env.ClientID}} <span class="pill" data-state="locked">{{t "admin.server_env"}}</span>{{end}}</label>
+        <input class="input" id="client_id" name="client_id" value="{{.OIDC.ClientID}}"{{if $env.ClientID}} disabled{{end}}>
+        <label for="secret">Client-Secret <span class="muted">· OIDC_CLIENT_SECRET</span>{{if $env.Secret}} <span class="pill" data-state="locked">{{t "admin.server_env"}}</span>{{end}}</label>
+        <input class="input" id="secret" name="secret" type="password" autocomplete="off" placeholder="{{if .OIDC.HasSecret}}{{t "conn.secret_keep"}}{{end}}"{{if $env.Secret}} disabled{{end}}>
         <p class="small muted">{{t "admin.oidc_redirect"}} <code>{{.CallbackURL}}</code></p>
         <label class="check"><input type="checkbox" name="auto_create"{{if .OIDC.AutoCreate}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "admin.oidc_auto"}}</label>
         <label class="check"><input type="checkbox" name="email_link"{{if .OIDC.EmailLink}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "admin.oidc_email_link"}}</label>
