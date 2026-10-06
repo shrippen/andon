@@ -1089,7 +1089,8 @@ Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md
 
 - [ ] Visualisierungen (Heatmaps, Graphen, Diagramme) haben immer Achsenbeschriftungen oder eine Legende, sonst sind sie nutzlos. Bestehende Kacheln und Diagramme prüfen und nachrüsten; Regel in `agent.md` aufnehmen
 - [ ] Integrationen werden möglichst gegen eine reale Instanz getestet:
-  - Verzeichnis außerhalb von Git (`.local-test/` in `.gitignore` aufnehmen, es ist bisher nur untracked): echte Datenbank und Zugangsdaten je Dienst
+  - [x] `.local-test/` in `.gitignore`
+  - Verzeichnis außerhalb von Git (`.local-test/`): echte Datenbank und Zugangsdaten je Dienst
   - Schreiben nur mit neuen Testeinträgen; vorhandene Einträge nie schreibend anfassen
   - Jeder schreibende Vorgang wird in einer Logdatei im selben Verzeichnis protokolliert (Zeit, Dienst, Aktion, ID des Testeintrags)
   - Regel in `agent.md` aufnehmen, Hilfen fürs Protokollieren und Prüfen „nur eigene Einträge“ bauen
