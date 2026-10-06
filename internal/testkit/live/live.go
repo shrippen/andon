@@ -2,8 +2,8 @@
 //
 // The instances are the connections of the local Andon instance in
 // .local-test/ (outside Git): its database data/andon.db, unlocked with
-// the master key in secrets/master_key. Each service's first connection
-// with a shared login is used.
+// the master key in secrets/master_key. Writes go to each service's first
+// connection.
 //
 // The tests write to real instances, so they run only when asked for
 // (ANDON_LIVE=1, set by `make live`), never with `go test ./...`.
@@ -35,6 +35,7 @@ import (
 	"andon/internal/repos/content"
 	"andon/internal/services/maintenance"
 	"andon/internal/services/svcdata"
+	"andon/internal/sources"
 )
 
 // Service names an instance by its connection's service type.
@@ -45,6 +46,7 @@ const (
 	Dawarich  Service = "dawarich"
 	Ninja     Service = "invoiceninja"
 	Paperless Service = "paperless"
+	Tandoor   Service = "tandoor"
 )
 
 // Action is one kind of write in the log.
@@ -59,10 +61,12 @@ const (
 const (
 	// dirEnv overrides the directory (tests of this package).
 	dirEnv = "ANDON_LOCAL_TEST"
-	// runEnv must be set for live tests to run.
-	runEnv  = "ANDON_LIVE"
-	dirName = ".local-test"
-	logName = "writes.log"
+	// runEnv must be set for live tests to run; ninjaEnv as well for
+	// writes to Invoice Ninja.
+	runEnv   = "ANDON_LIVE"
+	ninjaEnv = "ANDON_LIVE_NINJA"
+	dirName  = ".local-test"
+	logName  = "writes.log"
 
 	// The local instance: its database and master key.
 	dbPath  = "data/andon.db"
@@ -77,36 +81,61 @@ const (
 // (Invoice Ninja).
 type ID interface{ ~int | ~int64 | ~string }
 
-// targets caches each directory's instances: unlocking the database
-// costs a second (Argon2id).
-var (
-	targetsMu sync.Mutex
-	targets   = map[string]map[Service]outbound.Target{}
-)
-
-// Target returns the real instance of svc, or skips the test when none
-// is configured.
-func Target(t testing.TB, svc Service) outbound.Target {
-	t.Helper()
-	if os.Getenv(runEnv) == "" {
-		t.Skipf("live tests write to real instances: run with %s=1 (make live)", runEnv)
-	}
-	all := instances(t)
-	to, ok := all[svc]
-	if !ok {
-		t.Skipf("no live %s instance: no shared %s connection in %s/%s", svc, svc, dirName, dbPath)
-	}
-	return to
+// Instance is one connection of the local instance, ready to fetch:
+// URL, the login (a personal connection's first holder's), TLS check and
+// options. Err is set when its login cannot be read.
+type Instance struct {
+	Service Service
+	Name    string
+	Ctx     sources.Ctx
+	Err     error
 }
 
-// instances reads the shared connections of the local instance, at most
-// once per directory.
-func instances(t testing.TB) map[Service]outbound.Target {
+// Target is where the instance's writes go.
+func (i Instance) Target() outbound.Target {
+	return outbound.Target{URL: i.Ctx.URL, Token: i.Ctx.Secret, VerifyTLS: i.Ctx.VerifyTLS}
+}
+
+// cache holds each directory's instances: unlocking the database costs
+// a second (Argon2id).
+var (
+	cacheMu sync.Mutex
+	cache   = map[string][]Instance{}
+)
+
+// Target returns the real instance of svc for writes, or skips the test
+// when none is configured. Invoice Ninja hands out invoice and expense
+// numbers on save, so its writes run only when asked for explicitly.
+func Target(t testing.TB, svc Service) outbound.Target {
 	t.Helper()
+	if svc == Ninja && os.Getenv(ninjaEnv) == "" {
+		t.Skipf("Invoice Ninja writes leave gaps in its number ranges: run only when asked for (%s=1)", ninjaEnv)
+	}
+	for _, i := range Instances(t) {
+		if i.Service != svc {
+			continue
+		}
+		if i.Err != nil {
+			t.Fatalf("%s login: %v", svc, i.Err)
+		}
+		return i.Target()
+	}
+	t.Skipf("no live %s instance: no %s connection in %s/%s", svc, svc, dirName, dbPath)
+	return outbound.Target{}
+}
+
+// Instances returns every connection of the local instance, at most read
+// once per directory, or skips the test when live tests are not asked
+// for or there is no instance.
+func Instances(t testing.TB) []Instance {
+	t.Helper()
+	if os.Getenv(runEnv) == "" {
+		t.Skipf("live tests use real instances: run with %s=1 (make live)", runEnv)
+	}
 	d := dir(t)
-	targetsMu.Lock()
-	defer targetsMu.Unlock()
-	if all, ok := targets[d]; ok {
+	cacheMu.Lock()
+	defer cacheMu.Unlock()
+	if all, ok := cache[d]; ok {
 		return all
 	}
 
@@ -126,13 +155,13 @@ func instances(t testing.TB) map[Service]outbound.Target {
 	if err != nil {
 		t.Fatalf("read live instance: %v", err)
 	}
-	targets[d] = all
+	cache[d] = all
 	return all
 }
 
-// read unlocks the database and returns each service's first connection
-// with a shared login and its secret.
-func read(path, key string) (map[Service]outbound.Target, error) {
+// read unlocks the database and returns its connections with their
+// logins: a shared one's own, a personal one's first holder's.
+func read(path, key string) ([]Instance, error) {
 	d, _, err := maintenance.Unlock(path, key)
 	if err != nil {
 		return nil, err
@@ -140,25 +169,29 @@ func read(path, key string) (map[Service]outbound.Target, error) {
 	defer d.Close()
 
 	var conns []*model.Connection
+	var holders map[int64][]model.Holder
 	err = db.WithRead(d, func(tx *sql.Tx) error {
-		conns, err = content.AllConnections(tx)
+		if conns, err = content.AllConnections(tx); err != nil {
+			return err
+		}
+		holders, err = content.CredentialHolders(tx)
 		return err
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	all := map[Service]outbound.Target{}
+	all := make([]Instance, 0, len(conns))
 	for _, c := range conns {
-		svc := Service(c.Service)
-		if _, seen := all[svc]; seen || c.CredentialMode != enums.CredentialShared {
-			continue
+		h := model.NoHolder
+		if c.CredentialMode == enums.CredentialPersonal && len(holders[c.ID]) > 0 {
+			h = holders[c.ID][0]
 		}
-		secret, err := svcdata.Secret(d, c, model.NoHolder)
-		if err != nil {
-			return nil, fmt.Errorf("%s connection %d: %w", svc, c.ID, err)
-		}
-		all[svc] = outbound.Target{URL: strings.TrimRight(c.URL, "/"), Token: secret, VerifyTLS: c.VerifyTLS}
+		secret, err := svcdata.Secret(d, c, h)
+		all = append(all, Instance{
+			Service: Service(c.Service), Name: c.Name, Err: err,
+			Ctx: sources.Ctx{URL: strings.TrimRight(c.URL, "/"), Secret: secret, VerifyTLS: c.VerifyTLS, Options: c.Options},
+		})
 	}
 	return all, nil
 }
