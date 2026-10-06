@@ -46,7 +46,7 @@
     {{$c := .C}}
     <p class="small"><a href="/clients">← {{t "nav.clients"}}</a></p>
     <h1>{{$c.Name}}</h1>
-    <p class="muted">{{$c.SpaceName}}{{with $c.LastWork}} · {{t "clients.last_work" "day" (day .)}}{{end}}{{if not $c.Matched}} · {{t "clients.no_ninja"}}{{end}}</p>
+    <p class="muted">{{$c.SpaceName}}{{with $c.LastWork}} · {{t "clients.last_work" "day" (day .)}}{{end}}{{if not $c.Matched}} · {{t "clients.no_ninja"}}{{end}}{{with $c.DocsURL}} · <a href="{{.}}" target="_blank" rel="noopener">{{t "clients.docs"}}</a>{{end}}</p>
 
     <div class="client-kpis">
       <div class="kpi"><span class="kpi-label">{{t "clients.hours_year"}}</span><b class="kpi-value" data-live>{{num $c.HoursYear 1}} h</b><span class="kpi-sub">{{t "clients.hours_month" "hours" (num $c.HoursMonth 1)}}</span></div>

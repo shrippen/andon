@@ -58,6 +58,18 @@ type View struct {
 	CanEdit bool // the caller has EDIT on every member
 }
 
+// HasCustomers reports whether the Verbund has two members that know
+// customers (its customers page).
+func (v View) HasCustomers() bool {
+	n := 0
+	for _, s := range customerServices {
+		if _, ok := v.Has(s); ok {
+			n++
+		}
+	}
+	return n >= 2
+}
+
 // Has reports whether the Verbund has a member of service.
 func (v View) Has(service enums.ServiceType) (Member, bool) {
 	for _, m := range v.Members {

@@ -494,7 +494,32 @@ func DemoProxmox(now time.Time) *ProxmoxDataset {
 func DemoPaperless(now time.Time) *PaperlessDataset {
 	data := &PaperlessDataset{Caps: caps.Full(caps.HolderOf(enums.ServicePaperless))}
 	demoworld.MustDecode("documents", now, data)
+	data.Correspondents = demoCorrespondents(data)
 	return data
+}
+
+// demoCorrespondents are the demo customers (contracts, briefings) and
+// the senders of the demo invoices and contracts.
+func demoCorrespondents(data *PaperlessDataset) []PaperlessCorrespondent {
+	var out []PaperlessCorrespondent
+	seen := map[string]bool{}
+	add := func(name string, docs int) {
+		if name == "" || seen[name] {
+			return
+		}
+		seen[name] = true
+		out = append(out, PaperlessCorrespondent{ID: int64(len(out) + 1), Name: name, Docs: docs})
+	}
+	for i, c := range demoCustomers {
+		add(c.Name, 2+i%4)
+	}
+	for _, d := range data.Invoices {
+		add(d.Correspondent, 1)
+	}
+	for _, c := range data.Contracts {
+		add(c.Correspondent, 1)
+	}
+	return out
 }
 
 // DemoCerts is the demo certificate dataset.

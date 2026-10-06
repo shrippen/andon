@@ -68,12 +68,21 @@ const Andon Holder = "andon"
 // HolderOf is the holder of a service.
 func HolderOf(s enums.ServiceType) Holder { return Holder(s) }
 
+// Use is a domain of a holder, e.g. Dawarich's places.
+type Use struct {
+	Holder Holder
+	Domain Domain
+}
+
 // Cap is one thing a holder can do in a domain.
 type Cap struct {
 	Domain Domain
 	Op     Op
 	Kinds  []string // variants it supports (place kinds, ride modes); nil = all
 	Needs  []Need
+	// Refs are other holders' domains whose ids it stores: a mileage
+	// plugin place keeps its Dawarich area, so the area comes first.
+	Refs []Use
 }
 
 // Fits reports whether the capability covers kind ("" = any).
@@ -187,3 +196,65 @@ func Store(d Domain, op Op, kind string, order ...Set) Holder {
 
 // Reporter is a dataset that knows its connection's capabilities.
 type Reporter interface{ CapSet() Set }
+
+// RefsOf lists the domains a holder's capabilities in d refer to.
+func RefsOf(h Holder, d Domain) []Use {
+	var out []Use
+	for _, c := range Declared(h) {
+		if c.Domain != d {
+			continue
+		}
+		for _, r := range c.Refs {
+			if !slices.Contains(out, r) {
+				out = append(out, r)
+			}
+		}
+	}
+	return out
+}
+
+// Needed lists the holders a reader of uses depends on: their own and,
+// through their references, the holders whose ids they keep (Kimai's
+// places need Dawarich's).
+func Needed(uses ...Use) []Holder {
+	var out []Holder
+	seen := map[Use]bool{}
+	var walk func(u Use)
+	walk = func(u Use) {
+		if seen[u] {
+			return
+		}
+		seen[u] = true
+		if !slices.Contains(out, u.Holder) {
+			out = append(out, u.Holder)
+		}
+		for _, r := range RefsOf(u.Holder, u.Domain) {
+			walk(r)
+		}
+	}
+	for _, u := range uses {
+		walk(u)
+	}
+	return out
+}
+
+// Order sorts holders that write in domain d so that each comes after
+// the holders whose ids it stores (Dawarich's area before Kimai's
+// place). Holders that refer to each other keep their given order.
+func Order(d Domain, holders ...Holder) []Holder {
+	out := slices.Clone(holders)
+	refers := func(a, b Holder) bool { return slices.Contains(RefsOf(a, d), Use{b, d}) }
+	// At most n² swaps: a longer cycle (a → b → c → a) stops there.
+	swaps := len(out) * len(out)
+	for i := 0; i < len(out) && swaps > 0; i++ {
+		for j := i + 1; j < len(out); j++ {
+			if refers(out[i], out[j]) && !refers(out[j], out[i]) {
+				out[i], out[j] = out[j], out[i]
+				swaps--
+				i = -1 // restart: a swap can unsort what came before
+				break
+			}
+		}
+	}
+	return out
+}

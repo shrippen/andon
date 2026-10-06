@@ -207,9 +207,11 @@ func compact(s string) string {
 }
 
 // PaymentMatches pairs incomes of the last days with open invoices; each
-// income and invoice is used once, number matches first.
-func PaymentMatches(sure *sources.SureDataset, ninja *sources.NinjaDataset, today time.Time, days int) []PaymentMatch {
+// income and invoice is used once, number matches first. A payer the
+// Verbund links to the invoice's client fits by name.
+func PaymentMatches(sure *sources.SureDataset, ninja *sources.NinjaDataset, today time.Time, days int, payers PayerMap) []PaymentMatch {
 	open := NinjaOpenInvoices(ninja, today)
+	refs := clientRefs(ninja)
 	since := today.AddDate(0, 0, -days)
 	usedTxn, usedInv := map[string]bool{}, map[int64]bool{}
 	var out []PaymentMatch
@@ -226,7 +228,7 @@ func PaymentMatches(sure *sources.SureDataset, ninja *sources.NinjaDataset, toda
 				}
 				usedTxn[t.ID], usedInv[inv.ID] = true, true
 				out = append(out, PaymentMatch{Txn: t, Day: paid, Invoice: inv, Reason: reason,
-					NameFits: namesClient(t.Name+" "+t.Merchant, inv.Client)})
+					NameFits: namesClient(t.Name+" "+t.Merchant, inv.Client) || linkedTo(payers, t, refs[inv.ClientID])})
 				break
 			}
 		}
@@ -245,9 +247,25 @@ func PaymentMatches(sure *sources.SureDataset, ninja *sources.NinjaDataset, toda
 	return out
 }
 
-// UnmatchedIncome lists incomes naming a known client that paid no open
-// invoice: a payment for an invoice that was never written, or a typo.
-func UnmatchedIncome(sure *sources.SureDataset, ninja *sources.NinjaDataset, matches []PaymentMatch, today time.Time, days int) []sources.SureTxn {
+// clientRefs maps a Ninja client id to its reference (NinjaClient.Ref).
+func clientRefs(ninja *sources.NinjaDataset) map[int64]string {
+	out := map[int64]string{}
+	for _, c := range ninja.Clients {
+		out[c.ID] = c.Ref()
+	}
+	return out
+}
+
+// linkedTo reports whether the transaction's payer is linked to ref.
+func linkedTo(payers PayerMap, t sources.SureTxn, ref string) bool {
+	got, ok := payers.ClientOf(t)
+	return ok && ref != "" && got == ref
+}
+
+// UnmatchedIncome lists incomes naming a known client, or from a payer
+// linked to one, that paid no open invoice: a payment for an invoice
+// that was never written, or a typo.
+func UnmatchedIncome(sure *sources.SureDataset, ninja *sources.NinjaDataset, matches []PaymentMatch, today time.Time, days int, payers PayerMap) []sources.SureTxn {
 	matched := map[string]bool{}
 	for _, m := range matches {
 		matched[m.Txn.ID] = true
@@ -263,6 +281,10 @@ func UnmatchedIncome(sure *sources.SureDataset, ninja *sources.NinjaDataset, mat
 	for _, t := range sure.Transactions {
 		d, ok := ParseDay(t.Date)
 		if matched[t.ID] || t.Amount <= 0 || !ok || d.Before(since) {
+			continue
+		}
+		if _, linked := payers.ClientOf(t); linked {
+			out = append(out, t)
 			continue
 		}
 		text := strings.ToLower(t.Name + " " + t.Merchant)

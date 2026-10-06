@@ -236,12 +236,26 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 	if err != nil {
 		slog.Error("analysis: verbünde failed", "space", sp.ID, "err", err)
 	}
-	customerLinks := func(kimai, ninja int64) metrics.ClientMap {
-		m, err := verbund.ClientMapFor(d, kimai, ninja)
-		if err != nil {
-			slog.Error("analysis: customer links failed", "space", sp.ID, "err", err)
+	customerLinks := func(g verbund.Group) map[string]any {
+		out := map[string]any{}
+		conn := func(s enums.ServiceType) int64 {
+			if c := g.Conns[string(s)]; c != nil {
+				return c.ID
+			}
+			return 0
 		}
-		return m
+		ninja := conn(enums.ServiceInvoiceNinja)
+		if m, err := verbund.ClientMapFor(d, conn(enums.ServiceKimai), ninja); err != nil {
+			slog.Error("analysis: customer links failed", "space", sp.ID, "err", err)
+		} else if m != nil {
+			out[rules.ClientMapDataset] = m
+		}
+		if m, err := verbund.PayerMapFor(d, conn(enums.ServiceSure), ninja); err != nil {
+			slog.Error("analysis: payer links failed", "space", sp.ID, "err", err)
+		} else if m != nil {
+			out[rules.PayerMapDataset] = m
+		}
+		return out
 	}
 	for _, sc := range scopes {
 		sc.split(stored, customerLinks)

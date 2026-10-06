@@ -152,7 +152,7 @@ func invoicePaid(_ any, cfg map[string]any, env Env) []Finding {
 		return nil
 	}
 	var found []Finding
-	for _, m := range metrics.PaymentMatches(sure, ninja, env.Today, cfgInt(cfg, "days")) {
+	for _, m := range metrics.PaymentMatches(sure, ninja, env.Today, cfgInt(cfg, "days"), payerMap(env)) {
 		// An amount alone may be anybody's payment: no hint for it.
 		if !m.Sure() {
 			continue
@@ -175,9 +175,9 @@ func paymentUnmatched(_ any, cfg map[string]any, env Env) []Finding {
 		return nil
 	}
 	days := cfgInt(cfg, "days")
-	matches := metrics.PaymentMatches(sure, ninja, env.Today, days)
+	matches := metrics.PaymentMatches(sure, ninja, env.Today, days, payerMap(env))
 	var found []Finding
-	for _, t := range metrics.UnmatchedIncome(sure, ninja, matches, env.Today, days) {
+	for _, t := range metrics.UnmatchedIncome(sure, ninja, matches, env.Today, days, payerMap(env)) {
 		found = append(found, Finding{
 			Fingerprint: "unmatched:" + t.ID, Severity: enums.SeverityInfo,
 			Message: "cross.payment_unmatched", Params: map[string]any{"name": t.Name, "amount": Money(t.Amount, sure.Currency), "day": DayStr(t.Date)},

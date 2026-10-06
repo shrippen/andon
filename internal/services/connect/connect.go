@@ -13,6 +13,7 @@
 package connect
 
 import (
+	"andon/internal/caps"
 	"andon/internal/services/util"
 	"context"
 	"crypto/rand"
@@ -59,40 +60,37 @@ var (
 	ErrNoClient = connections.ErrNoClient
 )
 
-// Method is how a service signs in.
-type Method string
+// Method is how a service signs in (caps.SignIn).
+type Method = caps.SignIn
 
 const (
-	MethodNone     Method = ""
-	MethodRedirect Method = "redirect" // browser goes to the service and back
-	MethodLink     Method = "link"     // login link in a new tab, Andon polls
-	MethodCode     Method = "code"     // code shown here, approved there, Andon polls
-	MethodClient   Method = "client"   // registered client only, no browser step
+	MethodNone     = caps.SignInNone
+	MethodRedirect = caps.SignInRedirect
+	MethodLink     = caps.SignInLink
+	MethodCode     = caps.SignInCode
+	MethodClient   = caps.SignInClient
 )
 
-// MethodOf says whether and how a connection can sign in.
+// MethodOf says whether and how a connection can sign in: the service's
+// declared sign-in (caps.Traits), where its address and options allow
+// it (media servers: Jellyfin only; Tailscale: its own cloud only).
 func MethodOf(service enums.ServiceType, url string, options map[string]any) Method {
+	method := caps.TraitsOf(service).SignIn
 	switch service {
-	case enums.ServiceHomeAssistant, enums.ServiceGitea, enums.ServiceSnipeIT:
-		return MethodRedirect
-	case enums.ServiceNextcloud:
-		return MethodLink
 	case enums.ServiceMediaServer:
-		if kind, _ := options["kind"].(string); kind == "" || kind == mediaJellyfin {
-			return MethodCode
+		if kind, _ := options["kind"].(string); kind != "" && kind != mediaJellyfin {
+			return MethodNone
 		}
 	case enums.ServiceTailscale:
-		if strings.Contains(url, tailscaleHost) {
-			return MethodClient
+		if !strings.Contains(url, tailscaleHost) {
+			return MethodNone
 		}
 	}
-	return MethodNone
+	return method
 }
 
 // NeedsClient says whether a manager registers an OAuth client first.
-func NeedsClient(service enums.ServiceType) bool {
-	return service == enums.ServiceGitea || service == enums.ServiceSnipeIT || service == enums.ServiceTailscale
-}
+func NeedsClient(service enums.ServiceType) bool { return caps.TraitsOf(service).OAuthClient }
 
 // Step tells the page what to do next.
 type Step struct {

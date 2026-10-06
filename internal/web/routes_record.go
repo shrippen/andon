@@ -1,6 +1,7 @@
 package web
 
 import (
+	"andon/internal/caps"
 	"andon/internal/services/verbund"
 	"net/http"
 	"slices"
@@ -114,6 +115,7 @@ func (d Deps) recordValues(r *http.Request, ctx Ctx, conn connections.View) (map
 	if rows, err := connections.Capabilities(r.Context(), d.DB, ctx.Who, conn.ID); err == nil {
 		values["Caps"] = rows
 	}
+	values["Traits"] = caps.TraitsOf(enums.ServiceType(conn.Service)).Keys()
 	if groups, err := verbund.Of(d.DB, ctx.Who, conn.ID); err == nil {
 		values["InVerbund"] = groups
 	}

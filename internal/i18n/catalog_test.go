@@ -124,6 +124,9 @@ func TestCapsKeysExist(t *testing.T) {
 			for _, k := range c.Kinds {
 				keys = append(keys, "caps.kind."+k)
 			}
+			for _, r := range c.Refs {
+				keys = append(keys, "caps.refs", "service."+string(r.Holder), "caps.domain."+string(r.Domain))
+			}
 			for _, n := range c.Needs {
 				keys = append(keys, "caps.need."+string(n.Kind))
 				switch n.Kind {
@@ -136,6 +139,20 @@ func TestCapsKeysExist(t *testing.T) {
 					if _, ok := cat[k]; !ok {
 						t.Errorf("%s: %s missing in %s", h, k, loc)
 					}
+				}
+			}
+		}
+	}
+}
+
+// TestTraitKeysExist: the record can name every trait.
+func TestTraitKeysExist(t *testing.T) {
+	ensureLoaded()
+	for _, s := range enums.Services {
+		for _, k := range caps.TraitsOf(s).Keys() {
+			for loc, cat := range catalogs {
+				if _, ok := cat["caps.trait."+k]; !ok {
+					t.Errorf("caps.trait.%s missing in %s", k, loc)
 				}
 			}
 		}

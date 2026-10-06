@@ -6,6 +6,7 @@
 package hooks
 
 import (
+	"andon/internal/caps"
 	"database/sql"
 	"errors"
 	"strconv"
@@ -44,11 +45,8 @@ const perMinute = 60
 // changes the URL and revokes the old one. No nonce: URLs from before.
 const nonceKey = "hook."
 
-// pushServices accept webhooks.
-var pushServices = map[enums.ServiceType]bool{enums.ServicePGBackWeb: true}
-
-// Accepts reports whether a service is fed by webhooks.
-func Accepts(service enums.ServiceType) bool { return pushServices[service] }
+// Accepts reports whether a service is fed by webhooks (caps.Traits).
+func Accepts(service enums.ServiceType) bool { return caps.TraitsOf(service).Webhooks }
 
 func signature(q db.Queryer, connID int64) (string, error) {
 	id := strconv.FormatInt(connID, 10)

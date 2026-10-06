@@ -11,3 +11,13 @@ func clientMap(env Env) metrics.ClientMap {
 	m, _ := env.Datasets[ClientMapDataset].(metrics.ClientMap)
 	return m
 }
+
+// PayerMapDataset holds the Verbund's payer links (metrics.PayerMap):
+// Sure payer → Invoice Ninja client.
+const PayerMapDataset = "payermap"
+
+// payerMap is the env's payer links, nil without a Verbund.
+func payerMap(env Env) metrics.PayerMap {
+	m, _ := env.Datasets[PayerMapDataset].(metrics.PayerMap)
+	return m
+}

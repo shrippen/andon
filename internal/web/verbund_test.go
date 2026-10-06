@@ -82,6 +82,8 @@ func TestVerbundCustomersPage(t *testing.T) {
 	for _, c := range []url.Values{
 		{"service": {"kimai"}, "name": {"Kimai"}, "url": {"demo://kimai/cust"}},
 		{"service": {"invoiceninja"}, "name": {"Ninja"}, "url": {"demo://invoiceninja/cust"}},
+		{"service": {"sure"}, "name": {"Sure"}, "url": {"demo://sure/cust"}},
+		{"service": {"paperless"}, "name": {"Paperless"}, "url": {"demo://paperless/cust"}},
 	} {
 		c.Set("csrf", csrfToken(t, srv, client))
 		c.Set("space_id", space)
@@ -114,43 +116,57 @@ func TestVerbundCustomersPage(t *testing.T) {
 		t.Error("confirm button shown with nothing to confirm")
 	}
 
-	// One customer: unlink → suggested again, none → locked, link → applied.
-	row := regexp.MustCompile(`/verbund/\d+/customers/(\d+)/unlink`).FindStringSubmatch(customers)
-	if row == nil {
+	// Ninja leads; Kimai, Sure and Paperless are columns.
+	for _, head := range []string{"<th>Invoice Ninja</th><th>Kimai</th><th>Sure", "<th>Paperless"} {
+		if !strings.Contains(customers, head) {
+			t.Fatalf("no %q:\n%s", head, customers)
+		}
+	}
+
+	// One cell: "–" → suggested again, "no counterpart" → locked, a
+	// customer → applied.
+	cell := regexp.MustCompile(`customers/link" class="inline-form">\s*<input[^>]*><input[^>]*><input type="hidden" name="hub" value="([^"]+)"><input type="hidden" name="conn" value="(\d+)">`).FindStringSubmatch(customers)
+	if cell == nil {
 		t.Fatalf("no unlink form:\n%s", customers)
 	}
+	hub, conn := cell[1], cell[2]
 	act := func(name string, extra url.Values) string {
-		v := url.Values{"csrf": {csrfToken(t, srv, client)}, "space": {space}}
+		v := url.Values{"csrf": {csrfToken(t, srv, client)}, "space": {space}, "hub": {hub}, "conn": {conn}}
 		for k, x := range extra {
 			v[k] = x
 		}
-		resp := postForm(t, client, srv.URL+"/verbund/"+id+"/customers/"+row[1]+"/"+name, v)
+		resp := postForm(t, client, srv.URL+"/verbund/"+id+"/customers/"+name, v)
 		return string(mustGet(t, srv, client, resp.Header.Get("Location")))
 	}
-	if got := act("unlink", nil); !strings.Contains(got, `data-state="reviewing"`) {
+	// The cell's own key, and one another row holds in this column.
+	form := regexp.MustCompile(`name="hub" value="` + regexp.QuoteMeta(hub) + `"><input type="hidden" name="conn" value="` + conn + `">\s*<select[^>]*>([\s\S]*?)</select>`).FindStringSubmatch(customers)
+	if form == nil {
+		t.Fatalf("no select for %s/%s", hub, conn)
+	}
+	own := regexp.MustCompile(`<option value="([^"!]+)" selected`).FindStringSubmatch(form[1])
+	if own == nil {
+		t.Fatalf("no selected key: %s", form[1])
+	}
+	if got := act("link", url.Values{"key": {""}}); !strings.Contains(got, `data-state="reviewing"`) {
 		t.Fatalf("unlink did not bring the suggestion back:\n%s", got)
 	}
-	if got := act("none", nil); !strings.Contains(got, `data-state="locked"`) {
+	if got := act("link", url.Values{"key": {"!none"}}); !strings.Contains(got, `data-state="locked"`) {
 		t.Fatalf("none not stored:\n%s", got)
 	}
-	// The clients other rows hold are taken; this row's own one is free.
-	own := regexp.MustCompile(`customers/` + row[1] + `/link"[\s\S]*?<option value="([^"]+)" selected`).FindStringSubmatch(customers)
-	if own == nil {
-		t.Fatalf("no selected client in row %s:\n%s", row[1], customers)
-	}
-	for _, m := range regexp.MustCompile(`<option value="([^"]+)"`).FindAllStringSubmatch(customers, -1) {
-		if m[1] == own[1] {
-			continue
+	taken := ""
+	for _, m := range regexp.MustCompile(`<option value="([^"]+)"`).FindAllStringSubmatch(form[1], -1) {
+		if m[1] != own[1] && m[1] != "!none" && strings.Contains(customers, `name="conn" value="`+conn+`">`) {
+			taken = m[1]
+			break
 		}
-		if got := act("link", url.Values{"client": {m[1]}}); !strings.Contains(got, "schon einem anderen Kimai-Kunden") {
-			t.Fatalf("taken client %s accepted:\n%s", m[1], got)
-		}
-		break
 	}
-	if got := act("link", url.Values{"client": {own[1]}}); strings.Contains(got, `data-state="locked"`) || strings.Contains(got, `class="error"`) {
-		t.Fatalf("link did not replace none:\n%s", got)
+	if got := act("link", url.Values{"key": {taken}}); !strings.Contains(got, "schon einem anderen Kunden") {
+		t.Fatalf("taken key %s accepted:\n%s", taken, got)
 	}
-	if got := act("link", url.Values{"client": {"nope"}}); !strings.Contains(got, `class="error"`) {
-		t.Fatalf("unknown client accepted:\n%s", got)
+	if got := act("link", url.Values{"key": {own[1]}}); strings.Contains(got, `class="error"`) {
+		t.Fatalf("link failed:\n%s", got)
+	}
+	if got := act("link", url.Values{"key": {"nope"}}); !strings.Contains(got, `class="error"`) {
+		t.Fatalf("unknown key accepted:\n%s", got)
 	}
 }
