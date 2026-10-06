@@ -1083,6 +1083,17 @@ Kettenregel: eine Fahrt zwischen zwei beruflichen Fahrten desselben Tages ist be
 **6. Später**
 - [x] Klasse einer Fahrt in Andon von Hand ändern (für Nutzer ohne Plugin); mit Plugin dort als Fahrt anlegen *(Formular im Fahrt-Detail, `sites.SetClass`: Auto/Motorrad mit Plugin als Fahrt dort bzw. deren Art geändert, sonst Option `rides` der Dawarich-Verbindung, Regel 0 `manual`; „automatisch“ löscht nur die Option)*
 
+### Regeln: noch umzusetzen (notiert 06.10.2026)
+
+Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md` bzw. `CLAUDE.md` übernommen und noch nicht angewendet.
+
+- [ ] Visualisierungen (Heatmaps, Graphen, Diagramme) haben immer Achsenbeschriftungen oder eine Legende, sonst sind sie nutzlos. Bestehende Kacheln und Diagramme prüfen und nachrüsten; Regel in `agent.md` aufnehmen
+- [ ] Integrationen werden möglichst gegen eine reale Instanz getestet:
+  - Verzeichnis außerhalb von Git (`.local-test/` in `.gitignore` aufnehmen, es ist bisher nur untracked): echte Datenbank und Zugangsdaten je Dienst
+  - Schreiben nur mit neuen Testeinträgen; vorhandene Einträge nie schreibend anfassen
+  - Jeder schreibende Vorgang wird in einer Logdatei im selben Verzeichnis protokolliert (Zeit, Dienst, Aktion, ID des Testeintrags)
+  - Regel in `agent.md` aufnehmen, Hilfen fürs Protokollieren und Prüfen „nur eigene Einträge“ bauen
+
 ---
 
 ## 11. Betrieb und Sicherheit
