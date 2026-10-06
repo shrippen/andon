@@ -11,18 +11,23 @@ package system
 import (
 	"database/sql"
 	"errors"
+	"log/slog"
 	"net/url"
 	"runtime"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"andon/internal/db"
 	"andon/internal/enums"
+	"andon/internal/logbuf"
 	"andon/internal/model"
+	"andon/internal/progress"
 	"andon/internal/repos/content"
 	"andon/internal/repos/misc"
 	"andon/internal/services/access"
 	"andon/internal/services/audit"
+	"andon/internal/services/connections"
 	"andon/internal/services/scheduler"
 	"andon/internal/services/svcdata"
 	"andon/internal/sources"
@@ -243,10 +248,16 @@ func stringList(v any) []string {
 
 const bytesPerMB = 1 << 20
 
-// InstanceHealth is what Admin → Instance shows about the running
-// process, e.g. to see why a Raspberry Pi is slow.
+// InstanceHealth is what Admin → Operations shows about the running
+// process, e.g. to see why a Raspberry Pi is slow: what runs now, what
+// ran, what fails and what was logged.
 type InstanceHealth struct {
 	Jobs       []scheduler.NamedRun
+	Running    []scheduler.Active
+	Recent     []scheduler.NamedRun
+	Tasks      []progress.Task
+	Problems   []Problem
+	Logs       []logbuf.Entry
 	DatabaseMB float64
 	CacheFresh int // datasets within their TTL
 	CacheKnown int // last known dataset per key
@@ -272,7 +283,40 @@ func Health(d *sql.DB, who *access.Principal) (InstanceHealth, error) {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 	h.Jobs = scheduler.Runs()
+	h.Running, h.Recent, h.Tasks = scheduler.Running(), scheduler.Recent(), progress.List()
+	h.Logs = logbuf.Since(slog.LevelInfo)
+	h.Problems, err = problems(d, who)
+	if err != nil {
+		return h, err
+	}
 	h.CacheFresh, h.CacheKnown = svcdata.Sizes()
 	h.HeapMB, h.Goroutines = float64(mem.HeapAlloc)/bytesPerMB, runtime.NumGoroutine()
 	return h, nil
+}
+
+// Problem is a connection whose fetches failed today; Err is a
+// catalogue key or the service's message.
+type Problem struct {
+	ConnID      int64
+	Name        string
+	Err         string
+	Fail, Total int
+}
+
+// problems lists the connections with failed fetches today.
+func problems(d *sql.DB, who *access.Principal) ([]Problem, error) {
+	strips, err := connections.Strips(d, who, 1, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	var out []Problem
+	for _, s := range strips {
+		today := s.Days[len(s.Days)-1]
+		if today.Fail == 0 {
+			continue
+		}
+		out = append(out, Problem{ConnID: s.ID, Name: s.Name, Err: s.LastError, Fail: today.Fail, Total: today.OK + today.Fail})
+	}
+	return out, nil
 }

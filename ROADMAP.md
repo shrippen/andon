@@ -1093,15 +1093,17 @@ Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md
   - In Ordnung: Tagesbalken (Prozent, `title`), `hbars`, Wochen- und Tagesleiste
   - [x] Kante zuerst: Werte-Achse für gestreckte SVGs (`preserveAspectRatio="none"` verzerrt SVG-Text, also HTML-Achse daneben); Hover-Anzeige für Balken und `path`-Linien (heute nur `polyline` in `.chart-wrap[data-readout]`) *(Kante 1.15, Read-out jetzt delegiert, wirkt auch in nachgeladenen Dialogen)*
   - Geklärt 06.10.2026: Die Regel gilt nur für Popups und Seiten; Kacheln bleiben ohne Achsen und Legenden, damit sie auf einen Blick lesbar sind
-- [ ] Integrationen werden möglichst gegen eine reale Instanz getestet:
+- [x] Integrationen werden möglichst gegen eine reale Instanz getestet *(`internal/testkit/live`, `make live`; erster Test: Orte-Abgleich `places_live_test.go`)*:
   - [x] `.local-test/` in `.gitignore`
-  - Verzeichnis außerhalb von Git (`.local-test/`): echte Datenbank und Zugangsdaten je Dienst
-  - Schreiben nur mit neuen Testeinträgen; vorhandene Einträge nie schreibend anfassen
-  - Jeder schreibende Vorgang wird in einer Logdatei im selben Verzeichnis protokolliert (Zeit, Dienst, Aktion, ID des Testeintrags)
-  - Regel in `agent.md` aufnehmen, Hilfen fürs Protokollieren und Prüfen „nur eigene Einträge“ bauen
+  - Verzeichnis außerhalb von Git (`.local-test/`): echte Datenbank und Zugangsdaten je Dienst (`<dienst>.json`)
+  - Schreiben nur mit neuen Testeinträgen (Name `andon-test …`); vorhandene Einträge nie schreibend anfassen (`live.Change` bricht ab)
+  - Jeder schreibende Vorgang wird in `.local-test/writes.log` protokolliert (Zeit, Dienst, Aktion, Art, ID, Test)
+  - In Cloud-Umgebungen und CI genügen Tests gegen Nachbauten; ohne Instanz wird der Live-Test übersprungen
+  - [ ] Live-Tests für die übrigen schreibenden Ausgänge (Kimai-Zeiten, Invoice Ninja, Paperless)
 
-- [ ] Einstellungen: möglichst viele bisher nur per Umgebungsvariable setzbare Einstellungen zusätzlich in den Servereinstellungen der Oberfläche anbieten; sind beide gesetzt, gewinnt die Umgebungsvariable (in der Oberfläche als „durch Umgebung gesetzt“ gesperrt anzeigen)
-- [ ] Wartungsseite: laufende Aufgaben, zuletzt abgeschlossene Aufgaben, Probleme, Logs
+- [x] Einstellungen: möglichst viele bisher nur per Umgebungsvariable setzbare Einstellungen zusätzlich in den Servereinstellungen der Oberfläche anbieten; sind beide gesetzt, gewinnt die Umgebungsvariable (in der Oberfläche als „durch Umgebung gesetzt“ gesperrt anzeigen) *(Admin → Einstellungen → Server: SMTP, Apprise, Anthropic-Schlüssel, Prüflauf-Intervall, Sitzungsdauern, Log-Stufe; Geheimnisse verschlüsselt, wirken ohne Neustart. Nur Umgebung: `BASE_URL`, `MASTER_KEY`, Pfade, `TRUSTED_PROXIES`, `SCHEDULER_ENABLED`, Demo/Dev. `LOG_LEVEL` wurde vorher gar nicht ausgewertet)*
+  - [x] OIDC: heute gewinnt die gespeicherte Konfiguration über `OIDC_*`; auf „Umgebung gewinnt, Feld gesperrt“ umstellen *(je Feld; Speichern lässt gespeicherte Werte gesperrter Felder unberührt)*
+- [x] Wartungsseite: laufende Aufgaben, zuletzt abgeschlossene Aufgaben, Probleme, Logs *(Admin → Betrieb: Jobs und Fortschritt langer Arbeiten (`internal/progress`), Verlauf der letzten 50 Läufe, Verbindungen mit Fehlern heute, die letzten 300 Logeinträge (`internal/logbuf`))*
 - [x] „Über Andon“: Dev-Builds zeigen keine Version. Auch Dev-Builds bekommen automatisch eine Versionsnummer nach dem Schema `Version/Branch/Build`, z. B. `0.5.0/main/#25` *(`scripts/version.sh`; Build = Commits seit dem letzten Tag, beginnt nach jedem Release neu)*
 - [x] Regel (in `agent.md` aufnehmen): Visualisierungen in Popups bekommen, wo möglich, Tooltips beim Hover (ergänzt die Regel zu Achsen und Legenden) *(Umsetzung beim Nachrüsten oben)*
 - [ ] Dawarich: Orte
@@ -1109,7 +1111,7 @@ Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md
   - Andon kennt zusätzlich private Orte; vorerst reicht die Kategorie „Privat“
   - Struktur: jedes Backend unterstützt nur eine Teilmenge der Funktionen beim Abgleichen und Schreiben (Fähigkeiten je Integration)
   - Prüfen, ob sich das abstrahieren lässt, damit weitere Integrationen es nutzen: welche Fähigkeiten eine Integration hat, wie sie sich mit anderen überlappt (Dawarich und Kimai Anfahrten kennen beide „Orte“, unterschiedlich und voneinander abhängig) und wie Integrationen voneinander abhängen
-- [ ] Dawarich: Der Hinweis „Dawarich-Tracks werden noch gelesen; ältere Fahrten fehlen vorerst.“ bekommt eine Fortschrittsanzeige und einen Link zur Wartungsseite
+- [x] Dawarich: Der Hinweis „Dawarich-Tracks werden noch gelesen; ältere Fahrten fehlen vorerst.“ bekommt eine Fortschrittsanzeige und einen Link zur Wartungsseite *(Fahrten-Dialog: „300 / 1200 · Tracks gelesen“, Link nur für Admins; dieselbe Aufgabe unter Admin → Betrieb)*
 
 ---
 

@@ -2,10 +2,17 @@ package system_test
 
 import (
 	"errors"
+	"io"
+	"log/slog"
+	"os"
 	"testing"
+	"time"
 
 	"andon/internal/enums"
+	"andon/internal/logbuf"
 	"andon/internal/model"
+	"andon/internal/progress"
+	"andon/internal/repos/data"
 	"andon/internal/services/audit"
 	"andon/internal/services/system"
 	"andon/internal/testkit"
@@ -89,4 +96,42 @@ func TestPutAuditsChanges(t *testing.T) {
 	if len(change) != 2 || change[0] != nil || change[1] != true {
 		t.Fatalf("detail: %+v", logged[0].Detail)
 	}
+}
+
+// The maintenance page lists connections whose fetches failed today,
+// open long tasks and recent log records.
+func TestHealthProblemsTasksLogs(t *testing.T) {
+	d := testkit.DB(t)
+	admin, space := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+	bad := testkit.Conn(t, d, admin, space, enums.ServiceKimai, "https://kimai.lan")
+	testkit.Conn(t, d, admin, space, enums.ServiceKimai, "https://ok.lan")
+	if err := data.RecordFetch(d, bad, time.Now(), 10, "error.timeout"); err != nil {
+		t.Fatal(err)
+	}
+	progress.Set("t1", "task.x", nil, 1, 2)
+	t.Cleanup(func() { progress.Finish("t1") })
+	slog.Warn("maintenance test record")
+
+	h, err := system.Health(d, admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(h.Problems) != 1 || h.Problems[0].ConnID != bad || h.Problems[0].Err != "error.timeout" {
+		t.Fatalf("problems: %+v", h.Problems)
+	}
+	if len(h.Tasks) != 1 || h.Tasks[0].Key != "t1" {
+		t.Fatalf("tasks: %+v", h.Tasks)
+	}
+	found := false
+	for _, e := range h.Logs {
+		found = found || e.Msg == "maintenance test record"
+	}
+	if !found {
+		t.Fatalf("logs: %+v", h.Logs)
+	}
+}
+
+func TestMain(m *testing.M) {
+	slog.SetDefault(slog.New(logbuf.Wrap(slog.NewTextHandler(io.Discard, nil))))
+	os.Exit(m.Run())
 }

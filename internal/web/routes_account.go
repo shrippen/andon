@@ -25,7 +25,7 @@ func (d Deps) RegisterAccountRoutes(mux *http.ServeMux) {
 
 // loginAfter opens a session for a just-created account and goes home.
 func (d Deps) loginAfter(w http.ResponseWriter, r *http.Request, email, password string) {
-	result, err := auth.Login(d.DB, d.Settings, email, password, d.clientIP(r), Agent(r))
+	result, err := auth.Login(d.DB, d.live(), email, password, d.clientIP(r), Agent(r))
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -46,7 +46,7 @@ func (d Deps) handleInviteForm(w http.ResponseWriter, r *http.Request) {
 		_ = d.Page(w, ctx, "account_message", http.StatusNotFound, map[string]any{"Message": "invite.invalid"})
 		return
 	}
-	_ = d.Page(w, ctx, "invite", http.StatusOK, map[string]any{"Invite": found, "Token": token, "OIDCLabel": oidc.Button(d.DB, d.Settings)})
+	_ = d.Page(w, ctx, "invite", http.StatusOK, map[string]any{"Invite": found, "Token": token, "OIDCLabel": oidc.Button(d.DB, d.live())})
 }
 
 func (d Deps) handleInviteSubmit(w http.ResponseWriter, r *http.Request) {

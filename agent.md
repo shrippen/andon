@@ -26,6 +26,8 @@
 
 - Every visualization (chart, graph, heatmap) in a popup or page has axis labels or a legend; without them it is useless. Give it hover tooltips where possible. Tiles stay without axes and legends, so they read at a glance; their popup carries the details.
 
+- Test integrations against a real instance where possible (`internal/testkit/live`): connections and data in `.local-test/` (outside Git), one file per service. Write only new test entries and never write to existing ones; every write is logged in `.local-test/writes.log`. Without a configured instance the test is skipped: in cloud environments and CI, tests against fakes are enough.
+
 When you write a commit message, follow these 7 rules:
 Rule 1: Separate the subject line from the body with a single blank line.
 Rule 2: Limit the subject line to 50 characters (72 is the absolute hard limit).

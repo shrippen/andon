@@ -57,7 +57,7 @@ func (d Deps) securityPage(w http.ResponseWriter, ctx Ctx, status int, extra map
 		return
 	}
 	values := map[string]any{
-		"Profile": profile, "Sessions": sessions, "Tokens": tokens, "OIDCLabel": oidc.Button(d.DB, d.Settings),
+		"Profile": profile, "Sessions": sessions, "Tokens": tokens, "OIDCLabel": oidc.Button(d.DB, d.live()),
 		"Passkeys": keys, "TOTPRequired": required, "Boards": visible,
 	}
 	for k, v := range extra {
