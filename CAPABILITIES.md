@@ -104,7 +104,7 @@ Reihenfolgen, aus dem heutigen Verhalten abgeleitet:
 |---|---|---|---|
 | Ort: Geometrie | Dawarich | – | – |
 | Ort: Art und Kunde (nicht privat) | Kimai „Anfahrten“ | – | Andon |
-| Ort: Art „privat“ | – | – | Andon (der Ort selbst liegt als Area in Dawarich, nicht im Plugin) |
+| Ort: Markierung „privat“ | – | – | Andon (der Ort selbst liegt in Dawarich und im Plugin, dort als „Sonstiges“, weil das Plugin einen Typ braucht) |
 | Fahrt: Klasse (Auto, Motorrad) | Kimai „Anfahrten“ | – | Andon (`rides`) |
 | Fahrt: Klasse (andere) | – | – | Andon |
 
@@ -125,23 +125,76 @@ Ninja.expense  ◄── Paperless.document (Belegfelder)
 Daraus folgt:
 - **Reihenfolge beim Anlegen**: Erst das Ziel des Verweises, dann der Verweisende (heute schon so: Area vor Kimai-Ort). `Sync` liest sie aus den Verweisen.
 - **Hinweise bei fehlendem Partner**: Wer einen Verweis deklariert, braucht den Partner. `rules.Needs` (heute nur zweimal genutzt) wird daraus abgeleitet.
-- **Namensabgleich** (`~~`) ist als schwacher Verweis sichtbar und Kandidat für eine gespeicherte Zuordnung.
+- **Namensabgleich** (`~~`) wird durch eine feste Zuordnung über IDs ersetzt (Abschnitt „Kunden Kimai ↔ Invoice Ninja“).
 
-## Partner einheitlich finden
+## Partner-Verbindung
 
-Eine Regel für Kacheln, Prüflauf und Services:
+Eine Funktion, die zwei Dienste braucht (Fahrten: Dawarich + Kimai; Kundenseite: Kimai + Invoice Ninja), muss wissen, welche Verbindung des anderen Dienstes gemeint ist: ihren **Partner**. Gibt es nur eine, ist er eindeutig und es gibt nichts zu wählen (entschieden 06.10.2026: Wahl nur bei mehreren).
 
-1. Ausdrücklich gesetzter Partner der Verbindung (neue Option `peers`, in der Akte wählbar).
-2. Sonst die einzige Verbindung des Dienstes im selben Bereich.
-3. Sonst keine, mit Hinweis „mehrere Kimai-Verbindungen, Partner wählen“, statt still die erste oder letzte zu nehmen.
+Heute sucht jede Stelle anders: Kacheln die erste, der Prüflauf die letzte, `sites` die erste im Bereich, Belege die Wahl des Nutzers.
 
-Der Zugriff über Bereiche hinweg (Kacheln heute: „jeder erreichbare Bereich“) bleibt als Stufe 2b erhalten, wenn im eigenen Bereich keine ist.
+### Auflösung (überall gleich)
+
+```
+gesucht: Kimai-Partner für <Kachel | Verbindung | Bereich>
+  1. Wahl an der Kachel                         (nur bei mehreren angeboten)
+  2. Wahl an der Verbindung, die fragt          (z. B. Dawarich → Kimai X)
+  3. Standard des Bereichs für den Dienst
+  4. einzige Verbindung des Dienstes im Bereich
+  5. einzige in den Bereichen, die der Nutzer erreicht (heute bei Kacheln)
+  sonst: keiner → Hinweis „mehrere Kimai-Verbindungen, Partner wählen“
+```
+
+Eine Funktion in `services/connections`, die alle nutzen:
+
+```go
+// Partner finds the connection of service a caller works with; Ambiguous
+// when several fit and none was chosen.
+func Partner(q db.Queryer, who *access.Principal, at Asker, service enums.ServiceType) (*model.Connection, PartnerState, error)
+
+// Asker is who needs the partner: a tile, a connection, or a space.
+type Asker struct{ SpaceID, ConnID, WidgetID int64 }
+```
+
+`widgetlib.peerConnection`, die Datensätze im Prüflauf (`analysis`: heute „letzte gewinnt“), `sites.open`, `billing.pairs`, `clients` und `mailfwd` rufen sie auf.
+
+### Wo die Wahl gespeichert wird: Vorschläge
+
+| | Ort | Gut für | Nachteil |
+|---|---|---|---|
+| **A** | Option der Verbindung, z. B. Dawarich `partners: {"kimai": 12}`; in der Akte „Arbeitet mit“ | Paare mit klarer Richtung (Orte, Fahrten, Belege) | Kacheln mit vielen Diensten (Monatsabschluss: Kimai, Ninja, Sure, Paperless, Mail) bräuchten je Dienst eine Wahl irgendwo |
+| **B** | Bereichseinstellung „Standard je Dienst“, `partners: {"kimai": 12, "invoiceninja": 4}`; erscheint nur für Dienste mit mehreren Verbindungen | alles in einem Bereich (Prüflauf, Hinweise und Kacheln arbeiten je Bereich) | zwei Kimai-Paare im selben Bereich gehen nur mit Ausnahme |
+| **C** | eigene Verknüpfung (Tabelle `links`: Verbindung ↔ Verbindung), in beiden Akten sichtbar | beliebig viele Paare, symmetrisch, später auch Kunden-Zuordnungen | eigenes Datenmodell und eigene Oberfläche |
+| **D** | Feld an der Kachel „Kimai-Verbindung“, nur bei mehreren | Ausnahme für eine Kachel | allein zu kleinteilig |
+
+**Empfehlung: B als Grundlage, A und D als Ausnahme.** Der Bereich legt den Standard fest; eine Verbindung (A) oder eine Kachel (D) darf abweichen. Das entspricht der Auflösung oben (Stufen 1–3) und braucht kein neues Datenmodell. C lohnt erst, wenn Paare selbst Daten tragen sollen.
+
+### Oberfläche
+
+- **Bereichseinstellungen → Verbindungen:** je Dienst mit mehreren Verbindungen ein Auswahlfeld „Standard“. Ohne mehrere erscheint nichts.
+- **Akte einer Verbindung:** Abschnitt „Arbeitet mit“: zeigt den aufgelösten Partner je Dienst mit Herkunft („Standard des Bereichs“, „einzige“), ändern nur bei mehreren.
+- **Kachel-Einstellungen:** Feld je Partnerdienst, nur bei mehreren.
+- **Hinweis** `conn.partner_ambiguous`, wenn eine Funktion keinen eindeutigen Partner findet; Aktion führt zur Bereichseinstellung.
+
+## Kunden Kimai ↔ Invoice Ninja
+
+Entschieden 06.10.2026: feste Zuordnung über IDs, mit Vorschlagsansicht; Invoice Ninja ist die Quelle der Namen.
+
+```
+Kimai-Kunde 12 ═══ Ninja-Kunde "Kx9"      gespeichert im Paar (Option der Kimai-Verbindung
+                                          "clients": {"12": "Kx9"}), Partner = Ninja
+```
+
+- **Vorschlagsansicht** (Akte der Kimai-Verbindung, Reiter „Kunden“): je Kimai-Kunde der Ninja-Kunde mit dem ähnlichsten Namen als Vorschlag; bestätigen, ändern, „kein Gegenstück“. Ungeklärte oben, wie bei Orten.
+- **Angleichen (optional):** weicht der Kimai-Name ab, schreibt „Namen übernehmen“ den Ninja-Namen nach Kimai (`PATCH /api/customers/{id}`, neuer Ausgang `outbound/kimai.go`). Nie umgekehrt.
+- **Nutzer** der Zuordnung statt Namensabgleich: Kundenseiten (`metrics/clients.go`), Vollkosten-Stundensatz, `geo.travel_unbilled`, Rechnungsentwürfe (`billing`).
+- Ohne Zuordnung gilt vorerst weiter der Namensabgleich, als „vorgeschlagen“ markiert.
 
 ## Schichten
 
 ```
-web        Akte: Abschnitt Fähigkeiten, Partner wählen
-services   sites, billing, receipts …: caps.Store, caps.Peer
+web        Akte: Fähigkeiten, Arbeitet mit, Kunden; Bereich: Standard je Dienst
+services   connections.Partner; sites, billing, clients …: caps.Store
 sources    erkennen → caps.Set im Datensatz
 caps       Typen, Deklarationen je Dienst, Store, reine Funktionen (Blatt)
 ```
@@ -150,11 +203,13 @@ caps       Typen, Deklarationen je Dienst, Store, reine Funktionen (Blatt)
 
 ## Schritte
 
-1. `internal/caps` mit Typen und Deklarationen für Orte und Fahrten (Dawarich, Kimai, Andon). Kimai-Quelle liefert `caps.Set`. `pluginWrites` und `pluginTrips` werden zu `caps.Store`, ohne Verhaltensänderung, Tests je Reihenfolge.
-2. Verbindungstest und Akte zeigen Fähigkeiten und fehlende Voraussetzungen, für alle Dienste mit Erkennung.
-3. Partner-Regel und Option `peers`; Kacheln, Prüflauf und `sites` nutzen sie.
-4. Weitere Domänen: Kunde (Kimai ↔ Ninja, Zuordnung statt Namensabgleich), Beleg (Ninja ↔ Paperless), Abwesenheit (Kimai-Holiday-Bundle).
-5. Später, falls nützlich: statische Tabellen (`hooks.pushServices`, `connect.MethodOf`, Backup-Systeme) in dieselben Deklarationen.
+Entschieden 06.10.2026: klein beginnen; wenn stabil, auf alle Verbindungen ausweiten und als Standard für jede Integration festlegen.
+
+1. **Klein:** `internal/caps` mit Typen und Deklarationen nur für Orte und Fahrten (Dawarich, Kimai „Anfahrten“, Andon). Die Kimai-Quelle liefert dafür ein `caps.Set`; `pluginWrites` und `pluginTrips` werden zu `caps.Store`, ohne Verhaltensänderung, Tests je Reihenfolge.
+2. Verbindungstest und Akte zeigen Fähigkeiten und fehlende Voraussetzungen.
+3. Partner: `connections.Partner`, Bereichsstandard, „Arbeitet mit“; Kacheln, Prüflauf und Services stellen um.
+4. Kunden Kimai ↔ Invoice Ninja: Zuordnung, Vorschlagsansicht, Angleichen.
+5. **Groß:** übrige Kimai-Erkennung (Holiday-Bundle, Vertrag), dann jede Integration mit Erkennung; Regel in `agent.md`: neue Integrationen deklarieren ihre Fähigkeiten in `internal/caps`. Später statische Tabellen (`hooks.pushServices`, `connect.MethodOf`, Backup-Systeme) in dieselben Deklarationen.
 
 ## Nicht-Ziele
 
@@ -162,10 +217,9 @@ caps       Typen, Deklarationen je Dienst, Store, reine Funktionen (Blatt)
 - Kein Löschen über Systeme hinweg (bleibt wie heute).
 - Keine Fähigkeiten-API nach außen.
 
-## Offene Fragen
+## Entscheidungen (06.10.2026)
 
-1. **Partner**: ausdrücklich wählen (Option `peers`) oder automatisch mit Hinweis bei mehreren?
-2. ~~**Private Orte**~~ *(entschieden 06.10.2026)*: Der Ort selbst geht als Area nach Dawarich, die Markierung „privat“ lebt nur in Andon. Ins Kimai-Plugin kommt er nicht.
-   **Abweichung im heutigen Code:** `sites.Assign`, `Create` und `Sync` legen private Orte im Plugin als „Sonstiges“ an (`pluginTypes`: privat → `other`); nur die Markierung bleibt in Andon. Zu beheben, unabhängig von Schritt 1.
-3. **Kunden-Identität Kimai ↔ Invoice Ninja**: Namensabgleich durch eine gespeicherte Zuordnung ersetzen (Schritt 4)?
-4. **Umfang Schritt 1**: nur Orte und Fahrten, oder gleich die Kimai-Erkennung komplett (Holiday-Bundle, Vertrag)?
+1. **Partner:** Wahl nur, wenn es mehrere gibt. Speicherort: Empfehlung B + A/D, siehe „Partner-Verbindung“ (offen zur Freigabe).
+2. **Private Orte:** Der Ort liegt in Dawarich und im Plugin (dort „Sonstiges“, das Plugin braucht einen Typ); nur die Markierung „privat“ lebt in Andon. Entspricht dem heutigen Code.
+3. **Kunden Kimai ↔ Invoice Ninja:** feste Zuordnung über IDs mit Vorschlagsansicht, optional Namen angleichen; Invoice Ninja ist die Quelle der Namen.
+4. **Umfang:** klein beginnen (Orte, Fahrten), wenn stabil groß und als Standard für alle Integrationen.
