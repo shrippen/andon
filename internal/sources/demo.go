@@ -700,6 +700,13 @@ func DemoKintsugi(now time.Time) *KintsugiDataset {
 	return data
 }
 
+// DemoHansei is Hansei's demo state, as it would have pushed it.
+func DemoHansei(now time.Time) *HanseiDataset {
+	data := &HanseiDataset{}
+	demoworld.MustDecode("code.hansei", now, data)
+	return data
+}
+
 // DemoPGBack is the demo PG Back Web dataset.
 func DemoPGBack(now time.Time) *PGBackDataset {
 	data := &PGBackDataset{}

@@ -1,8 +1,11 @@
 // Package hooks receives events that services push (PG Back Web
-// webhooks) and hands out the URL they must call.
+// webhooks) or their whole state (Hansei), and hands out the URL they
+// must call.
 //
 //	POST /hooks/{connection id}/{HMAC(master key, id + nonce)}  body {"event", "name"}
 //	     → hook_events row → pgbackweb.data (svcdata passes the events)
+//	POST /hooks/{connection id}/{…}                            body {"state": {…}}
+//	     → replaces the connection's state → hansei.data (svcdata passes it)
 package hooks
 
 import (
@@ -105,6 +108,33 @@ func Receive(d *sql.DB, connID int64, sig, event, subject string) error {
 			return err
 		}
 		return data.AddHookEvent(tx, &model.HookEvent{ConnectionID: connID, Event: event, Subject: subject, At: now})
+	})
+	if err != nil {
+		return err
+	}
+	svcdata.Forget(connID)
+	return nil
+}
+
+// ReceiveState replaces a connection's pushed state after checking the
+// URL's signature; each push counts like one event against the cap.
+func ReceiveState(d *sql.DB, connID int64, sig string, state map[string]any) error {
+	want, err := signature(d, connID)
+	if err != nil || !crypto.Same(want, sig) {
+		return ErrRejected
+	}
+	if !allow(connID, time.Now()) {
+		return ErrThrottled
+	}
+	err = db.WithTx(d, func(tx *sql.Tx) error {
+		conn, err := content.Connection(tx, connID)
+		if err != nil {
+			return err
+		}
+		if conn == nil || !Accepts(enums.ServiceType(conn.Service)) {
+			return ErrRejected
+		}
+		return data.SetHookState(tx, connID, state, time.Now().UTC())
 	})
 	if err != nil {
 		return err

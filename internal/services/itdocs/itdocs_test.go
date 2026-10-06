@@ -43,6 +43,9 @@ func TestFindingsPerStack(t *testing.T) {
 		byKey[f.Rule+"|"+f.Host+"|"+f.Stack+"|"+f.Note] = f
 	}
 	gitea, ok := byKey["docs.missing|nebelhorn|gitea|"]
+	if gitea.ID != "docs.missing:nebelhorn/gitea" {
+		t.Fatalf("id: %q", gitea.ID)
+	}
 	if !ok || len(gitea.Services) != 1 || gitea.Services[0].Image == "" || len(gitea.Services[0].Ports) != 2 || gitea.Compose == "" {
 		t.Fatalf("missing gitea: %+v in %+v", gitea, report.Findings)
 	}

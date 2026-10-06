@@ -53,6 +53,7 @@ action:
   open_in_komodo: Open in Komodo
   open_in_pangolin: Open in Pangolin
   open_in_authentik: Open in authentik
+  open_in_hansei: Open in Hansei
   open_in_pgbackweb: Open in PG Back Web
   open_in_linkwarden: Open in Linkwarden
   open_in_kintsugi: Open in Kintsugi
@@ -1301,6 +1302,7 @@ conn:
   what_sure: 'Sure is a self-hosted personal finance app for accounts, budgets and spending.'
   what_linkwarden: 'Linkwarden collects and archives bookmarks along with a copy of the page.'
   what_kintsugi: 'Kintsugi is an acquisition copilot: it builds a profile from an interview and documents and suggests acquisition and development steps every day.'
+  what_hansei: 'Hansei keeps the IT docs in the Obsidian vault: check rules, batches, changes only after approval.'
   what_pgbackweb: 'PG Back Web backs up PostgreSQL databases on a schedule through a web interface.'
   what_mail: 'Built-in check: Andon reads a mailbox via IMAP and finds invoices in it.'
   what_truenas: 'TrueNAS is an operating system for network storage based on ZFS.'
@@ -1355,6 +1357,7 @@ conn:
   about_sure: 'Accounts and spending'
   about_linkwarden: 'Match bookmarks against tiles'
   about_kintsugi: 'Acquisition suggestions'
+  about_hansei: 'Docs batches via webhook'
   about_pgbackweb: 'Postgres backups via webhook'
   about_mail: 'Invoices in the mailbox (IMAP)'
   about_truenas: 'Pools, snapshots, replication'
@@ -1382,6 +1385,7 @@ conn:
   options_hint_pangolin: 'Integration API URL including /v1 (e.g. https://api.pangolin.example.org/v1), not the Pangolin dashboard: enable the integration API in Pangolin''s config.yml (flags: enable_integration_api: true) and expose it on its own domain (port 3003). The organisation ID is in the Pangolin URL (…/<org>/settings). Token = integration API key with read access to sites and resources.'
   options_hint_authentik: No options. Token = API token of an account allowed to read events and users.
   options_hint_mail: 'URL imaps://mail.example.org:993/INBOX. Username and app password of your mailbox (not your regular login password). Options: days: 60, keywords: [statement], ignore_senders: [mycompany.com] – read-only; attachments are downloaded only when you hand an invoice to Paperless.'
+  options_hint_hansei: 'No options, no token. Hansei sends its state to the webhook address below (batches, conformity, docs findings in progress). It fetches findings with a read token from /api/docs.'
   options_hint_pgbackweb: No options, no token. PG Back Web reports by webhook, see below.
   hook: Webhook
   hook_hint: 'In PG Back Web add one webhook per event (execution_success, execution_failed, database_unhealthy/healthy, destination_unhealthy/healthy) and backup: method POST, this URL, body as below with event and backup name. Keep the URL secret.'
@@ -1392,7 +1396,7 @@ conn:
   options_hint_sure: No options needed. Token = API key with read scope (settings → API keys).
   options_hint_homeassistant: 'No options needed. Token = long-lived access token (profile → security). It has all rights of its user: best a dedicated user without admin rights. Only users with the “use” right on this connection may switch.'
   options_hint_freshrss: 'No options needed. Username and API password from FreshRSS → profile → API password; API access must be enabled there.'
-  options_hint_gitea: 'No options needed. Token = access token with read scopes (read:user, read:issue, read:repository, read:notification). Repos docker-compose-<host> are read as compose stacks. Optional IT docs (Obsidian vault): docs_repo: owner/vault, docs_paths: [IT/Services, IT/Devices] – only these folders, only the frontmatter; hansei_note: IT/Hansei-Status.md (Hansei''s status note).'
+  options_hint_gitea: 'No options needed. Token = access token with read scopes (read:user, read:issue, read:repository, read:notification). Repos docker-compose-<host> are read as compose stacks. Optional IT docs (Obsidian vault): docs_repo: owner/vault, docs_paths: [IT/Services, IT/Devices] – only these folders, only the frontmatter.'
   options_hint_borgbackup: No options needed. Token = API token bbs_tok_… (settings → API).
   options_hint_scrutiny: No options, no token needed.
   options_hint_immich: 'No options needed. Token = API key (account settings → API keys). Permissions: server.storage (required); optional server.statistics and job.read (only with an admin account''s key) and server.versionCheck for update hints.'
@@ -1476,6 +1480,7 @@ service:
   pgbackweb: PG Back Web
   linkwarden: Linkwarden
   kintsugi: Kintsugi
+  hansei: Hansei
   sure: Sure (finance)
   homeassistant: Home Assistant
   freshrss: FreshRSS
@@ -2132,6 +2137,9 @@ hint:
       title: 'Mirror {repo} not updated since {day}'
       why: Source reachable? Credentials expired?
   docs:
+    missing_claimed:
+      title: '{count} stacks on {host} without docs'
+      why: '{names}. Hansei already works on {claimed} more.'
     missing:
       title: '{count} stacks on {host} without docs'
       why: '{names}. Write a note or link the compose.yaml in the "Compose" field of a service, device or network note.'
@@ -4074,9 +4082,8 @@ detail:
     feedback: 'Questions'
     done: 'Done'
     conformity: 'Conformity (%)'
-    findings: 'Docs findings for Hansei'
+    claimed: 'Docs findings in progress'
     updated: 'As of'
-    open: 'Open status note'
   plain: '{text}'
   hints: 'Hints for this tile'
   today: 'today'
@@ -4747,7 +4754,7 @@ hansei:
   feedback: '{n} with questions'
   conformity: '{n} % conformant'
   done: '{n} done'
-  unset: 'No Hansei status note. Set status_note in Hansei and hansei_note (with docs_repo) on the Gitea connection.'
+  unset: 'No state from Hansei yet. Enter this connection''s webhook address in Hansei.'
 
 vault:
   with2fa: 'accounts with two-factor'

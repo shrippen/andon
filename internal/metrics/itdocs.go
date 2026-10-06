@@ -67,6 +67,35 @@ func CheckDocs(data *sources.GiteaDataset) (DocsCheck, bool) {
 	return out, true
 }
 
+// Finding ids, shared with Hansei (GET /api/docs, claimed in its pushed
+// state): "docs.missing:regis/kometa", "docs.orphan:IT/Dienste/X.md".
+const (
+	missingPrefix    = "docs.missing:"
+	orphanPrefix     = "docs.orphan:"
+	deprecatedPrefix = "docs.deprecated_live:"
+)
+
+// MissingID names an undocumented stack.
+func MissingID(s sources.Stack) string { return missingPrefix + s.Host + "/" + s.Name }
+
+// OrphanID names a note linking a stack that is gone.
+func OrphanID(l DocLink) string { return orphanPrefix + l.Note.Path }
+
+// DeprecatedID names a stack of a deprecated note.
+func DeprecatedID(l DocLink) string { return deprecatedPrefix + l.Stack.Host + "/" + l.Stack.Name }
+
+// Claimed is the set of finding ids Hansei works on; empty without Hansei.
+func Claimed(h *sources.HanseiDataset) map[string]bool {
+	out := map[string]bool{}
+	if h == nil {
+		return out
+	}
+	for _, id := range h.Claimed {
+		out[id] = true
+	}
+	return out
+}
+
 // MissingRepo is the repo of host's undocumented stacks, "" if none.
 func (c DocsCheck) MissingRepo(host string) string {
 	for _, s := range c.Missing {

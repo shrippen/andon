@@ -5251,7 +5251,7 @@
   }
  },
  "code": {
-  "note": "Gitea (issues, reviews, a failed workflow, a stale mirror, commits per week; compose stacks of docker-compose-<host>, matched against it_docs by the notes' Compose links: gitea, kimai and stirling-pdf undocumented, dawarich only in a deprecated note, paperless-ai linked but gone; the notes come from it_docs, docs_url is the vault in Gitea; hansei is Hansei's status note there, matching it_docs: four batches, two to review, one with questions, one done, conformity 0.5) GitHub and the KDE Store (downloads_daily: downloads per day, oldest first, today last; a spike after a release).",
+  "note": "Gitea (issues, reviews, a failed workflow, a stale mirror, commits per week; compose stacks of docker-compose-<host>, matched against it_docs by the notes' Compose links: gitea, kimai and stirling-pdf undocumented, dawarich only in a deprecated note, paperless-ai linked but gone; the notes come from it_docs, docs_url is the vault in Gitea) Hansei pushes its state to Andon (hansei), matching it_docs: four batches, two to review, one with questions, one done, conformity 0.5; a batch already works on kimai's missing note. GitHub and the KDE Store (downloads_daily: downloads per day, oldest first, today last; a spike after a release).",
   "gitea": {
    "url": "https://git.demo",
    "user": "mara",
@@ -5340,14 +5340,6 @@
    "stacks_read": true,
    "notes_read": true,
    "docs_url": "https://git.demo/studio/it-docs/src/branch/main/",
-   "hansei": {
-    "review": 2,
-    "feedback": 1,
-    "done": 1,
-    "conformity": 0.5,
-    "updated": "@-3h",
-    "url": "https://git.demo/studio/it-docs/src/branch/main/IT/Hansei-Status.md"
-   },
    "stacks": [
     {
      "host": "boje",
@@ -5538,6 +5530,16 @@
       }
      ]
     }
+   ]
+  },
+  "hansei": {
+   "review": 2,
+   "feedback": 1,
+   "done": 1,
+   "conformity": 0.5,
+   "updated": "@-3h",
+   "claimed": [
+    "docs.missing:feuerschiff/kimai"
    ]
   },
   "kde_store": {

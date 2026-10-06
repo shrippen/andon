@@ -55,7 +55,7 @@ func credShapeOf(service enums.ServiceType) credShape {
 	case enums.ServicePihole:
 		return credPassword
 	case enums.ServiceScrutiny, enums.ServiceDocker, enums.ServiceCerts, enums.ServiceDomains, enums.ServiceBlacklist,
-		enums.ServiceDWD, enums.ServicePGBackWeb, enums.ServiceKDEStore:
+		enums.ServiceDWD, enums.ServicePGBackWeb, enums.ServiceKDEStore, enums.ServiceHansei:
 		return credNone
 	default:
 		return credSingle

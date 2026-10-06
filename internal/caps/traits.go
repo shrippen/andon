@@ -28,6 +28,7 @@ var traits = []struct {
 }{
 	{enums.ServiceBorgBackup, Traits{Restore: true}},
 	{enums.ServicePGBackWeb, Traits{Restore: true, Webhooks: true}},
+	{enums.ServiceHansei, Traits{Webhooks: true}},
 	{enums.ServiceTrueNAS, Traits{Restore: true}},
 	{enums.ServiceProxmox, Traits{Restore: true}},
 	{enums.ServiceHomeAssistant, Traits{SignIn: SignInRedirect}},

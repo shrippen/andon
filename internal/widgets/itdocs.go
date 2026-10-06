@@ -87,47 +87,37 @@ func docsDetail(cfg DocsConfig, data *sources.GiteaDataset, _ ViewCtx, results m
 
 // ── hansei_batches ──
 //
-// Hansei's status note: batches waiting for review or answers, and how
-// well the vault follows its rules.
+// Hansei's pushed state: batches waiting for review or answers, how well
+// the vault follows its rules, and the docs findings a batch works on.
 
 func init() {
-	Tile[struct{}]{Key: "hansei_batches", Detail: dataDetail(hanseiDetail), Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceGitea, RefreshS: 15 * 60,
+	Tile[struct{}]{Key: "hansei_batches", Detail: dataDetail(hanseiDetail), Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceHansei, RefreshS: 5 * 60,
 		Fields: []Field{}, Queries: ownData[struct{}], View: dataView(hanseiView)}.add()
 }
 
-func hanseiView(_ struct{}, data *sources.GiteaDataset, _ ViewCtx) map[string]any {
-	h := data.Hansei
-	if h == nil {
+func hanseiView(_ struct{}, data *sources.HanseiDataset, _ ViewCtx) map[string]any {
+	if data.Updated.IsZero() {
 		return map[string]any{"Unset": true}
 	}
-	return map[string]any{"Status": h, "ConformityPct": pctOf(h.Conformity, 1)}
+	return map[string]any{"Status": data, "ConformityPct": pctOf(data.Conformity, 1)}
 }
 
-// hanseiDetail shows the columns, the conformity and the docs findings
-// Hansei picks up next.
-func hanseiDetail(_ struct{}, data *sources.GiteaDataset, _ ViewCtx, results map[string]any) DetailView {
-	h := data.Hansei
-	if h == nil {
+// hanseiDetail shows the columns, the conformity and the claimed findings.
+func hanseiDetail(_ struct{}, data *sources.HanseiDataset, _ ViewCtx, results map[string]any) DetailView {
+	if data.Updated.IsZero() {
 		return DetailView{Body: &DetailBody{Blocks: hintsBlock(results)}}
 	}
 
 	rows := [][]Cell{
-		{{Value: T("detail.hansei.review")}, {Value: h.Review}},
-		{{Value: T("detail.hansei.feedback")}, {Value: h.Feedback}},
-		{{Value: T("detail.hansei.done")}, {Value: h.Done}},
-		{{Value: T("detail.hansei.conformity")}, {Value: pctOf(h.Conformity, 1)}},
+		{{Value: T("detail.hansei.review")}, {Value: data.Review}},
+		{{Value: T("detail.hansei.feedback")}, {Value: data.Feedback}},
+		{{Value: T("detail.hansei.done")}, {Value: data.Done}},
+		{{Value: T("detail.hansei.conformity")}, {Value: pctOf(data.Conformity, 1)}},
+		{{Value: T("detail.hansei.claimed")}, {Value: len(data.Claimed)}},
+		{{Value: T("detail.hansei.updated")}, {Value: dayOf(data.Updated)}},
 	}
-	if check, ok := metrics.CheckDocs(data); ok {
-		rows = append(rows, []Cell{{Value: T("detail.hansei.findings")}, {Value: len(check.Missing) + len(check.Orphans) + len(check.DeprecatedLive)}})
-	}
-	rows = append(rows, []Cell{{Value: T("detail.hansei.updated")}, {Value: dayOf(h.Updated)}})
 	body := &DetailBody{Blocks: []Block{{Kind: BlockTable, Label: T("detail.hansei.columns"),
 		Data: Table{Head: []Text{T("detail.hansei.what"), T("detail.hansei.count")}, Rows: rows, Num: []int{1}}}}}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
-
-	head := DetailHead{}
-	if h.URL != "" {
-		head.Actions = []DetailAction{{LabelKey: "detail.hansei.open", Href: h.URL}}
-	}
-	return DetailView{Head: head, Body: body}
+	return DetailView{Body: body}
 }
