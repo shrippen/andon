@@ -5,6 +5,7 @@ package sources
 // the analysis) and "<service>.test" (connection check).
 
 import (
+	"andon/internal/caps"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -303,7 +304,11 @@ type PaperlessDataset struct {
 	Contracts   []PaperlessContract
 	Newest      []PaperlessNew // latest added documents, newest first
 	TagCounts   map[string]int // documents per tag, by lower-case name
+	Caps        caps.Set       // receipts need the custom fields API
 }
+
+// CapSet reports what the Paperless connection allows.
+func (d *PaperlessDataset) CapSet() caps.Set { return d.Caps }
 
 // PaperlessNew is one recently added document.
 type PaperlessNew struct {
@@ -366,7 +371,9 @@ func fetchPaperless(ctx context.Context, sctx Ctx) (any, error) {
 		}
 	}
 	data.Invoices = loadPaperlessInvoices(ctx, api, sctx.Options)
-	data.Contracts = loadContracts(ctx, api, sctx.Options, time.Now().UTC())
+	var fields bool
+	data.Contracts, fields = loadContracts(ctx, api, sctx.Options, time.Now().UTC())
+	data.Caps = paperlessCaps(fields)
 	return data, nil
 }
 
@@ -569,7 +576,14 @@ func fetchPaperlessTest(ctx context.Context, sctx Ctx) (any, error) {
 	if _, err := api.Get(ctx, "tags/", url.Values{"page_size": {"1"}}); err != nil {
 		return nil, fetchError(err)
 	}
-	return map[string]any{"version": nil}, nil
+	_, err = api.Get(ctx, "custom_fields/", url.Values{"page_size": {"1"}})
+	return map[string]any{"version": nil, TestCaps: paperlessCaps(err == nil)}, nil
+}
+
+// paperlessCaps is what the connection lets Andon do: receipts need the
+// custom fields API (Paperless-ngx 1.17 and newer).
+func paperlessCaps(fields bool) caps.Set {
+	return caps.Detect(caps.HolderOf(enums.ServicePaperless), func(caps.Need) bool { return fields })
 }
 
 // ── TLS certificates ──

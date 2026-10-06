@@ -1472,8 +1472,6 @@ service:
 test:
   ok: OK
   failed: Fehler
-  mileage_read_only: 'Kimai Anfahrten ist nur lesbar: Ohne das Recht, eigene Fahrten zu bearbeiten, bleiben Orte und von Hand eingeordnete Fahrten in Andon.'
-  mileage_old: 'Kimai Anfahrten ist zu alt, um Orte anzulegen (ab 0.10.0): Orte bleiben in Andon.'
 code:
   lead: Bereich als YAML. Zugangsdaten sind nie enthalten.
   error: Nicht übernommen
@@ -5376,6 +5374,8 @@ caps:
     create: anlegen
     update: ändern
   kind:
+    timesheets: Zeiten
+    target: Sollzeit
     home: Zuhause
     work: Arbeit
     customer: Kunde
@@ -5383,12 +5383,17 @@ caps:
     driving: Auto
     motorcycle: Motorrad
   plugin:
+    holiday: Holiday-Bundle
     mileage: Anfahrten
   need:
     plugin: 'Plugin {name} fehlt'
     feature: 'Plugin zu alt ({name} fehlt)'
     right: 'Recht {name} fehlt'
     api: 'Schnittstelle {name} fehlt (ältere Version)'
+    setting: '{name} nicht hinterlegt'
+  setting:
+    contract: Sollarbeitszeit (Benutzer → Arbeitszeit)
+  note: 'Nur teilweise nutzbar:'
 verbund:
   customers: Kunden
   customers_lead: 'Welcher Kimai-Kunde welcher Kunde in Invoice Ninja ist. Andon schlägt den ähnlichsten Namen vor; gespeichert wird erst, was du bestätigst. Invoice Ninja führt die Namen: „Namen übernehmen“ schreibt ihn nach Kimai. Ohne Zuordnung entscheidet der gleiche Name.'

@@ -58,10 +58,8 @@ func rowOf(c caps.Cap, set caps.Set, known bool) CapRow {
 	if !known {
 		return CapRow{Cap: c, State: CapUnknown}
 	}
-	for _, g := range set.Missing {
-		if g.Cap.Domain == c.Domain && g.Cap.Op == c.Op {
-			return CapRow{Cap: c, State: CapMissing, Need: g.Need}
-		}
+	if g, missing := set.Gap(c); missing {
+		return CapRow{Cap: c, State: CapMissing, Need: g.Need}
 	}
 	return CapRow{Cap: c, State: CapHave}
 }

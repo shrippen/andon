@@ -128,13 +128,16 @@ func parseNotice(raw string) (int, int) {
 }
 
 // loadContracts reads the contract documents; failures leave it empty.
-func loadContracts(ctx context.Context, api services.PaperlessApi, options map[string]any, today time.Time) []PaperlessContract {
+// fields says whether the custom fields API answered.
+func loadContracts(ctx context.Context, api services.PaperlessApi, options map[string]any, today time.Time) (out []PaperlessContract, fields bool) {
 	tag := asStr(options["contract_tag"])
 	if tag == "" {
 		tag = defaultContractTag
 	}
 	meaning := map[int64]string{}
-	if raw, err := api.Get(ctx, "custom_fields/", url.Values{"page_size": {"100"}}); err == nil {
+	raw, err := api.Get(ctx, "custom_fields/", url.Values{"page_size": {"100"}})
+	fields = err == nil
+	if fields {
 		for _, r := range asList(asMap(raw)["results"]) {
 			m := asMap(r)
 			if kind, ok := contractFields[strings.ToLower(asStr(m["name"]))]; ok {
@@ -150,7 +153,6 @@ func loadContracts(ctx context.Context, api services.PaperlessApi, options map[s
 		}
 	}
 
-	var out []PaperlessContract
 	for page := 1; page <= contractPages; page++ {
 		raw, err := api.Get(ctx, "documents/", url.Values{"tags__name__iexact": {tag}, "page_size": {"100"}, "page": {strconv.Itoa(page)}})
 		if err != nil {
@@ -177,5 +179,5 @@ func loadContracts(ctx context.Context, api services.PaperlessApi, options map[s
 			break
 		}
 	}
-	return out
+	return out, fields
 }

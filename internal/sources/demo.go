@@ -185,14 +185,13 @@ func DemoKimai(now time.Time) *KimaiDataset {
 		Timesheets: sheets,
 		Active: []KimaiSheet{{ID: b.Time.RunningID, Begin: running.Format(time.RFC3339), Billable: true,
 			ProjectID: b.Time.RunningCustomer, CustomerID: b.Time.RunningCustomer, Activity: demoEdit, UserID: 1}},
-		Projects:      projects,
-		Customers:     demoCustomers,
-		Absences:      b.Absences,
-		Holidays:      demoHolidays(today),
-		HolidayBundle: true,
-		Caps:          caps.Full(caps.HolderOf(enums.ServiceKimai)),
-		Places:        demoKimaiPlaces(now),
-		MileageTrips:  demoMileageTrips(now),
+		Projects:     projects,
+		Customers:    demoCustomers,
+		Absences:     b.Absences,
+		Holidays:     demoHolidays(today),
+		Caps:         caps.Full(caps.HolderOf(enums.ServiceKimai)),
+		Places:       demoKimaiPlaces(now),
+		MileageTrips: demoMileageTrips(now),
 	}
 }
 
@@ -493,7 +492,7 @@ func DemoProxmox(now time.Time) *ProxmoxDataset {
 
 // DemoPaperless is the demo Paperless-ngx dataset.
 func DemoPaperless(now time.Time) *PaperlessDataset {
-	data := &PaperlessDataset{}
+	data := &PaperlessDataset{Caps: caps.Full(caps.HolderOf(enums.ServicePaperless))}
 	demoworld.MustDecode("documents", now, data)
 	return data
 }

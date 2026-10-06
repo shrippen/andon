@@ -1,6 +1,7 @@
 package sources_test
 
 import (
+	"andon/internal/caps"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -56,8 +57,12 @@ func TestKimaiDataNormalizesSheetsAndProjects(t *testing.T) {
 	if len(data.Customers) != 1 || data.Customers[0].Name != "Acme" {
 		t.Fatalf("unexpected customers: %+v", data.Customers)
 	}
-	if data.HolidayBundle {
-		t.Fatal("expected HolidayBundle false when the plugin 404s")
+	// No holiday bundle (404) and no working time: both are gaps.
+	if need, ok := data.Caps.Lacks(caps.Absences, caps.Read); !ok || need.Name != "holiday" {
+		t.Fatalf("absences: %v %v", need, ok)
+	}
+	if data.Caps.Can(caps.WorkTime, caps.Read, "target") || !data.Caps.Can(caps.WorkTime, caps.Read, "timesheets") {
+		t.Fatalf("worktime: %+v", data.Caps)
 	}
 }
 
@@ -88,11 +93,14 @@ func TestKimaiTestReadsVersion(t *testing.T) {
 // The test names a mileage plugin Andon cannot write to.
 func TestKimaiTestNotesReadOnlyPlugin(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/mileage/ping" {
+		switch r.URL.Path {
+		case "/api/mileage/ping":
 			w.Write([]byte(`{"permissions": {"view": true, "editOwn": false}, "features": ["placesWrite"]}`))
-			return
+		case "/api/users/me":
+			w.Write([]byte(`{"preferences": [{"name": "work_monday", "value": 28800}]}`))
+		default:
+			w.Write([]byte(`{"version": "2.30.0"}`))
 		}
-		w.Write([]byte(`{"version": "2.30.0"}`))
 	}))
 	defer srv.Close()
 
@@ -100,9 +108,38 @@ func TestKimaiTestNotesReadOnlyPlugin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fetch: %v", err)
 	}
-	notes, _ := out.(map[string]any)[sources.TestNotes].([]string)
-	if len(notes) != 1 || notes[0] != "test.mileage_read_only" {
-		t.Fatalf("notes: %+v", out)
+	set, _ := out.(map[string]any)[sources.TestCaps].(caps.Set)
+	for _, g := range set.Partial() {
+		if g.Cap.Domain != caps.Places && g.Cap.Domain != caps.Rides || g.Need.Name != "editOwn" {
+			t.Fatalf("partial: %+v", g)
+		}
+	}
+	if len(set.Partial()) != 4 {
+		t.Fatalf("partial: %+v", set.Partial())
+	}
+}
+
+// The test names a working time the user has not set in Kimai.
+func TestKimaiTestNotesNoContract(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/users/me":
+			w.Write([]byte(`{"id": 1, "preferences": []}`))
+		case "/api/version":
+			w.Write([]byte(`{"version": "2.30.0"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	out, err := sources.KimaiTest.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	set, _ := out.(map[string]any)[sources.TestCaps].(caps.Set)
+	if p := set.Partial(); len(p) != 1 || p[0].Need.Name != "contract" {
+		t.Fatalf("partial: %+v", p)
 	}
 }
 

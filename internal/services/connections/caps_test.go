@@ -77,11 +77,11 @@ func TestCapabilitiesNoneAndDenied(t *testing.T) {
 	d := testkit.DB(t)
 	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
 	other, _ := testkit.User(t, d, "x@b.c", enums.RoleUser)
-	paperless := testkit.Conn(t, d, who, space, enums.ServicePaperless, "https://p.example")
-	if rows, err := connections.Capabilities(context.Background(), d, who, paperless); err != nil || rows != nil {
-		t.Fatalf("paperless: %+v %v", rows, err)
+	wallos := testkit.Conn(t, d, who, space, enums.ServiceWallos, "https://w.example")
+	if rows, err := connections.Capabilities(context.Background(), d, who, wallos); err != nil || rows != nil {
+		t.Fatalf("wallos: %+v %v", rows, err)
 	}
-	if _, err := connections.Capabilities(context.Background(), d, other, paperless); !errors.Is(err, access.ErrDenied) && !errors.Is(err, connections.ErrNotFound) {
+	if _, err := connections.Capabilities(context.Background(), d, other, wallos); !errors.Is(err, access.ErrDenied) && !errors.Is(err, connections.ErrNotFound) {
 		t.Fatalf("stranger: %v", err)
 	}
 }

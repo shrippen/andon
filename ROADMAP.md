@@ -1104,7 +1104,7 @@ Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md
 - [ ] Wartungsseite: laufende Aufgaben, zuletzt abgeschlossene Aufgaben, Probleme, Logs
 - [x] „Über Andon“: Dev-Builds zeigen keine Version. Auch Dev-Builds bekommen automatisch eine Versionsnummer nach dem Schema `Version/Branch/Build`, z. B. `0.5.0/main/#25` *(`scripts/version.sh`; Build = Commits seit dem letzten Tag, beginnt nach jedem Release neu)*
 - [x] Regel (in `agent.md` aufnehmen): Visualisierungen in Popups bekommen, wo möglich, Tooltips beim Hover (ergänzt die Regel zu Achsen und Legenden) *(Umsetzung beim Nachrüsten oben)*
-- [ ] Dawarich: Orte
+- [x] Dawarich: Orte *(Fähigkeiten je Integration, Verbünde und Kunden-Zuordnung: [`CAPABILITIES.md`](CAPABILITIES.md), Abschnitt „Umsetzung“)*
   - Kimai „Anfahrten“ ist nur für Geschäftliches zuständig und kennt Kunde, Zuhause, Arbeitsplatz, Sonstiges, aber keine privaten Orte (so gewollt)
   - Andon kennt zusätzlich private Orte; vorerst reicht die Kategorie „Privat“
   - Struktur: jedes Backend unterstützt nur eine Teilmenge der Funktionen beim Abgleichen und Schreiben (Fähigkeiten je Integration)

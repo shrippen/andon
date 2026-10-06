@@ -1,6 +1,7 @@
 package caps
 
 import (
+	"slices"
 	"testing"
 
 	"andon/internal/enums"
@@ -85,5 +86,66 @@ func TestDawarichTracks(t *testing.T) {
 	}
 	if s := Full(daw); !s.Can(Rides, Read, "") {
 		t.Fatal("tracks not read")
+	}
+}
+
+// Partial: gaps beside what the connection has in the same domain are
+// notes; a domain it lacks entirely is not.
+func TestPartial(t *testing.T) {
+	// Holiday bundle missing, no working time: only the target is partial.
+	s := Detect(kimai, metOnly(mileagePlugin, mileageView, mileageEdit, placesWrite))
+	gaps := s.Partial()
+	if len(gaps) != 1 || gaps[0].Need != workContract {
+		t.Fatalf("partial %+v", gaps)
+	}
+	if !s.Can(WorkTime, Read, "timesheets") || s.Can(WorkTime, Read, "target") || s.Can(Absences, Read, "") {
+		t.Fatalf("set %+v", s.Have)
+	}
+
+	// Read-only plugin: places and rides lack update, nothing else.
+	s = Detect(kimai, metOnly(mileagePlugin, mileageView, placesWrite, holidayPlugin, workContract))
+	for _, g := range s.Partial() {
+		if g.Need != mileageEdit {
+			t.Fatalf("partial %+v", g)
+		}
+	}
+	if len(s.Partial()) != 4 {
+		t.Fatalf("partial %+v", s.Partial())
+	}
+}
+
+// Gap tells capabilities of one domain and op apart by their kinds.
+func TestGapByKinds(t *testing.T) {
+	s := Detect(kimai, metOnly())
+	target := Cap{Domain: WorkTime, Op: Read, Kinds: []string{"target"}}
+	sheets := Cap{Domain: WorkTime, Op: Read, Kinds: []string{"timesheets"}}
+	if g, ok := s.Gap(target); !ok || g.Need != workContract {
+		t.Fatalf("target %+v %v", g, ok)
+	}
+	if _, ok := s.Gap(sheets); ok {
+		t.Fatal("timesheets reported missing")
+	}
+}
+
+// Every declaration is well formed: known domain and op, needs named.
+func TestDeclarations(t *testing.T) {
+	domains := []Domain{Places, Rides, Customers, Absences, WorkTime, Invoices, Payments, Receipts}
+	for _, h := range Holders() {
+		list := Declared(h)
+		for i, c := range list {
+			if !slices.Contains(domains, c.Domain) || (c.Op != Read && c.Op != Create && c.Op != Update) {
+				t.Errorf("%s: %+v", h, c)
+			}
+			for _, n := range c.Needs {
+				if n.Kind == "" || n.Name == "" {
+					t.Errorf("%s: need %+v", h, n)
+				}
+			}
+			for _, o := range list[i+1:] {
+				if o.Same(c) {
+					t.Errorf("%s: %+v declared twice", h, c)
+				}
+			}
+		}
 	}
 }

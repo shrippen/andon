@@ -21,9 +21,9 @@ const (
 	secondsPerMinute = 60
 )
 
-// TestNotes is the key of a test source's notes: catalog keys of what
-// works, but not fully ("the plugin is read-only").
-const TestNotes = "notes"
+// TestCaps is the key of a test source's capabilities (caps.Set): the
+// connection test notes what works only in part ("places read-only").
+const TestCaps = "caps"
 
 func isDemo(sctx Ctx) bool {
 	return len(sctx.URL) >= len(demoScheme) && sctx.URL[:len(demoScheme)] == demoScheme
@@ -179,10 +179,12 @@ func loadKimai(ctx context.Context, api services.KimaiApi, sctx Ctx) (*KimaiData
 	data := &KimaiDataset{
 		URL: sctx.URL, Timesheets: sheets, Active: active, Projects: projects, Customers: customers,
 	}
-	loadKimaiHolidays(ctx, api, today, data)
+	found := kimaiFound{holidays: loadKimaiHolidays(ctx, api, today, data)}
 	data.Contract = loadContract(ctx, api)
+	found.contract = data.Contract != nil
 	// The plugin answers at most 366 days at a time.
-	loadMileage(ctx, api, today.AddDate(0, 0, -mileageDays), data)
+	found.mileage, found.answered = loadMileage(ctx, api, today.AddDate(0, 0, -mileageDays), data)
+	data.Caps = kimaiCaps(found)
 	return data, nil
 }
 
@@ -212,54 +214,45 @@ func mileagePing(ctx context.Context, api services.KimaiApi) (mileageRights, boo
 	return out, true
 }
 
-// Notes of the connection test on the plugin (catalog keys).
-const (
-	noteMileageRead = "test.mileage_read_only"
-	noteMileageOld  = "test.mileage_old"
-)
+// kimaiFound is what a fetch found of the needs Kimai declares.
+type kimaiFound struct {
+	mileage  mileageRights
+	answered bool // the mileage plugin and its data could be read
+	holidays bool // the holiday bundle answered
+	contract bool // the user keeps a working time
+}
 
-// mileageCaps is what the plugin lets Andon do: answered says the
-// plugin and its data could be read.
-func mileageCaps(r mileageRights, answered bool) caps.Set {
+// kimaiCaps is what the connection lets Andon do.
+func kimaiCaps(f kimaiFound) caps.Set {
 	return caps.Detect(caps.HolderOf(enums.ServiceKimai), func(n caps.Need) bool {
-		switch n.Kind {
-		case caps.NeedPlugin:
-			return answered
-		case caps.NeedFeature:
-			return r.placesWrite
+		switch {
+		case n.Kind == caps.NeedPlugin && n.Name == "holiday":
+			return f.holidays
+		case n.Kind == caps.NeedPlugin:
+			return f.answered
+		case n.Kind == caps.NeedSetting:
+			return f.contract
+		case n.Kind == caps.NeedFeature:
+			return f.mileage.placesWrite
+		case n.Name == "editOwn":
+			return f.mileage.edit
 		}
-		if n.Name == "editOwn" {
-			return r.edit
-		}
-		return r.view
+		return f.mileage.view
 	})
 }
 
-// mileageNotes says what the plugin lacks for Andon to write to it.
-func mileageNotes(set caps.Set) []string {
-	need, ok := set.Lacks(caps.Places, caps.Update)
-	switch {
-	case !ok || need.Kind == caps.NeedPlugin || need.Name == "view":
-		return nil
-	case need.Kind == caps.NeedRight:
-		return []string{noteMileageRead}
-	}
-	return []string{noteMileageOld}
-}
-
 // loadMileage reads the mileage plugin: its places and trips since from.
-// Without the plugin (404) or its permission it stays empty.
-func loadMileage(ctx context.Context, api services.KimaiApi, from time.Time, data *KimaiDataset) {
+// Without the plugin (404) or its permission it stays empty; answered
+// says both could be read.
+func loadMileage(ctx context.Context, api services.KimaiApi, from time.Time, data *KimaiDataset) (ping mileageRights, answered bool) {
 	ping, ok := mileagePing(ctx, api)
-	answered := false
-	defer func() { data.Caps = mileageCaps(ping, answered) }()
 	if !ok || !ping.view {
-		return
+		return ping, false
 	}
 
 	placesRaw, err := api.Get(ctx, "mileage/places", nil)
 	if err != nil {
-		return
+		return ping, false
 	}
 	for _, p := range asList(placesRaw) {
 		pm := asMap(p)
@@ -272,7 +265,7 @@ func loadMileage(ctx context.Context, api services.KimaiApi, from time.Time, dat
 
 	tripsRaw, err := api.Get(ctx, "mileage/trips", url.Values{"from": {from.Format("2006-01-02")}, "to": {time.Now().UTC().Format("2006-01-02")}})
 	if err != nil {
-		return
+		return ping, false
 	}
 	for _, t := range asList(tripsRaw) {
 		tm := asMap(t)
@@ -281,19 +274,16 @@ func loadMileage(ctx context.Context, api services.KimaiApi, from time.Time, dat
 			Purpose: asStr(tm["purpose"]), KM: asFloat(tm["totalKm"]), Project: asInt64(tm["project"]), Timesheet: asInt64(tm["timesheet"]),
 		})
 	}
-	answered = true
+	return ping, true
 }
 
 // loadKimaiHolidays reads the kimai-holiday-bundle: absences and public
-// holidays. A missing plugin is fine (data.HolidayBundle stays false).
-func loadKimaiHolidays(ctx context.Context, api services.KimaiApi, today time.Time, data *KimaiDataset) {
+// holidays; false without the plugin, which is fine.
+func loadKimaiHolidays(ctx context.Context, api services.KimaiApi, today time.Time, data *KimaiDataset) bool {
 	for _, year := range []int{today.Year() - 1, today.Year()} {
 		absencesRaw, err := api.Get(ctx, "holiday/absences", url.Values{"year": {strconv.Itoa(year)}})
 		if err != nil {
-			if _, ok := err.(services.ApiMissing); ok {
-				return
-			}
-			return
+			return false
 		}
 		for _, a := range asList(absencesRaw) {
 			am := asMap(a)
@@ -305,7 +295,7 @@ func loadKimaiHolidays(ctx context.Context, api services.KimaiApi, today time.Ti
 
 		holidaysRaw, err := api.Get(ctx, "holiday/public-holidays", url.Values{"year": {strconv.Itoa(year)}})
 		if err != nil {
-			return
+			return false
 		}
 		for _, h := range asList(holidaysRaw) {
 			hm := asMap(h)
@@ -314,7 +304,7 @@ func loadKimaiHolidays(ctx context.Context, api services.KimaiApi, today time.Ti
 			})
 		}
 	}
-	data.HolidayBundle = true
+	return true
 }
 
 // KimaiTest is the "kimai.test" source: a lightweight connection check.
@@ -332,9 +322,9 @@ func fetchKimaiTest(ctx context.Context, sctx Ctx) (any, error) {
 	if err != nil {
 		return nil, fetchError(err)
 	}
-	out := map[string]any{"version": asStr(asMap(body)["version"])}
-	if ping, ok := mileagePing(ctx, api); ok {
-		out[TestNotes] = mileageNotes(mileageCaps(ping, true))
-	}
-	return out, nil
+	// The test reads the plugin's rights and the working time; the
+	// holiday bundle it leaves to the fetch (a missing bundle is no note).
+	ping, ok := mileagePing(ctx, api)
+	found := kimaiFound{mileage: ping, answered: ok, holidays: true, contract: loadContract(ctx, api) != nil}
+	return map[string]any{"version": asStr(asMap(body)["version"]), TestCaps: kimaiCaps(found)}, nil
 }

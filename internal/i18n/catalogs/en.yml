@@ -1472,8 +1472,6 @@ service:
 test:
   ok: OK
   failed: Failed
-  mileage_read_only: 'Kimai mileage is read-only: without the right to edit own trips, places and rides classed by hand stay in Andon.'
-  mileage_old: 'Kimai mileage is too old to create places (needs 0.10.0): places stay in Andon.'
 code:
   lead: Space as YAML. Credentials are never included.
   error: Not applied
@@ -5375,6 +5373,8 @@ caps:
     create: create
     update: change
   kind:
+    timesheets: Timesheets
+    target: Target time
     home: Home
     work: Work
     customer: Customer
@@ -5382,12 +5382,17 @@ caps:
     driving: Car
     motorcycle: Motorbike
   plugin:
+    holiday: Holiday bundle
     mileage: Anfahrten (mileage)
   need:
     plugin: 'Plugin {name} missing'
     feature: 'Plugin too old ({name} missing)'
     right: 'Right {name} missing'
     api: 'API {name} missing (older version)'
+    setting: '{name} not set'
+  setting:
+    contract: Working time (user → working time)
+  note: 'Only partly usable:'
 verbund:
   customers: Customers
   customers_lead: 'Which Kimai customer is which Invoice Ninja client. Andon suggests the most similar name; only what you confirm is stored. Invoice Ninja holds the names: "Take name" writes it to Kimai. Without a link, the same name decides.'

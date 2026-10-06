@@ -324,7 +324,7 @@
     <h1>{{t "nav.connections"}}{{with .LevelName}} <small class="muted">{{.}}</small>{{end}}</h1>
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
     {{if .Connected}}<p class="ok">{{t "connect.done"}}</p>{{end}}
-    {{with .TestResult}}<p class="{{if not .Ok}}error{{end}}">{{if .Ok}}✓ OK{{with .Version}} ({{.}}){{end}}{{else}}✗ {{.Message}}{{end}}</p>{{range .Notes}}<p class="callout callout-warn">{{t .}}</p>{{end}}{{end}}
+    {{with .TestResult}}<p class="{{if not .Ok}}error{{end}}">{{if .Ok}}✓ OK{{with .Version}} ({{.}}){{end}}{{else}}✗ {{.Message}}{{end}}</p>{{range .Gaps}}<p class="callout callout-warn">{{t "caps.note"}} {{template "cap_what" .Cap}} – {{template "cap_need" .Need}}.</p>{{end}}{{end}}
 
     <article class="dialog detail is-page">
       <header class="detail-head">
@@ -354,7 +354,7 @@
           <div class="h-label detail-label"><span>{{t "caps.title"}}</span></div>
           <div class="table-wrap"><table class="table">
             <tbody>{{range .}}<tr><td>{{t (print "caps.domain." .Cap.Domain)}}</td><td>{{t (print "caps.op." .Cap.Op)}}{{with .Cap.Kinds}} <small class="muted">({{range $i, $k := .}}{{if $i}}, {{end}}{{t (print "caps.kind." $k)}}{{end}})</small>{{end}}</td>
-              <td data-state="{{if eq .State "have"}}ok{{else if eq .State "missing"}}bad{{end}}">{{if eq .State "have"}}{{t "caps.have"}}{{else if eq .State "missing"}}{{$n := .Need.Name}}{{if eq (print .Need.Kind) "plugin"}}{{$n = t (print "caps.plugin." .Need.Name)}}{{end}}{{t (print "caps.need." .Need.Kind) "name" $n}}{{else}}{{t "caps.unknown"}}{{end}}</td></tr>{{end}}</tbody>
+              <td data-state="{{if eq .State "have"}}ok{{else if eq .State "missing"}}bad{{end}}">{{if eq .State "have"}}{{t "caps.have"}}{{else if eq .State "missing"}}{{template "cap_need" .Need}}{{else}}{{t "caps.unknown"}}{{end}}</td></tr>{{end}}</tbody>
           </table></div>
         </div>{{end}}
         {{with $c.Pace}}{{if .Reason}}<p class="small muted">{{t (print "conn.pace_" .Reason) "min" .Minutes "until" (ago .Until)}}</p>{{end}}{{end}}
@@ -595,7 +595,7 @@
 {{end}}
 
 {{/* Result of a connection test run from the overview. */}}
-{{define "conn_check"}}<div class="toast" data-kind="{{if .Result.Ok}}ok{{else}}error{{end}}" role="status"><span><b>{{.Name}}</b> {{if .Result.Ok}}✓ OK{{with .Result.Version}} ({{.}}){{end}}{{else}}✗ {{t .Result.Message}}{{end}}</span><span class="toast-life" data-style="--life:{{if .Result.Ok}}6{{else}}10{{end}}s" aria-hidden="true"></span></div>
+{{define "conn_check"}}<div class="toast" data-kind="{{if not .Result.Ok}}error{{else if .Result.Gaps}}warn{{else}}ok{{end}}" role="status"><span><b>{{.Name}}</b> {{if .Result.Ok}}✓ OK{{with .Result.Version}} ({{.}}){{end}}{{else}}✗ {{t .Result.Message}}{{end}}{{range .Result.Gaps}}<br>{{t "caps.note"}} {{template "cap_what" .Cap}} – {{template "cap_need" .Need}}.{{end}}</span><span class="toast-life" data-style="--life:{{if and .Result.Ok (not .Result.Gaps)}}6{{else}}10{{end}}s" aria-hidden="true"></span></div>
 {{with .Conn}}<span class="health" id="health-{{.ID}}" data-state="{{.Health.State}}" hx-swap-oob="true">{{template "conn_health" .Health}}</span>{{end}}{{end}}
 
 {{/* What the service is, and where the project lives. */}}
@@ -683,3 +683,9 @@
 {{end}}
 {{end}}
 {{end}}
+
+{{/* cap_what names a capability: "Arbeitszeit lesen (Sollzeit)". */}}
+{{define "cap_what"}}{{t (print "caps.domain." .Domain)}} {{t (print "caps.op." .Op)}}{{with .Kinds}} ({{range $i, $k := .}}{{if $i}}, {{end}}{{t (print "caps.kind." $k)}}{{end}}){{end}}{{end}}
+
+{{/* cap_need says what a capability lacks: "Recht editOwn fehlt". */}}
+{{define "cap_need"}}{{$n := .Name}}{{if eq (print .Kind) "plugin"}}{{$n = t (print "caps.plugin." .Name)}}{{else if eq (print .Kind) "setting"}}{{$n = t (print "caps.setting." .Name)}}{{end}}{{t (print "caps.need." .Kind) "name" $n}}{{end}}

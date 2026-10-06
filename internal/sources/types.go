@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"andon/internal/caps"
+	"andon/internal/enums"
 )
 
 // Normalized datasets: what widgets, metrics and rules actually consume,
@@ -87,18 +88,17 @@ type KimaiMileageTrip struct {
 }
 
 type KimaiDataset struct {
-	URL           string
-	Timesheets    []KimaiSheet
-	Active        []KimaiSheet
-	Projects      []KimaiProject
-	Customers     []KimaiCustomer
-	Absences      []KimaiAbsence
-	Holidays      []KimaiHoliday
-	HolidayBundle bool
-	Contract      *WorkContract // working time from Kimai, nil if none
-	Places        []KimaiPlace  // mileage plugin, nil without it
-	MileageTrips  []KimaiMileageTrip
-	Caps          caps.Set // places and rides of the mileage plugin
+	URL          string
+	Timesheets   []KimaiSheet
+	Active       []KimaiSheet
+	Projects     []KimaiProject
+	Customers    []KimaiCustomer
+	Absences     []KimaiAbsence
+	Holidays     []KimaiHoliday
+	Contract     *WorkContract // working time from Kimai, nil if none
+	Places       []KimaiPlace  // mileage plugin, nil without it
+	MileageTrips []KimaiMileageTrip
+	Caps         caps.Set // what the plugins, rights and settings allow
 }
 
 // ── Invoice Ninja ──
@@ -307,7 +307,10 @@ type DawarichDataset struct {
 	LastPoint   string
 }
 
-// CapSet reports what the connection's mileage plugin allows.
+// CapSet: Invoice Ninja's capabilities need nothing beyond the token.
+func (d *NinjaDataset) CapSet() caps.Set { return caps.Full(caps.HolderOf(enums.ServiceInvoiceNinja)) }
+
+// CapSet reports what the Kimai connection allows.
 func (d *KimaiDataset) CapSet() caps.Set { return d.Caps }
 
 // CapSet reports what the Dawarich connection allows.

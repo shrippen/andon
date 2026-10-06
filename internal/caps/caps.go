@@ -48,6 +48,7 @@ const (
 	NeedFeature NeedKind = "feature" // a feature of it, e.g. placesWrite
 	NeedRight   NeedKind = "right"   // a right of the token, e.g. editOwn
 	NeedAPI     NeedKind = "api"     // an endpoint newer versions have, e.g. tracks
+	NeedSetting NeedKind = "setting" // a value kept in the service, e.g. Kimai's working time
 )
 
 // Need is one requirement, e.g. {right editOwn}.
@@ -76,6 +77,11 @@ type Cap struct {
 // Fits reports whether the capability covers kind ("" = any).
 func (c Cap) Fits(kind string) bool {
 	return kind == "" || c.Kinds == nil || slices.Contains(c.Kinds, kind)
+}
+
+// Same reports whether c and o are the same declared capability.
+func (c Cap) Same(o Cap) bool {
+	return c.Domain == o.Domain && c.Op == o.Op && slices.Equal(c.Kinds, o.Kinds)
 }
 
 // Gap is a declared capability a connection lacks, and the first need
@@ -111,6 +117,29 @@ func (s Set) Lacks(d Domain, op Op) (Need, bool) {
 		}
 	}
 	return Need{}, false
+}
+
+// Gap returns the gap of a declared capability, false if the set has it.
+func (s Set) Gap(c Cap) (Gap, bool) {
+	for _, g := range s.Missing {
+		if g.Cap.Same(c) {
+			return g, true
+		}
+	}
+	return Gap{}, false
+}
+
+// Partial lists the gaps in domains the connection serves otherwise:
+// "places read, but not update" is worth a note, a plugin that is not
+// installed at all is not.
+func (s Set) Partial() []Gap {
+	var out []Gap
+	for _, g := range s.Missing {
+		if slices.ContainsFunc(s.Have, func(c Cap) bool { return c.Domain == g.Cap.Domain }) {
+			out = append(out, g)
+		}
+	}
+	return out
 }
 
 // Detect sorts the holder's declared capabilities by met: e.g. the

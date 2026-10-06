@@ -14,6 +14,7 @@
 package connections
 
 import (
+	"andon/internal/caps"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -634,7 +635,7 @@ type TestResult struct {
 	Ok      bool
 	Message string
 	Version string
-	Notes   []string // catalog keys: what works only in part
+	Gaps    []caps.Gap // what works only in part
 }
 
 // Test calls the service's test source (a version check) with the stored
@@ -682,8 +683,8 @@ func Test(ctx context.Context, d *sql.DB, who *access.Principal, connID int64) (
 	}
 	data, _ := result.Data.(map[string]any)
 	version, _ := data["version"].(string)
-	notes, _ := data[sources.TestNotes].([]string)
-	return TestResult{Ok: true, Message: "ok", Version: version, Notes: notes}, nil
+	set, _ := data[sources.TestCaps].(caps.Set)
+	return TestResult{Ok: true, Message: "ok", Version: version, Gaps: set.Partial()}, nil
 }
 
 // ByID returns a raw connection for internal jobs (rules). No access

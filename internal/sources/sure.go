@@ -1,6 +1,7 @@
 package sources
 
 import (
+	"andon/internal/caps"
 	"context"
 	"net/url"
 	"strconv"
@@ -51,6 +52,9 @@ type SureDataset struct {
 	Recurring    []SureRecurring
 	SyncError    string // latest sync failed: its message
 }
+
+// CapSet: Sure's capabilities need nothing beyond the token.
+func (d *SureDataset) CapSet() caps.Set { return caps.Full(caps.HolderOf(enums.ServiceSure)) }
 
 var SureData = source{key: "sure.data", ttl: dataTTL, service: enums.ServiceSure, fetch: fetchSure}
 
