@@ -104,7 +104,7 @@ Reihenfolgen, aus dem heutigen Verhalten abgeleitet:
 |---|---|---|---|
 | Ort: Geometrie | Dawarich | – | – |
 | Ort: Art und Kunde (nicht privat) | Kimai „Anfahrten“ | – | Andon |
-| Ort: Art „privat“ | – | – | Andon |
+| Ort: Art „privat“ | – | – | Andon (der Ort selbst liegt als Area in Dawarich, nicht im Plugin) |
 | Fahrt: Klasse (Auto, Motorrad) | Kimai „Anfahrten“ | – | Andon (`rides`) |
 | Fahrt: Klasse (andere) | – | – | Andon |
 
@@ -165,6 +165,7 @@ caps       Typen, Deklarationen je Dienst, Store, reine Funktionen (Blatt)
 ## Offene Fragen
 
 1. **Partner**: ausdrücklich wählen (Option `peers`) oder automatisch mit Hinweis bei mehreren?
-2. **Private Orte**: nur in Andon, oder zusätzlich in Dawarich markieren (Area-Name mit Präfix, da Dawarich keine Arten kennt)?
+2. ~~**Private Orte**~~ *(entschieden 06.10.2026)*: Der Ort selbst geht als Area nach Dawarich, die Markierung „privat“ lebt nur in Andon. Ins Kimai-Plugin kommt er nicht.
+   **Abweichung im heutigen Code:** `sites.Assign`, `Create` und `Sync` legen private Orte im Plugin als „Sonstiges“ an (`pluginTypes`: privat → `other`); nur die Markierung bleibt in Andon. Zu beheben, unabhängig von Schritt 1.
 3. **Kunden-Identität Kimai ↔ Invoice Ninja**: Namensabgleich durch eine gespeicherte Zuordnung ersetzen (Schritt 4)?
 4. **Umfang Schritt 1**: nur Orte und Fahrten, oder gleich die Kimai-Erkennung komplett (Holiday-Bundle, Vertrag)?
