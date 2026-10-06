@@ -20,7 +20,8 @@ Das Projekt ist vollständig von Python auf **Go** umgestellt (Zielplattform: Ra
 | Editor, Bibliothek, Revisionen, YAML-/Dashy-Import, Code-Ansicht (CodeMirror) | umgesetzt |
 | Themes (Editor, Import/Export, Schriften, Styleguide, WCAG-AA-Prüfung) | umgesetzt |
 | Kimai, Invoice Ninja, Snipe-IT, Dawarich | Adapter, Regeln, Insight-Widgets umgesetzt |
-| Homelab-Dienste (Phase 10) | 17 weitere Quellen mit Regeln; Obsidian geplant in Phase 15, Docker offen |
+| Homelab-Dienste (Phase 10) | 17 weitere Quellen mit Regeln; Docker offen |
+| IT-Doku-Abgleich (Phase 15) | Compose-Stacks und Vault-Frontmatter über Gitea, Regeln `docs.*`, Kacheln, `/api/docs` und Hansei-Webhook umgesetzt; `docs.drift`, Komodo, Homelable offen |
 | Prüflauf | Hintergrund-Job holt alle Integrationen (Start + alle `ANALYSIS_MINUTES`); Seiten zeigen nur diesen Stand, live nur der Status-Ping |
 | Benachrichtigungen | Apprise, Digest-Mail (SMTP), Wochenrückblick mit optionaler LLM-Zusammenfassung, iCal |
 | Trends, Prognosen | Snapshots, Verlauf, Saisonvergleich, Jahresprognose, Liquidität |
@@ -970,13 +971,22 @@ Drei Durchgänge durch den Code; umgesetzt, jeweils mit Test.
 
 ### Phase 15: IT-Doku-Abgleich und Homelable (begonnen 06.10.2026)
 
-Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose-Dateien auseinanderlaufen, und gibt die Befunde an Hansei weiter; nur Hansei schreibt in den Vault, und nur nach Freigabe. Zusätzlich zeichnet Andon die Doku als Grafik in eine Homelable-Instanz auf Regis. **Beginn erst nach Abschluss der Kante-Überarbeitung.**
+Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose-Dateien auseinanderlaufen, und gibt die Befunde an Hansei weiter; nur Hansei schreibt in den Vault, und nur nach Freigabe. Zusätzlich zeichnet Andon die Doku als Grafik in eine Homelable-Instanz auf Regis.
 
 | | liest | schreibt |
 |---|---|---|
-| Hansei | Vault, Andon-Befunde | Obsidian (nach Freigabe im Diff) |
+| Hansei | Vault, Andon-Befunde (`/api/docs`) | Obsidian (nach Freigabe im Diff); seinen Stand an Andon (Webhook) |
 | Andon | Vault-Frontmatter, Compose-Repos, Komodo | Hinweise; Homelable (abgeleitete Ansicht) |
 | Homelable | nur, was Andon schickt | nichts |
+
+**Stand 07.10.2026:** Andon-Seite bis auf `docs.drift`, Komodo und Homelable fertig (PRs #63–#71; Demowelt shrippen.github.io #25–#28, Hansei #8–#10).
+- Live geprüft gegen git.arianw.de: 118 Stacks (Regis 79, Eredin 28, Plötze 11), 275 Notizen in `IT/Dienste`, `IT/Geräte`, `IT/Orte`, `IT/Netzwerk`, `IT/Allgemeines`. Kein Vault-Eintrag hat bisher ein `Compose`-Feld, daher melden die Regeln alle 118 Stacks als undokumentiert; das ist die Arbeitsliste fürs Nachtragen.
+- Produktiv noch nicht eingerichtet: an der Gitea-Verbindung die Optionen `docs_repo: shrippen/ObsidianPrivat` und `docs_paths: [IT/Dienste, IT/Geräte, IT/Orte, IT/Netzwerk, IT/Allgemeines]`; eine Verbindung Hansei (Webhook-Adresse steht auf ihrer Seite); ein Lese-Token für Hansei.
+- Schnittstelle zu Hansei:
+  - `GET /api/docs?token=…` (Lese-Token) → `{"complete": bool, "findings": [{"id", "rule", "host", "stack", "note", "path", "link", "note_url", "compose", "services": [{"name", "image", "ports"}]}]}`. `complete: false` heißt: Stacks oder Notizen nicht vollständig gelesen, ein fehlender Befund ist dann keine Erledigung.
+  - IDs: `docs.missing:<host>/<stack>`, `docs.orphan:<Notizpfad>`, `docs.deprecated_live:<host>/<stack>`.
+  - `POST <Webhook-Adresse der Verbindung Hansei>` mit `{"state": {"review", "feedback", "done", "conformity" (0..1), "claimed": [IDs]}}` ersetzt den letzten Stand (höchstens 60 Aufrufe je Minute, Körper bis 128 KiB). Nach jeder Änderung und beim Start senden.
+- Offen auf Hansei-Seite: Phase 05 in `hansei/ROADMAP.md` (Feld `Compose` im Vault, Befunde abholen, Stand senden).
 
 **Ausgangslage (Abgleich vom 01.10.2026, nur über Namen):** Regis 79 Stacks, Eredin 28, Plötze 11 in `docker-compose-{regis,eredin,ploetze}`; 225 Notizen in `IT/Dienste` (92 davon deprecated), nur 18 verlinken ihre `compose.yaml`. Rund 27 Stacks ließen sich keiner Notiz zuordnen; ein Teil sind nur abweichende Namen (`kometa` = Plex-Meta-Manager, `seerr` = Jellyseer, `digikam_db`), ein Teil echte Lücken (`beets-flask`, `journiv`, `stirling-pdf`, `sure`, `hievents`, `lauti`, `andon`), `tdarr` und `tubesync` sind nur als deprecated-Notiz da. Deshalb Zuordnung über ein festes Feld, nicht über Namen.
 
