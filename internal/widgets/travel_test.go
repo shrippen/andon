@@ -92,3 +92,32 @@ func TestTravelRoute(t *testing.T) {
 	}
 	t.Fatal("no map")
 }
+
+// TestTravelDetailReading: while tracks are read, the dialog shows how
+// far; admins get a link to the maintenance page.
+func TestTravelDetailReading(t *testing.T) {
+	kind, _ := widgets.Get("travel")
+	cfg, _ := widgets.Decode("travel", map[string]any{})
+	results := travelData()
+	geo := results["data"].(*sources.DawarichDataset)
+	geo.TracksState, geo.TracksRead, geo.TracksTotal = sources.TracksPartial, 300, 1200
+
+	for _, admin := range []bool{false, true} {
+		ctx := ctxFor(enums.ServiceDawarich, nil)
+		ctx.Admin = admin
+		body := kind.Detail(cfg, results, ctx).Body.(*widgets.DetailBody)
+		var tasks *widgets.Tasks
+		for _, b := range body.Blocks {
+			if b.Kind == widgets.BlockTasks {
+				tt := b.Data.(widgets.Tasks)
+				tasks = &tt
+			}
+		}
+		if tasks == nil || tasks.Done != 300 || tasks.Total != 1200 {
+			t.Fatalf("admin %v: no reading progress: %+v", admin, tasks)
+		}
+		if linked := len(tasks.Items) == 1 && tasks.Items[0].Href == "/admin/operations#tasks"; linked != admin {
+			t.Fatalf("admin %v: items %+v", admin, tasks.Items)
+		}
+	}
+}

@@ -21,6 +21,7 @@ import (
 
 	"andon/internal/drivers/services"
 	"andon/internal/enums"
+	"andon/internal/progress"
 )
 
 const (
@@ -67,16 +68,18 @@ func loadTracks(ctx context.Context, api services.DawarichApi, from, to time.Tim
 		if _, ok := err.(services.ApiMissing); ok {
 			data.TracksState = TracksMissing
 		}
+		reportTracks(api.URL, data)
 		return
 	}
 
 	data.TracksState = TracksOK
-	reads := 0
+	reads, pending := 0, 0
 	for _, f := range features {
 		props := asMap(asMap(f)["properties"])
 		if asInt64(props["id"]) == 0 {
 			continue
 		}
+		data.TracksTotal++
 		key := trackKey(api.URL, props)
 		if t, ok := cachedTrack(key); ok {
 			data.Tracks = append(data.Tracks, t)
@@ -84,6 +87,7 @@ func loadTracks(ctx context.Context, api services.DawarichApi, from, to time.Tim
 		}
 		if reads >= trackReads {
 			data.TracksState = TracksPartial
+			pending++
 			continue
 		}
 		reads++
@@ -94,6 +98,7 @@ func loadTracks(ctx context.Context, api services.DawarichApi, from, to time.Tim
 				continue // deleted or merged in the meantime
 			}
 			data.TracksState = TracksPartial
+			pending++
 			continue
 		}
 		t, ok := parseTrack(asList(asMap(raw)["features"]))
@@ -104,6 +109,23 @@ func loadTracks(ctx context.Context, api services.DawarichApi, from, to time.Tim
 		data.Tracks = append(data.Tracks, t)
 	}
 	sort.Slice(data.Tracks, func(i, j int) bool { return data.Tracks[i].Start < data.Tracks[j].Start })
+	data.TracksRead = data.TracksTotal - pending
+	reportTracks(api.URL, data)
+}
+
+// reportTracks shows unfinished reading on the maintenance page, e.g.
+// "Dawarich-Tracks von geo.lan: 300 / 1200".
+func reportTracks(instance string, data *DawarichDataset) {
+	key := "dawarich-tracks|" + instance
+	if data.TracksState != TracksPartial {
+		progress.Finish(key)
+		return
+	}
+	host := instance
+	if u, err := url.Parse(instance); err == nil && u.Host != "" {
+		host = u.Host
+	}
+	progress.Set(key, "task.dawarich_tracks", map[string]any{"host": host}, data.TracksRead, data.TracksTotal)
 }
 
 // parseTrack reads a single track (Tracks::GeojsonSerializer with

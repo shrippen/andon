@@ -92,6 +92,7 @@ type ViewCtx struct {
 	Options     map[string]any
 	Service     string                    // "" if the widget has no connection
 	PeerOptions map[string]map[string]any // options of ConnPeer connections by query name
+	Admin       bool                      // the viewer may open admin pages (links)
 }
 
 // Query is one data request a widget type needs; the widgets service runs

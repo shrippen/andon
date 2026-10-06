@@ -1109,7 +1109,7 @@ Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md
   - Andon kennt zusätzlich private Orte; vorerst reicht die Kategorie „Privat“
   - Struktur: jedes Backend unterstützt nur eine Teilmenge der Funktionen beim Abgleichen und Schreiben (Fähigkeiten je Integration)
   - Prüfen, ob sich das abstrahieren lässt, damit weitere Integrationen es nutzen: welche Fähigkeiten eine Integration hat, wie sie sich mit anderen überlappt (Dawarich und Kimai Anfahrten kennen beide „Orte“, unterschiedlich und voneinander abhängig) und wie Integrationen voneinander abhängen
-- [ ] Dawarich: Der Hinweis „Dawarich-Tracks werden noch gelesen; ältere Fahrten fehlen vorerst.“ bekommt eine Fortschrittsanzeige und einen Link zur Wartungsseite
+- [x] Dawarich: Der Hinweis „Dawarich-Tracks werden noch gelesen; ältere Fahrten fehlen vorerst.“ bekommt eine Fortschrittsanzeige und einen Link zur Wartungsseite *(Fahrten-Dialog: „300 / 1200 · Tracks gelesen“, Link nur für Admins; dieselbe Aufgabe unter Admin → Betrieb)*
 
 ---
 

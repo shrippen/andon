@@ -3787,7 +3787,8 @@ detail:
     private: 'privat'
     allowance: 'Verpflegung'
     estimated: 'Diese Dawarich-Version hat keine Tracks: Fahrten sind aus Besuchen geschätzt (Luftlinie × 1,3).'
-    partial: 'Dawarich-Tracks werden noch gelesen; ältere Fahrten fehlen vorerst.'
+    partial: 'Tracks gelesen; ältere Fahrten fehlen vorerst.'
+    reading: 'Fortschritt auf der Seite Betrieb'
     ride: '{time} {from} → {to}'
     from: 'Von'
     to: 'Nach'
@@ -5363,3 +5364,5 @@ tandoor:
   open: '{count} offen'
   empty: 'Einkaufsliste leer'
   plan: 'Essensplan'
+task:
+  dawarich_tracks: 'Dawarich-Tracks von {host} lesen'

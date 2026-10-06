@@ -78,7 +78,7 @@ func travelDetail(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, 
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.travel.estimated")})
 	}
 	if travel.Partial {
-		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.travel.partial")})
+		body.Blocks = append(body.Blocks, readingBlock(data, ctx))
 	}
 
 	body.List, body.Blocks = rideList(period, names, results, body.Blocks)
@@ -385,4 +385,17 @@ const travelPlacesURL = "/travel/places"
 func carKM(rides []metrics.ClassedRide) float64 {
 	_, km := metrics.CarShare(rides)
 	return km
+}
+
+// opsTasks is the maintenance page's list of running work.
+const opsTasks = "/admin/operations#tasks"
+
+// readingBlock shows how many tracks are read so far, e.g. "300 / 1200";
+// admins get a link to the maintenance page.
+func readingBlock(data *sources.DawarichDataset, ctx ViewCtx) Block {
+	tasks := Tasks{Done: data.TracksRead, Total: data.TracksTotal, Label: T("detail.travel.partial")}
+	if ctx.Admin {
+		tasks.Items = []Task{{Text: Txt("detail.travel.reading"), Action: T("action.open"), Href: opsTasks}}
+	}
+	return Block{Kind: BlockTasks, Data: tasks}
 }
