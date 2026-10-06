@@ -1133,6 +1133,19 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
 
 ---
 
+### Notiert 07.10.2026 (noch nicht begonnen)
+
+- [ ] KDE-Store-Kachel testen; in den Einstellungen erklären, was in welches Feld gehört
+- [ ] Klären, warum es die Umgebungsvariable `APPRISE_API_URL` gibt, obwohl jeder Nutzer eigene Benachrichtigungs-Einstellungen hat
+- [ ] Testmöglichkeit für jeden Benachrichtigungsweg (Mail, Apprise)
+- [ ] Einstellungen für E-Mails: wann, welcher Inhalt, Vorschau, Log
+- [ ] Kunden verknüpfen: Wie geht das mit nur einer Verbindung je Typ? Auf der Kundenseite ist dazu nichts zu sehen
+- [ ] Diagramme stärker beschriften: Bei Balkendiagrammen hat die Y-Achse je Linie eine Beschriftung, die X-Achse nur Anfang und Ende; das ist schwer lesbar. Der Hover nennt beide Achsen
+- [ ] Recherche Kacheltypen:
+  - Dashys mögliche Kacheln durchgehen und auflisten, welche in Andon fehlen
+  - Andere Dashboards und Andon-ähnliche Programme ansehen, daraus Vorschläge für weitere Kacheltypen
+  - Aus den Kacheltypen Vorschläge für Verbindungen, Analysen und Queranalysen ableiten
+
 ## 11. Betrieb und Sicherheit
 
 - **Anmeldung:** Eigene Anmeldung (Abschnitt 4.6). Der Reverse Proxy terminiert nur TLS; das Dashboard setzt `Secure`-Cookies und erwartet HTTPS (`BASE_URL`).
