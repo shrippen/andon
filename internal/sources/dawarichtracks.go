@@ -7,7 +7,8 @@ package sources
 // each fetch only asks for new ones:
 //
 //	list ──► id, revision, end ──► cached? ──yes──► reuse
-//	                                  └─no──► GET tracks/{id} (≤ trackReads per fetch)
+//	                                  └─no──► GET tracks/{id} (trackParallel at once,
+//	                                          until trackBudget is spent)
 
 import (
 	"context"
@@ -25,12 +26,26 @@ import (
 )
 
 const (
-	// trackReads caps the single-track reads of one fetch; the rest
-	// follow on the next fetches (TracksPartial until then).
-	trackReads = 300
+	// trackParallel single-track reads run at once: a year (~1000
+	// tracks) takes about 10 s.
+	trackParallel = 4
 	// trackCacheMax empties the cache when it grows beyond this many
 	// tracks (several years of daily tracks).
 	trackCacheMax = 20000
+)
+
+// trackBudget bounds the single-track reads of one fetch; the rest
+// follow on the next fetches (TracksPartial until then).
+var trackBudget = time.Minute
+
+// trackRead is the outcome of one single-track read.
+type trackRead int
+
+const (
+	trackUnread trackRead = iota // not started within the budget
+	trackDone
+	trackGone // deleted or merged in the meantime
+	trackFailed
 )
 
 var (
@@ -73,44 +88,66 @@ func loadTracks(ctx context.Context, api services.DawarichApi, from, to time.Tim
 	}
 
 	data.TracksState = TracksOK
-	reads, pending := 0, 0
+	var todo []map[string]any
 	for _, f := range features {
 		props := asMap(asMap(f)["properties"])
 		if asInt64(props["id"]) == 0 {
 			continue
 		}
 		data.TracksTotal++
-		key := trackKey(api.URL, props)
-		if t, ok := cachedTrack(key); ok {
+		if t, ok := cachedTrack(trackKey(api.URL, props)); ok {
 			data.Tracks = append(data.Tracks, t)
 			continue
 		}
-		if reads >= trackReads {
-			data.TracksState = TracksPartial
-			pending++
-			continue
-		}
-		reads++
+		todo = append(todo, props)
+	}
 
-		raw, err := api.Get(ctx, "tracks/"+strconv.FormatInt(asInt64(props["id"]), 10), nil)
-		if err != nil {
-			if _, ok := err.(services.ApiMissing); ok {
-				continue // deleted or merged in the meantime
-			}
-			data.TracksState = TracksPartial
+	// Read the new tracks until the budget is spent.
+	readCtx, cancel := context.WithTimeout(ctx, trackBudget)
+	defer cancel()
+	outcomes := make([]trackRead, len(todo))
+	var mu sync.Mutex
+	parallel(readCtx, len(todo), trackParallel, func(i int) {
+		t, outcome := readTrack(readCtx, api, todo[i])
+		mu.Lock()
+		defer mu.Unlock()
+		outcomes[i] = outcome
+		if outcome == trackDone {
+			data.Tracks = append(data.Tracks, t)
+		}
+	})
+
+	pending := 0
+	for _, o := range outcomes {
+		if o == trackUnread || o == trackFailed {
 			pending++
-			continue
 		}
-		t, ok := parseTrack(asList(asMap(raw)["features"]))
-		if !ok {
-			continue
-		}
-		keepTrack(key, t)
-		data.Tracks = append(data.Tracks, t)
+	}
+	if pending > 0 {
+		data.TracksState = TracksPartial
 	}
 	sort.Slice(data.Tracks, func(i, j int) bool { return data.Tracks[i].Start < data.Tracks[j].Start })
 	data.TracksRead = data.TracksTotal - pending
 	reportTracks(api.URL, data)
+}
+
+// readTrack reads one track and keeps it; a track without a usable
+// shape counts as done (asking again would not change it).
+func readTrack(ctx context.Context, api services.DawarichApi, props map[string]any) (DawarichTrack, trackRead) {
+	raw, err := api.Get(ctx, "tracks/"+strconv.FormatInt(asInt64(props["id"]), 10), nil)
+	if err != nil {
+		if _, ok := err.(services.ApiMissing); ok {
+			return DawarichTrack{}, trackGone
+		}
+		return DawarichTrack{}, trackFailed
+	}
+
+	t, ok := parseTrack(asList(asMap(raw)["features"]))
+	if !ok {
+		return DawarichTrack{}, trackGone
+	}
+	keepTrack(trackKey(api.URL, props), t)
+	return t, trackDone
 }
 
 // reportTracks shows unfinished reading on the maintenance page, e.g.

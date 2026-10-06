@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"andon/internal/progress"
 	"andon/internal/sources"
@@ -192,10 +193,10 @@ func TestDawarichNearbyNames(t *testing.T) {
 	}
 }
 
-// More tracks than one fetch reads: the dataset and the maintenance
-// page show how far reading is, until the next fetch reads the rest.
-func TestDawarichTracksReportProgress(t *testing.T) {
-	const total = 302
+// tracksServer is a Dawarich with total tracks; each single-track read
+// waits delay.
+func tracksServer(t *testing.T, total int, delay time.Duration) *httptest.Server {
+	t.Helper()
 	mux := http.NewServeMux()
 	dawarichBase(mux)
 	mux.HandleFunc("/api/v1/tracks", func(w http.ResponseWriter, r *http.Request) {
@@ -206,22 +207,51 @@ func TestDawarichTracksReportProgress(t *testing.T) {
 		w.Write([]byte(`{"type": "FeatureCollection", "features": [` + strings.Join(list, ",") + `]}`))
 	})
 	mux.HandleFunc("/api/v1/tracks/{id}", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(delay)
 		w.Write([]byte(`{"features": [{"properties": {"id": ` + r.PathValue("id") + `, "start_at": "2026-02-01T09:00:00Z", "end_at": "2026-02-01T10:00:00Z", "distance": 1000, "dominant_mode": "driving"}}]}`))
 	})
 	srv := httptest.NewServer(mux)
-	defer srv.Close()
-	ctx := sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true}
-	key := "dawarich-tracks|" + srv.URL
+	t.Cleanup(srv.Close)
+	return srv
+}
 
-	out, err := sources.DawarichData.Fetch(context.Background(), ctx)
+// A year of tracks (1084 on the production instance) is read in one
+// fetch, not 300 per fetch: the rest waited a data TTL each and started
+// over after every restart.
+func TestDawarichReadsAYearInOneFetch(t *testing.T) {
+	const total = 1084
+	srv := tracksServer(t, total, 0)
+
+	out, err := sources.DawarichData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
 	if err != nil {
 		t.Fatalf("fetch: %v", err)
 	}
 	data := out.(*sources.DawarichDataset)
-	if data.TracksState != sources.TracksPartial || data.TracksRead != 300 || data.TracksTotal != total {
+	if data.TracksState != sources.TracksOK || data.TracksRead != total || len(data.Tracks) != total {
+		t.Fatalf("fetch: %s %d/%d, %d tracks", data.TracksState, data.TracksRead, data.TracksTotal, len(data.Tracks))
+	}
+}
+
+// More tracks than one fetch's time budget reads: the dataset and the
+// maintenance page show how far reading is, until the next fetch reads
+// the rest.
+func TestDawarichTracksReportProgress(t *testing.T) {
+	const total = 200
+	srv := tracksServer(t, total, 5*time.Millisecond)
+	ctx := sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true}
+	key := "dawarich-tracks|" + srv.URL
+
+	restore := sources.SetTrackBudget(50 * time.Millisecond)
+	out, err := sources.DawarichData.Fetch(context.Background(), ctx)
+	restore()
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	data := out.(*sources.DawarichDataset)
+	if data.TracksState != sources.TracksPartial || data.TracksRead == 0 || data.TracksRead >= total || data.TracksTotal != total {
 		t.Fatalf("first fetch: %s %d/%d", data.TracksState, data.TracksRead, data.TracksTotal)
 	}
-	if task, ok := progress.Get(key); !ok || task.Done != 300 || task.Total != total {
+	if task, ok := progress.Get(key); !ok || task.Done != data.TracksRead || task.Total != total {
 		t.Fatalf("progress: %+v %v", task, ok)
 	}
 
@@ -230,7 +260,7 @@ func TestDawarichTracksReportProgress(t *testing.T) {
 		t.Fatalf("second fetch: %v", err)
 	}
 	data = out.(*sources.DawarichDataset)
-	if data.TracksState != sources.TracksOK || data.TracksRead != total {
+	if data.TracksState != sources.TracksOK || data.TracksRead != total || len(data.Tracks) != total {
 		t.Fatalf("second fetch: %s %d/%d", data.TracksState, data.TracksRead, data.TracksTotal)
 	}
 	if _, ok := progress.Get(key); ok {
