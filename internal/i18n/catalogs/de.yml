@@ -1471,6 +1471,8 @@ service:
 test:
   ok: OK
   failed: Fehler
+  mileage_read_only: 'Kimai Anfahrten ist nur lesbar: Ohne das Recht, eigene Fahrten zu bearbeiten, bleiben Orte und von Hand eingeordnete Fahrten in Andon.'
+  mileage_old: 'Kimai Anfahrten ist zu alt, um Orte anzulegen (ab 0.10.0): Orte bleiben in Andon.'
 code:
   lead: Bereich als YAML. Zugangsdaten sind nie enthalten.
   error: Nicht übernommen

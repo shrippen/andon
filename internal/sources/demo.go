@@ -190,6 +190,7 @@ func DemoKimai(now time.Time) *KimaiDataset {
 		HolidayBundle: true,
 		Mileage:       true,
 		PlacesWrite:   true,
+		MileageEdit:   true,
 		Places:        demoKimaiPlaces(now),
 		MileageTrips:  demoMileageTrips(now),
 	}

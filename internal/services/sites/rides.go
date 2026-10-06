@@ -65,7 +65,7 @@ func SetClass(ctx context.Context, d *sql.DB, who *access.Principal, connID, sta
 
 // pluginTrips says whether rides go to the mileage plugin.
 func (e env) pluginTrips() bool {
-	return e.kimai != nil && e.kimai.Mileage && e.kimaiConn != nil && !sources.IsDemo(e.kimaiConn.URL)
+	return e.kimai != nil && e.kimai.MileageEdit && e.kimaiConn != nil && !sources.IsDemo(e.kimaiConn.URL)
 }
 
 // ride is the ride starting at start.

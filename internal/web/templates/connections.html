@@ -324,7 +324,7 @@
     <h1>{{t "nav.connections"}}{{with .LevelName}} <small class="muted">{{.}}</small>{{end}}</h1>
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
     {{if .Connected}}<p class="ok">{{t "connect.done"}}</p>{{end}}
-    {{with .TestResult}}<p class="{{if not .Ok}}error{{end}}">{{if .Ok}}✓ OK{{with .Version}} ({{.}}){{end}}{{else}}✗ {{.Message}}{{end}}</p>{{end}}
+    {{with .TestResult}}<p class="{{if not .Ok}}error{{end}}">{{if .Ok}}✓ OK{{with .Version}} ({{.}}){{end}}{{else}}✗ {{.Message}}{{end}}</p>{{range .Notes}}<p class="callout callout-warn">{{t .}}</p>{{end}}{{end}}
 
     <article class="dialog detail is-page">
       <header class="detail-head">

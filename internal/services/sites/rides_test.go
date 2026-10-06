@@ -82,7 +82,7 @@ func TestSetClassWithPlugin(t *testing.T) {
 	d := testkit.DB(t)
 	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
 	rec := &recorder{}
-	geo, kimai := fakeDawarich(rec, oneRide()), fakeKimai(rec, true)
+	geo, kimai := fakeDawarich(rec, oneRide()), fakeKimai(rec, pluginWrites)
 	defer geo.Close()
 	defer kimai.Close()
 	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
@@ -101,5 +101,27 @@ func TestSetClassWithPlugin(t *testing.T) {
 	}
 	if got := ridesOption(t, d, conn); len(got) != 0 {
 		t.Fatalf("no copy in Andon: %+v", got)
+	}
+}
+
+// A read-only plugin is left alone: the class stays in the option.
+func TestSetClassReadOnlyPlugin(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	rec := &recorder{}
+	geo, kimai := fakeDawarich(rec, oneRide()), fakeKimai(rec, pluginReads)
+	defer geo.Close()
+	defer kimai.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
+	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimai.URL)
+
+	if err := sites.SetClass(context.Background(), d, who, conn, rideStart.Unix(), metrics.ClassPrivate); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if writes := rec.list(); len(writes) != 0 {
+		t.Fatalf("nothing written to Kimai: %+v", writes)
+	}
+	if got := ridesOption(t, d, conn); got[strconv.FormatInt(rideStart.Unix(), 10)] != "private" {
+		t.Fatalf("option: %+v", got)
 	}
 }
