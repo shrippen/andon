@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,10 +24,11 @@ const (
 	consumePoll = 2 * time.Second
 )
 
-// Paperless task states, see /api/tasks/.
+// Paperless task states, see /api/tasks/: "SUCCESS" up to 2.x,
+// "success" since.
 const (
-	taskDone   = "SUCCESS"
-	taskFailed = "FAILURE"
+	taskDone   = "success"
+	taskFailed = "failure"
 )
 
 // A text file uploaded, a custom field set on it, then deleted: the calls
@@ -79,16 +81,26 @@ func paperlessConsumed(t *testing.T, api services.PaperlessApi, task string) int
 			t.Fatalf("task %s: %v", task, err)
 		}
 		for _, s := range rows(raw) {
-			switch s["status"] {
+			status, _ := s["status"].(string)
+			switch strings.ToLower(status) {
 			case taskDone:
-				return num(s["related_document"])
+				return taskDocument(s)
 			case taskFailed:
-				t.Fatalf("consume failed: %v", s["result"])
+				t.Fatalf("consume failed: %v %v", s["result"], s["result_data"])
 			}
 		}
 	}
 	t.Fatalf("task %s not done after %s", task, consumeWait)
 	return 0
+}
+
+// taskDocument reads a done task's document: related_document up to
+// 2.x, related_document_ids since.
+func taskDocument(task map[string]any) int64 {
+	if ids, _ := task["related_document_ids"].([]any); len(ids) > 0 {
+		return num(ids[0])
+	}
+	return num(task["related_document"])
 }
 
 // paperlessTextField returns the first custom field holding text, or 0.

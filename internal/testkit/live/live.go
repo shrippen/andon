@@ -1,12 +1,12 @@
 // Package live runs integration tests against real service instances.
 //
-// Connections and data live in .local-test/ (outside Git), one file per
-// service, e.g. .local-test/kimai.json:
+// The instances are the connections of the local Andon instance in
+// .local-test/ (outside Git): its database data/andon.db, unlocked with
+// the master key in secrets/master_key. Each service's first connection
+// with a shared login is used.
 //
-//	{"url": "https://kimai.example", "token": "…", "verifyTLS": true}
-//
-// Without that file the test is skipped: CI and cloud runs test against
-// the fakes (httptest) only.
+// Without that database or a connection of the service the test is
+// skipped: CI and cloud runs test against the fakes (httptest) only.
 //
 // Writes touch only entries a test created. Every write is appended to
 // .local-test/writes.log (time, service, action, kind, id, test); a
@@ -16,19 +16,26 @@ package live
 
 import (
 	"bufio"
-	"encoding/json"
+	"database/sql"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"andon/internal/db"
+	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/outbound"
+	"andon/internal/repos/content"
+	"andon/internal/services/maintenance"
+	"andon/internal/services/svcdata"
 )
 
-// Service names a configured instance; it is also the config file name.
+// Service names an instance by its connection's service type.
 type Service string
 
 const (
@@ -53,6 +60,10 @@ const (
 	dirName = ".local-test"
 	logName = "writes.log"
 
+	// The local instance: its database and master key.
+	dbPath  = "data/andon.db"
+	keyPath = "secrets/master_key"
+
 	// namePrefix marks every entry a test creates, e.g.
 	// "andon-test TestPlaces 20261006-143005".
 	namePrefix = "andon-test"
@@ -62,36 +73,87 @@ const (
 // (Invoice Ninja).
 type ID interface{ ~int | ~int64 | ~string }
 
-// conf is one service's file in .local-test/.
-type conf struct {
-	URL       string `json:"url"`
-	Token     string `json:"token"`
-	VerifyTLS *bool  `json:"verifyTLS"`
-}
+// targets caches each directory's instances: unlocking the database
+// costs a second (Argon2id).
+var (
+	targetsMu sync.Mutex
+	targets   = map[string]map[Service]outbound.Target{}
+)
 
 // Target returns the real instance of svc, or skips the test when none
 // is configured.
 func Target(t testing.TB, svc Service) outbound.Target {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join(dir(t), string(svc)+".json"))
+	all := instances(t)
+	to, ok := all[svc]
+	if !ok {
+		t.Skipf("no live %s instance: no shared %s connection in %s/%s", svc, svc, dirName, dbPath)
+	}
+	return to
+}
+
+// instances reads the shared connections of the local instance, at most
+// once per directory.
+func instances(t testing.TB) map[Service]outbound.Target {
+	t.Helper()
+	d := dir(t)
+	targetsMu.Lock()
+	defer targetsMu.Unlock()
+	if all, ok := targets[d]; ok {
+		return all
+	}
+
+	path := filepath.Join(d, dbPath)
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		t.Skipf("no live instance (%s/%s)", dirName, dbPath)
+	}
+	key, err := os.ReadFile(filepath.Join(d, keyPath))
 	if errors.Is(err, os.ErrNotExist) {
-		t.Skipf("no live %s instance (%s/%s.json)", svc, dirName, svc)
+		t.Skipf("no master key (%s/%s)", dirName, keyPath)
 	}
 	if err != nil {
-		t.Fatalf("read %s config: %v", svc, err)
+		t.Fatalf("read master key: %v", err)
 	}
 
-	var c conf
-	if err := json.Unmarshal(raw, &c); err != nil {
-		t.Fatalf("parse %s config: %v", svc, err)
+	all, err := read(path, strings.TrimSpace(string(key)))
+	if err != nil {
+		t.Fatalf("read live instance: %v", err)
 	}
-	if c.URL == "" {
-		t.Fatalf("%s config has no url", svc)
+	targets[d] = all
+	return all
+}
+
+// read unlocks the database and returns each service's first connection
+// with a shared login and its secret.
+func read(path, key string) (map[Service]outbound.Target, error) {
+	d, _, err := maintenance.Unlock(path, key)
+	if err != nil {
+		return nil, err
+	}
+	defer d.Close()
+
+	var conns []*model.Connection
+	err = db.WithRead(d, func(tx *sql.Tx) error {
+		conns, err = content.AllConnections(tx)
+		return err
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	// TLS is checked unless the file says otherwise.
-	verify := c.VerifyTLS == nil || *c.VerifyTLS
-	return outbound.Target{URL: strings.TrimRight(c.URL, "/"), Token: c.Token, VerifyTLS: verify}
+	all := map[Service]outbound.Target{}
+	for _, c := range conns {
+		svc := Service(c.Service)
+		if _, seen := all[svc]; seen || c.CredentialMode != enums.CredentialShared {
+			continue
+		}
+		secret, err := svcdata.Secret(d, c, model.NoHolder)
+		if err != nil {
+			return nil, fmt.Errorf("%s connection %d: %w", svc, c.ID, err)
+		}
+		all[svc] = outbound.Target{URL: strings.TrimRight(c.URL, "/"), Token: secret, VerifyTLS: c.VerifyTLS}
+	}
+	return all, nil
 }
 
 // Name returns a fresh name for an entry this test creates.

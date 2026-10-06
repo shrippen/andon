@@ -51,8 +51,10 @@ func TestNinjaLive(t *testing.T) {
 	invoice := ninjaFind(t, api, kindInvoice, client, "number", number)
 	ninjaOwn(t, api, kindInvoice, invoice)
 
+	// The whole amount, taxes included, so the invoice ends up paid.
+	amount, _ := ninjaRead(t, api, kindInvoice, invoice)["amount"].(float64)
 	live.Change(t, live.Ninja, live.Update, kindInvoice, invoice)
-	if err := outbound.NinjaPayment(ctx, ninja, client, invoice, 1, today, name); err != nil {
+	if err := outbound.NinjaPayment(ctx, ninja, client, invoice, amount, today, name); err != nil {
 		t.Fatalf("payment: %v", err)
 	}
 	payment := ninjaFind(t, api, kindPayment, client, "transaction_reference", name)
