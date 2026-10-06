@@ -128,6 +128,8 @@ type GiteaDataset struct {
 	Assigned      []Issue
 	Reviews       []Issue // PRs waiting for the user's review
 	Repos         []Repo
+	Stacks        []Stack // compose stacks, by host and name
+	StacksRead    bool    // false: a compose repo could not be read
 }
 
 var GiteaData = source{key: "gitea.data", ttl: opsTTL, service: enums.ServiceGitea, fetch: fetchGitea}
@@ -208,6 +210,8 @@ func loadGitea(ctx context.Context, api services.GiteaApi, base string, now time
 			break
 		}
 	}
+
+	data.Stacks, data.StacksRead = loadStacks(ctx, api)
 	return data, nil
 }
 

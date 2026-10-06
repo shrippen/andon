@@ -968,7 +968,7 @@ Drei Durchgänge durch den Code; umgesetzt, jeweils mit Test.
 - [x] Kundenseiten (`/clients`), Host-Seiten (`/hosts`)
 - Nicht umgesetzt: `system.version_drift` (die Versionstabelle hält eine Version je Dienst und Bereich, nicht je Host), „Wichtigster Hinweis groß“ (deckt die Wandampel ab), „Seit gestern“-Seite (deckt die Begrüßung ab)
 
-### Phase 15: IT-Doku-Abgleich und Homelable (geplant 01.10.2026)
+### Phase 15: IT-Doku-Abgleich und Homelable (begonnen 06.10.2026)
 
 Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose-Dateien auseinanderlaufen, und gibt die Befunde an Hansei weiter; nur Hansei schreibt in den Vault, und nur nach Freigabe. Zusätzlich zeichnet Andon die Doku als Grafik in eine Homelable-Instanz auf Regis. **Beginn erst nach Abschluss der Kante-Überarbeitung.**
 
@@ -986,7 +986,7 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 - `Compose` ist Pflichtfeld für `IT/Dienste/{Regis,Eredin,Plötze}` (Hansei-Prüfregel)
 
 **Quellen**
-- [ ] Compose-Repos: `docker-compose-*` über die vorhandene Gitea-Verbindung (`git/trees`), Host aus dem Repo-Namen (`ploetze` → Plötze); je Stack Dienste, Images, Ports, Labels. `environment`-Werte werden beim Lesen verworfen
+- [x] Compose-Repos: `docker-compose-*` über die vorhandene Gitea-Verbindung (`git/trees`), Host aus dem Repo-Namen (`ploetze` → Plötze); je Stack Dienste, Images, Ports, Labels. `environment`-Werte werden beim Lesen verworfen *(`GiteaDataset.Stacks`, `internal/sources/compose.go`; Dateien je Blob-SHA nur einmal gelesen)*
 - [ ] Obsidian: Repo `ObsidianPrivat`, nur die Teilbäume `IT/Dienste`, `IT/Geräte`, `IT/Orte` und die Netz-Notizen, nur Frontmatter (`Compose`, `Gerät`, `deprecated`, `URL`, Ports, `Backup via`, `SSO …`, `abhängig von`, `letzte Prüfung`, `Orte`). Nie den ganzen Baum laden: Gitea kürzt ihn bei rund 3000 Einträgen (`truncated`), und Andon sieht so keine Pfade anderer Ordner
 - [ ] Hansei-Statusnotiz (`status_note`) für das Widget „Batches warten“
 - [ ] Später: Komodo-Stand dazu (Stack im Repo, aber nicht deployt und umgekehrt)
