@@ -24,6 +24,8 @@
 
 - Always use {}, even on a one-line "if" statement.
 
+- Every visualization (chart, graph, heatmap) has axis labels or a legend; without them it is useless. In popups, give it hover tooltips where possible.
+
 When you write a commit message, follow these 7 rules:
 Rule 1: Separate the subject line from the body with a single blank line.
 Rule 2: Limit the subject line to 50 characters (72 is the absolute hard limit).
