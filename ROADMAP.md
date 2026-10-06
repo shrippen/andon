@@ -1107,7 +1107,7 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
     - [ ] KDE Store „shrippen“: Option `user` fehlt, Datensatz leer
     - [ ] Domains „arianw.de“: RDAP-Abfrage HTTP 404, Ablaufdatum fehlt
   - [x] Weitere schreibende Ausgänge: Kimai-Export-Flag, Kunde umbenennen, Fahrten (`kimai_more_live_test.go`), Tandoor-Einkaufsliste (`tandoor_live_test.go`); `TestPlacesLive` löscht seine Dawarich-Area
-    - [ ] Kimai-Orte lassen sich per API nicht löschen (Anfahrten-Plugin ohne `DELETE /api/mileage/places/{id}`); jeder Lauf von `TestPlacesLive` hinterlässt einen Ort (Rest: Ort 44)
+    - [x] Kimai-Orte per API löschen: Anfahrten-Plugin `DELETE /api/mileage/places/{id}` (kimai-anfahrt #7); `TestPlacesLive` räumt den Ort auf, Rest Ort 44 gelöscht
     - Ohne Schreibtest: `HassToggle` und `DNSPause` (schalten bestehende Geräte bzw. den Filter, keine eigenen Testeinträge möglich), Grocy (keine Verbindung), Apprise, Mail, LLM
 
 - [x] Einstellungen: möglichst viele bisher nur per Umgebungsvariable setzbare Einstellungen zusätzlich in den Servereinstellungen der Oberfläche anbieten; sind beide gesetzt, gewinnt die Umgebungsvariable (in der Oberfläche als „durch Umgebung gesetzt“ gesperrt anzeigen) *(Admin → Einstellungen → Server: SMTP, Apprise, Anthropic-Schlüssel, Prüflauf-Intervall, Sitzungsdauern, Log-Stufe; Geheimnisse verschlüsselt, wirken ohne Neustart. Nur Umgebung: `BASE_URL`, `MASTER_KEY`, Pfade, `TRUSTED_PROXIES`, `SCHEDULER_ENABLED`, Demo/Dev. `LOG_LEVEL` wurde vorher gar nicht ausgewertet)*

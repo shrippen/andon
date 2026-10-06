@@ -45,6 +45,7 @@ func TestPlacesLive(t *testing.T) {
 		t.Fatal("create place: no id in answer")
 	}
 	live.Created(t, live.Kimai, kindPlace, placeID)
+	t.Cleanup(func() { kimaiRemove(t, kimaiAPI(kimai), kindPlace, "mileage/places/", placeID) })
 
 	live.Change(t, live.Kimai, live.Update, kindPlace, placeID)
 	if err := outbound.KimaiUpdatePlace(ctx, kimai, placeID, outbound.MileagePlace{Radius: 80}); err != nil {
