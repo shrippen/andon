@@ -1,4 +1,4 @@
-.PHONY: check lint test run build
+.PHONY: check lint test live run build
 
 check: lint test
 
@@ -9,6 +9,10 @@ lint:
 
 test:
 	go test ./...
+
+# Live tests against the instances in .local-test/ (internal/testkit/live).
+live:
+	go test -count=1 -run Live ./...
 
 VERSION_FLAG = -X andon/internal/services/about.version=$(shell scripts/version.sh)
 
