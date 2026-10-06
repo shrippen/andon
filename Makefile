@@ -10,10 +10,12 @@ lint:
 test:
 	go test ./...
 
+VERSION_FLAG = -X andon/internal/services/about.version=$(shell scripts/version.sh)
+
 run:
-	DATA_DIR=./data ANDON_DEV=true MASTER_KEY=dev-only-not-secret go run ./cmd/andon
+	DATA_DIR=./data ANDON_DEV=true MASTER_KEY=dev-only-not-secret go run -ldflags="$(VERSION_FLAG)" ./cmd/andon
 
 # Release build: no demo mode, no demo data (scripts/release-check.sh).
 build:
-	CGO_ENABLED=0 go build -tags release -trimpath -ldflags="-s -w -X andon/internal/services/about.version=$(shell git describe --tags --always)" -o bin/andon ./cmd/andon
+	CGO_ENABLED=0 go build -tags release -trimpath -ldflags="-s -w $(VERSION_FLAG)" -o bin/andon ./cmd/andon
 	scripts/release-check.sh bin/andon
