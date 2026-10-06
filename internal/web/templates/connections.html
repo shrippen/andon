@@ -345,6 +345,13 @@
         </div>{{end}}
         {{with $c.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}{{if not $c.Health.LastFail.IsZero}} {{ago $c.Health.LastFail}}{{end}}: {{t .}}{{if $c.Health.ErrorSettled}} <span class="pill" data-state="applied">{{t "conn.ok_since"}}</span>{{end}}</p>{{end}}
         {{if $c.DailyBudget}}<p class="small muted">{{t "conn.budget_today" "n" $c.Health.Today "max" $c.DailyBudget}}</p>{{end}}
+        {{with .Caps}}<div class="detail-block">
+          <div class="h-label detail-label"><span>{{t "caps.title"}}</span></div>
+          <div class="table-wrap"><table class="table">
+            <tbody>{{range .}}<tr><td>{{t (print "caps.domain." .Cap.Domain)}}</td><td>{{t (print "caps.op." .Cap.Op)}}{{with .Cap.Kinds}} <small class="muted">({{range $i, $k := .}}{{if $i}}, {{end}}{{t (print "caps.kind." $k)}}{{end}})</small>{{end}}</td>
+              <td data-state="{{if eq .State "have"}}ok{{else if eq .State "missing"}}bad{{end}}">{{if eq .State "have"}}{{t "caps.have"}}{{else if eq .State "missing"}}{{$n := .Need.Name}}{{if eq (print .Need.Kind) "plugin"}}{{$n = t (print "caps.plugin." .Need.Name)}}{{end}}{{t (print "caps.need." .Need.Kind) "name" $n}}{{else}}{{t "caps.unknown"}}{{end}}</td></tr>{{end}}</tbody>
+          </table></div>
+        </div>{{end}}
         {{with $c.Pace}}{{if .Reason}}<p class="small muted">{{t (print "conn.pace_" .Reason) "min" .Minutes "until" (ago .Until)}}</p>{{end}}{{end}}
         <div class="row-actions">
           <form method="post" action="/connections/{{$c.ID}}/test" class="inline-form" hx-post="/connections/{{$c.ID}}/check" hx-target="#toast">

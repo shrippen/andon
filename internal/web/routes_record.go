@@ -110,6 +110,10 @@ func (d Deps) recordValues(r *http.Request, ctx Ctx, conn connections.View) (map
 		}
 	}
 
+	if rows, err := connections.Capabilities(r.Context(), d.DB, ctx.Who, conn.ID); err == nil {
+		values["Caps"] = rows
+	}
+
 	history, err := connections.History(d.DB, ctx.Who, conn.ID, recordDays, time.Now().UTC())
 	if err != nil {
 		return nil, err

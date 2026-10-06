@@ -294,3 +294,9 @@ type DawarichDataset struct {
 	Stats       map[string]any
 	LastPoint   string
 }
+
+// CapSet reports what the connection's mileage plugin allows.
+func (d *KimaiDataset) CapSet() caps.Set { return d.Caps }
+
+// CapSet reports what the Dawarich connection allows.
+func (d *DawarichDataset) CapSet() caps.Set { return d.Caps }

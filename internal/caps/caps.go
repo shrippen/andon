@@ -153,3 +153,6 @@ func Store(d Domain, op Op, kind string, order ...Set) Holder {
 	}
 	return Andon
 }
+
+// Reporter is a dataset that knows its connection's capabilities.
+type Reporter interface{ CapSet() Set }

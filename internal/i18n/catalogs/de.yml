@@ -5351,3 +5351,34 @@ tandoor:
   open: '{count} offen'
   empty: 'Einkaufsliste leer'
   plan: 'Essensplan'
+caps:
+  title: Fähigkeiten
+  have: vorhanden
+  unknown: noch nicht abgerufen
+  domain:
+    places: Orte
+    rides: Fahrten
+    customers: Kunden
+    absences: Abwesenheiten
+    worktime: Arbeitszeit
+    invoices: Rechnungen
+    payments: Zahlungen
+    receipts: Belege
+  op:
+    read: lesen
+    create: anlegen
+    update: ändern
+  kind:
+    home: Zuhause
+    work: Arbeit
+    customer: Kunde
+    other: Sonstiges
+    driving: Auto
+    motorcycle: Motorrad
+  plugin:
+    mileage: Anfahrten
+  need:
+    plugin: 'Plugin {name} fehlt'
+    feature: 'Plugin zu alt ({name} fehlt)'
+    right: 'Recht {name} fehlt'
+    api: 'Schnittstelle {name} fehlt (ältere Version)'
