@@ -133,18 +133,6 @@ Eine Funktion, die zwei Dienste braucht (Fahrten: Dawarich + Kimai; Kundenseite:
 
 Heute sucht jede Stelle anders: Kacheln die erste, der Prüflauf die letzte, `sites` die erste im Bereich, Belege die Wahl des Nutzers.
 
-### Auflösung (überall gleich)
-
-```
-gesucht: Kimai-Partner für <Kachel | Verbindung | Bereich>
-  1. Wahl an der Kachel                         (nur bei mehreren angeboten)
-  2. Wahl an der Verbindung, die fragt          (z. B. Dawarich → Kimai X)
-  3. Standard des Bereichs für den Dienst
-  4. einzige Verbindung des Dienstes im Bereich
-  5. einzige in den Bereichen, die der Nutzer erreicht (heute bei Kacheln)
-  sonst: keiner → Hinweis „mehrere Kimai-Verbindungen, Partner wählen“
-```
-
 Eine Funktion in `services/connections`, die alle nutzen:
 
 ```go
@@ -157,35 +145,88 @@ type Asker struct{ SpaceID, ConnID, WidgetID int64 }
 ```
 
 `widgetlib.peerConnection`, die Datensätze im Prüflauf (`analysis`: heute „letzte gewinnt“), `sites.open`, `billing.pairs`, `clients` und `mailfwd` rufen sie auf.
+Die heutige Auswahl in „Belege“ (Ninja + Paperless als Nutzer-Einstellung) und die Feldzuordnung `receipt_*` werden zu einer Verknüpfung Ninja ↔ Paperless mit Einträgen.
 
-### Wo die Wahl gespeichert wird: Vorschläge
+### Verknüpfung als eigenes Datenmodell (entschieden 06.10.2026: Option C)
 
-| | Ort | Gut für | Nachteil |
-|---|---|---|---|
-| **A** | Option der Verbindung, z. B. Dawarich `partners: {"kimai": 12}`; in der Akte „Arbeitet mit“ | Paare mit klarer Richtung (Orte, Fahrten, Belege) | Kacheln mit vielen Diensten (Monatsabschluss: Kimai, Ninja, Sure, Paperless, Mail) bräuchten je Dienst eine Wahl irgendwo |
-| **B** | Bereichseinstellung „Standard je Dienst“, `partners: {"kimai": 12, "invoiceninja": 4}`; erscheint nur für Dienste mit mehreren Verbindungen | alles in einem Bereich (Prüflauf, Hinweise und Kacheln arbeiten je Bereich) | zwei Kimai-Paare im selben Bereich gehen nur mit Ausnahme |
-| **C** | eigene Verknüpfung (Tabelle `links`: Verbindung ↔ Verbindung), in beiden Akten sichtbar | beliebig viele Paare, symmetrisch, später auch Kunden-Zuordnungen | eigenes Datenmodell und eigene Oberfläche |
-| **D** | Feld an der Kachel „Kimai-Verbindung“, nur bei mehreren | Ausnahme für eine Kachel | allein zu kleinteilig |
+Ein Paar von Verbindungen ist ein eigener Datensatz, die **Verknüpfung**. Sie trägt Daten, die nur in diesem Paar leben, etwa die Kunden-Zuordnung Kimai ↔ Invoice Ninja; keine der beiden Verbindungen besitzt sie allein.
 
-**Empfehlung: B als Grundlage, A und D als Ausnahme.** Der Bereich legt den Standard fest; eine Verbindung (A) oder eine Kachel (D) darf abweichen. Das entspricht der Auflösung oben (Stufen 1–3) und braucht kein neues Datenmodell. C lohnt erst, wenn Paare selbst Daten tragen sollen.
+```
+connections            links                          link_entries
+┌──────────────┐       ┌─────────────────────┐        ┌────────────────────────────────┐
+│ 3 Dawarich   │◄──a───│ 1  a=3  b=7         │        │ link 2  customers  12 → "Kx9"  │
+│ 7 Kimai      │◄──b───│ 2  a=7  b=9         │◄───────│         confirmed              │
+│ 9 Ninja      │◄──b───└─────────────────────┘        │ link 2  customers  15 → –      │
+└──────────────┘                                      │         none ("kein Gegenstück")│
+                                                      └────────────────────────────────┘
+```
+
+Tabellen (Migration):
+
+```sql
+CREATE TABLE links (
+  id         INTEGER PRIMARY KEY,
+  a_conn     INTEGER NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+  b_conn     INTEGER NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL,
+  UNIQUE (a_conn, b_conn), CHECK (a_conn < b_conn)
+);
+CREATE TABLE link_entries (
+  link_id    INTEGER NOT NULL REFERENCES links(id) ON DELETE CASCADE,
+  domain     TEXT NOT NULL,        -- caps.Domain: customers, …
+  a_key      TEXT NOT NULL,        -- id in a's service ("12")
+  b_key      TEXT NOT NULL DEFAULT '', -- id in b's service ("Kx9"), '' = none
+  state      TEXT NOT NULL,        -- suggested, confirmed, none
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (link_id, domain, a_key)
+);
+```
+
+- **Symmetrisch:** `a_conn < b_conn`; welche Seite welcher Dienst ist, sagt die Verbindung, nicht die Spalte.
+- **Mehrere Paare** sind möglich (zwei Kimai, je mit eigenem Ninja). Eine Verbindung hat je Partnerdienst höchstens eine Verknüpfung.
+- **Löschen** einer Verbindung löscht ihre Verknüpfungen samt Einträgen (`CASCADE`); in den Diensten selbst wird nichts gelöscht.
+- **Rechte:** anlegen, ändern, lösen braucht EDIT auf beiden Verbindungen; lesen braucht VIEW auf beiden. Bereichsgrenzen sind erlaubt (persönliches Dawarich, Team-Kimai), solange die Rechte reichen.
+- **Export und Sicherung:** Verknüpfungen und Einträge gehören zum Export des Bereichs der Verbindungen; keine Geheimnisse darin.
+
+### Auflösung mit Verknüpfungen
+
+```
+gesucht: Partner im Dienst S für <Kachel | Verbindung>
+  1. Kachel hat eine Verbindung → deren Verknüpfung zu S
+  2. Kachel ohne eigene Verbindung (Monatsabschluss …) → gewählte Verbindung an der Kachel (nur bei mehreren)
+  3. keine Verknüpfung, aber genau eine Verbindung von S im Bereich (sonst: erreichbar) → diese, implizit
+  sonst: keiner → Hinweis „mehrere S-Verbindungen, verknüpfen“
+```
+
+- **Implizit bleibt implizit:** Bei genau einer Verbindung wird nichts gespeichert und nichts gefragt. Eine gespeicherte Verknüpfung entsteht erst, wenn du wählst oder das Paar Daten bekommt (die erste bestätigte Kunden-Zuordnung legt sie an).
+- Der Prüflauf arbeitet je Bereich mit einem Datensatz je Dienst (`analysis`: heute „letzte gewinnt“). Er wird je Verknüpfung gerechnet: Regeln, die zwei Dienste brauchen, bekommen die Datensätze eines Paars, nicht „irgendeinen Kimai“.
 
 ### Oberfläche
 
-- **Bereichseinstellungen → Verbindungen:** je Dienst mit mehreren Verbindungen ein Auswahlfeld „Standard“. Ohne mehrere erscheint nichts.
-- **Akte einer Verbindung:** Abschnitt „Arbeitet mit“: zeigt den aufgelösten Partner je Dienst mit Herkunft („Standard des Bereichs“, „einzige“), ändern nur bei mehreren.
-- **Kachel-Einstellungen:** Feld je Partnerdienst, nur bei mehreren.
-- **Hinweis** `conn.partner_ambiguous`, wenn eine Funktion keinen eindeutigen Partner findet; Aktion führt zur Bereichseinstellung.
+- **Akte einer Verbindung → „Verknüpft mit“:** je Partnerdienst die Verknüpfung oder der implizite Partner („einzige“), mit Herkunft; „verknüpfen“ und „lösen“ nur, wenn es mehrere gibt oder eine Verknüpfung besteht.
+- **Reiter je Verknüpfungsdaten**, z. B. „Kunden“ (siehe unten), in der Akte beider Verbindungen sichtbar.
+- **Kachel-Einstellungen:** Feld je Partnerdienst nur für Kacheln ohne eigene Verbindung und nur bei mehreren.
+- **Hinweis** `conn.partner_ambiguous` führt zur Akte.
+
+### Schichten
+
+```
+web       Akte: Verknüpft mit, Reiter der Verknüpfungsdaten
+services  connections.Partner, links (anlegen, lösen, Einträge; Rechte)
+repos     links, link_entries
+```
 
 ## Kunden Kimai ↔ Invoice Ninja
 
 Entschieden 06.10.2026: feste Zuordnung über IDs, mit Vorschlagsansicht; Invoice Ninja ist die Quelle der Namen.
 
 ```
-Kimai-Kunde 12 ═══ Ninja-Kunde "Kx9"      gespeichert im Paar (Option der Kimai-Verbindung
-                                          "clients": {"12": "Kx9"}), Partner = Ninja
+Kimai-Kunde 12 ═══ Ninja-Kunde "Kx9"      link_entries der Verknüpfung Kimai ↔ Ninja,
+                                          domain "customers", state confirmed
 ```
 
-- **Vorschlagsansicht** (Akte der Kimai-Verbindung, Reiter „Kunden“): je Kimai-Kunde der Ninja-Kunde mit dem ähnlichsten Namen als Vorschlag; bestätigen, ändern, „kein Gegenstück“. Ungeklärte oben, wie bei Orten.
+- **Vorschlagsansicht** (Reiter „Kunden“ der Verknüpfung, in beiden Akten): je Kimai-Kunde der Ninja-Kunde mit dem ähnlichsten Namen als Vorschlag; bestätigen, ändern, „kein Gegenstück“. Ungeklärte oben, wie bei Orten.
 - **Angleichen (optional):** weicht der Kimai-Name ab, schreibt „Namen übernehmen“ den Ninja-Namen nach Kimai (`PATCH /api/customers/{id}`, neuer Ausgang `outbound/kimai.go`). Nie umgekehrt.
 - **Nutzer** der Zuordnung statt Namensabgleich: Kundenseiten (`metrics/clients.go`), Vollkosten-Stundensatz, `geo.travel_unbilled`, Rechnungsentwürfe (`billing`).
 - Ohne Zuordnung gilt vorerst weiter der Namensabgleich, als „vorgeschlagen“ markiert.
@@ -193,8 +234,8 @@ Kimai-Kunde 12 ═══ Ninja-Kunde "Kx9"      gespeichert im Paar (Option der 
 ## Schichten
 
 ```
-web        Akte: Fähigkeiten, Arbeitet mit, Kunden; Bereich: Standard je Dienst
-services   connections.Partner; sites, billing, clients …: caps.Store
+web        Akte: Fähigkeiten, Verknüpft mit, Reiter der Verknüpfungsdaten
+services   connections.Partner, links; sites, billing, clients …: caps.Store
 sources    erkennen → caps.Set im Datensatz
 caps       Typen, Deklarationen je Dienst, Store, reine Funktionen (Blatt)
 ```
@@ -207,7 +248,7 @@ Entschieden 06.10.2026: klein beginnen; wenn stabil, auf alle Verbindungen auswe
 
 1. **Klein:** `internal/caps` mit Typen und Deklarationen nur für Orte und Fahrten (Dawarich, Kimai „Anfahrten“, Andon). Die Kimai-Quelle liefert dafür ein `caps.Set`; `pluginWrites` und `pluginTrips` werden zu `caps.Store`, ohne Verhaltensänderung, Tests je Reihenfolge.
 2. Verbindungstest und Akte zeigen Fähigkeiten und fehlende Voraussetzungen.
-3. Partner: `connections.Partner`, Bereichsstandard, „Arbeitet mit“; Kacheln, Prüflauf und Services stellen um.
+3. Verknüpfungen: Tabellen `links`, `link_entries`, `connections.Partner`, „Verknüpft mit“; Kacheln, Prüflauf und Services stellen um.
 4. Kunden Kimai ↔ Invoice Ninja: Zuordnung, Vorschlagsansicht, Angleichen.
 5. **Groß:** übrige Kimai-Erkennung (Holiday-Bundle, Vertrag), dann jede Integration mit Erkennung; Regel in `agent.md`: neue Integrationen deklarieren ihre Fähigkeiten in `internal/caps`. Später statische Tabellen (`hooks.pushServices`, `connect.MethodOf`, Backup-Systeme) in dieselben Deklarationen.
 
@@ -219,7 +260,7 @@ Entschieden 06.10.2026: klein beginnen; wenn stabil, auf alle Verbindungen auswe
 
 ## Entscheidungen (06.10.2026)
 
-1. **Partner:** Wahl nur, wenn es mehrere gibt. Speicherort: Empfehlung B + A/D, siehe „Partner-Verbindung“ (offen zur Freigabe).
+1. **Partner:** Wahl nur, wenn es mehrere gibt. Gespeichert als eigene Verknüpfung (Option C), die auch Daten des Paars trägt.
 2. **Private Orte:** Der Ort liegt in Dawarich und im Plugin (dort „Sonstiges“, das Plugin braucht einen Typ); nur die Markierung „privat“ lebt in Andon. Entspricht dem heutigen Code.
 3. **Kunden Kimai ↔ Invoice Ninja:** feste Zuordnung über IDs mit Vorschlagsansicht, optional Namen angleichen; Invoice Ninja ist die Quelle der Namen.
 4. **Umfang:** klein beginnen (Orte, Fahrten), wenn stabil groß und als Standard für alle Integrationen.
