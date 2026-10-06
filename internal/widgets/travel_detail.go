@@ -132,11 +132,28 @@ func rideList(rides []metrics.ClassedRide, names map[int64]string, results map[s
 	}
 	blocks = append(blocks, Block{Kind: BlockTable, Data: Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: rows}})
 
+	blocks = append(blocks, classForm(r))
+
 	from, to := GeoPoint{Lat: r.FromLat, Lon: r.FromLon}, GeoPoint{Lat: r.ToLat, Lon: r.ToLon}
 	if m, ok := NewMap(ridePath(r, results), []MapMark{Pin(from, siteLabel(r.From), "ok"), Pin(to, siteLabel(r.To), rideState(r))}); ok {
 		blocks = append(blocks, Block{Kind: BlockMap, Label: T("detail.travel.map"), Data: m})
 	}
 	return list, blocks
+}
+
+// classForm sets the ride's class by hand, or hands it back to the
+// rules (services/sites.SetClass).
+func classForm(r metrics.ClassedRide) Block {
+	options := []FormOption{{Value: string(metrics.ClassAuto), Label: Txt("detail.travel.class_auto")}}
+	for _, c := range metrics.RideClasses {
+		options = append(options, FormOption{Value: string(c), Label: Txt("ride.class." + string(c))})
+	}
+	value := string(metrics.ClassAuto)
+	if r.Reason == metrics.ReasonManual {
+		value = string(r.Class)
+	}
+	return Block{Kind: BlockForm, Label: T("detail.travel.class_set"), Data: Form{Do: "ride_class", Args: map[string]string{"ride": rideKey(r)},
+		Submit: T("detail.travel.class_save"), Fields: []FormField{{Name: "class", Label: T("detail.travel.class"), Kind: FieldSelect, Value: value, Options: options}}}}
 }
 
 // rideRouteName is the result name of the picked ride's points.

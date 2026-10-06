@@ -1039,6 +1039,7 @@ Anfahrten-Fahrten ──►   │
 
 | # | Bedingung | Klasse | Grund |
 |---|---|---|---|
+| 0 | von Hand eingeordnet (ohne Plugin oder kein Auto) | diese | `manual` |
 | 1 | Fahrt im Plugin im selben Zeitfenster | deren Art | `plugin` |
 | 2 | mindestens 50 % der Fahrzeit liegen in gebuchter Kimai-Zeit (jede Buchung, auch interne Projekte) | beruflich, Kunde aus der Buchung (intern: ohne Kunde) | `kimai` |
 | 3 | Start oder Ziel ist ein Kundenort | beruflich, Kunde aus dem Ort | `kunde` |
@@ -1080,7 +1081,7 @@ Kettenregel: eine Fahrt zwischen zwei beruflichen Fahrten desselben Tages ist be
 - [x] Kacheln: Reise-Kachel mit Balken privat/beruflich, Dialog mit km je Monat und Klasse, Heatmap, Stunden je Woche, Kunden, Zielen, Verkehrsmitteln; Tabellen `trips` (Klasse, Grund), `trip_customers`, `destinations`. Detail je Fahrt zeigt die Strecke aus `dawarich.route` (`PickQueries`: Abfrage für den gewählten Eintrag)
 
 **6. Später**
-- [ ] Klasse einer Fahrt in Andon von Hand ändern (für Nutzer ohne Plugin); mit Plugin dort als Fahrt anlegen
+- [x] Klasse einer Fahrt in Andon von Hand ändern (für Nutzer ohne Plugin); mit Plugin dort als Fahrt anlegen *(Formular im Fahrt-Detail, `sites.SetClass`: Auto/Motorrad mit Plugin als Fahrt dort bzw. deren Art geändert, sonst Option `rides` der Dawarich-Verbindung, Regel 0 `manual`; „automatisch“ löscht nur die Option)*
 
 ---
 

@@ -3781,6 +3781,10 @@ detail:
     customer: 'Client'
     unconfirmed: 'Unconfirmed'
     unconfirmed_why: 'Client site, but no time booked for the client that day'
+    class_set: 'Change class'
+    class: 'Class'
+    class_auto: 'automatic'
+    class_save: 'Apply'
     map: 'Route'
     by_class: 'Business and private'
     class_sum: '{km} · {n} rides · {hours} h'
@@ -4621,6 +4625,8 @@ sites:
   no_data: 'Dawarich has not answered yet.'
   unknown: 'This place is gone.'
   bad: 'A new place needs a name and a position.'
+  unknown_ride: 'This ride is gone.'
+  bad_class: 'Unknown class of a ride.'
 places:
   unknown: 'Unknown place'
   none: 'No places today yet.'
@@ -5175,6 +5181,7 @@ ride:
     commute: home – work
     chain: between two business rides
     rest: no business trace
+    manual: set by hand
   mode:
     driving: car
     walking: walking

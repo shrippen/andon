@@ -3,6 +3,7 @@ package sites_test
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -41,12 +42,17 @@ func (r *recorder) list() []write {
 }
 
 // fakeDawarich: areas home (1) and Acme (2), no tracks; a new area is 9.
-func fakeDawarich(rec *recorder) *httptest.Server {
+// extra replaces or adds answers by path.
+func fakeDawarich(rec *recorder, extra ...map[string]string) *httptest.Server {
 	mux := http.NewServeMux()
-	for path, body := range map[string]string{"/api/v1/points": `[]`, "/api/v1/visits": `[]`, "/api/v1/stats": `{}`, "/api/v1/places": `[]`,
+	bodies := map[string]string{"/api/v1/points": `[]`, "/api/v1/visits": `[]`, "/api/v1/stats": `{}`, "/api/v1/places": `[]`,
 		"/api/v1/areas": `[{"id": 1, "name": "Zuhause", "latitude": 52.52, "longitude": 13.4, "radius": 100},
 			{"id": 2, "name": "Acme", "latitude": 52.4, "longitude": 13.06, "radius": 100}]`,
-		"/api/v1/tracks": `{"features": []}`} {
+		"/api/v1/tracks": `{"features": []}`}
+	for _, e := range extra {
+		maps.Copy(bodies, e)
+	}
+	for path, body := range bodies {
 		mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(body)) })
 	}
 	mux.HandleFunc("POST /api/v1/areas", func(w http.ResponseWriter, r *http.Request) {
@@ -80,6 +86,10 @@ func fakeKimai(rec *recorder, plugin bool) *httptest.Server {
 		mux.HandleFunc("PATCH /api/mileage/places/{id}", func(w http.ResponseWriter, r *http.Request) {
 			rec.add(r)
 			w.Write([]byte(`{}`))
+		})
+		mux.HandleFunc("POST /api/mileage/trips", func(w http.ResponseWriter, r *http.Request) {
+			rec.add(r)
+			w.Write([]byte(`{"id": 7}`))
 		})
 	}
 	return httptest.NewServer(mux)
