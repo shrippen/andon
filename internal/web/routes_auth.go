@@ -71,7 +71,7 @@ func (d Deps) loginExtras(values map[string]any) map[string]any {
 	}
 	open, err := admin.RegistrationOpen(d.DB)
 	values["RegistrationOpen"] = err == nil && open
-	values["OIDCLabel"] = oidc.Button(d.DB, d.Settings)
+	values["OIDCLabel"] = oidc.Button(d.DB, d.live())
 	return values
 }
 
@@ -82,7 +82,7 @@ func (d Deps) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := auth.Login(d.DB, d.Settings, r.FormValue("email"), r.FormValue("password"),
+	result, err := auth.Login(d.DB, d.live(), r.FormValue("email"), r.FormValue("password"),
 		d.clientIP(r), Agent(r))
 	if err != nil {
 		status, key := http.StatusUnauthorized, "login.failed"
@@ -154,7 +154,7 @@ func (d Deps) handleLogout(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		idToken, _ := auth.Logout(d.DB, cookie.Value)
 		if idToken != "" {
-			if end := oidc.LogoutURL(r.Context(), d.DB, d.Settings, idToken); end != "" {
+			if end := oidc.LogoutURL(r.Context(), d.DB, d.live(), idToken); end != "" {
 				target = end
 			}
 		}

@@ -290,6 +290,8 @@ type DawarichDataset struct {
 	Tracks      []DawarichTrack // oldest first
 	TracksFrom  string          // start of the window the tracks cover (RFC 3339)
 	TracksState TracksState
+	TracksRead  int // of TracksTotal in the window; less while TracksPartial
+	TracksTotal int
 	Stats       map[string]any
 	LastPoint   string
 }

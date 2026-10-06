@@ -85,6 +85,7 @@ action:
   open_in_docker: 'Docker öffnen'
   more: 'Weitere Aktionen'
 error:
+  invalid_setting: 'Ungültiger Wert.'
   csrf: Die Anfrage war abgelaufen. Bitte Seite neu laden.
   denied: Keine Berechtigung.
   not_found: Nicht gefunden.
@@ -1592,6 +1593,22 @@ admin:
   health_every: Intervall
   health_error: Fehler
   analysis_run: Jetzt prüfen
+  server: Server
+  server_hint: 'Einstellungen, die sonst nur per Umgebungsvariable gehen. Ist die Variable gesetzt, gewinnt sie; das Feld ist dann gesperrt. Leer = Vorgabe.'
+  server_env: durch Umgebung gesetzt
+  server_secret_kept: 'gespeichert – leer lassen, um es zu behalten'
+  running: Laufende Aufgaben
+  running_none: Gerade läuft nichts.
+  running_since: 'läuft seit {when}'
+  recent: Zuletzt abgeschlossen
+  problems: Probleme
+  problems_none: Heute keine fehlgeschlagenen Abrufe.
+  problem_conn: '{fail} von {total} Abrufen heute fehlgeschlagen'
+  logs: Logs
+  logs_none: Noch keine Einträge seit dem Start.
+  log_time: Zeit
+  log_level: Stufe
+  log_message: Meldung
   login: Letzte Anmeldung
   invite: Einladen
   send_invite: Einladung senden
@@ -3775,7 +3792,8 @@ detail:
     private: 'privat'
     allowance: 'Verpflegung'
     estimated: 'Diese Dawarich-Version hat keine Tracks: Fahrten sind aus Besuchen geschätzt (Luftlinie × 1,3).'
-    partial: 'Dawarich-Tracks werden noch gelesen; ältere Fahrten fehlen vorerst.'
+    partial: 'Tracks gelesen; ältere Fahrten fehlen vorerst.'
+    reading: 'Fortschritt auf der Seite Betrieb'
     ride: '{time} {from} → {to}'
     from: 'Von'
     to: 'Nach'
@@ -5351,3 +5369,16 @@ tandoor:
   open: '{count} offen'
   empty: 'Einkaufsliste leer'
   plan: 'Essensplan'
+task:
+  dawarich_tracks: 'Dawarich-Tracks von {host} lesen'
+server:
+  SMTP_URL: 'SMTP-Server (smtp://user@host:587)'
+  SMTP_FROM: Absender der Mails
+  SMTP_PASSWORD: SMTP-Passwort
+  APPRISE_API_URL: Apprise-API
+  ANTHROPIC_API_KEY: 'Anthropic-API-Schlüssel (Wochenrückblick, Ratschläge)'
+  ANALYSIS_MINUTES: Prüflauf alle … Minuten
+  SESSION_IDLE_MINUTES: 'Abmeldung nach … Minuten ohne Aktivität'
+  SESSION_ABSOLUTE_HOURS: Sitzung höchstens … Stunden
+  OIDC_SESSION_HOURS: 'Sitzung über authentik höchstens … Stunden'
+  LOG_LEVEL: Log-Stufe

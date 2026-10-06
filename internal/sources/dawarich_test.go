@@ -2,10 +2,13 @@ package sources_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"andon/internal/progress"
 	"andon/internal/sources"
 )
 
@@ -186,5 +189,51 @@ func TestDawarichNearbyNames(t *testing.T) {
 		if got := out.(*sources.DawarichNearby).Name; got != want {
 			t.Fatalf("%v: %q, want %q", lat, got, want)
 		}
+	}
+}
+
+// More tracks than one fetch reads: the dataset and the maintenance
+// page show how far reading is, until the next fetch reads the rest.
+func TestDawarichTracksReportProgress(t *testing.T) {
+	const total = 302
+	mux := http.NewServeMux()
+	dawarichBase(mux)
+	mux.HandleFunc("/api/v1/tracks", func(w http.ResponseWriter, r *http.Request) {
+		var list []string
+		for id := 1; id <= total; id++ {
+			list = append(list, fmt.Sprintf(`{"properties": {"id": %d, "revision": 0, "end_at": "2026-02-01T10:00:00Z"}}`, id))
+		}
+		w.Write([]byte(`{"type": "FeatureCollection", "features": [` + strings.Join(list, ",") + `]}`))
+	})
+	mux.HandleFunc("/api/v1/tracks/{id}", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"features": [{"properties": {"id": ` + r.PathValue("id") + `, "start_at": "2026-02-01T09:00:00Z", "end_at": "2026-02-01T10:00:00Z", "distance": 1000, "dominant_mode": "driving"}}]}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	ctx := sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true}
+	key := "dawarich-tracks|" + srv.URL
+
+	out, err := sources.DawarichData.Fetch(context.Background(), ctx)
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	data := out.(*sources.DawarichDataset)
+	if data.TracksState != sources.TracksPartial || data.TracksRead != 300 || data.TracksTotal != total {
+		t.Fatalf("first fetch: %s %d/%d", data.TracksState, data.TracksRead, data.TracksTotal)
+	}
+	if task, ok := progress.Get(key); !ok || task.Done != 300 || task.Total != total {
+		t.Fatalf("progress: %+v %v", task, ok)
+	}
+
+	out, err = sources.DawarichData.Fetch(context.Background(), ctx)
+	if err != nil {
+		t.Fatalf("second fetch: %v", err)
+	}
+	data = out.(*sources.DawarichDataset)
+	if data.TracksState != sources.TracksOK || data.TracksRead != total {
+		t.Fatalf("second fetch: %s %d/%d", data.TracksState, data.TracksRead, data.TracksTotal)
+	}
+	if _, ok := progress.Get(key); ok {
+		t.Fatal("progress still open after all tracks were read")
 	}
 }

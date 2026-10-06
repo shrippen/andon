@@ -31,7 +31,7 @@ func safeNext(target string) string {
 }
 
 func (d Deps) handleOIDCLogin(w http.ResponseWriter, r *http.Request) {
-	target, state, err := oidc.AuthorizeURL(r.Context(), d.DB, d.Settings, safeNext(r.URL.Query().Get("next")), nil)
+	target, state, err := oidc.AuthorizeURL(r.Context(), d.DB, d.live(), safeNext(r.URL.Query().Get("next")), nil)
 	if err != nil {
 		d.loginError(w, r, http.StatusServiceUnavailable, errKey(err))
 		return
@@ -57,12 +57,12 @@ func (d Deps) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	d.setOIDCState(w, "", -1)
 
-	result, err := oidc.Complete(r.Context(), d.DB, d.Settings, r.URL.Query(), browser)
+	result, err := oidc.Complete(r.Context(), d.DB, d.live(), r.URL.Query(), browser)
 	if err != nil {
 		d.loginError(w, r, http.StatusUnauthorized, errKey(err))
 		return
 	}
-	token, err := auth.OpenOIDCSession(d.DB, d.Settings, result.UserID, d.clientIP(r), Agent(r), result.IDToken)
+	token, err := auth.OpenOIDCSession(d.DB, d.live(), result.UserID, d.clientIP(r), Agent(r), result.IDToken)
 	if err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
 		return
@@ -77,7 +77,7 @@ func (d Deps) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
 
 func (d Deps) handleOIDCLink(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	userID := ctx.Who.UserID
-	target, state, err := oidc.AuthorizeURL(r.Context(), d.DB, d.Settings, profileHome, &userID)
+	target, state, err := oidc.AuthorizeURL(r.Context(), d.DB, d.live(), profileHome, &userID)
 	if err != nil {
 		d.securityPage(w, ctx, http.StatusServiceUnavailable, map[string]any{"Error": errKey(err)})
 		return

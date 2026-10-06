@@ -1101,8 +1101,9 @@ Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md
   - In Cloud-Umgebungen und CI genügen Tests gegen Nachbauten; ohne Instanz wird der Live-Test übersprungen
   - [ ] Live-Tests für die übrigen schreibenden Ausgänge (Kimai-Zeiten, Invoice Ninja, Paperless)
 
-- [ ] Einstellungen: möglichst viele bisher nur per Umgebungsvariable setzbare Einstellungen zusätzlich in den Servereinstellungen der Oberfläche anbieten; sind beide gesetzt, gewinnt die Umgebungsvariable (in der Oberfläche als „durch Umgebung gesetzt“ gesperrt anzeigen)
-- [ ] Wartungsseite: laufende Aufgaben, zuletzt abgeschlossene Aufgaben, Probleme, Logs
+- [x] Einstellungen: möglichst viele bisher nur per Umgebungsvariable setzbare Einstellungen zusätzlich in den Servereinstellungen der Oberfläche anbieten; sind beide gesetzt, gewinnt die Umgebungsvariable (in der Oberfläche als „durch Umgebung gesetzt“ gesperrt anzeigen) *(Admin → Einstellungen → Server: SMTP, Apprise, Anthropic-Schlüssel, Prüflauf-Intervall, Sitzungsdauern, Log-Stufe; Geheimnisse verschlüsselt, wirken ohne Neustart. Nur Umgebung: `BASE_URL`, `MASTER_KEY`, Pfade, `TRUSTED_PROXIES`, `SCHEDULER_ENABLED`, Demo/Dev. `LOG_LEVEL` wurde vorher gar nicht ausgewertet)*
+  - [ ] OIDC: heute gewinnt die gespeicherte Konfiguration über `OIDC_*`; auf „Umgebung gewinnt, Feld gesperrt“ umstellen
+- [x] Wartungsseite: laufende Aufgaben, zuletzt abgeschlossene Aufgaben, Probleme, Logs *(Admin → Betrieb: Jobs und Fortschritt langer Arbeiten (`internal/progress`), Verlauf der letzten 50 Läufe, Verbindungen mit Fehlern heute, die letzten 300 Logeinträge (`internal/logbuf`))*
 - [x] „Über Andon“: Dev-Builds zeigen keine Version. Auch Dev-Builds bekommen automatisch eine Versionsnummer nach dem Schema `Version/Branch/Build`, z. B. `0.5.0/main/#25` *(`scripts/version.sh`; Build = Commits seit dem letzten Tag, beginnt nach jedem Release neu)*
 - [x] Regel (in `agent.md` aufnehmen): Visualisierungen in Popups bekommen, wo möglich, Tooltips beim Hover (ergänzt die Regel zu Achsen und Legenden) *(Umsetzung beim Nachrüsten oben)*
 - [ ] Dawarich: Orte
@@ -1110,7 +1111,7 @@ Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md
   - Andon kennt zusätzlich private Orte; vorerst reicht die Kategorie „Privat“
   - Struktur: jedes Backend unterstützt nur eine Teilmenge der Funktionen beim Abgleichen und Schreiben (Fähigkeiten je Integration)
   - Prüfen, ob sich das abstrahieren lässt, damit weitere Integrationen es nutzen: welche Fähigkeiten eine Integration hat, wie sie sich mit anderen überlappt (Dawarich und Kimai Anfahrten kennen beide „Orte“, unterschiedlich und voneinander abhängig) und wie Integrationen voneinander abhängen
-- [ ] Dawarich: Der Hinweis „Dawarich-Tracks werden noch gelesen; ältere Fahrten fehlen vorerst.“ bekommt eine Fortschrittsanzeige und einen Link zur Wartungsseite
+- [x] Dawarich: Der Hinweis „Dawarich-Tracks werden noch gelesen; ältere Fahrten fehlen vorerst.“ bekommt eine Fortschrittsanzeige und einen Link zur Wartungsseite *(Fahrten-Dialog: „300 / 1200 · Tracks gelesen“, Link nur für Admins; dieselbe Aufgabe unter Admin → Betrieb)*
 
 ---
 

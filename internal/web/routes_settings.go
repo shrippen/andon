@@ -14,6 +14,7 @@ import (
 	"andon/internal/services/selfbackup"
 	"andon/internal/services/system"
 	"andon/internal/services/themes"
+	"andon/internal/settings"
 )
 
 const oidcBlankRules = 2
@@ -25,6 +26,7 @@ func (d Deps) RegisterSettingsRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/operations", d.authed(d.handleOpsPage))
 	mux.HandleFunc("POST /admin/settings/general", d.handleSettingsGeneral)
 	mux.HandleFunc("POST /admin/settings/network", d.handleSettingsNetwork)
+	mux.HandleFunc("POST /admin/settings/server", d.handleSettingsServer)
 	mux.HandleFunc("POST /admin/settings/oidc", d.handleSettingsOIDC)
 	mux.HandleFunc("POST /admin/settings/oidc/test", d.authed(d.handleSettingsOIDCTest))
 	mux.HandleFunc("POST /admin/settings/analysis", d.handleAnalysisRun)
@@ -54,7 +56,7 @@ func (d Deps) settingsPage(w http.ResponseWriter, ctx Ctx, status int, extra map
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
-	cfg, err := oidc.Load(d.DB, d.Settings)
+	cfg, err := oidc.Load(d.DB, d.live())
 	if err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
 		return
@@ -95,8 +97,10 @@ func (d Deps) settingsPage(w http.ResponseWriter, ctx Ctx, status int, extra map
 		"CallbackURL":   strings.TrimRight(d.Settings.BaseURL, "/") + oidc.CallbackPath,
 		"InstanceRoles": []enums.InstanceRole{enums.RoleUser, enums.RoleAdmin},
 		"TeamRoles":     []enums.TeamRole{enums.TeamViewer, enums.TeamEditor, enums.TeamOwner},
-		"AnalysisEvery": d.Settings.AnalysisMinutes,
+		"AnalysisEvery": d.live().AnalysisMinutes,
 	}
+	values["Server"], _ = system.Server(d.DB, ctx.Who, d.Settings)
+	values["LogLevels"] = []string{"DEBUG", "INFO", "WARN", "ERROR"}
 	if run, ok := analysis.LastRun(); ok {
 		values["AnalysisRun"] = run
 	}
@@ -194,6 +198,18 @@ func (d Deps) handleSettingsGeneral(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleSettingsServer stores the server settings the environment left
+// unset.
+func (d Deps) handleSettingsServer(w http.ResponseWriter, r *http.Request) {
+	d.settingsAction(w, r, func(ctx Ctx) error {
+		values := map[string]string{}
+		for _, f := range settings.Fields {
+			values[f.Env] = r.FormValue(f.Env)
+		}
+		return system.SetServer(d.DB, ctx.Who, d.Settings, values, d.clientIP(r))
+	})
+}
+
 // handleBackupRun copies and test-restores the database now.
 func (d Deps) handleBackupRun(w http.ResponseWriter, r *http.Request) {
 	d.settingsAction(w, r, func(ctx Ctx) error {
@@ -239,7 +255,7 @@ func (d Deps) handleSettingsOIDC(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d Deps) handleSettingsOIDCTest(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	issuer, err := oidc.Test(r.Context(), d.DB, d.Settings, ctx.Who)
+	issuer, err := oidc.Test(r.Context(), d.DB, d.live(), ctx.Who)
 	if err != nil {
 		d.settingsPage(w, ctx, http.StatusBadGateway, map[string]any{"OIDCTest": err.Error(), "OIDCTestOK": false})
 		return
@@ -253,7 +269,7 @@ func (d Deps) handleReapplyPreview(w http.ResponseWriter, r *http.Request, ctx C
 		http.NotFound(w, r)
 		return
 	}
-	plan, err := oidc.PreviewReapply(d.DB, d.Settings, ctx.Who, id)
+	plan, err := oidc.PreviewReapply(d.DB, d.live(), ctx.Who, id)
 	if err != nil {
 		d.pageError(w, ctx, err)
 		return
@@ -263,6 +279,6 @@ func (d Deps) handleReapplyPreview(w http.ResponseWriter, r *http.Request, ctx C
 
 func (d Deps) handleReapply(w http.ResponseWriter, r *http.Request) {
 	d.adminAction(w, r, func(ctx Ctx, id int64) error {
-		return oidc.Reapply(d.DB, d.Settings, ctx.Who, id, d.clientIP(r))
+		return oidc.Reapply(d.DB, d.live(), ctx.Who, id, d.clientIP(r))
 	})
 }

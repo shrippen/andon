@@ -85,6 +85,7 @@ action:
   open_in_docker: 'Open Docker'
   more: 'More actions'
 error:
+  invalid_setting: 'Invalid value.'
   csrf: The request expired. Please reload the page.
   denied: Not allowed.
   not_found: Not found.
@@ -1592,6 +1593,22 @@ admin:
   health_every: Interval
   health_error: Error
   analysis_run: Check now
+  server: Server
+  server_hint: 'Settings otherwise set by environment variable only. A set variable wins and locks the field. Empty = default.'
+  server_env: set by environment
+  server_secret_kept: 'stored – leave empty to keep it'
+  running: Running tasks
+  running_none: Nothing is running.
+  running_since: 'running since {when}'
+  recent: Recently finished
+  problems: Problems
+  problems_none: No failed fetches today.
+  problem_conn: '{fail} of {total} fetches failed today'
+  logs: Logs
+  logs_none: No records since start.
+  log_time: Time
+  log_level: Level
+  log_message: Message
   login: Last login
   invite: Invite
   send_invite: Send invitation
@@ -3774,7 +3791,8 @@ detail:
     private: 'private'
     allowance: 'Per diem'
     estimated: 'This Dawarich version has no tracks: rides are estimated from visits (straight line × 1.3).'
-    partial: 'Dawarich tracks are still being read; older rides are missing for now.'
+    partial: 'tracks read; older rides are missing for now.'
+    reading: 'Progress on the Operations page'
     ride: '{time} {from} → {to}'
     from: 'From'
     to: 'To'
@@ -5350,3 +5368,16 @@ tandoor:
   open: '{count} open'
   empty: 'Shopping list empty'
   plan: 'Meal plan'
+task:
+  dawarich_tracks: 'Read Dawarich tracks of {host}'
+server:
+  SMTP_URL: 'SMTP server (smtp://user@host:587)'
+  SMTP_FROM: Mail sender
+  SMTP_PASSWORD: SMTP password
+  APPRISE_API_URL: Apprise API
+  ANTHROPIC_API_KEY: 'Anthropic API key (weekly review, advice)'
+  ANALYSIS_MINUTES: Check every … minutes
+  SESSION_IDLE_MINUTES: 'Sign out after … idle minutes'
+  SESSION_ABSOLUTE_HOURS: Session at most … hours
+  OIDC_SESSION_HOURS: 'Session via authentik at most … hours'
+  LOG_LEVEL: Log level

@@ -31,8 +31,17 @@ const (
 type Job struct {
 	Name     string
 	Interval time.Duration
+	Every    func() time.Duration // if set, read before each wait instead of Interval
 	Start    StartMode
 	Run      func(context.Context) error
+}
+
+// interval is the job's current interval.
+func (j Job) interval() time.Duration {
+	if j.Every != nil {
+		return j.Every()
+	}
+	return j.Interval
 }
 
 // Run is the outcome of a job's latest run.
@@ -43,9 +52,14 @@ type Run struct {
 	Every    time.Duration
 }
 
+// RecentMax caps the run history of all jobs together.
+const RecentMax = 50
+
 var (
 	runsMu   sync.Mutex
 	runs     = map[string]Run{}
+	recent   []NamedRun // newest first
+	running  = map[string]time.Time{}
 	triggers = map[string]chan struct{}{}
 )
 
@@ -92,6 +106,32 @@ func Runs() []NamedRun {
 	return out
 }
 
+// Active is a job that runs right now.
+type Active struct {
+	Name  string
+	Since time.Time
+}
+
+// Running lists the jobs running now, by name.
+func Running() []Active {
+	runsMu.Lock()
+	defer runsMu.Unlock()
+
+	out := make([]Active, 0, len(running))
+	for name, since := range running {
+		out = append(out, Active{Name: name, Since: since})
+	}
+	slices.SortFunc(out, func(a, b Active) int { return strings.Compare(a.Name, b.Name) })
+	return out
+}
+
+// Recent lists the last RecentMax runs of all jobs, newest first.
+func Recent() []NamedRun {
+	runsMu.Lock()
+	defer runsMu.Unlock()
+	return slices.Clone(recent)
+}
+
 // Start runs every job on its own timer until ctx is cancelled. Each job
 // gets its own goroutine and runs strictly one at a time (the next wait,
 // interval ± jitter, starts after a run ends); a panicking or erroring
@@ -121,7 +161,7 @@ func jobNames(jobs []Job) []string {
 }
 
 func runJob(ctx context.Context, job Job, kick <-chan struct{}) {
-	timer := time.NewTimer(nextWait(job.Interval))
+	timer := time.NewTimer(nextWait(job.interval()))
 	defer timer.Stop()
 	if job.Start == AtStart {
 		safeRun(ctx, job)
@@ -133,7 +173,7 @@ func runJob(ctx context.Context, job Job, kick <-chan struct{}) {
 			return
 		case <-timer.C:
 			safeRun(ctx, job)
-			timer.Reset(nextWait(job.Interval))
+			timer.Reset(nextWait(job.interval()))
 		case <-kick:
 			safeRun(ctx, job)
 		}
@@ -157,7 +197,11 @@ func nextWait(interval time.Duration) time.Duration {
 
 func safeRun(ctx context.Context, job Job) {
 	started := time.Now()
-	run := Run{At: started.UTC(), Every: job.Interval}
+	run := Run{At: started.UTC(), Every: job.interval()}
+	runsMu.Lock()
+	running[job.Name] = run.At
+	runsMu.Unlock()
+
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("scheduler: job panicked", "job", job.Name, "recover", r)
@@ -166,6 +210,11 @@ func safeRun(ctx context.Context, job Job) {
 		run.Duration = time.Since(started)
 		runsMu.Lock()
 		runs[job.Name] = run
+		delete(running, job.Name)
+		recent = slices.Insert(recent, 0, NamedRun{Name: job.Name, Run: run})
+		if len(recent) > RecentMax {
+			recent = recent[:RecentMax]
+		}
 		runsMu.Unlock()
 	}()
 	if err := job.Run(ctx); err != nil {

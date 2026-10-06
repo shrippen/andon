@@ -56,6 +56,24 @@
       </form>
     </div>
 
+    <h2 id="server">{{t "admin.server"}}</h2>
+    <div class="card">
+      <p class="small muted">{{t "admin.server_hint"}}</p>
+      <form method="post" action="/admin/settings/server">
+        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+        {{range .Server}}
+        <label for="srv-{{.Env}}">{{t (print "server." .Env)}} <span class="muted">· {{.Env}}</span>{{if .Locked}} <span class="pill" data-state="locked">{{t "admin.server_env"}}</span>{{end}}</label>
+        {{if eq .Kind "level"}}<select class="select" id="srv-{{.Env}}" name="{{.Env}}"{{if .Locked}} disabled{{end}}>
+          {{$v := .Value}}{{range $.LogLevels}}<option value="{{.}}"{{if eq . $v}} selected{{end}}>{{.}}</option>{{end}}
+        </select>
+        {{else if eq .Kind "secret"}}<input class="input" type="password" id="srv-{{.Env}}" name="{{.Env}}" autocomplete="new-password"{{if .HasSecret}} placeholder="{{t "admin.server_secret_kept"}}"{{end}}{{if .Locked}} disabled{{end}}>
+        {{else}}<input class="input" id="srv-{{.Env}}" name="{{.Env}}" value="{{.Value}}"{{if eq .Kind "number"}} type="number" min="1" inputmode="numeric"{{end}}{{if .Locked}} disabled{{end}}>
+        {{end}}
+        {{end}}
+        <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
+      </form>
+    </div>
+
     <h2>{{t "admin.oidc"}}</h2>
     <div class="card">
       {{if .OIDCTest}}<p class="pill" data-state="{{if .OIDCTestOK}}applied{{else}}failed{{end}}">{{.OIDCTest}}</p>{{end}}
@@ -166,6 +184,23 @@
     </div>
 
     {{with .Health}}
+    <h2 id="tasks">{{t "admin.running"}}</h2>
+    <div class="card">
+      {{if or .Running .Tasks}}
+      {{range .Running}}<p class="small"><span class="pill" data-state="analyzing">{{.Name}}</span> <span class="muted">{{t "admin.running_since" "when" (ago .Since)}}</span></p>{{end}}
+      {{range .Tasks}}<div class="progress"><div class="progress-head"><span>{{tt .Label .Params}}</span><span>{{.Done}} / {{.Total}}</span></div>
+        <div class="progress-bar"><i data-style="--p:{{.Percent}}%" data-tier="yellow"></i></div></div>{{end}}
+      {{else}}<p class="small muted">{{t "admin.running_none"}}</p>{{end}}
+    </div>
+
+    <h2 id="problems">{{t "admin.problems"}}</h2>
+    <div class="card">
+      {{with .Problems}}<ul class="plain-list small">{{range .}}<li><span class="pill" data-state="failed">{{.Name}}</span> {{t "admin.problem_conn" "fail" .Fail "total" .Total}}{{with .Err}}: {{t .}}{{end}} · <a href="/connections/{{.ConnID}}">{{t "action.open"}}</a></li>{{end}}</ul>
+      {{else}}<p class="small muted">{{t "admin.problems_none"}}</p>{{end}}
+    </div>
+    {{end}}
+
+    {{with .Health}}
     <h2 id="health">{{t "admin.health"}}</h2>
     <div class="card">
       <p class="small muted">{{t "admin.health_stats" "db" (num .DatabaseMB 1) "fresh" .CacheFresh "known" .CacheKnown "heap" (num .HeapMB 1) "goroutines" .Goroutines}}</p>
@@ -173,6 +208,25 @@
         <thead><tr><th>{{t "admin.health_job"}}</th><th>{{t "admin.health_last"}}</th><th>{{t "admin.health_took"}}</th><th>{{t "admin.health_every"}}</th><th>{{t "admin.health_error"}}</th></tr></thead>
         <tbody>{{range .Jobs}}<tr><td><code>{{.Name}}</code></td><td>{{ago .At}}</td><td>{{num .Duration.Seconds 1}} s</td><td>{{num .Every.Minutes 0}} min</td><td>{{with .Err}}<span class="error">{{.}}</span>{{end}}</td></tr>{{end}}</tbody>
       </table></div>
+    </div>
+    {{end}}
+
+    {{with .Health}}
+    <h2 id="recent">{{t "admin.recent"}}</h2>
+    <div class="card">
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>{{t "admin.health_job"}}</th><th>{{t "admin.health_last"}}</th><th>{{t "admin.health_took"}}</th><th>{{t "admin.health_error"}}</th></tr></thead>
+        <tbody>{{range .Recent}}<tr><td><code>{{.Name}}</code></td><td>{{ago .At}}</td><td>{{num .Duration.Seconds 1}} s</td><td>{{with .Err}}<span class="error">{{.}}</span>{{end}}</td></tr>{{end}}</tbody>
+      </table></div>
+    </div>
+
+    <h2 id="logs">{{t "admin.logs"}}</h2>
+    <div class="card">
+      {{with .Logs}}<div class="table-wrap"><table class="table">
+        <thead><tr><th>{{t "admin.log_time"}}</th><th>{{t "admin.log_level"}}</th><th>{{t "admin.log_message"}}</th></tr></thead>
+        <tbody>{{range .}}<tr><td>{{ago .At}}</td><td>{{if ge .Level 8}}<span class="pill" data-state="failed">{{.Level}}</span>{{else}}<code>{{.Level}}</code>{{end}}</td><td>{{.Msg}}{{with .Attrs}} <code class="muted">{{.}}</code>{{end}}</td></tr>{{end}}</tbody>
+      </table></div>
+      {{else}}<p class="small muted">{{t "admin.logs_none"}}</p>{{end}}
     </div>
     {{end}}
 

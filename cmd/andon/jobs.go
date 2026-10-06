@@ -28,12 +28,12 @@ const (
 // backgroundJobs is the fixed job list.
 func backgroundJobs(database *sql.DB, cfg settings.Settings) []scheduler.Job {
 	return []scheduler.Job{
-		{Name: analysis.JobName, Interval: time.Duration(cfg.AnalysisMinutes) * minute, Start: scheduler.AtStart, Run: func(ctx context.Context) error {
+		{Name: analysis.JobName, Every: func() time.Duration { return time.Duration(settings.Live(cfg).AnalysisMinutes) * minute }, Start: scheduler.AtStart, Run: func(ctx context.Context) error {
 			_, err := analysis.RunAll(ctx, database, time.Now().UTC())
 			return err
 		}},
 		{Name: "notify", Interval: minute, Run: func(ctx context.Context) error {
-			_, err := notify.Dispatch(ctx, database, cfg)
+			_, err := notify.Dispatch(ctx, database, settings.Live(cfg))
 			return err
 		}},
 		{Name: "digest", Interval: 5 * minute, Run: func(context.Context) error {
