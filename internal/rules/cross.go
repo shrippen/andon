@@ -1,7 +1,7 @@
 // Package rules: cross-service rules of one space (and one credential owner).
 //
 //	dawarich <-> kimai      client visit without booking, booking "on site" without visit
-//	dawarich                travel costs, per diem, tracking stopped
+//	dawarich                tracking stopped (rides: travel.go)
 //	snipeit <-> invoiceninja purchase without expense
 package rules
 
@@ -49,10 +49,6 @@ func init() {
 	Register("geo.visit_without_time", Cross, map[string]any{"min_minutes": 120.0}, visitWithoutTime)
 
 	Register("geo.time_without_visit", Cross, map[string]any{"keywords": []any{"vor ort", "on-site", "onsite"}}, timeWithoutVisit)
-
-	Register("geo.travel_costs", Cross, map[string]any{"km_rate": 0.30}, travelCosts)
-
-	Register("geo.per_diem", Cross, map[string]any{"over_8h": 14.0, "full_day": 28.0}, perDiem)
 
 	Register("geo.no_data", string(enums.ServiceDawarich), map[string]any{"hours": 24.0}, on(geoNoData))
 
@@ -103,11 +99,18 @@ func timeWithoutVisit(_ any, cfg map[string]any, env Env) []Finding {
 		return nil
 	}
 	mapping := areaMapping(env)
+	mapped := map[int64]bool{}
 	visited := map[[2]any]bool{}
 	for _, v := range metrics.ClientVisits(geo, mapping) {
 		visited[[2]any{v.Day, v.CustomerID}] = true
 	}
-	mapped := map[int64]bool{}
+	travel, _ := travelOf(env)
+	for _, r := range travel.Rides {
+		if r.Class == metrics.ClassBusiness && r.CustomerID != 0 {
+			visited[[2]any{r.Day(), r.CustomerID}] = true
+			mapped[r.CustomerID] = true
+		}
+	}
 	for _, m := range mapping {
 		if m.CustomerID != 0 {
 			mapped[m.CustomerID] = true
@@ -140,54 +143,6 @@ func timeWithoutVisit(_ any, cfg map[string]any, env Env) []Finding {
 		})
 	}
 	return found
-}
-
-func travelCosts(_ any, cfg map[string]any, env Env) []Finding {
-	geo, ok := env.Datasets[string(enums.ServiceDawarich)].(*sources.DawarichDataset)
-	if !ok || env.Today.Day() > reportDays {
-		return nil
-	}
-	start, end := lastMonth(env.Today)
-	trips := metrics.Trips(geo, areaMapping(env), start, end)
-	var km float64
-	for _, t := range trips {
-		km += t.KM
-	}
-	if km == 0 {
-		return nil
-	}
-	return []Finding{{
-		Fingerprint: "travel:" + start.Format("2006-01"), Severity: enums.SeverityInfo, Message: "geo.travel_costs",
-		Params: map[string]any{
-			"trips": len(trips), "km": Num(km, 0), "amount": Money(km*cfgFloat(cfg, "km_rate"), ""),
-			"month": start.Format("01/2006"),
-		},
-		Sources: []string{string(enums.ServiceDawarich)},
-	}}
-}
-
-func perDiem(_ any, cfg map[string]any, env Env) []Finding {
-	geo, ok := env.Datasets[string(enums.ServiceDawarich)].(*sources.DawarichDataset)
-	if !ok || env.Today.Day() > reportDays {
-		return nil
-	}
-	start, end := lastMonth(env.Today)
-	var days int
-	for _, t := range metrics.Trips(geo, areaMapping(env), start, end) {
-		if t.AwayMin > 8*60 {
-			days++
-		}
-	}
-	if days == 0 {
-		return nil
-	}
-	return []Finding{{
-		Fingerprint: "perdiem:" + start.Format("2006-01"), Severity: enums.SeverityInfo, Message: "geo.per_diem",
-		Params: map[string]any{
-			"days": days, "amount": Money(float64(days)*cfgFloat(cfg, "over_8h"), ""), "month": start.Format("01/2006"),
-		},
-		Sources: []string{string(enums.ServiceDawarich)},
-	}}
 }
 
 func geoNoData(data *sources.DawarichDataset, cfg map[string]any, env Env) []Finding {

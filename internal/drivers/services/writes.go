@@ -24,6 +24,12 @@ func (a KimaiApi) Send(ctx context.Context, method, path string, body any) (any,
 	return sendJSON(ctx, method, a.URL+"/api/"+path, a.headers(), body, httpclient.TLSOf(a.Verify))
 }
 
+// Send runs one write against /api/v1/<path> of Dawarich, e.g.
+// (POST, "areas", {"name": …, "latitude": …}).
+func (a DawarichApi) Send(ctx context.Context, method, path string, body any) (any, error) {
+	return sendJSON(ctx, method, a.URL+"/api/v1/"+path, map[string]string{"Authorization": "Bearer " + a.Token, "Accept": "application/json"}, body, httpclient.TLSOf(a.Verify))
+}
+
 // Post creates one entity in Invoice Ninja, e.g. ("invoices", {...}).
 func (a NinjaApi) Post(ctx context.Context, entity string, body any) (any, error) {
 	return sendJSON(ctx, http.MethodPost, a.URL+"/api/v1/"+entity, a.headers(), body, httpclient.TLSOf(a.Verify))

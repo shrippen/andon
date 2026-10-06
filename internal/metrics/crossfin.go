@@ -22,7 +22,6 @@ import (
 )
 
 const (
-	travelKMH      = 50.0 // average speed for travel time from trip distance
 	agingMid       = 30
 	agingOld       = 60
 	daysPerMonth   = 30.0
@@ -45,9 +44,9 @@ type FullRate struct {
 }
 
 // FullCostRates compares what a customer pays per billable hour with what
-// they pay per hour they actually cost. dawarich may be nil.
-func FullCostRates(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, dawarich *sources.DawarichDataset,
-	mapping map[string]AreaMapping, today time.Time, days int) []FullRate {
+// they pay per hour they actually cost; travel is the business rides'
+// time (none without Dawarich).
+func FullCostRates(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, rides []ClassedRide, today time.Time, days int) []FullRate {
 	start := today.AddDate(0, 0, -days)
 	names := KimaiCustomerNames(kimai)
 
@@ -64,10 +63,11 @@ func FullCostRates(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, daw
 			other[k] += s.Minutes
 		}
 	}
-	if dawarich != nil {
-		for _, t := range Trips(dawarich, mapping, start, today) {
-			travel[nameKey(names[t.CustomerID])] += t.KM / travelKMH
+	for _, r := range rides {
+		if r.Class != ClassBusiness || r.Start.Before(start) {
+			continue
 		}
+		travel[nameKey(names[r.CustomerID])] += r.Minutes() / minutesPerHour
 	}
 
 	net, display := map[string]float64{}, map[string]string{}

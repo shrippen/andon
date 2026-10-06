@@ -440,6 +440,12 @@
       </section>
       {{end}}
 
+      {{if eq $c.Service "dawarich"}}<section class="detail-main" id="tab-places"{{if ne .Tab "places"}} hidden{{end}}>
+        {{if and (eq .Tab "places") .Error}}<div class="callout callout-danger">{{t .Error}}</div>{{end}}
+        {{if and (eq .Tab "places") .Note}}<div class="callout callout-ok" role="status">{{t "sitebook.synced" "counts" .Note}}</div>{{end}}
+        <div hx-get="/connections/{{$c.ID}}/places" hx-trigger="{{if eq .Tab "places"}}load{{else}}revealed{{end}}" hx-swap="innerHTML"><p class="muted">{{t "widget.loading"}}</p></div>
+      </section>{{end}}
+
       <section class="detail-main" id="tab-history"{{if ne .Tab "history"}} hidden{{end}}>
         {{with .History}}
         <p class="small muted">{{t "conn.history_lead" "days" $.Days}}</p>
@@ -597,4 +603,65 @@
     <button type="submit" class="btn btn-danger">{{.Button}} …</button>
   </form>
 </section>
+{{end}}
+
+{{/* conn_places: the places tab of a Dawarich record (GET /connections/{id}/places).
+     One row per area, place and mileage place: what it is, how often rides
+     end there; below, frequent destinations without a place. */}}
+{{define "conn_places"}}{{$v := .View}}{{$id := .ConnID}}
+{{if .Error}}<div class="callout callout-danger">{{t .Error}}</div>
+{{else}}
+<p class="small muted">{{if $v.Writes}}{{t "sitebook.lead_plugin"}}{{else if $v.Plugin}}{{t "sitebook.lead_plugin_read"}}{{else}}{{t "sitebook.lead"}}{{end}}</p>
+{{if $v.Estimated}}<div class="callout callout-warn">{{t "detail.travel.estimated"}}</div>{{end}}
+{{if and $v.Writes $v.CanManage}}<form method="post" action="/connections/{{$id}}/places/sync" class="btn-row">
+  <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+  <button type="submit" class="btn btn-outline btn-sm">{{t "sitebook.sync"}}</button>
+  <span class="small muted">{{t "sitebook.sync_hint"}}</span>
+</form>{{end}}
+
+<h3>{{t "sitebook.sites"}}</h3>
+<div class="table-wrap"><table class="table compact">
+  <thead><tr><th>{{t "col.place"}}</th><th>{{t "sitebook.what"}}</th><th class="num">{{t "col.rides"}}</th><th>{{t "col.last"}}</th></tr></thead>
+  <tbody>
+  {{range $v.Rows}}{{$row := .}}
+  <tr>
+    <td>{{.Name}}{{with .Origin}} <span class="pill">{{t (print "sitebook.origin_" .)}}</span>{{end}}</td>
+    <td>{{if $v.CanManage}}<form method="post" action="/connections/{{$id}}/places/assign" class="btn-row">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="key" value="{{.Key}}">
+      <select class="select" name="kind" aria-label="{{t "sitebook.kind"}}"><option value="">{{t "sitebook.kind_none"}}</option>{{range $v.Kinds}}<option value="{{.}}"{{if or (eq . $row.Kind) (and $row.Suggest (eq (print .) "customer"))}} selected{{end}}>{{t (print "sitebook.kind_" .)}}</option>{{end}}</select>
+      {{with $v.Customers}}<select class="select" name="customer" aria-label="{{t "col.customer"}}"><option value="0">–</option>{{range .}}<option value="{{.ID}}"{{if or (eq .ID $row.CustomerID) (eq .ID $row.Suggest)}} selected{{end}}>{{.Name}}</option>{{end}}</select>{{end}}
+      <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>{{if .Suggest}}<span class="small muted">{{t "sitebook.suggested"}}</span>{{end}}
+    </form>{{else}}{{with .Kind}}{{t (print "sitebook.kind_" .)}}{{else}}–{{end}}{{end}}</td>
+    <td class="num">{{if .Rides}}{{.Rides}}{{else}}–{{end}}</td>
+    <td>{{if .Rides}}{{day .Last}}{{else}}–{{end}}</td>
+  </tr>
+  {{else}}<tr><td colspan="4" class="muted">{{t "sitebook.none"}}</td></tr>
+  {{end}}
+  </tbody>
+</table></div>
+
+{{with $v.Unplaced}}
+<h3>{{t "sitebook.unplaced"}}</h3>
+<p class="small muted">{{t "sitebook.unplaced_lead"}}</p>
+<div class="table-wrap"><table class="table compact">
+  <thead><tr><th>{{t "sitebook.where"}}</th><th class="num">{{t "col.rides"}}</th><th>{{t "col.last"}}</th>{{if $v.CanManage}}<th>{{t "sitebook.new"}}</th>{{end}}</tr></thead>
+  <tbody>
+  {{range .}}
+  <tr>
+    <td>{{with .Site}}{{.Name}}{{else}}<a href="https://www.openstreetmap.org/?mlat={{.Lat}}&amp;mlon={{.Lon}}#map=17/{{.Lat}}/{{.Lon}}" target="_blank" rel="noopener">{{num .Lat 4}}, {{num .Lon 4}}</a>{{end}}</td>
+    <td class="num">{{.Rides}}</td>
+    <td>{{day .Last}}</td>
+    {{if $v.CanManage}}<td>{{if .Site}}{{t "sitebook.assign_above"}}{{else}}<form method="post" action="/connections/{{$id}}/places/create" class="btn-row">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="lat" value="{{.Lat}}"><input type="hidden" name="lon" value="{{.Lon}}">
+      <input class="input" name="name" required aria-label="{{t "sitebook.name"}}" placeholder="{{t "sitebook.name"}}">
+      <select class="select" name="kind" aria-label="{{t "sitebook.kind"}}">{{range $v.Kinds}}<option value="{{.}}">{{t (print "sitebook.kind_" .)}}</option>{{end}}</select>
+      {{with $v.Customers}}<select class="select" name="customer" aria-label="{{t "col.customer"}}"><option value="0">–</option>{{range .}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>{{end}}
+      <button type="submit" class="btn btn-outline btn-sm">{{t "sitebook.create"}}</button>
+    </form>{{end}}</td>{{end}}
+  </tr>
+  {{end}}
+  </tbody>
+</table></div>
+{{end}}
+{{end}}
 {{end}}

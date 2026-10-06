@@ -12,11 +12,11 @@ import (
 func TestAreaMapMergesPlacesAndOption(t *testing.T) {
 	geo := &sources.DawarichDataset{Areas: []sources.DawarichArea{{ID: 7, Name: "Muster"}, {ID: 8, Name: "Home"}, {ID: 9, Name: "Weber"}}}
 	kimai := &sources.KimaiDataset{Places: []sources.KimaiPlace{
-		{AreaID: 7, CustomerID: 12},
-		{AreaID: 8, Home: true},
-		{AreaID: 9, CustomerID: 3},
-		{AreaID: 99, CustomerID: 4},
-		{CustomerID: 5},
+		{AreaID: 7, Type: "customer", CustomerID: 12},
+		{AreaID: 8, Type: "home"},
+		{AreaID: 9, Type: "customer", CustomerID: 3},
+		{AreaID: 99, Type: "customer", CustomerID: 4},
+		{Type: "customer", CustomerID: 5},
 	}}
 	options := map[string]any{"areas": map[string]any{"Weber": map[string]any{"customer_id": 30.0}}}
 

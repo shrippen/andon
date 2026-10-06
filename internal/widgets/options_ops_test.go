@@ -149,7 +149,7 @@ func TestMonitorsOptions(t *testing.T) {
 
 // TestExpiryOptions: only certificates within 30 days.
 func TestExpiryOptions(t *testing.T) {
-	now := time.Now().UTC()
+	now, _ := time.Parse(time.DateOnly, ctxFor(enums.ServiceCerts, nil).Today) // the tile's today
 	certs := &sources.CertDataset{Certs: []sources.Cert{{Host: "a", NotAfter: now.AddDate(0, 0, 10)}, {Host: "b", NotAfter: now.AddDate(0, 0, 80)}}}
 	doms := &sources.DomainsDataset{Domains: []sources.DomainInfo{{Name: "example.org", Expires: now.AddDate(0, 0, 5)}}}
 	v := viewOf(t, "expiry", map[string]any{"max_days": 30.0, "kinds": "certs"}, map[string]any{"data": certs, "domains": doms}, enums.ServiceCerts, nil)

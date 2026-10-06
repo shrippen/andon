@@ -175,37 +175,6 @@ func TestDistanceKMBerlinHamburg(t *testing.T) {
 	}
 }
 
-func TestTripsAppliesRoadFactorRoundTrip(t *testing.T) {
-	data := &sources.DawarichDataset{
-		Areas: []sources.DawarichArea{
-			{ID: 1, Name: "Home", Lat: 52.5, Lon: 13.4, Radius: 100},
-			{ID: 2, Name: "Client", Lat: 52.6, Lon: 13.5, Radius: 100},
-		},
-		Visits: []sources.DawarichVisit{
-			{ID: 1, AreaID: 2, Start: "2026-03-05T09:00:00Z", End: "2026-03-05T11:00:00Z", Minutes: 120},
-		},
-	}
-	mapping := map[string]metrics.AreaMapping{
-		"Home": {Home: true}, "Client": {CustomerID: 1},
-	}
-	trips := metrics.Trips(data, mapping, day("2026-03-01"), day("2026-03-31"))
-	if len(trips) != 1 {
-		t.Fatalf("expected 1 trip, got %d", len(trips))
-	}
-	oneWay := metrics.DistanceKM(52.5, 13.4, 52.6, 13.5)
-	want := round1Test(2 * oneWay * 1.3)
-	if trips[0].KM != want {
-		t.Fatalf("expected round-trip km %v, got %v", want, trips[0].KM)
-	}
-	if trips[0].AwayMin != 120 {
-		t.Fatalf("expected 120 away minutes, got %d", trips[0].AwayMin)
-	}
-}
-
-func round1Test(f float64) float64 {
-	return float64(int64(f*10+0.5)) / 10
-}
-
 // ── deadlines ──
 
 func TestUpcomingDeadlinesMonthlyVAT(t *testing.T) {

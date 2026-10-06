@@ -3449,8 +3449,9 @@
   }
  ],
  "location": {
-  "note": "Dawarich: Mara's visits at Northlight on the client days (bookkeeping), the areas home and Northlight, yearly stats; the track drives home → Northlight before a visit and back after it.",
+  "note": "Dawarich: Mara's visits at Northlight on the client days (bookkeeping), the areas home and Northlight, yearly stats; the track drives home → Northlight before a visit and back after it. day: a weekday, weekend: a Saturday (both as tracks with transportation modes).",
   "url": "https://dawarich.demo",
+  "person": "mara",
   "home": "home-mara",
   "site": "northlight-office",
   "visit": {
@@ -3627,6 +3628,89 @@
     "home-mara",
     "studio",
     "speiche-workshop"
+   ]
+  },
+  "weekend": {
+   "note": "A Saturday as Dawarich tracks it: a drive to the Graufeld lighthouse and back, a walk at the fish market in the evening. Private: no Kimai time, no customer place.",
+   "weekday": 6,
+   "segments": [
+    [
+     "home-mara",
+     "home-mara",
+     "07:00",
+     "09:30",
+     "stationary"
+    ],
+    [
+     "home-mara",
+     "graufeld-lighthouse",
+     "09:30",
+     "11:05",
+     "driving"
+    ],
+    [
+     "graufeld-lighthouse",
+     "graufeld-lighthouse",
+     "11:05",
+     "13:00",
+     "stationary"
+    ],
+    [
+     "graufeld-lighthouse",
+     "kolk",
+     "13:00",
+     "13:40",
+     "walking"
+    ],
+    [
+     "kolk",
+     "kolk",
+     "13:40",
+     "14:30",
+     "stationary"
+    ],
+    [
+     "kolk",
+     "home-mara",
+     "14:30",
+     "16:10",
+     "driving"
+    ],
+    [
+     "home-mara",
+     "home-mara",
+     "16:10",
+     "18:30",
+     "stationary"
+    ],
+    [
+     "home-mara",
+     "fishmarket",
+     "18:30",
+     "18:55",
+     "bus"
+    ],
+    [
+     "fishmarket",
+     "fishmarket",
+     "18:55",
+     "20:00",
+     "stationary"
+    ],
+    [
+     "fishmarket",
+     "home-mara",
+     "20:00",
+     "20:25",
+     "bus"
+    ],
+    [
+     "home-mara",
+     "home-mara",
+     "20:25",
+     "23:00",
+     "stationary"
+    ]
    ]
   }
  },

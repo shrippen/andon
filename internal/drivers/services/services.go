@@ -296,6 +296,34 @@ func (a DawarichApi) Get(ctx context.Context, path string, params url.Values) (a
 	return fetchJSON(ctx, a.URL+"/api/v1/"+path, map[string]string{"Accept": "application/json"}, query, httpclient.TLSOf(a.Verify))
 }
 
+// dawarichPage is the page size for Dawarich's paged lists.
+const dawarichPage = 100
+
+// Features follows Dawarich's X-Total-Pages paging of a GeoJSON list
+// (e.g. "tracks") and returns every feature.
+func (a DawarichApi) Features(ctx context.Context, path string, params url.Values) ([]any, error) {
+	var features []any
+	for page := 1; page <= maxPages; page++ {
+		query := cloneValues(params)
+		query.Set("api_key", a.Token)
+		query.Set("page", strconv.Itoa(page))
+		query.Set("per_page", strconv.Itoa(dawarichPage))
+
+		body, headers, err := fetchJSONWithHeaders(ctx, a.URL+"/api/v1/"+path, map[string]string{"Accept": "application/json"}, query, httpclient.TLSOf(a.Verify))
+		if err != nil {
+			return nil, err
+		}
+		list := asList(asMap(body)["features"])
+		features = append(features, list...)
+
+		total, _ := strconv.Atoi(headers.Get("X-Total-Pages"))
+		if page >= total || len(list) == 0 {
+			break
+		}
+	}
+	return features, nil
+}
+
 // Version calls /api/v1/health and returns its X-Dawarich-Version header.
 func (a DawarichApi) Version(ctx context.Context) (string, error) {
 	query := url.Values{"api_key": {a.Token}}

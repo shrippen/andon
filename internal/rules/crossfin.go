@@ -95,9 +95,9 @@ func rateBelow(_ any, cfg map[string]any, env Env) []Finding {
 	if !ok1 || !ok2 {
 		return nil
 	}
-	geo, _ := env.Datasets[string(enums.ServiceDawarich)].(*sources.DawarichDataset)
+	travel, _ := travelOf(env)
 	var found []Finding
-	for _, r := range metrics.FullCostRates(kimai, ninja, geo, areaMapping(env), env.Today, rateWindowDays) {
+	for _, r := range metrics.FullCostRates(kimai, ninja, travel.Rides, env.Today, rateWindowDays) {
 		if r.BillableH < cfgFloat(cfg, "min_hours") || r.Full >= r.Nominal*cfgFloat(cfg, "share") {
 			continue
 		}

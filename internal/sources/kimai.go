@@ -176,32 +176,55 @@ func loadKimai(ctx context.Context, api services.KimaiApi, sctx Ctx) (*KimaiData
 	}
 	loadKimaiHolidays(ctx, api, today, data)
 	data.Contract = loadContract(ctx, api)
-	data.Places = loadKimaiPlaces(ctx, api)
+	// The plugin answers at most 366 days at a time.
+	loadMileage(ctx, api, today.AddDate(0, 0, -mileageDays), data)
 	return data, nil
 }
 
-// placeHome is the mileage plugin's place type for home.
-const placeHome = "home"
+// mileageDays is how far back the plugin's trips are read.
+const mileageDays = 365
 
-// loadKimaiPlaces reads the places of the mileage plugin that come from a
-// Dawarich area. Without the plugin (404) or its permission (403) there
-// are none.
-func loadKimaiPlaces(ctx context.Context, api services.KimaiApi) []KimaiPlace {
-	raw, err := api.Get(ctx, "mileage/places", nil)
-	if err != nil {
-		return nil
+// mileageWrite is the ping feature for POST/PATCH /api/mileage/places.
+const mileageWrite = "placesWrite"
+
+// loadMileage reads the mileage plugin: its places and trips since from.
+// Without the plugin (404) or its permission it stays empty.
+func loadMileage(ctx context.Context, api services.KimaiApi, from time.Time, data *KimaiDataset) {
+	ping, err := api.Get(ctx, "mileage/ping", nil)
+	if err != nil || !asBool(asMap(asMap(ping)["permissions"])["view"]) {
+		return
 	}
-
-	var places []KimaiPlace
-	for _, p := range asList(raw) {
-		pm := asMap(p)
-		area := asInt64(pm["dawarichAreaId"])
-		if area == 0 {
-			continue
+	for _, f := range asList(asMap(ping)["features"]) {
+		if asStr(f) == mileageWrite {
+			data.PlacesWrite = true
 		}
-		places = append(places, KimaiPlace{AreaID: area, CustomerID: asInt64(pm["customerId"]), Home: asStr(pm["type"]) == placeHome})
 	}
-	return places
+
+	placesRaw, err := api.Get(ctx, "mileage/places", nil)
+	if err != nil {
+		return
+	}
+	for _, p := range asList(placesRaw) {
+		pm := asMap(p)
+		data.Places = append(data.Places, KimaiPlace{
+			ID: asInt64(pm["id"]), Name: asStr(pm["name"]), Type: asStr(pm["type"]), CustomerID: asInt64(pm["customerId"]),
+			Lat: asFloat(pm["latitude"]), Lon: asFloat(pm["longitude"]), Radius: asFloat(pm["radius"]),
+			AreaID: asInt64(pm["dawarichAreaId"]), PlaceID: asInt64(pm["dawarichPlaceId"]),
+		})
+	}
+
+	tripsRaw, err := api.Get(ctx, "mileage/trips", url.Values{"from": {from.Format("2006-01-02")}, "to": {time.Now().UTC().Format("2006-01-02")}})
+	if err != nil {
+		return
+	}
+	for _, t := range asList(tripsRaw) {
+		tm := asMap(t)
+		data.MileageTrips = append(data.MileageTrips, KimaiMileageTrip{
+			ID: asInt64(tm["id"]), Date: asStr(tm["date"]), Departure: asStr(tm["departure"]), Arrival: asStr(tm["arrival"]),
+			Purpose: asStr(tm["purpose"]), KM: asFloat(tm["totalKm"]), Project: asInt64(tm["project"]), Timesheet: asInt64(tm["timesheet"]),
+		})
+	}
+	data.Mileage = true
 }
 
 // loadKimaiHolidays reads the kimai-holiday-bundle: absences and public

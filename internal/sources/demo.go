@@ -188,6 +188,10 @@ func DemoKimai(now time.Time) *KimaiDataset {
 		Absences:      b.Absences,
 		Holidays:      demoHolidays(today),
 		HolidayBundle: true,
+		Mileage:       true,
+		PlacesWrite:   true,
+		Places:        demoKimaiPlaces(now),
+		MileageTrips:  demoMileageTrips(now),
 	}
 }
 
@@ -310,6 +314,7 @@ func DemoSnipe(now time.Time) *SnipeDataset {
 // demoLocation is the world's Dawarich setup.
 type demoLocation struct {
 	URL, Home, Site string
+	Person          string // whose tracks these are
 	Visit           struct {
 		From, To string
 		Minutes  int
@@ -324,6 +329,28 @@ type demoLocation struct {
 	}
 	LastPoint string
 	Route     struct{ Steps, StepMinutes int }
+	// Day is a weekday, Weekend a Saturday as tracks: [from, to, "07:30",
+	// "07:50", mode].
+	Day     struct{ Segments [][5]string }
+	Weekend struct {
+		Weekday  int
+		Segments [][5]string
+	}
+}
+
+// demoLogbook is how the world books trips (Kimai Anfahrten).
+type demoLogbook struct {
+	PlaceRadius  float64
+	MinutesPerKm float64
+	RoadFactor   float64
+	Times        struct{ Out, Back string }
+}
+
+// demoTrip is a trip of the world's mileage plugin.
+type demoTrip struct {
+	User, From, To, Project string
+	Day                     int
+	KM                      float64
 }
 
 func locationOf(now time.Time) *demoLocation {
@@ -373,7 +400,9 @@ func DemoDawarich(now time.Time) *DawarichDataset {
 				strings.ToLower(now.AddDate(0, -1, 0).Month().String()): loc.Stats.LastMonthKm,
 			},
 		}}},
-		LastPoint: loc.LastPoint,
+		LastPoint:   loc.LastPoint,
+		Tracks:      demoTracks(now, tracksFrom(now.UTC(), visitDays)),
+		TracksState: TracksOK,
 	}
 }
 

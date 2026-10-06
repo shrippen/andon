@@ -109,9 +109,22 @@ func loadDawarich(ctx context.Context, api services.DawarichApi, sctx Ctx) (*Daw
 		return nil, err
 	}
 
-	return &DawarichDataset{
+	data := &DawarichDataset{
 		URL: sctx.URL, Areas: areas, Visits: visits, Stats: asMap(statsRaw), LastPoint: lastPoint(last),
-	}, nil
+		Places: loadDawarichPlaces(ctx, api),
+	}
+	loadTracks(ctx, api, tracksFrom(now, days), now, data)
+	return data, nil
+}
+
+// tracksFrom is where the tracks start: the year so far, at least the
+// visits' window (in January the last months still count).
+func tracksFrom(now time.Time, days int) time.Time {
+	year := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
+	if back := now.AddDate(0, 0, -days); back.Before(year) {
+		return back
+	}
+	return year
 }
 
 func lastPoint(points any) string {

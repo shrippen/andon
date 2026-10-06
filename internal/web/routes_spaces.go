@@ -25,6 +25,7 @@ var (
 	vatMethods   = []string{"ist", "soll"}
 	vatIntervals = []string{"monthly", "quarterly"}
 	centers      = []string{string(metrics.CenterMean), string(metrics.CenterMedian)}
+	travelBases  = []metrics.TravelBase{metrics.BaseHome, metrics.BaseWork}
 )
 
 // RegisterSpaceRoutes wires a space's evaluation settings: goals, tax
@@ -103,6 +104,7 @@ func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request, ctx Ct
 		"SpaceID": id, "SpaceName": name, "Section": section, "Goals": goals, "Tax": tax, "VAT": asMap(tax["vat"]), "Prepay": asMap(tax["prepayments"]),
 		"Costs": asMap(settings["costs"]), "Homelab": asMap(settings["homelab"]), "Billing": asMap(settings["billing"]),
 		"Center": metrics.CenterOf(settings), "Centers": centers,
+		"Travel": metrics.TravelSettingsOf(settings), "TravelBases": travelBases, "FuelWords": strings.Join(metrics.TravelSettingsOf(settings).FuelWords, ", "),
 		"RuleGroups": spaces.RuleGroups(settings), "Methods": vatMethods, "Intervals": vatIntervals,
 		"Saved": r.URL.Query().Has("saved"), "Page": spaces.PageOf(settings), "NavText": spaces.NavText(spaces.PageOf(settings)),
 		"Custom": spaces.CustomRows(settings), "Ops": rules.CustomOps, "Services": enums.Services, "Levels": severityLevels,
@@ -189,6 +191,13 @@ func sectionChanges(r *http.Request, section string) map[string]any {
 			"income_tax_rate": number(r.FormValue("income_tax_rate"), defaultIncomeTaxRate),
 		},
 		"costs": map[string]any{"fixed_monthly": number(r.FormValue("fixed_monthly"), 0), "hourly_cost": number(r.FormValue("hourly_cost"), 0)},
+		// Where business travel starts, the km rate, a business car.
+		"travel": map[string]any{
+			"base":        oneOf(r.FormValue("travel_base"), []string{string(metrics.BaseHome), string(metrics.BaseWork)}),
+			"km_rate":     number(r.FormValue("km_rate"), metrics.DefaultKMRate),
+			"company_car": checked(r, "company_car"),
+			"fuel_words":  strings.TrimSpace(r.FormValue("fuel_words")),
+		},
 		// Customers whose time is never invoiced (own projects, clubs).
 		"billing": map[string]any{"internal": strings.TrimSpace(r.FormValue("billing_internal"))},
 		"homelab": map[string]any{

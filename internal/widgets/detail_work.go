@@ -488,57 +488,6 @@ func dawarichMap(data *sources.DawarichDataset, results map[string]any, day stri
 // dataClassToken is the colour token of the i-th data colour: d1 … d6.
 func dataClassToken(i int) string { return "d" + dataClass(i)[1:] }
 
-// travelDetail (list and detail): the month's trips, the chosen one in
-// detail, the month and year.
-func travelDetail(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, results map[string]any) DetailView {
-	if cfg.KMRate == 0 {
-		cfg.KMRate = defaultKMRate
-	}
-	today := todayOf(ctx)
-	view := travelView(cfg, data, ctx, results)
-	trips := metrics.Trips(data, travelAreas(data, ctx, results), metrics.MonthStart(today), today)
-	currency := "EUR"
-	list := &ObjList{Label: T("detail.travel.trips")}
-	days := make([]string, len(trips))
-	for i, t := range trips {
-		days[i] = t.Day
-		list.Items = append(list.Items, LitRow{Name: DayS(t.Day), Meta: NumU(t.KM, 0, "km"), State: "info", Item: t.Day})
-	}
-	body := &DetailBody{Facts: []Kpi{{Value: NumU(asF(view["MonthKM"]), 0, "km"), Label: T("detail.travel.month")},
-		{Value: Money(asF(view["TripKM"])*cfg.KMRate, currency), Label: T("detail.travel.money"), Tier: "cyan"},
-		{Value: NumU(asF(view["YearKM"]), 0, "km"), Label: T("detail.travel.year")}}}
-	if len(trips) > 0 {
-		list.Sel = pickIndex(results, days)
-		t := trips[list.Sel]
-		list.Title, list.Sub = DayS(t.Day), t.Area
-		body.List = list
-		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Data: Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: [][]Cell{
-			{{Value: Txt("detail.travel.km")}, {Value: NumU(t.KM, 0, "km")}}, {{Value: Txt("detail.travel.away")}, {Value: clockMinutes(t.AwayMin)}},
-			{{Value: Txt("detail.travel.amount")}, {Value: Money(t.KM*cfg.KMRate, currency)}}}}})
-	} else {
-		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.travel.none")})
-	}
-	month, prev := asF(view["MonthKM"]), asF(view["PrevKM"])
-	top := max(month, prev)
-	body.Blocks = append(body.Blocks, Block{Kind: BlockBars, Label: T("detail.travel.compare"), Data: []ShareBar{
-		{Name: Txt("detail.travel.this_month"), Pct: pctOfF(month, top), Value: NumU(month, 0, "km")},
-		{Name: Txt("detail.travel.last_month"), Pct: pctOfF(prev, top), Value: NumU(prev, 0, "km")}}})
-
-	// The year by month against the year before, from Dawarich's stats.
-	thisYear, lastYear := make([]float64, monthsPerYear), make([]float64, monthsPerYear)
-	for m := range monthsPerYear {
-		thisYear[m] = metrics.DawarichMonthKM(data.Stats, time.Date(today.Year(), time.Month(m+1), 1, 0, 0, 0, 0, time.UTC))
-		lastYear[m] = metrics.DawarichMonthKM(data.Stats, time.Date(today.Year()-1, time.Month(m+1), 1, 0, 0, 0, 0, time.UTC))
-	}
-	if hasValues(thisYear) {
-		g := Graph{Kind: GraphCols, Mark: int(today.Month()) - 1, Series: []Series{{Values: thisYear, Class: "s1", Label: fmt.Sprint(today.Year())},
-			{Values: lastYear, Class: "s3", Label: fmt.Sprint(today.Year() - 1)}}, Ticks: []any{"01", "12"}}
-		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.travel.by_month"), Meta: "km", Data: g})
-	}
-	body.Blocks = append(body.Blocks, hintsBlock(results)...)
-	return DetailView{Body: body}
-}
-
 // pctOfF is part as percent of whole, at most 100.
 func pctOfF(part, whole float64) float64 {
 	if whole <= 0 {

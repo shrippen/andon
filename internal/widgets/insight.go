@@ -53,15 +53,17 @@ const moraleSlower = 10
 type TableKind string
 
 const (
-	TableOpenInvoices TableKind = "open_invoices"
-	TableUnbilled     TableKind = "unbilled"
-	TableBudgets      TableKind = "budgets"
-	TableClientShares TableKind = "client_shares"
-	TableAssetDates   TableKind = "asset_dates"
-	TableTrips        TableKind = "trips"
-	TableRates        TableKind = "effective_rates"
-	TableAppUsage     TableKind = "app_usage"
-	TableMorale       TableKind = "payment_morale"
+	TableOpenInvoices  TableKind = "open_invoices"
+	TableUnbilled      TableKind = "unbilled"
+	TableBudgets       TableKind = "budgets"
+	TableClientShares  TableKind = "client_shares"
+	TableAssetDates    TableKind = "asset_dates"
+	TableTrips         TableKind = "trips"
+	TableRates         TableKind = "effective_rates"
+	TableAppUsage      TableKind = "app_usage"
+	TableMorale        TableKind = "payment_morale"
+	TableTripCustomers TableKind = "trip_customers"
+	TableDestinations  TableKind = "destinations"
 )
 
 // ChartKind selects a "chart" widget's series.
@@ -192,7 +194,7 @@ type TableConfig struct {
 
 func init() {
 	Tile[TableConfig]{Key: "table", Width: WidthFull, Detail: tableDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
-		Fields: []Field{sel("table", "open_invoices", "open_invoices", "unbilled", "budgets", "client_shares", "asset_dates", "trips", "effective_rates", "app_usage", "payment_morale",
+		Fields: []Field{sel("table", "open_invoices", "open_invoices", "unbilled", "budgets", "client_shares", "asset_dates", "trips", "trip_customers", "destinations", "effective_rates", "app_usage", "payment_morale",
 			"full_rates", "unbilled_aging", "payment_matches", "missing_receipts", "subscriptions", "budget_forecast", "project_margins", "exposure", "domain_chain"),
 			sel("sort", sortAsIs, sortAsIs, sortAmountDesc, sortAmountAsc, sortName, sortDate), {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},
 			{Key: "hide_cols", Input: InputList}, {Key: "sum_row", Input: InputCheck}},

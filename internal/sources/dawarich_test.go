@@ -70,3 +70,91 @@ func TestDawarichTestReadsVersionHeader(t *testing.T) {
 		t.Fatalf("expected version, got %+v", m)
 	}
 }
+
+// dawarichBase serves the endpoints every Dawarich fetch reads.
+func dawarichBase(mux *http.ServeMux) {
+	for path, body := range map[string]string{"/api/v1/points": `[]`, "/api/v1/areas": `[]`, "/api/v1/visits": `[]`, "/api/v1/stats": `{}`,
+		"/api/v1/places": `[{"id": 11, "name": "Kunde Potsdam", "latitude": 52.4, "longitude": 13.06}]`} {
+		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(body)) })
+	}
+}
+
+// Tracks come from the paged list, their segments from one read per
+// track; a second fetch reuses the segments it read.
+func TestDawarichDataReadsTracksOnce(t *testing.T) {
+	mux := http.NewServeMux()
+	dawarichBase(mux)
+	mux.HandleFunc("/api/v1/tracks", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Total-Pages", "2")
+		if r.URL.Query().Get("page") == "1" {
+			w.Write([]byte(`{"type": "FeatureCollection", "features": [{"properties": {"id": 7, "revision": 0, "end_at": "2026-01-05T16:45:00Z"}}]}`))
+			return
+		}
+		w.Write([]byte(`{"type": "FeatureCollection", "features": [{"properties": {"id": 8, "revision": 0, "end_at": "2026-01-06T10:00:00Z"}}]}`))
+	})
+	reads := 0
+	mux.HandleFunc("/api/v1/tracks/{id}", func(w http.ResponseWriter, r *http.Request) {
+		reads++
+		if r.PathValue("id") == "8" {
+			// not classified yet: one segment of the dominant mode
+			w.Write([]byte(`{"features": [{"geometry": {"type": "LineString", "coordinates": [[13.0, 52.0], [13.1, 52.1]]},
+				"properties": {"id": 8, "start_at": "2026-01-06T09:00:00Z", "end_at": "2026-01-06T10:00:00Z", "distance": 9000, "dominant_mode": "cycling"}}]}`))
+			return
+		}
+		w.Write([]byte(`{"features": [{"properties": {"id": 7, "start_at": "2026-01-05T12:00:00Z", "end_at": "2026-01-05T16:45:00Z", "segments": [
+			{"mode": "stationary", "start_time": 1767625200, "end_time": 1767627300, "distance": 0, "coordinates": [[13.06, 52.4]]},
+			{"mode": "driving", "start_time": 1767614400, "end_time": 1767616500, "distance": 25400, "coordinates": [[13.3, 52.5], [13.2, 52.45], [13.06, 52.4]]}
+		]}}]}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	ctx := sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true}
+	out, err := sources.DawarichData.Fetch(context.Background(), ctx)
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	data := out.(*sources.DawarichDataset)
+
+	if data.TracksState != sources.TracksOK || len(data.Tracks) != 2 {
+		t.Fatalf("tracks: %s %+v", data.TracksState, data.Tracks)
+	}
+	first := data.Tracks[0]
+	if first.ID != 7 || len(first.Segments) != 2 || first.Segments[0].Mode != "driving" {
+		t.Fatalf("segments not sorted by time: %+v", first.Segments)
+	}
+	drive := first.Segments[0]
+	if drive.Meters != 25400 || drive.FromLat != 52.5 || drive.ToLon != 13.06 {
+		t.Fatalf("drive: %+v", drive)
+	}
+	if s := data.Tracks[1].Segments; len(s) != 1 || s[0].Mode != "cycling" || s[0].Meters != 9000 || s[0].ToLat != 52.1 {
+		t.Fatalf("unclassified track: %+v", s)
+	}
+	if len(data.Places) != 1 || data.Places[0].Name != "Kunde Potsdam" {
+		t.Fatalf("places: %+v", data.Places)
+	}
+
+	if _, err := sources.DawarichData.Fetch(context.Background(), ctx); err != nil {
+		t.Fatalf("second fetch: %v", err)
+	}
+	if reads != 2 {
+		t.Fatalf("expected 2 single-track reads in total, got %d", reads)
+	}
+}
+
+// A Dawarich without the tracks API keeps its visits; the tracks are
+// marked missing.
+func TestDawarichDataWithoutTracks(t *testing.T) {
+	mux := http.NewServeMux()
+	dawarichBase(mux)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	out, err := sources.DawarichData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	if s := out.(*sources.DawarichDataset).TracksState; s != sources.TracksMissing {
+		t.Fatalf("state %q", s)
+	}
+}
