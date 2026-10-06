@@ -110,6 +110,9 @@ type DecodeFunc func(raw map[string]any) any
 // QueriesFunc returns the queries a widget instance needs, given its config.
 type QueriesFunc func(cfg any) []Query
 
+// PickFunc returns the queries for a dialog's picked entry.
+type PickFunc func(cfg any, results map[string]any, ctx ViewCtx) []Query
+
 // ViewFunc shapes query results into template data.
 type ViewFunc func(cfg any, results map[string]any, ctx ViewCtx) map[string]any
 
@@ -133,7 +136,10 @@ type WidgetType struct {
 	// DetailQueries run only when the dialog opens: data too large or too
 	// rarely needed for every view (logs, a history from the service).
 	DetailQueries QueriesFunc
-	Extra         Extra
+	// PickQueries run on open after the rest, from the tile's connection:
+	// data of the picked list entry (results[DetailItemSlot]).
+	PickQueries PickFunc
+	Extra       Extra
 
 	Topic      Topic
 	DataChoice bool // the user may pick live or background data

@@ -47,6 +47,8 @@ type Tile[C any] struct {
 	// DetailQueries are fetched only when the dialog opens (cached for the
 	// source's TTL); their results join the dialog's.
 	DetailQueries func(cfg C) []Query
+	// PickQueries read the picked list entry's data when the dialog opens.
+	PickQueries func(cfg C, results map[string]any, ctx ViewCtx) []Query
 }
 
 // add registers the tile.
@@ -74,6 +76,11 @@ func (t Tile[C]) add() {
 	}
 	if t.DetailQueries != nil {
 		kind.DetailQueries = func(cfg any) []Query { return t.DetailQueries(configOf[C](cfg)) }
+	}
+	if t.PickQueries != nil {
+		kind.PickQueries = func(cfg any, results map[string]any, ctx ViewCtx) []Query {
+			return t.PickQueries(configOf[C](cfg), results, ctx)
+		}
 	}
 	if t.Detail != nil {
 		kind.Detail = func(cfg any, results map[string]any, ctx ViewCtx) DetailView {

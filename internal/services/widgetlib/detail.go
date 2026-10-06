@@ -203,6 +203,14 @@ func loadTileDetail(ctx context.Context, d *sql.DB, who *access.Principal, widge
 		}
 	}
 
+	if kind.PickQueries != nil && frag.conn != nil {
+		for _, q := range kind.PickQueries(frag.Config, results, frag.viewCtx) {
+			if slot := pickQuery(ctx, d, frag, q, from); slot.Data != nil {
+				results[q.Name] = slot.Data
+			}
+		}
+	}
+
 	if extra, ok := detailExtras[widget.Type]; ok && item != "" && from == originStored {
 		if err := extra(ctx, d, who, item, results); err != nil {
 			return nil, err
@@ -211,6 +219,16 @@ func loadTileDetail(ctx context.Context, d *sql.DB, who *access.Principal, widge
 	view := kind.Detail(frag.Config, results, frag.viewCtx)
 	view.Head.Title = widget.Title
 	return &DetailDialog{Type: widget.Type, Head: view.Head, Body: view.Body}, nil
+}
+
+// pickQuery runs a picked entry's query on the tile's connection, cached
+// like the dialog's other data.
+func pickQuery(ctx context.Context, d *sql.DB, frag *Fragment, q widgets.Query, from origin) Slot {
+	source := sourceFor(q, frag.conn)
+	if from == originDemo {
+		return demoQuery(ctx, source, q.Params)
+	}
+	return runQuery(ctx, d, source, q.Params, frag.conn, frag.holder, svcdata.Cached)
 }
 
 // detailHintsOf turns hints into the form a dialog lists.

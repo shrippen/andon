@@ -1077,7 +1077,7 @@ Kettenregel: eine Fahrt zwischen zwei beruflichen Fahrten desselben Tages ist be
 - [x] Privat: km je Monat und Verkehrsmittel, häufigste Ziele, Fahrten am Wochenende und im Urlaub (Holiday-Bundle), Vergleich zum Vorjahr (Gesamt-km aus Dawarichs Statistik, Tracks reichen bis Jahresbeginn)
 - [x] Beides: Anteil privat/beruflich, Heatmap Wochentag × Stunde, Fahrzeit je Woche, Privatanteil eines betrieblichen Fahrzeugs (> 50 %: 1-%-Regel nicht zulässig), km gegen Tankkosten aus Sure (Verbrauch, € je km)
 - [x] Datenqualität: Ort mit Besuchen ohne Zuordnung, viele „unbestätigt“, Tracks nicht berechnet, berufliche Autofahrten, die im Plugin fehlen (`geo.plugin_missing`); „unbestätigt“ über `geo.visit_without_time`
-- [x] Kacheln: Reise-Kachel mit Balken privat/beruflich, Dialog mit km je Monat und Klasse, Heatmap, Stunden je Woche, Kunden, Zielen, Verkehrsmitteln; Tabellen `trips` (Klasse, Grund), `trip_customers`, `destinations`. *Offen: Detail je Fahrt zeigt Start und Ziel als Linie, nicht die Strecke aus `dawarich.route`*
+- [x] Kacheln: Reise-Kachel mit Balken privat/beruflich, Dialog mit km je Monat und Klasse, Heatmap, Stunden je Woche, Kunden, Zielen, Verkehrsmitteln; Tabellen `trips` (Klasse, Grund), `trip_customers`, `destinations`. Detail je Fahrt zeigt die Strecke aus `dawarich.route` (`PickQueries`: Abfrage für den gewählten Eintrag)
 
 **6. Später**
 - [ ] Klasse einer Fahrt in Andon von Hand ändern (für Nutzer ohne Plugin); mit Plugin dort als Fahrt anlegen

@@ -64,3 +64,31 @@ func TestTravelDetail(t *testing.T) {
 		t.Fatalf("detail: %+v", d.Body)
 	}
 }
+
+// TestTravelRoute: the dialog reads the shown ride's points and draws
+// them between start and end; points outside the ride are left out.
+func TestTravelRoute(t *testing.T) {
+	kind, _ := widgets.Get("travel")
+	cfg, _ := widgets.Decode("travel", map[string]any{})
+	ctx := ctxFor(enums.ServiceDawarich, nil)
+	results := travelData()
+
+	qs := kind.PickQueries(cfg, results, ctx)
+	start, _ := time.ParseInLocation("2006-01-02 15:04", "2026-09-12 09:00", time.Local)
+	if len(qs) != 1 || qs[0].Source != "dawarich.route" || qs[0].Params["from"] != start.UTC().Format(time.RFC3339) {
+		t.Fatalf("queries: %+v", qs)
+	}
+
+	results[qs[0].Name] = &sources.DawarichRoute{Points: []sources.RoutePoint{
+		{Lat: 52.50, Lon: 13.45, At: start.Add(10 * time.Minute)}, {Lat: 1, Lon: 1, At: start.Add(2 * time.Hour)}}}
+	body := kind.Detail(cfg, results, ctx).Body.(*widgets.DetailBody)
+	for _, b := range body.Blocks {
+		if m, ok := b.Data.(*widgets.MapData); ok && b.Kind == widgets.BlockMap {
+			if len(m.Route) != 3 || m.Route[1] != [2]float64{13.45, 52.50} {
+				t.Fatalf("route: %+v", m.Route)
+			}
+			return
+		}
+	}
+	t.Fatal("no map")
+}
