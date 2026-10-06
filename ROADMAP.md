@@ -357,7 +357,7 @@ Das Dashboard übernimmt die Rolle von Dashy als Startseite. Migriert werden die
 | Als App installieren (PWA) | Web-App-Manifest und Icon | Soll |
 | Cloud-Backup der Konfiguration | Export als YAML/ZIP, Datenbank-Backup des Volumes | Nein |
 | Keycloak-Anbindung | Single Sign-on über authentik per OIDC (Abschnitt 4.7) | Muss |
-| Übrige Dashy-Widgets (Krypto, GitHub-Trending, Sport …) | Nicht migriert, der Import-Assistent listet sie auf. Bei Bedarf als eigener Widget-Typ | Später |
+| Übrige Dashy-Widgets (GitHub-Trending, Sport …) | Nicht migriert, der Import-Assistent listet sie auf. Bei Bedarf als eigener Widget-Typ; Krypto gibt es seit Phase 12 | Später |
 
 ### 7.2 Widget-Modell
 
@@ -547,12 +547,9 @@ Nicht im Einsatz, weil Andon eigene Strukturen hat: `.nav`/`.foot` (Andon: `.app
 
 **Andon-Bausteine (in diesem Repo, `internal/web/static/andon.css`; fehlen in Kante)**
 
-| Komponente | Zweck |
-|---|---|
-| `.launch-items` | Unterlinks unter einer Link-Kachel |
-| `.uptime` | 30-Tage-Erreichbarkeit als Tagesstreifen in der Link-Kachel |
+Keine mehr: `.uptime` kam mit Kante 1.12, `.launch-items` mit Kante 1.16 (06.10.2026). `andon.css` behält nur Board-Layout und Widget-Innenleben (z. B. den Uptime-Streifen auf kleinen Kacheln ausblenden).
 
-Alles andere (Link-Kachel `.launch`, Suche, Uhr, Wetter, Ablagefläche, Diagramm-Legenden) kommt aus Kante 1.9.
+Alles andere (Link-Kachel `.launch`, Suche, Uhr, Wetter, Ablagefläche, Diagramm-Legenden) kommt aus Kante.
 
 Die Komponenten nutzen ausschließlich Theme-Tokens (`var(--…)`), keine eigenen Hex-Werte (per Stylelint geprüft). Nur so funktionieren sie mit jedem Theme. Ob sie später ins Design System wandern, ist eine eigene Entscheidung außerhalb dieses Projekts.
 
@@ -596,7 +593,7 @@ Die Komponenten nutzen ausschließlich Theme-Tokens (`var(--…)`), keine eigene
 
 **Offen: UI auf Kante-Tokens umstellen**
 
-Die Oberfläche läuft auf den Tokens und Komponenten von **Kante 1.9** (siehe „Einbindung“ oben). Schaltflächen, Felder, Pills, Menüs, Dialoge, Toasts, Tabellen, Fortschritt und die Live-Daten-Bewegung kommen aus dem vendorten Kante; `andon.css` behält nur Board-Layout und Widget-Innenleben. Aus Kante seit 1.5 bis 1.7: Kennzahl (`.kpi`, `.delta`, `.kpi-row`), Chips und Chip-Auswahl, Feed, Hinweis-Karte, Fristen (`.timeline`, `.date-tile`), Bearbeitungsleiste (`.editbar`), Anmeldung (`.login`); seit 1.8/1.9: Kachel-Werkzeugleiste (`.tile-tools`), gespeichertes Einklappen (`details.fold` + `kante:fold`), Sammelleiste (`.bulk-bar`), Freigaben (`.share`), Kontrast und Farbfeld (`.contrast`, `.swatch`, `input[type=color]`), Diagramme (`.chart`, `.spark`, `.heat`, `.legend`, Datenpalette `--d1…--d6`). Offen: siehe Tabelle „Andon-Bausteine“. Sie gehören zuerst nach Kante. Entwürfe für vier Bildschirme (Start, Übersicht, Editor, Anmeldung): <https://claude.ai/artifact/K1SEJhy4Pm4wyn4zDJ9vLH>.
+Die Oberfläche läuft auf den Tokens und Komponenten von **Kante 1.9** (siehe „Einbindung“ oben). Schaltflächen, Felder, Pills, Menüs, Dialoge, Toasts, Tabellen, Fortschritt und die Live-Daten-Bewegung kommen aus dem vendorten Kante; `andon.css` behält nur Board-Layout und Widget-Innenleben. Aus Kante seit 1.5 bis 1.7: Kennzahl (`.kpi`, `.delta`, `.kpi-row`), Chips und Chip-Auswahl, Feed, Hinweis-Karte, Fristen (`.timeline`, `.date-tile`), Bearbeitungsleiste (`.editbar`), Anmeldung (`.login`); seit 1.8/1.9: Kachel-Werkzeugleiste (`.tile-tools`), gespeichertes Einklappen (`details.fold` + `kante:fold`), Sammelleiste (`.bulk-bar`), Freigaben (`.share`), Kontrast und Farbfeld (`.contrast`, `.swatch`, `input[type=color]`), Diagramme (`.chart`, `.spark`, `.heat`, `.legend`, Datenpalette `--d1…--d6`). Seit Kante 1.16 fehlen keine Andon-Bausteine mehr (Tabelle „Andon-Bausteine“). Entwürfe für vier Bildschirme (Start, Übersicht, Editor, Anmeldung): <https://claude.ai/artifact/K1SEJhy4Pm4wyn4zDJ9vLH>.
 
 - [x] `andon.css` in `internal/web/static/` angelegt: nur Tokens (`var(--…)`), keine Hex-Werte außerhalb `themes/`
 - [x] `base.html`: `system-ui`-Fallback durch `.app-nav`/`.app-links`/`.app-side` und echte Formularstile ersetzt; jede Seite lädt jetzt ihr aktives Theme (`Deps.Page` setzt `ThemeURL`, vorher nur die Board-Seite)
@@ -1102,10 +1099,10 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
   - [x] Live-Tests für die übrigen schreibenden Ausgänge (Kimai-Zeiten, Invoice Ninja, Paperless) *(`kimai_live_test.go` (Zeiten, Tags, Timer), `ninja_live_test.go` (Kunde, Entwurf, Zahlung, Ausgabe; hinterlässt Nummernlücken), `paperless_live_test.go` (Upload, Zusatzfeld); räumen am Ende auf. Erster Lauf 06.10.2026 grün. Laufen nur mit `ANDON_LIVE=1` (`make live`), nie in `make check`)*
     - Invoice Ninja schreibend nur auf ausdrückliche Aufforderung (`ANDON_LIVE_NINJA=1`), um so wenige Nummernlücken wie möglich zu erzeugen
   - [x] Alle Integrationen lesend gegen die lokale Instanz: `sources_live_test.go` holt Verbindungstest und Datensatz jeder Verbindung *(06.10.2026: 34 von 37 grün)*
-    - [ ] Gitea und Tailscale: HTTP 401, Token in der lokalen Instanz erneuern
-    - [ ] Snipe-IT: `/api/v1/hardware` antwortet mit HTTP 500 („Server Error“, auch bei `limit=1`); Server-Log prüfen
-    - [ ] KDE Store „shrippen“: Option `user` fehlt, Datensatz leer
-    - [ ] Domains „arianw.de“: RDAP-Abfrage HTTP 404, Ablaufdatum fehlt
+    - [x] Gitea und Tailscale: HTTP 401. Ursache in Andon: `svcdata.Secret` gab bei OAuth-Anmeldungen den Platzhalter `grant:v1` statt des Tokens aus; Timer, Licht, Abrechnung, Mail-Weiterleitung und Kachel-Aktionen auf solchen Verbindungen scheiterten *(behoben)*
+    - [ ] Snipe-IT: `/api/v1/hardware` antwortet mit HTTP 500. Ursache im Snipe-IT-Log: Tabelle `asset_external_sources` fehlt, 16 Migrationen von v8.8.0 stehen aus (beim Start am 01.10. war die Datenbank noch nicht erreichbar). Auf regis.lan: Datenbank sichern, dann `docker exec snipeit_app php artisan migrate --force`
+    - [x] KDE Store „shrippen“: Option `user` fehlte, der Datensatz blieb stumm leer. Jetzt Fehler „Nichts zu lesen“ ohne `user`/`ids`; lokal `user: shrippen` gesetzt
+    - [x] Domains „arianw.de“: rdap.org kennt `.de` nicht (fehlt in IANAs RDAP-Liste), daher 404. `.de` fragt jetzt DENIC direkt; ein Ablaufdatum veröffentlicht DENIC nicht
   - [x] Weitere schreibende Ausgänge: Kimai-Export-Flag, Kunde umbenennen, Fahrten (`kimai_more_live_test.go`), Tandoor-Einkaufsliste (`tandoor_live_test.go`); `TestPlacesLive` löscht seine Dawarich-Area
     - [x] Kimai-Orte per API löschen: Anfahrten-Plugin `DELETE /api/mileage/places/{id}` (kimai-anfahrt #7); `TestPlacesLive` räumt den Ort auf, Rest Ort 44 gelöscht
     - Ohne Schreibtest: `HassToggle` und `DNSPause` (schalten bestehende Geräte bzw. den Filter, keine eigenen Testeinträge möglich), Grocy (keine Verbindung), Apprise, Mail, LLM
