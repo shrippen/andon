@@ -171,11 +171,7 @@ func readStack(ctx context.Context, api services.GiteaApi, repo, sha string) (pa
 		return seen, nil
 	}
 
-	blob, err := api.Get(ctx, "repos/"+repo+"/git/blobs/"+sha, nil)
-	if err != nil {
-		return parsedStack{}, err
-	}
-	body, err := base64.StdEncoding.DecodeString(strings.ReplaceAll(asStr(asMap(blob)["content"]), "\n", ""))
+	body, err := blobBody(ctx, api, repo, sha)
 	if err != nil {
 		return parsedStack{}, err
 	}
@@ -188,6 +184,15 @@ func readStack(ctx context.Context, api services.GiteaApi, repo, sha string) (pa
 	}
 	composeSeen[sha] = parsed
 	return parsed, nil
+}
+
+// blobBody reads a file of repo by its blob sha.
+func blobBody(ctx context.Context, api services.GiteaApi, repo, sha string) ([]byte, error) {
+	blob, err := api.Get(ctx, "repos/"+repo+"/git/blobs/"+sha, nil)
+	if err != nil {
+		return nil, err
+	}
+	return base64.StdEncoding.DecodeString(strings.ReplaceAll(asStr(asMap(blob)["content"]), "\n", ""))
 }
 
 // parseCompose keeps each service's image, ports and labels, sorted by
