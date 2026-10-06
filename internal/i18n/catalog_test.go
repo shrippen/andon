@@ -124,6 +124,9 @@ func TestCapsKeysExist(t *testing.T) {
 			for _, k := range c.Kinds {
 				keys = append(keys, "caps.kind."+k)
 			}
+			for _, r := range c.Refs {
+				keys = append(keys, "caps.refs", "service."+string(r.Holder), "caps.domain."+string(r.Domain))
+			}
 			for _, n := range c.Needs {
 				keys = append(keys, "caps.need."+string(n.Kind))
 				switch n.Kind {

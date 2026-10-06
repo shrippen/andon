@@ -9,6 +9,7 @@
 package rules
 
 import (
+	"andon/internal/caps"
 	"math"
 	"path"
 	"reflect"
@@ -126,16 +127,44 @@ func ownRule(id string, fn RuleFunc) RuleFunc {
 // nothing: when one of them failed, the rule's hints stay as they were.
 var needs = map[string][]string{}
 
-// Needs names services a rule's result depends on (see Incomplete).
+// Needs names services a rule's result depends on (see Incomplete), for
+// services without declared capabilities; the others follow from Uses.
 func Needs(id string, services ...string) {
 	needs[id] = services
+}
+
+// uses lists, per rule, the domains it reads (caps.Use).
+var uses = map[string][]caps.Use{}
+
+// Uses names the domains a rule reads, e.g. Sure's payments and Invoice
+// Ninja's invoices. The services it needs follow from them and their
+// declared references (caps.Needed): a rule on Kimai's places needs
+// Dawarich too.
+func Uses(id string, u ...caps.Use) {
+	uses[id] = u
+}
+
+// UsesOf is what Uses declared for a rule.
+func UsesOf(id string) []caps.Use { return uses[id] }
+
+// NeedsOf lists the services a rule needs: named ones and those its uses
+// lead to.
+func NeedsOf(id string) []string {
+	out := slices.Clone(needs[id])
+	for _, h := range caps.Needed(uses[id]...) {
+		if !slices.Contains(out, string(h)) {
+			out = append(out, string(h))
+		}
+	}
+	return out
 }
 
 // Incomplete reports whether a service the rule needs failed this run.
 func (s Spec) Incomplete(env Env) bool {
 	failed, _ := env.Datasets[FailedDataset].([]Failed)
+	need := NeedsOf(s.ID)
 	for _, f := range failed {
-		if slices.Contains(needs[s.ID], f.Service) {
+		if slices.Contains(need, f.Service) {
 			return true
 		}
 	}

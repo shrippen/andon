@@ -164,3 +164,42 @@ func TestPaired(t *testing.T) {
 		}
 	}
 }
+
+// References: Kimai's places keep Dawarich's areas, so Dawarich comes
+// first (sites.Create and Sync write in this order) and a reader of
+// Kimai's places needs Dawarich too. Ninja and Paperless refer to each
+// other: their order stays.
+func TestRefs(t *testing.T) {
+	daw, ninja, paperless := HolderOf(enums.ServiceDawarich), HolderOf(enums.ServiceInvoiceNinja), HolderOf(enums.ServicePaperless)
+	if got := Order(Places, kimai, daw); !slices.Equal(got, []Holder{daw, kimai}) {
+		t.Fatalf("order %v", got)
+	}
+	if got := Order(Places, daw, kimai); !slices.Equal(got, []Holder{daw, kimai}) {
+		t.Fatalf("order kept %v", got)
+	}
+	if got := Order(Receipts, paperless, ninja); !slices.Equal(got, []Holder{paperless, ninja}) {
+		t.Fatalf("mutual order %v", got)
+	}
+	if got := Needed(Use{kimai, Places}); !slices.Equal(got, []Holder{kimai, daw}) {
+		t.Fatalf("needed %v", got)
+	}
+	if got := Needed(Use{ninja, Receipts}); !slices.Equal(got, []Holder{ninja, paperless}) {
+		t.Fatalf("needed mutual %v", got)
+	}
+	if got := Needed(Use{daw, Places}); !slices.Equal(got, []Holder{daw}) {
+		t.Fatalf("needed plain %v", got)
+	}
+}
+
+// Every reference points at a domain its holder declares.
+func TestRefsDeclared(t *testing.T) {
+	for _, h := range Holders() {
+		for _, c := range Declared(h) {
+			for _, r := range c.Refs {
+				if !slices.ContainsFunc(Declared(r.Holder), func(o Cap) bool { return o.Domain == r.Domain }) {
+					t.Errorf("%s %s refers to undeclared %v", h, c.Domain, r)
+				}
+			}
+		}
+	}
+}

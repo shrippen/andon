@@ -5386,6 +5386,7 @@ tandoor:
   empty: 'Shopping list empty'
   plan: 'Meal plan'
 caps:
+  refs: 'stores ids of'
   title: Capabilities
   have: available
   unknown: not fetched yet

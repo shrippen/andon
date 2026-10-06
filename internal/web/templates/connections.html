@@ -353,7 +353,7 @@
         {{with .Caps}}<div class="detail-block">
           <div class="h-label detail-label"><span>{{t "caps.title"}}</span></div>
           <div class="table-wrap"><table class="table">
-            <tbody>{{range .}}<tr><td>{{t (print "caps.domain." .Cap.Domain)}}</td><td>{{t (print "caps.op." .Cap.Op)}}{{with .Cap.Kinds}} <small class="muted">({{range $i, $k := .}}{{if $i}}, {{end}}{{t (print "caps.kind." $k)}}{{end}})</small>{{end}}</td>
+            <tbody>{{range .}}<tr><td>{{t (print "caps.domain." .Cap.Domain)}}</td><td>{{t (print "caps.op." .Cap.Op)}}{{with .Cap.Kinds}} <small class="muted">({{range $i, $k := .}}{{if $i}}, {{end}}{{t (print "caps.kind." $k)}}{{end}})</small>{{end}}{{with .Cap.Refs}} <small class="muted">{{t "caps.refs"}} {{range $i, $r := .}}{{if $i}}, {{end}}{{t (print "service." $r.Holder)}}: {{t (print "caps.domain." $r.Domain)}}{{end}}</small>{{end}}</td>
               <td data-state="{{if eq .State "have"}}ok{{else if eq .State "missing"}}bad{{end}}">{{if eq .State "have"}}{{t "caps.have"}}{{else if eq .State "missing"}}{{template "cap_need" .Need}}{{else}}{{t "caps.unknown"}}{{end}}</td></tr>{{end}}</tbody>
           </table></div>
         </div>{{end}}

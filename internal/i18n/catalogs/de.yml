@@ -5387,6 +5387,7 @@ tandoor:
   empty: 'Einkaufsliste leer'
   plan: 'Essensplan'
 caps:
+  refs: 'speichert IDs aus'
   title: Fähigkeiten
   have: vorhanden
   unknown: noch nicht abgerufen

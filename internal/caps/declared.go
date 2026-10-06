@@ -30,12 +30,19 @@ var (
 	mileageRideKinds  = []string{"driving", "motorcycle"}
 )
 
+// References between holders (CAPABILITIES.md, "Abhängigkeiten").
+var (
+	dawarichPlaces    = []Use{{HolderOf(enums.ServiceDawarich), Places}}
+	paperlessReceipts = []Use{{HolderOf(enums.ServicePaperless), Receipts}}
+	ninjaReceipts     = []Use{{HolderOf(enums.ServiceInvoiceNinja), Receipts}}
+)
+
 // declared lists every holder's capabilities.
 var declared = map[Holder][]Cap{
 	HolderOf(enums.ServiceKimai): {
 		{Domain: Places, Op: Read, Needs: []Need{mileagePlugin, mileageView}},
-		{Domain: Places, Op: Create, Kinds: mileagePlaceKinds, Needs: []Need{mileagePlugin, mileageView, mileageEdit, placesWrite}},
-		{Domain: Places, Op: Update, Kinds: mileagePlaceKinds, Needs: []Need{mileagePlugin, mileageView, mileageEdit, placesWrite}},
+		{Domain: Places, Op: Create, Kinds: mileagePlaceKinds, Needs: []Need{mileagePlugin, mileageView, mileageEdit, placesWrite}, Refs: dawarichPlaces},
+		{Domain: Places, Op: Update, Kinds: mileagePlaceKinds, Needs: []Need{mileagePlugin, mileageView, mileageEdit, placesWrite}, Refs: dawarichPlaces},
 		{Domain: Rides, Op: Read, Needs: []Need{mileagePlugin, mileageView}},
 		{Domain: Rides, Op: Create, Kinds: mileageRideKinds, Needs: []Need{mileagePlugin, mileageView, mileageEdit}},
 		{Domain: Rides, Op: Update, Kinds: mileageRideKinds, Needs: []Need{mileagePlugin, mileageView, mileageEdit}},
@@ -53,8 +60,8 @@ var declared = map[Holder][]Cap{
 		{Domain: Payments, Op: Read},
 		{Domain: Payments, Op: Create}, // bookings from Sure
 		{Domain: Receipts, Op: Read},   // expenses
-		{Domain: Receipts, Op: Create},
-		{Domain: Receipts, Op: Update},
+		{Domain: Receipts, Op: Create, Refs: paperlessReceipts},
+		{Domain: Receipts, Op: Update, Refs: paperlessReceipts}, // the scan's link
 	},
 	HolderOf(enums.ServiceSure): {
 		{Domain: Payments, Op: Read},      // transactions of the bank accounts
@@ -71,8 +78,8 @@ var declared = map[Holder][]Cap{
 		{Domain: Subscriptions, Op: Read}, // contracts with their deadlines
 		{Domain: Customers, Op: Read},     // correspondents
 		{Domain: Receipts, Op: Read, Needs: []Need{paperlessField}},
-		{Domain: Receipts, Op: Create},                                // upload
-		{Domain: Receipts, Op: Update, Needs: []Need{paperlessField}}, // custom fields
+		{Domain: Receipts, Op: Create},                                                     // upload
+		{Domain: Receipts, Op: Update, Needs: []Need{paperlessField}, Refs: ninjaReceipts}, // custom fields: the expense's number
 	},
 	HolderOf(enums.ServiceMail): {
 		{Domain: Receipts, Op: Read}, // attachments of the inbox
