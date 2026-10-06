@@ -1087,7 +1087,12 @@ Kettenregel: eine Fahrt zwischen zwei beruflichen Fahrten desselben Tages ist be
 
 Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md` bzw. `CLAUDE.md` übernommen und noch nicht angewendet.
 
-- [ ] Visualisierungen (Heatmaps, Graphen, Diagramme) haben immer Achsenbeschriftungen oder eine Legende, sonst sind sie nutzlos. Bestehende Kacheln und Diagramme prüfen und nachrüsten; Regel in `agent.md` aufnehmen *(Regel in `agent.md` und `eigene/CLAUDE.md` steht; Prüfen und Nachrüsten offen)*
+- [ ] Visualisierungen (Heatmaps, Graphen, Diagramme) haben immer Achsenbeschriftungen oder eine Legende, sonst sind sie nutzlos. Bestehende Kacheln und Diagramme prüfen und nachrüsten; Regel in `agent.md` aufnehmen *(Regel in `agent.md` und `eigene/CLAUDE.md` steht; geprüft 06.10.2026)*
+  - Popups: `detail_graph` ohne Werte-Achse, Legende nur bei mehreren Reihen; Link-Prüfungen und `strips` ohne Zustandslegende; Antwortzeit (ms) ohne Achsen; Heatmap ohne Stufenlegende (`.heat-legend`); Zeitstrahl-Band ohne Werte-Achse; nirgends Hover
+  - Kacheln: `widgets/chart` ohne Werte-Achse; Energie ohne Achsen; Mini-Balken (Glances, Speedtest, GitHub) ohne Werte-Achse; Sparklines ohne alles
+  - In Ordnung: Tagesbalken (Prozent, `title`), `hbars`, Wochen- und Tagesleiste
+  - Kante zuerst: Werte-Achse für gestreckte SVGs (`preserveAspectRatio="none"` verzerrt SVG-Text, also HTML-Achse daneben); Hover-Anzeige für Balken und `path`-Linien (heute nur `polyline` in `.chart-wrap[data-readout]`)
+  - Offen: gelten die Regeln auch für Sparklines und Mini-Balken in Kacheln?
 - [ ] Integrationen werden möglichst gegen eine reale Instanz getestet:
   - [x] `.local-test/` in `.gitignore`
   - Verzeichnis außerhalb von Git (`.local-test/`): echte Datenbank und Zugangsdaten je Dienst
@@ -1098,7 +1103,7 @@ Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md
 - [ ] Einstellungen: möglichst viele bisher nur per Umgebungsvariable setzbare Einstellungen zusätzlich in den Servereinstellungen der Oberfläche anbieten; sind beide gesetzt, gewinnt die Umgebungsvariable (in der Oberfläche als „durch Umgebung gesetzt“ gesperrt anzeigen)
 - [ ] Wartungsseite: laufende Aufgaben, zuletzt abgeschlossene Aufgaben, Probleme, Logs
 - [x] „Über Andon“: Dev-Builds zeigen keine Version. Auch Dev-Builds bekommen automatisch eine Versionsnummer nach dem Schema `Version/Branch/Build`, z. B. `0.5.0/main/#25` *(`scripts/version.sh`; Build = Commits seit dem letzten Tag, beginnt nach jedem Release neu)*
-- [ ] Regel (in `agent.md` aufnehmen): Visualisierungen in Popups bekommen, wo möglich, Tooltips beim Hover (ergänzt die Regel zu Achsen und Legenden) *(Regel steht; Umsetzung offen)*
+- [x] Regel (in `agent.md` aufnehmen): Visualisierungen in Popups bekommen, wo möglich, Tooltips beim Hover (ergänzt die Regel zu Achsen und Legenden) *(Umsetzung beim Nachrüsten oben)*
 - [ ] Dawarich: Orte
   - Kimai „Anfahrten“ ist nur für Geschäftliches zuständig und kennt Kunde, Zuhause, Arbeitsplatz, Sonstiges, aber keine privaten Orte (so gewollt)
   - Andon kennt zusätzlich private Orte; vorerst reicht die Kategorie „Privat“
