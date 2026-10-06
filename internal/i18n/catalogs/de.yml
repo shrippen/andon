@@ -5175,6 +5175,7 @@ receipts:
   search_correspondent: 'Korrespondent'
   search_none: 'Nichts gefunden.'
   err_no_pair: 'Wähle zuerst, mit welchem Invoice Ninja und welchem Paperless du arbeitest.'
+  err_paperless_fields: 'Dieses Paperless ist zu alt für Belege: Ihm fehlen die benutzerdefinierten Felder (ab Paperless-ngx 1.17).'
   err_mapping: 'Es ist noch nicht festgelegt, in welchen Feldern die Verknüpfung steht.'
   err_demo: 'Demo-Verbindungen nehmen keine Änderungen an.'
   err_not_found: 'Ausgabe oder Beleg gibt es nicht mehr.'
@@ -5397,6 +5398,8 @@ caps:
     invoices: Rechnungen
     payments: Zahlungen
     receipts: Belege
+    appointments: Termine
+    subscriptions: Abos und Verträge
   op:
     read: lesen
     create: anlegen

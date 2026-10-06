@@ -12,6 +12,7 @@ import (
 	"andon/internal/services/svcdata"
 	"andon/internal/services/verbund"
 	"andon/internal/services/widgetlib"
+	"andon/internal/sources"
 )
 
 // A tile whose peer service has two connections says so instead of
@@ -63,5 +64,42 @@ func TestPeerAmbiguousUntilVerbund(t *testing.T) {
 	}
 	if frag.Slots["kimai"].Error != "" || frag.Slots["kimai"].Data == nil {
 		t.Fatalf("with verbund: %+v", frag.Slots["kimai"])
+	}
+}
+
+// The backups tile reads every Borg server of the space: Borg pairs with
+// nothing, so two servers are no reason to ask, and their data merges.
+func TestPeerSpaceWideMerges(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "fan@b.c")
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	for _, suffix := range []string{"1", "2"} {
+		c := &model.Connection{SpaceID: space.ID, Key: "borg" + suffix, Name: "Borg " + suffix, Service: string(enums.ServiceBorgBackup),
+			URL: "demo://borgbackup/fan" + suffix, CredentialMode: enums.CredentialShared, VerifyTLS: true, CreatedAt: time.Now().UTC()}
+		if err := content.AddConnection(d, c); err != nil {
+			t.Fatal(err)
+		}
+	}
+	id, err := widgetlib.Create(d, who, space.ID, "backups", "Backups", map[string]any{}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, _, _ := widgetlib.Detail(d, who, id)
+	var frag *widgetlib.Fragment
+	for range 200 {
+		if frag, err = widgetlib.Load(context.Background(), d, who, w, svcdata.Cached); err != nil {
+			t.Fatal(err)
+		}
+		if !frag.Slots["borgbackup"].Pending {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	slot := frag.Slots["borgbackup"]
+	borg, _ := slot.Data.(*sources.BorgDataset)
+	one := sources.DemoBorg(time.Now())
+	if slot.Error != "" || borg == nil || len(borg.Clients) != 2*len(one.Clients) {
+		t.Fatalf("borg slot: %+v", slot)
 	}
 }

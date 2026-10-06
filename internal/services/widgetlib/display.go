@@ -1,6 +1,7 @@
 package widgetlib
 
 import (
+	"andon/internal/caps"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -152,10 +153,12 @@ func hostConnection(q db.Queryer, who *access.Principal, widget *model.Widget, h
 	return nil, nil
 }
 
-// peerConnection finds a connection of a service for ConnPeer queries:
-// the partner of the tile's connection or space (verbund.Partner);
-// verbund.ErrAmbiguous when several fit and the tile chose none.
-func peerConnection(q db.Queryer, who *access.Principal, widget *model.Widget, service enums.ServiceType) (*model.Connection, error) {
+// peerConnections finds the connections of a service for ConnPeer
+// queries: the partner of the tile's connection or space
+// (verbund.Partner); for a service that pairs with nothing (caps.Paired)
+// every candidate, whose data the tile merges; verbund.ErrAmbiguous when
+// several partners fit and the tile chose none.
+func peerConnections(q db.Queryer, who *access.Principal, widget *model.Widget, service enums.ServiceType) ([]*model.Connection, error) {
 	at := verbund.Asker{SpaceID: widget.SpaceID}
 	if widget.ConnectionID != nil {
 		at.ConnID = *widget.ConnectionID
@@ -164,13 +167,33 @@ func peerConnection(q db.Queryer, who *access.Principal, widget *model.Widget, s
 		at.LinkID = int64(id)
 	}
 	c, state, err := verbund.Partner(q, who, at, service)
-	if err != nil {
+	switch {
+	case err != nil:
 		return nil, err
-	}
-	if state == verbund.PartnerAmbiguous {
+	case state == verbund.PartnerAmbiguous && caps.Paired(service):
 		return nil, verbund.ErrAmbiguous
+	case state == verbund.PartnerAmbiguous:
+		return verbund.Candidates(q, who, at, service)
+	case c == nil:
+		return nil, nil
 	}
-	return c, nil
+	return []*model.Connection{c}, nil
+}
+
+// mergeSlot joins another peer's slot into a: data that merges
+// (sources.Merger) becomes the union; otherwise a stays, as the first
+// peer answered before Verbünde. A failed peer leaves a as it is.
+func mergeSlot(a, b Slot) Slot {
+	if b.Error != "" || b.Data == nil {
+		return a
+	}
+	if a.Error != "" || a.Data == nil {
+		return b
+	}
+	if m, ok := a.Data.(sources.Merger); ok {
+		a.Data = m.Merge(b.Data)
+	}
+	return a
 }
 
 // Load runs a widget's queries against its connection (svcdata.Get, so
@@ -285,6 +308,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 	served := map[string]int64{} // connection per service, for the customer links
 	for i, q := range queries {
 		var target *model.Connection
+		var more []*model.Connection // further peers whose data merges into target's
 		switch q.Conn {
 		case widgets.ConnWidget:
 			target = conn
@@ -295,7 +319,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 				target = demoConn(q.Service)
 				break
 			}
-			target, err = peerConnection(d, who, widget, q.Service)
+			peers, err := peerConnections(d, who, widget, q.Service)
 			if errors.Is(err, verbund.ErrAmbiguous) {
 				frag.Slots[q.Name] = Slot{Error: err.Error()}
 				continue
@@ -303,7 +327,8 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 			if err != nil {
 				return nil, err
 			}
-			if target != nil {
+			if len(peers) > 0 {
+				target, more = peers[0], peers[1:]
 				peerOptions[q.Name] = target.Options
 			}
 		}
@@ -323,13 +348,20 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		tileOwn := q.Conn == widgets.ConnWidget || q.Conn == widgets.ConnInfo
 		if target != nil && (tileOwn || kind.Service == "") {
 			frag.hintConns = append(frag.hintConns, target.ID)
+			for _, c := range more {
+				frag.hintConns = append(frag.hintConns, c.ID)
+			}
 		}
 		qFresh := integrationFreshness(q, target, own, fresh)
 		if i >= openFrom {
 			// A dialog's own data is fetched on open, then cached.
 			qFresh = svcdata.Cached
 		}
-		frag.Slots[q.Name] = runQuery(ctx, d, sourceFor(q, target), q.Params, target, holderAt(who, here, target), qFresh)
+		slot := runQuery(ctx, d, sourceFor(q, target), q.Params, target, holderAt(who, here, target), qFresh)
+		for _, c := range more {
+			slot = mergeSlot(slot, runQuery(ctx, d, sourceFor(q, c), q.Params, c, holderAt(who, here, c), qFresh))
+		}
+		frag.Slots[q.Name] = slot
 	}
 
 	serviceConn := conn

@@ -5174,6 +5174,7 @@ receipts:
   search_correspondent: 'Correspondent'
   search_none: 'Nothing found.'
   err_no_pair: 'First pick which Invoice Ninja and which Paperless you work with.'
+  err_paperless_fields: 'This Paperless is too old for receipts: it lacks custom fields (Paperless-ngx 1.17 and newer).'
   err_mapping: 'It is not set yet which fields hold the link.'
   err_demo: 'Demo connections take no changes.'
   err_not_found: 'The expense or receipt is gone.'
@@ -5396,6 +5397,8 @@ caps:
     invoices: Invoices
     payments: Payments
     receipts: Receipts
+    appointments: Appointments
+    subscriptions: Subscriptions and contracts
   op:
     read: read
     create: create

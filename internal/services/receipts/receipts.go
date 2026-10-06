@@ -14,6 +14,7 @@
 package receipts
 
 import (
+	"andon/internal/caps"
 	"context"
 	"database/sql"
 	"errors"
@@ -36,6 +37,9 @@ var (
 	// ErrNoPair means the user has no Invoice Ninja or no Paperless to use,
 	// or has not picked which.
 	ErrNoPair = errors.New("receipts.err_no_pair")
+	// ErrPaperlessFields means the Paperless lacks the custom fields API
+	// receipts keep their amounts and links in (caps: receipts read).
+	ErrPaperlessFields = errors.New("receipts.err_paperless_fields")
 	// ErrMapping means the fields that hold the link are not chosen yet.
 	ErrMapping = errors.New("receipts.err_mapping")
 	// ErrDemo means a demo connection, which takes no writes.
@@ -273,6 +277,12 @@ func openPair(d *sql.DB, who *access.Principal) (pair, error) {
 	}
 	if p.ninja == nil || p.docs == nil {
 		return pair{}, ErrNoPair
+	}
+	// Reads only what the last fetch stored: no extra call.
+	if set, known, err := connections.CapSetOf(context.Background(), d, who, p.docs.ID); err != nil {
+		return pair{}, err
+	} else if known && !set.Can(caps.Receipts, caps.Read, "") {
+		return pair{}, ErrPaperlessFields
 	}
 	p.mapping = mappingOf(p.ninja, p.docs)
 	p.state, err = loadState(d, who)

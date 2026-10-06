@@ -1085,7 +1085,7 @@ Kettenregel: eine Fahrt zwischen zwei beruflichen Fahrten desselben Tages ist be
 
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 
-Beide Regeln gelten künftig für alle eigenen Projekte; noch nicht in `agent.md` bzw. `CLAUDE.md` übernommen und noch nicht angewendet.
+Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und angewendet (06.10.2026).
 
 - [x] Visualisierungen (Heatmaps, Graphen, Diagramme) haben immer Achsenbeschriftungen oder eine Legende, sonst sind sie nutzlos. Bestehende Kacheln und Diagramme prüfen und nachrüsten; Regel in `agent.md` aufnehmen *(Regel in `agent.md` und `eigene/CLAUDE.md` steht; geprüft 06.10.2026)*
   - [x] Popups: `detail_graph` ohne Werte-Achse, Legende nur bei mehreren Reihen; Link-Prüfungen und `strips` ohne Zustandslegende; Antwortzeit (ms) ohne Achsen; Heatmap ohne Stufenlegende (`.heat-legend`); Zeitstrahl-Band ohne Werte-Achse; nirgends Hover *(Kante 1.15: Werte-Achse, Zeilen-Achse, Hover für Linien und Balken; Säulen mit runder Obergrenze; `Graph.Unit`)*

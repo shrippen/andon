@@ -4,6 +4,7 @@ package analysis
 // see those of their own Verbund, not "the last Kimai of the space".
 
 import (
+	"maps"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	linkrepo "andon/internal/repos/links"
 	"andon/internal/rules"
 	"andon/internal/services/verbund"
+	"andon/internal/sources"
 )
 
 // vagueRule names services with several connections and no Verbund
@@ -50,8 +52,69 @@ func (sc *scope) split(stored []linkrepo.Link, links func(kimai, ninja int64) me
 		if kimai != nil && ninja != nil && links != nil {
 			out.datasets[rules.ClientMapDataset] = links(kimai.ID, ninja.ID)
 		}
-		sc.groups = append(sc.groups, out)
+		sc.groups = append(sc.groups, fanOut(out, g, byID)...)
 	}
+}
+
+// fanOut adds the services read space-wide (Group.Fan): datasets that
+// merge (sources.Merger: Docker hosts, Borg servers …) join as one, the
+// space's; for the others the group repeats, round i taking each one's
+// i-th connection, so every one is read once (findings merge by
+// fingerprint).
+func fanOut(base group, g verbund.Group, byID map[int64]run) []group {
+	rounds := map[string][]*model.Connection{}
+	n := 0
+	for service, list := range g.Fan {
+		if _, own := g.Conns[service]; own {
+			continue
+		}
+		if merged, ok := mergeAll(list, byID); ok {
+			for _, c := range list {
+				base.conns[c.ID] = true
+			}
+			base.datasets[service] = merged
+			base.options[service] = list[0].Options
+			continue
+		}
+		rounds[service] = list
+		n = max(n, len(list))
+	}
+	if n == 0 {
+		return []group{base}
+	}
+	out := make([]group, 0, n)
+	for i := range n {
+		round := group{conns: maps.Clone(base.conns), datasets: maps.Clone(base.datasets), options: maps.Clone(base.options)}
+		for service, list := range rounds {
+			c := list[i%len(list)]
+			round.conns[c.ID] = true
+			round.datasets[service] = byID[c.ID].result.Data
+			round.options[service] = c.Options
+		}
+		out = append(out, round)
+	}
+	return out
+}
+
+// mergeAll merges the fetched datasets of list, false if they do not
+// merge. Connections without data are left out.
+func mergeAll(list []*model.Connection, byID map[int64]run) (any, bool) {
+	var out any
+	for _, c := range list {
+		data := byID[c.ID].result.Data
+		if data == nil {
+			continue
+		}
+		if out == nil {
+			if _, ok := data.(sources.Merger); !ok {
+				return nil, false
+			}
+			out = data
+			continue
+		}
+		out = out.(sources.Merger).Merge(data)
+	}
+	return out, out != nil
 }
 
 // base is the scope's datasets without any service's: what every
