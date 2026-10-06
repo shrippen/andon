@@ -27,7 +27,8 @@ COPY = ["public_holidays", "monitoring", "server", "virtualization", "storage", 
         "stacks", "backups", "certs", "domains", "mail_blacklist", "dns", "gateway", "vpn", "tailnet", "tunnel",
         "speed", "identity", "passwords", "cloud", "downloads", "code", "json_api", "smart_home", "pantry",
         "kitchen", "energy", "weather", "sites", "feeds", "bookmarks", "mail", "calendar", "photos", "library",
-        "series", "bookkeeping", "documents", "assets_state", "bank", "subscriptions", "suggestions", "location"]
+        "series", "bookkeeping", "documents", "assets_state", "bank", "subscriptions", "suggestions", "location",
+        "logbook", "trips"]
 
 
 def without_notes(node):

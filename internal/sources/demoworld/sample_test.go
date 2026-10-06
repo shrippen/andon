@@ -3,6 +3,8 @@ package demoworld
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -49,6 +51,43 @@ func TestSampleMatchesWorld(t *testing.T) {
 	for _, name := range []string{w.Studio.Name, w.Studio.Domain, w.Customers[0].Name, w.People[0].Name, w.Vendors[0].Name} {
 		if strings.Contains(text, name) {
 			t.Errorf("sample.json contains %q", name)
+		}
+	}
+}
+
+// decodedSection is a section the demo datasets read by path:
+// demoworld.MustDecode("logbook", …) → "logbook".
+var decodedSection = regexp.MustCompile(`demoworld\.(?:Must)?Decode\("([a-z_]+)`)
+
+// TestSampleHasDecodedSections: every section the sources decode is in
+// sample.json; a missing one panics the gallery preview in release
+// builds ("no \"logbook\" in the world").
+func TestSampleHasDecodedSections(t *testing.T) {
+	raw, err := os.ReadFile("sample.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sample map[string]any
+	if err := json.Unmarshal(raw, &sample); err != nil {
+		t.Fatal(err)
+	}
+
+	files, err := filepath.Glob("../*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range files {
+		if strings.HasSuffix(f, "_test.go") {
+			continue
+		}
+		src, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range decodedSection.FindAllStringSubmatch(string(src), -1) {
+			if _, ok := sample[m[1]]; !ok {
+				t.Errorf("%s reads %q, sample.json lacks it (add it to demo/make-sample.py)", filepath.Base(f), m[1])
+			}
 		}
 	}
 }
