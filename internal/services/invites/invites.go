@@ -19,6 +19,7 @@ import (
 	authrepo "andon/internal/repos/auth"
 	"andon/internal/repos/users"
 	"andon/internal/services/access"
+	"andon/internal/services/util"
 	"andon/internal/services/accounts"
 	"andon/internal/services/audit"
 	"andon/internal/services/mail"
@@ -285,11 +286,18 @@ func AdminResetLink(d *sql.DB, who *access.Principal, userID int64) (string, err
 	}
 	token := crypto.NewToken()
 	err := db.WithTx(d, func(tx *sql.Tx) error {
+		user, err := users.Get(tx, userID)
+		if err != nil {
+			return err
+		}
+		if user == nil {
+			return util.ErrNotFound
+		}
 		reset := &model.ResetToken{UserID: userID, TokenHash: crypto.TokenHash(token), ExpiresAt: now().Add(adminResetValidity)}
 		if err := authrepo.AddReset(tx, reset); err != nil {
 			return err
 		}
-		return audit.Log(tx, &who.UserID, "reset.admin_link", strconv.FormatInt(userID, 10), "", nil)
+		return audit.Log(tx, &who.UserID, "reset.admin_link", user.Email, "", nil)
 	})
 	if err != nil {
 		return "", err

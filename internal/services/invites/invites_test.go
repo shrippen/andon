@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"andon/internal/enums"
+	"andon/internal/services/audit"
 	"andon/internal/services/invites"
 	"andon/internal/services/mail"
 	"andon/internal/settings"
@@ -143,5 +144,22 @@ func TestInviteMailState(t *testing.T) {
 	mail.Init(settings.Settings{SMTPURL: "smtp://127.0.0.1:1"})
 	if got := invites.SendMail("a@x.de", "http://x/invite/1", "Ada", enums.LocaleDE); got != invites.MailFailed {
 		t.Fatalf("SMTP down: %v", got)
+	}
+}
+
+// The audit names the account a reset link was made for by its address,
+// not its id.
+func TestAdminResetLinkAuditNamesAddress(t *testing.T) {
+	d := testkit.DB(t)
+	admin, _ := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+	user, _ := testkit.User(t, d, "user@x.de", enums.RoleUser)
+	if _, err := invites.AdminResetLink(d, admin, user.UserID); err != nil {
+		t.Fatal(err)
+	}
+	entries, _ := audit.Entries(d, admin)
+	for _, e := range entries {
+		if e.Action == "reset.admin_link" && e.Target != "user@x.de" {
+			t.Fatalf("target %q", e.Target)
+		}
 	}
 }
