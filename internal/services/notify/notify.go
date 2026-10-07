@@ -56,7 +56,13 @@ var (
 	ErrRawHTTP = errors.New("notify.raw_http")
 	ErrBadTime = errors.New("notify: bad time")
 	ErrFailed  = errors.New("notify: delivery failed")
+	// ErrNoServer: no Apprise API server is set (APPRISE_API_URL).
+	ErrNoServer = errors.New("notify.no_server")
 )
+
+// Ready reports whether pushes can go out: an Apprise API server is set.
+// Channels only name targets; the server delivers to them.
+func Ready(cfg settings.Settings) bool { return cfg.AppriseAPIURL != "" }
 
 // ChannelView is one channel as shown to its owner (URL masked).
 type ChannelView struct {
@@ -162,6 +168,9 @@ func DeleteChannel(d *sql.DB, who *access.Principal, channelID int64) error {
 
 // TestChannel sends a test push through one of the caller's own channels.
 func TestChannel(ctx context.Context, d *sql.DB, cfg settings.Settings, who *access.Principal, channelID int64) error {
+	if !Ready(cfg) {
+		return ErrNoServer
+	}
 	var rawURL string
 	err := db.WithRead(d, func(tx *sql.Tx) error {
 		channel, err := own(tx, who, channelID)
@@ -311,6 +320,11 @@ func quietNow(prefs map[string]any, now time.Time) bool {
 // skipping users currently in their quiet hours. Returns the number of
 // pushes sent (one per channel per user, batched across hints).
 func Dispatch(ctx context.Context, d *sql.DB, cfg settings.Settings) (int, error) {
+	// Without a server nothing is tried: the hints wait until one is set.
+	if !Ready(cfg) {
+		return 0, nil
+	}
+
 	var people []*model.User
 	err := db.WithRead(d, func(tx *sql.Tx) error {
 		all, err := users.All(tx)
@@ -453,7 +467,10 @@ func dispatchUser(ctx context.Context, d *sql.DB, cfg settings.Settings, userID 
 		return 0, err
 	}
 
+	// A hint counts as sent once a push carrying it arrived; the others
+	// are tried again on the next run.
 	sentCount := 0
+	delivered := map[int64]bool{}
 	for _, c := range chans {
 		var batch []hints.View
 		for _, h := range fresh {
@@ -464,13 +481,20 @@ func dispatchUser(ctx context.Context, d *sql.DB, cfg settings.Settings, userID 
 		if len(batch) == 0 {
 			continue
 		}
-		if err := sendBatch(ctx, d, cfg, who, c, batch); err == nil {
-			sentCount++
+		if err := sendBatch(ctx, d, cfg, who, c, batch); err != nil {
+			continue
+		}
+		sentCount++
+		for _, h := range batch {
+			delivered[h.ID] = true
 		}
 	}
 
 	return sentCount, db.WithTx(d, func(tx *sql.Tx) error {
 		for _, h := range fresh {
+			if !delivered[h.ID] {
+				continue
+			}
 			if err := data.TouchSent(tx, userID, h.ID); err != nil {
 				return err
 			}

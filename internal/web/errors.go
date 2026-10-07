@@ -13,6 +13,7 @@ import (
 	"andon/internal/services/hints"
 	"andon/internal/services/hosts"
 	"andon/internal/services/invites"
+	"andon/internal/services/notify"
 	"andon/internal/services/oidc"
 	"andon/internal/services/receipts"
 	"andon/internal/services/selfbackup"
@@ -48,6 +49,9 @@ var knownErrors = []struct {
 	{widgetlib.ErrConnMissing, "widget.connection_missing"},
 	{widgetlib.ErrConnWrongService, "widget.connection_type"},
 	{util.ErrConflict, "error.conflict"},
+	{notify.ErrFailed, "notify.failed"},
+	{notify.ErrInvalidURL, "notify.invalid_url"},
+	{notify.ErrBadTime, "notify.bad_time"},
 }
 
 // errKey returns the catalog key for err, for {{t .Error}} in templates.

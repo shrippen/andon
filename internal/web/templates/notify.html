@@ -15,10 +15,12 @@
     <div class="settings-main">
     <h1>{{t "nav.notify"}}</h1>
     {{template "intro" dict "Page" "notify" "Chapter" "notify" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
-    {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+    {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
+    {{if not .Ready}}<div class="callout callout-warn">{{t "notify.no_server"}}{{if .Ctx.Who.IsAdmin}} <a href="/admin/settings#server">{{t "notify.no_server_fix"}}</a>{{else}} {{t "notify.no_server_ask"}}{{end}}</div>{{end}}
 
     <div class="card">
       <h2>{{t "notify.channels"}}</h2>
+      <p class="small muted">{{t "notify.channels_how"}}</p>
       <p class="small muted">{{t "notify.url_hint"}}</p>
       {{if .Channels}}
       <ul>

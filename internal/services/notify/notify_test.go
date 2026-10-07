@@ -294,3 +294,37 @@ func TestAddChannelRefusesRawHTTP(t *testing.T) {
 		t.Errorf("admin json: %v", err)
 	}
 }
+
+// TestDispatchRetriesUndelivered: a push that never arrived (no Apprise
+// server set, or the server refuses) does not count as sent; the hint
+// goes out once delivery works.
+func TestDispatchRetriesUndelivered(t *testing.T) {
+	d := openTestDB(t)
+	userID := addUser(t, d)
+	who := principalFor(t, d, userID)
+	if err := notify.AddChannel(d, who, "phone", "ntfy://ntfy.example/topic", enums.SeverityInfo, nil); err != nil {
+		t.Fatalf("add channel: %v", err)
+	}
+	if _, err := hints.Sync(d, onlySpace(t, who), nil, nil, []string{"kimai.missing_day"}, []rules.Finding{{
+		Fingerprint: "missing:1", Rule: "kimai.missing_day", Severity: enums.SeverityInfo,
+		Message: "kimai.missing_day", Params: map[string]any{"day": map[string]any{"$day": "2026-03-01"}},
+	}}); err != nil {
+		t.Fatalf("sync hint: %v", err)
+	}
+
+	status := http.StatusInternalServerError
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(status) }))
+	defer srv.Close()
+
+	if n, err := notify.Dispatch(context.Background(), d, settings.Settings{}); err != nil || n != 0 {
+		t.Fatalf("without server: n=%d err=%v", n, err)
+	}
+	if n, err := notify.Dispatch(context.Background(), d, settings.Settings{AppriseAPIURL: srv.URL}); err != nil || n != 0 {
+		t.Fatalf("refused: n=%d err=%v", n, err)
+	}
+
+	status = http.StatusOK
+	if n, err := notify.Dispatch(context.Background(), d, settings.Settings{AppriseAPIURL: srv.URL}); err != nil || n != 1 {
+		t.Fatalf("delivered: n=%d err=%v, want the held-back hint", n, err)
+	}
+}
