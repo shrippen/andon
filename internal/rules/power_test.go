@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/rules"
 	"andon/internal/sources"
 )
@@ -68,5 +69,50 @@ func TestChargeExpensive(t *testing.T) {
 	tib.Current = 0.21
 	if got := run(t, "cross.charge_expensive", nil, env); len(got) != 0 {
 		t.Fatalf("cheap: %+v", got)
+	}
+}
+
+// TestUPSLoad: the hosts behind a UPS (option hosts) need minutes each
+// for a clean shutdown; the runtime now, or the shortest of the last days
+// in the history, must cover them.
+func TestUPSLoad(t *testing.T) {
+	env := todayEnv(nil)
+	env.Datasets = map[string]any{
+		"peanut": &sources.UPSDataset{Tool: enums.ServicePeaNUT, Devices: []sources.UPS{
+			{Name: "rack", Runtime: 1260}, {Name: "desk", Runtime: 1800}, {Name: "spare", Runtime: 600}}},
+	}
+	env.Options = map[string]map[string]any{"peanut": {"hosts": map[string]any{
+		"rack": []any{"nas", "pve", "docker", "ha", "edit"}, // 5 × 5 min > 21 min
+		"desk": []any{"ws"},                                 // 5 min, but 9 min at its worst
+	}}}
+	got := run(t, "cross.ups_load", nil, env)
+	if len(got) != 1 || got[0].Params["name"] != "rack" || got[0].Params["hosts"] != 5 || got[0].Params["minutes"] != 21 || got[0].Params["need"] != 25 {
+		t.Fatalf("now: %+v", got)
+	}
+
+	// desk ran down to 4 minutes yesterday under load.
+	h := &metrics.History{Series: map[string][]metrics.Point{
+		metrics.UPSRuntimeKey("desk"): {{Day: env.Today.AddDate(0, 0, -1), Value: 240}, {Day: env.Today.AddDate(0, 0, -30), Value: 60}}}}
+	env.Datasets[metrics.HistoryDataset] = h
+	got = run(t, "cross.ups_load", nil, env)
+	if len(got) != 2 || got[1].Params["name"] != "desk" || got[1].Params["minutes"] != 4 {
+		t.Fatalf("history: %+v", got)
+	}
+
+	// A plain list holds for every UPS of the connection.
+	env.Options = map[string]map[string]any{"peanut": {"hosts": []any{"a", "b", "c", "d", "e"}}}
+	delete(env.Datasets, metrics.HistoryDataset)
+	if got := run(t, "cross.ups_load", nil, env); len(got) != 2 {
+		t.Fatalf("list: %+v", got)
+	}
+}
+
+// TestUPSLoadDemo: the NAS UPS holds 21 minutes for five hosts.
+func TestUPSLoadDemo(t *testing.T) {
+	env := todayEnv(nil)
+	env.Datasets = map[string]any{"peanut": sources.DemoUPS(time.Now(), enums.ServicePeaNUT)}
+	env.Options = map[string]map[string]any{"peanut": {"hosts": []any{"nebelhorn", "pve", "docker", "homeassistant", "schnitt-ws"}}}
+	if got := run(t, "cross.ups_load", nil, env); len(got) != 1 || got[0].Params["name"] != "nebelhorn-usv" {
+		t.Fatalf("demo: %+v", got)
 	}
 }

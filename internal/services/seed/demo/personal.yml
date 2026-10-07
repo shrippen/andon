@@ -16,6 +16,7 @@ connections:
   - {id: kintsugi, type: kintsugi, name: Kintsugi, url: "demo://kintsugi", credentials: shared}
   - {id: wallos, type: wallos, name: Wallos, url: "demo://wallos", credentials: shared}
   - {id: calendar, type: calendar, name: Kalender, url: "demo://calendar", credentials: shared}
+  - {id: evcc, type: evcc, name: Wallbox, url: "demo://evcc", credentials: shared}
   - id: dawarich
     type: dawarich
     name: Dawarich

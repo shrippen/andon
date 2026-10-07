@@ -7,11 +7,14 @@ package sources
 //	apcupsd   NIS on TCP 3551 (services.ApcupsdStatus): STATUS, BCHARGE, TIMELEFT, LOADPCT …
 //	OpenDTU   GET api/livedata/status → {total{Power,YieldDay,YieldTotal{v}}, inverters[{name,serial,reachable,producing,AC{0{Power{v}}}}]}
 //	EVCC      GET api/state → {pvPower, homePower, grid{power}, battery{soc}, tariffGrid, loadpoints[…], statistics{30d{…}}}
+//	          GET api/sessions → [{created, finished, loadpoint, vehicle, chargedEnergy, price, pricePerKWh}]
 
 import (
 	"context"
+	"math"
 	"net"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -67,6 +70,17 @@ type Loadpoint struct {
 	Mode                string  // off, now, minpv, pv
 }
 
+// EVCCSession is one finished charging session.
+type EVCCSession struct {
+	Loadpoint, Vehicle string
+	Created, Finished  time.Time
+	KWh                float64
+	Price              float64 // cost of the session, 0 unknown
+}
+
+// evccSessionDays is how far back sessions are kept: last month and this.
+const evccSessionDays = 62
+
 // EVCCDataset is EVCC's site now and its last 30 days.
 type EVCCDataset struct {
 	URL            string
@@ -77,6 +91,7 @@ type EVCCDataset struct {
 	ChargedKWh30   float64
 	AvgPrice30     float64
 	SolarPercent30 float64
+	Sessions       []EVCCSession // newest first, the last evccSessionDays
 }
 
 var (
@@ -217,7 +232,37 @@ func fetchEVCC(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	month := asMap(asMap(m["statistics"])["30d"])
 	data.ChargedKWh30, data.AvgPrice30, data.SolarPercent30 = asFloat(month["chargedKWh"]), asFloat(month["avgPrice"]), asFloat(month["solarPercentage"])
+
+	// Sessions are an extra: an EVCC without them still has its state.
+	if raw, err := basicOrNone(sctx).Get(ctx, "api/sessions", nil); err == nil {
+		data.Sessions = evccSessions(raw, time.Now().UTC())
+	}
 	return data, nil
+}
+
+// evccSessions reads the sessions of the last evccSessionDays, newest
+// first; a session without a price costs its energy × price per kWh.
+func evccSessions(raw any, now time.Time) []EVCCSession {
+	list := asList(raw)
+	if inner, wrapped := raw.(map[string]any); wrapped {
+		list = asList(inner["result"]) // EVCC before 0.200
+	}
+	since := now.AddDate(0, 0, -evccSessionDays)
+	var out []EVCCSession
+	for _, item := range list {
+		m := asMap(item)
+		s := EVCCSession{Loadpoint: asStr(m["loadpoint"]), Vehicle: asStr(m["vehicle"]), Created: parseTime(m["created"]),
+			Finished: parseTime(m["finished"]), KWh: asFloat(m["chargedEnergy"]), Price: asFloat(m["price"])}
+		if s.Finished.IsZero() || s.Finished.Before(since) {
+			continue
+		}
+		if s.Price == 0 {
+			s.Price = math.Round(s.KWh*asFloat(m["pricePerKWh"])*centsPerUnit) / centsPerUnit
+		}
+		out = append(out, s)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Finished.After(out[j].Finished) })
+	return out
 }
 
 // ── Demo ──

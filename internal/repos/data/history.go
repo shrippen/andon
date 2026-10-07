@@ -39,6 +39,18 @@ func AddSamples(q db.Queryer, spaceID, owner int64, day string, deltas map[strin
 	return nil
 }
 
+// LowSamples keeps the lowest of today's values, e.g. a UPS's shortest
+// runtime over the day's runs.
+func LowSamples(q db.Queryer, spaceID, owner int64, day string, values map[string]float64) error {
+	for key, v := range values {
+		if _, err := q.Exec(`INSERT INTO samples (space_id, owner, key, day, value) VALUES (?,?,?,?,?)
+			ON CONFLICT (space_id, owner, key, day) DO UPDATE SET value = MIN(value, excluded.value)`, spaceID, owner, key, day, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // SamplesSince returns every series of a space and owner from a day on,
 // oldest first.
 func SamplesSince(q db.Queryer, spaceID, owner int64, since string) (map[string][]SamplePoint, error) {

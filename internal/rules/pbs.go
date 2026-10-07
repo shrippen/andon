@@ -32,6 +32,7 @@ func init() {
 	Register("pbs.datastore_full", pbsSvc, map[string]any{"percent": 90.0}, on(pbsFull))
 	Register("cross.pbs_orphan", Cross, nil, pbsOrphan)
 	Register("cross.pbs_pool", Cross, map[string]any{"percent": 85.0, "gap": 15.0}, pbsPool)
+	Needs("cross.pbs_pool", pbsSvc, string(enums.ServiceTrueNAS))
 }
 
 func pbsPool(_ any, cfg map[string]any, env Env) []Finding {

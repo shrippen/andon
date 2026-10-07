@@ -28,6 +28,7 @@ func init() {
 	Register("drone.failing", droneSvc, map[string]any{"hours": 2.0}, on(droneFailing))
 	Register("cross.release_red_ci", Cross, map[string]any{"days": 14.0}, releaseRedCI)
 	Register("cross.ci_red_deployed", Cross, map[string]any{"days": 7.0}, ciRedDeployed)
+	Needs("cross.ci_red_deployed", komodoSvc, droneSvc, string(enums.ServiceGitHub), string(enums.ServiceGitea))
 }
 
 // ciReposOption is the Komodo option naming each stack's repo when

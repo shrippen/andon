@@ -5,6 +5,7 @@ package analysis
 //
 //	datasets → metrics.Read → Values   → samples (one value per key and day)
 //	                          Counts   → samples, added up per day (monitor uptime)
+//	                          Lows     → samples, the day's lowest (UPS runtime)
 //	                          Versions → versions; a change → events ("update")
 //	                          States   → versions; a change → events ("change")
 //	samples (history.SeriesDays) + events (eventDays) → Datasets["history"]
@@ -38,6 +39,9 @@ func recordHistory(d *sql.DB, sc *scope, now time.Time) (*metrics.History, error
 			return err
 		}
 		if err := data.AddSamples(tx, sc.spaceID, owner, day, read.Counts); err != nil {
+			return err
+		}
+		if err := data.LowSamples(tx, sc.spaceID, owner, day, read.Lows); err != nil {
 			return err
 		}
 		for past, values := range read.Past {

@@ -1480,10 +1480,10 @@ conn:
   options_hint_watchtower: 'URL of the Watchtower HTTP API, e.g. http://watchtower:8080 (start Watchtower with --http-api-metrics). Token = WATCHTOWER_HTTP_API_TOKEN.'
   about_watchtower: 'Automatic updates: checked, updated, failed'
   what_watchtower: 'Watchtower updates running containers automatically as soon as a new image appears.'
-  options_hint_peanut: 'URL of PeaNUT (a UI for NUT), e.g. http://peanut.example.lan:8080. Token empty or user:password (WEB_USERNAME/WEB_PASSWORD).'
+  options_hint_peanut: 'URL of PeaNUT (a UI for NUT), e.g. http://peanut.example.lan:8080. Token empty or user:password (WEB_USERNAME/WEB_PASSWORD). Options: hosts: [nas, pve, docker] names the hosts on the UPS (or per UPS: hosts: {nas-usv: [nas, pve]}); Andon then checks whether the runtime covers their shutdown.'
   about_peanut: 'UPS via NUT: charge, runtime, load'
   what_peanut: 'PeaNUT shows the UPS of a NUT server (Network UPS Tools) in the browser and offers an API.'
-  options_hint_apcupsd: 'Address of the apcupsd network server (NIS), e.g. apcupsd://pi.example.lan:3551. No token; in apcupsd.conf set NETSERVER on and NISIP to an address Andon reaches.'
+  options_hint_apcupsd: 'Address of the apcupsd network server (NIS), e.g. apcupsd://pi.example.lan:3551. No token; in apcupsd.conf set NETSERVER on and NISIP to an address Andon reaches. Options: hosts: [pi, router] names the hosts on the UPS; Andon then checks whether the runtime covers their shutdown.'
   about_apcupsd: 'APC UPS: charge, runtime, load'
   what_apcupsd: 'apcupsd watches APC UPSs and reports their state on the network.'
   options_hint_opendtu: 'URL of OpenDTU, e.g. http://opendtu.example.lan. Token empty, or user:password when read access is protected.'
@@ -2569,6 +2569,12 @@ hint:
     device_uninventoried:
       title: '{count} devices on the network without inventory'
       why: '{names}. No Snipe-IT asset bears these names.'
+    ups_load:
+      title: '{name} is too short for {hosts} hosts'
+      why: 'The UPS holds {minutes} min at {load} % load; shutting down {names} cleanly takes about {need} min. Lower the load, shut hosts down earlier or get a bigger battery.'
+    charge_business:
+      title: 'Charging for business trips {month}: {amount}'
+      why: '{sessions} charging sessions with {kwh} kWh cost {total}; after them the car drove {km} km on business ({share} % of the distance). Reimbursable for a company car, otherwise covered by the km rate.'
     charge_expensive:
       title: '{point} charges at an expensive price'
       why: '{kw} kW from the grid at {price} ct/kWh, the day''s average is {avg} ct. Charge later or switch to solar mode.'
@@ -3291,6 +3297,8 @@ rule_name:
   ups.replace_battery: 'Replace UPS battery'
   opendtu.offline: 'Inverter unreachable'
   cross.charge_expensive: 'Charging at an expensive price'
+  cross.ups_load: 'UPS runtime against hosts'
+  cross.charge_business: 'Charging cost of business trips'
   wud.updates: 'Container updates'
   watchtower.failed: 'Watchtower update failed'
   cross.update_unbacked: 'Update without backup'
@@ -3546,6 +3554,7 @@ param:
   per_core: 'Load per core'
   percent: 'Percent'
   gap: 'Gap (percentage points)'
+  minutes_per_host: 'Minutes per host to shut down'
   seconds: 'Seconds'
   escalate_days: 'Critical after days (0 = never)'
   offline_days: 'Ignore when offline longer than (days)'

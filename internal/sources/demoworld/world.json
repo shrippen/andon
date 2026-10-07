@@ -6861,7 +6861,7 @@
   ]
  },
  "power": {
-  "note": "The NAS UPS (PeaNUT) is fine; the small UPS of the Pi (apcupsd) holds only seven minutes at its load. OpenDTU reads the balcony panels, the garage inverter is unreachable. EVCC charges the studio car at the carport, mostly from the grid.",
+  "note": "The NAS UPS (PeaNUT) is fine; the small UPS of the Pi (apcupsd) holds only seven minutes at its load. OpenDTU reads the balcony panels, the garage inverter is unreachable. EVCC charges the studio car at the carport, mostly from the grid. Its charging sessions of the last two months are listed; after them the car drives Mara to clients and to the Graufeld set.",
   "peanut": {
    "url": "https://peanut.demo",
    "devices": [
@@ -6935,7 +6935,121 @@
     "charged_kwh": 142,
     "avg_price": 0.27,
     "solar_pct": 31
-   }
+   },
+   "sessions": [
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-2d",
+     "finished": "@-1d21h",
+     "kwh": 18.4,
+     "price": 5.7
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-6d",
+     "finished": "@-5d21h",
+     "kwh": 22.1,
+     "price": 6.85
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-10d",
+     "finished": "@-9d21h",
+     "kwh": 15.6,
+     "price": 4.84
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-13d",
+     "finished": "@-12d21h",
+     "kwh": 24.8,
+     "price": 7.69
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-17d",
+     "finished": "@-16d21h",
+     "kwh": 19.9,
+     "price": 6.17
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-21d",
+     "finished": "@-20d21h",
+     "kwh": 12.7,
+     "price": 3.94
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-25d",
+     "finished": "@-24d21h",
+     "kwh": 21.3,
+     "price": 6.6
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-29d",
+     "finished": "@-28d21h",
+     "kwh": 17.5,
+     "price": 5.42
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-33d",
+     "finished": "@-32d21h",
+     "kwh": 25.2,
+     "price": 7.81
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-37d",
+     "finished": "@-36d21h",
+     "kwh": 16.8,
+     "price": 5.21
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-41d",
+     "finished": "@-40d21h",
+     "kwh": 20.6,
+     "price": 6.39
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-46d",
+     "finished": "@-45d21h",
+     "kwh": 23.4,
+     "price": 7.25
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-50d",
+     "finished": "@-49d21h",
+     "kwh": 14.9,
+     "price": 4.62
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-55d",
+     "finished": "@-54d21h",
+     "kwh": 19.2,
+     "price": 5.95
+    }
+   ]
   }
  },
  "esphome": {

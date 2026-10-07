@@ -1480,10 +1480,10 @@ conn:
   options_hint_watchtower: 'URL der Watchtower-HTTP-API, z. B. http://watchtower:8080 (Watchtower mit --http-api-metrics starten). Token = WATCHTOWER_HTTP_API_TOKEN.'
   about_watchtower: 'Automatische Updates: geprüft, aktualisiert, fehlgeschlagen'
   what_watchtower: 'Watchtower aktualisiert laufende Container automatisch, sobald ein neues Image erscheint.'
-  options_hint_peanut: 'URL von PeaNUT (Oberfläche für NUT), z. B. http://peanut.example.lan:8080. Token leer oder benutzer:passwort (WEB_USERNAME/WEB_PASSWORD).'
+  options_hint_peanut: 'URL von PeaNUT (Oberfläche für NUT), z. B. http://peanut.example.lan:8080. Token leer oder benutzer:passwort (WEB_USERNAME/WEB_PASSWORD). Optionen: hosts: [nas, pve, docker] nennt die Hosts an der USV (oder je USV: hosts: {nas-usv: [nas, pve]}); dann prüft Andon, ob die Laufzeit für ihr Herunterfahren reicht.'
   about_peanut: 'USV über NUT: Ladung, Laufzeit, Last'
   what_peanut: 'PeaNUT zeigt die USV eines NUT-Servers (Network UPS Tools) im Browser und bietet eine API.'
-  options_hint_apcupsd: 'Adresse des apcupsd-Netzwerkservers (NIS), z. B. apcupsd://pi.example.lan:3551. Kein Token; in apcupsd.conf NETSERVER on und NISIP auf die Adresse setzen, die Andon erreicht.'
+  options_hint_apcupsd: 'Adresse des apcupsd-Netzwerkservers (NIS), z. B. apcupsd://pi.example.lan:3551. Kein Token; in apcupsd.conf NETSERVER on und NISIP auf die Adresse setzen, die Andon erreicht. Optionen: hosts: [pi, router] nennt die Hosts an der USV; dann prüft Andon, ob die Laufzeit für ihr Herunterfahren reicht.'
   about_apcupsd: 'APC-USV: Ladung, Laufzeit, Last'
   what_apcupsd: 'apcupsd überwacht APC-USVs und meldet ihren Zustand im Netz.'
   options_hint_opendtu: 'URL von OpenDTU, z. B. http://opendtu.example.lan. Token leer, oder benutzer:passwort, wenn der Lesezugriff geschützt ist.'
@@ -2569,6 +2569,12 @@ hint:
     device_uninventoried:
       title: '{count} Geräte im Netz ohne Inventar'
       why: '{names}. Kein Snipe-IT-Asset trägt diesen Namen.'
+    ups_load:
+      title: '{name} reicht nicht für {hosts} Hosts'
+      why: 'Die USV hält {minutes} min bei {load} % Last; {names} sauber herunterzufahren braucht etwa {need} min. Last senken, Hosts früher herunterfahren lassen oder den Akku vergrößern.'
+    charge_business:
+      title: 'Laden für Geschäftsfahrten {month}: {amount}'
+      why: '{sessions} Ladevorgänge mit {kwh} kWh kosteten {total}; danach fuhr der Wagen {km} km geschäftlich ({share} % der Strecke). Beim Firmenwagen erstattungsfähig, sonst mit der km-Pauschale abgegolten.'
     charge_expensive:
       title: '{point} lädt zum teuren Preis'
       why: '{kw} kW aus dem Netz bei {price} ct/kWh, der Tagesschnitt liegt bei {avg} ct. Später laden oder auf PV-Modus stellen.'
@@ -3292,6 +3298,8 @@ rule_name:
   ups.replace_battery: 'USV-Akku tauschen'
   opendtu.offline: 'Wechselrichter nicht erreichbar'
   cross.charge_expensive: 'Laden zum teuren Preis'
+  cross.ups_load: 'USV-Laufzeit gegen Hosts'
+  cross.charge_business: 'Ladekosten für Geschäftsfahrten'
   wud.updates: 'Container-Updates'
   watchtower.failed: 'Watchtower-Update fehlgeschlagen'
   cross.update_unbacked: 'Update ohne Sicherung'
@@ -3547,6 +3555,7 @@ param:
   per_core: 'Last je Kern'
   percent: 'Prozent'
   gap: 'Abstand (Prozentpunkte)'
+  minutes_per_host: 'Minuten je Host zum Herunterfahren'
   seconds: 'Sekunden'
   escalate_days: 'Nach Tagen kritisch (0 = nie)'
   offline_days: 'Offline länger als (Tage) ignorieren'

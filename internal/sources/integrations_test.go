@@ -721,11 +721,23 @@ func TestDemoBackupTools(t *testing.T) {
 }
 
 // TestPowerSources: PeaNUT's NUT flags, OpenDTU's totals and inverters,
-// EVCC's state with and without the old "result" wrapper.
+// EVCC's state with and without the old "result" wrapper, and its
+// charging sessions of the last two months (cost from the price, else
+// energy × price per kWh).
 func TestPowerSources(t *testing.T) {
 	wrapped := false
+	day := func(d int) string { return time.Now().UTC().AddDate(0, 0, -d).Format(time.RFC3339) }
+	sessions := `[{"created":"` + day(3) + `","finished":"` + day(3) + `","loadpoint":"Carport","vehicle":"Kombi","chargedEnergy":20.5,"price":6.15},` +
+		`{"created":"` + day(9) + `","finished":"` + day(9) + `","loadpoint":"Carport","chargedEnergy":10,"pricePerKWh":0.3},` +
+		`{"created":"` + day(90) + `","finished":"` + day(90) + `","loadpoint":"Carport","chargedEnergy":10,"price":3}]`
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case "/api/sessions":
+			if wrapped {
+				w.Write([]byte(`{"result":` + sessions + `}`))
+				return
+			}
+			w.Write([]byte(sessions))
 		case "/api/v1/devices":
 			w.Write([]byte(`[{"peanut.device_id":"nas","device.model":"Eaton","ups.status":"OB LB","battery.charge":"35","battery.runtime":"240","ups.load":"40"}]`))
 		case "/api/livedata/status":
@@ -766,6 +778,9 @@ func TestPowerSources(t *testing.T) {
 		e := raw.(*sources.EVCCDataset)
 		if e.Grid != 3650 || e.BatterySoc != 80 || len(e.Loadpoints) != 1 || e.Loadpoints[0].Charged != 6.4 || e.ChargedKWh30 != 142 {
 			t.Fatalf("evcc (wrapped %v) %+v", w, e)
+		}
+		if len(e.Sessions) != 2 || e.Sessions[0].Price != 6.15 || e.Sessions[0].Vehicle != "Kombi" || e.Sessions[1].Price != 3 || e.Sessions[1].KWh != 10 {
+			t.Fatalf("sessions (wrapped %v) %+v", w, e.Sessions)
 		}
 	}
 }

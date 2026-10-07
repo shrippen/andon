@@ -25,7 +25,7 @@ connections:
   - {id: urbackup, type: urbackup, name: UrBackup, url: "demo://urbackup", credentials: shared}
   - {id: wud, type: wud, name: What's Up Docker, url: "demo://wud", credentials: shared}
   - {id: watchtower, type: watchtower, name: Watchtower, url: "demo://watchtower", credentials: shared}
-  - {id: peanut, type: peanut, name: USV NAS, url: "demo://peanut", credentials: shared}
+  - {id: peanut, type: peanut, name: USV NAS, url: "demo://peanut", credentials: shared, options: {hosts: [nebelhorn, pve, docker, homeassistant, schnitt-ws]}}
   - {id: apcupsd, type: apcupsd, name: USV Pi, url: "demo://apcupsd", credentials: shared}
   - {id: opendtu, type: opendtu, name: OpenDTU, url: "demo://opendtu", credentials: shared}
   - {id: evcc, type: evcc, name: EVCC, url: "demo://evcc", credentials: shared}

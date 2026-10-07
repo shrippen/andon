@@ -128,6 +128,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 **J-C5 Fahrten und Orte**
 1. Board „Reisen“, Detaildialoge.
 2. `/travel/places`: Zuhause zuordnen; ein häufiges Ziel als „privat“ anlegen (Vorbelegung prüfen).
+3. In den ersten sieben Tagen des Monats: Hinweis „Laden für Geschäftsfahrten“ (Wallbox im persönlichen Bereich) nennt Ladevorgänge, kWh, Kosten und den geschäftlichen Anteil; passen die km zu den Fahrten des Vormonats?
 
 **J-C6 Vom Geld-Hinweis zur Lösung**
 1. `/hints?sort=value`, jeder Geld-Hinweis: führt die Aktion an die Stelle, wo man ihn behebt (in Andon, wenn Andon es kann)?
