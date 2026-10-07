@@ -1161,6 +1161,25 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] Quer: ESPHome-Gerät offline gegen Home-Assistant-Entität, `cross.release_unannounced` (Release auf GitHub oder im KDE Store ohne Beitrag mit Link) *(`cross.esphome_ha`: Knoten online, alle seine Entitäten in Home Assistant nicht verfügbar, oder umgekehrt; Entitäten über den Knotennamen. Ein Release gilt als angekündigt, wenn ein eigener Beitrag es verlinkt oder nennt)*
 - [x] Nachtrag: Lemmy (API v3, 0.19) *(Kachel „Lemmy“: ungelesene Antworten und Erwähnungen, beliebte Beiträge der abonnierten Communities, eigene Beiträge; Regel `lemmy.replies`; Anmeldung mit Benutzer und Passwort, Sitzung im Speicher, ohne Zwei-Faktor. Lemmy-Beiträge zählen in `cross.project_mentioned`, eigene in `cross.release_unannounced`)*
 
+### Phase 19: Photovoltaik aus Home Assistant (notiert 08.10.2026)
+
+Ziel: PV-Anlagen (zuerst SMA) auswerten, ohne selbst zu sammeln. Home Assistant liest die Geräte (Kern-Integration `sma` für Webconnect, HACS „SMA Devices Plus“ für ennexOS, Speedwire, Energy Meter) und hält die Langzeitstatistik; Andon fragt sie ab, wertet aus und speichert nur die Auswertung (§13 „Datenhaltung“). Kein SMA-Wissen in Andon: jede PV im HA-Energie-Dashboard zählt. Plan und Quellen: [`research/sunny-portal.md`](research/sunny-portal.md). Ein Schritt = ein PR.
+
+**Schritt 1: WebSocket-API von Home Assistant**
+- [ ] Treiber: anmelden (Token bzw. OAuth-Grant der HA-Verbindung), Befehl senden, Antwort zur `id` lesen; kurzlebig je Abruf *(WebSocket-Code in `internal/drivers/services/infra.go` prüfen, ob teilbar)*
+- [ ] Quelle `HassEnergyData` an der bestehenden HA-Verbindung: `energy/get_prefs` (PV, Netz, Batterie), `recorder/statistics_during_period` (Summen gestern, Monat, Vormonat, Vorjahresmonat), `energy/solar_forecast` (falls vorhanden); ohne Energie-Dashboard Statistik-IDs an der Verbindung wählen (`recorder/list_statistic_ids`)
+
+**Schritt 2: Kennzahlen und Kachel**
+- [ ] `metrics`: Ertrag, Eigenverbrauch, Eigenverbrauchsquote, Autarkie, Batterie-Zyklen, Ertrag gegen Prognose; je Tag ein Wert in `samples` (`Readings.SetOn` für den Vortag)
+- [ ] Strom-Kachel: PV aus HA (Leistung jetzt, Ertrag heute, Eigenverbrauchsquote); Popup mit Tages-, Monats- und Jahresbalken (Ertrag, Eigenverbrauch, Einspeisung; Achsen, Legende, Tooltips), Tageskurve aus der Kurzzeitstatistik
+- [ ] Demowelt `power.hass_energy` (Studio Weber: Dach 9,8 kWp, Speicher, ein Jahr Monatswerte); `QA.md`: PV aus HA anzeigen
+
+**Schritt 3: Regeln**
+- [ ] `solar.yield_low` (Ertrag gestern unter Prognose, ohne Prognose unter gleichen Tagen im Vorjahr), `solar.no_yield` (tagsüber Stunden ohne Ertrag trotz Prognose), `solar.battery_idle` (Speicher ohne Zyklus), `solar.selfuse_drop` (Eigenverbrauchsquote unter Vorjahresmonat)
+- [ ] Quer: `cross.solar_selfuse` (HA × Tibber: Einspeisung zu niedrigem Preis bei teurem Bezug, Ersparnis im Monat); `cross.charge_expensive` nennt PV-Prognose als Alternative; Homelab-Kosten rechnen den PV-Anteil ein
+
+**Offen:** welche SMA-Geräte (bestimmt `sma` oder „SMA Devices Plus“ in HA), HA-Energie-Dashboard eingerichtet, Prognose in HA (Forecast.Solar, Solcast).
+
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 
 Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und angewendet (06.10.2026).
@@ -1501,6 +1520,7 @@ dashboard/
 | Sprache | Deutsch und Englisch, je Benutzer wählbar; Hinweise und E-Mails in der Sprache des Empfängers |
 | IT-Doku | Andon erkennt Lücken zwischen Obsidian und den Compose-Repos, schreibt aber nie in den Vault; Änderungen macht Hansei nach Freigabe (Phase 15) |
 | Visualisierung | Homelable als reine Ansicht auf Regis, von Andon befüllt; Obsidian bleibt die einzige Quelle, Homelables eigene Doku wird nicht genutzt; Live-Status an, keine Benachrichtigungen (Phase 15) |
+| Datenhaltung | Andon sammelt keine Rohdaten. Verlauf liefern die Dienste selbst oder ein Sammler (Home Assistant, InfluxDB, Prometheus); Andon fragt die nötige Spanne ab und speichert nur Auswertungen (ein Wert je Kennzahl und Tag in `samples`). Ausnahmen, weil die Quelle keinen Verlauf hat: kürzeste USV-Laufzeit je Tag (`Readings.Low`) und Läufe der Uptime-Kuma-Monitore (`Readings.Count`). Neue Ausnahmen nur mit Begründung (07.10.2026) |
 | authentik-Gruppen | Bestimmen beim automatischen Anlegen eines Kontos die Start-Rolle und Start-Teams; danach werden Rollen und Teams nur im Dashboard gepflegt, kein Abgleich bei späteren Anmeldungen |
 
 ## 14. Offene Fragen
