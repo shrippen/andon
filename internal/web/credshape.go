@@ -34,6 +34,7 @@ const (
 var defaultURLs = map[enums.ServiceType]string{
 	enums.ServiceGitHub:    "https://api.github.com",
 	enums.ServiceKDEStore:  "https://api.kde-look.org",
+	enums.ServiceNVD:       "https://services.nvd.nist.gov",
 	enums.ServiceTibber:    "https://api.tibber.com/v1-beta/gql",
 	enums.ServiceDWD:       "https://api.brightsky.dev",
 	enums.ServiceTailscale: "https://api.tailscale.com",
@@ -262,6 +263,7 @@ var secretLabels = map[enums.ServiceType]string{
 	enums.ServiceSpeedtest:  "conn.secret_speedtest",
 	enums.ServiceWallos:     "conn.secret_wallos",
 	enums.ServicePrometheus: "conn.secret_prometheus",
+	enums.ServiceNVD:        "conn.secret_nvd",
 }
 
 func secretLabel(service enums.ServiceType) string {

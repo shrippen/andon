@@ -1109,8 +1109,8 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] Quer: Alerts je Host (Label `instance`) auf der Host-Seite; Alert und Uptime-Kuma-Ausfall desselben Hosts als ein Hinweis *(kritische Alerts sind ein Signal für `system.outage`, der einzelne Alert wird dann unterdrückt)*
 
 **Schritt 4: CVE** (NVD-API, Schlüssel optional)
-- [ ] Quelle: neue CVEs zu den Images der Compose-Stacks (Name des Images als Suchwort), mit CVSS und betroffenen Versionen; Kachel „Sicherheitslücken“
-- [ ] Quer: `cross.image_cve` (laufendes Image, Tag im betroffenen Bereich: betroffen; sonst prüfen), verschärft, wenn Pangolin den Dienst öffentlich macht (`exposure`); Treffer auf der Host-Seite
+- [x] Quelle: neue CVEs mit CVSS und betroffenen Versionen; Kachel „Sicherheitslücken“ *(Verbindung `nvd`: alle hohen und kritischen CVEs der letzten 30 Tage, ohne Suchwortliste; der Abgleich mit den Images läuft quer, `metrics.ImageCVEs`)*
+- [x] Quer: `cross.image_cve` (laufendes Image, Tag im betroffenen Bereich: betroffen; sonst prüfen), verschärft, wenn Pangolin den Dienst öffentlich macht (`exposure`); Treffer auf der Host-Seite
 
 **Schritt 5: CI** (Drone; GitHub Actions und Gitea Actions der vorhandenen Verbindungen)
 - [ ] Quelle Drone (`/api/user/repos?latest=true`, Builds je Repo); Verlauf der Läufe auch für GitHub und Gitea; Kachel „CI-Läufe“ (Repo, Zweig, Verlauf als Streifen)

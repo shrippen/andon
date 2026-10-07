@@ -8,6 +8,7 @@
 //	         ├─ certificate          ends 06.10.2026
 //	         ├─ Prometheus alert     HostHighCpuLoad (instance nas:9100)
 //	         ├─ heartbeat            borg-nas (a check tagged with the host's first label: "nas")
+//	         ├─ CVE                  CVE-2026-41207 hits gitea/gitea:1.24 (Docker or compose stack on it)
 //	         └─ hints of these connections
 package hosts
 
@@ -17,6 +18,7 @@ import (
 	"errors"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -61,6 +63,7 @@ type Host struct {
 	Certs    []sources.Cert
 	Alerts   []sources.PromAlert // firing
 	Beats    []sources.Heartbeat
+	CVEs     []metrics.CVEMatch
 	Hints    []hints.View
 	Problems int // failed services, monitors down, failing certificates
 }
@@ -133,6 +136,8 @@ func collect(ctx context.Context, d *sql.DB, who *access.Principal) (map[string]
 	var certs []*sources.CertDataset
 	var proms []*sources.PrometheusDataset
 	var beats []*sources.HealthchecksDataset
+	var nvd *sources.NVDDataset
+	running := map[string]any{} // Docker and Gitea datasets, for the images in use
 	for _, c := range conns {
 		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(c.Service)), nil, c, model.UserHolder(uid), svcdata.Stored)
 		if err != nil || res.Pending {
@@ -147,6 +152,10 @@ func collect(ctx context.Context, d *sql.DB, who *access.Principal) (map[string]
 			proms = append(proms, data)
 		case *sources.HealthchecksDataset:
 			beats = append(beats, data)
+		case *sources.NVDDataset:
+			nvd = data
+		case *sources.DockerDataset, *sources.GiteaDataset:
+			running[strconv.FormatInt(c.ID, 10)] = data
 		}
 		name := rules.HostOf(c.URL)
 		if name == "" {
@@ -188,6 +197,9 @@ func collect(ctx context.Context, d *sql.DB, who *access.Principal) (map[string]
 	}
 	addAlerts(out, proms)
 	addBeats(out, beats)
+	if nvd != nil {
+		addCVEs(out, metrics.ImageCVEs(metrics.RunningImages(running), nvd.CVEs))
+	}
 	return out, nil
 }
 
@@ -220,6 +232,24 @@ func addBeats(out map[string]*Host, beats []*sources.HealthchecksDataset) {
 				}
 				h.Beats = append(h.Beats, c)
 			}
+		}
+	}
+}
+
+// addCVEs puts each match on the host its image runs on (same first label:
+// a stack of host "boje" → boje.lan); an affected image is a problem.
+func addCVEs(out map[string]*Host, matches []metrics.CVEMatch) {
+	for name, h := range out {
+		label, _, _ := strings.Cut(name, ".")
+		for _, m := range matches {
+			imgLabel, _, _ := strings.Cut(m.Image.Host, ".")
+			if imgLabel == "" || !strings.EqualFold(imgLabel, label) {
+				continue
+			}
+			if m.State == metrics.CVEAffected {
+				h.Problems++
+			}
+			h.CVEs = append(h.CVEs, m)
 		}
 	}
 }

@@ -41,6 +41,7 @@ action:
   open_in_kdestore: 'Im KDE Store öffnen'
   open_in_healthchecks: 'In Healthchecks öffnen'
   open_in_prometheus: 'In Prometheus öffnen'
+  open_in_nvd: 'In der NVD öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
   close: Schließen
   open_in_jsonapi: API öffnen
@@ -869,6 +870,9 @@ wtype:
   prometheus_value:
     name: 'Prometheus-Wert'
     desc: 'Ein PromQL-Ausdruck als Zahl, mit Verlauf der letzten Stunden und Warnschwelle.'
+  vulnerabilities:
+    name: 'Sicherheitslücken'
+    desc: 'Neue CVEs, die ein laufendes Image treffen: Docker-Container und Compose-Stacks gegen die NVD.'
   speedtest:
     name: 'Internet-Geschwindigkeit'
     desc: 'Letzte Messung aus Speedtest Tracker.'
@@ -1279,6 +1283,10 @@ conn:
   about_prometheus: 'Alerts als Hinweise, PromQL-Werte'
   what_prometheus: 'Prometheus sammelt Messwerte (etwa über node_exporter) und löst nach Regeln Alerts aus.'
   secret_prometheus: 'Token oder benutzer:passwort (leer = ohne Anmeldung)'
+  options_hint_nvd: 'URL bleibt https://services.nvd.nist.gov. API-Schlüssel optional (nvd.nist.gov/developers/request-an-api-key), ohne ihn erlaubt die NVD 5 Abfragen in 30 Sekunden. Option days: so viele Tage zurück (Standard 30, höchstens 120). Gelesen werden CVEs der Stufen hoch und kritisch; abgeglichen wird mit den Images aus Docker und den Compose-Stacks (Gitea) desselben Bereichs.'
+  about_nvd: 'Neue CVEs gegen laufende Images'
+  what_nvd: 'Die National Vulnerability Database (NIST) veröffentlicht jede bekannte Sicherheitslücke (CVE) mit Bewertung und betroffenen Versionen.'
+  secret_nvd: 'API-Schlüssel (optional)'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
   health: 'Zustand'
@@ -1494,6 +1502,7 @@ service:
   kdestore: 'KDE Store'
   healthchecks: 'Healthchecks'
   prometheus: 'Prometheus'
+  nvd: 'CVE (NVD)'
   tibber: 'Tibber (Strom)'
   links: Kacheln
   jsonapi: Eigene API (JSON)
@@ -2130,6 +2139,12 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
   cross:
+    image_cve:
+      title: '{id} trifft {where}'
+      why: 'CVSS {score}. {image} liegt im betroffenen Bereich, behoben in {fixed}. {public}{summary}'
+    image_cve_check:
+      title: '{id}: {where} prüfen'
+      why: 'CVSS {score}. {image} nennt keine Version; betroffen bis {fixed}. {public}{summary}'
     heartbeat_ok_backup_not:
       title: '{check} meldet OK, die Sicherung nicht'
       why: '{tool} „{item}“: letzte erfolgreiche Sicherung {day}, der Job meldet sich trotzdem. Er pingt wohl auch, wenn die Sicherung scheitert.'
@@ -2522,6 +2537,8 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
+  nvd:
+    read: '{count} CVEs in {days} Tagen'
   prometheus:
     alerts: '{count} Alerts'
     critical: '{count} kritisch'
@@ -2755,6 +2772,7 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  cross.image_cve: 'Sicherheitslücke in laufendem Image'
   prometheus.alert: 'Prometheus-Alert'
   heartbeat.down: 'Herzschlag fehlt'
   cross.heartbeat_backup: 'Herzschlag gegen Sicherung'
@@ -4714,6 +4732,29 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image-Updates: {n}'
   alerts: 'Warnungen: {n}'
+cve:
+  public: 'Der Dienst ist über Pangolin öffentlich erreichbar. '
+  affected: 'betroffen'
+  check: 'prüfen'
+  read: 'CVEs in {days} Tagen'
+  images: 'Images im Einsatz'
+  matches: 'Treffer'
+  none: 'Keine der neuen CVEs trifft ein laufendes Image.'
+  tile_affected: 'betroffen'
+  tile_check: '{n} prüfen'
+  tile_none: '{n} Images, keine Treffer in {days} Tagen'
+  more: '+{n} weitere'
+  state:
+    affected: 'betroffen'
+    check: 'Version prüfen'
+  col:
+    id: 'CVE'
+    image: 'Image'
+    where: 'Wo'
+    host: 'Host'
+    score: 'CVSS'
+    state: 'Stand'
+    fixed: 'Behoben in'
 prometheus:
   above: 'über {n}'
   below: 'unter {n}'
@@ -5534,6 +5575,7 @@ clients:
   projects: 'Projekte dieses Jahr'
   no_hints: 'Keine offenen Hinweise zu diesem Kunden.'
 hosts:
+  cves: 'Sicherheitslücken'
   alerts: 'Prometheus-Alerts'
   beats: 'Herzschläge'
   host: 'Host'

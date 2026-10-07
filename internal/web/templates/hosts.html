@@ -64,6 +64,9 @@
     {{with $h.Alerts}}<h2>{{t "hosts.alerts"}}</h2>
     <ul class="legend-list">{{range .}}<li data-tier="{{if eq .Severity "critical"}}red{{else if eq .Severity "warning"}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><span>{{.Name}}{{with .Summary}} <small class="muted">{{.}}</small>{{end}}</span><b>{{ago .Since}}</b></li>{{end}}</ul>{{end}}
 
+    {{with $h.CVEs}}<h2>{{t "hosts.cves"}}</h2>
+    <ul class="legend-list">{{range .}}<li data-tier="{{if eq .State "affected"}}red{{else}}yellow{{end}}"><span class="sq" aria-hidden="true"></span><span><a href="https://nvd.nist.gov/vuln/detail/{{.CVE.ID}}" target="_blank" rel="noopener noreferrer">{{.CVE.ID}}</a> <small class="muted">{{.Image.Image}} · {{.Image.Where}}</small></span><b>{{num .CVE.Score 1}} · {{t (print "cve.state." .State)}}</b></li>{{end}}</ul>{{end}}
+
     {{with $h.Beats}}<h2>{{t "hosts.beats"}}</h2>
     <ul class="legend-list">{{range .}}<li data-tier="{{if eq .Status "down"}}red{{else if eq .Status "grace"}}yellow{{else if eq .Status "up"}}green{{end}}"><span class="sq" aria-hidden="true"></span><span>{{.Name}}</span><b>{{t (print "heartbeat.state." .Status)}}{{if not .LastPing.IsZero}} · {{ago .LastPing}}{{end}}</b></li>{{end}}</ul>{{end}}
 
