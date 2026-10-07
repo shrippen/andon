@@ -782,8 +782,13 @@ func TestWidgetFragmentRendersRssFeed(t *testing.T) {
 	login(t, srv, client)
 
 	var hits atomic.Int32
+	var pathsMu sync.Mutex
+	var paths []string
 	feed := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hits.Add(1)
+		pathsMu.Lock()
+		paths = append(paths, r.Method+" "+r.URL.String()+" "+r.UserAgent())
+		pathsMu.Unlock()
 		w.Write([]byte(`<rss version="2.0"><channel><title>T</title>
 <item><title>First post</title><link>https://example.org/1</link></item>
 </channel></rss>`))
@@ -836,7 +841,9 @@ func TestWidgetFragmentRendersRssFeed(t *testing.T) {
 	mustGet(t, srv, client, "/widget-fragments/"+string(placementMatch[1])+"?refresh")
 	mustGet(t, srv, client, "/widget-fragments/"+string(placementMatch[1])+"?refresh")
 	if n := hits.Load() - before; n > 1 {
-		t.Fatalf("two refreshes fetched %d times", n)
+		pathsMu.Lock()
+		defer pathsMu.Unlock()
+		t.Fatalf("two refreshes fetched %d times: %q", n, paths)
 	}
 }
 
