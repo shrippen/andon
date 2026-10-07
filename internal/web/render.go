@@ -53,6 +53,7 @@ func mustParse() *template.Template {
 		"clockDate":    func(string) string { return "" },
 		"tt":           func(string, map[string]any) string { return "" },
 		"tv":           func(any) string { return "" },
+		"tvs":          func([]any) string { return "" },
 		"here":         func(string) bool { return false },
 		"at":           func(string) bool { return false },
 		"fragment":     func(*tileBody) (template.HTML, error) { return "", nil },
@@ -329,6 +330,15 @@ func newPageSet() *pageSet {
 				return ""
 			}
 			return fmt.Sprint(i18n.Typed(map[string]any{"v": v}, st.locale)["v"])
+		},
+		// tvs joins values as tv shows them, "|"-separated like nums: the
+		// x labels of a chart line's hover.
+		"tvs": func(vs []any) string {
+			out := make([]string, len(vs))
+			for i, v := range vs {
+				out[i] = fmt.Sprint(i18n.Typed(map[string]any{"v": v}, st.locale)["v"])
+			}
+			return strings.Join(out, "|")
 		},
 		"fragment": set.fragment,
 	})

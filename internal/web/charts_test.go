@@ -84,3 +84,38 @@ func TestColsNiceAxis(t *testing.T) {
 		t.Fatalf("axis %v", g.Axis)
 	}
 }
+
+// TestXTicks: labels per value spread five ticks over the x axis, the
+// given end ticks ("today") stay; without labels the ticks are as given.
+func TestXTicks(t *testing.T) {
+	c := widgets.ColGraph(make([]float64, 9), "s1")
+	for i := range 9 {
+		c.Labels = append(c.Labels, string(rune('a'+i)))
+	}
+	c.Ticks = []any{"start", "today"}
+	got := geomOf(c).Ticks
+	if len(got) != 5 || got[0] != "start" || got[1] != "c" || got[2] != "e" || got[4] != "today" {
+		t.Fatalf("ticks %v", got)
+	}
+
+	c.Labels = nil
+	if got := geomOf(c).Ticks; len(got) != 2 {
+		t.Fatalf("plain ticks %v", got)
+	}
+}
+
+// TestHoverLabels: a bar carries its x label, the line hover the labels
+// of the first series' drawn points (gaps left out).
+func TestHoverLabels(t *testing.T) {
+	b := widgets.ColGraph([]float64{2, 4}, "s1")
+	b.Labels = []any{"Mo", "Di"}
+	if got := geomOf(b).Bars[1].Label; got != "Di" {
+		t.Fatalf("bar label %v", got)
+	}
+
+	l := widgets.LineGraph(widgets.Series{Values: []float64{1, widgets.Gap, 4}, Class: "s1"})
+	l.Labels = []any{"a", "b", "c"}
+	if got := geomOf(l).Labels; len(got) != 2 || got[1] != "c" {
+		t.Fatalf("line labels %v", got)
+	}
+}

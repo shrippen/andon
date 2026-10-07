@@ -193,7 +193,7 @@ func kimaiWeekDetail(cfg KimaiWeekConfig, data *sources.KimaiDataset, ctx ViewCt
 		ticks = append(ticks, TxtA("detail.kimai.kw", "n", isoWeek(weekStart(today).AddDate(0, 0, -weekDays*back))))
 	}
 	g := ColGraph(sums, "s4")
-	g.Ticks = ticks
+	g.Ticks, g.Labels = ticks, ticks
 	if week := data.Contract.WeekMinutes(); week > 0 {
 		g.Goal, g.HasGoal = float64(week)/minutesPerHour, true
 	}
@@ -357,6 +357,7 @@ func unbilledAgeDetail(cfg AgingConfig, data *sources.KimaiDataset, ctx ViewCtx,
 	if open := dailySeries(historyOf(results), metrics.SampleKey("kimai", "unbilled"), now, historyDetailDays); hasValues(open) {
 		g := LineGraph(Series{Values: open, Class: "s4"})
 		g.Lo, g.Ticks = 0, spanTicks(now, historyDetailDays)
+		g.Labels = dayLabels(now, historyDetailDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.aging.history"), Data: g})
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
@@ -412,6 +413,7 @@ func kintsugiDetail(cfg PickConfig, data *sources.KintsugiDataset, ctx ViewCtx, 
 	if rate := dailySeries(historyOf(results), metrics.SampleKey("kintsugi", "rate"), now, historyDetailDays); hasValues(rate) {
 		g := LineGraph(Series{Values: rate, Class: "s2"})
 		g.Lo, g.Hi, g.Ticks = 0, percentScale, spanTicks(now, historyDetailDays)
+		g.Labels = dayLabels(now, historyDetailDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.kintsugi.rate_history"), Data: g})
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)

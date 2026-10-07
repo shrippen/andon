@@ -85,6 +85,7 @@ func energyMonths(h *metrics.History, now time.Time) (Block, bool) {
 		g.Series = append(g.Series, Series{Values: prev, Class: "s1", Label: T("detail.energy.months_prev")})
 	}
 	g.Ticks = []any{now.AddDate(0, 1-monthsPerYear, 0).Format(monthTick), now.Format(monthTick)}
+	g.Labels = monthLabels(now, monthsPerYear, monthTick)
 	return Block{Kind: BlockGraph, Label: T("detail.energy.months"), Data: g}, true
 }
 
@@ -171,6 +172,9 @@ func energyGraph(prices []sources.PricePoint, now time.Time, window cheapWindow)
 		}
 	}
 	zone := clockZone()
+	for _, p := range prices {
+		g.Labels = append(g.Labels, p.At.In(zone).Format(timeOfDay))
+	}
 	first, last := prices[0].At.In(zone), prices[len(prices)-1].At.In(zone)
 	g.Ticks = []any{first.Format(timeOfDay), last.Format(timeOfDay)}
 	if first.Format(isoDate) != last.Format(isoDate) {
@@ -362,6 +366,9 @@ func hassHistory(rows []HassRow, h *sources.HassHistory, now time.Time) []Block 
 		if values, numeric := hassNumbers(states); numeric {
 			g := LineGraph(Series{Values: values, Class: "s1"})
 			g.Ticks = []any{start.In(clockZone()).Format(timeOfDay), now.In(clockZone()).Format(timeOfDay)}
+			for i := range values {
+				g.Labels = append(g.Labels, start.Add(time.Duration(i+1)*time.Hour).In(clockZone()).Format(timeOfDay))
+			}
 			g.Unit = r.Unit
 			out = append(out, Block{Kind: BlockGraph, Label: Plain(strings.TrimSpace(r.Name + " " + r.Unit)), Data: g})
 			continue
@@ -452,10 +459,17 @@ func weatherDetail(cfg WeatherConfig, results map[string]any, ctx ViewCtx) Detai
 		if t, err := time.ParseInLocation("2006-01-02T15:04", data.Hours[len(data.Hours)-1].At, zone); err == nil {
 			ticks[1] = t.Format(timeOfDay)
 		}
+		// The hours' clock times for the hover, "" where unreadable.
+		hours := make([]any, len(data.Hours))
+		for i, h := range data.Hours {
+			if t, err := time.ParseInLocation("2006-01-02T15:04", h.At, zone); err == nil {
+				hours[i] = t.Format(timeOfDay)
+			}
+		}
 		temp := LineGraph(Series{Values: temps, Class: "s5"})
-		temp.Ticks, temp.Unit = ticks, unit
+		temp.Ticks, temp.Unit, temp.Labels = ticks, unit, hours
 		chance := ColGraph(rain, "s1")
-		chance.Lo, chance.Hi, chance.Ticks = 0, percentScale, ticks
+		chance.Lo, chance.Hi, chance.Ticks, chance.Labels = 0, percentScale, ticks, hours
 		body.Blocks = append(body.Blocks, pairOf([]Block{{Kind: BlockGraph, Label: T("weather.next_hours"), Meta: unit, Data: temp},
 			{Kind: BlockGraph, Label: T("weather.rain_chance"), Meta: "%", Data: chance}})...)
 	}
@@ -574,6 +588,9 @@ func ratesDetail(cfg RatesConfig, results map[string]any, _ ViewCtx) DetailView 
 		}
 		if g, found := marketLines(names, lines); found {
 			g.Ticks = []any{DayS(h.Days[0]), DayS(h.Days[len(h.Days)-1])}
+			for _, day := range h.Days {
+				g.Labels = append(g.Labels, DayS(day))
+			}
 			body.Blocks = append([]Block{{Kind: BlockGraph, Label: T("detail.rates.history"), Meta: Txt("detail.market.indexed"), Hero: true, Data: g}}, body.Blocks...)
 		}
 	}

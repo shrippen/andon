@@ -257,16 +257,16 @@
 <div class="chart-frame">
 <div class="chart-axis"><span class="unit">{{$u}}</span>{{range $g.Axis}}<span>{{num . $g.Prec}}</span>{{end}}<span></span></div>
 <div class="chart-wrap" data-readout>
-<svg class="chart" viewBox="0 0 {{$g.W}} {{$g.H}}" preserveAspectRatio="none" role="img" aria-hidden="true"{{with $u}} data-unit=" {{.}}"{{end}}>
+<svg class="chart" viewBox="0 0 {{$g.W}} {{$g.H}}" preserveAspectRatio="none" role="img" aria-hidden="true"{{with $u}} data-unit=" {{.}}"{{end}}{{with $g.Labels}} data-labels="{{tvs .}}"{{end}}>
   {{range $g.Grid}}<line class="grid" x1="0" x2="{{$g.W}}" y1="{{.}}" y2="{{.}}"/>{{end}}
-  {{range $g.Bars}}<rect class="{{.Class}}" x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}"{{with .Colour}} data-style="--c:var(--{{.}})"{{end}} data-tip="{{num .Value $g.Prec}}{{with $u}} {{.}}{{end}}"/>{{end}}
+  {{range $g.Bars}}<rect class="{{.Class}}" x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}"{{with .Colour}} data-style="--c:var(--{{.}})"{{end}} data-tip="{{with .Label}}{{tv .}} · {{end}}{{num .Value $g.Prec}}{{with $u}} {{.}}{{end}}"/>{{end}}
   {{with $g.Goal}}<line class="goal{{if $.GoalDanger}} is-danger{{end}}" x1="0" x2="{{$g.W}}" y1="{{.}}" y2="{{.}}"/>{{end}}
   {{range $g.Lines}}<path class="{{.Class}}" d="{{.D}}" data-values="{{nums .Values $g.Prec}}"/>{{end}}
   {{with $g.Mark}}<line class="now" x1="{{.}}" x2="{{.}}" y1="0" y2="{{$g.H}}"/>{{end}}
 </svg>
 <span class="readout"></span>
 </div>
-{{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
+{{with $g.Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
 </div>
 {{if graphLegend .}}<ul class="legend">{{$cols := eq (print .Kind) "cols"}}{{range $i, $s := .Series}}{{if .Label}}<li><i{{if and $cols (eq $i 1)}} class="prev"{{end}} data-style="--c:var(--{{seriesVar .Class}})"></i>{{tv .Label}}</li>{{end}}{{end}}{{if .HasGoal}}<li><i class="goal{{if .GoalDanger}} is-danger{{end}}"></i>{{t "detail.goal"}}</li>{{end}}</ul>{{end}}
 {{end}}

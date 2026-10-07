@@ -52,6 +52,9 @@ func dnsDetail(_ DNSConfig, data *sources.DNSFilterDataset, ctx ViewCtx, results
 		}
 		g := LineGraph(Series{Values: total, Class: "s1", Label: Txt("detail.dns.queries")}, Series{Values: blocked, Class: "s2", Label: Txt("detail.dns.blocked")})
 		g.Lo, g.Ticks = 0, []any{TxtA("detail.hours_ago", "n", len(total)), Txt("detail.now")}
+		for i := range total {
+			g.Labels = append(g.Labels, TxtA("detail.hours_ago", "n", len(total)-i))
+		}
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.dns.per_hour"), Hero: true, Data: g})
 	}
 	if data.Enabled {
@@ -85,6 +88,7 @@ func dnsDetail(_ DNSConfig, data *sources.DNSFilterDataset, ctx ViewCtx, results
 	if len(series) > 0 {
 		g := LineGraph(series...)
 		g.Lo, g.Ticks = 0, spanTicks(now, speedDetailDays)
+		g.Labels = dayLabels(now, speedDetailDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.dns.per_day"), Data: g})
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
@@ -152,6 +156,7 @@ func gatewayDetail(_ GatewayConfig, data *sources.GatewayDataset, ctx ViewCtx, r
 	if len(series) > 0 {
 		g := LineGraph(series...)
 		g.Lo, g.Ticks = 0, spanTicks(now, linkDays)
+		g.Labels = dayLabels(now, linkDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.gateway.delay_days"), Meta: "ms", Data: g})
 	}
 	if fresh := metrics.NewLeases(hist, now, newLeaseDays); len(fresh) > 0 {
@@ -185,6 +190,7 @@ func speedDetail(_ SpeedConfig, data *sources.SpeedtestDataset, ctx ViewCtx, res
 	if hasValues(down) {
 		g := LineGraph(Series{Values: down, Class: "s1", Label: "↓"}, Series{Values: upS, Class: "s2", Label: "↑"})
 		g.Lo, g.Ticks, g.Unit = 0, spanTicks(now, speedDetailDays), "Mbit/s"
+		g.Labels = dayLabels(now, speedDetailDays)
 		if data.ExpectDown > 0 {
 			g.Goal, g.HasGoal = data.ExpectDown, true
 		}
@@ -247,6 +253,7 @@ func speedHistoryDetail(cfg SpeedHistoryConfig, results map[string]any, ctx View
 			{Value: slow, Label: T("detail.speed.slow_days"), Tier: tierIf(slow > 0, "yellow", "green")}}
 		g := ColGraph(down, "s1")
 		g.States, g.Ticks, g.Unit = states, spanTicks(now, days), "Mbit/s"
+		g.Labels = dayLabels(now, days)
 		if expect > 0 {
 			g.Goal, g.HasGoal = expect, true
 		}
@@ -489,6 +496,9 @@ func authentikDetail(cfg AuthentikConfig, data *sources.AuthentikDataset, ctx Vi
 		}
 		g := LineGraph(Series{Values: logins, Class: "s1", Label: Txt("detail.authentik.logins")}, Series{Values: failed, Class: "s2", Label: Txt("detail.authentik.failures")})
 		g.Lo, g.Ticks = 0, []any{DayS(data.Days[0].Day), DayS(data.Days[len(data.Days)-1].Day)}
+		for _, d := range data.Days {
+			g.Labels = append(g.Labels, DayS(d.Day))
+		}
 		body.Blocks = append([]Block{{Kind: BlockGraph, Label: T("detail.authentik.per_day"), Hero: true, Data: g}}, body.Blocks...)
 	}
 	h := DetailHead{State: "ok", StateKey: "detail.authentik.current"}

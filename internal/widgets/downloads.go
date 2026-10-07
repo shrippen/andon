@@ -185,6 +185,7 @@ func downloadsSheet(cfg DownloadsConfig, kind downloadsKind, data sources.Downlo
 		body.Facts = append(body.Facts, Kpi{Value: Num(gain/float64(days), 0), Label: T("detail.downloads.per_day")})
 		g := ColGraph(daily, "s1")
 		g.Ticks = spanTicks(now, cfg.Days)
+		g.Labels = dayLabels(now, cfg.Days)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.downloads.per_day"), Hero: true, Data: g,
 			Meta: TxtA("detail.downloads.best", "n", int(best), "day", Day(metrics.Today(now).AddDate(0, 0, bestDay-(cfg.Days-1))))})
 	} else {

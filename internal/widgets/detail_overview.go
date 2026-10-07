@@ -98,6 +98,7 @@ func connHealthDetail(_ ConnHealthConfig, results map[string]any, ctx ViewCtx) D
 		}
 		g := LineGraph(Series{Values: okDays, Class: "s1", Label: Txt("detail.conn.ok")}, Series{Values: failDays, Class: "s2", Label: Txt("detail.conn.failed")})
 		g.Lo, g.Ticks = 0, ticks
+		g.Labels = dayLabels(todayOf(ctx), ConnHealthDays)
 		facts := Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: [][]Cell{
 			{{Value: Txt("detail.conn.service")}, {Value: s.Service}},
 			{{Value: Txt("detail.conn.last_error")}, {Value: cmp.Or(s.LastError, "–"), State: stateIf(s.LastError != "", "warn")}},
@@ -295,6 +296,7 @@ func noiseDetail(_ NoiseConfig, results map[string]any, ctx ViewCtx) DetailView 
 	}
 	g := ColGraph(daily, "s4")
 	g.Ticks = spanTicks(todayOf(ctx), len(daily))
+	g.Labels = dayLabels(todayOf(ctx), len(daily))
 	body.Blocks = []Block{{Kind: BlockGraph, Label: T("detail.noise.per_day"), Data: g}}
 	if len(flaps) > 0 {
 		body.Blocks = append(body.Blocks, settings...)
@@ -334,6 +336,7 @@ func hintTrendDetail(_ NoiseConfig, results map[string]any, ctx ViewCtx) DetailV
 	if len(series) > 0 {
 		g := LineGraph(series...)
 		g.Lo, g.Ticks = 0, spanTicks(todayOf(ctx), len(data.Daily))
+		g.Labels = dayLabels(todayOf(ctx), len(data.Daily))
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.trend.open"), Hero: true, Data: g})
 	}
 	daily := make([]float64, len(data.Daily))
@@ -342,6 +345,7 @@ func hintTrendDetail(_ NoiseConfig, results map[string]any, ctx ViewCtx) DetailV
 	}
 	g := ColGraph(daily, "s4")
 	g.Ticks = spanTicks(todayOf(ctx), len(daily))
+	g.Labels = dayLabels(todayOf(ctx), len(daily))
 	body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.noise.per_day"), Data: g})
 	return DetailView{Body: body}
 }
