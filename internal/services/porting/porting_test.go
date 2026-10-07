@@ -386,3 +386,23 @@ func TestDashyImportTrendsSport(t *testing.T) {
 		t.Fatalf("configs: %+v %+v", trends, sport)
 	}
 }
+
+// TestBoardExportCarriesTiles: a board's export holds its tiles, so an
+// import into another space brings them along (it dropped them all).
+func TestBoardExportCarriesTiles(t *testing.T) {
+	d := setup(t)
+	a, spaceA := user(t, d, "a@x.de")
+	b, spaceB := user(t, d, "b@x.de")
+	if _, err := porting.ImportDashy(d, a, spaceA, dashy); err != nil {
+		t.Fatal(err)
+	}
+	visible, _ := boards.Visible(d, a)
+	text, err := porting.ExportBoard(d, a, visible[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	report, err := porting.ImportSpace(d, b, spaceB, text, porting.Merge)
+	if err != nil || report.Boards != 1 || report.Widgets != 5 || len(report.Skipped) != 0 {
+		t.Fatalf("import of a board export: %+v %v\n%s", report, err, text)
+	}
+}

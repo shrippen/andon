@@ -95,6 +95,19 @@ func widgetRef(w *model.Widget, home int64, spaces map[int64]*model.Space) strin
 	}
 }
 
+// widgetDoc is a tile's definition in an export, without secrets; its
+// connection by key.
+func widgetDoc(w *model.Widget, connKeys map[int64]string) map[string]any {
+	item := map[string]any{"id": w.Key, "type": w.Type, "title": w.Title, "config": util.StripSecrets(w.Config)}
+	if w.ConnectionID != nil {
+		item["connection"] = connKeys[*w.ConnectionID]
+	}
+	if w.MinTeamRole != nil {
+		item["min_team_role"] = string(*w.MinTeamRole)
+	}
+	return item
+}
+
 func boardDoc(b *model.Board, spaces map[int64]*model.Space) map[string]any {
 	sections := []any{}
 	for _, sec := range b.Sections {
@@ -206,14 +219,7 @@ func ExportSpace(d *sql.DB, who *access.Principal, spaceID int64) (string, error
 		}
 		widgetDocs := []any{}
 		for _, w := range list {
-			item := map[string]any{"id": w.Key, "type": w.Type, "title": w.Title, "config": util.StripSecrets(w.Config)}
-			if w.ConnectionID != nil {
-				item["connection"] = connKeys[*w.ConnectionID]
-			}
-			if w.MinTeamRole != nil {
-				item["min_team_role"] = string(*w.MinTeamRole)
-			}
-			widgetDocs = append(widgetDocs, item)
+			widgetDocs = append(widgetDocs, widgetDoc(w, connKeys))
 		}
 
 		boards, err := content.Boards(tx, []int64{spaceID})
@@ -682,7 +688,27 @@ func ExportBoard(d *sql.DB, who *access.Principal, boardID int64) (string, error
 		for _, sp := range all {
 			spaces[sp.ID] = sp
 		}
-		doc = map[string]any{"boards": []any{boardDoc(board, spaces)}}
+		// The board's own tiles travel with it; an import elsewhere would
+		// find none of them by key.
+		conns, err := content.Connections(tx, []int64{board.SpaceID})
+		if err != nil {
+			return err
+		}
+		connKeys := map[int64]string{}
+		for _, c := range conns {
+			connKeys[c.ID] = c.Key
+		}
+		widgetDocs, seen := []any{}, map[int64]bool{}
+		for _, sec := range board.Sections {
+			for _, p := range sec.Placements {
+				if p.Widget == nil || p.Widget.SpaceID != board.SpaceID || seen[p.Widget.ID] {
+					continue
+				}
+				seen[p.Widget.ID] = true
+				widgetDocs = append(widgetDocs, widgetDoc(p.Widget, connKeys))
+			}
+		}
+		doc = map[string]any{"widgets": widgetDocs, "boards": []any{boardDoc(board, spaces)}}
 		return nil
 	})
 	if err != nil {
