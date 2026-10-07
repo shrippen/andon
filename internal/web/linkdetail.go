@@ -67,6 +67,7 @@ type msChart struct {
 	Top    float64     // ms at the top edge, the axis runs from 0
 	Values []float64   // ms of each drawn point, for the hover read-out
 	Days   []time.Time // their days
+	Ticks  []time.Time // days under the chart, gaps included
 }
 
 const (
@@ -102,7 +103,13 @@ func msChartOf(days []linkstatus.Day) msChart {
 		values, drawn = append(values, float64(d.AvgMs)), append(drawn, d.Day)
 	}
 	goal := msHeight - msGoal/scale*msHeight
-	return msChart{Line: line.String(), GoalY: strconv.FormatFloat(goal, 'f', 1, 64), Top: scale, Values: values, Days: drawn}
+	m := msChart{Line: line.String(), GoalY: strconv.FormatFloat(goal, 'f', 1, 64), Top: scale, Values: values, Days: drawn}
+	if len(days) > chartXTicks {
+		for _, at := range tickAt(len(days)) {
+			m.Ticks = append(m.Ticks, days[at].Day)
+		}
+	}
+	return m
 }
 
 // Half is the middle of the axis.
