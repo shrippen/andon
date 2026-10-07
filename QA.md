@@ -97,18 +97,19 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 
 **J-C1 Monatsabrechnung** 📱
 1. Start-Board: Kennzahlen notieren; jeden Detaildialog öffnen.
-2. `/billing` mit `/boards/3` (Nicht abgerechnet, Offene Rechnungen) und `/clients` vergleichen.
-3. Je Kunde muss ein Entwurf angeboten werden („Entwurf in Invoice Ninja“), ein offener Entwurf beim selben Kunden sollte erwähnt sein.
+2. `/billing` mit `/boards/3` (Nicht abgerechnet, Offene Rechnungen) und `/clients` vergleichen; Zeitraum „12 Monate / Jahr / Vorjahr“ umschalten: Jede Kennzahl nennt ihren Zeitraum (oder „Stand heute“), vor Beginn der Daten „Daten ab …“.
+3. Je Kunde muss ein Entwurf angeboten werden („Entwurf in Invoice Ninja“); ein offener Entwurf beim selben Kunden steht mit Nummer, Datum und Link davor. Der Hinweis „nicht abgerechnet“ führt zu `/billing#drafts`.
 4. „ZIP herunterladen“: CSVs prüfen (Lieferant gefüllt?, Zahlen wie auf den Seiten).
 5. „An Paperless“ bei einer Rechnungsmail.
 
 **J-C2 Belege**
 1. `/receipts`: „Angehakte verknüpfen“ (Demo lehnt ab: nur Fehler, kein Erfolgshinweis daneben).
 2. Reiter „Belege zuerst“: Ausgaben suchen, „Als Ausgabe anlegen“ → „Anlegen und verknüpfen“; bleibt der Reiter?
-3. Reiter „Verknüpft“. Zähler auf allen Reitern stimmen überein.
+3. Reiter „Verknüpft“. Zähler auf allen Reitern und Jahren stimmen mit den Listen überein, auch „… Belege ohne Ausgabe“.
+4. Eine Ausgabe aus dem Jahrespaket (`/billing`, `ausgaben.csv`) unter „Verknüpft“ oder bei „Ausgaben suchen“ finden.
 
 **J-C3 Kunden und Verbund**
-1. `/clients`, ein Kunde, „Verknüpfung ändern“ → `/spaces/{id}/verbund#implicit`.
+1. `/clients`, ein Kunde (der gewählte Zeitraum bleibt), „Verknüpfung ändern“ → `/spaces/{id}/verbund#implicit`.
 2. „Kunden“ → `/verbund/{id}/customers`; „Alle Vorschläge bestätigen“, eine Zelle lösen, „Namen angleichen“.
 3. `/billing` und die Kundenseite danach.
 

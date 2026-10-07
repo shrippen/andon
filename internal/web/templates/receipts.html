@@ -165,7 +165,7 @@
 {{with .Error}}<p class="error">{{t .}}{{if $.Mapping}} <a href="{{$.Q.Link "tab" "fields"}}">{{t "receipts.open_fields"}}</a>{{end}}</p>{{end}}
 {{/* Numbers for the tab and year chips of the page. */}}
 {{if .Counts.Ready}}{{range .Tabs}}{{template "receipt_tab" dict "Q" $.Q "Tab" . "N" ($.Counts.Count .) "OOB" true}}{{end}}
-{{if or (eq .Q.Tab "match") (eq .Q.Tab "queue") (eq .Q.Tab "linked")}}{{range .Years}}{{template "receipt_year" dict "Q" $.Q "Year" . "N" (index $.Counts.Years .) "OOB" true}}{{end}}{{end}}{{end}}
+{{if or (eq .Q.Tab "match") (eq .Q.Tab "queue") (eq .Q.Tab "linked")}}{{range .Years}}{{template "receipt_year" dict "Q" $.Q "Year" . "N" ($.Counts.Year .) "OOB" true}}{{end}}{{end}}{{end}}
 {{$v := .V}}
 {{if eq .Q.Tab "match"}}{{if not .Error}}
   <p class="small muted">{{t "receipts.match_meta" "year" $v.Year "expenses" $v.Expenses}}
@@ -226,8 +226,8 @@
         <p class="small muted">{{or $d.Correspondent "–"}} · {{if $d.Day}}{{day $d.Day}}{{else}}–{{end}}{{if .Amount}} · {{money .Amount}}{{end}}</p>
       </div>
       <p class="receipt-actions">
-        <button type="button" class="btn btn-outline btn-sm" data-search hx-get="/receipts/expenses?doc={{$d.ID}}&amp;year={{$v.Year}}" hx-target="#panel-{{$d.ID}}" hx-swap="innerHTML">{{t "receipts.expenses_open"}}</button>
-        <button type="button" class="btn btn-outline btn-sm" hx-get="/receipts/new-expense?doc={{$d.ID}}&amp;year={{$v.Year}}" hx-target="#panel-{{$d.ID}}" hx-swap="innerHTML">{{t "receipts.new_expense"}}</button>
+        <button type="button" class="btn btn-outline btn-sm" data-search hx-get="/receipts/expenses?doc={{$d.ID}}&amp;tab={{$.Q.Tab}}&amp;year={{$v.Year}}" hx-target="#panel-{{$d.ID}}" hx-swap="innerHTML">{{t "receipts.expenses_open"}}</button>
+        <button type="button" class="btn btn-outline btn-sm" hx-get="/receipts/new-expense?doc={{$d.ID}}&amp;tab={{$.Q.Tab}}&amp;year={{$v.Year}}" hx-target="#panel-{{$d.ID}}" hx-swap="innerHTML">{{t "receipts.new_expense"}}</button>
         {{template "receipt_ignore" dict "P" $ "Kind" "doc" "ID" (print $d.ID)}}
       </p>
     </div>
@@ -385,7 +385,7 @@
 {{define "receipts_search"}}{{$v := .S}}{{$e := $v.Expense}}{{$pick := print "pick-" .Slot}}
 <div class="receipt-search">
   <form hx-get="/receipts/search" hx-target="#{{.Slot}}" hx-swap="innerHTML">
-    <input type="hidden" name="expense" value="{{$e.Key}}"><input type="hidden" name="year" value="{{.Q.Year}}">
+    <input type="hidden" name="expense" value="{{$e.Key}}"><input type="hidden" name="tab" value="{{.Q.Tab}}"><input type="hidden" name="year" value="{{.Q.Year}}">
     <input type="hidden" name="slot" value="{{.Slot}}">{{with $v.Input.With}}<input type="hidden" name="with" value="{{.}}">
     <p class="small"><b>{{t "receipts.pick_for" "number" (or $e.Number $e.Key) "amount" (money $e.Amount)}}</b></p>{{end}}
     <div class="receipt-search-row">
@@ -431,7 +431,7 @@
 {{define "receipts_expenses"}}{{$v := .S}}{{$d := $v.Doc}}
 <div class="receipt-search">
   <form hx-get="/receipts/expenses" hx-target="#panel-{{$d.ID}}" hx-swap="innerHTML">
-    <input type="hidden" name="doc" value="{{$d.ID}}"><input type="hidden" name="year" value="{{.Q.Year}}">
+    <input type="hidden" name="doc" value="{{$d.ID}}"><input type="hidden" name="tab" value="{{.Q.Tab}}"><input type="hidden" name="year" value="{{.Q.Year}}">
     <div class="receipt-search-row">
       <input class="input" type="search" name="q" value="{{$v.Query}}" placeholder="{{t "receipts.find_placeholder"}}" aria-label="{{t "receipts.expenses_open"}}">
       <button type="submit" class="btn btn-accent">{{t "receipts.search_go"}}</button>
@@ -446,7 +446,7 @@
       <p class="small muted">{{or $e.Vendor "–"}} · {{if $e.Day}}{{day $e.Day}}{{else}}–{{end}} · {{money $e.Amount}}</p>
       {{template "receipt_chips" .Factors}}
       <p class="receipt-actions">{{template "receipt_link" dict "P" $ "Expense" $e.Key "Docs" (print $d.ID) "Label" (t "receipts.link")}}
-        <button type="button" class="btn btn-outline btn-sm" hx-get="/receipts/search?expense={{$e.Key}}&amp;year={{$.Q.Year}}&amp;preset=around_date&amp;unlinked=1&amp;with={{$d.ID}}&amp;slot=panel-{{$d.ID}}" hx-target="#panel-{{$d.ID}}" hx-swap="innerHTML">{{t "receipts.pick_more"}}</button></p>
+        <button type="button" class="btn btn-outline btn-sm" hx-get="/receipts/search?expense={{$e.Key}}&amp;year={{$.Q.Year}}&amp;preset=around_date&amp;unlinked=1&amp;with={{$d.ID}}&amp;slot=panel-{{$d.ID}}&amp;tab={{$.Q.Tab}}" hx-target="#panel-{{$d.ID}}" hx-swap="innerHTML">{{t "receipts.pick_more"}}</button></p>
     </div>
   </div>
   {{else}}{{if not .Error}}<p class="small muted">{{t "receipts.expenses_none"}}</p>{{end}}{{end}}

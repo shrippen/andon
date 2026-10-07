@@ -12,29 +12,27 @@ import (
 type ClientCard struct {
 	CustomerID  int64
 	Name        string
-	Matched     bool // an Invoice Ninja client of the same name exists
-	HoursYear   float64
-	HoursMonth  float64
-	Unbilled    float64 // billable, not exported work
-	Open        float64 // balance of open invoices
+	Matched     bool    // an Invoice Ninja client of the same name exists
+	Hours       float64 // worked in the span
+	Unbilled    float64 // billable, not exported work, as of today
+	Open        float64 // balance of open invoices, as of today
 	Overdue     float64
-	RevenueYTD  float64 // net of this year's counted invoices
+	Revenue     float64 // net of the span's counted invoices
 	PaymentDays int     // typical days to payment, 0 without history
 	LastWork    string  // day of the newest time entry, "" if none
 	Invoices    []NinjaOpenInvoice
 	Projects    []ClientProject
 }
 
-// ClientProject is a project's hours this year.
+// ClientProject is a project's hours in the span.
 type ClientProject struct {
 	Name  string
 	Hours float64
 }
 
-// ClientCards builds a card per Kimai customer, most hours this year
+// ClientCards builds a card per Kimai customer, most hours in span
 // first. ninja may be nil.
-func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today time.Time, center Center, m ClientMap) []ClientCard {
-	year, month := today.Format("2006"), today.Format("2006-01")
+func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today time.Time, center Center, m ClientMap, span Span) []ClientCard {
 	projects := map[int64]*sources.KimaiProject{}
 	for i := range kimai.Projects {
 		projects[kimai.Projects[i].ID] = &kimai.Projects[i]
@@ -59,20 +57,17 @@ func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today
 		if s.Billable && !s.Exported && s.End != "" {
 			card.Unbilled += s.Rate
 		}
-		if day[:4] != year {
+		if !span.HasDay(day) {
 			continue
 		}
-		card.HoursYear += hours
-		if day[:7] == month {
-			card.HoursMonth += hours
-		}
+		card.Hours += hours
 		if p, ok := projects[s.ProjectID]; ok {
 			projectHours[s.CustomerID][p.Name] += hours
 		}
 	}
 
 	if ninja != nil {
-		joinNinja(cards, ninja, today, center, m)
+		joinNinja(cards, ninja, today, center, m, span)
 	}
 
 	out := make([]ClientCard, 0, len(cards))
@@ -81,12 +76,12 @@ func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today
 			card.Projects = append(card.Projects, ClientProject{Name: name, Hours: round2(h)})
 		}
 		sort.Slice(card.Projects, func(a, b int) bool { return card.Projects[a].Hours > card.Projects[b].Hours })
-		card.HoursYear, card.HoursMonth = round2(card.HoursYear), round2(card.HoursMonth)
+		card.Hours, card.Revenue = round2(card.Hours), round2(card.Revenue)
 		out = append(out, *card)
 	}
 	sort.Slice(out, func(a, b int) bool {
-		if out[a].HoursYear != out[b].HoursYear {
-			return out[a].HoursYear > out[b].HoursYear
+		if out[a].Hours != out[b].Hours {
+			return out[a].Hours > out[b].Hours
 		}
 		return out[a].Name < out[b].Name
 	})
@@ -95,7 +90,7 @@ func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today
 
 // joinNinja adds invoices, revenue and payment days of each customer's
 // client (m: stored link, else the same name).
-func joinNinja(cards map[int64]*ClientCard, ninja *sources.NinjaDataset, today time.Time, center Center, m ClientMap) {
+func joinNinja(cards map[int64]*ClientCard, ninja *sources.NinjaDataset, today time.Time, center Center, m ClientMap, span Span) {
 	byClient := map[int64]*ClientCard{}
 	for id, card := range cards {
 		if c, ok := m.ClientOf(ninja, id, card.Name); ok {
@@ -104,11 +99,10 @@ func joinNinja(cards map[int64]*ClientCard, ninja *sources.NinjaDataset, today t
 		}
 	}
 
-	year := today.Format("2006")
 	for _, inv := range ninja.Invoices {
 		card, ok := byClient[inv.ClientID]
-		if ok && isCounted(inv.Status) && len(inv.Date) >= 4 && inv.Date[:4] == year {
-			card.RevenueYTD += inv.Net
+		if ok && isCounted(inv.Status) && span.HasDay(inv.Date) {
+			card.Revenue += inv.Net
 		}
 	}
 	for _, open := range NinjaOpenInvoices(ninja, today) {

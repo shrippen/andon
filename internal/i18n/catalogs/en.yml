@@ -27,6 +27,7 @@ nav:
   clients: 'Customers'
   hosts: 'Hosts'
 action:
+  open_drafts: 'Go to drafts'
   isp_report: 'Open report'
   book_payment: 'Book payment'
   open_in_tailscale: 'Open in Tailscale / Headscale'
@@ -3091,6 +3092,9 @@ info:
   tandoor:
     items: '{count} entries open'
 kpi:
+  period_year: '{year}'
+  period_month: '{month}'
+  period_week: 'week {week}'
   safe: 'Cash {in}, to set aside {out}'
   liquidity: income {in} − fixed costs {out}
   per_hour: per hour, {count} customers, 12 months
@@ -3102,6 +3106,7 @@ kpi:
   reserve: VAT liability + {rate} % of surplus
   assets: '{count} assets'
   vs_last_year: vs. last year
+  data_from: 'no year-over-year, data from {month}'
   of_goal: goal {goal}
   cash_30: open + recurring, 30 days
   spark_months: 'last {n} months'
@@ -3782,6 +3787,13 @@ cashflow:
   below_min: 'Falls below the minimum of {amount}.'
   delayed: 'Assumption: clients pay {days} days later.'
 billing:
+  figures: 'Key figures'
+  fig_revenue: 'Net revenue'
+  fig_paid: 'Payments received'
+  fig_expenses: 'Net expenses'
+  fig_hours: 'Hours'
+  open_draft: 'Open draft {number} of {day}.'
+  open_draft_again: 'Creating adds another draft.'
   pick_verbund: 'Several Verbünde in this space: choose one for the year package.'
   summary: Overview
   sum_unbilled: 'unbilled · {n} customers'
@@ -4436,7 +4448,7 @@ detail:
   travel:
     trips: 'Rides'
     month: 'Kilometres this month'
-    money: 'Mileage allowance'
+    money_of: 'Mileage allowance ({km} km × {rate} €/km)'
     business: 'business'
     private: 'private'
     allowance: 'Per diem'
@@ -6188,7 +6200,7 @@ travel:
   prev: 'last month {km} km'
   year: 'This year {km} km · {countries} countries · {cities} cities'
   trips: '{n} business rides'
-  amount: '{amount} at {rate} €/km'
+  amount: '{km} km × {rate} €/km = {amount}'
   none: No rides yet.
   split: 'business {business} km · private {private} km'
   commute: 'commute {km} km'
@@ -6223,10 +6235,10 @@ noise:
 recent:
   none: Nothing happened in the last 7 days.
 subs:
-  per_month: '{n} subscriptions per month'
+  per_month: '{n} subscriptions · amounts per month'
   missing: 'Missing in Wallos: {names}'
   none: No Wallos or Sure connection in this space.
-  per_year: '{n} subscriptions per year'
+  per_year: '{n} subscriptions · amounts per year'
 ip:
   changed: 'New since {time}, before {prev}'
 flow:
@@ -6247,12 +6259,11 @@ immich:
 clients:
   docs: Documents in Paperless
   customer: 'Customer'
-  hours_year: 'Hours (year)'
-  hours_month: '{hours} h this month'
+  hours: 'Hours'
   unbilled: 'Unbilled'
   open: 'Open'
   overdue: '{amount} of it overdue'
-  revenue: 'Revenue (year, net)'
+  revenue: 'Net revenue'
   pay_days: 'Pays in days'
   pays_in: 'usually pays after {days} days'
   none: 'No customers yet: connect Kimai.'
@@ -6270,7 +6281,7 @@ clients:
   date: 'Date'
   due: 'Due'
   balance: 'Balance'
-  projects: 'Projects this year'
+  projects: 'Projects'
   no_hints: 'No open hints about this customer.'
 hosts:
   cves: 'Vulnerabilities'
@@ -6475,3 +6486,12 @@ flash:
   password_changed: Password changed.
   registered: Done. Log in with your address and password. If the address already had an account, its old password stays; a mail tells you how to reset it.
   registered_no_mail: Done. Log in with your address and password. If the address already had an account, its old password stays; an admin can reset it.
+period:
+  data_from_label: 'Year over year'
+  choice: 'Period'
+  12m: '12 months'
+  year: 'Year'
+  prev: 'Last year'
+  last_12m: 'last 12 months'
+  today: 'as of today'
+  data_from: 'data from {month}'

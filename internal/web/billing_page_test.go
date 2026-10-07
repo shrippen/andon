@@ -35,6 +35,32 @@ func TestBillingSummary(t *testing.T) {
 	}
 }
 
+// TestBillingNamesOpenDraft: a customer whose client already has a draft
+// in Invoice Ninja names it with a link before "create" (the demo's
+// second client has one); creating stays possible.
+func TestBillingNamesOpenDraft(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+
+	space := regexp.MustCompile(`<option value="(\d+)"`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1]
+	for _, svc := range []string{"kimai", "invoiceninja"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "service": {svc}, "space_id": {string(space)},
+			"name": {svc}, "url": {"demo://" + svc}, "mode": {"shared"}, "secret": {"demo"}, "tls": {"verify"}})
+	}
+	runAnalysis(t, srv)
+
+	page := string(mustGet(t, srv, client, "/billing"))
+	open := regexp.MustCompile(`Offener Entwurf R-\d{4}-\d+ vom \d\d\.\d\d\.\d{4}`)
+	if !open.MatchString(page) || !strings.Contains(page, `/#/invoices/`) {
+		t.Fatalf("billing page does not name the open draft:\n%s", page)
+	}
+	if strings.Count(page, `action="/billing/draft"`) < 2 {
+		t.Fatalf("creating a draft is no longer offered:\n%s", page)
+	}
+}
+
 // TestMailForwardNamesMissingLogin: forwarding without the own Paperless
 // login says which connection lacks it and links to where it is entered;
 // the answer is a redirect, so reloading does not send again.

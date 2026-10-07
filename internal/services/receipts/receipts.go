@@ -397,8 +397,16 @@ func Suggest(ctx context.Context, d *sql.DB, who *access.Principal, year int) (S
 	if err != nil {
 		return out, err
 	}
-	out.Expenses, out.Docs = len(expenses), len(docs)
+	out.Expenses = len(expenses)
 	out.Matches = p.matcher().Matches(expenses, docs)
+
+	// The link to "receipts first" counts what that tab lists.
+	set, err := p.docSet(ctx, d, who, year)
+	if err != nil {
+		return out, err
+	}
+	queued, _ := p.queued(set, docs)
+	out.Docs = len(queued)
 	return out, nil
 }
 
@@ -414,15 +422,52 @@ func (p *pair) unlinked(ctx context.Context, d *sql.DB, who *access.Principal, y
 		return nil, nil, err
 	}
 	p.backfill(ctx, d, who, expenses.Expenses)
+	return inYear(p.open(expenses.Expenses), year), p.free(docs.Docs), nil
+}
 
-	hiddenE, hiddenD := p.state.ignored(KindExpense, p.ninja.ID), p.state.ignored(KindDoc, p.docs.ID)
-	open := slices.DeleteFunc(inYear(p.mapping.unlinkedExpenses(expenses.Expenses), year), func(e sources.ReceiptExpense) bool {
-		return slices.Contains(hiddenE, e.Key)
+// ── the lists behind the tabs ──
+//
+// A tab's list and every number counting it come from one of these, so
+// a counter shows what its list shows.
+
+// open is the unlinked, not ignored expenses of every year ("match").
+func (p pair) open(all []sources.ReceiptExpense) []sources.ReceiptExpense {
+	hidden := p.state.ignored(KindExpense, p.ninja.ID)
+	return slices.DeleteFunc(slices.Clone(p.mapping.unlinkedExpenses(all)), func(e sources.ReceiptExpense) bool {
+		return slices.Contains(hidden, e.Key)
 	})
-	scans := slices.DeleteFunc(p.mapping.unlinkedDocs(docs.Docs), func(doc sources.ReceiptDoc) bool {
-		return slices.Contains(hiddenD, strconv.FormatInt(doc.ID, 10))
+}
+
+// free is the unlinked, not ignored scans.
+func (p pair) free(all []sources.ReceiptDoc) []sources.ReceiptDoc {
+	hidden := p.state.ignored(KindDoc, p.docs.ID)
+	return slices.DeleteFunc(slices.Clone(p.mapping.unlinkedDocs(all)), func(doc sources.ReceiptDoc) bool {
+		return slices.Contains(hidden, strconv.FormatInt(doc.ID, 10))
 	})
-	return open, scans, nil
+}
+
+// queued is the free scans carrying the queue tag ("queue"); false when
+// no tag is set or Paperless does not know it.
+func (p pair) queued(set *sources.DocSet, free []sources.ReceiptDoc) ([]sources.ReceiptDoc, bool) {
+	if p.mapping.QueueTag == "" {
+		return nil, false
+	}
+	tag, found := set.Tags[strings.ToLower(p.mapping.QueueTag)]
+	if !found {
+		return nil, false
+	}
+	return slices.DeleteFunc(slices.Clone(free), func(doc sources.ReceiptDoc) bool { return !slices.Contains(doc.Tags, tag) }), true
+}
+
+// linkedOf is the expenses with at least one scan, of every year ("linked").
+func (m Mapping) linkedOf(all []sources.ReceiptExpense) []sources.ReceiptExpense {
+	var out []sources.ReceiptExpense
+	for _, e := range all {
+		if len(docIDs(e.Custom[m.LinkSlot-1])) > 0 {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // backfill learns vendor names from links made before (once per pair).
@@ -509,15 +554,14 @@ func Queue(ctx context.Context, d *sql.DB, who *access.Principal, year int) (Que
 	if err != nil {
 		return out, err
 	}
-	tag, found := set.Tags[strings.ToLower(p.mapping.QueueTag)]
-	if out.TagFound = found; !found {
-		return out, nil
-	}
 	expenses, docs, err := p.unlinked(ctx, d, who, year)
 	if err != nil {
 		return out, err
 	}
-	tagged := slices.DeleteFunc(slices.Clone(docs), func(doc sources.ReceiptDoc) bool { return !slices.Contains(doc.Tags, tag) })
+	tagged, found := p.queued(set, docs)
+	if out.TagFound = found; !found {
+		return out, nil
+	}
 	out.Docs, out.Expenses = len(tagged), len(expenses)
 	out.Matches = p.matcher().Reverse(tagged, expenses, docs)
 	return out, nil
@@ -559,8 +603,8 @@ func Linked(ctx context.Context, d *sql.DB, who *access.Principal, year int, que
 	if err != nil {
 		return out, err
 	}
-	linked := slices.DeleteFunc(inYear(set.Expenses, year), func(e sources.ReceiptExpense) bool {
-		return len(docIDs(e.Custom[p.mapping.LinkSlot-1])) == 0 || !matchesQuery(e, out.Query)
+	linked := slices.DeleteFunc(inYear(p.mapping.linkedOf(set.Expenses), year), func(e sources.ReceiptExpense) bool {
+		return !matchesQuery(e, out.Query)
 	})
 	slices.SortStableFunc(linked, func(a, b sources.ReceiptExpense) int { return b.Updated.Compare(a.Updated) })
 	out.Total = len(linked)

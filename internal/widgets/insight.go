@@ -155,8 +155,35 @@ func monthDelta(metric Metric, data any, today time.Time) (float64, bool) {
 	return (cur - prev) / prev, true
 }
 
+// kpiPeriods is the span each metric counts: its year, month or week, or
+// the amount as of today.
+var kpiPeriods = map[Metric]string{
+	MetricRevenueYTD: "kpi.period_year", MetricRevenueForecast: "kpi.period_year",
+	MetricRevenueMonth: "kpi.period_month", MetricHoursMonth: "kpi.period_month",
+	MetricHoursWeek:  "kpi.period_week",
+	MetricOpenAmount: periodToday, MetricOverdueAmount: periodToday, MetricUnbilled: periodToday,
+}
+
+const periodToday = "period.today"
+
+// periodArg is the year, month or week of today a period key names.
+func periodArg(key string, today time.Time) string {
+	switch key {
+	case "kpi.period_year":
+		return strconv.Itoa(today.Year())
+	case "kpi.period_month":
+		return today.Format("01/2006")
+	case "kpi.period_week":
+		_, week := today.ISOWeek()
+		return strconv.Itoa(week)
+	}
+	return ""
+}
+
 // shapeKpi applies the tile's options to a computed KPI.
 func shapeKpi(kpi *KpiResult, cfg KpiConfig, data any, today time.Time) {
+	kpi.PeriodKey = kpiPeriods[cfg.Metric]
+	kpi.PeriodArg = periodArg(kpi.PeriodKey, today)
 	kpi.DeltaKey = "kpi.vs_last_year"
 	switch cfg.Compare {
 	case compareOff:
@@ -443,6 +470,10 @@ type KpiResult struct {
 	DeltaKey  string      // what Delta compares with
 	Details   []KpiDetail // what the value is made of, opened on click
 
+	// PeriodKey names what the value counts ("kpi.period_month" with
+	// PeriodArg "09/2026", "period.today"); "" when the label says it.
+	PeriodKey, PeriodArg string
+
 	Target string // "good", "bad" or "" (no target)
 }
 
@@ -568,6 +599,11 @@ func kpiNinja(metric Metric, data *sources.NinjaDataset, peers map[string]any, c
 
 	switch metric {
 	case MetricRevenueYTD:
+		// Last year counts only when its data starts on January 1st.
+		lastYear := metrics.PeriodPrevYear.Span(today)
+		if from := metrics.NinjaHistoryFrom(data); lastYear.Partial(from) {
+			return &KpiResult{Kind: "money", Value: stats.RevenueYTD, Currency: stats.Currency, SubKey: "kpi.data_from", SubStart: from.Format("01/2006")}
+		}
 		if stats.RevenuePrevYTD == 0 {
 			return &KpiResult{Kind: "money", Value: stats.RevenueYTD, Currency: stats.Currency}
 		}

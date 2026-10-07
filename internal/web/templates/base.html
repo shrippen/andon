@@ -63,6 +63,15 @@
      follow --accent, the lit panel --yellow, so it reads in dark and light
      themes. */}}
 {{/* A space by the viewer's name for it: "Ich" for their own, else its name. */}}
+{{/* A money page's period choice: a GET form, so the figures follow the
+     query (?period=prev). Keep carries the page's other query values. */}}
+{{define "period_choice"}}<form method="get" action="{{.Path}}" class="seg" role="group" aria-label="{{t "period.choice"}}">{{range $k, $v := .Keep}}<input type="hidden" name="{{$k}}" value="{{$v}}">{{end}}
+  {{range .Periods}}<button type="submit" name="period" value="{{.}}" aria-pressed="{{if eq . $.Span.Period}}true{{else}}false{{end}}">{{t (print "period." .)}}</button>{{end}}</form>{{end}}
+
+{{/* What a figure counts: "last 12 months", "2025", and where its data
+     begins when that is inside the span ("2025 · data from 02/2025"). */}}
+{{define "period_sub"}}{{if eq .Span.Period "12m"}}{{t "period.last_12m"}}{{else}}{{.Span.Start.Year}}{{end}}{{if .Span.Partial .From}} · {{t "period.data_from" "month" (.From.Format "01/2006")}}{{end}}{{end}}
+
 {{define "space_label"}}{{if eq .Kind "personal"}}{{t "settings.level_me"}}{{else}}{{.Name}}{{end}}{{end}}
 
 {{define "mark"}}<svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><rect class="sig" x="24" y="16.5" width="11" height="11.5"/><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="13" y="5" width="22" height="34" rx="2.5"/><line x1="13" y1="16.5" x2="35" y2="16.5"/><line x1="13" y1="28" x2="35" y2="28"/><line x1="24" y1="5" x2="24" y2="39"/><line x1="15" y1="39" x2="13" y2="44"/><line x1="33" y1="39" x2="35" y2="44"/></g></svg>{{end}}

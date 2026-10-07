@@ -27,6 +27,7 @@ nav:
   clients: 'Kunden'
   hosts: 'Hosts'
 action:
+  open_drafts: 'Zu den Entwürfen'
   isp_report: 'Bericht öffnen'
   book_payment: 'Zahlung buchen'
   open_in_tailscale: 'In Tailscale / Headscale öffnen'
@@ -3092,6 +3093,9 @@ info:
   tandoor:
     items: '{count} Einträge offen'
 kpi:
+  period_year: '{year}'
+  period_month: '{month}'
+  period_week: 'KW {week}'
   safe: 'Konto {in}, zurückzulegen {out}'
   liquidity: Eingang {in} − Fixkosten {out}
   per_hour: je Stunde, {count} Kunden, 12 Monate
@@ -3103,6 +3107,7 @@ kpi:
   reserve: USt-Zahllast + {rate} % vom Überschuss
   assets: '{count} Assets'
   vs_last_year: zum Vorjahr
+  data_from: 'kein Vorjahresvergleich, Daten ab {month}'
   of_goal: Ziel {goal}
   cash_30: offen + wiederkehrend, 30 Tage
   spark_months: 'letzte {n} Monate'
@@ -3783,6 +3788,13 @@ cashflow:
   below_min: 'Fällt unter den Mindeststand von {amount}.'
   delayed: 'Annahme: Kunden zahlen {days} Tage später.'
 billing:
+  figures: 'Kennzahlen'
+  fig_revenue: 'Umsatz netto'
+  fig_paid: 'Zahlungseingang'
+  fig_expenses: 'Ausgaben netto'
+  fig_hours: 'Stunden'
+  open_draft: 'Offener Entwurf {number} vom {day}.'
+  open_draft_again: 'Anlegen erstellt einen weiteren Entwurf.'
   pick_verbund: 'Mehrere Verbünde im Bereich: für das Jahrespaket einen wählen.'
   summary: Überblick
   sum_unbilled: 'nicht abgerechnet · {n} Kunden'
@@ -4437,7 +4449,7 @@ detail:
   travel:
     trips: 'Fahrten'
     month: 'Kilometer im Monat'
-    money: 'Kilometergeld'
+    money_of: 'Kilometergeld ({km} km × {rate} €/km)'
     business: 'beruflich'
     private: 'privat'
     allowance: 'Verpflegung'
@@ -6189,7 +6201,7 @@ travel:
   prev: 'Vormonat {km} km'
   year: 'Dieses Jahr {km} km · {countries} Länder · {cities} Städte'
   trips: '{n} berufliche Fahrten'
-  amount: '{amount} bei {rate} €/km'
+  amount: '{km} km × {rate} €/km = {amount}'
   none: Noch keine Fahrten.
   split: 'beruflich {business} km · privat {private} km'
   commute: 'Arbeitsweg {km} km'
@@ -6224,10 +6236,10 @@ noise:
 recent:
   none: In den letzten 7 Tagen ist nichts passiert.
 subs:
-  per_month: '{n} Abos je Monat'
+  per_month: '{n} Abos · Beträge je Monat'
   missing: 'Fehlt in Wallos: {names}'
   none: Keine Wallos- oder Sure-Verbindung im Bereich.
-  per_year: '{n} Abos je Jahr'
+  per_year: '{n} Abos · Beträge je Jahr'
 ip:
   changed: 'Neu seit {time}, vorher {prev}'
 flow:
@@ -6248,12 +6260,11 @@ immich:
 clients:
   docs: Dokumente in Paperless
   customer: 'Kunde'
-  hours_year: 'Stunden (Jahr)'
-  hours_month: '{hours} h diesen Monat'
+  hours: 'Stunden'
   unbilled: 'Nicht abgerechnet'
   open: 'Offen'
   overdue: 'davon {amount} überfällig'
-  revenue: 'Umsatz (Jahr, netto)'
+  revenue: 'Umsatz netto'
   pay_days: 'Zahlt in Tagen'
   pays_in: 'zahlt meist nach {days} Tagen'
   none: 'Noch keine Kunden: Kimai verbinden.'
@@ -6271,7 +6282,7 @@ clients:
   date: 'Datum'
   due: 'Fällig'
   balance: 'Offen'
-  projects: 'Projekte dieses Jahr'
+  projects: 'Projekte'
   no_hints: 'Keine offenen Hinweise zu diesem Kunden.'
 hosts:
   cves: 'Sicherheitslücken'
@@ -6476,3 +6487,12 @@ flash:
   password_changed: Passwort geändert.
   registered: Fertig. Melde dich mit deiner Adresse und deinem Passwort an. Gab es die Adresse schon, gilt dein bisheriges Passwort; eine Mail sagt dir, wie du es zurücksetzt.
   registered_no_mail: Fertig. Melde dich mit deiner Adresse und deinem Passwort an. Gab es die Adresse schon, gilt dein bisheriges Passwort; ein Admin kann es zurücksetzen.
+period:
+  data_from_label: 'Vorjahresvergleich'
+  choice: 'Zeitraum'
+  12m: '12 Monate'
+  year: 'Jahr'
+  prev: 'Vorjahr'
+  last_12m: 'letzte 12 Monate'
+  today: 'Stand heute'
+  data_from: 'Daten ab {month}'

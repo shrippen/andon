@@ -28,3 +28,27 @@ func TestDraftRates(t *testing.T) {
 		t.Fatalf("derived rate: %+v", l)
 	}
 }
+
+// A customer whose Invoice Ninja client already has a draft names it,
+// so a second draft is a choice, not an accident. Sent invoices and
+// other clients' drafts do not count.
+func TestDraftNamesOpenDraft(t *testing.T) {
+	kimai := &sources.KimaiDataset{
+		Customers:  []sources.KimaiCustomer{{ID: 1, Name: "Acme"}},
+		Timesheets: []sources.KimaiSheet{{ID: 1, Begin: "2026-09-01", End: "x", Minutes: 60, Rate: 50, Billable: true, CustomerID: 1, Activity: "A"}},
+	}
+	ninja := &sources.NinjaDataset{URL: "https://in.example/", Clients: []sources.NinjaClient{{ID: 7, Key: "Xk7", Name: "Acme"}, {ID: 8, Name: "Other"}},
+		Invoices: []sources.NinjaInvoice{
+			{ID: 20, Key: "Qa1", Number: "R-2026-020", ClientID: 7, Status: "draft", Date: "2026-09-20"},
+			{ID: 21, Number: "R-2026-021", ClientID: 7, Status: "sent", Date: "2026-09-21"},
+			{ID: 22, Number: "R-2026-022", ClientID: 8, Status: "draft", Date: "2026-09-22"},
+		}}
+	drafts := Drafts(kimai, ninja, nil)
+	if len(drafts) != 1 || len(drafts[0].Open) != 1 {
+		t.Fatalf("open drafts: %+v", drafts)
+	}
+	open := drafts[0].Open[0]
+	if open.Number != "R-2026-020" || open.Day.Format("2006-01-02") != "2026-09-20" || open.URL != "https://in.example/#/invoices/Qa1/edit" {
+		t.Fatalf("open draft: %+v", open)
+	}
+}

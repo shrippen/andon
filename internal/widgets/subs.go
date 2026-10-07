@@ -52,7 +52,8 @@ func subsView(cfg SubsConfig, results map[string]any, ctx ViewCtx) map[string]an
 		out["Source"], out["Currency"], out["URL"] = "wallos", wallos.Currency, wallos.URL
 		for _, s := range wallos.Subs {
 			if !s.Inactive {
-				rows = append(rows, SubRow{Name: s.Name, Next: s.Next, Price: s.Price, Monthly: s.Monthly, Category: s.Category})
+				// Every row at its monthly amount, as the sum counts it.
+				rows = append(rows, SubRow{Name: s.Name, Next: s.Next, Price: s.Monthly, Monthly: s.Monthly, Category: s.Category})
 			}
 		}
 		if hasSure {
