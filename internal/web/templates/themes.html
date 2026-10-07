@@ -22,7 +22,7 @@
     <h1>{{t "nav.themes"}}</h1>
     {{template "intro" dict "Page" "themes" "Chapter" "themes" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{t "themes.lead"}}</p>
-    {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
+    {{if .Error}}<p class="error">{{t .Error "token" .ErrorToken}}</p>{{end}}
     <div class="table-wrap"><table class="table">
       <tr><th>{{t "field.name"}}</th><th></th></tr>
       {{range .Items}}
@@ -89,7 +89,7 @@
   <main>
     <h1>{{.Theme.Name}}</h1>
     <p class="muted">{{t "themes.edit_lead"}}</p>
-    {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
+    {{if .Error}}<p class="error">{{t .Error "token" .ErrorToken}}</p>{{end}}
     {{if .Saved}}<p class="pill" data-state="applied">{{t "saved"}}</p>{{end}}
     {{if .Theme.Builtin}}<p class="card">{{t "themes.builtin_hint"}}</p>{{end}}
     {{/* Failing pairs as Kante .contrast read-outs, the sentence beside. */}}

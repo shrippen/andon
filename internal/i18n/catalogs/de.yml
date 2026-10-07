@@ -1987,7 +1987,7 @@ theme:
   none: – keins –
   default: Standard
   not_usable: Dieses Theme steht dir nicht zur Verfügung.
-  bad_value: Ungültiger Token-Wert.
+  bad_value: "Ungültiger Wert für {token}: erlaubt sind Farben, Längen, Zahlen und Schriftnamen, kein url(), @import oder Backslash."
   builtin: Mitgelieferte Themes sind schreibgeschützt.
   css_invalid: CSS ungültig oder zu lang.
   zip_invalid: ZIP-Datei ungültig.

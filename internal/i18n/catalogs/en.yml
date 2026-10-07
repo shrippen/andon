@@ -1987,7 +1987,7 @@ theme:
   none: – none –
   default: Default
   not_usable: This theme is not available to you.
-  bad_value: Invalid token value.
+  bad_value: "Invalid value for {token}: colours, lengths, numbers and font names are allowed, no url(), @import or backslash."
   builtin: Shipped themes are read-only.
   css_invalid: CSS invalid or too long.
   zip_invalid: ZIP file invalid.

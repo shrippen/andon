@@ -196,7 +196,7 @@ func Update(d *sql.DB, who *access.Principal, themeID int64, name string, dark, 
 				return ErrDenied
 			}
 			if len(*customCSS) > maxCSS || strings.Contains(strings.ToLower(*customCSS), "@import") {
-				return ErrTheme{"theme.css_invalid"}
+				return ErrTheme{Key: "theme.css_invalid"}
 			}
 			theme.CustomCSS = *customCSS
 		}
@@ -315,11 +315,11 @@ func writeZipFile(zw *zip.Writer, name string, data []byte) error {
 // ImportZip creates a new theme in spaceID from an exported zip.
 func ImportZip(d *sql.DB, who *access.Principal, spaceID int64, blob []byte) (int64, error) {
 	if len(blob) > maxZip {
-		return 0, ErrTheme{"theme.zip_too_large"}
+		return 0, ErrTheme{Key: "theme.zip_too_large"}
 	}
 	zr, err := zip.NewReader(bytes.NewReader(blob), int64(len(blob)))
 	if err != nil {
-		return 0, ErrTheme{"theme.zip_invalid"}
+		return 0, ErrTheme{Key: "theme.zip_invalid"}
 	}
 
 	var meta struct {
@@ -327,14 +327,14 @@ func ImportZip(d *sql.DB, who *access.Principal, spaceID int64, blob []byte) (in
 	}
 	metaRaw, err := readZipFile(zr, "theme.json", maxCSS)
 	if err != nil {
-		return 0, ErrTheme{"theme.zip_invalid"}
+		return 0, ErrTheme{Key: "theme.zip_invalid"}
 	}
 	if err := json.Unmarshal(metaRaw, &meta); err != nil {
-		return 0, ErrTheme{"theme.zip_invalid"}
+		return 0, ErrTheme{Key: "theme.zip_invalid"}
 	}
 	tokensRaw, err := readZipFile(zr, "tokens.css", maxCSS)
 	if err != nil {
-		return 0, ErrTheme{"theme.zip_invalid"}
+		return 0, ErrTheme{Key: "theme.zip_invalid"}
 	}
 	dark, light := ParseCSS(string(tokensRaw))
 	css := ""
@@ -372,7 +372,7 @@ func ImportZip(d *sql.DB, who *access.Principal, spaceID int64, blob []byte) (in
 		}
 		data, err := readZipFile(zr, f.Name, maxFont)
 		if err != nil {
-			return 0, ErrTheme{"theme.zip_invalid"}
+			return 0, ErrTheme{Key: "theme.zip_invalid"}
 		}
 		if err := AddFont(d, who, newID, name, data); err != nil {
 			return 0, err
@@ -394,7 +394,7 @@ func readZipFile(zr *zip.Reader, name string, limit int) ([]byte, error) {
 		return nil, err
 	}
 	if len(data) > limit {
-		return nil, ErrTheme{"theme.zip_invalid"}
+		return nil, ErrTheme{Key: "theme.zip_invalid"}
 	}
 	return data, nil
 }

@@ -2,6 +2,7 @@ package web_test
 
 import (
 	"bytes"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -160,4 +161,46 @@ func TestProfileTheme(t *testing.T) {
 	if got := save("99999"); got != http.StatusBadRequest {
 		t.Fatalf("unknown theme accepted: %d", got)
 	}
+}
+
+// A bad token value names the token in words and keeps what was typed,
+// the bad value and the good ones.
+func TestThemeBadValueKeepsInput(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+
+	list := mustGet(t, srv, client, "/themes")
+	builtin := regexp.MustCompile(`name="theme_id"[^>]*><option value="(\d+)">`).FindSubmatch(list)
+	space := regexp.MustCompile(`name="space_id"[^>]*>\s*<option value="(\d+)">`).FindSubmatch(list)
+	resp := postForm(t, client, srv.URL+"/themes/duplicate", url.Values{
+		"csrf": {csrf}, "theme_id": {string(builtin[1])}, "space_id": {string(space[1])}, "name": {"Mine"},
+	})
+	edit := resp.Header.Get("Location")
+
+	resp, err := client.PostForm(srv.URL+edit, url.Values{"csrf": {csrf}, "name": {"Mine"},
+		"dark--accent": {"#123456"}, "dark--fg0": {"url(evil)"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	page := string(body)
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+	if strings.Contains(page, "theme.bad_value") || !strings.Contains(page, "--fg0") {
+		t.Fatalf("message does not name the token:\n%s", errorLine(page))
+	}
+	if !strings.Contains(page, `name="dark--fg0" value="url(evil)"`) || !strings.Contains(page, `name="dark--accent" value="#123456"`) {
+		t.Fatal("typed values lost")
+	}
+}
+
+func errorLine(page string) string {
+	if m := regexp.MustCompile(`<p class="error">[^<]*</p>`).FindString(page); m != "" {
+		return m
+	}
+	return "(no error line)"
 }
