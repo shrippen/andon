@@ -682,7 +682,7 @@
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="lat" value="{{.Lat}}"><input type="hidden" name="lon" value="{{.Lon}}">
       <input class="input" name="name" required aria-label="{{t "sitebook.name"}}" placeholder="{{t "sitebook.name"}}"
         hx-get="/connections/{{$id}}/places/name?lat={{.Lat}}&amp;lon={{.Lon}}" hx-trigger="load" hx-swap="outerHTML">
-      <select class="select" name="kind" aria-label="{{t "sitebook.kind"}}">{{range $v.Kinds}}<option value="{{.}}">{{t (print "sitebook.kind_" .)}}</option>{{end}}</select>
+      <select class="select" name="kind" aria-label="{{t "sitebook.kind"}}"><option value="">{{t "sitebook.kind_none"}}</option>{{range $v.Kinds}}<option value="{{.}}">{{t (print "sitebook.kind_" .)}}</option>{{end}}</select>
       {{with $v.Customers}}<select class="select" name="customer" aria-label="{{t "col.customer"}}"><option value="0">–</option>{{range .}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>{{end}}
       <button type="submit" class="btn btn-outline btn-sm">{{t "sitebook.create"}}</button>
     </form>{{end}}</td>{{end}}

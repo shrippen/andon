@@ -40,6 +40,12 @@ var (
 	ErrUnknownPlace = errors.New("sites.unknown")
 	// ErrBadPlace: a new place lacks a name or a position.
 	ErrBadPlace = errors.New("sites.bad")
+	// ErrDemo: demo connections take no writes.
+	ErrDemo = errors.New("sites.demo")
+	// ErrDawarich: Dawarich was not reached or refused the area.
+	ErrDawarich = errors.New("sites.dawarich_failed")
+	// ErrKimai: Kimai was not reached or refused the mileage place.
+	ErrKimai = errors.New("sites.kimai_failed")
 )
 
 const (

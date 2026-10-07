@@ -5534,6 +5534,9 @@ sites:
   bad: 'Ein neuer Ort braucht Name und Position.'
   unknown_ride: 'Diese Fahrt gibt es nicht mehr.'
   bad_class: 'Unbekannte Art einer Fahrt.'
+  demo: 'Demo-Verbindungen nehmen keine Änderungen an.'
+  dawarich_failed: 'Dawarich war nicht erreichbar oder hat den Ort abgelehnt.'
+  kimai_failed: 'Kimai war nicht erreichbar oder hat den Ort abgelehnt.'
 places:
   unknown: 'Unbekannter Ort'
   none: 'Heute noch keine Orte.'

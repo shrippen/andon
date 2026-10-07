@@ -5533,6 +5533,9 @@ sites:
   bad: 'A new place needs a name and a position.'
   unknown_ride: 'This ride is gone.'
   bad_class: 'Unknown class of a ride.'
+  demo: 'Demo connections take no changes.'
+  dawarich_failed: 'Dawarich could not be reached or refused the place.'
+  kimai_failed: 'Kimai could not be reached or refused the place.'
 places:
   unknown: 'Unknown place'
   none: 'No places today yet.'

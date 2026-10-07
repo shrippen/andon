@@ -3,6 +3,7 @@ package sites
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"andon/internal/enums"
@@ -12,6 +13,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
 	"andon/internal/services/svcdata"
+	"andon/internal/sources"
 )
 
 // NewPlace is a place to create where rides end: it becomes a Dawarich
@@ -143,6 +145,9 @@ func Create(ctx context.Context, d *sql.DB, who *access.Principal, connID int64,
 	if p.Kind != metrics.KindCustomer {
 		p.CustomerID = 0
 	}
+	if sources.IsDemo(e.geoConn.URL) {
+		return ErrDemo
+	}
 	defer e.forget()
 
 	to, err := target(d, who, e.geoConn)
@@ -151,7 +156,7 @@ func Create(ctx context.Context, d *sql.DB, who *access.Principal, connID int64,
 	}
 	areaID, err := outbound.DawarichCreateArea(ctx, to, outbound.Area{Name: p.Name, Lat: p.Lat, Lon: p.Lon, Radius: p.Radius})
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", ErrDawarich, err)
 	}
 	site := &metrics.Site{Key: metrics.AreaKey(areaID), Name: p.Name, Lat: p.Lat, Lon: p.Lon, Radius: p.Radius, AreaID: areaID}
 	a := metrics.Assignment{Kind: p.Kind, CustomerID: p.CustomerID}
@@ -163,7 +168,7 @@ func Create(ctx context.Context, d *sql.DB, who *access.Principal, connID int64,
 			return err
 		}
 		if _, err := outbound.KimaiCreatePlace(ctx, kto, mileagePlace(site, a)); err != nil {
-			return err
+			return fmt.Errorf("%w: %v", ErrKimai, err)
 		}
 		stored = e.kindHolder(a.Kind) == kimaiHolder
 	}
@@ -185,6 +190,9 @@ func Sync(ctx context.Context, d *sql.DB, who *access.Principal, connID int64) (
 	if err != nil || !e.pluginWrites() {
 		return out, err
 	}
+	if sources.IsDemo(e.geoConn.URL) {
+		return out, ErrDemo
+	}
 	kto, err := e.kimaiTarget(d, who)
 	if err != nil {
 		return out, err
@@ -201,7 +209,7 @@ func Sync(ctx context.Context, d *sql.DB, who *access.Principal, connID int64) (
 		case s.PluginID == 0:
 			a := assigned[s.Key]
 			if _, err := outbound.KimaiCreatePlace(ctx, kto, mileagePlace(s, a)); err != nil {
-				return out, err
+				return out, fmt.Errorf("%w: %v", ErrKimai, err)
 			}
 			out.PluginPlaces++
 			if a.Kind != metrics.KindNone && e.kindHolder(a.Kind) == kimaiHolder {
@@ -212,10 +220,10 @@ func Sync(ctx context.Context, d *sql.DB, who *access.Principal, connID int64) (
 		case s.AreaID == 0 && s.PlaceID == 0:
 			id, err := outbound.DawarichCreateArea(ctx, gto, outbound.Area{Name: s.Name, Lat: s.Lat, Lon: s.Lon, Radius: s.Radius})
 			if err != nil {
-				return out, err
+				return out, fmt.Errorf("%w: %v", ErrDawarich, err)
 			}
 			if err := outbound.KimaiUpdatePlace(ctx, kto, s.PluginID, outbound.MileagePlace{AreaID: id}); err != nil {
-				return out, err
+				return out, fmt.Errorf("%w: %v", ErrKimai, err)
 			}
 			out.Areas++
 		}
