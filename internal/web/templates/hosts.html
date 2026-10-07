@@ -24,6 +24,7 @@
     </table></div>
     {{else}}<p class="muted">{{t "hosts.none"}}</p>{{end}}
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -74,6 +75,7 @@
     {{with $h.Hints}}<ul class="hint-lines">{{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><a href="/hints#hint-{{.ID}}" title="{{.Title}}">{{.Title}}</a><small>{{ago .FirstSeen}}</small></li>{{end}}</ul>
     {{else}}<p class="muted">{{t "hosts.no_hints"}}</p>{{end}}
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

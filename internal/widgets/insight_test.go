@@ -246,3 +246,15 @@ func TestKpiOptions(t *testing.T) {
 		t.Fatalf("line switched off: %+v", k)
 	}
 }
+
+// An untitled KPI tile's dialog is named after its metric, as the tile
+// reads, not the generic type name "Key figure".
+func TestKpiDetailNamedByMetric(t *testing.T) {
+	kind, _ := widgets.Get("kpi")
+	cfg, _ := widgets.Decode("kpi", map[string]any{"metric": "hours_today"})
+	data := &sources.KimaiDataset{Timesheets: []sources.KimaiSheet{{Begin: "2026-09-15", Minutes: 90}}}
+	view := kind.Detail(cfg, map[string]any{"data": data}, ctxFor(enums.ServiceKimai, nil))
+	if view.Head.TitleKey != "opt.hours_today" {
+		t.Fatalf("title key = %q, want opt.hours_today", view.Head.TitleKey)
+	}
+}

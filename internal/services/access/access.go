@@ -18,6 +18,7 @@ import (
 
 	"andon/internal/db"
 	"andon/internal/enums"
+	"andon/internal/i18n"
 	"andon/internal/repos/content"
 	"andon/internal/repos/misc"
 	"andon/internal/repos/users"
@@ -37,6 +38,9 @@ var teamRight = map[enums.TeamRole]enums.Right{
 
 // ErrDenied is returned by Need when the granted right is insufficient.
 var ErrDenied = errors.New("access denied")
+
+// instanceLabel names the instance space in the viewer's language.
+const instanceLabel = "space.instance"
 
 // SpaceRef is a lightweight reference to a space, enough for right checks.
 type SpaceRef struct {
@@ -144,7 +148,10 @@ func reachableSpaces(q db.Queryer, who *Principal) ([]SpaceRef, error) {
 		return nil, err
 	}
 	if shared != nil {
-		out = append(out, toRef(shared.ID, shared.Kind, shared.OwnerUserID, shared.TeamID, shared.Name))
+		// The instance space has no name of its own: viewers read it in
+		// their language ("Instance", not the stored "Instanz").
+		name := i18n.T(instanceLabel, who.Locale, nil)
+		out = append(out, toRef(shared.ID, shared.Kind, shared.OwnerUserID, shared.TeamID, name))
 	}
 
 	return out, nil

@@ -1836,6 +1836,8 @@ space:
 locale:
   de: Deutsch
   en: English
+  code_de: DE
+  code_en: EN
 scope:
   read: Lesen (API)
   embed: Einbetten

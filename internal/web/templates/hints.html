@@ -80,6 +80,7 @@
     {{else}}{{if not .DoneDays}}<ul class="hints"><li class="hint-empty">{{t "hints.none"}}</li></ul>{{end}}{{end}}
     {{if and (not .Embed) (not .DoneDays)}}<p class="small muted">{{t "hints.keys"}}</p>{{end}}
   </main>
+  {{if not .Embed}}{{template "foot" $}}{{end}}
 </body>
 </html>
 {{end}}

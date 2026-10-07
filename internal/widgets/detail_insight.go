@@ -48,6 +48,7 @@ func kpiDetail(cfg KpiConfig, results map[string]any, ctx ViewCtx) DetailView {
 		return unsupported()
 	}
 	label := T("opt." + string(cfg.Metric))
+	head := DetailHead{TitleKey: label.Key}
 	body := &DetailBody{Side: []Fact{{Label: T("detail.kpi.metric"), Value: Txt("opt." + string(cfg.Metric))}}}
 	body.Facts = []Kpi{{Value: kpiValue(k, k.Value), Label: label, Tier: map[string]string{"good": "green", "bad": "red"}[k.Target]}}
 
@@ -81,7 +82,7 @@ func kpiDetail(cfg KpiConfig, results map[string]any, ctx ViewCtx) DetailView {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("kpi.details"),
 			Data: Table{Head: []Text{T("detail.kpi.what"), T("detail.kpi.note"), T("detail.kpi.amount")}, Rows: rows, Num: []int{2}}})
 	}
-	return DetailView{Body: body}
+	return DetailView{Head: head, Body: body}
 }
 
 // chartDetail (record without the facts column): the months against the

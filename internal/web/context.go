@@ -21,7 +21,10 @@ const (
 	CookieName = "dsh_session"
 	CSRFHeader = "X-CSRF-Token"
 	CSRFField  = "csrf"
-	bearer     = "Bearer "
+	// localeCookie keeps the language chosen while logged out.
+	localeCookie = "andon_lang"
+	localeMaxAge = 365 * 24 * 60 * 60 // a year, in seconds
+	bearer       = "Bearer "
 )
 
 // Ctx is everything a page needs about the requester.
@@ -120,6 +123,11 @@ func (d Deps) resolve(r *http.Request) (Ctx, *auth.SessionInfo, error) {
 		return Ctx{}, nil, err
 	}
 	locale := i18n.Pick(r.Header.Get("Accept-Language"))
+	// A language chosen on the login page or in the footer (cookie) wins
+	// over the browser's; a signed-in user's profile over both.
+	if c, err := r.Cookie(localeCookie); err == nil && i18n.Pick(c.Value) == enums.Locale(c.Value) {
+		locale = enums.Locale(c.Value)
+	}
 	if info == nil {
 		return Ctx{Locale: locale, Path: r.URL.Path}, nil, nil
 	}
@@ -248,6 +256,14 @@ func (d Deps) setSession(w http.ResponseWriter, token string) {
 	w.Header().Set("Clear-Site-Data", clearSiteData)
 	http.SetCookie(w, &http.Cookie{
 		Name: CookieName, Value: token, Path: "/", HttpOnly: true,
+		Secure: d.Settings.SecureCookies(), SameSite: http.SameSiteLaxMode,
+	})
+}
+
+// setLocaleCookie keeps the chosen language for pages without a login.
+func (d Deps) setLocaleCookie(w http.ResponseWriter, locale enums.Locale) {
+	http.SetCookie(w, &http.Cookie{
+		Name: localeCookie, Value: string(locale), Path: "/", MaxAge: localeMaxAge, HttpOnly: true,
 		Secure: d.Settings.SecureCookies(), SameSite: http.SameSiteLaxMode,
 	})
 }

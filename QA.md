@@ -6,7 +6,7 @@ Feste User Journeys für explorative QA-Sitzungen: Wer etwas an Andon prüft, sp
 
 1. Eine Instanz je Bereich, jede mit eigenem Port und Datenordner:
    `PORT=8101 BASE_URL=http://localhost:8101 DATA_DIR=/tmp/qa-a ./start.sh demo` (ohne `demo` für die leere Instanz in J1).
-2. Demo-Logins: `mara@studio-weber.example.test` (Freelancerin, eigene Boards), `lena@studio-weber.example.test` (Admin), Passwort `demo-password-1`. Sprache je Benutzer über das Benutzermenü oder `POST /me/locale` (`locale=de|en`).
+2. Demo-Logins: `mara@studio-weber.example.test` (Freelancerin, eigene Boards), `lena@studio-weber.example.test` (Admin), Passwort `demo-password-1`. Sprache je Benutzer über das Benutzermenü, den Umschalter DE/EN im Fuß jeder Seite oder `POST /locale` (`locale=de|en`).
 3. Jede Journey auf dem Desktop (1440×960) und die markierten (📱) auch auf dem Handy (390×844).
 4. Nebenher beobachten: Server-Log (`level=ERROR`, `request failed`), Browser-Konsole (Fehler, CSP-Meldungen), Antworten ≥ 400, seitliches Scrollen, abgeschnittene Texte, rohe Katalogschlüssel (`hint.xyz.title`, `{n}`), Englisch auf deutschen Seiten und umgekehrt.
 5. Fund notieren mit: Stufe (Fehler, Reibung, unlogisch, kosmetisch), Journey und Schritt, was passierte gegen was erwartet war, Beleg (Screenshot, Log-Zeile, URL). Nur Beobachtetes, Ungetestetes ausdrücklich nennen.
@@ -90,8 +90,9 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 2. `/calendar.ics` mit Sitzung, ohne Sitzung, mit Lese-Token (`/me/security`): doppelte Termine?
 
 **J-B6 Sprache**
-1. Im Benutzermenü auf Englisch wechseln, alle Seiten und Dialoge von J-B1 bis J-B5 erneut.
-2. Nach rohen Schlüsseln, `{n}`, Deutsch auf englischen Seiten und Englisch auf deutschen suchen.
+1. Abgemeldet auf der Anmeldeseite im Fuß „EN“ wählen: die Seite ist englisch und bleibt es nach Neuladen. Anmelden: es gilt die Sprache des Profils.
+2. Im Fuß (oder Benutzermenü) auf Englisch wechseln, alle Seiten und Dialoge von J-B1 bis J-B5 erneut; ein anderer Browser hat nach der Anmeldung dieselbe Sprache.
+3. Nach rohen Schlüsseln, rohen Regel-IDs, `{n}`, Deutsch auf englischen Seiten („Instanz“, „Verbund“) und Englisch auf deutschen suchen.
 
 ## C. Geld und Zeit (Demo, Mara)
 

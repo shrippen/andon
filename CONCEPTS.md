@@ -27,7 +27,7 @@ Datensatz ──► Kennzahlen ──► Kacheln, Seiten
 | **Instanz** | die Andon-Installation | Server-Einstellungen (SMTP, Apprise, Prüflauf), Instanz-Bereich, Anmeldung (lokal, Passkey, authentik) |
 | **Benutzer** | ein Konto, Rolle Admin oder Benutzer | eigene Boards, Einstellungen, Benachrichtigungen; Admins sehen keine persönlichen Bereiche anderer |
 | **Team** | Benutzer mit Rolle Owner, Editor, Viewer | einen gemeinsamen Bereich pflegen |
-| **Bereich** | persönlich, Team oder Instanz | Behälter für Verbindungen, Kacheln, Boards, Einstellungen; Grenze für Daten in Hinweisen |
+| **Bereich** | persönlich, Team oder Instanz (englische Oberfläche: Personal, Team, Instance) | Behälter für Verbindungen, Kacheln, Boards, Einstellungen; Grenze für Daten in Hinweisen |
 | **Recht** | view, use, edit, manage auf eine Ressource | Freigaben über Bereichsgrenzen; was nicht sichtbar ist, wird nicht ausgeliefert |
 | **Freigabe** | Ressource → Benutzer oder Team mit Recht | Boards und Kacheln teilen |
 | **Overlay** | persönliche Layout-Änderung an einem fremden Board | Reihenfolge, Größe, Ausblenden ohne das Board zu ändern |
@@ -56,7 +56,7 @@ Datensatz ──► Kennzahlen ──► Kacheln, Seiten
 | **Prüflauf** | Hintergrund-Job, beim Start und alle `ANALYSIS_MINUTES` | holt alle Datensätze, wendet Regeln an; Seiten zeigen diesen Stand |
 | **Fähigkeit** | Domäne × Operation, mit Voraussetzungen | erkennen, was eine Verbindung kann (Plugin, Recht, Schnittstelle), und wer was speichert |
 | **Domäne** | ein Thema, das mehrere Dienste kennen | siehe „Fachliche Dinge“ |
-| **Verbund** | Verbindungen verschiedener Dienste, die zusammenarbeiten | Partner finden (welches Kimai zu welchem Ninja), Zuordnungen tragen; implizit, solange es je Dienst eine Verbindung gibt |
+| **Verbund** | Verbindungen verschiedener Dienste, die zusammenarbeiten (englische Oberfläche: Bundle) | Partner finden (welches Kimai zu welchem Ninja), Zuordnungen tragen; implizit, solange es je Dienst eine Verbindung gibt |
 | **Zuordnung** | ein Ding in mehreren Diensten, je Dienst mit seiner ID | Kunde Kimai 12 = Ninja „Kx9“ = Sure-Zahler „ACME“ = Paperless-Korrespondent 7 |
 | **Verlauf** | Kennzahlen je Tag (Snapshots) | Trends, Saisonvergleich, Prognosen in Kacheln |
 

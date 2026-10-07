@@ -51,6 +51,7 @@
     </div>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -201,6 +202,7 @@
       <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
     </form>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -491,6 +493,7 @@
     </div>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -523,6 +526,7 @@
       {{range .Services}}<a class="option" href="/connections/new?service={{.Service}}{{with $.Space}}&amp;space={{.}}{{end}}"><b>{{.Name}}{{if .Count}}<span class="count" data-kind="info" title="{{t "conn.existing" "count" .Count}}">{{.Count}}</span>{{end}}</b><small>{{t (print "conn.about_" .Service)}}</small></a>{{end}}
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -553,6 +557,7 @@
     <p class="muted" hx-get="{{.PollURL}}" hx-trigger="every 2s" hx-swap="none">{{t "connect.waiting"}}</p>
     <p><a href="{{.Back}}">{{t "action.cancel"}}</a></p>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -600,6 +605,7 @@
       <a class="btn btn-outline btn-sm" href="/connections/{{.Conn.ID}}/edit">{{t "action.cancel"}}</a>
     </form>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

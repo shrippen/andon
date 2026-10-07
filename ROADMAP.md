@@ -1259,9 +1259,9 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [ ] Abrechnung: offener Entwurf beim selben Kunden nicht erwähnt (doppelter Entwurf möglich); Hinweis „nicht abgerechnet“ führt zu Kimai statt zu `/billing#drafts`
 - [ ] Belege: Zähler der Reiter weichen ab (6 gegen 3); Erfolg „Verknüpft: 0“ neben der Demo-Ablehnung; Reiter „Belege zuerst“ geht nach „Anlegen“ verloren; Ausgaben aus dem Export fehlen in der Suche
 - [ ] Zeiträume ohne Angabe: Umsatz je Kunde (12 Monate) gegen Kundenseite (Jahr); Vorjahresvergleich über unvollständige Historie; Abos mischen Jahres- und Monatsbeträge; Kilometerbetrag passt nicht zur genannten Formel
-- [ ] Sprache: Bereich „Instanz“ und „Verbünde“ im englischen UI; Sprachumschalter nur im Benutzermenü; rohe Regel-IDs in Hinweislisten der Dialoge; Kennzahl-Dialoge heißen alle „Kennzahl“
+- [x] Sprache: Bereich „Instanz“ und „Verbünde“ im englischen UI; Sprachumschalter nur im Benutzermenü; rohe Regel-IDs in Hinweislisten der Dialoge; Kennzahl-Dialoge heißen alle „Kennzahl“ *(englisch „Instance“ und „Bundle“; Dialoge nennen den Titel der Regel; Kennzahl-Dialoge heißen wie ihre Kennzahl; Umschalter DE/EN im Fuß jeder Seite, auch auf der Anmeldung: abgemeldet im Cookie, angemeldet im Profil. Tests: kein Deutsch in `en.yml`, Text in beiden Sprachen)*
 - [ ] Handy: Navigation drei Zeilen (≈ 215–290 px) vor dem Inhalt; Beträge in Abrechnungs- und Kundentabellen außerhalb des Bildschirms
-- [ ] Inline-Style-CSP-Meldungen in der Konsole nach htmx-Tausch (vermutlich `attributesToSettle` mit `style`)
+- [x] Inline-Style-CSP-Meldungen in der Konsole nach htmx-Tausch (vermutlich `attributesToSettle` mit `style`) *(bestätigt: Kontextmenü am Board, danach Seitenwechsel; htmx setzt nur noch class, width, height. Ein Test durchläuft die Demo-Welt und scheitert an jedem `style=`; Playwright: 1 Meldung vorher, 0 nachher)*
 - [ ] Kante: Suchfeld des Boards ohne sichtbaren Fokusring
 
 ### Notiert 07.10.2026 (noch nicht begonnen)
