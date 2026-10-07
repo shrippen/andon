@@ -1510,3 +1510,13 @@ Keine. Geklärt am 06.10.2026:
 - **Dashy:** erledigt (Dashy-Abgleich vom 25.09.2026).
 - **Umsatzsteuer:** Soll-Versteuerung, Voranmeldung quartalsweise mit Dauerfristverlängerung (in den Bereichseinstellungen einzutragen).
 - **Dawarich:** Abgleich mit Kimai gewünscht; Areas noch anzulegen, Zuordnung über das Plugin Anfahrten (Abschnitt 8.4).
+
+## Update-Hinweis
+
+Ein Hinweis, wenn es ein neueres Release gibt: Andon läuft als Docker-Image, und `docker pull` meldet von sich aus nichts. Format, Plattformen und Regeln: `shrippen.github.io/overview/VERSIONS.md`.
+
+- [ ] Der Server prüft (Go-Backend, Version aus den Build-Infos) höchstens einmal am Tag `https://shrippen.github.io/versions.json` (Projekt `andon`), speichert die Antwort im Datenordner, bleibt bei Fehlern still; nur Format 1 und `https`-Links. Kein Abruf aus dem Browser, die CSP bleibt `connect-src 'self'`
+- [ ] Hinweis nur für Admins als Kante `.callout.has-x` mit Link zur Release-Seite; „Ausblenden“ gilt bis zur nächsten Version
+- [ ] Abschaltbar in den Einstellungen und per `ANDON_UPDATE_CHECK=0`; im Demo-Modus immer aus
+- [ ] README: was abgerufen wird (`https://shrippen.github.io/versions.json` ohne Parameter, höchstens einmal am Tag) und wie man es abschaltet
+- [ ] Nach jedem Release `python3 ../shrippen.github.io/overview/tools/build-versions.py` und `docs/versions.json` dort committen
