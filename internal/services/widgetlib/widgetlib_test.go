@@ -19,6 +19,7 @@ import (
 	"andon/internal/services/hints"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/widgetlib"
+	"andon/internal/sources"
 	"andon/internal/widgets"
 )
 
@@ -288,5 +289,24 @@ func TestDemoFillsServiceTypes(t *testing.T) {
 				t.Errorf("%s/%s: no demo data (%q)", kind.Key, q.Name, slot.Error)
 			}
 		}
+	}
+}
+
+// The calendar needs no connection, only a feed address; its gallery
+// example shows sample appointments, not a fetch of the empty address.
+func TestDemoCalendarHasEvents(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c")
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+
+	frag, err := widgetlib.Demo(context.Background(), d, who, space.ID, "calendar", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	slot := frag.Slots["events"]
+	cal, ok := slot.Data.(*sources.CalendarResult)
+	if slot.Error != "" || !ok || len(cal.Events) == 0 {
+		t.Fatalf("calendar demo: %q %#v", slot.Error, slot.Data)
 	}
 }

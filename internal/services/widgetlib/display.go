@@ -332,6 +332,10 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 				peerOptions[q.Name] = target.Options
 			}
 		}
+		if from == originDemo && q.Conn == widgets.ConnNone && sources.AnswersDemo(q.Source) {
+			frag.Slots[q.Name] = demoQuery(ctx, q.Source, q.Params)
+			continue
+		}
 		if q.Conn != widgets.ConnNone && target == nil {
 			frag.Slots[q.Name] = Slot{Error: "connection.missing"}
 			continue
