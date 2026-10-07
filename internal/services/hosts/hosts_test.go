@@ -105,3 +105,34 @@ func TestHostAlertsAndBeats(t *testing.T) {
 		t.Fatalf("nas: alerts %+v beats %+v problems %d", nas.Alerts, nas.Beats, nas.Problems)
 	}
 }
+
+// TestHostCVEs: a CVE that hits an image of a compose stack lands on the
+// stack's host (same first label); an affected one is a problem.
+func TestHostCVEs(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	ctx := context.Background()
+	for _, s := range []struct {
+		service enums.ServiceType
+		url     string
+	}{{enums.ServiceKimai, "demo://nebelhorn.lan"}, {enums.ServiceGitea, "demo://git"}, {enums.ServiceNVD, "demo://nvd"}} {
+		conn, err := content.Connection(d, testkit.Conn(t, d, who, space, s.service, s.url))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := svcdata.Get(ctx, d, sources.DataKey(s.service), nil, conn, model.UserHolder(who.UserID), svcdata.Force); err != nil {
+			t.Fatalf("seed %s: %v", s.service, err)
+		}
+	}
+	h, err := hosts.One(ctx, d, who, "nebelhorn.lan")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := map[string]bool{}
+	for _, m := range h.CVEs {
+		ids[m.CVE.ID] = true
+	}
+	if !ids["CVE-2026-41207"] || ids["CVE-2026-39954"] || h.Problems < 1 {
+		t.Fatalf("cves %+v problems %d", h.CVEs, h.Problems)
+	}
+}

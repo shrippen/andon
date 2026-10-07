@@ -104,6 +104,11 @@ func GiteaInfo(data *sources.GiteaDataset) []InfoPart {
 	return found
 }
 
+// NVDInfo: "412 CVEs in 30 days".
+func NVDInfo(data *sources.NVDDataset) []InfoPart {
+	return []InfoPart{part("nvd.read", map[string]any{"count": len(data.CVEs), "days": data.Days})}
+}
+
 // PrometheusInfo: "3 alerts · 1 critical".
 func PrometheusInfo(data *sources.PrometheusDataset) []InfoPart {
 	firing, critical := 0, 0

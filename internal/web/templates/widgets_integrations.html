@@ -217,3 +217,14 @@
 </div>
 {{else if eq $v.Found false}}<p class="tile-note">{{t "prometheus.empty"}}</p>{{end}}{{end}}
 {{end}}
+
+{{define "widgets/vulnerabilities"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Read}}
+<div class="tile-head"><b class="tile-value" data-live>{{$v.Affected}}</b><span class="tile-note">{{t "cve.tile_affected"}}{{with $v.Check}} · {{t "cve.tile_check" "n" .}}{{end}}</span></div>
+{{with $v.Lines}}<ul class="plain-list">
+  {{range .}}<li><span class="pill"{{if eq .State "affected"}} data-state="failed"{{else}} data-state="locked"{{end}}>{{num .CVE.Score 1}}</span> {{.CVE.ID}} <small class="muted">{{.Image.Where}}</small></li>{{end}}
+</ul>{{else}}<p class="tile-note">{{t "cve.tile_none" "n" $v.Images "days" $v.Days}}</p>{{end}}
+{{with $v.More}}<p class="tile-foot">{{t "cve.more" "n" .}}</p>{{end}}
+{{end}}{{end}}
+{{end}}

@@ -249,6 +249,8 @@ func linkView(_ LinkConfig, results map[string]any, ctx ViewCtx) map[string]any 
 		parts = metrics.HealthchecksInfo(data)
 	case *sources.PrometheusDataset:
 		parts = metrics.PrometheusInfo(data)
+	case *sources.NVDDataset:
+		parts = metrics.NVDInfo(data)
 	case *sources.HassDataset:
 		parts = metrics.HassInfo(data)
 	case *sources.SureDataset:

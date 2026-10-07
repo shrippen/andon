@@ -536,3 +536,44 @@ func TestDemoPromQueryByName(t *testing.T) {
 		t.Fatalf("node_load1 %+v", v)
 	}
 }
+
+// TestNVD: high and critical CVEs, their score and summary, and the
+// applications they affect with their version range; operating systems
+// and non-vulnerable entries are left out; the key goes in a header.
+func TestNVD(t *testing.T) {
+	var asked []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("apiKey") != "k" || r.URL.Query().Get("pubStartDate") == "" {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		level := r.URL.Query().Get("cvssV3Severity")
+		asked = append(asked, level)
+		if level != "HIGH" {
+			w.Write([]byte(`{"totalResults":0,"vulnerabilities":[]}`))
+			return
+		}
+		w.Write([]byte(`{"totalResults":1,"vulnerabilities":[{"cve":{"id":"CVE-2026-1","published":"2026-10-01T10:00:00.000",` +
+			`"descriptions":[{"lang":"es","value":"x"},{"lang":"en","value":"Gitea allows things."}],` +
+			`"metrics":{"cvssMetricV31":[{"cvssData":{"baseScore":8.1}}]},` +
+			`"configurations":[{"nodes":[{"cpeMatch":[` +
+			`{"vulnerable":true,"criteria":"cpe:2.3:a:gitea:gitea:*:*:*:*:*:*:*:*","versionStartIncluding":"1.20.0","versionEndExcluding":"1.24.3"},` +
+			`{"vulnerable":true,"criteria":"cpe:2.3:o:linux:linux_kernel:*:*:*:*:*:*:*:*"},` +
+			`{"vulnerable":false,"criteria":"cpe:2.3:a:golang:go:*:*:*:*:*:*:*:*"}]}]}]}}]}`))
+	}))
+	defer srv.Close()
+
+	raw, err := sources.NVDData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "k", Options: map[string]any{"days": 500.0}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := raw.(*sources.NVDDataset)
+	if data.Days != 120 || len(asked) != 2 || len(data.CVEs) != 1 {
+		t.Fatalf("days %d asked %v cves %+v", data.Days, asked, data.CVEs)
+	}
+	c := data.CVEs[0]
+	want := sources.CVEProduct{Vendor: "gitea", Product: "gitea", From: "1.20.0", To: "1.24.3"}
+	if c.Score != 8.1 || c.Summary != "Gitea allows things." || len(c.Products) != 1 || c.Products[0] != want || c.Published.IsZero() {
+		t.Fatalf("cve %+v", c)
+	}
+}

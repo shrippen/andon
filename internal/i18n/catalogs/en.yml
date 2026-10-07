@@ -41,6 +41,7 @@ action:
   open_in_kdestore: 'Open in KDE Store'
   open_in_healthchecks: 'Open in Healthchecks'
   open_in_prometheus: 'Open in Prometheus'
+  open_in_nvd: 'Open in the NVD'
   open_in_tibber: 'Open in Tibber (electricity)'
   close: Close
   open_in_jsonapi: Open API
@@ -869,6 +870,9 @@ wtype:
   prometheus_value:
     name: 'Prometheus value'
     desc: 'One PromQL expression as a number, with its last hours and a warning line.'
+  vulnerabilities:
+    name: 'Vulnerabilities'
+    desc: 'New CVEs that hit a running image: Docker containers and compose stacks against the NVD.'
   speedtest:
     name: 'Internet speed'
     desc: 'Latest result from Speedtest Tracker.'
@@ -1279,6 +1283,10 @@ conn:
   about_prometheus: 'Alerts as hints, PromQL values'
   what_prometheus: 'Prometheus collects metrics (e.g. via node_exporter) and fires alerts by its rules.'
   secret_prometheus: 'Token or user:password (empty = no login)'
+  options_hint_nvd: 'The URL stays https://services.nvd.nist.gov. API key optional (nvd.nist.gov/developers/request-an-api-key); without one the NVD allows 5 requests in 30 seconds. Option days: that many days back (default 30, at most 120). High and critical CVEs are read and checked against the images of Docker and the compose stacks (Gitea) in the same space.'
+  about_nvd: 'New CVEs against running images'
+  what_nvd: 'The National Vulnerability Database (NIST) publishes every known vulnerability (CVE) with its score and the versions it affects.'
+  secret_nvd: 'API key (optional)'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
   health: 'Health'
@@ -1494,6 +1502,7 @@ service:
   kdestore: 'KDE Store'
   healthchecks: 'Healthchecks'
   prometheus: 'Prometheus'
+  nvd: 'CVE (NVD)'
   tibber: 'Tibber (electricity)'
   links: Tiles
   jsonapi: Custom API (JSON)
@@ -2130,6 +2139,12 @@ hint:
       title: 'Large expense: {name} ({amount})'
       why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
+    image_cve:
+      title: '{id} hits {where}'
+      why: 'CVSS {score}. {image} lies in the affected range, fixed in {fixed}. {public}{summary}'
+    image_cve_check:
+      title: '{id}: check {where}'
+      why: 'CVSS {score}. {image} names no version; affected up to {fixed}. {public}{summary}'
     heartbeat_ok_backup_not:
       title: '{check} reports OK, the backup does not'
       why: '{tool} “{item}”: last successful backup {day}, yet the job keeps pinging. It probably pings even when the backup fails.'
@@ -2521,6 +2536,8 @@ hint:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
 info:
+  nvd:
+    read: '{count} CVEs in {days} days'
   prometheus:
     alerts: '{count} alerts'
     critical: '{count} critical'
@@ -2754,6 +2771,7 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  cross.image_cve: 'Vulnerability in a running image'
   prometheus.alert: 'Prometheus alert'
   heartbeat.down: 'Heartbeat missing'
   cross.heartbeat_backup: 'Heartbeat against backup'
@@ -4713,6 +4731,29 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image updates: {n}'
   alerts: 'Alerts: {n}'
+cve:
+  public: 'Pangolin makes the service reachable from the internet. '
+  affected: 'affected'
+  check: 'to check'
+  read: 'CVEs in {days} days'
+  images: 'Images in use'
+  matches: 'Matches'
+  none: 'None of the new CVEs hits a running image.'
+  tile_affected: 'affected'
+  tile_check: '{n} to check'
+  tile_none: '{n} images, no matches in {days} days'
+  more: '+{n} more'
+  state:
+    affected: 'affected'
+    check: 'check version'
+  col:
+    id: 'CVE'
+    image: 'Image'
+    where: 'Where'
+    host: 'Host'
+    score: 'CVSS'
+    state: 'State'
+    fixed: 'Fixed in'
 prometheus:
   above: 'above {n}'
   below: 'below {n}'
@@ -5533,6 +5574,7 @@ clients:
   projects: 'Projects this year'
   no_hints: 'No open hints about this customer.'
 hosts:
+  cves: 'Vulnerabilities'
   alerts: 'Prometheus alerts'
   beats: 'Heartbeats'
   host: 'Host'
