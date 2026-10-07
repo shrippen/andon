@@ -14,7 +14,9 @@
     {{template "intro" dict "Page" "clients" "Chapter" "freelance" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{template "period_choice" dict "Path" "/clients" "Periods" .Periods "Span" .Span}}
     {{if .Cards}}{{$first := index .Cards 0}}
-    {{/* Hours and revenue count the period, the amounts in between today. */}}
+    {{/* Hours and revenue count the period, the amounts in between today.
+         On a phone (Kante cards-sm) every figure is a labelled line: with
+         several amounts, one top right without its name was ambiguous. */}}
     <div class="table-wrap"><table class="table cards-sm">
       <thead><tr><th>{{t "clients.customer"}}</th>
         <th class="num">{{t "clients.hours"}}<br><small class="muted">{{template "period_sub" dict "Span" .Span "From" $first.HoursFrom}}</small></th>
@@ -27,7 +29,7 @@
         <td class="num" data-label="{{t "clients.hours"}}">{{num .Hours 1}}</td>
         <td class="num" data-label="{{t "clients.unbilled"}}">{{if .Unbilled}}{{money .Unbilled .Currency}}{{end}}</td>
         <td class="num" data-label="{{t "clients.open"}}">{{if .Open}}<span{{if .Overdue}} class="late"{{end}}>{{money .Open .Currency}}</span>{{end}}</td>
-        <td class="num" data-label="{{t "clients.revenue"}}" data-card="key">{{if .Revenue}}{{money .Revenue .Currency}}{{end}}</td>
+        <td class="num" data-label="{{t "clients.revenue"}}">{{if .Revenue}}{{money .Revenue .Currency}}{{end}}</td>
         <td class="num" data-label="{{t "clients.pay_days"}}">{{if .PaymentDays}}{{.PaymentDays}}{{end}}</td>
       </tr>{{end}}</tbody>
     </table></div>
