@@ -106,6 +106,42 @@ func TestKomodoReadsStacksAlerts(t *testing.T) {
 	}
 }
 
+// TestKomodoReadsDeploys: the dataset keeps each stack's git repo and
+// the deploys with their commit, so cross.ci_red_deployed can match them
+// with CI; other updates (pulls, restarts) are not deploys.
+func TestKomodoReadsDeploys(t *testing.T) {
+	srv := jsonServer(t, map[string]any{
+		"/read/GetServersSummary": map[string]any{"total": 1, "healthy": 1},
+		"/read/ListStacks": []any{map[string]any{"id": "s1", "name": "showreel", "info": map[string]any{"state": "running",
+			"repo": "studio/showreel", "branch": "main", "deployed_hash": "abc1234"}}},
+		"/read/ListAlerts": map[string]any{"alerts": []any{}},
+		"/read/ListUpdates": map[string]any{"updates": []any{
+			map[string]any{"operation": "DeployStack", "start_ts": 1758790000000, "success": true, "username": "mara",
+				"commit_hash": "abc1234", "target": map[string]any{"type": "Stack", "id": "s1"}},
+			map[string]any{"operation": "PullStack", "start_ts": 1758780000000, "success": true,
+				"target": map[string]any{"type": "Stack", "id": "s1"}},
+			map[string]any{"operation": "DeployStack", "start_ts": 1758700000000, "success": false,
+				"target": map[string]any{"type": "Stack", "id": "gone"}},
+		}},
+	}, nil)
+
+	out, err := sources.KomodoData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "id:sec", VerifyTLS: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := out.(*sources.KomodoDataset)
+	if s := data.Stacks[0]; s.Repo != "studio/showreel" || s.Branch != "main" {
+		t.Fatalf("stack: %+v", s)
+	}
+	if len(data.Deployed) != 1 {
+		t.Fatalf("deploys: %+v", data.Deployed)
+	}
+	d := data.Deployed[0]
+	if d.Stack != "showreel" || d.Commit != "abc1234" || d.By != "mara" || !d.OK || d.At.UnixMilli() != 1758790000000 {
+		t.Fatalf("deploy: %+v", d)
+	}
+}
+
 func TestPangolinNeedsOrg(t *testing.T) {
 	srv := jsonServer(t, map[string]any{
 		"/v1/org/home/sites": map[string]any{"data": map[string]any{"sites": []any{

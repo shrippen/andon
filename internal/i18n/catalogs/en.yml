@@ -1687,7 +1687,7 @@ conn:
   options_hint_domains: 'URL = any address of the domain. Options: domains: [example.org, example.de]. No token. .de publishes no expiry.'
   options_hint_blacklist: 'URL = mail server (its IPv4 addresses are checked). Options: ips: [1.2.3.4], zones: [zen.spamhaus.org]. No token.'
   options_hint_truenas: 'No options. URL with https:// (e.g. https://truenas.lan) – TrueNAS revokes an API key used over http; with a self-signed certificate set TLS to “insecure”. Token = API key (credentials → users → API keys) of a user with the “Readonly Admin” role. Uses the WebSocket API, older versions REST.'
-  options_hint_komodo: 'API key and secret from Komodo (read-only suffices). Options (YAML): stopped: [cloudbeaver, filezilla] for stacks stopped on purpose (grey, no hint).'
+  options_hint_komodo: 'API key and secret from Komodo (read-only suffices). Options (YAML): stopped: [cloudbeaver, filezilla] for stacks stopped on purpose (grey, no hint). ci_repos: {web: studio/website} names the repo of a stack for the CI check when Komodo does not know it and no CI repo is named like the stack.'
   options_hint_pangolin: 'Integration API URL including /v1 (e.g. https://api.pangolin.example.org/v1), not the Pangolin dashboard: enable the integration API in Pangolin''s config.yml (flags: enable_integration_api: true) and expose it on its own domain (port 3003). The organisation ID is in the Pangolin URL (…/<org>/settings). Token = integration API key with read access to sites and resources.'
   options_hint_authentik: No options. Token = API token of an account allowed to read events and users.
   options_hint_mail: 'URL imaps://mail.example.org:993/INBOX. Username and app password of your mailbox (not your regular login password). Options: days: 60, keywords: [statement], ignore_senders: [mycompany.com] – read-only; attachments are downloaded only when you hand an invoice to Paperless.'
@@ -2584,6 +2584,9 @@ hint:
     release_red_ci:
       title: '{repo} {release} on red CI'
       why: 'The release came out on {day}; the last build before it (#{build}) had failed.'
+    ci_red_deployed:
+      title: 'Stack {stack} deployed on red CI'
+      why: 'Deployed on {day} ({by}); build #{build} of {repo} for this state had failed. Does the stack run as it should?'
     image_cve:
       title: '{id} hits {where}'
       why: 'CVSS {score}. {image} lies in the affected range, fixed in {fixed}. {public}{summary}'
@@ -3292,6 +3295,7 @@ rule_name:
   cross.pbs_orphan: 'Backups without a guest'
   drone.failing: 'Build red'
   cross.release_red_ci: 'Release on red CI'
+  cross.ci_red_deployed: 'Deploy on red CI'
   cross.image_cve: 'Vulnerability in a running image'
   prometheus.alert: 'Prometheus alert'
   heartbeat.down: 'Heartbeat missing'

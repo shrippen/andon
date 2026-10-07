@@ -1687,7 +1687,7 @@ conn:
   options_hint_domains: 'URL = eine Adresse der Domain. Optionen: domains: [example.org, example.de]. Kein Token. .de nennt kein Ablaufdatum.'
   options_hint_blacklist: 'URL = Mailserver (dessen IPv4-Adressen werden geprüft). Optionen: ips: [1.2.3.4], zones: [zen.spamhaus.org]. Kein Token.'
   options_hint_truenas: 'Keine Optionen. URL mit https:// (z. B. https://truenas.lan) – TrueNAS widerruft einen API-Schlüssel, der über http benutzt wird; bei selbstsigniertem Zertifikat TLS auf „unsicher“ stellen. Token = API-Schlüssel (Anmeldedaten → Benutzer → API-Schlüssel) eines Nutzers mit der Rolle „Readonly Admin“. Nutzt die WebSocket-API, ältere Versionen REST.'
-  options_hint_komodo: 'API-Key und -Secret aus Komodo (nur lesend genügt). Optionen (YAML): stopped: [cloudbeaver, filezilla] für absichtlich gestoppte Stacks (grau, kein Hinweis).'
+  options_hint_komodo: 'API-Key und -Secret aus Komodo (nur lesend genügt). Optionen (YAML): stopped: [cloudbeaver, filezilla] für absichtlich gestoppte Stacks (grau, kein Hinweis). ci_repos: {web: studio/website} nennt das Repo eines Stacks für den CI-Abgleich, wenn Komodo es nicht kennt und kein CI-Repo wie der Stack heißt.'
   options_hint_pangolin: 'URL der Integration-API inkl. /v1 (z. B. https://api.pangolin.example.org/v1), nicht die Pangolin-Oberfläche: Die Integration-API in der Pangolin-config.yml einschalten (flags: enable_integration_api: true) und über eine eigene Domain erreichbar machen (Port 3003). Organisations-ID steht in der Pangolin-URL (…/<org>/settings). Token = Integration-API-Schlüssel mit Leserechten auf Sites und Ressourcen.'
   options_hint_authentik: Keine Optionen. Token = API-Token eines Kontos mit Leserechten auf Ereignisse und Benutzer.
   options_hint_mail: 'URL imaps://mail.example.org:993/INBOX. Benutzername und App-Passwort deines Postfachs (nicht das normale Login-Passwort). Optionen: days: 60, keywords: [abrechnung], ignore_senders: [meinefirma.de] – nur lesend; Anhänge werden nur geladen, wenn du eine Rechnung an Paperless übergibst.'
@@ -2584,6 +2584,9 @@ hint:
     release_red_ci:
       title: '{repo} {release} bei rotem CI'
       why: 'Das Release erschien am {day}; der letzte Build davor (#{build}) war fehlgeschlagen.'
+    ci_red_deployed:
+      title: 'Stack {stack} bei rotem CI deployt'
+      why: 'Deploy am {day} ({by}); Build #{build} von {repo} für diesen Stand war fehlgeschlagen. Läuft der Stack, wie er soll?'
     image_cve:
       title: '{id} trifft {where}'
       why: 'CVSS {score}. {image} liegt im betroffenen Bereich, behoben in {fixed}. {public}{summary}'
@@ -3293,6 +3296,7 @@ rule_name:
   cross.pbs_orphan: 'Sicherungen ohne Gast'
   drone.failing: 'Build rot'
   cross.release_red_ci: 'Release bei rotem CI'
+  cross.ci_red_deployed: 'Deploy bei rotem CI'
   cross.image_cve: 'Sicherheitslücke in laufendem Image'
   prometheus.alert: 'Prometheus-Alert'
   heartbeat.down: 'Herzschlag fehlt'

@@ -1116,7 +1116,7 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] Quelle Drone (`/api/user/repos?latest=true`, Builds je Repo); Kachel „CI-Läufe“ über Drone, GitHub und Gitea (`sources.CISource`) *(GitHub und Gitea nennen nur den letzten Lauf; ein Verlauf bräuchte je Repo eine weitere Abfrage)*
 - [x] Regel `drone.failing` (Standardzweig rot seit N Stunden; GitHub und Gitea haben schon `github.ci_failed`, `gitea.actions_failed`)
 - [x] Quer: `cross.release_red_ci` (Release auf GitHub, der letzte Build davor war rot, aus jedem CI-Anbieter)
-- [ ] Quer: `cross.ci_red_deployed` *(Komodo nennt Deploys nur im Popup, nicht im Datensatz; dafür muss die Komodo-Quelle die Deploys mitlesen)*
+- [x] Quer: `cross.ci_red_deployed` *(die Komodo-Quelle liest Deploys (Stack, Zeit, Commit, wer) und das Git-Repo je Stack in den Datensatz; Repo zum Stack: Option `ci_repos`, sonst Komodos Repo, sonst ein CI-Repo mit dem Namen des Stacks. Rot heißt: der Build des deployten Commits, ohne Commit der letzte Build davor, war fehlgeschlagen. Drone und GitHub nennen dafür den Commit; Gitea nennt nur rote Läufe ohne Zeit und zählt nicht mit)*
 
 **Schritt 6: Sicherung** — Proxmox Backup Server, Kopia, Duplicati, Backrest, UrBackup
 - [x] Quellen mit `BackupSource`; PBS zusätzlich Belegung je Datastore und Verify-Jobs; Regeln `pbs.verify_failed`, `pbs.datastore_full` *(UrBackup-Anmeldung und Duplicati-Token als Treiber; Fehlertext des Werkzeugs als `BackupJob.Note`)*

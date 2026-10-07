@@ -4,7 +4,7 @@ package sources
 // token (Drone → user settings) is enough.
 //
 //	GET api/user/repos?latest=true                → [{slug, default_branch, active, build}]
-//	GET api/repos/<owner>/<name>/builds?per_page=N → [{number, status, event, target, started, finished}]
+//	GET api/repos/<owner>/<name>/builds?per_page=N → [{number, status, event, target, after, started, finished}]
 
 import (
 	"context"
@@ -76,7 +76,7 @@ func fetchDrone(ctx context.Context, sctx Ctx) (any, error) {
 				continue // another branch
 			}
 			started, finished := asFloat(m["started"]), asFloat(m["finished"])
-			run := CIRun{Number: int(asFloat(m["number"])), Status: ciStatus(asStr(m["status"])), Event: asStr(m["event"])}
+			run := CIRun{Number: int(asFloat(m["number"])), Status: ciStatus(asStr(m["status"])), Event: asStr(m["event"]), Commit: asStr(m["after"])}
 			if started > 0 {
 				run.Started = time.Unix(int64(started), 0).UTC()
 			}
@@ -123,9 +123,9 @@ func DemoDrone(now time.Time) *DroneDataset {
 		Repos []struct {
 			Repo, Branch string
 			Builds       []struct {
-				Number, Seconds int
-				Status, Event   string
-				Started         time.Time
+				Number, Seconds       int
+				Status, Event, Commit string
+				Started               time.Time
 			}
 		}
 	}
@@ -134,7 +134,7 @@ func DemoDrone(now time.Time) *DroneDataset {
 	for _, r := range p.Repos {
 		repo := DroneRepo{Repo: r.Repo, Branch: r.Branch}
 		for _, b := range r.Builds {
-			repo.Builds = append(repo.Builds, CIRun{Number: b.Number, Status: ciStatus(b.Status), Event: b.Event, Started: b.Started, Seconds: b.Seconds})
+			repo.Builds = append(repo.Builds, CIRun{Number: b.Number, Status: ciStatus(b.Status), Event: b.Event, Started: b.Started, Seconds: b.Seconds, Commit: b.Commit})
 		}
 		data.Repos = append(data.Repos, repo)
 	}

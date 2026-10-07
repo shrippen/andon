@@ -4859,7 +4859,7 @@
   ]
  },
  "stacks": {
-  "note": "Komodo: three servers, the backup Pi unreachable; paperless' last deploy failed.",
+  "note": "Komodo: three servers, the backup Pi unreachable; paperless' last deploy failed; Mara deployed the showreel while its build was red.",
   "url": "https://komodo.demo",
   "servers_total": 3,
   "servers_healthy": 2,
@@ -4880,6 +4880,12 @@
    {
     "name": "gitea",
     "state": "running"
+   },
+   {
+    "name": "showreel",
+    "state": "running",
+    "repo": "studio/showreel",
+    "branch": "main"
    }
   ],
   "alerts": [
@@ -4932,8 +4938,42 @@
     "operation": "DeployStack",
     "by": "mara",
     "ok": true
+   },
+   "showreel": {
+    "at": "@-4h",
+    "operation": "DeployStack",
+    "by": "mara",
+    "ok": true
    }
-  }
+  },
+  "deployed": [
+   {
+    "stack": "showreel",
+    "at": "@-4h",
+    "commit": "7c1e9a4",
+    "by": "mara",
+    "ok": true
+   },
+   {
+    "stack": "paperless",
+    "at": "@-26h",
+    "by": "lena",
+    "ok": false
+   },
+   {
+    "stack": "immich",
+    "at": "@-6d",
+    "by": "mara",
+    "ok": true
+   },
+   {
+    "stack": "showreel",
+    "at": "@-6d",
+    "commit": "52d0b17",
+    "by": "mara",
+    "ok": true
+   }
+  ]
  },
  "backups": {
   "note": "Borg backup server (the laptop has been offline for six days) and the database dumps (PG Back Web).",
@@ -6190,28 +6230,32 @@
       "status": "failure",
       "started": "@-5h",
       "seconds": 512,
-      "event": "push"
+      "event": "push",
+      "commit": "7c1e9a4e2b9f03d1"
      },
      {
       "number": 40,
       "status": "failure",
       "started": "@-1d1h",
       "seconds": 498,
-      "event": "push"
+      "event": "push",
+      "commit": "c03f6a1d7e88b245"
      },
      {
       "number": 39,
       "status": "success",
       "started": "@-4d",
       "seconds": 530,
-      "event": "push"
+      "event": "push",
+      "commit": "9a41e0c2b6d7f310"
      },
      {
       "number": 38,
       "status": "success",
       "started": "@-6d",
       "seconds": 521,
-      "event": "tag"
+      "event": "tag",
+      "commit": "52d0b17a9c3e6f48"
      }
     ]
    },

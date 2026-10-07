@@ -75,6 +75,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 6. `/hints?view=done`: Ist das Erledigte dort? Lässt es sich zurückholen?
 7. Zähler vergleichen: Navigation, Filterleiste, Kacheln „Lage“ und „Hinweise“.
 8. Am Handy: Menü (☰) öffnet die Navigation von links, aktuelle Seite markiert; Esc, Klick daneben und × schließen, Fokus zurück auf ☰.
+9. Querhinweise: Jeder nennt beide Seiten mit Zahl und Zeit, z. B. „Stack showreel bei rotem CI deployt“ (Deploy, Build-Nummer, Repo).
 
 **J-B3 Tastatur**
 1. Auf dem Board `/`, „kimai“, ↓, Esc; Text ohne Treffer.

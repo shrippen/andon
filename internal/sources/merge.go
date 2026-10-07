@@ -102,6 +102,7 @@ func (d *KomodoDataset) Merge(o any) any {
 	out.ServersProblem += x.ServersProblem
 	out.Stacks = slices.Concat(d.Stacks, x.Stacks)
 	out.Alerts = slices.Concat(d.Alerts, x.Alerts)
+	out.Deployed = slices.Concat(d.Deployed, x.Deployed)
 	return &out
 }
 
