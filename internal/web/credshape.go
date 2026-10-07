@@ -259,8 +259,9 @@ func optText(options map[string]any, key string) string {
 // secretLabels name the single secret field where "API token" would be
 // wrong, e.g. MySpeed takes a password.
 var secretLabels = map[enums.ServiceType]string{
-	enums.ServiceSpeedtest: "conn.secret_speedtest",
-	enums.ServiceWallos:    "conn.secret_wallos",
+	enums.ServiceSpeedtest:  "conn.secret_speedtest",
+	enums.ServiceWallos:     "conn.secret_wallos",
+	enums.ServicePrometheus: "conn.secret_prometheus",
 }
 
 func secretLabel(service enums.ServiceType) string {
