@@ -4,8 +4,10 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestBillingSummary: the billing page opens with what is waiting, each
@@ -165,5 +167,23 @@ func TestTablesFoldToCards(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// TestBillingExportKeepsChoice: a refused year package shows the page
+// with its error and the year as chosen, not this year again.
+func TestBillingExportKeepsChoice(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := instanceSpace(t, srv, client)
+	last := strconv.Itoa(time.Now().Year() - 1)
+
+	status, body := browse(t, client, http.MethodGet, srv.URL+"/billing/export?space_id="+space+"&link_id=999&year="+last, nil, nil)
+	if status != http.StatusBadRequest || !strings.Contains(body, `class="error"`) {
+		t.Fatalf("refused export: %d\n%s", status, body)
+	}
+	if !strings.Contains(body, `<option value="`+last+`" selected`) {
+		t.Fatalf("year %s not kept:\n%s", last, body)
 	}
 }

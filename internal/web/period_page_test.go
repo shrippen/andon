@@ -111,7 +111,7 @@ func TestBillingPeriod(t *testing.T) {
 	if strings.Count(figures, strconv.Itoa(year-1)) < 4 {
 		t.Fatalf("last year's figures do not name %d:\n%s", year-1, figures)
 	}
-	if !strings.Contains(page, `<option selected>`+strconv.Itoa(year-1)+`</option>`) {
+	if !strings.Contains(page, `<option value="`+strconv.Itoa(year-1)+`" selected>`) {
 		t.Fatalf("tax package does not offer %d first:\n%s", year-1, page)
 	}
 }

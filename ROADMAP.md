@@ -1264,6 +1264,9 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [x] Inline-Style-CSP-Meldungen in der Konsole nach htmx-Tausch (vermutlich `attributesToSettle` mit `style`) *(bestätigt: Kontextmenü am Board, danach Seitenwechsel; htmx setzt nur noch class, width, height. Ein Test durchläuft die Demo-Welt und scheitert an jedem `style=`; Playwright: 1 Meldung vorher, 0 nachher)*
 - [x] Kante: Suchfeld des Boards ohne sichtbaren Fokusring *(Kante 1.18: `.input`/`.select` mit `--focus`-Ring bei `:focus-visible`)*
 
+**Rest der Reibung (nach dem Durchgang)**
+- [x] Formulare mit `?error=`-Weiterleitung verloren noch Eingaben: Verbund-Kunden (Zelle), Verbund „Kunden“ (Anlegen), Mitglieder, Löschen; Jahrespaket; neue Ausgabe aus einem Beleg; Feldzuordnung der Belege *(antworten mit der Seite samt Fehler und Eingabe über `web/forms.go`; Get-Formulare (Jahrespaket) ebenso. Belege: die Formulare im Reiter antworten an Ort und Stelle (htmx). Bleiben als Weiterleitung, weil nichts getippt wird und Neuladen nicht erneut senden soll: Belege verknüpfen, lösen, ignorieren, Mail an Paperless, Anmelde-Abläufe (OAuth))*
+
 ### Notiert 07.10.2026 (noch nicht begonnen)
 
 - [x] KDE-Store-Kachel testen; in den Einstellungen erklären, was in welches Feld gehört *(live gegen api.kde-look.org geprüft, Benutzer shrippen: 3 Einträge. Eigene Felder „Benutzer“ und „Einzelne Einträge“ mit Erklärung, Links werden zu Nummern; store.kde.org als URL wird erklärt statt HTTP 410; doppelt gelesene Einträge behalten die höhere Zahl, die Einzelabfrage hinkt nach)*

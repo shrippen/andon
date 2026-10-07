@@ -2,12 +2,16 @@ package web_test
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"andon/internal/enums"
+	"andon/internal/i18n"
 )
 
 // TestReceiptsPage: without connections the page says what is missing;
@@ -137,6 +141,19 @@ func TestReceiptsPage(t *testing.T) {
 // receipts page and picks them.
 func receiptsDemo(t *testing.T) (srvURL string, get func(string) string, post func(string, url.Values) *http.Response) {
 	t.Helper()
+	srv, client := receiptsClient(t)
+	get = func(path string) string { return string(mustGet(t, srv, client, path)) }
+	post = func(path string, v url.Values) *http.Response {
+		v.Set("csrf", csrfToken(t, srv, client))
+		return postForm(t, client, srv.URL+path, v)
+	}
+	return srv.URL, get, post
+}
+
+// receiptsClient is a logged-in admin with demo Invoice Ninja and
+// Paperless picked for the receipts.
+func receiptsClient(t *testing.T) (*httptest.Server, *http.Client) {
+	t.Helper()
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
@@ -148,12 +165,7 @@ func receiptsDemo(t *testing.T) (srvURL string, get func(string) string, post fu
 		conns[svc] = regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1]
 	}
 	postForm(t, client, srv.URL+"/receipts/pick", url.Values{"csrf": {csrfToken(t, srv, client)}, "ninja": {conns["invoiceninja"]}, "paperless": {conns["paperless"]}})
-	get = func(path string) string { return string(mustGet(t, srv, client, path)) }
-	post = func(path string, v url.Values) *http.Response {
-		v.Set("csrf", csrfToken(t, srv, client))
-		return postForm(t, client, srv.URL+path, v)
-	}
-	return srv.URL, get, post
+	return srv, client
 }
 
 // chipCount reads the number of a tab or year chip from a part.
@@ -228,5 +240,47 @@ func TestReceiptTabSurvivesCreate(t *testing.T) {
 	resp := post("/receipts/new-expense", url.Values{"doc": {"206"}, "tab": {"queue"}, "year": {year}, "amount": {"72,14"}, "day": {year + "-10-01"}, "vendor": {"Tankstelle"}})
 	if loc := resp.Header.Get("Location"); !strings.Contains(loc, "tab=queue") {
 		t.Fatalf("create returns to %s", loc)
+	}
+}
+
+// A new expense refused in its panel comes back there with the error
+// and what was typed; the page stays.
+func TestReceiptCreateKeepsInput(t *testing.T) {
+	srv, client := receiptsClient(t)
+	year := strconv.Itoa(time.Now().Year())
+	form := url.Values{"csrf": {csrfToken(t, srv, client)}, "doc": {"206"}, "tab": {"queue"}, "year": {year},
+		"amount": {"72.14"}, "day": {year + "-10-01"}, "vendor": {"Typed Vendor"}, "notes": {"Typed note"}}
+	status, body := browse(t, client, http.MethodPost, srv.URL+"/receipts/new-expense", form, map[string]string{"HX-Request": "true"})
+	if status != http.StatusOK {
+		t.Fatalf("refusal in the panel: %d", status)
+	}
+	for _, want := range []string{i18n.T("receipts.err_demo", enums.LocaleDE, nil), `value="Typed Vendor"`, `value="Typed note"`,
+		`value="72.14"`, `value="` + year + `-10-01"`, `name="tab" value="queue"`, `hx-post="/receipts/new-expense"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("%q missing:\n%s", want, body)
+		}
+	}
+}
+
+// A field mapping refused in its tab comes back there with the error
+// and the fields as chosen.
+func TestReceiptFieldsKeepChoice(t *testing.T) {
+	srv, client := receiptsClient(t)
+	part := string(mustGet(t, srv, client, "/receipts/part?tab=fields"))
+	ids := regexp.MustCompile(`(?s)name="field_invoice".*?<option value="(\d+)".*?<option value="(\d+)"`).FindStringSubmatch(part)
+	if ids == nil {
+		t.Fatalf("no fields to choose:\n%s", part)
+	}
+	form := url.Values{"csrf": {csrfToken(t, srv, client)}, "tab": {"fields"},
+		"field_invoice": {ids[2]}, "field_expense": {ids[2]}, "field_link": {ids[1]}}
+	status, body := browse(t, client, http.MethodPost, srv.URL+"/receipts/fields", form, map[string]string{"HX-Request": "true"})
+	if status != http.StatusOK || !strings.Contains(body, i18n.T("receipts.err_field_twice", enums.LocaleDE, nil)) {
+		t.Fatalf("refusal in the tab: %d\n%s", status, body)
+	}
+	for _, name := range []string{"field_invoice", "field_expense"} {
+		sel := regexp.MustCompile(`(?s)name="` + name + `".*?</select>`).FindString(body)
+		if !strings.Contains(sel, `<option value="`+ids[2]+`" selected`) {
+			t.Errorf("%s not kept as chosen:\n%s", name, sel)
+		}
 	}
 }
