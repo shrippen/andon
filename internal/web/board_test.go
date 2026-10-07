@@ -278,6 +278,10 @@ func TestQuickLinkClicksPaletteUndo(t *testing.T) {
 		section = regexp.MustCompile(`/sections/(\d+)/quick-link`).FindStringSubmatch(edit)
 	}
 	version := regexp.MustCompile(`data-version="(\d+)"`).FindStringSubmatch(edit)[1]
+	// Not a link: the user's mistake, not a server error.
+	if resp := postForm(t, client, srv.URL+"/sections/"+section[1]+"/quick-link", url.Values{"csrf": {csrf}, "board_id": {board}, "version": {version}, "url": {"not a url"}}); resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("bad quick link: %d", resp.StatusCode)
+	}
 	resp := postForm(t, client, srv.URL+"/sections/"+section[1]+"/quick-link", url.Values{"csrf": {csrf}, "board_id": {board}, "version": {version}, "url": {page.URL}})
 	if resp.StatusCode != http.StatusSeeOther || !strings.Contains(resp.Header.Get("Location"), "undo") {
 		t.Fatalf("quick link: %d", resp.StatusCode)
