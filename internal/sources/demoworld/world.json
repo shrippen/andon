@@ -5839,6 +5839,7 @@
   },
   "github": {
    "url": "https://api.github.com",
+   "owner": "studio",
    "notifications": 4,
    "repos": [
     {
@@ -7032,6 +7033,78 @@
      "de": "Zahnarzt",
      "en": "Dentist"
     }
+   }
+  ]
+ },
+ "news": {
+  "note": "Reading: Hacker News front page, Lobsters, r/selfhosted and a YouTube channel. A Hacker News post presents the studio's Timecode Clock widget.",
+  "url": "https://news.demo",
+  "items": [
+   {
+    "site": "hackernews",
+    "title": "Show HN: Timecode Clock, a Plasma widget for film sets",
+    "url": "https://store.kde.org/p/2391004",
+    "points": 214,
+    "comments": 61,
+    "at": "@-7h",
+    "link": "https://news.ycombinator.com/item?id=41000001"
+   },
+   {
+    "site": "hackernews",
+    "title": "Self-hosting a small studio on three machines",
+    "url": "https://blog.example.test/three-machines",
+    "points": 388,
+    "comments": 142,
+    "at": "@-11h",
+    "link": "https://news.ycombinator.com/item?id=41000002"
+   },
+   {
+    "site": "lobsters",
+    "title": "Why reverse proxies should check their upstreams",
+    "url": "https://proxy.example.test/upstreams",
+    "points": 42,
+    "comments": 9,
+    "at": "@-5h",
+    "link": "https://lobste.rs/s/abc123"
+   },
+   {
+    "site": "reddit",
+    "feed": "selfhosted",
+    "title": "My homelab backup plan, two years later",
+    "url": "https://www.reddit.com/r/selfhosted/comments/x1",
+    "points": 912,
+    "comments": 233,
+    "at": "@-14h",
+    "link": "https://www.reddit.com/r/selfhosted/comments/x1"
+   },
+   {
+    "site": "youtube",
+    "feed": "Elbe Film Club",
+    "title": {
+     "de": "Nebel richtig belichten",
+     "en": "Exposing fog right"
+    },
+    "url": "https://www.youtube.com/watch?v=demo1",
+    "points": 0,
+    "comments": 0,
+    "at": "@-2d",
+    "link": "https://www.youtube.com/watch?v=demo1"
+   }
+  ]
+ },
+ "twitch": {
+  "note": "Twitch: one of the followed channels is live.",
+  "url": "https://api.twitch.tv",
+  "live": [
+   {
+    "user": "elbefilmclub",
+    "title": {
+     "de": "Farbkorrektur live: Hafen bei Nacht",
+     "en": "Live grading: harbour at night"
+    },
+    "game": "Art",
+    "viewers": 214,
+    "since": "@-1h"
    }
   ]
  },

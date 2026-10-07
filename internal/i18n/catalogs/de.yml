@@ -65,6 +65,8 @@ action:
   open_in_audiobookshelf: 'In Audiobookshelf öffnen'
   open_in_seerr: 'In Jellyseerr öffnen'
   open_in_vikunja: 'In Vikunja öffnen'
+  open_in_news: 'Diskussion öffnen'
+  open_in_twitch: 'Auf Twitch öffnen'
   open_in_firefly: 'In Firefly III öffnen'
   open_in_ghostfolio: 'In Ghostfolio öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
@@ -322,6 +324,7 @@ typefield:
   conn_health:
     only_problems: Nur aktuell wackelige (letzte 2 Tage)
 field:
+  site: Seite
   hours: Verlauf (Stunden)
   warn: Warnen ab
   language: Sprache
@@ -600,6 +603,10 @@ field:
   list_height: 'Listenhöhe'
   show_meals: 'Essensplan zeigen'
 opt:
+  hackernews: 'Hacker News'
+  lobsters: 'Lobsters'
+  reddit: 'Reddit'
+  youtube: 'YouTube'
   6h: 6 Stunden
   daily: Heute
   weekly: Diese Woche
@@ -913,6 +920,9 @@ wtype:
   vikunja_tasks:
     name: 'Aufgaben'
     desc: 'Offene Aufgaben aus Vikunja nach Fälligkeit, überfällige zuerst.'
+  reading:
+    name: 'Lesen'
+    desc: 'Hacker News, Lobsters, Subreddits und YouTube-Kanäle mit Punkten, Kommentaren und Alter; Twitch-Kanäle, die live sind, obenauf.'
   depot:
     name: 'Depot'
     desc: 'Wert und Entwicklung des Ghostfolio-Depots, im Popup der Verlauf und die Positionen.'
@@ -1407,6 +1417,16 @@ conn:
   options_hint_vikunja: 'URL von Vikunja, z. B. https://vikunja.example.lan. Token = API-Token mit Leserecht für Projekte und Aufgaben (Einstellungen → API-Tokens).'
   about_vikunja: 'Aufgaben: fällig, überfällig'
   what_vikunja: 'Vikunja ist eine Aufgabenverwaltung mit Projekten, Fälligkeiten und Labels.'
+  options_hint_news: 'URL bleibt https://news.ycombinator.com, keine Anmeldung. Was gelesen wird, sagt das Feld Seiten.'
+  about_news: 'Lesen: Beiträge, Punkte, Kommentare'
+  what_news: 'Startseiten von Hacker News und Lobsters, Subreddits und die neuesten Videos von YouTube-Kanälen.'
+  news_sites: 'Seiten'
+  news_sites_hint: 'Durch Komma getrennt: hackernews, lobsters, r/<Subreddit>, youtube:<Kanal-ID> (die UC…-ID aus der Adresse des Kanals). Leer = hackernews, lobsters.'
+  options_hint_twitch: 'URL bleibt https://api.twitch.tv. Schlüssel = Client-ID, Secret = Client-Secret einer App (dev.twitch.tv/console, Kategorie Other). Andon liest nur, welche Kanäle live sind.'
+  about_twitch: 'Kanäle live'
+  what_twitch: 'Twitch überträgt live; die API nennt, welche Kanäle gerade senden, mit Titel, Kategorie und Zuschauern.'
+  twitch_channels: 'Kanäle'
+  twitch_channels_hint: 'Logins durch Komma getrennt, wie in twitch.tv/<login>, höchstens 100.'
   options_hint_firefly: 'URL von Firefly III, z. B. https://firefly.example.lan. Token = persönliches Zugriffstoken (Optionen → Profil → OAuth). Andon liest Bestandskonten, Buchungen der letzten 90 Tage und Daueraufträge; der Zahlungsabgleich mit Invoice Ninja arbeitet damit wie mit Sure.'
   about_firefly: 'Konten, Buchungen, Daueraufträge'
   what_firefly: 'Firefly III ist eine selbst gehostete Haushalts- und Finanzverwaltung.'
@@ -1653,6 +1673,8 @@ service:
   audiobookshelf: 'Audiobookshelf'
   seerr: 'Jellyseerr/Overseerr'
   vikunja: 'Vikunja'
+  news: 'Lesen (Hacker News, Lobsters, Reddit, YouTube)'
+  twitch: 'Twitch'
   firefly: 'Firefly III'
   ghostfolio: 'Ghostfolio'
   tibber: 'Tibber (Strom)'
@@ -2365,6 +2387,9 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
   cross:
+    project_mentioned:
+      title: '{site} erwähnt {project}'
+      why: '„{title}“: {points} Punkte, {comments} Kommentare. Fragen beantworten, solange der Faden frisch ist.'
     depot_reserve:
       title: 'Rücklage fehlt, das Depot könnte sie decken'
       why: 'Für Steuern und feste Kosten fehlen {missing}; das Depot steht bei {depot}.'
@@ -3068,6 +3093,7 @@ rule_name:
   vikunja.overdue: 'Überfällige Aufgaben'
   vikunja.due: 'Fällige Aufgaben'
   cross.task_unbooked: 'Aufgabe ohne gebuchte Zeit'
+  cross.project_mentioned: 'Eigenes Projekt erwähnt'
   seerr.stuck: 'Hängende Medienanfragen'
   cross.requests_arr: 'Anfragen gegen Sonarr/Radarr'
   routes.down: 'Route antwortet nicht'
@@ -5061,6 +5087,36 @@ depot:
   days: 'Wert je Tag'
   holdings: 'Positionen'
   spark: 'letzte 30 Tage'
+reading:
+  items: 'Beiträge'
+  live: 'Live'
+  live_now: 'Gerade live'
+  list: 'Beiträge und Videos'
+  failed: 'Nicht geantwortet'
+  none: 'Nichts zu lesen.'
+  watching: '{n} schauen zu'
+  points: '{n} Punkte'
+  views: '{n} Aufrufe'
+  comments: '{n} Kommentare'
+  none_answered: 'Keine Seite hat geantwortet.'
+  unknown_site: 'Unbekannte Seite; erlaubt sind hackernews, lobsters, r/<Subreddit> und youtube:<Kanal-ID>.'
+  no_channels: 'Keine Kanäle angegeben.'
+  twitch_token: 'Twitch hat kein App-Token ausgegeben; Client-ID und Secret prüfen.'
+  site:
+    hackernews: 'Hacker News'
+    lobsters: 'Lobsters'
+    reddit: 'Reddit'
+    youtube: 'YouTube'
+  col:
+    channel: 'Kanal'
+    title: 'Titel'
+    game: 'Kategorie'
+    viewers: 'Zuschauer'
+    since: 'Live seit'
+    site: 'Quelle'
+    points: 'Punkte'
+    comments: 'Kommentare'
+    age: 'Alter'
 tasks:
   open: 'Offen'
   overdue: 'Überfällig'

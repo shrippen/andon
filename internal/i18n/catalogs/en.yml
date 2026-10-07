@@ -65,6 +65,8 @@ action:
   open_in_audiobookshelf: 'Open in Audiobookshelf'
   open_in_seerr: 'Open in Jellyseerr'
   open_in_vikunja: 'Open in Vikunja'
+  open_in_news: 'Open discussion'
+  open_in_twitch: 'Open on Twitch'
   open_in_firefly: 'Open in Firefly III'
   open_in_ghostfolio: 'Open in Ghostfolio'
   open_in_tibber: 'Open in Tibber (electricity)'
@@ -322,6 +324,7 @@ typefield:
   conn_health:
     only_problems: Only shaky now (last 2 days)
 field:
+  site: Site
   hours: History (hours)
   warn: Warn from
   language: Language
@@ -600,6 +603,10 @@ field:
   list_height: 'List height'
   show_meals: 'Show meal plan'
 opt:
+  hackernews: 'Hacker News'
+  lobsters: 'Lobsters'
+  reddit: 'Reddit'
+  youtube: 'YouTube'
   6h: 6 hours
   daily: Today
   weekly: This week
@@ -913,6 +920,9 @@ wtype:
   vikunja_tasks:
     name: 'Tasks'
     desc: 'Open Vikunja tasks by due date, overdue ones first.'
+  reading:
+    name: 'Reading'
+    desc: 'Hacker News, Lobsters, subreddits and YouTube channels with points, comments and age; live Twitch channels on top.'
   depot:
     name: 'Depot'
     desc: 'Value and performance of the Ghostfolio depot, the days and positions in the dialog.'
@@ -1407,6 +1417,16 @@ conn:
   options_hint_vikunja: 'URL of Vikunja, e.g. https://vikunja.example.lan. Token = API token with read access to projects and tasks (Settings → API tokens).'
   about_vikunja: 'Tasks: due, overdue'
   what_vikunja: 'Vikunja is a task manager with projects, due dates and labels.'
+  options_hint_news: 'URL stays https://news.ycombinator.com, no login. The field sites says what is read.'
+  about_news: 'Reading: posts, points, comments'
+  what_news: 'Front pages of Hacker News and Lobsters, subreddits and the newest videos of YouTube channels.'
+  news_sites: 'Sites'
+  news_sites_hint: 'Separated by commas: hackernews, lobsters, r/<subreddit>, youtube:<channel ID> (the UC… ID from the channel''s address). Empty = hackernews, lobsters.'
+  options_hint_twitch: 'URL stays https://api.twitch.tv. Key = client ID, secret = client secret of an app (dev.twitch.tv/console, category Other). Andon only reads which channels are live.'
+  about_twitch: 'Live channels'
+  what_twitch: 'Twitch streams live; its API tells which channels are live, with title, game and viewers.'
+  twitch_channels: 'Channels'
+  twitch_channels_hint: 'Logins separated by commas, as in twitch.tv/<login>, at most 100.'
   options_hint_firefly: 'URL of Firefly III, e.g. https://firefly.example.lan. Token = personal access token (Options → Profile → OAuth). Andon reads asset accounts, the last 90 days of transactions and recurring transactions; the payment matching with Invoice Ninja works with it as with Sure.'
   about_firefly: 'Accounts, transactions, recurring'
   what_firefly: 'Firefly III is a self-hosted personal finance manager.'
@@ -1653,6 +1673,8 @@ service:
   audiobookshelf: 'Audiobookshelf'
   seerr: 'Jellyseerr/Overseerr'
   vikunja: 'Vikunja'
+  news: 'Reading (Hacker News, Lobsters, Reddit, YouTube)'
+  twitch: 'Twitch'
   firefly: 'Firefly III'
   ghostfolio: 'Ghostfolio'
   tibber: 'Tibber (electricity)'
@@ -2365,6 +2387,9 @@ hint:
       title: 'Large expense: {name} ({amount})'
       why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
+    project_mentioned:
+      title: '{site} mentions {project}'
+      why: '"{title}": {points} points, {comments} comments. Answer questions while the thread is fresh.'
     depot_reserve:
       title: 'Reserve missing, the depot could cover it'
       why: '{missing} are missing for taxes and fixed costs; the depot stands at {depot}.'
@@ -3067,6 +3092,7 @@ rule_name:
   vikunja.overdue: 'Overdue tasks'
   vikunja.due: 'Tasks due'
   cross.task_unbooked: 'Task without booked time'
+  cross.project_mentioned: 'Own project mentioned'
   seerr.stuck: 'Stuck media requests'
   cross.requests_arr: 'Requests against Sonarr/Radarr'
   routes.down: 'Route does not answer'
@@ -5060,6 +5086,36 @@ depot:
   days: 'Value per day'
   holdings: 'Positions'
   spark: 'last 30 days'
+reading:
+  items: 'Posts'
+  live: 'Live'
+  live_now: 'Live now'
+  list: 'Posts and videos'
+  failed: 'Did not answer'
+  none: 'Nothing to read.'
+  watching: '{n} watching'
+  points: '{n} points'
+  views: '{n} views'
+  comments: '{n} comments'
+  none_answered: 'No site answered.'
+  unknown_site: 'Unknown site; use hackernews, lobsters, r/<subreddit> or youtube:<channel ID>.'
+  no_channels: 'No channels given.'
+  twitch_token: 'Twitch gave no app token; check client ID and secret.'
+  site:
+    hackernews: 'Hacker News'
+    lobsters: 'Lobsters'
+    reddit: 'Reddit'
+    youtube: 'YouTube'
+  col:
+    channel: 'Channel'
+    title: 'Title'
+    game: 'Category'
+    viewers: 'Viewers'
+    since: 'Live since'
+    site: 'Source'
+    points: 'Points'
+    comments: 'Comments'
+    age: 'Age'
 tasks:
   open: 'Open'
   overdue: 'Overdue'

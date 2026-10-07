@@ -77,3 +77,13 @@ func SetTrackBudget(d time.Duration) func() {
 	trackBudget = d
 	return func() { trackBudget = saved }
 }
+
+// SetReadingBases points the reading sites and Twitch's token endpoint at
+// base and returns the undo.
+func SetReadingBases(base string) func() {
+	saved := []string{hnBase, lobstersBase, redditBase, youtubeBase, twitchIDBase}
+	hnBase, lobstersBase, redditBase, youtubeBase, twitchIDBase = base, base, base, base, base
+	return func() {
+		hnBase, lobstersBase, redditBase, youtubeBase, twitchIDBase = saved[0], saved[1], saved[2], saved[3], saved[4]
+	}
+}

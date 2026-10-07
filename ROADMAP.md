@@ -1153,8 +1153,8 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [ ] Kacheln mit Sure als Partner (Liquidität, Kosten) lesen Firefly noch nicht; Depot nicht in der Liquidität *(Depot ist kein Bargeld)*
 
 **Schritt 13: Lesen** — Hacker News, Lobsters, Reddit, YouTube-Kanäle, Twitch
-- [ ] Kachel „Lesen“ (Punkte, Kommentare, Alter), YouTube über die Kanal-Feeds, Twitch mit App-Zugang
-- [ ] Quer: `cross.project_mentioned` (ein Beitrag nennt ein eigenes Repo oder einen KDE-Store-Eintrag)
+- [x] Kachel „Lesen“ (Punkte, Kommentare, Alter), YouTube über die Kanal-Feeds, Twitch mit App-Zugang *(Verbindung `news`: Hacker News über die Algolia-API, Lobsters, `r/<sub>`, `youtube:<Kanal-ID>`, ohne Anmeldung; Verbindung `twitch` mit Client-ID und Secret, App-Token im Speicher; die Seiten wechseln sich in der Kachel ab, Kanäle live stehen oben)*
+- [x] Quer: `cross.project_mentioned` (ein Beitrag nennt ein eigenes Repo oder einen KDE-Store-Eintrag) *(Repos nur über den Link, und nur die des GitHub-Besitzers (Option `owner`), beobachtete nicht; Store-Einträge über den Link oder den Namen im Titel)*
 
 **Schritt 14: ESPHome, Fediverse** (Mastodon-API: Mastodon, GoToSocial, Akkoma)
 - [ ] ESPHome: Geräte, online, Firmware gegen Dashboard-Version; Fediverse: Folgende im Verlauf, Benachrichtigungen, Instanz-Version

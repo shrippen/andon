@@ -38,6 +38,8 @@ var defaultURLs = map[enums.ServiceType]string{
 	enums.ServiceTibber:    "https://api.tibber.com/v1-beta/gql",
 	enums.ServiceDWD:       "https://api.brightsky.dev",
 	enums.ServiceTailscale: "https://api.tailscale.com",
+	enums.ServiceNews:      "https://news.ycombinator.com",
+	enums.ServiceTwitch:    "https://api.twitch.tv",
 }
 
 func defaultURL(service enums.ServiceType) string {
@@ -48,7 +50,7 @@ func credShapeOf(service enums.ServiceType) credShape {
 	switch service {
 	case enums.ServiceFreshRSS, enums.ServiceMail, enums.ServiceAdGuard, enums.ServiceUmami, enums.ServiceNextcloud:
 		return credUserPass
-	case enums.ServiceKomodo, enums.ServiceGateway:
+	case enums.ServiceKomodo, enums.ServiceGateway, enums.ServiceTwitch:
 		return credKeySecret
 	case enums.ServiceProxmox:
 		return credTokenID
@@ -57,7 +59,7 @@ func credShapeOf(service enums.ServiceType) credShape {
 	case enums.ServicePihole:
 		return credPassword
 	case enums.ServiceScrutiny, enums.ServiceDocker, enums.ServiceCerts, enums.ServiceDomains, enums.ServiceBlacklist,
-		enums.ServiceDWD, enums.ServicePGBackWeb, enums.ServiceKDEStore, enums.ServiceHansei, enums.ServiceApcupsd:
+		enums.ServiceDWD, enums.ServicePGBackWeb, enums.ServiceKDEStore, enums.ServiceHansei, enums.ServiceApcupsd, enums.ServiceNews:
 		return credNone
 	default:
 		return credSingle
@@ -176,6 +178,8 @@ var setupFields = map[enums.ServiceType][]setupField{
 		{Key: "user", Label: "conn.kdestore_user", Kind: fieldText, Hint: "conn.kdestore_user_hint", Optional: true},
 		{Key: "ids", Label: "conn.kdestore_ids", Kind: fieldIDs, Hint: "conn.kdestore_ids_hint", Optional: true},
 	},
+	enums.ServiceNews:   {{Key: "sites", Label: "conn.news_sites", Kind: fieldText, Hint: "conn.news_sites_hint", Optional: true}},
+	enums.ServiceTwitch: {{Key: "channels", Label: "conn.twitch_channels", Kind: fieldText, Hint: "conn.twitch_channels_hint"}},
 }
 
 func setupFieldsOf(service enums.ServiceType) []setupField {
