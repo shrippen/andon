@@ -1238,8 +1238,8 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [x] Kimai Lite: Hinzufügen-Formular verschwindet beim Auffrischen der Kachel (alle 59 s) mit dem Getippten; „Teilen“ im Tagesformular am Desktop von der Nachbarkachel verdeckt *(Auffrischen wartet, solange ein Formular offen ist oder etwas getippt wurde; Aktionen brechen um; im Browser geprüft)*
 - [x] „Heute“ dreimal verschieden: Kimai-Kachel „0,0 h · Timer läuft“, Heute 04:12, Kimai Lite 5:12 *(Kimai-Kachel zählt den laufenden Timer; die Demo rechnet Kimai Lite aus Blöcken und Timer. Die Heute-Kachel zeigt den Beginn des Timers, keine Summe. Bleibt: die Demo erzählt zwei Timer, 11 h im Datensatz für `kimai.timer_running_long` und 47 min in Kimai Lite)*
 - [x] Offene Rechnungen: Kachel „21 Tage überfällig“, Dialog „Überfällig –“ *(Ganzzahlen werden gelesen, `asF`)*
-- [ ] „An Paperless“: 400 „Kein persönlicher Zugang hinterlegt“ ohne Verbindung oder Weg dorthin, Neuladen sendet erneut
-- [ ] Fahrten: „Ort anlegen“ zeigt roh „dns: dawarich“; neue Ziele sind mit „Zuhause“ vorbelegt
+- [x] „An Paperless“: 400 „Kein persönlicher Zugang hinterlegt“ ohne Verbindung oder Weg dorthin, Neuladen sendet erneut *(Meldung nennt die Verbindung und verlinkt den Reiter Zugang; Antwort als Weiterleitung, Neuladen sendet nichts; Demo-Verbindungen sagen es)*
+- [x] Fahrten: „Ort anlegen“ zeigt roh „dns: dawarich“; neue Ziele sind mit „Zuhause“ vorbelegt *(übersetzte Meldung mit Dienst; Demo sagt es; neue Orte starten „nicht zugeordnet“)*
 - [x] Monatsabschluss-Link „Geschäftskonten benennen“ landete auf dem Reiter Startseite statt Regeln
 - [x] Kalender-Feed: doppelte Termine (zwei Hinweise, dieselbe Frist), keine Beschreibung und kein Link zurück; jetzt ein Termin je Tag und Titel mit allen Gründen (`DESCRIPTION`) und Link (`URL`)
 - [x] Audit: rohe Schlüssel `audit_action.settings.map`/`.server`, Speichern ohne Änderung schreibt Einträge „– → false“; Reset-Link nennt die Benutzer-ID statt der Adresse *(Texte für die Schlüssel; unveränderte Werte schreiben keine Einträge; der Reset-Link nennt die Adresse)*
