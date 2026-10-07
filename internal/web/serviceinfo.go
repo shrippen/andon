@@ -73,6 +73,8 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServiceVikunja:        "https://vikunja.io",
 	enums.ServiceNews:           "https://news.ycombinator.com",
 	enums.ServiceTwitch:         "https://dev.twitch.tv",
+	enums.ServiceESPHome:        "https://esphome.io",
+	enums.ServiceFediverse:      "https://joinmastodon.org",
 	enums.ServiceFirefly:        "https://www.firefly-iii.org",
 	enums.ServiceGhostfolio:     "https://ghostfol.io",
 	enums.ServiceTibber:         "https://tibber.com",

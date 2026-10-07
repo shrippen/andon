@@ -6518,7 +6518,7 @@
   "up_max": 46000
  },
  "smart_home": {
-  "note": "Home Assistant at Mara's: the bathroom window sensor's battery is low, a plug is unavailable, a core update waits. history: the living room warms through the day, the office light is on during work hours.",
+  "note": "Home Assistant at Mara's: the bathroom window sensor's battery is low, a plug is unavailable, a core update waits. history: the living room warms through the day, the office light is on during work hours. The workshop climate sensor answers ESPHome but Home Assistant lost it; the pond pump is off in both.",
   "url": "https://home.demo",
   "entities": [
    {
@@ -6593,6 +6593,49 @@
     "domain": "update",
     "state": "on",
     "changed": "@-20h"
+   },
+   {
+    "id": "binary_sensor.flur_sensor_bewegung",
+    "name": {
+     "de": "Flur Bewegung",
+     "en": "Hall motion"
+    },
+    "domain": "binary_sensor",
+    "state": "off",
+    "device_class": "motion",
+    "changed": "@-2h"
+   },
+   {
+    "id": "cover.garagentor",
+    "name": {
+     "de": "Garagentor",
+     "en": "Garage door"
+    },
+    "domain": "cover",
+    "state": "closed",
+    "changed": "@-9h"
+   },
+   {
+    "id": "sensor.werkstatt_klima_temperatur",
+    "name": {
+     "de": "Werkstatt Temperatur",
+     "en": "Workshop temperature"
+    },
+    "domain": "sensor",
+    "state": "unavailable",
+    "unit": "°C",
+    "device_class": "temperature",
+    "changed": "@-6h"
+   },
+   {
+    "id": "switch.teich_pumpe",
+    "name": {
+     "de": "Teichpumpe",
+     "en": "Pond pump"
+    },
+    "domain": "switch",
+    "state": "unavailable",
+    "changed": "@-26h"
    }
   ],
   "history": {
@@ -6837,6 +6880,57 @@
     "solar_pct": 31
    }
   }
+ },
+ "esphome": {
+  "note": "ESPHome dashboard: four nodes. The garage door still runs an older firmware, the pond pump is offline, the workshop climate node is online but Home Assistant shows its sensor unavailable.",
+  "url": "http://esphome.demo:6052",
+  "version": "2026.9.1",
+  "devices": [
+   {
+    "name": "flur-sensor",
+    "friendly_name": {
+     "de": "Flur Bewegung",
+     "en": "Hall motion"
+    },
+    "platform": "ESP32",
+    "address": "flur-sensor.local",
+    "deployed_version": "2026.9.1",
+    "online": true
+   },
+   {
+    "name": "garagentor",
+    "friendly_name": {
+     "de": "Garagentor",
+     "en": "Garage door"
+    },
+    "platform": "ESP8266",
+    "address": "garagentor.local",
+    "deployed_version": "2026.6.2",
+    "online": true
+   },
+   {
+    "name": "teich-pumpe",
+    "friendly_name": {
+     "de": "Teichpumpe",
+     "en": "Pond pump"
+    },
+    "platform": "ESP32-C3",
+    "address": "teich-pumpe.local",
+    "deployed_version": "2026.9.1",
+    "online": false
+   },
+   {
+    "name": "werkstatt-klima",
+    "friendly_name": {
+     "de": "Werkstatt Klima",
+     "en": "Workshop climate"
+    },
+    "platform": "ESP32",
+    "address": "werkstatt-klima.local",
+    "deployed_version": "2026.9.1",
+    "online": true
+   }
+  ]
  },
  "sites": {
   "note": "Umami: the shop's views collapsed against the week before. detail: pages and referrers of the week; days = base + a wobble.",
@@ -7105,6 +7199,100 @@
     "game": "Art",
     "viewers": 214,
     "since": "@-1h"
+   }
+  ]
+ },
+ "fediverse": {
+  "note": "The studio's Mastodon account: followers grow slowly, two unread notifications (a mention and a new follower). The Timecode Clock 2.1 was announced; the website's release v0.12.0 six days ago was not.",
+  "url": "https://social.studio-weber.example.test",
+  "software": "Mastodon",
+  "version": "4.4.3",
+  "account": {
+   "acct": "studio",
+   "display_name": "Studio Weber",
+   "url": "https://social.studio-weber.example.test/@studio",
+   "followers": 412,
+   "following": 118,
+   "statuses": 231,
+   "followers_daily": [
+    1,
+    0,
+    2,
+    1,
+    0,
+    0,
+    3,
+    1,
+    1,
+    0,
+    2,
+    0,
+    1,
+    4,
+    6,
+    2,
+    1,
+    0,
+    1,
+    0,
+    2,
+    1,
+    0,
+    1,
+    1,
+    0,
+    2,
+    1,
+    0,
+    1
+   ]
+  },
+  "notifications": [
+   {
+    "type": "mention",
+    "from": "elbefilmclub@film.example.test",
+    "text": {
+     "de": "Habt ihr die Timecode-Uhr auch für Plasma 5?",
+     "en": "Is the timecode clock available for Plasma 5 too?"
+    },
+    "at": "@-3h",
+    "unread": true
+   },
+   {
+    "type": "follow",
+    "from": "nordlicht@social.example.test",
+    "at": "@-9h",
+    "unread": true
+   },
+   {
+    "type": "favourite",
+    "from": "mara@social.example.test",
+    "at": "@-1d",
+    "unread": false
+   },
+   {
+    "type": "reblog",
+    "from": "kdecommunity@floss.example.test",
+    "at": "@-14d",
+    "unread": false
+   }
+  ],
+  "statuses": [
+   {
+    "text": {
+     "de": "Hinter den Kulissen: Farbabnahme für Harbour Lights, Folge 4.",
+     "en": "Behind the scenes: colour review for Harbour Lights, episode 4."
+    },
+    "url": "https://social.studio-weber.example.test/@studio/113000000000000002",
+    "at": "@-2d"
+   },
+   {
+    "text": {
+     "de": "Timecode Clock 2.1 ist im KDE Store: Bildrate je Projekt, dunkles Ziffernblatt. https://store.kde.org/p/2391004",
+     "en": "Timecode Clock 2.1 is in the KDE Store: frame rate per project, dark face. https://store.kde.org/p/2391004"
+    },
+    "url": "https://social.studio-weber.example.test/@studio/113000000000000001",
+    "at": "@-14d"
    }
   ]
  },

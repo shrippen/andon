@@ -67,6 +67,8 @@ action:
   open_in_vikunja: 'Open in Vikunja'
   open_in_news: 'Open discussion'
   open_in_twitch: 'Open on Twitch'
+  open_in_esphome: 'Open in ESPHome'
+  open_in_fediverse: 'Open on the instance'
   open_in_firefly: 'Open in Firefly III'
   open_in_ghostfolio: 'Open in Ghostfolio'
   open_in_tibber: 'Open in Tibber (electricity)'
@@ -923,6 +925,12 @@ wtype:
   reading:
     name: 'Reading'
     desc: 'Hacker News, Lobsters, subreddits and YouTube channels with points, comments and age; live Twitch channels on top.'
+  esphome:
+    name: 'ESPHome'
+    desc: 'ESPHome nodes: offline and outdated firmware first.'
+  fediverse:
+    name: 'Fediverse'
+    desc: 'Followers of your Mastodon, GoToSocial or Akkoma account and unread notifications.'
   depot:
     name: 'Depot'
     desc: 'Value and performance of the Ghostfolio depot, the days and positions in the dialog.'
@@ -1427,6 +1435,12 @@ conn:
   what_twitch: 'Twitch streams live; its API tells which channels are live, with title, game and viewers.'
   twitch_channels: 'Channels'
   twitch_channels_hint: 'Logins separated by commas, as in twitch.tv/<login>, at most 100.'
+  options_hint_esphome: 'URL of the ESPHome dashboard, e.g. http://esphome.example.lan:6052. With a dashboard password: user:password, otherwise empty. The Home Assistant add-on is reached only through ingress; expose its port to use it.'
+  about_esphome: 'Nodes: online, firmware'
+  what_esphome: 'ESPHome builds firmware for ESP32 and ESP8266 boards from YAML and hands their sensors to Home Assistant.'
+  options_hint_fediverse: 'URL of your instance, e.g. https://social.example. Token = access token of an application with read access (Mastodon: Preferences → Development).'
+  about_fediverse: 'Account: followers, notifications'
+  what_fediverse: 'Mastodon, GoToSocial and Akkoma speak the same API: followers, notifications and posts of your account.'
   options_hint_firefly: 'URL of Firefly III, e.g. https://firefly.example.lan. Token = personal access token (Options → Profile → OAuth). Andon reads asset accounts, the last 90 days of transactions and recurring transactions; the payment matching with Invoice Ninja works with it as with Sure.'
   about_firefly: 'Accounts, transactions, recurring'
   what_firefly: 'Firefly III is a self-hosted personal finance manager.'
@@ -1675,6 +1689,8 @@ service:
   vikunja: 'Vikunja'
   news: 'Reading (Hacker News, Lobsters, Reddit, YouTube)'
   twitch: 'Twitch'
+  esphome: 'ESPHome'
+  fediverse: 'Fediverse (Mastodon API)'
   firefly: 'Firefly III'
   ghostfolio: 'Ghostfolio'
   tibber: 'Tibber (electricity)'
@@ -2000,6 +2016,17 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  esphome:
+    offline:
+      title: '{name} is offline'
+      why: 'The ESPHome dashboard gets no answer from {address}.'
+    update:
+      title: '{count} nodes on older firmware'
+      why: '{names}; the dashboard has {version}. Install the update from the dashboard.'
+  fediverse:
+    mentions:
+      title: '{count} unread mentions'
+      why: '{from}: {text}'
   ghostfolio:
     drawdown:
       title: 'Depot down {percent} %'
@@ -2387,6 +2414,15 @@ hint:
       title: 'Large expense: {name} ({amount})'
       why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
+    esphome_ha_lost:
+      title: 'Home Assistant lost {name}'
+      why: 'ESPHome reaches the node, but its {entities} entities in Home Assistant are unavailable (e.g. {entity}). Changed API key or adoption?'
+    esphome_ping:
+      title: 'ESPHome cannot ping {name}'
+      why: 'Home Assistant still gets values (e.g. {entity}). The dashboard probably cannot resolve the node''s .local name.'
+    release_unannounced:
+      title: '{project} {version} not announced'
+      why: 'Released on {day}; no own post links or names it.'
     project_mentioned:
       title: '{site} mentions {project}'
       why: '"{title}": {points} points, {comments} comments. Answer questions while the thread is fresh.'
@@ -2823,6 +2859,10 @@ hint:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
 info:
+  esphome:
+    nodes: '{count} nodes · {offline} offline'
+  fediverse:
+    info: '{followers} followers · {unread} unread'
   ghostfolio:
     value: '{value} · {percent} %'
   vikunja:
@@ -3093,6 +3133,11 @@ rule_name:
   vikunja.due: 'Tasks due'
   cross.task_unbooked: 'Task without booked time'
   cross.project_mentioned: 'Own project mentioned'
+  esphome.offline: 'ESPHome node offline'
+  esphome.update: 'ESPHome firmware outdated'
+  fediverse.mentions: 'Unread mentions'
+  cross.esphome_ha: 'ESPHome against Home Assistant'
+  cross.release_unannounced: 'Release without a post'
   seerr.stuck: 'Stuck media requests'
   cross.requests_arr: 'Requests against Sonarr/Radarr'
   routes.down: 'Route does not answer'
@@ -5086,6 +5131,50 @@ depot:
   days: 'Value per day'
   holdings: 'Positions'
   spark: 'last 30 days'
+esphome:
+  tile: 'nodes'
+  tile_offline: '{n} offline'
+  offline: 'Offline'
+  online: 'Online'
+  unknown: 'Unknown'
+  nodes: 'Nodes'
+  behind: 'Older firmware'
+  version: 'Dashboard'
+  list: 'Nodes'
+  none: 'No nodes.'
+  col:
+    name: 'Node'
+    platform: 'Board'
+    address: 'Address'
+    firmware: 'Firmware'
+    state: 'State'
+fediverse:
+  tile: 'followers'
+  tile_gain: '+{n} in {days} days'
+  followers: 'Followers'
+  following: 'Following'
+  posts: 'Posts'
+  unread: 'Unread'
+  version: 'Instance'
+  followers_days: 'Followers over the days'
+  notes: 'Notifications'
+  own_posts: 'Own posts'
+  none: 'Nothing unread.'
+  type:
+    mention: 'mentioned you'
+    status: 'posted'
+    reblog: 'boosted'
+    follow: 'follows you'
+    follow_request: 'asks to follow'
+    favourite: 'favourited'
+    poll: 'poll ended'
+    update: 'edited a post'
+    other: 'notification'
+  col:
+    type: 'What'
+    from: 'From'
+    text: 'Text'
+    when: 'When'
 reading:
   items: 'Posts'
   live: 'Live'

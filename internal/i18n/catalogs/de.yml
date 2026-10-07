@@ -67,6 +67,8 @@ action:
   open_in_vikunja: 'In Vikunja öffnen'
   open_in_news: 'Diskussion öffnen'
   open_in_twitch: 'Auf Twitch öffnen'
+  open_in_esphome: 'In ESPHome öffnen'
+  open_in_fediverse: 'Auf der Instanz öffnen'
   open_in_firefly: 'In Firefly III öffnen'
   open_in_ghostfolio: 'In Ghostfolio öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
@@ -923,6 +925,12 @@ wtype:
   reading:
     name: 'Lesen'
     desc: 'Hacker News, Lobsters, Subreddits und YouTube-Kanäle mit Punkten, Kommentaren und Alter; Twitch-Kanäle, die live sind, obenauf.'
+  esphome:
+    name: 'ESPHome'
+    desc: 'ESPHome-Knoten: offline und veraltete Firmware zuerst.'
+  fediverse:
+    name: 'Fediverse'
+    desc: 'Folgende deines Mastodon-, GoToSocial- oder Akkoma-Kontos und ungelesene Benachrichtigungen.'
   depot:
     name: 'Depot'
     desc: 'Wert und Entwicklung des Ghostfolio-Depots, im Popup der Verlauf und die Positionen.'
@@ -1427,6 +1435,12 @@ conn:
   what_twitch: 'Twitch überträgt live; die API nennt, welche Kanäle gerade senden, mit Titel, Kategorie und Zuschauern.'
   twitch_channels: 'Kanäle'
   twitch_channels_hint: 'Logins durch Komma getrennt, wie in twitch.tv/<login>, höchstens 100.'
+  options_hint_esphome: 'URL des ESPHome-Dashboards, z. B. http://esphome.example.lan:6052. Mit Dashboard-Passwort: benutzer:passwort, sonst leer. Das Home-Assistant-Add-on ist nur über Ingress erreichbar; dafür seinen Port freigeben.'
+  about_esphome: 'Knoten: online, Firmware'
+  what_esphome: 'ESPHome baut aus YAML Firmware für ESP32- und ESP8266-Boards und gibt deren Sensoren an Home Assistant.'
+  options_hint_fediverse: 'URL deiner Instanz, z. B. https://social.example. Token = Zugriffstoken einer Anwendung mit Lesezugriff (Mastodon: Einstellungen → Entwicklung).'
+  about_fediverse: 'Konto: Folgende, Benachrichtigungen'
+  what_fediverse: 'Mastodon, GoToSocial und Akkoma sprechen dieselbe API: Folgende, Benachrichtigungen und Beiträge deines Kontos.'
   options_hint_firefly: 'URL von Firefly III, z. B. https://firefly.example.lan. Token = persönliches Zugriffstoken (Optionen → Profil → OAuth). Andon liest Bestandskonten, Buchungen der letzten 90 Tage und Daueraufträge; der Zahlungsabgleich mit Invoice Ninja arbeitet damit wie mit Sure.'
   about_firefly: 'Konten, Buchungen, Daueraufträge'
   what_firefly: 'Firefly III ist eine selbst gehostete Haushalts- und Finanzverwaltung.'
@@ -1675,6 +1689,8 @@ service:
   vikunja: 'Vikunja'
   news: 'Lesen (Hacker News, Lobsters, Reddit, YouTube)'
   twitch: 'Twitch'
+  esphome: 'ESPHome'
+  fediverse: 'Fediverse (Mastodon-API)'
   firefly: 'Firefly III'
   ghostfolio: 'Ghostfolio'
   tibber: 'Tibber (Strom)'
@@ -2000,6 +2016,17 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  esphome:
+    offline:
+      title: '{name} ist offline'
+      why: 'Das ESPHome-Dashboard bekommt keine Antwort von {address}.'
+    update:
+      title: '{count} Knoten mit älterer Firmware'
+      why: '{names}; das Dashboard hat {version}. Update im Dashboard installieren.'
+  fediverse:
+    mentions:
+      title: '{count} ungelesene Erwähnungen'
+      why: '{from}: {text}'
   ghostfolio:
     drawdown:
       title: 'Depot {percent} % im Minus'
@@ -2387,6 +2414,15 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
   cross:
+    esphome_ha_lost:
+      title: 'Home Assistant hat {name} verloren'
+      why: 'ESPHome erreicht den Knoten, seine {entities} Entitäten in Home Assistant sind aber nicht verfügbar (z. B. {entity}). API-Schlüssel oder Übernahme geändert?'
+    esphome_ping:
+      title: 'ESPHome erreicht {name} nicht per Ping'
+      why: 'Home Assistant bekommt weiter Werte (z. B. {entity}). Vermutlich löst das Dashboard den .local-Namen nicht auf.'
+    release_unannounced:
+      title: '{project} {version} nicht angekündigt'
+      why: 'Veröffentlicht am {day}; kein eigener Beitrag verlinkt oder nennt es.'
     project_mentioned:
       title: '{site} erwähnt {project}'
       why: '„{title}“: {points} Punkte, {comments} Kommentare. Fragen beantworten, solange der Faden frisch ist.'
@@ -2824,6 +2860,10 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
+  esphome:
+    nodes: '{count} Knoten · {offline} offline'
+  fediverse:
+    info: '{followers} Folgende · {unread} ungelesen'
   ghostfolio:
     value: '{value} · {percent} %'
   vikunja:
@@ -3094,6 +3134,11 @@ rule_name:
   vikunja.due: 'Fällige Aufgaben'
   cross.task_unbooked: 'Aufgabe ohne gebuchte Zeit'
   cross.project_mentioned: 'Eigenes Projekt erwähnt'
+  esphome.offline: 'ESPHome-Knoten offline'
+  esphome.update: 'ESPHome-Firmware veraltet'
+  fediverse.mentions: 'Ungelesene Erwähnungen'
+  cross.esphome_ha: 'ESPHome gegen Home Assistant'
+  cross.release_unannounced: 'Release ohne Beitrag'
   seerr.stuck: 'Hängende Medienanfragen'
   cross.requests_arr: 'Anfragen gegen Sonarr/Radarr'
   routes.down: 'Route antwortet nicht'
@@ -5087,6 +5132,50 @@ depot:
   days: 'Wert je Tag'
   holdings: 'Positionen'
   spark: 'letzte 30 Tage'
+esphome:
+  tile: 'Knoten'
+  tile_offline: '{n} offline'
+  offline: 'Offline'
+  online: 'Online'
+  unknown: 'Unbekannt'
+  nodes: 'Knoten'
+  behind: 'Ältere Firmware'
+  version: 'Dashboard'
+  list: 'Knoten'
+  none: 'Keine Knoten.'
+  col:
+    name: 'Knoten'
+    platform: 'Board'
+    address: 'Adresse'
+    firmware: 'Firmware'
+    state: 'Zustand'
+fediverse:
+  tile: 'Folgende'
+  tile_gain: '+{n} in {days} Tagen'
+  followers: 'Folgende'
+  following: 'Folgt'
+  posts: 'Beiträge'
+  unread: 'Ungelesen'
+  version: 'Instanz'
+  followers_days: 'Folgende über die Tage'
+  notes: 'Benachrichtigungen'
+  own_posts: 'Eigene Beiträge'
+  none: 'Nichts ungelesen.'
+  type:
+    mention: 'hat dich erwähnt'
+    status: 'hat gepostet'
+    reblog: 'hat geteilt'
+    follow: 'folgt dir'
+    follow_request: 'möchte folgen'
+    favourite: 'hat favorisiert'
+    poll: 'Umfrage beendet'
+    update: 'hat einen Beitrag bearbeitet'
+    other: 'Benachrichtigung'
+  col:
+    type: 'Was'
+    from: 'Von'
+    text: 'Text'
+    when: 'Wann'
 reading:
   items: 'Beiträge'
   live: 'Live'
