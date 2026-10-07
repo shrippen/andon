@@ -102,6 +102,12 @@
          a copy form with a space picker per row cost Chrome 280 ms. */}}
     <template id="row-more">
       <div class="menu row-more-body">
+        {{with .Boards}}<form method="post" action="/widgets/{widget}/board">
+          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+          <select class="select" name="board_id" aria-label="{{t "library.board"}}">{{range .}}<option value="{{.ID}}">{{.Name}}{{if ne (print .Space.Kind) "personal"}} · {{.Space.Name}}{{end}}</option>{{end}}</select>
+          <button type="submit">{{t "library.put_on"}}</button>
+        </form>
+        <hr>{{end}}
         <a href="/shares/widget/{widget}">{{t "edit.share"}}</a>
         <hr>
         <form method="post" action="/widgets/{widget}/copy">

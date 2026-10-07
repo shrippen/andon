@@ -44,7 +44,7 @@ func TestConnectionRecord(t *testing.T) {
 	}
 
 	resp = postForm(t, &noFollow, srv.URL+record+"/secret", url.Values{"csrf": {csrf}, "secret": {"tok"}})
-	if loc := resp.Header.Get("Location"); loc != record+"?tab=access" {
+	if loc := resp.Header.Get("Location"); loc != record+"?tab=access&tested" {
 		t.Fatalf("secret saved, back to %q", loc)
 	}
 	if page := string(mustGet(t, srv, client, record+"?tab=access")); !strings.Contains(page, "(unverändert lassen)") {

@@ -131,6 +131,30 @@
   </nav>
   {{end}}{{end}}
 
+  {{/* Empty board: say so, offer the gallery and a starter for each
+       connection without a tile (editors only). */}}
+  {{with .Empty}}
+  <div class="empty">
+    <b>{{t "board.empty_title"}}</b>
+    {{if .AddURL}}
+    <p>{{t "board.empty_lead"}}</p>
+    <a class="btn btn-accent btn-sm" href="{{.AddURL}}"{{if $.Board.Sections}} data-details="{{.AddURL}}&dialog"{{end}}>+ {{t "gallery.title"}}</a>
+    {{with .Tips}}
+    <p>{{t "board.empty_tips"}}</p>
+    <div class="btn-row">
+      {{range .}}<form method="post" action="/boards/tile" class="inline-form">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+        <input type="hidden" name="board_id" value="{{$.Board.ID}}">
+        <input type="hidden" name="type" value="{{.Type}}">
+        {{with .ConnID}}<input type="hidden" name="conn_id" value="{{.}}">{{end}}
+        <button type="submit" class="btn btn-outline btn-sm">+ {{t (print "wtype." .Type ".name")}} · {{.ConnName}}</button>
+      </form>{{end}}
+    </div>
+    {{end}}
+    {{else}}<p>{{t "board.empty_view"}}</p>{{end}}
+  </div>
+  {{end}}
+
   {{$hasSide := false}}
   {{range .Board.Sections}}{{if eq .Area "side"}}{{$hasSide = true}}{{end}}{{end}}
   <div class="board{{if and $hasSide (not .Compact)}} has-side{{end}}{{if .Compact}} is-compact{{end}}"

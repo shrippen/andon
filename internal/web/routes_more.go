@@ -200,13 +200,25 @@ func (d Deps) handleCredentials(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		http.NotFound(w, r)
 		return
 	}
-	http.Redirect(w, r, spacePath(mine.ID)+"/connections", http.StatusSeeOther)
+	target := spacePath(mine.ID) + "/connections"
+	if r.URL.RawQuery != "" { // e.g. ?tested=7 after a new login
+		target += "?" + r.URL.RawQuery
+	}
+	http.Redirect(w, r, target, http.StatusSeeOther)
 }
+
+// afterChange says what follows a change of a login.
+type afterChange int
+
+const (
+	afterNothing afterChange = iota
+	afterTest                // test the caller's own new login (?tested=id)
+)
 
 // activationAction runs a change of a login to a template, for the caller
 // or (form field team) a team the caller owns, and returns to the page it
 // came from.
-func (d Deps) activationAction(w http.ResponseWriter, r *http.Request, run func(Ctx, int64, model.Holder) error) {
+func (d Deps) activationAction(w http.ResponseWriter, r *http.Request, then afterChange, run func(Ctx, int64, model.Holder) error) {
 	ctx, err := d.Require(r)
 	if err != nil {
 		d.handleAuthError(w, r, err)
@@ -225,11 +237,19 @@ func (d Deps) activationAction(w http.ResponseWriter, r *http.Request, run func(
 		d.handleBoardError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, backTo(r, "/me/credentials"), http.StatusSeeOther)
+	back := backTo(r, "/me/credentials")
+	// The test runs with the caller's own login, not a team's.
+	if u, err := url.Parse(back); err == nil && then == afterTest && h.User() > 0 {
+		q := u.Query()
+		q.Set(testedFlag, strconv.FormatInt(id, 10))
+		u.RawQuery = q.Encode()
+		back = u.String()
+	}
+	http.Redirect(w, r, back, http.StatusSeeOther)
 }
 
 func (d Deps) handleActivate(w http.ResponseWriter, r *http.Request) {
-	d.activationAction(w, r, func(ctx Ctx, id int64, h model.Holder) error {
+	d.activationAction(w, r, afterTest, func(ctx Ctx, id int64, h model.Holder) error {
 		conn, err := connections.Get(d.DB, ctx.Who, id)
 		if err != nil {
 			return err
@@ -243,7 +263,7 @@ func (d Deps) handleActivate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d Deps) handleDeactivate(w http.ResponseWriter, r *http.Request) {
-	d.activationAction(w, r, func(ctx Ctx, id int64, h model.Holder) error {
+	d.activationAction(w, r, afterNothing, func(ctx Ctx, id int64, h model.Holder) error {
 		return connections.Deactivate(d.DB, ctx.Who, id, h)
 	})
 }

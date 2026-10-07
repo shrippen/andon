@@ -204,6 +204,10 @@ oidc:
   sub_taken: This authentik account is already linked to another user.
   unreachable: Identity provider unreachable.
 board:
+  empty_title: 'This board is empty.'
+  empty_lead: 'Add a tile from the gallery or start with one of your connections.'
+  empty_tips: 'From your connections that have no tile yet:'
+  empty_view: 'Whoever may edit this board adds tiles here.'
   name_taken: "Another board in this space already has this name."
   delete_hint: 'The board is gone for everybody. Its tiles stay in the library.'
   kiosk: Wall display
@@ -1278,6 +1282,8 @@ severity:
   warn: Warning
   critical: Critical
 library:
+  put_on: 'Add to board'
+  board: 'Board'
   search: 'Search: title, type, space'
   links: Links
   lead: Tiles set up once, placeable any number of times.
@@ -1292,6 +1298,24 @@ history:
   sections: Sections
   restore: Restore
 conn:
+  tiles_title: 'Matching tiles'
+  tiles_lead: 'The connection works. One click puts a tile with its data on the board.'
+  tiles_put: 'Add {tile} to board'
+  tiles_put_on: 'Add {tile} to {board}'
+  cause_refused: 'Connection refused: nothing answers at this address. Is the service running, are port and http/https right?'
+  cause_egress: 'Blocked by the network rule: Andon may not reach this address.'
+  cause_auth: 'Login rejected (401): the token or credentials are wrong or expired.'
+  cause_forbidden: 'Access denied (403): the login is valid but lacks rights for the API.'
+  cause_tls: 'Certificate not trusted: self-signed, expired or issued for another name.'
+  cause_dns: 'Name not found: the host name does not resolve. A typo, or known only to another DNS server?'
+  cause_timeout: 'No answer: the service does not reply in time, or a firewall drops the request.'
+  cause_fix_network: 'Allowed networks under Admin → Network'
+  cause_ask_network: 'An administrator can allow the address under Admin → Network.'
+  cause_fix_login: 'Change credentials'
+  cause_fix_address: 'Change address and TLS check'
+  cause_detail: 'Message'
+  pick_search: 'Search services: name, description'
+  pick_other: 'More'
   tab_overview: 'Overview'
   tab_access: 'Access'
   tab_settings: 'Settings'

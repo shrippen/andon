@@ -49,6 +49,8 @@ func (d Deps) RegisterEditorRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /widgets/{id}/preview", d.authed(d.handleWidgetShow))
 	mux.HandleFunc("GET /widget-tiles/{type}", d.authed(d.handleGalleryTiles))
 	mux.HandleFunc("POST /widgets/unused/delete", d.authed(d.handleUnusedDelete))
+	mux.HandleFunc("POST /widgets/{id}/board", d.authed(d.handlePutOnBoard))
+	mux.HandleFunc("POST /boards/tile", d.authed(d.handleBoardTile))
 }
 
 func (d Deps) handleBoardSettingsForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -307,7 +309,48 @@ func (d Deps) handleWidgetLibrary(w http.ResponseWriter, r *http.Request, ctx Ct
 	}
 	groups := libraryGroups(ctx, lib, seen)
 	_ = d.Page(w, ctx, "widgets", http.StatusOK, map[string]any{"Groups": groups, "Count": len(lib),
-		"Tally": tallyLibrary(groups), "Spaces": access.EditableSpaces(ctx.Who)})
+		"Tally": tallyLibrary(groups), "Spaces": access.EditableSpaces(ctx.Who), "Boards": editable(seen)})
+}
+
+// editable keeps the boards the caller may edit: where a tile can go.
+func editable(seen []boards.BoardRef) []boards.BoardRef {
+	var out []boards.BoardRef
+	for _, b := range seen {
+		if b.CanEdit {
+			out = append(out, b)
+		}
+	}
+	return out
+}
+
+// handlePutOnBoard places a library tile on the picked board and shows it.
+func (d Deps) handlePutOnBoard(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	board := formID(r, "board_id")
+	if err := boards.PutOn(d.DB, ctx.Who, board, id); err != nil {
+		d.fail(w, err, http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, boardPath(board), http.StatusSeeOther)
+}
+
+// handleBoardTile sets up a tile from a template (type, conn_id) on the
+// picked board: an empty board's tips, the tiles after a connection test.
+func (d Deps) handleBoardTile(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	board := formID(r, "board_id")
+	var conn *int64
+	if id := formID(r, "conn_id"); id > 0 {
+		conn = &id
+	}
+	if _, err := boards.AddNew(d.DB, ctx.Who, board, r.FormValue("type"), conn); err != nil {
+		d.fail(w, err, http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, boardPath(board), http.StatusSeeOther)
 }
 
 // libraryGroup is one topic of the library ("" = links), A–Z by name.

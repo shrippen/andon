@@ -1247,8 +1247,8 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [x] `/teams/1` scrollt auf dem Handy seitlich *(Mitglieder-Auswahl begrenzt, 360 px geprüft)*
 
 **Offen: Reibung und Unlogisches** (Entscheidung nötig)
-- [ ] Von der Verbindung zur Kachel auf dem Board: vier Schritte in drei Dialogen; Bibliothek ohne „auf Board legen“; leeres Board ohne Hinweis
-- [ ] 85 Dienste ohne Suche bei „Neue Verbindung“; Fehler der Verbindungstests roh und englisch („connection refused“, „egress denied“) ohne Hinweis auf Admin → Netzwerk; nach neuem Token kein automatischer Test
+- [x] Von der Verbindung zur Kachel auf dem Board: vier Schritte in drei Dialogen; Bibliothek ohne „auf Board legen“; leeres Board ohne Hinweis *(entschieden C: Bibliothek „Auf Board legen“ mit Board-Wahl; leeres Board sagt es, bietet die Galerie und je Verbindung ohne Kachel ihre Startkachel; nach grünem Test die passenden Vorlagen des Dienstes (`widgets.ForService`: eigene Typen, dann Querkacheln wie „Backup-Übersicht“), ein Klick legt sie aufs gewählte Board)*
+- [x] 85 Dienste ohne Suche bei „Neue Verbindung“; Fehler der Verbindungstests roh und englisch („connection refused“, „egress denied“) ohne Hinweis auf Admin → Netzwerk; nach neuem Token kein automatischer Test *(entschieden A: Suche und Gruppen wie in der Galerie; bekannte Ursachen (abgelehnt, Netzwerk-Regel, 401, 403, TLS, DNS, Zeitüberschreitung) übersetzt mit Link, rohe Meldung darunter; neuer Token, neue Zugangsdaten oder eigener Zugang zu einer Vorlage testen sofort)*
 - [ ] Formulare verlieren Eingaben bei Fehlern (Setup, Einladung, Ruhezeiten); keine Erfolgsmeldung nach Setup, Passwort-Reset, Passwortwechsel
 - [ ] „Passwort vergessen?“ ohne SMTP angeboten; Registrierung verrät vergebene Adressen (Reset verbirgt es)
 - [ ] Eigene Rolle als Auswahl mit Speichern angeboten; Betrachter sehen Instanz-Einstellungen und Test/Bearbeiten an allen Verbindungen mit aktiven Knöpfen; Ablehnung als englisches „access denied“

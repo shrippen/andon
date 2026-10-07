@@ -47,7 +47,7 @@
       if (count) {
         count.textContent = shown;
       }
-      var link = group.id && root.querySelector(".gal-nav a[href=\"#" + group.id + "\"] span");
+      var link = group.id && root.querySelector(".gal-nav a[href=\"#" + group.id + "\"] span:last-child");
       if (link) {
         link.textContent = shown;
       }

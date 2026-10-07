@@ -290,35 +290,41 @@ func Place(d *sql.DB, who *access.Principal, sectionID, widgetID int64, version 
 		if err != nil {
 			return err
 		}
-		widget, err := content.Widget(tx, widgetID)
-		if err != nil {
-			return err
-		}
-		if widget == nil {
-			return ErrNotFound
-		}
-		granted, err := widgetRight(tx, who, widget)
-		if err != nil {
-			return err
-		}
-		if err := access.Need(granted, enums.RightUse); err != nil {
-			return err
-		}
-		if err := bump(board, version); err != nil {
-			return err
-		}
-		placement := &model.Placement{SectionID: section.ID, WidgetID: widget.ID, Position: len(section.Placements)}
-		if err := content.AddPlacement(tx, placement); err != nil {
-			return err
-		}
-		id = placement.ID
-		board.UpdatedAt = time.Now().UTC()
-		if err := content.UpdateBoard(tx, board); err != nil {
-			return err
-		}
-		return snapshot(tx, who, board)
+		id, err = placeIn(tx, who, board, section, widgetID, version)
+		return err
 	})
 	return id, err
+}
+
+// placeIn appends a widget (USE needed) to a section of board, which the
+// caller loaded with EDIT, as one revision.
+func placeIn(tx *sql.Tx, who *access.Principal, board *model.Board, section *model.Section, widgetID int64, version int) (int64, error) {
+	widget, err := content.Widget(tx, widgetID)
+	if err != nil {
+		return 0, err
+	}
+	if widget == nil {
+		return 0, ErrNotFound
+	}
+	granted, err := widgetRight(tx, who, widget)
+	if err != nil {
+		return 0, err
+	}
+	if err := access.Need(granted, enums.RightUse); err != nil {
+		return 0, err
+	}
+	if err := bump(board, version); err != nil {
+		return 0, err
+	}
+	placement := &model.Placement{SectionID: section.ID, WidgetID: widget.ID, Position: len(section.Placements)}
+	if err := content.AddPlacement(tx, placement); err != nil {
+		return 0, err
+	}
+	board.UpdatedAt = time.Now().UTC()
+	if err := content.UpdateBoard(tx, board); err != nil {
+		return 0, err
+	}
+	return placement.ID, snapshot(tx, who, board)
 }
 
 // Unplace removes a widget from a board.

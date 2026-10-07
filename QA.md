@@ -26,18 +26,18 @@ Werkzeug: Playwright (Chromium) mit kleinen Skripten je Journey; Login über `#e
 Erwartet: jede leere Seite nennt den nächsten Schritt (Verbindung anlegen, Kachel hinzufügen).
 
 **J-A2 Erste Verbindung mit Fehlern** · Persona: Admin · Ziel: Kimai mit falscher Adresse und falschem Token, dann reparieren
-1. `/connections/new` → Kimai. Persönlicher Bereich: das Token-Feld muss sofort sichtbar sein.
+1. `/connections/new`: Suche „kim“ findet Kimai, die Gruppen (wie in der Galerie) zählen mit → Kimai. Persönlicher Bereich: das Token-Feld muss sofort sichtbar sein.
 2. URL `http://127.0.0.1:9/`, beliebiges Token, speichern → `/connections/{id}?welcome`.
-3. „Testen“: verständliche Fehlermeldung, in der UI-Sprache, mit Hinweis auf Admin → Netzwerk, falls die Adresse gesperrt ist.
+3. „Testen“: Ursache in der UI-Sprache („Verbindung abgelehnt …“, „Von der Netzwerk-Regel blockiert“ mit Link Admin → Netzwerk, 401/403 mit Link zum Zugang), die rohe Meldung darunter.
 4. Reiter Einstellungen: URL ändern und speichern (mit gespeichertem gemeinsamem Token: das Feld „Neue Adresse? Zugang“ ausfüllen).
 5. Unter Admin → Einstellungen → Netzwerk `127.0.0.0/8` erlauben; gegen einen Nachbau, der 401 antwortet, erst falsches, dann richtiges Token auf dem Reiter Zugang; Test.
-Erwartet: nichts Getipptes geht verloren, nach dem Speichern eines neuen Tokens stimmt der Zustand.
+Erwartet: nichts Getipptes geht verloren, nach dem Speichern eines neuen Tokens läuft der Test von selbst und zeigt sein Ergebnis.
 
 **J-A3 Dienst ohne Anmeldung → Kachel → Board** · Ziel: Wetterwarnungen (DWD) auf der Startseite
 1. `/connections/new?service=dwd`, Ort „Weimar“ suchen und wählen, speichern.
-2. Unter „Passende Kacheln“ die Kachel anlegen.
-3. Prüfen, ob und wie sie auf die Startseite kommt (Bibliothek `/widgets`, Board bearbeiten → Kachel hinzufügen → „Auch hier zeigen“).
-Erwartet: ein kurzer Weg von der Verbindung zur Kachel auf dem Board.
+2. Nach dem grünen Test unter „Passende Kacheln“ Board wählen, „… auf Board legen“.
+3. Alternativ: Bibliothek `/widgets` → Zeilenmenü „Auf Board legen“; ein neues, leeres Board schlägt Kacheln für Verbindungen ohne Kachel vor.
+Erwartet: ein Klick von der Verbindung zur Kachel auf dem Board.
 
 **J-A4 Dashy-Import** 📱
 1. `/import`, Format Dashy, eine `conf.yml` mit drei Abschnitten, einem eingeklappten, Umlauten, einem Eintrag ohne URL, `theme: nord`.

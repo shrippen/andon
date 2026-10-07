@@ -2,6 +2,7 @@ package web
 
 import (
 	"errors"
+	"slices"
 	"sort"
 	"strings"
 
@@ -45,7 +46,7 @@ func (d Deps) RegisterConnectionRoutes(mux *http.ServeMux) {
 }
 
 func (d Deps) handleConnectionsList(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	d.connectionsPage(w, ctx, 0)
+	d.connectionsPage(w, r, ctx, 0)
 }
 
 // handleSpaceConnections lists one level's connections (settings frame).
@@ -55,11 +56,12 @@ func (d Deps) handleSpaceConnections(w http.ResponseWriter, r *http.Request, ctx
 		http.NotFound(w, r)
 		return
 	}
-	d.connectionsPage(w, ctx, id)
+	d.connectionsPage(w, r, ctx, id)
 }
 
 // connectionsPage lists the connections who sees, of one space or all (0).
-func (d Deps) connectionsPage(w http.ResponseWriter, ctx Ctx, spaceID int64) {
+// ?tested=id runs that connection's test first (after a new login).
+func (d Deps) connectionsPage(w http.ResponseWriter, r *http.Request, ctx Ctx, spaceID int64) {
 	all, err := connections.Listing(d.DB, ctx.Who, enums.RightView)
 	if err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
@@ -76,6 +78,13 @@ func (d Deps) connectionsPage(w http.ResponseWriter, ctx Ctx, spaceID int64) {
 		return stateRank[list[i].Health.State()] < stateRank[list[j].Health.State()]
 	})
 	values := map[string]any{"Connections": list, "Services": serviceOptions, "Summary": healthSummary(list)}
+	if tested := formID(r, testedFlag); tested > 0 {
+		if conn, err := connections.Get(d.DB, ctx.Who, tested); err == nil {
+			if result, err := connections.Test(r.Context(), d.DB, ctx.Who, tested); err == nil {
+				values["Tested"] = map[string]any{"Name": conn.Name, "Result": result, "Note": noteOf(result, conn, ctx.Who)}
+			}
+		}
+	}
 	if spaceID != 0 {
 		if err := d.levelValues(ctx, spaceID, values); err != nil {
 			d.fail(w, err, http.StatusInternalServerError)
@@ -159,7 +168,7 @@ func (d Deps) handleConnectionNewForm(w http.ResponseWriter, r *http.Request, ct
 			d.fail(w, err, http.StatusInternalServerError)
 			return
 		}
-		_ = d.Page(w, ctx, "connection_pick", http.StatusOK, map[string]any{"Services": picks, "Space": formID(r, "space")})
+		_ = d.Page(w, ctx, "connection_pick", http.StatusOK, map[string]any{"Groups": pickGroups(picks), "Space": formID(r, "space")})
 		return
 	}
 	spaces := access.EditableSpaces(ctx.Who)
@@ -285,7 +294,11 @@ func (d Deps) handleConnectionUpdate(w http.ResponseWriter, r *http.Request, ctx
 		d.recordPage(w, r, ctx, tabSettings, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	http.Redirect(w, r, recordPath(id, tabSettings), http.StatusSeeOther)
+	target := recordPath(id, tabSettings)
+	if secret != nil {
+		target = withQuery(target, testedFlag, "")
+	}
+	http.Redirect(w, r, target, http.StatusSeeOther)
 }
 
 // saveAdvanced stores the form's "Erweitert" part: token expiry, daily
@@ -345,7 +358,11 @@ func (d Deps) handleConnectionTest(w http.ResponseWriter, r *http.Request, ctx C
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
-	d.recordPage(w, r, ctx, tabOverview, http.StatusOK, map[string]any{"TestResult": result})
+	extra := map[string]any{}
+	if conn, err := connections.Get(d.DB, ctx.Who, id); err == nil {
+		d.addTest(extra, ctx, conn, result)
+	}
+	d.recordPage(w, r, ctx, tabOverview, http.StatusOK, extra)
 }
 
 // handleConnectionHygiene stores token expiry and daily fetch budget.
@@ -411,6 +428,33 @@ func (d Deps) servicePicks(ctx Ctx) ([]servicePick, error) {
 	return picks, nil
 }
 
+// pickGroup is one topic of the service picker; Topic "" holds the
+// services without a tile of their own (pick_other).
+type pickGroup struct {
+	Topic widgets.Topic
+	Picks []servicePick
+}
+
+// pickGroups sorts the picks (already A–Z) into the gallery's topics by
+// their first template, e.g. Scrutiny → disks → Homelab, Borg → backups.
+func pickGroups(picks []servicePick) []pickGroup {
+	byTopic := map[widgets.Topic][]servicePick{}
+	for _, p := range picks {
+		var topic widgets.Topic
+		if keys := widgets.ForService(p.Service); len(keys) > 0 {
+			topic = widgets.TopicOf(keys[0])
+		}
+		byTopic[topic] = append(byTopic[topic], p)
+	}
+	var out []pickGroup
+	for _, topic := range append(slices.Clone(widgets.Topics), "") {
+		if list := byTopic[topic]; len(list) > 0 {
+			out = append(out, pickGroup{Topic: topic, Picks: list})
+		}
+	}
+	return out
+}
+
 // handleConnectionCheck runs the connection test from the overview and
 // answers with the result only (htmx swaps it into the row).
 func (d Deps) handleConnectionCheck(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -429,8 +473,17 @@ func (d Deps) handleConnectionCheck(w http.ResponseWriter, r *http.Request, ctx 
 	}
 	// The test counts as a fetch: its state replaces the list cell.
 	values := map[string]any{"Result": result, "Name": name}
-	if conn, err := connections.Get(d.DB, ctx.Who, id); err == nil {
+	conn, err := connections.Get(d.DB, ctx.Who, id)
+	if err == nil {
 		values["Conn"] = conn
+	}
+	values["TestNote"] = noteOf(result, conn, ctx.Who)
+	// From the record: the tiles a green test offers go into its slot.
+	if r.FormValue("suggest") != "" {
+		values["Slot"] = true
+		if result.Ok && err == nil {
+			values["Offer"] = d.offerFor(ctx, id)
+		}
 	}
 	_ = d.Page(w, ctx, "conn_check", http.StatusOK, values)
 }

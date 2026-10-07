@@ -204,6 +204,10 @@ oidc:
   sub_taken: Dieses authentik-Konto ist bereits mit einem anderen Benutzer verknüpft.
   unreachable: Identity Provider nicht erreichbar.
 board:
+  empty_title: 'Dieses Board ist leer.'
+  empty_lead: 'Leg eine Kachel aus der Galerie darauf oder fang mit einer deiner Verbindungen an.'
+  empty_tips: 'Aus deinen Verbindungen, die noch keine Kachel haben:'
+  empty_view: 'Kacheln legt hier an, wer das Board bearbeiten darf.'
   name_taken: "Ein anderes Board in diesem Bereich heißt schon so."
   delete_hint: 'Das Board verschwindet für alle. Die Kacheln bleiben in der Bibliothek.'
   kiosk: Wandanzeige
@@ -1278,6 +1282,8 @@ severity:
   warn: Warnung
   critical: Kritisch
 library:
+  put_on: 'Auf Board legen'
+  board: 'Board'
   search: 'Suchen: Titel, Typ, Bereich'
   links: Links
   lead: Einmal eingerichtete Kacheln, beliebig oft platzierbar.
@@ -1292,6 +1298,24 @@ history:
   sections: Abschnitte
   restore: Wiederherstellen
 conn:
+  tiles_title: 'Passende Kacheln'
+  tiles_lead: 'Die Verbindung steht. Ein Klick legt eine Kachel mit ihren Daten auf das Board.'
+  tiles_put: '{tile} auf Board legen'
+  tiles_put_on: '{tile} auf {board} legen'
+  cause_refused: 'Verbindung abgelehnt: Unter dieser Adresse antwortet nichts. Läuft der Dienst, und stimmen Port und http/https?'
+  cause_egress: 'Von der Netzwerk-Regel blockiert: Andon darf diese Adresse nicht erreichen.'
+  cause_auth: 'Anmeldung abgelehnt (401): Token oder Zugangsdaten stimmen nicht oder sind abgelaufen.'
+  cause_forbidden: 'Zugriff verweigert (403): Die Anmeldung gilt, ihr fehlen aber Rechte für die Schnittstelle.'
+  cause_tls: 'Zertifikat nicht vertrauenswürdig: selbst signiert, abgelaufen oder für einen anderen Namen ausgestellt.'
+  cause_dns: 'Name nicht gefunden: Der Hostname lässt sich nicht auflösen. Tippfehler, oder kennt ihn nur ein anderer DNS-Server?'
+  cause_timeout: 'Keine Antwort: Der Dienst antwortet nicht in der Zeit, oder eine Firewall verwirft die Anfrage.'
+  cause_fix_network: 'Erlaubte Netze unter Admin → Netzwerk'
+  cause_ask_network: 'Ein Administrator kann die Adresse unter Admin → Netzwerk freigeben.'
+  cause_fix_login: 'Zugangsdaten ändern'
+  cause_fix_address: 'Adresse und TLS-Prüfung ändern'
+  cause_detail: 'Meldung'
+  pick_search: 'Dienst suchen: Name, Beschreibung'
+  pick_other: 'Weitere'
   tab_overview: 'Überblick'
   tab_access: 'Zugang'
   tab_settings: 'Einstellungen'

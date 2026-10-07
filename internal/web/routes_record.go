@@ -149,10 +149,11 @@ func (d Deps) recordValues(r *http.Request, ctx Ctx, conn connections.View) (map
 	if conn.Right >= enums.RightManage {
 		values["HookURL"], _ = connections.HookURL(d.DB, ctx.Who, conn.ID, d.Settings.BaseURL)
 	}
-	// Just signed in or set up: show right away whether the service answers.
-	if q.Has("connected") || q.Has("welcome") {
+	// Just signed in, set up or given a new login: show right away whether
+	// the service answers.
+	if q.Has("connected") || q.Has("welcome") || q.Has(testedFlag) {
 		if result, err := connections.Test(r.Context(), d.DB, ctx.Who, conn.ID); err == nil {
-			values["TestResult"] = result
+			d.addTest(values, ctx, conn, result)
 		}
 	}
 	if q.Has("connected") {
@@ -162,6 +163,19 @@ func (d Deps) recordValues(r *http.Request, ctx Ctx, conn connections.View) (map
 		values["Suggest"] = widgetsFor(conn.Service)
 	}
 	return values, nil
+}
+
+// testedFlag asks the record to run the connection test on load, e.g.
+// after a new login was saved.
+const testedFlag = "tested"
+
+// addTest puts a test result into a record's values: the result, its
+// explanation, and the tiles a green test offers.
+func (d Deps) addTest(values map[string]any, ctx Ctx, conn connections.View, result connections.TestResult) {
+	values["TestResult"], values["TestNote"] = result, noteOf(result, conn, ctx.Who)
+	if result.Ok {
+		values["Offer"] = d.offerFor(ctx, conn.ID)
+	}
 }
 
 // handleConnectionSecret replaces a fixed connection's login (access tab).
@@ -188,5 +202,5 @@ func (d Deps) handleConnectionSecret(w http.ResponseWriter, r *http.Request, ctx
 		d.recordPage(w, r, ctx, tabAccess, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	http.Redirect(w, r, recordPath(id, tabAccess), http.StatusSeeOther)
+	http.Redirect(w, r, withQuery(recordPath(id, tabAccess), testedFlag, ""), http.StatusSeeOther)
 }

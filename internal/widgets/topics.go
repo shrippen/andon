@@ -61,3 +61,43 @@ func Starter(service enums.ServiceType) (string, bool) {
 	}
 	return "", false
 }
+
+// ForService lists the tile types that fit a connection of service,
+// best first: its starter, its other own types, then types that read it
+// beside other services, e.g. Borg → borg…, "backups". Empty for services
+// that show nothing without setup.
+func ForService(service enums.ServiceType) []string {
+	if noStarter[service] {
+		return nil
+	}
+	var out, peers []string
+	starter, ok := Starter(service)
+	if ok {
+		out = append(out, starter)
+	}
+	for _, kind := range AllTypes() {
+		switch {
+		case ok && kind.Key == starter:
+		case kind.Service == service:
+			out = append(out, kind.Key)
+		case kind.Service == "" && readsPeer(kind, service):
+			peers = append(peers, kind.Key)
+		}
+	}
+	return append(out, peers...)
+}
+
+// readsPeer reports whether a type with its defaults reads service as a
+// partner connection (ConnPeer).
+func readsPeer(kind WidgetType, service enums.ServiceType) (found bool) {
+	if kind.Decode == nil || kind.Queries == nil {
+		return false
+	}
+	defer func() { _ = recover() }() // a type whose defaults need data
+	for _, q := range kind.Queries(kind.Decode(map[string]any{})) {
+		if q.Conn == ConnPeer && q.Service == service {
+			return true
+		}
+	}
+	return false
+}
