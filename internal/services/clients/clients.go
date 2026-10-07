@@ -36,7 +36,18 @@ type Card struct {
 	KimaiID   int64 // the Kimai connection the customer is from
 	Currency  string
 	DocsURL   string // the customer's documents in Paperless, "" unless the Verbund links them
+	Link      metrics.ClientLink
+	Linking   Linking // where its link to Invoice Ninja is set
 	metrics.ClientCard
+}
+
+// Linking is where a customer's link to Invoice Ninja is set: the stored
+// Verbund's customers page, or none yet (the space's implicit Verbund,
+// stored on first use). Editable says the caller may change it.
+type Linking struct {
+	VerbundID int64 // 0 = not stored yet
+	Editable  bool
+	Offered   bool // there is somewhere to link: Kimai and Invoice Ninja pair
 }
 
 // Detail is a card with the hints that name the customer.
@@ -165,6 +176,10 @@ func cardsOf(ctx context.Context, d *sql.DB, who *access.Principal, sp space) ([
 			return nil, err
 		}
 	}
+	linking, err := linkingOf(d, who, sp)
+	if err != nil {
+		return nil, err
+	}
 	var docs metrics.DocsMap
 	if sp.ninja != nil && sp.paperless != nil {
 		if docs, err = verbund.DocsMapFor(d, sp.ninja.ID, sp.paperless.ID); err != nil {
@@ -172,13 +187,36 @@ func cardsOf(ctx context.Context, d *sql.DB, who *access.Principal, sp space) ([
 		}
 	}
 	for _, c := range metrics.ClientCards(kimai, ninja, time.Now(), metrics.CenterOf(sp.settings), links) {
-		card := Card{SpaceID: sp.ref.ID, SpaceName: sp.ref.Name, KimaiID: sp.kimai.ID, Currency: currency, ClientCard: c}
+		card := Card{SpaceID: sp.ref.ID, SpaceName: sp.ref.Name, KimaiID: sp.kimai.ID, Currency: currency, ClientCard: c,
+			Link: links.LinkOf(ninja, c.CustomerID, c.Name), Linking: linking}
 		if client, ok := links.ClientOf(ninja, c.CustomerID, c.Name); ok {
 			card.DocsURL = docsURL(sp.paperless, docs, client.Ref())
 		}
 		out = append(out, card)
 	}
 	return out, nil
+}
+
+// linkingOf finds where the space's Kimai is linked to its Invoice
+// Ninja: the stored Verbund holding both, else the implicit one.
+func linkingOf(d *sql.DB, who *access.Principal, sp space) (Linking, error) {
+	if sp.ninja == nil {
+		return Linking{}, nil
+	}
+	stored, err := verbund.Of(d, who, sp.kimai.ID)
+	if err != nil {
+		return Linking{}, err
+	}
+	for _, v := range stored {
+		if m, ok := v.Has(enums.ServiceInvoiceNinja); ok && m.ConnID == sp.ninja.ID {
+			return Linking{VerbundID: v.ID, Editable: v.CanEdit, Offered: true}, nil
+		}
+	}
+	implicit, ok, err := verbund.Implicit(d, who, sp.ref.ID)
+	if err != nil || !ok {
+		return Linking{}, err
+	}
+	return Linking{Editable: implicit.CanEdit, Offered: true}, nil
 }
 
 // docsURL is the Paperless list of a client's correspondent, "" without

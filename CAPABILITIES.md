@@ -196,7 +196,7 @@ CREATE TABLE link_keys (                    -- die ID eines Mitglieds in einer Z
 
 Hat ein Bereich je Dienst höchstens eine Verbindung, bilden diese stillschweigend einen Verbund: nichts wird gespeichert, nichts gefragt. Gespeichert wird ein Verbund erst,
 - wenn eine zweite Verbindung desselben Dienstes dazukommt und du zuordnest, oder
-- wenn er Daten bekommt (die erste bestätigte Zuordnung legt ihn an, mit den impliziten Mitgliedern).
+- wenn er Daten bekommen soll: Die Seite der Verbünde zeigt ihn als „Ohne Verbund“; „Kunden“ speichert ihn mit den gekoppelten Verbindungen des Bereichs (`caps.Paired`) unter dem Namen des Bereichs und öffnet die Zuordnung (`verbund.Settle`).
 
 ### Auflösung
 

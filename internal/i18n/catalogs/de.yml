@@ -5423,6 +5423,12 @@ clients:
   none: 'Noch keine Kunden: Kimai verbinden.'
   last_work: 'zuletzt gearbeitet am {day}'
   no_ninja: 'kein Invoice-Ninja-Kunde gleichen Namens'
+  link_edit: Zuordnung ändern
+  link:
+    confirmed: 'Invoice Ninja: zugeordnet'
+    none: 'Invoice Ninja: kein Gegenstück'
+    name: 'Invoice Ninja: nur über den gleichen Namen'
+    open: 'Invoice Ninja: nicht zugeordnet'
   to_billing: 'zur Abrechnung'
   invoices: 'Offene Rechnungen'
   number: 'Nummer'
@@ -5588,6 +5594,8 @@ verbund:
   other_space: anderer Bereich
   create_hint: 'Mindestens zwei Verbindungen verschiedener Dienste. Du brauchst Bearbeiten-Rechte auf allen.'
   implicit: Ohne Verbund
+  implicit_lead: 'Diese Verbindungen arbeiten zusammen, weil es im Bereich von jedem Dienst nur eine gibt. Kunden ordnet Andon hier über den gleichen Namen zu.'
+  settle_hint: 'Zum Zuordnen speichert Andon diese Verbindungen als Verbund mit dem Namen des Bereichs. Sonst ändert sich nichts.'
   ambiguous: 'Mehrere Verbindungen möglich: in einem Verbund festlegen, welche gilt.'
   not_found: Verbund nicht gefunden.
   too_few: 'Ein Verbund braucht mindestens zwei Verbindungen.'

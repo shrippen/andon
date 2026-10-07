@@ -18,6 +18,23 @@
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
     {{with .Vague}}<div class="callout callout-warn">{{t "verbund.vague" "services" (serviceNames .)}}</div>{{end}}
 
+    {{with .Implicit}}
+    <section class="card" id="implicit">
+      <h2>{{t "verbund.implicit"}}</h2>
+      <p class="small muted">{{t "verbund.implicit_lead"}}</p>
+      <div class="table-wrap"><table class="table">
+        <tbody>{{range .Members}}<tr><td>{{t (print "service." .Service)}}</td><td><a href="/connections/{{.ConnID}}">{{.Name}}</a></td></tr>{{end}}</tbody>
+      </table></div>
+      {{if .CanEdit}}
+      <form method="post" action="/spaces/{{$.SpaceID}}/verbund/settle">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+        <button type="submit" class="btn btn-outline btn-sm">{{t "verbund.customers"}}</button>
+      </form>
+      <p class="small muted">{{t "verbund.settle_hint"}}</p>
+      {{end}}
+    </section>
+    {{end}}
+
     {{range $v := .Verbuende}}
     <section class="card" id="verbund-{{$v.ID}}">
       {{if $v.CanEdit}}

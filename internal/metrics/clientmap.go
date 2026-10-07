@@ -13,6 +13,31 @@ import (
 // missing in it falls back to the client of the same name.
 type ClientMap map[int64]string
 
+// ClientLink is how a Kimai customer is tied to its Ninja client.
+type ClientLink string
+
+const (
+	ClientConfirmed ClientLink = "confirmed" // stored in the Verbund
+	ClientNoneSaid  ClientLink = "none"      // stored: there is no counterpart
+	ClientByName    ClientLink = "name"      // not stored, same name
+	ClientUnmatched ClientLink = "open"      // neither
+)
+
+// LinkOf says how a Kimai customer is tied to its Ninja client.
+func (m ClientMap) LinkOf(ninja *sources.NinjaDataset, customerID int64, name string) ClientLink {
+	key, stored := m[customerID]
+	_, found := m.ClientOf(ninja, customerID, name)
+	switch {
+	case stored && key == "":
+		return ClientNoneSaid
+	case !found:
+		return ClientUnmatched
+	case stored:
+		return ClientConfirmed
+	}
+	return ClientByName
+}
+
 // ClientOf is the Ninja client of a Kimai customer.
 func (m ClientMap) ClientOf(ninja *sources.NinjaDataset, customerID int64, name string) (sources.NinjaClient, bool) {
 	if ninja == nil {

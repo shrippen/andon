@@ -236,3 +236,51 @@ func TestPairs(t *testing.T) {
 	}
 	_ = k2
 }
+
+// TestImplicitSettle: a space with one Kimai and one Invoice Ninja has an
+// implicit Verbund that knows customers; settling stores it with the
+// space's paired connections (not Docker), after which it is gone as
+// implicit and listed as stored.
+func TestImplicitSettle(t *testing.T) {
+	w := newWorld(t)
+	kimai := w.conn(t, w.own, enums.ServiceKimai)
+	ninja := w.conn(t, w.own, enums.ServiceInvoiceNinja)
+	daw := w.conn(t, w.own, enums.ServiceDawarich)
+	w.conn(t, w.own, enums.ServiceDocker)
+
+	v, ok, err := verbund.Implicit(w.d, w.user, w.own)
+	if err != nil || !ok || !v.HasCustomers() || !v.CanEdit || len(v.Members) != 3 {
+		t.Fatalf("implicit %+v ok=%v err=%v", v, ok, err)
+	}
+
+	id, err := verbund.Settle(w.d, w.user, w.own, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, err := verbund.Get(w.d, w.user, id)
+	if err != nil || !stored.HasService(enums.ServiceKimai) || !stored.HasService(enums.ServiceDawarich) || stored.HasService(enums.ServiceDocker) {
+		t.Fatalf("stored %+v err=%v", stored, err)
+	}
+	for _, m := range stored.Members {
+		if m.ConnID != kimai && m.ConnID != ninja && m.ConnID != daw {
+			t.Fatalf("unexpected member %+v", m)
+		}
+	}
+	if _, ok, _ := verbund.Implicit(w.d, w.user, w.own); ok {
+		t.Fatal("still implicit after settling")
+	}
+}
+
+// TestImplicitNeedsCustomers: one customer service alone has nothing to
+// link; settling then fails.
+func TestImplicitNeedsCustomers(t *testing.T) {
+	w := newWorld(t)
+	w.conn(t, w.own, enums.ServiceKimai)
+	w.conn(t, w.own, enums.ServiceDawarich)
+	if _, ok, _ := verbund.Implicit(w.d, w.user, w.own); ok {
+		t.Fatal("implicit without two customer services")
+	}
+	if _, err := verbund.Settle(w.d, w.user, w.own, ""); !errors.Is(err, verbund.ErrNoCustomers) {
+		t.Fatalf("err = %v, want ErrNoCustomers", err)
+	}
+}

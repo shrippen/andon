@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/caps"
 	"andon/internal/db"
 	"andon/internal/enums"
 	"andon/internal/model"
@@ -385,4 +386,96 @@ func Ambiguous(d *sql.DB, who *access.Principal, spaceID int64) ([]string, error
 		return nil
 	})
 	return out, err
+}
+
+// Implicit is the space's implicit Verbund as the caller sees it: the
+// paired connections (caps.Paired) of its implicit group, ID 0. ok is
+// false unless two of them know customers and the caller sees each, so
+// the page offers to link customers only where there are any to link.
+func Implicit(d *sql.DB, who *access.Principal, spaceID int64) (View, bool, error) {
+	if _, ok := who.Spaces[spaceID]; !ok {
+		return View{}, false, access.ErrDenied
+	}
+	var out View
+	ok := false
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		var err error
+		out, ok, err = implicitOf(tx, who, spaceID)
+		return err
+	})
+	return out, ok, err
+}
+
+func implicitOf(q db.Queryer, who *access.Principal, spaceID int64) (View, bool, error) {
+	conns, err := content.Connections(q, []int64{spaceID})
+	if err != nil {
+		return View{}, false, err
+	}
+	stored, err := linkrepo.All(q)
+	if err != nil {
+		return View{}, false, err
+	}
+	groups, _ := Groups(conns, stored)
+
+	// The implicit group also borrows the only connection of a service
+	// from a stored Verbund; those are linked already.
+	linked := map[int64]bool{}
+	for _, l := range stored {
+		for _, m := range l.Members {
+			linked[m.ConnID] = true
+		}
+	}
+
+	v := View{CanEdit: true}
+	for _, g := range groups {
+		if g.LinkID != 0 {
+			continue
+		}
+		for _, c := range g.Conns {
+			if linked[c.ID] || !caps.Paired(enums.ServiceType(c.Service)) {
+				continue
+			}
+			right, err := rightOn(q, who, c)
+			if err != nil {
+				return View{}, false, err
+			}
+			if right < enums.RightView {
+				return View{}, false, nil
+			}
+			v.CanEdit = v.CanEdit && right >= enums.RightEdit
+			v.Members = append(v.Members, Member{ConnID: c.ID, Name: c.Name, Service: enums.ServiceType(c.Service), SpaceID: c.SpaceID})
+		}
+	}
+	slices.SortFunc(v.Members, func(a, b Member) int { return strings.Compare(string(a.Service), string(b.Service)) })
+	return v, v.HasCustomers(), nil
+}
+
+// Settle stores the space's implicit Verbund, named after the space, so
+// its customers can be linked (a link needs a stored Verbund). Nothing
+// else changes: the members are the connections the space already pairs.
+func Settle(d *sql.DB, who *access.Principal, spaceID int64, ip string) (int64, error) {
+	v, ok, err := Implicit(d, who, spaceID)
+	if err != nil {
+		return 0, err
+	}
+	if !ok {
+		return 0, ErrNoCustomers
+	}
+
+	name := ""
+	err = db.WithRead(d, func(tx *sql.Tx) error {
+		sp, err := content.Space(tx, spaceID)
+		if err == nil && sp != nil {
+			name = sp.Name
+		}
+		return err
+	})
+	if err != nil {
+		return 0, err
+	}
+	ids := make([]int64, len(v.Members))
+	for i, m := range v.Members {
+		ids[i] = m.ConnID
+	}
+	return Create(d, who, name, ids, ip)
 }
