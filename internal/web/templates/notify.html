@@ -73,20 +73,56 @@
         <label for="repeat_hours">{{t "notify.repeat"}}</label>
         <input class="input" id="repeat_hours" name="repeat_hours" type="number" min="0" max="168" value="{{.Prefs.RepeatHours}}">
         <p class="small muted">{{t "notify.repeat_hint"}}</p>
+        <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
+      </form>
+    </div>
+
+    <div class="card" id="digest">
+      <h2>{{t "notify.digest"}}</h2>
+      <p class="small muted">{{t "notify.digest_lead"}}</p>
+      {{if not .MailReady}}<div class="callout callout-warn">{{t "notify.no_mail"}}{{if .Ctx.Who.IsAdmin}} <a href="/admin/settings#server">{{t "notify.no_mail_fix"}}</a>{{else}} {{t "notify.no_server_ask"}}{{end}}</div>{{end}}
+      {{with .Digest}}
+      <form method="post" action="/me/notify/digest" id="digest-form">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+        <h3>{{t "notify.digest_when"}}</h3>
         <label for="daily">{{t "notify.digest_at"}}</label>
-        <input class="input" id="daily" name="daily" placeholder="07:30" value="{{.Prefs.Daily}}">
+        <input class="input" id="daily" name="daily" placeholder="07:30" value="{{.Daily}}">
         <p class="small muted">{{t "notify.digest_hint"}}</p>
         <label for="weekly">{{t "notify.weekly"}}</label>
         <select class="select" id="weekly" name="weekly">
           <option value="">{{t "notify.every_day"}}</option>
-          {{range .Weekdays}}<option value="{{.}}"{{if eq . $.Prefs.Weekly}} selected{{end}}>{{t (print "weekday." .)}}</option>{{end}}
+          {{$w := .Weekly}}{{range $.Weekdays}}<option value="{{.}}"{{if eq . $w}} selected{{end}}>{{t (print "weekday." .)}}</option>{{end}}
         </select>
-        {{if .SummaryAvailable}}
-        <label class="check"><input type="checkbox" name="summary"{{if not .Prefs.NoSummary}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "notify.summary"}}</label>
+        <h3>{{t "notify.digest_what"}}</h3>
+        <label for="digest-level">{{t "notify.min_level"}}</label>
+        <select class="select" id="digest-level" name="level">
+          {{$min := .MinLevel}}{{range $.Levels}}<option value="{{.}}"{{if eq . $min}} selected{{end}}>{{if eq . 30}}{{t "severity.critical"}}{{else if eq . 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}</option>{{end}}
+        </select>
+        <label class="check"><input type="checkbox" name="deadlines"{{if eq .Deadlines ""}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "notify.digest_deadlines"}}</label>
+        <label class="check"><input type="checkbox" name="empty"{{if eq .Empty ""}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "notify.digest_empty"}}</label>
+        <p class="small muted">{{t "notify.digest_weekly_hint"}}</p>
+        {{if $.SummaryAvailable}}
+        <label class="check"><input type="checkbox" name="summary"{{if not .NoSummary}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "notify.summary"}}</label>
         <p class="small muted">{{t "notify.summary_hint"}}</p>
         {{end}}
-        <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
       </form>
+      <div class="btn-row">
+        <button type="submit" form="digest-form" class="btn btn-accent">{{t "action.save"}}</button>
+        <a class="btn btn-outline" href="/me/notify/digest/preview" target="_blank" rel="noopener">{{t "notify.digest_preview"}}</a>
+        {{if $.MailReady}}<form method="post" action="/me/notify/digest/test">
+          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+          <button type="submit" class="btn btn-outline">{{t "notify.digest_test"}}</button>
+        </form>{{end}}
+      </div>
+      <p class="small muted">{{t "notify.digest_preview_hint"}}</p>
+      <h3>{{t "notify.digest_log"}}</h3>
+      {{if .Log}}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>{{t "notify.log_at"}}</th><th>{{t "notify.log_kind"}}</th><th>{{t "notify.log_state"}}</th><th class="num">{{t "notify.log_rows"}}</th></tr></thead>
+        <tbody>{{range .Log}}<tr><td>{{ago .At}}</td><td>{{t (print "notify.kind." .Kind)}}</td><td{{if eq .State "failed"}} data-state="bad"{{end}}>{{t (print "notify.state." .State)}}</td><td class="num">{{.Rows}}</td></tr>{{end}}</tbody>
+      </table></div>
+      {{else}}<p class="muted">{{t "notify.log_none"}}</p>{{end}}
+      {{end}}
     </div>
 
     <div class="card">

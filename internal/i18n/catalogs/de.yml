@@ -3055,6 +3055,31 @@ notify:
   invalid_url: Apprise-URL ungültig.
   failed: Versand fehlgeschlagen.
   bad_time: Zeit ungültig (HH:MM).
+  digest: 'E-Mail-Zusammenfassung'
+  digest_lead: 'Eine Mail mit deinen offenen Hinweisen und anstehenden Fristen, täglich oder einmal pro Woche.'
+  no_mail: 'Es ist kein Mailserver eingerichtet: Zusammenfassungen gehen nicht raus.'
+  no_mail_fix: 'Mailserver eintragen'
+  digest_when: 'Wann'
+  digest_what: 'Inhalt'
+  digest_deadlines: 'Steuerfristen der nächsten 14 Tage aufführen'
+  digest_empty: 'Auch senden, wenn nichts offen ist'
+  digest_weekly_hint: 'Wöchentlich kommt dazu ein Rückblick auf die Woche in Zahlen.'
+  digest_preview: 'Vorschau'
+  digest_test: 'Jetzt an mich senden'
+  digest_preview_hint: 'Vorschau und Testmail zeigen den heutigen Stand, ohne KI-Zusammenfassung. Die Testmail ändert nichts am geplanten Versand.'
+  digest_log: 'Letzte Sendungen'
+  log_at: 'Wann'
+  log_kind: 'Anlass'
+  log_state: 'Ergebnis'
+  log_rows: 'Einträge'
+  log_none: 'Noch nichts gesendet.'
+  kind:
+    auto: 'geplant'
+    test: 'Test'
+  state:
+    sent: 'gesendet'
+    failed: 'fehlgeschlagen'
+    empty: 'nichts offen, nicht gesendet'
   test_title: 'Andon: Test'
   test_body: Dieser Kanal funktioniert.
   title: 'Andon: {count} neue Hinweise'
