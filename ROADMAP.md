@@ -2,7 +2,7 @@
 
 Ein selbst gehostetes, **mehrbenutzerfähiges** Dashboard. Es löst Dashy als **Startseite mit Links, Statusanzeigen und Feeds** ab, führt zugleich Daten aus **Kimai**, **Invoice Ninja**, **Snipe-IT** und **Dawarich** zusammen und leitet daraus **Hinweise, Erinnerungen und Ratschläge** ab. Konfiguriert wird im **eingebauten Editor**, gestaltet über ein **Theme-System**, von dem nur das Theme **Kante** mitgeliefert wird. Auslieferung als **ein Docker-Container** mit eigener Anmeldung.
 
-> Stand: v0.4 · Name **Andon** (seit 2026-09-26, vorher Arbeitstitel `dashboard`): die Signaltafel aus der Fertigung, die zeigt, wo es hakt.
+> Stand: v0.7 · Name **Andon** (seit 2026-09-26, vorher Arbeitstitel `dashboard`): die Signaltafel aus der Fertigung, die zeigt, wo es hakt.
 >
 > **Veröffentlichung:** Quelltext und Entwicklung auf `git.arianw.de/shrippen/andon` (privat, Image `git.arianw.de/shrippen/andon`). Gitea spiegelt `main` und Tags nach `github.com/shrippen/andon`; dort baut `.github/workflows/ci.yml` das öffentliche Image `ghcr.io/shrippen/andon`, und GitHub Pages zeigt die Landing Page aus `docs/` unter `shrippen.github.io/andon/`.
 >
@@ -21,7 +21,7 @@ Das Projekt ist vollständig von Python auf **Go** umgestellt (Zielplattform: Ra
 | Themes (Editor, Import/Export, Schriften, Styleguide, WCAG-AA-Prüfung) | umgesetzt |
 | Kimai, Invoice Ninja, Snipe-IT, Dawarich | Adapter, Regeln, Insight-Widgets umgesetzt |
 | Homelab-Dienste (Phase 10) | 17 weitere Quellen mit Regeln; Docker offen |
-| IT-Doku-Abgleich (Phase 15) | Compose-Stacks und Vault-Frontmatter über Gitea, Komodo-Stand, Regeln `docs.*` (auch `docs.drift`), Kacheln, `/api/docs` und Hansei-Webhook umgesetzt; Homelable offen |
+| IT-Doku-Abgleich (Phase 15) | Compose-Stacks und Vault-Frontmatter über Gitea, Komodo-Stand, Regeln `docs.*` (auch `docs.drift`), Kacheln, `/api/docs` und Hansei-Webhook umgesetzt; Homelable als Ansicht (eigener Canvas, idempotenter Abgleich); offen nur der Homelable-Stack im Compose-Repo |
 | Prüflauf | Hintergrund-Job holt alle Integrationen (Start + alle `ANALYSIS_MINUTES`); Seiten zeigen nur diesen Stand, live nur der Status-Ping |
 | Benachrichtigungen | Apprise, Digest-Mail (SMTP), Wochenrückblick mit optionaler LLM-Zusammenfassung, iCal |
 | Trends, Prognosen | Snapshots, Verlauf, Saisonvergleich, Jahresprognose, Liquidität |
