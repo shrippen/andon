@@ -139,7 +139,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 3. Auf dem Board: Format wie gewählt; ↕, ↔, ×; Schnell-Link `example.org`, dann `not a url` (Meldung, kein 500).
 
 **J-D2 Rückgängig, Verlauf, Wiederherstellen**
-1. Zwei Tabs, B fügt Abschnitt hinzu, A speichert veraltet: verständlicher Konflikt?
+1. Zwei Tabs, B fügt Abschnitt hinzu, A speichert veraltet (Abschnitt anlegen, bearbeiten, Schnell-Link, Kachel): Meldung, neuer Stand, das Getippte steht noch da; erneut speichern geht.
 2. „↶ Rückgängig“ dreimal: geht es schrittweise zurück?
 3. `/boards/{id}/history`: ältere Fassung wiederherstellen. Nach Löschen eines Boards darf ein neues keinen fremden Verlauf zeigen.
 

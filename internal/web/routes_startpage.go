@@ -13,6 +13,7 @@ import (
 	"andon/internal/services/boards"
 	"andon/internal/services/connections"
 	"andon/internal/services/hints"
+	"andon/internal/services/util"
 )
 
 // RegisterStartPageRoutes wires the start page conveniences: undo, add a
@@ -122,6 +123,10 @@ func (d Deps) handleQuickLink(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 			return
 		}
 		http.Error(w, msg, http.StatusBadRequest)
+		return
+	}
+	if errors.Is(err, util.ErrConflict) && d.boardPart(w, r, ctx, formBoard(r), partEdit, hintStale) {
+		writeToast(w, i18n.T(conflictKept, ctx.Locale, nil))
 		return
 	}
 	if err != nil {

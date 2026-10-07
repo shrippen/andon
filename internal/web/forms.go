@@ -39,6 +39,14 @@ var untouchedTypes = map[string]bool{
 	"password": true, "hidden": true, "file": true, "submit": true, "button": true, "reset": true, "image": true,
 }
 
+// stateField tells whether a hidden field records the state a form was
+// rendered from (a board version, "was_area") rather than which row it
+// is: a stale form (409) still matches its fresh copy and keeps the
+// fresh value, so sending it again works.
+func stateField(name string) bool {
+	return name == "version" || strings.HasSuffix(name, "_version") || strings.HasPrefix(name, "was_")
+}
+
 // isSecret tells whether a field name names a secret.
 func isSecret(name string) bool {
 	parts := strings.FieldsFunc(strings.ToLower(name), func(r rune) bool { return r == '_' || r == '-' || r == '.' })
@@ -64,9 +72,17 @@ func keptValues(r *http.Request) url.Values {
 	return out
 }
 
+// keepInputKey asks a page answered with 200 to refill the posted form
+// all the same: an htmx answer to a refused form (htmx swaps no error).
+const keepInputKey = "KeepInput"
+
 // refusedPost is the request whose form a page shows again: a POST, or
-// a GET with a query, answered with an error status.
-func refusedPost(ctx Ctx, status int) *http.Request {
+// a GET with a query, answered with an error status (or marked with
+// keepInputKey).
+func refusedPost(ctx Ctx, status int, data map[string]any) *http.Request {
+	if keep, _ := data[keepInputKey].(bool); keep && ctx.req != nil && ctx.req.Method == http.MethodPost {
+		return ctx.req
+	}
 	if ctx.req == nil || status < http.StatusBadRequest {
 		return nil
 	}
@@ -147,6 +163,9 @@ func (k keeper) matches(form []part) bool {
 			continue
 		}
 		name := attr(p.tok, "name")
+		if stateField(name) {
+			continue
+		}
 		if sent, ok := k.posted[name]; ok && !slices.Contains(sent, attr(p.tok, "value")) {
 			return false
 		}

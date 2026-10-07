@@ -152,6 +152,7 @@ error:
   denied: You lack the right for this. Whoever manages the space can grant it, an admin or the team's owner.
   not_found: Not found.
   conflict: Somebody else saved meanwhile. Please reload and change again.
+  conflict_kept: Somebody else saved meanwhile. This is the new state with your input; check it and save again.
 login:
   passkey: Sign in with a passkey
   title: Log in

@@ -1266,6 +1266,7 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 
 **Rest der Reibung (nach dem Durchgang)**
 - [x] Formulare mit `?error=`-Weiterleitung verloren noch Eingaben: Verbund-Kunden (Zelle), Verbund „Kunden“ (Anlegen), Mitglieder, Löschen; Jahrespaket; neue Ausgabe aus einem Beleg; Feldzuordnung der Belege *(antworten mit der Seite samt Fehler und Eingabe über `web/forms.go`; Get-Formulare (Jahrespaket) ebenso. Belege: die Formulare im Reiter antworten an Ort und Stelle (htmx). Bleiben als Weiterleitung, weil nichts getippt wird und Neuladen nicht erneut senden soll: Belege verknüpfen, lösen, ignorieren, Mail an Paperless, Anmelde-Abläufe (OAuth))*
+- [x] Veraltete Fassung (409) in Board-Formularen füllte das Formular nicht neu *(Abschnitt anlegen: Board im Bearbeiten-Modus mit 409, Titel und Meldung; Abschnitt bearbeiten und Schnell-Link (htmx): der Abschnitt im neuen Stand, sein Formular offen mit dem Getippten, Meldung „neuer Stand mit deiner Eingabe“; Kachel bearbeiten ebenso. Die Fassung im Formular ist die neue, erneutes Speichern geht. Offen: Board-Einstellungen (Arbeit an der Wandanzeige läuft dort) und eine neue Kachel, deren Platzierung veraltet ist (Kachel ist angelegt, Fehlerseite))*
 
 ### Notiert 07.10.2026 (noch nicht begonnen)
 
