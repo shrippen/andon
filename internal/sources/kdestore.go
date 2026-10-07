@@ -4,7 +4,7 @@ package sources
 // widgets, themes and the like with their download counts. No token.
 //
 //	options user: shrippen        every entry of that user
-//	        ids: [2368175, …]     single entries (listed first)
+//	        ids: [2368175, …]     single entries (listed first), also as links .../p/2368175
 //
 //	GET ocs/v1/content/data?user=…&page=0…  GET ocs/v1/content/data/<id>
 
@@ -27,8 +27,25 @@ const (
 	storePageSize = 100
 	storePages    = 10
 	storeData     = "ocs/v1/content/data"
-	storeOK       = "ok" // OCS status of an answer with data
+	storeOK       = "ok"            // OCS status of an answer with data
+	storePage     = "store.kde.org" // the web pages; the API lives elsewhere
 )
+
+// storeIDDigits finds an entry id, also in its link: ".../p/2368175".
+var storeIDDigits = regexp.MustCompile(`\d+`)
+
+// storeID is an entry id from an option value: 2368175, "2368175" or
+// "https://store.kde.org/p/2368175"; "" without one.
+func storeID(raw any) string {
+	if n, ok := raw.(float64); ok {
+		return strconv.FormatInt(int64(n), 10)
+	}
+	found := storeIDDigits.FindAllString(asStr(raw), -1)
+	if len(found) == 0 {
+		return ""
+	}
+	return found[len(found)-1]
+}
 
 // StoreItem is one published entry.
 type StoreItem struct {
@@ -58,22 +75,36 @@ func fetchKDEStore(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	api := services.BearerApi(sctx.URL, "", sctx.TLS())
 	data := &KDEStoreDataset{URL: sctx.URL, User: strings.TrimSpace(asStr(sctx.Options["user"]))}
+	if u, err := url.Parse(sctx.URL); err == nil && strings.TrimPrefix(u.Hostname(), "www.") == storePage {
+		return nil, newSourceError("kdestore.wrong_url")
+	}
 	if data.User == "" && len(asList(sctx.Options["ids"])) == 0 {
 		return nil, newSourceError("kdestore.no_entries")
 	}
-	seen := map[int64]bool{}
+
+	// An entry read twice keeps the higher count: the single-entry answer
+	// lags behind the user's list (39 against 46 on 7 October 2026).
+	at := map[int64]int{}
 	add := func(list []any) {
 		for _, raw := range list {
 			item := storeItem(asMap(raw))
-			if item.ID != 0 && !seen[item.ID] {
-				seen[item.ID] = true
-				data.Items = append(data.Items, item)
+			if item.ID == 0 {
+				continue
 			}
+			if i, seen := at[item.ID]; seen {
+				data.Items[i].Downloads = max(data.Items[i].Downloads, item.Downloads)
+				continue
+			}
+			at[item.ID] = len(data.Items)
+			data.Items = append(data.Items, item)
 		}
 	}
 
 	for _, raw := range asList(sctx.Options["ids"]) {
-		id := strconv.FormatInt(int64(asFloat(raw)), 10)
+		id := storeID(raw)
+		if id == "" {
+			continue
+		}
 		list, _, err := storeGet(ctx, api, storeData+"/"+id, nil)
 		if err != nil {
 			return nil, fetchError(err)

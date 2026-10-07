@@ -1135,7 +1135,7 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
 
 ### Notiert 07.10.2026 (noch nicht begonnen)
 
-- [ ] KDE-Store-Kachel testen; in den Einstellungen erklären, was in welches Feld gehört
+- [x] KDE-Store-Kachel testen; in den Einstellungen erklären, was in welches Feld gehört *(live gegen api.kde-look.org geprüft, Benutzer shrippen: 3 Einträge. Eigene Felder „Benutzer“ und „Einzelne Einträge“ mit Erklärung, Links werden zu Nummern; store.kde.org als URL wird erklärt statt HTTP 410; doppelt gelesene Einträge behalten die höhere Zahl, die Einzelabfrage hinkt nach)*
 - [x] Klären, warum es die Umgebungsvariable `APPRISE_API_URL` gibt, obwohl jeder Nutzer eigene Benachrichtigungs-Einstellungen hat *(sie nennt den Apprise-API-Server, der versendet, wie `SMTP_URL` für Mail; die Kanäle der Nutzer sind nur Ziele. Auch unter Einrichten → Server setzbar)*
 - [x] Fehler: Ohne `APPRISE_API_URL` scheitert jeder Push, die Hinweise gelten trotzdem als gesendet (`dispatchUser` setzt `TouchSent` unabhängig vom Ergebnis) und kommen nie mehr. Außerdem sagt die Seite der Benachrichtigungen nicht, dass der Server fehlt *(gesendet gilt nur, was angekommen ist; ohne Server versucht Andon nichts, die Seite warnt und verlinkt Admins zu Einrichten → Server; Erklärung am Feld)*
 - [x] Testmöglichkeit für jeden Benachrichtigungsweg (Mail, Apprise) *(Apprise: „Testen“ je Kanal, gab es schon; Mail: „Jetzt an mich senden“ schickt die Zusammenfassung sofort)*

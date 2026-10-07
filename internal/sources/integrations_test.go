@@ -403,3 +403,34 @@ func TestKDEStoreNeedsEntries(t *testing.T) {
 		t.Fatalf("err = %v, want kdestore.no_entries", err)
 	}
 }
+
+// TestKDEStoreEntryLinks: an entry may be given as its store link; read
+// twice (ids and user list), the higher count wins, as the single-entry
+// answer lags behind; the store page instead of the API is named.
+func TestKDEStoreEntryLinks(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/ocs/v1/content/data/7":
+			w.Write([]byte(`{"status":"ok","data":[{"id":7,"name":"E7","downloads":30}]}`))
+		case "/ocs/v1/content/data":
+			w.Write([]byte(`{"status":"ok","totalitems":1,"data":[{"id":7,"name":"E7","downloads":39}]}`))
+		default:
+			w.Write([]byte(`{"status":"failed","data":[]}`))
+		}
+	}))
+	defer srv.Close()
+
+	raw, err := sources.KDEStoreData.Fetch(context.Background(), sources.Ctx{URL: srv.URL,
+		Options: map[string]any{"user": "me", "ids": []any{"https://store.kde.org/p/7"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if items := raw.(*sources.KDEStoreDataset).Downloads(); len(items) != 1 || items[0].Total != 39 {
+		t.Fatalf("items %+v", items)
+	}
+
+	_, err = sources.KDEStoreData.Fetch(context.Background(), sources.Ctx{URL: "https://store.kde.org", Options: map[string]any{"user": "me"}})
+	if err == nil || err.Error() != "kdestore.wrong_url" {
+		t.Fatalf("err = %v, want kdestore.wrong_url", err)
+	}
+}

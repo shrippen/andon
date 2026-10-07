@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -131,10 +132,12 @@ func icalSecret(r *http.Request) (string, error) {
 // setupField is a connection option the setup form asks for directly,
 // because the service does not work without it.
 type setupField struct {
-	Key     string    // option key, form field "opt_<key>"
-	Label   string    // catalog key
-	Kind    fieldKind // how the form asks for it
-	Choices []string  // fieldSelect: values, labelled "conn.choice_<value>"
+	Key      string    // option key, form field "opt_<key>"
+	Label    string    // catalog key
+	Kind     fieldKind // how the form asks for it
+	Choices  []string  // fieldSelect: values, labelled "conn.choice_<value>"
+	Hint     string    // catalog key of a line under the field, "" = none
+	Optional bool      // the service also works without it
 }
 
 // fieldKind is how the setup form asks for an option.
@@ -144,7 +147,22 @@ const (
 	fieldText   fieldKind = "text"
 	fieldPlace  fieldKind = "place"  // search by name, stores place, lat and lon
 	fieldSelect fieldKind = "select" // one of Choices, the first is the default
+	fieldIDs    fieldKind = "ids"    // numbers separated by commas, also from links: ".../p/2368175, 2368948"
 )
+
+// idDigits finds the id in a pasted link: the last run of digits.
+var idDigits = regexp.MustCompile(`\d+`)
+
+// formIDs reads a fieldIDs value: ".../p/2368175, 2368948" → ["2368175", "2368948"].
+func formIDs(text string) []any {
+	var out []any
+	for _, part := range strings.FieldsFunc(text, func(r rune) bool { return r == ',' || r == ' ' || r == '\n' }) {
+		if found := idDigits.FindAllString(part, -1); len(found) > 0 {
+			out = append(out, found[len(found)-1])
+		}
+	}
+	return out
+}
 
 // setupFields are those options per service, e.g. Pangolin's organisation.
 var setupFields = map[enums.ServiceType][]setupField{
@@ -153,6 +171,10 @@ var setupFields = map[enums.ServiceType][]setupField{
 	enums.ServiceTibber:    {{Key: "place", Label: "conn.place", Kind: fieldPlace}},
 	enums.ServiceSpeedtest: {{Key: "kind", Label: "conn.speed_tool", Kind: fieldSelect, Choices: []string{"tracker", "myspeed"}}},
 	enums.ServiceGateway:   {{Key: "kind", Label: "conn.router_kind", Kind: fieldSelect, Choices: []string{"opnsense", "pfsense", "unifi", "openwrt"}}},
+	enums.ServiceKDEStore: {
+		{Key: "user", Label: "conn.kdestore_user", Kind: fieldText, Hint: "conn.kdestore_user_hint", Optional: true},
+		{Key: "ids", Label: "conn.kdestore_ids", Kind: fieldIDs, Hint: "conn.kdestore_ids_hint", Optional: true},
+	},
 }
 
 func setupFieldsOf(service enums.ServiceType) []setupField {
@@ -180,9 +202,13 @@ func formOptions(r *http.Request, service enums.ServiceType, options map[string]
 			continue
 		}
 		changed = true
-		if v := strings.TrimSpace(r.FormValue("opt_" + f.Key)); v != "" {
+		v := strings.TrimSpace(r.FormValue("opt_" + f.Key))
+		switch {
+		case f.Kind == fieldIDs && len(formIDs(v)) > 0:
+			out[f.Key] = formIDs(v)
+		case f.Kind != fieldIDs && v != "":
 			out[f.Key] = v
-		} else {
+		default:
 			delete(out, f.Key)
 		}
 	}
@@ -219,6 +245,12 @@ func optText(options map[string]any, key string) string {
 		return ""
 	case float64:
 		return strconv.FormatFloat(v, 'f', -1, 64)
+	case []any:
+		parts := make([]string, len(v))
+		for i, item := range v {
+			parts[i] = optText(map[string]any{key: item}, key)
+		}
+		return strings.Join(parts, ", ")
 	default:
 		return fmt.Sprint(v)
 	}
