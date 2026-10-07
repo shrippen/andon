@@ -1019,14 +1019,16 @@ func TestSharesGrantAndRevoke(t *testing.T) {
 	if !strings.Contains(string(body), "Wer hat Zugriff") {
 		t.Fatalf("expected shares dialog to render:\n%s", body)
 	}
-	userMatch := regexp.MustCompile(`<option value="(\d+)">Benutzer: `).FindSubmatch(body)
+	// One select names kind and id together: user and team ids overlap,
+	// so two separate selects could share with the wrong one.
+	userMatch := regexp.MustCompile(`<option value="(user:\d+)">Benutzer: `).FindSubmatch(body)
 	if userMatch == nil {
 		t.Fatalf("expected a grantee option:\n%s", body)
 	}
 
 	csrf = csrfToken(t, srv, client)
 	resp, err = client.PostForm(srv.URL+"/shares/board/"+connID, url.Values{
-		"csrf": {csrf}, "grantee_kind": {"user"}, "grantee_id": {string(userMatch[1])}, "right": {"view"},
+		"csrf": {csrf}, "grantee": {string(userMatch[1])}, "right": {"view"},
 	})
 	if err != nil {
 		t.Fatalf("grant share: %v", err)
@@ -1041,6 +1043,17 @@ func TestSharesGrantAndRevoke(t *testing.T) {
 	if shareMatch == nil {
 		t.Fatalf("expected the granted share listed:\n%s", body)
 	}
+
+	// A listed share changes its right through the same field.
+	row := regexp.MustCompile(`name="grantee" value="(user:\d+)"`).FindSubmatch(body)
+	if row == nil || string(row[1]) != string(userMatch[1]) {
+		t.Fatalf("share row grantee: %q", row)
+	}
+	resp, err = client.PostForm(srv.URL+"/shares/board/"+connID, url.Values{"csrf": {csrfToken(t, srv, client)}, "grantee": {string(row[1])}, "right": {"edit"}})
+	if err != nil || resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("change right: %v %v", err, resp.StatusCode)
+	}
+	resp.Body.Close()
 
 	csrf = csrfToken(t, srv, client)
 	resp, err = client.PostForm(srv.URL+"/shares/board/"+connID+"/"+string(shareMatch[1])+"/revoke", url.Values{"csrf": {csrf}})

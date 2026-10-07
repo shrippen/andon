@@ -29,8 +29,7 @@
         {{range .Info.Shares}}
         <form class="row" method="post" action="/shares/{{$.Kind}}/{{$.ResourceID}}">
           <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-          <input type="hidden" name="grantee_kind" value="{{.GranteeKind}}">
-          <input type="hidden" name="grantee_id" value="{{.GranteeID}}">
+          <input type="hidden" name="grantee" value="{{.GranteeKind}}:{{.GranteeID}}">
           <span class="subject" data-kind="{{.GranteeKind}}">{{.GranteeName}} <small>{{t (print "grantee." .GranteeKind)}}</small></span>
           <select class="select" name="right" aria-label="{{t "share.right"}}" data-autosubmit>
             {{$r := .Right.Key}}{{range $.Rights}}<option value="{{.}}"{{if eq . $r}} selected{{end}}>{{t (print "right." .)}}</option>{{end}}
@@ -42,13 +41,10 @@
 
         <form class="add" method="post" action="/shares/{{.Kind}}/{{.ResourceID}}">
           <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-          <select class="select" name="grantee_kind" aria-label="{{t "share.grantee"}}">
-            <option value="user">{{t "grantee.user"}}</option>
-            <option value="team">{{t "grantee.team"}}</option>
-          </select>
-          <select class="select" name="grantee_id" aria-label="{{t "field.name"}}">
-            {{range .Info.Users}}<option value="{{.ID}}">{{t "grantee.user"}}: {{.Name}}</option>{{end}}
-            {{range .Info.Teams}}<option value="{{.ID}}">{{t "grantee.team"}}: {{.Name}}</option>{{end}}
+          {{/* Kind and id in one value: user and team ids overlap. */}}
+          <select class="select" name="grantee" aria-label="{{t "share.grantee"}}">
+            {{range .Info.Users}}<option value="user:{{.ID}}">{{t "grantee.user"}}: {{.Name}}</option>{{end}}
+            {{range .Info.Teams}}<option value="team:{{.ID}}">{{t "grantee.team"}}: {{.Name}}</option>{{end}}
           </select>
           <select class="select" name="right" aria-label="{{t "share.right"}}">
             {{range .Rights}}<option value="{{.}}">{{t (print "right." .)}}</option>{{end}}
