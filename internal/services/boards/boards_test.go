@@ -1,6 +1,7 @@
 package boards_test
 
 import (
+	"strings"
 	"database/sql"
 	"errors"
 	"path/filepath"
@@ -373,5 +374,30 @@ func TestBoardLayout(t *testing.T) {
 		if view, _ = boards.View(d, who, boardID, boards.LayoutOverlay); view.Layout != c.want {
 			t.Fatalf("%q: %q", c.in, view.Layout)
 		}
+	}
+}
+
+// TestBoardNameBounded: a pasted essay is no board name; a 300-character
+// name made every page 4400 px wide.
+func TestBoardNameBounded(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+
+	id, err := boards.Create(d, who, space.ID, strings.Repeat("X", 300))
+	if err != nil {
+		t.Fatal(err)
+	}
+	view, _ := boards.View(d, who, id, boards.LayoutOverlay)
+	if n := len([]rune(view.Name)); n > boards.MaxNameLen {
+		t.Fatalf("name of %d runes", n)
+	}
+	if err := boards.Rename(d, who, id, view.Version, strings.Repeat("Ü", 300), nil, nil, ""); err != nil {
+		t.Fatal(err)
+	}
+	view, _ = boards.View(d, who, id, boards.LayoutOverlay)
+	if n := len([]rune(view.Name)); n > boards.MaxNameLen {
+		t.Fatalf("renamed to %d runes", n)
 	}
 }

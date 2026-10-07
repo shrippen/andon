@@ -18,6 +18,16 @@ import (
 
 // ── Board changes (EDIT) ──
 
+// MaxNameLen bounds a board's name in characters: it stands in the nav
+// and in every page title.
+const MaxNameLen = 80
+
+// boardName is a typed name trimmed and cut to MaxNameLen.
+func boardName(name string) string {
+	runes := []rune(strings.TrimSpace(name))
+	return strings.TrimSpace(string(runes[:min(len(runes), MaxNameLen)]))
+}
+
 // Create adds a board (with one empty section) to a space. Requires EDIT.
 func Create(d *sql.DB, who *access.Principal, spaceID int64, name string) (int64, error) {
 	var id int64
@@ -37,12 +47,12 @@ func Create(d *sql.DB, who *access.Principal, spaceID int64, name string) (int64
 		for _, b := range existing {
 			taken[b.Slug] = true
 		}
-		label := strings.TrimSpace(name)
+		label := boardName(name)
 		if label == "" {
 			label = "Board"
 		}
 		board := &model.Board{
-			SpaceID: spaceID, Slug: util.Unique(util.Slug(name, startSlug), taken), Name: label,
+			SpaceID: spaceID, Slug: util.Unique(util.Slug(label, startSlug), taken), Name: label,
 			Position: len(taken), Version: 1, UpdatedAt: time.Now().UTC(),
 		}
 		if err := content.AddBoard(tx, board); err != nil {
@@ -69,7 +79,7 @@ func Rename(d *sql.DB, who *access.Principal, boardID int64, version int, name s
 		if err := bump(board, version); err != nil {
 			return err
 		}
-		if n := strings.TrimSpace(name); n != "" {
+		if n := boardName(name); n != "" {
 			board.Name = n
 		}
 		if themeID != nil {

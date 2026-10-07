@@ -622,9 +622,13 @@
       if (seconds) {
         time.second = "2-digit";
       }
+      // Say 12 or 24 hours either way: left open, an English locale
+      // picks 12 hours ("03:08 PM") for a 24-hour clock.
       if (el.getAttribute("data-h12") === "yes") {
         time.hour = "numeric";
         time.hour12 = true;
+      } else {
+        time.hourCycle = "h23";
       }
       var face = el.querySelector("svg.clock");
       if (face) {
