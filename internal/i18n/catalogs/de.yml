@@ -48,6 +48,8 @@ action:
   open_in_duplicati: 'In Duplicati öffnen'
   open_in_backrest: 'In Backrest öffnen'
   open_in_urbackup: 'In UrBackup öffnen'
+  open_in_wud: 'In What''s Up Docker öffnen'
+  open_in_watchtower: 'In Watchtower öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
   close: Schließen
   open_in_jsonapi: API öffnen
@@ -906,7 +908,7 @@ wtype:
     desc: Alle verfügbaren Updates der verbundenen Dienste an einer Stelle.
   backups:
     name: Backup-Übersicht
-    desc: Letzte Sicherung je Borg-Client, PG-Back-Web-Datenbank und TrueNAS-Snapshot, Probleme zuerst.
+    desc: 'Letzte Sicherung je Gegenstand aus allen Sicherungswerkzeugen (Borg, Proxmox Backup Server, Kopia, Duplicati, Backrest, UrBackup, PG Back Web, TrueNAS), Probleme zuerst.'
   glances_chart:
     name: Glances-Verlauf
     desc: Verlauf einer Kennzahl (CPU, RAM, Last, Swap) aus einer Glances-Verbindung.
@@ -1317,6 +1319,12 @@ conn:
   secret_pbs: 'API-Token (benutzer@realm!name:geheimnis)'
   secret_userpass_opt: 'benutzer:passwort (optional)'
   secret_duplicati: 'Passwort der Oberfläche'
+  options_hint_wud: 'URL von What''s Up Docker, z. B. http://wud.example.lan:3000. Token leer oder benutzer:passwort, wenn die Basic-Anmeldung aktiv ist.'
+  about_wud: 'Neue Image-Tags je Container'
+  what_wud: 'What''s Up Docker prüft, ob es für laufende Container neuere Images gibt, ohne sie zu aktualisieren.'
+  options_hint_watchtower: 'URL der Watchtower-HTTP-API, z. B. http://watchtower:8080 (Watchtower mit --http-api-metrics starten). Token = WATCHTOWER_HTTP_API_TOKEN.'
+  about_watchtower: 'Automatische Updates: geprüft, aktualisiert, fehlgeschlagen'
+  what_watchtower: 'Watchtower aktualisiert laufende Container automatisch, sobald ein neues Image erscheint.'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
   health: 'Zustand'
@@ -1539,6 +1547,8 @@ service:
   duplicati: 'Duplicati'
   backrest: 'Backrest'
   urbackup: 'UrBackup'
+  wud: 'What''s Up Docker'
+  watchtower: 'Watchtower'
   tibber: 'Tibber (Strom)'
   links: Kacheln
   jsonapi: Eigene API (JSON)
@@ -1862,6 +1872,14 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  wud:
+    updates:
+      title: '{count} Container-Updates verfügbar'
+      why: '{names}'
+  watchtower:
+    failed:
+      title: 'Watchtower: {count} Updates fehlgeschlagen'
+      why: 'Beim letzten Durchlauf ({scanned} Container geprüft) ließen sich {count} nicht aktualisieren. Die Logs von Watchtower nennen den Grund.'
   pbs:
     verify_failed:
       title: 'Verify von {store} fehlgeschlagen'
@@ -1993,6 +2011,12 @@ hint:
       title: '{count} Kacheln seit {days} Tagen nicht erreichbar'
       why: '{names}. Adresse prüfen oder die Kachel entfernen.'
   backups:
+    job_failed:
+      title: 'Sicherung fehlgeschlagen: {item}'
+      why: '{tool}: letzte erfolgreiche Sicherung {day}. {note}'
+    job_old:
+      title: 'Sicherung veraltet: {item}'
+      why: '{tool}: letzte erfolgreiche Sicherung {day}.'
     unsaved:
       title: 'Neu seit der letzten Sicherung'
       why: 'Letzte erfolgreiche Sicherung ({tool}) am {day}. Seitdem neu: {items}.'
@@ -2186,6 +2210,12 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
   cross:
+    update_unbacked:
+      title: 'Watchtower aktualisierte {count} Container ohne frische Sicherung'
+      why: 'Letzte Sicherung: {day} ({tool}). Geht ein Update schief, fehlt der Stand davor.'
+    release_newer:
+      title: '{repo} {release} ist neuer als {where}'
+      why: '{image} läuft mit {tag}.'
     pbs_orphan:
       title: '{count} Sicherungsgruppen ohne Gast'
       why: 'Proxmox kennt {ids} nicht mehr; ihre Sicherungen belegen nur noch Platz. Löschen oder bewusst aufheben.'
@@ -2590,6 +2620,10 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
+  wud:
+    containers: '{count} Container · {updates} Updates'
+  watchtower:
+    scan: '{scanned} geprüft · {updated} aktualisiert'
   drone:
     repos: '{count} Repos'
     red: '{count} rot'
@@ -2828,6 +2862,11 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  wud.updates: 'Container-Updates'
+  watchtower.failed: 'Watchtower-Update fehlgeschlagen'
+  cross.update_unbacked: 'Update ohne Sicherung'
+  cross.release_newer: 'Neueres Release als das laufende Image'
+  backups.job: 'Sicherung fehlgeschlagen oder veraltet'
   pbs.verify_failed: 'Verify fehlgeschlagen'
   pbs.datastore_full: 'Datastore voll'
   cross.pbs_orphan: 'Sicherungen ohne Gast'

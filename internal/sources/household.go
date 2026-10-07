@@ -757,6 +757,16 @@ func DemoGitHub(now time.Time) *GitHubDataset {
 	for i, r := range daily.Repos {
 		data.Repos[i].DownloadDays = daysBack(data.Repos[i].Downloads, r.DownloadsDaily, now)
 	}
+
+	// Repos the studio only watches for their releases (options repos).
+	var watched []struct {
+		Repo, Release string
+		ReleasedAt    time.Time
+	}
+	demoworld.MustDecode("image_updates.watched_releases", now, &watched)
+	for _, w := range watched {
+		data.Repos = append(data.Repos, GitRepo{Name: w.Repo, Release: w.Release, ReleasedAt: w.ReleasedAt})
+	}
 	return data
 }
 

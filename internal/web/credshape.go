@@ -268,6 +268,7 @@ var secretLabels = map[enums.ServiceType]string{
 	enums.ServiceKopia:      "conn.secret_userpass_opt",
 	enums.ServiceBackrest:   "conn.secret_userpass_opt",
 	enums.ServiceUrBackup:   "conn.secret_userpass_opt",
+	enums.ServiceWUD:        "conn.secret_userpass_opt",
 	enums.ServiceDuplicati:  "conn.secret_duplicati",
 }
 

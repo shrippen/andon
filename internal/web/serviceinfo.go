@@ -54,6 +54,8 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServiceDuplicati:     "https://duplicati.com",
 	enums.ServiceBackrest:      "https://github.com/garethgeorge/backrest",
 	enums.ServiceUrBackup:      "https://www.urbackup.org",
+	enums.ServiceWUD:           "https://getwud.github.io/wud/",
+	enums.ServiceWatchtower:    "https://containrrr.dev/watchtower/",
 	enums.ServiceTibber:        "https://tibber.com",
 }
 

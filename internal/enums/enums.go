@@ -139,6 +139,8 @@ const (
 	ServiceDuplicati     ServiceType = "duplicati"
 	ServiceBackrest      ServiceType = "backrest"
 	ServiceUrBackup      ServiceType = "urbackup"
+	ServiceWUD           ServiceType = "wud"
+	ServiceWatchtower    ServiceType = "watchtower"
 	ServiceTibber        ServiceType = "tibber"
 	ServiceCalendar      ServiceType = "calendar"
 	ServiceKintsugi      ServiceType = "kintsugi"
@@ -155,7 +157,7 @@ var Services = []ServiceType{
 	ServiceTrueNAS, ServiceKomodo, ServicePangolin, ServiceAuthentik,
 	ServicePihole, ServiceAdGuard, ServiceNextcloud, ServiceSabnzbd, ServiceGluetun, ServiceDomains, ServiceBlacklist,
 	ServiceTailscale, ServiceGateway, ServiceMediaServer, ServiceArr, ServiceVaultwarden,
-	ServiceSpeedtest, ServiceGrocy, ServiceTandoor, ServiceDWD, ServiceGitHub, ServiceKDEStore, ServiceHealthchecks, ServicePrometheus, ServiceNVD, ServiceDrone, ServicePBS, ServiceKopia, ServiceDuplicati, ServiceBackrest, ServiceUrBackup, ServiceTibber, ServiceCalendar,
+	ServiceSpeedtest, ServiceGrocy, ServiceTandoor, ServiceDWD, ServiceGitHub, ServiceKDEStore, ServiceHealthchecks, ServicePrometheus, ServiceNVD, ServiceDrone, ServicePBS, ServiceKopia, ServiceDuplicati, ServiceBackrest, ServiceUrBackup, ServiceWUD, ServiceWatchtower, ServiceTibber, ServiceCalendar,
 	ServiceKintsugi, ServiceWallos, ServiceHansei, ServiceJSONAPI,
 }
 
