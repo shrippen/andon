@@ -1,10 +1,20 @@
 name: ci
 
+# Branches are tested through their pull request, so a push to a PR
+# branch runs once, not twice. main and tags still run on push: main
+# builds the edge image, a tag the release image.
 on:
   push:
-    branches: ["**"]
+    branches: [main]
     tags: ["v*"]
   pull_request:
+
+# One runner works the queue in order. A newer push to the same branch
+# or PR replaces the older run instead of queueing behind it; a tag is
+# never cancelled, its run builds the release image.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
   contents: read
