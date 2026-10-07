@@ -2,6 +2,8 @@ package sources_test
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -868,5 +870,69 @@ func TestTechnitiumFritz(t *testing.T) {
 	}
 	if f := sources.DemoFritz(now); f.DownSync != 250000 || !f.Connected() {
 		t.Fatalf("demo fritz %+v", f)
+	}
+}
+
+// TestListening: Tautulli's sessions, Navidrome's Subsonic login and now
+// playing, Seerr's counts and approved requests waiting for days.
+func TestListening(t *testing.T) {
+	old := time.Now().AddDate(0, 0, -5).UTC().Format(time.RFC3339)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		switch r.URL.Path {
+		case "/api/v2":
+			w.Write([]byte(`{"response":{"data":{"sessions":[{"friendly_name":"theo","full_title":"Ebbe"}],"total_bandwidth":8200}}}`))
+		case "/rest/getNowPlaying":
+			sum := md5.Sum([]byte("pw" + q.Get("s")))
+			if q.Get("u") != "me" || q.Get("t") != hex.EncodeToString(sum[:]) {
+				w.Write([]byte(`{"subsonic-response":{"status":"failed"}}`))
+				return
+			}
+			w.Write([]byte(`{"subsonic-response":{"status":"ok","nowPlaying":{"entry":[{"username":"selin","title":"Nebelhorn","artist":"Theo"}]}}}`))
+		case "/rest/getScanStatus":
+			w.Write([]byte(`{"subsonic-response":{"status":"ok","scanStatus":{"scanning":false,"count":1834}}}`))
+		case "/api/v1/request/count":
+			w.Write([]byte(`{"pending":1,"approved":5,"processing":2,"available":38}`))
+		case "/api/v1/request":
+			w.Write([]byte(`{"results":[{"status":2,"type":"tv","createdAt":"` + old + `","media":{"status":3,"tmdbId":42},"requestedBy":{"displayName":"jonas"}},` +
+				`{"status":2,"createdAt":"` + old + `","media":{"status":5}}]}`))
+		}
+	}))
+	defer srv.Close()
+	ctx := context.Background()
+
+	raw, err := sources.TautulliData.Fetch(ctx, sources.Ctx{URL: srv.URL, Secret: "k"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p := raw.(*sources.PlayDataset); len(p.NowStreams()) != 1 || p.Bandwidth != 8200 {
+		t.Fatalf("tautulli %+v", p)
+	}
+	raw, err = sources.NavidromeData.Fetch(ctx, sources.Ctx{URL: srv.URL, Secret: "me:pw"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p := raw.(*sources.PlayDataset); len(p.Streams) != 1 || p.Streams[0].Title != "Theo – Nebelhorn" || p.Items != 1834 {
+		t.Fatalf("navidrome %+v", p)
+	}
+	raw, err = sources.SeerrData.Fetch(ctx, sources.Ctx{URL: srv.URL, Secret: "k"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := raw.(*sources.SeerrDataset); s.Approved != 5 || len(s.Stuck) != 1 || s.Stuck[0].Title != "TMDB 42" || s.Stuck[0].By != "jonas" {
+		t.Fatalf("seerr %+v", s)
+	}
+
+	now := time.Now()
+	for _, tool := range []enums.ServiceType{enums.ServiceTautulli, enums.ServiceNavidrome, enums.ServiceAudiobookshelf} {
+		if d := sources.DemoPlay(now, tool); len(d.Streams) != 1 {
+			t.Fatalf("demo %s %+v", tool, d)
+		}
+	}
+	if d := sources.DemoPlay(now, enums.ServiceJellystat); len(d.Top) != 2 || len(d.Libraries) != 2 {
+		t.Fatalf("demo jellystat %+v", d)
+	}
+	if d := sources.DemoSeerr(now); len(d.Stuck) != 2 || d.Stuck[0].Requested.IsZero() {
+		t.Fatalf("demo seerr %+v", d)
 	}
 }

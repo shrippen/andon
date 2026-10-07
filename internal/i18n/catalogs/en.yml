@@ -59,6 +59,11 @@ action:
   open_in_npm: 'Open in Nginx Proxy Manager'
   open_in_technitium: 'Open in Technitium'
   open_in_fritzbox: 'Open the FRITZ!Box'
+  open_in_tautulli: 'Open in Tautulli'
+  open_in_jellystat: 'Open in Jellystat'
+  open_in_navidrome: 'Open in Navidrome'
+  open_in_audiobookshelf: 'Open in Audiobookshelf'
+  open_in_seerr: 'Open in Jellyseerr'
   open_in_tibber: 'Open in Tibber (electricity)'
   close: Close
   open_in_jsonapi: Open API
@@ -899,6 +904,9 @@ wtype:
   routes:
     name: 'Routes'
     desc: 'Hosts of the reverse proxies (Traefik, Caddy, Nginx Proxy Manager) with target and state, failing ones first.'
+  now_playing:
+    name: 'Now playing'
+    desc: 'What plays now (Jellyfin/Plex, Tautulli, Navidrome, Audiobookshelf), with open media requests.'
   technitium:
     name: 'Technitium DNS'
     desc: 'Queries and blocks of the last day.'
@@ -1372,6 +1380,21 @@ conn:
   about_fritzbox: 'Internet connection and DSL rate'
   what_fritzbox: 'AVM''s FRITZ!Box is a router; over TR-064 it reports connection, uptime and line rate.'
   secret_fritz: 'user:password'
+  options_hint_tautulli: 'URL of Tautulli, e.g. http://tautulli.example.lan:8181. Token = API key (Settings → Web Interface → API).'
+  about_tautulli: 'Plex: what plays now'
+  what_tautulli: 'Tautulli watches a Plex server: plays, users, bandwidth.'
+  options_hint_jellystat: 'URL of Jellystat, e.g. http://jellystat.example.lan:3000. Token = API key (Settings → API Keys).'
+  about_jellystat: 'Jellyfin: most active users and libraries (30 days)'
+  what_jellystat: 'Jellystat collects the playback statistics of a Jellyfin server.'
+  options_hint_navidrome: 'URL of Navidrome, e.g. http://navidrome.example.lan:4533. Token = user:password (Subsonic API).'
+  about_navidrome: 'Music: what plays now, library'
+  what_navidrome: 'Navidrome is a music server with a Subsonic-compatible API.'
+  options_hint_audiobookshelf: 'URL of Audiobookshelf, e.g. http://abs.example.lan:13378. Token = API token of an admin (Settings → Users).'
+  about_audiobookshelf: 'Audiobooks: who listens now'
+  what_audiobookshelf: 'Audiobookshelf is a server for audiobooks and podcasts.'
+  options_hint_seerr: 'URL of Jellyseerr or Overseerr, e.g. http://seerr.example.lan:5055. Token = API key (Settings → General).'
+  about_seerr: 'Media requests: open, stuck'
+  what_seerr: 'Jellyseerr and Overseerr take requests for movies and series and hand them to Sonarr and Radarr.'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
   health: 'Health'
@@ -1605,6 +1628,11 @@ service:
   npm: 'Nginx Proxy Manager'
   technitium: 'Technitium DNS'
   fritzbox: 'FRITZ!Box'
+  tautulli: 'Tautulli'
+  jellystat: 'Jellystat'
+  navidrome: 'Navidrome'
+  audiobookshelf: 'Audiobookshelf'
+  seerr: 'Jellyseerr/Overseerr'
   tibber: 'Tibber (electricity)'
   links: Tiles
   jsonapi: Custom API (JSON)
@@ -1928,6 +1956,10 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  seerr:
+    stuck:
+      title: '{count} media requests stuck'
+      why: '{titles}: approved, not available for days.'
   routes:
     down:
       title: '{host} does not answer'
@@ -2300,6 +2332,9 @@ hint:
       title: 'Large expense: {name} ({amount})'
       why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
+    requests_arr:
+      title: '{count} requests stuck, {app} reports a problem'
+      why: '{problem}. That likely explains why the requests do not arrive.'
     route_undocumented:
       title: '{count} routes without an IT note'
       why: '{hosts}. No note names these addresses in its URL field.'
@@ -2724,6 +2759,10 @@ hint:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
 info:
+  playing:
+    now: '{count} playing'
+  seerr:
+    requests: '{count} requests · {stuck} stuck'
   routes:
     count: '{count} routes · {down} failing'
   fritzbox:
@@ -2976,6 +3015,8 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  seerr.stuck: 'Stuck media requests'
+  cross.requests_arr: 'Requests against Sonarr/Radarr'
   routes.down: 'Route does not answer'
   routes.cert_expiry: 'Route certificate ends'
   cross.route_undocumented: 'Route without docs'
@@ -4960,6 +5001,26 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image updates: {n}'
   alerts: 'Alerts: {n}'
+playing:
+  now: 'Playing now'
+  nothing: 'Nothing plays right now.'
+  top_users: 'Most active users (30 days)'
+  top_libraries: 'Most watched libraries (30 days)'
+  plays: '{n} plays'
+  pending: 'To approve'
+  approved: 'Approved'
+  processing: 'In progress'
+  available: 'Available'
+  stuck: 'Stuck requests'
+  tile: 'playing now'
+  tile_requests: '{n} requests'
+  tile_stuck: '{n} stuck'
+  col:
+    title: 'Title'
+    user: 'User'
+    service: 'Service'
+    by: 'Requested by'
+    requested: 'Since'
 routes:
   up: 'ok'
   down: 'down'
@@ -5090,6 +5151,8 @@ heartbeat:
     last: 'Last ping'
     plan: 'Expected'
     tags: 'Tags'
+navidrome:
+  refused: 'Navidrome refused the login.'
 technitium:
   refused: 'Technitium refused the token.'
 kdestore:

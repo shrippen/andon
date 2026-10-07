@@ -256,3 +256,10 @@
 </ul>{{end}}
 {{else}}<p class="tile-note">{{t "routes.none"}}</p>{{end}}{{end}}
 {{end}}
+
+{{define "widgets/now_playing"}}
+{{with $v := .Frag.View}}
+<div class="tile-head"><b class="tile-value" data-live>{{len $v.Streams}}</b><span class="tile-note">{{t "playing.tile"}}{{with $v.Requests}} · {{t "playing.tile_requests" "n" .}}{{end}}{{with $v.Stuck}} · <span class="late">{{t "playing.tile_stuck" "n" .}}</span>{{end}}</span></div>
+{{with $v.Streams}}<ul class="plain-list">{{range .}}<li>{{.Title}} <small class="muted">{{with .User}}{{.}} · {{end}}{{t (print "service." .Service)}}</small></li>{{end}}</ul>{{end}}
+{{end}}
+{{end}}
