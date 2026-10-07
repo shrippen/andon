@@ -3430,6 +3430,7 @@ param:
   bundle_from: 'Bundle per client from this many invoices (0 = never)'
   exclude: 'Exclude (names, * as wildcard, comma-separated)'
 settings:
+  bad_network: 'A network is no valid CIDR, e.g. 192.168.10.0/24.'
   travel: Travel
   travel_base: Where business travel starts
   travel_base_home: Home is the place of business (no commute)

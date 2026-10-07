@@ -3431,6 +3431,7 @@ param:
   bundle_from: 'Ab so vielen Rechnungen je Kunde bündeln (0 = nie)'
   exclude: 'Ausnehmen (Namen, * als Platzhalter, mit Komma)'
 settings:
+  bad_network: 'Ein Netz ist keine gültige CIDR-Angabe, z. B. 192.168.10.0/24.'
   travel: Fahrten
   travel_base: Startpunkt beruflicher Fahrten
   travel_base_home: Zuhause ist Betriebsstätte (kein Arbeitsweg)

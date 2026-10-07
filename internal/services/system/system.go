@@ -58,6 +58,9 @@ const (
 // ErrDenied means the caller is not an admin.
 var ErrDenied = errors.New("error.denied")
 
+// ErrBadNetwork means an allowed network is no CIDR ("192.168.10.0/24").
+var ErrBadNetwork = errors.New("settings.bad_network")
+
 // Start prepares instance-wide state once at boot.
 func Start(d *sql.DB) error {
 	iframeCache.Store(nil)
@@ -107,7 +110,7 @@ func SetNetwork(d *sql.DB, who *access.Principal, policy sources.NetworkPolicy, 
 		return ErrDenied
 	}
 	if _, err := sources.ParseNetworks(policy.Networks); err != nil {
-		return err
+		return ErrBadNetwork
 	}
 	err := db.WithTx(d, func(tx *sql.Tx) error {
 		value := map[string]any{
