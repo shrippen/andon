@@ -1300,6 +1300,11 @@
   var KIOSK_PAGE_S = 20; // seconds per set when the board names none
   var KIOSK_REPACK_MS = 400; // quiet time after swaps or resizes before packing again
   var WALL_TILES = ".tile-slot, .dsec-head"; // what the tile transitions move
+  // Once a board needs more than one set, every set covers at least this
+  // share of its fullest set: never a full set followed by a lone tile.
+  var WALL_MIN_FILL = 1 / 3;
+  // A set balanced that way is shrunk at most to this scale to fit.
+  var WALL_MIN_SCALE = 0.7;
   // kioskTimers survive boosted page changes, which run setupKiosk again:
   // cleared first, so turns, rotation and dimming never pile up.
   var kioskTimers = { page: 0, dim: 0, repack: 0 };
@@ -1330,7 +1335,62 @@
     }
     return sets;
   }
-  window.andonWall = { pack: wallPack };
+  // wallBalance lifts sets below min: first from the back, a set below
+  // min takes the last units of the set before it while they fit, until it
+  // reaches min (the set before may then take from its own predecessor);
+  // then from the front, a set still below min takes the first units of
+  // the set after it while that one stays at min; a set still below min joins a neighbour it fits
+  // with. Every set keeps at least one unit. fill(from, to) is
+  // the share of a full set units from…to-1 cover, fits(from, to) whether
+  // they fit one screen.
+  //
+  //   [a b c d e f] [g]  →  [a b c d] [e f g]
+  //   [a] [B]            →  [a B]            (B large, a small; shrunk to fit)
+  function wallBalance(sets, min, fill, fits) {
+    var i, prev, cur, next;
+    for (i = sets.length - 1; i > 0; i--) {
+      prev = sets[i - 1];
+      cur = sets[i];
+      while (fill(cur[0], cur[1]) < min && prev[1] - prev[0] > 1 && fits(cur[0] - 1, cur[1])) {
+        prev[1]--;
+        cur[0]--;
+      }
+    }
+    for (i = 0; i < sets.length - 1; i++) {
+      cur = sets[i];
+      next = sets[i + 1];
+      while (fill(cur[0], cur[1]) < min && next[1] - next[0] > 1 && fill(next[0] + 1, next[1]) >= min && fits(cur[0], cur[1] + 1)) {
+        cur[1]++;
+        next[0]++;
+      }
+    }
+    // A set still below min (its neighbours have one unit each, or give
+    // nothing that fits) joins the smaller neighbour it fits with.
+    for (i = 0; i < sets.length && sets.length > 1; i++) {
+      cur = sets[i];
+      if (fill(cur[0], cur[1]) >= min) {
+        continue;
+      }
+      prev = sets[i - 1];
+      next = sets[i + 1];
+      var withPrev = prev && fits(prev[0], cur[1]), withNext = next && fits(cur[0], next[1]);
+      if (withPrev && (!withNext || fill(prev[0], prev[1]) <= fill(next[0], next[1]))) {
+        prev[1] = cur[1];
+        sets.splice(i, 1);
+        i -= 2;
+      } else if (withNext) {
+        next[0] = cur[0];
+        sets.splice(i, 1);
+        i--;
+      }
+    }
+    return sets;
+  }
+  // state is for checks in a browser: the sets and the share each covers.
+  window.andonWall = {
+    pack: wallPack, balance: wallBalance,
+    state: function () { return wall && { sets: wall.sets, fills: wall.fills || [] }; }
+  };
 
   // wallUnits lists what a set is made of, in board order: each tile of an
   // open section, a folded or empty section as a whole.
@@ -1374,6 +1434,22 @@
     return wall.main.scrollHeight <= wall.main.clientHeight;
   }
 
+  // wallAreas measures each unit's area (a tile, or a folded section with
+  // its head) with its set on screen. A tile keeps its size from set to
+  // set (columns follow the screen width), so the sum over a range is what
+  // that range covers without laying it out again.
+  function wallAreas(sets) {
+    var areas = wall.units.map(function () { return 0; });
+    sets.forEach(function (set) {
+      wallShow(set[0], set[1]);
+      for (var i = set[0]; i < set[1]; i++) {
+        var r = (wall.units[i].el || wall.units[i].sec).getBoundingClientRect();
+        areas[i] = r.width * r.height;
+      }
+    });
+    return areas;
+  }
+
   // wallFit shows set n; a set taller than the screen (one large tile) is
   // scaled down to fit (Kante .wall-set.is-fit).
   function wallFit(n) {
@@ -1398,10 +1474,31 @@
     var first = wall.sets.length ? wall.sets[wall.at][0] : 0;
     wall.main.classList.remove("is-fit");
     wall.units = wallUnits(wall.main);
-    wall.sets = wallPack(wall.units.length, function (from, to) {
+    var fits = function (from, to) {
       wallShow(from, to);
       return wallFits();
-    });
+    };
+    wall.sets = wallPack(wall.units.length, fits);
+    if (wall.sets.length > 1) {
+      // "Full" is the fullest set of this board: heads, gaps and margins
+      // keep any set below the whole screen.
+      var areas = wallAreas(wall.sets);
+      var sum = function (from, to) {
+        var n = 0;
+        for (var i = from; i < to; i++) {
+          n += areas[i];
+        }
+        return n;
+      };
+      var full = Math.max.apply(null, wall.sets.map(function (s) { return sum(s[0], s[1]); })) || 1;
+      // Balancing may shrink a set a little (Kante .is-fit) rather than
+      // leave a lone tile on a screen.
+      wallBalance(wall.sets, WALL_MIN_FILL, function (from, to) { return sum(from, to) / full; }, function (from, to) {
+        wallShow(from, to);
+        return wall.main.scrollHeight * WALL_MIN_SCALE <= wall.main.clientHeight;
+      });
+      wall.fills = wall.sets.map(function (st) { return sum(st[0], st[1]) / full; });
+    }
     if (!wall.sets.length) {
       wall.sets = [[0, 0]];
     }
