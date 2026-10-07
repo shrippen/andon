@@ -800,7 +800,9 @@ main > * + h2 { margin-top: 1.8rem; }
    button, no field stretched to the full width. */
 .row-actions .btn, .btn-row .btn { margin: 0; }
 form > .row-actions:last-child { margin-top: 1rem; }
-.row-actions > .select, .row-actions > .input { width: auto; }
+/* Sized by content, but never wider than the row: a select with long
+   options (name and e-mail of every user) would push the page sideways. */
+.row-actions > .select, .row-actions > .input { width: auto; max-width: 100%; }
 /* ⋯ holds a row's further actions; it opens in the cell, since the
    scrolling table wrapper would clip a floating menu. */
 /* One option per line: a check in a form never shares a line with the
