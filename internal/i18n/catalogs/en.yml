@@ -5660,6 +5660,8 @@ audit_action:
     done: 'Password reset'
     requested: 'Password reset requested'
   settings:
+    map: 'Map service changed'
+    server: 'Server settings changed'
     dawarich_shared: 'Dawarich sharing changed'
     iframe: 'Iframe origins changed'
     network: 'Network settings changed'

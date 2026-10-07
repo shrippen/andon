@@ -5661,6 +5661,8 @@ audit_action:
     done: 'Passwort zurückgesetzt'
     requested: 'Passwort-Rücksetzung angefordert'
   settings:
+    map: 'Kartendienst geändert'
+    server: 'Servereinstellungen geändert'
     dawarich_shared: 'Dawarich-Freigabe geändert'
     iframe: 'Iframe-Ziele geändert'
     network: 'Netzwerk-Einstellungen geändert'

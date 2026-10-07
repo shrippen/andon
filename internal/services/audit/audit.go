@@ -33,12 +33,18 @@ func Log(q db.Queryer, userID *int64, action, target, ip string, detail map[stri
 func Changes(stored, value map[string]any) map[string]any {
 	changes := map[string]any{}
 	for k, v := range normalize(value) {
-		if reflect.DeepEqual(stored[k], v) {
+		before, set := stored[k]
+		if reflect.DeepEqual(before, v) || (!set && isZero(v)) {
 			continue
 		}
 		changes[k] = []any{stored[k], v}
 	}
 	return changes
+}
+
+// isZero: false, "", 0 or nothing, the same as a value never set.
+func isZero(v any) bool {
+	return v == nil || v == false || v == "" || v == 0.0
 }
 
 // normalize converts a value to what reading it back from JSON yields.
