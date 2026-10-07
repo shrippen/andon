@@ -43,6 +43,11 @@ action:
   open_in_prometheus: 'In Prometheus öffnen'
   open_in_nvd: 'In der NVD öffnen'
   open_in_drone: 'In Drone öffnen'
+  open_in_pbs: 'In Proxmox Backup Server öffnen'
+  open_in_kopia: 'In Kopia öffnen'
+  open_in_duplicati: 'In Duplicati öffnen'
+  open_in_backrest: 'In Backrest öffnen'
+  open_in_urbackup: 'In UrBackup öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
   close: Schließen
   open_in_jsonapi: API öffnen
@@ -1294,6 +1299,24 @@ conn:
   options_hint_drone: 'URL des Drone-Servers, z. B. https://drone.example.org. Token = persönliches Token (Drone → Benutzereinstellungen). Gelesen werden die aktiven Repos und ihre letzten 10 Builds des Standardzweigs; Pull Requests zählen nicht.'
   about_drone: 'Builds je Repo'
   what_drone: 'Drone ist ein CI-Server: Er baut und testet Repos bei jedem Push.'
+  options_hint_pbs: 'URL des Servers mit Port, z. B. https://pbs.example.lan:8007. Token = API-Token als benutzer@realm!tokenname:geheimnis; die Rolle DatastoreAudit auf / reicht. Gelesen werden Datastores, Sicherungsgruppen und Verify-Läufe.'
+  about_pbs: 'Sicherungen je VM, Verify, Belegung'
+  what_pbs: 'Proxmox Backup Server sichert VMs und Container aus Proxmox VE dedupliziert in Datastores.'
+  options_hint_kopia: 'URL des Kopia-Servers (kopia server start), z. B. https://kopia.example.lan:51515. Token = benutzer:passwort der Server-Oberfläche (--server-username/--server-password).'
+  about_kopia: 'Snapshots je Quelle'
+  what_kopia: 'Kopia sichert Ordner als verschlüsselte, deduplizierte Snapshots; der Kopia-Server verwaltet mehrere Quellen.'
+  options_hint_duplicati: 'URL der Duplicati-Oberfläche, z. B. http://duplicati.example.lan:8200. Token = Passwort der Oberfläche (ab Duplicati 2.1).'
+  about_duplicati: 'Sicherungsaufträge'
+  what_duplicati: 'Duplicati sichert Ordner verschlüsselt zu Cloud-Speichern und Servern.'
+  options_hint_backrest: 'URL von Backrest, z. B. http://backrest.example.lan:9898. Token = benutzer:passwort eines Backrest-Nutzers; leer, wenn die Anmeldung ausgeschaltet ist.'
+  about_backrest: 'restic-Pläne'
+  what_backrest: 'Backrest ist eine Weboberfläche für restic: Pläne, Zeitpläne, Wiederherstellung.'
+  options_hint_urbackup: 'URL des Servers, z. B. http://urbackup.example.lan:55414. Token = benutzer:passwort eines Server-Nutzers; leer, wenn anonymer Zugriff erlaubt ist.'
+  about_urbackup: 'Clients: Datei- und Image-Sicherung'
+  what_urbackup: 'UrBackup sichert Rechner im Netz als Dateien und Images auf einen Server.'
+  secret_pbs: 'API-Token (benutzer@realm!name:geheimnis)'
+  secret_userpass_opt: 'benutzer:passwort (optional)'
+  secret_duplicati: 'Passwort der Oberfläche'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
   health: 'Zustand'
@@ -1511,6 +1534,11 @@ service:
   prometheus: 'Prometheus'
   nvd: 'CVE (NVD)'
   drone: 'Drone CI'
+  pbs: 'Proxmox Backup Server'
+  kopia: 'Kopia'
+  duplicati: 'Duplicati'
+  backrest: 'Backrest'
+  urbackup: 'UrBackup'
   tibber: 'Tibber (Strom)'
   links: Kacheln
   jsonapi: Eigene API (JSON)
@@ -1834,6 +1862,13 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  pbs:
+    verify_failed:
+      title: 'Verify von {store} fehlgeschlagen'
+      why: 'Lauf vom {day}: {status}. Betroffene Sicherungen lassen sich womöglich nicht wiederherstellen.'
+    datastore_full:
+      title: 'Datastore {store} zu {percent} % voll'
+      why: 'Ist er voll, scheitern neue Sicherungen. Aufbewahrung kürzen oder Platz schaffen, danach Garbage Collection laufen lassen.'
   drone:
     failing:
       title: '{repo} ist rot'
@@ -2151,6 +2186,9 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
   cross:
+    pbs_orphan:
+      title: '{count} Sicherungsgruppen ohne Gast'
+      why: 'Proxmox kennt {ids} nicht mehr; ihre Sicherungen belegen nur noch Platz. Löschen oder bewusst aufheben.'
     release_red_ci:
       title: '{repo} {release} bei rotem CI'
       why: 'Das Release erschien am {day}; der letzte Build davor (#{build}) war fehlgeschlagen.'
@@ -2790,6 +2828,9 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  pbs.verify_failed: 'Verify fehlgeschlagen'
+  pbs.datastore_full: 'Datastore voll'
+  cross.pbs_orphan: 'Sicherungen ohne Gast'
   drone.failing: 'Build rot'
   cross.release_red_ci: 'Release bei rotem CI'
   cross.image_cve: 'Sicherheitslücke in laufendem Image'

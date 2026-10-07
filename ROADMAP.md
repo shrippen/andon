@@ -1119,8 +1119,9 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [ ] Quer: `cross.ci_red_deployed` *(Komodo nennt Deploys nur im Popup, nicht im Datensatz; dafür muss die Komodo-Quelle die Deploys mitlesen)*
 
 **Schritt 6: Sicherung** — Proxmox Backup Server, Kopia, Duplicati, Backrest, UrBackup
-- [ ] Quellen mit `BackupSource`; PBS zusätzlich Belegung je Datastore und Verify-Jobs; Regeln `pbs.verify_failed`, `pbs.datastore_full`
-- [ ] Quer: `cross.vm_unbacked` (Proxmox-Gast ohne PBS-Sicherung), Datastore-Füllstand gegen TrueNAS-Pool
+- [x] Quellen mit `BackupSource`; PBS zusätzlich Belegung je Datastore und Verify-Jobs; Regeln `pbs.verify_failed`, `pbs.datastore_full` *(UrBackup-Anmeldung und Duplicati-Token als Treiber; Fehlertext des Werkzeugs als `BackupJob.Note`)*
+- [x] Quer: VM ohne Sicherung *(statt eigener Regel zählt `proxmox.backup_old` frische PBS-Sicherungen mit)*; `cross.pbs_orphan` (PBS-Gruppen von Gästen, die Proxmox nicht mehr hat)
+- [ ] Datastore-Füllstand gegen TrueNAS-Pool *(PBS nennt den Pool nicht; Zuordnung nur über eine Option möglich)*
 
 **Schritt 7: Updates** — What's Up Docker, Watchtower, Releases
 - [ ] WUD (Container mit neuer Version), Watchtower (Metriken: geprüft, aktualisiert, fehlgeschlagen), Releases beobachteter Repos über GitHub/Gitea; alles als Update-Hinweise in `updates` und `update_window`

@@ -18,6 +18,7 @@ type BackupJob struct {
 	Item   string    // client, database, dataset, VM …
 	Last   time.Time // newest successful backup, zero = never or unknown
 	Failed bool      // the newest run failed
+	Note   string    // the tool's own words on it ("Destination not reachable"), "" none
 }
 
 // BackupSource is a dataset that reports backups.

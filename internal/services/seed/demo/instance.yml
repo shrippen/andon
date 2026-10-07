@@ -18,6 +18,11 @@ connections:
   - {id: nvd, type: nvd, name: NVD, url: "demo://nvd", credentials: shared}
   - {id: docker, type: docker, name: Docker, url: "demo://docker", credentials: shared}
   - {id: drone, type: drone, name: Drone, url: "demo://drone", credentials: shared}
+  - {id: pbs, type: pbs, name: Backup Server, url: "demo://pbs", credentials: shared}
+  - {id: kopia, type: kopia, name: Kopia, url: "demo://kopia", credentials: shared}
+  - {id: duplicati, type: duplicati, name: Duplicati, url: "demo://duplicati", credentials: shared}
+  - {id: backrest, type: backrest, name: Backrest, url: "demo://backrest", credentials: shared}
+  - {id: urbackup, type: urbackup, name: UrBackup, url: "demo://urbackup", credentials: shared}
   - {id: linkwarden, type: linkwarden, name: Linkwarden, url: "demo://linkwarden", credentials: shared}
   - {id: pgback, type: pgbackweb, name: PG Back Web, url: "demo://pgbackweb", credentials: shared}
   - {id: hansei, type: hansei, name: Hansei, url: "demo://hansei", credentials: shared}

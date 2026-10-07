@@ -49,6 +49,11 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServicePrometheus:    "https://prometheus.io",
 	enums.ServiceNVD:           "https://nvd.nist.gov",
 	enums.ServiceDrone:         "https://www.drone.io",
+	enums.ServicePBS:           "https://www.proxmox.com/proxmox-backup-server",
+	enums.ServiceKopia:         "https://kopia.io",
+	enums.ServiceDuplicati:     "https://duplicati.com",
+	enums.ServiceBackrest:      "https://github.com/garethgeorge/backrest",
+	enums.ServiceUrBackup:      "https://www.urbackup.org",
 	enums.ServiceTibber:        "https://tibber.com",
 }
 

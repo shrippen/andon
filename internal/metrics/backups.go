@@ -26,6 +26,7 @@ type BackupRow struct {
 	Tool, Item string
 	Last       time.Time // zero: never / unknown
 	State      BackupState
+	Note       string // the tool's words on the last run, "" none
 }
 
 // Backups builds the overview over every tool's jobs; maxAge marks
@@ -34,7 +35,7 @@ func Backups(tools []sources.BackupSource, now time.Time, maxAge time.Duration) 
 	var rows []BackupRow
 	for _, tool := range tools {
 		for _, j := range tool.BackupJobs() {
-			row := BackupRow{Tool: tool.BackupTool(), Item: j.Item, Last: j.Last, State: BackupOK}
+			row := BackupRow{Tool: tool.BackupTool(), Item: j.Item, Last: j.Last, State: BackupOK, Note: j.Note}
 			switch {
 			case j.Failed:
 				row.State = BackupFailed

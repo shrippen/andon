@@ -43,6 +43,11 @@ action:
   open_in_prometheus: 'Open in Prometheus'
   open_in_nvd: 'Open in the NVD'
   open_in_drone: 'Open in Drone'
+  open_in_pbs: 'Open in Proxmox Backup Server'
+  open_in_kopia: 'Open in Kopia'
+  open_in_duplicati: 'Open in Duplicati'
+  open_in_backrest: 'Open in Backrest'
+  open_in_urbackup: 'Open in UrBackup'
   open_in_tibber: 'Open in Tibber (electricity)'
   close: Close
   open_in_jsonapi: Open API
@@ -1294,6 +1299,24 @@ conn:
   options_hint_drone: 'URL of the Drone server, e.g. https://drone.example.org. Token = personal token (Drone → user settings). The active repos and the last 10 builds of their default branch are read; pull requests do not count.'
   about_drone: 'Builds per repo'
   what_drone: 'Drone is a CI server: it builds and tests repos on every push.'
+  options_hint_pbs: 'URL of the server with port, e.g. https://pbs.example.lan:8007. Token = API token as user@realm!tokenname:secret; the role DatastoreAudit on / is enough. Datastores, backup groups and verify runs are read.'
+  about_pbs: 'Backups of VMs, verify, usage'
+  what_pbs: 'Proxmox Backup Server stores deduplicated backups of Proxmox VE guests in datastores.'
+  options_hint_kopia: 'URL of the Kopia server (kopia server start), e.g. https://kopia.example.lan:51515. Token = user:password of the server UI (--server-username/--server-password).'
+  about_kopia: 'Snapshots per source'
+  what_kopia: 'Kopia backs up folders as encrypted, deduplicated snapshots; the Kopia server manages several sources.'
+  options_hint_duplicati: 'URL of the Duplicati UI, e.g. http://duplicati.example.lan:8200. Token = the UI password (Duplicati 2.1 and later).'
+  about_duplicati: 'Backup jobs'
+  what_duplicati: 'Duplicati backs up folders encrypted to cloud storage and servers.'
+  options_hint_backrest: 'URL of Backrest, e.g. http://backrest.example.lan:9898. Token = user:password of a Backrest user; empty when login is off.'
+  about_backrest: 'restic plans'
+  what_backrest: 'Backrest is a web UI for restic: plans, schedules, restores.'
+  options_hint_urbackup: 'URL of the server, e.g. http://urbackup.example.lan:55414. Token = user:password of a server user; empty when anonymous access is allowed.'
+  about_urbackup: 'Clients: file and image backups'
+  what_urbackup: 'UrBackup backs up computers in the network as files and images to a server.'
+  secret_pbs: 'API token (user@realm!name:secret)'
+  secret_userpass_opt: 'user:password (optional)'
+  secret_duplicati: 'UI password'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
   health: 'Health'
@@ -1511,6 +1534,11 @@ service:
   prometheus: 'Prometheus'
   nvd: 'CVE (NVD)'
   drone: 'Drone CI'
+  pbs: 'Proxmox Backup Server'
+  kopia: 'Kopia'
+  duplicati: 'Duplicati'
+  backrest: 'Backrest'
+  urbackup: 'UrBackup'
   tibber: 'Tibber (electricity)'
   links: Tiles
   jsonapi: Custom API (JSON)
@@ -1834,6 +1862,13 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  pbs:
+    verify_failed:
+      title: 'Verify of {store} failed'
+      why: 'Run of {day}: {status}. Affected backups may not restore.'
+    datastore_full:
+      title: 'Datastore {store} {percent} % full'
+      why: 'When it is full, new backups fail. Shorten retention or free space, then run garbage collection.'
   drone:
     failing:
       title: '{repo} is red'
@@ -2151,6 +2186,9 @@ hint:
       title: 'Large expense: {name} ({amount})'
       why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
+    pbs_orphan:
+      title: '{count} backup groups without a guest'
+      why: 'Proxmox no longer has {ids}; their backups only take space. Delete them or keep them on purpose.'
     release_red_ci:
       title: '{repo} {release} on red CI'
       why: 'The release came out on {day}; the last build before it (#{build}) had failed.'
@@ -2789,6 +2827,9 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  pbs.verify_failed: 'Verify failed'
+  pbs.datastore_full: 'Datastore full'
+  cross.pbs_orphan: 'Backups without a guest'
   drone.failing: 'Build red'
   cross.release_red_ci: 'Release on red CI'
   cross.image_cve: 'Vulnerability in a running image'

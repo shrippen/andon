@@ -264,6 +264,11 @@ var secretLabels = map[enums.ServiceType]string{
 	enums.ServiceWallos:     "conn.secret_wallos",
 	enums.ServicePrometheus: "conn.secret_prometheus",
 	enums.ServiceNVD:        "conn.secret_nvd",
+	enums.ServicePBS:        "conn.secret_pbs",
+	enums.ServiceKopia:      "conn.secret_userpass_opt",
+	enums.ServiceBackrest:   "conn.secret_userpass_opt",
+	enums.ServiceUrBackup:   "conn.secret_userpass_opt",
+	enums.ServiceDuplicati:  "conn.secret_duplicati",
 }
 
 func secretLabel(service enums.ServiceType) string {

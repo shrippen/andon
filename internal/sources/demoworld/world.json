@@ -6029,6 +6029,153 @@
    }
   ]
  },
+ "backup_server": {
+  "note": "Proxmox Backup Server on the NAS: VM 101 (Home Assistant) has not been backed up for nine days, container 105 was deleted in Proxmox but its backups remain, the last verify of the store found a missing chunk.",
+  "url": "https://pbs.demo:8007",
+  "datastores": [
+   {
+    "store": "nebelhorn",
+    "total": 2000000000000,
+    "used": 1840000000000
+   }
+  ],
+  "groups": [
+   {
+    "store": "nebelhorn",
+    "type": "vm",
+    "id": "100",
+    "comment": "docker",
+    "last": "@-20h",
+    "count": 14
+   },
+   {
+    "store": "nebelhorn",
+    "type": "vm",
+    "id": "101",
+    "comment": "homeassistant",
+    "last": "@-9d",
+    "count": 3
+   },
+   {
+    "store": "nebelhorn",
+    "type": "ct",
+    "id": "105",
+    "comment": "render-test",
+    "last": "@-40d",
+    "count": 8
+   }
+  ],
+  "verify": [
+   {
+    "store": "nebelhorn",
+    "status": "OK",
+    "at": "@-8d"
+   },
+   {
+    "store": "nebelhorn",
+    "status": "error: chunk 3f2a… missing",
+    "at": "@-1d"
+   }
+  ]
+ },
+ "file_backups": {
+  "note": "Kopia backs up the edit laptop's projects (footage folder with read errors), Duplicati the bookkeeping export (music archive failing since yesterday), Backrest the docker volumes of Nebelhorn and the databases of Feuerschiff (last run failed), UrBackup the workstations (the front desk PC is offline for two weeks).",
+  "kopia": {
+   "url": "https://kopia.demo:51515",
+   "sources": [
+    {
+     "host": "schnitt-laptop",
+     "user": "mara",
+     "path": "/home/mara/Projekte",
+     "start": "@-5h",
+     "end": "@-5h",
+     "failed": 0
+    },
+    {
+     "host": "schnitt-laptop",
+     "user": "mara",
+     "path": "/srv/footage",
+     "start": "@-3d",
+     "end": "@-3d",
+     "failed": 2
+    }
+   ]
+  },
+  "duplicati": {
+   "url": "https://duplicati.demo:8200",
+   "backups": [
+    {
+     "name": "Buchhaltung",
+     "last": "@-1d"
+    },
+    {
+     "name": "Musik-Archiv",
+     "last": "@-12d",
+     "last_error": "@-1d",
+     "message": {
+      "de": "Ziel nicht erreichbar",
+      "en": "Destination not reachable"
+     }
+    }
+   ]
+  },
+  "backrest": {
+   "url": "https://backrest.demo:9898",
+   "plans": [
+    {
+     "id": "nebelhorn-docker",
+     "runs": [
+      {
+       "at": "@-1d6h",
+       "status": "STATUS_SUCCESS"
+      },
+      {
+       "at": "@-6h",
+       "status": "STATUS_SUCCESS"
+      }
+     ],
+     "failed30": 0,
+     "success30": 30
+    },
+    {
+     "id": "feuerschiff-db",
+     "runs": [
+      {
+       "at": "@-2d",
+       "status": "STATUS_SUCCESS"
+      },
+      {
+       "at": "@-1d",
+       "status": "STATUS_ERROR"
+      }
+     ],
+     "failed30": 3,
+     "success30": 25
+    }
+   ]
+  },
+  "urbackup": {
+   "url": "http://urbackup.demo:55414",
+   "clients": [
+    {
+     "name": "schnitt-laptop",
+     "online": true,
+     "lastbackup": "@-1d",
+     "lastbackup_image": "@-7d",
+     "file_ok": true,
+     "image_ok": true
+    },
+    {
+     "name": "empfang-pc",
+     "online": false,
+     "lastbackup": "@-15d",
+     "lastbackup_image": "@-30d",
+     "file_ok": false,
+     "image_ok": false
+    }
+   ]
+  }
+ },
  "smart_home": {
   "note": "Home Assistant at Mara's: the bathroom window sensor's battery is low, a plug is unavailable, a core update waits. history: the living room warms through the day, the office light is on during work hours.",
   "url": "https://home.demo",
