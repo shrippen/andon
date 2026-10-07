@@ -1949,6 +1949,7 @@ teams:
   none: Keine Teams.
   new: Name des neuen Teams
 team:
+  last_owner: 'Das Team braucht einen Owner: erst einen anderen Owner bestimmen.'
   name_missing: Name fehlt.
   name_taken: Name bereits vergeben.
   not_found: Team nicht gefunden.
