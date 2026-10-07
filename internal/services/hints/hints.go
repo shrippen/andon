@@ -154,9 +154,10 @@ type View struct {
 	Assignee     string // "" = nobody
 	AssigneeID   *int64
 	Work         enums.WorkState
-	Flapping     bool    // reopened often lately; pushed only once
-	Client       string  // the client or customer the hint names, "" if none
-	Value        float64 // largest money amount the hint names, 0 if none
+	Flapping     bool     // reopened often lately; pushed only once
+	Client       string   // the client or customer the hint names, "" if none
+	Items        []string // the machines the hint names (host, node, guest, device), see itemParams
+	Value        float64  // largest money amount the hint names, 0 if none
 	Currency     string
 	Maintenance  bool       // in a planned work window of its space: not pushed
 	ResolvedAt   *time.Time // set in the done list
@@ -392,6 +393,7 @@ func viewOf(h *model.Hint, who *access.Principal) View {
 	value, currency := moneyValue(h.Params)
 	return View{
 		ID: h.ID, Rule: h.Rule, Severity: h.Severity, Value: value, Currency: currency, Client: clientOf(h.Params),
+		Items:     itemsOf(h.Params),
 		Title:     i18n.T("hint."+h.Message+".title", locale, params),
 		Why:       i18n.T("hint."+h.Message+".why", locale, params),
 		ActionURL: h.ActionURL, ActionLabel: actionLabel, Due: h.Due, Sources: h.Sources,
@@ -410,6 +412,21 @@ func clientOf(params map[string]any) string {
 		}
 	}
 	return ""
+}
+
+// itemParams are the params a hint names a machine by: a host, a
+// Proxmox node or guest, a device, a Prometheus instance, a proxy target.
+var itemParams = []string{"host", "node", "guest", "vm", "device", "instance", "target"}
+
+// itemsOf lists the machines a hint's params name, in itemParams order.
+func itemsOf(params map[string]any) []string {
+	var out []string
+	for _, k := range itemParams {
+		if name, ok := params[k].(string); ok && name != "" && name != "?" && name != "–" {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 // CountFor returns (count, highest severity) of open hints on one connection.

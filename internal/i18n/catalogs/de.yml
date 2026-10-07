@@ -6241,6 +6241,8 @@ clients:
   projects: 'Projekte dieses Jahr'
   no_hints: 'Keine offenen Hinweise zu diesem Kunden.'
 hosts:
+  quiet: '{count} ohne Befund'
+  quiet_singular: '{count} ohne Befund'
   cves: 'Sicherheitslücken'
   alerts: 'Prometheus-Alerts'
   beats: 'Herzschläge'

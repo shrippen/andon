@@ -6240,6 +6240,8 @@ clients:
   projects: 'Projects this year'
   no_hints: 'No open hints about this customer.'
 hosts:
+  quiet: '{count} without findings'
+  quiet_singular: '{count} without findings'
   cves: 'Vulnerabilities'
   alerts: 'Prometheus alerts'
   beats: 'Heartbeats'

@@ -1255,7 +1255,7 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [ ] Hinweisseite: rund 140 Gruppen mit je einem Hinweis, je eine Sammelleiste; 60 Dienst-Chips vor der Liste (Handy: erster Hinweis bei 1550 px)
 - [ ] Wandanzeige: viermal so hoch wie der Bildschirm, kein Durchlauf, kein Weg hinaus
 - [x] Zeitzone: Kimai Lite folgt der Server-Zeit (`TZ`), andere Anzeigen dem Browser; ohne `TZ` (Entwicklung) UTC *(entschieden: Kimai Lite bleibt in der Server-Zeit und nennt die Zone, wenn der Browser in einer anderen ist)*
-- [ ] Hosts: alle 66 mit „Monitore 0 / Probleme –“, Hinweise zählen nicht mit
+- [x] Hosts: alle 66 mit „Monitore 0 / Probleme –“, Hinweise zählen nicht mit *(entschieden A: Hinweise gehören zum Host ihres Gegenstands (Host, Knoten, Gast, Gerät), sonst zu dem ihrer Verbindung, und zählen als Probleme; Hosts ohne Monitor und Hinweis unter „N ohne Befund“ eingeklappt)*
 - [ ] Abrechnung: offener Entwurf beim selben Kunden nicht erwähnt (doppelter Entwurf möglich); Hinweis „nicht abgerechnet“ führt zu Kimai statt zu `/billing#drafts`
 - [ ] Belege: Zähler der Reiter weichen ab (6 gegen 3); Erfolg „Verknüpft: 0“ neben der Demo-Ablehnung; Reiter „Belege zuerst“ geht nach „Anlegen“ verloren; Ausgaben aus dem Export fehlen in der Suche
 - [ ] Zeiträume ohne Angabe: Umsatz je Kunde (12 Monate) gegen Kundenseite (Jahr); Vorjahresvergleich über unvollständige Historie; Abos mischen Jahres- und Monatsbeträge; Kilometerbetrag passt nicht zur genannten Formel
