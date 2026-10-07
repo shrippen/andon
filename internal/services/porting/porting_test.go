@@ -160,6 +160,12 @@ func TestExportImportRoundtrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// So does the wall display's page time.
+	view, _ = boards.View(d, a, visible[0].ID, boards.LayoutOverlay)
+	if err := boards.Rename(d, a, view.ID, view.Version, view.Name, nil, nil, view.Layout, 45); err != nil {
+		t.Fatal(err)
+	}
+
 	text, err := porting.ExportSpace(d, a, spaceA)
 	if err != nil {
 		t.Fatal(err)
@@ -180,6 +186,9 @@ func TestExportImportRoundtrip(t *testing.T) {
 	viewB, _ := boards.View(d, b, visibleB[0].ID, boards.LayoutOverlay)
 	if viewB.Sections[0].Icon.Emoji != icon {
 		t.Fatalf("section icon lost on import: %+v", viewB.Sections[0].Icon)
+	}
+	if viewB.WallPage != 45 {
+		t.Fatalf("wall page time lost on import: %d", viewB.WallPage)
 	}
 	if viewB.Sections[0].Tiles[0].Rows != boards.MaxTileRows {
 		t.Fatalf("tall tile lost on import: %+v", viewB.Sections[0].Tiles[0])

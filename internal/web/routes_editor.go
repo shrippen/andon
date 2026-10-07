@@ -68,7 +68,7 @@ func (d Deps) handleBoardSettingsForm(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 	_ = d.Page(w, ctx, "board_settings", http.StatusOK, map[string]any{
-		"Board": view, "Themes": themeList,
+		"Board": view, "Themes": themeList, "WallPageMin": boards.WallPageMin, "WallPageMax": boards.WallPageMax,
 		"TeamRoles": []enums.TeamRole{enums.TeamViewer, enums.TeamEditor, enums.TeamOwner},
 	})
 }
@@ -88,7 +88,7 @@ func (d Deps) handleBoardRename(w http.ResponseWriter, r *http.Request, ctx Ctx)
 	if n, err := strconv.ParseInt(r.FormValue("theme_id"), 10, 64); err == nil {
 		themeID = &n
 	}
-	if err := boards.Rename(d.DB, ctx.Who, id, version, r.FormValue("name"), themeID, minRole(r), enums.BoardLayout(r.FormValue("layout"))); err != nil {
+	if err := boards.Rename(d.DB, ctx.Who, id, version, r.FormValue("name"), themeID, minRole(r), enums.BoardLayout(r.FormValue("layout")), formInt(r, "wall_page")); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}

@@ -1,9 +1,12 @@
 package web
 
-// Wall display (?kiosk): no app chrome, boards rotate, dimmed at night.
+// Wall display (?kiosk): no app chrome, screen-high pages, boards rotate,
+// dimmed at night; any key, Esc or a click in a corner leaves (andon.js).
 //
 //	/boards/3?kiosk&every=60&dim=22-7
-//	  → after 60 s /boards/<next visible board>?kiosk&every=60&dim=22-7
+//	  → next page every 20 s (the board's wall page time)
+//	  → after the last page, once 60 s have passed,
+//	    /boards/<next visible board>?kiosk&every=60&dim=22-7
 //	  → 22:00–07:00 the page is dimmed
 
 import (

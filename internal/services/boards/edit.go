@@ -62,7 +62,7 @@ func Create(d *sql.DB, who *access.Principal, spaceID int64, name string) (int64
 		}
 		board := &model.Board{
 			SpaceID: spaceID, Slug: util.Unique(util.Slug(label, startSlug), taken), Name: label,
-			Position: len(taken), Version: 1, UpdatedAt: time.Now().UTC(),
+			Position: len(taken), WallPage: WallPageDefault, Version: 1, UpdatedAt: time.Now().UTC(),
 		}
 		if err := content.AddBoard(tx, board); err != nil {
 			return err
@@ -78,8 +78,9 @@ func Create(d *sql.DB, who *access.Principal, spaceID int64, name string) (int64
 	return id, err
 }
 
-// Rename updates a board's name/theme/team restriction/layout.
-func Rename(d *sql.DB, who *access.Principal, boardID int64, version int, name string, themeID *int64, minRole *enums.TeamRole, layout enums.BoardLayout) error {
+// Rename updates a board's name/theme/team restriction/layout and the
+// seconds per page on the wall display (0 = default).
+func Rename(d *sql.DB, who *access.Principal, boardID int64, version int, name string, themeID *int64, minRole *enums.TeamRole, layout enums.BoardLayout, wallPage int) error {
 	return db.WithTx(d, func(tx *sql.Tx) error {
 		board, err := load(tx, who, boardID, enums.RightEdit)
 		if err != nil {
@@ -108,12 +109,28 @@ func Rename(d *sql.DB, who *access.Principal, boardID int64, version int, name s
 		board.ThemeID = themeID
 		board.MinTeamRole = minRole
 		board.Layout = boardLayout(layout)
+		board.WallPage = WallPage(wallPage)
 		board.UpdatedAt = time.Now().UTC()
 		if err := content.UpdateBoard(tx, board); err != nil {
 			return err
 		}
 		return snapshot(tx, who, board)
 	})
+}
+
+// Seconds the wall display shows each screen-high page of a board.
+const (
+	WallPageDefault = 20
+	WallPageMin     = 5   // faster is unreadable
+	WallPageMax     = 600 // ten minutes
+)
+
+// WallPage keeps a page time within bounds; 0 or less is the default.
+func WallPage(secs int) int {
+	if secs <= 0 {
+		return WallPageDefault
+	}
+	return min(max(secs, WallPageMin), WallPageMax)
 }
 
 // boardLayout accepts only known layouts; anything else is the grid.

@@ -82,7 +82,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 
 **J-B4 Admin-Board** · Persona: Lena · `/boards/1`
 1. „Kompakt“ (`?view=compact`), „Alles zeigen“.
-2. „Wandanzeige“ (`?kiosk&every=60&dim=22-7`): kein Einführungsbanner, alles sichtbar?
+2. „Wandanzeige“ (`?kiosk&every=60&dim=22-7`) bei 1920×1080 und 1280×720: kein Einführungsbanner, Hinweis zum Beenden für einige Sekunden, blättert nach der Seitenzeit (Board-Einstellungen, Standard 20 s) bildschirmweise, ohne Kacheln unten abzuschneiden, nach der letzten Seite das nächste Board. Taste, Esc oder Klick in eine Ecke führt zum Board zurück; mit „Bewegung reduzieren“ springt die Seite ohne Übergang.
 3. „Mein Layout“ (`?layout`): Kachelgröße eines Abschnitts ändern, Fertig, bleibt es? „Auf Standard zurücksetzen“.
 
 **J-B5 Weitere Seiten**

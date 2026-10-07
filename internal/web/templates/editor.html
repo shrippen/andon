@@ -34,6 +34,9 @@
         <option value="masonry"{{if eq (print .Board.Layout) "masonry"}} selected{{end}}>{{t "board_layout.masonry"}}</option>
       </select>
       <p class="small muted">{{t "field.board_layout_hint"}}</p>
+      <label for="wall_page">{{t "field.wall_page"}}</label>
+      <input class="input" id="wall_page" name="wall_page" type="number" min="{{.WallPageMin}}" max="{{.WallPageMax}}" value="{{.Board.WallPage}}">
+      <p class="small muted">{{t "field.wall_page_hint" "min" .WallPageMin "max" .WallPageMax}}</p>
       <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
     </form>
     <p><a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}/export">{{t "action.export"}}</a></p>

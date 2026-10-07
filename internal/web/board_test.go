@@ -341,6 +341,36 @@ func TestKioskRotatesBoards(t *testing.T) {
 	}
 }
 
+// TestKioskPages: the board settings store the wall display's page time;
+// the wall display carries it and says how to leave, back to the board.
+func TestKioskPages(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+
+	resp := getFollowingRedirect(t, srv, client, "/")
+	resp.Body.Close()
+	board := resp.Request.URL.Path
+	settings := string(mustGet(t, srv, client, board+"/settings"))
+	if !strings.Contains(settings, `name="wall_page" type="number" min="5" max="600" value="20"`) {
+		t.Fatalf("settings lack the page time:\n%s", settings)
+	}
+	version := regexp.MustCompile(`name="version" value="(\d+)"`).FindStringSubmatch(settings)[1]
+	postForm(t, client, srv.URL+board+"/settings", url.Values{"csrf": {csrf}, "version": {version}, "name": {"Start"}, "wall_page": {"45"}})
+
+	page := string(mustGet(t, srv, client, board+"?kiosk"))
+	if !strings.Contains(page, `data-kiosk-page="45"`) || !strings.Contains(page, `data-kiosk-leave="`+board+`"`) {
+		t.Fatalf("kiosk page time or way back missing:\n%s", page)
+	}
+	if !strings.Contains(page, `class="toast" role="status" data-kiosk-hint`) || !strings.Contains(page, "Esc") {
+		t.Fatalf("no hint how to leave:\n%s", page)
+	}
+	if strings.Contains(string(mustGet(t, srv, client, board)), "data-kiosk-hint") {
+		t.Fatal("hint on the plain board")
+	}
+}
+
 // TestOfflineWorker: the service worker is served from the root, and
 // logout drops what it stored.
 func TestOfflineWorker(t *testing.T) {

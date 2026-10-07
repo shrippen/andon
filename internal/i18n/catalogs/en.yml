@@ -207,7 +207,8 @@ board:
   name_taken: "Another board in this space already has this name."
   delete_hint: 'The board is gone for everybody. Its tiles stay in the library.'
   kiosk: Wall display
-  kiosk_hint: Fullscreen, next board every minute, dimmed 22–7. Adjust every and dim in the address.
+  kiosk_hint: 'Fullscreen, next screen-high page every {secs} s, after the last page (at least a minute) the next board, dimmed 22–7. Page time in the board settings, every and dim in the address.'
+  kiosk_leave: 'Leave the wall display: Esc, any key or a click in a corner.'
   from_template: From template
   template_hint: Creates the board and tiles in the chosen space; tiles needing a connection then show what is missing.
   bulk_invalid: Nothing selected or unknown action.
@@ -627,6 +628,8 @@ field:
   hide_after: 'Hide devices offline longer than (days, 0 = never)'
   board_layout: 'Layout'
   board_layout_hint: 'Flowing columns fill gaps under short sections; section widths do not apply then.'
+  wall_page: 'Wall display: seconds per page'
+  wall_page_hint: 'The wall display splits the board into screen-high pages and turns to the next one after this time ({min}–{max} s).'
   free: 'Show amount free to spend (balance)'
   titles_only: 'Titles only (one line per item)'
   list_height: 'List height'

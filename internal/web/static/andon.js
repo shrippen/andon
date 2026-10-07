@@ -1280,11 +1280,28 @@
     });
   }
 
-  // ── Wall display: fullscreen on first tap, rotate boards, dim at night ──
+  // ── Wall display: fullscreen on first tap, screen-high pages, rotate
+  //    boards, dim at night; any key, Esc or a corner click leaves ──
+  //
+  //   page 1 ─(wall page s)─► page 2 ─► … ─► last page ─► page 1
+  //                                               └─ every s passed and a
+  //                                                  next board? → next board
+  //
+  // Pages are measured anew at each turn: tiles that htmx refreshes grow
+  // and shrink in between. A page starts at the first tile or section
+  // head that would be cut, so nothing is cut except a tile taller than
+  // the screen, or one that would make a page turn less than half a
+  // screen (columns of different heights). Kante scrolls smoothly, and
+  // instantly for reduced motion.
   var KIOSK_DIM_CHECK_MS = 60000;
+  var KIOSK_CORNER = 0.12; // share of width and height a corner click hits
+  var KIOSK_PAGE_GAP = 16; // px kept above a page's first tile
+  var KIOSK_MIN_TURN = 0.5; // share of the screen a page turn moves at least
+  var KIOSK_PAGE_S = 20; // seconds per page when the board names none
   // kioskTimers survive boosted page changes, which run setupKiosk again:
-  // cleared first, so rotation and dimming never pile up.
-  var kioskTimers = { next: 0, dim: 0 };
+  // cleared first, so paging, rotation and dimming never pile up.
+  var kioskTimers = { page: 0, dim: 0 };
+  var kioskBound = false;
 
   function inDim(spec, hour) {
     var parts = spec.split("-");
@@ -1292,23 +1309,107 @@
     return from <= to ? hour >= from && hour < to : hour >= from || hour < to;
   }
 
+  // kioskPages lists the scroll offsets where the board's pages start.
+  function kioskPages() {
+    var screen = window.innerHeight, y = window.scrollY;
+    var blocks = [].map.call(d.querySelectorAll(".board .tile-slot, .board .dsec-head"), function (el) {
+      var r = el.getBoundingClientRect();
+      return { top: r.top + y, bottom: r.bottom + y };
+    }).filter(function (b) { return b.bottom > b.top; });
+    blocks.sort(function (a, b) { return a.top - b.top; });
+
+    var starts = [0], end = 0;
+    blocks.forEach(function (b) {
+      var start = starts[starts.length - 1];
+      end = Math.max(end, b.bottom);
+      if (b.bottom <= start + screen || b.top - KIOSK_PAGE_GAP < start + screen * KIOSK_MIN_TURN) {
+        return;
+      }
+      starts.push(b.top - KIOSK_PAGE_GAP);
+    });
+    // A tile taller than the screen at the end: a screen at a time.
+    for (var last = starts[starts.length - 1]; end > last + screen; last = starts[starts.length - 1]) {
+      starts.push(last + screen - KIOSK_PAGE_GAP);
+    }
+    return starts;
+  }
+
+  // kioskLeave goes back to the normal board.
+  function kioskLeave() {
+    window.location.href = d.body.dataset.kioskLeave;
+  }
+
+  // inCorner: the click landed in one of the screen's four corners.
+  function inCorner(e) {
+    var w = window.innerWidth * KIOSK_CORNER, h = window.innerHeight * KIOSK_CORNER;
+    var x = e.clientX < w || e.clientX > window.innerWidth - w;
+    var y = e.clientY < h || e.clientY > window.innerHeight - h;
+    return x && y;
+  }
+
+  function bindKiosk() {
+    if (kioskBound) {
+      return;
+    }
+    kioskBound = true;
+    d.addEventListener("keydown", function (e) {
+      if (d.body.classList.contains("is-kiosk")) {
+        e.preventDefault();
+        kioskLeave();
+      }
+    });
+    // Esc in fullscreen ends fullscreen without a keydown: leave as well.
+    d.addEventListener("fullscreenchange", function () {
+      if (!d.fullscreenElement && d.body.classList.contains("is-kiosk")) {
+        kioskLeave();
+      }
+    });
+    d.addEventListener("click", function (e) {
+      if (!d.body.classList.contains("is-kiosk")) {
+        return;
+      }
+      if (inCorner(e)) {
+        e.preventDefault();
+        e.stopPropagation();
+        kioskLeave();
+        return;
+      }
+      if (!d.fullscreenElement && d.documentElement.requestFullscreen) {
+        d.documentElement.requestFullscreen().catch(function () {});
+      }
+    }, true);
+  }
+
   function setupKiosk() {
     var body = d.body;
-    window.clearTimeout(kioskTimers.next);
+    window.clearInterval(kioskTimers.page);
     window.clearInterval(kioskTimers.dim);
     if (!body.classList.contains("is-kiosk")) {
       return;
     }
-    d.addEventListener("click", function () {
-      if (!d.fullscreenElement && d.documentElement.requestFullscreen) {
-        d.documentElement.requestFullscreen().catch(function () {});
-      }
-    }, { once: true });
+    bindKiosk();
 
-    var next = body.dataset.kioskNext, every = +body.dataset.kioskEvery;
-    if (next && every > 0) {
-      kioskTimers.next = window.setTimeout(function () { window.location.href = next; }, every * 1000);
+    var hint = d.querySelector("[data-kiosk-hint]");
+    if (hint) {
+      window.setTimeout(function () { hint.remove(); }, toastLife(hint));
     }
+
+    // Turn the page; after the last one the next board, once "every" passed.
+    var next = body.dataset.kioskNext, every = +body.dataset.kioskEvery * 1000;
+    var shown = Date.now(), page = 0;
+    window.scrollTo(0, 0);
+    kioskTimers.page = window.setInterval(function () {
+      var starts = kioskPages();
+      page += 1;
+      if (page >= starts.length) {
+        if (next && every > 0 && Date.now() - shown >= every) {
+          window.location.href = next;
+          return;
+        }
+        page = 0;
+      }
+      window.scrollTo(0, starts[page]);
+    }, (+body.dataset.kioskPage || KIOSK_PAGE_S) * 1000);
 
     var dim = body.dataset.kioskDim;
     if (!dim) {
@@ -1664,14 +1765,20 @@
   // A toast (Kante .toast) stays as long as its life line runs (--life on
   // .toast-life, 4 s by default), then goes.
   var TOAST_LIFE_MS = 4000;
+
+  // toastLife is how long a toast stays, in ms.
+  function toastLife(toast) {
+    var line = toast.querySelector(".toast-life");
+    var life = line ? parseFloat(getComputedStyle(line).getPropertyValue("--life")) : NaN;
+    return life ? life * 1000 : TOAST_LIFE_MS;
+  }
+
   d.addEventListener("htmx:load", function (e) {
     var toast = e.target;
     if (!toast.classList || !toast.classList.contains("toast")) {
       return;
     }
-    var line = toast.querySelector(".toast-life");
-    var life = line ? parseFloat(getComputedStyle(line).getPropertyValue("--life")) : NaN;
-    setTimeout(function () { toast.remove(); }, life ? life * 1000 : TOAST_LIFE_MS);
+    setTimeout(function () { toast.remove(); }, toastLife(toast));
   });
 
   // Tiles poll ("every 300s") only while the tab is visible; a poll missed

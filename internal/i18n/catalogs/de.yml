@@ -207,7 +207,8 @@ board:
   name_taken: "Ein anderes Board in diesem Bereich heißt schon so."
   delete_hint: 'Das Board verschwindet für alle. Die Kacheln bleiben in der Bibliothek.'
   kiosk: Wandanzeige
-  kiosk_hint: Vollbild, wechselt jede Minute das Board, 22–7 Uhr gedimmt. Parameter every und dim in der Adresse anpassbar.
+  kiosk_hint: 'Vollbild, blättert alle {secs} s eine Bildschirmseite weiter, nach der letzten Seite (frühestens nach einer Minute) das nächste Board, 22–7 Uhr gedimmt. Seitenzeit in den Board-Einstellungen, every und dim in der Adresse.'
+  kiosk_leave: 'Wandanzeige beenden: Esc, eine beliebige Taste oder ein Klick in eine Ecke.'
   from_template: Aus Vorlage
   template_hint: Legt Board und Kacheln im gewählten Bereich an; Kacheln mit Verbindung zeigen danach, was noch fehlt.
   bulk_invalid: Nichts ausgewählt oder unbekannte Aktion.
@@ -627,6 +628,8 @@ field:
   hide_after: 'Geräte ausblenden, die länger offline sind als (Tage, 0 = nie)'
   board_layout: 'Anordnung'
   board_layout_hint: 'Spaltenfluss füllt Lücken unter kurzen Abschnitten; die Breite der Abschnitte gilt dann nicht.'
+  wall_page: 'Wandanzeige: Sekunden je Seite'
+  wall_page_hint: 'Die Wandanzeige teilt das Board in bildschirmhohe Seiten und blättert nach dieser Zeit weiter ({min}–{max} s).'
   free: 'Frei verfügbaren Betrag zeigen (Kontostand)'
   titles_only: 'Nur Titel (eine Zeile je Eintrag)'
   list_height: 'Listenhöhe'

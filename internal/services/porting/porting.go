@@ -168,6 +168,9 @@ func boardDoc(b *model.Board, spaces map[int64]*model.Space) map[string]any {
 	if b.Layout != enums.LayoutGrid {
 		doc["layout"] = string(b.Layout)
 	}
+	if page := boards.WallPage(b.WallPage); page != boards.WallPageDefault {
+		doc["wall_page"] = page
+	}
 	return doc
 }
 
@@ -689,6 +692,8 @@ func importBoard(q db.Queryer, who *access.Principal, spaceID int64, item map[st
 	if layout != enums.LayoutMasonry {
 		layout = enums.LayoutGrid
 	}
+	secs, _ := intOf(item["wall_page"])
+	wallPage := boards.WallPage(secs)
 	slug := util.Slug(slugBase, "board")
 	board := bySlug[slug]
 	if match == matchKeys && board != nil && !touched.boards[board.ID] {
@@ -703,14 +708,14 @@ func importBoard(q db.Queryer, who *access.Principal, spaceID int64, item map[st
 			}
 		}
 		board = full
-		board.Name, board.Layout, board.UpdatedAt = name, layout, time.Now().UTC()
+		board.Name, board.Layout, board.WallPage, board.UpdatedAt = name, layout, wallPage, time.Now().UTC()
 		board.Version++
 		if err := content.UpdateBoard(q, board); err != nil {
 			return err
 		}
 	} else {
 		board = &model.Board{SpaceID: spaceID, Slug: util.Unique(slug, taken), Name: name,
-			Position: len(taken), Layout: layout, Version: 1, UpdatedAt: time.Now().UTC()}
+			Position: len(taken), Layout: layout, WallPage: wallPage, Version: 1, UpdatedAt: time.Now().UTC()}
 		if err := content.AddBoard(q, board); err != nil {
 			return err
 		}
