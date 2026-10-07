@@ -13,20 +13,32 @@
     <h1>{{t "nav.hosts"}}</h1>
     {{template "intro" dict "Page" "hosts" "Chapter" "connections" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Hosts}}
-    <div class="table-wrap"><table class="table">
-      <thead><tr><th>{{t "hosts.host"}}</th><th>{{t "hosts.services"}}</th><th class="num">{{t "hosts.monitors"}}</th><th class="num">{{t "hosts.problems"}}</th></tr></thead>
-      <tbody>{{range .Hosts}}<tr>
-        <td><a href="/hosts/{{.Name}}">{{.Name}}</a></td>
-        <td>{{range $i, $s := .Services}}{{if $i}}, {{end}}{{$s.Name}}{{end}}</td>
-        <td class="num">{{len .Monitors}}</td>
-        <td class="num">{{if .Problems}}<span class="late">{{.Problems}}</span>{{else}}–{{end}}</td>
-      </tr>{{end}}</tbody>
-    </table></div>
+    {{with .Found}}{{template "host_table" .}}{{end}}
+    {{/* Hosts without monitor, hint or problem fold away (Kante fold). */}}
+    {{with .Quiet}}
+    <details class="fold">
+      <summary>{{t "hosts.quiet" "count" (len .)}}</summary>
+      <div class="body">{{template "host_table" .}}</div>
+    </details>
+    {{end}}
     {{else}}<p class="muted">{{t "hosts.none"}}</p>{{end}}
   </main>
   {{template "foot" $}}
 </body>
 </html>
+{{end}}
+
+{{define "host_table"}}
+<div class="table-wrap"><table class="table">
+  <thead><tr><th>{{t "hosts.host"}}</th><th>{{t "hosts.services"}}</th><th class="num">{{t "hosts.monitors"}}</th><th class="num">{{t "nav.hints"}}</th><th class="num">{{t "hosts.problems"}}</th></tr></thead>
+  <tbody>{{range .}}<tr>
+    <td><a href="/hosts/{{.Name}}">{{.Name}}</a></td>
+    <td>{{range $i, $s := .Services}}{{if $i}}, {{end}}{{$s.Name}}{{end}}</td>
+    <td class="num">{{len .Monitors}}</td>
+    <td class="num">{{len .Hints}}</td>
+    <td class="num">{{if .Problems}}<span class="late">{{.Problems}}</span>{{else}}–{{end}}</td>
+  </tr>{{end}}</tbody>
+</table></div>
 {{end}}
 
 {{define "host"}}

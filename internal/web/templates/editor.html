@@ -34,6 +34,21 @@
         <option value="masonry"{{if eq (print .Board.Layout) "masonry"}} selected{{end}}>{{t "board_layout.masonry"}}</option>
       </select>
       <p class="small muted">{{t "field.board_layout_hint"}}</p>
+      {{/* Wall display: how the board's sets change; the preview plays the
+           chosen transition on two sets of the board's own tiles (andon.js). */}}
+      <h2>{{t "board.kiosk"}}</h2>
+      <label for="wall_turn">{{t "field.wall_turn"}}</label>
+      <select class="select" id="wall_turn" name="wall_turn" data-wall-turn>{{range .WallTurns}}<option value="{{.}}"{{if eq . $.Board.Wall.Turn}} selected{{end}}>{{t (print "wall_turn." .)}}</option>{{end}}</select>
+      <label for="wall_ease">{{t "field.wall_ease"}}</label>
+      <select class="select" id="wall_ease" name="wall_ease" data-wall-ease>{{range .WallEases}}<option value="{{.}}"{{if eq . $.Board.Wall.Ease}} selected{{end}}>{{t (print "wall_ease." .)}}</option>{{end}}</select>
+      <label for="wall_page">{{t "field.wall_page"}}</label>
+      <input class="input" id="wall_page" name="wall_page" type="number" min="{{.WallPageMin}}" max="{{.WallPageMax}}" value="{{.Board.Wall.Page}}">
+      <p class="small muted">{{t "field.wall_page_hint" "min" .WallPageMin "max" .WallPageMax}}</p>
+      <div class="wall-stage is-preview" data-wall-preview aria-label="{{t "field.wall_preview"}}">
+        {{range $i, $set := .WallSets}}<div class="wall-set"{{if $i}} hidden{{end}}><div class="wall-tiles">{{range $set}}<div class="wall-tile"><b>{{.Title}}</b>{{with .Type}}<small>{{t (print "wtype." . ".name")}}</small>{{end}}</div>{{end}}</div></div>{{end}}
+        <div class="wall-pager" aria-hidden="true"><i class="is-on"></i><i></i></div>
+      </div>
+      <p><button type="button" class="btn btn-outline btn-sm" data-wall-play>{{t "edit.preview"}}</button></p>
       <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
     </form>
     <p><a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}/export">{{t "action.export"}}</a></p>

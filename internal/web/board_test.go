@@ -341,6 +341,50 @@ func TestKioskRotatesBoards(t *testing.T) {
 	}
 }
 
+// TestKioskPages: the board settings store the wall display's seconds
+// per set, transition and easing and offer a preview of the board's own
+// tiles; the wall display carries them and says how to leave.
+func TestKioskPages(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+
+	resp := getFollowingRedirect(t, srv, client, "/")
+	resp.Body.Close()
+	board := resp.Request.URL.Path
+	settings := string(mustGet(t, srv, client, board+"/settings"))
+	for _, want := range []string{
+		`name="wall_page" type="number" min="5" max="600" value="20"`,
+		`<option value="cut" selected>Kante-Schnitt</option>`, `<option value="rotate">Abwechselnd</option>`,
+		`<option value="standard" selected>Standard</option>`, `<option value="snap">Federnd</option>`,
+		`class="wall-stage is-preview"`, `class="wall-tile"`, `data-wall-preview`,
+	} {
+		if !strings.Contains(settings, want) {
+			t.Fatalf("settings lack %q:\n%s", want, settings)
+		}
+	}
+	version := regexp.MustCompile(`name="version" value="(\d+)"`).FindStringSubmatch(settings)[1]
+	postForm(t, client, srv.URL+board+"/settings", url.Values{"csrf": {csrf}, "version": {version}, "name": {"Start"},
+		"wall_page": {"45"}, "wall_turn": {"flap"}, "wall_ease": {"expo"}})
+
+	page := string(mustGet(t, srv, client, board+"?kiosk"))
+	for _, want := range []string{`data-kiosk-page="45"`, `data-kiosk-turn="flap"`, `data-kiosk-ease="expo"`, `data-kiosk-leave="` + board + `"`} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("kiosk lacks %q:\n%s", want, page)
+		}
+	}
+	if !strings.Contains(page, `class="toast" role="status" data-kiosk-hint`) || !strings.Contains(page, "Esc") {
+		t.Fatalf("no hint how to leave:\n%s", page)
+	}
+	if !strings.Contains(page, "vendor/kante/kante-wall.js") {
+		t.Fatal("wall transitions not loaded")
+	}
+	if strings.Contains(string(mustGet(t, srv, client, board)), "data-kiosk-hint") {
+		t.Fatal("hint on the plain board")
+	}
+}
+
 // TestOfflineWorker: the service worker is served from the root, and
 // logout drops what it stored.
 func TestOfflineWorker(t *testing.T) {

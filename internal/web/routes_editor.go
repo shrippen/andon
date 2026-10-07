@@ -70,7 +70,8 @@ func (d Deps) handleBoardSettingsForm(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 	_ = d.Page(w, ctx, "board_settings", http.StatusOK, map[string]any{
-		"Board": view, "Themes": themeList,
+		"Board": view, "Themes": themeList, "WallPageMin": boards.WallPageMin, "WallPageMax": boards.WallPageMax,
+		"WallTurns": enums.WallTurns, "WallEases": enums.WallEases, "WallSets": previewSets(view),
 		"TeamRoles": []enums.TeamRole{enums.TeamViewer, enums.TeamEditor, enums.TeamOwner},
 	})
 }
@@ -90,11 +91,44 @@ func (d Deps) handleBoardRename(w http.ResponseWriter, r *http.Request, ctx Ctx)
 	if n, err := strconv.ParseInt(r.FormValue("theme_id"), 10, 64); err == nil {
 		themeID = &n
 	}
-	if err := boards.Rename(d.DB, ctx.Who, id, version, r.FormValue("name"), themeID, minRole(r), enums.BoardLayout(r.FormValue("layout"))); err != nil {
+	if err := boards.Rename(d.DB, ctx.Who, id, version, r.FormValue("name"), themeID, minRole(r), enums.BoardLayout(r.FormValue("layout")), wallForm(r)); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/boards/"+r.PathValue("id"), http.StatusSeeOther)
+}
+
+// previewTiles is how many of the board's tiles fill one set of the wall
+// display preview (4 × 2 placeholders).
+const previewTiles = 8
+
+// previewSets are the two sets of the wall display preview: the board's
+// first tiles, then the next ones (or the first ones again).
+//
+//	board tiles  t1 … t8 | t9 … t16 | …   → set 1: t1–t8, set 2: t9–t16
+func previewSets(view *boards.BoardView) [2][]boards.Tile {
+	var all []boards.Tile
+	for _, s := range view.Sections {
+		for _, t := range s.Tiles {
+			if !t.Hidden {
+				all = append(all, t)
+			}
+		}
+	}
+	if len(all) == 0 {
+		all = make([]boards.Tile, previewTiles) // an empty board: blank tiles still show the motion
+	}
+	first := all[:min(len(all), previewTiles)]
+	second := all[len(first):min(len(all), 2*previewTiles)]
+	if len(second) == 0 {
+		second = first
+	}
+	return [2][]boards.Tile{first, second}
+}
+
+// wallForm reads the wall display group of the board settings.
+func wallForm(r *http.Request) boards.Wall {
+	return boards.Wall{Page: formInt(r, "wall_page"), Turn: enums.WallTurn(r.FormValue("wall_turn")), Ease: enums.WallEase(r.FormValue("wall_ease"))}
 }
 
 func (d Deps) handleBoardDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {

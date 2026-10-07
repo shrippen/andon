@@ -663,7 +663,9 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
   html.motion :is(.hero-shot,.showcase figure,.shots figure)[data-entrance]:not(.is-in){clip-path:polygon(0 0,100% 0,100% 0,0 0)}
   html.motion :is(.hero-shot,.showcase figure,.shots figure)[data-entrance].is-in{animation:k-scan 700ms cubic-bezier(.3,.7,.2,1) both}
   html.motion :is(.hero-shot,.showcase figure,.shots figure)[data-entrance].is-in::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--cyan);pointer-events:none;animation:k-scanline 700ms cubic-bezier(.3,.7,.2,1) both}
+  .wall-progress>i{animation:k-wall-time var(--wall-time,20s) linear both}
 }
+@keyframes k-wall-time{from{transform:scaleX(0)}to{transform:none}}
 @keyframes k-march{to{background-position:28.28px 0}}
 @keyframes k-sheen{from{background-position:100% 0}to{background-position:-150% 0}}
 @keyframes k-drift{to{transform:translate3d(480px,480px,0)}}
@@ -1919,3 +1921,32 @@ details.help.is-right>.help-text{left:auto;right:-.5rem}
 .topic-icon[data-topic="world"]{--topic-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M3 12h18M12 3c3 3 3 15 0 18-3-3-3-15 0-18'/%3E%3C/svg%3E")}
 .topic-icon[data-topic="dev"]{--topic-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'%3E%3Cpath d='M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14'/%3E%3C/svg%3E")}
 .topic-icon[data-topic="links"]{--topic-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'%3E%3Cpath d='M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1'/%3E%3C/svg%3E")}
+
+/* ── Wall display (1.20): a stage that shows one screen-filling set of tiles at a time and
+   switches between sets with a transition from js/kante-wall.js.
+     .wall-stage            .is-screen: the whole screen, no scrolling; .is-preview: a 16:9 preview
+       > .wall-set          one set; the next set comes after the shown one (on top)
+                            .is-fit scales the set's children by --wall-scale (a set taller than the stage)
+       > .wall-blade        the yellow blade of the cut, .wall-scan the line of the scan (added by a transition)
+       > .wall-progress > i time left of the set (--wall-time, runs only with motion)
+       > .wall-pager > i    one square per set, .is-on the shown one
+   [data-wall-off] hides a tile or a section outside the shown set.
+   .wall-tiles > .wall-tile (b name, small kind; --tier) are placeholder tiles for a preview. */
+.wall-stage{position:relative;overflow:hidden;container-type:inline-size}
+.wall-stage.is-screen{position:fixed;inset:0}
+.wall-stage.is-preview{aspect-ratio:16/9;width:100%;border:4px solid var(--bg2);background:var(--bg-void)}
+.wall-set{position:absolute;inset:0;overflow:hidden;background:var(--bg-void)}
+.wall-set[hidden]{display:none}
+.wall-set.is-fit>*{transform:scale(var(--wall-scale,1));transform-origin:top center}
+[data-wall-off]{display:none!important}
+.wall-blade{position:absolute;top:-10%;bottom:-10%;left:-12%;width:1cqw;background:var(--primary);transform:skewX(-24deg);pointer-events:none;z-index:5}
+.wall-scan{position:absolute;left:0;right:0;top:0;height:.35cqw;background:var(--cyan);box-shadow:0 0 2cqw var(--cyan);pointer-events:none;z-index:5}
+.wall-progress{position:absolute;left:0;right:0;bottom:0;height:4px;z-index:6;pointer-events:none}
+.wall-progress>i{display:block;height:100%;background:var(--primary);transform-origin:left;transform:scaleX(0)}
+.wall-pager{position:absolute;right:1rem;bottom:.9rem;display:flex;gap:.4rem;z-index:6;pointer-events:none}
+.wall-pager>i{width:.7rem;height:.7rem;border:1px solid var(--fg3)}
+.wall-pager>i.is-on{background:var(--primary);border-color:var(--primary)}
+.wall-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:1cqw;padding:1.4cqw;height:100%}
+.wall-tile{background:var(--bg-panel);border-top:.35cqw solid var(--tier,var(--bg2));padding:1cqw 1.2cqw;display:flex;flex-direction:column;gap:.5cqw;min-width:0;overflow:hidden}
+.wall-tile>b{font-family:var(--font-heading);font-size:2.2cqw;line-height:1.05;color:var(--fg0);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wall-tile>small{font-family:var(--font-mono);font-size:1cqw;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

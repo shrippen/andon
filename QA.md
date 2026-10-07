@@ -84,11 +84,11 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 
 **J-B4 Admin-Board** · Persona: Lena · `/boards/1`
 1. „Kompakt“ (`?view=compact`), „Alles zeigen“.
-2. „Wandanzeige“ (`?kiosk&every=60&dim=22-7`): kein Einführungsbanner, alles sichtbar?
+2. „Wandanzeige“ (`?kiosk&every=60&dim=22-7`) bei 1920×1080 und 1280×720: kein Einführungsbanner, Hinweis zum Beenden für einige Sekunden, kein Scrollen; die Kacheln kommen in Sätzen, die den Bildschirm füllen (keine Kachel abgeschnitten), und wechseln nach der Satzzeit mit dem Übergang aus den Board-Einstellungen, nach dem letzten Satz das nächste Board. Taste, Esc oder Klick in eine Ecke führt zum Board zurück; mit „Bewegung reduzieren“ wechselt der Satz ohne Übergang. Board-Einstellungen → Wandanzeige: Übergang und Beschleunigung ändern spielt die Vorschau, „Vorschau“ spielt sie auch bei reduzierter Bewegung.
 3. „Mein Layout“ (`?layout`): Kachelgröße eines Abschnitts ändern, Fertig, bleibt es? „Auf Standard zurücksetzen“.
 
 **J-B5 Weitere Seiten**
-1. `/timeline`, `/hosts`, `/hosts/<name>`, `/hosts/gibt-es-nicht`, `/reports/isp`.
+1. `/timeline`, `/hosts` (Hinweise zählen als Probleme, Hosts ohne Monitor und Hinweis unter „N ohne Befund“ eingeklappt), `/hosts/<name>`, `/hosts/gibt-es-nicht`, `/reports/isp`.
 2. `/calendar.ics` mit Sitzung, ohne Sitzung, mit Lese-Token (`/me/security`): doppelte Termine?
 
 **J-B6 Sprache**

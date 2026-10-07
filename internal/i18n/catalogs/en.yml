@@ -218,7 +218,8 @@ board:
   name_taken: "Another board in this space already has this name."
   delete_hint: 'The board is gone for everybody. Its tiles stay in the library.'
   kiosk: Wall display
-  kiosk_hint: Fullscreen, next board every minute, dimmed 22–7. Adjust every and dim in the address.
+  kiosk_hint: 'Fullscreen, shows the tiles in sets that fill the screen, the next set every {secs} s, after the last one (at least a minute) the next board, dimmed 22–7. Transition and time in the board settings, every and dim in the address.'
+  kiosk_leave: 'Leave the wall display: Esc, any key or a click in a corner.'
   from_template: From template
   template_hint: Creates the board and tiles in the chosen space; tiles needing a connection then show what is missing.
   bulk_invalid: Nothing selected or unknown action.
@@ -638,6 +639,11 @@ field:
   hide_after: 'Hide devices offline longer than (days, 0 = never)'
   board_layout: 'Layout'
   board_layout_hint: 'Flowing columns fill gaps under short sections; section widths do not apply then.'
+  wall_page: 'Seconds per set'
+  wall_page_hint: 'The wall display packs the tiles into sets that fill the screen exactly and shows the next one after this time ({min}–{max} s).'
+  wall_turn: 'Transition'
+  wall_ease: 'Easing'
+  wall_preview: 'Wall display preview'
   free: 'Show amount free to spend (balance)'
   titles_only: 'Titles only (one line per item)'
   list_height: 'List height'
@@ -812,6 +818,22 @@ sort:
 area:
   main: Main column
   side: Side column
+wall_turn:
+  cut: Kante cut
+  fade: Cross-fade
+  stagger: Tile by tile
+  flap: Split-flap
+  shutter: Shutter
+  scan: Scan line
+  rotate: Rotate
+wall_ease:
+  standard: Default
+  linear: Linear
+  quad: Quadratic
+  cubic: Cubic
+  expo: Exponential
+  soft: Gentle ease-out
+  snap: Springy
 wtype:
   github_trending:
     name: GitHub trends
@@ -6297,6 +6319,8 @@ clients:
   projects: 'Projects'
   no_hints: 'No open hints about this customer.'
 hosts:
+  quiet: '{count} without findings'
+  quiet_singular: '{count} without findings'
   cves: 'Vulnerabilities'
   alerts: 'Prometheus alerts'
   beats: 'Heartbeats'

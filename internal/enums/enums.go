@@ -310,6 +310,40 @@ const (
 	LayoutMasonry BoardLayout = "masonry"
 )
 
+// WallTurn is how the wall display changes from one set of tiles to the
+// next (Kante.wall); rotate takes the others in turn.
+type WallTurn string
+
+const (
+	WallCut     WallTurn = "cut"
+	WallFade    WallTurn = "fade"
+	WallStagger WallTurn = "stagger"
+	WallFlap    WallTurn = "flap"
+	WallShutter WallTurn = "shutter"
+	WallScan    WallTurn = "scan"
+	WallRotate  WallTurn = "rotate"
+)
+
+// WallTurns lists the transitions in the order the settings offer them.
+var WallTurns = []WallTurn{WallCut, WallFade, WallStagger, WallFlap, WallShutter, WallScan, WallRotate}
+
+// WallEase is the easing of the wall display's transitions (Kante.wall);
+// standard keeps each transition's own.
+type WallEase string
+
+const (
+	EaseStandard WallEase = "standard"
+	EaseLinear   WallEase = "linear"
+	EaseQuad     WallEase = "quad"
+	EaseCubic    WallEase = "cubic"
+	EaseExpo     WallEase = "expo"
+	EaseSoft     WallEase = "soft"
+	EaseSnap     WallEase = "snap"
+)
+
+// WallEases lists the easings in the order the settings offer them.
+var WallEases = []WallEase{EaseStandard, EaseLinear, EaseQuad, EaseCubic, EaseExpo, EaseSoft, EaseSnap}
+
 // SortOrder controls how a section orders its widgets.
 type SortOrder string
 

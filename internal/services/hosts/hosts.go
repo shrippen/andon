@@ -9,7 +9,8 @@
 //	         ├─ Prometheus alert     HostHighCpuLoad (instance nas:9100)
 //	         ├─ heartbeat            borg-nas (a check tagged with the host's first label: "nas")
 //	         ├─ CVE                  CVE-2026-41207 hits gitea/gitea:1.24 (Docker or compose stack on it)
-//	         └─ hints of these connections
+//	         └─ hints naming the host (host, node, guest, device param, by
+//	            full name or first label), else hints of its connections
 package hosts
 
 import (
@@ -65,7 +66,26 @@ type Host struct {
 	Beats    []sources.Heartbeat
 	CVEs     []metrics.CVEMatch
 	Hints    []hints.View
-	Problems int // failed services, monitors down, failing certificates
+	Problems int // failed services, monitors down, failing certificates, open hints
+}
+
+// Found says whether the host has anything to look at: a monitor, a hint
+// or a problem. The others fold away on the host list.
+func (h Host) Found() bool {
+	return len(h.Monitors) > 0 || len(h.Hints) > 0 || h.Problems > 0
+}
+
+// Split parts a host list into hosts with findings and quiet ones,
+// keeping the order.
+func Split(list []Host) (found, quiet []Host) {
+	for _, h := range list {
+		if h.Found() {
+			found = append(found, h)
+			continue
+		}
+		quiet = append(quiet, h)
+	}
+	return found, quiet
 }
 
 // List returns every host of the caller's connections, troubled first.
@@ -87,7 +107,7 @@ func List(ctx context.Context, d *sql.DB, who *access.Principal) ([]Host, error)
 	return out, nil
 }
 
-// One returns a host with the open hints of its connections.
+// One returns a host with its open hints.
 func One(ctx context.Context, d *sql.DB, who *access.Principal, name string) (Host, error) {
 	byName, err := collect(ctx, d, who)
 	if err != nil {
@@ -96,19 +116,6 @@ func One(ctx context.Context, d *sql.DB, who *access.Principal, name string) (Ho
 	h, ok := byName[strings.ToLower(name)]
 	if !ok {
 		return Host{}, ErrNotFound
-	}
-	open, err := hints.Active(d, who, enums.SeverityInfo, nil, 0)
-	if err != nil {
-		return Host{}, err
-	}
-	conns := map[int64]bool{}
-	for _, s := range h.Services {
-		conns[s.ConnID] = true
-	}
-	for _, v := range open {
-		if v.ConnectionID != nil && conns[*v.ConnectionID] {
-			h.Hints = append(h.Hints, v)
-		}
 	}
 	return *h, nil
 }
@@ -200,7 +207,80 @@ func collect(ctx context.Context, d *sql.DB, who *access.Principal) (map[string]
 	if nvd != nil {
 		addCVEs(out, metrics.ImageCVEs(metrics.RunningImages(running), nvd.CVEs))
 	}
+	open, err := hints.Active(d, who, enums.SeverityInfo, nil, 0)
+	if err != nil {
+		return nil, err
+	}
+	addHints(out, open, connHosts(conns))
 	return out, nil
+}
+
+// match is how a hint found its host.
+type match int
+
+const (
+	byNone  match = iota
+	byConn        // the host of the hint's connection
+	byName        // an item with the host's full name: "nas.lan"
+	byLabel       // an item with the host's first label: guest "nas" → nas.lan
+)
+
+// counted are rules whose hints repeat a check the host already counts:
+// the failed connection, and (when the item names the host in full) the
+// failing certificate and the firing alert.
+var counted = map[string]match{
+	"system.connector_down": byConn,
+	"certs.unreachable":     byName,
+	"prometheus.alert":      byName,
+}
+
+// addHints puts each open hint on the host of the first item it names,
+// else on its connection's host; a hint is a problem unless counted.
+func addHints(out map[string]*Host, open []hints.View, conns map[int64]string) {
+	labels := map[string][]*Host{}
+	for name, h := range out {
+		label, _, _ := strings.Cut(name, ".")
+		labels[label] = append(labels[label], h)
+	}
+
+	for _, v := range open {
+		h, how := hostFor(out, labels, v.Items)
+		if h == nil && v.ConnectionID != nil {
+			h, how = out[conns[*v.ConnectionID]], byConn
+		}
+		if h == nil {
+			continue
+		}
+		h.Hints = append(h.Hints, v)
+		if counted[v.Rule] != how {
+			h.Problems++
+		}
+	}
+}
+
+// hostFor is the host the first matching item names: by full name, else
+// by first label when only one host carries it.
+func hostFor(out map[string]*Host, labels map[string][]*Host, items []string) (*Host, match) {
+	for _, item := range items {
+		name := rules.HostOf(item)
+		if h, ok := out[name]; ok {
+			return h, byName
+		}
+		label, _, _ := strings.Cut(name, ".")
+		if same := labels[label]; label != "" && len(same) == 1 {
+			return same[0], byLabel
+		}
+	}
+	return nil, byNone
+}
+
+// connHosts maps each connection to the host of its URL.
+func connHosts(conns []*model.Connection) map[int64]string {
+	out := make(map[int64]string, len(conns))
+	for _, c := range conns {
+		out[c.ID] = rules.HostOf(c.URL)
+	}
+	return out
 }
 
 // addAlerts puts each firing alert on the host of its instance label.

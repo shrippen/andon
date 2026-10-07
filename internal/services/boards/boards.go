@@ -139,6 +139,7 @@ type BoardView struct {
 	ThemeID     *int64
 	MinTeamRole *enums.TeamRole
 	Layout      enums.BoardLayout
+	Wall        Wall // how it runs on the wall display
 	CanEdit     bool
 	HasOverlay  bool
 	Sections    []SectionView
@@ -374,7 +375,7 @@ func View(d *sql.DB, who *access.Principal, boardID int64, want LayoutTarget) (*
 		}
 		view := &BoardView{
 			ID: board.ID, Slug: board.Slug, Name: board.Name, Version: board.Version, ThemeID: board.ThemeID,
-			Layout: board.Layout, CanEdit: granted >= enums.RightEdit, HasOverlay: len(layer) > 0,
+			Layout: board.Layout, Wall: wallOf(board), CanEdit: granted >= enums.RightEdit, HasOverlay: len(layer) > 0,
 		}
 		if space != nil {
 			view.Space = *space
