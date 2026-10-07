@@ -65,6 +65,8 @@ action:
   open_in_audiobookshelf: 'Open in Audiobookshelf'
   open_in_seerr: 'Open in Jellyseerr'
   open_in_vikunja: 'Open in Vikunja'
+  open_in_firefly: 'Open in Firefly III'
+  open_in_ghostfolio: 'Open in Ghostfolio'
   open_in_tibber: 'Open in Tibber (electricity)'
   close: Close
   open_in_jsonapi: Open API
@@ -911,6 +913,9 @@ wtype:
   vikunja_tasks:
     name: 'Tasks'
     desc: 'Open Vikunja tasks by due date, overdue ones first.'
+  depot:
+    name: 'Depot'
+    desc: 'Value and performance of the Ghostfolio depot, the days and positions in the dialog.'
   technitium:
     name: 'Technitium DNS'
     desc: 'Queries and blocks of the last day.'
@@ -1402,6 +1407,13 @@ conn:
   options_hint_vikunja: 'URL of Vikunja, e.g. https://vikunja.example.lan. Token = API token with read access to projects and tasks (Settings → API tokens).'
   about_vikunja: 'Tasks: due, overdue'
   what_vikunja: 'Vikunja is a task manager with projects, due dates and labels.'
+  options_hint_firefly: 'URL of Firefly III, e.g. https://firefly.example.lan. Token = personal access token (Options → Profile → OAuth). Andon reads asset accounts, the last 90 days of transactions and recurring transactions; the payment matching with Invoice Ninja works with it as with Sure.'
+  about_firefly: 'Accounts, transactions, recurring'
+  what_firefly: 'Firefly III is a self-hosted personal finance manager.'
+  options_hint_ghostfolio: 'URL of Ghostfolio, e.g. https://ghostfolio.example.lan. Token = the user''s security token (Account → Security token).'
+  about_ghostfolio: 'Depot: value, performance, positions'
+  what_ghostfolio: 'Ghostfolio manages an investment portfolio and shows its performance.'
+  secret_ghostfolio: 'Security token'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
   health: 'Health'
@@ -1641,6 +1653,8 @@ service:
   audiobookshelf: 'Audiobookshelf'
   seerr: 'Jellyseerr/Overseerr'
   vikunja: 'Vikunja'
+  firefly: 'Firefly III'
+  ghostfolio: 'Ghostfolio'
   tibber: 'Tibber (electricity)'
   links: Tiles
   jsonapi: Custom API (JSON)
@@ -1964,6 +1978,10 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  ghostfolio:
+    drawdown:
+      title: 'Depot down {percent} %'
+      why: 'The value is {value}. Nothing to do, but good to know before money is needed from it.'
   vikunja:
     overdue:
       title: '{count} tasks overdue'
@@ -2347,6 +2365,9 @@ hint:
       title: 'Large expense: {name} ({amount})'
       why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
+    depot_reserve:
+      title: 'Reserve missing, the depot could cover it'
+      why: '{missing} are missing for taxes and fixed costs; the depot stands at {depot}.'
     task_unbooked:
       title: '{task} done, no time on {project}'
       why: 'The task was finished on {day}; Kimai has nothing on that project since a few days before. Book the time?'
@@ -2777,6 +2798,8 @@ hint:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
 info:
+  ghostfolio:
+    value: '{value} · {percent} %'
   vikunja:
     open: '{count} open · {overdue} overdue'
   playing:
@@ -3035,6 +3058,12 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  firefly.recurring_missed: 'Recurring payment missed (Firefly III)'
+  firefly.low_balance: 'Low balance (Firefly III)'
+  firefly.uncategorized: 'Uncategorised transactions (Firefly III)'
+  firefly.unusual_expense: 'Unusual expense (Firefly III)'
+  ghostfolio.drawdown: 'Depot down'
+  cross.depot_reserve: 'Reserve from the depot'
   vikunja.overdue: 'Overdue tasks'
   vikunja.due: 'Tasks due'
   cross.task_unbooked: 'Task without booked time'
@@ -5024,6 +5053,13 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image updates: {n}'
   alerts: 'Alerts: {n}'
+depot:
+  value: 'Value'
+  invested: 'Invested'
+  performance: 'Performance'
+  days: 'Value per day'
+  holdings: 'Positions'
+  spark: 'last 30 days'
 tasks:
   open: 'Open'
   overdue: 'Overdue'

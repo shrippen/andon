@@ -104,6 +104,12 @@ func GiteaInfo(data *sources.GiteaDataset) []InfoPart {
 	return found
 }
 
+// GhostfolioInfo: "20.420 € · +11 %".
+func GhostfolioInfo(data *sources.GhostfolioDataset) []InfoPart {
+	return []InfoPart{part("ghostfolio.value", map[string]any{"value": map[string]any{"$money": data.Value, "currency": data.Currency},
+		"percent": map[string]any{"$num": data.PerformancePct, "digits": 1}})}
+}
+
 // VikunjaInfo: "4 open · 1 overdue".
 func VikunjaInfo(data *sources.VikunjaDataset, now time.Time) []InfoPart {
 	open, late := data.Open(), 0

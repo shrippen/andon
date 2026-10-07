@@ -112,7 +112,7 @@ func rateBelow(_ any, cfg map[string]any, env Env) []Finding {
 }
 
 func subscriptionUnused(_ any, cfg map[string]any, env Env) []Finding {
-	sure, ok := env.Datasets[string(enums.ServiceSure)].(*sources.SureDataset)
+	sure, ok := metrics.BankOf(env.Datasets)
 	if !ok {
 		return nil
 	}
@@ -133,13 +133,13 @@ func subscriptionUnused(_ any, cfg map[string]any, env Env) []Finding {
 		if !s.Deadline.IsZero() {
 			msg, params["deadline"] = "sure.subscription_unused_deadline", Day(s.Deadline)
 		}
-		found = append(found, Finding{Fingerprint: "sub:" + strings.ToLower(s.Name), Severity: enums.SeverityInfo, Message: msg, Params: params, Sources: []string{string(enums.ServiceSure)}})
+		found = append(found, Finding{Fingerprint: "sub:" + strings.ToLower(s.Name), Severity: enums.SeverityInfo, Message: msg, Params: params, Sources: []string{string(sure.From())}})
 	}
 	return found
 }
 
 func spendableNegative(_ any, _ map[string]any, env Env) []Finding {
-	sure, ok1 := env.Datasets[string(enums.ServiceSure)].(*sources.SureDataset)
+	sure, ok1 := metrics.BankOf(env.Datasets)
 	ninja, ok2 := env.Datasets[ninjaSvc].(*sources.NinjaDataset)
 	if !ok1 || !ok2 {
 		return nil
@@ -151,7 +151,7 @@ func spendableNegative(_ any, _ map[string]any, env Env) []Finding {
 	return []Finding{{Fingerprint: "spendable", Severity: enums.SeverityWarn,
 		Message: "sure.spendable_negative", Params: map[string]any{"cash": Money(s.Cash, sure.Currency),
 			"reserved": Money(s.VAT+s.IncomeTax+s.Fixed, sure.Currency), "missing": Money(-s.Free, sure.Currency)},
-		Sources: []string{string(enums.ServiceSure), ninjaSvc}}}
+		Sources: []string{string(sure.From()), ninjaSvc}}}
 }
 
 func calendarUnbooked(_ any, _ map[string]any, env Env) []Finding {

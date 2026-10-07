@@ -1148,8 +1148,9 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] Quer: `cross.task_unbooked` (Aufgabe eines Kimai-Projekts erledigt, keine Zeit gebucht; Projekt über Vikunja-Projekt oder Label)
 
 **Schritt 12: Finanzen** — Firefly III, Ghostfolio
-- [ ] Firefly III in der Domäne Zahlungen (wie Sure, `caps`), Ghostfolio: Depotwert und Entwicklung
-- [ ] Quer: Zahlungsabgleich mit Invoice Ninja auch über Firefly III, Depot im Vermögen der Liquiditätskachel
+- [x] Firefly III in der Domäne Zahlungen (wie Sure, `caps`) *(liefert Sures Form; `metrics.BankOf` gibt Regeln und Kennzahlen Sure oder Firefly; Sure-Regeln laufen als `firefly.*`)*; Ghostfolio: Kachel „Depot“ mit Verlauf und Positionen, `ghostfolio.drawdown`
+- [x] Quer: Zahlungsabgleich mit Invoice Ninja auch über Firefly III; `cross.depot_reserve` (fehlende Rücklage, die das Depot decken könnte)
+- [ ] Kacheln mit Sure als Partner (Liquidität, Kosten) lesen Firefly noch nicht; Depot nicht in der Liquidität *(Depot ist kein Bargeld)*
 
 **Schritt 13: Lesen** — Hacker News, Lobsters, Reddit, YouTube-Kanäle, Twitch
 - [ ] Kachel „Lesen“ (Punkte, Kommentare, Alter), YouTube über die Kanal-Feeds, Twitch mit App-Zugang

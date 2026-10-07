@@ -487,7 +487,7 @@ func init() {
 		in.Hass, _ = s.Datasets[string(enums.ServiceHomeAssistant)].(*sources.HassDataset)
 		in.Tibber, _ = s.Datasets[string(enums.ServiceTibber)].(*sources.TibberDataset)
 		in.Snipe, _ = s.Datasets[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset)
-		in.Sure, _ = s.Datasets[string(enums.ServiceSure)].(*sources.SureDataset)
+		in.Sure, _ = BankOf(s.Datasets)
 		in.Domains, _ = s.Datasets[string(enums.ServiceDomains)].(*sources.DomainsDataset)
 		settings := HomelabSettingsOf(s.Settings)
 		if bill := HomelabCost(in, settings, now); bill.Total > 0 {

@@ -5527,5 +5527,144 @@
     "priority": 2
    }
   ]
+ },
+ "depot": {
+  "url": "https://ghostfolio.demo",
+  "currency": "EUR",
+  "value": 20420,
+  "investment": 17500,
+  "performance_pct": 11.0,
+  "days": [
+   {
+    "date": "@date-29",
+    "value": 18400
+   },
+   {
+    "date": "@date-28",
+    "value": 18350
+   },
+   {
+    "date": "@date-27",
+    "value": 18520
+   },
+   {
+    "date": "@date-26",
+    "value": 18610
+   },
+   {
+    "date": "@date-25",
+    "value": 18490
+   },
+   {
+    "date": "@date-24",
+    "value": 18700
+   },
+   {
+    "date": "@date-23",
+    "value": 18820
+   },
+   {
+    "date": "@date-22",
+    "value": 18760
+   },
+   {
+    "date": "@date-21",
+    "value": 18900
+   },
+   {
+    "date": "@date-20",
+    "value": 19050
+   },
+   {
+    "date": "@date-19",
+    "value": 19120
+   },
+   {
+    "date": "@date-18",
+    "value": 18980
+   },
+   {
+    "date": "@date-17",
+    "value": 19210
+   },
+   {
+    "date": "@date-16",
+    "value": 19330
+   },
+   {
+    "date": "@date-15",
+    "value": 19280
+   },
+   {
+    "date": "@date-14",
+    "value": 19400
+   },
+   {
+    "date": "@date-13",
+    "value": 19560
+   },
+   {
+    "date": "@date-12",
+    "value": 19470
+   },
+   {
+    "date": "@date-11",
+    "value": 19620
+   },
+   {
+    "date": "@date-10",
+    "value": 19710
+   },
+   {
+    "date": "@date-9",
+    "value": 19650
+   },
+   {
+    "date": "@date-8",
+    "value": 19800
+   },
+   {
+    "date": "@date-7",
+    "value": 19920
+   },
+   {
+    "date": "@date-6",
+    "value": 19870
+   },
+   {
+    "date": "@date-5",
+    "value": 20010
+   },
+   {
+    "date": "@date-4",
+    "value": 20140
+   },
+   {
+    "date": "@date-3",
+    "value": 20090
+   },
+   {
+    "date": "@date-2",
+    "value": 20230
+   },
+   {
+    "date": "@date-1",
+    "value": 20310
+   },
+   {
+    "date": "@date-0",
+    "value": 20420
+   }
+  ],
+  "holdings": [
+   {
+    "name": "MSCI World ETF",
+    "value": 14290
+   },
+   {
+    "name": "Euro-Staatsanleihen ETF",
+    "value": 6130
+   }
+  ]
  }
 }
