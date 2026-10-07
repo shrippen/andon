@@ -3761,6 +3761,8 @@ billing:
 mailfwd:
   no_paperless: Im Bereich des Postfachs gibt es keine Paperless-Verbindung.
   no_files: Die Mail hat keine PDF- oder Bilddatei.
+  no_login: 'Für {name} fehlt dein persönlicher Zugang.'
+  demo: 'Demo-Verbindungen nehmen keine Änderungen an.'
 palette:
   open: Suchen
   title: Befehlspalette

@@ -3760,6 +3760,8 @@ billing:
 mailfwd:
   no_paperless: The mailbox's space has no Paperless connection.
   no_files: The mail has no PDF or image file.
+  no_login: 'Your own login for {name} is missing.'
+  demo: 'Demo connections take no changes.'
 palette:
   open: Search
   title: Command palette
