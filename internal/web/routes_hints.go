@@ -22,6 +22,7 @@ import (
 func (d Deps) RegisterHintRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /hints", d.authed(d.handleHintsPage))
 	mux.HandleFunc("POST /hints/bulk", d.authed(d.handleHintBulk))
+	mux.HandleFunc("POST /hints/layout", d.authed(d.handleHintLayout))
 	mux.HandleFunc("POST /hints/{id}/ack", d.handleHintAct(hints.ActionAck))
 	mux.HandleFunc("POST /hints/{id}/snooze", d.handleHintAct(hints.ActionSnooze))
 	mux.HandleFunc("POST /hints/{id}/reopen", d.handleHintAct(hints.ActionReopen))
@@ -77,13 +78,28 @@ func (d Deps) handleHintsPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
+	layout, err := hints.LoadLayout(d.DB, ctx.Who)
+	if err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
 	filter := hintFilter{Level: r.URL.Query().Get("level"), Source: r.URL.Query().Get("source"), ByValue: byValue,
 		ByClient: r.URL.Query().Get("group") == groupByClient}
-	groups := groupHints(filter.apply(found), filter.grouping())
+	groups := arrange(filter.apply(found), filter.grouping(), layout)
 	_ = d.Page(w, ctx, "hints", http.StatusOK, map[string]any{
-		"Groups": groups, "Next": nextHints(groups), "Levels": levelCounts(found, filter), "Sources": sourceCounts(found, filter),
+		"Groups": groups, "Next": nextHints(groups), "Anchors": ruleAnchors(groups), "Side": sideOf(found, filter), "Layout": string(layout),
 		"Filter": filter, "Total": len(found), "ByValue": byValue, "Noisy": noisy,
 	})
+}
+
+// handleHintLayout keeps the viewer's choice of grouped or single rows
+// and returns to the page as it was (filters stay).
+func (d Deps) handleHintLayout(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	if err := hints.SaveLayout(d.DB, ctx.Who, hints.ParseLayout(r.FormValue("layout"))); err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, backTo(r, "/hints"), http.StatusSeeOther)
 }
 
 // doneView (?view=done) lists what resolved in the last doneDays.
@@ -124,6 +140,32 @@ func nextHints(groups []hintGroup) map[int64]int64 {
 		next[order[i]] = order[i+1]
 	}
 	return next
+}
+
+// ruleAnchors names the hint that carries a rule's anchor (#rule-<id>,
+// the command palette's target) where no group of that rule does: the
+// first row of each rule.
+func ruleAnchors(groups []hintGroup) map[int64]string {
+	done := map[string]bool{}
+	for _, g := range groups {
+		if !g.Loose {
+			done[g.Rule] = true
+		}
+	}
+	out := map[int64]string{}
+	for _, g := range groups {
+		if !g.Loose {
+			continue
+		}
+		for _, v := range g.Shown {
+			if done[v.Rule] {
+				continue
+			}
+			done[v.Rule] = true
+			out[v.ID] = v.Rule
+		}
+	}
+	return out
 }
 
 // hintsShown is how many hints of one rule stay open; the rest fold away.
@@ -179,20 +221,26 @@ func (f hintFilter) apply(all []hints.View) []hints.View {
 	return out
 }
 
-// Link is the page URL with one filter changed ("" clears it).
+// Link is the page URL with one setting changed ("" clears it): level,
+// source, sort ("value") or group ("client").
 func (f hintFilter) Link(key, value string) string {
+	switch key {
+	case "level":
+		f.Level = value
+	case "source":
+		f.Source = value
+	case "sort":
+		f.ByValue = value == sortByValue
+	case "group":
+		f.ByClient = value == groupByClient
+	}
+
 	q := url.Values{}
-	level, source := f.Level, f.Source
-	if key == "level" {
-		level = value
-	} else {
-		source = value
+	if f.Level != "" {
+		q.Set("level", f.Level)
 	}
-	if level != "" {
-		q.Set("level", level)
-	}
-	if source != "" {
-		q.Set("source", source)
+	if f.Source != "" {
+		q.Set("source", f.Source)
 	}
 	if f.ByValue {
 		q.Set("sort", sortByValue)
@@ -248,6 +296,48 @@ func sourceCounts(all []hints.View, f hintFilter) []hintCount {
 	return out
 }
 
+// sideTop is how many services the filter side shows before "show all".
+const sideTop = 6
+
+// hintSide is the filter side of the hints page: counts per level and
+// per service (each under the other filter), and how many filters are on.
+type hintSide struct {
+	Levels    []hintCount
+	LevelAll  int // hints under the service filter
+	Sources   []hintCount
+	More      []hintCount // services below the top ones
+	MoreOpen  bool        // the chosen service is among More
+	SourceAll int         // hints under the level filter
+	SourceN   int         // services in all
+	Active    int
+}
+
+func sideOf(all []hints.View, f hintFilter) hintSide {
+	side := hintSide{Levels: levelCounts(all, f)}
+	for _, l := range side.Levels {
+		side.LevelAll += l.N
+	}
+	for _, v := range all {
+		if f.keep(v, axisSource) {
+			side.SourceAll++
+		}
+	}
+
+	sources := sourceCounts(all, f)
+	side.SourceN = len(sources)
+	side.Sources = sources[:min(sideTop, len(sources))]
+	side.More = sources[len(side.Sources):]
+	side.MoreOpen = slices.ContainsFunc(side.More, func(c hintCount) bool { return c.Key == f.Source })
+
+	if f.Level != "" {
+		side.Active++
+	}
+	if f.Source != "" {
+		side.Active++
+	}
+	return side
+}
+
 // hintGrouping is what the hints page gathers hints by.
 type hintGrouping int
 
@@ -265,13 +355,49 @@ func (f hintFilter) grouping() hintGrouping {
 }
 
 // hintGroup is one rule's or one client's hints; Rest folds away below
-// the first few.
+// the first few. A Loose group is no group: single hints listed as rows.
 type hintGroup struct {
 	Rule     string
 	Client   string // set when grouped by client
 	Severity enums.Severity
 	Shown    []hints.View
 	Rest     []hints.View
+	Loose    bool
+}
+
+// groupMin is the fewest hints that make a group with head and bulk bar.
+const groupMin = 2
+
+// arrange lays the hints out as the viewer chose: single is one list of
+// rows; grouped gathers by rule (or client) and lists lone hints as rows.
+func arrange(views []hints.View, by hintGrouping, layout hints.Layout) []hintGroup {
+	if layout == hints.LayoutSingle {
+		if len(views) == 0 {
+			return nil
+		}
+		return []hintGroup{{Loose: true, Shown: views}}
+	}
+	return loosen(groupHints(views, by))
+}
+
+// loosen turns groups of one hint into rows: neighbouring ones join one
+// loose list, so 140 lone hints are no 140 heads with their own bulk bar.
+//
+//	[a a] [b] [c] [d d] [e]  ->  group a, rows b c, group d, rows e
+func loosen(groups []hintGroup) []hintGroup {
+	var out []hintGroup
+	for _, g := range groups {
+		if g.Count() >= groupMin {
+			out = append(out, g)
+			continue
+		}
+		if n := len(out); n > 0 && out[n-1].Loose {
+			out[n-1].Shown = append(out[n-1].Shown, g.Shown...)
+			continue
+		}
+		out = append(out, hintGroup{Loose: true, Severity: g.Severity, Shown: g.Shown})
+	}
+	return out
 }
 
 // groupHints keeps the given order and gathers each rule's hints where the

@@ -27,7 +27,7 @@ func TestBoardsPageOrdersNav(t *testing.T) {
 	}
 
 	postForm(t, client, srv.URL+"/boards/"+id[1]+"/nav", url.Values{"csrf": {csrf}, "move": {"up"}})
-	nav := regexp.MustCompile(`(?s)<nav class="app-links"[^>]*>(.*?)</nav>`).FindStringSubmatch(string(mustGet(t, srv, client, "/boards")))[1]
+	nav := regexp.MustCompile(`(?s)<nav class="app-links nav-wide"[^>]*>(.*?)</nav>`).FindStringSubmatch(string(mustGet(t, srv, client, "/boards")))[1]
 	if !strings.Contains(nav, "Zweites") || strings.Index(nav, "Zweites") > strings.Index(nav, "Start") {
 		t.Fatalf("moved board not first in nav:\n%s", nav)
 	}
@@ -37,14 +37,14 @@ func TestBoardsPageOrdersNav(t *testing.T) {
 	if resp.StatusCode != http.StatusNoContent {
 		t.Fatalf("order saved with %d", resp.StatusCode)
 	}
-	nav = regexp.MustCompile(`(?s)<nav class="app-links"[^>]*>(.*?)</nav>`).FindStringSubmatch(string(mustGet(t, srv, client, "/boards")))[1]
+	nav = regexp.MustCompile(`(?s)<nav class="app-links nav-wide"[^>]*>(.*?)</nav>`).FindStringSubmatch(string(mustGet(t, srv, client, "/boards")))[1]
 	if strings.Index(nav, "Zweites") < strings.Index(nav, "Start") {
 		t.Fatalf("dragged order not in nav:\n%s", nav)
 	}
 
 	postForm(t, client, srv.URL+"/boards/"+id[1]+"/nav", url.Values{"csrf": {csrf}, "move": {"toggle"}})
 	page = string(mustGet(t, srv, client, "/boards"))
-	nav = regexp.MustCompile(`(?s)<nav class="app-links"[^>]*>(.*?)</nav>`).FindStringSubmatch(page)[1]
+	nav = regexp.MustCompile(`(?s)<nav class="app-links nav-wide"[^>]*>(.*?)</nav>`).FindStringSubmatch(page)[1]
 	if strings.Contains(nav, "Zweites") || !strings.Contains(page, `is-off" id="board-`+id[1]+`"`) {
 		t.Fatalf("hidden board still in nav or gone from list:\n%s", nav)
 	}

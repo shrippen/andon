@@ -14,9 +14,6 @@
     <h1>{{t "hints.title"}}</h1>
     {{template "intro" dict "Page" "hints" "Chapter" "hints" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{if .DoneDays}}{{t "hints.done_lead" "days" .DoneDays}}{{else}}{{t "hints.lead"}}{{end}}</p>
-    {{if not .DoneDays}}<p class="small">{{if .ByValue}}<a href="/hints">{{t "hints.sort_level"}}</a>{{else}}<a href="/hints?sort=value">{{t "hints.sort_value"}}</a>{{end}}
-      · {{if .Filter.ByClient}}<a href="/hints">{{t "hints.group_rule"}}</a>{{else}}<a href="/hints?group=client">{{t "hints.group_client"}}</a>{{end}}
-      · <a href="/hints?view=done">{{t "hints.done_link"}}</a></p>{{end}}
     {{if .DoneDays}}<p class="small"><a href="/hints">{{t "hints.open_link"}}</a></p>
     <h2>{{t "hints.handled_title"}}</h2>
     <ul class="hints">{{range .Handled}}
@@ -44,20 +41,63 @@
         <a href="/spaces/{{.SpaceID}}/settings/rules">{{t "hints.noisy_adjust"}}</a></li>{{end}}</ul>
     </details>{{end}}
     {{end}}
-    {{if and (not .Embed) (not .DoneDays)}}
-    <nav class="hint-filters" aria-label="{{t "hints.filter"}}">
-      <input class="input" id="hint-search" type="search" placeholder="{{t "hints.search"}}" aria-label="{{t "hints.search"}}" aria-keyshortcuts="/">
-      <div class="chips-row">
-        <a class="chip is-filter" href="{{.Filter.Link "level" ""}}"{{if not .Filter.Level}} aria-pressed="true"{{end}}>{{t "hints.all_levels"}}</a>
-        {{range .Levels}}<a class="chip is-filter" data-tier="{{.Key}}" href="{{$.Filter.Link "level" .Key}}"{{if eq .Key $.Filter.Level}} aria-pressed="true"{{end}}>{{t (print "severity." .Key)}} <span>{{.N}}</span></a>{{end}}
+    {{if .Embed}}{{template "hint_groups" .}}{{else if not .DoneDays}}
+    {{/* Filters left of the list (Kante .filter-layout); on a phone behind
+         "Filter (n)", so the list starts under the title. */}}
+    <div class="filter-layout">
+      <aside class="filter-side" id="hint-filter" aria-label="{{t "hints.filter"}}">
+        <input class="input" id="hint-search" type="search" placeholder="{{t "hints.search"}}" aria-label="{{t "hints.search"}}" aria-keyshortcuts="/">
+        <span class="h-label">{{t "hints.level"}}</span>
+        <ul class="filter-list">
+          <li><a href="{{.Filter.Link "level" ""}}"{{if not .Filter.Level}} aria-current="true"{{end}}>{{t "hints.all_levels"}} <small>{{.Side.LevelAll}}</small></a></li>
+          {{range .Side.Levels}}<li><a href="{{$.Filter.Link "level" .Key}}"{{if eq .Key $.Filter.Level}} aria-current="true"{{end}}>{{t (print "severity." .Key)}} <small>{{.N}}</small></a></li>{{end}}
+        </ul>
+        {{if gt .Side.SourceN 1}}<span class="h-label">{{t "hints.source"}}</span>
+        <ul class="filter-list">
+          <li><a href="{{.Filter.Link "source" ""}}"{{if not .Filter.Source}} aria-current="true"{{end}}>{{t "hints.all_sources"}} <small>{{.Side.SourceAll}}</small></a></li>
+          {{range .Side.Sources}}{{template "hint_source" dict "C" . "F" $.Filter}}{{end}}
+          {{with .Side.More}}<li><details{{if $.Side.MoreOpen}} open{{end}}><summary>{{t "hints.show_all" "n" $.Side.SourceN}}</summary>
+            <ul class="filter-list">{{range .}}{{template "hint_source" dict "C" . "F" $.Filter}}{{end}}</ul></details></li>{{end}}
+        </ul>{{end}}
+        <span class="h-label">{{t "hints.order"}}</span>
+        <ul class="filter-list">
+          <li><a href="{{.Filter.Link "sort" ""}}"{{if not .ByValue}} aria-current="true"{{end}}>{{t "hints.sort_level"}}</a></li>
+          <li><a href="{{.Filter.Link "sort" "value"}}"{{if .ByValue}} aria-current="true"{{end}}>{{t "hints.sort_value"}}</a></li>
+          {{if eq .Layout "grouped"}}<li><a href="{{.Filter.Link "group" ""}}"{{if not .Filter.ByClient}} aria-current="true"{{end}}>{{t "hints.group_rule"}}</a></li>
+          <li><a href="{{.Filter.Link "group" "client"}}"{{if .Filter.ByClient}} aria-current="true"{{end}}>{{t "hints.group_client"}}</a></li>{{end}}
+          <li><a href="/hints?view=done">{{t "hints.done_link"}}</a></li>
+        </ul>
+      </aside>
+      <div class="filter-main">
+        <div class="filter-head">
+          <button type="button" class="btn btn-outline btn-sm filter-toggle" aria-controls="hint-filter" aria-expanded="false">{{t "hints.filter_button" "n" .Side.Active}}</button>
+          <span class="grow"></span>
+          <form method="post" action="/hints/layout" class="seg" role="group" aria-label="{{t "hints.layout"}}">
+            <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+            <input type="hidden" name="back" value="referer">
+            <button type="submit" name="layout" value="grouped" aria-pressed="{{eq .Layout "grouped"}}">{{t "hints.layout_grouped"}}</button>
+            <button type="submit" name="layout" value="single" aria-pressed="{{eq .Layout "single"}}">{{t "hints.layout_single"}}</button>
+          </form>
+        </div>
+        {{template "hint_groups" .}}
+        <p class="small muted">{{t "hints.keys"}}</p>
       </div>
-      {{if gt (len .Sources) 1}}<div class="chips-row">
-        <a class="chip is-filter" href="{{.Filter.Link "source" ""}}"{{if not .Filter.Source}} aria-pressed="true"{{end}}>{{t "hints.all_sources"}}</a>
-        {{range .Sources}}<a class="chip is-filter" href="{{$.Filter.Link "source" .Key}}"{{if eq .Key $.Filter.Source}} aria-pressed="true"{{end}}>{{t (print "service." .Key)}} <span>{{.N}}</span></a>{{end}}
-      </div>{{end}}
-    </nav>
+    </div>
     {{end}}
-    {{range .Groups}}
+  </main>
+</body>
+</html>
+{{end}}
+
+{{/* One service in the filter side; dict C (hintCount), F (filter). */}}
+{{define "hint_source"}}<li><a href="{{.F.Link "source" .C.Key}}"{{if eq .C.Key .F.Source}} aria-current="true"{{end}}>{{t (print "service." .C.Key)}} <small>{{.C.N}}</small></a></li>{{end}}
+
+{{/* The list: groups of a rule (2+ hints, head and bulk bar) as cards,
+     loose hints as compact rows (Kante .hint-card.is-row). */}}
+{{define "hint_groups"}}
+    {{range .Groups}}{{if .Loose}}
+    <ul class="hints">{{range .Shown}}{{template "hint_row" dict "H" . "P" $}}{{end}}</ul>
+    {{else}}
     <section class="hint-rule"{{if .Rule}} id="rule-{{.Rule}}"{{end}} data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}">
       {{if not $.Embed}}<h2 class="hint-group-head"><span class="sq" aria-hidden="true"></span>{{if .Client}}{{.Client}} <a class="small" href="/clients">{{t "hints.client_page"}}</a>{{else}}{{t (print "rule_name." .Rule)}}{{end}}<span class="hint-group-count">{{.Count}}</span></h2>
       {{/* The whole group at once: all done, or all paused for 7 days. */}}
@@ -77,12 +117,45 @@
       </details>
       {{end}}
     </section>
-    {{else}}{{if not .DoneDays}}<ul class="hints"><li class="hint-empty">{{t "hints.none"}}</li></ul>{{end}}{{end}}
-    {{if and (not .Embed) (not .DoneDays)}}<p class="small muted">{{t "hints.keys"}}</p>{{end}}
-  </main>
-</body>
-</html>
+    {{end}}{{else}}<ul class="hints"><li class="hint-empty">{{t "hints.none"}}</li></ul>{{end}}
 {{end}}
+
+{{/* One hint as a compact row: tier shape, title, services · age, "done";
+     the reason, pause, note and the detail behind "⋯". P is the page. */}}
+{{define "hint_row"}}{{$p := .P}}{{with .H}}
+      <li class="hint-card is-row" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}" id="hint-{{.ID}}">
+        <span class="tier"><span class="sr-only">{{if ge .Severity 30}}{{t "severity.critical"}}{{else if ge .Severity 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}</span></span>
+        <div class="row-main"{{with index $p.Anchors .ID}} id="rule-{{.}}"{{end}}>
+          <span class="title">{{.Title}}{{if .Value}} <span class="pill">{{money .Value .Currency}}</span>{{end}}</span>
+          <span class="meta">{{if .Sources}}{{range $i, $s := .Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}{{else}}{{.SpaceName}}{{end}} · {{ago .FirstSeen}}</span>
+        </div>
+        <div class="actions">
+          <form method="post" action="/hints/{{.ID}}/ack" class="hint-ack" id="ack-{{.ID}}">
+            <input type="hidden" name="{{$p.CSRFField}}" value="{{$p.Ctx.CSRF}}">
+            {{if $p.Next}}{{with index $p.Next .ID}}<input type="hidden" name="next" value="{{.}}">{{end}}{{end}}
+            <input type="hidden" name="days" value="7">
+            <button type="submit" class="btn btn-outline btn-sm">{{t "hints.ack"}}</button>
+          </form>
+          <details class="hint-more">
+            <summary title="{{t "hints.more"}}" aria-label="{{t "hints.more"}}">⋯</summary>
+            {{if or .Assignee (ne (print .Work) "open") .Flapping .Maintenance}}<p class="hint-tags">
+              {{if .Maintenance}}<span class="pill" data-state="reviewing" title="{{t "hints.maintenance_hint"}}">{{t "hints.maintenance"}}</span>{{end}}
+              {{with .Assignee}}<span class="pill">{{t "hints.assigned_to" "name" .}}</span>{{end}}
+              {{if ne (print .Work) "open"}}<span class="pill" data-state="{{if eq (print .Work) "done"}}applied{{else}}reviewing{{end}}">{{t (print "hints.work_" .Work)}}</span>{{end}}
+              {{if .Flapping}}<span class="pill" data-state="locked" title="{{t "hints.flapping_hint"}}">{{t "hints.flapping"}}</span>{{end}}
+            </p>{{end}}
+            <p class="hint-why">{{.Why}}</p>
+            <p class="hint-meta-line">{{.SpaceName}} · {{t "hints.since" "when" (ago .FirstSeen)}}{{if .Due}} · {{day .Due}}{{end}}</p>
+            <div class="inline-form">
+              {{if .ActionURL}}<a class="btn btn-outline btn-sm hint-go" href="{{.ActionURL}}" target="_blank" rel="noopener noreferrer">{{if .ActionLabel}}{{.ActionLabel}}{{else}}{{t "action.open"}}{{end}}</a>{{end}}
+              <button type="submit" form="ack-{{.ID}}" formaction="/hints/{{.ID}}/snooze" class="btn btn-outline btn-sm">{{t "hints.snooze"}}</button>
+              <input class="input" name="note" form="ack-{{.ID}}" maxlength="500" placeholder="{{t "hints.note_optional"}}" aria-label="{{t "hints.note"}}">
+            </div>
+            <div hx-get="/hints/{{.ID}}/detail" hx-trigger="toggle from:closest details once" hx-swap="innerHTML"><span class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{t "widget.loading"}}</span></div>
+          </details>
+        </div>
+      </li>
+{{end}}{{end}}
 
 {{/* Loaded into a hint's "more" section: assignment, work state, note, history. */}}
 {{define "hint_detail"}}

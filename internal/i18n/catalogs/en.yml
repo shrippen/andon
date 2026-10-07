@@ -1,5 +1,8 @@
 saved: Saved.
 nav:
+  menu: Menu
+  boards: Boards
+  pages: Pages
   admin_ops: 'Operations'
   main: Main navigation
   setup: Setup
@@ -1207,6 +1210,14 @@ sys:
   swap: Swap
   load: Load (5 min)
 hints:
+  layout: View
+  layout_grouped: Grouped
+  layout_single: Single
+  filter_button: 'Filter ({n})'
+  level: Level
+  source: Service
+  show_all: 'show all {n}'
+  order: Order
   handled_title: 'Done or paused by you'
   handled_acknowledged: 'done {when}'
   handled_snoozed: 'paused {when}'

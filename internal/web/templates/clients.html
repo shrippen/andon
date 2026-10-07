@@ -15,7 +15,7 @@
     {{template "period_choice" dict "Path" "/clients" "Periods" .Periods "Span" .Span}}
     {{if .Cards}}{{$first := index .Cards 0}}
     {{/* Hours and revenue count the period, the amounts in between today. */}}
-    <div class="table-wrap"><table class="table">
+    <div class="table-wrap"><table class="table cards-sm">
       <thead><tr><th>{{t "clients.customer"}}</th>
         <th class="num">{{t "clients.hours"}}<br><small class="muted">{{template "period_sub" dict "Span" .Span "From" $first.HoursFrom}}</small></th>
         <th class="num">{{t "clients.unbilled"}}<br><small class="muted">{{t "period.today"}}</small></th>
@@ -23,12 +23,12 @@
         <th class="num">{{t "clients.revenue"}}<br><small class="muted">{{template "period_sub" dict "Span" .Span "From" $first.RevenueFrom}}</small></th>
         <th class="num">{{t "clients.pay_days"}}</th></tr></thead>
       <tbody>{{range .Cards}}<tr>
-        <td><a href="/clients/{{.SpaceID}}/{{.CustomerID}}?kimai={{.KimaiID}}&amp;period={{.Span.Period}}">{{.Name}}</a> <small class="muted">{{.SpaceName}}</small></td>
-        <td class="num">{{num .Hours 1}}</td>
-        <td class="num">{{if .Unbilled}}{{money .Unbilled .Currency}}{{end}}</td>
-        <td class="num">{{if .Open}}<span{{if .Overdue}} class="late"{{end}}>{{money .Open .Currency}}</span>{{end}}</td>
-        <td class="num">{{if .Revenue}}{{money .Revenue .Currency}}{{end}}</td>
-        <td class="num">{{if .PaymentDays}}{{.PaymentDays}}{{end}}</td>
+        <td data-label="{{t "clients.customer"}}"><a href="/clients/{{.SpaceID}}/{{.CustomerID}}?kimai={{.KimaiID}}&amp;period={{.Span.Period}}">{{.Name}}</a> <small class="muted">{{.SpaceName}}</small></td>
+        <td class="num" data-label="{{t "clients.hours"}}">{{num .Hours 1}}</td>
+        <td class="num" data-label="{{t "clients.unbilled"}}">{{if .Unbilled}}{{money .Unbilled .Currency}}{{end}}</td>
+        <td class="num" data-label="{{t "clients.open"}}">{{if .Open}}<span{{if .Overdue}} class="late"{{end}}>{{money .Open .Currency}}</span>{{end}}</td>
+        <td class="num" data-label="{{t "clients.revenue"}}" data-card="key">{{if .Revenue}}{{money .Revenue .Currency}}{{end}}</td>
+        <td class="num" data-label="{{t "clients.pay_days"}}">{{if .PaymentDays}}{{.PaymentDays}}{{end}}</td>
       </tr>{{end}}</tbody>
     </table></div>
     {{else}}<p class="muted">{{t "clients.none"}}</p>{{end}}
@@ -64,9 +64,9 @@
     </div>
 
     {{with $c.Invoices}}<h2>{{t "clients.invoices"}}</h2>
-    <div class="table-wrap"><table class="table">
+    <div class="table-wrap"><table class="table cards-sm">
       <thead><tr><th>{{t "clients.number"}}</th><th>{{t "clients.date"}}</th><th>{{t "clients.due"}}</th><th class="num">{{t "clients.balance"}}</th></tr></thead>
-      <tbody>{{range .}}<tr><td>{{.Number}}</td><td>{{day .Date}}</td><td>{{day .DueDate}}{{if .OverdueDays}} <span class="late">+{{.OverdueDays}}</span>{{end}}</td><td class="num">{{money .Balance $c.Currency}}</td></tr>{{end}}</tbody>
+      <tbody>{{range .}}<tr><td data-label="{{t "clients.number"}}">{{.Number}}</td><td data-label="{{t "clients.date"}}">{{day .Date}}</td><td data-label="{{t "clients.due"}}">{{day .DueDate}}{{if .OverdueDays}} <span class="late">+{{.OverdueDays}}</span>{{end}}</td><td class="num" data-label="{{t "clients.balance"}}" data-card="key">{{money .Balance $c.Currency}}</td></tr>{{end}}</tbody>
     </table></div>{{end}}
 
     {{with $c.Projects}}<h2>{{t "clients.projects"}} <small class="muted">{{template "period_sub" dict "Span" $c.Span "From" $c.HoursFrom}}</small></h2>

@@ -10,7 +10,7 @@ import (
 
 // pageMarker is in every page with the app frame (header with the
 // signed-in navigation), never in a bare text answer.
-const pageMarker = `class="app-links"`
+const pageMarker = `class="app-links nav-wide"`
 
 // browse sends a request as a browser page load (or with extra headers,
 // e.g. htmx) and returns status and body.

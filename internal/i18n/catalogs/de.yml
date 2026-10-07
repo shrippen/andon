@@ -1,5 +1,8 @@
 saved: Gespeichert.
 nav:
+  menu: Menü
+  boards: Boards
+  pages: Seiten
   admin_ops: 'Betrieb'
   main: Hauptnavigation
   setup: Einrichten
@@ -1207,6 +1210,14 @@ sys:
   swap: Swap
   load: Last (5 min)
 hints:
+  layout: Ansicht
+  layout_grouped: Gruppiert
+  layout_single: Einzeln
+  filter_button: 'Filter ({n})'
+  level: Stufe
+  source: Dienst
+  show_all: 'alle {n} zeigen'
+  order: Ordnen
   handled_title: 'Von dir erledigt oder pausiert'
   handled_acknowledged: 'erledigt {when}'
   handled_snoozed: 'pausiert {when}'

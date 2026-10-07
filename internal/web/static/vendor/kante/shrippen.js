@@ -90,6 +90,65 @@
       if (d.fonts) d.fonts.ready.then(place);
     });
 
+    // ── Nav drawer and filter side (Kante 1.19) ──────────────────────────
+    // .nav-burger[aria-controls] opens its <dialog class="nav-drawer"> as a modal (focus moves in);
+    // Esc, a click on the scrim or on [data-drawer-close] closes it, focus returns to the button.
+    // .filter-toggle[aria-controls] flips aria-expanded; CSS shows the .filter-side below 640px.
+    // Delegated, so a nav swapped in later (hx-boost) works without a mount call.
+    function burgerOf(drawer) { return drawer.id ? d.querySelector('.nav-burger[aria-controls="' + drawer.id + '"]') : null; }
+    d.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t.closest) return;
+      var burger = t.closest('.nav-burger[aria-controls]');
+      if (burger) {
+        var dr = d.getElementById(burger.getAttribute('aria-controls'));
+        if (!dr || dr.open || !dr.showModal) return;
+        dr.showModal();
+        burger.setAttribute('aria-expanded', 'true');
+        return;
+      }
+      var open = t.closest('dialog.nav-drawer[open]');
+      if (open) {
+        var r = open.getBoundingClientRect(), out = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+        if ((t === open && out) || t.closest('[data-drawer-close]')) open.close();
+        return;
+      }
+      var ft = t.closest('.filter-toggle[aria-controls]');
+      if (ft) {
+        var on = ft.getAttribute('aria-expanded') !== 'true';
+        ft.setAttribute('aria-expanded', String(on));
+        var side = d.getElementById(ft.getAttribute('aria-controls'));
+        var first = on && side && side.querySelector('input,a,button,summary');
+        if (first) first.focus();
+      }
+    });
+    // close does not bubble: listen while capturing.
+    d.addEventListener('close', function (e) {
+      var dr = e.target;
+      if (!dr.matches || !dr.matches('dialog.nav-drawer')) return;
+      var b = burgerOf(dr);
+      if (!b) return;
+      b.setAttribute('aria-expanded', 'false');
+      b.focus();
+    }, true);
+    // Esc in an open filter panel closes it and returns to its button.
+    d.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !e.target.closest) return;
+      var side = e.target.closest('.filter-side[id]');
+      var ft = side && d.querySelector('.filter-toggle[aria-controls="' + side.id + '"][aria-expanded="true"]');
+      if (!ft) return;
+      ft.setAttribute('aria-expanded', 'false');
+      ft.focus();
+    });
+    // A drawer left open while the window grows past the phone width closes.
+    if (window.matchMedia) {
+      var wide = matchMedia('(min-width: 641px)'), shut = function () {
+        if (!wide.matches) return;
+        [].forEach.call(d.querySelectorAll('dialog.nav-drawer[open]'), function (dr) { dr.close(); });
+      };
+      if (wide.addEventListener) wide.addEventListener('change', shut);
+    }
+
     // ── Chart read-out and curve editor (Kante 1.6, 1.15) ────────────────
     // .chart-wrap[data-readout] > svg.chart: on hover a rule and marks sit on the nearest point
     //   of each .line (polyline points or path d), .readout shows data-labels (svg) and
