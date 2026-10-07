@@ -1,7 +1,10 @@
 package web
 
 import (
+	"andon/internal/i18n"
 	"errors"
+	"fmt"
+	"html"
 	"net/http"
 	"net/url"
 	"sort"
@@ -61,6 +64,12 @@ func (d Deps) handleKimaiTimer(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 			return
 		case timer.ActionSplit, timer.ActionDelete:
 			d.renderKimaiDay(w, r, ctx, id, key)
+			return
+		default:
+			// Start, stop, switch: the tile as it is, and why nothing
+			// changed in a toast.
+			d.renderFragment(w, r, ctx, id, svcdata.Stored)
+			writeToast(w, i18n.T(key, ctx.Locale, nil))
 			return
 		}
 	}
@@ -328,4 +337,11 @@ func billingSummary(drafts []billing.Candidate, payments []billing.Payment, mail
 		}
 	}
 	return sum
+}
+
+// writeToast appends an error toast to an htmx answer (out of band, into
+// the page's #toast stack).
+func writeToast(w http.ResponseWriter, text string) {
+	fmt.Fprintf(w, `<div hx-swap-oob="beforeend:#toast"><div class="toast" data-kind="error" role="status"><span>%s</span>`+
+		`<span class="toast-life" aria-hidden="true"></span></div></div>`, html.EscapeString(text))
 }

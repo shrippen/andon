@@ -36,7 +36,12 @@ func TestKimaiTimerStops(t *testing.T) {
 		w.Header().Set("X-Total-Pages", "1")
 		w.Write([]byte(`[{"duration": 3600, "begin": "` + sheetBegin + `", "end": "` + sheetEnd + `"}]`))
 	})
+	refuse := false
 	record := func(w http.ResponseWriter, r *http.Request) {
+		if refuse {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
 		mu.Lock()
 		writes = append(writes, r.Method+" "+r.URL.Path)
 		mu.Unlock()
@@ -89,6 +94,17 @@ func TestKimaiTimerStops(t *testing.T) {
 		t.Fatalf("start without ids: %d", r.StatusCode)
 	}
 
+	// Kimai refusing a stop says so on the tile, not with a bare 500.
+	refuse = true
+	resp, err := client.PostForm(srv.URL+"/widget-fragments/"+placement+"/kimai", url.Values{"csrf": {csrf}, "action": {"stop"}, "sheet": {"77"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if body := readAll(t, resp); resp.StatusCode != http.StatusOK || !strings.Contains(body, `class="toast"`) {
+		t.Fatalf("refused stop: %d\n%s", resp.StatusCode, body)
+	}
+	refuse = false
+
 	// "+" opens the add form with Kimai's projects and activities.
 	form := string(mustGet(t, srv, client, "/widget-fragments/"+placement+"/kimai/new"))
 	if !strings.Contains(form, "Acme · Relaunch") || !strings.Contains(form, `data-project="3"`) || !strings.Contains(form, `name="begin" type="datetime-local"`) {
@@ -97,7 +113,7 @@ func TestKimaiTimerStops(t *testing.T) {
 	entry := url.Values{"csrf": {csrf}, "action": {"create"}, "project": {"3"}, "activity": {"8"}, "note": {"Review"}}
 	entry.Set("begin", "2026-09-26T10:00")
 	entry.Set("end", "2026-09-26T09:00")
-	resp, err := client.PostForm(srv.URL+"/widget-fragments/"+placement+"/kimai", entry)
+	resp, err = client.PostForm(srv.URL+"/widget-fragments/"+placement+"/kimai", entry)
 	if err != nil {
 		t.Fatal(err)
 	}
