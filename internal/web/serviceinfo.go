@@ -48,6 +48,7 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServiceHealthchecks:  "https://healthchecks.io",
 	enums.ServicePrometheus:    "https://prometheus.io",
 	enums.ServiceNVD:           "https://nvd.nist.gov",
+	enums.ServiceDrone:         "https://www.drone.io",
 	enums.ServiceTibber:        "https://tibber.com",
 }
 

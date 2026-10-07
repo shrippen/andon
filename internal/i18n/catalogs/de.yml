@@ -42,6 +42,7 @@ action:
   open_in_healthchecks: 'In Healthchecks öffnen'
   open_in_prometheus: 'In Prometheus öffnen'
   open_in_nvd: 'In der NVD öffnen'
+  open_in_drone: 'In Drone öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
   close: Schließen
   open_in_jsonapi: API öffnen
@@ -873,6 +874,9 @@ wtype:
   vulnerabilities:
     name: 'Sicherheitslücken'
     desc: 'Neue CVEs, die ein laufendes Image treffen: Docker-Container und Compose-Stacks gegen die NVD.'
+  ci_runs:
+    name: 'CI-Läufe'
+    desc: 'Builds aus Drone, GitHub Actions und Gitea Actions: rote zuerst, im Popup der Verlauf je Repo.'
   speedtest:
     name: 'Internet-Geschwindigkeit'
     desc: 'Letzte Messung aus Speedtest Tracker.'
@@ -1287,6 +1291,9 @@ conn:
   about_nvd: 'Neue CVEs gegen laufende Images'
   what_nvd: 'Die National Vulnerability Database (NIST) veröffentlicht jede bekannte Sicherheitslücke (CVE) mit Bewertung und betroffenen Versionen.'
   secret_nvd: 'API-Schlüssel (optional)'
+  options_hint_drone: 'URL des Drone-Servers, z. B. https://drone.example.org. Token = persönliches Token (Drone → Benutzereinstellungen). Gelesen werden die aktiven Repos und ihre letzten 10 Builds des Standardzweigs; Pull Requests zählen nicht.'
+  about_drone: 'Builds je Repo'
+  what_drone: 'Drone ist ein CI-Server: Er baut und testet Repos bei jedem Push.'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
   health: 'Zustand'
@@ -1503,6 +1510,7 @@ service:
   healthchecks: 'Healthchecks'
   prometheus: 'Prometheus'
   nvd: 'CVE (NVD)'
+  drone: 'Drone CI'
   tibber: 'Tibber (Strom)'
   links: Kacheln
   jsonapi: Eigene API (JSON)
@@ -1826,6 +1834,10 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  drone:
+    failing:
+      title: '{repo} ist rot'
+      why: '{count} Builds in Folge fehlgeschlagen, seit {since}.'
   prometheus:
     alert:
       title: '{name} auf {instance}'
@@ -2139,6 +2151,9 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
   cross:
+    release_red_ci:
+      title: '{repo} {release} bei rotem CI'
+      why: 'Das Release erschien am {day}; der letzte Build davor (#{build}) war fehlgeschlagen.'
     image_cve:
       title: '{id} trifft {where}'
       why: 'CVSS {score}. {image} liegt im betroffenen Bereich, behoben in {fixed}. {public}{summary}'
@@ -2537,6 +2552,9 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
+  drone:
+    repos: '{count} Repos'
+    red: '{count} rot'
   nvd:
     read: '{count} CVEs in {days} Tagen'
   prometheus:
@@ -2772,6 +2790,8 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  drone.failing: 'Build rot'
+  cross.release_red_ci: 'Release bei rotem CI'
   cross.image_cve: 'Sicherheitslücke in laufendem Image'
   prometheus.alert: 'Prometheus-Alert'
   heartbeat.down: 'Herzschlag fehlt'
@@ -4732,6 +4752,26 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image-Updates: {n}'
   alerts: 'Warnungen: {n}'
+ci:
+  older: 'ältere'
+  newest: 'neuester Lauf'
+  red: 'rot'
+  green: 'grün'
+  running: 'läuft'
+  failing: 'Rote Repos'
+  runs: 'Letzte Läufe je Repo'
+  none: 'Keine CI-Daten: Drone, GitHub oder Gitea verbinden.'
+  tile_red: 'rot von {total}'
+  state:
+    ok: 'grün'
+    failed: 'rot'
+    running: 'läuft'
+    other: 'anders'
+  col:
+    repo: 'Repo'
+    provider: 'Dienst'
+    step: 'Schritt'
+    last: 'Letzter Lauf'
 cve:
   public: 'Der Dienst ist über Pangolin öffentlich erreichbar. '
   affected: 'betroffen'

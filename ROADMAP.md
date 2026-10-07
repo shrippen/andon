@@ -1113,9 +1113,10 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] Quer: `cross.image_cve` (laufendes Image, Tag im betroffenen Bereich: betroffen; sonst prüfen), verschärft, wenn Pangolin den Dienst öffentlich macht (`exposure`); Treffer auf der Host-Seite
 
 **Schritt 5: CI** (Drone; GitHub Actions und Gitea Actions der vorhandenen Verbindungen)
-- [ ] Quelle Drone (`/api/user/repos?latest=true`, Builds je Repo); Verlauf der Läufe auch für GitHub und Gitea; Kachel „CI-Läufe“ (Repo, Zweig, Verlauf als Streifen)
-- [ ] Regel `ci.failing` (Standardzweig rot seit N Stunden)
-- [ ] Quer: `cross.ci_red_deployed` (Komodo deployt einen Stack, dessen Repo zuletzt rot war); Release erschienen bei rotem CI
+- [x] Quelle Drone (`/api/user/repos?latest=true`, Builds je Repo); Kachel „CI-Läufe“ über Drone, GitHub und Gitea (`sources.CISource`) *(GitHub und Gitea nennen nur den letzten Lauf; ein Verlauf bräuchte je Repo eine weitere Abfrage)*
+- [x] Regel `drone.failing` (Standardzweig rot seit N Stunden; GitHub und Gitea haben schon `github.ci_failed`, `gitea.actions_failed`)
+- [x] Quer: `cross.release_red_ci` (Release auf GitHub, der letzte Build davor war rot, aus jedem CI-Anbieter)
+- [ ] Quer: `cross.ci_red_deployed` *(Komodo nennt Deploys nur im Popup, nicht im Datensatz; dafür muss die Komodo-Quelle die Deploys mitlesen)*
 
 **Schritt 6: Sicherung** — Proxmox Backup Server, Kopia, Duplicati, Backrest, UrBackup
 - [ ] Quellen mit `BackupSource`; PBS zusätzlich Belegung je Datastore und Verify-Jobs; Regeln `pbs.verify_failed`, `pbs.datastore_full`

@@ -228,3 +228,12 @@
 {{with $v.More}}<p class="tile-foot">{{t "cve.more" "n" .}}</p>{{end}}
 {{end}}{{end}}
 {{end}}
+
+{{define "widgets/ci_runs"}}
+{{with $v := .Frag.View}}{{if $v.Total}}
+<div class="tile-head"><b class="tile-value" data-live>{{$v.Red}}</b><span class="tile-note">{{t "ci.tile_red" "total" $v.Total}}</span></div>
+{{with $v.Lines}}<ul class="plain-list">
+  {{range .}}<li><span class="pill"{{with .Pill}} data-state="{{.}}"{{end}}>{{t (print "ci.state." .Status)}}</span> {{.Repo}} <small class="muted">{{t (print "service." .Provider)}}</small></li>{{end}}
+</ul>{{end}}
+{{else}}<p class="tile-note">{{t "ci.none"}}</p>{{end}}{{end}}
+{{end}}

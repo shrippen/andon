@@ -5929,7 +5929,7 @@
   ]
  },
  "ci": {
-  "note": "Drone runs the website and showreel builds: the showreel's main branch has been red since yesterday.",
+  "note": "Drone runs the website and showreel builds: the showreel's main branch has been red since yesterday; the website's v0.12.0 went out while its main build was red.",
   "url": "https://drone.demo",
   "repos": [
    {
@@ -5962,6 +5962,13 @@
       "status": "success",
       "started": "@-3d",
       "seconds": 140,
+      "event": "push"
+     },
+     {
+      "number": 84,
+      "status": "failure",
+      "started": "@-6d2h",
+      "seconds": 58,
       "event": "push"
      }
     ]
