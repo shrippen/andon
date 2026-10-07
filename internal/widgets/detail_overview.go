@@ -303,7 +303,7 @@ func noiseDetail(_ NoiseConfig, results map[string]any, ctx ViewCtx) DetailView 
 			settings = append(settings, Block{Kind: BlockTable, Label: T("detail.noise.limits"), Data: Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: rows, Num: []int{1}}})
 		}
 		settings = append(settings, Block{Kind: BlockTasks, Data: Tasks{Items: []Task{{Text: Txt("detail.noise.tune"), State: "info",
-			Action: T("detail.noise.settings"), Href: "/spaces/settings#rule-" + f.Rule}}}})
+			Action: T("detail.noise.settings"), Href: "/spaces/settings?section=rules#rule-" + f.Rule}}}})
 	}
 	g := ColGraph(daily, "s4")
 	g.Ticks = spanTicks(todayOf(ctx), len(daily))
@@ -313,7 +313,7 @@ func noiseDetail(_ NoiseConfig, results map[string]any, ctx ViewCtx) DetailView 
 		body.Blocks = append(body.Blocks, settings...)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.noise.how")})
 	}
-	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.noise.settings", Href: "/spaces/settings#rules", Primary: true}}}, Body: body}
+	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.noise.settings", Href: "/spaces/settings?section=rules", Primary: true}}}, Body: body}
 }
 
 // noiseLoud marks a rule that came back this often.
