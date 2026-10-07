@@ -91,6 +91,7 @@ action:
   open_in_pangolin: Open in Pangolin
   open_in_authentik: Open in authentik
   open_in_hansei: Open in Hansei
+  open_in_homelable: Open in Homelable
   open_in_pgbackweb: Open in PG Back Web
   open_in_linkwarden: Open in Linkwarden
   open_in_kintsugi: Open in Kintsugi
@@ -1359,6 +1360,7 @@ conn:
   tab_settings: 'Settings'
   tab_history: 'History'
   tab_places: 'Places'
+  tab_sync: 'Sync'
   record_tabs: 'Record'
   level_instance: 'Instance'
   level_team: 'Team'
@@ -1605,6 +1607,7 @@ conn:
   what_linkwarden: 'Linkwarden collects and archives bookmarks along with a copy of the page.'
   what_kintsugi: 'Kintsugi is an acquisition copilot: it builds a profile from an interview and documents and suggests acquisition and development steps every day.'
   what_hansei: 'Hansei keeps the IT docs in the Obsidian vault: check rules, batches, changes only after approval.'
+  what_homelable: 'Homelable draws the homelab as a network diagram and checks services live. Andon draws the IT docs from Obsidian onto a canvas of its own there; Obsidian stays the source.'
   what_pgbackweb: 'PG Back Web backs up PostgreSQL databases on a schedule through a web interface.'
   what_mail: 'Built-in check: Andon reads a mailbox via IMAP and finds invoices in it.'
   what_truenas: 'TrueNAS is an operating system for network storage based on ZFS.'
@@ -1664,6 +1667,7 @@ conn:
   about_linkwarden: 'Match bookmarks against tiles'
   about_kintsugi: 'Acquisition suggestions'
   about_hansei: 'Docs batches via webhook'
+  about_homelable: 'IT docs as a network diagram'
   about_pgbackweb: 'Postgres backups via webhook'
   about_mail: 'Invoices in the mailbox (IMAP)'
   about_truenas: 'Pools, snapshots, replication'
@@ -1692,6 +1696,7 @@ conn:
   options_hint_authentik: No options. Token = API token of an account allowed to read events and users.
   options_hint_mail: 'URL imaps://mail.example.org:993/INBOX. Username and app password of your mailbox (not your regular login password). Options: days: 60, keywords: [statement], ignore_senders: [mycompany.com] – read-only; attachments are downloaded only when you hand an invoice to Paperless.'
   options_hint_hansei: 'No options, no token. Hansei sends its state to the webhook address below (batches, conformity, docs findings in progress). It fetches findings with a read token from /api/docs.'
+  options_hint_homelable: 'User name and password of the local Homelable user (OIDC mode has no script access). Andon draws the IT docs of the Gitea connection in the same space (options docs_repo, docs_paths there) onto the canvas “IT docs (from Obsidian)”; other canvases stay untouched. Options: vault: MyVault (vault name for obsidian:// links, else the repo name), lang: en (language of the labels, else German).'
   options_hint_pgbackweb: No options, no token. PG Back Web reports by webhook, see below.
   hook: Webhook
   hook_hint: 'In PG Back Web add one webhook per event (execution_success, execution_failed, database_unhealthy/healthy, destination_unhealthy/healthy) and backup: method POST, this URL, body as below with event and backup name. Keep the URL secret.'
@@ -1820,6 +1825,7 @@ service:
   linkwarden: Linkwarden
   kintsugi: Kintsugi
   hansei: Hansei
+  homelable: Homelable
   sure: Sure (finance)
   homeassistant: Home Assistant
   freshrss: FreshRSS
@@ -5671,6 +5677,35 @@ hansei:
   conformity: '{n} % conformant'
   done: '{n} done'
   unset: 'No state from Hansei yet. Enter this connection''s webhook address in Hansei.'
+
+homelable:
+  canvas: 'IT docs (from Obsidian)'
+  prop_url: URL
+  prop_ports: Ports
+  prop_backup: Backup
+  prop_sso: SSO
+  prop_checked: 'Last review'
+  prop_note: Obsidian
+  prop_docs: Docs
+  sso_active: active
+  sso_possible: possible
+  docs_missing: missing
+  stale: '{day} (stale)'
+  lead: 'Andon draws the IT docs from Obsidian and the compose stacks onto a canvas of its own in Homelable: after every analysis run and at the push of a button. Only changes are sent, never positions; your layout stays.'
+  run: Sync now
+  last: Last sync
+  never: 'Not synced yet.'
+  source: Source
+  created: created
+  updated: changed
+  removed: removed
+  unchanged: unchanged
+  errors: 'Not sent'
+  synced: 'Synced: {created} created, {updated} changed, {removed} removed.'
+  problem_no_docs: 'No Gitea connection with IT docs in this connection''s space (options docs_repo, docs_paths on the Gitea connection).'
+  problem_incomplete: 'Stacks or notes were not read completely. Nothing changed, so nothing disappears by mistake.'
+  problem_shared: 'Only a fixed connection is synced, not a template with a login per person.'
+  problem_failed: 'Homelable refused the sync or cannot be reached.'
 
 vault:
   with2fa: 'accounts with two-factor'

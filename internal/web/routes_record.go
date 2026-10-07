@@ -11,6 +11,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
+	"andon/internal/services/homelable"
 	"andon/internal/services/porting"
 	"andon/internal/widgets"
 )
@@ -80,6 +81,9 @@ func (d Deps) recordPage(w http.ResponseWriter, r *http.Request, ctx Ctx, tab st
 	if conn.Service == enums.ServiceDawarich {
 		tabs = append(tabs, tabPlaces)
 	}
+	if conn.Service == enums.ServiceHomelable {
+		tabs = append(tabs, tabSync)
+	}
 	if conn.Right >= enums.RightManage {
 		tabs = append(tabs, tabSettings)
 	}
@@ -145,6 +149,10 @@ func (d Deps) recordValues(r *http.Request, ctx Ctx, conn connections.View) (map
 	values["Activations"], values["TeamNames"] = activations, names
 	values["ActivationSignIn"] = map[int64]*signIn{conn.ID: d.signInOf(conn)}
 
+	if conn.Service == enums.ServiceHomelable {
+		values["Sync"], values["Synced"], _ = homelable.Last(d.DB, ctx.Who, conn.ID)
+		values["SyncOpens"] = homelable.Opens(conn.URL)
+	}
 	// Only who may rotate the webhook sees its URL (it is the secret).
 	if conn.Right >= enums.RightManage {
 		values["HookURL"], _ = connections.HookURL(d.DB, ctx.Who, conn.ID, d.Settings.BaseURL)

@@ -723,6 +723,15 @@ func DemoHansei(now time.Time) *HanseiDataset {
 	return data
 }
 
+// DemoHomelable is the demo's Homelable: a hand-drawn network canvas and
+// the one Andon draws (outbound.HomelableDemo holds its nodes).
+func DemoHomelable(time.Time) *HomelableDataset {
+	return &HomelableDataset{URL: "demo://homelable", Canvases: []HomelableCanvas{
+		{ID: "demo-network", Name: "Netzwerk", Nodes: 14},
+		{ID: "demo-docs", Name: "IT-Doku (aus Obsidian)", Nodes: 24},
+	}}
+}
+
 // DemoPGBack is the demo PG Back Web dataset.
 func DemoPGBack(now time.Time) *PGBackDataset {
 	data := &PGBackDataset{}

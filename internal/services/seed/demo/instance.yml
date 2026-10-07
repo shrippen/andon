@@ -49,6 +49,7 @@ connections:
   - {id: linkwarden, type: linkwarden, name: Linkwarden, url: "demo://linkwarden", credentials: shared}
   - {id: pgback, type: pgbackweb, name: PG Back Web, url: "demo://pgbackweb", credentials: shared}
   - {id: hansei, type: hansei, name: Hansei, url: "demo://hansei", credentials: shared}
+  - {id: homelable, type: homelable, name: Homelable, url: "demo://homelable", credentials: shared}
   - {id: hass, type: homeassistant, name: Home Assistant, url: "demo://homeassistant", credentials: shared}
   - {id: truenas, type: truenas, name: TrueNAS, url: "demo://truenas", credentials: shared}
   - {id: komodo, type: komodo, name: Komodo, url: "demo://komodo", credentials: shared}
