@@ -1,7 +1,8 @@
 package widgets
 
-// "backups": one table over Borg, PG Back Web and TrueNAS snapshots of the
-// space, worst first. Tools without a connection are simply missing.
+// "backups": one table over every backup tool of the space (each dataset
+// that is a sources.BackupSource), worst first. Tools without a
+// connection are simply missing.
 
 import (
 	"slices"
@@ -9,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/sources"
 )
@@ -45,11 +45,11 @@ func init() {
 }
 
 func backupsQueries(BackupsConfig) []Query {
-	return []Query{
-		{Name: string(enums.ServiceBorgBackup), Source: "data", Conn: ConnPeer, Service: enums.ServiceBorgBackup},
-		{Name: string(enums.ServicePGBackWeb), Source: "data", Conn: ConnPeer, Service: enums.ServicePGBackWeb},
-		{Name: string(enums.ServiceTrueNAS), Source: "data", Conn: ConnPeer, Service: enums.ServiceTrueNAS},
+	var out []Query
+	for _, s := range sources.BackupServices() {
+		out = append(out, Query{Name: string(s), Source: "data", Conn: ConnPeer, Service: s})
 	}
+	return out
 }
 
 // BackupLine is one backup item with its last backupDays days (see
@@ -65,16 +65,13 @@ func backupsView(cfg BackupsConfig, results map[string]any, _ ViewCtx) map[strin
 	if cfg.Days == 0 {
 		cfg.Days = backupDays
 	}
-	borg, _ := results[string(enums.ServiceBorgBackup)].(*sources.BorgDataset)
-	pg, _ := results[string(enums.ServicePGBackWeb)].(*sources.PGBackDataset)
-	nas, _ := results[string(enums.ServiceTrueNAS)].(*sources.TrueNASDataset)
 	maxAge := time.Duration(cfg.MaxHours) * time.Hour
 	now := time.Now().UTC()
 	h, _ := results[HistorySlot].(*metrics.History)
 
 	var lines []BackupLine
 	total := 0
-	for _, row := range metrics.Backups(borg, pg, nas, now, maxAge) {
+	for _, row := range metrics.Backups(metrics.BackupTools(results), now, maxAge) {
 		if len(cfg.Tools) > 0 && !slices.Contains(cfg.Tools, strings.ToLower(row.Tool)) {
 			continue
 		}

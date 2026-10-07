@@ -16,6 +16,7 @@ package metrics
 //	DomainChains       what depends on each domain
 
 import (
+	"andon/internal/enums"
 	"math"
 	"sort"
 	"strconv"
@@ -105,31 +106,30 @@ func storageLabel(k string) string {
 
 // ── Backups ──
 
-// LastBackup is the newest successful backup of any tool; zero if none.
-func LastBackup(datasets map[string]any) (time.Time, string) {
+// LastBackup is the newest successful backup of any tool, zero if none,
+// with the tool's name as a hint parameter ({"$t": "service.borgbackup"}).
+func LastBackup(datasets map[string]any) (time.Time, any) {
 	var last time.Time
-	var tool string
-	take := func(t time.Time, name string) {
+	var tool any
+	take := func(t time.Time, service string) {
 		if t.After(last) {
-			last, tool = t, name
+			last, tool = t, map[string]any{"$t": "service." + service}
+		}
+	}
+	for _, b := range BackupTools(datasets) {
+		for _, j := range b.BackupJobs() {
+			if !j.Failed {
+				take(j.Last, b.BackupTool())
+			}
 		}
 	}
 	for _, raw := range datasets {
 		switch d := raw.(type) {
 		case *sources.BorgDataset:
-			take(d.LastBackup, "Borg")
-			for _, c := range d.Clients {
-				take(c.LastBackup, "Borg")
-			}
-		case *sources.TrueNASDataset:
-			for _, s := range d.Snapshots {
-				if s.State == "FINISHED" {
-					take(s.Last, "TrueNAS")
-				}
-			}
+			take(d.LastBackup, d.BackupTool())
 		case *sources.ProxmoxDataset:
 			for _, t := range d.Backups {
-				take(t, "Proxmox")
+				take(t, string(enums.ServiceProxmox))
 			}
 		}
 	}
