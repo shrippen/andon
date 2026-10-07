@@ -19,6 +19,7 @@ import (
 // RegisterVerbundRoutes wires the Verbünde page and its forms.
 func (d Deps) RegisterVerbundRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /spaces/{id}/verbund", d.authed(d.handleVerbundPage))
+	mux.HandleFunc("POST /spaces/{id}/verbund/settle", d.authed(d.handleVerbundSettle))
 	mux.HandleFunc("POST /verbund", d.authed(d.handleVerbundCreate))
 	mux.HandleFunc("POST /verbund/{id}/rename", d.authed(d.handleVerbundRename))
 	mux.HandleFunc("POST /verbund/{id}/members", d.authed(d.handleVerbundAdd))
@@ -166,13 +167,37 @@ func (d Deps) verbundPage(w http.ResponseWriter, r *http.Request, ctx Ctx, space
 			}
 		}
 	}
+	implicit, hasImplicit, err := verbund.Implicit(d.DB, ctx.Who, spaceID)
+	if err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
 	values := map[string]any{"Verbuende": list, "Vague": vague, "Editable": ordered, "SpaceID": spaceID, "Error": errKeyText}
+	if hasImplicit {
+		values["Implicit"] = implicit
+	}
 	if err := d.levelValues(ctx, spaceID, values); err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
 	values[navPath] = verbundPath(spaceID)
 	_ = d.Page(w, ctx, "verbund", status, values)
+}
+
+// handleVerbundSettle stores the space's implicit Verbund and opens its
+// customers.
+func (d Deps) handleVerbundSettle(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	space, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	id, err := verbund.Settle(d.DB, ctx.Who, space, d.clientIP(r))
+	if err != nil {
+		http.Redirect(w, r, verbundPath(space)+"?error="+errKey(err), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, customersPath(id, space), http.StatusSeeOther)
 }
 
 // verbundBack returns to the space's page, with an error key if any.

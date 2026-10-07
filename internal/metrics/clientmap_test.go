@@ -32,3 +32,28 @@ func TestClientMap(t *testing.T) {
 		t.Fatalf("customers: %v", got)
 	}
 }
+
+// TestClientLink: how a Kimai customer is tied to its Ninja client:
+// confirmed, said to have none, by the same name, or not at all.
+func TestClientLink(t *testing.T) {
+	ninja := &sources.NinjaDataset{Clients: []sources.NinjaClient{{ID: 7, Key: "Kx9", Name: "Muster Holding AG"}, {ID: 8, Key: "Zz1", Name: "Beta"}}}
+	m := ClientMap{1: "Kx9", 2: ""}
+	cases := []struct {
+		id   int64
+		name string
+		want ClientLink
+	}{
+		{1, "Muster", ClientConfirmed},
+		{2, "Beta", ClientNoneSaid},
+		{3, "beta", ClientByName},
+		{4, "Gamma", ClientUnmatched},
+	}
+	for _, c := range cases {
+		if got := m.LinkOf(ninja, c.id, c.name); got != c.want {
+			t.Errorf("%d %s: %s, want %s", c.id, c.name, got, c.want)
+		}
+	}
+	if got := m.LinkOf(nil, 1, "Muster"); got != ClientUnmatched {
+		t.Errorf("without Ninja: %s", got)
+	}
+}
