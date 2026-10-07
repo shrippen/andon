@@ -530,7 +530,7 @@ func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widge
 		uses, _ = widgetlib.Uses(d.DB, f.Widget.ID)
 	}
 	_ = d.Page(w, ctx, "widget_dialog", status, map[string]any{
-		"Uses": uses,
+		"Uses":    uses,
 		"Partial": true, "ThemeURL": "", "Verbuende": groups,
 		"Dest": dest, "Look": f.Look, "Topic": widgets.TopicOf(f.Kind.Key), "RowOptions": spanOptions(boards.MaxTileRows), "ColOptions": cols,
 		"Kind": f.Kind, "Title": f.Title, "Fields": widgets.FormValues(f.Kind.Key, f.Config),

@@ -5,6 +5,7 @@ package invites
 import (
 	"database/sql"
 	"errors"
+	"log/slog"
 	netmail "net/mail"
 	"strconv"
 	"strings"
@@ -103,8 +104,29 @@ func Create(d *sql.DB, who *access.Principal, email string, role enums.InstanceR
 		return "", err
 	}
 
-	url := link("invite", token)
-	return url, mail.Invite(email, url, who.Name, locale)
+	return link("invite", token), nil
+}
+
+// MailState is what became of an invite's mail.
+type MailState string
+
+const (
+	MailOff    MailState = "off"    // no SMTP set up: only the link
+	MailSent   MailState = "sent"   // the server took it
+	MailFailed MailState = "failed" // the server refused or did not answer
+)
+
+// SendMail mails an invite link and waits for the SMTP answer, so the
+// page can say whether it went out.
+func SendMail(email, url, inviter string, locale enums.Locale) MailState {
+	if !mail.Configured() {
+		return MailOff
+	}
+	if err := mail.InviteNow(email, url, inviter, locale); err != nil {
+		slog.Warn("invite mail failed", "err", err)
+		return MailFailed
+	}
+	return MailSent
 }
 
 // Pending lists open invites. Admin only.

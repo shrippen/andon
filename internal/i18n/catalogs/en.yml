@@ -1897,7 +1897,10 @@ admin:
   login: Last login
   invite: Invite
   send_invite: Send invitation
-  invite_sent: 'Invitation created. Copy the link now, it is not shown again. With SMTP it is also mailed; whether that worked shows under Admin → Operations:'
+  invite_sent: 'Invite created. Copy the link now, it is not shown again.'
+  invite_mail_sent: 'It went to the address by email.'
+  invite_mail_failed: 'The email did not go out (SMTP does not answer, details in the log under Admin → Operations): please pass the link on yourself.'
+  invite_mail_off: 'Without SMTP no email goes out: please pass the link on yourself.'
   reset: Reset link
   reset_link: 'Reset link (valid 48 h):'
   activate: Activate

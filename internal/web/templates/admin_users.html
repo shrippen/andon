@@ -16,7 +16,7 @@
     <h1>{{t "nav.admin_users"}}</h1>
     {{template "intro" dict "Page" "users" "Chapter" "spaces" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
-    {{if .InviteLink}}<div class="card"><p>{{t "admin.invite_sent"}}</p><pre class="mono">{{.InviteLink}}</pre></div>{{end}}
+    {{if .InviteLink}}<div class="card"><p>{{t "admin.invite_sent"}} {{t (print "admin.invite_mail_" .InviteMail)}}</p><pre class="mono">{{.InviteLink}}</pre></div>{{end}}
     {{if .ResetLink}}<div class="card"><p>{{t "admin.reset_link"}}</p><pre class="mono">{{.ResetLink}}</pre></div>{{end}}
 
     {{/* One row per account: who, role, and the rarer actions behind a

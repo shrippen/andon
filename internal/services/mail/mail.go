@@ -146,16 +146,15 @@ func SendNow(m outbound.Mail) error {
 // BaseURL returns the configured external URL (for links in mails).
 func BaseURL() string { return current().BaseURL }
 
-// Invite mails an invitation link.
-func Invite(email, link, inviter string, locale enums.Locale) error {
+// InviteNow mails an invite link and waits for the SMTP answer.
+func InviteNow(email, link, inviter string, locale enums.Locale) error {
 	m, err := Render(email, locale, i18n.T("mail.invite.subject", locale, nil),
 		[]string{i18n.T("mail.invite.body", locale, map[string]any{"inviter": inviter})},
 		&Button{Label: i18n.T("mail.invite.button", locale, nil), URL: link}, nil)
 	if err != nil {
 		return err
 	}
-	Send(m)
-	return nil
+	return SendNow(m)
 }
 
 // Reset mails a password reset link.

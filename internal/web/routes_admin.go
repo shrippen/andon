@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 
 	"andon/internal/enums"
 	"andon/internal/model"
@@ -156,7 +157,8 @@ func (d Deps) handleAdminInvite(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		d.adminUsersPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	d.adminUsersPage(w, ctx, http.StatusOK, map[string]any{"InviteLink": link})
+	sent := invites.SendMail(strings.TrimSpace(r.FormValue("email")), link, ctx.Who.Name, enums.Locale(r.FormValue("locale")))
+	d.adminUsersPage(w, ctx, http.StatusOK, map[string]any{"InviteLink": link, "InviteMail": string(sent)})
 }
 
 func (d Deps) handleAdminInviteDelete(w http.ResponseWriter, r *http.Request) {
