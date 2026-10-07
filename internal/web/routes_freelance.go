@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/services/access"
 	"andon/internal/services/assist"
 	"andon/internal/services/billing"
@@ -250,13 +251,26 @@ func (d Deps) billingPage(w http.ResponseWriter, r *http.Request, ctx Ctx, statu
 	}
 	// Sure matches first; the rest wants a second look.
 	sort.SliceStable(payments, func(i, j int) bool { return payments[i].Sure() && !payments[j].Sure() })
-	year := time.Now().Year()
 	groups, err := verbund.Visible(d.DB, ctx.Who)
 	if err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
-	values := map[string]any{"Verbuende": groups, "Drafts": drafts, "Mails": mails, "Payments": payments, "Summary": billingSummary(drafts, payments, len(mails), sent), "Booked": r.URL.Query().Get("booked"), "Assist": assist.Enabled(), "Spaces": access.EditableSpaces(ctx.Who), "Years": []int{year, year - 1}}
+
+	// The figures count the chosen period; the tax package offers its year first.
+	now := time.Now()
+	figures, err := billing.FiguresOf(r.Context(), d.DB, ctx.Who, metrics.PeriodOf(r.URL.Query().Get("period")), now)
+	if err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	year := now.Year()
+	if figures.Span.Period == metrics.PeriodPrevYear {
+		year--
+	}
+	values := map[string]any{"Verbuende": groups, "Drafts": drafts, "Mails": mails, "Payments": payments, "Summary": billingSummary(drafts, payments, len(mails), sent),
+		"Booked": r.URL.Query().Get("booked"), "Assist": assist.Enabled(), "Spaces": access.EditableSpaces(ctx.Who), "Years": []int{now.Year(), now.Year() - 1},
+		"Year": year, "Figures": figures, "Periods": metrics.Periods}
 	for k, v := range extra {
 		values[k] = v
 	}

@@ -38,6 +38,10 @@ type Card struct {
 	DocsURL   string // the customer's documents in Paperless, "" unless the Verbund links them
 	Link      metrics.ClientLink
 	Linking   Linking // where its link to Invoice Ninja is set
+	// Span is what hours and revenue count; HoursFrom and RevenueFrom
+	// are where Kimai's and Invoice Ninja's data begin (zero = unknown).
+	Span                   metrics.Span
+	HoursFrom, RevenueFrom time.Time
 	metrics.ClientCard
 }
 
@@ -64,26 +68,27 @@ type space struct {
 	paperless    *model.Connection // the Ninja's partner, nil if none
 }
 
-// List returns every customer of the caller's spaces, most hours first.
-func List(ctx context.Context, d *sql.DB, who *access.Principal) ([]Card, error) {
+// List returns every customer of the caller's spaces, most hours in the
+// period first.
+func List(ctx context.Context, d *sql.DB, who *access.Principal, period metrics.Period) ([]Card, error) {
 	found, err := spaces(d, who)
 	if err != nil {
 		return nil, err
 	}
 	var out []Card
 	for _, sp := range found {
-		cards, err := cardsOf(ctx, d, who, sp)
+		cards, err := cardsOf(ctx, d, who, sp, period)
 		if err != nil {
 			return nil, err
 		}
 		out = append(out, cards...)
 	}
-	sort.SliceStable(out, func(a, b int) bool { return out[a].HoursYear > out[b].HoursYear })
+	sort.SliceStable(out, func(a, b int) bool { return out[a].Hours > out[b].Hours })
 	return out, nil
 }
 
-// One returns one customer with its hints.
-func One(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, kimaiID, customerID int64) (Detail, error) {
+// One returns one customer with its hints, its figures over period.
+func One(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, kimaiID, customerID int64, period metrics.Period) (Detail, error) {
 	found, err := spaces(d, who)
 	if err != nil {
 		return Detail{}, err
@@ -92,7 +97,7 @@ func One(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, kimaiID
 		if sp.ref.ID != spaceID || (kimaiID != 0 && sp.kimai.ID != kimaiID) {
 			continue
 		}
-		cards, err := cardsOf(ctx, d, who, sp)
+		cards, err := cardsOf(ctx, d, who, sp, period)
 		if err != nil {
 			return Detail{}, err
 		}
@@ -146,7 +151,7 @@ func spaces(d *sql.DB, who *access.Principal) ([]space, error) {
 }
 
 // cardsOf builds the space's cards from the last background run.
-func cardsOf(ctx context.Context, d *sql.DB, who *access.Principal, sp space) ([]Card, error) {
+func cardsOf(ctx context.Context, d *sql.DB, who *access.Principal, sp space, period metrics.Period) ([]Card, error) {
 	uid := who.UserID
 	k, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceKimai), nil, sp.kimai, model.UserHolder(uid), svcdata.Stored)
 	if errors.Is(err, svcdata.ErrMissingCredential) {
@@ -166,9 +171,12 @@ func cardsOf(ctx context.Context, d *sql.DB, who *access.Principal, sp space) ([
 		}
 	}
 	currency := ""
+	var revenueFrom time.Time
 	if ninja != nil {
-		currency = ninja.Currency
+		currency, revenueFrom = ninja.Currency, metrics.NinjaHistoryFrom(ninja)
 	}
+	today := time.Now()
+	span := period.Span(today)
 	var out []Card
 	var links metrics.ClientMap
 	if sp.ninja != nil {
@@ -186,9 +194,10 @@ func cardsOf(ctx context.Context, d *sql.DB, who *access.Principal, sp space) ([
 			return nil, err
 		}
 	}
-	for _, c := range metrics.ClientCards(kimai, ninja, time.Now(), metrics.CenterOf(sp.settings), links) {
+	for _, c := range metrics.ClientCards(kimai, ninja, today, metrics.CenterOf(sp.settings), links, span) {
 		card := Card{SpaceID: sp.ref.ID, SpaceName: sp.ref.Name, KimaiID: sp.kimai.ID, Currency: currency, ClientCard: c,
-			Link: links.LinkOf(ninja, c.CustomerID, c.Name), Linking: linking}
+			Link: links.LinkOf(ninja, c.CustomerID, c.Name), Linking: linking,
+			Span: span, HoursFrom: metrics.KimaiHistoryFrom(kimai), RevenueFrom: revenueFrom}
 		if client, ok := links.ClientOf(ninja, c.CustomerID, c.Name); ok {
 			card.DocsURL = docsURL(sp.paperless, docs, client.Ref())
 		}

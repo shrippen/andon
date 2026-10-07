@@ -12,16 +12,22 @@
   <main>
     <h1>{{t "nav.clients"}}</h1>
     {{template "intro" dict "Page" "clients" "Chapter" "freelance" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
-    {{if .Cards}}
+    {{template "period_choice" dict "Path" "/clients" "Periods" .Periods "Span" .Span}}
+    {{if .Cards}}{{$first := index .Cards 0}}
+    {{/* Hours and revenue count the period, the amounts in between today. */}}
     <div class="table-wrap"><table class="table">
-      <thead><tr><th>{{t "clients.customer"}}</th><th class="num">{{t "clients.hours_year"}}</th><th class="num">{{t "clients.unbilled"}}</th>
-        <th class="num">{{t "clients.open"}}</th><th class="num">{{t "clients.revenue"}}</th><th class="num">{{t "clients.pay_days"}}</th></tr></thead>
+      <thead><tr><th>{{t "clients.customer"}}</th>
+        <th class="num">{{t "clients.hours"}}<br><small class="muted">{{template "period_sub" dict "Span" .Span "From" $first.HoursFrom}}</small></th>
+        <th class="num">{{t "clients.unbilled"}}<br><small class="muted">{{t "period.today"}}</small></th>
+        <th class="num">{{t "clients.open"}}<br><small class="muted">{{t "period.today"}}</small></th>
+        <th class="num">{{t "clients.revenue"}}<br><small class="muted">{{template "period_sub" dict "Span" .Span "From" $first.RevenueFrom}}</small></th>
+        <th class="num">{{t "clients.pay_days"}}</th></tr></thead>
       <tbody>{{range .Cards}}<tr>
-        <td><a href="/clients/{{.SpaceID}}/{{.CustomerID}}?kimai={{.KimaiID}}">{{.Name}}</a> <small class="muted">{{.SpaceName}}</small></td>
-        <td class="num">{{num .HoursYear 1}}</td>
+        <td><a href="/clients/{{.SpaceID}}/{{.CustomerID}}?kimai={{.KimaiID}}&amp;period={{.Span.Period}}">{{.Name}}</a> <small class="muted">{{.SpaceName}}</small></td>
+        <td class="num">{{num .Hours 1}}</td>
         <td class="num">{{if .Unbilled}}{{money .Unbilled .Currency}}{{end}}</td>
         <td class="num">{{if .Open}}<span{{if .Overdue}} class="late"{{end}}>{{money .Open .Currency}}</span>{{end}}</td>
-        <td class="num">{{if .RevenueYTD}}{{money .RevenueYTD .Currency}}{{end}}</td>
+        <td class="num">{{if .Revenue}}{{money .Revenue .Currency}}{{end}}</td>
         <td class="num">{{if .PaymentDays}}{{.PaymentDays}}{{end}}</td>
       </tr>{{end}}</tbody>
     </table></div>
@@ -48,11 +54,13 @@
     <h1>{{$c.Name}}</h1>
     <p class="muted">{{$c.SpaceName}}{{with $c.LastWork}} · {{t "clients.last_work" "day" (day .)}}{{end}}{{if $c.Linking.Offered}} · {{t (print "clients.link." $c.Link)}}{{if $c.Linking.Editable}} · {{if $c.Linking.VerbundID}}<a href="/verbund/{{$c.Linking.VerbundID}}/customers?space={{$c.SpaceID}}">{{t "clients.link_edit"}}</a>{{else}}<a href="/spaces/{{$c.SpaceID}}/verbund#implicit">{{t "clients.link_edit"}}</a>{{end}}{{end}}{{else if not $c.Matched}} · {{t "clients.no_ninja"}}{{end}}{{with $c.DocsURL}} · <a href="{{.}}" target="_blank" rel="noopener">{{t "clients.docs"}}</a>{{end}}</p>
 
+    {{template "period_choice" dict "Path" (print "/clients/" $c.SpaceID "/" $c.CustomerID) "Keep" (dict "kimai" $c.KimaiID) "Periods" .Periods "Span" $c.Span}}
+    {{/* Each figure names what it counts: the period, or today. */}}
     <div class="client-kpis">
-      <div class="kpi"><span class="kpi-label">{{t "clients.hours_year"}}</span><b class="kpi-value" data-live>{{num $c.HoursYear 1}} h</b><span class="kpi-sub">{{t "clients.hours_month" "hours" (num $c.HoursMonth 1)}}</span></div>
-      <div class="kpi"><span class="kpi-label">{{t "clients.unbilled"}}</span><b class="kpi-value" data-live>{{money $c.Unbilled $c.Currency}}</b>{{if $c.Unbilled}}<a class="kpi-sub" href="/billing#drafts">{{t "clients.to_billing"}}</a>{{end}}</div>
-      <div class="kpi"><span class="kpi-label">{{t "clients.open"}}</span><b class="kpi-value" data-live>{{money $c.Open $c.Currency}}</b>{{if $c.Overdue}}<span class="kpi-sub late">{{t "clients.overdue" "amount" (money $c.Overdue $c.Currency)}}</span>{{end}}</div>
-      <div class="kpi"><span class="kpi-label">{{t "clients.revenue"}}</span><b class="kpi-value" data-live>{{money $c.RevenueYTD $c.Currency}}</b>{{if $c.PaymentDays}}<span class="kpi-sub">{{t "clients.pays_in" "days" $c.PaymentDays}}</span>{{end}}</div>
+      <div class="kpi"><span class="kpi-label">{{t "clients.hours"}}</span><b class="kpi-value" data-live>{{num $c.Hours 1}} h</b><span class="kpi-sub">{{template "period_sub" dict "Span" $c.Span "From" $c.HoursFrom}}</span></div>
+      <div class="kpi"><span class="kpi-label">{{t "clients.unbilled"}}</span><b class="kpi-value" data-live>{{money $c.Unbilled $c.Currency}}</b><span class="kpi-sub">{{t "period.today"}}</span>{{if $c.Unbilled}}<a class="kpi-sub" href="/billing#drafts">{{t "clients.to_billing"}}</a>{{end}}</div>
+      <div class="kpi"><span class="kpi-label">{{t "clients.open"}}</span><b class="kpi-value" data-live>{{money $c.Open $c.Currency}}</b><span class="kpi-sub">{{t "period.today"}}</span>{{if $c.Overdue}}<span class="kpi-sub late">{{t "clients.overdue" "amount" (money $c.Overdue $c.Currency)}}</span>{{end}}</div>
+      <div class="kpi"><span class="kpi-label">{{t "clients.revenue"}}</span><b class="kpi-value" data-live>{{money $c.Revenue $c.Currency}}</b><span class="kpi-sub">{{template "period_sub" dict "Span" $c.Span "From" $c.RevenueFrom}}</span>{{if $c.PaymentDays}}<span class="kpi-sub">{{t "clients.pays_in" "days" $c.PaymentDays}}</span>{{end}}</div>
     </div>
 
     {{with $c.Invoices}}<h2>{{t "clients.invoices"}}</h2>
@@ -61,7 +69,7 @@
       <tbody>{{range .}}<tr><td>{{.Number}}</td><td>{{day .Date}}</td><td>{{day .DueDate}}{{if .OverdueDays}} <span class="late">+{{.OverdueDays}}</span>{{end}}</td><td class="num">{{money .Balance $c.Currency}}</td></tr>{{end}}</tbody>
     </table></div>{{end}}
 
-    {{with $c.Projects}}<h2>{{t "clients.projects"}}</h2>
+    {{with $c.Projects}}<h2>{{t "clients.projects"}} <small class="muted">{{template "period_sub" dict "Span" $c.Span "From" $c.HoursFrom}}</small></h2>
     <ul class="legend-list">{{range .}}<li><span>{{.Name}}</span><b>{{num .Hours 1}} h</b></li>{{end}}</ul>{{end}}
 
     <h2>{{t "nav.hints"}}</h2>

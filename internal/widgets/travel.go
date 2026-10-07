@@ -68,7 +68,8 @@ func travelView(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, re
 	}
 	out["HeadKM"], out["PrevKM"] = head, before
 	out["BusinessKM"], out["CommuteKM"], out["PrivateKM"] = business.KM, now[metrics.ClassCommute].KM, now[metrics.ClassPrivate].KM
-	out["Trips"], out["TripAmount"] = business.Rides, business.PayKM*travelRate(cfg, ctx)
+	// The amount names the km it pays: car and motorbike, not bike rides.
+	out["Trips"], out["PayKM"], out["TripAmount"] = business.Rides, business.PayKM, business.PayKM*travelRate(cfg, ctx)
 	if head > 0 && !cfg.HideBar {
 		out["Bar"] = min(pctOf(business.KM, head), pctFull)
 	}

@@ -20,11 +20,23 @@
 
     {{/* What is waiting, each part a jump link. */}}
     {{with .Summary}}<nav class="billing-summary" aria-label="{{t "billing.summary"}}">
-      <a href="#drafts"><b>{{money .Unbilled}}</b> {{t "billing.sum_unbilled" "n" .Customers}}</a>
+      <a href="#drafts"><b>{{money .Unbilled}}</b> {{t "billing.sum_unbilled" "n" .Customers}} <span class="muted">({{t "period.today"}})</span></a>
       <a href="#payments"><b>{{.Payments}}</b> {{t "billing.sum_payments"}}{{with .PaymentsToCheck}} <span class="late">({{t "billing.sum_check" "n" .}})</span>{{end}}</a>
       <a href="#mails"><b>{{.Mails}}</b> {{t "billing.sum_mails"}}{{with .MailsInLedger}} <span class="muted">({{t "billing.sum_sent" "n" .}})</span>{{end}}</a>
       <a href="#export">{{t "billing.export"}}</a>
     </nav>{{end}}
+
+    {{/* What the chosen period brought, each figure naming its span. */}}
+    {{with .Figures}}
+    <h2>{{t "billing.figures"}}</h2>
+    {{template "period_choice" dict "Path" "/billing" "Periods" $.Periods "Span" .Span}}
+    <div class="client-kpis" id="figures">
+      <div class="kpi"><span class="kpi-label">{{t "billing.fig_revenue"}}</span><b class="kpi-value">{{money .Revenue .Currency}}</b><span class="kpi-sub">{{template "period_sub" dict "Span" .Span "From" .RevenueFrom}}</span></div>
+      <div class="kpi"><span class="kpi-label">{{t "billing.fig_paid"}}</span><b class="kpi-value">{{money .Paid .Currency}}</b><span class="kpi-sub">{{template "period_sub" dict "Span" .Span "From" .RevenueFrom}}</span></div>
+      <div class="kpi"><span class="kpi-label">{{t "billing.fig_expenses"}}</span><b class="kpi-value">{{money .Expenses .Currency}}</b><span class="kpi-sub">{{template "period_sub" dict "Span" .Span "From" .RevenueFrom}}</span></div>
+      <div class="kpi"><span class="kpi-label">{{t "billing.fig_hours"}}</span><b class="kpi-value">{{num .Hours 1}} h</b><span class="kpi-sub">{{template "period_sub" dict "Span" .Span "From" .HoursFrom}}</span></div>
+    </div>
+    {{end}}
 
     <h2 id="drafts">{{t "billing.drafts"}}</h2>
     {{range .Drafts}}
@@ -91,7 +103,7 @@
     <form method="get" action="/billing/export" class="card inline-form">
       {{template "space_select" .Spaces}}
       {{with .Verbuende}}<select class="select" name="link_id" aria-label="{{t "verbund.title"}}"><option value="0">{{t "verbund.implicit"}}</option>{{range .}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>{{end}}
-      <select class="select" name="year" aria-label="{{t "billing.year"}}">{{range .Years}}<option>{{.}}</option>{{end}}</select>
+      <select class="select" name="year" aria-label="{{t "billing.year"}}">{{range .Years}}<option{{if eq . $.Year}} selected{{end}}>{{.}}</option>{{end}}</select>
       <button type="submit" class="btn btn-outline btn-sm">{{t "billing.download"}}</button>
     </form>
     <p class="small muted">{{t "billing.export_hint"}}</p>

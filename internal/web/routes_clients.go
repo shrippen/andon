@@ -4,7 +4,9 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
+	"andon/internal/metrics"
 	"andon/internal/services/clients"
 )
 
@@ -16,12 +18,13 @@ func (d Deps) RegisterClientRoutes(mux *http.ServeMux) {
 }
 
 func (d Deps) handleClients(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	cards, err := clients.List(r.Context(), d.DB, ctx.Who)
+	period := metrics.PeriodOf(r.URL.Query().Get("period"))
+	cards, err := clients.List(r.Context(), d.DB, ctx.Who, period)
 	if err != nil {
 		d.handleBoardError(w, r, err)
 		return
 	}
-	_ = d.Page(w, ctx, "clients", http.StatusOK, map[string]any{"Cards": cards})
+	_ = d.Page(w, ctx, "clients", http.StatusOK, map[string]any{"Cards": cards, "Periods": metrics.Periods, "Span": period.Span(time.Now())})
 }
 
 func (d Deps) handleClient(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -32,7 +35,7 @@ func (d Deps) handleClient(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	kimai, _ := strconv.ParseInt(r.URL.Query().Get("kimai"), 10, 64)
-	detail, err := clients.One(r.Context(), d.DB, ctx.Who, spaceID, kimai, id)
+	detail, err := clients.One(r.Context(), d.DB, ctx.Who, spaceID, kimai, id, metrics.PeriodOf(r.URL.Query().Get("period")))
 	if errors.Is(err, clients.ErrNotFound) {
 		http.NotFound(w, r)
 		return
@@ -41,5 +44,5 @@ func (d Deps) handleClient(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.handleBoardError(w, r, err)
 		return
 	}
-	_ = d.Page(w, ctx, "client", http.StatusOK, map[string]any{"C": detail})
+	_ = d.Page(w, ctx, "client", http.StatusOK, map[string]any{"C": detail, "Periods": metrics.Periods})
 }

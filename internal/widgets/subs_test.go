@@ -58,3 +58,25 @@ func TestSubscriptionsSureCategory(t *testing.T) {
 		t.Fatalf("rows: %+v", rows)
 	}
 }
+
+// TestSubscriptionsMonthlyRows: a yearly subscription lists at its
+// monthly amount next to the monthly ones, as the sum counts it; per
+// year all rows show the year.
+func TestSubscriptionsMonthlyRows(t *testing.T) {
+	kind, _ := widgets.Get("subscriptions")
+	wallos := &sources.WallosDataset{Currency: "EUR", Subs: []sources.WallosSub{
+		{Name: "Domain", Monthly: 2, Price: 24, Next: "2026-10-28"},
+		{Name: "Tibber", Monthly: 72, Price: 72, Next: "2026-10-03"},
+	}}
+	for _, c := range []struct {
+		raw  map[string]any
+		want float64
+	}{{map[string]any{}, 2}, {map[string]any{"yearly": true}, 24}} {
+		cfg, _ := widgets.Decode("subscriptions", c.raw)
+		for _, r := range kind.View(cfg, map[string]any{"wallos": wallos}, ctxFor("", nil))["Rows"].([]widgets.SubRow) {
+			if r.Name == "Domain" && r.Price != c.want {
+				t.Fatalf("%v: domain at %v, want %v", c.raw, r.Price, c.want)
+			}
+		}
+	}
+}

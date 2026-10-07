@@ -70,7 +70,8 @@ func travelDetail(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, 
 	}
 	body := &DetailBody{Facts: []Kpi{
 		{Value: NumU(sums[metrics.ClassBusiness].KM, 0, "km"), Label: T("detail.travel.business")},
-		{Value: Money(sums[metrics.ClassBusiness].PayKM*rate, ""), Label: T("detail.travel.money"), Tier: "cyan"},
+		{Value: Money(sums[metrics.ClassBusiness].PayKM*rate, ""), Label: Text{Key: "detail.travel.money_of",
+			Args: map[string]any{"km": Num(sums[metrics.ClassBusiness].PayKM, 0), "rate": Num(rate, 2)}}, Tier: "cyan"},
 		{Value: NumU(sums[metrics.ClassPrivate].KM, 0, "km"), Label: T("detail.travel.private")},
 		{Value: Money(allowance, ""), Label: T("detail.travel.allowance")},
 	}}

@@ -179,8 +179,10 @@ type NinjaRecurring struct {
 }
 
 type NinjaDataset struct {
-	URL           string
-	Currency      string
+	URL      string
+	Currency string
+	Since    string // first day read ("2025-01-01"); older invoices only while open
+
 	Invoices      []NinjaInvoice
 	Payments      []NinjaPayment
 	Clients       []NinjaClient

@@ -240,7 +240,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 
 	return &NinjaDataset{
 		URL: sctx.URL, Currency: currency, Invoices: invoices, Payments: payments, Clients: clients,
-		Expenses: expenses, Vendors: vendors, Quotes: quotes, Recurring: recurring, HomeCountryID: homeCountry,
+		Expenses: expenses, Vendors: vendors, Quotes: quotes, Recurring: recurring, HomeCountryID: homeCountry, Since: since,
 	}, nil
 }
 

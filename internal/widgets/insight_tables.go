@@ -161,6 +161,9 @@ func kimaiBudgets(data *sources.KimaiDataset, today time.Time) []budgetRow {
 	return rows
 }
 
+// tablePeriods names the span of tables that count one (metrics.NinjaShares).
+var tablePeriods = map[TableKind]string{TableClientShares: "period.last_12m"}
+
 func tableView(cfg TableConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	rows, ok := tableRows(cfg.Table, results, ctx)
 	if !ok {
@@ -181,6 +184,9 @@ func tableView(cfg TableConfig, results map[string]any, ctx ViewCtx) map[string]
 		rows = rows[:cfg.Limit]
 	}
 	out := map[string]any{"Cols": cols, "Rows": rows, "Total": total, "More": total - len(rows)}
+	if key, ok := tablePeriods[cfg.Table]; ok {
+		out["PeriodKey"] = key
+	}
 	if cfg.SumRow {
 		out["Sum"] = sum
 	}
