@@ -81,10 +81,10 @@ Die Domänen aus `internal/caps` und weitere Dinge, die Andon auswertet. „Lies
 | **Kunde** | Kimai (Kunden), Invoice Ninja (Clients, führt die Namen), Sure (Zahler), Paperless (Korrespondenten) | Kimai (Name aus Ninja übernehmen) | über Dienste zuordnen; Stunden, Unabgerechnetes, offene Rechnungen, Umsatz, Zahlungsgewohnheit, Stundensatz, Abhängigkeit von einem Kunden | Kundenseite `/clients`, Verbund → Kunden, Abrechnung |
 | **Arbeitszeit** | Kimai (Zeiten, Sollzeit aus dem Vertrag) | Kimai (Timer, Buchungen) | fehlende Tage, Überstunden, Woche gegen Soll, unabgerechnete Stunden | Kimai-Kacheln, Hinweise |
 | **Abwesenheit** | Kimai (holiday-bundle: Urlaub, Feiertage) | – | Soll und fehlende Tage richtig rechnen | Kimai-Kacheln |
-| **Rechnung** | Invoice Ninja | Invoice Ninja (Entwürfe aus Kimai-Zeiten) | offen, überfällig, Mahnung fällig, Steuer, Liquidität, Jahresprognose | Abrechnung `/billing`, Geld-Kacheln |
+| **Rechnung** | Invoice Ninja | Invoice Ninja (Entwürfe aus Kimai-Zeiten) | offen, überfällig, langsame Zahler, fehlende USt, Umsatzziel, Liquidität, Jahresprognose; Jahrespaket für die Steuer | Abrechnung `/billing`, Geld-Kacheln |
 | **Zahlung** | Invoice Ninja, Sure (Kontobewegungen) | Invoice Ninja (Buchung aus Sure) | Eingänge den Rechnungen zuordnen, unerwartete Eingänge | Abrechnung, Hinweise |
-| **Beleg** | Invoice Ninja (Ausgaben), Paperless (Scans), Postfach (Anhänge) | Invoice Ninja, Paperless (gegenseitige Verweise, Upload) | Ausgaben mit Scans verknüpfen, fehlende Belege | Belege `/receipts` |
-| **Abo** | Sure (wiederkehrende Buchungen), Wallos, Paperless (Verträge) | – | Kosten, Kündigungsfristen, Abos ohne Buchung | Kacheln, Hinweise |
+| **Beleg** | Invoice Ninja (Ausgaben), Paperless (Scans), Postfach (Anhänge) | Invoice Ninja, Paperless (gegenseitige Verweise, Upload) | Ausgaben mit Scans verknüpfen; Rechnungen und Eingänge ohne Ausgabe | Belege `/receipts` |
+| **Abo** | Sure (wiederkehrende Buchungen), Wallos, Paperless (Verträge) | – | Kosten, Kündigungsfristen, ungenutzte oder ausgebliebene Abos, Wallos-Abos ohne Buchung | Kacheln, Hinweise |
 | **Termin** | Kalender (iCal) | – | gegen Kimai-Buchungen prüfen | Hinweise |
 | **Ort** | Dawarich (Areas), Kimai-Plugin Anfahrten (Orte mit Art) | Kimai, Dawarich, Andon (Art und Kunde) | Kundenorte, Zuhause, Arbeit; Grundlage für Fahrten | Akte der Dawarich-Verbindung → Orte |
 | **Fahrt** | Dawarich (Tracks), Kimai-Plugin Anfahrten | Kimai | Strecke, Einordnung beruflich, Pendeln oder privat mit Grund; km, Fahrtkosten, Verpflegung | Reise-Kachel, Hinweise `geo.*` |
@@ -109,7 +109,7 @@ Die Domänen aus `internal/caps` und weitere Dinge, die Andon auswertet. „Lies
 | Konzept | Wofür Andon es nutzt |
 |---|---|
 | **Hauptschlüssel** (`MASTER_KEY`) | verschlüsselt Zugangsdaten und die Datenbank-Datei |
-| **Export** | Bereich oder Instanz sichern und umziehen, ohne Geheimnisse |
+| **Export** | Bereich oder Board als Datei, ohne Geheimnisse; Jahrespaket der Abrechnung |
 | **Selbstsicherung** | regelmäßige verschlüsselte Kopie der Datenbank |
 | **Audit-Log** | wer was geändert hat |
 | **Demo-Modus** | nur für Screenshots, mit der Demowelt „Studio Weber“; nie in Auslieferungen |

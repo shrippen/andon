@@ -1144,7 +1144,7 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
 - [x] Kunden ohne Verbund zuordnen: impliziten Verbund auf der Seite der Verbünde zeigen, mit „Kunden“; erste Bestätigung legt ihn an *(gespeichert wird er schon beim Klick auf „Kunden“, nicht erst bei der ersten Bestätigung: Die Zuordnungsseite braucht einen gespeicherten Verbund)*
 - [x] Kundenseite (`/clients`): Stand der Zuordnung zeigen (bestätigt oder nur gleicher Name) und zur Zuordnung verlinken *(auf der Seite eines Kunden, Link nur mit Bearbeiten-Recht)*
 - [x] Diagramme stärker beschriften: Bei Balkendiagrammen hat die Y-Achse je Linie eine Beschriftung, die X-Achse nur Anfang und Ende; das ist schwer lesbar. Der Hover nennt beide Achsen *(`Graph.Labels`: X-Wert je Punkt; fünf Marken statt zwei, Hover „Tag · Wert“ an Balken und Linien. Antwortzeit-Diagramm der Link-Details ebenso, fünf Tage)*
-- [ ] Designdokument: alle Konzepte, die Andon kennt (z. B. Kunden, Orte), und was Andon mit ihnen tut bzw. wofür es sie verwendet
+- [x] Designdokument: alle Konzepte, die Andon kennt (z. B. Kunden, Orte), und was Andon mit ihnen tut bzw. wofür es sie verwendet *([`CONCEPTS.md`](CONCEPTS.md))*
 - [ ] Recherche Kacheltypen:
   - Dashys mögliche Kacheln durchgehen und auflisten, welche in Andon fehlen
   - Andere Dashboards und Andon-ähnliche Programme ansehen, daraus Vorschläge für weitere Kacheltypen
