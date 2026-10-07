@@ -46,6 +46,7 @@ widgets:
   - {id: trips, type: table, title: Fahrten, connection: dawarich, config: {table: trips}}
   - {id: forecast, type: kpi, title: "", connection: invoiceninja, config: {metric: revenue_forecast}}
   - {id: cash, type: kpi, title: "", connection: invoiceninja, config: {metric: cash_30}}
+  - {id: cashflow, type: cashflow, title: Liquidität, connection: invoiceninja, config: {}}
   - {id: open-trend, type: trend, title: Offene Posten (Verlauf), connection: invoiceninja, config: {metric: open_amount, days: 90}}
   - {id: acquisition, type: kintsugi, title: Akquise, connection: kintsugi, config: {}}
   - {id: shares, type: table, title: Umsatz je Kunde, connection: invoiceninja, config: {table: client_shares}}
@@ -72,7 +73,7 @@ boards:
   - name: Freelance
     slug: freelance
     sections:
-      - {title: Umsatz, widgets: [forecast, cash, rate, revenue-chart, open-trend]}
+      - {title: Umsatz, widgets: [forecast, cash, rate, revenue-chart, open-trend, cashflow]}
       - {title: Abschluss, widgets: [close, receipts, subs]}
       - {title: Offene Posten, widgets: [open-invoices, unbilled]}
       - {title: Kunden, widgets: [shares, paydays]}

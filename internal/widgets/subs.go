@@ -43,7 +43,7 @@ type SubRow struct {
 func subsView(cfg SubsConfig, results map[string]any, ctx ViewCtx) map[string]any {
 	today := todayOf(ctx).Format("2006-01-02")
 	wallos, hasWallos := results[peerWallos].(*sources.WallosDataset)
-	sure, hasSure := results[peerSure].(*sources.SureDataset)
+	sure, hasSure := bankOf(results)
 
 	var rows []SubRow
 	out := map[string]any{}
@@ -140,5 +140,5 @@ func init() {
 		Fields: []Field{{Key: "categories", Input: InputList}, sel("sort", "next", "next", "price"),
 			{Key: "limit", Input: InputNumber, Default: defaultSubRows, Min: "1", Max: "30"}, {Key: "yearly", Input: InputCheck}},
 		Decode: decodeSubs, View: subsView,
-		Queries: func(SubsConfig) []Query { return []Query{peer(peerWallos, enums.ServiceWallos), surePeer} }}.add()
+		Queries: func(SubsConfig) []Query { return append([]Query{peer(peerWallos, enums.ServiceWallos)}, bankPeers...) }}.add()
 }

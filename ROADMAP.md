@@ -1150,7 +1150,7 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 **Schritt 12: Finanzen** — Firefly III, Ghostfolio
 - [x] Firefly III in der Domäne Zahlungen (wie Sure, `caps`) *(liefert Sures Form; `metrics.BankOf` gibt Regeln und Kennzahlen Sure oder Firefly; Sure-Regeln laufen als `firefly.*`)*; Ghostfolio: Kachel „Depot“ mit Verlauf und Positionen, `ghostfolio.drawdown`
 - [x] Quer: Zahlungsabgleich mit Invoice Ninja auch über Firefly III; `cross.depot_reserve` (fehlende Rücklage, die das Depot decken könnte)
-- [ ] Kacheln mit Sure als Partner (Liquidität, Kosten) lesen Firefly noch nicht; Depot nicht in der Liquidität *(Depot ist kein Bargeld)*
+- [x] Kacheln mit Sure als Partner (Liquidität, Kosten) lesen Firefly noch nicht; Depot nicht in der Liquidität *(Depot ist kein Bargeld)* *(Liquidität und Frei verfügbar (Kennzahl), Liquiditätsvorschau, Abos, Homelab-Kosten, Monatsabschluss und Reise-Dialog fragen Sure und Firefly III als Partner und lesen über `metrics.BankOf`, Sure zuerst. Das Depot bleibt aus der Liquidität; der Dialog der Liquiditätsvorschau nennt es als eigene Zeile „Depot (kein Bargeld)“)*
 
 **Schritt 13: Lesen** — Hacker News, Lobsters, Reddit, YouTube-Kanäle, Twitch
 - [x] Kachel „Lesen“ (Punkte, Kommentare, Alter), YouTube über die Kanal-Feeds, Twitch mit App-Zugang *(Verbindung `news`: Hacker News über die Algolia-API, Lobsters, `r/<sub>`, `youtube:<Kanal-ID>`, ohne Anmeldung; Verbindung `twitch` mit Client-ID und Secret, App-Token im Speicher; die Seiten wechseln sich in der Kachel ab, Kanäle live stehen oben)*

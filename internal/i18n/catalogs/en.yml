@@ -4302,6 +4302,7 @@ detail:
     lowest: 'Lowest'
     at_day: '{amount} on {day}'
     min: 'Minimum balance'
+    depot: 'Depot (no cash)'
     balance: 'Balance · 90 days back and ahead'
     change: 'Change in {n} d'
     moves: 'Largest moves'

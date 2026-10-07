@@ -4303,6 +4303,7 @@ detail:
     lowest: 'Tiefster Stand'
     at_day: '{amount} am {day}'
     min: 'Mindestbestand'
+    depot: 'Depot (kein Bargeld)'
     balance: 'Kontostand · 90 Tage zurück und voraus'
     change: 'Änderung in {n} T'
     moves: 'Größte Bewegungen'
