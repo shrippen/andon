@@ -468,3 +468,71 @@ func TestDemoHealthchecks(t *testing.T) {
 		t.Fatalf("demo %+v", data.Checks)
 	}
 }
+
+// TestPrometheus: alerts with labels and summary; a query's value, its
+// hourly line with a missing hour as nil; "user:pass" logs in as basic.
+func TestPrometheus(t *testing.T) {
+	end := time.Now().UTC().Truncate(time.Hour)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if user, pass, ok := r.BasicAuth(); !ok || user != "me" || pass != "pw" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		switch r.URL.Path {
+		case "/api/v1/alerts":
+			w.Write([]byte(`{"status":"success","data":{"alerts":[{"labels":{"alertname":"HostDown","severity":"Critical","instance":"nas:9100"},` +
+				`"annotations":{"description":"nas is down"},"state":"firing","activeAt":"2026-10-07T08:00:00Z"},` +
+				`{"labels":{"alertname":"Slow"},"annotations":{"summary":"slow"},"state":"pending"}]}}`))
+		case "/api/v1/query":
+			w.Write([]byte(`{"status":"success","data":{"result":[{"metric":{},"value":[1759824000,"3.5"]},{"metric":{},"value":[1759824000,"1"]}]}}`))
+		case "/api/v1/query_range":
+			older := strconv.FormatInt(end.Add(-2*time.Hour).Unix(), 10)
+			now := strconv.FormatInt(end.Unix(), 10)
+			w.Write([]byte(`{"status":"success","data":{"result":[{"values":[[` + older + `,"1"],[` + now + `,"2.5"]]}]}}`))
+		}
+	}))
+	defer srv.Close()
+	sctx := sources.Ctx{URL: srv.URL, Secret: "me:pw"}
+
+	raw, err := sources.PrometheusData.Fetch(context.Background(), sctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	alerts := raw.(*sources.PrometheusDataset).Alerts
+	if len(alerts) != 2 || alerts[0].Severity != "critical" || alerts[0].Summary != "nas is down" || !alerts[0].Firing() || alerts[1].Firing() {
+		t.Fatalf("alerts %+v", alerts)
+	}
+
+	sctx.Params = map[string]any{"query": "node_load1", "hours": 3.0}
+	raw, err = sources.PrometheusQuery.Fetch(context.Background(), sctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := raw.(*sources.PromValue)
+	if !v.Found || v.Value != 3.5 || v.Series != 2 || len(v.Hourly) != 3 || *v.Hourly[0] != 1 || v.Hourly[1] != nil || *v.Hourly[2] != 2.5 {
+		t.Fatalf("value %+v", v)
+	}
+
+	sctx.Params = map[string]any{}
+	if _, err := sources.PrometheusQuery.Fetch(context.Background(), sctx); err == nil || err.Error() != "prometheus.no_query" {
+		t.Fatalf("empty query: %v", err)
+	}
+}
+
+// TestDemoPrometheus: the demo has firing alerts and answers any query.
+func TestDemoPrometheus(t *testing.T) {
+	now := time.Now()
+	if a := sources.DemoPrometheus(now).Alerts; len(a) < 2 || !a[0].Firing() || a[0].Instance == "" {
+		t.Fatalf("alerts %+v", a)
+	}
+	if v := sources.DemoPromQuery(now, "up", 6); !v.Found || len(v.Hourly) != 6 {
+		t.Fatalf("query %+v", v)
+	}
+}
+
+// TestDemoPromQueryByName: a query the world names gets its own values.
+func TestDemoPromQueryByName(t *testing.T) {
+	if v := sources.DemoPromQuery(time.Now(), "node_load1", 24); v.Value != 3.4 || len(v.Hourly) != 24 {
+		t.Fatalf("node_load1 %+v", v)
+	}
+}

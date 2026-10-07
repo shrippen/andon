@@ -6,6 +6,8 @@
 //	         ├─ Immich connection    failed · v1.131.0
 //	         ├─ monitor "NAS"        down
 //	         ├─ certificate          ends 06.10.2026
+//	         ├─ Prometheus alert     HostHighCpuLoad (instance nas:9100)
+//	         ├─ heartbeat            borg-nas (a check tagged with the host's first label: "nas")
 //	         └─ hints of these connections
 package hosts
 
@@ -13,6 +15,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -56,6 +59,8 @@ type Host struct {
 	Services []Service
 	Monitors []Monitor
 	Certs    []sources.Cert
+	Alerts   []sources.PromAlert // firing
+	Beats    []sources.Heartbeat
 	Hints    []hints.View
 	Problems int // failed services, monitors down, failing certificates
 }
@@ -126,6 +131,8 @@ func collect(ctx context.Context, d *sql.DB, who *access.Principal) (map[string]
 	out := map[string]*Host{}
 	var kuma []*sources.KumaDataset
 	var certs []*sources.CertDataset
+	var proms []*sources.PrometheusDataset
+	var beats []*sources.HealthchecksDataset
 	for _, c := range conns {
 		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(c.Service)), nil, c, model.UserHolder(uid), svcdata.Stored)
 		if err != nil || res.Pending {
@@ -136,6 +143,10 @@ func collect(ctx context.Context, d *sql.DB, who *access.Principal) (map[string]
 			kuma = append(kuma, data)
 		case *sources.CertDataset:
 			certs = append(certs, data)
+		case *sources.PrometheusDataset:
+			proms = append(proms, data)
+		case *sources.HealthchecksDataset:
+			beats = append(beats, data)
 		}
 		name := rules.HostOf(c.URL)
 		if name == "" {
@@ -175,7 +186,42 @@ func collect(ctx context.Context, d *sql.DB, who *access.Principal) (map[string]
 			h.Certs = append(h.Certs, c)
 		}
 	}
+	addAlerts(out, proms)
+	addBeats(out, beats)
 	return out, nil
+}
+
+// addAlerts puts each firing alert on the host of its instance label.
+func addAlerts(out map[string]*Host, proms []*sources.PrometheusDataset) {
+	for _, data := range proms {
+		for _, a := range data.Alerts {
+			h, ok := out[rules.HostOf(a.Instance)]
+			if !ok || !a.Firing() {
+				continue
+			}
+			h.Problems++
+			h.Alerts = append(h.Alerts, a)
+		}
+	}
+}
+
+// addBeats puts each check on the hosts whose first label is one of its
+// tags: tag "nas" → nas.lan.
+func addBeats(out map[string]*Host, beats []*sources.HealthchecksDataset) {
+	for name, h := range out {
+		label, _, _ := strings.Cut(name, ".")
+		for _, data := range beats {
+			for _, c := range data.Checks {
+				if !slices.ContainsFunc(c.Tags, func(t string) bool { return strings.EqualFold(t, label) }) {
+					continue
+				}
+				if c.Status == sources.HeartbeatDown {
+					h.Problems++
+				}
+				h.Beats = append(h.Beats, c)
+			}
+		}
+	}
 }
 
 func hostOf(all map[string]*Host, name string) *Host {

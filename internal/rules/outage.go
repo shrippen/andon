@@ -4,7 +4,8 @@ package rules
 //
 //	connection nas.lan failed ─┐
 //	kuma monitor "NAS" down    ├─ host nas.lan ─► system.outage (critical)
-//	kuma monitor "SMB" down   ─┘                  single hints suppressed
+//	kuma monitor "SMB" down   ─┤                  single hints suppressed
+//	critical Prometheus alert ─┘
 //
 // A host that runs as a Proxmox guest belongs to its guest, and a guest to
 // its node: when the node is offline (or the guest stopped), the signals
@@ -13,6 +14,7 @@ package rules
 //	node pve1 offline ─► guest nas ─► nas.lan signals ─► outage "pve1"
 
 import (
+	"fmt"
 	"net/url"
 	"sort"
 	"strings"
@@ -71,6 +73,9 @@ func Outages(env Env) map[string][]string {
 				add(HostOf(m.Target), m.Name)
 			}
 		}
+	}
+	for _, a := range criticalAlerts(env) {
+		add(HostOf(a.Instance), "Prometheus "+a.Name)
 	}
 	// A down node or guest is a signal itself, once, when something on it failed.
 	for key, names := range signals {
@@ -136,7 +141,14 @@ func rootOf(r roots, host string) string {
 
 // Suppressed reports whether a finding is covered by an outage hint.
 func Suppressed(f Finding, env Env, outages map[string][]string) bool {
-	if f.Rule != kumaDownRule || len(outages) == 0 {
+	if len(outages) == 0 {
+		return false
+	}
+	if f.Rule == promAlertRule {
+		_, down := outages[OutageRoot(env, HostOf(fmt.Sprint(f.Params["instance"])))]
+		return down
+	}
+	if f.Rule != kumaDownRule {
 		return false
 	}
 	kuma, ok := env.Datasets[string(enums.ServiceUptimeKuma)].(*sources.KumaDataset)

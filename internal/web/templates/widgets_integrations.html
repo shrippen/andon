@@ -206,3 +206,14 @@
 </ul>{{end}}
 {{end}}{{end}}
 {{end}}
+
+{{define "widgets/prometheus_value"}}
+{{with $slot := index .Frag.Slots "value"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Found}}
+<div class="kpi">
+  <b class="kpi-value" data-live>{{num $v.Value $v.Digits}}{{with $v.Unit}} {{.}}{{end}}</b>
+  {{if $v.Warned}}<span><span class="pill" data-state="locked">{{if $v.Inverted}}{{t "prometheus.below" "n" (num $v.Warn $v.Digits)}}{{else}}{{t "prometheus.above" "n" (num $v.Warn $v.Digits)}}{{end}}</span></span>{{end}}
+  {{with $v.Spark}}{{template "spark" .}}<span class="kpi-sub">{{t "prometheus.spark" "n" $v.Hours}}</span>{{end}}
+</div>
+{{else if eq $v.Found false}}<p class="tile-note">{{t "prometheus.empty"}}</p>{{end}}{{end}}
+{{end}}

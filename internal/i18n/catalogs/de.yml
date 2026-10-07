@@ -40,6 +40,7 @@ action:
   open_in_github: 'In GitHub öffnen'
   open_in_kdestore: 'Im KDE Store öffnen'
   open_in_healthchecks: 'In Healthchecks öffnen'
+  open_in_prometheus: 'In Prometheus öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
   close: Schließen
   open_in_jsonapi: API öffnen
@@ -257,6 +258,13 @@ typefield:
   heartbeats:
     tags: 'Nur Tags'
     only_problems: 'Nur Probleme auflisten'
+  prometheus_value:
+    query: 'PromQL-Ausdruck'
+    unit: 'Einheit'
+    hours: 'Verlauf (Stunden)'
+    digits: 'Nachkommastellen'
+    warn: 'Warnen ab'
+    invert: 'Warnen unterhalb (z. B. freier Platz)'
   hints:
     sort_value: Größter Betrag zuerst
     min_severity_10: Alle Stufen
@@ -288,6 +296,8 @@ typefield:
   conn_health:
     only_problems: Nur aktuell wackelige (letzte 2 Tage)
 field:
+  hours: Verlauf (Stunden)
+  warn: Warnen ab
   language: Sprache
   league: Liga
   team: Mannschaft
@@ -564,6 +574,7 @@ field:
   list_height: 'Listenhöhe'
   show_meals: 'Essensplan zeigen'
 opt:
+  6h: 6 Stunden
   daily: Heute
   weekly: Diese Woche
   monthly: Dieser Monat
@@ -855,6 +866,9 @@ wtype:
   heartbeats:
     name: 'Herzschläge'
     desc: 'Healthchecks: welche Cron-Jobs sich melden, welche zu spät oder gar nicht.'
+  prometheus_value:
+    name: 'Prometheus-Wert'
+    desc: 'Ein PromQL-Ausdruck als Zahl, mit Verlauf der letzten Stunden und Warnschwelle.'
   speedtest:
     name: 'Internet-Geschwindigkeit'
     desc: 'Letzte Messung aus Speedtest Tracker.'
@@ -1261,6 +1275,10 @@ conn:
   options_hint_healthchecks: 'URL von healthchecks.io oder der eigenen Instanz, z. B. https://healthchecks.io. Token = API-Schlüssel des Projekts; der Nur-Lese-Schlüssel reicht (Projekt → Einstellungen → API-Zugang).'
   about_healthchecks: 'Cron-Jobs: Herzschläge, Ausfälle'
   what_healthchecks: 'Healthchecks überwacht geplante Aufgaben: Jeder Job meldet sich nach dem Lauf, bleibt die Meldung aus, gilt er als ausgefallen.'
+  options_hint_prometheus: 'URL des Prometheus-Servers, z. B. http://prometheus:9090. Ohne Anmeldung Token leer lassen; sonst Bearer-Token oder benutzer:passwort für Basic Auth (etwa hinter einem Proxy). Feuernde Alerts werden zu Hinweisen, die Stufe kommt aus dem Label severity.'
+  about_prometheus: 'Alerts als Hinweise, PromQL-Werte'
+  what_prometheus: 'Prometheus sammelt Messwerte (etwa über node_exporter) und löst nach Regeln Alerts aus.'
+  secret_prometheus: 'Token oder benutzer:passwort (leer = ohne Anmeldung)'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
   health: 'Zustand'
@@ -1475,6 +1493,7 @@ service:
   github: 'GitHub'
   kdestore: 'KDE Store'
   healthchecks: 'Healthchecks'
+  prometheus: 'Prometheus'
   tibber: 'Tibber (Strom)'
   links: Kacheln
   jsonapi: Eigene API (JSON)
@@ -1798,6 +1817,10 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  prometheus:
+    alert:
+      title: '{name} auf {instance}'
+      why: '{summary}'
   heartbeat:
     down:
       title: 'Herzschlag fehlt: {name}'
@@ -2499,6 +2522,9 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
+  prometheus:
+    alerts: '{count} Alerts'
+    critical: '{count} kritisch'
   healthchecks:
     up: '{up} / {count} Checks'
     down: '{count} ausgefallen'
@@ -2729,6 +2755,7 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  prometheus.alert: 'Prometheus-Alert'
   heartbeat.down: 'Herzschlag fehlt'
   cross.heartbeat_backup: 'Herzschlag gegen Sicherung'
   system.partner_ambiguous: Verbund fehlt
@@ -4687,6 +4714,26 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image-Updates: {n}'
   alerts: 'Warnungen: {n}'
+prometheus:
+  above: 'über {n}'
+  below: 'unter {n}'
+  query: 'Abfrage'
+  now: 'jetzt'
+  min: 'Minimum'
+  avg: 'Mittel'
+  max: 'Maximum'
+  hours: 'Letzte {n} Stunden'
+  series: 'Reihen (gezeigt: die erste)'
+  spark: 'letzte {n} h'
+  empty: 'Die Abfrage liefert keinen Wert.'
+  no_query: 'Kein PromQL-Ausdruck angegeben.'
+  alerts: 'Feuernde Alerts'
+  no_alerts: 'Kein Alert feuert.'
+  col:
+    alert: 'Alert'
+    instance: 'Instanz'
+    summary: 'Beschreibung'
+    since: 'Seit'
 heartbeat:
   up: 'melden sich'
   never: 'nie gemeldet'
@@ -5487,6 +5534,8 @@ clients:
   projects: 'Projekte dieses Jahr'
   no_hints: 'Keine offenen Hinweise zu diesem Kunden.'
 hosts:
+  alerts: 'Prometheus-Alerts'
+  beats: 'Herzschläge'
   host: 'Host'
   services: 'Dienste'
   monitors: 'Monitore'

@@ -61,6 +61,12 @@
     {{with $h.Certs}}<h2>{{t "hosts.certs"}}</h2>
     <ul class="legend-list">{{range .}}<li><span>{{.Host}}{{with .Issuer}} <small class="muted">{{.}}</small>{{end}}</span><b>{{if .Error}}<span class="late">{{.Error}}</span>{{else}}{{t "hosts.cert_until" "day" (day .NotAfter)}}{{end}}</b></li>{{end}}</ul>{{end}}
 
+    {{with $h.Alerts}}<h2>{{t "hosts.alerts"}}</h2>
+    <ul class="legend-list">{{range .}}<li data-tier="{{if eq .Severity "critical"}}red{{else if eq .Severity "warning"}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><span>{{.Name}}{{with .Summary}} <small class="muted">{{.}}</small>{{end}}</span><b>{{ago .Since}}</b></li>{{end}}</ul>{{end}}
+
+    {{with $h.Beats}}<h2>{{t "hosts.beats"}}</h2>
+    <ul class="legend-list">{{range .}}<li data-tier="{{if eq .Status "down"}}red{{else if eq .Status "grace"}}yellow{{else if eq .Status "up"}}green{{end}}"><span class="sq" aria-hidden="true"></span><span>{{.Name}}</span><b>{{t (print "heartbeat.state." .Status)}}{{if not .LastPing.IsZero}} · {{ago .LastPing}}{{end}}</b></li>{{end}}</ul>{{end}}
+
     <h2>{{t "nav.hints"}}</h2>
     {{with $h.Hints}}<ul class="hint-lines">{{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><a href="/hints#hint-{{.ID}}" title="{{.Title}}">{{.Title}}</a><small>{{ago .FirstSeen}}</small></li>{{end}}</ul>
     {{else}}<p class="muted">{{t "hosts.no_hints"}}</p>{{end}}

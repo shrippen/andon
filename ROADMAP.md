@@ -1102,11 +1102,11 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 **Schritt 2: Healthchecks** (healthchecks.io, API v3)
 - [x] Quelle, Kachel „Herzschläge“ (Status je Check, letzter Ping), Regel `heartbeat.down` *(Verlauf je Check noch offen)*
 - [x] Quer: `cross.heartbeat_backup` (Check mit Namen einer Sicherung meldet sich nicht, die Sicherung ist aber frisch, oder umgekehrt)
-- [ ] Checks zu Compose-Stacks (Name = Stack) auf der Host-Seite (zusammen mit den Prometheus-Alerts je Host, Schritt 3)
+- [x] Checks auf der Host-Seite *(über ein Tag mit dem Hostnamen: Tag `nas` → nas.lan; Checks kennen keinen Host)*
 
 **Schritt 3: Prometheus** (und Alertmanager-kompatible Alerts)
-- [ ] Quelle: feuernde Alerts (`/api/v1/alerts`) als Hinweise `prometheus.alert` mit Stufe aus dem Label `severity`; Kachel „Prometheus-Wert“ (PromQL als Zahl oder Verlauf)
-- [ ] Quer: Alerts je Host (Label `instance`) auf der Host-Seite; Alert und Uptime-Kuma-Ausfall desselben Hosts als ein Hinweis
+- [x] Quelle: feuernde Alerts (`/api/v1/alerts`) als Hinweise `prometheus.alert` mit Stufe aus dem Label `severity`; Kachel „Prometheus-Wert“ (PromQL als Zahl oder Verlauf)
+- [x] Quer: Alerts je Host (Label `instance`) auf der Host-Seite; Alert und Uptime-Kuma-Ausfall desselben Hosts als ein Hinweis *(kritische Alerts sind ein Signal für `system.outage`, der einzelne Alert wird dann unterdrückt)*
 
 **Schritt 4: CVE** (NVD-API, Schlüssel optional)
 - [ ] Quelle: neue CVEs zu den Images der Compose-Stacks (Name des Images als Suchwort), mit CVSS und betroffenen Versionen; Kachel „Sicherheitslücken“

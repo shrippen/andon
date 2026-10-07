@@ -14,6 +14,7 @@ connections:
   - {id: github, type: github, name: GitHub, url: "demo://github", credentials: shared, options: {repos: [studio/website, studio/showreel]}}
   - {id: borg, type: borgbackup, name: Borg Backup, url: "demo://borg", credentials: shared}
   - {id: healthchecks, type: healthchecks, name: Healthchecks, url: "demo://healthchecks", credentials: shared}
+  - {id: prometheus, type: prometheus, name: Prometheus, url: "demo://prometheus", credentials: shared}
   - {id: linkwarden, type: linkwarden, name: Linkwarden, url: "demo://linkwarden", credentials: shared}
   - {id: pgback, type: pgbackweb, name: PG Back Web, url: "demo://pgbackweb", credentials: shared}
   - {id: hansei, type: hansei, name: Hansei, url: "demo://hansei", credentials: shared}
@@ -52,6 +53,7 @@ widgets:
   - {id: updates, type: updates, title: Updates, config: {}}
   - {id: backups, type: backups, title: Backups, config: {}}
   - {id: heartbeats, type: heartbeats, title: Herzschläge, connection: healthchecks, config: {}}
+  - {id: nas-load, type: prometheus_value, title: Last NAS, connection: prometheus, config: {query: node_load1, hours: "24h", digits: 1, warn: "3"}}
   - {id: authentik-apps, type: table, title: Anmeldungen je Anwendung, connection: authentik, config: {table: app_usage, limit: 5}}
   - {id: hass-panel, type: hass, title: Zuhause, connection: hass, config: {entities: [light.buero, switch.kaffeemaschine, sensor.wohnzimmer_temperatur, sensor.fenster_bad_batterie]}}
   - {id: monitors, type: monitors, title: Monitore, connection: kuma, config: {}}
@@ -74,5 +76,5 @@ boards:
       - {title: Betrieb, cols: 4, widgets: [kuma-link, pve-link, paperless-link, certs-link, scrutiny-link, immich-link, umami-link, freshrss-link, gitea-link, borg-link, hass-link, truenas-link, komodo-link, pangolin-link, authentik-link]}
       - {title: Netz, cols: 4, span: 2, color: blue, widgets: [pihole-link, nextcloud-link, sabnzbd-link, gluetun-link, domains-link, blacklist-link]}
       - {title: Info, area: side, widgets: [clock, note]}
-      - {title: Status, area: side, widgets: [monitors, uptime, hass-panel, authentik-apps, updates, backups, heartbeats, downloads, store-downloads]}
+      - {title: Status, area: side, widgets: [monitors, uptime, hass-panel, authentik-apps, updates, backups, heartbeats, nas-load, downloads, store-downloads]}
       - {title: Sicherheit, widgets: [exposure]}

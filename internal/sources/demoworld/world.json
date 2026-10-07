@@ -5728,7 +5728,7 @@
   "checks": [
    {
     "name": "borg-nas",
-    "tags": "backup",
+    "tags": "backup nas",
     "status": "up",
     "last_ping": "@-7h",
     "grace": 3600,

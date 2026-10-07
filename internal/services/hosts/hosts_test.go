@@ -76,3 +76,32 @@ func TestListGroupsConnectionsByHost(t *testing.T) {
 		t.Fatalf("stranger sees hosts: %+v", other)
 	}
 }
+
+// TestHostAlertsAndBeats: a firing Prometheus alert lands on the host of
+// its instance label, a heartbeat on the host its tag names; both count
+// as problems when bad.
+func TestHostAlertsAndBeats(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	ctx := context.Background()
+	for _, s := range []struct {
+		service enums.ServiceType
+		url     string
+	}{{enums.ServiceKimai, "demo://nas"}, {enums.ServicePrometheus, "demo://prom"}, {enums.ServiceHealthchecks, "demo://hc"}} {
+		conn, err := content.Connection(d, testkit.Conn(t, d, who, space, s.service, s.url))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := svcdata.Get(ctx, d, sources.DataKey(s.service), nil, conn, model.UserHolder(who.UserID), svcdata.Force); err != nil {
+			t.Fatalf("seed %s: %v", s.service, err)
+		}
+	}
+
+	nas, err := hosts.One(ctx, d, who, "nas")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(nas.Alerts) != 1 || nas.Alerts[0].Name != "HostHighCpuLoad" || len(nas.Beats) != 1 || nas.Beats[0].Name != "borg-nas" || nas.Problems != 1 {
+		t.Fatalf("nas: alerts %+v beats %+v problems %d", nas.Alerts, nas.Beats, nas.Problems)
+	}
+}

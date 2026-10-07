@@ -104,6 +104,25 @@ func GiteaInfo(data *sources.GiteaDataset) []InfoPart {
 	return found
 }
 
+// PrometheusInfo: "3 alerts · 1 critical".
+func PrometheusInfo(data *sources.PrometheusDataset) []InfoPart {
+	firing, critical := 0, 0
+	for _, a := range data.Alerts {
+		if !a.Firing() {
+			continue
+		}
+		firing++
+		if a.Severity == "critical" {
+			critical++
+		}
+	}
+	found := []InfoPart{part("prometheus.alerts", map[string]any{"count": firing})}
+	if critical > 0 {
+		found = append(found, part("prometheus.critical", map[string]any{"count": critical}))
+	}
+	return found
+}
+
 // HealthchecksInfo: "4 / 5 checks · 1 down".
 func HealthchecksInfo(data *sources.HealthchecksDataset) []InfoPart {
 	up, total := 0, 0
