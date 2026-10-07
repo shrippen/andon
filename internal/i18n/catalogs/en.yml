@@ -39,6 +39,7 @@ action:
   open_in_dwd: 'Open in DWD weather warnings'
   open_in_github: 'Open in GitHub'
   open_in_kdestore: 'Open in KDE Store'
+  open_in_healthchecks: 'Open in Healthchecks'
   open_in_tibber: 'Open in Tibber (electricity)'
   close: Close
   open_in_jsonapi: Open API
@@ -253,6 +254,9 @@ typefield:
     days: History (days)
   kdestore_downloads:
     days: History (days)
+  heartbeats:
+    tags: 'Only tags'
+    only_problems: 'List problems only'
   hints:
     sort_value: Largest amount first
     min_severity_10: All levels
@@ -848,6 +852,9 @@ wtype:
   kdestore_downloads:
     name: 'KDE Store downloads'
     desc: 'Downloads of the KDE Store entries with a daily history.'
+  heartbeats:
+    name: 'Heartbeats'
+    desc: 'Healthchecks: which cron jobs report in, which are late or silent.'
   speedtest:
     name: 'Internet speed'
     desc: 'Latest result from Speedtest Tracker.'
@@ -1251,6 +1258,9 @@ conn:
   about_github: 'Repos: PRs, issues, CI, releases'
   options_hint_kdestore: 'The URL stays https://api.kde-look.org (the API, not store.kde.org), no token. What is read is set by the fields user and single entries.'
   about_kdestore: 'Entries: downloads, version'
+  options_hint_healthchecks: 'URL of healthchecks.io or your own instance, e.g. https://healthchecks.io. Token = the project''s API key; the read-only key is enough (project → settings → API access).'
+  about_healthchecks: 'Cron jobs: heartbeats, outages'
+  what_healthchecks: 'Healthchecks watches scheduled jobs: each job pings after its run; when the ping stays away, the job counts as down.'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
   health: 'Health'
@@ -1464,6 +1474,7 @@ service:
   dwd: 'DWD weather warnings'
   github: 'GitHub'
   kdestore: 'KDE Store'
+  healthchecks: 'Healthchecks'
   tibber: 'Tibber (electricity)'
   links: Tiles
   jsonapi: Custom API (JSON)
@@ -1787,6 +1798,10 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  heartbeat:
+    down:
+      title: 'Heartbeat missing: {name}'
+      why: 'Last ping: {since}. The job did not run or no longer pings.'
   dns:
     device_spike:
       title: '{device} queries unusually much'
@@ -2092,6 +2107,12 @@ hint:
       title: 'Large expense: {name} ({amount})'
       why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
+    heartbeat_ok_backup_not:
+      title: '{check} reports OK, the backup does not'
+      why: '{tool} “{item}”: last successful backup {day}, yet the job keeps pinging. It probably pings even when the backup fails.'
+    heartbeat_down_backup_ok:
+      title: '{check} is silent, the backup is fresh'
+      why: '{tool} “{item}” was backed up on {day}, only the heartbeat is missing. Check the ping in the job.'
     payment_unmatched:
       title: 'Payment without open invoice: {name}'
       why: '{amount} on {day} from a known client matches no open invoice. Invoice missing or wrong number?'
@@ -2477,6 +2498,9 @@ hint:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
 info:
+  healthchecks:
+    up: '{up} / {count} checks'
+    down: '{count} down'
   tailscale:
     online: '{online}/{count} online'
   gateway:
@@ -2704,6 +2728,8 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  heartbeat.down: 'Heartbeat missing'
+  cross.heartbeat_backup: 'Heartbeat against backup'
   system.partner_ambiguous: Verbund missing
   system.connector_down: Connection failing
   system.unused_service: 'Unused service'
@@ -4660,6 +4686,29 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image updates: {n}'
   alerts: 'Alerts: {n}'
+heartbeat:
+  up: 'reporting'
+  never: 'never pinged'
+  checks: 'Checks'
+  every: 'every {time}'
+  state:
+    up: 'OK'
+    down: 'down'
+    grace: 'late'
+    paused: 'paused'
+    new: 'new'
+    started: 'running'
+  facts:
+    up: 'reporting'
+    down: 'down'
+    late: 'late'
+    paused: 'paused'
+  col:
+    name: 'Check'
+    state: 'State'
+    last: 'Last ping'
+    plan: 'Expected'
+    tags: 'Tags'
 kdestore:
   not_found: 'Entry or user not found in the KDE Store.'
   no_entries: 'Nothing to read: give a user or single entries.'

@@ -1100,8 +1100,9 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] `sources.BackupSource` (Datensatz nennt seine Sicherungen: Werkzeug, Gegenstand, letzte Sicherung, Ergebnis); Borg, PG Back Web, TrueNAS stellen um; Backup-Kachel, `backups.*`, `LastBackup` (Update-Fenster) lesen jede Quelle mit der Schnittstelle
 
 **Schritt 2: Healthchecks** (healthchecks.io, API v3)
-- [ ] Quelle, Kachel „Herzschläge“ (Status je Check, letzter Ping, Verlauf), Regel `heartbeat.down`
-- [ ] Quer: `cross.heartbeat_backup` (Check mit Namen einer Sicherung meldet sich nicht, die Sicherung ist aber frisch, oder umgekehrt); Checks zu Compose-Stacks (Name = Stack) auf der Host-Seite
+- [x] Quelle, Kachel „Herzschläge“ (Status je Check, letzter Ping), Regel `heartbeat.down` *(Verlauf je Check noch offen)*
+- [x] Quer: `cross.heartbeat_backup` (Check mit Namen einer Sicherung meldet sich nicht, die Sicherung ist aber frisch, oder umgekehrt)
+- [ ] Checks zu Compose-Stacks (Name = Stack) auf der Host-Seite (zusammen mit den Prometheus-Alerts je Host, Schritt 3)
 
 **Schritt 3: Prometheus** (und Alertmanager-kompatible Alerts)
 - [ ] Quelle: feuernde Alerts (`/api/v1/alerts`) als Hinweise `prometheus.alert` mit Stufe aus dem Label `severity`; Kachel „Prometheus-Wert“ (PromQL als Zahl oder Verlauf)

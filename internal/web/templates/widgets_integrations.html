@@ -196,3 +196,13 @@
 
 {{/* aging_band: a band's days, from its limits (AgingBand). */}}
 {{define "aging_band"}}{{if eq .Key "current"}}{{t "aging.current"}}{{else if .Over}}{{t "aging.over" "days" .Over}}{{else}}{{t "aging.span" "from" .From "to" .To}}{{end}}{{end}}
+
+{{define "widgets/heartbeats"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Total}}
+<div class="tile-head"><b class="tile-value" data-live>{{$v.Up}} / {{$v.Total}}</b><span class="tile-note">{{t "heartbeat.up"}}</span></div>
+{{with $v.Lines}}<ul class="plain-list">
+  {{range .}}<li><span class="pill"{{with .Pill}} data-state="{{.}}"{{end}}>{{t (print "heartbeat.state." .Status)}}</span> {{.Name}} <small class="muted">{{if .LastPing.IsZero}}{{t "heartbeat.never"}}{{else}}{{ago .LastPing}}{{end}}</small></li>{{end}}
+</ul>{{end}}
+{{end}}{{end}}
+{{end}}

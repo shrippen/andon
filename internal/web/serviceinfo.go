@@ -45,6 +45,7 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServiceDWD:           "https://brightsky.dev",
 	enums.ServiceGitHub:        "https://github.com",
 	enums.ServiceKDEStore:      "https://store.kde.org",
+	enums.ServiceHealthchecks:  "https://healthchecks.io",
 	enums.ServiceTibber:        "https://tibber.com",
 }
 

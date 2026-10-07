@@ -104,6 +104,25 @@ func GiteaInfo(data *sources.GiteaDataset) []InfoPart {
 	return found
 }
 
+// HealthchecksInfo: "4 / 5 checks · 1 down".
+func HealthchecksInfo(data *sources.HealthchecksDataset) []InfoPart {
+	up, total := 0, 0
+	for _, c := range data.Checks {
+		if c.Status == sources.HeartbeatPaused {
+			continue
+		}
+		total++
+		if c.Status == sources.HeartbeatUp {
+			up++
+		}
+	}
+	found := []InfoPart{part("healthchecks.up", map[string]any{"up": up, "count": total})}
+	if down := len(data.Down()); down > 0 {
+		found = append(found, part("healthchecks.down", map[string]any{"count": down}))
+	}
+	return found
+}
+
 // BorgInfo: "1/2 clients · backup 7 h ago".
 func BorgInfo(data *sources.BorgDataset, now time.Time) []InfoPart {
 	online := 0
