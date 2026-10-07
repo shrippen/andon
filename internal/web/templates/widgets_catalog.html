@@ -101,6 +101,7 @@
 {{end}}
 {{define "widgets/pihole"}}{{template "dnsfilter" .}}{{end}}
 {{define "widgets/adguard"}}{{template "dnsfilter" .}}{{end}}
+{{define "widgets/technitium"}}{{template "dnsfilter" .}}{{end}}
 
 {{define "widgets/vpn"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}

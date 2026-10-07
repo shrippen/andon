@@ -29,6 +29,11 @@ connections:
   - {id: apcupsd, type: apcupsd, name: USV Pi, url: "demo://apcupsd", credentials: shared}
   - {id: opendtu, type: opendtu, name: OpenDTU, url: "demo://opendtu", credentials: shared}
   - {id: evcc, type: evcc, name: EVCC, url: "demo://evcc", credentials: shared}
+  - {id: traefik, type: traefik, name: Traefik, url: "demo://traefik", credentials: shared}
+  - {id: caddy, type: caddy, name: Caddy, url: "demo://caddy", credentials: shared}
+  - {id: npm, type: npm, name: Proxy Manager, url: "demo://npm", credentials: shared}
+  - {id: technitium, type: technitium, name: Technitium, url: "demo://technitium", credentials: shared}
+  - {id: fritzbox, type: fritzbox, name: FRITZ!Box, url: "demo://fritzbox", credentials: shared}
   - {id: linkwarden, type: linkwarden, name: Linkwarden, url: "demo://linkwarden", credentials: shared}
   - {id: pgback, type: pgbackweb, name: PG Back Web, url: "demo://pgbackweb", credentials: shared}
   - {id: hansei, type: hansei, name: Hansei, url: "demo://hansei", credentials: shared}
@@ -76,6 +81,7 @@ widgets:
   - {id: store-downloads, type: kdestore_downloads, title: KDE Store, connection: kdestore, config: {}}
   - {id: ci, type: ci_runs, title: CI, config: {}}
   - {id: power, type: power, title: Strom, config: {}}
+  - {id: routes, type: routes, title: Routen, config: {}}
   - {id: vulns, type: vulnerabilities, title: Sicherheitslücken, connection: nvd, config: {}}
   - {id: exposure, type: exposure, title: Öffentlich, connection: pangolin, config: {}}
   - {id: certs-link, type: link, title: Zertifikate, config: {url: "https://letsencrypt.org", icon: "hl-letsencrypt", description: TLS, status: "off", info: {connection: certs}}}
@@ -94,4 +100,4 @@ boards:
       - {title: Netz, cols: 4, span: 2, color: blue, widgets: [pihole-link, nextcloud-link, sabnzbd-link, gluetun-link, domains-link, blacklist-link]}
       - {title: Info, area: side, widgets: [clock, note]}
       - {title: Status, area: side, widgets: [monitors, uptime, hass-panel, authentik-apps, updates, backups, heartbeats, nas-load, ci, power, downloads, store-downloads]}
-      - {title: Sicherheit, widgets: [exposure, vulns]}
+      - {title: Sicherheit, widgets: [exposure, vulns, routes]}

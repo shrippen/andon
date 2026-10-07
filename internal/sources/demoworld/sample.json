@@ -5293,5 +5293,88 @@
     "solar_pct": 31
    }
   }
+ },
+ "proxy_routes": {
+  "traefik": {
+   "url": "https://traefik.demo",
+   "routes": [
+    {
+     "host": "photos.example.org",
+     "service": "immich-server",
+     "target": "http://172.18.0.5:2283",
+     "up": true
+    },
+    {
+     "host": "vault.example.org",
+     "service": "vaultwarden",
+     "target": "http://172.18.0.9:80",
+     "up": false
+    },
+    {
+     "host": "git.example.org",
+     "service": "gitea",
+     "target": "http://172.18.0.3:3000",
+     "up": true
+    }
+   ]
+  },
+  "caddy": {
+   "url": "http://caddy.demo:2019",
+   "routes": [
+    {
+     "host": "wiki.studio.example.test",
+     "service": "bookstack",
+     "target": "bookstack:80",
+     "up": true
+    }
+   ]
+  },
+  "npm": {
+   "url": "https://npm.demo",
+   "routes": [
+    {
+     "host": "kimai.example.org",
+     "service": "kimai",
+     "target": "http://kimai:8001",
+     "up": true,
+     "cert_expiry": "@+9d"
+    },
+    {
+     "host": "status.example.org",
+     "service": "uptime-kuma",
+     "target": "http://uptime-kuma:3001",
+     "up": true,
+     "cert_expiry": "@+61d"
+    }
+   ]
+  }
+ },
+ "dns_technitium": {
+  "url": "http://technitium.demo:5380",
+  "queries": 48210,
+  "blocked": 6120,
+  "clients": 23,
+  "enabled": true,
+  "top_blocked": [
+   {
+    "name": "telemetry.example.test",
+    "count": 812
+   },
+   {
+    "name": "ads.example.test",
+    "count": 640
+   }
+  ]
+ },
+ "fritzbox": {
+  "url": "https://fritz.demo:49443",
+  "status": "Connected",
+  "uptime": 2400,
+  "last_error": "ERROR_NONE",
+  "model": "FRITZ!Box 7590",
+  "down_sync": 250000,
+  "up_sync": 40000,
+  "down_max": 292000,
+  "up_max": 46000
  }
 }

@@ -772,3 +772,101 @@ func TestDemoPower(t *testing.T) {
 		t.Fatalf("evcc %+v", e)
 	}
 }
+
+// TestProxies: Traefik's hosts from router rules with their service's
+// state; Caddy's hosts with the first upstream; NPM's hosts with target
+// and certificate end after its token login.
+func TestProxies(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/http/routers":
+			w.Write([]byte("[{\"name\":\"immich@docker\",\"rule\":\"Host(`photos.example.org`) || Host(`fotos.example.org`)\",\"service\":\"immich\",\"status\":\"enabled\"}]"))
+		case "/api/http/services":
+			w.Write([]byte(`[{"name":"immich@docker","serverStatus":{"http://172.18.0.5:2283":"DOWN"}}]`))
+		case "/config/apps/http/servers":
+			w.Write([]byte(`{"srv0":{"routes":[{"match":[{"host":["wiki.example.org"]}],"handle":[{"handler":"subroute","routes":[{"handle":[{"handler":"reverse_proxy","upstreams":[{"dial":"bookstack:80"}]}]}]}]}]}}`))
+		case "/reverse_proxy/upstreams":
+			w.Write([]byte(`[{"address":"bookstack:80","fails":0}]`))
+		case "/api/tokens":
+			w.Write([]byte(`{"token":"T"}`))
+		case "/api/nginx/proxy-hosts":
+			if r.Header.Get("Authorization") != "Bearer T" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			w.Write([]byte(`[{"domain_names":["kimai.example.org"],"forward_scheme":"http","forward_host":"kimai","forward_port":8001,"enabled":1,"certificate":{"expires_on":"2026-11-01 10:00:00"}}]`))
+		}
+	}))
+	defer srv.Close()
+	ctx := context.Background()
+
+	raw, err := sources.TraefikData.Fetch(ctx, sources.Ctx{URL: srv.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr := raw.(*sources.RoutesDataset).Routes
+	if len(tr) != 2 || tr[1].Host != "fotos.example.org" || tr[0].Service != "immich" || tr[0].Up || tr[0].Target != "http://172.18.0.5:2283" {
+		t.Fatalf("traefik %+v", tr)
+	}
+	raw, err = sources.CaddyData.Fetch(ctx, sources.Ctx{URL: srv.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c := raw.(*sources.RoutesDataset).Routes; len(c) != 1 || c[0].Target != "bookstack:80" || c[0].Service != "bookstack" || !c[0].Up {
+		t.Fatalf("caddy %+v", c)
+	}
+	raw, err = sources.NPMData.Fetch(ctx, sources.Ctx{URL: srv.URL, Secret: "me@example.org:pw"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := raw.(*sources.RoutesDataset).Routes; len(n) != 1 || n[0].Target != "http://kimai:8001" || !n[0].Up || n[0].CertExpiry.Month() != time.November {
+		t.Fatalf("npm %+v", n)
+	}
+}
+
+// TestTechnitiumFritz: Technitium's day as a DNS filter dataset; the
+// FRITZ!Box's PPP connection and DSL rates over TR-064.
+func TestTechnitiumFritz(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/dashboard/stats/get":
+			if r.URL.Query().Get("token") != "tok" {
+				w.Write([]byte(`{"status":"invalid-token"}`))
+				return
+			}
+			w.Write([]byte(`{"status":"ok","response":{"stats":{"totalQueries":1000,"totalBlocked":100,"totalClients":7},"topBlockedDomains":[{"name":"ads.test","hits":40}]}}`))
+		case "/upnp/control/wanpppconn1":
+			w.Write([]byte(`<r><NewConnectionStatus>Connected</NewConnectionStatus><NewUptime>2400</NewUptime></r>`))
+		case "/upnp/control/wandslifconfig1":
+			w.Write([]byte(`<r><NewDownstreamCurrRate>250000</NewDownstreamCurrRate><NewUpstreamCurrRate>40000</NewUpstreamCurrRate></r>`))
+		case "/upnp/control/deviceinfo":
+			w.Write([]byte(`<r><NewModelName>FRITZ!Box 7590</NewModelName></r>`))
+		}
+	}))
+	defer srv.Close()
+	ctx := context.Background()
+	raw, err := sources.TechnitiumData.Fetch(ctx, sources.Ctx{URL: srv.URL, Secret: "tok"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d := raw.(*sources.DNSFilterDataset); d.Percent != 10 || d.Clients != 7 || d.TopBlocked[0].Domain != "ads.test" {
+		t.Fatalf("technitium %+v", d)
+	}
+	raw, err = sources.FritzData.Fetch(ctx, sources.Ctx{URL: srv.URL, Secret: "andon:pw"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f := raw.(*sources.FritzDataset); !f.Connected() || f.Uptime != 2400 || f.DownSync != 250000 || f.Model != "FRITZ!Box 7590" {
+		t.Fatalf("fritz %+v", f)
+	}
+	now := time.Now()
+	if r := sources.DemoRoutes(now, enums.ServiceTraefik).Routes; len(r) != 3 || r[0].Up {
+		t.Fatalf("demo traefik %+v", r)
+	}
+	if d := sources.DemoTechnitium(now); d.Queries == 0 || len(d.TopBlocked) != 2 {
+		t.Fatalf("demo technitium %+v", d)
+	}
+	if f := sources.DemoFritz(now); f.DownSync != 250000 || !f.Connected() {
+		t.Fatalf("demo fritz %+v", f)
+	}
+}

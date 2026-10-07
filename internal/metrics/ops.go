@@ -104,6 +104,25 @@ func GiteaInfo(data *sources.GiteaDataset) []InfoPart {
 	return found
 }
 
+// RoutesInfo: "3 routes · 1 down".
+func RoutesInfo(data *sources.RoutesDataset) []InfoPart {
+	down := 0
+	for _, r := range data.Routes {
+		if !r.Up {
+			down++
+		}
+	}
+	return []InfoPart{part("routes.count", map[string]any{"count": len(data.Routes), "down": down})}
+}
+
+// FritzInfo: "connected · 250/40 Mbit/s".
+func FritzInfo(data *sources.FritzDataset) []InfoPart {
+	if !data.Connected() {
+		return []InfoPart{part("fritzbox.offline", map[string]any{"status": data.Status})}
+	}
+	return []InfoPart{part("fritzbox.online", map[string]any{"down": data.DownSync / 1000, "up": data.UpSync / 1000})}
+}
+
 // UPSInfo: "100 % · 21 min".
 func UPSInfo(data *sources.UPSDataset) []InfoPart {
 	if len(data.Devices) == 0 {

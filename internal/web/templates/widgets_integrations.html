@@ -247,3 +247,12 @@
 </ul>
 {{else}}<p class="tile-note">{{t "power.none"}}</p>{{end}}{{end}}
 {{end}}
+
+{{define "widgets/routes"}}
+{{with $v := .Frag.View}}{{if $v.Total}}
+<div class="tile-head"><b class="tile-value" data-live>{{$v.Total}}</b><span class="tile-note">{{t "routes.tile" "down" $v.Down}}</span></div>
+{{with $v.Lines}}<ul class="plain-list">
+  {{range .}}<li><span class="pill" data-state="{{if .Up}}applied{{else}}failed{{end}}">{{if .Up}}{{t "routes.up"}}{{else}}{{t "routes.down"}}{{end}}</span> {{.Host}} <small class="muted">{{t (print "service." .Tool)}}</small></li>{{end}}
+</ul>{{end}}
+{{else}}<p class="tile-note">{{t "routes.none"}}</p>{{end}}{{end}}
+{{end}}
