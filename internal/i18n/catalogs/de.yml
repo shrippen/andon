@@ -152,6 +152,7 @@ error:
   denied: Dafür fehlt dir das Recht. Geben kann es, wer den Bereich verwaltet, ein Admin oder der Owner des Teams.
   not_found: Nicht gefunden.
   conflict: Inzwischen hat jemand anderes gespeichert. Bitte neu laden und erneut ändern.
+  conflict_kept: Inzwischen hat jemand anderes gespeichert. Hier steht der neue Stand mit deiner Eingabe; prüfen und erneut speichern.
 login:
   passkey: Mit Passkey anmelden
   title: Anmelden

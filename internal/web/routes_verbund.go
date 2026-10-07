@@ -43,7 +43,13 @@ func (d Deps) handleVerbundCustomers(w http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 	space, _ := strconv.ParseInt(r.URL.Query().Get("space"), 10, 64)
-	values := map[string]any{"SpaceID": space, "Error": r.URL.Query().Get("error")}
+	d.customersPage(w, r, ctx, id, space, http.StatusOK, "")
+}
+
+// customersPage renders a Verbund's customers; a refused cell shows its
+// error and, through the page's refill (forms.go), the choice as made.
+func (d Deps) customersPage(w http.ResponseWriter, r *http.Request, ctx Ctx, id, space int64, status int, errKeyText string) {
+	values := map[string]any{"SpaceID": space, "Error": errKeyText}
 	view, err := verbund.Customers(r.Context(), d.DB, ctx.Who, id)
 	switch {
 	case errors.Is(err, verbund.ErrNotFound):
@@ -63,17 +69,22 @@ func (d Deps) handleVerbundCustomers(w http.ResponseWriter, r *http.Request, ctx
 		}
 		values[navPath] = verbundPath(space)
 	}
-	_ = d.Page(w, ctx, "verbund_customers", http.StatusOK, values)
+	_ = d.Page(w, ctx, "verbund_customers", status, values)
 }
 
-// customersBack returns to the customers page, with an error key if any.
-func (d Deps) customersBack(w http.ResponseWriter, r *http.Request, id int64, err error) {
+// customersBack returns to the customers page; a refusal shows the page
+// again with the error and the cell as chosen.
+func (d Deps) customersBack(w http.ResponseWriter, r *http.Request, ctx Ctx, id int64, err error) {
 	space, _ := strconv.ParseInt(r.FormValue("space"), 10, 64)
-	target := customersPath(id, space)
-	if err != nil {
-		target += "&error=" + errKey(err)
+	if err == nil {
+		http.Redirect(w, r, customersPath(id, space), http.StatusSeeOther)
+		return
 	}
-	http.Redirect(w, r, target, http.StatusSeeOther)
+	if isAny(err, deniedErrors) || isAny(err, notFoundErrors) {
+		d.fail(w, err, http.StatusBadRequest)
+		return
+	}
+	d.customersPage(w, r, ctx, id, space, http.StatusBadRequest, errKey(err))
 }
 
 func (d Deps) handleCustomersConfirm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -83,7 +94,7 @@ func (d Deps) handleCustomersConfirm(w http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 	_, err = verbund.ConfirmSuggestions(r.Context(), d.DB, ctx.Who, id, d.clientIP(r))
-	d.customersBack(w, r, id, err)
+	d.customersBack(w, r, ctx, id, err)
 }
 
 // noneKey is the select's choice "no counterpart" (keys are ids, Ninja
@@ -91,7 +102,7 @@ func (d Deps) handleCustomersConfirm(w http.ResponseWriter, r *http.Request, ctx
 const noneKey = "!none"
 
 // handleCustomerAct is what a cell does, for the customer "hub" of the
-// leading member and the column "conn": link the select's key ("" forgets
+// leading member and the column "conn": link the select's party ("" forgets
 // the link, noneKey says there is none), none, unlink, align the Kimai
 // name to Ninja's; orphan forgets a stored customer without a leading one
 // ("entry").
@@ -104,7 +115,7 @@ func (d Deps) handleCustomerAct(w http.ResponseWriter, r *http.Request, ctx Ctx)
 	hub := r.FormValue("hub")
 	conn, _ := strconv.ParseInt(r.FormValue("conn"), 10, 64)
 	ip := d.clientIP(r)
-	switch act, key := r.PathValue("act"), r.FormValue("key"); {
+	switch act, key := r.PathValue("act"), r.FormValue("party"); {
 	case act == "link" && key == "":
 		err = verbund.UnlinkCustomer(d.DB, ctx.Who, id, hub, conn, ip)
 	case act == "link" && key == noneKey:
@@ -124,7 +135,7 @@ func (d Deps) handleCustomerAct(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		http.NotFound(w, r)
 		return
 	}
-	d.customersBack(w, r, id, err)
+	d.customersBack(w, r, ctx, id, err)
 }
 
 // verbundPath is a space's Verbünde page.
@@ -139,7 +150,7 @@ func (d Deps) handleVerbundPage(w http.ResponseWriter, r *http.Request, ctx Ctx)
 	if !d.settingsOpen(w, r, ctx, id) {
 		return
 	}
-	d.verbundPage(w, r, ctx, id, http.StatusOK, r.URL.Query().Get("error"))
+	d.verbundPage(w, r, ctx, id, http.StatusOK, "")
 }
 
 // verbundPage shows the space's Verbünde, the services still ambiguous,
@@ -196,20 +207,31 @@ func (d Deps) handleVerbundSettle(w http.ResponseWriter, r *http.Request, ctx Ct
 	}
 	id, err := verbund.Settle(d.DB, ctx.Who, space, d.clientIP(r))
 	if err != nil {
-		http.Redirect(w, r, verbundPath(space)+"?error="+errKey(err), http.StatusSeeOther)
+		d.verbundRefused(w, r, ctx, space, err)
 		return
 	}
 	http.Redirect(w, r, customersPath(id, space), http.StatusSeeOther)
 }
 
-// verbundBack returns to the space's page, with an error key if any.
-func (d Deps) verbundBack(w http.ResponseWriter, r *http.Request, err error) {
+// verbundBack returns to the space's page; a refusal shows the page
+// again with the error and the forms as typed.
+func (d Deps) verbundBack(w http.ResponseWriter, r *http.Request, ctx Ctx, err error) {
 	space, _ := strconv.ParseInt(r.FormValue("space"), 10, 64)
-	target := verbundPath(space)
-	if err != nil {
-		target += "?error=" + errKey(err)
+	if err == nil {
+		http.Redirect(w, r, verbundPath(space), http.StatusSeeOther)
+		return
 	}
-	http.Redirect(w, r, target, http.StatusSeeOther)
+	d.verbundRefused(w, r, ctx, space, err)
+}
+
+// verbundRefused answers a refused Verbund form: denied and unknown as
+// such, anything else on the page with its error.
+func (d Deps) verbundRefused(w http.ResponseWriter, r *http.Request, ctx Ctx, space int64, err error) {
+	if isAny(err, deniedErrors) || isAny(err, notFoundErrors) || space == 0 {
+		d.fail(w, err, http.StatusBadRequest)
+		return
+	}
+	d.verbundPage(w, r, ctx, space, http.StatusBadRequest, errKey(err))
 }
 
 func (d Deps) handleVerbundCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -227,18 +249,12 @@ func (d Deps) handleVerbundCreate(w http.ResponseWriter, r *http.Request, ctx Ct
 	d.verbundAnswer(w, r, ctx, err)
 }
 
-// verbundAnswer returns to the space's page; a refused name or member
-// list shows the page again with the form as typed.
+// verbundAnswer is verbundBack with a success message.
 func (d Deps) verbundAnswer(w http.ResponseWriter, r *http.Request, ctx Ctx, err error) {
-	space, _ := strconv.ParseInt(r.FormValue("space"), 10, 64)
 	if err == nil {
 		d.flash(w, flashSaved)
 	}
-	if err == nil || isAny(err, deniedErrors) || isAny(err, notFoundErrors) || space == 0 {
-		d.verbundBack(w, r, err)
-		return
-	}
-	d.verbundPage(w, r, ctx, space, http.StatusBadRequest, errKey(err))
+	d.verbundBack(w, r, ctx, err)
 }
 
 func (d Deps) handleVerbundRename(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -256,7 +272,7 @@ func (d Deps) handleVerbundAdd(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		http.NotFound(w, r)
 		return
 	}
-	d.verbundBack(w, r, verbund.AddMember(d.DB, ctx.Who, id, formID(r, "conn"), d.clientIP(r)))
+	d.verbundBack(w, r, ctx, verbund.AddMember(d.DB, ctx.Who, id, formID(r, "conn"), d.clientIP(r)))
 }
 
 func (d Deps) handleVerbundRemove(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -266,7 +282,7 @@ func (d Deps) handleVerbundRemove(w http.ResponseWriter, r *http.Request, ctx Ct
 		http.NotFound(w, r)
 		return
 	}
-	d.verbundBack(w, r, verbund.RemoveMember(d.DB, ctx.Who, id, conn, d.clientIP(r)))
+	d.verbundBack(w, r, ctx, verbund.RemoveMember(d.DB, ctx.Who, id, conn, d.clientIP(r)))
 }
 
 func (d Deps) handleVerbundDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -275,5 +291,5 @@ func (d Deps) handleVerbundDelete(w http.ResponseWriter, r *http.Request, ctx Ct
 		http.NotFound(w, r)
 		return
 	}
-	d.verbundBack(w, r, verbund.Delete(d.DB, ctx.Who, id, d.clientIP(r)))
+	d.verbundBack(w, r, ctx, verbund.Delete(d.DB, ctx.Who, id, d.clientIP(r)))
 }

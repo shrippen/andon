@@ -3,6 +3,7 @@ package web
 import (
 	"andon/internal/services/verbund"
 	"cmp"
+	"errors"
 	"net/http"
 	"net/url"
 	"slices"
@@ -20,6 +21,7 @@ import (
 	"andon/internal/services/boards"
 	"andon/internal/services/connections"
 	"andon/internal/services/themes"
+	"andon/internal/services/util"
 	"andon/internal/services/widgetlib"
 	"andon/internal/widgets"
 )
@@ -155,7 +157,15 @@ func (d Deps) handleSectionAdd(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		return
 	}
 	version := formInt(r, "version")
-	if _, err := boards.AddSection(d.DB, ctx.Who, boardID, version, r.FormValue("title")); err != nil {
+	_, err = boards.AddSection(d.DB, ctx.Who, boardID, version, r.FormValue("title"))
+	if errors.Is(err, util.ErrConflict) {
+		// The board as it is now, in edit mode, with the title as typed.
+		edit := r.Clone(r.Context())
+		edit.URL.RawQuery = "edit"
+		d.boardPage(w, edit, ctx, "", boardRefusal{status: http.StatusConflict, err: conflictKept})
+		return
+	}
+	if err != nil {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
@@ -191,7 +201,11 @@ func (d Deps) handleSectionEdit(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		Collapsed: &collapsed, Cols: &cols, Span: &span, Rows: &rows, Color: &color, Icon: &icon, Mobile: &mobile}
 
 	boardID := r.FormValue("board_id")
-	if err := boards.EditSection(d.DB, ctx.Who, id, version, changes); err != nil {
+	err = boards.EditSection(d.DB, ctx.Who, id, version, changes)
+	if errors.Is(err, util.ErrConflict) && d.boardPart(w, r, ctx, formBoard(r), partEdit, hintStaleTools) {
+		return
+	}
+	if err != nil {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
@@ -765,8 +779,13 @@ func (d Deps) handleWidgetUpdate(w http.ResponseWriter, r *http.Request, ctx Ctx
 	target := targetOf(r.FormValue)
 
 	if err := widgetlib.Update(d.DB, ctx.Who, id, version, title, config, connectionID(r), minRole(r)); err != nil {
+		// A stale save shows the input on the current version: saving again works.
+		reason := errKey(err)
+		if errors.Is(err, util.ErrConflict) {
+			reason = conflictKept
+		}
 		d.widgetFormPage(w, ctx, http.StatusBadRequest, widgetForm{Kind: kind, Title: title, Config: config,
-			ConnID: connectionID(r), MinRole: r.FormValue("min_role"), Widget: widget, Target: target, Error: errKey(err)})
+			ConnID: connectionID(r), MinRole: r.FormValue("min_role"), Widget: widget, Target: target, Error: reason})
 		return
 	}
 	http.Redirect(w, r, target.Back(), http.StatusSeeOther)

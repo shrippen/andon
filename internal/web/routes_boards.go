@@ -94,6 +94,18 @@ func modeOf(r *http.Request) boardMode {
 // renderBoard shows board {id}. With an embed token the page drops the
 // app nav and edit controls, and fragment URLs carry the token along.
 func (d Deps) renderBoard(w http.ResponseWriter, r *http.Request, ctx Ctx, embedToken string) {
+	d.boardPage(w, r, ctx, embedToken, boardRefusal{status: http.StatusOK})
+}
+
+// boardRefusal is a board page answering a refused form: its status and
+// error; the form comes back as typed (forms.go).
+type boardRefusal struct {
+	status int
+	err    string
+}
+
+// boardPage renders board {id}, see renderBoard.
+func (d Deps) boardPage(w http.ResponseWriter, r *http.Request, ctx Ctx, embedToken string, refusal boardRefusal) {
 	id, err := pathID(r, "id")
 	if err != nil {
 		http.NotFound(w, r)
@@ -149,7 +161,10 @@ func (d Deps) renderBoard(w http.ResponseWriter, r *http.Request, ctx Ctx, embed
 	if !embed && !kiosk.On && !mode.layer && tileCount(view) == 0 {
 		values["Empty"] = d.emptyBoard(ctx, view)
 	}
-	_ = d.Page(w, ctx, "board", http.StatusOK, withChoices(values))
+	if refusal.err != "" {
+		values["Error"] = refusal.err
+	}
+	_ = d.Page(w, ctx, "board", refusal.status, withChoices(values))
 }
 
 // emptyView is what an empty board offers: the gallery into its first
@@ -216,13 +231,20 @@ const (
 	partLayer                 // the viewer's own layout
 )
 
-// partHint says whether the answer points at undo, as ?undo does.
+// partHint says whether the answer points at undo, as ?undo does, or
+// answers a stale form (409): the section at its current version with
+// the form as typed, the section's own form opened (hintStaleTools).
 type partHint int
 
 const (
 	hintNone partHint = iota
 	hintUndo
+	hintStale
+	hintStaleTools
 )
+
+// conflictKept says a stale form came back with its input.
+const conflictKept = "error.conflict_kept"
 
 // sectionTarget is the section an htmx request wants back, 0 for the
 // whole page.
@@ -271,10 +293,14 @@ func (d Deps) boardPart(w http.ResponseWriter, r *http.Request, ctx Ctx, boardID
 
 	trigger, _ := json.Marshal(map[string]any{"boardVersion": view.Version, "undoHint": hint == hintUndo})
 	w.Header().Set("HX-Trigger", string(trigger))
-	_ = d.Page(w, ctx, "board_section", http.StatusOK, withChoices(map[string]any{
+	values := map[string]any{
 		"Board": &one, "Section": section, "Bodies": d.tileBodies(r, ctx, &one), "Partial": true, "ThemeURL": "",
 		"Edit": mode == partEdit && view.CanEdit, "LayerEdit": mode == partLayer,
-	}))
+	}
+	if hint == hintStale || hint == hintStaleTools {
+		values["Error"], values[keepInputKey], values["ToolsOpen"] = conflictKept, true, hint == hintStaleTools
+	}
+	_ = d.Page(w, ctx, "board_section", http.StatusOK, withChoices(values))
 	return true
 }
 

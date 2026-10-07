@@ -104,7 +104,7 @@
     <form method="get" action="/billing/export" class="card inline-form">
       {{template "space_select" .Spaces}}
       {{with .Verbuende}}<select class="select" name="link_id" aria-label="{{t "verbund.title"}}"><option value="0">{{t "verbund.implicit"}}</option>{{range .}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>{{end}}
-      <select class="select" name="year" aria-label="{{t "billing.year"}}">{{range .Years}}<option{{if eq . $.Year}} selected{{end}}>{{.}}</option>{{end}}</select>
+      <select class="select" name="year" aria-label="{{t "billing.year"}}">{{range .Years}}<option value="{{.}}"{{if eq . $.Year}} selected{{end}}>{{.}}</option>{{end}}</select>
       <button type="submit" class="btn btn-outline btn-sm">{{t "billing.download"}}</button>
     </form>
     <p class="small muted">{{t "billing.export_hint"}}</p>

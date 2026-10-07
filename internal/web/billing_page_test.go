@@ -4,8 +4,10 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestBillingSummary: the billing page opens with what is waiting, each
@@ -156,7 +158,13 @@ func TestTablesFoldToCards(t *testing.T) {
 			if !strings.HasPrefix(tb, `<table class="table cards-sm">`) {
 				t.Fatalf("%s: table without cards-sm: %.120s", name, tb)
 			}
-			if !strings.Contains(tb, `data-card="key"`) {
+			// The client list has several amounts: none goes top right
+			// without its name (Kante's key cell shows no label).
+			if name == "/clients" {
+				if strings.Contains(tb, `data-card="key"`) {
+					t.Fatalf("%s: an amount top right without its label: %s", name, tb)
+				}
+			} else if !strings.Contains(tb, `data-card="key"`) {
 				t.Fatalf("%s: no amount marked for the card: %s", name, tb)
 			}
 			for _, td := range cell.FindAllString(tb, -1) {
@@ -165,5 +173,23 @@ func TestTablesFoldToCards(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// TestBillingExportKeepsChoice: a refused year package shows the page
+// with its error and the year as chosen, not this year again.
+func TestBillingExportKeepsChoice(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := instanceSpace(t, srv, client)
+	last := strconv.Itoa(time.Now().Year() - 1)
+
+	status, body := browse(t, client, http.MethodGet, srv.URL+"/billing/export?space_id="+space+"&link_id=999&year="+last, nil, nil)
+	if status != http.StatusBadRequest || !strings.Contains(body, `class="error"`) {
+		t.Fatalf("refused export: %d\n%s", status, body)
+	}
+	if !strings.Contains(body, `<option value="`+last+`" selected`) {
+		t.Fatalf("year %s not kept:\n%s", last, body)
 	}
 }

@@ -18,8 +18,11 @@ func TestHintsPageCompactAndBulk(t *testing.T) {
 	csrf := csrfToken(t, srv, client)
 
 	space := regexp.MustCompile(`<option value="(\d+)"`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=invoiceninja"))[1]
-	postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "service": {"invoiceninja"}, "space_id": {string(space)},
-		"name": {"Ninja"}, "url": {"demo://invoiceninja"}, "mode": {"shared"}, "secret": {"demo"}, "tls": {"verify"}})
+	// Snipe-IT's demo brings rules with several hints: groups.
+	for _, svc := range []string{"invoiceninja", "snipeit"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "service": {svc}, "space_id": {string(space)},
+			"name": {svc}, "url": {"demo://" + svc}, "mode": {"shared"}, "secret": {"demo"}, "tls": {"verify"}})
+	}
 	runAnalysis(t, srv)
 
 	page := string(mustGet(t, srv, client, "/hints"))
@@ -32,6 +35,18 @@ func TestHintsPageCompactAndBulk(t *testing.T) {
 	}
 	if !strings.Contains(row, `<form method="post" action="/hints/`) {
 		t.Fatalf("row without its done form:\n%s", row)
+	}
+
+	// Hints in a rule group are the same compact rows, under the group's
+	// head and bulk bar.
+	groups := regexp.MustCompile(`(?s)<section class="hint-rule".*?</section>`).FindAllString(page, -1)
+	if len(groups) == 0 {
+		t.Fatalf("no rule group:\n%s", page)
+	}
+	for _, g := range groups {
+		if !strings.Contains(g, `class="hint-bulk"`) || strings.Contains(g, `<li class="hint-card" `) || !strings.Contains(g, `<li class="hint-card is-row"`) {
+			t.Fatalf("group not as rows under its bulk bar:\n%s", g)
+		}
 	}
 
 	ids := regexp.MustCompile(`<li class="hint-card[^"]*"[^>]* id="hint-(\d+)"`).FindAllStringSubmatch(page, -1)
