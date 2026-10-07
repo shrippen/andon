@@ -30,6 +30,7 @@
       <p class="small muted"><a href="/reset">{{if .MailReady}}{{t "login.forgot"}}{{else}}{{t "login.ask_admin"}}{{end}}</a>{{if .RegistrationOpen}} · <a href="/register">{{t "register.title"}}</a>{{end}}</p>
     </div>
   </div>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -58,6 +59,7 @@
       </form>
     </div>
   </div>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -91,6 +93,7 @@
       </form>
     </div>
   </div>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

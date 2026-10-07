@@ -371,7 +371,7 @@ field:
   league: League
   team: Team
   since: Period
-  verbund: Verbund
+  verbund: Bundle
   title_none: Leave empty for a tile without a head
   title_needed: Head, icon and title link only show with a title.
   place: Place
@@ -1875,6 +1875,8 @@ space:
 locale:
   de: Deutsch
   en: English
+  code_de: DE
+  code_en: EN
 scope:
   read: Read (API)
   embed: Embed
@@ -2924,7 +2926,7 @@ hint:
       why: 'Last fetch failed: {error}. Tiles show the last data.'
     partner_ambiguous:
       title: 'Several connections for {services}'
-      why: 'Andon does not know which belongs with which connection of other services. Hints that need several services are missing for them. Assign them under Verbünde in the space settings.'
+      why: 'Andon does not know which belongs with which connection of other services. Hints that need several services are missing for them. Assign them under bundles in the space settings.'
     backup_late:
       title: 'Andon backup {hours} hours old'
       why: 'The daily database copy did not happen. Check that the service runs and data/backups is writable.'
@@ -3271,7 +3273,7 @@ rule_name:
   prometheus.alert: 'Prometheus alert'
   heartbeat.down: 'Heartbeat missing'
   cross.heartbeat_backup: 'Heartbeat against backup'
-  system.partner_ambiguous: Verbund missing
+  system.partner_ambiguous: Bundle missing
   system.connector_down: Connection failing
   system.unused_service: 'Unused service'
   energy.shift_jobs: 'Maintenance at expensive hours'
@@ -3805,7 +3807,7 @@ billing:
   fig_hours: 'Hours'
   open_draft: 'Open draft {number} of {day}.'
   open_draft_again: 'Creating adds another draft.'
-  pick_verbund: 'Several Verbünde in this space: choose one for the year package.'
+  pick_verbund: 'Several bundles in this space: choose one for the year package.'
   summary: Overview
   sum_unbilled: 'unbilled · {n} customers'
   sum_payments: incoming payments
@@ -5586,7 +5588,7 @@ gitea:
   notifications: '{n} notifications'
   assigned: 'Assigned to me'
 sitebook:
-  ambiguous: 'Several Kimai connections and no Verbund says which: places and rides stay in Andon until you put them into a Verbund.'
+  ambiguous: 'Several Kimai connections and no bundle says which: places and rides stay in Andon until you put them into a bundle.'
   suggested: 'Suggested by name, not saved yet'
   lead: 'What a place is decides whether rides there count as business. Stored in this connection.'
   lead_plugin: 'Stored in Kimai mileage; new places also become Dawarich areas.'
@@ -6432,7 +6434,7 @@ verbund:
   unlink: Reset
   none_client: No counterpart
   align: Take name
-  no_customers: 'Customers need a Verbund with at least two of Invoice Ninja, Kimai, Sure and Paperless.'
+  no_customers: 'Customers need a bundle with at least two of Invoice Ninja, Kimai, Sure and Paperless.'
   orphans: 'Without a customer in {service}'
   client_taken: 'This entry belongs to another customer already.'
   unknown_customer: 'The services do not know this customer (any more). Reload the page.'
@@ -6440,30 +6442,30 @@ verbund:
   demo: 'Demo connections take no changes.'
   auto: automatic
   field_hint: 'Only needed when several connections of a partner service fit.'
-  title: Verbünde
-  lead: 'A Verbund says which connections of different services belong together, e.g. the Dawarich, Kimai and Invoice Ninja of one company. One member per service. Without one, each connection works with the only one of its partner service in the space.'
-  vague: 'Several connections without a Verbund: {services}. Andon does not guess which belong together; tiles and hints that need several services are missing for them until they are in a Verbund.'
+  title: Bundles
+  lead: 'A bundle says which connections of different services belong together, e.g. the Dawarich, Kimai and Invoice Ninja of one company. One member per service. Without one, each connection works with the only one of its partner service in the space.'
+  vague: 'Several connections without a bundle: {services}. Andon does not guess which belong together; tiles and hints that need several services are missing for them until they are in a bundle.'
   read_only: read only
   remove: Remove
   add: Add
-  delete: Delete Verbund
-  none: No Verbund in this space yet.
-  new: New Verbund
+  delete: Delete bundle
+  none: No bundle in this space yet.
+  new: New bundle
   name_hint: 'e.g. Freelance'
   members: Members
   other_space: other space
   create_hint: 'At least two connections of different services. You need edit rights on all of them.'
-  implicit: Without Verbund
+  implicit: Without bundle
   implicit_lead: 'These connections work together because the space has only one of each service. Andon links their customers by the same name.'
-  settle_hint: 'To link customers, Andon stores these connections as a Verbund named after the space. Nothing else changes.'
-  ambiguous: 'Several connections fit: choose one in a Verbund.'
-  not_found: Verbund not found.
-  too_few: 'A Verbund needs at least two connections.'
-  service_twice: 'One connection per service in a Verbund.'
-  no_name: The Verbund needs a name.
-  record: In a Verbund
-  record_none: 'In no Verbund: works with the only connection per partner service in the space.'
-  manage: Manage Verbünde
+  settle_hint: 'To link customers, Andon stores these connections as a bundle named after the space. Nothing else changes.'
+  ambiguous: 'Several connections fit: choose one in a bundle.'
+  not_found: Bundle not found.
+  too_few: 'A bundle needs at least two connections.'
+  service_twice: 'One connection per service in a bundle.'
+  no_name: The bundle needs a name.
+  record: In a bundle
+  record_none: 'In no bundle: works with the only connection per partner service in the space.'
+  manage: Manage bundles
 task:
   dawarich_tracks: 'Read Dawarich tracks of {host}'
 server_hint:

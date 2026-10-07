@@ -69,6 +69,7 @@
     </div>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -160,6 +161,7 @@
     {{template "danger_zone" dict "Action" (print "/themes/" .Theme.ID "/delete") "Text" (t "themes.delete_hint") "Button" (t "action.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{end}}
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -207,6 +209,7 @@
     <h2>.table</h2>
     <div class="table-wrap"><table class="table"><tr><th>{{t "field.name"}}</th><th>{{t "field.role"}}</th></tr><tr><td>Alex</td><td>{{t "role.editor"}}</td></tr></table></div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

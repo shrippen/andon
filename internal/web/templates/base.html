@@ -12,8 +12,10 @@
 <meta name="csrf" content="{{.Ctx.CSRF}}">
 <meta name="offline-note" content="{{t "nav.offline"}}">
 {{/* Soft page changes (hx-boost, see andon.js). Back and forward load
-     the full page: a cached body would miss its head. */}}
-<meta name="htmx-config" content='{"historyCacheSize":0,"refreshOnHistoryMiss":true,"includeIndicatorStyles":false}'>
+     the full page: a cached body would miss its head. htmx settles no
+     style: it would copy a CSSOM style (data-style, a menu's position)
+     back as an inline style attribute, which the CSP refuses. */}}
+<meta name="htmx-config" content='{"historyCacheSize":0,"refreshOnHistoryMiss":true,"includeIndicatorStyles":false,"attributesToSettle":["class","width","height"]}'>
 {{/* Kante's script adds the live-data motion (window.Kante); data-own-lang
      on <html> keeps it off the language. Synchronous, so the html classes
      are set before the first paint. */}}
@@ -62,7 +64,6 @@
 {{/* Brand mark (docs/icon.svg), the andon paper lantern: frame and lattice
      follow --accent, the lit panel --yellow, so it reads in dark and light
      themes. */}}
-{{/* A space by the viewer's name for it: "Ich" for their own, else its name. */}}
 {{/* A money page's period choice: a GET form, so the figures follow the
      query (?period=prev). Keep carries the page's other query values. */}}
 {{define "period_choice"}}<form method="get" action="{{.Path}}" class="seg" role="group" aria-label="{{t "period.choice"}}">{{range $k, $v := .Keep}}<input type="hidden" name="{{$k}}" value="{{$v}}">{{end}}
@@ -72,7 +73,9 @@
      begins when that is inside the span ("2025 · data from 02/2025"). */}}
 {{define "period_sub"}}{{if eq .Span.Period "12m"}}{{t "period.last_12m"}}{{else}}{{.Span.Start.Year}}{{end}}{{if .Span.Partial .From}} · {{t "period.data_from" "month" (.From.Format "01/2006")}}{{end}}{{end}}
 
-{{define "space_label"}}{{if eq .Kind "personal"}}{{t "settings.level_me"}}{{else}}{{.Name}}{{end}}{{end}}
+{{/* A space by the viewer's name for it: "Ich" for their own, the
+     instance in the viewer's language, else its name. */}}
+{{define "space_label"}}{{if eq .Kind "personal"}}{{t "settings.level_me"}}{{else if eq .Kind "instance"}}{{t "space.instance"}}{{else}}{{.Name}}{{end}}{{end}}
 
 {{define "mark"}}<svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><rect class="sig" x="24" y="16.5" width="11" height="11.5"/><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="13" y="5" width="22" height="34" rx="2.5"/><line x1="13" y1="16.5" x2="35" y2="16.5"/><line x1="13" y1="28" x2="35" y2="28"/><line x1="24" y1="5" x2="24" y2="39"/><line x1="15" y1="39" x2="13" y2="44"/><line x1="33" y1="39" x2="35" y2="44"/></g></svg>{{end}}
 
@@ -173,12 +176,26 @@
           <form method="post" action="/me/locale">
             <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
             <input type="hidden" name="locale" value="{{if eq (print .Ctx.Locale) "de"}}en{{else}}de{{end}}">
-            <button type="submit" aria-label="{{t "field.locale"}}">{{if eq (print .Ctx.Locale) "de"}}English{{else}}Deutsch{{end}}</button>
+            <button type="submit" aria-label="{{t "field.locale"}}">{{if eq (print .Ctx.Locale) "de"}}{{t "locale.en"}}{{else}}{{t "locale.de"}}{{end}}</button>
           </form>
           <form method="post" action="/logout">
             <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
             <button type="submit">{{t "nav.logout"}}</button>
           </form>
+{{end}}
+
+{{/* foot: the footer of every page with the header, logged in or not:
+     the language switch (Kante .lang). Logged out the choice goes into
+     a cookie, logged in into the profile (POST /locale). */}}
+{{define "foot"}}{{$lang := print .Ctx.Locale}}
+<footer class="foot-meta">
+  {{if .Who}}<p><a href="/about">{{t "about.title"}}</a></p>{{end}}
+  <form class="lang" method="post" action="/locale" aria-label="{{t "field.locale"}}">
+    {{if .Who}}<input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">{{end}}
+    <button type="submit" name="locale" value="de" lang="de" title="{{t "locale.de"}}" aria-pressed="{{eq $lang "de"}}">{{t "locale.code_de"}}</button>
+    <button type="submit" name="locale" value="en" lang="en" title="{{t "locale.en"}}" aria-pressed="{{eq $lang "en"}}">{{t "locale.code_en"}}</button>
+  </form>
+</footer>
 {{end}}
 
 {{/* settings_nav: the side navigation of every settings page (see

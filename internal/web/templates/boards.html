@@ -181,6 +181,7 @@
   </ul>
   {{if not .Embed}}{{with .Board.Page.Footer}}<footer class="page-foot">{{.}}</footer>{{end}}{{end}}
   </main>
+  {{if not (or .Embed .Kiosk.On)}}{{template "foot" $}}{{end}}
 </body>
 </html>
 {{end}}
@@ -401,6 +402,7 @@
     </table></div>
     <p><a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}?edit">{{t "action.cancel"}}</a></p>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -446,6 +448,7 @@
       <p><a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}?edit">{{t "action.cancel"}}</a></p>
     {{end}}
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

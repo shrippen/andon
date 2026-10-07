@@ -1,9 +1,13 @@
 package web
 
 import (
+	"encoding/json"
+	"html"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -86,5 +90,29 @@ func TestCrossSiteFormRefused(t *testing.T) {
 		if rec.Code != want {
 			t.Errorf("%q: %d, want %d", site, rec.Code, want)
 		}
+	}
+}
+
+// TestHtmxSettlesNoStyle: htmx's settle copies the attributes it settles
+// with setAttribute; a style set through the CSSOM (data-style, the
+// context menu's position) would come back as an inline style the CSP
+// refuses. So htmx settles class, width and height only.
+func TestHtmxSettlesNoStyle(t *testing.T) {
+	rec := httptest.NewRecorder()
+	if err := (Deps{}).Page(rec, Ctx{}, "login", http.StatusOK, map[string]any{"ThemeURL": ""}); err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`<meta name="htmx-config" content='([^']*)'>`).FindStringSubmatch(rec.Body.String())
+	if m == nil {
+		t.Fatal("no htmx-config")
+	}
+	var cfg struct {
+		AttributesToSettle []string `json:"attributesToSettle"`
+	}
+	if err := json.Unmarshal([]byte(html.UnescapeString(m[1])), &cfg); err != nil {
+		t.Fatalf("htmx-config: %v", err)
+	}
+	if want := []string{"class", "width", "height"}; !slices.Equal(cfg.AttributesToSettle, want) {
+		t.Errorf("attributesToSettle = %v, want %v", cfg.AttributesToSettle, want)
 	}
 }

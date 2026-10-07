@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"andon/internal/enums"
+	"andon/internal/i18n"
 	"andon/internal/model"
 	"andon/internal/services/access"
 	"andon/internal/services/accounts"
@@ -35,6 +36,7 @@ func (d Deps) RegisterMoreRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /spaces/{id}/team-settings", d.authed(d.handleTeamSpaceSettings))
 	mux.HandleFunc("POST /widgets/{id}/copy", d.authed(d.handleWidgetCopy))
 	mux.HandleFunc("POST /me/locale", d.authed(d.handleLocale))
+	mux.HandleFunc("POST /locale", d.handleLocaleSwitch)
 }
 
 // handleBoardList shows every board the viewer sees, in their own order,
@@ -349,9 +351,41 @@ func (d Deps) handleLocale(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	back := "/"
-	if ref, err := url.Parse(r.Referer()); err == nil {
-		back = safeNext(ref.Path)
+	d.setLocaleCookie(w, locale)
+	http.Redirect(w, r, localeBack(r), http.StatusSeeOther)
+}
+
+// handleLocaleSwitch is the footer's switch, also on the login page:
+// logged out it keeps the language in a cookie, logged in it also
+// stores it in the profile (CSRF checked as on every form).
+//
+//	POST /locale ─► cookie andon_lang ─► signed in? ─► profile locale
+func (d Deps) handleLocaleSwitch(w http.ResponseWriter, r *http.Request) {
+	locale := enums.Locale(r.FormValue("locale"))
+	if i18n.Pick(string(locale)) != locale {
+		http.Error(w, "locale", http.StatusBadRequest)
+		return
 	}
-	http.Redirect(w, r, back, http.StatusSeeOther)
+
+	ctx, err := d.Context(r)
+	if err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	if ctx.Who != nil {
+		d.authed(d.handleLocale)(w, r)
+		return
+	}
+
+	d.setLocaleCookie(w, locale)
+	http.Redirect(w, r, localeBack(r), http.StatusSeeOther)
+}
+
+// localeBack is the page a language switch came from ("/" if unknown).
+func localeBack(r *http.Request) string {
+	ref, err := url.Parse(r.Referer())
+	if err != nil || ref.Path == "" {
+		return "/"
+	}
+	return safeNext(ref.Path)
 }

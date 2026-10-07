@@ -39,6 +39,7 @@
     <p><a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}/export">{{t "action.export"}}</a></p>
     {{template "danger_zone" dict "Action" (print "/boards/" .Board.ID "/delete") "Text" (t "board.delete_hint") "Button" (t "board.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -118,6 +119,7 @@
       </div>
     </template>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

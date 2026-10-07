@@ -236,7 +236,7 @@ func hintsDetail(_ HintsConfig, results map[string]any, _ ViewCtx) DetailView {
 	objs := &ObjList{Label: T("detail.hints_open"), Sel: -1}
 	for i, h := range list {
 		id := strconv.FormatInt(h.ID, 10)
-		objs.Items = append(objs.Items, LitRow{Name: h.Title, Meta: h.Rule, State: tierState(sevTierName(h.Severity)), Item: id})
+		objs.Items = append(objs.Items, LitRow{Name: h.Title, Meta: Txt("rule_name." + h.Rule), State: tierState(sevTierName(h.Severity)), Item: id})
 		if id == pickedItem(results) {
 			objs.Sel = i
 		}
@@ -291,7 +291,6 @@ func noiseDetail(_ NoiseConfig, results map[string]any, ctx ViewCtx) DetailView 
 		list.Sel = pickIndex(results, ruleIDs)
 		f := flaps[list.Sel]
 		list.Title, list.State, list.StateText = Txt("rule_name."+f.Rule), "warn", textArgs("detail.noise.returns", "n", f.Returns)
-		list.Sub = f.Rule
 		body.List = list
 		// The rule's limits as the space has them, with the way to them.
 		var rows [][]Cell
