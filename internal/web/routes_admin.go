@@ -1,6 +1,8 @@
 package web
 
 import (
+	"andon/internal/services/oidc"
+	"andon/internal/services/util"
 	"cmp"
 	"database/sql"
 	"errors"
@@ -59,8 +61,12 @@ func (d Deps) adminUsersPage(w http.ResponseWriter, ctx Ctx, status int, extra m
 
 // pageError answers a failed admin read: 403 for denial, 500 otherwise.
 func (d Deps) pageError(w http.ResponseWriter, ctx Ctx, err error) {
-	if errors.Is(err, admin.ErrDenied) || errors.Is(err, invites.ErrDenied) || errors.Is(err, audit.ErrDenied) {
+	if errors.Is(err, admin.ErrDenied) || errors.Is(err, invites.ErrDenied) || errors.Is(err, audit.ErrDenied) || errors.Is(err, oidc.ErrDenied) {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	if errors.Is(err, util.ErrNotFound) {
+		http.NotFound(w, nil)
 		return
 	}
 	d.fail(w, err, http.StatusInternalServerError)

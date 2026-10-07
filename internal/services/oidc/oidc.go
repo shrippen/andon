@@ -9,6 +9,7 @@
 package oidc
 
 import (
+	"andon/internal/services/util"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -523,8 +524,11 @@ func PreviewReapply(d *sql.DB, env settings.Settings, who *access.Principal, use
 		return Plan{}, ErrDenied
 	}
 	user, err := users.Get(d, userID)
-	if err != nil || user == nil {
-		return Plan{}, ErrFailed
+	if err != nil {
+		return Plan{}, err
+	}
+	if user == nil {
+		return Plan{}, util.ErrNotFound
 	}
 	cfg, err := Load(d, env)
 	if err != nil {
