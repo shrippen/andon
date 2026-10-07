@@ -70,6 +70,7 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServiceNavidrome:      "https://www.navidrome.org",
 	enums.ServiceAudiobookshelf: "https://www.audiobookshelf.org",
 	enums.ServiceSeerr:          "https://github.com/Fallenbagel/jellyseerr",
+	enums.ServiceVikunja:        "https://vikunja.io",
 	enums.ServiceTibber:         "https://tibber.com",
 }
 

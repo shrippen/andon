@@ -64,6 +64,7 @@ action:
   open_in_navidrome: 'Open in Navidrome'
   open_in_audiobookshelf: 'Open in Audiobookshelf'
   open_in_seerr: 'Open in Jellyseerr'
+  open_in_vikunja: 'Open in Vikunja'
   open_in_tibber: 'Open in Tibber (electricity)'
   close: Close
   open_in_jsonapi: Open API
@@ -907,6 +908,9 @@ wtype:
   now_playing:
     name: 'Now playing'
     desc: 'What plays now (Jellyfin/Plex, Tautulli, Navidrome, Audiobookshelf), with open media requests.'
+  vikunja_tasks:
+    name: 'Tasks'
+    desc: 'Open Vikunja tasks by due date, overdue ones first.'
   technitium:
     name: 'Technitium DNS'
     desc: 'Queries and blocks of the last day.'
@@ -1395,6 +1399,9 @@ conn:
   options_hint_seerr: 'URL of Jellyseerr or Overseerr, e.g. http://seerr.example.lan:5055. Token = API key (Settings → General).'
   about_seerr: 'Media requests: open, stuck'
   what_seerr: 'Jellyseerr and Overseerr take requests for movies and series and hand them to Sonarr and Radarr.'
+  options_hint_vikunja: 'URL of Vikunja, e.g. https://vikunja.example.lan. Token = API token with read access to projects and tasks (Settings → API tokens).'
+  about_vikunja: 'Tasks: due, overdue'
+  what_vikunja: 'Vikunja is a task manager with projects, due dates and labels.'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
   health: 'Health'
@@ -1633,6 +1640,7 @@ service:
   navidrome: 'Navidrome'
   audiobookshelf: 'Audiobookshelf'
   seerr: 'Jellyseerr/Overseerr'
+  vikunja: 'Vikunja'
   tibber: 'Tibber (electricity)'
   links: Tiles
   jsonapi: Custom API (JSON)
@@ -1956,6 +1964,13 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  vikunja:
+    overdue:
+      title: '{count} tasks overdue'
+      why: '{titles}'
+    due:
+      title: 'Due on {day}: {title}'
+      why: 'Project {project}.'
   seerr:
     stuck:
       title: '{count} media requests stuck'
@@ -2332,6 +2347,9 @@ hint:
       title: 'Large expense: {name} ({amount})'
       why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
+    task_unbooked:
+      title: '{task} done, no time on {project}'
+      why: 'The task was finished on {day}; Kimai has nothing on that project since a few days before. Book the time?'
     requests_arr:
       title: '{count} requests stuck, {app} reports a problem'
       why: '{problem}. That likely explains why the requests do not arrive.'
@@ -2759,6 +2777,8 @@ hint:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
 info:
+  vikunja:
+    open: '{count} open · {overdue} overdue'
   playing:
     now: '{count} playing'
   seerr:
@@ -3015,6 +3035,9 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  vikunja.overdue: 'Overdue tasks'
+  vikunja.due: 'Tasks due'
+  cross.task_unbooked: 'Task without booked time'
   seerr.stuck: 'Stuck media requests'
   cross.requests_arr: 'Requests against Sonarr/Radarr'
   routes.down: 'Route does not answer'
@@ -5001,6 +5024,19 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image updates: {n}'
   alerts: 'Alerts: {n}'
+tasks:
+  open: 'Open'
+  overdue: 'Overdue'
+  list: 'Open tasks'
+  per_project: 'Open per project'
+  tile: 'open'
+  tile_overdue: '{n} overdue'
+  none: 'Nothing open.'
+  col:
+    title: 'Task'
+    project: 'Project'
+    due: 'Due'
+    priority: 'Priority'
 playing:
   now: 'Playing now'
   nothing: 'Nothing plays right now.'

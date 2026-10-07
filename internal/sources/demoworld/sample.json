@@ -5461,5 +5461,71 @@
     }
    ]
   }
+ },
+ "todo": {
+  "url": "https://vikunja.demo",
+  "projects": [
+   {
+    "id": 1,
+    "title": "Studio"
+   },
+   {
+    "id": 2,
+    "title": {
+     "de": "Projekt 1",
+     "en": "Project 1"
+    }
+   },
+   {
+    "id": 3,
+    "title": {
+     "de": "Project 4",
+     "en": "Project 4"
+    }
+   }
+  ],
+  "tasks": [
+   {
+    "title": {
+     "de": "Rechnung Imagefilm schreiben",
+     "en": "Write the image film invoice"
+    },
+    "project": 1,
+    "due": "@date-2",
+    "done": false,
+    "priority": 3
+   },
+   {
+    "title": {
+     "de": "Farbabnahme Folge 4",
+     "en": "Colour review episode 4"
+    },
+    "project": 2,
+    "due": "@date+1",
+    "done": false,
+    "priority": 2
+   },
+   {
+    "title": {
+     "de": "Steuerunterlagen sortieren",
+     "en": "Sort the tax papers"
+    },
+    "project": 1,
+    "due": "@date+9",
+    "done": false,
+    "priority": 1
+   },
+   {
+    "title": {
+     "de": "Musikschnitt Projekt 4",
+     "en": "Projekt 4 music edit"
+    },
+    "project": 3,
+    "due": "@date-3",
+    "done": true,
+    "done_at": "@-2d",
+    "priority": 2
+   }
+  ]
  }
 }

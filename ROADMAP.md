@@ -1144,8 +1144,8 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] Quer: Streams aller Quellen im Update-Fenster und in den Belegungsstunden; `seerr.stuck`, `cross.requests_arr` (hängende Anfragen, während Sonarr/Radarr Probleme melden)
 
 **Schritt 11: Aufgaben** — Vikunja
-- [ ] Kachel (fällig, überfällig je Projekt), Regel `vikunja.overdue`, Fristen in Zusammenfassung und iCal
-- [ ] Quer: Aufgaben mit Kimai-Projekt erledigt ohne gebuchte Zeit
+- [x] Kachel „Aufgaben“ (fällig, überfällig, je Projekt), Regeln `vikunja.overdue`, `vikunja.due` *(mit Fälligkeitsdatum, so in Zusammenfassung und iCal)*
+- [x] Quer: `cross.task_unbooked` (Aufgabe eines Kimai-Projekts erledigt, keine Zeit gebucht; Projekt über Vikunja-Projekt oder Label)
 
 **Schritt 12: Finanzen** — Firefly III, Ghostfolio
 - [ ] Firefly III in der Domäne Zahlungen (wie Sure, `caps`), Ghostfolio: Depotwert und Entwicklung
