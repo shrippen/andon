@@ -56,7 +56,7 @@ func homelabCostView(cfg CostConfig, results map[string]any, ctx ViewCtx) map[st
 	in.Hass, _ = ds[string(enums.ServiceHomeAssistant)].(*sources.HassDataset)
 	in.Tibber, _ = ds[string(enums.ServiceTibber)].(*sources.TibberDataset)
 	in.Snipe, _ = ds[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset)
-	in.Sure, _ = ds[string(enums.ServiceSure)].(*sources.SureDataset)
+	in.Sure, _ = metrics.BankOf(ds)
 	in.Domains, _ = ds[string(enums.ServiceDomains)].(*sources.DomainsDataset)
 	bill := metrics.HomelabCost(in, s, time.Now().UTC())
 

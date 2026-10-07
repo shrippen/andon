@@ -51,10 +51,21 @@ type SureDataset struct {
 	Transactions []SureTxn // last 90 days
 	Recurring    []SureRecurring
 	SyncError    string // latest sync failed: its message
+	// Service is where the data comes from: "" Sure, or Firefly III,
+	// which fills the same shape (firefly.go).
+	Service enums.ServiceType
 }
 
-// CapSet: Sure's capabilities need nothing beyond the token.
-func (d *SureDataset) CapSet() caps.Set { return caps.Full(caps.HolderOf(enums.ServiceSure)) }
+// From is the service the bank data comes from.
+func (d *SureDataset) From() enums.ServiceType {
+	if d.Service == "" {
+		return enums.ServiceSure
+	}
+	return d.Service
+}
+
+// CapSet: the capabilities need nothing beyond the token.
+func (d *SureDataset) CapSet() caps.Set { return caps.Full(caps.HolderOf(d.From())) }
 
 var SureData = source{key: "sure.data", ttl: dataTTL, service: enums.ServiceSure, fetch: fetchSure}
 

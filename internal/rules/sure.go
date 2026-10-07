@@ -38,11 +38,21 @@ func init() {
 	// without history: worth a second look (double booking, price rise).
 	Register("sure.unusual_expense", sureSvc, map[string]any{"min_amount": 500.0, "factor": 3.0, "days": 14.0}, on(unusualExpense))
 
+	// Firefly III fills Sure's shape: the same checks, under its own ids.
+	fireflySvc := string(enums.ServiceFirefly)
+	Register("firefly.recurring_missed", fireflySvc, map[string]any{"days": 5.0}, on(recurringMissed))
+	Register("firefly.low_balance", fireflySvc, map[string]any{"min_amount": 200.0}, on(lowBalance))
+	Register("firefly.uncategorized", fireflySvc, map[string]any{"min_count": 5.0, "lookback_days": 30.0}, on(uncategorized))
+	Register("firefly.unusual_expense", fireflySvc, map[string]any{"min_amount": 500.0, "factor": 3.0, "days": 14.0}, on(unusualExpense))
+
 	registerSureCross()
 }
 
-// sureLink links a page of Sure.
+// sureLink links a page of Sure; Firefly III's pages differ, its start page.
 func sureLink(data *sources.SureDataset, path string) string {
+	if data.From() != enums.ServiceSure {
+		return data.URL
+	}
 	return strings.TrimRight(data.URL, "/") + "/" + path
 }
 
@@ -53,7 +63,7 @@ func recurringMissed(data *sources.SureDataset, cfg map[string]any, env Env) []F
 		if r.Status != "active" || !ok || env.Today.Sub(next).Hours()/hoursPerDay <= cfgFloat(cfg, "days") {
 			continue
 		}
-		found = append(found, svcFinding(sureSvc, "sure.recurring_missed", "missed:"+r.Name+":"+r.Next, "sure.missed",
+		found = append(found, svcFinding(string(data.From()), string(data.From())+".recurring_missed", "missed:"+r.Name+":"+r.Next, "sure.missed",
 			enums.SeverityWarn, sureLink(data, "recurring_transactions"), map[string]any{"name": r.Name, "amount": Money(r.Amount, data.Currency), "day": Day(next)}))
 	}
 	return found
@@ -69,7 +79,7 @@ func lowBalance(data *sources.SureDataset, cfg map[string]any, env Env) []Findin
 		if a.Balance < 0 {
 			level = enums.SeverityCritical
 		}
-		found = append(found, svcFinding(sureSvc, "sure.low_balance", "low:"+a.ID, "sure.low", level,
+		found = append(found, svcFinding(string(data.From()), string(data.From())+".low_balance", "low:"+a.ID, "sure.low", level,
 			sureLink(data, "accounts/"+a.ID), map[string]any{"account": a.Name, "amount": Money(a.Balance, a.Currency)}))
 	}
 	return found
@@ -79,7 +89,7 @@ func syncFailed(data *sources.SureDataset, cfg map[string]any, env Env) []Findin
 	if data.SyncError == "" {
 		return nil
 	}
-	return []Finding{svcFinding(sureSvc, "sure.sync_failed", "sync", "sure.sync", enums.SeverityWarn, data.URL,
+	return []Finding{svcFinding(string(data.From()), string(data.From())+".sync_failed", "sync", "sure.sync", enums.SeverityWarn, data.URL,
 		map[string]any{"name": data.SyncError})}
 }
 
@@ -95,7 +105,7 @@ func uncategorized(data *sources.SureDataset, cfg map[string]any, env Env) []Fin
 	if count < cfgInt(cfg, "min_count") {
 		return nil
 	}
-	return []Finding{svcFinding(sureSvc, "sure.uncategorized", "uncategorized", "sure.uncategorized", enums.SeverityInfo,
+	return []Finding{svcFinding(string(data.From()), string(data.From())+".uncategorized", "uncategorized", "sure.uncategorized", enums.SeverityInfo,
 		sureLink(data, "transactions"), map[string]any{"count": count})}
 }
 
@@ -118,7 +128,7 @@ func unusualExpense(data *sources.SureDataset, cfg map[string]any, env Env) []Fi
 		if len(past) > 2 && spent < median(past)*cfgFloat(cfg, "factor") {
 			continue
 		}
-		found = append(found, svcFinding(sureSvc, "sure.unusual_expense", "unusual:"+t.ID, "sure.unusual", enums.SeverityInfo,
+		found = append(found, svcFinding(string(data.From()), string(data.From())+".unusual_expense", "unusual:"+t.ID, "sure.unusual", enums.SeverityInfo,
 			sureLink(data, "transactions"), map[string]any{"name": t.Name, "amount": Money(spent, data.Currency), "day": Day(d)}))
 	}
 	return found
@@ -146,7 +156,7 @@ func registerSureCross() {
 }
 
 func invoicePaid(_ any, cfg map[string]any, env Env) []Finding {
-	sure, ok1 := env.Datasets[string(enums.ServiceSure)].(*sources.SureDataset)
+	sure, ok1 := metrics.BankOf(env.Datasets)
 	ninja, ok2 := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
 	if !ok1 || !ok2 {
 		return nil
@@ -169,7 +179,7 @@ func invoicePaid(_ any, cfg map[string]any, env Env) []Finding {
 }
 
 func paymentUnmatched(_ any, cfg map[string]any, env Env) []Finding {
-	sure, ok1 := env.Datasets[string(enums.ServiceSure)].(*sources.SureDataset)
+	sure, ok1 := metrics.BankOf(env.Datasets)
 	ninja, ok2 := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
 	if !ok1 || !ok2 {
 		return nil
@@ -188,7 +198,7 @@ func paymentUnmatched(_ any, cfg map[string]any, env Env) []Finding {
 }
 
 func expenseUnrecorded(_ any, cfg map[string]any, env Env) []Finding {
-	sure, ok1 := env.Datasets[string(enums.ServiceSure)].(*sources.SureDataset)
+	sure, ok1 := metrics.BankOf(env.Datasets)
 	ninja, ok2 := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
 	if !ok1 || !ok2 {
 		return nil
@@ -209,7 +219,7 @@ func expenseUnrecorded(_ any, cfg map[string]any, env Env) []Finding {
 }
 
 func wallosMissing(_ any, cfg map[string]any, env Env) []Finding {
-	sure, ok1 := env.Datasets[string(enums.ServiceSure)].(*sources.SureDataset)
+	sure, ok1 := metrics.BankOf(env.Datasets)
 	wallos, ok2 := env.Datasets[string(enums.ServiceWallos)].(*sources.WallosDataset)
 	if !ok1 || !ok2 {
 		return nil
@@ -226,7 +236,7 @@ func wallosMissing(_ any, cfg map[string]any, env Env) []Finding {
 		Fingerprint: "missing", Severity: enums.SeverityInfo, Message: "cross.wallos_missing",
 		Params:    map[string]any{"count": len(missing), "names": shortList(names)},
 		ActionURL: wallos.URL, ActionLabel: "open_in_wallos",
-		Sources: []string{string(enums.ServiceSure), string(enums.ServiceWallos)},
+		Sources: []string{string(sure.From()), string(enums.ServiceWallos)},
 	}}
 }
 
@@ -234,7 +244,7 @@ func wallosMissing(_ any, cfg map[string]any, env Env) []Finding {
 // cross.expense_unrecorded settings; Since is left to the caller.
 func ReceiptInputsOf(env Env, cfg map[string]any) metrics.ReceiptInputs {
 	in := metrics.ReceiptInputs{Accounts: stringsSlice(cfg["accounts"]), MinAmount: cfgFloat(cfg, "min_amount"), Window: cfgInt(cfg, "date_window")}
-	in.Sure, _ = env.Datasets[string(enums.ServiceSure)].(*sources.SureDataset)
+	in.Sure, _ = metrics.BankOf(env.Datasets)
 	in.Ninja, _ = env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
 	in.Paperless, _ = env.Datasets[string(enums.ServicePaperless)].(*sources.PaperlessDataset)
 	in.Mail, _ = env.Datasets[string(enums.ServiceMail)].(*sources.MailDataset)

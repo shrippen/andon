@@ -936,3 +936,68 @@ func TestListening(t *testing.T) {
 		t.Fatalf("demo seerr %+v", d)
 	}
 }
+
+// TestFirefly: asset accounts, deposits positive with the payer as
+// merchant, withdrawals negative, transfers out; the next recurrence date
+// and the net worth; all in Sure's shape, marked as Firefly.
+func TestFirefly(t *testing.T) {
+	today := time.Now().UTC().Format(time.DateOnly)
+	next := time.Now().UTC().AddDate(0, 0, 3).Format(time.DateOnly)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/accounts":
+			w.Write([]byte(`{"data":[{"id":"1","attributes":{"name":"Giro","current_balance":"1200.50","currency_code":"EUR"}}]}`))
+		case "/api/v1/transactions":
+			w.Write([]byte(`{"data":[{"id":"7","attributes":{"transactions":[` +
+				`{"type":"deposit","date":"` + today + `T10:00:00+02:00","amount":"2380.00","description":"RE-17","source_name":"Northlight","destination_name":"Giro"},` +
+				`{"type":"withdrawal","date":"` + today + `T11:00:00+02:00","amount":"59.00","description":"Hosting","source_name":"Giro","destination_name":"Nordhost"},` +
+				`{"type":"transfer","date":"` + today + `","amount":"100"}]}}],"meta":{"pagination":{"total_pages":1}}}`))
+		case "/api/v1/recurrences":
+			w.Write([]byte(`{"data":[{"attributes":{"title":"Hosting","active":true,"type":"withdrawal","transactions":[{"amount":"59.00"}],"repetitions":[{"occurrences":["` + next + `"]}]}}]}`))
+		case "/api/v1/summary/basic":
+			w.Write([]byte(`{"net-worth-in-EUR":{"monetary_value":"48210.00"}}`))
+		}
+	}))
+	defer srv.Close()
+	raw, err := sources.FireflyData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "pat"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := raw.(*sources.SureDataset)
+	if d.From() != enums.ServiceFirefly || len(d.Accounts) != 1 || d.Accounts[0].Balance != 1200.5 || len(d.Transactions) != 2 ||
+		d.Transactions[0].Amount != 2380 || d.Transactions[0].Merchant != "Northlight" || d.Transactions[1].Amount != -59 ||
+		d.Transactions[0].Date != today || len(d.Recurring) != 1 || d.Recurring[0].Next != next || !d.Recurring[0].Expense || d.NetWorth != 48210 {
+		t.Fatalf("firefly %+v", d)
+	}
+}
+
+// TestGhostfolio: the security token buys a session; value, performance
+// and the days come from the performance endpoint.
+func TestGhostfolio(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/auth/anonymous":
+			w.Write([]byte(`{"authToken":"S"}`))
+		case "/api/v2/portfolio/performance":
+			if r.Header.Get("Authorization") != "Bearer S" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			w.Write([]byte(`{"performance":{"currentValueInBaseCurrency":20420,"totalInvestment":17500,"netPerformancePercentage":0.11},"chart":[{"date":"2026-10-06","value":20310},{"date":"2026-10-07","value":20420}]}`))
+		case "/api/v1/portfolio/holdings":
+			w.Write([]byte(`{"holdings":[{"name":"Bonds","valueInBaseCurrency":6130},{"name":"World","valueInBaseCurrency":14290}]}`))
+		}
+	}))
+	defer srv.Close()
+	raw, err := sources.GhostfolioData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "sec"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := raw.(*sources.GhostfolioDataset)
+	if g.Value != 20420 || g.PerformancePct != 11 || len(g.Days) != 2 || g.Holdings[0].Name != "World" {
+		t.Fatalf("ghostfolio %+v", g)
+	}
+	if d := sources.DemoGhostfolio(time.Now()); len(d.Days) != 30 || d.Value == 0 || len(d.Holdings) != 2 {
+		t.Fatalf("demo %+v", d)
+	}
+}

@@ -271,3 +271,14 @@
 <ul class="plain-list">{{range $v.Lines}}<li>{{if not .Due.IsZero}}<time{{if .Late}} class="late"{{end}}>{{day .Due}}</time> {{end}}{{.Title}} <small class="muted">{{.Project}}</small></li>{{end}}</ul>
 {{else if $v}}<p class="tile-note">{{t "tasks.none"}}</p>{{end}}{{end}}
 {{end}}
+
+{{define "widgets/depot"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Value}}
+<div class="kpi">
+  <b class="kpi-value" data-live>{{money $v.Value $v.Currency}}</b>
+  <span class="delta {{if $v.Up}}up{{else}}dn{{end}}">{{num $v.Pct 1}} %</span>
+  {{with $v.Spark}}{{template "spark" .}}<span class="kpi-sub">{{t "depot.spark"}}</span>{{end}}
+</div>
+{{end}}{{end}}
+{{end}}

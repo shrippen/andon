@@ -71,6 +71,8 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServiceAudiobookshelf: "https://www.audiobookshelf.org",
 	enums.ServiceSeerr:          "https://github.com/Fallenbagel/jellyseerr",
 	enums.ServiceVikunja:        "https://vikunja.io",
+	enums.ServiceFirefly:        "https://www.firefly-iii.org",
+	enums.ServiceGhostfolio:     "https://ghostfol.io",
 	enums.ServiceTibber:         "https://tibber.com",
 }
 

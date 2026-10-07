@@ -65,6 +65,8 @@ action:
   open_in_audiobookshelf: 'In Audiobookshelf öffnen'
   open_in_seerr: 'In Jellyseerr öffnen'
   open_in_vikunja: 'In Vikunja öffnen'
+  open_in_firefly: 'In Firefly III öffnen'
+  open_in_ghostfolio: 'In Ghostfolio öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
   close: Schließen
   open_in_jsonapi: API öffnen
@@ -911,6 +913,9 @@ wtype:
   vikunja_tasks:
     name: 'Aufgaben'
     desc: 'Offene Aufgaben aus Vikunja nach Fälligkeit, überfällige zuerst.'
+  depot:
+    name: 'Depot'
+    desc: 'Wert und Entwicklung des Ghostfolio-Depots, im Popup der Verlauf und die Positionen.'
   technitium:
     name: 'Technitium DNS'
     desc: 'Anfragen und Blockierungen des letzten Tages.'
@@ -1402,6 +1407,13 @@ conn:
   options_hint_vikunja: 'URL von Vikunja, z. B. https://vikunja.example.lan. Token = API-Token mit Leserecht für Projekte und Aufgaben (Einstellungen → API-Tokens).'
   about_vikunja: 'Aufgaben: fällig, überfällig'
   what_vikunja: 'Vikunja ist eine Aufgabenverwaltung mit Projekten, Fälligkeiten und Labels.'
+  options_hint_firefly: 'URL von Firefly III, z. B. https://firefly.example.lan. Token = persönliches Zugriffstoken (Optionen → Profil → OAuth). Andon liest Bestandskonten, Buchungen der letzten 90 Tage und Daueraufträge; der Zahlungsabgleich mit Invoice Ninja arbeitet damit wie mit Sure.'
+  about_firefly: 'Konten, Buchungen, Daueraufträge'
+  what_firefly: 'Firefly III ist eine selbst gehostete Haushalts- und Finanzverwaltung.'
+  options_hint_ghostfolio: 'URL von Ghostfolio, z. B. https://ghostfolio.example.lan. Token = Sicherheits-Token des Nutzers (Konto → Sicherheits-Token).'
+  about_ghostfolio: 'Depot: Wert, Entwicklung, Positionen'
+  what_ghostfolio: 'Ghostfolio verwaltet ein Wertpapierdepot und zeigt seine Entwicklung.'
+  secret_ghostfolio: 'Sicherheits-Token'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
   health: 'Zustand'
@@ -1641,6 +1653,8 @@ service:
   audiobookshelf: 'Audiobookshelf'
   seerr: 'Jellyseerr/Overseerr'
   vikunja: 'Vikunja'
+  firefly: 'Firefly III'
+  ghostfolio: 'Ghostfolio'
   tibber: 'Tibber (Strom)'
   links: Kacheln
   jsonapi: Eigene API (JSON)
@@ -1964,6 +1978,10 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  ghostfolio:
+    drawdown:
+      title: 'Depot {percent} % im Minus'
+      why: 'Der Wert liegt bei {value}. Kein Handlungsbedarf, aber gut zu wissen, bevor Geld daraus gebraucht wird.'
   vikunja:
     overdue:
       title: '{count} Aufgaben überfällig'
@@ -2347,6 +2365,9 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
   cross:
+    depot_reserve:
+      title: 'Rücklage fehlt, das Depot könnte sie decken'
+      why: 'Für Steuern und feste Kosten fehlen {missing}; das Depot steht bei {depot}.'
     task_unbooked:
       title: '{task} erledigt, keine Zeit auf {project}'
       why: 'Die Aufgabe wurde am {day} abgeschlossen; Kimai hat seit einigen Tagen davor nichts auf diesem Projekt. Zeit nachtragen?'
@@ -2778,6 +2799,8 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
+  ghostfolio:
+    value: '{value} · {percent} %'
   vikunja:
     open: '{count} offen · {overdue} überfällig'
   playing:
@@ -3036,6 +3059,12 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  firefly.recurring_missed: 'Dauerauftrag ausgeblieben (Firefly III)'
+  firefly.low_balance: 'Kontostand niedrig (Firefly III)'
+  firefly.uncategorized: 'Unkategorisierte Buchungen (Firefly III)'
+  firefly.unusual_expense: 'Ungewöhnliche Ausgabe (Firefly III)'
+  ghostfolio.drawdown: 'Depot im Minus'
+  cross.depot_reserve: 'Rücklage aus dem Depot'
   vikunja.overdue: 'Überfällige Aufgaben'
   vikunja.due: 'Fällige Aufgaben'
   cross.task_unbooked: 'Aufgabe ohne gebuchte Zeit'
@@ -5025,6 +5054,13 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image-Updates: {n}'
   alerts: 'Warnungen: {n}'
+depot:
+  value: 'Wert'
+  invested: 'Eingezahlt'
+  performance: 'Entwicklung'
+  days: 'Wert je Tag'
+  holdings: 'Positionen'
+  spark: 'letzte 30 Tage'
 tasks:
   open: 'Offen'
   overdue: 'Überfällig'

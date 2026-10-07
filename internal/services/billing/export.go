@@ -324,7 +324,7 @@ func itCostRows(data map[string]any, kimai *sources.KimaiDataset, settings map[s
 	in.Hass, _ = data[string(enums.ServiceHomeAssistant)].(*sources.HassDataset)
 	in.Tibber, _ = data[string(enums.ServiceTibber)].(*sources.TibberDataset)
 	in.Snipe, _ = data[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset)
-	in.Sure, _ = data[string(enums.ServiceSure)].(*sources.SureDataset)
+	in.Sure, _ = metrics.BankOf(data)
 	in.Domains, _ = data[string(enums.ServiceDomains)].(*sources.DomainsDataset)
 	bill := metrics.HomelabCost(in, metrics.HomelabSettingsOf(settings), time.Now().UTC())
 	share, _, _ := metrics.BusinessShare(kimai, metrics.WorkNames(data))
