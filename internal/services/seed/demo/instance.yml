@@ -40,6 +40,8 @@ connections:
   - {id: audiobookshelf, type: audiobookshelf, name: Audiobookshelf, url: "demo://audiobookshelf", credentials: shared}
   - {id: seerr, type: seerr, name: Jellyseerr, url: "demo://seerr", credentials: shared}
   - {id: vikunja, type: vikunja, name: Vikunja, url: "demo://vikunja", credentials: shared}
+  - {id: news, type: news, name: Lesen, url: "demo://news", credentials: shared}
+  - {id: twitch, type: twitch, name: Twitch, url: "demo://twitch", credentials: shared}
   - {id: ghostfolio, type: ghostfolio, name: Ghostfolio, url: "demo://ghostfolio", credentials: shared}
   - {id: linkwarden, type: linkwarden, name: Linkwarden, url: "demo://linkwarden", credentials: shared}
   - {id: pgback, type: pgbackweb, name: PG Back Web, url: "demo://pgbackweb", credentials: shared}
@@ -90,6 +92,7 @@ widgets:
   - {id: power, type: power, title: Strom, config: {}}
   - {id: playing, type: now_playing, title: Jetzt läuft, config: {}}
   - {id: todo, type: vikunja_tasks, title: Aufgaben, connection: vikunja, config: {}}
+  - {id: reading, type: reading, title: Lesen, config: {}}
   - {id: depot, type: depot, title: Depot, connection: ghostfolio, config: {}}
   - {id: routes, type: routes, title: Routen, config: {}}
   - {id: vulns, type: vulnerabilities, title: Sicherheitslücken, connection: nvd, config: {}}
@@ -109,5 +112,5 @@ boards:
       - {title: Betrieb, cols: 4, widgets: [kuma-link, pve-link, paperless-link, certs-link, scrutiny-link, immich-link, umami-link, freshrss-link, gitea-link, borg-link, hass-link, truenas-link, komodo-link, pangolin-link, authentik-link]}
       - {title: Netz, cols: 4, span: 2, color: blue, widgets: [pihole-link, nextcloud-link, sabnzbd-link, gluetun-link, domains-link, blacklist-link]}
       - {title: Info, area: side, widgets: [clock, note]}
-      - {title: Status, area: side, widgets: [monitors, uptime, hass-panel, authentik-apps, updates, backups, heartbeats, nas-load, ci, power, playing, todo, depot, downloads, store-downloads]}
+      - {title: Status, area: side, widgets: [monitors, uptime, hass-panel, authentik-apps, updates, backups, heartbeats, nas-load, ci, power, playing, todo, depot, reading, downloads, store-downloads]}
       - {title: Sicherheit, widgets: [exposure, vulns, routes]}

@@ -282,3 +282,10 @@
 </div>
 {{end}}{{end}}
 {{end}}
+
+{{define "widgets/reading"}}
+{{with $v := .Frag.View}}{{if or $v.Lines $v.Live}}
+{{with $v.Live}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="red" title="{{t "reading.live"}}" aria-hidden="true"></span><span class="stack-item"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.User}}</a><small class="muted">{{.Title}} · {{t "reading.watching" "n" .Viewers}}</small></span></li>{{end}}</ul>{{end}}
+{{with $v.Lines}}<ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span><span class="stack-item"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a><small class="muted">{{if .SourceKey}}{{t .SourceKey}}{{else}}{{.SourceName}}{{end}}{{if eq .Site "youtube"}}{{with .Views}} · {{t "reading.views" "n" .}}{{end}}{{else}} · {{t "reading.points" "n" .Points}} · <a href="{{.Link}}" target="_blank" rel="noopener noreferrer">{{t "reading.comments" "n" .Comments}}</a>{{end}} · {{ago .At}}</small></span></li>{{end}}</ul>{{end}}
+{{else if $v.Any}}<p class="tile-note">{{t "reading.none"}}</p>{{end}}{{end}}
+{{end}}

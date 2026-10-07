@@ -434,6 +434,7 @@ type GitRepo struct {
 
 type GitHubDataset struct {
 	URL           string
+	Owner         string // option owner: its repos are the own ones, the rest watched
 	Repos         []GitRepo
 	Notifications int
 	Reviews       []Issue // open PRs waiting for my review (token only)
@@ -451,7 +452,7 @@ func fetchGitHub(ctx context.Context, sctx Ctx) (any, error) {
 		return DemoGitHub(time.Now().UTC()), nil
 	}
 	api := services.BearerApi(sctx.URL, sctx.Secret, sctx.TLS())
-	data := &GitHubDataset{URL: sctx.URL}
+	data := &GitHubDataset{URL: sctx.URL, Owner: strings.TrimSpace(asStr(sctx.Options["owner"]))}
 	names, err := githubRepoNames(ctx, api, sctx)
 	if err != nil {
 		return nil, fetchError(err)
