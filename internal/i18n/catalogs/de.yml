@@ -126,7 +126,7 @@ error_page:
     lead: Andon konnte das nicht ausführen. Geh zurück, deine Eingabe steht noch im Formular.
   '403':
     title: Kein Zugriff
-    lead: Dafür fehlt dir die Berechtigung, oder die Seite war zu lange offen. Geh zurück und lade die Seite neu.
+    lead: Andon hat das abgelehnt.
   '404':
     title: Nicht gefunden
     lead: Diese Seite gibt es nicht (mehr). Vielleicht wurde sie gelöscht oder die Adresse ist falsch.
@@ -145,7 +145,7 @@ error_page:
 error:
   invalid_setting: 'Ungültiger Wert.'
   csrf: Die Anfrage war abgelaufen. Bitte Seite neu laden.
-  denied: Keine Berechtigung.
+  denied: Dafür fehlt dir das Recht. Geben kann es, wer den Bereich verwaltet, ein Admin oder der Owner des Teams.
   not_found: Nicht gefunden.
   conflict: Inzwischen hat jemand anderes gespeichert. Bitte neu laden und erneut ändern.
 login:
@@ -3476,6 +3476,7 @@ param:
   bundle_from: 'Ab so vielen Rechnungen je Kunde bündeln (0 = nie)'
   exclude: 'Ausnehmen (Namen, * als Platzhalter, mit Komma)'
 settings:
+  read_only: Nur zum Ansehen. Ändern können die Owner des Teams.
   bad_network: 'Ein Netz ist keine gültige CIDR-Angabe, z. B. 192.168.10.0/24.'
   travel: Fahrten
   travel_base: Startpunkt beruflicher Fahrten

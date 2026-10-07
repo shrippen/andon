@@ -106,7 +106,7 @@ func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request, ctx Ct
 		"Center": metrics.CenterOf(settings), "Centers": centers,
 		"Travel": metrics.TravelSettingsOf(settings), "TravelBases": travelBases, "FuelWords": strings.Join(metrics.TravelSettingsOf(settings).FuelWords, ", "),
 		"RuleGroups": spaces.RuleGroups(settings), "Methods": vatMethods, "Intervals": vatIntervals,
-		"Page": spaces.PageOf(settings), "NavText": spaces.NavText(spaces.PageOf(settings)),
+		"Page": spaces.PageOf(settings), "CanChange": spaces.CanChange(d.DB, ctx.Who, id), "NavText": spaces.NavText(spaces.PageOf(settings)),
 		"Custom": spaces.CustomRows(settings), "Ops": rules.CustomOps, "Services": enums.Services, "Levels": severityLevels,
 		"Maint": maint, "MaintUntil": maint.UntilInput(time.Local), "MaintConns": chosen, "Conns": conns, "Now": time.Now(),
 	})

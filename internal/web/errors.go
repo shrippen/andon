@@ -58,6 +58,9 @@ var knownErrors = []struct {
 // errKey returns the catalog key for err, for {{t .Error}} in templates.
 // e.g. accounts.ErrEmailTaken -> "account.email_taken".
 func errKey(err error) string {
+	if isAny(err, deniedErrors) {
+		return deniedKey
+	}
 	for _, k := range knownErrors {
 		if errors.Is(err, k.err) {
 			return k.key
@@ -65,6 +68,9 @@ func errKey(err error) string {
 	}
 	return err.Error()
 }
+
+// deniedKey is the reason a refusal names, whatever the service said.
+const deniedKey = "error.denied"
 
 // Denied and not-found errors of the services, answered 403 and 404
 // whatever the handler expected.
@@ -93,6 +99,10 @@ func (d Deps) fail(w http.ResponseWriter, err error, fallback int) {
 	if status >= http.StatusInternalServerError {
 		slog.Error("request failed", "err", err)
 		http.Error(w, http.StatusText(status), status)
+		return
+	}
+	if status == http.StatusForbidden {
+		http.Error(w, deniedKey, status)
 		return
 	}
 	if status != fallback {

@@ -126,7 +126,7 @@ error_page:
     lead: Andon couldn't do that. Go back, your input is still in the form.
   '403':
     title: No access
-    lead: You lack the right for this, or the page was open too long. Go back and reload the page.
+    lead: Andon refused this.
   '404':
     title: Not found
     lead: This page doesn't exist (any more). It may have been deleted, or the address is wrong.
@@ -145,7 +145,7 @@ error_page:
 error:
   invalid_setting: 'Invalid value.'
   csrf: The request expired. Please reload the page.
-  denied: Not allowed.
+  denied: You lack the right for this. Whoever manages the space can grant it, an admin or the team's owner.
   not_found: Not found.
   conflict: Somebody else saved meanwhile. Please reload and change again.
 login:
@@ -3475,6 +3475,7 @@ param:
   bundle_from: 'Bundle per client from this many invoices (0 = never)'
   exclude: 'Exclude (names, * as wildcard, comma-separated)'
 settings:
+  read_only: View only. The team's owners can change this.
   bad_network: 'A network is no valid CIDR, e.g. 192.168.10.0/24.'
   travel: Travel
   travel_base: Where business travel starts

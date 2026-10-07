@@ -155,7 +155,8 @@
       </div>
 
       {{end}}
-      <div class="save-bar"><button type="submit" class="btn btn-accent">{{t "action.save"}}</button></div>
+      {{if .CanChange}}<div class="save-bar"><button type="submit" class="btn btn-accent">{{t "action.save"}}</button></div>
+      {{else}}<p class="small muted">{{t "settings.read_only"}}</p>{{end}}
     </form>
     </div>
     </div>

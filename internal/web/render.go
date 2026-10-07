@@ -140,8 +140,22 @@ func mustParse() *template.Template {
 		"optText":     optText,
 		"secretLabel": secretLabel,
 		"alsoLinks":   alsoLinksOf,
+		"can":         can,
 	}
 	return template.Must(template.New("root").Funcs(funcs).ParseFS(templateFiles, "templates/*.html"))
+}
+
+// rightKeys name the rights a template asks for: {{if can .Right "manage"}}.
+var rightKeys = map[string]enums.Right{
+	"view": enums.RightView, "use": enums.RightUse, "edit": enums.RightEdit, "manage": enums.RightManage,
+}
+
+// can tells a template whether granted suffices for need, by the rule the
+// services check (access.Need); an unknown need allows nothing. Pages
+// leave out what it denies, the services still refuse it.
+func can(granted enums.Right, need string) bool {
+	required, ok := rightKeys[need]
+	return ok && access.Need(granted, required) == nil
 }
 
 // dataURI marks an inlined image (from the image source) as a safe URL;

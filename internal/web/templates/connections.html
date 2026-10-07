@@ -33,11 +33,12 @@
         <td>{{template "conn_health_cell" .}}
           {{if not .SecretAt.IsZero}}<br><small class="muted">{{t "conn.token_age"}}: {{ago .SecretAt}}</small>{{end}}{{with .SecretExpires}}<br><small class="muted">{{t "conn.expires"}} {{day .}}</small>{{end}}</td>
         <td><div class="btn-row">
-          <form method="post" action="/connections/{{.ID}}/test" class="inline-form" hx-post="/connections/{{.ID}}/check" hx-target="#toast">
+          {{/* Test: who changes it, or a template with the own login. */}}
+          {{if or (can .Right "manage") .HasMine}}<form method="post" action="/connections/{{.ID}}/test" class="inline-form" hx-post="/connections/{{.ID}}/check" hx-target="#toast">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
             <button type="submit" class="btn btn-outline btn-sm">{{t "conn.test"}}</button>
-          </form>
-          <a class="btn btn-outline btn-sm" href="/connections/{{.ID}}?tab=settings">{{t "action.edit"}}</a></div></td>
+          </form>{{end}}
+          {{if can .Right "manage"}}<a class="btn btn-outline btn-sm" href="/connections/{{.ID}}?tab=settings">{{t "action.edit"}}</a>{{end}}</div></td>
       </tr>
       {{else}}<tr><td colspan="4" class="muted">{{t "conn.none_here"}}</td></tr>
       {{end}}
@@ -347,7 +348,7 @@
         {{with $c.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}{{if not $c.Health.LastFail.IsZero}} {{ago $c.Health.LastFail}}{{end}}: {{t .}}{{if $c.Health.ErrorSettled}} <span class="pill" data-state="applied">{{t "conn.ok_since"}}</span>{{end}}</p>{{end}}
         {{if $c.DailyBudget}}<p class="small muted">{{t "conn.budget_today" "n" $c.Health.Today "max" $c.DailyBudget}}</p>{{end}}
         <div class="detail-block" id="verbund">
-          <div class="h-label detail-label"><span>{{t "verbund.record"}}</span><a href="/spaces/{{$c.SpaceID}}/verbund">{{t "verbund.manage"}}</a></div>
+          <div class="h-label detail-label"><span>{{t "verbund.record"}}</span>{{if can $c.Right "edit"}}<a href="/spaces/{{$c.SpaceID}}/verbund">{{t "verbund.manage"}}</a>{{end}}</div>
           {{range .InVerbund}}<p><b>{{.Name}}</b> {{range $i, $m := .Members}}{{if ne $m.ConnID $c.ID}}<a class="chip" href="/connections/{{$m.ConnID}}">{{t (print "service." $m.Service)}} · {{$m.Name}}</a> {{end}}{{end}}</p>
           {{else}}<p class="small muted">{{t "verbund.record_none"}}</p>{{end}}
         </div>
@@ -361,12 +362,12 @@
           </table></div>{{end}}
         </div>{{end}}
         {{with $c.Pace}}{{if .Reason}}<p class="small muted">{{t (print "conn.pace_" .Reason) "min" .Minutes "until" (ago .Until)}}</p>{{end}}{{end}}
-        <div class="row-actions">
+        {{if or (can $c.Right "manage") $c.HasMine}}<div class="row-actions">
           <form method="post" action="/connections/{{$c.ID}}/test" class="inline-form" hx-post="/connections/{{$c.ID}}/check" hx-target="#toast">
             <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
             <button type="submit" class="btn btn-outline btn-sm">{{t "conn.test"}}</button>
           </form>
-        </div>
+        </div>{{end}}
         {{with .Suggest}}
         <span class="h-label">{{t "conn.suggest"}}</span>
         <div class="type-grid">

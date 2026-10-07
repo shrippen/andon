@@ -12,7 +12,6 @@ import (
 
 	"andon/internal/enums"
 	"andon/internal/services/connections"
-	"andon/internal/services/spaces"
 	"andon/internal/services/verbund"
 )
 
@@ -133,8 +132,11 @@ func verbundPath(spaceID int64) string { return spacePath(spaceID) + "/verbund" 
 
 func (d Deps) handleVerbundPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
-	if _, known := ctx.Who.Spaces[id]; err != nil || !known || spaces.OpenSettings(d.DB, ctx.Who, id) != nil {
+	if err != nil {
 		http.NotFound(w, r)
+		return
+	}
+	if !d.settingsOpen(w, r, ctx, id) {
 		return
 	}
 	d.verbundPage(w, r, ctx, id, http.StatusOK, r.URL.Query().Get("error"))
