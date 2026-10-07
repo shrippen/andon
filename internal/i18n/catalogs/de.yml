@@ -1887,7 +1887,7 @@ admin:
   login: Letzte Anmeldung
   invite: Einladen
   send_invite: Einladung senden
-  invite_sent: 'Einladung erstellt. Link (auch per E-Mail verschickt, falls SMTP eingerichtet):'
+  invite_sent: 'Einladung erstellt. Den Link jetzt kopieren, er wird nicht wieder angezeigt. Mit SMTP geht er auch per E-Mail raus; ob das klappt, steht unter Admin → Betrieb:'
   reset: Reset-Link
   reset_link: 'Reset-Link (48 h gültig):'
   activate: Aktivieren

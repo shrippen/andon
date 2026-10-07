@@ -1887,7 +1887,7 @@ admin:
   login: Last login
   invite: Invite
   send_invite: Send invitation
-  invite_sent: Invitation created. Link (also mailed if SMTP is set up)
+  invite_sent: 'Invitation created. Copy the link now, it is not shown again. With SMTP it is also mailed; whether that worked shows under Admin → Operations:'
   reset: Reset link
   reset_link: 'Reset link (valid 48 h):'
   activate: Activate

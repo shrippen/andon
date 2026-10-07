@@ -31,6 +31,7 @@ func (d Deps) RegisterAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/users/{id}/reset", d.authed(d.handleAdminUserReset))
 	mux.HandleFunc("POST /admin/users/{id}/delete", d.handleAdminUserDelete)
 	mux.HandleFunc("POST /admin/invite", d.authed(d.handleAdminInvite))
+	mux.HandleFunc("GET /admin/invite", formPage("/admin/users"))
 	mux.HandleFunc("POST /admin/invites/{id}/delete", d.handleAdminInviteDelete)
 	mux.HandleFunc("GET /admin/audit", d.authed(d.handleAdminAudit))
 }

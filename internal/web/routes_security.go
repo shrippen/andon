@@ -20,6 +20,10 @@ func (d Deps) RegisterSecurityRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /me/security/totp/begin", d.authed(d.handleTOTPBeginForm))
 	mux.HandleFunc("POST /me/security/totp/confirm", d.authed(d.handleTOTPConfirmForm))
 	mux.HandleFunc("POST /me/security/totp/disable", d.authed(d.handleTOTPDisableForm))
+	// A form's answer page reloaded is a GET: back to the page of the form.
+	for _, path := range []string{"/me/security/totp/begin", "/me/security/totp/confirm", "/me/security/totp/disable"} {
+		mux.HandleFunc("GET "+path, formPage("/me/security"))
+	}
 	mux.HandleFunc("POST /me/security/sessions/{id}/end", d.authed(d.handleSessionEnd))
 	mux.HandleFunc("POST /me/security/tokens", d.authed(d.handleTokenCreate))
 	mux.HandleFunc("POST /me/security/tokens/{id}/revoke", d.authed(d.handleTokenRevoke))
@@ -175,4 +179,12 @@ func (d Deps) handleTokenRevoke(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		return
 	}
 	http.Redirect(w, r, "/me/security", http.StatusSeeOther)
+}
+
+// formPage answers a GET on a form's address (the reload of a page that
+// answered the form) with the page of the form.
+func formPage(path string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, path, http.StatusSeeOther)
+	}
 }
