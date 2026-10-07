@@ -1249,7 +1249,7 @@ conn:
   about_dwd: 'Wetterwarnungen für einen Ort'
   options_hint_github: 'URL https://api.github.com. Optionen: repos: [besitzer/repo], owner: name (alle Repos des Besitzers; mit Token auch private und die seiner Organisationen), forks: true, archived: true (sonst ohne), downloads_minutes: Minuten zwischen zwei Download-Zählungen (Standard auto: stündlich). Token optional (Feingranular, Lesen: Actions, Contents, Issues, Pull Requests; Benachrichtigungen nur mit klassischem Token).'
   about_github: 'Repos: PRs, Issues, CI, Releases'
-  options_hint_kdestore: 'URL https://api.kde-look.org, kein Token. Optionen: user: name (alle Einträge des Benutzers), ids: [2368175] (einzelne Einträge, aus store.kde.org/p/<id>).'
+  options_hint_kdestore: 'URL bleibt https://api.kde-look.org (die API, nicht store.kde.org), kein Token. Was gelesen wird, sagen die Felder Benutzer und Einzelne Einträge.'
   about_kdestore: 'Einträge: Downloads, Version'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
@@ -1332,6 +1332,10 @@ conn:
   project_site: Projektseite
   space_hint: 'Wem die Verbindung gehört: Dein persönlicher Bereich = nur du nutzt sie, immer mit festem Zugang. Instanz = alle Nutzer dieser Installation dürfen sie nutzen, ändern dürfen nur Admins. Ein Team = die Mitglieder des Teams. Kacheln können nur Verbindungen aus Bereichen nutzen, die ihr Betrachter sehen darf.'
   pangolin_org: 'Organisations-ID'
+  kdestore_user: 'Benutzer im KDE Store'
+  kdestore_user_hint: 'Der Name aus der Profil-Adresse store.kde.org/u/<name>, z. B. shrippen. Andon liest dann alle Einträge dieses Benutzers.'
+  kdestore_ids: 'Einzelne Einträge'
+  kdestore_ids_hint: 'Links oder Nummern, durch Komma getrennt, z. B. https://store.kde.org/p/2368175. Für Einträge anderer Benutzer oder ohne Benutzer. Mindestens eines der beiden Felder ausfüllen.'
   existing: '{count} Verbindung(en) dieser Art vorhanden'
   cred_incomplete: 'Bitte beide Felder ausfüllen, z. B. Benutzername und Passwort.'
   ical_private: 'Private iCal-Adresse'
@@ -4659,7 +4663,8 @@ komodo:
   alerts: 'Warnungen: {n}'
 kdestore:
   not_found: 'Eintrag oder Benutzer im KDE Store nicht gefunden.'
-  no_entries: 'Nichts zu lesen: Option user (alle Einträge eines Benutzers) oder ids (einzelne Einträge) setzen.'
+  no_entries: 'Nichts zu lesen: Benutzer oder einzelne Einträge angeben.'
+  wrong_url: 'Das ist die Adresse der Store-Seiten. Als URL gehört die API dorthin: https://api.kde-look.org.'
 truenas:
   https_required: 'TrueNAS nur über https:// verbinden: TrueNAS widerruft einen API-Schlüssel, sobald er über http benutzt wird. Bitte die URL auf https:// ändern und einen neuen Schlüssel anlegen.'
   alerts: 'Warnungen: {n}'

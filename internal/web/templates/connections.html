@@ -225,8 +225,9 @@
         <select class="select" id="opt_{{.Key}}" name="opt_{{.Key}}">{{range .Choices}}<option value="{{.}}"{{if eq . $v}} selected{{end}}>{{t (print "conn.choice_" .)}}</option>{{end}}</select>
         {{else}}
         <label for="opt_{{.Key}}">{{t .Label}}</label>
-        <input class="input" id="opt_{{.Key}}" name="opt_{{.Key}}" value="{{with index $opts .Key}}{{.}}{{end}}" required>
+        <input class="input" id="opt_{{.Key}}" name="opt_{{.Key}}" value="{{optText $opts .Key}}"{{if not .Optional}} required{{end}}>
         {{end}}
+        {{with .Hint}}<p class="small muted">{{t .}}</p>{{end}}
       {{end}}
 {{end}}
 
