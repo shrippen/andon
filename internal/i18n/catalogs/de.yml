@@ -118,6 +118,30 @@ action:
   open_in_glances: 'In Glances öffnen'
   open_in_docker: 'Docker öffnen'
   more: 'Weitere Aktionen'
+error_page:
+  back: Zurück
+  home: Zur Startseite
+  '400':
+    title: Anfrage nicht ausgeführt
+    lead: Andon konnte das nicht ausführen. Geh zurück, deine Eingabe steht noch im Formular.
+  '403':
+    title: Kein Zugriff
+    lead: Dafür fehlt dir die Berechtigung, oder die Seite war zu lange offen. Geh zurück und lade die Seite neu.
+  '404':
+    title: Nicht gefunden
+    lead: Diese Seite gibt es nicht (mehr). Vielleicht wurde sie gelöscht oder die Adresse ist falsch.
+  '405':
+    title: Adresse nicht direkt aufrufbar
+    lead: Diese Adresse nimmt nur ein abgeschicktes Formular an, etwa nach Neuladen. Öffne die Seite über die Navigation.
+  '409':
+    title: Inzwischen geändert
+    lead: Jemand hat das gespeichert, während du es bearbeitet hast. Geh zurück, deine Eingabe steht noch im Formular. Kopiere sie, lade die Seite neu und trage sie in die aktuelle Fassung ein.
+  '500':
+    title: Fehler in Andon
+    lead: Das hat nicht geklappt. Der Fehler steht im Protokoll des Servers. Versuch es später noch einmal.
+  other:
+    title: Fehler
+    lead: Das hat nicht geklappt.
 error:
   invalid_setting: 'Ungültiger Wert.'
   csrf: Die Anfrage war abgelaufen. Bitte Seite neu laden.

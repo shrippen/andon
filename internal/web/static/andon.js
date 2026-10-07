@@ -898,6 +898,17 @@
     }
   });
 
+  // "Back" on an error page goes back in history: the form there still
+  // holds what was typed. Without history the link's own target.
+  d.addEventListener("click", function (e) {
+    var back = e.target.closest && e.target.closest("a[data-back]");
+    if (!back || window.history.length < 2) {
+      return;
+    }
+    e.preventDefault();
+    window.history.back();
+  });
+
   // openDetail shows the frame at once and fills it when the answer is in;
   // a later open wins over an earlier one still on its way.
   function openDetail(url) {

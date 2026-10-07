@@ -118,6 +118,30 @@ action:
   open_in_glances: 'Open in Glances'
   open_in_docker: 'Open Docker'
   more: 'More actions'
+error_page:
+  back: Back
+  home: Go to the start page
+  '400':
+    title: Request not carried out
+    lead: Andon couldn't do that. Go back, your input is still in the form.
+  '403':
+    title: No access
+    lead: You lack the right for this, or the page was open too long. Go back and reload the page.
+  '404':
+    title: Not found
+    lead: This page doesn't exist (any more). It may have been deleted, or the address is wrong.
+  '405':
+    title: Address can't be opened directly
+    lead: This address only takes a submitted form, e.g. after a reload. Open the page from the navigation.
+  '409':
+    title: Changed meanwhile
+    lead: Somebody saved this while you were editing it. Go back, your input is still in the form. Copy it, reload the page and enter it into the current version.
+  '500':
+    title: Error in Andon
+    lead: That didn't work. The error is in the server log. Try again later.
+  other:
+    title: Error
+    lead: That didn't work.
 error:
   invalid_setting: 'Invalid value.'
   csrf: The request expired. Please reload the page.
