@@ -3514,7 +3514,7 @@ param:
   seconds: 'Seconds'
   escalate_days: 'Critical after days (0 = never)'
   offline_days: 'Ignore when offline longer than (days)'
-  bundle_from: 'Bundle per client from this many invoices (0 = never)'
+  bundle_from: 'Group per client from this many invoices (0 = never)'
   exclude: 'Exclude (names, * as wildcard, comma-separated)'
 settings:
   read_only: View only. The team's owners can change this.
