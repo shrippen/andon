@@ -368,7 +368,7 @@ func travelFacts(rides []metrics.ClassedRide, kimai *sources.KimaiDataset, set m
 		}
 		rows = append(rows, []Cell{{Value: Txt("detail.travel.car_private")}, {Value: TxtA("detail.travel.car_value", "share", Num(math.Round(share*percentScale), 0), "km", NumU(km, 0, "km")), State: state}})
 	}
-	if sure, ok := results[peerSure].(*sources.SureDataset); ok {
+	if sure, ok := bankOf(results); ok {
 		if spent, km := metrics.FuelSpent(sure, set.FuelWords, start), carKM(rides); spent > 0 && km > 0 {
 			rows = append(rows, []Cell{{Value: Txt("detail.travel.fuel")}, {Value: TxtA("detail.travel.fuel_value", "amount", Money(spent, sure.Currency), "per_km", Money(spent/km, sure.Currency))}})
 		}

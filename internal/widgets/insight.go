@@ -640,7 +640,7 @@ func kpiNinja(metric Metric, data *sources.NinjaDataset, peers map[string]any, c
 		// replace the manual figure when a Sure connection exists.
 		income := metrics.NinjaCashExpected(data, today, 30)
 		fixed := settingsFloat(settingsMap(ctx.Settings, "costs"), "fixed_monthly", 0)
-		if sure, ok := peers[peerSure].(*sources.SureDataset); ok {
+		if sure, ok := bankOf(peers); ok {
 			fixed = metrics.SureDue(sure, today, 30)
 		}
 		return &KpiResult{Kind: "money", Value: income - fixed, Currency: stats.Currency,
@@ -653,7 +653,7 @@ func kpiNinja(metric Metric, data *sources.NinjaDataset, peers map[string]any, c
 		rows, overall := metrics.EffectiveRates(kimai, data, today, clientMapOf(peers))
 		return &KpiResult{Kind: "money", Value: overall, Currency: stats.Currency, SubKey: "kpi.per_hour", SubCount: len(rows)}
 	case MetricSafeToSpend:
-		sure, ok := peers[peerSure].(*sources.SureDataset)
+		sure, ok := bankOf(peers)
 		if !ok {
 			return nil
 		}

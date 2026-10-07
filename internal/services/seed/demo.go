@@ -19,6 +19,7 @@ import (
 	"andon/internal/services/analysis"
 	"andon/internal/services/connections"
 	"andon/internal/services/porting"
+	"andon/internal/sources"
 )
 
 // Demo accounts from the shared shrippen demo world, Studio Weber (made-up
@@ -80,6 +81,9 @@ func Demo(ctx context.Context, d *sql.DB) error {
 	if err := demoTemplates(d, adminID, userID); err != nil {
 		return err
 	}
+	if err := demoHistory(d, time.Now().UTC()); err != nil {
+		return err
+	}
 	if _, err := analysis.RunAll(ctx, d, time.Now().UTC()); err != nil {
 		return err
 	}
@@ -135,6 +139,21 @@ func demoTemplates(d *sql.DB, adminID, userID int64) error {
 }
 
 type spaceOf func(q db.Queryer, who *access.Principal) (*model.Space, error)
+
+// demoHistory records what runs of the last weeks would have seen: the
+// FRITZ!Box's reconnects, for the ISP report.
+func demoHistory(d *sql.DB, now time.Time) error {
+	sp, err := content.InstanceSpace(d)
+	if err != nil {
+		return err
+	}
+	for _, s := range sources.DemoFritzPast(now) {
+		if err := analysis.RecordPast(d, sp.ID, s.At, map[string]any{string(enums.ServiceFritzBox): s.Data}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func instanceSpace(q db.Queryer, _ *access.Principal) (*model.Space, error) {
 	return content.InstanceSpace(q)

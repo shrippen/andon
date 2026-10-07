@@ -376,17 +376,28 @@ const peerKimai = "kimai"
 
 var kimaiPeer = Query{Name: peerKimai, Source: "data", Conn: ConnPeer, Service: enums.ServiceKimai}
 
-// peerSure names the space's Sure dataset (recurring costs).
-const peerSure = "sure"
+// peerSure and peerFirefly name the space's bank data (recurring costs,
+// balances): Sure, else Firefly III in Sure's shape. The names are the
+// services', so metrics.BankOf picks from the results (bankOf).
+const (
+	peerSure    = "sure"
+	peerFirefly = "firefly"
+)
 
-var surePeer = Query{Name: peerSure, Source: "data", Conn: ConnPeer, Service: enums.ServiceSure}
+var bankPeers = []Query{
+	{Name: peerSure, Source: "data", Conn: ConnPeer, Service: enums.ServiceSure},
+	{Name: peerFirefly, Source: "data", Conn: ConnPeer, Service: enums.ServiceFirefly},
+}
+
+// bankOf is the bank data among a tile's results: Sure's, else Firefly's.
+func bankOf(results map[string]any) (*sources.SureDataset, bool) { return metrics.BankOf(results) }
 
 func kpiQueries(cfg KpiConfig) []Query {
 	switch cfg.Metric {
 	case MetricEffectiveRate:
 		return append(dataQuery(nil), kimaiPeer)
 	case MetricLiquidity30, MetricSafeToSpend:
-		return append(dataQuery(nil), surePeer)
+		return append(dataQuery(nil), bankPeers...)
 	case MetricCash:
 		if cfg.Free {
 			return append(dataQuery(nil), peer(peerNinja, enums.ServiceInvoiceNinja))

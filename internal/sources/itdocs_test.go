@@ -22,6 +22,7 @@ URL: https://im.example.org
 Compose:
   - https://git.example/alex/docker-compose-regis/src/branch/main/immich/compose.yaml
 externe Ports: 2283
+Image: ghcr.io/immich-app/immich-server:v2.1
 interne Ports:
   - 2283
   - 5432
@@ -39,6 +40,7 @@ Passwort: hunter2
 
 const oldNote = `---
 Gerät: "[[IT/Geräte/Eredin]]"
+URLs: [gotify.example.org, push.example.org]
 deprecated: true
 ---
 `
@@ -115,7 +117,10 @@ func TestGiteaReadsITDocs(t *testing.T) {
 	if old.Path != "IT/Dienste/Eredin/deprecated/Gotify.md" || !old.Deprecated || len(old.Devices) != 1 || old.Devices[0] != "Eredin" {
 		t.Fatalf("old: %+v", old)
 	}
-	if immich.Name != "Immich" || immich.Deprecated || immich.Devices[0] != "Regis & Dettlaf" || immich.Web != "https://im.example.org" {
+	if old.Web != "gotify.example.org" {
+		t.Fatalf("old web: %q", old.Web)
+	}
+	if immich.Name != "Immich" || immich.Deprecated || immich.Devices[0] != "Regis & Dettlaf" || immich.Web != "https://im.example.org" || immich.Images[0] != "ghcr.io/immich-app/immich-server:v2.1" {
 		t.Fatalf("immich: %+v", immich)
 	}
 	if immich.URL != "https://git.example/alex/vault/src/branch/main/IT/Dienste/Regis/Immich.md" {

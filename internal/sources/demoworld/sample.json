@@ -1116,15 +1116,29 @@
     "updates": [
      "immich-server",
      "immich-machine-learning"
-    ]
+    ],
+    "repo": "studio/docker-compose-nebelhorn",
+    "images": {
+     "server": "ghcr.io/immich-app/immich-server:v2.0"
+    }
    },
    {
-    "name": "paperless",
-    "state": "unhealthy"
+    "name": "paperless-ngx",
+    "state": "unhealthy",
+    "repo": "studio/docker-compose-nebelhorn"
    },
    {
     "name": "gitea",
-    "state": "running"
+    "state": "running",
+    "repo": "studio/docker-compose-nebelhorn"
+   },
+   {
+    "name": "paperless-ai",
+    "state": "running",
+    "repo": "studio/docker-compose-nebelhorn",
+    "images": {
+     "paperless-ai": "clusterzx/paperless-ai:3.0"
+    }
    }
   ],
   "alerts": [
@@ -1166,7 +1180,7 @@
     "by": "mara",
     "ok": true
    },
-   "paperless": {
+   "paperless-ngx": {
     "at": "@-26h",
     "operation": "DeployStack",
     "by": "lena",
@@ -1827,7 +1841,10 @@
        "image": "invoiceninja/invoiceninja-debian:5.12",
        "ports": [
         "8012:80"
-       ]
+       ],
+       "labels": {
+        "caddy": "rechnungen.example.test"
+       }
       },
       {
        "name": "db",
@@ -1869,7 +1886,10 @@
        "image": "nextcloud:31-apache",
        "ports": [
         "8080:80"
-       ]
+       ],
+       "labels": {
+        "caddy": "cloud.example.test"
+       }
       },
       {
        "name": "db",
@@ -1923,7 +1943,10 @@
        "image": "ghcr.io/immich-app/immich-server:v2.1",
        "ports": [
         "2283:2283"
-       ]
+       ],
+       "labels": {
+        "caddy": "fotos.example.test"
+       }
       },
       {
        "name": "db",
@@ -4011,8 +4034,8 @@
    {
     "path": "IT/Dienste/Feuerschiff/Nextcloud.md",
     "content": {
-     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.example.test]\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nDateiablage für Kunden und Team. Läuft auf SW-VPS.\n\n## Zugang\nProjekt 6-Login über die Weboberfläche.\n- Benutzer: admin\n- Passwort: Projekt 2-2026!\n\n## Backup\nNächtlich mit Restic nach Nordhost-Speicher.\n",
-     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.example.test]\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nFile storage for customers and team. Runs on SW-VPS.\n\n## Access\nProjekt 6 login through the web interface.\n- User: admin\n- Passwort: Projekt 2-2026!\n\n## Backup\nNightly with Restic to Nordhost storage.\n"
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.example.test]\nImage: nextcloud:30-apache\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nDateiablage für Kunden und Team. Läuft auf SW-VPS.\n\n## Zugang\nProjekt 6-Login über die Weboberfläche.\n- Benutzer: admin\n- Passwort: Projekt 2-2026!\n\n## Backup\nNächtlich mit Restic nach Nordhost-Speicher.\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.example.test]\nImage: nextcloud:30-apache\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nFile storage for customers and team. Runs on SW-VPS.\n\n## Access\nProjekt 6 login through the web interface.\n- User: admin\n- Passwort: Projekt 2-2026!\n\n## Backup\nNightly with Restic to Nordhost storage.\n"
     }
    },
    {
@@ -4025,15 +4048,15 @@
    {
     "path": "IT/Dienste/Feuerschiff/Invoice Ninja.md",
     "content": {
-     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.example.test]\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nRechnungen und Angebote.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Genutzt von Kimai-Export und andon.\n",
-     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.example.test]\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nInvoices and quotes.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Used by the Kimai export and andon.\n"
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.example.test]\nexterne Ports: 8002\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nRechnungen und Angebote.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Genutzt von Kimai-Export und andon.\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.example.test]\nexterne Ports: 8002\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nInvoices and quotes.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Used by the Kimai export and andon.\n"
     }
    },
    {
     "path": "IT/Dienste/Nebelhorn/Immich.md",
     "content": {
-     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nFotos vom Set und Referenzbilder.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n",
-     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nPhotos from the set and reference pictures.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n"
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.example.test]\nImage: ghcr.io/immich-app/immich-server:v2.1\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nFotos vom Set und Referenzbilder.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.example.test]\nImage: ghcr.io/immich-app/immich-server:v2.1\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nPhotos from the set and reference pictures.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n"
     }
    },
    {

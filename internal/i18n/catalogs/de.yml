@@ -91,6 +91,7 @@ action:
   open_in_pangolin: In Pangolin öffnen
   open_in_authentik: In authentik öffnen
   open_in_hansei: In Hansei öffnen
+  open_in_homelable: In Homelable öffnen
   open_in_pgbackweb: In PG Back Web öffnen
   open_in_linkwarden: In Linkwarden öffnen
   open_in_kintsugi: In Kintsugi öffnen
@@ -1359,6 +1360,7 @@ conn:
   tab_settings: 'Einstellungen'
   tab_history: 'Verlauf'
   tab_places: 'Orte'
+  tab_sync: 'Abgleich'
   record_tabs: 'Akte'
   level_instance: 'Instanz'
   level_team: 'Team'
@@ -1456,7 +1458,7 @@ conn:
   options_hint_drone: 'URL des Drone-Servers, z. B. https://drone.example.org. Token = persönliches Token (Drone → Benutzereinstellungen). Gelesen werden die aktiven Repos und ihre letzten 10 Builds des Standardzweigs; Pull Requests zählen nicht.'
   about_drone: 'Builds je Repo'
   what_drone: 'Drone ist ein CI-Server: Er baut und testet Repos bei jedem Push.'
-  options_hint_pbs: 'URL des Servers mit Port, z. B. https://pbs.example.lan:8007. Token = API-Token als benutzer@realm!tokenname:geheimnis; die Rolle DatastoreAudit auf / reicht. Gelesen werden Datastores, Sicherungsgruppen und Verify-Läufe.'
+  options_hint_pbs: 'URL des Servers mit Port, z. B. https://pbs.example.lan:8007. Token = API-Token als benutzer@realm!tokenname:geheimnis; die Rolle DatastoreAudit auf / reicht. Gelesen werden Datastores, Sicherungsgruppen und Verify-Läufe. Optionen: pools: {archiv: tank} nennt den TrueNAS-Pool eines Datastores; dann vergleicht Andon die Belegung beider.'
   about_pbs: 'Sicherungen je VM, Verify, Belegung'
   what_pbs: 'Proxmox Backup Server sichert VMs und Container aus Proxmox VE dedupliziert in Datastores.'
   options_hint_kopia: 'URL des Kopia-Servers (kopia server start), z. B. https://kopia.example.lan:51515. Token = benutzer:passwort der Server-Oberfläche (--server-username/--server-password).'
@@ -1480,10 +1482,10 @@ conn:
   options_hint_watchtower: 'URL der Watchtower-HTTP-API, z. B. http://watchtower:8080 (Watchtower mit --http-api-metrics starten). Token = WATCHTOWER_HTTP_API_TOKEN.'
   about_watchtower: 'Automatische Updates: geprüft, aktualisiert, fehlgeschlagen'
   what_watchtower: 'Watchtower aktualisiert laufende Container automatisch, sobald ein neues Image erscheint.'
-  options_hint_peanut: 'URL von PeaNUT (Oberfläche für NUT), z. B. http://peanut.example.lan:8080. Token leer oder benutzer:passwort (WEB_USERNAME/WEB_PASSWORD).'
+  options_hint_peanut: 'URL von PeaNUT (Oberfläche für NUT), z. B. http://peanut.example.lan:8080. Token leer oder benutzer:passwort (WEB_USERNAME/WEB_PASSWORD). Optionen: hosts: [nas, pve, docker] nennt die Hosts an der USV (oder je USV: hosts: {nas-usv: [nas, pve]}); dann prüft Andon, ob die Laufzeit für ihr Herunterfahren reicht.'
   about_peanut: 'USV über NUT: Ladung, Laufzeit, Last'
   what_peanut: 'PeaNUT zeigt die USV eines NUT-Servers (Network UPS Tools) im Browser und bietet eine API.'
-  options_hint_apcupsd: 'Adresse des apcupsd-Netzwerkservers (NIS), z. B. apcupsd://pi.example.lan:3551. Kein Token; in apcupsd.conf NETSERVER on und NISIP auf die Adresse setzen, die Andon erreicht.'
+  options_hint_apcupsd: 'Adresse des apcupsd-Netzwerkservers (NIS), z. B. apcupsd://pi.example.lan:3551. Kein Token; in apcupsd.conf NETSERVER on und NISIP auf die Adresse setzen, die Andon erreicht. Optionen: hosts: [pi, router] nennt die Hosts an der USV; dann prüft Andon, ob die Laufzeit für ihr Herunterfahren reicht.'
   about_apcupsd: 'APC-USV: Ladung, Laufzeit, Last'
   what_apcupsd: 'apcupsd überwacht APC-USVs und meldet ihren Zustand im Netz.'
   options_hint_opendtu: 'URL von OpenDTU, z. B. http://opendtu.example.lan. Token leer, oder benutzer:passwort, wenn der Lesezugriff geschützt ist.'
@@ -1605,6 +1607,7 @@ conn:
   what_linkwarden: 'Linkwarden sammelt und archiviert Lesezeichen samt Kopie der Seite.'
   what_kintsugi: 'Kintsugi ist ein Akquise-Copilot: Er baut aus Interview und Dokumenten ein Profil auf und schlägt täglich Akquise- und Entwicklungsschritte vor.'
   what_hansei: 'Hansei pflegt die IT-Doku im Obsidian-Vault: Prüfregeln, Batches, Änderungen nur nach Freigabe.'
+  what_homelable: 'Homelable zeichnet das Homelab als Netzwerkplan und prüft Dienste live. Andon zeichnet dort die IT-Doku aus Obsidian auf einen eigenen Canvas; Obsidian bleibt die Quelle.'
   what_pgbackweb: 'PG Back Web sichert PostgreSQL-Datenbanken nach Zeitplan über eine Weboberfläche.'
   what_mail: 'Eingebaute Prüfung: Andon liest ein Postfach per IMAP und findet Rechnungen darin.'
   what_truenas: 'TrueNAS ist ein Betriebssystem für Netzwerkspeicher auf Basis von ZFS.'
@@ -1664,6 +1667,7 @@ conn:
   about_linkwarden: 'Lesezeichen gegen Kacheln abgleichen'
   about_kintsugi: 'Akquise-Vorschläge'
   about_hansei: 'Doku-Batches per Webhook'
+  about_homelable: 'IT-Doku als Netzwerkplan'
   about_pgbackweb: 'Postgres-Backups per Webhook'
   about_mail: 'Rechnungen im Postfach (IMAP)'
   about_truenas: 'Pools, Snapshots, Replikation'
@@ -1687,11 +1691,12 @@ conn:
   options_hint_domains: 'URL = eine Adresse der Domain. Optionen: domains: [example.org, example.de]. Kein Token. .de nennt kein Ablaufdatum.'
   options_hint_blacklist: 'URL = Mailserver (dessen IPv4-Adressen werden geprüft). Optionen: ips: [1.2.3.4], zones: [zen.spamhaus.org]. Kein Token.'
   options_hint_truenas: 'Keine Optionen. URL mit https:// (z. B. https://truenas.lan) – TrueNAS widerruft einen API-Schlüssel, der über http benutzt wird; bei selbstsigniertem Zertifikat TLS auf „unsicher“ stellen. Token = API-Schlüssel (Anmeldedaten → Benutzer → API-Schlüssel) eines Nutzers mit der Rolle „Readonly Admin“. Nutzt die WebSocket-API, ältere Versionen REST.'
-  options_hint_komodo: 'API-Key und -Secret aus Komodo (nur lesend genügt). Optionen (YAML): stopped: [cloudbeaver, filezilla] für absichtlich gestoppte Stacks (grau, kein Hinweis).'
+  options_hint_komodo: 'API-Key und -Secret aus Komodo (nur lesend genügt). Optionen (YAML): stopped: [cloudbeaver, filezilla] für absichtlich gestoppte Stacks (grau, kein Hinweis). ci_repos: {web: studio/website} nennt das Repo eines Stacks für den CI-Abgleich, wenn Komodo es nicht kennt und kein CI-Repo wie der Stack heißt.'
   options_hint_pangolin: 'URL der Integration-API inkl. /v1 (z. B. https://api.pangolin.example.org/v1), nicht die Pangolin-Oberfläche: Die Integration-API in der Pangolin-config.yml einschalten (flags: enable_integration_api: true) und über eine eigene Domain erreichbar machen (Port 3003). Organisations-ID steht in der Pangolin-URL (…/<org>/settings). Token = Integration-API-Schlüssel mit Leserechten auf Sites und Ressourcen.'
   options_hint_authentik: Keine Optionen. Token = API-Token eines Kontos mit Leserechten auf Ereignisse und Benutzer.
   options_hint_mail: 'URL imaps://mail.example.org:993/INBOX. Benutzername und App-Passwort deines Postfachs (nicht das normale Login-Passwort). Optionen: days: 60, keywords: [abrechnung], ignore_senders: [meinefirma.de] – nur lesend; Anhänge werden nur geladen, wenn du eine Rechnung an Paperless übergibst.'
   options_hint_hansei: 'Keine Optionen, kein Token. Hansei schickt seinen Stand an die Webhook-Adresse unten (Batches, Konformität, Doku-Befunde in Arbeit). Befunde holt es mit einem Lese-Token über /api/docs.'
+  options_hint_homelable: 'Benutzername und Passwort des lokalen Homelable-Benutzers (der OIDC-Modus hat keinen Skriptzugang). Andon zeichnet die IT-Doku der Gitea-Verbindung im selben Bereich (Optionen docs_repo, docs_paths dort) auf den Canvas „IT-Doku (aus Obsidian)“; andere Canvases bleiben unberührt. Optionen: vault: ObsidianPrivat (Vault-Name für obsidian://-Links, sonst der Repo-Name), lang: en (Sprache der Beschriftungen, sonst Deutsch).'
   options_hint_pgbackweb: Keine Optionen, kein Token. PG Back Web meldet sich per Webhook, siehe unten.
   hook: Webhook
   hook_hint: 'In PG Back Web je Ereignis (execution_success, execution_failed, database_unhealthy/healthy, destination_unhealthy/healthy) und Backup einen Webhook anlegen: Methode POST, diese URL, Body wie unten mit Ereignis und Backup-Name. Die URL ist geheim.'
@@ -1820,6 +1825,7 @@ service:
   linkwarden: Linkwarden
   kintsugi: Kintsugi
   hansei: Hansei
+  homelable: Homelable
   sure: Sure (Finanzen)
   homeassistant: Home Assistant
   freshrss: FreshRSS
@@ -2569,6 +2575,12 @@ hint:
     device_uninventoried:
       title: '{count} Geräte im Netz ohne Inventar'
       why: '{names}. Kein Snipe-IT-Asset trägt diesen Namen.'
+    ups_load:
+      title: '{name} reicht nicht für {hosts} Hosts'
+      why: 'Die USV hält {minutes} min bei {load} % Last; {names} sauber herunterzufahren braucht etwa {need} min. Last senken, Hosts früher herunterfahren lassen oder den Akku vergrößern.'
+    charge_business:
+      title: 'Laden für Geschäftsfahrten {month}: {amount}'
+      why: '{sessions} Ladevorgänge mit {kwh} kWh kosteten {total}; danach fuhr der Wagen {km} km geschäftlich ({share} % der Strecke). Beim Firmenwagen erstattungsfähig, sonst mit der km-Pauschale abgegolten.'
     charge_expensive:
       title: '{point} lädt zum teuren Preis'
       why: '{kw} kW aus dem Netz bei {price} ct/kWh, der Tagesschnitt liegt bei {avg} ct. Später laden oder auf PV-Modus stellen.'
@@ -2581,9 +2593,18 @@ hint:
     pbs_orphan:
       title: '{count} Sicherungsgruppen ohne Gast'
       why: 'Proxmox kennt {ids} nicht mehr; ihre Sicherungen belegen nur noch Platz. Löschen oder bewusst aufheben.'
+    pbs_pool_full:
+      title: 'Pool {pool} ist voll, Datastore {store} nicht'
+      why: 'Der Pool ist zu {pool_pct} % belegt, PBS sieht {store} erst bei {store_pct} %. Läuft der Pool voll, scheitern Sicherungen, bevor PBS warnt. Auf dem Pool aufräumen oder den Datastore umziehen.'
+    pbs_pool_gap:
+      title: 'Pool {pool} voller, als {store} meint'
+      why: 'Der Pool ist zu {pool_pct} % belegt, der Datastore zu {store_pct} %. Andere Datasets teilen sich den Platz, den PBS für frei hält.'
     release_red_ci:
       title: '{repo} {release} bei rotem CI'
       why: 'Das Release erschien am {day}; der letzte Build davor (#{build}) war fehlgeschlagen.'
+    ci_red_deployed:
+      title: 'Stack {stack} bei rotem CI deployt'
+      why: 'Deploy am {day} ({by}); Build #{build} von {repo} für diesen Stand war fehlgeschlagen. Läuft der Stack, wie er soll?'
     image_cve:
       title: '{id} trifft {where}'
       why: 'CVSS {score}. {image} liegt im betroffenen Bereich, behoben in {fixed}. {public}{summary}'
@@ -2657,6 +2678,19 @@ hint:
     deprecated_live:
       title: 'Stack {stack} auf {host} läuft trotz veralteter Doku'
       why: 'Die Notiz {note} ist als deprecated markiert. Stack aus dem Repo entfernen oder die Notiz wieder aktivieren.'
+    not_deployed:
+      title: '{count} Stacks auf {host} nicht deployt'
+      why: '{names} liegen im Compose-Repo, Komodo betreibt sie nicht. Deployen oder aus dem Repo entfernen.'
+      title_singular: 'Stack {names} auf {host} nicht deployt'
+      why_singular: '{names} liegt im Compose-Repo, Komodo betreibt ihn nicht. Deployen oder aus dem Repo entfernen.'
+    deployed_unknown:
+      title: '{count} Stacks auf {host} laufen ohne Compose-Repo'
+      why: '{names} laufen in Komodo, liegen aber in keinem Compose-Repo. compose.yaml ins Repo legen, dann findet die Doku sie.'
+      title_singular: 'Stack {names} auf {host} läuft ohne Compose-Repo'
+      why_singular: '{names} läuft in Komodo, liegt aber in keinem Compose-Repo. compose.yaml ins Repo legen, dann findet die Doku ihn.'
+    drift:
+      title: 'Doku {note} weicht vom Stack ab'
+      why: '{changes}. Frontmatter der Notiz anpassen.'
   borg:
     client_error:
       title: 'Backup-Client {client} meldet Fehler'
@@ -3283,6 +3317,8 @@ rule_name:
   ups.replace_battery: 'USV-Akku tauschen'
   opendtu.offline: 'Wechselrichter nicht erreichbar'
   cross.charge_expensive: 'Laden zum teuren Preis'
+  cross.ups_load: 'USV-Laufzeit gegen Hosts'
+  cross.charge_business: 'Ladekosten für Geschäftsfahrten'
   wud.updates: 'Container-Updates'
   watchtower.failed: 'Watchtower-Update fehlgeschlagen'
   cross.update_unbacked: 'Update ohne Sicherung'
@@ -3291,8 +3327,10 @@ rule_name:
   pbs.verify_failed: 'Verify fehlgeschlagen'
   pbs.datastore_full: 'Datastore voll'
   cross.pbs_orphan: 'Sicherungen ohne Gast'
+  cross.pbs_pool: 'Datastore gegen TrueNAS-Pool'
   drone.failing: 'Build rot'
   cross.release_red_ci: 'Release bei rotem CI'
+  cross.ci_red_deployed: 'Deploy bei rotem CI'
   cross.image_cve: 'Sicherheitslücke in laufendem Image'
   prometheus.alert: 'Prometheus-Alert'
   heartbeat.down: 'Herzschlag fehlt'
@@ -3402,6 +3440,9 @@ rule_name:
   docs.missing: Stacks ohne Doku
   docs.orphan: Doku ohne Stack
   docs.deprecated_live: Veraltete Doku, Stack läuft
+  docs.not_deployed: Stack nicht deployt
+  docs.deployed_unknown: Stack ohne Compose-Repo
+  docs.drift: Doku weicht vom Stack ab
   borg.client_offline: Backup-Client offline
   borg.jobs_failed: Fehlgeschlagene Backups
   borg.backup_old: Backup veraltet (Borg)
@@ -3535,6 +3576,8 @@ param:
   ignore_names: Ausnehmen (Namensteile)
   per_core: 'Last je Kern'
   percent: 'Prozent'
+  gap: 'Abstand (Prozentpunkte)'
+  minutes_per_host: 'Minuten je Host zum Herunterfahren'
   seconds: 'Sekunden'
   escalate_days: 'Nach Tagen kritisch (0 = nie)'
   offline_days: 'Offline länger als (Tage) ignorieren'
@@ -4282,6 +4325,7 @@ detail:
     lowest: 'Tiefster Stand'
     at_day: '{amount} am {day}'
     min: 'Mindestbestand'
+    depot: 'Depot (kein Bargeld)'
     balance: 'Kontostand · 90 Tage zurück und voraus'
     change: 'Änderung in {n} T'
     moves: 'Größte Bewegungen'
@@ -4710,6 +4754,11 @@ detail:
     deprecated: '{stack} läuft, {note} ist deprecated'
     open_note: 'Notiz öffnen'
     open_compose: 'Compose öffnen'
+    deployed: 'Stacks von Komodo betrieben'
+    not_deployed: '{stack} deployen oder aus dem Repo entfernen'
+    unknown: '{stack} läuft in Komodo, liegt in keinem Compose-Repo'
+    open_komodo: 'In Komodo öffnen'
+    drift: '{note} weicht vom Stack ab'
     hosts: 'Je Host'
     host: 'Host'
     documented_n: 'Dokumentiert'
@@ -4766,6 +4815,11 @@ detail:
     restore_task: 'Wiederherstellung von {system} getestet'
     restored: 'Wiederherstellung je Quartal getestet'
     sizes: 'Größe je Client'
+    stores: 'Datastores'
+    store: 'Datastore'
+    store_used: 'belegt'
+    pool: 'TrueNAS-Pool'
+    pool_used: 'Pool belegt'
   disks:
     list: 'Platten'
     state_ok: 'gesund'
@@ -5187,12 +5241,19 @@ timeline:
   restore: 'Wiederherstellung getestet'
 isp:
   title: 'Internet gegen Vertrag'
-  lead: 'Tägliche Messungen der letzten {days} Tage (Speedtest Tracker) und WAN-Ausfälle (Router). Ein Tag zählt als zu langsam unter {share} % des gebuchten Downloads.'
+  lead: 'Tägliche Messungen der letzten {days} Tage (Speedtest Tracker), WAN-Ausfälle und Neuverbindungen (Router, FRITZ!Box). Ein Tag zählt als zu langsam unter {share} % des gebuchten Downloads.'
   summary: 'An {below} von {days} Tagen unter Vertrag ({expect} Mbit/s gebucht), {outages} WAN-Ausfälle.'
   below: 'zu langsam'
   outages: 'WAN-Ausfälle'
   ongoing: 'andauernd'
-  none: 'Keine Speedtest-Tracker-Verbindung mit gebuchter Geschwindigkeit (Option expect_down).'
+  none: 'Keine Speedtest-Tracker-Verbindung mit gebuchter Geschwindigkeit (Option expect_down) und keine FRITZ!Box.'
+  reconnects: 'Neuverbindungen (FRITZ!Box)'
+  reconnect_summary: '{count} Neuverbindungen der FRITZ!Box in {days} Tagen.'
+  reconnect_summary_singular: '1 Neuverbindung der FRITZ!Box in {days} Tagen.'
+  reconnect_at: 'Wieder verbunden'
+  downtime: 'Ausfall'
+  down_at_least: 'mindestens {min} min'
+  down_short: 'kurz (zwischen zwei Prüfläufen)'
   csv: 'Als CSV herunterladen'
   legal: 'Für eine Minderung nach § 57 TKG verlangt die Bundesnetzagentur Messungen mit ihrer Breitbandmessung-App an mehreren Tagen. Dieser Bericht zeigt, ob sich das lohnt, und belegt den Verlauf.'
 cost:
@@ -5664,6 +5725,8 @@ itdocs:
   documented: 'Stacks dokumentiert'
   gaps: 'Ohne Doku'
   problems: '{n} Links prüfen'
+  deploys: 'Komodo: {missing} nicht deployt · {unknown} ohne Repo'
+  drifts: '{n} Notizen weichen ab'
   unread: 'Doku oder Stacks nicht gelesen. An der Gitea-Verbindung docs_repo und docs_paths setzen.'
 
 hansei:
@@ -5672,6 +5735,35 @@ hansei:
   conformity: '{n} % konform'
   done: '{n} erledigt'
   unset: 'Noch kein Stand von Hansei. Die Webhook-Adresse dieser Verbindung in Hansei eintragen.'
+
+homelable:
+  canvas: 'IT-Doku (aus Obsidian)'
+  prop_url: URL
+  prop_ports: Ports
+  prop_backup: Backup
+  prop_sso: SSO
+  prop_checked: 'letzte Prüfung'
+  prop_note: Obsidian
+  prop_docs: Doku
+  sso_active: aktiv
+  sso_possible: möglich
+  docs_missing: fehlt
+  stale: '{day} (veraltet)'
+  lead: 'Andon zeichnet die IT-Doku aus Obsidian und die Compose-Stacks auf einen eigenen Canvas in Homelable: nach jedem Prüflauf und auf Knopfdruck. Gesendet werden nur Änderungen, nie Positionen; dein Layout bleibt.'
+  run: Jetzt abgleichen
+  last: Letzter Abgleich
+  never: 'Noch nicht abgeglichen.'
+  source: Quelle
+  created: angelegt
+  updated: geändert
+  removed: entfernt
+  unchanged: unverändert
+  errors: 'Nicht übertragen'
+  synced: 'Abgeglichen: {created} angelegt, {updated} geändert, {removed} entfernt.'
+  problem_no_docs: 'Keine Gitea-Verbindung mit IT-Doku im Bereich dieser Verbindung (Optionen docs_repo, docs_paths an der Gitea-Verbindung).'
+  problem_incomplete: 'Stacks oder Notizen sind nicht vollständig gelesen. Nichts geändert, damit nichts fälschlich verschwindet.'
+  problem_shared: 'Nur eine feste Verbindung wird abgeglichen, keine Vorlage mit Zugang je Person.'
+  problem_failed: 'Homelable hat den Abgleich abgelehnt oder ist nicht erreichbar.'
 
 vault:
   with2fa: 'Konten mit Zwei-Faktor'

@@ -15,8 +15,9 @@ import (
 func TestISPCSVForExcel(t *testing.T) {
 	day := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
 	report := reports.ISP{Space: "Zuhause", ExpectDown: 250, SpeedReport: metrics.SpeedReport{
-		Days:    []metrics.SpeedDay{{Day: day, Down: 212.5, Up: 40, Below: true}},
-		Outages: []metrics.Outage{{Gateway: "wan1", Start: day.Add(3 * time.Hour)}},
+		Days:       []metrics.SpeedDay{{Day: day, Down: 212.5, Up: 40, Below: true}},
+		Outages:    []metrics.Outage{{Gateway: "wan1", Start: day.Add(3 * time.Hour)}},
+		Reconnects: []metrics.Reconnect{{At: day.Add(4 * time.Hour)}, {At: day.Add(9 * time.Hour), Seen: true, Down: 32 * time.Minute}},
 	}}
 
 	out, err := reports.ISPCSV([]reports.ISP{report})
@@ -33,7 +34,7 @@ func TestISPCSVForExcel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(rows) != 3 {
+	if len(rows) != 5 {
 		t.Fatalf("rows: %v", rows)
 	}
 	if got := rows[1]; got[1] != "2026-09-01" || got[2] != "212,5" || got[4] != "250,0" || got[5] != "ja" {
@@ -41,5 +42,11 @@ func TestISPCSVForExcel(t *testing.T) {
 	}
 	if got := rows[2]; got[2] != "WAN-Ausfall wan1" || got[3] != "bis " {
 		t.Fatalf("outage row: %v", got)
+	}
+	if got := rows[3]; got[1] != "2026-09-01 04:00:00" || got[2] != "Neuverbindung" || got[3] != "kurz" {
+		t.Fatalf("reconnect row: %v", got)
+	}
+	if got := rows[4]; got[3] != "Ausfall mind. 32 min" {
+		t.Fatalf("reconnect down row: %v", got)
 	}
 }

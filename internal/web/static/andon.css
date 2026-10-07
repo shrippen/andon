@@ -499,7 +499,7 @@ label.pick-check { margin: 0 .3rem; }
 /* ── chips to tick (notification sources) ── */
 .chip-picks { border: 0; margin: .4rem 0 0; padding: 0; min-width: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
 .chip-picks .chip-pick { margin: 0; max-width: 100%; }
-.chip-picks .chip-pick > span { min-width: 0; }
+.chip-picks .chip-pick > span { min-width: 0; white-space: normal; }
 .chip-picks legend { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--fg3); margin-bottom: .35rem; padding: 0; }
 
 /* ── my credentials: replace on demand ── */

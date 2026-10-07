@@ -10,6 +10,7 @@ import (
 	"andon/internal/services/audit"
 	"andon/internal/services/auth"
 	"andon/internal/services/hints"
+	"andon/internal/services/homelable"
 	"andon/internal/services/icons"
 	"andon/internal/services/linkstatus"
 	"andon/internal/services/notify"
@@ -30,7 +31,11 @@ func backgroundJobs(database *sql.DB, cfg settings.Settings) []scheduler.Job {
 	return []scheduler.Job{
 		{Name: analysis.JobName, Every: func() time.Duration { return time.Duration(settings.Live(cfg).AnalysisMinutes) * minute }, Start: scheduler.AtStart, Run: func(ctx context.Context) error {
 			_, err := analysis.RunAll(ctx, database, time.Now().UTC())
+			scheduler.Trigger(homelable.JobName) // draws what this run read
 			return err
+		}},
+		{Name: homelable.JobName, Interval: day, Run: func(ctx context.Context) error {
+			return homelable.SyncAll(ctx, database)
 		}},
 		{Name: "notify", Interval: minute, Run: func(ctx context.Context) error {
 			_, err := notify.Dispatch(ctx, database, settings.Live(cfg))

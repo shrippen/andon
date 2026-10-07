@@ -8,14 +8,20 @@ package rules
 //	opendtu.offline         an inverter is unreachable in daylight
 //	cross.charge_expensive  EVCC charges from the grid while Tibber's price is
 //	                        "factor" above the day's average
+//	cross.ups_load          a UPS's runtime (now, or the shortest of the last
+//	                        "days" in the history) is shorter than a clean
+//	                        shutdown of its hosts (option hosts) needs:
+//	                        hosts × "minutes_per_host"
 //
 // A UPS on battery is also the root of outages (outage.go): the failures
 // of every host gather under it.
 
 import (
+	"strings"
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/sources"
 )
 
@@ -30,6 +36,31 @@ func init() {
 	Register("ups.replace_battery", Cross, nil, upsReplaceBattery)
 	Register("opendtu.offline", opendtuSvc, nil, on(opendtuOffline))
 	Register("cross.charge_expensive", Cross, map[string]any{"factor": 1.3}, chargeExpensive)
+	Register("cross.ups_load", Cross, map[string]any{"minutes_per_host": 5.0, "days": 7.0}, upsLoad)
+	Needs("cross.ups_load", string(enums.ServicePeaNUT), string(enums.ServiceApcupsd))
+}
+
+const secondsPerMinute = 60
+
+func upsLoad(_ any, cfg map[string]any, env Env) []Finding {
+	h, _ := env.Datasets[metrics.HistoryDataset].(*metrics.History)
+	perHost, days := cfgFloat(cfg, "minutes_per_host"), int(cfgFloat(cfg, "days"))
+
+	var found []Finding
+	for _, u := range upsDevices(env) {
+		hosts := metrics.UPSHosts(env.Options[string(u.tool)], u.Name)
+		if len(hosts) == 0 || u.Runtime <= 0 {
+			continue
+		}
+		need := float64(len(hosts)) * perHost
+		low := metrics.LowestRuntime(h, u.Name, u.Runtime, env.Today, days) / secondsPerMinute
+		if float64(low) >= need {
+			continue
+		}
+		found = append(found, u.finding("cross.ups_load", enums.SeverityWarn, map[string]any{
+			"minutes": low, "need": int(need), "hosts": len(hosts), "names": strings.Join(hosts, ", "), "load": Num(u.Load, 0)}))
+	}
+	return found
 }
 
 // upsDevices lists every UPS of every tool with its tool.

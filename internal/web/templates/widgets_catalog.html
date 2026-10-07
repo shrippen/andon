@@ -289,9 +289,11 @@
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Unread}}<p class="tile-note">{{t "itdocs.unread"}}</p>{{else if $v.Total}}
 <div class="tile-head"><b class="tile-value" data-live>{{$v.Documented}} / {{$v.Total}}</b><span class="tile-note">{{t "itdocs.documented"}}</span>
-  {{with $v.Problems}}<span class="pill" data-state="locked">{{t "itdocs.problems" "n" .}}</span>{{end}}</div>
+  {{with $v.Problems}}<span class="pill" data-state="locked">{{t "itdocs.problems" "n" .}}</span>{{end}}
+  {{with $v.Drifts}}<span class="pill" data-state="locked">{{t "itdocs.drifts" "n" .}}</span>{{end}}</div>
 {{template "hbars" $v.Hosts}}
 {{with $v.Gaps}}<p class="tile-note">{{t "itdocs.gaps"}}: {{.}}{{with $v.More}} +{{.}}{{end}}</p>{{end}}
+{{if or $v.NotDeployed $v.Unknown}}<p class="tile-note">{{t "itdocs.deploys" "missing" $v.NotDeployed "unknown" $v.Unknown}}</p>{{end}}
 {{end}}{{end}}
 {{end}}
 

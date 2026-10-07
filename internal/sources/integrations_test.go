@@ -594,7 +594,7 @@ func TestDrone(t *testing.T) {
 			w.Write([]byte(`[{"slug":"me/app","default_branch":"main","active":true},{"slug":"me/old","active":false}]`))
 		case "/api/repos/me/app/builds":
 			w.Write([]byte(`[{"number":5,"status":"success","event":"pull_request","target":"main","started":1759820000,"finished":1759820060},` +
-				`{"number":4,"status":"failure","event":"push","target":"main","started":1759810000,"finished":1759810090},` +
+				`{"number":4,"status":"failure","event":"push","target":"main","after":"f00dcafe","started":1759810000,"finished":1759810090},` +
 				`{"number":3,"status":"success","event":"push","target":"dev"},` +
 				`{"number":2,"status":"success","event":"tag","target":"v1.0.0"}]`))
 		}
@@ -607,13 +607,20 @@ func TestDrone(t *testing.T) {
 	}
 	repos := raw.(sources.CISource).CIRepos()
 	if len(repos) != 1 || repos[0].Repo != "me/app" || repos[0].Status != sources.CIFailed || len(repos[0].Runs) != 2 ||
-		repos[0].Runs[0].Seconds != 90 || repos[0].Runs[1].Event != "tag" {
+		repos[0].Runs[0].Seconds != 90 || repos[0].Runs[0].Commit != "f00dcafe" || repos[0].Runs[1].Event != "tag" {
 		t.Fatalf("repos %+v", repos)
 	}
 }
 
 // TestCIRepos: GitHub names each repo's latest run, Gitea only failed ones.
+// A GitHub run with a start time is also a run of the history, with its
+// commit, so deploys can be matched with it.
 func TestCIRepos(t *testing.T) {
+	at := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+	runs := (&sources.GitHubDataset{Repos: []sources.GitRepo{{Name: "a/b", CI: "failure", CIAt: at, CICommit: "beef"}}}).CIRepos()
+	if r := runs[0].Runs; len(r) != 1 || r[0].Status != sources.CIFailed || !r[0].Started.Equal(at) || r[0].Commit != "beef" {
+		t.Fatalf("github run %+v", runs)
+	}
 	gh := (&sources.GitHubDataset{Repos: []sources.GitRepo{{Name: "a/b", CI: "failure"}, {Name: "a/c", CI: "success"}, {Name: "a/d"}}}).CIRepos()
 	gt := (&sources.GiteaDataset{Repos: []sources.Repo{{Name: "a/e", FailedWorkflow: "test"}, {Name: "a/f"}}}).CIRepos()
 	if len(gh) != 2 || gh[0].Status != sources.CIFailed || gh[1].Status != sources.CIOK || len(gt) != 1 || gt[0].Step != "test" {
@@ -642,13 +649,15 @@ func TestPBS(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	raw, err := sources.PBSData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "andon@pbs!ro:s3cret"})
+	// Option pools names the TrueNAS pool a store lives on.
+	raw, err := sources.PBSData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "andon@pbs!ro:s3cret",
+		Options: map[string]any{"pools": map[string]any{"tank": "Tank "}}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	d := raw.(*sources.PBSDataset)
 	jobs := d.BackupJobs()
-	if len(d.Stores) != 1 || d.Stores[0].Used != 95 || len(jobs) != 2 || jobs[0].Item != "ha" || jobs[1].Item != "ct/105" ||
+	if len(d.Stores) != 1 || d.Stores[0].Used != 95 || d.Stores[0].Pool != "Tank" || len(jobs) != 2 || jobs[0].Item != "ha" || jobs[1].Item != "ct/105" ||
 		len(d.Verifies) != 1 || d.Verifies[0].Store != "tank" || d.Verifies[0].OK() {
 		t.Fatalf("pbs %+v", d)
 	}
@@ -712,11 +721,23 @@ func TestDemoBackupTools(t *testing.T) {
 }
 
 // TestPowerSources: PeaNUT's NUT flags, OpenDTU's totals and inverters,
-// EVCC's state with and without the old "result" wrapper.
+// EVCC's state with and without the old "result" wrapper, and its
+// charging sessions of the last two months (cost from the price, else
+// energy × price per kWh).
 func TestPowerSources(t *testing.T) {
 	wrapped := false
+	day := func(d int) string { return time.Now().UTC().AddDate(0, 0, -d).Format(time.RFC3339) }
+	sessions := `[{"created":"` + day(3) + `","finished":"` + day(3) + `","loadpoint":"Carport","vehicle":"Kombi","chargedEnergy":20.5,"price":6.15},` +
+		`{"created":"` + day(9) + `","finished":"` + day(9) + `","loadpoint":"Carport","chargedEnergy":10,"pricePerKWh":0.3},` +
+		`{"created":"` + day(90) + `","finished":"` + day(90) + `","loadpoint":"Carport","chargedEnergy":10,"price":3}]`
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case "/api/sessions":
+			if wrapped {
+				w.Write([]byte(`{"result":` + sessions + `}`))
+				return
+			}
+			w.Write([]byte(sessions))
 		case "/api/v1/devices":
 			w.Write([]byte(`[{"peanut.device_id":"nas","device.model":"Eaton","ups.status":"OB LB","battery.charge":"35","battery.runtime":"240","ups.load":"40"}]`))
 		case "/api/livedata/status":
@@ -757,6 +778,9 @@ func TestPowerSources(t *testing.T) {
 		e := raw.(*sources.EVCCDataset)
 		if e.Grid != 3650 || e.BatterySoc != 80 || len(e.Loadpoints) != 1 || e.Loadpoints[0].Charged != 6.4 || e.ChargedKWh30 != 142 {
 			t.Fatalf("evcc (wrapped %v) %+v", w, e)
+		}
+		if len(e.Sessions) != 2 || e.Sessions[0].Price != 6.15 || e.Sessions[0].Vehicle != "Kombi" || e.Sessions[1].Price != 3 || e.Sessions[1].KWh != 10 {
+			t.Fatalf("sessions (wrapped %v) %+v", w, e.Sessions)
 		}
 	}
 }
@@ -861,6 +885,10 @@ func TestTechnitiumFritz(t *testing.T) {
 	if f := raw.(*sources.FritzDataset); !f.Connected() || f.Uptime != 2400 || f.DownSync != 250000 || f.Model != "FRITZ!Box 7590" {
 		t.Fatalf("fritz %+v", f)
 	}
+	// Since is when the line came up, to the minute: the same over runs.
+	if f := raw.(*sources.FritzDataset); time.Since(f.Since) < 39*time.Minute || time.Since(f.Since) > 42*time.Minute || f.Since.Second() != 0 {
+		t.Fatalf("fritz since %v", f.Since)
+	}
 	now := time.Now()
 	if r := sources.DemoRoutes(now, enums.ServiceTraefik).Routes; len(r) != 3 || r[0].Up {
 		t.Fatalf("demo traefik %+v", r)
@@ -868,8 +896,13 @@ func TestTechnitiumFritz(t *testing.T) {
 	if d := sources.DemoTechnitium(now); d.Queries == 0 || len(d.TopBlocked) != 2 {
 		t.Fatalf("demo technitium %+v", d)
 	}
-	if f := sources.DemoFritz(now); f.DownSync != 250000 || !f.Connected() {
+	if f := sources.DemoFritz(now); f.DownSync != 250000 || !f.Connected() || f.Since.After(now) || !f.Since.Equal(sources.DemoFritz(now.Add(time.Minute)).Since) {
 		t.Fatalf("demo fritz %+v", f)
+	}
+	// The demo's earlier connections, some seen down, then today's.
+	past := sources.DemoFritzPast(now)
+	if len(past) < 3 || past[0].Data.Since.IsZero() || !past[len(past)-1].Data.Since.Equal(sources.DemoFritz(now).Since) {
+		t.Fatalf("demo past %+v", past)
 	}
 }
 

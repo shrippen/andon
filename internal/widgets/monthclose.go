@@ -75,8 +75,8 @@ func decodeMonthClose(r Raw) MonthCloseConfig {
 }
 
 func monthCloseQueries(MonthCloseConfig) []Query {
-	return []Query{kimaiPeer, peer(peerNinja, enums.ServiceInvoiceNinja), peer(peerSure, enums.ServiceSure),
-		peer(peerPaperless, enums.ServicePaperless), peer(peerMail, enums.ServiceMail)}
+	return append([]Query{kimaiPeer, peer(peerNinja, enums.ServiceInvoiceNinja),
+		peer(peerPaperless, enums.ServicePaperless), peer(peerMail, enums.ServiceMail)}, bankPeers...)
 }
 
 func monthCloseView(cfg MonthCloseConfig, results map[string]any, ctx ViewCtx) map[string]any {
@@ -111,7 +111,7 @@ func monthCloseView(cfg MonthCloseConfig, results map[string]any, ctx ViewCtx) m
 		}
 		steps = append(steps, CloseStep{Key: "drafts", Done: drafts == 0, Count: drafts, URL: strings.TrimRight(ninja.URL, "/") + "/invoices"})
 	}
-	if sure, ok := results[peerSure].(*sources.SureDataset); ok {
+	if sure, ok := bankOf(results); ok {
 		cfg := ruleConfig("cross.expense_unrecorded", ctx.Settings)
 		in := metrics.ReceiptInputs{Sure: sure, Ninja: ninja, Accounts: asStringList(cfg["accounts"]), MinAmount: floatOf(cfg["min_amount"]),
 			Window: int(floatOf(cfg["date_window"])), Since: start}

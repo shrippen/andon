@@ -15,7 +15,7 @@ import (
 
 // costPeers are the services the bill is built from.
 var costPeers = []enums.ServiceType{
-	enums.ServiceHomeAssistant, enums.ServiceTibber, enums.ServiceSnipeIT, enums.ServiceSure, enums.ServiceDomains,
+	enums.ServiceHomeAssistant, enums.ServiceTibber, enums.ServiceSnipeIT, enums.ServiceSure, enums.ServiceFirefly, enums.ServiceDomains,
 	enums.ServiceKimai, enums.ServiceKomodo, enums.ServiceGitea, enums.ServiceGitHub, enums.ServiceProxmox,
 }
 

@@ -512,9 +512,10 @@ type Outage struct {
 
 // SpeedReport is one month of measurements against the contract.
 type SpeedReport struct {
-	Days      []SpeedDay
-	BelowDays int
-	Outages   []Outage
+	Days       []SpeedDay
+	BelowDays  int
+	Outages    []Outage
+	Reconnects []Reconnect // of the router's line (FRITZ!Box)
 }
 
 // wanRule names the hint whose history holds WAN outages.
@@ -561,6 +562,7 @@ func SpeedDays(h *History, expectDown, share float64, now time.Time, days int) S
 	for name, start := range open {
 		r.Outages = append(r.Outages, Outage{Gateway: name, Start: start})
 	}
+	r.Reconnects = Reconnects(h, since)
 	return r
 }
 

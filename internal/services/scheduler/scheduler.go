@@ -2,6 +2,7 @@
 //
 //	every 5 min   fetch integrations, rules → hints (analysis; also at start,
 //	              interval ANALYSIS_MINUTES)
+//	after it      draw the IT docs into Homelable (also daily)
 //	every 1 min   push notifications
 //	every 5 min   digest mails
 //	hourly        housekeeping (sessions, cache, hints, audit)

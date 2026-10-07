@@ -71,6 +71,9 @@ func cashflowDetail(cfg CashflowConfig, results map[string]any, ctx ViewCtx) Det
 	if cfg.MinBalance != 0 {
 		body.Line = append(body.Line, Fact{Label: T("detail.cash.min"), Value: Money(cfg.MinBalance, currency)})
 	}
+	if depot, ok := results[peerDepot].(*sources.GhostfolioDataset); ok && depot.Value > 0 {
+		body.Line = append(body.Line, Fact{Label: T("detail.cash.depot"), Value: Money(depot.Value, depot.Currency)})
+	}
 	body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.cash.balance"), Hero: true, Data: g})
 	body.Facts = []Kpi{{Value: Money(points[0].Balance, currency), Label: T("detail.cash.now")}, {Value: Money(low, currency), Label: T("detail.cash.lowest"), Tier: tierIf(cfg.MinBalance != 0 && low < cfg.MinBalance, "red", "yellow")},
 		{Value: Money(points[len(points)-1].Balance-points[0].Balance, currency), Label: textDays("detail.cash.change", days), Tier: tierIf(points[len(points)-1].Balance >= points[0].Balance, "green", "yellow")}}

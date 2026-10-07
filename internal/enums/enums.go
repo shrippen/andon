@@ -168,6 +168,7 @@ const (
 	ServiceKintsugi       ServiceType = "kintsugi"
 	ServiceWallos         ServiceType = "wallos"
 	ServiceHansei         ServiceType = "hansei"
+	ServiceHomelable      ServiceType = "homelable"
 )
 
 // Services lists every connectable service, in form order.
@@ -180,7 +181,7 @@ var Services = []ServiceType{
 	ServicePihole, ServiceAdGuard, ServiceNextcloud, ServiceSabnzbd, ServiceGluetun, ServiceDomains, ServiceBlacklist,
 	ServiceTailscale, ServiceGateway, ServiceMediaServer, ServiceArr, ServiceVaultwarden,
 	ServiceSpeedtest, ServiceGrocy, ServiceTandoor, ServiceDWD, ServiceGitHub, ServiceKDEStore, ServiceHealthchecks, ServicePrometheus, ServiceNVD, ServiceDrone, ServicePBS, ServiceKopia, ServiceDuplicati, ServiceBackrest, ServiceUrBackup, ServiceWUD, ServiceWatchtower, ServicePeaNUT, ServiceApcupsd, ServiceOpenDTU, ServiceEVCC, ServiceTraefik, ServiceCaddy, ServiceNPM, ServiceTechnitium, ServiceFritzBox, ServiceTautulli, ServiceJellystat, ServiceNavidrome, ServiceAudiobookshelf, ServiceSeerr, ServiceVikunja, ServiceNews, ServiceTwitch, ServiceESPHome, ServiceFediverse, ServiceLemmy, ServiceFirefly, ServiceGhostfolio, ServiceTibber, ServiceCalendar,
-	ServiceKintsugi, ServiceWallos, ServiceHansei, ServiceJSONAPI,
+	ServiceKintsugi, ServiceWallos, ServiceHansei, ServiceHomelable, ServiceJSONAPI,
 }
 
 // Known reports whether s is a connectable service.

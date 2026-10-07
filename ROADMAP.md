@@ -2,7 +2,7 @@
 
 Ein selbst gehostetes, **mehrbenutzerfähiges** Dashboard. Es löst Dashy als **Startseite mit Links, Statusanzeigen und Feeds** ab, führt zugleich Daten aus **Kimai**, **Invoice Ninja**, **Snipe-IT** und **Dawarich** zusammen und leitet daraus **Hinweise, Erinnerungen und Ratschläge** ab. Konfiguriert wird im **eingebauten Editor**, gestaltet über ein **Theme-System**, von dem nur das Theme **Kante** mitgeliefert wird. Auslieferung als **ein Docker-Container** mit eigener Anmeldung.
 
-> Stand: v0.4 · Name **Andon** (seit 2026-09-26, vorher Arbeitstitel `dashboard`): die Signaltafel aus der Fertigung, die zeigt, wo es hakt.
+> Stand: v0.7 · Name **Andon** (seit 2026-09-26, vorher Arbeitstitel `dashboard`): die Signaltafel aus der Fertigung, die zeigt, wo es hakt.
 >
 > **Veröffentlichung:** Quelltext und Entwicklung auf `git.arianw.de/shrippen/andon` (privat, Image `git.arianw.de/shrippen/andon`). Gitea spiegelt `main` und Tags nach `github.com/shrippen/andon`; dort baut `.github/workflows/ci.yml` das öffentliche Image `ghcr.io/shrippen/andon`, und GitHub Pages zeigt die Landing Page aus `docs/` unter `shrippen.github.io/andon/`.
 >
@@ -21,7 +21,7 @@ Das Projekt ist vollständig von Python auf **Go** umgestellt (Zielplattform: Ra
 | Themes (Editor, Import/Export, Schriften, Styleguide, WCAG-AA-Prüfung) | umgesetzt |
 | Kimai, Invoice Ninja, Snipe-IT, Dawarich | Adapter, Regeln, Insight-Widgets umgesetzt |
 | Homelab-Dienste (Phase 10) | 17 weitere Quellen mit Regeln; Docker offen |
-| IT-Doku-Abgleich (Phase 15) | Compose-Stacks und Vault-Frontmatter über Gitea, Regeln `docs.*`, Kacheln, `/api/docs` und Hansei-Webhook umgesetzt; `docs.drift`, Komodo, Homelable offen |
+| IT-Doku-Abgleich (Phase 15) | Compose-Stacks und Vault-Frontmatter über Gitea, Komodo-Stand, Regeln `docs.*` (auch `docs.drift`), Kacheln, `/api/docs` und Hansei-Webhook umgesetzt; Homelable als Ansicht (eigener Canvas, idempotenter Abgleich); offen nur der Homelable-Stack im Compose-Repo |
 | Prüflauf | Hintergrund-Job holt alle Integrationen (Start + alle `ANALYSIS_MINUTES`); Seiten zeigen nur diesen Stand, live nur der Status-Ping |
 | Benachrichtigungen | Apprise, Digest-Mail (SMTP), Wochenrückblick mit optionaler LLM-Zusammenfassung, iCal |
 | Trends, Prognosen | Snapshots, Verlauf, Saisonvergleich, Jahresprognose, Liquidität |
@@ -979,12 +979,12 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 | Andon | Vault-Frontmatter, Compose-Repos, Komodo | Hinweise; Homelable (abgeleitete Ansicht) |
 | Homelable | nur, was Andon schickt | nichts |
 
-**Stand 07.10.2026:** Andon-Seite bis auf `docs.drift`, Komodo und Homelable fertig (PRs #63–#71; Demowelt shrippen.github.io #25–#28, Hansei #8–#10).
+**Stand 07.10.2026:** Andon-Seite bis auf Homelable fertig (PRs #63–#71; Demowelt shrippen.github.io #25–#28, Hansei #8–#10); Komodo-Stand und `docs.drift` danach.
 - Live geprüft gegen git.arianw.de: 118 Stacks (Regis 79, Eredin 28, Plötze 11), 275 Notizen in `IT/Dienste`, `IT/Geräte`, `IT/Orte`, `IT/Netzwerk`, `IT/Allgemeines`. Kein Vault-Eintrag hat bisher ein `Compose`-Feld, daher melden die Regeln alle 118 Stacks als undokumentiert; das ist die Arbeitsliste fürs Nachtragen.
 - Produktiv noch nicht eingerichtet: an der Gitea-Verbindung die Optionen `docs_repo: shrippen/ObsidianPrivat` und `docs_paths: [IT/Dienste, IT/Geräte, IT/Orte, IT/Netzwerk, IT/Allgemeines]`; eine Verbindung Hansei (Webhook-Adresse steht auf ihrer Seite); ein Lese-Token für Hansei.
 - Schnittstelle zu Hansei:
   - `GET /api/docs?token=…` (Lese-Token) → `{"complete": bool, "findings": [{"id", "rule", "host", "stack", "note", "path", "link", "note_url", "compose", "services": [{"name", "image", "ports"}]}]}`. `complete: false` heißt: Stacks oder Notizen nicht vollständig gelesen, ein fehlender Befund ist dann keine Erledigung.
-  - IDs: `docs.missing:<host>/<stack>`, `docs.orphan:<Notizpfad>`, `docs.deprecated_live:<host>/<stack>`.
+  - IDs: `docs.missing:<host>/<stack>`, `docs.orphan:<Notizpfad>`, `docs.deprecated_live:<host>/<stack>`, `docs.not_deployed:<host>/<stack>` (mit Compose-Auszug), `docs.deployed_unknown:<host>/<stack>` (ohne `compose`; `services` sind die Images, die Komodo betreibt), `docs.drift:<Notizpfad>` mit `changes: [{"field", "old", "new", "from"}]` (`field` ist der Frontmatter-Schlüssel `URL`, `externe Ports` oder `Image`; `old` aus der Notiz, `new` aus der Compose-Datei (`from: compose`) oder aus dem, was Komodo betreibt (`from: komodo`)).
   - `POST <Webhook-Adresse der Verbindung Hansei>` mit `{"state": {"review", "feedback", "done", "conformity" (0..1), "claimed": [IDs]}}` ersetzt den letzten Stand (höchstens 60 Aufrufe je Minute, Körper bis 128 KiB). Nach jeder Änderung und beim Start senden.
 - Offen auf Hansei-Seite: Phase 05 in `hansei/ROADMAP.md` (Feld `Compose` im Vault, Befunde abholen, Stand senden).
 
@@ -999,13 +999,13 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 - [x] Compose-Repos: `docker-compose-*` über die vorhandene Gitea-Verbindung (`git/trees`), Host aus dem Repo-Namen (`ploetze` → Plötze); je Stack Dienste, Images, Ports, Labels. `environment`-Werte werden beim Lesen verworfen *(`GiteaDataset.Stacks`, `internal/sources/compose.go`; Dateien je Blob-SHA nur einmal gelesen)*
 - [x] Obsidian: Repo `ObsidianPrivat`, nur die Teilbäume `IT/Dienste`, `IT/Geräte`, `IT/Orte` und die Netz-Notizen, nur Frontmatter (`Compose`, `Gerät`, `deprecated`, `URL`, Ports, `Backup via`, `SSO …`, `abhängig von`, `letzte Prüfung`, `Orte`). Nie den ganzen Baum laden: Gitea kürzt ihn bei rund 3000 Einträgen (`truncated`), und Andon sieht so keine Pfade anderer Ordner *(`GiteaDataset.Notes`, `internal/sources/itdocs.go`; Optionen `docs_repo`, `docs_paths` an der Gitea-Verbindung; `Ort` wie `Orte` gelesen)*
 - [x] Hansei-Stand für das Widget „Batches warten“ *(statt Statusnotiz im Vault: Verbindung Hansei, Hansei schickt seinen ganzen Stand per Webhook `{"state": …}`; Andon behält den letzten)*
-- [ ] Später: Komodo-Stand dazu (Stack im Repo, aber nicht deployt und umgekehrt)
+- [x] Später: Komodo-Stand dazu (Stack im Repo, aber nicht deployt und umgekehrt) *(Regeln `docs.not_deployed` und `docs.deployed_unknown`, ein Hinweis je Host, `metrics.CheckDeploys`; Host des Komodo-Stacks aus dem verknüpften Repo `docker-compose-<host>`, sonst aus dem Servernamen (Umlaute gefaltet, „Plötze“ = `ploetze`); Abgleich über Host und Name, verglichen nur auf Hosts, die beide Seiten kennen; `down` zählt als nicht deployt, `unknown` gar nicht. Kachel „Doku-Abdeckung“ und ihr Popup zeigen beides)*
 
 **Regeln und Widgets**
 - [x] `docs.missing`: Stack ohne aktive Notiz (bzw. ohne Eintrag in einer Geräte- oder Netz-Notiz) *(ein Hinweis je Host; Zuordnung über `Compose`-Link auf Datei oder Stack-Ordner, `metrics.CheckDocs`)*
 - [x] `docs.orphan`: aktive Notiz, deren `Compose`-Link auf keinen Stack zeigt
 - [x] `docs.deprecated_live`: Notiz deprecated, Stack liegt noch im Repo
-- [ ] `docs.drift` (später): URL, Ports oder Image im Frontmatter weichen von der Compose-Datei ab
+- [x] `docs.drift` (später): URL, Ports oder Image im Frontmatter weichen von der Compose-Datei ab *(ein Hinweis je Notiz mit den Feldern alt → neu; auch gegen das Image, das Komodo betreibt, wenn es Neues sagt. Verglichen wird nur, was die Notiz nennt und die andere Seite kennt: URL nur gegen Proxy-Labels (Traefik `Host()`, caddy-docker-proxy), `externe Ports` als Menge der veröffentlichten Host-Ports (`127.0.0.1:8080:80/tcp` → 8080, `/udp` bleibt), Image nach Repository und Tag (ohne Tag = jeder Tag, Tag gegen Digest nicht vergleichbar); `interne Ports` und Umgebungswerte nicht. Frontmatter neu gelesen: `Image` (Liste erlaubt), `URLs` als Ersatz für `URL` (erster Eintrag). Regeln in `internal/metrics/itdocs_drift.go`)*
 - [x] Widget „Doku-Abdeckung“ je Host (X von Y Stacks dokumentiert, Liste der Lücken) *(`docs_coverage`; Popup mit Aufgaben je Lücke und Links)*
 - [x] Widget „Batches warten“ *(`hansei_batches`)*
 
@@ -1014,14 +1014,14 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 - [x] Rückmeldung von Hansei: `claimed` im Stand nennt die Befund-IDs (`id` aus `/api/docs`), an denen ein Batch arbeitet; deren Hinweise warten, `docs.missing` zählt sie nur noch mit. Erledigt ist ein Befund erst, wenn der Vault ihn nicht mehr zeigt
 
 **Homelable als Ansicht**
-- [ ] Homelable (github.com/Pouzor/homelable, MIT) als Stack `docker-compose-regis/homelable`, Version gepinnt (Renovate), nur intern (LAN/Tailscale, keine Pangolin-Resource: Swagger unter `/docs` ist ohne Anmeldung). Lokaler Login, weil der OIDC-Modus keinen Skriptzugang hat (Issue #291). Nicht genutzt: eigene Dokumentation (zweites Wiki neben Obsidian), Netzwerk-Scanner, Live View, Docs View
-- [ ] Ausgang `outbound/homelable`: Andon baut aus Quellen und Regeln ein Graph-Modell und gleicht es über die REST-API ab. Eigener Canvas „IT-Doku (aus Obsidian)“; von Hand gezeichnete Canvases bleiben unberührt. JWT läuft nach 24 h ab → bei `401` neu anmelden, Passwort verschlüsselt wie andere Zugangsdaten
-- [ ] Abbildung: Geräte als Host-Knoten in ihrer Zone (`Orte`), Dienste im Host verschachtelt (`Gerät`), `abhängig von` als Verbindungen; Eigenschaften URL, Ports, Backup, SSO, `letzte Prüfung`, `obsidian://`-Link zur Notiz
-- [ ] Infrastruktur-Stacks: Knoten im Host **und** zusätzlich ein eigenes Netz (z. B. Tailscale, Pangolin), verbunden mit allen Hosts, auf denen ein zugehöriger Stack läuft
-- [ ] `docs.*`-Befunde sichtbar: Stacks ohne Notiz als blasse Knoten „Doku fehlt“, veraltete `letzte Prüfung` markiert
-- [ ] Live-Status in Homelable an (`check_method` aus URL/Ports), **ohne Benachrichtigungen**; alarmiert wird weiter nur über Andon und Uptime Kuma
-- [ ] Abgleich idempotent: Andon speichert je Notizpfad bzw. Stack die Homelable-ID, sendet nur Änderungen und nie Positionen (eigenes Layout bleibt), entfernt Knoten, deren Notiz fehlt oder deprecated ist
-- [ ] Demo: Homelable-Verbindung als `demo://` mit Studio-Weber-Daten (nur im Demo-Build)
+- [ ] Homelable (github.com/Pouzor/homelable, MIT) als Stack `docker-compose-regis/homelable`, Version gepinnt (Renovate), nur intern (LAN/Tailscale, keine Pangolin-Resource: Swagger unter `/docs` ist ohne Anmeldung). Lokaler Login, weil der OIDC-Modus keinen Skriptzugang hat (Issue #291). Nicht genutzt: eigene Dokumentation (zweites Wiki neben Obsidian), Netzwerk-Scanner, Live View, Docs View *(gehört ins Compose-Repo `docker-compose-regis`, nicht zu Andon; Andon ist gegen v3.6.0 gebaut)*
+- [x] Ausgang `outbound/homelable`: Andon baut aus Quellen und Regeln ein Graph-Modell und gleicht es über die REST-API ab. Eigener Canvas „IT-Doku (aus Obsidian)“; von Hand gezeichnete Canvases bleiben unberührt. JWT läuft nach 24 h ab → bei `401` neu anmelden, Passwort verschlüsselt wie andere Zugangsdaten *(API gelesen in Homelable v3.6.0: `auth/login`, `designs`, `nodes`, `edges`; Verbindungstyp `homelable` mit Benutzer und Passwort, Test = Anmeldung + Canvas-Liste; Graph `metrics.BuildDocGraph` aus der Gitea-Verbindung im selben Verbund; nie `ip`/`mac`, sonst verschmilzt Homelable den Knoten mit einem von Hand gezeichneten Gerät; Job `homelable` nach jedem Prüflauf und täglich, „Jetzt abgleichen“ und Protokoll im Reiter Abgleich der Akte; Optionen `vault`, `lang`)*
+- [x] Abbildung: Geräte als Host-Knoten in ihrer Zone (`Orte`), Dienste im Host verschachtelt (`Gerät`), `abhängig von` als Verbindungen; Eigenschaften URL, Ports, Backup, SSO, `letzte Prüfung`, `obsidian://`-Link zur Notiz *(Zone = `groupRect`, Host = `docker_host` im Container-Modus, auch ohne Gerätenotiz aus dem Repo-Namen; Dienst ohne `Gerät` auf dem Host seines Stacks; Ports aus `externe Ports`, sonst aus der Compose-Datei; SSO nur, wenn ein SSO-Feld gesetzt ist; Vault-Name aus Option `vault`, sonst Repo-Name)*
+- [x] Infrastruktur-Stacks: Knoten im Host **und** zusätzlich ein eigenes Netz (z. B. Tailscale, Pangolin), verbunden mit allen Hosts, auf denen ein zugehöriger Stack läuft *(Netz = Notiz in `Netzwerk/` oder `Allgemeines/` mit `Compose`-Feld, bis `IT/Design.md` eine Kennzeichnung festlegt)*
+- [x] `docs.*`-Befunde sichtbar: Stacks ohne Notiz als blasse Knoten „Doku fehlt“, veraltete `letzte Prüfung` markiert *(blasser Rahmen und Eigenschaft „Doku: fehlt“, auch für Stacks einer deprecated-Notiz; Prüfung älter als 365 Tage: Rahmen in Warnfarbe, „(veraltet)“ am Datum)*
+- [x] Live-Status in Homelable an (`check_method` aus URL/Ports), **ohne Benachrichtigungen**; alarmiert wird weiter nur über Andon und Uptime Kuma *(URL → `https`/`http`, sonst `tcp` auf `<host>:<erster Port>`, Host = Name aus dem Repo, muss im Netz auflösbar sein; Homelable v3.6.0 hat keine Benachrichtigungen)*
+- [x] Abgleich idempotent: Andon speichert je Notizpfad bzw. Stack die Homelable-ID, sendet nur Änderungen und nie Positionen (eigenes Layout bleibt), entfernt Knoten, deren Notiz fehlt oder deprecated ist *(Schlüssel → ID und Hash der zuletzt gesendeten Felder; von Hand gelöschte Knoten werden neu angelegt; bei unvollständig gelesenen Stacks oder Notizen kein Abgleich, damit nichts fälschlich verschwindet; neue Knoten setzt Homelable selbst, Kinder liegen anfangs übereinander → Auto-Layout in Homelable)*
+- [x] Demo: Homelable-Verbindung als `demo://` mit Studio-Weber-Daten (nur im Demo-Build) *(gleicht in einen Nachbau im Speicher ab, die Akte zeigt das Protokoll)*
 
 ### Phase 16: Icons für Kachelgruppen und Abschnitte (notiert 05.10.2026)
 
@@ -1116,12 +1116,12 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] Quelle Drone (`/api/user/repos?latest=true`, Builds je Repo); Kachel „CI-Läufe“ über Drone, GitHub und Gitea (`sources.CISource`) *(GitHub und Gitea nennen nur den letzten Lauf; ein Verlauf bräuchte je Repo eine weitere Abfrage)*
 - [x] Regel `drone.failing` (Standardzweig rot seit N Stunden; GitHub und Gitea haben schon `github.ci_failed`, `gitea.actions_failed`)
 - [x] Quer: `cross.release_red_ci` (Release auf GitHub, der letzte Build davor war rot, aus jedem CI-Anbieter)
-- [ ] Quer: `cross.ci_red_deployed` *(Komodo nennt Deploys nur im Popup, nicht im Datensatz; dafür muss die Komodo-Quelle die Deploys mitlesen)*
+- [x] Quer: `cross.ci_red_deployed` *(die Komodo-Quelle liest Deploys (Stack, Zeit, Commit, wer) und das Git-Repo je Stack in den Datensatz; Repo zum Stack: Option `ci_repos`, sonst Komodos Repo, sonst ein CI-Repo mit dem Namen des Stacks. Rot heißt: der Build des deployten Commits, ohne Commit der letzte Build davor, war fehlgeschlagen. Drone und GitHub nennen dafür den Commit; Gitea nennt nur rote Läufe ohne Zeit und zählt nicht mit)*
 
 **Schritt 6: Sicherung** — Proxmox Backup Server, Kopia, Duplicati, Backrest, UrBackup
 - [x] Quellen mit `BackupSource`; PBS zusätzlich Belegung je Datastore und Verify-Jobs; Regeln `pbs.verify_failed`, `pbs.datastore_full` *(UrBackup-Anmeldung und Duplicati-Token als Treiber; Fehlertext des Werkzeugs als `BackupJob.Note`)*
 - [x] Quer: VM ohne Sicherung *(statt eigener Regel zählt `proxmox.backup_old` frische PBS-Sicherungen mit)*; `cross.pbs_orphan` (PBS-Gruppen von Gästen, die Proxmox nicht mehr hat)
-- [ ] Datastore-Füllstand gegen TrueNAS-Pool *(PBS nennt den Pool nicht; Zuordnung nur über eine Option möglich)*
+- [x] Datastore-Füllstand gegen TrueNAS-Pool *(PBS nennt den Pool nicht: Option `pools: {archiv: tank}` der PBS-Verbindung. `cross.pbs_pool` warnt, wenn der Pool fast voll ist (85 %), der Datastore aber nicht, und meldet, wenn der Pool 15 Punkte voller ist, als der Datastore meint. Eine eigene PBS-Kachel gibt es nicht; der Dialog der Backup-Kachel zeigt die Datastores mit Belegung, Pool und dessen Belegung)*
 
 **Schritt 7: Updates** — What's Up Docker, Watchtower, Releases
 - [x] WUD (Container mit neuer Version), Watchtower (Metriken: geprüft, aktualisiert, fehlgeschlagen), Releases beobachteter Repos über GitHub; alles als Update-Hinweise in `updates` und `update_window` *(Gitea liest keine Releases)*
@@ -1132,12 +1132,12 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] USV: Ladung, Restlaufzeit, Last; Solar: Leistung und Ertrag; EVCC: Laden, Netz, 30-Tage-Werte *(eigene Kachel „Strom“ statt Beiträgen zu `energy`; apcupsd über sein NIS-Protokoll)*
 - [x] Regeln `ups.on_battery`, `ups.runtime_low`, `ups.replace_battery`, `opendtu.offline`
 - [x] Quer: Stromausfall *(USV auf Batterie ist die Ursache in `system.outage`, Einzelhinweise der Monitore und Alerts fallen weg)*, `cross.charge_expensive` (EVCC × Tibber)
-- [ ] Quer: `cross.ups_load` (Laufzeit gegen Zahl der Hosts), `cross.charge_business` (EVCC × Fahrten) *(brauchen Verlauf bzw. Fahrtdaten je Ladepunkt)*
+- [x] Quer: `cross.ups_load` (Laufzeit gegen Zahl der Hosts), `cross.charge_business` (EVCC × Fahrten) *(`cross.ups_load`: Option `hosts` der USV-Verbindung (Liste oder je USV); warnt, wenn die Laufzeit jetzt oder die kürzeste der letzten 7 Tage unter Hosts × 5 min liegt. Der Verlauf hält dafür je Tag die kürzeste Laufzeit (`Readings.Low`, Tabelle `samples`). `cross.charge_business`: die EVCC-Quelle liest die Ladevorgänge (`api/sessions`, 62 Tage); die Energie eines Vorgangs fährt der Wagen bis zum nächsten, seine Kosten teilen sich nach den Auto-km der Dawarich-Fahrten dazwischen; gemeldet in den ersten Tagen des Monats für den Vormonat. EVCC und Dawarich müssen im selben Bereich liegen; die Demo hat dafür Maras Wallbox im persönlichen Bereich)*
 
 **Schritt 9: Netz** — Traefik, Caddy, Nginx Proxy Manager, Headscale, Technitium, FRITZ!Box, UniFi
 - [x] Routen (Traefik, Caddy, NPM) mit Zertifikat und Ziel, Kachel „Routen“; Technitium in der DNS-Kachel; FRITZ!Box über TR-064: Verbindung, Neuverbindung, DSL-Rate; UniFi liest zusätzlich die Clients *(Headscale las die Tailscale-Verbindung schon)*
 - [x] Quer: Route auf gestoppten oder fehlenden Container *(in `routes.down`)*, `cross.route_undocumented`, `cross.line_vs_speed` (Sync-Rate gegen Speedtest und Gebuchtes), `cross.device_uninventoried` (Client von UniFi/OpenWrt ohne Snipe-IT-Asset)
-- [ ] FRITZ!Box-Abbrüche in den ISP-Bericht *(bräuchte den Verlauf der Neuverbindungen)*
+- [x] FRITZ!Box-Abbrüche in den ISP-Bericht *(der Datensatz nennt, seit wann die Leitung steht (Uptime, auf die Minute); jeder Prüflauf hält das als Zustand „WAN“ im Verlauf, „–“ solange sie unten ist. Ein neuer Beginn ist eine Neuverbindung; die Ausfallzeit steht nur fest, wenn ein Prüflauf die Leitung unten sah (mindestens ab dann), sonst „kurz“. `/reports/isp` listet sie mit Zeit und Ausfall, auch für Bereiche ohne Speedtest Tracker, die CSV ebenso. Die Demo trennt jede Nacht um 04:02 und bringt Neuverbindungen der letzten Wochen im Verlauf mit)*
 
 **Schritt 10: Medien** — Tautulli, Jellystat, Seerr, Audiobookshelf, Navidrome
 - [x] Kachel „Jetzt läuft“ über `sources.StreamSource` (Jellyfin/Plex, Tautulli, Navidrome, Audiobookshelf), Jellystat-Statistik (30 Tage), Seerr: offene und hängende Anfragen *(Jellystat und Audiobookshelf ohne echte Instanz gebaut, Felder tolerant gelesen)*
@@ -1150,7 +1150,7 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 **Schritt 12: Finanzen** — Firefly III, Ghostfolio
 - [x] Firefly III in der Domäne Zahlungen (wie Sure, `caps`) *(liefert Sures Form; `metrics.BankOf` gibt Regeln und Kennzahlen Sure oder Firefly; Sure-Regeln laufen als `firefly.*`)*; Ghostfolio: Kachel „Depot“ mit Verlauf und Positionen, `ghostfolio.drawdown`
 - [x] Quer: Zahlungsabgleich mit Invoice Ninja auch über Firefly III; `cross.depot_reserve` (fehlende Rücklage, die das Depot decken könnte)
-- [ ] Kacheln mit Sure als Partner (Liquidität, Kosten) lesen Firefly noch nicht; Depot nicht in der Liquidität *(Depot ist kein Bargeld)*
+- [x] Kacheln mit Sure als Partner (Liquidität, Kosten) lesen Firefly noch nicht; Depot nicht in der Liquidität *(Depot ist kein Bargeld)* *(Liquidität und Frei verfügbar (Kennzahl), Liquiditätsvorschau, Abos, Homelab-Kosten, Monatsabschluss und Reise-Dialog fragen Sure und Firefly III als Partner und lesen über `metrics.BankOf`, Sure zuerst. Das Depot bleibt aus der Liquidität; der Dialog der Liquiditätsvorschau nennt es als eigene Zeile „Depot (kein Bargeld)“)*
 
 **Schritt 13: Lesen** — Hacker News, Lobsters, Reddit, YouTube-Kanäle, Twitch
 - [x] Kachel „Lesen“ (Punkte, Kommentare, Alter), YouTube über die Kanal-Feeds, Twitch mit App-Zugang *(Verbindung `news`: Hacker News über die Algolia-API, Lobsters, `r/<sub>`, `youtube:<Kanal-ID>`, ohne Anmeldung; Verbindung `twitch` mit Client-ID und Secret, App-Token im Speicher; die Seiten wechseln sich in der Kachel ab, Kanäle live stehen oben)*

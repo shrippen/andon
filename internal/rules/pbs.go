@@ -6,6 +6,9 @@ package rules
 //	pbs.datastore_full   a store is fuller than "percent"
 //	cross.pbs_orphan     backups of VMs or containers Proxmox no longer has
 //	                     (they only take space)
+//	cross.pbs_pool       a store's TrueNAS pool (PBS option pools) is near
+//	                     full while the store has room, or far fuller than
+//	                     the store says (other datasets share the pool)
 //
 // proxmox.backup_old (ops.go) counts a fresh PBS backup of the guest too.
 
@@ -15,6 +18,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/sources"
 )
 
@@ -27,6 +31,31 @@ func init() {
 	Register("pbs.verify_failed", pbsSvc, nil, on(pbsVerifyFailed))
 	Register("pbs.datastore_full", pbsSvc, map[string]any{"percent": 90.0}, on(pbsFull))
 	Register("cross.pbs_orphan", Cross, nil, pbsOrphan)
+	Register("cross.pbs_pool", Cross, map[string]any{"percent": 85.0, "gap": 15.0}, pbsPool)
+	Needs("cross.pbs_pool", pbsSvc, string(enums.ServiceTrueNAS))
+}
+
+func pbsPool(_ any, cfg map[string]any, env Env) []Finding {
+	pbs, _ := env.Datasets[pbsSvc].(*sources.PBSDataset)
+	nas, _ := env.Datasets[string(enums.ServiceTrueNAS)].(*sources.TrueNASDataset)
+	limit, gap := cfgFloat(cfg, "percent"), cfgFloat(cfg, "gap")
+
+	var found []Finding
+	for _, f := range metrics.PBSPools(pbs, nas) {
+		msg, sev := "", enums.SeverityInfo
+		switch {
+		case f.PoolPct >= limit && f.StorePct < limit:
+			msg, sev = "cross.pbs_pool_full", enums.SeverityWarn
+		case f.PoolPct-f.StorePct >= gap:
+			msg = "cross.pbs_pool_gap"
+		default:
+			continue
+		}
+		found = append(found, Finding{Fingerprint: "pool:" + f.Store, Severity: sev, Message: msg,
+			Params:  map[string]any{"store": f.Store, "pool": f.Pool, "store_pct": Num(f.StorePct, 0), "pool_pct": Num(f.PoolPct, 0)},
+			Sources: []string{pbsSvc, string(enums.ServiceTrueNAS)}})
+	}
+	return found
 }
 
 func pbsVerifyFailed(data *sources.PBSDataset, _ map[string]any, _ Env) []Finding {

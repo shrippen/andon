@@ -45,6 +45,8 @@ const (
 	fmPlaces        = "Orte"
 	fmCompose       = "Compose"
 	fmURL           = "URL"
+	fmURLs          = "URLs" // read when URL is missing: its first entry
+	fmImage         = "Image"
 	fmExternalPorts = "externe Ports"
 	fmInternalPorts = "interne Ports"
 	fmTailscalePort = "TailscalePort"
@@ -64,7 +66,8 @@ type DocNote struct {
 	Devices         []string // Gerät
 	Places          []string // Ort / Orte
 	Compose         []string // URLs of compose files in Gitea
-	Web             string   // URL
+	Web             string   // URL, else the first of URLs
+	Images          []string // Image: "ghcr.io/immich-app/immich-server:v2.1"
 	ExternalPorts   []string
 	InternalPorts   []string
 	TailscalePorts  []string
@@ -205,13 +208,18 @@ func parseNote(body []byte) DocNote {
 		return DocNote{}
 	}
 
+	web := fmText(fm[fmURL])
+	if urls := fmList(fm[fmURLs]); web == "" && len(urls) > 0 {
+		web = urls[0]
+	}
 	return DocNote{
 		Deprecated:     fmBool(fm[fmDeprecated]),
 		Tags:           fmList(fm[fmTags]),
 		Devices:        fmList(fm[fmDevice]),
 		Places:         append(fmList(fm[fmPlace]), fmList(fm[fmPlaces])...),
 		Compose:        fmList(fm[fmCompose]),
-		Web:            fmText(fm[fmURL]),
+		Web:            web,
+		Images:         fmList(fm[fmImage]),
 		ExternalPorts:  fmList(fm[fmExternalPorts]),
 		InternalPorts:  fmList(fm[fmInternalPorts]),
 		TailscalePorts: fmList(fm[fmTailscalePort]),

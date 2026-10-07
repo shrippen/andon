@@ -4859,7 +4859,7 @@
   ]
  },
  "stacks": {
-  "note": "Komodo: three servers, the backup Pi unreachable; paperless' last deploy failed.",
+  "note": "Komodo: three servers, the backup Pi unreachable; paperless-ngx' last deploy failed; Mara deployed the showreel while its build was red. Komodo runs paperless-ai from the Nebelhorn repo, where its directory is gone, and does not run newt-nebelhorn (IT docs: deployed without repo, not deployed).",
   "url": "https://komodo.demo",
   "servers_total": 3,
   "servers_healthy": 2,
@@ -4871,15 +4871,35 @@
     "updates": [
      "immich-server",
      "immich-machine-learning"
-    ]
+    ],
+    "repo": "studio/docker-compose-nebelhorn",
+    "images": {
+     "server": "ghcr.io/immich-app/immich-server:v2.0"
+    }
    },
    {
-    "name": "paperless",
-    "state": "unhealthy"
+    "name": "paperless-ngx",
+    "state": "unhealthy",
+    "repo": "studio/docker-compose-nebelhorn"
    },
    {
     "name": "gitea",
-    "state": "running"
+    "state": "running",
+    "repo": "studio/docker-compose-nebelhorn"
+   },
+   {
+    "name": "paperless-ai",
+    "state": "running",
+    "repo": "studio/docker-compose-nebelhorn",
+    "images": {
+     "paperless-ai": "clusterzx/paperless-ai:3.0"
+    }
+   },
+   {
+    "name": "showreel",
+    "state": "running",
+    "repo": "studio/showreel",
+    "branch": "main"
    }
   ],
   "alerts": [
@@ -4921,7 +4941,7 @@
     "by": "mara",
     "ok": true
    },
-   "paperless": {
+   "paperless-ngx": {
     "at": "@-26h",
     "operation": "DeployStack",
     "by": "lena",
@@ -4932,8 +4952,42 @@
     "operation": "DeployStack",
     "by": "mara",
     "ok": true
+   },
+   "showreel": {
+    "at": "@-4h",
+    "operation": "DeployStack",
+    "by": "mara",
+    "ok": true
    }
-  }
+  },
+  "deployed": [
+   {
+    "stack": "showreel",
+    "at": "@-4h",
+    "commit": "7c1e9a4",
+    "by": "mara",
+    "ok": true
+   },
+   {
+    "stack": "paperless",
+    "at": "@-26h",
+    "by": "lena",
+    "ok": false
+   },
+   {
+    "stack": "immich",
+    "at": "@-6d",
+    "by": "mara",
+    "ok": true
+   },
+   {
+    "stack": "showreel",
+    "at": "@-6d",
+    "commit": "52d0b17",
+    "by": "mara",
+    "ok": true
+   }
+  ]
  },
  "backups": {
   "note": "Borg backup server (the laptop has been offline for six days) and the database dumps (PG Back Web).",
@@ -5597,7 +5651,10 @@
        "image": "invoiceninja/invoiceninja-debian:5.12",
        "ports": [
         "8012:80"
-       ]
+       ],
+       "labels": {
+        "caddy": "rechnungen.studio-weber.example.test"
+       }
       },
       {
        "name": "db",
@@ -5639,7 +5696,10 @@
        "image": "nextcloud:31-apache",
        "ports": [
         "8080:80"
-       ]
+       ],
+       "labels": {
+        "caddy": "cloud.studio-weber.example.test"
+       }
       },
       {
        "name": "db",
@@ -5693,7 +5753,10 @@
        "image": "ghcr.io/immich-app/immich-server:v2.1",
        "ports": [
         "2283:2283"
-       ]
+       ],
+       "labels": {
+        "caddy": "fotos.studio-weber.example.test"
+       }
       },
       {
        "name": "db",
@@ -6190,28 +6253,32 @@
       "status": "failure",
       "started": "@-5h",
       "seconds": 512,
-      "event": "push"
+      "event": "push",
+      "commit": "7c1e9a4e2b9f03d1"
      },
      {
       "number": 40,
       "status": "failure",
       "started": "@-1d1h",
       "seconds": 498,
-      "event": "push"
+      "event": "push",
+      "commit": "c03f6a1d7e88b245"
      },
      {
       "number": 39,
       "status": "success",
       "started": "@-4d",
       "seconds": 530,
-      "event": "push"
+      "event": "push",
+      "commit": "9a41e0c2b6d7f310"
      },
      {
       "number": 38,
       "status": "success",
       "started": "@-6d",
       "seconds": 521,
-      "event": "tag"
+      "event": "tag",
+      "commit": "52d0b17a9c3e6f48"
      }
     ]
    },
@@ -6238,13 +6305,19 @@
   ]
  },
  "backup_server": {
-  "note": "Proxmox Backup Server on the NAS: VM 101 (Home Assistant) has not been backed up for nine days, container 105 was deleted in Proxmox but its backups remain, the last verify of the store found a missing chunk.",
+  "note": "Proxmox Backup Server on the NAS: VM 101 (Home Assistant) has not been backed up for nine days, container 105 was deleted in Proxmox but its backups remain, the last verify of the store found a missing chunk. The archive store sits on the NAS pool tank (option pools): PBS sees it at 39 %, the pool is 88 % full.",
   "url": "https://pbs.demo:8007",
   "datastores": [
    {
     "store": "nebelhorn",
     "total": 2000000000000,
     "used": 1840000000000
+   },
+   {
+    "store": "archiv",
+    "pool": "tank",
+    "total": 3100000000000,
+    "used": 1200000000000
    }
   ],
   "groups": [
@@ -6271,6 +6344,13 @@
     "comment": "render-test",
     "last": "@-40d",
     "count": 8
+   },
+   {
+    "store": "archiv",
+    "type": "host",
+    "id": "nas-config",
+    "last": "@-6h",
+    "count": 30
    }
   ],
   "verify": [
@@ -6506,16 +6586,38 @@
   ]
  },
  "fritzbox": {
-  "note": "The FRITZ!Box behind the firewall reconnected 40 minutes ago; the VDSL line syncs at 250 Mbit/s.",
+  "note": "The FRITZ!Box behind the firewall reconnects every night at 04:02 (the provider's forced reconnect, uptime counted from there); the VDSL line syncs at 250 Mbit/s. Reconnects of the last weeks: mostly short, twice a run caught the line down (47 and 14 minutes).",
   "url": "https://fritz.demo:49443",
   "status": "Connected",
-  "uptime": 2400,
+  "since": "@date-0 04:02",
   "last_error": "ERROR_NONE",
   "model": "FRITZ!Box 7590",
   "down_sync": 250000,
   "up_sync": 40000,
   "down_max": 292000,
-  "up_max": 46000
+  "up_max": 46000,
+  "reconnects": [
+   {
+    "up": "@-27d20h"
+   },
+   {
+    "up": "@-21d3h"
+   },
+   {
+    "down": "@-16d5h",
+    "up": "@-16d4h13m"
+   },
+   {
+    "up": "@-11d22h"
+   },
+   {
+    "down": "@-6d2h30m",
+    "up": "@-6d2h16m"
+   },
+   {
+    "up": "@-2d20h"
+   }
+  ]
  },
  "smart_home": {
   "note": "Home Assistant at Mara's: the bathroom window sensor's battery is low, a plug is unavailable, a core update waits. history: the living room warms through the day, the office light is on during work hours. The workshop climate sensor answers ESPHome but Home Assistant lost it; the pond pump is off in both.",
@@ -6804,7 +6906,7 @@
   ]
  },
  "power": {
-  "note": "The NAS UPS (PeaNUT) is fine; the small UPS of the Pi (apcupsd) holds only seven minutes at its load. OpenDTU reads the balcony panels, the garage inverter is unreachable. EVCC charges the studio car at the carport, mostly from the grid.",
+  "note": "The NAS UPS (PeaNUT) is fine; the small UPS of the Pi (apcupsd) holds only seven minutes at its load. OpenDTU reads the balcony panels, the garage inverter is unreachable. EVCC charges the studio car at the carport, mostly from the grid. Its charging sessions of the last two months are listed; after them the car drives Mara to clients and to the Graufeld set.",
   "peanut": {
    "url": "https://peanut.demo",
    "devices": [
@@ -6878,7 +6980,121 @@
     "charged_kwh": 142,
     "avg_price": 0.27,
     "solar_pct": 31
-   }
+   },
+   "sessions": [
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-2d",
+     "finished": "@-1d21h",
+     "kwh": 18.4,
+     "price": 5.7
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-6d",
+     "finished": "@-5d21h",
+     "kwh": 22.1,
+     "price": 6.85
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-10d",
+     "finished": "@-9d21h",
+     "kwh": 15.6,
+     "price": 4.84
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-13d",
+     "finished": "@-12d21h",
+     "kwh": 24.8,
+     "price": 7.69
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-17d",
+     "finished": "@-16d21h",
+     "kwh": 19.9,
+     "price": 6.17
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-21d",
+     "finished": "@-20d21h",
+     "kwh": 12.7,
+     "price": 3.94
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-25d",
+     "finished": "@-24d21h",
+     "kwh": 21.3,
+     "price": 6.6
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-29d",
+     "finished": "@-28d21h",
+     "kwh": 17.5,
+     "price": 5.42
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-33d",
+     "finished": "@-32d21h",
+     "kwh": 25.2,
+     "price": 7.81
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-37d",
+     "finished": "@-36d21h",
+     "kwh": 16.8,
+     "price": 5.21
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-41d",
+     "finished": "@-40d21h",
+     "kwh": 20.6,
+     "price": 6.39
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-46d",
+     "finished": "@-45d21h",
+     "kwh": 23.4,
+     "price": 7.25
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-50d",
+     "finished": "@-49d21h",
+     "kwh": 14.9,
+     "price": 4.62
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-55d",
+     "finished": "@-54d21h",
+     "kwh": 19.2,
+     "price": 5.95
+    }
+   ]
   }
  },
  "esphome": {
@@ -7799,7 +8015,7 @@
   }
  },
  "it_docs": {
-  "note": "Obsidian vault with Studio Weber's IT documentation (Hansei). Dates in notes are {{day:N}} placeholders, N = day offset from the anchor. Each check of Hansei finds something: a plain-text password and token, old code names (SW-NAS01, SW-VPS, SW-PI), a missing frontmatter key, an old review date, a dead link, a full compose copy. The restore note carries the returning file of the hidden layer.",
+  "note": "Obsidian vault with Studio Weber's IT documentation (Hansei). Dates in notes are {{day:N}} placeholders, N = day offset from the anchor. Each check of Hansei finds something: a plain-text password and token, old code names (SW-NAS01, SW-VPS, SW-PI), a missing frontmatter key, an old review date, a dead link, a full compose copy. The restore note carries the returning file of the hidden layer. Three service notes drift from their stacks: Invoice Ninja's URL and port, Nextcloud's image, and Immich runs an older image than its note names (Komodo).",
   "hosts": [
    {
     "name": "Nebelhorn",
@@ -7878,8 +8094,8 @@
    {
     "path": "IT/Dienste/Feuerschiff/Nextcloud.md",
     "content": {
-     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.studio-weber.example.test]\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nDateiablage für Kunden und Team. Läuft auf SW-VPS.\n\n## Zugang\nAdmin-Login über die Weboberfläche.\n- Benutzer: admin\n- Passwort: Elbfeuer-2026!\n\n## Backup\nNächtlich mit Restic nach Nordhost-Speicher.\n",
-     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.studio-weber.example.test]\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nFile storage for customers and team. Runs on SW-VPS.\n\n## Access\nAdmin login through the web interface.\n- User: admin\n- Passwort: Elbfeuer-2026!\n\n## Backup\nNightly with Restic to Nordhost storage.\n"
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.studio-weber.example.test]\nImage: nextcloud:30-apache\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nDateiablage für Kunden und Team. Läuft auf SW-VPS.\n\n## Zugang\nAdmin-Login über die Weboberfläche.\n- Benutzer: admin\n- Passwort: Elbfeuer-2026!\n\n## Backup\nNächtlich mit Restic nach Nordhost-Speicher.\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.studio-weber.example.test]\nImage: nextcloud:30-apache\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nFile storage for customers and team. Runs on SW-VPS.\n\n## Access\nAdmin login through the web interface.\n- User: admin\n- Passwort: Elbfeuer-2026!\n\n## Backup\nNightly with Restic to Nordhost storage.\n"
     }
    },
    {
@@ -7892,15 +8108,15 @@
    {
     "path": "IT/Dienste/Feuerschiff/Invoice Ninja.md",
     "content": {
-     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.studio-weber.example.test]\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nRechnungen und Angebote.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Genutzt von Kimai-Export und andon.\n",
-     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.studio-weber.example.test]\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nInvoices and quotes.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Used by the Kimai export and andon.\n"
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.studio-weber.example.test]\nexterne Ports: 8002\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nRechnungen und Angebote.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Genutzt von Kimai-Export und andon.\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.studio-weber.example.test]\nexterne Ports: 8002\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nInvoices and quotes.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Used by the Kimai export and andon.\n"
     }
    },
    {
     "path": "IT/Dienste/Nebelhorn/Immich.md",
     "content": {
-     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.studio-weber.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nFotos vom Set und Referenzbilder.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n",
-     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.studio-weber.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nPhotos from the set and reference pictures.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n"
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.studio-weber.example.test]\nImage: ghcr.io/immich-app/immich-server:v2.1\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nFotos vom Set und Referenzbilder.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.studio-weber.example.test]\nImage: ghcr.io/immich-app/immich-server:v2.1\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nPhotos from the set and reference pictures.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n"
     }
    },
    {

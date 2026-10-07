@@ -10,6 +10,8 @@ package rules
 //	geo.plugin_missing      business rides the Kimai mileage plugin lacks
 //	geo.car_private_share   business car driven mostly privately
 //	geo.tracks_missing      no tracks: distances are estimates
+//	cross.charge_business   last month's EVCC charging cost that went into
+//	                        business rides (metrics.ChargeBusiness)
 
 import (
 	"andon/internal/caps"
@@ -54,6 +56,34 @@ func init() {
 	Register("geo.car_private_share", Cross, map[string]any{"private_share": metrics.CarShareLimit, "min_km": 500.0}, carPrivateShare)
 
 	Register("geo.tracks_missing", dawarichSvc, map[string]any{}, on(tracksMissing))
+
+	Register("cross.charge_business", Cross, map[string]any{}, chargeBusiness)
+	Needs("cross.charge_business", string(enums.ServiceEVCC))
+}
+
+// percentOf turns a share into percent.
+const percentOf = 100
+
+func chargeBusiness(_ any, _ map[string]any, env Env) []Finding {
+	evcc, ok := env.Datasets[string(enums.ServiceEVCC)].(*sources.EVCCDataset)
+	if !ok || len(evcc.Sessions) == 0 {
+		return nil
+	}
+	travel, _, start, ok := lastMonthRides(env)
+	if !ok {
+		return nil
+	}
+	_, end := lastMonth(env.Today)
+	share := metrics.ChargeBusiness(evcc.Sessions, travel.Rides, start, end)
+	if share.BusinessCost <= 0 {
+		return nil
+	}
+	return []Finding{{
+		Fingerprint: "charge:" + start.Format("2006-01"), Severity: enums.SeverityInfo, Message: "cross.charge_business",
+		Params: map[string]any{"month": start.Format("01/2006"), "amount": Money(share.BusinessCost, ""), "total": Money(share.Cost, ""),
+			"sessions": share.Sessions, "kwh": Num(share.KWh, 0), "km": Num(share.BusinessKM, 0), "share": Num(share.BusinessKM/share.KM*percentOf, 0)},
+		Sources: []string{string(enums.ServiceEVCC), dawarichSvc},
+	}}
 }
 
 // lastMonthRides is the rides of last month, reported in the first days
