@@ -104,6 +104,16 @@ func GiteaInfo(data *sources.GiteaDataset) []InfoPart {
 	return found
 }
 
+// PlayInfo: "1 playing".
+func PlayInfo(data *sources.PlayDataset) []InfoPart {
+	return []InfoPart{part("playing.now", map[string]any{"count": len(data.Streams)})}
+}
+
+// SeerrInfo: "8 requests · 2 stuck".
+func SeerrInfo(data *sources.SeerrDataset) []InfoPart {
+	return []InfoPart{part("seerr.requests", map[string]any{"count": data.Pending + data.Approved + data.Processing, "stuck": len(data.Stuck)})}
+}
+
 // RoutesInfo: "3 routes · 1 down".
 func RoutesInfo(data *sources.RoutesDataset) []InfoPart {
 	down := 0

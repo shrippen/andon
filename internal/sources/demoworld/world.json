@@ -7038,6 +7038,92 @@
    }
   ]
  },
+ "listening": {
+  "note": "Tautulli watches the Plex server (Theo streams the score), Jellystat the last 30 days of Jellyfin, Navidrome plays the studio's music, Audiobookshelf has one listener, Jellyseerr has two requests stuck for days while Sonarr reports a broken indexer.",
+  "tautulli": {
+   "url": "http://tautulli.demo:8181",
+   "sessions": [
+    {
+     "user": "theo",
+     "title": {
+      "de": "Harbour Lights – Ebbe",
+      "en": "Harbour Lights – Ebb"
+     },
+     "state": "playing"
+    }
+   ],
+   "bandwidth": 8200
+  },
+  "jellystat": {
+   "url": "http://jellystat.demo:3000",
+   "users": [
+    {
+     "name": "mara",
+     "plays": 41
+    },
+    {
+     "name": "jonas",
+     "plays": 17
+    }
+   ],
+   "libraries": [
+    {
+     "name": "Filme",
+     "plays": 33
+    },
+    {
+     "name": "Serien",
+     "plays": 25
+    }
+   ]
+  },
+  "navidrome": {
+   "url": "http://navidrome.demo:4533",
+   "now_playing": [
+    {
+     "user": "selin",
+     "title": "Nebelhorn",
+     "artist": "Theo Lindqvist"
+    }
+   ],
+   "scanning": false,
+   "songs": 1834
+  },
+  "audiobookshelf": {
+   "url": "http://abs.demo:13378",
+   "online": [
+    {
+     "user": "lena",
+     "title": {
+      "de": "Leuchtfeuer der Unterelbe",
+      "en": "Lights of the Lower Elbe"
+     }
+    }
+   ],
+   "libraries": 2
+  },
+  "seerr": {
+   "url": "http://jellyseerr.demo:5055",
+   "pending": 1,
+   "approved": 5,
+   "processing": 2,
+   "available": 38,
+   "stuck": [
+    {
+     "title": "Nebelküste",
+     "type": "tv",
+     "requested": "@-6d",
+     "by": "jonas"
+    },
+    {
+     "title": "Das Feuerschiff",
+     "type": "movie",
+     "requested": "@-4d",
+     "by": "mara"
+    }
+   ]
+  }
+ },
  "graufeld": {
   "note": "Second shooting area: fog, marsh and mud flats at the Elbe mouth, about 110 km from the studio. Places: graufeld-lighthouse, kolk, moorhof, sendehaus.",
   "description": {

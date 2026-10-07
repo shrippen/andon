@@ -47,3 +47,17 @@ func TestBackupsAnyTool(t *testing.T) {
 		t.Fatalf("last %v %v", last, name)
 	}
 }
+
+// TestWindowSeesAnyStream: a stream of any media helper blocks the update
+// window, not only the media server's.
+func TestWindowSeesAnyStream(t *testing.T) {
+	now := time.Now()
+	w := metrics.UpdateWindow(map[string]any{"tautulli": &sources.PlayDataset{Streams: []sources.Stream{{User: "theo"}}}}, now, time.Hour)
+	streaming := false
+	for _, b := range w.Blockers {
+		streaming = streaming || b == metrics.WindowStreaming
+	}
+	if !streaming {
+		t.Fatalf("blockers %v", w.Blockers)
+	}
+}

@@ -301,12 +301,17 @@ func UpdateWindow(datasets map[string]any, now time.Time, maxBackupAge time.Dura
 	if !last.IsZero() {
 		w.BackupAge = now.Sub(last)
 	}
+	streaming := false
+	for _, raw := range datasets {
+		if src, ok := raw.(sources.StreamSource); ok && len(src.NowStreams()) > 0 {
+			streaming = true
+		}
+	}
+	if streaming {
+		w.Blockers = append(w.Blockers, WindowStreaming)
+	}
 	for _, raw := range datasets {
 		switch d := raw.(type) {
-		case *sources.MediaServerDataset:
-			if len(d.Streams) > 0 {
-				w.Blockers = append(w.Blockers, WindowStreaming)
-			}
 		case *sources.KimaiDataset:
 			if len(d.Active) > 0 {
 				w.Blockers = append(w.Blockers, WindowWorking)
@@ -704,9 +709,10 @@ func init() {
 
 // isBusy tells a dataset that shows someone using the homelab now.
 func isBusy(raw any, now time.Time) bool {
+	if src, ok := raw.(sources.StreamSource); ok {
+		return len(src.NowStreams()) > 0
+	}
 	switch d := raw.(type) {
-	case *sources.MediaServerDataset:
-		return len(d.Streams) > 0
 	case *sources.KimaiDataset:
 		return len(d.Active) > 0
 	case *sources.CalendarResult:

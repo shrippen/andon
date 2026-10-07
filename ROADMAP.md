@@ -1140,8 +1140,8 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [ ] FRITZ!Box-Abbrüche in den ISP-Bericht *(bräuchte den Verlauf der Neuverbindungen)*
 
 **Schritt 10: Medien** — Tautulli, Jellystat, Seerr, Audiobookshelf, Navidrome
-- [ ] Beiträge zu `mediaserver` (Streams, Verlauf, Bibliothek); Seerr: offene Anfragen
-- [ ] Quer: Streams aller Quellen im Update-Fenster, `cross.request_stuck` (Seerr-Anfrage genehmigt, in Sonarr/Radarr fehlend oder hängend)
+- [x] Kachel „Jetzt läuft“ über `sources.StreamSource` (Jellyfin/Plex, Tautulli, Navidrome, Audiobookshelf), Jellystat-Statistik (30 Tage), Seerr: offene und hängende Anfragen *(Jellystat und Audiobookshelf ohne echte Instanz gebaut, Felder tolerant gelesen)*
+- [x] Quer: Streams aller Quellen im Update-Fenster und in den Belegungsstunden; `seerr.stuck`, `cross.requests_arr` (hängende Anfragen, während Sonarr/Radarr Probleme melden)
 
 **Schritt 11: Aufgaben** — Vikunja
 - [ ] Kachel (fällig, überfällig je Projekt), Regel `vikunja.overdue`, Fristen in Zusammenfassung und iCal
