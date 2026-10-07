@@ -3038,6 +3038,10 @@ notify:
   channels: Channels
   none: No channels yet.
   url_hint: Apprise format, e.g. ntfy://host/topic, gotify://host/token, mailto://…, tgram://…. Stored encrypted.
+  channels_how: 'A channel says where your pushes go. They are sent through the Apprise server an admin sets up once for everyone.'
+  no_server: 'No Apprise server is set up: pushes do not go out. They wait and are sent once one is set.'
+  no_server_fix: Set the Apprise server
+  no_server_ask: Ask an admin to set it.
   timing: Timing
   quiet_from: Quiet from
   quiet_to: Quiet until
@@ -5563,11 +5567,13 @@ verbund:
   manage: Manage Verbünde
 task:
   dawarich_tracks: 'Read Dawarich tracks of {host}'
+server_hint:
+  APPRISE_API_URL: 'Address of an Apprise API container (github.com/caronc/apprise-api), e.g. http://apprise:8000. It delivers all pushes; where to, each user sets under Notifications with their own channels. Empty = no pushes.'
 server:
   SMTP_URL: 'SMTP server (smtp://user@host:587)'
   SMTP_FROM: Mail sender
   SMTP_PASSWORD: SMTP password
-  APPRISE_API_URL: Apprise API
+  APPRISE_API_URL: Apprise API server
   ANTHROPIC_API_KEY: 'Anthropic API key (weekly review, advice)'
   ANALYSIS_MINUTES: Check every … minutes
   SESSION_IDLE_MINUTES: 'Sign out after … idle minutes'

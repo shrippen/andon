@@ -36,7 +36,7 @@ func (d Deps) notifyPage(w http.ResponseWriter, r *http.Request, ctx Ctx, status
 	values := map[string]any{
 		"Channels": chans, "Prefs": prefs, "Levels": severityLevels,
 		"Weekdays": notify.Weekdays, "BaseURL": d.Settings.BaseURL, "SummaryAvailable": summary.Enabled(),
-		"Services": d.usedServices(ctx),
+		"Services": d.usedServices(ctx), "Ready": notify.Ready(d.live()),
 	}
 	for k, v := range extra {
 		values[k] = v
@@ -56,7 +56,7 @@ func (d Deps) handleNotifyChannelCreate(w http.ResponseWriter, r *http.Request, 
 	level := formInt(r, "level")
 	sources := r.Form["sources"]
 	if err := notify.AddChannel(d.DB, ctx.Who, r.FormValue("name"), r.FormValue("url"), enums.Severity(level), sources); err != nil {
-		d.notifyPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": err.Error()})
+		d.notifyPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
 	http.Redirect(w, r, "/me/notify", http.StatusSeeOther)
@@ -69,7 +69,7 @@ func (d Deps) handleNotifyChannelTest(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 	if err := notify.TestChannel(r.Context(), d.DB, d.live(), ctx.Who, id); err != nil {
-		d.notifyPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": err.Error()})
+		d.notifyPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
 	http.Redirect(w, r, "/me/notify", http.StatusSeeOther)
@@ -104,7 +104,7 @@ func (d Deps) handleNotifyPrefsSave(w http.ResponseWriter, r *http.Request, ctx 
 		prefs.NoSummary = r.FormValue("summary") == ""
 	}
 	if err := notify.SavePrefs(d.DB, ctx.Who, prefs); err != nil {
-		d.notifyPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": err.Error()})
+		d.notifyPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
 	http.Redirect(w, r, "/me/notify", http.StatusSeeOther)

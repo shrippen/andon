@@ -69,6 +69,7 @@
         {{else if eq .Kind "secret"}}<input class="input" type="password" id="srv-{{.Env}}" name="{{.Env}}" autocomplete="new-password"{{if .HasSecret}} placeholder="{{t "admin.server_secret_kept"}}"{{end}}{{if .Locked}} disabled{{end}}>
         {{else}}<input class="input" id="srv-{{.Env}}" name="{{.Env}}" value="{{.Value}}"{{if eq .Kind "number"}} type="number" min="1" inputmode="numeric"{{end}}{{if .Locked}} disabled{{end}}>
         {{end}}
+        {{with known (print "server_hint." .Env)}}<p class="small muted">{{t .}}</p>{{end}}
         {{end}}
         <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
       </form>
