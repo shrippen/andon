@@ -1092,6 +1092,67 @@ Kettenregel: eine Fahrt zwischen zwei beruflichen Fahrten desselben Tages ist be
 **6. Später**
 - [x] Klasse einer Fahrt in Andon von Hand ändern (für Nutzer ohne Plugin); mit Plugin dort als Fahrt anlegen *(Formular im Fahrt-Detail, `sites.SetClass`: Auto/Motorrad mit Plugin als Fahrt dort bzw. deren Art geändert, sonst Option `rides` der Dawarich-Verbindung, Regel 0 `manual`; „automatisch“ löscht nur die Option)*
 
+### Phase 18: Kacheltypen aus der Recherche (begonnen 07.10.2026)
+
+Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je Dienst mit Quelle, Demodaten (Studio Weber), Kachel oder Beitrag zu einer Sammelkachel, Regeln und **Queranalysen**. Ein Schritt = ein PR (dazu die Demowelt in `shrippen.github.io`). Sammelkacheln (Backups, Updates, Medien) lesen neue Dienste über eine gemeinsame Schnittstelle, nicht über Sonderfälle je Dienst.
+
+**Schritt 1: Gemeinsame Sicherungs-Schnittstelle**
+- [ ] `sources.BackupSource` (Datensatz nennt seine Sicherungen: Werkzeug, Gegenstand, letzte Sicherung, Ergebnis); Borg, PG Back Web, TrueNAS stellen um; Backup-Kachel, `backups.*`, `LastBackup` (Update-Fenster) lesen jede Quelle mit der Schnittstelle
+
+**Schritt 2: Healthchecks** (healthchecks.io, API v3)
+- [ ] Quelle, Kachel „Herzschläge“ (Status je Check, letzter Ping, Verlauf), Regel `heartbeat.down`
+- [ ] Quer: `cross.heartbeat_backup` (Check mit Namen einer Sicherung meldet sich nicht, die Sicherung ist aber frisch, oder umgekehrt); Checks zu Compose-Stacks (Name = Stack) auf der Host-Seite
+
+**Schritt 3: Prometheus** (und Alertmanager-kompatible Alerts)
+- [ ] Quelle: feuernde Alerts (`/api/v1/alerts`) als Hinweise `prometheus.alert` mit Stufe aus dem Label `severity`; Kachel „Prometheus-Wert“ (PromQL als Zahl oder Verlauf)
+- [ ] Quer: Alerts je Host (Label `instance`) auf der Host-Seite; Alert und Uptime-Kuma-Ausfall desselben Hosts als ein Hinweis
+
+**Schritt 4: CVE** (NVD-API, Schlüssel optional)
+- [ ] Quelle: neue CVEs zu den Images der Compose-Stacks (Name des Images als Suchwort), mit CVSS und betroffenen Versionen; Kachel „Sicherheitslücken“
+- [ ] Quer: `cross.image_cve` (laufendes Image, Tag im betroffenen Bereich: betroffen; sonst prüfen), verschärft, wenn Pangolin den Dienst öffentlich macht (`exposure`); Treffer auf der Host-Seite
+
+**Schritt 5: CI** (Drone; GitHub Actions und Gitea Actions der vorhandenen Verbindungen)
+- [ ] Quelle Drone (`/api/user/repos?latest=true`, Builds je Repo); Verlauf der Läufe auch für GitHub und Gitea; Kachel „CI-Läufe“ (Repo, Zweig, Verlauf als Streifen)
+- [ ] Regel `ci.failing` (Standardzweig rot seit N Stunden)
+- [ ] Quer: `cross.ci_red_deployed` (Komodo deployt einen Stack, dessen Repo zuletzt rot war); Release erschienen bei rotem CI
+
+**Schritt 6: Sicherung** — Proxmox Backup Server, Kopia, Duplicati, Backrest, UrBackup
+- [ ] Quellen mit `BackupSource`; PBS zusätzlich Belegung je Datastore und Verify-Jobs; Regeln `pbs.verify_failed`, `pbs.datastore_full`
+- [ ] Quer: `cross.vm_unbacked` (Proxmox-Gast ohne PBS-Sicherung), Datastore-Füllstand gegen TrueNAS-Pool
+
+**Schritt 7: Updates** — What's Up Docker, Watchtower, Releases
+- [ ] WUD (Container mit neuer Version), Watchtower (Metriken: geprüft, aktualisiert, fehlgeschlagen), Releases beobachteter Repos über GitHub/Gitea; alles als Update-Hinweise in `updates` und `update_window`
+- [ ] Quer: `cross.update_unbacked` (Container aktualisiert ohne frische Sicherung), neues Release gegen laufenden Image-Tag
+
+**Schritt 8: Strom** — PeaNUT (NUT), apcupsd, OpenDTU, EVCC
+- [ ] USV: Ladung, Restlaufzeit, Last, Ereignisse; Solar: Ertrag je Tag; EVCC: Ladevorgänge und Kosten; Beiträge zur Kachel `energy`
+- [ ] Regeln `ups.on_battery`, `ups.runtime_low`
+- [ ] Quer: `cross.outage_power` (Ausfälle in Uptime Kuma/Links während die USV auf Batterie lief: ein Hinweis statt vieler), `cross.ups_load` (Restlaufzeit reicht nicht für das Herunterfahren der Proxmox-/TrueNAS-Hosts), EVCC gegen Tibber (Laden zu teuren Stunden), `cross.charge_business` (EVCC × Fahrten)
+
+**Schritt 9: Netz** — Traefik, Caddy, Nginx Proxy Manager, Headscale, Technitium, FRITZ!Box, UniFi
+- [ ] Routen (Traefik, Caddy, NPM) mit Zertifikat und Ziel; Headscale wie Tailscale; Technitium in der DNS-Kachel; FRITZ!Box: Leitung, Abbrüche, Durchsatz; UniFi: Geräte, Clients, Firmware
+- [ ] Quer: `cross.route_dead` (Route auf gestoppten oder fehlenden Container), Route ohne Doku-Notiz, `wan.outages` × Speedtest und ISP-Bericht, `cross.device_uninventoried` (UniFi-Client ohne Snipe-IT-Asset)
+
+**Schritt 10: Medien** — Tautulli, Jellystat, Seerr, Audiobookshelf, Navidrome
+- [ ] Beiträge zu `mediaserver` (Streams, Verlauf, Bibliothek); Seerr: offene Anfragen
+- [ ] Quer: Streams aller Quellen im Update-Fenster, `cross.request_stuck` (Seerr-Anfrage genehmigt, in Sonarr/Radarr fehlend oder hängend)
+
+**Schritt 11: Aufgaben** — Vikunja
+- [ ] Kachel (fällig, überfällig je Projekt), Regel `vikunja.overdue`, Fristen in Zusammenfassung und iCal
+- [ ] Quer: Aufgaben mit Kimai-Projekt erledigt ohne gebuchte Zeit
+
+**Schritt 12: Finanzen** — Firefly III, Ghostfolio
+- [ ] Firefly III in der Domäne Zahlungen (wie Sure, `caps`), Ghostfolio: Depotwert und Entwicklung
+- [ ] Quer: Zahlungsabgleich mit Invoice Ninja auch über Firefly III, Depot im Vermögen der Liquiditätskachel
+
+**Schritt 13: Lesen** — Hacker News, Lobsters, Reddit, YouTube-Kanäle, Twitch
+- [ ] Kachel „Lesen“ (Punkte, Kommentare, Alter), YouTube über die Kanal-Feeds, Twitch mit App-Zugang
+- [ ] Quer: `cross.project_mentioned` (ein Beitrag nennt ein eigenes Repo oder einen KDE-Store-Eintrag)
+
+**Schritt 14: ESPHome, Fediverse** (Mastodon-API: Mastodon, GoToSocial, Akkoma)
+- [ ] ESPHome: Geräte, online, Firmware gegen Dashboard-Version; Fediverse: Folgende im Verlauf, Benachrichtigungen, Instanz-Version
+- [ ] Quer: ESPHome-Gerät offline gegen Home-Assistant-Entität, `cross.release_unannounced` (Release auf GitHub oder im KDE Store ohne Beitrag mit Link)
+
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 
 Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und angewendet (06.10.2026).
