@@ -3,6 +3,7 @@ package sites_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"maps"
 	"net/http"
 	"net/http/httptest"
@@ -321,5 +322,40 @@ func TestTwoKimaiNeedVerbund(t *testing.T) {
 	}
 	if len(rec1.list()) != 1 || len(rec2.list()) != 0 {
 		t.Fatalf("writes: kimai 1 %d, kimai 2 %d", len(rec1.list()), len(rec2.list()))
+	}
+}
+
+// Demo connections take no new places; nothing reaches a server.
+func TestCreateDemo(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, "demo://dawarich")
+
+	p := sites.NewPlace{Name: "Bäcker", Lat: 52.51, Lon: 13.39}
+	if err := sites.Create(context.Background(), d, who, conn, p); !errors.Is(err, sites.ErrDemo) {
+		t.Fatalf("demo: %v", err)
+	}
+}
+
+// A Dawarich that refuses the area answers with a catalog key, not the
+// raw transport error ("dns: dawarich", "HTTP 422").
+func TestCreateRefused(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	geo := fakeDawarich(&recorder{})
+	defer geo.Close()
+	refusing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		geo.Config.Handler.ServeHTTP(w, r)
+	}))
+	defer refusing.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, refusing.URL)
+
+	p := sites.NewPlace{Name: "Bäcker", Lat: 52.51, Lon: 13.39}
+	if err := sites.Create(context.Background(), d, who, conn, p); !errors.Is(err, sites.ErrDawarich) {
+		t.Fatalf("refused: %v", err)
 	}
 }

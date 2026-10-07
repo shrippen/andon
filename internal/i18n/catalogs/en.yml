@@ -3790,6 +3790,8 @@ billing:
 mailfwd:
   no_paperless: The mailbox's space has no Paperless connection.
   no_files: The mail has no PDF or image file.
+  no_login: 'Your own login for {name} is missing.'
+  demo: 'Demo connections take no changes.'
 palette:
   open: Search
   title: Command palette
@@ -5561,6 +5563,9 @@ sites:
   bad: 'A new place needs a name and a position.'
   unknown_ride: 'This ride is gone.'
   bad_class: 'Unknown class of a ride.'
+  demo: 'Demo connections take no changes.'
+  dawarich_failed: 'Dawarich could not be reached or refused the place.'
+  kimai_failed: 'Kimai could not be reached or refused the place.'
 places:
   unknown: 'Unknown place'
   none: 'No places today yet.'
