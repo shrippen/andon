@@ -1097,7 +1097,7 @@ Kettenregel: eine Fahrt zwischen zwei beruflichen Fahrten desselben Tages ist be
 Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je Dienst mit Quelle, Demodaten (Studio Weber), Kachel oder Beitrag zu einer Sammelkachel, Regeln und **Queranalysen**. Ein Schritt = ein PR (dazu die Demowelt in `shrippen.github.io`). Sammelkacheln (Backups, Updates, Medien) lesen neue Dienste über eine gemeinsame Schnittstelle, nicht über Sonderfälle je Dienst.
 
 **Schritt 1: Gemeinsame Sicherungs-Schnittstelle**
-- [ ] `sources.BackupSource` (Datensatz nennt seine Sicherungen: Werkzeug, Gegenstand, letzte Sicherung, Ergebnis); Borg, PG Back Web, TrueNAS stellen um; Backup-Kachel, `backups.*`, `LastBackup` (Update-Fenster) lesen jede Quelle mit der Schnittstelle
+- [x] `sources.BackupSource` (Datensatz nennt seine Sicherungen: Werkzeug, Gegenstand, letzte Sicherung, Ergebnis); Borg, PG Back Web, TrueNAS stellen um; Backup-Kachel, `backups.*`, `LastBackup` (Update-Fenster) lesen jede Quelle mit der Schnittstelle
 
 **Schritt 2: Healthchecks** (healthchecks.io, API v3)
 - [ ] Quelle, Kachel „Herzschläge“ (Status je Check, letzter Ping, Verlauf), Regel `heartbeat.down`

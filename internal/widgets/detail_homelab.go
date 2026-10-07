@@ -41,7 +41,7 @@ func backupsDetail(cfg BackupsConfig, results map[string]any, ctx ViewCtx) Detai
 	}
 	now := time.Now().UTC()
 	h := historyOf(results)
-	rows := metrics.Backups(borg, pg, nas, now, time.Duration(cfg.MaxHours)*time.Hour)
+	rows := metrics.Backups(metrics.BackupTools(results), now, time.Duration(cfg.MaxHours)*time.Hour)
 
 	body := &DetailBody{}
 	if borg != nil {

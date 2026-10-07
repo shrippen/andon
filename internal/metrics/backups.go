@@ -2,9 +2,7 @@ package metrics
 
 // Backup overview across tools:
 //
-//	borg clients   ─┐
-//	pgbackweb      ─┼─► []BackupRow{Tool, Item, Last, State}  (oldest first)
-//	truenas snaps  ─┘
+//	sources.BackupSource (Borg, PG Back Web, TrueNAS, …) ─► []BackupRow{Tool, Item, Last, State}  (worst first)
 
 import (
 	"sort"
@@ -30,45 +28,20 @@ type BackupRow struct {
 	State      BackupState
 }
 
-// Backups builds the overview; maxAge marks older successes as old.
-func Backups(borg *sources.BorgDataset, pg *sources.PGBackDataset, nas *sources.TrueNASDataset, now time.Time, maxAge time.Duration) []BackupRow {
+// Backups builds the overview over every tool's jobs; maxAge marks
+// older successes as old.
+func Backups(tools []sources.BackupSource, now time.Time, maxAge time.Duration) []BackupRow {
 	var rows []BackupRow
-	age := func(last time.Time) BackupState {
-		switch {
-		case last.IsZero():
-			return BackupUnknown
-		case now.Sub(last) > maxAge:
-			return BackupOld
-		}
-		return BackupOK
-	}
-
-	if borg != nil {
-		for _, c := range borg.Clients {
-			row := BackupRow{Tool: "borgbackup", Item: c.Name, Last: c.LastBackup, State: age(c.LastBackup)}
-			if c.LastFailed {
+	for _, tool := range tools {
+		for _, j := range tool.BackupJobs() {
+			row := BackupRow{Tool: tool.BackupTool(), Item: j.Item, Last: j.Last, State: BackupOK}
+			switch {
+			case j.Failed:
 				row.State = BackupFailed
-			}
-			rows = append(rows, row)
-		}
-	}
-	if pg != nil {
-		for _, b := range pg.Backups {
-			row := BackupRow{Tool: "pgbackweb", Item: b.Name, Last: b.LastSuccess, State: age(b.LastSuccess)}
-			if b.Failing() {
-				row.State = BackupFailed
-			}
-			rows = append(rows, row)
-		}
-	}
-	if nas != nil {
-		for _, s := range nas.Snapshots {
-			if !s.Enabled {
-				continue
-			}
-			row := BackupRow{Tool: "truenas", Item: s.Dataset, Last: s.Last, State: age(s.Last)}
-			if s.State == "ERROR" {
-				row.State = BackupFailed
+			case j.Last.IsZero():
+				row.State = BackupUnknown
+			case now.Sub(j.Last) > maxAge:
+				row.State = BackupOld
 			}
 			rows = append(rows, row)
 		}
@@ -90,23 +63,11 @@ func Backups(borg *sources.BorgDataset, pg *sources.PGBackDataset, nas *sources.
 // even though the tools report only the newest backup.
 func init() {
 	RecordScope(func(s Scope, now time.Time, r *Readings) {
-		var borg *sources.BorgDataset
-		var pg *sources.PGBackDataset
-		var nas *sources.TrueNASDataset
-		for _, raw := range s.Datasets {
-			switch d := raw.(type) {
-			case *sources.BorgDataset:
-				borg = d
-			case *sources.PGBackDataset:
-				pg = d
-			case *sources.TrueNASDataset:
-				nas = d
-			}
-		}
-		if borg == nil && pg == nil && nas == nil {
+		tools := BackupTools(s.Datasets)
+		if len(tools) == 0 {
 			return
 		}
-		for _, row := range Backups(borg, pg, nas, now, 0) {
+		for _, row := range Backups(tools, now, 0) {
 			mark := 0.0
 			if !row.Last.IsZero() && Today(row.Last).Equal(Today(now)) {
 				mark = 1
@@ -114,6 +75,18 @@ func init() {
 			r.Set(backupKey(row.Tool, row.Item), mark)
 		}
 	})
+}
+
+// BackupTools picks the datasets that report backups, in a stable order.
+func BackupTools(datasets map[string]any) []sources.BackupSource {
+	var out []sources.BackupSource
+	for _, raw := range datasets {
+		if b, ok := raw.(sources.BackupSource); ok {
+			out = append(out, b)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].BackupTool() < out[j].BackupTool() })
+	return out
 }
 
 // backupKey keeps the item's own spelling apart from key()'s dot rule.

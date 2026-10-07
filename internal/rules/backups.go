@@ -4,8 +4,7 @@ package rules
 //
 //	truenas.snapshot_failed   a periodic snapshot task ended in ERROR
 //	backups.gap               Komodo stacks / TrueNAS apps whose name appears
-//	                          in no backup item (Borg client, PG Back Web
-//	                          backup, snapshot dataset) – a name heuristic
+//	                          in no backup item of any tool – a name heuristic
 
 import (
 	"strings"
@@ -33,7 +32,7 @@ func snapshotFailed(data *sources.TrueNASDataset, cfg map[string]any, env Env) [
 }
 
 func backupGap(_ any, cfg map[string]any, env Env) []Finding {
-	items, hasTool := backupItems(env)
+	items, hasTool := backupItems(env.Datasets)
 	if !hasTool {
 		return nil
 	}
@@ -52,25 +51,21 @@ func backupGap(_ any, cfg map[string]any, env Env) []Finding {
 
 // backupItems lists lower-case names of everything a backup tool covers;
 // false when the space has no backup tool at all.
-func backupItems(env Env) ([]string, bool) {
+func backupItems(datasets map[string]any) ([]string, bool) {
 	var items []string
 	seen := false
-	if borg, ok := env.Datasets[string(enums.ServiceBorgBackup)].(*sources.BorgDataset); ok {
-		seen = true
-		for _, c := range borg.Clients {
-			items = append(items, strings.ToLower(c.Name))
+	for _, raw := range datasets {
+		tool, ok := raw.(sources.BackupSource)
+		if !ok {
+			continue
 		}
-	}
-	if pg, ok := env.Datasets[string(enums.ServicePGBackWeb)].(*sources.PGBackDataset); ok {
-		seen = true
-		for _, b := range pg.Backups {
-			items = append(items, strings.ToLower(b.Name))
+		jobs := tool.BackupJobs()
+		if _, nas := raw.(*sources.TrueNASDataset); nas && len(jobs) == 0 {
+			continue // a NAS without snapshot tasks is no backup tool
 		}
-	}
-	if nas, ok := env.Datasets[string(enums.ServiceTrueNAS)].(*sources.TrueNASDataset); ok && len(nas.Snapshots) > 0 {
 		seen = true
-		for _, s := range nas.Snapshots {
-			items = append(items, strings.ToLower(s.Dataset))
+		for _, j := range jobs {
+			items = append(items, strings.ToLower(j.Item))
 		}
 	}
 	return items, seen
