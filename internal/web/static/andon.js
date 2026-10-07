@@ -1247,6 +1247,25 @@
     });
   }
 
+  // A new connection's login follows the space until chosen by hand:
+  // fixed in the personal space, a template elsewhere (startsFixed).
+  function setupConnMode() {
+    d.addEventListener("change", function (e) {
+      var t = e.target;
+      if (t.id === "mode") {
+        t.dataset.chosen = "1";
+      }
+      if (t.id !== "space_id" || !t.form) {
+        return;
+      }
+      var mode = t.form.querySelector("#mode");
+      if (!mode || mode.dataset.chosen || t.form.dataset.fixedAlways) {
+        return;
+      }
+      mode.value = t.value === t.dataset.personal ? "shared" : "personal";
+    });
+  }
+
   // ── Wall display: fullscreen on first tap, rotate boards, dim at night ──
   var KIOSK_DIM_CHECK_MS = 60000;
   // kioskTimers survive boosted page changes, which run setupKiosk again:
@@ -1712,6 +1731,7 @@
     setupEditor();
     setupIconUpload();
     setupKimaiForm();
+    setupConnMode();
     setupOffline();
     setupHotkeys();
     setupReceiptKeys();

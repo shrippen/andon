@@ -101,9 +101,12 @@ func TestNoTokenFieldWithoutAuth(t *testing.T) {
 	if !strings.Contains(kimai, "Wem die Verbindung gehört") {
 		t.Fatalf("space choice is not explained:\n%s", kimai)
 	}
-	// New connections start with personal credentials.
-	if !regexp.MustCompile(`<option value="personal"\s+selected>`).MatchString(kimai) {
-		t.Fatalf("personal is not the default:\n%s", kimai)
+	// Outside the personal space new connections start as a template:
+	// everybody enters their own login.
+	instance := regexp.MustCompile(`<option value="(\d+)">Instanz</option>`).FindStringSubmatch(kimai)[1]
+	shared := string(mustGet(t, srv, client, "/connections/new?service=kimai&space="+instance))
+	if !regexp.MustCompile(`<option value="personal"\s+selected>`).MatchString(shared) {
+		t.Fatalf("personal is not the default:\n%s", shared)
 	}
 	if !strings.Contains(kimai, `name="secret"`) {
 		t.Fatal("kimai form lost its token field")

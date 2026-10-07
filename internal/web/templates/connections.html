@@ -162,14 +162,14 @@
   <main>
     <h1>{{t "action.create"}} — {{t "nav.connections"}}</h1>
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
-    <form method="post" action="/connections">
+    <form method="post" action="/connections"{{if eq (credShape .Service) "ical"}} data-fixed-always="1"{{end}}>
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <p><b>{{t (print "service." .Service)}}</b> · <a href="/connections/new">{{t "conn.other_service"}}</a></p>
       {{template "service_about" .Service}}
       <p class="small muted">{{t (print "conn.options_hint_" .Service)}}</p>
       <input type="hidden" name="service" value="{{.Service}}">
       <label for="space_id">{{t "field.space"}}</label>
-      <select class="select" id="space_id" name="space_id" required>
+      <select class="select" id="space_id" name="space_id" required data-personal="{{range .Spaces}}{{if eq (print .Kind) "personal"}}{{.ID}}{{end}}{{end}}">
         {{range .Spaces}}<option value="{{.ID}}"{{if eq .ID $.Space}} selected{{end}}>{{.Name}}</option>{{end}}
       </select>
       <p class="small muted">{{t "conn.space_hint"}}</p>
@@ -180,8 +180,8 @@
       {{if eq $shape "none"}}
       <p class="small muted">{{t "conn.no_login"}}</p>
       {{else}}
-      {{/* New calendars start fixed: most are public, no token per user. */}}
-      {{template "conn_mode" (eq $shape "ical")}}
+      {{/* Fixed first in the personal space and for calendars (startsFixed). */}}
+      {{template "conn_mode" .Fixed}}
       {{/* Template: everybody enters their own login on the record's access tab. */}}
       <div class="cred-ways">
       <div class="cred-way cred-shared">
