@@ -1613,6 +1613,17 @@
     });
   });
 
+  // Times Andon formats itself are in the server's zone. Where the
+  // browser's zone differs, their .tz-mark names it: "since 12:26 UTC".
+  function showZones(root) {
+    var here = -new Date().getTimezoneOffset();
+    [].forEach.call(root.querySelectorAll(".tz-mark"), function (mark) {
+      mark.hidden = parseInt(mark.getAttribute("data-offset"), 10) === here;
+    });
+  }
+  window.andonPage(function () { showZones(d); });
+  d.addEventListener("htmx:load", function (e) { showZones(e.target); });
+
   // A toast (Kante .toast) stays as long as its life line runs (--life on
   // .toast-life, 4 s by default), then goes.
   var TOAST_LIFE_MS = 4000;

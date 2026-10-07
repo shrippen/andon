@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -80,6 +81,12 @@ func TestKimaiTimerStops(t *testing.T) {
 	frag := string(awaitFragment(t, srv, client, placement, "Relaunch"))
 	if !strings.Contains(frag, `name="sheet" value="77"`) || !strings.Contains(frag, "2:00") || !strings.Contains(frag, `data-begin=`) {
 		t.Fatalf("fragment:\n%s", frag)
+	}
+	// Times are the server's: a hidden mark names its zone, andon.js shows
+	// it where the browser's zone differs.
+	_, offset := time.Now().Zone()
+	if !strings.Contains(frag, `class="tz-mark" data-offset="`+strconv.Itoa(offset/60)+`" hidden`) {
+		t.Fatalf("no zone mark:\n%s", frag)
 	}
 
 	resp = postForm(t, client, srv.URL+"/widget-fragments/"+placement+"/kimai", url.Values{"csrf": {csrf}, "action": {"stop"}, "sheet": {"77"}, "note": {"Backup umgebaut"}})

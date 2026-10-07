@@ -30,7 +30,7 @@
   {{else}}
   <div class="kl-clock is-idle"><span class="kl-time">0:00:00</span></div>
   {{end}}
-  <p class="kl-sums">{{with $v.Running}}{{with .Since}}{{t "timer.since" "time" .}} · {{end}}{{end}}{{t "timer.today"}} {{$v.Today}} · {{t "timer.week"}} {{$v.Week}}</p>
+  <p class="kl-sums">{{with $v.Running}}{{with .Since}}{{t "timer.since" "time" .}}{{template "tz_mark"}} · {{end}}{{end}}{{t "timer.today"}} {{$v.Today}} · {{t "timer.week"}} {{$v.Week}}</p>
   <div class="kl-day" role="img" aria-label="{{t "timer.day"}}: {{$v.Today}}">
     {{range $v.DaySegs}}<i data-style="--l:{{.L}}%;--w:{{.W}}%"{{if .Run}} data-run{{end}}></i>{{end}}
     <b data-style="--l:{{$v.DayNow}}%"></b>
@@ -98,8 +98,8 @@
     {{range .Catalog.Activities}}<option value="{{.ID}}" data-project="{{if .ProjectID}}{{.ProjectID}}{{end}}"{{if eq .ID $a}} selected{{end}}>{{.Name}}</option>{{end}}
   </select>
   <div class="kl-range">
-    <div><label for="kl-b-{{.PlacementID}}">{{t "timer.begin"}}</label><input class="input" id="kl-b-{{.PlacementID}}" name="begin" type="datetime-local" value="{{.Req.Begin}}" required></div>
-    {{if not $running}}<div><label for="kl-e-{{.PlacementID}}">{{t "timer.end"}}</label><input class="input" id="kl-e-{{.PlacementID}}" name="end" type="datetime-local" value="{{.Req.End}}" required></div>{{end}}
+    <div><label for="kl-b-{{.PlacementID}}">{{t "timer.begin"}}{{template "tz_mark"}}</label><input class="input" id="kl-b-{{.PlacementID}}" name="begin" type="datetime-local" value="{{.Req.Begin}}" required></div>
+    {{if not $running}}<div><label for="kl-e-{{.PlacementID}}">{{t "timer.end"}}{{template "tz_mark"}}</label><input class="input" id="kl-e-{{.PlacementID}}" name="end" type="datetime-local" value="{{.Req.End}}" required></div>{{end}}
   </div>
   <label for="kl-n-{{.PlacementID}}">{{t "timer.note"}}</label>
   <input class="input" id="kl-n-{{.PlacementID}}" name="note" value="{{.Req.Note}}" autocomplete="off">
@@ -145,7 +145,7 @@
     <li>
       <span class="kl-color"{{with .Color}} data-style="--c:{{.}}"{{end}} aria-hidden="true"></span>
       <span class="kl-pair"><b>{{.Project}} · {{.Activity}}</b>
-        <small>{{.From}}–{{if .To}}{{.To}}{{else}}{{t "timer.running"}}{{end}} · {{.Duration}}{{if .Billable}} · {{t "timer.billable"}}{{end}}{{with .Note}} · {{.}}{{end}}{{range .Tags}} · #{{.}}{{end}}</small></span>
+        <small>{{.From}}–{{if .To}}{{.To}}{{else}}{{t "timer.running"}}{{end}}{{template "tz_mark"}} · {{.Duration}}{{if .Billable}} · {{t "timer.billable"}}{{end}}{{with .Note}} · {{.}}{{end}}{{range .Tags}} · #{{.}}{{end}}</small></span>
       <button type="button" class="btn btn-outline btn-icon btn-sm kl-ib" hx-get="/widget-fragments/{{$.PlacementID}}/kimai/edit?sheet={{.ID}}&amp;back=day" hx-target="closest .card-body" hx-swap="innerHTML" aria-label="{{t "action.edit"}}" title="{{t "action.edit"}}">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>
     </li>
@@ -264,3 +264,7 @@
 {{with $v.Paid}}<li data-stage="paid"><span class="sq" aria-hidden="true"></span>{{t "flow.paid"}} <b>{{money . $v.Currency}}</b></li>{{end}}</ul>
 {{else}}<p class="muted">{{t "widget.empty"}}</p>{{end}}
 {{end}}
+
+{{/* tz_mark: the server's zone after a time it formatted, hidden; andon.js
+     shows it where the browser's zone differs ("since 12:26 UTC"). */}}
+{{define "tz_mark"}}{{with serverZone}}<span class="tz-mark" data-offset="{{.Offset}}" hidden> {{.Name}}</span>{{end}}{{end}}

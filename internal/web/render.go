@@ -110,6 +110,7 @@ func mustParse() *template.Template {
 		"eqID":        func(a *int64, b int64) bool { return a != nil && *a == b },
 		"weatherKind": widgets.WeatherKind,
 		"json":        toJSON,
+		"serverZone":  serverZone,
 		"clockNow":    func(tz string) string { return clockNow(tz, clockMinutes) },
 		"clockNowSec": func(tz string) string { return clockNow(tz, clockSeconds) },
 		// clockShow is a clock tile's time: 12 or 24 hours, with or without seconds.
@@ -200,6 +201,23 @@ func clockNow(tz, layout string) string {
 		loc = time.Local
 	}
 	return time.Now().In(loc).Format(layout)
+}
+
+// Zone is the server's time zone now: its abbreviation ("CEST", "UTC")
+// and offset east of UTC in minutes. Times Andon formats itself (Kimai
+// Lite) are in this zone; the "tz_mark" template names it where the
+// browser's zone differs (andon.js).
+type Zone struct {
+	Name   string
+	Offset int
+}
+
+func serverZone() Zone {
+	name, offset := time.Now().Zone()
+	if strings.HasPrefix(name, "+") || strings.HasPrefix(name, "-") {
+		name = "UTC" + name // zones without an abbreviation: "+0530"
+	}
+	return Zone{Name: name, Offset: offset / 60}
 }
 
 // Clock layouts: with or without seconds.
