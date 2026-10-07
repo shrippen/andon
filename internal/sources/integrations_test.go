@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"andon/internal/enums"
 	"andon/internal/sources"
 )
 
@@ -705,5 +706,69 @@ func TestDemoBackupTools(t *testing.T) {
 	}
 	if d := sources.DemoDuplicati(now); d.Jobs[1].Note == "" {
 		t.Fatalf("duplicati note %+v", d.Jobs)
+	}
+}
+
+// TestPowerSources: PeaNUT's NUT flags, OpenDTU's totals and inverters,
+// EVCC's state with and without the old "result" wrapper.
+func TestPowerSources(t *testing.T) {
+	wrapped := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/devices":
+			w.Write([]byte(`[{"peanut.device_id":"nas","device.model":"Eaton","ups.status":"OB LB","battery.charge":"35","battery.runtime":"240","ups.load":"40"}]`))
+		case "/api/livedata/status":
+			w.Write([]byte(`{"total":{"Power":{"v":412.3},"YieldDay":{"v":1840},"YieldTotal":{"v":1234.5}},"inverters":[{"name":"Balkon","serial":"1","reachable":true,"producing":true,"AC":{"0":{"Power":{"v":412.3}}}}]}`))
+		case "/api/state":
+			state := `{"pvPower":412,"homePower":380,"grid":{"power":3650},"battery":{"soc":80},"tariffGrid":0.34,"loadpoints":[{"title":"Carport","vehicleTitle":"Kombi","connected":true,"charging":true,"chargePower":3700,"vehicleSoc":54,"chargedEnergy":6400,"mode":"now"}],"statistics":{"30d":{"chargedKWh":142,"avgPrice":0.27,"solarPercentage":31}}}`
+			if wrapped {
+				state = `{"result":` + state + `}`
+			}
+			w.Write([]byte(state))
+		}
+	}))
+	defer srv.Close()
+	ctx := context.Background()
+	sctx := sources.Ctx{URL: srv.URL}
+
+	raw, err := sources.PeaNUTData.Fetch(ctx, sctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ups := raw.(*sources.UPSDataset).Devices[0]
+	if ups.Name != "nas" || !ups.OnBattery || !ups.LowBattery || ups.ReplaceBattery || ups.Runtime != 240 || ups.Charge != 35 {
+		t.Fatalf("ups %+v", ups)
+	}
+	raw, err = sources.OpenDTUData.Fetch(ctx, sctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := raw.(*sources.SolarDataset); s.Power != 412.3 || s.YieldDay != 1840 || len(s.Inverters) != 1 || s.Inverters[0].Power != 412.3 {
+		t.Fatalf("solar %+v", s)
+	}
+	for _, w := range []bool{false, true} {
+		wrapped = w
+		raw, err = sources.EVCCData.Fetch(ctx, sctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		e := raw.(*sources.EVCCDataset)
+		if e.Grid != 3650 || e.BatterySoc != 80 || len(e.Loadpoints) != 1 || e.Loadpoints[0].Charged != 6.4 || e.ChargedKWh30 != 142 {
+			t.Fatalf("evcc (wrapped %v) %+v", w, e)
+		}
+	}
+}
+
+// TestDemoPower: the demo's UPS, panels and wallbox.
+func TestDemoPower(t *testing.T) {
+	now := time.Now()
+	if d := sources.DemoUPS(now, enums.ServiceApcupsd).Devices; len(d) != 1 || d[0].Runtime != 420 || d[0].OnBattery {
+		t.Fatalf("apcupsd %+v", d)
+	}
+	if s := sources.DemoSolar(now); len(s.Inverters) != 2 || s.Inverters[1].Reachable {
+		t.Fatalf("solar %+v", s)
+	}
+	if e := sources.DemoEVCC(now); e.BatterySoc != -1 || !e.Loadpoints[0].Charging || e.SolarPercent30 != 31 {
+		t.Fatalf("evcc %+v", e)
 	}
 }

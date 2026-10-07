@@ -237,3 +237,13 @@
 </ul>{{end}}
 {{else}}<p class="tile-note">{{t "ci.none"}}</p>{{end}}{{end}}
 {{end}}
+
+{{define "widgets/power"}}
+{{with $v := .Frag.View}}{{if $v.Any}}
+{{if $v.YieldKWh}}<div class="tile-head"><b class="tile-value" data-live>{{num $v.PV 0}} W</b><span class="tile-note">{{t "power.tile_pv" "kwh" (num $v.YieldKWh 1)}}</span></div>{{end}}
+<ul class="plain-list">
+  {{range $v.UPS}}<li><span class="pill" data-state="{{.Pill}}">{{.Status}}</span> {{.Name}} <small class="muted">{{num .Charge 0}} % · {{t "power.minutes" "n" .Minutes}}</small></li>{{end}}
+  {{range $v.Charging}}<li><span class="pill" data-state="analyzing">{{num .KW 1}} kW</span> {{.Title}} <small class="muted">{{with .Vehicle}}{{.}} · {{end}}{{num .VehicleSoc 0}} %</small></li>{{end}}
+</ul>
+{{else}}<p class="tile-note">{{t "power.none"}}</p>{{end}}{{end}}
+{{end}}

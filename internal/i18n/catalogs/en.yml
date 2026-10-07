@@ -50,6 +50,10 @@ action:
   open_in_urbackup: 'Open in UrBackup'
   open_in_wud: 'Open in What''s Up Docker'
   open_in_watchtower: 'Open in Watchtower'
+  open_in_peanut: 'Open in PeaNUT'
+  open_in_apcupsd: 'Open apcupsd'
+  open_in_opendtu: 'Open in OpenDTU'
+  open_in_evcc: 'Open in EVCC'
   open_in_tibber: 'Open in Tibber (electricity)'
   close: Close
   open_in_jsonapi: Open API
@@ -884,6 +888,9 @@ wtype:
   ci_runs:
     name: 'CI runs'
     desc: 'Builds from Drone, GitHub Actions and Gitea Actions: red ones first, each repo''s history in the dialog.'
+  power:
+    name: 'Power'
+    desc: 'UPS (PeaNUT, apcupsd), balcony solar (OpenDTU) and wallbox (EVCC) at a glance.'
   speedtest:
     name: 'Internet speed'
     desc: 'Latest result from Speedtest Tracker.'
@@ -1325,6 +1332,18 @@ conn:
   options_hint_watchtower: 'URL of the Watchtower HTTP API, e.g. http://watchtower:8080 (start Watchtower with --http-api-metrics). Token = WATCHTOWER_HTTP_API_TOKEN.'
   about_watchtower: 'Automatic updates: checked, updated, failed'
   what_watchtower: 'Watchtower updates running containers automatically as soon as a new image appears.'
+  options_hint_peanut: 'URL of PeaNUT (a UI for NUT), e.g. http://peanut.example.lan:8080. Token empty or user:password (WEB_USERNAME/WEB_PASSWORD).'
+  about_peanut: 'UPS via NUT: charge, runtime, load'
+  what_peanut: 'PeaNUT shows the UPS of a NUT server (Network UPS Tools) in the browser and offers an API.'
+  options_hint_apcupsd: 'Address of the apcupsd network server (NIS), e.g. apcupsd://pi.example.lan:3551. No token; in apcupsd.conf set NETSERVER on and NISIP to an address Andon reaches.'
+  about_apcupsd: 'APC UPS: charge, runtime, load'
+  what_apcupsd: 'apcupsd watches APC UPSs and reports their state on the network.'
+  options_hint_opendtu: 'URL of OpenDTU, e.g. http://opendtu.example.lan. Token empty, or user:password when read access is protected.'
+  about_opendtu: 'Balcony solar: power, yield, inverters'
+  what_opendtu: 'OpenDTU reads Hoymiles inverters by radio and shows power and yield.'
+  options_hint_evcc: 'URL of EVCC, e.g. http://evcc.example.lan:7070. Token empty, or user:password behind a proxy.'
+  about_evcc: 'Wallbox: charging, solar share, cost'
+  what_evcc: 'EVCC controls wallboxes and prefers solar power for charging.'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
   health: 'Health'
@@ -1549,6 +1568,10 @@ service:
   urbackup: 'UrBackup'
   wud: 'What''s Up Docker'
   watchtower: 'Watchtower'
+  peanut: 'PeaNUT (UPS)'
+  apcupsd: 'apcupsd (UPS)'
+  opendtu: 'OpenDTU'
+  evcc: 'EVCC'
   tibber: 'Tibber (electricity)'
   links: Tiles
   jsonapi: Custom API (JSON)
@@ -1872,6 +1895,20 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  ups:
+    on_battery:
+      title: 'UPS {name} runs on battery'
+      why: 'Charge {charge} %, about {minutes} minutes left. Power is out or the supply is cut.'
+    runtime_low:
+      title: 'UPS {name} holds only {minutes} minutes'
+      why: 'At {load} % load. Is that enough for an orderly shutdown? Lower the load or replace the battery.'
+    replace_battery:
+      title: 'UPS {name}: replace the battery'
+      why: 'The UPS reports a worn battery; it may not hold in a power cut.'
+  opendtu:
+    offline:
+      title: 'Inverter {name} unreachable'
+      why: 'It does not answer during the day. Check the radio link or the grid side.'
   wud:
     updates:
       title: '{count} container updates available'
@@ -2210,6 +2247,9 @@ hint:
       title: 'Large expense: {name} ({amount})'
       why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
+    charge_expensive:
+      title: '{point} charges at an expensive price'
+      why: '{kw} kW from the grid at {price} ct/kWh, the day''s average is {avg} ct. Charge later or switch to solar mode.'
     update_unbacked:
       title: 'Watchtower updated {count} containers without a fresh backup'
       why: 'Last backup: {day} ({tool}). If an update goes wrong, the state before it is missing.'
@@ -2619,6 +2659,11 @@ hint:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
 info:
+  ups:
+    online: '{charge} % · {minutes} min'
+    battery: 'on battery · {minutes} min'
+  opendtu:
+    now: '{watts} W · {kwh} kWh today'
   wud:
     containers: '{count} containers · {updates} updates'
   watchtower:
@@ -2861,6 +2906,11 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  ups.on_battery: 'UPS on battery'
+  ups.runtime_low: 'UPS runtime short'
+  ups.replace_battery: 'Replace UPS battery'
+  opendtu.offline: 'Inverter unreachable'
+  cross.charge_expensive: 'Charging at an expensive price'
   wud.updates: 'Container updates'
   watchtower.failed: 'Watchtower update failed'
   cross.update_unbacked: 'Update without backup'
@@ -3057,6 +3107,7 @@ rule_name:
   truenas.scrub_old: 'Pool scrub'
   gateway.new_device: 'New devices on the network'
 param:
+  minutes: 'At least minutes'
   min_km: 'From km'
   words: 'Keywords in invoice lines'
   rides: 'From rides'
@@ -4831,6 +4882,35 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image updates: {n}'
   alerts: 'Alerts: {n}'
+power:
+  pv_now: 'Solar now'
+  pv_today: 'Solar today'
+  grid: 'Grid'
+  home: 'Home'
+  ups: 'UPS'
+  inverters: 'Inverters'
+  loadpoints: 'Loadpoints'
+  reachable: 'reachable'
+  unreachable: 'unreachable'
+  minutes: '{n} min'
+  charged30: 'Charged (30 days)'
+  solar30: 'Solar share (30 days)'
+  price30: 'Average price (30 days)'
+  tile_pv: '{kwh} kWh today'
+  none: 'No power connection: connect PeaNUT, apcupsd, OpenDTU or EVCC.'
+  col:
+    name: 'Name'
+    model: 'Model'
+    status: 'Status'
+    charge: 'Charge'
+    runtime: 'Runtime'
+    load: 'Load'
+    state: 'State'
+    power: 'Power'
+    vehicle: 'Vehicle'
+    soc: 'Battery'
+    charged: 'Charged'
+    mode: 'Mode'
 ci:
   older: 'older'
   newest: 'newest run'

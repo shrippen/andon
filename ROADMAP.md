@@ -1129,9 +1129,10 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] Nachtrag zu Schritt 6: `backups.job` meldet fehlgeschlagene oder veraltete Sicherungen der Werkzeuge ohne eigene Regeln; neue Backup-Regeln im Thema „Backups“
 
 **Schritt 8: Strom** — PeaNUT (NUT), apcupsd, OpenDTU, EVCC
-- [ ] USV: Ladung, Restlaufzeit, Last, Ereignisse; Solar: Ertrag je Tag; EVCC: Ladevorgänge und Kosten; Beiträge zur Kachel `energy`
-- [ ] Regeln `ups.on_battery`, `ups.runtime_low`
-- [ ] Quer: `cross.outage_power` (Ausfälle in Uptime Kuma/Links während die USV auf Batterie lief: ein Hinweis statt vieler), `cross.ups_load` (Restlaufzeit reicht nicht für das Herunterfahren der Proxmox-/TrueNAS-Hosts), EVCC gegen Tibber (Laden zu teuren Stunden), `cross.charge_business` (EVCC × Fahrten)
+- [x] USV: Ladung, Restlaufzeit, Last; Solar: Leistung und Ertrag; EVCC: Laden, Netz, 30-Tage-Werte *(eigene Kachel „Strom“ statt Beiträgen zu `energy`; apcupsd über sein NIS-Protokoll)*
+- [x] Regeln `ups.on_battery`, `ups.runtime_low`, `ups.replace_battery`, `opendtu.offline`
+- [x] Quer: Stromausfall *(USV auf Batterie ist die Ursache in `system.outage`, Einzelhinweise der Monitore und Alerts fallen weg)*, `cross.charge_expensive` (EVCC × Tibber)
+- [ ] Quer: `cross.ups_load` (Laufzeit gegen Zahl der Hosts), `cross.charge_business` (EVCC × Fahrten) *(brauchen Verlauf bzw. Fahrtdaten je Ladepunkt)*
 
 **Schritt 9: Netz** — Traefik, Caddy, Nginx Proxy Manager, Headscale, Technitium, FRITZ!Box, UniFi
 - [ ] Routen (Traefik, Caddy, NPM) mit Zertifikat und Ziel; Headscale wie Tailscale; Technitium in der DNS-Kachel; FRITZ!Box: Leitung, Abbrüche, Durchsatz; UniFi: Geräte, Clients, Firmware

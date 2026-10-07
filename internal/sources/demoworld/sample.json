@@ -5216,5 +5216,82 @@
     "released_at": "@-3d"
    }
   ]
+ },
+ "power": {
+  "peanut": {
+   "url": "https://peanut.demo",
+   "devices": [
+    {
+     "name": "nebelhorn-usv",
+     "model": "Eaton 5E 1100i",
+     "status": "OL",
+     "charge": 100,
+     "runtime": 1260,
+     "load": 38,
+     "power": 240
+    }
+   ]
+  },
+  "apcupsd": {
+   "url": "apcupsd://boje.demo:3551",
+   "devices": [
+    {
+     "name": "boje-usv",
+     "model": "Back-UPS ES 400",
+     "status": "ONLINE",
+     "charge": 92,
+     "runtime": 420,
+     "load": 61,
+     "power": 0
+    }
+   ]
+  },
+  "opendtu": {
+   "url": "http://opendtu.demo",
+   "power": 412,
+   "yield_day": 1840,
+   "yield_total": 1234.5,
+   "inverters": [
+    {
+     "name": "Balkon",
+     "serial": "114182937465",
+     "reachable": true,
+     "producing": true,
+     "power": 412
+    },
+    {
+     "name": "Garage",
+     "serial": "114182930012",
+     "reachable": false,
+     "producing": false,
+     "power": 0
+    }
+   ]
+  },
+  "evcc": {
+   "url": "http://evcc.demo:7070",
+   "pv": 412,
+   "home": 380,
+   "grid": 3650,
+   "battery_soc": -1,
+   "tariff_grid": 0.34,
+   "loadpoints": [
+    {
+     "title": "Carport",
+     "vehicle": "Studio-Kombi",
+     "connected": true,
+     "charging": true,
+     "charge_power": 3700,
+     "vehicle_soc": 54,
+     "charged": 6.4,
+     "mode": "now"
+    }
+   ],
+   "stats30": {
+    "charged_kwh": 142,
+    "avg_price": 0.27,
+    "solar_pct": 31
+   }
+  }
  }
 }
