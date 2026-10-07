@@ -5,6 +5,8 @@ package web
 //
 //	POST ─► refused (≥ 400) ─► page rendered ─► keepInput: the fields of
 //	        the posted form get the typed values back (never secrets)
+//	GET with a query (a get form, e.g. the year package) ─► refused:
+//	        the same for the form whose method is get
 //	POST ─► done ─► flash(w, key) + 303 ─► next page: toast, once
 
 import (
@@ -37,20 +39,32 @@ var untouchedTypes = map[string]bool{
 	"password": true, "hidden": true, "file": true, "submit": true, "button": true, "reset": true, "image": true,
 }
 
+// stateField tells whether a hidden field records the state a form was
+// rendered from (a board version, "was_area") rather than which row it
+// is: a stale form (409) still matches its fresh copy and keeps the
+// fresh value, so sending it again works.
+func stateField(name string) bool {
+	return name == "version" || strings.HasSuffix(name, "_version") || strings.HasPrefix(name, "was_")
+}
+
 // isSecret tells whether a field name names a secret.
 func isSecret(name string) bool {
 	parts := strings.FieldsFunc(strings.ToLower(name), func(r rune) bool { return r == '_' || r == '-' || r == '.' })
 	return slices.ContainsFunc(parts, func(p string) bool { return secretParts[p] })
 }
 
-// keptValues are the posted values a refused form shows again: the body
-// fields without secrets.
+// keptValues are the sent values a refused form shows again: the body
+// fields (the query of a get form) without secrets.
 func keptValues(r *http.Request) url.Values {
-	if r.PostForm == nil {
-		_ = r.ParseForm() // a bad body keeps nothing
+	sent := r.URL.Query()
+	if r.Method == http.MethodPost {
+		if r.PostForm == nil {
+			_ = r.ParseForm() // a bad body keeps nothing
+		}
+		sent = r.PostForm
 	}
 	out := url.Values{}
-	for name, vs := range r.PostForm {
+	for name, vs := range sent {
 		if !isSecret(name) {
 			out[name] = vs
 		}
@@ -58,20 +72,31 @@ func keptValues(r *http.Request) url.Values {
 	return out
 }
 
-// refusedPost is the request whose form a page shows again: a POST
-// answered with an error status.
-func refusedPost(ctx Ctx, status int) *http.Request {
-	if ctx.req == nil || ctx.req.Method != http.MethodPost || status < http.StatusBadRequest {
+// keepInputKey asks a page answered with 200 to refill the posted form
+// all the same: an htmx answer to a refused form (htmx swaps no error).
+const keepInputKey = "KeepInput"
+
+// refusedPost is the request whose form a page shows again: a POST, or
+// a GET with a query, answered with an error status (or marked with
+// keepInputKey).
+func refusedPost(ctx Ctx, status int, data map[string]any) *http.Request {
+	if keep, _ := data[keepInputKey].(bool); keep && ctx.req != nil && ctx.req.Method == http.MethodPost {
+		return ctx.req
+	}
+	if ctx.req == nil || status < http.StatusBadRequest {
 		return nil
 	}
-	return ctx.req
+	if ctx.req.Method == http.MethodPost || (ctx.req.Method == http.MethodGet && ctx.req.URL.RawQuery != "") {
+		return ctx.req
+	}
+	return nil
 }
 
 // keepInput writes page with the posted form's fields refilled: the form
 // whose action is the posted path and whose hidden fields match what was
 // posted (rows of one list post to the same path with their own id).
 func keepInput(w io.Writer, page []byte, r *http.Request) error {
-	k := keeper{posted: keptValues(r), path: r.URL.Path}
+	k := keeper{posted: keptValues(r), path: r.URL.Path, method: r.Method}
 	z := html.NewTokenizer(bytes.NewReader(page))
 	var form []part
 	for {
@@ -113,15 +138,20 @@ type part struct {
 	tok html.Token
 }
 
-// keeper refills one posted form.
+// keeper refills one sent form.
 type keeper struct {
 	posted url.Values
 	path   string
+	method string
 }
 
 // matches tells whether form (its tokens up to </form>) is the one posted.
 func (k keeper) matches(form []part) bool {
-	if !strings.EqualFold(attr(form[0].tok, "method"), http.MethodPost) {
+	method := attr(form[0].tok, "method")
+	if method == "" {
+		method = http.MethodGet
+	}
+	if !strings.EqualFold(method, k.method) {
 		return false
 	}
 	action, err := url.Parse(attr(form[0].tok, "action"))
@@ -133,6 +163,9 @@ func (k keeper) matches(form []part) bool {
 			continue
 		}
 		name := attr(p.tok, "name")
+		if stateField(name) {
+			continue
+		}
 		if sent, ok := k.posted[name]; ok && !slices.Contains(sent, attr(p.tok, "value")) {
 			return false
 		}

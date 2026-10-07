@@ -82,7 +82,7 @@ func TestEditorErrorsStayInDialog(t *testing.T) {
 		values url.Values
 		want   string
 	}{
-		{"/widgets/" + widget + "/edit", stale, "Inzwischen hat jemand anderes gespeichert"},
+		{"/widgets/" + widget + "/edit", stale, "mit deiner Eingabe"},
 		{"/widgets", empty, "Bitte alle Pflichtfelder ausfüllen"},
 	}
 	for _, c := range cases {

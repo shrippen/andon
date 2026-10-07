@@ -14,6 +14,7 @@ package metrics
 //	WorkloadOf        long weeks, late evenings, weekends, days since a free day
 
 import (
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -26,7 +27,9 @@ const (
 	agingOld       = 60
 	daysPerMonth   = 30.0
 	minRecurDays   = 25
-	maxRecurDays   = 370
+	maxWeekDays    = 5 // shorter intervals count in days
+	weeksPerYear   = 52
+	daysPerWeek    = 7
 	minNameLen     = 4
 	burnWindowDays = 28
 	lateHour       = 22
@@ -475,7 +478,11 @@ func Subscriptions(sure *sources.SureDataset, contracts []sources.PaperlessContr
 	return out
 }
 
-// monthly converts a recurring amount by its interval (last → next).
+// monthly converts a recurring amount by its interval (last → next),
+// snapped to the calendar: days ×365/12, weeks ×52/12, months ÷ their
+// number. Without both dates the amount counts as monthly.
+//
+//	7 days, 10 € → 43.33 · 91 days, 30 € → 10 · 730 days, 240 € → 10
 func monthly(r sources.SureRecurring) float64 {
 	amount := r.Avg
 	if amount == 0 {
@@ -483,14 +490,19 @@ func monthly(r sources.SureRecurring) float64 {
 	}
 	last, ok1 := ParseDay(r.Last)
 	next, ok2 := ParseDay(r.Next)
-	if !ok1 || !ok2 {
+	if !ok1 || !ok2 || !next.After(last) {
 		return amount
 	}
 	days := next.Sub(last).Hours() / hoursPerDay
-	if days < minRecurDays || days > maxRecurDays {
-		return amount
+	switch {
+	case days < maxWeekDays:
+		return amount * daysPerYear / monthsPerYear / math.Round(days)
+	case days < minRecurDays:
+		weeks := max(1, math.Round(days/daysPerWeek))
+		return amount * weeksPerYear / monthsPerYear / weeks
 	}
-	return amount * daysPerMonth / days
+	months := max(1, math.Round(days*monthsPerYear/daysPerYear))
+	return amount / months
 }
 
 // ── Budgets ──

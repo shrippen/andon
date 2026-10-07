@@ -139,8 +139,13 @@ type receiptUndo struct{ Expense, Doc string }
 
 // handleReceiptsPart renders one tab; errors show inside it.
 func (d Deps) handleReceiptsPart(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	d.receiptsPart(w, r, ctx, receiptsQueryOf(r), nil)
+}
+
+// receiptsPart renders the tab of q; extra adds to its values (a refused
+// field mapping: what was chosen and why it was refused).
+func (d Deps) receiptsPart(w http.ResponseWriter, r *http.Request, ctx Ctx, q receiptsQuery, extra func(values map[string]any)) {
 	var err error
-	q := receiptsQueryOf(r)
 	values := map[string]any{"Q": q}
 	switch q.Tab {
 	case tabQueue:
@@ -160,6 +165,9 @@ func (d Deps) handleReceiptsPart(w http.ResponseWriter, r *http.Request, ctx Ctx
 	// The tab and year chips get their numbers with the part.
 	values["Counts"], _ = receipts.CountsOf(r.Context(), d.DB, ctx.Who, q.Tab, q.Year)
 	values["Tabs"], values["Years"] = receiptTabs, years()
+	if extra != nil {
+		extra(values)
+	}
 	_ = d.Page(w, ctx, "receipts_part", http.StatusOK, values)
 }
 
@@ -240,11 +248,23 @@ func (d Deps) handleReceiptCreate(w http.ResponseWriter, r *http.Request, ctx Ct
 	amount, _ := strconv.ParseFloat(strings.ReplaceAll(strings.TrimSpace(r.FormValue("amount")), ",", "."), 64)
 	in := receipts.NewExpense{Amount: amount, Day: dateOrEmpty(r.FormValue("day")), Vendor: r.FormValue("vendor"), Notes: r.FormValue("notes")}
 	number, err := receipts.Create(r.Context(), d.DB, ctx.Who, id, in, d.clientIP(r))
-	if err != nil {
+	soft := r.Header.Get("HX-Request") != ""
+	switch {
+	case err != nil && soft:
+		// The form in its panel again, with the error and what was typed.
+		view, derr := receipts.Draft(r.Context(), d.DB, ctx.Who, id)
+		if derr != nil {
+			view.Doc.ID = id
+		}
+		view.NewExpense = in
+		_ = d.Page(w, ctx, "receipts_draft", http.StatusOK, map[string]any{"Q": q, "S": view, "Error": receiptError(err)})
+	case err != nil:
 		http.Redirect(w, r, q.back("error", receiptError(err)), http.StatusSeeOther)
-		return
+	case soft:
+		w.Header().Set("HX-Redirect", q.back("done", number))
+	default:
+		http.Redirect(w, r, q.back("done", number), http.StatusSeeOther)
 	}
-	http.Redirect(w, r, q.back("done", number), http.StatusSeeOther)
 }
 
 // handleReceiptLinkMany links the sure matches ticked, "Kx9:201" each.
@@ -375,9 +395,24 @@ func (d Deps) handleReceiptFields(w http.ResponseWriter, r *http.Request, ctx Ct
 	}
 	m := receipts.Mapping{InvoiceSlot: int(num("invoice_slot")), LinkSlot: int(num("link_slot")), FieldInvoice: num("field_invoice"),
 		FieldExpense: num("field_expense"), FieldLink: num("field_link"), FieldAmount: num("field_amount"), QueueTag: r.FormValue("queue_tag")}
-	if err := receipts.SaveFields(d.DB, ctx.Who, m); err != nil {
+	err := receipts.SaveFields(d.DB, ctx.Who, m)
+	soft := r.Header.Get("HX-Request") != ""
+	switch {
+	case err != nil && soft:
+		// The tab again, with the error and the fields as chosen.
+		q.Tab = tabFields
+		d.receiptsPart(w, r, ctx, q, func(values map[string]any) {
+			if setup, ok := values["V"].(receipts.FieldSetup); ok {
+				setup.Mapping, setup.Suggested = m, false
+				values["V"] = setup
+			}
+			values["FieldsError"] = errKey(err)
+		})
+	case err != nil:
 		http.Redirect(w, r, q.back("error", errKey(err), "tab", tabFields), http.StatusSeeOther)
-		return
+	case soft:
+		w.Header().Set("HX-Redirect", q.back("note", "receipts.fields_saved"))
+	default:
+		http.Redirect(w, r, q.back("note", "receipts.fields_saved"), http.StatusSeeOther)
 	}
-	http.Redirect(w, r, q.back("note", "receipts.fields_saved"), http.StatusSeeOther)
 }

@@ -107,3 +107,20 @@ func TestClientSharesNamePeriod(t *testing.T) {
 		t.Fatalf("view: %+v", v)
 	}
 }
+
+// TestSeasonNeedsHistory: the seasonal average over earlier years names
+// where the data begins when it cannot cover three full years, and the
+// dialog gives no change over it.
+func TestSeasonNeedsHistory(t *testing.T) {
+	kind, _ := widgets.Get("chart")
+	cfg, _ := widgets.Decode("chart", map[string]any{"chart": "seasonal", "months": 12})
+	ctx := ctxFor(enums.ServiceInvoiceNinja, nil)
+
+	short := lineFacts(t, kind.Detail(cfg, map[string]any{"data": revenueSince("2025-02")}, ctx))
+	if _, ok := short["period.data_from_label"]; !ok {
+		t.Fatalf("no data start named: %+v", short)
+	}
+	if _, ok := short["detail.chart.change"]; ok {
+		t.Fatalf("change over incomplete history: %+v", short)
+	}
+}

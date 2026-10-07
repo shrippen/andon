@@ -93,8 +93,8 @@
 {{/* One service in the filter side; dict C (hintCount), F (filter). */}}
 {{define "hint_source"}}<li><a href="{{.F.Link "source" .C.Key}}"{{if eq .C.Key .F.Source}} aria-current="true"{{end}}>{{t (print "service." .C.Key)}} <small>{{.C.N}}</small></a></li>{{end}}
 
-{{/* The list: groups of a rule (2+ hints, head and bulk bar) as cards,
-     loose hints as compact rows (Kante .hint-card.is-row). */}}
+{{/* The list: groups of a rule (2+ hints) under their head and bulk bar,
+     loose hints alone; every hint a compact row (Kante .hint-card.is-row). */}}
 {{define "hint_groups"}}
     {{range .Groups}}{{if .Loose}}
     <ul class="hints">{{range .Shown}}{{template "hint_row" dict "H" . "P" $}}{{end}}</ul>
@@ -109,12 +109,12 @@
         <button type="submit" name="action" value="snooze" class="btn btn-outline btn-sm">{{t "hints.bulk_snooze"}}</button>
       </form>{{end}}
       <ul class="hints">
-        {{range .Shown}}{{template "hint_item" dict "H" . "P" $}}{{end}}
+        {{range .Shown}}{{template "hint_row" dict "H" . "P" $}}{{end}}
       </ul>
       {{with .Rest}}
       <details class="hint-rest">
         <summary>{{t "hints.more_of_rule" "count" (len .)}}</summary>
-        <ul class="hints">{{range .}}{{template "hint_item" dict "H" . "P" $}}{{end}}</ul>
+        <ul class="hints">{{range .}}{{template "hint_row" dict "H" . "P" $}}{{end}}</ul>
       </details>
       {{end}}
     </section>
@@ -131,6 +131,7 @@
           <span class="meta">{{if .Sources}}{{range $i, $s := .Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}{{else}}{{.SpaceName}}{{end}} · {{ago .FirstSeen}}</span>
         </div>
         <div class="actions">
+          {{if $p.Embed}}{{if .ActionURL}}<a class="btn btn-outline btn-sm hint-go" href="{{.ActionURL}}" target="_blank" rel="noopener noreferrer">{{if .ActionLabel}}{{.ActionLabel}}{{else}}{{t "action.open"}}{{end}}</a>{{end}}{{else}}
           <form method="post" action="/hints/{{.ID}}/ack" class="hint-ack" id="ack-{{.ID}}">
             <input type="hidden" name="{{$p.CSRFField}}" value="{{$p.Ctx.CSRF}}">
             {{if $p.Next}}{{with index $p.Next .ID}}<input type="hidden" name="next" value="{{.}}">{{end}}{{end}}
@@ -153,7 +154,7 @@
               <input class="input" name="note" form="ack-{{.ID}}" maxlength="500" placeholder="{{t "hints.note_optional"}}" aria-label="{{t "hints.note"}}">
             </div>
             <div hx-get="/hints/{{.ID}}/detail" hx-trigger="toggle from:closest details once" hx-swap="innerHTML"><span class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{t "widget.loading"}}</span></div>
-          </details>
+          </details>{{end}}
         </div>
       </li>
 {{end}}{{end}}
@@ -216,41 +217,3 @@
 {{define "hint_advice"}}
 {{if .Error}}<p class="error">{{t .Error}}</p>{{else}}<p class="advice">{{.Text}}</p><p class="small muted">{{t "assist.caveat"}}</p>{{end}}
 {{end}}
-
-{{/* One hint card; P is the page. */}}
-{{define "hint_item"}}{{$p := .P}}{{with .H}}
-      <li class="hint-card" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}" id="hint-{{.ID}}">
-        <header><span class="tier">{{if ge .Severity 30}}{{t "severity.critical"}}{{else if ge .Severity 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}</span><span>{{.SpaceName}} · {{t "hints.since" "when" (ago .FirstSeen)}}</span></header>
-        <span class="title">{{.Title}}{{if .Value}} <span class="pill">{{money .Value .Currency}}</span>{{end}}</span>
-          {{if or .Assignee (ne (print .Work) "open") .Flapping .Maintenance}}<p class="hint-tags">
-            {{if .Maintenance}}<span class="pill" data-state="reviewing" title="{{t "hints.maintenance_hint"}}">{{t "hints.maintenance"}}</span>{{end}}
-            {{with .Assignee}}<span class="pill">{{t "hints.assigned_to" "name" .}}</span>{{end}}
-            {{if ne (print .Work) "open"}}<span class="pill" data-state="{{if eq (print .Work) "done"}}applied{{else}}reviewing{{end}}">{{t (print "hints.work_" .Work)}}</span>{{end}}
-            {{if .Flapping}}<span class="pill" data-state="locked" title="{{t "hints.flapping_hint"}}">{{t "hints.flapping"}}</span>{{end}}
-          </p>{{end}}
-          <p class="hint-why">{{.Why}}</p>
-          {{if .Sources}}<p class="hint-meta-line">{{range $i, $s := .Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}</p>{{end}}
-          {{if .Due}}<span class="due">{{day .Due}}</span>{{end}}
-          <div class="actions">
-            {{if .ActionURL}}<a class="btn btn-outline btn-sm hint-go" href="{{.ActionURL}}" target="_blank" rel="noopener noreferrer">{{if .ActionLabel}}{{.ActionLabel}}{{else}}{{t "action.open"}}{{end}}</a>{{end}}
-            {{if not $p.Embed}}
-            <form method="post" action="/hints/{{.ID}}/ack" class="hint-ack" id="ack-{{.ID}}">
-              <input type="hidden" name="{{$p.CSRFField}}" value="{{$p.Ctx.CSRF}}">
-              {{if $p.Next}}{{with index $p.Next .ID}}<input type="hidden" name="next" value="{{.}}">{{end}}{{end}}
-              <input type="hidden" name="days" value="7">
-              <button type="submit" class="btn btn-outline btn-sm">{{t "hints.ack"}}</button>
-              <button type="submit" class="btn btn-outline btn-sm" formaction="/hints/{{.ID}}/snooze">{{t "hints.snooze"}}</button>
-            </form>
-            {{/* The note goes with "done" or "pause", but only when wanted. */}}
-            <details class="hint-note">
-              <summary>✎ {{t "hints.note"}}</summary>
-              <input class="input" name="note" form="ack-{{.ID}}" maxlength="500" placeholder="{{t "hints.note_optional"}}" aria-label="{{t "hints.note"}}">
-            </details>
-            <details class="hint-more">
-              <summary title="{{t "hints.more"}}" aria-label="{{t "hints.more"}}">⋯</summary>
-              <div hx-get="/hints/{{.ID}}/detail" hx-trigger="toggle from:closest details once" hx-swap="innerHTML"><span class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{t "widget.loading"}}</span></div>
-            </details>
-            {{end}}
-          </div>
-      </li>
-{{end}}{{end}}

@@ -341,9 +341,11 @@
 {{define "receipt_slot_name"}}{{if not .N}}–{{else if .Label}}{{t "receipts.slot_named" "label" .Label "n" .N}}{{else}}{{t "receipts.slot_unnamed" "n" .N}}{{end}}{{end}}
 
 {{define "receipt_fields"}}{{$v := .V}}{{$m := $v.Mapping}}
-<form method="post" action="/receipts/fields" class="card receipt-fields">
+{{/* Posted in its tab: a refusal comes back here with the fields as chosen. */}}
+<form method="post" action="/receipts/fields" class="card receipt-fields" hx-post="/receipts/fields" hx-target="#receipts-part" hx-swap="innerHTML">
   <input type="hidden" name="{{.P.CSRFField}}" value="{{.P.Ctx.CSRF}}">{{template "receipt_back" .P.Q}}
   <p class="muted">{{t "receipts.fields_lead"}}</p>
+  {{with .P.FieldsError}}<p class="error">{{t .}}</p>{{end}}
   {{if $v.Suggested}}<p class="pill" data-state="locked">{{t "receipts.fields_suggested"}}</p>{{end}}
   {{range $v.Warnings}}<p class="pill" data-state="locked">{{tt .Key .Args}}</p>{{end}}
   <fieldset>
@@ -455,7 +457,8 @@
 {{end}}
 
 {{define "receipts_draft"}}{{$v := .S}}
-<form method="post" action="/receipts/new-expense" class="receipt-search receipt-draft">
+{{/* Posted in its panel: a refusal comes back here with what was typed. */}}
+<form method="post" action="/receipts/new-expense" class="receipt-search receipt-draft" hx-post="/receipts/new-expense" hx-target="this" hx-swap="outerHTML">
   <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">{{template "receipt_back" .Q}}
   <input type="hidden" name="doc" value="{{$v.Doc.ID}}">
   <p class="small muted">{{t "receipts.new_expense_lead"}}</p>

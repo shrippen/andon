@@ -30,7 +30,7 @@
         {{range $i, $c := $row.Cells}}{{$col := index $v.Columns $i}}<td>
           {{if $v.Verbund.CanEdit}}<form method="post" action="/verbund/{{$id}}/customers/link" class="inline-form">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}"><input type="hidden" name="hub" value="{{$row.Key}}"><input type="hidden" name="conn" value="{{$col.ConnID}}">
-            <select class="select" name="key" aria-label="{{t (print "service." $col.Service)}}: {{$row.Name}}"><option value="">–</option><option value="!none"{{if eq $c.State "none"}} selected{{end}}>{{t "verbund.none_client"}}</option>{{range $col.Parties}}<option value="{{.Key}}"{{if eq .Key $c.Key}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+            <select class="select" name="party" aria-label="{{t (print "service." $col.Service)}}: {{$row.Name}}"><option value="">–</option><option value="!none"{{if eq $c.State "none"}} selected{{end}}>{{t "verbund.none_client"}}</option>{{range $col.Parties}}<option value="{{.Key}}"{{if eq .Key $c.Key}} selected{{end}}>{{.Name}}</option>{{end}}</select>
             <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
           </form>{{else}}{{$c.Name}}{{end}}
           <span class="pill" data-state="{{if eq $c.State "confirmed"}}applied{{else if eq $c.State "suggested"}}reviewing{{else if eq $c.State "none"}}locked{{end}}">{{t (print "verbund.state_" $c.State)}}</span>

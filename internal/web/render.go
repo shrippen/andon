@@ -487,7 +487,7 @@ func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, valu
 	*set.state = renderState{locale: ctx.Locale, path: ctx.Path, nav: nav, round: roundOf(values["Round"]), data: data}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if posted := refusedPost(ctx, status); posted != nil {
+	if posted := refusedPost(ctx, status, data); posted != nil {
 		return d.refusedPage(w, set, name, status, data, posted)
 	}
 	w.WriteHeader(status)

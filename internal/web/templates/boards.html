@@ -64,11 +64,12 @@
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       <button type="submit" class="btn btn-primary btn-sm{{if .UndoHint}} is-hint{{end}}">↶ {{t "edit.undo"}}</button>
     </form>
-    <details class="editbar-pop">
+    <details class="editbar-pop"{{if .Error}} open{{end}}>
       <summary class="btn btn-primary btn-sm">+ {{t "edit.section"}}</summary>
       <form method="post" action="/boards/{{.Board.ID}}/sections" class="inline-form">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
         <input type="hidden" name="version" value="{{.Board.Version}}">
+        {{with .Error}}<p class="error">{{t .}}</p>{{end}}
         <input class="input" name="title" placeholder="{{t "edit.section_title"}}" aria-label="{{t "edit.section_title"}}">
         <button type="submit" class="btn btn-primary btn-sm">{{t "edit.add_section"}}</button>
       </form>
@@ -242,6 +243,7 @@
   <input type="hidden" name="was_span" value="{{.Span}}">
   <input type="hidden" name="board_id" value="{{$b.Board.ID}}">
   <input type="hidden" name="version" value="{{$b.Board.Version}}">
+  {{with $b.Error}}<p class="error">{{t .}}</p>{{end}}
   <label>{{t "field.title"}}<input class="input" name="title" value="{{.Title}}"></label>
   <label>{{t "field.cols"}}<input class="input" name="cols" type="number" min="1" max="12" value="{{with .Cols}}{{.}}{{end}}"></label>
   <label>{{t "field.size"}}<select class="select" name="size">{{$size := .Size}}{{range $b.Sizes}}<option value="{{.}}"{{if eq . $size}} selected{{end}}>{{t (print "size." .)}}</option>{{end}}</select></label>
@@ -275,11 +277,14 @@
   <div class="dsec-tools">
     {{if not (or $b.Edit $b.LayerEdit)}}{{with .HiddenCount}}<a class="dsec-hidden" href="/boards/{{$b.Board.ID}}?layout" title="{{t "edit.my_layout"}}">{{t "board.hidden_n" "n" .}}</a>{{end}}{{end}}
     {{if $b.Edit}}
-    <details class="section-tools">
+    {{$stale := and $b.ToolsOpen (eq $b.Section .ID)}}
+    <details class="section-tools"{{if $stale}} open{{end}}>
       <summary class="btn btn-outline btn-sm">{{t "edit.section"}}</summary>
       {{/* Loaded on first open: 16 inline forms of 7 selects each cost
-           Chrome 1.7 s per edit page (form scanning). */}}
-      <div hx-get="/boards/{{$b.Board.ID}}/sections/{{.ID}}/tools" hx-trigger="toggle once from:closest details" hx-swap="outerHTML"></div>
+           Chrome 1.7 s per edit page (form scanning). A stale form comes
+           back open, as typed. */}}
+      {{if $stale}}{{template "section_tools" $b}}{{else}}
+      <div hx-get="/boards/{{$b.Board.ID}}/sections/{{.ID}}/tools" hx-trigger="toggle once from:closest details" hx-swap="outerHTML"></div>{{end}}
     </details>
     {{else if $b.LayerEdit}}
     <form method="post" action="/boards/{{$b.Board.ID}}/size/{{.ID}}" class="inline-form section-tools">

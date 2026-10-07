@@ -65,6 +65,13 @@ func TestVerbundPage(t *testing.T) {
 	}
 
 	verbundID := regexp.MustCompile(`id="verbund-(\d+)"`).FindStringSubmatch(page)[1]
+
+	// A refused member answers with the page and its error, no redirect.
+	status, refused = browse(t, client, http.MethodPost, srv.URL+"/verbund/"+verbundID+"/members",
+		url.Values{"csrf": {csrfToken(t, srv, client)}, "space": {space}, "conn": {ids["Kimai B"]}}, nil)
+	if status != http.StatusBadRequest || !strings.Contains(refused, i18n.T("verbund.service_twice", enums.LocaleDE, nil)) {
+		t.Fatalf("second Kimai as member: %d\n%s", status, refused)
+	}
 	resp = postForm(t, client, srv.URL+"/verbund/"+verbundID+"/members/"+ids["Ninja"]+"/remove", url.Values{"csrf": {csrfToken(t, srv, client)}, "space": {space}})
 	if resp.StatusCode != http.StatusSeeOther {
 		t.Fatalf("remove: %d", resp.StatusCode)
@@ -140,8 +147,15 @@ func TestVerbundCustomersPage(t *testing.T) {
 		for k, x := range extra {
 			v[k] = x
 		}
-		resp := postForm(t, client, srv.URL+"/verbund/"+id+"/customers/"+name, v)
-		return string(mustGet(t, srv, client, resp.Header.Get("Location")))
+		// Done: back to the page; refused: the page with the cell as chosen.
+		status, body := browse(t, client, http.MethodPost, srv.URL+"/verbund/"+id+"/customers/"+name, v, nil)
+		if status == http.StatusOK {
+			t.Fatalf("%s answered 200, not a redirect", name)
+		}
+		if status < http.StatusBadRequest {
+			return string(mustGet(t, srv, client, strings.ReplaceAll(link[1], "&amp;", "&")))
+		}
+		return body
 	}
 	// The cell's own key, and one another row holds in this column.
 	form := regexp.MustCompile(`name="hub" value="` + regexp.QuoteMeta(hub) + `"><input type="hidden" name="conn" value="` + conn + `">\s*<select[^>]*>([\s\S]*?)</select>`).FindStringSubmatch(customers)
@@ -152,10 +166,10 @@ func TestVerbundCustomersPage(t *testing.T) {
 	if own == nil {
 		t.Fatalf("no selected key: %s", form[1])
 	}
-	if got := act("link", url.Values{"key": {""}}); !strings.Contains(got, `data-state="reviewing"`) {
+	if got := act("link", url.Values{"party": {""}}); !strings.Contains(got, `data-state="reviewing"`) {
 		t.Fatalf("unlink did not bring the suggestion back:\n%s", got)
 	}
-	if got := act("link", url.Values{"key": {"!none"}}); !strings.Contains(got, `data-state="locked"`) {
+	if got := act("link", url.Values{"party": {"!none"}}); !strings.Contains(got, `data-state="locked"`) {
 		t.Fatalf("none not stored:\n%s", got)
 	}
 	taken := ""
@@ -165,13 +179,19 @@ func TestVerbundCustomersPage(t *testing.T) {
 			break
 		}
 	}
-	if got := act("link", url.Values{"key": {taken}}); !strings.Contains(got, "schon einem anderen Kunden") {
+	got := act("link", url.Values{"party": {taken}})
+	if !strings.Contains(got, "schon einem anderen Kunden") {
 		t.Fatalf("taken key %s accepted:\n%s", taken, got)
 	}
-	if got := act("link", url.Values{"key": {own[1]}}); strings.Contains(got, `class="error"`) {
+	// The refused cell keeps the choice, not the stored link.
+	refused := regexp.MustCompile(`name="hub" value="` + regexp.QuoteMeta(hub) + `"><input type="hidden" name="conn" value="` + conn + `">\s*<select[^>]*>([\s\S]*?)</select>`).FindStringSubmatch(got)
+	if refused == nil || !strings.Contains(refused[1], `value="`+taken+`" selected`) {
+		t.Fatalf("refused choice %s not kept:\n%v\n%s", taken, refused, got)
+	}
+	if got := act("link", url.Values{"party": {own[1]}}); strings.Contains(got, `class="error"`) {
 		t.Fatalf("link failed:\n%s", got)
 	}
-	if got := act("link", url.Values{"key": {"nope"}}); !strings.Contains(got, `class="error"`) {
+	if got := act("link", url.Values{"party": {"nope"}}); !strings.Contains(got, `class="error"`) {
 		t.Fatalf("unknown key accepted:\n%s", got)
 	}
 }
