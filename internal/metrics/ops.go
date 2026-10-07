@@ -411,3 +411,8 @@ func ESPHomeInfo(data *sources.ESPHomeDataset) []InfoPart {
 func FediInfo(data *sources.FediverseDataset) []InfoPart {
 	return []InfoPart{part("fediverse.info", map[string]any{"followers": data.Account.Followers, "unread": len(data.Unread(""))})}
 }
+
+// LemmyInfo: "1 unread".
+func LemmyInfo(data *sources.LemmyDataset) []InfoPart {
+	return []InfoPart{part("lemmy.info", map[string]any{"unread": len(data.Replies)})}
+}

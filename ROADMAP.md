@@ -1159,6 +1159,7 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 **Schritt 14: ESPHome, Fediverse** (Mastodon-API: Mastodon, GoToSocial, Akkoma)
 - [x] ESPHome: Geräte, online, Firmware gegen Dashboard-Version; Fediverse: Folgende im Verlauf, Benachrichtigungen, Instanz-Version *(Kacheln „ESPHome“ und „Fediverse“; Regeln `esphome.offline`, `esphome.update`, `fediverse.mentions`; ungelesen nach dem Marker der Instanz; das Home-Assistant-Add-on ohne freigegebenen Port bleibt außen vor)*
 - [x] Quer: ESPHome-Gerät offline gegen Home-Assistant-Entität, `cross.release_unannounced` (Release auf GitHub oder im KDE Store ohne Beitrag mit Link) *(`cross.esphome_ha`: Knoten online, alle seine Entitäten in Home Assistant nicht verfügbar, oder umgekehrt; Entitäten über den Knotennamen. Ein Release gilt als angekündigt, wenn ein eigener Beitrag es verlinkt oder nennt)*
+- [x] Nachtrag: Lemmy (API v3, 0.19) *(Kachel „Lemmy“: ungelesene Antworten und Erwähnungen, beliebte Beiträge der abonnierten Communities, eigene Beiträge; Regel `lemmy.replies`; Anmeldung mit Benutzer und Passwort, Sitzung im Speicher, ohne Zwei-Faktor. Lemmy-Beiträge zählen in `cross.project_mentioned`, eigene in `cross.release_unannounced`)*
 
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 

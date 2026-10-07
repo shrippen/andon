@@ -54,7 +54,8 @@ type TwitchDataset struct {
 
 var TwitchData = source{key: "twitch.data", ttl: twitchTTL, service: enums.ServiceTwitch, fetch: fetchTwitch}
 
-// twitchTokens are the app tokens by client ID.
+// twitchTokens are the app tokens by credKey of "id:secret": a changed
+// secret asks anew.
 var (
 	twitchMu     sync.Mutex
 	twitchTokens = map[string]twitchToken{}
@@ -95,7 +96,7 @@ func fetchTwitch(ctx context.Context, sctx Ctx) (any, error) {
 	body, _, err := httpclient.GetJSON(ctx, strings.TrimRight(sctx.URL, "/")+"/helix/streams", httpclient.Options{
 		Params: params, Headers: map[string]string{"Client-Id": clientID, "Authorization": "Bearer " + token}})
 	if err != nil {
-		dropTwitchToken(clientID) // a revoked token answers 401; the next run asks anew
+		dropTwitchToken(secret) // a revoked token answers 401; the next run asks anew
 		return nil, err
 	}
 	for _, raw := range asList(asMap(body)["data"]) {
@@ -110,7 +111,7 @@ func fetchTwitch(ctx context.Context, sctx Ctx) (any, error) {
 // twitchAppToken is a valid app token, from the cache or a new one.
 func twitchAppToken(ctx context.Context, clientID, clientSecret string) (string, error) {
 	twitchMu.Lock()
-	cached, ok := twitchTokens[clientID]
+	cached, ok := twitchTokens[credKey(clientID+":"+clientSecret)]
 	twitchMu.Unlock()
 	if ok && time.Now().Before(cached.until) {
 		return cached.value, nil
@@ -131,14 +132,14 @@ func twitchAppToken(ctx context.Context, clientID, clientSecret string) (string,
 
 	until := time.Now().Add(time.Duration(answer.ExpiresIn)*time.Second - twitchTokenSlack)
 	twitchMu.Lock()
-	twitchTokens[clientID] = twitchToken{value: answer.AccessToken, until: until}
+	twitchTokens[credKey(clientID+":"+clientSecret)] = twitchToken{value: answer.AccessToken, until: until}
 	twitchMu.Unlock()
 	return answer.AccessToken, nil
 }
 
-func dropTwitchToken(clientID string) {
+func dropTwitchToken(secret string) {
 	twitchMu.Lock()
-	delete(twitchTokens, clientID)
+	delete(twitchTokens, credKey(secret))
 	twitchMu.Unlock()
 }
 

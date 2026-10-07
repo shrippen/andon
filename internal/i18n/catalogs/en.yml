@@ -69,6 +69,7 @@ action:
   open_in_twitch: 'Open on Twitch'
   open_in_esphome: 'Open in ESPHome'
   open_in_fediverse: 'Open on the instance'
+  open_in_lemmy: 'Open on Lemmy'
   open_in_firefly: 'Open in Firefly III'
   open_in_ghostfolio: 'Open in Ghostfolio'
   open_in_tibber: 'Open in Tibber (electricity)'
@@ -931,6 +932,9 @@ wtype:
   fediverse:
     name: 'Fediverse'
     desc: 'Followers of your Mastodon, GoToSocial or Akkoma account and unread notifications.'
+  lemmy:
+    name: 'Lemmy'
+    desc: 'Unread replies and mentions of your Lemmy account, hot posts of your communities.'
   depot:
     name: 'Depot'
     desc: 'Value and performance of the Ghostfolio depot, the days and positions in the dialog.'
@@ -1441,6 +1445,9 @@ conn:
   options_hint_fediverse: 'URL of your instance, e.g. https://social.example. Token = access token of an application with read access (Mastodon: Preferences → Development).'
   about_fediverse: 'Account: followers, notifications'
   what_fediverse: 'Mastodon, GoToSocial and Akkoma speak the same API: followers, notifications and posts of your account.'
+  options_hint_lemmy: 'URL of your Lemmy instance, e.g. https://feddit.org. User name and password (Lemmy has no API tokens; Andon keeps the session in memory). Accounts with two-factor login cannot be read.'
+  about_lemmy: 'Account: replies, communities'
+  what_lemmy: 'Lemmy is a link aggregator of the Fediverse: communities, posts with votes and comments.'
   options_hint_firefly: 'URL of Firefly III, e.g. https://firefly.example.lan. Token = personal access token (Options → Profile → OAuth). Andon reads asset accounts, the last 90 days of transactions and recurring transactions; the payment matching with Invoice Ninja works with it as with Sure.'
   about_firefly: 'Accounts, transactions, recurring'
   what_firefly: 'Firefly III is a self-hosted personal finance manager.'
@@ -1691,6 +1698,7 @@ service:
   twitch: 'Twitch'
   esphome: 'ESPHome'
   fediverse: 'Fediverse (Mastodon API)'
+  lemmy: 'Lemmy'
   firefly: 'Firefly III'
   ghostfolio: 'Ghostfolio'
   tibber: 'Tibber (electricity)'
@@ -2016,6 +2024,10 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  lemmy:
+    replies:
+      title: '{count} unread on Lemmy'
+      why: '{from}: {text}'
   esphome:
     offline:
       title: '{name} is offline'
@@ -2859,6 +2871,8 @@ hint:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
 info:
+  lemmy:
+    info: '{unread} unread'
   esphome:
     nodes: '{count} nodes · {offline} offline'
   fediverse:
@@ -3138,6 +3152,7 @@ rule_name:
   fediverse.mentions: 'Unread mentions'
   cross.esphome_ha: 'ESPHome against Home Assistant'
   cross.release_unannounced: 'Release without a post'
+  lemmy.replies: 'Unread Lemmy replies'
   seerr.stuck: 'Stuck media requests'
   cross.requests_arr: 'Requests against Sonarr/Radarr'
   routes.down: 'Route does not answer'
@@ -5175,6 +5190,31 @@ fediverse:
     from: 'From'
     text: 'Text'
     when: 'When'
+lemmy:
+  tile: 'unread'
+  unread: 'Unread'
+  posts: 'Posts'
+  comments: 'Comments'
+  version: 'Instance'
+  inbox: 'Unread replies and mentions'
+  hot: 'Hot in your communities'
+  own: 'Own posts'
+  none: 'Nothing new.'
+  points: '{n} points'
+  comments_n: '{n} comments'
+  login_failed: 'Lemmy refused the login; check user name and password (two-factor login is not supported).'
+  kind:
+    reply: 'replied'
+    mention: 'mentioned you'
+  col:
+    kind: 'What'
+    from: 'From'
+    text: 'Text'
+    community: 'Community'
+    when: 'When'
+    title: 'Title'
+    score: 'Points'
+    comments: 'Comments'
 reading:
   items: 'Posts'
   live: 'Live'
