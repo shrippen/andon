@@ -28,4 +28,8 @@ func TestBillingSummary(t *testing.T) {
 			t.Fatalf("billing page lacks %q:\n%s", want, page)
 		}
 	}
+	// The demo's customers exist in both: every draft can be created.
+	if strings.Contains(page, "Kein Invoice-Ninja-Kunde") || strings.Contains(page, "No Invoice Ninja client") || !strings.Contains(page, `action="/billing/draft"`) {
+		t.Fatalf("drafts without their Invoice Ninja client:\n%s", page)
+	}
 }
