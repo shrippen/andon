@@ -1,5 +1,5 @@
-Kante 1.20
+Kante 1.21
 source: https://github.com/shrippen/Kante
 branch: main
-commit: 3aef3b9c8143689db346ae990165f401fb3dffed
+commit: 19af3a31447d8d5aa9153c36d48cf7a6fdd9dacb
 files: base.css components.css shrippen.js kante-map.js kante-wall.js map/ fonts/OFL.txt fonts/*.woff2 (Latin subsets, see tools/sync-design.sh)

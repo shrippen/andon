@@ -1853,6 +1853,8 @@ details.help.is-right>.help-text{left:auto;right:-.5rem}
   .table.cards-sm :is(td[data-card="title"],tr:not(:has(>[data-card="title"]))>td:first-child){grid-row:1;grid-column:1;padding-left:0;color:var(--fg0);font-weight:600}
   .table.cards-sm td[data-card="key"]{grid-row:1;grid-column:2;padding-left:0;text-align:end;font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--fg0);white-space:nowrap}
   .table.cards-sm :is(td[data-card="title"],td[data-card="key"],tr:not(:has(>[data-card="title"]))>td:first-child)::before{content:none}
+  /* The key names its column above the value, small (a card shows one figure top right; without the name "7.315 €" could be anything) */
+  .table.cards-sm tr>td[data-card="key"][data-label]::before{content:attr(data-label);position:static;display:block;width:auto;margin-bottom:.1rem;font-family:var(--font-mono);font-size:.6rem;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);text-align:end}
   .table.cards-sm tr:not(:has(>[data-card="key"])):not(:has(>[data-card="title"]))>td:first-child,
   .table.cards-sm tr:not(:has(>[data-card="key"]))>td[data-card="title"]{grid-column:1/-1}
   .table.cards-sm .group-row{grid-template-columns:minmax(0,1fr);padding:.4rem .8rem;clip-path:none}
