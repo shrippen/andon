@@ -263,3 +263,11 @@
 {{with $v.Streams}}<ul class="plain-list">{{range .}}<li>{{.Title}} <small class="muted">{{with .User}}{{.}} · {{end}}{{t (print "service." .Service)}}</small></li>{{end}}</ul>{{end}}
 {{end}}
 {{end}}
+
+{{define "widgets/vikunja_tasks"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Lines}}
+<div class="tile-head"><b class="tile-value" data-live>{{$v.Open}}</b><span class="tile-note">{{t "tasks.tile"}}{{with $v.Overdue}} · <span class="late">{{t "tasks.tile_overdue" "n" .}}</span>{{end}}</span></div>
+<ul class="plain-list">{{range $v.Lines}}<li>{{if not .Due.IsZero}}<time{{if .Late}} class="late"{{end}}>{{day .Due}}</time> {{end}}{{.Title}} <small class="muted">{{.Project}}</small></li>{{end}}</ul>
+{{else if $v}}<p class="tile-note">{{t "tasks.none"}}</p>{{end}}{{end}}
+{{end}}

@@ -39,6 +39,7 @@ connections:
   - {id: navidrome, type: navidrome, name: Navidrome, url: "demo://navidrome", credentials: shared}
   - {id: audiobookshelf, type: audiobookshelf, name: Audiobookshelf, url: "demo://audiobookshelf", credentials: shared}
   - {id: seerr, type: seerr, name: Jellyseerr, url: "demo://seerr", credentials: shared}
+  - {id: vikunja, type: vikunja, name: Vikunja, url: "demo://vikunja", credentials: shared}
   - {id: linkwarden, type: linkwarden, name: Linkwarden, url: "demo://linkwarden", credentials: shared}
   - {id: pgback, type: pgbackweb, name: PG Back Web, url: "demo://pgbackweb", credentials: shared}
   - {id: hansei, type: hansei, name: Hansei, url: "demo://hansei", credentials: shared}
@@ -87,6 +88,7 @@ widgets:
   - {id: ci, type: ci_runs, title: CI, config: {}}
   - {id: power, type: power, title: Strom, config: {}}
   - {id: playing, type: now_playing, title: Jetzt läuft, config: {}}
+  - {id: todo, type: vikunja_tasks, title: Aufgaben, connection: vikunja, config: {}}
   - {id: routes, type: routes, title: Routen, config: {}}
   - {id: vulns, type: vulnerabilities, title: Sicherheitslücken, connection: nvd, config: {}}
   - {id: exposure, type: exposure, title: Öffentlich, connection: pangolin, config: {}}
@@ -105,5 +107,5 @@ boards:
       - {title: Betrieb, cols: 4, widgets: [kuma-link, pve-link, paperless-link, certs-link, scrutiny-link, immich-link, umami-link, freshrss-link, gitea-link, borg-link, hass-link, truenas-link, komodo-link, pangolin-link, authentik-link]}
       - {title: Netz, cols: 4, span: 2, color: blue, widgets: [pihole-link, nextcloud-link, sabnzbd-link, gluetun-link, domains-link, blacklist-link]}
       - {title: Info, area: side, widgets: [clock, note]}
-      - {title: Status, area: side, widgets: [monitors, uptime, hass-panel, authentik-apps, updates, backups, heartbeats, nas-load, ci, power, playing, downloads, store-downloads]}
+      - {title: Status, area: side, widgets: [monitors, uptime, hass-panel, authentik-apps, updates, backups, heartbeats, nas-load, ci, power, playing, todo, downloads, store-downloads]}
       - {title: Sicherheit, widgets: [exposure, vulns, routes]}

@@ -261,6 +261,8 @@ func linkView(_ LinkConfig, results map[string]any, ctx ViewCtx) map[string]any 
 		parts = metrics.RoutesInfo(data)
 	case *sources.PlayDataset:
 		parts = metrics.PlayInfo(data)
+	case *sources.VikunjaDataset:
+		parts = metrics.VikunjaInfo(data, time.Now())
 	case *sources.SeerrDataset:
 		parts = metrics.SeerrInfo(data)
 	case *sources.FritzDataset:

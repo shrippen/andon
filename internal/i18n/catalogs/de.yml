@@ -64,6 +64,7 @@ action:
   open_in_navidrome: 'In Navidrome öffnen'
   open_in_audiobookshelf: 'In Audiobookshelf öffnen'
   open_in_seerr: 'In Jellyseerr öffnen'
+  open_in_vikunja: 'In Vikunja öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
   close: Schließen
   open_in_jsonapi: API öffnen
@@ -907,6 +908,9 @@ wtype:
   now_playing:
     name: 'Jetzt läuft'
     desc: 'Was gerade läuft (Jellyfin/Plex, Tautulli, Navidrome, Audiobookshelf), dazu offene Medienanfragen.'
+  vikunja_tasks:
+    name: 'Aufgaben'
+    desc: 'Offene Aufgaben aus Vikunja nach Fälligkeit, überfällige zuerst.'
   technitium:
     name: 'Technitium DNS'
     desc: 'Anfragen und Blockierungen des letzten Tages.'
@@ -1395,6 +1399,9 @@ conn:
   options_hint_seerr: 'URL von Jellyseerr oder Overseerr, z. B. http://seerr.example.lan:5055. Token = API-Schlüssel (Einstellungen → Allgemein).'
   about_seerr: 'Medienanfragen: offen, hängend'
   what_seerr: 'Jellyseerr und Overseerr nehmen Wünsche für Filme und Serien an und reichen sie an Sonarr und Radarr weiter.'
+  options_hint_vikunja: 'URL von Vikunja, z. B. https://vikunja.example.lan. Token = API-Token mit Leserecht für Projekte und Aufgaben (Einstellungen → API-Tokens).'
+  about_vikunja: 'Aufgaben: fällig, überfällig'
+  what_vikunja: 'Vikunja ist eine Aufgabenverwaltung mit Projekten, Fälligkeiten und Labels.'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
   health: 'Zustand'
@@ -1633,6 +1640,7 @@ service:
   navidrome: 'Navidrome'
   audiobookshelf: 'Audiobookshelf'
   seerr: 'Jellyseerr/Overseerr'
+  vikunja: 'Vikunja'
   tibber: 'Tibber (Strom)'
   links: Kacheln
   jsonapi: Eigene API (JSON)
@@ -1956,6 +1964,13 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  vikunja:
+    overdue:
+      title: '{count} Aufgaben überfällig'
+      why: '{titles}'
+    due:
+      title: 'Fällig am {day}: {title}'
+      why: 'Projekt {project}.'
   seerr:
     stuck:
       title: '{count} Medienanfragen hängen'
@@ -2332,6 +2347,9 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
   cross:
+    task_unbooked:
+      title: '{task} erledigt, keine Zeit auf {project}'
+      why: 'Die Aufgabe wurde am {day} abgeschlossen; Kimai hat seit einigen Tagen davor nichts auf diesem Projekt. Zeit nachtragen?'
     requests_arr:
       title: '{count} Anfragen hängen, {app} meldet ein Problem'
       why: '{problem}. Das erklärt vermutlich, warum die Anfragen nicht ankommen.'
@@ -2760,6 +2778,8 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
+  vikunja:
+    open: '{count} offen · {overdue} überfällig'
   playing:
     now: '{count} laufen'
   seerr:
@@ -3016,6 +3036,9 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  vikunja.overdue: 'Überfällige Aufgaben'
+  vikunja.due: 'Fällige Aufgaben'
+  cross.task_unbooked: 'Aufgabe ohne gebuchte Zeit'
   seerr.stuck: 'Hängende Medienanfragen'
   cross.requests_arr: 'Anfragen gegen Sonarr/Radarr'
   routes.down: 'Route antwortet nicht'
@@ -5002,6 +5025,19 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image-Updates: {n}'
   alerts: 'Warnungen: {n}'
+tasks:
+  open: 'Offen'
+  overdue: 'Überfällig'
+  list: 'Offene Aufgaben'
+  per_project: 'Offen je Projekt'
+  tile: 'offen'
+  tile_overdue: '{n} überfällig'
+  none: 'Nichts offen.'
+  col:
+    title: 'Aufgabe'
+    project: 'Projekt'
+    due: 'Fällig'
+    priority: 'Priorität'
 playing:
   now: 'Läuft gerade'
   nothing: 'Gerade läuft nichts.'

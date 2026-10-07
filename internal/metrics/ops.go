@@ -104,6 +104,17 @@ func GiteaInfo(data *sources.GiteaDataset) []InfoPart {
 	return found
 }
 
+// VikunjaInfo: "4 open · 1 overdue".
+func VikunjaInfo(data *sources.VikunjaDataset, now time.Time) []InfoPart {
+	open, late := data.Open(), 0
+	for _, t := range open {
+		if !t.Due.IsZero() && t.Due.Before(Today(now)) {
+			late++
+		}
+	}
+	return []InfoPart{part("vikunja.open", map[string]any{"count": len(open), "overdue": late})}
+}
+
 // PlayInfo: "1 playing".
 func PlayInfo(data *sources.PlayDataset) []InfoPart {
 	return []InfoPart{part("playing.now", map[string]any{"count": len(data.Streams)})}
