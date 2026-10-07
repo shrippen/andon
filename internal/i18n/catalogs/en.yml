@@ -1172,6 +1172,12 @@ sys:
   swap: Swap
   load: Load (5 min)
 hints:
+  handled_title: 'Done or paused by you'
+  handled_acknowledged: 'done {when}'
+  handled_snoozed: 'paused {when}'
+  handled_none: 'Nothing put aside.'
+  reopen: 'Reopen'
+  done_lead: 'What you marked done or paused in the last {days} days, and what resolved by itself.'
   bulk_ack: 'All {n} done'
   bulk_snooze: 'Pause all for 7 days'
   filter: Filter

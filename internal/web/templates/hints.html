@@ -13,11 +13,23 @@
     {{if not .Embed}}
     <h1>{{t "hints.title"}}</h1>
     {{template "intro" dict "Page" "hints" "Chapter" "hints" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
-    <p class="muted">{{t "hints.lead"}}</p>
+    <p class="muted">{{if .DoneDays}}{{t "hints.done_lead" "days" .DoneDays}}{{else}}{{t "hints.lead"}}{{end}}</p>
     {{if not .DoneDays}}<p class="small">{{if .ByValue}}<a href="/hints">{{t "hints.sort_level"}}</a>{{else}}<a href="/hints?sort=value">{{t "hints.sort_value"}}</a>{{end}}
       · {{if .Filter.ByClient}}<a href="/hints">{{t "hints.group_rule"}}</a>{{else}}<a href="/hints?group=client">{{t "hints.group_client"}}</a>{{end}}
       · <a href="/hints?view=done">{{t "hints.done_link"}}</a></p>{{end}}
     {{if .DoneDays}}<p class="small"><a href="/hints">{{t "hints.open_link"}}</a></p>
+    <h2>{{t "hints.handled_title"}}</h2>
+    <ul class="hints">{{range .Handled}}
+      <li class="hint-card" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}">
+        <header><span class="tier">{{t (print "hints.handled_" .Handled) "when" (ago .HandledAt)}}</span><span>{{.SpaceName}} · {{t "hints.since" "when" (ago .FirstSeen)}}</span></header>
+        <span class="title">{{.Title}}</span>
+        <p class="hint-why">{{.Why}}</p>
+        <div class="actions"><form method="post" action="/hints/{{.ID}}/reopen">
+          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+          <button type="submit" class="btn btn-outline btn-sm">{{t "hints.reopen"}}</button>
+        </form></div>
+      </li>{{else}}<li class="hint-empty">{{t "hints.handled_none"}}</li>{{end}}
+    </ul>
     <h2>{{t "hints.done_title" "days" .DoneDays}}</h2>
     <ul class="hints">{{range .Done}}
       <li class="hint-card" data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}">
@@ -150,6 +162,7 @@
             {{if not $p.Embed}}
             <form method="post" action="/hints/{{.ID}}/ack" class="hint-ack" id="ack-{{.ID}}">
               <input type="hidden" name="{{$p.CSRFField}}" value="{{$p.Ctx.CSRF}}">
+              {{if $p.Next}}{{with index $p.Next .ID}}<input type="hidden" name="next" value="{{.}}">{{end}}{{end}}
               <input type="hidden" name="days" value="7">
               <button type="submit" class="btn btn-outline btn-sm">{{t "hints.ack"}}</button>
               <button type="submit" class="btn btn-outline btn-sm" formaction="/hints/{{.ID}}/snooze">{{t "hints.snooze"}}</button>

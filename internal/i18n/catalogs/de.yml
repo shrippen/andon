@@ -1172,6 +1172,12 @@ sys:
   swap: Swap
   load: Last (5 min)
 hints:
+  handled_title: 'Von dir erledigt oder pausiert'
+  handled_acknowledged: 'erledigt {when}'
+  handled_snoozed: 'pausiert {when}'
+  handled_none: 'Nichts zur Seite gelegt.'
+  reopen: 'Wieder öffnen'
+  done_lead: 'Was du in den letzten {days} Tagen erledigt oder pausiert hast, und was sich von selbst gelöst hat.'
   bulk_ack: 'Alle {n} erledigt'
   bulk_snooze: 'Alle 7 Tage pausieren'
   filter: Filter

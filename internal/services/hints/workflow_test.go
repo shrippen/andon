@@ -1,6 +1,7 @@
 package hints_test
 
 import (
+	"time"
 	"database/sql"
 	"path/filepath"
 	"testing"
@@ -103,5 +104,42 @@ func TestHintWorkflow(t *testing.T) {
 	}
 	if last := history[len(history)-1]; last.Kind != enums.EventOpened || last.Actor != "" {
 		t.Fatalf("first: %+v", last)
+	}
+}
+
+// TestHandledComesBack: a hint marked done or paused shows in the
+// handled list of the last days, and reopening brings it back.
+func TestHandledComesBack(t *testing.T) {
+	crypto.Init(crypto.Derive("test-master-key", nil))
+	d, err := db.Open(filepath.Join(t.TempDir(), "h.db"), dbtest.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { d.Close() })
+	alex := person(t, d, "a@x.de")
+	sid := ownSpace(alex)
+	if _, err := hints.Sync(d, sid, nil, nil, []string{"kimai.missing_day"}, []rules.Finding{finding("x"), finding("y")}); err != nil {
+		t.Fatal(err)
+	}
+	views, _ := hints.Active(d, alex, enums.SeverityInfo, nil, 0)
+	if len(views) != 2 {
+		t.Fatalf("views: %+v", views)
+	}
+	since := time.Now().Add(-time.Hour)
+	hints.Act(d, alex, views[0].ID, hints.ActionAck, 0, "")
+	hints.Act(d, alex, views[1].ID, hints.ActionSnooze, 7, "")
+
+	handled, err := hints.Handled(d, alex, since)
+	if err != nil || len(handled) != 2 || handled[0].Handled == "" || handled[0].HandledAt == nil {
+		t.Fatalf("handled: %+v %v", handled, err)
+	}
+	if err := hints.Act(d, alex, views[0].ID, hints.ActionReopen, 0, ""); err != nil {
+		t.Fatal(err)
+	}
+	if handled, _ := hints.Handled(d, alex, since); len(handled) != 1 {
+		t.Fatalf("after reopen: %+v", handled)
+	}
+	if open, _ := hints.Active(d, alex, enums.SeverityInfo, nil, 0); len(open) != 1 {
+		t.Fatalf("open after reopen: %+v", open)
 	}
 }

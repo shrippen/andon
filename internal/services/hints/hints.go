@@ -160,6 +160,10 @@ type View struct {
 	Currency     string
 	Maintenance  bool       // in a planned work window of its space: not pushed
 	ResolvedAt   *time.Time // set in the done list
+	// Handled is how the user put the hint aside (done or paused), with
+	// when; set in the done list (Handled).
+	Handled   enums.HintState
+	HandledAt *time.Time
 }
 
 func hidden(marks []*model.HintMark, now time.Time) bool {
@@ -234,6 +238,48 @@ func Resolved(d *sql.DB, who *access.Principal, since time.Time) ([]View, error)
 		}
 		return nil
 	})
+	return views, err
+}
+
+// Handled returns the open hints who marked done or paused since then,
+// newest first, so the done list can bring them back.
+func Handled(d *sql.DB, who *access.Principal, since time.Time) ([]View, error) {
+	var views []View
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		spaceIDs := make([]int64, 0, len(who.Spaces))
+		for id := range who.Spaces {
+			spaceIDs = append(spaceIDs, id)
+		}
+		found, err := data.HintsIn(tx, spaceIDs, who.UserID)
+		if err != nil {
+			return err
+		}
+		ids := make([]int64, len(found))
+		for i, h := range found {
+			ids[i] = h.ID
+		}
+		marks, err := data.Marks(tx, ids, who.UserID)
+		if err != nil {
+			return err
+		}
+		byHint := map[int64]*model.HintMark{}
+		for _, m := range marks {
+			byHint[m.HintID] = m
+		}
+		now := time.Now().UTC()
+		for _, h := range found {
+			m := byHint[h.ID]
+			if m == nil || m.At.Before(since) || !hidden([]*model.HintMark{m}, now) {
+				continue
+			}
+			v := viewOf(h, who)
+			at := m.At
+			v.Handled, v.HandledAt = m.State, &at
+			views = append(views, v)
+		}
+		return nil
+	})
+	sort.SliceStable(views, func(i, j int) bool { return views[i].HandledAt.After(*views[j].HandledAt) })
 	return views, err
 }
 
