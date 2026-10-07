@@ -421,7 +421,9 @@ type GitRepo struct {
 	PRs         int
 	CI          string // conclusion of the latest run on the default branch, "" = none
 	CIURL       string
-	CIStep      string // a failed run's first failed job and step: "test › go test"
+	CIStep      string    // a failed run's first failed job and step: "test › go test"
+	CIAt        time.Time // when the latest run started
+	CICommit    string    // the latest run's commit
 	Release     string
 	ReleasedAt  time.Time
 	PushedAt    time.Time // the last push to any branch
@@ -585,6 +587,7 @@ func loadRepo(ctx context.Context, api services.KeyedApi, name string) (GitRepo,
 		if list := asList(asMap(runs)["workflow_runs"]); len(list) > 0 {
 			run := asMap(list[0])
 			repo.CI, repo.CIURL = asStr(run["conclusion"]), asStr(run["html_url"])
+			repo.CIAt, repo.CICommit = parseTime(run["run_started_at"]), asStr(run["head_sha"])
 			if repo.CI == ciFailure {
 				repo.CIStep = failedStep(ctx, api, path+"/actions/runs/"+strconv.FormatInt(asInt64(run["id"]), 10)+"/jobs")
 			}

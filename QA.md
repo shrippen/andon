@@ -75,6 +75,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 6. `/hints?view=done`: Ist das Erledigte dort? Lässt es sich zurückholen?
 7. Zähler vergleichen: Navigation, Filterleiste, Kacheln „Lage“ und „Hinweise“.
 8. Am Handy: Menü (☰) öffnet die Navigation von links, aktuelle Seite markiert; Esc, Klick daneben und × schließen, Fokus zurück auf ☰.
+9. Querhinweise: Jeder nennt beide Seiten mit Zahl und Zeit, z. B. „Stack showreel bei rotem CI deployt“ (Deploy, Build-Nummer, Repo).
 
 **J-B3 Tastatur**
 1. Auf dem Board `/`, „kimai“, ↓, Esc; Text ohne Treffer.
@@ -89,7 +90,8 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 
 **J-B5 Weitere Seiten**
 1. `/timeline`, `/hosts` (Hinweise zählen als Probleme, Hosts ohne Monitor und Hinweis unter „N ohne Befund“ eingeklappt), `/hosts/<name>`, `/hosts/gibt-es-nicht`, `/reports/isp`.
-2. `/calendar.ics` mit Sitzung, ohne Sitzung, mit Lese-Token (`/me/security`): doppelte Termine?
+2. `/reports/isp`: Neuverbindungen der FRITZ!Box mit Zeit und Ausfall (gesehene mit „mindestens … min“), dieselben Zeilen in der CSV; `/timeline` nennt sie als Wechsel „WAN“.
+3. `/calendar.ics` mit Sitzung, ohne Sitzung, mit Lese-Token (`/me/security`): doppelte Termine?
 
 **J-B6 Sprache**
 1. Abgemeldet auf der Anmeldeseite im Fuß „EN“ wählen: die Seite ist englisch und bleibt es nach Neuladen. Anmelden: es gilt die Sprache des Profils.
@@ -127,6 +129,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 **J-C5 Fahrten und Orte**
 1. Board „Reisen“, Detaildialoge.
 2. `/travel/places`: Zuhause zuordnen; ein häufiges Ziel als „privat“ anlegen (Vorbelegung prüfen).
+3. In den ersten sieben Tagen des Monats: Hinweis „Laden für Geschäftsfahrten“ (Wallbox im persönlichen Bereich) nennt Ladevorgänge, kWh, Kosten und den geschäftlichen Anteil; passen die km zu den Fahrten des Vormonats?
 
 **J-C6 Vom Geld-Hinweis zur Lösung**
 1. `/hints?sort=value`, jeder Geld-Hinweis: führt die Aktion an die Stelle, wo man ihn behebt (in Andon, wenn Andon es kann)?

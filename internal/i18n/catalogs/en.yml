@@ -1458,7 +1458,7 @@ conn:
   options_hint_drone: 'URL of the Drone server, e.g. https://drone.example.org. Token = personal token (Drone → user settings). The active repos and the last 10 builds of their default branch are read; pull requests do not count.'
   about_drone: 'Builds per repo'
   what_drone: 'Drone is a CI server: it builds and tests repos on every push.'
-  options_hint_pbs: 'URL of the server with port, e.g. https://pbs.example.lan:8007. Token = API token as user@realm!tokenname:secret; the role DatastoreAudit on / is enough. Datastores, backup groups and verify runs are read.'
+  options_hint_pbs: 'URL of the server with port, e.g. https://pbs.example.lan:8007. Token = API token as user@realm!tokenname:secret; the role DatastoreAudit on / is enough. Datastores, backup groups and verify runs are read. Options: pools: {archiv: tank} names the TrueNAS pool of a datastore; Andon then compares the fill of both.'
   about_pbs: 'Backups of VMs, verify, usage'
   what_pbs: 'Proxmox Backup Server stores deduplicated backups of Proxmox VE guests in datastores.'
   options_hint_kopia: 'URL of the Kopia server (kopia server start), e.g. https://kopia.example.lan:51515. Token = user:password of the server UI (--server-username/--server-password).'
@@ -1482,10 +1482,10 @@ conn:
   options_hint_watchtower: 'URL of the Watchtower HTTP API, e.g. http://watchtower:8080 (start Watchtower with --http-api-metrics). Token = WATCHTOWER_HTTP_API_TOKEN.'
   about_watchtower: 'Automatic updates: checked, updated, failed'
   what_watchtower: 'Watchtower updates running containers automatically as soon as a new image appears.'
-  options_hint_peanut: 'URL of PeaNUT (a UI for NUT), e.g. http://peanut.example.lan:8080. Token empty or user:password (WEB_USERNAME/WEB_PASSWORD).'
+  options_hint_peanut: 'URL of PeaNUT (a UI for NUT), e.g. http://peanut.example.lan:8080. Token empty or user:password (WEB_USERNAME/WEB_PASSWORD). Options: hosts: [nas, pve, docker] names the hosts on the UPS (or per UPS: hosts: {nas-usv: [nas, pve]}); Andon then checks whether the runtime covers their shutdown.'
   about_peanut: 'UPS via NUT: charge, runtime, load'
   what_peanut: 'PeaNUT shows the UPS of a NUT server (Network UPS Tools) in the browser and offers an API.'
-  options_hint_apcupsd: 'Address of the apcupsd network server (NIS), e.g. apcupsd://pi.example.lan:3551. No token; in apcupsd.conf set NETSERVER on and NISIP to an address Andon reaches.'
+  options_hint_apcupsd: 'Address of the apcupsd network server (NIS), e.g. apcupsd://pi.example.lan:3551. No token; in apcupsd.conf set NETSERVER on and NISIP to an address Andon reaches. Options: hosts: [pi, router] names the hosts on the UPS; Andon then checks whether the runtime covers their shutdown.'
   about_apcupsd: 'APC UPS: charge, runtime, load'
   what_apcupsd: 'apcupsd watches APC UPSs and reports their state on the network.'
   options_hint_opendtu: 'URL of OpenDTU, e.g. http://opendtu.example.lan. Token empty, or user:password when read access is protected.'
@@ -1691,7 +1691,7 @@ conn:
   options_hint_domains: 'URL = any address of the domain. Options: domains: [example.org, example.de]. No token. .de publishes no expiry.'
   options_hint_blacklist: 'URL = mail server (its IPv4 addresses are checked). Options: ips: [1.2.3.4], zones: [zen.spamhaus.org]. No token.'
   options_hint_truenas: 'No options. URL with https:// (e.g. https://truenas.lan) – TrueNAS revokes an API key used over http; with a self-signed certificate set TLS to “insecure”. Token = API key (credentials → users → API keys) of a user with the “Readonly Admin” role. Uses the WebSocket API, older versions REST.'
-  options_hint_komodo: 'API key and secret from Komodo (read-only suffices). Options (YAML): stopped: [cloudbeaver, filezilla] for stacks stopped on purpose (grey, no hint).'
+  options_hint_komodo: 'API key and secret from Komodo (read-only suffices). Options (YAML): stopped: [cloudbeaver, filezilla] for stacks stopped on purpose (grey, no hint). ci_repos: {web: studio/website} names the repo of a stack for the CI check when Komodo does not know it and no CI repo is named like the stack.'
   options_hint_pangolin: 'Integration API URL including /v1 (e.g. https://api.pangolin.example.org/v1), not the Pangolin dashboard: enable the integration API in Pangolin''s config.yml (flags: enable_integration_api: true) and expose it on its own domain (port 3003). The organisation ID is in the Pangolin URL (…/<org>/settings). Token = integration API key with read access to sites and resources.'
   options_hint_authentik: No options. Token = API token of an account allowed to read events and users.
   options_hint_mail: 'URL imaps://mail.example.org:993/INBOX. Username and app password of your mailbox (not your regular login password). Options: days: 60, keywords: [statement], ignore_senders: [mycompany.com] – read-only; attachments are downloaded only when you hand an invoice to Paperless.'
@@ -2575,6 +2575,12 @@ hint:
     device_uninventoried:
       title: '{count} devices on the network without inventory'
       why: '{names}. No Snipe-IT asset bears these names.'
+    ups_load:
+      title: '{name} is too short for {hosts} hosts'
+      why: 'The UPS holds {minutes} min at {load} % load; shutting down {names} cleanly takes about {need} min. Lower the load, shut hosts down earlier or get a bigger battery.'
+    charge_business:
+      title: 'Charging for business trips {month}: {amount}'
+      why: '{sessions} charging sessions with {kwh} kWh cost {total}; after them the car drove {km} km on business ({share} % of the distance). Reimbursable for a company car, otherwise covered by the km rate.'
     charge_expensive:
       title: '{point} charges at an expensive price'
       why: '{kw} kW from the grid at {price} ct/kWh, the day''s average is {avg} ct. Charge later or switch to solar mode.'
@@ -2587,9 +2593,18 @@ hint:
     pbs_orphan:
       title: '{count} backup groups without a guest'
       why: 'Proxmox no longer has {ids}; their backups only take space. Delete them or keep them on purpose.'
+    pbs_pool_full:
+      title: 'Pool {pool} is full, datastore {store} is not'
+      why: 'The pool is {pool_pct} % used, PBS sees {store} at only {store_pct} %. When the pool runs full, backups fail before PBS warns. Clean up the pool or move the datastore.'
+    pbs_pool_gap:
+      title: 'Pool {pool} fuller than {store} thinks'
+      why: 'The pool is {pool_pct} % used, the datastore {store_pct} %. Other datasets share the space PBS counts as free.'
     release_red_ci:
       title: '{repo} {release} on red CI'
       why: 'The release came out on {day}; the last build before it (#{build}) had failed.'
+    ci_red_deployed:
+      title: 'Stack {stack} deployed on red CI'
+      why: 'Deployed on {day} ({by}); build #{build} of {repo} for this state had failed. Does the stack run as it should?'
     image_cve:
       title: '{id} hits {where}'
       why: 'CVSS {score}. {image} lies in the affected range, fixed in {fixed}. {public}{summary}'
@@ -3301,6 +3316,8 @@ rule_name:
   ups.replace_battery: 'Replace UPS battery'
   opendtu.offline: 'Inverter unreachable'
   cross.charge_expensive: 'Charging at an expensive price'
+  cross.ups_load: 'UPS runtime against hosts'
+  cross.charge_business: 'Charging cost of business trips'
   wud.updates: 'Container updates'
   watchtower.failed: 'Watchtower update failed'
   cross.update_unbacked: 'Update without backup'
@@ -3309,8 +3326,10 @@ rule_name:
   pbs.verify_failed: 'Verify failed'
   pbs.datastore_full: 'Datastore full'
   cross.pbs_orphan: 'Backups without a guest'
+  cross.pbs_pool: 'Datastore against TrueNAS pool'
   drone.failing: 'Build red'
   cross.release_red_ci: 'Release on red CI'
+  cross.ci_red_deployed: 'Deploy on red CI'
   cross.image_cve: 'Vulnerability in a running image'
   prometheus.alert: 'Prometheus alert'
   heartbeat.down: 'Heartbeat missing'
@@ -3556,6 +3575,8 @@ param:
   ignore_names: Exclude (name parts)
   per_core: 'Load per core'
   percent: 'Percent'
+  gap: 'Gap (percentage points)'
+  minutes_per_host: 'Minutes per host to shut down'
   seconds: 'Seconds'
   escalate_days: 'Critical after days (0 = never)'
   offline_days: 'Ignore when offline longer than (days)'
@@ -4303,6 +4324,7 @@ detail:
     lowest: 'Lowest'
     at_day: '{amount} on {day}'
     min: 'Minimum balance'
+    depot: 'Depot (no cash)'
     balance: 'Balance · 90 days back and ahead'
     change: 'Change in {n} d'
     moves: 'Largest moves'
@@ -4792,6 +4814,11 @@ detail:
     restore_task: 'Restore of {system} tested'
     restored: 'Restore tested each quarter'
     sizes: 'Size per client'
+    stores: 'Datastores'
+    store: 'Datastore'
+    store_used: 'used'
+    pool: 'TrueNAS pool'
+    pool_used: 'Pool used'
   disks:
     list: 'Disks'
     state_ok: 'healthy'
@@ -5213,12 +5240,19 @@ timeline:
   restore: 'Restore tested'
 isp:
   title: 'Internet against contract'
-  lead: 'Daily measurements of the last {days} days (Speedtest Tracker) and WAN outages (router). A day counts as too slow below {share} % of the booked download.'
+  lead: 'Daily measurements of the last {days} days (Speedtest Tracker), WAN outages and reconnects (router, FRITZ!Box). A day counts as too slow below {share} % of the booked download.'
   summary: 'Below contract on {below} of {days} days ({expect} Mbit/s booked), {outages} WAN outages.'
   below: 'too slow'
   outages: 'WAN outages'
   ongoing: 'ongoing'
-  none: 'No Speedtest Tracker connection with a booked speed (option expect_down).'
+  none: 'No Speedtest Tracker connection with a booked speed (option expect_down) and no FRITZ!Box.'
+  reconnects: 'Reconnects (FRITZ!Box)'
+  reconnect_summary: '{count} reconnects of the FRITZ!Box in {days} days.'
+  reconnect_summary_singular: '1 reconnect of the FRITZ!Box in {days} days.'
+  reconnect_at: 'Connected again'
+  downtime: 'Downtime'
+  down_at_least: 'at least {min} min'
+  down_short: 'short (between two checks)'
   csv: 'Download as CSV'
   legal: 'For a reduction under German § 57 TKG the Federal Network Agency requires measurements with its broadband measurement app on several days. This report shows whether that is worth it and documents the history.'
 cost:

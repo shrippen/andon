@@ -84,7 +84,7 @@ func init() {
 			return TravelConfig{KMRate: r.Float("km_rate"), Year: r.Pick("period") == "year", HideBar: r.Bool("hide_bar")}
 		},
 		Queries:       func(TravelConfig) []Query { return append(dataQuery(nil), kimaiPeer) },
-		DetailQueries: func(TravelConfig) []Query { return []Query{peer(peerSure, enums.ServiceSure)} },
+		DetailQueries: func(TravelConfig) []Query { return bankPeers },
 		PickQueries:   rideRoute, View: travelTile}.add()
 }
 

@@ -1116,12 +1116,12 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] Quelle Drone (`/api/user/repos?latest=true`, Builds je Repo); Kachel „CI-Läufe“ über Drone, GitHub und Gitea (`sources.CISource`) *(GitHub und Gitea nennen nur den letzten Lauf; ein Verlauf bräuchte je Repo eine weitere Abfrage)*
 - [x] Regel `drone.failing` (Standardzweig rot seit N Stunden; GitHub und Gitea haben schon `github.ci_failed`, `gitea.actions_failed`)
 - [x] Quer: `cross.release_red_ci` (Release auf GitHub, der letzte Build davor war rot, aus jedem CI-Anbieter)
-- [ ] Quer: `cross.ci_red_deployed` *(Komodo nennt Deploys nur im Popup, nicht im Datensatz; dafür muss die Komodo-Quelle die Deploys mitlesen)*
+- [x] Quer: `cross.ci_red_deployed` *(die Komodo-Quelle liest Deploys (Stack, Zeit, Commit, wer) und das Git-Repo je Stack in den Datensatz; Repo zum Stack: Option `ci_repos`, sonst Komodos Repo, sonst ein CI-Repo mit dem Namen des Stacks. Rot heißt: der Build des deployten Commits, ohne Commit der letzte Build davor, war fehlgeschlagen. Drone und GitHub nennen dafür den Commit; Gitea nennt nur rote Läufe ohne Zeit und zählt nicht mit)*
 
 **Schritt 6: Sicherung** — Proxmox Backup Server, Kopia, Duplicati, Backrest, UrBackup
 - [x] Quellen mit `BackupSource`; PBS zusätzlich Belegung je Datastore und Verify-Jobs; Regeln `pbs.verify_failed`, `pbs.datastore_full` *(UrBackup-Anmeldung und Duplicati-Token als Treiber; Fehlertext des Werkzeugs als `BackupJob.Note`)*
 - [x] Quer: VM ohne Sicherung *(statt eigener Regel zählt `proxmox.backup_old` frische PBS-Sicherungen mit)*; `cross.pbs_orphan` (PBS-Gruppen von Gästen, die Proxmox nicht mehr hat)
-- [ ] Datastore-Füllstand gegen TrueNAS-Pool *(PBS nennt den Pool nicht; Zuordnung nur über eine Option möglich)*
+- [x] Datastore-Füllstand gegen TrueNAS-Pool *(PBS nennt den Pool nicht: Option `pools: {archiv: tank}` der PBS-Verbindung. `cross.pbs_pool` warnt, wenn der Pool fast voll ist (85 %), der Datastore aber nicht, und meldet, wenn der Pool 15 Punkte voller ist, als der Datastore meint. Eine eigene PBS-Kachel gibt es nicht; der Dialog der Backup-Kachel zeigt die Datastores mit Belegung, Pool und dessen Belegung)*
 
 **Schritt 7: Updates** — What's Up Docker, Watchtower, Releases
 - [x] WUD (Container mit neuer Version), Watchtower (Metriken: geprüft, aktualisiert, fehlgeschlagen), Releases beobachteter Repos über GitHub; alles als Update-Hinweise in `updates` und `update_window` *(Gitea liest keine Releases)*
@@ -1132,12 +1132,12 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] USV: Ladung, Restlaufzeit, Last; Solar: Leistung und Ertrag; EVCC: Laden, Netz, 30-Tage-Werte *(eigene Kachel „Strom“ statt Beiträgen zu `energy`; apcupsd über sein NIS-Protokoll)*
 - [x] Regeln `ups.on_battery`, `ups.runtime_low`, `ups.replace_battery`, `opendtu.offline`
 - [x] Quer: Stromausfall *(USV auf Batterie ist die Ursache in `system.outage`, Einzelhinweise der Monitore und Alerts fallen weg)*, `cross.charge_expensive` (EVCC × Tibber)
-- [ ] Quer: `cross.ups_load` (Laufzeit gegen Zahl der Hosts), `cross.charge_business` (EVCC × Fahrten) *(brauchen Verlauf bzw. Fahrtdaten je Ladepunkt)*
+- [x] Quer: `cross.ups_load` (Laufzeit gegen Zahl der Hosts), `cross.charge_business` (EVCC × Fahrten) *(`cross.ups_load`: Option `hosts` der USV-Verbindung (Liste oder je USV); warnt, wenn die Laufzeit jetzt oder die kürzeste der letzten 7 Tage unter Hosts × 5 min liegt. Der Verlauf hält dafür je Tag die kürzeste Laufzeit (`Readings.Low`, Tabelle `samples`). `cross.charge_business`: die EVCC-Quelle liest die Ladevorgänge (`api/sessions`, 62 Tage); die Energie eines Vorgangs fährt der Wagen bis zum nächsten, seine Kosten teilen sich nach den Auto-km der Dawarich-Fahrten dazwischen; gemeldet in den ersten Tagen des Monats für den Vormonat. EVCC und Dawarich müssen im selben Bereich liegen; die Demo hat dafür Maras Wallbox im persönlichen Bereich)*
 
 **Schritt 9: Netz** — Traefik, Caddy, Nginx Proxy Manager, Headscale, Technitium, FRITZ!Box, UniFi
 - [x] Routen (Traefik, Caddy, NPM) mit Zertifikat und Ziel, Kachel „Routen“; Technitium in der DNS-Kachel; FRITZ!Box über TR-064: Verbindung, Neuverbindung, DSL-Rate; UniFi liest zusätzlich die Clients *(Headscale las die Tailscale-Verbindung schon)*
 - [x] Quer: Route auf gestoppten oder fehlenden Container *(in `routes.down`)*, `cross.route_undocumented`, `cross.line_vs_speed` (Sync-Rate gegen Speedtest und Gebuchtes), `cross.device_uninventoried` (Client von UniFi/OpenWrt ohne Snipe-IT-Asset)
-- [ ] FRITZ!Box-Abbrüche in den ISP-Bericht *(bräuchte den Verlauf der Neuverbindungen)*
+- [x] FRITZ!Box-Abbrüche in den ISP-Bericht *(der Datensatz nennt, seit wann die Leitung steht (Uptime, auf die Minute); jeder Prüflauf hält das als Zustand „WAN“ im Verlauf, „–“ solange sie unten ist. Ein neuer Beginn ist eine Neuverbindung; die Ausfallzeit steht nur fest, wenn ein Prüflauf die Leitung unten sah (mindestens ab dann), sonst „kurz“. `/reports/isp` listet sie mit Zeit und Ausfall, auch für Bereiche ohne Speedtest Tracker, die CSV ebenso. Die Demo trennt jede Nacht um 04:02 und bringt Neuverbindungen der letzten Wochen im Verlauf mit)*
 
 **Schritt 10: Medien** — Tautulli, Jellystat, Seerr, Audiobookshelf, Navidrome
 - [x] Kachel „Jetzt läuft“ über `sources.StreamSource` (Jellyfin/Plex, Tautulli, Navidrome, Audiobookshelf), Jellystat-Statistik (30 Tage), Seerr: offene und hängende Anfragen *(Jellystat und Audiobookshelf ohne echte Instanz gebaut, Felder tolerant gelesen)*
@@ -1150,7 +1150,7 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 **Schritt 12: Finanzen** — Firefly III, Ghostfolio
 - [x] Firefly III in der Domäne Zahlungen (wie Sure, `caps`) *(liefert Sures Form; `metrics.BankOf` gibt Regeln und Kennzahlen Sure oder Firefly; Sure-Regeln laufen als `firefly.*`)*; Ghostfolio: Kachel „Depot“ mit Verlauf und Positionen, `ghostfolio.drawdown`
 - [x] Quer: Zahlungsabgleich mit Invoice Ninja auch über Firefly III; `cross.depot_reserve` (fehlende Rücklage, die das Depot decken könnte)
-- [ ] Kacheln mit Sure als Partner (Liquidität, Kosten) lesen Firefly noch nicht; Depot nicht in der Liquidität *(Depot ist kein Bargeld)*
+- [x] Kacheln mit Sure als Partner (Liquidität, Kosten) lesen Firefly noch nicht; Depot nicht in der Liquidität *(Depot ist kein Bargeld)* *(Liquidität und Frei verfügbar (Kennzahl), Liquiditätsvorschau, Abos, Homelab-Kosten, Monatsabschluss und Reise-Dialog fragen Sure und Firefly III als Partner und lesen über `metrics.BankOf`, Sure zuerst. Das Depot bleibt aus der Liquidität; der Dialog der Liquiditätsvorschau nennt es als eigene Zeile „Depot (kein Bargeld)“)*
 
 **Schritt 13: Lesen** — Hacker News, Lobsters, Reddit, YouTube-Kanäle, Twitch
 - [x] Kachel „Lesen“ (Punkte, Kommentare, Alter), YouTube über die Kanal-Feeds, Twitch mit App-Zugang *(Verbindung `news`: Hacker News über die Algolia-API, Lobsters, `r/<sub>`, `youtube:<Kanal-ID>`, ohne Anmeldung; Verbindung `twitch` mit Client-ID und Secret, App-Token im Speicher; die Seiten wechseln sich in der Kachel ab, Kanäle live stehen oben)*

@@ -5,6 +5,7 @@ package analysis
 //
 //	datasets → metrics.Read → Values   → samples (one value per key and day)
 //	                          Counts   → samples, added up per day (monitor uptime)
+//	                          Lows     → samples, the day's lowest (UPS runtime)
 //	                          Versions → versions; a change → events ("update")
 //	                          States   → versions; a change → events ("change")
 //	samples (history.SeriesDays) + events (eventDays) → Datasets["history"]
@@ -40,6 +41,9 @@ func recordHistory(d *sql.DB, sc *scope, now time.Time) (*metrics.History, error
 		if err := data.AddSamples(tx, sc.spaceID, owner, day, read.Counts); err != nil {
 			return err
 		}
+		if err := data.LowSamples(tx, sc.spaceID, owner, day, read.Lows); err != nil {
+			return err
+		}
 		for past, values := range read.Past {
 			if err := data.PutSamples(tx, sc.spaceID, owner, past, values); err != nil {
 				return err
@@ -58,6 +62,16 @@ func recordHistory(d *sql.DB, sc *scope, now time.Time) (*metrics.History, error
 		return nil, err
 	}
 	return history.Load(d, sc.spaceID, owner, now)
+}
+
+// RecordPast stores what a run at a past time would have recorded from
+// these datasets of a space: the demo seed's history (the router's
+// reconnects of the last weeks).
+func RecordPast(d *sql.DB, spaceID int64, at time.Time, datasets map[string]any) error {
+	sc := newScope(spaceID, nil, nil)
+	sc.datasets = datasets
+	_, err := recordHistory(d, sc, at)
+	return err
 }
 
 // recordChanges stores the current values of subjects and an event for

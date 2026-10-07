@@ -30,6 +30,7 @@ type CIRun struct {
 	Event   string // push, tag, pull_request, cron …
 	Started time.Time
 	Seconds int
+	Commit  string // the built commit, "" unknown
 }
 
 // CIRepo is a repository's CI on its default branch.
@@ -63,9 +64,15 @@ func ciStatus(word string) CIStatus {
 func (d *GitHubDataset) CIRepos() []CIRepo {
 	var out []CIRepo
 	for _, r := range d.Repos {
-		if r.CI != "" {
-			out = append(out, CIRepo{Provider: enums.ServiceGitHub, Repo: r.Name, URL: r.CIURL, Status: ciStatus(r.CI), Step: r.CIStep})
+		if r.CI == "" {
+			continue
 		}
+		repo := CIRepo{Provider: enums.ServiceGitHub, Repo: r.Name, URL: r.CIURL, Status: ciStatus(r.CI), Step: r.CIStep}
+		// The latest run is history too, when GitHub said when it ran.
+		if !r.CIAt.IsZero() {
+			repo.Runs = []CIRun{{Status: repo.Status, Event: "push", Started: r.CIAt, Commit: r.CICommit}}
+		}
+		out = append(out, repo)
 	}
 	return out
 }

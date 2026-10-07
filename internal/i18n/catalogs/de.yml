@@ -1458,7 +1458,7 @@ conn:
   options_hint_drone: 'URL des Drone-Servers, z. B. https://drone.example.org. Token = persönliches Token (Drone → Benutzereinstellungen). Gelesen werden die aktiven Repos und ihre letzten 10 Builds des Standardzweigs; Pull Requests zählen nicht.'
   about_drone: 'Builds je Repo'
   what_drone: 'Drone ist ein CI-Server: Er baut und testet Repos bei jedem Push.'
-  options_hint_pbs: 'URL des Servers mit Port, z. B. https://pbs.example.lan:8007. Token = API-Token als benutzer@realm!tokenname:geheimnis; die Rolle DatastoreAudit auf / reicht. Gelesen werden Datastores, Sicherungsgruppen und Verify-Läufe.'
+  options_hint_pbs: 'URL des Servers mit Port, z. B. https://pbs.example.lan:8007. Token = API-Token als benutzer@realm!tokenname:geheimnis; die Rolle DatastoreAudit auf / reicht. Gelesen werden Datastores, Sicherungsgruppen und Verify-Läufe. Optionen: pools: {archiv: tank} nennt den TrueNAS-Pool eines Datastores; dann vergleicht Andon die Belegung beider.'
   about_pbs: 'Sicherungen je VM, Verify, Belegung'
   what_pbs: 'Proxmox Backup Server sichert VMs und Container aus Proxmox VE dedupliziert in Datastores.'
   options_hint_kopia: 'URL des Kopia-Servers (kopia server start), z. B. https://kopia.example.lan:51515. Token = benutzer:passwort der Server-Oberfläche (--server-username/--server-password).'
@@ -1482,10 +1482,10 @@ conn:
   options_hint_watchtower: 'URL der Watchtower-HTTP-API, z. B. http://watchtower:8080 (Watchtower mit --http-api-metrics starten). Token = WATCHTOWER_HTTP_API_TOKEN.'
   about_watchtower: 'Automatische Updates: geprüft, aktualisiert, fehlgeschlagen'
   what_watchtower: 'Watchtower aktualisiert laufende Container automatisch, sobald ein neues Image erscheint.'
-  options_hint_peanut: 'URL von PeaNUT (Oberfläche für NUT), z. B. http://peanut.example.lan:8080. Token leer oder benutzer:passwort (WEB_USERNAME/WEB_PASSWORD).'
+  options_hint_peanut: 'URL von PeaNUT (Oberfläche für NUT), z. B. http://peanut.example.lan:8080. Token leer oder benutzer:passwort (WEB_USERNAME/WEB_PASSWORD). Optionen: hosts: [nas, pve, docker] nennt die Hosts an der USV (oder je USV: hosts: {nas-usv: [nas, pve]}); dann prüft Andon, ob die Laufzeit für ihr Herunterfahren reicht.'
   about_peanut: 'USV über NUT: Ladung, Laufzeit, Last'
   what_peanut: 'PeaNUT zeigt die USV eines NUT-Servers (Network UPS Tools) im Browser und bietet eine API.'
-  options_hint_apcupsd: 'Adresse des apcupsd-Netzwerkservers (NIS), z. B. apcupsd://pi.example.lan:3551. Kein Token; in apcupsd.conf NETSERVER on und NISIP auf die Adresse setzen, die Andon erreicht.'
+  options_hint_apcupsd: 'Adresse des apcupsd-Netzwerkservers (NIS), z. B. apcupsd://pi.example.lan:3551. Kein Token; in apcupsd.conf NETSERVER on und NISIP auf die Adresse setzen, die Andon erreicht. Optionen: hosts: [pi, router] nennt die Hosts an der USV; dann prüft Andon, ob die Laufzeit für ihr Herunterfahren reicht.'
   about_apcupsd: 'APC-USV: Ladung, Laufzeit, Last'
   what_apcupsd: 'apcupsd überwacht APC-USVs und meldet ihren Zustand im Netz.'
   options_hint_opendtu: 'URL von OpenDTU, z. B. http://opendtu.example.lan. Token leer, oder benutzer:passwort, wenn der Lesezugriff geschützt ist.'
@@ -1691,7 +1691,7 @@ conn:
   options_hint_domains: 'URL = eine Adresse der Domain. Optionen: domains: [example.org, example.de]. Kein Token. .de nennt kein Ablaufdatum.'
   options_hint_blacklist: 'URL = Mailserver (dessen IPv4-Adressen werden geprüft). Optionen: ips: [1.2.3.4], zones: [zen.spamhaus.org]. Kein Token.'
   options_hint_truenas: 'Keine Optionen. URL mit https:// (z. B. https://truenas.lan) – TrueNAS widerruft einen API-Schlüssel, der über http benutzt wird; bei selbstsigniertem Zertifikat TLS auf „unsicher“ stellen. Token = API-Schlüssel (Anmeldedaten → Benutzer → API-Schlüssel) eines Nutzers mit der Rolle „Readonly Admin“. Nutzt die WebSocket-API, ältere Versionen REST.'
-  options_hint_komodo: 'API-Key und -Secret aus Komodo (nur lesend genügt). Optionen (YAML): stopped: [cloudbeaver, filezilla] für absichtlich gestoppte Stacks (grau, kein Hinweis).'
+  options_hint_komodo: 'API-Key und -Secret aus Komodo (nur lesend genügt). Optionen (YAML): stopped: [cloudbeaver, filezilla] für absichtlich gestoppte Stacks (grau, kein Hinweis). ci_repos: {web: studio/website} nennt das Repo eines Stacks für den CI-Abgleich, wenn Komodo es nicht kennt und kein CI-Repo wie der Stack heißt.'
   options_hint_pangolin: 'URL der Integration-API inkl. /v1 (z. B. https://api.pangolin.example.org/v1), nicht die Pangolin-Oberfläche: Die Integration-API in der Pangolin-config.yml einschalten (flags: enable_integration_api: true) und über eine eigene Domain erreichbar machen (Port 3003). Organisations-ID steht in der Pangolin-URL (…/<org>/settings). Token = Integration-API-Schlüssel mit Leserechten auf Sites und Ressourcen.'
   options_hint_authentik: Keine Optionen. Token = API-Token eines Kontos mit Leserechten auf Ereignisse und Benutzer.
   options_hint_mail: 'URL imaps://mail.example.org:993/INBOX. Benutzername und App-Passwort deines Postfachs (nicht das normale Login-Passwort). Optionen: days: 60, keywords: [abrechnung], ignore_senders: [meinefirma.de] – nur lesend; Anhänge werden nur geladen, wenn du eine Rechnung an Paperless übergibst.'
@@ -2575,6 +2575,12 @@ hint:
     device_uninventoried:
       title: '{count} Geräte im Netz ohne Inventar'
       why: '{names}. Kein Snipe-IT-Asset trägt diesen Namen.'
+    ups_load:
+      title: '{name} reicht nicht für {hosts} Hosts'
+      why: 'Die USV hält {minutes} min bei {load} % Last; {names} sauber herunterzufahren braucht etwa {need} min. Last senken, Hosts früher herunterfahren lassen oder den Akku vergrößern.'
+    charge_business:
+      title: 'Laden für Geschäftsfahrten {month}: {amount}'
+      why: '{sessions} Ladevorgänge mit {kwh} kWh kosteten {total}; danach fuhr der Wagen {km} km geschäftlich ({share} % der Strecke). Beim Firmenwagen erstattungsfähig, sonst mit der km-Pauschale abgegolten.'
     charge_expensive:
       title: '{point} lädt zum teuren Preis'
       why: '{kw} kW aus dem Netz bei {price} ct/kWh, der Tagesschnitt liegt bei {avg} ct. Später laden oder auf PV-Modus stellen.'
@@ -2587,9 +2593,18 @@ hint:
     pbs_orphan:
       title: '{count} Sicherungsgruppen ohne Gast'
       why: 'Proxmox kennt {ids} nicht mehr; ihre Sicherungen belegen nur noch Platz. Löschen oder bewusst aufheben.'
+    pbs_pool_full:
+      title: 'Pool {pool} ist voll, Datastore {store} nicht'
+      why: 'Der Pool ist zu {pool_pct} % belegt, PBS sieht {store} erst bei {store_pct} %. Läuft der Pool voll, scheitern Sicherungen, bevor PBS warnt. Auf dem Pool aufräumen oder den Datastore umziehen.'
+    pbs_pool_gap:
+      title: 'Pool {pool} voller, als {store} meint'
+      why: 'Der Pool ist zu {pool_pct} % belegt, der Datastore zu {store_pct} %. Andere Datasets teilen sich den Platz, den PBS für frei hält.'
     release_red_ci:
       title: '{repo} {release} bei rotem CI'
       why: 'Das Release erschien am {day}; der letzte Build davor (#{build}) war fehlgeschlagen.'
+    ci_red_deployed:
+      title: 'Stack {stack} bei rotem CI deployt'
+      why: 'Deploy am {day} ({by}); Build #{build} von {repo} für diesen Stand war fehlgeschlagen. Läuft der Stack, wie er soll?'
     image_cve:
       title: '{id} trifft {where}'
       why: 'CVSS {score}. {image} liegt im betroffenen Bereich, behoben in {fixed}. {public}{summary}'
@@ -3302,6 +3317,8 @@ rule_name:
   ups.replace_battery: 'USV-Akku tauschen'
   opendtu.offline: 'Wechselrichter nicht erreichbar'
   cross.charge_expensive: 'Laden zum teuren Preis'
+  cross.ups_load: 'USV-Laufzeit gegen Hosts'
+  cross.charge_business: 'Ladekosten für Geschäftsfahrten'
   wud.updates: 'Container-Updates'
   watchtower.failed: 'Watchtower-Update fehlgeschlagen'
   cross.update_unbacked: 'Update ohne Sicherung'
@@ -3310,8 +3327,10 @@ rule_name:
   pbs.verify_failed: 'Verify fehlgeschlagen'
   pbs.datastore_full: 'Datastore voll'
   cross.pbs_orphan: 'Sicherungen ohne Gast'
+  cross.pbs_pool: 'Datastore gegen TrueNAS-Pool'
   drone.failing: 'Build rot'
   cross.release_red_ci: 'Release bei rotem CI'
+  cross.ci_red_deployed: 'Deploy bei rotem CI'
   cross.image_cve: 'Sicherheitslücke in laufendem Image'
   prometheus.alert: 'Prometheus-Alert'
   heartbeat.down: 'Herzschlag fehlt'
@@ -3557,6 +3576,8 @@ param:
   ignore_names: Ausnehmen (Namensteile)
   per_core: 'Last je Kern'
   percent: 'Prozent'
+  gap: 'Abstand (Prozentpunkte)'
+  minutes_per_host: 'Minuten je Host zum Herunterfahren'
   seconds: 'Sekunden'
   escalate_days: 'Nach Tagen kritisch (0 = nie)'
   offline_days: 'Offline länger als (Tage) ignorieren'
@@ -4304,6 +4325,7 @@ detail:
     lowest: 'Tiefster Stand'
     at_day: '{amount} am {day}'
     min: 'Mindestbestand'
+    depot: 'Depot (kein Bargeld)'
     balance: 'Kontostand · 90 Tage zurück und voraus'
     change: 'Änderung in {n} T'
     moves: 'Größte Bewegungen'
@@ -4793,6 +4815,11 @@ detail:
     restore_task: 'Wiederherstellung von {system} getestet'
     restored: 'Wiederherstellung je Quartal getestet'
     sizes: 'Größe je Client'
+    stores: 'Datastores'
+    store: 'Datastore'
+    store_used: 'belegt'
+    pool: 'TrueNAS-Pool'
+    pool_used: 'Pool belegt'
   disks:
     list: 'Platten'
     state_ok: 'gesund'
@@ -5214,12 +5241,19 @@ timeline:
   restore: 'Wiederherstellung getestet'
 isp:
   title: 'Internet gegen Vertrag'
-  lead: 'Tägliche Messungen der letzten {days} Tage (Speedtest Tracker) und WAN-Ausfälle (Router). Ein Tag zählt als zu langsam unter {share} % des gebuchten Downloads.'
+  lead: 'Tägliche Messungen der letzten {days} Tage (Speedtest Tracker), WAN-Ausfälle und Neuverbindungen (Router, FRITZ!Box). Ein Tag zählt als zu langsam unter {share} % des gebuchten Downloads.'
   summary: 'An {below} von {days} Tagen unter Vertrag ({expect} Mbit/s gebucht), {outages} WAN-Ausfälle.'
   below: 'zu langsam'
   outages: 'WAN-Ausfälle'
   ongoing: 'andauernd'
-  none: 'Keine Speedtest-Tracker-Verbindung mit gebuchter Geschwindigkeit (Option expect_down).'
+  none: 'Keine Speedtest-Tracker-Verbindung mit gebuchter Geschwindigkeit (Option expect_down) und keine FRITZ!Box.'
+  reconnects: 'Neuverbindungen (FRITZ!Box)'
+  reconnect_summary: '{count} Neuverbindungen der FRITZ!Box in {days} Tagen.'
+  reconnect_summary_singular: '1 Neuverbindung der FRITZ!Box in {days} Tagen.'
+  reconnect_at: 'Wieder verbunden'
+  downtime: 'Ausfall'
+  down_at_least: 'mindestens {min} min'
+  down_short: 'kurz (zwischen zwei Prüfläufen)'
   csv: 'Als CSV herunterladen'
   legal: 'Für eine Minderung nach § 57 TKG verlangt die Bundesnetzagentur Messungen mit ihrer Breitbandmessung-App an mehreren Tagen. Dieser Bericht zeigt, ob sich das lohnt, und belegt den Verlauf.'
 cost:

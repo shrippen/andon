@@ -24,3 +24,22 @@ func TestAddSamplesCounts(t *testing.T) {
 		t.Fatalf("tallies: %+v", got)
 	}
 }
+
+// TestLowSamples: the day keeps its lowest value, e.g. a UPS's shortest
+// runtime over the day's runs.
+func TestLowSamples(t *testing.T) {
+	q := openTestDB(t)
+	sp := spaceID(t, q)
+	for _, v := range []float64{1260, 840, 1100} {
+		if err := data.LowSamples(q, sp, 0, "2026-09-27", map[string]float64{"ups.runtime.nas": v}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := data.SamplesSince(q, sp, 0, "2026-09-27")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got["ups.runtime.nas"][0].Value != 840 {
+		t.Fatalf("low: %+v", got)
+	}
+}

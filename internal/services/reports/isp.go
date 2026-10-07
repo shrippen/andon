@@ -1,7 +1,8 @@
 // Package reports builds printable evidence from recorded history.
 //
-//	ISP  one month of speed measurements and WAN outages per space, as a
-//	     table and as CSV for a complaint to the provider (§ 57 TKG)
+//	ISP  one month of speed measurements, WAN outages and the router's
+//	     reconnects per space, as a table and as CSV for a complaint to
+//	     the provider (§ 57 TKG)
 package reports
 
 import (
@@ -10,6 +11,8 @@ import (
 	"database/sql"
 	"encoding/csv"
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -37,10 +40,12 @@ const (
 type ISP struct {
 	Space                string
 	ExpectDown, ExpectUp float64
+	Speed                bool // from a Speedtest Tracker; else only the router's reconnects
 	metrics.SpeedReport
 }
 
-// ISPReports lists a report per usable Speedtest Tracker connection.
+// ISPReports lists a report per usable Speedtest Tracker connection, and
+// one per space that has only a FRITZ!Box (its reconnects).
 func ISPReports(ctx context.Context, d *sql.DB, who *access.Principal) ([]ISP, error) {
 	views, err := connections.Listing(d, who, enums.RightUse)
 	if err != nil {
@@ -48,7 +53,14 @@ func ISPReports(ctx context.Context, d *sql.DB, who *access.Principal) ([]ISP, e
 	}
 	now := time.Now().UTC()
 	var out []ISP
+	covered := map[int64]bool{} // spaces with a report
+	routers := map[int64]bool{} // spaces with a FRITZ!Box
 	for _, v := range views {
+		if v.Service == enums.ServiceFritzBox {
+			if conn, err := connections.ByID(d, v.ID); err == nil && conn != nil {
+				routers[conn.SpaceID] = true
+			}
+		}
 		if v.Service != enums.ServiceSpeedtest {
 			continue
 		}
@@ -69,14 +81,38 @@ func ISPReports(ctx context.Context, d *sql.DB, who *access.Principal) ([]ISP, e
 		if err != nil {
 			return nil, err
 		}
-		space := ""
-		if ref, ok := who.Spaces[conn.SpaceID]; ok {
-			space = ref.Name
-		}
-		out = append(out, ISP{Space: space, ExpectDown: st.ExpectDown, ExpectUp: st.ExpectUp,
+		covered[conn.SpaceID] = true
+		out = append(out, ISP{Space: spaceName(who, conn.SpaceID), ExpectDown: st.ExpectDown, ExpectUp: st.ExpectUp, Speed: true,
 			SpeedReport: metrics.SpeedDays(h, st.ExpectDown, ISPShare, now, ISPDays)})
 	}
+
+	for _, spaceID := range slices.Sorted(maps.Keys(routers)) {
+		if covered[spaceID] {
+			continue
+		}
+		h, err := history.Load(d, spaceID, 0, now)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, ISP{Space: spaceName(who, spaceID), SpeedReport: metrics.SpeedDays(h, 0, ISPShare, now, ISPDays)})
+	}
 	return out, nil
+}
+
+// spaceName is a space's name as the caller sees it.
+func spaceName(who *access.Principal, spaceID int64) string {
+	if ref, ok := who.Spaces[spaceID]; ok {
+		return ref.Name
+	}
+	return ""
+}
+
+// downText is a reconnect's downtime for the CSV.
+func downText(r metrics.Reconnect) string {
+	if !r.Seen {
+		return "kurz"
+	}
+	return fmt.Sprintf("Ausfall mind. %.0f min", r.Down.Minutes())
 }
 
 // num: 243.5 → "243,5".
@@ -105,6 +141,9 @@ func ISPCSV(reports []ISP) ([]byte, error) {
 				end = o.End.Format(time.DateTime)
 			}
 			rows = append(rows, []string{r.Space, o.Start.Format(time.DateTime), "WAN-Ausfall " + o.Gateway, "bis " + end, "", ""})
+		}
+		for _, c := range r.Reconnects {
+			rows = append(rows, []string{r.Space, c.At.Format(time.DateTime), "Neuverbindung", downText(c), "", ""})
 		}
 	}
 	if err := w.WriteAll(rows); err != nil {

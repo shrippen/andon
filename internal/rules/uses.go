@@ -51,6 +51,7 @@ func init() {
 	Uses("geo.unplaced", dawarichRides, kimaiRides, kimaiPlaces)
 	Uses("geo.plugin_missing", kimaiPlaces)
 	Uses("geo.car_private_share", dawarichRides, kimaiRides)
+	Uses("cross.charge_business", dawarichRides, kimaiRides)
 	Uses("mail.invoice_unrecorded", mailReceipts, ninjaReceipts)
 	Uses("paperless.invoice_unrecorded", paperlessDocs, ninjaReceipts)
 }

@@ -26,8 +26,9 @@ const fritzConnected = "Connected"
 type FritzDataset struct {
 	URL       string
 	Model     string
-	Status    string // Connected, Connecting, Disconnected …
-	Uptime    int    // seconds since the connection came up
+	Status    string    // Connected, Connecting, Disconnected …
+	Uptime    int       // seconds since the connection came up
+	Since     time.Time // when the connection came up, to the minute; zero while down
 	LastError string
 	// Sync and max rates of a DSL line in kbit/s; 0 on cable and fibre.
 	DownSync, UpSync, DownMax, UpMax int
@@ -58,6 +59,10 @@ func fetchFritz(ctx context.Context, sctx Ctx) (any, error) {
 		}
 	}
 	data := &FritzDataset{URL: sctx.URL, Status: conn["NewConnectionStatus"], Uptime: atoiOr(conn["NewUptime"]), LastError: conn["NewLastConnectionError"]}
+	if data.Connected() && data.Uptime > 0 {
+		// To the minute: runs a few seconds apart name the same connection.
+		data.Since = time.Now().UTC().Add(-time.Duration(data.Uptime) * time.Second).Round(time.Minute)
+	}
 	if dsl, err := box.Call(ctx, "wandslifconfig1", "WANDSLInterfaceConfig:1", "GetInfo"); err == nil {
 		data.DownSync, data.UpSync = atoiOr(dsl["NewDownstreamCurrRate"]), atoiOr(dsl["NewUpstreamCurrRate"])
 		data.DownMax, data.UpMax = atoiOr(dsl["NewDownstreamMaxRate"]), atoiOr(dsl["NewUpstreamMaxRate"])
@@ -73,10 +78,46 @@ func atoiOr(s string) int {
 	return n
 }
 
+// DemoFritz is the studio's box; its line came up at the world's daily
+// reconnect ("since": a time of today, else of yesterday).
 func DemoFritz(now time.Time) *FritzDataset {
 	data := &FritzDataset{}
 	demoworld.MustDecode("fritzbox", now, data)
+	if data.Since.IsZero() {
+		return data // a world without the daily reconnect
+	}
+	if data.Since.After(now) {
+		data.Since = data.Since.AddDate(0, 0, -1)
+	}
+	data.Uptime = int(now.Sub(data.Since).Seconds())
 	return data
+}
+
+// FritzSnapshot is the box as a run saw it at a time.
+type FritzSnapshot struct {
+	At   time.Time
+	Data *FritzDataset
+}
+
+// DemoFritzPast is what earlier runs saw, oldest first: the world's
+// reconnects of the last weeks, the line down where a run caught it, and
+// last today's connection. The demo seed records them, so the ISP report
+// has a history.
+func DemoFritzPast(now time.Time) []FritzSnapshot {
+	var p struct {
+		Reconnects []struct{ Down, Up time.Time }
+	}
+	demoworld.MustDecode("fritzbox", now, &p)
+	var out []FritzSnapshot
+	for _, r := range p.Reconnects {
+		if !r.Down.IsZero() {
+			out = append(out, FritzSnapshot{At: r.Down, Data: &FritzDataset{Status: "Disconnected"}})
+		}
+		up := r.Up.Round(time.Minute)
+		out = append(out, FritzSnapshot{At: up.Add(time.Minute), Data: &FritzDataset{Status: fritzConnected, Since: up}})
+	}
+	live := DemoFritz(now)
+	return append(out, FritzSnapshot{At: live.Since.Add(time.Minute), Data: live})
 }
 
 // ── Technitium DNS ──

@@ -74,12 +74,12 @@ func TestBackupRules(t *testing.T) {
 		t.Fatalf("snapshot: %+v", got)
 	}
 
-	// Komodo stacks immich, paperless-ngx, paperless-ai, gitea; apps jellyfin, syncthing; only
+	// Komodo stacks immich, paperless-ngx, paperless-ai, gitea, showreel; apps jellyfin, syncthing; only
 	// the snapshot dataset tank/photos and Borg clients nas/laptop exist.
 	env := todayEnv(nil)
 	env.Datasets = map[string]any{"komodo": sources.DemoKomodo(time.Now()), "truenas": nas, "borgbackup": sources.DemoBorg(time.Now())}
 	got := run(t, "backups.gap", nil, env)
-	if len(got) != 1 || got[0].Params["count"] != 6 {
+	if len(got) != 1 || got[0].Params["count"] != 7 {
 		t.Fatalf("gap: %+v", got)
 	}
 
@@ -115,11 +115,11 @@ func TestDiscoveryNoTile(t *testing.T) {
 	env := todayEnv(nil)
 	env.Datasets = map[string]any{
 		rules.LinksDataset: []rules.Link{{Title: "Immich", URL: "https://photos.example.org"}, {Title: "Git", URL: "https://git.lan"}},
-		"komodo":           sources.DemoKomodo(time.Now()), // immich, paperless-ngx, paperless-ai, gitea
+		"komodo":           sources.DemoKomodo(time.Now()), // immich, paperless-ngx, paperless-ai, gitea, showreel
 		"pangolin":         sources.DemoPangolin(),         // photos.example.org, vault.example.org
 	}
 	got := run(t, "discovery.no_tile", nil, env)
-	if len(got) != 2 || got[0].Params["names"] != "gitea, paperless-ai, paperless-ngx" || got[1].Params["names"] != "vault.example.org" {
+	if len(got) != 2 || got[0].Params["names"] != "gitea, paperless-ai, paperless-ngx, showreel" || got[1].Params["names"] != "vault.example.org" {
 		t.Fatalf("discovery: %+v", got)
 	}
 }

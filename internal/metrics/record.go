@@ -11,6 +11,7 @@ package metrics
 //	Scope{datasets, settings} ──Read──► Readings
 //	  Values   the day's value, the last run wins     ──► samples
 //	  Counts   added up over the day's runs           ──► samples
+//	  Lows     the lowest of the day's runs           ──► samples
 //	  Versions a change is an "update" event          ──► versions + events
 //	  States   a change is a "change" event           ──► versions + events
 
@@ -24,6 +25,7 @@ type Readings struct {
 	Values   map[string]float64
 	Past     map[string]map[string]float64 // day → key → value
 	Counts   map[string]float64
+	Lows     map[string]float64
 	Versions map[string]string
 	States   map[string]string
 }
@@ -42,6 +44,13 @@ func (r *Readings) SetOn(day, key string, v float64) {
 
 // Count adds v to the day's total of a series.
 func (r *Readings) Count(key string, v float64) { r.Counts[key] += v }
+
+// Low records a value of which the day keeps the lowest.
+func (r *Readings) Low(key string, v float64) {
+	if old, ok := r.Lows[key]; !ok || v < old {
+		r.Lows[key] = v
+	}
+}
 
 // Version records a subject's running version; "" is none.
 func (r *Readings) Version(subject, version string) {
@@ -70,6 +79,7 @@ const (
 	SubjectIP      = "IPv4"
 	SubjectVPN     = "VPN"
 	SubjectVPNExit = "VPN-Exit"
+	SubjectWAN     = "WAN" // the router's line: when it came up (reconnect.go)
 )
 
 // Scope is what recorders read: a scope's datasets (keyed by service) and
@@ -103,7 +113,7 @@ func RecordScope(f func(s Scope, now time.Time, r *Readings)) {
 
 // Read runs every recorder over a scope.
 func Read(s Scope, now time.Time) Readings {
-	r := Readings{Values: map[string]float64{}, Past: map[string]map[string]float64{}, Counts: map[string]float64{}, Versions: map[string]string{}, States: map[string]string{}}
+	r := Readings{Values: map[string]float64{}, Past: map[string]map[string]float64{}, Counts: map[string]float64{}, Lows: map[string]float64{}, Versions: map[string]string{}, States: map[string]string{}}
 	for _, rec := range recorders {
 		rec(s, now, &r)
 	}
@@ -128,7 +138,7 @@ func DeadlineKey(kind, period string, year int) string {
 // StateEvent turns a state change into a timeline event; a first
 // sighting is none. The subject loses its table prefix.
 func StateEvent(subject, old, now string, at time.Time) (Event, bool) {
-	if old == "" || old == now {
+	if old == "" || old == now || sameConnect(old, now) {
 		return Event{}, false
 	}
 	return Event{At: at, Kind: EventChange, Subject: subject[len(statePrefix):], Detail: old + " → " + now}, true

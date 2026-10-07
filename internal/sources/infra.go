@@ -180,7 +180,17 @@ type KStack struct {
 	Name, State  string
 	Updates      []string          // services with a newer image
 	Server, Repo string            // server name, linked repo "alex/docker-compose-regis"; "" if none
+	Branch       string            // the branch the stack is deployed from, "" none
 	Images       map[string]string // service → image it runs (IT docs, Phase 15)
+}
+
+// KDeployed is one deploy of a stack: when, which commit, by whom.
+type KDeployed struct {
+	Stack  string
+	At     time.Time
+	Commit string // "" when the stack has no repo
+	By     string
+	OK     bool
 }
 
 type KAlert struct {
@@ -192,7 +202,8 @@ type KomodoDataset struct {
 	URL                                          string
 	ServersTotal, ServersHealthy, ServersProblem int
 	Stacks                                       []KStack
-	Alerts                                       []KAlert // open
+	Alerts                                       []KAlert    // open
+	Deployed                                     []KDeployed // newest first, the latest page Komodo returns
 }
 
 var KomodoData = source{key: "komodo.data", ttl: opsTTL, service: enums.ServiceKomodo, fetch: fetchKomodo}
@@ -219,11 +230,12 @@ func fetchKomodo(ctx context.Context, sctx Ctx) (any, error) {
 		return nil, fetchError(err)
 	}
 	serverNames := komodoServers(ctx, api)
+	names := map[string]string{} // stack id → name
 	for _, raw := range asList(stacks) {
 		st := asMap(raw)
 		info := asMap(st["info"])
 		stack := KStack{Name: asStr(st["name"]), State: strings.ToLower(asStr(info["state"])),
-			Server: serverNames[asStr(info["server_id"])], Repo: asStr(info["repo"])}
+			Server: serverNames[asStr(info["server_id"])], Repo: asStr(info["repo"]), Branch: asStr(info["branch"])}
 		for _, svc := range asList(info["services"]) {
 			sv := asMap(svc)
 			if asBool(sv["update_available"]) {
@@ -237,7 +249,9 @@ func fetchKomodo(ctx context.Context, sctx Ctx) (any, error) {
 			}
 		}
 		data.Stacks = append(data.Stacks, stack)
+		names[asStr(st["id"])] = stack.Name
 	}
+	data.Deployed = komodoDeploys(ctx, api, names)
 
 	alerts, err := api.Read(ctx, "ListAlerts", map[string]any{"query": map[string]any{"resolved": false}})
 	if err == nil {
@@ -261,6 +275,31 @@ func komodoServers(ctx context.Context, api services.KomodoApi) map[string]strin
 	}
 	for _, raw := range asList(list) {
 		out[asStr(asMap(raw)["id"])] = asStr(asMap(raw)["name"])
+	}
+	return out
+}
+
+// komodoDeploy is the operation prefix of a deploy: DeployStack,
+// DeployStackService, …; pulls and restarts deploy nothing new.
+const komodoDeploy = "Deploy"
+
+// komodoDeploys are the stacks' deploys on Komodo's latest page of
+// updates (newest first). A failed read leaves them out: the dataset
+// stays useful without them.
+func komodoDeploys(ctx context.Context, api services.KomodoApi, names map[string]string) []KDeployed {
+	updates, err := api.Read(ctx, "ListUpdates", map[string]any{"query": map[string]any{"target.type": "Stack"}})
+	if err != nil {
+		return nil
+	}
+	var out []KDeployed
+	for _, raw := range asList(asMap(updates)["updates"]) {
+		u := asMap(raw)
+		name := names[asStr(asMap(u["target"])["id"])]
+		if name == "" || !strings.HasPrefix(asStr(u["operation"]), komodoDeploy) {
+			continue
+		}
+		out = append(out, KDeployed{Stack: name, At: time.UnixMilli(asInt64(u["start_ts"])).UTC(), Commit: asStr(u["commit_hash"]),
+			By: asStr(u["username"]), OK: asBool(u["success"])})
 	}
 	return out
 }

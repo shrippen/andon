@@ -119,3 +119,42 @@ func TestUnplacedAndTracksMissing(t *testing.T) {
 		t.Fatalf("got %+v", found)
 	}
 }
+
+// TestChargeBusiness: the car charged on 9 September (6 €), then drove
+// only to Acme and back; the charge of 11 September (4 €) went into the
+// private ride to the lake. Reported in the first days of October.
+func TestChargeBusiness(t *testing.T) {
+	env := travelEnv(nil)
+	session := func(day string, price float64) sources.EVCCSession {
+		at := day + "T20:00:00Z"
+		start, _ := time.Parse(time.RFC3339, at)
+		return sources.EVCCSession{Loadpoint: "Carport", Created: start, Finished: start.Add(3 * time.Hour), KWh: price / 0.3, Price: price}
+	}
+	env.Datasets["evcc"] = &sources.EVCCDataset{Sessions: []sources.EVCCSession{session("2026-09-11", 4), session("2026-09-09", 6)}}
+
+	found := run(t, "cross.charge_business", nil, env)
+	if len(found) != 1 || found[0].Params["sessions"] != 2 || found[0].Params["month"] != "09/2026" {
+		t.Fatalf("got %+v", found)
+	}
+	if amount := found[0].Params["amount"].(map[string]any); amount["$money"] != 6.0 {
+		t.Fatalf("amount %+v", amount)
+	}
+
+	env.Today = day("2026-10-20") // reported in the first days only
+	if found := run(t, "cross.charge_business", nil, env); len(found) != 0 {
+		t.Fatalf("late: %+v", found)
+	}
+}
+
+// TestChargeBusinessDemo: Mara's wallbox sessions and her rides of last
+// month give a business share.
+func TestChargeBusinessDemo(t *testing.T) {
+	now := time.Now().UTC()
+	env := todayEnv(nil)
+	env.Today = time.Date(now.Year(), now.Month(), 3, 0, 0, 0, 0, time.UTC)
+	env.Datasets = map[string]any{"dawarich": sources.DemoDawarich(now), "kimai": sources.DemoKimai(now), "evcc": sources.DemoEVCC(now)}
+	found := run(t, "cross.charge_business", nil, env)
+	if len(found) != 1 || found[0].Params["amount"].(map[string]any)["$money"].(float64) <= 0 {
+		t.Fatalf("demo %+v", found)
+	}
+}

@@ -203,15 +203,20 @@ func init() {
 		Decode: func(r Raw) CashflowConfig {
 			return CashflowConfig{Days: r.Int("days"), MinBalance: r.Float("min_balance"), Delay: r.Int("delay")}
 		},
-		Queries: func(CashflowConfig) []Query { return append(dataQuery(nil), surePeer) }, View: cashflowView}.add()
+		Queries:       func(CashflowConfig) []Query { return append(dataQuery(nil), bankPeers...) },
+		DetailQueries: func(CashflowConfig) []Query { return []Query{peer(peerDepot, enums.ServiceGhostfolio)} }, View: cashflowView}.add()
 }
+
+// peerDepot names the space's Ghostfolio depot: no cash, so the forecast
+// leaves it out; the dialog shows it as a line of its own.
+const peerDepot = "ghostfolio"
 
 // cashInputsOf gathers what the cashflow forecast reads.
 func cashInputsOf(cfg CashflowConfig, ninja *sources.NinjaDataset, results map[string]any, ctx ViewCtx) metrics.CashInputs {
 	in := metrics.CashInputs{Ninja: ninja, FixedMonthly: settingsFloat(settingsMap(ctx.Settings, "costs"), "fixed_monthly", 0),
 		VATInterval: metrics.TaxVATInterval(ctx.Settings), VATMethod: metrics.TaxVATMethod(ctx.Settings), Center: metrics.CenterOf(ctx.Settings), DelayDays: cfg.Delay}
 	in.Tax, in.HasTax = metrics.ParseTaxSettings(ctx.Settings)
-	if sure, ok := results[peerSure].(*sources.SureDataset); ok {
+	if sure, ok := bankOf(results); ok {
 		in.Sure = sure
 	}
 	return in
