@@ -73,6 +73,7 @@ func (d Deps) handleNotifyChannelCreate(w http.ResponseWriter, r *http.Request, 
 		d.notifyPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
+	d.flash(w, flashSaved)
 	http.Redirect(w, r, "/me/notify", http.StatusSeeOther)
 }
 
@@ -115,6 +116,7 @@ func (d Deps) handleNotifyPrefsSave(w http.ResponseWriter, r *http.Request, ctx 
 		d.notifyPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
+	d.flash(w, flashSaved)
 	http.Redirect(w, r, "/me/notify", http.StatusSeeOther)
 }
 
@@ -150,6 +152,7 @@ func (d Deps) handleDigestSave(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		d.notifyPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
+	d.flash(w, flashSaved)
 	http.Redirect(w, r, digestAnchor, http.StatusSeeOther)
 }
 

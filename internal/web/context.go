@@ -31,6 +31,9 @@ type Ctx struct {
 	Method enums.AuthMethod
 	Locale enums.Locale
 	Path   string // request path, marks the current menu entry
+
+	req   *http.Request // a refused form's values come back from it (forms.go)
+	flash string        // success message of the redirect before (forms.go)
 }
 
 // ErrLoginRequired is turned into a redirect to /login by the caller.
@@ -121,12 +124,13 @@ func (d Deps) resolve(r *http.Request) (Ctx, *auth.SessionInfo, error) {
 	}
 	locale := i18n.Pick(r.Header.Get("Accept-Language"))
 	if info == nil {
-		return Ctx{Locale: locale, Path: r.URL.Path}, nil, nil
+		return Ctx{Locale: locale, Path: r.URL.Path, req: r, flash: flashOf(r)}, nil, nil
 	}
 	if info.Principal != nil {
 		locale = info.Principal.Locale
 	}
-	return Ctx{Who: info.Principal, CSRF: info.CSRF, Method: info.Method, Locale: locale, Path: r.URL.Path}, info, nil
+	return Ctx{Who: info.Principal, CSRF: info.CSRF, Method: info.Method, Locale: locale, Path: r.URL.Path,
+		req: r, flash: flashOf(r)}, info, nil
 }
 
 // authedHandler is a handler for signed-in users; it gets the checked Ctx.

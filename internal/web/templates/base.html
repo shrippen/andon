@@ -71,7 +71,7 @@
      account behind two menus (native <details>, no script needed). */}}
 {{define "header"}}
 {{/* Short results (e.g. a connection test) slide in here as Kante .toast. */}}
-<div id="toast" class="toast-stack" aria-live="polite"></div>
+<div id="toast" class="toast-stack" aria-live="polite">{{with .Flash}}<div class="toast" data-kind="ok" role="status"><span>{{t .}}</span><span class="toast-life" data-style="--life:10s" aria-hidden="true"></span></div>{{end}}</div>
 <header class="app-nav">
   <a class="app-brand" href="/">{{template "mark"}}Andon</a>
   {{if .Who}}

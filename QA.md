@@ -48,12 +48,12 @@ Erwartet: ein Klick von der Verbindung zur Kachel auf dem Board.
 1. `/admin/users` → einladen; Link in einem frischen Browser öffnen.
 2. Zu kurzes Passwort (Name muss stehen bleiben), dann gültiges.
 3. Als neuer Benutzer `/`, `/connections`, `/admin/users`, `/spaces/1/connections`.
-4. Selbstregistrierung erlauben, doppelte und neue Adresse registrieren.
+4. Selbstregistrierung erlauben, doppelte und neue Adresse registrieren: gleiche Antwort (Anmeldung mit Hinweis), mit SMTP Mail „Du hast schon ein Konto“ an die vergebene.
 5. Die eigene Admin-Rolle herabsetzen wollen.
 
 **J-A6 Passwort zurücksetzen und TOTP**
-1. „Passwort vergessen?“ für bekannte und unbekannte Adresse (ohne SMTP: was sagt die Seite?).
-2. `/reset/invalid`; Admin → Benutzer → Reset-Link, Passwort setzen, Link erneut verwenden.
+1. „Passwort vergessen?“ für bekannte und unbekannte Adresse; ohne SMTP heißt der Link „Admin um neues Passwort bitten“ und die Seite erklärt den Reset-Link der Admins.
+2. `/reset/invalid`; Admin → Benutzer → Reset-Link, Passwort setzen (Erfolgsmeldung auf der Anmeldung), Link erneut verwenden.
 3. `/me/security` → TOTP einrichten: falscher Code, dann richtiger; Seite neu laden.
 4. Abmelden, mit TOTP anmelden: falscher Code, richtiger Code; fünfmal falsch, dann richtig (muss „zu viele Versuche“ sagen).
 
@@ -165,14 +165,14 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 2. Link im frischen Browser: Name und Passwort; Link erneut (404).
 
 **J-E2 Rollen und Status**
-1. Eigene Rolle ändern (abgelehnt, besser gar nicht angeboten).
+1. Eigene Rolle: steht als Text da, keine Auswahl.
 2. Jonas befördern, zurückstufen, deaktivieren (Sitzung endet), reaktivieren, Reset-Link, Benutzer löschen.
 3. `/admin/users/9999/reapply` (404, kein 500).
 4. Als Mara POST auf `/admin/users/*`, `/admin/invite`, `/admin/settings/general`: 403.
 
 **J-E3 Rechte als Betrachter (Jonas)**
 1. `/teams`, `/spaces/{id}/settings/page`, `/spaces/{id}/connections`, `/spaces/{id}/verbund`, `/boards/1…5`, `/connections/{id}/edit`, `/shares/board/1`.
-2. POST auf Einstellungen, Verbindungen, Geheimnisse, Webhook-Rotation: alles abgelehnt, mit Meldung in der UI-Sprache. Sichtbare Speichern-Knöpfe ohne Recht notieren.
+2. POST auf Einstellungen, Verbindungen, Geheimnisse, Webhook-Rotation: alles abgelehnt, mit Fehlerseite in der UI-Sprache (Grund, Zurück). Sichtbare Speichern-, Test- oder Bearbeiten-Knöpfe ohne Recht notieren; Instanz-Einstellungen (`/spaces/1/…`) als Nicht-Admin: 403.
 
 **J-E4 Teams**
 1. Jonas zum Editor (Zugriff öffnet sich), Team leer umbenennen, doppelter Name, neues Team, Jonas entfernen (Zugriff schließt sich), den letzten Owner entfernen.

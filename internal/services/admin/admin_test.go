@@ -209,7 +209,7 @@ func TestRegisterFollowsSwitch(t *testing.T) {
 	d := testkit.DB(t)
 	boss, _ := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
 
-	if _, err := admin.Register(d, "new@x.de", "New", strongPassword, enums.LocaleDE); !errors.Is(err, admin.ErrClosed) {
+	if err := admin.Register(d, "new@x.de", "New", strongPassword, enums.LocaleDE); !errors.Is(err, admin.ErrClosed) {
 		t.Fatalf("closed registration: %v", err)
 	}
 	if u, _ := users.ByEmail(d, "new@x.de"); u != nil {
@@ -219,9 +219,8 @@ func TestRegisterFollowsSwitch(t *testing.T) {
 	if err := system.Put(d, boss, system.RegistrationKey, map[string]any{"open": true}, ""); err != nil {
 		t.Fatal(err)
 	}
-	email, err := admin.Register(d, " new@x.de ", "New", strongPassword, enums.LocaleDE)
-	if err != nil || email != "new@x.de" {
-		t.Fatalf("open registration: %q, %v", email, err)
+	if err := admin.Register(d, " new@x.de ", "New", strongPassword, enums.LocaleDE); err != nil {
+		t.Fatalf("open registration: %v", err)
 	}
 
 	u, _ := users.ByEmail(d, "new@x.de")
@@ -232,10 +231,17 @@ func TestRegisterFollowsSwitch(t *testing.T) {
 		t.Fatal("registered user has no personal space")
 	}
 
-	if _, err := admin.Register(d, "new@x.de", "Again", strongPassword, enums.LocaleDE); !errors.Is(err, accounts.ErrEmailTaken) {
+	// A taken address answers as a new one and changes nothing.
+	if err := admin.Register(d, "new@x.de", "Again", strongPassword, enums.LocaleDE); err != nil {
 		t.Fatalf("duplicate email: %v", err)
 	}
-	if _, err := admin.Register(d, "short@x.de", "Short", "short", enums.LocaleDE); !errors.Is(err, accounts.ErrPasswordTooShort) {
+	if again, _ := users.ByEmail(d, "new@x.de"); again == nil || again.Name != "New" {
+		t.Fatalf("duplicate registration changed the account: %+v", again)
+	}
+	if err := admin.Register(d, "not-an-email", "Bad", strongPassword, enums.LocaleDE); !errors.Is(err, admin.ErrBadEmail) {
+		t.Fatalf("bad email: %v", err)
+	}
+	if err := admin.Register(d, "short@x.de", "Short", "short", enums.LocaleDE); !errors.Is(err, accounts.ErrPasswordTooShort) {
 		t.Fatalf("short password: %v", err)
 	}
 }

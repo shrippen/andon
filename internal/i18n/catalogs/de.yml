@@ -126,7 +126,7 @@ error_page:
     lead: Andon konnte das nicht ausführen. Geh zurück, deine Eingabe steht noch im Formular.
   '403':
     title: Kein Zugriff
-    lead: Dafür fehlt dir die Berechtigung, oder die Seite war zu lange offen. Geh zurück und lade die Seite neu.
+    lead: Andon hat das abgelehnt.
   '404':
     title: Nicht gefunden
     lead: Diese Seite gibt es nicht (mehr). Vielleicht wurde sie gelöscht oder die Adresse ist falsch.
@@ -145,7 +145,7 @@ error_page:
 error:
   invalid_setting: 'Ungültiger Wert.'
   csrf: Die Anfrage war abgelaufen. Bitte Seite neu laden.
-  denied: Keine Berechtigung.
+  denied: Dafür fehlt dir das Recht. Geben kann es, wer den Bereich verwaltet, ein Admin oder der Owner des Teams.
   not_found: Nicht gefunden.
   conflict: Inzwischen hat jemand anderes gespeichert. Bitte neu laden und erneut ändern.
 login:
@@ -155,6 +155,7 @@ login:
   with: Mit {provider} anmelden
   or: oder
   forgot: Passwort vergessen?
+  ask_admin: Admin um neues Passwort bitten
   back: Zurück zur Anmeldung
   failed: E-Mail oder Passwort falsch.
   throttled: Zu viele Versuche. Bitte in 15 Minuten erneut probieren.
@@ -187,6 +188,8 @@ reset:
   title: Passwort zurücksetzen
   request: Link senden
   sent: Falls ein Konto existiert, ist ein Link unterwegs.
+  ask_admin: Andon kann keine E-Mails senden. Bitte einen Admin um ein neues Passwort.
+  ask_admin_how: Ein Admin erstellt dir unter Einrichten → Benutzer → Weitere Aktionen einen Reset-Link (48 h gültig). Darüber setzt du dein neues Passwort selbst.
   new: Neues Passwort
   invalid: Link ungültig oder abgelaufen.
 password:
@@ -2071,6 +2074,11 @@ icon:
   invalid: Icon ungültig (SVG, PNG, WebP, JPEG, ICO bis 512 KB).
 mail:
   footer: Andon · {url}
+  exists:
+    subject: Du hast schon ein Konto
+    body: Jemand hat versucht, mit dieser Adresse ein Konto bei Andon anzulegen. Du hast schon eines; es bleibt unverändert. Warst du das nicht, ignoriere diese Mail.
+    reset: 'Passwort vergessen? Hier setzt du ein neues: {url}'
+    button: Anmelden
   invite:
     subject: Einladung zu Andon
     body: '{inviter} hat dich zu Andon eingeladen. Der Link ist 7 Tage gültig.'
@@ -3492,6 +3500,7 @@ param:
   bundle_from: 'Ab so vielen Rechnungen je Kunde bündeln (0 = nie)'
   exclude: 'Ausnehmen (Namen, * als Platzhalter, mit Komma)'
 settings:
+  read_only: Nur zum Ansehen. Ändern können die Owner des Teams.
   bad_network: 'Ein Netz ist keine gültige CIDR-Angabe, z. B. 192.168.10.0/24.'
   travel: Fahrten
   travel_base: Startpunkt beruflicher Fahrten
@@ -6459,3 +6468,11 @@ sports:
   diff: Diff.
   points: Pkt.
   live: läuft
+flash:
+  saved: Gespeichert.
+  done: Erledigt.
+  setup_done: Administrator angelegt. Melde dich jetzt an.
+  password_reset: Neues Passwort gesetzt. Melde dich damit an.
+  password_changed: Passwort geändert.
+  registered: Fertig. Melde dich mit deiner Adresse und deinem Passwort an. Gab es die Adresse schon, gilt dein bisheriges Passwort; eine Mail sagt dir, wie du es zurücksetzt.
+  registered_no_mail: Fertig. Melde dich mit deiner Adresse und deinem Passwort an. Gab es die Adresse schon, gilt dein bisheriges Passwort; ein Admin kann es zurücksetzen.

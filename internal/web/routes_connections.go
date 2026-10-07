@@ -52,11 +52,28 @@ func (d Deps) handleConnectionsList(w http.ResponseWriter, r *http.Request, ctx 
 // handleSpaceConnections lists one level's connections (settings frame).
 func (d Deps) handleSpaceConnections(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
-	if _, known := ctx.Who.Spaces[id]; err != nil || !known || spaces.OpenSettings(d.DB, ctx.Who, id) != nil {
+	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	d.connectionsPage(w, r, ctx, id)
+	if d.settingsOpen(w, r, ctx, id) {
+		d.connectionsPage(w, r, ctx, id)
+	}
+}
+
+// settingsOpen answers for a space's settings page who may not open it:
+// 404 for a space they do not reach, 403 with the reason for one they
+// only use (the instance for a user, a team for its viewer).
+func (d Deps) settingsOpen(w http.ResponseWriter, r *http.Request, ctx Ctx, id int64) bool {
+	if _, known := ctx.Who.Spaces[id]; !known {
+		http.NotFound(w, r)
+		return false
+	}
+	if err := spaces.OpenSettings(d.DB, ctx.Who, id); err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return false
+	}
+	return true
 }
 
 // connectionsPage lists the connections who sees, of one space or all (0).
@@ -229,7 +246,7 @@ func (d Deps) handleConnectionCreate(w http.ResponseWriter, r *http.Request, ctx
 	}
 	if err != nil {
 		_ = d.Page(w, ctx, "connection_form", http.StatusBadRequest, map[string]any{
-			"Spaces": access.EditableSpaces(ctx.Who), "Services": serviceOptions, "IsNew": true, "Error": err.Error(),
+			"Spaces": access.EditableSpaces(ctx.Who), "Services": serviceOptions, "IsNew": true, "Error": errKey(err),
 			"Service": service, "Space": spaceID, "Fixed": mode == enums.CredentialShared,
 		})
 		return

@@ -91,6 +91,7 @@ func (d Deps) handlePasswordChange(w http.ResponseWriter, r *http.Request, ctx C
 		d.securityPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
+	d.flash(w, flashPassword)
 	http.Redirect(w, r, "/me/security", http.StatusSeeOther)
 }
 

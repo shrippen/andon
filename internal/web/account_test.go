@@ -157,7 +157,7 @@ func TestAdminResetLinkAndGuards(t *testing.T) {
 	login(t, srv, client)
 
 	body := mustGet(t, srv, client, "/admin/users")
-	id := regexp.MustCompile(`/admin/users/(\d+)/role`).FindSubmatch(body)[1]
+	id := regexp.MustCompile(`id="user-(\d+)"`).FindSubmatch(body)[1]
 	csrf := csrfToken(t, srv, client)
 
 	resp, err := client.PostForm(srv.URL+"/admin/users/"+string(id)+"/reset", url.Values{"csrf": {csrf}})

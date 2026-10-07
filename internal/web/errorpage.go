@@ -48,10 +48,11 @@ func (d Deps) errorPages(next http.Handler) http.Handler {
 	})
 }
 
-// isPageLoad: a browser loads or posts a whole page (not htmx, not an
-// API client, not an asset).
+// isPageLoad: a browser loads or posts a whole page, also as a soft page
+// change (htmx boost); not an htmx swap, an API client or an asset.
 func isPageLoad(r *http.Request) bool {
-	if r.Header.Get("HX-Request") != "" || !strings.Contains(r.Header.Get("Accept"), "text/html") {
+	boosted := r.Header.Get("HX-Boosted") == "true"
+	if !boosted && (r.Header.Get("HX-Request") != "" || !strings.Contains(r.Header.Get("Accept"), "text/html")) {
 		return false
 	}
 	for _, p := range bareErrorPaths {
@@ -77,7 +78,11 @@ func (d Deps) errorPage(w http.ResponseWriter, r *http.Request, status int, text
 	if !ok {
 		kind = "other"
 	}
-	values := map[string]any{"Kind": kind, "Status": status, "Detail": errorDetail(text), "Back": refererPath(r)}
+	detail := errorDetail(text)
+	if detail == "" && status == http.StatusForbidden {
+		detail = deniedKey // "forbidden": a missing right
+	}
+	values := map[string]any{"Kind": kind, "Status": status, "Detail": detail, "Back": refererPath(r)}
 	if d.Page(w, ctx, "error_page", status, values) != nil {
 		http.Error(w, text, status)
 	}
