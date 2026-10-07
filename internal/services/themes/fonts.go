@@ -104,10 +104,10 @@ func editableByAdmin(q db.Queryer, who *access.Principal, themeID int64) (*model
 func AddFont(d *sql.DB, who *access.Principal, themeID int64, name string, data []byte) error {
 	name = filepath.Base(strings.TrimSpace(name))
 	if _, _, _, ok := parseFont(name); !ok {
-		return ErrTheme{"theme.font_name"}
+		return ErrTheme{Key: "theme.font_name"}
 	}
 	if len(data) == 0 || len(data) > maxFont {
-		return ErrTheme{"theme.font_size"}
+		return ErrTheme{Key: "theme.font_size"}
 	}
 
 	return db.WithTx(d, func(tx *sql.Tx) error {
@@ -117,7 +117,7 @@ func AddFont(d *sql.DB, who *access.Principal, themeID int64, name string, data 
 		}
 		if !slices.Contains(theme.Fonts, name) {
 			if len(theme.Fonts) >= maxFonts {
-				return ErrTheme{"theme.font_size"}
+				return ErrTheme{Key: "theme.font_size"}
 			}
 			theme.Fonts = append(theme.Fonts, name)
 		}

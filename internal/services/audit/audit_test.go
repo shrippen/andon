@@ -26,3 +26,16 @@ func TestEntriesAdminOnly(t *testing.T) {
 		t.Fatalf("entries: %+v %v", entries, err)
 	}
 }
+
+// TestChangesIgnoresUnsetZero: saving a section untouched logged
+// "– → false" for every unset switch; an unset value and its zero are
+// the same.
+func TestChangesIgnoresUnsetZero(t *testing.T) {
+	got := audit.Changes(map[string]any{"a": "x"}, map[string]any{"a": "x", "on": false, "name": "", "n": 0})
+	if len(got) != 0 {
+		t.Fatalf("changes: %v", got)
+	}
+	if got := audit.Changes(map[string]any{}, map[string]any{"on": true}); len(got) != 1 {
+		t.Fatalf("real change lost: %v", got)
+	}
+}

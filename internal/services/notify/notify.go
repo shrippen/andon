@@ -41,8 +41,11 @@ const maxDigestLines = 10
 
 var berlin = mustLoadBerlin()
 
+// Zone is where quiet hours and the digest time are read.
+const Zone = "Europe/Berlin"
+
 func mustLoadBerlin() *time.Location {
-	loc, err := time.LoadLocation("Europe/Berlin")
+	loc, err := time.LoadLocation(Zone)
 	if err != nil {
 		return time.UTC
 	}

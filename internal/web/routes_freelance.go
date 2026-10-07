@@ -16,6 +16,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/assist"
 	"andon/internal/services/billing"
+	"andon/internal/services/connections"
 	"andon/internal/services/mailfwd"
 	"andon/internal/services/verbund"
 
@@ -264,7 +265,15 @@ func (d Deps) billingPage(w http.ResponseWriter, r *http.Request, ctx Ctx, statu
 
 func (d Deps) handleBillingPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	query := r.URL.Query()
-	d.billingPage(w, r, ctx, http.StatusOK, map[string]any{"Created": query.Get("created"), "Forwarded": query.Get("forwarded")})
+	values := map[string]any{"Created": query.Get("created"), "Forwarded": query.Get("forwarded"), "Error": query.Get("error")}
+
+	// A mail action lacked a personal login: name its connection.
+	if id, err := strconv.ParseInt(query.Get("login"), 10, 64); err == nil {
+		if conn, err := connections.Get(d.DB, ctx.Who, id); err == nil {
+			values["Login"] = conn
+		}
+	}
+	d.billingPage(w, r, ctx, http.StatusOK, values)
 }
 
 func (d Deps) handleBillingDraft(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -301,7 +310,7 @@ func (d Deps) handleMailForward(w http.ResponseWriter, r *http.Request, ctx Ctx)
 	uid, _ := strconv.ParseUint(r.FormValue("uid"), 10, 32)
 	n, err := mailfwd.Forward(r.Context(), d.DB, ctx.Who, conn, uint32(uid), d.clientIP(r))
 	if err != nil {
-		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
+		mailFailed(w, r, err, uid)
 		return
 	}
 	http.Redirect(w, r, "/billing?forwarded="+strconv.Itoa(n), http.StatusSeeOther)
@@ -312,10 +321,22 @@ func (d Deps) handleMailRead(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	conn := formID(r, "conn")
 	uid, _ := strconv.ParseUint(r.FormValue("uid"), 10, 32)
 	if _, err := mailfwd.Read(r.Context(), d.DB, ctx.Who, conn, uint32(uid), d.clientIP(r)); err != nil {
-		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
+		mailFailed(w, r, err, uid)
 		return
 	}
 	http.Redirect(w, r, "/billing#mail-"+strconv.FormatUint(uid, 10), http.StatusSeeOther)
+}
+
+// mailFailed answers a failed mail action with a redirect, so reloading
+// the page does not send the mail again. A missing login names its
+// connection, e.g. /billing?login=7#mail-1.
+func mailFailed(w http.ResponseWriter, r *http.Request, err error, uid uint64) {
+	target := "/billing?error=" + url.QueryEscape(errKey(err))
+	var missing *mailfwd.LoginError
+	if errors.As(err, &missing) {
+		target = "/billing?login=" + strconv.FormatInt(missing.ConnID, 10)
+	}
+	http.Redirect(w, r, target+"#mail-"+strconv.FormatUint(uid, 10), http.StatusSeeOther)
 }
 
 // billingSum is the line above the billing page: what is waiting.

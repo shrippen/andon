@@ -39,7 +39,25 @@ var (
 	ErrNoPaperless = errors.New("mailfwd.no_paperless")
 	// ErrNoFiles means the mail carries no PDF or image.
 	ErrNoFiles = errors.New("mailfwd.no_files")
+	// ErrDemo means a demo connection, which takes no writes.
+	ErrDemo = errors.New("mailfwd.demo")
 )
+
+// LoginError names the connection whose personal login is missing, so
+// the page can link to where the caller enters it.
+type LoginError struct {
+	ConnID int64
+}
+
+func (e *LoginError) Error() string { return "credential.missing" }
+
+// loginOf turns a missing personal login on conn into a LoginError.
+func loginOf(conn *model.Connection, err error) error {
+	if errors.Is(err, svcdata.ErrMissingCredential) {
+		return &LoginError{ConnID: conn.ID}
+	}
+	return err
+}
 
 // Item is one invoice mail that can be forwarded.
 type Item struct {
@@ -161,11 +179,15 @@ func Forward(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID i
 		return 0, err
 	}
 
-	files, err := mailFiles(ctx, d, who, mail, uid)
-	if err != nil {
-		return 0, err
-	}
+	// The own Paperless login first: no mail is fetched without it.
 	token, err := svcdata.Secret(ctx, d, paperless, model.UserHolder(who.UserID))
+	if err != nil {
+		return 0, loginOf(paperless, err)
+	}
+	if sources.IsDemo(mail.URL) || sources.IsDemo(paperless.URL) {
+		return 0, ErrDemo
+	}
+	files, err := mailFiles(ctx, d, who, mail, uid)
 	if err != nil {
 		return 0, err
 	}
@@ -196,7 +218,7 @@ func Forward(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID i
 func mailFiles(ctx context.Context, d *sql.DB, who *access.Principal, mail *model.Connection, uid uint32) ([]sources.MailFile, error) {
 	sctx, err := svcdata.SourceCtx(d, mail, model.UserHolder(who.UserID))
 	if err != nil {
-		return nil, err
+		return nil, loginOf(mail, err)
 	}
 	files, err := sources.MailFiles(ctx, sctx, uid)
 	if err != nil {

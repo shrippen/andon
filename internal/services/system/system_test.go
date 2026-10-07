@@ -36,8 +36,9 @@ func TestSettingsAdminOnly(t *testing.T) {
 	}
 
 	bad := system.NetworkPolicy{Mode: system.NetAllowlist, Networks: []string{"not a cidr"}}
-	if err := system.SetNetwork(d, admin, bad, ""); err == nil {
-		t.Fatal("bad CIDR accepted")
+	// A known error with a text, not Go's "invalid CIDR address".
+	if err := system.SetNetwork(d, admin, bad, ""); !errors.Is(err, system.ErrBadNetwork) {
+		t.Fatalf("bad CIDR: %v", err)
 	}
 	good := system.NetworkPolicy{Mode: system.NetAllowlist, Networks: []string{"192.168.10.0/24"}, Hosts: []string{"nas.lan"}}
 	if err := system.SetNetwork(d, admin, good, ""); err != nil {

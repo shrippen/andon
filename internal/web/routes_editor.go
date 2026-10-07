@@ -524,7 +524,13 @@ func (d Deps) widgetFormPage(w http.ResponseWriter, ctx Ctx, status int, f widge
 		cols = nil
 	}
 	groups, _ := verbund.Visible(d.DB, ctx.Who)
+	// Delete names how many boards lose the tile.
+	uses := 0
+	if f.Widget != nil {
+		uses, _ = widgetlib.Uses(d.DB, f.Widget.ID)
+	}
 	_ = d.Page(w, ctx, "widget_dialog", status, map[string]any{
+		"Uses":    uses,
 		"Partial": true, "ThemeURL": "", "Verbuende": groups,
 		"Dest": dest, "Look": f.Look, "Topic": widgets.TopicOf(f.Kind.Key), "RowOptions": spanOptions(boards.MaxTileRows), "ColOptions": cols,
 		"Kind": f.Kind, "Title": f.Title, "Fields": widgets.FormValues(f.Kind.Key, f.Config),
@@ -728,7 +734,9 @@ func (d Deps) handleWidgetDelete(w http.ResponseWriter, r *http.Request, ctx Ctx
 		http.NotFound(w, r)
 		return
 	}
-	if err := widgetlib.Delete(d.DB, ctx.Who, id); err != nil {
+	// Each board keeps a revision with a copy of the tile: its undo
+	// brings the tile back.
+	if _, err := boards.DeleteWidget(d.DB, ctx.Who, id); err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}

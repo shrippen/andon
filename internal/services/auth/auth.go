@@ -10,6 +10,7 @@ import (
 	"andon/internal/repos/content"
 	"crypto/rand"
 	"database/sql"
+	"encoding/base32"
 	"encoding/hex"
 	"errors"
 	"log/slog"
@@ -550,6 +551,29 @@ func TOTPBegin(d *sql.DB, who *access.Principal) (secret, uri string, err error)
 		return users.Update(tx, user)
 	})
 	return secret, uri, err
+}
+
+// TOTPPending returns the secret and otpauth URI of a setup begun but
+// not confirmed yet, "" when there is none: a mistyped confirmation
+// shows the same secret again instead of making the user start over.
+func TOTPPending(d *sql.DB, who *access.Principal) (secret, uri string, err error) {
+	user, err := users.Get(d, who.UserID)
+	if err != nil || user == nil || user.TOTPEnabled || len(user.TOTPSecretEnc) == 0 {
+		return "", "", err
+	}
+	secret, err = crypto.Decrypt(user.TOTPSecretEnc, crypto.PurposeTOTP)
+	if err != nil {
+		return "", "", err
+	}
+	raw, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(secret)
+	if err != nil {
+		return "", "", err
+	}
+	key, err := totp.Generate(totp.GenerateOpts{Issuer: totpIssuer, AccountName: user.Email, Secret: raw})
+	if err != nil {
+		return "", "", err
+	}
+	return key.Secret(), key.URL(), nil
 }
 
 // TOTPConfirm activates TOTP after one valid code and returns fresh

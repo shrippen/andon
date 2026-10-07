@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -234,6 +235,14 @@ func (d Deps) themeEditor(w http.ResponseWriter, ctx Ctx, id int64, status int, 
 		rows := make([]tokenRow, 0, len(g.Names))
 		for _, name := range g.Names {
 			row := tokenRow{Name: name, Dark: dark[name], Light: light[name]}
+			if posted, ok := extra["Posted"].(url.Values); ok {
+				if v, sent := posted[modeDark+name]; sent {
+					row.Dark = v[0]
+				}
+				if v, sent := posted[modeLight+name]; sent {
+					row.Light = v[0]
+				}
+			}
 			row.DarkIsHex, row.LightIsHex = hexColor.MatchString(row.Dark), hexColor.MatchString(row.Light)
 			row.DarkColor, row.LightColor = hex6(row.Dark), hex6(row.Light)
 			rows = append(rows, row)
@@ -324,7 +333,13 @@ func (d Deps) handleThemeSave(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	issues, err := themes.Update(d.DB, ctx.Who, id, r.FormValue("name"),
 		formTokens(r, modeDark, baseDark), formTokens(r, modeLight, lightBase), css)
 	if err != nil {
-		d.themeEditor(w, ctx, id, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
+		// Show the page as sent, so nothing typed is lost.
+		values := map[string]any{"Error": errKey(err), "Posted": r.PostForm}
+		var bad themes.ErrTheme
+		if errors.As(err, &bad) {
+			values["ErrorToken"] = bad.Token
+		}
+		d.themeEditor(w, ctx, id, http.StatusBadRequest, values)
 		return
 	}
 	if len(issues) > 0 {

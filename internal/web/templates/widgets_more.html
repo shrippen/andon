@@ -2,9 +2,9 @@
 
 {{define "widgets/calendar"}}
 {{with $slot := index .Frag.Slots "events"}}{{template "widget-slot-state" $slot}}{{end}}
-{{with .Frag.View.Rows}}
+{{$zone := .Frag.View.Zone}}{{with .Frag.View.Rows}}
 <ul class="agenda">
-  {{range .}}<li{{if ne .Color "none"}} data-color="{{.Color}}"{{end}}><time datetime="{{.Day}}">{{day .Day}}</time> <span class="muted">{{if .Time}}{{.Time}}{{else}}{{t "calendar.all_day"}}{{end}}</span> {{.Title}}{{with .Location}} <small class="muted">· {{.}}</small>{{end}}</li>{{end}}
+  {{range .}}<li{{if ne .Color "none"}} data-color="{{.Color}}"{{end}}><time datetime="{{.Day}}">{{day .Day}}</time> <span class="muted">{{if .Time}}{{.Time}}{{tzMark $zone}}{{else}}{{t "calendar.all_day"}}{{end}}</span> {{.Title}}{{with .Location}} <small class="muted">· {{.}}</small>{{end}}</li>{{end}}
 </ul>
 {{end}}
 {{end}}
@@ -81,7 +81,7 @@
 {{with $v := .Frag.View}}{{if $v.Stop}}<p class="small muted">{{$v.Stop}}</p>{{end}}
 <div class="table-wrap"><table class="table departures">
   {{range $v.Rows}}<tr{{if .Canceled}} class="is-canceled"{{end}}>
-    <td class="num">{{.Time}}{{if gt .Delay 0}} <span class="late">+{{.Delay}}</span>{{end}}</td>
+    <td class="num">{{.Time}}{{tzMark $v.Zone}}{{if gt .Delay 0}} <span class="late">+{{.Delay}}</span>{{end}}</td>
     <td><b>{{.Line}}</b></td><td>{{.Place}}</td>
     <td>{{if .Canceled}}<span class="pill" data-state="failed">{{t "board.canceled"}}</span>{{else if .Platform}}{{t "board.platform" "platform" .Platform}}{{else}}{{.Status}}{{end}}</td>
   </tr>{{else}}<tr><td class="muted">{{t "widget.empty"}}</td></tr>{{end}}

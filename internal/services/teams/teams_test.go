@@ -158,3 +158,29 @@ func TestCandidatesOnlyForManagers(t *testing.T) {
 		t.Fatal("editor may manage")
 	}
 }
+
+// TestLastOwnerStays: a team keeps one owner; removing or demoting the
+// last one is refused, a second owner makes it possible.
+func TestLastOwnerStays(t *testing.T) {
+	d := openTestDB(t)
+	admin := addUser(t, d, "admin@x.de", enums.RoleAdmin)
+	other := addUser(t, d, "jo@x.de", enums.RoleUser)
+	adminWho, _ := access.Load(d, admin.ID)
+	teamID, _ := teams.Create(d, adminWho, "IT", "")
+	if err := teams.SetMember(d, adminWho, teamID, admin.ID, enums.TeamOwner, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := teams.RemoveMember(d, adminWho, teamID, admin.ID, ""); !errors.Is(err, teams.ErrLastOwner) {
+		t.Fatalf("remove last owner: %v", err)
+	}
+	if err := teams.SetMember(d, adminWho, teamID, admin.ID, enums.TeamViewer, ""); !errors.Is(err, teams.ErrLastOwner) {
+		t.Fatalf("demote last owner: %v", err)
+	}
+	if err := teams.SetMember(d, adminWho, teamID, other.ID, enums.TeamOwner, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := teams.RemoveMember(d, adminWho, teamID, admin.ID, ""); err != nil {
+		t.Fatalf("remove one of two owners: %v", err)
+	}
+}

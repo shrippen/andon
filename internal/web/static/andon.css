@@ -800,7 +800,9 @@ main > * + h2 { margin-top: 1.8rem; }
    button, no field stretched to the full width. */
 .row-actions .btn, .btn-row .btn { margin: 0; }
 form > .row-actions:last-child { margin-top: 1rem; }
-.row-actions > .select, .row-actions > .input { width: auto; }
+/* Sized by content, but never wider than the row: a select with long
+   options (name and e-mail of every user) would push the page sideways. */
+.row-actions > .select, .row-actions > .input { width: auto; max-width: 100%; }
 /* ⋯ holds a row's further actions; it opens in the cell, since the
    scrolling table wrapper would clip a floating menu. */
 /* One option per line: a check in a form never shares a line with the
@@ -1037,7 +1039,7 @@ html:has(#detail[open] > .gallery) { overflow: hidden; }
 .kl-new label { margin: .3rem 0 .15rem; }
 .kl-new select, .kl-new input { margin: 0; }
 .kl-range { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
-.kl-actions { display: flex; gap: .5rem; margin-top: .4rem; }
+.kl-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .4rem; }
 .kl-actions button { margin: 0; }
 .kl .btn { margin: 0; }
 .kl-run { display: flex; align-items: center; gap: .4rem; }
@@ -1047,7 +1049,7 @@ html:has(#detail[open] > .gallery) { overflow: hidden; }
 .kl-pin[data-pinned] svg { fill: currentColor; }
 .kl-search { margin: 0 0 .3rem; }
 .kl-daylist .kl-pair { margin-right: auto; }
-.kl-new .kl-actions input { flex: 1; }
+.kl-new .kl-actions input { flex: 1 1 11rem; min-width: 0; }
 .kl-del { margin-left: auto; }
 
 /* ── catalog tiles: weekday columns, horizontal bars, target lines ── */

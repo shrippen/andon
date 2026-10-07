@@ -118,6 +118,30 @@ action:
   open_in_glances: 'Open in Glances'
   open_in_docker: 'Open Docker'
   more: 'More actions'
+error_page:
+  back: Back
+  home: Go to the start page
+  '400':
+    title: Request not carried out
+    lead: Andon couldn't do that. Go back, your input is still in the form.
+  '403':
+    title: No access
+    lead: You lack the right for this, or the page was open too long. Go back and reload the page.
+  '404':
+    title: Not found
+    lead: This page doesn't exist (any more). It may have been deleted, or the address is wrong.
+  '405':
+    title: Address can't be opened directly
+    lead: This address only takes a submitted form, e.g. after a reload. Open the page from the navigation.
+  '409':
+    title: Changed meanwhile
+    lead: Somebody saved this while you were editing it. Go back, your input is still in the form. Copy it, reload the page and enter it into the current version.
+  '500':
+    title: Error in Andon
+    lead: That didn't work. The error is in the server log. Try again later.
+  other:
+    title: Error
+    lead: That didn't work.
 error:
   invalid_setting: 'Invalid value.'
   csrf: The request expired. Please reload the page.
@@ -180,6 +204,7 @@ oidc:
   sub_taken: This authentik account is already linked to another user.
   unreachable: Identity provider unreachable.
 board:
+  name_taken: "Another board in this space already has this name."
   delete_hint: 'The board is gone for everybody. Its tiles stay in the library.'
   kiosk: Wall display
   kiosk_hint: Fullscreen, next board every minute, dimmed 22–7. Adjust every and dim in the address.
@@ -1124,7 +1149,9 @@ widget:
   bad_window: 'Maintenance window not readable: e.g. 22:00-06:00 or 22-6.'
   bad_timezone: 'Unknown time zone: e.g. Europe/Berlin.'
   field_required: Please fill in all required fields.
-  delete_hint: 'The tile disappears from every board it is on.'
+  delete_hint: 'The tile disappears from all {count} boards it is on. Undo on a board brings it back there.'
+  delete_hint_unused: 'The tile is on no board and disappears from the library.'
+  delete_hint_singular: 'The tile disappears from the board it is on. Undo on the board brings it back.'
   pending: Loading with the next check …
   loading: loading …
   error: Error
@@ -1172,6 +1199,12 @@ sys:
   swap: Swap
   load: Load (5 min)
 hints:
+  handled_title: 'Done or paused by you'
+  handled_acknowledged: 'done {when}'
+  handled_snoozed: 'paused {when}'
+  handled_none: 'Nothing put aside.'
+  reopen: 'Reopen'
+  done_lead: 'What you marked done or paused in the last {days} days, and what resolved by itself.'
   bulk_ack: 'All {n} done'
   bulk_snooze: 'Pause all for 7 days'
   filter: Filter
@@ -1821,7 +1854,8 @@ security:
   new: New password
   totp: Second factor (TOTP)
   enable: Set up
-  scan: Scan the code with your authenticator app and enter the first code.
+  scan: Scan the QR code with your authenticator app (or type the secret) and enter the first code.
+  qr_alt: QR code for the authenticator app
   confirm: Confirm
   active: active
   disable: Disable
@@ -1887,7 +1921,10 @@ admin:
   login: Last login
   invite: Invite
   send_invite: Send invitation
-  invite_sent: Invitation created. Link (also mailed if SMTP is set up)
+  invite_sent: 'Invite created. Copy the link now, it is not shown again.'
+  invite_mail_sent: 'It went to the address by email.'
+  invite_mail_failed: 'The email did not go out (SMTP does not answer, details in the log under Admin → Operations): please pass the link on yourself.'
+  invite_mail_off: 'Without SMTP no email goes out: please pass the link on yourself.'
   reset: Reset link
   reset_link: 'Reset link (valid 48 h):'
   activate: Activate
@@ -1949,6 +1986,7 @@ teams:
   none: No teams.
   new: Name of the new team
 team:
+  last_owner: 'The team needs an owner: make someone else owner first.'
   name_missing: Name missing.
   name_taken: Name already taken.
   not_found: Team not found.
@@ -1980,7 +2018,7 @@ theme:
   none: – none –
   default: Default
   not_usable: This theme is not available to you.
-  bad_value: Invalid token value.
+  bad_value: "Invalid value for {token}: colours, lengths, numbers and font names are allowed, no url(), @import or backslash."
   builtin: Shipped themes are read-only.
   css_invalid: CSS invalid or too long.
   zip_invalid: ZIP file invalid.
@@ -3429,6 +3467,7 @@ param:
   bundle_from: 'Bundle per client from this many invoices (0 = never)'
   exclude: 'Exclude (names, * as wildcard, comma-separated)'
 settings:
+  bad_network: 'A network is no valid CIDR, e.g. 192.168.10.0/24.'
   travel: Travel
   travel_base: Where business travel starts
   travel_base_home: Home is the place of business (no commute)
@@ -3751,6 +3790,8 @@ billing:
 mailfwd:
   no_paperless: The mailbox's space has no Paperless connection.
   no_files: The mail has no PDF or image file.
+  no_login: 'Your own login for {name} is missing.'
+  demo: 'Demo connections take no changes.'
 palette:
   open: Search
   title: Command palette
@@ -3775,6 +3816,7 @@ keys:
   shift_click: Shift + right click
   context: Browser menu instead of the tile menu
 detail:
+  zone_note: 'Times in {zone}'
   csv: 'CSV'
   api:
     answer: 'Answer'
@@ -5522,6 +5564,9 @@ sites:
   bad: 'A new place needs a name and a position.'
   unknown_ride: 'This ride is gone.'
   bad_class: 'Unknown class of a ride.'
+  demo: 'Demo connections take no changes.'
+  dawarich_failed: 'Dawarich could not be reached or refused the place.'
+  kimai_failed: 'Kimai could not be reached or refused the place.'
 places:
   unknown: 'Unknown place'
   none: 'No places today yet.'
@@ -5659,6 +5704,8 @@ audit_action:
     done: 'Password reset'
     requested: 'Password reset requested'
   settings:
+    map: 'Map service changed'
+    server: 'Server settings changed'
     dawarich_shared: 'Dawarich sharing changed'
     iframe: 'Iframe origins changed'
     network: 'Network settings changed'

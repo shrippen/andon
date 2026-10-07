@@ -1,6 +1,8 @@
 package web
 
 import (
+	"andon/internal/services/oidc"
+	"andon/internal/services/util"
 	"cmp"
 	"database/sql"
 	"errors"
@@ -9,6 +11,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 
 	"andon/internal/enums"
 	"andon/internal/model"
@@ -29,6 +32,7 @@ func (d Deps) RegisterAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/users/{id}/reset", d.authed(d.handleAdminUserReset))
 	mux.HandleFunc("POST /admin/users/{id}/delete", d.handleAdminUserDelete)
 	mux.HandleFunc("POST /admin/invite", d.authed(d.handleAdminInvite))
+	mux.HandleFunc("GET /admin/invite", formPage("/admin/users"))
 	mux.HandleFunc("POST /admin/invites/{id}/delete", d.handleAdminInviteDelete)
 	mux.HandleFunc("GET /admin/audit", d.authed(d.handleAdminAudit))
 }
@@ -59,8 +63,12 @@ func (d Deps) adminUsersPage(w http.ResponseWriter, ctx Ctx, status int, extra m
 
 // pageError answers a failed admin read: 403 for denial, 500 otherwise.
 func (d Deps) pageError(w http.ResponseWriter, ctx Ctx, err error) {
-	if errors.Is(err, admin.ErrDenied) || errors.Is(err, invites.ErrDenied) || errors.Is(err, audit.ErrDenied) {
+	if errors.Is(err, admin.ErrDenied) || errors.Is(err, invites.ErrDenied) || errors.Is(err, audit.ErrDenied) || errors.Is(err, oidc.ErrDenied) {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	if errors.Is(err, util.ErrNotFound) {
+		http.NotFound(w, nil)
 		return
 	}
 	d.fail(w, err, http.StatusInternalServerError)
@@ -149,7 +157,8 @@ func (d Deps) handleAdminInvite(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		d.adminUsersPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	d.adminUsersPage(w, ctx, http.StatusOK, map[string]any{"InviteLink": link})
+	sent := invites.SendMail(strings.TrimSpace(r.FormValue("email")), link, ctx.Who.Name, enums.Locale(r.FormValue("locale")))
+	d.adminUsersPage(w, ctx, http.StatusOK, map[string]any{"InviteLink": link, "InviteMail": string(sent)})
 }
 
 func (d Deps) handleAdminInviteDelete(w http.ResponseWriter, r *http.Request) {

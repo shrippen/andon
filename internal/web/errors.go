@@ -43,6 +43,7 @@ var knownErrors = []struct {
 	{teams.ErrNameTaken, "team.name_taken"},
 	{teams.ErrNotFound, "team.not_found"},
 	{teams.ErrDenied, "error.denied"},
+	{teams.ErrLastOwner, "team.last_owner"},
 	{shares.ErrRight, "share.right_invalid"},
 	{widgetlib.ErrUnknownType, "widget.unknown_type"},
 	{widgetlib.ErrConnRequired, "widget.connection_required"},

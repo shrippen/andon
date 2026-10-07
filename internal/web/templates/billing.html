@@ -14,6 +14,7 @@
     {{template "intro" dict "Page" "billing" "Chapter" "freelance" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     <p class="muted">{{t "billing.lead"}}</p>
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
+    {{with .Login}}<p class="error">{{t "mailfwd.no_login" "name" .Name}} <a href="/connections/{{.ID}}?tab=access">{{t "widget.setup_access_short"}}</a></p>{{end}}
     {{with .Created}}<p class="pill" data-state="applied">{{t "billing.created" "number" .}}</p>{{end}}
     {{with .Forwarded}}<p class="pill" data-state="applied">{{t "billing.forwarded" "count" .}}</p>{{end}}
 

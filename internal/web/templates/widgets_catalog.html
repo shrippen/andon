@@ -262,7 +262,7 @@
   {{if not $v.Yesterday}}<b data-style="--l:{{$v.DayNow}}%"></b>{{end}}
 </div>
 <div class="kl-ticks" aria-hidden="true">{{range $v.DayTicks}}<span data-style="--l:{{.Pos}}%">{{printf "%02d" .Hour}}</span>{{end}}</div>
-<ul class="legend-list">{{range $v.Rows}}<li><span class="sq" data-tier="green" aria-hidden="true"></span>{{with .Name}}{{.}}{{else}}{{t "places.unknown"}}{{end}} <small class="muted">{{.From}}–{{.To}}</small><b>{{.Dur}} h</b></li>{{else}}<li class="muted">{{t "places.none"}}</li>{{end}}</ul>
+<ul class="legend-list">{{range $v.Rows}}<li><span class="sq" data-tier="green" aria-hidden="true"></span>{{with .Name}}{{.}}{{else}}{{t "places.unknown"}}{{end}} <small class="muted">{{.From}}–{{.To}}{{tzMark $v.Zone}}</small><b>{{.Dur}} h</b></li>{{else}}<li class="muted">{{t "places.none"}}</li>{{end}}</ul>
 {{end}}{{end}}
 {{end}}
 

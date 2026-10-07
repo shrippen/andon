@@ -79,8 +79,9 @@ func (d Deps) handleHintsPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	}
 	filter := hintFilter{Level: r.URL.Query().Get("level"), Source: r.URL.Query().Get("source"), ByValue: byValue,
 		ByClient: r.URL.Query().Get("group") == groupByClient}
+	groups := groupHints(filter.apply(found), filter.grouping())
 	_ = d.Page(w, ctx, "hints", http.StatusOK, map[string]any{
-		"Groups": groupHints(filter.apply(found), filter.grouping()), "Levels": levelCounts(found, filter), "Sources": sourceCounts(found, filter),
+		"Groups": groups, "Next": nextHints(groups), "Levels": levelCounts(found, filter), "Sources": sourceCounts(found, filter),
 		"Filter": filter, "Total": len(found), "ByValue": byValue, "Noisy": noisy,
 	})
 }
@@ -92,12 +93,37 @@ const (
 )
 
 func (d Deps) hintsDone(w http.ResponseWriter, ctx Ctx) {
-	done, err := hints.Resolved(d.DB, ctx.Who, time.Now().AddDate(0, 0, -doneDays))
+	since := time.Now().AddDate(0, 0, -doneDays)
+	done, err := hints.Resolved(d.DB, ctx.Who, since)
 	if err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
 		return
 	}
-	_ = d.Page(w, ctx, "hints", http.StatusOK, map[string]any{"Done": done, "DoneDays": doneDays})
+	// What the user put aside comes back from here ("reopen").
+	handled, err := hints.Handled(d.DB, ctx.Who, since)
+	if err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	_ = d.Page(w, ctx, "hints", http.StatusOK, map[string]any{"Done": done, "Handled": handled, "DoneDays": doneDays})
+}
+
+// nextHints maps each hint to the one after it on the page, so done or
+// paused leads back to where the user was: "/hints#hint-42".
+func nextHints(groups []hintGroup) map[int64]int64 {
+	var order []int64
+	for _, g := range groups {
+		for _, list := range [][]hints.View{g.Shown, g.Rest} {
+			for _, v := range list {
+				order = append(order, v.ID)
+			}
+		}
+	}
+	next := map[int64]int64{}
+	for i := 0; i+1 < len(order); i++ {
+		next[order[i]] = order[i+1]
+	}
+	return next
 }
 
 // hintsShown is how many hints of one rule stay open; the rest fold away.
@@ -317,7 +343,11 @@ func (d Deps) handleHintAct(action hints.Action) http.HandlerFunc {
 			d.handleBoardError(w, r, err)
 			return
 		}
-		http.Redirect(w, r, backTo(r, "/hints"), http.StatusSeeOther)
+		target := backTo(r, "/hints")
+		if next, err := strconv.ParseInt(r.FormValue("next"), 10, 64); err == nil {
+			target += "#hint-" + strconv.FormatInt(next, 10)
+		}
+		http.Redirect(w, r, target, http.StatusSeeOther)
 	}
 }
 

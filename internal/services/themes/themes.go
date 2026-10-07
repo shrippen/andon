@@ -69,8 +69,9 @@ var (
 
 var forbidden = []string{"url(", "expression", "@import", "javascript:", "\\"}
 
-// ErrTheme is a validation failure with a translatable message key.
-type ErrTheme struct{ Key string }
+// ErrTheme is a refused theme change: a catalog key, and the token it
+// is about where there is one.
+type ErrTheme struct{ Key, Token string }
 
 func (e ErrTheme) Error() string { return e.Key }
 
@@ -183,11 +184,11 @@ func checkValue(name, value string) (string, error) {
 	low := strings.ToLower(value)
 	for _, bad := range forbidden {
 		if strings.Contains(low, bad) {
-			return "", ErrTheme{"theme.bad_value:" + name}
+			return "", ErrTheme{Key: "theme.bad_value", Token: name}
 		}
 	}
 	if !safeValue.MatchString(value) {
-		return "", ErrTheme{"theme.bad_value:" + name}
+		return "", ErrTheme{Key: "theme.bad_value", Token: name}
 	}
 	return value, nil
 }

@@ -73,6 +73,8 @@ db/         database/sql, Tx     drivers/  rohes HTTP je Dienst
 - CSS nur mit Theme-Tokens, keine Hex-Werte außerhalb `themes/`.
 - Zugangsdaten nur verschlüsselt (`internal/crypto`), nie im Log, nie im Export.
 
+- **Uhrzeiten nennen ihre Zone, wo der Browser abweicht:** Jede Uhrzeit, die der Server formatiert (Server-Zeit `TZ`, Andons Uhr-Zone oder die Zone einer Kachel), trägt `{{tzMark}}` bzw. `{{tzMark $v.Zone}}` dahinter, Eingabefelder für Uhrzeiten an ihrer Beschriftung; Detail-Dialoge mit Uhrzeiten setzen `Head.Zone` (`zoned(…)`). Die Marke ist versteckt und erscheint nur, wenn die Zone des Browsers anders ist (`andon.js showZones`). Vorbild: Kimai Lite.
+
 ## Bausteine
 ```
 internal/sources/*.go           <service>.data: `var XData = source{…}`, ein gecachter Datensatz je Verbindung (+ .test)

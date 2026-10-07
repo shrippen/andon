@@ -85,6 +85,24 @@ var (
 	demoMeeting   = demoWorld.Activity(book.Time.Meeting).Name.DE()
 )
 
+// demoCalendar is a week of appointments with the demo clients: a
+// meeting today, an on-site day tomorrow, an edit block, a free day.
+func demoCalendar(now time.Time) *CalendarResult {
+	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	at := func(days, hour int) time.Time { return day.AddDate(0, 0, days).Add(time.Duration(hour) * time.Hour) }
+	names := make([]string, len(demoCustomers))
+	for i, c := range demoCustomers {
+		names[i] = c.Name
+	}
+	pick := func(i int) string { return names[i%len(names)] }
+	return &CalendarResult{Events: []Event{
+		{Start: at(0, 10), End: at(0, 11), Title: demoMeeting + " " + pick(0)},
+		{Start: at(1, 9), End: at(1, 17), Title: demoOnSite + " " + pick(1), Location: pick(1)},
+		{Start: at(2, 13), End: at(2, 16), Title: demoEdit + " " + pick(2)},
+		{Start: at(4, 0), End: at(5, 0), AllDay: true, Title: demoProjectName(0)},
+	}}
+}
+
 func demoKimaiCustomers() []KimaiCustomer {
 	out := make([]KimaiCustomer, len(book.Customers))
 	for i, id := range book.Customers {
@@ -890,7 +908,13 @@ func DemoKimaiLive(now time.Time) *KimaiLive {
 	b := bookOf(now)
 	edit, meeting := b.Live.Activities.Edit, b.Live.Activities.Meeting
 	begin := now.Add(-time.Duration(b.Live.RunningMin) * time.Minute)
-	return &KimaiLive{URL: b.URLs.Time, TodayMin: b.Live.TodayMin, WeekMin: b.Live.WeekMin, Contract: DemoContract(),
+	// Today is the blocks plus the timer, as fetchKimaiLive adds it up;
+	// the week holds today and the days before it.
+	today := b.Live.RunningMin
+	for _, s := range b.Live.Spans {
+		today += int(s.End.Sub(s.Begin).Minutes())
+	}
+	return &KimaiLive{URL: b.URLs.Time, TodayMin: today, WeekMin: b.Live.WeekMin - b.Live.TodayMin + today, Contract: DemoContract(),
 		Active: []KimaiTimer{demoTimer(1, edit, demoEdit, begin)},
 		Recent: []KimaiTimer{
 			demoTimer(1, edit, demoEdit, time.Time{}),

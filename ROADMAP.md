@@ -1222,29 +1222,29 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [x] Englische Texte: „Don''t verify“ mit sichtbarem Doppel-Apostroph, „fine again since“ ohne Zeit, „connections place“
 
 **Offen: Fehler**
-- [ ] Hinweise: „Erledigt“ quittiert (ack), „Erledigt (7 Tage)“ zeigt nur gelöste; kein „Wieder öffnen“ (Route `/hints/{id}/reopen` gibt es). Jede Aktion springt an den Seitenanfang
-- [ ] Rückgängig wechselt nur zwischen den zwei neuesten Fassungen hin und her (`boards/extras.go`); Kachel auf zwei Boards löschen: keine Anzahl, Rückgängig wirkungslos
-- [ ] Code-Ansicht: „Ersetzen“ ohne Änderung nummeriert Boards und Kacheln neu (Lesezeichen zeigen auf anderes); „Zusammenführen“ mit dem vollen Text verdoppelt alles; beide Modi unerklärt (`porting.go`)
-- [ ] Board-Export enthält keine Kacheln, Import in einen anderen Bereich verliert sie
-- [ ] Uhr: 24 h gewählt, Board zeigt 12 h in Englisch (`andon.js`, `hour12` nur bei 12 h gesetzt)
-- [ ] Board-Namen ohne Längengrenze (300 Zeichen machen jede Seite 4400 px breit); doppelte Namen ohne Unterscheidung
-- [ ] Fehlerseiten ohne App-Rahmen: 404, 405 (Neuladen nach POST: Einladung, Wiederherstellungscodes), 409 (veraltete Fassung, Eingabe weg), 403 „forbidden“
-- [ ] Theme: ungültige Farbe zeigt `theme.bad_value:--fg0`, Wert verworfen
-- [ ] Galerie-Vorschau Kalender: „ERROR dns:“ statt Beispieldaten
-- [ ] TOTP: kein QR-Code (nur Geheimnis und URI) unter „Code scannen“; ein falscher Bestätigungscode verwirft die Einrichtung (neu scannen)
-- [ ] Neue Verbindung im persönlichen Bereich: Vorgabe „Vorlage: jeder meldet sich an“, Token-Feld versteckt, obwohl der Hinweis „persönlich = fester Zugang“ sagt
-- [ ] Teams: der letzte Owner lässt sich entfernen (auch man selbst)
-- [ ] `/admin/users/9999/reapply` → 500 statt 404
-- [ ] Kimai Lite: Hinzufügen-Formular verschwindet beim Auffrischen der Kachel (alle 59 s) mit dem Getippten; „Teilen“ im Tagesformular am Desktop von der Nachbarkachel verdeckt
-- [ ] „Heute“ dreimal verschieden: Kimai-Kachel „0,0 h · Timer läuft“, Heute 04:12, Kimai Lite 5:12
-- [ ] Offene Rechnungen: Kachel „21 Tage überfällig“, Dialog „Überfällig –“
-- [ ] „An Paperless“: 400 „Kein persönlicher Zugang hinterlegt“ ohne Verbindung oder Weg dorthin, Neuladen sendet erneut
-- [ ] Fahrten: „Ort anlegen“ zeigt roh „dns: dawarich“; neue Ziele sind mit „Zuhause“ vorbelegt
-- [ ] Monatsabschluss-Link „Geschäftskonten benennen“ landet auf dem Reiter Startseite statt Regeln
-- [ ] Kalender-Feed: doppelte Termine (zwei Hinweise, dieselbe Frist), keine Beschreibung und kein Link zurück
-- [ ] Audit: rohe Schlüssel `audit_action.settings.map`/`.server`, Speichern ohne Änderung schreibt Einträge „– → false“; Reset-Link nennt die Benutzer-ID statt der Adresse
-- [ ] Ungültiges CIDR zeigt den rohen Go-Fehler; Einladung meldet „gesendet“, obwohl SMTP nicht erreichbar ist
-- [ ] `/teams/1` scrollt auf dem Handy seitlich
+- [x] Hinweise: „Erledigt“ quittiert (ack), „Erledigt (7 Tage)“ zeigt nur gelöste; kein „Wieder öffnen“ (Route `/hints/{id}/reopen` gibt es). Jede Aktion springt an den Seitenanfang *(erledigte Hinweise kommen in „Erledigt (7 Tage)“ mit „Wieder öffnen“; nach einer Aktion geht es zum nächsten Hinweis)*
+- [x] Rückgängig wechselt nur zwischen den zwei neuesten Fassungen hin und her (`boards/extras.go`); Kachel auf zwei Boards löschen: keine Anzahl, Rückgängig wirkungslos *(Rückgängig geht Schritt für Schritt zurück; Löschen nennt die Zahl der Boards und legt je Board eine Fassung mit Kopie der Kachel an, Rückgängig holt sie zurück)*
+- [x] Code-Ansicht: „Ersetzen“ ohne Änderung nummeriert Boards und Kacheln neu (Lesezeichen zeigen auf anderes); „Zusammenführen“ mit dem vollen Text verdoppelt alles; beide Modi unerklärt (`porting.go`) *(Import gleicht Boards nach Slug und Kacheln nach Schlüssel ab und ändert sie an Ort und Stelle; „Ersetzen“ entfernt nur, was fehlt)*
+- [x] Board-Export enthält keine Kacheln, Import in einen anderen Bereich verliert sie *(Export enthält die Kacheln des Boards)*
+- [x] Uhr: 24 h gewählt, Board zeigt 12 h in Englisch (`andon.js`, `hour12` nur bei 12 h gesetzt) *(`hourCycle: h23`, im Browser geprüft)*
+- [x] Board-Namen ohne Längengrenze (300 Zeichen machen jede Seite 4400 px breit); doppelte Namen ohne Unterscheidung *(höchstens 80 Zeichen; ein neuer Name, den es im Bereich schon gibt, bekommt eine Nummer, Umbenennen darauf wird abgelehnt)*
+- [x] Fehlerseiten ohne App-Rahmen: 404, 405 (Neuladen nach POST: Einladung, Wiederherstellungscodes), 409 (veraltete Fassung, Eingabe weg), 403 „forbidden“ *(Seitenaufrufe bekommen eine Fehlerseite im App-Rahmen mit „Zurück“, das die Eingabe behält; GET auf POST-Seiten leitet zur Seite des Formulars. 409 füllt das Formular nicht neu, „Zurück“ hat die Eingabe)*
+- [x] Theme: ungültige Farbe zeigt `theme.bad_value:--fg0`, Wert verworfen *(Meldung nennt das Token und was erlaubt ist, die Eingaben bleiben)*
+- [x] Galerie-Vorschau Kalender: „ERROR dns:“ statt Beispieldaten *(Beispieltermine aus der Demo-Welt)*
+- [x] TOTP: kein QR-Code (nur Geheimnis und URI) unter „Code scannen“; ein falscher Bestätigungscode verwirft die Einrichtung (neu scannen) *(QR-Code; ein falscher Code zeigt dasselbe Geheimnis wieder)*
+- [x] Neue Verbindung im persönlichen Bereich: Vorgabe „Vorlage: jeder meldet sich an“, Token-Feld versteckt, obwohl der Hinweis „persönlich = fester Zugang“ sagt *(im persönlichen Bereich fest vorbelegt, sonst Vorlage; folgt dem Wechsel des Bereichs)*
+- [x] Teams: der letzte Owner lässt sich entfernen (auch man selbst) *(abgelehnt: „Ein Team braucht mindestens einen Owner“)*
+- [x] `/admin/users/9999/reapply` → 500 statt 404 *(404)*
+- [x] Kimai Lite: Hinzufügen-Formular verschwindet beim Auffrischen der Kachel (alle 59 s) mit dem Getippten; „Teilen“ im Tagesformular am Desktop von der Nachbarkachel verdeckt *(Auffrischen wartet, solange ein Formular offen ist oder etwas getippt wurde; Aktionen brechen um; im Browser geprüft)*
+- [x] „Heute“ dreimal verschieden: Kimai-Kachel „0,0 h · Timer läuft“, Heute 04:12, Kimai Lite 5:12 *(Kimai-Kachel zählt den laufenden Timer; die Demo rechnet Kimai Lite aus Blöcken und Timer. Die Heute-Kachel zeigt den Beginn des Timers, keine Summe. Bleibt: die Demo erzählt zwei Timer, 11 h im Datensatz für `kimai.timer_running_long` und 47 min in Kimai Lite)*
+- [x] Offene Rechnungen: Kachel „21 Tage überfällig“, Dialog „Überfällig –“ *(Ganzzahlen werden gelesen, `asF`)*
+- [x] „An Paperless“: 400 „Kein persönlicher Zugang hinterlegt“ ohne Verbindung oder Weg dorthin, Neuladen sendet erneut *(Meldung nennt die Verbindung und verlinkt den Reiter Zugang; Antwort als Weiterleitung, Neuladen sendet nichts; Demo-Verbindungen sagen es)*
+- [x] Fahrten: „Ort anlegen“ zeigt roh „dns: dawarich“; neue Ziele sind mit „Zuhause“ vorbelegt *(übersetzte Meldung mit Dienst; Demo sagt es; neue Orte starten „nicht zugeordnet“)*
+- [x] Monatsabschluss-Link „Geschäftskonten benennen“ landete auf dem Reiter Startseite statt Regeln
+- [x] Kalender-Feed: doppelte Termine (zwei Hinweise, dieselbe Frist), keine Beschreibung und kein Link zurück; jetzt ein Termin je Tag und Titel mit allen Gründen (`DESCRIPTION`) und Link (`URL`)
+- [x] Audit: rohe Schlüssel `audit_action.settings.map`/`.server`, Speichern ohne Änderung schreibt Einträge „– → false“; Reset-Link nennt die Benutzer-ID statt der Adresse *(Texte für die Schlüssel; unveränderte Werte schreiben keine Einträge; der Reset-Link nennt die Adresse)*
+- [x] Ungültiges CIDR zeigt den rohen Go-Fehler; Einladung meldet „gesendet“, obwohl SMTP nicht erreichbar ist *(Meldung mit Beispiel; die Seite sagt, ob die Einladung per Mail rausging, scheiterte oder kein SMTP da ist)*
+- [x] `/teams/1` scrollt auf dem Handy seitlich *(Mitglieder-Auswahl begrenzt, 360 px geprüft)*
 
 **Offen: Reibung und Unlogisches** (Entscheidung nötig)
 - [ ] Von der Verbindung zur Kachel auf dem Board: vier Schritte in drei Dialogen; Bibliothek ohne „auf Board legen“; leeres Board ohne Hinweis
@@ -1254,7 +1254,7 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [ ] Eigene Rolle als Auswahl mit Speichern angeboten; Betrachter sehen Instanz-Einstellungen und Test/Bearbeiten an allen Verbindungen mit aktiven Knöpfen; Ablehnung als englisches „access denied“
 - [ ] Hinweisseite: rund 140 Gruppen mit je einem Hinweis, je eine Sammelleiste; 60 Dienst-Chips vor der Liste (Handy: erster Hinweis bei 1550 px)
 - [ ] Wandanzeige: viermal so hoch wie der Bildschirm, kein Durchlauf, kein Weg hinaus
-- [ ] Zeitzone: Kimai Lite folgt der Server-Zeit (`TZ`), andere Anzeigen dem Browser; ohne `TZ` (Entwicklung) UTC
+- [x] Zeitzone: Kimai Lite folgt der Server-Zeit (`TZ`), andere Anzeigen dem Browser; ohne `TZ` (Entwicklung) UTC *(entschieden: Kimai Lite bleibt in der Server-Zeit und nennt die Zone, wenn der Browser in einer anderen ist)*
 - [ ] Hosts: alle 66 mit „Monitore 0 / Probleme –“, Hinweise zählen nicht mit
 - [ ] Abrechnung: offener Entwurf beim selben Kunden nicht erwähnt (doppelter Entwurf möglich); Hinweis „nicht abgerechnet“ führt zu Kimai statt zu `/billing#drafts`
 - [ ] Belege: Zähler der Reiter weichen ab (6 gegen 3); Erfolg „Verknüpft: 0“ neben der Demo-Ablehnung; Reiter „Belege zuerst“ geht nach „Anlegen“ verloren; Ausgaben aus dem Export fehlen in der Suche

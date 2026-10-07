@@ -79,9 +79,12 @@ func WithLogin(feed, user, password string) string {
 	return u.String()
 }
 
-var CalendarSource = source{key: "ical", ttl: icalTTL, fetch: fetchCalendarSource}
+var CalendarSource = source{key: "ical", ttl: icalTTL, fetch: fetchCalendarSource, demo: true}
 
 func fetchCalendarSource(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return demoCalendar(time.Now()), nil
+	}
 	text, err := httpclient.GetText(ctx, feedURL(asStr(sctx.Params["url"])), httpclient.Options{})
 	if err != nil {
 		return nil, newSourceError("%s", err.Error())

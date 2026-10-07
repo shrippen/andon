@@ -38,16 +38,29 @@ var ErrNothingToUndo = errors.New("board.nothing_to_undo")
 // ErrBadURL means a pasted link is not an http(s) URL.
 var ErrBadURL = errors.New("board.bad_url")
 
-// Undo restores the revision before the latest one.
+// Undo goes back one change: to the revision before the latest one, or,
+// when the latest is itself an undo, to the one before what it restored.
+//
+//	v1 v2 v3        undo → v4 = v2 (undo_to v2)
+//	v1 v2 v3 v4     undo → v5 = v1 (one before v2)
 func Undo(d *sql.DB, who *access.Principal, boardID int64) error {
 	revs, err := History(d, who, boardID)
 	if err != nil {
 		return err
 	}
-	if len(revs) < 2 {
+	target := 1
+	if len(revs) > 0 && revs[0].UndoTo != 0 {
+		for i, r := range revs {
+			if r.ID == revs[0].UndoTo {
+				target = i + 1
+				break
+			}
+		}
+	}
+	if target >= len(revs) {
 		return ErrNothingToUndo
 	}
-	return Restore(d, who, boardID, revs[1].ID)
+	return restore(d, who, boardID, revs[target].ID, true)
 }
 
 // QuickLink creates a link tile from a URL in a section and returns the

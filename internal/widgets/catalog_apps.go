@@ -316,7 +316,8 @@ func dawarichDayView(cfg DawarichConfig, data *sources.DawarichDataset, ctx View
 		rows = append(rows, PlaceRow{Name: v.Name, From: begin.In(now.Location()).Format("15:04"), To: to, Dur: clockMinutes(v.Minutes)})
 	}
 	from, to, segs, pos := dayBar(spans, now)
-	out := map[string]any{"Rows": rows, "DaySegs": segs, "DayNow": pos, "DayTicks": dayTicks(from, to), "Yesterday": cfg.Yesterday}
+	out := map[string]any{"Rows": rows, "DaySegs": segs, "DayNow": pos, "DayTicks": dayTicks(from, to), "Yesterday": cfg.Yesterday,
+		"Zone": now.Location().String()}
 	if cfg.Yesterday {
 		out["DayNow"] = nil
 	}

@@ -73,7 +73,7 @@ func arrDetail(cfg ArrConfig, data *sources.ArrDataset, _ ViewCtx, results map[s
 	if len(data.Health) > 0 {
 		head.State, head.StateKey = "warn", "detail.arr.warnings"
 	}
-	return DetailView{Head: head, Body: body}
+	return zoned(DetailView{Head: head, Body: body}, time.Local)
 }
 
 // playBlocks: plays per day over the last month, the most played titles.

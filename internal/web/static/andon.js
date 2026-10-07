@@ -622,9 +622,13 @@
       if (seconds) {
         time.second = "2-digit";
       }
+      // Say 12 or 24 hours either way: left open, an English locale
+      // picks 12 hours ("03:08 PM") for a 24-hour clock.
       if (el.getAttribute("data-h12") === "yes") {
         time.hour = "numeric";
         time.hour12 = true;
+      } else {
+        time.hourCycle = "h23";
       }
       var face = el.querySelector("svg.clock");
       if (face) {
@@ -851,6 +855,7 @@
     dlg.innerHTML = html;
     applyStyles(dlg);
     mountMaps(dlg);
+    showZones(dlg);
     if (window.htmx) {
       htmx.process(dlg);
     }
@@ -892,6 +897,17 @@
     if (dlg.dispatchEvent(new Event("cancel", { cancelable: true }))) {
       dlg.close();
     }
+  });
+
+  // "Back" on an error page goes back in history: the form there still
+  // holds what was typed. Without history the link's own target.
+  d.addEventListener("click", function (e) {
+    var back = e.target.closest && e.target.closest("a[data-back]");
+    if (!back || window.history.length < 2) {
+      return;
+    }
+    e.preventDefault();
+    window.history.back();
   });
 
   // openDetail shows the frame at once and fills it when the answer is in;
@@ -1059,6 +1075,7 @@
         dlg.innerHTML = html;
         applyStyles(dlg);
         mountMaps(dlg);
+        showZones(dlg);
       });
   }
 
@@ -1113,6 +1130,7 @@
           dlg.innerHTML = html;
           applyStyles(dlg);
           mountMaps(dlg);
+          showZones(dlg);
         });
     }, true);
     d.addEventListener("auxclick", countClick, true);
@@ -1240,6 +1258,25 @@
     });
     d.addEventListener("htmx:afterSettle", function () {
       [].forEach.call(d.querySelectorAll("form.kl-new"), filterActivities);
+    });
+  }
+
+  // A new connection's login follows the space until chosen by hand:
+  // fixed in the personal space, a template elsewhere (startsFixed).
+  function setupConnMode() {
+    d.addEventListener("change", function (e) {
+      var t = e.target;
+      if (t.id === "mode") {
+        t.dataset.chosen = "1";
+      }
+      if (t.id !== "space_id" || !t.form) {
+        return;
+      }
+      var mode = t.form.querySelector("#mode");
+      if (!mode || mode.dataset.chosen || t.form.dataset.fixedAlways) {
+        return;
+      }
+      mode.value = t.value === t.dataset.personal ? "shared" : "personal";
     });
   }
 
@@ -1613,6 +1650,17 @@
     });
   });
 
+  // Times Andon formats itself are in the server's zone. Where the
+  // browser's zone differs, their .tz-mark names it: "since 12:26 UTC".
+  function showZones(root) {
+    var here = -new Date().getTimezoneOffset();
+    [].forEach.call(root.querySelectorAll(".tz-mark"), function (mark) {
+      mark.hidden = parseInt(mark.getAttribute("data-offset"), 10) === here;
+    });
+  }
+  window.andonPage(function () { showZones(d); });
+  d.addEventListener("htmx:load", function (e) { showZones(e.target); });
+
   // A toast (Kante .toast) stays as long as its life line runs (--life on
   // .toast-life, 4 s by default), then goes.
   var TOAST_LIFE_MS = 4000;
@@ -1630,6 +1678,23 @@
   // in the background runs once when the tab shows again ("wake"). A wall
   // display keeps polling. Filters in hx-trigger would need eval, which
   // the CSP forbids, hence the events.
+  // A tile's own refresh waits while someone works in it: an open form
+  // ([data-hold], Kimai Lite's add and day forms), a focused field or one
+  // with something typed. The next poll tries again.
+  d.addEventListener("htmx:beforeRequest", function (e) {
+    var el = e.detail.elt;
+    if (el.classList && el.classList.contains("card-body") && busy(el)) {
+      e.preventDefault();
+    }
+  });
+  function busy(body) {
+    if (body.querySelector("[data-hold]") || body.contains(d.activeElement)) {
+      return true;
+    }
+    return [].some.call(body.querySelectorAll("input:not([type=hidden]), textarea"), function (f) {
+      return f.value !== f.defaultValue;
+    });
+  }
   d.addEventListener("htmx:beforeRequest", function (e) {
     var el = e.detail.elt;
     if (!d.hidden || d.body.classList.contains("is-kiosk")) {
@@ -1697,6 +1762,7 @@
     setupEditor();
     setupIconUpload();
     setupKimaiForm();
+    setupConnMode();
     setupOffline();
     setupHotkeys();
     setupReceiptKeys();

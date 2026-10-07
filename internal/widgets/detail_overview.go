@@ -303,7 +303,7 @@ func noiseDetail(_ NoiseConfig, results map[string]any, ctx ViewCtx) DetailView 
 			settings = append(settings, Block{Kind: BlockTable, Label: T("detail.noise.limits"), Data: Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: rows, Num: []int{1}}})
 		}
 		settings = append(settings, Block{Kind: BlockTasks, Data: Tasks{Items: []Task{{Text: Txt("detail.noise.tune"), State: "info",
-			Action: T("detail.noise.settings"), Href: "/spaces/settings#rule-" + f.Rule}}}})
+			Action: T("detail.noise.settings"), Href: "/spaces/settings?section=rules#rule-" + f.Rule}}}})
 	}
 	g := ColGraph(daily, "s4")
 	g.Ticks = spanTicks(todayOf(ctx), len(daily))
@@ -313,7 +313,7 @@ func noiseDetail(_ NoiseConfig, results map[string]any, ctx ViewCtx) DetailView 
 		body.Blocks = append(body.Blocks, settings...)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.noise.how")})
 	}
-	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.noise.settings", Href: "/spaces/settings#rules", Primary: true}}}, Body: body}
+	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.noise.settings", Href: "/spaces/settings?section=rules", Primary: true}}}, Body: body}
 }
 
 // noiseLoud marks a rule that came back this often.
@@ -476,7 +476,7 @@ func todayDetail(cfg TodayConfig, results map[string]any, ctx ViewCtx) DetailVie
 	} else {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("today.empty")})
 	}
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, todayZone(cfg))
 }
 
 // eventColour is an appointment's colour in the day strip.
@@ -687,7 +687,7 @@ func calendarDetail(cfg CalendarConfig, results map[string]any, ctx ViewCtx) Det
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.calendar.unbooked"), Meta: TxtA("detail.calendar.unbooked_note", "n", metrics.UnbookedDays),
 			Data: Table{Head: []Text{T("detail.calendar.date"), T("detail.calendar.time"), T("detail.calendar.title")}, Rows: rows}})
 	}
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, clockZone())
 }
 
 // clockDetail: every zone with its offset and whether it is working time.

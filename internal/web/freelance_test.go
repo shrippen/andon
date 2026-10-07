@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -81,6 +82,12 @@ func TestKimaiTimerStops(t *testing.T) {
 	if !strings.Contains(frag, `name="sheet" value="77"`) || !strings.Contains(frag, "2:00") || !strings.Contains(frag, `data-begin=`) {
 		t.Fatalf("fragment:\n%s", frag)
 	}
+	// Times are the server's: a hidden mark names its zone, andon.js shows
+	// it where the browser's zone differs.
+	_, offset := time.Now().Zone()
+	if !strings.Contains(frag, `class="tz-mark" data-offset="`+strconv.Itoa(offset/60)+`" hidden`) {
+		t.Fatalf("no zone mark:\n%s", frag)
+	}
 
 	resp = postForm(t, client, srv.URL+"/widget-fragments/"+placement+"/kimai", url.Values{"csrf": {csrf}, "action": {"stop"}, "sheet": {"77"}, "note": {"Backup umgebaut"}})
 	if resp.StatusCode != http.StatusOK || len(writes) != 2 || writes[0] != "PATCH /api/timesheets/77" || writes[1] != "PATCH /api/timesheets/77/stop" {
@@ -109,6 +116,11 @@ func TestKimaiTimerStops(t *testing.T) {
 	form := string(mustGet(t, srv, client, "/widget-fragments/"+placement+"/kimai/new"))
 	if !strings.Contains(form, "Acme · Relaunch") || !strings.Contains(form, `data-project="3"`) || !strings.Contains(form, `name="begin" type="datetime-local"`) {
 		t.Fatalf("add form:\n%s", form)
+	}
+	// The open form holds the tile's refresh (andon.js busy), or the
+	// next poll would swap it away with what was typed.
+	if !strings.Contains(form, `class="kl kl-new" data-hold`) {
+		t.Fatal("add form does not hold the refresh")
 	}
 	entry := url.Values{"csrf": {csrf}, "action": {"create"}, "project": {"3"}, "activity": {"8"}, "note": {"Review"}}
 	entry.Set("begin", "2026-09-26T10:00")

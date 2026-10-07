@@ -23,6 +23,7 @@ var (
 	ErrNameTaken   = errors.New("teams: name already taken")
 	ErrNotFound    = errors.New("teams: not found")
 	ErrDenied      = errors.New("teams: access denied")
+	ErrLastOwner   = errors.New("teams: last owner")
 )
 
 // CreateIn inserts a team plus its space. The caller owns the transaction.
@@ -205,6 +206,11 @@ func SetMember(d *sql.DB, who *access.Principal, teamID, userID int64, role enum
 		if team == nil || user == nil {
 			return ErrNotFound
 		}
+		if role != enums.TeamOwner {
+			if err := keepOwner(tx, teamID, userID); err != nil {
+				return err
+			}
+		}
 		if err := users.SetMember(tx, userID, teamID, role); err != nil {
 			return err
 		}
@@ -219,12 +225,36 @@ func RemoveMember(d *sql.DB, who *access.Principal, teamID, userID int64, ip str
 		return err
 	}
 	return db.WithTx(d, func(tx *sql.Tx) error {
+		if err := keepOwner(tx, teamID, userID); err != nil {
+			return err
+		}
 		if err := users.RemoveMember(tx, userID, teamID); err != nil {
 			return err
 		}
 		return audit.Log(tx, &who.UserID, "team.member_removed", strconv.FormatInt(teamID, 10), ip,
 			map[string]any{"member": userID})
 	})
+}
+
+// keepOwner refuses to take the owner role from userID when they are
+// the team's last owner: nobody but an admin could manage it then.
+func keepOwner(tx *sql.Tx, teamID, userID int64) error {
+	members, err := users.Members(tx, teamID)
+	if err != nil {
+		return err
+	}
+	owners, isOwner := 0, false
+	for _, m := range members {
+		if m.Role != enums.TeamOwner {
+			continue
+		}
+		owners++
+		isOwner = isOwner || m.UserID == userID
+	}
+	if isOwner && owners == 1 {
+		return ErrLastOwner
+	}
+	return nil
 }
 
 // Rename renames a team and its space.

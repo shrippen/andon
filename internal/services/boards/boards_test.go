@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -373,5 +374,117 @@ func TestBoardLayout(t *testing.T) {
 		if view, _ = boards.View(d, who, boardID, boards.LayoutOverlay); view.Layout != c.want {
 			t.Fatalf("%q: %q", c.in, view.Layout)
 		}
+	}
+}
+
+// TestBoardNameBounded: a pasted essay is no board name; a 300-character
+// name made every page 4400 px wide.
+func TestBoardNameBounded(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+
+	id, err := boards.Create(d, who, space.ID, strings.Repeat("X", 300))
+	if err != nil {
+		t.Fatal(err)
+	}
+	view, _ := boards.View(d, who, id, boards.LayoutOverlay)
+	if n := len([]rune(view.Name)); n > boards.MaxNameLen {
+		t.Fatalf("name of %d runes", n)
+	}
+	if err := boards.Rename(d, who, id, view.Version, strings.Repeat("Ü", 300), nil, nil, ""); err != nil {
+		t.Fatal(err)
+	}
+	view, _ = boards.View(d, who, id, boards.LayoutOverlay)
+	if n := len([]rune(view.Name)); n > boards.MaxNameLen {
+		t.Fatalf("renamed to %d runes", n)
+	}
+}
+
+// TestUndoStepsBack: undo goes back one change at a time; it used to
+// swap the two newest versions, so a second undo redid the first.
+func TestUndoStepsBack(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	id, _ := boards.Create(d, who, space.ID, "B")
+
+	for _, title := range []string{"Zwei", "Drei"} {
+		view, _ := boards.View(d, who, id, boards.LayoutOverlay)
+		if _, err := boards.AddSection(d, who, id, view.Version, title); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for want := 2; want >= 1; want-- {
+		if err := boards.Undo(d, who, id); err != nil {
+			t.Fatalf("undo to %d sections: %v", want, err)
+		}
+		if view, _ := boards.View(d, who, id, boards.LayoutOverlay); len(view.Sections) != want {
+			t.Fatalf("after undo: %d sections, want %d", len(view.Sections), want)
+		}
+	}
+	if err := boards.Undo(d, who, id); !errors.Is(err, boards.ErrNothingToUndo) {
+		t.Fatalf("undo past the first version: %v", err)
+	}
+}
+
+// Deleting a tile that sits on two boards can be undone on each: undo
+// brings the tile back (once, the second board takes the same one).
+func TestDeleteWidgetUndo(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	w := addWidget(t, d, space.ID, "note1")
+	var ids []int64
+	for _, name := range []string{"A", "B"} {
+		id, _ := boards.Create(d, who, space.ID, name)
+		view, _ := boards.View(d, who, id, boards.LayoutOverlay)
+		if _, err := boards.Place(d, who, view.Sections[0].ID, w.ID, view.Version); err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, id)
+	}
+
+	n, err := boards.DeleteWidget(d, who, w.ID)
+	if err != nil || n != 2 {
+		t.Fatalf("delete: %d boards, %v", n, err)
+	}
+	var back []int64
+	for _, id := range ids {
+		if err := boards.Undo(d, who, id); err != nil {
+			t.Fatalf("undo: %v", err)
+		}
+		view, _ := boards.View(d, who, id, boards.LayoutOverlay)
+		if len(view.Sections[0].Tiles) != 1 {
+			t.Fatalf("board %d: tile not back: %+v", id, view.Sections[0].Tiles)
+		}
+		back = append(back, view.Sections[0].Tiles[0].WidgetID)
+	}
+	if back[0] != back[1] {
+		t.Fatalf("two copies: %v", back)
+	}
+}
+
+// Two boards of a space never share a name: a new one is numbered
+// ("B 2"), renaming onto a taken name is refused.
+func TestBoardNamesDistinct(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	first, _ := boards.Create(d, who, space.ID, "B")
+	second, _ := boards.Create(d, who, space.ID, "b")
+	if view, _ := boards.View(d, who, second, boards.LayoutOverlay); view.Name != "b 2" {
+		t.Fatalf("second board: %q", view.Name)
+	}
+	view, _ := boards.View(d, who, first, boards.LayoutOverlay)
+	if err := boards.Rename(d, who, first, view.Version, "B 2", nil, nil, ""); !errors.Is(err, boards.ErrNameTaken) {
+		t.Fatalf("rename onto a taken name: %v", err)
+	}
+	if err := boards.Rename(d, who, first, view.Version, "B", nil, nil, ""); err != nil {
+		t.Fatalf("keeping its own name: %v", err)
 	}
 }

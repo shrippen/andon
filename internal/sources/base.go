@@ -78,6 +78,16 @@ type source struct {
 	ttl     time.Duration
 	service enums.ServiceType
 	fetch   func(ctx context.Context, sctx Ctx) (any, error)
+	// demo: the source answers a demo:// address with sample data even
+	// though no connection feeds it (its address is a tile setting).
+	demo bool
+}
+
+// AnswersDemo tells whether a source without a connection has sample
+// data for the gallery.
+func AnswersDemo(key string) bool {
+	s, ok := registry[key].(source)
+	return ok && s.demo
 }
 
 func (s source) Key() string                { return s.key }

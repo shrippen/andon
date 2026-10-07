@@ -90,7 +90,10 @@ func TestSetupScreensGuide(t *testing.T) {
 	if !regexp.MustCompile(`value="shared"\s+selected`).MatchString(calendar) {
 		t.Fatalf("calendar not shared by default:\n%s", calendar)
 	}
-	if regexp.MustCompile(`value="shared"\s+selected`).MatchString(github) {
+	// GitHub outside the personal space: a template, everybody their own token.
+	instance := regexp.MustCompile(`<option value="(\d+)">Instanz</option>`).FindStringSubmatch(github)[1]
+	team := string(mustGet(t, srv, client, "/connections/new?service=github&space="+instance))
+	if regexp.MustCompile(`value="shared"\s+selected`).MatchString(team) {
 		t.Fatal("github shared by default")
 	}
 }

@@ -146,7 +146,7 @@
       <div class="card">
         <p class="small muted">{{t "settings.maintenance_hint"}}</p>
         {{if .Maint.Active .Now}}<p class="pill" data-state="reviewing">{{t "settings.maintenance_active" "until" (ago .Maint.Until)}}</p>{{end}}
-        <label for="maint_until">{{t "settings.maintenance_until"}}</label>
+        <label for="maint_until">{{t "settings.maintenance_until"}}{{tzMark}}</label>
         <input class="input" id="maint_until" name="maint_until" type="datetime-local" value="{{.MaintUntil}}">
         {{with .Conns}}<fieldset class="chip-picks"><legend>{{t "settings.maintenance_conns"}}</legend>
           {{range .}}<label class="chip-pick"><input type="checkbox" name="maint_conn" value="{{.ID}}"{{if index $.MaintConns .ID}} checked{{end}}><span>{{.Name}}</span></label>{{end}}

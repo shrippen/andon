@@ -95,6 +95,19 @@ func widgetRef(w *model.Widget, home int64, spaces map[int64]*model.Space) strin
 	}
 }
 
+// widgetDoc is a tile's definition in an export, without secrets; its
+// connection by key.
+func widgetDoc(w *model.Widget, connKeys map[int64]string) map[string]any {
+	item := map[string]any{"id": w.Key, "type": w.Type, "title": w.Title, "config": util.StripSecrets(w.Config)}
+	if w.ConnectionID != nil {
+		item["connection"] = connKeys[*w.ConnectionID]
+	}
+	if w.MinTeamRole != nil {
+		item["min_team_role"] = string(*w.MinTeamRole)
+	}
+	return item
+}
+
 func boardDoc(b *model.Board, spaces map[int64]*model.Space) map[string]any {
 	sections := []any{}
 	for _, sec := range b.Sections {
@@ -206,14 +219,7 @@ func ExportSpace(d *sql.DB, who *access.Principal, spaceID int64) (string, error
 		}
 		widgetDocs := []any{}
 		for _, w := range list {
-			item := map[string]any{"id": w.Key, "type": w.Type, "title": w.Title, "config": util.StripSecrets(w.Config)}
-			if w.ConnectionID != nil {
-				item["connection"] = connKeys[*w.ConnectionID]
-			}
-			if w.MinTeamRole != nil {
-				item["min_team_role"] = string(*w.MinTeamRole)
-			}
-			widgetDocs = append(widgetDocs, item)
+			widgetDocs = append(widgetDocs, widgetDoc(w, connKeys))
 		}
 
 		boards, err := content.Boards(tx, []int64{spaceID})
@@ -324,16 +330,31 @@ func intOf(v any) (int, bool) {
 }
 
 // ImportSpace applies an import document to a space. Requires EDIT.
+//
+// Boards (by slug) and tiles (by key) the space already has are updated
+// in place: they keep their ids, so links, bookmarks and shares hold, and
+// saving the code view unchanged changes nothing. Replace then removes
+// what the text no longer has.
 func ImportSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, mode Mode) (*Report, error) {
-	return importSpace(d, who, spaceID, text, mode, Commit)
+	return importSpace(d, who, spaceID, text, mode, Commit, matchKeys)
 }
 
 // PreviewSpace reports what ImportSpace would do, changing nothing.
 func PreviewSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, mode Mode) (*Report, error) {
-	return importSpace(d, who, spaceID, text, mode, DryRun)
+	return importSpace(d, who, spaceID, text, mode, DryRun, matchKeys)
 }
 
-func importSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, mode Mode, apply Apply) (*Report, error) {
+// Matching says whether an import updates the space's boards and tiles
+// of the same slug or key, or always adds new ones (Dashy: its keys come
+// from titles and say nothing about the space's own tiles).
+type Matching bool
+
+const (
+	matchKeys Matching = true
+	addAlways Matching = false
+)
+
+func importSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, mode Mode, apply Apply, match Matching) (*Report, error) {
 	doc, err := Load(text)
 	if err != nil {
 		return nil, err
@@ -347,7 +368,7 @@ func importSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, m
 		if err := access.Need(access.SpaceRight(who, ref), importRight(doc, mode)); err != nil {
 			return err
 		}
-		if mode == Replace {
+		if mode == Replace && match == addAlways {
 			if err := clear(tx, spaceID); err != nil {
 				return err
 			}
@@ -361,12 +382,18 @@ func importSpace(d *sql.DB, who *access.Principal, spaceID int64, text string, m
 		if err != nil {
 			return err
 		}
-		keys, err := importWidgets(tx, spaceID, list(doc, "widgets"), connIDs, report)
+		touched := &kept{widgets: map[int64]bool{}, boards: map[int64]bool{}}
+		keys, err := importWidgets(tx, spaceID, list(doc, "widgets"), connIDs, report, match, touched)
 		if err != nil {
 			return err
 		}
 		for _, item := range list(doc, "boards") {
-			if err := importBoard(tx, who, spaceID, item, keys, report); err != nil {
+			if err := importBoard(tx, who, spaceID, item, keys, report, match, touched); err != nil {
+				return err
+			}
+		}
+		if mode == Replace && match == matchKeys {
+			if err := dropUntouched(tx, spaceID, touched); err != nil {
 				return err
 			}
 		}
@@ -390,6 +417,39 @@ func importRight(doc map[string]any, mode Mode) enums.Right {
 		return enums.RightManage
 	}
 	return enums.RightEdit
+}
+
+// kept lists the boards and tiles an import wrote or matched.
+type kept struct {
+	widgets, boards map[int64]bool
+}
+
+// dropUntouched removes the space's boards and tiles an import with
+// Replace did not name.
+func dropUntouched(q db.Queryer, spaceID int64, touched *kept) error {
+	boards, err := content.Boards(q, []int64{spaceID})
+	if err != nil {
+		return err
+	}
+	for _, b := range boards {
+		if !touched.boards[b.ID] {
+			if err := content.RemoveBoard(q, b.ID); err != nil {
+				return err
+			}
+		}
+	}
+	list, err := content.Widgets(q, []int64{spaceID})
+	if err != nil {
+		return err
+	}
+	for _, w := range list {
+		if !touched.widgets[w.ID] {
+			if err := content.RemoveWidget(q, w.ID); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func clear(q db.Queryer, spaceID int64) error {
@@ -484,15 +544,17 @@ func importConnections(q db.Queryer, space *access.SpaceRef, items []map[string]
 	return found, nil
 }
 
-func importWidgets(q db.Queryer, spaceID int64, items []map[string]any, connIDs map[string]int64, report *Report) (map[string]int64, error) {
+func importWidgets(q db.Queryer, spaceID int64, items []map[string]any, connIDs map[string]int64, report *Report, match Matching, touched *kept) (map[string]int64, error) {
 	existing, err := content.Widgets(q, []int64{spaceID})
 	if err != nil {
 		return nil, err
 	}
 	keys := map[string]int64{}
 	taken := map[string]bool{}
+	byKey := map[string]*model.Widget{}
 	for _, w := range existing {
 		keys[w.Key], taken[w.Key] = w.ID, true
+		byKey[w.Key] = w
 	}
 
 	for _, item := range items {
@@ -513,6 +575,14 @@ func importWidgets(q db.Queryer, spaceID int64, items []map[string]any, connIDs 
 			report.Skipped = append(report.Skipped, "widget "+key+": "+bad)
 			continue
 		}
+		if same := byKey[key]; match == matchKeys && same != nil {
+			if err := updateWidget(q, same, item, config, connIDs); err != nil {
+				return nil, err
+			}
+			touched.widgets[same.ID] = true
+			report.Widgets++
+			continue
+		}
 		config, err := util.SealSecrets(config, nil)
 		if err != nil {
 			return nil, err
@@ -531,9 +601,32 @@ func importWidgets(q db.Queryer, spaceID int64, items []map[string]any, connIDs 
 			return nil, err
 		}
 		keys[key], keys[unique], taken[unique] = w.ID, w.ID, true
+		touched.widgets[w.ID] = true
 		report.Widgets++
 	}
 	return keys, nil
+}
+
+// updateWidget writes an imported tile over the space's tile of the same
+// key, keeping its id and the secrets the export left out.
+func updateWidget(q db.Queryer, w *model.Widget, item, config map[string]any, connIDs map[string]int64) error {
+	sealed, err := util.SealSecrets(config, w.Config)
+	if err != nil {
+		return err
+	}
+	w.Type, w.Title, w.Config = str(item, "type"), str(item, "title"), sealed
+	w.ConnectionID = nil
+	if id, ok := connIDs[str(item, "connection")]; ok {
+		w.ConnectionID = &id
+	}
+	w.MinTeamRole = nil
+	if role := str(item, "min_team_role"); role != "" {
+		r := enums.TeamRole(role)
+		w.MinTeamRole = &r
+	}
+	w.Version++
+	w.UpdatedAt = time.Now().UTC()
+	return content.UpdateWidget(q, w)
 }
 
 // resolveRef finds a board's widget reference: a local key, or
@@ -573,14 +666,16 @@ func resolveRef(q db.Queryer, who *access.Principal, ref string, local map[strin
 	return w.ID, true, nil
 }
 
-func importBoard(q db.Queryer, who *access.Principal, spaceID int64, item map[string]any, keys map[string]int64, report *Report) error {
+func importBoard(q db.Queryer, who *access.Principal, spaceID int64, item map[string]any, keys map[string]int64, report *Report, match Matching, touched *kept) error {
 	existing, err := content.Boards(q, []int64{spaceID})
 	if err != nil {
 		return err
 	}
 	taken := map[string]bool{}
+	bySlug := map[string]*model.Board{}
 	for _, b := range existing {
 		taken[b.Slug] = true
+		bySlug[b.Slug] = b
 	}
 	name := str(item, "name")
 	if name == "" {
@@ -590,14 +685,37 @@ func importBoard(q db.Queryer, who *access.Principal, spaceID int64, item map[st
 	if slugBase == "" {
 		slugBase = name
 	}
-	board := &model.Board{SpaceID: spaceID, Slug: util.Unique(util.Slug(slugBase, "board"), taken), Name: name,
-		Position: len(taken), Layout: enums.BoardLayout(str(item, "layout")), Version: 1, UpdatedAt: time.Now().UTC()}
-	if board.Layout != enums.LayoutMasonry {
-		board.Layout = enums.LayoutGrid
+	layout := enums.BoardLayout(str(item, "layout"))
+	if layout != enums.LayoutMasonry {
+		layout = enums.LayoutGrid
 	}
-	if err := content.AddBoard(q, board); err != nil {
-		return err
+	slug := util.Slug(slugBase, "board")
+	board := bySlug[slug]
+	if match == matchKeys && board != nil && !touched.boards[board.ID] {
+		// The same board: new name and layout, its sections built anew.
+		full, err := content.Board(q, board.ID)
+		if err != nil {
+			return err
+		}
+		for _, sec := range full.Sections {
+			if err := content.RemoveSection(q, sec.ID); err != nil {
+				return err
+			}
+		}
+		board = full
+		board.Name, board.Layout, board.UpdatedAt = name, layout, time.Now().UTC()
+		board.Version++
+		if err := content.UpdateBoard(q, board); err != nil {
+			return err
+		}
+	} else {
+		board = &model.Board{SpaceID: spaceID, Slug: util.Unique(slug, taken), Name: name,
+			Position: len(taken), Layout: layout, Version: 1, UpdatedAt: time.Now().UTC()}
+		if err := content.AddBoard(q, board); err != nil {
+			return err
+		}
 	}
+	touched.boards[board.ID] = true
 
 	for index, raw := range list(item, "sections") {
 		sec := &model.Section{BoardID: board.ID, Title: str(raw, "title"), Position: index,
@@ -682,7 +800,27 @@ func ExportBoard(d *sql.DB, who *access.Principal, boardID int64) (string, error
 		for _, sp := range all {
 			spaces[sp.ID] = sp
 		}
-		doc = map[string]any{"boards": []any{boardDoc(board, spaces)}}
+		// The board's own tiles travel with it; an import elsewhere would
+		// find none of them by key.
+		conns, err := content.Connections(tx, []int64{board.SpaceID})
+		if err != nil {
+			return err
+		}
+		connKeys := map[int64]string{}
+		for _, c := range conns {
+			connKeys[c.ID] = c.Key
+		}
+		widgetDocs, seen := []any{}, map[int64]bool{}
+		for _, sec := range board.Sections {
+			for _, p := range sec.Placements {
+				if p.Widget == nil || p.Widget.SpaceID != board.SpaceID || seen[p.Widget.ID] {
+					continue
+				}
+				seen[p.Widget.ID] = true
+				widgetDocs = append(widgetDocs, widgetDoc(p.Widget, connKeys))
+			}
+		}
+		doc = map[string]any{"widgets": widgetDocs, "boards": []any{boardDoc(board, spaces)}}
 		return nil
 	})
 	if err != nil {

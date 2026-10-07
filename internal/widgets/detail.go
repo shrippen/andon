@@ -45,6 +45,24 @@ type DetailHead struct {
 	StateKey  string
 	StateArgs map[string]any // catalog parameters of StateKey ({"n": 3})
 	Actions   []DetailAction
+	// Zone is the time zone of the dialog's times of day (IANA name,
+	// "Local" for the server's); the dialog names it where the browser
+	// is in another one. "" = no times.
+	Zone string
+}
+
+// zoned marks a dialog's times as being in loc.
+func zoned(v DetailView, loc *time.Location) DetailView {
+	v.Head.Zone = loc.String()
+	return v
+}
+
+// todayZone is the today tile's own time zone, UTC if unknown.
+func todayZone(cfg TodayConfig) *time.Location {
+	if loc, err := time.LoadLocation(cfg.Timezone); err == nil {
+		return loc
+	}
+	return time.UTC
 }
 
 // DetailAction is a button in the head: a link (Href) or a forced refresh

@@ -118,6 +118,30 @@ action:
   open_in_glances: 'In Glances öffnen'
   open_in_docker: 'Docker öffnen'
   more: 'Weitere Aktionen'
+error_page:
+  back: Zurück
+  home: Zur Startseite
+  '400':
+    title: Anfrage nicht ausgeführt
+    lead: Andon konnte das nicht ausführen. Geh zurück, deine Eingabe steht noch im Formular.
+  '403':
+    title: Kein Zugriff
+    lead: Dafür fehlt dir die Berechtigung, oder die Seite war zu lange offen. Geh zurück und lade die Seite neu.
+  '404':
+    title: Nicht gefunden
+    lead: Diese Seite gibt es nicht (mehr). Vielleicht wurde sie gelöscht oder die Adresse ist falsch.
+  '405':
+    title: Adresse nicht direkt aufrufbar
+    lead: Diese Adresse nimmt nur ein abgeschicktes Formular an, etwa nach Neuladen. Öffne die Seite über die Navigation.
+  '409':
+    title: Inzwischen geändert
+    lead: Jemand hat das gespeichert, während du es bearbeitet hast. Geh zurück, deine Eingabe steht noch im Formular. Kopiere sie, lade die Seite neu und trage sie in die aktuelle Fassung ein.
+  '500':
+    title: Fehler in Andon
+    lead: Das hat nicht geklappt. Der Fehler steht im Protokoll des Servers. Versuch es später noch einmal.
+  other:
+    title: Fehler
+    lead: Das hat nicht geklappt.
 error:
   invalid_setting: 'Ungültiger Wert.'
   csrf: Die Anfrage war abgelaufen. Bitte Seite neu laden.
@@ -180,6 +204,7 @@ oidc:
   sub_taken: Dieses authentik-Konto ist bereits mit einem anderen Benutzer verknüpft.
   unreachable: Identity Provider nicht erreichbar.
 board:
+  name_taken: "Ein anderes Board in diesem Bereich heißt schon so."
   delete_hint: 'Das Board verschwindet für alle. Die Kacheln bleiben in der Bibliothek.'
   kiosk: Wandanzeige
   kiosk_hint: Vollbild, wechselt jede Minute das Board, 22–7 Uhr gedimmt. Parameter every und dim in der Adresse anpassbar.
@@ -1124,7 +1149,9 @@ widget:
   bad_window: 'Wartungsfenster nicht lesbar: z. B. 22:00-06:00 oder 22-6.'
   bad_timezone: 'Unbekannte Zeitzone: z. B. Europe/Berlin.'
   field_required: Bitte alle Pflichtfelder ausfüllen.
-  delete_hint: 'Die Kachel verschwindet von allen Boards, auf denen sie steht.'
+  delete_hint: 'Die Kachel verschwindet von allen {count} Boards, auf denen sie steht. Rückgängig auf einem Board holt sie dorthin zurück.'
+  delete_hint_unused: 'Die Kachel steht auf keinem Board und verschwindet aus der Bibliothek.'
+  delete_hint_singular: 'Die Kachel verschwindet von dem Board, auf dem sie steht. Rückgängig auf dem Board holt sie zurück.'
   pending: Wird beim nächsten Prüflauf geladen …
   loading: lädt …
   error: Fehler
@@ -1172,6 +1199,12 @@ sys:
   swap: Swap
   load: Last (5 min)
 hints:
+  handled_title: 'Von dir erledigt oder pausiert'
+  handled_acknowledged: 'erledigt {when}'
+  handled_snoozed: 'pausiert {when}'
+  handled_none: 'Nichts zur Seite gelegt.'
+  reopen: 'Wieder öffnen'
+  done_lead: 'Was du in den letzten {days} Tagen erledigt oder pausiert hast, und was sich von selbst gelöst hat.'
   bulk_ack: 'Alle {n} erledigt'
   bulk_snooze: 'Alle 7 Tage pausieren'
   filter: Filter
@@ -1821,7 +1854,8 @@ security:
   new: Neues Passwort
   totp: Zweiter Faktor (TOTP)
   enable: Einrichten
-  scan: Code mit der Authenticator-App scannen und den ersten Code eingeben.
+  scan: QR-Code mit der Authenticator-App scannen (oder das Geheimnis eintippen) und den ersten Code eingeben.
+  qr_alt: QR-Code für die Authenticator-App
   confirm: Bestätigen
   active: aktiv
   disable: Deaktivieren
@@ -1887,7 +1921,10 @@ admin:
   login: Letzte Anmeldung
   invite: Einladen
   send_invite: Einladung senden
-  invite_sent: 'Einladung erstellt. Link (auch per E-Mail verschickt, falls SMTP eingerichtet):'
+  invite_sent: 'Einladung erstellt. Den Link jetzt kopieren, er wird nicht wieder angezeigt.'
+  invite_mail_sent: 'Per E-Mail ging er an die Adresse.'
+  invite_mail_failed: 'Die E-Mail ging nicht raus (SMTP antwortet nicht, Details im Log unter Admin → Betrieb): bitte den Link selbst weitergeben.'
+  invite_mail_off: 'Ohne SMTP geht keine E-Mail raus: bitte den Link selbst weitergeben.'
   reset: Reset-Link
   reset_link: 'Reset-Link (48 h gültig):'
   activate: Aktivieren
@@ -1949,6 +1986,7 @@ teams:
   none: Keine Teams.
   new: Name des neuen Teams
 team:
+  last_owner: 'Das Team braucht einen Owner: erst einen anderen Owner bestimmen.'
   name_missing: Name fehlt.
   name_taken: Name bereits vergeben.
   not_found: Team nicht gefunden.
@@ -1980,7 +2018,7 @@ theme:
   none: – keins –
   default: Standard
   not_usable: Dieses Theme steht dir nicht zur Verfügung.
-  bad_value: Ungültiger Token-Wert.
+  bad_value: "Ungültiger Wert für {token}: erlaubt sind Farben, Längen, Zahlen und Schriftnamen, kein url(), @import oder Backslash."
   builtin: Mitgelieferte Themes sind schreibgeschützt.
   css_invalid: CSS ungültig oder zu lang.
   zip_invalid: ZIP-Datei ungültig.
@@ -3430,6 +3468,7 @@ param:
   bundle_from: 'Ab so vielen Rechnungen je Kunde bündeln (0 = nie)'
   exclude: 'Ausnehmen (Namen, * als Platzhalter, mit Komma)'
 settings:
+  bad_network: 'Ein Netz ist keine gültige CIDR-Angabe, z. B. 192.168.10.0/24.'
   travel: Fahrten
   travel_base: Startpunkt beruflicher Fahrten
   travel_base_home: Zuhause ist Betriebsstätte (kein Arbeitsweg)
@@ -3752,6 +3791,8 @@ billing:
 mailfwd:
   no_paperless: Im Bereich des Postfachs gibt es keine Paperless-Verbindung.
   no_files: Die Mail hat keine PDF- oder Bilddatei.
+  no_login: 'Für {name} fehlt dein persönlicher Zugang.'
+  demo: 'Demo-Verbindungen nehmen keine Änderungen an.'
 palette:
   open: Suchen
   title: Befehlspalette
@@ -3776,6 +3817,7 @@ keys:
   shift_click: Umschalt + Rechtsklick
   context: Browser-Menü statt Kachel-Menü
 detail:
+  zone_note: 'Uhrzeiten in {zone}'
   csv: 'CSV'
   api:
     answer: 'Antwort'
@@ -5523,6 +5565,9 @@ sites:
   bad: 'Ein neuer Ort braucht Name und Position.'
   unknown_ride: 'Diese Fahrt gibt es nicht mehr.'
   bad_class: 'Unbekannte Art einer Fahrt.'
+  demo: 'Demo-Verbindungen nehmen keine Änderungen an.'
+  dawarich_failed: 'Dawarich war nicht erreichbar oder hat den Ort abgelehnt.'
+  kimai_failed: 'Kimai war nicht erreichbar oder hat den Ort abgelehnt.'
 places:
   unknown: 'Unbekannter Ort'
   none: 'Heute noch keine Orte.'
@@ -5660,6 +5705,8 @@ audit_action:
     done: 'Passwort zurückgesetzt'
     requested: 'Passwort-Rücksetzung angefordert'
   settings:
+    map: 'Kartendienst geändert'
+    server: 'Servereinstellungen geändert'
     dawarich_shared: 'Dawarich-Freigabe geändert'
     iframe: 'Iframe-Ziele geändert'
     network: 'Netzwerk-Einstellungen geändert'

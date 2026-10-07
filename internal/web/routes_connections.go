@@ -163,9 +163,26 @@ func (d Deps) handleConnectionNewForm(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 	spaces := access.EditableSpaces(ctx.Who)
+	chosen := formID(r, "space")
 	_ = d.Page(w, ctx, "connection_form", http.StatusOK, map[string]any{
-		"Spaces": spaces, "Services": serviceOptions, "IsNew": true, "Service": service, "Space": formID(r, "space"),
+		"Spaces": spaces, "Services": serviceOptions, "IsNew": true, "Service": service, "Space": chosen,
+		"Fixed": startsFixed(service, spaces, chosen),
 	})
+}
+
+// startsFixed tells whether a new connection's form offers a fixed login
+// first: in the personal space (there "template" means only oneself) and
+// for calendars (most feeds are public, no login per person).
+func startsFixed(service enums.ServiceType, spaces []access.SpaceRef, chosen int64) bool {
+	if credShapeOf(service) == credICal {
+		return true
+	}
+	for i, sp := range spaces {
+		if sp.ID == chosen || (chosen == 0 && i == 0) {
+			return sp.Kind == enums.SpacePersonal
+		}
+	}
+	return false
 }
 
 // widgetsFor lists the widget types that show a service's data.
@@ -204,7 +221,7 @@ func (d Deps) handleConnectionCreate(w http.ResponseWriter, r *http.Request, ctx
 	if err != nil {
 		_ = d.Page(w, ctx, "connection_form", http.StatusBadRequest, map[string]any{
 			"Spaces": access.EditableSpaces(ctx.Who), "Services": serviceOptions, "IsNew": true, "Error": err.Error(),
-			"Service": service,
+			"Service": service, "Space": spaceID, "Fixed": mode == enums.CredentialShared,
 		})
 		return
 	}

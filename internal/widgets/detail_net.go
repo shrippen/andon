@@ -209,7 +209,7 @@ func speedDetail(_ SpeedConfig, data *sources.SpeedtestDataset, ctx ViewCtx, res
 		body.Blocks = append(body.Blocks, speedResultBlocks(more.List, data, contractShare(ctx), todayOf(ctx))...)
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, time.Local)
 }
 
 func speedTier(got, want, share float64) string {
@@ -266,7 +266,7 @@ func speedHistoryDetail(cfg SpeedHistoryConfig, results map[string]any, ctx View
 			body.Blocks = append(body.Blocks, Block{Kind: BlockHeat, Label: T("detail.speed.by_hour"), Meta: Txt("detail.speed.by_hour_scale"), Data: heat})
 		}
 	}
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, time.Local)
 }
 
 // tailscaleDetail (grid): every device with its state, key and tags.
