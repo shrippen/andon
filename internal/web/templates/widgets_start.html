@@ -98,7 +98,7 @@
 {{with $slot := index .Frag.Slots "ip"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{with $v.IP}}<p class="kpi-value">{{.}}</p>{{end}}
 {{with $v.IPv6}}<p class="small ip6">{{.}}</p>{{end}}
-{{if $v.Changed}}<p class="small warn-text">{{t "ip.changed" "time" ($v.Since.Local.Format "15:04") "prev" $v.Prev}}</p>{{end}}{{end}}
+{{if $v.Changed}}<p class="small warn-text">{{t "ip.changed" "time" ($v.Since.Local.Format "15:04") "prev" $v.Prev}}{{tzMark}}</p>{{end}}{{end}}
 {{end}}
 
 {{define "widgets/image"}}

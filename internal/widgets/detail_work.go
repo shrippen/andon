@@ -320,7 +320,7 @@ func heatmapDetail(cfg HeatConfig, data *sources.KimaiDataset, ctx ViewCtx, _ ma
 		}
 		body.Blocks = append(body.Blocks, Block{Kind: BlockHeat, Label: T("detail.heat.by_hour"), Meta: Txt("detail.heat.by_hour_scale"), Data: hours})
 	}
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, clockZone())
 }
 
 // longDayMin marks a long working day: over ten hours.
@@ -464,7 +464,7 @@ func dawarichDetail(cfg DawarichConfig, data *sources.DawarichDataset, ctx ViewC
 	} else {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("detail.dawarich.none")})
 	}
-	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}, Body: body}
+	return zoned(DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}, Body: body}, time.Local)
 }
 
 // dawarichMap: the day's track (read on open) with the day's visits as

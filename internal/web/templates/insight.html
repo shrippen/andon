@@ -34,7 +34,7 @@
         <ol class="tl-events">
           {{range $e := .Entries}}
           <li data-kind="{{.Kind}}">
-            <time>{{.At.Local.Format "15:04"}}</time>
+            <time>{{.At.Local.Format "15:04"}}{{tzMark}}</time>
             <span class="tl-mark" aria-label="{{t (print "timeline." .Kind)}}">{{if eq .Kind "update"}}↑{{else if eq .Kind "resolved"}}✓{{else}}●{{end}}</span>
             <div class="tl-text">
               {{if .HintID}}<a href="/hints#hint-{{.HintID}}">{{.Subject}}</a>{{else}}<b>{{if gt .Count 1}}{{.Count}} × {{end}}{{.Subject}}</b>{{end}}
@@ -74,7 +74,7 @@
         <tr><th>{{t "col.day"}}</th><th class="num">↓ Mbit/s</th><th class="num">↑ Mbit/s</th><th></th></tr>
         {{range .Days}}<tr><td>{{day .Day}}</td><td class="num">{{num .Down 0}}</td><td class="num">{{num .Up 0}}</td><td>{{if .Below}}<span class="late">{{t "isp.below"}}</span>{{end}}</td></tr>{{end}}
       </table></div>
-      {{with .Outages}}<h3>{{t "isp.outages"}}</h3><ul class="plain-list">{{range .}}<li>{{.Gateway}}: {{day .Start}} {{.Start.Local.Format "15:04"}} – {{if .End.IsZero}}{{t "isp.ongoing"}}{{else}}{{.End.Local.Format "15:04"}}{{end}}</li>{{end}}</ul>{{end}}
+      {{with .Outages}}<h3>{{t "isp.outages"}}</h3><ul class="plain-list">{{range .}}<li>{{.Gateway}}: {{day .Start}} {{.Start.Local.Format "15:04"}} – {{if .End.IsZero}}{{t "isp.ongoing"}}{{else}}{{.End.Local.Format "15:04"}}{{end}}{{tzMark}}</li>{{end}}</ul>{{end}}
     </section>
     {{else}}<p class="muted">{{t "isp.none"}}</p>{{end}}
     {{if .Reports}}<p><a class="btn btn-outline btn-sm" href="/reports/isp.csv">{{t "isp.csv"}}</a></p>{{end}}

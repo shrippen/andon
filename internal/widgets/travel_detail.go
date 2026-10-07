@@ -91,7 +91,7 @@ func travelDetail(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, 
 	body.Blocks = append(body.Blocks, travelTables(period, names, booked, rate)...)
 	body.Blocks = append(body.Blocks, travelFacts(period, kimai, set, results, start)...)
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, time.Local)
 }
 
 // rideList is the period's rides, newest first, and the picked one in

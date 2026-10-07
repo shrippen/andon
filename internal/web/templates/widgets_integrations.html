@@ -117,7 +117,7 @@
   {{with $v.NowX}}<line class="now" x1="{{.}}" y1="0" x2="{{.}}" y2="{{$v.H}}"/>{{end}}
 </svg>
 <p class="legend"><span><i class="window"></i>{{t "energy.cheap_band"}}</span><span><i class="now"></i>{{t "energy.now_line"}}</span></p>{{end}}
-{{with $v.CheapStart}}<p class="small">{{t "energy.cheap" "hours" $v.CheapHours "time" (print (day .) " " (.Local.Format "15:04")) "price" (money $v.CheapAvg $v.Data.Currency)}}</p>{{end}}
+{{with $v.CheapStart}}<p class="small">{{t "energy.cheap" "hours" $v.CheapHours "time" (print (day .) " " (.Local.Format "15:04")) "price" (money $v.CheapAvg $v.Data.Currency)}}{{tzMark}}</p>{{end}}
 {{if $v.Days}}<p class="small muted">{{t "energy.cost" "days" $v.Days "cost" (money $v.Cost .Currency)}} · {{num $v.KWh 0}} kWh</p>{{end}}
 {{end}}{{end}}
 {{end}}

@@ -476,7 +476,7 @@ func todayDetail(cfg TodayConfig, results map[string]any, ctx ViewCtx) DetailVie
 	} else {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockText, Data: Txt("today.empty")})
 	}
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, todayZone(cfg))
 }
 
 // eventColour is an appointment's colour in the day strip.
@@ -687,7 +687,7 @@ func calendarDetail(cfg CalendarConfig, results map[string]any, ctx ViewCtx) Det
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.calendar.unbooked"), Meta: TxtA("detail.calendar.unbooked_note", "n", metrics.UnbookedDays),
 			Data: Table{Head: []Text{T("detail.calendar.date"), T("detail.calendar.time"), T("detail.calendar.title")}, Rows: rows}})
 	}
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, clockZone())
 }
 
 // clockDetail: every zone with its offset and whether it is working time.

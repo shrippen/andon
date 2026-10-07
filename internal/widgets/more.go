@@ -338,7 +338,7 @@ func calendarView(cfg CalendarConfig, results map[string]any, _ ViewCtx) map[str
 		return map[string]any{}
 	}
 	sort.SliceStable(rows, func(a, b int) bool { return rows[a].at.Before(rows[b].at) })
-	return map[string]any{"Rows": firstN(rows, cfg.Limit)}
+	return map[string]any{"Rows": firstN(rows, cfg.Limit), "Zone": zone.String()}
 }
 
 const isoDate = "2006-01-02"
@@ -497,7 +497,7 @@ func boardView(limit int, data *sources.BoardResult) map[string]any {
 		rows = append(rows, MoveRow{Time: m.When.In(zone).Format(timeOfDay), Line: m.Line, Place: m.Place,
 			Status: m.Status, Platform: m.Platform, Delay: m.Delay, Canceled: m.Canceled, Remarks: m.Remarks})
 	}
-	return map[string]any{"Stop": data.Stop, "Rows": rows}
+	return map[string]any{"Stop": data.Stop, "Rows": rows, "Zone": zone.String()}
 }
 
 func flightsView(cfg FlightsConfig, results map[string]any, _ ViewCtx) map[string]any {

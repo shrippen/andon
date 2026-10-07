@@ -3816,6 +3816,7 @@ keys:
   shift_click: Shift + right click
   context: Browser menu instead of the tile menu
 detail:
+  zone_note: 'Times in {zone}'
   csv: 'CSV'
   api:
     answer: 'Answer'

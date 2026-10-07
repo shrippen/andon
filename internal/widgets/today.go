@@ -133,7 +133,7 @@ func todayView(cfg TodayConfig, results map[string]any, ctx ViewCtx) map[string]
 				Left: int(dl.Due.Sub(todayOf(ctx)).Hours() / hoursPerDay)})
 		}
 	}
-	return map[string]any{"Items": items, "Now": clock(now)}
+	return map[string]any{"Items": items, "Now": clock(now), "Zone": loc.String()}
 }
 
 func init() {

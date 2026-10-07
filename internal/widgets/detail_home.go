@@ -48,7 +48,7 @@ func dwdDetail(cfg DWDConfig, data *sources.DWDDataset, _ ViewCtx, results map[s
 	head := DetailHead{State: "ok", StateKey: "detail.dwd.calm", Actions: []DetailAction{{LabelKey: "detail.open_in", Href: data.URL, Primary: true}}}
 	if len(events) == 0 {
 		body.Blocks = append([]Block{{Kind: BlockText, Data: Txt("detail.dwd.none")}}, hintsBlock(results)...)
-		return DetailView{Head: head, Body: body}
+		return zoned(DetailView{Head: head, Body: body}, clockZone())
 	}
 	head.State, head.StateKey = stateIf(worst > 1, "warn"), "detail.dwd.active"
 	if head.State == "" {
@@ -69,7 +69,7 @@ func dwdDetail(cfg DWDConfig, data *sources.DWDDataset, _ ViewCtx, results map[s
 		body.Blocks = append(body.Blocks, Block{Kind: BlockRead, Data: read})
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
-	return DetailView{Head: head, Body: body}
+	return zoned(DetailView{Head: head, Body: body}, clockZone())
 }
 
 // energyMonths: consumption of the last twelve months against the year
@@ -97,7 +97,7 @@ const monthTick = "01/06"
 func energyDetail(cfg EnergyConfig, results map[string]any, _ ViewCtx) DetailView {
 	raw, ok := results["data"].(*sources.TibberDataset)
 	if !ok {
-		return DetailView{Body: &DetailBody{Blocks: hintsBlock(results)}}
+		return zoned(DetailView{Body: &DetailBody{Blocks: hintsBlock(results)}}, clockZone())
 	}
 	now := time.Now()
 	data := energyPrices(raw, cfg, now)
@@ -136,7 +136,7 @@ func energyDetail(cfg EnergyConfig, results map[string]any, _ ViewCtx) DetailVie
 		body.Blocks = append(body.Blocks, b)
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
-	return DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: raw.URL, Primary: true}}}, Body: body}
+	return zoned(DetailView{Head: DetailHead{Actions: []DetailAction{{LabelKey: "detail.open_in", Href: raw.URL, Primary: true}}}, Body: body}, clockZone())
 }
 
 // byTotal orders prices.
@@ -276,7 +276,7 @@ func hassDetail(cfg HassConfig, data *sources.HassDataset, ctx ViewCtx, results 
 	if trouble > 0 {
 		head.State, head.StateKey, head.StateArgs = "warn", "detail.hass.trouble", map[string]any{"n": trouble}
 	}
-	return DetailView{Head: head, Body: body}
+	return zoned(DetailView{Head: head, Body: body}, clockZone())
 }
 
 // tandoorDetail (tasks): the shopping list by aisle, each entry checked
@@ -425,7 +425,7 @@ func weatherDetail(cfg WeatherConfig, results map[string]any, ctx ViewCtx) Detai
 	view := weatherView(cfg, results, ctx)
 	data, ok := results["weather"].(*sources.WeatherResult)
 	if !ok || data == nil {
-		return DetailView{Body: &DetailBody{Blocks: []Block{{Kind: BlockText, Data: Txt("detail.weather.none")}}}}
+		return zoned(DetailView{Body: &DetailBody{Blocks: []Block{{Kind: BlockText, Data: Txt("detail.weather.none")}}}}, clockZone())
 	}
 	unit := "°C"
 	conv := func(c float64) float64 { return c }
@@ -483,7 +483,7 @@ func weatherDetail(cfg WeatherConfig, results map[string]any, ctx ViewCtx) Detai
 			Data: Table{Head: []Text{T("detail.weather.day"), T("detail.weather.sky"), T("detail.weather.max"), T("detail.weather.min"), T("detail.weather.gusts_col"), T("detail.weather.sun_col")},
 				Rows: days, Num: []int{2, 3, 4}}})
 	}
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, clockZone())
 }
 
 // marketLines draws price lines on one scale: each starts at 100.
@@ -630,7 +630,7 @@ func flightsDetail(cfg FlightsConfig, results map[string]any, ctx ViewCtx) Detai
 	body := &DetailBody{Side: []Fact{{Label: T("detail.board.airport"), Value: cfg.Airport}, {Label: T("detail.board.direction"), Value: Txt("detail.board." + strings.ToLower(cfg.Direction))}},
 		Facts:  []Kpi{{Value: len(rows), Label: T("detail.board.flights")}, {Value: canceled, Label: T("detail.board.canceled"), Tier: tierIf(canceled > 0, "red", "")}},
 		Blocks: []Block{boardTable(rows, T("detail.board.flights"))}}
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, clockZone())
 }
 
 // transitDetail (time): the departures and when to leave for the first.
@@ -656,7 +656,7 @@ func transitDetail(cfg TransitConfig, results map[string]any, ctx ViewCtx) Detai
 	}
 	if len(rows) == 0 {
 		body.Blocks = []Block{{Kind: BlockText, Data: Txt("detail.board.none")}}
-		return DetailView{Body: body}
+		return zoned(DetailView{Body: body}, clockZone())
 	}
 	body.Facts = append(body.Facts, Kpi{Value: delayed, Label: T("detail.board.delayed"), Tier: tierIf(delayed > 0, "yellow", "")})
 	body.Blocks = []Block{boardTable(rows, T("detail.board.departures"))}
@@ -681,7 +681,7 @@ func transitDetail(cfg TransitConfig, results map[string]any, ctx ViewCtx) Detai
 	if len(notes) > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockRows, Label: T("detail.board.remarks"), Data: notes})
 	}
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, clockZone())
 }
 
 // holidaysDetail (grid): half a year as weeks with holidays and bridge

@@ -855,6 +855,7 @@
     dlg.innerHTML = html;
     applyStyles(dlg);
     mountMaps(dlg);
+    showZones(dlg);
     if (window.htmx) {
       htmx.process(dlg);
     }
@@ -1074,6 +1075,7 @@
         dlg.innerHTML = html;
         applyStyles(dlg);
         mountMaps(dlg);
+        showZones(dlg);
       });
   }
 
@@ -1128,6 +1130,7 @@
           dlg.innerHTML = html;
           applyStyles(dlg);
           mountMaps(dlg);
+          showZones(dlg);
         });
     }, true);
     d.addEventListener("auxclick", countClick, true);

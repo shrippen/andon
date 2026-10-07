@@ -208,11 +208,11 @@
 {{with $v := .Frag.View}}{{if $v.Items}}
 <ol class="day-line">
   {{range $v.Items}}<li data-kind="{{.Kind}}"{{if .Past}} class="is-past"{{end}}{{if .Now}} class="is-now"{{end}}>
-    <span class="day-at">{{if eq .Kind "deadline"}}{{.Left}} {{t "deadline.days_short"}}{{else if .At}}{{.At}}{{else}}{{t "today.all_day"}}{{end}}</span>
+    <span class="day-at">{{if eq .Kind "deadline"}}{{.Left}} {{t "deadline.days_short"}}{{else if .At}}{{.At}}{{tzMark $v.Zone}}{{else}}{{t "today.all_day"}}{{end}}</span>
     <i aria-hidden="true"></i>
     <span>{{if eq .Kind "timer"}}{{t "today.timer" "what" .Text}}{{else if eq .Kind "deadline"}}{{if eq .Deadline "vat_return"}}{{t "deadline.vat_return" "period" .Period}}{{else if eq .Deadline "prepayment"}}{{t "deadline.prepayment"}}{{else}}{{t "deadline.annual" "year" .Year}}{{end}}{{else}}{{.Text}}{{end}}</span></li>{{end}}
 </ol>
-<p class="tile-foot"><span>{{t "today.now" "time" $v.Now}}</span></p>
+<p class="tile-foot"><span>{{t "today.now" "time" $v.Now}}{{tzMark $v.Zone}}</span></p>
 {{else}}<p class="slot-note">{{t "today.empty"}}</p>{{end}}{{end}}
 {{end}}
 
@@ -267,4 +267,4 @@
 
 {{/* tz_mark: the server's zone after a time it formatted, hidden; andon.js
      shows it where the browser's zone differs ("since 12:26 UTC"). */}}
-{{define "tz_mark"}}{{with serverZone}}<span class="tz-mark" data-offset="{{.Offset}}" hidden> {{.Name}}</span>{{end}}{{end}}
+{{define "tz_mark"}}{{tzMark}}{{end}}

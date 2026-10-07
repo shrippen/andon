@@ -17,6 +17,7 @@
   <div class="detail-name">
     <h3 id="detail-title">{{$title}}</h3>
     {{with $h.Sub}}<span class="detail-sub">{{.}}</span>{{end}}
+    {{with $h.Zone}}{{$z := zoneOf .}}<span class="detail-sub tz-mark" data-offset="{{$z.Offset}}" hidden>{{t "detail.zone_note" "zone" $z.Name}}</span>{{end}}
   </div>
   {{with $h.State}}<span class="launch-state" data-state="{{.}}">{{tt $h.StateKey $h.StateArgs}}</span>{{end}}
   {{range $h.Actions}}

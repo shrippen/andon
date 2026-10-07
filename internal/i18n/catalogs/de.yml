@@ -3817,6 +3817,7 @@ keys:
   shift_click: Umschalt + Rechtsklick
   context: Browser-Menü statt Kachel-Menü
 detail:
+  zone_note: 'Uhrzeiten in {zone}'
   csv: 'CSV'
   api:
     answer: 'Antwort'

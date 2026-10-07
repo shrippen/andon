@@ -22,6 +22,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/i18n"
 	"andon/internal/services/access"
+	"andon/internal/services/notify"
 	"andon/internal/services/onboarding"
 	"andon/internal/services/themes"
 )
@@ -111,6 +112,9 @@ func mustParse() *template.Template {
 		"weatherKind": widgets.WeatherKind,
 		"json":        toJSON,
 		"serverZone":  serverZone,
+		"zoneOf":      zoneOf,
+		"tzMark":      tzMark,
+		"notifyZone":  func() string { return notify.Zone },
 		"clockNow":    func(tz string) string { return clockNow(tz, clockMinutes) },
 		"clockNowSec": func(tz string) string { return clockNow(tz, clockSeconds) },
 		// clockShow is a clock tile's time: 12 or 24 hours, with or without seconds.
@@ -212,12 +216,30 @@ type Zone struct {
 	Offset int
 }
 
-func serverZone() Zone {
-	name, offset := time.Now().Zone()
+func serverZone() Zone { return zoneOf() }
+
+// zoneOf is a zone by IANA name now: the server's without a name or for
+// "Local", the server's too for an unknown name.
+func zoneOf(names ...string) Zone {
+	loc := time.Local
+	if len(names) > 0 && names[0] != "" && names[0] != "Local" {
+		if l, err := time.LoadLocation(names[0]); err == nil {
+			loc = l
+		}
+	}
+	name, offset := time.Now().In(loc).Zone()
 	if strings.HasPrefix(name, "+") || strings.HasPrefix(name, "-") {
 		name = "UTC" + name // zones without an abbreviation: "+0530"
 	}
 	return Zone{Name: name, Offset: offset / 60}
+}
+
+// tzMark follows a time of day the server formatted: its zone, hidden;
+// andon.js shows it where the browser's zone differs. Without a name the
+// server's zone, else the named one (a tile's own time zone).
+func tzMark(names ...string) template.HTML {
+	z := zoneOf(names...)
+	return template.HTML(`<span class="tz-mark" data-offset="` + strconv.Itoa(z.Offset) + `" hidden> ` + template.HTMLEscapeString(z.Name) + `</span>`)
 }
 
 // Clock layouts: with or without seconds.
