@@ -47,6 +47,7 @@
         </form>
       {{else if .TOTPSecret}}
         <p class="muted">{{t "security.scan"}}</p>
+        {{with .TOTPQR}}<p><img src="{{.}}" width="200" height="200" alt="{{t "security.qr_alt"}}"></p>{{end}}
         <p class="mono">{{.TOTPSecret}}</p>
         <p class="small muted"><code>{{.TOTPURI}}</code></p>
         <form method="post" action="/me/security/totp/confirm">

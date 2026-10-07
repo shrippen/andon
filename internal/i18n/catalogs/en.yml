@@ -1827,7 +1827,8 @@ security:
   new: New password
   totp: Second factor (TOTP)
   enable: Set up
-  scan: Scan the code with your authenticator app and enter the first code.
+  scan: Scan the QR code with your authenticator app (or type the secret) and enter the first code.
+  qr_alt: QR code for the authenticator app
   confirm: Confirm
   active: active
   disable: Disable
