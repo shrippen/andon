@@ -6282,13 +6282,19 @@
   ]
  },
  "backup_server": {
-  "note": "Proxmox Backup Server on the NAS: VM 101 (Home Assistant) has not been backed up for nine days, container 105 was deleted in Proxmox but its backups remain, the last verify of the store found a missing chunk.",
+  "note": "Proxmox Backup Server on the NAS: VM 101 (Home Assistant) has not been backed up for nine days, container 105 was deleted in Proxmox but its backups remain, the last verify of the store found a missing chunk. The archive store sits on the NAS pool tank (option pools): PBS sees it at 39 %, the pool is 88 % full.",
   "url": "https://pbs.demo:8007",
   "datastores": [
    {
     "store": "nebelhorn",
     "total": 2000000000000,
     "used": 1840000000000
+   },
+   {
+    "store": "archiv",
+    "pool": "tank",
+    "total": 3100000000000,
+    "used": 1200000000000
    }
   ],
   "groups": [
@@ -6315,6 +6321,13 @@
     "comment": "render-test",
     "last": "@-40d",
     "count": 8
+   },
+   {
+    "store": "archiv",
+    "type": "host",
+    "id": "nas-config",
+    "last": "@-22h",
+    "count": 30
    }
   ],
   "verify": [

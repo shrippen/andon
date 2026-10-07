@@ -6,6 +6,7 @@ package widgets
 import (
 	"cmp"
 	"fmt"
+	"math"
 	"net/url"
 	"sort"
 	"strings"
@@ -131,6 +132,9 @@ func backupsDetail(cfg BackupsConfig, results map[string]any, ctx ViewCtx) Detai
 				Head: []Text{T("detail.backups.client"), T("detail.backups.repo_size"), textArgs("detail.backups.change", "n", backupDetailDays), T("detail.backups.last_archive"), T("detail.backups.duration")},
 				Rows: sizes, Num: []int{1, 2, 3, 4}}})
 		}
+	}
+	if pbs, _ := results[string(enums.ServicePBS)].(*sources.PBSDataset); pbs != nil && len(pbs.Stores) > 0 {
+		body.Blocks = append(body.Blocks, pbsStores(pbs, nas))
 	}
 	if tasks := restoreTasks(results, h, now); tasks.Total > 0 {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTasks, Data: tasks})
@@ -1363,4 +1367,32 @@ func firstValue(series []float64) float64 {
 		}
 	}
 	return 0
+}
+
+// pbsStores is PBS's datastores with their fill and, where the option
+// pools names it, the TrueNAS pool they live on with its fill.
+func pbsStores(pbs *sources.PBSDataset, nas *sources.TrueNASDataset) Block {
+	pools := map[string]metrics.PoolFill{}
+	for _, f := range metrics.PBSPools(pbs, nas) {
+		pools[f.Store] = f
+	}
+
+	var rows [][]Cell
+	for _, s := range pbs.Stores {
+		used := any("–")
+		if s.Total > 0 {
+			used = NumU(math.Round(s.Used/s.Total*percentScale), 0, "%")
+		}
+		pool, poolUsed := any(s.Pool), any("–")
+		if f, ok := pools[s.Store]; ok {
+			pool, poolUsed = f.Pool, NumU(math.Round(f.PoolPct), 0, "%")
+		}
+		if s.Pool == "" {
+			pool = "–"
+		}
+		rows = append(rows, []Cell{{Value: s.Store}, {Value: used}, {Value: pool}, {Value: poolUsed}})
+	}
+	return Block{Kind: BlockTable, Label: T("detail.backups.stores"), Data: Table{
+		Head: []Text{T("detail.backups.store"), T("detail.backups.store_used"), T("detail.backups.pool"), T("detail.backups.pool_used")},
+		Rows: rows, Num: []int{1, 3}}}
 }

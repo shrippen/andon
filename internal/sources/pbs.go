@@ -31,7 +31,12 @@ const (
 type PBSStore struct {
 	Store       string
 	Total, Used float64 // bytes
+	Pool        string  // the TrueNAS pool it lives on (option pools), "" unknown
 }
+
+// pbsPoolsOption names each store's TrueNAS pool: {pools: {archiv: tank}};
+// PBS itself does not know it.
+const pbsPoolsOption = "pools"
 
 // PBSGroup is the backups of one VM, container or host.
 type PBSGroup struct {
@@ -67,6 +72,18 @@ func fetchPBS(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
 		return DemoPBS(time.Now().UTC()), nil
 	}
+	data, err := readPBS(ctx, sctx)
+	if err != nil {
+		return nil, err
+	}
+	pools, _ := sctx.Options[pbsPoolsOption].(map[string]any)
+	for i, s := range data.Stores {
+		data.Stores[i].Pool = strings.TrimSpace(asStr(pools[s.Store]))
+	}
+	return data, nil
+}
+
+func readPBS(ctx context.Context, sctx Ctx) (*PBSDataset, error) {
 	secret, err := needSecret(sctx)
 	if err != nil {
 		return nil, err

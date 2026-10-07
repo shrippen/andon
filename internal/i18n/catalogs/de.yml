@@ -1456,7 +1456,7 @@ conn:
   options_hint_drone: 'URL des Drone-Servers, z. B. https://drone.example.org. Token = persönliches Token (Drone → Benutzereinstellungen). Gelesen werden die aktiven Repos und ihre letzten 10 Builds des Standardzweigs; Pull Requests zählen nicht.'
   about_drone: 'Builds je Repo'
   what_drone: 'Drone ist ein CI-Server: Er baut und testet Repos bei jedem Push.'
-  options_hint_pbs: 'URL des Servers mit Port, z. B. https://pbs.example.lan:8007. Token = API-Token als benutzer@realm!tokenname:geheimnis; die Rolle DatastoreAudit auf / reicht. Gelesen werden Datastores, Sicherungsgruppen und Verify-Läufe.'
+  options_hint_pbs: 'URL des Servers mit Port, z. B. https://pbs.example.lan:8007. Token = API-Token als benutzer@realm!tokenname:geheimnis; die Rolle DatastoreAudit auf / reicht. Gelesen werden Datastores, Sicherungsgruppen und Verify-Läufe. Optionen: pools: {archiv: tank} nennt den TrueNAS-Pool eines Datastores; dann vergleicht Andon die Belegung beider.'
   about_pbs: 'Sicherungen je VM, Verify, Belegung'
   what_pbs: 'Proxmox Backup Server sichert VMs und Container aus Proxmox VE dedupliziert in Datastores.'
   options_hint_kopia: 'URL des Kopia-Servers (kopia server start), z. B. https://kopia.example.lan:51515. Token = benutzer:passwort der Server-Oberfläche (--server-username/--server-password).'
@@ -2581,6 +2581,12 @@ hint:
     pbs_orphan:
       title: '{count} Sicherungsgruppen ohne Gast'
       why: 'Proxmox kennt {ids} nicht mehr; ihre Sicherungen belegen nur noch Platz. Löschen oder bewusst aufheben.'
+    pbs_pool_full:
+      title: 'Pool {pool} ist voll, Datastore {store} nicht'
+      why: 'Der Pool ist zu {pool_pct} % belegt, PBS sieht {store} erst bei {store_pct} %. Läuft der Pool voll, scheitern Sicherungen, bevor PBS warnt. Auf dem Pool aufräumen oder den Datastore umziehen.'
+    pbs_pool_gap:
+      title: 'Pool {pool} voller, als {store} meint'
+      why: 'Der Pool ist zu {pool_pct} % belegt, der Datastore zu {store_pct} %. Andere Datasets teilen sich den Platz, den PBS für frei hält.'
     release_red_ci:
       title: '{repo} {release} bei rotem CI'
       why: 'Das Release erschien am {day}; der letzte Build davor (#{build}) war fehlgeschlagen.'
@@ -3294,6 +3300,7 @@ rule_name:
   pbs.verify_failed: 'Verify fehlgeschlagen'
   pbs.datastore_full: 'Datastore voll'
   cross.pbs_orphan: 'Sicherungen ohne Gast'
+  cross.pbs_pool: 'Datastore gegen TrueNAS-Pool'
   drone.failing: 'Build rot'
   cross.release_red_ci: 'Release bei rotem CI'
   cross.ci_red_deployed: 'Deploy bei rotem CI'
@@ -3539,6 +3546,7 @@ param:
   ignore_names: Ausnehmen (Namensteile)
   per_core: 'Last je Kern'
   percent: 'Prozent'
+  gap: 'Abstand (Prozentpunkte)'
   seconds: 'Sekunden'
   escalate_days: 'Nach Tagen kritisch (0 = nie)'
   offline_days: 'Offline länger als (Tage) ignorieren'
@@ -4770,6 +4778,11 @@ detail:
     restore_task: 'Wiederherstellung von {system} getestet'
     restored: 'Wiederherstellung je Quartal getestet'
     sizes: 'Größe je Client'
+    stores: 'Datastores'
+    store: 'Datastore'
+    store_used: 'belegt'
+    pool: 'TrueNAS-Pool'
+    pool_used: 'Pool belegt'
   disks:
     list: 'Platten'
     state_ok: 'gesund'

@@ -1456,7 +1456,7 @@ conn:
   options_hint_drone: 'URL of the Drone server, e.g. https://drone.example.org. Token = personal token (Drone → user settings). The active repos and the last 10 builds of their default branch are read; pull requests do not count.'
   about_drone: 'Builds per repo'
   what_drone: 'Drone is a CI server: it builds and tests repos on every push.'
-  options_hint_pbs: 'URL of the server with port, e.g. https://pbs.example.lan:8007. Token = API token as user@realm!tokenname:secret; the role DatastoreAudit on / is enough. Datastores, backup groups and verify runs are read.'
+  options_hint_pbs: 'URL of the server with port, e.g. https://pbs.example.lan:8007. Token = API token as user@realm!tokenname:secret; the role DatastoreAudit on / is enough. Datastores, backup groups and verify runs are read. Options: pools: {archiv: tank} names the TrueNAS pool of a datastore; Andon then compares the fill of both.'
   about_pbs: 'Backups of VMs, verify, usage'
   what_pbs: 'Proxmox Backup Server stores deduplicated backups of Proxmox VE guests in datastores.'
   options_hint_kopia: 'URL of the Kopia server (kopia server start), e.g. https://kopia.example.lan:51515. Token = user:password of the server UI (--server-username/--server-password).'
@@ -2581,6 +2581,12 @@ hint:
     pbs_orphan:
       title: '{count} backup groups without a guest'
       why: 'Proxmox no longer has {ids}; their backups only take space. Delete them or keep them on purpose.'
+    pbs_pool_full:
+      title: 'Pool {pool} is full, datastore {store} is not'
+      why: 'The pool is {pool_pct} % used, PBS sees {store} at only {store_pct} %. When the pool runs full, backups fail before PBS warns. Clean up the pool or move the datastore.'
+    pbs_pool_gap:
+      title: 'Pool {pool} fuller than {store} thinks'
+      why: 'The pool is {pool_pct} % used, the datastore {store_pct} %. Other datasets share the space PBS counts as free.'
     release_red_ci:
       title: '{repo} {release} on red CI'
       why: 'The release came out on {day}; the last build before it (#{build}) had failed.'
@@ -3293,6 +3299,7 @@ rule_name:
   pbs.verify_failed: 'Verify failed'
   pbs.datastore_full: 'Datastore full'
   cross.pbs_orphan: 'Backups without a guest'
+  cross.pbs_pool: 'Datastore against TrueNAS pool'
   drone.failing: 'Build red'
   cross.release_red_ci: 'Release on red CI'
   cross.ci_red_deployed: 'Deploy on red CI'
@@ -3538,6 +3545,7 @@ param:
   ignore_names: Exclude (name parts)
   per_core: 'Load per core'
   percent: 'Percent'
+  gap: 'Gap (percentage points)'
   seconds: 'Seconds'
   escalate_days: 'Critical after days (0 = never)'
   offline_days: 'Ignore when offline longer than (days)'
@@ -4769,6 +4777,11 @@ detail:
     restore_task: 'Restore of {system} tested'
     restored: 'Restore tested each quarter'
     sizes: 'Size per client'
+    stores: 'Datastores'
+    store: 'Datastore'
+    store_used: 'used'
+    pool: 'TrueNAS pool'
+    pool_used: 'Pool used'
   disks:
     list: 'Disks'
     state_ok: 'healthy'

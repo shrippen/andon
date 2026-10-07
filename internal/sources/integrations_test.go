@@ -649,13 +649,15 @@ func TestPBS(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	raw, err := sources.PBSData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "andon@pbs!ro:s3cret"})
+	// Option pools names the TrueNAS pool a store lives on.
+	raw, err := sources.PBSData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "andon@pbs!ro:s3cret",
+		Options: map[string]any{"pools": map[string]any{"tank": "Tank "}}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	d := raw.(*sources.PBSDataset)
 	jobs := d.BackupJobs()
-	if len(d.Stores) != 1 || d.Stores[0].Used != 95 || len(jobs) != 2 || jobs[0].Item != "ha" || jobs[1].Item != "ct/105" ||
+	if len(d.Stores) != 1 || d.Stores[0].Used != 95 || d.Stores[0].Pool != "Tank" || len(jobs) != 2 || jobs[0].Item != "ha" || jobs[1].Item != "ct/105" ||
 		len(d.Verifies) != 1 || d.Verifies[0].Store != "tank" || d.Verifies[0].OK() {
 		t.Fatalf("pbs %+v", d)
 	}

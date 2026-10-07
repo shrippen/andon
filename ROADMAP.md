@@ -1121,7 +1121,7 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 **Schritt 6: Sicherung** — Proxmox Backup Server, Kopia, Duplicati, Backrest, UrBackup
 - [x] Quellen mit `BackupSource`; PBS zusätzlich Belegung je Datastore und Verify-Jobs; Regeln `pbs.verify_failed`, `pbs.datastore_full` *(UrBackup-Anmeldung und Duplicati-Token als Treiber; Fehlertext des Werkzeugs als `BackupJob.Note`)*
 - [x] Quer: VM ohne Sicherung *(statt eigener Regel zählt `proxmox.backup_old` frische PBS-Sicherungen mit)*; `cross.pbs_orphan` (PBS-Gruppen von Gästen, die Proxmox nicht mehr hat)
-- [ ] Datastore-Füllstand gegen TrueNAS-Pool *(PBS nennt den Pool nicht; Zuordnung nur über eine Option möglich)*
+- [x] Datastore-Füllstand gegen TrueNAS-Pool *(PBS nennt den Pool nicht: Option `pools: {archiv: tank}` der PBS-Verbindung. `cross.pbs_pool` warnt, wenn der Pool fast voll ist (85 %), der Datastore aber nicht, und meldet, wenn der Pool 15 Punkte voller ist, als der Datastore meint. Eine eigene PBS-Kachel gibt es nicht; der Dialog der Backup-Kachel zeigt die Datastores mit Belegung, Pool und dessen Belegung)*
 
 **Schritt 7: Updates** — What's Up Docker, Watchtower, Releases
 - [x] WUD (Container mit neuer Version), Watchtower (Metriken: geprüft, aktualisiert, fehlgeschlagen), Releases beobachteter Repos über GitHub; alles als Update-Hinweise in `updates` und `update_window` *(Gitea liest keine Releases)*
