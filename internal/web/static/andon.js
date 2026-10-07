@@ -1540,9 +1540,18 @@
     var main = d.querySelector("main.board-page");
     body.classList.add("wall-stage", "is-screen");
     main.classList.add("wall-set");
-    // The side column goes under the main one at full width (as on a
-    // phone): a narrow column of its own left most of the screen empty.
-    [].forEach.call(main.querySelectorAll(".board.has-side"), function (b) { b.classList.remove("has-side"); });
+    // The side column's sections join the main column, after its own
+    // sections: their tiles are full tiles on the wall, in the main grid,
+    // and pack into sets like any other. As a narrow column of its own,
+    // or stacked one tile per row, most of the screen stayed empty.
+    [].forEach.call(main.querySelectorAll(".board.has-side"), function (b) {
+      var col = b.querySelector(".board-main"), side = b.querySelector(".board-side");
+      if (col && side) {
+        [].forEach.call(side.querySelectorAll(":scope > .dsec"), function (sec) { col.appendChild(sec); });
+        side.remove();
+      }
+      b.classList.remove("has-side");
+    });
     var pager = d.createElement("div");
     pager.className = "wall-pager";
     pager.setAttribute("aria-hidden", "true");
