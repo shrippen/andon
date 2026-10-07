@@ -1201,6 +1201,68 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
 
 ---
 
+### QA-Runde 07.10.2026
+
+Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag, Geld und Zeit, Boards bauen, Verwaltung), gegen die Demo und eine leere Instanz. Die Journeys stehen fest in [`QA.md`](QA.md) für die nächsten Runden. Rechte-Lecks: keine gefunden (fremde Boards, Verbindungen, Admin-Seiten direkt aufgerufen und per POST: abgelehnt).
+
+**Behoben (mit Test)**
+- [x] Teilen ging an den Falschen: Benutzer- und Team-IDs überschneiden sich, Art und Name kamen aus zwei Feldern („Team Produktion“ ging an Lena). Ein Feld `team:1`
+- [x] Verlauf und Freigaben überlebten das Löschen; SQLite vergibt die ID neu, ein neues Board zeigte fremden Verlauf („Wiederherstellen“ überschrieb es), ein neues Team oder Benutzer hätte alte Freigaben geerbt. Trigger löschen mit, Waisen entfernt (Migration 0023)
+- [x] Abrechnung bot keinen Entwurf an („Kein Invoice-Ninja-Kunde mit diesem Namen“): der Entwurf nahm den Hash-Schlüssel des Kunden, der ohne Hash leer ist; jetzt `Ref()`
+- [x] Adresse einer Verbindung mit gemeinsamem Token ließ sich nicht ändern (Formular verlangte den Zugang, hatte aber kein Feld); Feld „Neue Adresse? Zugang“
+- [x] Timer stoppen/starten/wechseln: Ablehnung durch Kimai war ein stummer 500; jetzt Meldung auf der Kachel
+- [x] Schnell-Link „not a url“: 500 und leeres Feld; jetzt Meldung
+- [x] Einladung an „not-an-email“ angenommen; zwei offene Einladungen an dieselbe Adresse; jetzt geprüft, die neue ersetzt die alte
+- [x] TOTP gesperrt nach fünf Fehlversuchen meldete „Ungültiger Code“ auch für den richtigen; jetzt „Zu viele Versuche“
+- [x] Hinweise-Dialog zählte nur die gelisteten Hinweise als „offen“ (8 statt 163)
+- [x] Hinweissuche traf Schaltflächentexte („pausieren“ fand alle 161)
+- [x] Wandanzeige zeigte das Einführungsbanner, das dort nicht zu schließen ist
+- [x] „1 Rechnungen“: Singular über `<key>_singular` im Katalog (für jeden Text mit `{count}` nutzbar)
+- [x] Englische Texte: „Don''t verify“ mit sichtbarem Doppel-Apostroph, „fine again since“ ohne Zeit, „connections place“
+
+**Offen: Fehler**
+- [ ] Hinweise: „Erledigt“ quittiert (ack), „Erledigt (7 Tage)“ zeigt nur gelöste; kein „Wieder öffnen“ (Route `/hints/{id}/reopen` gibt es). Jede Aktion springt an den Seitenanfang
+- [ ] Rückgängig wechselt nur zwischen den zwei neuesten Fassungen hin und her (`boards/extras.go`); Kachel auf zwei Boards löschen: keine Anzahl, Rückgängig wirkungslos
+- [ ] Code-Ansicht: „Ersetzen“ ohne Änderung nummeriert Boards und Kacheln neu (Lesezeichen zeigen auf anderes); „Zusammenführen“ mit dem vollen Text verdoppelt alles; beide Modi unerklärt (`porting.go`)
+- [ ] Board-Export enthält keine Kacheln, Import in einen anderen Bereich verliert sie
+- [ ] Uhr: 24 h gewählt, Board zeigt 12 h in Englisch (`andon.js`, `hour12` nur bei 12 h gesetzt)
+- [ ] Board-Namen ohne Längengrenze (300 Zeichen machen jede Seite 4400 px breit); doppelte Namen ohne Unterscheidung
+- [ ] Fehlerseiten ohne App-Rahmen: 404, 405 (Neuladen nach POST: Einladung, Wiederherstellungscodes), 409 (veraltete Fassung, Eingabe weg), 403 „forbidden“
+- [ ] Theme: ungültige Farbe zeigt `theme.bad_value:--fg0`, Wert verworfen
+- [ ] Galerie-Vorschau Kalender: „ERROR dns:“ statt Beispieldaten
+- [ ] TOTP: kein QR-Code (nur Geheimnis und URI) unter „Code scannen“; ein falscher Bestätigungscode verwirft die Einrichtung (neu scannen)
+- [ ] Neue Verbindung im persönlichen Bereich: Vorgabe „Vorlage: jeder meldet sich an“, Token-Feld versteckt, obwohl der Hinweis „persönlich = fester Zugang“ sagt
+- [ ] Teams: der letzte Owner lässt sich entfernen (auch man selbst)
+- [ ] `/admin/users/9999/reapply` → 500 statt 404
+- [ ] Kimai Lite: Hinzufügen-Formular verschwindet beim Auffrischen der Kachel (alle 59 s) mit dem Getippten; „Teilen“ im Tagesformular am Desktop von der Nachbarkachel verdeckt
+- [ ] „Heute“ dreimal verschieden: Kimai-Kachel „0,0 h · Timer läuft“, Heute 04:12, Kimai Lite 5:12
+- [ ] Offene Rechnungen: Kachel „21 Tage überfällig“, Dialog „Überfällig –“
+- [ ] „An Paperless“: 400 „Kein persönlicher Zugang hinterlegt“ ohne Verbindung oder Weg dorthin, Neuladen sendet erneut
+- [ ] Fahrten: „Ort anlegen“ zeigt roh „dns: dawarich“; neue Ziele sind mit „Zuhause“ vorbelegt
+- [ ] Monatsabschluss-Link „Geschäftskonten benennen“ landet auf dem Reiter Startseite statt Regeln
+- [ ] Kalender-Feed: doppelte Termine (zwei Hinweise, dieselbe Frist), keine Beschreibung und kein Link zurück
+- [ ] Audit: rohe Schlüssel `audit_action.settings.map`/`.server`, Speichern ohne Änderung schreibt Einträge „– → false“; Reset-Link nennt die Benutzer-ID statt der Adresse
+- [ ] Ungültiges CIDR zeigt den rohen Go-Fehler; Einladung meldet „gesendet“, obwohl SMTP nicht erreichbar ist
+- [ ] `/teams/1` scrollt auf dem Handy seitlich
+
+**Offen: Reibung und Unlogisches** (Entscheidung nötig)
+- [ ] Von der Verbindung zur Kachel auf dem Board: vier Schritte in drei Dialogen; Bibliothek ohne „auf Board legen“; leeres Board ohne Hinweis
+- [ ] 85 Dienste ohne Suche bei „Neue Verbindung“; Fehler der Verbindungstests roh und englisch („connection refused“, „egress denied“) ohne Hinweis auf Admin → Netzwerk; nach neuem Token kein automatischer Test
+- [ ] Formulare verlieren Eingaben bei Fehlern (Setup, Einladung, Ruhezeiten); keine Erfolgsmeldung nach Setup, Passwort-Reset, Passwortwechsel
+- [ ] „Passwort vergessen?“ ohne SMTP angeboten; Registrierung verrät vergebene Adressen (Reset verbirgt es)
+- [ ] Eigene Rolle als Auswahl mit Speichern angeboten; Betrachter sehen Instanz-Einstellungen und Test/Bearbeiten an allen Verbindungen mit aktiven Knöpfen; Ablehnung als englisches „access denied“
+- [ ] Hinweisseite: rund 140 Gruppen mit je einem Hinweis, je eine Sammelleiste; 60 Dienst-Chips vor der Liste (Handy: erster Hinweis bei 1550 px)
+- [ ] Wandanzeige: viermal so hoch wie der Bildschirm, kein Durchlauf, kein Weg hinaus
+- [ ] Zeitzone: Kimai Lite folgt der Server-Zeit (`TZ`), andere Anzeigen dem Browser; ohne `TZ` (Entwicklung) UTC
+- [ ] Hosts: alle 66 mit „Monitore 0 / Probleme –“, Hinweise zählen nicht mit
+- [ ] Abrechnung: offener Entwurf beim selben Kunden nicht erwähnt (doppelter Entwurf möglich); Hinweis „nicht abgerechnet“ führt zu Kimai statt zu `/billing#drafts`
+- [ ] Belege: Zähler der Reiter weichen ab (6 gegen 3); Erfolg „Verknüpft: 0“ neben der Demo-Ablehnung; Reiter „Belege zuerst“ geht nach „Anlegen“ verloren; Ausgaben aus dem Export fehlen in der Suche
+- [ ] Zeiträume ohne Angabe: Umsatz je Kunde (12 Monate) gegen Kundenseite (Jahr); Vorjahresvergleich über unvollständige Historie; Abos mischen Jahres- und Monatsbeträge; Kilometerbetrag passt nicht zur genannten Formel
+- [ ] Sprache: Bereich „Instanz“ und „Verbünde“ im englischen UI; Sprachumschalter nur im Benutzermenü; rohe Regel-IDs in Hinweislisten der Dialoge; Kennzahl-Dialoge heißen alle „Kennzahl“
+- [ ] Handy: Navigation drei Zeilen (≈ 215–290 px) vor dem Inhalt; Beträge in Abrechnungs- und Kundentabellen außerhalb des Bildschirms
+- [ ] Inline-Style-CSP-Meldungen in der Konsole nach htmx-Tausch (vermutlich `attributesToSettle` mit `style`)
+- [ ] Kante: Suchfeld des Boards ohne sichtbaren Fokusring
+
 ### Notiert 07.10.2026 (noch nicht begonnen)
 
 - [x] KDE-Store-Kachel testen; in den Einstellungen erklären, was in welches Feld gehört *(live gegen api.kde-look.org geprüft, Benutzer shrippen: 3 Einträge. Eigene Felder „Benutzer“ und „Einzelne Einträge“ mit Erklärung, Links werden zu Nummern; store.kde.org als URL wird erklärt statt HTTP 410; doppelt gelesene Einträge behalten die höhere Zahl, die Einzelabfrage hinkt nach)*

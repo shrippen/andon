@@ -104,6 +104,11 @@ internal/services/verbund/      Verbünde: welche Verbindungen zusammenarbeiten 
 - Formulare mit `<select>` in eingeklappten Menüs (`details`) scannt Chrome beim Laden (1,7 s für 112 Selects). Erst beim Öffnen laden (htmx) oder aus einem `<template>` klonen.
 - Gleichzeitige DNS-Abfragen begrenzen (`httpclient.dnsParallel`): Der Heim-Resolver verwirft ab ~30 parallelen Abfragen, jede kostet dann 5 s Timeout.
 
+## QA rule
+
+- Exploratory QA follows the user journeys in `QA.md`: play them in the browser against the demo (and the empty instance for the first start), note friction, illogical behaviour and bugs with evidence, and record the round in `ROADMAP.md`.
+- A feature that adds or changes a flow adds or changes its journey in `QA.md`.
+
 ## GUI rule
 
 - Every GUI of this project is generated from Kante, not inspired by it: landing pages,
