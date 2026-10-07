@@ -3013,7 +3013,7 @@ kpi:
   of_target: Soll {hours} h
   hours: '{hours} h'
   invoices: '{count} Rechnungen'
-  invoices_one: '{count} Rechnung'
+  invoices_singular: '{count} Rechnung'
   vat_period: '{start} – {end}'
   reserve: USt-Zahllast + {rate} % vom Überschuss
   assets: '{count} Assets'

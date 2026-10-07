@@ -131,4 +131,8 @@ func TestSingular(t *testing.T) {
 	if got := i18n.T("kpi.invoices", enums.LocaleEN, map[string]any{"count": 1.0}); got != "1 invoice" {
 		t.Fatalf("one as float: %q", got)
 	}
+	// Keys ending in "_one" that mean something else stay apart.
+	if got := i18n.T("conn.state_failing", enums.LocaleEN, map[string]any{"count": 1}); got != "failing" {
+		t.Fatalf("state_failing with one: %q", got)
+	}
 }

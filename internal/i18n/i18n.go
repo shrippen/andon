@@ -77,8 +77,9 @@ var placeholder = regexp.MustCompile(`\{([a-zA-Z0-9_]+)\}`)
 // the raw key), substituting params. Unknown placeholders stay visible as
 // "{name}" rather than failing.
 //
-// A count of one takes "<key>_one" when the catalog has it:
-// "{count} Rechnungen" → "1 Rechnung".
+// A count of one takes "<key>_singular" when the catalog has it:
+// "{count} Rechnungen" → "1 Rechnung". (Not "_one": keys like
+// "state_failing_one" already mean something else.)
 func T(key string, locale enums.Locale, params map[string]any) string {
 	ensureLoaded()
 	if isOne(params["count"]) {
@@ -106,7 +107,7 @@ func T(key string, locale enums.Locale, params map[string]any) string {
 }
 
 // singular is the suffix of a key's text for a count of one.
-const singular = "_one"
+const singular = "_singular"
 
 // isOne: the count is the number one, of whatever numeric type.
 func isOne(v any) bool {

@@ -422,10 +422,10 @@
           {{else}}{{template "conn_mode" (not $tmpl)}}{{end}}
           {{template "conn_tls" $c.VerifyTLS}}
           {{/* A shared token does not follow the connection to another
-               server (conn.secret_for_host): enter it here with the new address. */}}
+               server (connection.secret_for_host): enter it here with the new address. */}}
           {{if and (ne $shape "none") (eq (print $c.Mode) "shared")}}<details class="advanced">
-            <summary>{{t "conn.new_host_secret"}}</summary>
-            <p class="small muted">{{t "conn.new_host_secret_hint"}}</p>
+            <summary>{{t "connection.new_host_secret"}}</summary>
+            <p class="small muted">{{t "connection.new_host_secret_hint"}}</p>
             {{template "conn_secret_inputs" dict "Shape" $shape "Service" $c.Service "Keep" "" "Prefix" "host-"}}
           </details>{{end}}
           {{/* The rarely changed rest, saved with the same button. */}}
