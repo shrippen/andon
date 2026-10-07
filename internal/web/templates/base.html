@@ -12,8 +12,10 @@
 <meta name="csrf" content="{{.Ctx.CSRF}}">
 <meta name="offline-note" content="{{t "nav.offline"}}">
 {{/* Soft page changes (hx-boost, see andon.js). Back and forward load
-     the full page: a cached body would miss its head. */}}
-<meta name="htmx-config" content='{"historyCacheSize":0,"refreshOnHistoryMiss":true,"includeIndicatorStyles":false}'>
+     the full page: a cached body would miss its head. htmx settles no
+     style: it would copy a CSSOM style (data-style, a menu's position)
+     back as an inline style attribute, which the CSP refuses. */}}
+<meta name="htmx-config" content='{"historyCacheSize":0,"refreshOnHistoryMiss":true,"includeIndicatorStyles":false,"attributesToSettle":["class","width","height"]}'>
 {{/* Kante's script adds the live-data motion (window.Kante); data-own-lang
      on <html> keeps it off the language. Synchronous, so the html classes
      are set before the first paint. */}}
