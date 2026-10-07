@@ -52,10 +52,10 @@ const mapAssets = "https://protomaps.github.io"
 // (webhooks, API clients) pass.
 var crossOrigin = http.NewCrossOriginProtection()
 
-// Secure adds the security headers to every response and refuses
-// cross-site form posts.
+// Secure adds the security headers to every response, refuses
+// cross-site form posts and frames error answers of pages (errorPages).
 func (d Deps) Secure(next http.Handler) http.Handler {
-	next = crossOrigin.Handler(next)
+	next = crossOrigin.Handler(d.errorPages(next))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
 		h.Set("Content-Security-Policy", d.csp(r.URL.Path))

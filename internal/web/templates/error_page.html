@@ -1,0 +1,26 @@
+{{/* error_page: a failed page load in the app frame (errorpage.go):
+     what happened, the detail the handler named, a way back. */}}
+{{define "error_page"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t (print "error_page." .Kind ".title")}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <h1>{{t (print "error_page." .Kind ".title")}}</h1>
+    <p class="lead">{{t (print "error_page." .Kind ".lead")}}</p>
+    {{with .Detail}}<div class="callout callout-danger" role="alert">{{t .}}</div>{{end}}
+    <div class="btn-row">
+      <a class="btn btn-accent" href="{{.Back}}" data-back>{{t "error_page.back"}}</a>
+      <a class="btn btn-outline" href="/">{{t "error_page.home"}}</a>
+    </div>
+    <p class="small muted">HTTP {{.Status}}</p>
+  </main>
+</body>
+</html>
+{{end}}
