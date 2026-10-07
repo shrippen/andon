@@ -104,6 +104,12 @@ internal/services/verbund/      Verbünde: welche Verbindungen zusammenarbeiten 
 - Formulare mit `<select>` in eingeklappten Menüs (`details`) scannt Chrome beim Laden (1,7 s für 112 Selects). Erst beim Öffnen laden (htmx) oder aus einem `<template>` klonen.
 - Gleichzeitige DNS-Abfragen begrenzen (`httpclient.dnsParallel`): Der Heim-Resolver verwirft ab ~30 parallelen Abfragen, jede kostet dann 5 s Timeout.
 
+## Release rule
+
+- Every release gets a detailed release log, written before the tag: a lead (what the release is about), then the changes grouped as New, Improved, Fixed and Note (breaking changes, steps the user must take). Each point says what changed for the user and why, not which code moved.
+- Graphics wherever possible: for every visible change a screenshot from the demo world in every language of the landing page (`docs/shots/release-<version>-<name>-<lang>.webp`), for changes inside a diagram (Kante `.flow` or an inline SVG).
+- The log goes into the release notes on Gitea and as a new entry at the top of `#changes` on the landing page (`docs/index.html`, Kante `.changelog`); from the fourth entry on, the oldest move into `details.changelog-more`. Bump the version in the footer. A release is done when the landing page shows it.
+
 ## GUI rule
 
 - Every GUI of this project is generated from Kante, not inspired by it: landing pages,

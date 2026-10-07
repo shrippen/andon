@@ -25,7 +25,7 @@
 <nav class="nav"><div class="nav-inner">
   <a class="nav-brand" href="#"><img src="icon.svg" alt="">Andon</a>
   <div class="nav-links">
-    <a href="#features"><span lang="en">Features</span><span lang="de">Funktionen</span></a><a href="#how"><span lang="en">How it works</span><span lang="de">Funktionsweise</span></a><a href="#services"><span lang="en">Services</span><span lang="de">Dienste</span></a><a href="#install"><span lang="en">Install</span><span lang="de">Installation</span></a><a href="#faq">FAQ</a>
+    <a href="#features"><span lang="en">Features</span><span lang="de">Funktionen</span></a><a href="#how"><span lang="en">How it works</span><span lang="de">Funktionsweise</span></a><a href="#services"><span lang="en">Services</span><span lang="de">Dienste</span></a><a href="#install"><span lang="en">Install</span><span lang="de">Installation</span></a><a href="#changes"><span lang="en">Changes</span><span lang="de">Änderungen</span></a><a href="#faq">FAQ</a>
     <a class="nav-hl" href="https://github.com/shrippen/andon">GitHub</a>
     <div class="lang" role="group" aria-label="Language">
       <button type="button" data-lang="en" aria-pressed="true">EN</button>
@@ -166,6 +166,61 @@
     <details><summary><span lang="en">How many users does it handle?</span><span lang="de">Wie viele Benutzer schafft es?</span></summary><div><p lang="en">It is built for one to ten people on one instance, with SQLite. A Raspberry Pi is enough.</p><p lang="de">Es ist für ein bis zehn Personen auf einer Instanz gebaut, mit SQLite. Ein Raspberry Pi reicht.</p></div></details>
   </div>
 </section>
+<section class="section" id="changes">
+  <h2 lang="en">Changes</h2><h2 lang="de">Änderungen</h2>
+  <p lang="en">What each release brought, newest first. Every release adds an entry here and the same notes on the release page.</p><p lang="de">Was jede Version gebracht hat, die neueste zuerst. Jede Version bekommt hier einen Eintrag und dieselben Notizen auf der Release-Seite.</p>
+  <ol class="changelog">
+    <li class="release" id="v0.5.0">
+      <div class="release-head"><b class="release-version">0.5.0</b><time datetime="2026-10-03"><span lang="en">3 Oct 2026</span><span lang="de">3. Okt. 2026</span></time></div>
+      <div class="release-body">
+        <p class="release-lead"><span lang="en">Every tile opens a detail dialog, the whole interface now comes from the Kante design system, and the database key is derived the hard way.</span><span lang="de">Jede Kachel öffnet einen Detaildialog, die ganze Oberfläche kommt jetzt aus dem Designsystem Kante, und der Datenbankschlüssel wird aufwendig abgeleitet.</span></p>
+        <div class="release-group" data-kind="new"><h3><span lang="en">New</span><span lang="de">Neu</span></h3><ul>
+          <li><span lang="en">A detail dialog for every tile: facts, charts with axes and hover values, and the hints that belong to the tile. Link tiles open theirs from the pulse icon.</span><span lang="de">Ein Detaildialog für jede Kachel: Fakten, Diagramme mit Achsen und Werten beim Überfahren, dazu die Hinweise der Kachel. Link-Kacheln öffnen ihn über das Puls-Symbol.</span></li>
+          <li><span lang="en">Maps in the Authentik dialog (where logins come from) and the Dawarich dialog (where you were).</span><span lang="de">Karten im Authentik-Dialog (woher Anmeldungen kommen) und im Dawarich-Dialog (wo du warst).</span></li>
+          <li><span lang="en">Kimai Lite is a full Kimai client: start, stop, edit and split time sheets; unknown tags are created before writing.</span><span lang="de">Kimai Lite ist ein vollständiger Kimai-Client: Zeiten starten, stoppen, bearbeiten und teilen; unbekannte Tags werden vor dem Schreiben angelegt.</span></li>
+          <li><span lang="en">Tandoor recipes, and an about page with version, build and licences.</span><span lang="de">Rezepte aus Tandoor und eine Info-Seite mit Version, Build und Lizenzen.</span></li>
+        </ul></div>
+        <div class="release-group" data-kind="improved"><h3><span lang="en">Improved</span><span lang="de">Verbessert</span></h3><ul>
+          <li><span lang="en">Buttons, fields, dialogs, charts, chips and the clock come from Kante, the design shared by all shrippen projects, instead of Andon's own styles.</span><span lang="de">Schaltflächen, Felder, Dialoge, Diagramme, Chips und die Uhr kommen aus Kante, dem gemeinsamen Design aller shrippen-Projekte, statt aus eigenen Styles.</span></li>
+          <li><span lang="en">Large boards stay fast, also in edit mode. DNS answers are cached and job runs and tile refreshes are spread out, so a home resolver is not flooded.</span><span lang="de">Große Boards bleiben schnell, auch im Bearbeitungsmodus. DNS-Antworten werden zwischengespeichert, Prüfläufe und Kachel-Aktualisierungen verteilt, damit ein Heim-Resolver nicht überläuft.</span></li>
+          <li><span lang="en">The database key comes from Argon2id over MASTER_KEY and a random salt per install, instead of a single SHA-256. Existing databases move over at first start; guessable keys are refused.</span><span lang="de">Der Datenbankschlüssel entsteht per Argon2id aus MASTER_KEY und einem zufälligen Salt je Installation statt aus einem einzigen SHA-256. Bestehende Datenbanken werden beim ersten Start umgestellt; erratbare Schlüssel werden abgelehnt.</span></li>
+        </ul></div>
+        <div class="release-group" data-kind="fixed"><h3><span lang="en">Fixed</span><span lang="de">Behoben</span></h3><ul>
+          <li><span lang="en"><code>rotate-key</code> skipped OAuth grants and clients, tile secrets and the OIDC secret; it now re-encrypts all of them.</span><span lang="de"><code>rotate-key</code> hat OAuth-Freigaben und -Clients, Kachel-Geheimnisse und das OIDC-Secret übersprungen; jetzt verschlüsselt es alle neu.</span></li>
+        </ul></div>
+        <div class="release-group" data-kind="breaking"><h3><span lang="en">Note</span><span lang="de">Beachten</span></h3><ul>
+          <li><span lang="en">Back up <code>andon.db.salt</code> together with the database. Without it the database cannot be opened; Andon's own backups carry it.</span><span lang="de"><code>andon.db.salt</code> zusammen mit der Datenbank sichern. Ohne die Datei lässt sich die Datenbank nicht öffnen; Andons eigene Sicherungen enthalten sie.</span></li>
+        </ul></div>
+        <div class="release-shots">
+          <figure><img lang="en" src="shots/release-0.5.0-detail-en.webp" alt="The detail dialog of a revenue tile with its computation and the last 12 months as bars" loading="lazy"><img lang="de" src="shots/release-0.5.0-detail-de.webp" alt="Der Detaildialog einer Umsatz-Kachel mit Berechnung und den letzten 12 Monaten als Balken" loading="lazy"><figcaption><span lang="en">Detail dialog of a tile (demo data)</span><span lang="de">Detaildialog einer Kachel (Demodaten)</span></figcaption></figure>
+        </div>
+        <div class="flow">
+          <div class="flow-node"><b>MASTER_KEY</b><span><span lang="en">your secret</span><span lang="de">dein Geheimnis</span></span></div><div class="flow-arrow"></div>
+          <div class="flow-node hl"><b>Argon2id</b><span><span lang="en">with <code>andon.db.salt</code>, slow on purpose</span><span lang="de">mit <code>andon.db.salt</code>, absichtlich langsam</span></span></div><div class="flow-arrow"></div>
+          <div class="flow-node"><b lang="en">Key</b><b lang="de">Schlüssel</b><span><span lang="en">encrypts the database (Adiantum)</span><span lang="de">verschlüsselt die Datenbank (Adiantum)</span></span></div>
+        </div>
+        <a class="release-notes" href="https://github.com/shrippen/andon/compare/v0.4.0...v0.5.0"><span lang="en">All changes since 0.4.0 →</span><span lang="de">Alle Änderungen seit 0.4.0 →</span></a>
+      </div>
+    </li>
+  </ol>
+  <details class="changelog-more"><summary><span lang="en">Older releases</span><span lang="de">Ältere Versionen</span></summary>
+    <ol class="changelog">
+      <li class="release" id="v0.4.0">
+        <div class="release-head"><b class="release-version">0.4.0</b><time datetime="2026-09-26"><span lang="en">26 Sep 2026</span><span lang="de">26. Sep. 2026</span></time></div>
+        <div class="release-body">
+          <p class="release-lead"><span lang="en">The first release under the name Andon.</span><span lang="de">Die erste Version unter dem Namen Andon.</span></p>
+          <div class="release-group" data-kind="new"><h3><span lang="en">New</span><span lang="de">Neu</span></h3><ul>
+            <li><span lang="en">Container images: <code>latest</code> from release tags, <code>edge</code> from main.</span><span lang="de">Container-Images: <code>latest</code> aus Release-Tags, <code>edge</code> aus main.</span></li>
+            <li><span lang="en">Tests for every package.</span><span lang="de">Tests für jedes Paket.</span></li>
+          </ul></div>
+          <div class="release-group" data-kind="fixed"><h3><span lang="en">Fixed</span><span lang="de">Behoben</span></h3><ul>
+            <li><span lang="en">Four bugs from the first review, and a polished interface.</span><span lang="de">Vier Fehler aus der ersten Durchsicht, dazu eine überarbeitete Oberfläche.</span></li>
+          </ul></div>
+        </div>
+      </li>
+    </ol>
+  </details>
+</section>
 </main>
 
 <footer class="foot">
@@ -175,11 +230,11 @@
       <div><span class="foot-name">Andon</span><span class="foot-tag"><span lang="en">A start page that tells you what needs doing</span><span lang="de">Eine Startseite, die sagt, was zu tun ist</span></span></div>
     </div>
     <nav class="foot-cols" aria-label="Footer">
-      <div><h4><span lang="en">Project</span><span lang="de">Projekt</span></h4><a href="#features"><span lang="en">Features</span><span lang="de">Funktionen</span></a><a href="#how"><span lang="en">How it works</span><span lang="de">Funktionsweise</span></a><a href="#services"><span lang="en">Services</span><span lang="de">Dienste</span></a><a href="#install"><span lang="en">Install</span><span lang="de">Installation</span></a></div>
+      <div><h4><span lang="en">Project</span><span lang="de">Projekt</span></h4><a href="#features"><span lang="en">Features</span><span lang="de">Funktionen</span></a><a href="#how"><span lang="en">How it works</span><span lang="de">Funktionsweise</span></a><a href="#services"><span lang="en">Services</span><span lang="de">Dienste</span></a><a href="#install"><span lang="en">Install</span><span lang="de">Installation</span></a><a href="#changes"><span lang="en">Changes</span><span lang="de">Änderungen</span></a></div>
       <div><h4><span lang="en">Source</span><span lang="de">Quelltext</span></h4><a href="https://github.com/shrippen/andon">GitHub</a><a href="https://github.com/shrippen/andon/issues">Issues</a><a href="https://github.com/shrippen/andon/releases">Releases</a></div>
     </nav>
   </div>
-  <div class="foot-meta"><p>GPL-3.0 · shrippen · v0.4</p></div>
+  <div class="foot-meta"><p>GPL-3.0 · shrippen · <a href="#changes">v0.5</a></p></div>
 </footer>
 
 </body>
