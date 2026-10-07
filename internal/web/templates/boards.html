@@ -25,7 +25,7 @@
   <div class="board-head">
     {{/* The board's own name leads; the space's page title sits above it. */}}
     <h1 class="board-title">{{with .Board.Page.Title}}{{if ne . $.Board.Name}}<small class="board-kicker">{{.}}</small>{{end}}{{end}}{{.Board.Name}}</h1>
-    {{template "intro" dict "Page" "board" "Chapter" "boards" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
+    {{if not .Kiosk.On}}{{template "intro" dict "Page" "board" "Chapter" "boards" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}{{end}}
     <label class="search">
       <span class="sr">{{t "board.search"}}</span>
       <input class="input" id="search" type="search" autocomplete="off" placeholder="{{t "board.search_hint"}}"

@@ -3010,6 +3010,7 @@ kpi:
   of_target: target {hours} h
   hours: '{hours} h'
   invoices: '{count} invoices'
+  invoices_one: '{count} invoice'
   vat_period: '{start} – {end}'
   reserve: VAT liability + {rate} % of surplus
   assets: '{count} assets'

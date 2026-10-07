@@ -324,6 +324,13 @@ func TestKioskRotatesBoards(t *testing.T) {
 	if strings.Contains(page, `class="app-nav"`) || !strings.Contains(page, `class="is-kiosk"`) {
 		t.Fatalf("kiosk chrome:\n%s", page)
 	}
+	// The intro banner cannot be closed on a wall: no buttons there.
+	if !strings.Contains(string(mustGet(t, srv, client, resp.Request.URL.Path)), `class="callout intro"`) {
+		t.Fatal("test needs the intro on the plain board")
+	}
+	if strings.Contains(page, `class="callout intro"`) {
+		t.Fatal("kiosk shows the intro banner")
+	}
 	next := regexp.MustCompile(`data-kiosk-next="(/boards/\d+\?kiosk&amp;dim=22-7&amp;every=10)"`).FindStringSubmatch(page)
 	if next == nil || strings.Contains(next[1], resp.Request.URL.Path+"?") {
 		t.Fatalf("next board: %v", next)

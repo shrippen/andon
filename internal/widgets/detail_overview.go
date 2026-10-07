@@ -203,16 +203,27 @@ func sevTierName(s enums.Severity) string {
 // and since.
 func hintsDetail(_ HintsConfig, results map[string]any, _ ViewCtx) DetailView {
 	list, _ := results[DetailHintsSlot].([]DetailHint)
+	// Count what the tile counts: every hint of its filter, not only the
+	// Limit it lists.
+	sevs := make([]enums.Severity, len(list))
+	for i, h := range list {
+		sevs[i] = h.Severity
+	}
+	if view, ok := results[TileViewSlot].(map[string]any); ok {
+		if all, ok := view["Severities"].([]enums.Severity); ok {
+			sevs = all
+		}
+	}
 	crit, warn := 0, 0
-	for _, h := range list {
-		switch sevTierName(h.Severity) {
+	for _, s := range sevs {
+		switch sevTierName(s) {
 		case "red":
 			crit++
 		case "yellow":
 			warn++
 		}
 	}
-	body := &DetailBody{Facts: []Kpi{{Value: len(list), Label: T("detail.hints_open")}, {Value: crit, Label: T("detail.hints_critical"), Tier: tierIf(crit > 0, "red", "")},
+	body := &DetailBody{Facts: []Kpi{{Value: len(sevs), Label: T("detail.hints_open")}, {Value: crit, Label: T("detail.hints_critical"), Tier: tierIf(crit > 0, "red", "")},
 		{Value: warn, Label: T("detail.hints_warn"), Tier: tierIf(warn > 0, "yellow", "")}}}
 	// Hints with a due date are in the personal iCal feed (/calendar.ics).
 	head := DetailHead{Actions: []DetailAction{{LabelKey: "detail.hints_all", Href: "/hints", Primary: true}, {LabelKey: "detail.hints_ics", Href: "/me/notify"}}}

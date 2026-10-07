@@ -76,8 +76,16 @@ var placeholder = regexp.MustCompile(`\{([a-zA-Z0-9_]+)\}`)
 // T looks up key in locale's catalog (falling back to DefaultLocale, then
 // the raw key), substituting params. Unknown placeholders stay visible as
 // "{name}" rather than failing.
+//
+// A count of one takes "<key>_one" when the catalog has it:
+// "{count} Rechnungen" → "1 Rechnung".
 func T(key string, locale enums.Locale, params map[string]any) string {
 	ensureLoaded()
+	if isOne(params["count"]) {
+		if _, ok := catalogs[DefaultLocale][key+singular]; ok {
+			key += singular
+		}
+	}
 	text, ok := catalogs[locale][key]
 	if !ok {
 		text, ok = catalogs[DefaultLocale][key]
@@ -95,6 +103,22 @@ func T(key string, locale enums.Locale, params map[string]any) string {
 		}
 		return m
 	})
+}
+
+// singular is the suffix of a key's text for a count of one.
+const singular = "_one"
+
+// isOne: the count is the number one, of whatever numeric type.
+func isOne(v any) bool {
+	switch n := v.(type) {
+	case int:
+		return n == 1
+	case int64:
+		return n == 1
+	case float64:
+		return n == 1
+	}
+	return false
 }
 
 // Has reports whether key is in the default catalog, e.g. to tell a

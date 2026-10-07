@@ -119,3 +119,16 @@ func TestTypedMoneyEmptyCurrency(t *testing.T) {
 		t.Fatalf("expected the default currency, got %v", out["amount"])
 	}
 }
+
+// TestSingular: a count of one takes the "_one" text where there is one.
+func TestSingular(t *testing.T) {
+	if got := i18n.T("kpi.invoices", enums.LocaleDE, map[string]any{"count": 1}); got != "1 Rechnung" {
+		t.Fatalf("one: %q", got)
+	}
+	if got := i18n.T("kpi.invoices", enums.LocaleDE, map[string]any{"count": 3}); got != "3 Rechnungen" {
+		t.Fatalf("three: %q", got)
+	}
+	if got := i18n.T("kpi.invoices", enums.LocaleEN, map[string]any{"count": 1.0}); got != "1 invoice" {
+		t.Fatalf("one as float: %q", got)
+	}
+}
