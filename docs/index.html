@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Andon — A self-hosted start page that tells you what needs doing</title>
-<meta name="description" content="Self-hosted start page for freelancers and homelabs: links and status like Dashy, plus hints from Kimai, Invoice Ninja, Snipe-IT, Dawarich and 40 other services. Several users, one container.">
+<meta name="description" content="Self-hosted start page for freelancers and homelabs: links and status like Dashy, plus hints from Kimai, Invoice Ninja, Snipe-IT, Dawarich and 76 other services. Several users, one container.">
 <meta property="og:title" content="Andon — A self-hosted start page that tells you what needs doing">
-<meta property="og:description" content="Self-hosted start page for freelancers and homelabs: links and status like Dashy, plus hints from Kimai, Invoice Ninja, Snipe-IT, Dawarich and 40 other services. Several users, one container.">
+<meta property="og:description" content="Self-hosted start page for freelancers and homelabs: links and status like Dashy, plus hints from Kimai, Invoice Ninja, Snipe-IT, Dawarich and 76 other services. Several users, one container.">
 <meta property="og:image" content="https://shrippen.github.io/andon/social-preview.png">
 <meta property="og:url" content="https://shrippen.github.io/andon/">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -51,8 +51,8 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
         </button>
       </div>
-      <p class="install-note" lang="en"><code>latest</code> is the newest release, <code>edge</code> follows development. To pin a release line, use e.g. <code>0.4</code>. Runs on a Raspberry Pi.</p>
-      <p class="install-note" lang="de"><code>latest</code> ist das neueste Release, <code>edge</code> folgt der Entwicklung. Eine Release-Linie festlegen, z. B. <code>0.4</code>. Läuft auf einem Raspberry Pi.</p>
+      <p class="install-note" lang="en"><code>latest</code> is the newest release, <code>edge</code> follows development. To pin a release line, use e.g. <code>0.6</code>. Runs on a Raspberry Pi.</p>
+      <p class="install-note" lang="de"><code>latest</code> ist das neueste Release, <code>edge</code> folgt der Entwicklung. Eine Release-Linie festlegen, z. B. <code>0.6</code>. Läuft auf einem Raspberry Pi.</p>
       <div class="install-links">
         <a class="btn btn-primary" href="#install"><span lang="en">Install</span><span lang="de">Installieren</span></a>
         <a class="btn btn-ghost" href="https://github.com/shrippen/andon">GitHub</a>
@@ -67,9 +67,9 @@
 
 <main>
 <section class="facts">
-  <div class="fact"><b>43</b><span><span lang="en">Services it can read</span><span lang="de">Dienste, die es lesen kann</span></span></div>
-  <div class="fact"><b>140</b><span><span lang="en">Rules that turn data into hints</span><span lang="de">Regeln, die aus Daten Hinweise machen</span></span></div>
-  <div class="fact"><b>72</b><span><span lang="en">Tile types, from clock to cash flow</span><span lang="de">Kacheltypen, von Uhr bis Liquidität</span></span></div>
+  <div class="fact"><b>80</b><span><span lang="en">Services it can read</span><span lang="de">Dienste, die es lesen kann</span></span></div>
+  <div class="fact"><b>222</b><span><span lang="en">Rules that turn data into hints</span><span lang="de">Regeln, die aus Daten Hinweise machen</span></span></div>
+  <div class="fact"><b>114</b><span><span lang="en">Tile types, from clock to cash flow</span><span lang="de">Kacheltypen, von Uhr bis Liquidität</span></span></div>
   <div class="fact"><b>1</b><span><span lang="en">Container, one volume, no database server</span><span lang="de">Container, ein Volume, kein Datenbankserver</span></span></div>
 </section>
 
@@ -135,11 +135,12 @@
   <h2 lang="en">Services</h2><h2 lang="de">Dienste</h2>
   <div class="table-wrap"><table class="table">
     <tr><th><span lang="en">Area</span><span lang="de">Bereich</span></th><th><span lang="en">Services</span><span lang="de">Dienste</span></th></tr>
-    <tr><td><span lang="en">Work</span><span lang="de">Arbeit</span></td><td>Kimai, Invoice Ninja, Snipe-IT, Dawarich, Paperless-ngx, Sure, calendars (iCal), mail (IMAP)</td></tr>
-    <tr><td>Homelab</td><td>Proxmox, TrueNAS, Glances, Scrutiny, Komodo, Borg, pgbackweb, Uptime Kuma, Gitea, GitHub</td></tr>
-    <tr><td><span lang="en">Network</span><span lang="de">Netzwerk</span></td><td>Pi-hole, AdGuard Home, Tailscale, Pangolin, Gluetun, gateway, speed test, domains, certificates, blocklists</td></tr>
+    <tr><td><span lang="en">Work</span><span lang="de">Arbeit</span></td><td>Kimai, Invoice Ninja, Snipe-IT, Dawarich, Paperless-ngx, Sure, Firefly III, Ghostfolio, Vikunja, calendars (iCal), mail (IMAP)</td></tr>
+    <tr><td>Homelab</td><td>Proxmox, Proxmox Backup Server, TrueNAS, Glances, Scrutiny, Komodo, Borg, Kopia, Duplicati, Backrest, UrBackup, pgbackweb, Uptime Kuma, Healthchecks, Prometheus, NVD, What's Up Docker, Watchtower, Gitea, GitHub, Drone</td></tr>
+    <tr><td><span lang="en">Network</span><span lang="de">Netzwerk</span></td><td>Pi-hole, AdGuard Home, Technitium, Traefik, Caddy, Nginx Proxy Manager, FRITZ!Box, Tailscale, Pangolin, Gluetun, gateway, speed test, domains, certificates, blocklists</td></tr>
     <tr><td><span lang="en">Security</span><span lang="de">Sicherheit</span></td><td>authentik, Vaultwarden</td></tr>
-    <tr><td><span lang="en">Media and home</span><span lang="de">Medien und Zuhause</span></td><td>Immich, Jellyfin/Plex, *arr, SABnzbd, Nextcloud, Linkwarden, FreshRSS, Home Assistant, Grocy, Tibber, DWD weather, Umami</td></tr>
+    <tr><td><span lang="en">Media and home</span><span lang="de">Medien und Zuhause</span></td><td>Immich, Jellyfin/Plex, Tautulli, Jellystat, Navidrome, Audiobookshelf, Jellyseerr/Overseerr, *arr, SABnzbd, Nextcloud, Linkwarden, FreshRSS, Home Assistant, ESPHome, Grocy, Tandoor, Tibber, PeaNUT, apcupsd, OpenDTU, EVCC, DWD weather, Umami</td></tr>
+    <tr><td><span lang="en">Reading and community</span><span lang="de">Lesen und Community</span></td><td>Hacker News, Lobsters, Reddit, YouTube, Twitch, Mastodon, GoToSocial, Akkoma, Lemmy, KDE Store, OpenLigaDB</td></tr>
     <tr><td><span lang="en">Anything else</span><span lang="de">Alles andere</span></td><td><span lang="en">Any JSON API, with your own fields and rules</span><span lang="de">Jede JSON-API, mit eigenen Feldern und Regeln</span></td></tr>
   </table></div>
 </section>
@@ -170,6 +171,55 @@
   <h2 lang="en">Changes</h2><h2 lang="de">Änderungen</h2>
   <p lang="en">What each release brought, newest first. Every release adds an entry here and the same notes on the release page.</p><p lang="de">Was jede Version gebracht hat, die neueste zuerst. Jede Version bekommt hier einen Eintrag und dieselben Notizen auf der Release-Seite.</p>
   <ol class="changelog">
+    <li class="release" id="v0.6.0">
+      <div class="release-head"><b class="release-version">0.6.0</b><time datetime="2026-10-07"><span lang="en">7 Oct 2026</span><span lang="de">7. Okt. 2026</span></time></div>
+      <div class="release-body">
+        <p class="release-lead"><span lang="en">Andon now reads 80 services instead of 47, and it checks them against each other: backups against heartbeats, running images against new CVEs, releases against red CI. Connections, boards and settings were reworked, and a QA round over full user journeys fixed what got in the way.</span><span lang="de">Andon liest jetzt 80 Dienste statt 47 und prüft sie gegeneinander: Sicherungen gegen Heartbeats, laufende Images gegen neue CVEs, Releases gegen rote CI. Verbindungen, Boards und Einstellungen wurden überarbeitet, und eine QA-Runde über ganze Nutzerwege hat behoben, was im Weg stand.</span></p>
+        <div class="release-group" data-kind="new"><h3><span lang="en">New</span><span lang="de">Neu</span></h3><ul>
+          <li><span lang="en">Backups: Proxmox Backup Server, Kopia, Duplicati, Backrest and UrBackup. One backup overview lists the last backup of every item from all tools, problems first.</span><span lang="de">Sicherungen: Proxmox Backup Server, Kopia, Duplicati, Backrest und UrBackup. Eine Backup-Übersicht zeigt die letzte Sicherung jedes Gegenstands aus allen Werkzeugen, Probleme zuerst.</span></li>
+          <li><span lang="en">Monitoring and updates: Healthchecks, Prometheus (alerts become hints, PromQL values become tiles), NVD, Drone with one CI tile for GitHub, Gitea and Drone, What's Up Docker and Watchtower.</span><span lang="de">Überwachung und Updates: Healthchecks, Prometheus (Alerts werden Hinweise, PromQL-Werte Kacheln), NVD, Drone mit einer CI-Kachel für GitHub, Gitea und Drone, What's Up Docker und Watchtower.</span></li>
+          <li><span lang="en">Power, network and home: PeaNUT, apcupsd, OpenDTU, EVCC, Traefik, Caddy, Nginx Proxy Manager, Technitium, FRITZ!Box and ESPHome.</span><span lang="de">Strom, Netz und Zuhause: PeaNUT, apcupsd, OpenDTU, EVCC, Traefik, Caddy, Nginx Proxy Manager, Technitium, FRITZ!Box und ESPHome.</span></li>
+          <li><span lang="en">Media, tasks and money: Tautulli, Jellystat, Navidrome, Audiobookshelf and Jellyseerr/Overseerr with a now-playing tile across all of them; Vikunja, Firefly III and Ghostfolio.</span><span lang="de">Medien, Aufgaben und Geld: Tautulli, Jellystat, Navidrome, Audiobookshelf und Jellyseerr/Overseerr mit einer Kachel „Jetzt läuft“ über alle; Vikunja, Firefly III und Ghostfolio.</span></li>
+          <li><span lang="en">Reading and community: a reading tile for Hacker News, Lobsters, Reddit, YouTube channels and Twitch; Mastodon, GoToSocial, Akkoma and Lemmy; GitHub downloads and trends, KDE Store downloads, sport results.</span><span lang="de">Lesen und Community: eine Lese-Kachel für Hacker News, Lobsters, Reddit, YouTube-Kanäle und Twitch; Mastodon, GoToSocial, Akkoma und Lemmy; GitHub-Downloads und Trends, KDE-Store-Downloads, Sportergebnisse.</span></li>
+          <li><span lang="en">New rules where services meet, for example a heartbeat that is green while its backup is old, a running image hit by a new CVE, a release on red CI, an update on a machine without a backup.</span><span lang="de">Neue Regeln, wo Dienste sich treffen, etwa ein grüner Heartbeat bei alter Sicherung, ein laufendes Image mit neuer CVE, ein Release auf roter CI, ein Update auf einer Maschine ohne Sicherung.</span></li>
+          <li><span lang="en">Rides from Dawarich tracks with real distances, each classified business, commute or private with its reason, for travel costs and the tax export; customers linked across Kimai, Invoice Ninja, Sure and Paperless, with or without a Verbund; IT docs and compose stacks read from Gitea, with a docs coverage tile.</span><span lang="de">Fahrten aus Dawarich-Tracks mit echten Strecken, jede als dienstlich, Arbeitsweg oder privat eingeordnet, mit Grund, für Reisekosten und Steuer-Export; Kunden über Kimai, Invoice Ninja, Sure und Paperless verknüpft, mit oder ohne Verbund; IT-Doku und Compose-Stacks aus Gitea gelesen, mit einer Kachel zur Doku-Abdeckung.</span></li>
+          <li><span lang="en">Admins set mail, Apprise, the AI key, the check interval, session limits and the log level under Setup → Server, without a restart. The digest mail gets its own settings with a preview, a send-now test and a log.</span><span lang="de">Admins stellen Mail, Apprise, den KI-Schlüssel, den Prüftakt, Sitzungsgrenzen und die Log-Stufe unter Einrichten → Server ein, ohne Neustart. Die E-Mail-Zusammenfassung bekommt eigene Einstellungen mit Vorschau, Sofort-Test und Log.</span></li>
+          <li><span lang="en">A maintenance page shows admins failed fetches, running tasks and recent log records.</span><span lang="de">Eine Wartungsseite zeigt Admins gescheiterte Abrufe, laufende Aufgaben und die letzten Log-Einträge.</span></li>
+        </ul></div>
+        <div class="release-group" data-kind="improved"><h3><span lang="en">Improved</span><span lang="de">Verbessert</span></h3><ul>
+          <li><span lang="en">Each connection opens as a record with tabs (overview, access, history). Template logins are held per person or team, and all settings pages share one frame by level: me, team, instance.</span><span lang="de">Jede Verbindung öffnet als Akte mit Reitern (Überblick, Zugang, Verlauf). Vorlagen-Zugänge gelten je Person oder Team, und alle Einstellungsseiten teilen einen Rahmen nach Ebene: ich, Team, Instanz.</span></li>
+          <li><span lang="en">One catalog for templates and tiles you already set up, with search. Tiles are edited in a dialog only, can be picked up anywhere in edit mode, and wide or tall tiles use their room.</span><span lang="de">Ein Katalog für Vorlagen und schon eingerichtete Kacheln, mit Suche. Kacheln werden nur noch im Dialog bearbeitet, lassen sich im Bearbeitungsmodus überall greifen, und breite oder hohe Kacheln nutzen ihren Platz.</span></li>
+          <li><span lang="en">Boards appear as cards with a sketch of their layout; a new order shows at once.</span><span lang="de">Boards erscheinen als Karten mit einer Skizze ihres Layouts; eine neue Reihenfolge gilt sofort.</span></li>
+          <li><span lang="en">Charts label both axes, carry a legend and name both values on hover.</span><span lang="de">Diagramme beschriften beide Achsen, haben eine Legende und nennen beim Überfahren beide Werte.</span></li>
+          <li><span lang="en">Times of day name their zone (e.g. CEST) when your browser is in a different zone than the server, in tiles, dialogs and forms.</span><span lang="de">Uhrzeiten nennen ihre Zone (z. B. CEST), wenn dein Browser in einer anderen Zone ist als der Server, in Kacheln, Dialogen und Formularen.</span></li>
+          <li><span lang="en">Every query is paced by its service's rate limit, and private iCal calendars with a login work, with an all-day lane.</span><span lang="de">Jede Abfrage richtet sich nach dem Ratenlimit ihres Dienstes, und private iCal-Kalender mit Anmeldung funktionieren, mit einer Ganztags-Spur.</span></li>
+        </ul></div>
+        <div class="release-group" data-kind="fixed"><h3><span lang="en">Fixed</span><span lang="de">Behoben</span></h3><ul>
+          <li><span lang="en">Pushes that failed (no Apprise server, or a refusal) still marked their hints as sent, so they never came. Now only a delivered push counts.</span><span lang="de">Gescheiterte Pushes (kein Apprise-Server oder eine Ablehnung) haben ihre Hinweise trotzdem als gesendet markiert, sie kamen also nie. Jetzt zählt nur ein zugestellter Push.</span></li>
+          <li><span lang="en">Saving in the code view kept no IDs, so "merge" doubled boards and tiles. Undo goes back step by step, and a deleted tile comes back on every board it was on.</span><span lang="de">Speichern in der Code-Ansicht hat keine IDs behalten, „Zusammenführen“ hat Boards und Kacheln verdoppelt. Rückgängig geht Schritt für Schritt zurück, und eine gelöschte Kachel kommt auf jedes Board zurück, auf dem sie lag.</span></li>
+          <li><span lang="en">Kimai Lite no longer refreshes away an open form; the Today and Kimai tiles count the running timer.</span><span lang="de">Kimai Lite frischt ein offenes Formular nicht mehr weg; die Kacheln Heute und Kimai zählen den laufenden Timer mit.</span></li>
+          <li><span lang="en">TOTP setup shows a QR code and keeps the setup after a wrong code; invites say whether the mail really went out; board exports contain their tiles; error pages keep the app frame and your input.</span><span lang="de">Die TOTP-Einrichtung zeigt einen QR-Code und behält die Einrichtung nach einem falschen Code; Einladungen sagen, ob die Mail wirklich rausging; Board-Exporte enthalten ihre Kacheln; Fehlerseiten behalten den App-Rahmen und deine Eingabe.</span></li>
+          <li><span lang="en">OIDC_* variables now win over stored SSO settings, like every other variable; migration 0018 no longer fails on a duplicate shared grant.</span><span lang="de">OIDC_*-Variablen gehen jetzt den gespeicherten SSO-Einstellungen vor, wie jede andere Variable; Migration 0018 scheitert nicht mehr an einer doppelten Freigabe.</span></li>
+        </ul></div>
+        <div class="release-group" data-kind="breaking"><h3><span lang="en">Note</span><span lang="de">Beachten</span></h3><ul>
+          <li><span lang="en">Push needs an Apprise API server (<code>APPRISE_API_URL</code> or Setup → Server). Without one Andon no longer tries, and the notifications page says so.</span><span lang="de">Push braucht einen Apprise-API-Server (<code>APPRISE_API_URL</code> oder Einrichten → Server). Ohne ihn versucht Andon es nicht mehr, und die Seite der Benachrichtigungen sagt das.</span></li>
+          <li><span lang="en">A setting in the environment still wins over the one in the UI and locks its field. Set <code>TZ</code> in the container so times follow your zone, not UTC.</span><span lang="de">Eine Einstellung aus der Umgebung geht weiter der aus der Oberfläche vor und sperrt ihr Feld. <code>TZ</code> im Container setzen, damit Zeiten deiner Zone folgen und nicht UTC.</span></li>
+          <li><span lang="en">The services added in this release were tested against recorded answers and the demo world, not yet against real instances. Run the connection test and check the first hints.</span><span lang="de">Die Dienste dieser Version sind gegen aufgezeichnete Antworten und die Demowelt getestet, noch nicht gegen echte Instanzen. Den Verbindungstest laufen lassen und die ersten Hinweise prüfen.</span></li>
+        </ul></div>
+        <div class="release-shots">
+          <figure><img lang="en" src="shots/release-0.6.0-backups-en.webp" alt="The tile catalog filtered for backup: one backup overview with items from UrBackup, Duplicati, Kopia, PG Back Web, Backrest and TrueNAS" loading="lazy"><img lang="de" src="shots/release-0.6.0-backups-de.webp" alt="Der Kachel-Katalog, gefiltert nach Backup: eine Backup-Übersicht mit Gegenständen aus UrBackup, Duplicati, Kopia, PG Back Web, Backrest und TrueNAS" loading="lazy"><figcaption><span lang="en">One backup overview across all tools (demo data)</span><span lang="de">Eine Backup-Übersicht über alle Werkzeuge (Demodaten)</span></figcaption></figure>
+          <figure><img lang="en" src="shots/release-0.6.0-connection-en.webp" alt="A Proxmox Backup Server connection as a record with the tabs overview, access and history" loading="lazy"><img lang="de" src="shots/release-0.6.0-connection-de.webp" alt="Eine Verbindung zum Proxmox Backup Server als Akte mit den Reitern Überblick, Zugang und Verlauf" loading="lazy"><figcaption><span lang="en">A connection as a record with tabs (demo data)</span><span lang="de">Eine Verbindung als Akte mit Reitern (Demodaten)</span></figcaption></figure>
+          <figure><img lang="en" src="shots/release-0.6.0-boards-en.webp" alt="Boards as cards with a sketch of their layout, tile and hint counts" loading="lazy"><img lang="de" src="shots/release-0.6.0-boards-de.webp" alt="Boards als Karten mit Skizze ihres Layouts, Zahl der Kacheln und Hinweise" loading="lazy"><figcaption><span lang="en">Boards as cards (demo data)</span><span lang="de">Boards als Karten (Demodaten)</span></figcaption></figure>
+          <figure><img lang="en" src="shots/release-0.6.0-timezone-en.webp" alt="The Today tile in a browser set to New York: times carry CEST, the server's zone" loading="lazy"><img lang="de" src="shots/release-0.6.0-timezone-de.webp" alt="Die Kachel Heute in einem Browser in New York: Uhrzeiten tragen CEST, die Zone des Servers" loading="lazy"><figcaption><span lang="en">Times name the server's zone when the browser is elsewhere</span><span lang="de">Uhrzeiten nennen die Zone des Servers, wenn der Browser woanders ist</span></figcaption></figure>
+        </div>
+        <div class="flow">
+          <div class="flow-node"><b lang="en">Backup tools</b><b lang="de">Sicherungswerkzeuge</b><span>Borg, PBS, Kopia, Duplicati, Backrest, UrBackup, PG Back Web, TrueNAS</span></div><div class="flow-arrow"></div>
+          <div class="flow-node hl"><b>BackupSource</b><span><span lang="en">one shape: item, last run, size, result</span><span lang="de">eine Form: Gegenstand, letzter Lauf, Größe, Ergebnis</span></span></div><div class="flow-arrow"></div>
+          <div class="flow-node"><b lang="en">Tiles and rules</b><b lang="de">Kacheln und Regeln</b><span><span lang="en">backup overview, heartbeat vs. backup, update without backup</span><span lang="de">Backup-Übersicht, Heartbeat gegen Sicherung, Update ohne Sicherung</span></span></div>
+        </div>
+        <a class="release-notes" href="https://github.com/shrippen/andon/compare/v0.5.0...v0.6.0"><span lang="en">All changes since 0.5.0 →</span><span lang="de">Alle Änderungen seit 0.5.0 →</span></a>
+      </div>
+    </li>
     <li class="release" id="v0.5.0">
       <div class="release-head"><b class="release-version">0.5.0</b><time datetime="2026-10-03"><span lang="en">3 Oct 2026</span><span lang="de">3. Okt. 2026</span></time></div>
       <div class="release-body">
@@ -234,7 +284,7 @@
       <div><h4><span lang="en">Source</span><span lang="de">Quelltext</span></h4><a href="https://github.com/shrippen/andon">GitHub</a><a href="https://github.com/shrippen/andon/issues">Issues</a><a href="https://github.com/shrippen/andon/releases">Releases</a></div>
     </nav>
   </div>
-  <div class="foot-meta"><p>GPL-3.0 · shrippen · <a href="#changes">v0.5</a></p></div>
+  <div class="foot-meta"><p>GPL-3.0 · shrippen · <a href="#changes">v0.6</a></p></div>
 </footer>
 
 </body>
