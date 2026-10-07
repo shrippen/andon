@@ -2660,9 +2660,16 @@ hint:
     not_deployed:
       title: '{count} stacks on {host} not deployed'
       why: '{names} are in the compose repo, Komodo does not run them. Deploy them or remove them from the repo.'
+      title_singular: 'Stack {names} on {host} not deployed'
+      why_singular: '{names} is in the compose repo, Komodo does not run it. Deploy it or remove it from the repo.'
     deployed_unknown:
       title: '{count} stacks on {host} run without compose repo'
       why: '{names} run in Komodo but are in no compose repo. Add the compose.yaml to the repo so the docs find them.'
+      title_singular: 'Stack {names} on {host} runs without compose repo'
+      why_singular: '{names} runs in Komodo but is in no compose repo. Add the compose.yaml to the repo so the docs find it.'
+    drift:
+      title: 'Doc {note} differs from the stack'
+      why: '{changes}. Update the note''s frontmatter.'
   borg:
     client_error:
       title: 'Backup client {client} reports an error'
@@ -3409,6 +3416,7 @@ rule_name:
   docs.deprecated_live: Deprecated docs, stack runs
   docs.not_deployed: Stack not deployed
   docs.deployed_unknown: Stack without compose repo
+  docs.drift: Docs differ from the stack
   borg.client_offline: Backup client offline
   borg.jobs_failed: Failed backups
   borg.backup_old: Backup outdated (Borg)
@@ -4721,6 +4729,7 @@ detail:
     not_deployed: 'Deploy {stack} or remove it from the repo'
     unknown: '{stack} runs in Komodo, in no compose repo'
     open_komodo: 'Open in Komodo'
+    drift: '{note} differs from the stack'
     hosts: 'Per host'
     host: 'Host'
     documented_n: 'Documented'
@@ -5676,6 +5685,7 @@ itdocs:
   gaps: 'Without docs'
   problems: '{n} links to check'
   deploys: 'Komodo: {missing} not deployed · {unknown} without repo'
+  drifts: '{n} notes differ'
   unread: 'Docs or stacks not read. Set docs_repo and docs_paths on the Gitea connection.'
 
 hansei:

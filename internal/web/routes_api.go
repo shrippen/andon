@@ -131,6 +131,17 @@ type apiDocFinding struct {
 	NoteURL  string          `json:"note_url,omitempty"`
 	Compose  string          `json:"compose,omitempty"`
 	Services []apiDocService `json:"services,omitempty"`
+	Changes  []apiDocChange  `json:"changes,omitempty"` // docs.drift
+}
+
+// apiDocChange is a frontmatter field that differs (docs.drift): the
+// vault's key, the note's value, the compose file's or what Komodo runs
+// (from "compose" or "komodo"). Environment values are never compared.
+type apiDocChange struct {
+	Field string `json:"field"`
+	Old   string `json:"old"`
+	New   string `json:"new"`
+	From  string `json:"from"`
 }
 
 // apiDocService is the compose excerpt of a stack: no environment, and
@@ -158,6 +169,9 @@ func (d Deps) handleAPIDocs(w http.ResponseWriter, r *http.Request) {
 		doc := apiDocFinding{ID: f.ID, Rule: f.Rule, Host: f.Host, Stack: f.Stack, Note: f.Note, Path: f.Path, Link: f.Link, NoteURL: f.NoteURL, Compose: f.Compose}
 		for _, s := range f.Services {
 			doc.Services = append(doc.Services, apiDocService{Name: s.Name, Image: s.Image, Ports: s.Ports})
+		}
+		for _, c := range f.Changes {
+			doc.Changes = append(doc.Changes, apiDocChange{Field: c.Field, Old: c.Old, New: c.New, From: c.From})
 		}
 		out.Findings = append(out.Findings, doc)
 	}

@@ -30,6 +30,29 @@ func registerDocs() {
 	Register("docs.deployed_unknown", giteaSvc, nil, on(docsDeployedUnknown))
 	Needs("docs.not_deployed", komodoSvc)
 	Needs("docs.deployed_unknown", komodoSvc)
+
+	// One hint per note whose URL, ports or image differ from its compose
+	// file or from what Komodo runs (metrics.CheckDrift).
+	Register("docs.drift", giteaSvc, nil, on(docsDrift))
+	Needs("docs.drift", komodoSvc)
+}
+
+func docsDrift(data *sources.GiteaDataset, cfg map[string]any, env Env) []Finding {
+	drifts, ok := metrics.CheckDrift(data, komodoOf(env))
+	if !ok {
+		return nil
+	}
+	claimed := claimedOf(env)
+
+	var found []Finding
+	for _, d := range drifts {
+		if claimed[metrics.DriftID(d)] {
+			continue
+		}
+		found = append(found, svcFinding(giteaSvc, "docs.drift", "drift:"+d.Note.Path, "docs.drift", enums.SeverityWarn, d.Note.URL,
+			map[string]any{"note": d.Note.Name, "path": d.Note.Path, "changes": d.Text()}))
+	}
+	return found
 }
 
 // komodoOf is the space's Komodo dataset, nil without one.

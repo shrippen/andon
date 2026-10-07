@@ -55,8 +55,12 @@ func TestFindingsPerStack(t *testing.T) {
 	if _, ok := byKey["docs.deprecated_live|boje|dawarich|Dawarich"]; !ok {
 		t.Fatalf("deprecated live: %+v", report.Findings)
 	}
-	if len(report.Findings) != 6 {
-		t.Fatalf("findings: %d, want 4 missing + orphan + deprecated", len(report.Findings))
+	ninja, ok := byKey["docs.drift|||Invoice Ninja"]
+	if !ok || len(ninja.Changes) != 2 || ninja.Changes[1].Old != "8002" || ninja.Changes[1].New != "8012" || ninja.ID != "docs.drift:IT/Dienste/Feuerschiff/Invoice Ninja.md" {
+		t.Fatalf("drift: %+v", ninja)
+	}
+	if len(report.Findings) != 8 {
+		t.Fatalf("findings: %d, want 4 missing + orphan + deprecated + 2 drifts", len(report.Findings))
 	}
 
 	// With Komodo in the space: what it does not run and what it runs
@@ -80,7 +84,10 @@ func TestFindingsPerStack(t *testing.T) {
 	if f, ok := rules["docs.not_deployed:nebelhorn/newt-nebelhorn"]; !ok || f.Compose == "" || len(f.Services) != 1 {
 		t.Fatalf("not deployed: %+v", report.Findings)
 	}
-	if _, ok := rules["docs.deployed_unknown:nebelhorn/paperless-ai"]; !ok || !report.Complete || len(report.Findings) != 8 {
+	if f := rules["docs.drift:IT/Dienste/Nebelhorn/Immich.md"]; len(f.Changes) != 1 || f.Changes[0].From != "komodo" {
+		t.Fatalf("running drift: %+v", report.Findings)
+	}
+	if f, ok := rules["docs.deployed_unknown:nebelhorn/paperless-ai"]; !ok || len(f.Services) != 1 || !report.Complete || len(report.Findings) != 11 {
 		t.Fatalf("deployed unknown: %+v", report.Findings)
 	}
 

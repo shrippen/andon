@@ -85,6 +85,16 @@ func TestDocsDemo(t *testing.T) {
 	if got := run(t, "docs.deprecated_live", data, env); len(got) != 1 || got[0].Params["stack"] != "dawarich" {
 		t.Fatalf("deprecated live: %+v", got)
 	}
+
+	// Invoice Ninja's URL and port, Nextcloud's image.
+	drifts := map[any]any{}
+	for _, f := range run(t, "docs.drift", data, env) {
+		drifts[f.Params["note"]] = f.Params["changes"]
+	}
+	if drifts["Invoice Ninja"] != "URL: rechnung.studio-weber.example.test → rechnungen.studio-weber.example.test; externe Ports: 8002 → 8012" ||
+		drifts["Nextcloud"] != "Image: nextcloud:30-apache → nextcloud:31-apache" || len(drifts) != 2 {
+		t.Fatalf("drift: %v", drifts)
+	}
 }
 
 // Findings Hansei claims wait: kometa's hint names only the rest and
@@ -175,5 +185,40 @@ func TestDocsKomodoDemo(t *testing.T) {
 	}
 	if got := run(t, "docs.deployed_unknown", data, env); len(got) != 1 || got[0].Params["host"] != "nebelhorn" || got[0].Params["names"] != "paperless-ai" {
 		t.Fatalf("deployed unknown: %+v", got)
+	}
+
+	// Immich runs an older image than its note and compose file name.
+	drifts := 0
+	for _, f := range run(t, "docs.drift", data, env) {
+		if f.Params["note"] == "Immich" && f.Params["changes"] != "Image (Komodo): ghcr.io/immich-app/immich-server:v2.1 → ghcr.io/immich-app/immich-server:v2.0" {
+			t.Fatalf("immich: %+v", f)
+		}
+		drifts++
+	}
+	if drifts != 3 {
+		t.Fatalf("drifts: %d", drifts)
+	}
+}
+
+// A note whose ports differ from its compose file gets one hint naming
+// the field old → new; claimed by Hansei it waits.
+func TestDocsDrift(t *testing.T) {
+	data := docsData()
+	data.Stacks[1].Services = []sources.ComposeService{{Name: "server", Image: "ghcr.io/immich-app/immich-server:v2.1", Ports: []string{"2283:2283"}}}
+	data.Notes[0].ExternalPorts = []string{"2284"}
+	data.Notes[0].Images = []string{"ghcr.io/immich-app/immich-server:v2.1"}
+	env := todayEnv(nil)
+	env.Datasets = map[string]any{string(enums.ServiceKomodo): &sources.KomodoDataset{Stacks: []sources.KStack{
+		{Name: "immich", Server: "Regis", Images: map[string]string{"server": "ghcr.io/immich-app/immich-server:v2.0"}}}}}
+
+	got := run(t, "docs.drift", data, env)
+	want := "externe Ports: 2284 → 2283; Image (Komodo): ghcr.io/immich-app/immich-server:v2.1 → ghcr.io/immich-app/immich-server:v2.0"
+	if len(got) != 1 || got[0].Params["note"] != "Immich" || got[0].Params["changes"] != want || got[0].Severity != enums.SeverityWarn {
+		t.Fatalf("drift: %+v", got)
+	}
+
+	env.Datasets[string(enums.ServiceHansei)] = &sources.HanseiDataset{Claimed: []string{"docs.drift:IT/Dienste/Regis/Immich.md"}}
+	if got := run(t, "docs.drift", data, env); len(got) != 0 {
+		t.Fatalf("claimed: %+v", got)
 	}
 }

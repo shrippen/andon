@@ -4872,7 +4872,10 @@
      "immich-server",
      "immich-machine-learning"
     ],
-    "repo": "studio/docker-compose-nebelhorn"
+    "repo": "studio/docker-compose-nebelhorn",
+    "images": {
+     "server": "ghcr.io/immich-app/immich-server:v2.0"
+    }
    },
    {
     "name": "paperless-ngx",
@@ -4887,7 +4890,10 @@
    {
     "name": "paperless-ai",
     "state": "running",
-    "repo": "studio/docker-compose-nebelhorn"
+    "repo": "studio/docker-compose-nebelhorn",
+    "images": {
+     "paperless-ai": "clusterzx/paperless-ai:3.0"
+    }
    }
   ],
   "alerts": [
@@ -5605,7 +5611,10 @@
        "image": "invoiceninja/invoiceninja-debian:5.12",
        "ports": [
         "8012:80"
-       ]
+       ],
+       "labels": {
+        "caddy": "rechnungen.studio-weber.example.test"
+       }
       },
       {
        "name": "db",
@@ -5647,7 +5656,10 @@
        "image": "nextcloud:31-apache",
        "ports": [
         "8080:80"
-       ]
+       ],
+       "labels": {
+        "caddy": "cloud.studio-weber.example.test"
+       }
       },
       {
        "name": "db",
@@ -5701,7 +5713,10 @@
        "image": "ghcr.io/immich-app/immich-server:v2.1",
        "ports": [
         "2283:2283"
-       ]
+       ],
+       "labels": {
+        "caddy": "fotos.studio-weber.example.test"
+       }
       },
       {
        "name": "db",
@@ -7807,7 +7822,7 @@
   }
  },
  "it_docs": {
-  "note": "Obsidian vault with Studio Weber's IT documentation (Hansei). Dates in notes are {{day:N}} placeholders, N = day offset from the anchor. Each check of Hansei finds something: a plain-text password and token, old code names (SW-NAS01, SW-VPS, SW-PI), a missing frontmatter key, an old review date, a dead link, a full compose copy. The restore note carries the returning file of the hidden layer.",
+  "note": "Obsidian vault with Studio Weber's IT documentation (Hansei). Dates in notes are {{day:N}} placeholders, N = day offset from the anchor. Each check of Hansei finds something: a plain-text password and token, old code names (SW-NAS01, SW-VPS, SW-PI), a missing frontmatter key, an old review date, a dead link, a full compose copy. The restore note carries the returning file of the hidden layer. Three service notes drift from their stacks: Invoice Ninja's URL and port, Nextcloud's image, and Immich runs an older image than its note names (Komodo).",
   "hosts": [
    {
     "name": "Nebelhorn",
@@ -7886,8 +7901,8 @@
    {
     "path": "IT/Dienste/Feuerschiff/Nextcloud.md",
     "content": {
-     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.studio-weber.example.test]\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nDateiablage für Kunden und Team. Läuft auf SW-VPS.\n\n## Zugang\nAdmin-Login über die Weboberfläche.\n- Benutzer: admin\n- Passwort: Elbfeuer-2026!\n\n## Backup\nNächtlich mit Restic nach Nordhost-Speicher.\n",
-     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.studio-weber.example.test]\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nFile storage for customers and team. Runs on SW-VPS.\n\n## Access\nAdmin login through the web interface.\n- User: admin\n- Passwort: Elbfeuer-2026!\n\n## Backup\nNightly with Restic to Nordhost storage.\n"
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.studio-weber.example.test]\nImage: nextcloud:30-apache\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nDateiablage für Kunden und Team. Läuft auf SW-VPS.\n\n## Zugang\nAdmin-Login über die Weboberfläche.\n- Benutzer: admin\n- Passwort: Elbfeuer-2026!\n\n## Backup\nNächtlich mit Restic nach Nordhost-Speicher.\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/nextcloud/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [cloud.studio-weber.example.test]\nImage: nextcloud:30-apache\nletzte Prüfung: {{day:-420}}\n---\n# Nextcloud\n\nFile storage for customers and team. Runs on SW-VPS.\n\n## Access\nAdmin login through the web interface.\n- User: admin\n- Passwort: Elbfeuer-2026!\n\n## Backup\nNightly with Restic to Nordhost storage.\n"
     }
    },
    {
@@ -7900,15 +7915,15 @@
    {
     "path": "IT/Dienste/Feuerschiff/Invoice Ninja.md",
     "content": {
-     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.studio-weber.example.test]\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nRechnungen und Angebote.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Genutzt von Kimai-Export und andon.\n",
-     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.studio-weber.example.test]\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nInvoices and quotes.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Used by the Kimai export and andon.\n"
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.studio-weber.example.test]\nexterne Ports: 8002\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nRechnungen und Angebote.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Genutzt von Kimai-Export und andon.\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-feuerschiff/src/branch/main/invoiceninja/compose.yaml\nGerät: \"[[Feuerschiff]]\"\nURLs: [rechnung.studio-weber.example.test]\nexterne Ports: 8002\nletzte Prüfung: {{day:-30}}\n---\n# Invoice Ninja\n\nInvoices and quotes.\n\n## API\n- API-Token: ninja_4f9e2c71b8a0d53e\n- Used by the Kimai export and andon.\n"
     }
    },
    {
     "path": "IT/Dienste/Nebelhorn/Immich.md",
     "content": {
-     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.studio-weber.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nFotos vom Set und Referenzbilder.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n",
-     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.studio-weber.example.test]\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nPhotos from the set and reference pictures.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n"
+     "de": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.studio-weber.example.test]\nImage: ghcr.io/immich-app/immich-server:v2.1\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nFotos vom Set und Referenzbilder.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n",
+     "en": "---\nCompose:\n  - https://git.demo/studio/docker-compose-nebelhorn/src/branch/main/immich/compose.yaml\nGerät: \"[[Nebelhorn]]\"\nURLs: [fotos.studio-weber.example.test]\nImage: ghcr.io/immich-app/immich-server:v2.1\nBackup via: Borg\nletzte Prüfung: {{day:-12}}\n---\n# Immich\n\nPhotos from the set and reference pictures.\n\n```yaml\nservices:\n  immich-server:\n    image: ghcr.io/immich-app/immich-server:release\n    volumes:\n      - /srv/fotos:/usr/src/app/upload\n```\n"
     }
    },
    {

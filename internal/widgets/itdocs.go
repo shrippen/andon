@@ -72,7 +72,18 @@ func docsView(cfg DocsConfig, results map[string]any, _ ViewCtx) map[string]any 
 	if deploys, ok := deploysOf(data, results); ok && len(deploys.NotDeployed)+len(deploys.Unknown) > 0 {
 		view["NotDeployed"], view["Unknown"] = len(deploys.NotDeployed), len(deploys.Unknown)
 	}
+	if drifts := driftsOf(data, results); len(drifts) > 0 {
+		view["Drifts"] = len(drifts)
+	}
 	return view
+}
+
+// driftsOf are the notes that differ from their stacks or from what the
+// space's Komodo runs.
+func driftsOf(data *sources.GiteaDataset, results map[string]any) []metrics.Drift {
+	komodo, _ := results[string(enums.ServiceKomodo)].(*sources.KomodoDataset)
+	drifts, _ := metrics.CheckDrift(data, komodo)
+	return drifts
 }
 
 // docsDetail lists what to write or fix, then the hosts' figures.
@@ -88,6 +99,9 @@ func docsDetail(cfg DocsConfig, data *sources.GiteaDataset, _ ViewCtx, results m
 	}
 	for _, l := range check.DeprecatedLive {
 		tasks.Items = append(tasks.Items, Task{Text: TxtA("detail.itdocs.deprecated", "stack", l.Stack.Name, "note", l.Note.Name), Meta: l.Stack.Host, State: "warn", Action: T("detail.itdocs.open_compose"), Href: l.Stack.URL})
+	}
+	for _, d := range driftsOf(data, results) {
+		tasks.Items = append(tasks.Items, Task{Text: TxtA("detail.itdocs.drift", "note", d.Note.Name), Meta: d.Text(), State: "warn", Action: T("detail.itdocs.open_note"), Href: d.Note.URL})
 	}
 	for _, s := range check.Missing {
 		tasks.Items = append(tasks.Items, Task{Text: TxtA("detail.itdocs.write", "stack", s.Name), Meta: s.Host, State: "warn", Action: T("detail.itdocs.open_compose"), Href: s.URL})

@@ -35,6 +35,7 @@ const (
 	RuleDeprecatedLive = "docs.deprecated_live"
 	RuleNotDeployed    = "docs.not_deployed"
 	RuleUnknown        = "docs.deployed_unknown"
+	RuleDrift          = "docs.drift"
 )
 
 // Report is every finding of the caller's Gitea connections.
@@ -53,6 +54,7 @@ type Finding struct {
 	Note, Path, Link string // note name, vault path, its Compose link; "" for a missing note
 	NoteURL, Compose string
 	Services         []sources.ComposeService
+	Changes          []metrics.DriftField // docs.drift: field, note's value, compose's or Komodo's
 }
 
 // Findings collects the findings of every Gitea connection the caller sees.
@@ -93,6 +95,8 @@ func Findings(ctx context.Context, d *sql.DB, who *access.Principal) (Report, er
 		if deploys, ok := metrics.CheckDeploys(data, komodo[c.SpaceID]); ok {
 			out.Findings = append(out.Findings, deployFindings(deploys)...)
 		}
+		drifts, _ := metrics.CheckDrift(data, komodo[c.SpaceID])
+		out.Findings = append(out.Findings, driftFindings(drifts)...)
 	}
 	out.Complete = read > 0 && unread == 0
 	return out, nil
@@ -159,6 +163,16 @@ func deployFindings(check metrics.DeployCheck) []Finding {
 			f.Services = append(f.Services, sources.ComposeService{Name: name, Image: u.Stack.Images[name]})
 		}
 		out = append(out, f)
+	}
+	return out
+}
+
+// driftFindings names each note that differs from its stacks, with the
+// fields old → new.
+func driftFindings(drifts []metrics.Drift) []Finding {
+	var out []Finding
+	for _, d := range drifts {
+		out = append(out, Finding{ID: metrics.DriftID(d), Rule: RuleDrift, Note: d.Note.Name, Path: d.Note.Path, NoteURL: d.Note.URL, Changes: d.Fields})
 	}
 	return out
 }

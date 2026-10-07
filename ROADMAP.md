@@ -21,7 +21,7 @@ Das Projekt ist vollständig von Python auf **Go** umgestellt (Zielplattform: Ra
 | Themes (Editor, Import/Export, Schriften, Styleguide, WCAG-AA-Prüfung) | umgesetzt |
 | Kimai, Invoice Ninja, Snipe-IT, Dawarich | Adapter, Regeln, Insight-Widgets umgesetzt |
 | Homelab-Dienste (Phase 10) | 17 weitere Quellen mit Regeln; Docker offen |
-| IT-Doku-Abgleich (Phase 15) | Compose-Stacks und Vault-Frontmatter über Gitea, Regeln `docs.*`, Kacheln, `/api/docs` und Hansei-Webhook umgesetzt; `docs.drift`, Komodo, Homelable offen |
+| IT-Doku-Abgleich (Phase 15) | Compose-Stacks und Vault-Frontmatter über Gitea, Komodo-Stand, Regeln `docs.*` (auch `docs.drift`), Kacheln, `/api/docs` und Hansei-Webhook umgesetzt; Homelable offen |
 | Prüflauf | Hintergrund-Job holt alle Integrationen (Start + alle `ANALYSIS_MINUTES`); Seiten zeigen nur diesen Stand, live nur der Status-Ping |
 | Benachrichtigungen | Apprise, Digest-Mail (SMTP), Wochenrückblick mit optionaler LLM-Zusammenfassung, iCal |
 | Trends, Prognosen | Snapshots, Verlauf, Saisonvergleich, Jahresprognose, Liquidität |
@@ -979,12 +979,12 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 | Andon | Vault-Frontmatter, Compose-Repos, Komodo | Hinweise; Homelable (abgeleitete Ansicht) |
 | Homelable | nur, was Andon schickt | nichts |
 
-**Stand 07.10.2026:** Andon-Seite bis auf `docs.drift`, Komodo und Homelable fertig (PRs #63–#71; Demowelt shrippen.github.io #25–#28, Hansei #8–#10).
+**Stand 07.10.2026:** Andon-Seite bis auf Homelable fertig (PRs #63–#71; Demowelt shrippen.github.io #25–#28, Hansei #8–#10); Komodo-Stand und `docs.drift` danach.
 - Live geprüft gegen git.arianw.de: 118 Stacks (Regis 79, Eredin 28, Plötze 11), 275 Notizen in `IT/Dienste`, `IT/Geräte`, `IT/Orte`, `IT/Netzwerk`, `IT/Allgemeines`. Kein Vault-Eintrag hat bisher ein `Compose`-Feld, daher melden die Regeln alle 118 Stacks als undokumentiert; das ist die Arbeitsliste fürs Nachtragen.
 - Produktiv noch nicht eingerichtet: an der Gitea-Verbindung die Optionen `docs_repo: shrippen/ObsidianPrivat` und `docs_paths: [IT/Dienste, IT/Geräte, IT/Orte, IT/Netzwerk, IT/Allgemeines]`; eine Verbindung Hansei (Webhook-Adresse steht auf ihrer Seite); ein Lese-Token für Hansei.
 - Schnittstelle zu Hansei:
   - `GET /api/docs?token=…` (Lese-Token) → `{"complete": bool, "findings": [{"id", "rule", "host", "stack", "note", "path", "link", "note_url", "compose", "services": [{"name", "image", "ports"}]}]}`. `complete: false` heißt: Stacks oder Notizen nicht vollständig gelesen, ein fehlender Befund ist dann keine Erledigung.
-  - IDs: `docs.missing:<host>/<stack>`, `docs.orphan:<Notizpfad>`, `docs.deprecated_live:<host>/<stack>`, `docs.not_deployed:<host>/<stack>` (mit Compose-Auszug), `docs.deployed_unknown:<host>/<stack>` (ohne `compose`; `services` sind die Images, die Komodo betreibt).
+  - IDs: `docs.missing:<host>/<stack>`, `docs.orphan:<Notizpfad>`, `docs.deprecated_live:<host>/<stack>`, `docs.not_deployed:<host>/<stack>` (mit Compose-Auszug), `docs.deployed_unknown:<host>/<stack>` (ohne `compose`; `services` sind die Images, die Komodo betreibt), `docs.drift:<Notizpfad>` mit `changes: [{"field", "old", "new", "from"}]` (`field` ist der Frontmatter-Schlüssel `URL`, `externe Ports` oder `Image`; `old` aus der Notiz, `new` aus der Compose-Datei (`from: compose`) oder aus dem, was Komodo betreibt (`from: komodo`)).
   - `POST <Webhook-Adresse der Verbindung Hansei>` mit `{"state": {"review", "feedback", "done", "conformity" (0..1), "claimed": [IDs]}}` ersetzt den letzten Stand (höchstens 60 Aufrufe je Minute, Körper bis 128 KiB). Nach jeder Änderung und beim Start senden.
 - Offen auf Hansei-Seite: Phase 05 in `hansei/ROADMAP.md` (Feld `Compose` im Vault, Befunde abholen, Stand senden).
 
@@ -1005,7 +1005,7 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 - [x] `docs.missing`: Stack ohne aktive Notiz (bzw. ohne Eintrag in einer Geräte- oder Netz-Notiz) *(ein Hinweis je Host; Zuordnung über `Compose`-Link auf Datei oder Stack-Ordner, `metrics.CheckDocs`)*
 - [x] `docs.orphan`: aktive Notiz, deren `Compose`-Link auf keinen Stack zeigt
 - [x] `docs.deprecated_live`: Notiz deprecated, Stack liegt noch im Repo
-- [ ] `docs.drift` (später): URL, Ports oder Image im Frontmatter weichen von der Compose-Datei ab
+- [x] `docs.drift` (später): URL, Ports oder Image im Frontmatter weichen von der Compose-Datei ab *(ein Hinweis je Notiz mit den Feldern alt → neu; auch gegen das Image, das Komodo betreibt, wenn es Neues sagt. Verglichen wird nur, was die Notiz nennt und die andere Seite kennt: URL nur gegen Proxy-Labels (Traefik `Host()`, caddy-docker-proxy), `externe Ports` als Menge der veröffentlichten Host-Ports (`127.0.0.1:8080:80/tcp` → 8080, `/udp` bleibt), Image nach Repository und Tag (ohne Tag = jeder Tag, Tag gegen Digest nicht vergleichbar); `interne Ports` und Umgebungswerte nicht. Frontmatter neu gelesen: `Image` (Liste erlaubt), `URLs` als Ersatz für `URL` (erster Eintrag). Regeln in `internal/metrics/itdocs_drift.go`)*
 - [x] Widget „Doku-Abdeckung“ je Host (X von Y Stacks dokumentiert, Liste der Lücken) *(`docs_coverage`; Popup mit Aufgaben je Lücke und Links)*
 - [x] Widget „Batches warten“ *(`hansei_batches`)*
 

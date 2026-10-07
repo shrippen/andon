@@ -2660,9 +2660,16 @@ hint:
     not_deployed:
       title: '{count} Stacks auf {host} nicht deployt'
       why: '{names} liegen im Compose-Repo, Komodo betreibt sie nicht. Deployen oder aus dem Repo entfernen.'
+      title_singular: 'Stack {names} auf {host} nicht deployt'
+      why_singular: '{names} liegt im Compose-Repo, Komodo betreibt ihn nicht. Deployen oder aus dem Repo entfernen.'
     deployed_unknown:
       title: '{count} Stacks auf {host} laufen ohne Compose-Repo'
       why: '{names} laufen in Komodo, liegen aber in keinem Compose-Repo. compose.yaml ins Repo legen, dann findet die Doku sie.'
+      title_singular: 'Stack {names} auf {host} läuft ohne Compose-Repo'
+      why_singular: '{names} läuft in Komodo, liegt aber in keinem Compose-Repo. compose.yaml ins Repo legen, dann findet die Doku ihn.'
+    drift:
+      title: 'Doku {note} weicht vom Stack ab'
+      why: '{changes}. Frontmatter der Notiz anpassen.'
   borg:
     client_error:
       title: 'Backup-Client {client} meldet Fehler'
@@ -3410,6 +3417,7 @@ rule_name:
   docs.deprecated_live: Veraltete Doku, Stack läuft
   docs.not_deployed: Stack nicht deployt
   docs.deployed_unknown: Stack ohne Compose-Repo
+  docs.drift: Doku weicht vom Stack ab
   borg.client_offline: Backup-Client offline
   borg.jobs_failed: Fehlgeschlagene Backups
   borg.backup_old: Backup veraltet (Borg)
@@ -4722,6 +4730,7 @@ detail:
     not_deployed: '{stack} deployen oder aus dem Repo entfernen'
     unknown: '{stack} läuft in Komodo, liegt in keinem Compose-Repo'
     open_komodo: 'In Komodo öffnen'
+    drift: '{note} weicht vom Stack ab'
     hosts: 'Je Host'
     host: 'Host'
     documented_n: 'Dokumentiert'
@@ -5677,6 +5686,7 @@ itdocs:
   gaps: 'Ohne Doku'
   problems: '{n} Links prüfen'
   deploys: 'Komodo: {missing} nicht deployt · {unknown} ohne Repo'
+  drifts: '{n} Notizen weichen ab'
   unread: 'Doku oder Stacks nicht gelesen. An der Gitea-Verbindung docs_repo und docs_paths setzen.'
 
 hansei:

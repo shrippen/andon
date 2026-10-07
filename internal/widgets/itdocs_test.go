@@ -53,3 +53,26 @@ func TestDocsCoverageKomodo(t *testing.T) {
 		t.Fatal("without komodo: deploy tasks")
 	}
 }
+
+// Notes that differ from their stacks: counted on the tile, listed in
+// the dialog with their fields; Immich's only with Komodo.
+func TestDocsCoverageDrift(t *testing.T) {
+	now := time.Now()
+	results := map[string]any{"data": sources.DemoGitea(now), "komodo": sources.DemoKomodo(now)}
+	if v := viewOf(t, "docs_coverage", nil, results, enums.ServiceGitea, nil); v["Drifts"] != 3 {
+		t.Fatalf("view: %+v", v)
+	}
+
+	kind, _ := widgets.Get("docs_coverage")
+	cfg, _ := widgets.Decode("docs_coverage", nil)
+	delete(results, "komodo")
+	drifts := map[string]any{}
+	for _, item := range docsTasks(t, kind.Detail(cfg, results, ctxFor(enums.ServiceGitea, nil)))["detail.itdocs.documented"].Items {
+		if text, ok := item.Text.(map[string]any); ok && text["$t"] == "detail.itdocs.drift" {
+			drifts[item.Href] = item.Meta
+		}
+	}
+	if len(drifts) != 2 {
+		t.Fatalf("drifts: %v", drifts)
+	}
+}
