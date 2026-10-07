@@ -114,10 +114,16 @@ func chartView(cfg ChartConfig, results map[string]any, ctx ViewCtx) map[string]
 
 	case cfg.Chart == ChartSeason && service == enums.ServiceInvoiceNinja:
 		var raw []barSeries
-		for _, m := range metrics.NinjaSeasonal(data.(*sources.NinjaDataset), today, cfg.Months) {
+		months, from := metrics.NinjaSeasonal(data.(*sources.NinjaDataset), today, cfg.Months)
+		for _, m := range months {
 			raw = append(raw, barSeries{m.Month, m.Net, m.Prev})
 		}
-		return chartOptions(map[string]any{"Bars": barsFrom(raw), "Unit": "money", "PrevKey": "chart.season_avg"}, cfg)
+		out := map[string]any{"Bars": barsFrom(raw), "Unit": "money", "PrevKey": "chart.season_avg"}
+		// Fewer years than the average wants: say where the data begins.
+		if !from.IsZero() {
+			out["DataFrom"] = from
+		}
+		return chartOptions(out, cfg)
 
 	case cfg.Chart == ChartHours && service == enums.ServiceKimai:
 		cur, prev := kimaiMonthHours(data.(*sources.KimaiDataset), today, cfg.Months)
