@@ -157,7 +157,7 @@ func Duplicate(d *sql.DB, who *access.Principal, boardID int64, name string) (in
 			return err
 		}
 		copyBoard.Layout = src.Layout
-		copyBoard.WallPage = src.WallPage
+		copyBoard.WallPage, copyBoard.WallTurn, copyBoard.WallEase = src.WallPage, src.WallTurn, src.WallEase
 		if err := content.UpdateBoard(tx, copyBoard); err != nil {
 			return err
 		}

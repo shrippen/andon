@@ -1280,28 +1280,30 @@
     });
   }
 
-  // ── Wall display: fullscreen on first tap, screen-high pages, rotate
-  //    boards, dim at night; any key, Esc or a corner click leaves ──
+  // ── Wall display: fullscreen on first tap, the board in screen-filling
+  //    sets, boards rotate, dim at night; any key, Esc or a corner click
+  //    leaves ──
   //
-  //   page 1 ─(wall page s)─► page 2 ─► … ─► last page ─► page 1
-  //                                               └─ every s passed and a
-  //                                                  next board? → next board
+  //   tiles in board order ─ wallPack ─► sets that each fill the screen
+  //   set 1 ─(wall_page s, Kante.wall transition)─► set 2 ─► … ─► set 1
+  //                                       └─ after the last set, once "every"
+  //                                          passed and there is a next board
   //
-  // Pages are measured anew at each turn: tiles that htmx refreshes grow
-  // and shrink in between. A page starts at the first tile or section
-  // head that would be cut, so nothing is cut except a tile taller than
-  // the screen, or one that would make a page turn less than half a
-  // screen (columns of different heights). Kante scrolls smoothly, and
-  // instantly for reduced motion.
+  // Only the shown set's tiles and section heads are on the page
+  // ([data-wall-off] hides the rest), so nothing scrolls. The live board
+  // is the new set; a copy of it is the old one while the transition
+  // runs. htmx swaps and resizes pack again (sizes change); reduced
+  // motion switches without a transition.
   var KIOSK_DIM_CHECK_MS = 60000;
   var KIOSK_CORNER = 0.12; // share of width and height a corner click hits
-  var KIOSK_PAGE_GAP = 16; // px kept above a page's first tile
-  var KIOSK_MIN_TURN = 0.5; // share of the screen a page turn moves at least
-  var KIOSK_PAGE_S = 20; // seconds per page when the board names none
+  var KIOSK_PAGE_S = 20; // seconds per set when the board names none
+  var KIOSK_REPACK_MS = 400; // quiet time after swaps or resizes before packing again
+  var WALL_TILES = ".tile-slot, .dsec-head"; // what the tile transitions move
   // kioskTimers survive boosted page changes, which run setupKiosk again:
-  // cleared first, so paging, rotation and dimming never pile up.
-  var kioskTimers = { page: 0, dim: 0 };
+  // cleared first, so turns, rotation and dimming never pile up.
+  var kioskTimers = { page: 0, dim: 0, repack: 0 };
   var kioskBound = false;
+  var wall = null;
 
   function inDim(spec, hour) {
     var parts = spec.split("-");
@@ -1309,29 +1311,170 @@
     return from <= to ? hour >= from && hour < to : hour >= from || hour < to;
   }
 
-  // kioskPages lists the scroll offsets where the board's pages start.
-  function kioskPages() {
-    var screen = window.innerHeight, y = window.scrollY;
-    var blocks = [].map.call(d.querySelectorAll(".board .tile-slot, .board .dsec-head"), function (el) {
-      var r = el.getBoundingClientRect();
-      return { top: r.top + y, bottom: r.bottom + y };
-    }).filter(function (b) { return b.bottom > b.top; });
-    blocks.sort(function (a, b) { return a.top - b.top; });
+  // wallPack packs n units in order into sets [from, to): a unit that no
+  // longer fits starts the next set, one that alone does not fit gets a set
+  // of its own. fits(from, to) says whether units from…to-1 fit one screen.
+  //
+  //   fits: a b c ✓, a b c d ✗ → [a b c] [d …]
+  function wallPack(n, fits) {
+    var sets = [], start = 0;
+    for (var i = 2; i <= n; i++) {
+      if (i - start > 1 && !fits(start, i)) {
+        sets.push([start, i - 1]);
+        start = i - 1;
+      }
+    }
+    if (n > start) {
+      sets.push([start, n]);
+    }
+    return sets;
+  }
+  window.andonWall = { pack: wallPack };
 
-    var starts = [0], end = 0;
-    blocks.forEach(function (b) {
-      var start = starts[starts.length - 1];
-      end = Math.max(end, b.bottom);
-      if (b.bottom <= start + screen || b.top - KIOSK_PAGE_GAP < start + screen * KIOSK_MIN_TURN) {
+  // wallUnits lists what a set is made of, in board order: each tile of an
+  // open section, a folded or empty section as a whole.
+  function wallUnits(main) {
+    var units = [];
+    [].forEach.call(main.querySelectorAll(".board .dsec"), function (sec) {
+      var tiles = sec.querySelector("details.fold[open]") ? sec.querySelectorAll(".tile-slot") : [];
+      if (!tiles.length) {
+        units.push({ sec: sec, el: null });
         return;
       }
-      starts.push(b.top - KIOSK_PAGE_GAP);
+      [].forEach.call(tiles, function (t) { units.push({ sec: sec, el: t }); });
     });
-    // A tile taller than the screen at the end: a screen at a time.
-    for (var last = starts[starts.length - 1]; end > last + screen; last = starts[starts.length - 1]) {
-      starts.push(last + screen - KIOSK_PAGE_GAP);
+    return units;
+  }
+
+  function wallToggle(el, on) {
+    if (on) {
+      el.removeAttribute("data-wall-off");
+    } else {
+      el.setAttribute("data-wall-off", "");
     }
-    return starts;
+  }
+
+  // wallShow leaves units from…to-1 and their sections on the page.
+  function wallShow(from, to) {
+    var shown = [];
+    wall.units.forEach(function (u, i) {
+      var on = i >= from && i < to;
+      if (u.el) {
+        wallToggle(u.el, on);
+      }
+      if (on && shown.indexOf(u.sec) < 0) {
+        shown.push(u.sec);
+      }
+    });
+    wall.units.forEach(function (u) { wallToggle(u.sec, shown.indexOf(u.sec) >= 0); });
+  }
+
+  function wallFits() {
+    return wall.main.scrollHeight <= wall.main.clientHeight;
+  }
+
+  // wallFit shows set n; a set taller than the screen (one large tile) is
+  // scaled down to fit (Kante .wall-set.is-fit).
+  function wallFit(n) {
+    var main = wall.main, set = wall.sets[n];
+    main.classList.remove("is-fit");
+    wallShow(set[0], set[1]);
+    if (wallFits()) {
+      return;
+    }
+    main.style.setProperty("--wall-scale", String(main.clientHeight / main.scrollHeight));
+    main.classList.add("is-fit");
+  }
+
+  // wallRepack packs the board again and stays on the set that holds the
+  // first unit of the shown one.
+  function wallRepack() {
+    if (wall.busy) {
+      wall.dirty = true;
+      return;
+    }
+    wall.dirty = false;
+    var first = wall.sets.length ? wall.sets[wall.at][0] : 0;
+    wall.main.classList.remove("is-fit");
+    wall.units = wallUnits(wall.main);
+    wall.sets = wallPack(wall.units.length, function (from, to) {
+      wallShow(from, to);
+      return wallFits();
+    });
+    if (!wall.sets.length) {
+      wall.sets = [[0, 0]];
+    }
+    wall.at = 0;
+    wall.sets.forEach(function (s, i) {
+      if (s[0] <= first && first < s[1]) {
+        wall.at = i;
+      }
+    });
+    wallFit(wall.at);
+    wallPager();
+  }
+
+  function wallLater() {
+    window.clearTimeout(kioskTimers.repack);
+    kioskTimers.repack = window.setTimeout(wallRepack, KIOSK_REPACK_MS);
+  }
+
+  // wallPager draws one square per set and starts the set's time line.
+  function wallPager() {
+    var pager = wall.pager;
+    while (pager.children.length !== wall.sets.length) {
+      if (pager.children.length > wall.sets.length) {
+        pager.lastChild.remove();
+      } else {
+        pager.appendChild(d.createElement("i"));
+      }
+    }
+    [].forEach.call(pager.children, function (p, i) { p.classList.toggle("is-on", i === wall.at); });
+  }
+
+  function wallTime() {
+    var line = d.createElement("i");
+    wall.progress.replaceChildren(line);
+  }
+
+  // wallCopy is the shown set as a still copy: no ids (htmx swaps by id
+  // must reach the live board), not focusable.
+  function wallCopy(main) {
+    var copy = main.cloneNode(true);
+    [copy].concat([].slice.call(copy.querySelectorAll("[id]"))).forEach(function (el) { el.removeAttribute("id"); });
+    copy.setAttribute("aria-hidden", "true");
+    copy.inert = true;
+    return copy;
+  }
+
+  // wallTurn changes to set n with the board's transition.
+  function wallTurn(n) {
+    if (wall.busy) {
+      return;
+    }
+    var main = wall.main;
+    var motion = window.Kante && Kante.wall && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    var copy = null;
+    if (motion) {
+      copy = wallCopy(main);
+      main.parentNode.insertBefore(copy, main);
+    }
+    wall.at = n;
+    wallFit(n);
+    wallPager();
+    wallTime();
+    if (!copy) {
+      return;
+    }
+    wall.busy = true;
+    var name = Kante.wall.pick(wall.turn, wall.turns++);
+    Kante.wall.run(name, copy, main, { easing: wall.ease, tiles: WALL_TILES }).then(function () {
+      copy.remove();
+      wall.busy = false;
+      if (wall.dirty) {
+        wallRepack();
+      }
+    });
   }
 
   // kioskLeave goes back to the normal board.
@@ -1378,12 +1521,48 @@
         d.documentElement.requestFullscreen().catch(function () {});
       }
     }, true);
+    d.addEventListener("htmx:afterSettle", function () {
+      if (wall) {
+        wallLater();
+      }
+    });
+    window.addEventListener("resize", function () {
+      if (wall) {
+        wallLater();
+      }
+    });
+  }
+
+  // wallStage turns the kiosk page into a Kante wall stage: the body is
+  // the screen, the board the shown set, a pager and a time line on top.
+  function wallStage(body) {
+    var main = d.querySelector("main.board-page");
+    body.classList.add("wall-stage", "is-screen");
+    main.classList.add("wall-set");
+    // The side column goes under the main one at full width (as on a
+    // phone): a narrow column of its own left most of the screen empty.
+    [].forEach.call(main.querySelectorAll(".board.has-side"), function (b) { b.classList.remove("has-side"); });
+    var pager = d.createElement("div");
+    pager.className = "wall-pager";
+    pager.setAttribute("aria-hidden", "true");
+    var progress = d.createElement("div");
+    progress.className = "wall-progress";
+    progress.setAttribute("aria-hidden", "true");
+    body.append(pager, progress);
+    var secs = +body.dataset.kioskPage || KIOSK_PAGE_S;
+    body.style.setProperty("--wall-time", secs + "s");
+    return {
+      main: main, pager: pager, progress: progress, secs: secs, units: [], sets: [], at: 0,
+      turn: body.dataset.kioskTurn || "cut", ease: body.dataset.kioskEase || "standard", turns: 0, busy: false, dirty: false
+    };
   }
 
   function setupKiosk() {
     var body = d.body;
     window.clearInterval(kioskTimers.page);
     window.clearInterval(kioskTimers.dim);
+    window.clearTimeout(kioskTimers.repack);
+    wall = null;
     if (!body.classList.contains("is-kiosk")) {
       return;
     }
@@ -1394,22 +1573,26 @@
       window.setTimeout(function () { hint.remove(); }, toastLife(hint));
     }
 
-    // Turn the page; after the last one the next board, once "every" passed.
+    wall = wallStage(body);
+    wallRepack();
+    wallTime();
+
+    // Next set; after the last one the next board, once "every" passed.
     var next = body.dataset.kioskNext, every = +body.dataset.kioskEvery * 1000;
-    var shown = Date.now(), page = 0;
-    window.scrollTo(0, 0);
+    var shown = Date.now();
     kioskTimers.page = window.setInterval(function () {
-      var starts = kioskPages();
-      page += 1;
-      if (page >= starts.length) {
+      var n = wall.at + 1;
+      if (n >= wall.sets.length) {
         if (next && every > 0 && Date.now() - shown >= every) {
           window.location.href = next;
           return;
         }
-        page = 0;
+        n = 0;
       }
-      window.scrollTo(0, starts[page]);
-    }, (+body.dataset.kioskPage || KIOSK_PAGE_S) * 1000);
+      if (n !== wall.at) {
+        wallTurn(n);
+      }
+    }, wall.secs * 1000);
 
     var dim = body.dataset.kioskDim;
     if (!dim) {
@@ -1418,6 +1601,40 @@
     var check = function () { body.classList.toggle("is-dim", inDim(dim, new Date().getHours())); };
     check();
     kioskTimers.dim = window.setInterval(check, KIOSK_DIM_CHECK_MS);
+  }
+
+  // ── Wall display preview (board settings): plays the chosen transition
+  //    and easing between two sets of the board's own tiles ──
+  function setupWallPreview() {
+    var stage = d.querySelector("[data-wall-preview]");
+    if (!stage || stage.dataset.bound || !window.Kante || !Kante.wall) {
+      return;
+    }
+    stage.dataset.bound = "1";
+    var form = stage.closest("form") || d;
+    var turn = form.querySelector("[data-wall-turn]"), ease = form.querySelector("[data-wall-ease]");
+    var n = 0, busy = false;
+
+    // play: force for an explicit click, also with reduced motion.
+    var play = function (force) {
+      if (busy) {
+        return;
+      }
+      busy = true;
+      var sets = [].slice.call(stage.querySelectorAll(".wall-set"));
+      var from = sets.filter(function (s) { return !s.hidden; })[0], to = sets.filter(function (s) { return s.hidden; })[0];
+      stage.insertBefore(to, from.nextSibling);
+      to.hidden = false;
+      var name = Kante.wall.pick(turn.value, n++);
+      Kante.wall.run(name, from, to, { easing: ease.value, force: force }).then(function () {
+        from.hidden = true;
+        [].forEach.call(stage.querySelectorAll(".wall-pager > i"), function (p, i) { p.classList.toggle("is-on", sets[i] === to); });
+        busy = false;
+      });
+    };
+    form.querySelector("[data-wall-play]").addEventListener("click", function () { play(true); });
+    turn.addEventListener("change", function () { play(false); });
+    ease.addEventListener("change", function () { play(false); });
   }
 
   // ── Offline view: service worker keeps the last state, banner says so ──
@@ -1961,6 +2178,7 @@
     bindPalette();
     offlineNote();
     setupKiosk();
+    setupWallPreview();
     tick();
   });
 })();

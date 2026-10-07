@@ -207,7 +207,7 @@ board:
   name_taken: "Ein anderes Board in diesem Bereich heißt schon so."
   delete_hint: 'Das Board verschwindet für alle. Die Kacheln bleiben in der Bibliothek.'
   kiosk: Wandanzeige
-  kiosk_hint: 'Vollbild, blättert alle {secs} s eine Bildschirmseite weiter, nach der letzten Seite (frühestens nach einer Minute) das nächste Board, 22–7 Uhr gedimmt. Seitenzeit in den Board-Einstellungen, every und dim in der Adresse.'
+  kiosk_hint: 'Vollbild, zeigt die Kacheln in Sätzen, die den Bildschirm füllen, alle {secs} s der nächste Satz, nach dem letzten (frühestens nach einer Minute) das nächste Board, 22–7 Uhr gedimmt. Übergang und Zeit in den Board-Einstellungen, every und dim in der Adresse.'
   kiosk_leave: 'Wandanzeige beenden: Esc, eine beliebige Taste oder ein Klick in eine Ecke.'
   from_template: Aus Vorlage
   template_hint: Legt Board und Kacheln im gewählten Bereich an; Kacheln mit Verbindung zeigen danach, was noch fehlt.
@@ -628,8 +628,11 @@ field:
   hide_after: 'Geräte ausblenden, die länger offline sind als (Tage, 0 = nie)'
   board_layout: 'Anordnung'
   board_layout_hint: 'Spaltenfluss füllt Lücken unter kurzen Abschnitten; die Breite der Abschnitte gilt dann nicht.'
-  wall_page: 'Wandanzeige: Sekunden je Seite'
-  wall_page_hint: 'Die Wandanzeige teilt das Board in bildschirmhohe Seiten und blättert nach dieser Zeit weiter ({min}–{max} s).'
+  wall_page: 'Sekunden je Satz'
+  wall_page_hint: 'Die Wandanzeige packt die Kacheln in Sätze, die genau den Bildschirm füllen, und zeigt nach dieser Zeit den nächsten ({min}–{max} s).'
+  wall_turn: 'Übergang'
+  wall_ease: 'Beschleunigung'
+  wall_preview: 'Vorschau der Wandanzeige'
   free: 'Frei verfügbaren Betrag zeigen (Kontostand)'
   titles_only: 'Nur Titel (eine Zeile je Eintrag)'
   list_height: 'Listenhöhe'
@@ -804,6 +807,22 @@ sort:
 area:
   main: Hauptspalte
   side: Seitenspalte
+wall_turn:
+  cut: Kante-Schnitt
+  fade: Überblenden
+  stagger: Kachel für Kachel
+  flap: Fallblatt
+  shutter: Rollladen
+  scan: Scanlinie
+  rotate: Abwechselnd
+wall_ease:
+  standard: Standard
+  linear: Linear
+  quad: Quadratisch
+  cubic: Kubisch
+  expo: Exponentiell
+  soft: Sanft auslaufend
+  snap: Federnd
 wtype:
   github_trending:
     name: GitHub-Trends

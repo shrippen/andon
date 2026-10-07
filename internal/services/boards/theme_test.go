@@ -32,10 +32,10 @@ func TestBoardThemeMustBeUsable(t *testing.T) {
 	if err := content.AddBoard(d, board); err != nil {
 		t.Fatal(err)
 	}
-	if err := boards.Rename(d, ownerWho, board.ID, 1, "B", &private, nil, "", 0); !errors.Is(err, access.ErrDenied) {
+	if err := boards.Rename(d, ownerWho, board.ID, 1, "B", &private, nil, "", boards.Wall{}); !errors.Is(err, access.ErrDenied) {
 		t.Fatalf("foreign theme: %v", err)
 	}
-	if err := boards.Rename(d, ownerWho, board.ID, 1, "B", &builtin, nil, "", 0); err != nil {
+	if err := boards.Rename(d, ownerWho, board.ID, 1, "B", &builtin, nil, "", boards.Wall{}); err != nil {
 		t.Fatalf("built-in theme: %v", err)
 	}
 }

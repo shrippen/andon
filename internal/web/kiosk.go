@@ -1,11 +1,12 @@
 package web
 
-// Wall display (?kiosk): no app chrome, screen-high pages, boards rotate,
-// dimmed at night; any key, Esc or a click in a corner leaves (andon.js).
+// Wall display (?kiosk): no app chrome, the tiles in screen-filling sets
+// that change with a transition (Kante.wall), boards rotate, dimmed at
+// night; any key, Esc or a click in a corner leaves (andon.js).
 //
 //	/boards/3?kiosk&every=60&dim=22-7
-//	  → next page every 20 s (the board's wall page time)
-//	  → after the last page, once 60 s have passed,
+//	  → next set every 20 s (the board's wall settings: time, transition, easing)
+//	  → after the last set, once 60 s have passed,
 //	    /boards/<next visible board>?kiosk&every=60&dim=22-7
 //	  → 22:00–07:00 the page is dimmed
 

@@ -140,7 +140,9 @@ type Board struct {
 	IsTemplate  bool
 	MinTeamRole *enums.TeamRole
 	Layout      enums.BoardLayout
-	WallPage    int // seconds per page on the wall display
+	WallPage    int // seconds per set on the wall display
+	WallTurn    enums.WallTurn
+	WallEase    enums.WallEase
 	Version     int
 	UpdatedAt   time.Time
 
