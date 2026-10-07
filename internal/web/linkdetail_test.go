@@ -106,3 +106,17 @@ func TestLinkDetailUnchecked(t *testing.T) {
 		t.Fatalf("body: %s", body)
 	}
 }
+
+// TestMsChartTicks: the x axis names five days spread over all days,
+// gaps included, from the first to the last.
+func TestMsChartTicks(t *testing.T) {
+	start := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+	var days []linkstatus.Day
+	for i := range 9 {
+		days = append(days, linkstatus.Day{Day: start.AddDate(0, 0, i)})
+	}
+	m := msChartOf(days)
+	if len(m.Ticks) != 5 || !m.Ticks[0].Equal(start) || !m.Ticks[2].Equal(start.AddDate(0, 0, 4)) || !m.Ticks[4].Equal(start.AddDate(0, 0, 8)) {
+		t.Fatalf("ticks %v", m.Ticks)
+	}
+}

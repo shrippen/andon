@@ -103,6 +103,7 @@
       </svg>
       <span class="readout"></span>
       </div>
+      {{with $m.Ticks}}<div class="detail-ticks">{{range .}}<span>{{day .}}</span>{{end}}</div>{{end}}
       </div>
     </div>
 

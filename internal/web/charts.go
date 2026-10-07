@@ -130,11 +130,21 @@ func xTicks(c widgets.Graph) []any {
 	}
 
 	out := make([]any, chartXTicks)
-	for i := range out {
-		out[i] = c.Labels[int(math.Round(float64(i*(n-1))/float64(chartXTicks-1)))]
+	for i, at := range tickAt(n) {
+		out[i] = c.Labels[at]
 	}
 	if len(c.Ticks) >= 2 {
 		out[0], out[chartXTicks-1] = c.Ticks[0], c.Ticks[len(c.Ticks)-1]
+	}
+	return out
+}
+
+// tickAt are the indexes of chartXTicks ticks spread evenly over n
+// values: 9 → 0, 2, 4, 6, 8.
+func tickAt(n int) []int {
+	out := make([]int, chartXTicks)
+	for i := range out {
+		out[i] = int(math.Round(float64(i*(n-1)) / float64(chartXTicks-1)))
 	}
 	return out
 }
