@@ -389,3 +389,25 @@ func BlacklistInfo(data *sources.BlacklistDataset) []InfoPart {
 	}
 	return []InfoPart{part("blacklist.listed", map[string]any{"count": len(data.Listings)})}
 }
+
+// ESPBehind: the node runs an older ESPHome than the dashboard
+// ("2026.6.2" against "2026.9.1"); never flashed nodes are not behind.
+func ESPBehind(d sources.ESPDevice, current string) bool {
+	return d.Deployed != "" && current != "" && compareVersions(current, d.Deployed) > 0
+}
+
+// ESPHomeInfo: "4 nodes · 1 offline".
+func ESPHomeInfo(data *sources.ESPHomeDataset) []InfoPart {
+	off := 0
+	for _, d := range data.Devices {
+		if d.Online != nil && !*d.Online {
+			off++
+		}
+	}
+	return []InfoPart{part("esphome.nodes", map[string]any{"count": len(data.Devices), "offline": off})}
+}
+
+// FediInfo: "412 followers · 2 unread".
+func FediInfo(data *sources.FediverseDataset) []InfoPart {
+	return []InfoPart{part("fediverse.info", map[string]any{"followers": data.Account.Followers, "unread": len(data.Unread(""))})}
+}

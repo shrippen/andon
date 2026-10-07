@@ -289,3 +289,19 @@
 {{with $v.Lines}}<ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span><span class="stack-item"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a><small class="muted">{{if .SourceKey}}{{t .SourceKey}}{{else}}{{.SourceName}}{{end}}{{if eq .Site "youtube"}}{{with .Views}} · {{t "reading.views" "n" .}}{{end}}{{else}} · {{t "reading.points" "n" .Points}} · <a href="{{.Link}}" target="_blank" rel="noopener noreferrer">{{t "reading.comments" "n" .Comments}}</a>{{end}} · {{ago .At}}</small></span></li>{{end}}</ul>{{end}}
 {{else if $v.Any}}<p class="tile-note">{{t "reading.none"}}</p>{{end}}{{end}}
 {{end}}
+
+{{define "widgets/esphome"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if $v.Total}}
+<div class="tile-head"><b class="tile-value" data-live>{{$v.Total}}</b><span class="tile-note">{{t "esphome.tile"}}{{with $v.Offline}} · <span class="late">{{t "esphome.tile_offline" "n" .}}</span>{{end}}</span></div>
+<ul class="legend-list">{{range $v.Lines}}<li><span class="sq"{{if eq .State "bad"}} data-tier="red"{{else if .Behind}} data-tier="yellow"{{else if eq .State "ok"}} data-tier="green"{{else}} data-tier="grey"{{end}} aria-hidden="true"></span><span class="stack-item">{{.Friendly}}<small class="muted">{{if eq .State "bad"}}{{t "esphome.offline"}}{{else if .Behind}}{{.Deployed}} → {{$v.Version}}{{else}}{{.Deployed}}{{end}}</small></span></li>{{end}}</ul>
+{{else if $v}}<p class="tile-note">{{t "esphome.none"}}</p>{{end}}{{end}}
+{{end}}
+
+{{define "widgets/fediverse"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{with $v.Account}}
+<div class="tile-head"><b class="tile-value" data-live>{{.Followers}}</b><span class="tile-note">{{t "fediverse.tile"}}{{with $v.Gain}} · {{t "fediverse.tile_gain" "n" . "days" $v.Days}}{{end}}</span></div>
+{{with $v.Notes}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="{{if eq .Type "mention"}}yellow{{else}}blue{{end}}" aria-hidden="true"></span><span class="stack-item">{{if .URL}}<a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.From}}</a>{{else}}{{.From}}{{end}}<small class="muted">{{t (print "fediverse.type." .Type)}} · {{ago .At}}</small></span></li>{{end}}</ul>
+{{else}}<p class="tile-note">{{t "fediverse.none"}}</p>{{end}}{{end}}{{end}}
+{{end}}

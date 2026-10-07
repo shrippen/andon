@@ -267,3 +267,20 @@ func recordDownloads(service enums.ServiceType, items []sources.DownloadItem, r 
 		}
 	}
 }
+
+// FollowersKey is the series of an account's followers, recorded daily.
+func FollowersKey(acct string) string {
+	return key(string(enums.ServiceFediverse), "followers", acct)
+}
+
+// The analysis records the followers once a day; the demo account brings
+// its earlier days along.
+func init() {
+	Record(func(d *sources.FediverseDataset, _ time.Time, r *Readings) {
+		k := FollowersKey(d.Account.Acct)
+		for _, past := range d.Account.FollowerDays {
+			r.SetOn(past.Day, k, float64(past.Total))
+		}
+		r.Set(k, float64(d.Account.Followers))
+	})
+}

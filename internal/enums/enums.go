@@ -158,6 +158,8 @@ const (
 	ServiceVikunja        ServiceType = "vikunja"
 	ServiceNews           ServiceType = "news"
 	ServiceTwitch         ServiceType = "twitch"
+	ServiceESPHome        ServiceType = "esphome"
+	ServiceFediverse      ServiceType = "fediverse"
 	ServiceFirefly        ServiceType = "firefly"
 	ServiceGhostfolio     ServiceType = "ghostfolio"
 	ServiceTibber         ServiceType = "tibber"
@@ -176,7 +178,7 @@ var Services = []ServiceType{
 	ServiceTrueNAS, ServiceKomodo, ServicePangolin, ServiceAuthentik,
 	ServicePihole, ServiceAdGuard, ServiceNextcloud, ServiceSabnzbd, ServiceGluetun, ServiceDomains, ServiceBlacklist,
 	ServiceTailscale, ServiceGateway, ServiceMediaServer, ServiceArr, ServiceVaultwarden,
-	ServiceSpeedtest, ServiceGrocy, ServiceTandoor, ServiceDWD, ServiceGitHub, ServiceKDEStore, ServiceHealthchecks, ServicePrometheus, ServiceNVD, ServiceDrone, ServicePBS, ServiceKopia, ServiceDuplicati, ServiceBackrest, ServiceUrBackup, ServiceWUD, ServiceWatchtower, ServicePeaNUT, ServiceApcupsd, ServiceOpenDTU, ServiceEVCC, ServiceTraefik, ServiceCaddy, ServiceNPM, ServiceTechnitium, ServiceFritzBox, ServiceTautulli, ServiceJellystat, ServiceNavidrome, ServiceAudiobookshelf, ServiceSeerr, ServiceVikunja, ServiceNews, ServiceTwitch, ServiceFirefly, ServiceGhostfolio, ServiceTibber, ServiceCalendar,
+	ServiceSpeedtest, ServiceGrocy, ServiceTandoor, ServiceDWD, ServiceGitHub, ServiceKDEStore, ServiceHealthchecks, ServicePrometheus, ServiceNVD, ServiceDrone, ServicePBS, ServiceKopia, ServiceDuplicati, ServiceBackrest, ServiceUrBackup, ServiceWUD, ServiceWatchtower, ServicePeaNUT, ServiceApcupsd, ServiceOpenDTU, ServiceEVCC, ServiceTraefik, ServiceCaddy, ServiceNPM, ServiceTechnitium, ServiceFritzBox, ServiceTautulli, ServiceJellystat, ServiceNavidrome, ServiceAudiobookshelf, ServiceSeerr, ServiceVikunja, ServiceNews, ServiceTwitch, ServiceESPHome, ServiceFediverse, ServiceFirefly, ServiceGhostfolio, ServiceTibber, ServiceCalendar,
 	ServiceKintsugi, ServiceWallos, ServiceHansei, ServiceJSONAPI,
 }
 

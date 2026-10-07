@@ -1157,8 +1157,8 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [x] Quer: `cross.project_mentioned` (ein Beitrag nennt ein eigenes Repo oder einen KDE-Store-Eintrag) *(Repos nur über den Link, und nur die des GitHub-Besitzers (Option `owner`), beobachtete nicht; Store-Einträge über den Link oder den Namen im Titel)*
 
 **Schritt 14: ESPHome, Fediverse** (Mastodon-API: Mastodon, GoToSocial, Akkoma)
-- [ ] ESPHome: Geräte, online, Firmware gegen Dashboard-Version; Fediverse: Folgende im Verlauf, Benachrichtigungen, Instanz-Version
-- [ ] Quer: ESPHome-Gerät offline gegen Home-Assistant-Entität, `cross.release_unannounced` (Release auf GitHub oder im KDE Store ohne Beitrag mit Link)
+- [x] ESPHome: Geräte, online, Firmware gegen Dashboard-Version; Fediverse: Folgende im Verlauf, Benachrichtigungen, Instanz-Version *(Kacheln „ESPHome“ und „Fediverse“; Regeln `esphome.offline`, `esphome.update`, `fediverse.mentions`; ungelesen nach dem Marker der Instanz; das Home-Assistant-Add-on ohne freigegebenen Port bleibt außen vor)*
+- [x] Quer: ESPHome-Gerät offline gegen Home-Assistant-Entität, `cross.release_unannounced` (Release auf GitHub oder im KDE Store ohne Beitrag mit Link) *(`cross.esphome_ha`: Knoten online, alle seine Entitäten in Home Assistant nicht verfügbar, oder umgekehrt; Entitäten über den Knotennamen. Ein Release gilt als angekündigt, wenn ein eigener Beitrag es verlinkt oder nennt)*
 
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 

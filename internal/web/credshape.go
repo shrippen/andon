@@ -283,6 +283,7 @@ var secretLabels = map[enums.ServiceType]string{
 	enums.ServiceNavidrome:  "conn.secret_fritz",
 	enums.ServiceGhostfolio: "conn.secret_ghostfolio",
 	enums.ServiceDuplicati:  "conn.secret_duplicati",
+	enums.ServiceESPHome:    "conn.secret_userpass_opt",
 }
 
 func secretLabel(service enums.ServiceType) string {
