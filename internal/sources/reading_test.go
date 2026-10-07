@@ -116,6 +116,10 @@ func TestTwitch(t *testing.T) {
 	if _, err := sources.TwitchData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "cid:sec"}); err == nil {
 		t.Fatal("no channels, no error")
 	}
+	// A changed secret asks for a token of its own, here refused.
+	if _, err := sources.TwitchData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "cid:wrong", Options: sctx.Options}); err == nil {
+		t.Fatal("changed secret reused the cached token")
+	}
 }
 
 // TestDemoReading: the world's posts and live channel decode.

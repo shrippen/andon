@@ -305,3 +305,12 @@
 {{with $v.Notes}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="{{if eq .Type "mention"}}yellow{{else}}blue{{end}}" aria-hidden="true"></span><span class="stack-item">{{if .URL}}<a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.From}}</a>{{else}}{{.From}}{{end}}<small class="muted">{{t (print "fediverse.type." .Type)}} · {{ago .At}}</small></span></li>{{end}}</ul>
 {{else}}<p class="tile-note">{{t "fediverse.none"}}</p>{{end}}{{end}}{{end}}
 {{end}}
+
+{{define "widgets/lemmy"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{if or $v.Notes $v.Posts}}
+<div class="tile-head"><b class="tile-value" data-live>{{$v.Unread}}</b><span class="tile-note">{{t "lemmy.tile"}}</span></div>
+{{with $v.Notes}}<ul class="legend-list">{{range .}}<li><span class="sq" data-tier="yellow" aria-hidden="true"></span><span class="stack-item"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.From}}</a><small class="muted">{{t (print "lemmy.kind." .Kind)}} · c/{{.Community}} · {{ago .At}}</small></span></li>{{end}}</ul>{{end}}
+{{with $v.Posts}}<ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span><span class="stack-item"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a><small class="muted">c/{{.Community}} · {{t "lemmy.points" "n" .Score}} · <a href="{{.Link}}" target="_blank" rel="noopener noreferrer">{{t "lemmy.comments_n" "n" .Comments}}</a> · {{ago .At}}</small></span></li>{{end}}</ul>{{end}}
+{{else if $v}}<p class="tile-note">{{t "lemmy.none"}}</p>{{end}}{{end}}
+{{end}}

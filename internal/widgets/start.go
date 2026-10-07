@@ -267,6 +267,8 @@ func linkView(_ LinkConfig, results map[string]any, ctx ViewCtx) map[string]any 
 		parts = metrics.ESPHomeInfo(data)
 	case *sources.FediverseDataset:
 		parts = metrics.FediInfo(data)
+	case *sources.LemmyDataset:
+		parts = metrics.LemmyInfo(data)
 	case *sources.GhostfolioDataset:
 		parts = metrics.GhostfolioInfo(data)
 	case *sources.SeerrDataset:

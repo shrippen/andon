@@ -1159,6 +1159,7 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 **Schritt 14: ESPHome, Fediverse** (Mastodon-API: Mastodon, GoToSocial, Akkoma)
 - [x] ESPHome: Geräte, online, Firmware gegen Dashboard-Version; Fediverse: Folgende im Verlauf, Benachrichtigungen, Instanz-Version *(Kacheln „ESPHome“ und „Fediverse“; Regeln `esphome.offline`, `esphome.update`, `fediverse.mentions`; ungelesen nach dem Marker der Instanz; das Home-Assistant-Add-on ohne freigegebenen Port bleibt außen vor)*
 - [x] Quer: ESPHome-Gerät offline gegen Home-Assistant-Entität, `cross.release_unannounced` (Release auf GitHub oder im KDE Store ohne Beitrag mit Link) *(`cross.esphome_ha`: Knoten online, alle seine Entitäten in Home Assistant nicht verfügbar, oder umgekehrt; Entitäten über den Knotennamen. Ein Release gilt als angekündigt, wenn ein eigener Beitrag es verlinkt oder nennt)*
+- [x] Nachtrag: Lemmy (API v3, 0.19) *(Kachel „Lemmy“: ungelesene Antworten und Erwähnungen, beliebte Beiträge der abonnierten Communities, eigene Beiträge; Regel `lemmy.replies`; Anmeldung mit Benutzer und Passwort, Sitzung im Speicher, ohne Zwei-Faktor. Lemmy-Beiträge zählen in `cross.project_mentioned`, eigene in `cross.release_unannounced`)*
 
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 
@@ -1279,6 +1280,46 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
   - Dashys mögliche Kacheln durchgehen und auflisten, welche in Andon fehlen
   - Andere Dashboards und Andon-ähnliche Programme ansehen, daraus Vorschläge für weitere Kacheltypen
   - Aus den Kacheltypen Vorschläge für Verbindungen, Analysen und Queranalysen ableiten
+
+### Noch nicht in echt getestet (notiert 07.10.2026)
+
+Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die Dienste bis #58. Alles danach ist nur gegen Nachbauten (`httptest`) und die Demowelt getestet. Abhaken, wenn `make live` gegen eine echte Instanz grün ist und die Hinweise plausibel sind; Funde wie beim Lauf vom 06.10. darunter notieren.
+
+**Neue Dienste ohne Live-Lauf** (je Dienst eine Verbindung in der lokalen Instanz, sofern der Dienst läuft)
+- [ ] Sicherung: Proxmox Backup Server (Token-Kopf `PBSAPIToken=`, Verify-Jobs, Belegung je Datastore), Kopia, Duplicati (Token-Anmeldung), Backrest, UrBackup (Anmeldung)
+- [ ] Überwachung: Healthchecks (API v3), Prometheus (Alerts, PromQL-Kachel), NVD (mit und ohne Schlüssel; ohne nur 5 Abfragen in 30 s), Drone
+- [ ] Updates: What's Up Docker, Watchtower (Metriken-Endpunkt mit Token)
+- [ ] Strom: PeaNUT, apcupsd (NIS-Protokoll, Port 3551), OpenDTU, EVCC
+- [ ] Netz: Traefik, Caddy (Admin-API), Nginx Proxy Manager, Technitium, FRITZ!Box (TR-064 mit Digest-Anmeldung)
+- [ ] Medien: Tautulli, Jellystat, Navidrome (Subsonic-Anmeldung), Audiobookshelf, Jellyseerr/Overseerr
+- [ ] Aufgaben und Finanzen: Vikunja, Firefly III, Ghostfolio
+- [ ] Lesen: Hacker News (Algolia-API), Lobsters, Reddit (sperrt Abrufe ohne Anmeldung zunehmend; prüfen, ob `hot.json` mit Andons User-Agent antwortet), YouTube-Kanal-Feeds; Twitch (App-Token, `helix/streams`)
+- [ ] ESPHome: Basic Auth am Dashboard mit Passwort ist eine Annahme, ebenso die Felder von `/devices` und `/ping`; Home-Assistant-Add-on nur mit freigegebenem Port
+- [ ] Fediverse: je einmal Mastodon, GoToSocial und Akkoma; Marker (`/api/v1/markers`) bei GoToSocial und Akkoma, Software aus der Versionszeile
+- [ ] Lemmy (#99): Anmeldung, neue Anmeldung nach 401, ältere Instanz (Zeiten ohne Zone), Konto mit Zwei-Faktor gibt eine verständliche Meldung
+- [ ] Hansei: Webhook-Stand und `/api/docs` gegen die echte Hansei-Instanz (dort Phase 05 offen); produktiv noch nicht eingerichtet (siehe Phase 15)
+
+**Geänderte Quellen bekannter Dienste** (Live-Lauf vom 06.10. lief vor der Änderung)
+- [ ] UniFi: Clients (für `cross.device_uninventoried`)
+- [ ] GitHub: Option `owner` (eigene gegen beobachtete Repos), Releases beobachteter Repos, CI des Standardzweigs; Trends über die Such-API ohne Token
+- [ ] Gitea: Actions-Status für die CI-Kachel
+- [ ] Jellyfin/Plex: laufende Streams für „Jetzt läuft“, Update-Fenster und Belegungsstunden
+- [ ] Borg, PG Back Web, TrueNAS über die gemeinsame Sicherungs-Schnittstelle (`sources.BackupSource`)
+- [ ] Sure: Zahlungsabgleich über `metrics.BankOf` (Sure oder Firefly)
+- [ ] Sport (OpenLigaDB)
+- [ ] Kunden-Zuordnung über Sure (Zahler) und Paperless (Korrespondenten): Zuordnen, Lösen, „Namen angleichen“ (schreibt in die Dienste) mit echten Daten
+
+**Querregeln mit echten Daten** (nur mit der Demowelt geprüft: stimmen die Treffer, gibt es Fehlalarme?)
+- [ ] `cross.heartbeat_backup`, `cross.image_cve` (Image-Tag gegen CPE-Bereiche), `cross.release_red_ci`, `cross.pbs_orphan`, `cross.update_unbacked`, `cross.release_newer`
+- [ ] `cross.charge_expensive`, `cross.route_undocumented`, `cross.line_vs_speed`, `cross.device_uninventoried`, `cross.requests_arr`
+- [ ] `cross.task_unbooked` (Projekt über Vikunja-Projekt oder Label), `cross.depot_reserve`
+- [ ] `cross.project_mentioned`, `cross.esphome_ha` (Entitäten über den Knotennamen), `cross.release_unannounced`
+- [ ] `system.outage` mit USV auf Batterie und kritischen Prometheus-Alerts
+
+**Ohne Schreibtest** (unverändert seit dem Lauf vom 06.10.): `HassToggle`, `DNSPause`, Grocy, Apprise, Mail, LLM
+
+**Webseite**
+- [ ] Changelog auf shrippen.github.io/andon nach dem Merge ansehen (#100; Kante 1.17 muss vorher unter `/v1` liegen)
 
 ## 11. Betrieb und Sicherheit
 

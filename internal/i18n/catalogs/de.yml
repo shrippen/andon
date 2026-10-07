@@ -69,6 +69,7 @@ action:
   open_in_twitch: 'Auf Twitch öffnen'
   open_in_esphome: 'In ESPHome öffnen'
   open_in_fediverse: 'Auf der Instanz öffnen'
+  open_in_lemmy: 'Auf Lemmy öffnen'
   open_in_firefly: 'In Firefly III öffnen'
   open_in_ghostfolio: 'In Ghostfolio öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
@@ -932,6 +933,9 @@ wtype:
   fediverse:
     name: 'Fediverse'
     desc: 'Folgende deines Mastodon-, GoToSocial- oder Akkoma-Kontos und ungelesene Benachrichtigungen.'
+  lemmy:
+    name: 'Lemmy'
+    desc: 'Ungelesene Antworten und Erwähnungen deines Lemmy-Kontos, beliebte Beiträge deiner Communities.'
   depot:
     name: 'Depot'
     desc: 'Wert und Entwicklung des Ghostfolio-Depots, im Popup der Verlauf und die Positionen.'
@@ -1444,6 +1448,9 @@ conn:
   options_hint_fediverse: 'URL deiner Instanz, z. B. https://social.example. Token = Zugriffstoken einer Anwendung mit Lesezugriff (Mastodon: Einstellungen → Entwicklung).'
   about_fediverse: 'Konto: Folgende, Benachrichtigungen'
   what_fediverse: 'Mastodon, GoToSocial und Akkoma sprechen dieselbe API: Folgende, Benachrichtigungen und Beiträge deines Kontos.'
+  options_hint_lemmy: 'URL deiner Lemmy-Instanz, z. B. https://feddit.org. Benutzername und Passwort (Lemmy hat keine API-Tokens; Andon hält die Sitzung im Speicher). Konten mit Zwei-Faktor-Anmeldung lassen sich nicht lesen.'
+  about_lemmy: 'Konto: Antworten, Communities'
+  what_lemmy: 'Lemmy ist ein Link-Aggregator im Fediverse: Communities, Beiträge mit Stimmen und Kommentaren.'
   options_hint_firefly: 'URL von Firefly III, z. B. https://firefly.example.lan. Token = persönliches Zugriffstoken (Optionen → Profil → OAuth). Andon liest Bestandskonten, Buchungen der letzten 90 Tage und Daueraufträge; der Zahlungsabgleich mit Invoice Ninja arbeitet damit wie mit Sure.'
   about_firefly: 'Konten, Buchungen, Daueraufträge'
   what_firefly: 'Firefly III ist eine selbst gehostete Haushalts- und Finanzverwaltung.'
@@ -1694,6 +1701,7 @@ service:
   twitch: 'Twitch'
   esphome: 'ESPHome'
   fediverse: 'Fediverse (Mastodon-API)'
+  lemmy: 'Lemmy'
   firefly: 'Firefly III'
   ghostfolio: 'Ghostfolio'
   tibber: 'Tibber (Strom)'
@@ -2019,6 +2027,10 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  lemmy:
+    replies:
+      title: '{count} ungelesen auf Lemmy'
+      why: '{from}: {text}'
   esphome:
     offline:
       title: '{name} ist offline'
@@ -2863,6 +2875,8 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
+  lemmy:
+    info: '{unread} ungelesen'
   esphome:
     nodes: '{count} Knoten · {offline} offline'
   fediverse:
@@ -3143,6 +3157,7 @@ rule_name:
   fediverse.mentions: 'Ungelesene Erwähnungen'
   cross.esphome_ha: 'ESPHome gegen Home Assistant'
   cross.release_unannounced: 'Release ohne Beitrag'
+  lemmy.replies: 'Ungelesene Lemmy-Antworten'
   seerr.stuck: 'Hängende Medienanfragen'
   cross.requests_arr: 'Anfragen gegen Sonarr/Radarr'
   routes.down: 'Route antwortet nicht'
@@ -5180,6 +5195,31 @@ fediverse:
     from: 'Von'
     text: 'Text'
     when: 'Wann'
+lemmy:
+  tile: 'ungelesen'
+  unread: 'Ungelesen'
+  posts: 'Beiträge'
+  comments: 'Kommentare'
+  version: 'Instanz'
+  inbox: 'Ungelesene Antworten und Erwähnungen'
+  hot: 'Beliebt in deinen Communities'
+  own: 'Eigene Beiträge'
+  none: 'Nichts Neues.'
+  points: '{n} Punkte'
+  comments_n: '{n} Kommentare'
+  login_failed: 'Lemmy hat die Anmeldung abgelehnt; Benutzername und Passwort prüfen (Zwei-Faktor-Anmeldung wird nicht unterstützt).'
+  kind:
+    reply: 'hat geantwortet'
+    mention: 'hat dich erwähnt'
+  col:
+    kind: 'Was'
+    from: 'Von'
+    text: 'Text'
+    community: 'Community'
+    when: 'Wann'
+    title: 'Titel'
+    score: 'Punkte'
+    comments: 'Kommentare'
 reading:
   items: 'Beiträge'
   live: 'Live'

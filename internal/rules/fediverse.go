@@ -51,8 +51,8 @@ type release struct {
 }
 
 func releaseUnannounced(_ any, cfg map[string]any, env Env) []Finding {
-	fedi, ok := env.Datasets[fediSvc].(*sources.FediverseDataset)
-	if !ok {
+	posts, services, at := ownPosts(env)
+	if len(services) == 0 {
 		return nil
 	}
 	now := time.Now().UTC()
@@ -60,14 +60,35 @@ func releaseUnannounced(_ any, cfg map[string]any, env Env) []Finding {
 
 	var found []Finding
 	for _, r := range ownReleases(env) {
-		if r.at.Before(since) || now.Sub(r.at) < announceGrace || r.announcedIn(fedi.Posts) {
+		if r.at.Before(since) || now.Sub(r.at) < announceGrace || r.announcedIn(posts) {
 			continue
 		}
 		found = append(found, Finding{Fingerprint: "unannounced:" + r.project + "@" + r.version, Severity: enums.SeverityInfo, Message: "cross.release_unannounced",
 			Params:    map[string]any{"project": r.project, "version": orDash(r.version), "day": Day(r.at)},
-			ActionURL: fedi.URL, ActionLabel: "open_in_" + fediSvc, Sources: []string{fediSvc, r.service}})
+			ActionURL: at, ActionLabel: "open_in_" + services[0], Sources: append(append([]string(nil), services...), r.service)})
 	}
 	return found
+}
+
+// ownPosts are the account's posts on the Fediverse and on Lemmy, the
+// services read and the first one's address.
+func ownPosts(env Env) ([]sources.FediPost, []string, string) {
+	var posts []sources.FediPost
+	var services []string
+	at := ""
+	if fedi, ok := env.Datasets[fediSvc].(*sources.FediverseDataset); ok {
+		posts, services, at = append(posts, fedi.Posts...), append(services, fediSvc), fedi.URL
+	}
+	if lemmy, ok := env.Datasets[lemmySvc].(*sources.LemmyDataset); ok {
+		for _, p := range lemmy.Own {
+			posts = append(posts, sources.FediPost{Text: p.Title, URL: p.Link, Link: p.URL, At: p.At})
+		}
+		services = append(services, lemmySvc)
+		if at == "" {
+			at = lemmy.URL
+		}
+	}
+	return posts, services, at
 }
 
 // ownReleases are the owner's GitHub releases and the store entries'
