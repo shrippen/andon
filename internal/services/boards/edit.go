@@ -3,6 +3,7 @@ package boards
 import (
 	"andon/internal/services/themes"
 	"database/sql"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +24,9 @@ import (
 const MaxNameLen = 80
 
 // boardName is a typed name trimmed and cut to MaxNameLen.
+// ErrNameTaken: another board of the space has this name.
+var ErrNameTaken = errors.New("board.name_taken")
+
 func boardName(name string) string {
 	runes := []rune(strings.TrimSpace(name))
 	return strings.TrimSpace(string(runes[:min(len(runes), MaxNameLen)]))
@@ -43,13 +47,18 @@ func Create(d *sql.DB, who *access.Principal, spaceID int64, name string) (int64
 		if err != nil {
 			return err
 		}
-		taken := map[string]bool{}
+		taken, names := map[string]bool{}, map[string]bool{}
 		for _, b := range existing {
 			taken[b.Slug] = true
+			names[strings.ToLower(b.Name)] = true
 		}
 		label := boardName(name)
 		if label == "" {
 			label = "Board"
+		}
+		// A name taken in the space gets a number: "Homelab 2".
+		for n, base := 2, label; names[strings.ToLower(label)]; n++ {
+			label = base + " " + strconv.Itoa(n)
 		}
 		board := &model.Board{
 			SpaceID: spaceID, Slug: util.Unique(util.Slug(label, startSlug), taken), Name: label,
@@ -79,7 +88,16 @@ func Rename(d *sql.DB, who *access.Principal, boardID int64, version int, name s
 		if err := bump(board, version); err != nil {
 			return err
 		}
-		if n := boardName(name); n != "" {
+		if n := boardName(name); n != "" && n != board.Name {
+			others, err := content.Boards(tx, []int64{board.SpaceID})
+			if err != nil {
+				return err
+			}
+			for _, b := range others {
+				if b.ID != board.ID && strings.EqualFold(b.Name, n) {
+					return ErrNameTaken
+				}
+			}
 			board.Name = n
 		}
 		if themeID != nil {

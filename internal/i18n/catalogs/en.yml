@@ -180,6 +180,7 @@ oidc:
   sub_taken: This authentik account is already linked to another user.
   unreachable: Identity provider unreachable.
 board:
+  name_taken: "Another board in this space already has this name."
   delete_hint: 'The board is gone for everybody. Its tiles stay in the library.'
   kiosk: Wall display
   kiosk_hint: Fullscreen, next board every minute, dimmed 22–7. Adjust every and dim in the address.

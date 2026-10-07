@@ -467,3 +467,24 @@ func TestDeleteWidgetUndo(t *testing.T) {
 		t.Fatalf("two copies: %v", back)
 	}
 }
+
+// Two boards of a space never share a name: a new one is numbered
+// ("B 2"), renaming onto a taken name is refused.
+func TestBoardNamesDistinct(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	first, _ := boards.Create(d, who, space.ID, "B")
+	second, _ := boards.Create(d, who, space.ID, "b")
+	if view, _ := boards.View(d, who, second, boards.LayoutOverlay); view.Name != "b 2" {
+		t.Fatalf("second board: %q", view.Name)
+	}
+	view, _ := boards.View(d, who, first, boards.LayoutOverlay)
+	if err := boards.Rename(d, who, first, view.Version, "B 2", nil, nil, ""); !errors.Is(err, boards.ErrNameTaken) {
+		t.Fatalf("rename onto a taken name: %v", err)
+	}
+	if err := boards.Rename(d, who, first, view.Version, "B", nil, nil, ""); err != nil {
+		t.Fatalf("keeping its own name: %v", err)
+	}
+}
