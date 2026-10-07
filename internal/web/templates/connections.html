@@ -474,6 +474,34 @@
         <div hx-get="/connections/{{$c.ID}}/places" hx-trigger="{{if eq .Tab "places"}}load{{else}}revealed{{end}}" hx-swap="innerHTML"><p class="muted">{{t "widget.loading"}}</p></div>
       </section>{{end}}
 
+      {{if eq $c.Service "homelable"}}<section class="detail-main" id="tab-sync"{{if ne .Tab "sync"}} hidden{{end}}>{{$s := .Sync}}
+        {{if and (eq .Tab "sync") .Error}}<div class="callout callout-danger">{{t .Error}}</div>{{end}}
+        {{if and (eq .Tab "sync") (eq .Note "synced")}}<div class="callout callout-ok" role="status">{{t "homelable.synced" "created" $s.Created "updated" $s.Updated "removed" $s.Removed}}</div>{{end}}
+        <p class="small muted">{{t "homelable.lead"}}</p>
+        {{if not .Synced}}<p class="muted">{{t "homelable.never"}}</p>
+        {{else if $s.Problem}}<div class="callout callout-warn">{{t $s.Problem}}{{with $s.Detail}}<br><small class="muted">{{t "conn.cause_detail"}}: {{.}}</small>{{end}}</div>
+        {{else}}
+        <div class="detail-facts">
+          <div class="fact"><b>{{$s.Created}}</b><span>{{t "homelable.created"}}</span></div>
+          <div class="fact"><b>{{$s.Updated}}</b><span>{{t "homelable.updated"}}</span></div>
+          <div class="fact"><b>{{$s.Removed}}</b><span>{{t "homelable.removed"}}</span></div>
+          <div class="fact"><b>{{$s.Unchanged}}</b><span>{{t "homelable.unchanged"}}</span></div>
+        </div>
+        {{with $s.Errors}}<div class="callout callout-warn"><b>{{t "homelable.errors"}}</b>{{range .}}<br><small>{{.}}</small>{{end}}</div>{{end}}
+        {{end}}
+        {{if .Synced}}<div class="table-wrap"><table class="table"><tbody>
+          <tr><td>{{t "homelable.last"}}</td><td>{{ago $s.At}}</td></tr>
+          {{with $s.Source}}<tr><td>{{t "homelable.source"}}</td><td>{{.}}</td></tr>{{end}}
+        </tbody></table></div>{{end}}
+        <div class="row-actions">
+          {{if can $c.Right "edit"}}<form method="post" action="/connections/{{$c.ID}}/sync" class="inline-form">
+            <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+            <button type="submit" class="btn btn-outline btn-sm">{{t "homelable.run"}}</button>
+          </form>{{end}}
+          {{if .SyncOpens}}<a class="btn btn-ghost btn-sm" href="{{$c.URL}}" target="_blank" rel="noopener noreferrer">{{t "action.open_in_homelable"}} ↗</a>{{end}}
+        </div>
+      </section>{{end}}
+
       <section class="detail-main" id="tab-history"{{if ne .Tab "history"}} hidden{{end}}>
         {{with .History}}
         <p class="small muted">{{t "conn.history_lead" "days" $.Days}}</p>

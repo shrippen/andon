@@ -48,7 +48,8 @@ func defaultURL(service enums.ServiceType) string {
 
 func credShapeOf(service enums.ServiceType) credShape {
 	switch service {
-	case enums.ServiceFreshRSS, enums.ServiceLemmy, enums.ServiceMail, enums.ServiceAdGuard, enums.ServiceUmami, enums.ServiceNextcloud:
+	case enums.ServiceFreshRSS, enums.ServiceLemmy, enums.ServiceMail, enums.ServiceAdGuard, enums.ServiceUmami, enums.ServiceNextcloud,
+		enums.ServiceHomelable:
 		return credUserPass
 	case enums.ServiceKomodo, enums.ServiceGateway, enums.ServiceTwitch:
 		return credKeySecret

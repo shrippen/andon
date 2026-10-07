@@ -39,6 +39,7 @@ func (d Deps) RegisterConnectionRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /places", d.authed(d.handlePlaces))
 	mux.HandleFunc("POST /connections/{id}/hygiene", d.authed(d.handleConnectionHygiene))
 	mux.HandleFunc("POST /connections/{id}/hook/rotate", d.authed(d.handleHookRotate))
+	mux.HandleFunc("POST /connections/{id}/sync", d.authed(d.handleHomelableSync))
 	mux.HandleFunc("POST /connections/{id}/connect", d.authed(d.handleConnectStart))
 	mux.HandleFunc("POST /connections/{id}/oauth-client", d.authed(d.handleOAuthClient))
 	mux.HandleFunc("GET "+connect.CallbackPath, d.authed(d.handleConnectCallback))

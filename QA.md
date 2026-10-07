@@ -193,6 +193,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 
 **J-E7 Verbindungen als Admin**
 1. `/connections/{id}`: Reiter Übersicht, Zugang, Einstellungen, Verlauf; Test; leerer Name; Vorlage-Verbindung.
+2. Homelable: Reiter Abgleich zeigt den Lauf nach dem Prüflauf (Zähler, Quelle Gitea); „Jetzt abgleichen“ landet wieder dort, der zweite Lauf ändert nichts (alles unverändert). Bei `demo://` kein „In Homelable öffnen“.
 
 **J-E8 Server, Betrieb, Audit**
 1. `/admin/settings`: ungültige Zahlen und URLs, CIDR „not-a-cidr“, `javascript:` als iframe-Herkunft, OIDC-Test leer.

@@ -91,6 +91,7 @@ action:
   open_in_pangolin: In Pangolin öffnen
   open_in_authentik: In authentik öffnen
   open_in_hansei: In Hansei öffnen
+  open_in_homelable: In Homelable öffnen
   open_in_pgbackweb: In PG Back Web öffnen
   open_in_linkwarden: In Linkwarden öffnen
   open_in_kintsugi: In Kintsugi öffnen
@@ -1359,6 +1360,7 @@ conn:
   tab_settings: 'Einstellungen'
   tab_history: 'Verlauf'
   tab_places: 'Orte'
+  tab_sync: 'Abgleich'
   record_tabs: 'Akte'
   level_instance: 'Instanz'
   level_team: 'Team'
@@ -1605,6 +1607,7 @@ conn:
   what_linkwarden: 'Linkwarden sammelt und archiviert Lesezeichen samt Kopie der Seite.'
   what_kintsugi: 'Kintsugi ist ein Akquise-Copilot: Er baut aus Interview und Dokumenten ein Profil auf und schlägt täglich Akquise- und Entwicklungsschritte vor.'
   what_hansei: 'Hansei pflegt die IT-Doku im Obsidian-Vault: Prüfregeln, Batches, Änderungen nur nach Freigabe.'
+  what_homelable: 'Homelable zeichnet das Homelab als Netzwerkplan und prüft Dienste live. Andon zeichnet dort die IT-Doku aus Obsidian auf einen eigenen Canvas; Obsidian bleibt die Quelle.'
   what_pgbackweb: 'PG Back Web sichert PostgreSQL-Datenbanken nach Zeitplan über eine Weboberfläche.'
   what_mail: 'Eingebaute Prüfung: Andon liest ein Postfach per IMAP und findet Rechnungen darin.'
   what_truenas: 'TrueNAS ist ein Betriebssystem für Netzwerkspeicher auf Basis von ZFS.'
@@ -1664,6 +1667,7 @@ conn:
   about_linkwarden: 'Lesezeichen gegen Kacheln abgleichen'
   about_kintsugi: 'Akquise-Vorschläge'
   about_hansei: 'Doku-Batches per Webhook'
+  about_homelable: 'IT-Doku als Netzwerkplan'
   about_pgbackweb: 'Postgres-Backups per Webhook'
   about_mail: 'Rechnungen im Postfach (IMAP)'
   about_truenas: 'Pools, Snapshots, Replikation'
@@ -1692,6 +1696,7 @@ conn:
   options_hint_authentik: Keine Optionen. Token = API-Token eines Kontos mit Leserechten auf Ereignisse und Benutzer.
   options_hint_mail: 'URL imaps://mail.example.org:993/INBOX. Benutzername und App-Passwort deines Postfachs (nicht das normale Login-Passwort). Optionen: days: 60, keywords: [abrechnung], ignore_senders: [meinefirma.de] – nur lesend; Anhänge werden nur geladen, wenn du eine Rechnung an Paperless übergibst.'
   options_hint_hansei: 'Keine Optionen, kein Token. Hansei schickt seinen Stand an die Webhook-Adresse unten (Batches, Konformität, Doku-Befunde in Arbeit). Befunde holt es mit einem Lese-Token über /api/docs.'
+  options_hint_homelable: 'Benutzername und Passwort des lokalen Homelable-Benutzers (der OIDC-Modus hat keinen Skriptzugang). Andon zeichnet die IT-Doku der Gitea-Verbindung im selben Bereich (Optionen docs_repo, docs_paths dort) auf den Canvas „IT-Doku (aus Obsidian)“; andere Canvases bleiben unberührt. Optionen: vault: ObsidianPrivat (Vault-Name für obsidian://-Links, sonst der Repo-Name), lang: en (Sprache der Beschriftungen, sonst Deutsch).'
   options_hint_pgbackweb: Keine Optionen, kein Token. PG Back Web meldet sich per Webhook, siehe unten.
   hook: Webhook
   hook_hint: 'In PG Back Web je Ereignis (execution_success, execution_failed, database_unhealthy/healthy, destination_unhealthy/healthy) und Backup einen Webhook anlegen: Methode POST, diese URL, Body wie unten mit Ereignis und Backup-Name. Die URL ist geheim.'
@@ -1820,6 +1825,7 @@ service:
   linkwarden: Linkwarden
   kintsugi: Kintsugi
   hansei: Hansei
+  homelable: Homelable
   sure: Sure (Finanzen)
   homeassistant: Home Assistant
   freshrss: FreshRSS
@@ -5695,6 +5701,35 @@ hansei:
   conformity: '{n} % konform'
   done: '{n} erledigt'
   unset: 'Noch kein Stand von Hansei. Die Webhook-Adresse dieser Verbindung in Hansei eintragen.'
+
+homelable:
+  canvas: 'IT-Doku (aus Obsidian)'
+  prop_url: URL
+  prop_ports: Ports
+  prop_backup: Backup
+  prop_sso: SSO
+  prop_checked: 'letzte Prüfung'
+  prop_note: Obsidian
+  prop_docs: Doku
+  sso_active: aktiv
+  sso_possible: möglich
+  docs_missing: fehlt
+  stale: '{day} (veraltet)'
+  lead: 'Andon zeichnet die IT-Doku aus Obsidian und die Compose-Stacks auf einen eigenen Canvas in Homelable: nach jedem Prüflauf und auf Knopfdruck. Gesendet werden nur Änderungen, nie Positionen; dein Layout bleibt.'
+  run: Jetzt abgleichen
+  last: Letzter Abgleich
+  never: 'Noch nicht abgeglichen.'
+  source: Quelle
+  created: angelegt
+  updated: geändert
+  removed: entfernt
+  unchanged: unverändert
+  errors: 'Nicht übertragen'
+  synced: 'Abgeglichen: {created} angelegt, {updated} geändert, {removed} entfernt.'
+  problem_no_docs: 'Keine Gitea-Verbindung mit IT-Doku im Bereich dieser Verbindung (Optionen docs_repo, docs_paths an der Gitea-Verbindung).'
+  problem_incomplete: 'Stacks oder Notizen sind nicht vollständig gelesen. Nichts geändert, damit nichts fälschlich verschwindet.'
+  problem_shared: 'Nur eine feste Verbindung wird abgeglichen, keine Vorlage mit Zugang je Person.'
+  problem_failed: 'Homelable hat den Abgleich abgelehnt oder ist nicht erreichbar.'
 
 vault:
   with2fa: 'Konten mit Zwei-Faktor'

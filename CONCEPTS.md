@@ -90,7 +90,7 @@ Die Domänen aus `internal/caps` und weitere Dinge, die Andon auswertet. „Lies
 | **Fahrt** | Dawarich (Tracks), Kimai-Plugin Anfahrten | Kimai | Strecke, Einordnung beruflich, Pendeln oder privat mit Grund; km, Fahrtkosten, Verpflegung | Reise-Kachel, Hinweise `geo.*` |
 | **Frist** | Bereichs-Einstellungen (Steuer), Paperless (Verträge) | – | anstehende Termine | Zusammenfassung, iCal-Feed |
 | **Host** | Homelab-Verbindungen, Uptime Kuma, Zertifikate | – | was auf einer Maschine läuft und ob es antwortet | Host-Seite `/hosts` |
-| **Stack, Doku-Notiz** | Gitea (Compose-Repos, Obsidian-Frontmatter), Komodo (was läuft) | – (nur Hansei schreibt in den Vault) | Doku gegen Compose abgleichen, Compose gegen Komodo (Host aus dem verknüpften Repo, sonst Servername; Stack = Ordner), Abweichung von URL, externen Ports und Image der Notiz (Regeln in `internal/metrics/itdocs_drift.go`), Befunde an Hansei | Doku-Kacheln, `/api/docs` |
+| **Stack, Doku-Notiz** | Gitea (Compose-Repos, Obsidian-Frontmatter), Komodo (was läuft) | Homelable (eigener Canvas als Ansicht; nur Hansei schreibt in den Vault) | Doku gegen Compose abgleichen, Compose gegen Komodo (Host aus dem verknüpften Repo, sonst Servername; Stack = Ordner), Abweichung von URL, externen Ports und Image der Notiz (Regeln in `internal/metrics/itdocs_drift.go`), Befunde an Hansei, Doku als Grafik zeichnen | Doku-Kacheln, `/api/docs`, Homelable, Akte → Abgleich |
 | **Backup** | Borg, Proxmox, TrueNAS, PgBackWeb u. a. | – | Alter, Fehler, Wiederherstellungstest | Backup-Kachel, Hinweise |
 
 ## Benachrichtigung
