@@ -127,8 +127,14 @@ func (d Deps) handleTOTPSubmit(w http.ResponseWriter, r *http.Request) {
 
 	token, err := auth.TOTPVerify(d.DB, cookie.Value, r.FormValue("code"), d.clientIP(r), Agent(r))
 	if err != nil {
+		// Throttled refuses even the right code: say so, or the user
+		// hunts a clock drift.
+		status, key := http.StatusUnauthorized, auth.ErrTOTPInvalid.Error()
+		if errors.Is(err, auth.ErrThrottled) {
+			status, key = http.StatusTooManyRequests, "login.throttled"
+		}
 		ctx, _ := d.Context(r)
-		_ = d.Page(w, ctx, "totp", http.StatusUnauthorized, map[string]any{"Error": auth.ErrTOTPInvalid.Error()})
+		_ = d.Page(w, ctx, "totp", status, map[string]any{"Error": key})
 		return
 	}
 	d.setSession(w, token)
