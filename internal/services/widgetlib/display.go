@@ -596,7 +596,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 			all = dueWithin(all, hcfg.DueDays, time.Now())
 		}
 		views := all[:min(len(all), hcfg.Limit)]
-		frag.View = map[string]any{"Hints": views, "Groups": hintGroups(views), "Total": len(all), "Buttons": hcfg.Buttons,
+		frag.View = map[string]any{"Hints": views, "Groups": hintGroups(views), "Total": len(all), "Severities": sevs, "Buttons": hcfg.Buttons,
 			"Left": daysLeft(views, time.Now())}
 		if !hcfg.NoLevels {
 			frag.View["Levels"] = widgets.LevelBar(sevs)

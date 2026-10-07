@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -111,7 +112,19 @@ func (d Deps) handleQuickLink(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	version := formInt(r, "version")
-	if _, err := boards.QuickLink(r.Context(), d.DB, ctx.Who, section, version, r.FormValue("url")); err != nil {
+	_, err = boards.QuickLink(r.Context(), d.DB, ctx.Who, section, version, r.FormValue("url"))
+	if errors.Is(err, boards.ErrBadURL) {
+		// The section stays as it is and a toast says why (an error
+		// status would make the page reload, losing the toast).
+		msg := i18n.T(err.Error(), ctx.Locale, nil)
+		if d.boardPart(w, r, ctx, formBoard(r), partEdit, hintNone) {
+			writeToast(w, msg)
+			return
+		}
+		http.Error(w, msg, http.StatusBadRequest)
+		return
+	}
+	if err != nil {
 		d.handleBoardError(w, r, err)
 		return
 	}

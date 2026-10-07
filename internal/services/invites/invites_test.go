@@ -103,3 +103,29 @@ func TestResetRequestsLimited(t *testing.T) {
 		t.Fatalf("%d reset mails for one address", n)
 	}
 }
+
+// TestInviteChecksAddress: no invite to something that is no e-mail
+// address; a second invite to the same address replaces the first, so
+// only one link stays valid.
+func TestInviteChecksAddress(t *testing.T) {
+	d := testkit.DB(t)
+	admin, _ := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+
+	if _, err := invites.Create(d, admin, "not-an-email", enums.RoleUser, nil, enums.LocaleDE); !errors.Is(err, invites.ErrBadEmail) {
+		t.Fatalf("bad address: %v", err)
+	}
+	first, err := invites.Create(d, admin, "jo@x.de", enums.RoleUser, nil, enums.LocaleDE)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := invites.Create(d, admin, "Jo@x.de", enums.RoleUser, nil, enums.LocaleDE); err != nil {
+		t.Fatal(err)
+	}
+	pending, _ := invites.Pending(d, admin)
+	if len(pending) != 1 {
+		t.Fatalf("pending: %+v", pending)
+	}
+	if _, err := invites.Accept(d, path.Base(first), "Jo", "a long enough passphrase", enums.LocaleDE); !errors.Is(err, invites.ErrInviteInvalid) {
+		t.Fatalf("replaced link still works: %v", err)
+	}
+}

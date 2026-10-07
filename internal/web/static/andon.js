@@ -176,10 +176,15 @@
 
   // ── Hints page: / searches, j / k walk the hints, a marks the focused
   // one done, s pauses it for 7 days ──
+  // Only the hint's own text counts, not its buttons and form labels
+  // ("Pausieren", "Notiz" are on every card).
+  var hintText = "header, .title, .hint-tags, .hint-why, .hint-meta-line";
+
   function filterHints(query) {
     var q = query.trim().toLowerCase();
     [].forEach.call(d.querySelectorAll(".hints-page li.hint-card"), function (li) {
-      li.hidden = q !== "" && li.textContent.toLowerCase().indexOf(q) < 0;
+      var text = [].map.call(li.querySelectorAll(hintText), function (el) { return el.textContent; }).join(" ");
+      li.hidden = q !== "" && text.toLowerCase().indexOf(q) < 0;
     });
     [].forEach.call(d.querySelectorAll(".hints-page .hint-rest"), function (rest) {
       rest.open = rest.open || q !== "";

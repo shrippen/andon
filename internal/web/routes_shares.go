@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"andon/internal/enums"
 	"andon/internal/services/shares"
@@ -90,7 +91,10 @@ func (d Deps) handleShareGrant(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		return
 	}
 
-	granteeID, err := strconv.ParseInt(r.FormValue("grantee_id"), 10, 64)
+	// "user:3" or "team:1": the kind travels with the id.
+	kindText, idText, _ := strings.Cut(r.FormValue("grantee"), ":")
+	granteeKind := enums.GranteeKind(kindText)
+	granteeID, err := strconv.ParseInt(idText, 10, 64)
 	if err != nil {
 		d.sharesPage(w, ctx, kind, resourceID, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
@@ -100,7 +104,6 @@ func (d Deps) handleShareGrant(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		d.sharesPage(w, ctx, kind, resourceID, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	granteeKind := enums.GranteeKind(r.FormValue("grantee_kind"))
 
 	if err := shares.Grant(d.DB, ctx.Who, kind, resourceID, granteeKind, granteeID, right); err != nil {
 		d.sharesPage(w, ctx, kind, resourceID, http.StatusBadRequest, map[string]any{"Error": errKey(err)})

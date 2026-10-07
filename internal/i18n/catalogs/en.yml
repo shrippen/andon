@@ -150,6 +150,7 @@ setup:
   closed: Setup is complete.
   bad_code: Wrong setup code.
 invite:
+  bad_email: 'That is no e-mail address.'
   title: Accept invitation
   submit: Create account
   invalid: Invitation invalid or expired.
@@ -889,7 +890,7 @@ wtype:
     desc: 'Expired and due products, shopping list and chores.'
   dwd:
     name: 'Weather warnings'
-    desc: 'Current DWD warnings for the connections place.'
+    desc: 'Current DWD warnings for the connection''s place.'
   github:
     name: 'GitHub repos'
     desc: 'PRs, issues, CI state and latest release per repo.'
@@ -1142,6 +1143,8 @@ widget:
   unsupported: Does not fit the chosen connection.
 connection:
   secret_for_host: 'New address: please enter the credential again. The stored one is not sent to another server.'
+  new_host_secret: 'New address? Credential'
+  new_host_secret_hint: 'Only needed when the address changes: the stored credential is not sent to another server. Leave empty otherwise.'
   bad_date: 'Give the date as YYYY-MM-DD.'
   missing: Connection missing
   location_personal: Location data is only allowed as a personal connection.
@@ -1313,7 +1316,7 @@ conn:
   level_lead_personal: 'Your own connections, just for you. Below, the templates from the instance and your teams that take your login.'
   tls: Certificate
   tls_verify: Verify (recommended)
-  tls_skip: Don''t verify (self-signed)
+  tls_skip: Do not verify (self-signed)
   advanced: 'Advanced: expiry, fetches per day, query interval, options'
   delete_hint: 'The connection is gone for everybody using it. Tiles on it show no data afterwards.'
   state_failing: failing
@@ -1321,7 +1324,7 @@ conn:
   state_shaky: shaky
   state_ok: fine
   state_unknown: not fetched yet
-  ok_since: fine again since
+  ok_since: fine again since then
   options_hint_calendar: 'Public calendar: just the iCal address. Private calendar: the secret iCal address goes into “Private iCal address” (stored encrypted), above any address of the calendar. Events whose title names a Kimai customer or project are compared with the bookings.'
   about_calendar: 'Appointments against bookings'
   options_hint_tailscale: 'URL https://api.tailscale.com (token = API access token, admin console → settings → keys; expires after 90 days at most) or the Headscale URL (token = API key, headscale apikeys create). Options: tailnet: example.com (Tailscale, else the default tailnet).'
@@ -3024,6 +3027,7 @@ kpi:
   of_target: target {hours} h
   hours: '{hours} h'
   invoices: '{count} invoices'
+  invoices_singular: '{count} invoice'
   vat_period: '{start} – {end}'
   reserve: VAT liability + {rate} % of surplus
   assets: '{count} assets'

@@ -186,7 +186,7 @@
       <div class="cred-ways">
       <div class="cred-way cred-shared">
       <h3>{{t "connect.token"}}</h3>
-      {{template "conn_secret_inputs" dict "Shape" $shape "Service" .Service "Keep" ""}}
+      {{template "conn_secret_inputs" dict "Shape" $shape "Service" .Service "Keep" "" "Prefix" ""}}
       <p class="small muted">{{t "conn.token_hint"}}</p>
       </div>
       {{if canSignIn .Service}}
@@ -252,33 +252,33 @@
 
 {{/* conn_secret_inputs: a fixed login's labelled fields (dict Shape,
      Service, Keep: the placeholder when one is stored). */}}
-{{define "conn_secret_inputs"}}{{$shape := .Shape}}{{$keep := .Keep}}
+{{define "conn_secret_inputs"}}{{$shape := .Shape}}{{$keep := .Keep}}{{$p := .Prefix}}
       {{if eq $shape "userpass"}}
-        <label for="secret_a">{{t "conn.cred_user"}}</label>
-        <input class="input" id="secret_a" name="secret_a" autocomplete="off" placeholder="{{$keep}}">
-        <label for="secret_b">{{t "conn.cred_pass"}}</label>
-        <input class="input" id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
+        <label for="{{$p}}secret_a">{{t "conn.cred_user"}}</label>
+        <input class="input" id="{{$p}}secret_a" name="secret_a" autocomplete="off" placeholder="{{$keep}}">
+        <label for="{{$p}}secret_b">{{t "conn.cred_pass"}}</label>
+        <input class="input" id="{{$p}}secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
       {{else if eq $shape "tokenid"}}
-        <label for="secret_a">{{t "conn.cred_tokenid"}}</label>
-        <input class="input" id="secret_a" name="secret_a" autocomplete="off" placeholder="{{if $keep}}{{$keep}}{{else}}root@pam!andon{{end}}">
-        <label for="secret_b">{{t "conn.cred_secret"}}</label>
-        <input class="input" id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
+        <label for="{{$p}}secret_a">{{t "conn.cred_tokenid"}}</label>
+        <input class="input" id="{{$p}}secret_a" name="secret_a" autocomplete="off" placeholder="{{if $keep}}{{$keep}}{{else}}root@pam!andon{{end}}">
+        <label for="{{$p}}secret_b">{{t "conn.cred_secret"}}</label>
+        <input class="input" id="{{$p}}secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
       {{else if eq $shape "keysecret"}}
         {{/* A router kind may log in with user and password instead (OpenWrt):
              the labels follow the kind chosen above, see .only-openwrt. */}}
-        <label for="secret_a"><span class="not-openwrt">{{t "conn.cred_key"}}</span><span class="only-openwrt">{{t "conn.cred_user"}}</span></label>
-        <input class="input" id="secret_a" name="secret_a" autocomplete="off" placeholder="{{$keep}}">
-        <label for="secret_b"><span class="not-openwrt">{{t "conn.cred_secret"}}</span><span class="only-openwrt">{{t "field.password"}}</span></label>
-        <input class="input" id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
+        <label for="{{$p}}secret_a"><span class="not-openwrt">{{t "conn.cred_key"}}</span><span class="only-openwrt">{{t "conn.cred_user"}}</span></label>
+        <input class="input" id="{{$p}}secret_a" name="secret_a" autocomplete="off" placeholder="{{$keep}}">
+        <label for="{{$p}}secret_b"><span class="not-openwrt">{{t "conn.cred_secret"}}</span><span class="only-openwrt">{{t "field.password"}}</span></label>
+        <input class="input" id="{{$p}}secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
         <p class="small muted only-openwrt">{{t "conn.openwrt_login"}}</p>
       {{else}}
-        <label for="secret">{{if eq $shape "ical"}}{{t "conn.ical_private"}}{{else if eq $shape "password"}}{{t "field.password"}}{{else}}{{t (secretLabel .Service)}}{{end}}</label>
-        <input class="input" id="secret" name="secret" type="password" autocomplete="off" placeholder="{{$keep}}">
+        <label for="{{$p}}secret">{{if eq $shape "ical"}}{{t "conn.ical_private"}}{{else if eq $shape "password"}}{{t "field.password"}}{{else}}{{t (secretLabel .Service)}}{{end}}</label>
+        <input class="input" id="{{$p}}secret" name="secret" type="password" autocomplete="off" placeholder="{{$keep}}">
         {{if eq $shape "ical"}}
-        <label for="secret_a">{{t "conn.cred_user"}}</label>
-        <input class="input" id="secret_a" name="secret_a" autocomplete="off" placeholder="{{$keep}}">
-        <label for="secret_b">{{t "field.password"}}</label>
-        <input class="input" id="secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
+        <label for="{{$p}}secret_a">{{t "conn.cred_user"}}</label>
+        <input class="input" id="{{$p}}secret_a" name="secret_a" autocomplete="off" placeholder="{{$keep}}">
+        <label for="{{$p}}secret_b">{{t "field.password"}}</label>
+        <input class="input" id="{{$p}}secret_b" name="secret_b" type="password" autocomplete="off" placeholder="{{$keep}}">
         <p class="small muted">{{t "conn.ical_login_hint"}}</p>
         {{end}}
       {{end}}
@@ -396,7 +396,7 @@
             <form method="post" action="/connections/{{$c.ID}}/secret" class="cred-form">
               <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
               {{$keep := ""}}{{if $c.HasSecret}}{{$keep = t "conn.secret_keep"}}{{end}}
-              {{template "conn_secret_inputs" dict "Shape" $shape "Service" $c.Service "Keep" $keep}}
+              {{template "conn_secret_inputs" dict "Shape" $shape "Service" $c.Service "Keep" $keep "Prefix" ""}}
               <button type="submit" class="btn btn-accent btn-sm">{{t "action.save"}}</button>
             </form>
             {{with .SignIn}}{{if or (not .NeedsClient) .HasClient}}
@@ -421,6 +421,13 @@
           {{if or (eq $shape "none") (eq (print $c.Level) "personal")}}<input type="hidden" name="mode" value="{{$c.Mode}}">
           {{else}}{{template "conn_mode" (not $tmpl)}}{{end}}
           {{template "conn_tls" $c.VerifyTLS}}
+          {{/* A shared token does not follow the connection to another
+               server (connection.secret_for_host): enter it here with the new address. */}}
+          {{if and (ne $shape "none") (eq (print $c.Mode) "shared")}}<details class="advanced">
+            <summary>{{t "connection.new_host_secret"}}</summary>
+            <p class="small muted">{{t "connection.new_host_secret_hint"}}</p>
+            {{template "conn_secret_inputs" dict "Shape" $shape "Service" $c.Service "Keep" "" "Prefix" "host-"}}
+          </details>{{end}}
           {{/* The rarely changed rest, saved with the same button. */}}
           <details class="advanced">
             <summary>{{t "conn.advanced"}}</summary>

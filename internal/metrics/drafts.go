@@ -106,7 +106,7 @@ func Drafts(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, m ClientMa
 	for cid, groups := range byCustomer {
 		d := Draft{CustomerID: cid, Customer: names[cid], SheetIDs: sheets[cid]}
 		if c, ok := m.ClientOf(ninja, cid, d.Customer); ok {
-			d.ClientKey, d.Client = c.Key, c.Name
+			d.ClientKey, d.Client = c.Ref(), c.Name
 		}
 		for key, agg := range groups {
 			// Exact hours and the real rate; only the amount is rounded,

@@ -278,6 +278,10 @@ func TestQuickLinkClicksPaletteUndo(t *testing.T) {
 		section = regexp.MustCompile(`/sections/(\d+)/quick-link`).FindStringSubmatch(edit)
 	}
 	version := regexp.MustCompile(`data-version="(\d+)"`).FindStringSubmatch(edit)[1]
+	// Not a link: the user's mistake, not a server error.
+	if resp := postForm(t, client, srv.URL+"/sections/"+section[1]+"/quick-link", url.Values{"csrf": {csrf}, "board_id": {board}, "version": {version}, "url": {"not a url"}}); resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("bad quick link: %d", resp.StatusCode)
+	}
 	resp := postForm(t, client, srv.URL+"/sections/"+section[1]+"/quick-link", url.Values{"csrf": {csrf}, "board_id": {board}, "version": {version}, "url": {page.URL}})
 	if resp.StatusCode != http.StatusSeeOther || !strings.Contains(resp.Header.Get("Location"), "undo") {
 		t.Fatalf("quick link: %d", resp.StatusCode)
@@ -323,6 +327,13 @@ func TestKioskRotatesBoards(t *testing.T) {
 	page := string(mustGet(t, srv, client, resp.Request.URL.Path+"?kiosk&every=5&dim=22-7"))
 	if strings.Contains(page, `class="app-nav"`) || !strings.Contains(page, `class="is-kiosk"`) {
 		t.Fatalf("kiosk chrome:\n%s", page)
+	}
+	// The intro banner cannot be closed on a wall: no buttons there.
+	if !strings.Contains(string(mustGet(t, srv, client, resp.Request.URL.Path)), `class="callout intro"`) {
+		t.Fatal("test needs the intro on the plain board")
+	}
+	if strings.Contains(page, `class="callout intro"`) {
+		t.Fatal("kiosk shows the intro banner")
 	}
 	next := regexp.MustCompile(`data-kiosk-next="(/boards/\d+\?kiosk&amp;dim=22-7&amp;every=10)"`).FindStringSubmatch(page)
 	if next == nil || strings.Contains(next[1], resp.Request.URL.Path+"?") {
