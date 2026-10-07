@@ -198,6 +198,9 @@ func proxmoxBackupOld(data *sources.ProxmoxDataset, cfg map[string]any, env Env)
 		}
 		fp := "backup:" + vmid
 		last, ok := data.Backups[g.VMID]
+		if fromPBS := pbsLast(env, vmid); fromPBS.After(last) {
+			last, ok = fromPBS, true
+		}
 		if !ok {
 			found = append(found, proxmoxFinding(data, "proxmox.backup_old", fp, "proxmox.backup_missing",
 				enums.SeverityWarn, map[string]any{"guest": g.Name, "vmid": vmid}))

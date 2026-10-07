@@ -232,7 +232,7 @@
 {{end}}
 <ul class="legend-list backup-lines"{{if .Frag.View.Wide}} data-wide{{end}}>
   {{range .Frag.View.Rows}}
-  <li><span class="sq" data-tier="{{if eq (print .State) "ok"}}green{{else if eq (print .State) "failed"}}red{{else}}yellow{{end}}" aria-hidden="true"></span>{{.Item}} <small class="muted" title="{{t (print "service." .Tool)}} · {{t (print "backup." .State)}}">{{t (print "service." .Tool)}} · {{t (print "backup." .State)}}</small>
+  <li><span class="sq" data-tier="{{if eq (print .State) "ok"}}green{{else if eq (print .State) "failed"}}red{{else}}yellow{{end}}" aria-hidden="true"></span>{{.Item}} <small class="muted" title="{{t (print "service." .Tool)}} · {{t (print "backup." .State)}}{{with .Note}} · {{.}}{{end}}">{{t (print "service." .Tool)}} · {{t (print "backup." .State)}}</small>
     {{with .Days}}<span class="backup-dots" role="img" aria-label="{{t "backup.days"}}">{{range .}}<i data-state="{{.State}}" title="{{.Title}}"></i>{{end}}</span>{{end}}
     <b>{{if .Last.IsZero}}–{{else}}{{ago .Last}}{{end}}</b></li>
   {{else}}<li class="muted">{{if .Frag.View.Total}}{{t "backup.all_ok"}}{{else}}{{t "backup.none"}}{{end}}</li>{{end}}

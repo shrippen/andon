@@ -620,3 +620,90 @@ func TestCIRepos(t *testing.T) {
 		t.Fatalf("demo %+v", d)
 	}
 }
+
+// TestPBS: stores with fill, groups with their newest backup (named by
+// comment), verify runs with their store; the token goes as PBSAPIToken.
+func TestPBS(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "PBSAPIToken=andon@pbs!ro:s3cret" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		switch r.URL.Path {
+		case "/api2/json/status/datastore-usage":
+			w.Write([]byte(`{"data":[{"store":"tank","total":100,"used":95}]}`))
+		case "/api2/json/admin/datastore/tank/groups":
+			w.Write([]byte(`{"data":[{"backup-type":"vm","backup-id":"101","last-backup":1759800000,"backup-count":3,"comment":"ha"},{"backup-type":"ct","backup-id":"105","last-backup":1759000000}]}`))
+		case "/api2/json/nodes/localhost/tasks":
+			w.Write([]byte(`{"data":[{"worker_id":"tank:v-1","status":"error: missing chunk","starttime":1759810000}]}`))
+		}
+	}))
+	defer srv.Close()
+	raw, err := sources.PBSData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "andon@pbs!ro:s3cret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := raw.(*sources.PBSDataset)
+	jobs := d.BackupJobs()
+	if len(d.Stores) != 1 || d.Stores[0].Used != 95 || len(jobs) != 2 || jobs[0].Item != "ha" || jobs[1].Item != "ct/105" ||
+		len(d.Verifies) != 1 || d.Verifies[0].Store != "tank" || d.Verifies[0].OK() {
+		t.Fatalf("pbs %+v", d)
+	}
+}
+
+// TestKopiaBackrest: Kopia's last snapshot with errors fails; Backrest's
+// newest run decides, its newest success is the last backup.
+func TestKopiaBackrest(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if user, _, ok := r.BasicAuth(); !ok || user != "admin" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		switch r.URL.Path {
+		case "/api/v1/sources":
+			w.Write([]byte(`{"sources":[{"source":{"host":"pc","userName":"me","path":"/home"},"lastSnapshot":{"startTime":"2026-10-07T01:00:00Z","endTime":"2026-10-07T01:10:00Z","stats":{"errorCount":0},"rootEntry":{"summ":{"numFailed":2}}}},` +
+				`{"source":{"host":"pc","path":"/etc"},"lastSnapshot":{"endTime":"2026-10-07T02:00:00Z","stats":{}}}]}`))
+		case "/v1.Backrest/GetSummaryDashboard":
+			w.Write([]byte(`{"planSummaries":[{"id":"db","recentBackups":{"timestampMs":["1759800000000","1759900000000"],"status":["STATUS_SUCCESS","STATUS_ERROR"]}}]}`))
+		}
+	}))
+	defer srv.Close()
+	sctx := sources.Ctx{URL: srv.URL, Secret: "admin:pw"}
+	raw, err := sources.KopiaData.Fetch(context.Background(), sctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k := raw.(sources.BackupSource).BackupJobs()
+	if len(k) != 2 || k[0].Item != "pc:/home" || !k[0].Failed || k[1].Failed || k[0].Last.IsZero() {
+		t.Fatalf("kopia %+v", k)
+	}
+	raw, err = sources.BackrestData.Fetch(context.Background(), sctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := raw.(sources.BackupSource).BackupJobs()
+	if len(b) != 1 || !b[0].Failed || b[0].Last.UnixMilli() != 1759800000000 {
+		t.Fatalf("backrest %+v", b)
+	}
+}
+
+// TestDemoBackupTools: every tool reads its demo data, each with a problem.
+func TestDemoBackupTools(t *testing.T) {
+	now := time.Now()
+	for _, tool := range []sources.BackupSource{sources.DemoPBS(now), sources.DemoKopia(now), sources.DemoDuplicati(now), sources.DemoBackrest(now), sources.DemoUrBackup(now)} {
+		jobs := tool.BackupJobs()
+		problem := false
+		for _, j := range jobs {
+			problem = problem || j.Failed || now.Sub(j.Last) > 48*time.Hour
+			if j.Item == "" || j.Last.IsZero() {
+				t.Fatalf("%s: %+v", tool.BackupTool(), j)
+			}
+		}
+		if len(jobs) < 2 || !problem {
+			t.Fatalf("%s: %+v", tool.BackupTool(), jobs)
+		}
+	}
+	if d := sources.DemoDuplicati(now); d.Jobs[1].Note == "" {
+		t.Fatalf("duplicati note %+v", d.Jobs)
+	}
+}
