@@ -2,7 +2,9 @@ package porting_test
 
 import (
 	"database/sql"
+	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -404,5 +406,55 @@ func TestBoardExportCarriesTiles(t *testing.T) {
 	report, err := porting.ImportSpace(d, b, spaceB, text, porting.Merge)
 	if err != nil || report.Boards != 1 || report.Widgets != 5 || len(report.Skipped) != 0 {
 		t.Fatalf("import of a board export: %+v %v\n%s", report, err, text)
+	}
+}
+
+// TestCodeSaveKeepsIDs: saving the code view unchanged keeps every board
+// and tile (ids, so bookmarks and shares hold) in both modes; Replace
+// drops what the text no longer has. Replace renumbered everything and
+// Merge doubled it.
+func TestCodeSaveKeepsIDs(t *testing.T) {
+	d := setup(t)
+	a, spaceA := user(t, d, "a@x.de")
+	if _, err := porting.ImportDashy(d, a, spaceA, dashy); err != nil {
+		t.Fatal(err)
+	}
+	// Each board and tile by name and key with its id: SQLite hands freed
+	// ids out again, so only the pairs show a renumbering.
+	ids := func() (boardIDs, widgetIDs map[string]int64) {
+		boardIDs, widgetIDs = map[string]int64{}, map[string]int64{}
+		visible, _ := boards.Visible(d, a)
+		for _, b := range visible {
+			boardIDs[b.Name] = b.ID
+		}
+		lib, _ := widgetlib.Library(d, a)
+		for _, w := range lib {
+			widgetIDs[w.Key] = w.ID
+		}
+		return
+	}
+	boardsBefore, widgetsBefore := ids()
+	text, _ := porting.ExportSpace(d, a, spaceA)
+
+	for _, mode := range []porting.Mode{porting.Replace, porting.Merge} {
+		if _, err := porting.ImportSpace(d, a, spaceA, text, mode); err != nil {
+			t.Fatal(err)
+		}
+		b, w := ids()
+		if fmt.Sprint(b) != fmt.Sprint(boardsBefore) || fmt.Sprint(w) != fmt.Sprint(widgetsBefore) {
+			t.Fatalf("%s: boards %v → %v, tiles %v → %v", mode, boardsBefore, b, widgetsBefore, w)
+		}
+	}
+
+	// Replace without the clock: the tile goes, the rest stays.
+	cut := regexp.MustCompile(`(?m)^  - config:\n(?:      .*\n)*    id: clock\n(?:    \S.*\n)*`).ReplaceAllString(text, "")
+	if cut == text {
+		t.Fatalf("test text has no clock:\n%s", text)
+	}
+	if _, err := porting.ImportSpace(d, a, spaceA, cut, porting.Replace); err != nil {
+		t.Fatal(err)
+	}
+	if _, w := ids(); len(w) != len(widgetsBefore)-1 {
+		t.Fatalf("replace kept the removed tile: %v", w)
 	}
 }

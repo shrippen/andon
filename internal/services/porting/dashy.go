@@ -399,7 +399,7 @@ func importDashy(d *sql.DB, who *access.Principal, spaceID int64, text string, a
 	if err != nil {
 		return nil, err
 	}
-	report, err := importSpace(d, who, spaceID, yamlText, Merge, apply)
+	report, err := importSpace(d, who, spaceID, yamlText, Merge, apply, addAlways)
 	if err != nil {
 		return nil, err
 	}
