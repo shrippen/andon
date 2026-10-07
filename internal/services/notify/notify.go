@@ -198,9 +198,6 @@ type Prefs struct {
 	QuietFrom, QuietTo string // "HH:MM", "" = no quiet hours
 	QuietMuted         bool   // quiet hours hold back critical hints too
 	RepeatHours        int    // re-push open critical hints after this long, 0 = never
-	Daily              string // digest time "HH:MM", "" = no digest
-	Weekly             string // weekday key ("mon".."sun"), "" = every day
-	NoSummary          bool   // opt-out of the LLM summary in the weekly digest
 }
 
 const (
@@ -236,10 +233,6 @@ func GetPrefs(d *sql.DB, who *access.Principal) (Prefs, error) {
 		out.QuietTo, _ = quiet["to"].(string)
 		out.QuietMuted, _ = quiet[mutedKey].(bool)
 		out.RepeatHours = repeatHours(u.Prefs)
-		digest, _ := u.Prefs[digestKey].(map[string]any)
-		out.Daily, _ = digest["daily"].(string)
-		out.Weekly, _ = digest["weekly"].(string)
-		out.NoSummary, _ = digest[noSummaryKey].(bool)
 		return nil
 	})
 	return out, err
@@ -247,27 +240,13 @@ func GetPrefs(d *sql.DB, who *access.Principal) (Prefs, error) {
 
 // SavePrefs writes a user's quiet-hours preference.
 func SavePrefs(d *sql.DB, who *access.Principal, p Prefs) error {
-	for _, text := range []string{p.QuietFrom, p.QuietTo, p.Daily} {
+	for _, text := range []string{p.QuietFrom, p.QuietTo} {
 		if text != "" && parseClock(text) == nil {
 			return ErrBadTime
 		}
 	}
-	if p.Weekly != "" && weekdayIndex(p.Weekly) < 0 {
-		return ErrBadTime
-	}
-	return db.WithTx(d, func(tx *sql.Tx) error {
-		u, err := users.Get(tx, who.UserID)
-		if err != nil || u == nil {
-			return orNotFound(err)
-		}
-		prefs := map[string]any{}
-		for k, v := range u.Prefs {
-			prefs[k] = v
-		}
+	return changePrefs(d, who.UserID, func(prefs map[string]any) {
 		prefs[quietKey] = map[string]any{"from": p.QuietFrom, "to": p.QuietTo, mutedKey: p.QuietMuted, repeatKey: float64(max(p.RepeatHours, 0))}
-		prefs[digestKey] = map[string]any{"daily": p.Daily, "weekly": p.Weekly, noSummaryKey: p.NoSummary}
-		u.Prefs = prefs
-		return users.Update(tx, u)
 	})
 }
 
@@ -575,10 +554,13 @@ func Digests(d *sql.DB, now time.Time) (int, error) {
 		if !u.IsActive || !digestDue(u.Prefs, local) {
 			continue
 		}
-		if err := sendDigest(d, u.ID, local); err != nil {
+		state, err := sendDigest(d, u.ID, local)
+		if err != nil {
 			return sent, err
 		}
-		sent++
+		if state == DigestSent {
+			sent++
+		}
 	}
 	return sent, nil
 }
@@ -623,7 +605,10 @@ func weekStory(d *sql.DB, who *access.Principal, prefs map[string]any, local tim
 	return out
 }
 
-func sendDigest(d *sql.DB, userID int64, local time.Time) error {
+// sendDigest marks today's digest as done, then sends it (or leaves an
+// empty one at home) and logs the outcome. A failed send is logged, not
+// retried: the log shows it, and the next day brings a new digest.
+func sendDigest(d *sql.DB, userID int64, local time.Time) (DigestState, error) {
 	var who *access.Principal
 	var prefs map[string]any
 	err := db.WithTx(d, func(tx *sql.Tx) error {
@@ -644,13 +629,33 @@ func sendDigest(d *sql.DB, userID int64, local time.Time) error {
 		return err
 	})
 	if err != nil || who == nil {
-		return err
+		return "", err
 	}
 
-	locale := who.Locale
-	open, err := hints.Active(d, who, enums.SeverityInfo, nil, maxDigestLines*2)
+	m, rows, err := composeDigest(d, who, prefs, local, summaryOn)
 	if err != nil {
-		return err
+		return "", err
+	}
+	entry := DigestEntry{At: local, Kind: DigestByTime, State: DigestSent, Rows: rows}
+	switch {
+	case rows == 0 && digestOf(prefs).Empty == EmptySkip:
+		entry.State = DigestEmpty
+	case mail.SendNow(m) != nil:
+		entry.State = DigestFailed
+	}
+	return entry.State, logDigest(d, userID, entry)
+}
+
+// composeDigest renders a user's digest: open hints from the chosen
+// level, tax deadlines unless left out, and for weekly digests the week
+// in numbers and (summaryOn) the LLM prose. Returns the mail and its
+// number of entries.
+func composeDigest(d *sql.DB, who *access.Principal, prefs map[string]any, local time.Time, sum summaryUse) (outbound.Mail, int, error) {
+	setup := digestOf(prefs)
+	locale := who.Locale
+	open, err := hints.Active(d, who, max(setup.MinLevel, enums.SeverityInfo), nil, maxDigestLines*2)
+	if err != nil {
+		return outbound.Mail{}, 0, err
 	}
 	rows := make([]mail.Row, 0, len(open))
 	for _, h := range open {
@@ -658,9 +663,11 @@ func sendDigest(d *sql.DB, userID int64, local time.Time) error {
 		rows = append(rows, mail.Row{Label: label, Text: h.Title, Color: levelColor[h.Severity]})
 	}
 
-	due, err := calendar.TaxDeadlines(d, who, local, deadlineDays)
-	if err != nil {
-		return err
+	var due []calendar.Deadline
+	if setup.Deadlines == DeadlinesOn {
+		if due, err = calendar.TaxDeadlines(d, who, local, deadlineDays); err != nil {
+			return outbound.Mail{}, 0, err
+		}
 	}
 	for _, item := range due {
 		rows = append(rows, mail.Row{Label: i18n.Day(item.Due, locale), Text: item.Text})
@@ -672,14 +679,12 @@ func sendDigest(d *sql.DB, userID int64, local time.Time) error {
 		body = i18n.T("notify.digest_body", locale, nil)
 	}
 	paragraphs := []string{body}
-	if text := weeklySummary(prefs, open, len(due), locale); text != "" {
-		paragraphs = []string{text, body}
+	if sum == summaryOn {
+		if text := weeklySummary(prefs, open, len(due), locale); text != "" {
+			paragraphs = []string{text, body}
+		}
 	}
 	paragraphs = append(weekStory(d, who, prefs, local), paragraphs...)
 	m, err := mail.Render(who.Email, locale, subject, paragraphs, nil, rows)
-	if err != nil {
-		return err
-	}
-	mail.Send(m)
-	return nil
+	return m, len(rows), err
 }

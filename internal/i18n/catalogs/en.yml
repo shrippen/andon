@@ -3054,6 +3054,31 @@ notify:
   invalid_url: Invalid Apprise URL.
   failed: Delivery failed.
   bad_time: Invalid time (HH:MM).
+  digest: 'Email digest'
+  digest_lead: 'One mail with your open hints and upcoming deadlines, daily or once a week.'
+  no_mail: 'No mail server is set up: digests do not go out.'
+  no_mail_fix: 'Set the mail server'
+  digest_when: 'When'
+  digest_what: 'Content'
+  digest_deadlines: 'List tax deadlines of the next 14 days'
+  digest_empty: 'Send even when nothing is open'
+  digest_weekly_hint: 'Weekly digests add a look back at the week in numbers.'
+  digest_preview: 'Preview'
+  digest_test: 'Send to me now'
+  digest_preview_hint: 'Preview and test mail show today''s state, without the AI summary. The test mail leaves the planned send unchanged.'
+  digest_log: 'Recent sends'
+  log_at: 'When'
+  log_kind: 'Trigger'
+  log_state: 'Result'
+  log_rows: 'Entries'
+  log_none: 'Nothing sent yet.'
+  kind:
+    auto: 'scheduled'
+    test: 'test'
+  state:
+    sent: 'sent'
+    failed: 'failed'
+    empty: 'nothing open, not sent'
   test_title: 'Andon: test'
   test_body: This channel works.
   title: 'Andon: {count} new hints'
