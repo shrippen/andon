@@ -79,6 +79,7 @@ const (
 	SubjectIP      = "IPv4"
 	SubjectVPN     = "VPN"
 	SubjectVPNExit = "VPN-Exit"
+	SubjectWAN     = "WAN" // the router's line: when it came up (reconnect.go)
 )
 
 // Scope is what recorders read: a scope's datasets (keyed by service) and
@@ -137,7 +138,7 @@ func DeadlineKey(kind, period string, year int) string {
 // StateEvent turns a state change into a timeline event; a first
 // sighting is none. The subject loses its table prefix.
 func StateEvent(subject, old, now string, at time.Time) (Event, bool) {
-	if old == "" || old == now {
+	if old == "" || old == now || sameConnect(old, now) {
 		return Event{}, false
 	}
 	return Event{At: at, Kind: EventChange, Subject: subject[len(statePrefix):], Detail: old + " → " + now}, true

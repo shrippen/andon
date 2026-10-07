@@ -885,6 +885,10 @@ func TestTechnitiumFritz(t *testing.T) {
 	if f := raw.(*sources.FritzDataset); !f.Connected() || f.Uptime != 2400 || f.DownSync != 250000 || f.Model != "FRITZ!Box 7590" {
 		t.Fatalf("fritz %+v", f)
 	}
+	// Since is when the line came up, to the minute: the same over runs.
+	if f := raw.(*sources.FritzDataset); time.Since(f.Since) < 39*time.Minute || time.Since(f.Since) > 42*time.Minute || f.Since.Second() != 0 {
+		t.Fatalf("fritz since %v", f.Since)
+	}
 	now := time.Now()
 	if r := sources.DemoRoutes(now, enums.ServiceTraefik).Routes; len(r) != 3 || r[0].Up {
 		t.Fatalf("demo traefik %+v", r)
@@ -892,8 +896,13 @@ func TestTechnitiumFritz(t *testing.T) {
 	if d := sources.DemoTechnitium(now); d.Queries == 0 || len(d.TopBlocked) != 2 {
 		t.Fatalf("demo technitium %+v", d)
 	}
-	if f := sources.DemoFritz(now); f.DownSync != 250000 || !f.Connected() {
+	if f := sources.DemoFritz(now); f.DownSync != 250000 || !f.Connected() || f.Since.After(now) || !f.Since.Equal(sources.DemoFritz(now.Add(time.Minute)).Since) {
 		t.Fatalf("demo fritz %+v", f)
+	}
+	// The demo's earlier connections, some seen down, then today's.
+	past := sources.DemoFritzPast(now)
+	if len(past) < 3 || past[0].Data.Since.IsZero() || !past[len(past)-1].Data.Since.Equal(sources.DemoFritz(now).Since) {
+		t.Fatalf("demo past %+v", past)
 	}
 }
 

@@ -1137,7 +1137,7 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 **Schritt 9: Netz** — Traefik, Caddy, Nginx Proxy Manager, Headscale, Technitium, FRITZ!Box, UniFi
 - [x] Routen (Traefik, Caddy, NPM) mit Zertifikat und Ziel, Kachel „Routen“; Technitium in der DNS-Kachel; FRITZ!Box über TR-064: Verbindung, Neuverbindung, DSL-Rate; UniFi liest zusätzlich die Clients *(Headscale las die Tailscale-Verbindung schon)*
 - [x] Quer: Route auf gestoppten oder fehlenden Container *(in `routes.down`)*, `cross.route_undocumented`, `cross.line_vs_speed` (Sync-Rate gegen Speedtest und Gebuchtes), `cross.device_uninventoried` (Client von UniFi/OpenWrt ohne Snipe-IT-Asset)
-- [ ] FRITZ!Box-Abbrüche in den ISP-Bericht *(bräuchte den Verlauf der Neuverbindungen)*
+- [x] FRITZ!Box-Abbrüche in den ISP-Bericht *(der Datensatz nennt, seit wann die Leitung steht (Uptime, auf die Minute); jeder Prüflauf hält das als Zustand „WAN“ im Verlauf, „–“ solange sie unten ist. Ein neuer Beginn ist eine Neuverbindung; die Ausfallzeit steht nur fest, wenn ein Prüflauf die Leitung unten sah (mindestens ab dann), sonst „kurz“. `/reports/isp` listet sie mit Zeit und Ausfall, auch für Bereiche ohne Speedtest Tracker, die CSV ebenso. Die Demo trennt jede Nacht um 04:02 und bringt Neuverbindungen der letzten Wochen im Verlauf mit)*
 
 **Schritt 10: Medien** — Tautulli, Jellystat, Seerr, Audiobookshelf, Navidrome
 - [x] Kachel „Jetzt läuft“ über `sources.StreamSource` (Jellyfin/Plex, Tautulli, Navidrome, Audiobookshelf), Jellystat-Statistik (30 Tage), Seerr: offene und hängende Anfragen *(Jellystat und Audiobookshelf ohne echte Instanz gebaut, Felder tolerant gelesen)*

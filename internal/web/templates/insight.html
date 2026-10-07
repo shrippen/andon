@@ -70,11 +70,18 @@
     {{range .Reports}}
     <section class="card">
       <h2>{{.Space}}</h2>
+      {{if .Speed}}
       <p>{{t "isp.summary" "below" .BelowDays "days" (len .Days) "expect" (num .ExpectDown 0) "outages" (len .Outages)}}</p>
       <div class="table-wrap"><table class="table compact">
         <tr><th>{{t "col.day"}}</th><th class="num">↓ Mbit/s</th><th class="num">↑ Mbit/s</th><th></th></tr>
         {{range .Days}}<tr><td>{{day .Day}}</td><td class="num">{{num .Down 0}}</td><td class="num">{{num .Up 0}}</td><td>{{if .Below}}<span class="late">{{t "isp.below"}}</span>{{end}}</td></tr>{{end}}
       </table></div>
+      {{else}}<p>{{t "isp.reconnect_summary" "count" (len .Reconnects) "days" $.Days}}</p>{{end}}
+      {{with .Reconnects}}<h3>{{t "isp.reconnects"}}</h3>
+      <div class="table-wrap"><table class="table compact">
+        <tr><th>{{t "isp.reconnect_at"}}{{tzMark}}</th><th>{{t "isp.downtime"}}</th></tr>
+        {{range .}}<tr><td>{{day .At}} {{.At.Local.Format "15:04"}}</td><td>{{if .Seen}}<span class="late">{{t "isp.down_at_least" "min" (printf "%.0f" .Down.Minutes)}}</span>{{else}}{{t "isp.down_short"}}{{end}}</td></tr>{{end}}
+      </table></div>{{end}}
       {{with .Outages}}<h3>{{t "isp.outages"}}</h3><ul class="plain-list">{{range .}}<li>{{.Gateway}}: {{day .Start}} {{.Start.Local.Format "15:04"}} – {{if .End.IsZero}}{{t "isp.ongoing"}}{{else}}{{.End.Local.Format "15:04"}}{{end}}{{tzMark}}</li>{{end}}</ul>{{end}}
     </section>
     {{else}}<p class="muted">{{t "isp.none"}}</p>{{end}}

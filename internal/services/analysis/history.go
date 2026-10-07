@@ -64,6 +64,16 @@ func recordHistory(d *sql.DB, sc *scope, now time.Time) (*metrics.History, error
 	return history.Load(d, sc.spaceID, owner, now)
 }
 
+// RecordPast stores what a run at a past time would have recorded from
+// these datasets of a space: the demo seed's history (the router's
+// reconnects of the last weeks).
+func RecordPast(d *sql.DB, spaceID int64, at time.Time, datasets map[string]any) error {
+	sc := newScope(spaceID, nil, nil)
+	sc.datasets = datasets
+	_, err := recordHistory(d, sc, at)
+	return err
+}
+
 // recordChanges stores the current values of subjects and an event for
 // each change the event function sees.
 func recordChanges(tx *sql.Tx, spaceID, owner int64, known, current map[string]string,

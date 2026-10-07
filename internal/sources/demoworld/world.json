@@ -6563,16 +6563,38 @@
   ]
  },
  "fritzbox": {
-  "note": "The FRITZ!Box behind the firewall reconnected 40 minutes ago; the VDSL line syncs at 250 Mbit/s.",
+  "note": "The FRITZ!Box behind the firewall reconnects every night at 04:02 (the provider's forced reconnect, uptime counted from there); the VDSL line syncs at 250 Mbit/s. Reconnects of the last weeks: mostly short, twice a run caught the line down (47 and 14 minutes).",
   "url": "https://fritz.demo:49443",
   "status": "Connected",
-  "uptime": 2400,
+  "since": "@date-0 04:02",
   "last_error": "ERROR_NONE",
   "model": "FRITZ!Box 7590",
   "down_sync": 250000,
   "up_sync": 40000,
   "down_max": 292000,
-  "up_max": 46000
+  "up_max": 46000,
+  "reconnects": [
+   {
+    "up": "@-27d20h"
+   },
+   {
+    "up": "@-21d3h"
+   },
+   {
+    "down": "@-16d5h",
+    "up": "@-16d4h13m"
+   },
+   {
+    "up": "@-11d22h"
+   },
+   {
+    "down": "@-6d2h30m",
+    "up": "@-6d2h16m"
+   },
+   {
+    "up": "@-2d20h"
+   }
+  ]
  },
  "smart_home": {
   "note": "Home Assistant at Mara's: the bathroom window sensor's battery is low, a plug is unavailable, a core update waits. history: the living room warms through the day, the office light is on during work hours. The workshop climate sensor answers ESPHome but Home Assistant lost it; the pond pump is off in both.",

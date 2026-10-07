@@ -17,6 +17,7 @@ import (
 	"andon/internal/services/boards"
 	"andon/internal/services/connections"
 	"andon/internal/services/hints"
+	"andon/internal/services/reports"
 	"andon/internal/services/seed"
 	"andon/internal/services/system"
 )
@@ -52,10 +53,29 @@ func TestDemoFillsBoardsAndFiresRules(t *testing.T) {
 	for _, h := range found {
 		rules[h.Rule] = true
 	}
-	for _, want := range []string{"kimai.unbilled_hours", "in.invoice_overdue", "snipe.warranty_expiring", "geo.visit_without_time"} {
+	for _, want := range []string{"kimai.unbilled_hours", "in.invoice_overdue", "snipe.warranty_expiring", "geo.visit_without_time",
+		"cross.ci_red_deployed", "cross.pbs_pool", "cross.ups_load"} {
 		if !rules[want] {
 			t.Errorf("expected hint %s from the demo data, got %v", want, rules)
 		}
+	}
+
+	// The router's reconnects of the last weeks are in the history: the
+	// ISP report lists them, two with a downtime a run saw.
+	isp, err := reports.ISPReports(context.Background(), d, who)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := 0
+	for _, r := range isp {
+		for _, c := range r.Reconnects {
+			if c.Seen {
+				seen++
+			}
+		}
+	}
+	if len(isp) != 1 || len(isp[0].Reconnects) < 5 || seen != 2 {
+		t.Errorf("isp: %+v", isp)
 	}
 
 	// Templates: the user's Nextcloud login is current, Immich's paused.
