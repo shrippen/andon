@@ -35,12 +35,10 @@ type demoBook struct {
 	Time      struct {
 		HistoryDays, ClientWindow, SkipDay int
 		UnbilledDays, ExportedAfterDays    int
-		RunningHours                       int
 		Hours                              [2]int
 		ClientDays                         []int
 		Mix                                []int64
 		OnSite, Edit, Visit, Meeting       string
-		RunningID, RunningCustomer         int64
 	}
 	ContractMinutes [7]int
 	Budgets         []KimaiProject
@@ -199,13 +197,12 @@ func DemoKimai(now time.Time) *KimaiDataset {
 		projects[i] = p
 	}
 
-	running := now.UTC().Add(-time.Duration(b.Time.RunningHours) * time.Hour)
+	blocks, running := demoKimaiToday(now, b)
 	return &KimaiDataset{
-		URL:        b.URLs.Time,
-		Contract:   DemoContract(),
-		Timesheets: sheets,
-		Active: []KimaiSheet{{ID: b.Time.RunningID, Begin: running.Format(time.RFC3339), Billable: true,
-			ProjectID: b.Time.RunningCustomer, CustomerID: b.Time.RunningCustomer, Activity: demoEdit, UserID: 1}},
+		URL:          b.URLs.Time,
+		Contract:     DemoContract(),
+		Timesheets:   append(sheets, blocks...),
+		Active:       []KimaiSheet{running},
 		Projects:     projects,
 		Customers:    demoCustomers,
 		Absences:     b.Absences,
@@ -922,6 +919,27 @@ func DemoKimaiLive(now time.Time) *KimaiLive {
 			demoTimer(0, meeting, demoMeeting, time.Time{}),
 		},
 		Today: b.Live.Spans}
+}
+
+// demoKimaiToday is Kimai Lite's day as dataset sheets: its two blocks
+// and its running timer. One story everywhere: the Kimai tile, Today and
+// the rules see what Kimai Lite shows.
+func demoKimaiToday(now time.Time, b *demoBook) ([]KimaiSheet, KimaiSheet) {
+	sheet := func(t KimaiTimer, end time.Time) KimaiSheet {
+		s := KimaiSheet{ID: t.ID, Begin: t.Begin.Format(time.RFC3339), Billable: true, ProjectID: t.ProjectID,
+			CustomerID: t.ProjectID, Activity: t.Activity, UserID: 1}
+		if !end.IsZero() {
+			s.End, s.Minutes = end.Format(time.RFC3339), int(end.Sub(t.Begin).Minutes())
+			s.Rate = float64(s.Minutes) / 60 * b.Rate
+		}
+		return s
+	}
+	day := DemoKimaiDay(now).Sheets
+	blocks := make([]KimaiSheet, 0, len(day)-1)
+	for _, t := range day[:len(day)-1] {
+		blocks = append(blocks, sheet(t, t.End))
+	}
+	return blocks, sheet(day[len(day)-1], time.Time{})
 }
 
 // DemoKimaiDay is the demo day list: the live view's two blocks plus the

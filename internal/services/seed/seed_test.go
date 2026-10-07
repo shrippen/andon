@@ -52,7 +52,7 @@ func TestDemoFillsBoardsAndFiresRules(t *testing.T) {
 	for _, h := range found {
 		rules[h.Rule] = true
 	}
-	for _, want := range []string{"kimai.timer_running_long", "in.invoice_overdue", "snipe.warranty_expiring", "geo.visit_without_time"} {
+	for _, want := range []string{"kimai.unbilled_hours", "in.invoice_overdue", "snipe.warranty_expiring", "geo.visit_without_time"} {
 		if !rules[want] {
 			t.Errorf("expected hint %s from the demo data, got %v", want, rules)
 		}
