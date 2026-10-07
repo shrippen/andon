@@ -158,13 +158,7 @@ func TestTablesFoldToCards(t *testing.T) {
 			if !strings.HasPrefix(tb, `<table class="table cards-sm">`) {
 				t.Fatalf("%s: table without cards-sm: %.120s", name, tb)
 			}
-			// The client list has several amounts: none goes top right
-			// without its name (Kante's key cell shows no label).
-			if name == "/clients" {
-				if strings.Contains(tb, `data-card="key"`) {
-					t.Fatalf("%s: an amount top right without its label: %s", name, tb)
-				}
-			} else if !strings.Contains(tb, `data-card="key"`) {
+			if !strings.Contains(tb, `data-card="key"`) {
 				t.Fatalf("%s: no amount marked for the card: %s", name, tb)
 			}
 			for _, td := range cell.FindAllString(tb, -1) {
