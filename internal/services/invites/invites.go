@@ -5,6 +5,7 @@ package invites
 import (
 	"database/sql"
 	"errors"
+	netmail "net/mail"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,6 +34,7 @@ var (
 	ErrDenied        = errors.New("error.denied")
 	ErrEmailTaken    = errors.New("account.email_taken")
 	ErrInviteInvalid = errors.New("invite.invalid")
+	ErrBadEmail      = errors.New("invite.bad_email")
 	ErrResetInvalid  = errors.New("reset.invalid")
 )
 
@@ -62,6 +64,9 @@ func Create(d *sql.DB, who *access.Principal, email string, role enums.InstanceR
 		return "", ErrDenied
 	}
 	email = strings.TrimSpace(email)
+	if addr, err := netmail.ParseAddress(email); err != nil || addr.Address != email {
+		return "", ErrBadEmail
+	}
 	token := crypto.NewToken()
 
 	err := db.WithTx(d, func(tx *sql.Tx) error {
@@ -71,6 +76,19 @@ func Create(d *sql.DB, who *access.Principal, email string, role enums.InstanceR
 		}
 		if existing != nil {
 			return ErrEmailTaken
+		}
+		// A new invite replaces an open one: one valid link per address.
+		open, err := authrepo.OpenInvites(tx)
+		if err != nil {
+			return err
+		}
+		for _, old := range open {
+			if !strings.EqualFold(old.Email, email) {
+				continue
+			}
+			if err := authrepo.RemoveInvite(tx, old.ID); err != nil {
+				return err
+			}
 		}
 		inv := &model.Invite{
 			Email: email, TokenHash: crypto.TokenHash(token), Role: role, Teams: teams,

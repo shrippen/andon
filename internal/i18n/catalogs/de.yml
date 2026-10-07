@@ -149,6 +149,7 @@ setup:
   closed: Die Einrichtung ist abgeschlossen.
   bad_code: Einrichtungscode falsch.
 invite:
+  bad_email: 'Das ist keine E-Mail-Adresse.'
   title: Einladung annehmen
   submit: Konto anlegen
   invalid: Einladung ungültig oder abgelaufen.

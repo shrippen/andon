@@ -149,6 +149,7 @@ setup:
   closed: Setup is complete.
   bad_code: Wrong setup code.
 invite:
+  bad_email: 'That is no e-mail address.'
   title: Accept invitation
   submit: Create account
   invalid: Invitation invalid or expired.
