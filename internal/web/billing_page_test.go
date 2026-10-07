@@ -134,7 +134,7 @@ func TestTablesFoldToCards(t *testing.T) {
 	clients := string(mustGet(t, srv, client, "/clients"))
 	pages := map[string]string{"/billing": string(mustGet(t, srv, client, "/billing")), "/clients": clients}
 	// The first client with invoices (a client page shows them as a table).
-	for _, link := range regexp.MustCompile(`href="(/clients/\d+/\d+\?kimai=\d+)"`).FindAllStringSubmatch(clients, -1) {
+	for _, link := range regexp.MustCompile(`href="(/clients/\d+/\d+\?kimai=\d+)[^"]*"`).FindAllStringSubmatch(clients, -1) {
 		page := string(mustGet(t, srv, client, link[1]))
 		if strings.Contains(page, "<table") {
 			pages["client"] = page
