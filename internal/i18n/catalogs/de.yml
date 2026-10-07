@@ -54,6 +54,11 @@ action:
   open_in_apcupsd: 'apcupsd öffnen'
   open_in_opendtu: 'In OpenDTU öffnen'
   open_in_evcc: 'In EVCC öffnen'
+  open_in_traefik: 'In Traefik öffnen'
+  open_in_caddy: 'Caddy öffnen'
+  open_in_npm: 'In Nginx Proxy Manager öffnen'
+  open_in_technitium: 'In Technitium öffnen'
+  open_in_fritzbox: 'FRITZ!Box öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
   close: Schließen
   open_in_jsonapi: API öffnen
@@ -891,6 +896,12 @@ wtype:
   power:
     name: 'Strom'
     desc: 'USV (PeaNUT, apcupsd), Balkonkraftwerk (OpenDTU) und Wallbox (EVCC) auf einen Blick.'
+  routes:
+    name: 'Routen'
+    desc: 'Hosts der Reverse Proxys (Traefik, Caddy, Nginx Proxy Manager) mit Ziel und Zustand, gestörte zuerst.'
+  technitium:
+    name: 'Technitium DNS'
+    desc: 'Anfragen und Blockierungen des letzten Tages.'
   speedtest:
     name: 'Internet-Geschwindigkeit'
     desc: 'Letzte Messung aus Speedtest Tracker.'
@@ -1344,6 +1355,23 @@ conn:
   options_hint_evcc: 'URL von EVCC, z. B. http://evcc.example.lan:7070. Token leer, oder benutzer:passwort hinter einem Proxy.'
   about_evcc: 'Wallbox: Laden, PV-Anteil, Kosten'
   what_evcc: 'EVCC steuert Wallboxen und lädt bevorzugt mit Solarstrom.'
+  options_hint_traefik: 'URL der Traefik-API, z. B. http://traefik:8080 (api.insecure oder hinter einem Router mit Basic-Auth). Token leer oder benutzer:passwort.'
+  about_traefik: 'Routen: Host, Ziel, Zustand'
+  what_traefik: 'Traefik ist ein Reverse Proxy, der Routen aus Docker-Labels und Dateien erzeugt.'
+  options_hint_caddy: 'URL der Caddy-Admin-API, z. B. http://caddy:2019 (admin 0.0.0.0:2019 nur im internen Netz freigeben). Token leer oder benutzer:passwort.'
+  about_caddy: 'Routen: Host und Upstream'
+  what_caddy: 'Caddy ist ein Webserver und Reverse Proxy mit automatischem HTTPS.'
+  options_hint_npm: 'URL von Nginx Proxy Manager, z. B. http://npm.example.lan:81. Token = E-Mail:Passwort eines NPM-Nutzers.'
+  about_npm: 'Proxy-Hosts und Zertifikate'
+  what_npm: 'Nginx Proxy Manager verwaltet Proxy-Hosts und Let''s-Encrypt-Zertifikate über eine Weboberfläche.'
+  secret_npm: 'E-Mail:Passwort'
+  options_hint_technitium: 'URL von Technitium DNS, z. B. http://dns.example.lan:5380. Token = API-Token (Administration → Sessions → Create Token).'
+  about_technitium: 'DNS: Anfragen, Blockierungen'
+  what_technitium: 'Technitium DNS ist ein DNS-Server mit Werbe- und Trackingfilter.'
+  options_hint_fritzbox: 'URL der FRITZ!Box für TR-064, z. B. https://fritz.box:49443 (oder http://fritz.box:49000). Token = benutzer:passwort eines FRITZ!Box-Benutzers mit dem Recht „FRITZ!Box Einstellungen“; „Zugriff für Anwendungen zulassen“ muss an sein.'
+  about_fritzbox: 'Internetverbindung und DSL-Rate'
+  what_fritzbox: 'Die FRITZ!Box von AVM ist ein Router; über TR-064 nennt sie Verbindung, Laufzeit und Leitungsrate.'
+  secret_fritz: 'benutzer:passwort'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
   health: 'Zustand'
@@ -1572,6 +1600,11 @@ service:
   apcupsd: 'apcupsd (USV)'
   opendtu: 'OpenDTU'
   evcc: 'EVCC'
+  traefik: 'Traefik'
+  caddy: 'Caddy'
+  npm: 'Nginx Proxy Manager'
+  technitium: 'Technitium DNS'
+  fritzbox: 'FRITZ!Box'
   tibber: 'Tibber (Strom)'
   links: Kacheln
   jsonapi: Eigene API (JSON)
@@ -1895,6 +1928,26 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  routes:
+    down:
+      title: '{host} antwortet nicht'
+      why: 'Der Proxy erreicht {target} nicht.'
+    container_missing:
+      title: '{host}: Container {service} fehlt'
+      why: 'Die Route zeigt auf {service}, Docker kennt keinen solchen Container.'
+    container_stopped:
+      title: '{host}: Container {service} läuft nicht'
+      why: 'Die Route zeigt auf {service}, der Container ist gestoppt.'
+    cert_expiry:
+      title: 'Zertifikat für {host} endet am {day}'
+      why: 'Erneuert es sich nicht, zeigen Browser eine Warnung.'
+  fritz:
+    offline:
+      title: 'FRITZ!Box ohne Internet'
+      why: 'Status {status}, letzter Fehler {error}.'
+    reconnect:
+      title: 'FRITZ!Box hat sich neu verbunden'
+      why: 'Vor {minutes} Minuten, letzter Fehler {error}. Häufen sich Neuverbindungen, die Leitung prüfen lassen.'
   ups:
     on_battery:
       title: 'USV {name} läuft auf Batterie'
@@ -2247,6 +2300,18 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
   cross:
+    route_undocumented:
+      title: '{count} Routen ohne Doku-Notiz'
+      why: '{hosts}. Keine Notiz nennt diese Adressen im Feld URL.'
+    speed_below_sync:
+      title: 'Messung weit unter der Leitungsrate'
+      why: 'Die Leitung synchronisiert mit {sync} Mbit/s, gemessen wurden {down} Mbit/s. Der Engpass liegt im Heimnetz (WLAN, Kabel, Router) oder beim Anbieter, nicht auf der Leitung.'
+    sync_below_booked:
+      title: 'Leitung synchronisiert unter dem Gebuchten'
+      why: 'Gebucht {booked} Mbit/s, die Leitung schafft {sync}. Das liegt an der Leitung; der Anbieter muss sie prüfen.'
+    device_uninventoried:
+      title: '{count} Geräte im Netz ohne Inventar'
+      why: '{names}. Kein Snipe-IT-Asset trägt diesen Namen.'
     charge_expensive:
       title: '{point} lädt zum teuren Preis'
       why: '{kw} kW aus dem Netz bei {price} ct/kWh, der Tagesschnitt liegt bei {avg} ct. Später laden oder auf PV-Modus stellen.'
@@ -2660,6 +2725,11 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
+  routes:
+    count: '{count} Routen · {down} gestört'
+  fritzbox:
+    online: 'verbunden · {down}/{up} Mbit/s'
+    offline: '{status}'
   ups:
     online: '{charge} % · {minutes} min'
     battery: 'auf Batterie · {minutes} min'
@@ -2907,6 +2977,13 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  routes.down: 'Route antwortet nicht'
+  routes.cert_expiry: 'Zertifikat einer Route endet'
+  cross.route_undocumented: 'Route ohne Doku'
+  fritz.offline: 'FRITZ!Box ohne Internet'
+  fritz.reconnect: 'FRITZ!Box neu verbunden'
+  cross.line_vs_speed: 'Leitung gegen Speedtest'
+  cross.device_uninventoried: 'Gerät ohne Inventar'
   ups.on_battery: 'USV auf Batterie'
   ups.runtime_low: 'USV-Laufzeit kurz'
   ups.replace_battery: 'USV-Akku tauschen'
@@ -3108,6 +3185,7 @@ rule_name:
   truenas.scrub_old: 'Pool-Scrub'
   gateway.new_device: 'Neue Geräte im Netz'
 param:
+  booked_share: 'Anteil des Gebuchten'
   minutes: 'Mindestens Minuten'
   min_km: 'Ab km'
   words: 'Stichworte in Rechnungspositionen'
@@ -4883,6 +4961,21 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image-Updates: {n}'
   alerts: 'Warnungen: {n}'
+routes:
+  up: 'ok'
+  down: 'aus'
+  total: 'Routen'
+  failing: 'gestört'
+  all: 'Alle Routen'
+  tile: '{down} gestört'
+  none: 'Keine Routen: Traefik, Caddy oder Nginx Proxy Manager verbinden.'
+  col:
+    host: 'Host'
+    proxy: 'Proxy'
+    service: 'Dienst'
+    target: 'Ziel'
+    state: 'Zustand'
+    cert: 'Zertifikat bis'
 power:
   pv_now: 'PV jetzt'
   pv_today: 'PV heute'
@@ -4998,6 +5091,8 @@ heartbeat:
     last: 'Letzter Ping'
     plan: 'Erwartet'
     tags: 'Tags'
+technitium:
+  refused: 'Technitium hat das Token abgelehnt.'
 kdestore:
   not_found: 'Eintrag oder Benutzer im KDE Store nicht gefunden.'
   no_entries: 'Nichts zu lesen: Benutzer oder einzelne Einträge angeben.'

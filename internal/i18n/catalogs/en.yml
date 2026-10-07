@@ -54,6 +54,11 @@ action:
   open_in_apcupsd: 'Open apcupsd'
   open_in_opendtu: 'Open in OpenDTU'
   open_in_evcc: 'Open in EVCC'
+  open_in_traefik: 'Open in Traefik'
+  open_in_caddy: 'Open Caddy'
+  open_in_npm: 'Open in Nginx Proxy Manager'
+  open_in_technitium: 'Open in Technitium'
+  open_in_fritzbox: 'Open the FRITZ!Box'
   open_in_tibber: 'Open in Tibber (electricity)'
   close: Close
   open_in_jsonapi: Open API
@@ -891,6 +896,12 @@ wtype:
   power:
     name: 'Power'
     desc: 'UPS (PeaNUT, apcupsd), balcony solar (OpenDTU) and wallbox (EVCC) at a glance.'
+  routes:
+    name: 'Routes'
+    desc: 'Hosts of the reverse proxies (Traefik, Caddy, Nginx Proxy Manager) with target and state, failing ones first.'
+  technitium:
+    name: 'Technitium DNS'
+    desc: 'Queries and blocks of the last day.'
   speedtest:
     name: 'Internet speed'
     desc: 'Latest result from Speedtest Tracker.'
@@ -1344,6 +1355,23 @@ conn:
   options_hint_evcc: 'URL of EVCC, e.g. http://evcc.example.lan:7070. Token empty, or user:password behind a proxy.'
   about_evcc: 'Wallbox: charging, solar share, cost'
   what_evcc: 'EVCC controls wallboxes and prefers solar power for charging.'
+  options_hint_traefik: 'URL of the Traefik API, e.g. http://traefik:8080 (api.insecure or behind a router with basic auth). Token empty or user:password.'
+  about_traefik: 'Routes: host, target, state'
+  what_traefik: 'Traefik is a reverse proxy that builds routes from Docker labels and files.'
+  options_hint_caddy: 'URL of the Caddy admin API, e.g. http://caddy:2019 (open admin 0.0.0.0:2019 to the internal network only). Token empty or user:password.'
+  about_caddy: 'Routes: host and upstream'
+  what_caddy: 'Caddy is a web server and reverse proxy with automatic HTTPS.'
+  options_hint_npm: 'URL of Nginx Proxy Manager, e.g. http://npm.example.lan:81. Token = email:password of an NPM user.'
+  about_npm: 'Proxy hosts and certificates'
+  what_npm: 'Nginx Proxy Manager manages proxy hosts and Let''s Encrypt certificates through a web UI.'
+  secret_npm: 'email:password'
+  options_hint_technitium: 'URL of Technitium DNS, e.g. http://dns.example.lan:5380. Token = API token (Administration → Sessions → Create Token).'
+  about_technitium: 'DNS: queries, blocks'
+  what_technitium: 'Technitium DNS is a DNS server with an ad and tracker filter.'
+  options_hint_fritzbox: 'URL of the FRITZ!Box for TR-064, e.g. https://fritz.box:49443 (or http://fritz.box:49000). Token = user:password of a FRITZ!Box user with the right “FRITZ!Box settings”; “allow access for applications” must be on.'
+  about_fritzbox: 'Internet connection and DSL rate'
+  what_fritzbox: 'AVM''s FRITZ!Box is a router; over TR-064 it reports connection, uptime and line rate.'
+  secret_fritz: 'user:password'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
   health: 'Health'
@@ -1572,6 +1600,11 @@ service:
   apcupsd: 'apcupsd (UPS)'
   opendtu: 'OpenDTU'
   evcc: 'EVCC'
+  traefik: 'Traefik'
+  caddy: 'Caddy'
+  npm: 'Nginx Proxy Manager'
+  technitium: 'Technitium DNS'
+  fritzbox: 'FRITZ!Box'
   tibber: 'Tibber (electricity)'
   links: Tiles
   jsonapi: Custom API (JSON)
@@ -1895,6 +1928,26 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  routes:
+    down:
+      title: '{host} does not answer'
+      why: 'The proxy cannot reach {target}.'
+    container_missing:
+      title: '{host}: container {service} missing'
+      why: 'The route points at {service}; Docker has no such container.'
+    container_stopped:
+      title: '{host}: container {service} not running'
+      why: 'The route points at {service}; the container is stopped.'
+    cert_expiry:
+      title: 'Certificate for {host} ends on {day}'
+      why: 'If it does not renew, browsers show a warning.'
+  fritz:
+    offline:
+      title: 'FRITZ!Box without internet'
+      why: 'Status {status}, last error {error}.'
+    reconnect:
+      title: 'FRITZ!Box reconnected'
+      why: '{minutes} minutes ago, last error {error}. If reconnects pile up, have the line checked.'
   ups:
     on_battery:
       title: 'UPS {name} runs on battery'
@@ -2247,6 +2300,18 @@ hint:
       title: 'Large expense: {name} ({amount})'
       why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
+    route_undocumented:
+      title: '{count} routes without an IT note'
+      why: '{hosts}. No note names these addresses in its URL field.'
+    speed_below_sync:
+      title: 'Speed test far below the line rate'
+      why: 'The line syncs at {sync} Mbit/s, the test measured {down} Mbit/s. The bottleneck is the home network (Wi-Fi, cable, router) or the provider, not the line.'
+    sync_below_booked:
+      title: 'Line syncs below the booked speed'
+      why: 'Booked {booked} Mbit/s, the line manages {sync}. That is the line; the provider must check it.'
+    device_uninventoried:
+      title: '{count} devices on the network without inventory'
+      why: '{names}. No Snipe-IT asset bears these names.'
     charge_expensive:
       title: '{point} charges at an expensive price'
       why: '{kw} kW from the grid at {price} ct/kWh, the day''s average is {avg} ct. Charge later or switch to solar mode.'
@@ -2659,6 +2724,11 @@ hint:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
 info:
+  routes:
+    count: '{count} routes · {down} failing'
+  fritzbox:
+    online: 'connected · {down}/{up} Mbit/s'
+    offline: '{status}'
   ups:
     online: '{charge} % · {minutes} min'
     battery: 'on battery · {minutes} min'
@@ -2906,6 +2976,13 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  routes.down: 'Route does not answer'
+  routes.cert_expiry: 'Route certificate ends'
+  cross.route_undocumented: 'Route without docs'
+  fritz.offline: 'FRITZ!Box without internet'
+  fritz.reconnect: 'FRITZ!Box reconnected'
+  cross.line_vs_speed: 'Line against speed test'
+  cross.device_uninventoried: 'Device without inventory'
   ups.on_battery: 'UPS on battery'
   ups.runtime_low: 'UPS runtime short'
   ups.replace_battery: 'Replace UPS battery'
@@ -3107,6 +3184,7 @@ rule_name:
   truenas.scrub_old: 'Pool scrub'
   gateway.new_device: 'New devices on the network'
 param:
+  booked_share: 'Share of booked'
   minutes: 'At least minutes'
   min_km: 'From km'
   words: 'Keywords in invoice lines'
@@ -4882,6 +4960,21 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image updates: {n}'
   alerts: 'Alerts: {n}'
+routes:
+  up: 'ok'
+  down: 'down'
+  total: 'Routes'
+  failing: 'failing'
+  all: 'All routes'
+  tile: '{down} failing'
+  none: 'No routes: connect Traefik, Caddy or Nginx Proxy Manager.'
+  col:
+    host: 'Host'
+    proxy: 'Proxy'
+    service: 'Service'
+    target: 'Target'
+    state: 'State'
+    cert: 'Certificate until'
 power:
   pv_now: 'Solar now'
   pv_today: 'Solar today'
@@ -4997,6 +5090,8 @@ heartbeat:
     last: 'Last ping'
     plan: 'Expected'
     tags: 'Tags'
+technitium:
+  refused: 'Technitium refused the token.'
 kdestore:
   not_found: 'Entry or user not found in the KDE Store.'
   no_entries: 'Nothing to read: give a user or single entries.'

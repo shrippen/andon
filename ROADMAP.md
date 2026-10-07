@@ -1135,8 +1135,9 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [ ] Quer: `cross.ups_load` (Laufzeit gegen Zahl der Hosts), `cross.charge_business` (EVCC × Fahrten) *(brauchen Verlauf bzw. Fahrtdaten je Ladepunkt)*
 
 **Schritt 9: Netz** — Traefik, Caddy, Nginx Proxy Manager, Headscale, Technitium, FRITZ!Box, UniFi
-- [ ] Routen (Traefik, Caddy, NPM) mit Zertifikat und Ziel; Headscale wie Tailscale; Technitium in der DNS-Kachel; FRITZ!Box: Leitung, Abbrüche, Durchsatz; UniFi: Geräte, Clients, Firmware
-- [ ] Quer: `cross.route_dead` (Route auf gestoppten oder fehlenden Container), Route ohne Doku-Notiz, `wan.outages` × Speedtest und ISP-Bericht, `cross.device_uninventoried` (UniFi-Client ohne Snipe-IT-Asset)
+- [x] Routen (Traefik, Caddy, NPM) mit Zertifikat und Ziel, Kachel „Routen“; Technitium in der DNS-Kachel; FRITZ!Box über TR-064: Verbindung, Neuverbindung, DSL-Rate; UniFi liest zusätzlich die Clients *(Headscale las die Tailscale-Verbindung schon)*
+- [x] Quer: Route auf gestoppten oder fehlenden Container *(in `routes.down`)*, `cross.route_undocumented`, `cross.line_vs_speed` (Sync-Rate gegen Speedtest und Gebuchtes), `cross.device_uninventoried` (Client von UniFi/OpenWrt ohne Snipe-IT-Asset)
+- [ ] FRITZ!Box-Abbrüche in den ISP-Bericht *(bräuchte den Verlauf der Neuverbindungen)*
 
 **Schritt 10: Medien** — Tautulli, Jellystat, Seerr, Audiobookshelf, Navidrome
 - [ ] Beiträge zu `mediaserver` (Streams, Verlauf, Bibliothek); Seerr: offene Anfragen

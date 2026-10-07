@@ -145,6 +145,11 @@ const (
 	ServiceApcupsd       ServiceType = "apcupsd"
 	ServiceOpenDTU       ServiceType = "opendtu"
 	ServiceEVCC          ServiceType = "evcc"
+	ServiceTraefik       ServiceType = "traefik"
+	ServiceCaddy         ServiceType = "caddy"
+	ServiceNPM           ServiceType = "npm"
+	ServiceTechnitium    ServiceType = "technitium"
+	ServiceFritzBox      ServiceType = "fritzbox"
 	ServiceTibber        ServiceType = "tibber"
 	ServiceCalendar      ServiceType = "calendar"
 	ServiceKintsugi      ServiceType = "kintsugi"
@@ -161,7 +166,7 @@ var Services = []ServiceType{
 	ServiceTrueNAS, ServiceKomodo, ServicePangolin, ServiceAuthentik,
 	ServicePihole, ServiceAdGuard, ServiceNextcloud, ServiceSabnzbd, ServiceGluetun, ServiceDomains, ServiceBlacklist,
 	ServiceTailscale, ServiceGateway, ServiceMediaServer, ServiceArr, ServiceVaultwarden,
-	ServiceSpeedtest, ServiceGrocy, ServiceTandoor, ServiceDWD, ServiceGitHub, ServiceKDEStore, ServiceHealthchecks, ServicePrometheus, ServiceNVD, ServiceDrone, ServicePBS, ServiceKopia, ServiceDuplicati, ServiceBackrest, ServiceUrBackup, ServiceWUD, ServiceWatchtower, ServicePeaNUT, ServiceApcupsd, ServiceOpenDTU, ServiceEVCC, ServiceTibber, ServiceCalendar,
+	ServiceSpeedtest, ServiceGrocy, ServiceTandoor, ServiceDWD, ServiceGitHub, ServiceKDEStore, ServiceHealthchecks, ServicePrometheus, ServiceNVD, ServiceDrone, ServicePBS, ServiceKopia, ServiceDuplicati, ServiceBackrest, ServiceUrBackup, ServiceWUD, ServiceWatchtower, ServicePeaNUT, ServiceApcupsd, ServiceOpenDTU, ServiceEVCC, ServiceTraefik, ServiceCaddy, ServiceNPM, ServiceTechnitium, ServiceFritzBox, ServiceTibber, ServiceCalendar,
 	ServiceKintsugi, ServiceWallos, ServiceHansei, ServiceJSONAPI,
 }
 

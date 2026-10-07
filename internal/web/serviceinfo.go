@@ -60,6 +60,11 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServiceApcupsd:       "http://www.apcupsd.org",
 	enums.ServiceOpenDTU:       "https://www.opendtu.solar",
 	enums.ServiceEVCC:          "https://evcc.io",
+	enums.ServiceTraefik:       "https://traefik.io",
+	enums.ServiceCaddy:         "https://caddyserver.com",
+	enums.ServiceNPM:           "https://nginxproxymanager.com",
+	enums.ServiceTechnitium:    "https://technitium.com/dns/",
+	enums.ServiceFritzBox:      "https://avm.de/fritz-labor/fritz-labor-fuer-entwickler/",
 	enums.ServiceTibber:        "https://tibber.com",
 }
 

@@ -260,7 +260,21 @@ func uniFi(ctx context.Context, api services.KeyedApi) (*GatewayDataset, error) 
 			}
 			data.Devices = append(data.Devices, dev)
 		}
+		clients, err := api.Get(ctx, base+"/"+url.PathEscape(id)+"/clients", url.Values{"limit": {unifiPageSize}})
+		if err != nil {
+			continue // clients are extra; devices still count
+		}
+		for _, c := range asList(asMap(clients)["data"]) {
+			m := asMap(c)
+			name := asStr(m["name"])
+			if name == "" {
+				name = asStr(m["macAddress"])
+			}
+			data.ClientNames = append(data.ClientNames, name)
+		}
 	}
+	data.Clients = len(data.ClientNames)
+	sort.Strings(data.ClientNames)
 	return data, nil
 }
 

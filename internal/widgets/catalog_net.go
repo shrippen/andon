@@ -27,7 +27,7 @@ func decodeDNS(r Raw) DNSConfig {
 const dnsTop = 5
 
 func init() {
-	for key, service := range map[string]enums.ServiceType{"pihole": enums.ServicePihole, "adguard": enums.ServiceAdGuard} {
+	for key, service := range map[string]enums.ServiceType{"pihole": enums.ServicePihole, "adguard": enums.ServiceAdGuard, "technitium": enums.ServiceTechnitium} {
 		Tile[DNSConfig]{Key: key, Detail: dataDetail(dnsDetail), Category: CategoryInsight, Topic: TopicNetwork, Service: service, RefreshS: 5 * 60,
 			Fields: []Field{{Key: "top_clients", Input: InputCheck}, {Key: "top_domains", Input: InputCheck}},
 			Decode: decodeDNS, Queries: ownData[DNSConfig], View: dataView(dnsFilterView)}.add()

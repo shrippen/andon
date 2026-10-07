@@ -272,6 +272,10 @@ var secretLabels = map[enums.ServiceType]string{
 	enums.ServicePeaNUT:     "conn.secret_userpass_opt",
 	enums.ServiceOpenDTU:    "conn.secret_userpass_opt",
 	enums.ServiceEVCC:       "conn.secret_userpass_opt",
+	enums.ServiceTraefik:    "conn.secret_userpass_opt",
+	enums.ServiceCaddy:      "conn.secret_userpass_opt",
+	enums.ServiceNPM:        "conn.secret_npm",
+	enums.ServiceFritzBox:   "conn.secret_fritz",
 	enums.ServiceDuplicati:  "conn.secret_duplicati",
 }
 

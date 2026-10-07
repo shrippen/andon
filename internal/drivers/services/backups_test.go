@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"andon/internal/drivers/httpclient"
@@ -96,5 +97,29 @@ func TestApcupsdStatus(t *testing.T) {
 	got, err := ApcupsdStatus(context.Background(), l.Addr().String())
 	if err != nil || got["STATUS"] != "ONLINE" || got["BCHARGE"] != "92.0 Percent" {
 		t.Fatalf("%v %v", got, err)
+	}
+}
+
+// TestTR064Digest: the second request answers the digest challenge, the
+// answer's leaf elements come back by name.
+func TestTR064Digest(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if !strings.HasPrefix(r.Header.Get("Authorization"), `Digest username="andon", realm="F!Box SOAP-Auth"`) {
+			w.Header().Set("WWW-Authenticate", `Digest realm="F!Box SOAP-Auth", nonce="N1", qop="auth"`)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if r.Header.Get("SOAPACTION") != `"urn:dslforum-org:service:WANPPPConnection:1#GetInfo"` || r.URL.Path != "/upnp/control/wanpppconn1" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.Write([]byte(`<s:Envelope><s:Body><u:GetInfoResponse><NewConnectionStatus>Connected</NewConnectionStatus><NewUptime>2400</NewUptime></u:GetInfoResponse></s:Body></s:Envelope>`))
+	}))
+	defer srv.Close()
+	got, err := TR064{URL: srv.URL, User: "andon", Password: "pw"}.Call(context.Background(), "wanpppconn1", "WANPPPConnection:1", "GetInfo")
+	if err != nil || got["NewConnectionStatus"] != "Connected" || got["NewUptime"] != "2400" || calls != 2 {
+		t.Fatalf("%v %v (%d calls)", got, err, calls)
 	}
 }
