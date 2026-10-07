@@ -50,6 +50,10 @@ action:
   open_in_urbackup: 'In UrBackup öffnen'
   open_in_wud: 'In What''s Up Docker öffnen'
   open_in_watchtower: 'In Watchtower öffnen'
+  open_in_peanut: 'In PeaNUT öffnen'
+  open_in_apcupsd: 'apcupsd öffnen'
+  open_in_opendtu: 'In OpenDTU öffnen'
+  open_in_evcc: 'In EVCC öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
   close: Schließen
   open_in_jsonapi: API öffnen
@@ -884,6 +888,9 @@ wtype:
   ci_runs:
     name: 'CI-Läufe'
     desc: 'Builds aus Drone, GitHub Actions und Gitea Actions: rote zuerst, im Popup der Verlauf je Repo.'
+  power:
+    name: 'Strom'
+    desc: 'USV (PeaNUT, apcupsd), Balkonkraftwerk (OpenDTU) und Wallbox (EVCC) auf einen Blick.'
   speedtest:
     name: 'Internet-Geschwindigkeit'
     desc: 'Letzte Messung aus Speedtest Tracker.'
@@ -1325,6 +1332,18 @@ conn:
   options_hint_watchtower: 'URL der Watchtower-HTTP-API, z. B. http://watchtower:8080 (Watchtower mit --http-api-metrics starten). Token = WATCHTOWER_HTTP_API_TOKEN.'
   about_watchtower: 'Automatische Updates: geprüft, aktualisiert, fehlgeschlagen'
   what_watchtower: 'Watchtower aktualisiert laufende Container automatisch, sobald ein neues Image erscheint.'
+  options_hint_peanut: 'URL von PeaNUT (Oberfläche für NUT), z. B. http://peanut.example.lan:8080. Token leer oder benutzer:passwort (WEB_USERNAME/WEB_PASSWORD).'
+  about_peanut: 'USV über NUT: Ladung, Laufzeit, Last'
+  what_peanut: 'PeaNUT zeigt die USV eines NUT-Servers (Network UPS Tools) im Browser und bietet eine API.'
+  options_hint_apcupsd: 'Adresse des apcupsd-Netzwerkservers (NIS), z. B. apcupsd://pi.example.lan:3551. Kein Token; in apcupsd.conf NETSERVER on und NISIP auf die Adresse setzen, die Andon erreicht.'
+  about_apcupsd: 'APC-USV: Ladung, Laufzeit, Last'
+  what_apcupsd: 'apcupsd überwacht APC-USVs und meldet ihren Zustand im Netz.'
+  options_hint_opendtu: 'URL von OpenDTU, z. B. http://opendtu.example.lan. Token leer, oder benutzer:passwort, wenn der Lesezugriff geschützt ist.'
+  about_opendtu: 'Balkonkraftwerk: Leistung, Ertrag, Wechselrichter'
+  what_opendtu: 'OpenDTU liest Hoymiles-Wechselrichter per Funk aus und zeigt Leistung und Ertrag.'
+  options_hint_evcc: 'URL von EVCC, z. B. http://evcc.example.lan:7070. Token leer, oder benutzer:passwort hinter einem Proxy.'
+  about_evcc: 'Wallbox: Laden, PV-Anteil, Kosten'
+  what_evcc: 'EVCC steuert Wallboxen und lädt bevorzugt mit Solarstrom.'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
   health: 'Zustand'
@@ -1549,6 +1568,10 @@ service:
   urbackup: 'UrBackup'
   wud: 'What''s Up Docker'
   watchtower: 'Watchtower'
+  peanut: 'PeaNUT (USV)'
+  apcupsd: 'apcupsd (USV)'
+  opendtu: 'OpenDTU'
+  evcc: 'EVCC'
   tibber: 'Tibber (Strom)'
   links: Kacheln
   jsonapi: Eigene API (JSON)
@@ -1872,6 +1895,20 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  ups:
+    on_battery:
+      title: 'USV {name} läuft auf Batterie'
+      why: 'Ladung {charge} %, Reserve etwa {minutes} Minuten. Der Strom ist ausgefallen oder die Zuleitung getrennt.'
+    runtime_low:
+      title: 'USV {name} hält nur {minutes} Minuten'
+      why: 'Bei {load} % Last. Reicht das für ein geordnetes Herunterfahren? Last senken oder Akku tauschen.'
+    replace_battery:
+      title: 'USV {name}: Akku tauschen'
+      why: 'Die USV meldet einen verbrauchten Akku; bei einem Stromausfall hält sie womöglich nicht.'
+  opendtu:
+    offline:
+      title: 'Wechselrichter {name} nicht erreichbar'
+      why: 'Tagsüber antwortet er nicht. Funkverbindung oder Netzseite prüfen.'
   wud:
     updates:
       title: '{count} Container-Updates verfügbar'
@@ -2210,6 +2247,9 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
   cross:
+    charge_expensive:
+      title: '{point} lädt zum teuren Preis'
+      why: '{kw} kW aus dem Netz bei {price} ct/kWh, der Tagesschnitt liegt bei {avg} ct. Später laden oder auf PV-Modus stellen.'
     update_unbacked:
       title: 'Watchtower aktualisierte {count} Container ohne frische Sicherung'
       why: 'Letzte Sicherung: {day} ({tool}). Geht ein Update schief, fehlt der Stand davor.'
@@ -2620,6 +2660,11 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
+  ups:
+    online: '{charge} % · {minutes} min'
+    battery: 'auf Batterie · {minutes} min'
+  opendtu:
+    now: '{watts} W · {kwh} kWh heute'
   wud:
     containers: '{count} Container · {updates} Updates'
   watchtower:
@@ -2862,6 +2907,11 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  ups.on_battery: 'USV auf Batterie'
+  ups.runtime_low: 'USV-Laufzeit kurz'
+  ups.replace_battery: 'USV-Akku tauschen'
+  opendtu.offline: 'Wechselrichter nicht erreichbar'
+  cross.charge_expensive: 'Laden zum teuren Preis'
   wud.updates: 'Container-Updates'
   watchtower.failed: 'Watchtower-Update fehlgeschlagen'
   cross.update_unbacked: 'Update ohne Sicherung'
@@ -3058,6 +3108,7 @@ rule_name:
   truenas.scrub_old: 'Pool-Scrub'
   gateway.new_device: 'Neue Geräte im Netz'
 param:
+  minutes: 'Mindestens Minuten'
   min_km: 'Ab km'
   words: 'Stichworte in Rechnungspositionen'
   rides: 'Ab Fahrten'
@@ -4832,6 +4883,35 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image-Updates: {n}'
   alerts: 'Warnungen: {n}'
+power:
+  pv_now: 'PV jetzt'
+  pv_today: 'PV heute'
+  grid: 'Netz'
+  home: 'Haus'
+  ups: 'USV'
+  inverters: 'Wechselrichter'
+  loadpoints: 'Ladepunkte'
+  reachable: 'erreichbar'
+  unreachable: 'nicht erreichbar'
+  minutes: '{n} min'
+  charged30: 'Geladen (30 Tage)'
+  solar30: 'Solaranteil (30 Tage)'
+  price30: 'Mittlerer Preis (30 Tage)'
+  tile_pv: '{kwh} kWh heute'
+  none: 'Keine Strom-Verbindung: PeaNUT, apcupsd, OpenDTU oder EVCC verbinden.'
+  col:
+    name: 'Name'
+    model: 'Modell'
+    status: 'Status'
+    charge: 'Ladung'
+    runtime: 'Reserve'
+    load: 'Last'
+    state: 'Zustand'
+    power: 'Leistung'
+    vehicle: 'Fahrzeug'
+    soc: 'Akku'
+    charged: 'Geladen'
+    mode: 'Modus'
 ci:
   older: 'ältere'
   newest: 'neuester Lauf'

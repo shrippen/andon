@@ -12,6 +12,10 @@ package rules
 // of all hosts on it gather under the node (or guest) as the one cause.
 //
 //	node pve1 offline ─► guest nas ─► nas.lan signals ─► outage "pve1"
+//
+// A UPS on battery is the cause of everything failing meanwhile:
+//
+//	UPS nas-usv on battery ─► every host's signals ─► outage "nas-usv"
 
 import (
 	"fmt"
@@ -103,10 +107,15 @@ func OutageRoot(env Env, host string) string {
 type roots struct {
 	byLabel map[string]string
 	causes  map[string]string
+	power   string // a UPS on battery: every failure gathers under it
 }
 
 func downRoots(env Env) roots {
 	r := roots{byLabel: map[string]string{}, causes: map[string]string{}}
+	if ups := upsOnBatteryName(env); ups != "" {
+		r.power, r.causes[ups] = ups, ups
+		return r
+	}
 	pve, ok := env.Datasets[string(enums.ServiceProxmox)].(*sources.ProxmoxDataset)
 	if !ok {
 		return r
@@ -132,6 +141,9 @@ func downRoots(env Env) roots {
 }
 
 func rootOf(r roots, host string) string {
+	if r.power != "" {
+		return r.power
+	}
 	label, _, _ := strings.Cut(host, ".")
 	if root, ok := r.byLabel[label]; ok {
 		return root

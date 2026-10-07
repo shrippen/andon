@@ -2,7 +2,10 @@ package services
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -67,5 +70,31 @@ func TestDuplicatiLogin(t *testing.T) {
 	raw, err := DuplicatiApi{URL: srv.URL, Password: "pw", Mode: httpclient.TLSVerify}.Backups(context.Background())
 	if err != nil || len(raw.([]any)) != 1 {
 		t.Fatalf("%v %v", raw, err)
+	}
+}
+
+// TestApcupsdStatus: the NIS frames come back as key/value lines.
+func TestApcupsdStatus(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	go func() {
+		c, err := l.Accept()
+		if err != nil {
+			return
+		}
+		defer c.Close()
+		head := make([]byte, 8)
+		io.ReadFull(c, head) // 00 06 "status"
+		for _, line := range []string{"STATUS   : ONLINE\n", "BCHARGE  : 92.0 Percent\n"} {
+			c.Write(append(binary.BigEndian.AppendUint16(nil, uint16(len(line))), line...))
+		}
+		c.Write([]byte{0, 0})
+	}()
+	got, err := ApcupsdStatus(context.Background(), l.Addr().String())
+	if err != nil || got["STATUS"] != "ONLINE" || got["BCHARGE"] != "92.0 Percent" {
+		t.Fatalf("%v %v", got, err)
 	}
 }

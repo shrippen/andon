@@ -104,6 +104,27 @@ func GiteaInfo(data *sources.GiteaDataset) []InfoPart {
 	return found
 }
 
+// UPSInfo: "100 % · 21 min".
+func UPSInfo(data *sources.UPSDataset) []InfoPart {
+	if len(data.Devices) == 0 {
+		return nil
+	}
+	u := data.Devices[0]
+	key := "ups.online"
+	if u.OnBattery {
+		key = "ups.battery"
+	}
+	return []InfoPart{part(key, map[string]any{"charge": int(u.Charge), "minutes": u.Runtime / secondsPerMinute})}
+}
+
+// SolarInfo: "412 W · 1,8 kWh today".
+func SolarInfo(data *sources.SolarDataset) []InfoPart {
+	return []InfoPart{part("opendtu.now", map[string]any{"watts": int(data.Power), "kwh": data.YieldDay / 1000})}
+}
+
+// secondsPerMinute turns a UPS runtime into minutes.
+const secondsPerMinute = 60
+
 // WUDInfo: "4 containers · 2 updates".
 func WUDInfo(data *sources.WUDDataset) []InfoPart {
 	return []InfoPart{part("wud.containers", map[string]any{"count": len(data.Containers), "updates": len(data.Updates())})}

@@ -57,7 +57,7 @@ func credShapeOf(service enums.ServiceType) credShape {
 	case enums.ServicePihole:
 		return credPassword
 	case enums.ServiceScrutiny, enums.ServiceDocker, enums.ServiceCerts, enums.ServiceDomains, enums.ServiceBlacklist,
-		enums.ServiceDWD, enums.ServicePGBackWeb, enums.ServiceKDEStore, enums.ServiceHansei:
+		enums.ServiceDWD, enums.ServicePGBackWeb, enums.ServiceKDEStore, enums.ServiceHansei, enums.ServiceApcupsd:
 		return credNone
 	default:
 		return credSingle
@@ -269,6 +269,9 @@ var secretLabels = map[enums.ServiceType]string{
 	enums.ServiceBackrest:   "conn.secret_userpass_opt",
 	enums.ServiceUrBackup:   "conn.secret_userpass_opt",
 	enums.ServiceWUD:        "conn.secret_userpass_opt",
+	enums.ServicePeaNUT:     "conn.secret_userpass_opt",
+	enums.ServiceOpenDTU:    "conn.secret_userpass_opt",
+	enums.ServiceEVCC:       "conn.secret_userpass_opt",
 	enums.ServiceDuplicati:  "conn.secret_duplicati",
 }
 
