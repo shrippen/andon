@@ -46,7 +46,7 @@
         <label for="name">{{t "field.name"}}</label>
         <input class="input" id="name" name="name">
         <label for="url">{{t "field.url"}}</label>
-        <input class="input" id="url" name="url" placeholder="ntfy://host/topic" required>
+        <input class="input" id="url" name="url" placeholder="ntfy://host/topic" required data-secret>
         <label for="level">{{t "notify.min_level"}}</label>
         <select class="select" id="level" name="level">
           {{range .Levels}}<option value="{{.}}">{{if eq . 30}}{{t "severity.critical"}}{{else if eq . 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}</option>{{end}}
@@ -133,6 +133,7 @@
     </div>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

@@ -48,6 +48,7 @@ func kpiDetail(cfg KpiConfig, results map[string]any, ctx ViewCtx) DetailView {
 		return unsupported()
 	}
 	label := T("opt." + string(cfg.Metric))
+	head := DetailHead{TitleKey: label.Key}
 	body := &DetailBody{Side: []Fact{{Label: T("detail.kpi.metric"), Value: Txt("opt." + string(cfg.Metric))}}}
 	body.Facts = []Kpi{{Value: kpiValue(k, k.Value), Label: label, Tier: map[string]string{"good": "green", "bad": "red"}[k.Target]}}
 
@@ -81,7 +82,7 @@ func kpiDetail(cfg KpiConfig, results map[string]any, ctx ViewCtx) DetailView {
 		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("kpi.details"),
 			Data: Table{Head: []Text{T("detail.kpi.what"), T("detail.kpi.note"), T("detail.kpi.amount")}, Rows: rows, Num: []int{2}}})
 	}
-	return DetailView{Body: body}
+	return DetailView{Head: head, Body: body}
 }
 
 // chartDetail (record without the facts column): the months against the
@@ -104,11 +105,17 @@ func chartDetail(cfg ChartConfig, results map[string]any, ctx ViewCtx) DetailVie
 	sum, sumPrev := 0.0, 0.0
 	var rows [][]Cell
 	var labels []any
+	from, partial := view["DataFrom"].(time.Time)
 	for i, b := range bars {
 		values[i], prev[i] = b.Value, b.Prev
 		labels = append(labels, b.Label)
 		sum, sumPrev = sum+b.Value, sumPrev+b.Prev
-		rows = append(rows, []Cell{{Value: b.Label}, {Value: format(b.Value)}, {Value: format(b.Prev)}, {Value: format(b.Value - b.Prev), State: stateIf(b.Value < b.Prev, "bad")}})
+		row := []Cell{{Value: b.Label}, {Value: format(b.Value)}, {Value: format(b.Prev)}, {Value: format(b.Value - b.Prev), State: stateIf(b.Value < b.Prev, "bad")}}
+		// A year-ago month before the data is unknown, not zero.
+		if month, ok := metrics.ParseDay(b.Label + "-01"); partial && ok && month.AddDate(-1, 0, 0).Before(from) {
+			row[2], row[3] = Cell{Value: "–"}, Cell{Value: "–"}
+		}
+		rows = append(rows, row)
 	}
 	g := Graph{Kind: GraphCols, Series: []Series{{Values: values, Class: "s1", Label: Txt("chart.this")}}, Mark: -1, Ticks: []any{bars[0].Label, bars[len(bars)-1].Label}, Labels: labels}
 	if cfg.ShowPrev {
@@ -117,8 +124,14 @@ func chartDetail(cfg ChartConfig, results map[string]any, ctx ViewCtx) DetailVie
 	if goal, found := view["Goal"].(float64); found {
 		g.Goal, g.HasGoal = goal, true
 	}
-	body := &DetailBody{Line: []Fact{{Label: T("detail.chart.sum"), Value: format(sum)}, {Label: T(prevKey), Value: format(sumPrev)}}}
-	if sumPrev > 0 {
+	body := &DetailBody{Line: []Fact{{Label: T("detail.chart.sum"), Value: format(sum)}}}
+	// Last year only over a full year of data; else where the data begins.
+	if partial {
+		body.Line = append(body.Line, Fact{Label: T("period.data_from_label"), Value: TxtA("period.data_from", "month", from.Format("01/2006"))})
+	} else {
+		body.Line = append(body.Line, Fact{Label: T(prevKey), Value: format(sumPrev)})
+	}
+	if sumPrev > 0 && !partial {
 		body.Line = append(body.Line, Fact{Label: T("detail.chart.change"), Value: NumU((sum-sumPrev)/sumPrev*percentScale, 1, "%"), State: stateIf(sum < sumPrev, "bad")})
 	}
 	body.Blocks = []Block{{Kind: BlockGraph, Label: T("chart." + string(cfg.Chart)), Hero: true, Data: g},

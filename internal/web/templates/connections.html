@@ -16,6 +16,7 @@
     <h1>{{t "nav.connections"}}{{with .LevelName}} <small class="muted">{{.}}</small>{{end}}</h1>
     {{template "intro" dict "Page" "connections" "Chapter" "connections" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{with .Level}}<p class="muted">{{t (print "conn.level_lead_" .)}}</p>{{end}}
+    {{with .Tested}}<p class="{{if not .Result.Ok}}error{{end}}" role="status"><b>{{.Name}}</b> {{template "test_line" .}}</p>{{end}}
     {{if or .CanCreate (not .Level)}}<p><a class="btn btn-outline btn-sm" href="/connections/new{{with .SpaceID}}?space={{.}}{{end}}">+ {{t "action.create"}}</a></p>{{end}}
     {{if .Connections}}{{with .Summary}}<p class="conn-summary">
       {{if .Failing}}<span data-state="failing"><b>{{.Failing}}</b> {{t "conn.state_failing"}}</span>{{end}}
@@ -33,11 +34,12 @@
         <td>{{template "conn_health_cell" .}}
           {{if not .SecretAt.IsZero}}<br><small class="muted">{{t "conn.token_age"}}: {{ago .SecretAt}}</small>{{end}}{{with .SecretExpires}}<br><small class="muted">{{t "conn.expires"}} {{day .}}</small>{{end}}</td>
         <td><div class="btn-row">
-          <form method="post" action="/connections/{{.ID}}/test" class="inline-form" hx-post="/connections/{{.ID}}/check" hx-target="#toast">
+          {{/* Test: who changes it, or a template with the own login. */}}
+          {{if or (can .Right "manage") .HasMine}}<form method="post" action="/connections/{{.ID}}/test" class="inline-form" hx-post="/connections/{{.ID}}/check" hx-target="#toast">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
             <button type="submit" class="btn btn-outline btn-sm">{{t "conn.test"}}</button>
-          </form>
-          <a class="btn btn-outline btn-sm" href="/connections/{{.ID}}?tab=settings">{{t "action.edit"}}</a></div></td>
+          </form>{{end}}
+          {{if can .Right "manage"}}<a class="btn btn-outline btn-sm" href="/connections/{{.ID}}?tab=settings">{{t "action.edit"}}</a>{{end}}</div></td>
       </tr>
       {{else}}<tr><td colspan="4" class="muted">{{t "conn.none_here"}}</td></tr>
       {{end}}
@@ -51,6 +53,7 @@
     </div>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -201,6 +204,7 @@
       <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
     </form>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -325,7 +329,7 @@
     <h1>{{t "nav.connections"}}{{with .LevelName}} <small class="muted">{{.}}</small>{{end}}</h1>
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
     {{if .Connected}}<p class="ok">{{t "connect.done"}}</p>{{end}}
-    {{with .TestResult}}<p class="{{if not .Ok}}error{{end}}">{{if .Ok}}✓ OK{{with .Version}} ({{.}}){{end}}{{else}}✗ {{.Message}}{{end}}</p>{{range .Gaps}}<p class="callout callout-warn">{{t "caps.note"}} {{template "cap_what" .Cap}} – {{template "cap_need" .Need}}.</p>{{end}}{{end}}
+    {{with .TestResult}}<p class="{{if not .Ok}}error{{end}}">{{template "test_line" dict "Result" . "Note" $.TestNote}}</p>{{range .Gaps}}<p class="callout callout-warn">{{t "caps.note"}} {{template "cap_what" .Cap}} – {{template "cap_need" .Need}}.</p>{{end}}{{end}}
 
     <article class="dialog detail is-page">
       <header class="detail-head">
@@ -347,7 +351,7 @@
         {{with $c.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}{{if not $c.Health.LastFail.IsZero}} {{ago $c.Health.LastFail}}{{end}}: {{t .}}{{if $c.Health.ErrorSettled}} <span class="pill" data-state="applied">{{t "conn.ok_since"}}</span>{{end}}</p>{{end}}
         {{if $c.DailyBudget}}<p class="small muted">{{t "conn.budget_today" "n" $c.Health.Today "max" $c.DailyBudget}}</p>{{end}}
         <div class="detail-block" id="verbund">
-          <div class="h-label detail-label"><span>{{t "verbund.record"}}</span><a href="/spaces/{{$c.SpaceID}}/verbund">{{t "verbund.manage"}}</a></div>
+          <div class="h-label detail-label"><span>{{t "verbund.record"}}</span>{{if can $c.Right "edit"}}<a href="/spaces/{{$c.SpaceID}}/verbund">{{t "verbund.manage"}}</a>{{end}}</div>
           {{range .InVerbund}}<p><b>{{.Name}}</b> {{range $i, $m := .Members}}{{if ne $m.ConnID $c.ID}}<a class="chip" href="/connections/{{$m.ConnID}}">{{t (print "service." $m.Service)}} · {{$m.Name}}</a> {{end}}{{end}}</p>
           {{else}}<p class="small muted">{{t "verbund.record_none"}}</p>{{end}}
         </div>
@@ -361,18 +365,20 @@
           </table></div>{{end}}
         </div>{{end}}
         {{with $c.Pace}}{{if .Reason}}<p class="small muted">{{t (print "conn.pace_" .Reason) "min" .Minutes "until" (ago .Until)}}</p>{{end}}{{end}}
-        <div class="row-actions">
+        {{if or (can $c.Right "manage") $c.HasMine}}<div class="row-actions">
           <form method="post" action="/connections/{{$c.ID}}/test" class="inline-form" hx-post="/connections/{{$c.ID}}/check" hx-target="#toast">
             <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+            <input type="hidden" name="suggest" value="1">
             <button type="submit" class="btn btn-outline btn-sm">{{t "conn.test"}}</button>
           </form>
-        </div>
-        {{with .Suggest}}
+        </div>{{end}}
+        {{template "conn_tiles" dict "Offer" .Offer "CSRFField" .CSRFField "Ctx" .Ctx}}
+        {{if not .Offer}}{{with .Suggest}}
         <span class="h-label">{{t "conn.suggest"}}</span>
         <div class="type-grid">
           {{range .}}{{$new := print "/widgets/new?type=" .Key "&space=" $c.SpaceID}}<a class="option" href="{{$new}}" data-details="{{$new}}&dialog"><b>{{t (print "wtype." .Key ".name")}}</b><small>{{t (print "wtype." .Key ".desc")}}</small></a>{{end}}
         </div>
-        {{end}}
+        {{end}}{{end}}
       </section>
 
       <section class="detail-main" id="tab-access"{{if ne .Tab "access"}} hidden{{end}}>
@@ -491,6 +497,7 @@
     </div>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -519,10 +526,29 @@
   <main>
     <h1>{{t "conn.new"}}</h1>
     <p class="muted">{{t "conn.pick"}}</p>
-    <div class="type-grid">
-      {{range .Services}}<a class="option" href="/connections/new?service={{.Service}}{{with $.Space}}&amp;space={{.}}{{end}}"><b>{{.Name}}{{if .Count}}<span class="count" data-kind="info" title="{{t "conn.existing" "count" .Count}}">{{.Count}}</span>{{end}}</b><small>{{t (print "conn.about_" .Service)}}</small></a>{{end}}
+    {{/* Grouped by topic and searched like the tile gallery (gallery.js
+         filters [data-q] in each .gal-group). */}}
+    <div class="library">
+      <nav class="gal-nav" aria-label="{{t "gallery.topics"}}">
+        {{range .Groups}}{{$id := or .Topic "other"}}<a href="#topic-{{$id}}">{{if .Topic}}<span class="topic-icon" data-topic="{{.Topic}}" aria-hidden="true"></span>{{t (print "topic." .Topic)}}{{else}}{{t "conn.pick_other"}}{{end}}<span>{{len .Picks}}</span></a>{{end}}
+      </nav>
+      <div>
+        <div class="gal-tools">
+          <input class="input" type="search" id="gal-q" placeholder="{{t "conn.pick_search"}}" aria-label="{{t "conn.pick_search"}}" autofocus>
+        </div>
+        {{range .Groups}}{{$id := or .Topic "other"}}
+        <section class="gal-group" id="topic-{{$id}}">
+          <h2>{{if .Topic}}<span class="topic-icon" data-topic="{{.Topic}}" aria-hidden="true"></span> {{t (print "topic." .Topic)}}{{else}}{{t "conn.pick_other"}}{{end}} <span class="hint-group-count">{{len .Picks}}</span></h2>
+          <div class="type-grid">
+            {{range .Picks}}{{$about := t (print "conn.about_" .Service)}}<a class="option" data-q="{{.Name}} {{.Service}} {{$about}}" href="/connections/new?service={{.Service}}{{with $.Space}}&amp;space={{.}}{{end}}"><b>{{.Name}}{{if .Count}}<span class="count" data-kind="info" title="{{t "conn.existing" "count" .Count}}">{{.Count}}</span>{{end}}</b><small>{{$about}}</small></a>{{end}}
+          </div>
+        </section>
+        {{end}}
+        <p class="gal-none muted" hidden>{{t "gallery.none"}}</p>
+      </div>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -553,6 +579,7 @@
     <p class="muted" hx-get="{{.PollURL}}" hx-trigger="every 2s" hx-swap="none">{{t "connect.waiting"}}</p>
     <p><a href="{{.Back}}">{{t "action.cancel"}}</a></p>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -600,13 +627,39 @@
       <a class="btn btn-outline btn-sm" href="/connections/{{.Conn.ID}}/edit">{{t "action.cancel"}}</a>
     </form>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
 
 {{/* Result of a connection test run from the overview. */}}
-{{define "conn_check"}}<div class="toast" data-kind="{{if not .Result.Ok}}error{{else if .Result.Gaps}}warn{{else}}ok{{end}}" role="status"><span><b>{{.Name}}</b> {{if .Result.Ok}}✓ OK{{with .Result.Version}} ({{.}}){{end}}{{else}}✗ {{t .Result.Message}}{{end}}{{range .Result.Gaps}}<br>{{t "caps.note"}} {{template "cap_what" .Cap}} – {{template "cap_need" .Need}}.{{end}}</span><span class="toast-life" data-style="--life:{{if and .Result.Ok (not .Result.Gaps)}}6{{else}}10{{end}}s" aria-hidden="true"></span></div>
-{{with .Conn}}<span class="health" id="health-{{.ID}}" data-state="{{.Health.State}}" hx-swap-oob="true">{{template "conn_health" .Health}}</span>{{end}}{{end}}
+{{define "conn_check"}}<div class="toast" data-kind="{{if not .Result.Ok}}error{{else if .Result.Gaps}}warn{{else}}ok{{end}}" role="status"><span><b>{{.Name}}</b> {{template "test_line" dict "Result" .Result "Note" .TestNote}}{{range .Result.Gaps}}<br>{{t "caps.note"}} {{template "cap_what" .Cap}} – {{template "cap_need" .Need}}.{{end}}</span><span class="toast-life" data-style="--life:{{if and .Result.Ok (not .Result.Gaps)}}6{{else}}10{{end}}s" aria-hidden="true"></span></div>
+{{with .Conn}}<span class="health" id="health-{{.ID}}" data-state="{{.Health.State}}" hx-swap-oob="true">{{template "conn_health" .Health}}</span>{{end}}
+{{if .Slot}}{{template "conn_tiles" dict "Offer" .Offer "CSRFField" .CSRFField "Ctx" .Ctx "OOB" true}}{{end}}{{end}}
+
+{{/* A test's outcome in one line: OK with the version, or the explained
+     failure (testNote) with the raw text as detail. */}}
+{{define "test_line"}}{{if .Result.Ok}}✓ OK{{with .Result.Version}} ({{.}}){{end}}{{else}}✗ {{template "test_fail" .Note}}{{end}}{{end}}
+{{define "test_fail"}}{{if .Text}}{{t .Text}}{{with .Fix}} {{if $.FixURL}}<a href="{{$.FixURL}}">{{t .}}</a>{{else}}{{t .}}{{end}}{{end}}<br><small class="muted">{{t "conn.cause_detail"}}: {{.Raw}}</small>{{else}}{{t .Raw}}{{end}}{{end}}
+
+{{/* Tiles a green test offers (tileOffer): one click sets up a template
+     on the picked board. Its slot on the record is filled again by each
+     test from the record (OOB, empty after a failed one). */}}
+{{define "conn_tiles"}}<div id="conn-tiles"{{if .OOB}} hx-swap-oob="true"{{end}}>{{with .Offer}}
+  <div class="detail-block">
+    <span class="h-label">{{t "conn.tiles_title"}}</span>
+    <p class="small muted">{{t "conn.tiles_lead"}}</p>
+    <form method="post" action="/boards/tile" class="inline-form">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+      {{$one := eq (len .Boards) 1}}
+      {{if $one}}<input type="hidden" name="board_id" value="{{(index .Boards 0).ID}}">
+      {{else}}<label class="small" for="tiles-board">{{t "library.board"}}</label>
+      <select class="select" id="tiles-board" name="board_id">{{range .Boards}}<option value="{{.ID}}">{{.Name}}{{if ne (print .Space.Kind) "personal"}} · {{.Space.Name}}{{end}}</option>{{end}}</select>{{end}}
+      {{range .Tiles}}{{$name := t (print "wtype." .Type ".name")}}
+      <button type="submit" class="btn btn-outline btn-sm" formaction="/boards/tile?type={{.Type}}{{with .ConnID}}&conn_id={{.}}{{end}}">{{if $one}}{{t "conn.tiles_put_on" "tile" $name "board" (index $.Offer.Boards 0).Name}}{{else}}{{t "conn.tiles_put" "tile" $name}}{{end}}</button>{{end}}
+    </form>
+  </div>
+{{end}}</div>{{end}}
 
 {{/* What the service is, and where the project lives. */}}
 {{define "service_about"}}<p class="service-about">{{t (print "conn.what_" .)}}{{with projectURL .}} <a href="{{.}}" target="_blank" rel="noopener">{{t "conn.project_site"}} ↗</a>{{end}}{{range alsoLinks .}} · <a href="{{.URL}}" target="_blank" rel="noopener">{{.Name}} ↗</a>{{end}}</p>{{end}}

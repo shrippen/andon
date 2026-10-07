@@ -139,12 +139,48 @@ func (d Deps) renderBoard(w http.ResponseWriter, r *http.Request, ctx Ctx, embed
 		bodies = d.tileBodies(r, ctx, view)
 	}
 
-	_ = d.Page(w, ctx, "board", http.StatusOK, withChoices(map[string]any{
+	kiosk := kioskOf(r, navBoards, view.ID)
+	values := map[string]any{
 		"Bodies": bodies, "Board": view, "NavBoards": navBoards, "CurBoard": view.ID, "ThemeURL": themeURL,
 		"Embed": embed, "EmbedToken": embedToken, "SearchEngine": searchEngine,
 		"Edit": mode.edit, "LayerEdit": mode.layer && !embed, "Compact": mode.compact, "UndoHint": r.URL.Query().Has("undo"),
-		"Kiosk": kioskOf(r, navBoards, view.ID),
-	}))
+		"Kiosk": kiosk,
+	}
+	if !embed && !kiosk.On && !mode.layer && tileCount(view) == 0 {
+		values["Empty"] = d.emptyBoard(ctx, view)
+	}
+	_ = d.Page(w, ctx, "board", http.StatusOK, withChoices(values))
+}
+
+// emptyView is what an empty board offers: the gallery into its first
+// section (or edit mode when it has none) and starters for connections
+// without a tile. Only editors get either.
+type emptyView struct {
+	AddURL string
+	Tips   []boards.SuggestedTile
+}
+
+// tileCount counts the tiles the viewer gets on a board.
+func tileCount(view *boards.BoardView) int {
+	n := 0
+	for _, s := range view.Sections {
+		n += len(s.Tiles)
+	}
+	return n
+}
+
+func (d Deps) emptyBoard(ctx Ctx, view *boards.BoardView) emptyView {
+	if !view.CanEdit {
+		return emptyView{}
+	}
+	out := emptyView{AddURL: boardPath(view.ID) + "?edit"}
+	if len(view.Sections) > 0 {
+		target := widgetTarget{SpaceID: view.Space.ID, SectionID: view.Sections[0].ID, BoardID: view.ID, Version: view.Version, Place: true}
+		out.AddURL = "/widgets/new?" + target.Query()
+	}
+	// Without tips the page still offers the gallery.
+	out.Tips, _ = boards.EmptyTips(d.DB, ctx.Who, view.ID)
+	return out
 }
 
 // withChoices adds the section and tile forms' options to a board's data.

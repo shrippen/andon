@@ -13,7 +13,7 @@ import (
 // ── Boards ──
 
 const boardCols = `id, space_id, slug, name, position, theme_id, is_template, min_team_role,
-	layout, version, updated_at`
+	layout, wall_page, wall_turn, wall_ease, version, updated_at`
 
 func scanBoardRow(row interface{ Scan(...any) error }) (*model.Board, error) {
 	var b model.Board
@@ -23,7 +23,7 @@ func scanBoardRow(row interface{ Scan(...any) error }) (*model.Board, error) {
 
 	err := row.Scan(
 		&b.ID, &b.SpaceID, &b.Slug, &b.Name, &b.Position, &themeID, &b.IsTemplate, &minRole,
-		&b.Layout, &b.Version, &updatedAt,
+		&b.Layout, &b.WallPage, &b.WallTurn, &b.WallEase, &b.Version, &updatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -209,10 +209,10 @@ func Boards(q db.Queryer, spaceIDs []int64) ([]*model.Board, error) {
 // AddBoard inserts a new board.
 func AddBoard(q db.Queryer, b *model.Board) error {
 	res, err := q.Exec(`INSERT INTO boards
-		(space_id, slug, name, position, theme_id, is_template, min_team_role, layout, version, updated_at)
-		VALUES (?,?,?,?,?,?,?,?,?,?)`,
+		(space_id, slug, name, position, theme_id, is_template, min_team_role, layout, wall_page, wall_turn, wall_ease, version, updated_at)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		b.SpaceID, b.Slug, b.Name, b.Position, b.ThemeID, b.IsTemplate, minRoleStr(b.MinTeamRole),
-		b.Layout, b.Version, db.TimeStr(b.UpdatedAt),
+		b.Layout, b.WallPage, b.WallTurn, b.WallEase, b.Version, db.TimeStr(b.UpdatedAt),
 	)
 	if err != nil {
 		return err
@@ -228,9 +228,9 @@ func AddBoard(q db.Queryer, b *model.Board) error {
 // UpdateBoard writes back the board's own fields (not its sections).
 func UpdateBoard(q db.Queryer, b *model.Board) error {
 	_, err := q.Exec(`UPDATE boards SET
-		name=?, position=?, theme_id=?, is_template=?, min_team_role=?, layout=?, version=?, updated_at=?
+		name=?, position=?, theme_id=?, is_template=?, min_team_role=?, layout=?, wall_page=?, wall_turn=?, wall_ease=?, version=?, updated_at=?
 		WHERE id=?`,
-		b.Name, b.Position, b.ThemeID, b.IsTemplate, minRoleStr(b.MinTeamRole), b.Layout, b.Version,
+		b.Name, b.Position, b.ThemeID, b.IsTemplate, minRoleStr(b.MinTeamRole), b.Layout, b.WallPage, b.WallTurn, b.WallEase, b.Version,
 		db.TimeStr(b.UpdatedAt), b.ID,
 	)
 	return err

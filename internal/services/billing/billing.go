@@ -7,12 +7,14 @@
 package billing
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"andon/internal/db"
 	"andon/internal/enums"
@@ -265,4 +267,50 @@ func draftFor(drafts []metrics.Draft, customerID int64) (metrics.Draft, bool) {
 		}
 	}
 	return metrics.Draft{}, false
+}
+
+// Figures is what the period brought across the caller's pairs, for the
+// billing page; HoursFrom and RevenueFrom are where Kimai's and Invoice
+// Ninja's data begin (the latest of the pairs; zero = unknown).
+type Figures struct {
+	Span                   metrics.Span
+	Currency               string
+	HoursFrom, RevenueFrom time.Time
+	metrics.PeriodSums
+}
+
+// FiguresOf sums the period over the stored data of every pair.
+func FiguresOf(ctx context.Context, d *sql.DB, who *access.Principal, period metrics.Period, today time.Time) (Figures, error) {
+	out := Figures{Span: period.Span(today)}
+	found, err := pairs(d, who, 0)
+	if err != nil {
+		return out, err
+	}
+	for _, p := range found {
+		kimai, ninja, err := load(ctx, d, who, p, svcdata.Stored)
+		if err != nil {
+			continue
+		}
+		sums := metrics.PeriodSumsOf(kimai, ninja, out.Span)
+		out.Revenue += sums.Revenue
+		out.Paid += sums.Paid
+		out.Expenses += sums.Expenses
+		out.Hours += sums.Hours
+		if kimai != nil {
+			out.HoursFrom = later(out.HoursFrom, metrics.KimaiHistoryFrom(kimai))
+		}
+		if ninja != nil {
+			out.RevenueFrom = later(out.RevenueFrom, metrics.NinjaHistoryFrom(ninja))
+			out.Currency = cmp.Or(out.Currency, ninja.Currency)
+		}
+	}
+	return out, nil
+}
+
+// later is the later of two days.
+func later(a, b time.Time) time.Time {
+	if b.After(a) {
+		return b
+	}
+	return a
 }

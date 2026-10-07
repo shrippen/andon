@@ -1,5 +1,8 @@
 saved: Saved.
 nav:
+  menu: Menu
+  boards: Boards
+  pages: Pages
   admin_ops: 'Operations'
   main: Main navigation
   setup: Setup
@@ -27,6 +30,7 @@ nav:
   clients: 'Customers'
   hosts: 'Hosts'
 action:
+  open_drafts: 'Go to drafts'
   isp_report: 'Open report'
   book_payment: 'Book payment'
   open_in_tailscale: 'Open in Tailscale / Headscale'
@@ -126,7 +130,7 @@ error_page:
     lead: Andon couldn't do that. Go back, your input is still in the form.
   '403':
     title: No access
-    lead: You lack the right for this, or the page was open too long. Go back and reload the page.
+    lead: Andon refused this.
   '404':
     title: Not found
     lead: This page doesn't exist (any more). It may have been deleted, or the address is wrong.
@@ -145,7 +149,7 @@ error_page:
 error:
   invalid_setting: 'Invalid value.'
   csrf: The request expired. Please reload the page.
-  denied: Not allowed.
+  denied: You lack the right for this. Whoever manages the space can grant it, an admin or the team's owner.
   not_found: Not found.
   conflict: Somebody else saved meanwhile. Please reload and change again.
 login:
@@ -155,6 +159,7 @@ login:
   with: Log in with {provider}
   or: or
   forgot: Forgot password?
+  ask_admin: Ask an admin for a new password
   back: Back to login
   failed: Wrong e-mail or password.
   throttled: Too many attempts. Please try again in 15 minutes.
@@ -187,6 +192,8 @@ reset:
   title: Reset password
   request: Send link
   sent: If an account exists, a link is on its way.
+  ask_admin: Andon can't send e-mail. Ask an admin for a new password.
+  ask_admin_how: An admin creates a reset link for you under Setup → Users → More actions (valid for 48 h). With it you set your new password yourself.
   new: New password
   invalid: Link invalid or expired.
 password:
@@ -204,10 +211,15 @@ oidc:
   sub_taken: This authentik account is already linked to another user.
   unreachable: Identity provider unreachable.
 board:
+  empty_title: 'This board is empty.'
+  empty_lead: 'Add a tile from the gallery or start with one of your connections.'
+  empty_tips: 'From your connections that have no tile yet:'
+  empty_view: 'Whoever may edit this board adds tiles here.'
   name_taken: "Another board in this space already has this name."
   delete_hint: 'The board is gone for everybody. Its tiles stay in the library.'
   kiosk: Wall display
-  kiosk_hint: Fullscreen, next board every minute, dimmed 22–7. Adjust every and dim in the address.
+  kiosk_hint: 'Fullscreen, shows the tiles in sets that fill the screen, the next set every {secs} s, after the last one (at least a minute) the next board, dimmed 22–7. Transition and time in the board settings, every and dim in the address.'
+  kiosk_leave: 'Leave the wall display: Esc, any key or a click in a corner.'
   from_template: From template
   template_hint: Creates the board and tiles in the chosen space; tiles needing a connection then show what is missing.
   bulk_invalid: Nothing selected or unknown action.
@@ -360,7 +372,7 @@ field:
   league: League
   team: Team
   since: Period
-  verbund: Verbund
+  verbund: Bundle
   title_none: Leave empty for a tile without a head
   title_needed: Head, icon and title link only show with a title.
   place: Place
@@ -627,6 +639,11 @@ field:
   hide_after: 'Hide devices offline longer than (days, 0 = never)'
   board_layout: 'Layout'
   board_layout_hint: 'Flowing columns fill gaps under short sections; section widths do not apply then.'
+  wall_page: 'Seconds per set'
+  wall_page_hint: 'The wall display packs the tiles into sets that fill the screen exactly and shows the next one after this time ({min}–{max} s).'
+  wall_turn: 'Transition'
+  wall_ease: 'Easing'
+  wall_preview: 'Wall display preview'
   free: 'Show amount free to spend (balance)'
   titles_only: 'Titles only (one line per item)'
   list_height: 'List height'
@@ -801,6 +818,22 @@ sort:
 area:
   main: Main column
   side: Side column
+wall_turn:
+  cut: Kante cut
+  fade: Cross-fade
+  stagger: Tile by tile
+  flap: Split-flap
+  shutter: Shutter
+  scan: Scan line
+  rotate: Rotate
+wall_ease:
+  standard: Default
+  linear: Linear
+  quad: Quadratic
+  cubic: Cubic
+  expo: Exponential
+  soft: Gentle ease-out
+  snap: Springy
 wtype:
   github_trending:
     name: GitHub trends
@@ -1199,6 +1232,14 @@ sys:
   swap: Swap
   load: Load (5 min)
 hints:
+  layout: View
+  layout_grouped: Grouped
+  layout_single: Single
+  filter_button: 'Filter ({n})'
+  level: Level
+  source: Service
+  show_all: 'show all {n}'
+  order: Order
   handled_title: 'Done or paused by you'
   handled_acknowledged: 'done {when}'
   handled_snoozed: 'paused {when}'
@@ -1278,6 +1319,8 @@ severity:
   warn: Warning
   critical: Critical
 library:
+  put_on: 'Add to board'
+  board: 'Board'
   search: 'Search: title, type, space'
   links: Links
   lead: Tiles set up once, placeable any number of times.
@@ -1292,6 +1335,24 @@ history:
   sections: Sections
   restore: Restore
 conn:
+  tiles_title: 'Matching tiles'
+  tiles_lead: 'The connection works. One click puts a tile with its data on the board.'
+  tiles_put: 'Add {tile} to board'
+  tiles_put_on: 'Add {tile} to {board}'
+  cause_refused: 'Connection refused: nothing answers at this address. Is the service running, are port and http/https right?'
+  cause_egress: 'Blocked by the network rule: Andon may not reach this address.'
+  cause_auth: 'Login rejected (401): the token or credentials are wrong or expired.'
+  cause_forbidden: 'Access denied (403): the login is valid but lacks rights for the API.'
+  cause_tls: 'Certificate not trusted: self-signed, expired or issued for another name.'
+  cause_dns: 'Name not found: the host name does not resolve. A typo, or known only to another DNS server?'
+  cause_timeout: 'No answer: the service does not reply in time, or a firewall drops the request.'
+  cause_fix_network: 'Allowed networks under Admin → Network'
+  cause_ask_network: 'An administrator can allow the address under Admin → Network.'
+  cause_fix_login: 'Change credentials'
+  cause_fix_address: 'Change address and TLS check'
+  cause_detail: 'Message'
+  pick_search: 'Search services: name, description'
+  pick_other: 'More'
   tab_overview: 'Overview'
   tab_access: 'Access'
   tab_settings: 'Settings'
@@ -1836,6 +1897,8 @@ space:
 locale:
   de: Deutsch
   en: English
+  code_de: DE
+  code_en: EN
 scope:
   read: Read (API)
   embed: Embed
@@ -2047,6 +2110,11 @@ icon:
   invalid: Invalid icon (SVG, PNG, WebP, JPEG, ICO up to 512 KB).
 mail:
   footer: Andon · {url}
+  exists:
+    subject: You already have an account
+    body: Somebody tried to create an Andon account with this address. You already have one; it stays as it is. If that wasn't you, ignore this mail.
+    reset: 'Forgot your password? Set a new one here: {url}'
+    button: Log in
   invite:
     subject: Invitation to Andon
     body: '{inviter} invited you to Andon. The link is valid for 7 days.'
@@ -2880,7 +2948,7 @@ hint:
       why: 'Last fetch failed: {error}. Tiles show the last data.'
     partner_ambiguous:
       title: 'Several connections for {services}'
-      why: 'Andon does not know which belongs with which connection of other services. Hints that need several services are missing for them. Assign them under Verbünde in the space settings.'
+      why: 'Andon does not know which belongs with which connection of other services. Hints that need several services are missing for them. Assign them under bundles in the space settings.'
     backup_late:
       title: 'Andon backup {hours} hours old'
       why: 'The daily database copy did not happen. Check that the service runs and data/backups is writable.'
@@ -3059,6 +3127,9 @@ info:
   tandoor:
     items: '{count} entries open'
 kpi:
+  period_year: '{year}'
+  period_month: '{month}'
+  period_week: 'week {week}'
   safe: 'Cash {in}, to set aside {out}'
   liquidity: income {in} − fixed costs {out}
   per_hour: per hour, {count} customers, 12 months
@@ -3070,6 +3141,7 @@ kpi:
   reserve: VAT liability + {rate} % of surplus
   assets: '{count} assets'
   vs_last_year: vs. last year
+  data_from: 'no year-over-year, data from {month}'
   of_goal: goal {goal}
   cash_30: open + recurring, 30 days
   spark_months: 'last {n} months'
@@ -3223,7 +3295,7 @@ rule_name:
   prometheus.alert: 'Prometheus alert'
   heartbeat.down: 'Heartbeat missing'
   cross.heartbeat_backup: 'Heartbeat against backup'
-  system.partner_ambiguous: Verbund missing
+  system.partner_ambiguous: Bundle missing
   system.connector_down: Connection failing
   system.unused_service: 'Unused service'
   energy.shift_jobs: 'Maintenance at expensive hours'
@@ -3464,9 +3536,10 @@ param:
   seconds: 'Seconds'
   escalate_days: 'Critical after days (0 = never)'
   offline_days: 'Ignore when offline longer than (days)'
-  bundle_from: 'Bundle per client from this many invoices (0 = never)'
+  bundle_from: 'Group per client from this many invoices (0 = never)'
   exclude: 'Exclude (names, * as wildcard, comma-separated)'
 settings:
+  read_only: View only. The team's owners can change this.
   bad_network: 'A network is no valid CIDR, e.g. 192.168.10.0/24.'
   travel: Travel
   travel_base: Where business travel starts
@@ -3749,7 +3822,14 @@ cashflow:
   below_min: 'Falls below the minimum of {amount}.'
   delayed: 'Assumption: clients pay {days} days later.'
 billing:
-  pick_verbund: 'Several Verbünde in this space: choose one for the year package.'
+  figures: 'Key figures'
+  fig_revenue: 'Net revenue'
+  fig_paid: 'Payments received'
+  fig_expenses: 'Net expenses'
+  fig_hours: 'Hours'
+  open_draft: 'Open draft {number} of {day}.'
+  open_draft_again: 'Creating adds another draft.'
+  pick_verbund: 'Several bundles in this space: choose one for the year package.'
   summary: Overview
   sum_unbilled: 'unbilled · {n} customers'
   sum_payments: incoming payments
@@ -4403,7 +4483,7 @@ detail:
   travel:
     trips: 'Rides'
     month: 'Kilometres this month'
-    money: 'Mileage allowance'
+    money_of: 'Mileage allowance ({km} km × {rate} €/km)'
     business: 'business'
     private: 'private'
     allowance: 'Per diem'
@@ -5530,7 +5610,7 @@ gitea:
   notifications: '{n} notifications'
   assigned: 'Assigned to me'
 sitebook:
-  ambiguous: 'Several Kimai connections and no Verbund says which: places and rides stay in Andon until you put them into a Verbund.'
+  ambiguous: 'Several Kimai connections and no bundle says which: places and rides stay in Andon until you put them into a bundle.'
   suggested: 'Suggested by name, not saved yet'
   lead: 'What a place is decides whether rides there count as business. Stored in this connection.'
   lead_plugin: 'Stored in Kimai mileage; new places also become Dawarich areas.'
@@ -6155,7 +6235,7 @@ travel:
   prev: 'last month {km} km'
   year: 'This year {km} km · {countries} countries · {cities} cities'
   trips: '{n} business rides'
-  amount: '{amount} at {rate} €/km'
+  amount: '{km} km × {rate} €/km = {amount}'
   none: No rides yet.
   split: 'business {business} km · private {private} km'
   commute: 'commute {km} km'
@@ -6190,10 +6270,10 @@ noise:
 recent:
   none: Nothing happened in the last 7 days.
 subs:
-  per_month: '{n} subscriptions per month'
+  per_month: '{n} subscriptions · amounts per month'
   missing: 'Missing in Wallos: {names}'
   none: No Wallos or Sure connection in this space.
-  per_year: '{n} subscriptions per year'
+  per_year: '{n} subscriptions · amounts per year'
 ip:
   changed: 'New since {time}, before {prev}'
 flow:
@@ -6214,12 +6294,11 @@ immich:
 clients:
   docs: Documents in Paperless
   customer: 'Customer'
-  hours_year: 'Hours (year)'
-  hours_month: '{hours} h this month'
+  hours: 'Hours'
   unbilled: 'Unbilled'
   open: 'Open'
   overdue: '{amount} of it overdue'
-  revenue: 'Revenue (year, net)'
+  revenue: 'Net revenue'
   pay_days: 'Pays in days'
   pays_in: 'usually pays after {days} days'
   none: 'No customers yet: connect Kimai.'
@@ -6237,9 +6316,11 @@ clients:
   date: 'Date'
   due: 'Due'
   balance: 'Balance'
-  projects: 'Projects this year'
+  projects: 'Projects'
   no_hints: 'No open hints about this customer.'
 hosts:
+  quiet: '{count} without findings'
+  quiet_singular: '{count} without findings'
   cves: 'Vulnerabilities'
   alerts: 'Prometheus alerts'
   beats: 'Heartbeats'
@@ -6377,7 +6458,7 @@ verbund:
   unlink: Reset
   none_client: No counterpart
   align: Take name
-  no_customers: 'Customers need a Verbund with at least two of Invoice Ninja, Kimai, Sure and Paperless.'
+  no_customers: 'Customers need a bundle with at least two of Invoice Ninja, Kimai, Sure and Paperless.'
   orphans: 'Without a customer in {service}'
   client_taken: 'This entry belongs to another customer already.'
   unknown_customer: 'The services do not know this customer (any more). Reload the page.'
@@ -6385,30 +6466,30 @@ verbund:
   demo: 'Demo connections take no changes.'
   auto: automatic
   field_hint: 'Only needed when several connections of a partner service fit.'
-  title: Verbünde
-  lead: 'A Verbund says which connections of different services belong together, e.g. the Dawarich, Kimai and Invoice Ninja of one company. One member per service. Without one, each connection works with the only one of its partner service in the space.'
-  vague: 'Several connections without a Verbund: {services}. Andon does not guess which belong together; tiles and hints that need several services are missing for them until they are in a Verbund.'
+  title: Bundles
+  lead: 'A bundle says which connections of different services belong together, e.g. the Dawarich, Kimai and Invoice Ninja of one company. One member per service. Without one, each connection works with the only one of its partner service in the space.'
+  vague: 'Several connections without a bundle: {services}. Andon does not guess which belong together; tiles and hints that need several services are missing for them until they are in a bundle.'
   read_only: read only
   remove: Remove
   add: Add
-  delete: Delete Verbund
-  none: No Verbund in this space yet.
-  new: New Verbund
+  delete: Delete bundle
+  none: No bundle in this space yet.
+  new: New bundle
   name_hint: 'e.g. Freelance'
   members: Members
   other_space: other space
   create_hint: 'At least two connections of different services. You need edit rights on all of them.'
-  implicit: Without Verbund
+  implicit: Without bundle
   implicit_lead: 'These connections work together because the space has only one of each service. Andon links their customers by the same name.'
-  settle_hint: 'To link customers, Andon stores these connections as a Verbund named after the space. Nothing else changes.'
-  ambiguous: 'Several connections fit: choose one in a Verbund.'
-  not_found: Verbund not found.
-  too_few: 'A Verbund needs at least two connections.'
-  service_twice: 'One connection per service in a Verbund.'
-  no_name: The Verbund needs a name.
-  record: In a Verbund
-  record_none: 'In no Verbund: works with the only connection per partner service in the space.'
-  manage: Manage Verbünde
+  settle_hint: 'To link customers, Andon stores these connections as a bundle named after the space. Nothing else changes.'
+  ambiguous: 'Several connections fit: choose one in a bundle.'
+  not_found: Bundle not found.
+  too_few: 'A bundle needs at least two connections.'
+  service_twice: 'One connection per service in a bundle.'
+  no_name: The bundle needs a name.
+  record: In a bundle
+  record_none: 'In no bundle: works with the only connection per partner service in the space.'
+  manage: Manage bundles
 task:
   dawarich_tracks: 'Read Dawarich tracks of {host}'
 server_hint:
@@ -6434,3 +6515,20 @@ sports:
   diff: GD
   points: Pts
   live: live
+flash:
+  saved: Saved.
+  done: Done.
+  setup_done: Administrator created. Log in now.
+  password_reset: New password set. Log in with it.
+  password_changed: Password changed.
+  registered: Done. Log in with your address and password. If the address already had an account, its old password stays; a mail tells you how to reset it.
+  registered_no_mail: Done. Log in with your address and password. If the address already had an account, its old password stays; an admin can reset it.
+period:
+  data_from_label: 'Year over year'
+  choice: 'Period'
+  12m: '12 months'
+  year: 'Year'
+  prev: 'Last year'
+  last_12m: 'last 12 months'
+  today: 'as of today'
+  data_from: 'data from {month}'

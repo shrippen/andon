@@ -39,7 +39,10 @@ type DetailView struct {
 // tile), a line under it, a state as Kante names it (ok, warn, bad, off)
 // with its catalog key, and actions.
 type DetailHead struct {
-	Title     string
+	Title string
+	// TitleKey names an untitled tile's dialog as the tile reads (a KPI's
+	// metric); "" = the tile type's name.
+	TitleKey  string
 	Sub       string
 	State     string // "" = none
 	StateKey  string

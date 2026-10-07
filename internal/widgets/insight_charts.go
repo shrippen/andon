@@ -98,11 +98,13 @@ func chartView(cfg ChartConfig, results map[string]any, ctx ViewCtx) map[string]
 
 	switch {
 	case cfg.Chart == ChartRevenue && service == enums.ServiceInvoiceNinja:
+		ninja := data.(*sources.NinjaDataset)
 		var raw []barSeries
-		for _, m := range metrics.NinjaByMonth(data.(*sources.NinjaDataset), today, cfg.Months) {
+		for _, m := range metrics.NinjaByMonth(ninja, today, cfg.Months) {
 			raw = append(raw, barSeries{m.Month, m.Net, m.Prev})
 		}
 		out := map[string]any{"Bars": barsFrom(raw), "Unit": "money"}
+		compareFrom(out, metrics.NinjaHistoryFrom(ninja), today, len(raw))
 		if goal := settingsFloat(settingsMap(ctx.Settings, "goals"), "revenue_year", 0); cfg.GoalLine && goal > 0 {
 			monthly := goal / monthsPerYear
 			out["GoalY"], out["Goal"] = fnum(chartH-monthly/barTop(raw, monthly)*(chartH-chartPad)), monthly
@@ -124,9 +126,26 @@ func chartView(cfg ChartConfig, results map[string]any, ctx ViewCtx) map[string]
 			month := metrics.AddMonths(today, i-len(cur)+1).Format("2006-01")
 			raw = append(raw, barSeries{month, cur[i], prev[i]})
 		}
-		return chartOptions(map[string]any{"Bars": barsFrom(raw), "Unit": "hours"}, cfg)
+		out := map[string]any{"Bars": barsFrom(raw), "Unit": "hours"}
+		compareFrom(out, metrics.KimaiHistoryFrom(data.(*sources.KimaiDataset)), today, len(raw))
+		return chartOptions(out, cfg)
 	}
 	return map[string]any{"Unsupported": true}
+}
+
+// compareFrom marks a chart whose year-ago months start before its data
+// (from): the comparison would count missing months as zero. Then
+// "DataFrom" holds where the data begins.
+//
+//	12 months to 09/2026 compare from 10/2024; data from 02/2025 → partial
+func compareFrom(out map[string]any, from, today time.Time, months int) {
+	if months == 0 {
+		return
+	}
+	compared := metrics.Span{Start: metrics.AddMonths(today, -(months-1)-monthsPerYear)}
+	if compared.Partial(from) {
+		out["DataFrom"] = from
+	}
 }
 
 // ── Progress (budgets + revenue goal) ──

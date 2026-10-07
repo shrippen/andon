@@ -15,7 +15,8 @@
 
     <div class="card">
       <h2>{{t "field.space"}}</h2>
-      <p class="muted">{{t "share.via_space" "space" .Info.Audience.SpaceName}}</p>
+      {{$space := .Info.Audience.SpaceName}}{{if eq (print .Info.Audience.SpaceKind) "instance"}}{{$space = t "space.instance"}}{{end}}
+      <p class="muted">{{t "share.via_space" "space" $space}}</p>
       {{if .Info.Audience.Members}}
       <ul>{{range .Info.Audience.Members}}<li>{{.Name}} — {{.Role}}</li>{{end}}</ul>
       {{end}}
@@ -54,6 +55,7 @@
       </div>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

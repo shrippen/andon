@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/repos/users"
 	"andon/internal/services/access"
@@ -49,5 +50,24 @@ func TestTeamSettingsNotForViewers(t *testing.T) {
 	list, err := teams.Overview(d, viewer)
 	if err != nil || len(list) != 0 {
 		t.Fatalf("viewer sees the team page: %v %v", list, err)
+	}
+}
+
+// TestInstanceSettingsForAdmins: the instance's settings are for admins;
+// a user only uses what the instance offers.
+func TestInstanceSettingsForAdmins(t *testing.T) {
+	d := testkit.DB(t)
+	space := &model.Space{Kind: enums.SpaceInstance, Name: "Instanz", Version: 1}
+	if err := content.AddSpace(d, space); err != nil {
+		t.Fatalf("instance space: %v", err)
+	}
+	admin, _ := testkit.User(t, d, "a@x.de", enums.RoleAdmin)
+	user, _ := testkit.User(t, d, "u@x.de", enums.RoleUser)
+
+	if err := spaces.OpenSettings(d, admin, space.ID); err != nil {
+		t.Fatalf("admin refused: %v", err)
+	}
+	if err := spaces.OpenSettings(d, user, space.ID); err == nil {
+		t.Fatal("user opens the instance settings")
 	}
 }

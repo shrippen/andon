@@ -35,7 +35,7 @@ func TestReceiptsNeedPaperlessFields(t *testing.T) {
 	ctx := context.Background()
 
 	// Not fetched yet: nothing known, nothing refused.
-	if _, err := receipts.CountsOf(ctx, d, who, time.Now().Year()); errors.Is(err, receipts.ErrPaperlessFields) {
+	if _, err := receipts.CountsOf(ctx, d, who, "match", time.Now().Year()); errors.Is(err, receipts.ErrPaperlessFields) {
 		t.Fatal("refused before the first fetch")
 	}
 
@@ -43,7 +43,7 @@ func TestReceiptsNeedPaperlessFields(t *testing.T) {
 	if _, err := svcdata.Get(ctx, d, "paperless.data", nil, conn, model.UserHolder(who.UserID), svcdata.Force); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := receipts.CountsOf(ctx, d, who, time.Now().Year()); !errors.Is(err, receipts.ErrPaperlessFields) {
+	if _, err := receipts.CountsOf(ctx, d, who, "match", time.Now().Year()); !errors.Is(err, receipts.ErrPaperlessFields) {
 		t.Fatalf("old paperless: %v", err)
 	}
 }

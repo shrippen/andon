@@ -272,3 +272,27 @@ func TestEditableSpacesOrder(t *testing.T) {
 		}
 	}
 }
+
+// The instance space has no name of its own: viewers read it in their
+// language ("Instance" in English, not the stored "Instanz").
+func TestInstanceSpaceInViewerLocale(t *testing.T) {
+	q := openTestDB(t)
+	u := addUser(t, q, "en@example.test", enums.RoleUser)
+	u.Locale = enums.LocaleEN
+	if err := users.Update(q, u); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if err := content.AddSpace(q, &model.Space{Kind: enums.SpaceInstance, Name: "Instanz", Version: 1}); err != nil {
+		t.Fatalf("add instance space: %v", err)
+	}
+
+	who, err := access.Load(q, u.ID)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	for _, sp := range who.Spaces {
+		if sp.Kind == enums.SpaceInstance && sp.Name != "Instance" {
+			t.Errorf("instance space for an English viewer = %q, want Instance", sp.Name)
+		}
+	}
+}

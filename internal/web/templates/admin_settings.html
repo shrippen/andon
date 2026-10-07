@@ -39,7 +39,7 @@
       </form>
     </div>
 
-    <h2>{{t "admin.network"}}</h2>
+    <h2 id="network">{{t "admin.network"}}</h2>
     <div class="card">
       <form method="post" action="/admin/settings/network">
         <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
@@ -119,6 +119,7 @@
     </div>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -150,6 +151,7 @@
       </form>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -251,6 +253,7 @@
   </div>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

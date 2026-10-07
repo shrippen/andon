@@ -107,7 +107,7 @@ func TestVersionConflict(t *testing.T) {
 	space, _ := content.PersonalSpace(d, u.ID)
 	boardID, _ := boards.Create(d, who, space.ID, "B")
 
-	err := boards.Rename(d, who, boardID, 999, "New Name", nil, nil, enums.LayoutGrid)
+	err := boards.Rename(d, who, boardID, 999, "New Name", nil, nil, enums.LayoutGrid, boards.Wall{})
 	if !errors.Is(err, boards.ErrConflict) {
 		t.Fatalf("expected conflict for stale version, got %v", err)
 	}
@@ -368,12 +368,56 @@ func TestBoardLayout(t *testing.T) {
 
 	for _, c := range []struct{ in, want enums.BoardLayout }{{enums.LayoutMasonry, enums.LayoutMasonry}, {"bogus", enums.LayoutGrid}} {
 		view, _ := boards.View(d, who, boardID, boards.LayoutOverlay)
-		if err := boards.Rename(d, who, boardID, view.Version, "B", nil, nil, c.in); err != nil {
+		if err := boards.Rename(d, who, boardID, view.Version, "B", nil, nil, c.in, boards.Wall{}); err != nil {
 			t.Fatal(err)
 		}
 		if view, _ = boards.View(d, who, boardID, boards.LayoutOverlay); view.Layout != c.want {
 			t.Fatalf("%q: %q", c.in, view.Layout)
 		}
+	}
+}
+
+// TestBoardWall: the wall display's settings are stored with the board:
+// seconds per set within bounds (0 is the default), a known transition
+// and easing (else the defaults). Copies keep them.
+func TestBoardWall(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	boardID, _ := boards.Create(d, who, space.ID, "B")
+
+	want := boards.Wall{Page: boards.WallPageDefault, Turn: enums.WallCut, Ease: enums.EaseStandard}
+	if view, _ := boards.View(d, who, boardID, boards.LayoutOverlay); view.Wall != want {
+		t.Fatalf("new board: %+v", view.Wall)
+	}
+	cases := []struct{ in, want boards.Wall }{
+		{boards.Wall{Page: 45, Turn: enums.WallFlap, Ease: enums.EaseExpo}, boards.Wall{Page: 45, Turn: enums.WallFlap, Ease: enums.EaseExpo}},
+		{boards.Wall{Turn: enums.WallRotate, Ease: enums.EaseSnap}, boards.Wall{Page: boards.WallPageDefault, Turn: enums.WallRotate, Ease: enums.EaseSnap}},
+		{boards.Wall{Page: 1, Turn: "explode", Ease: "bounce"}, boards.Wall{Page: boards.WallPageMin, Turn: enums.WallCut, Ease: enums.EaseStandard}},
+		{boards.Wall{Page: 99999}, boards.Wall{Page: boards.WallPageMax, Turn: enums.WallCut, Ease: enums.EaseStandard}},
+	}
+	for _, c := range cases {
+		view, _ := boards.View(d, who, boardID, boards.LayoutOverlay)
+		if err := boards.Rename(d, who, boardID, view.Version, "B", nil, nil, "", c.in); err != nil {
+			t.Fatal(err)
+		}
+		if view, _ = boards.View(d, who, boardID, boards.LayoutOverlay); view.Wall != c.want {
+			t.Fatalf("%+v: %+v", c.in, view.Wall)
+		}
+	}
+
+	view, _ := boards.View(d, who, boardID, boards.LayoutOverlay)
+	shown := boards.Wall{Page: 45, Turn: enums.WallScan, Ease: enums.EaseSoft}
+	if err := boards.Rename(d, who, boardID, view.Version, "B", nil, nil, "", shown); err != nil {
+		t.Fatal(err)
+	}
+	copyID, err := boards.Duplicate(d, who, boardID, "C")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view, _ := boards.View(d, who, copyID, boards.LayoutOverlay); view.Wall != shown {
+		t.Fatalf("copy: %+v", view.Wall)
 	}
 }
 
@@ -393,7 +437,7 @@ func TestBoardNameBounded(t *testing.T) {
 	if n := len([]rune(view.Name)); n > boards.MaxNameLen {
 		t.Fatalf("name of %d runes", n)
 	}
-	if err := boards.Rename(d, who, id, view.Version, strings.Repeat("Ü", 300), nil, nil, ""); err != nil {
+	if err := boards.Rename(d, who, id, view.Version, strings.Repeat("Ü", 300), nil, nil, "", boards.Wall{}); err != nil {
 		t.Fatal(err)
 	}
 	view, _ = boards.View(d, who, id, boards.LayoutOverlay)
@@ -481,10 +525,10 @@ func TestBoardNamesDistinct(t *testing.T) {
 		t.Fatalf("second board: %q", view.Name)
 	}
 	view, _ := boards.View(d, who, first, boards.LayoutOverlay)
-	if err := boards.Rename(d, who, first, view.Version, "B 2", nil, nil, ""); !errors.Is(err, boards.ErrNameTaken) {
+	if err := boards.Rename(d, who, first, view.Version, "B 2", nil, nil, "", boards.Wall{}); !errors.Is(err, boards.ErrNameTaken) {
 		t.Fatalf("rename onto a taken name: %v", err)
 	}
-	if err := boards.Rename(d, who, first, view.Version, "B", nil, nil, ""); err != nil {
+	if err := boards.Rename(d, who, first, view.Version, "B", nil, nil, "", boards.Wall{}); err != nil {
 		t.Fatalf("keeping its own name: %v", err)
 	}
 }

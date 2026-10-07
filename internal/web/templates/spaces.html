@@ -16,7 +16,6 @@
     <h1>{{t (print "settings." .Section)}} <small class="muted">{{.SpaceName}}</small></h1>
     {{if eq .Section "page"}}{{template "intro" dict "Page" "spaces" "Chapter" "spaces" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}{{end}}
     <p class="muted">{{t (print "settings.lead_" .Section)}}</p>
-    {{if .Saved}}<p class="pill" data-state="applied">{{t "saved"}}</p>{{end}}
     <form method="post" action="/spaces/{{.SpaceID}}/settings/{{.Section}}">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
       {{if eq .Section "page"}}
@@ -156,11 +155,13 @@
       </div>
 
       {{end}}
-      <div class="save-bar"><button type="submit" class="btn btn-accent">{{t "action.save"}}</button></div>
+      {{if .CanChange}}<div class="save-bar"><button type="submit" class="btn btn-accent">{{t "action.save"}}</button></div>
+      {{else}}<p class="small muted">{{t "settings.read_only"}}</p>{{end}}
     </form>
     </div>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

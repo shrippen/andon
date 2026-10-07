@@ -11,7 +11,7 @@
      (andon.js). */}}
 
 {{/* Head: monogram, name, state, actions, close. */}}
-{{define "detail_head"}}{{$h := .Dialog.Head}}{{$title := $h.Title}}{{if not $title}}{{$title = t (print "wtype." .Dialog.Type ".name")}}{{end}}
+{{define "detail_head"}}{{$h := .Dialog.Head}}{{$title := $h.Title}}{{if not $title}}{{$title = t (or $h.TitleKey (print "wtype." .Dialog.Type ".name"))}}{{end}}
 <header class="detail-head">
   <span class="launch-icon"><span class="monogram">{{monogram $title}}</span></span>
   <div class="detail-name">
@@ -204,7 +204,7 @@
   {{else if eq $k "text"}}<p>{{tv .Data}}</p>
   {{else if eq $k "code"}}<pre class="codeblock">{{.Data}}</pre>
   {{else if eq $k "hints"}}
-  {{range .Data}}<div class="tier-card" data-tier="{{sevTier .Severity}}"><h3>{{.Title}}</h3><small>{{.Rule}} · {{ago .FirstSeen}}</small>{{.Why}}</div>{{end}}
+  {{range .Data}}<div class="tier-card" data-tier="{{sevTier .Severity}}"><h3>{{.Title}}</h3><small>{{t (print "rule_name." .Rule)}} · {{ago .FirstSeen}}</small>{{.Why}}</div>{{end}}
   {{else if eq $k "wall"}}
   <div class="detail-wall">{{range .Data}}<div class="detail-card"{{with .Tier}} data-tier="{{.}}"{{end}}{{with .Colour}} data-style="{{template "detail_colour" .}}"{{end}}><span>{{tt .Label.Key .Label.Args}}</span><b>{{tv .Value}}</b>{{with .Spark}}<svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true"><path d="{{sparkPath .}}"/></svg>{{end}}{{with .Sub}}<small>{{tv .}}</small>{{end}}</div>{{end}}</div>
   {{else if eq $k "tasks"}}{{with .Data}}

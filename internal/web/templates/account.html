@@ -20,6 +20,7 @@
 {{define "auth_close"}}
     </div>
   </div>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -70,7 +71,10 @@
 {{define "reset_request"}}
 {{template "auth_open" .}}
 <h1>{{t "reset.title"}}</h1>
-{{if .Sent}}
+{{if .NoMail}}
+<p>{{t "reset.ask_admin"}}</p>
+<p class="small muted">{{t "reset.ask_admin_how"}}</p>
+{{else if .Sent}}
 <p class="pill" data-state="applied">{{t "reset.sent"}}</p>
 {{else}}
 <form method="post" action="/reset">

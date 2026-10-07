@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/services/clients"
@@ -38,7 +39,7 @@ func TestListAndOneShowSpaceCustomers(t *testing.T) {
 		}
 	}
 
-	cards, err := clients.List(ctx, d, who)
+	cards, err := clients.List(ctx, d, who, metrics.PeriodLast12)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -49,24 +50,24 @@ func TestListAndOneShowSpaceCustomers(t *testing.T) {
 		if c.SpaceID != space || c.Currency == "" {
 			t.Fatalf("card %d: %+v", i, c)
 		}
-		if i > 0 && c.HoursYear > cards[i-1].HoursYear {
-			t.Fatalf("not sorted by hours: %v after %v", c.HoursYear, cards[i-1].HoursYear)
+		if i > 0 && c.Hours > cards[i-1].Hours {
+			t.Fatalf("not sorted by hours: %v after %v", c.Hours, cards[i-1].Hours)
 		}
 	}
 
 	first := cards[0]
-	detail, err := clients.One(ctx, d, who, space, 0, first.CustomerID)
+	detail, err := clients.One(ctx, d, who, space, 0, first.CustomerID, metrics.PeriodLast12)
 	if err != nil || detail.Name != first.Name {
 		t.Fatalf("one: %+v, %v", detail.Card, err)
 	}
-	if _, err := clients.One(ctx, d, who, space, 0, -1); !errors.Is(err, clients.ErrNotFound) {
+	if _, err := clients.One(ctx, d, who, space, 0, -1, metrics.PeriodLast12); !errors.Is(err, clients.ErrNotFound) {
 		t.Fatalf("unknown customer: %v", err)
 	}
 
-	if other, _ := clients.List(ctx, d, stranger); len(other) != 0 {
+	if other, _ := clients.List(ctx, d, stranger, metrics.PeriodLast12); len(other) != 0 {
 		t.Fatalf("stranger sees %d cards", len(other))
 	}
-	if _, err := clients.One(ctx, d, stranger, space, 0, first.CustomerID); !errors.Is(err, clients.ErrNotFound) {
+	if _, err := clients.One(ctx, d, stranger, space, 0, first.CustomerID, metrics.PeriodLast12); !errors.Is(err, clients.ErrNotFound) {
 		t.Fatalf("stranger reads customer: %v", err)
 	}
 }

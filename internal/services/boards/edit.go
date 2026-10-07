@@ -4,6 +4,7 @@ import (
 	"andon/internal/services/themes"
 	"database/sql"
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -62,7 +63,7 @@ func Create(d *sql.DB, who *access.Principal, spaceID int64, name string) (int64
 		}
 		board := &model.Board{
 			SpaceID: spaceID, Slug: util.Unique(util.Slug(label, startSlug), taken), Name: label,
-			Position: len(taken), Version: 1, UpdatedAt: time.Now().UTC(),
+			Position: len(taken), WallPage: WallPageDefault, WallTurn: enums.WallCut, WallEase: enums.EaseStandard, Version: 1, UpdatedAt: time.Now().UTC(),
 		}
 		if err := content.AddBoard(tx, board); err != nil {
 			return err
@@ -78,8 +79,9 @@ func Create(d *sql.DB, who *access.Principal, spaceID int64, name string) (int64
 	return id, err
 }
 
-// Rename updates a board's name/theme/team restriction/layout.
-func Rename(d *sql.DB, who *access.Principal, boardID int64, version int, name string, themeID *int64, minRole *enums.TeamRole, layout enums.BoardLayout) error {
+// Rename updates a board's name/theme/team restriction/layout and its
+// wall display settings (cleaned, see Wall.Clean).
+func Rename(d *sql.DB, who *access.Principal, boardID int64, version int, name string, themeID *int64, minRole *enums.TeamRole, layout enums.BoardLayout, wall Wall) error {
 	return db.WithTx(d, func(tx *sql.Tx) error {
 		board, err := load(tx, who, boardID, enums.RightEdit)
 		if err != nil {
@@ -108,12 +110,50 @@ func Rename(d *sql.DB, who *access.Principal, boardID int64, version int, name s
 		board.ThemeID = themeID
 		board.MinTeamRole = minRole
 		board.Layout = boardLayout(layout)
+		wall = wall.Clean()
+		board.WallPage, board.WallTurn, board.WallEase = wall.Page, wall.Turn, wall.Ease
 		board.UpdatedAt = time.Now().UTC()
 		if err := content.UpdateBoard(tx, board); err != nil {
 			return err
 		}
 		return snapshot(tx, who, board)
 	})
+}
+
+// Seconds the wall display shows each screen-filling set of a board.
+const (
+	WallPageDefault = 20
+	WallPageMin     = 5   // faster is unreadable
+	WallPageMax     = 600 // ten minutes
+)
+
+// Wall is how a board runs on the wall display: seconds per set, the
+// transition between sets and its easing.
+type Wall struct {
+	Page int
+	Turn enums.WallTurn
+	Ease enums.WallEase
+}
+
+// Clean keeps the page time within bounds (0 or less is the default)
+// and unknown transitions or easings at their defaults.
+func (w Wall) Clean() Wall {
+	if w.Page <= 0 {
+		w.Page = WallPageDefault
+	}
+	w.Page = min(max(w.Page, WallPageMin), WallPageMax)
+	if !slices.Contains(enums.WallTurns, w.Turn) {
+		w.Turn = enums.WallCut
+	}
+	if !slices.Contains(enums.WallEases, w.Ease) {
+		w.Ease = enums.EaseStandard
+	}
+	return w
+}
+
+// wallOf is a board's stored wall display settings.
+func wallOf(b *model.Board) Wall {
+	return Wall{Page: b.WallPage, Turn: b.WallTurn, Ease: b.WallEase}.Clean()
 }
 
 // boardLayout accepts only known layouts; anything else is the grid.
@@ -290,35 +330,41 @@ func Place(d *sql.DB, who *access.Principal, sectionID, widgetID int64, version 
 		if err != nil {
 			return err
 		}
-		widget, err := content.Widget(tx, widgetID)
-		if err != nil {
-			return err
-		}
-		if widget == nil {
-			return ErrNotFound
-		}
-		granted, err := widgetRight(tx, who, widget)
-		if err != nil {
-			return err
-		}
-		if err := access.Need(granted, enums.RightUse); err != nil {
-			return err
-		}
-		if err := bump(board, version); err != nil {
-			return err
-		}
-		placement := &model.Placement{SectionID: section.ID, WidgetID: widget.ID, Position: len(section.Placements)}
-		if err := content.AddPlacement(tx, placement); err != nil {
-			return err
-		}
-		id = placement.ID
-		board.UpdatedAt = time.Now().UTC()
-		if err := content.UpdateBoard(tx, board); err != nil {
-			return err
-		}
-		return snapshot(tx, who, board)
+		id, err = placeIn(tx, who, board, section, widgetID, version)
+		return err
 	})
 	return id, err
+}
+
+// placeIn appends a widget (USE needed) to a section of board, which the
+// caller loaded with EDIT, as one revision.
+func placeIn(tx *sql.Tx, who *access.Principal, board *model.Board, section *model.Section, widgetID int64, version int) (int64, error) {
+	widget, err := content.Widget(tx, widgetID)
+	if err != nil {
+		return 0, err
+	}
+	if widget == nil {
+		return 0, ErrNotFound
+	}
+	granted, err := widgetRight(tx, who, widget)
+	if err != nil {
+		return 0, err
+	}
+	if err := access.Need(granted, enums.RightUse); err != nil {
+		return 0, err
+	}
+	if err := bump(board, version); err != nil {
+		return 0, err
+	}
+	placement := &model.Placement{SectionID: section.ID, WidgetID: widget.ID, Position: len(section.Placements)}
+	if err := content.AddPlacement(tx, placement); err != nil {
+		return 0, err
+	}
+	board.UpdatedAt = time.Now().UTC()
+	if err := content.UpdateBoard(tx, board); err != nil {
+		return 0, err
+	}
+	return placement.ID, snapshot(tx, who, board)
 }
 
 // Unplace removes a widget from a board.

@@ -89,17 +89,15 @@ func Settings(d *sql.DB, who *access.Principal, spaceID int64) (map[string]any, 
 }
 
 // OpenSettings reports whether who may open a space's settings pages: a
-// team's are for its owners and editors, a viewer only uses its boards.
+// team's are for its owners and editors, a viewer only uses its boards;
+// the instance's are for admins, users only use what it offers.
 func OpenSettings(q db.Queryer, who *access.Principal, spaceID int64) error {
 	ref, err := access.SpaceOf(q, who, spaceID)
 	if err != nil {
 		return err
 	}
-	need := enums.RightView
-	if ref.Kind == enums.SpaceTeam {
-		need = enums.RightEdit
-	}
-	return access.Need(access.SpaceRight(who, ref), need)
+	need := map[enums.SpaceKind]enums.Right{enums.SpaceTeam: enums.RightEdit, enums.SpaceInstance: enums.RightManage}[ref.Kind]
+	return access.Need(access.SpaceRight(who, ref), max(need, enums.RightView))
 }
 
 // CanChange reports whether who may change a space's settings.

@@ -1,6 +1,9 @@
 package widgets_test
 
 import (
+	"strings"
+
+	"andon/internal/i18n"
 	"testing"
 	"time"
 
@@ -119,5 +122,22 @@ func TestTravelDetailReading(t *testing.T) {
 		if linked := len(tasks.Items) == 1 && tasks.Items[0].Href == "/admin/operations#tasks"; linked != admin {
 			t.Fatalf("admin %v: items %+v", admin, tasks.Items)
 		}
+	}
+}
+
+// TestTravelAmountFormula: the mileage names the km it pays: a bike ride
+// to the client is business but earns no km rate, so 20 of 27 business
+// km at 0.30 €/km make 6 €, and the tile says "20 km × 0.30 €/km".
+func TestTravelAmountFormula(t *testing.T) {
+	data := travelData()
+	geo := data["data"].(*sources.DawarichDataset)
+	geo.Tracks = append(geo.Tracks, ride("2026-09-11", 52.40, 13.06, 7, "cycling"))
+	v := viewOf(t, "travel", map[string]any{"km_rate": 0.3}, data, enums.ServiceDawarich, nil)
+	if v["BusinessKM"] != 27.0 || v["PayKM"] != 20.0 || v["TripAmount"] != 6.0 {
+		t.Fatalf("view: %+v", v)
+	}
+	got := i18n.T("travel.amount", "de", map[string]any{"km": "20", "rate": "0,30", "amount": "6,00 €"})
+	if !strings.Contains(got, "20 km × 0,30 €/km") {
+		t.Fatalf("formula: %q", got)
 	}
 }

@@ -18,8 +18,10 @@
   <script src="{{asset "editor.js"}}" defer></script>
   {{end}}
 </head>
-<body{{if .Kiosk.On}} class="is-kiosk" data-kiosk-next="{{.Kiosk.Next}}" data-kiosk-every="{{.Kiosk.Every}}" data-kiosk-dim="{{.Kiosk.Dim}}"{{end}}>
+<body{{if .Kiosk.On}} class="is-kiosk" data-kiosk-next="{{.Kiosk.Next}}" data-kiosk-every="{{.Kiosk.Every}}" data-kiosk-dim="{{.Kiosk.Dim}}" data-kiosk-page="{{.Board.Wall.Page}}" data-kiosk-turn="{{.Board.Wall.Turn}}" data-kiosk-ease="{{.Board.Wall.Ease}}" data-kiosk-leave="/boards/{{.Board.ID}}"{{end}}>
   {{if not (or .Embed .Kiosk.On)}}{{template "header" .}}{{end}}
+  {{/* The wall display pages through the board; how to leave shows first. */}}
+  {{if .Kiosk.On}}<div class="toast-stack"><div class="toast" role="status" data-kiosk-hint><span>{{t "board.kiosk_leave"}}</span><span class="toast-life" data-style="--life:6s" aria-hidden="true"></span></div></div>{{end}}
   <main class="board-page">
   {{if not .Embed}}
   <div class="board-head">
@@ -37,7 +39,7 @@
         {{if .Board.CanEdit}}<a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}?edit">{{t "edit.edit"}}</a>{{end}}
         <a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}?layout">{{t "edit.my_layout"}}</a>
       {{end}}
-      <a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}?kiosk&amp;every=60&amp;dim=22-7" title="{{t "board.kiosk_hint"}}">{{t "board.kiosk"}}</a>
+      <a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}?kiosk&amp;every=60&amp;dim=22-7" title="{{t "board.kiosk_hint" "secs" .Board.Wall.Page}}">{{t "board.kiosk"}}</a>
       <a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}{{if not .Compact}}?view=compact{{end}}">{{if .Compact}}{{t "board.full"}}{{else}}{{t "board.compact"}}{{end}}</a>
       {{if and .Board.HasOverlay (not .LayerEdit)}}
       <form method="post" action="/boards/{{.Board.ID}}/overlay/reset" class="inline-form">
@@ -131,6 +133,30 @@
   </nav>
   {{end}}{{end}}
 
+  {{/* Empty board: say so, offer the gallery and a starter for each
+       connection without a tile (editors only). */}}
+  {{with .Empty}}
+  <div class="empty">
+    <b>{{t "board.empty_title"}}</b>
+    {{if .AddURL}}
+    <p>{{t "board.empty_lead"}}</p>
+    <a class="btn btn-accent btn-sm" href="{{.AddURL}}"{{if $.Board.Sections}} data-details="{{.AddURL}}&dialog"{{end}}>+ {{t "gallery.title"}}</a>
+    {{with .Tips}}
+    <p>{{t "board.empty_tips"}}</p>
+    <div class="btn-row">
+      {{range .}}<form method="post" action="/boards/tile" class="inline-form">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+        <input type="hidden" name="board_id" value="{{$.Board.ID}}">
+        <input type="hidden" name="type" value="{{.Type}}">
+        {{with .ConnID}}<input type="hidden" name="conn_id" value="{{.}}">{{end}}
+        <button type="submit" class="btn btn-outline btn-sm">+ {{t (print "wtype." .Type ".name")}} · {{.ConnName}}</button>
+      </form>{{end}}
+    </div>
+    {{end}}
+    {{else}}<p>{{t "board.empty_view"}}</p>{{end}}
+  </div>
+  {{end}}
+
   {{$hasSide := false}}
   {{range .Board.Sections}}{{if eq .Area "side"}}{{$hasSide = true}}{{end}}{{end}}
   <div class="board{{if and $hasSide (not .Compact)}} has-side{{end}}{{if .Compact}} is-compact{{end}}"
@@ -157,6 +183,7 @@
   </ul>
   {{if not .Embed}}{{with .Board.Page.Footer}}<footer class="page-foot">{{.}}</footer>{{end}}{{end}}
   </main>
+  {{if not (or .Embed .Kiosk.On)}}{{template "foot" $}}{{end}}
 </body>
 </html>
 {{end}}
@@ -377,6 +404,7 @@
     </table></div>
     <p><a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}?edit">{{t "action.cancel"}}</a></p>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -422,6 +450,7 @@
       <p><a class="btn btn-outline btn-sm" href="/boards/{{.Board.ID}}?edit">{{t "action.cancel"}}</a></p>
     {{end}}
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

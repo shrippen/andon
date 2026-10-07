@@ -1,5 +1,8 @@
 saved: Gespeichert.
 nav:
+  menu: Menü
+  boards: Boards
+  pages: Seiten
   admin_ops: 'Betrieb'
   main: Hauptnavigation
   setup: Einrichten
@@ -27,6 +30,7 @@ nav:
   clients: 'Kunden'
   hosts: 'Hosts'
 action:
+  open_drafts: 'Zu den Entwürfen'
   isp_report: 'Bericht öffnen'
   book_payment: 'Zahlung buchen'
   open_in_tailscale: 'In Tailscale / Headscale öffnen'
@@ -126,7 +130,7 @@ error_page:
     lead: Andon konnte das nicht ausführen. Geh zurück, deine Eingabe steht noch im Formular.
   '403':
     title: Kein Zugriff
-    lead: Dafür fehlt dir die Berechtigung, oder die Seite war zu lange offen. Geh zurück und lade die Seite neu.
+    lead: Andon hat das abgelehnt.
   '404':
     title: Nicht gefunden
     lead: Diese Seite gibt es nicht (mehr). Vielleicht wurde sie gelöscht oder die Adresse ist falsch.
@@ -145,7 +149,7 @@ error_page:
 error:
   invalid_setting: 'Ungültiger Wert.'
   csrf: Die Anfrage war abgelaufen. Bitte Seite neu laden.
-  denied: Keine Berechtigung.
+  denied: Dafür fehlt dir das Recht. Geben kann es, wer den Bereich verwaltet, ein Admin oder der Owner des Teams.
   not_found: Nicht gefunden.
   conflict: Inzwischen hat jemand anderes gespeichert. Bitte neu laden und erneut ändern.
 login:
@@ -155,6 +159,7 @@ login:
   with: Mit {provider} anmelden
   or: oder
   forgot: Passwort vergessen?
+  ask_admin: Admin um neues Passwort bitten
   back: Zurück zur Anmeldung
   failed: E-Mail oder Passwort falsch.
   throttled: Zu viele Versuche. Bitte in 15 Minuten erneut probieren.
@@ -187,6 +192,8 @@ reset:
   title: Passwort zurücksetzen
   request: Link senden
   sent: Falls ein Konto existiert, ist ein Link unterwegs.
+  ask_admin: Andon kann keine E-Mails senden. Bitte einen Admin um ein neues Passwort.
+  ask_admin_how: Ein Admin erstellt dir unter Einrichten → Benutzer → Weitere Aktionen einen Reset-Link (48 h gültig). Darüber setzt du dein neues Passwort selbst.
   new: Neues Passwort
   invalid: Link ungültig oder abgelaufen.
 password:
@@ -204,10 +211,15 @@ oidc:
   sub_taken: Dieses authentik-Konto ist bereits mit einem anderen Benutzer verknüpft.
   unreachable: Identity Provider nicht erreichbar.
 board:
+  empty_title: 'Dieses Board ist leer.'
+  empty_lead: 'Leg eine Kachel aus der Galerie darauf oder fang mit einer deiner Verbindungen an.'
+  empty_tips: 'Aus deinen Verbindungen, die noch keine Kachel haben:'
+  empty_view: 'Kacheln legt hier an, wer das Board bearbeiten darf.'
   name_taken: "Ein anderes Board in diesem Bereich heißt schon so."
   delete_hint: 'Das Board verschwindet für alle. Die Kacheln bleiben in der Bibliothek.'
   kiosk: Wandanzeige
-  kiosk_hint: Vollbild, wechselt jede Minute das Board, 22–7 Uhr gedimmt. Parameter every und dim in der Adresse anpassbar.
+  kiosk_hint: 'Vollbild, zeigt die Kacheln in Sätzen, die den Bildschirm füllen, alle {secs} s der nächste Satz, nach dem letzten (frühestens nach einer Minute) das nächste Board, 22–7 Uhr gedimmt. Übergang und Zeit in den Board-Einstellungen, every und dim in der Adresse.'
+  kiosk_leave: 'Wandanzeige beenden: Esc, eine beliebige Taste oder ein Klick in eine Ecke.'
   from_template: Aus Vorlage
   template_hint: Legt Board und Kacheln im gewählten Bereich an; Kacheln mit Verbindung zeigen danach, was noch fehlt.
   bulk_invalid: Nichts ausgewählt oder unbekannte Aktion.
@@ -627,6 +639,11 @@ field:
   hide_after: 'Geräte ausblenden, die länger offline sind als (Tage, 0 = nie)'
   board_layout: 'Anordnung'
   board_layout_hint: 'Spaltenfluss füllt Lücken unter kurzen Abschnitten; die Breite der Abschnitte gilt dann nicht.'
+  wall_page: 'Sekunden je Satz'
+  wall_page_hint: 'Die Wandanzeige packt die Kacheln in Sätze, die genau den Bildschirm füllen, und zeigt nach dieser Zeit den nächsten ({min}–{max} s).'
+  wall_turn: 'Übergang'
+  wall_ease: 'Beschleunigung'
+  wall_preview: 'Vorschau der Wandanzeige'
   free: 'Frei verfügbaren Betrag zeigen (Kontostand)'
   titles_only: 'Nur Titel (eine Zeile je Eintrag)'
   list_height: 'Listenhöhe'
@@ -801,6 +818,22 @@ sort:
 area:
   main: Hauptspalte
   side: Seitenspalte
+wall_turn:
+  cut: Kante-Schnitt
+  fade: Überblenden
+  stagger: Kachel für Kachel
+  flap: Fallblatt
+  shutter: Rollladen
+  scan: Scanlinie
+  rotate: Abwechselnd
+wall_ease:
+  standard: Standard
+  linear: Linear
+  quad: Quadratisch
+  cubic: Kubisch
+  expo: Exponentiell
+  soft: Sanft auslaufend
+  snap: Federnd
 wtype:
   github_trending:
     name: GitHub-Trends
@@ -1199,6 +1232,14 @@ sys:
   swap: Swap
   load: Last (5 min)
 hints:
+  layout: Ansicht
+  layout_grouped: Gruppiert
+  layout_single: Einzeln
+  filter_button: 'Filter ({n})'
+  level: Stufe
+  source: Dienst
+  show_all: 'alle {n} zeigen'
+  order: Ordnen
   handled_title: 'Von dir erledigt oder pausiert'
   handled_acknowledged: 'erledigt {when}'
   handled_snoozed: 'pausiert {when}'
@@ -1278,6 +1319,8 @@ severity:
   warn: Warnung
   critical: Kritisch
 library:
+  put_on: 'Auf Board legen'
+  board: 'Board'
   search: 'Suchen: Titel, Typ, Bereich'
   links: Links
   lead: Einmal eingerichtete Kacheln, beliebig oft platzierbar.
@@ -1292,6 +1335,24 @@ history:
   sections: Abschnitte
   restore: Wiederherstellen
 conn:
+  tiles_title: 'Passende Kacheln'
+  tiles_lead: 'Die Verbindung steht. Ein Klick legt eine Kachel mit ihren Daten auf das Board.'
+  tiles_put: '{tile} auf Board legen'
+  tiles_put_on: '{tile} auf {board} legen'
+  cause_refused: 'Verbindung abgelehnt: Unter dieser Adresse antwortet nichts. Läuft der Dienst, und stimmen Port und http/https?'
+  cause_egress: 'Von der Netzwerk-Regel blockiert: Andon darf diese Adresse nicht erreichen.'
+  cause_auth: 'Anmeldung abgelehnt (401): Token oder Zugangsdaten stimmen nicht oder sind abgelaufen.'
+  cause_forbidden: 'Zugriff verweigert (403): Die Anmeldung gilt, ihr fehlen aber Rechte für die Schnittstelle.'
+  cause_tls: 'Zertifikat nicht vertrauenswürdig: selbst signiert, abgelaufen oder für einen anderen Namen ausgestellt.'
+  cause_dns: 'Name nicht gefunden: Der Hostname lässt sich nicht auflösen. Tippfehler, oder kennt ihn nur ein anderer DNS-Server?'
+  cause_timeout: 'Keine Antwort: Der Dienst antwortet nicht in der Zeit, oder eine Firewall verwirft die Anfrage.'
+  cause_fix_network: 'Erlaubte Netze unter Admin → Netzwerk'
+  cause_ask_network: 'Ein Administrator kann die Adresse unter Admin → Netzwerk freigeben.'
+  cause_fix_login: 'Zugangsdaten ändern'
+  cause_fix_address: 'Adresse und TLS-Prüfung ändern'
+  cause_detail: 'Meldung'
+  pick_search: 'Dienst suchen: Name, Beschreibung'
+  pick_other: 'Weitere'
   tab_overview: 'Überblick'
   tab_access: 'Zugang'
   tab_settings: 'Einstellungen'
@@ -1836,6 +1897,8 @@ space:
 locale:
   de: Deutsch
   en: English
+  code_de: DE
+  code_en: EN
 scope:
   read: Lesen (API)
   embed: Einbetten
@@ -2047,6 +2110,11 @@ icon:
   invalid: Icon ungültig (SVG, PNG, WebP, JPEG, ICO bis 512 KB).
 mail:
   footer: Andon · {url}
+  exists:
+    subject: Du hast schon ein Konto
+    body: Jemand hat versucht, mit dieser Adresse ein Konto bei Andon anzulegen. Du hast schon eines; es bleibt unverändert. Warst du das nicht, ignoriere diese Mail.
+    reset: 'Passwort vergessen? Hier setzt du ein neues: {url}'
+    button: Anmelden
   invite:
     subject: Einladung zu Andon
     body: '{inviter} hat dich zu Andon eingeladen. Der Link ist 7 Tage gültig.'
@@ -3060,6 +3128,9 @@ info:
   tandoor:
     items: '{count} Einträge offen'
 kpi:
+  period_year: '{year}'
+  period_month: '{month}'
+  period_week: 'KW {week}'
   safe: 'Konto {in}, zurückzulegen {out}'
   liquidity: Eingang {in} − Fixkosten {out}
   per_hour: je Stunde, {count} Kunden, 12 Monate
@@ -3071,6 +3142,7 @@ kpi:
   reserve: USt-Zahllast + {rate} % vom Überschuss
   assets: '{count} Assets'
   vs_last_year: zum Vorjahr
+  data_from: 'kein Vorjahresvergleich, Daten ab {month}'
   of_goal: Ziel {goal}
   cash_30: offen + wiederkehrend, 30 Tage
   spark_months: 'letzte {n} Monate'
@@ -3468,6 +3540,7 @@ param:
   bundle_from: 'Ab so vielen Rechnungen je Kunde bündeln (0 = nie)'
   exclude: 'Ausnehmen (Namen, * als Platzhalter, mit Komma)'
 settings:
+  read_only: Nur zum Ansehen. Ändern können die Owner des Teams.
   bad_network: 'Ein Netz ist keine gültige CIDR-Angabe, z. B. 192.168.10.0/24.'
   travel: Fahrten
   travel_base: Startpunkt beruflicher Fahrten
@@ -3750,6 +3823,13 @@ cashflow:
   below_min: 'Fällt unter den Mindeststand von {amount}.'
   delayed: 'Annahme: Kunden zahlen {days} Tage später.'
 billing:
+  figures: 'Kennzahlen'
+  fig_revenue: 'Umsatz netto'
+  fig_paid: 'Zahlungseingang'
+  fig_expenses: 'Ausgaben netto'
+  fig_hours: 'Stunden'
+  open_draft: 'Offener Entwurf {number} vom {day}.'
+  open_draft_again: 'Anlegen erstellt einen weiteren Entwurf.'
   pick_verbund: 'Mehrere Verbünde im Bereich: für das Jahrespaket einen wählen.'
   summary: Überblick
   sum_unbilled: 'nicht abgerechnet · {n} Kunden'
@@ -4404,7 +4484,7 @@ detail:
   travel:
     trips: 'Fahrten'
     month: 'Kilometer im Monat'
-    money: 'Kilometergeld'
+    money_of: 'Kilometergeld ({km} km × {rate} €/km)'
     business: 'beruflich'
     private: 'privat'
     allowance: 'Verpflegung'
@@ -6156,7 +6236,7 @@ travel:
   prev: 'Vormonat {km} km'
   year: 'Dieses Jahr {km} km · {countries} Länder · {cities} Städte'
   trips: '{n} berufliche Fahrten'
-  amount: '{amount} bei {rate} €/km'
+  amount: '{km} km × {rate} €/km = {amount}'
   none: Noch keine Fahrten.
   split: 'beruflich {business} km · privat {private} km'
   commute: 'Arbeitsweg {km} km'
@@ -6191,10 +6271,10 @@ noise:
 recent:
   none: In den letzten 7 Tagen ist nichts passiert.
 subs:
-  per_month: '{n} Abos je Monat'
+  per_month: '{n} Abos · Beträge je Monat'
   missing: 'Fehlt in Wallos: {names}'
   none: Keine Wallos- oder Sure-Verbindung im Bereich.
-  per_year: '{n} Abos je Jahr'
+  per_year: '{n} Abos · Beträge je Jahr'
 ip:
   changed: 'Neu seit {time}, vorher {prev}'
 flow:
@@ -6215,12 +6295,11 @@ immich:
 clients:
   docs: Dokumente in Paperless
   customer: 'Kunde'
-  hours_year: 'Stunden (Jahr)'
-  hours_month: '{hours} h diesen Monat'
+  hours: 'Stunden'
   unbilled: 'Nicht abgerechnet'
   open: 'Offen'
   overdue: 'davon {amount} überfällig'
-  revenue: 'Umsatz (Jahr, netto)'
+  revenue: 'Umsatz netto'
   pay_days: 'Zahlt in Tagen'
   pays_in: 'zahlt meist nach {days} Tagen'
   none: 'Noch keine Kunden: Kimai verbinden.'
@@ -6238,9 +6317,11 @@ clients:
   date: 'Datum'
   due: 'Fällig'
   balance: 'Offen'
-  projects: 'Projekte dieses Jahr'
+  projects: 'Projekte'
   no_hints: 'Keine offenen Hinweise zu diesem Kunden.'
 hosts:
+  quiet: '{count} ohne Befund'
+  quiet_singular: '{count} ohne Befund'
   cves: 'Sicherheitslücken'
   alerts: 'Prometheus-Alerts'
   beats: 'Herzschläge'
@@ -6435,3 +6516,20 @@ sports:
   diff: Diff.
   points: Pkt.
   live: läuft
+flash:
+  saved: Gespeichert.
+  done: Erledigt.
+  setup_done: Administrator angelegt. Melde dich jetzt an.
+  password_reset: Neues Passwort gesetzt. Melde dich damit an.
+  password_changed: Passwort geändert.
+  registered: Fertig. Melde dich mit deiner Adresse und deinem Passwort an. Gab es die Adresse schon, gilt dein bisheriges Passwort; eine Mail sagt dir, wie du es zurücksetzt.
+  registered_no_mail: Fertig. Melde dich mit deiner Adresse und deinem Passwort an. Gab es die Adresse schon, gilt dein bisheriges Passwort; ein Admin kann es zurücksetzen.
+period:
+  data_from_label: 'Vorjahresvergleich'
+  choice: 'Zeitraum'
+  12m: '12 Monate'
+  year: 'Jahr'
+  prev: 'Vorjahr'
+  last_12m: 'letzte 12 Monate'
+  today: 'Stand heute'
+  data_from: 'Daten ab {month}'

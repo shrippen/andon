@@ -176,7 +176,8 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 		})
 	}
 
-	expensesRaw, err := api.Pages(ctx, "expenses", nil)
+	// Deleted expenses as the receipts page skips them (fetchNinjaExpenses).
+	expensesRaw, err := api.Pages(ctx, "expenses", url.Values{"is_deleted": {"false"}})
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +240,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 
 	return &NinjaDataset{
 		URL: sctx.URL, Currency: currency, Invoices: invoices, Payments: payments, Clients: clients,
-		Expenses: expenses, Vendors: vendors, Quotes: quotes, Recurring: recurring, HomeCountryID: homeCountry,
+		Expenses: expenses, Vendors: vendors, Quotes: quotes, Recurring: recurring, HomeCountryID: homeCountry, Since: since,
 	}, nil
 }
 

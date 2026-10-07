@@ -44,7 +44,9 @@
   {{else if eq $k.SubKey "kpi.liquidity"}}<span class="kpi-sub">{{t "kpi.liquidity" "in" (money $k.SubIn) "out" (money $k.SubOut)}}</span>
   {{else if eq $k.SubKey "kpi.per_hour"}}<span class="kpi-sub">{{t "kpi.per_hour" "count" $k.SubCount}}</span>
   {{else if eq $k.SubKey "kpi.assets"}}<span class="kpi-sub">{{t "kpi.assets" "count" $k.SubCount}}</span>
+  {{else if eq $k.SubKey "kpi.data_from"}}<span class="kpi-sub">{{t "kpi.data_from" "month" $k.SubStart}}</span>
   {{end}}
+  {{with $k.PeriodKey}}<span class="kpi-sub">{{t . "year" $k.PeriodArg "month" $k.PeriodArg "week" $k.PeriodArg}}</span>{{end}}
   {{with $k.Spark}}{{template "spark" .}}<span class="kpi-sub">{{if $k.SparkDays}}{{t "kpi.spark_days" "n" $k.SparkDays}}{{else}}{{t "kpi.spark_months" "n" 12}}{{end}}</span>{{end}}
   {{with $k.Details}}<details class="kpi-details"><summary class="small">{{t "kpi.details"}}</summary>
     <ul class="legend-list">{{range .}}<li><span>{{.Label}}{{with .Note}} <small class="muted">{{.}}</small>{{end}}</span><b>{{money .Amount $k.Currency}}</b></li>{{end}}</ul>
@@ -86,6 +88,7 @@
   {{with .Frag.View.Sum}}<tfoot><tr class="sum-row">{{range $i, $col := $cols}}{{$v := index .Values $i}}<td{{if $col.Numeric}} class="num"{{end}}>{{if eq $i 0}}{{t "table.sum"}}{{else if eq $col.Format "money"}}{{money $v}}{{else if eq $col.Format "hours"}}{{num $v 1}} h{{else if eq $col.Format "km"}}{{num $v 0}} km{{end}}</td>{{end}}</tr></tfoot>{{end}}
   </table></div>
 {{if gt .Frag.View.More 0}}<p class="muted small">{{t "table.more" "count" .Frag.View.More}}</p>{{end}}
+{{with .Frag.View.PeriodKey}}<p class="muted small">{{t .}}</p>{{end}}
 {{end}}
 {{end}}
 
@@ -106,7 +109,7 @@
   {{end}}
   {{with $v.GoalY}}<line class="goal" x1="10" y1="{{.}}" x2="1000" y2="{{.}}"/>{{end}}
 </svg>
-<p class="legend"><span><i></i>{{t "chart.this"}}</span>{{if $v.ShowPrev}}<span><i class="prev"></i>{{t $prevKey}}</span>{{end}}{{with $v.Goal}}<span><i class="goal"></i>{{t "chart.goal" "amount" (money .)}}</span>{{end}}</p>
+<p class="legend"><span><i></i>{{t "chart.this"}}</span>{{if $v.ShowPrev}}<span><i class="prev"></i>{{t $prevKey}}{{with $v.DataFrom}} · {{t "period.data_from" "month" (.Format "01/2006")}}{{end}}</span>{{end}}{{with $v.Goal}}<span><i class="goal"></i>{{t "chart.goal" "amount" (money .)}}</span>{{end}}</p>
 {{end}}
 {{end}}
 

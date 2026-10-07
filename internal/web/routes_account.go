@@ -7,6 +7,7 @@ import (
 	"andon/internal/services/admin"
 	"andon/internal/services/auth"
 	"andon/internal/services/invites"
+	"andon/internal/services/mail"
 	"andon/internal/services/oidc"
 )
 
@@ -87,22 +88,41 @@ func (d Deps) handleRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	password := r.FormValue("password")
-	email, err := admin.Register(d.DB, r.FormValue("email"), r.FormValue("name"), password, enums.Locale(r.FormValue("locale")))
+	err := admin.Register(d.DB, r.FormValue("email"), r.FormValue("name"), r.FormValue("password"), enums.Locale(r.FormValue("locale")))
 	if err != nil {
 		_ = d.Page(w, ctx, "register", http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
-	d.loginAfter(w, r, email, password)
+	// The same answer for a new and a taken address: on to the login.
+	key := flashRegister
+	if !mail.Configured() {
+		key = flashRegisterNoMail
+	}
+	d.flash(w, key)
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+// resetValues: without SMTP the page explains the admin's reset link
+// instead of offering a mail.
+func resetValues(values map[string]any) map[string]any {
+	if values == nil {
+		values = map[string]any{}
+	}
+	values["NoMail"] = !mail.Configured()
+	return values
 }
 
 func (d Deps) handleResetRequestForm(w http.ResponseWriter, r *http.Request) {
 	ctx, _ := d.Context(r)
-	_ = d.Page(w, ctx, "reset_request", http.StatusOK, nil)
+	_ = d.Page(w, ctx, "reset_request", http.StatusOK, resetValues(nil))
 }
 
 func (d Deps) handleResetRequest(w http.ResponseWriter, r *http.Request) {
 	ctx, _ := d.Context(r)
+	if !mail.Configured() {
+		_ = d.Page(w, ctx, "reset_request", http.StatusOK, resetValues(nil))
+		return
+	}
 	if err := r.ParseForm(); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
 		return
@@ -140,5 +160,6 @@ func (d Deps) handleResetSubmit(w http.ResponseWriter, r *http.Request) {
 		_ = d.Page(w, ctx, "reset", http.StatusBadRequest, map[string]any{"Token": token, "Error": errKey(err)})
 		return
 	}
+	d.flash(w, flashReset)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }

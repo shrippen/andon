@@ -19,7 +19,8 @@ func (d Deps) handleHosts(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.handleBoardError(w, r, err)
 		return
 	}
-	_ = d.Page(w, ctx, "hosts", http.StatusOK, map[string]any{"Hosts": list})
+	found, quiet := hosts.Split(list)
+	_ = d.Page(w, ctx, "hosts", http.StatusOK, map[string]any{"Hosts": list, "Found": found, "Quiet": quiet})
 }
 
 func (d Deps) handleHost(w http.ResponseWriter, r *http.Request, ctx Ctx) {

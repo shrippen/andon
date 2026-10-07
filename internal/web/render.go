@@ -140,8 +140,22 @@ func mustParse() *template.Template {
 		"optText":     optText,
 		"secretLabel": secretLabel,
 		"alsoLinks":   alsoLinksOf,
+		"can":         can,
 	}
 	return template.Must(template.New("root").Funcs(funcs).ParseFS(templateFiles, "templates/*.html"))
+}
+
+// rightKeys name the rights a template asks for: {{if can .Right "manage"}}.
+var rightKeys = map[string]enums.Right{
+	"view": enums.RightView, "use": enums.RightUse, "edit": enums.RightEdit, "manage": enums.RightManage,
+}
+
+// can tells a template whether granted suffices for need, by the rule the
+// services check (access.Need); an unknown need allows nothing. Pages
+// leave out what it denies, the services still refuse it.
+func can(granted enums.Right, need string) bool {
+	required, ok := rightKeys[need]
+	return ok && access.Need(granted, required) == nil
 }
 
 // dataURI marks an inlined image (from the image source) as a safe URL;
@@ -453,6 +467,12 @@ func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, valu
 			data["Onboarding"] = state
 		}
 	}
+	// The success message of the redirect before shows once, on the
+	// next whole page.
+	if ctx.flash != "" && status < http.StatusBadRequest && !fragment && !partial {
+		data["Flash"] = ctx.flash
+		d.takeFlash(w)
+	}
 	if _, ok := data["ThemeURL"]; !ok {
 		url, err := d.themeURL(ctx.Who, nil, nil)
 		if err != nil {
@@ -467,6 +487,9 @@ func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, valu
 	*set.state = renderState{locale: ctx.Locale, path: ctx.Path, nav: nav, round: roundOf(values["Round"]), data: data}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if posted := refusedPost(ctx, status); posted != nil {
+		return d.refusedPage(w, set, name, status, data, posted)
+	}
 	w.WriteHeader(status)
 	// Logged here: most callers ignore the error once headers are out, and
 	// a broken template would otherwise leave half a page and no trace.
@@ -475,6 +498,19 @@ func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, valu
 		return err
 	}
 	return nil
+}
+
+// refusedPage renders a page that answers a refused form, with the
+// form's fields as typed (forms.go).
+func (d Deps) refusedPage(w http.ResponseWriter, set *pageSet, name string, status int, data map[string]any, posted *http.Request) error {
+	var page bytes.Buffer
+	if err := set.tmpl.ExecuteTemplate(&page, name, data); err != nil {
+		slog.Warn("render", "template", name, "err", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return err
+	}
+	w.WriteHeader(status)
+	return keepInput(w, page.Bytes(), posted)
 }
 
 // calmMark ends a tile body that has nothing to do and asks to be hidden

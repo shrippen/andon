@@ -23,7 +23,7 @@
          menu, so the list fits without scrolling sideways. */}}
     <div class="user-list">
       {{range .Users}}
-      <div class="user-row{{if not .IsActive}} muted{{end}}">
+      <div class="user-row{{if not .IsActive}} muted{{end}}" id="user-{{.ID}}">
         <div class="user-who">
           <b>{{.Name}}</b> <small>{{.Email}}</small>
           <span class="pill-row">{{if .TOTPEnabled}}<span class="pill" data-state="applied">2FA</span>{{end}}
@@ -32,14 +32,16 @@
           <small class="muted">{{t "nav.teams"}}: {{range $i, $m := .Teams}}{{if $i}}, {{end}}{{$m.Name}} ({{t (print "role." $m.Role)}}){{else}}–{{end}}
             · {{t "admin.login"}}: {{if .LastLoginAt}}{{ago .LastLoginAt}}{{else}}–{{end}}</small>
         </div>
-        <form method="post" action="/admin/users/{{.ID}}/role" class="row-actions nowrap">
+        {{/* The own role is no choice: an admin cannot demote themselves. */}}
+        {{if eq .ID $.Who.UserID}}<span class="pill">{{t (print "irole." .Role)}}</span>
+        {{else}}<form method="post" action="/admin/users/{{.ID}}/role" class="row-actions nowrap">
           <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
           <select class="select" name="role" aria-label="{{t "field.role"}}">
             <option value="user"{{if eq (print .Role) "user"}} selected{{end}}>{{t "irole.user"}}</option>
             <option value="admin"{{if eq (print .Role) "admin"}} selected{{end}}>{{t "irole.admin"}}</option>
           </select>
           <button type="submit" class="btn btn-outline">{{t "action.save"}}</button>
-        </form>
+        </form>{{end}}
         {{if eq .ID $.Who.UserID}}
         <span class="small muted user-self">{{t "admin.self"}}</span>
         {{else}}
@@ -125,6 +127,7 @@
     </div>
     </div>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

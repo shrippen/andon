@@ -19,6 +19,12 @@ import (
 
 const oidcBlankRules = 2
 
+// Settings posts that run something now instead of saving.
+const (
+	analysisPath = "/admin/settings/analysis"
+	backupPath   = "/admin/settings/backup"
+)
+
 // RegisterSettingsRoutes wires the admin's instance settings and the
 // "reapply authentik groups" action.
 func (d Deps) RegisterSettingsRoutes(mux *http.ServeMux) {
@@ -29,8 +35,8 @@ func (d Deps) RegisterSettingsRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /admin/settings/server", d.handleSettingsServer)
 	mux.HandleFunc("POST /admin/settings/oidc", d.handleSettingsOIDC)
 	mux.HandleFunc("POST /admin/settings/oidc/test", d.authed(d.handleSettingsOIDCTest))
-	mux.HandleFunc("POST /admin/settings/analysis", d.handleAnalysisRun)
-	mux.HandleFunc("POST /admin/settings/backup", d.handleBackupRun)
+	mux.HandleFunc("POST "+analysisPath, d.handleAnalysisRun)
+	mux.HandleFunc("POST "+backupPath, d.handleBackupRun)
 	mux.HandleFunc("GET /admin/users/{id}/reapply", d.authed(d.handleReapplyPreview))
 	mux.HandleFunc("POST /admin/users/{id}/reapply", d.handleReapply)
 }
@@ -148,7 +154,17 @@ func (d Deps) settingsAction(w http.ResponseWriter, r *http.Request, run func(Ct
 		d.settingsPage(w, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
 	}
+	d.flash(w, settingsFlash(r.URL.Path))
 	http.Redirect(w, r, backTo(r, "/admin/settings"), http.StatusSeeOther)
+}
+
+// settingsFlash is what a settings post says once done: the buttons that
+// run something now did it, the others saved.
+func settingsFlash(path string) string {
+	if path == analysisPath || path == backupPath {
+		return flashDone
+	}
+	return flashSaved
 }
 
 // errBadMapSource: the map source is no plain http(s) URL.

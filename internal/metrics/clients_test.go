@@ -28,13 +28,13 @@ func TestClientCards(t *testing.T) {
 			{ClientID: 7, Number: "R-0", Status: "paid", Date: "2026-03-01", Amount: 595, Net: 500},
 		},
 	}
-	cards := metrics.ClientCards(kimai, ninja, today, metrics.CenterMean, nil)
+	cards := metrics.ClientCards(kimai, ninja, today, metrics.CenterMean, nil, metrics.PeriodYear.Span(today))
 	if len(cards) != 2 {
 		t.Fatalf("cards: %+v", cards)
 	}
 	acme := cards[0]
-	if acme.Name != "Acme GmbH" || acme.HoursYear != 3 || acme.HoursMonth != 2 || acme.Unbilled != 200 ||
-		acme.Overdue != 1190 || acme.Open != 1190 || acme.RevenueYTD != 1500 || len(acme.Invoices) != 1 || acme.Projects[0].Name != "Relaunch" {
+	if acme.Name != "Acme GmbH" || acme.Hours != 3 || acme.Unbilled != 200 ||
+		acme.Overdue != 1190 || acme.Open != 1190 || acme.Revenue != 1500 || len(acme.Invoices) != 1 || acme.Projects[0].Name != "Relaunch" {
 		t.Fatalf("acme: %+v", acme)
 	}
 	if cards[1].Name != "Solo" || cards[1].Matched {

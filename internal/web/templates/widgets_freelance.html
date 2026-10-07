@@ -237,7 +237,7 @@
 <div class="tile-head"><b class="tile-value" data-live>{{num $v.HeadKM 0}} km</b><span class="tile-note">{{if $v.Year}}{{t "travel.this_year"}}{{else}}{{t "travel.month"}}{{end}}{{if $v.PrevKM}} · {{t $prevKey "km" (num $v.PrevKM 0)}}{{end}}</span></div>
 {{with $v.Bar}}<div class="store-bar" title="{{t "travel.business_share" "pct" .}}"><i data-style="--w:{{.}}%;background:var(--d1)"></i></div>{{end}}
 <p class="small">{{t "travel.split" "business" (num $v.BusinessKM 0) "private" (num $v.PrivateKM 0)}}{{if $v.CommuteKM}} · {{t "travel.commute" "km" (num $v.CommuteKM 0)}}{{end}}</p>
-{{if $v.Trips}}<p class="small">{{t "travel.trips" "n" $v.Trips}}{{if $v.Rate}} · {{t "travel.amount" "amount" (money $v.TripAmount) "rate" (num $v.Rate 2)}}{{end}}</p>{{end}}
+{{if $v.Trips}}<p class="small">{{t "travel.trips" "n" $v.Trips}}{{if $v.Rate}} · {{t "travel.amount" "km" (num $v.PayKM 0) "amount" (money $v.TripAmount) "rate" (num $v.Rate 2)}}{{end}}</p>{{end}}
 {{if or $v.Countries $v.Cities}}<p class="small muted">{{t "travel.places" "countries" $v.Countries "cities" $v.Cities}}</p>{{end}}
 {{if $v.Estimated}}<p class="small muted">{{t "travel.estimated"}}</p>{{end}}
 {{else}}<p class="slot-note">{{t "travel.none"}}</p>{{end}}{{end}}

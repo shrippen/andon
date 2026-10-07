@@ -27,9 +27,10 @@
       <p class="small muted">{{t "login.or"}}</p>
       <a class="btn btn-accent" href="/auth/oidc/login">{{t "login.with" "provider" .OIDCLabel}}</a>
       {{end}}
-      <p class="small muted"><a href="/reset">{{t "login.forgot"}}</a>{{if .RegistrationOpen}} · <a href="/register">{{t "register.title"}}</a>{{end}}</p>
+      <p class="small muted"><a href="/reset">{{if .MailReady}}{{t "login.forgot"}}{{else}}{{t "login.ask_admin"}}{{end}}</a>{{if .RegistrationOpen}} · <a href="/register">{{t "register.title"}}</a>{{end}}</p>
     </div>
   </div>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -58,6 +59,7 @@
       </form>
     </div>
   </div>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -91,6 +93,7 @@
       </form>
     </div>
   </div>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

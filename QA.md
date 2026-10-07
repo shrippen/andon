@@ -6,7 +6,7 @@ Feste User Journeys für explorative QA-Sitzungen: Wer etwas an Andon prüft, sp
 
 1. Eine Instanz je Bereich, jede mit eigenem Port und Datenordner:
    `PORT=8101 BASE_URL=http://localhost:8101 DATA_DIR=/tmp/qa-a ./start.sh demo` (ohne `demo` für die leere Instanz in J1).
-2. Demo-Logins: `mara@studio-weber.example.test` (Freelancerin, eigene Boards), `lena@studio-weber.example.test` (Admin), Passwort `demo-password-1`. Sprache je Benutzer über das Benutzermenü oder `POST /me/locale` (`locale=de|en`).
+2. Demo-Logins: `mara@studio-weber.example.test` (Freelancerin, eigene Boards), `lena@studio-weber.example.test` (Admin), Passwort `demo-password-1`. Sprache je Benutzer über das Benutzermenü, den Umschalter DE/EN im Fuß jeder Seite oder `POST /locale` (`locale=de|en`).
 3. Jede Journey auf dem Desktop (1440×960) und die markierten (📱) auch auf dem Handy (390×844).
 4. Nebenher beobachten: Server-Log (`level=ERROR`, `request failed`), Browser-Konsole (Fehler, CSP-Meldungen), Antworten ≥ 400, seitliches Scrollen, abgeschnittene Texte, rohe Katalogschlüssel (`hint.xyz.title`, `{n}`), Englisch auf deutschen Seiten und umgekehrt.
 5. Fund notieren mit: Stufe (Fehler, Reibung, unlogisch, kosmetisch), Journey und Schritt, was passierte gegen was erwartet war, Beleg (Screenshot, Log-Zeile, URL). Nur Beobachtetes, Ungetestetes ausdrücklich nennen.
@@ -26,18 +26,18 @@ Werkzeug: Playwright (Chromium) mit kleinen Skripten je Journey; Login über `#e
 Erwartet: jede leere Seite nennt den nächsten Schritt (Verbindung anlegen, Kachel hinzufügen).
 
 **J-A2 Erste Verbindung mit Fehlern** · Persona: Admin · Ziel: Kimai mit falscher Adresse und falschem Token, dann reparieren
-1. `/connections/new` → Kimai. Persönlicher Bereich: das Token-Feld muss sofort sichtbar sein.
+1. `/connections/new`: Suche „kim“ findet Kimai, die Gruppen (wie in der Galerie) zählen mit → Kimai. Persönlicher Bereich: das Token-Feld muss sofort sichtbar sein.
 2. URL `http://127.0.0.1:9/`, beliebiges Token, speichern → `/connections/{id}?welcome`.
-3. „Testen“: verständliche Fehlermeldung, in der UI-Sprache, mit Hinweis auf Admin → Netzwerk, falls die Adresse gesperrt ist.
+3. „Testen“: Ursache in der UI-Sprache („Verbindung abgelehnt …“, „Von der Netzwerk-Regel blockiert“ mit Link Admin → Netzwerk, 401/403 mit Link zum Zugang), die rohe Meldung darunter.
 4. Reiter Einstellungen: URL ändern und speichern (mit gespeichertem gemeinsamem Token: das Feld „Neue Adresse? Zugang“ ausfüllen).
 5. Unter Admin → Einstellungen → Netzwerk `127.0.0.0/8` erlauben; gegen einen Nachbau, der 401 antwortet, erst falsches, dann richtiges Token auf dem Reiter Zugang; Test.
-Erwartet: nichts Getipptes geht verloren, nach dem Speichern eines neuen Tokens stimmt der Zustand.
+Erwartet: nichts Getipptes geht verloren, nach dem Speichern eines neuen Tokens läuft der Test von selbst und zeigt sein Ergebnis.
 
 **J-A3 Dienst ohne Anmeldung → Kachel → Board** · Ziel: Wetterwarnungen (DWD) auf der Startseite
 1. `/connections/new?service=dwd`, Ort „Weimar“ suchen und wählen, speichern.
-2. Unter „Passende Kacheln“ die Kachel anlegen.
-3. Prüfen, ob und wie sie auf die Startseite kommt (Bibliothek `/widgets`, Board bearbeiten → Kachel hinzufügen → „Auch hier zeigen“).
-Erwartet: ein kurzer Weg von der Verbindung zur Kachel auf dem Board.
+2. Nach dem grünen Test unter „Passende Kacheln“ Board wählen, „… auf Board legen“.
+3. Alternativ: Bibliothek `/widgets` → Zeilenmenü „Auf Board legen“; ein neues, leeres Board schlägt Kacheln für Verbindungen ohne Kachel vor.
+Erwartet: ein Klick von der Verbindung zur Kachel auf dem Board.
 
 **J-A4 Dashy-Import** 📱
 1. `/import`, Format Dashy, eine `conf.yml` mit drei Abschnitten, einem eingeklappten, Umlauten, einem Eintrag ohne URL, `theme: nord`.
@@ -48,12 +48,12 @@ Erwartet: ein kurzer Weg von der Verbindung zur Kachel auf dem Board.
 1. `/admin/users` → einladen; Link in einem frischen Browser öffnen.
 2. Zu kurzes Passwort (Name muss stehen bleiben), dann gültiges.
 3. Als neuer Benutzer `/`, `/connections`, `/admin/users`, `/spaces/1/connections`.
-4. Selbstregistrierung erlauben, doppelte und neue Adresse registrieren.
+4. Selbstregistrierung erlauben, doppelte und neue Adresse registrieren: gleiche Antwort (Anmeldung mit Hinweis), mit SMTP Mail „Du hast schon ein Konto“ an die vergebene.
 5. Die eigene Admin-Rolle herabsetzen wollen.
 
 **J-A6 Passwort zurücksetzen und TOTP**
-1. „Passwort vergessen?“ für bekannte und unbekannte Adresse (ohne SMTP: was sagt die Seite?).
-2. `/reset/invalid`; Admin → Benutzer → Reset-Link, Passwort setzen, Link erneut verwenden.
+1. „Passwort vergessen?“ für bekannte und unbekannte Adresse; ohne SMTP heißt der Link „Admin um neues Passwort bitten“ und die Seite erklärt den Reset-Link der Admins.
+2. `/reset/invalid`; Admin → Benutzer → Reset-Link, Passwort setzen (Erfolgsmeldung auf der Anmeldung), Link erneut verwenden.
 3. `/me/security` → TOTP einrichten: falscher Code, dann richtiger; Seite neu laden.
 4. Abmelden, mit TOTP anmelden: falscher Code, richtiger Code; fünfmal falsch, dann richtig (muss „zu viele Versuche“ sagen).
 
@@ -67,12 +67,14 @@ Erwartet: ein kurzer Weg von der Verbindung zur Kachel auf dem Board.
 Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel und Dialog stimmen überein (z. B. „Hinweise“: offen, kritisch, Warnungen).
 
 **J-B2 Hinweise abarbeiten** 📱
-1. `/hints`; Filter „Kritisch“, dann ein Dienst (`?level=critical&source=…`).
+1. `/hints`; in der Filterleiste „Kritisch“, dann ein Dienst (`?level=critical&source=…`), „alle N zeigen“. Am Handy: „Filter (n)“ öffnet die Leiste, der erste Hinweis steht auf dem ersten Bildschirm.
 2. Suche `#hint-search` mit Hinweistext, mit Wörtern der Schaltflächen („pausieren“, „Notiz“ dürfen nicht alles treffen).
 3. ⋯ Details eines Hinweises; ✎ Notiz und „Erledigt“; „7 Tage pausieren“.
-4. Tastatur: `j` dreimal, `a`; Sammelaktion „Alle N erledigt“ einer Gruppe.
-5. `/hints?view=done`: Ist das Erledigte dort? Lässt es sich zurückholen?
-6. Zähler vergleichen: Navigation, Filterchips, Kacheln „Lage“ und „Hinweise“.
+4. Tastatur: `j` dreimal, `a`, `s`; Sammelaktion „Alle N erledigt“ einer Gruppe (nur Regeln mit 2+ Hinweisen haben eine).
+5. „Gruppiert / Einzeln“ umschalten, neu laden: bleibt die Wahl? „Nach Geldwert“, „Nach Kunde gruppieren“.
+6. `/hints?view=done`: Ist das Erledigte dort? Lässt es sich zurückholen?
+7. Zähler vergleichen: Navigation, Filterleiste, Kacheln „Lage“ und „Hinweise“.
+8. Am Handy: Menü (☰) öffnet die Navigation von links, aktuelle Seite markiert; Esc, Klick daneben und × schließen, Fokus zurück auf ☰.
 
 **J-B3 Tastatur**
 1. Auf dem Board `/`, „kimai“, ↓, Esc; Text ohne Treffer.
@@ -82,33 +84,35 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 
 **J-B4 Admin-Board** · Persona: Lena · `/boards/1`
 1. „Kompakt“ (`?view=compact`), „Alles zeigen“.
-2. „Wandanzeige“ (`?kiosk&every=60&dim=22-7`): kein Einführungsbanner, alles sichtbar?
+2. „Wandanzeige“ (`?kiosk&every=60&dim=22-7`) bei 1920×1080 und 1280×720: kein Einführungsbanner, Hinweis zum Beenden für einige Sekunden, kein Scrollen; die Kacheln kommen in Sätzen, die den Bildschirm füllen (keine Kachel abgeschnitten), und wechseln nach der Satzzeit mit dem Übergang aus den Board-Einstellungen, nach dem letzten Satz das nächste Board. Taste, Esc oder Klick in eine Ecke führt zum Board zurück; mit „Bewegung reduzieren“ wechselt der Satz ohne Übergang. Board-Einstellungen → Wandanzeige: Übergang und Beschleunigung ändern spielt die Vorschau, „Vorschau“ spielt sie auch bei reduzierter Bewegung.
 3. „Mein Layout“ (`?layout`): Kachelgröße eines Abschnitts ändern, Fertig, bleibt es? „Auf Standard zurücksetzen“.
 
 **J-B5 Weitere Seiten**
-1. `/timeline`, `/hosts`, `/hosts/<name>`, `/hosts/gibt-es-nicht`, `/reports/isp`.
+1. `/timeline`, `/hosts` (Hinweise zählen als Probleme, Hosts ohne Monitor und Hinweis unter „N ohne Befund“ eingeklappt), `/hosts/<name>`, `/hosts/gibt-es-nicht`, `/reports/isp`.
 2. `/calendar.ics` mit Sitzung, ohne Sitzung, mit Lese-Token (`/me/security`): doppelte Termine?
 
 **J-B6 Sprache**
-1. Im Benutzermenü auf Englisch wechseln, alle Seiten und Dialoge von J-B1 bis J-B5 erneut.
-2. Nach rohen Schlüsseln, `{n}`, Deutsch auf englischen Seiten und Englisch auf deutschen suchen.
+1. Abgemeldet auf der Anmeldeseite im Fuß „EN“ wählen: die Seite ist englisch und bleibt es nach Neuladen. Anmelden: es gilt die Sprache des Profils.
+2. Im Fuß (oder Benutzermenü) auf Englisch wechseln, alle Seiten und Dialoge von J-B1 bis J-B5 erneut; ein anderer Browser hat nach der Anmeldung dieselbe Sprache.
+3. Nach rohen Schlüsseln, rohen Regel-IDs, `{n}`, Deutsch auf englischen Seiten („Instanz“, „Verbund“) und Englisch auf deutschen suchen.
 
 ## C. Geld und Zeit (Demo, Mara)
 
 **J-C1 Monatsabrechnung** 📱
 1. Start-Board: Kennzahlen notieren; jeden Detaildialog öffnen.
-2. `/billing` mit `/boards/3` (Nicht abgerechnet, Offene Rechnungen) und `/clients` vergleichen.
-3. Je Kunde muss ein Entwurf angeboten werden („Entwurf in Invoice Ninja“), ein offener Entwurf beim selben Kunden sollte erwähnt sein.
+2. `/billing` mit `/boards/3` (Nicht abgerechnet, Offene Rechnungen) und `/clients` vergleichen; Zeitraum „12 Monate / Jahr / Vorjahr“ umschalten: Jede Kennzahl nennt ihren Zeitraum (oder „Stand heute“), vor Beginn der Daten „Daten ab …“.
+3. Je Kunde muss ein Entwurf angeboten werden („Entwurf in Invoice Ninja“); ein offener Entwurf beim selben Kunden steht mit Nummer, Datum und Link davor. Der Hinweis „nicht abgerechnet“ führt zu `/billing#drafts`.
 4. „ZIP herunterladen“: CSVs prüfen (Lieferant gefüllt?, Zahlen wie auf den Seiten).
 5. „An Paperless“ bei einer Rechnungsmail.
 
 **J-C2 Belege**
 1. `/receipts`: „Angehakte verknüpfen“ (Demo lehnt ab: nur Fehler, kein Erfolgshinweis daneben).
 2. Reiter „Belege zuerst“: Ausgaben suchen, „Als Ausgabe anlegen“ → „Anlegen und verknüpfen“; bleibt der Reiter?
-3. Reiter „Verknüpft“. Zähler auf allen Reitern stimmen überein.
+3. Reiter „Verknüpft“. Zähler auf allen Reitern und Jahren stimmen mit den Listen überein, auch „… Belege ohne Ausgabe“.
+4. Eine Ausgabe aus dem Jahrespaket (`/billing`, `ausgaben.csv`) unter „Verknüpft“ oder bei „Ausgaben suchen“ finden.
 
 **J-C3 Kunden und Verbund**
-1. `/clients`, ein Kunde, „Verknüpfung ändern“ → `/spaces/{id}/verbund#implicit`.
+1. `/clients`, ein Kunde (der gewählte Zeitraum bleibt), „Verknüpfung ändern“ → `/spaces/{id}/verbund#implicit`.
 2. „Kunden“ → `/verbund/{id}/customers`; „Alle Vorschläge bestätigen“, eine Zelle lösen, „Namen angleichen“.
 3. `/billing` und die Kundenseite danach.
 
@@ -165,14 +169,14 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 2. Link im frischen Browser: Name und Passwort; Link erneut (404).
 
 **J-E2 Rollen und Status**
-1. Eigene Rolle ändern (abgelehnt, besser gar nicht angeboten).
+1. Eigene Rolle: steht als Text da, keine Auswahl.
 2. Jonas befördern, zurückstufen, deaktivieren (Sitzung endet), reaktivieren, Reset-Link, Benutzer löschen.
 3. `/admin/users/9999/reapply` (404, kein 500).
 4. Als Mara POST auf `/admin/users/*`, `/admin/invite`, `/admin/settings/general`: 403.
 
 **J-E3 Rechte als Betrachter (Jonas)**
 1. `/teams`, `/spaces/{id}/settings/page`, `/spaces/{id}/connections`, `/spaces/{id}/verbund`, `/boards/1…5`, `/connections/{id}/edit`, `/shares/board/1`.
-2. POST auf Einstellungen, Verbindungen, Geheimnisse, Webhook-Rotation: alles abgelehnt, mit Meldung in der UI-Sprache. Sichtbare Speichern-Knöpfe ohne Recht notieren.
+2. POST auf Einstellungen, Verbindungen, Geheimnisse, Webhook-Rotation: alles abgelehnt, mit Fehlerseite in der UI-Sprache (Grund, Zurück). Sichtbare Speichern-, Test- oder Bearbeiten-Knöpfe ohne Recht notieren; Instanz-Einstellungen (`/spaces/1/…`) als Nicht-Admin: 403.
 
 **J-E4 Teams**
 1. Jonas zum Editor (Zugriff öffnet sich), Team leer umbenennen, doppelter Name, neues Team, Jonas entfernen (Zugriff schließt sich), den letzten Owner entfernen.

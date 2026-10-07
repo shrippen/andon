@@ -49,6 +49,8 @@ func (d Deps) RegisterEditorRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /widgets/{id}/preview", d.authed(d.handleWidgetShow))
 	mux.HandleFunc("GET /widget-tiles/{type}", d.authed(d.handleGalleryTiles))
 	mux.HandleFunc("POST /widgets/unused/delete", d.authed(d.handleUnusedDelete))
+	mux.HandleFunc("POST /widgets/{id}/board", d.authed(d.handlePutOnBoard))
+	mux.HandleFunc("POST /boards/tile", d.authed(d.handleBoardTile))
 }
 
 func (d Deps) handleBoardSettingsForm(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -68,7 +70,8 @@ func (d Deps) handleBoardSettingsForm(w http.ResponseWriter, r *http.Request, ct
 		return
 	}
 	_ = d.Page(w, ctx, "board_settings", http.StatusOK, map[string]any{
-		"Board": view, "Themes": themeList,
+		"Board": view, "Themes": themeList, "WallPageMin": boards.WallPageMin, "WallPageMax": boards.WallPageMax,
+		"WallTurns": enums.WallTurns, "WallEases": enums.WallEases, "WallSets": previewSets(view),
 		"TeamRoles": []enums.TeamRole{enums.TeamViewer, enums.TeamEditor, enums.TeamOwner},
 	})
 }
@@ -88,11 +91,44 @@ func (d Deps) handleBoardRename(w http.ResponseWriter, r *http.Request, ctx Ctx)
 	if n, err := strconv.ParseInt(r.FormValue("theme_id"), 10, 64); err == nil {
 		themeID = &n
 	}
-	if err := boards.Rename(d.DB, ctx.Who, id, version, r.FormValue("name"), themeID, minRole(r), enums.BoardLayout(r.FormValue("layout"))); err != nil {
+	if err := boards.Rename(d.DB, ctx.Who, id, version, r.FormValue("name"), themeID, minRole(r), enums.BoardLayout(r.FormValue("layout")), wallForm(r)); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/boards/"+r.PathValue("id"), http.StatusSeeOther)
+}
+
+// previewTiles is how many of the board's tiles fill one set of the wall
+// display preview (4 × 2 placeholders).
+const previewTiles = 8
+
+// previewSets are the two sets of the wall display preview: the board's
+// first tiles, then the next ones (or the first ones again).
+//
+//	board tiles  t1 … t8 | t9 … t16 | …   → set 1: t1–t8, set 2: t9–t16
+func previewSets(view *boards.BoardView) [2][]boards.Tile {
+	var all []boards.Tile
+	for _, s := range view.Sections {
+		for _, t := range s.Tiles {
+			if !t.Hidden {
+				all = append(all, t)
+			}
+		}
+	}
+	if len(all) == 0 {
+		all = make([]boards.Tile, previewTiles) // an empty board: blank tiles still show the motion
+	}
+	first := all[:min(len(all), previewTiles)]
+	second := all[len(first):min(len(all), 2*previewTiles)]
+	if len(second) == 0 {
+		second = first
+	}
+	return [2][]boards.Tile{first, second}
+}
+
+// wallForm reads the wall display group of the board settings.
+func wallForm(r *http.Request) boards.Wall {
+	return boards.Wall{Page: formInt(r, "wall_page"), Turn: enums.WallTurn(r.FormValue("wall_turn")), Ease: enums.WallEase(r.FormValue("wall_ease"))}
 }
 
 func (d Deps) handleBoardDelete(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -307,7 +343,48 @@ func (d Deps) handleWidgetLibrary(w http.ResponseWriter, r *http.Request, ctx Ct
 	}
 	groups := libraryGroups(ctx, lib, seen)
 	_ = d.Page(w, ctx, "widgets", http.StatusOK, map[string]any{"Groups": groups, "Count": len(lib),
-		"Tally": tallyLibrary(groups), "Spaces": access.EditableSpaces(ctx.Who)})
+		"Tally": tallyLibrary(groups), "Spaces": access.EditableSpaces(ctx.Who), "Boards": editable(seen)})
+}
+
+// editable keeps the boards the caller may edit: where a tile can go.
+func editable(seen []boards.BoardRef) []boards.BoardRef {
+	var out []boards.BoardRef
+	for _, b := range seen {
+		if b.CanEdit {
+			out = append(out, b)
+		}
+	}
+	return out
+}
+
+// handlePutOnBoard places a library tile on the picked board and shows it.
+func (d Deps) handlePutOnBoard(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	board := formID(r, "board_id")
+	if err := boards.PutOn(d.DB, ctx.Who, board, id); err != nil {
+		d.fail(w, err, http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, boardPath(board), http.StatusSeeOther)
+}
+
+// handleBoardTile sets up a tile from a template (type, conn_id) on the
+// picked board: an empty board's tips, the tiles after a connection test.
+func (d Deps) handleBoardTile(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	board := formID(r, "board_id")
+	var conn *int64
+	if id := formID(r, "conn_id"); id > 0 {
+		conn = &id
+	}
+	if _, err := boards.AddNew(d.DB, ctx.Who, board, r.FormValue("type"), conn); err != nil {
+		d.fail(w, err, http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, boardPath(board), http.StatusSeeOther)
 }
 
 // libraryGroup is one topic of the library ("" = links), A–Z by name.

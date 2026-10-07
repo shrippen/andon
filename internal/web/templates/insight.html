@@ -48,6 +48,7 @@
       {{else}}<li class="muted">{{t "timeline.empty"}}</li>{{end}}
     </ol>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}
@@ -80,6 +81,7 @@
     {{if .Reports}}<p><a class="btn btn-outline btn-sm" href="/reports/isp.csv">{{t "isp.csv"}}</a></p>{{end}}
     <p class="small muted">{{t "isp.legal"}}</p>
   </main>
+  {{template "foot" $}}
 </body>
 </html>
 {{end}}

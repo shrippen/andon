@@ -636,6 +636,7 @@ type TestResult struct {
 	Message string
 	Version string
 	Gaps    []caps.Gap // what works only in part
+	Cause   Cause      // why it failed, if known (Message keeps the raw text)
 }
 
 // Test calls the service's test source (a version check) with the stored
@@ -679,7 +680,7 @@ func Test(ctx context.Context, d *sql.DB, who *access.Principal, connID int64) (
 		if msg == "" {
 			msg = "error"
 		}
-		return TestResult{Ok: false, Message: msg}, nil
+		return TestResult{Ok: false, Message: msg, Cause: CauseOf(msg)}, nil
 	}
 	data, _ := result.Data.(map[string]any)
 	version, _ := data["version"].(string)

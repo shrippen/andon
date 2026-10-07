@@ -12,25 +12,30 @@ import (
 )
 
 // TestServicePickSortedWithCounts: the service picker lists services by
-// their shown name and badges how many connections of each exist.
+// their shown name within each topic and badges how many connections of
+// each exist.
 func TestServicePickSortedWithCounts(t *testing.T) {
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
 
 	pick := string(mustGet(t, srv, client, "/connections/new"))
-	names := regexp.MustCompile(`<a class="option"[^>]*><b>([^<]+)</b>`).FindAllStringSubmatch(pick, -1)
-	if len(names) < 10 {
-		t.Fatalf("picker lists %d services:\n%s", len(names), pick)
+	total := 0
+	for _, group := range regexp.MustCompile(`(?s)<section class="gal-group".*?</section>`).FindAllString(pick, -1) {
+		names := regexp.MustCompile(`<a class="option"[^>]*><b>([^<]+)</b>`).FindAllStringSubmatch(group, -1)
+		shown := make([]string, len(names))
+		for i, m := range names {
+			shown[i] = m[1]
+		}
+		total += len(shown)
+		sorted := append([]string(nil), shown...)
+		collate.New(language.German, collate.IgnoreCase).SortStrings(sorted)
+		if strings.Join(shown, "|") != strings.Join(sorted, "|") {
+			t.Fatalf("not alphabetical:\n%v", shown)
+		}
 	}
-	shown := make([]string, len(names))
-	for i, m := range names {
-		shown[i] = m[1]
-	}
-	sorted := append([]string(nil), shown...)
-	collate.New(language.German, collate.IgnoreCase).SortStrings(sorted)
-	if strings.Join(shown, "|") != strings.Join(sorted, "|") {
-		t.Fatalf("not alphabetical:\n%v", shown)
+	if total < 10 {
+		t.Fatalf("picker lists %d services:\n%s", total, pick)
 	}
 
 	form := string(mustGet(t, srv, client, "/connections/new?service=kimai"))
