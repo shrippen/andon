@@ -1270,6 +1270,7 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [x] Demo erzählte zwei Timer (11 h im Kimai-Datensatz für `kimai.timer_running_long`, 47 min in Kimai Lite) *(ein Timer: der Datensatz übernimmt Timer und Blöcke von Kimai Lite, „heute“ ist in Kimai-Kachel, Heute und Kimai Lite gleich. Der Hinweis „Timer läuft lange“ fehlt dafür in der Demo: ein Timer über Nacht widerspricht den Blöcken des Tages. `running_hours`, `running_id`, `running_customer` sind in der Demo-Welt ungenutzt (Quelle: shrippen.github.io `demo/world/business.json`))*
 - [x] „Ø Vorjahre“ (Saison-Diagramm) mittelte auch Jahre ohne Daten (Monate vor der ersten Rechnung zählten als 0, je Monat andere Jahre) *(jeder Monat mittelt dieselben Jahre, nur solche mit vollständiger Historie; reicht sie nicht drei Jahre zurück: „Daten ab …“ in Legende und Dialog, keine Veränderung)*
 - [x] Sure-Abos mit Abstand unter 25 oder über 370 Tagen standen mit ihrem Rohbetrag in der Abo-Kachel (wöchentlich 10 € als 10 € im Monat) *(jeder Abstand wird zum Monatsbetrag: Tage ×365/12, Wochen ×52/12, Monate geteilt durch ihre Zahl; monatlich, vierteljährlich und jährlich jetzt genau statt über 30 Tage)*
+- [x] Hinweise „Gruppiert“: Hinweise in einer Regel-Gruppe waren noch volle Karten, einzelne kompakte Zeilen *(alle als Zeilen (`.hint-card.is-row`) unter Kopf und Sammelleiste der Gruppe; Grund, Öffnen, Pausieren, Notiz und Details hinter „⋯“. Eingebettet (`/api/…/hints`) nur mit Öffnen-Link, ohne Formulare)*
 
 ### Notiert 07.10.2026 (noch nicht begonnen)
 
