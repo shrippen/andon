@@ -220,7 +220,7 @@ func (d Deps) handleConnectionCreate(w http.ResponseWriter, r *http.Request, ctx
 	}
 	if err != nil {
 		_ = d.Page(w, ctx, "connection_form", http.StatusBadRequest, map[string]any{
-			"Spaces": access.EditableSpaces(ctx.Who), "Services": serviceOptions, "IsNew": true, "Error": err.Error(),
+			"Spaces": access.EditableSpaces(ctx.Who), "Services": serviceOptions, "IsNew": true, "Error": errKey(err),
 			"Service": service, "Space": spaceID, "Fixed": mode == enums.CredentialShared,
 		})
 		return

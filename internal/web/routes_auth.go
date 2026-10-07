@@ -6,6 +6,7 @@ import (
 
 	"andon/internal/services/admin"
 	"andon/internal/services/auth"
+	"andon/internal/services/mail"
 	"andon/internal/services/oidc"
 )
 
@@ -46,6 +47,7 @@ func (d Deps) handleSetupSubmit(w http.ResponseWriter, r *http.Request) {
 		_ = d.Page(w, ctx, "setup", http.StatusUnauthorized, map[string]any{"Error": err.Error()})
 		return
 	}
+	d.flash(w, flashSetup)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
@@ -72,6 +74,7 @@ func (d Deps) loginExtras(values map[string]any) map[string]any {
 	open, err := admin.RegistrationOpen(d.DB)
 	values["RegistrationOpen"] = err == nil && open
 	values["OIDCLabel"] = oidc.Button(d.DB, d.live())
+	values["MailReady"] = mail.Configured()
 	return values
 }
 

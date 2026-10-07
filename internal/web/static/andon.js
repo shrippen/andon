@@ -1664,14 +1664,25 @@
   // A toast (Kante .toast) stays as long as its life line runs (--life on
   // .toast-life, 4 s by default), then goes.
   var TOAST_LIFE_MS = 4000;
+  function expire(toast) {
+    if (toast.andonExpires) {
+      return;
+    }
+    toast.andonExpires = true;
+    var line = toast.querySelector(".toast-life");
+    var life = line ? parseFloat(getComputedStyle(line).getPropertyValue("--life")) : NaN;
+    setTimeout(function () { toast.remove(); }, life ? life * 1000 : TOAST_LIFE_MS);
+  }
   d.addEventListener("htmx:load", function (e) {
     var toast = e.target;
     if (!toast.classList || !toast.classList.contains("toast")) {
       return;
     }
-    var line = toast.querySelector(".toast-life");
-    var life = line ? parseFloat(getComputedStyle(line).getPropertyValue("--life")) : NaN;
-    setTimeout(function () { toast.remove(); }, life ? life * 1000 : TOAST_LIFE_MS);
+    expire(toast);
+  });
+  // A page brings its own toast after a form's redirect (a flash).
+  window.andonPage(function () {
+    [].forEach.call(d.querySelectorAll("#toast > .toast"), expire);
   });
 
   // Tiles poll ("every 300s") only while the tab is visible; a poll missed

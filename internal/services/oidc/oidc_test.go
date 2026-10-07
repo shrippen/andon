@@ -267,7 +267,7 @@ func TestEmailLinkSkipsSelfRegistered(t *testing.T) {
 	if err := misc.SetSetting(d, "registration", map[string]any{"open": true}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := admin.Register(d, "victim@corp.de", "Fake", "attacker-password", enums.LocaleDE); err != nil {
+	if err := admin.Register(d, "victim@corp.de", "Fake", "attacker-password", enums.LocaleDE); err != nil {
 		t.Fatal(err)
 	}
 	squatter, _ := users.ByEmail(d, "victim@corp.de")

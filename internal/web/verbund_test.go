@@ -6,6 +6,9 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"andon/internal/enums"
+	"andon/internal/i18n"
 )
 
 // The Verbünde page: two Kimai make the space ambiguous; a Verbund made
@@ -40,13 +43,15 @@ func TestVerbundPage(t *testing.T) {
 		t.Fatalf("form connections: %v", ids)
 	}
 
-	// Two Kimai in one Verbund are refused.
-	resp := postForm(t, client, srv.URL+"/verbund", url.Values{"csrf": {csrfToken(t, srv, client)}, "space": {space}, "name": {"x"}, "conn": {ids["Kimai A"], ids["Kimai B"]}})
-	if loc := resp.Header.Get("Location"); !strings.Contains(loc, "error=verbund.service_twice") {
-		t.Fatalf("twice: %s", loc)
+	// Two Kimai in one Verbund are refused; the form keeps what was typed.
+	status, refused := browse(t, client, http.MethodPost, srv.URL+"/verbund",
+		url.Values{"csrf": {csrfToken(t, srv, client)}, "space": {space}, "name": {"Typed name"}, "conn": {ids["Kimai A"], ids["Kimai B"]}}, nil)
+	if status != http.StatusBadRequest || !strings.Contains(refused, i18n.T("verbund.service_twice", enums.LocaleDE, nil)) ||
+		!strings.Contains(refused, `value="Typed name"`) {
+		t.Fatalf("twice: %d\n%s", status, refused)
 	}
 
-	resp = postForm(t, client, srv.URL+"/verbund", url.Values{"csrf": {csrfToken(t, srv, client)}, "space": {space}, "name": {"Firma A"}, "conn": {ids["Kimai A"], ids["Ninja"]}})
+	resp := postForm(t, client, srv.URL+"/verbund", url.Values{"csrf": {csrfToken(t, srv, client)}, "space": {space}, "name": {"Firma A"}, "conn": {ids["Kimai A"], ids["Ninja"]}})
 	if resp.StatusCode != http.StatusSeeOther || strings.Contains(resp.Header.Get("Location"), "error") {
 		t.Fatalf("create: %d %s", resp.StatusCode, resp.Header.Get("Location"))
 	}

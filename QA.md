@@ -48,12 +48,12 @@ Erwartet: ein kurzer Weg von der Verbindung zur Kachel auf dem Board.
 1. `/admin/users` → einladen; Link in einem frischen Browser öffnen.
 2. Zu kurzes Passwort (Name muss stehen bleiben), dann gültiges.
 3. Als neuer Benutzer `/`, `/connections`, `/admin/users`, `/spaces/1/connections`.
-4. Selbstregistrierung erlauben, doppelte und neue Adresse registrieren.
+4. Selbstregistrierung erlauben, doppelte und neue Adresse registrieren: gleiche Antwort (Anmeldung mit Hinweis), mit SMTP Mail „Du hast schon ein Konto“ an die vergebene.
 5. Die eigene Admin-Rolle herabsetzen wollen.
 
 **J-A6 Passwort zurücksetzen und TOTP**
-1. „Passwort vergessen?“ für bekannte und unbekannte Adresse (ohne SMTP: was sagt die Seite?).
-2. `/reset/invalid`; Admin → Benutzer → Reset-Link, Passwort setzen, Link erneut verwenden.
+1. „Passwort vergessen?“ für bekannte und unbekannte Adresse; ohne SMTP heißt der Link „Admin um neues Passwort bitten“ und die Seite erklärt den Reset-Link der Admins.
+2. `/reset/invalid`; Admin → Benutzer → Reset-Link, Passwort setzen (Erfolgsmeldung auf der Anmeldung), Link erneut verwenden.
 3. `/me/security` → TOTP einrichten: falscher Code, dann richtiger; Seite neu laden.
 4. Abmelden, mit TOTP anmelden: falscher Code, richtiger Code; fünfmal falsch, dann richtig (muss „zu viele Versuche“ sagen).
 

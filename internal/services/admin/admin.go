@@ -3,9 +3,13 @@
 package admin
 
 import (
+	"cmp"
 	"database/sql"
 	"errors"
+	netmail "net/mail"
+	"strings"
 
+	"andon/internal/crypto"
 	"andon/internal/db"
 	"andon/internal/enums"
 	"andon/internal/model"
@@ -15,6 +19,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/accounts"
 	"andon/internal/services/audit"
+	"andon/internal/services/mail"
 )
 
 // Errors carry catalog keys so the web layer shows them translated.
@@ -24,6 +29,7 @@ var (
 	ErrLastAdmin = errors.New("admin.last_admin")
 	ErrSelf      = errors.New("admin.self")
 	ErrClosed    = errors.New("register.closed")
+	ErrBadEmail  = errors.New("invite.bad_email")
 )
 
 const registrationKey = "registration"
@@ -205,15 +211,28 @@ func RegistrationOpen(q db.Queryer) (bool, error) {
 }
 
 // Register creates a plain user account when self-registration is open.
-func Register(d *sql.DB, email, name, password string, locale enums.Locale) (string, error) {
-	var created string
+//
+// A taken address answers like a new one, so registration does not tell
+// which addresses have an account: nothing changes, and with SMTP its
+// owner gets a mail saying they already have one.
+func Register(d *sql.DB, email, name, password string, locale enums.Locale) error {
+	if open, err := RegistrationOpen(d); err != nil || !open {
+		return cmp.Or(err, ErrClosed)
+	}
+	email = strings.TrimSpace(email)
+	if addr, err := netmail.ParseAddress(email); err != nil || addr.Address != email {
+		return ErrBadEmail
+	}
+	if err := accounts.CheckPasswordRules(password); err != nil {
+		return err
+	}
+
+	var owner *model.User
 	err := db.WithTx(d, func(tx *sql.Tx) error {
-		open, err := RegistrationOpen(tx)
-		if err != nil {
+		var err error
+		owner, err = users.ByEmail(tx, email)
+		if err != nil || owner != nil {
 			return err
-		}
-		if !open {
-			return ErrClosed
 		}
 		user, err := accounts.Create(tx, email, name, &password, enums.RoleUser, locale, "")
 		if err != nil {
@@ -223,10 +242,20 @@ func Register(d *sql.DB, email, name, password string, locale enums.Locale) (str
 		if err := users.Update(tx, user); err != nil {
 			return err
 		}
-		created = user.Email
 		return audit.Log(tx, &user.ID, "user.registered", user.Email, "", nil)
 	})
-	return created, err
+	if err != nil || owner == nil {
+		return err
+	}
+
+	// As long as creating the account would take (the password hash).
+	if _, err := crypto.HashPassword(password); err != nil {
+		return err
+	}
+	if !mail.Configured() {
+		return nil
+	}
+	return mail.AccountExists(owner.Email, owner.Locale)
 }
 
 // isActiveAdmin says whether u counts toward the last-admin guard, which

@@ -155,6 +155,7 @@ login:
   with: Log in with {provider}
   or: or
   forgot: Forgot password?
+  ask_admin: Ask an admin for a new password
   back: Back to login
   failed: Wrong e-mail or password.
   throttled: Too many attempts. Please try again in 15 minutes.
@@ -187,6 +188,8 @@ reset:
   title: Reset password
   request: Send link
   sent: If an account exists, a link is on its way.
+  ask_admin: Andon can't send e-mail. Ask an admin for a new password.
+  ask_admin_how: An admin creates a reset link for you under Setup → Users → More actions (valid for 48 h). With it you set your new password yourself.
   new: New password
   invalid: Link invalid or expired.
 password:
@@ -2047,6 +2050,11 @@ icon:
   invalid: Invalid icon (SVG, PNG, WebP, JPEG, ICO up to 512 KB).
 mail:
   footer: Andon · {url}
+  exists:
+    subject: You already have an account
+    body: Somebody tried to create an Andon account with this address. You already have one; it stays as it is. If that wasn't you, ignore this mail.
+    reset: 'Forgot your password? Set a new one here: {url}'
+    button: Log in
   invite:
     subject: Invitation to Andon
     body: '{inviter} invited you to Andon. The link is valid for 7 days.'
@@ -6434,3 +6442,11 @@ sports:
   diff: GD
   points: Pts
   live: live
+flash:
+  saved: Saved.
+  done: Done.
+  setup_done: Administrator created. Log in now.
+  password_reset: New password set. Log in with it.
+  password_changed: Password changed.
+  registered: Done. Log in with your address and password. If the address already had an account, its old password stays; a mail tells you how to reset it.
+  registered_no_mail: Done. Log in with your address and password. If the address already had an account, its old password stays; an admin can reset it.

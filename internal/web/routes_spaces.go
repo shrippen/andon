@@ -106,7 +106,7 @@ func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request, ctx Ct
 		"Center": metrics.CenterOf(settings), "Centers": centers,
 		"Travel": metrics.TravelSettingsOf(settings), "TravelBases": travelBases, "FuelWords": strings.Join(metrics.TravelSettingsOf(settings).FuelWords, ", "),
 		"RuleGroups": spaces.RuleGroups(settings), "Methods": vatMethods, "Intervals": vatIntervals,
-		"Saved": r.URL.Query().Has("saved"), "Page": spaces.PageOf(settings), "NavText": spaces.NavText(spaces.PageOf(settings)),
+		"Page": spaces.PageOf(settings), "NavText": spaces.NavText(spaces.PageOf(settings)),
 		"Custom": spaces.CustomRows(settings), "Ops": rules.CustomOps, "Services": enums.Services, "Levels": severityLevels,
 		"Maint": maint, "MaintUntil": maint.UntilInput(time.Local), "MaintConns": chosen, "Conns": conns, "Now": time.Now(),
 	})
@@ -151,7 +151,8 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request, ct
 		d.handleBoardError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, sectionPath(id, section)+"?saved=1", http.StatusSeeOther)
+	d.flash(w, flashSaved)
+	http.Redirect(w, r, sectionPath(id, section), http.StatusSeeOther)
 }
 
 // sectionChanges reads one section's form into the settings keys it owns;

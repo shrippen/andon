@@ -169,6 +169,20 @@ func Reset(email, link string, locale enums.Locale) error {
 	return nil
 }
 
+// AccountExists tells the owner of an address that someone tried to
+// register it: they have an account, here is how to log in or reset.
+func AccountExists(email string, locale enums.Locale) error {
+	base := strings.TrimRight(BaseURL(), "/")
+	m, err := Render(email, locale, i18n.T("mail.exists.subject", locale, nil),
+		[]string{i18n.T("mail.exists.body", locale, nil), i18n.T("mail.exists.reset", locale, map[string]any{"url": base + "/reset"})},
+		&Button{Label: i18n.T("mail.exists.button", locale, nil), URL: base + "/login"}, nil)
+	if err != nil {
+		return err
+	}
+	Send(m)
+	return nil
+}
+
 // SecurityNotice tells a user about a security-relevant change.
 func SecurityNotice(q db.Queryer, userID int64, kind SecurityKind) error {
 	user, err := users.Get(q, userID)

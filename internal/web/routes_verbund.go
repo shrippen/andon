@@ -222,7 +222,21 @@ func (d Deps) handleVerbundCreate(w http.ResponseWriter, r *http.Request, ctx Ct
 		}
 	}
 	_, err := verbund.Create(d.DB, ctx.Who, r.FormValue("name"), ids, d.clientIP(r))
-	d.verbundBack(w, r, err)
+	d.verbundAnswer(w, r, ctx, err)
+}
+
+// verbundAnswer returns to the space's page; a refused name or member
+// list shows the page again with the form as typed.
+func (d Deps) verbundAnswer(w http.ResponseWriter, r *http.Request, ctx Ctx, err error) {
+	space, _ := strconv.ParseInt(r.FormValue("space"), 10, 64)
+	if err == nil {
+		d.flash(w, flashSaved)
+	}
+	if err == nil || isAny(err, deniedErrors) || isAny(err, notFoundErrors) || space == 0 {
+		d.verbundBack(w, r, err)
+		return
+	}
+	d.verbundPage(w, r, ctx, space, http.StatusBadRequest, errKey(err))
 }
 
 func (d Deps) handleVerbundRename(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -231,7 +245,7 @@ func (d Deps) handleVerbundRename(w http.ResponseWriter, r *http.Request, ctx Ct
 		http.NotFound(w, r)
 		return
 	}
-	d.verbundBack(w, r, verbund.Rename(d.DB, ctx.Who, id, r.FormValue("name"), d.clientIP(r)))
+	d.verbundAnswer(w, r, ctx, verbund.Rename(d.DB, ctx.Who, id, r.FormValue("name"), d.clientIP(r)))
 }
 
 func (d Deps) handleVerbundAdd(w http.ResponseWriter, r *http.Request, ctx Ctx) {
