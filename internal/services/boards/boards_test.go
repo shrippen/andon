@@ -429,3 +429,41 @@ func TestUndoStepsBack(t *testing.T) {
 		t.Fatalf("undo past the first version: %v", err)
 	}
 }
+
+// Deleting a tile that sits on two boards can be undone on each: undo
+// brings the tile back (once, the second board takes the same one).
+func TestDeleteWidgetUndo(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	w := addWidget(t, d, space.ID, "note1")
+	var ids []int64
+	for _, name := range []string{"A", "B"} {
+		id, _ := boards.Create(d, who, space.ID, name)
+		view, _ := boards.View(d, who, id, boards.LayoutOverlay)
+		if _, err := boards.Place(d, who, view.Sections[0].ID, w.ID, view.Version); err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, id)
+	}
+
+	n, err := boards.DeleteWidget(d, who, w.ID)
+	if err != nil || n != 2 {
+		t.Fatalf("delete: %d boards, %v", n, err)
+	}
+	var back []int64
+	for _, id := range ids {
+		if err := boards.Undo(d, who, id); err != nil {
+			t.Fatalf("undo: %v", err)
+		}
+		view, _ := boards.View(d, who, id, boards.LayoutOverlay)
+		if len(view.Sections[0].Tiles) != 1 {
+			t.Fatalf("board %d: tile not back: %+v", id, view.Sections[0].Tiles)
+		}
+		back = append(back, view.Sections[0].Tiles[0].WidgetID)
+	}
+	if back[0] != back[1] {
+		t.Fatalf("two copies: %v", back)
+	}
+}

@@ -395,7 +395,8 @@
 
     {{if .Widget}}
       {{$delete := print "/widgets/" .Widget.ID "/delete"}}{{with .Target.BoardID}}{{$delete = print $delete "?board=" .}}{{end}}
-      {{template "danger_zone" dict "Action" $delete "Text" (t "widget.delete_hint") "Button" (t "action.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
+      {{$hint := t "widget.delete_hint" "count" .Uses}}{{if eq .Uses 0}}{{$hint = t "widget.delete_hint_unused"}}{{end}}
+      {{template "danger_zone" dict "Action" $delete "Text" $hint "Button" (t "action.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{end}}
 {{end}}
 

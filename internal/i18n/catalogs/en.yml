@@ -1124,7 +1124,9 @@ widget:
   bad_window: 'Maintenance window not readable: e.g. 22:00-06:00 or 22-6.'
   bad_timezone: 'Unknown time zone: e.g. Europe/Berlin.'
   field_required: Please fill in all required fields.
-  delete_hint: 'The tile disappears from every board it is on.'
+  delete_hint: 'The tile disappears from all {count} boards it is on. Undo on a board brings it back there.'
+  delete_hint_unused: 'The tile is on no board and disappears from the library.'
+  delete_hint_singular: 'The tile disappears from the board it is on. Undo on the board brings it back.'
   pending: Loading with the next check …
   loading: loading …
   error: Error

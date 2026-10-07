@@ -293,20 +293,35 @@ func Copy(d *sql.DB, who *access.Principal, widgetID, spaceID int64) (int64, err
 
 // Delete removes a widget. Requires MANAGE.
 func Delete(d *sql.DB, who *access.Principal, widgetID int64) error {
-	return db.WithTx(d, func(tx *sql.Tx) error {
-		widget, err := content.Widget(tx, widgetID)
-		if err != nil || widget == nil {
-			return err
-		}
-		g, err := widgetRight(tx, who, widget)
-		if err != nil {
-			return err
-		}
-		if err := access.Need(g, enums.RightManage); err != nil {
-			return err
-		}
-		return content.RemoveWidget(tx, widget.ID)
+	return db.WithTx(d, func(tx *sql.Tx) error { return DeleteIn(tx, who, widgetID) })
+}
+
+// Uses counts the boards a tile is placed on.
+func Uses(d *sql.DB, widgetID int64) (int, error) {
+	var n int
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		ids, err := content.WidgetBoards(tx, widgetID)
+		n = len(ids)
+		return err
 	})
+	return n, err
+}
+
+// DeleteIn is Delete inside a transaction (boards.DeleteWidget keeps the
+// boards' revisions in the same one).
+func DeleteIn(tx *sql.Tx, who *access.Principal, widgetID int64) error {
+	widget, err := content.Widget(tx, widgetID)
+	if err != nil || widget == nil {
+		return err
+	}
+	g, err := widgetRight(tx, who, widget)
+	if err != nil {
+		return err
+	}
+	if err := access.Need(g, enums.RightManage); err != nil {
+		return err
+	}
+	return content.RemoveWidget(tx, widget.ID)
 }
 
 // DeleteUnused removes the given widgets that sit on no board and that
