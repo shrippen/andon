@@ -1240,7 +1240,7 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [ ] Offene Rechnungen: Kachel „21 Tage überfällig“, Dialog „Überfällig –“
 - [ ] „An Paperless“: 400 „Kein persönlicher Zugang hinterlegt“ ohne Verbindung oder Weg dorthin, Neuladen sendet erneut
 - [ ] Fahrten: „Ort anlegen“ zeigt roh „dns: dawarich“; neue Ziele sind mit „Zuhause“ vorbelegt
-- [ ] Monatsabschluss-Link „Geschäftskonten benennen“ landet auf dem Reiter Startseite statt Regeln
+- [x] Monatsabschluss-Link „Geschäftskonten benennen“ landete auf dem Reiter Startseite statt Regeln
 - [ ] Kalender-Feed: doppelte Termine (zwei Hinweise, dieselbe Frist), keine Beschreibung und kein Link zurück
 - [ ] Audit: rohe Schlüssel `audit_action.settings.map`/`.server`, Speichern ohne Änderung schreibt Einträge „– → false“; Reset-Link nennt die Benutzer-ID statt der Adresse
 - [ ] Ungültiges CIDR zeigt den rohen Go-Fehler; Einladung meldet „gesendet“, obwohl SMTP nicht erreichbar ist
