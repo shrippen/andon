@@ -1136,11 +1136,14 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
 ### Notiert 07.10.2026 (noch nicht begonnen)
 
 - [ ] KDE-Store-Kachel testen; in den Einstellungen erklären, was in welches Feld gehört
-- [ ] Klären, warum es die Umgebungsvariable `APPRISE_API_URL` gibt, obwohl jeder Nutzer eigene Benachrichtigungs-Einstellungen hat
+- [x] Klären, warum es die Umgebungsvariable `APPRISE_API_URL` gibt, obwohl jeder Nutzer eigene Benachrichtigungs-Einstellungen hat *(sie nennt den Apprise-API-Server, der versendet, wie `SMTP_URL` für Mail; die Kanäle der Nutzer sind nur Ziele. Auch unter Einrichten → Server setzbar)*
+- [ ] Fehler: Ohne `APPRISE_API_URL` scheitert jeder Push, die Hinweise gelten trotzdem als gesendet (`dispatchUser` setzt `TouchSent` unabhängig vom Ergebnis) und kommen nie mehr. Außerdem sagt die Seite der Benachrichtigungen nicht, dass der Server fehlt
 - [ ] Testmöglichkeit für jeden Benachrichtigungsweg (Mail, Apprise)
 - [ ] Einstellungen für E-Mails: wann, welcher Inhalt, Vorschau, Log
-- [ ] Untersuchen, wie das Verknüpfen von Kunden grundsätzlich gedacht ist, je einmal mit und ohne Verbund (Anlass: nur eine Verbindung je Typ, auf der Kundenseite ist dazu nichts zu sehen)
-- [ ] Diagramme stärker beschriften: Bei Balkendiagrammen hat die Y-Achse je Linie eine Beschriftung, die X-Achse nur Anfang und Ende; das ist schwer lesbar. Der Hover nennt beide Achsen
+- [x] Untersuchen, wie das Verknüpfen von Kunden grundsätzlich gedacht ist, je einmal mit und ohne Verbund (Anlass: nur eine Verbindung je Typ, auf der Kundenseite ist dazu nichts zu sehen) *(gedacht laut `CAPABILITIES.md`: mit Verbund unter Bereich → Verbünde → „Kunden“; ohne Verbund bildet der Bereich einen impliziten, und die erste bestätigte Zuordnung soll ihn anlegen. Umgesetzt ist nur der Fall mit Verbund: die Kundenseite `/verbund/{id}/customers` braucht einen gespeicherten Verbund, die Seite der Verbünde listet nur gespeicherte; bis dahin gilt der Namensabgleich)*
+- [ ] Kunden ohne Verbund zuordnen: impliziten Verbund auf der Seite der Verbünde zeigen, mit „Kunden“; erste Bestätigung legt ihn an
+- [ ] Kundenseite (`/clients`): Stand der Zuordnung zeigen (bestätigt oder nur gleicher Name) und zur Zuordnung verlinken
+- [x] Diagramme stärker beschriften: Bei Balkendiagrammen hat die Y-Achse je Linie eine Beschriftung, die X-Achse nur Anfang und Ende; das ist schwer lesbar. Der Hover nennt beide Achsen *(`Graph.Labels`: X-Wert je Punkt; fünf Marken statt zwei, Hover „Tag · Wert“ an Balken und Linien. Offen: Antwortzeit-Diagramm der Link-Details hat keine X-Marken)*
 - [ ] Designdokument: alle Konzepte, die Andon kennt (z. B. Kunden, Orte), und was Andon mit ihnen tut bzw. wofür es sie verwendet
 - [ ] Recherche Kacheltypen:
   - Dashys mögliche Kacheln durchgehen und auflisten, welche in Andon fehlen
