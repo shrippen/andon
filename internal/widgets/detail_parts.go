@@ -179,10 +179,22 @@ func filled(values []float64) []float64 {
 	return out
 }
 
-// asF reads a number of a view map.
+// asF reads a number of a view map or table row, of any number type
+// (rows carry ints too, such as overdue days).
 func asF(v any) float64 {
-	f, _ := v.(float64)
-	return f
+	switch n := v.(type) {
+	case float64:
+		return n
+	case float32:
+		return float64(n)
+	case int:
+		return float64(n)
+	case int64:
+		return float64(n)
+	case int32:
+		return float64(n)
+	}
+	return 0
 }
 
 // meanSeries is the mean per index over series, gaps skipped.
