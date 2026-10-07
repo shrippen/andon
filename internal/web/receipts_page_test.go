@@ -4,8 +4,10 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestReceiptsPage: without connections the page says what is missing;
@@ -128,5 +130,103 @@ func TestReceiptsPage(t *testing.T) {
 	postForm(t, client, srv.URL+"/receipts/ignore", url.Values{"csrf": {csrfToken(t, srv, client)}, "kind": {"expense"}, "id": {"demo1"}, "show": {"1"}})
 	if part := string(mustGet(t, srv, client, "/receipts/part?tab=match")); !strings.Contains(part, "EX-0041") {
 		t.Fatal("expense not back after showing it again")
+	}
+}
+
+// receiptsDemo sets up the demo Invoice Ninja and Paperless for the
+// receipts page and picks them.
+func receiptsDemo(t *testing.T) (srvURL string, get func(string) string, post func(string, url.Values) *http.Response) {
+	t.Helper()
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	conns := map[string]string{}
+	for _, svc := range []string{"invoiceninja", "paperless"} {
+		resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+			"service": {svc}, "name": {svc}, "url": {"demo://" + svc}, "mode": {"shared"}, "tls": {"verify"}})
+		conns[svc] = regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1]
+	}
+	postForm(t, client, srv.URL+"/receipts/pick", url.Values{"csrf": {csrfToken(t, srv, client)}, "ninja": {conns["invoiceninja"]}, "paperless": {conns["paperless"]}})
+	get = func(path string) string { return string(mustGet(t, srv, client, path)) }
+	post = func(path string, v url.Values) *http.Response {
+		v.Set("csrf", csrfToken(t, srv, client))
+		return postForm(t, client, srv.URL+path, v)
+	}
+	return srv.URL, get, post
+}
+
+// chipCount reads the number of a tab or year chip from a part.
+func chipCount(t *testing.T, part, id string) string {
+	t.Helper()
+	m := regexp.MustCompile(`id="` + id + `"[^>]*>[^<]*<span>(\d+)</span>`).FindStringSubmatch(part)
+	if m == nil {
+		return ""
+	}
+	return m[1]
+}
+
+// TestReceiptCountsMatchLists: every number on the page counts what the
+// list it leads to shows. The match tab's "scans without expense" link
+// leads to "receipts first" and counts its scans; the year chips count
+// the open tab's list.
+func TestReceiptCountsMatchLists(t *testing.T) {
+	_, get, _ := receiptsDemo(t)
+	year := strconv.Itoa(time.Now().Year())
+
+	queue := get("/receipts/part?tab=queue&year=" + year)
+	scans := strings.Count(queue, `class="receipt-expense receipt-doc"`)
+	if scans == 0 || chipCount(t, queue, "receipts-tab-queue") != strconv.Itoa(scans) {
+		t.Fatalf("queue chip %q, list %d:\n%s", chipCount(t, queue, "receipts-tab-queue"), scans, queue)
+	}
+	if got := chipCount(t, queue, "receipts-year-"+year); got != "" && got != strconv.Itoa(scans) {
+		t.Fatalf("queue year chip %q, list %d", got, scans)
+	}
+
+	match := get("/receipts/part?tab=match&year=" + year)
+	if want := ">" + strconv.Itoa(scans) + " Belege ohne Ausgabe"; !strings.Contains(match, want) {
+		t.Fatalf("match links %q scans, the queue lists %d:\n%s", regexp.MustCompile(`>\d+ Belege ohne Ausgabe`).FindString(match), scans, match)
+	}
+
+	linked := get("/receipts/part?tab=linked&year=" + year)
+	rows := chipCount(t, linked, "receipts-tab-linked")
+	if got := chipCount(t, linked, "receipts-year-"+year); got != rows {
+		t.Fatalf("linked year chip %q, tab %q:\n%s", got, rows, linked)
+	}
+}
+
+// TestReceiptLinkManyRefused: a refused bulk link shows the refusal
+// only, not "linked: 0" as a success.
+func TestReceiptLinkManyRefused(t *testing.T) {
+	_, get, post := receiptsDemo(t)
+	resp := post("/receipts/link-many", url.Values{"pair": {"demo1:201"}})
+	loc := resp.Header.Get("Location")
+	if !strings.Contains(loc, "error=receipts.err_demo") || strings.Contains(loc, "linked=") {
+		t.Fatalf("refused bulk link: %s", loc)
+	}
+	if page := get("/receipts?linked=0"); strings.Contains(page, "Verknüpft: 0") {
+		t.Fatal("zero links shown as a success")
+	}
+}
+
+// TestReceiptTabSurvivesCreate: "new expense" from "receipts first"
+// returns there, as do the expense search and its links.
+func TestReceiptTabSurvivesCreate(t *testing.T) {
+	_, get, post := receiptsDemo(t)
+	year := strconv.Itoa(time.Now().Year())
+	queue := get("/receipts/part?tab=queue&year=" + year)
+	for _, path := range []string{"/receipts/new-expense?", "/receipts/expenses?"} {
+		m := regexp.MustCompile(`hx-get="(` + regexp.QuoteMeta(path) + `[^"]*)"`).FindStringSubmatch(queue)
+		if m == nil || !strings.Contains(m[1], "tab=queue") {
+			t.Fatalf("%s loses the tab: %v", path, m)
+		}
+	}
+	form := get("/receipts/new-expense?doc=206&tab=queue&year=" + year)
+	if !strings.Contains(form, `name="tab" value="queue"`) {
+		t.Fatalf("form loses the tab:\n%s", form)
+	}
+	resp := post("/receipts/new-expense", url.Values{"doc": {"206"}, "tab": {"queue"}, "year": {year}, "amount": {"72,14"}, "day": {year + "-10-01"}, "vendor": {"Tankstelle"}})
+	if loc := resp.Header.Get("Location"); !strings.Contains(loc, "tab=queue") {
+		t.Fatalf("create returns to %s", loc)
 	}
 }

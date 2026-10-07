@@ -67,6 +67,7 @@ type demoReceipt struct {
 	day                                     time.Time
 	docs                                    []demoScan
 	linked                                  bool
+	receipt                                 int // the world's receipt; 0 for a vendor's bill
 }
 
 type demoScan struct {
@@ -84,7 +85,7 @@ func demoReceipts(today time.Time) []demoReceipt {
 	euro := func(v float64) string { return strings.Replace(strconv.FormatFloat(v, 'f', 2, 64), ".", ",", 1) }
 	var out []demoReceipt
 	for _, c := range receiptsOf(today).Cases {
-		r := demoReceipt{expense: c.Expense, number: c.Number, linked: c.Linked}
+		r := demoReceipt{expense: c.Expense, number: c.Number, linked: c.Linked, receipt: c.Receipt}
 		if c.Vendor != "" {
 			v := demoWorld.Vendor(c.Vendor)
 			r.vendor, r.notes, r.amount, r.day = v.Name, v.Kind.DE(), v.Monthly, today.AddDate(0, 0, c.Day)
@@ -125,7 +126,31 @@ func DemoExpenses(now time.Time) *ExpenseSet {
 	setup := receiptsOf(today)
 	set := &ExpenseSet{URL: setup.URL}
 	copy(set.Slots[:], setup.Slots)
-	for _, r := range demoReceipts(today) {
+	for _, e := range demoExpenseList(today) {
+		set.Expenses = append(set.Expenses, e.ReceiptExpense)
+	}
+	return set
+}
+
+// demoExpense is one demo expense with its id in Invoice Ninja.
+type demoExpense struct {
+	id int64
+	ReceiptExpense
+}
+
+// demoExpenseNumber numbers the receipts without a case after the cases'
+// EX-0041…: receipt 7 → EX-0047.
+const demoExpenseNumber = "EX-%04d"
+
+// demoExpenseList is the demo Invoice Ninja's expenses, the same for the
+// receipts page and the tax export: the cases' expenses, then the world's
+// receipts no case covers. A case's receipt without an expense (a scan
+// still waiting for one) is in neither.
+func demoExpenseList(today time.Time) []demoExpense {
+	var out []demoExpense
+	covered := map[int]bool{}
+	for i, r := range demoReceipts(today) {
+		covered[r.receipt] = true
 		if r.expense == "" {
 			continue
 		}
@@ -135,9 +160,23 @@ func DemoExpenses(now time.Time) *ExpenseSet {
 		if r.linked {
 			e.Custom[1] = demoDocURL(r.docs[0].id)
 		}
-		set.Expenses = append(set.Expenses, e)
+		id := int64(r.receipt)
+		if id == 0 {
+			id = int64(len(demoWorld.Receipts) + i + 1)
+		}
+		out = append(out, demoExpense{id: id, ReceiptExpense: e})
 	}
-	return set
+
+	monday := demoMonday(today)
+	for _, w := range demoWorld.Receipts {
+		if covered[w.ID] {
+			continue
+		}
+		day := monday.AddDate(0, 0, w.Day)
+		out = append(out, demoExpense{id: int64(w.ID), ReceiptExpense: ReceiptExpense{Key: "demo-r" + strconv.Itoa(w.ID),
+			Number: fmt.Sprintf(demoExpenseNumber, 40+w.ID), Vendor: w.Vendor, Notes: w.Note.DE(), Amount: w.Amount, Day: iso(day), Updated: day}})
+	}
+	return out
 }
 
 // DemoDocs is the demo Paperless' documents of one year (0 = all).

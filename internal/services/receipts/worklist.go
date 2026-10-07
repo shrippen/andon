@@ -22,12 +22,13 @@ import (
 	"andon/internal/sources"
 )
 
-// Counts is what waits where: unlinked expenses per year, tagged scans
-// without expense, linked expenses and hidden entries of the year.
+// Counts is what waits where: the number of each tab's list for the
+// year, and the open tab's list per year.
 type Counts struct {
 	Ready                         bool
 	Match, Queue, Linked, Ignored int
 	Years                         map[int]int
+	AllYears                      bool // Years has every year; false: only the one asked for
 }
 
 // Count is one tab's number, -1 = unknown.
@@ -48,8 +49,21 @@ func (c Counts) Count(tab string) int {
 	return -1
 }
 
-// CountsOf counts for the year. Reads come from the cache the tabs fill.
-func CountsOf(ctx context.Context, d *sql.DB, who *access.Principal, year int) (Counts, error) {
+// Year is the open tab's number for one year, -1 = unknown.
+func (c Counts) Year(year int) int {
+	if n, ok := c.Years[year]; ok {
+		return n
+	}
+	if c.Ready && c.AllYears {
+		return 0
+	}
+	return -1
+}
+
+// CountsOf counts the lists of the tabs for the year, and the open tab's
+// list per year, with the same filters the lists use (open, queued,
+// linkedOf). Reads come from the cache the tabs fill.
+func CountsOf(ctx context.Context, d *sql.DB, who *access.Principal, tab string, year int) (Counts, error) {
 	p, err := openPair(d, who)
 	if err != nil || !p.mapping.Complete() {
 		return Counts{}, err
@@ -59,33 +73,38 @@ func CountsOf(ctx context.Context, d *sql.DB, who *access.Principal, year int) (
 	if err != nil {
 		return Counts{}, err
 	}
-	hiddenE, hiddenD := p.state.ignored(KindExpense, p.ninja.ID), p.state.ignored(KindDoc, p.docs.ID)
-	out.Ignored = len(hiddenE) + len(hiddenD)
-	for _, e := range p.mapping.unlinkedExpenses(set.Expenses) {
-		if y, err := strconv.Atoi(e.Day[:min(len(e.Day), 4)]); err == nil && !slices.Contains(hiddenE, e.Key) {
-			out.Years[y]++
-		}
+	out.Ignored = len(p.state.ignored(KindExpense, p.ninja.ID)) + len(p.state.ignored(KindDoc, p.docs.ID))
+	open, linked := p.open(set.Expenses), p.mapping.linkedOf(set.Expenses)
+	out.Match, out.Linked = len(inYear(open, year)), len(inYear(linked, year))
+	switch tab {
+	case "match":
+		out.Years, out.AllYears = perYear(open), true
+	case "linked":
+		out.Years, out.AllYears = perYear(linked), true
 	}
-	out.Match = out.Years[year]
-	for _, e := range inYear(set.Expenses, year) {
-		if e.Custom[p.mapping.LinkSlot-1] != "" {
-			out.Linked++
-		}
-	}
-	if p.mapping.QueueTag == "" {
-		return out, nil
-	}
+
 	docs, err := p.docSet(ctx, d, who, year)
 	if err != nil {
 		return out, nil // the queue tab says why
 	}
-	tag, found := docs.Tags[strings.ToLower(p.mapping.QueueTag)]
-	for _, doc := range p.mapping.unlinkedDocs(docs.Docs) {
-		if found && slices.Contains(doc.Tags, tag) && !slices.Contains(hiddenD, strconv.FormatInt(doc.ID, 10)) {
-			out.Queue++
-		}
+	queued, _ := p.queued(docs, p.free(docs.Docs))
+	out.Queue = len(queued)
+	if tab == "queue" {
+		// Scans are read per year: only this one is known.
+		out.Years[year] = out.Queue
 	}
 	return out, nil
+}
+
+// perYear counts expenses by the year of their day; undated ones drop out.
+func perYear(list []sources.ReceiptExpense) map[int]int {
+	out := map[int]int{}
+	for _, e := range list {
+		if y, err := strconv.Atoi(e.Day[:min(len(e.Day), 4)]); err == nil {
+			out[y]++
+		}
+	}
+	return out
 }
 
 // Pair is one expense with the scans to link to it.

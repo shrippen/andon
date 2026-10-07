@@ -124,9 +124,12 @@ func (d Deps) handleReceipts(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	query := r.URL.Query()
+
+	// A success only for at least one link; "0" is no news.
+	linked, _ := strconv.Atoi(query.Get("linked"))
 	_ = d.Page(w, ctx, "receipts", http.StatusOK, map[string]any{
 		"Setup": setup, "Q": receiptsQueryOf(r), "Tabs": receiptTabs, "Years": years(),
-		"Done": query.Get("done"), "Error": query.Get("error"), "Note": query.Get("note"), "Linked": query.Get("linked"), "Other": query.Get("other"),
+		"Done": query.Get("done"), "Error": query.Get("error"), "Note": query.Get("note"), "Linked": linked, "Other": query.Get("other"),
 		"Undo": receiptUndo{Expense: query.Get("undo_expense"), Doc: query.Get("undo_doc")},
 	})
 }
@@ -155,7 +158,7 @@ func (d Deps) handleReceiptsPart(w http.ResponseWriter, r *http.Request, ctx Ctx
 		values["Error"], values["Mapping"] = receiptError(err), errors.Is(err, receipts.ErrMapping)
 	}
 	// The tab and year chips get their numbers with the part.
-	values["Counts"], _ = receipts.CountsOf(r.Context(), d.DB, ctx.Who, q.Year)
+	values["Counts"], _ = receipts.CountsOf(r.Context(), d.DB, ctx.Who, q.Tab, q.Year)
 	values["Tabs"], values["Years"] = receiptTabs, years()
 	_ = d.Page(w, ctx, "receipts_part", http.StatusOK, values)
 }
@@ -260,6 +263,11 @@ func (d Deps) handleReceiptLinkMany(w http.ResponseWriter, r *http.Request, ctx 
 		}
 	}
 	done, err := receipts.LinkMany(r.Context(), d.DB, ctx.Who, pairs, d.clientIP(r))
+	if err != nil && done == 0 {
+		// Nothing linked: the refusal alone, no "linked: 0".
+		http.Redirect(w, r, q.back("error", receiptError(err)), http.StatusSeeOther)
+		return
+	}
 	if err != nil {
 		http.Redirect(w, r, q.back("error", receiptError(err), "linked", strconv.Itoa(done)), http.StatusSeeOther)
 		return

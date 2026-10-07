@@ -296,14 +296,14 @@ func demoNinjaClients(b *demoBook) []NinjaClient {
 	return out
 }
 
-// demoNinjaExpenses are the receipts of the demo world. Their days are
-// offsets from Monday of the current week.
+// demoNinjaExpenses are the demo expenses as the receipts page reads
+// them (demoExpenseList).
 func demoNinjaExpenses(today time.Time, b *demoBook) []NinjaExpense {
-	monday := demoMonday(today)
-	out := make([]NinjaExpense, 0, len(demoWorld.Receipts))
-	for _, r := range demoWorld.Receipts {
-		out = append(out, NinjaExpense{ID: int64(r.ID), Date: iso(monday.AddDate(0, 0, r.Day)), Amount: r.Amount,
-			Tax: round2(r.Amount * b.VAT / (1 + b.VAT)), Notes: r.Vendor + " · " + r.Note.DE(), VendorID: int64(r.ID)})
+	list := demoExpenseList(today)
+	out := make([]NinjaExpense, 0, len(list))
+	for _, e := range list {
+		out = append(out, NinjaExpense{ID: e.id, Number: e.Number, Date: e.Day, Amount: e.Amount,
+			Tax: round2(e.Amount * b.VAT / (1 + b.VAT)), Notes: e.Vendor + " · " + e.Notes, VendorID: e.id})
 	}
 	return out
 }
