@@ -5722,6 +5722,306 @@
    }
   }
  },
+ "heartbeats": {
+  "note": "Healthchecks.io: cron jobs ping in. The laptop's Borg job is silent, the database dump of Invoice Ninja still pings although its backup failed, the certificate renewal is late.",
+  "url": "https://healthchecks.demo",
+  "checks": [
+   {
+    "name": "borg-nas",
+    "tags": "backup",
+    "status": "up",
+    "last_ping": "@-7h",
+    "grace": 3600,
+    "schedule": "0 2 * * *",
+    "pings": 412
+   },
+   {
+    "name": "borg-laptop",
+    "tags": "backup",
+    "status": "down",
+    "last_ping": "@-6d",
+    "grace": 3600,
+    "schedule": "0 3 * * *",
+    "pings": 388
+   },
+   {
+    "name": "pgback-invoiceninja",
+    "tags": "backup db",
+    "status": "up",
+    "last_ping": "@-2h",
+    "grace": 1800,
+    "timeout": 86400,
+    "pings": 201
+   },
+   {
+    "name": "pgback-kimai",
+    "tags": "backup db",
+    "status": "up",
+    "last_ping": "@-2h",
+    "grace": 1800,
+    "timeout": 86400,
+    "pings": 203
+   },
+   {
+    "name": "certbot-renew",
+    "tags": "tls",
+    "status": "grace",
+    "last_ping": "@-25h",
+    "grace": 7200,
+    "timeout": 86400,
+    "pings": 96
+   },
+   {
+    "name": "render-proxies",
+    "tags": "studio",
+    "status": "paused",
+    "last_ping": "@-9d",
+    "grace": 3600,
+    "timeout": 604800,
+    "pings": 14
+   }
+  ]
+ },
+ "prometheus": {
+  "note": "Prometheus with node exporters on the three hosts: the NAS runs hot, the rented server's disk fills up.",
+  "url": "https://prometheus.demo",
+  "alerts": [
+   {
+    "name": "HostHighCpuLoad",
+    "severity": "warning",
+    "instance": "nas:9100",
+    "since": "@-25m",
+    "summary": {
+     "de": "CPU-Last über 90 % seit 10 Minuten",
+     "en": "CPU load above 90 % for 10 minutes"
+    }
+   },
+   {
+    "name": "HostDiskWillFillIn24Hours",
+    "severity": "critical",
+    "instance": "docker-host:9100",
+    "since": "@-3h",
+    "summary": {
+     "de": "/var/lib/docker ist in unter 24 Stunden voll",
+     "en": "/var/lib/docker fills up in less than 24 hours"
+    }
+   },
+   {
+    "name": "ContainerRestarting",
+    "severity": "info",
+    "instance": "docker-host:8080",
+    "since": "@-50m",
+    "summary": {
+     "de": "paperless startet wiederholt neu",
+     "en": "paperless keeps restarting"
+    }
+   }
+  ],
+  "queries": {
+   "node_load1": {
+    "value": 3.4,
+    "hourly": [
+     0.6,
+     0.5,
+     0.4,
+     0.4,
+     0.3,
+     0.3,
+     0.4,
+     0.9,
+     1.4,
+     1.8,
+     2.1,
+     2.4,
+     2.2,
+     2.0,
+     2.6,
+     3.1,
+     3.0,
+     2.7,
+     2.2,
+     1.9,
+     2.4,
+     2.9,
+     3.2,
+     3.4
+    ]
+   },
+   "node_filesystem_avail_bytes": {
+    "value": 41000000000,
+    "hourly": [
+     96,
+     94,
+     92,
+     90,
+     88,
+     85,
+     83,
+     80,
+     78,
+     75,
+     73,
+     70,
+     68,
+     66,
+     63,
+     61,
+     58,
+     56,
+     53,
+     51,
+     48,
+     46,
+     43,
+     41
+    ]
+   }
+  }
+ },
+ "vulnerabilities": {
+  "note": "NVD entries for the images the studio runs: Gitea and Immich run affected versions, Vaultwarden is published through Pangolin.",
+  "url": "https://services.nvd.nist.gov",
+  "cves": [
+   {
+    "id": "CVE-2026-41207",
+    "product": "gitea",
+    "cvss": 8.1,
+    "published": "@-4d",
+    "fixed": "1.24.3",
+    "summary": {
+     "de": "Gitea: Rechteausweitung über manipulierte Actions-Token",
+     "en": "Gitea: privilege escalation through forged Actions tokens"
+    }
+   },
+   {
+    "id": "CVE-2026-39954",
+    "product": "immich",
+    "cvss": 7.5,
+    "published": "@-9d",
+    "fixed": "1.132.0",
+    "summary": {
+     "de": "Immich: geteilte Alben ohne Prüfung des Ablaufdatums abrufbar",
+     "en": "Immich: shared albums readable after their expiry"
+    }
+   },
+   {
+    "id": "CVE-2026-40112",
+    "product": "vaultwarden",
+    "cvss": 9.1,
+    "published": "@-2d",
+    "fixed": "1.34.2",
+    "summary": {
+     "de": "Vaultwarden: Umgehung der Zwei-Faktor-Anmeldung über die Admin-Schnittstelle",
+     "en": "Vaultwarden: two-factor bypass through the admin interface"
+    }
+   },
+   {
+    "id": "CVE-2026-33018",
+    "product": "paperless-ngx",
+    "cvss": 5.4,
+    "published": "@-21d",
+    "fixed": "2.15.0",
+    "summary": {
+     "de": "Paperless-ngx: gespeichertes XSS in Notizen",
+     "en": "Paperless-ngx: stored XSS in notes"
+    }
+   }
+  ]
+ },
+ "ci": {
+  "note": "Drone runs the website and showreel builds: the showreel's main branch has been red since yesterday.",
+  "url": "https://drone.demo",
+  "repos": [
+   {
+    "repo": "studio/website",
+    "branch": "main",
+    "builds": [
+     {
+      "number": 88,
+      "status": "success",
+      "started": "@-3h",
+      "seconds": 142,
+      "event": "push"
+     },
+     {
+      "number": 87,
+      "status": "success",
+      "started": "@-1d2h",
+      "seconds": 138,
+      "event": "push"
+     },
+     {
+      "number": 86,
+      "status": "failure",
+      "started": "@-2d",
+      "seconds": 61,
+      "event": "pull_request"
+     },
+     {
+      "number": 85,
+      "status": "success",
+      "started": "@-3d",
+      "seconds": 140,
+      "event": "push"
+     }
+    ]
+   },
+   {
+    "repo": "studio/showreel",
+    "branch": "main",
+    "builds": [
+     {
+      "number": 41,
+      "status": "failure",
+      "started": "@-5h",
+      "seconds": 512,
+      "event": "push"
+     },
+     {
+      "number": 40,
+      "status": "failure",
+      "started": "@-1d1h",
+      "seconds": 498,
+      "event": "push"
+     },
+     {
+      "number": 39,
+      "status": "success",
+      "started": "@-4d",
+      "seconds": 530,
+      "event": "push"
+     },
+     {
+      "number": 38,
+      "status": "success",
+      "started": "@-6d",
+      "seconds": 521,
+      "event": "tag"
+     }
+    ]
+   },
+   {
+    "repo": "team/infra",
+    "branch": "main",
+    "builds": [
+     {
+      "number": 12,
+      "status": "running",
+      "started": "@-4m",
+      "seconds": 0,
+      "event": "push"
+     },
+     {
+      "number": 11,
+      "status": "success",
+      "started": "@-4d",
+      "seconds": 75,
+      "event": "push"
+     }
+    ]
+   }
+  ]
+ },
  "smart_home": {
   "note": "Home Assistant at Mara's: the bathroom window sensor's battery is low, a plug is unavailable, a core update waits. history: the living room warms through the day, the office light is on during work hours.",
   "url": "https://home.demo",

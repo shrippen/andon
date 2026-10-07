@@ -39,6 +39,7 @@ action:
   open_in_dwd: 'In DWD-Unwetterwarnungen öffnen'
   open_in_github: 'In GitHub öffnen'
   open_in_kdestore: 'Im KDE Store öffnen'
+  open_in_healthchecks: 'In Healthchecks öffnen'
   open_in_tibber: 'In Tibber (Strom) öffnen'
   close: Schließen
   open_in_jsonapi: API öffnen
@@ -253,6 +254,9 @@ typefield:
     days: Verlauf (Tage)
   kdestore_downloads:
     days: Verlauf (Tage)
+  heartbeats:
+    tags: 'Nur Tags'
+    only_problems: 'Nur Probleme auflisten'
   hints:
     sort_value: Größter Betrag zuerst
     min_severity_10: Alle Stufen
@@ -848,6 +852,9 @@ wtype:
   kdestore_downloads:
     name: 'KDE-Store-Downloads'
     desc: 'Downloads der Einträge im KDE Store mit Verlauf pro Tag.'
+  heartbeats:
+    name: 'Herzschläge'
+    desc: 'Healthchecks: welche Cron-Jobs sich melden, welche zu spät oder gar nicht.'
   speedtest:
     name: 'Internet-Geschwindigkeit'
     desc: 'Letzte Messung aus Speedtest Tracker.'
@@ -1251,6 +1258,9 @@ conn:
   about_github: 'Repos: PRs, Issues, CI, Releases'
   options_hint_kdestore: 'URL bleibt https://api.kde-look.org (die API, nicht store.kde.org), kein Token. Was gelesen wird, sagen die Felder Benutzer und Einzelne Einträge.'
   about_kdestore: 'Einträge: Downloads, Version'
+  options_hint_healthchecks: 'URL von healthchecks.io oder der eigenen Instanz, z. B. https://healthchecks.io. Token = API-Schlüssel des Projekts; der Nur-Lese-Schlüssel reicht (Projekt → Einstellungen → API-Zugang).'
+  about_healthchecks: 'Cron-Jobs: Herzschläge, Ausfälle'
+  what_healthchecks: 'Healthchecks überwacht geplante Aufgaben: Jeder Job meldet sich nach dem Lauf, bleibt die Meldung aus, gilt er als ausgefallen.'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = persönliches Zugriffstoken (developer.tibber.com). Optional den Ort über die Suche wählen: Tagestemperaturen dort bereinigen den Verbrauch ums Wetter. Zusammen mit Home Assistant zeigt die Energie-Kachel die aktuelle Leistung.'
   about_tibber: 'Strompreise und Kosten'
   health: 'Zustand'
@@ -1464,6 +1474,7 @@ service:
   dwd: 'DWD-Unwetterwarnungen'
   github: 'GitHub'
   kdestore: 'KDE Store'
+  healthchecks: 'Healthchecks'
   tibber: 'Tibber (Strom)'
   links: Kacheln
   jsonapi: Eigene API (JSON)
@@ -1787,6 +1798,10 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  heartbeat:
+    down:
+      title: 'Herzschlag fehlt: {name}'
+      why: 'Zuletzt gemeldet: {since}. Der Job lief nicht oder meldet sich nicht mehr.'
   dns:
     device_spike:
       title: '{device} fragt ungewöhnlich viel'
@@ -2092,6 +2107,12 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
   cross:
+    heartbeat_ok_backup_not:
+      title: '{check} meldet OK, die Sicherung nicht'
+      why: '{tool} „{item}“: letzte erfolgreiche Sicherung {day}, der Job meldet sich trotzdem. Er pingt wohl auch, wenn die Sicherung scheitert.'
+    heartbeat_down_backup_ok:
+      title: '{check} schweigt, die Sicherung ist frisch'
+      why: '{tool} „{item}“ wurde am {day} gesichert, nur der Herzschlag fehlt. Den Ping im Job prüfen.'
     payment_unmatched:
       title: 'Zahlung ohne offene Rechnung: {name}'
       why: '{amount} am {day} von einem bekannten Kunden, passt zu keiner offenen Rechnung. Rechnung fehlt oder Nummer falsch?'
@@ -2478,6 +2499,9 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
+  healthchecks:
+    up: '{up} / {count} Checks'
+    down: '{count} ausgefallen'
   tailscale:
     online: '{online}/{count} online'
   gateway:
@@ -2705,6 +2729,8 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  heartbeat.down: 'Herzschlag fehlt'
+  cross.heartbeat_backup: 'Herzschlag gegen Sicherung'
   system.partner_ambiguous: Verbund fehlt
   system.connector_down: Verbindung gestört
   system.unused_service: 'Ungenutzter Dienst'
@@ -4661,6 +4687,29 @@ komodo:
   stacks: 'Stacks'
   updates: 'Image-Updates: {n}'
   alerts: 'Warnungen: {n}'
+heartbeat:
+  up: 'melden sich'
+  never: 'nie gemeldet'
+  checks: 'Checks'
+  every: 'alle {time}'
+  state:
+    up: 'OK'
+    down: 'aus'
+    grace: 'spät'
+    paused: 'pausiert'
+    new: 'neu'
+    started: 'läuft'
+  facts:
+    up: 'melden sich'
+    down: 'ausgefallen'
+    late: 'zu spät'
+    paused: 'pausiert'
+  col:
+    name: 'Check'
+    state: 'Stand'
+    last: 'Letzter Ping'
+    plan: 'Erwartet'
+    tags: 'Tags'
 kdestore:
   not_found: 'Eintrag oder Benutzer im KDE Store nicht gefunden.'
   no_entries: 'Nichts zu lesen: Benutzer oder einzelne Einträge angeben.'

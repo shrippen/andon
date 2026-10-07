@@ -245,6 +245,8 @@ func linkView(_ LinkConfig, results map[string]any, ctx ViewCtx) map[string]any 
 		parts = metrics.GiteaInfo(data)
 	case *sources.BorgDataset:
 		parts = metrics.BorgInfo(data, time.Now().UTC())
+	case *sources.HealthchecksDataset:
+		parts = metrics.HealthchecksInfo(data)
 	case *sources.HassDataset:
 		parts = metrics.HassInfo(data)
 	case *sources.SureDataset:

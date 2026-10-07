@@ -434,3 +434,37 @@ func TestKDEStoreEntryLinks(t *testing.T) {
 		t.Fatalf("err = %v, want kdestore.wrong_url", err)
 	}
 }
+
+// TestHealthchecks: checks come with status, tags and ping times; the
+// key goes in X-Api-Key, never in the URL.
+func TestHealthchecks(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v3/checks/" || r.Header.Get("X-Api-Key") != "ro-key" || r.URL.RawQuery != "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Write([]byte(`{"checks":[{"name":"borg-nas","tags":"backup nightly","status":"up","last_ping":"2026-10-07T02:01:00+00:00","next_ping":"2026-10-08T02:00:00+00:00","grace":3600,"schedule":"0 2 * * *","n_pings":412},` +
+			`{"name":"borg-laptop","tags":"","status":"down","last_ping":null,"grace":3600,"timeout":86400,"n_pings":0}]}`))
+	}))
+	defer srv.Close()
+
+	raw, err := sources.HealthchecksData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "ro-key"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := raw.(*sources.HealthchecksDataset)
+	if len(data.Checks) != 2 || data.Checks[0].Tags[1] != "nightly" || data.Checks[0].LastPing.IsZero() || !data.Checks[1].LastPing.IsZero() {
+		t.Fatalf("checks %+v", data.Checks)
+	}
+	if down := data.Down(); len(down) != 1 || down[0].Name != "borg-laptop" || down[0].Timeout != 86400 {
+		t.Fatalf("down %+v", down)
+	}
+}
+
+// TestDemoHealthchecks: the demo reads Studio Weber's checks.
+func TestDemoHealthchecks(t *testing.T) {
+	data := sources.DemoHealthchecks(time.Now())
+	if len(data.Checks) < 4 || len(data.Down()) == 0 || data.Checks[0].LastPing.IsZero() || len(data.Checks[0].Tags) == 0 {
+		t.Fatalf("demo %+v", data.Checks)
+	}
+}
