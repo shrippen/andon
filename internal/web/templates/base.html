@@ -68,53 +68,56 @@
 {{define "mark"}}<svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><rect class="sig" x="24" y="16.5" width="11" height="11.5"/><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="13" y="5" width="22" height="34" rx="2.5"/><line x1="13" y1="16.5" x2="35" y2="16.5"/><line x1="13" y1="28" x2="35" y2="28"/><line x1="24" y1="5" x2="24" y2="39"/><line x1="15" y1="39" x2="13" y2="44"/><line x1="33" y1="39" x2="35" y2="44"/></g></svg>{{end}}
 
 {{/* App header: boards and the evaluation pages up front, setup and the
-     account behind two menus (native <details>, no script needed). */}}
+     account behind two menus (native <details>, no script needed). On a
+     phone (Kante .nav-wide / .nav-burger) the bar keeps the brand, the hint
+     count, search and a menu button; the same links open in a drawer. */}}
 {{define "header"}}
 {{/* Short results (e.g. a connection test) slide in here as Kante .toast. */}}
 <div id="toast" class="toast-stack" aria-live="polite"></div>
 <header class="app-nav">
   <a class="app-brand" href="/">{{template "mark"}}Andon</a>
   {{if .Who}}
-    <nav class="app-links" aria-label="{{t "nav.main"}}">
-      {{range .NavBoards}}<a href="/boards/{{.ID}}"{{if eq .ID $.CurBoard}} aria-current="page"{{end}}>{{.Name}}</a>{{end}}
-      <a href="/hints"{{if here "/hints"}} aria-current="page"{{end}}>{{t "nav.hints"}}{{if .HintOpen}}<span class="count"{{if eq .HintLevel 30}} data-kind="error"{{else if lt .HintLevel 20}} data-kind="info"{{end}}>{{.HintOpen}}</span>{{end}}</a>
-      <a href="/clients"{{if here "/clients"}} aria-current="page"{{end}}>{{t "nav.clients"}}</a>
-      <a href="/billing"{{if here "/billing"}} aria-current="page"{{end}}>{{t "nav.billing"}}</a>
-      <a href="/receipts"{{if here "/receipts"}} aria-current="page"{{end}}>{{t "nav.receipts"}}</a>
-      <a href="/timeline"{{if here "/timeline"}} aria-current="page"{{end}}>{{t "nav.timeline"}}</a>
-      <a href="/hosts"{{if here "/hosts"}} aria-current="page"{{end}}>{{t "nav.hosts"}}</a>
+    {{if .HintOpen}}<a class="nav-narrow" href="/hints" aria-label="{{t "nav.hints"}}: {{.HintOpen}}">{{template "nav_hint_count" .}}</a>{{end}}
+    <nav class="app-links nav-wide" aria-label="{{t "nav.main"}}">
+      {{template "nav_boards" .}}
+      {{template "nav_pages" .}}
     </nav>
     <div class="app-side">
       <button type="button" class="nav-search" data-open="palette" aria-keyshortcuts="Control+K">{{t "palette.open"}} <kbd>Ctrl K</kbd></button>
-      <details class="nav-menu">
+      <details class="nav-menu nav-wide">
         <summary>{{t "nav.setup"}}</summary>
         <div class="menu">
-          <a href="/boards"{{if eq .Ctx.Path "/boards"}} aria-current="page"{{end}}>{{t "boards.title"}}</a>
-          <a href="/widgets"{{if here "/widgets"}} aria-current="page"{{end}}>{{t "nav.library"}}</a>
-          {{with .SetupHref}}<a href="{{.}}"{{if $.SettingsSetup}} aria-current="page"{{end}}>{{t "settings.nav"}}</a>{{end}}
+          {{template "nav_setup" .}}
         </div>
       </details>
-      <details class="nav-menu">
+      <details class="nav-menu nav-wide">
         <summary class="name">{{.Who.Name}}{{with .Onboarding}}{{if .Open}}<span class="count" data-kind="info" title="{{t "welcome.title"}}">{{.Done}}/{{len .Steps}}</span>{{end}}{{end}}</summary>
         <div class="menu">
-          <a href="/welcome"{{if here "/welcome"}} aria-current="page"{{end}}>{{t "welcome.title"}}{{with .Onboarding}}{{if .Open}} <span class="count" data-kind="info">{{.Done}}/{{len .Steps}}</span>{{end}}{{end}}</a>
-          <a href="/about"{{if here "/about"}} aria-current="page"{{end}}>{{t "about.title"}}</a>
-          <a href="/me/profile"{{if and .SettingsNav (not .SettingsSetup)}} aria-current="page"{{end}}>{{t "settings.nav"}}</a>
-          <hr>
-          <form method="post" action="/me/locale">
-            <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-            <input type="hidden" name="locale" value="{{if eq (print .Ctx.Locale) "de"}}en{{else}}de{{end}}">
-            <button type="submit" aria-label="{{t "field.locale"}}">{{if eq (print .Ctx.Locale) "de"}}English{{else}}Deutsch{{end}}</button>
-          </form>
-          <form method="post" action="/logout">
-            <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-            <button type="submit">{{t "nav.logout"}}</button>
-          </form>
+          {{template "nav_account" .}}
         </div>
       </details>
+      <button type="button" class="nav-burger" aria-controls="nav-drawer" aria-expanded="false" aria-label="{{t "nav.menu"}}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     </div>
   {{end}}
 </header>
+{{if .Who}}
+<dialog class="nav-drawer" id="nav-drawer" aria-label="{{t "nav.main"}}">
+  <div class="nav-drawer-head">
+    <a class="app-brand" href="/">{{template "mark"}}Andon</a>
+    <button type="button" class="btn btn-quiet btn-icon btn-sm" data-drawer-close aria-label="{{t "action.close"}}">×</button>
+  </div>
+  <nav class="nav-drawer-list" aria-label="{{t "nav.main"}}">
+    {{if .NavBoards}}<span class="h-label">{{t "nav.boards"}}</span>
+    {{template "nav_boards" .}}{{end}}
+    <span class="h-label">{{t "nav.pages"}}</span>
+    {{template "nav_pages" .}}
+    <span class="h-label">{{t "nav.setup"}}</span>
+    {{template "nav_setup" .}}
+    <span class="h-label">{{.Who.Name}}</span>
+    {{template "nav_account" .}}
+  </nav>
+</dialog>
+{{end}}
 {{if .Who}}
 <dialog id="palette" class="dialog palette" data-covers-bar aria-label="{{t "palette.title"}}">
   <input class="input" id="palette-q" type="search" autocomplete="off" placeholder="{{t "palette.hint"}}" aria-label="{{t "palette.title"}}">
@@ -135,6 +138,38 @@
   <form method="dialog"><button type="submit" class="btn btn-outline btn-sm">{{t "action.close"}}</button></form>
 </dialog>
 {{end}}
+{{end}}
+
+{{/* Nav links, shared by the bar and the phone drawer. */}}
+{{define "nav_hint_count"}}<span class="count"{{if eq .HintLevel 30}} data-kind="error"{{else if lt .HintLevel 20}} data-kind="info"{{end}}>{{.HintOpen}}</span>{{end}}
+{{define "nav_boards"}}{{range .NavBoards}}<a href="/boards/{{.ID}}"{{if eq .ID $.CurBoard}} aria-current="page"{{end}}>{{.Name}}</a>{{end}}{{end}}
+{{define "nav_pages"}}
+      <a href="/hints"{{if here "/hints"}} aria-current="page"{{end}}>{{t "nav.hints"}}{{if .HintOpen}}{{template "nav_hint_count" .}}{{end}}</a>
+      <a href="/clients"{{if here "/clients"}} aria-current="page"{{end}}>{{t "nav.clients"}}</a>
+      <a href="/billing"{{if here "/billing"}} aria-current="page"{{end}}>{{t "nav.billing"}}</a>
+      <a href="/receipts"{{if here "/receipts"}} aria-current="page"{{end}}>{{t "nav.receipts"}}</a>
+      <a href="/timeline"{{if here "/timeline"}} aria-current="page"{{end}}>{{t "nav.timeline"}}</a>
+      <a href="/hosts"{{if here "/hosts"}} aria-current="page"{{end}}>{{t "nav.hosts"}}</a>
+{{end}}
+{{define "nav_setup"}}
+          <a href="/boards"{{if eq .Ctx.Path "/boards"}} aria-current="page"{{end}}>{{t "boards.title"}}</a>
+          <a href="/widgets"{{if here "/widgets"}} aria-current="page"{{end}}>{{t "nav.library"}}</a>
+          {{with .SetupHref}}<a href="{{.}}"{{if $.SettingsSetup}} aria-current="page"{{end}}>{{t "settings.nav"}}</a>{{end}}
+{{end}}
+{{define "nav_account"}}
+          <a href="/welcome"{{if here "/welcome"}} aria-current="page"{{end}}>{{t "welcome.title"}}{{with .Onboarding}}{{if .Open}} <span class="count" data-kind="info">{{.Done}}/{{len .Steps}}</span>{{end}}{{end}}</a>
+          <a href="/about"{{if here "/about"}} aria-current="page"{{end}}>{{t "about.title"}}</a>
+          <a href="/me/profile"{{if and .SettingsNav (not .SettingsSetup)}} aria-current="page"{{end}}>{{t "settings.nav"}}</a>
+          <hr>
+          <form method="post" action="/me/locale">
+            <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+            <input type="hidden" name="locale" value="{{if eq (print .Ctx.Locale) "de"}}en{{else}}de{{end}}">
+            <button type="submit" aria-label="{{t "field.locale"}}">{{if eq (print .Ctx.Locale) "de"}}English{{else}}Deutsch{{end}}</button>
+          </form>
+          <form method="post" action="/logout">
+            <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+            <button type="submit">{{t "nav.logout"}}</button>
+          </form>
 {{end}}
 
 {{/* settings_nav: the side navigation of every settings page (see

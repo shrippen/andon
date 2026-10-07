@@ -88,3 +88,56 @@ func TestMailForwardDemo(t *testing.T) {
 		t.Fatalf("page lacks the demo note:\n%s", page)
 	}
 }
+
+// TestTablesFoldToCards: billing and client tables become cards on a
+// phone (Kante table.cards-sm): every value cell names its column, and
+// each row marks its amount for the top right of the card.
+func TestTablesFoldToCards(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+
+	space := regexp.MustCompile(`<option value="(\d+)"`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1]
+	for _, svc := range []string{"kimai", "invoiceninja", "sure"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "service": {svc}, "space_id": {string(space)},
+			"name": {svc}, "url": {"demo://" + svc}, "mode": {"shared"}, "secret": {"demo"}, "tls": {"verify"}})
+	}
+	runAnalysis(t, srv)
+
+	clients := string(mustGet(t, srv, client, "/clients"))
+	pages := map[string]string{"/billing": string(mustGet(t, srv, client, "/billing")), "/clients": clients}
+	// The first client with invoices (a client page shows them as a table).
+	for _, link := range regexp.MustCompile(`href="(/clients/\d+/\d+\?kimai=\d+)"`).FindAllStringSubmatch(clients, -1) {
+		page := string(mustGet(t, srv, client, link[1]))
+		if strings.Contains(page, "<table") {
+			pages["client"] = page
+			break
+		}
+	}
+	if pages["client"] == "" {
+		t.Fatalf("no client page with invoices:\n%s", clients)
+	}
+
+	table := regexp.MustCompile(`(?s)<table class="table[^"]*">.*?</table>`)
+	cell := regexp.MustCompile(`<td[^>]*>`)
+	for name, page := range pages {
+		tables := table.FindAllString(page, -1)
+		if len(tables) == 0 {
+			t.Fatalf("%s: no table:\n%s", name, page)
+		}
+		for _, tb := range tables {
+			if !strings.HasPrefix(tb, `<table class="table cards-sm">`) {
+				t.Fatalf("%s: table without cards-sm: %.120s", name, tb)
+			}
+			if !strings.Contains(tb, `data-card="key"`) {
+				t.Fatalf("%s: no amount marked for the card: %s", name, tb)
+			}
+			for _, td := range cell.FindAllString(tb, -1) {
+				if strings.Contains(td, `class="num"`) && !strings.Contains(td, "data-label=") && !strings.Contains(td, `data-card="key"`) {
+					t.Fatalf("%s: value cell without its column name: %s", name, td)
+				}
+			}
+		}
+	}
+}

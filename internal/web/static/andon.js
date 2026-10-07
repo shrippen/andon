@@ -178,7 +178,7 @@
   // one done, s pauses it for 7 days ──
   // Only the hint's own text counts, not its buttons and form labels
   // ("Pausieren", "Notiz" are on every card).
-  var hintText = "header, .title, .hint-tags, .hint-why, .hint-meta-line";
+  var hintText = "header, .title, .meta, .hint-tags, .hint-why, .hint-meta-line";
 
   function filterHints(query) {
     var q = query.trim().toLowerCase();
@@ -223,7 +223,8 @@
         case "a":
         case "s":
           if (current) {
-            var btn = current.querySelector(e.key === "a" ? "form.hint-ack button:not([formaction])" : "form.hint-ack button[formaction]");
+            // A row keeps its pause button behind "⋯", outside the form.
+            var btn = current.querySelector(e.key === "a" ? "form.hint-ack button:not([formaction])" : "button[formaction$='/snooze']");
             if (btn) {
               e.preventDefault();
               btn.click();

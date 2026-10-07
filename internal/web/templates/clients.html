@@ -13,16 +13,16 @@
     <h1>{{t "nav.clients"}}</h1>
     {{template "intro" dict "Page" "clients" "Chapter" "freelance" "O" .Onboarding "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
     {{if .Cards}}
-    <div class="table-wrap"><table class="table">
+    <div class="table-wrap"><table class="table cards-sm">
       <thead><tr><th>{{t "clients.customer"}}</th><th class="num">{{t "clients.hours_year"}}</th><th class="num">{{t "clients.unbilled"}}</th>
         <th class="num">{{t "clients.open"}}</th><th class="num">{{t "clients.revenue"}}</th><th class="num">{{t "clients.pay_days"}}</th></tr></thead>
       <tbody>{{range .Cards}}<tr>
-        <td><a href="/clients/{{.SpaceID}}/{{.CustomerID}}?kimai={{.KimaiID}}">{{.Name}}</a> <small class="muted">{{.SpaceName}}</small></td>
-        <td class="num">{{num .HoursYear 1}}</td>
-        <td class="num">{{if .Unbilled}}{{money .Unbilled .Currency}}{{end}}</td>
-        <td class="num">{{if .Open}}<span{{if .Overdue}} class="late"{{end}}>{{money .Open .Currency}}</span>{{end}}</td>
-        <td class="num">{{if .RevenueYTD}}{{money .RevenueYTD .Currency}}{{end}}</td>
-        <td class="num">{{if .PaymentDays}}{{.PaymentDays}}{{end}}</td>
+        <td data-label="{{t "clients.customer"}}"><a href="/clients/{{.SpaceID}}/{{.CustomerID}}?kimai={{.KimaiID}}">{{.Name}}</a> <small class="muted">{{.SpaceName}}</small></td>
+        <td class="num" data-label="{{t "clients.hours_year"}}">{{num .HoursYear 1}}</td>
+        <td class="num" data-label="{{t "clients.unbilled"}}">{{if .Unbilled}}{{money .Unbilled .Currency}}{{end}}</td>
+        <td class="num" data-label="{{t "clients.open"}}">{{if .Open}}<span{{if .Overdue}} class="late"{{end}}>{{money .Open .Currency}}</span>{{end}}</td>
+        <td class="num" data-label="{{t "clients.revenue"}}" data-card="key">{{if .RevenueYTD}}{{money .RevenueYTD .Currency}}{{end}}</td>
+        <td class="num" data-label="{{t "clients.pay_days"}}">{{if .PaymentDays}}{{.PaymentDays}}{{end}}</td>
       </tr>{{end}}</tbody>
     </table></div>
     {{else}}<p class="muted">{{t "clients.none"}}</p>{{end}}
@@ -56,9 +56,9 @@
     </div>
 
     {{with $c.Invoices}}<h2>{{t "clients.invoices"}}</h2>
-    <div class="table-wrap"><table class="table">
+    <div class="table-wrap"><table class="table cards-sm">
       <thead><tr><th>{{t "clients.number"}}</th><th>{{t "clients.date"}}</th><th>{{t "clients.due"}}</th><th class="num">{{t "clients.balance"}}</th></tr></thead>
-      <tbody>{{range .}}<tr><td>{{.Number}}</td><td>{{day .Date}}</td><td>{{day .DueDate}}{{if .OverdueDays}} <span class="late">+{{.OverdueDays}}</span>{{end}}</td><td class="num">{{money .Balance $c.Currency}}</td></tr>{{end}}</tbody>
+      <tbody>{{range .}}<tr><td data-label="{{t "clients.number"}}">{{.Number}}</td><td data-label="{{t "clients.date"}}">{{day .Date}}</td><td data-label="{{t "clients.due"}}">{{day .DueDate}}{{if .OverdueDays}} <span class="late">+{{.OverdueDays}}</span>{{end}}</td><td class="num" data-label="{{t "clients.balance"}}" data-card="key">{{money .Balance $c.Currency}}</td></tr>{{end}}</tbody>
     </table></div>{{end}}
 
     {{with $c.Projects}}<h2>{{t "clients.projects"}}</h2>

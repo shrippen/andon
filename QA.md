@@ -67,12 +67,14 @@ Erwartet: ein kurzer Weg von der Verbindung zur Kachel auf dem Board.
 Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel und Dialog stimmen überein (z. B. „Hinweise“: offen, kritisch, Warnungen).
 
 **J-B2 Hinweise abarbeiten** 📱
-1. `/hints`; Filter „Kritisch“, dann ein Dienst (`?level=critical&source=…`).
+1. `/hints`; in der Filterleiste „Kritisch“, dann ein Dienst (`?level=critical&source=…`), „alle N zeigen“. Am Handy: „Filter (n)“ öffnet die Leiste, der erste Hinweis steht auf dem ersten Bildschirm.
 2. Suche `#hint-search` mit Hinweistext, mit Wörtern der Schaltflächen („pausieren“, „Notiz“ dürfen nicht alles treffen).
 3. ⋯ Details eines Hinweises; ✎ Notiz und „Erledigt“; „7 Tage pausieren“.
-4. Tastatur: `j` dreimal, `a`; Sammelaktion „Alle N erledigt“ einer Gruppe.
-5. `/hints?view=done`: Ist das Erledigte dort? Lässt es sich zurückholen?
-6. Zähler vergleichen: Navigation, Filterchips, Kacheln „Lage“ und „Hinweise“.
+4. Tastatur: `j` dreimal, `a`, `s`; Sammelaktion „Alle N erledigt“ einer Gruppe (nur Regeln mit 2+ Hinweisen haben eine).
+5. „Gruppiert / Einzeln“ umschalten, neu laden: bleibt die Wahl? „Nach Geldwert“, „Nach Kunde gruppieren“.
+6. `/hints?view=done`: Ist das Erledigte dort? Lässt es sich zurückholen?
+7. Zähler vergleichen: Navigation, Filterleiste, Kacheln „Lage“ und „Hinweise“.
+8. Am Handy: Menü (☰) öffnet die Navigation von links, aktuelle Seite markiert; Esc, Klick daneben und × schließen, Fokus zurück auf ☰.
 
 **J-B3 Tastatur**
 1. Auf dem Board `/`, „kimai“, ↓, Esc; Text ohne Treffer.

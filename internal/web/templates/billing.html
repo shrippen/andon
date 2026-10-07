@@ -30,10 +30,11 @@
     {{range .Drafts}}
     <section class="card billing-draft">
       <h3>{{.Customer}} <small class="muted">{{.SpaceName}} · {{t "billing.since" "day" (day .Oldest)}}</small></h3>
-      <div class="table-wrap"><table class="table">
-        <tr><th>{{t "col.project"}}</th><th>{{t "billing.notes"}}</th><th class="num">{{t "col.hours"}}</th><th class="num">{{t "col.rate"}}</th><th class="num">{{t "col.amount"}}</th></tr>
-        {{range .Lines}}<tr><td>{{.Product}}</td><td>{{.Notes}}</td><td class="num">{{num .Hours 2}}</td><td class="num">{{money .Rate}}</td><td class="num">{{money .Amount}}</td></tr>{{end}}
-        <tr><td colspan="4"><b>{{t "billing.total"}}</b></td><td class="num"><b>{{money .Total}}</b></td></tr>
+      {{/* Kante cards-sm: on a phone each row is a card, the amount top right. */}}
+      <div class="table-wrap"><table class="table cards-sm">
+        <thead><tr><th>{{t "col.project"}}</th><th>{{t "billing.notes"}}</th><th class="num">{{t "col.hours"}}</th><th class="num">{{t "col.rate"}}</th><th class="num">{{t "col.amount"}}</th></tr></thead>
+        <tbody>{{range .Lines}}<tr><td data-label="{{t "col.project"}}">{{.Product}}</td><td data-label="{{t "billing.notes"}}">{{.Notes}}</td><td class="num" data-label="{{t "col.hours"}}">{{num .Hours 2}}</td><td class="num" data-label="{{t "col.rate"}}">{{money .Rate}}</td><td class="num" data-label="{{t "col.amount"}}" data-card="key">{{money .Amount}}</td></tr>{{end}}
+        <tr><td colspan="4"><b>{{t "billing.total"}}</b></td><td class="num" data-card="key"><b>{{money .Total}}</b></td></tr></tbody>
       </table></div>
       {{if .ClientKey}}
       <form method="post" action="/billing/draft" class="inline-form">
@@ -51,12 +52,12 @@
     <p class="small muted">{{t "billing.payments_hint"}}</p>
     {{with .Booked}}<p class="pill" data-state="applied">{{t "billing.booked" "number" .}}</p>{{end}}
     {{if .Payments}}
-    <div class="table-wrap"><table class="table">
-      <tr><th>{{t "col.day"}}</th><th>{{t "col.booking"}}</th><th class="num">{{t "col.amount"}}</th><th>{{t "col.number"}}</th><th>{{t "col.match"}}</th><th></th></tr>
-      {{range .Payments}}
-      <tr><td>{{day .Day}}</td><td>{{.Txn.Name}}<br><small class="muted">{{.Txn.Account}} · {{.SpaceName}}</small></td>
-        <td class="num">{{money .Txn.Amount}}</td><td>{{.Invoice.Number}} <small class="muted">{{.Invoice.Client}} · {{t "billing.open"}} {{money .Invoice.Balance}}</small></td>
-        <td>{{if .Sure}}<span class="pill" data-state="applied">{{if eq .Reason "number"}}{{t "match.number"}}{{else}}{{t "match.name_amount"}}{{end}}</span>
+    <div class="table-wrap"><table class="table cards-sm">
+      <thead><tr><th>{{t "col.day"}}</th><th>{{t "col.booking"}}</th><th class="num">{{t "col.amount"}}</th><th>{{t "col.number"}}</th><th>{{t "col.match"}}</th><th></th></tr></thead>
+      <tbody>{{range .Payments}}
+      <tr><td data-label="{{t "col.day"}}">{{day .Day}}</td><td data-label="{{t "col.booking"}}" data-card="title">{{.Txn.Name}}<br><small class="muted">{{.Txn.Account}} · {{.SpaceName}}</small></td>
+        <td class="num" data-label="{{t "col.amount"}}" data-card="key">{{money .Txn.Amount}}</td><td data-label="{{t "col.number"}}">{{.Invoice.Number}} <small class="muted">{{.Invoice.Client}} · {{t "billing.open"}} {{money .Invoice.Balance}}</small></td>
+        <td data-label="{{t "col.match"}}">{{if .Sure}}<span class="pill" data-state="applied">{{if eq .Reason "number"}}{{t "match.number"}}{{else}}{{t "match.name_amount"}}{{end}}</span>
           {{else}}<span class="pill" data-state="locked" title="{{t "match.check_hint"}}">{{t "match.amount_only"}}</span>{{end}}</td>
         <td><form method="post" action="/billing/payment" class="inline-form">
           <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
@@ -64,25 +65,25 @@
           <input type="hidden" name="invoice_id" value="{{.Invoice.ID}}"><input type="hidden" name="number" value="{{.Invoice.Number}}">
           {{if .Sure}}<button type="submit" class="btn btn-outline btn-sm">{{t "billing.book"}}</button>{{else}}<button type="submit" class="btn btn-quiet btn-sm">{{t "billing.book_anyway"}}</button>{{end}}
         </form></td></tr>
-      {{end}}
+      {{end}}</tbody>
     </table></div>
     {{else}}<p class="muted">{{t "billing.no_payments"}}</p>{{end}}
 
     <h2 id="mails">{{t "billing.mails"}}</h2>
     {{if .Mails}}
-    <div class="table-wrap"><table class="table">
-      <tr><th>{{t "col.day"}}</th><th>{{t "billing.sender"}}</th><th>{{t "billing.subject"}}</th><th class="num">{{t "col.amount"}}</th><th></th></tr>
-      {{range .Mails}}
-      <tr id="mail-{{.UID}}"><td>{{day .Date}}</td><td>{{.Sender}}</td><td>{{.Subject}}{{with .Attachments}}<small class="muted"> · {{range $i, $a := .}}{{if $i}}, {{end}}{{$a}}{{end}}</small>{{end}}
+    <div class="table-wrap"><table class="table cards-sm">
+      <thead><tr><th>{{t "col.day"}}</th><th>{{t "billing.sender"}}</th><th>{{t "billing.subject"}}</th><th class="num">{{t "col.amount"}}</th><th></th></tr></thead>
+      <tbody>{{range .Mails}}
+      <tr id="mail-{{.UID}}"><td data-label="{{t "col.day"}}">{{day .Date}}</td><td data-label="{{t "billing.sender"}}" data-card="title">{{.Sender}}</td><td data-label="{{t "billing.subject"}}">{{.Subject}}{{with .Attachments}}<small class="muted"> · {{range $i, $a := .}}{{if $i}}, {{end}}{{$a}}{{end}}</small>{{end}}
         {{with .Read}}<br><small>{{t "assist.read_line" "vendor" .Vendor "number" .Number "due" (day .Due) "gross" (money .Gross .Currency)}}</small>{{end}}</td>
-        <td class="num">{{if .Amount}}{{money .Amount}}{{else}}–{{end}}</td>
+        <td class="num" data-label="{{t "col.amount"}}" data-card="key">{{if .Amount}}{{money .Amount}}{{else}}–{{end}}</td>
         <td>{{if and .Paperless .Attachments}}<form method="post" action="/billing/mail" class="inline-form">
           <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
           <input type="hidden" name="conn" value="{{.MailConn}}"><input type="hidden" name="uid" value="{{.UID}}">
           <button type="submit" class="btn btn-outline btn-sm">{{t "billing.to_paperless"}}</button>
           {{if and $.Assist (not .Read)}}<button type="submit" class="btn btn-outline btn-sm" formaction="/billing/mail/read" title="{{t "assist.read_privacy"}}">{{t "assist.read"}}</button>{{end}}
         </form>{{else if not .Paperless}}<small class="muted">{{t "billing.no_paperless"}}</small>{{end}}</td></tr>
-      {{end}}
+      {{end}}</tbody>
     </table></div>
     {{else}}<p class="muted">{{t "billing.no_mails"}}</p>{{end}}
 
