@@ -26,8 +26,18 @@ func part(key string, params map[string]any) InfoPart {
 // KimaiInfo builds the info line for a Kimai link tile.
 func KimaiInfo(data *sources.KimaiDataset, today time.Time) []InfoPart {
 	stats := KimaiSummaryOf(data, today)
+	// Running timers count from their begin or midnight, as in Kimai Lite.
+	minutes := stats.TodayMin
+	now := time.Now().UTC()
+	for _, r := range stats.Running {
+		begin, _ := ParseTime(r.Sheet.Begin)
+		if begin.Before(today) {
+			begin = today
+		}
+		minutes += int(max(0, now.Sub(begin).Minutes()))
+	}
 	found := []InfoPart{part("kimai.today", map[string]any{
-		"hours": map[string]any{"$num": float64(stats.TodayMin) / minutesPerHour, "digits": 1},
+		"hours": map[string]any{"$num": float64(minutes) / minutesPerHour, "digits": 1},
 	})}
 	if len(stats.Running) > 0 {
 		found = append(found, part("kimai.running", nil))

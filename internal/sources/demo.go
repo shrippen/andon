@@ -908,7 +908,13 @@ func DemoKimaiLive(now time.Time) *KimaiLive {
 	b := bookOf(now)
 	edit, meeting := b.Live.Activities.Edit, b.Live.Activities.Meeting
 	begin := now.Add(-time.Duration(b.Live.RunningMin) * time.Minute)
-	return &KimaiLive{URL: b.URLs.Time, TodayMin: b.Live.TodayMin, WeekMin: b.Live.WeekMin, Contract: DemoContract(),
+	// Today is the blocks plus the timer, as fetchKimaiLive adds it up;
+	// the week holds today and the days before it.
+	today := b.Live.RunningMin
+	for _, s := range b.Live.Spans {
+		today += int(s.End.Sub(s.Begin).Minutes())
+	}
+	return &KimaiLive{URL: b.URLs.Time, TodayMin: today, WeekMin: b.Live.WeekMin - b.Live.TodayMin + today, Contract: DemoContract(),
 		Active: []KimaiTimer{demoTimer(1, edit, demoEdit, begin)},
 		Recent: []KimaiTimer{
 			demoTimer(1, edit, demoEdit, time.Time{}),
