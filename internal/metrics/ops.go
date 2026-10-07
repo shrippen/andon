@@ -104,6 +104,22 @@ func GiteaInfo(data *sources.GiteaDataset) []InfoPart {
 	return found
 }
 
+// DroneInfo: "3 repos · 1 red".
+func DroneInfo(data *sources.DroneDataset) []InfoPart {
+	repos := data.CIRepos()
+	red := 0
+	for _, r := range repos {
+		if r.Status == sources.CIFailed {
+			red++
+		}
+	}
+	found := []InfoPart{part("drone.repos", map[string]any{"count": len(repos)})}
+	if red > 0 {
+		found = append(found, part("drone.red", map[string]any{"count": red}))
+	}
+	return found
+}
+
 // NVDInfo: "412 CVEs in 30 days".
 func NVDInfo(data *sources.NVDDataset) []InfoPart {
 	return []InfoPart{part("nvd.read", map[string]any{"count": len(data.CVEs), "days": data.Days})}

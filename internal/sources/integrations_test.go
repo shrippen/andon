@@ -577,3 +577,46 @@ func TestNVD(t *testing.T) {
 		t.Fatalf("cve %+v", c)
 	}
 }
+
+// TestDrone: active repos only; builds of other branches are left out
+// (tags stay), pull requests count for neither the state nor the line.
+func TestDrone(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer tok" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		switch r.URL.Path {
+		case "/api/user/repos":
+			w.Write([]byte(`[{"slug":"me/app","default_branch":"main","active":true},{"slug":"me/old","active":false}]`))
+		case "/api/repos/me/app/builds":
+			w.Write([]byte(`[{"number":5,"status":"success","event":"pull_request","target":"main","started":1759820000,"finished":1759820060},` +
+				`{"number":4,"status":"failure","event":"push","target":"main","started":1759810000,"finished":1759810090},` +
+				`{"number":3,"status":"success","event":"push","target":"dev"},` +
+				`{"number":2,"status":"success","event":"tag","target":"v1.0.0"}]`))
+		}
+	}))
+	defer srv.Close()
+
+	raw, err := sources.DroneData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	repos := raw.(sources.CISource).CIRepos()
+	if len(repos) != 1 || repos[0].Repo != "me/app" || repos[0].Status != sources.CIFailed || len(repos[0].Runs) != 2 ||
+		repos[0].Runs[0].Seconds != 90 || repos[0].Runs[1].Event != "tag" {
+		t.Fatalf("repos %+v", repos)
+	}
+}
+
+// TestCIRepos: GitHub names each repo's latest run, Gitea only failed ones.
+func TestCIRepos(t *testing.T) {
+	gh := (&sources.GitHubDataset{Repos: []sources.GitRepo{{Name: "a/b", CI: "failure"}, {Name: "a/c", CI: "success"}, {Name: "a/d"}}}).CIRepos()
+	gt := (&sources.GiteaDataset{Repos: []sources.Repo{{Name: "a/e", FailedWorkflow: "test"}, {Name: "a/f"}}}).CIRepos()
+	if len(gh) != 2 || gh[0].Status != sources.CIFailed || gh[1].Status != sources.CIOK || len(gt) != 1 || gt[0].Step != "test" {
+		t.Fatalf("github %+v gitea %+v", gh, gt)
+	}
+	if d := sources.DemoDrone(time.Now()).CIRepos(); len(d) != 3 || d[1].Status != sources.CIFailed {
+		t.Fatalf("demo %+v", d)
+	}
+}
