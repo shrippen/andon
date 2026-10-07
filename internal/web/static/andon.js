@@ -1664,6 +1664,23 @@
   // in the background runs once when the tab shows again ("wake"). A wall
   // display keeps polling. Filters in hx-trigger would need eval, which
   // the CSP forbids, hence the events.
+  // A tile's own refresh waits while someone works in it: an open form
+  // ([data-hold], Kimai Lite's add and day forms), a focused field or one
+  // with something typed. The next poll tries again.
+  d.addEventListener("htmx:beforeRequest", function (e) {
+    var el = e.detail.elt;
+    if (el.classList && el.classList.contains("card-body") && busy(el)) {
+      e.preventDefault();
+    }
+  });
+  function busy(body) {
+    if (body.querySelector("[data-hold]") || body.contains(d.activeElement)) {
+      return true;
+    }
+    return [].some.call(body.querySelectorAll("input:not([type=hidden]), textarea"), function (f) {
+      return f.value !== f.defaultValue;
+    });
+  }
   d.addEventListener("htmx:beforeRequest", function (e) {
     var el = e.detail.elt;
     if (!d.hidden || d.body.classList.contains("is-kiosk")) {

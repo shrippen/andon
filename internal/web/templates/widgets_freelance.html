@@ -79,7 +79,7 @@
 {{define "kimai_new"}}
 {{$edit := eq (print .Req.Action) "edit"}}
 {{$running := and $edit (not .Req.End)}}
-<form class="kl kl-new" hx-post="/widget-fragments/{{.PlacementID}}/kimai" hx-target="closest .card-body" hx-swap="innerHTML">
+<form class="kl kl-new" data-hold hx-post="/widget-fragments/{{.PlacementID}}/kimai" hx-target="closest .card-body" hx-swap="innerHTML">
   <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
   <input type="hidden" name="action" value="{{if $edit}}edit{{else}}create{{end}}">
   {{if $edit}}<input type="hidden" name="sheet" value="{{.Req.Sheet}}">{{end}}
@@ -132,7 +132,7 @@
 
 {{/* Kimai Lite's list of today's entries; each opens its edit form. */}}
 {{define "kimai_day"}}
-<div class="kl kl-daylist">
+<div class="kl kl-daylist" data-hold>
   <div class="kl-head">
     <span class="label">{{t "timer.day_list"}}</span>
     <button type="button" class="btn btn-outline btn-icon btn-sm kl-ib" hx-get="/widget-fragments/{{.PlacementID}}" hx-target="closest .card-body" hx-swap="innerHTML" aria-label="{{t "action.close"}}" title="{{t "action.close"}}">

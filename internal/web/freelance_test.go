@@ -117,6 +117,11 @@ func TestKimaiTimerStops(t *testing.T) {
 	if !strings.Contains(form, "Acme · Relaunch") || !strings.Contains(form, `data-project="3"`) || !strings.Contains(form, `name="begin" type="datetime-local"`) {
 		t.Fatalf("add form:\n%s", form)
 	}
+	// The open form holds the tile's refresh (andon.js busy), or the
+	// next poll would swap it away with what was typed.
+	if !strings.Contains(form, `class="kl kl-new" data-hold`) {
+		t.Fatal("add form does not hold the refresh")
+	}
 	entry := url.Values{"csrf": {csrf}, "action": {"create"}, "project": {"3"}, "activity": {"8"}, "note": {"Review"}}
 	entry.Set("begin", "2026-09-26T10:00")
 	entry.Set("end", "2026-09-26T09:00")
