@@ -984,7 +984,7 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 - Produktiv noch nicht eingerichtet: an der Gitea-Verbindung die Optionen `docs_repo: shrippen/ObsidianPrivat` und `docs_paths: [IT/Dienste, IT/Geräte, IT/Orte, IT/Netzwerk, IT/Allgemeines]`; eine Verbindung Hansei (Webhook-Adresse steht auf ihrer Seite); ein Lese-Token für Hansei.
 - Schnittstelle zu Hansei:
   - `GET /api/docs?token=…` (Lese-Token) → `{"complete": bool, "findings": [{"id", "rule", "host", "stack", "note", "path", "link", "note_url", "compose", "services": [{"name", "image", "ports"}]}]}`. `complete: false` heißt: Stacks oder Notizen nicht vollständig gelesen, ein fehlender Befund ist dann keine Erledigung.
-  - IDs: `docs.missing:<host>/<stack>`, `docs.orphan:<Notizpfad>`, `docs.deprecated_live:<host>/<stack>`.
+  - IDs: `docs.missing:<host>/<stack>`, `docs.orphan:<Notizpfad>`, `docs.deprecated_live:<host>/<stack>`, `docs.not_deployed:<host>/<stack>` (mit Compose-Auszug), `docs.deployed_unknown:<host>/<stack>` (ohne `compose`; `services` sind die Images, die Komodo betreibt).
   - `POST <Webhook-Adresse der Verbindung Hansei>` mit `{"state": {"review", "feedback", "done", "conformity" (0..1), "claimed": [IDs]}}` ersetzt den letzten Stand (höchstens 60 Aufrufe je Minute, Körper bis 128 KiB). Nach jeder Änderung und beim Start senden.
 - Offen auf Hansei-Seite: Phase 05 in `hansei/ROADMAP.md` (Feld `Compose` im Vault, Befunde abholen, Stand senden).
 
@@ -999,7 +999,7 @@ Ziel: Die IT-Doku in Obsidian aktuell halten. Andon erkennt, wo Doku und Compose
 - [x] Compose-Repos: `docker-compose-*` über die vorhandene Gitea-Verbindung (`git/trees`), Host aus dem Repo-Namen (`ploetze` → Plötze); je Stack Dienste, Images, Ports, Labels. `environment`-Werte werden beim Lesen verworfen *(`GiteaDataset.Stacks`, `internal/sources/compose.go`; Dateien je Blob-SHA nur einmal gelesen)*
 - [x] Obsidian: Repo `ObsidianPrivat`, nur die Teilbäume `IT/Dienste`, `IT/Geräte`, `IT/Orte` und die Netz-Notizen, nur Frontmatter (`Compose`, `Gerät`, `deprecated`, `URL`, Ports, `Backup via`, `SSO …`, `abhängig von`, `letzte Prüfung`, `Orte`). Nie den ganzen Baum laden: Gitea kürzt ihn bei rund 3000 Einträgen (`truncated`), und Andon sieht so keine Pfade anderer Ordner *(`GiteaDataset.Notes`, `internal/sources/itdocs.go`; Optionen `docs_repo`, `docs_paths` an der Gitea-Verbindung; `Ort` wie `Orte` gelesen)*
 - [x] Hansei-Stand für das Widget „Batches warten“ *(statt Statusnotiz im Vault: Verbindung Hansei, Hansei schickt seinen ganzen Stand per Webhook `{"state": …}`; Andon behält den letzten)*
-- [ ] Später: Komodo-Stand dazu (Stack im Repo, aber nicht deployt und umgekehrt)
+- [x] Später: Komodo-Stand dazu (Stack im Repo, aber nicht deployt und umgekehrt) *(Regeln `docs.not_deployed` und `docs.deployed_unknown`, ein Hinweis je Host, `metrics.CheckDeploys`; Host des Komodo-Stacks aus dem verknüpften Repo `docker-compose-<host>`, sonst aus dem Servernamen (Umlaute gefaltet, „Plötze“ = `ploetze`); Abgleich über Host und Name, verglichen nur auf Hosts, die beide Seiten kennen; `down` zählt als nicht deployt, `unknown` gar nicht. Kachel „Doku-Abdeckung“ und ihr Popup zeigen beides)*
 
 **Regeln und Widgets**
 - [x] `docs.missing`: Stack ohne aktive Notiz (bzw. ohne Eintrag in einer Geräte- oder Netz-Notiz) *(ein Hinweis je Host; Zuordnung über `Compose`-Link auf Datei oder Stack-Ordner, `metrics.CheckDocs`)*

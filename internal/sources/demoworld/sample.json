@@ -1116,15 +1116,23 @@
     "updates": [
      "immich-server",
      "immich-machine-learning"
-    ]
+    ],
+    "repo": "studio/docker-compose-nebelhorn"
    },
    {
-    "name": "paperless",
-    "state": "unhealthy"
+    "name": "paperless-ngx",
+    "state": "unhealthy",
+    "repo": "studio/docker-compose-nebelhorn"
    },
    {
     "name": "gitea",
-    "state": "running"
+    "state": "running",
+    "repo": "studio/docker-compose-nebelhorn"
+   },
+   {
+    "name": "paperless-ai",
+    "state": "running",
+    "repo": "studio/docker-compose-nebelhorn"
    }
   ],
   "alerts": [
@@ -1166,7 +1174,7 @@
     "by": "mara",
     "ok": true
    },
-   "paperless": {
+   "paperless-ngx": {
     "at": "@-26h",
     "operation": "DeployStack",
     "by": "lena",

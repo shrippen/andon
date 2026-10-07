@@ -88,8 +88,9 @@ func TestTrueNASRestFallback(t *testing.T) {
 func TestKomodoReadsStacksAlerts(t *testing.T) {
 	srv := jsonServer(t, map[string]any{
 		"/read/GetServersSummary": map[string]any{"total": 3, "healthy": 2, "warning": 1, "unhealthy": 0},
-		"/read/ListStacks": []any{map[string]any{"name": "immich", "info": map[string]any{"state": "Running",
-			"services": []any{map[string]any{"service": "server", "update_available": true}}}}},
+		"/read/ListStacks": []any{map[string]any{"name": "immich", "info": map[string]any{"state": "Running", "server_id": "s1", "repo": "alex/docker-compose-regis",
+			"services": []any{map[string]any{"service": "server", "image": "ghcr.io/immich-app/immich-server:v2.1", "update_available": true}}}}},
+		"/read/ListServers": []any{map[string]any{"id": "s1", "name": "Regis"}},
 		"/read/ListAlerts": map[string]any{"alerts": []any{map[string]any{"ts": 1758790000000, "level": "CRITICAL",
 			"data": map[string]any{"type": "ServerUnreachable", "data": map[string]any{"name": "pi"}}}}},
 	}, func(r *http.Request) bool {
@@ -103,6 +104,9 @@ func TestKomodoReadsStacksAlerts(t *testing.T) {
 	data := out.(*sources.KomodoDataset)
 	if data.ServersProblem != 1 || data.Stacks[0].State != "running" || len(data.Stacks[0].Updates) != 1 || data.Alerts[0].Name != "pi" {
 		t.Fatalf("data: %+v", data)
+	}
+	if s := data.Stacks[0]; s.Server != "Regis" || s.Repo != "alex/docker-compose-regis" || s.Images["server"] != "ghcr.io/immich-app/immich-server:v2.1" {
+		t.Fatalf("stack: %+v", s)
 	}
 }
 

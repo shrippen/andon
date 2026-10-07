@@ -177,8 +177,10 @@ func parseTNDatasets(raw any) *TrueNASDatasets {
 // ── Komodo ──
 
 type KStack struct {
-	Name, State string
-	Updates     []string // services with a newer image
+	Name, State  string
+	Updates      []string          // services with a newer image
+	Server, Repo string            // server name, linked repo "alex/docker-compose-regis"; "" if none
+	Images       map[string]string // service → image it runs (IT docs, Phase 15)
 }
 
 type KAlert struct {
@@ -216,13 +218,22 @@ func fetchKomodo(ctx context.Context, sctx Ctx) (any, error) {
 	if err != nil {
 		return nil, fetchError(err)
 	}
+	serverNames := komodoServers(ctx, api)
 	for _, raw := range asList(stacks) {
 		st := asMap(raw)
 		info := asMap(st["info"])
-		stack := KStack{Name: asStr(st["name"]), State: strings.ToLower(asStr(info["state"]))}
+		stack := KStack{Name: asStr(st["name"]), State: strings.ToLower(asStr(info["state"])),
+			Server: serverNames[asStr(info["server_id"])], Repo: asStr(info["repo"])}
 		for _, svc := range asList(info["services"]) {
-			if sv := asMap(svc); asBool(sv["update_available"]) {
+			sv := asMap(svc)
+			if asBool(sv["update_available"]) {
 				stack.Updates = append(stack.Updates, asStr(sv["service"]))
+			}
+			if image := asStr(sv["image"]); image != "" {
+				if stack.Images == nil {
+					stack.Images = map[string]string{}
+				}
+				stack.Images[asStr(sv["service"])] = image
 			}
 		}
 		data.Stacks = append(data.Stacks, stack)
@@ -238,6 +249,20 @@ func fetchKomodo(ctx context.Context, sctx Ctx) (any, error) {
 		}
 	}
 	return data, nil
+}
+
+// komodoServers maps server ids to names, so a stack names its host;
+// empty when the list cannot be read.
+func komodoServers(ctx context.Context, api services.KomodoApi) map[string]string {
+	out := map[string]string{}
+	list, err := api.Read(ctx, "ListServers", nil)
+	if err != nil {
+		return out
+	}
+	for _, raw := range asList(list) {
+		out[asStr(asMap(raw)["id"])] = asStr(asMap(raw)["name"])
+	}
+	return out
 }
 
 // KServerLoad is one Komodo server's load when the dialog opens.

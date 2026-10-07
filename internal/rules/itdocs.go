@@ -23,6 +23,81 @@ func registerDocs() {
 
 	// A note is deprecated, its stack still lies in the repo.
 	Register("docs.deprecated_live", giteaSvc, nil, on(docsDeprecatedLive))
+
+	// Compose repos against Komodo, one hint per host: a stack in a repo
+	// Komodo does not run, and one it runs that no repo holds.
+	Register("docs.not_deployed", giteaSvc, nil, on(docsNotDeployed))
+	Register("docs.deployed_unknown", giteaSvc, nil, on(docsDeployedUnknown))
+	Needs("docs.not_deployed", komodoSvc)
+	Needs("docs.deployed_unknown", komodoSvc)
+}
+
+// komodoOf is the space's Komodo dataset, nil without one.
+func komodoOf(env Env) *sources.KomodoDataset {
+	k, _ := env.Datasets[komodoSvc].(*sources.KomodoDataset)
+	return k
+}
+
+// hostNames groups names per host, hosts in first-seen order.
+type hostNames struct {
+	hosts []string
+	names map[string][]aged
+}
+
+func (h *hostNames) add(host, name string) {
+	if h.names == nil {
+		h.names = map[string][]aged{}
+	}
+	if _, seen := h.names[host]; !seen {
+		h.hosts = append(h.hosts, host)
+	}
+	h.names[host] = append(h.names[host], aged{name: name})
+}
+
+func docsNotDeployed(data *sources.GiteaDataset, cfg map[string]any, env Env) []Finding {
+	komodo := komodoOf(env)
+	check, ok := metrics.CheckDeploys(data, komodo)
+	if !ok {
+		return nil
+	}
+	claimed := claimedOf(env)
+
+	var by hostNames
+	for _, s := range check.NotDeployed {
+		if !claimed[metrics.NotDeployedID(s)] {
+			by.add(s.Host, s.Name)
+		}
+	}
+	var found []Finding
+	for _, host := range by.hosts {
+		names := by.names[host]
+		found = append(found, svcFinding(giteaSvc, "docs.not_deployed", "not_deployed:"+host, "docs.not_deployed", enums.SeverityInfo, komodo.URL,
+			map[string]any{"host": host, "count": len(names), "names": agedNames(names)}))
+	}
+	return found
+}
+
+func docsDeployedUnknown(data *sources.GiteaDataset, cfg map[string]any, env Env) []Finding {
+	komodo := komodoOf(env)
+	check, ok := metrics.CheckDeploys(data, komodo)
+	if !ok {
+		return nil
+	}
+	claimed := claimedOf(env)
+
+	var by hostNames
+	for _, d := range check.Unknown {
+		if !claimed[metrics.UnknownID(d)] {
+			by.add(d.Host, d.Stack.Name)
+		}
+	}
+	var found []Finding
+	for _, host := range by.hosts {
+		names := by.names[host]
+		found = append(found, svcFinding(giteaSvc, "docs.deployed_unknown", "deployed_unknown:"+host, "docs.deployed_unknown", enums.SeverityWarn, komodo.URL,
+			map[string]any{"host": host, "count": len(names), "names": agedNames(names)}))
+	}
+	return found
 }
 
 // claimedOf is the finding ids Hansei works on, from its pushed state.

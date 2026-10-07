@@ -292,6 +292,7 @@
   {{with $v.Problems}}<span class="pill" data-state="locked">{{t "itdocs.problems" "n" .}}</span>{{end}}</div>
 {{template "hbars" $v.Hosts}}
 {{with $v.Gaps}}<p class="tile-note">{{t "itdocs.gaps"}}: {{.}}{{with $v.More}} +{{.}}{{end}}</p>{{end}}
+{{if or $v.NotDeployed $v.Unknown}}<p class="tile-note">{{t "itdocs.deploys" "missing" $v.NotDeployed "unknown" $v.Unknown}}</p>{{end}}
 {{end}}{{end}}
 {{end}}
 

@@ -59,6 +59,31 @@ func TestFindingsPerStack(t *testing.T) {
 		t.Fatalf("findings: %d, want 4 missing + orphan + deprecated", len(report.Findings))
 	}
 
+	// With Komodo in the space: what it does not run and what it runs
+	// outside the repos, with the images it runs.
+	kid := testkit.Conn(t, d, who, space, enums.ServiceKomodo, "demo://komodo")
+	komodo, err := content.Connection(d, kid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceKomodo), nil, komodo, model.UserHolder(who.UserID), svcdata.Force); err != nil {
+		t.Fatal(err)
+	}
+	report, err = itdocs.Findings(ctx, d, who)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules := map[string]itdocs.Finding{}
+	for _, f := range report.Findings {
+		rules[f.ID] = f
+	}
+	if f, ok := rules["docs.not_deployed:nebelhorn/newt-nebelhorn"]; !ok || f.Compose == "" || len(f.Services) != 1 {
+		t.Fatalf("not deployed: %+v", report.Findings)
+	}
+	if _, ok := rules["docs.deployed_unknown:nebelhorn/paperless-ai"]; !ok || !report.Complete || len(report.Findings) != 8 {
+		t.Fatalf("deployed unknown: %+v", report.Findings)
+	}
+
 	other, err := itdocs.Findings(ctx, d, stranger)
 	if err != nil {
 		t.Fatal(err)

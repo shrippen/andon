@@ -4859,7 +4859,7 @@
   ]
  },
  "stacks": {
-  "note": "Komodo: three servers, the backup Pi unreachable; paperless' last deploy failed.",
+  "note": "Komodo: three servers, the backup Pi unreachable; paperless-ngx' last deploy failed. Komodo runs paperless-ai from the Nebelhorn repo, where its directory is gone, and does not run newt-nebelhorn (IT docs: deployed without repo, not deployed).",
   "url": "https://komodo.demo",
   "servers_total": 3,
   "servers_healthy": 2,
@@ -4871,15 +4871,23 @@
     "updates": [
      "immich-server",
      "immich-machine-learning"
-    ]
+    ],
+    "repo": "studio/docker-compose-nebelhorn"
    },
    {
-    "name": "paperless",
-    "state": "unhealthy"
+    "name": "paperless-ngx",
+    "state": "unhealthy",
+    "repo": "studio/docker-compose-nebelhorn"
    },
    {
     "name": "gitea",
-    "state": "running"
+    "state": "running",
+    "repo": "studio/docker-compose-nebelhorn"
+   },
+   {
+    "name": "paperless-ai",
+    "state": "running",
+    "repo": "studio/docker-compose-nebelhorn"
    }
   ],
   "alerts": [
@@ -4921,7 +4929,7 @@
     "by": "mara",
     "ok": true
    },
-   "paperless": {
+   "paperless-ngx": {
     "at": "@-26h",
     "operation": "DeployStack",
     "by": "lena",

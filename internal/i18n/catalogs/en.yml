@@ -2657,6 +2657,12 @@ hint:
     deprecated_live:
       title: 'Stack {stack} on {host} runs despite deprecated docs'
       why: 'The note {note} is marked deprecated. Remove the stack from the repo or reactivate the note.'
+    not_deployed:
+      title: '{count} stacks on {host} not deployed'
+      why: '{names} are in the compose repo, Komodo does not run them. Deploy them or remove them from the repo.'
+    deployed_unknown:
+      title: '{count} stacks on {host} run without compose repo'
+      why: '{names} run in Komodo but are in no compose repo. Add the compose.yaml to the repo so the docs find them.'
   borg:
     client_error:
       title: 'Backup client {client} reports an error'
@@ -3401,6 +3407,8 @@ rule_name:
   docs.missing: Stacks without docs
   docs.orphan: Docs without stack
   docs.deprecated_live: Deprecated docs, stack runs
+  docs.not_deployed: Stack not deployed
+  docs.deployed_unknown: Stack without compose repo
   borg.client_offline: Backup client offline
   borg.jobs_failed: Failed backups
   borg.backup_old: Backup outdated (Borg)
@@ -4709,6 +4717,10 @@ detail:
     deprecated: '{stack} runs, {note} is deprecated'
     open_note: 'Open note'
     open_compose: 'Open compose'
+    deployed: 'Stacks run by Komodo'
+    not_deployed: 'Deploy {stack} or remove it from the repo'
+    unknown: '{stack} runs in Komodo, in no compose repo'
+    open_komodo: 'Open in Komodo'
     hosts: 'Per host'
     host: 'Host'
     documented_n: 'Documented'
@@ -5663,6 +5675,7 @@ itdocs:
   documented: 'stacks documented'
   gaps: 'Without docs'
   problems: '{n} links to check'
+  deploys: 'Komodo: {missing} not deployed · {unknown} without repo'
   unread: 'Docs or stacks not read. Set docs_repo and docs_paths on the Gitea connection.'
 
 hansei:
