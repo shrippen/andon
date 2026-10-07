@@ -65,9 +65,11 @@ func kpiDetail(cfg KpiConfig, results map[string]any, ctx ViewCtx) DetailView {
 		g := ColGraph(values, "s1")
 		label := T("detail.kpi.months")
 		g.Ticks = []any{metrics.AddMonths(today, -len(values)).Format("01/2006"), metrics.AddMonths(today, -1).Format("01/2006")}
+		g.Labels = monthLabels(metrics.AddMonths(today, -1), len(values), "01/2006")
 		if cfg.Metric == MetricCash {
 			g = LineGraph(Series{Values: values, Class: "s1"})
 			label, g.Ticks = T("detail.kpi.days"), []any{Day(today.AddDate(0, 0, 1-len(values))), Txt("detail.today")}
+			g.Labels = dayLabels(today, len(values))
 		}
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: label, Hero: true, Data: g})
 	}
@@ -101,12 +103,14 @@ func chartDetail(cfg ChartConfig, results map[string]any, ctx ViewCtx) DetailVie
 	values, prev := make([]float64, len(bars)), make([]float64, len(bars))
 	sum, sumPrev := 0.0, 0.0
 	var rows [][]Cell
+	var labels []any
 	for i, b := range bars {
 		values[i], prev[i] = b.Value, b.Prev
+		labels = append(labels, b.Label)
 		sum, sumPrev = sum+b.Value, sumPrev+b.Prev
 		rows = append(rows, []Cell{{Value: b.Label}, {Value: format(b.Value)}, {Value: format(b.Prev)}, {Value: format(b.Value - b.Prev), State: stateIf(b.Value < b.Prev, "bad")}})
 	}
-	g := Graph{Kind: GraphCols, Series: []Series{{Values: values, Class: "s1", Label: Txt("chart.this")}}, Mark: -1, Ticks: []any{bars[0].Label, bars[len(bars)-1].Label}}
+	g := Graph{Kind: GraphCols, Series: []Series{{Values: values, Class: "s1", Label: Txt("chart.this")}}, Mark: -1, Ticks: []any{bars[0].Label, bars[len(bars)-1].Label}, Labels: labels}
 	if cfg.ShowPrev {
 		g.Series = append(g.Series, Series{Values: prev, Class: "s3", Label: Txt(prevKey)})
 	}
@@ -172,6 +176,7 @@ func progressDetail(cfg ProgressConfig, results map[string]any, ctx ViewCtx) Det
 	if len(lines) > 0 {
 		g := LineGraph(lines...)
 		g.Goal, g.HasGoal, g.GoalDanger, g.Ticks = percentScale, true, true, spanTicks(now, progressDays)
+		g.Labels = dayLabels(now, progressDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.progress.history"), Meta: "%", Data: g})
 	}
 	return DetailView{Body: body}
@@ -301,6 +306,9 @@ func trendDetail(cfg TrendConfig, results map[string]any, _ ViewCtx) DetailView 
 	low, high := slices.Min(values), slices.Max(values)
 	g := LineGraph(Series{Values: values, Class: "s1"})
 	g.Ticks = []any{DayS(fmt.Sprint(points[0][0])), DayS(fmt.Sprint(points[len(points)-1][0]))}
+	for _, p := range points {
+		g.Labels = append(g.Labels, DayS(fmt.Sprint(p[0])))
+	}
 	if cfg.Target > 0 {
 		g.Goal, g.HasGoal = cfg.Target, true
 	}

@@ -63,6 +63,7 @@ func cashflowDetail(cfg CashflowConfig, results map[string]any, ctx ViewCtx) Det
 	}
 	g := LineGraph(series...)
 	g.Mark, g.Ticks = len(past)-1, []any{Day(today.AddDate(0, 0, -cashPastDays+1)), Txt("detail.today"), Day(today.AddDate(0, 0, days))}
+	g.Labels = dayLabels(today.AddDate(0, 0, len(ahead)-cashPastDays), len(ahead))
 	if cfg.MinBalance != 0 {
 		g.Goal, g.HasGoal, g.GoalDanger = cfg.MinBalance, true, true
 	}
@@ -228,9 +229,9 @@ func moneyFlowDetail(cfg MoneyFlowConfig, results map[string]any, ctx ViewCtx) D
 		bars = append(bars, ShareBar{Name: Txt("flow." + s.key), Pct: s.amount / top * percentScale, Value: Money(s.amount, currency), Tier: s.tier})
 	}
 	var paid []float64
-	var ticks []any
+	var ticks, months []any
 	for _, m := range metrics.NinjaByMonth(ninja, today, moneyDetailMonths) {
-		paid = append(paid, m.Net)
+		paid, months = append(paid, m.Net), append(months, m.Month)
 	}
 	if len(paid) > 0 {
 		ticks = []any{Txt("detail.money.year_ago"), Txt("detail.money.this_month")}
@@ -243,7 +244,7 @@ func moneyFlowDetail(cfg MoneyFlowConfig, results map[string]any, ctx ViewCtx) D
 	}
 	if len(paid) > 0 {
 		g := ColGraph(paid, "s4")
-		g.Ticks = ticks
+		g.Ticks, g.Labels = ticks, months
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.money.per_month"), Data: g})
 	}
 	return DetailView{Body: body}
@@ -340,12 +341,13 @@ func rateTrendDetail(cfg RateTrendConfig, results map[string]any, ctx ViewCtx) D
 	if hasValues(rates) {
 		g := LineGraph(Series{Values: rates, Class: "s1"})
 		g.Ticks = []any{Txt("detail.rate.two_years"), lastMonth.Format("01/2006")}
+		g.Labels = monthLabels(lastMonth, len(rates), "01/2006")
 		if cfg.Target > 0 {
 			g.Goal, g.HasGoal = cfg.Target, true
 		}
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.rate.per_month"), Hero: true, Data: g})
 		cols := ColGraph(revenue, "s4")
-		cols.Ticks = g.Ticks
+		cols.Ticks, cols.Labels = g.Ticks, monthLabels(lastMonth, len(revenue), "01/2006")
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.rate.revenue"), Data: cols})
 		var fixed [][]Cell
 		for _, f := range metrics.FixedRates(kimai) {
@@ -467,6 +469,7 @@ func paperlessDetail(cfg PaperlessConfig, data *sources.PaperlessDataset, ctx Vi
 	if docs := dailySeries(historyOf(results), metrics.SampleKey("paperless", "docs"), today, historyDetailDays); hasValues(docs) {
 		g := LineGraph(Series{Values: docs, Class: "s1"})
 		g.Ticks = spanTicks(today, historyDetailDays)
+		g.Labels = dayLabels(today, historyDetailDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.paperless.growth"), Data: g})
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)

@@ -90,6 +90,7 @@ func playBlocks(p *sources.MediaPlays) []Block {
 	}
 	g := ColGraph(days, "s1")
 	g.Ticks = spanTicks(now, sources.PlayDays)
+	g.Labels = dayLabels(now, sources.PlayDays)
 	out := []Block{{Kind: BlockGraph, Label: T("detail.media.plays"), Meta: total, Data: g}}
 	titles := slices.Collect(maps.Keys(p.Titles))
 	slices.SortFunc(titles, func(a, b string) int { return cmp.Or(cmp.Compare(p.Titles[b], p.Titles[a]), cmp.Compare(a, b)) })
@@ -142,6 +143,7 @@ func freshrssDetail(cfg FreshRSSConfig, data *sources.FreshRSSDataset, ctx ViewC
 	if unread := dailySeries(historyOf(results), metrics.SampleKey("freshrss", "unread"), now, historyDetailDays); hasValues(unread) {
 		g := LineGraph(Series{Values: unread, Class: "s1"})
 		g.Ticks = spanTicks(now, historyDetailDays)
+		g.Labels = dayLabels(now, historyDetailDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.rss.unread_days"), Data: g})
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
@@ -255,6 +257,7 @@ func sabDetail(cfg SabConfig, data *sources.SabnzbdDataset, _ ViewCtx, results m
 		}
 		g := ColGraph(days, "s1")
 		g.Ticks = spanTicks(now, sabDays)
+		g.Labels = dayLabels(now, sabDays)
 		body.Line = append(body.Line, Fact{Label: T("detail.sab.month"), Value: NumU(st.Month/bytesPerGB, 0, "GB")},
 			Fact{Label: T("detail.sab.total"), Value: NumU(st.Total/bytesPerTB, 1, "TB")})
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.sab.volume"), Meta: NumU(st.Week/bytesPerGB, 0, "GB"), Data: g})

@@ -109,6 +109,7 @@ func backupsDetail(cfg BackupsConfig, results map[string]any, ctx ViewCtx) Detai
 	if used := dailySeries(h, metrics.SampleKey("borg", "used"), now, historyDetailDays); hasValues(used) {
 		g := LineGraph(Series{Values: scaled(used, percentScale), Class: "s4"})
 		g.Lo, g.Hi, g.Ticks = 0, percentScale, spanTicks(now, historyDetailDays)
+		g.Labels = dayLabels(now, historyDetailDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.backups.repo_history"), Data: g})
 	}
 	if borg != nil {
@@ -217,6 +218,7 @@ func disksDetail(cfg DisksConfig, results map[string]any, ctx ViewCtx) DetailVie
 		if temps := dailySeries(historyOf(results), metrics.SampleKey("scrutiny", "temp", chosen.Name), now, uptimeLongDays); hasValues(temps) {
 			g := LineGraph(Series{Values: temps, Class: "s5"})
 			g.Goal, g.HasGoal, g.GoalDanger, g.Ticks = cfg.TempWarn, true, true, spanTicks(now, uptimeLongDays)
+			g.Labels = dayLabels(now, uptimeLongDays)
 			g.Unit = "°C"
 			body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.disks.temp_history"), Meta: "°C", Hero: true, Data: g})
 		}
@@ -514,6 +516,7 @@ func truenasDetail(cfg TrueNASConfig, results map[string]any, ctx ViewCtx) Detai
 	if len(series) > 0 {
 		g := LineGraph(series...)
 		g.Lo, g.Hi, g.Goal, g.HasGoal, g.Ticks = 0, percentScale, cfg.WarnPct, true, spanTicks(now, historyDetailDays)
+		g.Labels = dayLabels(now, historyDetailDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.truenas.history"), Data: g})
 	}
 	var alerts []LitRow
@@ -641,6 +644,9 @@ func homelabCostDetail(cfg CostConfig, results map[string]any, ctx ViewCtx) Deta
 		}
 		g := ColGraph(cost, "s4")
 		g.Ticks = []any{Day(days[0].Day), Day(days[len(days)-1].Day)}
+		for _, d := range days {
+			g.Labels = append(g.Labels, Day(d.Day))
+		}
 		body.Blocks = append(body.Blocks, pairOf([]Block{{Kind: BlockGraph, Label: T("detail.cost.power_days"), Meta: Txt("detail.cost.at_hour_prices"), Data: g},
 			{Kind: BlockTable, Label: T("detail.cost.power_table"), Data: Table{Head: []Text{T("detail.cost.day"), T("detail.cost.kwh"), T("detail.cost.amount")}, Rows: reversed(rows), Num: []int{1, 2}}}})...)
 	}
@@ -845,6 +851,7 @@ func nightPrices(tibber *sources.TibberDataset, shares [7][24]float64, now time.
 	start := time.Date(local.Year(), local.Month(), local.Day(), nightStart, 0, 0, 0, time.Local)
 	var values []float64
 	var states []string
+	var labels []any
 	for i := range nightHours {
 		at := start.Add(time.Duration(i) * time.Hour)
 		price := metrics.PriceAt(tibber, at, -1)
@@ -852,6 +859,7 @@ func nightPrices(tibber *sources.TibberDataset, shares [7][24]float64, now time.
 			return nil
 		}
 		values = append(values, price*centsPerUnit)
+		labels = append(labels, fmt.Sprintf("%02d:00", (nightStart+i)%hoursPerDay))
 		state := ""
 		if s := shares[at.Weekday()][at.Hour()]; s >= busyShare {
 			state = "warn"
@@ -860,6 +868,7 @@ func nightPrices(tibber *sources.TibberDataset, shares [7][24]float64, now time.
 	}
 	g := ColGraph(values, "s1")
 	g.States, g.Ticks = states, []any{fmt.Sprintf("%02d:00", nightStart), fmt.Sprintf("%02d:00", (nightStart+nightHours-1)%hoursPerDay)}
+	g.Labels = labels
 	return &g
 }
 
@@ -905,6 +914,7 @@ func immichDetail(_ struct{}, data *sources.ImmichDataset, ctx ViewCtx, results 
 	if items := dailySeries(h, metrics.SampleKey("immich", "items"), now, historyDetailDays); hasValues(items) {
 		g := LineGraph(Series{Values: items, Class: "s1"})
 		g.Ticks = spanTicks(now, historyDetailDays)
+		g.Labels = dayLabels(now, historyDetailDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.immich.growth"), Hero: true, Data: g})
 
 		// Uploads per day: a phone that stopped syncing shows as a gap.
@@ -919,6 +929,7 @@ func immichDetail(_ struct{}, data *sources.ImmichDataset, ctx ViewCtx, results 
 		if hasValues(added) {
 			cols := ColGraph(added, "s1")
 			cols.Ticks = spanTicks(now, uploadDays)
+			cols.Labels = dayLabels(now, uploadDays)
 			body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.immich.uploads"), Data: cols})
 		}
 	}
@@ -974,6 +985,7 @@ func umamiDetail(cfg UmamiConfig, data *sources.UmamiDataset, ctx ViewCtx, resul
 			{Value: s.PrevVisit, Label: T("detail.umami.prev")}}
 		g := ColGraph([]float64{float64(s.PrevViews), float64(s.Views)}, "s1")
 		g.Ticks = []any{Txt("detail.umami.week_before"), Txt("detail.umami.week")}
+		g.Labels = g.Ticks
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.umami.views"), Data: g})
 		if more, ok := results[openName].(*sources.UmamiDetail); ok {
 			body.Blocks = append(body.Blocks, umamiSiteBlocks(more.Sites[s.ID])...)
@@ -1007,6 +1019,9 @@ func glancesDetail(cfg GlancesChartConfig, results map[string]any, ctx ViewCtx) 
 		g.Goal, g.HasGoal = cfg.Warn, true
 	}
 	g.Ticks = []any{data.Samples[0].At, data.Samples[len(data.Samples)-1].At}
+	for _, s := range data.Samples {
+		g.Labels = append(g.Labels, s.At)
+	}
 	unit := "%"
 	if data.Metric == "load" {
 		unit = ""
@@ -1031,6 +1046,7 @@ func hostBlocks(results map[string]any, now time.Time) []Block {
 	if cpu, mem := metrics.LoadDays(historyOf(results), now, loadDays); hasValues(cpu) {
 		g := LineGraph(Series{Values: cpu, Class: "s1", Label: "CPU"}, Series{Values: mem, Class: "s3", Label: "RAM"})
 		g.Lo, g.Hi, g.Ticks = 0, percentScale, spanTicks(now, loadDays)
+		g.Labels = dayLabels(now, loadDays)
 		out = append(out, Block{Kind: BlockGraph, Label: T("detail.sys.daily"), Data: g})
 	}
 	more, ok := results[openName].(*sources.GlancesDetail)
@@ -1219,6 +1235,7 @@ func monitorsDetail(cfg MonitorsConfig, results map[string]any, ctx ViewCtx) Det
 	if mean := meanSeries(msDays); hasValues(mean) {
 		g := LineGraph(Series{Values: mean, Class: "s1"})
 		g.Goal, g.HasGoal, g.GoalDanger, g.Lo, g.Ticks = slowMs, true, true, 0, spanTicks(now, uptimeDetailDays)
+		g.Labels = dayLabels(now, uptimeDetailDays)
 		body.Blocks = append(body.Blocks, Block{Kind: BlockGraph, Label: T("detail.monitors.ms"), Data: g})
 	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
@@ -1252,6 +1269,9 @@ func umamiSiteBlocks(site sources.UmamiSite) []Block {
 		}
 		g := ColGraph(views, "s1")
 		g.Ticks = []any{DayS(site.Days[0].Name), DayS(site.Days[len(site.Days)-1].Name)}
+		for _, d := range site.Days {
+			g.Labels = append(g.Labels, DayS(d.Name))
+		}
 		out = append(out, Block{Kind: BlockGraph, Label: T("detail.umami.per_day"), Hero: true, Data: g})
 	}
 	bars := func(list []sources.Count) []ShareBar {
@@ -1292,6 +1312,7 @@ func monitorBlocks(data *sources.KumaDataset, name string, h *metrics.History, n
 		if ms := dailySeries(h, metrics.SampleKey("kuma", "ms", m.Name), now, uptimeLongDays); hasValues(ms) {
 			g := LineGraph(Series{Values: ms, Class: "s1"})
 			g.Goal, g.HasGoal, g.GoalDanger, g.Lo, g.Ticks = slowMs, true, true, 0, spanTicks(now, uptimeLongDays)
+			g.Labels = dayLabels(now, uptimeLongDays)
 			g.Unit = "ms"
 			out = append(out, Block{Kind: BlockGraph, Label: T("detail.monitors.ms_one"), Hero: true, Data: g})
 		}

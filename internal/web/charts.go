@@ -24,18 +24,21 @@ const (
 	chartPad     = 8    // space above and below the drawn values
 	chartHeadway = 1.08 // room above the highest value of columns
 	chartBarFill = .68  // share of a column's slot the bar fills
+	chartXTicks  = 5    // x ticks drawn from Labels
 )
 
 // chartGeom is a chart ready to draw.
 type chartGeom struct {
-	W, H  int
-	Grid  []string  // y of the three grid lines
-	Axis  []float64 // value at each grid line, top first (Kante .chart-axis)
-	Prec  int       // decimals of Axis and hover values
-	Lines []geomLine
-	Bars  []geomBar
-	Goal  string // y, "" = none
-	Mark  string // x of the "now" line, "" = none
+	W, H   int
+	Grid   []string  // y of the three grid lines
+	Axis   []float64 // value at each grid line, top first (Kante .chart-axis)
+	Prec   int       // decimals of Axis and hover values
+	Lines  []geomLine
+	Bars   []geomBar
+	Goal   string // y, "" = none
+	Mark   string // x of the "now" line, "" = none
+	Ticks  []any  // x labels under the chart
+	Labels []any  // x labels of the first line's drawn points, for the hover
 }
 
 type geomLine struct {
@@ -48,6 +51,7 @@ type geomBar struct {
 	Class      string
 	Colour     string // Kante token of a state colour ("danger"), "" = series colour
 	Value      float64
+	Label      any // x label for the hover, nil = none
 }
 
 // gridAt are the grid lines as shares of the height, top first.
@@ -116,8 +120,35 @@ func chartRange(c widgets.Graph) (lo, hi float64) {
 	return lo, hi
 }
 
+// xTicks spreads chartXTicks of the labels evenly, the given end ticks
+// kept: 9 labels a…i, ticks "start", "today" → start, c, e, g, today.
+// More than two given ticks are a deliberate choice and stay.
+func xTicks(c widgets.Graph) []any {
+	n := len(c.Labels)
+	if n <= chartXTicks || len(c.Ticks) > 2 {
+		return c.Ticks
+	}
+
+	out := make([]any, chartXTicks)
+	for i := range out {
+		out[i] = c.Labels[int(math.Round(float64(i*(n-1))/float64(chartXTicks-1)))]
+	}
+	if len(c.Ticks) >= 2 {
+		out[0], out[chartXTicks-1] = c.Ticks[0], c.Ticks[len(c.Ticks)-1]
+	}
+	return out
+}
+
+// labelAt is the x label of value i, nil without one.
+func labelAt(c widgets.Graph, i int) any {
+	if i >= len(c.Labels) {
+		return nil
+	}
+	return c.Labels[i]
+}
+
 func geomOf(c widgets.Graph) chartGeom {
-	g := chartGeom{W: chartWidth, H: chartHeight}
+	g := chartGeom{W: chartWidth, H: chartHeight, Ticks: xTicks(c)}
 	lo, hi := chartRange(c)
 	y := func(v float64) float64 { return chartHeight - chartPad - (v-lo)/(hi-lo)*(chartHeight-2*chartPad) }
 
@@ -146,7 +177,7 @@ func geomOf(c widgets.Graph) chartGeom {
 		base := y(lo)
 		bar := func(i int, v float64, class, colour string) geomBar {
 			top := y(v)
-			return geomBar{X: fmtF(float64(i)*slot + slot*(1-chartBarFill)/2), Y: fmtF(top), W: fmtF(slot * chartBarFill), H: fmtF(max(base-top, 0)), Class: class, Colour: colour, Value: v}
+			return geomBar{X: fmtF(float64(i)*slot + slot*(1-chartBarFill)/2), Y: fmtF(top), W: fmtF(slot * chartBarFill), H: fmtF(max(base-top, 0)), Class: class, Colour: colour, Value: v, Label: labelAt(c, i)}
 		}
 		if len(c.Series) > 1 {
 			for i, v := range c.Series[1].Values {
@@ -172,7 +203,7 @@ func geomOf(c widgets.Graph) chartGeom {
 	}
 
 	step := float64(chartWidth) / float64(max(n-1, 1))
-	for _, s := range c.Series {
+	for si, s := range c.Series {
 		var d strings.Builder
 		var drawn []float64
 		pen := "M"
@@ -184,6 +215,10 @@ func geomOf(c widgets.Graph) chartGeom {
 			d.WriteString(pen + fmtF(float64(i)*step) + " " + fmtF(y(v)))
 			drawn = append(drawn, v)
 			pen = "L"
+			// The hover reads its x label off the first line's points.
+			if si == 0 && len(c.Labels) > 0 {
+				g.Labels = append(g.Labels, labelAt(c, i))
+			}
 		}
 		g.Lines = append(g.Lines, geomLine{D: d.String(), Class: "line " + s.Class, Values: drawn})
 	}

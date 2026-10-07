@@ -77,6 +77,27 @@ func spanTicks(now time.Time, n int) []any {
 	return []any{Day(metrics.Today(now).AddDate(0, 0, -(n - 1))), Txt("detail.today")}
 }
 
+// dayLabels are the x labels of a span of n days ending today, one per
+// day: the hover names the day of each value.
+func dayLabels(now time.Time, n int) []any {
+	out := make([]any, n)
+	first := metrics.Today(now).AddDate(0, 0, -(n - 1))
+	for i := range out {
+		out[i] = Day(first.AddDate(0, 0, i))
+	}
+	return out
+}
+
+// monthLabels are the x labels of n months ending with last's month:
+// monthLabels(Sep 2026, 2, "01/2006") → "08/2026", "09/2026".
+func monthLabels(last time.Time, n int, layout string) []any {
+	out := make([]any, n)
+	for i := range out {
+		out[i] = metrics.AddMonths(last, i-(n-1)).Format(layout)
+	}
+	return out
+}
+
 // percentScale turns shares into percent.
 const percentScale = 100
 
