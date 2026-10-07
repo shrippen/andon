@@ -42,14 +42,23 @@ type snapshotSection struct {
 type snapshotBoard struct {
 	Name     string            `json:"name"`
 	Sections []snapshotSection `json:"sections"`
+	// UndoTo is the revision an undo restored; the next undo goes on
+	// from there, one step further back.
+	UndoTo int64 `json:"undo_to,omitempty"`
 }
 
 func snapshot(q db.Queryer, who *access.Principal, board *model.Board) error {
+	return snapshotUndo(q, who, board, 0)
+}
+
+// snapshotUndo stores the board's state; undoTo names the revision an
+// undo restored (0 for any other change).
+func snapshotUndo(q db.Queryer, who *access.Principal, board *model.Board, undoTo int64) error {
 	fresh, err := content.Board(q, board.ID)
 	if err != nil || fresh == nil {
 		return orNotFound(err)
 	}
-	snap := snapshotBoard{Name: fresh.Name}
+	snap := snapshotBoard{Name: fresh.Name, UndoTo: undoTo}
 	for _, sec := range fresh.Sections {
 		row := snapshotSection{
 			Title: sec.Title, Cols: sec.Cols, Size: string(sec.Size), Sort: string(sec.Sort),
@@ -89,6 +98,7 @@ func snapshot(q db.Queryer, who *access.Principal, board *model.Board) error {
 // "Links (4), Tools (2)".
 type RevisionView struct {
 	ID       int64
+	UndoTo   int64 // the revision an undo restored, 0 otherwise
 	Version  int
 	At       time.Time
 	UserID   *int64
@@ -129,6 +139,7 @@ func History(d *sql.DB, who *access.Principal, boardID int64) ([]RevisionView, e
 			if err != nil {
 				return err
 			}
+			view.UndoTo = snap.UndoTo
 			for _, sec := range snap.Sections {
 				view.Sections = append(view.Sections, RevisionSection{Title: sec.Title, Widgets: len(sec.Widgets)})
 			}
@@ -146,6 +157,12 @@ var ErrBadRevision = errors.New("boards: revision does not match board")
 // references outside this board's own space are skipped (see the
 // Revisions doc comment above).
 func Restore(d *sql.DB, who *access.Principal, boardID, revisionID int64) error {
+	return restore(d, who, boardID, revisionID, false)
+}
+
+// restore rebuilds the board from a revision; an undo marks the new
+// revision with the one it restored.
+func restore(d *sql.DB, who *access.Principal, boardID, revisionID int64, undo bool) error {
 	return db.WithTx(d, func(tx *sql.Tx) error {
 		board, err := load(tx, who, boardID, enums.RightEdit)
 		if err != nil {
@@ -169,6 +186,9 @@ func Restore(d *sql.DB, who *access.Principal, boardID, revisionID int64) error 
 		board.Version++
 		if err := rebuild(tx, board, snap); err != nil {
 			return err
+		}
+		if undo {
+			return snapshotUndo(tx, who, board, revisionID)
 		}
 		return snapshot(tx, who, board)
 	})

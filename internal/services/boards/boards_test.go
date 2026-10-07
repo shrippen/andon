@@ -1,10 +1,10 @@
 package boards_test
 
 import (
-	"strings"
 	"database/sql"
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -399,5 +399,33 @@ func TestBoardNameBounded(t *testing.T) {
 	view, _ = boards.View(d, who, id, boards.LayoutOverlay)
 	if n := len([]rune(view.Name)); n > boards.MaxNameLen {
 		t.Fatalf("renamed to %d runes", n)
+	}
+}
+
+// TestUndoStepsBack: undo goes back one change at a time; it used to
+// swap the two newest versions, so a second undo redid the first.
+func TestUndoStepsBack(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c", enums.RoleUser)
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	id, _ := boards.Create(d, who, space.ID, "B")
+
+	for _, title := range []string{"Zwei", "Drei"} {
+		view, _ := boards.View(d, who, id, boards.LayoutOverlay)
+		if _, err := boards.AddSection(d, who, id, view.Version, title); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for want := 2; want >= 1; want-- {
+		if err := boards.Undo(d, who, id); err != nil {
+			t.Fatalf("undo to %d sections: %v", want, err)
+		}
+		if view, _ := boards.View(d, who, id, boards.LayoutOverlay); len(view.Sections) != want {
+			t.Fatalf("after undo: %d sections, want %d", len(view.Sections), want)
+		}
+	}
+	if err := boards.Undo(d, who, id); !errors.Is(err, boards.ErrNothingToUndo) {
+		t.Fatalf("undo past the first version: %v", err)
 	}
 }
