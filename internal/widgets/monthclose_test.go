@@ -47,3 +47,23 @@ func TestMonthClose(t *testing.T) {
 		t.Fatal("receipts step without Sure")
 	}
 }
+
+// TestMonthCloseReceiptsLink: "name business accounts" opens the rules
+// tab of the space settings, where the accounts are entered, not the
+// default tab (start page).
+func TestMonthCloseReceiptsLink(t *testing.T) {
+	kind, _ := widgets.Get("month_close")
+	cfg, _ := widgets.Decode("month_close", map[string]any{})
+	results := map[string]any{"sure": &sources.SureDataset{}}
+	view := kind.View(cfg, results, ctxFor("", map[string]any{}))
+	for _, s := range view["Steps"].([]widgets.CloseStep) {
+		if s.Key != "receipts" {
+			continue
+		}
+		if want := "/spaces/settings?section=rules#rule-cross.expense_unrecorded"; s.URL != want {
+			t.Fatalf("receipts URL %q, want %q", s.URL, want)
+		}
+		return
+	}
+	t.Fatal("no receipts step")
+}

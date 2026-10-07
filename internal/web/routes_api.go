@@ -170,7 +170,7 @@ func (d Deps) handleCalendar(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	feed, err := calendar.Feed(d.DB, who, time.Now())
+	feed, err := calendar.Feed(d.DB, who, time.Now(), d.Settings.BaseURL)
 	if err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
 		return

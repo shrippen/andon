@@ -123,7 +123,7 @@ func monthCloseView(cfg MonthCloseConfig, results map[string]any, ctx ViewCtx) m
 				missing++
 			}
 		}
-		steps = append(steps, CloseStep{Key: "receipts", Done: missing == 0 && len(in.Accounts) > 0, Count: missing, URL: "/spaces/settings#rule-cross.expense_unrecorded"})
+		steps = append(steps, CloseStep{Key: "receipts", Done: missing == 0 && len(in.Accounts) > 0, Count: missing, URL: "/spaces/settings?section=rules#rule-cross.expense_unrecorded"})
 	}
 	if paperless, ok := results[peerPaperless].(*sources.PaperlessDataset); ok {
 		steps = append(steps, CloseStep{Key: "inbox", Done: paperless.Inbox == 0, Count: paperless.Inbox,
