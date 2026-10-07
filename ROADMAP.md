@@ -1124,8 +1124,9 @@ Ziel: die Kacheltypen aus [`research/tile-types.md`](research/tile-types.md), je
 - [ ] Datastore-Füllstand gegen TrueNAS-Pool *(PBS nennt den Pool nicht; Zuordnung nur über eine Option möglich)*
 
 **Schritt 7: Updates** — What's Up Docker, Watchtower, Releases
-- [ ] WUD (Container mit neuer Version), Watchtower (Metriken: geprüft, aktualisiert, fehlgeschlagen), Releases beobachteter Repos über GitHub/Gitea; alles als Update-Hinweise in `updates` und `update_window`
-- [ ] Quer: `cross.update_unbacked` (Container aktualisiert ohne frische Sicherung), neues Release gegen laufenden Image-Tag
+- [x] WUD (Container mit neuer Version), Watchtower (Metriken: geprüft, aktualisiert, fehlgeschlagen), Releases beobachteter Repos über GitHub; alles als Update-Hinweise in `updates` und `update_window` *(Gitea liest keine Releases)*
+- [x] Quer: `cross.update_unbacked` (Container aktualisiert ohne frische Sicherung), `cross.release_newer` (neues Release gegen laufenden Image-Tag)
+- [x] Nachtrag zu Schritt 6: `backups.job` meldet fehlgeschlagene oder veraltete Sicherungen der Werkzeuge ohne eigene Regeln; neue Backup-Regeln im Thema „Backups“
 
 **Schritt 8: Strom** — PeaNUT (NUT), apcupsd, OpenDTU, EVCC
 - [ ] USV: Ladung, Restlaufzeit, Last, Ereignisse; Solar: Ertrag je Tag; EVCC: Ladevorgänge und Kosten; Beiträge zur Kachel `energy`

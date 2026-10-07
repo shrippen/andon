@@ -240,6 +240,10 @@ func PendingUpdates(datasets map[string]any) []PendingUpdate {
 					add("Komodo", s.Name)
 				}
 			}
+		case *sources.WUDDataset:
+			for _, u := range d.Updates() {
+				add("What's Up Docker", u.Name)
+			}
 		case *sources.NextcloudDataset:
 			if d.AppUpdates > 0 {
 				add("Nextcloud", "apps")

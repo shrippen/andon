@@ -48,6 +48,8 @@ action:
   open_in_duplicati: 'Open in Duplicati'
   open_in_backrest: 'Open in Backrest'
   open_in_urbackup: 'Open in UrBackup'
+  open_in_wud: 'Open in What''s Up Docker'
+  open_in_watchtower: 'Open in Watchtower'
   open_in_tibber: 'Open in Tibber (electricity)'
   close: Close
   open_in_jsonapi: Open API
@@ -906,7 +908,7 @@ wtype:
     desc: Every available update of the connected services in one place.
   backups:
     name: Backup overview
-    desc: Last backup per Borg client, PG Back Web database and TrueNAS snapshot, problems first.
+    desc: 'Latest backup per item from every backup tool (Borg, Proxmox Backup Server, Kopia, Duplicati, Backrest, UrBackup, PG Back Web, TrueNAS), problems first.'
   glances_chart:
     name: Glances history
     desc: History of one metric (CPU, RAM, load, swap) from a Glances connection.
@@ -1317,6 +1319,12 @@ conn:
   secret_pbs: 'API token (user@realm!name:secret)'
   secret_userpass_opt: 'user:password (optional)'
   secret_duplicati: 'UI password'
+  options_hint_wud: 'URL of What''s Up Docker, e.g. http://wud.example.lan:3000. Token empty or user:password when basic login is on.'
+  about_wud: 'New image tags per container'
+  what_wud: 'What''s Up Docker checks whether newer images exist for running containers, without updating them.'
+  options_hint_watchtower: 'URL of the Watchtower HTTP API, e.g. http://watchtower:8080 (start Watchtower with --http-api-metrics). Token = WATCHTOWER_HTTP_API_TOKEN.'
+  about_watchtower: 'Automatic updates: checked, updated, failed'
+  what_watchtower: 'Watchtower updates running containers automatically as soon as a new image appears.'
   options_hint_tibber: 'URL https://api.tibber.com/v1-beta/gql. Token = personal access token (developer.tibber.com). Optionally pick the place with the search: its daily temperatures adjust consumption for the weather. With Home Assistant the energy tile also shows the current power.'
   about_tibber: 'Electricity prices and cost'
   health: 'Health'
@@ -1539,6 +1547,8 @@ service:
   duplicati: 'Duplicati'
   backrest: 'Backrest'
   urbackup: 'UrBackup'
+  wud: 'What''s Up Docker'
+  watchtower: 'Watchtower'
   tibber: 'Tibber (electricity)'
   links: Tiles
   jsonapi: Custom API (JSON)
@@ -1862,6 +1872,14 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  wud:
+    updates:
+      title: '{count} container updates available'
+      why: '{names}'
+  watchtower:
+    failed:
+      title: 'Watchtower: {count} updates failed'
+      why: 'In the last run ({scanned} containers checked) {count} could not be updated. Watchtower''s logs name the reason.'
   pbs:
     verify_failed:
       title: 'Verify of {store} failed'
@@ -1993,6 +2011,12 @@ hint:
       title: '{count} tiles unreachable for {days} days'
       why: '{names}. Check the address or remove the tile.'
   backups:
+    job_failed:
+      title: 'Backup failed: {item}'
+      why: '{tool}: last successful backup {day}. {note}'
+    job_old:
+      title: 'Backup outdated: {item}'
+      why: '{tool}: last successful backup {day}.'
     unsaved:
       title: 'New since the last backup'
       why: 'Last successful backup ({tool}) on {day}. New since: {items}.'
@@ -2186,6 +2210,12 @@ hint:
       title: 'Large expense: {name} ({amount})'
       why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
+    update_unbacked:
+      title: 'Watchtower updated {count} containers without a fresh backup'
+      why: 'Last backup: {day} ({tool}). If an update goes wrong, the state before it is missing.'
+    release_newer:
+      title: '{repo} {release} is newer than {where}'
+      why: '{image} runs {tag}.'
     pbs_orphan:
       title: '{count} backup groups without a guest'
       why: 'Proxmox no longer has {ids}; their backups only take space. Delete them or keep them on purpose.'
@@ -2589,6 +2619,10 @@ hint:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
 info:
+  wud:
+    containers: '{count} containers · {updates} updates'
+  watchtower:
+    scan: '{scanned} checked · {updated} updated'
   drone:
     repos: '{count} repos'
     red: '{count} red'
@@ -2827,6 +2861,11 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  wud.updates: 'Container updates'
+  watchtower.failed: 'Watchtower update failed'
+  cross.update_unbacked: 'Update without backup'
+  cross.release_newer: 'Release newer than the running image'
+  backups.job: 'Backup failed or outdated'
   pbs.verify_failed: 'Verify failed'
   pbs.datastore_full: 'Datastore full'
   cross.pbs_orphan: 'Backups without a guest'

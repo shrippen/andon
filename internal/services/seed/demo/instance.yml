@@ -23,6 +23,8 @@ connections:
   - {id: duplicati, type: duplicati, name: Duplicati, url: "demo://duplicati", credentials: shared}
   - {id: backrest, type: backrest, name: Backrest, url: "demo://backrest", credentials: shared}
   - {id: urbackup, type: urbackup, name: UrBackup, url: "demo://urbackup", credentials: shared}
+  - {id: wud, type: wud, name: What's Up Docker, url: "demo://wud", credentials: shared}
+  - {id: watchtower, type: watchtower, name: Watchtower, url: "demo://watchtower", credentials: shared}
   - {id: linkwarden, type: linkwarden, name: Linkwarden, url: "demo://linkwarden", credentials: shared}
   - {id: pgback, type: pgbackweb, name: PG Back Web, url: "demo://pgbackweb", credentials: shared}
   - {id: hansei, type: hansei, name: Hansei, url: "demo://hansei", credentials: shared}

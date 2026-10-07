@@ -253,6 +253,10 @@ func linkView(_ LinkConfig, results map[string]any, ctx ViewCtx) map[string]any 
 		parts = metrics.NVDInfo(data)
 	case *sources.DroneDataset:
 		parts = metrics.DroneInfo(data)
+	case *sources.WUDDataset:
+		parts = metrics.WUDInfo(data)
+	case *sources.WatchtowerDataset:
+		parts = metrics.WatchtowerInfo(data)
 	case *sources.HassDataset:
 		parts = metrics.HassInfo(data)
 	case *sources.SureDataset:

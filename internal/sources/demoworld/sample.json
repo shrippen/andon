@@ -5170,5 +5170,51 @@
     }
    ]
   }
+ },
+ "image_updates": {
+  "wud": {
+   "url": "https://wud.demo",
+   "containers": [
+    {
+     "name": "immich-server",
+     "image": "ghcr.io/immich-app/immich-server",
+     "tag": "v1.131.0",
+     "new_tag": "v1.132.3"
+    },
+    {
+     "name": "uptime-kuma",
+     "image": "louislam/uptime-kuma",
+     "tag": "2.0.2",
+     "new_tag": "2.0.4"
+    },
+    {
+     "name": "gitea",
+     "image": "gitea/gitea",
+     "tag": "1.24",
+     "new_tag": ""
+    },
+    {
+     "name": "paperless",
+     "image": "paperlessngx/paperless-ngx",
+     "tag": "latest",
+     "new_tag": ""
+    }
+   ]
+  },
+  "watchtower": {
+   "url": "http://watchtower.demo:8080",
+   "scanned": 14,
+   "updated": 2,
+   "failed": 1,
+   "scans": 52,
+   "last_scan": "@-7h"
+  },
+  "watched_releases": [
+   {
+    "repo": "immich-app/immich",
+    "release": "v1.132.3",
+    "released_at": "@-3d"
+   }
+  ]
  }
 }

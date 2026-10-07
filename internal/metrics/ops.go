@@ -104,6 +104,16 @@ func GiteaInfo(data *sources.GiteaDataset) []InfoPart {
 	return found
 }
 
+// WUDInfo: "4 containers · 2 updates".
+func WUDInfo(data *sources.WUDDataset) []InfoPart {
+	return []InfoPart{part("wud.containers", map[string]any{"count": len(data.Containers), "updates": len(data.Updates())})}
+}
+
+// WatchtowerInfo: "14 checked · 2 updated".
+func WatchtowerInfo(data *sources.WatchtowerDataset) []InfoPart {
+	return []InfoPart{part("watchtower.scan", map[string]any{"scanned": data.Scanned, "updated": data.Updated})}
+}
+
 // DroneInfo: "3 repos · 1 red".
 func DroneInfo(data *sources.DroneDataset) []InfoPart {
 	repos := data.CIRepos()
