@@ -66,3 +66,30 @@ func TestConnectionAdvancedSavesWithForm(t *testing.T) {
 		}
 	}
 }
+
+// TestConnectionNewHost: moving a shared connection to another address
+// asks for its token again, so the settings form must have the field.
+func TestConnectionNewHost(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+
+	space := regexp.MustCompile(`<option value="(\d+)"`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1]
+	postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "service": {"kimai"}, "space_id": {string(space)},
+		"name": {"Kimai"}, "url": {"demo://kimai"}, "mode": {"shared"}, "secret": {"demo"}, "tls": {"verify"}})
+	id := regexp.MustCompile(`id="health-(\d+)"`).FindStringSubmatch(string(mustGet(t, srv, client, "/connections")))[1]
+
+	page := string(mustGet(t, srv, client, "/connections/"+id+"/edit"))
+	start := strings.Index(page, `action="/connections/`+id+`/edit"`)
+	form := page[start : start+strings.Index(page[start:], "</form>")]
+	if !strings.Contains(form, `name="secret"`) {
+		t.Fatalf("settings form has no token field:\n%s", form)
+	}
+
+	res := postForm(t, client, srv.URL+"/connections/"+id+"/edit", url.Values{"csrf": {csrf}, "name": {"Kimai"}, "url": {"demo://kimai2"},
+		"mode": {"shared"}, "tls": {"verify"}, "secret": {"new"}})
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("new address with token: %d", res.StatusCode)
+	}
+}
