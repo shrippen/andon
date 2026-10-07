@@ -45,7 +45,7 @@ var (
 
 // ── Traefik ──
 
-var traefikHosts = regexp.MustCompile("Host\\(([^)]*)\\)")
+var traefikHosts = regexp.MustCompile(`Host\(([^)]*)\)`)
 var backtick = regexp.MustCompile("`([^`]+)`")
 
 func fetchTraefik(ctx context.Context, sctx Ctx) (any, error) {
