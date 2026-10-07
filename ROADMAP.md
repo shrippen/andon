@@ -1145,7 +1145,7 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
 - [x] Kundenseite (`/clients`): Stand der Zuordnung zeigen (bestätigt oder nur gleicher Name) und zur Zuordnung verlinken *(auf der Seite eines Kunden, Link nur mit Bearbeiten-Recht)*
 - [x] Diagramme stärker beschriften: Bei Balkendiagrammen hat die Y-Achse je Linie eine Beschriftung, die X-Achse nur Anfang und Ende; das ist schwer lesbar. Der Hover nennt beide Achsen *(`Graph.Labels`: X-Wert je Punkt; fünf Marken statt zwei, Hover „Tag · Wert“ an Balken und Linien. Antwortzeit-Diagramm der Link-Details ebenso, fünf Tage)*
 - [x] Designdokument: alle Konzepte, die Andon kennt (z. B. Kunden, Orte), und was Andon mit ihnen tut bzw. wofür es sie verwendet *([`CONCEPTS.md`](CONCEPTS.md))*
-- [ ] Recherche Kacheltypen:
+- [x] Recherche Kacheltypen *([`research/tile-types.md`](research/tile-types.md); zuerst empfohlen: Proxmox Backup Server mit `cross.vm_unbacked`, `cross.code_unbooked` (Wakapi × Kimai), `cross.image_cve`)*:
   - Dashys mögliche Kacheln durchgehen und auflisten, welche in Andon fehlen
   - Andere Dashboards und Andon-ähnliche Programme ansehen, daraus Vorschläge für weitere Kacheltypen
   - Aus den Kacheltypen Vorschläge für Verbindungen, Analysen und Queranalysen ableiten
