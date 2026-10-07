@@ -268,6 +268,7 @@ func DemoNinja(now time.Time) *NinjaDataset {
 	}
 	draft := inv.Draft
 	draft.ID = number
+	draft.Number = demoNumber(inv.Number, today, number)
 	quote := inv.Quote
 	quote.Number = demoNumber(quote.Number, today, 0)
 

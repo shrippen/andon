@@ -36,6 +36,7 @@
         <tr><td colspan="4"><b>{{t "billing.total"}}</b></td><td class="num"><b>{{money .Total}}</b></td></tr>
       </table></div>
       {{if .ClientKey}}
+      {{range .Open}}<p class="small late">{{t "billing.open_draft" "number" .Number "day" (day .Day)}} <a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{t "action.open_in_invoiceninja"}}</a> · {{t "billing.open_draft_again"}}</p>{{end}}
       <form method="post" action="/billing/draft" class="inline-form">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
         <input type="hidden" name="space_id" value="{{.SpaceID}}"><input type="hidden" name="conn_id" value="{{.KimaiID}}">

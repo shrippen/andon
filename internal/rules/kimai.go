@@ -102,7 +102,8 @@ func unbilledHours(data *sources.KimaiDataset, cfg map[string]any, env Env) []Fi
 				"hours": hoursParam(float64(g.Minutes)), "customer": g.Customer,
 				"amount": Money(g.Amount, ""), "oldest": DayStr(g.Oldest), "days": cfgFloat(cfg, "warn_days"),
 			},
-			ActionURL: kimaiURL(data, "abrechnung"), ActionLabel: kimaiOpen,
+			// Billed on Andon's billing page, where the draft is made.
+			ActionURL: "/billing#drafts", ActionLabel: "open_drafts",
 			Sources: []string{kimaiSource, string(enums.ServiceInvoiceNinja)},
 		})
 	}

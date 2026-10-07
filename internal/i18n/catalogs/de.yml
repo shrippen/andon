@@ -27,6 +27,7 @@ nav:
   clients: 'Kunden'
   hosts: 'Hosts'
 action:
+  open_drafts: 'Zu den Entwürfen'
   isp_report: 'Bericht öffnen'
   book_payment: 'Zahlung buchen'
   open_in_tailscale: 'In Tailscale / Headscale öffnen'
@@ -3750,6 +3751,8 @@ cashflow:
   below_min: 'Fällt unter den Mindeststand von {amount}.'
   delayed: 'Annahme: Kunden zahlen {days} Tage später.'
 billing:
+  open_draft: 'Offener Entwurf {number} vom {day}.'
+  open_draft_again: 'Anlegen erstellt einen weiteren Entwurf.'
   pick_verbund: 'Mehrere Verbünde im Bereich: für das Jahrespaket einen wählen.'
   summary: Überblick
   sum_unbilled: 'nicht abgerechnet · {n} Kunden'

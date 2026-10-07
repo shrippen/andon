@@ -9,6 +9,8 @@ package metrics
 import (
 	"math"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"andon/internal/sources"
@@ -33,6 +35,32 @@ type Draft struct {
 	SheetIDs   []int64
 	Total      float64
 	Oldest     time.Time
+	Open       []OpenDraft // the client's drafts already in Invoice Ninja
+}
+
+// OpenDraft is a draft invoice that already waits in Invoice Ninja.
+type OpenDraft struct {
+	Number string
+	Day    time.Time
+	URL    string // its edit page in Invoice Ninja
+}
+
+// openDrafts lists the client's draft invoices, oldest first.
+func openDrafts(ninja *sources.NinjaDataset, client sources.NinjaClient) []OpenDraft {
+	var out []OpenDraft
+	for _, inv := range ninja.Invoices {
+		if inv.ClientID != client.ID || inv.Status != draftStatus {
+			continue
+		}
+		key := inv.Key
+		if key == "" {
+			key = strconv.FormatInt(inv.ID, 10)
+		}
+		day, _ := ParseDay(inv.Date)
+		out = append(out, OpenDraft{Number: inv.Number, Day: day, URL: strings.TrimRight(ninja.URL, "/") + "/#/invoices/" + key + "/edit"})
+	}
+	sort.Slice(out, func(a, b int) bool { return out[a].Day.Before(out[b].Day) })
+	return out
 }
 
 type draftKey struct {
@@ -107,6 +135,7 @@ func Drafts(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, m ClientMa
 		d := Draft{CustomerID: cid, Customer: names[cid], SheetIDs: sheets[cid]}
 		if c, ok := m.ClientOf(ninja, cid, d.Customer); ok {
 			d.ClientKey, d.Client = c.Ref(), c.Name
+			d.Open = openDrafts(ninja, c)
 		}
 		for key, agg := range groups {
 			// Exact hours and the real rate; only the amount is rounded,

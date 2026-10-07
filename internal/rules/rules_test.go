@@ -81,6 +81,11 @@ func TestKimaiUnbilledHoursConfigOverride(t *testing.T) {
 	if len(found) != 1 || found[0].Params["customer"] != "Acme" {
 		t.Fatalf("expected 1 finding with overridden warn_days, got %+v", found)
 	}
+
+	// Unbilled time is billed on Andon's billing page, not in Kimai.
+	if found[0].ActionURL != "/billing#drafts" || found[0].ActionLabel != "open_drafts" {
+		t.Fatalf("unbilled hint leads to %q (%q), want /billing#drafts", found[0].ActionURL, found[0].ActionLabel)
+	}
 }
 
 func TestNinjaInvoiceOverdueDunning(t *testing.T) {

@@ -27,6 +27,7 @@ nav:
   clients: 'Customers'
   hosts: 'Hosts'
 action:
+  open_drafts: 'Go to drafts'
   isp_report: 'Open report'
   book_payment: 'Book payment'
   open_in_tailscale: 'Open in Tailscale / Headscale'
@@ -3749,6 +3750,8 @@ cashflow:
   below_min: 'Falls below the minimum of {amount}.'
   delayed: 'Assumption: clients pay {days} days later.'
 billing:
+  open_draft: 'Open draft {number} of {day}.'
+  open_draft_again: 'Creating adds another draft.'
   pick_verbund: 'Several Verbünde in this space: choose one for the year package.'
   summary: Overview
   sum_unbilled: 'unbilled · {n} customers'
