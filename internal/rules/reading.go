@@ -39,24 +39,49 @@ type ownProject struct {
 }
 
 func projectMentioned(_ any, _ map[string]any, env Env) []Finding {
-	news, ok := env.Datasets[newsSvc].(*sources.NewsDataset)
-	if !ok {
+	posts := readPosts(env)
+	if len(posts) == 0 {
 		return nil
 	}
 	projects := ownProjects(env)
 
 	var found []Finding
-	for _, item := range news.Items {
+	for _, post := range posts {
+		item := post.item
 		for _, p := range projects {
 			if !p.mentionedIn(item) {
 				continue
 			}
 			found = append(found, Finding{Fingerprint: p.name + "|" + item.Link, Severity: enums.SeverityInfo, Message: "cross.project_mentioned",
 				Params:    map[string]any{"project": p.name, "title": item.Title, "site": siteParam(item), "points": item.Points, "comments": item.Comments},
-				ActionURL: item.Link, ActionLabel: "open_in_" + newsSvc, Sources: []string{newsSvc, p.service}})
+				ActionURL: item.Link, ActionLabel: "open_in_" + post.service, Sources: []string{post.service, p.service}})
 		}
 	}
 	return found
+}
+
+// readPost is a post with the service it was read from.
+type readPost struct {
+	item    sources.NewsItem
+	service string
+}
+
+// readPosts are the reading connection's posts and the hot posts of the
+// Lemmy account's communities ("c/kde").
+func readPosts(env Env) []readPost {
+	var out []readPost
+	if news, ok := env.Datasets[newsSvc].(*sources.NewsDataset); ok {
+		for _, it := range news.Items {
+			out = append(out, readPost{it, newsSvc})
+		}
+	}
+	if lemmy, ok := env.Datasets[lemmySvc].(*sources.LemmyDataset); ok {
+		for _, p := range lemmy.Subscribed {
+			out = append(out, readPost{sources.NewsItem{Site: lemmySvc, Feed: "c/" + p.Community, Title: p.Title, URL: p.URL, Link: p.Link,
+				Points: p.Score, Comments: p.Comments, At: p.At}, lemmySvc})
+		}
+	}
+	return out
 }
 
 // ownProjects lists the GitHub owner's repos and the store entries.

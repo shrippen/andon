@@ -5923,5 +5923,81 @@
     "at": "@-14d"
    }
   ]
+ },
+ "lemmy": {
+  "url": "https://feddit.example.test",
+  "version": "0.19.12",
+  "user": {
+   "name": "studioweber",
+   "url": "https://feddit.example.test/u/studioweber",
+   "posts": 14,
+   "comments": 87
+  },
+  "replies": [
+   {
+    "kind": "reply",
+    "from": "cutter_jo",
+    "community": "kde",
+    "post": {
+     "de": "Shot List 0.8 für Plasma",
+     "en": "Shot List 0.8 for Plasma"
+    },
+    "text": {
+     "de": "Läuft die Liste auch auf dem Steam Deck?",
+     "en": "Does the list run on the Steam Deck too?"
+    },
+    "url": "https://feddit.example.test/comment/880101",
+    "at": "@-5h"
+   }
+  ],
+  "subscribed": [
+   {
+    "community": "kde",
+    "title": "This timecode clock widget is perfect for editors",
+    "url": "https://store.kde.org/p/2391004",
+    "link": "https://feddit.example.test/post/770001",
+    "score": 96,
+    "comments": 18,
+    "at": "@-9h"
+   },
+   {
+    "community": "selfhosted",
+    "title": {
+     "de": "Welches Dashboard nutzt ihr 2026?",
+     "en": "Which dashboard do you use in 2026?"
+    },
+    "url": "https://feddit.example.test/post/770002",
+    "link": "https://feddit.example.test/post/770002",
+    "score": 241,
+    "comments": 133,
+    "at": "@-20h"
+   },
+   {
+    "community": "filmmaking",
+    "title": {
+     "de": "Nebel im Hafen: Belichtung",
+     "en": "Fog in the harbour: exposure"
+    },
+    "url": "https://www.youtube.com/watch?v=demo1",
+    "link": "https://feddit.example.test/post/770003",
+    "score": 38,
+    "comments": 7,
+    "at": "@-2d"
+   }
+  ],
+  "own": [
+   {
+    "community": "kde",
+    "title": {
+     "de": "Shot List 0.8 für Plasma",
+     "en": "Shot List 0.8 for Plasma"
+    },
+    "url": "https://store.kde.org/p/2393417",
+    "link": "https://feddit.example.test/post/760001",
+    "score": 54,
+    "comments": 12,
+    "at": "@-40d"
+   }
+  ]
  }
 }
