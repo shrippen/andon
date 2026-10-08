@@ -101,3 +101,42 @@ func emptyFields(out any) []string {
 	}
 	return empty
 }
+
+// Public sources answer without an own instance or login: Andon reads
+// what they send today. Each news site runs alone, since the dataset
+// hides a single site's failure in Failed.
+func TestPublicLive(t *testing.T) {
+	live.Public(t)
+	news := func(site string) sources.Ctx {
+		return sources.Ctx{Options: map[string]any{"sites": site}}
+	}
+	cases := []struct {
+		name string
+		key  string
+		ctx  sources.Ctx
+	}{
+		{"Hacker News", sources.DataKey(enums.ServiceNews), news(sources.SiteHackerNews)},
+		{"Lobsters", sources.DataKey(enums.ServiceNews), news(sources.SiteLobsters)},
+		{"Reddit", sources.DataKey(enums.ServiceNews), news("r/selfhosted")},
+		{"YouTube", sources.DataKey(enums.ServiceNews), news("youtube:UC_x5XG1OV2P6uZZ5FSM9Ttw")},
+		{"NVD", sources.DataKey(enums.ServiceNVD), sources.Ctx{URL: "https://services.nvd.nist.gov", VerifyTLS: true}},
+		{"OpenLigaDB", "sports", sources.Ctx{Params: map[string]any{"league": "bl1"}}},
+		{"OpenLigaDB table", "sports", sources.Ctx{Params: map[string]any{"league": "bl1", "show": sources.SportsTable}}},
+		{"GitHub trends", "github.trending", sources.Ctx{Params: map[string]any{"limit": 5.0}}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out := fetchLive(t, live.Instance{Name: c.name, Ctx: c.ctx}, c.key)
+			if out == nil {
+				return
+			}
+			live.Dump(t, c.name, out)
+			if n, ok := out.(*sources.NewsDataset); ok && len(n.Failed) > 0 {
+				t.Errorf("failed: %v", n.Failed)
+			}
+			if empty := emptyFields(out); len(empty) > 0 {
+				t.Logf("empty: %s", strings.Join(empty, ", "))
+			}
+		})
+	}
+}

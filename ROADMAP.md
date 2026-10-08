@@ -1318,17 +1318,20 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 
 ### Noch nicht in echt getestet (notiert 07.10.2026)
 
+Seit 08.10.2026 legt `TestSourcesLive` jeden Datensatz in `.local-test/datasets/` ab und nennt erkannte Fähigkeiten und leere Felder; `TestRulesLive` wendet alle Regeln mit Vorgaben auf die echten Datensätze an und listet die Treffer (`findings.json`), ohne Hinweise zu speichern; `TestPublicLive` liest die öffentlichen Quellen ohne Verbindung. Lauf 08.10.: 36 von 36 Verbindungen grün, 146 Treffer.
+
 Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die Dienste bis #58. Alles danach ist nur gegen Nachbauten (`httptest`) und die Demowelt getestet. Abhaken, wenn `make live` gegen eine echte Instanz grün ist und die Hinweise plausibel sind; Funde wie beim Lauf vom 06.10. darunter notieren.
 
 **Neue Dienste ohne Live-Lauf** (je Dienst eine Verbindung in der lokalen Instanz, sofern der Dienst läuft)
 - [ ] Sicherung: Proxmox Backup Server (Token-Kopf `PBSAPIToken=`, Verify-Jobs, Belegung je Datastore), Kopia, Duplicati (Token-Anmeldung), Backrest, UrBackup (Anmeldung)
-- [ ] Überwachung: Healthchecks (API v3), Prometheus (Alerts, PromQL-Kachel), NVD (mit und ohne Schlüssel; ohne nur 5 Abfragen in 30 s), Drone
+- [ ] Überwachung: Healthchecks (API v3), Prometheus (Alerts, PromQL-Kachel), NVD (mit und ohne Schlüssel; ohne nur 5 Abfragen in 30 s), Drone *(08.10.: NVD ohne Schlüssel grün)*
 - [ ] Updates: What's Up Docker, Watchtower (Metriken-Endpunkt mit Token)
 - [ ] Strom: PeaNUT, apcupsd (NIS-Protokoll, Port 3551), OpenDTU, EVCC
 - [ ] Netz: Traefik, Caddy (Admin-API), Nginx Proxy Manager, Technitium, FRITZ!Box (TR-064 mit Digest-Anmeldung)
 - [ ] Medien: Tautulli, Jellystat, Navidrome (Subsonic-Anmeldung), Audiobookshelf, Jellyseerr/Overseerr
 - [ ] Aufgaben und Finanzen: Vikunja, Firefly III, Ghostfolio
-- [ ] Lesen: Hacker News (Algolia-API), Lobsters, Reddit (sperrt Abrufe ohne Anmeldung zunehmend; prüfen, ob `hot.json` mit Andons User-Agent antwortet), YouTube-Kanal-Feeds; Twitch (App-Token, `helix/streams`)
+- [ ] Lesen: Hacker News (Algolia-API), Lobsters, Reddit (sperrt Abrufe ohne Anmeldung zunehmend; prüfen, ob `hot.json` mit Andons User-Agent antwortet), YouTube-Kanal-Feeds; Twitch (App-Token, `helix/streams`) *(08.10.: HN, Lobsters, YouTube grün (`TestPublicLive`); Twitch offen)*
+  - [ ] Reddit: `hot.json` antwortet 403, auch mit Browser-Kennung; `hot.rss` antwortet 200, beim nächsten Abruf 429. Ohne Anmeldung nicht verlässlich; Weg wählen (App-Zugang per OAuth oder RSS ohne Punkte und Kommentare)
 - [ ] ESPHome: Basic Auth am Dashboard mit Passwort ist eine Annahme, ebenso die Felder von `/devices` und `/ping`; Home-Assistant-Add-on nur mit freigegebenem Port
 - [ ] Fediverse: je einmal Mastodon, GoToSocial und Akkoma; Marker (`/api/v1/markers`) bei GoToSocial und Akkoma, Software aus der Versionszeile
 - [ ] Lemmy (#99): Anmeldung, neue Anmeldung nach 401, ältere Instanz (Zeiten ohne Zone), Konto mit Zwei-Faktor gibt eine verständliche Meldung
@@ -1336,12 +1339,12 @@ Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die D
 
 **Geänderte Quellen bekannter Dienste** (Live-Lauf vom 06.10. lief vor der Änderung)
 - [ ] UniFi: Clients (für `cross.device_uninventoried`)
-- [ ] GitHub: Option `owner` (eigene gegen beobachtete Repos), Releases beobachteter Repos, CI des Standardzweigs; Trends über die Such-API ohne Token
+- [ ] GitHub: Option `owner` (eigene gegen beobachtete Repos), Releases beobachteter Repos, CI des Standardzweigs; Trends über die Such-API ohne Token *(08.10.: Trends grün; die Verbindung „Github“ hat keine Option `owner`, daher keine Repos)*
 - [ ] Gitea: Actions-Status für die CI-Kachel
 - [ ] Jellyfin/Plex: laufende Streams für „Jetzt läuft“, Update-Fenster und Belegungsstunden
 - [ ] Borg, PG Back Web, TrueNAS über die gemeinsame Sicherungs-Schnittstelle (`sources.BackupSource`)
 - [ ] Sure: Zahlungsabgleich über `metrics.BankOf` (Sure oder Firefly)
-- [ ] Sport (OpenLigaDB)
+- [x] Sport (OpenLigaDB) *(08.10.: Spiele und Tabelle der `bl1` grün)*
 - [ ] Kunden-Zuordnung über Sure (Zahler) und Paperless (Korrespondenten): Zuordnen, Lösen, „Namen angleichen“ (schreibt in die Dienste) mit echten Daten
 
 **Querregeln mit echten Daten** (nur mit der Demowelt geprüft: stimmen die Treffer, gibt es Fehlalarme?)

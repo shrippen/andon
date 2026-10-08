@@ -131,6 +131,15 @@ func Target(t testing.TB, svc Service) outbound.Target {
 	return outbound.Target{}
 }
 
+// Public skips the test unless live tests are asked for: public
+// services need no instance, but are still real servers.
+func Public(t testing.TB) {
+	t.Helper()
+	if os.Getenv(runEnv) == "" {
+		t.Skipf("live tests use real services: run with %s=1 (make live)", runEnv)
+	}
+}
+
 // Instances returns every connection of the local instance, at most read
 // once per directory, or skips the test when live tests are not asked
 // for or there is no instance.
