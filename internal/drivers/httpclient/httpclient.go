@@ -291,6 +291,8 @@ func Request(ctx context.Context, method, rawURL string, opts Options) (*http.Re
 	client := &http.Client{Timeout: timeout, Transport: transports[TLSOf(!opts.SkipVerify)]}
 	if opts.NoRedirect {
 		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	} else {
+		client.CheckRedirect = keepMethod
 	}
 
 	var body io.Reader
@@ -312,12 +314,42 @@ func Request(ctx context.Context, method, rawURL string, opts Options) (*http.Re
 	if errors.As(err, &denied) {
 		return nil, denied
 	}
+	var moved Moved
+	if errors.As(err, &moved) {
+		return nil, moved
+	}
 	if err != nil {
 		return nil, transportError(err, u.Hostname())
 	}
 	noteClock(u.Hostname(), resp.Header.Get("Date"), sent, time.Now())
 	noteUsage(ctx, resp, time.Now())
 	return resp, nil
+}
+
+// Moved: a 301/302 would turn a POST into a GET without its body, and the
+// service answer 404 to a request it never got. The connection URL should
+// be the target, e.g. http://app.lan → https://app.example.
+type Moved struct{ To string }
+
+func (e Moved) Error() string { return "redirected to " + e.To + ": use it as the URL" }
+
+// maxRedirects is net/http's own limit.
+const maxRedirects = 10
+
+// keepMethod follows redirects that keep the method (all of a GET, 307 and
+// 308 of a POST) or stay on the host (a login form's 302 to its start
+// page), and stops at a POST sent elsewhere as GET.
+func keepMethod(req *http.Request, via []*http.Request) error {
+	if len(via) >= maxRedirects {
+		return HttpError{"too many redirects"}
+	}
+	first := via[0].URL
+	if req.Method == via[0].Method || req.URL.Scheme == first.Scheme && req.URL.Host == first.Host {
+		return nil
+	}
+	to := *req.URL
+	to.Path, to.RawQuery = "", ""
+	return Moved{To: to.String()}
 }
 
 // ── Clock skew ──
