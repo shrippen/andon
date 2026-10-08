@@ -29,8 +29,8 @@ const (
 	fediTextMax = 280
 )
 
-// fediSoftware: words in an instance's version that name its software,
-// e.g. "2.7.2 (compatible; Akkoma 3.15.1)".
+// fediSoftware: words in an instance's version or source URL that name
+// its software, e.g. "2.7.2 (compatible; Akkoma 3.15.1)".
 var fediSoftware = map[string]string{"akkoma": "Akkoma", "pleroma": "Pleroma", "gotosocial": "GoToSocial"}
 
 // FediAccount is the token's account.
@@ -106,6 +106,12 @@ func fetchFediverse(ctx context.Context, sctx Ctx) (any, error) {
 	if inst, err := api.Get(ctx, "api/v1/instance", nil); err == nil {
 		data.Version = asStr(asMap(inst)["version"])
 		data.Software = softwareOf(data.Version)
+	}
+	// GoToSocial names itself only in the v2 instance's source_url.
+	if data.Software == "" {
+		if inst, err := api.Get(ctx, "api/v2/instance", nil); err == nil {
+			data.Software = softwareOf(asStr(asMap(inst)["source_url"]))
+		}
 	}
 
 	lastRead := ""
