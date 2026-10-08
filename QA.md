@@ -39,6 +39,12 @@ Erwartet: nichts Getipptes geht verloren, nach dem Speichern eines neuen Tokens 
 3. Alternativ: Bibliothek `/widgets` → Zeilenmenü „Auf Board legen“; ein neues, leeres Board schlägt Kacheln für Verbindungen ohne Kachel vor.
 Erwartet: ein Klick von der Verbindung zur Kachel auf dem Board.
 
+**J-A3b Webhook-Dienst** · Ziel: PG Back Web meldet seine Backups
+1. `/connections/new?service=pgbackweb`: Das Feld „Adresse der Oberfläche“ ist optional und erklärt, dass Andon dort nichts abfragt. Ohne Adresse speichern.
+2. Die Übersicht zeigt oben die Webhook-URL mit Kopierknopf und Beispiel-Body; mit `BASE_URL` auf `localhost` eine Warnung.
+3. `curl -X POST <URL> -d '{"event":"execution_success","name":"test"}'` → 204; „Neue URL erzeugen“ → alte URL 404, zurück auf der Übersicht.
+Erwartet: ohne Suche nach dem Reiter klar, welche Adresse in den Dienst gehört.
+
 **J-A4 Dashy-Import** 📱
 1. `/import`, Format Dashy, eine `conf.yml` mit drei Abschnitten, einem eingeklappten, Umlauten, einem Eintrag ohne URL, `theme: nord`.
 2. Vorschau, „Jetzt importieren“, neues Board auf Desktop und Handy ansehen.

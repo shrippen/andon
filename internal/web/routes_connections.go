@@ -415,7 +415,7 @@ func (d Deps) handleHookRotate(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 		d.handleBoardError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, recordPath(id, tabSettings), http.StatusSeeOther)
+	http.Redirect(w, r, recordPath(id, tabOverview), http.StatusSeeOther)
 }
 
 // servicePick is one card of the service picker.

@@ -215,8 +215,10 @@
       <label for="name">{{t "field.name"}}</label>
       <input class="input" id="name" name="name" value="{{with .Conn}}{{.Name}}{{end}}" required>
 
-      <label for="url">{{if eq $shape "ical"}}{{t "field.ical_url"}}{{else}}{{t "field.url"}}{{end}}</label>
-      <input class="input" id="url" name="url" type="url" value="{{with .Conn}}{{.URL}}{{else}}{{defaultURL .Service}}{{end}}" required>
+      {{$hooked := hooked .Service}}
+      <label for="url">{{if eq $shape "ical"}}{{t "field.ical_url"}}{{else if $hooked}}{{t "field.url_hooked"}}{{else}}{{t "field.url"}}{{end}}</label>
+      <input class="input" id="url" name="url" type="url" value="{{with .Conn}}{{.URL}}{{else}}{{defaultURL .Service}}{{end}}"{{if not $hooked}} required{{end}}>
+      {{if $hooked}}<p class="small muted">{{t "conn.url_hooked_hint"}}</p>{{end}}
 
       {{$opts := dict}}{{with .Conn}}{{$opts = .Options}}{{end}}
       {{range setupFields .Service}}
@@ -234,6 +236,27 @@
         {{with .Hint}}<p class="small muted">{{t .}}</p>{{end}}
       {{end}}
 {{end}}
+
+{{/* conn_hook: the URL a webhook service calls, to copy into it (page
+     root; HookURL only for who may rotate it, it is the secret). */}}
+{{define "conn_hook"}}{{$c := .Conn}}{{if .HookURL}}
+        <div class="detail-block">
+          <span class="h-label">{{t "conn.hook"}}</span>
+          <p class="small muted">{{t (print "conn.hook_hint_" $c.Service)}}</p>
+          {{if .HookLocal}}<p class="callout callout-warn">{{t "conn.hook_local"}}</p>{{end}}
+          <div class="cmd-row is-plain">
+            <div class="cmd-box">{{.HookURL}}</div>
+            <button class="copy-btn" type="button" title="{{t "action.copy"}}" aria-label="{{t "action.copy"}}">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+          {{if eq (print $c.Service) "pgbackweb"}}<pre class="mono">{"event": "execution_failed", "name": "kimai"}</pre>{{end}}
+          <form method="post" action="/connections/{{$c.ID}}/hook/rotate" data-confirm="{{t "conn.hook_rotate_confirm"}}">
+            <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+            <button type="submit" class="btn btn-outline btn-sm">{{t "conn.hook_rotate"}}</button>
+          </form>
+        </div>
+{{end}}{{end}}
 
 {{/* conn_mode: fixed or template; the argument tells whether fixed is chosen. */}}
 {{define "conn_mode"}}
@@ -333,7 +356,7 @@
 
     <article class="dialog detail is-page">
       <header class="detail-head">
-        <div class="detail-name"><h3>{{$c.Name}}</h3><span class="detail-sub">{{t (print "service." $c.Service)}} · {{$c.URL}}</span></div>
+        <div class="detail-name"><h3>{{$c.Name}}</h3><span class="detail-sub">{{t (print "service." $c.Service)}}{{with $c.URL}} · {{.}}{{end}}</span></div>
         <span class="pill">{{with $c.Level}}{{t (print "conn.level_" .)}} · {{end}}{{if $tmpl}}{{t "conn.kind_template"}}{{else}}{{t "conn.kind_fixed"}}{{end}}</span>
         {{template "conn_health_cell" $c}}
       </header>
@@ -342,6 +365,7 @@
 
       <section class="detail-main" id="tab-overview"{{if ne .Tab "overview"}} hidden{{end}}>
         {{template "service_about" $c.Service}}
+        {{template "conn_hook" .}}
         <div class="callout">{{if $tmpl}}{{t "conn.record_template"}}{{else}}{{t "conn.record_fixed"}}{{end}}{{with $c.Level}} {{t (print "conn.editors_" .)}}{{end}}</div>
         {{with .History}}<div class="detail-facts">
           <div class="fact"{{if and .Fetches (eq .FailPct 0)}} data-tier="green"{{end}}><b>{{if .Fetches}}{{$.Reach}} %{{else}}–{{end}}</b><span>{{t "conn.fact_reach" "days" $.Days}}</span></div>
@@ -452,18 +476,6 @@
           </details>
           <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
         </form>
-        {{if .HookURL}}
-        <div class="detail-block">
-          <span class="h-label">{{t "conn.hook"}}</span>
-          <p class="small muted">{{t "conn.hook_hint"}}</p>
-          <pre class="mono">{{.HookURL}}</pre>
-          <pre class="mono">{"event": "execution_failed", "name": "kimai"}</pre>
-          <form method="post" action="/connections/{{$c.ID}}/hook/rotate" data-confirm="{{t "conn.hook_rotate_confirm"}}">
-            <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
-            <button type="submit" class="btn btn-outline btn-sm">{{t "conn.hook_rotate"}}</button>
-          </form>
-        </div>
-        {{end}}
         {{template "danger_zone" dict "Action" (print "/connections/" $c.ID "/delete") "Text" (t "conn.delete_hint") "Button" (t "conn.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
       </section>
       {{end}}

@@ -1221,6 +1221,13 @@ Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und an
 
 ---
 
+### Fund 08.10.2026: Webhook-Dienste anlegen
+
+Beim Anlegen von PG Back Web unklar, woher die Webhook-Adresse kommt und wozu das Pflichtfeld „URL“ dient: Andon fragt den Dienst nie ab, die URL war nur der Link; die erzeugte Adresse stand versteckt unter dem Formular im Reiter Einstellungen.
+- [x] Bei Webhook-Diensten (`caps.Traits.Webhooks`: PG Back Web, Hansei) ist die Adresse optional und heißt „Adresse der Oberfläche“
+- [x] Webhook-URL oben in der Übersicht, mit Kopierknopf (Kante `.cmd-row.is-plain`); „Neue URL erzeugen“ führt dorthin zurück
+- [x] Warnung, wenn die URL auf localhost zeigt (`BASE_URL`): ein Dienst auf einem anderen Rechner ruft sich damit selbst auf
+
 ### QA-Runde 07.10.2026
 
 Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag, Geld und Zeit, Boards bauen, Verwaltung), gegen die Demo und eine leere Instanz. Die Journeys stehen fest in [`QA.md`](QA.md) für die nächsten Runden. Rechte-Lecks: keine gefunden (fremde Boards, Verbindungen, Admin-Seiten direkt aufgerufen und per POST: abgelehnt).

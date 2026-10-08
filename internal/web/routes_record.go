@@ -3,7 +3,9 @@ package web
 import (
 	"andon/internal/caps"
 	"andon/internal/services/verbund"
+	"net"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"time"
@@ -155,7 +157,8 @@ func (d Deps) recordValues(r *http.Request, ctx Ctx, conn connections.View) (map
 	}
 	// Only who may rotate the webhook sees its URL (it is the secret).
 	if conn.Right >= enums.RightManage {
-		values["HookURL"], _ = connections.HookURL(d.DB, ctx.Who, conn.ID, d.Settings.BaseURL)
+		hook, _ := connections.HookURL(d.DB, ctx.Who, conn.ID, d.Settings.BaseURL)
+		values["HookURL"], values["HookLocal"] = hook, hook != "" && unreachable(hook)
 	}
 	// Just signed in, set up or given a new login: show right away whether
 	// the service answers.
@@ -211,4 +214,20 @@ func (d Deps) handleConnectionSecret(w http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 	http.Redirect(w, r, withQuery(recordPath(id, tabAccess), testedFlag, ""), http.StatusSeeOther)
+}
+
+// unreachable reports whether a hook URL points at the loopback, e.g.
+// BASE_URL http://localhost:8080: a service on another host would call
+// itself.
+func unreachable(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	host := u.Hostname()
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
