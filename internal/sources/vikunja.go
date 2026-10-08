@@ -5,8 +5,11 @@ package sources
 // to projects and tasks is enough.
 //
 //	GET api/v1/projects                                  → [{id, title}]
-//	GET api/v1/tasks/all?filter=done = false&per_page=…  → [{title, project_id, due_date, done, done_at, priority, labels[{title}]}]
-//	GET api/v1/tasks/all?filter=done = true && done_at > now-7d
+//	GET api/v1/tasks?filter=done = false&per_page=…      → [{title, project_id, due_date, done, done_at, priority, labels[{title}]}]
+//	GET api/v1/tasks?filter=done = true && done_at > now-7d
+//
+// Before Vikunja 2 the list was api/v1/tasks/all; Vikunja 2 reads "all"
+// there as a task id and answers 400.
 
 import (
 	"context"
@@ -53,6 +56,9 @@ func (d *VikunjaDataset) Open() []VikunjaTask {
 	return out
 }
 
+// vikunjaLists are the task lists of Vikunja 2 and before.
+var vikunjaLists = []string{"api/v1/tasks", "api/v1/tasks/all"}
+
 var VikunjaData = source{key: "vikunja.data", ttl: opsTTL, service: enums.ServiceVikunja, fetch: fetchVikunja}
 
 func fetchVikunja(ctx context.Context, sctx Ctx) (any, error) {
@@ -76,8 +82,15 @@ func fetchVikunja(ctx context.Context, sctx Ctx) (any, error) {
 
 	data := &VikunjaDataset{URL: sctx.URL}
 	since := time.Now().AddDate(0, 0, -vikunjaDoneDays).UTC().Format(time.RFC3339)
+	paths := vikunjaLists
 	for _, filter := range []string{"done = false", "done = true && done_at > " + since} {
-		list, err := api.Get(ctx, "api/v1/tasks/all", url.Values{"filter": {filter}, "per_page": {vikunjaPage}})
+		var list any
+		for i, path := range paths {
+			if list, err = api.Get(ctx, path, url.Values{"filter": {filter}, "per_page": {vikunjaPage}}); err == nil {
+				paths = paths[i:] // the second filter asks the path that answered
+				break
+			}
+		}
 		if err != nil {
 			return nil, fetchError(err)
 		}
