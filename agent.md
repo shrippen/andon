@@ -104,6 +104,7 @@ internal/services/verbund/      Verbünde: welche Verbindungen zusammenarbeiten 
 - `html/template` behandelt Attribute, deren Name ohne `data-` mit `on` beginnt (`data-on`), als Event-Handler (JS-Kontext); ein `{{if}}` darum bricht mit "branches end in different contexts". Anderen Namen wählen (`data-pinned`).
 - CSS-Spalten (`column-count`): Chrome bricht den ganzen Spaltenfluss bei jeder Änderung in einem Block-Kind neu um (35 ms je Tastendruck), Firefox immer (200 ms je Fragment-Swap). Kinder als `inline-block`, und viele Einzel-Swaps im Fluss bündeln (`/boards/{id}/live`).
 - Formulare mit `<select>` in eingeklappten Menüs (`details`) scannt Chrome beim Laden (1,7 s für 112 Selects). Erst beim Öffnen laden (htmx) oder aus einem `<template>` klonen.
+- `window.Kante` heißt nicht, dass `shrippen.js` lief: `kante-wall.js` legt es schon beim Parsen an, die Live-API (`edit`, `tick` …) kommt erst mit DOMContentLoaded. Auf Kante nur über `andonKante` warten (prüft `Kante.edit`); sonst bricht der Bearbeitungsmodus nach einem Neuladen ab (`tools/edit-reload.py`).
 - Gleichzeitige DNS-Abfragen begrenzen (`httpclient.dnsParallel`): Der Heim-Resolver verwirft ab ~30 parallelen Abfragen, jede kostet dann 5 s Timeout.
 
 ## QA rule

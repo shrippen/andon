@@ -2053,16 +2053,23 @@
     tiles.forEach(function (tile) { syncTile(tile, true); });
   });
 
-  // andonKante runs fn with Kante once its script has set window.Kante: it
-  // does that on DOMContentLoaded, after the deferred scripts ran. Nothing
-  // happens when the script is missing.
+  // andonKante runs fn with Kante once shrippen.js has added its live API
+  // (edit, tick …): it does that on DOMContentLoaded, after the deferred
+  // scripts ran. window.Kante alone is no sign: kante-wall.js creates it
+  // while the page is parsed, and a reload in edit mode then called
+  // kante.edit before it existed. Nothing happens when the script is
+  // missing.
+  function kanteReady() {
+    return window.Kante && typeof window.Kante.edit === "function";
+  }
+
   window.andonKante = function (fn) {
-    if (window.Kante) {
+    if (kanteReady()) {
       fn(window.Kante);
       return;
     }
     d.addEventListener("DOMContentLoaded", function () {
-      if (window.Kante) {
+      if (kanteReady()) {
         fn(window.Kante);
       }
     });
