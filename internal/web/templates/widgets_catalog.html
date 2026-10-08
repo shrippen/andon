@@ -127,6 +127,19 @@
 {{end}}{{end}}
 {{end}}
 
+{{define "widgets/fritzbox"}}
+{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{with $v := .Frag.View}}{{with $d := $v.Data}}
+{{if $v.Online}}<div class="tile-head"><b class="tile-value" data-live>↓ {{num $v.Down 1}} ↑ {{num $v.Up 1}}</b><span class="tile-note">Mbit/s{{if $v.SyncDown}} · {{t "fritz.sync" "down" (num $v.SyncDown 0) "up" (num $v.SyncUp 0)}}{{end}}</span></div>
+{{else}}<div class="tile-head"><b class="tile-value late" data-live>{{t "fritz.offline"}}</b><span class="tile-note">{{$d.Status}}</span></div>{{end}}
+{{if $v.Traffic}}{{with $v.Spark}}<div class="kpi">{{template "spark" .}}<span class="kpi-sub">{{t "fritz.spark"}}</span></div>{{end}}{{end}}
+<ul class="legend-list">
+  {{range $v.Lines}}<li><span class="sq" data-tier="{{.Tier}}" aria-hidden="true"></span>{{tv .Name}}{{with .Note}} <small class="muted">{{tv .}}</small>{{end}}{{with .Value}}<b>{{tv .}}</b>{{end}}</li>{{end}}
+</ul>
+<p class="tile-foot"><span>{{$d.Model}}{{with $d.Firmware}} · FRITZ!OS {{.}}{{end}}</span><span>{{if $d.Update}}{{t "fritz.update" "v" $d.Update}}{{else if $d.UpdateError}}<span class="late">{{t "fritz.update_error"}}</span>{{end}}</span></p>
+{{end}}{{end}}
+{{end}}
+
 {{define "widgets/expiry"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Bars}}

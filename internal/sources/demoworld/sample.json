@@ -1139,6 +1139,12 @@
     "images": {
      "paperless-ai": "clusterzx/paperless-ai:3.0"
     }
+   },
+   {
+    "name": "showreel",
+    "state": "running",
+    "repo": "studio/showreel",
+    "branch": "main"
    }
   ],
   "alerts": [
@@ -1191,8 +1197,42 @@
     "operation": "DeployStack",
     "by": "mara",
     "ok": true
+   },
+   "showreel": {
+    "at": "@-4h",
+    "operation": "DeployStack",
+    "by": "mara",
+    "ok": true
    }
-  }
+  },
+  "deployed": [
+   {
+    "stack": "showreel",
+    "at": "@-4h",
+    "commit": "7c1e9a4",
+    "by": "mara",
+    "ok": true
+   },
+   {
+    "stack": "paperless",
+    "at": "@-26h",
+    "by": "lena",
+    "ok": false
+   },
+   {
+    "stack": "immich",
+    "at": "@-6d",
+    "by": "mara",
+    "ok": true
+   },
+   {
+    "stack": "showreel",
+    "at": "@-6d",
+    "commit": "52d0b17",
+    "by": "mara",
+    "ok": true
+   }
+  ]
  },
  "backups": {
   "server": {
@@ -5046,28 +5086,32 @@
       "status": "failure",
       "started": "@-5h",
       "seconds": 512,
-      "event": "push"
+      "event": "push",
+      "commit": "7c1e9a4e2b9f03d1"
      },
      {
       "number": 40,
       "status": "failure",
       "started": "@-1d1h",
       "seconds": 498,
-      "event": "push"
+      "event": "push",
+      "commit": "c03f6a1d7e88b245"
      },
      {
       "number": 39,
       "status": "success",
       "started": "@-4d",
       "seconds": 530,
-      "event": "push"
+      "event": "push",
+      "commit": "9a41e0c2b6d7f310"
      },
      {
       "number": 38,
       "status": "success",
       "started": "@-6d",
       "seconds": 521,
-      "event": "tag"
+      "event": "tag",
+      "commit": "52d0b17a9c3e6f48"
      }
     ]
    },
@@ -5100,6 +5144,12 @@
     "store": "nebelhorn",
     "total": 2000000000000,
     "used": 1840000000000
+   },
+   {
+    "store": "archiv",
+    "pool": "tank",
+    "total": 3100000000000,
+    "used": 1200000000000
    }
   ],
   "groups": [
@@ -5126,6 +5176,13 @@
     "comment": "render-test",
     "last": "@-40d",
     "count": 8
+   },
+   {
+    "store": "archiv",
+    "type": "host",
+    "id": "nas-config",
+    "last": "@-6h",
+    "count": 30
    }
   ],
   "verify": [
@@ -5358,7 +5415,121 @@
     "charged_kwh": 142,
     "avg_price": 0.27,
     "solar_pct": 31
-   }
+   },
+   "sessions": [
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-2d",
+     "finished": "@-1d21h",
+     "kwh": 18.4,
+     "price": 5.7
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-6d",
+     "finished": "@-5d21h",
+     "kwh": 22.1,
+     "price": 6.85
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-10d",
+     "finished": "@-9d21h",
+     "kwh": 15.6,
+     "price": 4.84
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-13d",
+     "finished": "@-12d21h",
+     "kwh": 24.8,
+     "price": 7.69
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-17d",
+     "finished": "@-16d21h",
+     "kwh": 19.9,
+     "price": 6.17
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-21d",
+     "finished": "@-20d21h",
+     "kwh": 12.7,
+     "price": 3.94
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-25d",
+     "finished": "@-24d21h",
+     "kwh": 21.3,
+     "price": 6.6
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-29d",
+     "finished": "@-28d21h",
+     "kwh": 17.5,
+     "price": 5.42
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-33d",
+     "finished": "@-32d21h",
+     "kwh": 25.2,
+     "price": 7.81
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-37d",
+     "finished": "@-36d21h",
+     "kwh": 16.8,
+     "price": 5.21
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-41d",
+     "finished": "@-40d21h",
+     "kwh": 20.6,
+     "price": 6.39
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-46d",
+     "finished": "@-45d21h",
+     "kwh": 23.4,
+     "price": 7.25
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-50d",
+     "finished": "@-49d21h",
+     "kwh": 14.9,
+     "price": 4.62
+    },
+    {
+     "loadpoint": "Carport",
+     "vehicle": "Studio-Kombi",
+     "created": "@-55d",
+     "finished": "@-54d21h",
+     "kwh": 19.2,
+     "price": 5.95
+    }
+   ]
   }
  },
  "proxy_routes": {
@@ -5436,13 +5607,283 @@
  "fritzbox": {
   "url": "https://fritz.demo:49443",
   "status": "Connected",
-  "uptime": 2400,
+  "since": "@date-0 04:02",
   "last_error": "ERROR_NONE",
   "model": "FRITZ!Box 7590",
   "down_sync": 250000,
   "up_sync": 40000,
   "down_max": 292000,
-  "up_max": 46000
+  "up_max": 46000,
+  "reconnects": [
+   {
+    "up": "@-27d20h"
+   },
+   {
+    "up": "@-21d3h"
+   },
+   {
+    "down": "@-16d5h",
+    "up": "@-16d4h13m"
+   },
+   {
+    "up": "@-11d22h"
+   },
+   {
+    "down": "@-6d2h30m",
+    "up": "@-6d2h16m"
+   },
+   {
+    "up": "@-2d20h"
+   }
+  ],
+  "down_margin": 9.0,
+  "up_margin": 8.5,
+  "firmware": "8.03",
+  "update": "8.21",
+  "traffic_down": [
+   3200,
+   2800,
+   4100,
+   12500,
+   48000,
+   52000,
+   31000,
+   8800,
+   4300,
+   3900,
+   6100,
+   21000,
+   64000,
+   71000,
+   38000,
+   9200,
+   5100,
+   4700,
+   3800,
+   4400
+  ],
+  "traffic_up": [
+   36800,
+   37900,
+   38400,
+   38100,
+   37600,
+   38900,
+   38200,
+   37700,
+   38600,
+   38800,
+   38300,
+   37900,
+   38500,
+   38700,
+   38100,
+   37800,
+   38600,
+   38400,
+   38900,
+   38200
+  ],
+  "radios": [
+   {
+    "band": "2.4",
+    "on": true,
+    "channel": 6,
+    "clients": 3
+   },
+   {
+    "band": "5",
+    "on": true,
+    "channel": 36,
+    "clients": 4
+   }
+  ],
+  "mesh": [
+   {
+    "name": "fritz.box",
+    "model": "FRITZ!Box 7590",
+    "firmware": "8.03",
+    "role": "master",
+    "clients": 6
+   },
+   {
+    "name": "Repeater Tonstudio",
+    "model": "FRITZ!Repeater 1200 AX",
+    "firmware": "8.02",
+    "role": "slave",
+    "uplink": "wlan",
+    "rate": 130,
+    "signal": -79,
+    "clients": 2
+   },
+   {
+    "name": "Powerline Lager",
+    "model": "FRITZ!Powerline 1260E",
+    "firmware": "8.25",
+    "role": "slave",
+    "uplink": "plc",
+    "rate": 410,
+    "clients": 1
+   }
+  ],
+  "hosts": [
+   {
+    "name": "OPNsense",
+    "ip": "192.168.178.2",
+    "active": true,
+    "link": "lan",
+    "speed": 1000
+   },
+   {
+    "name": "Schnitt-Laptop",
+    "ip": "192.168.178.21",
+    "active": true,
+    "link": "wlan",
+    "speed": 780,
+    "signal": -48
+   },
+   {
+    "name": "Möwe 7",
+    "ip": "192.168.178.22",
+    "active": true,
+    "link": "wlan",
+    "speed": 433,
+    "signal": -61
+   },
+   {
+    "name": "Person Ds Tablet",
+    "ip": "192.168.178.31",
+    "active": true,
+    "link": "wlan",
+    "speed": 144,
+    "signal": -77
+   },
+   {
+    "name": "Drucker Studio",
+    "ip": "192.168.178.40",
+    "active": true,
+    "link": "lan",
+    "speed": 100
+   },
+   {
+    "name": "Repeater Tonstudio",
+    "ip": "192.168.178.5",
+    "active": true,
+    "link": "wlan",
+    "speed": 130,
+    "signal": -79,
+    "model": "FRITZ!Repeater 1200 AX",
+    "update": true
+   },
+   {
+    "name": "Powerline Lager",
+    "ip": "192.168.178.6",
+    "active": true,
+    "link": "plc",
+    "speed": 410,
+    "model": "FRITZ!Powerline 1260E"
+   },
+   {
+    "name": "Kamera-Tablet",
+    "ip": "192.168.178.33",
+    "active": true,
+    "link": "wlan",
+    "speed": 286,
+    "signal": -66
+   },
+   {
+    "name": "Gast-Handy",
+    "ip": "192.168.179.20",
+    "active": true,
+    "link": "wlan",
+    "speed": 72,
+    "signal": -70,
+    "guest": true
+   },
+   {
+    "name": "Person B Handy",
+    "ip": "",
+    "active": false,
+    "link": "wlan"
+   },
+   {
+    "name": "Beamer Besprechung",
+    "ip": "",
+    "active": false,
+    "link": "lan"
+   }
+  ],
+  "calls": {
+   "days": 7,
+   "in": 23,
+   "out": 17,
+   "missed": 4,
+   "recent": [
+    {
+     "at": "@-2h15m",
+     "who": "Kunde A GmbH"
+    },
+    {
+     "at": "@date-1 03:13",
+     "who": ""
+    },
+    {
+     "at": "@date-2 16:05",
+     "who": "Person E"
+    },
+    {
+     "at": "@date-4 09:30",
+     "who": "+49 40 555 0173"
+    }
+   ]
+  },
+  "smart": [
+   {
+    "name": "Kaffeemaschine",
+    "product": "FRITZ!DECT 200",
+    "present": true,
+    "switch": "on",
+    "meter": true,
+    "power": 2.1,
+    "energy": 41.7,
+    "thermo": true,
+    "temp": 22.5
+   },
+   {
+    "name": "Kühlschrank Requisite",
+    "product": "FRITZ!DECT 210",
+    "present": true,
+    "switch": "on",
+    "meter": true,
+    "power": 64.0,
+    "energy": 312.4
+   },
+   {
+    "name": "Heizung Tonstudio",
+    "product": "FRITZ!DECT 301",
+    "present": true,
+    "thermo": true,
+    "temp": 19.5,
+    "heater": true,
+    "set": 21.0
+   },
+   {
+    "name": "Heizung Lager",
+    "product": "FRITZ!DECT 301",
+    "present": false,
+    "heater": true,
+    "set": 16.0
+   },
+   {
+    "name": "Fluter Hof",
+    "product": "FRITZ!DECT 210",
+    "present": true,
+    "switch": "off",
+    "meter": true,
+    "power": 0.0,
+    "energy": 3.13
+   }
+  ]
  },
  "listening": {
   "tautulli": {

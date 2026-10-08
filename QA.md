@@ -98,6 +98,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 1. `/timeline`, `/hosts` (Hinweise zählen als Probleme, Hosts ohne Monitor und Hinweis unter „N ohne Befund“ eingeklappt), `/hosts/<name>`, `/hosts/gibt-es-nicht`, `/reports/isp`.
 2. `/reports/isp`: Neuverbindungen der FRITZ!Box mit Zeit und Ausfall (gesehene mit „mindestens … min“), dieselben Zeilen in der CSV; `/timeline` nennt sie als Wechsel „WAN“.
 3. `/calendar.ics` mit Sitzung, ohne Sitzung, mit Lese-Token (`/me/security`): doppelte Termine?
+4. Kachel „FRITZ!Box“ (Board Studio-IT, Abschnitt Sicherheit): Durchsatz jetzt und als Linie, Repeater mit schwachem WLAN und Thermostat ohne Verbindung farbig, FRITZ!OS mit Update im Fuß. Dialog: Durchsatz-Diagramm mit Achse und Legende, Reiter Geräte, Mesh (WLAN der Box), Anrufe (03:13 „Unbekannt“), Smart Home; Kachel-Optionen blenden Durchsatz, Mesh, Anrufe, Smart Home aus.
 
 **J-B6 Sprache**
 1. Abgemeldet auf der Anmeldeseite im Fuß „EN“ wählen: die Seite ist englisch und bleibt es nach Neuladen. Anmelden: es gilt die Sprache des Profils.

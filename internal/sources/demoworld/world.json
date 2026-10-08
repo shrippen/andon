@@ -6586,7 +6586,7 @@
   ]
  },
  "fritzbox": {
-  "note": "The FRITZ!Box behind the firewall reconnects every night at 04:02 (the provider's forced reconnect, uptime counted from there); the VDSL line syncs at 250 Mbit/s. Reconnects of the last weeks: mostly short, twice a run caught the line down (47 and 14 minutes).",
+  "note": "The FRITZ!Box behind the firewall reconnects every night at 04:02 (the provider's forced reconnect, uptime counted from there); the VDSL line syncs at 250 Mbit/s. Reconnects of the last weeks: mostly short, twice a run caught the line down (47 and 14 minutes). FRITZ!OS 8.21 is offered; Selin is uploading the episode 4 cut to Northlight, so the upstream is full. The repeater in the sound studio hangs on a weak WLAN uplink and waits for an update; Theo's tablet is on the network but not in the inventory. The radiator thermostat in the store room lost its DECT link. Four missed calls this week, one at night without a number.",
   "url": "https://fritz.demo:49443",
   "status": "Connected",
   "since": "@date-0 04:02",
@@ -6616,6 +6616,254 @@
    },
    {
     "up": "@-2d20h"
+   }
+  ],
+  "down_margin": 9.0,
+  "up_margin": 8.5,
+  "firmware": "8.03",
+  "update": "8.21",
+  "traffic_down": [
+   3200,
+   2800,
+   4100,
+   12500,
+   48000,
+   52000,
+   31000,
+   8800,
+   4300,
+   3900,
+   6100,
+   21000,
+   64000,
+   71000,
+   38000,
+   9200,
+   5100,
+   4700,
+   3800,
+   4400
+  ],
+  "traffic_up": [
+   36800,
+   37900,
+   38400,
+   38100,
+   37600,
+   38900,
+   38200,
+   37700,
+   38600,
+   38800,
+   38300,
+   37900,
+   38500,
+   38700,
+   38100,
+   37800,
+   38600,
+   38400,
+   38900,
+   38200
+  ],
+  "radios": [
+   {
+    "band": "2.4",
+    "on": true,
+    "channel": 6,
+    "clients": 3
+   },
+   {
+    "band": "5",
+    "on": true,
+    "channel": 36,
+    "clients": 4
+   }
+  ],
+  "mesh": [
+   {
+    "name": "fritz.box",
+    "model": "FRITZ!Box 7590",
+    "firmware": "8.03",
+    "role": "master",
+    "clients": 6
+   },
+   {
+    "name": "Repeater Tonstudio",
+    "model": "FRITZ!Repeater 1200 AX",
+    "firmware": "8.02",
+    "role": "slave",
+    "uplink": "wlan",
+    "rate": 130,
+    "signal": -79,
+    "clients": 2
+   },
+   {
+    "name": "Powerline Lager",
+    "model": "FRITZ!Powerline 1260E",
+    "firmware": "8.25",
+    "role": "slave",
+    "uplink": "plc",
+    "rate": 410,
+    "clients": 1
+   }
+  ],
+  "hosts": [
+   {
+    "name": "OPNsense",
+    "ip": "192.168.178.2",
+    "active": true,
+    "link": "lan",
+    "speed": 1000
+   },
+   {
+    "name": "Schnitt-Laptop",
+    "ip": "192.168.178.21",
+    "active": true,
+    "link": "wlan",
+    "speed": 780,
+    "signal": -48
+   },
+   {
+    "name": "Möwe 7",
+    "ip": "192.168.178.22",
+    "active": true,
+    "link": "wlan",
+    "speed": 433,
+    "signal": -61
+   },
+   {
+    "name": "Theos Tablet",
+    "ip": "192.168.178.31",
+    "active": true,
+    "link": "wlan",
+    "speed": 144,
+    "signal": -77
+   },
+   {
+    "name": "Drucker Studio",
+    "ip": "192.168.178.40",
+    "active": true,
+    "link": "lan",
+    "speed": 100
+   },
+   {
+    "name": "Repeater Tonstudio",
+    "ip": "192.168.178.5",
+    "active": true,
+    "link": "wlan",
+    "speed": 130,
+    "signal": -79,
+    "model": "FRITZ!Repeater 1200 AX",
+    "update": true
+   },
+   {
+    "name": "Powerline Lager",
+    "ip": "192.168.178.6",
+    "active": true,
+    "link": "plc",
+    "speed": 410,
+    "model": "FRITZ!Powerline 1260E"
+   },
+   {
+    "name": "Kamera-Tablet",
+    "ip": "192.168.178.33",
+    "active": true,
+    "link": "wlan",
+    "speed": 286,
+    "signal": -66
+   },
+   {
+    "name": "Gast-Handy",
+    "ip": "192.168.179.20",
+    "active": true,
+    "link": "wlan",
+    "speed": 72,
+    "signal": -70,
+    "guest": true
+   },
+   {
+    "name": "Jonas Handy",
+    "ip": "",
+    "active": false,
+    "link": "wlan"
+   },
+   {
+    "name": "Beamer Besprechung",
+    "ip": "",
+    "active": false,
+    "link": "lan"
+   }
+  ],
+  "calls": {
+   "days": 7,
+   "in": 23,
+   "out": 17,
+   "missed": 4,
+   "recent": [
+    {
+     "at": "@-2h15m",
+     "who": "Northlight Pictures"
+    },
+    {
+     "at": "@date-1 03:13",
+     "who": ""
+    },
+    {
+     "at": "@date-2 16:05",
+     "who": "Lena Kraus"
+    },
+    {
+     "at": "@date-4 09:30",
+     "who": "+49 40 555 0173"
+    }
+   ]
+  },
+  "smart": [
+   {
+    "name": "Kaffeemaschine",
+    "product": "FRITZ!DECT 200",
+    "present": true,
+    "switch": "on",
+    "meter": true,
+    "power": 2.1,
+    "energy": 41.7,
+    "thermo": true,
+    "temp": 22.5
+   },
+   {
+    "name": "Kühlschrank Requisite",
+    "product": "FRITZ!DECT 210",
+    "present": true,
+    "switch": "on",
+    "meter": true,
+    "power": 64.0,
+    "energy": 312.4
+   },
+   {
+    "name": "Heizung Tonstudio",
+    "product": "FRITZ!DECT 301",
+    "present": true,
+    "thermo": true,
+    "temp": 19.5,
+    "heater": true,
+    "set": 21.0
+   },
+   {
+    "name": "Heizung Lager",
+    "product": "FRITZ!DECT 301",
+    "present": false,
+    "heater": true,
+    "set": 16.0
+   },
+   {
+    "name": "Fluter Hof",
+    "product": "FRITZ!DECT 210",
+    "present": true,
+    "switch": "off",
+    "meter": true,
+    "power": 0.0,
+    "energy": 3.13
    }
   ]
  },

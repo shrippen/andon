@@ -538,6 +538,10 @@ field:
   period: Zeitraum
   power_entity: Leistungs-Entität (Home Assistant)
   show_hours: Zeile Arbeit
+  show_traffic: Durchsatz der letzten 100 s
+  show_mesh: Mesh-Geräte
+  show_calls: Verpasste Anrufe
+  show_smart: Smart Home
   show_money: Zeile Geld
   show_storage: Zeile Speicher
   show_power: Zeile Strom
@@ -875,6 +879,9 @@ wtype:
   gateway:
     name: 'Gateway'
     desc: 'WAN-Leitungen, Geräte und Updates von OPNsense, pfSense oder UniFi.'
+  fritzbox:
+    name: 'FRITZ!Box'
+    desc: 'Leitung, Durchsatz, Geräte, Mesh, Anrufe und Smart Home der FRITZ!Box.'
   expiry:
     name: 'Zertifikate und Domains'
     desc: 'Tage bis zum Ablauf als Balken, das Nächste zuerst.'
@@ -1509,9 +1516,9 @@ conn:
   options_hint_technitium: 'URL von Technitium DNS, z. B. http://dns.example.lan:5380. Token = API-Token (Administration → Sessions → Create Token).'
   about_technitium: 'DNS: Anfragen, Blockierungen'
   what_technitium: 'Technitium DNS ist ein DNS-Server mit Werbe- und Trackingfilter.'
-  options_hint_fritzbox: 'URL der FRITZ!Box für TR-064, z. B. https://fritz.box:49443 (oder http://fritz.box:49000). Token = benutzer:passwort eines FRITZ!Box-Benutzers mit dem Recht „FRITZ!Box Einstellungen“; „Zugriff für Anwendungen zulassen“ muss an sein.'
-  about_fritzbox: 'Internetverbindung und DSL-Rate'
-  what_fritzbox: 'Die FRITZ!Box von AVM ist ein Router; über TR-064 nennt sie Verbindung, Laufzeit und Leitungsrate.'
+  options_hint_fritzbox: 'URL der FRITZ!Box, z. B. http://fritz.box; ohne Port nimmt Andon den TR-064-Port (49000, mit https 49443). Token = benutzer:passwort eines FRITZ!Box-Benutzers mit dem Recht „FRITZ!Box Einstellungen“, für Anrufe auch „Sprachnachrichten, Faxnachrichten, FRITZ!App Fon und Anrufliste“, für Smart Home „Smart Home“. „Zugriff für Anwendungen zulassen“ muss an sein.'
+  about_fritzbox: 'Leitung, FRITZ!OS, Geräte, Mesh, Anrufe, Smart Home'
+  what_fritzbox: 'Die FRITZ!Box von AVM ist ein Router; über TR-064 nennt sie Leitung, FRITZ!OS-Updates, Durchsatz, Geräte und Mesh, Anrufliste und Smart-Home-Geräte.'
   secret_fritz: 'benutzer:passwort'
   options_hint_tautulli: 'URL von Tautulli, z. B. http://tautulli.example.lan:8181. Token = API-Schlüssel (Einstellungen → Web-Oberfläche → API).'
   about_tautulli: 'Plex: was gerade läuft'
@@ -2195,6 +2202,27 @@ hint:
     reconnect:
       title: 'FRITZ!Box hat sich neu verbunden'
       why: 'Vor {minutes} Minuten, letzter Fehler {error}. Häufen sich Neuverbindungen, die Leitung prüfen lassen.'
+    update:
+      title: 'FRITZ!OS {version} verfügbar'
+      why: 'Installiert: {installed}. Updates schließen Sicherheitslücken.'
+    update_error:
+      title: 'FRITZ!Box: Update fehlgeschlagen'
+      why: 'Installiert: {installed}. Die Box meldet einen Fehler beim Suchen oder Einspielen; unter System → Update prüfen.'
+    mesh_update:
+      title: 'FRITZ!-Geräte mit Update: {count}'
+      why: '{names}. Im Mesh der FRITZ!Box aktualisieren.'
+    mesh_weak:
+      title: '{name}: schwaches WLAN zur Box'
+      why: '{dbm} dBm, {rate} Mbit/s. Näher an die Box stellen oder per LAN oder Powerline anbinden.'
+    line_margin:
+      title: 'DSL-Leitung mit wenig Reserve'
+      why: 'Rauschabstand ↓ {down} dB, ↑ {up} dB, unter {min} dB. Bei Störungen bricht die Verbindung ab.'
+    missed_calls:
+      title: 'Verpasste Anrufe: {count}'
+      why: 'Zuletzt {who} am {day}.'
+    smart_lost:
+      title: '{name} ohne Verbindung'
+      why: '{product} antwortet der FRITZ!Box nicht. Batterie und Abstand zur Box prüfen.'
   ups:
     on_battery:
       title: 'USV {name} läuft auf Batterie'
@@ -3315,6 +3343,13 @@ rule_name:
   cross.route_undocumented: 'Route ohne Doku'
   fritz.offline: 'FRITZ!Box ohne Internet'
   fritz.reconnect: 'FRITZ!Box neu verbunden'
+  fritz.update: 'FRITZ!OS-Update'
+  fritz.update_error: 'FRITZ!OS-Update fehlgeschlagen'
+  fritz.mesh_update: 'Mesh-Geräte mit Update'
+  fritz.mesh_weak: 'Schwaches Mesh-WLAN'
+  fritz.line_margin: 'DSL-Rauschabstand'
+  fritz.missed_calls: 'Verpasste Anrufe'
+  fritz.smart_lost: 'Smart-Home-Gerät getrennt'
   cross.line_vs_speed: 'Leitung gegen Speedtest'
   cross.device_uninventoried: 'Gerät ohne Inventar'
   ups.on_battery: 'USV auf Batterie'
@@ -3525,6 +3560,8 @@ rule_name:
   truenas.scrub_old: 'Pool-Scrub'
   gateway.new_device: 'Neue Geräte im Netz'
 param:
+  min_db: 'Mindestens dB'
+  min_dbm: 'Mindestens dBm'
   booked_share: 'Anteil des Gebuchten'
   minutes: 'Mindestens Minuten'
   min_km: 'Ab km'
@@ -4618,6 +4655,60 @@ detail:
     pause_label: 'Filter'
     pause_what: 'Filter kurz aussetzen, wenn eine Seite nicht lädt'
     per_hour: 'Anfragen je Stunde'
+  fritz:
+    model: 'Modell'
+    firmware: 'FRITZ!OS'
+    since: 'Verbunden seit'
+    update: 'Update'
+    update_error: 'Suche oder Update fehlgeschlagen'
+    sync: 'Leitung ↓/↑'
+    max: 'Möglich ↓/↑'
+    margin: 'Rauschabstand ↓/↑'
+    down: 'Download'
+    up: 'Upload'
+    online: 'Geräte online'
+    missed: 'Verpasst ({n} T)'
+    traffic: 'Durchsatz · letzte 100 s (Mbit/s)'
+    ago_s: 'vor {n} s'
+    now: 'jetzt'
+    connected: 'verbunden'
+    offline: 'ohne Internet'
+    guest: '{link} · Gast'
+    device: 'Gerät'
+    ip: 'IP'
+    link: 'Verbindung'
+    rate: 'Rate'
+    signal: 'Signal'
+    away: 'Bekannt, offline'
+    devices: 'Geräte'
+    role: 'Rolle'
+    role_master: 'Mesh Master'
+    role_slave: 'Mesh Repeater'
+    fw_update: '{v} · Update'
+    node: 'Gerät'
+    uplink: 'Zur Box'
+    clients: 'Geräte'
+    radio_off: 'aus'
+    radio_on: 'Kanal {channel} · {n} Geräte'
+    radios: 'WLAN der Box'
+    mesh: 'Mesh'
+    calls_in: 'Angenommen'
+    calls_out: 'Ausgehend'
+    calls_missed: 'Verpasst'
+    calls_days: 'Anrufe der letzten {n} Tage'
+    unknown_caller: 'Unbekannt'
+    missed_recent: 'Verpasste Anrufe'
+    calls: 'Anrufe'
+    present: 'verbunden'
+    switch: 'Schalter'
+    switch_on: 'an'
+    switch_off: 'aus'
+    product: 'Modell'
+    power: 'Leistung'
+    energy: 'Energie'
+    temp: 'Temperatur'
+    set: 'Soll'
+    smart: 'Smart Home'
   gateway:
     router: 'Router'
     version: 'Version'
@@ -5630,6 +5721,24 @@ vpn:
   up: 'Tunnel aktiv'
   expected: 'Erwartet: {country}'
   exit: 'Ausgang'
+fritz:
+  devices: 'Geräte online: {n}'
+  wlan: '{n} im WLAN'
+  missed: 'Verpasste Anrufe: {n}'
+  days: '{n} Tage'
+  smart: 'Smart Home: {n}'
+  smart_gone: 'getrennt'
+  link_signal: '{link} · {dbm} dBm'
+  link:
+    lan: 'LAN'
+    wlan: 'WLAN'
+    plc: 'Powerline'
+    none: '–'
+  sync: 'Leitung {down}/{up}'
+  offline: 'offline'
+  spark: 'Download, letzte 100 s'
+  update: 'Update {v}'
+  update_error: 'Update-Fehler'
 gateway:
   up: 'online'
   down: 'offline'
