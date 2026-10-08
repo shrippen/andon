@@ -10,7 +10,8 @@ package rules
 //	fritz.reconnect             it reconnected within the last hour
 //	cross.line_vs_speed         speed test against the line's sync rate: far
 //	                            below → the home network; sync below booked → the line
-//	cross.device_uninventoried  clients of the network no Snipe-IT asset names
+//	cross.device_uninventoried  clients of the network (router, FRITZ!Box) no
+//	                            Snipe-IT asset names
 
 import (
 	"strings"
@@ -179,8 +180,8 @@ func lineVsSpeed(_ any, cfg map[string]any, env Env) []Finding {
 
 func deviceUninventoried(_ any, cfg map[string]any, env Env) []Finding {
 	snipe, ok := env.Datasets[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset)
-	gw, ok2 := env.Datasets[string(enums.ServiceGateway)].(*sources.GatewayDataset)
-	if !ok || !ok2 || len(gw.ClientNames) == 0 {
+	names, from := networkClients(env)
+	if !ok || len(names) == 0 {
 		return nil
 	}
 	ignore := idSet(cfg["ignore"])
@@ -189,7 +190,7 @@ func deviceUninventoried(_ any, cfg map[string]any, env Env) []Finding {
 		assets = append(assets, strings.ToLower(a.Name))
 	}
 	var missing []string
-	for _, name := range gw.ClientNames {
+	for _, name := range names {
 		lower := strings.ToLower(name)
 		if ignore[lower] {
 			continue
@@ -206,5 +207,33 @@ func deviceUninventoried(_ any, cfg map[string]any, env Env) []Finding {
 		return nil
 	}
 	return []Finding{{Fingerprint: "uninventoried", Severity: enums.SeverityInfo, Message: "cross.device_uninventoried",
-		Params: map[string]any{"count": len(missing), "names": shortList(missing)}, Sources: []string{string(enums.ServiceSnipeIT), string(enums.ServiceGateway)}}}
+		Params: map[string]any{"count": len(missing), "names": shortList(missing)}, Sources: append([]string{string(enums.ServiceSnipeIT)}, from...)}}
+}
+
+// networkClients are the devices the router and the FRITZ!Box know, each
+// name once, and the services that named them. Of the FRITZ!Box: the
+// devices online now, without guests and its own AVM devices.
+func networkClients(env Env) (names, from []string) {
+	seen := map[string]bool{}
+	add := func(name string) {
+		if name != "" && !seen[name] {
+			seen[name] = true
+			names = append(names, name)
+		}
+	}
+	if gw, ok := env.Datasets[string(enums.ServiceGateway)].(*sources.GatewayDataset); ok && len(gw.ClientNames) > 0 {
+		from = append(from, string(enums.ServiceGateway))
+		for _, n := range gw.ClientNames {
+			add(n)
+		}
+	}
+	if fritz, ok := env.Datasets[fritzSvc].(*sources.FritzDataset); ok && len(fritz.Hosts) > 0 {
+		from = append(from, fritzSvc)
+		for _, h := range fritz.Hosts {
+			if h.Active && !h.Guest && h.Model == "" {
+				add(h.Name)
+			}
+		}
+	}
+	return names, from
 }

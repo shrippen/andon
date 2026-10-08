@@ -1180,6 +1180,15 @@ Ziel: PV-Anlagen (zuerst SMA) auswerten, ohne selbst zu sammeln. Home Assistant 
 
 **Offen:** welche SMA-Geräte (bestimmt `sma` oder „SMA Devices Plus“ in HA), HA-Energie-Dashboard eingerichtet, Prognose in HA (Forecast.Solar, Solcast).
 
+### FRITZ!Box: alles aus TR-064 (umgesetzt 09.10.2026)
+
+Die FRITZ!Apps nutzen keine eigene API, sondern TR-064, AHA und die Listen der Box; Andon liest jetzt dasselbe über TR-064 (eine Anmeldung, kein `data.lua`).
+- [x] Treiber: Argumente (`Arg`), UPnP-Fehlercode (`UPnPError`), Listen der Box lesen (`Fetch`, nur Pfad und Query); ohne Port in der URL der TR-064-Port (49000, https 49443) *(Fund: die URL der Weboberfläche gab 404)*
+- [x] Datensatz: Rauschabstand, FRITZ!OS und angebotenes Update, Update-Fehler, Durchsatz der letzten 100 s, WLAN der Box, Geräte (mit Rate und Signal aus dem Mesh), Mesh-Knoten mit Uplink, Anrufliste (7 Tage, verpasste), Smart Home (Schalter, Leistung, Energie, Temperatur, Thermostat)
+- [x] Regeln `fritz.update`, `fritz.update_error`, `fritz.mesh_update`, `fritz.mesh_weak`, `fritz.line_margin`, `fritz.missed_calls`, `fritz.smart_lost`; Geräte der Box zählen für `cross.device_uninventoried` und `gateway.new_device` (eigene Marken `fritz.seen.*`, damit eine neue Box nicht alle Geräte als neu meldet)
+- [x] Kachel `fritzbox` mit Dialog (Durchsatz, Reiter Geräte, Mesh, Anrufe, Smart Home); Demowelt `fritzbox` erweitert
+- [ ] Batteriestand der DECT-Geräte gibt TR-064 nicht; nur AHA-HTTP (`getdevicelistinfos`, SID-Anmeldung) *(bei Bedarf)*
+
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 
 Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und angewendet (06.10.2026).
@@ -1325,7 +1334,8 @@ Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die D
 - [ ] Überwachung: Healthchecks (API v3), Prometheus (Alerts, PromQL-Kachel), NVD (mit und ohne Schlüssel; ohne nur 5 Abfragen in 30 s), Drone
 - [ ] Updates: What's Up Docker, Watchtower (Metriken-Endpunkt mit Token)
 - [ ] Strom: PeaNUT, apcupsd (NIS-Protokoll, Port 3551), OpenDTU, EVCC
-- [ ] Netz: Traefik, Caddy (Admin-API), Nginx Proxy Manager, Technitium, FRITZ!Box (TR-064 mit Digest-Anmeldung)
+- [ ] Netz: Traefik, Caddy (Admin-API), Nginx Proxy Manager, Technitium
+- [x] FRITZ!Box 7590, FRITZ!OS 8.03 (09.10.2026): alle Teile gelesen; WLAN der Box aus, keine Anrufe, kein Smart Home dort, also nur gegen Nachbau getestet. Fund: Box meldet `UpdateState Error` (letztes Update 04/2025) → Hinweis `fritz.update_error`
 - [ ] Medien: Tautulli, Jellystat, Navidrome (Subsonic-Anmeldung), Audiobookshelf, Jellyseerr/Overseerr
 - [ ] Aufgaben und Finanzen: Vikunja, Firefly III, Ghostfolio
 - [ ] Lesen: Hacker News (Algolia-API), Lobsters, Reddit (sperrt Abrufe ohne Anmeldung zunehmend; prüfen, ob `hot.json` mit Andons User-Agent antwortet), YouTube-Kanal-Feeds; Twitch (App-Token, `helix/streams`)

@@ -91,5 +91,14 @@ func init() {
 		case !d.Since.IsZero():
 			r.State(SubjectWAN, d.Since.UTC().Format(wanLayout))
 		}
+
+		// Devices online, as the router's leases: the first mark of a
+		// name is the day it joined (gateway.new_device). Guests come
+		// and go; they are left out.
+		for _, h := range d.Hosts {
+			if h.Active && !h.Guest {
+				r.Set(key("fritz", "seen", h.Name), 1)
+			}
+		}
 	})
 }

@@ -846,14 +846,36 @@ func init() {
 // gatewaySeen is the key prefix of device marks.
 const gatewaySeen = "gateway.seen."
 
+// seenPrefixes are the device marks of the router and the FRITZ!Box,
+// each with its own start: a FRITZ!Box added later does not make every
+// device on it new.
+var seenPrefixes = []string{gatewaySeen, "fritz.seen."}
+
 // NewLeases are the devices first marked within the last days, newest
 // first. Before the history is older than that window nothing counts as
 // new: the first run would see every device for the first time.
 func NewLeases(h *History, now time.Time, days int) []NewDevice {
 	since := Today(now).AddDate(0, 0, -days)
 	var out []NewDevice
+	named := map[string]bool{}
+	for _, prefix := range seenPrefixes {
+		for _, dev := range newSeen(h, prefix, since) {
+			if !named[dev.Name] {
+				named[dev.Name] = true
+				out = append(out, dev)
+			}
+		}
+	}
+	sort.Slice(out, func(a, b int) bool { return out[a].First.After(out[b].First) })
+	return out
+}
+
+// newSeen are the names of one prefix first marked since then; none
+// while no mark is older.
+func newSeen(h *History, prefix string, since time.Time) []NewDevice {
+	var out []NewDevice
 	older := false
-	for _, k := range h.Keys(gatewaySeen) {
+	for _, k := range h.Keys(prefix) {
 		points := h.SeriesOf(k)
 		if len(points) == 0 {
 			continue
@@ -862,12 +884,11 @@ func NewLeases(h *History, now time.Time, days int) []NewDevice {
 			older = true
 			continue
 		}
-		out = append(out, NewDevice{Name: strings.TrimPrefix(k, gatewaySeen), First: points[0].Day})
+		out = append(out, NewDevice{Name: strings.TrimPrefix(k, prefix), First: points[0].Day})
 	}
 	if !older {
 		return nil
 	}
-	sort.Slice(out, func(a, b int) bool { return out[a].First.After(out[b].First) })
 	return out
 }
 

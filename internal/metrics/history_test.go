@@ -120,6 +120,25 @@ func TestNewLeases(t *testing.T) {
 	}
 }
 
+// A FRITZ!Box added to a space with a router's history: its devices are
+// not all new on its first day; later ones are.
+func TestNewLeasesFritz(t *testing.T) {
+	now := time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC)
+	day := func(back int) time.Time { return time.Date(2026, 9, 27-back, 0, 0, 0, 0, time.UTC) }
+	h := &metrics.History{Series: map[string][]metrics.Point{
+		"gateway.seen.nas": {{Day: day(9), Value: 1}},
+		"fritz.seen.tv":    {{Day: day(0), Value: 1}},
+	}}
+	if got := metrics.NewLeases(h, now, 1); len(got) != 0 {
+		t.Fatalf("first day: %+v", got)
+	}
+	h.Series["fritz.seen.tv"] = []metrics.Point{{Day: day(5), Value: 1}}
+	h.Series["fritz.seen.tablet"] = []metrics.Point{{Day: day(0), Value: 1}}
+	if got := metrics.NewLeases(h, now, 1); len(got) != 1 || got[0].Name != "tablet" {
+		t.Fatalf("new: %+v", got)
+	}
+}
+
 // TestDownloadsRecorded: today's total and the earlier day totals land
 // in the repo's series; a repo without downloads records nothing.
 func TestDownloadsRecorded(t *testing.T) {
