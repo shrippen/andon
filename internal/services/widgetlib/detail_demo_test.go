@@ -3,6 +3,7 @@ package widgetlib_test
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -39,6 +40,9 @@ func TestEveryDetailFromDemo(t *testing.T) {
 		}
 		for _, err := range checkBody(body) {
 			t.Errorf("%s: %v", kind.Key, err)
+		}
+		for _, at := range rawTexts(reflect.ValueOf(body), "body") {
+			t.Errorf("%s: %s is a Text in an any field, shown raw (\"{detail.x map[…]}\"); want TxtA", kind.Key, at)
 		}
 		for _, key := range textKeys(body, dialog.Head) {
 			if !i18n.Has(key) {
@@ -121,6 +125,47 @@ func checkBody(b *widgets.DetailBody) []error {
 		walk(tab.Blocks)
 	}
 	return errs
+}
+
+// rawTexts lists the any-typed fields that hold a widgets.Text: the
+// templates draw those as values (tv), which knows TxtA's maps only.
+func rawTexts(v reflect.Value, at string) []string {
+	switch v.Kind() {
+	case reflect.Pointer:
+		if v.IsNil() {
+			return nil
+		}
+		return rawTexts(v.Elem(), at)
+	case reflect.Interface:
+		if v.IsNil() {
+			return nil
+		}
+		if _, ok := v.Interface().(widgets.Text); ok {
+			return []string{at}
+		}
+		return rawTexts(v.Elem(), at)
+	case reflect.Struct:
+		var out []string
+		for i := range v.NumField() {
+			if v.Type().Field(i).IsExported() {
+				out = append(out, rawTexts(v.Field(i), at+"."+v.Type().Field(i).Name)...)
+			}
+		}
+		return out
+	case reflect.Slice, reflect.Array:
+		var out []string
+		for i := range v.Len() {
+			out = append(out, rawTexts(v.Index(i), fmt.Sprintf("%s[%d]", at, i))...)
+		}
+		return out
+	case reflect.Map:
+		var out []string
+		for _, k := range v.MapKeys() {
+			out = append(out, rawTexts(v.MapIndex(k), fmt.Sprintf("%s[%v]", at, k))...)
+		}
+		return out
+	}
+	return nil
 }
 
 // textKeys lists the catalog keys a dialog shows.

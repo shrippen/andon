@@ -1106,7 +1106,7 @@ func sysinfoDetail(cfg SysinfoConfig, results map[string]any, ctx ViewCtx) Detai
 	cards := []Card{card("cpu", s.CPU), card("mem", s.Mem), card("swap", s.Swap)}
 	load := Card{Label: T("detail.sys.load"), Value: Num(s.Load, 2)}
 	if s.Cores > 0 {
-		load.Sub = Text{Key: "detail.sys.per_core", Args: map[string]any{"n": s.Cores}}
+		load.Sub = TxtA("detail.sys.per_core", "n", s.Cores)
 		load.Value = Num(s.Load/float64(s.Cores), 2)
 	}
 	cards = append(cards, load)

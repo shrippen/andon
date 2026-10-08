@@ -159,12 +159,12 @@ func hanseiDetail(_ struct{}, data *sources.HanseiDataset, _ ViewCtx, results ma
 	}
 
 	rows := [][]Cell{
-		{{Value: T("detail.hansei.review")}, {Value: data.Review}},
-		{{Value: T("detail.hansei.feedback")}, {Value: data.Feedback}},
-		{{Value: T("detail.hansei.done")}, {Value: data.Done}},
-		{{Value: T("detail.hansei.conformity")}, {Value: pctOf(data.Conformity, 1)}},
-		{{Value: T("detail.hansei.claimed")}, {Value: len(data.Claimed)}},
-		{{Value: T("detail.hansei.updated")}, {Value: dayOf(data.Updated)}},
+		{{Value: Txt("detail.hansei.review")}, {Value: data.Review}},
+		{{Value: Txt("detail.hansei.feedback")}, {Value: data.Feedback}},
+		{{Value: Txt("detail.hansei.done")}, {Value: data.Done}},
+		{{Value: Txt("detail.hansei.conformity")}, {Value: pctOf(data.Conformity, 1)}},
+		{{Value: Txt("detail.hansei.claimed")}, {Value: len(data.Claimed)}},
+		{{Value: Txt("detail.hansei.updated")}, {Value: dayOf(data.Updated)}},
 	}
 	body := &DetailBody{Blocks: []Block{{Kind: BlockTable, Label: T("detail.hansei.columns"),
 		Data: Table{Head: []Text{T("detail.hansei.what"), T("detail.hansei.count")}, Rows: rows, Num: []int{1}}}}}
