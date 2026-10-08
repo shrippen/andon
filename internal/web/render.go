@@ -22,6 +22,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/i18n"
 	"andon/internal/services/access"
+	"andon/internal/services/hooks"
 	"andon/internal/services/notify"
 	"andon/internal/services/onboarding"
 	"andon/internal/services/themes"
@@ -135,6 +136,7 @@ func mustParse() *template.Template {
 		"asset":       asset,
 		"defaultURL":  defaultURL,
 		"canSignIn":   canSignIn,
+		"hooked":      hooks.Accepts,
 		"setupFields": setupFieldsOf,
 		"projectURL":  projectURL,
 		"optText":     optText,

@@ -91,3 +91,32 @@ func postForm2(t *testing.T, client *http.Client, target string, form url.Values
 	}
 	return resp
 }
+
+// TestHookWithoutURL: a webhook service needs no address of its own;
+// its record opens with the URL to enter there, ready to copy.
+func TestHookWithoutURL(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	form := string(mustGet(t, srv, client, "/connections/new?service=pgbackweb"))
+	if regexp.MustCompile(`id="url"[^>]*required`).MatchString(form) {
+		t.Fatal("address required for a webhook service")
+	}
+
+	space := regexp.MustCompile(`<option value="(\d+)">`).FindStringSubmatch(form)
+	resp := postForm(t, client, srv.URL+"/connections", url.Values{
+		"csrf": {csrfToken(t, srv, client)}, "space_id": {space[1]}, "service": {"pgbackweb"}, "name": {"PG"},
+		"url": {""}, "mode": {"shared"}, "tls": {"verify"},
+	})
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("create: %d", resp.StatusCode)
+	}
+
+	// The overview tab, not a hidden one, carries the URL with a copy button.
+	page := string(mustGet(t, srv, client, resp.Header.Get("Location")))
+	overview := page[strings.Index(page, `id="tab-overview"`):strings.Index(page, `id="tab-access"`)]
+	if !regexp.MustCompile(`class="cmd-box">http://dash\.test/hooks/\d+/`).MatchString(overview) || !strings.Contains(overview, "copy-btn") {
+		t.Fatal("no hook URL to copy on the overview")
+	}
+}

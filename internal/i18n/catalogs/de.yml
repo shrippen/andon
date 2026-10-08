@@ -30,6 +30,7 @@ nav:
   clients: 'Kunden'
   hosts: 'Hosts'
 action:
+  copy: Kopieren
   open_drafts: 'Zu den Entwürfen'
   isp_report: 'Bericht öffnen'
   book_payment: 'Zahlung buchen'
@@ -437,6 +438,7 @@ field:
   scope: Umfang
   service: Dienst
   url: URL
+  url_hooked: 'Adresse der Oberfläche (optional)'
   token: API-Token
   insecure: TLS-Zertifikat nicht prüfen
   connection: Verbindung
@@ -1699,9 +1701,12 @@ conn:
   options_hint_homelable: 'Benutzername und Passwort des lokalen Homelable-Benutzers (der OIDC-Modus hat keinen Skriptzugang). Andon zeichnet die IT-Doku der Gitea-Verbindung im selben Bereich (Optionen docs_repo, docs_paths dort) auf den Canvas „IT-Doku (aus Obsidian)“; andere Canvases bleiben unberührt. Optionen: vault: ObsidianPrivat (Vault-Name für obsidian://-Links, sonst der Repo-Name), lang: en (Sprache der Beschriftungen, sonst Deutsch).'
   options_hint_pgbackweb: Keine Optionen, kein Token. PG Back Web meldet sich per Webhook, siehe unten.
   hook: Webhook
-  hook_hint: 'In PG Back Web je Ereignis (execution_success, execution_failed, database_unhealthy/healthy, destination_unhealthy/healthy) und Backup einen Webhook anlegen: Methode POST, diese URL, Body wie unten mit Ereignis und Backup-Name. Die URL ist geheim.'
+  hook_hint_pgbackweb: 'In PG Back Web je Ereignis (execution_success, execution_failed, database_unhealthy/healthy, destination_unhealthy/healthy) und Backup einen Webhook anlegen: Methode POST, diese URL, Body wie unten mit Ereignis und Backup-Name. Die URL ist geheim.'
   hook_rotate: Neue URL erzeugen
-  hook_rotate_confirm: 'Die bisherige URL hört sofort auf zu funktionieren. Danach die Webhooks in PG Back Web anpassen.'
+  hook_rotate_confirm: 'Die bisherige URL hört sofort auf zu funktionieren. Danach die neue URL im Dienst eintragen.'
+  hook_hint_hansei: 'In Hansei als Webhook-Adresse eintragen. Die URL ist geheim.'
+  hook_local: 'Die Adresse beginnt mit localhost: Ein Dienst auf einem anderen Rechner ruft damit sich selbst auf. BASE_URL auf eine Adresse setzen, unter der Andon von dort erreichbar ist.'
+  url_hooked_hint: 'Nur für den Link „Öffnen“. Andon fragt hier nichts ab: Der Dienst meldet sich per Webhook, die Adresse dafür steht nach dem Speichern in der Übersicht.'
   options_hint_linkwarden: 'collections: [Homelab, Werkzeuge] – Sammlungen, die mit den Link-Kacheln dieses Bereichs abgeglichen werden (leer = alle). Token = Zugriffstoken (Einstellungen → Zugriffstoken).'
   options_hint_kintsugi: 'Keine Optionen nötig. Token = API-Token aus Kintsugi → Einstellungen → API-Token (nur lesend, wird einmal angezeigt). URL = Adresse der Kintsugi-Oberfläche.'
   options_hint_sure: Keine Optionen nötig. Token = API-Schlüssel mit Leserecht (Einstellungen → API-Schlüssel).
