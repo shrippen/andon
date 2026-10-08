@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -68,6 +69,8 @@ const (
 	ninjaEnv = "ANDON_LIVE_NINJA"
 	dirName  = ".local-test"
 	logName  = "writes.log"
+	// dumpDir holds what the services answered, for reading by eye.
+	dumpDir = "datasets"
 
 	// The local instance: its database and master key.
 	dbPath  = "data/andon.db"
@@ -76,6 +79,9 @@ const (
 	// namePrefix marks every entry a test creates, e.g.
 	// "andon-test TestPlaces 20261006-143005".
 	namePrefix = "andon-test"
+
+	// fetchWait bounds one fetch against a real instance.
+	fetchWait = time.Minute
 )
 
 // ID is an entry's id: a number (Kimai, Paperless) or a hashed key
@@ -195,6 +201,40 @@ func read(path, key string) ([]Instance, error) {
 		})
 	}
 	return all, nil
+}
+
+// Fetch runs the source key against the instance; a service without
+// that source returns nil and no error.
+func (i Instance) Fetch(key string) (any, error) {
+	src, err := sources.Get(key)
+	if err != nil {
+		return nil, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), fetchWait)
+	defer cancel()
+	return src.Fetch(ctx, i.Ctx)
+}
+
+// Dump writes v as JSON to .local-test/datasets/<name>.json, so a
+// field the parser left empty shows when read by eye.
+func Dump(t testing.TB, name string, v any) {
+	t.Helper()
+	d := filepath.Join(dir(t), dumpDir)
+	if err := os.MkdirAll(d, 0o700); err != nil {
+		t.Fatalf("dump dir: %v", err)
+	}
+
+	raw, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		t.Errorf("dump %s: %v", name, err)
+		return
+	}
+	// "Nextcloud Eredin" → "Nextcloud_Eredin.json"
+	file := strings.NewReplacer("/", "_", " ", "_").Replace(name) + ".json"
+	if err := os.WriteFile(filepath.Join(d, file), raw, 0o600); err != nil {
+		t.Errorf("dump %s: %v", name, err)
+	}
 }
 
 // Name returns a fresh name for an entry this test creates.
