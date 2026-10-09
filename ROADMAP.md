@@ -1325,23 +1325,47 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
   - Andere Dashboards und Andon-ähnliche Programme ansehen, daraus Vorschläge für weitere Kacheltypen
   - Aus den Kacheltypen Vorschläge für Verbindungen, Analysen und Queranalysen ableiten
 
+### Live-Runde 09.10.2026: eigene Instanzen und Docker
+
+`make live` gegen die 40 Verbindungen der lokalen Instanz, dazu 36 Wegwerf-Instanzen in Docker (`.local-test/extra/`, außerhalb Git) für Dienste ohne eigene Instanz. Eine zweite Andon-Instanz mit diesen Verbindungen und je einer Kachel im Browser durchgeklickt (alle Dialoge, Deutsch und Englisch).
+
+**Behoben (mit Test)**
+- [x] Ghostfolio: `range=1m` gibt es nicht mehr (400); ein Jahr holen, die letzten 30 Tage behalten (#119)
+- [x] Umleitung auf einen anderen Host machte aus dem Login-POST ein GET (404 ohne Hinweis); jetzt Fehler mit Ziel-URL (#119)
+- [x] Vikunja 2: Aufgabenliste unter `api/v1/tasks` (#120)
+- [x] Fediverse: GoToSocial wurde wie Mastodon gezeigt (#121)
+- [x] System- und Hansei-Dialog zeigten Textschlüssel statt Texten; Test für alle Dialoge (#122)
+- [x] Container-Dialog brauchte bei 50 Containern 10 s, jetzt 2 s (#124)
+- [x] Vaultwarden: neue Admin-Anmeldung bei jedem Abruf lief ins Limit (3 in 5 min), Meldung „login failed“ (#126)
+- [x] CI: govulncheck rot durch Lücken in x/net und der Stdlib (#118, #123)
+
+**Offen**
+- [ ] Gluetun meldet `running` auch bei totem Tunnel (keine Ausgangs-IP); kein Hinweis. Fehlalarm, wenn die IP-Abfrage in Gluetun aus ist
+- [ ] Kalender-Kachel ohne Adresse zeigt „FEHLER dns: “ statt „Kalender eintragen“
+- [ ] Ghostfolio-Verbindung der lokalen Instanz zeigt auf `http://ghostfolio.lan`, das auf `https://ghostfolio.intern.arianw.de` umleitet
+
 ### Noch nicht in echt getestet (notiert 07.10.2026)
 
 Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die Dienste bis #58. Alles danach ist nur gegen Nachbauten (`httptest`) und die Demowelt getestet. Abhaken, wenn `make live` gegen eine echte Instanz grün ist und die Hinweise plausibel sind; Funde wie beim Lauf vom 06.10. darunter notieren.
 
 **Neue Dienste ohne Live-Lauf** (je Dienst eine Verbindung in der lokalen Instanz, sofern der Dienst läuft)
-- [ ] Sicherung: Proxmox Backup Server (Token-Kopf `PBSAPIToken=`, Verify-Jobs, Belegung je Datastore), Kopia, Duplicati (Token-Anmeldung), Backrest, UrBackup (Anmeldung)
-- [ ] Überwachung: Healthchecks (API v3), Prometheus (Alerts, PromQL-Kachel), NVD (mit und ohne Schlüssel; ohne nur 5 Abfragen in 30 s), Drone
-- [ ] Updates: What's Up Docker, Watchtower (Metriken-Endpunkt mit Token)
-- [ ] Strom: PeaNUT, apcupsd (NIS-Protokoll, Port 3551), OpenDTU, EVCC
-- [ ] Netz: Traefik, Caddy (Admin-API), Nginx Proxy Manager, Technitium
+- [x] Sicherung (09.10., Docker): Proxmox Backup Server (Token, Belegung; Gruppen leer, das Image hat keinen Client), Kopia (ein Snapshot), Duplicati, Backrest, UrBackup (ohne Sicherungsjobs: nur Anmeldung und leere Liste)
+- [x] Überwachung (09.10., Docker): Healthchecks (ein Check aus), Prometheus (feuernder Alert, PromQL), NVD ohne Schlüssel, Drone (über Gitea-OAuth, ein Build)
+- [x] Updates (09.10., Docker): What's Up Docker (mit Anmeldung, 4 Updates), Watchtower (Metriken mit Token)
+- [x] Strom (09.10., Docker): PeaNUT (NUT mit `dummy-ups`, Anmeldung über `WEB_USERNAME`), EVCC (`--demo`)
+- [ ] Strom: apcupsd (NIS, Port 3551) und OpenDTU brauchen Hardware
+- [x] Netz (09.10., Docker): Traefik (eine Route aus), Caddy (Admin-API), Nginx Proxy Manager 2.16, Technitium, AdGuard Home (auch `DNSPause`), Gluetun (Tunnel ohne Gegenstelle)
 - [x] FRITZ!Box 7590, FRITZ!OS 8.03 (09.10.2026): alle Teile gelesen; WLAN der Box aus, keine Anrufe, kein Smart Home dort, also nur gegen Nachbau getestet. Fund: Box meldet `UpdateState Error` (letztes Update 04/2025) → Hinweis `fritz.update_error`
-- [ ] Medien: Tautulli, Jellystat, Navidrome (Subsonic-Anmeldung), Audiobookshelf, Jellyseerr/Overseerr
-- [ ] Aufgaben und Finanzen: Vikunja, Firefly III, Ghostfolio
-- [ ] Lesen: Hacker News (Algolia-API), Lobsters, Reddit (sperrt Abrufe ohne Anmeldung zunehmend; prüfen, ob `hot.json` mit Andons User-Agent antwortet), YouTube-Kanal-Feeds; Twitch (App-Token, `helix/streams`)
-- [ ] ESPHome: Basic Auth am Dashboard mit Passwort ist eine Annahme, ebenso die Felder von `/devices` und `/ping`; Home-Assistant-Add-on nur mit freigegebenem Port
-- [ ] Fediverse: je einmal Mastodon, GoToSocial und Akkoma; Marker (`/api/v1/markers`) bei GoToSocial und Akkoma, Software aus der Versionszeile
-- [ ] Lemmy (#99): Anmeldung, neue Anmeldung nach 401, ältere Instanz (Zeiten ohne Zone), Konto mit Zwei-Faktor gibt eine verständliche Meldung
+- [x] Medien (09.10., Docker): Navidrome, Jellystat (an Jellyfin), Seerr (`ghcr.io/seerr-team/seerr`; das alte Jellyseerr-Image meldet sich bei aktuellem Jellyfin nicht mehr an). Audiobookshelf: eigene Instanz grün
+- [ ] Medien: Tautulli braucht Plex
+- [x] Aufgaben und Finanzen (09.10.): Vikunja 2.7 (Docker; Fund: Aufgabenliste umgezogen, #120), Firefly III und Ghostfolio (eigene Instanzen; Fund Ghostfolio: kein `range=1m` mehr, #119)
+- [x] Lesen (09.10.): Hacker News, Lobsters, Reddit, YouTube-Feed antworten
+- [ ] Twitch braucht ein Konto (App-Token)
+- [x] ESPHome (09.10., Docker 2026.9.1): `/devices` und `/version` wie angenommen; Basic Auth nicht geprüft
+- [x] Fediverse (09.10., GoToSocial 0.22 im Docker): Konto, Marker; Fund: Software nur in `source_url` (#121)
+- [ ] Fediverse: Mastodon und Akkoma
+- [x] Lemmy (09.10., 0.19.13 im Docker): Anmeldung, Erwähnung, abonnierte und eigene Beiträge. Lemmy 1.0 (API v4) ist noch Beta
+- [ ] Lemmy: neue Anmeldung nach 401, Zwei-Faktor-Meldung
 - [ ] Hansei: Webhook-Stand und `/api/docs` gegen die echte Hansei-Instanz (dort Phase 05 offen); produktiv noch nicht eingerichtet (siehe Phase 15)
 
 **Geänderte Quellen bekannter Dienste** (Live-Lauf vom 06.10. lief vor der Änderung)
@@ -1361,7 +1385,7 @@ Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die D
 - [ ] `cross.project_mentioned`, `cross.esphome_ha` (Entitäten über den Knotennamen), `cross.release_unannounced`
 - [ ] `system.outage` mit USV auf Batterie und kritischen Prometheus-Alerts
 
-**Ohne Schreibtest** (unverändert seit dem Lauf vom 06.10.): `HassToggle`, `DNSPause`, Grocy, Apprise, Mail, LLM
+**Ohne Schreibtest** (unverändert seit dem Lauf vom 06.10.): `HassToggle`, Apprise, Mail, LLM. Geprüft am 09.10. (Docker): `DNSPause` (AdGuard), Grocy (Einkaufsliste), Homelable (Zeichnen, zweiter Lauf ohne Änderung, Ändern und Löschen)
 
 **Webseite**
 - [ ] Changelog auf shrippen.github.io/andon nach dem Merge ansehen (#100; Kante 1.17 muss vorher unter `/v1` liegen)
