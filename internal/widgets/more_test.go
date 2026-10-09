@@ -94,3 +94,16 @@ func TestScalarPathsAndAddField(t *testing.T) {
 		t.Fatalf("fields %q", f)
 	}
 }
+
+// TestCalendarUnset: a tile without an address says so, instead of
+// "dns: " for the empty host; a second calendar alone is enough.
+func TestCalendarUnset(t *testing.T) {
+	cfg := decodeOf[CalendarConfig]("calendar", map[string]any{})
+	if v := calendarView(cfg, map[string]any{}, ViewCtx{}); v["Unset"] != true {
+		t.Fatalf("view: %+v", v)
+	}
+	cfg = decodeOf[CalendarConfig]("calendar", map[string]any{"ical_url_2": "https://cal.example/b.ics"})
+	if v := calendarView(cfg, map[string]any{}, ViewCtx{}); v["Unset"] == true {
+		t.Fatalf("second calendar: %+v", v)
+	}
+}

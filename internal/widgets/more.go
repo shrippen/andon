@@ -301,6 +301,11 @@ type CalRow struct {
 }
 
 func calendarView(cfg CalendarConfig, results map[string]any, _ ViewCtx) map[string]any {
+	// No calendar entered yet (the gallery's sample still has events):
+	// say so instead of the empty address's error.
+	if _, sample := results["events"].(*sources.CalendarResult); !sample && cfg.URL == "" && strings.Join(cfg.More, "") == "" {
+		return map[string]any{"Unset": true}
+	}
 	zone := clockZone()
 	today := time.Now().In(zone).Format(isoDate)
 	var rows []CalRow

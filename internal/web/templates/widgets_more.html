@@ -1,7 +1,8 @@
 {{/* Start widgets without an own service (see internal/widgets/more.go). */}}
 
 {{define "widgets/calendar"}}
-{{with $slot := index .Frag.Slots "events"}}{{template "widget-slot-state" $slot}}{{end}}
+{{if .Frag.View.Unset}}<p class="tile-note">{{t "calendar.unset"}}</p>{{else}}
+{{with $slot := index .Frag.Slots "events"}}{{template "widget-slot-state" $slot}}{{end}}{{end}}
 {{$zone := .Frag.View.Zone}}{{with .Frag.View.Rows}}
 <ul class="agenda">
   {{range .}}<li{{if ne .Color "none"}} data-color="{{.Color}}"{{end}}><time datetime="{{.Day}}">{{day .Day}}</time> <span class="muted">{{if .Time}}{{.Time}}{{tzMark $zone}}{{else}}{{t "calendar.all_day"}}{{end}}</span> {{.Title}}{{with .Location}} <small class="muted">· {{.}}</small>{{end}}</li>{{end}}

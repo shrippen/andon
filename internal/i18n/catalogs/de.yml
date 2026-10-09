@@ -3781,6 +3781,7 @@ weekday:
 calendar:
   all_day: ganztags
   name: Andon-Fristen
+  unset: 'Noch kein Kalender: Kachel bearbeiten und die iCal-Adresse eintragen.'
 trend:
   range: '{low} – {high}'
   collecting: Verlauf wird gesammelt (ein Wert pro Tag).
