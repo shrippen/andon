@@ -117,6 +117,17 @@ func sabnzbdDiskLow(data *sources.SabnzbdDataset, cfg map[string]any, env Env) [
 
 func registerGluetun() {
 	Register("gluetun.vpn", gluetunSvc, nil, on(gluetunVPN))
+	Register("gluetun.no_exit", gluetunSvc, nil, on(gluetunNoExit))
+}
+
+// gluetunNoExit: Gluetun reports "running" while the tunnel is dead; only
+// its public IP check, which finds no exit IP, shows it. Own rule, so it
+// can be switched off where that check is off (PUBLICIP_ENABLED=off).
+func gluetunNoExit(data *sources.GluetunDataset, cfg map[string]any, env Env) []Finding {
+	if data.Status != "running" || data.ExitIP != "" {
+		return nil
+	}
+	return []Finding{svcFinding(gluetunSvc, "gluetun.no_exit", "no_exit", "gluetun.no_exit", enums.SeverityCritical, data.URL, nil)}
 }
 
 func gluetunVPN(data *sources.GluetunDataset, cfg map[string]any, env Env) []Finding {

@@ -51,6 +51,31 @@ func TestGluetunRules(t *testing.T) {
 	}
 }
 
+// TestGluetunNoExit: Gluetun reports "running" with a dead tunnel; only
+// the missing exit IP shows it, as its own rule (off where Gluetun's
+// public IP check is off).
+func TestGluetunNoExit(t *testing.T) {
+	data := sources.DemoGluetun()
+	if got := run(t, "gluetun.no_exit", data, todayEnv(nil)); len(got) != 0 {
+		t.Fatalf("with exit IP: %+v", got)
+	}
+
+	data.ExitIP, data.Country = "", ""
+	got := run(t, "gluetun.no_exit", data, todayEnv(nil))
+	if len(got) != 1 || got[0].Message != "gluetun.no_exit" || got[0].Severity != enums.SeverityCritical {
+		t.Fatalf("no exit IP: %+v", got)
+	}
+	if got := run(t, "gluetun.vpn", data, todayEnv(nil)); len(got) != 0 {
+		t.Fatalf("vpn rule fires too: %+v", got)
+	}
+
+	// A stopped tunnel is gluetun.vpn's.
+	data.Status = "stopped"
+	if got := run(t, "gluetun.no_exit", data, todayEnv(nil)); len(got) != 0 {
+		t.Fatalf("stopped: %+v", got)
+	}
+}
+
 func TestDomainsBlacklistRules(t *testing.T) {
 	// example.org in 18 days → warn; example.de has no date.
 	if got := run(t, "domains.expiring", sources.DemoDomains(time.Now()), todayEnv(nil)); len(got) != 1 || got[0].Severity != enums.SeverityWarn {
