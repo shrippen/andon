@@ -87,6 +87,32 @@ func TestFediverse(t *testing.T) {
 	}
 }
 
+// TestFediverseGoToSocial: GoToSocial's version names no software
+// ("0.22.1+git-fdff42b"); its v2 instance does in source_url.
+func TestFediverseGoToSocial(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/accounts/verify_credentials":
+			w.Write([]byte(`{"id":"1","acct":"andon"}`))
+		case "/api/v1/instance":
+			w.Write([]byte(`{"version":"0.22.1+git-fdff42b"}`))
+		case "/api/v2/instance":
+			w.Write([]byte(`{"version":"0.22.1+git-fdff42b","source_url":"https://codeberg.org/superseriousbusiness/gotosocial"}`))
+		default:
+			w.Write([]byte(`[]`))
+		}
+	}))
+	defer srv.Close()
+
+	raw, err := sources.FediverseData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d := raw.(*sources.FediverseDataset); d.Software != "GoToSocial" {
+		t.Fatalf("software %q", d.Software)
+	}
+}
+
 // TestDemoESPHomeFediverse: the world's nodes and account decode.
 func TestDemoESPHomeFediverse(t *testing.T) {
 	now := time.Now().UTC()
