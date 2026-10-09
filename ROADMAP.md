@@ -1355,20 +1355,22 @@ Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die D
 - [x] Überwachung (09.10., Docker): Healthchecks (ein Check aus), Prometheus (feuernder Alert, PromQL), NVD ohne Schlüssel, Drone (über Gitea-OAuth, ein Build)
 - [x] Updates (09.10., Docker): What's Up Docker (mit Anmeldung, 4 Updates), Watchtower (Metriken mit Token)
 - [x] Strom (09.10., Docker): PeaNUT (NUT mit `dummy-ups`, Anmeldung über `WEB_USERNAME`), EVCC (`--demo`)
-- [ ] Strom: apcupsd (NIS, Port 3551) und OpenDTU brauchen Hardware
+- [ ] Strom: apcupsd (NIS, Port 3551) und OpenDTU brauchen Hardware *(als „Experimentell“ markiert)*
 - [x] Netz (09.10., Docker): Traefik (eine Route aus), Caddy (Admin-API), Nginx Proxy Manager 2.16, Technitium, AdGuard Home (auch `DNSPause`), Gluetun (Tunnel ohne Gegenstelle)
 - [x] FRITZ!Box 7590, FRITZ!OS 8.03 (09.10.2026): alle Teile gelesen; WLAN der Box aus, keine Anrufe, kein Smart Home dort, also nur gegen Nachbau getestet. Fund: Box meldet `UpdateState Error` (letztes Update 04/2025) → Hinweis `fritz.update_error`
 - [x] Medien (09.10., Docker): Navidrome, Jellystat (an Jellyfin), Seerr (`ghcr.io/seerr-team/seerr`; das alte Jellyseerr-Image meldet sich bei aktuellem Jellyfin nicht mehr an). Audiobookshelf: eigene Instanz grün
-- [ ] Medien: Tautulli braucht Plex
+- [ ] Medien: Tautulli braucht Plex *(als „Experimentell“ markiert)*
 - [x] Aufgaben und Finanzen (09.10.): Vikunja 2.7 (Docker; Fund: Aufgabenliste umgezogen, #120), Firefly III und Ghostfolio (eigene Instanzen; Fund Ghostfolio: kein `range=1m` mehr, #119)
 - [x] Lesen (09.10.): Hacker News, Lobsters, Reddit, YouTube-Feed antworten
 - [ ] Twitch braucht ein Konto (App-Token)
-- [x] ESPHome (09.10., Docker 2026.9.1): `/devices` und `/version` wie angenommen; Basic Auth nicht geprüft
+- [x] ESPHome (09.10., Docker 2026.9.1): `/devices` und `/version` wie angenommen; Basic Auth nicht geprüft (Hinweis „Experimentell“)
 - [x] Fediverse (09.10., Docker): GoToSocial 0.22 (Fund: Software nur in `source_url`, #121), Mastodon 4.7.3 (Konto, Beiträge)
-- [ ] Fediverse: Akkoma
+- [ ] Fediverse: Akkoma *(Hinweis „Experimentell“ beim Fediverse-Dienst)*
 - [x] Lemmy (09.10., 0.19.13 im Docker): Anmeldung, Erwähnung, abonnierte und eigene Beiträge. Lemmy 1.0 (API v4) ist noch Beta
 - [ ] Lemmy: neue Anmeldung nach 401, Zwei-Faktor-Meldung
-- [ ] Hansei: Webhook-Stand und `/api/docs` gegen die echte Hansei-Instanz (dort Phase 05 offen); produktiv noch nicht eingerichtet (siehe Phase 15)
+- [ ] Hansei: Webhook-Stand und `/api/docs` gegen die echte Hansei-Instanz (dort Phase 05 offen); produktiv noch nicht eingerichtet (siehe Phase 15) *(als „Experimentell“ markiert)*
+
+- [ ] Proxmox VE, Tibber (öffentlicher Demo-Token ungültig): kein Zugang *(als „Experimentell“ markiert)*
 
 **Geänderte Quellen bekannter Dienste** (Live-Lauf vom 06.10. lief vor der Änderung)
 - [ ] UniFi: Clients (für `cross.device_uninventoried`)
