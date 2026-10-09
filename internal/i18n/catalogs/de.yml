@@ -1268,6 +1268,7 @@ hints:
   sort_value: 'Nach Geldwert sortieren'
   sort_level: 'Nach Dringlichkeit sortieren'
   noisy: '{count} Regeln melden fast nur, was du wegklickst'
+  noisy_singular: '{count} Regel meldet fast nur, was du wegklickst'
   noisy_hint: 'Diese Hinweise wurden in den letzten 90 Tagen fast immer quittiert oder verschoben statt behoben. Schwelle anpassen oder Regel abschalten?'
   noisy_line: '{dismissed} von {opened} weggeklickt'
   noisy_adjust: 'Einstellungen'
@@ -1651,6 +1652,7 @@ conn:
   kdestore_ids: 'Einzelne Einträge'
   kdestore_ids_hint: 'Links oder Nummern, durch Komma getrennt, z. B. https://store.kde.org/p/2368175. Für Einträge anderer Benutzer oder ohne Benutzer. Mindestens eines der beiden Felder ausfüllen.'
   existing: '{count} Verbindung(en) dieser Art vorhanden'
+  existing_singular: '{count} Verbindung dieser Art vorhanden'
   cred_incomplete: 'Bitte beide Felder ausfüllen, z. B. Benutzername und Passwort.'
   ical_private: 'Private iCal-Adresse'
   ical_login_hint: 'Privater Kalender mit Login: Benutzername und Passwort eintragen; es gilt die Adresse oben, außer eine private Adresse ist angegeben.'
@@ -2162,10 +2164,12 @@ hint:
       why: 'Das ESPHome-Dashboard bekommt keine Antwort von {address}.'
     update:
       title: '{count} Knoten mit älterer Firmware'
+      title_singular: '{count} Knoten mit älterer Firmware'
       why: '{names}; das Dashboard hat {version}. Update im Dashboard installieren.'
   fediverse:
     mentions:
       title: '{count} ungelesene Erwähnungen'
+      title_singular: '{count} ungelesene Erwähnung'
       why: '{from}: {text}'
   ghostfolio:
     drawdown:
@@ -2174,6 +2178,7 @@ hint:
   vikunja:
     overdue:
       title: '{count} Aufgaben überfällig'
+      title_singular: '{count} Aufgabe überfällig'
       why: '{titles}'
     due:
       title: 'Fällig am {day}: {title}'
@@ -2181,6 +2186,7 @@ hint:
   seerr:
     stuck:
       title: '{count} Medienanfragen hängen'
+      title_singular: '{count} Medienanfrage hängt'
       why: '{titles}: genehmigt, seit Tagen nicht verfügbar.'
   routes:
     down:
@@ -2240,11 +2246,14 @@ hint:
   wud:
     updates:
       title: '{count} Container-Updates verfügbar'
+      title_singular: '{count} Container-Update verfügbar'
       why: '{names}'
   watchtower:
     failed:
       title: 'Watchtower: {count} Updates fehlgeschlagen'
+      title_singular: 'Watchtower: {count} Update fehlgeschlagen'
       why: 'Beim letzten Durchlauf ({scanned} Container geprüft) ließen sich {count} nicht aktualisieren. Die Logs von Watchtower nennen den Grund.'
+      why_singular: 'Beim letzten Durchlauf ({scanned} Container geprüft) ließ sich einer nicht aktualisieren. Die Logs von Watchtower nennen den Grund.'
   pbs:
     verify_failed:
       title: 'Verify von {store} fehlgeschlagen'
@@ -2256,6 +2265,7 @@ hint:
     failing:
       title: '{repo} ist rot'
       why: '{count} Builds in Folge fehlgeschlagen, seit {since}.'
+      why_singular: '{count} Build fehlgeschlagen, seit {since}.'
   prometheus:
     alert:
       title: '{name} auf {instance}'
@@ -2281,6 +2291,7 @@ hint:
       why: 'Gültig bis {day}. Gerät neu anmelden oder Ablauf abschalten.'
     offline:
       title: '{count} Geräte länger offline'
+      title_singular: '{count} Gerät länger offline'
       why: 'Seit über {days} Tagen nicht gesehen: {names}.'
     key_expired:
       title: '{name}: Schlüssel abgelaufen'
@@ -2291,9 +2302,11 @@ hint:
       why: 'Paketverlust {loss} %.'
     devices_offline:
       title: '{count} Netzwerkgeräte offline'
+      title_singular: '{count} Netzwerkgerät offline'
       why: '{names}'
     updates:
       title: 'Router: {count} Updates'
+      title_singular: 'Router: {count} Update'
       why: 'Installiert: {version}.'
     new_device:
       title: 'Neues Gerät im Netz: {name}'
@@ -2308,6 +2321,7 @@ hint:
       why: 'Meldung der Zustandsprüfung.'
     stuck:
       title: '{app}: {count} Downloads hängen'
+      title_singular: '{app}: {count} Download hängt'
       why: '{names}'
     check:
       title: '{app}: {check}'
@@ -2315,6 +2329,7 @@ hint:
   vaultwarden:
     no_2fa:
       title: '{count} Tresore ohne Zwei-Faktor'
+      title_singular: '{count} Tresor ohne Zwei-Faktor'
       why: '{names}. Ein Passwort allein schützt den Tresor schlecht.'
   speedtest:
     contract:
@@ -2326,12 +2341,15 @@ hint:
   grocy:
     expired:
       title: '{count} Vorräte abgelaufen'
+      title_singular: '{count} Vorrat abgelaufen'
       why: '{names}'
     missing:
       title: '{count} Dinge einkaufen'
+      title_singular: '{count} Sache einkaufen'
       why: '{names}'
     chores_overdue:
       title: '{count} Hausarbeiten überfällig'
+      title_singular: '{count} Hausarbeit überfällig'
       why: '{names}'
   dwd:
     storm_prep:
@@ -2374,6 +2392,7 @@ hint:
   links:
     dead:
       title: '{count} Kacheln seit {days} Tagen nicht erreichbar'
+      title_singular: '{count} Kachel seit {days} Tagen nicht erreichbar'
       why: '{names}. Adresse prüfen oder die Kachel entfernen.'
   backups:
     job_failed:
@@ -2387,6 +2406,7 @@ hint:
       why: 'Letzte erfolgreiche Sicherung ({tool}) am {day}. Seitdem neu: {items}.'
     gap:
       title: '{count} Dienste ohne erkennbares Backup'
+      title_singular: '{count} Dienst ohne erkennbares Backup'
       why: '{names}. Kein Backup-Eintrag (Borg-Client, PG-Back-Web-Sicherung, Snapshot) trägt ihren Namen.'
     restore_untested:
       title: '{system}: Wiederherstellung bis {day} testen'
@@ -2394,6 +2414,7 @@ hint:
   discovery:
     no_tile:
       title: '{count} Dienste aus {service} ohne Kachel'
+      title_singular: '{count} Dienst aus {service} ohne Kachel'
       why: '{names}. Als Link-Kachel anlegen oder bewusst ignorieren.'
   custom:
     rule:
@@ -2413,6 +2434,7 @@ hint:
       why: Papierkorb und Versionen leeren oder Speicher erweitern.
     app_updates:
       title: '{count} App-Updates in Nextcloud'
+      title_singular: '{count} App-Update in Nextcloud'
       why: In den Apps-Einstellungen aktualisieren.
   sabnzbd:
     failed:
@@ -2466,12 +2488,14 @@ hint:
       why: '{text}'
     app_updates:
       title: '{count} App-Updates in TrueNAS'
+      title_singular: '{count} App-Update in TrueNAS'
       why: '{apps}'
     scrub_old:
       title: 'Pool {pool}: letzter Scrub am {day}'
       why: 'ZFS findet stille Schäden nur beim Lesen. In TrueNAS eine Scrub-Aufgabe planen (monatlich).'
     scrub_errors:
       title: 'Scrub fand {count} Fehler in {pool}'
+      title_singular: 'Scrub fand {count} Fehler in {pool}'
       why: 'Platten des Pools prüfen (SMART), betroffene Dateien aus dem Backup holen.'
   komodo:
     alert:
@@ -2482,6 +2506,7 @@ hint:
       why: Logs des Stacks in Komodo prüfen.
     updates:
       title: 'Image-Updates für {count} Stacks'
+      title_singular: 'Image-Updates für {count} Stack'
       why: '{stacks}'
   pangolin:
     exposure:
@@ -2511,9 +2536,11 @@ hint:
       why: Outposts auf die Server-Version bringen, sonst brechen Anmeldungen.
     failed_logins:
       title: '{count} fehlgeschlagene Anmeldungen (24 h)'
+      title_singular: '{count} fehlgeschlagene Anmeldung (24 h)'
       why: Ereignisprotokoll prüfen – Rateversuche oder ein Client mit altem Passwort.
     stale_users:
       title: '{count} Konten ohne Anmeldung seit {days} Tagen'
+      title_singular: '{count} Konto ohne Anmeldung seit {days} Tagen'
       why: '{users}. Deaktivieren verkleinert die Angriffsfläche.'
   mail:
     unrecorded:
@@ -2535,9 +2562,11 @@ hint:
   linkwarden:
     missing:
       title: '{count} Links aus „{collection}“ fehlen in Andon'
+      title_singular: '{count} Link aus „{collection}“ fehlt in Andon'
       why: '{names}. Als Kachel anlegen oder in Linkwarden aussortieren.'
     unsaved:
       title: '{count} Kacheln nicht in Linkwarden gesichert'
+      title_singular: '{count} Kachel nicht in Linkwarden gesichert'
       why: '{names}.'
   kintsugi:
     run_failed:
@@ -2570,6 +2599,7 @@ hint:
       why: Zugang bei der Bank erneuern, sonst fehlen Buchungen.
     uncategorized:
       title: '{count} Buchungen ohne Kategorie'
+      title_singular: '{count} Buchung ohne Kategorie'
       why: Ohne Kategorie stimmen Budgets und Auswertungen nicht.
     unusual:
       title: 'Hohe Ausgabe: {name} ({amount})'
@@ -2595,9 +2625,11 @@ hint:
       why: 'Die Aufgabe wurde am {day} abgeschlossen; Kimai hat seit einigen Tagen davor nichts auf diesem Projekt. Zeit nachtragen?'
     requests_arr:
       title: '{count} Anfragen hängen, {app} meldet ein Problem'
+      title_singular: '{count} Anfrage hängt, {app} meldet ein Problem'
       why: '{problem}. Das erklärt vermutlich, warum die Anfragen nicht ankommen.'
     route_undocumented:
       title: '{count} Routen ohne Doku-Notiz'
+      title_singular: '{count} Route ohne Doku-Notiz'
       why: '{hosts}. Keine Notiz nennt diese Adressen im Feld URL.'
     speed_below_sync:
       title: 'Messung weit unter der Leitungsrate'
@@ -2607,6 +2639,7 @@ hint:
       why: 'Gebucht {booked} Mbit/s, die Leitung schafft {sync}. Das liegt an der Leitung; der Anbieter muss sie prüfen.'
     device_uninventoried:
       title: '{count} Geräte im Netz ohne Inventar'
+      title_singular: '{count} Gerät im Netz ohne Inventar'
       why: '{names}. Kein Snipe-IT-Asset trägt diesen Namen.'
     ups_load:
       title: '{name} reicht nicht für {hosts} Hosts'
@@ -2619,12 +2652,14 @@ hint:
       why: '{kw} kW aus dem Netz bei {price} ct/kWh, der Tagesschnitt liegt bei {avg} ct. Später laden oder auf PV-Modus stellen.'
     update_unbacked:
       title: 'Watchtower aktualisierte {count} Container ohne frische Sicherung'
+      title_singular: 'Watchtower aktualisierte {count} Container ohne frische Sicherung'
       why: 'Letzte Sicherung: {day} ({tool}). Geht ein Update schief, fehlt der Stand davor.'
     release_newer:
       title: '{repo} {release} ist neuer als {where}'
       why: '{image} läuft mit {tag}.'
     pbs_orphan:
       title: '{count} Sicherungsgruppen ohne Gast'
+      title_singular: '{count} Sicherungsgruppe ohne Gast'
       why: 'Proxmox kennt {ids} nicht mehr; ihre Sicherungen belegen nur noch Platz. Löschen oder bewusst aufheben.'
     pbs_pool_full:
       title: 'Pool {pool} ist voll, Datastore {store} nicht'
@@ -2661,6 +2696,7 @@ hint:
       why: '{amount} am {day} vom {account}. Als Ausgabe erfassen, wenn geschäftlich.'
     wallos_missing:
       title: '{count} Abos fehlen in Wallos'
+      title_singular: '{count} Abo fehlt in Wallos'
       why: 'Sure bucht regelmäßig {names}, in Wallos steht dazu nichts. In Wallos anlegen oder in der Regel ausnehmen.'
   hass:
     alarm:
@@ -2671,13 +2707,16 @@ hint:
       why: Batterie tauschen, bevor das Gerät ausfällt.
     unavailable:
       title: '{count} Entitäten nicht erreichbar'
+      title_singular: '{count} Entität nicht erreichbar'
       why: '{names}. Häufige Ursache: Gateway, Zigbee-Stick oder Integration ausgefallen.'
     updates:
       title: '{count} Updates in Home Assistant'
+      title_singular: '{count} Update in Home Assistant'
       why: '{names}.'
   freshrss:
     backlog:
       title: '{count} ungelesene Artikel'
+      title_singular: '{count} ungelesener Artikel'
       why: 'Größte Quellen: {feeds}. Abbestellen, filtern oder als gelesen markieren.'
     stale:
       title: 'Verstummte Feeds: {count} seit über {days} Tagen'
@@ -2701,9 +2740,11 @@ hint:
   docs:
     missing_claimed:
       title: '{count} Stacks auf {host} ohne Doku'
+      title_singular: '{count} Stack auf {host} ohne Doku'
       why: '{names}. An {claimed} weiteren arbeitet Hansei schon.'
     missing:
       title: '{count} Stacks auf {host} ohne Doku'
+      title_singular: '{count} Stack auf {host} ohne Doku'
       why: '{names}. Notiz anlegen oder die compose.yaml im Feld „Compose“ einer Dienst-, Geräte- oder Netz-Notiz verlinken.'
     orphan:
       title: 'Doku {note} verlinkt einen fehlenden Stack'
@@ -2733,6 +2774,7 @@ hint:
       why: Gerät aus, Agent gestoppt oder Netzwerk getrennt.
     failed:
       title: '{count} fehlgeschlagene Backup-Jobs (24 h)'
+      title_singular: '{count} fehlgeschlagener Backup-Job (24 h)'
       why: '{ok} erfolgreich. Fehlerursache in der Warteschlange prüfen.'
     old:
       title: 'Letztes Backup vor {hours} Stunden'
@@ -2762,6 +2804,7 @@ hint:
       why: 'Noch {free} frei.'
     jobs:
       title: '{count} fehlgeschlagene Immich-Jobs'
+      title_singular: '{count} fehlgeschlagener Immich-Job'
       why: 'Warteschlangen: {queues}. In der Job-Übersicht erneut starten.'
     update:
       title: 'Immich {latest} verfügbar'
@@ -2776,6 +2819,7 @@ hint:
   kuma:
     unmonitored:
       title: '{count} Kacheln ohne Uptime-Kuma-Monitor'
+      title_singular: '{count} Kachel ohne Uptime-Kuma-Monitor'
       why: '{names}. Monitor anlegen oder Host unter „Ausnehmen“ eintragen.'
     down:
       title: '{monitor} ist nicht erreichbar'
@@ -2789,6 +2833,7 @@ hint:
       why: Der Knoten antwortet dem Cluster nicht.
     updates:
       title: '{node}: {count} Updates verfügbar'
+      title_singular: '{node}: {count} Update verfügbar'
       why: Paketaktualisierungen einspielen.
     storage:
       title: '{node}/{storage} zu {percent} % belegt'
@@ -2808,6 +2853,7 @@ hint:
       why: '„{subject}“ vom {day}, Betrag {amount}. Als Ausgabe erfassen.'
     inbox:
       title: '{count} Dokumente im Posteingang'
+      title_singular: '{count} Dokument im Posteingang'
       why: 'Ältestes seit {days} Tagen: {title}.'
   certs:
     expiring:
@@ -2908,6 +2954,7 @@ hint:
         9 SGB VI).'
     overdue_client:
       title: '{count} Rechnungen überfällig: {client} ({amount})'
+      title_singular: '{count} Rechnung überfällig: {client} ({amount})'
       why: 'Älteste seit {days} Tagen: {numbers}. Mahnungen einzeln in Invoice Ninja.'
   snipe:
     replace_worth:
@@ -2961,9 +3008,11 @@ hint:
       why: '{km} km beruflich zu diesem Kunden, keine Rechnung seitdem hat eine Fahrt-Position.'
     unplaced:
       title: '{count} häufige Ziele ohne Ort'
+      title_singular: '{count} häufiges Ziel ohne Ort'
       why: 'Fahrten der letzten {days} Tage enden dort, ohne Zuordnung bleiben sie privat. {names}'
     plugin_missing:
       title: '{count} berufliche Fahrten {month} fehlen in Kimai Anfahrten'
+      title_singular: '{count} berufliche Fahrt {month} fehlt in Kimai Anfahrten'
       why: '{km} km laut Dawarich, im Plugin keine Fahrt zur selben Zeit.'
     car_private_share:
       title: 'Betriebsfahrzeug {year} zu {share} % privat'
@@ -3012,6 +3061,7 @@ hint:
     outage:
       title: '{host} nicht erreichbar'
       why: '{count} Dienste betroffen: {names}. Einzelne Hinweise dazu werden zurückgehalten.'
+      why_singular: '{count} Dienst betroffen: {names}. Einzelne Hinweise dazu werden zurückgehalten.'
     connector_down:
       title: '{name} nicht erreichbar'
       why: 'Letzter Abruf fehlgeschlagen: {error}. Kacheln zeigen den letzten Stand.'
@@ -3053,6 +3103,7 @@ info:
     info: '{unread} ungelesen'
   esphome:
     nodes: '{count} Knoten · {offline} offline'
+    nodes_singular: '{count} Knoten · {offline} offline'
   fediverse:
     info: '{followers} Folgende · {unread} ungelesen'
   ghostfolio:
@@ -3061,10 +3112,13 @@ info:
     open: '{count} offen · {overdue} überfällig'
   playing:
     now: '{count} laufen'
+    now_singular: '{count} läuft'
   seerr:
     requests: '{count} Anfragen · {stuck} hängen'
+    requests_singular: '{count} Anfrage · {stuck} hängen'
   routes:
     count: '{count} Routen · {down} gestört'
+    count_singular: '{count} Route · {down} gestört'
   fritzbox:
     online: 'verbunden · {down}/{up} Mbit/s'
     offline: '{status}'
@@ -3075,15 +3129,19 @@ info:
     now: '{watts} W · {kwh} kWh heute'
   wud:
     containers: '{count} Container · {updates} Updates'
+    containers_singular: '{count} Container · {updates} Updates'
   watchtower:
     scan: '{scanned} geprüft · {updated} aktualisiert'
   drone:
     repos: '{count} Repos'
+    repos_singular: '{count} Repo'
     red: '{count} rot'
   nvd:
     read: '{count} CVEs in {days} Tagen'
+    read_singular: '{count} CVE in {days} Tagen'
   prometheus:
     alerts: '{count} Alerts'
+    alerts_singular: '{count} Alert'
     critical: '{count} kritisch'
   healthchecks:
     up: '{up} / {count} Checks'
@@ -3094,15 +3152,21 @@ info:
     wan_ok: 'WAN ok'
     wan_down: 'WAN aus'
     devices: '{count} Geräte'
+    devices_singular: '{count} Gerät'
     updates: '{count} Updates'
+    updates_singular: '{count} Update'
   mediaserver:
     streams: '{count} Streams'
+    streams_singular: '{count} Stream'
     movies: '{count} Filme'
+    movies_singular: '{count} Film'
   arr:
     queue: '{count} in Warteschlange'
     missing: '{count} fehlen'
+    missing_singular: '{count} fehlt'
   vaultwarden:
     users: '{count} Nutzer'
+    users_singular: '{count} Nutzer'
     no_2fa: '{count} ohne 2FA'
   speedtest:
     result: '↓ {down} ↑ {up} Mbit/s · {ping} ms'
@@ -3110,11 +3174,14 @@ info:
     expired: '{count} abgelaufen'
     soon: '{count} bald fällig'
     missing: '{count} fehlen'
+    missing_singular: '{count} fehlt'
   dwd:
     none: 'Keine Warnungen'
     count: '{count} Warnungen'
+    count_singular: '{count} Warnung'
   github:
     prs: '{count} PRs'
+    prs_singular: '{count} PR'
     ci_failed: '{count} CI rot'
   tibber:
     price: '{price}/kWh'
@@ -3135,19 +3202,25 @@ info:
   blacklist:
     clean: nicht gelistet
     listed: '{count} Listungen'
+    listed_singular: '{count} Listung'
   truenas:
     pools: '{count} Pools · {percent} % belegt'
+    pools_singular: '{count} Pool · {percent} % belegt'
   komodo:
     stacks: '{running}/{count} Stacks laufen'
   pangolin:
     sites: '{online}/{count} Sites online'
   authentik:
     logins: '{count} Anmeldungen (7 T.)'
+    logins_singular: '{count} Anmeldung (7 T.)'
     users: '{count} Konten'
+    users_singular: '{count} Konto'
   mail:
     invoices: '{count} Rechnungen erkannt'
+    invoices_singular: '{count} Rechnung erkannt'
   linkwarden:
     links: '{count} Links'
+    links_singular: '{count} Link'
   kintsugi:
     open: 'Vorschläge offen: {count}'
   sure:
@@ -3173,7 +3246,9 @@ info:
     status: '{up}/{count} online'
   proxmox:
     guests: '{count} Gäste'
+    guests_singular: '{count} Gast'
     updates: '{count} Updates'
+    updates_singular: '{count} Update'
   paperless:
     inbox: '{count} im Posteingang'
   certs:
@@ -3186,15 +3261,19 @@ info:
     open: '{amount} offen'
   snipe:
     assets: '{count} Assets'
+    assets_singular: '{count} Asset'
     upcoming: '{count} Termine'
+    upcoming_singular: '{count} Termin'
   dawarich:
     last: vor {hours} h aktualisiert
   glances:
     cpu: CPU {percent} %
   wallos:
     subs: '{count} Abos · {amount}/Monat'
+    subs_singular: '{count} Abo · {amount}/Monat'
   tandoor:
     items: '{count} Einträge offen'
+    items_singular: '{count} Eintrag offen'
 kpi:
   period_year: '{year}'
   period_month: '{month}'
@@ -3202,6 +3281,7 @@ kpi:
   safe: 'Konto {in}, zurückzulegen {out}'
   liquidity: Eingang {in} − Fixkosten {out}
   per_hour: je Stunde, {count} Kunden, 12 Monate
+  per_hour_singular: 'je Stunde, {count} Kunde, 12 Monate'
   of_target: Soll {hours} h
   hours: '{hours} h'
   invoices: '{count} Rechnungen'
@@ -3209,6 +3289,7 @@ kpi:
   vat_period: '{start} – {end}'
   reserve: USt-Zahllast + {rate} % vom Überschuss
   assets: '{count} Assets'
+  assets_singular: '{count} Asset'
   vs_last_year: zum Vorjahr
   data_from: 'kein Vorjahresvergleich, Daten ab {month}'
   of_goal: Ziel {goal}
@@ -3768,7 +3849,9 @@ notify:
   test_title: 'Andon: Test'
   test_body: Dieser Kanal funktioniert.
   title: 'Andon: {count} neue Hinweise'
+  title_singular: 'Andon: {count} neuer Hinweis'
   digest_subject: 'Andon: {count} Punkte'
+  digest_subject_singular: 'Andon: {count} Punkt'
   digest_body: 'Offene Hinweise und anstehende Fristen:'
 weekday:
   mon: Montag
@@ -3936,6 +4019,7 @@ billing:
   subject: Betreff
   to_paperless: An Paperless
   forwarded: '{count} Dateien an Paperless übergeben.'
+  forwarded_singular: '{count} Datei an Paperless übergeben.'
   no_paperless: Keine Paperless-Verbindung im Bereich
   no_mails: Keine erkannten Rechnungsmails (Stand des letzten Prüflaufs).
   lead: Unabgerechnete Kimai-Zeiten als Rechnungsentwurf in Invoice Ninja anlegen, und das Jahrespaket für die Steuer.
@@ -5254,6 +5338,7 @@ github:
   issues: 'Issues'
   release: 'Release'
   notifications: '{count} Benachrichtigungen'
+  notifications_singular: '{count} Benachrichtigung'
   all_green: Keine rote CI.
 energy:
   now: 'Strom jetzt'
@@ -5307,6 +5392,7 @@ window:
   good: 'Guter Zeitpunkt'
   wait: 'Lieber warten'
   count: '{count} Updates offen'
+  count_singular: '{count} Update offen'
   backup: 'Sicherung vor {hours} h'
   no_backup: 'Keine Sicherung in den letzten 24 Stunden'
   streaming: 'Gerade läuft ein Stream'
@@ -5374,7 +5460,9 @@ week:
   d6: 'So'
   hours: '{hours} h gearbeitet, {percent} % für {customer}'
   invoiced: '{count} Rechnungen geschrieben ({amount})'
+  invoiced_singular: '{count} Rechnung geschrieben ({amount})'
   paid: '{count} Zahlungen erhalten ({amount})'
+  paid_singular: '{count} Zahlung erhalten ({amount})'
   storage: '{name} +{points} Punkte, jetzt {percent} % belegt'
   power: 'Strom {kwh} kWh, {cost}'
   hints: '{opened} Hinweise neu, {resolved} erledigt'
@@ -6185,6 +6273,7 @@ boards:
   hints: 'Hinweise: {n}'
 paydays:
   row: '{client}: im Mittel {days} Tage bis zur Zahlung, {count} Rechnungen'
+  row_singular: '{client}: im Mittel {days} Tage bis zur Zahlung, {count} Rechnung'
   legend: 'Punkt = eine Rechnung · Strich = {center} · gestrichelt = Ziel {target} Tage'
   none: Noch keine bezahlten Rechnungen.
 rate:
