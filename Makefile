@@ -2,8 +2,12 @@
 
 check: lint test
 
+# gofmt of go.mod's toolchain, as in CI: versions align some literals
+# differently.
+GOFMT = $(shell GOTOOLCHAIN=$$(awk '/^toolchain/ {print $$2}' go.mod) go env GOROOT)/bin/gofmt
+
 lint:
-	gofmt -l cmd internal | grep . && exit 1 || true
+	$(GOFMT) -l cmd internal | grep . && exit 1 || true
 	go vet ./...
 	go vet -tags release ./...
 	# Same version as CI (.gitea/workflows/ci.yml).
