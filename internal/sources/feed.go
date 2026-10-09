@@ -150,11 +150,16 @@ func parseFeedDate(raw string) string {
 
 var tagPattern = regexp.MustCompile(`<[^>]*>`)
 
+// inlineTag matches tags that run inside a line: they vanish without a
+// space, as the browser shows them ("<b>fett</b>gedruckt", Mastodon's
+// link spans "https://" + "example.org"). Blocks and breaks part words.
+var inlineTag = regexp.MustCompile(`(?i)</?(?:a|abbr|b|bdi|bdo|cite|code|del|em|i|ins|kbd|mark|q|s|small|span|strong|sub|sup|time|u|var)(?:\s[^>]*)?/?>`)
+
 // plainText strips any HTML markup (feeds are third-party content — no
 // markup reaches the page) and collapses whitespace, truncating to max
 // runes with an ellipsis.
 func plainText(raw string, max int) string {
-	text := html.UnescapeString(tagPattern.ReplaceAllString(raw, " "))
+	text := html.UnescapeString(tagPattern.ReplaceAllString(inlineTag.ReplaceAllString(raw, ""), " "))
 	text = strings.Join(strings.Fields(text), " ")
 	runes := []rune(text)
 	if len(runes) <= max {
