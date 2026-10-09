@@ -1337,11 +1337,11 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [x] System- und Hansei-Dialog zeigten Textschlüssel statt Texten; Test für alle Dialoge (#122)
 - [x] Container-Dialog brauchte bei 50 Containern 10 s, jetzt 2 s (#124)
 - [x] Vaultwarden: neue Admin-Anmeldung bei jedem Abruf lief ins Limit (3 in 5 min), Meldung „login failed“ (#126)
+- [x] Kalender-Kachel ohne Adresse zeigte „FEHLER dns: “ (#128)
 - [x] CI: govulncheck rot durch Lücken in x/net und der Stdlib (#118, #123)
 
 **Offen**
 - [ ] Gluetun meldet `running` auch bei totem Tunnel (keine Ausgangs-IP); kein Hinweis. Fehlalarm, wenn die IP-Abfrage in Gluetun aus ist
-- [ ] Kalender-Kachel ohne Adresse zeigt „FEHLER dns: “ statt „Kalender eintragen“
 - [ ] Ghostfolio-Verbindung der lokalen Instanz zeigt auf `http://ghostfolio.lan`, das auf `https://ghostfolio.intern.arianw.de` umleitet
 
 ### Noch nicht in echt getestet (notiert 07.10.2026)
