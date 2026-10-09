@@ -2456,6 +2456,9 @@ hint:
     country:
       title: 'VPN-Ausgang in {country} statt {expected}'
       why: Server-Auswahl in Gluetun prüfen.
+    no_exit:
+      title: 'VPN-Tunnel läuft, aber ohne Ausgangs-IP'
+      why: 'Gluetun meldet „running“, findet aber keine öffentliche IP: Der Tunnel ist meist tot, Container dahinter sind offline. Ist die Prüfung der öffentlichen IP in Gluetun ausgeschaltet, diesen Hinweis abschalten.'
   domains:
     expiring_deps:
       title: '{domain} läuft in {days} Tagen ab'
@@ -3516,6 +3519,7 @@ rule_name:
   sabnzbd.failed: Fehlgeschlagene Downloads
   sabnzbd.disk_low: SABnzbd-Speicher knapp
   gluetun.vpn: VPN-Tunnel
+  gluetun.no_exit: 'VPN ohne Ausgangs-IP'
   domains.expiring: Domain-Ablauf
   blacklist.listed: Blacklist-Einträge
   truenas.pool_unhealthy: Pool-Zustand
