@@ -1645,6 +1645,10 @@ conn:
   what_tibber: 'Tibber is an electricity supplier with hourly prices and an API for usage and cost.'
   what_calendar: 'Built-in: Andon reads a calendar in iCal format, e.g. from Nextcloud, Google or Outlook.'
   project_site: Project website
+  experimental_badge: 'Experimental'
+  experimental: 'Not yet tested against a real instance, only against fakes. Errors and wrong values are possible.'
+  experimental_akkoma: 'Akkoma is not yet tested against a real instance (Mastodon and GoToSocial are).'
+  experimental_basic_auth: 'Basic Auth login is not yet tested against a real instance.'
   space_hint: 'Who the connection belongs to: your personal space = only you use it, always with a fixed login. Instance = every user of this installation may use it, only admins may change it. A team = the team''s members. Tiles can only use connections from spaces their viewer may see.'
   pangolin_org: 'Organisation ID'
   kdestore_user: 'KDE Store user'

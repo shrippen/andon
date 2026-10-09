@@ -1645,6 +1645,10 @@ conn:
   what_tibber: 'Tibber ist ein Stromanbieter mit stündlich wechselnden Preisen und einer API für Verbrauch und Kosten.'
   what_calendar: 'Eingebaut: Andon liest einen Kalender im iCal-Format, etwa aus Nextcloud, Google oder Outlook.'
   project_site: Projektseite
+  experimental_badge: 'Experimentell'
+  experimental: 'Noch nicht gegen eine echte Instanz getestet, nur gegen Nachbauten. Fehler und falsche Werte sind möglich.'
+  experimental_akkoma: 'Akkoma ist noch nicht gegen eine echte Instanz getestet (Mastodon und GoToSocial schon).'
+  experimental_basic_auth: 'Anmeldung per Basic Auth ist noch nicht gegen eine echte Instanz getestet.'
   space_hint: 'Wem die Verbindung gehört: Dein persönlicher Bereich = nur du nutzt sie, immer mit festem Zugang. Instanz = alle Nutzer dieser Installation dürfen sie nutzen, ändern dürfen nur Admins. Ein Team = die Mitglieder des Teams. Kacheln können nur Verbindungen aus Bereichen nutzen, die ihr Betrachter sehen darf.'
   pangolin_org: 'Organisations-ID'
   kdestore_user: 'Benutzer im KDE Store'

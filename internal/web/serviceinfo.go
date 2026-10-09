@@ -101,3 +101,35 @@ var alsoLinks = map[enums.ServiceType][]namedLink{
 func alsoLinksOf(service enums.ServiceType) []namedLink {
 	return alsoLinks[service]
 }
+
+// experimental marks services not yet tested against a real instance,
+// only against fakes: whole services with "", or the part named by the
+// note's key suffix (conn.experimental_<part>).
+var experimental = map[enums.ServiceType]string{
+	enums.ServiceProxmox:   "",
+	enums.ServiceApcupsd:   "",
+	enums.ServiceOpenDTU:   "",
+	enums.ServiceTautulli:  "",
+	enums.ServiceTibber:    "",
+	enums.ServiceHansei:    "",
+	enums.ServiceFediverse: "akkoma",
+	enums.ServiceESPHome:   "basic_auth",
+}
+
+// experimentalWhole: the whole service is untested (badge in the picker).
+func experimentalWhole(service enums.ServiceType) bool {
+	part, ok := experimental[service]
+	return ok && part == ""
+}
+
+// experimentalNote is the text key telling what is untested, or "".
+func experimentalNote(service enums.ServiceType) string {
+	part, ok := experimental[service]
+	if !ok {
+		return ""
+	}
+	if part == "" {
+		return "conn.experimental"
+	}
+	return "conn.experimental_" + part
+}

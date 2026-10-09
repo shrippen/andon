@@ -580,7 +580,7 @@
         <section class="gal-group" id="topic-{{$id}}">
           <h2>{{if .Topic}}<span class="topic-icon" data-topic="{{.Topic}}" aria-hidden="true"></span> {{t (print "topic." .Topic)}}{{else}}{{t "conn.pick_other"}}{{end}} <span class="hint-group-count">{{len .Picks}}</span></h2>
           <div class="type-grid">
-            {{range .Picks}}{{$about := t (print "conn.about_" .Service)}}<a class="option" data-q="{{.Name}} {{.Service}} {{$about}}" href="/connections/new?service={{.Service}}{{with $.Space}}&amp;space={{.}}{{end}}"><b>{{.Name}}{{if .Count}}<span class="count" data-kind="info" title="{{t "conn.existing" "count" .Count}}">{{.Count}}</span>{{end}}</b><small>{{$about}}</small></a>{{end}}
+            {{range .Picks}}{{$about := t (print "conn.about_" .Service)}}<a class="option" data-q="{{.Name}} {{.Service}} {{$about}}" href="/connections/new?service={{.Service}}{{with $.Space}}&amp;space={{.}}{{end}}"><b>{{.Name}}{{if .Count}}<span class="count" data-kind="info" title="{{t "conn.existing" "count" .Count}}">{{.Count}}</span>{{end}}</b>{{if experimental .Service}}<span class="pill" data-state="locked">{{t "conn.experimental_badge"}}</span>{{end}}<small>{{$about}}</small></a>{{end}}
           </div>
         </section>
         {{end}}
@@ -702,7 +702,7 @@
 {{end}}</div>{{end}}
 
 {{/* What the service is, and where the project lives. */}}
-{{define "service_about"}}<p class="service-about">{{t (print "conn.what_" .)}}{{with projectURL .}} <a href="{{.}}" target="_blank" rel="noopener">{{t "conn.project_site"}} ↗</a>{{end}}{{range alsoLinks .}} · <a href="{{.URL}}" target="_blank" rel="noopener">{{.Name}} ↗</a>{{end}}</p>{{end}}
+{{define "service_about"}}<p class="service-about">{{t (print "conn.what_" .)}}{{with projectURL .}} <a href="{{.}}" target="_blank" rel="noopener">{{t "conn.project_site"}} ↗</a>{{end}}{{range alsoLinks .}} · <a href="{{.URL}}" target="_blank" rel="noopener">{{.Name}} ↗</a>{{end}}</p>{{with experimentalNote .}}<p class="small muted"><span class="pill" data-state="locked">{{t "conn.experimental_badge"}}</span> {{t .}}</p>{{end}}{{end}}
 
 {{/* Places matching the search, see /places. */}}
 {{define "place_results"}}{{range .Places}}<button type="button" class="place-hit" data-place="{{.Label}}" data-lat="{{.Lat}}" data-lon="{{.Lon}}">{{.Label}}</button>{{else}}{{if .Query}}<p class="small muted">{{t "conn.place_none"}}</p>{{end}}{{end}}{{end}}
