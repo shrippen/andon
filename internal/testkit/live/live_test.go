@@ -123,8 +123,8 @@ func TestChangeTextIDs(t *testing.T) {
 }
 
 // TestInstancesReadsExtra: throwaway instances in extra/instances.json
-// (Docker containers for services without an own instance) join the
-// local instance's connections, here without a database.
+// (Docker containers for services without an own instance) are read only
+// when asked for (scripts/live-extra.sh).
 func TestInstancesReadsExtra(t *testing.T) {
 	d := local(t)
 	if err := os.MkdirAll(filepath.Join(d, "extra"), 0o700); err != nil {
@@ -136,6 +136,16 @@ func TestInstancesReadsExtra(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	ran := false
+	t.Run("unasked", func(t *testing.T) {
+		Instances(t)
+		ran = true
+	})
+	if ran {
+		t.Fatal("extra instances read without " + extraEnv)
+	}
+
+	t.Setenv(extraEnv, "1")
 	all := Instances(t)
 	if len(all) != 2 || all[0].Service != "grocy" || all[0].Ctx.URL != "http://127.0.0.1:18116" || all[0].Ctx.Secret != "key" ||
 		all[0].Ctx.Options["a"] != 1.0 || all[0].Ctx.VerifyTLS || !all[1].Ctx.VerifyTLS {

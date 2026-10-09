@@ -2,13 +2,14 @@
 //
 // The instances are the connections of the local Andon instance in
 // .local-test/ (outside Git): its database data/andon.db, unlocked with
-// the master key in secrets/master_key. Services without an own instance
-// run as throwaway containers, listed in extra/instances.json:
+// the master key in secrets/master_key. Writes go to each service's first
+// connection.
+//
+// Services without an own instance run as throwaway containers, listed
+// in extra/instances.json. They replace the local instance only when
+// asked for (ANDON_LIVE_EXTRA=1, set by scripts/live-extra.sh):
 //
 //	[{"name": "grocy", "service": "grocy", "url": "http://127.0.0.1:18116", "secret": "…", "options": {…}}]
-//
-// Writes go to each service's first connection, the local instance's
-// before the extra ones.
 //
 // The tests write to real instances, so they run only when asked for
 // (ANDON_LIVE=1, set by `make live`), never with `go test ./...`.
@@ -69,9 +70,11 @@ const (
 	// dirEnv overrides the directory (tests of this package).
 	dirEnv = "ANDON_LOCAL_TEST"
 	// runEnv must be set for live tests to run; ninjaEnv as well for
-	// writes to Invoice Ninja.
+	// writes to Invoice Ninja; extraEnv switches to the throwaway
+	// containers.
 	runEnv   = "ANDON_LIVE"
 	ninjaEnv = "ANDON_LIVE_NINJA"
+	extraEnv = "ANDON_LIVE_EXTRA"
 	dirName  = ".local-test"
 	logName  = "writes.log"
 
@@ -133,9 +136,10 @@ func Target(t testing.TB, svc Service) outbound.Target {
 	return outbound.Target{}
 }
 
-// Instances returns every connection of the local instance and the extra
-// ones, read at most once per directory, or skips the test when live
-// tests are not asked for or there is no instance.
+// Instances returns every connection of the local instance, or the
+// throwaway containers with ANDON_LIVE_EXTRA, read at most once per
+// directory, or skips the test when live tests are not asked for or
+// there is no instance.
 func Instances(t testing.TB) []Instance {
 	t.Helper()
 	if os.Getenv(runEnv) == "" {
@@ -148,17 +152,17 @@ func Instances(t testing.TB) []Instance {
 		return all
 	}
 
-	all, err := ofLocal(d)
-	if err != nil {
-		t.Fatalf("read live instance: %v", err)
+	// One source per run: the local instance or the containers.
+	load, path := ofLocal, dbPath
+	if os.Getenv(extraEnv) != "" {
+		load, path = ofExtra, extraPath
 	}
-	extra, err := readExtra(filepath.Join(d, extraPath))
+	all, err := load(d)
 	if err != nil {
-		t.Fatalf("read %s/%s: %v", dirName, extraPath, err)
+		t.Fatalf("read %s/%s: %v", dirName, path, err)
 	}
-	all = append(all, extra...)
 	if len(all) == 0 {
-		t.Skipf("no live instance (%s/%s, %s/%s)", dirName, dbPath, dirName, extraPath)
+		t.Skipf("no live instance (%s/%s)", dirName, path)
 	}
 	cache[d] = all
 	return all
@@ -181,9 +185,9 @@ func ofLocal(d string) ([]Instance, error) {
 	return read(path, strings.TrimSpace(string(key)))
 }
 
-// readExtra reads the throwaway instances; none without the file.
-func readExtra(path string) ([]Instance, error) {
-	raw, err := os.ReadFile(path)
+// ofExtra reads the throwaway instances; none without the file.
+func ofExtra(d string) ([]Instance, error) {
+	raw, err := os.ReadFile(filepath.Join(d, extraPath))
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
 	}
