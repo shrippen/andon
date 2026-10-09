@@ -34,6 +34,21 @@ func TestCauseOf(t *testing.T) {
 	}
 }
 
+// TestMovedTo: a redirect to another server names its target, the
+// address to move the connection to.
+func TestMovedTo(t *testing.T) {
+	msg := "ghostfolio: redirected to https://g.example: use it as the URL"
+	if got := connections.CauseOf(msg); got != connections.CauseMoved {
+		t.Fatalf("cause: %q", got)
+	}
+	if got := connections.MovedTo(msg); got != "https://g.example" {
+		t.Fatalf("target: %q", got)
+	}
+	if got := connections.MovedTo("HTTP 401"); got != "" {
+		t.Fatalf("no redirect: %q", got)
+	}
+}
+
 // TestTestNamesCause: a failed test carries the cause beside the raw text.
 func TestTestNamesCause(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

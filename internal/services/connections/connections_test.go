@@ -87,7 +87,7 @@ func TestCreateGetUpdateDelete(t *testing.T) {
 	}
 
 	newSecret := "rotated-token"
-	if err := connections.Update(d, who, id, "Renamed", "https://kimai2.example", enums.CredentialShared,
+	if err := connections.Update(d, who, id, "Renamed", "https://kimai.example/v2", enums.CredentialShared,
 		&newSecret, connections.TLSVerify, nil); err != nil {
 		t.Fatalf("update: %v", err)
 	}

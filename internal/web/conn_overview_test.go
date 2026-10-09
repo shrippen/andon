@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -67,9 +68,10 @@ func TestConnectionAdvancedSavesWithForm(t *testing.T) {
 	}
 }
 
-// TestConnectionNewHost: moving a shared connection to another address
-// asks for its token again, so the settings form must have the field.
-func TestConnectionNewHost(t *testing.T) {
+// TestConnectionMove: another server in the settings form saves the
+// rest and leads to the move page; the move asks whether the token goes
+// along, tests the new address and keeps the connection (same id).
+func TestConnectionMove(t *testing.T) {
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)
 	login(t, srv, client)
@@ -80,16 +82,34 @@ func TestConnectionNewHost(t *testing.T) {
 		"name": {"Kimai"}, "url": {"demo://kimai"}, "mode": {"shared"}, "secret": {"demo"}, "tls": {"verify"}})
 	id := regexp.MustCompile(`id="health-(\d+)"`).FindStringSubmatch(string(mustGet(t, srv, client, "/connections")))[1]
 
-	page := string(mustGet(t, srv, client, "/connections/"+id+"/edit"))
-	start := strings.Index(page, `action="/connections/`+id+`/edit"`)
-	form := page[start : start+strings.Index(page[start:], "</form>")]
-	if !strings.Contains(form, `name="secret"`) {
-		t.Fatalf("settings form has no token field:\n%s", form)
+	res := postForm(t, client, srv.URL+"/connections/"+id+"/edit", url.Values{"csrf": {csrf}, "name": {"Zeit"}, "url": {"demo://kimai2"},
+		"mode": {"shared"}, "tls": {"verify"}})
+	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/connections/"+id+"/move?url=demo%3A%2F%2Fkimai2" {
+		t.Fatalf("edit to another server: %d %s", res.StatusCode, res.Header.Get("Location"))
+	}
+	record := string(mustGet(t, srv, client, "/connections/"+id))
+	if !strings.Contains(record, "Zeit") || !strings.Contains(record, "demo://kimai<") {
+		t.Fatal("edit saved the new server or lost the name")
 	}
 
-	res := postForm(t, client, srv.URL+"/connections/"+id+"/edit", url.Values{"csrf": {csrf}, "name": {"Kimai"}, "url": {"demo://kimai2"},
-		"mode": {"shared"}, "tls": {"verify"}, "secret": {"new"}})
-	if res.StatusCode != http.StatusSeeOther {
-		t.Fatalf("new address with token: %d", res.StatusCode)
+	page := string(mustGet(t, srv, client, res.Header.Get("Location")))
+	if !strings.Contains(page, `value="demo://kimai2"`) || !strings.Contains(page, `name="keep" value="keep"`) {
+		t.Fatalf("move page:\n%s", page)
+	}
+
+	// A failing test saves nothing and offers to move untested.
+	failed := postForm2(t, client, srv.URL+"/connections/"+id+"/move", url.Values{"csrf": {csrf}, "url": {"http://127.0.0.1:1"}, "keep": {"keep"}})
+	body, _ := io.ReadAll(failed.Body)
+	failed.Body.Close()
+	if failed.StatusCode != http.StatusBadRequest || !strings.Contains(string(body), `name="untested"`) {
+		t.Fatalf("failed test: %d\n%s", failed.StatusCode, body)
+	}
+
+	res = postForm(t, client, srv.URL+"/connections/"+id+"/move", url.Values{"csrf": {csrf}, "url": {"demo://kimai2"}, "keep": {"keep"}})
+	if res.StatusCode != http.StatusSeeOther || !strings.HasPrefix(res.Header.Get("Location"), "/connections/"+id) {
+		t.Fatalf("move: %d %s", res.StatusCode, res.Header.Get("Location"))
+	}
+	if !strings.Contains(string(mustGet(t, srv, client, "/connections/"+id)), "demo://kimai2") {
+		t.Fatal("not moved")
 	}
 }

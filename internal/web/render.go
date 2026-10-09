@@ -22,6 +22,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/i18n"
 	"andon/internal/services/access"
+	"andon/internal/services/connections"
 	"andon/internal/services/hooks"
 	"andon/internal/services/notify"
 	"andon/internal/services/onboarding"
@@ -144,6 +145,7 @@ func mustParse() *template.Template {
 		"alsoLinks":        alsoLinksOf,
 		"experimental":     experimentalWhole,
 		"experimentalNote": experimentalNote,
+		"movedTo":          connections.MovedTo,
 		"can":              can,
 	}
 	return template.Must(template.New("root").Funcs(funcs).ParseFS(templateFiles, "templates/*.html"))

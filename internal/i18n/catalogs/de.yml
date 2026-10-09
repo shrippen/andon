@@ -1213,9 +1213,8 @@ widget:
   connection_type: Die Verbindung passt nicht zum Kacheltyp.
   unsupported: Passt nicht zur gewählten Verbindung.
 connection:
-  secret_for_host: 'Neue Adresse: bitte den Zugang neu eingeben. Der gespeicherte geht nicht an einen anderen Server.'
-  new_host_secret: 'Neue Adresse? Zugang'
-  new_host_secret_hint: 'Nur nötig, wenn sich die Adresse ändert: Der gespeicherte Zugang geht nicht an einen anderen Server. Leer lassen, sonst bleibt alles, wie es ist.'
+  secret_for_host: 'Neuer Server: Zugang neu eingeben oder den gespeicherten ausdrücklich mitnehmen.'
+  use_move: 'Anderer Server: bitte „Umziehen“ nutzen.'
   bad_date: 'Datum im Format JJJJ-MM-TT angeben.'
   missing: Verbindung fehlt
   location_personal: Standortdaten sind nur als persönliche Verbindung erlaubt.
@@ -1362,6 +1361,8 @@ conn:
   cause_ask_network: 'Ein Administrator kann die Adresse unter Admin → Netzwerk freigeben.'
   cause_fix_login: 'Zugangsdaten ändern'
   cause_fix_address: 'Adresse und TLS-Prüfung ändern'
+  cause_moved: 'Umgeleitet: Die Adresse leitet auf einen anderen Server weiter.'
+  cause_fix_move: 'Auf die neue Adresse umziehen'
   cause_detail: 'Meldung'
   pick_search: 'Dienst suchen: Name, Beschreibung'
   pick_other: 'Weitere'
@@ -1396,7 +1397,21 @@ conn:
   fetch_fail_pct: '{pct} % fehlgeschlagen'
   deactivate_confirm: 'Zugang entfernen? Deine Kacheln dieser Vorlage zeigen dann nichts mehr.'
   deactivate: 'Deaktivieren'
-  reactivate_new_host: 'Die Adresse zeigt auf einen anderen Server. Dein bisheriger Zugang wird nicht dorthin geschickt; trag ihn neu ein.'
+  reactivate_new_host: 'Die Verbindung zeigt auf einen anderen Server, und dein bisheriger Zugang ist nicht mehr gespeichert; trag ihn neu ein.'
+  reactivate_moved: 'Die Verbindung ist auf einen anderen Server umgezogen ({url}). „Zugang dorthin senden“ nimmt deinen gespeicherten mit; sonst unten einen neuen eingeben.'
+  reactivate_send: 'Zugang dorthin senden'
+  move: 'Umziehen'
+  move_title: '{name} umziehen'
+  move_hint: 'Läuft der Dienst jetzt auf einem anderen Server?'
+  move_lead: 'Die Verbindung bleibt dieselbe: Kacheln, Zuordnungen zu anderen Diensten, Verlauf und Notizen bleiben erhalten. Nur die Adresse ändert sich.'
+  move_to: 'Neue Adresse'
+  move_login: 'Zugang auf dem neuen Server'
+  move_keep: 'Gespeicherten Zugang an die neue Adresse senden (derselbe Dienst, nur umgezogen)'
+  move_new: 'Neuen Zugang eingeben'
+  move_holders: 'Die persönlichen Zugänge bleiben gespeichert, aber pausiert: Jede Person sendet ihren an den neuen Server oder gibt einen neuen ein. Deinen eigenen kannst du hier neu eingeben; leer gelassen nimmt Andon deinen gespeicherten mit, wenn der Test damit gelingt.'
+  move_mine: 'leer = deinen gespeicherten nehmen'
+  move_untested: 'Ohne erfolgreichen Test umziehen (z. B. wenn der neue Server noch nicht läuft)'
+  move_test: 'Andon testet die neue Adresse vorher mit diesem Zugang und speichert nur, wenn der Test gelingt.'
   reactivate_keep: 'Der Server ist derselbe, dein Zugang bleibt.'
   reactivate: 'Mit neuen Werten aktivieren'
   activate: 'Aktivieren'
@@ -6049,6 +6064,7 @@ audit_action:
     options: 'Verbindungsoptionen geändert'
     secret_changed: 'Zugangsdaten geändert'
     updated: 'Verbindung geändert'
+    moved: 'Verbindung umgezogen'
   credential:
     set: 'Persönliche Zugangsdaten gesetzt'
   hass:

@@ -1213,9 +1213,8 @@ widget:
   connection_type: The connection does not fit the tile type.
   unsupported: Does not fit the chosen connection.
 connection:
-  secret_for_host: 'New address: please enter the credential again. The stored one is not sent to another server.'
-  new_host_secret: 'New address? Credential'
-  new_host_secret_hint: 'Only needed when the address changes: the stored credential is not sent to another server. Leave empty otherwise.'
+  secret_for_host: 'New server: enter the credential again or take the stored one along on purpose.'
+  use_move: 'Another server: please use “Move”.'
   bad_date: 'Give the date as YYYY-MM-DD.'
   missing: Connection missing
   location_personal: Location data is only allowed as a personal connection.
@@ -1362,6 +1361,8 @@ conn:
   cause_ask_network: 'An administrator can allow the address under Admin → Network.'
   cause_fix_login: 'Change credentials'
   cause_fix_address: 'Change address and TLS check'
+  cause_moved: 'Redirected: the address forwards to another server.'
+  cause_fix_move: 'Move to the new address'
   cause_detail: 'Message'
   pick_search: 'Search services: name, description'
   pick_other: 'More'
@@ -1396,7 +1397,21 @@ conn:
   fetch_fail_pct: '{pct} % failed'
   deactivate_confirm: 'Remove your login? Your tiles of this template then show nothing.'
   deactivate: 'Deactivate'
-  reactivate_new_host: 'The address points to another server. Your old login is not sent there; enter it again.'
+  reactivate_new_host: 'The connection points to another server and your old login is no longer stored; enter it again.'
+  reactivate_moved: 'The connection moved to another server ({url}). “Send my login there” takes your stored one along; otherwise enter a new one below.'
+  reactivate_send: 'Send my login there'
+  move: 'Move'
+  move_title: 'Move {name}'
+  move_hint: 'Does the service run on another server now?'
+  move_lead: 'The connection stays the same: tiles, links to other services, history and notes are kept. Only the address changes.'
+  move_to: 'New address'
+  move_login: 'Login on the new server'
+  move_keep: 'Send the stored login to the new address (same service, just moved)'
+  move_new: 'Enter a new login'
+  move_holders: 'Personal logins stay stored but paused: each person sends theirs to the new server or enters a new one. You can enter your own here; left empty, Andon takes your stored one along if the test with it passes.'
+  move_mine: 'empty = use your stored one'
+  move_untested: 'Move without a passing test (e.g. the new server is not up yet)'
+  move_test: 'Andon tests the new address with this login first and saves only if the test passes.'
   reactivate_keep: 'Same server: your login stays.'
   reactivate: 'Activate with the new values'
   activate: 'Activate'
@@ -6048,6 +6063,7 @@ audit_action:
     options: 'Connection options changed'
     secret_changed: 'Credentials changed'
     updated: 'Connection changed'
+    moved: 'Connection moved'
   credential:
     set: 'Personal credentials set'
   hass:

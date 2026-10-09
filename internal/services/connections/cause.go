@@ -22,7 +22,11 @@ const (
 	CauseTLS       Cause = "tls"       // certificate not trusted
 	CauseDNS       Cause = "dns"       // host name not found
 	CauseTimeout   Cause = "timeout"   // no answer in time
+	CauseMoved     Cause = "moved"     // redirected to another server
 )
+
+// movedMark is httpclient.Moved's message; its group the target.
+var movedMark = regexp.MustCompile(`\bredirected to (\S+): use it as the URL`)
 
 // egressShort is the whole message a web check gives for a blocked host.
 const egressShort = "egress"
@@ -33,6 +37,7 @@ var causeMarks = []struct {
 	mark  *regexp.Regexp
 }{
 	{CauseEgress, regexp.MustCompile(`\begress denied\b`)},
+	{CauseMoved, movedMark},
 	{CauseRefused, regexp.MustCompile(`\bconnection refused\b`)},
 	{CauseAuth, regexp.MustCompile(`\bHTTP 401\b`)},
 	{CauseForbidden, regexp.MustCompile(`\bHTTP 403\b`)},
@@ -52,4 +57,14 @@ func CauseOf(msg string) Cause {
 		}
 	}
 	return CauseNone
+}
+
+// MovedTo is the server a message says the connection was redirected
+// to, e.g. "https://ghostfolio.example"; "" for any other message.
+func MovedTo(msg string) string {
+	m := movedMark.FindStringSubmatch(msg)
+	if m == nil {
+		return ""
+	}
+	return m[1]
 }

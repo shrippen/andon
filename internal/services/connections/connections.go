@@ -47,7 +47,7 @@ var ErrLocationPersonal = errors.New("connections: location data must stay perso
 var ErrNotFound = util.ErrNotFound
 
 // ErrSecretForHost: a connection moved to another host needs its token
-// entered again; the stored one must not go there.
+// entered again or kept on purpose (Move); it must not go there unasked.
 var ErrSecretForHost = errors.New("connection.secret_for_host")
 
 // ErrNotTemplate: only a template takes activations, only an instance
@@ -350,11 +350,8 @@ func Update(d *sql.DB, who *access.Principal, connID int64, name, url string, mo
 			conn.Name = n
 		}
 		newURL := strings.TrimRight(strings.TrimSpace(url), "/")
-		given := secret != nil && *secret != ""
 		if hostOf(newURL) != hostOf(conn.URL) {
-			if err := forgetSecrets(tx, who, conn, mode, given); err != nil {
-				return err
-			}
+			return ErrMoveHost
 		}
 		conn.URL = newURL
 		if err := keepEditorToken(tx, who, conn, mode); err != nil {
@@ -387,6 +384,12 @@ func Update(d *sql.DB, who *access.Principal, connID int64, name, url string, mo
 	})
 }
 
+// SameServer reports whether two URLs reach the same server (scheme and
+// host); another server is a move (Move).
+func SameServer(a, b string) bool {
+	return hostOf(strings.TrimSpace(a)) == hostOf(strings.TrimSpace(b))
+}
+
 // hostOf is a URL's scheme and host: "https://kimai.lan".
 func hostOf(raw string) string {
 	u, err := neturl.Parse(raw)
@@ -407,21 +410,6 @@ func changed(before, after map[string]any) bool {
 		}
 	}
 	return false
-}
-
-// forgetSecrets: a connection moved to another host must not send the
-// stored tokens there. A shared token has to be entered again (given);
-// the holders' own tokens are dropped, each enters theirs anew. Their
-// activations stay, so they still see what changed.
-func forgetSecrets(tx *sql.Tx, who *access.Principal, conn *model.Connection, mode enums.CredentialMode, given bool) error {
-	if mode == enums.CredentialShared && len(conn.SecretEnc) > 0 && !given {
-		return ErrSecretForHost
-	}
-	conn.SecretEnc = nil
-	if err := content.ClearSecrets(tx, conn.ID); err != nil {
-		return err
-	}
-	return audit.Log(tx, &who.UserID, "connection.host_changed", conn.Name, "", nil)
 }
 
 // storeSecret keeps a token where the connection's mode reads it: on the

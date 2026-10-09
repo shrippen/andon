@@ -122,26 +122,26 @@ func TestRenameKeepsActivations(t *testing.T) {
 	}
 }
 
-// TestTemplateNewHostNeedsLogin: after a move to another host renewing
-// the activation without a token fails; the old one must not go there.
-func TestTemplateNewHostNeedsLogin(t *testing.T) {
+// TestTemplateMovePausesLogin: after a move to another server the
+// stored login is not sent there until its holder releases it.
+func TestTemplateMovePausesLogin(t *testing.T) {
 	l := newLevels(t)
 	me := model.UserHolder(l.member.UserID)
 	if err := connections.Activate(l.d, l.member, l.template, me, "member-token"); err != nil {
 		t.Fatal(err)
 	}
-	if err := connections.Update(l.d, l.admin, l.template, "Kimai", "https://zeit.example", enums.CredentialPersonal, nil,
-		connections.TLSVerify, nil); err != nil {
+	if _, err := connections.Move(context.Background(), l.d, l.admin, l.template, "https://zeit.example", "",
+		connections.SecretNew, connections.CheckSkip); err != nil {
 		t.Fatal(err)
 	}
-	if err := connections.Activate(l.d, l.member, l.template, me, ""); !errors.Is(err, svcdata.ErrMissingCredential) {
-		t.Fatalf("renewed without a token: %v", err)
+	if _, err := l.secret(t, me); !errors.Is(err, svcdata.ErrTemplateChanged) {
+		t.Fatalf("login used before its holder released it: %v", err)
 	}
-	if err := connections.Activate(l.d, l.member, l.template, me, "new-token"); err != nil {
+	if err := connections.Activate(l.d, l.member, l.template, me, ""); err != nil {
 		t.Fatal(err)
 	}
-	if s, err := l.secret(t, me); err != nil || s != "new-token" {
-		t.Fatalf("new login: %q %v", s, err)
+	if s, err := l.secret(t, me); err != nil || s != "member-token" {
+		t.Fatalf("released login: %q %v", s, err)
 	}
 }
 
