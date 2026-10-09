@@ -1268,6 +1268,7 @@ hints:
   sort_value: 'Sort by money'
   sort_level: 'Sort by urgency'
   noisy: '{count} rules mostly report what you dismiss'
+  noisy_singular: '{count} rule mostly reports what you dismiss'
   noisy_hint: 'In the last 90 days these hints were nearly always acknowledged or snoozed instead of fixed. Adjust the threshold or turn the rule off?'
   noisy_line: '{dismissed} of {opened} dismissed'
   noisy_adjust: 'Settings'
@@ -1651,6 +1652,7 @@ conn:
   kdestore_ids: 'Single entries'
   kdestore_ids_hint: 'Links or numbers, separated by commas, e.g. https://store.kde.org/p/2368175. For entries of other users or without a user. Fill in at least one of the two fields.'
   existing: '{count} connection(s) of this kind exist'
+  existing_singular: '{count} connection of this kind exists'
   cred_incomplete: 'Please fill in both fields, e.g. user name and password.'
   ical_private: 'Private iCal address'
   ical_login_hint: 'Private calendar with login: enter username and password; the address above is used unless a private address is given.'
@@ -2162,10 +2164,12 @@ hint:
       why: 'The ESPHome dashboard gets no answer from {address}.'
     update:
       title: '{count} nodes on older firmware'
+      title_singular: '{count} node on older firmware'
       why: '{names}; the dashboard has {version}. Install the update from the dashboard.'
   fediverse:
     mentions:
       title: '{count} unread mentions'
+      title_singular: '{count} unread mention'
       why: '{from}: {text}'
   ghostfolio:
     drawdown:
@@ -2174,6 +2178,7 @@ hint:
   vikunja:
     overdue:
       title: '{count} tasks overdue'
+      title_singular: '{count} task overdue'
       why: '{titles}'
     due:
       title: 'Due on {day}: {title}'
@@ -2181,6 +2186,7 @@ hint:
   seerr:
     stuck:
       title: '{count} media requests stuck'
+      title_singular: '{count} media request stuck'
       why: '{titles}: approved, not available for days.'
   routes:
     down:
@@ -2240,11 +2246,14 @@ hint:
   wud:
     updates:
       title: '{count} container updates available'
+      title_singular: '{count} container update available'
       why: '{names}'
   watchtower:
     failed:
       title: 'Watchtower: {count} updates failed'
+      title_singular: 'Watchtower: {count} update failed'
       why: 'In the last run ({scanned} containers checked) {count} could not be updated. Watchtower''s logs name the reason.'
+      why_singular: 'In the last run ({scanned} containers checked) one could not be updated. Watchtower''s logs name the reason.'
   pbs:
     verify_failed:
       title: 'Verify of {store} failed'
@@ -2256,6 +2265,7 @@ hint:
     failing:
       title: '{repo} is red'
       why: '{count} builds in a row failed, since {since}.'
+      why_singular: '{count} build failed, since {since}.'
   prometheus:
     alert:
       title: '{name} on {instance}'
@@ -2281,6 +2291,7 @@ hint:
       why: 'Valid until {day}. Re-authenticate the device or disable expiry.'
     offline:
       title: '{count} devices offline for long'
+      title_singular: '{count} device offline for long'
       why: 'Not seen for over {days} days: {names}.'
     key_expired:
       title: '{name}: key expired'
@@ -2291,9 +2302,11 @@ hint:
       why: 'Packet loss {loss} %.'
     devices_offline:
       title: '{count} network devices offline'
+      title_singular: '{count} network device offline'
       why: '{names}'
     updates:
       title: 'Router: {count} updates'
+      title_singular: 'Router: {count} update'
       why: 'Installed: {version}.'
     new_device:
       title: 'New device on the network: {name}'
@@ -2308,6 +2321,7 @@ hint:
       why: 'Reported by the health check.'
     stuck:
       title: '{app}: {count} downloads stuck'
+      title_singular: '{app}: {count} download stuck'
       why: '{names}'
     check:
       title: '{app}: {check}'
@@ -2315,6 +2329,7 @@ hint:
   vaultwarden:
     no_2fa:
       title: '{count} vaults without two-factor'
+      title_singular: '{count} vault without two-factor'
       why: '{names}. A password alone protects the vault poorly.'
   speedtest:
     contract:
@@ -2326,12 +2341,15 @@ hint:
   grocy:
     expired:
       title: '{count} products expired'
+      title_singular: '{count} product expired'
       why: '{names}'
     missing:
       title: '{count} things to buy'
+      title_singular: '{count} thing to buy'
       why: '{names}'
     chores_overdue:
       title: '{count} chores overdue'
+      title_singular: '{count} chore overdue'
       why: '{names}'
   dwd:
     storm_prep:
@@ -2374,6 +2392,7 @@ hint:
   links:
     dead:
       title: '{count} tiles unreachable for {days} days'
+      title_singular: '{count} tile unreachable for {days} days'
       why: '{names}. Check the address or remove the tile.'
   backups:
     job_failed:
@@ -2387,6 +2406,7 @@ hint:
       why: 'Last successful backup ({tool}) on {day}. New since: {items}.'
     gap:
       title: '{count} services without a visible backup'
+      title_singular: '{count} service without a visible backup'
       why: '{names}. No backup entry (Borg client, PG Back Web backup, snapshot) carries their name.'
     restore_untested:
       title: '{system}: test a restore by {day}'
@@ -2394,6 +2414,7 @@ hint:
   discovery:
     no_tile:
       title: '{count} services from {service} without a tile'
+      title_singular: '{count} service from {service} without a tile'
       why: '{names}. Add a link tile or ignore on purpose.'
   custom:
     rule:
@@ -2413,6 +2434,7 @@ hint:
       why: Empty trash and versions or add storage.
     app_updates:
       title: '{count} app updates in Nextcloud'
+      title_singular: '{count} app update in Nextcloud'
       why: Update them in the apps settings.
   sabnzbd:
     failed:
@@ -2466,12 +2488,14 @@ hint:
       why: '{text}'
     app_updates:
       title: '{count} app updates in TrueNAS'
+      title_singular: '{count} app update in TrueNAS'
       why: '{apps}'
     scrub_old:
       title: 'Pool {pool}: last scrub on {day}'
       why: 'ZFS finds silent damage only when it reads. Schedule a scrub task in TrueNAS (monthly).'
     scrub_errors:
       title: 'Scrub found {count} errors in {pool}'
+      title_singular: 'Scrub found {count} error in {pool}'
       why: 'Check the pool''s disks (SMART), restore affected files from the backup.'
   komodo:
     alert:
@@ -2482,6 +2506,7 @@ hint:
       why: Check the stack's logs in Komodo.
     updates:
       title: 'Image updates for {count} stacks'
+      title_singular: 'Image updates for {count} stack'
       why: '{stacks}'
   pangolin:
     exposure:
@@ -2511,9 +2536,11 @@ hint:
       why: Bring outposts to the server version, or logins break.
     failed_logins:
       title: '{count} failed logins (24 h)'
+      title_singular: '{count} failed login (24 h)'
       why: Check the event log – guessing or a client with an old password.
     stale_users:
       title: '{count} accounts without login for {days} days'
+      title_singular: '{count} account without login for {days} days'
       why: '{users}. Deactivating reduces attack surface.'
   mail:
     unrecorded:
@@ -2535,9 +2562,11 @@ hint:
   linkwarden:
     missing:
       title: '{count} links from “{collection}” missing in Andon'
+      title_singular: '{count} link from “{collection}” missing in Andon'
       why: '{names}. Add a tile or drop them in Linkwarden.'
     unsaved:
       title: '{count} tiles not saved in Linkwarden'
+      title_singular: '{count} tile not saved in Linkwarden'
       why: '{names}.'
   kintsugi:
     run_failed:
@@ -2570,6 +2599,7 @@ hint:
       why: Renew the bank connection or transactions will be missing.
     uncategorized:
       title: '{count} transactions without category'
+      title_singular: '{count} transaction without category'
       why: Budgets and reports are off without categories.
     unusual:
       title: 'Large expense: {name} ({amount})'
@@ -2595,9 +2625,11 @@ hint:
       why: 'The task was finished on {day}; Kimai has nothing on that project since a few days before. Book the time?'
     requests_arr:
       title: '{count} requests stuck, {app} reports a problem'
+      title_singular: '{count} request stuck, {app} reports a problem'
       why: '{problem}. That likely explains why the requests do not arrive.'
     route_undocumented:
       title: '{count} routes without an IT note'
+      title_singular: '{count} route without an IT note'
       why: '{hosts}. No note names these addresses in its URL field.'
     speed_below_sync:
       title: 'Speed test far below the line rate'
@@ -2607,6 +2639,7 @@ hint:
       why: 'Booked {booked} Mbit/s, the line manages {sync}. That is the line; the provider must check it.'
     device_uninventoried:
       title: '{count} devices on the network without inventory'
+      title_singular: '{count} device on the network without inventory'
       why: '{names}. No Snipe-IT asset bears these names.'
     ups_load:
       title: '{name} is too short for {hosts} hosts'
@@ -2619,12 +2652,14 @@ hint:
       why: '{kw} kW from the grid at {price} ct/kWh, the day''s average is {avg} ct. Charge later or switch to solar mode.'
     update_unbacked:
       title: 'Watchtower updated {count} containers without a fresh backup'
+      title_singular: 'Watchtower updated {count} container without a fresh backup'
       why: 'Last backup: {day} ({tool}). If an update goes wrong, the state before it is missing.'
     release_newer:
       title: '{repo} {release} is newer than {where}'
       why: '{image} runs {tag}.'
     pbs_orphan:
       title: '{count} backup groups without a guest'
+      title_singular: '{count} backup group without a guest'
       why: 'Proxmox no longer has {ids}; their backups only take space. Delete them or keep them on purpose.'
     pbs_pool_full:
       title: 'Pool {pool} is full, datastore {store} is not'
@@ -2661,6 +2696,7 @@ hint:
       why: '{amount} on {day} from {account}. Record it if it is a business expense.'
     wallos_missing:
       title: '{count} subscriptions missing in Wallos'
+      title_singular: '{count} subscription missing in Wallos'
       why: 'Sure books {names} regularly, Wallos has nothing for it. Add it in Wallos or exclude it in the rule.'
   hass:
     alarm:
@@ -2671,13 +2707,16 @@ hint:
       why: Replace the battery before the device drops out.
     unavailable:
       title: '{count} entities unavailable'
+      title_singular: '{count} entity unavailable'
       why: '{names}. Usual cause: a gateway, Zigbee stick or integration is down.'
     updates:
       title: '{count} updates in Home Assistant'
+      title_singular: '{count} update in Home Assistant'
       why: '{names}.'
   freshrss:
     backlog:
       title: '{count} unread articles'
+      title_singular: '{count} unread article'
       why: 'Largest sources: {feeds}. Unsubscribe, filter or mark as read.'
     stale:
       title: 'Silent feeds: {count} for over {days} days'
@@ -2701,9 +2740,11 @@ hint:
   docs:
     missing_claimed:
       title: '{count} stacks on {host} without docs'
+      title_singular: '{count} stack on {host} without docs'
       why: '{names}. Hansei already works on {claimed} more.'
     missing:
       title: '{count} stacks on {host} without docs'
+      title_singular: '{count} stack on {host} without docs'
       why: '{names}. Write a note or link the compose.yaml in the "Compose" field of a service, device or network note.'
     orphan:
       title: 'Doc {note} links a missing stack'
@@ -2733,6 +2774,7 @@ hint:
       why: Device off, agent stopped or network down.
     failed:
       title: '{count} failed backup jobs (24 h)'
+      title_singular: '{count} failed backup job (24 h)'
       why: '{ok} succeeded. Check the cause in the queue.'
     old:
       title: 'Last backup {hours} hours ago'
@@ -2762,6 +2804,7 @@ hint:
       why: '{free} left.'
     jobs:
       title: '{count} failed Immich jobs'
+      title_singular: '{count} failed Immich job'
       why: 'Queues: {queues}. Retry them in the job overview.'
     update:
       title: 'Immich {latest} available'
@@ -2776,6 +2819,7 @@ hint:
   kuma:
     unmonitored:
       title: '{count} tiles without an Uptime Kuma monitor'
+      title_singular: '{count} tile without an Uptime Kuma monitor'
       why: '{names}. Add a monitor or list the host under “exclude”.'
     down:
       title: '{monitor} is down'
@@ -2789,6 +2833,7 @@ hint:
       why: The node does not answer the cluster.
     updates:
       title: '{node}: {count} updates available'
+      title_singular: '{node}: {count} update available'
       why: Install package updates.
     storage:
       title: '{node}/{storage} {percent} % full'
@@ -2808,6 +2853,7 @@ hint:
       why: '“{subject}” on {day}, amount {amount}. Record it as an expense.'
     inbox:
       title: '{count} documents in the inbox'
+      title_singular: '{count} document in the inbox'
       why: 'Oldest for {days} days: {title}.'
   certs:
     expiring:
@@ -2907,6 +2953,7 @@ hint:
       why: 'More than 5/6 of revenue from one client: check German pension insurance duty (§ 2 Nr. 9 SGB VI).'
     overdue_client:
       title: '{count} invoices overdue: {client} ({amount})'
+      title_singular: '{count} invoice overdue: {client} ({amount})'
       why: 'Oldest for {days} days: {numbers}. Send reminders per invoice in Invoice Ninja.'
   snipe:
     replace_worth:
@@ -2960,9 +3007,11 @@ hint:
       why: '{km} business km to this client, no invoice since has a travel line.'
     unplaced:
       title: '{count} frequent destinations without a place'
+      title_singular: '{count} frequent destination without a place'
       why: 'Rides of the last {days} days end there; unassigned they stay private. {names}'
     plugin_missing:
       title: '{count} business rides {month} missing in Kimai mileage'
+      title_singular: '{count} business ride {month} missing in Kimai mileage'
       why: '{km} km as Dawarich tracked them, no plugin trip at the same time.'
     car_private_share:
       title: 'Business car {year}: {share} % private'
@@ -3011,6 +3060,7 @@ hint:
     outage:
       title: '{host} unreachable'
       why: '{count} services affected: {names}. Their single hints are held back.'
+      why_singular: '{count} service affected: {names}. Its single hints are held back.'
     connector_down:
       title: '{name} unreachable'
       why: 'Last fetch failed: {error}. Tiles show the last data.'
@@ -3052,6 +3102,7 @@ info:
     info: '{unread} unread'
   esphome:
     nodes: '{count} nodes · {offline} offline'
+    nodes_singular: '{count} node · {offline} offline'
   fediverse:
     info: '{followers} followers · {unread} unread'
   ghostfolio:
@@ -3060,10 +3111,13 @@ info:
     open: '{count} open · {overdue} overdue'
   playing:
     now: '{count} playing'
+    now_singular: '{count} playing'
   seerr:
     requests: '{count} requests · {stuck} stuck'
+    requests_singular: '{count} request · {stuck} stuck'
   routes:
     count: '{count} routes · {down} failing'
+    count_singular: '{count} route · {down} failing'
   fritzbox:
     online: 'connected · {down}/{up} Mbit/s'
     offline: '{status}'
@@ -3074,15 +3128,19 @@ info:
     now: '{watts} W · {kwh} kWh today'
   wud:
     containers: '{count} containers · {updates} updates'
+    containers_singular: '{count} container · {updates} updates'
   watchtower:
     scan: '{scanned} checked · {updated} updated'
   drone:
     repos: '{count} repos'
+    repos_singular: '{count} repo'
     red: '{count} red'
   nvd:
     read: '{count} CVEs in {days} days'
+    read_singular: '{count} CVE in {days} days'
   prometheus:
     alerts: '{count} alerts'
+    alerts_singular: '{count} alert'
     critical: '{count} critical'
   healthchecks:
     up: '{up} / {count} checks'
@@ -3093,15 +3151,21 @@ info:
     wan_ok: 'WAN ok'
     wan_down: 'WAN down'
     devices: '{count} devices'
+    devices_singular: '{count} device'
     updates: '{count} updates'
+    updates_singular: '{count} update'
   mediaserver:
     streams: '{count} streams'
+    streams_singular: '{count} stream'
     movies: '{count} movies'
+    movies_singular: '{count} movie'
   arr:
     queue: '{count} queued'
     missing: '{count} missing'
+    missing_singular: '{count} missing'
   vaultwarden:
     users: '{count} users'
+    users_singular: '{count} user'
     no_2fa: '{count} without 2FA'
   speedtest:
     result: '↓ {down} ↑ {up} Mbit/s · {ping} ms'
@@ -3109,11 +3173,14 @@ info:
     expired: '{count} expired'
     soon: '{count} due soon'
     missing: '{count} missing'
+    missing_singular: '{count} missing'
   dwd:
     none: 'No warnings'
     count: '{count} warnings'
+    count_singular: '{count} warning'
   github:
     prs: '{count} PRs'
+    prs_singular: '{count} PR'
     ci_failed: '{count} CI failed'
   tibber:
     price: '{price}/kWh'
@@ -3134,19 +3201,25 @@ info:
   blacklist:
     clean: not listed
     listed: '{count} listings'
+    listed_singular: '{count} listing'
   truenas:
     pools: '{count} pools · {percent} % used'
+    pools_singular: '{count} pool · {percent} % used'
   komodo:
     stacks: '{running}/{count} stacks running'
   pangolin:
     sites: '{online}/{count} sites online'
   authentik:
     logins: '{count} logins (7 d)'
+    logins_singular: '{count} login (7 d)'
     users: '{count} accounts'
+    users_singular: '{count} account'
   mail:
     invoices: '{count} invoices found'
+    invoices_singular: '{count} invoice found'
   linkwarden:
     links: '{count} links'
+    links_singular: '{count} link'
   kintsugi:
     open: 'Suggestions open: {count}'
   sure:
@@ -3172,7 +3245,9 @@ info:
     status: '{up}/{count} up'
   proxmox:
     guests: '{count} guests'
+    guests_singular: '{count} guest'
     updates: '{count} updates'
+    updates_singular: '{count} update'
   paperless:
     inbox: '{count} in inbox'
   certs:
@@ -3185,15 +3260,19 @@ info:
     open: '{amount} open'
   snipe:
     assets: '{count} assets'
+    assets_singular: '{count} asset'
     upcoming: '{count} dates'
+    upcoming_singular: '{count} date'
   dawarich:
     last: updated {hours} h ago
   glances:
     cpu: CPU {percent} %
   wallos:
     subs: '{count} subscriptions · {amount}/month'
+    subs_singular: '{count} subscription · {amount}/month'
   tandoor:
     items: '{count} entries open'
+    items_singular: '{count} entry open'
 kpi:
   period_year: '{year}'
   period_month: '{month}'
@@ -3201,6 +3280,7 @@ kpi:
   safe: 'Cash {in}, to set aside {out}'
   liquidity: income {in} − fixed costs {out}
   per_hour: per hour, {count} customers, 12 months
+  per_hour_singular: 'per hour, {count} customer, 12 months'
   of_target: target {hours} h
   hours: '{hours} h'
   invoices: '{count} invoices'
@@ -3208,6 +3288,7 @@ kpi:
   vat_period: '{start} – {end}'
   reserve: VAT liability + {rate} % of surplus
   assets: '{count} assets'
+  assets_singular: '{count} asset'
   vs_last_year: vs. last year
   data_from: 'no year-over-year, data from {month}'
   of_goal: goal {goal}
@@ -3767,7 +3848,9 @@ notify:
   test_title: 'Andon: test'
   test_body: This channel works.
   title: 'Andon: {count} new hints'
+  title_singular: 'Andon: {count} new hint'
   digest_subject: 'Andon: {count} items'
+  digest_subject_singular: 'Andon: {count} item'
   digest_body: 'Open hints and upcoming deadlines:'
 weekday:
   mon: Monday
@@ -3936,6 +4019,7 @@ billing:
   subject: Subject
   to_paperless: To Paperless
   forwarded: '{count} files handed to Paperless.'
+  forwarded_singular: '{count} file handed to Paperless.'
   no_paperless: No Paperless connection in this space
   no_mails: No invoice mails found (as of the last check).
   lead: Turn unbilled Kimai time into Invoice Ninja drafts, and download the tax year package.
@@ -5254,6 +5338,7 @@ github:
   issues: 'Issues'
   release: 'Release'
   notifications: '{count} notifications'
+  notifications_singular: '{count} notification'
   all_green: No red CI.
 energy:
   now: 'Price now'
@@ -5307,6 +5392,7 @@ window:
   good: 'Good time'
   wait: 'Better wait'
   count: '{count} updates pending'
+  count_singular: '{count} update pending'
   backup: 'backup {hours} h ago'
   no_backup: 'No backup in the last 24 hours'
   streaming: 'A stream is playing'
@@ -5374,7 +5460,9 @@ week:
   d6: 'Su'
   hours: '{hours} h worked, {percent} % for {customer}'
   invoiced: '{count} invoices written ({amount})'
+  invoiced_singular: '{count} invoice written ({amount})'
   paid: '{count} payments received ({amount})'
+  paid_singular: '{count} payment received ({amount})'
   storage: '{name} +{points} points, now {percent} % used'
   power: 'Power {kwh} kWh, {cost}'
   hints: '{opened} hints new, {resolved} resolved'
@@ -6185,6 +6273,7 @@ boards:
   hints: 'Hints: {n}'
 paydays:
   row: '{client}: typically {days} days to payment, {count} invoices'
+  row_singular: '{client}: typically {days} days to payment, {count} invoice'
   legend: 'Dot = one invoice · mark = {center} · dashed = target {target} days'
   none: No paid invoices yet.
 rate:

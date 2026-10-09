@@ -131,6 +131,19 @@ func TestSingular(t *testing.T) {
 	if got := i18n.T("kpi.invoices", enums.LocaleEN, map[string]any{"count": 1.0}); got != "1 invoice" {
 		t.Fatalf("one as float: %q", got)
 	}
+	// Hint titles seen as "1 Aufgaben überfällig".
+	for key, want := range map[string][2]string{
+		"hint.vikunja.overdue.title":      {"1 Aufgabe überfällig", "1 task overdue"},
+		"hint.grocy.chores_overdue.title": {"1 Hausarbeit überfällig", "1 chore overdue"},
+		"info.prometheus.alerts":          {"1 Alert", "1 alert"},
+	} {
+		if got := i18n.T(key, enums.LocaleDE, map[string]any{"count": 1}); got != want[0] {
+			t.Errorf("%s de: %q", key, got)
+		}
+		if got := i18n.T(key, enums.LocaleEN, map[string]any{"count": 1.0}); got != want[1] {
+			t.Errorf("%s en: %q", key, got)
+		}
+	}
 	// Keys ending in "_one" that mean something else stay apart.
 	if got := i18n.T("conn.state_failing", enums.LocaleEN, map[string]any{"count": 1}); got != "failing" {
 		t.Fatalf("state_failing with one: %q", got)
