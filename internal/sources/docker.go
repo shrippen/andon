@@ -133,30 +133,40 @@ func fetchDockerDetail(ctx context.Context, sctx Ctx) (any, error) {
 		return nil, fetchError(err)
 	}
 	list := parseDocker(sctx.URL, body).Containers
-	out := &DockerDetail{Info: map[string]ContainerInfo{}}
-	var mu sync.Mutex
+	infos := make([]ContainerInfo, len(list))
+
+	// Stats take Docker a second each (it measures the CPU): they wait
+	// together, beside the quick inspects and logs.
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		parallel(ctx, min(len(list), dockerStatsMax), dockerStatsMax, func(i int) {
+			if list[i].State != StateRunning {
+				return
+			}
+			if raw, err := api.Stats(ctx, list[i].ID); err == nil {
+				infos[i].CPU, infos[i].MemMB, infos[i].MemLimitMB = containerLoad(asMap(raw))
+			}
+		})
+	})
 	parallel(ctx, len(list), dockerParallel, func(i int) {
 		c := list[i]
-		info := ContainerInfo{}
 		if raw, err := api.Inspect(ctx, c.ID); err == nil {
-			info.Restarts = int(asFloat(asMap(raw)["RestartCount"]))
-			info.OOMKilled = asBool(asMap(asMap(raw)["State"])["OOMKilled"])
+			infos[i].Restarts = int(asFloat(asMap(raw)["RestartCount"]))
+			infos[i].OOMKilled = asBool(asMap(asMap(raw)["State"])["OOMKilled"])
 		}
 		problem := c.State == StateRestarting || (c.State == StateExited && c.ExitCode != 0) || c.Health == HealthUnhealthy
 		if problem {
 			if text, err := api.Logs(ctx, c.ID, dockerLogLines); err == nil {
-				info.Logs = logLines(text)
+				infos[i].Logs = logLines(text)
 			}
 		}
-		if c.State == StateRunning && i < dockerStatsMax {
-			if raw, err := api.Stats(ctx, c.ID); err == nil {
-				info.CPU, info.MemMB, info.MemLimitMB = containerLoad(asMap(raw))
-			}
-		}
-		mu.Lock()
-		out.Info[c.Name] = info
-		mu.Unlock()
 	})
+	wg.Wait()
+
+	out := &DockerDetail{Info: map[string]ContainerInfo{}}
+	for i, c := range list {
+		out.Info[c.Name] = infos[i]
+	}
 	return out, nil
 }
 
