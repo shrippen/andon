@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -96,9 +97,9 @@ func TestDawarichDataReadsTracksOnce(t *testing.T) {
 		}
 		w.Write([]byte(`{"type": "FeatureCollection", "features": [{"properties": {"id": 8, "revision": 0, "end_at": "2026-01-06T10:00:00Z"}}]}`))
 	})
-	reads := 0
+	var reads atomic.Int32 // tracks are read in parallel
 	mux.HandleFunc("/api/v1/tracks/{id}", func(w http.ResponseWriter, r *http.Request) {
-		reads++
+		reads.Add(1)
 		if r.PathValue("id") == "8" {
 			// not classified yet: one segment of the dominant mode
 			w.Write([]byte(`{"features": [{"geometry": {"type": "LineString", "coordinates": [[13.0, 52.0], [13.1, 52.1]]},
@@ -141,8 +142,8 @@ func TestDawarichDataReadsTracksOnce(t *testing.T) {
 	if _, err := sources.DawarichData.Fetch(context.Background(), ctx); err != nil {
 		t.Fatalf("second fetch: %v", err)
 	}
-	if reads != 2 {
-		t.Fatalf("expected 2 single-track reads in total, got %d", reads)
+	if reads.Load() != 2 {
+		t.Fatalf("expected 2 single-track reads in total, got %d", reads.Load())
 	}
 }
 
