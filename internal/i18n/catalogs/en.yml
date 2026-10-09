@@ -3780,6 +3780,7 @@ weekday:
 calendar:
   all_day: all day
   name: Andon deadlines
+  unset: 'No calendar yet: edit the tile and enter its iCal address.'
 trend:
   range: '{low} – {high}'
   collecting: Collecting history (one value per day).
