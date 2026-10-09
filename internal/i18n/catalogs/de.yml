@@ -1215,6 +1215,9 @@ widget:
 connection:
   secret_for_host: 'Neuer Server: Zugang neu eingeben oder den gespeicherten ausdrücklich mitnehmen.'
   use_move: 'Anderer Server: bitte „Umziehen“ nutzen.'
+  adopt_self: 'Eine Verbindung kann nicht von sich selbst übernehmen.'
+  adopt_service: 'Nur von einer Verbindung desselben Dienstes.'
+  adopt_space: 'Nur von einer Verbindung im selben Bereich.'
   bad_date: 'Datum im Format JJJJ-MM-TT angeben.'
   missing: Verbindung fehlt
   location_personal: Standortdaten sind nur als persönliche Verbindung erlaubt.
@@ -1412,6 +1415,12 @@ conn:
   move_mine: 'leer = deinen gespeicherten nehmen'
   move_untested: 'Ohne erfolgreichen Test umziehen (z. B. wenn der neue Server noch nicht läuft)'
   move_test: 'Andon testet die neue Adresse vorher mit diesem Zugang und speichert nur, wenn der Test gelingt.'
+  adopt: 'Von einer anderen Verbindung übernehmen'
+  adopt_lead: 'Schon eine zweite Verbindung für den neuen Server angelegt? Diese hier übernimmt Kacheln, Zuordnungen im Verbund, Hinweise mit Notizen, Verlauf und Freigaben der gewählten. Die gewählte wird danach gelöscht, mit ihren Zugängen.'
+  adopt_hook: 'Danach die Webhook-Adresse dieser Verbindung im Dienst eintragen; die der gewählten hört auf.'
+  adopt_confirm: 'Übernehmen und die gewählte Verbindung löschen? Das lässt sich nicht rückgängig machen.'
+  adopt_button: 'Übernehmen'
+  adopted: 'Übernommen. Ist der neue Server eine Neuinstallation mit anderen IDs, zeigt der Verbund die Zuordnungen ohne Gegenstück zum Prüfen.'
   reactivate_keep: 'Der Server ist derselbe, dein Zugang bleibt.'
   reactivate: 'Mit neuen Werten aktivieren'
   activate: 'Aktivieren'
@@ -6065,6 +6074,7 @@ audit_action:
     secret_changed: 'Zugangsdaten geändert'
     updated: 'Verbindung geändert'
     moved: 'Verbindung umgezogen'
+    adopted: 'Verbindung übernommen'
   credential:
     set: 'Persönliche Zugangsdaten gesetzt'
   hass:

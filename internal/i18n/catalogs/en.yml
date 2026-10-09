@@ -1215,6 +1215,9 @@ widget:
 connection:
   secret_for_host: 'New server: enter the credential again or take the stored one along on purpose.'
   use_move: 'Another server: please use “Move”.'
+  adopt_self: 'A connection cannot take over from itself.'
+  adopt_service: 'Only from a connection of the same service.'
+  adopt_space: 'Only from a connection in the same space.'
   bad_date: 'Give the date as YYYY-MM-DD.'
   missing: Connection missing
   location_personal: Location data is only allowed as a personal connection.
@@ -1412,6 +1415,12 @@ conn:
   move_mine: 'empty = use your stored one'
   move_untested: 'Move without a passing test (e.g. the new server is not up yet)'
   move_test: 'Andon tests the new address with this login first and saves only if the test passes.'
+  adopt: 'Take over from another connection'
+  adopt_lead: 'Already set up a second connection for the new server? This one takes over the chosen one’s tiles, Verbund links, hints with notes, history and shares. The chosen one is deleted afterwards, with its logins.'
+  adopt_hook: 'Then enter this connection’s webhook address in the service; the chosen one’s stops working.'
+  adopt_confirm: 'Take over and delete the chosen connection? This cannot be undone.'
+  adopt_button: 'Take over'
+  adopted: 'Taken over. If the new server is a fresh install with other ids, the Verbund lists the links without a counterpart to check.'
   reactivate_keep: 'Same server: your login stays.'
   reactivate: 'Activate with the new values'
   activate: 'Activate'
@@ -6064,6 +6073,7 @@ audit_action:
     secret_changed: 'Credentials changed'
     updated: 'Connection changed'
     moved: 'Connection moved'
+    adopted: 'Connection taken over'
   credential:
     set: 'Personal credentials set'
   hass:

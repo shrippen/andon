@@ -113,3 +113,41 @@ func TestConnectionMove(t *testing.T) {
 		t.Fatal("not moved")
 	}
 }
+
+// TestConnectionAdopt: the settings tab offers the other connections of
+// the service; taking one over deletes it and says what to check.
+func TestConnectionAdopt(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+
+	space := regexp.MustCompile(`<option value="(\d+)"`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1]
+	for _, name := range []string{"Alt", "Neu"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "service": {"kimai"}, "space_id": {string(space)},
+			"name": {name}, "url": {"demo://" + strings.ToLower(name)}, "mode": {"shared"}, "secret": {"demo"}, "tls": {"verify"}})
+	}
+	ids := regexp.MustCompile(`id="health-(\d+)"`).FindAllStringSubmatch(string(mustGet(t, srv, client, "/connections")), -1)
+	if len(ids) != 2 {
+		t.Fatalf("connections: %v", ids)
+	}
+	old, fresh := ids[0][1], ids[1][1]
+
+	settings := string(mustGet(t, srv, client, "/connections/"+fresh+"?tab=settings"))
+	if !strings.Contains(settings, `action="/connections/`+fresh+`/adopt"`) || !strings.Contains(settings, `<option value="`+old+`">`) {
+		t.Fatalf("no take-over offered:\n%s", settings)
+	}
+
+	res := postForm(t, client, srv.URL+"/connections/"+fresh+"/adopt", url.Values{"csrf": {csrf}, "from": {old}})
+	if res.StatusCode != http.StatusSeeOther || !strings.Contains(res.Header.Get("Location"), "adopted") {
+		t.Fatalf("adopt: %d %s", res.StatusCode, res.Header.Get("Location"))
+	}
+	gone, err := client.Get(srv.URL + "/connections/" + old)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gone.Body.Close()
+	if gone.StatusCode != http.StatusNotFound {
+		t.Fatalf("old connection still there: %d", gone.StatusCode)
+	}
+}
