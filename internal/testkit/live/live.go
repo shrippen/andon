@@ -5,6 +5,12 @@
 // the master key in secrets/master_key. Writes go to each service's first
 // connection.
 //
+// Services without an own instance run as throwaway containers, listed
+// in extra/instances.json. They replace the local instance only when
+// asked for (ANDON_LIVE_EXTRA=1, set by scripts/live-extra.sh):
+//
+//	[{"name": "grocy", "service": "grocy", "url": "http://127.0.0.1:18116", "secret": "…", "options": {…}}]
+//
 // The tests write to real instances, so they run only when asked for
 // (ANDON_LIVE=1, set by `make live`), never with `go test ./...`.
 // Without that database or a connection of the service the test is
@@ -20,6 +26,7 @@ import (
 	"bufio"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -63,15 +70,19 @@ const (
 	// dirEnv overrides the directory (tests of this package).
 	dirEnv = "ANDON_LOCAL_TEST"
 	// runEnv must be set for live tests to run; ninjaEnv as well for
-	// writes to Invoice Ninja.
+	// writes to Invoice Ninja; extraEnv switches to the throwaway
+	// containers.
 	runEnv   = "ANDON_LIVE"
 	ninjaEnv = "ANDON_LIVE_NINJA"
+	extraEnv = "ANDON_LIVE_EXTRA"
 	dirName  = ".local-test"
 	logName  = "writes.log"
 
 	// The local instance: its database and master key.
 	dbPath  = "data/andon.db"
 	keyPath = "secrets/master_key"
+	// extraPath lists the throwaway instances.
+	extraPath = "extra/instances.json"
 
 	// namePrefix marks every entry a test creates, e.g.
 	// "andon-test TestPlaces 20261006-143005".
@@ -125,9 +136,10 @@ func Target(t testing.TB, svc Service) outbound.Target {
 	return outbound.Target{}
 }
 
-// Instances returns every connection of the local instance, at most read
-// once per directory, or skips the test when live tests are not asked
-// for or there is no instance.
+// Instances returns every connection of the local instance, or the
+// throwaway containers with ANDON_LIVE_EXTRA, read at most once per
+// directory, or skips the test when live tests are not asked for or
+// there is no instance.
 func Instances(t testing.TB) []Instance {
 	t.Helper()
 	if os.Getenv(runEnv) == "" {
@@ -140,24 +152,62 @@ func Instances(t testing.TB) []Instance {
 		return all
 	}
 
-	path := filepath.Join(d, dbPath)
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		t.Skipf("no live instance (%s/%s)", dirName, dbPath)
+	// One source per run: the local instance or the containers.
+	load, path := ofLocal, dbPath
+	if os.Getenv(extraEnv) != "" {
+		load, path = ofExtra, extraPath
 	}
-	key, err := os.ReadFile(filepath.Join(d, keyPath))
-	if errors.Is(err, os.ErrNotExist) {
-		t.Skipf("no master key (%s/%s)", dirName, keyPath)
-	}
+	all, err := load(d)
 	if err != nil {
-		t.Fatalf("read master key: %v", err)
+		t.Fatalf("read %s/%s: %v", dirName, path, err)
 	}
-
-	all, err := read(path, strings.TrimSpace(string(key)))
-	if err != nil {
-		t.Fatalf("read live instance: %v", err)
+	if len(all) == 0 {
+		t.Skipf("no live instance (%s/%s)", dirName, path)
 	}
 	cache[d] = all
 	return all
+}
+
+// ofLocal reads the local instance's connections; none without its
+// database or master key.
+func ofLocal(d string) ([]Instance, error) {
+	path := filepath.Join(d, dbPath)
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	key, err := os.ReadFile(filepath.Join(d, keyPath))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return read(path, strings.TrimSpace(string(key)))
+}
+
+// ofExtra reads the throwaway instances; none without the file.
+func ofExtra(d string) ([]Instance, error) {
+	raw, err := os.ReadFile(filepath.Join(d, extraPath))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var list []struct {
+		Name, Service, URL, Secret string
+		Options                    map[string]any
+		VerifyTLS                  bool `json:"verify_tls"`
+	}
+	if err := json.Unmarshal(raw, &list); err != nil {
+		return nil, err
+	}
+	out := make([]Instance, 0, len(list))
+	for _, e := range list {
+		out = append(out, Instance{Service: Service(e.Service), Name: e.Name,
+			Ctx: sources.Ctx{URL: strings.TrimRight(e.URL, "/"), Secret: e.Secret, VerifyTLS: e.VerifyTLS, Options: e.Options}})
+	}
+	return out, nil
 }
 
 // read unlocks the database and returns its connections with their
