@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -1005,8 +1007,13 @@ func TestFirefly(t *testing.T) {
 }
 
 // TestGhostfolio: the security token buys a session; value, performance
-// and the days come from the performance endpoint.
+// and the days come from the performance endpoint. Ghostfolio knows no
+// "1m" range (400): a year comes back, Andon keeps its last 30 days and
+// their performance, (2000-1000)/20000 = 5 %.
 func TestGhostfolio(t *testing.T) {
+	day := func(back int) string { return time.Now().UTC().AddDate(0, 0, -back).Format(time.DateOnly) }
+	chart := fmt.Sprintf(`[{"date":%q,"value":10000,"netPerformance":0},{"date":%q,"value":20000,"netPerformance":1000},`+
+		`{"date":%q,"value":21900,"netPerformance":1900},{"date":%q,"value":22000,"netPerformance":2000}]`, day(100), day(30), day(1), day(0))
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v1/auth/anonymous":
@@ -1016,7 +1023,11 @@ func TestGhostfolio(t *testing.T) {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-			w.Write([]byte(`{"performance":{"currentValueInBaseCurrency":20420,"totalInvestment":17500,"netPerformancePercentage":0.11},"chart":[{"date":"2026-10-06","value":20310},{"date":"2026-10-07","value":20420}]}`))
+			if !regexp.MustCompile(`^(1d|1y|5y|max|mtd|wtd|ytd|\d{4})$`).MatchString(r.URL.Query().Get("range")) {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			w.Write([]byte(`{"performance":{"currentValueInBaseCurrency":22000,"totalInvestment":17500,"netPerformancePercentage":0.11},"chart":` + chart + `}`))
 		case "/api/v1/portfolio/holdings":
 			w.Write([]byte(`{"holdings":[{"name":"Bonds","valueInBaseCurrency":6130},{"name":"World","valueInBaseCurrency":14290}]}`))
 		}
@@ -1027,7 +1038,7 @@ func TestGhostfolio(t *testing.T) {
 		t.Fatal(err)
 	}
 	g := raw.(*sources.GhostfolioDataset)
-	if g.Value != 20420 || g.PerformancePct != 11 || len(g.Days) != 2 || g.Holdings[0].Name != "World" {
+	if g.Value != 22000 || g.PerformancePct != 5 || len(g.Days) != 3 || g.Holdings[0].Name != "World" {
 		t.Fatalf("ghostfolio %+v", g)
 	}
 	if d := sources.DemoGhostfolio(time.Now()); len(d.Days) != 30 || d.Value == 0 || len(d.Holdings) != 2 {
