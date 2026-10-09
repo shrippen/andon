@@ -1338,6 +1338,8 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [x] Container-Dialog brauchte bei 50 Containern 10 s, jetzt 2 s (#124)
 - [x] Vaultwarden: neue Admin-Anmeldung bei jedem Abruf lief ins Limit (3 in 5 min), Meldung „login failed“ (#126)
 - [x] Kalender-Kachel ohne Adresse zeigte „FEHLER dns: “ (#128)
+- [x] 89 Zähltexte ohne Einzahl („1 Aufgaben überfällig“, auch in den Hinweisen der lokalen Instanz) (#129)
+- [x] Mastodon-Beiträge: Links mit Leerzeichen („https:// example.org“) (#130)
 - [x] CI: govulncheck rot durch Lücken in x/net und der Stdlib (#118, #123)
 
 **Offen**
@@ -1362,8 +1364,8 @@ Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die D
 - [x] Lesen (09.10.): Hacker News, Lobsters, Reddit, YouTube-Feed antworten
 - [ ] Twitch braucht ein Konto (App-Token)
 - [x] ESPHome (09.10., Docker 2026.9.1): `/devices` und `/version` wie angenommen; Basic Auth nicht geprüft
-- [x] Fediverse (09.10., GoToSocial 0.22 im Docker): Konto, Marker; Fund: Software nur in `source_url` (#121)
-- [ ] Fediverse: Mastodon und Akkoma
+- [x] Fediverse (09.10., Docker): GoToSocial 0.22 (Fund: Software nur in `source_url`, #121), Mastodon 4.7.3 (Konto, Beiträge)
+- [ ] Fediverse: Akkoma
 - [x] Lemmy (09.10., 0.19.13 im Docker): Anmeldung, Erwähnung, abonnierte und eigene Beiträge. Lemmy 1.0 (API v4) ist noch Beta
 - [ ] Lemmy: neue Anmeldung nach 401, Zwei-Faktor-Meldung
 - [ ] Hansei: Webhook-Stand und `/api/docs` gegen die echte Hansei-Instanz (dort Phase 05 offen); produktiv noch nicht eingerichtet (siehe Phase 15)
