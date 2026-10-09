@@ -33,6 +33,8 @@ func (d Deps) RegisterConnectionRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /connections/{id}/edit", d.authed(d.handleConnectionEditForm))
 	mux.HandleFunc("POST /connections/{id}/secret", d.authed(d.handleConnectionSecret))
 	mux.HandleFunc("POST /connections/{id}/edit", d.authed(d.handleConnectionUpdate))
+	mux.HandleFunc("GET /connections/{id}/move", d.authed(d.handleMoveForm))
+	mux.HandleFunc("POST /connections/{id}/move", d.authed(d.handleMove))
 	mux.HandleFunc("POST /connections/{id}/delete", d.authed(d.handleConnectionDelete))
 	mux.HandleFunc("POST /connections/{id}/test", d.authed(d.handleConnectionTest))
 	mux.HandleFunc("POST /connections/{id}/check", d.authed(d.handleConnectionCheck))
@@ -293,13 +295,21 @@ func (d Deps) handleConnectionUpdate(w http.ResponseWriter, r *http.Request, ctx
 		return
 	}
 
+	// Another server is a move: the rest is saved here, the move page
+	// then asks what the token does there.
+	to := r.FormValue("url")
+	moving := to != "" && !connections.SameServer(to, conn.URL)
+	if moving {
+		to = conn.URL
+	}
+
 	var secret *string
 	s, err := formSecret(r, conn.Service)
 	if s != "" {
 		secret = &s
 	}
 	if err == nil {
-		err = connections.Update(d.DB, ctx.Who, id, r.FormValue("name"), r.FormValue("url"), mode, secret, tls,
+		err = connections.Update(d.DB, ctx.Who, id, r.FormValue("name"), to, mode, secret, tls,
 			formOptions(r, conn.Service, conn.Options))
 	}
 	if err == nil && mode == enums.CredentialShared && r.FormValue("share_mine") != "" {
@@ -310,6 +320,10 @@ func (d Deps) handleConnectionUpdate(w http.ResponseWriter, r *http.Request, ctx
 	}
 	if err != nil {
 		d.recordPage(w, r, ctx, tabSettings, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
+		return
+	}
+	if moving {
+		http.Redirect(w, r, movePath(id, r.FormValue("url")), http.StatusSeeOther)
 		return
 	}
 	target := recordPath(id, tabSettings)

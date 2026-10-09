@@ -1189,6 +1189,15 @@ Die FRITZ!Apps nutzen keine eigene API, sondern TR-064, AHA und die Listen der B
 - [x] Kachel `fritzbox` mit Dialog (Durchsatz, Reiter Geräte, Mesh, Anrufe, Smart Home); Demowelt `fritzbox` erweitert
 - [ ] Batteriestand der DECT-Geräte gibt TR-064 nicht; nur AHA-HTTP (`getdevicelistinfos`, SID-Anmeldung) *(bei Bedarf)*
 
+### Verbindungen umziehen (begonnen 09.10.2026)
+
+Eine Verbindung neu anzulegen verliert alles, was an ihr hängt (Kacheln, Verbund-Zuordnungen, Verlauf, Notizen an Hinweisen, Webhook-Ereignisse). Bisher löschte ein neuer Server die persönlichen Zugänge aller Nutzer und verlangte den festen neu.
+
+- [x] A: „Umziehen“ (`connections.Move`, `/connections/{id}/move`): neue Adresse, fester Zugang neu oder ausdrücklich mitgenommen, Test vor dem Speichern (sonst „ohne erfolgreichen Test“). Persönliche Zugänge bleiben pausiert, jede Person sendet ihren dorthin oder gibt einen neuen ein. Ein Server-Wechsel im Formular führt dorthin (`ErrMoveHost`)
+- [x] B: Umleitung auf einen anderen Server (`httpclient.Moved`, Ursache `moved`) bietet im Test und beim letzten Fehler „Auf die neue Adresse umziehen“ an
+- [ ] C: „Übernehmen von …“: eine zweite Verbindung desselben Dienstes übernimmt Kacheln, Zuordnungen, Notizen und Verlauf der alten; Zuordnungen, deren IDs es in der neuen Instanz nicht gibt, als „prüfen“ markiert
+- Zurückgestellt: Dienst wechseln (Pi-hole → AdGuard, Jellyfin → Plex), Bereich wechseln
+
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 
 Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und angewendet (06.10.2026).

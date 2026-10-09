@@ -60,7 +60,8 @@
 
 {{/* activation: one template with its holder's login, as a sheet. A
      paused one lists what changed (Kante table.diff) and asks to activate
-     again; on the same host the stored login stays. */}}
+     again; the stored login stays, after a move to another server it goes
+     there only when its holder sends it (or enters a new one). */}}
 {{define "activation"}}{{$a := .A}}{{$r := .Root}}{{$c := $a.Template}}
 <section class="sheet activation" id="conn-{{$c.ID}}" data-state="{{if $a.Active}}active{{else if $a.Paused}}paused{{else}}off{{end}}">
   <div class="activation-head">
@@ -81,15 +82,16 @@
       </tr>{{end}}</tbody>
     </table></div>
     {{if not $a.NeedsSecret}}
+    {{if $a.NewHost}}<p class="callout callout-warn">{{t "conn.reactivate_moved" "url" $c.URL}}</p>{{end}}
     <form method="post" action="/connections/{{$c.ID}}/activate" class="inline-form">
       <input type="hidden" name="{{$r.CSRFField}}" value="{{$r.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
       {{with $a.Holder.Team}}<input type="hidden" name="team" value="{{.}}">{{end}}
-      <button type="submit" class="btn btn-accent btn-sm">{{t "conn.reactivate"}}</button>
+      <button type="submit" class="btn btn-accent btn-sm">{{if $a.NewHost}}{{t "conn.reactivate_send"}}{{else}}{{t "conn.reactivate"}}{{end}}</button>
     </form>
-    <p class="small muted">{{t "conn.reactivate_keep"}}</p>
+    {{if not $a.NewHost}}<p class="small muted">{{t "conn.reactivate_keep"}}</p>{{end}}
     {{else}}<p class="small">{{t "conn.reactivate_new_host"}}</p>{{end}}
   {{end}}
-  {{if or (not $a.Active) $a.NeedsSecret}}{{if or (not $a.Paused) $a.NeedsSecret}}
+  {{if or (not $a.Active) $a.NeedsSecret}}{{if or (not $a.Paused) $a.NeedsSecret $a.NewHost}}
   <form method="post" action="/connections/{{$c.ID}}/activate" class="inline-form cred-form">
     <input type="hidden" name="{{$r.CSRFField}}" value="{{$r.Ctx.CSRF}}"><input type="hidden" name="back" value="referer">
     {{with $a.Holder.Team}}<input type="hidden" name="team" value="{{.}}">{{end}}
@@ -372,7 +374,7 @@
           <div class="fact"><b>{{if .AvgMs}}{{.AvgMs}} ms{{else}}–{{end}}</b><span>{{t "conn.fact_ms"}}</span></div>
           <div class="fact"><b>{{.Tiles}}</b><span>{{t "conn.fact_tiles"}}</span></div>
         </div>{{end}}
-        {{with $c.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}{{if not $c.Health.LastFail.IsZero}} {{ago $c.Health.LastFail}}{{end}}: {{t .}}{{if $c.Health.ErrorSettled}} <span class="pill" data-state="applied">{{t "conn.ok_since"}}</span>{{end}}</p>{{end}}
+        {{with $c.Health.LastError}}<p class="small muted">{{t "conn.last_error"}}{{if not $c.Health.LastFail.IsZero}} {{ago $c.Health.LastFail}}{{end}}: {{t .}}{{if $c.Health.ErrorSettled}} <span class="pill" data-state="applied">{{t "conn.ok_since"}}</span>{{else if $.CanManage}}{{with movedTo .}} <a href="/connections/{{$c.ID}}/move?url={{.}}">{{t "conn.cause_fix_move"}}</a>{{end}}{{end}}</p>{{end}}
         {{if $c.DailyBudget}}<p class="small muted">{{t "conn.budget_today" "n" $c.Health.Today "max" $c.DailyBudget}}</p>{{end}}
         <div class="detail-block" id="verbund">
           <div class="h-label detail-label"><span>{{t "verbund.record"}}</span>{{if can $c.Right "edit"}}<a href="/spaces/{{$c.SpaceID}}/verbund">{{t "verbund.manage"}}</a>{{end}}</div>
@@ -451,13 +453,7 @@
           {{if or (eq $shape "none") (eq (print $c.Level) "personal")}}<input type="hidden" name="mode" value="{{$c.Mode}}">
           {{else}}{{template "conn_mode" (not $tmpl)}}{{end}}
           {{template "conn_tls" $c.VerifyTLS}}
-          {{/* A shared token does not follow the connection to another
-               server (connection.secret_for_host): enter it here with the new address. */}}
-          {{if and (ne $shape "none") (eq (print $c.Mode) "shared")}}<details class="advanced">
-            <summary>{{t "connection.new_host_secret"}}</summary>
-            <p class="small muted">{{t "connection.new_host_secret_hint"}}</p>
-            {{template "conn_secret_inputs" dict "Shape" $shape "Service" $c.Service "Keep" "" "Prefix" "host-"}}
-          </details>{{end}}
+          <p class="small muted">{{t "conn.move_hint"}} <a href="/connections/{{$c.ID}}/move">{{t "conn.move"}}</a></p>
           {{/* The rarely changed rest, saved with the same button. */}}
           <details class="advanced">
             <summary>{{t "conn.advanced"}}</summary>
@@ -625,6 +621,60 @@
 {{end}}
 
 {{/* Shared ⇄ personal: what changes for whom, before it is saved. */}}
+{{/* connection_move: a connection moves to another server (connections.Move).
+     It keeps its id, so tiles, links and history stay; the page asks
+     what the token does there and tests the new address first. */}}
+{{define "connection_move"}}{{$c := .Conn}}{{$shape := credShape $c.Service}}{{$tmpl := eq (print $c.Mode) "personal"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "conn.move"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <h1>{{t "conn.move_title" "name" $c.Name}}</h1>
+    <p class="muted">{{t (print "service." $c.Service)}} · {{$c.URL}}</p>
+    {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
+    {{with .Result}}<p class="error">{{template "test_line" dict "Result" . "Note" $.Note}}</p>{{end}}
+    <p>{{t "conn.move_lead"}}</p>
+    <form method="post" action="/connections/{{$c.ID}}/move">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+      <label for="url">{{t "conn.move_to"}}</label>
+      <input class="input" id="url" name="url" type="url" value="{{or .To $c.URL}}" required>
+
+      {{if ne $shape "none"}}
+      <div class="cred-ways"><div class="cred-way">
+      <h3>{{t "conn.move_login"}}</h3>
+      {{if $tmpl}}
+        <p class="small muted">{{t "conn.move_holders"}}</p>
+        {{template "conn_secret_inputs" dict "Shape" $shape "Service" $c.Service "Keep" (t "conn.move_mine") "Prefix" "move-"}}
+      {{else}}
+        {{if $c.HasSecret}}
+        <label class="check"><input type="radio" name="keep" value="keep"{{if eq .Keep "keep"}} checked{{end}}><span class="check-dia"></span> {{t "conn.move_keep"}}</label>
+        <label class="check"><input type="radio" name="keep" value="new"{{if eq .Keep "new"}} checked{{end}}><span class="check-dia"></span> {{t "conn.move_new"}}</label>
+        {{else}}<input type="hidden" name="keep" value="new">{{end}}
+        {{template "conn_secret_inputs" dict "Shape" $shape "Service" $c.Service "Keep" "" "Prefix" "move-"}}
+      {{end}}
+      </div></div>
+      {{end}}
+
+      {{if .Result}}<label class="check"><input type="checkbox" name="untested" value="1"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "conn.move_untested"}}</label>{{end}}
+      <p class="small muted">{{t "conn.move_test"}}</p>
+      <div class="btn-row">
+        <button type="submit" class="btn btn-accent">{{t "conn.move"}}</button>
+        <a class="btn btn-outline btn-sm" href="/connections/{{$c.ID}}?tab=settings">{{t "action.cancel"}}</a>
+      </div>
+    </form>
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}
+
 {{define "connection_mode"}}
 <!doctype html>
 <html lang="{{.Ctx.Locale}}" data-own-lang>

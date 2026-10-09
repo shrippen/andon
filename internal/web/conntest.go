@@ -42,6 +42,10 @@ func noteOf(result connections.TestResult, conn connections.View, who *access.Pr
 		if who.IsAdmin() {
 			note.Fix, note.FixURL = "conn.cause_fix_network", networkPath
 		}
+	case connections.CauseMoved:
+		if manage {
+			note.Fix, note.FixURL = "conn.cause_fix_move", movePath(conn.ID, connections.MovedTo(result.Message))
+		}
 	case connections.CauseAuth, connections.CauseForbidden:
 		note.Fix, note.FixURL = "conn.cause_fix_login", recordPath(conn.ID, tabAccess)
 	default:

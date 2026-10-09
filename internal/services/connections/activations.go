@@ -37,7 +37,8 @@ type Activation struct {
 	Holder      model.Holder
 	Active      bool // a login is stored and current
 	Paused      bool // the template changed since it was activated
-	NeedsSecret bool // paused on a new host: the old login is gone
+	NeedsSecret bool // paused without a stored login (dropped before moves kept it)
+	NewHost     bool // paused by a move: renewing sends the stored login to another server
 	SecretAt    time.Time
 	Changes     []Change
 }
@@ -90,6 +91,8 @@ func activationOf(tx *sql.Tx, v View, h model.Holder) (Activation, error) {
 	a.NeedsSecret = cred.SecretEnc == nil
 	if a.Paused {
 		a.Changes = changesOf(cred.Snapshot, snapshotOf(conn))
+		was, _ := cred.Snapshot[FieldURL].(string)
+		a.NewHost = hostOf(was) != hostOf(conn.URL)
 	}
 	return a, nil
 }
