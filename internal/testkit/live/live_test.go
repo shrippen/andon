@@ -121,3 +121,24 @@ func TestChangeTextIDs(t *testing.T) {
 		t.Fatal("foreign key counted as own")
 	}
 }
+
+// TestInstancesReadsExtra: throwaway instances in extra/instances.json
+// (Docker containers for services without an own instance) join the
+// local instance's connections, here without a database.
+func TestInstancesReadsExtra(t *testing.T) {
+	d := local(t)
+	if err := os.MkdirAll(filepath.Join(d, "extra"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	extra := `[{"name": "grocy", "service": "grocy", "url": "http://127.0.0.1:18116/", "secret": "key", "options": {"a": 1}},
+	           {"name": "pbs", "service": "pbs", "url": "https://127.0.0.1:18127", "verify_tls": true}]`
+	if err := os.WriteFile(filepath.Join(d, extraPath), []byte(extra), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	all := Instances(t)
+	if len(all) != 2 || all[0].Service != "grocy" || all[0].Ctx.URL != "http://127.0.0.1:18116" || all[0].Ctx.Secret != "key" ||
+		all[0].Ctx.Options["a"] != 1.0 || all[0].Ctx.VerifyTLS || !all[1].Ctx.VerifyTLS {
+		t.Fatalf("instances = %+v", all)
+	}
+}
