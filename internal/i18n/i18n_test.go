@@ -33,6 +33,9 @@ func TestMoneyFormatsByLocale(t *testing.T) {
 	if got := i18n.Money(1234.5, enums.LocaleEN, "EUR"); got != "€1,234.50" {
 		t.Fatalf("expected English money format, got %q", got)
 	}
+	if got := i18n.Money(11.12, enums.LocaleEN, "USD") + " | " + i18n.Money(11.12, enums.LocaleDE, "USD"); got != "$11.12 | 11,12 $" {
+		t.Fatalf("expected dollar sign, got %q", got)
+	}
 }
 
 func TestNumGrouping(t *testing.T) {

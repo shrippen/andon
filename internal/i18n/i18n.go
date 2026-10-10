@@ -234,8 +234,11 @@ func Money(value float64, locale enums.Locale, currency string) string {
 }
 
 func currencySymbol(currency string) string {
-	if currency == "EUR" {
+	switch currency {
+	case "EUR":
 		return "€"
+	case "USD":
+		return "$"
 	}
 	return currency
 }
