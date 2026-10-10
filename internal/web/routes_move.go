@@ -88,3 +88,22 @@ func (d Deps) movePage(w http.ResponseWriter, r *http.Request, ctx Ctx, status i
 	values["Conn"] = conn
 	_ = d.Page(w, ctx, "connection_move", status, values)
 }
+
+// adoptedFlag tells the record it just took over another connection.
+const adoptedFlag = "adopted"
+
+// handleAdopt makes the connection take over another one's tiles, links,
+// hints and history; the other one is deleted.
+func (d Deps) handleAdopt(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if err := connections.Adopt(d.DB, ctx.Who, id, formID(r, "from")); err != nil {
+		d.recordPage(w, r, ctx, tabSettings, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
+		return
+	}
+	target := withQuery(withQuery(recordPath(id, tabOverview), testedFlag, ""), adoptedFlag, "")
+	http.Redirect(w, r, target, http.StatusSeeOther)
+}

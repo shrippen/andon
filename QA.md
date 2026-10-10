@@ -206,6 +206,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 1. `/connections/{id}`: Reiter Übersicht, Zugang, Einstellungen, Verlauf; Test; leerer Name; Vorlage-Verbindung.
 2. Homelable: Reiter Abgleich zeigt den Lauf nach dem Prüflauf (Zähler, Quelle Gitea); „Jetzt abgleichen“ landet wieder dort, der zweite Lauf ändert nichts (alles unverändert). Bei `demo://` kein „In Homelable öffnen“.
 3. Umziehen: in Einstellungen eine Adresse auf einem anderen Server eintragen → Name und Rest gespeichert, weiter auf „Umziehen“ mit der neuen Adresse. Feste Verbindung: „Gespeicherten Zugang senden“ oder neuer Zugang; Ziel, das nicht antwortet → Testergebnis, nichts gespeichert, Häkchen „Ohne erfolgreichen Test“. Danach: gleiche Kacheln, Verbund, Verlauf. Vorlage: Mara sieht ihren Zugang pausiert mit „Zugang dorthin senden“. Eine Adresse, die auf einen anderen Server umleitet (Test oder letzter Fehler), bietet „Auf die neue Adresse umziehen“ an.
+4. Übernehmen: zweite Verbindung desselben Dienstes im selben Bereich anlegen; in ihren Einstellungen „Von einer anderen Verbindung übernehmen“ (Rückfrage) → Kacheln, Verbund-Zuordnungen, Hinweise mit Notizen, Verlauf und Freigaben hängen an der neuen, die alte ist weg (404), Meldung nennt den Verbund zum Prüfen. Ohne zweite Verbindung kein Abschnitt.
 
 **J-E8 Server, Betrieb, Audit**
 1. `/admin/settings`: ungültige Zahlen und URLs, CIDR „not-a-cidr“, `javascript:` als iframe-Herkunft, OIDC-Test leer.

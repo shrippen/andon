@@ -159,6 +159,7 @@ func (d Deps) recordValues(r *http.Request, ctx Ctx, conn connections.View) (map
 	if conn.Right >= enums.RightManage {
 		hook, _ := connections.HookURL(d.DB, ctx.Who, conn.ID, d.Settings.BaseURL)
 		values["HookURL"], values["HookLocal"] = hook, hook != "" && unreachable(hook)
+		values["AdoptFrom"], _ = connections.AdoptCandidates(d.DB, ctx.Who, conn.ID)
 	}
 	// Just signed in, set up or given a new login: show right away whether
 	// the service answers.
@@ -170,6 +171,7 @@ func (d Deps) recordValues(r *http.Request, ctx Ctx, conn connections.View) (map
 	if q.Has("connected") {
 		values["Connected"] = true
 	}
+	values["Adopted"] = q.Has(adoptedFlag)
 	if q.Has("welcome") {
 		values["Suggest"] = widgetsFor(conn.Service)
 	}

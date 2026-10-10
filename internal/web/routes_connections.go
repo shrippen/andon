@@ -35,6 +35,7 @@ func (d Deps) RegisterConnectionRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /connections/{id}/edit", d.authed(d.handleConnectionUpdate))
 	mux.HandleFunc("GET /connections/{id}/move", d.authed(d.handleMoveForm))
 	mux.HandleFunc("POST /connections/{id}/move", d.authed(d.handleMove))
+	mux.HandleFunc("POST /connections/{id}/adopt", d.authed(d.handleAdopt))
 	mux.HandleFunc("POST /connections/{id}/delete", d.authed(d.handleConnectionDelete))
 	mux.HandleFunc("POST /connections/{id}/test", d.authed(d.handleConnectionTest))
 	mux.HandleFunc("POST /connections/{id}/check", d.authed(d.handleConnectionCheck))

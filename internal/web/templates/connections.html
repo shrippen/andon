@@ -354,6 +354,7 @@
     <h1>{{t "nav.connections"}}{{with .LevelName}} <small class="muted">{{.}}</small>{{end}}</h1>
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
     {{if .Connected}}<p class="ok">{{t "connect.done"}}</p>{{end}}
+    {{if .Adopted}}<p class="ok">{{t "conn.adopted"}}</p>{{end}}
     {{with .TestResult}}<p class="{{if not .Ok}}error{{end}}">{{template "test_line" dict "Result" . "Note" $.TestNote}}</p>{{range .Gaps}}<p class="callout callout-warn">{{t "caps.note"}} {{template "cap_what" .Cap}} – {{template "cap_need" .Need}}.</p>{{end}}{{end}}
 
     <article class="dialog detail is-page">
@@ -472,6 +473,15 @@
           </details>
           <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
         </form>
+        {{with .AdoptFrom}}<div class="detail-block">
+          <div class="h-label detail-label"><span>{{t "conn.adopt"}}</span></div>
+          <p class="small muted">{{t "conn.adopt_lead"}}{{if hooked $c.Service}} {{t "conn.adopt_hook"}}{{end}}</p>
+          <form method="post" action="/connections/{{$c.ID}}/adopt" class="inline-form" data-confirm="{{t "conn.adopt_confirm"}}">
+            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+            <select class="select" name="from" aria-label="{{t "conn.adopt"}}">{{range .}}<option value="{{.ID}}">{{.Name}}{{with .URL}} · {{.}}{{end}}</option>{{end}}</select>
+            <button type="submit" class="btn btn-outline btn-sm">{{t "conn.adopt_button"}}</button>
+          </form>
+        </div>{{end}}
         {{template "danger_zone" dict "Action" (print "/connections/" $c.ID "/delete") "Text" (t "conn.delete_hint") "Button" (t "conn.delete") "Confirm" (t "edit.confirm_delete") "CSRFField" .CSRFField "CSRF" .Ctx.CSRF}}
       </section>
       {{end}}

@@ -1195,7 +1195,7 @@ Eine Verbindung neu anzulegen verliert alles, was an ihr hängt (Kacheln, Verbun
 
 - [x] A: „Umziehen“ (`connections.Move`, `/connections/{id}/move`): neue Adresse, fester Zugang neu oder ausdrücklich mitgenommen, Test vor dem Speichern (sonst „ohne erfolgreichen Test“). Persönliche Zugänge bleiben pausiert, jede Person sendet ihren dorthin oder gibt einen neuen ein. Ein Server-Wechsel im Formular führt dorthin (`ErrMoveHost`)
 - [x] B: Umleitung auf einen anderen Server (`httpclient.Moved`, Ursache `moved`) bietet im Test und beim letzten Fehler „Auf die neue Adresse umziehen“ an
-- [ ] C: „Übernehmen von …“: eine zweite Verbindung desselben Dienstes übernimmt Kacheln, Zuordnungen, Notizen und Verlauf der alten; Zuordnungen, deren IDs es in der neuen Instanz nicht gibt, als „prüfen“ markiert
+- [x] C: „Übernehmen von …“ (`connections.Adopt`): eine zweite Verbindung desselben Dienstes im selben Bereich übernimmt Kacheln (auch Link-Infozeilen), Verbund-Mitgliedschaft und IDs, Hinweise mit Notizen und Verlauf (bei doppelten gewinnt der alte), Abruf-Verlauf, Webhook-Ereignisse, Mail-Auswertungen und Freigaben; die alte wird gelöscht. IDs, die es in der neuen Instanz nicht gibt, zeigt der Verbund als Waisen zum Prüfen. Nicht übernommen: Webhook-Adresse (enthält die Verbindungs-ID), Wartungsfenster
 - Zurückgestellt: Dienst wechseln (Pi-hole → AdGuard, Jellyfin → Plex), Bereich wechseln
 
 ### KI-Kosten: Token-Nutzung der LLM-Anbieter (umgesetzt 10.10.2026)
