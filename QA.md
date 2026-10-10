@@ -99,6 +99,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 2. `/reports/isp`: Neuverbindungen der FRITZ!Box mit Zeit und Ausfall (gesehene mit „mindestens … min“), dieselben Zeilen in der CSV; `/timeline` nennt sie als Wechsel „WAN“.
 3. `/calendar.ics` mit Sitzung, ohne Sitzung, mit Lese-Token (`/me/security`): doppelte Termine?
 4. Kachel „FRITZ!Box“ (Board Studio-IT, Abschnitt Sicherheit): Durchsatz jetzt und als Linie, Repeater mit schwachem WLAN und Thermostat ohne Verbindung farbig, FRITZ!OS mit Update im Fuß. Dialog: Durchsatz-Diagramm mit Achse und Legende, Reiter Geräte, Mesh (WLAN der Box), Anrufe (03:13 „Unbekannt“), Smart Home; Kachel-Optionen blenden Durchsatz, Mesh, Anrufe, Smart Home aus.
+5. Kachel „KI-Kosten“ (Board Studio-IT, Abschnitt Status): Summe des Monats und heute in $, je Konto Ausgaben, Guthaben, Schlüssel-Limit oder Abo-Fenster als Balken; die Woche des Claude-Abos (91 %) steht oben. Dialog: Kosten je Tag mit Achse und Legende je Konto, Kontingente und Limits mit Rücksetzzeit, Konten (Budget überschritten rot), Modelle des Monats. Hinweise: Guthaben knapp (DeepSeek, OpenRouter), Kostensprung (Claude API, heute), Woche bei 91 %. Option „Nur diese Anbieter“ (`deepseek`) lässt nur DeepSeek.
 
 **J-B6 Sprache**
 1. Abgemeldet auf der Anmeldeseite im Fuß „EN“ wählen: die Seite ist englisch und bleibt es nach Neuladen. Anmelden: es gilt die Sprache des Profils.

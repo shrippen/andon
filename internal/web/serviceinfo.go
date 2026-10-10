@@ -80,6 +80,12 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServiceFirefly:        "https://www.firefly-iii.org",
 	enums.ServiceGhostfolio:     "https://ghostfol.io",
 	enums.ServiceTibber:         "https://tibber.com",
+	enums.ServiceClaudeAPI:      "https://platform.claude.com/docs/en/manage-claude/usage-cost-api",
+	enums.ServiceClaudePlan:     "https://claude.ai",
+	enums.ServiceOpenRouter:     "https://openrouter.ai",
+	enums.ServiceOpenAI:         "https://platform.openai.com/docs/api-reference/usage",
+	enums.ServiceDeepSeek:       "https://platform.deepseek.com",
+	enums.ServiceLiteLLM:        "https://www.litellm.ai",
 }
 
 func projectURL(service enums.ServiceType) string {
@@ -106,14 +112,20 @@ func alsoLinksOf(service enums.ServiceType) []namedLink {
 // only against fakes: whole services with "", or the part named by the
 // note's key suffix (conn.experimental_<part>).
 var experimental = map[enums.ServiceType]string{
-	enums.ServiceProxmox:   "",
-	enums.ServiceApcupsd:   "",
-	enums.ServiceOpenDTU:   "",
-	enums.ServiceTautulli:  "",
-	enums.ServiceTibber:    "",
-	enums.ServiceHansei:    "",
-	enums.ServiceFediverse: "akkoma",
-	enums.ServiceESPHome:   "basic_auth",
+	enums.ServiceProxmox:    "",
+	enums.ServiceApcupsd:    "",
+	enums.ServiceOpenDTU:    "",
+	enums.ServiceTautulli:   "",
+	enums.ServiceTibber:     "",
+	enums.ServiceClaudeAPI:  "",
+	enums.ServiceClaudePlan: "",
+	enums.ServiceOpenRouter: "",
+	enums.ServiceOpenAI:     "",
+	enums.ServiceDeepSeek:   "",
+	enums.ServiceLiteLLM:    "",
+	enums.ServiceHansei:     "",
+	enums.ServiceFediverse:  "akkoma",
+	enums.ServiceESPHome:    "basic_auth",
 }
 
 // experimentalWhole: the whole service is untested (badge in the picker).

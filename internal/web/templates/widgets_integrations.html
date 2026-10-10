@@ -314,3 +314,25 @@
 {{with $v.Posts}}<ul class="legend-list">{{range .}}<li><span class="sq" aria-hidden="true"></span><span class="stack-item"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Title}}</a><small class="muted">c/{{.Community}} · {{t "lemmy.points" "n" .Score}} · <a href="{{.Link}}" target="_blank" rel="noopener noreferrer">{{t "lemmy.comments_n" "n" .Comments}}</a> · {{ago .At}}</small></span></li>{{end}}</ul>{{end}}
 {{else if $v}}<p class="tile-note">{{t "lemmy.none"}}</p>{{end}}{{end}}
 {{end}}
+
+{{/* llm_usage: the month over all LLM accounts, then each account with
+     its spend, credit, plan window or key limit. */}}
+{{define "widgets/llm_usage"}}
+{{with $v := .Frag.View}}{{if $v.Any}}
+{{if $v.Spends}}<div class="tile-head"><b class="tile-value" data-live>{{money $v.Month $v.Currency}}</b><span class="tile-note">{{t "llm.tile_month" "today" (money $v.Today $v.Currency)}}</span></div>{{end}}
+<div class="meters">
+{{range $v.Lines}}
+  <div class="progress">
+    <div class="progress-head"><span>{{if .Name}}{{.Name}} <small class="muted">{{t (print "service." .Service)}}</small>{{else}}{{t (print "service." .Service)}}{{end}}</span><span>{{if .Spend}}{{money .Month $v.Currency}}{{end}}</span></div>
+    {{with .Quota}}{{template "llm_meter" .}}{{end}}
+    {{with .Limit}}{{template "llm_meter" .}}{{end}}
+    {{if .Credit}}<small class="muted">{{t "llm.credit" "amount" (money .Credit.Amount .Credit.Currency)}}</small>{{end}}
+  </div>
+{{end}}
+</div>
+{{else}}<p class="tile-note">{{t "llm.none"}}</p>{{end}}{{end}}
+{{end}}
+
+{{/* llm_meter: a plan window or key limit as a bar (LLMMeter). */}}
+{{define "llm_meter"}}<div class="progress-bar"><i data-style="--p:{{.Fill}}%" data-tier="{{.Tier}}"></i></div>
+<small class="muted">{{t .Key "model" .Model}} · {{num .Pct 0}} %</small>{{end}}

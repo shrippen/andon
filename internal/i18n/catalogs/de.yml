@@ -30,6 +30,12 @@ nav:
   clients: 'Kunden'
   hosts: 'Hosts'
 action:
+  open_in_claudeapi: 'In Claude Console öffnen'
+  open_in_claudeplan: 'In claude.ai öffnen'
+  open_in_openrouter: 'In OpenRouter öffnen'
+  open_in_openai: 'In OpenAI öffnen'
+  open_in_deepseek: 'In DeepSeek öffnen'
+  open_in_litellm: 'In LiteLLM öffnen'
   copy: Kopieren
   open_drafts: 'Zu den Entwürfen'
   isp_report: 'Bericht öffnen'
@@ -368,6 +374,7 @@ typefield:
   conn_health:
     only_problems: Nur aktuell wackelige (letzte 2 Tage)
 field:
+  providers: 'Nur diese Anbieter (claudeapi, claudeplan, openrouter, openai, deepseek, litellm)'
   site: Seite
   hours: Verlauf (Stunden)
   warn: Warnen ab
@@ -843,6 +850,9 @@ wall_ease:
   soft: Sanft auslaufend
   snap: Federnd
 wtype:
+  llm_usage:
+    name: 'KI-Kosten'
+    desc: 'Tokens, Kosten, Guthaben und Abo-Kontingente der KI-Anbieter: Claude, OpenRouter, OpenAI, DeepSeek, LiteLLM.'
   github_trending:
     name: GitHub-Trends
     desc: 'Neue Repositories des Zeitraums mit den meisten Sternen (GitHub-Suche), auf Wunsch einer Sprache.'
@@ -1346,6 +1356,26 @@ history:
   sections: Abschnitte
   restore: Wiederherstellen
 conn:
+  options_hint_claudeapi: 'Die URL bleibt https://api.anthropic.com. Token = ein Admin-API-Schlüssel (sk-ant-admin…, Console → Settings → Admin keys); den gibt es nur für Organisationen, normale API-Schlüssel lehnt die Schnittstelle ab. Optional ein Monatsbudget in USD.'
+  about_claudeapi: 'Claude API: Tokens und Kosten je Modell'
+  what_claudeapi: 'Die Usage & Cost API der Claude Console meldet Tokens und Kosten je Tag und Modell für die ganze Organisation.'
+  options_hint_claudeplan: 'Die URL bleibt https://api.anthropic.com. Token = ein OAuth-Token deiner claude.ai-Anmeldung, z. B. aus claude setup-token. Andon liest das Sitzungs- und Wochenkontingent, das claude.ai unter Einstellungen → Nutzung zeigt. Anthropic dokumentiert diese Schnittstelle nicht; sie kann sich ändern.'
+  about_claudeplan: 'Claude Pro/Max: Sitzungs- und Wochenkontingent'
+  what_claudeplan: 'Claude Pro und Max begrenzen die Nutzung je Sitzung (5 h) und je Woche. Andon zeigt, wie voll jedes Fenster ist und wann es zurückgesetzt wird.'
+  options_hint_openrouter: 'Die URL bleibt https://openrouter.ai/api/v1. Token = ein API-Schlüssel (Ausgaben und Schlüssel-Limit) oder ein Management-Schlüssel (dazu Guthaben und Kosten je Modell und Tag). Optional ein Monatsbudget in USD.'
+  about_openrouter: 'OpenRouter: Ausgaben, Guthaben, Schlüssel-Limit'
+  what_openrouter: 'OpenRouter leitet Anfragen an viele Modell-Anbieter weiter und rechnet sie über ein Guthaben ab.'
+  options_hint_openai: 'Die URL bleibt https://api.openai.com/v1. Token = ein Admin-Schlüssel der Organisation (platform.openai.com → Settings → Admin keys). Optional ein Monatsbudget in USD.'
+  about_openai: 'OpenAI API: Tokens je Modell, Kosten je Tag'
+  what_openai: 'Die Usage- und Costs-API von OpenAI meldet Tokens je Modell und Kosten je Tag einer Organisation.'
+  options_hint_deepseek: 'Die URL bleibt https://api.deepseek.com. Token = ein API-Schlüssel (platform.deepseek.com → API keys). DeepSeek meldet nur das Guthaben, keinen Verlauf.'
+  about_deepseek: 'DeepSeek: Guthaben'
+  what_deepseek: 'DeepSeek rechnet über ein vorausbezahltes Guthaben ab.'
+  options_hint_litellm: 'URL deines LiteLLM-Proxys, z. B. https://llm.example.org. Token = der Master-Schlüssel oder ein Schlüssel, der die Ausgabenberichte lesen darf. Optional ein Monatsbudget in USD.'
+  about_litellm: 'LiteLLM-Proxy: Ausgaben je Modell und Tag'
+  what_litellm: 'LiteLLM ist ein selbst gehosteter Proxy vor vielen KI-Anbietern; er zählt Tokens und Kosten jeder Anfrage.'
+  llm_budget: 'Monatsbudget (USD)'
+  llm_budget_hint: 'Leer = kein Budget. Andon warnt, wenn der Monat es erreicht oder darauf zuläuft.'
   tiles_title: 'Passende Kacheln'
   tiles_lead: 'Die Verbindung steht. Ein Klick legt eine Kachel mit ihren Daten auf das Board.'
   tiles_put: '{tile} auf Board legen'
@@ -1793,6 +1823,12 @@ mode:
   dark: Dunkel
   light: Hell
 service:
+  claudeapi: 'Claude API'
+  claudeplan: 'Claude-Abo (Pro/Max)'
+  openrouter: 'OpenRouter'
+  openai: 'OpenAI API'
+  deepseek: 'DeepSeek'
+  litellm: 'LiteLLM'
   calendar: 'Kalender (iCal)'
   tailscale: 'Tailscale / Headscale'
   gateway: 'Router (OPNsense, pfSense, UniFi, OpenWrt)'
@@ -2173,6 +2209,25 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  llm:
+    budget_over:
+      title: '{account}: Budget aufgebraucht'
+      why: 'Diesen Monat {spent} ausgegeben, Budget {budget}.'
+    budget_pace:
+      title: '{account} läuft über das Budget'
+      why: 'Bisher {spent} in diesem Monat; in diesem Tempo {pace} bis Monatsende, Budget {budget}.'
+    credit_low:
+      title: '{account}: Guthaben knapp'
+      why: 'Nur noch {balance}. Aufladen, bevor Anfragen scheitern.'
+    limit_low:
+      title: '{account}: Schlüssel-Limit fast erreicht'
+      why: 'Noch {left} von {limit} am Schlüssel. Limit erhöhen oder auf das Zurücksetzen warten.'
+    quota_high:
+      title: '{account}: {window} bei {percent} %'
+      why: 'Zurückgesetzt {resets}. Bis dahin können Anfragen gebremst oder abgelehnt werden.'
+    spike:
+      title: '{account} kostet heute ungewöhnlich viel'
+      why: 'Heute {today}, an einem üblichen Tag {usual}. Eine Schleife, ein doppelter Lauf oder ein verwechseltes Modell?'
   lemmy:
     replies:
       title: '{count} ungelesen auf Lemmy'
@@ -3121,6 +3176,10 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
 info:
+  llm:
+    month: '{amount} diesen Monat'
+    credit: 'Guthaben {amount}'
+    quota: '{window} {pct} %'
   lemmy:
     info: '{unread} ungelesen'
   esphome:
@@ -3423,6 +3482,10 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  llm.budget: 'KI-Budget'
+  llm.credit_low: 'KI-Guthaben knapp'
+  llm.quota_high: 'Abo-Kontingent fast verbraucht'
+  llm.spike: 'KI-Kostensprung'
   firefly.recurring_missed: 'Dauerauftrag ausgeblieben (Firefly III)'
   firefly.low_balance: 'Kontostand niedrig (Firefly III)'
   firefly.uncategorized: 'Unkategorisierte Buchungen (Firefly III)'
@@ -3664,6 +3727,9 @@ rule_name:
   truenas.scrub_old: 'Pool-Scrub'
   gateway.new_device: 'Neue Geräte im Netz'
 param:
+  min_balance: 'Guthaben unter (USD)'
+  min_limit_pct: 'Schlüssel-Limit übrig unter (%)'
+  min_usd: 'Mindestens (USD)'
   min_db: 'Mindestens dB'
   min_dbm: 'Mindestens dBm'
   booked_share: 'Anteil des Gebuchten'
@@ -6854,3 +6920,40 @@ period:
   last_12m: 'letzte 12 Monate'
   today: 'Stand heute'
   data_from: 'Daten ab {month}'
+llm:
+  tile_month: 'diesen Monat · heute {today}'
+  none: 'Kein KI-Anbieter verbunden.'
+  credit: 'Guthaben {amount}'
+  account: '{service} · {name}'
+  bar: '{window} · {account}'
+  resets: '{pct} % · zurückgesetzt {when}'
+  left_of: '{left} von {limit} übrig'
+  limit_used: 'Schlüssel-Limit'
+  other: 'Sonstiges (Werkzeuge, Suche)'
+  chart: 'Kosten je Tag (USD)'
+  quotas: 'Kontingente und Limits'
+  accounts: 'Konten'
+  models: 'Modelle in diesem Monat'
+  quota:
+    session: 'Sitzung (5 h)'
+    week: 'Woche'
+    week_model: 'Woche · {model}'
+    extra: 'Zusatznutzung'
+  facts:
+    month: 'diesen Monat'
+    today: 'heute'
+    tokens: 'Tokens diesen Monat'
+    requests: 'Anfragen diesen Monat'
+  col:
+    account: 'Konto'
+    month: 'Monat'
+    today: 'Heute'
+    credit: 'Guthaben'
+    budget: 'Budget'
+    provider: 'Anbieter'
+    model: 'Modell'
+    input: 'Eingabe'
+    cached: 'Cache'
+    output: 'Ausgabe'
+    requests: 'Anfragen'
+    cost: 'Kosten'

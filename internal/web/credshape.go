@@ -32,14 +32,19 @@ const (
 // defaultURLs are the fixed API addresses of hosted services, filled in
 // when such a connection is set up.
 var defaultURLs = map[enums.ServiceType]string{
-	enums.ServiceGitHub:    "https://api.github.com",
-	enums.ServiceKDEStore:  "https://api.kde-look.org",
-	enums.ServiceNVD:       "https://services.nvd.nist.gov",
-	enums.ServiceTibber:    "https://api.tibber.com/v1-beta/gql",
-	enums.ServiceDWD:       "https://api.brightsky.dev",
-	enums.ServiceTailscale: "https://api.tailscale.com",
-	enums.ServiceNews:      "https://news.ycombinator.com",
-	enums.ServiceTwitch:    "https://api.twitch.tv",
+	enums.ServiceGitHub:     "https://api.github.com",
+	enums.ServiceKDEStore:   "https://api.kde-look.org",
+	enums.ServiceNVD:        "https://services.nvd.nist.gov",
+	enums.ServiceTibber:     "https://api.tibber.com/v1-beta/gql",
+	enums.ServiceDWD:        "https://api.brightsky.dev",
+	enums.ServiceTailscale:  "https://api.tailscale.com",
+	enums.ServiceNews:       "https://news.ycombinator.com",
+	enums.ServiceTwitch:     "https://api.twitch.tv",
+	enums.ServiceClaudeAPI:  "https://api.anthropic.com",
+	enums.ServiceClaudePlan: "https://api.anthropic.com",
+	enums.ServiceOpenRouter: "https://openrouter.ai/api/v1",
+	enums.ServiceOpenAI:     "https://api.openai.com/v1",
+	enums.ServiceDeepSeek:   "https://api.deepseek.com",
 }
 
 func defaultURL(service enums.ServiceType) string {
@@ -179,9 +184,16 @@ var setupFields = map[enums.ServiceType][]setupField{
 		{Key: "user", Label: "conn.kdestore_user", Kind: fieldText, Hint: "conn.kdestore_user_hint", Optional: true},
 		{Key: "ids", Label: "conn.kdestore_ids", Kind: fieldIDs, Hint: "conn.kdestore_ids_hint", Optional: true},
 	},
-	enums.ServiceNews:   {{Key: "sites", Label: "conn.news_sites", Kind: fieldText, Hint: "conn.news_sites_hint", Optional: true}},
-	enums.ServiceTwitch: {{Key: "channels", Label: "conn.twitch_channels", Kind: fieldText, Hint: "conn.twitch_channels_hint"}},
+	enums.ServiceNews:       {{Key: "sites", Label: "conn.news_sites", Kind: fieldText, Hint: "conn.news_sites_hint", Optional: true}},
+	enums.ServiceTwitch:     {{Key: "channels", Label: "conn.twitch_channels", Kind: fieldText, Hint: "conn.twitch_channels_hint"}},
+	enums.ServiceClaudeAPI:  {llmBudget},
+	enums.ServiceOpenRouter: {llmBudget},
+	enums.ServiceOpenAI:     {llmBudget},
+	enums.ServiceLiteLLM:    {llmBudget},
 }
+
+// llmBudget is an LLM provider's monthly budget in USD (rule llm.budget).
+var llmBudget = setupField{Key: "budget", Label: "conn.llm_budget", Kind: fieldText, Hint: "conn.llm_budget_hint", Optional: true}
 
 func setupFieldsOf(service enums.ServiceType) []setupField {
 	return setupFields[service]

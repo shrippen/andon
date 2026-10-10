@@ -45,6 +45,12 @@ connections:
   - {id: esphome, type: esphome, name: ESPHome, url: "demo://esphome", credentials: shared}
   - {id: fediverse, type: fediverse, name: Mastodon, url: "demo://fediverse", credentials: shared}
   - {id: lemmy, type: lemmy, name: Lemmy, url: "demo://lemmy", credentials: shared}
+  - {id: claudeapi, type: claudeapi, name: Claude API, url: "demo://claudeapi", credentials: shared}
+  - {id: claudeplan, type: claudeplan, name: Claude Max, url: "demo://claudeplan", credentials: shared}
+  - {id: openrouter, type: openrouter, name: OpenRouter, url: "demo://openrouter", credentials: shared}
+  - {id: openai, type: openai, name: OpenAI, url: "demo://openai", credentials: shared}
+  - {id: deepseek, type: deepseek, name: DeepSeek, url: "demo://deepseek", credentials: shared}
+  - {id: litellm, type: litellm, name: LiteLLM, url: "demo://litellm", credentials: shared}
   - {id: ghostfolio, type: ghostfolio, name: Ghostfolio, url: "demo://ghostfolio", credentials: shared}
   - {id: linkwarden, type: linkwarden, name: Linkwarden, url: "demo://linkwarden", credentials: shared}
   - {id: pgback, type: pgbackweb, name: PG Back Web, url: "demo://pgbackweb", credentials: shared}
@@ -100,6 +106,7 @@ widgets:
   - {id: esp, type: esphome, title: ESPHome, connection: esphome, config: {}}
   - {id: fedi, type: fediverse, title: Mastodon, connection: fediverse, config: {}}
   - {id: lemmy, type: lemmy, title: Lemmy, connection: lemmy, config: {}}
+  - {id: llm, type: llm_usage, title: KI-Kosten, config: {}}
   - {id: depot, type: depot, title: Depot, connection: ghostfolio, config: {}}
   - {id: routes, type: routes, title: Routen, config: {}}
   - {id: fritz, type: fritzbox, title: FRITZ!Box, connection: fritzbox, config: {}}
@@ -120,5 +127,5 @@ boards:
       - {title: Betrieb, cols: 4, widgets: [kuma-link, pve-link, paperless-link, certs-link, scrutiny-link, immich-link, umami-link, freshrss-link, gitea-link, borg-link, hass-link, truenas-link, komodo-link, pangolin-link, authentik-link]}
       - {title: Netz, cols: 4, span: 2, color: blue, widgets: [pihole-link, nextcloud-link, sabnzbd-link, gluetun-link, domains-link, blacklist-link]}
       - {title: Info, area: side, widgets: [clock, note]}
-      - {title: Status, area: side, widgets: [monitors, uptime, hass-panel, authentik-apps, updates, backups, heartbeats, nas-load, ci, power, playing, todo, depot, reading, esp, fedi, lemmy, downloads, store-downloads]}
+      - {title: Status, area: side, widgets: [monitors, uptime, hass-panel, authentik-apps, updates, backups, heartbeats, nas-load, ci, llm, power, playing, todo, depot, reading, esp, fedi, lemmy, downloads, store-downloads]}
       - {title: Sicherheit, widgets: [exposure, vulns, routes, fritz]}

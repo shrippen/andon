@@ -1198,6 +1198,15 @@ Eine Verbindung neu anzulegen verliert alles, was an ihr hängt (Kacheln, Verbun
 - [ ] C: „Übernehmen von …“: eine zweite Verbindung desselben Dienstes übernimmt Kacheln, Zuordnungen, Notizen und Verlauf der alten; Zuordnungen, deren IDs es in der neuen Instanz nicht gibt, als „prüfen“ markiert
 - Zurückgestellt: Dienst wechseln (Pi-hole → AdGuard, Jellyfin → Plex), Bereich wechseln
 
+### KI-Kosten: Token-Nutzung der LLM-Anbieter (umgesetzt 10.10.2026)
+
+Ein Datensatz für alle Anbieter (`sources.LLMDataset`, je Verbindung ein Konto, mehrere Verbindungen werden zusammengeführt), eine Kachel, Regeln quer über alle Konten.
+- [x] Claude API (Usage & Cost Admin API, Admin-Schlüssel), Claude-Abo Pro/Max (OAuth, nicht dokumentierter Endpunkt `api/oauth/usage`: Sitzung, Woche, Woche je Modell, Zusatznutzung), OpenRouter (Schlüssel; mit Management-Schlüssel auch Guthaben und Verlauf je Modell), OpenAI (Usage + Costs, Admin-Schlüssel), DeepSeek (nur Guthaben), LiteLLM-Proxy (`user/daily/activity`)
+- [x] Kachel `llm_usage` mit Dialog (Kosten je Tag und Konto, Kontingente, Konten, Modelle); Regeln `llm.budget` (Monatsbudget an der Verbindung), `llm.credit_low`, `llm.quota_high`, `llm.spike`; Demowelt `llm_usage`
+- [ ] Gegen echte Konten testen (alle sechs „Experimentell“); offen vor allem: ob ein Token aus `claude setup-token` den Abo-Endpunkt lesen darf
+- [ ] Quer: KI-Kosten gegen Ausgaben in Invoice Ninja / Firefly (Rechnung des Anbieters fehlt) und das Claude-Abo gegen Wallos
+- [ ] Weitere Anbieter bei Bedarf (Mistral, Groq, xAI); USD bleibt USD, keine Umrechnung in die Kostenübersicht
+
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 
 Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und angewendet (06.10.2026).

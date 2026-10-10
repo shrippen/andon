@@ -30,6 +30,12 @@ nav:
   clients: 'Customers'
   hosts: 'Hosts'
 action:
+  open_in_claudeapi: 'Open in Claude Console'
+  open_in_claudeplan: 'Open in claude.ai'
+  open_in_openrouter: 'Open in OpenRouter'
+  open_in_openai: 'Open in OpenAI'
+  open_in_deepseek: 'Open in DeepSeek'
+  open_in_litellm: 'Open in LiteLLM'
   copy: Copy
   open_drafts: 'Go to drafts'
   isp_report: 'Open report'
@@ -368,6 +374,7 @@ typefield:
   conn_health:
     only_problems: Only shaky now (last 2 days)
 field:
+  providers: 'Only these providers (claudeapi, claudeplan, openrouter, openai, deepseek, litellm)'
   site: Site
   hours: History (hours)
   warn: Warn from
@@ -843,6 +850,9 @@ wall_ease:
   soft: Gentle ease-out
   snap: Springy
 wtype:
+  llm_usage:
+    name: 'AI costs'
+    desc: 'Tokens, cost, credit and plan quotas of the LLM providers: Claude, OpenRouter, OpenAI, DeepSeek, LiteLLM.'
   github_trending:
     name: GitHub trends
     desc: 'New repositories of the period with the most stars (GitHub search), optionally of one language.'
@@ -1346,6 +1356,26 @@ history:
   sections: Sections
   restore: Restore
 conn:
+  options_hint_claudeapi: 'The URL stays https://api.anthropic.com. Token = an Admin API key (sk-ant-admin…, Console → Settings → Admin keys); only organizations have one, regular API keys are refused. Optionally a monthly budget in USD.'
+  about_claudeapi: 'Claude API: tokens and cost per model'
+  what_claudeapi: 'The Usage & Cost API of the Claude Console reports tokens and cost per day and model for the whole organization.'
+  options_hint_claudeplan: 'The URL stays https://api.anthropic.com. Token = an OAuth token of your claude.ai login, e.g. from claude setup-token. Andon reads the session and week quota claude.ai shows under Settings → Usage. Anthropic does not document this endpoint; it may change.'
+  about_claudeplan: 'Claude Pro/Max: session and week quota'
+  what_claudeplan: 'Claude Pro and Max limit use per session (5 h) and per week. Andon shows how full each window is and when it resets.'
+  options_hint_openrouter: 'The URL stays https://openrouter.ai/api/v1. Token = an API key (spend and key limit) or a management key (also credit and the cost per model and day). Optionally a monthly budget in USD.'
+  about_openrouter: 'OpenRouter: spend, credit, key limit'
+  what_openrouter: 'OpenRouter routes requests to many model providers and bills them from one credit.'
+  options_hint_openai: 'The URL stays https://api.openai.com/v1. Token = an Admin key of the organization (platform.openai.com → Settings → Admin keys). Optionally a monthly budget in USD.'
+  about_openai: 'OpenAI API: tokens per model, cost per day'
+  what_openai: 'The Usage and Costs API of OpenAI reports an organization''s tokens per model and cost per day.'
+  options_hint_deepseek: 'The URL stays https://api.deepseek.com. Token = an API key (platform.deepseek.com → API keys). DeepSeek reports the balance only, no usage history.'
+  about_deepseek: 'DeepSeek: balance'
+  what_deepseek: 'DeepSeek bills from a prepaid balance.'
+  options_hint_litellm: 'URL of your LiteLLM proxy, e.g. https://llm.example.org. Token = the master key or a key that may read the spend reports. Optionally a monthly budget in USD.'
+  about_litellm: 'LiteLLM proxy: spend per model and day'
+  what_litellm: 'LiteLLM is a self-hosted proxy in front of many LLM providers; it counts the tokens and cost of every request.'
+  llm_budget: 'Monthly budget (USD)'
+  llm_budget_hint: 'Empty = no budget. Andon warns when the month reaches it or heads past it.'
   tiles_title: 'Matching tiles'
   tiles_lead: 'The connection works. One click puts a tile with its data on the board.'
   tiles_put: 'Add {tile} to board'
@@ -1793,6 +1823,12 @@ mode:
   dark: Dark
   light: Light
 service:
+  claudeapi: 'Claude API'
+  claudeplan: 'Claude plan (Pro/Max)'
+  openrouter: 'OpenRouter'
+  openai: 'OpenAI API'
+  deepseek: 'DeepSeek'
+  litellm: 'LiteLLM'
   calendar: 'Calendar (iCal)'
   tailscale: 'Tailscale / Headscale'
   gateway: 'Router (OPNsense, pfSense, UniFi, OpenWrt)'
@@ -2173,6 +2209,25 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  llm:
+    budget_over:
+      title: '{account}: budget used up'
+      why: '{spent} spent this month, budget {budget}.'
+    budget_pace:
+      title: '{account} heads past its budget'
+      why: '{spent} so far this month; at this pace {pace} by its end, budget {budget}.'
+    credit_low:
+      title: '{account}: credit low'
+      why: 'Only {balance} left. Top it up before requests fail.'
+    limit_low:
+      title: '{account}: key limit nearly reached'
+      why: '{left} of {limit} left on the key. Raise the limit or wait for the reset.'
+    quota_high:
+      title: '{account}: {window} at {percent} %'
+      why: 'Resets {resets}. Until then requests may be slowed down or refused.'
+    spike:
+      title: '{account} costs unusually much today'
+      why: '{today} today against {usual} on a usual day. A loop, a batch run twice or a mixed-up model?'
   lemmy:
     replies:
       title: '{count} unread on Lemmy'
@@ -3120,6 +3175,10 @@ hint:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
 info:
+  llm:
+    month: '{amount} this month'
+    credit: 'credit {amount}'
+    quota: '{window} {pct} %'
   lemmy:
     info: '{unread} unread'
   esphome:
@@ -3422,6 +3481,10 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  llm.budget: 'LLM budget'
+  llm.credit_low: 'LLM credit low'
+  llm.quota_high: 'Plan quota nearly used'
+  llm.spike: 'LLM cost spike'
   firefly.recurring_missed: 'Recurring payment missed (Firefly III)'
   firefly.low_balance: 'Low balance (Firefly III)'
   firefly.uncategorized: 'Uncategorised transactions (Firefly III)'
@@ -3663,6 +3726,9 @@ rule_name:
   truenas.scrub_old: 'Pool scrub'
   gateway.new_device: 'New devices on the network'
 param:
+  min_balance: 'Credit below (USD)'
+  min_limit_pct: 'Key limit left below (%)'
+  min_usd: 'At least (USD)'
   min_db: 'At least dB'
   min_dbm: 'At least dBm'
   booked_share: 'Share of booked'
@@ -6853,3 +6919,40 @@ period:
   last_12m: 'last 12 months'
   today: 'as of today'
   data_from: 'data from {month}'
+llm:
+  tile_month: 'this month · today {today}'
+  none: 'No LLM provider connected.'
+  credit: 'credit {amount}'
+  account: '{service} · {name}'
+  bar: '{window} · {account}'
+  resets: '{pct} % · resets {when}'
+  left_of: '{left} of {limit} left'
+  limit_used: 'Key limit'
+  other: 'other (tools, search)'
+  chart: 'Cost per day (USD)'
+  quotas: 'Quotas and limits'
+  accounts: 'Accounts'
+  models: 'Models this month'
+  quota:
+    session: 'Session (5 h)'
+    week: 'Week'
+    week_model: 'Week · {model}'
+    extra: 'Extra usage'
+  facts:
+    month: 'this month'
+    today: 'today'
+    tokens: 'tokens this month'
+    requests: 'requests this month'
+  col:
+    account: 'Account'
+    month: 'Month'
+    today: 'Today'
+    credit: 'Credit'
+    budget: 'Budget'
+    provider: 'Provider'
+    model: 'Model'
+    input: 'Input'
+    cached: 'Cache'
+    output: 'Output'
+    requests: 'Requests'
+    cost: 'Cost'
