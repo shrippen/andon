@@ -143,3 +143,4 @@ internal/services/verbund/      Verbünde: welche Verbindungen zusammenarbeiten 
 - Changes arrive as pull requests: work on a branch, open a PR, merge it on Gitea (the mirror follows).
 - Never merge a PR, push to `main` (or any default branch), push tags or publish releases on GitHub. A merge there is overwritten by the next Gitea push.
 - Never force-push a branch that someone else's PR depends on.
+- PR-Agent (`.gitea/workflows/pr-agent.yml`) reviews every PR before it is merged. Wait for its comment on the PR's latest commit; after further pushes, ask for a new one with a `/review` comment. Fix or answer each finding in the PR, then merge. Without a review (the run skipped for lack of `PR_AGENT_LLM_KEY` or `PR_AGENT_MODEL`, or it failed), do not merge: ask the owner.
