@@ -6128,6 +6128,8 @@ gallery:
   deleted: 'Gelöscht: {n}'
 audit_action:
   vatcheck:
+    skip: 'Umsatz als privat archiviert'
+    restore: 'Archivierten Umsatz wiederhergestellt'
     link: 'Umsatz mit Ausgabe verknüpft'
     create: 'Ausgabe aus Umsatz angelegt'
     invoice: 'Zahlung aus Umsatz gebucht'
@@ -6395,7 +6397,7 @@ close:
   drafts_done: Keine offenen Entwürfe
   receipts: 'Ausgaben ohne Beleg: {n}'
   receipts_done: Belege vollständig
-  receipts_setup: 'Belege: Geschäftskonten in den Regeln eintragen'
+  receipts_setup: 'Belege: Geschäftskonten festlegen'
   inbox: 'Im Paperless-Posteingang: {n}'
   inbox_done: Paperless-Posteingang leer
   vat: 'USt-Voranmeldung bis {day}'
@@ -6974,6 +6976,18 @@ llm:
     requests: 'Anfragen'
     cost: 'Kosten'
 vatcheck:
+  accounts_title: Konten
+  accounts_lead: 'Hake die Geschäftskonten an. Alle anderen gelten als privat: Ihre Abbuchungen schlägt Andon nur vor, wenn der Lieferant schon Ausgaben hat, etwa das privat bezahlte Deutschlandticket. Gilt auch für die Kachel „Belege ohne Ausgabe“ und den Monatsabschluss.'
+  accounts_business: geschäftlich
+  accounts_private: privat
+  accounts_save: Speichern
+  accounts_saved: 'Konten gespeichert.'
+  accounts_ro: 'Die Konten legt fest, wer die Einstellungen dieses Bereichs ändern darf.'
+  private_account: Privatkonto
+  apart_title: 'Vom Privatkonto, ohne Vorschlag: {n}'
+  apart_hint: 'Abbuchungen der Privatkonten an Lieferanten ohne Ausgaben. Eine betriebliche ankreuzen und als Ausgabe anlegen; der Rest lässt sich als privat archivieren.'
+  apart_all: 'Alle als privat archivieren ({n})'
+  problem_not_archived: 'Invoice Ninja hat den Umsatz nicht archiviert.'
   open_page: 'Bankumsätze vor der Voranmeldung abgleichen →'
   lead: 'Vor der Umsatzsteuer-Voranmeldung: jeder Umsatz aus dem Bankabruf von Invoice Ninja braucht eine Ausgabe oder eine Zahlung. Andon schlägt vor, Sure steht daneben. Geschrieben wird erst, was du in der Prüfung bestätigst.'
   periods: Zeitraum
@@ -6989,8 +7003,8 @@ vatcheck:
   check_notax: 'Ausgaben ohne Steuer, obwohl der Lieferant sonst Vorsteuer hat: {n}'
   check_notax_done: 'Keine Ausgabe ohne Steuer, die sonst welche hat'
   check_sure: 'Buchungen in {bank}, die im Bankabruf von Invoice Ninja fehlen: {n}'
-  check_sure_done: '{bank} und Invoice Ninja kennen dieselben Buchungen ({accounts})'
-  check_sure_none: '{bank} teilt noch keine Buchungen mit dem Bankabruf: kein Abgleich der Konten'
+  check_sure_done: '{bank} und Invoice Ninja kennen dieselben Buchungen der Geschäftskonten'
+  check_sure_none: 'Geschäftskonten nicht festgelegt: kein Abgleich mit {bank}'
   check_no_bank: 'Ohne Sure: Andon kann nicht prüfen, ob der Bankabruf vollständig ist'
   output: Umsatzsteuer
   input: Vorsteuer
@@ -7007,7 +7021,7 @@ vatcheck:
   act_link: Mit Ausgabe verknüpfen
   act_create: Ausgabe anlegen
   act_invoice: Zahlung zur Rechnung buchen
-  act_skip: Privat, beiseitelegen
+  act_skip: 'Privat: in Invoice Ninja archivieren'
   vendor: Lieferant
   category: Kategorie
   no_category: Ohne Kategorie
@@ -7027,26 +7041,26 @@ vatcheck:
   review: Prüfen
   review_hint: 'Zeigt, was geschrieben würde. Noch geht nichts an Invoice Ninja.'
   review_title: Abgleich bestätigen
-  review_lead: 'Diese Schritte gehen an Invoice Ninja (Schreibvorgänge: {n}). Beiseitegelegtes bleibt nur in Andon.'
+  review_lead: 'Diese Schritte gehen an Invoice Ninja (Schreibvorgänge: {n}).'
   do_link: 'Umsatz mit Ausgabe {number} verknüpfen'
   do_invoice: 'Zahlung zu Rechnung {number} buchen'
-  do_skip: 'Beiseitelegen (nur in Andon)'
+  do_skip: 'Als privat in Invoice Ninja archivieren'
   do_vendor: 'Lieferant „{vendor}“ neu anlegen,'
   do_create: 'Ausgabe „{vendor}“ anlegen und verknüpfen'
   do_tax: '{name} {rate} %, Vorsteuer {tax}'
   apply: 'In Invoice Ninja schreiben ({n})'
-  apply_skip: Beiseitelegen
+  apply_skip: Archivieren
   back: Zurück
-  applied: 'Erledigt: {done} gebucht, {skipped} beiseitegelegt.'
+  applied: 'Erledigt: {done} gebucht, {skipped} als privat archiviert.'
   failed: 'Nicht gebucht: {n}.'
-  shown: 'Umsatz wieder offen.'
-  skipped: 'Beiseitegelegt: {n}'
+  shown: 'Umsatz in Invoice Ninja wiederhergestellt und wieder offen.'
+  skipped: 'Als privat archiviert: {n}'
   show_again: Wieder zeigen
   notax_title: Ausgaben ohne Steuer
   sure_only_title: 'Nur in {bank}'
   sure_only_hint: 'Diese Buchungen der Geschäftskonten fehlen im Bankabruf von Invoice Ninja. Abruf in Invoice Ninja neu starten oder die Ausgabe dort von Hand anlegen.'
   how: Wie Andon vorschlägt
-  how_text: 'Eine Abbuchung passt zu einer Ausgabe mit gleichem Betrag bis 10 Tage daneben, die noch keinem Umsatz gehört; Ausgaben des genannten Lieferanten zuerst. Fehlt sie, kommen Kategorie und Steuer aus der letzten Ausgabe des Lieferanten, sonst Händler und Kategorie aus Sure. Ein Eingang passt zu einer offenen Rechnung, deren Nummer im Text steht, oder mit gleichem Betrag vom Kunden. Geschäftskonten erkennt Andon an Buchungen, die Sure und Invoice Ninja beide kennen.'
+  how_text: 'Eine Abbuchung passt zu einer Ausgabe mit gleichem Betrag bis 10 Tage daneben, die noch keinem Umsatz gehört; Ausgaben des genannten Lieferanten zuerst. Fehlt sie, kommen Kategorie und Steuer aus der letzten Ausgabe des Lieferanten, sonst Händler und Kategorie aus Sure. Ein Eingang passt zu einer offenen Rechnung, deren Nummer im Text steht, oder mit gleichem Betrag vom Kunden. Vom Privatkonto schlägt Andon nur Abbuchungen an Lieferanten mit Ausgaben vor (etwa das Deutschlandticket); Eingänge dort zählen nicht.'
   err_no_ninja: 'Keine Invoice-Ninja-Verbindung, die du nutzen darfst.'
   err_no_bank: 'Invoice Ninja liefert keinen Bankabruf. Ist das Banking eingerichtet und darf das Token Bankumsätze lesen?'
   err_demo: 'Die Demo schreibt nicht in Invoice Ninja.'

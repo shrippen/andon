@@ -5,7 +5,7 @@ package services
 //	Kimai        POST /api/timesheets, PATCH|DELETE /api/timesheets/{id},
 //	             PATCH /api/timesheets/{id}/stop, PATCH …/export
 //	InvoiceNinja POST /api/v1/invoices|payments|expenses|vendors,
-//	             POST /api/v1/bank_transactions/match, PUT /api/v1/expenses/{id}
+//	             POST /api/v1/bank_transactions/match|bulk, PUT /api/v1/expenses/{id}
 //	Paperless    POST /api/documents/post_document/ (multipart),
 //	             POST /api/documents/bulk_edit/, PATCH /api/documents/{id}/
 

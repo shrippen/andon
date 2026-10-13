@@ -47,6 +47,17 @@ func TestVATPage(t *testing.T) {
 		t.Fatalf("review lacks the step:\n%s", review)
 	}
 
+	// "Archive all as private" takes the private accounts' rest only.
+	all := url.Values{"csrf": {csrfToken(t, srv, client)}, "span": {month}, "all_private": {"1"}, "apart": {"demo-p-food"},
+		"pick": {"demo-b-studio"}, "act_demo-b-studio": {"create"}}
+	resp, err = client.PostForm(srv.URL+"/vat/review", all)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if review := readBody(t, resp); !strings.Contains(review, "Als privat in Invoice Ninja archivieren") || strings.Contains(review, "Kabelwerk") {
+		t.Fatalf("archive review:\n%s", review)
+	}
+
 	resp = postForm(t, client, srv.URL+"/vat/apply", form)
 	if loc := resp.Header.Get("Location"); resp.StatusCode != http.StatusSeeOther || !strings.Contains(loc, "vatcheck.err_demo") {
 		t.Fatalf("apply on the demo: %d %s", resp.StatusCode, loc)

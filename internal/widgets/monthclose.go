@@ -123,9 +123,10 @@ func monthCloseView(cfg MonthCloseConfig, results map[string]any, ctx ViewCtx) m
 				missing++
 			}
 		}
-		step := CloseStep{Key: "receipts", Done: missing == 0 && len(metrics.BusinessAccounts(in)) > 0, Count: missing, URL: "/spaces/settings?section=rules#rule-cross.expense_unrecorded"}
+		step := CloseStep{Key: "receipts", Done: missing == 0 && len(in.Accounts) > 0, Count: missing, URL: "/spaces/settings?section=rules#rule-cross.expense_unrecorded"}
 		if ninja != nil && ninja.BankRead {
-			// The VAT check works through Invoice Ninja's bank feed.
+			// The VAT check works through Invoice Ninja's bank feed and
+			// names the business accounts.
 			step.URL = "/vat"
 		}
 		steps = append(steps, step)

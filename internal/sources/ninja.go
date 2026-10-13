@@ -245,7 +245,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 	return &NinjaDataset{
 		URL: sctx.URL, Currency: currency, Invoices: invoices, Payments: payments, Clients: clients,
 		Expenses: expenses, Vendors: vendors, Quotes: quotes, Recurring: recurring, HomeCountryID: homeCountry, Since: since,
-		BankTxns: bank.txns, BankRead: bank.read, Categories: bank.categories, TaxRates: bank.rates,
+		BankTxns: bank.txns, BankRead: bank.read, BankAccounts: bank.accounts, Categories: bank.categories, TaxRates: bank.rates,
 	}, nil
 }
 
@@ -253,6 +253,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 type ninjaBank struct {
 	txns       []NinjaBankTxn
 	read       bool
+	accounts   []string
 	categories []NinjaCategory
 	rates      []NinjaTaxRate
 }
@@ -260,15 +261,27 @@ type ninjaBank struct {
 // Invoice Ninja's bank transaction states (status_id).
 var bankStatus = map[string]BankStatus{"1": BankOpen, "2": BankMatched, "3": BankDone}
 
-// loadNinjaBank reads bank transactions since the window start, expense
+// loadNinjaBank reads bank transactions since the window start (archived
+// ones too: the VAT check lists them as set aside), the bank accounts, expense
 // categories and tax rates. Each part is optional: an instance without
 // the banking module still delivers the rest of the dataset.
 func loadNinjaBank(ctx context.Context, api services.NinjaApi, since string) ninjaBank {
 	var out ninjaBank
-	if raw, err := api.Pages(ctx, "bank_transactions", url.Values{"sort": {"date|desc"}}); err == nil {
+	names := map[string]string{}
+	if raw, err := api.Pages(ctx, "bank_integrations", nil); err == nil {
+		names = bankAccountNames(raw)
+		for _, r := range raw {
+			if name := names[idKey(asMap(r)["id"])]; name != "" {
+				out.accounts = append(out.accounts, name)
+			}
+		}
+	}
+	if raw, err := api.Pages(ctx, "bank_transactions", url.Values{"sort": {"date|desc"}, "status": {"active,archived"}}); err == nil {
 		out.read = true
 		for _, r := range raw {
-			if t, ok := ninjaBankTxn(asMap(r)); ok && t.Date >= since {
+			m := asMap(r)
+			if t, ok := ninjaBankTxn(m); ok && t.Date >= since {
+				t.Account = names[idKey(m["bank_integration_id"])]
 				out.txns = append(out.txns, t)
 			}
 		}
@@ -292,6 +305,39 @@ func loadNinjaBank(ctx context.Context, api services.NinjaApi, since string) nin
 	return out
 }
 
+// bankAccountNames names each bank account by id: its nickname, else the
+// bank's name for it; two of one name get the end of their number
+// ("Girokonto ··4711"), so each can be told business or private.
+func bankAccountNames(raw []any) map[string]string {
+	out, count := map[string]string{}, map[string]int{}
+	name := func(m map[string]any) string {
+		for _, k := range []string{"nickname", "bank_account_name", "provider_name"} {
+			if v := strings.TrimSpace(asStr(m[k])); v != "" {
+				return v
+			}
+		}
+		return ""
+	}
+	for _, r := range raw {
+		count[name(asMap(r))]++
+	}
+	for _, r := range raw {
+		m := asMap(r)
+		if asBool(m["is_deleted"]) {
+			continue
+		}
+		n := name(m)
+		if number := asStr(m["bank_account_number"]); count[n] > 1 && len(number) >= accountTail {
+			n += " ··" + number[len(number)-accountTail:]
+		}
+		out[idKey(m["id"])] = n
+	}
+	return out
+}
+
+// accountTail is how many digits of an account number tell two apart.
+const accountTail = 4
+
 // ninjaBankTxn reads one bank transaction; deleted ones drop out.
 func ninjaBankTxn(m map[string]any) (NinjaBankTxn, bool) {
 	if asBool(m["is_deleted"]) {
@@ -309,7 +355,7 @@ func ninjaBankTxn(m map[string]any) (NinjaBankTxn, bool) {
 		Key: idKey(m["id"]), Date: day(m["date"]), Description: strings.TrimSpace(asStr(m["description"])), Payer: strings.TrimSpace(payer),
 		Amount: math.Abs(asFloat(m["amount"])), Debit: strings.EqualFold(asStr(m["base_type"]), "DEBIT"), Status: status,
 		ExpenseKeys: keyList(asStr(m["expense_id"])), InvoiceKeys: keyList(asStr(m["invoice_ids"])),
-		VendorKey: asStr(m["vendor_id"]), CategoryKey: asStr(m["ninja_category_id"]),
+		VendorKey: asStr(m["vendor_id"]), CategoryKey: asStr(m["ninja_category_id"]), Archived: asFloat(m["archived_at"]) > 0,
 	}, true
 }
 

@@ -435,3 +435,23 @@ func TestNinjaVendorCreateReturnsKey(t *testing.T) {
 		t.Fatalf("name = %v", got)
 	}
 }
+
+func TestNinjaBankArchive(t *testing.T) {
+	var f fake
+	to := f.serve(t, answer(http.StatusOK, `{"data":[{"id":"B5","archived_at":1760000000}]}`))
+
+	if err := outbound.NinjaBankArchive(context.Background(), to, "B5", outbound.BankArchiveOn); err != nil {
+		t.Fatalf("archive: %v", err)
+	}
+	c := f.one(t)
+	assertNinja(t, c, http.MethodPost, "/api/v1/bank_transactions/bulk")
+	want := roundTrip(t, map[string]any{"action": "archive", "ids": []any{"B5"}})
+	if got := c.json(t); !reflect.DeepEqual(any(got), want) {
+		t.Fatalf("body = %v, want %v", got, want)
+	}
+
+	// Still archived after a restore: refused.
+	if err := outbound.NinjaBankArchive(context.Background(), to, "B5", outbound.BankArchiveOff); !errors.Is(err, outbound.ErrNotArchived) {
+		t.Fatalf("restore: %v", err)
+	}
+}

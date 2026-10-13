@@ -9,6 +9,11 @@ package metrics
 //	open credit ─► open invoice: its number in the text, or the
 //	               same balance and the client's name             → book
 //
+// Accounts are business or private as the user named them. A debit from
+// a private account is proposed only for a vendor with expenses (the
+// train ticket paid privately); the rest waits, set apart. Incomes on
+// private accounts and transactions archived in Invoice Ninja drop out.
+//
 // VATCheckOf says what must hold before the return goes out.
 
 import (
@@ -63,23 +68,34 @@ type BankCase struct {
 	ByNumber bool                   // the text names the invoice's number
 	Draft    ExpenseDraft
 	Action   BankAction
+	Private  bool // paid from a private account
 }
 
-// VATInputs is what the check reads; Skip holds transactions the user
-// set aside (private).
+// Waiting says whether the case belongs to the open work: business, or
+// private with an expense to book (a known vendor).
+func (c BankCase) Waiting() bool {
+	return !c.Private || c.Action == ActionLink || c.Action == ActionCreate
+}
+
+// VATInputs is what the check reads. Business names the business
+// accounts of Invoice Ninja and Sure; none named: every account counts.
 type VATInputs struct {
 	Ninja      *sources.NinjaDataset
 	Sure       *sources.SureDataset // nil without Sure
 	Start, End time.Time
-	Skip       map[string]bool
+	Business   []string
 	Method     string // ist, soll
 	Today      time.Time
+}
+
+// business reports whether an account is a business one.
+func (in VATInputs) business(account string) bool {
+	return len(in.Business) == 0 || slices.ContainsFunc(in.Business, func(b string) bool { return strings.EqualFold(b, account) })
 }
 
 const (
 	expenseWindow = 10 // days between booking and expense date
 	bankWindow    = 4  // days between the same booking in two feeds
-	sharedMin     = 2  // shared bookings that make a Sure account the feed's
 )
 
 // BankCases lists the open transactions of the period, oldest first.
@@ -92,10 +108,11 @@ func BankCases(in VATInputs) []BankCase {
 	usedSure, usedInvoice := map[string]bool{}, map[int64]bool{}
 	var out []BankCase
 	for _, t := range periodTxns(in) {
-		if t.Status == sources.BankDone || in.Skip[t.Key] {
+		private := !in.business(t.Account)
+		if t.Status == sources.BankDone || t.Archived || (private && !t.Debit) {
 			continue
 		}
-		c := BankCase{Txn: t, Sure: sureTwin(in.Sure, t, usedSure)}
+		c := BankCase{Txn: t, Sure: sureTwin(in.Sure, t, usedSure), Private: private}
 		if t.Debit {
 			c.Expenses = expenseFits(in.Ninja, t, taken)
 			c.Draft = draftOf(in.Ninja, t, c.Sure)
@@ -103,6 +120,9 @@ func BankCases(in VATInputs) []BankCase {
 			if len(c.Expenses) > 0 {
 				c.Action = ActionLink
 				taken[c.Expenses[0].Key] = true
+			}
+			if private && c.Action == ActionCreate && c.Draft.From != FromHistory {
+				c.Action = ActionNone
 			}
 		} else {
 			c.Invoice, c.ByNumber = invoiceFit(in.Ninja, t, usedInvoice)
@@ -300,12 +320,11 @@ func categoryName(n *sources.NinjaDataset, key string) string {
 
 // VATCheck is what must hold before the period's return goes out.
 type VATCheck struct {
-	Open, Proposed int                    // open transactions, of them with a proposal
+	Open, Proposed int                    // open business transactions, of them with a proposal
 	FeedTo         string                 // newest transaction of the feed
 	FeedLate       bool                   // the feed ends before the period
 	NoTax          []sources.NinjaExpense // without tax, while the vendor's others have it
-	SureOnly       []sources.SureTxn      // bookings of the feed's accounts Ninja lacks
-	Accounts       []string               // Sure accounts the feed shares
+	SureOnly       []sources.SureTxn      // business bookings Ninja's feed lacks
 	Output, Input  float64
 	Due            float64
 }
@@ -321,8 +340,11 @@ func VATCheckOf(in VATInputs, cases []BankCase) VATCheck {
 	if in.Ninja == nil {
 		return c
 	}
-	c.Open = len(cases)
 	for _, bc := range cases {
+		if !bc.Waiting() {
+			continue
+		}
+		c.Open++
 		if bc.Action != ActionNone {
 			c.Proposed++
 		}
@@ -335,8 +357,7 @@ func VATCheckOf(in VATInputs, cases []BankCase) VATCheck {
 		c.FeedLate = true
 	}
 	c.NoTax = untaxed(in)
-	c.Accounts = FeedAccounts(in.Sure, in.Ninja)
-	c.SureOnly = sureOnly(in, c.Accounts)
+	c.SureOnly = sureOnly(in)
 	c.Output, c.Input = NinjaOutputVAT(in.Ninja, in.Start, in.End, in.Method), NinjaInputVAT(in.Ninja, in.Start, in.End)
 	c.Due = round2(c.Output - c.Input)
 	return c
@@ -361,28 +382,6 @@ func untaxed(in VATInputs) []sources.NinjaExpense {
 	return out
 }
 
-// FeedAccounts are the Sure accounts whose bookings Invoice Ninja's bank
-// feed also has: the business accounts, without asking for them.
-func FeedAccounts(sure *sources.SureDataset, n *sources.NinjaDataset) []string {
-	if sure == nil || n == nil || len(n.BankTxns) == 0 {
-		return nil
-	}
-	shared := map[string]int{}
-	for _, s := range sure.Transactions {
-		if twinInFeed(n, s) {
-			shared[s.Account]++
-		}
-	}
-	var out []string
-	for account, count := range shared {
-		if count >= sharedMin && account != "" {
-			out = append(out, account)
-		}
-	}
-	slices.Sort(out)
-	return out
-}
-
 // twinInFeed reports whether the feed has the Sure booking.
 func twinInFeed(n *sources.NinjaDataset, s sources.SureTxn) bool {
 	day, ok := ParseDay(s.Date)
@@ -397,16 +396,17 @@ func twinInFeed(n *sources.NinjaDataset, s sources.SureTxn) bool {
 	return false
 }
 
-// sureOnly are the period's bookings of the feed's accounts that the
-// feed lacks: Invoice Ninja missed them.
-func sureOnly(in VATInputs, accounts []string) []sources.SureTxn {
-	if in.Sure == nil || len(accounts) == 0 {
+// sureOnly are the period's bookings of Sure's business accounts that
+// the feed lacks: Invoice Ninja missed them. Without accounts named
+// there is no telling business from private: nothing.
+func sureOnly(in VATInputs) []sources.SureTxn {
+	if in.Sure == nil || len(in.Business) == 0 {
 		return nil
 	}
 	var out []sources.SureTxn
 	for _, s := range in.Sure.Transactions {
 		d, ok := ParseDay(s.Date)
-		if !ok || d.Before(in.Start) || d.After(in.End) || !slices.Contains(accounts, s.Account) {
+		if !ok || d.Before(in.Start) || d.After(in.End) || !in.business(s.Account) {
 			continue
 		}
 		if !twinInFeed(in.Ninja, s) {

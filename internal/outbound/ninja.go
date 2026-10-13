@@ -98,3 +98,36 @@ func NinjaVendorCreate(ctx context.Context, to Target, name string) (string, err
 	}
 	return key, nil
 }
+
+// BankArchive says whether a transaction is set aside or brought back.
+type BankArchive string
+
+const (
+	BankArchiveOn  BankArchive = "archive"
+	BankArchiveOff BankArchive = "restore"
+)
+
+// ErrNotArchived means Invoice Ninja left the transaction as it was.
+var ErrNotArchived = errors.New("invoice ninja: transaction not archived")
+
+// NinjaBankArchive archives a bank transaction (private, nothing to
+// book) or restores it.
+func NinjaBankArchive(ctx context.Context, to Target, txnKey string, action BankArchive) error {
+	body, err := services.NinjaApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}.Post(ctx, "bank_transactions/bulk",
+		map[string]any{"action": string(action), "ids": []string{txnKey}})
+	if err != nil {
+		return err
+	}
+
+	// The answer lists the transaction with its archive time (0 = active).
+	top, _ := body.(map[string]any)
+	list, _ := top["data"].([]any)
+	for _, raw := range list {
+		t, _ := raw.(map[string]any)
+		archived, _ := t["archived_at"].(float64)
+		if id, _ := t["id"].(string); id == txnKey && (archived > 0) == (action == BankArchiveOn) {
+			return nil
+		}
+	}
+	return ErrNotArchived
+}

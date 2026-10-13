@@ -177,9 +177,11 @@ const (
 // positive; Debit tells money going out.
 type NinjaBankTxn struct {
 	Key, Date, Description, Payer string
+	Account                       string // the bank account's name in Invoice Ninja
 	Amount                        float64
 	Debit                         bool
 	Status                        BankStatus
+	Archived                      bool // set aside in Invoice Ninja (private)
 	ExpenseKeys, InvoiceKeys      []string
 	VendorKey, CategoryKey        string
 }
@@ -230,10 +232,11 @@ type NinjaDataset struct {
 
 	// Bank transactions (banking module), expense categories and tax
 	// rates; BankRead says whether the bank API answered.
-	BankTxns   []NinjaBankTxn
-	BankRead   bool
-	Categories []NinjaCategory
-	TaxRates   []NinjaTaxRate
+	BankTxns     []NinjaBankTxn
+	BankRead     bool
+	BankAccounts []string // names of the accounts the feed reads
+	Categories   []NinjaCategory
+	TaxRates     []NinjaTaxRate
 }
 
 // ── Snipe-IT ──

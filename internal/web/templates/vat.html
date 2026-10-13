@@ -35,6 +35,8 @@
       <div class="chips-row">{{range $p.Spans}}<a class="chip is-filter" href="/vat?conn={{$p.Conn}}&amp;span={{.Key}}"{{if eq .Key $p.Span.Key}} aria-pressed="true"{{end}}>{{template "vat_span" dict "S" . "Interval" $p.Interval}}</a>{{end}}</div>
     </nav>
 
+    {{if $p.Accounts}}{{template "vat_accounts" dict "P" $p "CSRFField" $.CSRFField "CSRF" $.Ctx.CSRF}}{{end}}
+
     {{if $p.Spans}}
     {{$c := $p.Check}}
     <section class="card" id="check">
@@ -47,7 +49,7 @@
         <li{{if not $c.NoTax}} class="is-done"{{end}}><span class="close-box" aria-hidden="true"></span>
           <span>{{if $c.NoTax}}{{t "vatcheck.check_notax" "n" (len $c.NoTax)}}{{else}}{{t "vatcheck.check_notax_done"}}{{end}}</span>{{if $c.NoTax}}<a href="#notax">→</a>{{end}}</li>
         {{if $p.Bank}}<li{{if not $c.SureOnly}} class="is-done"{{end}}><span class="close-box" aria-hidden="true"></span>
-          <span>{{if not $c.Accounts}}{{t "vatcheck.check_sure_none" "bank" $p.Bank}}{{else if $c.SureOnly}}{{t "vatcheck.check_sure" "n" (len $c.SureOnly) "bank" $p.Bank}}{{else}}{{t "vatcheck.check_sure_done" "bank" $p.Bank "accounts" (join $c.Accounts ", ")}}{{end}}</span>{{if $c.SureOnly}}<a href="#sure-only">→</a>{{end}}</li>
+          <span>{{if not $p.SetUp}}{{t "vatcheck.check_sure_none" "bank" $p.Bank}}{{else if $c.SureOnly}}{{t "vatcheck.check_sure" "n" (len $c.SureOnly) "bank" $p.Bank}}{{else}}{{t "vatcheck.check_sure_done" "bank" $p.Bank}}{{end}}</span>{{if $c.SureOnly}}<a href="#sure-only">→</a>{{else if not $p.SetUp}}<a href="#accounts">→</a>{{end}}</li>
         {{else}}<li><span class="close-box" aria-hidden="true"></span><span class="muted">{{t "vatcheck.check_no_bank"}}</span></li>{{end}}
       </ul>
       <div class="client-kpis">
@@ -58,7 +60,7 @@
     </section>
 
     <h2 id="cases">{{t "vatcheck.cases"}}</h2>
-    {{if $p.Cases}}
+    {{if or $p.Cases $p.Apart}}
     {{if $p.Assist}}<form method="post" action="/vat/guess" class="inline-form">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="conn" value="{{$p.Conn}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
       <button type="submit" class="btn btn-outline btn-sm" title="{{t "vatcheck.guess_privacy"}}">{{if $p.Guessed}}{{t "vatcheck.guess_again"}}{{else}}{{t "vatcheck.guess"}}{{end}}</button>
@@ -67,8 +69,19 @@
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="conn" value="{{$p.Conn}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
       <div class="table-wrap"><table class="table cards-sm vat-cases">
         <thead><tr><th><span class="sr-only">{{t "vatcheck.pick"}}</span></th><th>{{t "col.day"}}</th><th>{{t "col.booking"}}</th><th class="num">{{t "col.amount"}}</th><th>{{t "vatcheck.proposal"}}</th></tr></thead>
-        <tbody>{{range $p.Cases}}{{template "vat_case" dict "C" . "P" $p}}{{end}}</tbody>
+        <tbody>{{range $p.Cases}}{{template "vat_case" dict "C" . "P" $p}}{{else}}<tr><td colspan="5" class="muted">{{t "vatcheck.no_cases"}}</td></tr>{{end}}</tbody>
       </table></div>
+      {{/* The private accounts' rest: nothing to book unless picked;
+           all at once can be archived as private. */}}
+      {{with $p.Apart}}<details class="vat-apart" id="apart">
+        <summary>{{t "vatcheck.apart_title" "n" (len .)}}</summary>
+        <p class="small muted">{{t "vatcheck.apart_hint"}}</p>
+        <div class="table-wrap"><table class="table cards-sm vat-cases">
+          <tbody>{{range .}}{{template "vat_case" dict "C" . "P" $p}}{{end}}</tbody>
+        </table></div>
+        {{range .}}<input type="hidden" name="apart" value="{{.Txn.Key}}">{{end}}
+        <p><button type="submit" name="all_private" value="1" class="btn btn-outline btn-sm">{{t "vatcheck.apart_all" "n" (len .)}}</button></p>
+      </details>{{end}}
       <datalist id="vat-vendors">{{range $p.Ledger.Vendors}}<option value="{{.}}">{{end}}</datalist>
       <p><button type="submit" class="btn btn-accent">{{t "vatcheck.review"}}</button> <small class="muted">{{t "vatcheck.review_hint"}}</small></p>
     </form>
@@ -94,8 +107,8 @@
     {{with $p.Skipped}}
     <details class="vat-skipped">
       <summary>{{t "vatcheck.skipped" "n" (len .)}}</summary>
-      <ul class="close-steps">{{range .}}<li><span>{{day .Date}} · {{.Payer}} · {{money .Amount $p.Currency}}</span>
-        <form method="post" action="/vat/skip" class="inline-form"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+      <ul class="close-steps">{{range .}}<li><span>{{day .Date}} · {{.Payer}} · {{money .Amount $p.Currency}}{{with .Account}} · {{.}}{{end}}</span>
+        <form method="post" action="/vat/restore" class="inline-form"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
           <input type="hidden" name="conn" value="{{$p.Conn}}"><input type="hidden" name="span" value="{{$p.Span.Key}}"><input type="hidden" name="txn" value="{{.Key}}">
           <button type="submit" class="btn btn-quiet btn-sm">{{t "vatcheck.show_again"}}</button></form></li>{{end}}</ul>
     </details>{{end}}
@@ -119,9 +132,10 @@
      The ticked rows go to the review; nothing is written from here. */}}
 {{define "vat_case"}}{{$c := .C}}{{$p := .P}}{{$k := $c.Txn.Key}}
 <tr>
-  <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if or (eq $c.Action "link") (eq $c.Action "invoice") (and (eq $c.Action "create") $c.Draft.TaxKnown (eq $c.Draft.From "history"))}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span><span class="sr-only">{{t "vatcheck.pick"}}</span></label></td>
+  <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if and $c.Waiting (or (eq $c.Action "link") (eq $c.Action "invoice") (and (eq $c.Action "create") $c.Draft.TaxKnown (eq $c.Draft.From "history")))}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span><span class="sr-only">{{t "vatcheck.pick"}}</span></label></td>
   <td data-label="{{t "col.day"}}">{{day $c.Txn.Date}}</td>
-  <td data-label="{{t "col.booking"}}" data-card="title">{{$c.Txn.Payer}}{{with $c.Txn.Description}}<br><small>{{.}}</small>{{end}}
+  <td data-label="{{t "col.booking"}}" data-card="title">{{$c.Txn.Payer}}{{if $c.Private}} <span class="pill" data-state="locked">{{t "vatcheck.private_account"}}</span>{{end}}{{with $c.Txn.Description}}<br><small>{{.}}</small>{{end}}
+    {{with $c.Txn.Account}}<br><small class="muted">{{.}}</small>{{end}}
     {{with $c.Sure}}<br><small class="muted" title="{{t "vatcheck.sure_twin"}}">{{t "service.sure"}}: {{with .Merchant}}{{.}} · {{end}}{{with .Category}}{{.}} · {{end}}{{range .Tags}}#{{.}} {{end}}{{.Account}}</small>{{end}}</td>
   <td class="num" data-label="{{t "col.amount"}}" data-card="key">{{if $c.Txn.Debit}}−{{end}}{{money $c.Txn.Amount $p.Currency}}</td>
   <td data-label="{{t "vatcheck.proposal"}}">
@@ -180,4 +194,19 @@
   {{template "foot" $}}
 </body>
 </html>
+{{end}}
+
+{{/* Which accounts are business: asked until named, then folded away.
+     Every other account counts as private. */}}
+{{define "vat_accounts"}}{{$p := .P}}
+<details class="card" id="accounts"{{if not $p.SetUp}} open{{end}}>
+  <summary><b>{{t "vatcheck.accounts_title"}}</b>{{if $p.SetUp}} <small class="muted">{{range $i, $a := $p.Accounts}}{{if $i}} · {{end}}{{$a.Name}}: {{if $a.Business}}{{t "vatcheck.accounts_business"}}{{else}}{{t "vatcheck.accounts_private"}}{{end}}{{end}}</small>{{end}}</summary>
+  <p class="small muted">{{t "vatcheck.accounts_lead"}}</p>
+  {{if $p.CanSet}}<form method="post" action="/vat/accounts">
+    <input type="hidden" name="{{.CSRFField}}" value="{{.CSRF}}"><input type="hidden" name="conn" value="{{$p.Conn}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
+    <ul class="close-steps">{{range $p.Accounts}}<li><label class="check"><input type="checkbox" name="business" value="{{.Name}}"{{if .Business}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{.Name}} <small class="muted">{{t (print "service." .Service)}}</small></label></li>{{end}}</ul>
+    <p><button type="submit" class="btn btn-outline btn-sm">{{t "vatcheck.accounts_save"}}</button></p>
+  </form>
+  {{else}}<p class="small">{{t "vatcheck.accounts_ro"}}</p>{{end}}
+</details>
 {{end}}

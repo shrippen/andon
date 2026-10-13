@@ -65,14 +65,20 @@ func page(items ...any) map[string]any {
 func ninjaFake(t *testing.T, w *writes, b1Status string) string {
 	t.Helper()
 	txn := func(id, date, payer, text, kind string, amount float64, status string) map[string]any {
-		return map[string]any{"id": id, "date": date, "participant_name": payer, "description": text, "base_type": kind, "amount": amount, "status_id": status}
+		return map[string]any{"id": id, "date": date, "participant_name": payer, "description": text, "base_type": kind, "amount": amount, "status_id": status,
+			"bank_integration_id": "a1"}
 	}
+	private := txn("b5", day(2), "DB Fernverkehr AG", "Deutschlandticket", "DEBIT", 58, "1")
+	private["bank_integration_id"] = "a2"
 	get := map[string]any{
 		"bank_transactions": page(
 			txn("b1", day(3), "Elbnetz Mobilfunk", "", "DEBIT", 39.95, b1Status),
 			txn("b2", day(4), "Kabelwerk Studiobedarf", "KW-56107", "DEBIT", 899, "1"),
 			txn("b3", day(5), "NH Billing", "Rechnung", "DEBIT", 41.65, "1"),
-			txn("b4", day(6), "Northlight", "R-2026-017", "CREDIT", 238, "1")),
+			txn("b4", day(6), "Northlight", "R-2026-017", "CREDIT", 238, "1"),
+			private),
+		"bank_integrations": page(map[string]any{"id": "a1", "bank_account_name": "Girokonto", "bank_account_number": "DE001111"},
+			map[string]any{"id": "a2", "bank_account_name": "Girokonto", "bank_account_number": "DE002222"}),
 		"expenses": page(
 			map[string]any{"id": "e1", "number": "EX-1", "vendor_id": "v1", "category_id": "c1", "date": day(1), "amount": 89.7,
 				"tax_name1": "MwSt.", "tax_rate1": 19, "uses_inclusive_taxes": true, "transaction_id": "b0"},
@@ -103,6 +109,9 @@ func ninjaFake(t *testing.T, w *writes, b1Status string) string {
 			list, _ := body["transactions"].([]any)
 			item, _ := list[0].(map[string]any)
 			_ = json.NewEncoder(rw).Encode(map[string]any{"data": []any{map[string]any{"id": item["id"], "status_id": "3"}}})
+		case "bank_transactions/bulk":
+			ids, _ := body["ids"].([]any)
+			_ = json.NewEncoder(rw).Encode(map[string]any{"data": []any{map[string]any{"id": ids[0], "archived_at": 1760000000}}})
 		default:
 			http.NotFound(rw, r)
 		}
@@ -154,16 +163,17 @@ func TestOpenProposesEachCase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
-	if p.Conn != conn || p.Bank == "" || len(p.Cases) != 4 {
+	if p.Conn != conn || p.Bank == "" || len(p.Cases) != 5 || p.SetUp {
 		t.Fatalf("page: conn %d bank %q cases %d", p.Conn, p.Bank, len(p.Cases))
 	}
-	want := []metrics.BankAction{metrics.ActionLink, metrics.ActionCreate, metrics.ActionCreate, metrics.ActionInvoice}
+	// Without business accounts named, every account counts.
+	want := []metrics.BankAction{metrics.ActionCreate, metrics.ActionLink, metrics.ActionCreate, metrics.ActionCreate, metrics.ActionInvoice}
 	for i, c := range p.Cases {
 		if c.Action != want[i] {
 			t.Errorf("%s: action %q, want %q", c.Txn.Key, c.Action, want[i])
 		}
 	}
-	if dr := p.Cases[2].Draft; dr.Vendor != "Nordhost Server" || dr.CategoryKey != "c2" || p.Cases[2].Sure == nil || p.Cases[2].Sure.Tags[0] != "Firma" {
+	if dr := p.Cases[3].Draft; dr.Vendor != "Nordhost Server" || dr.CategoryKey != "c2" || p.Cases[3].Sure == nil || p.Cases[3].Sure.Tags[0] != "Firma" {
 		t.Errorf("b3 draft from Sure: %+v", dr)
 	}
 	if len(w.list()) != 0 {
@@ -171,8 +181,8 @@ func TestOpenProposesEachCase(t *testing.T) {
 	}
 }
 
-// Review spells out the writes; Apply makes exactly those, and a
-// transaction set aside stays in Andon.
+// Review spells out the writes; Apply makes exactly those, archiving the
+// private one in Invoice Ninja.
 func TestApplyWritesConfirmedSteps(t *testing.T) {
 	d := testkit.DB(t)
 	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
@@ -190,7 +200,7 @@ func TestApplyWritesConfirmedSteps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("review: %v", err)
 	}
-	if plan.Writes() != 3 || !plan.Steps[1].NewVendor || plan.Steps[1].Tax != 6.65 || plan.Steps[1].Category != "Hosting" {
+	if plan.Writes() != 4 || !plan.Steps[1].NewVendor || plan.Steps[1].Tax != 6.65 || plan.Steps[1].Category != "Hosting" {
 		t.Fatalf("plan: %+v", plan.Steps)
 	}
 	if len(w.list()) != 0 {
@@ -206,7 +216,7 @@ func TestApplyWritesConfirmedSteps(t *testing.T) {
 	}
 	got := w.list()
 	want := []string{"POST /api/v1/bank_transactions/match", "POST /api/v1/vendors", "POST /api/v1/expenses",
-		"POST /api/v1/bank_transactions/match", "POST /api/v1/bank_transactions/match"}
+		"POST /api/v1/bank_transactions/match", "POST /api/v1/bank_transactions/match", "POST /api/v1/bank_transactions/bulk"}
 	if !slices.Equal(got, want) {
 		t.Fatalf("writes %v, want %v", got, want)
 	}
@@ -222,9 +232,41 @@ func TestApplyWritesConfirmedSteps(t *testing.T) {
 		t.Errorf("invoice booking: %v", pay)
 	}
 
+	if archive := w.body[5]; archive["action"] != "archive" || archive["ids"].([]any)[0] != "b2" {
+		t.Errorf("archive body: %v", archive)
+	}
+}
+
+// Named business accounts: the private account's train pass waits apart
+// until its vendor has expenses; two accounts of one name are told apart
+// by their number.
+func TestAccounts(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	var w writes
+	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "1"))
+	ctx := context.Background()
+
 	p, err := vatcheck.Open(ctx, d, who, conn, thisMonth(), time.Now().UTC())
-	if err != nil || len(p.Skipped) != 1 || p.Skipped[0].Key != "b2" {
-		t.Fatalf("skipped after apply: %+v %v", p.Skipped, err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.Accounts) != 2 || p.Accounts[0].Name != "Girokonto ··1111" || p.Accounts[1].Name != "Girokonto ··2222" || !p.CanSet {
+		t.Fatalf("accounts: %+v can set %v", p.Accounts, p.CanSet)
+	}
+
+	if err := vatcheck.SaveAccounts(d, who, conn, []string{"Girokonto ··1111"}, ""); err != nil {
+		t.Fatal(err)
+	}
+	p, err = vatcheck.Open(ctx, d, who, conn, thisMonth(), time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !p.SetUp || len(p.Cases) != 4 || len(p.Apart) != 1 || !p.Apart[0].Private || p.Apart[0].Txn.Key != "b5" {
+		t.Fatalf("set up %v, cases %d, apart %+v", p.SetUp, len(p.Cases), p.Apart)
+	}
+	if !p.Accounts[0].Business || p.Accounts[1].Business {
+		t.Errorf("business flags: %+v", p.Accounts)
 	}
 }
 

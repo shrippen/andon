@@ -317,7 +317,6 @@ type ReceiptInputs struct {
 
 // MissingReceipts returns business spending with no receipt anywhere.
 func MissingReceipts(in ReceiptInputs) []sources.SureTxn {
-	in.Accounts = BusinessAccounts(in)
 	if in.Sure == nil || len(in.Accounts) == 0 {
 		return nil
 	}
@@ -337,15 +336,6 @@ func MissingReceipts(in ReceiptInputs) []sources.SureTxn {
 		}
 	}
 	return out
-}
-
-// BusinessAccounts are the accounts named, else those Sure shares with
-// Invoice Ninja's bank feed (FeedAccounts).
-func BusinessAccounts(in ReceiptInputs) []string {
-	if len(in.Accounts) > 0 {
-		return in.Accounts
-	}
-	return FeedAccounts(in.Sure, in.Ninja)
 }
 
 func businessAccount(account string, accounts []string) bool {

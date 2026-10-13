@@ -10,6 +10,8 @@ package sources
 //	the overdue invoice     paid, the income is open
 //	office supplies         unknown payee: a case for the language model
 //	music streaming         private, paid from the business account
+//	private account         train pass (business, paid privately) and
+//	                        groceries, set apart; a refund drops out
 
 import (
 	"fmt"
@@ -25,10 +27,14 @@ const (
 	demoTaxReduced = 7
 	demoOpenLinks  = 2  // newest expenses whose transaction is still open
 	demoBankDays   = 95 // how far back the feed reaches
+
+	// The feed's two accounts; the demo space names the first business.
+	demoBusiness = "Geschäftskonto"
+	demoPrivate  = "Privatkonto"
 )
 
 func demoNinjaBank(today time.Time, data *NinjaDataset) {
-	data.BankRead = true
+	data.BankRead, data.BankAccounts = true, []string{demoBusiness, demoPrivate}
 	data.TaxRates = []NinjaTaxRate{{Name: demoTaxName, Rate: demoTaxRate}, {Name: demoTaxName + " 7 %", Rate: demoTaxReduced}}
 
 	vendors, categories := map[string]string{}, map[string]string{}
@@ -90,7 +96,13 @@ func demoNinjaBank(today time.Time, data *NinjaDataset) {
 		NinjaBankTxn{Key: "demo-b-office", Date: iso(today.AddDate(0, 0, -11)), Description: "Bestellung 302-4471 Toner, Papier", Payer: "BüroDirekt24",
 			Amount: 47.6, Debit: true, Status: BankOpen},
 		NinjaBankTxn{Key: "demo-b-music", Date: iso(today.AddDate(0, 0, -16)), Description: music.Contract.DE(), Payer: music.Name,
-			Amount: music.Monthly, Debit: true, Status: BankOpen})
+			Amount: music.Monthly, Debit: true, Status: BankOpen},
+		NinjaBankTxn{Key: "demo-p-ticket", Date: iso(today.AddDate(0, 0, -12)), Description: "Deutschlandticket " + today.Format("01/2006"),
+			Payer: "DB Fernverkehr AG", Amount: 58, Debit: true, Status: BankOpen, Account: demoPrivate},
+		NinjaBankTxn{Key: "demo-p-food", Date: iso(today.AddDate(0, 0, -9)), Description: "Einkauf", Payer: "Wochenmarkt Eimsbüttel",
+			Amount: 38.4, Debit: true, Status: BankOpen, Account: demoPrivate},
+		NinjaBankTxn{Key: "demo-p-refund", Date: iso(today.AddDate(0, 0, -13)), Description: "Erstattung", Payer: "Krankenkasse",
+			Amount: 120, Status: BankOpen, Account: demoPrivate})
 
 	// The overdue invoice, paid: open until it is booked.
 	for _, inv := range data.Invoices {
@@ -102,6 +114,11 @@ func demoNinjaBank(today time.Time, data *NinjaDataset) {
 	}
 	for i := range data.Invoices {
 		data.Invoices[i].Key = fmt.Sprintf("demo-i%d", data.Invoices[i].ID)
+	}
+	for i := range data.BankTxns {
+		if data.BankTxns[i].Account == "" {
+			data.BankTxns[i].Account = demoBusiness
+		}
 	}
 }
 

@@ -5,18 +5,22 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"slices"
 	"strings"
 	"time"
 
+	"andon/internal/db"
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/outbound"
+	"andon/internal/repos/content"
 	"andon/internal/services/access"
 	"andon/internal/services/assist"
 	auditsvc "andon/internal/services/audit"
 	"andon/internal/services/connections"
+	"andon/internal/services/spaces"
 	"andon/internal/services/svcdata"
 	"andon/internal/sources"
 )
@@ -44,6 +48,9 @@ const (
 	ProblemNoVendor Problem = "vatcheck.problem_no_vendor" // a new expense needs a vendor
 )
 
+// ErrGone means the transaction is not (or no longer) archived.
+var ErrGone = errors.New("vatcheck.problem_gone")
+
 // Planned is a step as it would be written.
 type Planned struct {
 	Step
@@ -64,11 +71,12 @@ type Plan struct {
 	Currency string
 }
 
-// Writes counts the steps that change Invoice Ninja.
+// Writes counts the steps that change Invoice Ninja; archiving a
+// private transaction is one too.
 func (p Plan) Writes() int {
 	n := 0
 	for _, s := range p.Steps {
-		if s.Problem == ProblemNone && s.Action != metrics.ActionSkip {
+		if s.Problem == ProblemNone {
 			n++
 		}
 	}
@@ -214,15 +222,9 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, 
 	w := writer{to: outbound.Target{URL: b.conn.URL, Token: token, VerifyTLS: b.conn.VerifyTLS}, book: b}
 
 	var out Result
-	var skip []string
 	for _, p := range plan.Steps {
 		if p.Problem != ProblemNone {
 			out.Failed = append(out.Failed, Failure{Txn: p.Step.Txn, Payer: p.Txn.Payer, Reason: string(p.Problem)})
-			continue
-		}
-		if p.Action == metrics.ActionSkip {
-			skip = append(skip, p.Txn.Key)
-			out.Skipped++
 			continue
 		}
 		target, err := w.write(ctx, p)
@@ -230,18 +232,17 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, 
 			out.Failed = append(out.Failed, Failure{Txn: p.Txn.Key, Payer: p.Txn.Payer, Reason: reasonOf(err)})
 			continue
 		}
-		out.Done++
+		if p.Action == metrics.ActionSkip {
+			out.Skipped++
+		} else {
+			out.Done++
+		}
 		_ = auditsvc.Log(d, &who.UserID, "vatcheck."+string(p.Action), target, ip,
 			map[string]any{"txn": p.Txn.Key, "amount": fmt.Sprintf("%.2f", p.Txn.Amount)})
 	}
 
 	svcdata.Forget(b.conn.ID)
-	err = saveState(d, who, func(s *state) {
-		s.Conn = b.conn.ID
-		for _, k := range skip {
-			s.setSkip(b.conn.ID, k, Hidden)
-		}
-	})
+	err = saveState(d, who, func(s *state) { s.Conn = b.conn.ID })
 	return out, err
 }
 
@@ -249,6 +250,9 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, 
 func reasonOf(err error) string {
 	if errors.Is(err, outbound.ErrNotBooked) {
 		return "vatcheck.problem_not_booked"
+	}
+	if errors.Is(err, outbound.ErrNotArchived) {
+		return "vatcheck.problem_not_archived"
 	}
 	return err.Error()
 }
@@ -260,9 +264,11 @@ type writer struct {
 }
 
 // write books one step and returns what it booked against (an expense
-// or invoice number).
+// or invoice number, the payee of an archived one).
 func (w writer) write(ctx context.Context, p Planned) (string, error) {
 	switch p.Action {
+	case metrics.ActionSkip:
+		return p.Txn.Payer, outbound.NinjaBankArchive(ctx, w.to, p.Txn.Key, outbound.BankArchiveOn)
 	case metrics.ActionLink:
 		return p.Expense.Number, outbound.NinjaBankLink(ctx, w.to, p.Txn.Key, outbound.NinjaBankTarget{Expense: p.Expense.Key})
 	case metrics.ActionInvoice:
@@ -297,15 +303,75 @@ func (w writer) write(ctx context.Context, p Planned) (string, error) {
 	return number, nil
 }
 
-// Skip sets a transaction aside (private) or shows it again.
-func Skip(d *sql.DB, who *access.Principal, connID int64, txn string, hide Hide) error {
+// Restore brings a transaction archived as private back into the feed.
+func Restore(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, txn string, ip string) error {
+	b, _, err := load(ctx, d, who, connID, svcdata.Cached)
+	if err != nil {
+		return err
+	}
+	if err := connections.Writable(d, who, b.conn.ID); err != nil {
+		return err
+	}
+	i := indexOf(b.ninja.BankTxns, func(t sources.NinjaBankTxn) bool { return t.Key == txn && t.Archived })
+	if i < 0 {
+		return ErrGone
+	}
+	if sources.IsDemo(b.conn.URL) {
+		return ErrDemo
+	}
+	token, err := svcdata.Secret(ctx, d, b.conn, model.UserHolder(who.UserID))
+	if err != nil {
+		return err
+	}
+	to := outbound.Target{URL: b.conn.URL, Token: token, VerifyTLS: b.conn.VerifyTLS}
+	if err := outbound.NinjaBankArchive(ctx, to, txn, outbound.BankArchiveOff); err != nil {
+		return err
+	}
+	svcdata.Forget(b.conn.ID)
+	return auditsvc.Log(d, &who.UserID, "vatcheck.restore", b.ninja.BankTxns[i].Payer, ip, map[string]any{"txn": txn})
+}
+
+// SaveAccounts names the business accounts of the Invoice Ninja's space;
+// every other account counts as private.
+func SaveAccounts(d *sql.DB, who *access.Principal, connID int64, business []string, ip string) error {
 	if _, err := connections.Get(d, who, connID); err != nil {
 		return err
 	}
-	return saveState(d, who, func(s *state) {
-		s.Conn = connID
-		s.setSkip(connID, txn, hide)
+	conn, err := connections.ByID(d, connID)
+	if err != nil || conn == nil {
+		return errors.Join(err, ErrNoNinja)
+	}
+	var settings map[string]any
+	err = db.WithRead(d, func(tx *sql.Tx) error {
+		sp, err := content.Space(tx, conn.SpaceID)
+		if sp != nil {
+			settings = sp.Settings
+		}
+		return err
 	})
+	if err != nil {
+		return err
+	}
+
+	// Only this rule's "accounts" changes; the space's other rule
+	// settings stay as they are.
+	all := map[string]any{}
+	if old, ok := settings["rules"].(map[string]any); ok {
+		maps.Copy(all, old)
+	}
+	rule := map[string]any{}
+	if old, ok := all[accountRule].(map[string]any); ok {
+		maps.Copy(rule, old)
+	}
+	names := make([]any, 0, len(business))
+	for _, n := range business {
+		if n = strings.TrimSpace(n); n != "" {
+			names = append(names, n)
+		}
+	}
+	rule["accounts"] = names
+	all[accountRule] = rule
+	return spaces.Update(d, who, conn.SpaceID, map[string]any{"rules": all}, ip)
 }
 
 // Guess asks the language model about the period's open debits and
@@ -316,7 +382,7 @@ func Guess(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, 
 		return 0, err
 	}
 	var list []assist.Booking
-	for _, c := range page.Cases {
+	for _, c := range append(page.Cases, page.Apart...) {
 		if !c.Txn.Debit || c.Action == metrics.ActionLink {
 			continue
 		}

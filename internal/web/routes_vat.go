@@ -6,7 +6,8 @@ package web
 //	GET  /vat          the period's open transactions, proposals, check
 //	POST /vat/review   the ticked steps, spelled out, to confirm
 //	POST /vat/apply    writes the confirmed steps
-//	POST /vat/skip     shows a transaction set aside again
+//	POST /vat/restore  brings a transaction archived as private back
+//	POST /vat/accounts names the business accounts
 //	POST /vat/guess    asks the language model about the open ones
 
 import (
@@ -26,7 +27,8 @@ func (d Deps) registerVATRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /vat", d.authed(d.handleVAT))
 	mux.HandleFunc("POST /vat/review", d.authed(d.handleVATReview))
 	mux.HandleFunc("POST /vat/apply", d.authed(d.handleVATApply))
-	mux.HandleFunc("POST /vat/skip", d.authed(d.handleVATSkip))
+	mux.HandleFunc("POST /vat/restore", d.authed(d.handleVATRestore))
+	mux.HandleFunc("POST /vat/accounts", d.authed(d.handleVATAccounts))
 	mux.HandleFunc("POST /vat/guess", d.authed(d.handleVATGuess))
 }
 
@@ -80,11 +82,20 @@ func vatError(err error) string {
 
 // vatSteps reads the ticked rows; each row's fields carry its key:
 // pick=Kx9, act_Kx9=create, vendor_Kx9=…, cat_Kx9=…, tax_Kx9=19|none.
+// all_private archives every apart=… row instead.
 func vatSteps(r *http.Request) []vatcheck.Step {
 	if err := r.ParseForm(); err != nil {
 		return nil
 	}
 	var out []vatcheck.Step
+
+	// "Archive all as private": the private accounts' rest, nothing else.
+	if r.PostForm.Get("all_private") != "" {
+		for _, k := range r.PostForm["apart"] {
+			out = append(out, vatcheck.Step{Txn: k, Action: metrics.ActionSkip})
+		}
+		return out
+	}
 	for _, k := range r.PostForm["pick"] {
 		s := vatcheck.Step{Txn: k, Action: metrics.BankAction(r.PostForm.Get("act_" + k)), Expense: r.PostForm.Get("exp_" + k),
 			Invoice: r.PostForm.Get("inv_" + k), Vendor: r.PostForm.Get("vendor_" + k), Category: r.PostForm.Get("cat_" + k)}
@@ -126,13 +137,27 @@ func (d Deps) handleVATApply(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	http.Redirect(w, r, q.back(pairs...), http.StatusSeeOther)
 }
 
-func (d Deps) handleVATSkip(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+func (d Deps) handleVATRestore(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := vatQueryOf(r)
-	if err := vatcheck.Skip(d.DB, ctx.Who, q.Conn, r.FormValue("txn"), vatcheck.Shown); err != nil {
+	if err := vatcheck.Restore(r.Context(), d.DB, ctx.Who, q.Conn, r.FormValue("txn"), d.clientIP(r)); err != nil {
 		http.Redirect(w, r, q.back("error", vatError(err)), http.StatusSeeOther)
 		return
 	}
 	http.Redirect(w, r, q.back("note", "vatcheck.shown"), http.StatusSeeOther)
+}
+
+// handleVATAccounts stores the ticked accounts as business accounts.
+func (d Deps) handleVATAccounts(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	q := vatQueryOf(r)
+	if err := r.ParseForm(); err != nil {
+		d.fail(w, err, http.StatusBadRequest)
+		return
+	}
+	if err := vatcheck.SaveAccounts(d.DB, ctx.Who, q.Conn, r.PostForm["business"], d.clientIP(r)); err != nil {
+		http.Redirect(w, r, q.back("error", vatError(err))+"#accounts", http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, q.back("note", "vatcheck.accounts_saved"), http.StatusSeeOther)
 }
 
 func (d Deps) handleVATGuess(w http.ResponseWriter, r *http.Request, ctx Ctx) {

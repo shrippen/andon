@@ -4,7 +4,8 @@
 //	Open    the period's open transactions with proposals, and the check
 //	Review  the steps the user ticked, as they would be written
 //	Apply   writes them, only after the user confirmed the review
-//	Skip    sets a transaction aside (private) or back, in Andon only
+//	Restore brings a transaction archived as private back
+//	Accounts names the business accounts (the rest is private)
 //	Guess   asks the language model about the open ones, on request
 //
 //	  Invoice Ninja ──bank feed──┐
@@ -17,6 +18,7 @@ import (
 	"database/sql"
 	"errors"
 	"slices"
+	"strings"
 	"time"
 
 	"andon/internal/db"
@@ -24,9 +26,11 @@ import (
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/repos/content"
+	"andon/internal/rules"
 	"andon/internal/services/access"
 	"andon/internal/services/assist"
 	"andon/internal/services/connections"
+	"andon/internal/services/spaces"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/verbund"
 	"andon/internal/sources"
@@ -59,8 +63,12 @@ type Page struct {
 	Bank     string // the Sure or Firefly beside it, "" none
 	Spans    []metrics.VATSpan
 	Span     metrics.VATSpan
-	Cases    []Case
-	Skipped  []sources.NinjaBankTxn
+	Cases    []Case                 // business, and private with a known vendor
+	Apart    []Case                 // the rest of the private accounts
+	Skipped  []sources.NinjaBankTxn // archived in Invoice Ninja
+	Accounts []Account
+	SetUp    bool // business accounts are named
+	CanSet   bool // the user may name them (space settings)
 	Check    metrics.VATCheck
 	Ledger   Ledger
 	Interval string // monthly, quarterly
@@ -75,6 +83,13 @@ type Page struct {
 type Case struct {
 	metrics.BankCase
 	Guess *assist.Guess
+}
+
+// Account is a bank account of Invoice Ninja or Sure and how it counts.
+type Account struct {
+	Name     string
+	Service  enums.ServiceType
+	Business bool
 }
 
 // Ledger is what a new expense can choose from.
@@ -122,6 +137,8 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, s
 	}
 
 	in := b.inputs(p.Span, p.Method, today)
+	p.Accounts, p.SetUp = b.accounts(in.Business), len(in.Business) > 0
+	p.CanSet = spaces.CanChange(d, who, b.conn.SpaceID)
 	cases := metrics.BankCases(in)
 	p.Check = metrics.VATCheckOf(in, cases)
 	guesses := b.state.guesses(b.conn.ID)
@@ -133,10 +150,14 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, s
 			p.Guessed = true
 			b.apply(&cs)
 		}
-		p.Cases = append(p.Cases, cs)
+		if cs.Waiting() {
+			p.Cases = append(p.Cases, cs)
+		} else {
+			p.Apart = append(p.Apart, cs)
+		}
 	}
 	for _, t := range b.ninja.BankTxns {
-		if in.Skip[t.Key] && inSpan(t.Date, p.Span) {
+		if t.Archived && inSpan(t.Date, p.Span) {
 			p.Skipped = append(p.Skipped, t)
 		}
 	}
@@ -171,6 +192,10 @@ func (b book) apply(c *Case) {
 		c.Action = metrics.ActionSkip
 		return
 	}
+	if c.Private && c.Action == metrics.ActionNone {
+		// Paid privately, but the model reads it as business.
+		c.Action = metrics.ActionCreate
+	}
 	if !c.Txn.Debit || c.Draft.From == metrics.FromHistory {
 		return
 	}
@@ -201,11 +226,53 @@ func inSpan(day string, s metrics.VATSpan) bool {
 }
 
 func (b book) inputs(s metrics.VATSpan, method string, today time.Time) metrics.VATInputs {
-	skip := map[string]bool{}
-	for _, k := range b.state.skipped(b.conn.ID) {
-		skip[k] = true
+	return metrics.VATInputs{Ninja: b.ninja, Sure: b.bank, Start: s.Start, End: s.End, Business: businessOf(b.settings),
+		Method: method, Today: today}
+}
+
+// accountRule keeps the business accounts in its "accounts" setting, the
+// one the missing receipts tile and the month close read as well.
+const accountRule = "cross.expense_unrecorded"
+
+// businessOf reads the business accounts of a space's settings.
+func businessOf(settings map[string]any) []string {
+	var out []string
+	for _, spec := range rules.AllRules() {
+		if spec.ID != accountRule {
+			continue
+		}
+		list, _ := rules.Config(spec, settings)["accounts"].([]any)
+		for _, v := range list {
+			if name, ok := v.(string); ok && strings.TrimSpace(name) != "" {
+				out = append(out, strings.TrimSpace(name))
+			}
+		}
 	}
-	return metrics.VATInputs{Ninja: b.ninja, Sure: b.bank, Start: s.Start, End: s.End, Skip: skip, Method: method, Today: today}
+	return out
+}
+
+// accounts lists Invoice Ninja's bank accounts and Sure's, each once.
+func (b book) accounts(business []string) []Account {
+	var out []Account
+	add := func(name string, service enums.ServiceType) {
+		if name == "" || slices.ContainsFunc(out, func(a Account) bool { return equalFold(a.Name, name) }) {
+			return
+		}
+		isBusiness := slices.ContainsFunc(business, func(n string) bool { return equalFold(n, name) })
+		out = append(out, Account{Name: name, Service: service, Business: isBusiness})
+	}
+	for _, name := range b.ninja.BankAccounts {
+		add(name, enums.ServiceInvoiceNinja)
+	}
+	for _, t := range b.ninja.BankTxns {
+		add(t.Account, enums.ServiceInvoiceNinja)
+	}
+	if b.bank != nil {
+		for _, a := range b.bank.Accounts {
+			add(a.Name, b.bank.From())
+		}
+	}
+	return out
 }
 
 // load picks the Invoice Ninja, its Sure (or Firefly) partner, their data

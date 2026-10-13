@@ -1,7 +1,6 @@
 package metrics_test
 
 import (
-	"slices"
 	"testing"
 	"time"
 
@@ -9,12 +8,21 @@ import (
 	"andon/internal/sources"
 )
 
-// vatBook is September 2026: two known vendors, one booked transaction,
-// and one open transaction of each kind.
+// Accounts of the test: the business one, and the private one that pays
+// the train ticket.
+const (
+	business = "Geschäftskonto"
+	private  = "Privatkonto"
+)
+
+// vatBook is September 2026: known vendors, one booked transaction, one
+// archived, one open transaction of each kind, and three on the private
+// account.
 func vatBook() (*sources.NinjaDataset, *sources.SureDataset) {
 	ninja := &sources.NinjaDataset{
 		Vendors: []sources.NinjaVendor{{Key: "v1", Name: "Kabelwerk Studiobedarf"}, {Key: "v2", Name: "Elbnetz Mobilfunk"},
-			{Key: "v3", Name: "Mietwagen Nord"}}, // "nord" is in "Nordhost", but not a word of it
+			{Key: "v3", Name: "Mietwagen Nord"}, // "nord" is in "Nordhost", but not a word of it
+			{Key: "v4", Name: "DB Fernverkehr"}},
 		Categories: []sources.NinjaCategory{{Key: "c1", Name: "Technik"}, {Key: "c2", Name: "Hosting"}},
 		Clients:    []sources.NinjaClient{{ID: 1, Name: "Northlight Pictures"}},
 		Invoices:   []sources.NinjaInvoice{{ID: 7, Key: "i7", Number: "R-2026-017", ClientID: 1, Status: "sent", Amount: 2380, Balance: 2380}},
@@ -22,21 +30,25 @@ func vatBook() (*sources.NinjaDataset, *sources.SureDataset) {
 			{Key: "e1", VendorKey: "v1", CategoryKey: "c1", Date: "2026-08-20", Amount: 89.7, Tax: 14.32, TaxName: "MwSt.", TaxRate: 19, TxnKey: "b0"},
 			{Key: "e2", VendorKey: "v2", Date: "2026-09-02", Amount: 39.95, Tax: 6.38},
 			{Key: "e3", VendorKey: "v2", Date: "2026-09-12", Amount: 12.5},
+			{Key: "e4", VendorKey: "v4", CategoryKey: "c3", Date: "2026-08-01", Amount: 58, Tax: 3.79, TaxName: "MwSt. 7 %", TaxRate: 7, TxnKey: "p0"},
 		},
 		BankTxns: []sources.NinjaBankTxn{
-			{Key: "b0", Date: "2026-08-21", Payer: "Kabelwerk Studiobedarf", Amount: 89.7, Debit: true, Status: sources.BankDone, ExpenseKeys: []string{"e1"}},
-			{Key: "b1", Date: "2026-09-03", Payer: "Elbnetz Mobilfunk", Amount: 39.95, Debit: true, Status: sources.BankOpen},
-			{Key: "b2", Date: "2026-09-08", Payer: "Kabelwerk Studiobedarf", Description: "KW-56107", Amount: 899, Debit: true, Status: sources.BankOpen},
-			{Key: "b3", Date: "2026-09-10", Payer: "NH Billing", Description: "Rechnung 09", Amount: 41.65, Debit: true, Status: sources.BankOpen},
-			{Key: "b4", Date: "2026-09-15", Payer: "Northlight", Description: "RE R-2026-017", Amount: 2380, Status: sources.BankOpen},
-			{Key: "b5", Date: "2026-09-20", Payer: "Wellenklang", Amount: 10.99, Debit: true, Status: sources.BankOpen},
+			{Key: "b0", Date: "2026-08-21", Payer: "Kabelwerk Studiobedarf", Amount: 89.7, Debit: true, Status: sources.BankDone, ExpenseKeys: []string{"e1"}, Account: business},
+			{Key: "b1", Date: "2026-09-03", Payer: "Elbnetz Mobilfunk", Amount: 39.95, Debit: true, Status: sources.BankOpen, Account: business},
+			{Key: "b2", Date: "2026-09-08", Payer: "Kabelwerk Studiobedarf", Description: "KW-56107", Amount: 899, Debit: true, Status: sources.BankOpen, Account: business},
+			{Key: "b3", Date: "2026-09-10", Payer: "NH Billing", Description: "Rechnung 09", Amount: 41.65, Debit: true, Status: sources.BankOpen, Account: business},
+			{Key: "b4", Date: "2026-09-15", Payer: "Northlight", Description: "RE R-2026-017", Amount: 2380, Status: sources.BankOpen, Account: business},
+			{Key: "b5", Date: "2026-09-20", Payer: "Wellenklang", Amount: 10.99, Debit: true, Status: sources.BankOpen, Archived: true, Account: business},
+			{Key: "b6", Date: "2026-09-01", Payer: "DB Fernverkehr AG", Description: "Deutschlandticket", Amount: 58, Debit: true, Status: sources.BankOpen, Account: private},
+			{Key: "b7", Date: "2026-09-02", Payer: "Supermarkt", Amount: 64.2, Debit: true, Status: sources.BankOpen, Account: private},
+			{Key: "b8", Date: "2026-09-02", Payer: "Arbeitgeber", Amount: 900, Status: sources.BankOpen, Account: private},
 		},
 	}
 	sure := &sources.SureDataset{Transactions: []sources.SureTxn{
-		{ID: "s1", Date: "2026-09-08", Name: "Kabelwerk", Amount: -899, Account: "Geschäftskonto"},
-		{ID: "s2", Date: "2026-09-11", Name: "NH BILLING", Merchant: "Nordhost Server", Category: "Hosting", Amount: -41.65, Account: "Geschäftskonto"},
-		{ID: "s3", Date: "2026-09-25", Name: "Druckerei", Amount: -58, Account: "Geschäftskonto"},
-		{ID: "s4", Date: "2026-09-26", Name: "Bäckerei", Amount: -6.4, Account: "Tagesgeld"},
+		{ID: "s1", Date: "2026-09-08", Name: "Kabelwerk", Amount: -899, Account: business},
+		{ID: "s2", Date: "2026-09-11", Name: "NH BILLING", Merchant: "Nordhost Server", Category: "Hosting", Amount: -41.65, Account: business},
+		{ID: "s3", Date: "2026-09-25", Name: "Druckerei", Amount: -58, Account: business},
+		{ID: "s4", Date: "2026-09-26", Name: "Bäckerei", Amount: -6.4, Account: private},
 	}}
 	return ninja, sure
 }
@@ -44,7 +56,7 @@ func vatBook() (*sources.NinjaDataset, *sources.SureDataset) {
 func september() metrics.VATInputs {
 	ninja, sure := vatBook()
 	return metrics.VATInputs{Ninja: ninja, Sure: sure, Start: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
-		End: time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC), Skip: map[string]bool{"b5": true}, Method: "soll",
+		End: time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC), Business: []string{business}, Method: "soll",
 		Today: time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC)}
 }
 
@@ -54,8 +66,16 @@ func TestBankCases(t *testing.T) {
 	for _, c := range cases {
 		byKey[c.Txn.Key] = c
 	}
-	if len(cases) != 4 || byKey["b0"].Txn.Key != "" || byKey["b5"].Txn.Key != "" {
-		t.Fatalf("booked and skipped must drop out: %+v", cases)
+	if len(cases) != 6 || byKey["b0"].Txn.Key != "" || byKey["b5"].Txn.Key != "" || byKey["b8"].Txn.Key != "" {
+		t.Fatalf("booked, archived and private incomes must drop out: %+v", cases)
+	}
+
+	// Paid privately: a vendor with expenses is proposed, the rest waits.
+	if c := byKey["b6"]; !c.Private || c.Action != metrics.ActionCreate || c.Draft.TaxRate != 7 || !c.Waiting() {
+		t.Errorf("b6 train ticket: %+v", c)
+	}
+	if c := byKey["b7"]; !c.Private || c.Action != metrics.ActionNone || c.Waiting() {
+		t.Errorf("b7 groceries: %+v", c)
 	}
 
 	// An expense of the same amount near the booking.
@@ -87,8 +107,8 @@ func TestBankCases(t *testing.T) {
 func TestVATCheck(t *testing.T) {
 	in := september()
 	check := metrics.VATCheckOf(in, metrics.BankCases(in))
-	if check.Open != 4 || check.Proposed != 4 {
-		t.Errorf("open %d proposed %d, want 4 and 4", check.Open, check.Proposed)
+	if check.Open != 5 || check.Proposed != 5 {
+		t.Errorf("open %d proposed %d, want 5 and 5", check.Open, check.Proposed)
 	}
 
 	// The feed ends on 20 Sep, the period on 30 Sep, which is past.
@@ -101,11 +121,7 @@ func TestVATCheck(t *testing.T) {
 		t.Errorf("no tax: %+v", check.NoTax)
 	}
 
-	// Two shared bookings make the business account; the printer's bill
-	// is missing in the feed, the bakery is private.
-	if len(check.Accounts) != 1 || check.Accounts[0] != "Geschäftskonto" {
-		t.Errorf("accounts: %v", check.Accounts)
-	}
+	// The printer's bill is missing in the feed; the bakery is private.
 	if len(check.SureOnly) != 1 || check.SureOnly[0].ID != "s3" {
 		t.Errorf("sure only: %+v", check.SureOnly)
 	}
@@ -135,23 +151,5 @@ func TestVATSpans(t *testing.T) {
 	}
 	if _, ok := metrics.VATSpanOf("2026-13", "monthly"); ok {
 		t.Error("month 13 must not parse")
-	}
-}
-
-// Without accounts named, the accounts Sure shares with Invoice Ninja's
-// bank feed count as business accounts: the printer's bill is found,
-// the bakery on the savings account is not.
-func TestMissingReceiptsFeedAccounts(t *testing.T) {
-	ninja, sure := vatBook()
-	in := metrics.ReceiptInputs{Sure: sure, Ninja: ninja, MinAmount: 20, Window: 10, Since: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)}
-	if got := metrics.BusinessAccounts(in); len(got) != 1 || got[0] != "Geschäftskonto" {
-		t.Fatalf("accounts: %v", got)
-	}
-	var names []string
-	for _, tx := range metrics.MissingReceipts(in) {
-		names = append(names, tx.Name)
-	}
-	if len(names) == 0 || !slices.Contains(names, "Druckerei") || slices.Contains(names, "Bäckerei") {
-		t.Fatalf("missing: %v", names)
 	}
 }
