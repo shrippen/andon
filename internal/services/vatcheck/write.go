@@ -29,6 +29,7 @@ type Step struct {
 	Action   metrics.BankAction
 	Expense  string // link: the expense key
 	Invoice  string // invoice: the invoice key
+	Payment  string // payment: the payment key
 	Vendor   string
 	Category string
 	TaxRate  float64
@@ -54,6 +55,7 @@ type Planned struct {
 	Txn       sources.NinjaBankTxn
 	Expense   *sources.NinjaExpense
 	Invoice   *sources.NinjaInvoice
+	Payment   *sources.NinjaPayment
 	NewVendor bool   // the vendor is created first
 	Category  string // its name
 	TaxName   string
@@ -120,12 +122,20 @@ func (b book) planned(s Step) Planned {
 		}
 		p.Expense = &b.ninja.Expenses[j]
 	case metrics.ActionInvoice:
+		// Ninja pays at most the balance: a part payment fits too.
 		j := indexOf(b.ninja.Invoices, func(inv sources.NinjaInvoice) bool { return inv.Key == s.Invoice })
-		if j < 0 || p.Txn.Debit || math.Abs(b.ninja.Invoices[j].Balance-p.Txn.Amount) > amountTol {
+		if j < 0 || p.Txn.Debit || b.ninja.Invoices[j].Balance <= 0 || p.Txn.Amount > b.ninja.Invoices[j].Balance+amountTol {
 			p.Problem = ProblemTarget
 			return p
 		}
 		p.Invoice = &b.ninja.Invoices[j]
+	case metrics.ActionPayment:
+		j := indexOf(b.ninja.Payments, func(pay sources.NinjaPayment) bool { return pay.Key == s.Payment })
+		if j < 0 || p.Txn.Debit || metrics.LinkedPayments(b.ninja)[s.Payment] || math.Abs(b.ninja.Payments[j].Amount-p.Txn.Amount) > amountTol {
+			p.Problem = ProblemTarget
+			return p
+		}
+		p.Payment = &b.ninja.Payments[j]
 	case metrics.ActionCreate:
 		p.Vendor = strings.TrimSpace(s.Vendor)
 		if p.Vendor == "" || !p.Txn.Debit {
@@ -270,6 +280,8 @@ func (w writer) write(ctx context.Context, p Planned) (string, error) {
 		return p.Expense.Number, outbound.NinjaBankLink(ctx, w.to, p.Txn.Key, outbound.NinjaBankTarget{Expense: p.Expense.Key})
 	case metrics.ActionInvoice:
 		return p.Invoice.Number, outbound.NinjaBankLink(ctx, w.to, p.Txn.Key, outbound.NinjaBankTarget{Invoices: []string{p.Invoice.Key}})
+	case metrics.ActionPayment:
+		return p.Payment.Number, outbound.NinjaBankLink(ctx, w.to, p.Txn.Key, outbound.NinjaBankTarget{Payment: p.Payment.Key})
 	}
 
 	// A new expense: vendor first if new, the expense with its tax, then

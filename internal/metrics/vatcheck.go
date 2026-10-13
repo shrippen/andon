@@ -8,6 +8,8 @@ package metrics
 //	               last expense, else Sure's merchant and category → create
 //	open credit ─► open invoice: its number in the text, or the
 //	               same balance and the client's name             → book
+//	            └► a payment of the same amount booked already
+//	               (by hand, from /billing), no transaction yet   → link
 //
 // Accounts are business or private as the user named them (unnamed
 // count as business). A debit from
@@ -37,6 +39,7 @@ const (
 	ActionCreate  BankAction = "create"  // create the expense, then link
 	ActionInvoice BankAction = "invoice" // book the payment of an invoice
 	ActionSkip    BankAction = "skip"    // set aside: private, nothing to book
+	ActionPayment BankAction = "payment" // link a payment booked already
 )
 
 // DraftFrom says where a new expense's fields come from.
@@ -67,6 +70,7 @@ type BankCase struct {
 	Expenses []sources.NinjaExpense // unlinked, same amount, best first
 	Invoice  *sources.NinjaInvoice  // the open invoice it pays
 	ByNumber bool                   // the text names the invoice's number
+	Payment  *sources.NinjaPayment  // the payment booked for it already
 	Draft    ExpenseDraft
 	Action   BankAction
 	Private  bool // paid from a private account
@@ -99,7 +103,7 @@ func BankCases(in VATInputs) []BankCase {
 		return nil
 	}
 	taken := LinkedExpenses(in.Ninja)
-	usedSure, usedInvoice := map[string]bool{}, map[int64]bool{}
+	usedSure, usedInvoice, usedPayment := map[string]bool{}, map[int64]bool{}, linkedPayments(in.Ninja)
 	var out []BankCase
 	for _, t := range periodTxns(in) {
 		private := t.Role == sources.RolePrivate
@@ -123,6 +127,9 @@ func BankCases(in VATInputs) []BankCase {
 			if c.Invoice != nil {
 				c.Action = ActionInvoice
 				usedInvoice[c.Invoice.ID] = true
+			} else if c.Payment = paymentFit(in.Ninja, t, usedPayment); c.Payment != nil {
+				c.Action = ActionPayment
+				usedPayment[c.Payment.Key] = true
 			}
 		}
 		out = append(out, c)
@@ -224,6 +231,56 @@ func invoiceFit(n *sources.NinjaDataset, t sources.NinjaBankTxn, used map[int64]
 		}
 	}
 	return byName, false
+}
+
+// LinkedPayments are the payments a bank transaction holds already.
+func LinkedPayments(n *sources.NinjaDataset) map[string]bool { return linkedPayments(n) }
+
+func linkedPayments(n *sources.NinjaDataset) map[string]bool {
+	out := map[string]bool{}
+	for _, t := range n.BankTxns {
+		if t.PaymentKey != "" {
+			out[t.PaymentKey] = true
+		}
+	}
+	return out
+}
+
+// paymentFit is a payment of the same amount near the income that no
+// transaction holds: booked by hand, or on /billing from Sure. The one
+// naming the payer's client first.
+func paymentFit(n *sources.NinjaDataset, t sources.NinjaBankTxn, used map[string]bool) *sources.NinjaPayment {
+	day, ok := ParseDay(t.Date)
+	if !ok {
+		return nil
+	}
+	clients := ninjaClientNames(n)
+	var best *sources.NinjaPayment
+	for i := range n.Payments {
+		p := &n.Payments[i]
+		if p.Key == "" || used[p.Key] || abs(p.Amount-t.Amount) > amountTol || daysApart(p.Date, day) > expenseWindow {
+			continue
+		}
+		if best == nil || namesClient(t.Payer+" "+t.Description, clients[p.ClientID]) {
+			best = p
+		}
+	}
+	return best
+}
+
+// FeedTwin is the open income of the feed for a bank booking: same
+// amount, a few days apart. /billing books through it, so the feed and
+// the payment agree.
+func FeedTwin(n *sources.NinjaDataset, amount float64, day time.Time) (sources.NinjaBankTxn, bool) {
+	if n == nil {
+		return sources.NinjaBankTxn{}, false
+	}
+	for _, t := range n.BankTxns {
+		if !t.Debit && t.Status != sources.BankDone && !t.Archived && abs(t.Amount-amount) <= amountTol && daysApart(t.Date, day) <= bankWindow {
+			return t, true
+		}
+	}
+	return sources.NinjaBankTxn{}, false
 }
 
 // sureTwin is the same booking in Sure: same amount and direction, a few

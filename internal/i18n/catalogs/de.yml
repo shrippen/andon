@@ -6132,6 +6132,7 @@ gallery:
   deleted: 'Gelöscht: {n}'
 audit_action:
   vatcheck:
+    payment: 'Umsatz mit vorhandener Zahlung verknüpft'
     skip: 'Umsatz als privat archiviert'
     restore: 'Archivierten Umsatz wiederhergestellt'
     link: 'Umsatz mit Ausgabe verknüpft'
@@ -6991,6 +6992,9 @@ llm:
     requests: 'Anfragen'
     cost: 'Kosten'
 vatcheck:
+  act_payment: Mit vorhandener Zahlung verknüpfen
+  payment_line: 'Zahlung {number} vom {day}, schon gebucht (etwa über die Abrechnung)'
+  do_payment: 'Umsatz mit Zahlung {number} verknüpfen'
   accounts_title: Konten
   accounts_lead: 'Wofür ist welches Konto? Abbuchungen privater Konten schlägt Andon nur vor, wenn der Lieferant schon Ausgaben hat, etwa das privat bezahlte Deutschlandticket. Die Einordnung gilt für die ganze Verbindung, im Verbund auch für das verknüpfte Konto in Sure, und für alle Auswertungen.'
   accounts_unknown: 'nicht eingeordnet'

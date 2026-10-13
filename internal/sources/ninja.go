@@ -157,7 +157,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 		if day(pm["date"]) >= since {
 			payments = append(payments, NinjaPayment{
 				ID: asInt64(pm["id"]), Date: day(pm["date"]), Amount: asFloat(pm["amount"]),
-				ClientID: refNum(pm["client_id"]),
+				ClientID: refNum(pm["client_id"]), Key: idKey(pm["id"]), Number: asStr(pm["number"]),
 			})
 		}
 	}
@@ -370,7 +370,7 @@ func ninjaBankTxn(m map[string]any) (NinjaBankTxn, bool) {
 	return NinjaBankTxn{
 		Key: idKey(m["id"]), Date: day(m["date"]), Description: strings.TrimSpace(asStr(m["description"])), Payer: strings.TrimSpace(payer),
 		Amount: math.Abs(asFloat(m["amount"])), Debit: strings.EqualFold(asStr(m["base_type"]), "DEBIT"), Status: status,
-		ExpenseKeys: keyList(asStr(m["expense_id"])), InvoiceKeys: keyList(asStr(m["invoice_ids"])),
+		ExpenseKeys: keyList(asStr(m["expense_id"])), InvoiceKeys: keyList(asStr(m["invoice_ids"])), PaymentKey: asStr(m["payment_id"]),
 		VendorKey: asStr(m["vendor_id"]), CategoryKey: asStr(m["ninja_category_id"]), Archived: asFloat(m["archived_at"]) > 0,
 	}, true
 }

@@ -99,6 +99,12 @@ func kimaiFake(t *testing.T, w *writes) string {
 // ninjaFake serves client C1 (named client) with open invoice 101.
 func ninjaFake(t *testing.T, w *writes, client string) string {
 	t.Helper()
+	return ninjaFakeWith(t, w, client)
+}
+
+// ninjaFakeWith is ninjaFake with bank feed transactions.
+func ninjaFakeWith(t *testing.T, w *writes, client string, feed ...any) string {
+	t.Helper()
 	page := func(items ...any) map[string]any {
 		return map[string]any{"data": items, "meta": map[string]any{"pagination": map[string]any{"total_pages": 1}}}
 	}
@@ -108,6 +114,9 @@ func ninjaFake(t *testing.T, w *writes, client string) string {
 		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/invoices" {
 			return map[string]any{"data": map[string]any{"id": "I9", "number": draftNo}}, true
 		}
+		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/bank_transactions/match" {
+			return map[string]any{"data": []any{map[string]any{"id": "B1", "status_id": "3"}}}, true
+		}
 		if r.Method == http.MethodPost {
 			return map[string]any{"data": map[string]any{}}, true
 		}
@@ -116,9 +125,17 @@ func ninjaFake(t *testing.T, w *writes, client string) string {
 			return page(invoice), true
 		case "clients":
 			return page(map[string]any{"id": "C1", "name": client}), true
+		case "bank_transactions":
+			return page(feed...), true
 		}
 		return page(), true
 	})
+}
+
+// ninjaFeedFake is ninjaFake whose bank feed holds the income t1 as B1.
+func ninjaFeedFake(t *testing.T, w *writes, client string) string {
+	t.Helper()
+	return ninjaFakeWith(t, w, client, map[string]any{"id": "B1", "date": dayAgo(5), "amount": 119.5, "base_type": "CREDIT", "status_id": "1"})
 }
 
 // sureFake serves one income naming invoice 101's number.
@@ -362,5 +379,26 @@ func TestDraftUsesCustomerLink(t *testing.T) {
 	}
 	if body := ninja.body["POST /api/v1/invoices"]; body["client_id"] != "C1" {
 		t.Fatalf("invoice: %+v", body)
+	}
+}
+
+// With Ninja's bank feed holding the income, Book links it to the
+// invoice instead of a payment of its own: feed and payment agree.
+func TestBookThroughBankFeed(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	var sure, ninja writes
+	testkit.Conn(t, d, who, space, enums.ServiceSure, sureFake(t, &sure))
+	testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFeedFake(t, &ninja, "Acme GmbH"))
+
+	if err := billing.Book(context.Background(), d, who, space, 0, txnID, invoiceID, ""); err != nil {
+		t.Fatalf("book: %v", err)
+	}
+	if got := ninja.list(); len(got) != 1 || got[0] != "POST /api/v1/bank_transactions/match" {
+		t.Fatalf("ninja writes: %v", got)
+	}
+	list, _ := ninja.body["POST /api/v1/bank_transactions/match"]["transactions"].([]any)
+	if item, _ := list[0].(map[string]any); item["id"] != "B1" || item["invoice_ids"] != fmt.Sprint(invoiceID) {
+		t.Fatalf("match body: %v", item)
 	}
 }

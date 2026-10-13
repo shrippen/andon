@@ -6131,6 +6131,7 @@ gallery:
   deleted: 'Deleted: {n}'
 audit_action:
   vatcheck:
+    payment: 'Transaction linked to its payment'
     skip: 'Transaction archived as private'
     restore: 'Archived transaction restored'
     link: 'Transaction linked to expense'
@@ -6990,6 +6991,9 @@ llm:
     requests: 'Requests'
     cost: 'Cost'
 vatcheck:
+  act_payment: Link to the payment booked already
+  payment_line: 'Payment {number} of {day}, booked already (say from billing)'
+  do_payment: 'Link the transaction to payment {number}'
   accounts_title: Accounts
   accounts_lead: 'What is each account for? Andon proposes debits of private accounts only when the vendor already has expenses, say the train pass paid privately. The role holds for the whole connection, in a bundle for the linked account in Sure too, and for every evaluation.'
   accounts_unknown: 'not set'

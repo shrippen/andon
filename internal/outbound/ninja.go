@@ -50,12 +50,15 @@ var ErrNotBooked = errors.New("invoice ninja: transaction not booked")
 const ninjaConverted = "3"
 
 // NinjaBankLink books a bank transaction (hashed v5 id) against an
-// existing expense, or against open invoices, which pays them.
+// existing expense or payment, or against open invoices, which pays them.
 func NinjaBankLink(ctx context.Context, to Target, txnKey string, link NinjaBankTarget) error {
 	item := map[string]any{"id": txnKey}
-	if link.Expense != "" {
+	switch {
+	case link.Expense != "":
 		item["expense_id"] = link.Expense
-	} else {
+	case link.Payment != "":
+		item["payment_id"] = link.Payment
+	default:
 		item["invoice_ids"] = strings.Join(link.Invoices, ",")
 	}
 	body, err := services.NinjaApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}.Post(ctx, "bank_transactions/match",
@@ -78,10 +81,10 @@ func NinjaBankLink(ctx context.Context, to Target, txnKey string, link NinjaBank
 }
 
 // NinjaBankTarget is what a transaction is booked against: one expense,
-// or invoices.
+// one payment, or invoices.
 type NinjaBankTarget struct {
-	Expense  string
-	Invoices []string
+	Expense, Payment string
+	Invoices         []string
 }
 
 // NinjaVendorCreate creates a vendor and returns its hashed id.

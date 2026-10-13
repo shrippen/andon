@@ -132,7 +132,7 @@
      The ticked rows go to the review; nothing is written from here. */}}
 {{define "vat_case"}}{{$c := .C}}{{$p := .P}}{{$k := $c.Txn.Key}}
 <tr>
-  <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if and $c.Waiting (or (eq $c.Action "link") (eq $c.Action "invoice") (and (eq $c.Action "create") $c.Draft.TaxKnown (eq $c.Draft.From "history")))}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span><span class="sr-only">{{t "vatcheck.pick"}}</span></label></td>
+  <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if and $c.Waiting (or (eq $c.Action "link") (eq $c.Action "invoice") (eq $c.Action "payment") (and (eq $c.Action "create") $c.Draft.TaxKnown (eq $c.Draft.From "history")))}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span><span class="sr-only">{{t "vatcheck.pick"}}</span></label></td>
   <td data-label="{{t "col.day"}}">{{day $c.Txn.Date}}</td>
   <td data-label="{{t "col.booking"}}" data-card="title">{{$c.Txn.Payer}}{{if $c.Private}} <span class="pill" data-state="locked">{{t "vatcheck.private_account"}}</span>{{end}}{{with $c.Txn.Description}}<br><small>{{.}}</small>{{end}}
     {{with $c.Txn.Account}}<br><small class="muted">{{.}}</small>{{end}}
@@ -143,9 +143,11 @@
       {{if $c.Expenses}}<option value="link"{{if eq $c.Action "link"}} selected{{end}}>{{t "vatcheck.act_link"}}</option>{{end}}
       {{if $c.Txn.Debit}}<option value="create"{{if eq $c.Action "create"}} selected{{end}}>{{t "vatcheck.act_create"}}</option>{{end}}
       {{if $c.Invoice}}<option value="invoice"{{if eq $c.Action "invoice"}} selected{{end}}>{{t "vatcheck.act_invoice"}}</option>{{end}}
+      {{if $c.Payment}}<option value="payment"{{if eq $c.Action "payment"}} selected{{end}}>{{t "vatcheck.act_payment"}}</option>{{end}}
       <option value="skip"{{if eq $c.Action "skip"}} selected{{end}}>{{t "vatcheck.act_skip"}}</option>
     </select>
     {{with $c.Expenses}}<div class="vat-field vat-link"><select class="select" name="exp_{{$k}}" aria-label="{{t "vatcheck.act_link"}}">{{range .}}<option value="{{.Key}}">{{.Number}} · {{day .Date}} · {{money .Amount $p.Currency}}</option>{{end}}</select></div>{{end}}
+    {{with $c.Payment}}<input type="hidden" name="pay_{{$k}}" value="{{.Key}}"><p class="small">{{t "vatcheck.payment_line" "number" .Number "day" (day .Date)}}</p>{{end}}
     {{with $c.Invoice}}<input type="hidden" name="inv_{{$k}}" value="{{.Key}}"><p class="small">{{.Number}} · {{t "billing.open"}} {{money .Balance $p.Currency}}{{if $c.ByNumber}} <span class="pill" data-state="applied">{{t "match.number"}}</span>{{else}} <span class="pill" data-state="locked">{{t "match.name_amount"}}</span>{{end}}</p>{{end}}
     {{if $c.Txn.Debit}}<div class="vat-field vat-draft">
       <input class="input" name="vendor_{{$k}}" value="{{$c.Draft.Vendor}}" list="vat-vendors" aria-label="{{t "vatcheck.vendor"}}" placeholder="{{t "vatcheck.vendor"}}">
@@ -176,13 +178,14 @@
       <ol class="vat-plan">{{range .Plan.Steps}}{{$k := .Step.Txn}}
         <li{{if .Problem}} class="late"{{end}}>
           {{if not .Problem}}<input type="hidden" name="pick" value="{{$k}}"><input type="hidden" name="act_{{$k}}" value="{{.Action}}">
-            <input type="hidden" name="exp_{{$k}}" value="{{.Step.Expense}}"><input type="hidden" name="inv_{{$k}}" value="{{.Step.Invoice}}">
+            <input type="hidden" name="exp_{{$k}}" value="{{.Step.Expense}}"><input type="hidden" name="inv_{{$k}}" value="{{.Step.Invoice}}"><input type="hidden" name="pay_{{$k}}" value="{{.Step.Payment}}">
             <input type="hidden" name="vendor_{{$k}}" value="{{.Vendor}}"><input type="hidden" name="cat_{{$k}}" value="{{.Step.Category}}">
             <input type="hidden" name="tax_{{$k}}" value="{{if .Taxed}}{{.TaxRate}}{{else}}none{{end}}">{{end}}
           <b>{{day .Txn.Date}} · {{.Txn.Payer}} · {{if .Txn.Debit}}−{{end}}{{money .Txn.Amount $.Plan.Currency}}</b><br>
           {{if .Problem}}{{t (print .Problem)}}
           {{else if eq .Action "link"}}{{t "vatcheck.do_link" "number" .Expense.Number}}
           {{else if eq .Action "invoice"}}{{t "vatcheck.do_invoice" "number" .Invoice.Number}}
+          {{else if eq .Action "payment"}}{{t "vatcheck.do_payment" "number" .Payment.Number}}
           {{else if eq .Action "skip"}}{{t "vatcheck.do_skip"}}
           {{else}}{{if .NewVendor}}{{t "vatcheck.do_vendor" "vendor" .Vendor}} {{end}}{{t "vatcheck.do_create" "vendor" .Vendor}}{{with .Category}} · {{.}}{{end}} ·
             {{if .Taxed}}{{t "vatcheck.do_tax" "name" .TaxName "rate" (num .TaxRate 0) "tax" (money .Tax $.Plan.Currency)}}{{else}}{{t "vatcheck.no_tax"}}{{end}}{{end}}
