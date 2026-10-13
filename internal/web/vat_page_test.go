@@ -98,7 +98,7 @@ func TestVerbundAccounts(t *testing.T) {
 		t.Fatalf("role: %d", resp.StatusCode)
 	}
 	vat := string(mustGet(t, srv, client, "/vat?span="+time.Now().UTC().Format("2006-01")))
-	if !regexp.MustCompile(`name="role:`+conn[1]+`:demo-a2"[^>]*>\s*<option value="">[^<]*</option>\s*<option value="business">[^<]*</option>\s*<option value="private" selected`).MatchString(vat) {
+	if !regexp.MustCompile(`name="role:` + conn[1] + `:demo-a2"[^>]*>\s*<option value="">[^<]*</option>\s*<option value="business">[^<]*</option>\s*<option value="private" selected`).MatchString(vat) {
 		t.Fatalf("/vat does not show the role:\n%s", vat)
 	}
 }
