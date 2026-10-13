@@ -121,6 +121,14 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 3. Reiter „Verknüpft“. Zähler auf allen Reitern und Jahren stimmen mit den Listen überein, auch „… Belege ohne Ausgabe“.
 4. Eine Ausgabe aus dem Jahrespaket (`/billing`, `ausgaben.csv`) unter „Verknüpft“ oder bei „Ausgaben suchen“ finden.
 
+**J-C2b USt-Abgleich** 📱
+1. `/vat`: Welcher Zeitraum öffnet (der letzte bis zu seiner Abgabefrist, danach der laufende)? Zeitraum wechseln, zurück.
+2. Stand: offene Umsätze, Bankabruf bis, Ausgaben ohne Steuer, „Nur in Sure“; Umsatzsteuer, Vorsteuer, Zahllast „vorläufig“, solange etwas offen ist.
+3. Je Zeile die Aktion wechseln: Es stehen nur die Felder der gewählten Aktion da. Vorbelegung (Lieferant, Kategorie, Steuer) und ihre Herkunft (letzte Ausgabe, Sure, Claude) prüfen.
+4. Ankreuzen, „Prüfen“: Die Liste nennt jeden Schreibvorgang mit Vorsteuer; nichts ist geschrieben. „In Invoice Ninja schreiben“: Demo lehnt ab. „Privat, beiseitelegen“ allein schreibt nichts nach Invoice Ninja und landet unter „Beiseitegelegt“; „Wieder zeigen“.
+5. Mit API-Schlüssel: „Claude um Vorschläge bitten“; was ändert sich, was bleibt (Verlauf eines Lieferanten gewinnt)?
+6. Kachel „Belege ohne Ausgabe“ und Monatsabschluss verlinken auf `/vat`.
+
 **J-C3 Kunden und Verbund**
 1. `/clients`, ein Kunde (der gewählte Zeitraum bleibt), „Verknüpfung ändern“ → `/spaces/{id}/verbund#implicit`.
 2. „Kunden“ → `/verbund/{id}/customers`; „Alle Vorschläge bestätigen“, eine Zelle lösen, „Namen angleichen“.

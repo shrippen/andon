@@ -112,3 +112,48 @@ func TestReadInvoice(t *testing.T) {
 		t.Fatalf("garbage accepted: %v", err)
 	}
 }
+
+// The model may only pick from the ledger: a made-up category and an
+// odd rate are dropped, a key never asked for is ignored.
+func TestClassifyKeepsLedger(t *testing.T) {
+	Init(settings.Settings{AnthropicAPIKey: "k"})
+	real := complete
+	t.Cleanup(func() { complete = real; Init(settings.Settings{}) })
+	var prompt string
+	complete = func(_ context.Context, _, _, p string, _ []outbound.LLMFile) (string, error) {
+		prompt = p
+		return `Here: [{"key":"b1","vendor":"Nordhost","category":"hosting","tax_rate":19,"why":"Server"},
+			{"key":"b2","private":true,"vendor":"Wellenklang","category":"Streaming","tax_rate":19},
+			{"key":"b3","vendor":"Odd","category":"Software","tax_rate":16},
+			{"key":"x","vendor":"Never asked"}]`, nil
+	}
+	list := []Booking{{Key: "b1", Payer: "NH Billing", Amount: 41.65, Debit: true, SureMerchant: "Nordhost Server"},
+		{Key: "b2", Payer: "Wellenklang", Amount: 10.99, Debit: true}, {Key: "b3", Payer: "Odd", Amount: 5, Debit: true}}
+	ledger := Ledger{Categories: []string{"Hosting", "Software"}, TaxRates: []float64{19, 7}}
+
+	got, err := Classify(context.Background(), enums.LocaleDE, list, ledger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(prompt, "Nordhost Server") || !strings.Contains(prompt, `"language":"de"`) {
+		t.Errorf("prompt lacks the booking or language: %s", prompt)
+	}
+	if len(got) != 3 {
+		t.Fatalf("want 3 guesses, got %+v", got)
+	}
+	if g := got[0]; g.Category != "hosting" || !g.TaxKnown || g.TaxRate != 19 {
+		t.Errorf("b1: %+v", g)
+	}
+	if g := got[1]; !g.Private || g.Category != "" || g.TaxKnown {
+		t.Errorf("b2 private: %+v", g)
+	}
+	if g := got[2]; g.TaxKnown || g.TaxRate != 0 {
+		t.Errorf("b3 odd rate: %+v", g)
+	}
+}
+
+func TestClassifyOff(t *testing.T) {
+	if _, err := Classify(context.Background(), enums.LocaleDE, nil, Ledger{}); !errors.Is(err, ErrOff) {
+		t.Fatalf("err = %v, want ErrOff", err)
+	}
+}

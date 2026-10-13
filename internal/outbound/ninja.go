@@ -2,6 +2,9 @@ package outbound
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strings"
 
 	"andon/internal/drivers/services"
 )
@@ -37,4 +40,61 @@ func NinjaPayment(ctx context.Context, to Target, clientKey, invoiceKey string, 
 		"invoices": []map[string]any{{"invoice_id": invoiceKey, "amount": amount}},
 	})
 	return err
+}
+
+// ErrNotBooked means Invoice Ninja took a match but did not book it
+// (the expense already had a transaction, the invoice was paid).
+var ErrNotBooked = errors.New("invoice ninja: transaction not booked")
+
+// ninjaConverted is Invoice Ninja's status_id of a booked transaction.
+const ninjaConverted = "3"
+
+// NinjaBankLink books a bank transaction (hashed v5 id) against an
+// existing expense, or against open invoices, which pays them.
+func NinjaBankLink(ctx context.Context, to Target, txnKey string, link NinjaBankTarget) error {
+	item := map[string]any{"id": txnKey}
+	if link.Expense != "" {
+		item["expense_id"] = link.Expense
+	} else {
+		item["invoice_ids"] = strings.Join(link.Invoices, ",")
+	}
+	body, err := services.NinjaApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}.Post(ctx, "bank_transactions/match",
+		map[string]any{"transactions": []map[string]any{item}})
+	if err != nil {
+		return err
+	}
+
+	// The answer lists the transactions it booked; a refused one is
+	// missing or still open.
+	top, _ := body.(map[string]any)
+	list, _ := top["data"].([]any)
+	for _, raw := range list {
+		t, _ := raw.(map[string]any)
+		if id, _ := t["id"].(string); id == txnKey && fmt.Sprint(t["status_id"]) == ninjaConverted {
+			return nil
+		}
+	}
+	return ErrNotBooked
+}
+
+// NinjaBankTarget is what a transaction is booked against: one expense,
+// or invoices.
+type NinjaBankTarget struct {
+	Expense  string
+	Invoices []string
+}
+
+// NinjaVendorCreate creates a vendor and returns its hashed id.
+func NinjaVendorCreate(ctx context.Context, to Target, name string) (string, error) {
+	body, err := services.NinjaApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}.Post(ctx, "vendors", map[string]any{"name": name})
+	if err != nil {
+		return "", err
+	}
+	top, _ := body.(map[string]any)
+	data, _ := top["data"].(map[string]any)
+	key, _ := data["id"].(string)
+	if key == "" {
+		return "", errors.New("invoice ninja: no vendor id in the answer")
+	}
+	return key, nil
 }

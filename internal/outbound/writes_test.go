@@ -3,6 +3,7 @@ package outbound_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -376,5 +377,61 @@ func TestKimaiMarkExportedFailsOnServerRejection(t *testing.T) {
 
 	if err := outbound.KimaiMarkExported(context.Background(), to, 17); err == nil {
 		t.Fatal("expected error on 403")
+	}
+}
+
+func TestNinjaBankLinkBooksExpense(t *testing.T) {
+	var f fake
+	to := f.serve(t, answer(http.StatusOK, `{"data":[{"id":"B1","status_id":"3"}]}`))
+
+	if err := outbound.NinjaBankLink(context.Background(), to, "B1", outbound.NinjaBankTarget{Expense: "E1"}); err != nil {
+		t.Fatalf("link: %v", err)
+	}
+
+	c := f.one(t)
+	assertNinja(t, c, http.MethodPost, "/api/v1/bank_transactions/match")
+	want := roundTrip(t, map[string]any{"transactions": []any{map[string]any{"id": "B1", "expense_id": "E1"}}})
+	if got := c.json(t); !reflect.DeepEqual(any(got), want) {
+		t.Fatalf("body = %v, want %v", got, want)
+	}
+}
+
+func TestNinjaBankLinkPaysInvoices(t *testing.T) {
+	var f fake
+	to := f.serve(t, answer(http.StatusOK, `{"data":[{"id":"B2","status_id":"3"}]}`))
+
+	if err := outbound.NinjaBankLink(context.Background(), to, "B2", outbound.NinjaBankTarget{Invoices: []string{"I1", "I2"}}); err != nil {
+		t.Fatalf("link: %v", err)
+	}
+	want := roundTrip(t, map[string]any{"transactions": []any{map[string]any{"id": "B2", "invoice_ids": "I1,I2"}}})
+	if got := f.one(t).json(t); !reflect.DeepEqual(any(got), want) {
+		t.Fatalf("body = %v, want %v", got, want)
+	}
+}
+
+// Ninja answers 200 but leaves a transaction open when the expense
+// already has one: that must not count as booked.
+func TestNinjaBankLinkRefusedStaysOpen(t *testing.T) {
+	var f fake
+	to := f.serve(t, answer(http.StatusOK, `{"data":[{"id":"B1","status_id":"1"}]}`))
+
+	err := outbound.NinjaBankLink(context.Background(), to, "B1", outbound.NinjaBankTarget{Expense: "E1"})
+	if !errors.Is(err, outbound.ErrNotBooked) {
+		t.Fatalf("err = %v, want ErrNotBooked", err)
+	}
+}
+
+func TestNinjaVendorCreateReturnsKey(t *testing.T) {
+	var f fake
+	to := f.serve(t, answer(http.StatusOK, `{"data":{"id":"V7"}}`))
+
+	key, err := outbound.NinjaVendorCreate(context.Background(), to, "Nordhost Server")
+	if err != nil || key != "V7" {
+		t.Fatalf("key %q err %v", key, err)
+	}
+	c := f.one(t)
+	assertNinja(t, c, http.MethodPost, "/api/v1/vendors")
+	if got := c.json(t)["name"]; got != "Nordhost Server" {
+		t.Fatalf("name = %v", got)
 	}
 }

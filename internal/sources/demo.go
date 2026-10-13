@@ -269,7 +269,7 @@ func DemoNinja(now time.Time) *NinjaDataset {
 	quote := inv.Quote
 	quote.Number = demoNumber(quote.Number, today, 0)
 
-	return &NinjaDataset{
+	out := &NinjaDataset{
 		URL: b.URLs.Invoices, Currency: b.Currency, Invoices: append(invoices, draft), Payments: kept,
 		Clients:       demoNinjaClients(b),
 		Expenses:      demoNinjaExpenses(today, b),
@@ -277,6 +277,8 @@ func DemoNinja(now time.Time) *NinjaDataset {
 		Recurring:     []NinjaRecurring{inv.Recurring},
 		HomeCountryID: b.Countries["DE"],
 	}
+	demoNinjaBank(today, out)
+	return out
 }
 
 // demoNumber fills a number pattern: "R-{year}-{n}" → "R-2026-007".

@@ -62,6 +62,8 @@ var declared = map[Holder][]Cap{
 		{Domain: Receipts, Op: Read},   // expenses
 		{Domain: Receipts, Op: Create, Refs: paperlessReceipts},
 		{Domain: Receipts, Op: Update, Refs: paperlessReceipts}, // the scan's link
+		// The VAT check books the bank feed's transactions.
+		{Domain: Payments, Op: Update, Kinds: []string{"bank_transactions"}},
 	},
 	HolderOf(enums.ServiceSure): {
 		{Domain: Payments, Op: Read},      // transactions of the bank accounts

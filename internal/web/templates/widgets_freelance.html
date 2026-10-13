@@ -227,7 +227,8 @@
     <td class="num">{{money .Amount $v.Currency}}</td><td class="num"><small class="muted">{{day .Date}}</small></td></tr>{{end}}</tbody>
 </table></div>
 <p class="small"><a href="/receipts">{{t "receipts.open_page"}}</a></p>
-{{else}}<p class="slot-note">{{t "receipts.none"}}</p>{{end}}{{end}}
+{{else}}<p class="slot-note">{{t "receipts.none"}}</p>{{end}}
+{{if $v.VAT}}<p class="small"><a href="/vat">{{t "vatcheck.open_page"}}</a></p>{{end}}{{end}}
 {{end}}
 
 {{define "widgets/travel"}}

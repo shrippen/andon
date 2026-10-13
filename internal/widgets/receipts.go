@@ -65,7 +65,8 @@ func receiptsView(cfg ReceiptsConfig, results map[string]any, ctx ViewCtx) map[s
 	if len(rows) > cfg.Limit {
 		rows = rows[:cfg.Limit]
 	}
-	return map[string]any{"Rows": rows, "Count": count, "Sum": math.Round(sum*cents) / cents, "Currency": sure.Currency, "Setup": len(in.Accounts) == 0}
+	return map[string]any{"Rows": rows, "Count": count, "Sum": math.Round(sum*cents) / cents, "Currency": sure.Currency,
+		"Setup": len(metrics.BusinessAccounts(in)) == 0, "VAT": in.Ninja != nil && in.Ninja.BankRead}
 }
 
 func init() {

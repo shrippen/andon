@@ -4,6 +4,9 @@
 //	             services go out, never location hints; kept per language
 //	             until the hint text changes
 //	ReadInvoice  invoice fields from a mail's PDF or image attachments
+//	Classify     open bank bookings: private or business, vendor,
+//	             category and tax rate; payee, text, amount and Sure's
+//	             names go out, nothing else
 package assist
 
 import (
@@ -14,9 +17,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"andon/internal/db"
+	"andon/internal/enums"
 	"andon/internal/i18n"
 	data "andon/internal/repos/data"
 	"andon/internal/services/access"
@@ -123,4 +128,100 @@ const (
 	invoicePrompt = `Read the attached invoice and return:
 {"vendor": "", "number": "", "date": "YYYY-MM-DD", "due": "YYYY-MM-DD", "net": 0, "vat": 0, "gross": 0, "currency": "EUR"}
 Use "" or 0 for anything the invoice does not state. Amounts as numbers with a dot.`
+)
+
+// Booking is one open bank transaction the model sorts: what the bank
+// and Sure say about it, nothing else.
+type Booking struct {
+	Key, Date, Payer, Text     string
+	Amount                     float64
+	Debit                      bool
+	SureMerchant, SureCategory string
+	SureTags                   []string
+}
+
+// Ledger is what the model may choose from: Invoice Ninja's vendors,
+// expense categories and tax rates.
+type Ledger struct {
+	Vendors, Categories []string
+	TaxRates            []float64
+}
+
+// Guess is the model's reading of one booking. A category or rate
+// outside the ledger is dropped; TaxKnown says whether a rate is left.
+type Guess struct {
+	Key      string  `json:"key"`
+	Private  bool    `json:"private"`
+	Vendor   string  `json:"vendor"`
+	Category string  `json:"category"`
+	TaxRate  float64 `json:"tax_rate"`
+	TaxKnown bool    `json:"tax_known"`
+	Why      string  `json:"why"`
+}
+
+// maxBookings caps one request: a quarter of a small business.
+const maxBookings = 60
+
+// Classify asks which bookings are private and, for business ones, the
+// vendor, category and tax rate. Why comes in the user's language.
+func Classify(ctx context.Context, locale enums.Locale, list []Booking, ledger Ledger) ([]Guess, error) {
+	if !Enabled() {
+		return nil, ErrOff
+	}
+	list = list[:min(len(list), maxBookings)]
+	in, err := json.Marshal(map[string]any{"bookings": list, "vendors": ledger.Vendors, "categories": ledger.Categories,
+		"tax_rates": ledger.TaxRates, "language": string(locale)})
+	if err != nil {
+		return nil, err
+	}
+	answer, err := complete(ctx, apiKey, classifySystem, classifyPrompt+string(in), nil)
+	if err != nil {
+		return nil, err
+	}
+	start, end := strings.Index(answer, "["), strings.LastIndex(answer, "]")
+	if start < 0 || end < start {
+		return nil, ErrUnreadable
+	}
+	var guesses []Guess
+	if err := json.Unmarshal([]byte(answer[start:end+1]), &guesses); err != nil {
+		return nil, ErrUnreadable
+	}
+	return ledger.keep(guesses, list), nil
+}
+
+// keep drops guesses for unknown bookings and choices outside the ledger.
+func (l Ledger) keep(guesses []Guess, list []Booking) []Guess {
+	asked := map[string]bool{}
+	for _, b := range list {
+		asked[b.Key] = true
+	}
+	var out []Guess
+	for _, g := range guesses {
+		if !asked[g.Key] {
+			continue
+		}
+		g.TaxKnown = !g.Private && slices.Contains(l.TaxRates, g.TaxRate)
+		if !g.TaxKnown {
+			g.TaxRate = 0
+		}
+		if !slices.ContainsFunc(l.Categories, func(c string) bool { return strings.EqualFold(c, g.Category) }) {
+			g.Category = ""
+		}
+		out = append(out, g)
+	}
+	return out
+}
+
+// The classify prompt is fixed English: the answer is data.
+const (
+	classifySystem = "You help a German freelancer prepare the VAT return. Answer with one JSON array only, no prose."
+	classifyPrompt = `Each booking below left the business bank account ("debit": true) or came in. For each, decide:
+- "private": true if it is private spending (groceries, streaming for home, private insurance), not a business expense.
+- "vendor": the business name, preferring an entry of "vendors" when it is the same company.
+- "category": one entry of "categories", or "" if none fits.
+- "tax_rate": the German input VAT rate in percent the invoice most likely carries, one of "tax_rates"; 0 for none (insurance, fees, foreign reverse charge).
+- "why": one short sentence in the language "language".
+Answer: [{"key": "", "private": false, "vendor": "", "category": "", "tax_rate": 19, "why": ""}]
+Input:
+`
 )

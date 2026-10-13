@@ -123,7 +123,12 @@ func monthCloseView(cfg MonthCloseConfig, results map[string]any, ctx ViewCtx) m
 				missing++
 			}
 		}
-		steps = append(steps, CloseStep{Key: "receipts", Done: missing == 0 && len(in.Accounts) > 0, Count: missing, URL: "/spaces/settings?section=rules#rule-cross.expense_unrecorded"})
+		step := CloseStep{Key: "receipts", Done: missing == 0 && len(metrics.BusinessAccounts(in)) > 0, Count: missing, URL: "/spaces/settings?section=rules#rule-cross.expense_unrecorded"}
+		if ninja != nil && ninja.BankRead {
+			// The VAT check works through Invoice Ninja's bank feed.
+			step.URL = "/vat"
+		}
+		steps = append(steps, step)
 	}
 	if paperless, ok := results[peerPaperless].(*sources.PaperlessDataset); ok {
 		steps = append(steps, CloseStep{Key: "inbox", Done: paperless.Inbox == 0, Count: paperless.Inbox,
@@ -131,7 +136,11 @@ func monthCloseView(cfg MonthCloseConfig, results map[string]any, ctx ViewCtx) m
 	}
 	if tax, ok := metrics.ParseTaxSettings(ctx.Settings); ok {
 		if d, found := metrics.VATReturnFor(tax, end); found {
-			steps = append(steps, CloseStep{Key: "vat", Due: d.Due.Format(time.DateOnly)})
+			vat := CloseStep{Key: "vat", Due: d.Due.Format(time.DateOnly)}
+			if ninja != nil && ninja.BankRead {
+				vat.URL = "/vat"
+			}
+			steps = append(steps, vat)
 		}
 	}
 
