@@ -6991,6 +6991,11 @@ llm:
     requests: 'Requests'
     cost: 'Cost'
 vatcheck:
+  scan: Receipt
+  no_scan: No receipt from Paperless
+  scan_option: 'Receipt: {title} of {day} (score {score})'
+  do_scan: 'link receipt “{title}”'
+  problem_scan: 'Expense created, the receipt could not be linked. Do it under Receipts.'
   act_payment: Link to the payment booked already
   payment_line: 'Payment {number} of {day}, booked already (say from billing)'
   do_payment: 'Link the transaction to payment {number}'

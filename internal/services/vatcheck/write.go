@@ -17,6 +17,7 @@ import (
 	"andon/internal/services/assist"
 	auditsvc "andon/internal/services/audit"
 	"andon/internal/services/connections"
+	"andon/internal/services/receipts"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/verbund"
 	"andon/internal/sources"
@@ -34,6 +35,7 @@ type Step struct {
 	Category string
 	TaxRate  float64
 	Taxed    bool
+	Scan     int64 // create: the Paperless scan to link, 0 = none
 }
 
 // Problem says why a step cannot be written.
@@ -60,6 +62,7 @@ type Planned struct {
 	Category  string // its name
 	TaxName   string
 	Tax       float64 // input VAT in the amount
+	ScanTitle string  // the scan linked to a new expense
 	Problem   Problem
 }
 
@@ -88,7 +91,27 @@ func Review(ctx context.Context, d *sql.DB, who *access.Principal, connID int64,
 	if err != nil {
 		return Plan{}, err
 	}
-	return b.plan(steps)
+	plan, err := b.plan(steps)
+	for i := range plan.Steps {
+		scanTitle(ctx, d, who, b.conn.ID, &plan.Steps[i])
+	}
+	return plan, err
+}
+
+// scanTitle names the scan a new expense gets; one no longer free is
+// dropped (receipts.ScansFor offers only free ones).
+func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, p *Planned) {
+	if p.Scan == 0 || p.Action != metrics.ActionCreate || p.Problem != ProblemNone {
+		return
+	}
+	scans, _ := receipts.ScansFor(ctx, d, who, connID, p.Txn.Amount, p.Txn.Date, p.Vendor)
+	for _, c := range scans {
+		if c.Doc.ID == p.Scan {
+			p.ScanTitle = c.Doc.Title
+			return
+		}
+	}
+	p.Scan = 0
 }
 
 func (b book) plan(steps []Step) (Plan, error) {
@@ -226,7 +249,7 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, 
 	if err != nil {
 		return Result{}, err
 	}
-	w := writer{to: outbound.Target{URL: b.conn.URL, Token: token, VerifyTLS: b.conn.VerifyTLS}, book: b}
+	w := &writer{to: outbound.Target{URL: b.conn.URL, Token: token, VerifyTLS: b.conn.VerifyTLS}, book: b}
 
 	var out Result
 	for _, p := range plan.Steps {
@@ -234,10 +257,18 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, 
 			out.Failed = append(out.Failed, Failure{Txn: p.Step.Txn, Payer: p.Txn.Payer, Reason: string(p.Problem)})
 			continue
 		}
+		w.created = ""
 		target, err := w.write(ctx, p)
 		if err != nil {
 			out.Failed = append(out.Failed, Failure{Txn: p.Txn.Key, Payer: p.Txn.Payer, Reason: reasonOf(err)})
 			continue
+		}
+
+		// The new expense gets its scan, both sides (receipts.Link).
+		if p.Scan != 0 && w.created != "" {
+			if _, err := receipts.Link(ctx, d, who, w.created, []int64{p.Scan}, ip); err != nil {
+				out.Failed = append(out.Failed, Failure{Txn: p.Txn.Key, Payer: p.Txn.Payer, Reason: "vatcheck.problem_scan"})
+			}
 		}
 		if p.Action == metrics.ActionSkip {
 			out.Skipped++
@@ -264,15 +295,17 @@ func reasonOf(err error) string {
 	return err.Error()
 }
 
-// writer books steps in one Invoice Ninja.
+// writer books steps in one Invoice Ninja; created is the key of the
+// expense its last step made, "" for none.
 type writer struct {
-	to   outbound.Target
-	book book
+	to      outbound.Target
+	book    book
+	created string
 }
 
 // write books one step and returns what it booked against (an expense
 // or invoice number, the payee of an archived one).
-func (w writer) write(ctx context.Context, p Planned) (string, error) {
+func (w *writer) write(ctx context.Context, p Planned) (string, error) {
 	switch p.Action {
 	case metrics.ActionSkip:
 		return p.Txn.Payer, outbound.NinjaBankArchive(ctx, w.to, p.Txn.Key, outbound.BankArchiveOn)
@@ -306,6 +339,7 @@ func (w writer) write(ctx context.Context, p Planned) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	w.created = key
 	if err := outbound.NinjaBankLink(ctx, w.to, p.Txn.Key, outbound.NinjaBankTarget{Expense: key}); err != nil {
 		return number, fmt.Errorf("%s: %w", number, err)
 	}

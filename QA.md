@@ -129,6 +129,8 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 5. Konten: Geschäftskonto angehakt, Privatkonto nicht. „Vom Privatkonto“: Deutschlandticket und Einkauf stehen eingeklappt, die Erstattung fehlt; „Alle als privat archivieren“ prüft nur diese. Ein Konto umstellen, speichern: Liste und Stand ändern sich.
 6. Mit API-Schlüssel: „Claude um Vorschläge bitten“ (auch für die Privatkonto-Zeilen); was ändert sich, was bleibt (Verlauf eines Lieferanten gewinnt)?
 7. Kachel „Belege ohne Ausgabe“ und Monatsabschluss verlinken auf `/vat`.
+8. Tankquittung: Zeile „Ausgabe anlegen“ bietet den Beleg an (Treffer 100); in der Prüfung „mit Beleg … verknüpfen“. September: ein Eingang mit „Mit vorhandener Zahlung verknüpfen“.
+9. Kennzahl-Kachel „Kontostand“: Feld „Konten“ auf Geschäftskonten, Privatkonten, alle stellen; der Betrag folgt.
 
 **J-C3 Kunden und Verbund**
 1. `/clients`, ein Kunde (der gewählte Zeitraum bleibt), „Verknüpfung ändern“ → `/spaces/{id}/verbund#implicit`.

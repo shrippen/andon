@@ -153,6 +153,8 @@
       <input class="input" name="vendor_{{$k}}" value="{{$c.Draft.Vendor}}" list="vat-vendors" aria-label="{{t "vatcheck.vendor"}}" placeholder="{{t "vatcheck.vendor"}}">
       <select class="select" name="cat_{{$k}}" aria-label="{{t "vatcheck.category"}}"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $c.Draft.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select>
       <select class="select" name="tax_{{$k}}" aria-label="{{t "vatcheck.tax"}}"><option value="none"{{if not $c.Draft.TaxKnown}} selected{{end}}>{{t "vatcheck.no_tax"}}</option>{{range $p.Ledger.TaxRates}}<option value="{{.Rate}}"{{if and $c.Draft.TaxKnown (eq .Rate $c.Draft.TaxRate)}} selected{{end}}>{{.Name}} {{num .Rate 0}} %</option>{{end}}</select>
+      {{with $c.Scans}}<select class="select" name="scan_{{$k}}" aria-label="{{t "vatcheck.scan"}}"><option value="">{{t "vatcheck.no_scan"}}</option>
+        {{range $i, $s := .}}<option value="{{$s.Doc.ID}}"{{if and (eq $i 0) (eq $s.Level "high")}} selected{{end}}>{{t "vatcheck.scan_option" "title" $s.Doc.Title "day" (day $s.Doc.Day) "score" $s.Score}}</option>{{end}}</select>{{end}}
       <small class="muted">{{if eq $c.Draft.From "history"}}{{t "vatcheck.from_history"}}{{else if eq $c.Draft.From "sure"}}{{t "vatcheck.from_sure"}}{{else if eq $c.Draft.From "model"}}{{t "vatcheck.from_model"}}{{else}}{{t "vatcheck.from_nothing"}}{{end}}</small>
     </div>{{end}}
     {{with $c.Guess}}<p class="small{{if .Private}} late{{end}}">{{if .Private}}{{t "vatcheck.guess_private"}} {{end}}{{.Why}}</p>{{end}}
@@ -180,7 +182,7 @@
           {{if not .Problem}}<input type="hidden" name="pick" value="{{$k}}"><input type="hidden" name="act_{{$k}}" value="{{.Action}}">
             <input type="hidden" name="exp_{{$k}}" value="{{.Step.Expense}}"><input type="hidden" name="inv_{{$k}}" value="{{.Step.Invoice}}"><input type="hidden" name="pay_{{$k}}" value="{{.Step.Payment}}">
             <input type="hidden" name="vendor_{{$k}}" value="{{.Vendor}}"><input type="hidden" name="cat_{{$k}}" value="{{.Step.Category}}">
-            <input type="hidden" name="tax_{{$k}}" value="{{if .Taxed}}{{.TaxRate}}{{else}}none{{end}}">{{end}}
+            <input type="hidden" name="tax_{{$k}}" value="{{if .Taxed}}{{.TaxRate}}{{else}}none{{end}}">{{if .Scan}}<input type="hidden" name="scan_{{$k}}" value="{{.Scan}}">{{end}}{{end}}
           <b>{{day .Txn.Date}} · {{.Txn.Payer}} · {{if .Txn.Debit}}−{{end}}{{money .Txn.Amount $.Plan.Currency}}</b><br>
           {{if .Problem}}{{t (print .Problem)}}
           {{else if eq .Action "link"}}{{t "vatcheck.do_link" "number" .Expense.Number}}
@@ -188,7 +190,7 @@
           {{else if eq .Action "payment"}}{{t "vatcheck.do_payment" "number" .Payment.Number}}
           {{else if eq .Action "skip"}}{{t "vatcheck.do_skip"}}
           {{else}}{{if .NewVendor}}{{t "vatcheck.do_vendor" "vendor" .Vendor}} {{end}}{{t "vatcheck.do_create" "vendor" .Vendor}}{{with .Category}} · {{.}}{{end}} ·
-            {{if .Taxed}}{{t "vatcheck.do_tax" "name" .TaxName "rate" (num .TaxRate 0) "tax" (money .Tax $.Plan.Currency)}}{{else}}{{t "vatcheck.no_tax"}}{{end}}{{end}}
+            {{if .Taxed}}{{t "vatcheck.do_tax" "name" .TaxName "rate" (num .TaxRate 0) "tax" (money .Tax $.Plan.Currency)}}{{else}}{{t "vatcheck.no_tax"}}{{end}}{{with .ScanTitle}} · {{t "vatcheck.do_scan" "title" .}}{{end}}{{end}}
         </li>{{end}}</ol>
       <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "vatcheck.apply" "n" .Plan.Writes}}</button>{{else}}<button type="submit" class="btn btn-outline">{{t "vatcheck.apply_skip"}}</button>{{end}}
         <a class="btn btn-quiet" href="/vat?conn={{.Q.Conn}}&amp;span={{.Q.Span}}">{{t "vatcheck.back"}}</a></p>

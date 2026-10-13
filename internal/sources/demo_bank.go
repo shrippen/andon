@@ -9,6 +9,7 @@ package sources
 //	Nordhost                no expense, no history; Sure knows the merchant
 //	the overdue invoice     paid, the income is open
 //	the last payment        booked by hand in Ninja, its income is open
+//	a scan without expense  its debit is open: the new expense gets the scan
 //	office supplies         unknown payee: a case for the language model
 //	music streaming         private, paid from the business account
 //	private account         train pass (business, paid privately) and
@@ -107,6 +108,15 @@ func demoNinjaBank(today time.Time, data *NinjaDataset) {
 			Amount: 38.4, Debit: true, Status: BankOpen, Account: demoPrivate, AccountKey: demoPrivateKey},
 		NinjaBankTxn{Key: "demo-p-refund", Date: iso(today.AddDate(0, 0, -13)), Description: "Erstattung", Payer: "Krankenkasse",
 			Amount: 120, Status: BankOpen, Account: demoPrivate, AccountKey: demoPrivateKey})
+
+	// A scan in Paperless waits for its expense; its debit is open.
+	for _, r := range demoReceipts(today) {
+		if r.expense == "" && len(r.docs) > 0 && iso(r.day) >= since {
+			data.BankTxns = append(data.BankTxns, NinjaBankTxn{Key: "demo-b-scan", Date: iso(r.day), Description: r.notes,
+				Payer: r.vendor, Amount: r.amount, Debit: true, Status: BankOpen})
+			break
+		}
+	}
 
 	// The overdue invoice, paid: open until it is booked.
 	for _, inv := range data.Invoices {

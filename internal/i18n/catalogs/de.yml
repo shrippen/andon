@@ -6992,6 +6992,11 @@ llm:
     requests: 'Anfragen'
     cost: 'Kosten'
 vatcheck:
+  scan: Beleg
+  no_scan: Ohne Beleg aus Paperless
+  scan_option: 'Beleg: {title} vom {day} (Treffer {score})'
+  do_scan: 'mit Beleg „{title}“ verknüpfen'
+  problem_scan: 'Ausgabe angelegt, der Beleg ließ sich nicht verknüpfen. Unter Belege nachholen.'
   act_payment: Mit vorhandener Zahlung verknüpfen
   payment_line: 'Zahlung {number} vom {day}, schon gebucht (etwa über die Abrechnung)'
   do_payment: 'Umsatz mit Zahlung {number} verknüpfen'
