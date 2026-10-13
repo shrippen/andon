@@ -153,10 +153,48 @@ type NinjaExpense struct {
 	Notes     string
 	VendorID  int64
 	VendorKey string // id as sent (hashed string in v5)
+
+	// For the VAT check: the write key, category, first tax and the bank
+	// transaction it is linked to ("" = none).
+	Key, CategoryKey, TaxName, TxnKey string
+	TaxRate                           float64
 }
 
 type NinjaVendor struct {
 	Key, Name string
+}
+
+// BankStatus is where Invoice Ninja stands with a bank transaction.
+type BankStatus string
+
+const (
+	BankOpen    BankStatus = "open"      // nothing linked
+	BankMatched BankStatus = "matched"   // a Ninja rule proposes, not booked
+	BankDone    BankStatus = "converted" // expense or payment linked
+)
+
+// NinjaBankTxn is one bank transaction Invoice Ninja imported. Amount is
+// positive; Debit tells money going out.
+type NinjaBankTxn struct {
+	Key, Date, Description, Payer string
+	Account                       string // the bank account's name in Invoice Ninja
+	Amount                        float64
+	Debit                         bool
+	Status                        BankStatus
+	Archived                      bool // set aside in Invoice Ninja (private)
+	ExpenseKeys, InvoiceKeys      []string
+	VendorKey, CategoryKey        string
+}
+
+// NinjaCategory is an expense category.
+type NinjaCategory struct {
+	Key, Name string
+}
+
+// NinjaTaxRate is a tax rate set up in Invoice Ninja ("MwSt.", 19).
+type NinjaTaxRate struct {
+	Name string
+	Rate float64
 }
 
 type NinjaQuote struct {
@@ -191,6 +229,14 @@ type NinjaDataset struct {
 	Quotes        []NinjaQuote
 	Recurring     []NinjaRecurring
 	HomeCountryID string
+
+	// Bank transactions (banking module), expense categories and tax
+	// rates; BankRead says whether the bank API answered.
+	BankTxns     []NinjaBankTxn
+	BankRead     bool
+	BankAccounts []string // names of the accounts the feed reads
+	Categories   []NinjaCategory
+	TaxRates     []NinjaTaxRate
 }
 
 // ── Snipe-IT ──

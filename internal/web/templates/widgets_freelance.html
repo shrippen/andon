@@ -219,7 +219,7 @@
 {{define "widgets/receipts_missing"}}
 {{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
 {{with $v := .Frag.View}}
-{{if $v.Setup}}<p class="slot-note">{{t "close.receipts_setup"}} <a href="/spaces/settings?section=rules#rule-cross.expense_unrecorded">{{t "nav.space_settings"}}</a></p>
+{{if $v.Setup}}<p class="slot-note">{{t "close.receipts_setup"}} {{if $v.VAT}}<a href="/vat#accounts">{{t "vatcheck.accounts_title"}}</a>{{else}}<a href="/spaces/settings?section=rules#rule-cross.expense_unrecorded">{{t "nav.space_settings"}}</a>{{end}}</p>
 {{else if $v.Rows}}
 <div class="tile-head"><b class="tile-value" data-live>{{money $v.Sum $v.Currency}}</b><span class="tile-note">{{t "receipts.count" "n" $v.Count}}</span></div>
 <div class="table-wrap"><table class="table compact">
@@ -227,7 +227,8 @@
     <td class="num">{{money .Amount $v.Currency}}</td><td class="num"><small class="muted">{{day .Date}}</small></td></tr>{{end}}</tbody>
 </table></div>
 <p class="small"><a href="/receipts">{{t "receipts.open_page"}}</a></p>
-{{else}}<p class="slot-note">{{t "receipts.none"}}</p>{{end}}{{end}}
+{{else}}<p class="slot-note">{{t "receipts.none"}}</p>{{end}}
+{{if $v.VAT}}<p class="small"><a href="/vat">{{t "vatcheck.open_page"}}</a></p>{{end}}{{end}}
 {{end}}
 
 {{define "widgets/travel"}}

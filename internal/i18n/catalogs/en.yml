@@ -27,6 +27,7 @@ nav:
   logout: Log out
   space_settings: Space settings
   receipts: Match receipts
+  vat: VAT check
   clients: 'Customers'
   hosts: 'Hosts'
 action:
@@ -6125,6 +6126,12 @@ gallery:
   clean_go: Delete selected
   deleted: 'Deleted: {n}'
 audit_action:
+  vatcheck:
+    skip: 'Transaction archived as private'
+    restore: 'Archived transaction restored'
+    link: 'Transaction linked to expense'
+    create: 'Expense created from transaction'
+    invoice: 'Payment booked from transaction'
   billing:
     draft: 'Invoice draft created'
     export: 'Accounting exported'
@@ -6389,7 +6396,7 @@ close:
   drafts_done: No open drafts
   receipts: 'Expenses without receipt: {n}'
   receipts_done: Receipts complete
-  receipts_setup: 'Receipts: name business accounts in the rules'
+  receipts_setup: 'Receipts: name the business accounts'
   inbox: 'In the Paperless inbox: {n}'
   inbox_done: Paperless inbox empty
   vat: 'VAT return by {day}'
@@ -6822,6 +6829,7 @@ caps:
     update: change
   kind:
     timesheets: Timesheets
+    bank_transactions: Bank transactions
     target: Target time
     home: Home
     work: Work
@@ -6966,3 +6974,97 @@ llm:
     output: 'Output'
     requests: 'Requests'
     cost: 'Cost'
+vatcheck:
+  accounts_title: Accounts
+  accounts_lead: 'Tick the business accounts. All others count as private: Andon proposes their debits only when the vendor already has expenses, say the train pass paid privately. The missing receipts tile and the month close use the same choice.'
+  accounts_business: business
+  accounts_private: private
+  accounts_save: Save
+  accounts_saved: 'Accounts saved.'
+  accounts_ro: 'Whoever may change this space''s settings names the accounts.'
+  private_account: Private account
+  apart_title: 'From private accounts, without a proposal: {n}'
+  apart_hint: 'Debits of the private accounts to vendors without expenses. Tick a business one and create its expense; archive the rest as private.'
+  apart_all: 'Archive all as private ({n})'
+  problem_not_archived: 'Invoice Ninja did not archive the transaction.'
+  open_page: 'Match bank transactions before the VAT return →'
+  lead: 'Before the VAT return: every transaction of Invoice Ninja''s bank feed needs an expense or a payment. Andon proposes, Sure stands beside it. Nothing is written until you confirm the review.'
+  periods: Period
+  quarter: 'Q{q} {year}'
+  need_title: Invoice Ninja missing
+  need_text: 'The check reads Invoice Ninja''s bank feed (banking). Sure is optional and shows the same booking with merchant, category and tags.'
+  check_title: 'Status for'
+  check_open: 'Transactions without expense or payment: {n}, with a proposal: {proposed}'
+  check_open_done: 'Every transaction matched'
+  check_feed: 'Bank feed up to {day}'
+  check_feed_late: 'Bank feed ends on {day}, before the period does: transactions may be missing'
+  check_feed_none: 'No transactions in Invoice Ninja''s bank feed'
+  check_notax: 'Expenses without tax, although the vendor usually has input VAT: {n}'
+  check_notax_done: 'No expense without tax that usually has some'
+  check_sure: 'Bookings in {bank} missing in Invoice Ninja''s bank feed: {n}'
+  check_sure_done: '{bank} and Invoice Ninja know the same bookings of the business accounts'
+  check_sure_none: 'Business accounts not named: no comparison with {bank}'
+  check_no_bank: 'Without Sure, Andon cannot tell whether the bank feed is complete'
+  output: Output VAT
+  input: Input VAT
+  input_sub: from expenses in the period
+  due: VAT due
+  due_ready: everything matched
+  due_draft: provisional while anything above is open
+  method_ist: cash basis (payments received)
+  method_soll: accrual basis (invoice date)
+  cases: Open transactions
+  no_cases: 'No open transactions in this period.'
+  pick: Take
+  proposal: Proposal
+  act_link: Link to expense
+  act_create: Create expense
+  act_invoice: Book payment of invoice
+  act_skip: 'Private: archive in Invoice Ninja'
+  vendor: Vendor
+  category: Category
+  no_category: No category
+  tax: Tax
+  no_tax: No tax
+  from_history: 'Category and tax from this vendor''s last expense'
+  from_sure: 'Merchant and category from Sure; check the tax'
+  from_model: 'Proposed by Claude; check it'
+  from_nothing: 'Unknown vendor: check the details'
+  sure_twin: The same booking in Sure
+  guess: Ask Claude for proposals
+  guess_again: Ask Claude again
+  guess_privacy: 'Sends payee, reference, amount and date of the open debits, and merchant, category and tags from Sure to Claude, along with the names of your vendors and categories.'
+  guess_private: 'Claude reads this as private.'
+  guessed: 'Sorted by Claude: {n}. Check the proposals.'
+  guess_failed: 'Claude gave no readable answer. Try again later.'
+  review: Review
+  review_hint: 'Shows what would be written. Nothing goes to Invoice Ninja yet.'
+  review_title: Confirm the check
+  review_lead: 'These steps go to Invoice Ninja (writes: {n}).'
+  do_link: 'Link the transaction to expense {number}'
+  do_invoice: 'Book the payment of invoice {number}'
+  do_skip: 'Archive in Invoice Ninja as private'
+  do_vendor: 'Create vendor “{vendor}”,'
+  do_create: 'create expense “{vendor}” and link it'
+  do_tax: '{name} {rate} %, input VAT {tax}'
+  apply: 'Write to Invoice Ninja ({n})'
+  apply_skip: Archive
+  back: Back
+  applied: 'Done: {done} booked, {skipped} archived as private.'
+  failed: 'Not booked: {n}.'
+  shown: 'Transaction restored in Invoice Ninja and open again.'
+  skipped: 'Archived as private: {n}'
+  show_again: Show again
+  notax_title: Expenses without tax
+  sure_only_title: 'Only in {bank}'
+  sure_only_hint: 'These bookings of the business accounts are missing in Invoice Ninja''s bank feed. Refresh the feed in Invoice Ninja or create the expense there by hand.'
+  how: How Andon proposes
+  how_text: 'A debit fits an expense of the same amount up to 10 days apart that no transaction holds yet; the named vendor''s expenses first. Without one, category and tax come from the vendor''s last expense, else merchant and category from Sure. A credit fits an open invoice whose number is in the text, or of the same amount from the client. From a private account Andon proposes only debits to vendors with expenses (say the train pass); credits there do not count.'
+  err_no_ninja: 'No Invoice Ninja connection you may use.'
+  err_no_bank: 'Invoice Ninja delivers no bank feed. Is banking set up, and may the token read bank transactions?'
+  err_demo: 'The demo does not write to Invoice Ninja.'
+  err_nothing: 'Nothing selected.'
+  problem_gone: 'Already booked or gone: skipped.'
+  problem_target: 'The expense or invoice no longer fits: skipped.'
+  problem_no_vendor: 'Andon creates no expense without a vendor: skipped.'
+  problem_not_booked: 'Invoice Ninja did not book the transaction.'

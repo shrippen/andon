@@ -1207,6 +1207,19 @@ Ein Datensatz für alle Anbieter (`sources.LLMDataset`, je Verbindung ein Konto,
 - [ ] Quer: KI-Kosten gegen Ausgaben in Invoice Ninja / Firefly (Rechnung des Anbieters fehlt) und das Claude-Abo gegen Wallos
 - [ ] Weitere Anbieter bei Bedarf (Mistral, Groq, xAI); USD bleibt USD, keine Umrechnung in die Kostenübersicht
 
+### USt-Abgleich: Bankumsätze aus Invoice Ninja (umgesetzt 13.10.2026)
+
+Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und verknüpfte sie von Hand mit Ausgaben. Die Kachel „Belege ohne Ausgabe“ tat dabei nichts: Sie las nur Sure und brauchte von Hand benannte Geschäftskonten.
+- [x] Quelle: Invoice Ninjas Bankabruf (`bank_transactions`), Ausgabenkategorien, Steuersätze; an Ausgaben Kategorie, Steuer und verknüpfter Umsatz; Sure-Tags
+- [x] Seite `/vat` je USt-Zeitraum: offene Umsätze mit Vorschlag (Ausgabe verknüpfen, Ausgabe anlegen mit Lieferant, Kategorie und Steuer aus der letzten Ausgabe des Lieferanten oder aus Sure, Zahlung zur Rechnung buchen, privat in Invoice Ninja archivieren, „Wieder zeigen“ stellt wieder her); dieselbe Buchung aus Sure daneben (Händler, Kategorie, Tags, Konto)
+- [x] Konten von Hand einordnen (Wunsch des Nutzers: fast alles läuft übers Geschäftskonto, manches wie das Deutschlandticket nur übers Privatkonto): Bankkonten aus Invoice Ninja (`bank_integrations`, gleich benannte mit Nummernende) und Sure ankreuzen, gespeichert als `accounts` von `cross.expense_unrecorded`. Vom Privatkonto schlägt Andon nur Abbuchungen an Lieferanten mit Ausgaben vor; der Rest steht eingeklappt, einzeln übernehmbar oder alle als privat archivierbar; Eingänge dort zählen nicht
+- [x] Geschrieben wird nur nach Prüfung und Bestätigung, gegen frische Daten (schon gebuchte Umsätze werden übersprungen); Audit-Einträge `vatcheck.*`
+- [x] Stand vor der Abgabe: offene Umsätze, Bankabruf bis, Ausgaben ohne Steuer bei Lieferanten mit Vorsteuer, Buchungen der Geschäftskonten, die nur Sure kennt; Umsatzsteuer, Vorsteuer, Zahllast (vorläufig, solange etwas offen ist)
+- [x] Claude auf Klick (`assist.Classify`): privat oder geschäftlich, Lieferant, Kategorie, Steuersatz, nur aus Invoice Ninjas Listen; der Verlauf eines Lieferanten geht vor
+- [x] Kachel „Belege ohne Ausgabe“ und Monatsabschluss verlinken auf `/vat`, auch zum Festlegen der Geschäftskonten *(automatische Erkennung über gemeinsame Buchungen verworfen: nicht jedes Konto im Bankabruf ist geschäftlich)*
+- [ ] Gegen die echte Instanz testen (`ANDON_LIVE_NINJA=1` nur auf Wunsch): Antwort von `bank_transactions/match`, Steuerfelder der angelegten Ausgabe
+- [ ] Hinweis „Reverse Charge“ (§ 13b) bei ausländischen Lieferanten ohne Steuer
+
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 
 Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und angewendet (06.10.2026).

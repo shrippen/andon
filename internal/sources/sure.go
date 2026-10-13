@@ -31,6 +31,7 @@ type SureTxn struct {
 	Amount             float64
 	Category, Merchant string
 	Account            string
+	Tags               []string // Sure's tags, e.g. set by its rules
 }
 
 // SureRecurring is an expected payment; Amount is positive, Expense tells
@@ -134,7 +135,7 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 			data.Transactions = append(data.Transactions, SureTxn{
 				ID: asStr(t["id"]), Date: asStr(t["date"]), Name: cleanName(asStr(t["name"])), Amount: cents(t["signed_amount_cents"]),
 				Category: asStr(asMap(t["category"])["name"]), Merchant: cleanName(asStr(asMap(t["merchant"])["name"])),
-				Account: asStr(asMap(t["account"])["name"]),
+				Account: asStr(asMap(t["account"])["name"]), Tags: sureTags(t["tags"]),
 			})
 		}
 		if len(list) < surePage {
@@ -174,6 +175,17 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 		}
 	}
 	return data, nil
+}
+
+// sureTags reads the names of a transaction's tags.
+func sureTags(raw any) []string {
+	var out []string
+	for _, t := range asList(raw) {
+		if name := asStr(asMap(t)["name"]); name != "" {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 func init() {
