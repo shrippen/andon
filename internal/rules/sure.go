@@ -137,6 +137,17 @@ func unusualExpense(data *sources.SureDataset, cfg map[string]any, env Env) []Fi
 // sureNinjaSrc are the sources of bank vs. invoice findings.
 var sureNinjaSrc = []string{string(enums.ServiceSure), string(enums.ServiceInvoiceNinja)}
 
+// businessBank is the bank data of the business accounts: clients pay
+// there, and the money free to spend is the business's. Before any
+// account has a role, all of it.
+func businessBank(env Env) (*sources.SureDataset, bool) {
+	bank, ok := metrics.BankOf(env.Datasets)
+	if !ok {
+		return nil, false
+	}
+	return bank.Only(sources.RoleBusiness), true
+}
+
 func registerSureCross() {
 	// An income in the bank that pays an open invoice (its number in the
 	// booking text, else the same amount): probably not recorded yet.
@@ -156,7 +167,7 @@ func registerSureCross() {
 }
 
 func invoicePaid(_ any, cfg map[string]any, env Env) []Finding {
-	sure, ok1 := metrics.BankOf(env.Datasets)
+	sure, ok1 := businessBank(env)
 	ninja, ok2 := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
 	if !ok1 || !ok2 {
 		return nil
@@ -179,7 +190,7 @@ func invoicePaid(_ any, cfg map[string]any, env Env) []Finding {
 }
 
 func paymentUnmatched(_ any, cfg map[string]any, env Env) []Finding {
-	sure, ok1 := metrics.BankOf(env.Datasets)
+	sure, ok1 := businessBank(env)
 	ninja, ok2 := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
 	if !ok1 || !ok2 {
 		return nil

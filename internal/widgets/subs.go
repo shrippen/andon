@@ -17,6 +17,7 @@ import (
 
 // SubsConfig is the "subscriptions" widget's config.
 type SubsConfig struct {
+	BankScope
 	Limit      int
 	ByPrice    bool     // dearest first instead of next debit
 	Yearly     bool     // costs per year
@@ -136,7 +137,7 @@ func sureCategories(sure *sources.SureDataset) map[string]string {
 }
 
 func init() {
-	Tile[SubsConfig]{Key: "subscriptions", Detail: subsDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600,
+	Tile[SubsConfig]{Key: "subscriptions", Detail: subsDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 3600, Accounts: true,
 		Fields: []Field{{Key: "categories", Input: InputList}, sel("sort", "next", "next", "price"),
 			{Key: "limit", Input: InputNumber, Default: defaultSubRows, Min: "1", Max: "30"}, {Key: "yearly", Input: InputCheck}},
 		Decode: decodeSubs, View: subsView,

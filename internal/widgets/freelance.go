@@ -95,6 +95,7 @@ const (
 )
 
 type CashflowConfig struct {
+	BankScope
 	Days       int
 	MinBalance float64 // a line and a warning below it; 0 = none
 	Delay      int     // scenario: clients pay this many days later
@@ -197,7 +198,7 @@ func init() {
 		Decode:  func(r Raw) MoneyFlowConfig { return MoneyFlowConfig{Paid: r.Bool("show_paid")} },
 		Queries: func(MoneyFlowConfig) []Query { return append(dataQuery(nil), kimaiPeer) }, View: moneyFlowView}.add()
 
-	Tile[CashflowConfig]{Key: "cashflow", Detail: cashflowDetail, Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 3600,
+	Tile[CashflowConfig]{Key: "cashflow", Detail: cashflowDetail, Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceInvoiceNinja, RefreshS: 3600, Accounts: true,
 		Fields: []Field{{Key: "days", Input: InputNumber, Default: defaultCashDays, Min: "14", Max: "365"}, {Key: "min_balance", Input: InputNumber},
 			{Key: "delay", Input: InputNumber, Min: "0", Max: "180"}},
 		Decode: func(r Raw) CashflowConfig {

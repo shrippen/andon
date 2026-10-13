@@ -375,6 +375,7 @@ typefield:
   conn_health:
     only_problems: Only shaky now (last 2 days)
 field:
+  bank_accounts: Accounts
   providers: 'Only these providers (claudeapi, claudeplan, openrouter, openai, deepseek, litellm)'
   site: Site
   hours: History (hours)
@@ -665,6 +666,9 @@ field:
   list_height: 'List height'
   show_meals: 'Show meal plan'
 opt:
+  accounts_all: All accounts
+  business: Business accounts
+  private: Private accounts
   hackernews: 'Hacker News'
   lobsters: 'Lobsters'
   reddit: 'Reddit'

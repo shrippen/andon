@@ -16,6 +16,7 @@ package widgets
 //	                          ▲ defaults and bounds from Fields
 
 import (
+	"slices"
 	"strconv"
 
 	"andon/internal/enums"
@@ -37,13 +38,17 @@ type Tile[C any] struct {
 	Width      Width
 	Extra      Extra
 	Fields     []Field
-	Renames    []rename
-	Check      func(raw map[string]any) string // a value the type cannot use, as catalog key
-	Calm       func(view map[string]any) bool  // nothing to do (frame option only_issues)
-	Decode     func(r Raw) C                   // nil: the zero C
-	Queries    func(cfg C) []Query
-	View       func(cfg C, results map[string]any, ctx ViewCtx) map[string]any
-	Detail     func(cfg C, results map[string]any, ctx ViewCtx) DetailView // the detail dialog, nil = none
+	// Accounts: the tile reads bank data. It gets the field
+	// "bank_accounts" (both, business, private) and sees only the bank
+	// accounts asked for; its config embeds BankScope.
+	Accounts bool
+	Renames  []rename
+	Check    func(raw map[string]any) string // a value the type cannot use, as catalog key
+	Calm     func(view map[string]any) bool  // nothing to do (frame option only_issues)
+	Decode   func(r Raw) C                   // nil: the zero C
+	Queries  func(cfg C) []Query
+	View     func(cfg C, results map[string]any, ctx ViewCtx) map[string]any
+	Detail   func(cfg C, results map[string]any, ctx ViewCtx) DetailView // the detail dialog, nil = none
 	// DetailQueries are fetched only when the dialog opens (cached for the
 	// source's TTL); their results join the dialog's.
 	DetailQueries func(cfg C) []Query
@@ -59,19 +64,29 @@ func (t Tile[C]) add() {
 		Calm: t.Calm, tile: true}
 
 	fields := t.Fields
+	if _, ok := any(new(C)).(bankScoper); t.Accounts && !ok {
+		panic(t.Key + ": Accounts needs BankScope in its config")
+	}
+	if t.Accounts {
+		fields = append(slices.Clone(fields), bankAccountsField)
+		kind.Fields = fields
+	}
 	kind.Decode = func(raw map[string]any) any {
-		if t.Decode == nil {
-			var zero C
-			return zero
+		var c C
+		if t.Decode != nil {
+			c = t.Decode(Raw{m: raw, fields: fields})
 		}
-		return t.Decode(Raw{m: raw, fields: fields})
+		if s, ok := any(&c).(bankScoper); ok && t.Accounts {
+			s.setScope(Raw{m: raw, fields: fields}.Pick(BankAccountsKey))
+		}
+		return c
 	}
 	if t.Queries != nil {
 		kind.Queries = func(cfg any) []Query { return t.Queries(configOf[C](cfg)) }
 	}
 	if t.View != nil {
 		kind.View = func(cfg any, results map[string]any, ctx ViewCtx) map[string]any {
-			return t.View(configOf[C](cfg), results, ctx)
+			return t.View(configOf[C](cfg), scoped(cfg, results), ctx)
 		}
 	}
 	if t.DetailQueries != nil {
@@ -84,7 +99,7 @@ func (t Tile[C]) add() {
 	}
 	if t.Detail != nil {
 		kind.Detail = func(cfg any, results map[string]any, ctx ViewCtx) DetailView {
-			return t.Detail(configOf[C](cfg), results, ctx)
+			return t.Detail(configOf[C](cfg), scoped(cfg, results), ctx)
 		}
 	}
 	Register(kind)

@@ -152,3 +152,31 @@ func TestInvoicePaidNeedsNumberOrName(t *testing.T) {
 		t.Fatalf("client's payment not reported: %+v", got)
 	}
 }
+
+// With account roles, payments count only on business accounts: money
+// from the client's owner to the private account is no "unexpected
+// income"; without roles it would be.
+func TestPaymentRulesBusinessAccounts(t *testing.T) {
+	ninja := &sources.NinjaDataset{Currency: "EUR",
+		Clients:  []sources.NinjaClient{{ID: 1, Name: "Acme GmbH"}},
+		Invoices: []sources.NinjaInvoice{{ID: 7, Number: "RE-2026-041", ClientID: 1, Status: "sent", Date: "2026-09-01", Amount: 1190, Balance: 1190}}}
+	sure := &sources.SureDataset{Currency: "EUR",
+		Accounts: []sources.SureAccount{{ID: "biz", Role: sources.RoleBusiness}, {ID: "priv", Role: sources.RolePrivate}},
+		Transactions: []sources.SureTxn{
+			{ID: "a", Date: "2026-09-20", Name: "Acme GmbH RE 2026 041", Amount: 1190, AccountID: "biz", Role: sources.RoleBusiness},
+			{ID: "b", Date: "2026-09-21", Name: "Acme GmbH Geburtstag", Amount: 120, AccountID: "priv", Role: sources.RolePrivate},
+		}}
+	env := crossEnv("2026-09-25", map[string]any{"sure": sure, "invoiceninja": ninja})
+	if got := run(t, "cross.invoice_paid", nil, env); len(got) != 1 {
+		t.Fatalf("paid: %+v", got)
+	}
+	if got := run(t, "cross.payment_unmatched", nil, env); len(got) != 0 {
+		t.Fatalf("private income reported: %+v", got)
+	}
+	for i := range sure.Accounts {
+		sure.Accounts[i].Role = sources.RoleUnknown
+	}
+	if got := run(t, "cross.payment_unmatched", nil, env); len(got) != 1 {
+		t.Fatalf("without roles: %+v", got)
+	}
+}

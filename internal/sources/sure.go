@@ -203,6 +203,28 @@ func (d *SureDataset) setRoles(roles map[string]AccountRole) {
 	}
 }
 
+// Only is the dataset with the accounts of one role and their bookings;
+// without a role asked for, or none named yet, all of it. Recurring
+// payments name no account and stay.
+func (d *SureDataset) Only(role AccountRole) *SureDataset {
+	if role == RoleUnknown || !d.Classified() {
+		return d
+	}
+	out := *d
+	out.Accounts, out.Transactions = nil, nil
+	for _, a := range d.Accounts {
+		if a.Role == role {
+			out.Accounts = append(out.Accounts, a)
+		}
+	}
+	for _, t := range d.Transactions {
+		if t.Role == role {
+			out.Transactions = append(out.Transactions, t)
+		}
+	}
+	return &out
+}
+
 // Classified says whether any account has a role.
 func (d *SureDataset) Classified() bool {
 	for _, a := range d.Accounts {

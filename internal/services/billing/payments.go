@@ -75,6 +75,10 @@ func loadBank(ctx context.Context, d *sql.DB, who *access.Principal, b bank, fre
 	}
 	sure, _ := s.Data.(*sources.SureDataset)
 	ninja, _ := n.Data.(*sources.NinjaDataset)
+	if sure != nil {
+		// Clients pay into the business accounts (all, before any has a role).
+		sure = sure.Only(sources.RoleBusiness)
+	}
 	return sure, ninja, nil
 }
 

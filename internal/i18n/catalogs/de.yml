@@ -375,6 +375,7 @@ typefield:
   conn_health:
     only_problems: Nur aktuell wackelige (letzte 2 Tage)
 field:
+  bank_accounts: Konten
   providers: 'Nur diese Anbieter (claudeapi, claudeplan, openrouter, openai, deepseek, litellm)'
   site: Seite
   hours: Verlauf (Stunden)
@@ -665,6 +666,9 @@ field:
   list_height: 'Listenhöhe'
   show_meals: 'Essensplan zeigen'
 opt:
+  accounts_all: Alle Konten
+  business: Geschäftskonten
+  private: Privatkonten
   hackernews: 'Hacker News'
   lobsters: 'Lobsters'
   reddit: 'Reddit'

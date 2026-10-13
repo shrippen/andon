@@ -134,3 +134,27 @@ func TestCashOptions(t *testing.T) {
 		t.Fatalf("cash: %+v", k)
 	}
 }
+
+// TestBankAccountsOption: a balance tile reads all accounts, only the
+// business or only the private ones; without roles named, all of them.
+func TestBankAccountsOption(t *testing.T) {
+	now := time.Now()
+	sure := sources.DemoSure(now)
+	cash := func(choice string) float64 {
+		v := viewOf(t, "kpi", map[string]any{"metric": "cash", "bank_accounts": choice}, map[string]any{"data": sure}, enums.ServiceSure, nil)
+		return v["KPI"].(*widgets.KpiResult).Value
+	}
+	all := cash("accounts_all")
+	if cash("business") != all {
+		t.Fatal("without roles the choice must not filter")
+	}
+
+	for i := range sure.Accounts {
+		sure.Accounts[i].Role = sources.RolePrivate
+	}
+	sure.Accounts[0].Role = sources.RoleBusiness
+	business, private := cash("business"), cash("private")
+	if business != sure.Accounts[0].Balance || private != all-business || cash("accounts_all") != all {
+		t.Fatalf("all %v business %v private %v", all, business, private)
+	}
+}
