@@ -116,7 +116,9 @@ var NinjaData = source{key: "invoiceninja.data", ttl: dataTTL, service: enums.Se
 
 func fetchNinja(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
-		return DemoNinja(time.Now()), nil
+		data := DemoNinja(time.Now())
+		data.setRoles(accountRoles(sctx.Options))
+		return data, nil
 	}
 	api, err := ninjaAPI(sctx)
 	if err != nil {
@@ -126,6 +128,7 @@ func fetchNinja(ctx context.Context, sctx Ctx) (any, error) {
 	if err != nil {
 		return nil, fetchError(err)
 	}
+	data.setRoles(accountRoles(sctx.Options))
 	return data, nil
 }
 
@@ -253,7 +256,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 type ninjaBank struct {
 	txns       []NinjaBankTxn
 	read       bool
-	accounts   []string
+	accounts   []NinjaBankAccount
 	categories []NinjaCategory
 	rates      []NinjaTaxRate
 }
@@ -271,8 +274,9 @@ func loadNinjaBank(ctx context.Context, api services.NinjaApi, since string) nin
 	if raw, err := api.Pages(ctx, "bank_integrations", nil); err == nil {
 		names = bankAccountNames(raw)
 		for _, r := range raw {
-			if name := names[idKey(asMap(r)["id"])]; name != "" {
-				out.accounts = append(out.accounts, name)
+			key := idKey(asMap(r)["id"])
+			if name := names[key]; name != "" {
+				out.accounts = append(out.accounts, NinjaBankAccount{Key: key, Name: name})
 			}
 		}
 	}
@@ -281,7 +285,8 @@ func loadNinjaBank(ctx context.Context, api services.NinjaApi, since string) nin
 		for _, r := range raw {
 			m := asMap(r)
 			if t, ok := ninjaBankTxn(m); ok && t.Date >= since {
-				t.Account = names[idKey(m["bank_integration_id"])]
+				t.AccountKey = idKey(m["bank_integration_id"])
+				t.Account = names[t.AccountKey]
 				out.txns = append(out.txns, t)
 			}
 		}
@@ -303,6 +308,17 @@ func loadNinjaBank(ctx context.Context, api services.NinjaApi, since string) nin
 		}
 	}
 	return out
+}
+
+// setRoles marks each bank account and its transactions with the role
+// the user named.
+func (d *NinjaDataset) setRoles(roles map[string]AccountRole) {
+	for i := range d.BankAccounts {
+		d.BankAccounts[i].Role = roles[d.BankAccounts[i].Key]
+	}
+	for i := range d.BankTxns {
+		d.BankTxns[i].Role = roles[d.BankTxns[i].AccountKey]
+	}
 }
 
 // bankAccountNames names each bank account by id: its nickname, else the

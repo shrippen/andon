@@ -164,6 +164,38 @@ type NinjaVendor struct {
 	Key, Name string
 }
 
+// AccountRole is what a bank account is used for, as the user named it
+// (connection option OptAccountRoles); "" = not said.
+type AccountRole string
+
+const (
+	RoleUnknown  AccountRole = ""
+	RoleBusiness AccountRole = "business"
+	RolePrivate  AccountRole = "private"
+)
+
+// OptAccountRoles is the connection option holding each account's role:
+// {"<account key>": "business"}.
+const OptAccountRoles = "account_roles"
+
+// accountRoles reads the roles of a connection's accounts.
+func accountRoles(options map[string]any) map[string]AccountRole {
+	out := map[string]AccountRole{}
+	raw, _ := options[OptAccountRoles].(map[string]any)
+	for k, v := range raw {
+		if r := AccountRole(asStr(v)); r == RoleBusiness || r == RolePrivate {
+			out[k] = r
+		}
+	}
+	return out
+}
+
+// NinjaBankAccount is an account Invoice Ninja's bank feed reads.
+type NinjaBankAccount struct {
+	Key, Name string
+	Role      AccountRole
+}
+
 // BankStatus is where Invoice Ninja stands with a bank transaction.
 type BankStatus string
 
@@ -177,7 +209,8 @@ const (
 // positive; Debit tells money going out.
 type NinjaBankTxn struct {
 	Key, Date, Description, Payer string
-	Account                       string // the bank account's name in Invoice Ninja
+	Account, AccountKey           string // the bank account's name and id in Invoice Ninja
+	Role                          AccountRole
 	Amount                        float64
 	Debit                         bool
 	Status                        BankStatus
@@ -234,7 +267,7 @@ type NinjaDataset struct {
 	// rates; BankRead says whether the bank API answered.
 	BankTxns     []NinjaBankTxn
 	BankRead     bool
-	BankAccounts []string // names of the accounts the feed reads
+	BankAccounts []NinjaBankAccount // the accounts the feed reads
 	Categories   []NinjaCategory
 	TaxRates     []NinjaTaxRate
 }

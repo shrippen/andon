@@ -6,12 +6,11 @@ settings:
     annual_due: "07-31"
     income_tax_rate: 0.3
   travel: {base: work}
-  rules: {cross.expense_unrecorded: {accounts: [Geschäftskonto]}}
 connections:
   - {id: kimai, type: kimai, name: Kimai, url: "demo://kimai", credentials: shared}
-  - {id: invoiceninja, type: invoiceninja, name: Invoice Ninja, url: "demo://invoiceninja", credentials: shared}
+  - {id: invoiceninja, type: invoiceninja, name: Invoice Ninja, url: "demo://invoiceninja", credentials: shared, options: {account_roles: {demo-a1: business, demo-a2: private}}}
   - {id: snipeit, type: snipeit, name: Snipe-IT, url: "demo://snipeit", credentials: shared}
-  - {id: sure, type: sure, name: Sure, url: "demo://sure", credentials: shared}
+  - {id: sure, type: sure, name: Sure, url: "demo://sure", credentials: shared, options: {account_roles: {a1: business, a2: private}}}
   - {id: mail, type: mail, name: Postfach, url: "demo://mail", credentials: shared}
   - {id: paperless, type: paperless, name: Paperless, url: "demo://paperless", credentials: shared}
   - {id: kintsugi, type: kintsugi, name: Kintsugi, url: "demo://kintsugi", credentials: shared}

@@ -200,12 +200,19 @@
      Every other account counts as private. */}}
 {{define "vat_accounts"}}{{$p := .P}}
 <details class="card" id="accounts"{{if not $p.SetUp}} open{{end}}>
-  <summary><b>{{t "vatcheck.accounts_title"}}</b>{{if $p.SetUp}} <small class="muted">{{range $i, $a := $p.Accounts}}{{if $i}} · {{end}}{{$a.Name}}: {{if $a.Business}}{{t "vatcheck.accounts_business"}}{{else}}{{t "vatcheck.accounts_private"}}{{end}}{{end}}</small>{{end}}</summary>
+  <summary><b>{{t "vatcheck.accounts_title"}}</b>{{if $p.SetUp}} <small class="muted">{{range $i, $a := $p.Accounts}}{{if $i}} · {{end}}{{$a.Name}}: {{if eq $a.Role "business"}}{{t "vatcheck.accounts_business"}}{{else if eq $a.Role "private"}}{{t "vatcheck.accounts_private"}}{{else}}–{{end}}{{end}}</small>{{end}}</summary>
   <p class="small muted">{{t "vatcheck.accounts_lead"}}</p>
   {{if $p.CanSet}}<form method="post" action="/vat/accounts">
     <input type="hidden" name="{{.CSRFField}}" value="{{.CSRF}}"><input type="hidden" name="conn" value="{{$p.Conn}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
-    <ul class="close-steps">{{range $p.Accounts}}<li><label class="check"><input type="checkbox" name="business" value="{{.Name}}"{{if .Business}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{.Name}} <small class="muted">{{t (print "service." .Service)}}</small></label></li>{{end}}</ul>
-    <p><button type="submit" class="btn btn-outline btn-sm">{{t "vatcheck.accounts_save"}}</button></p>
+    <div class="table-wrap"><table class="table cards-sm">
+      <tbody>{{range $p.Accounts}}<tr><td data-card="title">{{.Name}} <small class="muted">{{t (print "service." .Service)}}</small></td>
+        <td><select class="select" name="role:{{.ConnID}}:{{.Key}}" aria-label="{{.Name}}">
+          <option value="">{{t "vatcheck.accounts_unknown"}}</option>
+          <option value="business"{{if eq .Role "business"}} selected{{end}}>{{t "vatcheck.accounts_business"}}</option>
+          <option value="private"{{if eq .Role "private"}} selected{{end}}>{{t "vatcheck.accounts_private"}}</option></select></td></tr>{{end}}</tbody>
+    </table></div>
+    <p><button type="submit" class="btn btn-outline btn-sm">{{t "vatcheck.accounts_save"}}</button>
+      <a class="small" href="/spaces/{{$p.SpaceID}}/verbund">{{t "vatcheck.accounts_verbund"}}</a></p>
   </form>
   {{else}}<p class="small">{{t "vatcheck.accounts_ro"}}</p>{{end}}
 </details>

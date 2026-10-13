@@ -31,6 +31,7 @@ const (
 	Receipts      Domain = "receipts"
 	Appointments  Domain = "appointments"
 	Subscriptions Domain = "subscriptions"
+	Accounts      Domain = "accounts" // bank accounts, business or private
 )
 
 // Op is what a service does with a domain.

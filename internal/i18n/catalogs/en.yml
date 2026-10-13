@@ -3761,7 +3761,7 @@ param:
   warn_gb: Warn below (GB free)
   critical_gb: Critical below (GB free)
   factor: Factor to usual
-  accounts: Business accounts (names)
+  accounts: Business accounts (names, only without account roles in the bundle)
   warn_hours: Warn from hours
   critical_hours: Critical from hours
   drop: Drop from (share)
@@ -6813,6 +6813,7 @@ caps:
   have: available
   unknown: not fetched yet
   domain:
+    accounts: Accounts
     places: Places
     rides: Rides
     customers: Customers
@@ -6850,6 +6851,16 @@ caps:
     contract: Working time (user → working time)
   note: 'Only partly usable:'
 verbund:
+  accounts: Accounts
+  accounts_lead: 'Which bank account in Invoice Ninja is which in Sure or Firefly, and what it is for. Andon proposes the account sharing the most bookings; only what you confirm is stored. Business or private holds per account and carries over to linked accounts.'
+  account_role: Use
+  none_account: No counterpart
+  role_differs: 'Set differently from the account on the left. Saving the left one again carries it over.'
+  accounts_loose: Accounts without counterpart
+  accounts_loose_hint: 'Accounts no row holds, say savings without a bank feed in Invoice Ninja.'
+  no_accounts: 'No member of this bundle knows bank accounts (Invoice Ninja, Sure, Firefly III).'
+  account_taken: 'This account belongs to another row already.'
+  unknown_account: 'Account not found; reload the data.'
   customers: Customers
   customers_lead: 'Which Invoice Ninja client is which Kimai customer, which Sure payer and which Paperless correspondent. Andon suggests the most similar name; only what you confirm is stored. Invoice Ninja holds the names: “Take name” writes it to Kimai. Without a link the same name decides.'
   customers_how: 'Per field: “–” lets the name decide, “No counterpart” says there is none there.'
@@ -6976,7 +6987,9 @@ llm:
     cost: 'Cost'
 vatcheck:
   accounts_title: Accounts
-  accounts_lead: 'Tick the business accounts. All others count as private: Andon proposes their debits only when the vendor already has expenses, say the train pass paid privately. The missing receipts tile and the month close use the same choice.'
+  accounts_lead: 'What is each account for? Andon proposes debits of private accounts only when the vendor already has expenses, say the train pass paid privately. The role holds for the whole connection, in a bundle for the linked account in Sure too, and for every evaluation.'
+  accounts_unknown: 'not set'
+  accounts_verbund: 'Link accounts in the bundle →'
   accounts_business: business
   accounts_private: private
   accounts_save: Save

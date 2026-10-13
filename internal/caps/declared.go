@@ -64,13 +64,16 @@ var declared = map[Holder][]Cap{
 		{Domain: Receipts, Op: Update, Refs: paperlessReceipts}, // the scan's link
 		// The VAT check books the bank feed's transactions.
 		{Domain: Payments, Op: Update, Kinds: []string{"bank_transactions"}},
+		{Domain: Accounts, Op: Read}, // the bank feed's accounts
 	},
 	HolderOf(enums.ServiceSure): {
+		{Domain: Accounts, Op: Read},
 		{Domain: Payments, Op: Read},      // transactions of the bank accounts
 		{Domain: Subscriptions, Op: Read}, // recurring transactions
 		{Domain: Customers, Op: Read},     // payers of incomes
 	},
 	HolderOf(enums.ServiceFirefly): { // the same as Sure, in Sure's shape
+		{Domain: Accounts, Op: Read},
 		{Domain: Payments, Op: Read},
 		{Domain: Subscriptions, Op: Read},
 		{Domain: Customers, Op: Read},

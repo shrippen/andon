@@ -27,6 +27,9 @@ func (d Deps) RegisterVerbundRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /verbund/{id}/customers", d.authed(d.handleVerbundCustomers))
 	mux.HandleFunc("POST /verbund/{id}/customers/confirm", d.authed(d.handleCustomersConfirm))
 	mux.HandleFunc("POST /verbund/{id}/customers/{act}", d.authed(d.handleCustomerAct))
+	mux.HandleFunc("GET /verbund/{id}/accounts", d.authed(d.handleVerbundAccounts))
+	mux.HandleFunc("POST /verbund/{id}/accounts/confirm", d.authed(d.handleAccountsConfirm))
+	mux.HandleFunc("POST /verbund/{id}/accounts/{act}", d.authed(d.handleAccountAct))
 }
 
 // customersPath is a Verbund's customers page.

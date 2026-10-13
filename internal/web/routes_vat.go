@@ -7,7 +7,7 @@ package web
 //	POST /vat/review   the ticked steps, spelled out, to confirm
 //	POST /vat/apply    writes the confirmed steps
 //	POST /vat/restore  brings a transaction archived as private back
-//	POST /vat/accounts names the business accounts
+//	POST /vat/accounts names each bank account business or private
 //	POST /vat/guess    asks the language model about the open ones
 
 import (
@@ -21,6 +21,7 @@ import (
 	"andon/internal/metrics"
 	"andon/internal/services/assist"
 	"andon/internal/services/vatcheck"
+	"andon/internal/services/verbund"
 )
 
 func (d Deps) registerVATRoutes(mux *http.ServeMux) {
@@ -146,14 +147,26 @@ func (d Deps) handleVATRestore(w http.ResponseWriter, r *http.Request, ctx Ctx) 
 	http.Redirect(w, r, q.back("note", "vatcheck.shown"), http.StatusSeeOther)
 }
 
-// handleVATAccounts stores the ticked accounts as business accounts.
+// rolePrefix starts each account's field: role:<connection>:<account key>.
+const rolePrefix = "role:"
+
+// handleVATAccounts stores each account's role.
 func (d Deps) handleVATAccounts(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := vatQueryOf(r)
 	if err := r.ParseForm(); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	if err := vatcheck.SaveAccounts(d.DB, ctx.Who, q.Conn, r.PostForm["business"], d.clientIP(r)); err != nil {
+	var roles []vatcheck.Role
+	for name, v := range r.PostForm {
+		conn, key, ok := strings.Cut(strings.TrimPrefix(name, rolePrefix), ":")
+		id, err := strconv.ParseInt(conn, 10, 64)
+		if !strings.HasPrefix(name, rolePrefix) || !ok || err != nil {
+			continue
+		}
+		roles = append(roles, vatcheck.Role{ConnID: id, Key: key, Role: verbund.Role(v[0])})
+	}
+	if err := vatcheck.SaveRoles(r.Context(), d.DB, ctx.Who, q.Conn, roles, d.clientIP(r)); err != nil {
 		http.Redirect(w, r, q.back("error", vatError(err))+"#accounts", http.StatusSeeOther)
 		return
 	}

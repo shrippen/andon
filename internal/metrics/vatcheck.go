@@ -9,7 +9,8 @@ package metrics
 //	open credit ─► open invoice: its number in the text, or the
 //	               same balance and the client's name             → book
 //
-// Accounts are business or private as the user named them. A debit from
+// Accounts are business or private as the user named them (unnamed
+// count as business). A debit from
 // a private account is proposed only for a vendor with expenses (the
 // train ticket paid privately); the rest waits, set apart. Incomes on
 // private accounts and transactions archived in Invoice Ninja drop out.
@@ -77,20 +78,13 @@ func (c BankCase) Waiting() bool {
 	return !c.Private || c.Action == ActionLink || c.Action == ActionCreate
 }
 
-// VATInputs is what the check reads. Business names the business
-// accounts of Invoice Ninja and Sure; none named: every account counts.
+// VATInputs is what the check reads.
 type VATInputs struct {
 	Ninja      *sources.NinjaDataset
 	Sure       *sources.SureDataset // nil without Sure
 	Start, End time.Time
-	Business   []string
 	Method     string // ist, soll
 	Today      time.Time
-}
-
-// business reports whether an account is a business one.
-func (in VATInputs) business(account string) bool {
-	return len(in.Business) == 0 || slices.ContainsFunc(in.Business, func(b string) bool { return strings.EqualFold(b, account) })
 }
 
 const (
@@ -108,7 +102,7 @@ func BankCases(in VATInputs) []BankCase {
 	usedSure, usedInvoice := map[string]bool{}, map[int64]bool{}
 	var out []BankCase
 	for _, t := range periodTxns(in) {
-		private := !in.business(t.Account)
+		private := t.Role == sources.RolePrivate
 		if t.Status == sources.BankDone || t.Archived || (private && !t.Debit) {
 			continue
 		}
@@ -397,16 +391,16 @@ func twinInFeed(n *sources.NinjaDataset, s sources.SureTxn) bool {
 }
 
 // sureOnly are the period's bookings of Sure's business accounts that
-// the feed lacks: Invoice Ninja missed them. Without accounts named
-// there is no telling business from private: nothing.
+// the feed lacks: Invoice Ninja missed them. Without roles there is no
+// telling business from private: nothing.
 func sureOnly(in VATInputs) []sources.SureTxn {
-	if in.Sure == nil || len(in.Business) == 0 {
+	if in.Sure == nil || !in.Sure.Classified() {
 		return nil
 	}
 	var out []sources.SureTxn
 	for _, s := range in.Sure.Transactions {
 		d, ok := ParseDay(s.Date)
-		if !ok || d.Before(in.Start) || d.After(in.End) || !in.business(s.Account) {
+		if !ok || d.Before(in.Start) || d.After(in.End) || s.Role != sources.RoleBusiness {
 			continue
 		}
 		if !twinInFeed(in.Ninja, s) {
@@ -467,3 +461,31 @@ func VATSpanOf(key, interval string) (VATSpan, bool) {
 
 // Quarter is the span's quarter of the year (1–4).
 func (s VATSpan) Quarter() int { return (int(s.Start.Month())-1)/quarterMonths + 1 }
+
+// SharedBookings counts, per Invoice Ninja bank account and Sure account,
+// the bookings both feeds have (same amount and direction, a few days
+// apart): the same real account shares many.
+//
+//	{"Kx9": {"a1": 14, "a2": 0}}
+func SharedBookings(n *sources.NinjaDataset, s *sources.SureDataset) map[string]map[string]int {
+	out := map[string]map[string]int{}
+	if n == nil || s == nil {
+		return out
+	}
+	for _, t := range n.BankTxns {
+		day, ok := ParseDay(t.Date)
+		if !ok || t.AccountKey == "" {
+			continue
+		}
+		for _, b := range s.Transactions {
+			if b.AccountID == "" || (b.Amount < 0) != t.Debit || abs(abs(b.Amount)-t.Amount) > amountTol || daysApart(b.Date, day) > bankWindow {
+				continue
+			}
+			if out[t.AccountKey] == nil {
+				out[t.AccountKey] = map[string]int{}
+			}
+			out[t.AccountKey][b.AccountID]++
+		}
+	}
+	return out
+}

@@ -5,7 +5,7 @@
 //	Review  the steps the user ticked, as they would be written
 //	Apply   writes them, only after the user confirmed the review
 //	Restore brings a transaction archived as private back
-//	Accounts names the business accounts (the rest is private)
+//	SaveRoles names what each bank account is for (verbund.SetRole)
 //	Guess   asks the language model about the open ones, on request
 //
 //	  Invoice Ninja ──bank feed──┐
@@ -18,7 +18,6 @@ import (
 	"database/sql"
 	"errors"
 	"slices"
-	"strings"
 	"time"
 
 	"andon/internal/db"
@@ -26,11 +25,9 @@ import (
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/repos/content"
-	"andon/internal/rules"
 	"andon/internal/services/access"
 	"andon/internal/services/assist"
 	"andon/internal/services/connections"
-	"andon/internal/services/spaces"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/verbund"
 	"andon/internal/sources"
@@ -67,8 +64,9 @@ type Page struct {
 	Apart    []Case                 // the rest of the private accounts
 	Skipped  []sources.NinjaBankTxn // archived in Invoice Ninja
 	Accounts []Account
-	SetUp    bool // business accounts are named
-	CanSet   bool // the user may name them (space settings)
+	SetUp    bool  // an account has a role
+	CanSet   bool  // the user may set roles (MANAGE on the connections)
+	SpaceID  int64 // Invoice Ninja's space, for its Verbund page
 	Check    metrics.VATCheck
 	Ledger   Ledger
 	Interval string // monthly, quarterly
@@ -85,11 +83,12 @@ type Case struct {
 	Guess *assist.Guess
 }
 
-// Account is a bank account of Invoice Ninja or Sure and how it counts.
+// Account is a bank account of Invoice Ninja or Sure and its role.
 type Account struct {
-	Name     string
-	Service  enums.ServiceType
-	Business bool
+	ConnID    int64
+	Service   enums.ServiceType
+	Key, Name string
+	Role      sources.AccountRole
 }
 
 // Ledger is what a new expense can choose from.
@@ -137,8 +136,9 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, s
 	}
 
 	in := b.inputs(p.Span, p.Method, today)
-	p.Accounts, p.SetUp = b.accounts(in.Business), len(in.Business) > 0
-	p.CanSet = spaces.CanChange(d, who, b.conn.SpaceID)
+	p.Accounts = b.accounts()
+	p.SetUp = slices.ContainsFunc(p.Accounts, func(a Account) bool { return a.Role != sources.RoleUnknown })
+	p.CanSet, p.SpaceID = b.canSet(d, who), b.conn.SpaceID
 	cases := metrics.BankCases(in)
 	p.Check = metrics.VATCheckOf(in, cases)
 	guesses := b.state.guesses(b.conn.ID)
@@ -226,53 +226,34 @@ func inSpan(day string, s metrics.VATSpan) bool {
 }
 
 func (b book) inputs(s metrics.VATSpan, method string, today time.Time) metrics.VATInputs {
-	return metrics.VATInputs{Ninja: b.ninja, Sure: b.bank, Start: s.Start, End: s.End, Business: businessOf(b.settings),
-		Method: method, Today: today}
+	return metrics.VATInputs{Ninja: b.ninja, Sure: b.bank, Start: s.Start, End: s.End, Method: method, Today: today}
 }
 
-// accountRule keeps the business accounts in its "accounts" setting, the
-// one the missing receipts tile and the month close read as well.
-const accountRule = "cross.expense_unrecorded"
-
-// businessOf reads the business accounts of a space's settings.
-func businessOf(settings map[string]any) []string {
-	var out []string
-	for _, spec := range rules.AllRules() {
-		if spec.ID != accountRule {
-			continue
-		}
-		list, _ := rules.Config(spec, settings)["accounts"].([]any)
-		for _, v := range list {
-			if name, ok := v.(string); ok && strings.TrimSpace(name) != "" {
-				out = append(out, strings.TrimSpace(name))
-			}
-		}
-	}
-	return out
-}
-
-// accounts lists Invoice Ninja's bank accounts and Sure's, each once.
-func (b book) accounts(business []string) []Account {
+// accounts lists Invoice Ninja's bank accounts, then Sure's.
+func (b book) accounts() []Account {
 	var out []Account
-	add := func(name string, service enums.ServiceType) {
-		if name == "" || slices.ContainsFunc(out, func(a Account) bool { return equalFold(a.Name, name) }) {
-			return
-		}
-		isBusiness := slices.ContainsFunc(business, func(n string) bool { return equalFold(n, name) })
-		out = append(out, Account{Name: name, Service: service, Business: isBusiness})
-	}
-	for _, name := range b.ninja.BankAccounts {
-		add(name, enums.ServiceInvoiceNinja)
-	}
-	for _, t := range b.ninja.BankTxns {
-		add(t.Account, enums.ServiceInvoiceNinja)
+	for _, a := range b.ninja.BankAccounts {
+		out = append(out, Account{ConnID: b.conn.ID, Service: enums.ServiceInvoiceNinja, Key: a.Key, Name: a.Name, Role: a.Role})
 	}
 	if b.bank != nil {
 		for _, a := range b.bank.Accounts {
-			add(a.Name, b.bank.From())
+			out = append(out, Account{ConnID: b.bankConn.ID, Service: b.bank.From(), Key: a.ID, Name: a.Name, Role: a.Role})
 		}
 	}
 	return out
+}
+
+// canSet says whether the caller may set roles on both connections.
+func (b book) canSet(d *sql.DB, who *access.Principal) bool {
+	for _, c := range []*model.Connection{b.conn, b.bankConn} {
+		if c == nil {
+			continue
+		}
+		if v, err := connections.Get(d, who, c.ID); err != nil || v.Right < enums.RightManage {
+			return false
+		}
+	}
+	return true
 }
 
 // load picks the Invoice Ninja, its Sure (or Firefly) partner, their data

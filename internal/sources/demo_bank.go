@@ -28,13 +28,16 @@ const (
 	demoOpenLinks  = 2  // newest expenses whose transaction is still open
 	demoBankDays   = 95 // how far back the feed reaches
 
-	// The feed's two accounts; the demo space names the first business.
-	demoBusiness = "Geschäftskonto"
-	demoPrivate  = "Privatkonto"
+	// The feed's two accounts; the demo connection names their roles.
+	demoBusiness    = "Geschäftskonto"
+	demoPrivate     = "Privatkonto"
+	demoBusinessKey = "demo-a1"
+	demoPrivateKey  = "demo-a2"
 )
 
 func demoNinjaBank(today time.Time, data *NinjaDataset) {
-	data.BankRead, data.BankAccounts = true, []string{demoBusiness, demoPrivate}
+	data.BankRead = true
+	data.BankAccounts = []NinjaBankAccount{{Key: demoBusinessKey, Name: demoBusiness}, {Key: demoPrivateKey, Name: demoPrivate}}
 	data.TaxRates = []NinjaTaxRate{{Name: demoTaxName, Rate: demoTaxRate}, {Name: demoTaxName + " 7 %", Rate: demoTaxReduced}}
 
 	vendors, categories := map[string]string{}, map[string]string{}
@@ -98,11 +101,11 @@ func demoNinjaBank(today time.Time, data *NinjaDataset) {
 		NinjaBankTxn{Key: "demo-b-music", Date: iso(today.AddDate(0, 0, -16)), Description: music.Contract.DE(), Payer: music.Name,
 			Amount: music.Monthly, Debit: true, Status: BankOpen},
 		NinjaBankTxn{Key: "demo-p-ticket", Date: iso(today.AddDate(0, 0, -12)), Description: "Deutschlandticket " + today.Format("01/2006"),
-			Payer: "DB Fernverkehr AG", Amount: 58, Debit: true, Status: BankOpen, Account: demoPrivate},
+			Payer: "DB Fernverkehr AG", Amount: 58, Debit: true, Status: BankOpen, Account: demoPrivate, AccountKey: demoPrivateKey},
 		NinjaBankTxn{Key: "demo-p-food", Date: iso(today.AddDate(0, 0, -9)), Description: "Einkauf", Payer: "Wochenmarkt Eimsbüttel",
-			Amount: 38.4, Debit: true, Status: BankOpen, Account: demoPrivate},
+			Amount: 38.4, Debit: true, Status: BankOpen, Account: demoPrivate, AccountKey: demoPrivateKey},
 		NinjaBankTxn{Key: "demo-p-refund", Date: iso(today.AddDate(0, 0, -13)), Description: "Erstattung", Payer: "Krankenkasse",
-			Amount: 120, Status: BankOpen, Account: demoPrivate})
+			Amount: 120, Status: BankOpen, Account: demoPrivate, AccountKey: demoPrivateKey})
 
 	// The overdue invoice, paid: open until it is booked.
 	for _, inv := range data.Invoices {
@@ -117,7 +120,7 @@ func demoNinjaBank(today time.Time, data *NinjaDataset) {
 	}
 	for i := range data.BankTxns {
 		if data.BankTxns[i].Account == "" {
-			data.BankTxns[i].Account = demoBusiness
+			data.BankTxns[i].Account, data.BankTxns[i].AccountKey = demoBusiness, demoBusinessKey
 		}
 	}
 }

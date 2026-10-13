@@ -15,6 +15,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/services/vatcheck"
+	"andon/internal/sources"
 	"andon/internal/testkit"
 )
 
@@ -237,7 +238,7 @@ func TestApplyWritesConfirmedSteps(t *testing.T) {
 	}
 }
 
-// Named business accounts: the private account's train pass waits apart
+// Roles named per account: the private account's train pass waits apart
 // until its vendor has expenses; two accounts of one name are told apart
 // by their number.
 func TestAccounts(t *testing.T) {
@@ -255,7 +256,8 @@ func TestAccounts(t *testing.T) {
 		t.Fatalf("accounts: %+v can set %v", p.Accounts, p.CanSet)
 	}
 
-	if err := vatcheck.SaveAccounts(d, who, conn, []string{"Girokonto ··1111"}, ""); err != nil {
+	roles := []vatcheck.Role{{ConnID: conn, Key: "a1", Role: sources.RoleBusiness}, {ConnID: conn, Key: "a2", Role: sources.RolePrivate}}
+	if err := vatcheck.SaveRoles(ctx, d, who, conn, roles, ""); err != nil {
 		t.Fatal(err)
 	}
 	p, err = vatcheck.Open(ctx, d, who, conn, thisMonth(), time.Now().UTC())
@@ -265,8 +267,8 @@ func TestAccounts(t *testing.T) {
 	if !p.SetUp || len(p.Cases) != 4 || len(p.Apart) != 1 || !p.Apart[0].Private || p.Apart[0].Txn.Key != "b5" {
 		t.Fatalf("set up %v, cases %d, apart %+v", p.SetUp, len(p.Cases), p.Apart)
 	}
-	if !p.Accounts[0].Business || p.Accounts[1].Business {
-		t.Errorf("business flags: %+v", p.Accounts)
+	if p.Accounts[0].Role != sources.RoleBusiness || p.Accounts[1].Role != sources.RolePrivate {
+		t.Errorf("roles: %+v", p.Accounts)
 	}
 }
 

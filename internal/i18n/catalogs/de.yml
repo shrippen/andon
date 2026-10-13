@@ -3762,7 +3762,7 @@ param:
   warn_gb: Warnung ab (GB frei)
   critical_gb: Kritisch ab (GB frei)
   factor: Faktor zum Üblichen
-  accounts: Geschäftskonten (Namen)
+  accounts: Geschäftskonten (Namen, nur ohne Kontenrollen im Verbund)
   warn_hours: Warnung ab Stunden
   critical_hours: Kritisch ab Stunden
   drop: Rückgang ab (Anteil)
@@ -6814,6 +6814,7 @@ caps:
   have: vorhanden
   unknown: noch nicht abgerufen
   domain:
+    accounts: Konten
     places: Orte
     rides: Fahrten
     customers: Kunden
@@ -6851,6 +6852,16 @@ caps:
     contract: Sollarbeitszeit (Benutzer → Arbeitszeit)
   note: 'Nur teilweise nutzbar:'
 verbund:
+  accounts: Konten
+  accounts_lead: 'Welches Bankkonto in Invoice Ninja welches in Sure oder Firefly ist und wofür es dient. Andon schlägt das Konto mit den meisten gemeinsamen Buchungen vor; gespeichert wird erst, was du bestätigst. Die Einordnung geschäftlich oder privat gilt je Konto und wird auf verknüpfte Konten übertragen.'
+  account_role: Verwendung
+  none_account: Kein Gegenstück
+  role_differs: 'Anders eingeordnet als das Konto links. Links neu speichern überträgt es.'
+  accounts_loose: Konten ohne Gegenstück
+  accounts_loose_hint: 'Konten, die keine Zeile hält, etwa ein Tagesgeld ohne Bankabruf in Invoice Ninja.'
+  no_accounts: 'Kein Mitglied dieses Verbunds kennt Bankkonten (Invoice Ninja, Sure, Firefly III).'
+  account_taken: 'Dieses Konto gehört schon zu einer anderen Zeile.'
+  unknown_account: 'Konto nicht gefunden; Daten neu laden.'
   customers: Kunden
   customers_lead: 'Welcher Kunde in Invoice Ninja welcher Kunde in Kimai, welcher Zahler in Sure und welcher Korrespondent in Paperless ist. Andon schlägt den ähnlichsten Namen vor; gespeichert wird erst, was du bestätigst. Invoice Ninja führt die Namen: „Namen übernehmen“ schreibt ihn nach Kimai. Ohne Zuordnung entscheidet der gleiche Name.'
   customers_how: 'Je Feld: „–“ lässt den Namen entscheiden, „Kein Gegenstück“ sagt, dass es dort keinen gibt.'
@@ -6977,7 +6988,9 @@ llm:
     cost: 'Kosten'
 vatcheck:
   accounts_title: Konten
-  accounts_lead: 'Hake die Geschäftskonten an. Alle anderen gelten als privat: Ihre Abbuchungen schlägt Andon nur vor, wenn der Lieferant schon Ausgaben hat, etwa das privat bezahlte Deutschlandticket. Gilt auch für die Kachel „Belege ohne Ausgabe“ und den Monatsabschluss.'
+  accounts_lead: 'Wofür ist welches Konto? Abbuchungen privater Konten schlägt Andon nur vor, wenn der Lieferant schon Ausgaben hat, etwa das privat bezahlte Deutschlandticket. Die Einordnung gilt für die ganze Verbindung, im Verbund auch für das verknüpfte Konto in Sure, und für alle Auswertungen.'
+  accounts_unknown: 'nicht eingeordnet'
+  accounts_verbund: 'Konten im Verbund verknüpfen →'
   accounts_business: geschäftlich
   accounts_private: privat
   accounts_save: Speichern

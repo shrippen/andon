@@ -1,6 +1,7 @@
 package metrics_test
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -33,30 +34,31 @@ func vatBook() (*sources.NinjaDataset, *sources.SureDataset) {
 			{Key: "e4", VendorKey: "v4", CategoryKey: "c3", Date: "2026-08-01", Amount: 58, Tax: 3.79, TaxName: "MwSt. 7 %", TaxRate: 7, TxnKey: "p0"},
 		},
 		BankTxns: []sources.NinjaBankTxn{
-			{Key: "b0", Date: "2026-08-21", Payer: "Kabelwerk Studiobedarf", Amount: 89.7, Debit: true, Status: sources.BankDone, ExpenseKeys: []string{"e1"}, Account: business},
-			{Key: "b1", Date: "2026-09-03", Payer: "Elbnetz Mobilfunk", Amount: 39.95, Debit: true, Status: sources.BankOpen, Account: business},
-			{Key: "b2", Date: "2026-09-08", Payer: "Kabelwerk Studiobedarf", Description: "KW-56107", Amount: 899, Debit: true, Status: sources.BankOpen, Account: business},
-			{Key: "b3", Date: "2026-09-10", Payer: "NH Billing", Description: "Rechnung 09", Amount: 41.65, Debit: true, Status: sources.BankOpen, Account: business},
-			{Key: "b4", Date: "2026-09-15", Payer: "Northlight", Description: "RE R-2026-017", Amount: 2380, Status: sources.BankOpen, Account: business},
-			{Key: "b5", Date: "2026-09-20", Payer: "Wellenklang", Amount: 10.99, Debit: true, Status: sources.BankOpen, Archived: true, Account: business},
-			{Key: "b6", Date: "2026-09-01", Payer: "DB Fernverkehr AG", Description: "Deutschlandticket", Amount: 58, Debit: true, Status: sources.BankOpen, Account: private},
-			{Key: "b7", Date: "2026-09-02", Payer: "Supermarkt", Amount: 64.2, Debit: true, Status: sources.BankOpen, Account: private},
-			{Key: "b8", Date: "2026-09-02", Payer: "Arbeitgeber", Amount: 900, Status: sources.BankOpen, Account: private},
+			{Key: "b0", Date: "2026-08-21", Payer: "Kabelwerk Studiobedarf", Amount: 89.7, Debit: true, Status: sources.BankDone, ExpenseKeys: []string{"e1"}, Account: business, Role: sources.RoleBusiness},
+			{Key: "b1", Date: "2026-09-03", Payer: "Elbnetz Mobilfunk", Amount: 39.95, Debit: true, Status: sources.BankOpen, Account: business, Role: sources.RoleBusiness},
+			{Key: "b2", Date: "2026-09-08", Payer: "Kabelwerk Studiobedarf", Description: "KW-56107", Amount: 899, Debit: true, Status: sources.BankOpen, Account: business, Role: sources.RoleBusiness},
+			{Key: "b3", Date: "2026-09-10", Payer: "NH Billing", Description: "Rechnung 09", Amount: 41.65, Debit: true, Status: sources.BankOpen, Account: business, Role: sources.RoleBusiness},
+			{Key: "b4", Date: "2026-09-15", Payer: "Northlight", Description: "RE R-2026-017", Amount: 2380, Status: sources.BankOpen, Account: business, Role: sources.RoleBusiness},
+			{Key: "b5", Date: "2026-09-20", Payer: "Wellenklang", Amount: 10.99, Debit: true, Status: sources.BankOpen, Archived: true, Account: business, Role: sources.RoleBusiness},
+			{Key: "b6", Date: "2026-09-01", Payer: "DB Fernverkehr AG", Description: "Deutschlandticket", Amount: 58, Debit: true, Status: sources.BankOpen, Account: private, Role: sources.RolePrivate},
+			{Key: "b7", Date: "2026-09-02", Payer: "Supermarkt", Amount: 64.2, Debit: true, Status: sources.BankOpen, Account: private, Role: sources.RolePrivate},
+			{Key: "b8", Date: "2026-09-02", Payer: "Arbeitgeber", Amount: 900, Status: sources.BankOpen, Account: private, Role: sources.RolePrivate},
 		},
 	}
-	sure := &sources.SureDataset{Transactions: []sources.SureTxn{
-		{ID: "s1", Date: "2026-09-08", Name: "Kabelwerk", Amount: -899, Account: business},
-		{ID: "s2", Date: "2026-09-11", Name: "NH BILLING", Merchant: "Nordhost Server", Category: "Hosting", Amount: -41.65, Account: business},
-		{ID: "s3", Date: "2026-09-25", Name: "Druckerei", Amount: -58, Account: business},
-		{ID: "s4", Date: "2026-09-26", Name: "Bäckerei", Amount: -6.4, Account: private},
-	}}
+	sure := &sources.SureDataset{Accounts: []sources.SureAccount{{Name: business, Role: sources.RoleBusiness}, {Name: private, Role: sources.RolePrivate}},
+		Transactions: []sources.SureTxn{
+			{ID: "s1", Date: "2026-09-08", Name: "Kabelwerk", Amount: -899, Account: business, Role: sources.RoleBusiness},
+			{ID: "s2", Date: "2026-09-11", Name: "NH BILLING", Merchant: "Nordhost Server", Category: "Hosting", Amount: -41.65, Account: business, Role: sources.RoleBusiness},
+			{ID: "s3", Date: "2026-09-25", Name: "Druckerei", Amount: -58, Account: business, Role: sources.RoleBusiness},
+			{ID: "s4", Date: "2026-09-26", Name: "Bäckerei", Amount: -6.4, Account: private, Role: sources.RolePrivate},
+		}}
 	return ninja, sure
 }
 
 func september() metrics.VATInputs {
 	ninja, sure := vatBook()
 	return metrics.VATInputs{Ninja: ninja, Sure: sure, Start: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
-		End: time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC), Business: []string{business}, Method: "soll",
+		End: time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC), Method: "soll",
 		Today: time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC)}
 }
 
@@ -151,5 +153,33 @@ func TestVATSpans(t *testing.T) {
 	}
 	if _, ok := metrics.VATSpanOf("2026-13", "monthly"); ok {
 		t.Error("month 13 must not parse")
+	}
+}
+
+// With roles named, the receipts rule needs no account names: the
+// printer's bill on the business account counts, the bakery does not.
+func TestMissingReceiptsByRole(t *testing.T) {
+	ninja, sure := vatBook()
+	in := metrics.ReceiptInputs{Sure: sure, Ninja: ninja, MinAmount: 5, Window: 10, Since: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)}
+	var names []string
+	for _, tx := range metrics.MissingReceipts(in) {
+		names = append(names, tx.Name)
+	}
+	if !slices.Contains(names, "Druckerei") || slices.Contains(names, "Bäckerei") {
+		t.Fatalf("missing: %v", names)
+	}
+}
+
+func TestSharedBookings(t *testing.T) {
+	ninja, sure := vatBook()
+	for i := range ninja.BankTxns {
+		ninja.BankTxns[i].AccountKey = ninja.BankTxns[i].Account
+	}
+	for i := range sure.Transactions {
+		sure.Transactions[i].AccountID = sure.Transactions[i].Account
+	}
+	got := metrics.SharedBookings(ninja, sure)
+	if got[business][business] != 2 || got[private][business] != 0 {
+		t.Fatalf("shared: %v", got)
 	}
 }
