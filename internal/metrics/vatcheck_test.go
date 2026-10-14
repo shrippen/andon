@@ -190,3 +190,37 @@ func TestSharedBookings(t *testing.T) {
 		t.Fatalf("shared: %v", got)
 	}
 }
+
+// Money moved to an own private account is a transfer, to archive; one
+// with a fitting expense stays a booking.
+func TestBankCasesTransfer(t *testing.T) {
+	n := &sources.NinjaDataset{
+		BankTxns: []sources.NinjaBankTxn{
+			{Key: "out", Date: "2026-09-10", Payer: "Arian", Amount: 500, Debit: true, Role: sources.RoleBusiness},
+			{Key: "in", Date: "2026-09-11", Payer: "Arian", Amount: 500, Role: sources.RolePrivate, Account: "Privat"},
+			{Key: "rent", Date: "2026-09-12", Payer: "Vermieter", Amount: 300, Debit: true, Role: sources.RoleBusiness},
+			{Key: "host", Date: "2026-09-13", Payer: "Nordhost", Amount: 20, Debit: true, Role: sources.RoleBusiness},
+		},
+		Expenses: []sources.NinjaExpense{{Key: "e1", Date: "2026-09-13", Amount: 20}},
+	}
+	s := &sources.SureDataset{Transactions: []sources.SureTxn{
+		{ID: "s1", Date: "2026-09-13", Amount: 300, Role: sources.RolePrivate, Account: "Tagesgeld"},
+		{ID: "s2", Date: "2026-09-13", Amount: 20, Role: sources.RolePrivate, Account: "Tagesgeld"},
+	}}
+	start, _ := metrics.ParseDay("2026-09-01")
+	end, _ := metrics.ParseDay("2026-09-30")
+	cases := metrics.BankCases(metrics.VATInputs{Ninja: n, Sure: s, Start: start, End: end})
+	got := map[string]*metrics.BankCase{}
+	for i := range cases {
+		got[cases[i].Txn.Key] = &cases[i]
+	}
+	if c := got["out"]; c.Action != metrics.ActionSkip || c.Transfer == nil || c.Transfer.Account != "Privat" {
+		t.Errorf("feed transfer: %+v", c)
+	}
+	if c := got["rent"]; c.Action != metrics.ActionSkip || c.Transfer == nil || c.Transfer.Account != "Tagesgeld" {
+		t.Errorf("Sure transfer: %+v", c)
+	}
+	if c := got["host"]; c.Action != metrics.ActionLink || c.Transfer != nil {
+		t.Errorf("expense stays a booking: %+v", c)
+	}
+}

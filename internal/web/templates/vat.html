@@ -183,6 +183,7 @@
         {{range $i, $s := .}}<option value="{{$s.Doc.ID}}"{{if and (eq $i 0) (eq $s.Level "high")}} selected{{end}}>{{t "vatcheck.scan_option" "title" $s.Doc.Title "day" (day $s.Doc.Day) "score" $s.Score}}</option>{{end}}</select>{{end}}
       <small class="muted">{{if eq $c.Draft.From "history"}}{{t "vatcheck.from_history"}}{{else if eq $c.Draft.From "sure"}}{{t "vatcheck.from_sure"}}{{else if eq $c.Draft.From "model"}}{{t "vatcheck.from_model"}}{{else}}{{t "vatcheck.from_nothing"}}{{end}}</small>
     </div>{{end}}
+    {{with $c.Transfer}}<p class="small">{{t "vatcheck.transfer" "account" .Account "day" (day .Date)}}</p>{{end}}
     {{with $c.Guess}}<p class="small{{if .Private}} late{{end}}">{{if .Private}}{{t "vatcheck.guess_private"}} {{end}}{{.Why}}</p>{{end}}
   </td>
 </tr>{{end}}

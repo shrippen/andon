@@ -73,7 +73,15 @@ type BankCase struct {
 	Payment  *sources.NinjaPayment  // the payment booked for it already
 	Draft    ExpenseDraft
 	Action   BankAction
-	Private  bool // paid from a private account
+	Private  bool      // paid from a private account
+	Transfer *Transfer // money moved to or from an own private account
+}
+
+// Transfer is the other side of a move between own accounts: the same
+// amount the other way on a private account, in Invoice Ninja's feed or
+// in Sure. Nothing to book: Andon proposes to archive it.
+type Transfer struct {
+	Account, Date string
 }
 
 // Waiting says whether the case belongs to the open work: business, or
@@ -104,6 +112,7 @@ func BankCases(in VATInputs) []BankCase {
 	}
 	taken := LinkedExpenses(in.Ninja)
 	usedSure, usedInvoice, usedPayment := map[string]bool{}, map[int64]bool{}, linkedPayments(in.Ninja)
+	usedTransfer := map[string]bool{}
 	var out []BankCase
 	for _, t := range periodTxns(in) {
 		private := t.Role == sources.RolePrivate
@@ -132,9 +141,45 @@ func BankCases(in VATInputs) []BankCase {
 				usedPayment[c.Payment.Key] = true
 			}
 		}
+
+		// Nothing to book, but the same amount moved the other way on
+		// an own private account: a transfer.
+		if !private && (c.Action == ActionNone || (c.Action == ActionCreate && c.Draft.From != FromHistory)) {
+			if c.Transfer = transferOf(in, t, usedTransfer); c.Transfer != nil {
+				c.Action = ActionSkip
+			}
+		}
 		out = append(out, c)
 	}
 	return out
+}
+
+// transferOf finds t's other side on a private account: the opposite
+// booking of the same amount a few days apart, in the feed or in Sure.
+func transferOf(in VATInputs, t sources.NinjaBankTxn, used map[string]bool) *Transfer {
+	day, ok := ParseDay(t.Date)
+	if !ok {
+		return nil
+	}
+	for _, u := range in.Ninja.BankTxns {
+		if u.Role != sources.RolePrivate || u.Debit == t.Debit || used["n"+u.Key] || abs(u.Amount-t.Amount) > amountTol || daysApart(u.Date, day) > bankWindow {
+			continue
+		}
+		used["n"+u.Key] = true
+		return &Transfer{Account: u.Account, Date: u.Date}
+	}
+	if in.Sure == nil {
+		return nil
+	}
+	for _, s := range in.Sure.Transactions {
+		// Sure's outflows are negative: a debit here is an inflow there.
+		if s.Role != sources.RolePrivate || (s.Amount > 0) != t.Debit || used["s"+s.ID] || abs(abs(s.Amount)-t.Amount) > amountTol || daysApart(s.Date, day) > bankWindow {
+			continue
+		}
+		used["s"+s.ID] = true
+		return &Transfer{Account: s.Account, Date: s.Date}
+	}
+	return nil
 }
 
 // periodTxns are the period's transactions, oldest first.

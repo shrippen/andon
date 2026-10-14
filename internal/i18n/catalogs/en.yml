@@ -7038,6 +7038,7 @@ llm:
     requests: 'Requests'
     cost: 'Cost'
 vatcheck:
+  transfer: 'Transfer: the same amount on {day} on “{account}” (private). Nothing to book, archive it.'
   elster_title: 'ELSTER figures'
   elster_kz: 'Kz'
   elster_meaning: 'Meaning'

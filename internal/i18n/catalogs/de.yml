@@ -7039,6 +7039,7 @@ llm:
     requests: 'Anfragen'
     cost: 'Kosten'
 vatcheck:
+  transfer: 'Umbuchung: derselbe Betrag am {day} auf „{account}“ (privat). Nichts zu buchen, archivieren.'
   elster_title: 'ELSTER-Kennzahlen'
   elster_kz: 'Kz'
   elster_meaning: 'Bedeutung'
