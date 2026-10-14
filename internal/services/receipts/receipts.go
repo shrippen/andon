@@ -29,7 +29,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
 	"andon/internal/services/svcdata"
-	"andon/internal/services/verbund"
+	"andon/internal/services/workbench"
 	"andon/internal/sources"
 )
 
@@ -109,51 +109,29 @@ const (
 
 // ── connections ──
 
-// Choice is one connection the user may use here. Label is what the
-// page shows: the space alone when all of a kind share one name, else
-// the name, with the space where names repeat.
-type Choice struct {
-	ID                 int64
-	Name, Space, Label string
-	NeedsToken         bool // personal credentials, the user has not stored his
-}
+// need is the receipts' services: Invoice Ninja and Paperless of one
+// Verbund (workbench.Scopes); its mailbox, if any, feeds the hunt.
+var need = workbench.Need{Required: []enums.ServiceType{enums.ServiceInvoiceNinja, enums.ServicePaperless},
+	Optional: []enums.ServiceType{enums.ServiceMail}}
 
-// label names each choice within its list, without saying twice what
-// the list's heading says ("Paperless" under "Paperless-ngx").
-func label(list []Choice) {
-	same, count := true, map[string]int{}
-	for _, c := range list {
-		count[c.Name]++
-		same = same && c.Name == list[0].Name
-	}
-	for i := range list {
-		c := &list[i]
-		switch {
-		case same && c.Space != "":
-			c.Label = c.Space
-		case count[c.Name] > 1 && c.Space != "":
-			c.Label = c.Name + " · " + c.Space
-		default:
-			c.Label = c.Name
-		}
-	}
-}
-
-// Setup is what the user can pick from and what is picked.
+// Setup is the Verbünde the user can work in and the one picked.
 type Setup struct {
-	Ninjas, Docs     []Choice
-	Ninja, Paperless int64 // picked; 0 = nothing yet
-	Pick             bool  // several to choose from and nothing picked yet
+	Scopes           []workbench.Scope
+	Scope            workbench.Scope
+	Ninja, Paperless int64 // the picked Verbund's; 0 = none
+	Pick             bool  // several, none picked yet: the page asks
+	Ninjas, Docs     int   // usable connections of each, to say what is missing
 }
 
-// Ready tells whether both sides are picked.
-func (s Setup) Ready() bool { return s.Ninja != 0 && s.Paperless != 0 }
+// Ready tells whether a Verbund with both is picked.
+func (s Setup) Ready() bool { return s.Ninja != 0 && s.Paperless != 0 && !s.Scope.NeedsToken }
 
-// Several tells whether there is anything to switch between.
-func (s Setup) Several() bool { return len(s.Ninjas) > 1 || len(s.Docs) > 1 }
+// Unpaired tells whether both services are there but no Verbund pairs
+// them: several of one kind, none linked.
+func (s Setup) Unpaired() bool { return s.Ninjas > 0 && s.Docs > 0 && len(s.Scopes) == 0 }
 
-// SetupOf lists the usable connections and the user's pick. A single
-// usable connection on both sides is picked by itself.
+// SetupOf lists the Verbünde with Invoice Ninja and Paperless and the
+// user's pick; a single one is picked by itself.
 func SetupOf(d *sql.DB, who *access.Principal) (Setup, error) {
 	views, err := connections.Listing(d, who, enums.RightUse)
 	if err != nil {
@@ -161,96 +139,46 @@ func SetupOf(d *sql.DB, who *access.Principal) (Setup, error) {
 	}
 	var out Setup
 	for _, v := range views {
-		c := Choice{ID: v.ID, Name: v.Name, Space: who.Spaces[v.SpaceID].Name, NeedsToken: v.Mode == enums.CredentialPersonal && !v.HasMine}
 		switch v.Service {
 		case enums.ServiceInvoiceNinja:
-			out.Ninjas = append(out.Ninjas, c)
+			out.Ninjas++
 		case enums.ServicePaperless:
-			out.Docs = append(out.Docs, c)
+			out.Docs++
 		}
 	}
-	label(out.Ninjas)
-	label(out.Docs)
+	if out.Scopes, err = workbench.Scopes(d, who, need); err != nil {
+		return Setup{}, err
+	}
 	s, err := loadState(d, who)
 	if err != nil {
 		return Setup{}, err
 	}
-	out.Ninja, out.Paperless = pickOf(out.Ninjas, s.Ninja), pickOf(out.Docs, s.Paperless)
-	savedPick := out.Ninja != 0 && out.Paperless != 0
-	if !savedPick {
-		out.Ninja, out.Paperless = only(out.Ninjas), only(out.Docs)
-		if err := fromVerbund(d, who, &out); err != nil {
-			return Setup{}, err
-		}
-		out.Pick = len(out.Ninjas) > 0 && len(out.Docs) > 0 && (out.Ninja == 0 || out.Paperless == 0)
+	out.Scope, out.Pick = workbench.Pick(out.Scopes, s.Scope)
+	if c := out.Scope.Conn(enums.ServiceInvoiceNinja); c != nil {
+		out.Ninja = c.ID
+	}
+	if c := out.Scope.Conn(enums.ServicePaperless); c != nil {
+		out.Paperless = c.ID
 	}
 	return out, nil
 }
 
-// fromVerbund completes a half pick with the other side's partner: the
-// one Ninja's Paperless, or the one Paperless's Ninja.
-func fromVerbund(d *sql.DB, who *access.Principal, s *Setup) error {
-	complete := func(have int64, service enums.ServiceType, list []Choice) (int64, error) {
-		conn, err := connections.ByID(d, have)
-		if err != nil || conn == nil {
-			return 0, err
-		}
-		partner, _, err := verbund.Partner(d, who, verbund.Asker{SpaceID: conn.SpaceID, ConnID: conn.ID}, service)
-		if err != nil || partner == nil {
-			return 0, err
-		}
-		return pickOf(list, partner.ID), nil
-	}
-	var err error
-	switch {
-	case s.Ninja != 0 && s.Paperless == 0:
-		s.Paperless, err = complete(s.Ninja, enums.ServicePaperless, s.Docs)
-	case s.Paperless != 0 && s.Ninja == 0:
-		s.Ninja, err = complete(s.Paperless, enums.ServiceInvoiceNinja, s.Ninjas)
-	}
-	return err
-}
-
-// pickOf keeps a saved pick that is still usable.
-func pickOf(list []Choice, id int64) int64 {
-	for _, c := range list {
-		if c.ID == id && !c.NeedsToken {
-			return id
-		}
-	}
-	return 0
-}
-
-// only is the single usable connection of a list, 0 if none or several.
-func only(list []Choice) int64 {
-	var found int64
-	for _, c := range list {
-		if c.NeedsToken {
-			continue
-		}
-		if found != 0 {
-			return 0
-		}
-		found = c.ID
-	}
-	return found
-}
-
-// Choose remembers which Invoice Ninja and Paperless the user works with.
-func Choose(d *sql.DB, who *access.Principal, ninja, paperless int64) error {
+// Choose remembers the Verbund the user works in (workbench.Scope.Key).
+func Choose(d *sql.DB, who *access.Principal, scope string) error {
 	setup, err := SetupOf(d, who)
 	if err != nil {
 		return err
 	}
-	if pickOf(setup.Ninjas, ninja) == 0 || pickOf(setup.Docs, paperless) == 0 {
+	if !slices.ContainsFunc(setup.Scopes, func(s workbench.Scope) bool { return s.Key == scope }) {
 		return ErrNoPair
 	}
-	return saveState(d, who, func(s *state) { s.Ninja, s.Paperless = ninja, paperless })
+	return saveState(d, who, func(s *state) { s.Scope = scope })
 }
 
 // pair is the picked connections with their mapping.
 type pair struct {
 	ninja, docs *model.Connection
+	mail        *model.Connection // the Verbund's mailbox, nil if none
 	mapping     Mapping
 	state       state
 }
@@ -284,6 +212,7 @@ func openPair(d *sql.DB, who *access.Principal) (pair, error) {
 	} else if known && !set.Can(caps.Receipts, caps.Read, "") {
 		return pair{}, ErrPaperlessFields
 	}
+	p.mail = setup.Scope.Conn(enums.ServiceMail)
 	p.mapping = mappingOf(p.ninja, p.docs)
 	p.state, err = loadState(d, who)
 	return p, err
@@ -399,6 +328,7 @@ func Suggest(ctx context.Context, d *sql.DB, who *access.Principal, year int) (S
 	}
 	out.Expenses = len(expenses)
 	out.Matches = p.matcher().Matches(expenses, docs)
+	p.addMails(ctx, d, who, out.Matches)
 
 	// The link to "receipts first" counts what that tab lists.
 	set, err := p.docSet(ctx, d, who, year)

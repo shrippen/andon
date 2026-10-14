@@ -116,7 +116,8 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 5. „An Paperless“ bei einer Rechnungsmail.
 
 **J-C2 Belege**
-1. `/receipts`: „Angehakte verknüpfen“ (Demo lehnt ab: nur Fehler, kein Erfolgshinweis daneben).
+1. `/receipts`, Reiter „Zu verknüpfen“ (Belegjagd): je Ausgabe einen Beleg, einen Sammelbeleg oder eine Rechnungsmail wählen (sichere Treffer vorgewählt, j/k und Enter wählen) → „Auswahl prüfen“ zeigt jeden Schritt → „Schreiben“ (Demo lehnt ab: nur Fehler, kein Erfolgshinweis daneben).
+   - Mehrere Verbünde mit Invoice Ninja und Paperless: Auswahl „Verbund“ oben, die Wahl bleibt; mehrere Paperless ohne Verbund: Hinweis „Welche gehören zusammen?“ mit Link zu den Verbünden. Dasselbe auf `/vat`.
 2. Reiter „Belege zuerst“: Ausgaben suchen, „Als Ausgabe anlegen“ → „Anlegen und verknüpfen“; bleibt der Reiter?
 3. Reiter „Verknüpft“. Zähler auf allen Reitern und Jahren stimmen mit den Listen überein, auch „… Belege ohne Ausgabe“.
 4. Eine Ausgabe aus dem Jahrespaket (`/billing`, `ausgaben.csv`) unter „Verknüpft“ oder bei „Ausgaben suchen“ finden.
