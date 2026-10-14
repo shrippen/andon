@@ -7095,3 +7095,7 @@ vatcheck:
   problem_not_booked: 'Invoice Ninja did not book the transaction.'
 workbench:
   err_nothing: 'Nothing selected.'
+  scope: 'Bundle'
+  scope_open: 'Several bundles fit. Andon shows the first; pick the one you work with.'
+  scope_switch: 'Switch'
+  needs_token: 'own token missing'

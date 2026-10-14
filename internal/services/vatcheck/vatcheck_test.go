@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -161,7 +162,7 @@ func TestOpenProposesEachCase(t *testing.T) {
 	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "1"))
 	testkit.Conn(t, d, who, space, enums.ServiceSure, sureFake(t))
 
-	p, err := vatcheck.Open(context.Background(), d, who, 0, thisMonth(), time.Now().UTC())
+	p, err := vatcheck.Open(context.Background(), d, who, "", thisMonth(), time.Now().UTC())
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
@@ -198,7 +199,7 @@ func TestApplyWritesConfirmedSteps(t *testing.T) {
 		{Case: "b2", Action: workbench.ActionSkip},
 	}
 
-	plan, err := vatcheck.Review(ctx, d, who, conn, steps)
+	plan, err := vatcheck.Review(ctx, d, who, scopeOf(conn), steps)
 	if err != nil {
 		t.Fatalf("review: %v", err)
 	}
@@ -209,7 +210,7 @@ func TestApplyWritesConfirmedSteps(t *testing.T) {
 		t.Fatalf("review wrote: %v", w.list())
 	}
 
-	res, err := vatcheck.Apply(ctx, d, who, conn, steps, "")
+	res, err := vatcheck.Apply(ctx, d, who, scopeOf(conn), steps, "")
 	if err != nil {
 		t.Fatalf("apply: %v", err)
 	}
@@ -249,7 +250,7 @@ func TestAccounts(t *testing.T) {
 	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "1"))
 	ctx := context.Background()
 
-	p, err := vatcheck.Open(ctx, d, who, conn, thisMonth(), time.Now().UTC())
+	p, err := vatcheck.Open(ctx, d, who, scopeOf(conn), thisMonth(), time.Now().UTC())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,10 +259,10 @@ func TestAccounts(t *testing.T) {
 	}
 
 	roles := []vatcheck.Role{{ConnID: conn, Key: "a1", Role: sources.RoleBusiness}, {ConnID: conn, Key: "a2", Role: sources.RolePrivate}}
-	if err := vatcheck.SaveRoles(ctx, d, who, conn, roles, ""); err != nil {
+	if err := vatcheck.SaveRoles(ctx, d, who, scopeOf(conn), roles, ""); err != nil {
 		t.Fatal(err)
 	}
-	p, err = vatcheck.Open(ctx, d, who, conn, thisMonth(), time.Now().UTC())
+	p, err = vatcheck.Open(ctx, d, who, scopeOf(conn), thisMonth(), time.Now().UTC())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -280,7 +281,7 @@ func TestApplySkipsBookedMeanwhile(t *testing.T) {
 	var w writes
 	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "3"))
 
-	res, err := vatcheck.Apply(context.Background(), d, who, conn, []workbench.Step{{Case: "b1", Action: string(metrics.ActionLink), Fields: map[string]string{vatcheck.FieldExpense: "e2"}}}, "")
+	res, err := vatcheck.Apply(context.Background(), d, who, scopeOf(conn), []workbench.Step{{Case: "b1", Action: string(metrics.ActionLink), Fields: map[string]string{vatcheck.FieldExpense: "e2"}}}, "")
 	if err != nil {
 		t.Fatalf("apply: %v", err)
 	}
@@ -300,7 +301,7 @@ func TestDemo(t *testing.T) {
 
 	seen := map[metrics.BankAction]bool{}
 	for _, s := range metrics.VATSpans(today, "monthly", 2) {
-		p, err := vatcheck.Open(ctx, d, who, conn, s.Key, today)
+		p, err := vatcheck.Open(ctx, d, who, scopeOf(conn), s.Key, today)
 		if err != nil {
 			t.Fatalf("open %s: %v", s.Key, err)
 		}
@@ -314,7 +315,7 @@ func TestDemo(t *testing.T) {
 		}
 	}
 
-	_, err := vatcheck.Apply(ctx, d, who, conn, []workbench.Step{{Case: "demo-b-studio", Action: string(metrics.ActionCreate), Fields: map[string]string{vatcheck.FieldVendor: "Kabelwerk"}}}, "")
+	_, err := vatcheck.Apply(ctx, d, who, scopeOf(conn), []workbench.Step{{Case: "demo-b-studio", Action: string(metrics.ActionCreate), Fields: map[string]string{vatcheck.FieldVendor: "Kabelwerk"}}}, "")
 	if !errors.Is(err, vatcheck.ErrDemo) {
 		t.Fatalf("demo write: %v", err)
 	}
@@ -335,7 +336,7 @@ func TestDefaultSpan(t *testing.T) {
 		{time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC), "2026-09"},
 		{time.Date(2026, 10, 13, 12, 0, 0, 0, time.UTC), "2026-10"},
 	} {
-		p, err := vatcheck.Open(ctx, d, who, 0, "", c.today)
+		p, err := vatcheck.Open(ctx, d, who, "", "", c.today)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -344,3 +345,6 @@ func TestDefaultSpan(t *testing.T) {
 		}
 	}
 }
+
+// scopeOf is the scope of a lone Invoice Ninja (workbench.Scope.Key).
+func scopeOf(conn int64) string { return "c" + strconv.FormatInt(conn, 10) }

@@ -75,13 +75,13 @@ type Planned = workbench.Planned[Item]
 // Plan is the review: what Apply would write.
 type Plan struct {
 	workbench.Plan[Item]
-	Conn     int64
+	Scope    string
 	Currency string
 }
 
 // Review checks the steps against the current data and spells them out.
-func Review(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, steps []workbench.Step) (Plan, error) {
-	b, _, err := load(ctx, d, who, connID, svcdata.Cached)
+func Review(ctx context.Context, d *sql.DB, who *access.Principal, scope string, steps []workbench.Step) (Plan, error) {
+	b, _, err := load(ctx, d, who, scope, svcdata.Cached)
 	if err != nil {
 		return Plan{}, err
 	}
@@ -89,7 +89,7 @@ func Review(ctx context.Context, d *sql.DB, who *access.Principal, connID int64,
 	for i := range plan.Steps {
 		scanTitle(ctx, d, who, b.conn.ID, &plan.Steps[i])
 	}
-	return Plan{Plan: plan, Conn: b.conn.ID, Currency: b.ninja.Currency}, err
+	return Plan{Plan: plan, Scope: b.scope.Key, Currency: b.ninja.Currency}, err
 }
 
 // scanTitle names the scan a new expense gets; one no longer free is
@@ -207,8 +207,8 @@ func (b book) taxName(rate float64) string {
 
 // Apply writes the confirmed steps against fresh data; each is checked
 // again, so a transaction booked meanwhile is not booked twice.
-func Apply(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, steps []workbench.Step, ip string) (workbench.Result, error) {
-	b, _, err := load(ctx, d, who, connID, svcdata.Force)
+func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, steps []workbench.Step, ip string) (workbench.Result, error) {
+	b, _, err := load(ctx, d, who, scope, svcdata.Force)
 	if err != nil {
 		return workbench.Result{}, err
 	}
@@ -230,7 +230,7 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, 
 	w := &writer{to: outbound.Target{URL: b.conn.URL, Token: token, VerifyTLS: b.conn.VerifyTLS}, book: b, d: d, who: who, ip: ip}
 	out := workbench.Apply[Item](ctx, d, who, w, plan, auditPrefix, ip)
 	svcdata.Forget(b.conn.ID)
-	err = saveState(d, who, func(s *state) { s.Conn = b.conn.ID })
+	err = saveState(d, who, func(s *state) { s.Scope = b.scope.Key })
 	return out, err
 }
 
@@ -315,8 +315,8 @@ func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
 }
 
 // Restore brings a transaction archived as private back into the feed.
-func Restore(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, txn string, ip string) error {
-	b, _, err := load(ctx, d, who, connID, svcdata.Cached)
+func Restore(ctx context.Context, d *sql.DB, who *access.Principal, scope, txn string, ip string) error {
+	b, _, err := load(ctx, d, who, scope, svcdata.Cached)
 	if err != nil {
 		return err
 	}
@@ -351,8 +351,8 @@ type Role struct {
 
 // SaveRoles stores the roles that changed; the Verbund carries each to
 // the linked accounts (verbund.SetRole).
-func SaveRoles(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, roles []Role, ip string) error {
-	b, _, err := load(ctx, d, who, connID, svcdata.Cached)
+func SaveRoles(ctx context.Context, d *sql.DB, who *access.Principal, scope string, roles []Role, ip string) error {
+	b, _, err := load(ctx, d, who, scope, svcdata.Cached)
 	if err != nil {
 		return err
 	}
@@ -371,8 +371,8 @@ func SaveRoles(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 
 // Guess asks the language model about the period's open debits and
 // keeps its readings; it returns how many it answered.
-func Guess(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, spanKey string, today time.Time) (int, error) {
-	page, err := Open(ctx, d, who, connID, spanKey, today)
+func Guess(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey string, today time.Time) (int, error) {
+	page, err := Open(ctx, d, who, scope, spanKey, today)
 	if err != nil {
 		return 0, err
 	}
@@ -406,7 +406,7 @@ func Guess(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, 
 		return 0, err
 	}
 	err = saveState(d, who, func(s *state) {
-		s.Conn = page.Conn
+		s.Scope = page.Scope
 		key := connKey(page.Conn)
 		if s.Guesses[key] == nil {
 			s.Guesses[key] = map[string]assist.Guess{}

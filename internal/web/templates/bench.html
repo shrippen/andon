@@ -3,3 +3,15 @@
 {{/* One reviewed step sent back as the form sent it, so Apply writes
      what the review showed: pick, act_<case>, <field>_<case>. */}}
 {{define "bench_step"}}<input type="hidden" name="pick" value="{{.Case}}"><input type="hidden" name="act_{{.Case}}" value="{{.Action}}">{{range $k, $v := .Fields}}<input type="hidden" name="{{$k}}_{{$.Case}}" value="{{$v}}">{{end}}{{end}}
+
+{{/* The Verbund a bench works in, when several fit (workbench.Scopes).
+     Open: none picked yet, so the page says it took the first. Keep:
+     the page's other parameters. */}}
+{{define "bench_scopes"}}{{if gt (len .Scopes) 1}}
+<form method="get" action="{{.Action}}" class="inline-form bench-scopes{{if .Open}} card{{end}}">
+  {{range $k, $v := .Keep}}<input type="hidden" name="{{$k}}" value="{{$v}}">{{end}}
+  {{if .Open}}<p class="small">{{t "workbench.scope_open"}}</p>{{end}}
+  <label class="small" for="bench-scope">{{t "workbench.scope"}}</label>
+  <select class="select" id="bench-scope" name="scope">{{range .Scopes}}<option value="{{.Key}}"{{if eq .Key $.Picked}} selected{{end}}>{{.Name}}{{if .NeedsToken}} · {{t "workbench.needs_token"}}{{end}}</option>{{end}}</select>
+  <button type="submit" class="btn btn-outline btn-sm">{{t "workbench.scope_switch"}}</button>
+</form>{{end}}{{end}}

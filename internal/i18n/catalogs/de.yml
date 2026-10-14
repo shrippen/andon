@@ -7096,3 +7096,7 @@ vatcheck:
   problem_not_booked: 'Invoice Ninja hat den Umsatz nicht gebucht.'
 workbench:
   err_nothing: 'Nichts ausgewählt.'
+  scope: 'Verbund'
+  scope_open: 'Mehrere Verbünde passen. Andon zeigt den ersten; wähle, mit welchem du arbeitest.'
+  scope_switch: 'Wechseln'
+  needs_token: 'eigenes Token fehlt'

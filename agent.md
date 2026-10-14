@@ -85,7 +85,7 @@ internal/services/analysis/     Job: Datensätze laden, Regeln anwenden, hints.S
 internal/services/scheduler/    Background-Jobs (Timer je Job, ±5 % gestreut, panic-/error-isoliert)
 internal/caps/                  Fähigkeiten je Integration: Domäne × Operation (+ Arten, Voraussetzungen), kein I/O
 internal/services/verbund/      Verbünde: welche Verbindungen zusammenarbeiten (Partner) und ihre Zuordnungen
-internal/services/workbench/    Werkbänke: Schritte prüfen, nach OK gegen frische Daten schreiben, Audit; Formular `pick`/`act_<fall>`/`<feld>_<fall>` (web/bench.go)
+internal/services/workbench/    Werkbänke: Verbund wählen (Scopes), Schritte prüfen, nach OK gegen frische Daten schreiben, Audit; Formular `scope`, `pick`/`act_<fall>`/`<feld>_<fall>` (web/bench.go)
 ```
 - Neue Regel: Funktion in `internal/rules/`, Texte `hint.<message>.title|why` in beiden Katalogen, Test in `internal/rules/*_test.go`.
 - Neues Widget: `Tile[XConfig]{…}.add()` in `internal/widgets/` (Grenzen/Defaults nur im Field, gelesen über `Raw`), Template-Define `widgets/<key>` in `internal/web/templates/widgets_*.html`, `wtype.<key>` in den Katalogen.
@@ -93,6 +93,7 @@ internal/services/workbench/    Werkbänke: Schritte prüfen, nach OK gegen fris
 - Neue Querregel über Dienste mit Fähigkeiten: `rules.Uses(id, …)` in `internal/rules/uses.go` nennt, was sie liest; daraus folgt, bei welchem Ausfall ihre Hinweise stehen bleiben.
 - Dienste ohne deklarierte Fähigkeiten liest Andon bereichsweit (alle Docker-Hosts, alle Borg-Server). Liest eine Querprüfung oder Kachel einen solchen Dienst, der mehrfach vorkommen kann, bekommt sein Datensatz `Merge` (`sources.Merger`, `internal/sources/merge.go`), sonst läuft die Prüfung reihum je Verbindung.
 - Braucht ein Service, eine Kachel oder eine Regel die Verbindung eines anderen Dienstes, fragt er `verbund.Partner` (bzw. `Pairs`/`Groups`), nie „die erste Verbindung im Bereich“. Daten, die nur zwischen Diensten bestehen (z. B. Kunde Kimai ↔ Invoice Ninja), sind Zuordnungen im Verbund (`link_entries`).
+- Eine Werkbank arbeitet immer in einem Verbund: ihre Verbindungen kommen aus `workbench.Scopes` (Need: Pflicht- und Zusatzdienste), nie aus einer eigenen Verbindungswahl. Passen mehrere Verbünde, zeigt die Seite `bench_scopes` und merkt sich die Wahl.
 - Hinweis-Parameter typisiert übergeben (`money()`, `day()`, `num()` aus `internal/i18n`).
 
 ## Gelernte Fehler

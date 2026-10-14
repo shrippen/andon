@@ -15,10 +15,12 @@ import (
 	"andon/internal/services/workbench"
 )
 
-// benchPick names the ticked rows; benchAct prefixes a row's action.
+// benchPick names the ticked rows; benchAct prefixes a row's action;
+// benchScope carries the Verbund a bench works in (workbench.Scope).
 const (
-	benchPick = "pick"
-	benchAct  = "act_"
+	benchPick  = "pick"
+	benchAct   = "act_"
+	benchScope = "scope"
 )
 
 // benchSteps reads the ticked rows with the given fields; a row without

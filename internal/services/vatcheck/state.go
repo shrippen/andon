@@ -12,12 +12,12 @@ import (
 
 // prefKey is the user pref holding the check's state:
 //
-//	{"conn": 3,                                 the Invoice Ninja last used
+//	{"scope": "v4",                             the Verbund last used (workbench.Scope)
 //	 "guesses": {"3": {"Kx9": {…}}}}            the model's readings
 const prefKey = "vat_check"
 
 type state struct {
-	Conn    int64                              `json:"conn,omitempty"`
+	Scope   string                             `json:"scope,omitempty"`
 	Guesses map[string]map[string]assist.Guess `json:"guesses,omitempty"`
 }
 

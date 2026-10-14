@@ -131,3 +131,29 @@ func TestVATScanOffer(t *testing.T) {
 	}
 	t.Fatal("no scan offered for the debit of a waiting scan")
 }
+
+// Two Invoice Ninjas: the page asks which to work in, and a pick sticks
+// to the page's links.
+func TestVATScopes(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	var ids []string
+	for _, name := range []string{"Studio", "Verein"} {
+		resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+			"service": {"invoiceninja"}, "name": {name}, "url": {"demo://invoiceninja"}, "mode": {"shared"}, "tls": {"verify"}})
+		ids = append(ids, regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1])
+	}
+
+	page := string(mustGet(t, srv, client, "/vat"))
+	for _, want := range []string{"Mehrere Verbünde passen", `name="scope"`, `<option value="c` + ids[1] + `">Verein</option>`} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("page lacks %q:\n%s", want, page)
+		}
+	}
+	page = string(mustGet(t, srv, client, "/vat?scope=c"+ids[1]))
+	if strings.Contains(page, "Mehrere Verbünde passen") || !strings.Contains(page, `href="/vat?scope=c`+ids[1]+`&amp;span=`) {
+		t.Fatalf("picked scope:\n%s", page)
+	}
+}
