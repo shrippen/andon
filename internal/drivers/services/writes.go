@@ -8,10 +8,14 @@ package services
 //	             POST /api/v1/bank_transactions/match|bulk, PUT /api/v1/expenses/{id}
 //	Paperless    POST /api/documents/post_document/ (multipart),
 //	             POST /api/documents/bulk_edit/, PATCH /api/documents/{id}/
+//	InvoiceNinja POST /api/v1/recurring_expenses(/bulk), PUT …/{id}
+//	Wallos       POST /api/subscriptions/set_subscriptions.php (form)
+//	Sure         PATCH /api/v1/transactions/{id}
 
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -81,4 +85,38 @@ func (a PaperlessApi) Upload(ctx context.Context, filename, title string, conten
 	}
 	task, _ := io.ReadAll(io.LimitReader(resp.Body, httpclient.MaxBody))
 	return string(bytes.Trim(task, "\" \n")), nil
+}
+
+// Post runs one write script of Wallos with form fields, e.g.
+// ("api/subscriptions/set_subscriptions.php", {"action": {"edit"}, …}).
+// Wallos answers 200 with success false when it refuses.
+func (a WallosApi) Post(ctx context.Context, path string, form url.Values) (any, error) {
+	form.Set("api_key", a.Key)
+	headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}
+	resp, err := httpclient.Request(ctx, http.MethodPost, joinURL(a.URL, path),
+		httpclient.Options{Headers: headers, Body: []byte(form.Encode()), SkipVerify: !a.Verify})
+	if err != nil {
+		return nil, ApiError{err.Error()}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= http.StatusBadRequest {
+		return nil, ApiError{resp.Status}
+	}
+
+	var out map[string]any
+	if err := json.NewDecoder(io.LimitReader(resp.Body, httpclient.MaxBody)).Decode(&out); err != nil {
+		return nil, ApiError{"invalid JSON"}
+	}
+	if ok, _ := out["success"].(bool); !ok {
+		msg, _ := out["message"].(string)
+		return nil, ApiError{"wallos: " + msg}
+	}
+	return out, nil
+}
+
+// Send runs one write against /api/v1/<path> of Sure, e.g.
+// (PATCH, "transactions/7f3…", {"transaction": {"category_id": …}}).
+// The API key needs the read_write scope.
+func (a SureApi) Send(ctx context.Context, method, path string, body any) (any, error) {
+	return sendJSON(ctx, method, joinURL(a.URL, "api/v1/"+path), map[string]string{"X-Api-Key": a.Key}, body, httpclient.TLSOf(a.Verify))
 }

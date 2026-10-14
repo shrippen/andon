@@ -251,6 +251,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 
 	bank := loadNinjaBank(ctx, api, since)
 	company := ninjaCompany(ctx, api)
+	repeating := loadRecurringExpenses(ctx, api)
 
 	currency, _ := sctx.Options["currency"].(string)
 	if currency == "" {
@@ -265,7 +266,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 		URL: sctx.URL, Currency: currency, Invoices: invoices, Payments: payments, Clients: clients,
 		Expenses: expenses, Vendors: vendors, Quotes: quotes, Recurring: recurring, HomeCountryID: homeCountry, Since: since,
 		BankTxns: bank.txns, BankRead: bank.read, BankAccounts: bank.accounts, Categories: bank.categories, TaxRates: bank.rates,
-		ExpenseFields: expenseFieldsOf(company), Reminders: remindersOf(company),
+		ExpenseFields: expenseFieldsOf(company), Reminders: remindersOf(company), RecurringExpenses: repeating,
 	}, nil
 }
 

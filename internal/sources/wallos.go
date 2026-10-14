@@ -25,12 +25,18 @@ type WallosSub struct {
 	Name, Next, Category, Payment, URL string
 	Price, Monthly                     float64
 	Inactive                           bool
+
+	// For writes: the id, the price's currency and the cycle (cycle 3,
+	// frequency 2 = every two months).
+	ID, CurrencyID   int64
+	Cycle, Frequency int
 }
 
 // WallosDataset is every subscription of the key's user.
 type WallosDataset struct {
 	URL      string
 	Currency string // main currency code, e.g. "EUR"
+	Main     int64  // its id; a price in another currency is converted
 	Subs     []WallosSub
 }
 
@@ -64,6 +70,31 @@ func wallosMonthly(price float64, cycle, frequency int) float64 {
 	return 0
 }
 
+// WallosCycle is Wallos' cycle for a payment every months months (0:
+// weekly): cycle and frequency, e.g. 3 → month, 3; 12 → year, 1.
+func WallosCycle(months int) (cycle, frequency int) {
+	switch {
+	case months <= 0:
+		return wallosWeek, 1
+	case months%monthsPerYear == 0:
+		return wallosYear, months / monthsPerYear
+	}
+	return wallosMonth, months
+}
+
+// Months is how many months lie between two payments; 0 for weekly or
+// daily ones.
+func (s WallosSub) Months() int {
+	f := max(s.Frequency, 1)
+	switch s.Cycle {
+	case wallosMonth:
+		return f
+	case wallosYear:
+		return f * monthsPerYear
+	}
+	return 0
+}
+
 // CapSet: Wallos's capabilities need nothing beyond the token.
 func (d *WallosDataset) CapSet() caps.Set { return caps.Full(caps.HolderOf(enums.ServiceWallos)) }
 
@@ -85,6 +116,7 @@ func fetchWallos(ctx context.Context, sctx Ctx) (any, error) {
 	data := &WallosDataset{URL: sctx.URL}
 	if cur, err := api.Get(ctx, wallosCurPath, nil); err == nil {
 		main := asInt64(asMap(cur)["main_currency"])
+		data.Main = main
 		for _, raw := range asList(asMap(cur)["currencies"]) {
 			if c := asMap(raw); asInt64(c["id"]) == main {
 				data.Currency = asStr(c["code"])
@@ -94,15 +126,20 @@ func fetchWallos(ctx context.Context, sctx Ctx) (any, error) {
 	for _, raw := range asList(asMap(subs)["subscriptions"]) {
 		s := asMap(raw)
 		price := asFloat(s["price"])
+		cycle, frequency := int(asInt64(s["cycle"])), int(asInt64(s["frequency"]))
 		data.Subs = append(data.Subs, WallosSub{
+			ID: asInt64(s["id"]), CurrencyID: asInt64(s["currency_id"]), Cycle: cycle, Frequency: frequency,
 			Name: asStr(s["name"]), Next: asStr(s["next_payment"]), Category: asStr(s["category_name"]),
 			Payment: asStr(s["payment_method_name"]), URL: asStr(s["url"]), Price: price,
-			Monthly:  wallosMonthly(price, int(asInt64(s["cycle"])), int(asInt64(s["frequency"]))),
+			Monthly:  wallosMonthly(price, cycle, frequency),
 			Inactive: asInt64(s["inactive"]) != 0,
 		})
 	}
 	return data, nil
 }
+
+// demoWallosCurrency is the demo's main currency id.
+const demoWallosCurrency = 1
 
 // DemoWallos is a small set of subscriptions; Sure's demo "Adobe Creative
 // Cloud" is missing on purpose, for the cross.wallos_missing hint.
@@ -117,11 +154,15 @@ func DemoWallos(now time.Time) *WallosDataset {
 		}
 	}
 	demoworld.MustDecode("subscriptions", now, &data)
-	out := &WallosDataset{URL: data.URL, Currency: data.Currency}
-	for _, s := range data.Subs {
+	out := &WallosDataset{URL: data.URL, Currency: data.Currency, Main: demoWallosCurrency}
+	for i, s := range data.Subs {
 		if s.Vendor != "" {
 			v := demoWorld.Vendor(s.Vendor)
 			s.Name, s.Price, s.Monthly, s.Category = v.Name, v.Monthly, v.Monthly, v.Kind.DE()
+		}
+		s.ID, s.CurrencyID, s.Cycle, s.Frequency = int64(i+1), demoWallosCurrency, wallosMonth, 1
+		if s.Monthly > 0 && s.Price/s.Monthly >= monthsPerYear {
+			s.Cycle = wallosYear
 		}
 		out.Subs = append(out.Subs, s.WallosSub)
 	}
