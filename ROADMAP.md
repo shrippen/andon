@@ -1243,13 +1243,15 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [x] Verbund → „Kategorien“: Sure-Kategorie → Ninja-Kategorie (Vorschlag aus gemeinsamen Buchungen, sonst gleicher Name) und Ninja-Kategorie → EÜR-Zeile (Zusatzfeld der Ausgabe, erkannt am Namen „EÜR“, Auswahl aus den Dropdown-Werten des Felds; Vorschlag aus den Ausgaben der Kategorie). Gespeichert an der Invoice-Ninja-Verbindung (`category_map`, `euer_slot`, `euer_map`), braucht VERWALTEN
    - [x] Werkbank „EÜR-Zuordnung“ (`/euer`, Navigation „EÜR“): Ausgaben eines Jahres mit leerem EÜR-Feld, Zeile der Kategorie vorgewählt, ohne Zuordnung selbst wählbar; Prüfen, Schreiben (`custom_valueN`), Journal mit Rückgängig
    - [x] `/vat` nimmt die Ninja-Kategorie aus der Zuordnung statt nach Namen, und eine neu angelegte Ausgabe bekommt gleich ihre EÜR-Zeile
-   - [ ] Offen: Kategorien auch ohne gespeicherten Verbund (heute führt die Seite zum Anlegen eines Verbunds); Sures Tags zusätzlich zur Kategorie
+   - [x] Kategorien auch ohne gespeicherten Verbund: `/categories?ninja=…&bank=…`, von `/euer` verlinkt
+   - [ ] Offen: Sures Tags zusätzlich zur Kategorie
 3. Auf `/vat`
    - [x] Reverse Charge (§ 13b): Ausgaben ohne Steuer von Lieferanten mit Land außerhalb Deutschlands (Land aus Invoice Ninja), EU in Kz 46/47, sonst 84/85, Vorsteuer in Kz 67; Waren aus der EU (Kz 89/93) erkennt Andon nicht, die Seite sagt es
    - [x] ELSTER-Kennzahlen (Kz 21, 45, 81, 86, 46/47, 84/85, 66, 67, 83) mit Kopierknopf, Ist- oder Sollversteuerung; „Als gemeldet merken“, danach geänderte Kennzahlen als „Berichtigung fällig“
    - [x] Umbuchung auf ein eigenes Konto als Vorschlag „archivieren“: derselbe Betrag in Gegenrichtung auf einem privaten Konto (Bankabruf oder Sure), bis 4 Tage auseinander; nicht vorab angehakt (eine Erstattung sähe gleich aus)
    - [x] Lieferanten aufräumen (`/vendors`, Link auf `/vat`): Lieferanten mit gleichem ersten Wort; zusammengeführt hängen alle Ausgaben (aller Jahre) um, der doppelte wird archiviert *(Standardwerte je Lieferant: Invoice Ninja kennt keine Standardkategorie am Lieferanten)*
 4. Arbeit: Woche schließen (Kimai-Lücken mit Belegen aus Dawarich, Kalender, Gitea), Fahrtkosten in die Rechnung, Mahnlauf
+   - [x] Woche schließen (`/week`, Navigation „Woche“): Besuche bei Kunden (Dawarich, ab 30 Minuten) und Termine, die einen Kunden oder ein Projekt nennen (Kalender), ohne Kimai-Eintrag für den Kunden am Tag; beides am selben Tag wird eine Lücke mit den Zeiten des Termins. Vorschlag: Projekt und Tätigkeit, die zuletzt für den Kunden gebucht wurden (Tätigkeit per Name aus Kimais Katalog). Prüfen, Eintragen in Kimai, im Journal *(Gitea-Commits als Beleg offen: Andon liest noch keine Commits)*
 5. Abos und wiederkehrende Ausgaben als eine Werkbank über Sure, Invoice Ninja und Wallos (anlegen, zusammenführen, Preisänderung); Sure aufräumen (unkategorisierte Buchungen)
 6. Jahr: EÜR-Vorbereitung (EÜR-Kategorie aus 2., Abschreibung aus Snipe-IT), Homeoffice-Tage, Paket für die Steuerberatung, Rücklagenkonto (dritte Kontoverwendung „Rücklage“)
 7. Homelab

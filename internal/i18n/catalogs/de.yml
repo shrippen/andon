@@ -1,5 +1,6 @@
 saved: Gespeichert.
 nav:
+  week: 'Woche'
   euer: 'EÜR'
   menu: Menü
   boards: Boards
@@ -7177,6 +7178,7 @@ workbench:
   scope_switch: 'Wechseln'
   needs_token: 'eigenes Token fehlt'
 journal:
+  act_week_book: 'Zeit aus „Woche schließen“ eingetragen'
   act_vendors_merge: 'Lieferant zusammengeführt'
   act_vatcheck_filed: 'Voranmeldung als gemeldet gemerkt'
   act_euer_unset: 'EÜR-Zeile geleert'
@@ -7229,7 +7231,6 @@ euer:
   setup_title: 'Welches Feld hält die EÜR-Zeile?'
   setup_text: 'Die EÜR-Zeile steht in einem Zusatzfeld der Ausgabe. Wähle es im Verbund unter Kategorien und ordne dort die Kategorien zu.'
   setup_link: 'Kategorien öffnen'
-  setup_verbund: 'Verbünde öffnen'
   cases: 'Ausgaben ohne {field}: {n}, davon mit Vorschlag: {mapped}.'
   mapping: 'Zuordnung ändern'
   expense: Ausgabe
@@ -7267,3 +7268,33 @@ vendors:
   problem_self: 'Derselbe Lieferant: übersprungen.'
   err_no_ninja: 'Keine Invoice-Ninja-Verbindung, die du nutzen darfst.'
   err_demo: 'Die Demo schreibt nicht in Invoice Ninja.'
+closeweek:
+  title: 'Woche schließen'
+  lead: 'Arbeit, die andere Dienste gesehen haben und Kimai nicht: Besuche bei Kunden (Dawarich) und Termine, die einen Kunden oder ein Projekt nennen (Kalender). Vorgeschlagen sind Projekt und Tätigkeit, die du für den Kunden zuletzt gebucht hast; nach dem Prüfen trägt Andon die Zeiten in Kimai ein.'
+  weeks: Wochen
+  from: 'Woche ab {day}'
+  sources: 'Gelesen aus:'
+  no_sources: 'Der Verbund hat weder Dawarich noch einen Kalender; Andon sieht keine Arbeit außerhalb von Kimai.'
+  seen: 'Gesehen'
+  entry: 'Eintrag in Kimai'
+  kind_visit: 'Besuch'
+  kind_event: 'Termin'
+  project: Projekt
+  activity: Tätigkeit
+  begin: Beginn
+  end: Ende
+  note: Beschreibung
+  review: 'Prüfen'
+  empty: 'Nichts offen: Kimai hat alles, was die anderen Dienste in dieser Woche gesehen haben.'
+  review_title: 'Einträge bestätigen'
+  review_lead: 'Diese Zeiten gehen an Kimai (Schreibvorgänge: {n}).'
+  do_book: '{project} · {activity} eintragen'
+  apply: 'In Kimai eintragen ({n})'
+  back: Zurück
+  done: 'Eingetragen: {n}.'
+  failed: 'Nicht eingetragen: {n}.'
+  problem_gone: 'Schon gebucht oder nicht mehr offen: übersprungen.'
+  problem_target: 'Ohne Projekt oder Tätigkeit: übersprungen.'
+  problem_times: 'Beginn liegt nicht vor dem Ende: übersprungen.'
+  err_no_kimai: 'Keine Kimai-Verbindung, die du nutzen darfst.'
+  err_demo: 'Die Demo schreibt nicht in Kimai.'

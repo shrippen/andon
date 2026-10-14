@@ -26,13 +26,13 @@
       <h2>{{t "euer.setup_title"}}</h2>
       <p>{{t "euer.setup_text"}}</p>
       {{if $p.LinkID}}<p><a class="btn btn-outline" href="/verbund/{{$p.LinkID}}/categories?space={{$p.SpaceID}}">{{t "euer.setup_link"}}</a></p>
-      {{else}}<p><a class="btn btn-outline" href="/spaces/{{$p.SpaceID}}/verbund">{{t "euer.setup_verbund"}}</a></p>{{end}}
+      {{else}}<p><a class="btn btn-outline" href="/categories?ninja={{$p.Ninja}}&amp;bank={{$p.Bank}}">{{t "euer.setup_link"}}</a></p>{{end}}
     </section>
     {{else if $p.Cases}}
     <form method="post" action="/euer/review" class="card">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="year" value="{{$p.Year}}">
       <p class="small muted">{{t "euer.cases" "n" (len $p.Cases) "mapped" $p.Mapped "field" $p.Label}}
-        {{if $p.LinkID}}<a href="/verbund/{{$p.LinkID}}/categories?space={{$p.SpaceID}}">{{t "euer.mapping"}}</a>{{end}}</p>
+        {{if $p.LinkID}}<a href="/verbund/{{$p.LinkID}}/categories?space={{$p.SpaceID}}">{{t "euer.mapping"}}</a>{{else}}<a href="/categories?ninja={{$p.Ninja}}&amp;bank={{$p.Bank}}">{{t "euer.mapping"}}</a>{{end}}</p>
       <datalist id="euer-lines">{{range $p.Lines}}<option value="{{.}}">{{end}}</datalist>
       <div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th></th><th>{{t "euer.expense"}}</th><th>{{t "euer.line"}}</th></tr></thead>

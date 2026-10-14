@@ -30,6 +30,8 @@ func (d Deps) RegisterVerbundRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /verbund/{id}/accounts", d.authed(d.handleVerbundAccounts))
 	mux.HandleFunc("GET /verbund/{id}/categories", d.authed(d.handleVerbundCategories))
 	mux.HandleFunc("POST /verbund/{id}/categories", d.authed(d.handleVerbundCategoriesSave))
+	mux.HandleFunc("GET /categories", d.authed(d.handleCategories))
+	mux.HandleFunc("POST /categories", d.authed(d.handleCategoriesSave))
 	mux.HandleFunc("POST /verbund/{id}/accounts/confirm", d.authed(d.handleAccountsConfirm))
 	mux.HandleFunc("POST /verbund/{id}/accounts/{act}", d.authed(d.handleAccountAct))
 }

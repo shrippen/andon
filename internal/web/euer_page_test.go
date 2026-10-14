@@ -70,3 +70,49 @@ func TestVendorsPage(t *testing.T) {
 		t.Fatalf("review:\n%s", review)
 	}
 }
+
+// "Close the week" opens on a demo Kimai and says what it reads from.
+func TestWeekPage(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	for _, service := range []string{"kimai", "dawarich"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
+	}
+	page := string(mustGet(t, srv, client, "/week"))
+	for _, want := range []string{"Woche schließen", "Gelesen aus:", "Dawarich", `href="/week?scope=`} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("week page lacks %q:\n%s", want, page)
+		}
+	}
+}
+
+// Without a Verbund the EÜR bench leads to the categories of its
+// Invoice Ninja alone, which save there.
+func TestCategoriesWithoutVerbund(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+		"service": {"invoiceninja"}, "name": {"Ninja"}, "url": {"demo://invoiceninja"}, "mode": {"shared"}, "tls": {"verify"}})
+	page := string(mustGet(t, srv, client, "/euer"))
+	m := regexp.MustCompile(`href="(/categories\?ninja=\d+&amp;bank=0)"`).FindStringSubmatch(page)
+	if m == nil {
+		t.Fatalf("no categories link:\n%s", page)
+	}
+	link := strings.ReplaceAll(m[1], "&amp;", "&")
+	cats := string(mustGet(t, srv, client, link))
+	if !strings.Contains(cats, `<option value="3" selected>EÜR</option>`) || !strings.Contains(cats, `action="`+m[1]+`"`) {
+		t.Fatalf("categories:\n%s", cats)
+	}
+	resp := postForm(t, client, srv.URL+link, url.Values{"csrf": {csrfToken(t, srv, client)}, "euer_slot": {"3"}})
+	if loc := resp.Header.Get("Location"); !strings.Contains(loc, "verbund.categories_saved") {
+		t.Fatalf("save: %s", loc)
+	}
+	if page := string(mustGet(t, srv, client, "/euer")); !strings.Contains(page, `name="act_`) {
+		t.Fatalf("euer after setup:\n%s", page)
+	}
+}

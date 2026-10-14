@@ -1,5 +1,6 @@
 saved: Saved.
 nav:
+  week: 'Week'
   euer: 'EUER'
   menu: Menu
   boards: Boards
@@ -7176,6 +7177,7 @@ workbench:
   scope_switch: 'Switch'
   needs_token: 'own token missing'
 journal:
+  act_week_book: 'Time entered from “Close the week”'
   act_vendors_merge: 'Vendor merged'
   act_vatcheck_filed: 'Return marked as filed'
   act_euer_unset: 'EUER line emptied'
@@ -7228,7 +7230,6 @@ euer:
   setup_title: 'Which field holds the EUER line?'
   setup_text: 'The EUER line is an expense custom field. Pick it in the bundle under categories and map the categories there.'
   setup_link: 'Open categories'
-  setup_verbund: 'Open bundles'
   cases: 'Expenses without {field}: {n}, with a proposal: {mapped}.'
   mapping: 'Change mapping'
   expense: Expense
@@ -7266,3 +7267,33 @@ vendors:
   problem_self: 'The same vendor: skipped.'
   err_no_ninja: 'No Invoice Ninja connection you may use.'
   err_demo: 'The demo does not write to Invoice Ninja.'
+closeweek:
+  title: 'Close the week'
+  lead: 'Work other services saw and Kimai lacks: visits at customers (Dawarich) and appointments naming a customer or project (calendar). Proposed are the project and activity you last booked for the customer; after the review Andon enters the times in Kimai.'
+  weeks: Weeks
+  from: 'Week of {day}'
+  sources: 'Read from:'
+  no_sources: 'The bundle has neither Dawarich nor a calendar; Andon sees no work outside Kimai.'
+  seen: 'Seen'
+  entry: 'Kimai entry'
+  kind_visit: 'Visit'
+  kind_event: 'Appointment'
+  project: Project
+  activity: Activity
+  begin: Begin
+  end: End
+  note: Description
+  review: 'Review'
+  empty: 'Nothing open: Kimai has everything the other services saw this week.'
+  review_title: 'Confirm entries'
+  review_lead: 'These times go to Kimai (writes: {n}).'
+  do_book: 'Enter {project} · {activity}'
+  apply: 'Enter in Kimai ({n})'
+  back: Back
+  done: 'Entered: {n}.'
+  failed: 'Not entered: {n}.'
+  problem_gone: 'Booked already or no longer open: skipped.'
+  problem_target: 'No project or activity: skipped.'
+  problem_times: 'Begin is not before end: skipped.'
+  err_no_kimai: 'No Kimai connection you may use.'
+  err_demo: 'The demo does not write to Kimai.'

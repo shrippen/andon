@@ -6,7 +6,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{t "verbund.categories"}} · {{$v.Verbund.Name}} · Andon</title>
+  <title>{{t "verbund.categories"}} · Andon</title>
   {{template "style" .}}
 </head>
 <body>
@@ -15,13 +15,13 @@
     <div class="settings">
     {{template "settings_nav" .}}
     <div class="settings-main">
-    <h1>{{t "verbund.categories"}} <small class="muted">{{$v.Verbund.Name}}</small></h1>
+    <h1>{{t "verbund.categories"}} <small class="muted">{{if $id}}{{$v.Verbund.Name}}{{else if $v.Ninja}}{{$v.Ninja.Name}}{{end}}</small></h1>
     <p class="muted">{{t "verbund.categories_lead"}}</p>
-    <p><a href="/spaces/{{.SpaceID}}/verbund">← {{t "verbund.title"}}</a></p>
+    {{if $id}}<p><a href="/spaces/{{.SpaceID}}/verbund">← {{t "verbund.title"}}</a></p>{{else}}<p><a href="/euer">← {{t "euer.title"}}</a></p>{{end}}
     {{with .Error}}<p class="error">{{t .}}</p>{{end}}
     {{with .Note}}<p class="pill" data-state="applied">{{t .}}</p>{{end}}
     {{if $v.Ninja}}
-    <form method="post" action="/verbund/{{$id}}/categories">
+    <form method="post" action="{{.Action}}">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}">
 
       {{if $v.Bank}}<section class="card">

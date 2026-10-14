@@ -36,7 +36,8 @@ var (
 )
 
 // need is the bench's service.
-var need = workbench.Need{Required: []enums.ServiceType{enums.ServiceInvoiceNinja}}
+var need = workbench.Need{Required: []enums.ServiceType{enums.ServiceInvoiceNinja},
+	Optional: []enums.ServiceType{enums.ServiceSure, enums.ServiceFirefly}}
 
 // The bench's action and field: act_Kx9=set line_Kx9=Arbeitsmittel.
 const (
@@ -76,6 +77,8 @@ type Page struct {
 	Mapped  int // cases with a proposed line
 	SpaceID int64
 	LinkID  int64 // the Verbund, for its categories page; 0 none
+	Ninja   int64 // its Invoice Ninja and Sure or Firefly (0 none), for
+	Bank    int64 // the categories page outside a Verbund
 }
 
 // book is the loaded data.
@@ -102,7 +105,12 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, y
 	if err != nil {
 		return p, err
 	}
-	p.SpaceID, p.LinkID, p.Slot = b.conn.SpaceID, b.scope.Link, b.cats.EuerSlot
+	p.SpaceID, p.LinkID, p.Slot, p.Ninja = b.conn.SpaceID, b.scope.Link, b.cats.EuerSlot, b.conn.ID
+	for _, s := range need.Optional {
+		if c := b.scope.Conn(s); c != nil && p.Bank == 0 {
+			p.Bank = c.ID
+		}
+	}
 	if p.Slot == 0 {
 		return p, nil
 	}
