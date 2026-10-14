@@ -59,6 +59,32 @@
       </div>
     </section>
 
+    {{/* The return's figures to type into ELSTER; marked as filed, the
+         page warns when they move (a correction is due). */}}
+    {{$e := $p.Elster}}
+    <section class="card" id="elster">
+      <h2>{{t "vatcheck.elster_title"}}</h2>
+      {{if $p.Changed}}<p class="error">{{t "vatcheck.elster_changed"}} {{range $i, $f := $p.Changed}}{{if $i}}, {{end}}Kz {{$f.Kz}}{{end}}</p>
+      {{else if $p.Filed}}<p class="pill" data-state="applied">{{t "vatcheck.elster_filed"}}</p>{{end}}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>{{t "vatcheck.elster_kz"}}</th><th>{{t "vatcheck.elster_meaning"}}</th><th class="num">{{t "vatcheck.elster_value"}}</th><th></th></tr></thead>
+        <tbody>{{range $e.Figures}}<tr>
+          <td><b>{{.Kz}}</b></td><td>{{t (print "vatcheck.kz_" .Kz)}}</td>
+          <td class="num">{{if .Base}}{{num .Value 0}}{{else}}{{num .Value 2}}{{end}}</td>
+          <td><button type="button" class="btn btn-quiet btn-sm" data-copy="{{if .Base}}{{printf "%.0f" .Value}}{{else}}{{printf "%.2f" .Value}}{{end}}">{{t "vatcheck.elster_copy"}}</button></td>
+        </tr>{{end}}</tbody>
+      </table></div>
+      {{with $e.Reverse}}<details><summary>{{t "vatcheck.rc_title" "n" (len .)}}</summary>
+        <p class="small muted">{{t "vatcheck.rc_lead"}}</p>
+        <ul class="plain-list small">{{range .}}<li>{{day .Expense.Date}} · {{.Vendor}} · {{money .Expense.Amount $p.Currency}} · {{if .EU}}Kz 46/47{{else}}Kz 84/85{{end}}</li>{{end}}</ul>
+      </details>{{end}}
+      <form method="post" action="/vat/filed" class="btn-row">
+        <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
+        <button type="submit" class="btn btn-outline btn-sm">{{if $p.Filed}}{{t "vatcheck.elster_refile"}}{{else}}{{t "vatcheck.elster_file"}}{{end}}</button>
+        <small class="muted">{{t "vatcheck.elster_hint"}}</small>
+      </form>
+    </section>
+
     <h2 id="cases">{{t "vatcheck.cases"}}</h2>
     {{if or $p.Cases $p.Apart}}
     {{if $p.Assist}}<form method="post" action="/vat/guess" class="inline-form">

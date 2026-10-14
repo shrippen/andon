@@ -207,7 +207,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 	if vendorsRaw, err := api.Pages(ctx, "vendors", nil); err == nil {
 		for _, v := range vendorsRaw {
 			vm := asMap(v)
-			vendors = append(vendors, NinjaVendor{Key: idKey(vm["id"]), Name: asStr(vm["name"])})
+			vendors = append(vendors, NinjaVendor{Key: idKey(vm["id"]), Name: asStr(vm["name"]), CountryID: asStr(vm["country_id"])})
 		}
 	}
 

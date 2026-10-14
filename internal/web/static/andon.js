@@ -2306,4 +2306,16 @@
     setupWallPreview();
     tick();
   });
+
+  // Copy buttons: data-copy holds the text, e.g. a figure for ELSTER.
+  d.addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest("button[data-copy]");
+    if (!btn || !navigator.clipboard) {
+      return;
+    }
+    navigator.clipboard.writeText(btn.getAttribute("data-copy")).then(function () {
+      btn.setAttribute("data-copied", "");
+      setTimeout(function () { btn.removeAttribute("data-copied"); }, 1500);
+    });
+  });
 })();
