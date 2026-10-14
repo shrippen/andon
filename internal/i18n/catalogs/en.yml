@@ -33,6 +33,7 @@ nav:
   clients: 'Customers'
   hosts: 'Hosts'
 action:
+  work_in_billing: 'Settle in billing'
   work_in_vat: 'Settle in the VAT check'
   open_in_claudeapi: 'Open in Claude Console'
   open_in_claudeplan: 'Open in claude.ai'
@@ -4098,6 +4099,8 @@ cashflow:
   below_min: 'Falls below the minimum of {amount}.'
   delayed: 'Assumption: clients pay {days} days later.'
 billing:
+  travel_product: 'Travel'
+  travel: 'Bill travel too: {rides} rides from {from} to {to}, {km} km × {rate} = {amount}'
   figures: 'Key figures'
   fig_revenue: 'Net revenue'
   fig_paid: 'Payments received'

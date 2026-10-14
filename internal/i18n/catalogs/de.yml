@@ -33,6 +33,7 @@ nav:
   clients: 'Kunden'
   hosts: 'Hosts'
 action:
+  work_in_billing: 'In der Abrechnung erledigen'
   work_in_vat: 'Im USt-Abgleich erledigen'
   open_in_claudeapi: 'In Claude Console öffnen'
   open_in_claudeplan: 'In claude.ai öffnen'
@@ -4099,6 +4100,8 @@ cashflow:
   below_min: 'Fällt unter den Mindeststand von {amount}.'
   delayed: 'Annahme: Kunden zahlen {days} Tage später.'
 billing:
+  travel_product: 'Fahrtkosten'
+  travel: 'Fahrtkosten mitberechnen: {rides} Fahrten vom {from} bis {to}, {km} km × {rate} = {amount}'
   figures: 'Kennzahlen'
   fig_revenue: 'Umsatz netto'
   fig_paid: 'Zahlungseingang'

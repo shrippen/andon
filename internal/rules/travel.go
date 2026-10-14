@@ -112,6 +112,7 @@ func travelCosts(_ any, _ map[string]any, env Env) []Finding {
 		Params: map[string]any{
 			"trips": sum.Rides, "km": Num(sum.PayKM, 0), "amount": Money(sum.PayKM*rate, ""), "month": start.Format("01/2006"),
 		},
+		ActionURL: "/billing#drafts", ActionLabel: "work_in_billing",
 		Sources: []string{dawarichSvc},
 	}}
 }

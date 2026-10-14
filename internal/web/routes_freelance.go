@@ -302,7 +302,11 @@ func (d Deps) handleBillingDraft(w http.ResponseWriter, r *http.Request, ctx Ctx
 	if r.FormValue("mark_exported") != "" {
 		mode = billing.MarkSheets
 	}
-	number, err := billing.Create(r.Context(), d.DB, ctx.Who, space, formID(r, "conn_id"), customer, mode, d.clientIP(r))
+	travel := billing.NoTravel
+	if r.FormValue("travel") != "" {
+		travel = billing.WithTravel
+	}
+	number, err := billing.Create(r.Context(), d.DB, ctx.Who, space, formID(r, "conn_id"), customer, mode, travel, d.clientIP(r))
 	if err != nil {
 		d.billingPage(w, r, ctx, http.StatusBadRequest, map[string]any{"Error": errKey(err)})
 		return
