@@ -7089,8 +7089,9 @@ vatcheck:
   err_no_ninja: 'No Invoice Ninja connection you may use.'
   err_no_bank: 'Invoice Ninja delivers no bank feed. Is banking set up, and may the token read bank transactions?'
   err_demo: 'The demo does not write to Invoice Ninja.'
-  err_nothing: 'Nothing selected.'
   problem_gone: 'Already booked or gone: skipped.'
   problem_target: 'The expense or invoice no longer fits: skipped.'
   problem_no_vendor: 'Andon creates no expense without a vendor: skipped.'
   problem_not_booked: 'Invoice Ninja did not book the transaction.'
+workbench:
+  err_nothing: 'Nothing selected.'

@@ -85,6 +85,7 @@ internal/services/analysis/     Job: Datensätze laden, Regeln anwenden, hints.S
 internal/services/scheduler/    Background-Jobs (Timer je Job, ±5 % gestreut, panic-/error-isoliert)
 internal/caps/                  Fähigkeiten je Integration: Domäne × Operation (+ Arten, Voraussetzungen), kein I/O
 internal/services/verbund/      Verbünde: welche Verbindungen zusammenarbeiten (Partner) und ihre Zuordnungen
+internal/services/workbench/    Werkbänke: Schritte prüfen, nach OK gegen frische Daten schreiben, Audit; Formular `pick`/`act_<fall>`/`<feld>_<fall>` (web/bench.go)
 ```
 - Neue Regel: Funktion in `internal/rules/`, Texte `hint.<message>.title|why` in beiden Katalogen, Test in `internal/rules/*_test.go`.
 - Neues Widget: `Tile[XConfig]{…}.add()` in `internal/widgets/` (Grenzen/Defaults nur im Field, gelesen über `Raw`), Template-Define `widgets/<key>` in `internal/web/templates/widgets_*.html`, `wtype.<key>` in den Katalogen.

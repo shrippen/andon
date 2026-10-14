@@ -41,8 +41,6 @@ var (
 	ErrNoBank = errors.New("vatcheck.err_no_bank")
 	// ErrDemo means a demo connection, which takes no writes.
 	ErrDemo = errors.New("vatcheck.err_demo")
-	// ErrNothing means no step was ticked.
-	ErrNothing = errors.New("vatcheck.err_nothing")
 )
 
 // spansShown is how many periods the page offers, this one included.

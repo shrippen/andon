@@ -47,6 +47,14 @@ func TestVATPage(t *testing.T) {
 		t.Fatalf("review lacks the step:\n%s", review)
 	}
 
+	// The review sends back what it showed (bench_step).
+	for _, want := range []string{`name="pick" value="demo-b-studio"`, `name="act_demo-b-studio" value="create"`,
+		`name="vendor_demo-b-studio" value="Kabelwerk Studiobedarf"`, `name="tax_demo-b-studio" value="19"`} {
+		if !strings.Contains(review, want) {
+			t.Fatalf("review lacks %s:\n%s", want, review)
+		}
+	}
+
 	// "Archive all as private" takes the private accounts' rest only.
 	all := url.Values{"csrf": {csrfToken(t, srv, client)}, "span": {month}, "all_private": {"1"}, "apart": {"demo-p-food"},
 		"pick": {"demo-b-studio"}, "act_demo-b-studio": {"create"}}

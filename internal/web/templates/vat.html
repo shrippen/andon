@@ -177,20 +177,17 @@
     <p>{{t "vatcheck.review_lead" "n" .Plan.Writes}}</p>
     <form method="post" action="/vat/apply">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="conn" value="{{.Q.Conn}}"><input type="hidden" name="span" value="{{.Q.Span}}">
-      <ol class="vat-plan">{{range .Plan.Steps}}{{$k := .Step.Txn}}
+      <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
         <li{{if .Problem}} class="late"{{end}}>
-          {{if not .Problem}}<input type="hidden" name="pick" value="{{$k}}"><input type="hidden" name="act_{{$k}}" value="{{.Action}}">
-            <input type="hidden" name="exp_{{$k}}" value="{{.Step.Expense}}"><input type="hidden" name="inv_{{$k}}" value="{{.Step.Invoice}}"><input type="hidden" name="pay_{{$k}}" value="{{.Step.Payment}}">
-            <input type="hidden" name="vendor_{{$k}}" value="{{.Vendor}}"><input type="hidden" name="cat_{{$k}}" value="{{.Step.Category}}">
-            <input type="hidden" name="tax_{{$k}}" value="{{if .Taxed}}{{.TaxRate}}{{else}}none{{end}}">{{if .Scan}}<input type="hidden" name="scan_{{$k}}" value="{{.Scan}}">{{end}}{{end}}
-          <b>{{day .Txn.Date}} · {{.Txn.Payer}} · {{if .Txn.Debit}}−{{end}}{{money .Txn.Amount $.Plan.Currency}}</b><br>
+          {{if not .Problem}}{{template "bench_step" .Step}}{{end}}
+          <b>{{day $i.Txn.Date}} · {{$i.Txn.Payer}} · {{if $i.Txn.Debit}}−{{end}}{{money $i.Txn.Amount $.Plan.Currency}}</b><br>
           {{if .Problem}}{{t (print .Problem)}}
-          {{else if eq .Action "link"}}{{t "vatcheck.do_link" "number" .Expense.Number}}
-          {{else if eq .Action "invoice"}}{{t "vatcheck.do_invoice" "number" .Invoice.Number}}
-          {{else if eq .Action "payment"}}{{t "vatcheck.do_payment" "number" .Payment.Number}}
+          {{else if eq .Action "link"}}{{t "vatcheck.do_link" "number" $i.Expense.Number}}
+          {{else if eq .Action "invoice"}}{{t "vatcheck.do_invoice" "number" $i.Invoice.Number}}
+          {{else if eq .Action "payment"}}{{t "vatcheck.do_payment" "number" $i.Payment.Number}}
           {{else if eq .Action "skip"}}{{t "vatcheck.do_skip"}}
-          {{else}}{{if .NewVendor}}{{t "vatcheck.do_vendor" "vendor" .Vendor}} {{end}}{{t "vatcheck.do_create" "vendor" .Vendor}}{{with .Category}} · {{.}}{{end}} ·
-            {{if .Taxed}}{{t "vatcheck.do_tax" "name" .TaxName "rate" (num .TaxRate 0) "tax" (money .Tax $.Plan.Currency)}}{{else}}{{t "vatcheck.no_tax"}}{{end}}{{with .ScanTitle}} · {{t "vatcheck.do_scan" "title" .}}{{end}}{{end}}
+          {{else}}{{if $i.NewVendor}}{{t "vatcheck.do_vendor" "vendor" $i.Vendor}} {{end}}{{t "vatcheck.do_create" "vendor" $i.Vendor}}{{with $i.Category}} · {{.}}{{end}} ·
+            {{if $i.Taxed}}{{t "vatcheck.do_tax" "name" $i.TaxName "rate" (num $i.TaxRate 0) "tax" (money $i.Tax $.Plan.Currency)}}{{else}}{{t "vatcheck.no_tax"}}{{end}}{{with $i.ScanTitle}} · {{t "vatcheck.do_scan" "title" .}}{{end}}{{end}}
         </li>{{end}}</ol>
       <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "vatcheck.apply" "n" .Plan.Writes}}</button>{{else}}<button type="submit" class="btn btn-outline">{{t "vatcheck.apply_skip"}}</button>{{end}}
         <a class="btn btn-quiet" href="/vat?conn={{.Q.Conn}}&amp;span={{.Q.Span}}">{{t "vatcheck.back"}}</a></p>

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,166 +21,154 @@ import (
 	"andon/internal/services/receipts"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/verbund"
+	"andon/internal/services/workbench"
 	"andon/internal/sources"
 )
 
-// Step is one booking the user asked for. Create uses Vendor, Category
-// (a key) and TaxRate (Taxed false: no tax).
-type Step struct {
-	Txn      string
-	Action   metrics.BankAction
-	Expense  string // link: the expense key
-	Invoice  string // invoice: the invoice key
-	Payment  string // payment: the payment key
-	Vendor   string
-	Category string
-	TaxRate  float64
-	Taxed    bool
-	Scan     int64 // create: the Paperless scan to link, 0 = none
-}
+// Field names of a step (workbench.Step.Fields), as the form sends
+// them: exp_Kx9=…; tax is a rate or "none".
+const (
+	FieldExpense  = "exp"
+	FieldInvoice  = "inv"
+	FieldPayment  = "pay"
+	FieldVendor   = "vendor"
+	FieldCategory = "cat" // a key
+	FieldTax      = "tax"
+	FieldScan     = "scan" // create: the Paperless scan to link
+)
 
-// Problem says why a step cannot be written.
-type Problem string
+// Fields lists them, for the form.
+var Fields = []string{FieldExpense, FieldInvoice, FieldPayment, FieldVendor, FieldCategory, FieldTax, FieldScan}
+
+// noTax is the tax field of an expense without tax.
+const noTax = "none"
 
 const (
-	ProblemNone     Problem = ""
-	ProblemGone     Problem = "vatcheck.problem_gone"      // booked meanwhile
-	ProblemTarget   Problem = "vatcheck.problem_target"    // expense or invoice no longer fits
-	ProblemNoVendor Problem = "vatcheck.problem_no_vendor" // a new expense needs a vendor
+	ProblemGone     workbench.Problem = "vatcheck.problem_gone"      // booked meanwhile
+	ProblemTarget   workbench.Problem = "vatcheck.problem_target"    // expense or invoice no longer fits
+	ProblemNoVendor workbench.Problem = "vatcheck.problem_no_vendor" // a new expense needs a vendor
 )
 
 // ErrGone means the transaction is not (or no longer) archived.
 var ErrGone = errors.New("vatcheck.problem_gone")
 
-// Planned is a step as it would be written.
-type Planned struct {
-	Step
+// Item is what a step resolves to, as the review shows it.
+type Item struct {
 	Txn       sources.NinjaBankTxn
 	Expense   *sources.NinjaExpense
 	Invoice   *sources.NinjaInvoice
 	Payment   *sources.NinjaPayment
+	Vendor    string
 	NewVendor bool   // the vendor is created first
 	Category  string // its name
 	TaxName   string
+	TaxRate   float64
+	Taxed     bool
 	Tax       float64 // input VAT in the amount
-	ScanTitle string  // the scan linked to a new expense
-	Problem   Problem
+	Scan      int64
+	ScanTitle string // the scan linked to a new expense
 }
+
+// Planned is a step as it would be written.
+type Planned = workbench.Planned[Item]
 
 // Plan is the review: what Apply would write.
 type Plan struct {
+	workbench.Plan[Item]
 	Conn     int64
-	Steps    []Planned
 	Currency string
 }
 
-// Writes counts the steps that change Invoice Ninja; archiving a
-// private transaction is one too.
-func (p Plan) Writes() int {
-	n := 0
-	for _, s := range p.Steps {
-		if s.Problem == ProblemNone {
-			n++
-		}
-	}
-	return n
-}
-
 // Review checks the steps against the current data and spells them out.
-func Review(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, steps []Step) (Plan, error) {
+func Review(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, steps []workbench.Step) (Plan, error) {
 	b, _, err := load(ctx, d, who, connID, svcdata.Cached)
 	if err != nil {
 		return Plan{}, err
 	}
-	plan, err := b.plan(steps)
+	plan, err := workbench.PlanOf[Item](b, steps)
 	for i := range plan.Steps {
 		scanTitle(ctx, d, who, b.conn.ID, &plan.Steps[i])
 	}
-	return plan, err
+	return Plan{Plan: plan, Conn: b.conn.ID, Currency: b.ninja.Currency}, err
 }
 
 // scanTitle names the scan a new expense gets; one no longer free is
 // dropped (receipts.ScansFor offers only free ones).
 func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, p *Planned) {
-	if p.Scan == 0 || p.Action != metrics.ActionCreate || p.Problem != ProblemNone {
+	if p.Item.Scan == 0 || p.Action != string(metrics.ActionCreate) || p.Problem != workbench.ProblemNone {
 		return
 	}
-	scans, _ := receipts.ScansFor(ctx, d, who, connID, p.Txn.Amount, p.Txn.Date, p.Vendor)
+	scans, _ := receipts.ScansFor(ctx, d, who, connID, p.Item.Txn.Amount, p.Item.Txn.Date, p.Item.Vendor)
 	for _, c := range scans {
-		if c.Doc.ID == p.Scan {
-			p.ScanTitle = c.Doc.Title
+		if c.Doc.ID == p.Item.Scan {
+			p.Item.ScanTitle = c.Doc.Title
 			return
 		}
 	}
-	p.Scan = 0
+	p.Item.Scan = 0
+	delete(p.Fields, FieldScan)
 }
 
-func (b book) plan(steps []Step) (Plan, error) {
-	if len(steps) == 0 {
-		return Plan{}, ErrNothing
-	}
-	out := Plan{Conn: b.conn.ID, Currency: b.ninja.Currency}
-	for _, s := range steps {
-		out.Steps = append(out.Steps, b.planned(s))
-	}
-	return out, nil
-}
-
-// planned resolves one step; the transaction must still be open and
-// its target must still fit.
-func (b book) planned(s Step) Planned {
-	p := Planned{Step: s}
-	i := indexOf(b.ninja.BankTxns, func(t sources.NinjaBankTxn) bool { return t.Key == s.Txn })
+// Check resolves one step; the transaction must still be open and its
+// target must still fit.
+func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
+	var it Item
+	i := indexOf(b.ninja.BankTxns, func(t sources.NinjaBankTxn) bool { return t.Key == s.Case })
 	if i < 0 || b.ninja.BankTxns[i].Status == sources.BankDone {
-		p.Problem = ProblemGone
-		return p
+		return it, ProblemGone
 	}
-	p.Txn = b.ninja.BankTxns[i]
+	it.Txn = b.ninja.BankTxns[i]
 	taken := metrics.LinkedExpenses(b.ninja)
-	switch s.Action {
+	switch metrics.BankAction(s.Action) {
 	case metrics.ActionLink:
-		j := indexOf(b.ninja.Expenses, func(e sources.NinjaExpense) bool { return e.Key == s.Expense })
-		if j < 0 || taken[s.Expense] || math.Abs(b.ninja.Expenses[j].Amount-p.Txn.Amount) > amountTol {
-			p.Problem = ProblemTarget
-			return p
+		j := indexOf(b.ninja.Expenses, func(e sources.NinjaExpense) bool { return e.Key == s.Field(FieldExpense) })
+		if j < 0 || taken[s.Field(FieldExpense)] || math.Abs(b.ninja.Expenses[j].Amount-it.Txn.Amount) > amountTol {
+			return it, ProblemTarget
 		}
-		p.Expense = &b.ninja.Expenses[j]
+		it.Expense = &b.ninja.Expenses[j]
 	case metrics.ActionInvoice:
 		// Ninja pays at most the balance: a part payment fits too.
-		j := indexOf(b.ninja.Invoices, func(inv sources.NinjaInvoice) bool { return inv.Key == s.Invoice })
-		if j < 0 || p.Txn.Debit || b.ninja.Invoices[j].Balance <= 0 || p.Txn.Amount > b.ninja.Invoices[j].Balance+amountTol {
-			p.Problem = ProblemTarget
-			return p
+		j := indexOf(b.ninja.Invoices, func(inv sources.NinjaInvoice) bool { return inv.Key == s.Field(FieldInvoice) })
+		if j < 0 || it.Txn.Debit || b.ninja.Invoices[j].Balance <= 0 || it.Txn.Amount > b.ninja.Invoices[j].Balance+amountTol {
+			return it, ProblemTarget
 		}
-		p.Invoice = &b.ninja.Invoices[j]
+		it.Invoice = &b.ninja.Invoices[j]
 	case metrics.ActionPayment:
-		j := indexOf(b.ninja.Payments, func(pay sources.NinjaPayment) bool { return pay.Key == s.Payment })
-		if j < 0 || p.Txn.Debit || metrics.LinkedPayments(b.ninja)[s.Payment] || math.Abs(b.ninja.Payments[j].Amount-p.Txn.Amount) > amountTol {
-			p.Problem = ProblemTarget
-			return p
+		j := indexOf(b.ninja.Payments, func(pay sources.NinjaPayment) bool { return pay.Key == s.Field(FieldPayment) })
+		if j < 0 || it.Txn.Debit || metrics.LinkedPayments(b.ninja)[s.Field(FieldPayment)] || math.Abs(b.ninja.Payments[j].Amount-it.Txn.Amount) > amountTol {
+			return it, ProblemTarget
 		}
-		p.Payment = &b.ninja.Payments[j]
+		it.Payment = &b.ninja.Payments[j]
 	case metrics.ActionCreate:
-		p.Vendor = strings.TrimSpace(s.Vendor)
-		if p.Vendor == "" || !p.Txn.Debit {
-			p.Problem = ProblemNoVendor
-			return p
-		}
-		p.NewVendor = b.vendorKey(p.Vendor) == ""
-		for _, c := range b.ninja.Categories {
-			if c.Key == s.Category {
-				p.Category = c.Name
-			}
-		}
-		if s.Taxed {
-			p.TaxName = b.taxName(s.TaxRate)
-			p.Tax = math.Round(p.Txn.Amount*s.TaxRate/(100+s.TaxRate)*cents) / cents
-		}
+		return b.created(s, it)
 	case metrics.ActionSkip:
 	default:
-		p.Problem = ProblemTarget
+		return it, ProblemTarget
 	}
-	return p
+	return it, workbench.ProblemNone
+}
+
+// created resolves a new expense: vendor, category and tax.
+func (b book) created(s *workbench.Step, it Item) (Item, workbench.Problem) {
+	it.Vendor = strings.TrimSpace(s.Field(FieldVendor))
+	if it.Vendor == "" || !it.Txn.Debit {
+		return it, ProblemNoVendor
+	}
+	it.NewVendor = b.vendorKey(it.Vendor) == ""
+	for _, c := range b.ninja.Categories {
+		if c.Key == s.Field(FieldCategory) {
+			it.Category = c.Name
+		}
+	}
+	if rate, err := strconv.ParseFloat(s.Field(FieldTax), 64); err == nil {
+		it.TaxRate, it.Taxed = rate, true
+		it.TaxName = b.taxName(rate)
+		it.Tax = math.Round(it.Txn.Amount*rate/(100+rate)*cents) / cents
+	} else {
+		s.Fields[FieldTax] = noTax
+	}
+	it.Scan, _ = strconv.ParseInt(s.Field(FieldScan), 10, 64)
+	return it, workbench.ProblemNone
 }
 
 const (
@@ -216,76 +205,55 @@ func (b book) taxName(rate float64) string {
 	return defaultTaxName
 }
 
-// Result is what Apply wrote.
-type Result struct {
-	Done, Skipped int
-	Failed        []Failure
-}
-
-// Failure is a step Invoice Ninja refused, or one that no longer fit.
-type Failure struct {
-	Txn, Payer string
-	Reason     string // i18n key or Invoice Ninja's message
-}
-
 // Apply writes the confirmed steps against fresh data; each is checked
 // again, so a transaction booked meanwhile is not booked twice.
-func Apply(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, steps []Step, ip string) (Result, error) {
+func Apply(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, steps []workbench.Step, ip string) (workbench.Result, error) {
 	b, _, err := load(ctx, d, who, connID, svcdata.Force)
 	if err != nil {
-		return Result{}, err
+		return workbench.Result{}, err
 	}
 	if err := connections.Writable(d, who, b.conn.ID); err != nil {
-		return Result{}, err
+		return workbench.Result{}, err
 	}
-	plan, err := b.plan(steps)
+	plan, err := workbench.PlanOf[Item](b, steps)
 	if err != nil {
-		return Result{}, err
+		return workbench.Result{}, err
 	}
 	if plan.Writes() > 0 && sources.IsDemo(b.conn.URL) {
-		return Result{}, ErrDemo
+		return workbench.Result{}, ErrDemo
 	}
 	token, err := svcdata.Secret(ctx, d, b.conn, model.UserHolder(who.UserID))
 	if err != nil {
-		return Result{}, err
-	}
-	w := &writer{to: outbound.Target{URL: b.conn.URL, Token: token, VerifyTLS: b.conn.VerifyTLS}, book: b}
-
-	var out Result
-	for _, p := range plan.Steps {
-		if p.Problem != ProblemNone {
-			out.Failed = append(out.Failed, Failure{Txn: p.Step.Txn, Payer: p.Txn.Payer, Reason: string(p.Problem)})
-			continue
-		}
-		w.created = ""
-		target, err := w.write(ctx, p)
-		if err != nil {
-			out.Failed = append(out.Failed, Failure{Txn: p.Txn.Key, Payer: p.Txn.Payer, Reason: reasonOf(err)})
-			continue
-		}
-
-		// The new expense gets its scan, both sides (receipts.Link).
-		if p.Scan != 0 && w.created != "" {
-			if _, err := receipts.Link(ctx, d, who, w.created, []int64{p.Scan}, ip); err != nil {
-				out.Failed = append(out.Failed, Failure{Txn: p.Txn.Key, Payer: p.Txn.Payer, Reason: "vatcheck.problem_scan"})
-			}
-		}
-		if p.Action == metrics.ActionSkip {
-			out.Skipped++
-		} else {
-			out.Done++
-		}
-		_ = auditsvc.Log(d, &who.UserID, "vatcheck."+string(p.Action), target, ip,
-			map[string]any{"txn": p.Txn.Key, "amount": fmt.Sprintf("%.2f", p.Txn.Amount)})
+		return workbench.Result{}, err
 	}
 
+	w := &writer{to: outbound.Target{URL: b.conn.URL, Token: token, VerifyTLS: b.conn.VerifyTLS}, book: b, d: d, who: who, ip: ip}
+	out := workbench.Apply[Item](ctx, d, who, w, plan, auditPrefix, ip)
 	svcdata.Forget(b.conn.ID)
 	err = saveState(d, who, func(s *state) { s.Conn = b.conn.ID })
 	return out, err
 }
 
-// reasonOf is a refusal's text: a known one's key, else the message.
-func reasonOf(err error) string {
+// auditPrefix starts the audit entries of written steps: vatcheck.link.
+const auditPrefix = "vatcheck"
+
+// writer books steps in one Invoice Ninja.
+type writer struct {
+	book
+	to  outbound.Target
+	d   *sql.DB
+	who *access.Principal
+	ip  string
+}
+
+func (w *writer) Name(p Planned) string { return p.Item.Txn.Payer }
+
+func (w *writer) Audit(p Planned) map[string]any {
+	return map[string]any{"txn": p.Item.Txn.Key, "amount": fmt.Sprintf("%.2f", p.Item.Txn.Amount)}
+}
+
+// Reason is a refusal's text: a known one's key, else the message.
+func (w *writer) Reason(err error) string {
 	if errors.Is(err, outbound.ErrNotBooked) {
 		return "vatcheck.problem_not_booked"
 	}
@@ -295,53 +263,53 @@ func reasonOf(err error) string {
 	return err.Error()
 }
 
-// writer books steps in one Invoice Ninja; created is the key of the
-// expense its last step made, "" for none.
-type writer struct {
-	to      outbound.Target
-	book    book
-	created string
-}
-
-// write books one step and returns what it booked against (an expense
+// Write books one step and returns what it booked against (an expense
 // or invoice number, the payee of an archived one).
-func (w *writer) write(ctx context.Context, p Planned) (string, error) {
-	switch p.Action {
+func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
+	it := p.Item
+	switch metrics.BankAction(p.Action) {
 	case metrics.ActionSkip:
-		return p.Txn.Payer, outbound.NinjaBankArchive(ctx, w.to, p.Txn.Key, outbound.BankArchiveOn)
+		return it.Txn.Payer, outbound.NinjaBankArchive(ctx, w.to, it.Txn.Key, outbound.BankArchiveOn)
 	case metrics.ActionLink:
-		return p.Expense.Number, outbound.NinjaBankLink(ctx, w.to, p.Txn.Key, outbound.NinjaBankTarget{Expense: p.Expense.Key})
+		return it.Expense.Number, outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expense: it.Expense.Key})
 	case metrics.ActionInvoice:
-		return p.Invoice.Number, outbound.NinjaBankLink(ctx, w.to, p.Txn.Key, outbound.NinjaBankTarget{Invoices: []string{p.Invoice.Key}})
+		return it.Invoice.Number, outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Invoices: []string{it.Invoice.Key}})
 	case metrics.ActionPayment:
-		return p.Payment.Number, outbound.NinjaBankLink(ctx, w.to, p.Txn.Key, outbound.NinjaBankTarget{Payment: p.Payment.Key})
+		return it.Payment.Number, outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Payment: it.Payment.Key})
 	}
 
 	// A new expense: vendor first if new, the expense with its tax, then
 	// the link that marks the transaction booked.
-	vendor := w.book.vendorKey(p.Vendor)
+	vendor := w.vendorKey(it.Vendor)
 	if vendor == "" {
-		key, err := outbound.NinjaVendorCreate(ctx, w.to, p.Vendor)
+		key, err := outbound.NinjaVendorCreate(ctx, w.to, it.Vendor)
 		if err != nil {
 			return "", err
 		}
 		vendor = key
 	}
-	body := map[string]any{"amount": p.Txn.Amount, "date": p.Txn.Date, "payment_date": p.Txn.Date, "vendor_id": vendor,
-		"public_notes": p.Txn.Description, "transaction_reference": p.Txn.Description, "uses_inclusive_taxes": true}
-	if p.Step.Category != "" {
-		body["category_id"] = p.Step.Category
+	body := map[string]any{"amount": it.Txn.Amount, "date": it.Txn.Date, "payment_date": it.Txn.Date, "vendor_id": vendor,
+		"public_notes": it.Txn.Description, "transaction_reference": it.Txn.Description, "uses_inclusive_taxes": true}
+	if cat := p.Field(FieldCategory); cat != "" {
+		body["category_id"] = cat
 	}
-	if p.Taxed {
-		body["tax_name1"], body["tax_rate1"] = p.TaxName, p.TaxRate
+	if it.Taxed {
+		body["tax_name1"], body["tax_rate1"] = it.TaxName, it.TaxRate
 	}
 	key, number, err := outbound.NinjaExpenseCreate(ctx, w.to, body)
 	if err != nil {
 		return "", err
 	}
-	w.created = key
-	if err := outbound.NinjaBankLink(ctx, w.to, p.Txn.Key, outbound.NinjaBankTarget{Expense: key}); err != nil {
+	if err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expense: key}); err != nil {
 		return number, fmt.Errorf("%s: %w", number, err)
+	}
+
+	// The new expense gets its scan, both sides (receipts.Link).
+	if it.Scan == 0 {
+		return number, nil
+	}
+	if _, err := receipts.Link(ctx, w.d, w.who, key, []int64{it.Scan}, w.ip); err != nil {
+		return number, workbench.Partly{Target: number, Reason: "vatcheck.problem_scan"}
 	}
 	return number, nil
 }

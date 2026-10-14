@@ -15,6 +15,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/services/vatcheck"
+	"andon/internal/services/workbench"
 	"andon/internal/sources"
 	"andon/internal/testkit"
 )
@@ -190,18 +191,18 @@ func TestApplyWritesConfirmedSteps(t *testing.T) {
 	var w writes
 	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "1"))
 	ctx := context.Background()
-	steps := []vatcheck.Step{
-		{Txn: "b1", Action: metrics.ActionLink, Expense: "e2"},
-		{Txn: "b3", Action: metrics.ActionCreate, Vendor: "Nordhost Server", Category: "c2", TaxRate: 19, Taxed: true},
-		{Txn: "b4", Action: metrics.ActionInvoice, Invoice: "i7"},
-		{Txn: "b2", Action: metrics.ActionSkip},
+	steps := []workbench.Step{
+		{Case: "b1", Action: string(metrics.ActionLink), Fields: map[string]string{vatcheck.FieldExpense: "e2"}},
+		{Case: "b3", Action: string(metrics.ActionCreate), Fields: map[string]string{vatcheck.FieldVendor: "Nordhost Server", vatcheck.FieldCategory: "c2", vatcheck.FieldTax: "19"}},
+		{Case: "b4", Action: string(metrics.ActionInvoice), Fields: map[string]string{vatcheck.FieldInvoice: "i7"}},
+		{Case: "b2", Action: workbench.ActionSkip},
 	}
 
 	plan, err := vatcheck.Review(ctx, d, who, conn, steps)
 	if err != nil {
 		t.Fatalf("review: %v", err)
 	}
-	if plan.Writes() != 4 || !plan.Steps[1].NewVendor || plan.Steps[1].Tax != 6.65 || plan.Steps[1].Category != "Hosting" {
+	if plan.Writes() != 4 || !plan.Steps[1].Item.NewVendor || plan.Steps[1].Item.Tax != 6.65 || plan.Steps[1].Item.Category != "Hosting" {
 		t.Fatalf("plan: %+v", plan.Steps)
 	}
 	if len(w.list()) != 0 {
@@ -279,7 +280,7 @@ func TestApplySkipsBookedMeanwhile(t *testing.T) {
 	var w writes
 	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "3"))
 
-	res, err := vatcheck.Apply(context.Background(), d, who, conn, []vatcheck.Step{{Txn: "b1", Action: metrics.ActionLink, Expense: "e2"}}, "")
+	res, err := vatcheck.Apply(context.Background(), d, who, conn, []workbench.Step{{Case: "b1", Action: string(metrics.ActionLink), Fields: map[string]string{vatcheck.FieldExpense: "e2"}}}, "")
 	if err != nil {
 		t.Fatalf("apply: %v", err)
 	}
@@ -313,7 +314,7 @@ func TestDemo(t *testing.T) {
 		}
 	}
 
-	_, err := vatcheck.Apply(ctx, d, who, conn, []vatcheck.Step{{Txn: "demo-b-studio", Action: metrics.ActionCreate, Vendor: "Kabelwerk"}}, "")
+	_, err := vatcheck.Apply(ctx, d, who, conn, []workbench.Step{{Case: "demo-b-studio", Action: string(metrics.ActionCreate), Fields: map[string]string{vatcheck.FieldVendor: "Kabelwerk"}}}, "")
 	if !errors.Is(err, vatcheck.ErrDemo) {
 		t.Fatalf("demo write: %v", err)
 	}

@@ -1,0 +1,5 @@
+{{/* Workbenches (services/workbench, web/bench.go). */}}
+
+{{/* One reviewed step sent back as the form sent it, so Apply writes
+     what the review showed: pick, act_<case>, <field>_<case>. */}}
+{{define "bench_step"}}<input type="hidden" name="pick" value="{{.Case}}"><input type="hidden" name="act_{{.Case}}" value="{{.Action}}">{{range $k, $v := .Fields}}<input type="hidden" name="{{$k}}_{{$.Case}}" value="{{$v}}">{{end}}{{end}}

@@ -18,10 +18,10 @@ import (
 	"strings"
 	"time"
 
-	"andon/internal/metrics"
 	"andon/internal/services/assist"
 	"andon/internal/services/vatcheck"
 	"andon/internal/services/verbund"
+	"andon/internal/services/workbench"
 )
 
 func (d Deps) registerVATRoutes(mux *http.ServeMux) {
@@ -81,32 +81,20 @@ func vatError(err error) string {
 	return errKey(err)
 }
 
-// vatSteps reads the ticked rows; each row's fields carry its key:
-// pick=Kx9, act_Kx9=create, vendor_Kx9=…, cat_Kx9=…, tax_Kx9=19|none.
-// all_private archives every apart=… row instead.
-func vatSteps(r *http.Request) []vatcheck.Step {
+// vatSteps reads the ticked rows (benchSteps); all_private archives
+// every apart=… row instead.
+func vatSteps(r *http.Request) []workbench.Step {
 	if err := r.ParseForm(); err != nil {
 		return nil
 	}
-	var out []vatcheck.Step
 
 	// "Archive all as private": the private accounts' rest, nothing else.
-	if r.PostForm.Get("all_private") != "" {
-		for _, k := range r.PostForm["apart"] {
-			out = append(out, vatcheck.Step{Txn: k, Action: metrics.ActionSkip})
-		}
-		return out
+	if r.PostForm.Get("all_private") == "" {
+		return benchSteps(r.PostForm, vatcheck.Fields)
 	}
-	for _, k := range r.PostForm["pick"] {
-		s := vatcheck.Step{Txn: k, Action: metrics.BankAction(r.PostForm.Get("act_" + k)), Expense: r.PostForm.Get("exp_" + k),
-			Invoice: r.PostForm.Get("inv_" + k), Payment: r.PostForm.Get("pay_" + k), Vendor: r.PostForm.Get("vendor_" + k), Category: r.PostForm.Get("cat_" + k)}
-		s.Scan, _ = strconv.ParseInt(r.PostForm.Get("scan_"+k), 10, 64)
-		if rate, err := strconv.ParseFloat(r.PostForm.Get("tax_"+k), 64); err == nil {
-			s.TaxRate, s.Taxed = rate, true
-		}
-		if s.Action != metrics.ActionNone {
-			out = append(out, s)
-		}
+	var out []workbench.Step
+	for _, k := range r.PostForm["apart"] {
+		out = append(out, workbench.Step{Case: k, Action: workbench.ActionSkip})
 	}
 	return out
 }
@@ -131,12 +119,7 @@ func (d Deps) handleVATApply(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		http.Redirect(w, r, q.back("error", vatError(err)), http.StatusSeeOther)
 		return
 	}
-	pairs := []string{"done", strconv.Itoa(res.Done), "skipped", strconv.Itoa(res.Skipped)}
-	if len(res.Failed) > 0 {
-		first := res.Failed[0]
-		pairs = append(pairs, "failed", strconv.Itoa(len(res.Failed)), "reason", first.Payer+": "+first.Reason)
-	}
-	http.Redirect(w, r, q.back(pairs...), http.StatusSeeOther)
+	http.Redirect(w, r, q.back(benchNote(res)...), http.StatusSeeOther)
 }
 
 func (d Deps) handleVATRestore(w http.ResponseWriter, r *http.Request, ctx Ctx) {
