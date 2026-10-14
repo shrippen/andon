@@ -122,10 +122,11 @@ type NinjaInvoice struct {
 }
 
 type NinjaPayment struct {
-	ID       int64
-	Date     string
-	Amount   float64
-	ClientID int64
+	ID          int64
+	Date        string
+	Amount      float64
+	ClientID    int64
+	Key, Number string // id as sent (hashed in v5) and the payment's number
 }
 
 type NinjaClient struct {
@@ -216,6 +217,7 @@ type NinjaBankTxn struct {
 	Status                        BankStatus
 	Archived                      bool // set aside in Invoice Ninja (private)
 	ExpenseKeys, InvoiceKeys      []string
+	PaymentKey                    string // the payment it is booked to
 	VendorKey, CategoryKey        string
 }
 

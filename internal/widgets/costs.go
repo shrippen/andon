@@ -21,12 +21,13 @@ var costPeers = []enums.ServiceType{
 
 // CostConfig is the "homelab_cost" widget's config.
 type CostConfig struct {
+	BankScope
 	Yearly     bool // amounts per year
 	PowerSplit bool // the power cost per Proxmox guest
 }
 
 func init() {
-	Tile[CostConfig]{Key: "homelab_cost", Detail: homelabCostDetail, Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 3600,
+	Tile[CostConfig]{Key: "homelab_cost", Detail: homelabCostDetail, Category: CategoryInsight, Topic: TopicHomelab, RefreshS: 3600, Accounts: true,
 		Fields: []Field{sel("period", "month", "month", "year"), {Key: "power_split", Input: InputCheck, Default: true}},
 		Decode: func(r Raw) CostConfig {
 			return CostConfig{Yearly: r.Pick("period") == "year", PowerSplit: r.Bool("power_split")}

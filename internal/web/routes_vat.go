@@ -99,7 +99,8 @@ func vatSteps(r *http.Request) []vatcheck.Step {
 	}
 	for _, k := range r.PostForm["pick"] {
 		s := vatcheck.Step{Txn: k, Action: metrics.BankAction(r.PostForm.Get("act_" + k)), Expense: r.PostForm.Get("exp_" + k),
-			Invoice: r.PostForm.Get("inv_" + k), Vendor: r.PostForm.Get("vendor_" + k), Category: r.PostForm.Get("cat_" + k)}
+			Invoice: r.PostForm.Get("inv_" + k), Payment: r.PostForm.Get("pay_" + k), Vendor: r.PostForm.Get("vendor_" + k), Category: r.PostForm.Get("cat_" + k)}
+		s.Scan, _ = strconv.ParseInt(r.PostForm.Get("scan_"+k), 10, 64)
 		if rate, err := strconv.ParseFloat(r.PostForm.Get("tax_"+k), 64); err == nil {
 			s.TaxRate, s.Taxed = rate, true
 		}

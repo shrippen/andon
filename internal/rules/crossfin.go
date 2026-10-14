@@ -139,7 +139,7 @@ func subscriptionUnused(_ any, cfg map[string]any, env Env) []Finding {
 }
 
 func spendableNegative(_ any, _ map[string]any, env Env) []Finding {
-	sure, ok1 := metrics.BankOf(env.Datasets)
+	sure, ok1 := businessBank(env)
 	ninja, ok2 := env.Datasets[ninjaSvc].(*sources.NinjaDataset)
 	if !ok1 || !ok2 {
 		return nil

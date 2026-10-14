@@ -375,6 +375,7 @@ typefield:
   conn_health:
     only_problems: Only shaky now (last 2 days)
 field:
+  bank_accounts: Accounts
   providers: 'Only these providers (claudeapi, claudeplan, openrouter, openai, deepseek, litellm)'
   site: Site
   hours: History (hours)
@@ -665,6 +666,9 @@ field:
   list_height: 'List height'
   show_meals: 'Show meal plan'
 opt:
+  accounts_all: All accounts
+  business: Business accounts
+  private: Private accounts
   hackernews: 'Hacker News'
   lobsters: 'Lobsters'
   reddit: 'Reddit'
@@ -6127,6 +6131,7 @@ gallery:
   deleted: 'Deleted: {n}'
 audit_action:
   vatcheck:
+    payment: 'Transaction linked to its payment'
     skip: 'Transaction archived as private'
     restore: 'Archived transaction restored'
     link: 'Transaction linked to expense'
@@ -6986,6 +6991,14 @@ llm:
     requests: 'Requests'
     cost: 'Cost'
 vatcheck:
+  scan: Receipt
+  no_scan: No receipt from Paperless
+  scan_option: 'Receipt: {title} of {day} (score {score})'
+  do_scan: 'link receipt “{title}”'
+  problem_scan: 'Expense created, the receipt could not be linked. Do it under Receipts.'
+  act_payment: Link to the payment booked already
+  payment_line: 'Payment {number} of {day}, booked already (say from billing)'
+  do_payment: 'Link the transaction to payment {number}'
   accounts_title: Accounts
   accounts_lead: 'What is each account for? Andon proposes debits of private accounts only when the vendor already has expenses, say the train pass paid privately. The role holds for the whole connection, in a bundle for the linked account in Sure too, and for every evaluation.'
   accounts_unknown: 'not set'

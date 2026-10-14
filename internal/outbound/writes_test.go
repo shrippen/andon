@@ -455,3 +455,16 @@ func TestNinjaBankArchive(t *testing.T) {
 		t.Fatalf("restore: %v", err)
 	}
 }
+
+func TestNinjaBankLinkToPayment(t *testing.T) {
+	var f fake
+	to := f.serve(t, answer(http.StatusOK, `{"data":[{"id":"B3","status_id":"3"}]}`))
+
+	if err := outbound.NinjaBankLink(context.Background(), to, "B3", outbound.NinjaBankTarget{Payment: "P9"}); err != nil {
+		t.Fatalf("link: %v", err)
+	}
+	want := roundTrip(t, map[string]any{"transactions": []any{map[string]any{"id": "B3", "payment_id": "P9"}}})
+	if got := f.one(t).json(t); !reflect.DeepEqual(any(got), want) {
+		t.Fatalf("body = %v, want %v", got, want)
+	}
+}

@@ -86,6 +86,7 @@ const (
 
 // KpiConfig is the "kpi" widget's config.
 type KpiConfig struct {
+	BankScope
 	Metric  Metric
 	Compare string  // prev_year (default), prev_month, off
 	Target  float64 // 0 = none; colours the value
@@ -114,7 +115,7 @@ const (
 var lowerBetter = map[Metric]bool{MetricOpenAmount: true, MetricOverdueAmount: true, MetricVATLiability: true, MetricUnbilled: true}
 
 func init() {
-	Tile[KpiConfig]{Key: "kpi", Detail: kpiDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
+	Tile[KpiConfig]{Key: "kpi", Detail: kpiDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true, Accounts: true,
 		Fields: []Field{sel("metric", string(MetricRevenueYTD), "hours_today", "hours_week", "hours_month", "utilization", "unbilled",
 			"revenue_ytd", "revenue_month", "open_amount", "overdue_amount", "vat_liability", "tax_reserve",
 			"asset_value", "assets_ready", "revenue_forecast", "cash_30", "liquidity_30", "effective_rate", "net_worth", "cash", "safe_to_spend"),
@@ -212,6 +213,7 @@ func shapeKpi(kpi *KpiResult, cfg KpiConfig, data any, today time.Time) {
 
 // TableConfig is the "table" widget's config.
 type TableConfig struct {
+	BankScope
 	Table    TableKind
 	Limit    int
 	HideCols []string // column names (as shown, any language) or keys, lower case
@@ -220,7 +222,7 @@ type TableConfig struct {
 }
 
 func init() {
-	Tile[TableConfig]{Key: "table", Width: WidthFull, Detail: tableDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true,
+	Tile[TableConfig]{Key: "table", Width: WidthFull, Detail: tableDetail, Category: CategoryInsight, Topic: TopicAnalysis, RefreshS: 600, DataChoice: true, Accounts: true,
 		Fields: []Field{sel("table", "open_invoices", "open_invoices", "unbilled", "budgets", "client_shares", "asset_dates", "trips", "trip_customers", "destinations", "effective_rates", "app_usage", "payment_morale",
 			"full_rates", "unbilled_aging", "payment_matches", "missing_receipts", "subscriptions", "budget_forecast", "project_margins", "exposure", "domain_chain"),
 			sel("sort", sortAsIs, sortAsIs, sortAmountDesc, sortAmountAsc, sortName, sortDate), {Key: "limit", Input: InputNumber, Default: 8, Min: "1", Max: "50"},

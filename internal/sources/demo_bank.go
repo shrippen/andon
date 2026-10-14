@@ -8,6 +8,8 @@ package sources
 //	Kabelwerk               no expense; history tells vendor, category, tax
 //	Nordhost                no expense, no history; Sure knows the merchant
 //	the overdue invoice     paid, the income is open
+//	the last payment        booked by hand in Ninja, its income is open
+//	a scan without expense  its debit is open: the new expense gets the scan
 //	office supplies         unknown payee: a case for the language model
 //	music streaming         private, paid from the business account
 //	private account         train pass (business, paid privately) and
@@ -107,6 +109,15 @@ func demoNinjaBank(today time.Time, data *NinjaDataset) {
 		NinjaBankTxn{Key: "demo-p-refund", Date: iso(today.AddDate(0, 0, -13)), Description: "Erstattung", Payer: "Krankenkasse",
 			Amount: 120, Status: BankOpen, Account: demoPrivate, AccountKey: demoPrivateKey})
 
+	// A scan in Paperless waits for its expense; its debit is open.
+	for _, r := range demoReceipts(today) {
+		if r.expense == "" && len(r.docs) > 0 && iso(r.day) >= since {
+			data.BankTxns = append(data.BankTxns, NinjaBankTxn{Key: "demo-b-scan", Date: iso(r.day), Description: r.notes,
+				Payer: r.vendor, Amount: r.amount, Debit: true, Status: BankOpen})
+			break
+		}
+	}
+
 	// The overdue invoice, paid: open until it is booked.
 	for _, inv := range data.Invoices {
 		if inv.Balance > 0 && inv.Status == "sent" {
@@ -117,6 +128,15 @@ func demoNinjaBank(today time.Time, data *NinjaDataset) {
 	}
 	for i := range data.Invoices {
 		data.Invoices[i].Key = fmt.Sprintf("demo-i%d", data.Invoices[i].ID)
+	}
+	for i := range data.Payments {
+		p := &data.Payments[i]
+		p.Key, p.Number = fmt.Sprintf("demo-pay%d", p.ID), fmt.Sprintf("Z-%04d", p.ID)
+	}
+	if n := len(data.Payments); n > 0 && data.Payments[n-1].Date >= since {
+		last := data.Payments[n-1]
+		data.BankTxns = append(data.BankTxns, NinjaBankTxn{Key: "demo-b-booked", Date: last.Date, Description: "Zahlung",
+			Payer: demoClientName(data, last.ClientID), Amount: last.Amount, Status: BankOpen})
 	}
 	for i := range data.BankTxns {
 		if data.BankTxns[i].Account == "" {

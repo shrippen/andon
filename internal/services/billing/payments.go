@@ -5,7 +5,8 @@ package billing
 //	Payments: spaces the caller edits with Sure and Invoice Ninja →
 //	          metrics.PaymentMatches on stored data
 //	Book:     fresh data, the match must still hold → payment in Ninja
-//	          for exactly the booked amount (at most the open balance)
+//	          for exactly the booked amount (at most the open balance);
+//	          through Ninja's bank feed when it holds the income
 
 import (
 	"context"
@@ -75,6 +76,10 @@ func loadBank(ctx context.Context, d *sql.DB, who *access.Principal, b bank, fre
 	}
 	sure, _ := s.Data.(*sources.SureDataset)
 	ninja, _ := n.Data.(*sources.NinjaDataset)
+	if sure != nil {
+		// Clients pay into the business accounts (all, before any has a role).
+		sure = sure.Only(sources.RoleBusiness)
+	}
 	return sure, ninja, nil
 }
 
@@ -149,8 +154,17 @@ func Book(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, sureID
 		return err
 	}
 	amount := min(match.Txn.Amount, match.Invoice.Balance)
-	if err := outbound.NinjaPayment(ctx, outbound.Target{URL: b.ninja.URL, Token: token, VerifyTLS: b.ninja.VerifyTLS}, clientKey, match.Invoice.Key, amount,
-		match.Day.Format(time.DateOnly), match.Txn.Name); err != nil {
+	to := outbound.Target{URL: b.ninja.URL, Token: token, VerifyTLS: b.ninja.VerifyTLS}
+
+	// The income in Ninja's bank feed is booked to the invoice, so the
+	// payment and the transaction are one (the VAT check finds it done);
+	// Ninja pays at most the balance. Without a feed: the payment alone.
+	if twin, ok := metrics.FeedTwin(ninja, match.Txn.Amount, match.Day); ok {
+		err = outbound.NinjaBankLink(ctx, to, twin.Key, outbound.NinjaBankTarget{Invoices: []string{match.Invoice.Key}})
+	} else {
+		err = outbound.NinjaPayment(ctx, to, clientKey, match.Invoice.Key, amount, match.Day.Format(time.DateOnly), match.Txn.Name)
+	}
+	if err != nil {
 		return err
 	}
 	svcdata.Forget(b.ninja.ID)

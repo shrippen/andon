@@ -27,6 +27,7 @@ func vatBook() (*sources.NinjaDataset, *sources.SureDataset) {
 		Categories: []sources.NinjaCategory{{Key: "c1", Name: "Technik"}, {Key: "c2", Name: "Hosting"}},
 		Clients:    []sources.NinjaClient{{ID: 1, Name: "Northlight Pictures"}},
 		Invoices:   []sources.NinjaInvoice{{ID: 7, Key: "i7", Number: "R-2026-017", ClientID: 1, Status: "sent", Amount: 2380, Balance: 2380}},
+		Payments:   []sources.NinjaPayment{{Key: "p1", Number: "Z-0001", ClientID: 1, Date: "2026-09-17", Amount: 500}},
 		Expenses: []sources.NinjaExpense{
 			{Key: "e1", VendorKey: "v1", CategoryKey: "c1", Date: "2026-08-20", Amount: 89.7, Tax: 14.32, TaxName: "MwSt.", TaxRate: 19, TxnKey: "b0"},
 			{Key: "e2", VendorKey: "v2", Date: "2026-09-02", Amount: 39.95, Tax: 6.38},
@@ -43,6 +44,7 @@ func vatBook() (*sources.NinjaDataset, *sources.SureDataset) {
 			{Key: "b6", Date: "2026-09-01", Payer: "DB Fernverkehr AG", Description: "Deutschlandticket", Amount: 58, Debit: true, Status: sources.BankOpen, Account: private, Role: sources.RolePrivate},
 			{Key: "b7", Date: "2026-09-02", Payer: "Supermarkt", Amount: 64.2, Debit: true, Status: sources.BankOpen, Account: private, Role: sources.RolePrivate},
 			{Key: "b8", Date: "2026-09-02", Payer: "Arbeitgeber", Amount: 900, Status: sources.BankOpen, Account: private, Role: sources.RolePrivate},
+			{Key: "b9", Date: "2026-09-18", Payer: "Northlight Pictures", Amount: 500, Status: sources.BankOpen, Account: business, Role: sources.RoleBusiness},
 		},
 	}
 	sure := &sources.SureDataset{Accounts: []sources.SureAccount{{Name: business, Role: sources.RoleBusiness}, {Name: private, Role: sources.RolePrivate}},
@@ -68,8 +70,13 @@ func TestBankCases(t *testing.T) {
 	for _, c := range cases {
 		byKey[c.Txn.Key] = c
 	}
-	if len(cases) != 6 || byKey["b0"].Txn.Key != "" || byKey["b5"].Txn.Key != "" || byKey["b8"].Txn.Key != "" {
+	if len(cases) != 7 || byKey["b0"].Txn.Key != "" || byKey["b5"].Txn.Key != "" || byKey["b8"].Txn.Key != "" {
 		t.Fatalf("booked, archived and private incomes must drop out: %+v", cases)
+	}
+
+	// An income whose payment Ninja has already.
+	if c := byKey["b9"]; c.Action != metrics.ActionPayment || c.Payment == nil || c.Payment.Key != "p1" {
+		t.Errorf("b9: %+v", c)
 	}
 
 	// Paid privately: a vendor with expenses is proposed, the rest waits.
@@ -109,8 +116,8 @@ func TestBankCases(t *testing.T) {
 func TestVATCheck(t *testing.T) {
 	in := september()
 	check := metrics.VATCheckOf(in, metrics.BankCases(in))
-	if check.Open != 5 || check.Proposed != 5 {
-		t.Errorf("open %d proposed %d, want 5 and 5", check.Open, check.Proposed)
+	if check.Open != 6 || check.Proposed != 6 {
+		t.Errorf("open %d proposed %d, want 6 and 6", check.Open, check.Proposed)
 	}
 
 	// The feed ends on 20 Sep, the period on 30 Sep, which is past.

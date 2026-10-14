@@ -7,10 +7,12 @@ package receipts
 //	FindExpenses   the expenses a scan could belong to, searched by hand
 //	FindCombos     1∶n combos of one expense on request
 //	Draft, Create  a new Invoice Ninja expense from a scan, then linked
+//	ScansFor       the scans fitting an expense about to be created
 
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"slices"
 	"sort"
 	"strconv"
@@ -274,4 +276,39 @@ func Create(ctx context.Context, d *sql.DB, who *access.Principal, docID int64, 
 		return "", FetchError{err.Error()}
 	}
 	return Link(ctx, d, who, key, []int64{docID}, ip)
+}
+
+// scansOffered is how many scans a new expense is offered.
+const scansOffered = 3
+
+// ScansFor are the free scans fitting an expense about to be created
+// (the VAT check's "create expense"), best first, from a fair score up.
+// Nothing when the user's receipts pair is another Invoice Ninja or its
+// fields are not chosen: the link could not be written.
+func ScansFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int64, amount float64, day, vendor string) ([]Candidate, error) {
+	p, err := openPair(d, who)
+	if errors.Is(err, ErrNoPair) || (err == nil && (p.ninja.ID != ninjaID || !p.mapping.Complete())) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	year, err := strconv.Atoi(day[:min(len(day), len("2006"))])
+	if err != nil {
+		return nil, nil
+	}
+	docs, err := p.docSet(ctx, d, who, year)
+	if err != nil {
+		return nil, err
+	}
+
+	x, e := p.matcher(), sources.ReceiptExpense{Amount: amount, Day: day, Vendor: vendor}
+	var out []Candidate
+	for _, doc := range p.free(docs.Docs) {
+		if c := x.score(e, doc); c.Score >= levelMid {
+			out = append(out, c)
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Score > out[j].Score })
+	return out[:min(len(out), scansOffered)], nil
 }

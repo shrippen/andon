@@ -28,6 +28,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/assist"
 	"andon/internal/services/connections"
+	"andon/internal/services/receipts"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/verbund"
 	"andon/internal/sources"
@@ -77,10 +78,12 @@ type Page struct {
 	Guessed  bool   // it answered for this period
 }
 
-// Case is one open transaction with the model's reading, if asked.
+// Case is one open transaction with the model's reading, if asked, and
+// the Paperless scans fitting a new expense.
 type Case struct {
 	metrics.BankCase
 	Guess *assist.Guess
+	Scans []receipts.Candidate
 }
 
 // Account is a bank account of Invoice Ninja or Sure and its role.
@@ -149,6 +152,9 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, s
 			cs.Guess = &g
 			p.Guessed = true
 			b.apply(&cs)
+		}
+		if cs.Txn.Debit && cs.Action == metrics.ActionCreate {
+			cs.Scans, _ = receipts.ScansFor(ctx, d, who, b.conn.ID, cs.Txn.Amount, cs.Txn.Date, cs.Draft.Vendor)
 		}
 		if cs.Waiting() {
 			p.Cases = append(p.Cases, cs)

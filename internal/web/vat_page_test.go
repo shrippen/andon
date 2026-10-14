@@ -102,3 +102,24 @@ func TestVerbundAccounts(t *testing.T) {
 		t.Fatalf("/vat does not show the role:\n%s", vat)
 	}
 }
+
+// TestVATScanOffer: a debit without expense, whose scan waits in
+// Paperless, is offered the scan for its new expense.
+func TestVATScanOffer(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	for _, service := range []string{"invoiceninja", "paperless"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
+	}
+	now := time.Now().UTC()
+	for _, month := range []string{now.Format("2006-01"), now.AddDate(0, -1, 0).Format("2006-01")} {
+		if page := string(mustGet(t, srv, client, "/vat?span="+month)); strings.Contains(page, `name="scan_demo-b-scan"`) {
+			return
+		}
+	}
+	t.Fatal("no scan offered for the debit of a waiting scan")
+}
