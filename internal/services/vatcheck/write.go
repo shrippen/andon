@@ -249,7 +249,7 @@ type writer struct {
 func (w *writer) Name(p Planned) string { return p.Item.Txn.Payer }
 
 func (w *writer) Audit(p Planned) map[string]any {
-	return map[string]any{"txn": p.Item.Txn.Key, "amount": fmt.Sprintf("%.2f", p.Item.Txn.Amount)}
+	return map[string]any{"txn": p.Item.Txn.Key, "amount": fmt.Sprintf("%.2f", p.Item.Txn.Amount), "scope": w.scope.Key}
 }
 
 // Reason is a refusal's text: a known one's key, else the message.

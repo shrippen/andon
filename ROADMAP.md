@@ -1237,8 +1237,8 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
      - [x] Jede Verknüpfung über die Prüfseite: auch die Beleg-Suche von Hand, der Sammelbeleg von Hand und „Belege zuerst“ (verknüpfen, neue Ausgabe aus dem Beleg als Schritt `scan-<id>`); nur „Rückgängig“ nach dem Lösen schreibt sofort
      - [x] Claude prüft auf Wunsch die Belege der Prüfseite: Brutto und Umsatzsteuer gegen Betrag und Vorsteuer der Ausgabe (Steuersatz `tax_rate1`, inklusive); gelesene Belege bleiben gespeichert
      - [x] USt-Zeitraum: `/receipts?span=2026-09|2026-Q3` zeigt nur dessen Ausgaben (Zähler ebenso, Chip zum Aufheben); `/vat` zählt im Stand die Ausgaben ohne Beleg und springt dorthin
-   - [ ] Hinweis → erledigen: Hinweise mit Werkbank springen zum Fall
-   - [ ] Schreib-Journal: alle Schreibvorgänge aus dem Audit-Log, Rückgängig wo der Dienst es kann
+   - [x] Hinweis → erledigen: „Ausgabe nicht erfasst“ (`cross.expense_unrecorded`) führt in den USt-Abgleich zum Zeitraum der Buchung (`/vat?span=…#cases`, Knopf „Im USt-Abgleich erledigen“); erledigt dort, verschwindet der Hinweis beim nächsten Lauf. Weitere Hinweise folgen mit ihren Werkbänken *(Paperless-Rechnung ohne Ausgabe bleibt bei Paperless: „Belege zuerst“ zeigt nur markierte Belege)*
+   - [x] Schreib-Journal (`/journal`, Kontomenü): was Andon für den Nutzer in andere Dienste geschrieben hat (USt-Abgleich, Belege, Mail → Paperless, Abrechnung, Kimai, Haushalt), nach Bereich; „Rückgängig“ für „als privat archiviert“ (wieder zeigen) und „Beleg verknüpft“ (lösen). Dafür tragen die Audit-Einträge Verbund und Ausgabe; ältere Einträge ohne sie bleiben ohne Rückgängig
 2. Kategorien im Verbund — zwei Zuordnungen: Sure-Kategorie/Tags → interne Ninja-Ausgabenkategorie, und interne Kategorie → EÜR-Kategorie. Die EÜR-Kategorie steht in Invoice Ninja schon als Zusatzfeld der Ausgabe (`custom_value1–4`, Bezeichnung aus `company.custom_fields.expense1–4`); Andon schlägt den Wert vor und setzt ihn nach OK
 3. Auf `/vat`
    - [ ] Reverse Charge (§ 13b) bei ausländischen Lieferanten ohne Steuer

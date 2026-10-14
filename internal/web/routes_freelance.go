@@ -221,6 +221,7 @@ func (d Deps) RegisterBillingRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /billing/payment", d.authed(d.handlePaymentBook))
 	d.registerReceiptRoutes(mux)
 	d.registerVATRoutes(mux)
+	d.registerJournalRoutes(mux)
 }
 
 // handlePaymentBook books a matched bank income in Invoice Ninja.

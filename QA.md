@@ -115,6 +115,11 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 4. „ZIP herunterladen“: CSVs prüfen (Lieferant gefüllt?, Zahlen wie auf den Seiten).
 5. „An Paperless“ bei einer Rechnungsmail.
 
+**J-C3 Schreib-Journal**
+1. Kontomenü → „Schreib-Journal“: nach einem Abgleich auf `/vat` und einer Verknüpfung auf `/receipts` stehen beide oben; Bereichs-Chips filtern.
+2. „Rückgängig“ bei „als privat archiviert“ zeigt den Umsatz auf `/vat` wieder, bei „Beleg verknüpft“ löst es beide Seiten; das Zurücknehmen steht danach selbst im Journal.
+3. Hinweis „Ausgabe nicht erfasst“ → „Im USt-Abgleich erledigen“ öffnet `/vat` beim Zeitraum der Buchung.
+
 **J-C2 Belege**
 1. `/receipts`, Reiter „Zu verknüpfen“ (Belegjagd): je Ausgabe einen Beleg, einen Sammelbeleg oder eine Rechnungsmail wählen (sichere Treffer vorgewählt, j/k und Enter wählen) → „Auswahl prüfen“ zeigt jeden Schritt → „Schreiben“ (Demo lehnt ab: nur Fehler, kein Erfolgshinweis daneben).
    - Beleg-Suche von Hand, „Belege zuerst“ und „Als Ausgabe anlegen“ führen ebenfalls auf die Prüfseite; dort „Belege von Claude prüfen lassen“ (nur mit KI).

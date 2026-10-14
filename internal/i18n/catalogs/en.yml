@@ -31,6 +31,7 @@ nav:
   clients: 'Customers'
   hosts: 'Hosts'
 action:
+  work_in_vat: 'Settle in the VAT check'
   open_in_claudeapi: 'Open in Claude Console'
   open_in_claudeplan: 'Open in claude.ai'
   open_in_openrouter: 'Open in OpenRouter'
@@ -7127,3 +7128,44 @@ workbench:
   scope_open: 'Several bundles fit. Andon shows the first; pick the one you work with.'
   scope_switch: 'Switch'
   needs_token: 'own token missing'
+journal:
+  title: Write journal
+  lead: 'What Andon wrote to other services for you, newest first. Where the service allows it, you take it back here.'
+  areas: Areas
+  area_all: All
+  area_vat: VAT check
+  area_receipts: Receipts
+  area_billing: Billing
+  area_kimai: Kimai
+  area_home: Household
+  when: When
+  what: What
+  target: For
+  undo: Undo
+  undone: 'Taken back.'
+  empty: 'Nothing written yet.'
+  not_found: 'There is no such entry.'
+  no_undo: 'This cannot be taken back.'
+  act_vatcheck_link: 'Transaction linked to expense'
+  act_vatcheck_create: 'Expense created and linked'
+  act_vatcheck_invoice: 'Payment booked to invoice'
+  act_vatcheck_payment: 'Transaction linked to payment'
+  act_vatcheck_skip: 'Transaction archived as private'
+  act_vatcheck_restore: 'Transaction shown again'
+  act_receipts_link: 'Receipt linked'
+  act_receipts_unlink: 'Receipt unlinked'
+  act_mail_to_paperless: 'Mail sent to Paperless'
+  act_billing_draft: 'Invoice draft created'
+  act_billing_payment: 'Payment booked'
+  act_kimai_start: 'Timer started'
+  act_kimai_stop: 'Timer stopped'
+  act_kimai_switch: 'Timer switched'
+  act_kimai_create: 'Time entered'
+  act_kimai_edit: 'Time changed'
+  act_kimai_delete: 'Time deleted'
+  act_kimai_split: 'Time split'
+  act_travel_ride_class: 'Ride classified'
+  act_hass_toggle: 'Device switched'
+  act_dns_pause: 'DNS filter paused'
+  act_grocy_shopping_add: 'Added to the shopping list'
+  act_tandoor_check: 'Shopping item ticked'
