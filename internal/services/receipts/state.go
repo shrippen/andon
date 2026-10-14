@@ -13,7 +13,7 @@ import (
 
 // prefKey is the user pref holding the receipts page's state:
 //
-//	{"ninja": 3, "paperless": 5,                     the chosen connections
+//	{"scope": "v4",                                   the chosen Verbund (workbench.Scope)
 //	 "ignored": {"n3": ["Kx9"], "p5": [44]},          hidden per connection
 //	 "reasons": {"n3/Kx9": "private"},                why, where given
 //	 "aliases": [["hetzner", "hetzner online gmbh"]], learned vendor names
@@ -22,8 +22,7 @@ const prefKey = "receipts"
 
 // state is the pref, decoded.
 type state struct {
-	Ninja      int64               `json:"ninja,omitempty"`
-	Paperless  int64               `json:"paperless,omitempty"`
+	Scope      string              `json:"scope,omitempty"`
 	Ignored    map[string][]string `json:"ignored,omitempty"`
 	Reasons    map[string]Reason   `json:"reasons,omitempty"`
 	Aliases    Aliases             `json:"aliases,omitempty"`

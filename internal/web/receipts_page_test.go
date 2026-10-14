@@ -35,22 +35,32 @@ func TestReceiptsPage(t *testing.T) {
 		conns[c.name] = regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1]
 	}
 
+	// One Ninja, two Paperless, no Verbund: the page asks for one.
 	page = string(mustGet(t, srv, client, "/receipts"))
-	if !strings.Contains(page, "Mit welchen Verbindungen arbeiten?") || !strings.Contains(page, "Archiv A") || !strings.Contains(page, "Archiv B") {
-		t.Fatalf("no pick offered:\n%s", page)
-	}
-	if strings.Contains(page, `id="receipts-part"`) {
-		t.Fatal("suggestions load before the pick")
+	if !strings.Contains(page, "Welche gehören zusammen?") || strings.Contains(page, `id="receipts-part"`) {
+		t.Fatalf("no Verbund asked for:\n%s", page)
 	}
 
-	resp := postForm(t, client, srv.URL+"/receipts/pick", url.Values{"csrf": {csrfToken(t, srv, client)}, "ninja": {conns["Ninja"]}, "paperless": {conns["Archiv B"]}})
-	if resp.StatusCode != http.StatusSeeOther {
-		t.Fatalf("pick: %d", resp.StatusCode)
+	// Two Verbünde: the first shows, the page offers the other; a pick sticks.
+	for _, v := range []struct{ name, docs string }{{"Studio", "Archiv A"}, {"Verein", "Archiv B"}} {
+		postForm(t, client, srv.URL+"/verbund", url.Values{"csrf": {csrfToken(t, srv, client)}, "name": {v.name}, "conn": {conns["Ninja"], conns[v.docs]}})
 	}
 	page = string(mustGet(t, srv, client, "/receipts"))
-	if strings.Contains(page, "Mit welchen Verbindungen arbeiten?") || !strings.Contains(page, `id="receipts-part"`) ||
-		!regexp.MustCompile(`name="paperless" value="`+conns["Archiv B"]+`" checked`).MatchString(page) {
-		t.Fatalf("pick not remembered or no switch bar:\n%s", page)
+	if !strings.Contains(page, "Mehrere Verbünde passen") || !strings.Contains(page, ">Verein</option>") || !strings.Contains(page, `id="receipts-part"`) {
+		t.Fatalf("no Verbund pick offered:\n%s", page)
+	}
+	key := regexp.MustCompile(`<option value="(v\d+)">Verein</option>`).FindStringSubmatch(page)
+	if key == nil {
+		t.Fatalf("no key for Verein:\n%s", page)
+	}
+	resp, err := client.Get(srv.URL + "/receipts?scope=" + key[1])
+	if err != nil || resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("pick: %v %v", resp, err)
+	}
+	resp.Body.Close()
+	page = string(mustGet(t, srv, client, "/receipts"))
+	if strings.Contains(page, "Mehrere Verbünde passen") || !strings.Contains(page, `<option value="`+key[1]+`" selected>Verein</option>`) {
+		t.Fatalf("pick not remembered:\n%s", page)
 	}
 
 	part := string(mustGet(t, srv, client, "/receipts/part?tab=match"))
@@ -63,9 +73,9 @@ func TestReceiptsPage(t *testing.T) {
 		t.Fatalf("raw key, or the linked expense suggested:\n%s", part)
 	}
 
-	// The 1∶n combo comes by itself, the sure match is offered in bulk,
-	// the tab chips get their numbers.
-	for _, want := range []string{"2 Belege", "Sichere Treffer", `value="demo1:201" checked`, `id="receipts-tab-match" href="/receipts?tab=match&amp;year=`, `hx-swap-oob="true"`} {
+	// The 1∶n combo comes by itself, the sure match is picked for the
+	// review, the tab chips get their numbers.
+	for _, want := range []string{"2 Belege", `name="choice_demo1" value="link:201" form="hunt" data-link checked`, `name="case" value="demo1" form="hunt"`, `id="receipts-tab-match" href="/receipts?tab=match&amp;year=`, `hx-swap-oob="true"`} {
 		if !strings.Contains(part, want) {
 			t.Fatalf("suggestions lack %q:\n%s", want, part)
 		}
@@ -164,7 +174,6 @@ func receiptsClient(t *testing.T) (*httptest.Server, *http.Client) {
 			"service": {svc}, "name": {svc}, "url": {"demo://" + svc}, "mode": {"shared"}, "tls": {"verify"}})
 		conns[svc] = regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1]
 	}
-	postForm(t, client, srv.URL+"/receipts/pick", url.Values{"csrf": {csrfToken(t, srv, client)}, "ninja": {conns["invoiceninja"]}, "paperless": {conns["paperless"]}})
 	return srv, client
 }
 
@@ -207,17 +216,34 @@ func TestReceiptCountsMatchLists(t *testing.T) {
 	}
 }
 
-// TestReceiptLinkManyRefused: a refused bulk link shows the refusal
-// only, not "linked: 0" as a success.
-func TestReceiptLinkManyRefused(t *testing.T) {
+// TestReceiptHunt: the review spells out the picks and sends them back
+// as they were; the demo refuses the write, and the page says so only.
+func TestReceiptHunt(t *testing.T) {
 	_, get, post := receiptsDemo(t)
-	resp := post("/receipts/link-many", url.Values{"pair": {"demo1:201"}})
-	loc := resp.Header.Get("Location")
-	if !strings.Contains(loc, "error=receipts.err_demo") || strings.Contains(loc, "linked=") {
-		t.Fatalf("refused bulk link: %s", loc)
+	srv, client := receiptsClient(t)
+	year := strconv.Itoa(time.Now().Year())
+	resp, err := client.PostForm(srv.URL+"/receipts/review", url.Values{"csrf": {csrfToken(t, srv, client)}, "year": {year},
+		"case": {"demo1", "demo5", "demo9"}, "choice_demo1": {"link:201"}, "choice_demo5": {""}, "choice_demo9": {"link:999"}})
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("review: %v %v", resp, err)
 	}
-	if page := get("/receipts?linked=0"); strings.Contains(page, "Verknüpft: 0") {
-		t.Fatal("zero links shown as a success")
+	review := readBody(t, resp)
+	for _, want := range []string{"Belegjagd bestätigen", "Schreibvorgänge: 1", `name="act_demo1" value="link"`, `name="docs_demo1" value="201"`} {
+		if !strings.Contains(review, want) {
+			t.Fatalf("review lacks %q:\n%s", want, review)
+		}
+	}
+	if strings.Contains(review, "act_demo5") || strings.Contains(review, "act_demo9") {
+		t.Fatalf("review sends back a step without pick or with a problem:\n%s", review)
+	}
+
+	resp = post("/receipts/apply", url.Values{"year": {year}, "pick": {"demo1"}, "act_demo1": {"link"}, "docs_demo1": {"201"}})
+	loc := resp.Header.Get("Location")
+	if !strings.Contains(loc, "error=receipts.err_demo") || strings.Contains(loc, "hunted=") {
+		t.Fatalf("hunt on the demo: %s", loc)
+	}
+	if page := get("/receipts?hunted=0"); strings.Contains(page, "Erledigt: 0") {
+		t.Fatal("zero steps shown as a success")
 	}
 }
 

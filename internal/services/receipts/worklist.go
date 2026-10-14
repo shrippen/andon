@@ -3,7 +3,6 @@ package receipts
 // Helpers of the page around the two lists:
 //
 //	CountsOf       what waits in each tab and year (the tab and year chips)
-//	LinkMany       confirms several sure matches in one go
 //	FindExpenses   the expenses a scan could belong to, searched by hand
 //	FindCombos     1∶n combos of one expense on request
 //	Draft, Create  a new Invoice Ninja expense from a scan, then linked
@@ -107,23 +106,6 @@ func perYear(list []sources.ReceiptExpense) map[int]int {
 		}
 	}
 	return out
-}
-
-// Pair is one expense with the scans to link to it.
-type Pair struct {
-	Expense string
-	Docs    []int64
-}
-
-// LinkMany links pair after pair and stops at the first error; it
-// returns how many it linked.
-func LinkMany(ctx context.Context, d *sql.DB, who *access.Principal, pairs []Pair, ip string) (int, error) {
-	for i, pr := range pairs {
-		if _, err := Link(ctx, d, who, pr.Expense, pr.Docs, ip); err != nil {
-			return i, err
-		}
-	}
-	return len(pairs), nil
 }
 
 // ExpenseSearch is the expenses a scan could belong to.

@@ -63,7 +63,8 @@ func loginOf(conn *model.Connection, err error) error {
 type Item struct {
 	MailConn  int64
 	Mailbox   string
-	Paperless bool
+	Paperless bool            // the mailbox has a Paperless to send to
+	ToDocs    int64           // that Paperless
 	Read      *assist.Invoice // nil until read
 	sources.MailInvoice
 }
@@ -147,6 +148,9 @@ func List(ctx context.Context, d *sql.DB, who *access.Principal) (items []Item, 
 				continue
 			}
 			item := Item{MailConn: mail.ID, Mailbox: mail.Name, Paperless: paperless != nil, MailInvoice: inv}
+			if paperless != nil {
+				item.ToDocs = paperless.ID
+			}
 			if hasRead(fields) {
 				item.Read = invoiceOf(fields)
 			}

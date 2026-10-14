@@ -83,7 +83,8 @@ type Bench[P any] interface {
 	Name(p Planned[P]) string
 	// Reason is a refused write's text: an i18n key or the service's message.
 	Reason(err error) string
-	// Audit is what the audit entry of a written step records.
+	// Audit is what the audit entry of a written step records; nil
+	// writes none, for a write that logs its own.
 	Audit(p Planned[P]) map[string]any
 }
 
@@ -155,7 +156,9 @@ func Apply[P any](ctx context.Context, d *sql.DB, who *access.Principal, b Bench
 		} else {
 			out.Done++
 		}
-		_ = auditsvc.Log(d, &who.UserID, audit+"."+p.Action, target, ip, b.Audit(p))
+		if details := b.Audit(p); details != nil {
+			_ = auditsvc.Log(d, &who.UserID, audit+"."+p.Action, target, ip, details)
+		}
 	}
 	return out
 }

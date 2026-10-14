@@ -345,7 +345,7 @@
         var step = e.key === "j" ? 1 : -1;
         focusOn(items[(at + step + items.length) % items.length]);
       } else if (e.key === "Enter" && here && d.activeElement === here) {
-        var link = here.querySelector("button[data-link]");
+        var link = here.querySelector("[data-link]");
         if (link) {
           e.preventDefault();
           link.click();

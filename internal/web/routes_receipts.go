@@ -2,15 +2,16 @@ package web
 
 // The receipts page links Invoice Ninja expenses to Paperless scans:
 //
-//	GET  /receipts               shell: connection pick, tabs, year
+//	GET  /receipts               shell: Verbund pick (?scope=…, kept), tabs, year
 //	GET  /receipts/part          one tab's content (htmx, can be slow)
 //	GET  /receipts/search        manual scan search for one expense (htmx)
 //	GET  /receipts/combos        1∶n combos of one expense, on request (htmx)
 //	GET  /receipts/expenses      manual expense search for one scan (htmx)
 //	GET  /receipts/new-expense   a new expense, filled from a scan (htmx)
 //	GET  /receipts/thumb/{id}    a scan's thumbnail, through Andon (CSP)
-//	POST /receipts/pick          which Invoice Ninja and Paperless to use
-//	POST /receipts/link|link-many|unlink|ignore|fields|new-expense
+//	POST /receipts/review        the hunt: the picks spelled out, to confirm
+//	POST /receipts/apply         writes the confirmed picks
+//	POST /receipts/link|unlink|ignore|fields|new-expense
 
 import (
 	"errors"
@@ -23,6 +24,7 @@ import (
 	"time"
 
 	"andon/internal/services/receipts"
+	"andon/internal/services/workbench"
 )
 
 // Tabs of the receipts page.
@@ -108,9 +110,9 @@ func (d Deps) registerReceiptRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /receipts/expenses", d.authed(d.handleReceiptExpenses))
 	mux.HandleFunc("GET /receipts/new-expense", d.authed(d.handleReceiptDraft))
 	mux.HandleFunc("POST /receipts/new-expense", d.authed(d.handleReceiptCreate))
-	mux.HandleFunc("POST /receipts/link-many", d.authed(d.handleReceiptLinkMany))
+	mux.HandleFunc("POST /receipts/review", d.authed(d.handleReceiptReview))
+	mux.HandleFunc("POST /receipts/apply", d.authed(d.handleReceiptApply))
 	mux.HandleFunc("GET /receipts/thumb/{id}", d.authed(d.handleReceiptThumb))
-	mux.HandleFunc("POST /receipts/pick", d.authed(d.handleReceiptsPick))
 	mux.HandleFunc("POST /receipts/link", d.authed(d.handleReceiptLink))
 	mux.HandleFunc("POST /receipts/unlink", d.authed(d.handleReceiptUnlink))
 	mux.HandleFunc("POST /receipts/ignore", d.authed(d.handleReceiptIgnore))
@@ -118,6 +120,17 @@ func (d Deps) registerReceiptRoutes(mux *http.ServeMux) {
 }
 
 func (d Deps) handleReceipts(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	q := receiptsQueryOf(r)
+
+	// A Verbund picked (bench_scopes) is kept for the next visit.
+	if scope := r.URL.Query().Get(benchScope); scope != "" {
+		if err := receipts.Choose(d.DB, ctx.Who, scope); err != nil {
+			http.Redirect(w, r, q.back("error", errKey(err)), http.StatusSeeOther)
+			return
+		}
+		http.Redirect(w, r, "/receipts?"+q.Values().Encode(), http.StatusSeeOther)
+		return
+	}
 	setup, err := receipts.SetupOf(d.DB, ctx.Who)
 	if err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
@@ -125,11 +138,12 @@ func (d Deps) handleReceipts(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	}
 	query := r.URL.Query()
 
-	// A success only for at least one link; "0" is no news.
-	linked, _ := strconv.Atoi(query.Get("linked"))
+	// A success only for at least one step; "0" is no news.
+	hunted, _ := strconv.Atoi(query.Get("hunted"))
+	failed, _ := strconv.Atoi(query.Get("failed"))
 	_ = d.Page(w, ctx, "receipts", http.StatusOK, map[string]any{
-		"Setup": setup, "Q": receiptsQueryOf(r), "Tabs": receiptTabs, "Years": years(),
-		"Done": query.Get("done"), "Error": query.Get("error"), "Note": query.Get("note"), "Linked": linked, "Other": query.Get("other"),
+		"Setup": setup, "Q": q, "Tabs": receiptTabs, "Years": years(),
+		"Done": query.Get("done"), "Error": query.Get("error"), "Note": query.Get("note"), "Hunted": hunted, "Failed": failed, "Who": query.Get("who"), "Reason": query.Get("reason"), "Other": query.Get("other"),
 		"Undo": receiptUndo{Expense: query.Get("undo_expense"), Doc: query.Get("undo_doc")},
 	})
 }
@@ -267,32 +281,56 @@ func (d Deps) handleReceiptCreate(w http.ResponseWriter, r *http.Request, ctx Ct
 	}
 }
 
-// handleReceiptLinkMany links the sure matches ticked, "Kx9:201" each.
-func (d Deps) handleReceiptLinkMany(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+// huntSteps reads the match tab's picks: case=Kx9 per expense, in page
+// order, and its choice: choice_Kx9=link:12,13 | mail:5:4711 | "".
+func huntSteps(form url.Values) []workbench.Step {
+	var out []workbench.Step
+	for _, k := range form["case"] {
+		act, rest, _ := strings.Cut(form.Get("choice_"+k), ":")
+		switch act {
+		case receipts.ActLink:
+			out = append(out, workbench.Step{Case: k, Action: act, Fields: map[string]string{receipts.FieldDocs: rest}})
+		case receipts.ActMail:
+			out = append(out, workbench.Step{Case: k, Action: act, Fields: map[string]string{receipts.FieldMail: rest}})
+		}
+	}
+	return out
+}
+
+// handleReceiptReview shows what the picks would write; nothing is
+// written yet.
+func (d Deps) handleReceiptReview(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := receiptsQueryOf(r)
 	if err := r.ParseForm(); err != nil {
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	var pairs []receipts.Pair
-	for _, v := range r.PostForm["pair"] {
-		key, raw, ok := strings.Cut(v, ":")
-		id, err := strconv.ParseInt(raw, 10, 64)
-		if ok && err == nil && key != "" {
-			pairs = append(pairs, receipts.Pair{Expense: key, Docs: []int64{id}})
-		}
-	}
-	done, err := receipts.LinkMany(r.Context(), d.DB, ctx.Who, pairs, d.clientIP(r))
-	if err != nil && done == 0 {
-		// Nothing linked: the refusal alone, no "linked: 0".
+	plan, err := receipts.Review(r.Context(), d.DB, ctx.Who, q.Year, huntSteps(r.PostForm))
+	if err != nil {
 		http.Redirect(w, r, q.back("error", receiptError(err)), http.StatusSeeOther)
 		return
 	}
-	if err != nil {
-		http.Redirect(w, r, q.back("error", receiptError(err), "linked", strconv.Itoa(done)), http.StatusSeeOther)
+	_ = d.Page(w, ctx, "receipts_review", http.StatusOK, map[string]any{"Plan": plan, "Q": q})
+}
+
+// handleReceiptApply writes the steps the review showed and the user
+// confirmed; each is checked again against fresh data.
+func (d Deps) handleReceiptApply(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	q := receiptsQueryOf(r)
+	if err := r.ParseForm(); err != nil {
+		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	http.Redirect(w, r, q.back("linked", strconv.Itoa(done)), http.StatusSeeOther)
+	res, err := receipts.Apply(r.Context(), d.DB, ctx.Who, q.Year, benchSteps(r.PostForm, receipts.HuntFields), d.clientIP(r))
+	if err != nil {
+		http.Redirect(w, r, q.back("error", receiptError(err)), http.StatusSeeOther)
+		return
+	}
+	var more []string
+	if f := res.Failed; len(f) > 0 {
+		more = []string{"failed", strconv.Itoa(len(f)), "who", f[0].Name, "reason", f[0].Reason}
+	}
+	http.Redirect(w, r, q.back("hunted", strconv.Itoa(res.Done), more...), http.StatusSeeOther)
 }
 
 // dateOrEmpty keeps a well-formed "2026-08-01" only.
@@ -320,17 +358,6 @@ func (d Deps) handleReceiptThumb(w http.ResponseWriter, r *http.Request, ctx Ctx
 	w.Header().Set("Content-Type", kind)
 	w.Header().Set("Cache-Control", thumbCache)
 	w.Write(body)
-}
-
-func (d Deps) handleReceiptsPick(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	ninja := formID(r, "ninja")
-	paperless := formID(r, "paperless")
-	q := receiptsQueryOf(r)
-	if err := receipts.Choose(d.DB, ctx.Who, ninja, paperless); err != nil {
-		http.Redirect(w, r, q.back("error", errKey(err)), http.StatusSeeOther)
-		return
-	}
-	http.Redirect(w, r, "/receipts?"+q.Values().Encode(), http.StatusSeeOther)
 }
 
 func (d Deps) handleReceiptLink(w http.ResponseWriter, r *http.Request, ctx Ctx) {

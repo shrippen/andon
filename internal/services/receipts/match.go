@@ -147,6 +147,7 @@ type ExpenseMatch struct {
 	Candidates []Candidate
 	Combos     []Combo
 	Covered    []Candidate
+	Mails      []MailHit // invoice mails not yet in Paperless
 }
 
 // Sure tells whether the best scan leaves no doubt: exact amount, a high
