@@ -116,3 +116,16 @@ func TestCategoriesWithoutVerbund(t *testing.T) {
 		t.Fatalf("euer after setup:\n%s", page)
 	}
 }
+
+// The reminders page opens on a demo Invoice Ninja.
+func TestDunningPage(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+		"service": {"invoiceninja"}, "name": {"Ninja"}, "url": {"demo://invoiceninja"}, "mode": {"shared"}, "tls": {"verify"}})
+	if page := string(mustGet(t, srv, client, "/dunning")); !strings.Contains(page, "Mahnlauf") || strings.Contains(page, "dunning.") {
+		t.Fatalf("dunning page:\n%s", page)
+	}
+}

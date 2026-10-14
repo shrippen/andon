@@ -257,6 +257,9 @@ func DemoNinja(now time.Time) *NinjaDataset {
 	overdue := &invoices[len(invoices)-inv.Overdue.FromEnd]
 	overdue.Status, overdue.Balance, overdue.DueDate = "sent", overdue.Amount, inv.Overdue.Due
 	overdue.Reminded, overdue.NextSend = inv.Overdue.Reminded, inv.Overdue.NextSend
+	if overdue.Reminded != "" {
+		overdue.Stage = 1
+	}
 	kept := payments[:0]
 	for _, p := range payments {
 		if p.ID != overdue.ID {
@@ -276,10 +279,16 @@ func DemoNinja(now time.Time) *NinjaDataset {
 		Quotes:        []NinjaQuote{quote},
 		Recurring:     []NinjaRecurring{inv.Recurring},
 		HomeCountryID: b.Countries["DE"],
+		Reminders:     demoReminders,
 	}
 	demoNinjaBank(today, out)
 	return out
 }
+
+// demoReminders is the demo's reminder schedule: 7, 14 and 28 days after
+// the due date.
+var demoReminders = [ReminderStages]NinjaReminder{{Enabled: true, Days: 7, Schedule: AfterDueDate},
+	{Enabled: true, Days: 14, Schedule: AfterDueDate}, {Enabled: true, Days: 28, Schedule: AfterDueDate}}
 
 // demoNumber fills a number pattern: "R-{year}-{n}" → "R-2026-007".
 func demoNumber(pattern string, issued time.Time, n int64) string {

@@ -130,9 +130,16 @@ func init() {
 		map[string]any{"info_share": 0.5, "warn_share": 5.0 / 6.0}, on(clientConcentration))
 }
 
+// workInDunning leads an overdue hint to the dunning workbench.
+const workInDunning = "work_in_dunning"
+
 func invoiceOverdue(data *sources.NinjaDataset, cfg map[string]any, env Env) []Finding {
 	var found []Finding
 	byClient := map[int64][]overdueInvoice{}
+	remind := map[string]bool{}
+	for _, c := range metrics.DunningCases(data, metrics.Today(env.Today)) {
+		remind[c.Key] = true
+	}
 	for _, inv := range metrics.NinjaOpenInvoices(data, env.Today) {
 		if inv.OverdueDays <= 0 {
 			continue
@@ -148,7 +155,7 @@ func invoiceOverdue(data *sources.NinjaDataset, cfg map[string]any, env Env) []F
 		if level > enums.SeverityInfo {
 			byClient[inv.ClientID] = append(byClient[inv.ClientID], overdueInvoice{inv, level})
 		}
-		found = append(found, Finding{
+		f := Finding{
 			Fingerprint: fmt.Sprintf("overdue:%d", inv.ID), Severity: level, Message: msg,
 			Params: map[string]any{
 				"number": inv.Number, "client": inv.Client, "days": inv.OverdueDays,
@@ -156,7 +163,13 @@ func invoiceOverdue(data *sources.NinjaDataset, cfg map[string]any, env Env) []F
 			},
 			ActionURL: ninjaURL(data, fmt.Sprintf("invoices/%d/edit", inv.ID)), ActionLabel: ninjaOpen,
 			Sources: []string{ninjaSource},
-		})
+		}
+		// A reminder is due by Invoice Ninja's schedule: the dunning
+		// workbench sends it.
+		if remind[inv.Key] {
+			f.ActionURL, f.ActionLabel = "/dunning", workInDunning
+		}
+		found = append(found, f)
 	}
 	return bundleOverdue(found, byClient, cfgInt(cfg, "bundle_from"), data)
 }
@@ -211,7 +224,14 @@ func quoteOpen(data *sources.NinjaDataset, cfg map[string]any, env Env) []Findin
 			continue
 		}
 		age := int(env.Today.Sub(sent).Hours() / 24)
-		if age < cfgInt(cfg, "days") {
+
+		// Invoice Ninja's validity (the quote's due date) decides; without
+		// one, the rule's days.
+		if until, ok := metrics.ParseDay(q.ValidUntil); ok {
+			if !env.Today.After(until) {
+				continue
+			}
+		} else if age < cfgInt(cfg, "days") {
 			continue
 		}
 		found = append(found, Finding{

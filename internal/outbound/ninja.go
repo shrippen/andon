@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"andon/internal/drivers/services"
@@ -139,5 +140,19 @@ func NinjaBankArchive(ctx context.Context, to Target, txnKey string, action Bank
 func NinjaVendorArchive(ctx context.Context, to Target, vendorKey string) error {
 	_, err := services.NinjaApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}.Post(ctx, "vendors/bulk",
 		map[string]any{"action": "archive", "ids": []string{vendorKey}})
+	return err
+}
+
+// NinjaReminder sends an invoice's reminder (stage 1–3) by Invoice
+// Ninja's mail, with subject and body if given (else its template's).
+func NinjaReminder(ctx context.Context, to Target, invoiceKey string, stage int, subject, body string) error {
+	payload := map[string]any{"entity": "invoice", "entity_id": invoiceKey, "template": "email_template_reminder" + strconv.Itoa(stage)}
+	if subject != "" {
+		payload["subject"] = subject
+	}
+	if body != "" {
+		payload["body"] = body
+	}
+	_, err := services.NinjaApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}.Post(ctx, "emails", payload)
 	return err
 }

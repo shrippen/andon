@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/rules"
 	"andon/internal/sources"
 )
 
@@ -47,5 +48,23 @@ func TestDepotRules(t *testing.T) {
 	env.Datasets = map[string]any{"sure": sure, "invoiceninja": ninja, "ghostfolio": g}
 	if got := run(t, "cross.depot_reserve", nil, env); len(got) != 1 {
 		t.Fatalf("reserve: %+v", got)
+	}
+}
+
+// A quote counts as open once Invoice Ninja's validity has passed; one
+// without validity after the rule's days.
+func TestQuoteOpenValidity(t *testing.T) {
+	data := &sources.NinjaDataset{Quotes: []sources.NinjaQuote{
+		{ID: 1, Status: "sent", Date: "2026-09-01", ValidUntil: "2026-10-20"}, // still valid
+		{ID: 2, Status: "sent", Date: "2026-10-01", ValidUntil: "2026-10-10"}, // expired
+		{ID: 3, Status: "sent", Date: "2026-09-01"},                           // 43 days, no validity
+	}}
+	env := rules.Env{Today: time.Date(2026, 10, 14, 0, 0, 0, 0, time.UTC)}
+	got := map[string]bool{}
+	for _, f := range run(t, "in.quote_open", data, env) {
+		got[f.Fingerprint] = true
+	}
+	if len(got) != 2 || !got["quote:2"] || !got["quote:3"] {
+		t.Errorf("quotes: %v", got)
 	}
 }

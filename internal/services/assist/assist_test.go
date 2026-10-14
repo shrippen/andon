@@ -157,3 +157,23 @@ func TestClassifyOff(t *testing.T) {
 		t.Fatalf("err = %v, want ErrOff", err)
 	}
 }
+
+// A reminder comes back as subject and body; garbage is refused.
+func TestDraftReminder(t *testing.T) {
+	real := complete
+	t.Cleanup(func() { complete = real; Init(settings.Settings{}) })
+	Init(settings.Settings{AnthropicAPIKey: "k"})
+	var asked string
+	complete = func(_ context.Context, _, _, prompt string, _ []outbound.LLMFile) (string, error) {
+		asked = prompt
+		return `{"subject": "Erinnerung R-12", "body": "Hallo, …"}`, nil
+	}
+	text, err := DraftReminder(context.Background(), enums.LocaleDE, Reminder{Client: "Werft", Number: "R-12", Stage: 1})
+	if err != nil || text.Subject != "Erinnerung R-12" || !strings.Contains(asked, "German") || !strings.Contains(asked, `"Number":"R-12"`) {
+		t.Fatalf("draft: %+v %v\n%s", text, err, asked)
+	}
+	complete = func(context.Context, string, string, string, []outbound.LLMFile) (string, error) { return "nein", nil }
+	if _, err := DraftReminder(context.Background(), enums.LocaleDE, Reminder{}); !errors.Is(err, ErrUnreadable) {
+		t.Fatalf("garbage: %v", err)
+	}
+}
