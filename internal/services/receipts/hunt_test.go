@@ -35,3 +35,20 @@ func TestMailHits(t *testing.T) {
 		t.Errorf("ref: %s", hits[0].Ref())
 	}
 }
+
+// A VAT period keeps its month's or quarter's expenses; a bad key keeps all.
+func TestInSpan(t *testing.T) {
+	list := []sources.ReceiptExpense{{Key: "a", Day: "2026-07-31"}, {Key: "b", Day: "2026-08-01"}, {Key: "c", Day: "2026-10-01"}, {Key: "d"}}
+	keys := func(l []sources.ReceiptExpense) string {
+		out := ""
+		for _, e := range l {
+			out += e.Key
+		}
+		return out
+	}
+	for span, want := range map[string]string{"2026-08": "b", "2026-Q3": "ab", "": "abcd", "nonsense": "abcd"} {
+		if got := keys(inSpan(list, span)); got != want {
+			t.Errorf("%q: %s, want %s", span, got, want)
+		}
+	}
+}

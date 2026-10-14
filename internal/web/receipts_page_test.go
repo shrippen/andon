@@ -326,3 +326,23 @@ func TestReceiptFieldsKeepChoice(t *testing.T) {
 		}
 	}
 }
+
+// A VAT period from /vat narrows "to link" to its expenses; the chip
+// takes it away again.
+func TestReceiptSpan(t *testing.T) {
+	_, get, _ := receiptsDemo(t)
+	now := time.Now()
+	if now.Month() == time.December {
+		t.Skip("needs a month after this one")
+	}
+	year := strconv.Itoa(now.Year())
+	all := get("/receipts/part?tab=match&year=" + year)
+	empty := get("/receipts/part?tab=match&span=" + year + "-12")
+	if !strings.Contains(all, "EX-00") || strings.Contains(empty, "EX-00") {
+		t.Fatalf("span filter: all has expenses %v, December has none %v", strings.Contains(all, "EX-00"), !strings.Contains(empty, "EX-00"))
+	}
+	page := get("/receipts?tab=match&span=" + year + "-12")
+	if !strings.Contains(page, "Zeitraum "+year+"-12") || !strings.Contains(page, `href="/receipts?tab=match&amp;year=`+year+`"`) {
+		t.Fatalf("span chip:\n%s", page)
+	}
+}

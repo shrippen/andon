@@ -64,7 +64,7 @@ func (c Counts) Year(year int) int {
 // CountsOf counts the lists of the tabs for the year, and the open tab's
 // list per year, with the same filters the lists use (open, queued,
 // linkedOf). Reads come from the cache the tabs fill.
-func CountsOf(ctx context.Context, d *sql.DB, who *access.Principal, tab string, year int) (Counts, error) {
+func CountsOf(ctx context.Context, d *sql.DB, who *access.Principal, tab string, year int, span string) (Counts, error) {
 	p, err := openPair(d, who)
 	if err != nil || !p.mapping.Complete() {
 		return Counts{}, err
@@ -76,7 +76,7 @@ func CountsOf(ctx context.Context, d *sql.DB, who *access.Principal, tab string,
 	}
 	out.Ignored = len(p.state.ignored(KindExpense, p.ninja.ID)) + len(p.state.ignored(KindDoc, p.docs.ID))
 	open, linked := p.open(set.Expenses), p.mapping.linkedOf(set.Expenses)
-	out.Match, out.Linked = len(inYear(open, year)), len(inYear(linked, year))
+	out.Match, out.Linked = len(inSpan(inYear(open, year), span)), len(inYear(linked, year))
 	switch tab {
 	case "match":
 		out.Years, out.AllYears = perYear(open), true

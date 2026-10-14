@@ -43,6 +43,9 @@ var (
 	ErrDemo = errors.New("vatcheck.err_demo")
 )
 
+// receiptsTab is the receipts page's list of expenses without a scan.
+const receiptsTab = "match"
+
 // spansShown is how many periods the page offers, this one included.
 const spansShown = 5
 
@@ -73,6 +76,7 @@ type Page struct {
 	Method   string // ist, soll
 	Currency string
 	URL      string // Invoice Ninja, for links
+	Receipts int    // the period's expenses without a scan (receipts), -1 unknown
 	Assist   bool   // the language model is set up
 	Guessed  bool   // it answered for this period
 }
@@ -162,6 +166,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 		} else {
 			p.Apart = append(p.Apart, cs)
 		}
+	}
+	p.Receipts = -1
+	if c, err := receipts.CountsOf(ctx, d, who, receiptsTab, p.Span.Start.Year(), p.Span.Key); err == nil && c.Ready {
+		p.Receipts = c.Match
 	}
 	for _, t := range b.ninja.BankTxns {
 		if t.Archived && inSpan(t.Date, p.Span) {

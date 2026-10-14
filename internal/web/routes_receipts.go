@@ -47,7 +47,11 @@ type receiptsQuery struct {
 	Tab  string
 	Year int
 	Find string
+	Span string // a VAT period within Year ("2026-09", "2026-Q3"), from /vat
 }
+
+// spanKey is a VAT period's key: a month or a quarter.
+var spanKey = regexp.MustCompile(`^(\d{4})-(\d{2}|Q[1-4])$`)
 
 func receiptsQueryOf(r *http.Request) receiptsQuery {
 	q := receiptsQuery{Tab: r.FormValue("tab"), Find: strings.TrimSpace(r.FormValue("find"))}
@@ -55,8 +59,12 @@ func receiptsQueryOf(r *http.Request) receiptsQuery {
 		q.Tab = tabMatch
 	}
 	q.Year, _ = strconv.Atoi(r.FormValue("year"))
+	if m := spanKey.FindStringSubmatch(r.FormValue("span")); m != nil {
+		q.Span = m[0]
+		q.Year, _ = strconv.Atoi(m[1])
+	}
 	if now := time.Now().Year(); q.Year > now || q.Year < now-yearsBack {
-		q.Year = now
+		q.Year, q.Span = now, ""
 	}
 	return q
 }
@@ -67,6 +75,9 @@ func (q receiptsQuery) Values() url.Values {
 	if q.Find != "" {
 		v.Set("find", q.Find)
 	}
+	if q.Span != "" {
+		v.Set("span", q.Span)
+	}
 	return v
 }
 
@@ -76,6 +87,9 @@ func (q receiptsQuery) Link(key, value string) string {
 	v.Set(key, value)
 	if key == "tab" {
 		v.Del("find")
+	}
+	if key == "year" || (key == "span" && value == "") {
+		v.Del("span")
 	}
 	return "/receipts?" + v.Encode()
 }
@@ -171,13 +185,13 @@ func (d Deps) receiptsPart(w http.ResponseWriter, r *http.Request, ctx Ctx, q re
 	case tabFields:
 		values["V"], err = receipts.Fields(r.Context(), d.DB, ctx.Who)
 	default:
-		values["V"], err = receipts.Suggest(r.Context(), d.DB, ctx.Who, q.Year)
+		values["V"], err = receipts.Suggest(r.Context(), d.DB, ctx.Who, q.Year, q.Span)
 	}
 	if err != nil {
 		values["Error"], values["Mapping"] = receiptError(err), errors.Is(err, receipts.ErrMapping)
 	}
 	// The tab and year chips get their numbers with the part.
-	values["Counts"], _ = receipts.CountsOf(r.Context(), d.DB, ctx.Who, q.Tab, q.Year)
+	values["Counts"], _ = receipts.CountsOf(r.Context(), d.DB, ctx.Who, q.Tab, q.Year, q.Span)
 	values["Tabs"], values["Years"] = receiptTabs, years()
 	if extra != nil {
 		extra(values)

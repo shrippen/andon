@@ -6415,6 +6415,8 @@ today:
   now: 'Stand {time}'
   empty: Heute steht nichts an.
 receipts:
+  span: 'Zeitraum {span}'
+  span_clear: 'Ganzes Jahr zeigen'
   do_create: 'Neue Ausgabe bei {vendor} vom {day} anlegen und mit dem Beleg verknüpfen:'
   open_page: 'Belege den Ausgaben zuordnen →'
   count: '{n} Ausgaben ohne Beleg'
@@ -7007,6 +7009,8 @@ llm:
     requests: 'Anfragen'
     cost: 'Kosten'
 vatcheck:
+  check_receipts: 'Ausgaben ohne Beleg: {n}'
+  check_receipts_done: 'Jede Ausgabe hat ihren Beleg.'
   scan: Beleg
   no_scan: Ohne Beleg aus Paperless
   scan_option: 'Beleg: {title} vom {day} (Treffer {score})'

@@ -6414,6 +6414,8 @@ today:
   now: 'As of {time}'
   empty: Nothing on today.
 receipts:
+  span: 'Period {span}'
+  span_clear: 'Show the whole year'
   do_create: 'Create a new expense with {vendor} of {day} and link the receipt:'
   open_page: 'Match receipts to expenses →'
   count: '{n} expenses without receipt'
@@ -7006,6 +7008,8 @@ llm:
     requests: 'Requests'
     cost: 'Cost'
 vatcheck:
+  check_receipts: 'Expenses without a receipt: {n}'
+  check_receipts_done: 'Every expense has its receipt.'
   scan: Receipt
   no_scan: No receipt from Paperless
   scan_option: 'Receipt: {title} of {day} (score {score})'
