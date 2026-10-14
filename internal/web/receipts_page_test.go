@@ -122,13 +122,19 @@ func TestReceiptsPage(t *testing.T) {
 			t.Fatalf("hand-made combo lacks %q:\n%s", want, picked)
 		}
 	}
-	resp = postForm(t, client, srv.URL+"/receipts/link", url.Values{"csrf": {csrfToken(t, srv, client)}, "expense": {"demo5"}, "doc": {"204", "205"}})
-	if loc := resp.Header.Get("Location"); !strings.Contains(loc, "error=receipts.err_demo") {
-		t.Fatalf("hand-made combo: %s", loc)
+	if !strings.Contains(picked, `action="/receipts/review"`) || strings.Contains(picked, `action="/receipts/link"`) {
+		t.Fatalf("a search links without review:\n%s", picked)
+	}
+	resp, err = client.PostForm(srv.URL+"/receipts/review", url.Values{"csrf": {csrfToken(t, srv, client)}, "expense": {"demo5"}, "doc": {"204", "205"}})
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("hand-made combo review: %v %v", resp, err)
+	}
+	if review := readBody(t, resp); !strings.Contains(review, `name="docs_demo5" value="204,205"`) {
+		t.Fatalf("hand-made combo review:\n%s", review)
 	}
 
 	// Demo connections take no writes; the page says so.
-	resp = postForm(t, client, srv.URL+"/receipts/link", url.Values{"csrf": {csrfToken(t, srv, client)}, "expense": {"demo1"}, "docs": {"201"}})
+	resp = postForm(t, client, srv.URL+"/receipts/apply", url.Values{"csrf": {csrfToken(t, srv, client)}, "pick": {"demo1"}, "act_demo1": {"link"}, "docs_demo1": {"201"}})
 	if loc := resp.Header.Get("Location"); !strings.Contains(loc, "error=receipts.err_demo") {
 		t.Fatalf("link on demo: %s", loc)
 	}
@@ -250,7 +256,7 @@ func TestReceiptHunt(t *testing.T) {
 // TestReceiptTabSurvivesCreate: "new expense" from "receipts first"
 // returns there, as do the expense search and its links.
 func TestReceiptTabSurvivesCreate(t *testing.T) {
-	_, get, post := receiptsDemo(t)
+	_, get, _ := receiptsDemo(t)
 	year := strconv.Itoa(time.Now().Year())
 	queue := get("/receipts/part?tab=queue&year=" + year)
 	for _, path := range []string{"/receipts/new-expense?", "/receipts/expenses?"} {
@@ -263,28 +269,38 @@ func TestReceiptTabSurvivesCreate(t *testing.T) {
 	if !strings.Contains(form, `name="tab" value="queue"`) {
 		t.Fatalf("form loses the tab:\n%s", form)
 	}
-	resp := post("/receipts/new-expense", url.Values{"doc": {"206"}, "tab": {"queue"}, "year": {year}, "amount": {"72,14"}, "day": {year + "-10-01"}, "vendor": {"Tankstelle"}})
-	if loc := resp.Header.Get("Location"); !strings.Contains(loc, "tab=queue") {
-		t.Fatalf("create returns to %s", loc)
+	if !strings.Contains(form, `action="/receipts/review"`) {
+		t.Fatalf("new expense without review:\n%s", form)
 	}
 }
 
-// A new expense refused in its panel comes back there with the error
-// and what was typed; the page stays.
+// A new expense is reviewed first; the review keeps what was typed and
+// names a missing amount.
 func TestReceiptCreateKeepsInput(t *testing.T) {
 	srv, client := receiptsClient(t)
 	year := strconv.Itoa(time.Now().Year())
 	form := url.Values{"csrf": {csrfToken(t, srv, client)}, "doc": {"206"}, "tab": {"queue"}, "year": {year},
 		"amount": {"72.14"}, "day": {year + "-10-01"}, "vendor": {"Typed Vendor"}, "notes": {"Typed note"}}
-	status, body := browse(t, client, http.MethodPost, srv.URL+"/receipts/new-expense", form, map[string]string{"HX-Request": "true"})
-	if status != http.StatusOK {
-		t.Fatalf("refusal in the panel: %d", status)
+	resp, err := client.PostForm(srv.URL+"/receipts/review", form)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("review: %v %v", resp, err)
 	}
-	for _, want := range []string{i18n.T("receipts.err_demo", enums.LocaleDE, nil), `value="Typed Vendor"`, `value="Typed note"`,
-		`value="72.14"`, `value="` + year + `-10-01"`, `name="tab" value="queue"`, `hx-post="/receipts/new-expense"`} {
+	body := readBody(t, resp)
+	for _, want := range []string{`name="act_scan-206" value="create"`, `name="vendor_scan-206" value="Typed Vendor"`, `name="notes_scan-206" value="Typed note"`,
+		`name="amount_scan-206" value="72.14"`, `name="day_scan-206" value="` + year + `-10-01"`, `name="tab" value="queue"`, "Neue Ausgabe bei Typed Vendor"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("%q missing:\n%s", want, body)
 		}
+	}
+
+	// Without an amount the review names the problem and offers no write.
+	form.Set("amount", "")
+	resp, err = client.PostForm(srv.URL+"/receipts/review", form)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if body := readBody(t, resp); !strings.Contains(body, i18n.T("receipts.err_amount", enums.LocaleDE, nil)) || strings.Contains(body, "act_scan-206") {
+		t.Errorf("no amount:\n%s", body)
 	}
 }
 

@@ -6415,6 +6415,7 @@ today:
   now: 'Stand {time}'
   empty: Heute steht nichts an.
 receipts:
+  do_create: 'Neue Ausgabe bei {vendor} vom {day} anlegen und mit dem Beleg verknüpfen:'
   open_page: 'Belege den Ausgaben zuordnen →'
   count: '{n} Ausgaben ohne Beleg'
   search: In Paperless suchen

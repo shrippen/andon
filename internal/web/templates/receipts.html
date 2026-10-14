@@ -114,8 +114,9 @@
 {{/* A pick for the hunt's review (form "hunt"): one per expense. */}}
 {{define "receipt_choose"}}<label class="check receipt-choose"><input type="radio" name="choice_{{.Expense}}" value="{{.Value}}" form="hunt" data-link{{if .Picked}} checked{{end}}><span class="check-dia"></span>{{.Label}}</label>{{end}}
 
+{{/* One link from a search or the scan-first tab: reviewed first. */}}
 {{define "receipt_link"}}
-<form method="post" action="/receipts/link" class="inline-form">
+<form method="post" action="/receipts/review" class="inline-form">
   <input type="hidden" name="{{.P.CSRFField}}" value="{{.P.Ctx.CSRF}}">{{template "receipt_back" .P.Q}}
   <input type="hidden" name="expense" value="{{.Expense}}"><input type="hidden" name="docs" value="{{.Docs}}">
   <button type="submit" class="btn btn-accent" data-link>{{.Label}}</button>
@@ -415,7 +416,7 @@
   {{else}}{{if not .Error}}<p class="small muted">{{t "receipts.search_none"}}</p>{{end}}{{end}}
   {{if $v.Hits}}
   {{/* Ticked scans link together; the sum shows how close they come. */}}
-  <form method="post" action="/receipts/link" id="{{$pick}}" class="receipt-pick" data-target="{{printf "%g" $e.Amount}}">
+  <form method="post" action="/receipts/review" id="{{$pick}}" class="receipt-pick" data-target="{{printf "%g" $e.Amount}}">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">{{template "receipt_back" .Q}}
     <input type="hidden" name="expense" value="{{$e.Key}}">
     <p class="small">{{t "receipts.pick_sum"}} <b data-pick-sum data-zero="{{money 0}}">{{money 0}}</b> {{t "receipts.pick_of" "amount" (money $e.Amount)}}
@@ -462,8 +463,8 @@
 {{end}}
 
 {{define "receipts_draft"}}{{$v := .S}}
-{{/* Posted in its panel: a refusal comes back here with what was typed. */}}
-<form method="post" action="/receipts/new-expense" class="receipt-search receipt-draft" hx-post="/receipts/new-expense" hx-target="this" hx-swap="outerHTML">
+{{/* Reviewed first; the review keeps what was typed. */}}
+<form method="post" action="/receipts/review" class="receipt-search receipt-draft">
   <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">{{template "receipt_back" .Q}}
   <input type="hidden" name="doc" value="{{$v.Doc.ID}}">
   <p class="small muted">{{t "receipts.new_expense_lead"}}</p>
@@ -499,13 +500,14 @@
       <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}{{$e := $i.Expense}}
         <li{{if .Problem}} class="late"{{end}}>
           {{if not .Problem}}{{template "bench_step" .Step}}{{end}}
-          <b>{{if $e.Key}}<a href="{{$.Plan.ExpenseURL $e.Key}}" target="_blank" rel="noopener">{{or $e.Number $e.Key}}</a> · {{or $e.Vendor "–"}} · {{money $e.Amount}}{{else}}{{.Case}}{{end}}</b><br>
+          <b>{{if $e.Key}}<a href="{{$.Plan.ExpenseURL $e.Key}}" target="_blank" rel="noopener">{{or $e.Number $e.Key}}</a> · {{or $e.Vendor "–"}} · {{money $e.Amount}}{{else if $i.New}}{{t "receipts.new_expense"}} · {{money $e.Amount}}{{else}}{{.Case}}{{end}}</b><br>
           {{if .Problem}}{{t (print .Problem)}}
           {{else if $i.Mail}}{{t "receipts.do_mail" "sender" $i.Mail.Sender "date" (day $i.Mail.Date)}}
+          {{else if $i.New}}{{t "receipts.do_create" "vendor" (or $i.New.Vendor "–") "day" (day $i.New.Day)}} <a href="{{$.Plan.DocURL (index $i.Docs 0).ID}}" target="_blank" rel="noopener">{{or (index $i.Docs 0).Title (print "#" (index $i.Docs 0).ID)}}</a>
           {{else}}{{t "receipts.do_link" "n" (len $i.Docs)}} {{range $n, $d := $i.Docs}}{{if $n}}, {{end}}<a href="{{$.Plan.DocURL $d.ID}}" target="_blank" rel="noopener">{{or $d.Title (print "#" $d.ID)}}</a>{{end}}{{end}}
         </li>{{end}}</ol>
       <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "receipts.hunt_apply" "n" .Plan.Writes}}</button>{{end}}
-        <a class="btn btn-quiet" href="{{.Q.Link "tab" "match"}}">{{t "receipts.back"}}</a></p>
+        <a class="btn btn-quiet" href="{{.Q.Link "tab" .Q.Tab}}">{{t "receipts.back"}}</a></p>
     </form>
   </main>
   {{template "foot" $}}

@@ -6414,6 +6414,7 @@ today:
   now: 'As of {time}'
   empty: Nothing on today.
 receipts:
+  do_create: 'Create a new expense with {vendor} of {day} and link the receipt:'
   open_page: 'Match receipts to expenses →'
   count: '{n} expenses without receipt'
   search: Search in Paperless
