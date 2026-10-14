@@ -139,18 +139,28 @@ func ninjaSlotLabels(ctx context.Context, api services.NinjaApi) [NinjaSlots]str
 // the "|" is a dropdown's comma-separated choices.
 var fieldKinds = []string{"single_line_text", "multi_line_text", "switch", "date", "number", "decimal", "url", "email", "phone"}
 
-// ninjaExpenseFields reads the expense custom fields with a dropdown's
-// choices; failures leave them unnamed.
-func ninjaExpenseFields(ctx context.Context, api services.NinjaApi) [NinjaSlots]ExpenseField {
-	var out [NinjaSlots]ExpenseField
+// ninjaCompany reads the company: settings and custom fields; nil if
+// Invoice Ninja does not answer.
+func ninjaCompany(ctx context.Context, api services.NinjaApi) map[string]any {
 	body, err := api.Get(ctx, "companies", nil)
 	if err != nil {
-		return out
+		return nil
 	}
 	company := asMap(body)
 	if list := asList(company["data"]); len(list) > 0 {
 		company = asMap(list[0])
 	}
+	return company
+}
+
+// ninjaExpenseFields reads the expense custom fields with a dropdown's
+// choices; failures leave them unnamed.
+func ninjaExpenseFields(ctx context.Context, api services.NinjaApi) [NinjaSlots]ExpenseField {
+	return expenseFieldsOf(ninjaCompany(ctx, api))
+}
+
+func expenseFieldsOf(company map[string]any) [NinjaSlots]ExpenseField {
+	var out [NinjaSlots]ExpenseField
 	fields := asMap(company["custom_fields"])
 	for i := range out {
 		label, kind, _ := strings.Cut(asStr(fields["expense"+strconv.Itoa(i+1)]), ninjaLabelSplit)
@@ -163,6 +173,32 @@ func ninjaExpenseFields(ctx context.Context, api services.NinjaApi) [NinjaSlots]
 				out[i].Options = append(out[i].Options, o)
 			}
 		}
+	}
+	return out
+}
+
+// flag reads a setting Invoice Ninja sends as bool, "1" or "true".
+func flag(v any) bool {
+	switch x := v.(type) {
+	case bool:
+		return x
+	case string:
+		return x == "1" || strings.EqualFold(x, "true")
+	case float64:
+		return x != 0
+	}
+	return false
+}
+
+// remindersOf reads the reminder schedule of the company settings:
+// enable_reminder1, num_days_reminder1, schedule_reminder1 …
+func remindersOf(company map[string]any) [ReminderStages]NinjaReminder {
+	var out [ReminderStages]NinjaReminder
+	settings := asMap(company["settings"])
+	for i := range out {
+		n := strconv.Itoa(i + 1)
+		out[i] = NinjaReminder{Enabled: flag(settings["enable_reminder"+n]), Days: int(asFloat(settings["num_days_reminder"+n])),
+			Schedule: ReminderSchedule(asStr(settings["schedule_reminder"+n]))}
 	}
 	return out
 }

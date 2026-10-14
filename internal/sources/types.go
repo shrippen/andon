@@ -118,6 +118,7 @@ type NinjaInvoice struct {
 	// Reminded is when the last reminder went out, NextSend when the
 	// next one goes (or the invoice is sent again); "" = none.
 	Reminded, NextSend string
+	Stage              int      // reminders sent so far (0–3)
 	Items              []string // line items: product key and notes, lower case
 }
 
@@ -309,12 +310,34 @@ type NinjaTaxRate struct {
 }
 
 type NinjaQuote struct {
-	ID       int64
-	Number   string
-	ClientID int64
-	Status   string
-	Date     string
-	Amount   float64
+	ID         int64
+	Number     string
+	ClientID   int64
+	Status     string
+	Date       string
+	ValidUntil string // the quote's due date in Invoice Ninja, "" none
+	Amount     float64
+}
+
+// ReminderStages is how many reminders Invoice Ninja schedules.
+const ReminderStages = 3
+
+// ReminderSchedule says what a reminder's days count from, as Invoice
+// Ninja's company settings name it.
+type ReminderSchedule string
+
+const (
+	AfterInvoiceDate ReminderSchedule = "after_invoice_date"
+	BeforeDueDate    ReminderSchedule = "before_due_date"
+	AfterDueDate     ReminderSchedule = "after_due_date"
+)
+
+// NinjaReminder is one reminder of Invoice Ninja's schedule (Settings →
+// Reminders): sent Days after or before its date, if enabled.
+type NinjaReminder struct {
+	Enabled  bool
+	Days     int
+	Schedule ReminderSchedule
 }
 
 type NinjaRecurring struct {
@@ -349,7 +372,9 @@ type NinjaDataset struct {
 	Categories   []NinjaCategory
 	// ExpenseFields are the expense custom fields, slot 1–4 at 0–3.
 	ExpenseFields [NinjaSlots]ExpenseField
-	TaxRates      []NinjaTaxRate
+	// Reminders is the company's reminder schedule (stage 1–3 at 0–2).
+	Reminders [ReminderStages]NinjaReminder
+	TaxRates  []NinjaTaxRate
 }
 
 // ── Snipe-IT ──

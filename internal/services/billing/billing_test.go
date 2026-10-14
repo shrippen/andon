@@ -182,7 +182,7 @@ func TestCreateDraftsInvoiceAndMarksSheets(t *testing.T) {
 	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimaiFake(t, &kimai))
 	testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &ninja, "Acme GmbH"))
 
-	number, err := billing.Create(context.Background(), d, who, space, 0, customerID, billing.MarkSheets, "")
+	number, err := billing.Create(context.Background(), d, who, space, 0, customerID, billing.MarkSheets, billing.NoTravel, "")
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -218,7 +218,7 @@ func TestCreateKeepSheetsSendsNoKimaiWrite(t *testing.T) {
 	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimaiFake(t, &kimai))
 	testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &ninja, "Acme GmbH"))
 
-	if _, err := billing.Create(context.Background(), d, who, space, 0, customerID, billing.KeepSheets, ""); err != nil {
+	if _, err := billing.Create(context.Background(), d, who, space, 0, customerID, billing.KeepSheets, billing.NoTravel, ""); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 	if got := kimai.list(); len(got) != 0 {
@@ -236,10 +236,10 @@ func TestCreateRefusesUnknownClientOrCustomer(t *testing.T) {
 	testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &ninja, "Someone Else"))
 	ctx := context.Background()
 
-	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.MarkSheets, ""); !errors.Is(err, billing.ErrNoClient) {
+	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.MarkSheets, billing.NoTravel, ""); !errors.Is(err, billing.ErrNoClient) {
 		t.Fatalf("unknown client: %v", err)
 	}
-	if _, err := billing.Create(ctx, d, who, space, 0, 999, billing.MarkSheets, ""); !errors.Is(err, billing.ErrNothing) {
+	if _, err := billing.Create(ctx, d, who, space, 0, 999, billing.MarkSheets, billing.NoTravel, ""); !errors.Is(err, billing.ErrNothing) {
 		t.Fatalf("unknown customer: %v", err)
 	}
 	if got := append(kimai.list(), ninja.list()...); len(got) != 0 {
@@ -313,7 +313,7 @@ func TestCreateAndBookNeedEditRight(t *testing.T) {
 	ctx := context.Background()
 
 	for name, target := range map[string]int64{"stranger's space": space, "instance space": instance.ID} {
-		if _, err := billing.Create(ctx, d, user, target, 0, customerID, billing.MarkSheets, ""); !errors.Is(err, access.ErrDenied) {
+		if _, err := billing.Create(ctx, d, user, target, 0, customerID, billing.MarkSheets, billing.NoTravel, ""); !errors.Is(err, access.ErrDenied) {
 			t.Fatalf("create in %s: %v", name, err)
 		}
 		if err := billing.Book(ctx, d, user, target, 0, txnID, invoiceID, ""); !errors.Is(err, access.ErrDenied) {
@@ -339,14 +339,14 @@ func TestDraftsFollowVerbund(t *testing.T) {
 	ctx := context.Background()
 
 	// Both Kimai pair with the only Ninja: two pairs, a draft needs to say which.
-	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.KeepSheets, ""); !errors.Is(err, access.ErrDenied) {
+	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.KeepSheets, billing.NoTravel, ""); !errors.Is(err, access.ErrDenied) {
 		t.Fatalf("which kimai: %v", err)
 	}
 
 	if _, err := verbund.Create(d, who, "Firma", []int64{second, ninjaID}, ""); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.MarkSheets, ""); err != nil {
+	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.MarkSheets, billing.NoTravel, ""); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 	if len(k1.list()) != 0 || len(k2.list()) == 0 {
@@ -364,7 +364,7 @@ func TestDraftUsesCustomerLink(t *testing.T) {
 	n := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &ninja, "ACME Holding"))
 	ctx := context.Background()
 
-	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.KeepSheets, ""); !errors.Is(err, billing.ErrNoClient) {
+	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.KeepSheets, billing.NoTravel, ""); !errors.Is(err, billing.ErrNoClient) {
 		t.Fatalf("by name: %v", err)
 	}
 	id, err := verbund.Create(d, who, "Firma", []int64{k, n}, "")
@@ -374,7 +374,7 @@ func TestDraftUsesCustomerLink(t *testing.T) {
 	if err := verbund.LinkCustomer(context.Background(), d, who, id, "C1", k, strconv.FormatInt(customerID, 10), ""); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.KeepSheets, ""); err != nil {
+	if _, err := billing.Create(ctx, d, who, space, 0, customerID, billing.KeepSheets, billing.NoTravel, ""); err != nil {
 		t.Fatalf("linked: %v", err)
 	}
 	if body := ninja.body["POST /api/v1/invoices"]; body["client_id"] != "C1" {

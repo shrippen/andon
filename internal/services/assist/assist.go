@@ -225,3 +225,58 @@ Answer: [{"key": "", "private": false, "vendor": "", "category": "", "tax_rate":
 Input:
 `
 )
+
+// Reminder is what a reminder mail is about: the facts the model may use.
+type Reminder struct {
+	Client, Number     string
+	Amount, Balance    float64
+	Currency, Due      string
+	OverdueDays, Stage int  // the reminder to write (1–3)
+	PaysLate           bool // the client usually pays late
+}
+
+// ReminderText is a drafted mail.
+type ReminderText struct {
+	Subject string `json:"subject"`
+	Body    string `json:"body"`
+}
+
+// DraftReminder writes a reminder in the user's language: friendly at
+// stage 1, firmer later, never threatening; facts only from r.
+func DraftReminder(ctx context.Context, locale enums.Locale, r Reminder) (ReminderText, error) {
+	if !Enabled() {
+		return ReminderText{}, ErrOff
+	}
+	facts, _ := json.Marshal(r)
+	prompt := fmt.Sprintf(reminderPrompt, languageOf(locale), facts)
+	answer, err := complete(ctx, apiKey, reminderSystem, prompt, nil)
+	if err != nil {
+		return ReminderText{}, err
+	}
+	start, end := strings.Index(answer, "{"), strings.LastIndex(answer, "}")
+	if start < 0 || end < start {
+		return ReminderText{}, ErrUnreadable
+	}
+	var out ReminderText
+	if err := json.Unmarshal([]byte(answer[start:end+1]), &out); err != nil || out.Body == "" {
+		return ReminderText{}, ErrUnreadable
+	}
+	return out, nil
+}
+
+// languageOf names a locale's language for the prompt.
+func languageOf(locale enums.Locale) string {
+	if locale == enums.LocaleDE {
+		return "German"
+	}
+	return "English"
+}
+
+// The reminder prompt is fixed English; the mail comes in the user's
+// language.
+const (
+	reminderSystem = "You write short, polite payment reminders for a freelancer. Answer with one JSON object only."
+	reminderPrompt = `Write payment reminder number "Stage" (1 friendly, 2 clear, 3 final before further steps; never threaten) in %s for this invoice:
+%s
+Use only these facts. Return {"subject": "", "body": ""}; plain text body, no placeholders, no signature.`
+)

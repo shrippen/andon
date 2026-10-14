@@ -119,6 +119,10 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 1. `/week`: letzte Woche vorgewählt, Chips für vier Wochen; „Gelesen aus“ nennt Dawarich und Kalender des Verbunds.
 2. Jede Lücke mit Kunde, Zeiten, Projekt und Tätigkeit vorgeschlagen; vollständige angehakt. „Prüfen“ → „In Kimai eintragen“ (Demo lehnt ab).
 
+**J-C7 Abrechnung: Fahrtkosten und Mahnlauf**
+1. `/billing` mit Dawarich im Verbund: ein Entwurf bietet „Fahrtkosten mitberechnen“; angehakt steht die Zeile in der Rechnung, beim nächsten Entwurf beginnen die Fahrten danach.
+2. `/dunning`: der Mahnplan aus Invoice Ninja steht oben (ohne eingerichtete Erinnerungen: Hinweis auf Andons Standard); fällige Erinnerungen mit Stufe und „fällig seit“; „Texte von Claude schreiben lassen“ füllt Betreff und Text; nichts angehakt; „Prüfen“ → „Mit Invoice Ninja verschicken“ (Demo lehnt ab).
+
 **J-C5 USt-Abgleich: Abgabe**
 1. `/vat` → „ELSTER-Kennzahlen“: Werte mit „Kopieren“; „Als gemeldet merken“; danach eine Buchung im Zeitraum ändern → „Berichtigung fällig“ mit den Kennzahlen.
 2. Ausgabe eines ausländischen Lieferanten ohne Steuer steht unter „Reverse Charge“ mit Kz 46/47 oder 84/85.

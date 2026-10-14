@@ -32,8 +32,19 @@ func ninjaAPI(sctx Ctx) (services.NinjaApi, error) {
 func ninjaInvoice(raw any) NinjaInvoice {
 	m := asMap(raw)
 	amount, taxes := asFloat(m["amount"]), asFloat(m["total_taxes"])
+	// Reminders sent so far; a last-sent date counts as one at least.
+	stage := 0
+	for _, k := range []string{"reminder1_sent", "reminder2_sent", "reminder3_sent"} {
+		if day(m[k]) != "" {
+			stage++
+		}
+	}
+	if stage == 0 && day(m["reminder_last_sent"]) != "" {
+		stage = 1
+	}
 	return NinjaInvoice{
-		ID: refNum(m["id"]), Key: idKey(m["id"]), Number: asStr(m["number"]), ClientID: refNum(m["client_id"]),
+		Stage: stage,
+		ID:    refNum(m["id"]), Key: idKey(m["id"]), Number: asStr(m["number"]), ClientID: refNum(m["client_id"]),
 		Status: statusFor(ninjaStatus, m["status_id"]), Date: day(m["date"]), DueDate: day(m["due_date"]),
 		Amount: amount, Balance: asFloat(m["balance"]), Taxes: taxes, Net: amount - taxes,
 		Reminded: day(m["reminder_last_sent"]), NextSend: day(m["next_send_date"]),
@@ -220,7 +231,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 		qm := asMap(q)
 		quotes = append(quotes, NinjaQuote{
 			ID: asInt64(qm["id"]), Number: asStr(qm["number"]), ClientID: refNum(qm["client_id"]),
-			Status: statusFor(quoteStatus, qm["status_id"]), Date: day(qm["date"]), Amount: asFloat(qm["amount"]),
+			Status: statusFor(quoteStatus, qm["status_id"]), Date: day(qm["date"]), ValidUntil: day(qm["due_date"]), Amount: asFloat(qm["amount"]),
 		})
 	}
 
@@ -239,6 +250,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 	}
 
 	bank := loadNinjaBank(ctx, api, since)
+	company := ninjaCompany(ctx, api)
 
 	currency, _ := sctx.Options["currency"].(string)
 	if currency == "" {
@@ -253,7 +265,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 		URL: sctx.URL, Currency: currency, Invoices: invoices, Payments: payments, Clients: clients,
 		Expenses: expenses, Vendors: vendors, Quotes: quotes, Recurring: recurring, HomeCountryID: homeCountry, Since: since,
 		BankTxns: bank.txns, BankRead: bank.read, BankAccounts: bank.accounts, Categories: bank.categories, TaxRates: bank.rates,
-		ExpenseFields: ninjaExpenseFields(ctx, api),
+		ExpenseFields: expenseFieldsOf(company), Reminders: remindersOf(company),
 	}, nil
 }
 

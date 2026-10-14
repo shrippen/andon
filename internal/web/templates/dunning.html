@@ -1,0 +1,83 @@
+{{/* Payment reminders (services/dunning). */}}
+{{define "dunning"}}{{$p := .P}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "dunning.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "dunning.title"}}</h1>
+    <p class="muted">{{t "dunning.lead"}}</p>
+    {{with .done}}<p class="pill" data-state="applied">{{t "dunning.done" "n" .}}</p>{{end}}
+    {{with .drafted}}<p class="pill" data-state="applied">{{t "dunning.drafted" "n" .}}</p>{{end}}
+    {{with .failed}}<p class="error">{{t "dunning.failed" "n" .}} {{$.Who}}: {{t $.Reason}}</p>{{end}}
+    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+    {{if $p.Scopes}}
+    {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/dunning" "Keep" (dict)}}
+    {{/* The schedule the cases follow: Invoice Ninja's, else the defaults. */}}
+    <p class="small{{if $p.Plan.Defaults}} late{{end}}">{{if $p.Plan.Defaults}}{{t "dunning.plan_defaults"}}{{else}}{{t "dunning.plan_ninja"}}
+      {{range $i, $r := $p.Plan.Reminders}}{{if $r.Enabled}} · {{t (print "dunning.stage_" (index (list "1" "2" "3") $i))}}: {{t (print "dunning.schedule_" $r.Schedule) "days" $r.Days}}{{end}}{{end}}{{end}}</p>
+    {{if $p.Cases}}
+    {{if $p.Assist}}<form method="post" action="/dunning/draft" class="btn-row">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
+      <button type="submit" class="btn btn-outline btn-sm" title="{{t "dunning.draft_privacy"}}">{{t "dunning.draft"}}</button>
+    </form>{{end}}
+    <form method="post" action="/dunning/review">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
+      {{range $p.Cases}}{{$k := .Key}}
+      <section class="card">
+        <label class="check"><input type="checkbox" name="pick" value="{{$k}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>
+          <b>{{.Number}} · {{.Client}}</b></label>
+        <p class="small">{{t "dunning.facts" "balance" (money .Balance $p.Currency) "due" (day .DueDate) "days" .OverdueDays}} · <span class="pill">{{t (print "dunning.stage_" .Next)}}</span> {{t "dunning.since" "day" (day .Since)}}
+          <a href="{{$p.URL}}/invoices/{{$k}}/edit" target="_blank" rel="noopener">{{t "action.open_in_invoiceninja"}}</a></p>
+        <input type="hidden" name="act_{{$k}}" value="remind"><input type="hidden" name="stage_{{$k}}" value="{{.Next}}">
+        <label class="small" for="subject-{{$k}}">{{t "dunning.subject"}}</label>
+        <input class="input" id="subject-{{$k}}" name="subject_{{$k}}" value="{{with .Text}}{{.Subject}}{{end}}" placeholder="{{t "dunning.template"}}">
+        <label class="small" for="body-{{$k}}">{{t "dunning.body"}}</label>
+        <textarea class="input" id="body-{{$k}}" name="body_{{$k}}" rows="5" placeholder="{{t "dunning.template"}}">{{with .Text}}{{.Body}}{{end}}</textarea>
+      </section>{{end}}
+      <p><button type="submit" class="btn btn-accent">{{t "dunning.review"}}</button></p>
+    </form>
+    {{else}}<p class="pill" data-state="applied">{{t "dunning.empty"}}</p>{{end}}
+    {{end}}
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}
+
+{{define "dunning_review"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "dunning.review_title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "dunning.review_title"}}</h1>
+    <p>{{t "dunning.review_lead" "n" .Plan.Writes}}</p>
+    <form method="post" action="/dunning/apply">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{.Plan.Scope}}">
+      <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
+        <li{{if .Problem}} class="late"{{end}}>{{if not .Problem}}{{template "bench_step" .Step}}{{end}}
+          <b>{{or $i.Case.Number .Case}}{{with $i.Case.Client}} · {{.}}{{end}}</b><br>
+          {{if .Problem}}{{t (print .Problem)}}{{else}}{{t (print "dunning.stage_" $i.Case.Next)}} · {{money $i.Case.Balance $.Plan.Currency}}
+            {{if $i.Subject}}<br><i>{{$i.Subject}}</i>{{else}}<br><small class="muted">{{t "dunning.template"}}</small>{{end}}{{end}}
+        </li>{{end}}</ol>
+      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "dunning.apply" "n" .Plan.Writes}}</button>{{end}}
+        <a class="btn btn-quiet" href="/dunning?scope={{.Plan.Scope}}">{{t "dunning.back"}}</a></p>
+    </form>
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}

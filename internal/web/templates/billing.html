@@ -38,6 +38,7 @@
     </div>
     {{end}}
 
+    <p class="small"><a href="/dunning">{{t "billing.dunning_link"}} →</a> · <a href="/week">{{t "nav.week"}} →</a></p>
     <h2 id="drafts">{{t "billing.drafts"}}</h2>
     {{range .Drafts}}
     <section class="card billing-draft">
@@ -55,6 +56,8 @@
         <input type="hidden" name="space_id" value="{{.SpaceID}}"><input type="hidden" name="conn_id" value="{{.KimaiID}}">
         <input type="hidden" name="customer_id" value="{{.CustomerID}}">
         <label class="check"><input type="checkbox" name="mark_exported" checked><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "billing.mark_exported"}}</label>
+        {{with .Travel}}<label class="check"><input type="checkbox" name="travel" value="1"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>
+          {{t "billing.travel" "rides" .Rides "km" (num .KM 0) "rate" (money .Rate) "amount" (money .Amount) "from" (day .From) "to" (day .To)}}</label>{{end}}
         <button type="submit" class="btn btn-outline">{{t "billing.create" "client" .Client}}</button>
       </form>
       {{else}}<p class="small late">{{t "billing.no_client"}}</p>{{end}}

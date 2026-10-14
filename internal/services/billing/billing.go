@@ -18,6 +18,7 @@ import (
 
 	"andon/internal/db"
 	"andon/internal/enums"
+	"andon/internal/i18n"
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/outbound"
@@ -51,6 +52,7 @@ type Candidate struct {
 	SpaceName string
 	KimaiID   int64 // the pair's Kimai connection
 	metrics.Draft
+	Travel *TravelLine // km to bill on top, nil if none
 }
 
 // pair is a space's Kimai and Invoice Ninja connection.
@@ -152,7 +154,8 @@ func Candidates(ctx context.Context, d *sql.DB, who *access.Principal) ([]Candid
 			return nil, err
 		}
 		for _, draft := range billable(metrics.Drafts(kimai, ninja, links), settings) {
-			out = append(out, Candidate{SpaceID: p.space.ID, SpaceName: p.space.Name, KimaiID: p.kimai.ID, Draft: draft})
+			out = append(out, Candidate{SpaceID: p.space.ID, SpaceName: p.space.Name, KimaiID: p.kimai.ID, Draft: draft,
+				Travel: travelOf(ctx, d, who, p, kimai, settings, draft, time.Now())})
 		}
 	}
 	return out, nil
@@ -194,7 +197,7 @@ func spaceSettings(d *sql.DB, spaceID int64) (map[string]any, error) {
 }
 
 // Create writes one customer's draft to Invoice Ninja and returns its number.
-func Create(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, kimaiID, customerID int64, mode ExportMode, ip string) (string, error) {
+func Create(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, kimaiID, customerID int64, mode ExportMode, travel TravelMode, ip string) (string, error) {
 	found, err := pairs(d, who, spaceID)
 	if err != nil {
 		return "", err
@@ -237,11 +240,28 @@ func Create(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, kima
 	for _, l := range draft.Lines {
 		lines = append(lines, outbound.NinjaLine{Product: l.Product, Notes: l.Notes, Quantity: l.Hours, Cost: l.Rate})
 	}
+
+	// The km since the last bill, when asked (TravelLine).
+	var km *TravelLine
+	if travel == WithTravel {
+		settings, err := spaceSettings(d, p.space.ID)
+		if err != nil {
+			return "", err
+		}
+		if km = travelOf(ctx, d, who, p, kimai, settings, draft, time.Now()); km != nil {
+			lines = append(lines, outbound.NinjaLine{Product: i18n.T("billing.travel_product", who.Locale, nil), Notes: travelNote(*km), Quantity: km.KM, Cost: km.Rate})
+		}
+	}
 	number, err := outbound.NinjaDraftInvoice(ctx, outbound.Target{URL: p.ninja.URL, Token: ninjaSecret, VerifyTLS: p.ninja.VerifyTLS}, draft.ClientKey, lines)
 	if err != nil {
 		return "", err
 	}
 
+	if km != nil {
+		if err := keepTravel(d, who, p.kimai.ID, draft.CustomerID, *km); err != nil {
+			return number, err
+		}
+	}
 	if mode == MarkSheets {
 		kimaiSecret, err := svcdata.Secret(ctx, d, p.kimai, model.UserHolder(who.UserID))
 		if err != nil {
