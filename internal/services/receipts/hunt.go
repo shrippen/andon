@@ -26,21 +26,35 @@ import (
 )
 
 // The hunt's actions and fields, as the form sends them:
-// act_Kx9=link docs_Kx9=12,13 · act_Kx9=mail mail_Kx9=5:4711.
+// act_Kx9=link docs_Kx9=12,13 · act_Kx9=mail mail_Kx9=5:4711 ·
+// act_scan-206=create amount_scan-206=72.14 day_… vendor_… notes_….
+// A new expense's case is its scan: ScanCase(206) = "scan-206".
 const (
-	ActLink   = "link"
-	ActMail   = "mail"
-	FieldDocs = "docs"
-	FieldMail = "mail"
+	ActLink     = "link"
+	ActMail     = "mail"
+	ActCreate   = "create"
+	FieldDocs   = "docs"
+	FieldMail   = "mail"
+	FieldAmount = "amount"
+	FieldDay    = "day"
+	FieldVendor = "vendor"
+	FieldNotes  = "notes"
 )
 
 // HuntFields lists the fields, for the form.
-var HuntFields = []string{FieldDocs, FieldMail}
+var HuntFields = []string{FieldDocs, FieldMail, FieldAmount, FieldDay, FieldVendor, FieldNotes}
+
+// scanCase prefixes the case of a new expense made from a scan.
+const scanCase = "scan-"
+
+// ScanCase is the case of a new expense made from scan id.
+func ScanCase(id int64) string { return scanCase + strconv.FormatInt(id, 10) }
 
 const (
 	ProblemGone  workbench.Problem = "receipts.problem_gone"  // linked or ignored meanwhile
 	ProblemTaken workbench.Problem = "receipts.problem_taken" // a scan is no longer free
 	ProblemMail  workbench.Problem = "receipts.problem_mail"  // the mail is gone or sent already
+	ProblemNew   workbench.Problem = "receipts.err_amount"    // a new expense needs an amount
 )
 
 // mailDays is how far a mail may lie from its expense's day.
@@ -128,6 +142,8 @@ type HuntItem struct {
 	Expense sources.ReceiptExpense
 	Docs    []sources.ReceiptDoc
 	Mail    *MailHit
+	New     *NewExpense // create: the expense made from Docs[0]
+	Check   *ScanCheck  // Claude's reading, when asked (Check)
 }
 
 // HuntPlan is the review: what Apply would write.
@@ -178,6 +194,9 @@ func loadHunt(ctx context.Context, d *sql.DB, who *access.Principal, year int) (
 // free, its mail not sent yet.
 func (h *hunt) Check(s *workbench.Step) (HuntItem, workbench.Problem) {
 	var it HuntItem
+	if s.Action == ActCreate {
+		return h.checkNew(s)
+	}
 	e, ok := h.expenses[s.Case]
 	if !ok {
 		return it, ProblemGone
@@ -209,6 +228,24 @@ func (h *hunt) Check(s *workbench.Step) (HuntItem, workbench.Problem) {
 	return it, workbench.ProblemNone
 }
 
+// checkNew resolves a new expense from a free scan; it needs an amount.
+func (h *hunt) checkNew(s *workbench.Step) (HuntItem, workbench.Problem) {
+	var it HuntItem
+	id, err := strconv.ParseInt(strings.TrimPrefix(s.Case, scanCase), 10, 64)
+	doc, free := h.docs[id]
+	if err != nil || !free {
+		return it, ProblemTaken
+	}
+	it.Docs = []sources.ReceiptDoc{doc}
+	amount, _ := strconv.ParseFloat(strings.ReplaceAll(s.Field(FieldAmount), ",", "."), 64)
+	it.New = &NewExpense{Amount: amount, Day: s.Field(FieldDay), Vendor: strings.TrimSpace(s.Field(FieldVendor)), Notes: s.Field(FieldNotes)}
+	it.Expense = sources.ReceiptExpense{Vendor: it.New.Vendor, Amount: amount, Day: it.New.Day}
+	if amount <= 0 {
+		return it, ProblemNew
+	}
+	return it, workbench.ProblemNone
+}
+
 // idsOf reads a list of scan IDs: "12,13" (idList's form).
 func idsOf(list string) []int64 {
 	var out []int64
@@ -222,6 +259,9 @@ func idsOf(list string) []int64 {
 
 // Write links the scans, or sends the mail's files to Paperless.
 func (h *hunt) Write(ctx context.Context, p workbench.Planned[HuntItem]) (string, error) {
+	if p.Action == ActCreate {
+		return Create(ctx, h.d, h.who, p.Item.Docs[0].ID, *p.Item.New, h.ip)
+	}
 	if p.Action == ActMail {
 		_, err := mailfwd.Forward(ctx, h.d, h.who, p.Item.Mail.Conn, p.Item.Mail.UID, h.ip)
 		return p.Item.Expense.Number, err

@@ -9,9 +9,10 @@ package web
 //	GET  /receipts/expenses      manual expense search for one scan (htmx)
 //	GET  /receipts/new-expense   a new expense, filled from a scan (htmx)
 //	GET  /receipts/thumb/{id}    a scan's thumbnail, through Andon (CSP)
-//	POST /receipts/review        the hunt: the picks spelled out, to confirm
+//	POST /receipts/review        every link or new expense, spelled out to confirm
 //	POST /receipts/apply         writes the confirmed picks
-//	POST /receipts/link|unlink|ignore|fields|new-expense
+//	POST /receipts/link          undo of an unlink, written at once
+//	POST /receipts/unlink|ignore|fields
 
 import (
 	"errors"
@@ -23,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/services/assist"
 	"andon/internal/services/receipts"
 	"andon/internal/services/workbench"
 )
@@ -46,7 +48,11 @@ type receiptsQuery struct {
 	Tab  string
 	Year int
 	Find string
+	Span string // a VAT period within Year ("2026-09", "2026-Q3"), from /vat
 }
+
+// spanKey is a VAT period's key: a month or a quarter.
+var spanKey = regexp.MustCompile(`^(\d{4})-(\d{2}|Q[1-4])$`)
 
 func receiptsQueryOf(r *http.Request) receiptsQuery {
 	q := receiptsQuery{Tab: r.FormValue("tab"), Find: strings.TrimSpace(r.FormValue("find"))}
@@ -54,8 +60,12 @@ func receiptsQueryOf(r *http.Request) receiptsQuery {
 		q.Tab = tabMatch
 	}
 	q.Year, _ = strconv.Atoi(r.FormValue("year"))
+	if m := spanKey.FindStringSubmatch(r.FormValue("span")); m != nil {
+		q.Span = m[0]
+		q.Year, _ = strconv.Atoi(m[1])
+	}
 	if now := time.Now().Year(); q.Year > now || q.Year < now-yearsBack {
-		q.Year = now
+		q.Year, q.Span = now, ""
 	}
 	return q
 }
@@ -66,6 +76,9 @@ func (q receiptsQuery) Values() url.Values {
 	if q.Find != "" {
 		v.Set("find", q.Find)
 	}
+	if q.Span != "" {
+		v.Set("span", q.Span)
+	}
 	return v
 }
 
@@ -75,6 +88,9 @@ func (q receiptsQuery) Link(key, value string) string {
 	v.Set(key, value)
 	if key == "tab" {
 		v.Del("find")
+	}
+	if key == "year" || (key == "span" && value == "") {
+		v.Del("span")
 	}
 	return "/receipts?" + v.Encode()
 }
@@ -109,7 +125,6 @@ func (d Deps) registerReceiptRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /receipts/combos", d.authed(d.handleReceiptCombos))
 	mux.HandleFunc("GET /receipts/expenses", d.authed(d.handleReceiptExpenses))
 	mux.HandleFunc("GET /receipts/new-expense", d.authed(d.handleReceiptDraft))
-	mux.HandleFunc("POST /receipts/new-expense", d.authed(d.handleReceiptCreate))
 	mux.HandleFunc("POST /receipts/review", d.authed(d.handleReceiptReview))
 	mux.HandleFunc("POST /receipts/apply", d.authed(d.handleReceiptApply))
 	mux.HandleFunc("GET /receipts/thumb/{id}", d.authed(d.handleReceiptThumb))
@@ -171,13 +186,13 @@ func (d Deps) receiptsPart(w http.ResponseWriter, r *http.Request, ctx Ctx, q re
 	case tabFields:
 		values["V"], err = receipts.Fields(r.Context(), d.DB, ctx.Who)
 	default:
-		values["V"], err = receipts.Suggest(r.Context(), d.DB, ctx.Who, q.Year)
+		values["V"], err = receipts.Suggest(r.Context(), d.DB, ctx.Who, q.Year, q.Span)
 	}
 	if err != nil {
 		values["Error"], values["Mapping"] = receiptError(err), errors.Is(err, receipts.ErrMapping)
 	}
 	// The tab and year chips get their numbers with the part.
-	values["Counts"], _ = receipts.CountsOf(r.Context(), d.DB, ctx.Who, q.Tab, q.Year)
+	values["Counts"], _ = receipts.CountsOf(r.Context(), d.DB, ctx.Who, q.Tab, q.Year, q.Span)
 	values["Tabs"], values["Years"] = receiptTabs, years()
 	if extra != nil {
 		extra(values)
@@ -256,31 +271,6 @@ func (d Deps) handleReceiptDraft(w http.ResponseWriter, r *http.Request, ctx Ctx
 	_ = d.Page(w, ctx, "receipts_draft", http.StatusOK, values)
 }
 
-func (d Deps) handleReceiptCreate(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	q := receiptsQueryOf(r)
-	id := formID(r, "doc")
-	amount, _ := strconv.ParseFloat(strings.ReplaceAll(strings.TrimSpace(r.FormValue("amount")), ",", "."), 64)
-	in := receipts.NewExpense{Amount: amount, Day: dateOrEmpty(r.FormValue("day")), Vendor: r.FormValue("vendor"), Notes: r.FormValue("notes")}
-	number, err := receipts.Create(r.Context(), d.DB, ctx.Who, id, in, d.clientIP(r))
-	soft := r.Header.Get("HX-Request") != ""
-	switch {
-	case err != nil && soft:
-		// The form in its panel again, with the error and what was typed.
-		view, derr := receipts.Draft(r.Context(), d.DB, ctx.Who, id)
-		if derr != nil {
-			view.Doc.ID = id
-		}
-		view.NewExpense = in
-		_ = d.Page(w, ctx, "receipts_draft", http.StatusOK, map[string]any{"Q": q, "S": view, "Error": receiptError(err)})
-	case err != nil:
-		http.Redirect(w, r, q.back("error", receiptError(err)), http.StatusSeeOther)
-	case soft:
-		w.Header().Set("HX-Redirect", q.back("done", number))
-	default:
-		http.Redirect(w, r, q.back("done", number), http.StatusSeeOther)
-	}
-}
-
 // huntSteps reads the match tab's picks: case=Kx9 per expense, in page
 // order, and its choice: choice_Kx9=link:12,13 | mail:5:4711 | "".
 func huntSteps(form url.Values) []workbench.Step {
@@ -297,6 +287,33 @@ func huntSteps(form url.Values) []workbench.Step {
 	return out
 }
 
+// reviewSteps reads whatever asks for a review: the match tab's picks
+// (huntSteps), one link from a search (expense=Kx9, docs=11,12 or one
+// doc=… per ticked box), or a new expense from a scan (doc, amount …).
+func reviewSteps(form url.Values) []workbench.Step {
+	if len(form["case"]) > 0 {
+		return huntSteps(form)
+	}
+	if len(form[benchPick]) > 0 {
+		// The review itself, sent again to have Claude check the scans.
+		return benchSteps(form, receipts.HuntFields)
+	}
+	if e := form.Get("expense"); e != "" {
+		docs := slices.DeleteFunc(append(strings.Split(form.Get("docs"), ","), form["doc"]...), func(s string) bool { return strings.TrimSpace(s) == "" })
+		return []workbench.Step{{Case: e, Action: receipts.ActLink, Fields: map[string]string{receipts.FieldDocs: strings.Join(docs, ",")}}}
+	}
+	id, err := strconv.ParseInt(form.Get("doc"), 10, 64)
+	if err != nil {
+		return nil
+	}
+	fields := map[string]string{}
+	for _, f := range []string{receipts.FieldAmount, receipts.FieldVendor, receipts.FieldNotes} {
+		fields[f] = strings.TrimSpace(form.Get(f))
+	}
+	fields[receipts.FieldDay] = dateOrEmpty(form.Get(receipts.FieldDay))
+	return []workbench.Step{{Case: receipts.ScanCase(id), Action: receipts.ActCreate, Fields: fields}}
+}
+
 // handleReceiptReview shows what the picks would write; nothing is
 // written yet.
 func (d Deps) handleReceiptReview(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -305,12 +322,19 @@ func (d Deps) handleReceiptReview(w http.ResponseWriter, r *http.Request, ctx Ct
 		d.fail(w, err, http.StatusBadRequest)
 		return
 	}
-	plan, err := receipts.Review(r.Context(), d.DB, ctx.Who, q.Year, huntSteps(r.PostForm))
+	plan, err := receipts.Review(r.Context(), d.DB, ctx.Who, q.Year, reviewSteps(r.PostForm))
 	if err != nil {
 		http.Redirect(w, r, q.back("error", receiptError(err)), http.StatusSeeOther)
 		return
 	}
-	_ = d.Page(w, ctx, "receipts_review", http.StatusOK, map[string]any{"Plan": plan, "Q": q})
+	values := map[string]any{"Plan": plan, "Q": q, "Assist": assist.Enabled()}
+	if r.PostForm.Get("check") != "" {
+		if err := receipts.Check(r.Context(), d.DB, ctx.Who, &plan); err != nil {
+			values["Error"] = receiptError(err)
+		}
+		values["Plan"], values["Checked"] = plan, true
+	}
+	_ = d.Page(w, ctx, "receipts_review", http.StatusOK, values)
 }
 
 // handleReceiptApply writes the steps the review showed and the user

@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
@@ -313,7 +314,7 @@ type Suggestions struct {
 }
 
 // Suggest lists the year's unlinked expenses with their best scans.
-func Suggest(ctx context.Context, d *sql.DB, who *access.Principal, year int) (Suggestions, error) {
+func Suggest(ctx context.Context, d *sql.DB, who *access.Principal, year int, span string) (Suggestions, error) {
 	p, err := openPair(d, who)
 	if err != nil {
 		return Suggestions{}, err
@@ -326,6 +327,7 @@ func Suggest(ctx context.Context, d *sql.DB, who *access.Principal, year int) (S
 	if err != nil {
 		return out, err
 	}
+	expenses = inSpan(expenses, span)
 	out.Expenses = len(expenses)
 	out.Matches = p.matcher().Matches(expenses, docs)
 	p.addMails(ctx, d, who, out.Matches)
@@ -339,6 +341,26 @@ func Suggest(ctx context.Context, d *sql.DB, who *access.Principal, year int) (S
 	out.Docs = len(queued)
 	return out, nil
 }
+
+// inSpan keeps the expenses of a VAT period: "2026-09" a month,
+// "2026-Q3" a quarter (metrics.VATSpanOf); "" or a bad key keeps all.
+func inSpan(list []sources.ReceiptExpense, span string) []sources.ReceiptExpense {
+	interval := "monthly"
+	if strings.Contains(span, quarterMark) {
+		interval = "quarterly"
+	}
+	s, ok := metrics.VATSpanOf(span, interval)
+	if !ok {
+		return list
+	}
+	return slices.DeleteFunc(slices.Clone(list), func(e sources.ReceiptExpense) bool {
+		day, ok := metrics.ParseDay(e.Day)
+		return !ok || day.Before(s.Start) || day.After(s.End)
+	})
+}
+
+// quarterMark tells a quarter's key from a month's: "2026-Q3".
+const quarterMark = "-Q"
 
 // unlinked reads the year's unlinked, not ignored expenses and scans,
 // learning vendor names from old links the first time.

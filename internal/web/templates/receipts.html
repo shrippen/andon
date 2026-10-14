@@ -43,7 +43,7 @@
       <p><a class="btn btn-outline" href="/verbund">{{t "receipts.unpaired_link"}}</a></p>
     </section>
     {{else}}
-    {{template "bench_scopes" dict "Scopes" $s.Scopes "Picked" $s.Scope.Key "Open" $s.Pick "Action" "/receipts" "Keep" (dict "tab" .Q.Tab "year" .Q.Year)}}
+    {{template "bench_scopes" dict "Scopes" $s.Scopes "Picked" $s.Scope.Key "Open" $s.Pick "Action" "/receipts" "Keep" (dict "tab" .Q.Tab "year" .Q.Year "span" .Q.Span)}}
     {{if $s.Scope.NeedsToken}}<p class="error">{{t "workbench.needs_token"}} <a href="/me/credentials">{{t "receipts.needs_token_link"}}</a></p>{{end}}
     {{end}}
 
@@ -51,7 +51,8 @@
     <nav class="hint-filters receipts-nav" aria-label="{{t "receipts.views"}}">
       <div class="chips-row">{{range .Tabs}}{{template "receipt_tab" dict "Q" $.Q "Tab" . "N" -1}}{{end}}</div>
       {{if or (eq .Q.Tab "match") (eq .Q.Tab "queue") (eq .Q.Tab "linked")}}
-      <div class="chips-row">{{range .Years}}{{template "receipt_year" dict "Q" $.Q "Year" . "N" -1}}{{end}}</div>{{end}}
+      <div class="chips-row">{{range .Years}}{{template "receipt_year" dict "Q" $.Q "Year" . "N" -1}}{{end}}
+        {{with .Q.Span}}{{if eq $.Q.Tab "match"}}<a class="chip is-filter" aria-pressed="true" href="{{$.Q.Link "span" ""}}" title="{{t "receipts.span_clear"}}">{{t "receipts.span" "span" .}} ×</a>{{end}}{{end}}</div>{{end}}
     </nav>
     <div id="receipts-part" hx-get="{{.Q.Part}}" hx-trigger="load" hx-swap="innerHTML" aria-live="polite">
       <p class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{if eq .Q.Tab "match"}}{{t "receipts.loading_year" "year" .Q.Year}}{{else}}{{t "widget.loading"}}{{end}}</p>
@@ -114,8 +115,9 @@
 {{/* A pick for the hunt's review (form "hunt"): one per expense. */}}
 {{define "receipt_choose"}}<label class="check receipt-choose"><input type="radio" name="choice_{{.Expense}}" value="{{.Value}}" form="hunt" data-link{{if .Picked}} checked{{end}}><span class="check-dia"></span>{{.Label}}</label>{{end}}
 
+{{/* One link from a search or the scan-first tab: reviewed first. */}}
 {{define "receipt_link"}}
-<form method="post" action="/receipts/link" class="inline-form">
+<form method="post" action="/receipts/review" class="inline-form">
   <input type="hidden" name="{{.P.CSRFField}}" value="{{.P.Ctx.CSRF}}">{{template "receipt_back" .P.Q}}
   <input type="hidden" name="expense" value="{{.Expense}}"><input type="hidden" name="docs" value="{{.Docs}}">
   <button type="submit" class="btn btn-accent" data-link>{{.Label}}</button>
@@ -415,7 +417,7 @@
   {{else}}{{if not .Error}}<p class="small muted">{{t "receipts.search_none"}}</p>{{end}}{{end}}
   {{if $v.Hits}}
   {{/* Ticked scans link together; the sum shows how close they come. */}}
-  <form method="post" action="/receipts/link" id="{{$pick}}" class="receipt-pick" data-target="{{printf "%g" $e.Amount}}">
+  <form method="post" action="/receipts/review" id="{{$pick}}" class="receipt-pick" data-target="{{printf "%g" $e.Amount}}">
     <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">{{template "receipt_back" .Q}}
     <input type="hidden" name="expense" value="{{$e.Key}}">
     <p class="small">{{t "receipts.pick_sum"}} <b data-pick-sum data-zero="{{money 0}}">{{money 0}}</b> {{t "receipts.pick_of" "amount" (money $e.Amount)}}
@@ -462,8 +464,8 @@
 {{end}}
 
 {{define "receipts_draft"}}{{$v := .S}}
-{{/* Posted in its panel: a refusal comes back here with what was typed. */}}
-<form method="post" action="/receipts/new-expense" class="receipt-search receipt-draft" hx-post="/receipts/new-expense" hx-target="this" hx-swap="outerHTML">
+{{/* Reviewed first; the review keeps what was typed. */}}
+<form method="post" action="/receipts/review" class="receipt-search receipt-draft">
   <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">{{template "receipt_back" .Q}}
   <input type="hidden" name="doc" value="{{$v.Doc.ID}}">
   <p class="small muted">{{t "receipts.new_expense_lead"}}</p>
@@ -494,18 +496,24 @@
   <main class="receipts">
     <h1>{{t "receipts.review_title"}}</h1>
     <p>{{t "receipts.review_lead" "n" .Plan.Writes}}</p>
+    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
     <form method="post" action="/receipts/apply">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">{{template "receipt_back" .Q}}
       <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}{{$e := $i.Expense}}
         <li{{if .Problem}} class="late"{{end}}>
           {{if not .Problem}}{{template "bench_step" .Step}}{{end}}
-          <b>{{if $e.Key}}<a href="{{$.Plan.ExpenseURL $e.Key}}" target="_blank" rel="noopener">{{or $e.Number $e.Key}}</a> · {{or $e.Vendor "–"}} · {{money $e.Amount}}{{else}}{{.Case}}{{end}}</b><br>
+          <b>{{if $e.Key}}<a href="{{$.Plan.ExpenseURL $e.Key}}" target="_blank" rel="noopener">{{or $e.Number $e.Key}}</a> · {{or $e.Vendor "–"}} · {{money $e.Amount}}{{else if $i.New}}{{t "receipts.new_expense"}} · {{money $e.Amount}}{{else}}{{.Case}}{{end}}</b><br>
           {{if .Problem}}{{t (print .Problem)}}
           {{else if $i.Mail}}{{t "receipts.do_mail" "sender" $i.Mail.Sender "date" (day $i.Mail.Date)}}
+          {{else if $i.New}}{{t "receipts.do_create" "vendor" (or $i.New.Vendor "–") "day" (day $i.New.Day)}} <a href="{{$.Plan.DocURL (index $i.Docs 0).ID}}" target="_blank" rel="noopener">{{or (index $i.Docs 0).Title (print "#" (index $i.Docs 0).ID)}}</a>
           {{else}}{{t "receipts.do_link" "n" (len $i.Docs)}} {{range $n, $d := $i.Docs}}{{if $n}}, {{end}}<a href="{{$.Plan.DocURL $d.ID}}" target="_blank" rel="noopener">{{or $d.Title (print "#" $d.ID)}}</a>{{end}}{{end}}
+          {{with $i.Check}}<br>{{if .Error}}<span class="muted">{{t "receipts.check_failed"}} {{t .Error}}</span>
+            {{else}}<span class="small">{{t "receipts.check_read" "gross" (money .Read.Gross) "vat" (money .Read.VAT)}}</span>
+            {{range .Notes}}<br><span class="late">{{tt .Key .Args}}</span>{{else}} · <span data-state="applied">{{t "receipts.check_fits"}}</span>{{end}}{{end}}{{end}}
         </li>{{end}}</ol>
-      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "receipts.hunt_apply" "n" .Plan.Writes}}</button>{{end}}
-        <a class="btn btn-quiet" href="{{.Q.Link "tab" "match"}}">{{t "receipts.back"}}</a></p>
+      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "receipts.hunt_apply" "n" .Plan.Writes}}</button>
+        {{if and .Assist (not .Checked)}}<button type="submit" class="btn btn-outline" formaction="/receipts/review" name="check" value="1" title="{{t "receipts.check_privacy"}}">{{t "receipts.check"}}</button>{{end}}{{end}}
+        <a class="btn btn-quiet" href="{{.Q.Link "tab" .Q.Tab}}">{{t "receipts.back"}}</a></p>
     </form>
   </main>
   {{template "foot" $}}

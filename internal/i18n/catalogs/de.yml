@@ -6415,6 +6415,18 @@ today:
   now: 'Stand {time}'
   empty: Heute steht nichts an.
 receipts:
+  check: 'Belege von Claude prüfen lassen'
+  check_privacy: 'Schickt die Belege dieser Schritte an Claude (Anthropic) und vergleicht Betrag und Vorsteuer mit der Ausgabe.'
+  check_read: 'Claude liest: {gross} brutto, Umsatzsteuer {vat}'
+  check_fits: 'passt'
+  check_failed: 'Claude konnte den Beleg nicht lesen:'
+  check_amount: 'Betrag laut Beleg {scan}, Ausgabe {expense}.'
+  check_vat_missing: 'Der Beleg weist {vat} Umsatzsteuer aus, die Ausgabe bucht keine Vorsteuer.'
+  check_vat_none: 'Die Ausgabe bucht {vat} Vorsteuer, der Beleg weist keine Umsatzsteuer aus.'
+  check_vat: 'Umsatzsteuer laut Beleg {scan}, Vorsteuer der Ausgabe {expense}.'
+  span: 'Zeitraum {span}'
+  span_clear: 'Ganzes Jahr zeigen'
+  do_create: 'Neue Ausgabe bei {vendor} vom {day} anlegen und mit dem Beleg verknüpfen:'
   open_page: 'Belege den Ausgaben zuordnen →'
   count: '{n} Ausgaben ohne Beleg'
   search: In Paperless suchen
@@ -7006,6 +7018,8 @@ llm:
     requests: 'Anfragen'
     cost: 'Kosten'
 vatcheck:
+  check_receipts: 'Ausgaben ohne Beleg: {n}'
+  check_receipts_done: 'Jede Ausgabe hat ihren Beleg.'
   scan: Beleg
   no_scan: Ohne Beleg aus Paperless
   scan_option: 'Beleg: {title} vom {day} (Treffer {score})'

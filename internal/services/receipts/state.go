@@ -1,6 +1,7 @@
 package receipts
 
 import (
+	"andon/internal/services/assist"
 	"database/sql"
 	"encoding/json"
 	"slices"
@@ -17,16 +18,18 @@ import (
 //	 "ignored": {"n3": ["Kx9"], "p5": [44]},          hidden per connection
 //	 "reasons": {"n3/Kx9": "private"},                why, where given
 //	 "aliases": [["hetzner", "hetzner online gmbh"]], learned vendor names
-//	 "backfilled": ["3-5"]}                           pairs learned from once
+//	 "backfilled": ["3-5"],                           pairs learned from once
+//	 "reads": {"p5/44": {"gross": 23.8, …}}}          scans Claude read (Check)
 const prefKey = "receipts"
 
 // state is the pref, decoded.
 type state struct {
-	Scope      string              `json:"scope,omitempty"`
-	Ignored    map[string][]string `json:"ignored,omitempty"`
-	Reasons    map[string]Reason   `json:"reasons,omitempty"`
-	Aliases    Aliases             `json:"aliases,omitempty"`
-	Backfilled []string            `json:"backfilled,omitempty"`
+	Scope      string                    `json:"scope,omitempty"`
+	Ignored    map[string][]string       `json:"ignored,omitempty"`
+	Reasons    map[string]Reason         `json:"reasons,omitempty"`
+	Aliases    Aliases                   `json:"aliases,omitempty"`
+	Backfilled []string                  `json:"backfilled,omitempty"`
+	Reads      map[string]assist.Invoice `json:"reads,omitempty"`
 }
 
 // stateOf decodes the stored pref; anything broken reads as empty.
@@ -44,6 +47,9 @@ func stateOf(raw any) state {
 	}
 	if s.Reasons == nil {
 		s.Reasons = map[string]Reason{}
+	}
+	if s.Reads == nil {
+		s.Reads = map[string]assist.Invoice{}
 	}
 	return s
 }

@@ -49,6 +49,8 @@
         {{if $p.Bank}}<li{{if not $c.SureOnly}} class="is-done"{{end}}><span class="close-box" aria-hidden="true"></span>
           <span>{{if not $p.SetUp}}{{t "vatcheck.check_sure_none" "bank" $p.Bank}}{{else if $c.SureOnly}}{{t "vatcheck.check_sure" "n" (len $c.SureOnly) "bank" $p.Bank}}{{else}}{{t "vatcheck.check_sure_done" "bank" $p.Bank}}{{end}}</span>{{if $c.SureOnly}}<a href="#sure-only">→</a>{{else if not $p.SetUp}}<a href="#accounts">→</a>{{end}}</li>
         {{else}}<li><span class="close-box" aria-hidden="true"></span><span class="muted">{{t "vatcheck.check_no_bank"}}</span></li>{{end}}
+        {{if ge $p.Receipts 0}}<li{{if not $p.Receipts}} class="is-done"{{end}}><span class="close-box" aria-hidden="true"></span>
+          <span>{{if $p.Receipts}}{{t "vatcheck.check_receipts" "n" $p.Receipts}}{{else}}{{t "vatcheck.check_receipts_done"}}{{end}}</span><a href="/receipts?tab=match&amp;span={{$p.Span.Key}}">→</a></li>{{end}}
       </ul>
       <div class="client-kpis">
         <div class="kpi"><span class="kpi-label">{{t "vatcheck.output"}}</span><b class="kpi-value">{{money $c.Output $p.Currency}}</b><span class="kpi-sub">{{t (print "vatcheck.method_" $p.Method)}}</span></div>
