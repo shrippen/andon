@@ -10,6 +10,7 @@ package verbund
 // EuerVotes); nothing counts until the user saves.
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -110,19 +111,40 @@ func CategoriesOf(ctx context.Context, d *sql.DB, who *access.Principal, id int6
 	if err != nil {
 		return CategoryView{}, err
 	}
-	out := CategoryView{Verbund: v}
 	m, ok := v.Has(enums.ServiceInvoiceNinja)
 	if !ok {
-		return out, ErrNoNinja
+		return CategoryView{Verbund: v}, ErrNoNinja
 	}
-	if out.Ninja, err = connections.ByID(d, m.ConnID); err != nil || out.Ninja == nil {
+	var bank int64
+	for _, s := range []enums.ServiceType{enums.ServiceSure, enums.ServiceFirefly} {
+		if bm, ok := v.Has(s); ok && bank == 0 {
+			bank = bm.ConnID
+		}
+	}
+	out, err := CategoriesFor(ctx, d, who, m.ConnID, bank)
+	out.Verbund = v
+	return out, err
+}
+
+// CategoriesFor lists the categories of one Invoice Ninja and its Sure
+// or Firefly (0: none), for a workbench outside a stored Verbund.
+// Requires VIEW on both.
+func CategoriesFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID, bankID int64) (CategoryView, error) {
+	var out CategoryView
+	nv, err := connections.Get(d, who, ninjaID)
+	if err != nil || nv.Service != enums.ServiceInvoiceNinja {
 		return out, errors.Join(err, ErrNoNinja)
 	}
-	for _, s := range []enums.ServiceType{enums.ServiceSure, enums.ServiceFirefly} {
-		if bm, ok := v.Has(s); ok && out.Bank == nil {
-			if out.Bank, err = connections.ByID(d, bm.ConnID); err != nil {
-				return out, err
-			}
+	out.CanSave = nv.Right >= enums.RightManage
+	if out.Ninja, err = connections.ByID(d, ninjaID); err != nil || out.Ninja == nil {
+		return out, errors.Join(err, ErrNoNinja)
+	}
+	if bankID != 0 {
+		if _, err := connections.Get(d, who, bankID); err != nil {
+			return out, err
+		}
+		if out.Bank, err = connections.ByID(d, bankID); err != nil {
+			return out, err
 		}
 	}
 	conns := []*model.Connection{out.Ninja}
@@ -140,9 +162,6 @@ func CategoriesOf(ctx context.Context, d *sql.DB, who *access.Principal, id int6
 	var bank *sources.SureDataset
 	if len(data) > 1 {
 		bank, _ = data[1].(*sources.SureDataset)
-	}
-	if cv, err := connections.Get(d, who, out.Ninja.ID); err == nil {
-		out.CanSave = cv.Right >= enums.RightManage
 	}
 
 	saved := sources.CategoriesOf(out.Ninja.Options)
@@ -225,6 +244,19 @@ func SaveCategories(ctx context.Context, d *sql.DB, who *access.Principal, id in
 	if err != nil {
 		return err
 	}
+	return v.save(d, who, in, ip)
+}
+
+// SaveCategoriesFor stores them on an Invoice Ninja outside a Verbund.
+func SaveCategoriesFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID, bankID int64, in CategorySave, ip string) error {
+	v, err := CategoriesFor(ctx, d, who, ninjaID, bankID)
+	if err != nil {
+		return err
+	}
+	return v.save(d, who, in, ip)
+}
+
+func (v CategoryView) save(d *sql.DB, who *access.Principal, in CategorySave, ip string) error {
 	keys := map[string]bool{}
 	for _, c := range v.Categories {
 		keys[c.Key] = true
@@ -246,7 +278,7 @@ func SaveCategories(ctx context.Context, d *sql.DB, who *access.Principal, id in
 	if err := connections.SetOptions(d, who, v.Ninja.ID, options); err != nil {
 		return err
 	}
-	return audit.Log(d, &who.UserID, "verbund.categories", v.Verbund.Name, ip,
+	return audit.Log(d, &who.UserID, "verbund.categories", cmp.Or(v.Verbund.Name, v.Ninja.Name), ip,
 		map[string]any{"sure": len(c.Sure[bankID(v.Bank)]), "euer": len(c.Euer), "slot": c.EuerSlot})
 }
 

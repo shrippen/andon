@@ -49,7 +49,7 @@ var kinds = []struct {
 }{
 	{"vatcheck.", AreaVAT}, {"vendors.", AreaVAT}, {"euer.", AreaEuer}, {"receipts.", AreaReceipts}, {"mail.to_paperless", AreaReceipts},
 	{"billing.draft", AreaBilling}, {"billing.payment", AreaBilling},
-	{"kimai.", AreaKimai}, {"travel.", AreaKimai},
+	{"kimai.", AreaKimai}, {"week.", AreaKimai}, {"travel.", AreaKimai},
 	{"hass.", AreaHome}, {"dns.", AreaHome}, {"grocy.", AreaHome}, {"tandoor.", AreaHome},
 }
 

@@ -1,0 +1,84 @@
+{{/* Closing a week in Kimai (services/week). */}}
+{{define "week"}}{{$p := .P}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "closeweek.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "closeweek.title"}}</h1>
+    <p class="muted">{{t "closeweek.lead"}}</p>
+    {{with .done}}<p class="pill" data-state="applied">{{t "closeweek.done" "n" .}}</p>{{end}}
+    {{with .failed}}<p class="error">{{t "closeweek.failed" "n" .}} {{$.Who}}: {{t $.Reason}}</p>{{end}}
+    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+    {{if $p.Scopes}}
+    {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/week" "Keep" (dict "week" ($p.Week.Format "2006-01-02"))}}
+    <nav class="hint-filters" aria-label="{{t "closeweek.weeks"}}">
+      <div class="chips-row">{{range $p.Weeks}}<a class="chip is-filter" href="/week?scope={{$p.Scope}}&amp;week={{.Format "2006-01-02"}}"{{if .Equal $p.Week}} aria-pressed="true"{{end}}>{{t "closeweek.from" "day" (day .)}}</a>{{end}}</div>
+    </nav>
+    <p class="small muted">{{if $p.Sources}}{{t "closeweek.sources"}} {{range $i, $s := $p.Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}{{else}}{{t "closeweek.no_sources"}}{{end}}</p>
+    {{if $p.Cases}}
+    <form method="post" action="/week/review" class="card">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="week" value="{{$p.Week.Format "2006-01-02"}}">
+      <div class="table-wrap"><table class="table cards-sm">
+        <thead><tr><th></th><th>{{t "closeweek.seen"}}{{tzMark}}</th><th>{{t "closeweek.entry"}}</th></tr></thead>
+        <tbody>{{range $p.Cases}}{{$c := .}}{{$k := .Key}}<tr>
+          <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if .Checked}} checked{{end}} aria-label="{{.Title}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
+            <input type="hidden" name="act_{{$k}}" value="book"></td>
+          <td data-card="title"><b>{{or .Customer "?"}}</b> · {{day .Day}} {{.Start.Format "15:04"}}–{{.End.Format "15:04"}}<br>
+            <small class="muted">{{t (print "closeweek.kind_" .Kind)}}: {{.Title}}</small></td>
+          <td class="week-entry">
+            {{with $p.Catalog}}<select class="select" name="project_{{$k}}" aria-label="{{t "closeweek.project"}}"><option value="">{{t "closeweek.project"}}</option>
+              {{range .Projects}}<option value="{{.ID}}"{{if eq .ID $c.Project}} selected{{end}}>{{.Customer}} · {{.Name}}</option>{{end}}</select>
+            <select class="select" name="activity_{{$k}}" aria-label="{{t "closeweek.activity"}}"><option value="">{{t "closeweek.activity"}}</option>
+              {{range .Activities}}<option value="{{.ID}}"{{if eq .ID $c.Activity}} selected{{end}}>{{.Name}}</option>{{end}}</select>{{end}}
+            <input class="input" type="datetime-local" name="begin_{{$k}}" value="{{.Start.Format "2006-01-02T15:04"}}" aria-label="{{t "closeweek.begin"}}">
+            <input class="input" type="datetime-local" name="end_{{$k}}" value="{{.End.Format "2006-01-02T15:04"}}" aria-label="{{t "closeweek.end"}}">
+            <input class="input" name="note_{{$k}}" value="{{.Title}}" aria-label="{{t "closeweek.note"}}">
+          </td>
+        </tr>{{end}}</tbody>
+      </table></div>
+      <p><button type="submit" class="btn btn-accent">{{t "closeweek.review"}}</button></p>
+    </form>
+    {{else}}<p class="pill" data-state="applied">{{t "closeweek.empty"}}</p>{{end}}
+    {{end}}
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}
+
+{{define "week_review"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "closeweek.review_title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "closeweek.review_title"}}</h1>
+    <p>{{t "closeweek.review_lead" "n" .Plan.Writes}}</p>
+    <form method="post" action="/week/apply">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{.Plan.Scope}}"><input type="hidden" name="week" value="{{.Plan.Week.Format "2006-01-02"}}">
+      <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
+        <li{{if .Problem}} class="late"{{end}}>{{if not .Problem}}{{template "bench_step" .Step}}{{end}}
+          <b>{{or $i.Customer .Case}}{{if not $i.Begin.IsZero}} · {{day $i.Begin}} {{$i.Begin.Format "15:04"}}–{{$i.End.Format "15:04"}}{{end}}</b><br>
+          {{if .Problem}}{{t (print .Problem)}}{{else}}{{t "closeweek.do_book" "project" $i.Project "activity" $i.Activity}}{{with $i.Note}} · „{{.}}“{{end}}{{end}}
+        </li>{{end}}</ol>
+      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "closeweek.apply" "n" .Plan.Writes}}</button>{{end}}
+        <a class="btn btn-quiet" href="/week?scope={{.Plan.Scope}}&amp;week={{.Plan.Week.Format "2006-01-02"}}">{{t "closeweek.back"}}</a></p>
+    </form>
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}
