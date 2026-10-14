@@ -223,6 +223,7 @@ func (d Deps) RegisterBillingRoutes(mux *http.ServeMux) {
 	d.registerVATRoutes(mux)
 	d.registerJournalRoutes(mux)
 	d.registerEuerRoutes(mux)
+	d.registerVendorRoutes(mux)
 }
 
 // handlePaymentBook books a matched bank income in Invoice Ninja.

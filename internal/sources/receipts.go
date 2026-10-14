@@ -167,6 +167,30 @@ func ninjaExpenseFields(ctx context.Context, api services.NinjaApi) [NinjaSlots]
 	return out
 }
 
+// NinjaVendorExpenses lists the keys of every expense of a vendor, of
+// all years (the dataset holds a window only).
+func NinjaVendorExpenses(ctx context.Context, sctx Ctx, vendorKey string) ([]string, error) {
+	if isDemo(sctx) {
+		return nil, newSourceError("demo vendors take no changes")
+	}
+	api, err := ninjaAPI(sctx)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := api.Pages(ctx, "expenses", url.Values{"vendor_id": {vendorKey}, "is_deleted": {"false"}})
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	var out []string
+	for _, e := range raw {
+		// Invoice Ninja filters by vendor; check, an older one may not.
+		if m := asMap(e); idKey(m["vendor_id"]) == vendorKey {
+			out = append(out, idKey(m["id"]))
+		}
+	}
+	return out, nil
+}
+
 // NinjaExpenseByKey reads one expense fresh, for a write that depends on it.
 func NinjaExpenseByKey(ctx context.Context, sctx Ctx, key string) (ReceiptExpense, error) {
 	if isDemo(sctx) {

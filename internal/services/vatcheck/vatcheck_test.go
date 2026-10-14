@@ -319,6 +319,16 @@ func TestDemo(t *testing.T) {
 	if !errors.Is(err, vatcheck.ErrDemo) {
 		t.Fatalf("demo write: %v", err)
 	}
+
+	// Marked as filed, the figures are kept; unchanged, nothing is due.
+	span := metrics.VATSpans(today, "monthly", 1)[0].Key
+	if err := vatcheck.FileReturn(ctx, d, who, scopeOf(conn), span, today, ""); err != nil {
+		t.Fatal(err)
+	}
+	p, err := vatcheck.Open(ctx, d, who, scopeOf(conn), span, today)
+	if err != nil || !p.Filed || len(p.Changed) != 0 || len(p.Elster.Figures()) == 0 {
+		t.Fatalf("filed: %v changed %+v %v", p.Filed, p.Changed, err)
+	}
 }
 
 // Until the return is due the last period opens, afterwards this one.

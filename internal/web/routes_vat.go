@@ -9,6 +9,7 @@ package web
 //	POST /vat/restore  brings a transaction archived as private back
 //	POST /vat/accounts names each bank account business or private
 //	POST /vat/guess    asks the language model about the open ones
+//	POST /vat/filed    marks the period's figures as filed
 
 import (
 	"errors"
@@ -31,6 +32,7 @@ func (d Deps) registerVATRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /vat/restore", d.authed(d.handleVATRestore))
 	mux.HandleFunc("POST /vat/accounts", d.authed(d.handleVATAccounts))
 	mux.HandleFunc("POST /vat/guess", d.authed(d.handleVATGuess))
+	mux.HandleFunc("POST /vat/filed", d.authed(d.handleVATFiled))
 }
 
 // vatQuery is the Verbund and period carried in links and forms.
@@ -169,4 +171,13 @@ func (d Deps) handleVATGuess(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		return
 	}
 	http.Redirect(w, r, q.back("guessed", strconv.Itoa(n)), http.StatusSeeOther)
+}
+
+func (d Deps) handleVATFiled(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	q := vatQueryOf(r)
+	if err := vatcheck.FileReturn(r.Context(), d.DB, ctx.Who, q.Scope, q.Span, time.Now().UTC(), d.clientIP(r)); err != nil {
+		http.Redirect(w, r, q.back("error", vatError(err)), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, q.back("note", "vatcheck.filed_note")+"#elster", http.StatusSeeOther)
 }

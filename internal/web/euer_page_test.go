@@ -49,3 +49,24 @@ func TestEuerPages(t *testing.T) {
 		t.Fatalf("euer after setup:\n%s", page)
 	}
 }
+
+// The vendors page opens for an Invoice Ninja and reviews a merge.
+func TestVendorsPage(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+		"service": {"invoiceninja"}, "name": {"Ninja"}, "url": {"demo://invoiceninja"}, "mode": {"shared"}, "tls": {"verify"}})
+	if page := string(mustGet(t, srv, client, "/vendors")); !strings.Contains(page, "Lieferanten aufräumen") {
+		t.Fatalf("vendors page:\n%s", page)
+	}
+	resp, err := client.PostForm(srv.URL+"/vendors/review", url.Values{"csrf": {csrfToken(t, srv, client)}, "pick": {"demo-v2"},
+		"act_demo-v2": {"merge"}, "into_demo-v2": {"demo-v1"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if review := readBody(t, resp); !strings.Contains(review, "Zusammenführen bestätigen") || !strings.Contains(review, `name="into_demo-v2" value="demo-v1"`) {
+		t.Fatalf("review:\n%s", review)
+	}
+}

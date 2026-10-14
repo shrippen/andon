@@ -71,6 +71,9 @@ type Page struct {
 	CanSet   bool  // the user may set roles (MANAGE on the connections)
 	SpaceID  int64 // Invoice Ninja's space, for its Verbund page
 	Check    metrics.VATCheck
+	Elster   metrics.Elster   // the return's figures
+	Filed    bool             // marked as filed (FileReturn)
+	Changed  []metrics.Figure // figures that moved since
 	Ledger   Ledger
 	Interval string // monthly, quarterly
 	Method   string // ist, soll
@@ -150,6 +153,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 	p.CanSet, p.SpaceID = b.canSet(d, who), b.conn.SpaceID
 	cases := metrics.BankCases(in)
 	p.Check = metrics.VATCheckOf(in, cases)
+	p.Elster = metrics.ElsterOf(b.ninja, p.Span.Start, p.Span.End, p.Method)
+	if filed, ok := b.state.Filed[connKey(b.conn.ID)][p.Span.Key]; ok {
+		p.Filed, p.Changed = true, p.Elster.Changed(filed)
+	}
 	guesses := b.state.guesses(b.conn.ID)
 	for _, c := range cases {
 		g, ok := guesses[c.Txn.Key]

@@ -13,18 +13,23 @@ import (
 // prefKey is the user pref holding the check's state:
 //
 //	{"scope": "v4",                             the Verbund last used (workbench.Scope)
-//	 "guesses": {"3": {"Kx9": {…}}}}            the model's readings
+//	 "guesses": {"3": {"Kx9": {…}}},            the model's readings
+//	 "filed": {"3": {"2026-09": {"81": 1000}}}} figures marked as filed, per Ninja
 const prefKey = "vat_check"
 
 type state struct {
-	Scope   string                             `json:"scope,omitempty"`
-	Guesses map[string]map[string]assist.Guess `json:"guesses,omitempty"`
+	Scope   string                                   `json:"scope,omitempty"`
+	Guesses map[string]map[string]assist.Guess       `json:"guesses,omitempty"`
+	Filed   map[string]map[string]map[string]float64 `json:"filed,omitempty"`
 }
 
 // normal gives a state read from the pref its maps.
 func (s *state) normal() {
 	if s.Guesses == nil {
 		s.Guesses = map[string]map[string]assist.Guess{}
+	}
+	if s.Filed == nil {
+		s.Filed = map[string]map[string]map[string]float64{}
 	}
 }
 

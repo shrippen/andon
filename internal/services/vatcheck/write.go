@@ -420,3 +420,27 @@ func Guess(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey
 	})
 	return len(guesses), err
 }
+
+// FileReturn marks the period's figures as filed; the page warns when
+// they move afterwards (a correction is due).
+func FileReturn(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey string, today time.Time, ip string) error {
+	page, err := Open(ctx, d, who, scope, spanKey, today)
+	if err != nil {
+		return err
+	}
+	figures := map[string]float64{}
+	for _, f := range page.Elster.Figures() {
+		figures[f.Kz] = f.Value
+	}
+	err = saveState(d, who, func(s *state) {
+		key := connKey(page.Conn)
+		if s.Filed[key] == nil {
+			s.Filed[key] = map[string]map[string]float64{}
+		}
+		s.Filed[key][page.Span.Key] = figures
+	})
+	if err != nil {
+		return err
+	}
+	return auditsvc.Log(d, &who.UserID, "vatcheck.filed", page.Span.Key, ip, map[string]any{"due": fmt.Sprintf("%.2f", page.Elster.Kz83)})
+}

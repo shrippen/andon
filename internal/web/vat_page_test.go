@@ -30,7 +30,7 @@ func TestVATPage(t *testing.T) {
 
 	month := time.Now().UTC().Format("2006-01")
 	page = string(mustGet(t, srv, client, "/vat?span="+month))
-	for _, want := range []string{"Offene Umsätze", "Kabelwerk Studiobedarf", `name="act_demo-b-studio"`, "Zahllast"} {
+	for _, want := range []string{"Offene Umsätze", "Kabelwerk Studiobedarf", `name="act_demo-b-studio"`, "Zahllast", "ELSTER-Kennzahlen", "Vorauszahlung (Zahllast)", "data-copy="} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("page lacks %q:\n%s", want, page)
 		}
