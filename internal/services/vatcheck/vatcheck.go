@@ -30,7 +30,7 @@ import (
 	"andon/internal/services/connections"
 	"andon/internal/services/receipts"
 	"andon/internal/services/svcdata"
-	"andon/internal/services/verbund"
+	"andon/internal/services/workbench"
 	"andon/internal/sources"
 )
 
@@ -41,24 +41,23 @@ var (
 	ErrNoBank = errors.New("vatcheck.err_no_bank")
 	// ErrDemo means a demo connection, which takes no writes.
 	ErrDemo = errors.New("vatcheck.err_demo")
-	// ErrNothing means no step was ticked.
-	ErrNothing = errors.New("vatcheck.err_nothing")
 )
 
 // spansShown is how many periods the page offers, this one included.
 const spansShown = 5
 
-// Choice is one Invoice Ninja the user can check.
-type Choice struct {
-	ID   int64
-	Name string
-}
+// need is the VAT check's services: Invoice Ninja, with Sure or Firefly
+// beside it when the Verbund has one.
+var need = workbench.Need{Required: []enums.ServiceType{enums.ServiceInvoiceNinja},
+	Optional: []enums.ServiceType{enums.ServiceSure, enums.ServiceFirefly}}
 
 // Page is the VAT check of one Invoice Ninja and period.
 type Page struct {
-	Choices  []Choice
-	Conn     int64
-	Bank     string // the Sure or Firefly beside it, "" none
+	Scopes   []workbench.Scope // the Verbünde the check can work in
+	Scope    string            // the one picked (workbench.Scope.Key)
+	Choose   bool              // several, none picked yet: the page asks
+	Conn     int64             // its Invoice Ninja
+	Bank     string            // the Sure or Firefly beside it, "" none
 	Spans    []metrics.VATSpan
 	Span     metrics.VATSpan
 	Cases    []Case                 // business, and private with a known vendor
@@ -103,6 +102,8 @@ type Ledger struct {
 
 // book is the loaded data of one check.
 type book struct {
+	scope    workbench.Scope
+	choose   bool // several scopes, none picked
 	conn     *model.Connection
 	bankConn *model.Connection
 	ninja    *sources.NinjaDataset
@@ -111,12 +112,12 @@ type book struct {
 	state    state
 }
 
-// Open builds the page for connection connID (0: the last or only one)
-// and period key ("" = the last finished period).
-func Open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, spanKey string, today time.Time) (Page, error) {
+// Open builds the page for Verbund scope ("": the last or only one) and
+// period key ("" = the last finished period).
+func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey string, today time.Time) (Page, error) {
 	var p Page
-	b, choices, err := load(ctx, d, who, connID, svcdata.Stored)
-	p.Choices = choices
+	b, scopes, err := load(ctx, d, who, scope, svcdata.Stored)
+	p.Scopes, p.Scope, p.Choose = scopes, b.scope.Key, b.choose
 	if err != nil {
 		return p, err
 	}
@@ -262,69 +263,59 @@ func (b book) canSet(d *sql.DB, who *access.Principal) bool {
 	return true
 }
 
-// load picks the Invoice Ninja, its Sure (or Firefly) partner, their data
-// and the space's tax settings.
-func load(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, fresh svcdata.Freshness) (book, []Choice, error) {
-	views, err := connections.Listing(d, who, enums.RightUse)
+// load picks the Verbund (workbench.Scopes): its Invoice Ninja, its
+// Sure (or Firefly), their data and the space's tax settings.
+func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, fresh svcdata.Freshness) (book, []workbench.Scope, error) {
+	scopes, err := workbench.Scopes(d, who, need)
 	if err != nil {
 		return book{}, nil, err
 	}
-	var choices []Choice
-	for _, v := range views {
-		if v.Service == enums.ServiceInvoiceNinja {
-			choices = append(choices, Choice{ID: v.ID, Name: v.Name})
-		}
-	}
-	if len(choices) == 0 {
+	if len(scopes) == 0 {
 		return book{}, nil, ErrNoNinja
 	}
 	st, err := loadState(d, who)
 	if err != nil {
-		return book{}, choices, err
+		return book{}, scopes, err
 	}
-	if connID == 0 {
-		connID = st.Conn
-	}
-	if !slices.ContainsFunc(choices, func(c Choice) bool { return c.ID == connID }) {
-		connID = choices[0].ID
+	if scope == "" {
+		scope = st.Scope
 	}
 
 	b := book{state: st}
-	err = db.WithRead(d, func(tx *sql.Tx) error {
-		if b.conn, err = content.Connection(tx, connID); err != nil || b.conn == nil {
-			return err
+	b.scope, b.choose = workbench.Pick(scopes, scope)
+	b.conn = b.scope.Conn(enums.ServiceInvoiceNinja)
+	for _, service := range need.Optional {
+		if b.bankConn == nil {
+			b.bankConn = b.scope.Conn(service)
 		}
-		if sp, err := content.Space(tx, b.conn.SpaceID); err == nil && sp != nil {
+	}
+	err = db.WithRead(d, func(tx *sql.Tx) error {
+		sp, err := content.Space(tx, b.conn.SpaceID)
+		if err == nil && sp != nil {
 			b.settings = sp.Settings
 		}
-		at := verbund.Asker{SpaceID: b.conn.SpaceID, ConnID: b.conn.ID}
-		for _, service := range []enums.ServiceType{enums.ServiceSure, enums.ServiceFirefly} {
-			if b.bankConn, _, err = verbund.Partner(tx, who, at, service); err != nil || b.bankConn != nil {
-				return err
-			}
-		}
-		return nil
+		return err
 	})
-	if err != nil || b.conn == nil {
-		return b, choices, errors.Join(err, ErrNoNinja)
+	if err != nil {
+		return b, scopes, err
 	}
 
 	res, err := fetch(ctx, d, who, b.conn, fresh)
 	if err != nil {
-		return b, choices, err
+		return b, scopes, err
 	}
 	if res.Error != "" {
-		return b, choices, FetchError{res.Error}
+		return b, scopes, FetchError{res.Error}
 	}
 	if b.ninja, _ = res.Data.(*sources.NinjaDataset); b.ninja == nil {
-		return b, choices, ErrNoBank
+		return b, scopes, ErrNoBank
 	}
 	if b.bankConn != nil {
 		if res, err := fetch(ctx, d, who, b.bankConn, fresh); err == nil {
 			b.bank, _ = res.Data.(*sources.SureDataset)
 		}
 	}
-	return b, choices, nil
+	return b, scopes, nil
 }
 
 // fetch reads a connection's dataset; a stored one the background run

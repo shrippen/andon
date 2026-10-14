@@ -19,7 +19,7 @@
     {{with .Guessed}}<p class="pill" data-state="applied">{{t "vatcheck.guessed" "n" .}}</p>{{end}}
 
     {{$p := .P}}
-    {{if not $p.Choices}}
+    {{if not $p.Scopes}}
     <section class="card">
       <h2>{{t "vatcheck.need_title"}}</h2>
       <p>{{t "vatcheck.need_text"}}</p>
@@ -27,12 +27,10 @@
     </section>
     {{else}}
 
-    {{/* Which Invoice Ninja (when several) and which period. */}}
+    {{/* Which Verbund (when several) and which period. */}}
+    {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/vat" "Keep" (dict "span" $p.Span.Key)}}
     <nav class="hint-filters" aria-label="{{t "vatcheck.periods"}}">
-      {{if gt (len $p.Choices) 1}}<form method="get" action="/vat" class="inline-form">
-        <select class="select" name="conn" aria-label="{{t "service.invoiceninja"}}">{{range $p.Choices}}<option value="{{.ID}}"{{if eq .ID $p.Conn}} selected{{end}}>{{.Name}}</option>{{end}}</select>
-        <button type="submit" class="btn btn-outline btn-sm">{{t "receipts.pick_switch"}}</button></form>{{end}}
-      <div class="chips-row">{{range $p.Spans}}<a class="chip is-filter" href="/vat?conn={{$p.Conn}}&amp;span={{.Key}}"{{if eq .Key $p.Span.Key}} aria-pressed="true"{{end}}>{{template "vat_span" dict "S" . "Interval" $p.Interval}}</a>{{end}}</div>
+      <div class="chips-row">{{range $p.Spans}}<a class="chip is-filter" href="/vat?scope={{$p.Scope}}&amp;span={{.Key}}"{{if eq .Key $p.Span.Key}} aria-pressed="true"{{end}}>{{template "vat_span" dict "S" . "Interval" $p.Interval}}</a>{{end}}</div>
     </nav>
 
     {{if $p.Accounts}}{{template "vat_accounts" dict "P" $p "CSRFField" $.CSRFField "CSRF" $.Ctx.CSRF}}{{end}}
@@ -62,11 +60,11 @@
     <h2 id="cases">{{t "vatcheck.cases"}}</h2>
     {{if or $p.Cases $p.Apart}}
     {{if $p.Assist}}<form method="post" action="/vat/guess" class="inline-form">
-      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="conn" value="{{$p.Conn}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
       <button type="submit" class="btn btn-outline btn-sm" title="{{t "vatcheck.guess_privacy"}}">{{if $p.Guessed}}{{t "vatcheck.guess_again"}}{{else}}{{t "vatcheck.guess"}}{{end}}</button>
       <small class="muted">{{t "vatcheck.guess_privacy"}}</small></form>{{end}}
     <form method="post" action="/vat/review">
-      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="conn" value="{{$p.Conn}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
       <div class="table-wrap"><table class="table cards-sm vat-cases">
         <thead><tr><th><span class="sr-only">{{t "vatcheck.pick"}}</span></th><th>{{t "col.day"}}</th><th>{{t "col.booking"}}</th><th class="num">{{t "col.amount"}}</th><th>{{t "vatcheck.proposal"}}</th></tr></thead>
         <tbody>{{range $p.Cases}}{{template "vat_case" dict "C" . "P" $p}}{{else}}<tr><td colspan="5" class="muted">{{t "vatcheck.no_cases"}}</td></tr>{{end}}</tbody>
@@ -109,7 +107,7 @@
       <summary>{{t "vatcheck.skipped" "n" (len .)}}</summary>
       <ul class="close-steps">{{range .}}<li><span>{{day .Date}} · {{.Payer}} · {{money .Amount $p.Currency}}{{with .Account}} · {{.}}{{end}}</span>
         <form method="post" action="/vat/restore" class="inline-form"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-          <input type="hidden" name="conn" value="{{$p.Conn}}"><input type="hidden" name="span" value="{{$p.Span.Key}}"><input type="hidden" name="txn" value="{{.Key}}">
+          <input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="span" value="{{$p.Span.Key}}"><input type="hidden" name="txn" value="{{.Key}}">
           <button type="submit" class="btn btn-quiet btn-sm">{{t "vatcheck.show_again"}}</button></form></li>{{end}}</ul>
     </details>{{end}}
     {{end}}
@@ -176,24 +174,21 @@
     <h1>{{t "vatcheck.review_title"}}</h1>
     <p>{{t "vatcheck.review_lead" "n" .Plan.Writes}}</p>
     <form method="post" action="/vat/apply">
-      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="conn" value="{{.Q.Conn}}"><input type="hidden" name="span" value="{{.Q.Span}}">
-      <ol class="vat-plan">{{range .Plan.Steps}}{{$k := .Step.Txn}}
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{.Q.Scope}}"><input type="hidden" name="span" value="{{.Q.Span}}">
+      <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
         <li{{if .Problem}} class="late"{{end}}>
-          {{if not .Problem}}<input type="hidden" name="pick" value="{{$k}}"><input type="hidden" name="act_{{$k}}" value="{{.Action}}">
-            <input type="hidden" name="exp_{{$k}}" value="{{.Step.Expense}}"><input type="hidden" name="inv_{{$k}}" value="{{.Step.Invoice}}"><input type="hidden" name="pay_{{$k}}" value="{{.Step.Payment}}">
-            <input type="hidden" name="vendor_{{$k}}" value="{{.Vendor}}"><input type="hidden" name="cat_{{$k}}" value="{{.Step.Category}}">
-            <input type="hidden" name="tax_{{$k}}" value="{{if .Taxed}}{{.TaxRate}}{{else}}none{{end}}">{{if .Scan}}<input type="hidden" name="scan_{{$k}}" value="{{.Scan}}">{{end}}{{end}}
-          <b>{{day .Txn.Date}} · {{.Txn.Payer}} · {{if .Txn.Debit}}−{{end}}{{money .Txn.Amount $.Plan.Currency}}</b><br>
+          {{if not .Problem}}{{template "bench_step" .Step}}{{end}}
+          <b>{{day $i.Txn.Date}} · {{$i.Txn.Payer}} · {{if $i.Txn.Debit}}−{{end}}{{money $i.Txn.Amount $.Plan.Currency}}</b><br>
           {{if .Problem}}{{t (print .Problem)}}
-          {{else if eq .Action "link"}}{{t "vatcheck.do_link" "number" .Expense.Number}}
-          {{else if eq .Action "invoice"}}{{t "vatcheck.do_invoice" "number" .Invoice.Number}}
-          {{else if eq .Action "payment"}}{{t "vatcheck.do_payment" "number" .Payment.Number}}
+          {{else if eq .Action "link"}}{{t "vatcheck.do_link" "number" $i.Expense.Number}}
+          {{else if eq .Action "invoice"}}{{t "vatcheck.do_invoice" "number" $i.Invoice.Number}}
+          {{else if eq .Action "payment"}}{{t "vatcheck.do_payment" "number" $i.Payment.Number}}
           {{else if eq .Action "skip"}}{{t "vatcheck.do_skip"}}
-          {{else}}{{if .NewVendor}}{{t "vatcheck.do_vendor" "vendor" .Vendor}} {{end}}{{t "vatcheck.do_create" "vendor" .Vendor}}{{with .Category}} · {{.}}{{end}} ·
-            {{if .Taxed}}{{t "vatcheck.do_tax" "name" .TaxName "rate" (num .TaxRate 0) "tax" (money .Tax $.Plan.Currency)}}{{else}}{{t "vatcheck.no_tax"}}{{end}}{{with .ScanTitle}} · {{t "vatcheck.do_scan" "title" .}}{{end}}{{end}}
+          {{else}}{{if $i.NewVendor}}{{t "vatcheck.do_vendor" "vendor" $i.Vendor}} {{end}}{{t "vatcheck.do_create" "vendor" $i.Vendor}}{{with $i.Category}} · {{.}}{{end}} ·
+            {{if $i.Taxed}}{{t "vatcheck.do_tax" "name" $i.TaxName "rate" (num $i.TaxRate 0) "tax" (money $i.Tax $.Plan.Currency)}}{{else}}{{t "vatcheck.no_tax"}}{{end}}{{with $i.ScanTitle}} · {{t "vatcheck.do_scan" "title" .}}{{end}}{{end}}
         </li>{{end}}</ol>
       <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "vatcheck.apply" "n" .Plan.Writes}}</button>{{else}}<button type="submit" class="btn btn-outline">{{t "vatcheck.apply_skip"}}</button>{{end}}
-        <a class="btn btn-quiet" href="/vat?conn={{.Q.Conn}}&amp;span={{.Q.Span}}">{{t "vatcheck.back"}}</a></p>
+        <a class="btn btn-quiet" href="/vat?scope={{.Q.Scope}}&amp;span={{.Q.Span}}">{{t "vatcheck.back"}}</a></p>
     </form>
   </main>
   {{template "foot" $}}
@@ -208,7 +203,7 @@
   <summary><b>{{t "vatcheck.accounts_title"}}</b>{{if $p.SetUp}} <small class="muted">{{range $i, $a := $p.Accounts}}{{if $i}} · {{end}}{{$a.Name}}: {{if eq $a.Role "business"}}{{t "vatcheck.accounts_business"}}{{else if eq $a.Role "private"}}{{t "vatcheck.accounts_private"}}{{else}}–{{end}}{{end}}</small>{{end}}</summary>
   <p class="small muted">{{t "vatcheck.accounts_lead"}}</p>
   {{if $p.CanSet}}<form method="post" action="/vat/accounts">
-    <input type="hidden" name="{{.CSRFField}}" value="{{.CSRF}}"><input type="hidden" name="conn" value="{{$p.Conn}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
+    <input type="hidden" name="{{.CSRFField}}" value="{{.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
     <div class="table-wrap"><table class="table cards-sm">
       <tbody>{{range $p.Accounts}}<tr><td data-card="title">{{.Name}} <small class="muted">{{t (print "service." .Service)}}</small></td>
         <td><select class="select" name="role:{{.ConnID}}:{{.Key}}" aria-label="{{.Name}}">

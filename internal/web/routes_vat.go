@@ -18,10 +18,10 @@ import (
 	"strings"
 	"time"
 
-	"andon/internal/metrics"
 	"andon/internal/services/assist"
 	"andon/internal/services/vatcheck"
 	"andon/internal/services/verbund"
+	"andon/internal/services/workbench"
 )
 
 func (d Deps) registerVATRoutes(mux *http.ServeMux) {
@@ -33,21 +33,21 @@ func (d Deps) registerVATRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /vat/guess", d.authed(d.handleVATGuess))
 }
 
-// vatQuery is the connection and period carried in links and forms.
+// vatQuery is the Verbund and period carried in links and forms.
 type vatQuery struct {
-	Conn int64
-	Span string
+	Scope string
+	Span  string
 }
 
 func vatQueryOf(r *http.Request) vatQuery {
-	return vatQuery{Conn: formID(r, "conn"), Span: r.FormValue("span")}
+	return vatQuery{Scope: r.FormValue(benchScope), Span: r.FormValue("span")}
 }
 
 // back is the page with a note: ("done", "3", "skipped", "1").
 func (q vatQuery) back(pairs ...string) string {
 	v := url.Values{}
-	if q.Conn != 0 {
-		v.Set("conn", strconv.FormatInt(q.Conn, 10))
+	if q.Scope != "" {
+		v.Set(benchScope, q.Scope)
 	}
 	if q.Span != "" {
 		v.Set("span", q.Span)
@@ -60,7 +60,7 @@ func (q vatQuery) back(pairs ...string) string {
 
 func (d Deps) handleVAT(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := vatQueryOf(r)
-	page, err := vatcheck.Open(r.Context(), d.DB, ctx.Who, q.Conn, q.Span, time.Now().UTC())
+	page, err := vatcheck.Open(r.Context(), d.DB, ctx.Who, q.Scope, q.Span, time.Now().UTC())
 	query := r.URL.Query()
 	values := map[string]any{"P": page, "Note": query.Get("note"), "Error": query.Get("error"), "Reason": query.Get("reason")}
 	for _, k := range []string{"done", "skipped", "failed", "guessed"} {
@@ -81,32 +81,20 @@ func vatError(err error) string {
 	return errKey(err)
 }
 
-// vatSteps reads the ticked rows; each row's fields carry its key:
-// pick=Kx9, act_Kx9=create, vendor_Kx9=…, cat_Kx9=…, tax_Kx9=19|none.
-// all_private archives every apart=… row instead.
-func vatSteps(r *http.Request) []vatcheck.Step {
+// vatSteps reads the ticked rows (benchSteps); all_private archives
+// every apart=… row instead.
+func vatSteps(r *http.Request) []workbench.Step {
 	if err := r.ParseForm(); err != nil {
 		return nil
 	}
-	var out []vatcheck.Step
 
 	// "Archive all as private": the private accounts' rest, nothing else.
-	if r.PostForm.Get("all_private") != "" {
-		for _, k := range r.PostForm["apart"] {
-			out = append(out, vatcheck.Step{Txn: k, Action: metrics.ActionSkip})
-		}
-		return out
+	if r.PostForm.Get("all_private") == "" {
+		return benchSteps(r.PostForm, vatcheck.Fields)
 	}
-	for _, k := range r.PostForm["pick"] {
-		s := vatcheck.Step{Txn: k, Action: metrics.BankAction(r.PostForm.Get("act_" + k)), Expense: r.PostForm.Get("exp_" + k),
-			Invoice: r.PostForm.Get("inv_" + k), Payment: r.PostForm.Get("pay_" + k), Vendor: r.PostForm.Get("vendor_" + k), Category: r.PostForm.Get("cat_" + k)}
-		s.Scan, _ = strconv.ParseInt(r.PostForm.Get("scan_"+k), 10, 64)
-		if rate, err := strconv.ParseFloat(r.PostForm.Get("tax_"+k), 64); err == nil {
-			s.TaxRate, s.Taxed = rate, true
-		}
-		if s.Action != metrics.ActionNone {
-			out = append(out, s)
-		}
+	var out []workbench.Step
+	for _, k := range r.PostForm["apart"] {
+		out = append(out, workbench.Step{Case: k, Action: workbench.ActionSkip})
 	}
 	return out
 }
@@ -114,7 +102,7 @@ func vatSteps(r *http.Request) []vatcheck.Step {
 // handleVATReview shows what would be written; nothing is written yet.
 func (d Deps) handleVATReview(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := vatQueryOf(r)
-	plan, err := vatcheck.Review(r.Context(), d.DB, ctx.Who, q.Conn, vatSteps(r))
+	plan, err := vatcheck.Review(r.Context(), d.DB, ctx.Who, q.Scope, vatSteps(r))
 	if err != nil {
 		http.Redirect(w, r, q.back("error", vatError(err)), http.StatusSeeOther)
 		return
@@ -126,22 +114,17 @@ func (d Deps) handleVATReview(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 // confirmed; each is checked again against fresh data.
 func (d Deps) handleVATApply(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := vatQueryOf(r)
-	res, err := vatcheck.Apply(r.Context(), d.DB, ctx.Who, q.Conn, vatSteps(r), d.clientIP(r))
+	res, err := vatcheck.Apply(r.Context(), d.DB, ctx.Who, q.Scope, vatSteps(r), d.clientIP(r))
 	if err != nil {
 		http.Redirect(w, r, q.back("error", vatError(err)), http.StatusSeeOther)
 		return
 	}
-	pairs := []string{"done", strconv.Itoa(res.Done), "skipped", strconv.Itoa(res.Skipped)}
-	if len(res.Failed) > 0 {
-		first := res.Failed[0]
-		pairs = append(pairs, "failed", strconv.Itoa(len(res.Failed)), "reason", first.Payer+": "+first.Reason)
-	}
-	http.Redirect(w, r, q.back(pairs...), http.StatusSeeOther)
+	http.Redirect(w, r, q.back(benchNote(res)...), http.StatusSeeOther)
 }
 
 func (d Deps) handleVATRestore(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := vatQueryOf(r)
-	if err := vatcheck.Restore(r.Context(), d.DB, ctx.Who, q.Conn, r.FormValue("txn"), d.clientIP(r)); err != nil {
+	if err := vatcheck.Restore(r.Context(), d.DB, ctx.Who, q.Scope, r.FormValue("txn"), d.clientIP(r)); err != nil {
 		http.Redirect(w, r, q.back("error", vatError(err)), http.StatusSeeOther)
 		return
 	}
@@ -167,7 +150,7 @@ func (d Deps) handleVATAccounts(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		}
 		roles = append(roles, vatcheck.Role{ConnID: id, Key: key, Role: verbund.Role(v[0])})
 	}
-	if err := vatcheck.SaveRoles(r.Context(), d.DB, ctx.Who, q.Conn, roles, d.clientIP(r)); err != nil {
+	if err := vatcheck.SaveRoles(r.Context(), d.DB, ctx.Who, q.Scope, roles, d.clientIP(r)); err != nil {
 		http.Redirect(w, r, q.back("error", vatError(err))+"#accounts", http.StatusSeeOther)
 		return
 	}
@@ -176,7 +159,7 @@ func (d Deps) handleVATAccounts(w http.ResponseWriter, r *http.Request, ctx Ctx)
 
 func (d Deps) handleVATGuess(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := vatQueryOf(r)
-	n, err := vatcheck.Guess(r.Context(), d.DB, ctx.Who, q.Conn, q.Span, time.Now().UTC())
+	n, err := vatcheck.Guess(r.Context(), d.DB, ctx.Who, q.Scope, q.Span, time.Now().UTC())
 	if err != nil {
 		key := vatError(err)
 		if errors.Is(err, assist.ErrUnreadable) {

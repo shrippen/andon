@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/services/vatcheck"
+	"andon/internal/services/workbench"
 	"andon/internal/sources"
 	"andon/internal/testkit"
 )
@@ -160,7 +162,7 @@ func TestOpenProposesEachCase(t *testing.T) {
 	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "1"))
 	testkit.Conn(t, d, who, space, enums.ServiceSure, sureFake(t))
 
-	p, err := vatcheck.Open(context.Background(), d, who, 0, thisMonth(), time.Now().UTC())
+	p, err := vatcheck.Open(context.Background(), d, who, "", thisMonth(), time.Now().UTC())
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
@@ -190,25 +192,25 @@ func TestApplyWritesConfirmedSteps(t *testing.T) {
 	var w writes
 	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "1"))
 	ctx := context.Background()
-	steps := []vatcheck.Step{
-		{Txn: "b1", Action: metrics.ActionLink, Expense: "e2"},
-		{Txn: "b3", Action: metrics.ActionCreate, Vendor: "Nordhost Server", Category: "c2", TaxRate: 19, Taxed: true},
-		{Txn: "b4", Action: metrics.ActionInvoice, Invoice: "i7"},
-		{Txn: "b2", Action: metrics.ActionSkip},
+	steps := []workbench.Step{
+		{Case: "b1", Action: string(metrics.ActionLink), Fields: map[string]string{vatcheck.FieldExpense: "e2"}},
+		{Case: "b3", Action: string(metrics.ActionCreate), Fields: map[string]string{vatcheck.FieldVendor: "Nordhost Server", vatcheck.FieldCategory: "c2", vatcheck.FieldTax: "19"}},
+		{Case: "b4", Action: string(metrics.ActionInvoice), Fields: map[string]string{vatcheck.FieldInvoice: "i7"}},
+		{Case: "b2", Action: workbench.ActionSkip},
 	}
 
-	plan, err := vatcheck.Review(ctx, d, who, conn, steps)
+	plan, err := vatcheck.Review(ctx, d, who, scopeOf(conn), steps)
 	if err != nil {
 		t.Fatalf("review: %v", err)
 	}
-	if plan.Writes() != 4 || !plan.Steps[1].NewVendor || plan.Steps[1].Tax != 6.65 || plan.Steps[1].Category != "Hosting" {
+	if plan.Writes() != 4 || !plan.Steps[1].Item.NewVendor || plan.Steps[1].Item.Tax != 6.65 || plan.Steps[1].Item.Category != "Hosting" {
 		t.Fatalf("plan: %+v", plan.Steps)
 	}
 	if len(w.list()) != 0 {
 		t.Fatalf("review wrote: %v", w.list())
 	}
 
-	res, err := vatcheck.Apply(ctx, d, who, conn, steps, "")
+	res, err := vatcheck.Apply(ctx, d, who, scopeOf(conn), steps, "")
 	if err != nil {
 		t.Fatalf("apply: %v", err)
 	}
@@ -248,7 +250,7 @@ func TestAccounts(t *testing.T) {
 	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "1"))
 	ctx := context.Background()
 
-	p, err := vatcheck.Open(ctx, d, who, conn, thisMonth(), time.Now().UTC())
+	p, err := vatcheck.Open(ctx, d, who, scopeOf(conn), thisMonth(), time.Now().UTC())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,10 +259,10 @@ func TestAccounts(t *testing.T) {
 	}
 
 	roles := []vatcheck.Role{{ConnID: conn, Key: "a1", Role: sources.RoleBusiness}, {ConnID: conn, Key: "a2", Role: sources.RolePrivate}}
-	if err := vatcheck.SaveRoles(ctx, d, who, conn, roles, ""); err != nil {
+	if err := vatcheck.SaveRoles(ctx, d, who, scopeOf(conn), roles, ""); err != nil {
 		t.Fatal(err)
 	}
-	p, err = vatcheck.Open(ctx, d, who, conn, thisMonth(), time.Now().UTC())
+	p, err = vatcheck.Open(ctx, d, who, scopeOf(conn), thisMonth(), time.Now().UTC())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -279,7 +281,7 @@ func TestApplySkipsBookedMeanwhile(t *testing.T) {
 	var w writes
 	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "3"))
 
-	res, err := vatcheck.Apply(context.Background(), d, who, conn, []vatcheck.Step{{Txn: "b1", Action: metrics.ActionLink, Expense: "e2"}}, "")
+	res, err := vatcheck.Apply(context.Background(), d, who, scopeOf(conn), []workbench.Step{{Case: "b1", Action: string(metrics.ActionLink), Fields: map[string]string{vatcheck.FieldExpense: "e2"}}}, "")
 	if err != nil {
 		t.Fatalf("apply: %v", err)
 	}
@@ -299,7 +301,7 @@ func TestDemo(t *testing.T) {
 
 	seen := map[metrics.BankAction]bool{}
 	for _, s := range metrics.VATSpans(today, "monthly", 2) {
-		p, err := vatcheck.Open(ctx, d, who, conn, s.Key, today)
+		p, err := vatcheck.Open(ctx, d, who, scopeOf(conn), s.Key, today)
 		if err != nil {
 			t.Fatalf("open %s: %v", s.Key, err)
 		}
@@ -313,7 +315,7 @@ func TestDemo(t *testing.T) {
 		}
 	}
 
-	_, err := vatcheck.Apply(ctx, d, who, conn, []vatcheck.Step{{Txn: "demo-b-studio", Action: metrics.ActionCreate, Vendor: "Kabelwerk"}}, "")
+	_, err := vatcheck.Apply(ctx, d, who, scopeOf(conn), []workbench.Step{{Case: "demo-b-studio", Action: string(metrics.ActionCreate), Fields: map[string]string{vatcheck.FieldVendor: "Kabelwerk"}}}, "")
 	if !errors.Is(err, vatcheck.ErrDemo) {
 		t.Fatalf("demo write: %v", err)
 	}
@@ -334,7 +336,7 @@ func TestDefaultSpan(t *testing.T) {
 		{time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC), "2026-09"},
 		{time.Date(2026, 10, 13, 12, 0, 0, 0, time.UTC), "2026-10"},
 	} {
-		p, err := vatcheck.Open(ctx, d, who, 0, "", c.today)
+		p, err := vatcheck.Open(ctx, d, who, "", "", c.today)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -343,3 +345,6 @@ func TestDefaultSpan(t *testing.T) {
 		}
 	}
 }
+
+// scopeOf is the scope of a lone Invoice Ninja (workbench.Scope.Key).
+func scopeOf(conn int64) string { return "c" + strconv.FormatInt(conn, 10) }
