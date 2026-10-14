@@ -596,3 +596,52 @@ func SharedBookings(n *sources.NinjaDataset, s *sources.SureDataset) map[string]
 	}
 	return out
 }
+
+// VendorGroup is vendors of one name told apart only by case or legal
+// form ("Nordhost", "NORDHOST GmbH"): the one with most expenses first.
+type VendorGroup struct {
+	Vendors  []sources.NinjaVendor
+	Expenses map[string]int // per vendor key, in the dataset's window
+}
+
+// VendorDuplicates groups vendors whose names start with the same word.
+func VendorDuplicates(n *sources.NinjaDataset) []VendorGroup {
+	if n == nil {
+		return nil
+	}
+	count := map[string]int{}
+	for _, e := range n.Expenses {
+		count[e.VendorKey]++
+	}
+	byWord := map[string][]sources.NinjaVendor{}
+	var words []string
+	for _, v := range n.Vendors {
+		t := nameTokens(v.Name)
+		if len(t) == 0 {
+			continue
+		}
+		if _, seen := byWord[t[0]]; !seen {
+			words = append(words, t[0])
+		}
+		byWord[t[0]] = append(byWord[t[0]], v)
+	}
+	var out []VendorGroup
+	for _, w := range words {
+		list := byWord[w]
+		if len(list) < 2 {
+			continue
+		}
+		slices.SortStableFunc(list, func(a, b sources.NinjaVendor) int {
+			if c := cmp.Compare(count[b.Key], count[a.Key]); c != 0 {
+				return c
+			}
+			return cmp.Compare(a.Name, b.Name)
+		})
+		g := VendorGroup{Vendors: list, Expenses: map[string]int{}}
+		for _, v := range list {
+			g.Expenses[v.Key] = count[v.Key]
+		}
+		out = append(out, g)
+	}
+	return out
+}

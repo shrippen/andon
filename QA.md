@@ -115,6 +115,12 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 4. „ZIP herunterladen“: CSVs prüfen (Lieferant gefüllt?, Zahlen wie auf den Seiten).
 5. „An Paperless“ bei einer Rechnungsmail.
 
+**J-C5 USt-Abgleich: Abgabe**
+1. `/vat` → „ELSTER-Kennzahlen“: Werte mit „Kopieren“; „Als gemeldet merken“; danach eine Buchung im Zeitraum ändern → „Berichtigung fällig“ mit den Kennzahlen.
+2. Ausgabe eines ausländischen Lieferanten ohne Steuer steht unter „Reverse Charge“ mit Kz 46/47 oder 84/85.
+3. Überweisung Geschäft → Privat: „Umbuchung … archivieren“ vorgeschlagen, nicht angehakt.
+4. „Doppelte Lieferanten zusammenführen“ → `/vendors`: Gruppe wählen, Prüfen, Schreiben (Demo lehnt ab).
+
 **J-C4 Kategorien und EÜR**
 1. Verbund mit Invoice Ninja und Sure → „Kategorien“: Vorschläge stehen vorausgewählt („Vorschlag“), das EÜR-Feld ist erkannt; Speichern.
 2. `/euer`: Ausgaben ohne EÜR-Zeile, mit Vorschlag angehakt; „Prüfen“ → „In Invoice Ninja schreiben“ (Demo lehnt ab). Ohne gewähltes Feld: Hinweis mit Link zu den Kategorien.

@@ -134,3 +134,10 @@ func NinjaBankArchive(ctx context.Context, to Target, txnKey string, action Bank
 	}
 	return ErrNotArchived
 }
+
+// NinjaVendorArchive archives a vendor (merged into another).
+func NinjaVendorArchive(ctx context.Context, to Target, vendorKey string) error {
+	_, err := services.NinjaApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}.Post(ctx, "vendors/bulk",
+		map[string]any{"action": "archive", "ids": []string{vendorKey}})
+	return err
+}

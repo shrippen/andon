@@ -47,7 +47,7 @@ var kinds = []struct {
 	prefix string
 	area   Area
 }{
-	{"vatcheck.", AreaVAT}, {"euer.", AreaEuer}, {"receipts.", AreaReceipts}, {"mail.to_paperless", AreaReceipts},
+	{"vatcheck.", AreaVAT}, {"vendors.", AreaVAT}, {"euer.", AreaEuer}, {"receipts.", AreaReceipts}, {"mail.to_paperless", AreaReceipts},
 	{"billing.draft", AreaBilling}, {"billing.payment", AreaBilling},
 	{"kimai.", AreaKimai}, {"travel.", AreaKimai},
 	{"hass.", AreaHome}, {"dns.", AreaHome}, {"grocy.", AreaHome}, {"tandoor.", AreaHome},

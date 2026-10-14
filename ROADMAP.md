@@ -1245,10 +1245,10 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [x] `/vat` nimmt die Ninja-Kategorie aus der Zuordnung statt nach Namen, und eine neu angelegte Ausgabe bekommt gleich ihre EÜR-Zeile
    - [ ] Offen: Kategorien auch ohne gespeicherten Verbund (heute führt die Seite zum Anlegen eines Verbunds); Sures Tags zusätzlich zur Kategorie
 3. Auf `/vat`
-   - [ ] Reverse Charge (§ 13b) bei ausländischen Lieferanten ohne Steuer
-   - [ ] ELSTER-Kennzahlen (Kz 81, 86, 41, 46/47, 66, 67, 83) mit Kopierknopf; gemeldete Werte eintragen, später „Berichtigung nötig“
-   - [ ] Umbuchung auf ein eigenes Konto als Vorschlag „archivieren“ (keine eigene Werkbank: Sure kennt Umbuchungen schon, Invoice Ninja nicht; es geht nur darum, dass sie auf `/vat` nicht offen bleiben)
-   - [ ] Lieferanten aufräumen: doppelte zusammenführen, Standardwerte setzen
+   - [x] Reverse Charge (§ 13b): Ausgaben ohne Steuer von Lieferanten mit Land außerhalb Deutschlands (Land aus Invoice Ninja), EU in Kz 46/47, sonst 84/85, Vorsteuer in Kz 67; Waren aus der EU (Kz 89/93) erkennt Andon nicht, die Seite sagt es
+   - [x] ELSTER-Kennzahlen (Kz 21, 45, 81, 86, 46/47, 84/85, 66, 67, 83) mit Kopierknopf, Ist- oder Sollversteuerung; „Als gemeldet merken“, danach geänderte Kennzahlen als „Berichtigung fällig“
+   - [x] Umbuchung auf ein eigenes Konto als Vorschlag „archivieren“: derselbe Betrag in Gegenrichtung auf einem privaten Konto (Bankabruf oder Sure), bis 4 Tage auseinander; nicht vorab angehakt (eine Erstattung sähe gleich aus)
+   - [x] Lieferanten aufräumen (`/vendors`, Link auf `/vat`): Lieferanten mit gleichem ersten Wort; zusammengeführt hängen alle Ausgaben (aller Jahre) um, der doppelte wird archiviert *(Standardwerte je Lieferant: Invoice Ninja kennt keine Standardkategorie am Lieferanten)*
 4. Arbeit: Woche schließen (Kimai-Lücken mit Belegen aus Dawarich, Kalender, Gitea), Fahrtkosten in die Rechnung, Mahnlauf
 5. Abos und wiederkehrende Ausgaben als eine Werkbank über Sure, Invoice Ninja und Wallos (anlegen, zusammenführen, Preisänderung); Sure aufräumen (unkategorisierte Buchungen)
 6. Jahr: EÜR-Vorbereitung (EÜR-Kategorie aus 2., Abschreibung aus Snipe-IT), Homeoffice-Tage, Paket für die Steuerberatung, Rücklagenkonto (dritte Kontoverwendung „Rücklage“)

@@ -224,3 +224,16 @@ func TestBankCasesTransfer(t *testing.T) {
 		t.Errorf("expense stays a booking: %+v", c)
 	}
 }
+
+// Vendors of one first word group, the busiest first; a vendor whose
+// name merely contains the word elsewhere stays apart.
+func TestVendorDuplicates(t *testing.T) {
+	n := &sources.NinjaDataset{
+		Vendors:  []sources.NinjaVendor{{Key: "a", Name: "NORDHOST GmbH"}, {Key: "b", Name: "Nordhost"}, {Key: "c", Name: "Mietwagen Nord"}, {Key: "d", Name: "Kabelwerk"}},
+		Expenses: []sources.NinjaExpense{{VendorKey: "b"}, {VendorKey: "b"}, {VendorKey: "a"}},
+	}
+	g := metrics.VendorDuplicates(n)
+	if len(g) != 1 || g[0].Vendors[0].Key != "b" || g[0].Vendors[1].Key != "a" || g[0].Expenses["b"] != 2 {
+		t.Fatalf("groups: %+v", g)
+	}
+}
