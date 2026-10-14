@@ -1,0 +1,75 @@
+{{/* A Verbund's categories (verbund.CategoriesOf): Sure's categories as
+     Invoice Ninja categories, Invoice Ninja's as EÜR lines. */}}
+{{define "verbund_categories"}}{{$v := .View}}{{$id := $v.Verbund.ID}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "verbund.categories"}} · {{$v.Verbund.Name}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
+    <h1>{{t "verbund.categories"}} <small class="muted">{{$v.Verbund.Name}}</small></h1>
+    <p class="muted">{{t "verbund.categories_lead"}}</p>
+    <p><a href="/spaces/{{.SpaceID}}/verbund">← {{t "verbund.title"}}</a></p>
+    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+    {{with .Note}}<p class="pill" data-state="applied">{{t .}}</p>{{end}}
+    {{if $v.Ninja}}
+    <form method="post" action="/verbund/{{$id}}/categories">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}">
+
+      {{if $v.Bank}}<section class="card">
+        <h2>{{t "verbund.cat_sure_title" "bank" $v.Bank.Name}}</h2>
+        <p class="small muted">{{t "verbund.cat_sure_lead"}}</p>
+        {{if $v.Sure}}<div class="table-wrap"><table class="table cards-sm">
+          <thead><tr><th>{{t (print "service." $v.Bank.Service)}}</th><th>{{t "service.invoiceninja"}}</th><th>{{t "verbund.cat_shared"}}</th></tr></thead>
+          <tbody>{{range $v.Sure}}{{$pick := or .Mapped .Suggested}}<tr>
+            <td data-card="title">{{.Name}}</td>
+            <td><select class="select" name="sure:{{.Name}}" aria-label="{{.Name}}"{{if not $v.CanSave}} disabled{{end}}>
+              <option value="">–</option>
+              {{range $v.Categories}}<option value="{{.Key}}"{{if eq .Key $pick}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+              {{if and .Suggested (not .Mapped)}}<small class="muted">{{t "verbund.cat_suggested"}}</small>{{end}}</td>
+            <td>{{if .Count}}{{.Count}}{{else}}–{{end}}</td>
+          </tr>{{end}}</tbody>
+        </table></div>{{else}}<p class="small">{{t "verbund.cat_sure_none"}}</p>{{end}}
+      </section>{{end}}
+
+      <section class="card">
+        <h2>{{t "verbund.cat_euer_title"}}</h2>
+        <p class="small muted">{{t "verbund.cat_euer_lead"}}</p>
+        <label for="euer-slot">{{t "verbund.cat_euer_field"}}</label>
+        <select class="select" id="euer-slot" name="euer_slot"{{if not $v.CanSave}} disabled{{end}}>
+          <option value="0">–</option>
+          {{range $v.Slots}}<option value="{{.N}}"{{if eq .N $v.Slot}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+        {{if $v.Slot}}
+        <datalist id="euer-lines">{{range $v.Lines}}<option value="{{.}}">{{end}}</datalist>
+        <div class="table-wrap"><table class="table cards-sm">
+          <thead><tr><th>{{t "verbund.cat_ninja"}}</th><th>{{t "verbund.cat_euer_line"}}</th><th>{{t "verbund.cat_used"}}</th></tr></thead>
+          <tbody>{{range $v.Euer}}<tr>
+            <td data-card="title">{{.Name}}</td>
+            <td><input class="input" name="euer:{{.Key}}" list="euer-lines" value="{{or .Mapped .Suggested}}" aria-label="{{.Name}}"{{if not $v.CanSave}} disabled{{end}}>
+              {{if and .Suggested (not .Mapped)}}<small class="muted">{{t "verbund.cat_suggested"}}</small>{{end}}</td>
+            <td>{{if .Count}}{{.Count}}{{else}}–{{end}}</td>
+          </tr>{{end}}</tbody>
+        </table></div>
+        {{else}}<p class="small">{{t "verbund.cat_euer_none"}}</p>{{end}}
+      </section>
+
+      {{if $v.CanSave}}<p><button type="submit" class="btn btn-accent">{{t "verbund.cat_save"}}</button>
+        {{if $v.Slot}}<a class="btn btn-quiet" href="/euer">{{t "verbund.cat_to_euer"}}</a>{{end}}</p>
+      {{else}}<p class="small">{{t "verbund.cat_ro"}}</p>{{end}}
+    </form>
+    {{end}}
+    </div>
+    </div>
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}

@@ -90,6 +90,8 @@ func demoNinjaBank(today time.Time, data *NinjaDataset) {
 		data.BankTxns = append(data.BankTxns, txn)
 	}
 
+	demoEuer(data)
+
 	// Open debits without an expense; the Sure ones carry Sure's names.
 	studio := demoWorld.Receipts[demoReceiptOf(demoStudioReceipt)]
 	music := demoWorld.Vendors[demoVendor("wellenklang")]
@@ -178,4 +180,39 @@ func demoClientName(data *NinjaDataset, id int64) string {
 		}
 	}
 	return ""
+}
+
+// demoEuerSlot holds the EÜR line in the demo's expenses (custom field 3).
+const demoEuerSlot = 2
+
+// demoEuerLines are the demo's EÜR dropdown, lines of the Anlage EÜR.
+var demoEuerLines = []string{"Laufende EDV-Kosten", "Aufwendungen für Telekommunikation", "Arbeitsmittel",
+	"Übernachtungs- und Reisenebenkosten", "Werbekosten", "Übrige unbeschränkt abziehbare Betriebsausgaben"}
+
+// demoEuer gives the demo an EÜR field; two in three expenses carry their
+// line, the rest wait for the EÜR workbench.
+func demoEuer(data *NinjaDataset) {
+	data.ExpenseFields[demoEuerSlot] = ExpenseField{Label: "EÜR", Options: demoEuerLines}
+	names := map[string]string{}
+	for _, c := range data.Categories {
+		names[c.Key] = strings.ToLower(c.Name)
+	}
+	for i := range data.Expenses {
+		if i%3 == 0 {
+			continue
+		}
+		e := &data.Expenses[i]
+		e.Custom[demoEuerSlot] = demoEuerLine(names[e.CategoryKey])
+	}
+}
+
+// demoEuerLine is a category's EÜR line by a word in its name.
+func demoEuerLine(category string) string {
+	for word, line := range map[string]int{"host": 0, "software": 0, "cloud": 0, "telefon": 1, "mobil": 1, "internet": 1,
+		"büro": 2, "technik": 2, "studio": 2, "reise": 3, "bahn": 3, "hotel": 3, "werbung": 4, "marketing": 4} {
+		if strings.Contains(category, word) {
+			return demoEuerLines[line]
+		}
+	}
+	return demoEuerLines[len(demoEuerLines)-1]
 }

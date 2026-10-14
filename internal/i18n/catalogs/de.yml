@@ -1,5 +1,6 @@
 saved: Gespeichert.
 nav:
+  euer: 'EÜR'
   menu: Menü
   boards: Boards
   pages: Seiten
@@ -6884,6 +6885,25 @@ caps:
     contract: Sollarbeitszeit (Benutzer → Arbeitszeit)
   note: 'Nur teilweise nutzbar:'
 verbund:
+  categories: Kategorien
+  categories_lead: 'Welche Ninja-Kategorie eine Sure-Kategorie meint und in welche EÜR-Zeile eine Ninja-Kategorie gehört. Andon schlägt aus Buchungen vor, die beide Seiten schon haben; es gilt erst nach dem Speichern.'
+  categories_saved: 'Kategorien gespeichert.'
+  cat_sure_title: '{bank} → Invoice Ninja'
+  cat_sure_lead: 'Damit landen Sures automatische Kategorien beim Anlegen einer Ausgabe im USt-Abgleich in der richtigen Ninja-Kategorie.'
+  cat_shared: 'Gemeinsame Buchungen'
+  cat_suggested: 'Vorschlag'
+  cat_sure_none: 'Sure kennt noch keine Kategorien für Abbuchungen.'
+  cat_euer_title: 'Invoice Ninja → EÜR'
+  cat_euer_lead: 'Die EÜR-Zeile steht in einem Zusatzfeld der Ausgabe. Wähle das Feld und die Zeile je Kategorie; die Werkbank „EÜR-Zuordnung“ füllt danach leere Felder.'
+  cat_euer_field: 'Zusatzfeld mit der EÜR-Zeile'
+  cat_ninja: 'Ninja-Kategorie'
+  cat_euer_line: 'EÜR-Zeile'
+  cat_used: 'So gebucht'
+  cat_euer_none: 'Wähle zuerst das Zusatzfeld. In Invoice Ninja unter Einstellungen → Benutzerdefinierte Felder → Ausgaben.'
+  cat_save: 'Speichern'
+  cat_to_euer: 'Zur EÜR-Zuordnung'
+  cat_ro: 'Ändern darf nur, wer die Invoice-Ninja-Verbindung verwalten darf.'
+  no_ninja: 'Der Verbund hat kein Invoice Ninja.'
   accounts: Konten
   accounts_lead: 'Welches Bankkonto in Invoice Ninja welches in Sure oder Firefly ist und wofür es dient. Andon schlägt das Konto mit den meisten gemeinsamen Buchungen vor; gespeichert wird erst, was du bestätigst. Die Einordnung geschäftlich oder privat gilt je Konto und wird auf verknüpfte Konten übertragen.'
   account_role: Verwendung
@@ -7019,6 +7039,7 @@ llm:
     requests: 'Anfragen'
     cost: 'Kosten'
 vatcheck:
+  do_euer: 'EÜR: {line}'
   check_receipts: 'Ausgaben ohne Beleg: {n}'
   check_receipts_done: 'Jede Ausgabe hat ihren Beleg.'
   scan: Beleg
@@ -7130,6 +7151,9 @@ workbench:
   scope_switch: 'Wechseln'
   needs_token: 'eigenes Token fehlt'
 journal:
+  act_euer_unset: 'EÜR-Zeile geleert'
+  area_euer: 'EÜR'
+  act_euer_set: 'EÜR-Zeile gesetzt'
   title: Schreib-Journal
   lead: 'Was Andon für dich in andere Dienste geschrieben hat, neueste zuerst. Wo der Dienst es zulässt, nimmst du es hier zurück.'
   areas: Bereiche
@@ -7170,3 +7194,29 @@ journal:
   act_dns_pause: 'DNS-Filter pausiert'
   act_grocy_shopping_add: 'Auf die Einkaufsliste gesetzt'
   act_tandoor_check: 'Einkauf abgehakt'
+euer:
+  title: 'EÜR-Zuordnung'
+  lead: 'Ausgaben des Jahres, deren EÜR-Feld leer ist. Vorgeschlagen wird die Zeile ihrer Kategorie (Verbund → Kategorien); angehakt wird nach dem Prüfen in Invoice Ninja geschrieben.'
+  years: Jahre
+  setup_title: 'Welches Feld hält die EÜR-Zeile?'
+  setup_text: 'Die EÜR-Zeile steht in einem Zusatzfeld der Ausgabe. Wähle es im Verbund unter Kategorien und ordne dort die Kategorien zu.'
+  setup_link: 'Kategorien öffnen'
+  setup_verbund: 'Verbünde öffnen'
+  cases: 'Ausgaben ohne {field}: {n}, davon mit Vorschlag: {mapped}.'
+  mapping: 'Zuordnung ändern'
+  expense: Ausgabe
+  line: 'EÜR-Zeile'
+  no_mapping: 'Kategorie ohne Zuordnung'
+  review: 'Prüfen'
+  empty: 'Alle Ausgaben aus {year} haben ihre EÜR-Zeile.'
+  review_title: 'EÜR-Zeilen bestätigen'
+  review_lead: 'Diese Ausgaben bekommen in Invoice Ninja ihr Feld „{field}“ (Schreibvorgänge: {n}).'
+  do_set: 'EÜR-Zeile „{line}“ setzen'
+  apply: 'In Invoice Ninja schreiben ({n})'
+  back: Zurück
+  done: 'Erledigt: {n}.'
+  failed: 'Nicht erledigt: {n}.'
+  problem_gone: 'Schon gesetzt oder nicht mehr da: übersprungen.'
+  problem_line: 'Ohne Zeile: übersprungen.'
+  err_no_ninja: 'Keine Invoice-Ninja-Verbindung, die du nutzen darfst.'
+  err_demo: 'Die Demo schreibt nicht in Invoice Ninja.'

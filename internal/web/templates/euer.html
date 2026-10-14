@@ -1,0 +1,85 @@
+{{/* The EÜR workbench (services/euer): empty EÜR fields, filled after a review. */}}
+{{define "euer"}}{{$p := .P}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "euer.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "euer.title"}}</h1>
+    <p class="muted">{{t "euer.lead"}}</p>
+    {{with .done}}<p class="pill" data-state="applied">{{t "euer.done" "n" .}}</p>{{end}}
+    {{with .failed}}<p class="error">{{t "euer.failed" "n" .}} {{$.Who}}: {{t $.Reason}}</p>{{end}}
+    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+    {{if $p.Scopes}}
+    {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/euer" "Keep" (dict "year" $p.Year)}}
+    <nav class="hint-filters" aria-label="{{t "euer.years"}}">
+      <div class="chips-row">{{range $p.Years}}<a class="chip is-filter" href="/euer?scope={{$p.Scope}}&amp;year={{.}}"{{if eq . $p.Year}} aria-pressed="true"{{end}}>{{.}}</a>{{end}}</div>
+    </nav>
+    {{if not $p.Slot}}
+    <section class="card">
+      <h2>{{t "euer.setup_title"}}</h2>
+      <p>{{t "euer.setup_text"}}</p>
+      {{if $p.LinkID}}<p><a class="btn btn-outline" href="/verbund/{{$p.LinkID}}/categories?space={{$p.SpaceID}}">{{t "euer.setup_link"}}</a></p>
+      {{else}}<p><a class="btn btn-outline" href="/spaces/{{$p.SpaceID}}/verbund">{{t "euer.setup_verbund"}}</a></p>{{end}}
+    </section>
+    {{else if $p.Cases}}
+    <form method="post" action="/euer/review" class="card">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="year" value="{{$p.Year}}">
+      <p class="small muted">{{t "euer.cases" "n" (len $p.Cases) "mapped" $p.Mapped "field" $p.Label}}
+        {{if $p.LinkID}}<a href="/verbund/{{$p.LinkID}}/categories?space={{$p.SpaceID}}">{{t "euer.mapping"}}</a>{{end}}</p>
+      <datalist id="euer-lines">{{range $p.Lines}}<option value="{{.}}">{{end}}</datalist>
+      <div class="table-wrap"><table class="table cards-sm">
+        <thead><tr><th></th><th>{{t "euer.expense"}}</th><th>{{t "euer.line"}}</th></tr></thead>
+        <tbody>{{range $p.Cases}}{{$e := .Expense}}<tr>
+          <td><label class="check"><input type="checkbox" name="pick" value="{{$e.Key}}"{{if .Line}} checked{{end}} aria-label="{{$e.Number}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
+            <input type="hidden" name="act_{{$e.Key}}" value="set"></td>
+          <td data-card="title"><b>{{or $e.Number $e.Key}}</b> · {{day $e.Date}} · {{money $e.Amount}}<br><small class="muted">{{$e.Notes}}</small></td>
+          <td><input class="input" name="line_{{$e.Key}}" list="euer-lines" value="{{.Line}}" aria-label="{{t "euer.line"}}">
+            {{if not .Line}}<small class="muted">{{t "euer.no_mapping"}}</small>{{end}}</td>
+        </tr>{{end}}</tbody>
+      </table></div>
+      <p><button type="submit" class="btn btn-accent">{{t "euer.review"}}</button></p>
+    </form>
+    {{else}}<p class="pill" data-state="applied">{{t "euer.empty" "year" $p.Year}}</p>{{end}}
+    {{end}}
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}
+
+{{define "euer_review"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "euer.review_title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "euer.review_title"}}</h1>
+    <p>{{t "euer.review_lead" "n" .Plan.Writes "field" .Plan.Label}}</p>
+    <form method="post" action="/euer/apply">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{.Q.Scope}}"><input type="hidden" name="year" value="{{.Q.Year}}">
+      <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
+        <li{{if .Problem}} class="late"{{end}}>{{if not .Problem}}{{template "bench_step" .Step}}{{end}}
+          <b>{{or $i.Expense.Number .Case}}{{if $i.Expense.Date}} · {{day $i.Expense.Date}} · {{money $i.Expense.Amount}}{{end}}</b><br>
+          {{if .Problem}}{{t (print .Problem)}}{{else}}{{t "euer.do_set" "line" $i.Line}}{{end}}
+        </li>{{end}}</ol>
+      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "euer.apply" "n" .Plan.Writes}}</button>{{end}}
+        <a class="btn btn-quiet" href="/euer?scope={{.Q.Scope}}&amp;year={{.Q.Year}}">{{t "euer.back"}}</a></p>
+    </form>
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}

@@ -114,6 +114,7 @@ type book struct {
 	bank     *sources.SureDataset
 	settings map[string]any
 	state    state
+	cats     sources.Categories // the Verbund's mappings (verbund → categories)
 }
 
 // Open builds the page for Verbund scope ("": the last or only one) and
@@ -153,6 +154,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 	for _, c := range cases {
 		g, ok := guesses[c.Txn.Key]
 		cs := Case{BankCase: c}
+		b.mapped(&cs)
 		if ok {
 			cs.Guess = &g
 			p.Guessed = true
@@ -197,6 +199,29 @@ func defaultSpan(spans []metrics.VATSpan, settings map[string]any, today time.Ti
 		return spans[0]
 	}
 	return last
+}
+
+// mapped takes the category of a draft Sure named from the Verbund's
+// mapping (Verbund → Kategorien) instead of by name; a vendor's own
+// history stays first.
+func (b book) mapped(c *Case) {
+	if c.Sure == nil || b.bankConn == nil || c.Draft.From == metrics.FromHistory {
+		return
+	}
+	key := b.cats.Sure[b.bankConn.ID][c.Sure.Category]
+	if name := categoryName(b.ninja, key); name != "" {
+		c.Draft.Category, c.Draft.CategoryKey, c.Draft.From = name, key, metrics.FromSure
+	}
+}
+
+// categoryName is a Ninja category's name, "" if unknown.
+func categoryName(n *sources.NinjaDataset, key string) string {
+	for _, c := range n.Categories {
+		if c.Key == key {
+			return c.Name
+		}
+	}
+	return ""
 }
 
 // apply lets the model's reading fill what the data left open; it never
@@ -292,6 +317,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 	b := book{state: st}
 	b.scope, b.choose = workbench.Pick(scopes, scope)
 	b.conn = b.scope.Conn(enums.ServiceInvoiceNinja)
+	b.cats = sources.CategoriesOf(b.conn.Options)
 	for _, service := range need.Optional {
 		if b.bankConn == nil {
 			b.bankConn = b.scope.Conn(service)

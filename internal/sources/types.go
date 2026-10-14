@@ -159,6 +159,16 @@ type NinjaExpense struct {
 	// transaction it is linked to ("" = none).
 	Key, CategoryKey, TaxName, TxnKey string
 	TaxRate                           float64
+
+	Custom [NinjaSlots]string // custom_value1 … custom_value4, e.g. the EÜR line
+}
+
+// ExpenseField is an expense custom field as Invoice Ninja's company
+// settings define it: "EÜR|Arbeitsmittel,Werbekosten" is a dropdown,
+// "Rechnungsnummer|single_line_text" a text field; "" Label = unused.
+type ExpenseField struct {
+	Label   string
+	Options []string // a dropdown's choices, nil for free text
 }
 
 type NinjaVendor struct {
@@ -178,6 +188,71 @@ const (
 // OptAccountRoles is the connection option holding each account's role:
 // {"<account key>": "business"}.
 const OptAccountRoles = "account_roles"
+
+// Options of an Invoice Ninja connection naming its categories:
+//
+//	category_map {"<Sure connection>": {"Software": "<Ninja category key>"}}
+//	euer_slot    3, the expense custom field holding the EÜR line (1–4)
+//	euer_map     {"<Ninja category key>": "Laufende EDV-Kosten"}
+const (
+	OptCategoryMap = "category_map"
+	OptEuerSlot    = "euer_slot"
+	OptEuerMap     = "euer_map"
+)
+
+// Categories is what an Invoice Ninja connection's options say about
+// categories.
+type Categories struct {
+	Sure     map[int64]map[string]string // per Sure (or Firefly) connection: its category → Ninja key
+	EuerSlot int                         // 0 = not chosen
+	Euer     map[string]string           // Ninja key → EÜR line
+}
+
+// CategoriesOf reads them from a connection's options.
+func CategoriesOf(options map[string]any) Categories {
+	out := Categories{Sure: map[int64]map[string]string{}, Euer: map[string]string{}}
+	raw, _ := options[OptCategoryMap].(map[string]any)
+	for conn, m := range raw {
+		id, err := strconv.ParseInt(conn, 10, 64)
+		if err != nil {
+			continue
+		}
+		out.Sure[id] = strMap(m)
+	}
+	if n := int(asFloat(options[OptEuerSlot])); n >= 1 && n <= NinjaSlots {
+		out.EuerSlot = n
+	}
+	out.Euer = strMap(options[OptEuerMap])
+	return out
+}
+
+// Options writes them back into options (a copy is the caller's).
+func (c Categories) Options(options map[string]any) {
+	sure := map[string]any{}
+	for conn, m := range c.Sure {
+		sure[strconv.FormatInt(conn, 10)] = anyMap(m)
+	}
+	options[OptCategoryMap], options[OptEuerSlot], options[OptEuerMap] = sure, c.EuerSlot, anyMap(c.Euer)
+}
+
+func strMap(raw any) map[string]string {
+	out := map[string]string{}
+	m, _ := raw.(map[string]any)
+	for k, v := range m {
+		if s := asStr(v); s != "" {
+			out[k] = s
+		}
+	}
+	return out
+}
+
+func anyMap(m map[string]string) map[string]any {
+	out := make(map[string]any, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
+}
 
 // accountRoles reads the roles of a connection's accounts.
 func accountRoles(options map[string]any) map[string]AccountRole {
@@ -271,7 +346,9 @@ type NinjaDataset struct {
 	BankRead     bool
 	BankAccounts []NinjaBankAccount // the accounts the feed reads
 	Categories   []NinjaCategory
-	TaxRates     []NinjaTaxRate
+	// ExpenseFields are the expense custom fields, slot 1–4 at 0–3.
+	ExpenseFields [NinjaSlots]ExpenseField
+	TaxRates      []NinjaTaxRate
 }
 
 // ── Snipe-IT ──

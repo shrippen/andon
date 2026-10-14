@@ -28,6 +28,8 @@ func (d Deps) RegisterVerbundRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /verbund/{id}/customers/confirm", d.authed(d.handleCustomersConfirm))
 	mux.HandleFunc("POST /verbund/{id}/customers/{act}", d.authed(d.handleCustomerAct))
 	mux.HandleFunc("GET /verbund/{id}/accounts", d.authed(d.handleVerbundAccounts))
+	mux.HandleFunc("GET /verbund/{id}/categories", d.authed(d.handleVerbundCategories))
+	mux.HandleFunc("POST /verbund/{id}/categories", d.authed(d.handleVerbundCategoriesSave))
 	mux.HandleFunc("POST /verbund/{id}/accounts/confirm", d.authed(d.handleAccountsConfirm))
 	mux.HandleFunc("POST /verbund/{id}/accounts/{act}", d.authed(d.handleAccountAct))
 }
