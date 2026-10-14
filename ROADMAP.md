@@ -1225,6 +1225,33 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
 - [ ] Gegen die echte Instanz testen (`ANDON_LIVE_NINJA=1` nur auf Wunsch): Antwort von `bank_transactions/match`, Steuerfelder der angelegten Ausgabe
 - [ ] Hinweis „Reverse Charge“ (§ 13b) bei ausländischen Lieferanten ohne Steuer
 
+### Werkbänke (entschieden 14.10.2026)
+
+`/vat` löst ein Problem mit dem Nutzer, statt es nur zu melden: Zeitraum → Fälle → Vorschlag → Prüfen → Schreiben nach OK gegen frische Daten → Wieder zeigen. Viele Regeln kennen ihr Problem schon und enden beim Hinweis. Aus 32 Vorschlägen hat der Nutzer ausgewählt (Entscheidungsseite mit Kommentaren, 14.10.2026). Reihenfolge nach Abhängigkeit, je Punkt ein PR.
+
+1. Grundlage
+   - [x] Werkbank-Rahmen: die Mechanik von `vatcheck` als `services/workbench` (Schritt mit Feldern, Prüfen, Schreiben gegen frische Daten in Reihenfolge, Teilerfolg, Audit, Zustand je Werkbank), Formular und Prüfseite gemeinsam (`web/bench.go`, Template `bench_step`); `/vat` läuft darauf, unverändert für den Nutzer *(Zeitraum und „Wieder zeigen“ bleiben je Werkbank, bis eine zweite sie braucht)*
+   - [ ] Belegjagd auf dem Rahmen: `/receipts` (Paperless ↔ Ausgaben) und `mailfwd` (Rechnungen aus Mails nach Paperless, Claude liest) zu einer Werkbank: je Ausgabe ohne Beleg erst Paperless, dann das Postfach *(Nutzer: „schon angelegt als Tool, auf eine Werkbank umbauen“)*
+   - [ ] Hinweis → erledigen: Hinweise mit Werkbank springen zum Fall
+   - [ ] Schreib-Journal: alle Schreibvorgänge aus dem Audit-Log, Rückgängig wo der Dienst es kann
+2. Kategorien im Verbund — zwei Zuordnungen: Sure-Kategorie/Tags → interne Ninja-Ausgabenkategorie, und interne Kategorie → EÜR-Kategorie. Die EÜR-Kategorie steht in Invoice Ninja schon als Zusatzfeld der Ausgabe (`custom_value1–4`, Bezeichnung aus `company.custom_fields.expense1–4`); Andon schlägt den Wert vor und setzt ihn nach OK
+3. Auf `/vat`
+   - [ ] Reverse Charge (§ 13b) bei ausländischen Lieferanten ohne Steuer
+   - [ ] ELSTER-Kennzahlen (Kz 81, 86, 41, 46/47, 66, 67, 83) mit Kopierknopf; gemeldete Werte eintragen, später „Berichtigung nötig“
+   - [ ] Umbuchung auf ein eigenes Konto als Vorschlag „archivieren“ (keine eigene Werkbank: Sure kennt Umbuchungen schon, Invoice Ninja nicht; es geht nur darum, dass sie auf `/vat` nicht offen bleiben)
+   - [ ] Lieferanten aufräumen: doppelte zusammenführen, Standardwerte setzen
+4. Arbeit: Woche schließen (Kimai-Lücken mit Belegen aus Dawarich, Kalender, Gitea), Fahrtkosten in die Rechnung, Mahnlauf
+5. Abos und wiederkehrende Ausgaben als eine Werkbank über Sure, Invoice Ninja und Wallos (anlegen, zusammenführen, Preisänderung); Sure aufräumen (unkategorisierte Buchungen)
+6. Jahr: EÜR-Vorbereitung (EÜR-Kategorie aus 2., Abschreibung aus Snipe-IT), Homeoffice-Tage, Paket für die Steuerberatung, Rücklagenkonto (dritte Kontoverwendung „Rücklage“)
+7. Homelab
+   - [ ] Update-Werkbank: Image-Updates nach Dringlichkeit (öffentlich, CVE), Changelog von Claude zusammengefasst, PR im Compose-Repo; FreshRSS als Quelle der Release-Feeds, mit Vorschlägen zum Anpassen der Feeds (fehlender Feed für einen laufenden Dienst, Feed eines nicht mehr laufenden Dienstes, Feed ohne Releases); geschrieben in FreshRSS nur nach OK
+   - [ ] Inventur (Geräte im Netz ↔ Snipe-IT), Anschaffung vollständig (Asset, Ausgabe, Beleg, Garantie), Wiederherstellungsprobe
+   - [ ] Doku-Drift: nichts schreiben, für Hansei vorbereiten (`/api/docs`, Webhook)
+   - [ ] Kosten je Dienst als Popup der Kachel „Homelab-Kosten“
+8. Analysen: Kundenzustand, Zeit für eine Preiserhöhung, Nachkalkulation, Jahresrückblick, Frag Andon (experimentell, nur lesend)
+
+Abgelehnt: Auslagen vom Privatkonto. Offen: Zusammenfassende Meldung.
+
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 
 Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und angewendet (06.10.2026).
