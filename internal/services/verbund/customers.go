@@ -397,7 +397,7 @@ func LinkCustomer(ctx context.Context, d *sql.DB, who *access.Principal, id int6
 		return ErrUnknownCustomer
 	}
 	return change(d, who, id, func(tx *sql.Tx, l *linkrepo.Link) error {
-		if err := putCell(tx, id, view.Hub.ConnID, hubKey, connID, key); err != nil {
+		if err := putCell(tx, id, caps.Customers, view.Hub.ConnID, hubKey, connID, key); err != nil {
 			return err
 		}
 		return audit.Log(tx, &who.UserID, "verbund.customer_linked", l.Name, ip, map[string]any{"customer": hubKey, "service": col.Service, "key": key})
@@ -417,10 +417,10 @@ func hasParty(list []Party, key string) bool {
 	return slices.ContainsFunc(list, func(p Party) bool { return p.Key == key })
 }
 
-// putCell sets one column's key in the leading customer's entry. A key
-// that sat in an orphan entry moves here.
-func putCell(tx *sql.Tx, id, hubConn int64, hubKey string, connID int64, key string) error {
-	domain := string(caps.Customers)
+// putCell sets one column's key in the leading row's entry of a domain
+// (a customer, an account). A key that sat in an orphan entry moves here.
+func putCell(tx *sql.Tx, id int64, d caps.Domain, hubConn int64, hubKey string, connID int64, key string) error {
+	domain := string(d)
 	entries, err := linkrepo.Entries(tx, id, domain)
 	if err != nil {
 		return err
@@ -513,7 +513,7 @@ func ConfirmSuggestions(ctx context.Context, d *sql.DB, who *access.Principal, i
 				if c.State != CustomerSuggested {
 					continue
 				}
-				if err := putCell(tx, id, view.Hub.ConnID, r.Key, view.Columns[i].ConnID, c.Key); err != nil {
+				if err := putCell(tx, id, caps.Customers, view.Hub.ConnID, r.Key, view.Columns[i].ConnID, c.Key); err != nil {
 					return err
 				}
 				n++

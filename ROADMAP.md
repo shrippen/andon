@@ -1217,6 +1217,11 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
 - [x] Stand vor der Abgabe: offene Umsätze, Bankabruf bis, Ausgaben ohne Steuer bei Lieferanten mit Vorsteuer, Buchungen der Geschäftskonten, die nur Sure kennt; Umsatzsteuer, Vorsteuer, Zahllast (vorläufig, solange etwas offen ist)
 - [x] Claude auf Klick (`assist.Classify`): privat oder geschäftlich, Lieferant, Kategorie, Steuersatz, nur aus Invoice Ninjas Listen; der Verlauf eines Lieferanten geht vor
 - [x] Kachel „Belege ohne Ausgabe“ und Monatsabschluss verlinken auf `/vat`, auch zum Festlegen der Geschäftskonten *(automatische Erkennung über gemeinsame Buchungen verworfen: nicht jedes Konto im Bankabruf ist geschäftlich)*
+- [x] Konten im Verbund (13.10.2026): Verwendung (geschäftlich, privat) je Bankkonto als Option der Verbindung (`account_roles`), die Quellen von Invoice Ninja, Sure und Firefly tragen sie in den Datensatz; Verbund → „Konten“ verknüpft dasselbe Konto über Dienste (Vorschlag nach gemeinsamen Buchungen, sonst Name), eine Verwendung gilt dann für beide. `/vat`, Kachel „Belege ohne Ausgabe“, Monatsabschluss und `cross.expense_unrecorded` lesen die Verwendung; die Namensliste `accounts` der Regel bleibt nur, solange kein Konto eingeordnet ist *(vorher: Namen in den Einstellungen des Ninja-Bereichs, die Kacheln anderer Bereiche nicht sahen; Sure- und Ninja-Konto getrennt angehakt)*
+- [ ] Liquidität, „Frei verfügbar“ und Liquiditätsvorschau nur über Geschäftskonten (heute alle Bankkonten), Privates getrennt zeigen
+- [ ] Zahlungsabgleich (`cross.invoice_paid`, `cross.payment_unmatched`) nur auf Geschäftskonten
+- [ ] `/vat`: Umsatz mit vorhandener Zahlung verknüpfen (`payment_id`); `/billing` bucht bei vorhandenem Bankabruf über den Umsatz statt direkt (sonst bleibt der Umsatz offen)
+- [ ] `/vat`: beim Anlegen einer Ausgabe den passenden Paperless-Beleg anbieten und gleich verknüpfen
 - [ ] Gegen die echte Instanz testen (`ANDON_LIVE_NINJA=1` nur auf Wunsch): Antwort von `bank_transactions/match`, Steuerfelder der angelegten Ausgabe
 - [ ] Hinweis „Reverse Charge“ (§ 13b) bei ausländischen Lieferanten ohne Steuer
 

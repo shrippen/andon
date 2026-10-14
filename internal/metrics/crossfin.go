@@ -317,7 +317,7 @@ type ReceiptInputs struct {
 
 // MissingReceipts returns business spending with no receipt anywhere.
 func MissingReceipts(in ReceiptInputs) []sources.SureTxn {
-	if in.Sure == nil || len(in.Accounts) == 0 {
+	if in.Sure == nil || (len(in.Accounts) == 0 && !in.Sure.Classified()) {
 		return nil
 	}
 	near := func(day string, d time.Time) bool {
@@ -328,7 +328,7 @@ func MissingReceipts(in ReceiptInputs) []sources.SureTxn {
 	for _, t := range in.Sure.Transactions {
 		d, ok := ParseDay(t.Date)
 		spent := -t.Amount
-		if !ok || d.Before(in.Since) || spent < in.MinAmount || !businessAccount(t.Account, in.Accounts) {
+		if !ok || d.Before(in.Since) || spent < in.MinAmount || !business(in, t) {
 			continue
 		}
 		if !receiptFound(in, spent, d, near) {
@@ -336,6 +336,15 @@ func MissingReceipts(in ReceiptInputs) []sources.SureTxn {
 		}
 	}
 	return out
+}
+
+// business says whether a booking is on a business account: by the
+// account's role, else (no roles named yet) by the "accounts" setting.
+func business(in ReceiptInputs, t sources.SureTxn) bool {
+	if in.Sure.Classified() {
+		return t.Role == sources.RoleBusiness
+	}
+	return businessAccount(t.Account, in.Accounts)
 }
 
 func businessAccount(account string, accounts []string) bool {

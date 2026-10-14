@@ -57,7 +57,7 @@ Datensatz ──► Kennzahlen ──► Kacheln, Seiten
 | **Fähigkeit** | Domäne × Operation, mit Voraussetzungen | erkennen, was eine Verbindung kann (Plugin, Recht, Schnittstelle), und wer was speichert |
 | **Domäne** | ein Thema, das mehrere Dienste kennen | siehe „Fachliche Dinge“ |
 | **Verbund** | Verbindungen verschiedener Dienste, die zusammenarbeiten (englische Oberfläche: Bundle) | Partner finden (welches Kimai zu welchem Ninja), Zuordnungen tragen; implizit, solange es je Dienst eine Verbindung gibt |
-| **Zuordnung** | ein Ding in mehreren Diensten, je Dienst mit seiner ID | Kunde Kimai 12 = Ninja „Kx9“ = Sure-Zahler „ACME“ = Paperless-Korrespondent 7 |
+| **Zuordnung** | ein Ding in mehreren Diensten, je Dienst mit seiner ID | Kunde Kimai 12 = Ninja „Kx9“ = Sure-Zahler „ACME“ = Paperless-Korrespondent 7; Konto Ninja-Bankabruf „G1“ = Sure-Konto „a1“ |
 | **Verlauf** | Kennzahlen je Tag (Snapshots) | Trends, Saisonvergleich, Prognosen in Kacheln |
 
 ## Auswertung
@@ -84,6 +84,7 @@ Die Domänen aus `internal/caps` und weitere Dinge, die Andon auswertet. „Lies
 | **Rechnung** | Invoice Ninja | Invoice Ninja (Entwürfe aus Kimai-Zeiten) | offen, überfällig, langsame Zahler, fehlende USt, Umsatzziel, Liquidität, Jahresprognose; Jahrespaket für die Steuer | Abrechnung `/billing`, Geld-Kacheln |
 | **Zahlung** | Invoice Ninja, Sure (Kontobewegungen) | Invoice Ninja (Buchung aus Sure) | Eingänge den Rechnungen zuordnen, unerwartete Eingänge | Abrechnung, Hinweise |
 | **Beleg** | Invoice Ninja (Ausgaben, Bankabruf), Paperless (Scans), Postfach (Anhänge), Sure (dieselben Buchungen) | Invoice Ninja, Paperless (gegenseitige Verweise, Upload; Umsätze verknüpfen, Ausgaben anlegen) | Ausgaben mit Scans verknüpfen; Rechnungen und Eingänge ohne Ausgabe; Bankumsätze vor der Voranmeldung zuordnen | Belege `/receipts`, USt-Abgleich `/vat` |
+| **Konto** | Invoice Ninja (Konten des Bankabrufs), Sure, Firefly III | Andon (Verwendung je Konto als Option der Verbindung) | geschäftlich oder privat; im Verbund dasselbe Konto über Dienste, die Verwendung gilt für beide | Verbund → Konten, USt-Abgleich `/vat` |
 | **Abo** | Sure (wiederkehrende Buchungen), Wallos, Paperless (Verträge) | – | Kosten, Kündigungsfristen, ungenutzte oder ausgebliebene Abos, Wallos-Abos ohne Buchung | Kacheln, Hinweise |
 | **Termin** | Kalender (iCal) | – | gegen Kimai-Buchungen prüfen | Hinweise |
 | **Ort** | Dawarich (Areas), Kimai-Plugin Anfahrten (Orte mit Art) | Kimai, Dawarich, Andon (Art und Kunde) | Kundenorte, Zuhause, Arbeit; Grundlage für Fahrten | Akte der Dawarich-Verbindung → Orte |

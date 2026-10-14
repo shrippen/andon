@@ -31,7 +31,9 @@ var FireflyData = source{key: "firefly.data", ttl: dataTTL, service: enums.Servi
 
 func fetchFirefly(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
-		return DemoFirefly(time.Now().UTC()), nil
+		data := DemoFirefly(time.Now().UTC())
+		data.setRoles(accountRoles(sctx.Options))
+		return data, nil
 	}
 	secret, err := needSecret(sctx)
 	if err != nil {
@@ -85,6 +87,7 @@ func fetchFirefly(ctx context.Context, sctx Ctx) (any, error) {
 			}
 		}
 	}
+	data.setRoles(accountRoles(sctx.Options))
 	return data, nil
 }
 
@@ -95,9 +98,9 @@ func fireflyTxn(id string, t map[string]any) (SureTxn, bool) {
 	out := SureTxn{ID: id, Date: asStr(t["date"])[:min(len(asStr(t["date"])), len(time.DateOnly))], Name: asStr(t["description"]), Category: asStr(t["category_name"])}
 	switch asStr(t["type"]) {
 	case fireflyDeposit:
-		out.Amount, out.Merchant, out.Account = amount, asStr(t["source_name"]), asStr(t["destination_name"])
+		out.Amount, out.Merchant, out.Account, out.AccountID = amount, asStr(t["source_name"]), asStr(t["destination_name"]), asStr(t["destination_id"])
 	case fireflyWithdrawal:
-		out.Amount, out.Merchant, out.Account = -amount, asStr(t["destination_name"]), asStr(t["source_name"])
+		out.Amount, out.Merchant, out.Account, out.AccountID = -amount, asStr(t["destination_name"]), asStr(t["source_name"]), asStr(t["source_id"])
 	default:
 		return SureTxn{}, false
 	}

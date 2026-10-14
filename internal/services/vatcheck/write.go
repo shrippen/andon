@@ -5,23 +5,20 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"maps"
 	"math"
 	"slices"
 	"strings"
 	"time"
 
-	"andon/internal/db"
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/outbound"
-	"andon/internal/repos/content"
 	"andon/internal/services/access"
 	"andon/internal/services/assist"
 	auditsvc "andon/internal/services/audit"
 	"andon/internal/services/connections"
-	"andon/internal/services/spaces"
 	"andon/internal/services/svcdata"
+	"andon/internal/services/verbund"
 	"andon/internal/sources"
 )
 
@@ -331,47 +328,31 @@ func Restore(ctx context.Context, d *sql.DB, who *access.Principal, connID int64
 	return auditsvc.Log(d, &who.UserID, "vatcheck.restore", b.ninja.BankTxns[i].Payer, ip, map[string]any{"txn": txn})
 }
 
-// SaveAccounts names the business accounts of the Invoice Ninja's space;
-// every other account counts as private.
-func SaveAccounts(d *sql.DB, who *access.Principal, connID int64, business []string, ip string) error {
-	if _, err := connections.Get(d, who, connID); err != nil {
-		return err
-	}
-	conn, err := connections.ByID(d, connID)
-	if err != nil || conn == nil {
-		return errors.Join(err, ErrNoNinja)
-	}
-	var settings map[string]any
-	err = db.WithRead(d, func(tx *sql.Tx) error {
-		sp, err := content.Space(tx, conn.SpaceID)
-		if sp != nil {
-			settings = sp.Settings
-		}
-		return err
-	})
+// Role is one account's role as the form sends it.
+type Role struct {
+	ConnID int64
+	Key    string
+	Role   sources.AccountRole
+}
+
+// SaveRoles stores the roles that changed; the Verbund carries each to
+// the linked accounts (verbund.SetRole).
+func SaveRoles(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, roles []Role, ip string) error {
+	b, _, err := load(ctx, d, who, connID, svcdata.Cached)
 	if err != nil {
 		return err
 	}
-
-	// Only this rule's "accounts" changes; the space's other rule
-	// settings stay as they are.
-	all := map[string]any{}
-	if old, ok := settings["rules"].(map[string]any); ok {
-		maps.Copy(all, old)
-	}
-	rule := map[string]any{}
-	if old, ok := all[accountRule].(map[string]any); ok {
-		maps.Copy(rule, old)
-	}
-	names := make([]any, 0, len(business))
-	for _, n := range business {
-		if n = strings.TrimSpace(n); n != "" {
-			names = append(names, n)
+	known := b.accounts()
+	for _, r := range roles {
+		i := indexOf(known, func(a Account) bool { return a.ConnID == r.ConnID && a.Key == r.Key })
+		if i < 0 || known[i].Role == r.Role {
+			continue
+		}
+		if err := verbund.SetRole(d, who, r.ConnID, r.Key, r.Role, ip); err != nil {
+			return err
 		}
 	}
-	rule["accounts"] = names
-	all[accountRule] = rule
-	return spaces.Update(d, who, conn.SpaceID, map[string]any{"rules": all}, ip)
+	return nil
 }
 
 // Guess asks the language model about the period's open debits and

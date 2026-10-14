@@ -63,3 +63,42 @@ func TestVATPage(t *testing.T) {
 		t.Fatalf("apply on the demo: %d %s", resp.StatusCode, loc)
 	}
 }
+
+// TestVerbundAccounts: the settled Verbund lists the demo's accounts;
+// a role set there reaches /vat.
+func TestVerbundAccounts(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	for _, service := range []string{"invoiceninja", "sure"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
+	}
+	resp := postForm(t, client, srv.URL+"/spaces/"+space+"/verbund/settle", url.Values{"csrf": {csrfToken(t, srv, client)}})
+	link := regexp.MustCompile(`/verbund/(\d+)/`).FindStringSubmatch(resp.Header.Get("Location"))
+	if link == nil {
+		t.Fatalf("settle: %d %s", resp.StatusCode, resp.Header.Get("Location"))
+	}
+
+	page := string(mustGet(t, srv, client, "/verbund/"+link[1]+"/accounts?space="+space))
+	for _, want := range []string{"Geschäftskonto", "Privatkonto", "Tagesgeld", `name="role"`} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("accounts page lacks %q:\n%s", want, page)
+		}
+	}
+	conn := regexp.MustCompile(`name="conn" value="(\d+)"><input type="hidden" name="key" value="demo-a2"`).FindStringSubmatch(page)
+	if conn == nil {
+		t.Fatalf("no role form for the private account:\n%s", page)
+	}
+	resp = postForm(t, client, srv.URL+"/verbund/"+link[1]+"/accounts/role", url.Values{"csrf": {csrfToken(t, srv, client)}, "space": {space},
+		"conn": {conn[1]}, "key": {"demo-a2"}, "role": {"private"}})
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("role: %d", resp.StatusCode)
+	}
+	vat := string(mustGet(t, srv, client, "/vat?span="+time.Now().UTC().Format("2006-01")))
+	if !regexp.MustCompile(`name="role:` + conn[1] + `:demo-a2"[^>]*>\s*<option value="">[^<]*</option>\s*<option value="business">[^<]*</option>\s*<option value="private" selected`).MatchString(vat) {
+		t.Fatalf("/vat does not show the role:\n%s", vat)
+	}
+}

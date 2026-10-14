@@ -129,7 +129,7 @@ func TestGapByKinds(t *testing.T) {
 
 // Every declaration is well formed: known domain and op, needs named.
 func TestDeclarations(t *testing.T) {
-	domains := []Domain{Places, Rides, Customers, Absences, WorkTime, Invoices, Payments, Receipts, Appointments, Subscriptions}
+	domains := []Domain{Places, Rides, Customers, Absences, WorkTime, Invoices, Payments, Receipts, Appointments, Subscriptions, Accounts}
 	for _, h := range Holders() {
 		list := Declared(h)
 		for i, c := range list {

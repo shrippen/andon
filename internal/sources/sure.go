@@ -23,6 +23,7 @@ type SureAccount struct {
 	Classification string // asset or liability
 	Balance        float64
 	Currency       string
+	Role           AccountRole
 }
 
 // SureTxn is one booking; Amount is signed: income > 0, expense < 0.
@@ -32,6 +33,10 @@ type SureTxn struct {
 	Category, Merchant string
 	Account            string
 	Tags               []string // Sure's tags, e.g. set by its rules
+
+	// The account's id and role, for business or private.
+	AccountID string
+	Role      AccountRole
 }
 
 // SureRecurring is an expected payment; Amount is positive, Expense tells
@@ -72,7 +77,9 @@ var SureData = source{key: "sure.data", ttl: dataTTL, service: enums.ServiceSure
 
 func fetchSure(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
-		return DemoSure(time.Now()), nil
+		data := DemoSure(time.Now())
+		data.setRoles(accountRoles(sctx.Options))
+		return data, nil
 	}
 	secret, err := needSecret(sctx)
 	if err != nil {
@@ -82,6 +89,7 @@ func fetchSure(ctx context.Context, sctx Ctx) (any, error) {
 	if err != nil {
 		return nil, fetchError(err)
 	}
+	data.setRoles(accountRoles(sctx.Options))
 	return data, nil
 }
 
@@ -135,7 +143,7 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 			data.Transactions = append(data.Transactions, SureTxn{
 				ID: asStr(t["id"]), Date: asStr(t["date"]), Name: cleanName(asStr(t["name"])), Amount: cents(t["signed_amount_cents"]),
 				Category: asStr(asMap(t["category"])["name"]), Merchant: cleanName(asStr(asMap(t["merchant"])["name"])),
-				Account: asStr(asMap(t["account"])["name"]), Tags: sureTags(t["tags"]),
+				Account: asStr(asMap(t["account"])["name"]), Tags: sureTags(t["tags"]), AccountID: asStr(asMap(t["account"])["id"]),
 			})
 		}
 		if len(list) < surePage {
@@ -175,6 +183,34 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 		}
 	}
 	return data, nil
+}
+
+// setRoles marks each account and its transactions with the role the
+// user named; a booking without account id finds it by name (demo).
+func (d *SureDataset) setRoles(roles map[string]AccountRole) {
+	byName := map[string]string{}
+	for i := range d.Accounts {
+		a := &d.Accounts[i]
+		a.Role = roles[a.ID]
+		byName[a.Name] = a.ID
+	}
+	for i := range d.Transactions {
+		t := &d.Transactions[i]
+		if t.AccountID == "" {
+			t.AccountID = byName[t.Account]
+		}
+		t.Role = roles[t.AccountID]
+	}
+}
+
+// Classified says whether any account has a role.
+func (d *SureDataset) Classified() bool {
+	for _, a := range d.Accounts {
+		if a.Role != RoleUnknown {
+			return true
+		}
+	}
+	return false
 }
 
 // sureTags reads the names of a transaction's tags.

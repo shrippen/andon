@@ -134,6 +134,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 1. `/clients`, ein Kunde (der gewählte Zeitraum bleibt), „Verknüpfung ändern“ → `/spaces/{id}/verbund#implicit`.
 2. „Kunden“ → `/verbund/{id}/customers`; „Alle Vorschläge bestätigen“, eine Zelle lösen, „Namen angleichen“.
 3. `/billing` und die Kundenseite danach.
+4. „Konten“ → `/verbund/{id}/accounts`: Geschäftskonto in Ninja und Sure vorgeschlagen (gemeinsame Buchungen), bestätigen; Verwendung eines Kontos ändern: das verknüpfte folgt, `/vat` zeigt es. Tagesgeld unter „Ohne Gegenstück“.
 
 **J-C4 Kimai Lite**
 1. Kachel „Kimai-Timer“ anlegen und auf ein Board setzen.

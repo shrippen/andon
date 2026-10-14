@@ -1,0 +1,69 @@
+{{define "verbund_accounts"}}{{$v := .View}}{{$id := $v.Verbund.ID}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "verbund.accounts"}} · {{$v.Verbund.Name}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
+    <h1>{{t "verbund.accounts"}} <small class="muted">{{$v.Verbund.Name}}</small></h1>
+    <p class="muted">{{t "verbund.accounts_lead"}}</p>
+    <p><a href="/spaces/{{.SpaceID}}/verbund">← {{t "verbund.title"}}</a></p>
+    {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
+    {{with $v.Rows}}
+    {{if and $v.Verbund.CanEdit $v.Suggested}}<form method="post" action="/verbund/{{$id}}/accounts/confirm" class="btn-row">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}">
+      <button type="submit" class="btn btn-accent btn-sm">{{t "verbund.confirm_all"}}</button>
+    </form>{{end}}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>{{t (print "service." $v.Hub.Service)}}</th><th>{{t "verbund.account_role"}}</th>{{range $v.Columns}}<th>{{t (print "service." .Service)}}</th>{{end}}</tr></thead>
+      <tbody>{{range $row := .}}<tr>
+        <td>{{$row.Name}}</td>
+        <td>{{template "verbund_role" dict "P" $ "V" $v "Conn" $v.Hub.ConnID "Key" $row.Key "Role" $row.Role "Name" $row.Name}}</td>
+        {{range $i, $c := $row.Cells}}{{$col := index $v.Columns $i}}<td>
+          {{if $v.Verbund.CanEdit}}<form method="post" action="/verbund/{{$id}}/accounts/link" class="inline-form">
+            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}"><input type="hidden" name="hub" value="{{$row.Key}}"><input type="hidden" name="conn" value="{{$col.ConnID}}">
+            <select class="select" name="account" aria-label="{{t (print "service." $col.Service)}}: {{$row.Name}}"><option value="">–</option><option value="!none"{{if eq $c.State "none"}} selected{{end}}>{{t "verbund.none_account"}}</option>{{range $col.Accounts}}<option value="{{.Key}}"{{if eq .Key $c.Key}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+            <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
+          </form>{{else}}{{$c.Name}}{{end}}
+          <span class="pill" data-state="{{if eq $c.State "confirmed"}}applied{{else if eq $c.State "suggested"}}reviewing{{else if eq $c.State "none"}}locked{{end}}">{{t (print "verbund.state_" $c.State)}}</span>
+          {{if and (eq $c.State "confirmed") (ne $c.Role $row.Role)}}<p class="small late">{{t "verbund.role_differs"}}</p>{{end}}
+        </td>{{end}}
+      </tr>{{end}}</tbody>
+    </table></div>
+    {{end}}
+    {{with $v.Loose}}
+    <h2>{{t "verbund.accounts_loose"}}</h2>
+    <p class="small muted">{{t "verbund.accounts_loose_hint"}}</p>
+    <div class="table-wrap"><table class="table"><tbody>{{range .}}<tr>
+      <td>{{t (print "service." .Service)}}</td><td>{{.Name}}</td>
+      <td>{{template "verbund_role" dict "P" $ "V" $v "Conn" .ConnID "Key" .Key "Role" .Role "Name" .Name}}</td>
+    </tr>{{end}}</tbody></table></div>
+    {{end}}
+    </div>
+    </div>
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}
+
+{{/* An account's role: a select with save, or the role as text. */}}
+{{define "verbund_role"}}{{$p := .P}}
+{{if .V.CanSet}}<form method="post" action="/verbund/{{.V.Verbund.ID}}/accounts/role" class="inline-form">
+  <input type="hidden" name="{{$p.CSRFField}}" value="{{$p.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$p.SpaceID}}">
+  <input type="hidden" name="conn" value="{{.Conn}}"><input type="hidden" name="key" value="{{.Key}}">
+  <select class="select" name="role" aria-label="{{t "verbund.account_role"}}: {{.Name}}">
+    <option value="">{{t "vatcheck.accounts_unknown"}}</option>
+    <option value="business"{{if eq .Role "business"}} selected{{end}}>{{t "vatcheck.accounts_business"}}</option>
+    <option value="private"{{if eq .Role "private"}} selected{{end}}>{{t "vatcheck.accounts_private"}}</option></select>
+  <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
+</form>{{else if eq .Role "business"}}{{t "vatcheck.accounts_business"}}{{else if eq .Role "private"}}{{t "vatcheck.accounts_private"}}{{else}}{{t "vatcheck.accounts_unknown"}}{{end}}
+{{end}}
