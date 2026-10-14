@@ -496,6 +496,7 @@
   <main class="receipts">
     <h1>{{t "receipts.review_title"}}</h1>
     <p>{{t "receipts.review_lead" "n" .Plan.Writes}}</p>
+    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
     <form method="post" action="/receipts/apply">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">{{template "receipt_back" .Q}}
       <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}{{$e := $i.Expense}}
@@ -506,8 +507,12 @@
           {{else if $i.Mail}}{{t "receipts.do_mail" "sender" $i.Mail.Sender "date" (day $i.Mail.Date)}}
           {{else if $i.New}}{{t "receipts.do_create" "vendor" (or $i.New.Vendor "–") "day" (day $i.New.Day)}} <a href="{{$.Plan.DocURL (index $i.Docs 0).ID}}" target="_blank" rel="noopener">{{or (index $i.Docs 0).Title (print "#" (index $i.Docs 0).ID)}}</a>
           {{else}}{{t "receipts.do_link" "n" (len $i.Docs)}} {{range $n, $d := $i.Docs}}{{if $n}}, {{end}}<a href="{{$.Plan.DocURL $d.ID}}" target="_blank" rel="noopener">{{or $d.Title (print "#" $d.ID)}}</a>{{end}}{{end}}
+          {{with $i.Check}}<br>{{if .Error}}<span class="muted">{{t "receipts.check_failed"}} {{t .Error}}</span>
+            {{else}}<span class="small">{{t "receipts.check_read" "gross" (money .Read.Gross) "vat" (money .Read.VAT)}}</span>
+            {{range .Notes}}<br><span class="late">{{tt .Key .Args}}</span>{{else}} · <span data-state="applied">{{t "receipts.check_fits"}}</span>{{end}}{{end}}{{end}}
         </li>{{end}}</ol>
-      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "receipts.hunt_apply" "n" .Plan.Writes}}</button>{{end}}
+      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "receipts.hunt_apply" "n" .Plan.Writes}}</button>
+        {{if and .Assist (not .Checked)}}<button type="submit" class="btn btn-outline" formaction="/receipts/review" name="check" value="1" title="{{t "receipts.check_privacy"}}">{{t "receipts.check"}}</button>{{end}}{{end}}
         <a class="btn btn-quiet" href="{{.Q.Link "tab" .Q.Tab}}">{{t "receipts.back"}}</a></p>
     </form>
   </main>

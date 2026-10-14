@@ -34,6 +34,7 @@ type ReceiptExpense struct {
 	Notes   string
 	Day     string // "2026-08-01", "" if unknown
 	Amount  float64
+	TaxRate float64            // tax_rate1, 0 = none
 	Custom  [NinjaSlots]string // custom_value1 … custom_value4
 	Updated time.Time
 }
@@ -109,7 +110,7 @@ func receiptExpense(raw any) ReceiptExpense {
 	m := asMap(raw)
 	e := ReceiptExpense{
 		Key: idKey(m["id"]), Number: asStr(m["number"]), Vendor: asStr(asMap(m["vendor"])["name"]),
-		Notes: asStr(m["public_notes"]), Day: day(m["date"]), Amount: asFloat(m["amount"]),
+		Notes: asStr(m["public_notes"]), Day: day(m["date"]), Amount: asFloat(m["amount"]), TaxRate: asFloat(m["tax_rate1"]),
 	}
 	if e.Vendor == "" {
 		e.Vendor = asStr(m["vendor_name"])
@@ -364,6 +365,23 @@ func PaperlessThumb(ctx context.Context, sctx Ctx, id int64) ([]byte, string, er
 		return nil, "", err
 	}
 	body, kind, err := api.Bytes(ctx, "documents/"+strconv.FormatInt(id, 10)+"/thumb/")
+	if err != nil {
+		return nil, "", fetchError(err)
+	}
+	return body, kind, nil
+}
+
+// PaperlessFile reads a document's archived file (PDF) for the language
+// model; the demo has none.
+func PaperlessFile(ctx context.Context, sctx Ctx, id int64) ([]byte, string, error) {
+	if isDemo(sctx) {
+		return nil, "", newSourceError("demo documents have no file")
+	}
+	api, err := paperlessAPI(sctx)
+	if err != nil {
+		return nil, "", err
+	}
+	body, kind, err := api.Bytes(ctx, "documents/"+strconv.FormatInt(id, 10)+"/download/")
 	if err != nil {
 		return nil, "", fetchError(err)
 	}

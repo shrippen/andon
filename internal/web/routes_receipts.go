@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/services/assist"
 	"andon/internal/services/receipts"
 	"andon/internal/services/workbench"
 )
@@ -293,6 +294,10 @@ func reviewSteps(form url.Values) []workbench.Step {
 	if len(form["case"]) > 0 {
 		return huntSteps(form)
 	}
+	if len(form[benchPick]) > 0 {
+		// The review itself, sent again to have Claude check the scans.
+		return benchSteps(form, receipts.HuntFields)
+	}
 	if e := form.Get("expense"); e != "" {
 		docs := slices.DeleteFunc(append(strings.Split(form.Get("docs"), ","), form["doc"]...), func(s string) bool { return strings.TrimSpace(s) == "" })
 		return []workbench.Step{{Case: e, Action: receipts.ActLink, Fields: map[string]string{receipts.FieldDocs: strings.Join(docs, ",")}}}
@@ -322,7 +327,14 @@ func (d Deps) handleReceiptReview(w http.ResponseWriter, r *http.Request, ctx Ct
 		http.Redirect(w, r, q.back("error", receiptError(err)), http.StatusSeeOther)
 		return
 	}
-	_ = d.Page(w, ctx, "receipts_review", http.StatusOK, map[string]any{"Plan": plan, "Q": q})
+	values := map[string]any{"Plan": plan, "Q": q, "Assist": assist.Enabled()}
+	if r.PostForm.Get("check") != "" {
+		if err := receipts.Check(r.Context(), d.DB, ctx.Who, &plan); err != nil {
+			values["Error"] = receiptError(err)
+		}
+		values["Plan"], values["Checked"] = plan, true
+	}
+	_ = d.Page(w, ctx, "receipts_review", http.StatusOK, values)
 }
 
 // handleReceiptApply writes the steps the review showed and the user

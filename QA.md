@@ -117,6 +117,8 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 
 **J-C2 Belege**
 1. `/receipts`, Reiter „Zu verknüpfen“ (Belegjagd): je Ausgabe einen Beleg, einen Sammelbeleg oder eine Rechnungsmail wählen (sichere Treffer vorgewählt, j/k und Enter wählen) → „Auswahl prüfen“ zeigt jeden Schritt → „Schreiben“ (Demo lehnt ab: nur Fehler, kein Erfolgshinweis daneben).
+   - Beleg-Suche von Hand, „Belege zuerst“ und „Als Ausgabe anlegen“ führen ebenfalls auf die Prüfseite; dort „Belege von Claude prüfen lassen“ (nur mit KI).
+   - `/vat` → Stand → „Ausgaben ohne Beleg“ öffnet `/receipts` für denselben Zeitraum; der Chip „Zeitraum …“ hebt ihn auf.
    - Mehrere Verbünde mit Invoice Ninja und Paperless: Auswahl „Verbund“ oben, die Wahl bleibt; mehrere Paperless ohne Verbund: Hinweis „Welche gehören zusammen?“ mit Link zu den Verbünden. Dasselbe auf `/vat`.
 2. Reiter „Belege zuerst“: Ausgaben suchen, „Als Ausgabe anlegen“ → „Anlegen und verknüpfen“; bleibt der Reiter?
 3. Reiter „Verknüpft“. Zähler auf allen Reitern und Jahren stimmen mit den Listen überein, auch „… Belege ohne Ausgabe“.

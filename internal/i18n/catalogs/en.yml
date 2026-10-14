@@ -6414,6 +6414,15 @@ today:
   now: 'As of {time}'
   empty: Nothing on today.
 receipts:
+  check: 'Let Claude check the receipts'
+  check_privacy: 'Sends these steps’ receipts to Claude (Anthropic) and compares amount and input VAT with the expense.'
+  check_read: 'Claude reads: {gross} gross, VAT {vat}'
+  check_fits: 'fits'
+  check_failed: 'Claude could not read the receipt:'
+  check_amount: 'Amount on the receipt {scan}, expense {expense}.'
+  check_vat_missing: 'The receipt shows {vat} VAT, the expense books no input VAT.'
+  check_vat_none: 'The expense books {vat} input VAT, the receipt shows none.'
+  check_vat: 'VAT on the receipt {scan}, input VAT of the expense {expense}.'
   span: 'Period {span}'
   span_clear: 'Show the whole year'
   do_create: 'Create a new expense with {vendor} of {day} and link the receipt:'

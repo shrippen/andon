@@ -143,6 +143,7 @@ type HuntItem struct {
 	Docs    []sources.ReceiptDoc
 	Mail    *MailHit
 	New     *NewExpense // create: the expense made from Docs[0]
+	Check   *ScanCheck  // Claude's reading, when asked (Check)
 }
 
 // HuntPlan is the review: what Apply would write.

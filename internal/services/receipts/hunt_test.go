@@ -1,6 +1,7 @@
 package receipts
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -50,5 +51,32 @@ func TestInSpan(t *testing.T) {
 		if got := keys(inSpan(list, span)); got != want {
 			t.Errorf("%q: %s, want %s", span, got, want)
 		}
+	}
+}
+
+// The scan's gross and VAT against the expense, inclusive taxes.
+func TestCompare(t *testing.T) {
+	e := sources.ReceiptExpense{Amount: 119, TaxRate: 19}
+	cases := []struct {
+		read assist.Invoice
+		want []string
+	}{
+		{assist.Invoice{Gross: 119, VAT: 19}, nil},
+		{assist.Invoice{Gross: 120, VAT: 19.03}, []string{"receipts.check_amount"}},
+		{assist.Invoice{Gross: 119}, []string{"receipts.check_vat_none"}},
+		{assist.Invoice{Gross: 119, VAT: 7.79}, []string{"receipts.check_vat"}},
+	}
+	for _, c := range cases {
+		var got []string
+		for _, n := range compare(e, c.read) {
+			got = append(got, n.Key)
+		}
+		if strings.Join(got, ",") != strings.Join(c.want, ",") {
+			t.Errorf("%+v: %v, want %v", c.read, got, c.want)
+		}
+	}
+	untaxed := sources.ReceiptExpense{Amount: 119}
+	if n := compare(untaxed, assist.Invoice{Gross: 119, VAT: 19}); len(n) != 1 || n[0].Key != "receipts.check_vat_missing" {
+		t.Errorf("untaxed: %+v", n)
 	}
 }
