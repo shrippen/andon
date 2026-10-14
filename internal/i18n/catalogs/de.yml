@@ -31,6 +31,7 @@ nav:
   clients: 'Kunden'
   hosts: 'Hosts'
 action:
+  work_in_vat: 'Im USt-Abgleich erledigen'
   open_in_claudeapi: 'In Claude Console öffnen'
   open_in_claudeplan: 'In claude.ai öffnen'
   open_in_openrouter: 'In OpenRouter öffnen'
@@ -7128,3 +7129,44 @@ workbench:
   scope_open: 'Mehrere Verbünde passen. Andon zeigt den ersten; wähle, mit welchem du arbeitest.'
   scope_switch: 'Wechseln'
   needs_token: 'eigenes Token fehlt'
+journal:
+  title: Schreib-Journal
+  lead: 'Was Andon für dich in andere Dienste geschrieben hat, neueste zuerst. Wo der Dienst es zulässt, nimmst du es hier zurück.'
+  areas: Bereiche
+  area_all: Alle
+  area_vat: USt-Abgleich
+  area_receipts: Belege
+  area_billing: Abrechnung
+  area_kimai: Kimai
+  area_home: Haushalt
+  when: Wann
+  what: Was
+  target: Wofür
+  undo: Rückgängig
+  undone: 'Zurückgenommen.'
+  empty: 'Noch nichts geschrieben.'
+  not_found: 'Diesen Eintrag gibt es nicht.'
+  no_undo: 'Das lässt sich nicht zurücknehmen.'
+  act_vatcheck_link: 'Umsatz mit Ausgabe verknüpft'
+  act_vatcheck_create: 'Ausgabe angelegt und verknüpft'
+  act_vatcheck_invoice: 'Zahlung zur Rechnung gebucht'
+  act_vatcheck_payment: 'Umsatz mit Zahlung verknüpft'
+  act_vatcheck_skip: 'Umsatz als privat archiviert'
+  act_vatcheck_restore: 'Umsatz wieder gezeigt'
+  act_receipts_link: 'Beleg verknüpft'
+  act_receipts_unlink: 'Beleg gelöst'
+  act_mail_to_paperless: 'Mail an Paperless geschickt'
+  act_billing_draft: 'Rechnungsentwurf angelegt'
+  act_billing_payment: 'Zahlung gebucht'
+  act_kimai_start: 'Zeiterfassung gestartet'
+  act_kimai_stop: 'Zeiterfassung gestoppt'
+  act_kimai_switch: 'Zeiterfassung gewechselt'
+  act_kimai_create: 'Zeit eingetragen'
+  act_kimai_edit: 'Zeit geändert'
+  act_kimai_delete: 'Zeit gelöscht'
+  act_kimai_split: 'Zeit geteilt'
+  act_travel_ride_class: 'Fahrt eingeordnet'
+  act_hass_toggle: 'Gerät geschaltet'
+  act_dns_pause: 'DNS-Filter pausiert'
+  act_grocy_shopping_add: 'Auf die Einkaufsliste gesetzt'
+  act_tandoor_check: 'Einkauf abgehakt'

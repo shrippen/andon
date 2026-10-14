@@ -52,7 +52,7 @@ func Link(ctx context.Context, d *sql.DB, who *access.Principal, expenseKey stri
 	if err != nil {
 		return number, err
 	}
-	return number, auditsvc.Log(d, &who.UserID, "receipts.link", number, ip, map[string]any{"docs": idList(ids)})
+	return number, auditsvc.Log(d, &who.UserID, "receipts.link", number, ip, map[string]any{"docs": idList(ids), "expense": expenseKey})
 }
 
 // Unlink removes one scan from an expense; other scans stay linked.

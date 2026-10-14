@@ -348,6 +348,11 @@ func AuditPage(q db.Queryer, before *time.Time) ([]*model.AuditEntry, error) {
 	query += " ORDER BY at DESC LIMIT ?"
 	args = append(args, auditPage)
 
+	return auditRows(q, query, args...)
+}
+
+// auditRows reads audit entries.
+func auditRows(q db.Queryer, query string, args ...any) ([]*model.AuditEntry, error) {
 	rows, err := q.Query(query, args...)
 	if err != nil {
 		return nil, err
@@ -375,6 +380,35 @@ func AuditPage(q db.Queryer, before *time.Time) ([]*model.AuditEntry, error) {
 		out = append(out, &e)
 	}
 	return out, rows.Err()
+}
+
+// AuditOf returns one user's entries whose action starts with one of
+// prefixes ("vatcheck."), newest first, at most limit.
+func AuditOf(q db.Queryer, userID int64, prefixes []string, limit int) ([]*model.AuditEntry, error) {
+	if len(prefixes) == 0 {
+		return nil, nil
+	}
+	query := "SELECT id, at, user_id, action, target, detail, ip FROM audit_log WHERE user_id = ? AND ("
+	args := []any{userID}
+	for i, p := range prefixes {
+		if i > 0 {
+			query += " OR "
+		}
+		query += "action LIKE ?"
+		args = append(args, p+"%")
+	}
+	query += ") ORDER BY at DESC, id DESC LIMIT ?"
+	args = append(args, limit)
+	return auditRows(q, query, args...)
+}
+
+// AuditEntry returns one entry, nil if missing.
+func AuditEntry(q db.Queryer, id int64) (*model.AuditEntry, error) {
+	list, err := auditRows(q, "SELECT id, at, user_id, action, target, detail, ip FROM audit_log WHERE id = ?", id)
+	if err != nil || len(list) == 0 {
+		return nil, err
+	}
+	return list[0], nil
 }
 
 // PruneAudit deletes audit entries older than olderThan.

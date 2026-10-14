@@ -1,0 +1,39 @@
+{{/* What Andon wrote to other services for the user (services/journal). */}}
+{{define "journal"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "journal.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="journal">
+    <h1>{{t "journal.title"}}</h1>
+    <p class="muted">{{t "journal.lead"}}</p>
+    {{with .Note}}<p class="pill" data-state="applied">{{t .}}</p>{{end}}
+    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+    <nav class="hint-filters" aria-label="{{t "journal.areas"}}">
+      <div class="chips-row"><a class="chip is-filter" href="/journal"{{if not .Area}} aria-pressed="true"{{end}}>{{t "journal.area_all"}}</a>
+        {{range .Areas}}<a class="chip is-filter" href="/journal?area={{.}}"{{if eq . $.Area}} aria-pressed="true"{{end}}>{{t (print "journal.area_" .)}}</a>{{end}}</div>
+    </nav>
+    {{if .Entries}}
+    <div class="table-wrap"><table class="table cards-sm">
+      <thead><tr><th>{{t "journal.when"}}{{tzMark}}</th><th>{{t "journal.what"}}</th><th>{{t "journal.target"}}</th><th></th></tr></thead>
+      <tbody>{{range .Entries}}<tr>
+        <td><time>{{day .At}} {{.At.Local.Format "15:04"}}</time></td>
+        <td data-card="title">{{t .Label}}</td>
+        <td>{{.Target}}</td>
+        <td>{{if .Undo}}<form method="post" action="/journal/{{.ID}}/undo" class="inline-form">
+          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="area" value="{{$.Area}}">
+          <button type="submit" class="btn btn-outline btn-sm">{{t "journal.undo"}}</button></form>{{end}}</td>
+      </tr>{{end}}</tbody>
+    </table></div>
+    {{else}}<p class="muted">{{t "journal.empty"}}</p>{{end}}
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}

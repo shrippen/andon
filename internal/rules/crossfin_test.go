@@ -45,8 +45,14 @@ func TestExpenseWithPaperlessReceiptIsRecorded(t *testing.T) {
 	paperless := &sources.PaperlessDataset{Invoices: []sources.PaperlessDoc{{ID: 1, Title: "Hetzner", Created: "2026-09-09", Amount: 46.41}}}
 	env := crossEnv("2026-09-25", map[string]any{"sure": sure, "invoiceninja": &sources.NinjaDataset{}, "paperless": paperless})
 	env.Settings = map[string]any{"rules": map[string]any{"cross.expense_unrecorded": map[string]any{"accounts": []any{"geschäft"}}}}
-	if got := run(t, "cross.expense_unrecorded", nil, env); len(got) != 1 || got[0].Params["name"] != "JetBrains" {
+	got := run(t, "cross.expense_unrecorded", nil, env)
+	if len(got) != 1 || got[0].Params["name"] != "JetBrains" {
 		t.Fatalf("missing receipts: %+v", got)
+	}
+
+	// The hint leads to the VAT check at the period of the booking.
+	if got[0].ActionURL != "/vat?span=2026-09#cases" || got[0].ActionLabel != "work_in_vat" {
+		t.Errorf("action: %s %s", got[0].ActionURL, got[0].ActionLabel)
 	}
 }
 

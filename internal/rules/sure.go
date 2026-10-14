@@ -208,9 +208,26 @@ func paymentUnmatched(_ any, cfg map[string]any, env Env) []Finding {
 	return found
 }
 
+// Hints a workbench settles link to it ("Hinweis → erledigen"): /vat at
+// the period the booking is declared in.
+const (
+	workInVAT = "work_in_vat"
+	vatCases  = "cases"
+)
+
+// vatWork is /vat at the period holding day ("2026-09-12"), at anchor.
+func vatWork(env Env, day, anchor string) string {
+	d, ok := metrics.ParseDay(day)
+	if !ok {
+		return "/vat#" + anchor
+	}
+	span := metrics.VATSpanAt(d, metrics.TaxVATInterval(env.Settings))
+	return "/vat?span=" + span.Key + "#" + anchor
+}
+
 func expenseUnrecorded(_ any, cfg map[string]any, env Env) []Finding {
 	sure, ok1 := metrics.BankOf(env.Datasets)
-	ninja, ok2 := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
+	_, ok2 := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
 	if !ok1 || !ok2 {
 		return nil
 	}
@@ -222,7 +239,7 @@ func expenseUnrecorded(_ any, cfg map[string]any, env Env) []Finding {
 			Fingerprint: "expense:" + t.ID, Severity: enums.SeverityInfo,
 			Message: "cross.expense_unrecorded", Params: map[string]any{"name": t.Name, "amount": Money(-t.Amount, sure.Currency),
 				"day": DayStr(t.Date), "account": t.Account},
-			ActionURL: strings.TrimRight(ninja.URL, "/") + "/expenses/create", ActionLabel: "open_in_invoiceninja",
+			ActionURL: vatWork(env, t.Date, vatCases), ActionLabel: workInVAT,
 			Sources: sureNinjaSrc,
 		})
 	}

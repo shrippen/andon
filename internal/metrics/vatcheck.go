@@ -490,6 +490,11 @@ func VATSpans(today time.Time, interval string, n int) []VATSpan {
 	return out
 }
 
+// VATSpanAt is the period holding day: the one a booking is declared in.
+func VATSpanAt(day time.Time, interval string) VATSpan {
+	return VATSpans(day, interval, 1)[0]
+}
+
 func spanKey(start time.Time, interval string) string {
 	if interval == "quarterly" {
 		return fmt.Sprintf("%d-Q%d", start.Year(), (int(start.Month())-1)/quarterMonths+1)
