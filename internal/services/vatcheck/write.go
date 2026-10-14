@@ -67,6 +67,7 @@ type Item struct {
 	Tax       float64 // input VAT in the amount
 	Scan      int64
 	ScanTitle string // the scan linked to a new expense
+	Euer      string // the EÜR line the new expense gets (Verbund → Kategorien)
 }
 
 // Planned is a step as it would be written.
@@ -155,10 +156,9 @@ func (b book) created(s *workbench.Step, it Item) (Item, workbench.Problem) {
 		return it, ProblemNoVendor
 	}
 	it.NewVendor = b.vendorKey(it.Vendor) == ""
-	for _, c := range b.ninja.Categories {
-		if c.Key == s.Field(FieldCategory) {
-			it.Category = c.Name
-		}
+	it.Category = categoryName(b.ninja, s.Field(FieldCategory))
+	if b.cats.EuerSlot > 0 {
+		it.Euer = b.cats.Euer[s.Field(FieldCategory)]
 	}
 	if rate, err := strconv.ParseFloat(s.Field(FieldTax), 64); err == nil {
 		it.TaxRate, it.Taxed = rate, true
@@ -295,6 +295,9 @@ func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
 	}
 	if it.Taxed {
 		body["tax_name1"], body["tax_rate1"] = it.TaxName, it.TaxRate
+	}
+	if it.Euer != "" {
+		body["custom_value"+strconv.Itoa(w.cats.EuerSlot)] = it.Euer
 	}
 	key, number, err := outbound.NinjaExpenseCreate(ctx, w.to, body)
 	if err != nil {

@@ -115,6 +115,11 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 4. „ZIP herunterladen“: CSVs prüfen (Lieferant gefüllt?, Zahlen wie auf den Seiten).
 5. „An Paperless“ bei einer Rechnungsmail.
 
+**J-C4 Kategorien und EÜR**
+1. Verbund mit Invoice Ninja und Sure → „Kategorien“: Vorschläge stehen vorausgewählt („Vorschlag“), das EÜR-Feld ist erkannt; Speichern.
+2. `/euer`: Ausgaben ohne EÜR-Zeile, mit Vorschlag angehakt; „Prüfen“ → „In Invoice Ninja schreiben“ (Demo lehnt ab). Ohne gewähltes Feld: Hinweis mit Link zu den Kategorien.
+3. `/vat`: „Ausgabe anlegen“ zeigt in der Prüfung die EÜR-Zeile der Kategorie.
+
 **J-C3 Schreib-Journal**
 1. Kontomenü → „Schreib-Journal“: nach einem Abgleich auf `/vat` und einer Verknüpfung auf `/receipts` stehen beide oben; Bereichs-Chips filtern.
 2. „Rückgängig“ bei „als privat archiviert“ zeigt den Umsatz auf `/vat` wieder, bei „Beleg verknüpft“ löst es beide Seiten; das Zurücknehmen steht danach selbst im Journal.

@@ -1,5 +1,6 @@
 saved: Saved.
 nav:
+  euer: 'EUER'
   menu: Menu
   boards: Boards
   pages: Pages
@@ -6883,6 +6884,25 @@ caps:
     contract: Working time (user → working time)
   note: 'Only partly usable:'
 verbund:
+  categories: Categories
+  categories_lead: 'Which Ninja category a Sure category means and which EUER line a Ninja category belongs to. Andon proposes from bookings both sides already have; nothing counts before you save.'
+  categories_saved: 'Categories saved.'
+  cat_sure_title: '{bank} → Invoice Ninja'
+  cat_sure_lead: 'So Sure’s automatic categories land in the right Ninja category when the VAT check creates an expense.'
+  cat_shared: 'Shared bookings'
+  cat_suggested: 'Proposed'
+  cat_sure_none: 'Sure knows no categories for debits yet.'
+  cat_euer_title: 'Invoice Ninja → EUER'
+  cat_euer_lead: 'The EUER line is an expense custom field. Pick the field and each category’s line; the “EUER lines” workbench then fills empty fields.'
+  cat_euer_field: 'Custom field holding the EUER line'
+  cat_ninja: 'Ninja category'
+  cat_euer_line: 'EUER line'
+  cat_used: 'Booked so'
+  cat_euer_none: 'Pick the custom field first. In Invoice Ninja under Settings → Custom fields → Expenses.'
+  cat_save: 'Save'
+  cat_to_euer: 'To the EUER lines'
+  cat_ro: 'Only who manages the Invoice Ninja connection may change this.'
+  no_ninja: 'The bundle has no Invoice Ninja.'
   accounts: Accounts
   accounts_lead: 'Which bank account in Invoice Ninja is which in Sure or Firefly, and what it is for. Andon proposes the account sharing the most bookings; only what you confirm is stored. Business or private holds per account and carries over to linked accounts.'
   account_role: Use
@@ -7018,6 +7038,7 @@ llm:
     requests: 'Requests'
     cost: 'Cost'
 vatcheck:
+  do_euer: 'EUER: {line}'
   check_receipts: 'Expenses without a receipt: {n}'
   check_receipts_done: 'Every expense has its receipt.'
   scan: Receipt
@@ -7129,6 +7150,9 @@ workbench:
   scope_switch: 'Switch'
   needs_token: 'own token missing'
 journal:
+  act_euer_unset: 'EUER line emptied'
+  area_euer: 'EUER'
+  act_euer_set: 'EUER line set'
   title: Write journal
   lead: 'What Andon wrote to other services for you, newest first. Where the service allows it, you take it back here.'
   areas: Areas
@@ -7169,3 +7193,29 @@ journal:
   act_dns_pause: 'DNS filter paused'
   act_grocy_shopping_add: 'Added to the shopping list'
   act_tandoor_check: 'Shopping item ticked'
+euer:
+  title: 'EUER lines'
+  lead: 'This year’s expenses with an empty EUER field. Proposed is their category’s line (bundle → categories); ticked ones are written to Invoice Ninja after the review.'
+  years: Years
+  setup_title: 'Which field holds the EUER line?'
+  setup_text: 'The EUER line is an expense custom field. Pick it in the bundle under categories and map the categories there.'
+  setup_link: 'Open categories'
+  setup_verbund: 'Open bundles'
+  cases: 'Expenses without {field}: {n}, with a proposal: {mapped}.'
+  mapping: 'Change mapping'
+  expense: Expense
+  line: 'EUER line'
+  no_mapping: 'Category not mapped'
+  review: 'Review'
+  empty: 'Every expense of {year} has its EUER line.'
+  review_title: 'Confirm EUER lines'
+  review_lead: 'These expenses get their field “{field}” in Invoice Ninja (writes: {n}).'
+  do_set: 'Set EUER line “{line}”'
+  apply: 'Write to Invoice Ninja ({n})'
+  back: Back
+  done: 'Done: {n}.'
+  failed: 'Not done: {n}.'
+  problem_gone: 'Set already or gone: skipped.'
+  problem_line: 'No line: skipped.'
+  err_no_ninja: 'No Invoice Ninja connection you may use.'
+  err_demo: 'The demo does not write to Invoice Ninja.'

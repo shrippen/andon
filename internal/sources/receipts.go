@@ -129,6 +129,20 @@ func receiptExpense(raw any) ReceiptExpense {
 // leave them unnamed.
 func ninjaSlotLabels(ctx context.Context, api services.NinjaApi) [NinjaSlots]string {
 	var out [NinjaSlots]string
+	for i, f := range ninjaExpenseFields(ctx, api) {
+		out[i] = f.Label
+	}
+	return out
+}
+
+// fieldKinds are Invoice Ninja's custom field types; anything else after
+// the "|" is a dropdown's comma-separated choices.
+var fieldKinds = []string{"single_line_text", "multi_line_text", "switch", "date", "number", "decimal", "url", "email", "phone"}
+
+// ninjaExpenseFields reads the expense custom fields with a dropdown's
+// choices; failures leave them unnamed.
+func ninjaExpenseFields(ctx context.Context, api services.NinjaApi) [NinjaSlots]ExpenseField {
+	var out [NinjaSlots]ExpenseField
 	body, err := api.Get(ctx, "companies", nil)
 	if err != nil {
 		return out
@@ -139,8 +153,16 @@ func ninjaSlotLabels(ctx context.Context, api services.NinjaApi) [NinjaSlots]str
 	}
 	fields := asMap(company["custom_fields"])
 	for i := range out {
-		label, _, _ := strings.Cut(asStr(fields["expense"+strconv.Itoa(i+1)]), ninjaLabelSplit)
-		out[i] = strings.TrimSpace(label)
+		label, kind, _ := strings.Cut(asStr(fields["expense"+strconv.Itoa(i+1)]), ninjaLabelSplit)
+		out[i].Label = strings.TrimSpace(label)
+		if kind = strings.TrimSpace(kind); kind == "" || slices.Contains(fieldKinds, kind) {
+			continue
+		}
+		for _, o := range strings.Split(kind, ",") {
+			if o = strings.TrimSpace(o); o != "" {
+				out[i].Options = append(out[i].Options, o)
+			}
+		}
 	}
 	return out
 }

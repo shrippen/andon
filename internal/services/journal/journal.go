@@ -4,6 +4,7 @@
 //	audit_log ──Entries──► the page, newest first, per area
 //	          ──Undo─────► vatcheck.skip → vatcheck.Restore (back in the feed)
 //	                       receipts.link → receipts.Unlink (both sides)
+//	                       euer.set      → euer.Unset (field empty again)
 //
 // An undo is a write of its own and shows as one.
 package journal
@@ -20,6 +21,7 @@ import (
 	"andon/internal/model"
 	"andon/internal/repos/misc"
 	"andon/internal/services/access"
+	"andon/internal/services/euer"
 	"andon/internal/services/receipts"
 	"andon/internal/services/vatcheck"
 )
@@ -30,6 +32,7 @@ type Area string
 const (
 	AreaAll      Area = ""
 	AreaVAT      Area = "vat"
+	AreaEuer     Area = "euer"
 	AreaReceipts Area = "receipts"
 	AreaBilling  Area = "billing"
 	AreaKimai    Area = "kimai"
@@ -37,14 +40,14 @@ const (
 )
 
 // Areas lists them in the page's order.
-var Areas = []Area{AreaVAT, AreaReceipts, AreaBilling, AreaKimai, AreaHome}
+var Areas = []Area{AreaVAT, AreaEuer, AreaReceipts, AreaBilling, AreaKimai, AreaHome}
 
 // kinds are the audit actions that wrote to another service, by prefix.
 var kinds = []struct {
 	prefix string
 	area   Area
 }{
-	{"vatcheck.", AreaVAT}, {"receipts.", AreaReceipts}, {"mail.to_paperless", AreaReceipts},
+	{"vatcheck.", AreaVAT}, {"euer.", AreaEuer}, {"receipts.", AreaReceipts}, {"mail.to_paperless", AreaReceipts},
 	{"billing.draft", AreaBilling}, {"billing.payment", AreaBilling},
 	{"kimai.", AreaKimai}, {"travel.", AreaKimai},
 	{"hass.", AreaHome}, {"dns.", AreaHome}, {"grocy.", AreaHome}, {"tandoor.", AreaHome},
@@ -57,6 +60,7 @@ const shown = 300
 const (
 	actArchived = "vatcheck.skip"
 	actLinked   = "receipts.link"
+	actEuer     = "euer.set"
 )
 
 var (
@@ -114,6 +118,8 @@ func entryOf(r *model.AuditEntry) Entry {
 		e.Undo = str(r.Detail, "txn") != ""
 	case actLinked:
 		e.Undo = str(r.Detail, "expense") != "" && len(ids(str(r.Detail, "docs"))) > 0
+	case actEuer:
+		e.Undo = str(r.Detail, "expense") != "" && str(r.Detail, "slot") != ""
 	}
 	return e
 }
@@ -141,6 +147,9 @@ func Undo(ctx context.Context, d *sql.DB, who *access.Principal, id int64, ip st
 			}
 		}
 		return nil
+	case actEuer:
+		slot, _ := strconv.Atoi(str(e.Detail, "slot"))
+		return euer.Unset(ctx, d, who, str(e.Detail, "scope"), str(e.Detail, "expense"), slot, ip)
 	}
 	return ErrNoUndo
 }

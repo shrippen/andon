@@ -195,6 +195,10 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 				Key: idKey(em["id"]), CategoryKey: idKey(em["category_id"]), TaxName: asStr(em["tax_name1"]), TaxRate: asFloat(em["tax_rate1"]),
 				TxnKey: idKey(em["transaction_id"]),
 			})
+			last := &expenses[len(expenses)-1]
+			for i := range last.Custom {
+				last.Custom[i] = strings.TrimSpace(asStr(em["custom_value"+strconv.Itoa(i+1)]))
+			}
 		}
 	}
 
@@ -249,6 +253,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 		URL: sctx.URL, Currency: currency, Invoices: invoices, Payments: payments, Clients: clients,
 		Expenses: expenses, Vendors: vendors, Quotes: quotes, Recurring: recurring, HomeCountryID: homeCountry, Since: since,
 		BankTxns: bank.txns, BankRead: bank.read, BankAccounts: bank.accounts, Categories: bank.categories, TaxRates: bank.rates,
+		ExpenseFields: ninjaExpenseFields(ctx, api),
 	}, nil
 }
 

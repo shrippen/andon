@@ -186,7 +186,7 @@
           {{else if eq .Action "invoice"}}{{t "vatcheck.do_invoice" "number" $i.Invoice.Number}}
           {{else if eq .Action "payment"}}{{t "vatcheck.do_payment" "number" $i.Payment.Number}}
           {{else if eq .Action "skip"}}{{t "vatcheck.do_skip"}}
-          {{else}}{{if $i.NewVendor}}{{t "vatcheck.do_vendor" "vendor" $i.Vendor}} {{end}}{{t "vatcheck.do_create" "vendor" $i.Vendor}}{{with $i.Category}} · {{.}}{{end}} ·
+          {{else}}{{if $i.NewVendor}}{{t "vatcheck.do_vendor" "vendor" $i.Vendor}} {{end}}{{t "vatcheck.do_create" "vendor" $i.Vendor}}{{with $i.Category}} · {{.}}{{end}}{{with $i.Euer}} · {{t "vatcheck.do_euer" "line" .}}{{end}} ·
             {{if $i.Taxed}}{{t "vatcheck.do_tax" "name" $i.TaxName "rate" (num $i.TaxRate 0) "tax" (money $i.Tax $.Plan.Currency)}}{{else}}{{t "vatcheck.no_tax"}}{{end}}{{with $i.ScanTitle}} · {{t "vatcheck.do_scan" "title" .}}{{end}}{{end}}
         </li>{{end}}</ol>
       <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "vatcheck.apply" "n" .Plan.Writes}}</button>{{else}}<button type="submit" class="btn btn-outline">{{t "vatcheck.apply_skip"}}</button>{{end}}
