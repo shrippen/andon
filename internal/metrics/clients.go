@@ -22,7 +22,36 @@ type ClientCard struct {
 	LastWork    string  // day of the newest time entry, "" if none
 	Invoices    []NinjaOpenInvoice
 	Projects    []ClientProject
+
+	// The customer's state, whatever the span: revenue of the last half
+	// year against the one before, overdue money, how long it is quiet.
+	Recent, Prior float64
+	Health        ClientHealth
 }
+
+// ClientHealth is a customer's state and why: Signals are i18n keys
+// under "clients.signal_".
+type ClientHealth struct {
+	State   ClientState
+	Signals []string
+}
+
+// ClientState ranks a customer.
+type ClientState string
+
+const (
+	ClientOK    ClientState = "ok"
+	ClientWatch ClientState = "watch"
+	ClientRisk  ClientState = "risk"
+)
+
+// Health thresholds: half years compared, a drop or rise by this share
+// counts, so many days without work is quiet.
+const (
+	halfYearMonths = 6
+	trendShare     = 0.4
+	quietDays      = 90
+)
 
 // ClientProject is a project's hours in the span.
 type ClientProject struct {
@@ -69,6 +98,9 @@ func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today
 	if ninja != nil {
 		joinNinja(cards, ninja, today, center, m, span)
 	}
+	for _, card := range cards {
+		card.Health = healthOf(*card, today)
+	}
 
 	out := make([]ClientCard, 0, len(cards))
 	for id, card := range cards {
@@ -99,10 +131,21 @@ func joinNinja(cards map[int64]*ClientCard, ninja *sources.NinjaDataset, today t
 		}
 	}
 
+	recent := today.AddDate(0, -halfYearMonths, 0).Format(time.DateOnly)
+	prior := today.AddDate(0, -2*halfYearMonths, 0).Format(time.DateOnly)
 	for _, inv := range ninja.Invoices {
 		card, ok := byClient[inv.ClientID]
-		if ok && isCounted(inv.Status) && span.HasDay(inv.Date) {
+		if !ok || !isCounted(inv.Status) {
+			continue
+		}
+		if span.HasDay(inv.Date) {
 			card.Revenue += inv.Net
+		}
+		switch {
+		case inv.Date >= recent:
+			card.Recent += inv.Net
+		case inv.Date >= prior:
+			card.Prior += inv.Net
 		}
 	}
 	for _, open := range NinjaOpenInvoices(ninja, today) {
@@ -121,4 +164,37 @@ func joinNinja(cards map[int64]*ClientCard, ninja *sources.NinjaDataset, today t
 			card.PaymentDays = days
 		}
 	}
+}
+
+// healthOf reads a customer's state from its card:
+//
+//	overdue money                          → risk
+//	revenue down by trendShare, and quiet  → risk
+//	revenue down, or quiet                 → watch
+//	revenue up by trendShare               → ok, noted as growing
+func healthOf(c ClientCard, today time.Time) ClientHealth {
+	var h ClientHealth
+	quiet := c.LastWork != "" && daysApart(c.LastWork, today) > quietDays
+	down := c.Prior > 0 && c.Recent < c.Prior*(1-trendShare)
+	if c.Overdue > 0 {
+		h.Signals = append(h.Signals, "overdue")
+	}
+	if down {
+		h.Signals = append(h.Signals, "declining")
+	}
+	if quiet {
+		h.Signals = append(h.Signals, "quiet")
+	}
+	if c.Prior > 0 && c.Recent > c.Prior*(1+trendShare) {
+		h.Signals = append(h.Signals, "growing")
+	}
+	switch {
+	case c.Overdue > 0 || (down && quiet):
+		h.State = ClientRisk
+	case down || quiet:
+		h.State = ClientWatch
+	default:
+		h.State = ClientOK
+	}
+	return h
 }

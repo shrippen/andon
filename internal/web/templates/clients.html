@@ -23,7 +23,7 @@
         <th class="num">{{t "clients.revenue"}}<br><small class="muted">{{template "period_sub" dict "Span" .Span "From" $first.RevenueFrom}}</small></th>
         <th class="num">{{t "clients.pay_days"}}</th></tr></thead>
       <tbody>{{range .Cards}}<tr>
-        <td data-label="{{t "clients.customer"}}"><a href="/clients/{{.SpaceID}}/{{.CustomerID}}?kimai={{.KimaiID}}&amp;period={{.Span.Period}}">{{.Name}}</a> <small class="muted">{{.SpaceName}}</small></td>
+        <td data-label="{{t "clients.customer"}}"><a href="/clients/{{.SpaceID}}/{{.CustomerID}}?kimai={{.KimaiID}}&amp;period={{.Span.Period}}">{{.Name}}</a> <small class="muted">{{.SpaceName}}</small>{{template "client_health" .Health}}</td>
         <td class="num" data-label="{{t "clients.hours"}}">{{num .Hours 1}}</td>
         <td class="num" data-label="{{t "clients.unbilled"}}">{{if .Unbilled}}{{money .Unbilled .Currency}}{{end}}</td>
         <td class="num" data-label="{{t "clients.open"}}">{{if .Open}}<span{{if .Overdue}} class="late"{{end}}>{{money .Open .Currency}}</span>{{end}}</td>
@@ -57,6 +57,7 @@
 
     {{template "period_choice" dict "Path" (print "/clients/" $c.SpaceID "/" $c.CustomerID) "Keep" (dict "kimai" $c.KimaiID) "Periods" .Periods "Span" $c.Span}}
     {{/* Each figure names what it counts: the period, or today. */}}
+    {{with $c.Health.Signals}}<p>{{template "client_health" $c.Health}} {{range $i, $s := .}}{{if $i}} · {{end}}{{t (print "clients.signal_" $s)}}{{end}}{{if $c.Prior}} <small class="muted">{{t "clients.half_years" "recent" (money $c.Recent $c.Currency) "prior" (money $c.Prior $c.Currency)}}</small>{{end}}</p>{{end}}
     <div class="client-kpis">
       <div class="kpi"><span class="kpi-label">{{t "clients.hours"}}</span><b class="kpi-value" data-live>{{num $c.Hours 1}} h</b><span class="kpi-sub">{{template "period_sub" dict "Span" $c.Span "From" $c.HoursFrom}}</span></div>
       <div class="kpi"><span class="kpi-label">{{t "clients.unbilled"}}</span><b class="kpi-value" data-live>{{money $c.Unbilled $c.Currency}}</b><span class="kpi-sub">{{t "period.today"}}</span>{{if $c.Unbilled}}<a class="kpi-sub" href="/billing#drafts">{{t "clients.to_billing"}}</a>{{end}}</div>
@@ -81,3 +82,6 @@
 </body>
 </html>
 {{end}}
+
+{{/* A customer's state as a pill: nothing when all is well. */}}
+{{define "client_health"}}{{if ne (print .State) "ok"}} <span class="pill" data-state="{{if eq (print .State) "risk"}}failed{{else}}reviewing{{end}}">{{t (print "clients.state_" .State)}}</span>{{end}}{{end}}

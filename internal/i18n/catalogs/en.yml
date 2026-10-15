@@ -6802,6 +6802,13 @@ immich:
   failed: '{n} failed jobs'
   update: 'Update to {version} available'
 clients:
+  state_watch: 'watch'
+  state_risk: 'at risk'
+  signal_overdue: 'overdue invoices'
+  signal_declining: 'revenue down sharply'
+  signal_quiet: 'no work for over 90 days'
+  signal_growing: 'revenue up sharply'
+  half_years: 'last half year {recent}, the one before {prior}'
   docs: Documents in Paperless
   customer: 'Customer'
   hours: 'Hours'

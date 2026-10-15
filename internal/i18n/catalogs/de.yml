@@ -6803,6 +6803,13 @@ immich:
   failed: '{n} fehlgeschlagene Jobs'
   update: 'Update auf {version} verfügbar'
 clients:
+  state_watch: 'beobachten'
+  state_risk: 'gefährdet'
+  signal_overdue: 'überfällige Rechnungen'
+  signal_declining: 'Umsatz stark gesunken'
+  signal_quiet: 'seit über 90 Tagen keine Arbeit'
+  signal_growing: 'Umsatz stark gestiegen'
+  half_years: 'letztes Halbjahr {recent}, davor {prior}'
   docs: Dokumente in Paperless
   customer: 'Kunde'
   hours: 'Stunden'
