@@ -12,6 +12,7 @@ package metrics
 //	Wallos or Ninja twice ────────────────────────► remove the second
 
 import (
+	"cmp"
 	"math"
 	"slices"
 	"strconv"
@@ -89,6 +90,11 @@ type SubInputs struct {
 	// (Verbund → Kategorien).
 	Categories map[string]string
 	Today      time.Time
+	// MaxMonthly and Ignore are cross.wallos_missing's settings: a
+	// payment above MaxMonthly a month (0: SubMaxMonthly) or with an
+	// ignored word in its name is not added to Wallos.
+	MaxMonthly float64
+	Ignore     []string
 }
 
 // SubCases lists the proposals, by action.
@@ -105,7 +111,7 @@ func SubCases(in SubInputs) []SubCase {
 		}
 		next := nextPayment(r.Next, months, in.Today)
 		if in.Wallos != nil {
-			out = append(out, wallosCases(in.Wallos, r, months, next)...)
+			out = append(out, wallosCases(in, r, months, next)...)
 		}
 		if in.Ninja != nil {
 			out = append(out, ninjaCases(in, r, months, next)...)
@@ -126,7 +132,8 @@ func SubCases(in SubInputs) []SubCase {
 }
 
 // wallosCases: r missing in Wallos, or there at another price.
-func wallosCases(w *sources.WallosDataset, r *sources.SureRecurring, months int, next string) []SubCase {
+func wallosCases(in SubInputs, r *sources.SureRecurring, months int, next string) []SubCase {
+	w := in.Wallos
 	var found []*sources.WallosSub
 	for i := range w.Subs {
 		if sameName(r.Name, w.Subs[i].Name) {
@@ -134,21 +141,48 @@ func wallosCases(w *sources.WallosDataset, r *sources.SureRecurring, months int,
 		}
 	}
 	if len(found) == 0 {
-		if monthly(*r) > SubMaxMonthly {
+		limit := cmp.Or(in.MaxMonthly, SubMaxMonthly)
+		if monthly(*r) > limit || ignored(r.Name, in.Ignore) {
 			return nil
 		}
 		return []SubCase{{Key: subKey(SubWallosAdd, r.Name), Action: SubWallosAdd, Name: r.Name, Bank: r, Amount: r.Amount, Months: months, Next: next}}
 	}
 
-	var out []SubCase
+	// The subscriptions the payment could change: running, same currency
+	// and interval.
+	var open []*sources.WallosSub
 	for _, s := range found {
-		if s.Inactive || s.CurrencyID != w.Main || s.Months() != months || math.Abs(s.Price-r.Amount) <= subPriceTol {
+		if s.Inactive || s.CurrencyID != w.Main || s.Months() != months {
 			continue
 		}
-		out = append(out, SubCase{Key: subID(SubWallosPrice, itoa(s.ID)), Action: SubWallosPrice, Name: s.Name, Ticked: true,
-			Bank: r, Wallos: s, Amount: r.Amount, Old: s.Price, Months: months, Next: s.Next})
+		if math.Abs(s.Price-r.Amount) <= subPriceTol {
+			return nil
+		}
+		open = append(open, s)
 	}
-	return out
+	s, sure := closest(open, func(s *sources.WallosSub) float64 { return s.Price }, r.Amount)
+	if s == nil {
+		return nil
+	}
+	return []SubCase{{Key: subID(SubWallosPrice, itoa(s.ID)), Action: SubWallosPrice, Name: s.Name, Ticked: sure,
+		Bank: r, Wallos: s, Amount: r.Amount, Old: s.Price, Months: months, Next: s.Next}}
+}
+
+// closest is the entry whose price lies nearest to amount; sure is
+// false when there were several to choose from ("Netkom Internet" and
+// "Netkom Handy" both match the payment "Netkom"), so the case is not
+// ticked.
+func closest[T any](entries []T, price func(T) float64, amount float64) (best T, sure bool) {
+	if len(entries) == 0 {
+		return best, false
+	}
+	best = entries[0]
+	for _, e := range entries[1:] {
+		if math.Abs(price(e)-amount) < math.Abs(price(best)-amount) {
+			best = e
+		}
+	}
+	return best, len(entries) == 1
 }
 
 // ninjaCases: a business payment without recurring expense, or one at
@@ -156,6 +190,7 @@ func wallosCases(w *sources.WallosDataset, r *sources.SureRecurring, months int,
 func ninjaCases(in SubInputs, r *sources.SureRecurring, months int, next string) []SubCase {
 	vendors := vendorNames(in.Ninja)
 	var out []SubCase
+	var open []*sources.NinjaRecurringExpense
 	matched := false
 	for i := range in.Ninja.RecurringExpenses {
 		e := &in.Ninja.RecurringExpenses[i]
@@ -163,14 +198,22 @@ func ninjaCases(in SubInputs, r *sources.SureRecurring, months int, next string)
 			continue
 		}
 		matched = true
-		if !e.Active || e.Months != months || math.Abs(e.Amount-r.Amount) <= subPriceTol {
+		if !e.Active || e.Months != months {
 			continue
 		}
-		out = append(out, SubCase{Key: subID(SubNinjaPrice, e.Key), Action: SubNinjaPrice, Name: subNinjaName(vendors, e), Ticked: true,
-			Bank: r, Ninja: e, Amount: r.Amount, Old: e.Amount, Months: months, Next: e.Next})
+		// No amount: a bill that varies (power), booked by hand.
+		if e.Amount == 0 || math.Abs(e.Amount-r.Amount) <= subPriceTol {
+			return nil
+		}
+		open = append(open, e)
 	}
 	if matched {
-		return out
+		e, sure := closest(open, func(e *sources.NinjaRecurringExpense) float64 { return e.Amount }, r.Amount)
+		if e == nil {
+			return nil
+		}
+		return []SubCase{{Key: subID(SubNinjaPrice, e.Key), Action: SubNinjaPrice, Name: subNinjaName(vendors, e), Ticked: sure,
+			Bank: r, Ninja: e, Amount: r.Amount, Old: e.Amount, Months: months, Next: e.Next}}
 	}
 	if _, ok := sources.NinjaFrequency(months); !ok {
 		return out

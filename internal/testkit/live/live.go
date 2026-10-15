@@ -55,6 +55,8 @@ const (
 	Ninja     Service = "invoiceninja"
 	Paperless Service = "paperless"
 	Tandoor   Service = "tandoor"
+	Wallos    Service = "wallos"
+	Sure      Service = "sure"
 )
 
 // Action is one kind of write in the log.

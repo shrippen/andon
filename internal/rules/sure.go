@@ -274,6 +274,19 @@ func wallosMissing(_ any, cfg map[string]any, env Env) []Finding {
 	}}
 }
 
+// WallosLimits are cross.wallos_missing's settings of a space: a payment
+// above maxMonthly a month, or with an ignored word in its name, is no
+// subscription (the subscription bench reads them too).
+func WallosLimits(settings map[string]any) (maxMonthly float64, ignore []string) {
+	for _, spec := range AllRules() {
+		if spec.ID == "cross.wallos_missing" {
+			cfg := Config(spec, settings)
+			return cfgFloat(cfg, "max_monthly"), stringsSlice(cfg["ignore_names"])
+		}
+	}
+	return 0, nil
+}
+
 // ReceiptInputsOf collects the receipt sources of a scope with the
 // cross.expense_unrecorded settings; Since is left to the caller.
 func ReceiptInputsOf(env Env, cfg map[string]any) metrics.ReceiptInputs {

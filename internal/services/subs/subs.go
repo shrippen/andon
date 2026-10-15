@@ -17,10 +17,13 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/db"
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/outbound"
+	"andon/internal/repos/content"
+	"andon/internal/rules"
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
 	"andon/internal/services/svcdata"
@@ -140,11 +143,33 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 	b.ninja, _ = get(enums.ServiceInvoiceNinja).(*sources.NinjaDataset)
 
 	in := metrics.SubInputs{Bank: b.bank, Wallos: b.wallos, Ninja: b.ninja, Today: b.today}
+	in.MaxMonthly, in.Ignore, err = limits(d, b.conns[enums.ServiceSure])
+	if err != nil {
+		return b, scopes, err
+	}
 	if c := b.conns[enums.ServiceInvoiceNinja]; c != nil {
 		in.Categories = sources.CategoriesOf(c.Options).Sure[b.conns[enums.ServiceSure].ID]
 	}
 	b.cases = metrics.SubCases(in)
 	return b, scopes, nil
+}
+
+// limits are cross.wallos_missing's settings of the bank's space, so
+// the bench leaves out what the hint does.
+func limits(d *sql.DB, bank *model.Connection) (float64, []string, error) {
+	var settings map[string]any
+	err := db.WithRead(d, func(tx *sql.Tx) error {
+		sp, err := content.Space(tx, bank.SpaceID)
+		if err == nil && sp != nil {
+			settings = sp.Settings
+		}
+		return err
+	})
+	if err != nil {
+		return 0, nil, err
+	}
+	maxMonthly, ignore := rules.WallosLimits(settings)
+	return maxMonthly, ignore, nil
 }
 
 // Item is a case as the review shows it.
