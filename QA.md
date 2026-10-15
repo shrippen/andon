@@ -119,6 +119,10 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 1. Hinweis „Fehlt in Wallos“ → „In den Abos erledigen“ führt nach `/subs`.
 2. Demo: Nordhost mit neuem Preis (Wallos und Invoice Ninja, vorab angehakt), Wellenklang doppelt in Wallos, Farbraum fehlt in Wallos. Betrag ändern, „Prüfen“ zeigt alt → neu; „Schreiben“ (Demo lehnt ab).
 
+**J-C8 Buchungen einordnen**
+1. `/subs` → „Buchungen ohne Kategorie einordnen“: Kabelwerk Studiobedarf mit Vorschlag „Technik“ angehakt, Bäckerei ohne Vorschlag.
+2. „Prüfen“ nennt Anzahl, Summe und Kategorie; „In Sure einordnen“ (Demo lehnt ab).
+
 **J-C6 Woche schließen**
 1. `/week`: letzte Woche vorgewählt, Chips für vier Wochen; „Gelesen aus“ nennt Dawarich und Kalender des Verbunds.
 2. Jede Lücke mit Kunde, Zeiten, Projekt und Tätigkeit vorgeschlagen; vollständige angehakt. „Prüfen“ → „In Kimai eintragen“ (Demo lehnt ab).
