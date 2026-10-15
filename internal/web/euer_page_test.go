@@ -158,6 +158,22 @@ func TestSubsPage(t *testing.T) {
 	}
 }
 
+// The filing page lists the demo's merchant without category.
+func TestCategorizePage(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+		"service": {"sure"}, "name": {"Sure"}, "url": {"demo://sure"}, "mode": {"shared"}, "tls": {"verify"}})
+	page := string(mustGet(t, srv, client, "/categorize"))
+	for _, want := range []string{"Buchungen einordnen", `value="file"`, `<option value="Technik" selected>Technik</option>`} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("categorize page lacks %q:\n%s", want, page)
+		}
+	}
+}
+
 // The year page sums the demo's year and offers the package; Snipe-IT
 // adds the depreciation of its assets.
 func TestYearPage(t *testing.T) {

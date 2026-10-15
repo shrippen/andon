@@ -139,7 +139,7 @@ func subscriptionUnused(_ any, cfg map[string]any, env Env) []Finding {
 }
 
 func spendableNegative(_ any, _ map[string]any, env Env) []Finding {
-	sure, ok1 := businessBank(env)
+	sure, ok1 := cashBank(env)
 	ninja, ok2 := env.Datasets[ninjaSvc].(*sources.NinjaDataset)
 	if !ok1 || !ok2 {
 		return nil
@@ -150,7 +150,7 @@ func spendableNegative(_ any, _ map[string]any, env Env) []Finding {
 	}
 	return []Finding{{Fingerprint: "spendable", Severity: enums.SeverityWarn,
 		Message: "sure.spendable_negative", Params: map[string]any{"cash": Money(s.Cash, sure.Currency),
-			"reserved": Money(s.VAT+s.IncomeTax+s.Fixed, sure.Currency), "missing": Money(-s.Free, sure.Currency)},
+			"reserved": Money(s.Taxes()+s.Fixed, sure.Currency), "missing": Money(-s.Free, sure.Currency)},
 		Sources: []string{string(sure.From()), ninjaSvc}}}
 }
 

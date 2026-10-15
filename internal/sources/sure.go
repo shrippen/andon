@@ -4,6 +4,7 @@ import (
 	"andon/internal/caps"
 	"context"
 	"net/url"
+	"slices"
 	"strconv"
 	"time"
 
@@ -37,6 +38,17 @@ type SureTxn struct {
 	// The account's id and role, for business or private.
 	AccountID string
 	Role      AccountRole
+
+	// CategoryID is Category's id ("" none); Transfer marks a booking
+	// between own accounts, which needs no category.
+	CategoryID string
+	Transfer   bool
+}
+
+// SureCategory is one of Sure's categories; Parent names the one it
+// belongs to ("" top level).
+type SureCategory struct {
+	ID, Name, Parent string
 }
 
 // SureRecurring is an expected payment; Amount is positive, Expense tells
@@ -56,7 +68,8 @@ type SureDataset struct {
 	Accounts     []SureAccount
 	Transactions []SureTxn // last 90 days
 	Recurring    []SureRecurring
-	SyncError    string // latest sync failed: its message
+	Categories   []SureCategory // Sure only; Firefly leaves them out
+	SyncError    string         // latest sync failed: its message
 	// Service is where the data comes from: "" Sure, or Firefly III,
 	// which fills the same shape (firefly.go).
 	Service enums.ServiceType
@@ -144,12 +157,15 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 				ID: asStr(t["id"]), Date: asStr(t["date"]), Name: cleanName(asStr(t["name"])), Amount: cents(t["signed_amount_cents"]),
 				Category: asStr(asMap(t["category"])["name"]), Merchant: cleanName(asStr(asMap(t["merchant"])["name"])),
 				Account: asStr(asMap(t["account"])["name"]), Tags: sureTags(t["tags"]), AccountID: asStr(asMap(t["account"])["id"]),
+				CategoryID: asStr(asMap(t["category"])["id"]), Transfer: t["transfer"] != nil,
 			})
 		}
 		if len(list) < surePage {
 			break
 		}
 	}
+
+	data.Categories = sureCategories(ctx, api)
 
 	// Recurring detection and sync state are newer API parts; older
 	// servers simply lack them.
@@ -206,19 +222,19 @@ func (d *SureDataset) setRoles(roles map[string]AccountRole) {
 // Only is the dataset with the accounts of one role and their bookings;
 // without a role asked for, or none named yet, all of it. Recurring
 // payments name no account and stay.
-func (d *SureDataset) Only(role AccountRole) *SureDataset {
-	if role == RoleUnknown || !d.Classified() {
+func (d *SureDataset) Only(roles ...AccountRole) *SureDataset {
+	if len(roles) == 0 || roles[0] == RoleUnknown || !d.Classified() {
 		return d
 	}
 	out := *d
 	out.Accounts, out.Transactions = nil, nil
 	for _, a := range d.Accounts {
-		if a.Role == role {
+		if slices.Contains(roles, a.Role) {
 			out.Accounts = append(out.Accounts, a)
 		}
 	}
 	for _, t := range d.Transactions {
-		if t.Role == role {
+		if slices.Contains(roles, t.Role) {
 			out.Transactions = append(out.Transactions, t)
 		}
 	}
@@ -249,4 +265,25 @@ func sureTags(raw any) []string {
 func init() {
 	Register(SureData)
 	Register(testOf{SureData, func(d any) map[string]any { return map[string]any{"accounts": len(d.(*SureDataset).Accounts)} }})
+}
+
+// sureCategories reads every category; a server without the endpoint
+// has none for Andon.
+func sureCategories(ctx context.Context, api services.SureApi) []SureCategory {
+	var out []SureCategory
+	for page := 1; page <= sureMaxPages; page++ {
+		raw, err := api.Get(ctx, "categories", url.Values{"per_page": {strconv.Itoa(surePage)}, "page": {strconv.Itoa(page)}})
+		if err != nil {
+			return out
+		}
+		list := asList(asMap(raw)["categories"])
+		for _, c := range list {
+			m := asMap(c)
+			out = append(out, SureCategory{ID: asStr(m["id"]), Name: asStr(m["name"]), Parent: asStr(asMap(m["parent"])["name"])})
+		}
+		if len(list) < surePage {
+			return out
+		}
+	}
+	return out
 }

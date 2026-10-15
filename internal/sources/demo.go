@@ -702,11 +702,20 @@ func DemoSure(now time.Time) *SureDataset {
 	}
 	demoworld.MustDecode("bank", now, &data)
 	out := data.SureDataset
+
+	// The demo's categories are the ones its bookings name, the name
+	// standing in for Sure's id.
+	seen := map[string]bool{}
 	for _, t := range data.Transactions {
 		if t.Expense {
 			t.Amount = -t.Amount
 		}
+		t.CategoryID = t.Category
 		out.Transactions = append(out.Transactions, t.SureTxn)
+		if t.Category != "" && !seen[t.Category] {
+			seen[t.Category] = true
+			out.Categories = append(out.Categories, SureCategory{ID: t.Category, Name: t.Category})
+		}
 	}
 	return &out
 }

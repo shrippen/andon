@@ -1,11 +1,12 @@
 package outbound
 
 // Writes of the subscription bench: Invoice Ninja's recurring expenses
-// and Wallos' subscriptions.
+// and Wallos' subscriptions; and Sure's categories of bookings.
 
 import (
 	"context"
 	"errors"
+	"net/http"
 	"net/url"
 	"strconv"
 
@@ -123,5 +124,13 @@ func WallosEnd(ctx context.Context, to Target, id int64, day string) error {
 // WallosDelete removes a subscription, e.g. one entered twice.
 func WallosDelete(ctx context.Context, to Target, id int64) error {
 	_, err := wallos(to).Post(ctx, wallosWrite, url.Values{"action": {"delete"}, "id": {strconv.FormatInt(id, 10)}})
+	return err
+}
+
+// SureCategorySet files a Sure booking under a category; the API key
+// needs the read_write scope.
+func SureCategorySet(ctx context.Context, to Target, txnID, categoryID string) error {
+	_, err := services.SureApi{URL: to.URL, Key: to.Token, Verify: to.VerifyTLS}.Send(ctx, http.MethodPatch, "transactions/"+txnID,
+		map[string]any{"transaction": map[string]any{"category_id": categoryID}})
 	return err
 }

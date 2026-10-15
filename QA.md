@@ -122,6 +122,9 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 **J-C9 Jahr**
 1. `/year`: letztes Jahr vorgewählt, Chips für drei Jahre; Einnahmen, Ausgaben je EÜR-Zeile (ohne Feld: Hinweis mit Link auf `/euer`), Abschreibung mit Summe, Homeoffice-Tage mit Pauschale.
 2. „Paket herunterladen“ → ZIP enthält `euer.csv`, `afa.csv` (mit Snipe-IT), `homeoffice.csv` (mit Kimai).
+**J-C8 Buchungen einordnen**
+1. `/subs` → „Buchungen ohne Kategorie einordnen“: Kabelwerk Studiobedarf mit Vorschlag „Technik“ angehakt, Bäckerei ohne Vorschlag.
+2. „Prüfen“ nennt Anzahl, Summe und Kategorie; „In Sure einordnen“ (Demo lehnt ab).
 
 **J-C6 Woche schließen**
 1. `/week`: letzte Woche vorgewählt, Chips für vier Wochen; „Gelesen aus“ nennt Dawarich und Kalender des Verbunds.
