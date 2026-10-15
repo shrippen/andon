@@ -177,3 +177,19 @@ func TestDraftReminder(t *testing.T) {
 		t.Fatalf("garbage: %v", err)
 	}
 }
+
+// An update's notes come back as breaking, security and notable lists.
+func TestSummarizeChanges(t *testing.T) {
+	real := complete
+	t.Cleanup(func() { complete = real; Init(settings.Settings{}) })
+	Init(settings.Settings{AnthropicAPIKey: "k"})
+	var asked string
+	complete = func(_ context.Context, _, _, prompt string, _ []outbound.LLMFile) (string, error) {
+		asked = prompt
+		return `{"breaking": ["DB_URL umbenennen"], "security": [], "notable": ["Neue Karte"]}`, nil
+	}
+	got, err := SummarizeChanges(context.Background(), enums.LocaleDE, "immich", "v2.1", "v2.2", []string{"## v2.2.0\n- rename DB_URL"})
+	if err != nil || len(got.Breaking) != 1 || len(got.Notable) != 1 || !strings.Contains(asked, "German") || !strings.Contains(asked, "rename DB_URL") {
+		t.Fatalf("summary: %+v %v\n%s", got, err, asked)
+	}
+}

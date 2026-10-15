@@ -7449,6 +7449,12 @@ inventory:
   err_no_snipe: 'Keine Snipe-IT-Verbindung, die du nutzen darfst.'
   err_demo: 'Die Demo schreibt nicht in Snipe-IT.'
 updates:
+  summarize: 'Changelog zusammenfassen'
+  summarize_privacy: 'Schickt Image, beide Versionen und die Release-Notes von GitHub an Claude (Anthropic).'
+  breaking: 'Vorher beachten'
+  security: 'Sicherheit'
+  nothing_notable: 'Laut Release-Notes nichts zu beachten.'
+  err_no_notes: 'Für dieses Update gibt es keine Release-Notes auf GitHub.'
   title: 'Updates'
   lead: 'Neuere Image-Tags nach Dringlichkeit: eine CVE trifft den laufenden Tag (NVD), der Dienst ist öffentlich (Pangolin), sonst normal. Gefunden von What’s Up Docker oder aus Release-Feeds in FreshRSS (für fest genannte Tags). Für Stacks, deren Compose-Datei den Tag fest nennt, öffnet Andon nach dem Prüfen einen Pull Request im Compose-Repo; mergen und ausrollen bleibt bei dir.'
   no_finders: 'Der Verbund hat weder What’s Up Docker noch FreshRSS: Andon findet keine neueren Tags.'

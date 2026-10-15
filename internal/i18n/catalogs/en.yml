@@ -7448,6 +7448,12 @@ inventory:
   err_no_snipe: 'No Snipe-IT connection you may use.'
   err_demo: 'The demo does not write to Snipe-IT.'
 updates:
+  summarize: 'Sum up the changelog'
+  summarize_privacy: 'Sends the image, both versions and the release notes from GitHub to Claude (Anthropic).'
+  breaking: 'Mind first'
+  security: 'Security'
+  nothing_notable: 'Nothing to mind, says the changelog.'
+  err_no_notes: 'This update has no release notes on GitHub.'
   title: 'Updates'
   lead: 'Newer image tags by urgency: a CVE hits the running tag (NVD), the service is public (Pangolin), else normal. Found by What’s Up Docker or in FreshRSS release feeds (for literal tags). For stacks whose compose file names the tag literally, Andon opens a pull request in the compose repo after the review; merging and deploying stay with you.'
   no_finders: 'The bundle has neither What’s Up Docker nor FreshRSS: Andon finds no newer tags.'

@@ -31,7 +31,9 @@
             <input type="hidden" name="act_{{$k}}" value="propose">{{end}}</td>
           <td data-card="title"><b>{{.Image}}</b><br>
             <small class="muted">{{with .Stack}}{{.Host}} · {{.Name}}/{{end}}{{if .Stack}}{{.Service}}{{else}}{{.Container}}{{end}} · {{.Tag}} → {{.NewTag}}{{with .Release}} · <a href="{{.}}">{{t "updates.release"}}</a>{{end}}</small>
-            {{if not .Pinned}}<br><small class="muted">{{if .Stack}}{{t "updates.not_pinned"}}{{else}}{{t "updates.no_stack"}}{{end}}</small>{{end}}</td>
+            {{if not .Pinned}}<br><small class="muted">{{if .Stack}}{{t "updates.not_pinned"}}{{else}}{{t "updates.no_stack"}}{{end}}</small>{{end}}
+            {{with index $p.Changes $k}}<div class="small" id="{{$k}}">{{range .Breaking}}<p class="warn-text">{{t "updates.breaking"}}: {{.}}</p>{{end}}{{range .Security}}<p>{{t "updates.security"}}: {{.}}</p>{{end}}{{range .Notable}}<p class="muted">{{.}}</p>{{end}}{{if not (or .Breaking .Security .Notable)}}<p class="muted">{{t "updates.nothing_notable"}}</p>{{end}}</div>
+            {{else}}{{if and $p.Assist .Release}}<button type="submit" class="btn btn-quiet btn-sm" formaction="/updates/summarize" name="case" value="{{$k}}" title="{{t "updates.summarize_privacy"}}">{{t "updates.summarize"}}</button>{{end}}{{end}}</td>
           <td><span class="pill" data-state="{{if eq .Urgency 2}}failed{{else if eq .Urgency 1}}reviewing{{else}}locked{{end}}">{{t (print "updates.urgency_" .Urgency)}}</span>{{with .CVEs}}<br><small class="muted">{{range $i, $c := .}}{{if $i}}, {{end}}{{$c}}{{end}}</small>{{end}}</td>
           <td>{{if .Pinned}}<input class="input" name="tag_{{$k}}" value="{{.NewTag}}" aria-label="{{t "updates.new_tag"}}">{{end}}</td>
         </tr>{{end}}</tbody>
@@ -65,7 +67,7 @@
       <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
         <li{{if .Problem}} class="late"{{end}}>{{if not .Problem}}{{template "bench_step" .Step}}{{end}}
           <b>{{or $i.Image .Case}}</b><br>
-          {{if .Problem}}{{t (print .Problem)}}{{else}}{{t "updates.do_propose" "repo" $i.Stack.Repo "path" $i.Stack.Path "from" $i.Tag "to" $i.To}}{{end}}
+          {{if .Problem}}{{t (print .Problem)}}{{else}}{{t "updates.do_propose" "repo" $i.Stack.Repo "path" $i.Stack.Path "from" $i.Tag "to" $i.To}}{{end}}{{with $i.Changes}}{{range .Breaking}}<br><small class="warn-text">{{t "updates.breaking"}}: {{.}}</small>{{end}}{{end}}
         </li>{{end}}</ol>
       <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "updates.apply" "n" .Plan.Writes}}</button>{{end}}
         <a class="btn btn-quiet" href="/updates?scope={{.Plan.Scope}}">{{t "updates.back"}}</a></p>
