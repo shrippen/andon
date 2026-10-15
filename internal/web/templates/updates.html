@@ -20,6 +20,7 @@
     {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/updates" "Keep" (dict)}}
     {{if not $p.Finders}}<p class="small muted">{{t "updates.no_finders"}}</p>{{end}}
     {{if not $p.NVD}}<p class="small muted">{{t "updates.no_nvd"}}</p>{{end}}
+    <p class="small"><a href="/feeds?scope={{$p.Scope}}">{{t "feeds.link"}}</a></p>
     {{if $p.Cases}}
     <form method="post" action="/updates/review" class="card" id="cases">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">

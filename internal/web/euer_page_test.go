@@ -237,3 +237,21 @@ func TestInventoryPage(t *testing.T) {
 		}
 	}
 }
+
+// The release feed page proposes feeds for the demo's pinned images.
+func TestFeedsPage(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	for _, service := range []string{"gitea", "freshrss"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
+	}
+	page := string(mustGet(t, srv, client, "/feeds"))
+	for _, want := range []string{"Release-Feeds", `value="subscribe"`, "https://github.com/louislam/uptime-kuma/releases.atom"} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("feeds page lacks %q:\n%s", want, page)
+		}
+	}
+}
