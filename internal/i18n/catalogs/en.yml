@@ -7579,3 +7579,13 @@ feeds:
   err_none: 'No bundle with Gitea and FreshRSS you may use.'
   err_demo: 'The demo does not write to FreshRSS.'
   link: 'Adjust release feeds'
+ask:
+  title: 'Ask Andon'
+  experimental: 'experimental'
+  lead: 'A question about your own figures, answered by Claude from what Andon knows: open hints and your customers’ figures of the last twelve months. Andon only reads and changes nothing.'
+  question: 'Question'
+  example: 'Which customer pays slowest, and what is urgent right now?'
+  privacy: 'Sends your question, the titles of your open hints (no locations) and the customers’ figures to Claude (Anthropic).'
+  send: 'Ask'
+  answer: 'Answer'
+  err_empty: 'Please enter a question.'

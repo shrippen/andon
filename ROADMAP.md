@@ -1280,6 +1280,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [x] Kosten je Dienst als Popup der Kachel „Homelab-Kosten“: Tabelle je Komodo-Stack; Strom des Servers (Proxmox-Gast gleichen Namens, nach CPU) auf seine Stacks verteilt, der Rest der Kosten gleichmäßig auf alle; Stacks nach Kimai-Kunden markiert (`metrics.CostPerStack`) *(Hinweis aus dem Live-Test: die Hardware-Kosten nehmen alle Snipe-IT-Gegenstände der letzten Jahre, beim Nutzer auch private)*
 8. Analysen: Kundenzustand, Zeit für eine Preiserhöhung, Nachkalkulation, Jahresrückblick, Frag Andon (experimentell, nur lesend)
    - [x] Jahresrückblick oben auf `/year`: Stunden, Umsatz (netto nach Rechnungsdatum), stärkster Monat, die fünf Kunden mit dem meisten Umsatz, neue Kunden; Vorjahr nur, wenn Kimais und Invoice Ninjas Daten so weit zurückreichen (`metrics.ReviewYear`)
+   - [x] Frag Andon (`/ask`, Kontomenü, experimentell, nur lesend): eine Frage, beantwortet von Claude aus den Titeln der offenen Hinweise (ohne `geo.*`) und den Kundenzahlen der letzten zwölf Monaten (`services/ask`, `assist.Ask`); ohne API-Schlüssel sagt die Seite, dass keine KI eingerichtet ist *(nicht live mit Claude getestet: die Test-Instanz hat keinen Schlüssel)*
 
 Abgelehnt: Auslagen vom Privatkonto. Offen: Zusammenfassende Meldung.
 

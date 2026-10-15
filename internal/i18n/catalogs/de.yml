@@ -7580,3 +7580,13 @@ feeds:
   err_none: 'Kein Verbund mit Gitea und FreshRSS, den du nutzen darfst.'
   err_demo: 'Die Demo schreibt nicht in FreshRSS.'
   link: 'Release-Feeds anpassen'
+ask:
+  title: 'Frag Andon'
+  experimental: 'experimentell'
+  lead: 'Eine Frage zu deinen eigenen Zahlen, beantwortet von Claude aus dem, was Andon weiß: offene Hinweise und die Zahlen deiner Kunden der letzten zwölf Monate. Andon liest dabei nur und ändert nichts.'
+  question: 'Frage'
+  example: 'Welcher Kunde zahlt am langsamsten, und was ist gerade dringend?'
+  privacy: 'Schickt deine Frage, die Titel deiner offenen Hinweise (ohne Ortsangaben) und die Kundenzahlen an Claude (Anthropic).'
+  send: 'Fragen'
+  answer: 'Antwort'
+  err_empty: 'Bitte eine Frage eingeben.'

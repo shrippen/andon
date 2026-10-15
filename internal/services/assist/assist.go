@@ -9,6 +9,8 @@
 //	             names go out, nothing else
 //	SummarizeChanges  an image update's release notes: breaking,
 //	             security, notable; image, versions and notes go out
+//	Ask          "Frag Andon": a question with hint titles and customer
+//	             figures, never location hints; reads only
 package assist
 
 import (
@@ -330,5 +332,40 @@ const (
 Short sentences, no markdown, only what the notes say; empty lists where nothing applies. Return {"breaking": [], "security": [], "notable": []}.
 
 Release notes, oldest first:
+%s`
+)
+
+// factsMax bounds the facts sent with a question.
+const factsMax = 30000
+
+// Ask answers a question about the user's own figures from facts the
+// caller collected (hints, customers); nothing else goes out, and the
+// answer only reads.
+func Ask(ctx context.Context, locale enums.Locale, question, facts string) (string, error) {
+	if !Enabled() {
+		return "", ErrOff
+	}
+	if len(facts) > factsMax {
+		facts = facts[:factsMax]
+	}
+	answer, err := complete(ctx, apiKey, askSystem, fmt.Sprintf(askPrompt, languageOf(locale), question, facts), nil)
+	if err != nil {
+		return "", err
+	}
+	if answer = strings.TrimSpace(answer); answer == "" {
+		return "", ErrUnreadable
+	}
+	return answer, nil
+}
+
+// The ask prompt is fixed English; the answer comes in the user's
+// language.
+const (
+	askSystem = "You answer questions about a freelancer's own dashboard: their open hints and their customers' figures. Use only the facts given; when they do not hold the answer, say so. You cannot change anything; never say you did. Plain text, short."
+	askPrompt = `Answer in %s.
+
+Question: %s
+
+Facts (lines; amounts in the dashboard's currency):
 %s`
 )
