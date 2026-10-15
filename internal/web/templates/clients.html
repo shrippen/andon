@@ -75,6 +75,19 @@
     {{with $c.Projects}}<h2>{{t "clients.projects"}} <small class="muted">{{template "period_sub" dict "Span" $c.Span "From" $c.HoursFrom}}</small></h2>
     <ul class="legend-list">{{range .}}<li><span>{{.Name}}</span><b>{{num .Hours 1}} h</b></li>{{end}}</ul>{{end}}
 
+    {{with $c.Recalc}}<h2>{{t "clients.recalc"}}</h2>
+    <p class="small muted">{{t "clients.recalc_lead"}}</p>
+    <div class="table-wrap"><table class="table cards-sm">
+      <thead><tr><th>{{t "clients.project"}}</th><th class="num">{{t "clients.hours"}}</th><th class="num">{{t "clients.used"}}</th><th class="num">{{t "clients.budget"}}</th><th class="num">{{t "clients.per_hour"}}</th></tr></thead>
+      <tbody>{{range .}}<tr>
+        <td data-card="title">{{.Name}}{{with .End}} <small class="muted">{{t "clients.ended" "day" (day .)}}</small>{{end}}</td>
+        <td class="num" data-label="{{t "clients.hours"}}">{{num .Hours 1}}{{if .BudgetH}} / {{num .BudgetH 0}}{{end}}</td>
+        <td class="num" data-label="{{t "clients.used"}}">{{money .Used $c.Currency}}</td>
+        <td class="num" data-label="{{t "clients.budget"}}">{{if .Share}}<span{{if gt .Share 1.0}} class="late"{{end}}>{{pct .Share}}</span>{{if .Budget}} <small class="muted">{{t "clients.of" "amount" (money .Budget $c.Currency)}}</small>{{end}}{{else}}–{{end}}</td>
+        <td class="num" data-label="{{t "clients.per_hour"}}" data-card="key">{{money .PerHour $c.Currency}}</td>
+      </tr>{{end}}</tbody>
+    </table></div>{{end}}
+
     <h2>{{t "nav.hints"}}</h2>
     {{with .C.Hints}}<ul class="hint-lines">{{range .}}<li data-tier="{{if ge .Severity 30}}red{{else if ge .Severity 20}}yellow{{else}}blue{{end}}"><span class="sq" aria-hidden="true"></span><a href="/hints#hint-{{.ID}}" title="{{.Title}}">{{.Title}}</a><small>{{ago .FirstSeen}}</small></li>{{end}}</ul>
     {{else}}<p class="muted">{{t "clients.no_hints"}}</p>{{end}}

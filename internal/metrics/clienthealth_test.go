@@ -42,3 +42,17 @@ func TestRateSince(t *testing.T) {
 		t.Fatalf("card: rate %v since %s raise %v %+v", c.Rate, c.RateSince, c.Raise, c.Health)
 	}
 }
+
+// A project over its budget comes first; one without work is left out.
+func TestRecalc(t *testing.T) {
+	kimai := &sources.KimaiDataset{Projects: []sources.KimaiProject{
+		{Name: "Spot", CustomerID: 1, Budget: 2000, UsedMoney: 2400, UsedMinutes: 30 * 60},
+		{Name: "Serie", CustomerID: 1, TimeBudgetMin: 100 * 60, UsedMoney: 4000, UsedMinutes: 50 * 60},
+		{Name: "Leer", CustomerID: 1},
+		{Name: "Fremd", CustomerID: 2, UsedMinutes: 60},
+	}}
+	got := Recalc(kimai, 1)
+	if len(got) != 2 || got[0].Name != "Spot" || got[0].Share != 1.2 || got[0].PerHour != 80 || got[1].Share != 0.5 {
+		t.Fatalf("recalc: %+v", got)
+	}
+}

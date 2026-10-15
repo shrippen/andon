@@ -34,6 +34,8 @@ type ClientCard struct {
 	Rate      float64
 	RateSince string
 	Raise     float64
+
+	Recalc []ProjectRecalc // the projects over their whole life
 }
 
 // ClientHealth is a customer's state and why: Signals are i18n keys
@@ -123,6 +125,7 @@ func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today
 			card.Raise = round2(card.Rate * math.Pow(1+Inflation, years))
 		}
 		card.Health = healthOf(*card, today)
+		card.Recalc = Recalc(kimai, id)
 	}
 
 	out := make([]ClientCard, 0, len(cards))
@@ -241,4 +244,45 @@ func healthOf(c ClientCard, today time.Time) ClientHealth {
 		h.State = ClientOK
 	}
 	return h
+}
+
+// ProjectRecalc is a project's post-calculation over its whole life, as
+// Kimai counts it: used money and time against the budget, and what an
+// hour brought.
+type ProjectRecalc struct {
+	Name, End       string
+	Hours, Used     float64 // hours worked, money billed by Kimai's rates
+	Budget, BudgetH float64 // money and time budget, 0 none
+	Share           float64 // used of the budget (money, else time), 0 without one
+	PerHour         float64 // Used / Hours
+}
+
+// Recalc lists a customer's projects with work, ended and over budget
+// first.
+func Recalc(kimai *sources.KimaiDataset, customerID int64) []ProjectRecalc {
+	var out []ProjectRecalc
+	for _, p := range kimai.Projects {
+		if p.CustomerID != customerID || p.UsedMinutes == 0 {
+			continue
+		}
+		r := ProjectRecalc{Name: p.Name, End: p.End, Hours: round2(float64(p.UsedMinutes) / minutesPerHour), Used: round2(p.UsedMoney),
+			Budget: p.Budget, BudgetH: round2(float64(p.TimeBudgetMin) / minutesPerHour)}
+		switch {
+		case r.Budget > 0:
+			r.Share = r.Used / r.Budget
+		case r.BudgetH > 0:
+			r.Share = r.Hours / r.BudgetH
+		}
+		if r.Hours > 0 {
+			r.PerHour = round2(r.Used / r.Hours)
+		}
+		out = append(out, r)
+	}
+	sort.SliceStable(out, func(a, b int) bool {
+		if (out[a].Share > 1) != (out[b].Share > 1) {
+			return out[a].Share > 1
+		}
+		return out[a].Hours > out[b].Hours
+	})
+	return out
 }
