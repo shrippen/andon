@@ -1269,7 +1269,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [ ] Update-Werkbank: Image-Updates nach Dringlichkeit (öffentlich, CVE), Changelog von Claude zusammengefasst, PR im Compose-Repo; FreshRSS als Quelle der Release-Feeds, mit Vorschlägen zum Anpassen der Feeds (fehlender Feed für einen laufenden Dienst, Feed eines nicht mehr laufenden Dienstes, Feed ohne Releases); geschrieben in FreshRSS nur nach OK
    - [ ] Inventur (Geräte im Netz ↔ Snipe-IT), Anschaffung vollständig (Asset, Ausgabe, Beleg, Garantie), Wiederherstellungsprobe
    - [ ] Doku-Drift: nichts schreiben, für Hansei vorbereiten (`/api/docs`, Webhook)
-   - [ ] Kosten je Dienst als Popup der Kachel „Homelab-Kosten“
+   - [x] Kosten je Dienst als Popup der Kachel „Homelab-Kosten“: Tabelle je Komodo-Stack; Strom des Servers (Proxmox-Gast gleichen Namens, nach CPU) auf seine Stacks verteilt, der Rest der Kosten gleichmäßig auf alle; Stacks nach Kimai-Kunden markiert (`metrics.CostPerStack`) *(Hinweis aus dem Live-Test: die Hardware-Kosten nehmen alle Snipe-IT-Gegenstände der letzten Jahre, beim Nutzer auch private)*
 8. Analysen: Kundenzustand, Zeit für eine Preiserhöhung, Nachkalkulation, Jahresrückblick, Frag Andon (experimentell, nur lesend)
 
 Abgelehnt: Auslagen vom Privatkonto. Offen: Zusammenfassende Meldung.
