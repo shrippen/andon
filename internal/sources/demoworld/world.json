@@ -1685,7 +1685,7 @@
   }
  },
  "assets_state": {
-  "note": "Snipe-IT states of the first four inventory assets: the notebook's warranty ends soon, the NAS is past end of life and overdue for an audit, the fourth should have come back from Jonas. Licences: the first expires soon, the second has free seats.",
+  "note": "Snipe-IT states of the first four inventory assets (the monitor, bought two months ago, has no warranty entered): the notebook's warranty ends soon, the NAS is past end of life and overdue for an audit, the fourth should have come back from Jonas. Licences: the first expires soon, the second has free seats.",
   "url": "https://assets.demo",
   "models": [
    {
@@ -1772,7 +1772,6 @@
     "assigned": true,
     "purchase_date": "@date-60",
     "dep_months": 12,
-    "warranty_expires": "@date+1000",
     "next_audit": "@date+200",
     "last_change": "@date-60",
     "assigned_to": "Jonas Brandt",

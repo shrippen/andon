@@ -132,6 +132,12 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 1. `/subs` → „Buchungen ohne Kategorie einordnen“: Kabelwerk Studiobedarf mit Vorschlag „Technik“ angehakt, Bäckerei ohne Vorschlag.
 2. „Prüfen“ nennt Anzahl, Summe und Kategorie; „In Sure einordnen“ (Demo lehnt ab).
 
+**J-C14 Wiederherstellungsprobe**
+1. Backups-Kachel → Dialog: je System „Wiederherstellung testen, Probe: …“ mit „Getestet“ und „Fehlgeschlagen“.
+2. „Fehlgeschlagen“ → Hinweis „Wiederherstellung fehlgeschlagen“ (Warnung); „Getestet“ danach beendet ihn.
+**J-C13 Anschaffungen**
+1. `/purchases`: Monitor (vor zwei Monaten, ohne Garantie) mit 24 Monaten vorgewählt; Lücken als Chips, Links zu USt-Abgleich und Belegen.
+2. „Prüfen“ → „In Snipe-IT schreiben“ (Demo lehnt ab); Monate außerhalb 1–120 werden übersprungen.
 **J-C12 Release-Feeds**
 1. `/updates` → „Release-Feeds anpassen“: fest genannte Images ohne Feed mit vorgeschlagener Adresse und Kategorie; nichts angehakt.
 2. Adresse ändern, „Prüfen“; eine Nicht-GitHub-Adresse wird übersprungen; „In FreshRSS schreiben“ (Demo lehnt ab).

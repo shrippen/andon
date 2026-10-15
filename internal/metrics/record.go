@@ -121,13 +121,16 @@ func Read(s Scope, now time.Time) Readings {
 }
 
 // EventChange marks a state change (public IP, VPN exit, price);
-// EventRestore a restore test marked by hand (subject: the service).
+// EventRestore a restore test marked by hand (subject: the service),
+// EventRestoreFailed one that failed.
 // EventClose a month seen complete in the month close (subject "2026-08").
 const (
 	EventChange  = "change"
 	EventRestore = "restore"
-	EventClose   = "close"
-	EventFiled   = "filed" // a deadline handed in, subject DeadlineKey
+	// EventRestoreFailed is a restore test that failed (subject: the service).
+	EventRestoreFailed = "restore_failed"
+	EventClose         = "close"
+	EventFiled         = "filed" // a deadline handed in, subject DeadlineKey
 )
 
 // DeadlineKey names one deadline for its "filed" mark: "vat_return:2026-08".

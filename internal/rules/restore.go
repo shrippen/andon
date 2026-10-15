@@ -23,6 +23,33 @@ func init() {
 	//
 	//	restore:borgbackup:2026-Q4   due 2026-12-31
 	Register("backups.restore_untested", Cross, nil, restoreUntested)
+	// A restore test marked failed warns until a later one succeeds.
+	Register("backups.restore_failed", Cross, nil, restoreFailed)
+}
+
+func restoreFailed(_ any, _ map[string]any, env Env) []Finding {
+	failed, passed := map[string]time.Time{}, map[string]time.Time{}
+	for _, e := range historyOf(env).Events {
+		switch {
+		case e.Kind == metrics.EventRestoreFailed && e.At.After(failed[e.Subject]):
+			failed[e.Subject] = e.At
+		case e.Kind == metrics.EventRestore && e.At.After(passed[e.Subject]):
+			passed[e.Subject] = e.At
+		}
+	}
+	var found []Finding
+	for _, svc := range BackupSystems {
+		at, ok := failed[string(svc)]
+		if !ok || !at.After(passed[string(svc)]) {
+			continue
+		}
+		found = append(found, Finding{
+			Fingerprint: fmt.Sprintf("restore_failed:%s:%s", svc, at.Format(time.DateOnly)),
+			Rule:        "backups.restore_failed", Severity: enums.SeverityWarn, Message: "backups.restore_failed",
+			Params: map[string]any{"system": map[string]any{"$t": "service." + string(svc)}, "day": Day(at)}, Sources: []string{string(svc)},
+		})
+	}
+	return found
 }
 
 func restoreUntested(_ any, _ map[string]any, env Env) []Finding {
