@@ -69,3 +69,25 @@ func TestEuerLines(t *testing.T) {
 		t.Errorf("lines: %+v", got)
 	}
 }
+
+// The review counts the year, compares with the one before only when
+// the data reaches back, names the top clients and the new ones.
+func TestReviewYear(t *testing.T) {
+	kimai := &sources.KimaiDataset{Timesheets: []sources.KimaiSheet{
+		{Begin: "2026-03-02T09:00:00", Minutes: 600}, {Begin: "2026-05-02T09:00:00", Minutes: 120}, {Begin: "2025-06-02T09:00:00", Minutes: 60},
+	}}
+	ninja := &sources.NinjaDataset{Since: "2025-01-01", Clients: []sources.NinjaClient{{ID: 1, Name: "Werft"}, {ID: 2, Name: "Stiftung"}},
+		Invoices: []sources.NinjaInvoice{
+			{ClientID: 1, Status: "paid", Date: "2025-04-01", Net: 500},
+			{ClientID: 1, Status: "paid", Date: "2026-04-01", Net: 1000},
+			{ClientID: 2, Status: "sent", Date: "2026-05-01", Net: 2000},
+			{ClientID: 2, Status: "draft", Date: "2026-06-01", Net: 9999},
+		}}
+	r := ReviewYear(kimai, ninja, 2026)
+	if r.Hours != 12 || r.Revenue != 3000 || r.PriorRevenue != 500 || !r.PriorRevenueKnown || r.PriorHoursKnown || r.Busiest.Month() != time.March {
+		t.Fatalf("review: %+v", r)
+	}
+	if len(r.Top) != 2 || r.Top[0].Name != "Stiftung" || len(r.New) != 1 || r.New[0] != "Stiftung" {
+		t.Errorf("clients: %+v %v", r.Top, r.New)
+	}
+}

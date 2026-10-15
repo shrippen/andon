@@ -64,6 +64,8 @@ type Page struct {
 	AfaTotal float64
 	NoRule   int // assets without depreciation rule
 
+	Review metrics.YearReview // the year at a glance
+
 	Kimai     bool
 	HomeDays  int
 	Estimated bool // no Dawarich: rides unknown
@@ -110,12 +112,14 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, y
 		return p, err
 	}
 
+	kimai, _ := data[enums.ServiceKimai].(*sources.KimaiDataset)
+	p.Review = metrics.ReviewYear(kimai, ninja, p.Year)
 	p.income(ninja, metrics.TaxVATMethod(settings))
 	p.expenses(ninja, sources.CategoriesOf(ninjaConn.Options).EuerSlot)
 	if snipe, ok := data[enums.ServiceSnipeIT].(*sources.SnipeDataset); ok {
 		p.depreciation(snipe)
 	}
-	if kimai, ok := data[enums.ServiceKimai].(*sources.KimaiDataset); ok {
+	if kimai != nil {
 		travel, whole := travelOf(data, kimai, s, settings, now, p.Year)
 		p.homeOffice(kimai, travel)
 		p.Estimated = p.Estimated || !whole

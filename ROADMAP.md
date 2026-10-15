@@ -1279,6 +1279,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [ ] Doku-Drift: nichts schreiben, für Hansei vorbereiten (`/api/docs`, Webhook)
    - [x] Kosten je Dienst als Popup der Kachel „Homelab-Kosten“: Tabelle je Komodo-Stack; Strom des Servers (Proxmox-Gast gleichen Namens, nach CPU) auf seine Stacks verteilt, der Rest der Kosten gleichmäßig auf alle; Stacks nach Kimai-Kunden markiert (`metrics.CostPerStack`) *(Hinweis aus dem Live-Test: die Hardware-Kosten nehmen alle Snipe-IT-Gegenstände der letzten Jahre, beim Nutzer auch private)*
 8. Analysen: Kundenzustand, Zeit für eine Preiserhöhung, Nachkalkulation, Jahresrückblick, Frag Andon (experimentell, nur lesend)
+   - [x] Jahresrückblick oben auf `/year`: Stunden, Umsatz (netto nach Rechnungsdatum), stärkster Monat, die fünf Kunden mit dem meisten Umsatz, neue Kunden; Vorjahr nur, wenn Kimais und Invoice Ninjas Daten so weit zurückreichen (`metrics.ReviewYear`)
 
 Abgelehnt: Auslagen vom Privatkonto. Offen: Zusammenfassende Meldung.
 
