@@ -70,7 +70,7 @@ func (d Deps) handleBulk(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 // paletteRank orders the palette's groups.
 var paletteRank = map[boards.PaletteKind]int{
 	boards.PaletteBoard: 0, boards.PaletteLink: 1, boards.PaletteConnection: 2,
-	boards.PaletteHints: 3, boards.PalettePage: 4, boards.PaletteSetting: 5,
+	boards.PaletteHints: 3, boards.PaletteBench: 4, boards.PalettePage: 5, boards.PaletteSetting: 6,
 }
 
 // palettePage is an app page the palette offers, by catalog key.
@@ -82,9 +82,9 @@ type palettePage struct {
 
 var palettePages = []palettePage{
 	{key: "boards.title", url: "/boards", kind: boards.PalettePage}, {key: "nav.hints", url: "/hints", kind: boards.PalettePage},
-	{key: "nav.billing", url: "/billing", kind: boards.PalettePage},
+	{key: "benches.all", url: benchesURL, kind: boards.PalettePage},
 	{key: "nav.connections", url: "/connections", kind: boards.PalettePage}, {key: "nav.library", url: "/widgets", kind: boards.PalettePage},
-	{key: "nav.timeline", url: "/timeline", kind: boards.PalettePage}, {key: "nav.teams", url: "/teams", kind: boards.PalettePage},
+	{key: "nav.teams", url: "/teams", kind: boards.PalettePage},
 	{key: "nav.import", url: "/import", kind: boards.PalettePage}, {key: "welcome.title", url: "/welcome", kind: boards.PalettePage},
 	{key: "nav.space_settings", url: "/spaces/settings", kind: boards.PaletteSetting}, {key: "nav.themes", url: "/themes", kind: boards.PaletteSetting},
 	{key: "nav.profile", url: "/me/profile", kind: boards.PaletteSetting}, {key: "nav.security", url: "/me/security", kind: boards.PaletteSetting},
@@ -161,6 +161,10 @@ func (d Deps) handlePalette(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	}
 	items = append(items, d.paletteConnections(ctx)...)
 	items = append(items, d.paletteHints(ctx)...)
+	for _, b := range benches {
+		items = append(items, boards.PaletteItem{Kind: boards.PaletteBench, Title: i18n.T("nav."+b.id, ctx.Locale, nil), URL: b.url,
+			Detail: i18n.T("benches.desc."+b.id, ctx.Locale, nil)})
+	}
 	for _, p := range palettePages {
 		if p.admin && !ctx.Who.IsAdmin() {
 			continue

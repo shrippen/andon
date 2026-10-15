@@ -4174,6 +4174,7 @@ palette:
   group_link: Links
   group_connection: Connections
   group_hints: Hints
+  group_bench: Workbenches
   group_page: Pages
   group_setting: Settings
   hint_count: '{n} open'
@@ -7646,3 +7647,28 @@ ask:
   send: 'Ask'
   answer: 'Answer'
   err_empty: 'Please enter a question.'
+benches:
+  title: 'Workbenches'
+  lead: 'Each workbench works through the open cases of one area. A star keeps it in the menu bar; without stars the bar shows the workbenches with open hints.'
+  all: 'All workbenches'
+  fav_on: 'In the menu bar'
+  fav_off: 'Add to the menu bar'
+  open: '{n} open hints'
+  group:
+    money: 'Customers & money'
+    stock: 'Devices & operations'
+    review: 'Overview'
+  desc:
+    clients: 'Every customer from Kimai and Invoice Ninja: hours, open work, invoices, payment time.'
+    week: 'Enter the times other services saw and Kimai did not.'
+    billing: 'Turn open hours per customer into draft invoices in Invoice Ninja.'
+    receipts: 'Match Invoice Ninja expenses with their Paperless receipts.'
+    vat: 'Before the VAT return, match every bank transaction with an expense or payment.'
+    euer: 'Give expenses without an EUER line their line.'
+    subs: 'Match the bank''s subscriptions with Wallos and Invoice Ninja.'
+    inventory: 'Add devices on the network that Snipe-IT lacks.'
+    purchases: 'Complete purchases: cost, warranty, expense, receipt.'
+    hosts: 'Every machine with everything aimed at it.'
+    updates: 'Newer image tags by urgency, a pull request to the compose repo.'
+    year: 'The tax year for the EUER, and the year in review.'
+    timeline: 'What changed in the last 14 days.'

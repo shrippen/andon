@@ -98,6 +98,12 @@
     <div class="app-side">
       <button type="button" class="nav-search" data-open="palette" aria-keyshortcuts="Control+K">{{t "palette.open"}} <kbd>Ctrl K</kbd></button>
       <details class="nav-menu nav-wide">
+        <summary>{{t "benches.title"}}</summary>
+        <div class="menu">
+          {{template "nav_benches" .}}
+        </div>
+      </details>
+      <details class="nav-menu nav-wide">
         <summary>{{t "nav.setup"}}</summary>
         <div class="menu">
           {{template "nav_setup" .}}
@@ -123,7 +129,8 @@
     {{if .NavBoards}}<span class="h-label">{{t "nav.boards"}}</span>
     {{template "nav_boards" .}}{{end}}
     <span class="h-label">{{t "nav.pages"}}</span>
-    {{template "nav_pages" .}}
+    {{template "nav_hints" .}}
+    {{template "nav_benches" .}}
     <span class="h-label">{{t "nav.setup"}}</span>
     {{template "nav_setup" .}}
     <span class="h-label">{{.Who.Name}}</span>
@@ -156,21 +163,22 @@
 {{/* Nav links, shared by the bar and the phone drawer. */}}
 {{define "nav_hint_count"}}<span class="count"{{if eq .HintLevel 30}} data-kind="error"{{else if lt .HintLevel 20}} data-kind="info"{{end}}>{{.HintOpen}}</span>{{end}}
 {{define "nav_boards"}}{{range .NavBoards}}<a href="/boards/{{.ID}}"{{if eq .ID $.CurBoard}} aria-current="page"{{end}}>{{.Name}}</a>{{end}}{{end}}
+{{define "nav_count"}}<span class="count"{{if eq .Level 30}} data-kind="error"{{else if lt .Level 20}} data-kind="info"{{end}}>{{.N}}</span>{{end}}
+{{define "nav_hints"}}<a href="/hints"{{if here "/hints"}} aria-current="page"{{end}}>{{t "nav.hints"}}{{if .HintOpen}}{{template "nav_hint_count" .}}{{end}}</a>{{end}}
+{{/* nav_pages: the hints and the viewer's favourite benches. */}}
 {{define "nav_pages"}}
-      <a href="/hints"{{if here "/hints"}} aria-current="page"{{end}}>{{t "nav.hints"}}{{if .HintOpen}}{{template "nav_hint_count" .}}{{end}}</a>
-      <a href="/clients"{{if here "/clients"}} aria-current="page"{{end}}>{{t "nav.clients"}}</a>
-      <a href="/week"{{if here "/week"}} aria-current="page"{{end}}>{{t "nav.week"}}</a>
-      <a href="/billing"{{if here "/billing"}} aria-current="page"{{end}}>{{t "nav.billing"}}</a>
-      <a href="/receipts"{{if here "/receipts"}} aria-current="page"{{end}}>{{t "nav.receipts"}}</a>
-      <a href="/vat"{{if here "/vat"}} aria-current="page"{{end}}>{{t "nav.vat"}}</a>
-      <a href="/euer"{{if here "/euer"}} aria-current="page"{{end}}>{{t "nav.euer"}}</a>
-      <a href="/year"{{if here "/year"}} aria-current="page"{{end}}>{{t "nav.year"}}</a>
-      <a href="/subs"{{if here "/subs"}} aria-current="page"{{end}}>{{t "nav.subs"}}</a>
-      <a href="/timeline"{{if here "/timeline"}} aria-current="page"{{end}}>{{t "nav.timeline"}}</a>
-      <a href="/hosts"{{if here "/hosts"}} aria-current="page"{{end}}>{{t "nav.hosts"}}</a>
-      <a href="/inventory"{{if here "/inventory"}} aria-current="page"{{end}}>{{t "nav.inventory"}}</a>
-      <a href="/purchases"{{if here "/purchases"}} aria-current="page"{{end}}>{{t "nav.purchases"}}</a>
-      <a href="/updates"{{if here "/updates"}} aria-current="page"{{end}}>{{t "nav.updates"}}</a>
+      {{template "nav_hints" .}}
+      {{range .NavBenches}}<a href="{{.URL}}"{{if here .URL}} aria-current="page"{{end}}>{{t (print "nav." .ID)}}{{if .N}}{{template "nav_count" .}}{{end}}</a>
+      {{end}}
+{{end}}
+{{/* nav_benches: every bench with its open hints, the groups split by a
+     rule (benches.go); the overview names them. */}}
+{{define "nav_benches"}}
+          {{range $i, $g := .NavBenchGroups}}{{if $i}}<hr>{{end}}
+          {{range .Items}}<a href="{{.URL}}"{{if here .URL}} aria-current="page"{{end}}>{{t (print "nav." .ID)}}{{if .N}}{{template "nav_count" .}}{{end}}</a>
+          {{end}}{{end}}
+          <hr>
+          <a href="/benches"{{if here "/benches"}} aria-current="page"{{end}}>{{t "benches.all"}}</a>
 {{end}}
 {{define "nav_setup"}}
           <a href="/boards"{{if eq .Ctx.Path "/boards"}} aria-current="page"{{end}}>{{t "boards.title"}}</a>

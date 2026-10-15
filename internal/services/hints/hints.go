@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"andon/internal/db"
@@ -484,18 +485,58 @@ func ForConnection(d *sql.DB, who *access.Principal, connID int64) ([]View, erro
 
 // Summary counts open hints per severity level.
 func Summary(d *sql.DB, who *access.Principal) (map[enums.Severity]int, error) {
-	counts := map[enums.Severity]int{enums.SeverityInfo: 0, enums.SeverityWarn: 0, enums.SeverityCritical: 0}
+	t, err := Count(d, who)
+	return t.Levels, err
+}
+
+// Tally is the open hints counted by severity and by the Andon page
+// their action leads to: "/inventory#cases" counts for "/inventory".
+type Tally struct {
+	Levels map[enums.Severity]int
+	Pages  map[string]PageCount
+}
+
+// PageCount is a page's open hints and their highest severity.
+type PageCount struct {
+	N     int
+	Level enums.Severity
+}
+
+// Count tallies the viewer's open hints.
+func Count(d *sql.DB, who *access.Principal) (Tally, error) {
+	t := Tally{Levels: map[enums.Severity]int{enums.SeverityInfo: 0, enums.SeverityWarn: 0, enums.SeverityCritical: 0},
+		Pages: map[string]PageCount{}}
 	err := db.WithRead(d, func(tx *sql.Tx) error {
 		found, err := visible(tx, who)
 		if err != nil {
 			return err
 		}
 		for _, h := range found {
-			counts[h.Severity]++
+			t.Levels[h.Severity]++
+			page, ok := pageOf(h.ActionURL)
+			if !ok {
+				continue
+			}
+			c := t.Pages[page]
+			c.N++
+			c.Level = max(c.Level, h.Severity)
+			t.Pages[page] = c
 		}
 		return nil
 	})
-	return counts, err
+	return t, err
+}
+
+// pageOf is the Andon path an action leads to, false for another
+// service's page: "/vat?span=2026-09#cases" → "/vat".
+func pageOf(action string) (string, bool) {
+	if !strings.HasPrefix(action, "/") || strings.HasPrefix(action, "//") {
+		return "", false
+	}
+	if i := strings.IndexAny(action, "?#"); i >= 0 {
+		action = action[:i]
+	}
+	return action, true
 }
 
 // ── Act ──

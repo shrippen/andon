@@ -1,0 +1,44 @@
+{{/* Werkbänke: every bench by group with its open hints; the star puts
+     it into the menu bar (benches.go). */}}
+{{define "benches"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "benches.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <h1>{{t "benches.title"}}</h1>
+    <p class="lead">{{t "benches.lead"}}</p>
+    {{range .NavBenchGroups}}
+    <section aria-labelledby="bench-{{.Key}}">
+      <h2 id="bench-{{.Key}}">{{t (print "benches.group." .Key)}}</h2>
+      <ul class="launch-grid bench-grid">
+        {{range .Items}}{{$name := t (print "nav." .ID)}}
+        <li>
+          <a class="launch" href="{{.URL}}">
+            <span class="launch-icon"><span class="monogram">{{monogram $name}}</span></span>
+            <span class="launch-body">
+              <b class="launch-title">{{$name}}</b>
+              <small class="launch-desc">{{t (print "benches.desc." .ID)}}</small>
+              {{if .N}}<span class="launch-live"><span class="launch-hints"{{if ge .Level 30}} data-tier="red"{{else if ge .Level 20}} data-tier="yellow"{{end}} title="{{t "benches.open" "n" .N}}">{{.N}}</span></span>{{end}}
+            </span>
+          </a>
+          <form method="post" action="/benches/{{.ID}}/fav">
+            <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+            <button type="submit" class="btn btn-quiet btn-sm" aria-pressed="{{.Fav}}">{{if .Fav}}★ {{t "benches.fav_on"}}{{else}}☆ {{t "benches.fav_off"}}{{end}}</button>
+          </form>
+        </li>
+        {{end}}
+      </ul>
+    </section>
+    {{end}}
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}

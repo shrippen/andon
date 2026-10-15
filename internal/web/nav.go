@@ -5,11 +5,13 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/boards"
 	"andon/internal/services/hints"
+	"andon/internal/services/workbench"
 )
 
 // addNav fills what the app header shows on every page: the viewer's
-// boards and the open hint count with its highest severity. It only
-// decorates the page, so a failed lookup leaves the entry out.
+// boards, the open hint count with its highest severity and the benches
+// (benches.go). It only decorates the page, so a failed lookup leaves
+// the entry out.
 func (d Deps) addNav(data map[string]any, who *access.Principal) {
 	if _, ok := data["CurBoard"]; !ok {
 		data["CurBoard"] = int64(0)
@@ -20,12 +22,17 @@ func (d Deps) addNav(data map[string]any, who *access.Principal) {
 		}
 	}
 
-	counts, err := hints.Summary(d.DB, who)
+	tally, err := hints.Count(d.DB, who)
 	if err != nil {
 		return
 	}
+	favs, err := workbench.LoadFavs(d.DB, who)
+	if err == nil {
+		data["NavBenchGroups"], data["NavBenches"] = benchMenu(tally, favs)
+	}
+
 	total, level := 0, enums.Severity(0)
-	for sev, n := range counts {
+	for sev, n := range tally.Levels {
 		total += n
 		if n > 0 && sev > level {
 			level = sev
