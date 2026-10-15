@@ -61,4 +61,12 @@ func TestSubCasesLive(t *testing.T) {
 	for _, c := range metrics.SubCases(in) {
 		t.Logf("%-14s %-30s amount %.2f old %.2f months %d next %s keep %q", c.Action, c.Name, c.Amount, c.Old, c.Months, c.Next, c.Keep)
 	}
+
+	t.Logf("Sure categories: %d", len(in.Bank.Categories))
+	for i, c := range metrics.Uncategorized(in.Bank) {
+		if i == 10 {
+			break
+		}
+		t.Logf("uncategorized %-30s %3d bookings, proposed %q (%d of %d), ticked %v", c.Merchant, len(c.Txns), c.CategoryID, c.Votes, c.Of, c.Ticked)
+	}
 }
