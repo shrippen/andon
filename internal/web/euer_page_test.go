@@ -192,3 +192,29 @@ func TestYearPage(t *testing.T) {
 		}
 	}
 }
+
+// The updates page lists the demo's newer tags, one from a release
+// feed, and reviews a pull request.
+func TestUpdatesPage(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	for _, service := range []string{"gitea", "wud", "freshrss"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
+	}
+	page := string(mustGet(t, srv, client, "/updates"))
+	m := regexp.MustCompile(`name="tag_(u-[a-z0-9-]*dawarich[a-z0-9-]*)" value="0.30.9"`).FindStringSubmatch(page)
+	if m == nil || !strings.Contains(page, "Pull Request") {
+		t.Fatalf("updates page:\n%s", page)
+	}
+	resp, err := client.PostForm(srv.URL+"/updates/review", url.Values{"csrf": {csrfToken(t, srv, client)}, "pick": {m[1]},
+		"act_" + m[1]: {"propose"}, "tag_" + m[1]: {"0.30.9"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if review := readBody(t, resp); !strings.Contains(review, "Pull Requests bestätigen") || !strings.Contains(review, "0.30.6 → 0.30.9") {
+		t.Fatalf("review:\n%s", review)
+	}
+}

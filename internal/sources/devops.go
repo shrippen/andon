@@ -5,6 +5,7 @@ package sources
 import (
 	"context"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,6 +28,7 @@ const (
 
 type Feed struct {
 	ID, Title, Category string
+	URL                 string // the feed's own address
 	Unread              int
 	Newest              time.Time // zero if unknown
 }
@@ -35,6 +37,17 @@ type FreshRSSDataset struct {
 	URL    string
 	Unread int
 	Feeds  []Feed
+	// Releases are the newest release per GitHub repo among the recent
+	// items (feeds like github.com/<repo>/releases.atom), for the update
+	// bench.
+	Releases []FeedRelease
+}
+
+// FeedRelease is a release a feed announced: "immich-app/immich",
+// "v1.132.3".
+type FeedRelease struct {
+	Feed, Repo, Version, Link string
+	Published                 time.Time
 }
 
 var FreshRSSData = source{key: "freshrss.data", ttl: opsTTL, service: enums.ServiceFreshRSS, fetch: fetchFreshRSS}
@@ -60,7 +73,112 @@ func fetchFreshRSS(ctx context.Context, sctx Ctx) (any, error) {
 	if err != nil {
 		return nil, fetchError(err)
 	}
-	return parseFreshRSS(sctx.URL, subs, counts), nil
+	data := parseFreshRSS(sctx.URL, subs, counts)
+	data.Releases = feedReleasesOf(ctx, api, auth, data)
+	return data, nil
+}
+
+// Release feeds are GitHub's: github.com/<repo>/releases.atom. Their
+// items carry the whole notes, so each feed is read on its own, a few
+// items, and only again once FreshRSS has a newer item in it.
+const (
+	releaseItems    = 5
+	releaseParallel = 4
+)
+
+var releaseFeed = regexp.MustCompile(`^https://github\.com/[^/]+/[^/]+/(releases|tags)\.atom$`)
+
+// releaseMemo remembers each feed's newest release by its newest item.
+type releaseMemo struct {
+	newest  time.Time
+	release FeedRelease
+	found   bool
+}
+
+var (
+	releaseMu   sync.Mutex
+	releaseSeen = map[string]releaseMemo{} // FreshRSS URL + feed id
+)
+
+// feedReleasesOf reads the release feeds that changed since last time.
+func feedReleasesOf(ctx context.Context, api services.FreshRSSApi, auth map[string]string, data *FreshRSSDataset) []FeedRelease {
+	var feeds []Feed
+	for _, f := range data.Feeds {
+		if releaseFeed.MatchString(f.URL) {
+			feeds = append(feeds, f)
+		}
+	}
+	parallel(ctx, len(feeds), releaseParallel, func(i int) {
+		f := feeds[i]
+		key := data.URL + "|" + f.ID
+		releaseMu.Lock()
+		memo, ok := releaseSeen[key]
+		releaseMu.Unlock()
+		if ok && memo.newest.Equal(f.Newest) {
+			return
+		}
+		items, err := api.Query(ctx, auth, "stream/contents/"+f.ID, url.Values{"n": {strconv.Itoa(releaseItems)}})
+		if err != nil {
+			return
+		}
+		got := feedReleases(items)
+		memo = releaseMemo{newest: f.Newest, found: len(got) > 0}
+		if memo.found {
+			memo.release = got[0]
+		}
+		releaseMu.Lock()
+		releaseSeen[key] = memo
+		releaseMu.Unlock()
+	})
+
+	var out []FeedRelease
+	releaseMu.Lock()
+	for _, f := range feeds {
+		if m := releaseSeen[data.URL+"|"+f.ID]; m.found {
+			out = append(out, m.release)
+		}
+	}
+	releaseMu.Unlock()
+	sort.Slice(out, func(i, j int) bool { return out[i].Published.After(out[j].Published) })
+	return out
+}
+
+// releaseLink finds a GitHub release in an item's link:
+// https://github.com/immich-app/immich/releases/tag/v1.132.3.
+var releaseLink = regexp.MustCompile(`^https://github\.com/([^/]+/[^/]+)/releases/tag/([^/?#]+)`)
+
+// preRelease marks versions no one deploys by default.
+var preRelease = regexp.MustCompile(`(?i)(alpha|beta|rc|nightly|dev|preview)`)
+
+// feedReleases keeps the newest stable release per repo, newest first.
+func feedReleases(items any) []FeedRelease {
+	newest := map[string]FeedRelease{}
+	for _, raw := range asList(asMap(items)["items"]) {
+		it := asMap(raw)
+		link := ""
+		if alt := asList(it["alternate"]); len(alt) > 0 {
+			link = asStr(asMap(alt[0])["href"])
+		}
+		m := releaseLink.FindStringSubmatch(link)
+		if m == nil {
+			continue
+		}
+		version, err := url.PathUnescape(m[2])
+		if err != nil || preRelease.MatchString(version) {
+			continue
+		}
+		r := FeedRelease{Feed: asStr(asMap(it["origin"])["streamId"]), Repo: strings.ToLower(m[1]), Version: version, Link: link,
+			Published: time.Unix(int64(asFloat(it["published"])), 0).UTC()}
+		if old, ok := newest[r.Repo]; !ok || r.Published.After(old.Published) {
+			newest[r.Repo] = r
+		}
+	}
+	out := make([]FeedRelease, 0, len(newest))
+	for _, r := range newest {
+		out = append(out, r)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Published.After(out[j].Published) })
+	return out
 }
 
 func parseFreshRSS(base string, subs, counts any) *FreshRSSDataset {
@@ -68,7 +186,7 @@ func parseFreshRSS(base string, subs, counts any) *FreshRSSDataset {
 	byID := map[string]*Feed{}
 	for _, raw := range asList(asMap(subs)["subscriptions"]) {
 		s := asMap(raw)
-		f := &Feed{ID: asStr(s["id"]), Title: asStr(s["title"])}
+		f := &Feed{ID: asStr(s["id"]), Title: asStr(s["title"]), URL: asStr(s["url"])}
 		if cats := asList(s["categories"]); len(cats) > 0 {
 			f.Category = asStr(asMap(cats[0])["label"])
 		}
