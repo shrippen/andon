@@ -63,6 +63,7 @@
       <div class="kpi"><span class="kpi-label">{{t "clients.unbilled"}}</span><b class="kpi-value" data-live>{{money $c.Unbilled $c.Currency}}</b><span class="kpi-sub">{{t "period.today"}}</span>{{if $c.Unbilled}}<a class="kpi-sub" href="/billing#drafts">{{t "clients.to_billing"}}</a>{{end}}</div>
       <div class="kpi"><span class="kpi-label">{{t "clients.open"}}</span><b class="kpi-value" data-live>{{money $c.Open $c.Currency}}</b><span class="kpi-sub">{{t "period.today"}}</span>{{if $c.Overdue}}<span class="kpi-sub late">{{t "clients.overdue" "amount" (money $c.Overdue $c.Currency)}}</span>{{end}}</div>
       <div class="kpi"><span class="kpi-label">{{t "clients.revenue"}}</span><b class="kpi-value" data-live>{{money $c.Revenue $c.Currency}}</b><span class="kpi-sub">{{template "period_sub" dict "Span" $c.Span "From" $c.RevenueFrom}}</span>{{if $c.PaymentDays}}<span class="kpi-sub">{{t "clients.pays_in" "days" $c.PaymentDays}}</span>{{end}}</div>
+      {{if $c.Rate}}<div class="kpi"><span class="kpi-label">{{t "clients.rate"}}</span><b class="kpi-value">{{money $c.Rate $c.Currency}}</b><span class="kpi-sub">{{t "clients.rate_since" "day" (day $c.RateSince)}}</span>{{if $c.Raise}}<span class="kpi-sub">{{t "clients.raise" "rate" (money $c.Raise $c.Currency) "pct" (num $.InflationPct 0)}}</span>{{end}}</div>{{end}}
     </div>
 
     {{with $c.Invoices}}<h2>{{t "clients.invoices"}}</h2>

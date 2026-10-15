@@ -1280,6 +1280,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [x] Kosten je Dienst als Popup der Kachel „Homelab-Kosten“: Tabelle je Komodo-Stack; Strom des Servers (Proxmox-Gast gleichen Namens, nach CPU) auf seine Stacks verteilt, der Rest der Kosten gleichmäßig auf alle; Stacks nach Kimai-Kunden markiert (`metrics.CostPerStack`) *(Hinweis aus dem Live-Test: die Hardware-Kosten nehmen alle Snipe-IT-Gegenstände der letzten Jahre, beim Nutzer auch private)*
 8. Analysen: Kundenzustand, Zeit für eine Preiserhöhung, Nachkalkulation, Jahresrückblick, Frag Andon (experimentell, nur lesend)
    - [x] Kundenzustand auf `/clients`: je Kunde Status „beobachten“ oder „gefährdet“ mit Gründen (überfällige Rechnungen; Umsatz des letzten Halbjahrs 40 % unter dem davor; über 90 Tage keine Arbeit; Umsatz 40 % darüber als „gestiegen“); auf der Kundenseite mit beiden Halbjahren (`metrics.ClientCard.Health`)
+   - [x] Zeit für eine Preiserhöhung: die Kundenseite nennt den zuletzt abgerechneten Stundensatz und seit wann (ununterbrochen gleich); nach zwölf Monaten „Preiserhöhung fällig“ mit Vorschlag (+2 % je Jahr seitdem, als Annahme genannt), auch als Grund im Kundenzustand
 
 Abgelehnt: Auslagen vom Privatkonto. Offen: Zusammenfassende Meldung.
 

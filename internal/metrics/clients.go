@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"math"
 	"sort"
 	"time"
 
@@ -27,6 +28,12 @@ type ClientCard struct {
 	// year against the one before, overdue money, how long it is quiet.
 	Recent, Prior float64
 	Health        ClientHealth
+
+	// The hourly rate billed lately and since when; a raise is due after
+	// raiseMonths, Raise is the rate grown by inflation since.
+	Rate      float64
+	RateSince string
+	Raise     float64
 }
 
 // ClientHealth is a customer's state and why: Signals are i18n keys
@@ -43,6 +50,13 @@ const (
 	ClientOK    ClientState = "ok"
 	ClientWatch ClientState = "watch"
 	ClientRisk  ClientState = "risk"
+)
+
+// A rate unchanged this long is due for a raise; Inflation is the
+// yearly rise it is grown by (an assumption, shown as such).
+const (
+	raiseMonths = 12
+	Inflation   = 0.02
 )
 
 // Health thresholds: half years compared, a drop or rise by this share
@@ -73,12 +87,16 @@ func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today
 		projectHours[c.ID] = map[string]float64{}
 	}
 
+	rates := map[int64][]sources.KimaiSheet{}
 	for _, s := range kimai.Timesheets {
 		card, ok := cards[s.CustomerID]
 		if !ok || len(s.Begin) < len("2006-01-02") {
 			continue
 		}
 		day := s.Begin[:len("2006-01-02")]
+		if s.Billable && s.HourlyRate > 0 {
+			rates[s.CustomerID] = append(rates[s.CustomerID], s)
+		}
 		hours := float64(s.Minutes) / minutesPerHour
 		if day > card.LastWork {
 			card.LastWork = day
@@ -98,7 +116,12 @@ func ClientCards(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, today
 	if ninja != nil {
 		joinNinja(cards, ninja, today, center, m, span)
 	}
-	for _, card := range cards {
+	for id, card := range cards {
+		card.Rate, card.RateSince = rateSince(rates[id])
+		if since, ok := ParseDay(card.RateSince); ok && !since.After(today.AddDate(0, -raiseMonths, 0)) {
+			years := today.Sub(since).Hours() / hoursPerDay / daysPerYear
+			card.Raise = round2(card.Rate * math.Pow(1+Inflation, years))
+		}
 		card.Health = healthOf(*card, today)
 	}
 
@@ -166,6 +189,24 @@ func joinNinja(cards map[int64]*ClientCard, ninja *sources.NinjaDataset, today t
 	}
 }
 
+// rateSince is the newest billable entry's hourly rate and the day it
+// began: the first entry of the unbroken run at that rate, back from
+// the newest.
+func rateSince(sheets []sources.KimaiSheet) (float64, string) {
+	if len(sheets) == 0 {
+		return 0, ""
+	}
+	sort.Slice(sheets, func(a, b int) bool { return sheets[a].Begin > sheets[b].Begin })
+	rate, since := sheets[0].HourlyRate, sheets[0].Begin
+	for _, s := range sheets[1:] {
+		if s.HourlyRate != rate {
+			break
+		}
+		since = s.Begin
+	}
+	return rate, since[:min(len(since), len(time.DateOnly))]
+}
+
 // healthOf reads a customer's state from its card:
 //
 //	overdue money                          → risk
@@ -187,6 +228,9 @@ func healthOf(c ClientCard, today time.Time) ClientHealth {
 	}
 	if c.Prior > 0 && c.Recent > c.Prior*(1+trendShare) {
 		h.Signals = append(h.Signals, "growing")
+	}
+	if c.Raise > 0 {
+		h.Signals = append(h.Signals, "raise")
 	}
 	switch {
 	case c.Overdue > 0 || (down && quiet):

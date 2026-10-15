@@ -6802,6 +6802,10 @@ immich:
   failed: '{n} failed jobs'
   update: 'Update to {version} available'
 clients:
+  rate: 'Hourly rate'
+  rate_since: 'since {day}'
+  raise: 'Raise due: proposed {rate} (+{pct} % a year since)'
+  signal_raise: 'same hourly rate for over a year'
   state_watch: 'watch'
   state_risk: 'at risk'
   signal_overdue: 'overdue invoices'
