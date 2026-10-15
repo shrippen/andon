@@ -1696,6 +1696,7 @@
     "deployable": true,
     "assigned": true,
     "purchase_date": "@date-30",
+    "dep_months": 12,
     "warranty_expires": "@date+10",
     "eol_date": "@date+900",
     "next_audit": "@date+100",
@@ -1709,6 +1710,7 @@
     "deployable": true,
     "assigned": true,
     "purchase_date": "@date-1900",
+    "dep_months": 36,
     "warranty_expires": "@date-800",
     "eol_date": "@date-20",
     "next_audit": "@date-15",
@@ -1721,6 +1723,7 @@
     },
     "deployable": true,
     "purchase_date": "@date-500",
+    "dep_months": 60,
     "warranty_expires": "@date+230",
     "next_audit": "@date+60",
     "last_change": "@date-140"
@@ -1733,6 +1736,7 @@
     "deployable": true,
     "assigned": true,
     "purchase_date": "@date-60",
+    "dep_months": 12,
     "warranty_expires": "@date+1000",
     "next_audit": "@date+200",
     "last_change": "@date-60",
@@ -1765,7 +1769,7 @@
   ]
  },
  "bank": {
-  "note": "Sure: one income matches the open invoice, the health insurance payment is overdue.",
+  "note": "Sure: one income matches the open invoice, the health insurance payment is overdue; the studio supplies of last week lack a category, an older booking of the same shop has one.",
   "url": "https://money.demo",
   "currency": "EUR",
   "net_worth": 48210,
@@ -1858,6 +1862,20 @@
      "en": "Hosting"
     },
     "merchant": "Nordhost Server",
+    "account": {
+     "de": "Geschäftskonto",
+     "en": "Business account"
+    }
+   },
+   {
+    "id": "t6",
+    "date": "@date-70",
+    "name": "Kabelwerk Studiobedarf",
+    "amount": -249,
+    "category": {
+     "de": "Technik",
+     "en": "Equipment"
+    },
     "account": {
      "de": "Geschäftskonto",
      "en": "Business account"

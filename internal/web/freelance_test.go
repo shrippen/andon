@@ -347,7 +347,7 @@ func TestBillingDraftAndExport(t *testing.T) {
 	for _, f := range archive.File {
 		names = append(names, f.Name)
 	}
-	if strings.Join(names, ",") != "rechnungen.csv,zahlungen.csv,ausgaben.csv,ust.csv,stunden.csv" {
+	if strings.Join(names, ",") != "rechnungen.csv,zahlungen.csv,ausgaben.csv,ust.csv,stunden.csv,euer.csv,homeoffice.csv" {
 		t.Fatalf("zip: %v", names)
 	}
 }
