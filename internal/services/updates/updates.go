@@ -14,6 +14,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -22,6 +23,7 @@ import (
 	"andon/internal/model"
 	"andon/internal/outbound"
 	"andon/internal/services/access"
+	"andon/internal/services/assist"
 	"andon/internal/services/connections"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/workbench"
@@ -62,7 +64,13 @@ const prefKey = "updates"
 
 type state struct {
 	Scope string `json:"scope,omitempty"`
+	// Summaries are Claude's readings of the release notes, by case and
+	// new tag ("u-regis-immich-server@v1.132.3").
+	Summaries map[string]assist.Changes `json:"summaries,omitempty"`
 }
+
+// summaryKey names a summary: the case and the tag it leads to.
+func summaryKey(c metrics.UpdateCase) string { return c.Key + "@" + c.NewTag }
 
 // Page is the bench for one Verbund.
 type Page struct {
@@ -72,13 +80,16 @@ type Page struct {
 	Cases   []metrics.UpdateCase
 	Finders bool // the Verbund has WUD or FreshRSS to find newer tags
 	NVD     bool
+	Assist  bool                      // Claude can sum up release notes
+	Changes map[string]assist.Changes // by case key, for the current new tag
 }
 
 type book struct {
-	scope  workbench.Scope
-	choose bool
-	gitea  *model.Connection
-	cases  []metrics.UpdateCase
+	summaries map[string]assist.Changes
+	scope     workbench.Scope
+	choose    bool
+	gitea     *model.Connection
+	cases     []metrics.UpdateCase
 }
 
 // Open lists the updates.
@@ -88,7 +99,13 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string) (
 	if err != nil {
 		return p, err
 	}
-	p.Cases, p.NVD = b.cases, b.scope.Conn(enums.ServiceNVD) != nil
+	p.Cases, p.NVD, p.Assist = b.cases, b.scope.Conn(enums.ServiceNVD) != nil, assist.Enabled()
+	p.Changes = map[string]assist.Changes{}
+	for _, c := range b.cases {
+		if ch, ok := b.summaries[summaryKey(c)]; ok {
+			p.Changes[c.Key] = ch
+		}
+	}
 	p.Finders = b.scope.Conn(enums.ServiceWUD) != nil || b.scope.Conn(enums.ServiceFreshRSS) != nil
 	return p, nil
 }
@@ -108,7 +125,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 	if scope == "" {
 		scope = st.Scope
 	}
-	var b book
+	b := book{summaries: st.Summaries}
 	b.scope, b.choose = workbench.Pick(scopes, scope)
 	b.gitea = b.scope.Conn(enums.ServiceGitea)
 
@@ -148,7 +165,8 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 // Item is a proposal as the review shows it.
 type Item struct {
 	metrics.UpdateCase
-	To string // the tag to write
+	To      string // the tag to write
+	Changes *assist.Changes
 }
 
 // Plan is the review.
@@ -168,6 +186,9 @@ func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 	it.UpdateCase = b.cases[i]
 	if !it.Pinned {
 		return it, ProblemPinned
+	}
+	if ch, ok := b.summaries[summaryKey(it.UpdateCase)]; ok {
+		it.Changes = &ch
 	}
 	it.To = strings.TrimSpace(s.Field(FieldTag))
 	if it.To == "" || it.To == it.Tag {
@@ -255,6 +276,16 @@ func prBody(it Item) string {
 	if len(it.CVEs) > 0 {
 		lines = append(lines, "Running tag affected by: "+strings.Join(it.CVEs, ", "))
 	}
+	if ch := it.Changes; ch != nil {
+		for _, part := range []struct {
+			title string
+			items []string
+		}{{"Breaking", ch.Breaking}, {"Security", ch.Security}, {"Notable", ch.Notable}} {
+			if len(part.items) > 0 {
+				lines = append(lines, "**"+part.title+"** (summed up by Claude)\n- "+strings.Join(part.items, "\n- "))
+			}
+		}
+	}
 	return strings.Join(lines, "\n\n")
 }
 
@@ -264,4 +295,51 @@ func (w *writer) Reason(err error) string { return err.Error() }
 
 func (w *writer) Audit(p workbench.Planned[Item]) map[string]any {
 	return map[string]any{"image": p.Item.Image, "from": p.Item.Tag, "to": p.Item.To, "repo": p.Item.Stack.Repo}
+}
+
+// ErrNoNotes means the case's project is unknown on GitHub (a WUD case
+// without release feed) or it has no notes in the range.
+var ErrNoNotes = errors.New("updates.err_no_notes")
+
+// releaseRepo reads the GitHub repo of a release page.
+var releaseRepo = regexp.MustCompile(`^https://github\.com/([^/]+/[^/]+)/releases/`)
+
+// Summarize lets Claude sum up the release notes between the running
+// and the new tag of one case, and keeps it for the page and the PR.
+func Summarize(ctx context.Context, d *sql.DB, who *access.Principal, scope, key string) error {
+	b, _, err := load(ctx, d, who, scope, svcdata.Cached)
+	if err != nil {
+		return err
+	}
+	i := slices.IndexFunc(b.cases, func(c metrics.UpdateCase) bool { return c.Key == key })
+	if i < 0 {
+		return ErrNoNotes
+	}
+	c := b.cases[i]
+	m := releaseRepo.FindStringSubmatch(c.Release)
+	if m == nil {
+		return ErrNoNotes
+	}
+	notes, err := sources.ReleaseNotes(ctx, m[1], c.Tag, c.NewTag)
+	if err != nil {
+		return err
+	}
+	if len(notes) == 0 {
+		return ErrNoNotes
+	}
+	texts := make([]string, len(notes))
+	for i, n := range notes {
+		texts[i] = "## " + n.Tag + "\n" + n.Body
+	}
+	ch, err := assist.SummarizeChanges(ctx, who.Locale, c.Image, c.Tag, c.NewTag, texts)
+	if err != nil {
+		return err
+	}
+	return workbench.SaveState(d, who, prefKey, func(s *state) {
+		s.Scope = b.scope.Key
+		if s.Summaries == nil {
+			s.Summaries = map[string]assist.Changes{}
+		}
+		s.Summaries[summaryKey(c)] = ch
+	})
 }

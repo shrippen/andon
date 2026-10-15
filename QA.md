@@ -135,6 +135,9 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 **J-C13 Anschaffungen**
 1. `/purchases`: Monitor (vor zwei Monaten, ohne Garantie) mit 24 Monaten vorgewählt; Lücken als Chips, Links zu USt-Abgleich und Belegen.
 2. „Prüfen“ → „In Snipe-IT schreiben“ (Demo lehnt ab); Monate außerhalb 1–120 werden übersprungen.
+**J-C12 Release-Feeds**
+1. `/updates` → „Release-Feeds anpassen“: fest genannte Images ohne Feed mit vorgeschlagener Adresse und Kategorie; nichts angehakt.
+2. Adresse ändern, „Prüfen“; eine Nicht-GitHub-Adresse wird übersprungen; „In FreshRSS schreiben“ (Demo lehnt ab).
 
 **J-C6 Woche schließen**
 1. `/week`: letzte Woche vorgewählt, Chips für vier Wochen; „Gelesen aus“ nennt Dawarich und Kalender des Verbunds.

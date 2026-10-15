@@ -5,6 +5,7 @@ package web
 //	GET  /updates          newer tags by urgency
 //	POST /updates/review   the ticked proposals, spelled out
 //	POST /updates/apply    opens a pull request per stack in Gitea
+//	POST /updates/summarize  Claude sums up one update's release notes
 
 import (
 	"net/http"
@@ -18,6 +19,7 @@ func (d Deps) registerUpdateRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /updates", d.authed(d.handleUpdates))
 	mux.HandleFunc("POST /updates/review", d.authed(d.handleUpdatesReview))
 	mux.HandleFunc("POST /updates/apply", d.authed(d.handleUpdatesApply))
+	mux.HandleFunc("POST /updates/summarize", d.authed(d.handleUpdatesSummarize))
 }
 
 func updatesBack(scope string, pairs ...string) string {
@@ -78,4 +80,13 @@ func safePR(raw string) string {
 		return ""
 	}
 	return u.String()
+}
+
+func (d Deps) handleUpdatesSummarize(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	scope, key := r.FormValue(benchScope), r.FormValue("case")
+	if err := updates.Summarize(r.Context(), d.DB, ctx.Who, scope, key); err != nil {
+		http.Redirect(w, r, updatesBack(scope, "error", errKey(err)), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, updatesBack(scope)+"#"+key, http.StatusSeeOther)
 }
