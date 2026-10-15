@@ -398,17 +398,31 @@ func IncomeTaxReserve(ninja *sources.NinjaDataset, today time.Time, rate float64
 	return max(revenue-expenses, 0) * rate
 }
 
-// Spendable splits the cash on the accounts.
+// Spendable splits the cash on the accounts; Reserve is what reserve
+// accounts hold (sources.RoleReserve), outside Cash.
 type Spendable struct {
-	Cash, VAT, IncomeTax, Fixed, Free float64
+	Cash, Reserve, VAT, IncomeTax, Fixed, Free float64
 }
 
-// SafeToSpend: cash minus VAT owed, income tax reserve and the fixed
-// costs of the next 30 days.
+// Taxes is what the taxes still need beyond the reserve.
+func (s Spendable) Taxes() float64 { return max(s.VAT+s.IncomeTax-s.Reserve, 0) }
+
+// SafeToSpend: cash minus VAT owed and income tax reserve (as far as the
+// reserve accounts do not cover them) and the fixed costs of the next 30
+// days.
+//
+//	Cash 8 000, Reserve 3 000, VAT 1 500, income tax 2 500, fixed 900
+//	→ taxes uncovered 1 000 → free 8 000 − 1 000 − 900 = 6 100
 func SafeToSpend(sure *sources.SureDataset, ninja *sources.NinjaDataset, today time.Time, interval, method string, taxRate float64) Spendable {
-	s := Spendable{Cash: SureCash(sure), VAT: NinjaVATLiabilityOf(ninja, today, interval, method).Liability,
+	cash, reserve := sure, sure.Only(sources.RoleReserve)
+	if reserve != sure {
+		cash = sure.Only(sources.RoleBusiness, sources.RolePrivate, sources.RoleUnknown)
+	} else {
+		reserve = &sources.SureDataset{}
+	}
+	s := Spendable{Cash: SureCash(cash), Reserve: SureCash(reserve), VAT: NinjaVATLiabilityOf(ninja, today, interval, method).Liability,
 		IncomeTax: IncomeTaxReserve(ninja, today, taxRate), Fixed: SureDue(sure, today, int(daysPerMonth))}
-	s.Free = s.Cash - s.VAT - s.IncomeTax - s.Fixed
+	s.Free = s.Cash - s.Taxes() - s.Fixed
 	return s
 }
 

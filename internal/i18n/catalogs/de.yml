@@ -7144,6 +7144,7 @@ vatcheck:
   accounts_verbund: 'Konten im Verbund verknüpfen →'
   accounts_business: geschäftlich
   accounts_private: privat
+  accounts_reserve: Rücklage
   accounts_save: Speichern
   accounts_saved: 'Konten gespeichert.'
   accounts_ro: 'Die Konten legt fest, wer die Einstellungen dieses Bereichs ändern darf.'

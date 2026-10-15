@@ -7143,6 +7143,7 @@ vatcheck:
   accounts_verbund: 'Link accounts in the bundle →'
   accounts_business: business
   accounts_private: private
+  accounts_reserve: reserve
   accounts_save: Save
   accounts_saved: 'Accounts saved.'
   accounts_ro: 'Whoever may change this space''s settings names the accounts.'
