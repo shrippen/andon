@@ -36,11 +36,12 @@ const (
 	AreaReceipts Area = "receipts"
 	AreaBilling  Area = "billing"
 	AreaKimai    Area = "kimai"
+	AreaSubs     Area = "subs"
 	AreaHome     Area = "home"
 )
 
 // Areas lists them in the page's order.
-var Areas = []Area{AreaVAT, AreaEuer, AreaReceipts, AreaBilling, AreaKimai, AreaHome}
+var Areas = []Area{AreaVAT, AreaEuer, AreaReceipts, AreaBilling, AreaKimai, AreaSubs, AreaHome}
 
 // kinds are the audit actions that wrote to another service, by prefix.
 var kinds = []struct {
@@ -50,6 +51,7 @@ var kinds = []struct {
 	{"vatcheck.", AreaVAT}, {"vendors.", AreaVAT}, {"euer.", AreaEuer}, {"receipts.", AreaReceipts}, {"mail.to_paperless", AreaReceipts},
 	{"billing.draft", AreaBilling}, {"billing.payment", AreaBilling}, {"dunning.", AreaBilling},
 	{"kimai.", AreaKimai}, {"week.", AreaKimai}, {"travel.", AreaKimai},
+	{"subs.", AreaSubs},
 	{"hass.", AreaHome}, {"dns.", AreaHome}, {"grocy.", AreaHome}, {"tandoor.", AreaHome},
 }
 

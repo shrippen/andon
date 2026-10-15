@@ -129,3 +129,29 @@ func TestDunningPage(t *testing.T) {
 		t.Fatalf("dunning page:\n%s", page)
 	}
 }
+
+// The subscriptions page lists the demo's cases and reviews a new price.
+func TestSubsPage(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	for _, service := range []string{"sure", "wallos", "invoiceninja"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
+	}
+	page := string(mustGet(t, srv, client, "/subs"))
+	for _, want := range []string{"Abos", `name="act_np-demo-r1" value="ninja_price"`, `name="amount_np-demo-r1" value="44.90"`, "Doppelt in Wallos"} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("subs page lacks %q:\n%s", want, page)
+		}
+	}
+	resp, err := client.PostForm(srv.URL+"/subs/review", url.Values{"csrf": {csrfToken(t, srv, client)}, "pick": {"np-demo-r1"},
+		"act_np-demo-r1": {"ninja_price"}, "amount_np-demo-r1": {"44.90"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if review := readBody(t, resp); !strings.Contains(review, "Abos bestätigen") || !strings.Contains(review, `name="amount_np-demo-r1" value="44.90"`) {
+		t.Fatalf("review:\n%s", review)
+	}
+}

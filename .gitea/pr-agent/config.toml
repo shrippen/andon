@@ -6,6 +6,10 @@ response_language = "de-DE"
 max_model_tokens = 128000
 fallback_models = []
 publish_output_progress = false
+# Claude Opus 4.7+ and Claude 5 take no temperature, only adaptive thinking
+# with an effort (Opus 5.5 defaults to medium). Other models ignore both.
+enable_claude_adaptive_thinking = true
+reasoning_effort = "high"
 # The repository rules go along as context.
 repo_context_files = ["agent.md"]
 

@@ -350,6 +350,17 @@ type NinjaRecurring struct {
 	Amount          float64
 }
 
+// NinjaRecurringExpense is a recurring expense: Invoice Ninja books it
+// on its own every Months months (0: weekly).
+type NinjaRecurringExpense struct {
+	Key, Number, VendorKey, CategoryKey string
+	Amount                              float64
+	Months                              int
+	Next                                string // next booking, "2026-11-01"
+	Active                              bool   // running, not paused or ended
+	Notes                               string
+}
+
 type NinjaDataset struct {
 	URL      string
 	Currency string
@@ -363,6 +374,9 @@ type NinjaDataset struct {
 	Quotes        []NinjaQuote
 	Recurring     []NinjaRecurring
 	HomeCountryID string
+
+	// RecurringExpenses are read when the instance has them.
+	RecurringExpenses []NinjaRecurringExpense
 
 	// Bank transactions (banking module), expense categories and tax
 	// rates; BankRead says whether the bank API answered.

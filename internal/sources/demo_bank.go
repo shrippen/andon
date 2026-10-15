@@ -29,6 +29,7 @@ const (
 	demoTaxReduced = 7
 	demoOpenLinks  = 2  // newest expenses whose transaction is still open
 	demoBankDays   = 95 // how far back the feed reaches
+	demoHostNext   = 25 // days to the server's next booking
 
 	// The feed's two accounts; the demo connection names their roles.
 	demoBusiness    = "Geschäftskonto"
@@ -91,6 +92,12 @@ func demoNinjaBank(today time.Time, data *NinjaDataset) {
 	}
 
 	demoEuer(data)
+
+	// The server's recurring expense still has last year's price; Sure
+	// already books the new one.
+	data.RecurringExpenses = []NinjaRecurringExpense{{Key: "demo-r1", Number: "WA-001", VendorKey: vendorKey(host.Name),
+		CategoryKey: categoryKey(categoryOf[host.Name]), Amount: host.Monthly, Months: 1, Active: true,
+		Next: iso(today.AddDate(0, 0, demoHostNext)), Notes: host.Contract.DE()}}
 
 	// Open debits without an expense; the Sure ones carry Sure's names.
 	studio := demoWorld.Receipts[demoReceiptOf(demoStudioReceipt)]

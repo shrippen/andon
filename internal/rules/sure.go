@@ -215,6 +215,12 @@ const (
 	vatCases  = "cases"
 )
 
+// The subscription bench settles cross.wallos_missing.
+const (
+	workInSubs = "work_in_subs"
+	subsWork   = "/subs#cases"
+)
+
 // vatWork is /vat at the period holding day ("2026-09-12"), at anchor.
 func vatWork(env Env, day, anchor string) string {
 	d, ok := metrics.ParseDay(day)
@@ -263,9 +269,22 @@ func wallosMissing(_ any, cfg map[string]any, env Env) []Finding {
 	return []Finding{{
 		Fingerprint: "missing", Severity: enums.SeverityInfo, Message: "cross.wallos_missing",
 		Params:    map[string]any{"count": len(missing), "names": shortList(names)},
-		ActionURL: wallos.URL, ActionLabel: "open_in_wallos",
+		ActionURL: subsWork, ActionLabel: workInSubs,
 		Sources: []string{string(sure.From()), string(enums.ServiceWallos)},
 	}}
+}
+
+// WallosLimits are cross.wallos_missing's settings of a space: a payment
+// above maxMonthly a month, or with an ignored word in its name, is no
+// subscription (the subscription bench reads them too).
+func WallosLimits(settings map[string]any) (maxMonthly float64, ignore []string) {
+	for _, spec := range AllRules() {
+		if spec.ID == "cross.wallos_missing" {
+			cfg := Config(spec, settings)
+			return cfgFloat(cfg, "max_monthly"), stringsSlice(cfg["ignore_names"])
+		}
+	}
+	return 0, nil
 }
 
 // ReceiptInputsOf collects the receipt sources of a scope with the
