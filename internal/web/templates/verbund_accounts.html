@@ -63,7 +63,8 @@
   <select class="select" name="role" aria-label="{{t "verbund.account_role"}}: {{.Name}}">
     <option value="">{{t "vatcheck.accounts_unknown"}}</option>
     <option value="business"{{if eq .Role "business"}} selected{{end}}>{{t "vatcheck.accounts_business"}}</option>
-    <option value="private"{{if eq .Role "private"}} selected{{end}}>{{t "vatcheck.accounts_private"}}</option></select>
+    <option value="private"{{if eq .Role "private"}} selected{{end}}>{{t "vatcheck.accounts_private"}}</option>
+    <option value="reserve"{{if eq .Role "reserve"}} selected{{end}}>{{t "vatcheck.accounts_reserve"}}</option></select>
   <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
-</form>{{else if eq .Role "business"}}{{t "vatcheck.accounts_business"}}{{else if eq .Role "private"}}{{t "vatcheck.accounts_private"}}{{else}}{{t "vatcheck.accounts_unknown"}}{{end}}
+</form>{{else if eq .Role "business"}}{{t "vatcheck.accounts_business"}}{{else if eq .Role "private"}}{{t "vatcheck.accounts_private"}}{{else if eq .Role "reserve"}}{{t "vatcheck.accounts_reserve"}}{{else}}{{t "vatcheck.accounts_unknown"}}{{end}}
 {{end}}

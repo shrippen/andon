@@ -4,6 +4,7 @@ import (
 	"andon/internal/caps"
 	"context"
 	"net/url"
+	"slices"
 	"strconv"
 	"time"
 
@@ -206,19 +207,19 @@ func (d *SureDataset) setRoles(roles map[string]AccountRole) {
 // Only is the dataset with the accounts of one role and their bookings;
 // without a role asked for, or none named yet, all of it. Recurring
 // payments name no account and stay.
-func (d *SureDataset) Only(role AccountRole) *SureDataset {
-	if role == RoleUnknown || !d.Classified() {
+func (d *SureDataset) Only(roles ...AccountRole) *SureDataset {
+	if len(roles) == 0 || roles[0] == RoleUnknown || !d.Classified() {
 		return d
 	}
 	out := *d
 	out.Accounts, out.Transactions = nil, nil
 	for _, a := range d.Accounts {
-		if a.Role == role {
+		if slices.Contains(roles, a.Role) {
 			out.Accounts = append(out.Accounts, a)
 		}
 	}
 	for _, t := range d.Transactions {
-		if t.Role == role {
+		if slices.Contains(roles, t.Role) {
 			out.Transactions = append(out.Transactions, t)
 		}
 	}

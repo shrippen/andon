@@ -1264,6 +1264,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [ ] Demo: eine Sure-Buchung auf dem Geschäftskonto für „Farbraum“, damit „in Ninja anlegen“ erscheint (zuerst `TestSureNinjaCross` anpassen: sie zählt die Buchungen ohne Ausgabe)
    - [ ] Sure aufräumen: unkategorisierte Buchungen, Vorschlag aus gleichen Händlern, Schreiben per `PATCH transactions/{id}`
 6. Jahr: EÜR-Vorbereitung (EÜR-Kategorie aus 2., Abschreibung aus Snipe-IT), Homeoffice-Tage, Paket für die Steuerberatung, Rücklagenkonto (dritte Kontoverwendung „Rücklage“)
+   - [x] Rücklagenkonto: dritte Kontoverwendung „Rücklage“ (`sources.RoleReserve`, wählbar unter `/vat` → Konten und Verbund → Konten). Ihr Guthaben zählt nicht als freies Geld und deckt Umsatz- und Einkommensteuer, bevor freies Geld es muss (`metrics.SafeToSpend`, Kennzahl „Frei verfügbar“, `sure.spendable_negative`, `cross.depot_reserve`)
 7. Homelab
    - [ ] Update-Werkbank: Image-Updates nach Dringlichkeit (öffentlich, CVE), Changelog von Claude zusammengefasst, PR im Compose-Repo; FreshRSS als Quelle der Release-Feeds, mit Vorschlägen zum Anpassen der Feeds (fehlender Feed für einen laufenden Dienst, Feed eines nicht mehr laufenden Dienstes, Feed ohne Releases); geschrieben in FreshRSS nur nach OK
    - [ ] Inventur (Geräte im Netz ↔ Snipe-IT), Anschaffung vollständig (Asset, Ausgabe, Beleg, Garantie), Wiederherstellungsprobe
