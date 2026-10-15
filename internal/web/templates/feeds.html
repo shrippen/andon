@@ -1,0 +1,72 @@
+{{/* Release feeds kept in line with the stacks (services/feeds). */}}
+{{define "feeds"}}{{$p := .P}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "feeds.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "feeds.title"}}</h1>
+    <p class="muted">{{t "feeds.lead"}}</p>
+    {{with .done}}<p class="pill" data-state="applied">{{t "feeds.done" "n" .}}</p>{{end}}
+    {{with .failed}}<p class="error">{{t "feeds.failed" "n" .}} {{$.Who}}: {{t $.Reason}}</p>{{end}}
+    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+    {{if $p.Scopes}}
+    {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/feeds" "Keep" (dict)}}
+    {{if $p.Cases}}
+    <form method="post" action="/feeds/review" class="card" id="cases">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
+      <div class="table-wrap"><table class="table cards-sm">
+        <thead><tr><th></th><th>{{t "feeds.project"}}</th><th>{{t "feeds.change"}}</th></tr></thead>
+        <tbody>{{range $p.Cases}}{{$k := .Key}}<tr>
+          <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}" aria-label="{{or .Repo .Title}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
+            <input type="hidden" name="act_{{$k}}" value="{{if eq (print .Action) "add"}}subscribe{{else}}unsubscribe{{end}}"></td>
+          <td data-card="title"><b>{{or .Title .Repo}}</b><br><small class="muted">{{t (print "feeds.why_" .Action)}}{{with .Images}} · {{range $i, $m := .}}{{if $i}}, {{end}}{{$m}}{{end}}{{end}}</small></td>
+          <td>{{if eq (print .Action) "add"}}<input class="input" name="url_{{$k}}" value="{{.URL}}" aria-label="{{t "feeds.url"}}">
+            <input class="input" name="category_{{$k}}" value="{{$p.Category}}" aria-label="{{t "feeds.category"}}">{{else}}{{t "feeds.act_remove"}}<br><small class="muted">{{.URL}}</small>{{end}}</td>
+        </tr>{{end}}</tbody>
+      </table></div>
+      <p><button type="submit" class="btn btn-accent">{{t "feeds.review"}}</button></p>
+    </form>
+    {{else}}<p class="pill" data-state="applied">{{t "feeds.empty"}}</p>{{end}}
+    {{end}}
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}
+
+{{define "feeds_review"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "feeds.review_title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "feeds.review_title"}}</h1>
+    <p>{{t "feeds.review_lead" "n" .Plan.Writes}}</p>
+    <form method="post" action="/feeds/apply">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{.Plan.Scope}}">
+      <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
+        <li{{if .Problem}} class="late"{{end}}>{{if not .Problem}}{{template "bench_step" .Step}}{{end}}
+          <b>{{or $i.Title $i.Repo .Case}}</b><br>
+          {{if .Problem}}{{t (print .Problem)}}{{else if eq .Action "subscribe"}}{{t "feeds.do_subscribe" "url" $i.URL "category" $i.Category}}{{else}}{{t "feeds.do_unsubscribe" "url" $i.URL}}{{end}}
+        </li>{{end}}</ol>
+      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "feeds.apply" "n" .Plan.Writes}}</button>{{end}}
+        <a class="btn btn-quiet" href="/feeds?scope={{.Plan.Scope}}">{{t "feeds.back"}}</a></p>
+    </form>
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}

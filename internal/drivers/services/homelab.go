@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"strings"
@@ -204,6 +205,26 @@ func (a FreshRSSApi) Open(ctx context.Context) (map[string]string, error) {
 // Get performs one GET against /api/greader.php/reader/api/0/<path>.
 func (a FreshRSSApi) Get(ctx context.Context, auth map[string]string, path string) (any, error) {
 	return fetchJSON(ctx, joinURL(a.URL, greaderBase+"reader/api/0/"+path), auth, url.Values{"output": {"json"}}, httpclient.TLSOf(a.Verify))
+}
+
+// Edit posts one change, e.g. ("subscription/edit", {"ac": {"subscribe"},
+// "s": {"feed/https://…"}}); the Google Reader API wants a fresh token
+// with it.
+func (a FreshRSSApi) Edit(ctx context.Context, auth map[string]string, path string, form url.Values) error {
+	base := joinURL(a.URL, greaderBase+"reader/api/0/")
+	token, err := httpclient.GetText(ctx, base+"token", httpclient.Options{Headers: auth, SkipVerify: !a.Verify})
+	if err != nil {
+		return ApiError{err.Error()}
+	}
+	form.Set("T", strings.TrimSpace(token))
+	text, err := httpclient.PostFormText(ctx, base+path, httpclient.Options{Headers: maps.Clone(auth), Params: form, SkipVerify: !a.Verify})
+	if err != nil {
+		return ApiError{err.Error()}
+	}
+	if strings.TrimSpace(text) != "OK" {
+		return ApiError{"freshrss: " + strings.TrimSpace(text)}
+	}
+	return nil
 }
 
 // Query is Get with parameters, e.g. ("stream/contents/…", {"n": {"500"}}).
