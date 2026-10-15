@@ -178,7 +178,7 @@ type YearReview struct {
 	PriorHoursKnown          bool // Kimai's data covers the year before
 	PriorRevenueKnown        bool // and Invoice Ninja's
 	Top                      []YearClient
-	New                      []string // clients first invoiced this year
+	New                      []string  // clients first invoiced this year
 	Busiest                  time.Time // the month with most hours, zero none
 }
 
@@ -258,7 +258,9 @@ func ReviewYear(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, year i
 				r.New = append(r.New, names[id])
 			}
 		}
-		slices.SortFunc(r.Top, func(a, b YearClient) int { return cmp.Or(cmp.Compare(b.Revenue, a.Revenue), strings.Compare(a.Name, b.Name)) })
+		slices.SortFunc(r.Top, func(a, b YearClient) int {
+			return cmp.Or(cmp.Compare(b.Revenue, a.Revenue), strings.Compare(a.Name, b.Name))
+		})
 		r.Top = r.Top[:min(len(r.Top), topClients)]
 		slices.Sort(r.New)
 	}
