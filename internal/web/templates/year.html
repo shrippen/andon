@@ -1,0 +1,79 @@
+{{/* The tax year prepared (services/year). */}}
+{{define "year"}}{{$p := .P}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "year.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "year.title"}}</h1>
+    <p class="muted">{{t "year.lead"}}</p>
+    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+    {{if $p.Scopes}}
+    {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/year" "Keep" (dict "year" (print $p.Year))}}
+    <nav class="hint-filters" aria-label="{{t "year.years"}}">
+      <div class="chips-row">{{range $p.Years}}<a class="chip is-filter" href="/year?scope={{$p.Scope}}&amp;year={{.}}"{{if eq . $p.Year}} aria-pressed="true"{{end}}>{{.}}</a>{{end}}</div>
+    </nav>
+    {{if $p.Currency}}
+    <section class="card">
+      <h2>{{t "year.income"}}</h2>
+      <div class="table-wrap"><table class="table">
+        <tbody>
+          <tr><td>{{t "year.paid"}}</td><td class="num">{{money $p.Paid $p.Currency}}</td></tr>
+          <tr><td>{{t "year.output_vat"}}</td><td class="num">{{money $p.OutputVAT $p.Currency}}</td></tr>
+          <tr><td>{{t "year.input_vat"}}</td><td class="num">{{money $p.InputVAT $p.Currency}}</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="card">
+      <h2>{{t "year.expenses"}}</h2>
+      {{if not $p.EuerSlot}}<p class="small">{{t "year.no_slot"}} <a href="/euer">{{t "year.to_euer"}}</a></p>{{end}}
+      {{if $p.Lines}}<div class="table-wrap"><table class="table cards-sm">
+        <thead><tr><th>{{t "year.line"}}</th><th class="num">{{t "year.net"}}</th><th class="num">{{t "year.tax"}}</th><th class="num">{{t "year.count"}}</th></tr></thead>
+        <tbody>{{range $p.Lines}}<tr><td data-card="title">{{or .Line (t "year.unlined")}}</td><td class="num">{{money .Net $p.Currency}}</td><td class="num">{{money .Tax $p.Currency}}</td><td class="num">{{.Expenses}}</td></tr>{{end}}
+          <tr><td><b>{{t "year.total"}}</b></td><td class="num"><b>{{money $p.Expenses $p.Currency}}</b></td><td></td><td></td></tr></tbody>
+      </table></div>{{else}}<p class="muted">{{t "year.no_expenses"}}</p>{{end}}
+      {{if and $p.EuerSlot $p.Unlined}}<p class="small">{{t "year.unlined_open" "n" $p.Unlined}} <a href="/euer?scope={{$p.Scope}}&amp;year={{$p.Year}}">{{t "year.to_euer"}}</a></p>{{end}}
+    </section>
+
+    <section class="card">
+      <h2>{{t "year.afa"}}</h2>
+      <p class="small muted">{{t "year.afa_lead"}}</p>
+      {{if not $p.Snipe}}<p class="muted">{{t "year.no_snipe"}}</p>
+      {{else if $p.Afa}}<div class="table-wrap"><table class="table cards-sm">
+        <thead><tr><th>{{t "year.asset"}}</th><th class="num">{{t "year.cost"}}</th><th class="num">{{t "year.months"}}</th><th class="num">{{t "year.afa_year"}}</th><th class="num">{{t "year.left"}}</th></tr></thead>
+        <tbody>{{range $p.Afa}}<tr><td data-card="title">{{.Asset.Name}} <small class="muted">{{day .Asset.PurchaseDate}}{{if .Instant}} · {{t "year.gwg"}}{{end}}</small></td>
+          <td class="num">{{money .Asset.PurchaseCost $p.Currency}}</td><td class="num">{{if .Months}}{{.Months}}{{else}}–{{end}}</td>
+          <td class="num">{{money .Year $p.Currency}}</td><td class="num">{{money .Left $p.Currency}}</td></tr>{{end}}
+          <tr><td><b>{{t "year.total"}}</b></td><td></td><td></td><td class="num"><b>{{money $p.AfaTotal $p.Currency}}</b></td><td></td></tr></tbody>
+      </table></div>
+      {{with $p.NoRule}}<p class="small">{{t "year.no_rule" "n" .}}</p>{{end}}
+      {{else}}<p class="muted">{{t "year.no_assets"}}</p>{{end}}
+    </section>
+
+    <section class="card">
+      <h2>{{t "year.home"}}</h2>
+      {{if $p.Kimai}}<p>{{t "year.home_days" "n" $p.HomeDays "amount" (money $p.Allowance $p.Currency)}}</p>
+        {{if $p.Estimated}}<p class="small muted">{{t "year.home_estimated"}}</p>{{end}}
+      {{else}}<p class="muted">{{t "year.no_kimai"}}</p>{{end}}
+    </section>
+    {{end}}
+
+    <form method="get" action="/billing/export" class="card inline-form">
+      <input type="hidden" name="space_id" value="{{$p.SpaceID}}"><input type="hidden" name="link_id" value="{{$p.LinkID}}"><input type="hidden" name="year" value="{{$p.Year}}">
+      <span>{{t "year.package"}}</span>
+      <button type="submit" class="btn btn-accent btn-sm">{{t "year.download" "year" $p.Year}}</button>
+    </form>
+    <p class="small muted">{{t "year.not_advice"}}</p>
+    {{end}}
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}

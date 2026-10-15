@@ -29,7 +29,7 @@ func depotDrawdown(data *sources.GhostfolioDataset, cfg map[string]any, _ Env) [
 }
 
 func depotReserve(_ any, _ map[string]any, env Env) []Finding {
-	bank, ok1 := businessBank(env)
+	bank, ok1 := cashBank(env)
 	ninja, ok2 := env.Datasets[ninjaSvc].(*sources.NinjaDataset)
 	depot, ok3 := env.Datasets[ghostfolioSvc].(*sources.GhostfolioDataset)
 	if !ok1 || !ok2 || !ok3 {

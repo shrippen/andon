@@ -185,6 +185,9 @@ const (
 	RoleUnknown  AccountRole = ""
 	RoleBusiness AccountRole = "business"
 	RolePrivate  AccountRole = "private"
+	// RoleReserve is money set aside for taxes: neither spent nor
+	// counted as free (metrics.SafeToSpend).
+	RoleReserve AccountRole = "reserve"
 )
 
 // OptAccountRoles is the connection option holding each account's role:
@@ -261,7 +264,7 @@ func accountRoles(options map[string]any) map[string]AccountRole {
 	out := map[string]AccountRole{}
 	raw, _ := options[OptAccountRoles].(map[string]any)
 	for k, v := range raw {
-		if r := AccountRole(asStr(v)); r == RoleBusiness || r == RolePrivate {
+		if r := AccountRole(asStr(v)); r == RoleBusiness || r == RolePrivate || r == RoleReserve {
 			out[k] = r
 		}
 	}
@@ -411,6 +414,9 @@ type SnipeAsset struct {
 	AssignedTo      string // who has it (person, location or asset name)
 	ExpectedCheckin string // agreed return date, "" if none
 	Serial          string
+	// DepMonths is the depreciation rule's length in months, 0 none
+	// (Snipe-IT → Abschreibungen, "1 Jahr / PCs" = 12).
+	DepMonths int
 }
 
 type SnipeLicense struct {

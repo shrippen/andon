@@ -1,0 +1,73 @@
+{{/* Sure's bookings without category filed (services/categorize). */}}
+{{define "categorize"}}{{$p := .P}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "categorize.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "categorize.title"}}</h1>
+    <p class="muted">{{t "categorize.lead"}}</p>
+    {{with .done}}<p class="pill" data-state="applied">{{t "categorize.done" "n" .}}</p>{{end}}
+    {{with .failed}}<p class="error">{{t "categorize.failed" "n" .}} {{$.Who}}: {{t $.Reason}}</p>{{end}}
+    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+    {{if $p.Scopes}}
+    {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/categorize" "Keep" (dict)}}
+    {{if $p.Cases}}
+    <form method="post" action="/categorize/review" class="card">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
+      <div class="table-wrap"><table class="table cards-sm">
+        <thead><tr><th></th><th>{{t "categorize.merchant"}}</th><th>{{t "categorize.category"}}</th></tr></thead>
+        <tbody>{{range $p.Cases}}{{$c := .}}{{$k := .Key}}<tr>
+          <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if .Ticked}} checked{{end}} aria-label="{{.Merchant}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
+            <input type="hidden" name="act_{{$k}}" value="file"></td>
+          <td data-card="title"><b>{{.Merchant}}</b><br>
+            <small class="muted">{{t "categorize.bookings" "n" (len .Txns) "total" (money .Total $p.Currency)}}{{with index .Txns 0}} · {{t "categorize.latest" "day" (day .Date)}}{{end}}{{if .Of}} · {{t "categorize.votes" "n" .Votes "of" .Of}}{{end}}</small></td>
+          <td><select class="select" name="category_{{$k}}" aria-label="{{t "categorize.category"}}"><option value="">{{t "categorize.choose"}}</option>
+            {{range $p.Categories}}<option value="{{.ID}}"{{if eq .ID $c.CategoryID}} selected{{end}}>{{with .Parent}}{{.}} › {{end}}{{.Name}}</option>{{end}}</select></td>
+        </tr>{{end}}</tbody>
+      </table></div>
+      <p><button type="submit" class="btn btn-accent">{{t "categorize.review"}}</button></p>
+    </form>
+    {{else}}<p class="pill" data-state="applied">{{t "categorize.empty"}}</p>{{end}}
+    {{end}}
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}
+
+{{define "categorize_review"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "categorize.review_title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "categorize.review_title"}}</h1>
+    <p>{{t "categorize.review_lead" "n" .Plan.Writes}}</p>
+    <form method="post" action="/categorize/apply">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{.Plan.Scope}}">
+      <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
+        <li{{if .Problem}} class="late"{{end}}>{{if not .Problem}}{{template "bench_step" .Step}}{{end}}
+          <b>{{or $i.Merchant .Case}}</b><br>
+          {{if .Problem}}{{t (print .Problem)}}{{else}}{{t "categorize.do_file" "n" (len $i.Txns) "category" $i.Category "total" (money $i.Total $.Plan.Currency)}}{{end}}
+        </li>{{end}}</ol>
+      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "categorize.apply" "n" .Plan.Writes}}</button>{{end}}
+        <a class="btn btn-quiet" href="/categorize?scope={{.Plan.Scope}}">{{t "categorize.back"}}</a></p>
+    </form>
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}

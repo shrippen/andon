@@ -3,8 +3,10 @@ package web_test
 import (
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 // A Verbund's categories page shows the EÜR field it found; the EÜR
@@ -153,6 +155,41 @@ func TestSubsPage(t *testing.T) {
 	}
 	if review := readBody(t, resp); !strings.Contains(review, "Abos bestätigen") || !strings.Contains(review, `name="amount_np-demo-r1" value="44.90"`) {
 		t.Fatalf("review:\n%s", review)
+	}
+}
+
+// The filing page lists the demo's merchant without category.
+func TestCategorizePage(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+		"service": {"sure"}, "name": {"Sure"}, "url": {"demo://sure"}, "mode": {"shared"}, "tls": {"verify"}})
+	page := string(mustGet(t, srv, client, "/categorize"))
+	for _, want := range []string{"Buchungen einordnen", `value="file"`, `<option value="Technik" selected>Technik</option>`} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("categorize page lacks %q:\n%s", want, page)
+		}
+	}
+}
+
+// The year page sums the demo's year and offers the package; Snipe-IT
+// adds the depreciation of its assets.
+func TestYearPage(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	for _, service := range []string{"invoiceninja", "kimai", "snipeit"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
+	}
+	page := string(mustGet(t, srv, client, "/year?year="+strconv.Itoa(time.Now().Year())))
+	for _, want := range []string{"Ausgaben je EÜR-Zeile", "Abschreibung", "Schnitt-Laptop", "Tage mit Arbeit in Kimai", `action="/billing/export"`, `name="space_id" value="` + space + `"`} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("year page lacks %q:\n%s", want, page)
+		}
 	}
 }
 

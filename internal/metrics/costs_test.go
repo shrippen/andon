@@ -66,3 +66,17 @@ func TestPowerDays(t *testing.T) {
 		t.Fatalf("days: %+v", got)
 	}
 }
+
+// A server's power goes to its stacks, the rest evenly to all.
+func TestCostPerStack(t *testing.T) {
+	komodo := &sources.KomodoDataset{Stacks: []sources.KStack{{Name: "immich", Server: "regis"}, {Name: "kimai", Server: "regis"}, {Name: "blog", Server: "vps"}}}
+	power := []metrics.ServiceCost{{Name: "Regis", Monthly: 30}}
+	kimai := &sources.KimaiDataset{Customers: []sources.KimaiCustomer{{Name: "Blog GmbH"}}}
+	got := metrics.CostPerStack(metrics.HomelabBill{Total: 120}, power, komodo, kimai)
+	if len(got) != 3 || got[0].Stack != "immich" || got[0].Power != 15 || got[0].Rest != 30 || got[0].Monthly != 45 {
+		t.Fatalf("stacks: %+v", got)
+	}
+	if blog := got[2]; blog.Power != 0 || blog.Monthly != 30 || !blog.Business {
+		t.Errorf("blog: %+v", blog)
+	}
+}

@@ -73,6 +73,10 @@ func homelabCostView(cfg CostConfig, results map[string]any, ctx ViewCtx) map[st
 		services := metrics.PowerPerService(proxmox, monthly*scale)
 		out["Watts"], out["PowerMonthly"], out["Services"] = w, monthly*scale, services
 	}
+	if komodo, ok := ds[string(enums.ServiceKomodo)].(*sources.KomodoDataset); ok {
+		power, _ := out["Services"].([]metrics.ServiceCost)
+		out["Stacks"] = metrics.CostPerStack(scaleBill(bill, scale), power, komodo, kimai)
+	}
 	return out
 }
 

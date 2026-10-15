@@ -20,6 +20,7 @@
     {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/subs" "Keep" (dict)}}
     {{if not $p.Wallos}}<p class="small muted">{{t "subs.no_wallos"}}</p>{{end}}
     {{if not $p.Ninja}}<p class="small muted">{{t "subs.no_ninja"}}</p>{{end}}
+    <p class="small"><a href="/categorize?scope={{$p.Scope}}">{{t "categorize.link"}}</a></p>
     {{if $p.Cases}}
     <form method="post" action="/subs/review" class="card" id="cases">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">

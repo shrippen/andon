@@ -525,3 +525,51 @@ func PowerDays(h *History, now time.Time, n int) []PowerDay {
 	}
 	return out
 }
+
+// StackCost is one service's share of the homelab's monthly cost: its
+// server's power (by the guest named like the server, split over its
+// stacks) and an equal part of the rest.
+type StackCost struct {
+	Stack, Server string
+	Power, Rest   float64
+	Monthly       float64
+	Business      bool // named after a Kimai customer or project
+}
+
+// CostPerStack splits the bill over Komodo's stacks:
+//
+//	bill 120 €, power 40 € of which guest "regis" 30 € (3 stacks there)
+//	→ each regis stack 10 € power; rest 90 € over all stacks
+func CostPerStack(bill HomelabBill, power []ServiceCost, komodo *sources.KomodoDataset, kimai *sources.KimaiDataset) []StackCost {
+	if komodo == nil || len(komodo.Stacks) == 0 || bill.Total <= 0 {
+		return nil
+	}
+	perServer := map[string]int{}
+	for _, s := range komodo.Stacks {
+		perServer[s.Server]++
+	}
+	serverPower := map[string]float64{}
+	assigned := 0.0
+	for server := range perServer {
+		for _, p := range power {
+			if server != "" && alnum(p.Name) == alnum(server) {
+				serverPower[server] = p.Monthly
+				assigned += p.Monthly
+			}
+		}
+	}
+
+	rest := (bill.Total - assigned) / float64(len(komodo.Stacks))
+	var out []StackCost
+	for _, s := range komodo.Stacks {
+		c := StackCost{Stack: s.Name, Server: s.Server, Rest: round2(rest)}
+		c.Power = round2(serverPower[s.Server] / float64(perServer[s.Server]))
+		c.Monthly = round2(c.Power + rest)
+		if share, _, _ := BusinessShare(kimai, []string{s.Name}); share > 0 {
+			c.Business = true
+		}
+		out = append(out, c)
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Monthly > out[j].Monthly })
+	return out
+}
