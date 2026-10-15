@@ -37,3 +37,18 @@ func TestRestoreMarked(t *testing.T) {
 		t.Fatalf("findings: %+v", got)
 	}
 }
+
+// A failed restore test warns until a later one works.
+func TestRestoreFailed(t *testing.T) {
+	day := func(m, d int) time.Time { return time.Date(2026, time.Month(m), d, 9, 0, 0, 0, time.UTC) }
+	marks := &metrics.History{Events: []metrics.Event{
+		{At: day(10, 2), Kind: metrics.EventRestoreFailed, Subject: "borgbackup"},
+		{At: day(9, 1), Kind: metrics.EventRestoreFailed, Subject: "pgbackweb"},
+		{At: day(9, 20), Kind: metrics.EventRestore, Subject: "pgbackweb"},
+	}}
+	env := crossEnv("2026-11-05", map[string]any{"borgbackup": struct{}{}, "pgbackweb": struct{}{}, metrics.HistoryDataset: marks})
+	got := run(t, "backups.restore_failed", nil, env)
+	if len(got) != 1 || got[0].Fingerprint != "restore_failed:borgbackup:2026-10-02" {
+		t.Fatalf("findings: %+v", got)
+	}
+}

@@ -24,6 +24,7 @@ var ErrBadMark = errors.New("detail.bad_mark")
 
 func init() {
 	register("backups", "restore_tested", restoreTested)
+	register("backups", "restore_failed", restoreFailed)
 	register("deadlines", "deadline_filed", deadlineFiled)
 }
 
@@ -49,7 +50,19 @@ func deadlineFiled(_ context.Context, d *sql.DB, who *access.Principal, c Call) 
 
 // restoreTested notes that a backup system was restored as a test; the
 // rule backups.restore_untested is quiet for it until the next quarter.
-func restoreTested(_ context.Context, d *sql.DB, who *access.Principal, c Call) error {
+func restoreTested(ctx context.Context, d *sql.DB, who *access.Principal, c Call) error {
+	return restoreMark(ctx, d, who, c, metrics.EventRestore, "restore.tested")
+}
+
+// restoreFailed notes a restore test that failed: backups.restore_failed
+// warns until a later one succeeds.
+func restoreFailed(ctx context.Context, d *sql.DB, who *access.Principal, c Call) error {
+	return restoreMark(ctx, d, who, c, metrics.EventRestoreFailed, "restore.failed")
+}
+
+// restoreMark records a restore test's outcome for the system named in
+// the form, with the sample tried.
+func restoreMark(_ context.Context, d *sql.DB, who *access.Principal, c Call, kind, action string) error {
 	system := c.Form.Get("system")
 	if !slices.Contains(rules.BackupSystems, enums.ServiceType(system)) {
 		return ErrBadMark
@@ -58,9 +71,9 @@ func restoreTested(_ context.Context, d *sql.DB, who *access.Principal, c Call) 
 		return err
 	}
 	return db.WithTx(d, func(tx *sql.Tx) error {
-		if err := data.AddEvent(tx, c.Widget.SpaceID, data.Event{At: c.Now, Kind: metrics.EventRestore, Subject: system}); err != nil {
+		if err := data.AddEvent(tx, c.Widget.SpaceID, data.Event{At: c.Now, Kind: kind, Subject: system}); err != nil {
 			return err
 		}
-		return auditsvc.Log(tx, &who.UserID, "restore.tested", system, c.IP, nil)
+		return auditsvc.Log(tx, &who.UserID, action, system, c.IP, map[string]any{"sample": c.Form.Get("sample")})
 	})
 }
