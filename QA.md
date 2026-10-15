@@ -135,6 +135,9 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 **J-C14 Wiederherstellungsprobe**
 1. Backups-Kachel → Dialog: je System „Wiederherstellung testen, Probe: …“ mit „Getestet“ und „Fehlgeschlagen“.
 2. „Fehlgeschlagen“ → Hinweis „Wiederherstellung fehlgeschlagen“ (Warnung); „Getestet“ danach beendet ihn.
+**J-C12 Release-Feeds**
+1. `/updates` → „Release-Feeds anpassen“: fest genannte Images ohne Feed mit vorgeschlagener Adresse und Kategorie; nichts angehakt.
+2. Adresse ändern, „Prüfen“; eine Nicht-GitHub-Adresse wird übersprungen; „In FreshRSS schreiben“ (Demo lehnt ab).
 
 **J-C6 Woche schließen**
 1. `/week`: letzte Woche vorgewählt, Chips für vier Wochen; „Gelesen aus“ nennt Dawarich und Kalender des Verbunds.

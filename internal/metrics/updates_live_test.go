@@ -58,4 +58,13 @@ func TestUpdateCasesLive(t *testing.T) {
 		}
 		t.Logf("%-40s %s → %s urgency %d pinned %v %s %v", c.Image, c.Tag, c.NewTag, c.Urgency, c.Pinned, where, c.CVEs)
 	}
+	feeds := metrics.FeedCases(in.Gitea, in.Feeds)
+	n := map[metrics.FeedAction]int{}
+	for _, c := range feeds {
+		n[c.Action]++
+		if n[c.Action] <= 5 {
+			t.Logf("feed %-7s %s %s %s", c.Action, c.Repo, c.Title, c.URL)
+		}
+	}
+	t.Logf("feed proposals: %v", n)
 }

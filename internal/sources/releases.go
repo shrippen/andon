@@ -10,6 +10,7 @@ import (
 	"context"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -100,3 +101,50 @@ func versionCore(tag string) string {
 }
 
 func init() { Register(ReleasesSource) }
+
+// ReleaseNote is one release's notes, for a changelog summary.
+type ReleaseNote struct {
+	Tag, Body string
+}
+
+// notesPerPage is how many releases are read for a changelog: enough
+// for a few months of a busy project.
+const notesPerPage = 30
+
+// ReleaseNotes reads a repo's release notes after from up to and with to
+// (versions as tags give them, "v1.2.3" ~ "1.2.3"), oldest first, drafts
+// and pre-releases left out.
+func ReleaseNotes(ctx context.Context, repo, from, to string) ([]ReleaseNote, error) {
+	body, _, err := httpclient.GetJSON(ctx, githubAPI+"/repos/"+repo+"/releases", httpclient.Options{
+		Params: url.Values{"per_page": {strconv.Itoa(notesPerPage)}}, Headers: map[string]string{"Accept": "application/vnd.github+json"}})
+	if err != nil {
+		return nil, err
+	}
+	var out []ReleaseNote
+	inRange := false
+	for _, raw := range asList(body) { // newest first
+		m := asMap(raw)
+		if asBool(m["draft"]) || asBool(m["prerelease"]) {
+			continue
+		}
+		tag := asStr(m["tag_name"])
+		if versionPrefix(tag, to) {
+			inRange = true
+		}
+		if versionPrefix(tag, from) {
+			break
+		}
+		if inRange {
+			out = append(out, ReleaseNote{Tag: tag, Body: asStr(m["body"])})
+		}
+	}
+	slices.Reverse(out)
+	return out, nil
+}
+
+// versionPrefix: tag is version or a release of it ("v2.2.1" is one of
+// "v2.2" and of "2.2.1").
+func versionPrefix(tag, version string) bool {
+	t, v := versionCore(tag), versionCore(version)
+	return v != "" && (t == v || strings.HasPrefix(t, v+"."))
+}
