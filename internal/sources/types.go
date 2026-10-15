@@ -414,6 +414,9 @@ type SnipeAsset struct {
 	AssignedTo      string // who has it (person, location or asset name)
 	ExpectedCheckin string // agreed return date, "" if none
 	Serial          string
+	// DepMonths is the depreciation rule's length in months, 0 none
+	// (Snipe-IT → Abschreibungen, "1 Jahr / PCs" = 12).
+	DepMonths int
 }
 
 type SnipeLicense struct {

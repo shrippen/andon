@@ -42,6 +42,7 @@ func snipeAsset(raw any) SnipeAsset {
 		NextAudit:  day(m["next_audit_date"]),
 		LastChange: cmp.Or(day(m["last_checkin"]), day(m["last_checkout"]), day(m["updated_at"])),
 		AssignedTo: nameOf(m["assigned_to"]), ExpectedCheckin: day(m["expected_checkin"]), Serial: asStr(m["serial"]),
+		DepMonths: int(asInt64(asMap(m["depreciation"])["months"])),
 	}
 }
 

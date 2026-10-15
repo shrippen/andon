@@ -119,6 +119,9 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 1. Hinweis „Fehlt in Wallos“ → „In den Abos erledigen“ führt nach `/subs`.
 2. Demo: Nordhost mit neuem Preis (Wallos und Invoice Ninja, vorab angehakt), Wellenklang doppelt in Wallos, Farbraum fehlt in Wallos. Betrag ändern, „Prüfen“ zeigt alt → neu; „Schreiben“ (Demo lehnt ab).
 
+**J-C9 Jahr**
+1. `/year`: letztes Jahr vorgewählt, Chips für drei Jahre; Einnahmen, Ausgaben je EÜR-Zeile (ohne Feld: Hinweis mit Link auf `/euer`), Abschreibung mit Summe, Homeoffice-Tage mit Pauschale.
+2. „Paket herunterladen“ → ZIP enthält `euer.csv`, `afa.csv` (mit Snipe-IT), `homeoffice.csv` (mit Kimai).
 **J-C8 Buchungen einordnen**
 1. `/subs` → „Buchungen ohne Kategorie einordnen“: Kabelwerk Studiobedarf mit Vorschlag „Technik“ angehakt, Bäckerei ohne Vorschlag.
 2. „Prüfen“ nennt Anzahl, Summe und Kategorie; „In Sure einordnen“ (Demo lehnt ab).

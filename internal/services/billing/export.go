@@ -6,6 +6,7 @@ package billing
 // language: the package is for a German tax advisor, not for the screen.
 //
 //	rechnungen.csv  zahlungen.csv  ausgaben.csv  stunden.csv  ust.csv  fahrten.csv  it-kosten.csv
+//	euer.csv (Ausgaben je EÜR-Zeile)  afa.csv (Abschreibung)  homeoffice.csv (Tage zu Hause)
 
 import (
 	"archive/zip"
@@ -114,7 +115,7 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, link
 	var kimai *sources.KimaiDataset
 	var ninja *sources.NinjaDataset
 	var geo *sources.DawarichDataset
-	var geoOptions map[string]any
+	var geoOptions, ninjaOptions map[string]any
 	costData := map[string]any{}
 	uid := who.UserID
 	for _, c := range conns {
@@ -127,7 +128,9 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, link
 				costData[c.Service] = res.Data
 			}
 			continue
-		case enums.ServiceKimai, enums.ServiceInvoiceNinja:
+		case enums.ServiceKimai:
+		case enums.ServiceInvoiceNinja:
+			ninjaOptions = c.Options
 		case enums.ServiceDawarich:
 			// Visits and tracks back to the start of the tax year.
 			params = map[string]any{"days": float64(time.Since(time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)).Hours()/hoursPerDay + 1)}
@@ -162,14 +165,26 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, link
 	if kimai != nil {
 		files["stunden.csv"] = hourRows(kimai, year)
 	}
+	var travel *metrics.Travel
 	if geo != nil && kimai != nil {
 		set := metrics.TravelSettingsOf(settings)
-		files["fahrten.csv"] = tripRows(metrics.TravelOf(geo, kimai, geoOptions, set, time.Now()), kimai, year, set.KMRate)
+		t := metrics.TravelOf(geo, kimai, geoOptions, set, time.Now())
+		travel = &t
+		files["fahrten.csv"] = tripRows(t, kimai, year, set.KMRate)
+	}
+	if ninja != nil {
+		files["euer.csv"] = euerRows(ninja, sources.CategoriesOf(ninjaOptions).EuerSlot, year)
+	}
+	if snipe, ok := costData[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset); ok {
+		files["afa.csv"] = afaRows(snipe, year)
+	}
+	if kimai != nil {
+		files["homeoffice.csv"] = homeRows(kimai, travel, year)
 	}
 	if rows := itCostRows(costData, kimai, settings); len(rows) > 1 {
 		files["it-kosten.csv"] = rows
 	}
-	for _, name := range []string{"rechnungen.csv", "zahlungen.csv", "ausgaben.csv", "ust.csv", "stunden.csv", "fahrten.csv", "it-kosten.csv"} {
+	for _, name := range []string{"rechnungen.csv", "zahlungen.csv", "ausgaben.csv", "ust.csv", "stunden.csv", "fahrten.csv", "it-kosten.csv", "euer.csv", "afa.csv", "homeoffice.csv"} {
 		rows, ok := files[name]
 		if !ok {
 			continue
@@ -335,4 +350,50 @@ func itCostRows(data map[string]any, kimai *sources.KimaiDataset, settings map[s
 		rows = append(rows, []string{item.Key, item.Name, money(item.Monthly), money(yearly), money(share * 100), money(yearly * share)})
 	}
 	return rows
+}
+
+// euerRows sums the year's expenses by EÜR line (the custom field slot,
+// Verbund → Kategorien); "ohne Zeile" collects the rest.
+func euerRows(ninja *sources.NinjaDataset, slot, year int) [][]string {
+	rows := [][]string{{"EÜR-Zeile", "Netto", "Vorsteuer", "Ausgaben"}}
+	for _, l := range metrics.EuerLines(ninja, slot, year) {
+		line := l.Line
+		if line == "" {
+			line = "ohne Zeile"
+		}
+		rows = append(rows, []string{line, money(l.Net), money(l.Tax), strconv.Itoa(l.Expenses)})
+	}
+	return rows
+}
+
+// afaRows is the depreciation of the year by Snipe-IT's rule per asset.
+func afaRows(snipe *sources.SnipeDataset, year int) [][]string {
+	rows := [][]string{{"Anschaffung", "Gegenstand", "Inventarnummer", "Kategorie", "Kosten laut Snipe-IT", "Nutzungsdauer Monate", "AfA im Jahr", "Restwert Jahresende", "GWG möglich"}}
+	yesNo := map[bool]string{true: "ja", false: "nein"}
+	for _, r := range metrics.Depreciation(snipe, year) {
+		months := ""
+		if r.Months > 0 {
+			months = strconv.Itoa(r.Months)
+		}
+		rows = append(rows, []string{r.Asset.PurchaseDate, r.Asset.Name, r.Asset.Tag, r.Asset.Category, money(r.Asset.PurchaseCost), months,
+			money(r.Year), money(r.Left), yesNo[r.Instant]})
+	}
+	return rows
+}
+
+// homeRows lists the days worked at home with the flat rate below.
+func homeRows(kimai *sources.KimaiDataset, travel *metrics.Travel, year int) [][]string {
+	days, estimated := metrics.HomeOffice(kimai, travel, year)
+	rows := [][]string{{"Datum", "Stunden in Kimai"}}
+	for _, d := range days {
+		rows = append(rows, []string{d.Day.Format(time.DateOnly), money(float64(d.Minutes) / minutesPerHour)})
+	}
+	note := "Tage mit Arbeit in Kimai ohne berufliche Fahrt (Dawarich)"
+	if estimated {
+		note = "Tage mit Arbeit in Kimai; ohne Dawarich nicht geprüft, ob unterwegs"
+	}
+	allowance := metrics.HomeOfficeAllowance(len(days), metrics.HomeOfficeRate, metrics.HomeOfficeMaxDays)
+	return append(rows, []string{}, []string{"Tage", strconv.Itoa(len(days))},
+		[]string{fmt.Sprintf("Pauschale (%s € je Tag, höchstens %d Tage)", money(metrics.HomeOfficeRate), metrics.HomeOfficeMaxDays), money(allowance)},
+		[]string{note})
 }
