@@ -2508,6 +2508,9 @@ hint:
       title: '{count} Dienste ohne erkennbares Backup'
       title_singular: '{count} Dienst ohne erkennbares Backup'
       why: '{names}. Kein Backup-Eintrag (Borg-Client, PG-Back-Web-Sicherung, Snapshot) trägt ihren Namen.'
+    restore_failed:
+      title: '{system}: Wiederherstellung am {day} fehlgeschlagen'
+      why: 'Das Backup ließ sich bei der Probe nicht zurückspielen. Ursache klären, dann erneut testen; eine gelungene Probe beendet den Hinweis.'
     restore_untested:
       title: '{system}: Wiederherstellung bis {day} testen'
       why: 'Ein Backup zählt erst, wenn es sich zurückspielen lässt. Eine Datei oder Datenbank probeweise wiederherstellen, dann quittieren. Nächstes Quartal kommt die Erinnerung wieder.'
@@ -3747,6 +3750,7 @@ rule_name:
   github.stale_pr: 'Eigener PR ruht (GitHub)'
   snipe.checkin_overdue: 'Rückgabe überfällig'
   domains.mail_auth: 'Mail-Absender nicht abgesichert'
+  backups.restore_failed: 'Wiederherstellung fehlgeschlagen'
   backups.restore_untested: 'Wiederherstellung testen'
   docker.unhealthy: 'Container ungesund'
   docker.crashed: 'Container abgestürzt'
@@ -5109,6 +5113,9 @@ detail:
     duration: 'Dauer'
     last_archive: 'letztes Archiv'
     mark_tested: 'Getestet'
+    restore_sample: 'Wiederherstellung von {system} testen, Probe: {sample}'
+    restore_failed: 'Probe von {system} fehlgeschlagen?'
+    mark_failed: 'Fehlgeschlagen'
     never: 'noch nie'
     repo_size: 'Repository'
     restore_task: 'Wiederherstellung von {system} getestet'

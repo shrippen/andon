@@ -1359,15 +1359,26 @@ func restoreTasks(results map[string]any, h *metrics.History, now time.Time) Tas
 			continue
 		}
 		tasks.Total++
+		sample := metrics.RestoreSample(results[string(svc)], now)
+		args := map[string]string{"system": string(svc), "sample": sample}
 		task := Task{Text: TxtA("detail.backups.restore_task", "system", Txt("service."+string(svc))), Meta: Txt("detail.backups.never"), State: "warn",
-			Action: T("detail.backups.mark_tested"), Do: "restore_tested", Args: map[string]string{"system": string(svc)}}
-		if at, ok := last[string(svc)]; ok {
+			Action: T("detail.backups.mark_tested"), Do: "restore_tested", Args: args}
+		at, ok := last[string(svc)]
+		if ok {
 			task.Meta = Day(at)
-			if !at.Before(start) {
-				task.State, tasks.Done = "ok", tasks.Done+1
-			}
 		}
-		tasks.Items = append(tasks.Items, task)
+		if ok && !at.Before(start) {
+			task.State, tasks.Done = "ok", tasks.Done+1
+			tasks.Items = append(tasks.Items, task)
+			continue
+		}
+
+		// Open this quarter: the backup to try, and a way to say it failed.
+		if sample != "" {
+			task.Text = TxtA("detail.backups.restore_sample", "system", Txt("service."+string(svc)), "sample", sample)
+		}
+		tasks.Items = append(tasks.Items, task, Task{Text: TxtA("detail.backups.restore_failed", "system", Txt("service."+string(svc))),
+			State: "warn", Action: T("detail.backups.mark_failed"), Do: "restore_failed", Args: args})
 	}
 	return tasks
 }
