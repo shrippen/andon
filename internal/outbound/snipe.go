@@ -4,6 +4,7 @@ package outbound
 // Snipe-IT asset.
 //
 //	POST   hardware        {name, model_id, status_id} → its id
+//	PATCH  hardware/{id}   {warranty_months} (purchase bench)
 //	DELETE hardware/{id}   (live tests clean up)
 
 import (
@@ -21,6 +22,7 @@ type SnipeNew struct {
 	Name, Tag, Serial string
 	Model, Status     int64
 	Notes             string
+	Bought            string // purchase date, "2026-10-01"; "" none
 }
 
 func snipe(to Target) services.SnipeApi {
@@ -39,6 +41,9 @@ func SnipeAssetCreate(ctx context.Context, to Target, a SnipeNew) (int64, error)
 	if a.Notes != "" {
 		body["notes"] = a.Notes
 	}
+	if a.Bought != "" {
+		body["purchase_date"] = a.Bought
+	}
 	res, err := snipe(to).Send(ctx, http.MethodPost, "hardware", body)
 	if err != nil {
 		return 0, err
@@ -54,5 +59,12 @@ func SnipeAssetCreate(ctx context.Context, to Target, a SnipeNew) (int64, error)
 // SnipeAssetDelete removes an asset (Snipe-IT keeps it as deleted).
 func SnipeAssetDelete(ctx context.Context, to Target, id int64) error {
 	_, err := snipe(to).Send(ctx, http.MethodDelete, "hardware/"+strconv.FormatInt(id, 10), nil)
+	return err
+}
+
+// SnipeWarranty sets an asset's warranty in months; Snipe-IT counts it
+// from the purchase date.
+func SnipeWarranty(ctx context.Context, to Target, id int64, months int) error {
+	_, err := snipe(to).Send(ctx, http.MethodPatch, "hardware/"+strconv.FormatInt(id, 10), map[string]any{"warranty_months": months})
 	return err
 }

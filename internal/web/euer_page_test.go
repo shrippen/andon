@@ -255,3 +255,19 @@ func TestFeedsPage(t *testing.T) {
 		}
 	}
 }
+
+// The purchases page lists the demo's recent assets with their gaps.
+func TestPurchasesPage(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	for _, service := range []string{"snipeit", "invoiceninja"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
+	}
+	page := string(mustGet(t, srv, client, "/purchases"))
+	if !strings.Contains(page, "Anschaffungen") || !strings.Contains(page, "Schnitt-Laptop") {
+		t.Fatalf("purchases page:\n%s", page)
+	}
+}
