@@ -226,6 +226,7 @@ func (d Deps) RegisterBillingRoutes(mux *http.ServeMux) {
 	d.registerVendorRoutes(mux)
 	d.registerWeekRoutes(mux)
 	d.registerSubsRoutes(mux)
+	d.registerUpdateRoutes(mux)
 	d.registerDunningRoutes(mux)
 }
 

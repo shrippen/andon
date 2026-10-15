@@ -1,0 +1,76 @@
+{{/* Image updates proposed to the compose repos (services/updates). */}}
+{{define "updates"}}{{$p := .P}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "updates.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "updates.title"}}</h1>
+    <p class="muted">{{t "updates.lead"}}</p>
+    {{with .done}}<p class="pill" data-state="applied">{{t "updates.done" "n" .}}{{with $.PR}} <a href="{{.}}">{{t "updates.open_pr"}}</a>{{end}}</p>{{end}}
+    {{with .failed}}<p class="error">{{t "updates.failed" "n" .}} {{$.Who}}: {{t $.Reason}}</p>{{end}}
+    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+    {{if $p.Scopes}}
+    {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/updates" "Keep" (dict)}}
+    {{if not $p.Finders}}<p class="small muted">{{t "updates.no_finders"}}</p>{{end}}
+    {{if not $p.NVD}}<p class="small muted">{{t "updates.no_nvd"}}</p>{{end}}
+    {{if $p.Cases}}
+    <form method="post" action="/updates/review" class="card" id="cases">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
+      <div class="table-wrap"><table class="table cards-sm">
+        <thead><tr><th></th><th>{{t "updates.image"}}</th><th>{{t "updates.urgency"}}</th><th>{{t "updates.new_tag"}}</th></tr></thead>
+        <tbody>{{range $p.Cases}}{{$k := .Key}}<tr>
+          <td>{{if .Pinned}}<label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if .Urgency}} checked{{end}} aria-label="{{.Image}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
+            <input type="hidden" name="act_{{$k}}" value="propose">{{end}}</td>
+          <td data-card="title"><b>{{.Image}}</b><br>
+            <small class="muted">{{with .Stack}}{{.Host}} · {{.Name}}/{{end}}{{if .Stack}}{{.Service}}{{else}}{{.Container}}{{end}} · {{.Tag}} → {{.NewTag}}{{with .Release}} · <a href="{{.}}">{{t "updates.release"}}</a>{{end}}</small>
+            {{if not .Pinned}}<br><small class="muted">{{if .Stack}}{{t "updates.not_pinned"}}{{else}}{{t "updates.no_stack"}}{{end}}</small>{{end}}</td>
+          <td><span class="pill" data-state="{{if eq .Urgency 2}}failed{{else if eq .Urgency 1}}reviewing{{else}}locked{{end}}">{{t (print "updates.urgency_" .Urgency)}}</span>{{with .CVEs}}<br><small class="muted">{{range $i, $c := .}}{{if $i}}, {{end}}{{$c}}{{end}}</small>{{end}}</td>
+          <td>{{if .Pinned}}<input class="input" name="tag_{{$k}}" value="{{.NewTag}}" aria-label="{{t "updates.new_tag"}}">{{end}}</td>
+        </tr>{{end}}</tbody>
+      </table></div>
+      <p><button type="submit" class="btn btn-accent">{{t "updates.review"}}</button></p>
+    </form>
+    {{else}}<p class="pill" data-state="applied">{{t "updates.empty"}}</p>{{end}}
+    {{end}}
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}
+
+{{define "updates_review"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "updates.review_title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "updates.review_title"}}</h1>
+    <p>{{t "updates.review_lead" "n" .Plan.Writes}}</p>
+    <form method="post" action="/updates/apply">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{.Plan.Scope}}">
+      <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
+        <li{{if .Problem}} class="late"{{end}}>{{if not .Problem}}{{template "bench_step" .Step}}{{end}}
+          <b>{{or $i.Image .Case}}</b><br>
+          {{if .Problem}}{{t (print .Problem)}}{{else}}{{t "updates.do_propose" "repo" $i.Stack.Repo "path" $i.Stack.Path "from" $i.Tag "to" $i.To}}{{end}}
+        </li>{{end}}</ol>
+      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "updates.apply" "n" .Plan.Writes}}</button>{{end}}
+        <a class="btn btn-quiet" href="/updates?scope={{.Plan.Scope}}">{{t "updates.back"}}</a></p>
+    </form>
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}

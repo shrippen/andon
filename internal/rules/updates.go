@@ -45,8 +45,11 @@ func wudUpdates(data *sources.WUDDataset, _ map[string]any, _ Env) []Finding {
 	for _, u := range updates {
 		names = append(names, u.Name+" "+u.Tag+" → "+u.NewTag)
 	}
-	return []Finding{svcFinding(wudSvc, "wud.updates", "updates", "wud.updates", enums.SeverityInfo, data.URL,
-		map[string]any{"count": len(updates), "names": shortList(names)})}
+	f := svcFinding(wudSvc, "wud.updates", "updates", "wud.updates", enums.SeverityInfo, data.URL,
+		map[string]any{"count": len(updates), "names": shortList(names)})
+	// The update bench proposes them as pull requests.
+	f.ActionURL, f.ActionLabel = "/updates#cases", "work_in_updates"
+	return []Finding{f}
 }
 
 func watchtowerFailed(data *sources.WatchtowerDataset, _ map[string]any, _ Env) []Finding {

@@ -206,6 +206,12 @@ func (a FreshRSSApi) Get(ctx context.Context, auth map[string]string, path strin
 	return fetchJSON(ctx, joinURL(a.URL, greaderBase+"reader/api/0/"+path), auth, url.Values{"output": {"json"}}, httpclient.TLSOf(a.Verify))
 }
 
+// Query is Get with parameters, e.g. ("stream/contents/…", {"n": {"500"}}).
+func (a FreshRSSApi) Query(ctx context.Context, auth map[string]string, path string, params url.Values) (any, error) {
+	params.Set("output", "json")
+	return fetchJSON(ctx, joinURL(a.URL, greaderBase+"reader/api/0/"+path), auth, params, httpclient.TLSOf(a.Verify))
+}
+
 // ── Gitea ──
 
 type GiteaApi struct {
@@ -217,6 +223,13 @@ type GiteaApi struct {
 // Get performs one GET against /api/v1/<path>.
 func (a GiteaApi) Get(ctx context.Context, path string, params url.Values) (any, error) {
 	return fetchJSON(ctx, joinURL(a.URL, "api/v1/"+path), map[string]string{"Authorization": "token " + a.Token, "Accept": "application/json"}, params, httpclient.TLSOf(a.Verify))
+}
+
+// Send performs one write against /api/v1/<path>, e.g. (POST,
+// "repos/alex/docker-compose-regis/pulls", {…}); the token needs the
+// write scope of the repository.
+func (a GiteaApi) Send(ctx context.Context, method, path string, body any) (any, error) {
+	return sendJSON(ctx, method, joinURL(a.URL, "api/v1/"+path), map[string]string{"Authorization": "token " + a.Token}, body, httpclient.TLSOf(a.Verify))
 }
 
 // ── Borg Backup Server ──
