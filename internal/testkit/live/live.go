@@ -56,6 +56,7 @@ const (
 	Paperless Service = "paperless"
 	Tandoor   Service = "tandoor"
 	Snipe     Service = "snipeit"
+	FreshRSS  Service = "freshrss"
 	Wallos    Service = "wallos"
 	Sure      Service = "sure"
 )
