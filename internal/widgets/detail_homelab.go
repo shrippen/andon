@@ -638,6 +638,19 @@ func homelabCostDetail(cfg CostConfig, results map[string]any, ctx ViewCtx) Deta
 		}
 		body.Blocks = append(body.Blocks, Block{Kind: BlockBars, Label: T("detail.cost.power_split"), Meta: NumU(asF(view["Watts"]), 0, "W"), Data: bars})
 	}
+	if stacks, ok := view["Stacks"].([]metrics.StackCost); ok && len(stacks) > 0 {
+		var rows [][]Cell
+		for _, c := range stacks {
+			var name any = c.Stack
+			if c.Business {
+				name = TxtA("detail.cost.business_stack", "name", c.Stack)
+			}
+			rows = append(rows, []Cell{{Value: name}, {Value: c.Server}, {Value: Money(c.Power, currency)}, {Value: Money(c.Rest, currency)}, {Value: Money(c.Monthly, currency)}})
+		}
+		body.Blocks = append(body.Blocks, Block{Kind: BlockTable, Label: T("detail.cost.per_stack"), Meta: Txt("detail.cost.per_stack_how"), Data: Table{
+			Head: []Text{T("detail.cost.stack"), T("detail.cost.server"), T("cost.power"), T("detail.cost.rest"), T("detail.cost.month")},
+			Rows: rows, Num: []int{2, 3, 4}}})
+	}
 	h, now := historyOf(results), todayOf(ctx)
 	if days := metrics.PowerDays(h, now, costDays); len(days) > 0 {
 		var rows [][]Cell
