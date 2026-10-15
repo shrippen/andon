@@ -225,6 +225,20 @@ func (a SnipeApi) Get(ctx context.Context, path string, params url.Values) (any,
 	return fetchJSON(ctx, a.URL+"/api/v1/"+path, a.headers(), params, httpclient.TLSOf(a.Verify))
 }
 
+// Send performs one write against /api/v1/<path>, e.g. (POST,
+// "hardware", {…}). Snipe-IT answers 200 with status "error" when it
+// refuses; that is an error here too.
+func (a SnipeApi) Send(ctx context.Context, method, path string, body any) (any, error) {
+	out, err := sendJSON(ctx, method, a.URL+"/api/v1/"+path, a.headers(), body, httpclient.TLSOf(a.Verify))
+	if err != nil {
+		return nil, err
+	}
+	if m := asMap(out); m["status"] == "error" {
+		return nil, ApiError{fmt.Sprint("snipe-it: ", m["messages"])}
+	}
+	return out, nil
+}
+
 // Rows follows Snipe-IT's limit/offset paging and returns every "rows" entry.
 func (a SnipeApi) Rows(ctx context.Context, path string, params url.Values) ([]any, error) {
 	var items []any

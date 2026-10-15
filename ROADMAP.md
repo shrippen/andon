@@ -1266,8 +1266,9 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
 6. Jahr: EÜR-Vorbereitung (EÜR-Kategorie aus 2., Abschreibung aus Snipe-IT), Homeoffice-Tage, Paket für die Steuerberatung, Rücklagenkonto (dritte Kontoverwendung „Rücklage“)
 7. Homelab
    - [ ] Update-Werkbank: Image-Updates nach Dringlichkeit (öffentlich, CVE), Changelog von Claude zusammengefasst, PR im Compose-Repo; FreshRSS als Quelle der Release-Feeds, mit Vorschlägen zum Anpassen der Feeds (fehlender Feed für einen laufenden Dienst, Feed eines nicht mehr laufenden Dienstes, Feed ohne Releases); geschrieben in FreshRSS nur nach OK
-   - [ ] Inventur (Geräte im Netz ↔ Snipe-IT), Anschaffung vollständig (Asset, Ausgabe, Beleg, Garantie), Wiederherstellungsprobe
-   - [ ] Doku-Drift: nichts schreiben, für Hansei vorbereiten (`/api/docs`, Webhook)
+   - [x] Inventur (`/inventory`, Navigation „Inventur“, `services/inventory`; Need: Snipe-IT, dazu Router und FRITZ!Box): Geräte ohne gleichnamigen Gegenstand (`metrics.NetClients`, `Uninventoried`, auch für `cross.device_uninventoried`, dessen Hinweis dorthin führt) nach dem Prüfen in Snipe-IT anlegen (Name, Modell aus einer Liste, Status; IP und MAC als Notiz) oder in die Ausnahmen des Hinweises aufnehmen. Snipe-IT liefert dafür Modelle und Status *(15.10.2026 live: Anlegen und Löschen eines Testgegenstands grün (`TestSnipeLive`); lesend 44 Geräte, 40 ohne Gegenstand, viele nur als MAC; 772 Modelle, darum eine gemeinsame Auswahlliste statt eines Selects je Zeile)*
+   - [ ] Anschaffung vollständig (Asset, Ausgabe, Beleg, Garantie), Wiederherstellungsprobe
+   - [x] Doku-Drift: nichts schreiben, für Hansei vorbereiten (`/api/docs`, Webhook) *(war schon da: Phase 15, `docs.drift` mit Feldern in `/api/docs`; 15.10.2026 festgestellt)*
    - [ ] Kosten je Dienst als Popup der Kachel „Homelab-Kosten“
 8. Analysen: Kundenzustand, Zeit für eine Preiserhöhung, Nachkalkulation, Jahresrückblick, Frag Andon (experimentell, nur lesend)
 

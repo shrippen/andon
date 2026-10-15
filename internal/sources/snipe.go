@@ -113,7 +113,23 @@ func loadSnipe(ctx context.Context, api services.SnipeApi, sctx Ctx) (*SnipeData
 
 	return &SnipeDataset{
 		URL: sctx.URL, Assets: assets, Licenses: licenses, Consumables: consumables, AuditOverdue: overdue,
+		Models: snipeChoices(ctx, api, "models"), Statuses: snipeChoices(ctx, api, "statuslabels"),
 	}, nil
+}
+
+// snipeChoices reads models or status labels; a refusal leaves none
+// (the inventory bench then cannot add assets).
+func snipeChoices(ctx context.Context, api services.SnipeApi, path string) []SnipeChoice {
+	rows, err := api.Rows(ctx, path, nil)
+	if err != nil {
+		return nil
+	}
+	out := make([]SnipeChoice, 0, len(rows))
+	for _, r := range rows {
+		m := asMap(r)
+		out = append(out, SnipeChoice{ID: asInt64(m["id"]), Name: asStr(m["name"]), Kind: asStr(m["type"])})
+	}
+	return out
 }
 
 // SnipeTest is the "snipeit.test" source: a lightweight connection check.

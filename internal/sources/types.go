@@ -434,6 +434,16 @@ type SnipeDataset struct {
 	Licenses     []SnipeLicense
 	Consumables  []SnipeConsumable
 	AuditOverdue []int64
+	// Models and status labels, for a new asset (inventory bench).
+	Models   []SnipeChoice
+	Statuses []SnipeChoice
+}
+
+// SnipeChoice is a model or status label: its id and name; Kind is a
+// status label's type ("deployable", "pending" …).
+type SnipeChoice struct {
+	ID         int64
+	Name, Kind string
 }
 
 // ── Dawarich ──

@@ -119,6 +119,10 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 1. Hinweis „Fehlt in Wallos“ → „In den Abos erledigen“ führt nach `/subs`.
 2. Demo: Nordhost mit neuem Preis (Wallos und Invoice Ninja, vorab angehakt), Wellenklang doppelt in Wallos, Farbraum fehlt in Wallos. Betrag ändern, „Prüfen“ zeigt alt → neu; „Schreiben“ (Demo lehnt ab).
 
+**J-C11 Inventur**
+1. Hinweis „Geräte ohne Inventar“ → `/inventory`: Geräte der FRITZ!Box mit IP und MAC, „Gelesen aus“ nennt sie.
+2. Ein Gerät „In Snipe-IT anlegen“ mit Modell aus der Liste → „Prüfen“ (Demo lehnt ab); ein anderes „Ignorieren“ → verschwindet, steht unter Bereich → Regeln in den Ausnahmen.
+
 **J-C6 Woche schließen**
 1. `/week`: letzte Woche vorgewählt, Chips für vier Wochen; „Gelesen aus“ nennt Dawarich und Kalender des Verbunds.
 2. Jede Lücke mit Kunde, Zeiten, Projekt und Tätigkeit vorgeschlagen; vollständige angehakt. „Prüfen“ → „In Kimai eintragen“ (Demo lehnt ab).

@@ -1687,6 +1687,41 @@
  "assets_state": {
   "note": "Snipe-IT states of the first four inventory assets: the notebook's warranty ends soon, the NAS is past end of life and overdue for an audit, the fourth should have come back from Jonas. Licences: the first expires soon, the second has free seats.",
   "url": "https://assets.demo",
+  "models": [
+   {
+    "id": 1,
+    "name": "Framework Laptop 13"
+   },
+   {
+    "id": 2,
+    "name": "Speicherwerk NS-4"
+   },
+   {
+    "id": 3,
+    "name": {
+     "de": "Sonstiges Netzwerkgerät",
+     "en": "Other network device"
+    }
+   }
+  ],
+  "statuses": [
+   {
+    "id": 1,
+    "name": {
+     "de": "Bereit",
+     "en": "Ready"
+    },
+    "kind": "deployable"
+   },
+   {
+    "id": 2,
+    "name": {
+     "de": "Ausstehend",
+     "en": "Pending"
+    },
+    "kind": "pending"
+   }
+  ],
   "assets": [
    {
     "status": {
@@ -1696,6 +1731,7 @@
     "deployable": true,
     "assigned": true,
     "purchase_date": "@date-30",
+    "dep_months": 12,
     "warranty_expires": "@date+10",
     "eol_date": "@date+900",
     "next_audit": "@date+100",
@@ -1709,6 +1745,7 @@
     "deployable": true,
     "assigned": true,
     "purchase_date": "@date-1900",
+    "dep_months": 36,
     "warranty_expires": "@date-800",
     "eol_date": "@date-20",
     "next_audit": "@date-15",
@@ -1721,6 +1758,7 @@
     },
     "deployable": true,
     "purchase_date": "@date-500",
+    "dep_months": 60,
     "warranty_expires": "@date+230",
     "next_audit": "@date+60",
     "last_change": "@date-140"
@@ -1733,6 +1771,7 @@
     "deployable": true,
     "assigned": true,
     "purchase_date": "@date-60",
+    "dep_months": 12,
     "warranty_expires": "@date+1000",
     "next_audit": "@date+200",
     "last_change": "@date-60",
@@ -1765,7 +1804,7 @@
   ]
  },
  "bank": {
-  "note": "Sure: one income matches the open invoice, the health insurance payment is overdue.",
+  "note": "Sure: one income matches the open invoice, the health insurance payment is overdue; the studio supplies of last week lack a category, an older booking of the same shop has one.",
   "url": "https://money.demo",
   "currency": "EUR",
   "net_worth": 48210,
@@ -1858,6 +1897,20 @@
      "en": "Hosting"
     },
     "merchant": "Nordhost Server",
+    "account": {
+     "de": "Geschäftskonto",
+     "en": "Business account"
+    }
+   },
+   {
+    "id": "t6",
+    "date": "@date-70",
+    "name": "Kabelwerk Studiobedarf",
+    "amount": -249,
+    "category": {
+     "de": "Technik",
+     "en": "Equipment"
+    },
     "account": {
      "de": "Geschäftskonto",
      "en": "Business account"
@@ -8763,7 +8816,7 @@
   }
  },
  "feeds": {
-  "note": "FreshRSS: one feed has been silent for over a year.",
+  "note": "FreshRSS: one feed has been silent for over a year; release feeds announce newer versions of two pinned images.",
   "url": "https://rss.demo",
   "unread": 812,
   "feeds": [
@@ -8797,6 +8850,22 @@
     "category": "Tech",
     "unread": 260,
     "newest": "@-2d"
+   }
+  ],
+  "releases": [
+   {
+    "feed": "feed/5",
+    "repo": "freika/dawarich",
+    "version": "0.30.9",
+    "link": "https://github.com/Freika/dawarich/releases/tag/0.30.9",
+    "published": "@-3d"
+   },
+   {
+    "feed": "feed/6",
+    "repo": "stirling-tools/stirling-pdf",
+    "version": "v1.5.0",
+    "link": "https://github.com/Stirling-Tools/Stirling-PDF/releases/tag/v1.5.0",
+    "published": "@-6d"
    }
   ]
  },
