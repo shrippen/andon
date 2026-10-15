@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/sources"
 )
 
@@ -180,60 +181,26 @@ func lineVsSpeed(_ any, cfg map[string]any, env Env) []Finding {
 
 func deviceUninventoried(_ any, cfg map[string]any, env Env) []Finding {
 	snipe, ok := env.Datasets[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset)
-	names, from := networkClients(env)
-	if !ok || len(names) == 0 {
+	gw, _ := env.Datasets[string(enums.ServiceGateway)].(*sources.GatewayDataset)
+	fritz, _ := env.Datasets[fritzSvc].(*sources.FritzDataset)
+	clients, from := metrics.NetClients(gw, fritz)
+	if !ok || len(clients) == 0 {
 		return nil
 	}
-	ignore := idSet(cfg["ignore"])
-	var assets []string
-	for _, a := range snipe.Assets {
-		assets = append(assets, strings.ToLower(a.Name))
-	}
-	var missing []string
-	for _, name := range names {
-		lower := strings.ToLower(name)
-		if ignore[lower] {
-			continue
-		}
-		known := false
-		for _, a := range assets {
-			known = known || (a != "" && (strings.Contains(lower, a) || strings.Contains(a, lower)))
-		}
-		if !known {
-			missing = append(missing, name)
-		}
-	}
+	missing := metrics.Uninventoried(clients, snipe, idSet(cfg["ignore"]))
 	if len(missing) == 0 {
 		return nil
 	}
+	names := make([]string, len(missing))
+	for i, c := range missing {
+		names[i] = c.Name
+	}
+	src := []string{string(enums.ServiceSnipeIT)}
+	for _, s := range from {
+		src = append(src, string(s))
+	}
+	// The inventory bench adds them to Snipe-IT or ignores them.
 	return []Finding{{Fingerprint: "uninventoried", Severity: enums.SeverityInfo, Message: "cross.device_uninventoried",
-		Params: map[string]any{"count": len(missing), "names": shortList(missing)}, Sources: append([]string{string(enums.ServiceSnipeIT)}, from...)}}
-}
-
-// networkClients are the devices the router and the FRITZ!Box know, each
-// name once, and the services that named them. Of the FRITZ!Box: the
-// devices online now, without guests and its own AVM devices.
-func networkClients(env Env) (names, from []string) {
-	seen := map[string]bool{}
-	add := func(name string) {
-		if name != "" && !seen[name] {
-			seen[name] = true
-			names = append(names, name)
-		}
-	}
-	if gw, ok := env.Datasets[string(enums.ServiceGateway)].(*sources.GatewayDataset); ok && len(gw.ClientNames) > 0 {
-		from = append(from, string(enums.ServiceGateway))
-		for _, n := range gw.ClientNames {
-			add(n)
-		}
-	}
-	if fritz, ok := env.Datasets[fritzSvc].(*sources.FritzDataset); ok && len(fritz.Hosts) > 0 {
-		from = append(from, fritzSvc)
-		for _, h := range fritz.Hosts {
-			if h.Active && !h.Guest && h.Model == "" {
-				add(h.Name)
-			}
-		}
-	}
-	return names, from
+		Params: map[string]any{"count": len(missing), "names": shortList(names)}, Sources: src,
+		ActionURL: "/inventory#cases", ActionLabel: "work_in_inventory"}}
 }

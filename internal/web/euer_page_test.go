@@ -218,3 +218,22 @@ func TestUpdatesPage(t *testing.T) {
 		t.Fatalf("review:\n%s", review)
 	}
 }
+
+// The inventory page lists the demo network's unknown devices with
+// Snipe-IT's models.
+func TestInventoryPage(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	for _, service := range []string{"snipeit", "fritzbox"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
+	}
+	page := string(mustGet(t, srv, client, "/inventory"))
+	for _, want := range []string{"Inventur", `value="add"`, `<option value="Sonstiges Netzwerkgerät">`, `list="inventory-models"`, "FRITZ!Box"} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("inventory page lacks %q:\n%s", want, page)
+		}
+	}
+}

@@ -55,6 +55,7 @@ const (
 	Ninja     Service = "invoiceninja"
 	Paperless Service = "paperless"
 	Tandoor   Service = "tandoor"
+	Snipe     Service = "snipeit"
 	Wallos    Service = "wallos"
 	Sure      Service = "sure"
 )

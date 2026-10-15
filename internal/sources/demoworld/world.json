@@ -1687,6 +1687,41 @@
  "assets_state": {
   "note": "Snipe-IT states of the first four inventory assets: the notebook's warranty ends soon, the NAS is past end of life and overdue for an audit, the fourth should have come back from Jonas. Licences: the first expires soon, the second has free seats.",
   "url": "https://assets.demo",
+  "models": [
+   {
+    "id": 1,
+    "name": "Framework Laptop 13"
+   },
+   {
+    "id": 2,
+    "name": "Speicherwerk NS-4"
+   },
+   {
+    "id": 3,
+    "name": {
+     "de": "Sonstiges Netzwerkgerät",
+     "en": "Other network device"
+    }
+   }
+  ],
+  "statuses": [
+   {
+    "id": 1,
+    "name": {
+     "de": "Bereit",
+     "en": "Ready"
+    },
+    "kind": "deployable"
+   },
+   {
+    "id": 2,
+    "name": {
+     "de": "Ausstehend",
+     "en": "Pending"
+    },
+    "kind": "pending"
+   }
+  ],
   "assets": [
    {
     "status": {
