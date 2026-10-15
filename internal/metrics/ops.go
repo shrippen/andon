@@ -240,7 +240,7 @@ func HealthchecksInfo(data *sources.HealthchecksDataset) []InfoPart {
 	return found
 }
 
-// LLMInfo: "12,40 $ this month · credit 2,40 $ · week 91 %".
+// LLMInfo: "12,40 $ this month · credit 2,40 $".
 func LLMInfo(data *sources.LLMDataset) []InfoPart {
 	var found []InfoPart
 	for _, a := range data.Accounts {
@@ -249,10 +249,6 @@ func LLMInfo(data *sources.LLMDataset) []InfoPart {
 		}
 		if a.HasBalance {
 			found = append(found, part("llm.credit", map[string]any{"amount": map[string]any{"$money": a.Balance, "currency": a.Currency}}))
-		}
-		if q, ok := LLMQuotaTop(a); ok {
-			found = append(found, part("llm.quota", map[string]any{"window": map[string]any{"$t": "llm.quota." + string(q.Kind), "args": map[string]any{"model": q.Model}},
-				"pct": map[string]any{"$num": q.Percent, "digits": 0}}))
 		}
 	}
 	return found

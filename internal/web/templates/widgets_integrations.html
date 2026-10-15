@@ -324,7 +324,6 @@
 {{range $v.Lines}}
   <div class="progress">
     <div class="progress-head"><span>{{if .Name}}{{.Name}} <small class="muted">{{t (print "service." .Service)}}</small>{{else}}{{t (print "service." .Service)}}{{end}}</span><span>{{if .Spend}}{{money .Month $v.Currency}}{{end}}</span></div>
-    {{with .Quota}}{{template "llm_meter" .}}{{end}}
     {{with .Limit}}{{template "llm_meter" .}}{{end}}
     {{if .Credit}}<small class="muted">{{t "llm.credit" "amount" (money .Credit.Amount .Credit.Currency)}}</small>{{end}}
   </div>
@@ -333,6 +332,6 @@
 {{else}}<p class="tile-note">{{t "llm.none"}}</p>{{end}}{{end}}
 {{end}}
 
-{{/* llm_meter: a plan window or key limit as a bar (LLMMeter). */}}
+{{/* llm_meter: a key limit as a bar (LLMMeter). */}}
 {{define "llm_meter"}}<div class="progress-bar"><i data-style="--p:{{.Fill}}%" data-tier="{{.Tier}}"></i></div>
-<small class="muted">{{t .Key "model" .Model}} · {{num .Pct 0}} %</small>{{end}}
+<small class="muted">{{t .Key}} · {{num .Pct 0}} %</small>{{end}}

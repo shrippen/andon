@@ -4,7 +4,6 @@ package sources
 //
 //	claudeapi   GET v1/organizations/usage_report/messages  x-api-key (admin key)  tokens per day and model
 //	            GET v1/organizations/cost_report            cents per day and model
-//	claudeplan  GET api/oauth/usage                         Bearer (OAuth token)   {five_hour, seven_day, …} or {limits: […]}
 //	openrouter  GET key                                     Bearer                 usage_daily, usage_monthly, limit, …
 //	            GET credits, GET activity                   management key only    credit, per day and model
 //	openai      GET organization/usage/completions          Bearer (admin key)     tokens per day and model
@@ -27,7 +26,6 @@ import (
 
 const (
 	anthropicVersion = "2023-06-01"
-	oauthBeta        = "oauth-2025-04-20"
 	centsPerDollar   = 100.0
 	llmMaxPages      = 5 // 31 daily buckets fit one page; a few more for many models
 	litellmPageSize  = 100
@@ -35,7 +33,6 @@ const (
 
 var (
 	ClaudeAPIData  = source{key: "claudeapi.data", ttl: dataTTL, service: enums.ServiceClaudeAPI, fetch: fetchClaudeAPI}
-	ClaudePlanData = source{key: "claudeplan.data", ttl: opsTTL, service: enums.ServiceClaudePlan, fetch: fetchClaudePlan}
 	OpenRouterData = source{key: "openrouter.data", ttl: dataTTL, service: enums.ServiceOpenRouter, fetch: fetchOpenRouter}
 	OpenAIData     = source{key: "openai.data", ttl: dataTTL, service: enums.ServiceOpenAI, fetch: fetchOpenAI}
 	DeepSeekData   = source{key: "deepseek.data", ttl: dataTTL, service: enums.ServiceDeepSeek, fetch: fetchDeepSeek}
@@ -140,67 +137,6 @@ func fetchClaudeAPI(ctx context.Context, sctx Ctx) (any, error) {
 	a.URL, a.Spend, a.Uses = "https://console.anthropic.com/usage", true, u.rows
 	a.sumUses(now)
 	return &LLMDataset{Accounts: []LLMAccount{a}}, nil
-}
-
-// ── Claude plan (Pro / Max, OAuth token) ──
-
-// planWindows maps the flat answer's keys to quota windows.
-var planWindows = []struct {
-	key   string
-	kind  QuotaKind
-	model string
-}{{"five_hour", QuotaSession, ""}, {"seven_day", QuotaWeek, ""}, {"seven_day_opus", QuotaWeekModel, "Opus"}, {"seven_day_sonnet", QuotaWeekModel, "Sonnet"}}
-
-// planKinds maps the newer limits list's kinds.
-var planKinds = map[string]QuotaKind{"session": QuotaSession, "weekly_all": QuotaWeek, "weekly_scoped": QuotaWeekModel}
-
-func fetchClaudePlan(ctx context.Context, sctx Ctx) (any, error) {
-	if isDemo(sctx) {
-		return DemoLLM(enums.ServiceClaudePlan, time.Now()), nil
-	}
-	secret, err := needSecret(sctx)
-	if err != nil {
-		return nil, err
-	}
-	api := services.BearerApi(sctx.URL, secret, sctx.TLS())
-	api.Headers["anthropic-beta"] = oauthBeta
-	raw, err := api.Get(ctx, "api/oauth/usage", nil)
-	if err != nil {
-		return nil, fetchError(err)
-	}
-	a := newAccount(enums.ServiceClaudePlan, sctx, "")
-	a.URL, a.Quotas = "https://claude.ai/settings/usage", planQuotas(asMap(raw))
-	return &LLMDataset{Accounts: []LLMAccount{a}}, nil
-}
-
-// planQuotas reads the limits list when the answer has one, else the
-// flat windows; null windows are left out.
-func planQuotas(m map[string]any) []LLMQuota {
-	var out []LLMQuota
-	for _, item := range asList(m["limits"]) {
-		l := asMap(item)
-		kind, ok := planKinds[asStr(l["kind"])]
-		if !ok {
-			continue
-		}
-		model := asStr(asMap(asMap(l["scope"])["model"])["display_name"])
-		out = append(out, LLMQuota{Kind: kind, Model: model, Percent: asFloat(l["percent"]), Resets: parseTime(l["resets_at"])})
-	}
-	if len(out) == 0 {
-		for _, w := range planWindows {
-			if win := asMap(m[w.key]); win != nil {
-				out = append(out, LLMQuota{Kind: w.kind, Model: w.model, Percent: asFloat(win["utilization"]), Resets: parseTime(win["resets_at"])})
-			}
-		}
-	}
-	if extra := asMap(m["extra_usage"]); asBool(extra["is_enabled"]) {
-		pct := asFloat(extra["utilization"])
-		if limit := asFloat(extra["monthly_limit"]); extra["utilization"] == nil && limit > 0 {
-			pct = asFloat(extra["used_credits"]) / limit * percent
-		}
-		out = append(out, LLMQuota{Kind: QuotaExtra, Percent: pct})
-	}
-	return out
 }
 
 // ── OpenRouter ──

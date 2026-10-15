@@ -66,28 +66,6 @@ func TestClaudeAPI(t *testing.T) {
 	}
 }
 
-// TestClaudePlan: the newer limits list wins; without it the flat
-// windows, null ones left out; extra usage as a share of its limit.
-func TestClaudePlan(t *testing.T) {
-	srv := fakeLLM(t, "Authorization", "Bearer secret", map[string]string{
-		"/api/oauth/usage": `{"limits":[{"kind":"session","percent":12,"resets_at":"2026-10-10T15:00:00+00:00"},` +
-			`{"kind":"weekly_scoped","percent":40,"scope":{"model":{"display_name":"Opus"}}},{"kind":"odd","percent":99}],"five_hour":{"utilization":1}}`,
-	})
-	a := account(t, sources.ClaudePlanData, srv.URL, nil)
-	if len(a.Quotas) != 2 || a.Quotas[0].Kind != sources.QuotaSession || a.Quotas[0].Resets.IsZero() || a.Quotas[1].Model != "Opus" || a.Spend {
-		t.Fatalf("limits %+v", a)
-	}
-
-	srv = fakeLLM(t, "Authorization", "Bearer secret", map[string]string{
-		"/api/oauth/usage": `{"five_hour":{"utilization":35.0,"resets_at":"2026-10-10T15:00:00+00:00"},"seven_day":{"utilization":91},"seven_day_opus":null,` +
-			`"extra_usage":{"is_enabled":true,"monthly_limit":5000,"used_credits":1250,"utilization":null}}`,
-	})
-	a = account(t, sources.ClaudePlanData, srv.URL, nil)
-	if len(a.Quotas) != 3 || a.Quotas[1].Kind != sources.QuotaWeek || a.Quotas[1].Percent != 91 || a.Quotas[2].Kind != sources.QuotaExtra || a.Quotas[2].Percent != 25 {
-		t.Fatalf("flat %+v", a.Quotas)
-	}
-}
-
 // TestOpenRouter: an inference key gives spend and its limit; a
 // management key also credit and the history per model.
 func TestOpenRouter(t *testing.T) {
@@ -152,7 +130,7 @@ func TestLiteLLM(t *testing.T) {
 }
 
 // TestDemoLLM: every provider has Studio Weber's account; the API one
-// spends today, the plan has quotas, DeepSeek only a balance.
+// spends today, DeepSeek only a balance.
 func TestDemoLLM(t *testing.T) {
 	now := time.Now()
 	for _, s := range sources.LLMServices() {
@@ -163,9 +141,6 @@ func TestDemoLLM(t *testing.T) {
 	api := sources.DemoLLM(enums.ServiceClaudeAPI, now).Accounts[0]
 	if api.Today <= 0 || api.Budget == 0 || len(api.Uses) == 0 || api.Uses[len(api.Uses)-1].Day != now.UTC().Format(time.DateOnly) {
 		t.Fatalf("claude api %+v", api)
-	}
-	if plan := sources.DemoLLM(enums.ServiceClaudePlan, now).Accounts[0]; len(plan.Quotas) < 3 || plan.Quotas[0].Resets.IsZero() {
-		t.Fatalf("plan %+v", plan)
 	}
 	if ds := sources.DemoLLM(enums.ServiceDeepSeek, now).Accounts[0]; !ds.HasBalance || ds.Spend {
 		t.Fatalf("deepseek %+v", ds)

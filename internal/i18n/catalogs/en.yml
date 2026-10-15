@@ -45,7 +45,6 @@ action:
   work_in_billing: 'Settle in billing'
   work_in_vat: 'Settle in the VAT check'
   open_in_claudeapi: 'Open in Claude Console'
-  open_in_claudeplan: 'Open in claude.ai'
   open_in_openrouter: 'Open in OpenRouter'
   open_in_openai: 'Open in OpenAI'
   open_in_deepseek: 'Open in DeepSeek'
@@ -389,7 +388,7 @@ typefield:
     only_problems: Only shaky now (last 2 days)
 field:
   bank_accounts: Accounts
-  providers: 'Only these providers (claudeapi, claudeplan, openrouter, openai, deepseek, litellm)'
+  providers: 'Only these providers (claudeapi, openrouter, openai, deepseek, litellm)'
   site: Site
   hours: History (hours)
   warn: Warn from
@@ -870,7 +869,7 @@ wall_ease:
 wtype:
   llm_usage:
     name: 'AI costs'
-    desc: 'Tokens, cost, credit and plan quotas of the LLM providers: Claude, OpenRouter, OpenAI, DeepSeek, LiteLLM.'
+    desc: 'Tokens, cost, credit and limits of the LLM providers: Claude, OpenRouter, OpenAI, DeepSeek, LiteLLM.'
   github_trending:
     name: GitHub trends
     desc: 'New repositories of the period with the most stars (GitHub search), optionally of one language.'
@@ -1380,9 +1379,6 @@ conn:
   options_hint_claudeapi: 'The URL stays https://api.anthropic.com. Token = an Admin API key (sk-ant-admin…, Console → Settings → Admin keys); only organizations have one, regular API keys are refused. Optionally a monthly budget in USD.'
   about_claudeapi: 'Claude API: tokens and cost per model'
   what_claudeapi: 'The Usage & Cost API of the Claude Console reports tokens and cost per day and model for the whole organization.'
-  options_hint_claudeplan: 'The URL stays https://api.anthropic.com. Token = an OAuth token of your claude.ai login, e.g. from claude setup-token. Andon reads the session and week quota claude.ai shows under Settings → Usage. Anthropic does not document this endpoint; it may change.'
-  about_claudeplan: 'Claude Pro/Max: session and week quota'
-  what_claudeplan: 'Claude Pro and Max limit use per session (5 h) and per week. Andon shows how full each window is and when it resets.'
   options_hint_openrouter: 'The URL stays https://openrouter.ai/api/v1. Token = an API key (spend and key limit) or a management key (also credit and the cost per model and day). Optionally a monthly budget in USD.'
   about_openrouter: 'OpenRouter: spend, credit, key limit'
   what_openrouter: 'OpenRouter routes requests to many model providers and bills them from one credit.'
@@ -1851,7 +1847,6 @@ mode:
   light: Light
 service:
   claudeapi: 'Claude API'
-  claudeplan: 'Claude plan (Pro/Max)'
   openrouter: 'OpenRouter'
   openai: 'OpenAI API'
   deepseek: 'DeepSeek'
@@ -2249,9 +2244,6 @@ hint:
     limit_low:
       title: '{account}: key limit nearly reached'
       why: '{left} of {limit} left on the key. Raise the limit or wait for the reset.'
-    quota_high:
-      title: '{account}: {window} at {percent} %'
-      why: 'Resets {resets}. Until then requests may be slowed down or refused.'
     spike:
       title: '{account} costs unusually much today'
       why: '{today} today against {usual} on a usual day. A loop, a batch run twice or a mixed-up model?'
@@ -3208,7 +3200,6 @@ info:
   llm:
     month: '{amount} this month'
     credit: 'credit {amount}'
-    quota: '{window} {pct} %'
   lemmy:
     info: '{unread} unread'
   esphome:
@@ -3513,7 +3504,6 @@ deadline:
 rule_name:
   llm.budget: 'LLM budget'
   llm.credit_low: 'LLM credit low'
-  llm.quota_high: 'Plan quota nearly used'
   llm.spike: 'LLM cost spike'
   firefly.recurring_missed: 'Recurring payment missed (Firefly III)'
   firefly.low_balance: 'Low balance (Firefly III)'
@@ -7106,19 +7096,13 @@ llm:
   credit: 'credit {amount}'
   account: '{service} · {name}'
   bar: '{window} · {account}'
-  resets: '{pct} % · resets {when}'
   left_of: '{left} of {limit} left'
   limit_used: 'Key limit'
   other: 'other (tools, search)'
   chart: 'Cost per day (USD)'
-  quotas: 'Quotas and limits'
+  quotas: 'Key limits'
   accounts: 'Accounts'
   models: 'Models this month'
-  quota:
-    session: 'Session (5 h)'
-    week: 'Week'
-    week_model: 'Week · {model}'
-    extra: 'Extra usage'
   facts:
     month: 'this month'
     today: 'today'

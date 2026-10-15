@@ -46,7 +46,6 @@ connections:
   - {id: fediverse, type: fediverse, name: Mastodon, url: "demo://fediverse", credentials: shared}
   - {id: lemmy, type: lemmy, name: Lemmy, url: "demo://lemmy", credentials: shared}
   - {id: claudeapi, type: claudeapi, name: Claude API, url: "demo://claudeapi", credentials: shared}
-  - {id: claudeplan, type: claudeplan, name: Claude Max, url: "demo://claudeplan", credentials: shared}
   - {id: openrouter, type: openrouter, name: OpenRouter, url: "demo://openrouter", credentials: shared}
   - {id: openai, type: openai, name: OpenAI, url: "demo://openai", credentials: shared}
   - {id: deepseek, type: deepseek, name: DeepSeek, url: "demo://deepseek", credentials: shared}

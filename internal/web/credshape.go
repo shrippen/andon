@@ -41,7 +41,6 @@ var defaultURLs = map[enums.ServiceType]string{
 	enums.ServiceNews:       "https://news.ycombinator.com",
 	enums.ServiceTwitch:     "https://api.twitch.tv",
 	enums.ServiceClaudeAPI:  "https://api.anthropic.com",
-	enums.ServiceClaudePlan: "https://api.anthropic.com",
 	enums.ServiceOpenRouter: "https://openrouter.ai/api/v1",
 	enums.ServiceOpenAI:     "https://api.openai.com/v1",
 	enums.ServiceDeepSeek:   "https://api.deepseek.com",
