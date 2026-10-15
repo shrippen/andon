@@ -1,0 +1,78 @@
+{{/* Subscriptions brought in line with the bank (services/subs). */}}
+{{define "subs"}}{{$p := .P}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "subs.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "subs.title"}}</h1>
+    <p class="muted">{{t "subs.lead"}}</p>
+    {{with .done}}<p class="pill" data-state="applied">{{t "subs.done" "n" .}}</p>{{end}}
+    {{with .failed}}<p class="error">{{t "subs.failed" "n" .}} {{$.Who}}: {{t $.Reason}}</p>{{end}}
+    {{with .Error}}<p class="error">{{t .}}</p>{{end}}
+    {{if $p.Scopes}}
+    {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/subs" "Keep" (dict)}}
+    {{if not $p.Wallos}}<p class="small muted">{{t "subs.no_wallos"}}</p>{{end}}
+    {{if not $p.Ninja}}<p class="small muted">{{t "subs.no_ninja"}}</p>{{end}}
+    {{if $p.Cases}}
+    <form method="post" action="/subs/review" class="card" id="cases">
+      <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
+      <div class="table-wrap"><table class="table cards-sm">
+        <thead><tr><th></th><th>{{t "subs.case"}}</th><th>{{t "subs.change"}}</th></tr></thead>
+        <tbody>{{range $p.Cases}}{{$c := .}}{{$k := .Key}}<tr>
+          <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if .Ticked}} checked{{end}} aria-label="{{.Name}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
+            <input type="hidden" name="act_{{$k}}" value="{{.Action}}"></td>
+          <td data-card="title"><b>{{.Name}}</b><br>
+            <small class="muted">{{t (print "subs.why_" .Action) "keep" .Keep "old" (money .Old $p.Currency)}}{{with .Next}} · {{t "subs.next" "day" (day .)}}{{end}}</small></td>
+          <td>{{t (print "subs.act_" .Action)}}
+            {{if .Amount}}<input class="input" name="amount_{{$k}}" value="{{printf "%.2f" .Amount}}" inputmode="decimal" aria-label="{{t "subs.amount"}}"> {{t (print "subs.every_" .Months)}}{{end}}
+            {{if eq (print .Action) "ninja_add"}}<select class="select" name="category_{{$k}}" aria-label="{{t "subs.category"}}"><option value="">{{t "subs.category"}}</option>
+              {{range $p.Categories}}<option value="{{.Key}}"{{if eq .Key $c.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select>{{end}}
+          </td>
+        </tr>{{end}}</tbody>
+      </table></div>
+      <p><button type="submit" class="btn btn-accent">{{t "subs.review"}}</button></p>
+    </form>
+    {{else}}<p class="pill" data-state="applied">{{t "subs.empty"}}</p>{{end}}
+    {{end}}
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}
+
+{{define "subs_review"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "subs.review_title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main class="vat">
+    <h1>{{t "subs.review_title"}}</h1>
+    <p>{{t "subs.review_lead" "n" .Plan.Writes}}</p>
+    <form method="post" action="/subs/apply">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{.Plan.Scope}}">
+      <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
+        <li{{if .Problem}} class="late"{{end}}>{{if not .Problem}}{{template "bench_step" .Step}}{{end}}
+          <b>{{or $i.Name .Case}}</b><br>
+          {{if .Problem}}{{t (print .Problem)}}{{else}}{{t (print "subs.do_" $i.Action) "amount" (money $i.Amount $.Plan.Currency) "old" (money $i.Old $.Plan.Currency) "keep" $i.Keep "vendor" $i.Vendor}}{{with $i.Category}} · {{.}}{{end}}{{end}}
+        </li>{{end}}</ol>
+      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "subs.apply" "n" .Plan.Writes}}</button>{{end}}
+        <a class="btn btn-quiet" href="/subs?scope={{.Plan.Scope}}">{{t "subs.back"}}</a></p>
+    </form>
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}

@@ -215,6 +215,12 @@ const (
 	vatCases  = "cases"
 )
 
+// The subscription bench settles cross.wallos_missing.
+const (
+	workInSubs = "work_in_subs"
+	subsWork   = "/subs#cases"
+)
+
 // vatWork is /vat at the period holding day ("2026-09-12"), at anchor.
 func vatWork(env Env, day, anchor string) string {
 	d, ok := metrics.ParseDay(day)
@@ -263,7 +269,7 @@ func wallosMissing(_ any, cfg map[string]any, env Env) []Finding {
 	return []Finding{{
 		Fingerprint: "missing", Severity: enums.SeverityInfo, Message: "cross.wallos_missing",
 		Params:    map[string]any{"count": len(missing), "names": shortList(names)},
-		ActionURL: wallos.URL, ActionLabel: "open_in_wallos",
+		ActionURL: subsWork, ActionLabel: workInSubs,
 		Sources: []string{string(sure.From()), string(enums.ServiceWallos)},
 	}}
 }
