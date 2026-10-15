@@ -56,4 +56,14 @@ func TestUpdates(t *testing.T) {
 	if _, _, err := updates.Apply(ctx, d, who, "", steps[:1], ""); !errors.Is(err, updates.ErrDemo) {
 		t.Fatalf("demo write: %v", err)
 	}
+
+	// What's Up Docker names no project on GitHub: no notes to sum up.
+	for _, c := range page.Cases {
+		if c.Release == "" {
+			if err := updates.Summarize(ctx, d, who, "", c.Key); !errors.Is(err, updates.ErrNoNotes) {
+				t.Errorf("summarize %s: %v", c.Key, err)
+			}
+			break
+		}
+	}
 }

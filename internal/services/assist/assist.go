@@ -7,6 +7,8 @@
 //	Classify     open bank bookings: private or business, vendor,
 //	             category and tax rate; payee, text, amount and Sure's
 //	             names go out, nothing else
+//	SummarizeChanges  an image update's release notes: breaking,
+//	             security, notable; image, versions and notes go out
 package assist
 
 import (
@@ -279,4 +281,54 @@ const (
 	reminderPrompt = `Write payment reminder number "Stage" (1 friendly, 2 clear, 3 final before further steps; never threaten) in %s for this invoice:
 %s
 Use only these facts. Return {"subject": "", "body": ""}; plain text body, no placeholders, no signature.`
+)
+
+// Changes is what an update brings, summed up from its release notes.
+type Changes struct {
+	Breaking []string `json:"breaking"` // steps or settings to change before updating
+	Security []string `json:"security"` // fixed vulnerabilities
+	Notable  []string `json:"notable"`  // other changes worth knowing
+}
+
+// notesMax bounds the release notes sent: the newest releases count most.
+const notesMax = 40000
+
+// SummarizeChanges sums up the release notes of an update in the
+// user's language; only the image, both versions and the notes go out.
+func SummarizeChanges(ctx context.Context, locale enums.Locale, image, from, to string, notes []string) (Changes, error) {
+	if !Enabled() {
+		return Changes{}, ErrOff
+	}
+	text := strings.Join(notes, "\n\n---\n\n")
+	if len(text) > notesMax {
+		text = text[len(text)-notesMax:]
+	}
+	prompt := fmt.Sprintf(changesPrompt, image, from, to, languageOf(locale), text)
+	answer, err := complete(ctx, apiKey, changesSystem, prompt, nil)
+	if err != nil {
+		return Changes{}, err
+	}
+	start, end := strings.Index(answer, "{"), strings.LastIndex(answer, "}")
+	if start < 0 || end < start {
+		return Changes{}, ErrUnreadable
+	}
+	var out Changes
+	if err := json.Unmarshal([]byte(answer[start:end+1]), &out); err != nil {
+		return Changes{}, ErrUnreadable
+	}
+	return out, nil
+}
+
+// The changes prompt is fixed English; the summary comes in the user's
+// language.
+const (
+	changesSystem = "You read release notes for someone who runs the software self-hosted with Docker Compose. Answer with one JSON object only."
+	changesPrompt = `The image %s runs version %s and is to be updated to %s. Sum up in %s what the release notes below say about this update:
+- "breaking": what must be done or changed before or after updating (config, environment, database migrations, removed features)
+- "security": fixed vulnerabilities (with CVE ids if named)
+- "notable": at most 5 other changes worth knowing
+Short sentences, no markdown, only what the notes say; empty lists where nothing applies. Return {"breaking": [], "security": [], "notable": []}.
+
+Release notes, oldest first:
+%s`
 )
