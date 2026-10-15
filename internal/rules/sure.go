@@ -148,6 +148,17 @@ func businessBank(env Env) (*sources.SureDataset, bool) {
 	return bank.Only(sources.RoleBusiness), true
 }
 
+// cashBank is the business accounts with the reserve accounts beside
+// them: the reserve covers taxes before free cash does
+// (metrics.SafeToSpend).
+func cashBank(env Env) (*sources.SureDataset, bool) {
+	bank, ok := metrics.BankOf(env.Datasets)
+	if !ok {
+		return nil, false
+	}
+	return bank.Only(sources.RoleBusiness, sources.RoleReserve), true
+}
+
 func registerSureCross() {
 	// An income in the bank that pays an open invoice (its number in the
 	// booking text, else the same amount): probably not recorded yet.

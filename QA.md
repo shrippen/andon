@@ -122,6 +122,15 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 **J-C11 Inventur**
 1. Hinweis „Geräte ohne Inventar“ → `/inventory`: Geräte der FRITZ!Box mit IP und MAC, „Gelesen aus“ nennt sie.
 2. Ein Gerät „In Snipe-IT anlegen“ mit Modell aus der Liste → „Prüfen“ (Demo lehnt ab); ein anderes „Ignorieren“ → verschwindet, steht unter Bereich → Regeln in den Ausnahmen.
+**J-C10 Updates**
+1. Hinweis „Updates verfügbar“ → `/updates`: Uptime Kuma (WUD) mit neuem Tag, Dawarich aus dem Release-Feed (0.30.6 → 0.30.9, Link zum Release), Immich ohne festen Tag nicht wählbar.
+2. Tag ändern, „Prüfen“ nennt Repo, Datei und alt → neu; „Pull Requests öffnen“ (Demo lehnt ab).
+**J-C9 Jahr**
+1. `/year`: letztes Jahr vorgewählt, Chips für drei Jahre; Einnahmen, Ausgaben je EÜR-Zeile (ohne Feld: Hinweis mit Link auf `/euer`), Abschreibung mit Summe, Homeoffice-Tage mit Pauschale.
+2. „Paket herunterladen“ → ZIP enthält `euer.csv`, `afa.csv` (mit Snipe-IT), `homeoffice.csv` (mit Kimai).
+**J-C8 Buchungen einordnen**
+1. `/subs` → „Buchungen ohne Kategorie einordnen“: Kabelwerk Studiobedarf mit Vorschlag „Technik“ angehakt, Bäckerei ohne Vorschlag.
+2. „Prüfen“ nennt Anzahl, Summe und Kategorie; „In Sure einordnen“ (Demo lehnt ab).
 
 **J-C6 Woche schließen**
 1. `/week`: letzte Woche vorgewählt, Chips für vier Wochen; „Gelesen aus“ nennt Dawarich und Kalender des Verbunds.

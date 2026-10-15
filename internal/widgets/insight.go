@@ -660,7 +660,7 @@ func kpiNinja(metric Metric, data *sources.NinjaDataset, peers map[string]any, c
 			return nil
 		}
 		s := metrics.SafeToSpend(sure, data, today, interval, method, settingsFloat(tax, "income_tax_rate", defaultIncomeTaxRate))
-		return &KpiResult{Kind: "money", Value: s.Free, Currency: stats.Currency, SubKey: "kpi.safe", SubIn: s.Cash, SubOut: s.VAT + s.IncomeTax + s.Fixed}
+		return &KpiResult{Kind: "money", Value: s.Free, Currency: stats.Currency, SubKey: "kpi.safe", SubIn: s.Cash, SubOut: s.Taxes() + s.Fixed}
 	case MetricTaxReserve:
 		rate := settingsFloat(tax, "income_tax_rate", defaultIncomeTaxRate)
 		var expenses float64
