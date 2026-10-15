@@ -44,5 +44,5 @@ func (d Deps) handleClient(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.handleBoardError(w, r, err)
 		return
 	}
-	_ = d.Page(w, ctx, "client", http.StatusOK, map[string]any{"C": detail, "Periods": metrics.Periods})
+	_ = d.Page(w, ctx, "client", http.StatusOK, map[string]any{"C": detail, "Periods": metrics.Periods, "InflationPct": metrics.Inflation * 100})
 }
