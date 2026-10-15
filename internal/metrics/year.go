@@ -166,3 +166,104 @@ func EuerLines(ninja *sources.NinjaDataset, slot, year int) []EuerLine {
 	})
 	return out
 }
+
+// ── Year in review ──
+
+// YearReview is a year at a glance: hours, revenue, the customers that
+// carried it, and the year before where the data reaches back far
+// enough.
+type YearReview struct {
+	Hours, Revenue           float64
+	PriorHours, PriorRevenue float64
+	PriorHoursKnown          bool // Kimai's data covers the year before
+	PriorRevenueKnown        bool // and Invoice Ninja's
+	Top                      []YearClient
+	New                      []string  // clients first invoiced this year
+	Busiest                  time.Time // the month with most hours, zero none
+}
+
+// YearClient is a client's net revenue in the year.
+type YearClient struct {
+	Name    string
+	Revenue float64
+}
+
+// topClients is how many clients the review names.
+const topClients = 5
+
+// ReviewYear builds the review; either dataset may be nil.
+func ReviewYear(kimai *sources.KimaiDataset, ninja *sources.NinjaDataset, year int) YearReview {
+	var r YearReview
+	start := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
+	prior := start.AddDate(-1, 0, 0)
+
+	if kimai != nil {
+		months := [monthsPerYearInt + 1]float64{}
+		earliest := ""
+		for _, s := range kimai.Timesheets {
+			d, ok := ParseDay(s.Begin)
+			if !ok {
+				continue
+			}
+			if day := d.Format(time.DateOnly); earliest == "" || day < earliest {
+				earliest = day
+			}
+			hours := float64(s.Minutes) / minutesPerHour
+			switch d.Year() {
+			case year:
+				r.Hours += hours
+				months[d.Month()] += hours
+			case year - 1:
+				r.PriorHours += hours
+			}
+		}
+		r.PriorHoursKnown = earliest != "" && earliest <= prior.Format(time.DateOnly)
+		best := 0
+		for m := 1; m <= monthsPerYearInt; m++ {
+			if months[m] > months[best] {
+				best = m
+			}
+		}
+		if best > 0 {
+			r.Busiest = time.Date(year, time.Month(best), 1, 0, 0, 0, 0, time.UTC)
+		}
+	}
+
+	if ninja != nil {
+		names := map[int64]string{}
+		for _, c := range ninja.Clients {
+			names[c.ID] = c.Name
+		}
+		byClient, first := map[int64]float64{}, map[int64]int{}
+		for _, inv := range NinjaCounted(ninja) {
+			d, ok := ParseDay(inv.Date)
+			if !ok {
+				continue
+			}
+			if y, seen := first[inv.ClientID]; !seen || d.Year() < y {
+				first[inv.ClientID] = d.Year()
+			}
+			switch d.Year() {
+			case year:
+				r.Revenue += inv.Net
+				byClient[inv.ClientID] += inv.Net
+			case year - 1:
+				r.PriorRevenue += inv.Net
+			}
+		}
+		r.PriorRevenueKnown = ninja.Since != "" && ninja.Since <= prior.Format(time.DateOnly)
+		for id, rev := range byClient {
+			r.Top = append(r.Top, YearClient{Name: names[id], Revenue: round2(rev)})
+			if first[id] == year && r.PriorRevenueKnown {
+				r.New = append(r.New, names[id])
+			}
+		}
+		slices.SortFunc(r.Top, func(a, b YearClient) int {
+			return cmp.Or(cmp.Compare(b.Revenue, a.Revenue), strings.Compare(a.Name, b.Name))
+		})
+		r.Top = r.Top[:min(len(r.Top), topClients)]
+		slices.Sort(r.New)
+	}
+	r.Hours, r.Revenue, r.PriorHours, r.PriorRevenue = round2(r.Hours), round2(r.Revenue), round2(r.PriorHours), round2(r.PriorRevenue)
+	return r
+}

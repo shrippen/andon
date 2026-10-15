@@ -193,3 +193,23 @@ func TestSummarizeChanges(t *testing.T) {
 		t.Fatalf("summary: %+v %v\n%s", got, err, asked)
 	}
 }
+
+// A question goes out with the facts; an empty answer is refused.
+func TestAsk(t *testing.T) {
+	real := complete
+	t.Cleanup(func() { complete = real; Init(settings.Settings{}) })
+	Init(settings.Settings{AnthropicAPIKey: "k"})
+	var asked string
+	complete = func(_ context.Context, _, _, prompt string, _ []outbound.LLMFile) (string, error) {
+		asked = prompt
+		return " Die Werft zahlt am langsamsten. ", nil
+	}
+	got, err := Ask(context.Background(), enums.LocaleDE, "Wer zahlt langsam?", "- Werft: pays in 45 days")
+	if err != nil || got != "Die Werft zahlt am langsamsten." || !strings.Contains(asked, "German") || !strings.Contains(asked, "Werft: pays in 45 days") {
+		t.Fatalf("ask: %q %v\n%s", got, err, asked)
+	}
+	complete = func(context.Context, string, string, string, []outbound.LLMFile) (string, error) { return " ", nil }
+	if _, err := Ask(context.Background(), enums.LocaleDE, "?", ""); !errors.Is(err, ErrUnreadable) {
+		t.Fatalf("empty: %v", err)
+	}
+}

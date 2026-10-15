@@ -179,6 +179,7 @@
 {{end}}
 {{define "nav_account"}}
           <a href="/journal"{{if here "/journal"}} aria-current="page"{{end}}>{{t "journal.title"}}</a>
+          <a href="/ask"{{if here "/ask"}} aria-current="page"{{end}}>{{t "ask.title"}}</a>
           <a href="/welcome"{{if here "/welcome"}} aria-current="page"{{end}}>{{t "welcome.title"}}{{with .Onboarding}}{{if .Open}} <span class="count" data-kind="info">{{.Done}}/{{len .Steps}}</span>{{end}}{{end}}</a>
           <a href="/about"{{if here "/about"}} aria-current="page"{{end}}>{{t "about.title"}}</a>
           <a href="/me/profile"{{if and .SettingsNav (not .SettingsSetup)}} aria-current="page"{{end}}>{{t "settings.nav"}}</a>

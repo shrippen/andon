@@ -271,3 +271,14 @@ func TestPurchasesPage(t *testing.T) {
 		t.Fatalf("purchases page:\n%s", page)
 	}
 }
+
+// "Frag Andon" says it is off without an API key.
+func TestAskPage(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	page := string(mustGet(t, srv, client, "/ask"))
+	if !strings.Contains(page, "Frag Andon") || !strings.Contains(page, "Keine KI eingerichtet") {
+		t.Fatalf("ask page:\n%s", page)
+	}
+}

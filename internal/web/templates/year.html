@@ -19,7 +19,19 @@
     <nav class="hint-filters" aria-label="{{t "year.years"}}">
       <div class="chips-row">{{range $p.Years}}<a class="chip is-filter" href="/year?scope={{$p.Scope}}&amp;year={{.}}"{{if eq . $p.Year}} aria-pressed="true"{{end}}>{{.}}</a>{{end}}</div>
     </nav>
-    {{if $p.Currency}}
+    {{if $p.Currency}}{{$r := $p.Review}}
+    <section class="card">
+      <h2>{{t "year.review"}}</h2>
+      <div class="client-kpis">
+        <div class="kpi"><span class="kpi-label">{{t "year.review_hours"}}</span><b class="kpi-value">{{num $r.Hours 0}} h</b>{{if $r.PriorHoursKnown}}<span class="kpi-sub">{{t "year.before" "value" (print (num $r.PriorHours 0) " h")}}</span>{{end}}</div>
+        <div class="kpi"><span class="kpi-label">{{t "year.review_revenue"}}</span><b class="kpi-value">{{money $r.Revenue $p.Currency}}</b>{{if $r.PriorRevenueKnown}}<span class="kpi-sub">{{t "year.before" "value" (money $r.PriorRevenue $p.Currency)}}</span>{{end}}</div>
+        {{if not $r.Busiest.IsZero}}<div class="kpi"><span class="kpi-label">{{t "year.busiest"}}</span><b class="kpi-value">{{month $r.Busiest}}</b></div>{{end}}
+      </div>
+      {{with $r.Top}}<h3>{{t "year.top"}}</h3><ul class="legend-list">{{range .}}<li><span>{{or .Name "?"}}</span><b>{{money .Revenue $p.Currency}}</b></li>{{end}}</ul>{{end}}
+      {{with $r.New}}<p class="small">{{t "year.new_clients"}} {{range $i, $n := .}}{{if $i}}, {{end}}{{$n}}{{end}}</p>{{end}}
+      {{if not (and $r.PriorHoursKnown $r.PriorRevenueKnown)}}<p class="small muted">{{t "year.prior_unknown"}}</p>{{end}}
+    </section>
+
     <section class="card">
       <h2>{{t "year.income"}}</h2>
       <div class="table-wrap"><table class="table">
