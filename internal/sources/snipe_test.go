@@ -50,3 +50,14 @@ func TestSnipeDataNormalizesAssets(t *testing.T) {
 		t.Fatalf("expected trimmed date, got %q", a.PurchaseDate)
 	}
 }
+
+// Snipe-IT formats costs by its own setting: "1,999.00", or with a
+// German separator "265,00" and "1.234,56" (seen live: 265,00 read as
+// 26500).
+func TestSnipeMoney(t *testing.T) {
+	for raw, want := range map[string]float64{"1,999.00": 1999, "265,00": 265, "1.234,56": 1234.56, "0,89": 0.89, "1200": 1200, "": 0} {
+		if got := sources.SnipeMoney(raw); got != want {
+			t.Errorf("SnipeMoney(%q) = %v, want %v", raw, got, want)
+		}
+	}
+}

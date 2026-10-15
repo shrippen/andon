@@ -87,3 +87,6 @@ func SetReadingBases(base string) func() {
 		hnBase, lobstersBase, redditBase, youtubeBase, twitchIDBase = saved[0], saved[1], saved[2], saved[3], saved[4]
 	}
 }
+
+// SnipeMoney exposes snipeMoney to the tests.
+var SnipeMoney = snipeMoney
