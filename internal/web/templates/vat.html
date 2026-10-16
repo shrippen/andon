@@ -134,7 +134,7 @@
     {{with $p.Skipped}}
     <details class="vat-skipped">
       <summary>{{t "vatcheck.skipped" "n" (len .)}}</summary>
-      <ul class="close-steps">{{range .}}<li><span>{{day .Date}} · {{.Payer}} · {{money .Amount $p.Currency}}{{with .Account}} · {{.}}{{end}}</span>
+      <ul class="close-steps">{{range .}}<li><span>{{day .Date}} · {{or .Payer .Description}} · {{money .Amount $p.Currency}}{{with .Account}} · {{.}}{{end}}</span>
         <form method="post" action="/vat/restore" class="inline-form"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
           <input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="span" value="{{$p.Span.Key}}"><input type="hidden" name="txn" value="{{.Key}}">
           <button type="submit" class="btn btn-quiet btn-sm">{{t "vatcheck.show_again"}}</button></form></li>{{end}}</ul>
@@ -208,7 +208,7 @@
       <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
         <li{{if .Problem}} class="late"{{end}}>
           {{if not .Problem}}{{template "bench_step" .Step}}{{end}}
-          <b>{{day $i.Txn.Date}} · {{$i.Txn.Payer}} · {{if $i.Txn.Debit}}−{{end}}{{money $i.Txn.Amount $.Plan.Currency}}</b><br>
+          <b>{{day $i.Txn.Date}} · {{or $i.Txn.Payer $i.Txn.Description}} · {{if $i.Txn.Debit}}−{{end}}{{money $i.Txn.Amount $.Plan.Currency}}</b><br>
           {{if .Problem}}{{t (print .Problem)}}
           {{else if eq .Action "link"}}{{t "vatcheck.do_link" "number" $i.Expense.Number}}
           {{else if eq .Action "invoice"}}{{t "vatcheck.do_invoice" "number" $i.Invoice.Number}}
