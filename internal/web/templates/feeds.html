@@ -14,7 +14,7 @@
     <h1>{{t "feeds.title"}}</h1>
     <p class="muted">{{t "feeds.lead"}}</p>
     {{with .done}}<p class="pill" data-state="applied">{{t "feeds.done" "n" .}}</p>{{end}}
-    {{with .failed}}<p class="error">{{t "feeds.failed" "n" .}} {{$.Who}}: {{t $.Reason}}</p>{{end}}
+    {{with .failed}}<p class="error">{{t "feeds.failed" "n" .}} {{$.FailedName}}: {{t $.Reason}}</p>{{end}}
     {{with .Error}}<p class="error">{{t .}}</p>{{end}}
     {{if $p.Scopes}}
     {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/feeds" "Keep" (dict)}}

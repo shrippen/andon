@@ -14,7 +14,7 @@
     <h1>{{t "euer.title"}}</h1>
     <p class="muted">{{t "euer.lead"}}</p>
     {{with .done}}<p class="pill" data-state="applied">{{t "euer.done" "n" .}}</p>{{end}}
-    {{with .failed}}<p class="error">{{t "euer.failed" "n" .}} {{$.Who}}: {{t $.Reason}}</p>{{end}}
+    {{with .failed}}<p class="error">{{t "euer.failed" "n" .}} {{$.FailedName}}: {{t $.Reason}}</p>{{end}}
     {{with .Error}}<p class="error">{{t .}}</p>{{end}}
     {{if $p.Scopes}}
     {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/euer" "Keep" (dict "year" $p.Year)}}
