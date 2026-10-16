@@ -6736,6 +6736,8 @@ subs:
   change: 'Change'
   amount: 'Amount'
   category: 'Category'
+  tax: 'Tax'
+  no_tax: 'No tax'
   next: 'next payment {day}'
   why_wallos_add: 'Sure pays it, Wallos lacks it'
   why_wallos_price: 'Wallos has {old}, Sure pays another price'
