@@ -379,3 +379,19 @@ func TestExpenseNoVATNamesVendor(t *testing.T) {
 		t.Fatalf("found: %+v", found)
 	}
 }
+
+// Links open the entry in Invoice Ninja 5: its own path (no "#/", which
+// lands on the dashboard) and its hashed key, not a number.
+func TestNinjaLinksUseKeys(t *testing.T) {
+	data := &sources.NinjaDataset{URL: "https://in.example/",
+		Expenses: []sources.NinjaExpense{{ID: 7, Key: "eX7", Number: "A-1", Date: "2026-09-20", Amount: 297.5}},
+		Invoices: []sources.NinjaInvoice{{ID: 9, Key: "iN9", Number: "R-9", Status: "draft", Date: "2026-08-01", Amount: 100, Balance: 100}},
+	}
+	env := rules.Env{Today: day("2026-09-28"), Settings: map[string]any{}}
+	if f := run(t, "in.expense_no_input_vat", data, env); len(f) != 1 || f[0].ActionURL != "https://in.example/expenses/eX7/edit" {
+		t.Errorf("expense link: %+v", f)
+	}
+	if f := run(t, "in.draft_stale", data, env); len(f) != 1 || f[0].ActionURL != "https://in.example/invoices/iN9/edit" {
+		t.Errorf("invoice link: %+v", f)
+	}
+}

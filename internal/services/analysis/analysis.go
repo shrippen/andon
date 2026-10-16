@@ -215,6 +215,9 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 			}
 		}
 	}
+	if err := resolveOrphans(d, sp, mine, holders); err != nil {
+		slog.Error("analysis: orphaned hints failed", "space", sp.ID, "err", err)
+	}
 	clocks := clocksOf(mine)
 	for _, sc := range scopes {
 		sc.datasets[rules.LinksDataset] = links
@@ -388,7 +391,7 @@ func spaceLinks(d *sql.DB, spaceID int64) ([]rules.Link, error) {
 		target, _ := w.Config["url"].(string)
 		if w.Type == linkType && target != "" {
 			links = append(links, rules.Link{Title: w.Title, URL: target, DownDays: linkstatus.DownDays(d, w.ID, time.Now().UTC()),
-				LastClick: clicks[w.ID]})
+				LastClick: clicks[w.ID], Since: w.UpdatedAt})
 		}
 	}
 	return links, nil
@@ -435,6 +438,23 @@ func loginsOf(conn *model.Connection, holders []model.Holder, sp *model.Space) [
 		}
 	}
 	return out
+}
+
+// resolveOrphans resolves the hints each connection left for an owner
+// it no longer runs for (hints.ResolveOthers).
+func resolveOrphans(d *sql.DB, sp *model.Space, conns []*model.Connection, holders map[int64][]model.Holder) error {
+	return db.WithTx(d, func(tx *sql.Tx) error {
+		for _, conn := range conns {
+			var owners []*int64
+			for _, l := range loginsOf(conn, holders[conn.ID], sp) {
+				owners = append(owners, l.owner)
+			}
+			if _, err := hints.ResolveOthers(tx, sp.ID, conn.ID, owners); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 // teamHolds reports whether sp is a team space whose team activated a

@@ -23,6 +23,7 @@ type Link struct {
 	Title, URL string
 	DownDays   int       // days in a row without an answer (background checks)
 	LastClick  time.Time // zero: never clicked
+	Since      time.Time // clicks counted since (last edit of the tile); zero: unknown
 }
 
 // normURL makes URLs comparable: lower-case host, no scheme, no "www.",
@@ -72,10 +73,18 @@ func notOnBoard(_ any, cfg map[string]any, env Env) []Finding {
 		onBoard[normURL(l.URL)] = true
 	}
 	missing := map[string][]string{}
+	seen := map[string]bool{} // collection + address: saved twice counts once
 	for _, b := range data.Links {
-		if !onBoard[normURL(b.URL)] {
-			missing[b.Collection] = append(missing[b.Collection], b.Name)
+		key := b.Collection + "\x00" + normURL(b.URL)
+		if onBoard[normURL(b.URL)] || seen[key] {
+			continue
 		}
+		seen[key] = true
+		name := b.Name
+		if strings.TrimSpace(name) == "" {
+			name = normURL(b.URL) // untitled: its address
+		}
+		missing[b.Collection] = append(missing[b.Collection], name)
 	}
 	var found []Finding
 	for _, col := range sortedKeysOf(missing) {

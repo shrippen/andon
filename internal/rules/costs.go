@@ -36,7 +36,12 @@ func init() {
 func unusedService(_ any, cfg map[string]any, env Env) []Finding {
 	var found []Finding
 	for _, u := range metrics.UnusedServices(env.Datasets, Usages(env), env.Today, cfgInt(cfg, "days")) {
-		found = append(found, Finding{Fingerprint: "unused:" + u.Kind + ":" + strings.ToLower(u.Name), Severity: enums.SeverityInfo, Message: "system.unused_service",
+		// Only Proxmox names a guest's memory; "0,0 GB" would be wrong.
+		msg := "system.unused_service"
+		if u.MemBytes == 0 {
+			msg = "system.unused_service_nomem"
+		}
+		found = append(found, Finding{Fingerprint: "unused:" + u.Kind + ":" + strings.ToLower(u.Name), Severity: enums.SeverityInfo, Message: msg,
 			Params:  map[string]any{"name": u.Name, "kind": u.Kind, "days": cfgInt(cfg, "days"), "gb": Num(u.MemBytes/bytesPerGB, 1)},
 			Sources: []string{system}})
 	}

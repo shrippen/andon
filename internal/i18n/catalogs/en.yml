@@ -3147,6 +3147,9 @@ hint:
     unused_service:
       title: '{name} unused for {days} days'
       why: '{kind}: no tile clicks, no logins, no visitors. Uses {gb} GB RAM. Switch off?'
+    unused_service_nomem:
+      title: '{name} unused for {days} days'
+      why: '{kind}: no tile clicks, no logins, no visitors. Switch off?'
     storage_forecast:
       title: '{name} full in {days} days'
       why: 'Now {percent} % used; at the last 30 days pace full on {day}.'
