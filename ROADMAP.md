@@ -1473,6 +1473,7 @@ Zweite Andon-Instanz (`.local-test/extra/andon-data`, Port 8095) mit den Wegwerf
 - [x] Woche schließen: Termin aus einem Kalender → Kimai-Eintrag
 - [x] Sure aufräumen: zwei Buchungen nach „Büro“ (Sure)
 - [x] Abos: fehlendes Abo in Wallos angelegt; geschäftliches Abo als wiederkehrende Ausgabe in Ninja (Lieferant neu, gestartet)
+- [x] Orte: Abgleich legt für eine Dawarich-Area den Ort in Kimai Anfahrten an und für einen Ort die Area (beide verknüpft)
 
 **Behoben (mit Test)**
 - [x] Gelöschte Ninja-Einträge (Zahlung, Kunde, Lieferant, Angebot) zählten mit: 1 € Testzahlung als Zahlungseingang (#176)
@@ -1481,6 +1482,7 @@ Zweite Andon-Instanz (`.local-test/extra/andon-data`, Port 8095) mit den Wegwerf
 - [x] Lieferanten aufräumen bot den archivierten Lieferanten erneut an, ohne Ende (#179)
 - [x] USt-Abgleich: Buchung ohne Zahler (manuell, CSV) erschien auf der Prüfseite als „· ·“ (#178)
 - [x] Live-Schreibtests für Sure (Kategorie) und Ninjas wiederkehrende Ausgaben (#180)
+- [x] Orte: Abgleich, Zuordnen, Anlegen und Fahrtklasse schrieben gegen zwischengespeicherte Daten; eine eben angelegte Area fehlte („0/0“), Doppelte waren möglich. Jetzt frisch (#183)
 
 **Notiert**
 - [x] Abos: eine neue wiederkehrende Ausgabe bekam keinen Steuersatz, wenn der Lieferant noch keine Ausgabe hatte; jede Buchung daraus fehlte dann in der Vorsteuer. Das Formular bietet jetzt Ninjas Steuersätze an (#182)
