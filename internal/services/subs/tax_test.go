@@ -37,4 +37,11 @@ func TestNinjaAddTax(t *testing.T) {
 	if it := check("", false); it.TaxName != "USt" || it.TaxRate != 7 {
 		t.Errorf("kept: %q %v", it.TaxName, it.TaxRate)
 	}
+
+	// The vendor's rate is no longer set up in Invoice Ninja: the form
+	// offers it anyway, and choosing it keeps it.
+	b.ninja.TaxRates = nil
+	if it := check("7", true); it.TaxName != "USt" || it.TaxRate != 7 {
+		t.Errorf("vendor's rate not set up: %q %v", it.TaxName, it.TaxRate)
+	}
 }

@@ -226,7 +226,12 @@ func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 	case tax != "":
 		rate, err := strconv.ParseFloat(tax, 64)
 		j := slices.IndexFunc(b.ninja.TaxRates, func(r sources.NinjaTaxRate) bool { return r.Rate == rate })
-		if err == nil && j >= 0 {
+		switch {
+		case err != nil:
+		case it.TaxName != "" && it.TaxRate == rate:
+			// The vendor's own rate, offered even when Invoice Ninja no
+			// longer has it set up: kept as it is.
+		case j >= 0:
 			it.TaxName, it.TaxRate = b.ninja.TaxRates[j].Name, rate
 		}
 	}

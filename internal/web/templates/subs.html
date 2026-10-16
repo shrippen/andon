@@ -36,7 +36,8 @@
             {{if eq (print .Action) "ninja_add"}}<select class="select" name="category_{{$k}}" aria-label="{{t "subs.category"}}"><option value="">{{t "subs.category"}}</option>
               {{range $p.Categories}}<option value="{{.Key}}"{{if eq .Key $c.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select>
             <select class="select" name="tax_{{$k}}" aria-label="{{t "subs.tax"}}"><option value="none"{{if not $c.TaxName}} selected{{end}}>{{t "subs.no_tax"}}</option>
-              {{range $p.TaxRates}}<option value="{{.Rate}}"{{if and $c.TaxName (eq .Rate $c.TaxRate)}} selected{{end}}>{{.Name}} {{num .Rate 0}} %</option>{{end}}</select>{{end}}
+              {{if $c.TaxName}}<option value="{{$c.TaxRate}}" selected>{{$c.TaxName}} {{num $c.TaxRate 0}} %</option>{{end}}
+              {{range $p.TaxRates}}{{if not (and $c.TaxName (eq .Rate $c.TaxRate))}}<option value="{{.Rate}}">{{.Name}} {{num .Rate 0}} %</option>{{end}}{{end}}</select>{{end}}
           </td>
         </tr>{{end}}</tbody>
       </table></div>
