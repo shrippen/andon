@@ -1474,6 +1474,7 @@ Zweite Andon-Instanz (`.local-test/extra/andon-data`, Port 8095) mit den Wegwerf
 - [x] Sure aufräumen: zwei Buchungen nach „Büro“ (Sure)
 - [x] Abos: fehlendes Abo in Wallos angelegt; geschäftliches Abo als wiederkehrende Ausgabe in Ninja (Lieferant neu, gestartet)
 - [x] Orte: Abgleich legt für eine Dawarich-Area den Ort in Kimai Anfahrten an und für einen Ort die Area (beide verknüpft)
+- [x] Feeds: Release-Feed für ein Image aus dem Compose-Repo (Gitea-Container) in FreshRSS abonniert; der vorinstallierte FreshRSS-Feed als „kein Stack nutzt ihn“ vorgeschlagen. Aus `immich-server` leitet Andon `immich-app/immich-server` ab, das Repo heißt `immich`: die Seite sagt „bitte prüfen“, die Adresse ist änderbar
 
 **Behoben (mit Test)**
 - [x] Gelöschte Ninja-Einträge (Zahlung, Kunde, Lieferant, Angebot) zählten mit: 1 € Testzahlung als Zahlungseingang (#176)
@@ -1485,6 +1486,7 @@ Zweite Andon-Instanz (`.local-test/extra/andon-data`, Port 8095) mit den Wegwerf
 - [x] Orte: Abgleich, Zuordnen, Anlegen und Fahrtklasse schrieben gegen zwischengespeicherte Daten; eine eben angelegte Area fehlte („0/0“), Doppelte waren möglich. Jetzt frisch (#183)
 - [x] Live-Schreibtest für den Pull Request der Update-Werkbank gegen einen Gitea-Container (#184)
 - [x] Live-Schreibtests für Ninjas Bank-, Lieferanten- und Mahnaufrufe (#185), Mail und Apprise (#186), Schalter in Home Assistant (#187)
+- [x] Verbindungen nahmen jeden Diensttyp an (`POST /connections` mit `service=bogus`); jetzt nur bekannte (#188)
 
 **Notiert**
 - [x] Abos: eine neue wiederkehrende Ausgabe bekam keinen Steuersatz, wenn der Lieferant noch keine Ausgabe hatte; jede Buchung daraus fehlte dann in der Vorsteuer. Das Formular bietet jetzt Ninjas Steuersätze an (#182)
