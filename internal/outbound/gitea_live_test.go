@@ -53,7 +53,9 @@ func TestGiteaProposeLive(t *testing.T) {
 	live.Change(t, live.Gitea, live.Update, kindRepo, repo)
 	page, err := outbound.GiteaPropose(ctx, to, outbound.GiteaChange{Repo: repo, Path: path, Branch: branch,
 		Message: "Update immich", Title: "Update immich to v1.132.3", Body: name,
-		Change: func(old []byte) ([]byte, error) { return bytes.Replace(old, []byte("v1.131.0"), []byte("v1.132.3"), 1), nil }})
+		Change: func(old []byte) ([]byte, error) {
+			return bytes.Replace(old, []byte("v1.131.0"), []byte("v1.132.3"), 1), nil
+		}})
 	if err != nil {
 		t.Fatalf("propose: %v", err)
 	}
