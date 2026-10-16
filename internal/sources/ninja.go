@@ -173,7 +173,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 		}
 		if day(pm["date"]) >= since {
 			payments = append(payments, NinjaPayment{
-				ID: asInt64(pm["id"]), Date: day(pm["date"]), Amount: asFloat(pm["amount"]),
+				ID: refNum(pm["id"]), Date: day(pm["date"]), Amount: asFloat(pm["amount"]),
 				ClientID: refNum(pm["client_id"]), Key: idKey(pm["id"]), Number: asStr(pm["number"]),
 			})
 		}
@@ -213,7 +213,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 		if day(em["date"]) >= since {
 			notes := asStr(em["public_notes"])
 			expenses = append(expenses, NinjaExpense{
-				ID: asInt64(em["id"]), Number: asStr(em["number"]), Date: day(em["date"]), Amount: asFloat(em["amount"]),
+				ID: refNum(em["id"]), Number: asStr(em["number"]), Date: day(em["date"]), Amount: asFloat(em["amount"]),
 				Tax: round2(expenseTax(em)), Notes: notes, VendorID: asInt64(em["vendor_id"]), VendorKey: idKey(em["vendor_id"]),
 				Key: idKey(em["id"]), CategoryKey: idKey(em["category_id"]), TaxName: asStr(em["tax_name1"]), TaxRate: asFloat(em["tax_rate1"]),
 				TxnKey: idKey(em["transaction_id"]),
@@ -248,20 +248,23 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 			continue
 		}
 		quotes = append(quotes, NinjaQuote{
-			ID: asInt64(qm["id"]), Number: asStr(qm["number"]), ClientID: refNum(qm["client_id"]),
+			ID: refNum(qm["id"]), Key: idKey(qm["id"]), Number: asStr(qm["number"]), ClientID: refNum(qm["client_id"]),
 			Status: statusFor(quoteStatus, qm["status_id"]), Date: day(qm["date"]), ValidUntil: day(qm["due_date"]), Amount: asFloat(qm["amount"]),
 		})
 	}
 
-	recurringRaw, err := api.Pages(ctx, "recurring_invoices", nil)
+	recurringRaw, err := api.Pages(ctx, "recurring_invoices", url.Values{"is_deleted": {"false"}})
 	if err != nil {
 		return nil, err
 	}
 	var recurring []NinjaRecurring
 	for _, r := range recurringRaw {
 		rm := asMap(r)
+		if asBool(rm["is_deleted"]) {
+			continue
+		}
 		recurring = append(recurring, NinjaRecurring{
-			ID: asInt64(rm["id"]), Number: asStr(rm["number"]), ClientID: refNum(rm["client_id"]),
+			ID: refNum(rm["id"]), Key: idKey(rm["id"]), Number: asStr(rm["number"]), ClientID: refNum(rm["client_id"]),
 			Active: asStr(rm["status_id"]) == "2", NextSendDate: day(rm["next_send_date"]),
 			RemainingCycles: int(asFloat(rm["remaining_cycles"])), Amount: asFloat(rm["amount"]),
 		})

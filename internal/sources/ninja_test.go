@@ -152,8 +152,45 @@ func TestNinjaSkipsDeleted(t *testing.T) {
 		t.Fatalf("fetch: %v", err)
 	}
 	d := out.(*sources.NinjaDataset)
-	if len(d.Invoices) != 1 || len(d.Payments) != 1 || len(d.Clients) != 1 || len(d.Expenses) != 1 || len(d.Vendors) != 1 || len(d.Quotes) != 1 {
-		t.Fatalf("invoices %d, payments %d, clients %d, expenses %d, vendors %d, quotes %d: want 1 each",
-			len(d.Invoices), len(d.Payments), len(d.Clients), len(d.Expenses), len(d.Vendors), len(d.Quotes))
+	if len(d.Invoices) != 1 || len(d.Payments) != 1 || len(d.Clients) != 1 || len(d.Expenses) != 1 || len(d.Vendors) != 1 || len(d.Quotes) != 1 || len(d.Recurring) != 1 {
+		t.Fatalf("invoices %d, payments %d, clients %d, expenses %d, vendors %d, quotes %d, recurring %d: want 1 each",
+			len(d.Invoices), len(d.Payments), len(d.Clients), len(d.Expenses), len(d.Vendors), len(d.Quotes), len(d.Recurring))
 	}
+}
+
+// Invoice Ninja 5 sends hashed ids ("Opnel5aKBz"). Each entry keeps its
+// own: read as numbers, every expense, payment, quote and recurring
+// invoice had id 0, and hints about them collided.
+func TestNinjaHashedIDsStayApart(t *testing.T) {
+	today := time.Now().UTC().Format(time.DateOnly)
+	two := func(a, b string) func(http.ResponseWriter, *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(`{"data": [` + a + `, ` + b + `], "meta": {"pagination": {"total_pages": 1}}}`))
+		}
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/invoices", two(`{"id": "aB1", "client_id": "cA1", "date": "`+today+`", "amount": 1}`, `{"id": "aB2", "client_id": "cA1", "date": "`+today+`", "amount": 1}`))
+	mux.HandleFunc("/api/v1/payments", two(`{"id": "pY1", "date": "`+today+`", "amount": 1}`, `{"id": "pY2", "date": "`+today+`", "amount": 1}`))
+	mux.HandleFunc("/api/v1/clients", two(`{"id": "cA1", "name": "A"}`, `{"id": "cA2", "name": "B"}`))
+	mux.HandleFunc("/api/v1/expenses", two(`{"id": "eX1", "date": "`+today+`", "amount": 1}`, `{"id": "eX2", "date": "`+today+`", "amount": 1}`))
+	mux.HandleFunc("/api/v1/quotes", two(`{"id": "qU1", "date": "`+today+`"}`, `{"id": "qU2", "date": "`+today+`"}`))
+	mux.HandleFunc("/api/v1/recurring_invoices", two(`{"id": "rE1"}`, `{"id": "rE2"}`))
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	out, err := sources.NinjaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	d := out.(*sources.NinjaDataset)
+	apart := func(kind string, a, b int64, keyA, keyB string) {
+		if a == 0 || a == b || keyA == "" || keyA == keyB {
+			t.Errorf("%s: ids %d/%d, keys %q/%q", kind, a, b, keyA, keyB)
+		}
+	}
+	apart("invoices", d.Invoices[0].ID, d.Invoices[1].ID, d.Invoices[0].Key, d.Invoices[1].Key)
+	apart("payments", d.Payments[0].ID, d.Payments[1].ID, d.Payments[0].Key, d.Payments[1].Key)
+	apart("expenses", d.Expenses[0].ID, d.Expenses[1].ID, d.Expenses[0].Key, d.Expenses[1].Key)
+	apart("quotes", d.Quotes[0].ID, d.Quotes[1].ID, d.Quotes[0].Key, d.Quotes[1].Key)
+	apart("recurring", d.Recurring[0].ID, d.Recurring[1].ID, d.Recurring[0].Key, d.Recurring[1].Key)
 }
