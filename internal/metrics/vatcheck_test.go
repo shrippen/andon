@@ -237,3 +237,15 @@ func TestVendorDuplicates(t *testing.T) {
 		t.Fatalf("groups: %+v", g)
 	}
 }
+
+// A vendor archived by a merge is no duplicate any more: listed again
+// with 0 expenses, the merge never ended.
+func TestVendorDuplicatesSkipArchived(t *testing.T) {
+	n := &sources.NinjaDataset{
+		Vendors:  []sources.NinjaVendor{{Key: "a", Name: "Tonerwelt GmbH", Archived: true}, {Key: "b", Name: "Tonerwelt"}},
+		Expenses: []sources.NinjaExpense{{VendorKey: "b"}, {VendorKey: "b"}},
+	}
+	if g := metrics.VendorDuplicates(n); len(g) != 0 {
+		t.Fatalf("groups: %+v", g)
+	}
+}

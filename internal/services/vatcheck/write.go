@@ -1,6 +1,7 @@
 package vatcheck
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -246,7 +247,9 @@ type writer struct {
 	ip  string
 }
 
-func (w *writer) Name(p Planned) string { return p.Item.Txn.Payer }
+// Name is the booking's payer, or its text where the bank sent none
+// (a manual or CSV import).
+func (w *writer) Name(p Planned) string { return cmp.Or(p.Item.Txn.Payer, p.Item.Txn.Description) }
 
 func (w *writer) Audit(p Planned) map[string]any {
 	return map[string]any{"txn": p.Item.Txn.Key, "amount": fmt.Sprintf("%.2f", p.Item.Txn.Amount), "scope": w.scope.Key}
