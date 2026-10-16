@@ -1241,6 +1241,7 @@ widget:
   unsupported: Passt nicht zur gewählten Verbindung.
 connection:
   secret_for_host: 'Neuer Server: Zugang neu eingeben oder den gespeicherten ausdrücklich mitnehmen.'
+  unknown_service: 'Diesen Dienst kennt Andon nicht.'
   use_move: 'Anderer Server: bitte „Umziehen“ nutzen.'
   adopt_self: 'Eine Verbindung kann nicht von sich selbst übernehmen.'
   adopt_service: 'Nur von einer Verbindung desselben Dienstes.'
