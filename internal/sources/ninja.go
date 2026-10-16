@@ -293,7 +293,8 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 			if asBool(vm["is_deleted"]) {
 				continue
 			}
-			vendors = append(vendors, NinjaVendor{Key: idKey(vm["id"]), Name: asStr(vm["name"]), CountryID: asStr(vm["country_id"])})
+			vendors = append(vendors, NinjaVendor{Key: idKey(vm["id"]), Name: asStr(vm["name"]), CountryID: asStr(vm["country_id"]),
+				Archived: asFloat(vm["archived_at"]) > 0})
 		}
 	}
 

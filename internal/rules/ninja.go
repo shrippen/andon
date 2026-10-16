@@ -326,9 +326,9 @@ func missingVat(data *sources.NinjaDataset, cfg map[string]any, env Env) []Findi
 
 func expenseNoInputVat(data *sources.NinjaDataset, cfg map[string]any, env Env) []Finding {
 	since := env.Today.AddDate(0, 0, -ninjaRecentDays)
-	vendors := map[string]string{}
+	vendors := map[string]sources.NinjaVendor{}
 	for _, v := range data.Vendors {
-		vendors[v.Key] = v.Name
+		vendors[v.Key] = v
 	}
 	var found []Finding
 	for _, e := range data.Expenses {
@@ -340,18 +340,38 @@ func expenseNoInputVat(data *sources.NinjaDataset, cfg map[string]any, env Env) 
 		if notes == "" {
 			notes = "–"
 		}
-		found = append(found, Finding{
+		v := vendors[e.VendorKey]
+		f := Finding{
 			Fingerprint: fmt.Sprintf("expense:%d", e.ID), Severity: enums.SeverityInfo, Message: "in.expense_no_vat",
 			Params: map[string]any{
 				"amount": Money(e.Amount, ninjaCurrency(data)), "notes": notes, "day": DayStr(e.Date),
-				"vendor": cmp.Or(vendors[e.VendorKey], "–"), "number": cmp.Or(e.Number, "–"),
+				"vendor": cmp.Or(v.Name, "–"), "number": cmp.Or(e.Number, "–"),
 			},
 			ActionURL: ninjaURL(data, "expenses/"+e.Key+"/edit"), ActionLabel: ninjaOpen,
 			Sources: []string{ninjaSource},
-		})
+		}
+
+		// From abroad without tax: reverse charge (§ 13b), the tax is
+		// owed here and deducted at once; the VAT check counts it in
+		// (metrics.Elster).
+		if v.CountryID != "" && v.CountryID != data.HomeCountryID {
+			f.Message, f.Params["kz"] = "in.expense_reverse_charge", kzOutsideEU
+			if metrics.InEU(v.CountryID) {
+				f.Params["kz"] = kzEU
+			}
+			f.ActionURL, f.ActionLabel = vatWork(env, e.Date, vatElster), workInVAT
+		}
+		found = append(found, f)
 	}
 	return found
 }
+
+// The return's lines for § 13b services, and /vat's figures.
+const (
+	kzEU        = "46/47"
+	kzOutsideEU = "84/85"
+	vatElster   = "elster"
+)
 
 func clientConcentration(data *sources.NinjaDataset, cfg map[string]any, env Env) []Finding {
 	shares := metrics.NinjaShares(data, env.Today)

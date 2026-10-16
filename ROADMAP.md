@@ -4,7 +4,7 @@ Ein selbst gehostetes, **mehrbenutzerfähiges** Dashboard. Es löst Dashy als **
 
 > Stand: v0.7 · Name **Andon** (seit 2026-09-26, vorher Arbeitstitel `dashboard`): die Signaltafel aus der Fertigung, die zeigt, wo es hakt.
 >
-> **Veröffentlichung:** Quelltext und Entwicklung auf `git.arianw.de/shrippen/andon` (privat, Image `git.arianw.de/shrippen/andon`). Gitea spiegelt `main` und Tags nach `github.com/shrippen/andon`; dort baut `.github/workflows/ci.yml` das öffentliche Image `ghcr.io/shrippen/andon`, und GitHub Pages zeigt die Landing Page aus `docs/` unter `shrippen.github.io/andon/`.
+> **Veröffentlichung:** Quelltext und Entwicklung auf `git.arianw.de/shrippen/andon` (privat). Gitea spiegelt bei jedem Commit alle Branches und Tags nach `github.com/shrippen/andon`; dort prüft `.github/workflows/ci.yml` jeden Push, meldet das Ergebnis als Status `github / test` an den Commit in Gitea zurück und baut aus `main` und Tags das öffentliche Image `ghcr.io/shrippen/andon` (seit 16.10.2026 CI und Image nur dort; erster Lauf 9 min gegen 21–24 min auf Gitea), und GitHub Pages zeigt die Landing Page aus `docs/` unter `shrippen.github.io/andon/`.
 >
 > **Arbeitsort:** Die gesamte Entwicklung findet in diesem Repository (`shrippen/andon`) statt. Das Design-System-Repo `shrippen/shrippen.github.io` ist nur Quelle, es wird von hier aus nicht verändert.
 
@@ -1224,7 +1224,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
 - [x] `/vat`: Umsatz mit vorhandener Zahlung verknüpfen (`payment_id`); `/billing` bucht bei vorhandenem Bankabruf über den Umsatz (`bank_transactions/match`), Teilzahlungen per Rechnungsnummer
 - [x] `/vat`: beim Anlegen einer Ausgabe die passenden freien Paperless-Belege anbieten (Matcher der Belege-Seite, ab 60 Punkten, bester ab 80 vorgewählt) und gleich verknüpfen; nur wenn `/receipts` dieselbe Invoice-Ninja-Verbindung nutzt
 - [ ] Gegen eine Instanz testen (Wegwerf-Container, `.local-test/writes/`): Antwort von `bank_transactions/match`, Steuerfelder der angelegten Ausgabe
-- [ ] Hinweis „Reverse Charge“ (§ 13b) bei ausländischen Lieferanten ohne Steuer
+- [x] Hinweis „Reverse Charge“ (§ 13b) bei ausländischen Lieferanten ohne Steuer *(16.10.2026: `in.expense_no_input_vat` meldete solche Ausgaben als „keine Vorsteuer erfasst“, live bei ZSA; jetzt eigener Text mit Kennzahlen 46/47 bzw. 84/85, führt in den USt-Abgleich des Zeitraums)*
 
 ### Werkbänke (entschieden 14.10.2026)
 
