@@ -47,10 +47,14 @@ var need = workbench.Need{Required: []enums.ServiceType{enums.ServiceSure},
 const (
 	FieldAmount   = "amount"
 	FieldCategory = "category"
+	FieldTax      = "tax" // a rate or noTax, as on the VAT check
 )
 
 // Fields lists the fields, for the form.
-var Fields = []string{FieldAmount, FieldCategory}
+var Fields = []string{FieldAmount, FieldCategory, FieldTax}
+
+// noTax books a new recurring expense without tax.
+const noTax = "none"
 
 const (
 	ProblemGone   workbench.Problem = "subs.problem_gone"   // settled meanwhile
@@ -73,6 +77,7 @@ type Page struct {
 	Wallos     bool // the Verbund has a Wallos
 	Ninja      bool // … an Invoice Ninja
 	Categories []sources.NinjaCategory
+	TaxRates   []sources.NinjaTaxRate
 }
 
 type book struct {
@@ -96,7 +101,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 	p.Cases, p.Currency = b.cases, b.bank.Currency
 	p.Wallos, p.Ninja = b.wallos != nil, b.ninja != nil
 	if b.ninja != nil {
-		p.Categories = b.ninja.Categories
+		p.Categories, p.TaxRates = b.ninja.Categories, b.ninja.TaxRates
 	}
 	return p, nil
 }
@@ -212,6 +217,23 @@ func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 	}
 	if j := slices.IndexFunc(b.ninja.Categories, func(c sources.NinjaCategory) bool { return c.Key == it.CategoryKey }); j >= 0 {
 		it.Category = b.ninja.Categories[j].Name
+	}
+
+	// The tax as chosen; without a field the vendor's last expense's.
+	switch tax := s.Field(FieldTax); {
+	case tax == noTax:
+		it.TaxName, it.TaxRate = "", 0
+	case tax != "":
+		rate, err := strconv.ParseFloat(tax, 64)
+		j := slices.IndexFunc(b.ninja.TaxRates, func(r sources.NinjaTaxRate) bool { return r.Rate == rate })
+		switch {
+		case err != nil:
+		case it.TaxName != "" && it.TaxRate == rate:
+			// The vendor's own rate, offered even when Invoice Ninja no
+			// longer has it set up: kept as it is.
+		case j >= 0:
+			it.TaxName, it.TaxRate = b.ninja.TaxRates[j].Name, rate
+		}
 	}
 	return it, workbench.ProblemNone
 }

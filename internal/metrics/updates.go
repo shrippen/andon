@@ -62,6 +62,12 @@ func UpdateCases(in UpdateInputs) []UpdateCase {
 		found = in.WUD.Updates()
 	}
 	for _, u := range found {
+		// The same tag again is a new image behind a floating tag
+		// ("latest"): no newer tag for a pull request. The hint and the
+		// tile still count it (WUDDataset.Updates).
+		if u.NewTag == u.Tag {
+			continue
+		}
 		image, _ := splitTag(u.Image)
 		c := UpdateCase{Container: u.Name, Image: image, Tag: u.Tag, NewTag: u.NewTag}
 		c.Stack, c.Service, c.Written, c.Pinned = composeOf(in.Gitea, image, u.Tag)

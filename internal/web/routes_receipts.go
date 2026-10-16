@@ -158,7 +158,7 @@ func (d Deps) handleReceipts(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	failed, _ := strconv.Atoi(query.Get("failed"))
 	_ = d.Page(w, ctx, "receipts", http.StatusOK, map[string]any{
 		"Setup": setup, "Q": q, "Tabs": receiptTabs, "Years": years(),
-		"Done": query.Get("done"), "Error": query.Get("error"), "Note": query.Get("note"), "Hunted": hunted, "Failed": failed, "Who": query.Get("who"), "Reason": query.Get("reason"), "Other": query.Get("other"),
+		"Done": query.Get("done"), "Error": query.Get("error"), "Note": query.Get("note"), "Hunted": hunted, "Failed": failed, "FailedName": query.Get("who"), "Reason": query.Get("reason"), "Other": query.Get("other"),
 		"Undo": receiptUndo{Expense: query.Get("undo_expense"), Doc: query.Get("undo_doc")},
 	})
 }

@@ -14,7 +14,7 @@
     <h1>{{t "closeweek.title"}}</h1>
     <p class="muted">{{t "closeweek.lead"}}</p>
     {{with .done}}<p class="pill" data-state="applied">{{t "closeweek.done" "n" .}}</p>{{end}}
-    {{with .failed}}<p class="error">{{t "closeweek.failed" "n" .}} {{$.Who}}: {{t $.Reason}}</p>{{end}}
+    {{with .failed}}<p class="error">{{t "closeweek.failed" "n" .}} {{$.FailedName}}: {{t $.Reason}}</p>{{end}}
     {{with .Error}}<p class="error">{{t .}}</p>{{end}}
     {{if $p.Scopes}}
     {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/week" "Keep" (dict "week" ($p.Week.Format "2006-01-02"))}}
