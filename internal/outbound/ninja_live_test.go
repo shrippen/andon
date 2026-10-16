@@ -2,7 +2,9 @@ package outbound_test
 
 import (
 	"context"
+	"fmt"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -129,4 +131,72 @@ func ninjaKey(raw any) string {
 	data, _ := m["data"].(map[string]any)
 	key, _ := data["id"].(string)
 	return key
+}
+
+// kindRecurring is a recurring expense of Invoice Ninja in the write log.
+const kindRecurring = "recurring_expenses"
+
+// A recurring expense created and started, repriced, stopped and
+// archived: the Invoice Ninja writes of the subscription bench
+// (services/subs); deleted at the end.
+func TestNinjaRecurringLive(t *testing.T) {
+	ninja := live.Target(t, live.Ninja)
+	api := services.NinjaApi{URL: ninja.URL, Token: ninja.Token, Verify: ninja.VerifyTLS}
+	ctx := context.Background()
+	name := live.Name(t)
+	next := time.Now().AddDate(0, 1, 0).Format(time.DateOnly)
+
+	vendor := ninjaKey(must(t)(api.Post(ctx, "vendors", map[string]any{"name": name})))
+	ninjaOwn(t, api, "vendors", vendor)
+
+	key, _, err := outbound.NinjaRecurringCreate(ctx, ninja, outbound.NinjaRecurringNew{VendorKey: vendor, Notes: name, Amount: 1.23,
+		Frequency: monthlyFrequency, Next: next})
+	if key != "" {
+		ninjaOwn(t, api, kindRecurring, key)
+	}
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	got := ninjaRead(t, api, kindRecurring, key)
+	// Invoice Ninja answers the date with a time ("2026-11-16 00:00:00").
+	if got["amount"] != 1.23 || got["status_id"] != ninjaRecurringActive || !strings.HasPrefix(fmt.Sprint(got["next_send_date"]), next) {
+		t.Errorf("created: amount %v, status %v, next %v", got["amount"], got["status_id"], got["next_send_date"])
+	}
+
+	live.Change(t, live.Ninja, live.Update, kindRecurring, key)
+	if err := outbound.NinjaRecurringAmount(ctx, ninja, key, 2.34); err != nil {
+		t.Fatalf("amount: %v", err)
+	}
+	if a := ninjaRead(t, api, kindRecurring, key)["amount"]; a != 2.34 {
+		t.Errorf("amount = %v, want 2.34", a)
+	}
+
+	for _, action := range []outbound.RecurringAction{outbound.RecurringStop, outbound.RecurringArchive} {
+		live.Change(t, live.Ninja, live.Update, kindRecurring, key)
+		if err := outbound.NinjaRecurringBulk(ctx, ninja, key, action); err != nil {
+			t.Fatalf("%s: %v", action, err)
+		}
+	}
+	if got := ninjaRead(t, api, kindRecurring, key); got["status_id"] != ninjaRecurringPaused || got["archived_at"] == 0.0 {
+		t.Errorf("after stop and archive: status %v, archived %v", got["status_id"], got["archived_at"])
+	}
+}
+
+// Invoice Ninja's frequency of a monthly recurring entry and the states
+// of a recurring expense.
+const (
+	monthlyFrequency     = 5
+	ninjaRecurringActive = "2"
+	ninjaRecurringPaused = "3"
+)
+
+// must returns a call's answer or fails the test.
+func must(t *testing.T) func(any, error) any {
+	return func(v any, err error) any {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
 }
