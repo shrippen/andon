@@ -140,6 +140,7 @@ const (
 	PaletteLink       PaletteKind = "link"
 	PaletteConnection PaletteKind = "connection"
 	PaletteHints      PaletteKind = "hints"
+	PaletteBench      PaletteKind = "bench"
 	PalettePage       PaletteKind = "page"
 	PaletteSetting    PaletteKind = "setting"
 )

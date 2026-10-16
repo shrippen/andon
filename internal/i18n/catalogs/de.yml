@@ -4165,6 +4165,7 @@ palette:
   group_link: Links
   group_connection: Verbindungen
   group_hints: Hinweise
+  group_bench: Werkbänke
   group_page: Seiten
   group_setting: Einstellungen
   hint_count: '{n} offen'
@@ -7631,3 +7632,28 @@ ask:
   send: 'Fragen'
   answer: 'Antwort'
   err_empty: 'Bitte eine Frage eingeben.'
+benches:
+  title: 'Werkbänke'
+  lead: 'Jede Werkbank arbeitet offene Fälle eines Bereichs ab. Mit dem Stern steht sie dauerhaft in der Menüleiste; ohne Stern zeigt die Leiste die Werkbänke mit offenen Hinweisen.'
+  all: 'Alle Werkbänke'
+  fav_on: 'In der Menüleiste'
+  fav_off: 'In die Menüleiste'
+  open: '{n} offene Hinweise'
+  group:
+    money: 'Kunden & Geld'
+    stock: 'Geräte & Betrieb'
+    review: 'Überblick'
+  desc:
+    clients: 'Jeder Kunde aus Kimai und Invoice Ninja: Stunden, offene Arbeit, Rechnungen, Zahlungsdauer.'
+    week: 'Zeiten, die andere Dienste gesehen haben und Kimai nicht, in Kimai eintragen.'
+    billing: 'Offene Stunden je Kunde zu Rechnungsentwürfen in Invoice Ninja machen.'
+    receipts: 'Ausgaben in Invoice Ninja ihren Belegen in Paperless zuordnen.'
+    vat: 'Vor der Voranmeldung jeden Bankumsatz einer Ausgabe oder Zahlung zuordnen.'
+    euer: 'Ausgaben ohne EÜR-Zeile einer Zeile zuordnen.'
+    subs: 'Abos der Bank mit Wallos und Invoice Ninja abgleichen.'
+    inventory: 'Geräte im Netz, die in Snipe-IT fehlen, anlegen.'
+    purchases: 'Anschaffungen vervollständigen: Kosten, Garantie, Ausgabe, Beleg.'
+    hosts: 'Jeder Rechner mit allem, was auf ihn zeigt.'
+    updates: 'Neuere Image-Tags nach Dringlichkeit, Pull Request ins Compose-Repo.'
+    year: 'Das Steuerjahr zur Vorbereitung der EÜR und der Jahresrückblick.'
+    timeline: 'Was sich in den letzten 14 Tagen geändert hat.'

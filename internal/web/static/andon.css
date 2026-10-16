@@ -363,6 +363,7 @@ label.pick-check { margin: 0 .3rem; }
 [data-color="purple"] { --tint: var(--purple); } [data-color="aqua"] { --tint: var(--aqua); }
 [data-color="orange"] { --tint: var(--orange); }
 .tile-slot:has(.launch-items) .launch { height: auto; }
+.bench-grid .launch { height: auto; } /* the star's form sits below */
 
 /* ── context menu (right click on a link tile): Kante's .menu, placed by the pointer ── */
 .ctx-menu { position: fixed; z-index: 50; margin: 0; list-style: none; }

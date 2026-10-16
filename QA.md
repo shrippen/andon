@@ -101,6 +101,13 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 4. Kachel „FRITZ!Box“ (Board Studio-IT, Abschnitt Sicherheit): Durchsatz jetzt und als Linie, Repeater mit schwachem WLAN und Thermostat ohne Verbindung farbig, FRITZ!OS mit Update im Fuß. Dialog: Durchsatz-Diagramm mit Achse und Legende, Reiter Geräte, Mesh (WLAN der Box), Anrufe (03:13 „Unbekannt“), Smart Home; Kachel-Optionen blenden Durchsatz, Mesh, Anrufe, Smart Home aus.
 5. Kachel „KI-Kosten“ (Board Studio-IT, Abschnitt Status): Summe des Monats und heute in $, je Konto Ausgaben, Guthaben, Schlüssel-Limit oder Abo-Fenster als Balken; die Woche des Claude-Abos (91 %) steht oben. Dialog: Kosten je Tag mit Achse und Legende je Konto, Kontingente und Limits mit Rücksetzzeit, Konten (Budget überschritten rot), Modelle des Monats. Hinweise: Guthaben knapp (DeepSeek, OpenRouter), Kostensprung (Claude API, heute), Woche bei 91 %. Option „Nur diese Anbieter“ (`deepseek`) lässt nur DeepSeek.
 
+**J-B7 Werkbänke finden** 📱
+1. Ohne Stern: Die Leiste zeigt neben „Hinweise“ nur Werkbänke mit offenen Hinweisen, mit Zähler (Demo: Abrechnung, USt-Abgleich, Abos, Updates).
+2. Menü „Werkbänke ▾“: alle Werkbänke, Gruppen durch Linien getrennt, Zähler wie in der Leiste; „Alle Werkbänke“ öffnet `/benches`.
+3. `/benches`: drei Gruppen mit Beschreibung und Zähler; „In die Menüleiste“ bei „Belege zuordnen“: Ab jetzt zeigt die Leiste nur die Werkbänke mit Stern, auch ohne offene Hinweise. Stern wieder entfernen.
+4. Strg+K, „ust“: Gruppe „Werkbänke“ mit Beschreibung.
+5. Am Handy: ☰ zeigt Hinweise und alle Werkbänke; die Karten auf `/benches` überlappen nicht.
+
 **J-B6 Sprache**
 1. Abgemeldet auf der Anmeldeseite im Fuß „EN“ wählen: die Seite ist englisch und bleibt es nach Neuladen. Anmelden: es gilt die Sprache des Profils.
 2. Im Fuß (oder Benutzermenü) auf Englisch wechseln, alle Seiten und Dialoge von J-B1 bis J-B5 erneut; ein anderer Browser hat nach der Anmeldung dieselbe Sprache.
