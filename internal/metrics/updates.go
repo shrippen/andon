@@ -40,6 +40,7 @@ type UpdateCase struct {
 	Stack       *sources.Stack
 	Service     string // the stack's service with the image
 	Pinned      bool   // the compose file names the tag literally, so a PR can change it
+	Written     string // the image as the compose file writes it ("nginx" for "library/nginx")
 	Release     string // the release page a feed announced, "" from WUD
 }
 
@@ -69,7 +70,7 @@ func UpdateCases(in UpdateInputs) []UpdateCase {
 		}
 		image, _ := splitTag(u.Image)
 		c := UpdateCase{Container: u.Name, Image: image, Tag: u.Tag, NewTag: u.NewTag}
-		c.Stack, c.Service, c.Pinned = composeOf(in.Gitea, image, u.Tag)
+		c.Stack, c.Service, c.Written, c.Pinned = composeOf(in.Gitea, image, u.Tag)
 		c.Key = subKey("", "u "+updateWhere(c))
 		if c.Key == "" || seen[c.Key] {
 			continue
@@ -122,7 +123,7 @@ func feedCases(in UpdateInputs) []UpdateCase {
 			if !ok {
 				continue
 			}
-			c := UpdateCase{Container: svc.Name, Image: image, Tag: tag, NewTag: next, Stack: s, Service: svc.Name, Pinned: true, Release: rel.Link}
+			c := UpdateCase{Container: svc.Name, Image: image, Tag: tag, NewTag: next, Stack: s, Service: svc.Name, Pinned: true, Written: image, Release: rel.Link}
 			c.Key = subKey("", "u "+updateWhere(c))
 			out = append(out, c)
 		}
@@ -222,14 +223,15 @@ func splitTag(image string) (string, string) {
 	return image, ""
 }
 
-// composeOf finds the compose service running image; pinned says the file
+// composeOf finds the compose service running image, with the image as
+// the file writes it ("nginx" for "library/nginx"); pinned says the file
 // names tag literally ("immich:1.131.0", not "immich:${VERSION}").
-func composeOf(g *sources.GiteaDataset, image, tag string) (*sources.Stack, string, bool) {
+func composeOf(g *sources.GiteaDataset, image, tag string) (*sources.Stack, string, string, bool) {
 	if g == nil {
-		return nil, "", false
+		return nil, "", "", false
 	}
 	var found *sources.Stack
-	var service string
+	var service, written string
 	for i := range g.Stacks {
 		s := &g.Stacks[i]
 		for _, svc := range s.Services {
@@ -238,14 +240,14 @@ func composeOf(g *sources.GiteaDataset, image, tag string) (*sources.Stack, stri
 				continue
 			}
 			if t == tag {
-				return s, svc.Name, true
+				return s, svc.Name, name, true
 			}
 			if found == nil {
-				found, service = s, svc.Name
+				found, service, written = s, svc.Name, name
 			}
 		}
 	}
-	return found, service, false
+	return found, service, written, false
 }
 
 // sameImage: Docker Hub's short form names the same image
