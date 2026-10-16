@@ -165,7 +165,12 @@ func TestSureNinjaCross(t *testing.T) {
 	}
 	env.Settings = map[string]any{"rules": map[string]any{"cross.expense_unrecorded": map[string]any{"accounts": []any{"Geschäftskonto"}}}}
 	got := run(t, "cross.expense_unrecorded", nil, env)
-	if len(got) != 2 {
+	names := map[any]bool{}
+	for _, f := range got {
+		names[f.Params["name"]] = true
+	}
+	// Studio supplies, last month's server and the software subscription.
+	if len(got) != 3 || !names["Farbraum Grade, Abo"] {
 		t.Fatalf("unrecorded: %+v", got)
 	}
 	for _, f := range got {

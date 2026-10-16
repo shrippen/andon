@@ -18,8 +18,15 @@ func subActions(cases []SubCase) map[string]SubAction {
 
 func TestSubCasesDemo(t *testing.T) {
 	now := time.Now()
-	cases := SubCases(SubInputs{Bank: sources.DemoSure(now), Wallos: sources.DemoWallos(now), Ninja: sources.DemoNinja(now), Today: now})
-	want := map[string]SubAction{"wp-1": SubWallosPrice, "wm-5": SubWallosMerge, "wa-farbraum-grade-abo": SubWallosAdd, "np-demo-r1": SubNinjaPrice}
+	// The business account's role, as the demo connection sets it.
+	bank := sources.DemoSure(now)
+	for i, t := range bank.Transactions {
+		if t.AccountID == "a1" || t.Account == bank.Accounts[0].Name {
+			bank.Transactions[i].Role = sources.RoleBusiness
+		}
+	}
+	cases := SubCases(SubInputs{Bank: bank, Wallos: sources.DemoWallos(now), Ninja: sources.DemoNinja(now), Today: now})
+	want := map[string]SubAction{"wp-1": SubWallosPrice, "wm-5": SubWallosMerge, "wa-farbraum-grade-abo": SubWallosAdd, "np-demo-r1": SubNinjaPrice, "na-farbraum-grade-abo": SubNinjaAdd}
 	got := subActions(cases)
 	for k, a := range want {
 		if got[k] != a {
