@@ -63,6 +63,12 @@ const (
 	FreshRSS  Service = "freshrss"
 	Wallos    Service = "wallos"
 	Sure      Service = "sure"
+
+	// Mail goes to an SMTP catcher, read back through its API (Mailbox);
+	// Apprise's Token is the channel it sends to.
+	SMTP    Service = "smtp"
+	Mailbox Service = "mailpit"
+	Apprise Service = "apprise"
 )
 
 // Action is one kind of write in the log.
