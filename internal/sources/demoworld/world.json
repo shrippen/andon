@@ -7310,34 +7310,6 @@
     ]
    },
    {
-    "id": "claude-plan",
-    "provider": "claudeplan",
-    "name": "Mara Weber · Max",
-    "url": "https://claude.ai/settings/usage",
-    "windows": [
-     {
-      "kind": "session",
-      "percent": 64,
-      "resets": "@+2h"
-     },
-     {
-      "kind": "week",
-      "percent": 91,
-      "resets": "@+1d14h"
-     },
-     {
-      "kind": "week_model",
-      "model": "Opus",
-      "percent": 47,
-      "resets": "@+1d14h"
-     },
-     {
-      "kind": "extra",
-      "percent": 25
-     }
-    ]
-   },
-   {
     "id": "openrouter",
     "provider": "openrouter",
     "name": "Theo Lindqvist · Untertitel",
