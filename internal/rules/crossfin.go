@@ -56,7 +56,13 @@ func Usages(env Env) []metrics.Usage {
 	var out []metrics.Usage
 	if links, ok := boardLinks(env); ok {
 		for _, l := range links {
-			out = append(out, metrics.Usage{Name: l.Title + " " + hostOf(l.URL), Last: l.LastClick})
+			// Never clicked: nothing is known before the tile's last
+			// edit, so its disuse counts from there.
+			last := l.LastClick
+			if last.IsZero() {
+				last = l.Since
+			}
+			out = append(out, metrics.Usage{Name: l.Title + " " + hostOf(l.URL), Last: last})
 		}
 	}
 	if ak, ok := env.Datasets[string(enums.ServiceAuthentik)].(*sources.AuthentikDataset); ok {
