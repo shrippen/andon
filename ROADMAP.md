@@ -1458,6 +1458,35 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - Authentik antwortet nicht (Timeout), Audiobookshelf lehnt den gespeicherten Schlüssel ab (401): Instanzen, nicht Andon
 - Phase 19 (PV): Das Energie-Dashboard in HA führt nur vier Zwischenstecker als Netz, keine PV, keine Batterie, keine Prognose. Zurückgestellt, bis PV in HA steht
 
+### Werkbänke Ende-zu-Ende gegen Container (16.10.2026)
+
+Zweite Andon-Instanz (`.local-test/extra/andon-data`, Port 8095) mit den Wegwerf-Containern aus `.local-test/writes/` (Kimai mit Anfahrten, Invoice Ninja, Paperless, Snipe-IT, FreshRSS, Wallos, Tandoor, Sure); jede Werkbank im Browser bis zum Schreiben durchgespielt und das Ergebnis im Dienst nachgesehen.
+
+**Grün**
+- [x] Anschaffungen: Garantie 36 Monate an einem neuen Gegenstand (Snipe-IT `warranty_months`)
+- [x] Abrechnung: Entwurf aus zwei Kimai-Zeiten (7 h × 80 €), Zeiten als exportiert markiert
+- [x] EÜR-Zuordnung: Zusatzfeld „EÜR“ erkannt, Kategorie → Zeile gespeichert, Feld der Ausgabe gesetzt
+- [x] Belegjagd: Felder nach Namen vorgeschlagen, Beleg (100/100) verknüpft, Verweise auf beiden Seiten
+- [x] Mahnlauf: Erinnerung über Ninja verschickt (Ninjas Mail-Log)
+- [x] USt-Abgleich: Lieferant neu, Ausgabe mit 19 % inklusive (Vorsteuer 19,00 €), EÜR-Zeile aus der Zuordnung, `bank_transactions/match` (Status 3, `expense_id`) *(damit erledigt: „Gegen eine Instanz testen“ oben)*
+- [x] Lieferanten aufräumen: Ausgabe umgehängt, Doppelter archiviert
+- [x] Woche schließen: Termin aus einem Kalender → Kimai-Eintrag
+- [x] Sure aufräumen: zwei Buchungen nach „Büro“ (Sure)
+- [x] Abos: fehlendes Abo in Wallos angelegt; geschäftliches Abo als wiederkehrende Ausgabe in Ninja (Lieferant neu, gestartet)
+
+**Behoben (mit Test)**
+- [x] Gelöschte Ninja-Einträge (Zahlung, Kunde, Lieferant, Angebot) zählten mit: 1 € Testzahlung als Zahlungseingang (#176)
+- [x] Ninja-IDs: Ausgaben, Zahlungen, Angebote, Serienrechnungen hatten alle ID 0 (gehashte IDs als Zahl gelesen), ihre Hinweise teilten einen Fingerabdruck; Links `/#/expenses/<Zahl>` landeten auf dem Dashboard, richtig ist `/expenses/<Schlüssel>/edit` (#176)
+- [x] Mahnlauf bot dieselbe Erinnerung sofort wieder an: Ninja vermerkt einen Versand über `POST /emails` nur im Verlauf (Aktivität 63–65), nicht in `reminder1_sent` (#177)
+- [x] Lieferanten aufräumen bot den archivierten Lieferanten erneut an, ohne Ende (#179)
+- [x] USt-Abgleich: Buchung ohne Zahler (manuell, CSV) erschien auf der Prüfseite als „· ·“ (#178)
+- [x] Live-Schreibtests für Sure (Kategorie) und Ninjas wiederkehrende Ausgaben (#180)
+
+**Notiert**
+- [ ] Abos: eine neue wiederkehrende Ausgabe bekommt keinen Steuersatz, wenn der Lieferant noch keine Ausgabe hat; jede Buchung daraus fehlt dann in der Vorsteuer (`in.expense_no_input_vat`). Steuersatz wie im USt-Abgleich anbieten
+- Zeiten nach Kimai (Woche, Timer) gehen in Andons Ortszeit; hat der Kimai-Nutzer eine andere Zone (Container: UTC), liegen sie um den Unterschied daneben. Bei gleicher Zone (Normalfall) richtig
+- Demo-Seed nur deutsch: Notiz „Demo-Instanz mit erfundenen Daten.“ und Link-Beschreibungen („Virtualisierung“, „Dokumente“) erscheinen auch auf englischen Screenshots
+
 ### Noch nicht in echt getestet (notiert 07.10.2026)
 
 Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die Dienste bis #58. Alles danach ist nur gegen Nachbauten (`httptest`) und die Demowelt getestet. Abhaken, wenn `make live` gegen eine echte Instanz grün ist und die Hinweise plausibel sind; Funde wie beim Lauf vom 06.10. darunter notieren.
