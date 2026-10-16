@@ -63,6 +63,7 @@ const (
 	FreshRSS  Service = "freshrss"
 	Wallos    Service = "wallos"
 	Sure      Service = "sure"
+	Hass      Service = "homeassistant"
 )
 
 // Action is one kind of write in the log.
