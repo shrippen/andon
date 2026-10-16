@@ -22,8 +22,7 @@ docker compose up -d
 docker compose logs andon | grep "SETUP CODE"      # open /setup and enter the code
 ```
 
-Images: `ghcr.io/shrippen/andon`, public, built by the GitHub mirror.
-The same tags go to the private `git.arianw.de/shrippen/andon`.
+Image: `ghcr.io/shrippen/andon`, public, built by the GitHub mirror.
 `latest` is the newest release, `edge` follows `main` (development
 state). A tag `v1.2.3` publishes `latest`, `1.2.3`, `1.2` and `1`; set
 `ANDON_TAG=1.2` in `.env` to pin production to a release line. Keep `secrets/master_key` safe and
