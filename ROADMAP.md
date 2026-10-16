@@ -1483,7 +1483,7 @@ Zweite Andon-Instanz (`.local-test/extra/andon-data`, Port 8095) mit den Wegwerf
 - [x] Live-Schreibtests für Sure (Kategorie) und Ninjas wiederkehrende Ausgaben (#180)
 
 **Notiert**
-- [ ] Abos: eine neue wiederkehrende Ausgabe bekommt keinen Steuersatz, wenn der Lieferant noch keine Ausgabe hat; jede Buchung daraus fehlt dann in der Vorsteuer (`in.expense_no_input_vat`). Steuersatz wie im USt-Abgleich anbieten
+- [x] Abos: eine neue wiederkehrende Ausgabe bekam keinen Steuersatz, wenn der Lieferant noch keine Ausgabe hatte; jede Buchung daraus fehlte dann in der Vorsteuer. Das Formular bietet jetzt Ninjas Steuersätze an (#182)
 - Zeiten nach Kimai (Woche, Timer) gehen in Andons Ortszeit; hat der Kimai-Nutzer eine andere Zone (Container: UTC), liegen sie um den Unterschied daneben. Bei gleicher Zone (Normalfall) richtig
 - Demo-Seed nur deutsch: Notiz „Demo-Instanz mit erfundenen Daten.“ und Link-Beschreibungen („Virtualisierung“, „Dokumente“) erscheinen auch auf englischen Screenshots
 
