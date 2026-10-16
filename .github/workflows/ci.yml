@@ -13,11 +13,8 @@ on:
     branches: ["**"]
     tags: ["v*"]
 
-# A newer push to the same branch replaces the older run; a tag is never
-# cancelled, its run builds the release image.
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+# No concurrency group: every commit runs to the end and keeps its own
+# status, a newer push does not cancel an older run.
 
 permissions:
   contents: read
