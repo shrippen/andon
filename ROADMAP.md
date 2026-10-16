@@ -1245,7 +1245,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [x] Werkbank „EÜR-Zuordnung“ (`/euer`, Navigation „EÜR“): Ausgaben eines Jahres mit leerem EÜR-Feld, Zeile der Kategorie vorgewählt, ohne Zuordnung selbst wählbar; Prüfen, Schreiben (`custom_valueN`), Journal mit Rückgängig
    - [x] `/vat` nimmt die Ninja-Kategorie aus der Zuordnung statt nach Namen, und eine neu angelegte Ausgabe bekommt gleich ihre EÜR-Zeile
    - [x] Kategorien auch ohne gespeicherten Verbund: `/categories?ninja=…&bank=…`, von `/euer` verlinkt
-   - [ ] Offen: Sures Tags zusätzlich zur Kategorie
+   - [ ] Offen: Sures Tags zusätzlich zur Kategorie *(zurückgestellt 16.10.2026: im echten Sure trägt keine der 431 Buchungen einen Tag)*
 3. Auf `/vat`
    - [x] Reverse Charge (§ 13b): Ausgaben ohne Steuer von Lieferanten mit Land außerhalb Deutschlands (Land aus Invoice Ninja), EU in Kz 46/47, sonst 84/85, Vorsteuer in Kz 67; Waren aus der EU (Kz 89/93) erkennt Andon nicht, die Seite sagt es
    - [x] ELSTER-Kennzahlen (Kz 21, 45, 81, 86, 46/47, 84/85, 66, 67, 83) mit Kopierknopf, Ist- oder Sollversteuerung; „Als gemeldet merken“, danach geänderte Kennzahlen als „Berichtigung fällig“
@@ -1483,6 +1483,7 @@ Zweite Andon-Instanz (`.local-test/extra/andon-data`, Port 8095) mit den Wegwerf
 - [x] USt-Abgleich: Buchung ohne Zahler (manuell, CSV) erschien auf der Prüfseite als „· ·“ (#178)
 - [x] Live-Schreibtests für Sure (Kategorie) und Ninjas wiederkehrende Ausgaben (#180)
 - [x] Orte: Abgleich, Zuordnen, Anlegen und Fahrtklasse schrieben gegen zwischengespeicherte Daten; eine eben angelegte Area fehlte („0/0“), Doppelte waren möglich. Jetzt frisch (#183)
+- [x] Live-Schreibtest für den Pull Request der Update-Werkbank gegen einen Gitea-Container (#184)
 
 **Notiert**
 - [x] Abos: eine neue wiederkehrende Ausgabe bekam keinen Steuersatz, wenn der Lieferant noch keine Ausgabe hatte; jede Buchung daraus fehlte dann in der Vorsteuer. Das Formular bietet jetzt Ninjas Steuersätze an (#182)
