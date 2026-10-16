@@ -153,33 +153,42 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 	var invoices []NinjaInvoice
 	for _, i := range invoicesRaw {
 		im := asMap(i)
+		if asBool(im["is_deleted"]) {
+			continue
+		}
 		if day(im["date"]) >= since || asFloat(im["balance"]) > 0 {
 			invoices = append(invoices, ninjaInvoice(i))
 		}
 	}
 
-	paymentsRaw, err := api.Pages(ctx, "payments", url.Values{"include": {"paymentables"}})
+	paymentsRaw, err := api.Pages(ctx, "payments", url.Values{"include": {"paymentables"}, "is_deleted": {"false"}})
 	if err != nil {
 		return nil, err
 	}
 	var payments []NinjaPayment
 	for _, p := range paymentsRaw {
 		pm := asMap(p)
+		if asBool(pm["is_deleted"]) {
+			continue
+		}
 		if day(pm["date"]) >= since {
 			payments = append(payments, NinjaPayment{
-				ID: asInt64(pm["id"]), Date: day(pm["date"]), Amount: asFloat(pm["amount"]),
+				ID: refNum(pm["id"]), Date: day(pm["date"]), Amount: asFloat(pm["amount"]),
 				ClientID: refNum(pm["client_id"]), Key: idKey(pm["id"]), Number: asStr(pm["number"]),
 			})
 		}
 	}
 
-	clientsRaw, err := api.Pages(ctx, "clients", nil)
+	clientsRaw, err := api.Pages(ctx, "clients", url.Values{"is_deleted": {"false"}})
 	if err != nil {
 		return nil, err
 	}
 	var clients []NinjaClient
 	for _, c := range clientsRaw {
 		cm := asMap(c)
+		if asBool(cm["is_deleted"]) {
+			continue
+		}
 		name := asStr(cm["display_name"])
 		if name == "" {
 			name = asStr(cm["name"])
@@ -198,10 +207,13 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 	var expenses []NinjaExpense
 	for _, e := range expensesRaw {
 		em := asMap(e)
+		if asBool(em["is_deleted"]) {
+			continue
+		}
 		if day(em["date"]) >= since {
 			notes := asStr(em["public_notes"])
 			expenses = append(expenses, NinjaExpense{
-				ID: asInt64(em["id"]), Number: asStr(em["number"]), Date: day(em["date"]), Amount: asFloat(em["amount"]),
+				ID: refNum(em["id"]), Number: asStr(em["number"]), Date: day(em["date"]), Amount: asFloat(em["amount"]),
 				Tax: round2(expenseTax(em)), Notes: notes, VendorID: asInt64(em["vendor_id"]), VendorKey: idKey(em["vendor_id"]),
 				Key: idKey(em["id"]), CategoryKey: idKey(em["category_id"]), TaxName: asStr(em["tax_name1"]), TaxRate: asFloat(em["tax_rate1"]),
 				TxnKey: idKey(em["transaction_id"]),
@@ -215,35 +227,45 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 
 	// Vendor names let other sources match senders to expenses.
 	var vendors []NinjaVendor
-	if vendorsRaw, err := api.Pages(ctx, "vendors", nil); err == nil {
+	if vendorsRaw, err := api.Pages(ctx, "vendors", url.Values{"is_deleted": {"false"}}); err == nil {
 		for _, v := range vendorsRaw {
 			vm := asMap(v)
-			vendors = append(vendors, NinjaVendor{Key: idKey(vm["id"]), Name: asStr(vm["name"]), CountryID: asStr(vm["country_id"])})
+			if asBool(vm["is_deleted"]) {
+				continue
+			}
+			vendors = append(vendors, NinjaVendor{Key: idKey(vm["id"]), Name: asStr(vm["name"]), CountryID: asStr(vm["country_id"]),
+				Archived: asFloat(vm["archived_at"]) > 0})
 		}
 	}
 
-	quotesRaw, err := api.Pages(ctx, "quotes", nil)
+	quotesRaw, err := api.Pages(ctx, "quotes", url.Values{"is_deleted": {"false"}})
 	if err != nil {
 		return nil, err
 	}
 	var quotes []NinjaQuote
 	for _, q := range quotesRaw {
 		qm := asMap(q)
+		if asBool(qm["is_deleted"]) {
+			continue
+		}
 		quotes = append(quotes, NinjaQuote{
-			ID: asInt64(qm["id"]), Number: asStr(qm["number"]), ClientID: refNum(qm["client_id"]),
+			ID: refNum(qm["id"]), Key: idKey(qm["id"]), Number: asStr(qm["number"]), ClientID: refNum(qm["client_id"]),
 			Status: statusFor(quoteStatus, qm["status_id"]), Date: day(qm["date"]), ValidUntil: day(qm["due_date"]), Amount: asFloat(qm["amount"]),
 		})
 	}
 
-	recurringRaw, err := api.Pages(ctx, "recurring_invoices", nil)
+	recurringRaw, err := api.Pages(ctx, "recurring_invoices", url.Values{"is_deleted": {"false"}})
 	if err != nil {
 		return nil, err
 	}
 	var recurring []NinjaRecurring
 	for _, r := range recurringRaw {
 		rm := asMap(r)
+		if asBool(rm["is_deleted"]) {
+			continue
+		}
 		recurring = append(recurring, NinjaRecurring{
-			ID: asInt64(rm["id"]), Number: asStr(rm["number"]), ClientID: refNum(rm["client_id"]),
+			ID: refNum(rm["id"]), Key: idKey(rm["id"]), Number: asStr(rm["number"]), ClientID: refNum(rm["client_id"]),
 			Active: asStr(rm["status_id"]) == "2", NextSendDate: day(rm["next_send_date"]),
 			RemainingCycles: int(asFloat(rm["remaining_cycles"])), Amount: asFloat(rm["amount"]),
 		})

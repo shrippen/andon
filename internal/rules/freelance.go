@@ -23,7 +23,7 @@ func paymentWorse(data *sources.NinjaDataset, cfg map[string]any, env Env) []Fin
 		}
 		found = append(found, Finding{Fingerprint: fmt.Sprintf("slower:%d", m.ClientID), Severity: enums.SeverityWarn, Message: "in.payment_worse",
 			Params:    map[string]any{"client": m.Client, "recent": m.RecentDays, "avg": m.UsualDays},
-			ActionURL: strings.TrimRight(data.URL, "/") + "/#/clients", ActionLabel: "open_in_invoiceninja", Sources: []string{ninjaSvc}})
+			ActionURL: strings.TrimRight(data.URL, "/") + "/clients", ActionLabel: "open_in_invoiceninja", Sources: []string{ninjaSvc}})
 	}
 	return found
 }
