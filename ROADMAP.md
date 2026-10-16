@@ -1484,7 +1484,7 @@ Zweite Andon-Instanz (`.local-test/extra/andon-data`, Port 8095) mit den Wegwerf
 - [x] Live-Schreibtests für Sure (Kategorie) und Ninjas wiederkehrende Ausgaben (#180)
 - [x] Orte: Abgleich, Zuordnen, Anlegen und Fahrtklasse schrieben gegen zwischengespeicherte Daten; eine eben angelegte Area fehlte („0/0“), Doppelte waren möglich. Jetzt frisch (#183)
 - [x] Live-Schreibtest für den Pull Request der Update-Werkbank gegen einen Gitea-Container (#184)
-- [x] Live-Schreibtests für Ninjas Bank-, Lieferanten- und Mahnaufrufe (#185), Mail und Apprise (#186)
+- [x] Live-Schreibtests für Ninjas Bank-, Lieferanten- und Mahnaufrufe (#185), Mail und Apprise (#186), Schalter in Home Assistant (#187)
 
 **Notiert**
 - [x] Abos: eine neue wiederkehrende Ausgabe bekam keinen Steuersatz, wenn der Lieferant noch keine Ausgabe hatte; jede Buchung daraus fehlte dann in der Vorsteuer. Das Formular bietet jetzt Ninjas Steuersätze an (#182)
@@ -1534,7 +1534,7 @@ Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die D
 - [ ] `cross.project_mentioned`, `cross.esphome_ha` (Entitäten über den Knotennamen), `cross.release_unannounced`
 - [ ] `system.outage` mit USV auf Batterie und kritischen Prometheus-Alerts
 
-**Ohne Schreibtest**: `HassToggle`, LLM *(Mail und Apprise seit 16.10.2026 gegen Mailpit und einen Apprise-Container, #186; Ninjas Bank-, Lieferanten- und Mahnaufrufe #185, Gitea-PR #184)*. Geprüft am 09.10. (Docker): `DNSPause` (AdGuard), Grocy (Einkaufsliste), Homelable (Zeichnen, zweiter Lauf ohne Änderung, Ändern und Löschen)
+**Ohne Schreibtest**: LLM (braucht einen API-Schlüssel) *(16.10.2026 gegen Container: Mail und Apprise #186, `HassToggle` #187, Ninjas Bank-, Lieferanten- und Mahnaufrufe #185, Gitea-PR #184)*. Geprüft am 09.10. (Docker): `DNSPause` (AdGuard), Grocy (Einkaufsliste), Homelable (Zeichnen, zweiter Lauf ohne Änderung, Ändern und Löschen)
 
 **Webseite**
 - [ ] Changelog auf shrippen.github.io/andon nach dem Merge ansehen (#100; Kante 1.17 muss vorher unter `/v1` liegen)
