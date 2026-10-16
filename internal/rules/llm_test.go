@@ -51,17 +51,6 @@ func TestLLMCreditLow(t *testing.T) {
 	}
 }
 
-// TestLLMQuotaHigh: the demo plan's week window is past 85 %, the
-// session not.
-func TestLLMQuotaHigh(t *testing.T) {
-	env := todayEnv(nil)
-	env.Datasets = map[string]any{string(enums.ServiceClaudePlan): sources.DemoLLM(enums.ServiceClaudePlan, time.Now())}
-	got := run(t, "llm.quota_high", nil, env)
-	if len(got) != 1 || got[0].Sources[0] != string(enums.ServiceClaudePlan) || got[0].ActionURL == "" {
-		t.Fatalf("quota %+v", got)
-	}
-}
-
 // TestLLMSpike: today at four times the usual day is a note; a small
 // amount or a usual day is not; the demo re-reads receipts today.
 func TestLLMSpike(t *testing.T) {

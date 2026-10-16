@@ -10,7 +10,6 @@ package metrics
 //	LLMPace       month spend projected to the month's end
 
 import (
-	"slices"
 	"sort"
 	"time"
 
@@ -135,20 +134,4 @@ func sum(values []float64) float64 {
 		total += v
 	}
 	return total
-}
-
-// LLMQuotaTop is the fullest plan window of an account, false without one.
-func LLMQuotaTop(a sources.LLMAccount) (sources.LLMQuota, bool) {
-	if len(a.Quotas) == 0 {
-		return sources.LLMQuota{}, false
-	}
-	return slices.MaxFunc(a.Quotas, func(x, y sources.LLMQuota) int {
-		switch {
-		case x.Percent < y.Percent:
-			return -1
-		case x.Percent > y.Percent:
-			return 1
-		}
-		return 0
-	}), true
 }

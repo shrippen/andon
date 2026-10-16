@@ -1,14 +1,13 @@
 package widgets
 
 // "llm_usage": what the LLM providers cost this month, over every
-// connection of the space that is an LLM provider (Claude API and plan,
+// connection of the space that is an LLM provider (Claude API,
 // OpenRouter, OpenAI, DeepSeek, LiteLLM). The tile sums the month and
-// lists each account: its spend, credit or plan quota. The dialog draws
+// lists each account: its spend, credit or key limit. The dialog draws
 // the cost per day and provider, the models and every account.
 //
 //	tile:    12,40 $   this month · today 4,60 $
 //	         Claude API     8,10 $   today 4,60 $
-//	         Claude plan    week ████████▉ 91 %
 //	         DeepSeek       credit 2,40 $
 
 import (
@@ -71,7 +70,6 @@ type LLMLine struct {
 	Month   float64
 	Today   float64
 	Credit  *LLMCredit
-	Quota   *LLMMeter // the fullest plan window
 	Limit   *LLMMeter // share of the key's spend limit used
 	State   string    // Kante pill state: failed, locked (warning), "" calm
 }
@@ -85,16 +83,15 @@ type LLMCredit struct {
 // LLMMeter is a bar: label key, share used in per cent (Fill capped at
 // 100 for the bar), its tier.
 type LLMMeter struct {
-	Key   string
-	Model string
-	Pct   float64
-	Fill  float64
-	Tier  string
+	Key  string
+	Pct  float64
+	Fill float64
+	Tier string
 }
 
 // meterOf is a bar for a share used.
-func meterOf(key, model string, pct float64) *LLMMeter {
-	return &LLMMeter{Key: key, Model: model, Pct: pct, Fill: math.Round(min(pct, percentScale)), Tier: quotaTier(pct)}
+func meterOf(key string, pct float64) *LLMMeter {
+	return &LLMMeter{Key: key, Pct: pct, Fill: math.Round(min(pct, percentScale)), Tier: quotaTier(pct)}
 }
 
 func llmView(cfg LLMConfig, results map[string]any, ctx ViewCtx) map[string]any {
@@ -123,13 +120,9 @@ func llmLine(a sources.LLMAccount) LLMLine {
 	if a.HasBalance {
 		line.Credit = &LLMCredit{Amount: a.Balance, Currency: a.Currency}
 	}
-	if q, ok := metrics.LLMQuotaTop(a); ok {
-		line.Quota = meterOf("llm.quota."+string(q.Kind), q.Model, q.Percent)
-		line.State = llmPill(line.Quota.Tier)
-	}
 	if a.Limit > 0 {
 		used := (a.Limit - a.LimitLeft) / a.Limit * percentScale
-		line.Limit = meterOf("llm.limit_used", "", used)
+		line.Limit = meterOf("llm.limit_used", used)
 		line.State = worstPill(line.State, llmPill(line.Limit.Tier))
 	}
 	if a.Budget > 0 && a.Month >= a.Budget {
@@ -246,18 +239,10 @@ func llmChart(accounts []sources.LLMAccount, today time.Time) (Graph, bool) {
 	return g, true
 }
 
-// llmBars are the plan windows and key limits as share bars.
+// llmBars are the key limits as share bars.
 func llmBars(accounts []sources.LLMAccount) []ShareBar {
 	var out []ShareBar
 	for _, a := range accounts {
-		for _, q := range a.Quotas {
-			name := TxtA("llm.bar", "account", llmShort(a), "window", TxtA("llm.quota."+string(q.Kind), "model", q.Model))
-			value := NumU(q.Percent, 0, "%")
-			if !q.Resets.IsZero() {
-				value = TxtA("llm.resets", "pct", Num(q.Percent, 0), "when", agoOf(q.Resets))
-			}
-			out = append(out, ShareBar{Name: name, Pct: min(q.Percent, percentScale), Value: value, Tier: quotaTier(q.Percent)})
-		}
 		if a.Limit > 0 {
 			used := (a.Limit - a.LimitLeft) / a.Limit * percentScale
 			out = append(out, ShareBar{Name: TxtA("llm.bar", "account", llmShort(a), "window", Txt("llm.limit_used")), Pct: min(used, percentScale),

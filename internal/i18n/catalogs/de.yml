@@ -45,7 +45,6 @@ action:
   work_in_billing: 'In der Abrechnung erledigen'
   work_in_vat: 'Im USt-Abgleich erledigen'
   open_in_claudeapi: 'In Claude Console öffnen'
-  open_in_claudeplan: 'In claude.ai öffnen'
   open_in_openrouter: 'In OpenRouter öffnen'
   open_in_openai: 'In OpenAI öffnen'
   open_in_deepseek: 'In DeepSeek öffnen'
@@ -389,7 +388,7 @@ typefield:
     only_problems: Nur aktuell wackelige (letzte 2 Tage)
 field:
   bank_accounts: Konten
-  providers: 'Nur diese Anbieter (claudeapi, claudeplan, openrouter, openai, deepseek, litellm)'
+  providers: 'Nur diese Anbieter (claudeapi, openrouter, openai, deepseek, litellm)'
   site: Seite
   hours: Verlauf (Stunden)
   warn: Warnen ab
@@ -870,7 +869,7 @@ wall_ease:
 wtype:
   llm_usage:
     name: 'KI-Kosten'
-    desc: 'Tokens, Kosten, Guthaben und Abo-Kontingente der KI-Anbieter: Claude, OpenRouter, OpenAI, DeepSeek, LiteLLM.'
+    desc: 'Tokens, Kosten, Guthaben und Limits der KI-Anbieter: Claude, OpenRouter, OpenAI, DeepSeek, LiteLLM.'
   github_trending:
     name: GitHub-Trends
     desc: 'Neue Repositories des Zeitraums mit den meisten Sternen (GitHub-Suche), auf Wunsch einer Sprache.'
@@ -1380,9 +1379,6 @@ conn:
   options_hint_claudeapi: 'Die URL bleibt https://api.anthropic.com. Token = ein Admin-API-Schlüssel (sk-ant-admin…, Console → Settings → Admin keys); den gibt es nur für Organisationen, normale API-Schlüssel lehnt die Schnittstelle ab. Optional ein Monatsbudget in USD.'
   about_claudeapi: 'Claude API: Tokens und Kosten je Modell'
   what_claudeapi: 'Die Usage & Cost API der Claude Console meldet Tokens und Kosten je Tag und Modell für die ganze Organisation.'
-  options_hint_claudeplan: 'Die URL bleibt https://api.anthropic.com. Token = ein OAuth-Token deiner claude.ai-Anmeldung, z. B. aus claude setup-token. Andon liest das Sitzungs- und Wochenkontingent, das claude.ai unter Einstellungen → Nutzung zeigt. Anthropic dokumentiert diese Schnittstelle nicht; sie kann sich ändern.'
-  about_claudeplan: 'Claude Pro/Max: Sitzungs- und Wochenkontingent'
-  what_claudeplan: 'Claude Pro und Max begrenzen die Nutzung je Sitzung (5 h) und je Woche. Andon zeigt, wie voll jedes Fenster ist und wann es zurückgesetzt wird.'
   options_hint_openrouter: 'Die URL bleibt https://openrouter.ai/api/v1. Token = ein API-Schlüssel (Ausgaben und Schlüssel-Limit) oder ein Management-Schlüssel (dazu Guthaben und Kosten je Modell und Tag). Optional ein Monatsbudget in USD.'
   about_openrouter: 'OpenRouter: Ausgaben, Guthaben, Schlüssel-Limit'
   what_openrouter: 'OpenRouter leitet Anfragen an viele Modell-Anbieter weiter und rechnet sie über ein Guthaben ab.'
@@ -1851,7 +1847,6 @@ mode:
   light: Hell
 service:
   claudeapi: 'Claude API'
-  claudeplan: 'Claude-Abo (Pro/Max)'
   openrouter: 'OpenRouter'
   openai: 'OpenAI API'
   deepseek: 'DeepSeek'
@@ -2249,9 +2244,6 @@ hint:
     limit_low:
       title: '{account}: Schlüssel-Limit fast erreicht'
       why: 'Noch {left} von {limit} am Schlüssel. Limit erhöhen oder auf das Zurücksetzen warten.'
-    quota_high:
-      title: '{account}: {window} bei {percent} %'
-      why: 'Zurückgesetzt {resets}. Bis dahin können Anfragen gebremst oder abgelehnt werden.'
     spike:
       title: '{account} kostet heute ungewöhnlich viel'
       why: 'Heute {today}, an einem üblichen Tag {usual}. Eine Schleife, ein doppelter Lauf oder ein verwechseltes Modell?'
@@ -3209,7 +3201,6 @@ info:
   llm:
     month: '{amount} diesen Monat'
     credit: 'Guthaben {amount}'
-    quota: '{window} {pct} %'
   lemmy:
     info: '{unread} ungelesen'
   esphome:
@@ -3514,7 +3505,6 @@ deadline:
 rule_name:
   llm.budget: 'KI-Budget'
   llm.credit_low: 'KI-Guthaben knapp'
-  llm.quota_high: 'Abo-Kontingent fast verbraucht'
   llm.spike: 'KI-Kostensprung'
   firefly.recurring_missed: 'Dauerauftrag ausgeblieben (Firefly III)'
   firefly.low_balance: 'Kontostand niedrig (Firefly III)'
@@ -7107,19 +7097,13 @@ llm:
   credit: 'Guthaben {amount}'
   account: '{service} · {name}'
   bar: '{window} · {account}'
-  resets: '{pct} % · zurückgesetzt {when}'
   left_of: '{left} von {limit} übrig'
   limit_used: 'Schlüssel-Limit'
   other: 'Sonstiges (Werkzeuge, Suche)'
   chart: 'Kosten je Tag (USD)'
-  quotas: 'Kontingente und Limits'
+  quotas: 'Schlüssel-Limits'
   accounts: 'Konten'
   models: 'Modelle in diesem Monat'
-  quota:
-    session: 'Sitzung (5 h)'
-    week: 'Woche'
-    week_model: 'Woche · {model}'
-    extra: 'Zusatznutzung'
   facts:
     month: 'diesen Monat'
     today: 'heute'

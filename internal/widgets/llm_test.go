@@ -18,12 +18,14 @@ func llmDemo() map[string]any {
 }
 
 // TestLLMView: the tile sums the month over every account, troubled
-// ones first (the plan's week is past 85 %); the provider filter keeps
-// its accounts.
+// ones first (LiteLLM over its budget); the provider filter keeps its
+// accounts.
 func TestLLMView(t *testing.T) {
-	v := llmView(LLMConfig{}, llmDemo(), ViewCtx{})
+	results := llmDemo()
+	results[string(enums.ServiceLiteLLM)] = &sources.LLMDataset{Accounts: []sources.LLMAccount{{Service: enums.ServiceLiteLLM, Spend: true, Month: 70, Budget: 60}}}
+	v := llmView(LLMConfig{}, results, ViewCtx{})
 	lines := v["Lines"].([]LLMLine)
-	if len(lines) != 6 || v["Trouble"] != true || lines[0].State == "" || v["Month"].(float64) <= 0 {
+	if len(lines) != 5 || v["Trouble"] != true || lines[0].Service != string(enums.ServiceLiteLLM) || v["Month"].(float64) <= 0 {
 		t.Fatalf("view %+v", v)
 	}
 	v = llmView(LLMConfig{Providers: []string{"deepseek"}}, llmDemo(), ViewCtx{})
@@ -36,7 +38,7 @@ func TestLLMView(t *testing.T) {
 }
 
 // TestLLMDetail: the chart has a line with a legend per account with
-// history (DeepSeek and the plan have none), the quotas and limits bars,
+// history (DeepSeek has none), the key limit bars,
 // the models.
 func TestLLMDetail(t *testing.T) {
 	body := llmDetail(LLMConfig{}, llmDemo(), ViewCtx{}).Body.(*DetailBody)
@@ -45,7 +47,7 @@ func TestLLMDetail(t *testing.T) {
 		t.Fatalf("chart %+v", g)
 	}
 	bars := body.Blocks[1].Data.([]ShareBar)
-	if len(bars) != 5 { // plan: 4 windows; OpenRouter: key limit
+	if len(bars) != 1 { // OpenRouter: key limit
 		t.Fatalf("bars %+v", bars)
 	}
 	if body.Blocks[3].Data.(Table).Rows == nil {

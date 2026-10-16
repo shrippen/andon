@@ -1,12 +1,11 @@
 package sources
 
 // LLM providers: what the tokens cost, per day and model, and how much
-// credit, key limit or plan quota is left. Every provider fills the same
+// credit or key limit is left. Every provider fills the same
 // shape, so one tile and the rules read them all, also providers added
 // later:
 //
 //	claudeapi   Usage & Cost Admin API      tokens + USD per day and model
-//	claudeplan  claude.ai plan (OAuth)      session and week quota in %
 //	openrouter  key, credits, activity      spend, key limit, credit, per model (management key)
 //	openai      organization usage + costs  tokens per model, USD per day
 //	deepseek    user balance                balance only
@@ -25,16 +24,6 @@ import (
 // llmDays is how far back the history reaches: always the whole month.
 const llmDays = 31
 
-// QuotaKind is a plan quota window.
-type QuotaKind string
-
-const (
-	QuotaSession   QuotaKind = "session"    // rolling session window (5 h)
-	QuotaWeek      QuotaKind = "week"       // all models, 7 days
-	QuotaWeekModel QuotaKind = "week_model" // one model family, 7 days
-	QuotaExtra     QuotaKind = "extra"      // paid extra usage of the month
-)
-
 // LLMUse is one model's use on one day.
 type LLMUse struct {
 	Day      string // 2006-01-02, UTC
@@ -46,15 +35,7 @@ type LLMUse struct {
 	Cost     float64 // USD
 }
 
-// LLMQuota is how full one plan window is.
-type LLMQuota struct {
-	Kind    QuotaKind
-	Model   string // QuotaWeekModel: "Opus", "Sonnet"
-	Percent float64
-	Resets  time.Time // zero = unknown
-}
-
-// LLMAccount is one connection: an API key, organization or plan.
+// LLMAccount is one connection: an API key or organization.
 type LLMAccount struct {
 	Service enums.ServiceType
 	Name    string
@@ -72,7 +53,6 @@ type LLMAccount struct {
 	LimitLeft  float64
 	LimitReset string // "monthly", "daily", "" = never
 
-	Quotas []LLMQuota
 	Budget float64 // monthly USD set on the connection, 0 = none
 }
 
@@ -90,8 +70,8 @@ func (d *LLMDataset) Merge(o any) any {
 }
 
 // llmServices are the services whose dataset is an *LLMDataset.
-var llmServices = []enums.ServiceType{enums.ServiceClaudeAPI, enums.ServiceClaudePlan, enums.ServiceOpenRouter,
-	enums.ServiceOpenAI, enums.ServiceDeepSeek, enums.ServiceLiteLLM}
+var llmServices = []enums.ServiceType{enums.ServiceClaudeAPI, enums.ServiceOpenRouter, enums.ServiceOpenAI,
+	enums.ServiceDeepSeek, enums.ServiceLiteLLM}
 
 // LLMServices lists the LLM providers, for the tile's queries.
 func LLMServices() []enums.ServiceType { return slices.Clone(llmServices) }
@@ -137,12 +117,6 @@ func DemoLLM(service enums.ServiceType, now time.Time) *LLMDataset {
 				Cost                            []float64
 				Input, Output, Cached, Requests []int64
 			}
-			Windows []struct {
-				Kind    QuotaKind
-				Model   string
-				Percent float64
-				Resets  time.Time
-			}
 		}
 	}
 	demoworld.MustDecode("llm_usage", now, &p)
@@ -159,9 +133,6 @@ func DemoLLM(service enums.ServiceType, now time.Time) *LLMDataset {
 				a.Uses = append(a.Uses, LLMUse{Day: day, Model: m.Model, Cost: cost, Input: at(m.Input, i), Output: at(m.Output, i),
 					Cached: at(m.Cached, i), Requests: at(m.Requests, i)})
 			}
-		}
-		for _, w := range raw.Windows {
-			a.Quotas = append(a.Quotas, LLMQuota(w))
 		}
 		a.sumUses(now)
 		if a.Limit > 0 {
@@ -181,13 +152,13 @@ func at(list []int64, i int) int64 {
 }
 
 func init() {
-	for _, s := range []source{ClaudeAPIData, ClaudePlanData, OpenRouterData, OpenAIData, DeepSeekData, LiteLLMData} {
+	for _, s := range []source{ClaudeAPIData, OpenRouterData, OpenAIData, DeepSeekData, LiteLLMData} {
 		Register(s)
 		Register(testOf{s, llmTest})
 	}
 }
 
-// llmTest is what a connection test reports: models, spend, quota.
+// llmTest is what a connection test reports: models, spend, credit.
 func llmTest(d any) map[string]any {
 	out := map[string]any{}
 	for _, a := range d.(*LLMDataset).Accounts {
@@ -201,9 +172,6 @@ func llmTest(d any) map[string]any {
 		}
 		if a.HasBalance {
 			out["balance"] = a.Balance
-		}
-		if len(a.Quotas) > 0 {
-			out["quotas"] = len(a.Quotas)
 		}
 	}
 	return out

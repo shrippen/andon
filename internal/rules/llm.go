@@ -5,13 +5,10 @@ package rules
 //	llm.budget      the month's spend passed the connection's budget, or
 //	                will by the month's end at this pace
 //	llm.credit_low  prepaid credit or the key's spend limit runs out
-//	llm.quota_high  a plan window (session, week) is nearly used up
 //	llm.spike       today costs a multiple of the days before
 //	                (a loop, a batch run twice, a model mixed up)
 
 import (
-	"time"
-
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/sources"
@@ -22,7 +19,6 @@ const usd = "USD"
 func init() {
 	Register("llm.budget", Cross, nil, llmBudget)
 	Register("llm.credit_low", Cross, map[string]any{"min_balance": 5.0, "min_limit_pct": 20.0}, llmCreditLow)
-	Register("llm.quota_high", Cross, map[string]any{"percent": 85.0}, llmQuotaHigh)
 	Register("llm.spike", Cross, map[string]any{"factor": 3.0, "min_usd": 1.0, "days": 14.0}, llmSpike)
 }
 
@@ -70,25 +66,6 @@ func llmCreditLow(_ any, cfg map[string]any, env Env) []Finding {
 		if a.Limit > 0 && a.LimitLeft/a.Limit*100 < minPct {
 			found = append(found, llmFinding(a, "llm.credit_low", "limit", "llm.limit_low", enums.SeverityWarn,
 				map[string]any{"left": Money(a.LimitLeft, usd), "limit": Money(a.Limit, usd)}))
-		}
-	}
-	return found
-}
-
-func llmQuotaHigh(_ any, cfg map[string]any, env Env) []Finding {
-	limit := cfgFloat(cfg, "percent")
-	var found []Finding
-	for _, a := range metrics.LLMAccounts(env.Datasets) {
-		for _, q := range a.Quotas {
-			if q.Percent < limit {
-				continue
-			}
-			window := map[string]any{"$t": "llm.quota." + string(q.Kind), "args": map[string]any{"model": q.Model}}
-			params := map[string]any{"window": window, "percent": Num(q.Percent, 0), "resets": "–"}
-			if !q.Resets.IsZero() {
-				params["resets"] = map[string]any{"$ago": q.Resets.Format(time.RFC3339)}
-			}
-			found = append(found, llmFinding(a, "llm.quota_high", string(q.Kind)+":"+q.Model, "llm.quota_high", enums.SeverityInfo, params))
 		}
 	}
 	return found
