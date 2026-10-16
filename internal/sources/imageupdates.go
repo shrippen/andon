@@ -35,9 +35,7 @@ type WUDDataset struct {
 func (d *WUDDataset) Updates() []ImageUpdate {
 	var out []ImageUpdate
 	for _, c := range d.Containers {
-		// The same tag again is a new image behind a floating tag
-		// ("latest"): no newer tag to move to.
-		if c.NewTag != "" && c.NewTag != c.Tag {
+		if c.NewTag != "" {
 			out = append(out, c)
 		}
 	}
