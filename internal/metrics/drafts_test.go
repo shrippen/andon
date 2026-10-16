@@ -48,7 +48,7 @@ func TestDraftNamesOpenDraft(t *testing.T) {
 		t.Fatalf("open drafts: %+v", drafts)
 	}
 	open := drafts[0].Open[0]
-	if open.Number != "R-2026-020" || open.Day.Format("2006-01-02") != "2026-09-20" || open.URL != "https://in.example/#/invoices/Qa1/edit" {
+	if open.Number != "R-2026-020" || open.Day.Format("2006-01-02") != "2026-09-20" || open.URL != "https://in.example/invoices/Qa1/edit" {
 		t.Fatalf("open draft: %+v", open)
 	}
 }

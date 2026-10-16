@@ -55,7 +55,7 @@ func TestBillingNamesOpenDraft(t *testing.T) {
 
 	page := string(mustGet(t, srv, client, "/billing"))
 	open := regexp.MustCompile(`Offener Entwurf R-\d{4}-\d+ vom \d\d\.\d\d\.\d{4}`)
-	if !open.MatchString(page) || !strings.Contains(page, `/#/invoices/`) {
+	if !open.MatchString(page) || !strings.Contains(page, `/invoices/`) || strings.Contains(page, `/#/invoices/`) {
 		t.Fatalf("billing page does not name the open draft:\n%s", page)
 	}
 	if strings.Count(page, `action="/billing/draft"`) < 2 {
