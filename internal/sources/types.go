@@ -175,6 +175,7 @@ type ExpenseField struct {
 type NinjaVendor struct {
 	Key, Name string
 	CountryID string // numeric ISO 3166 ("276" Germany), "" unknown
+	Archived  bool   // kept for the names of old expenses
 }
 
 // AccountRole is what a bank account is used for, as the user named it
