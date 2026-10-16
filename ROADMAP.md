@@ -1203,8 +1203,9 @@ Eine Verbindung neu anzulegen verliert alles, was an ihr hängt (Kacheln, Verbun
 Ein Datensatz für alle Anbieter (`sources.LLMDataset`, je Verbindung ein Konto, mehrere Verbindungen werden zusammengeführt), eine Kachel, Regeln quer über alle Konten.
 - [x] Claude API (Usage & Cost Admin API, Admin-Schlüssel), Claude-Abo Pro/Max (OAuth, nicht dokumentierter Endpunkt `api/oauth/usage`: Sitzung, Woche, Woche je Modell, Zusatznutzung), OpenRouter (Schlüssel; mit Management-Schlüssel auch Guthaben und Verlauf je Modell), OpenAI (Usage + Costs, Admin-Schlüssel), DeepSeek (nur Guthaben), LiteLLM-Proxy (`user/daily/activity`)
 - [x] Kachel `llm_usage` mit Dialog (Kosten je Tag und Konto, Kontingente, Konten, Modelle); Regeln `llm.budget` (Monatsbudget an der Verbindung), `llm.credit_low`, `llm.quota_high`, `llm.spike`; Demowelt `llm_usage`
-- [ ] Gegen echte Konten testen (alle sechs „Experimentell“); offen vor allem: ob ein Token aus `claude setup-token` den Abo-Endpunkt lesen darf
-- [ ] Quer: KI-Kosten gegen Ausgaben in Invoice Ninja / Firefly (Rechnung des Anbieters fehlt) und das Claude-Abo gegen Wallos
+- [x] Claude-Abo entfernt (15.10.2026, #168): die Abfrage von `api/oauth/usage` mit einem Login-Token hat vermutlich das Anthropic-Konto sperren lassen. Mit ihm fielen `llm.quota_high` und die Kontingente; Anthropic-Daten nur noch über die dokumentierte Admin-API
+- [ ] Gegen echte Konten testen (alle fünf „Experimentell“)
+- [ ] Quer: KI-Kosten gegen Ausgaben in Invoice Ninja / Firefly (Rechnung des Anbieters fehlt)
 - [ ] Weitere Anbieter bei Bedarf (Mistral, Groq, xAI); USD bleibt USD, keine Umrechnung in die Kostenübersicht
 
 ### USt-Abgleich: Bankumsätze aus Invoice Ninja (umgesetzt 13.10.2026)
@@ -1267,19 +1268,13 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [x] Seite „Jahr“ (`/year`, `services/year`, nur lesend): Zahlungseingänge, Umsatz- und Vorsteuer, Ausgaben je EÜR-Zeile (Link auf `/euer` für Ausgaben ohne Zeile), Abschreibung je Gegenstand nach der Abschreibungsregel in Snipe-IT (linear je Monat ab Kaufmonat; GWG bis 800 € markiert, die Regel entscheidet), Homeoffice-Tage (Kimai-Arbeit ohne berufliche Fahrt laut Dawarich) mit Pauschale 6 € je Tag, höchstens 210. Paket für die Steuerberatung (`/billing/export`) um `euer.csv`, `afa.csv`, `homeoffice.csv` erweitert *(15.10.2026 lesend gegen die echten Dienste: 967 Gegenstände in Snipe-IT, auch private; Andon trennt sie nicht. Live fand sich: Snipe-IT schickt Kosten deutsch formatiert, „265,00“ wurde 26 500, eigener PR)*
    - [x] Rücklagenkonto: dritte Kontoverwendung „Rücklage“ (`sources.RoleReserve`, wählbar unter `/vat` → Konten und Verbund → Konten). Ihr Guthaben zählt nicht als freies Geld und deckt Umsatz- und Einkommensteuer, bevor freies Geld es muss (`metrics.SafeToSpend`, Kennzahl „Frei verfügbar“, `sure.spendable_negative`, `cross.depot_reserve`)
 7. Homelab
-   - [ ] Update-Werkbank: Image-Updates nach Dringlichkeit (öffentlich, CVE), Changelog von Claude zusammengefasst, PR im Compose-Repo; FreshRSS als Quelle der Release-Feeds, mit Vorschlägen zum Anpassen der Feeds (fehlender Feed für einen laufenden Dienst, Feed eines nicht mehr laufenden Dienstes, Feed ohne Releases); geschrieben in FreshRSS nur nach OK
    - [x] Inventur (`/inventory`, Navigation „Inventur“, `services/inventory`; Need: Snipe-IT, dazu Router und FRITZ!Box): Geräte ohne gleichnamigen Gegenstand (`metrics.NetClients`, `Uninventoried`, auch für `cross.device_uninventoried`, dessen Hinweis dorthin führt) nach dem Prüfen in Snipe-IT anlegen (Name, Modell aus einer Liste, Status; IP und MAC als Notiz) oder in die Ausnahmen des Hinweises aufnehmen. Snipe-IT liefert dafür Modelle und Status *(15.10.2026 live: Anlegen und Löschen eines Testgegenstands grün (`TestSnipeLive`); lesend 44 Geräte, 40 ohne Gegenstand, viele nur als MAC; 772 Modelle, darum eine gemeinsame Auswahlliste statt eines Selects je Zeile)*
-   - [ ] Anschaffung vollständig (Asset, Ausgabe, Beleg, Garantie)
    - [x] Wiederherstellungsprobe: der Backups-Dialog nennt je System und Quartal eine Probe (Borg-Client, PG-Back-Web-Backup, TrueNAS-Snapshot-Aufgabe, reihum je Quartal, `metrics.RestoreSample`) und nimmt neben „Getestet“ auch „Fehlgeschlagen“ an (Ereignis `restore_failed`, im Audit mit der Probe); `backups.restore_failed` warnt, bis eine spätere Probe gelingt *(kein eigener Werkbank-Rahmen: Andon kann nicht selbst zurückspielen, und Backup-Systeme liegen nicht im Verbund)*
    - [x] Anschaffung vollständig (`/purchases`, Navigation „Anschaffungen“, `services/purchases`; Need: Snipe-IT, dazu Invoice Ninja): Gegenstände der letzten zwölf Monate ohne Kosten, Garantie, passende Ausgabe (Brutto oder Netto, bis 14 Tage) oder deren Beleg (Feld der Belegverknüpfung); die Garantie schreibt Andon nach dem Prüfen in Snipe-IT (`warranty_months`, vorgeschlagen 24), für Ausgabe und Beleg verlinkt die Seite USt-Abgleich und Belegjagd *(15.10.2026 live: Garantie an einem eigenen Testgegenstand gesetzt, grün)*
-   - [ ] Wiederherstellungsprobe
    - [x] Doku-Drift: nichts schreiben, für Hansei vorbereiten (`/api/docs`, Webhook) *(war schon da: Phase 15, `docs.drift` mit Feldern in `/api/docs`; 15.10.2026 festgestellt)*
-   - [ ] Kosten je Dienst als Popup der Kachel „Homelab-Kosten“
    - [x] Update-Werkbank (`/updates`, Navigation „Updates“, `services/updates`; Need: Gitea, dazu What’s Up Docker, FreshRSS, NVD, Pangolin): neuere Tags von WUD oder aus GitHub-Release-Feeds in FreshRSS (für fest genannte Tags; neuer Tag in der Form des laufenden: `v2.1` → `v2.2`, `apache-2.40` → `apache-2.41`), nach Dringlichkeit (CVE auf dem laufenden Tag, öffentlich über Pangolin, sonst normal). Nach dem Prüfen je Stack ein Pull Request im Compose-Repo (`outbound.GiteaPropose`: Datei auf neuem Branch, PR in den Standard-Branch); Hinweis `wud.updates` führt dorthin, Journal-Bereich „Homelab“. FreshRSS liest Release-Feeds (`github.com/<repo>/releases.atom`) einzeln und nur, wenn sie ein neueres Element haben *(15.10.2026 lesend gegen die echten Dienste: 119 Stacks, 70 Releases in den Feeds, 20 Updates; Namensgleichheit allein reicht nicht („server“, „core“), Besitzer müssen passen. Gitea-Schreiben nicht live getestet)*
      - [x] Changelog von Claude zusammengefasst: Knopf je Update mit Release-Feed (`assist.SummarizeChanges`, nur auf Klick; Image, beide Versionen und die Release-Notes von GitHub zwischen laufendem und neuem Tag gehen raus): „Vorher beachten“, Sicherheit, Wichtiges; bleibt je Fall und Tag gespeichert, steht auf der Prüfseite und im Pull Request *(nicht live mit Claude getestet: die Test-Instanz hat keinen API-Schlüssel)*
      - [x] Vorschläge zu den Feeds (`/feeds`, Link auf `/updates`, `services/feeds`): fehlender Feed für ein fest genanntes Image (Adresse `github.com/<Besitzer>/<Name>/releases.atom`, änderbar, Kategorie der übrigen Release-Feeds), Feed, dessen Projekt kein Stack nutzt, Feed ohne verlinkte Releases (Vorabversionen zählen als Lebenszeichen); nichts angehakt, FreshRSS nur nach OK (`subscription/edit`) *(15.10.2026 live: Abonnieren und Abbestellen eines eigenen Test-Feeds grün; lesend 95 Vorschläge zum Abonnieren, 30 zum Abbestellen, darunter Feeds für Desktop-Software, die nie als Stack lief)*
-   - [ ] Inventur (Geräte im Netz ↔ Snipe-IT), Anschaffung vollständig (Asset, Ausgabe, Beleg, Garantie), Wiederherstellungsprobe
-   - [ ] Doku-Drift: nichts schreiben, für Hansei vorbereiten (`/api/docs`, Webhook)
    - [x] Kosten je Dienst als Popup der Kachel „Homelab-Kosten“: Tabelle je Komodo-Stack; Strom des Servers (Proxmox-Gast gleichen Namens, nach CPU) auf seine Stacks verteilt, der Rest der Kosten gleichmäßig auf alle; Stacks nach Kimai-Kunden markiert (`metrics.CostPerStack`) *(Hinweis aus dem Live-Test: die Hardware-Kosten nehmen alle Snipe-IT-Gegenstände der letzten Jahre, beim Nutzer auch private)*
 8. Analysen: Kundenzustand, Zeit für eine Preiserhöhung, Nachkalkulation, Jahresrückblick, Frag Andon (experimentell, nur lesend)
    - [x] Jahresrückblick oben auf `/year`: Stunden, Umsatz (netto nach Rechnungsdatum), stärkster Monat, die fünf Kunden mit dem meisten Umsatz, neue Kunden; Vorjahr nur, wenn Kimais und Invoice Ninjas Daten so weit zurückreichen (`metrics.ReviewYear`)
@@ -1444,7 +1439,7 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [x] CI: govulncheck rot durch Lücken in x/net und der Stdlib (#118, #123)
 
 **Offen**
-- [ ] Gluetun meldet `running` auch bei totem Tunnel (keine Ausgangs-IP); kein Hinweis. Fehlalarm, wenn die IP-Abfrage in Gluetun aus ist
+- [x] Gluetun meldet `running` auch bei totem Tunnel (keine Ausgangs-IP); kein Hinweis. Fehlalarm, wenn die IP-Abfrage in Gluetun aus ist *(eigene Regel `gluetun.no_exit`, abschaltbar, wo die IP-Abfrage aus ist; d48db7f)*
 - [ ] Ghostfolio-Verbindung der lokalen Instanz zeigt auf `http://ghostfolio.lan`, das auf `https://ghostfolio.intern.arianw.de` umleitet
 
 ### Live-Runde 16.10.2026: echte Hinweise
@@ -1492,9 +1487,9 @@ Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die D
 **Geänderte Quellen bekannter Dienste** (Live-Lauf vom 06.10. lief vor der Änderung)
 - [ ] UniFi: Clients (für `cross.device_uninventoried`)
 - [ ] GitHub: Option `owner` (eigene gegen beobachtete Repos), Releases beobachteter Repos, CI des Standardzweigs; Trends über die Such-API ohne Token
-- [ ] Gitea: Actions-Status für die CI-Kachel
+- [x] Gitea: Actions-Status für die CI-Kachel *(16.10.2026 live: zwei Hinweise `gitea.actions_failed` aus echten Läufen)*
 - [ ] Jellyfin/Plex: laufende Streams für „Jetzt läuft“, Update-Fenster und Belegungsstunden
-- [ ] Borg, PG Back Web, TrueNAS über die gemeinsame Sicherungs-Schnittstelle (`sources.BackupSource`)
+- [x] Borg, PG Back Web, TrueNAS über die gemeinsame Sicherungs-Schnittstelle (`sources.BackupSource`) *(16.10.2026 live: alle drei in `backups.restore_untested`, `backups.gap` nennt 51 Dienste ohne Sicherung)*
 - [ ] Sure: Zahlungsabgleich über `metrics.BankOf` (Sure oder Firefly)
 - [ ] Sport (OpenLigaDB)
 - [ ] Kunden-Zuordnung über Sure (Zahler) und Paperless (Korrespondenten): Zuordnen, Lösen, „Namen angleichen“ (schreibt in die Dienste) mit echten Daten
