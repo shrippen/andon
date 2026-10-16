@@ -3,6 +3,7 @@ package connections_test
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -296,5 +297,21 @@ func TestHealthShakyFromFivePercent(t *testing.T) {
 		if got := h.State(); got != want {
 			t.Fatalf("%d %%: %s", pct, got)
 		}
+	}
+}
+
+// A service Andon does not know is refused: the form only offers known
+// ones, but a posted form or a tool could name any, and such a
+// connection never fetches and shows raw text keys.
+func TestCreateRefusesUnknownService(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c")
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+
+	_, err := connections.Create(d, who, space.ID, enums.ServiceType("bogus"), "Bogus", "https://example.org",
+		enums.CredentialShared, "x", connections.TLSVerify, nil)
+	if !errors.Is(err, connections.ErrUnknownService) {
+		t.Fatalf("err = %v, want ErrUnknownService", err)
 	}
 }

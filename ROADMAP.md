@@ -1245,7 +1245,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [x] Werkbank „EÜR-Zuordnung“ (`/euer`, Navigation „EÜR“): Ausgaben eines Jahres mit leerem EÜR-Feld, Zeile der Kategorie vorgewählt, ohne Zuordnung selbst wählbar; Prüfen, Schreiben (`custom_valueN`), Journal mit Rückgängig
    - [x] `/vat` nimmt die Ninja-Kategorie aus der Zuordnung statt nach Namen, und eine neu angelegte Ausgabe bekommt gleich ihre EÜR-Zeile
    - [x] Kategorien auch ohne gespeicherten Verbund: `/categories?ninja=…&bank=…`, von `/euer` verlinkt
-   - [ ] Offen: Sures Tags zusätzlich zur Kategorie
+   - [ ] Offen: Sures Tags zusätzlich zur Kategorie *(zurückgestellt 16.10.2026: im echten Sure trägt keine der 431 Buchungen einen Tag)*
 3. Auf `/vat`
    - [x] Reverse Charge (§ 13b): Ausgaben ohne Steuer von Lieferanten mit Land außerhalb Deutschlands (Land aus Invoice Ninja), EU in Kz 46/47, sonst 84/85, Vorsteuer in Kz 67; Waren aus der EU (Kz 89/93) erkennt Andon nicht, die Seite sagt es
    - [x] ELSTER-Kennzahlen (Kz 21, 45, 81, 86, 46/47, 84/85, 66, 67, 83) mit Kopierknopf, Ist- oder Sollversteuerung; „Als gemeldet merken“, danach geänderte Kennzahlen als „Berichtigung fällig“
@@ -1458,6 +1458,45 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - Authentik antwortet nicht (Timeout), Audiobookshelf lehnt den gespeicherten Schlüssel ab (401): Instanzen, nicht Andon
 - Phase 19 (PV): Das Energie-Dashboard in HA führt nur vier Zwischenstecker als Netz, keine PV, keine Batterie, keine Prognose. Zurückgestellt, bis PV in HA steht
 
+### Werkbänke Ende-zu-Ende gegen Container (16.10.2026)
+
+Zweite Andon-Instanz (`.local-test/extra/andon-data`, Port 8095) mit den Wegwerf-Containern aus `.local-test/writes/` (Kimai mit Anfahrten, Invoice Ninja, Paperless, Snipe-IT, FreshRSS, Wallos, Tandoor, Sure); jede Werkbank im Browser bis zum Schreiben durchgespielt und das Ergebnis im Dienst nachgesehen.
+
+**Grün**
+- [x] Anschaffungen: Garantie 36 Monate an einem neuen Gegenstand (Snipe-IT `warranty_months`)
+- [x] Abrechnung: Entwurf aus zwei Kimai-Zeiten (7 h × 80 €), Zeiten als exportiert markiert
+- [x] EÜR-Zuordnung: Zusatzfeld „EÜR“ erkannt, Kategorie → Zeile gespeichert, Feld der Ausgabe gesetzt
+- [x] Belegjagd: Felder nach Namen vorgeschlagen, Beleg (100/100) verknüpft, Verweise auf beiden Seiten
+- [x] Mahnlauf: Erinnerung über Ninja verschickt (Ninjas Mail-Log)
+- [x] USt-Abgleich: Lieferant neu, Ausgabe mit 19 % inklusive (Vorsteuer 19,00 €), EÜR-Zeile aus der Zuordnung, `bank_transactions/match` (Status 3, `expense_id`) *(damit erledigt: „Gegen eine Instanz testen“ oben)*
+- [x] Lieferanten aufräumen: Ausgabe umgehängt, Doppelter archiviert
+- [x] Woche schließen: Termin aus einem Kalender → Kimai-Eintrag
+- [x] Sure aufräumen: zwei Buchungen nach „Büro“ (Sure)
+- [x] Abos: fehlendes Abo in Wallos angelegt; geschäftliches Abo als wiederkehrende Ausgabe in Ninja (Lieferant neu, gestartet)
+- [x] Orte: Abgleich legt für eine Dawarich-Area den Ort in Kimai Anfahrten an und für einen Ort die Area (beide verknüpft)
+- [x] Updates: WUD meldet nginx 1.25.0 → 1.31.7, Andon öffnet den PR im Compose-Repo (Gitea-Container)
+- [x] Feeds: Release-Feed für ein Image aus dem Compose-Repo (Gitea-Container) in FreshRSS abonniert; der vorinstallierte FreshRSS-Feed als „kein Stack nutzt ihn“ vorgeschlagen. Aus `immich-server` leitet Andon `immich-app/immich-server` ab, das Repo heißt `immich`: die Seite sagt „bitte prüfen“, die Adresse ist änderbar
+
+**Behoben (mit Test)**
+- [x] Gelöschte Ninja-Einträge (Zahlung, Kunde, Lieferant, Angebot) zählten mit: 1 € Testzahlung als Zahlungseingang (#176)
+- [x] Ninja-IDs: Ausgaben, Zahlungen, Angebote, Serienrechnungen hatten alle ID 0 (gehashte IDs als Zahl gelesen), ihre Hinweise teilten einen Fingerabdruck; Links `/#/expenses/<Zahl>` landeten auf dem Dashboard, richtig ist `/expenses/<Schlüssel>/edit` (#176)
+- [x] Mahnlauf bot dieselbe Erinnerung sofort wieder an: Ninja vermerkt einen Versand über `POST /emails` nur im Verlauf (Aktivität 63–65), nicht in `reminder1_sent` (#177)
+- [x] Lieferanten aufräumen bot den archivierten Lieferanten erneut an, ohne Ende (#179)
+- [x] USt-Abgleich: Buchung ohne Zahler (manuell, CSV) erschien auf der Prüfseite als „· ·“ (#178)
+- [x] Live-Schreibtests für Sure (Kategorie) und Ninjas wiederkehrende Ausgaben (#180)
+- [x] Orte: Abgleich, Zuordnen, Anlegen und Fahrtklasse schrieben gegen zwischengespeicherte Daten; eine eben angelegte Area fehlte („0/0“), Doppelte waren möglich. Jetzt frisch (#183)
+- [x] Live-Schreibtest für den Pull Request der Update-Werkbank gegen einen Gitea-Container (#184)
+- [x] Live-Schreibtests für Ninjas Bank-, Lieferanten- und Mahnaufrufe (#185), Mail und Apprise (#186), Schalter in Home Assistant (#187)
+- [x] Verbindungen nahmen jeden Diensttyp an (`POST /connections` mit `service=bogus`); jetzt nur bekannte (#188)
+- [x] Elf Werkbänke zeigten keine Navigation (der Name eines fehlgeschlagenen Eintrags hieß `Who` wie die angemeldete Person) und brachen nach einem Fehlschlag ab (#189)
+- [x] Updates: „Laut Release-Notes nichts zu beachten“ bei jeder Zeile ohne Zusammenfassung; „latest → latest“ als neuer Tag (#189)
+- [x] Updates: kein PR für offizielle Docker-Hub-Images (`library/nginx` gesucht, `nginx` in der Datei) (#192)
+
+**Notiert**
+- [x] Abos: eine neue wiederkehrende Ausgabe bekam keinen Steuersatz, wenn der Lieferant noch keine Ausgabe hatte; jede Buchung daraus fehlte dann in der Vorsteuer. Das Formular bietet jetzt Ninjas Steuersätze an (#182)
+- Zeiten nach Kimai (Woche, Timer) gehen in Andons Ortszeit; hat der Kimai-Nutzer eine andere Zone (Container: UTC), liegen sie um den Unterschied daneben. Bei gleicher Zone (Normalfall) richtig
+- Demo-Seed nur deutsch: Notiz „Demo-Instanz mit erfundenen Daten.“ und Link-Beschreibungen („Virtualisierung“, „Dokumente“) erscheinen auch auf englischen Screenshots
+
 ### Noch nicht in echt getestet (notiert 07.10.2026)
 
 Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die Dienste bis #58. Alles danach ist nur gegen Nachbauten (`httptest`) und die Demowelt getestet. Abhaken, wenn `make live` gegen eine echte Instanz grün ist und die Hinweise plausibel sind; Funde wie beim Lauf vom 06.10. darunter notieren.
@@ -1501,7 +1540,7 @@ Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die D
 - [ ] `cross.project_mentioned`, `cross.esphome_ha` (Entitäten über den Knotennamen), `cross.release_unannounced`
 - [ ] `system.outage` mit USV auf Batterie und kritischen Prometheus-Alerts
 
-**Ohne Schreibtest** (unverändert seit dem Lauf vom 06.10.): `HassToggle`, Apprise, Mail, LLM. Geprüft am 09.10. (Docker): `DNSPause` (AdGuard), Grocy (Einkaufsliste), Homelable (Zeichnen, zweiter Lauf ohne Änderung, Ändern und Löschen)
+**Ohne Schreibtest**: LLM (braucht einen API-Schlüssel) *(16.10.2026 gegen Container: Mail und Apprise #186, `HassToggle` #187, Ninjas Bank-, Lieferanten- und Mahnaufrufe #185, Gitea-PR #184)*. Geprüft am 09.10. (Docker): `DNSPause` (AdGuard), Grocy (Einkaufsliste), Homelable (Zeichnen, zweiter Lauf ohne Änderung, Ändern und Löschen)
 
 **Webseite**
 - [ ] Changelog auf shrippen.github.io/andon nach dem Merge ansehen (#100; Kante 1.17 muss vorher unter `/v1` liegen)

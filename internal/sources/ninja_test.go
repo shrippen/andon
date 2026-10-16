@@ -2,8 +2,12 @@ package sources_test
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -193,4 +197,91 @@ func TestNinjaHashedIDsStayApart(t *testing.T) {
 	apart("expenses", d.Expenses[0].ID, d.Expenses[1].ID, d.Expenses[0].Key, d.Expenses[1].Key)
 	apart("quotes", d.Quotes[0].ID, d.Quotes[1].ID, d.Quotes[0].Key, d.Quotes[1].Key)
 	apart("recurring", d.Recurring[0].ID, d.Recurring[1].ID, d.Recurring[0].Key, d.Recurring[1].Key)
+}
+
+// A reminder sent by hand (Andon's dunning run, Ninja's own button)
+// leaves reminder1_sent empty; only the invoice's history names it
+// (activity 63, 64, 65 = reminder 1, 2, 3). Without it the dunning run
+// offered the same reminder again right after sending it.
+func TestNinjaRemindersFromHistory(t *testing.T) {
+	due := time.Now().UTC().AddDate(0, 0, -30).Format(time.DateOnly)
+	sent := time.Now().UTC().AddDate(0, 0, -2)
+	empty := func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"data": [], "meta": {"pagination": {"total_pages": 1}}}`))
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/invoices", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"data": [
+			{"id": "iN1", "number": "R1", "status_id": "2", "date": "` + due + `", "due_date": "` + due + `", "amount": 300, "balance": 300},
+			{"id": "iN2", "number": "R2", "status_id": "4", "date": "` + due + `", "due_date": "` + due + `", "amount": 100, "balance": 0}
+		], "meta": {"pagination": {"total_pages": 1}}}`))
+	})
+	asked := map[string]int{}
+	mux.HandleFunc("/api/v1/activities/entity", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			EntityID string `json:"entity_id"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		asked[body.EntityID]++
+		w.Write([]byte(fmt.Sprintf(`{"data": [{"activity_type_id": 64, "created_at": %d}, {"activity_type_id": 5, "created_at": 1}, {"activity_type_id": 63, "created_at": 2}]}`, sent.Unix())))
+	})
+	for _, p := range []string{"payments", "clients", "expenses", "vendors", "quotes", "recurring_invoices"} {
+		mux.HandleFunc("/api/v1/"+p, empty)
+	}
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	out, err := sources.NinjaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	d := out.(*sources.NinjaDataset)
+	r1 := d.Invoices[0]
+	if r1.Stage != 2 || r1.Reminded != sent.Format(time.DateOnly) {
+		t.Errorf("R1: stage %d, reminded %q; want 2, %s", r1.Stage, r1.Reminded, sent.Format(time.DateOnly))
+	}
+	// Paid invoices need no history.
+	if asked["iN2"] != 0 || asked["iN1"] != 1 {
+		t.Errorf("history asked for %v", asked)
+	}
+}
+
+// Past the cap, the most recently due invoices get their history: they
+// are the ones a reminder goes out for now.
+func TestNinjaHistoryNewestFirst(t *testing.T) {
+	var invoices []string
+	for i := 0; i < 45; i++ {
+		due := time.Now().UTC().AddDate(0, 0, -10-i).Format(time.DateOnly)
+		invoices = append(invoices, fmt.Sprintf(`{"id": "i%d", "status_id": "2", "date": "%s", "due_date": "%s", "amount": 1, "balance": 1}`, i, due, due))
+	}
+	var mu sync.Mutex
+	asked := map[string]bool{}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/invoices", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"data": [` + strings.Join(invoices, ",") + `], "meta": {"pagination": {"total_pages": 1}}}`))
+	})
+	mux.HandleFunc("/api/v1/activities/entity", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			EntityID string `json:"entity_id"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		asked[body.EntityID] = true
+		mu.Unlock()
+		w.Write([]byte(`{"data": []}`))
+	})
+	for _, p := range []string{"payments", "clients", "expenses", "vendors", "quotes", "recurring_invoices"} {
+		mux.HandleFunc("/api/v1/"+p, func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(`{"data": [], "meta": {"pagination": {"total_pages": 1}}}`))
+		})
+	}
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	if _, err := sources.NinjaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true}); err != nil {
+		t.Fatal(err)
+	}
+	if len(asked) != 40 || !asked["i0"] || asked["i44"] {
+		t.Fatalf("asked %d, newest %v, oldest %v", len(asked), asked["i0"], asked["i44"])
+	}
 }

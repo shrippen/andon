@@ -34,7 +34,7 @@ func inventoryBack(scope string, pairs ...string) string {
 func (d Deps) handleInventory(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	page, err := inventory.Open(r.Context(), d.DB, ctx.Who, r.FormValue(benchScope))
 	query := r.URL.Query()
-	values := map[string]any{"P": page, "Error": query.Get("error"), "Who": query.Get("who"), "Reason": query.Get("reason")}
+	values := map[string]any{"P": page, "Error": query.Get("error"), "FailedName": query.Get("who"), "Reason": query.Get("reason")}
 	for _, k := range []string{"done", "failed"} {
 		values[k], _ = strconv.Atoi(query.Get(k))
 	}

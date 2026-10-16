@@ -18,7 +18,7 @@
     </details>
     {{with .Done}}<p class="pill" data-state="applied">{{t "receipts.linked_note" "number" .}}</p>{{end}}
     {{with .Hunted}}<p class="pill" data-state="applied">{{t "receipts.hunt_done" "n" .}}</p>{{end}}
-    {{with .Failed}}<p class="error">{{t "receipts.hunt_failed" "n" .}} {{$.Who}}: {{t $.Reason "number" $.Other}}</p>{{end}}
+    {{with .Failed}}<p class="error">{{t "receipts.hunt_failed" "n" .}} {{$.FailedName}}: {{t $.Reason "number" $.Other}}</p>{{end}}
     {{with .Note}}<div class="receipts-note"><p class="pill" data-state="applied">{{t .}}</p>
       {{if $.Undo.Expense}}<form method="post" action="/receipts/link" class="inline-form">
         <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">{{template "receipt_back" $.Q}}

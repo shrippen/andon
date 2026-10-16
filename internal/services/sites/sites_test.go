@@ -359,3 +359,81 @@ func TestCreateRefused(t *testing.T) {
 		t.Fatalf("refused: %v", err)
 	}
 }
+
+// Sync writes against fresh data: an area made in Dawarich after the
+// page was shown gets its place too. With the cached data it was missed
+// (seen against a throwaway instance), and a place made meanwhile could
+// be made twice.
+func TestSyncReadsFresh(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	rec := &recorder{}
+	var mu sync.Mutex
+	areas := `[{"id": 1, "name": "Zuhause", "latitude": 52.52, "longitude": 13.4, "radius": 100}]`
+	base := fakeDawarich(rec)
+	defer base.Close()
+	geo := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/api/v1/areas" {
+			mu.Lock()
+			defer mu.Unlock()
+			w.Write([]byte(areas))
+			return
+		}
+		r.URL.Scheme, r.URL.Host = "http", base.Listener.Addr().String()
+		resp, err := http.DefaultTransport.RoundTrip(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+		w.WriteHeader(resp.StatusCode)
+		var body json.RawMessage
+		json.NewDecoder(resp.Body).Decode(&body)
+		w.Write(body)
+	}))
+	defer geo.Close()
+	kimai := fakeKimai(rec, pluginWrites)
+	defer kimai.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
+	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimai.URL)
+	ctx := context.Background()
+
+	if _, err := sites.Overview(ctx, d, who, conn); err != nil {
+		t.Fatalf("overview: %v", err)
+	}
+	mu.Lock()
+	areas = `[{"id": 1, "name": "Zuhause", "latitude": 52.52, "longitude": 13.4, "radius": 100},
+		{"id": 2, "name": "Acme", "latitude": 52.4, "longitude": 13.06, "radius": 100}]`
+	mu.Unlock()
+
+	res, err := sites.Sync(ctx, d, who, conn)
+	if err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+	if res.PluginPlaces != 1 {
+		t.Fatalf("the new area got no place: %+v", res)
+	}
+}
+
+// Kimai unreachable when assigning: the write fails instead of landing
+// in Andon's option, where it would silently replace the plugin's
+// place (found in review).
+func TestAssignFailsWithoutKimai(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	rec := &recorder{}
+	geo, kimai := fakeDawarich(rec), fakeKimai(rec, pluginWrites)
+	defer geo.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
+	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimai.URL)
+	kimai.Close()
+
+	err := sites.Assign(context.Background(), d, who, conn, metrics.AreaKey(2), metrics.Assignment{Kind: metrics.KindCustomer, CustomerID: 12})
+	if !errors.Is(err, sites.ErrKimai) {
+		t.Fatalf("err = %v, want ErrKimai", err)
+	}
+	c, _ := connections.ByID(d, conn)
+	if len(metrics.ParseAssignments(c.Options)) != 0 {
+		t.Fatalf("assignment kept in the option: %v", c.Options)
+	}
+}

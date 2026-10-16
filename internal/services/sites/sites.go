@@ -14,9 +14,11 @@ package sites
 
 import (
 	"andon/internal/caps"
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -117,7 +119,19 @@ type env struct {
 	ambiguous          bool // several Kimai, no Verbund says which
 }
 
-func open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, need enums.Right) (env, error) {
+// reads says how fresh open reads each service: a page may show cached
+// data, a write must see what is there now. Kimai holds the places and
+// trips a write could make twice; Dawarich's areas count only for a sync
+// (a forced Dawarich fetch reads its tracks and takes seconds).
+type reads struct{ geo, kimai svcdata.Freshness }
+
+var (
+	forView  = reads{geo: svcdata.Cached, kimai: svcdata.Cached}
+	forWrite = reads{geo: svcdata.Cached, kimai: svcdata.Force}
+	forSync  = reads{geo: svcdata.Force, kimai: svcdata.Force}
+)
+
+func open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, need enums.Right, fresh reads) (env, error) {
 	view, err := connections.Get(d, who, connID)
 	if err != nil {
 		return env{}, err
@@ -132,7 +146,7 @@ func open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, n
 	if e.geoConn, err = connections.ByID(d, connID); err != nil || e.geoConn == nil {
 		return env{}, ErrNotDawarich
 	}
-	res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceDawarich), nil, e.geoConn, model.UserHolder(who.UserID), svcdata.Cached)
+	res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceDawarich), nil, e.geoConn, model.UserHolder(who.UserID), fresh.geo)
 	if err != nil {
 		return env{}, err
 	}
@@ -151,8 +165,15 @@ func open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, n
 	e.ambiguous = state == verbund.PartnerAmbiguous
 	if kimaiConn != nil {
 		e.kimaiConn = kimaiConn
-		if res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceKimai), nil, e.kimaiConn, model.UserHolder(who.UserID), svcdata.Cached); err == nil {
+		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceKimai), nil, e.kimaiConn, model.UserHolder(who.UserID), fresh.kimai)
+		if err == nil {
 			e.kimai, _ = res.Data.(*sources.KimaiDataset)
+		}
+		// A write without any Kimai data would land in Andon's option
+		// instead of the plugin: fail. A failed fetch still serves the
+		// last good data; the write then fails at Kimai, visibly.
+		if e.kimai == nil && fresh.kimai != svcdata.Cached {
+			return env{}, fmt.Errorf("%w: %s", ErrKimai, cmp.Or(res.Error, fmt.Sprint(err)))
 		}
 	}
 	e.book = metrics.BookOf(e.geo, e.kimai, e.geoConn.Options)
@@ -185,7 +206,7 @@ func (e env) kindHolder(kind metrics.PlaceKind) caps.Holder {
 // Overview lists the sites, busiest first, and frequent destinations
 // without one. Requires USE.
 func Overview(ctx context.Context, d *sql.DB, who *access.Principal, connID int64) (View, error) {
-	e, err := open(ctx, d, who, connID, enums.RightUse)
+	e, err := open(ctx, d, who, connID, enums.RightUse, forView)
 	if err != nil {
 		return View{}, err
 	}

@@ -57,3 +57,16 @@ func TestFeedCases(t *testing.T) {
 		}
 	}
 }
+
+// A floating tag with a new image behind it ("latest" → "latest") is no
+// newer tag: nothing to change in a compose file, no pull request.
+func TestUpdateCasesSkipSameTag(t *testing.T) {
+	wud := &sources.WUDDataset{Containers: []sources.ImageUpdate{
+		{Name: "paperless", Image: "ghcr.io/paperless-ngx/paperless-ngx:latest", Tag: "latest", NewTag: "latest"},
+		{Name: "web", Image: "nginx:1.25.0", Tag: "1.25.0", NewTag: "1.31.7"},
+	}}
+	cases := UpdateCases(UpdateInputs{WUD: wud})
+	if len(cases) != 1 || cases[0].Container != "web" {
+		t.Fatalf("cases: %+v", cases)
+	}
+}
