@@ -31,6 +31,9 @@ type Settings struct {
 	SMTPPassword string
 	// AnalysisMinutes is the interval of the integration check.
 	AnalysisMinutes int
+	// UpdateCheck lets the server ask daily for a newer Andon
+	// (services/release); always off in demo mode.
+	UpdateCheck bool
 	// AnthropicAPIKey enables the optional weekly summary; "" = off.
 	AnthropicAPIKey string
 
@@ -198,6 +201,7 @@ func Load() Settings {
 		SessionAbsoluteHours: envInt("SESSION_ABSOLUTE_HOURS", 24*30),
 		OIDCSessionHours:     envInt("OIDC_SESSION_HOURS", 12),
 		AnalysisMinutes:      max(1, envInt("ANALYSIS_MINUTES", 5)),
+		UpdateCheck:          envBool(EnvUpdateCheck, true),
 	}
 
 	// Secrets in order of precedence: Docker secret file, NAME_FD (a file

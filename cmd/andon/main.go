@@ -170,6 +170,7 @@ func run() int {
 	deps.RegisterWelcomeRoutes(mux)
 	deps.RegisterAboutRoutes(mux)
 	deps.RegisterBenchRoutes(mux)
+	deps.RegisterReleaseRoutes(mux)
 	deps.RegisterPasskeyRoutes(mux)
 	deps.RegisterHookRoutes(mux)
 	deps.RegisterBillingRoutes(mux)

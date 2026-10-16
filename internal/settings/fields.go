@@ -23,7 +23,11 @@ const (
 	KindSecret FieldKind = "secret" // stored encrypted, never shown
 	KindNumber FieldKind = "number" // whole number ≥ 1
 	KindLevel  FieldKind = "level"  // DEBUG, INFO, WARN, ERROR
+	KindSwitch FieldKind = "switch" // on (1) or off (0)
 )
+
+// EnvUpdateCheck switches the daily update check (services/release).
+const EnvUpdateCheck = "ANDON_UPDATE_CHECK"
 
 // Field is one setting by its environment variable name.
 type Field struct {
@@ -44,6 +48,9 @@ var Fields = []Field{
 	number("SESSION_IDLE_MINUTES", func(s *Settings) *int { return &s.SessionIdleMinutes }),
 	number("SESSION_ABSOLUTE_HOURS", func(s *Settings) *int { return &s.SessionAbsoluteHours }),
 	number("OIDC_SESSION_HOURS", func(s *Settings) *int { return &s.OIDCSessionHours }),
+	{Env: EnvUpdateCheck, Kind: KindSwitch,
+		get: func(s Settings) string { return switchValue(s.UpdateCheck) },
+		set: func(s *Settings, v string) { s.UpdateCheck, _ = strconv.ParseBool(v) }},
 	{Env: "LOG_LEVEL", Kind: KindLevel,
 		get: func(s Settings) string { return s.LogLevel },
 		set: func(s *Settings, v string) { s.LogLevel = strings.ToUpper(v) }},
@@ -67,6 +74,14 @@ func number(env string, at func(*Settings) *int) Field {
 		set: func(s *Settings, v string) { *at(s), _ = strconv.Atoi(v) }}
 }
 
+// switchValue is how a switch is stored and shown: "1" or "0".
+func switchValue(on bool) string {
+	if on {
+		return "1"
+	}
+	return "0"
+}
+
 // Valid reports whether v fits the field, e.g. "15" for a number.
 func (f Field) Valid(v string) bool {
 	switch f.Kind {
@@ -76,6 +91,9 @@ func (f Field) Valid(v string) bool {
 	case KindLevel:
 		_, ok := parseLevel(v)
 		return ok
+	case KindSwitch:
+		_, err := strconv.ParseBool(v)
+		return err == nil
 	}
 	return true
 }

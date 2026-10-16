@@ -41,6 +41,8 @@ code, .mono { font-family: var(--font-mono); }
 a { color: var(--link); }
 
 main { max-width: 72rem; margin: 0 auto; padding: 1.5rem clamp(1rem, 4vw, 2rem) 3rem; }
+/* A note above every page (update hint), in main's column. */
+.app-notice { max-width: 72rem; margin: 1rem auto 0; padding: 0 clamp(1rem, 4vw, 2rem); }
 
 /* ── generic card (login/connections/notify lists, error pages) ── */
 .card {
