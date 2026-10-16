@@ -1803,7 +1803,7 @@
   ]
  },
  "bank": {
-  "note": "Sure: one income matches the open invoice, the health insurance payment is overdue; the studio supplies of last week lack a category, an older booking of the same shop has one.",
+  "note": "Sure: one income matches the open invoice, the health insurance payment is overdue; the studio supplies of last week lack a category, an older booking of the same shop has one. The software subscription is paid from the business account but has no recurring expense in Invoice Ninja.",
   "url": "https://money.demo",
   "currency": "EUR",
   "net_worth": 48210,
@@ -1910,6 +1910,25 @@
      "de": "Technik",
      "en": "Equipment"
     },
+    "account": {
+     "de": "Geschäftskonto",
+     "en": "Business account"
+    }
+   },
+   {
+    "id": "t7",
+    "date": "@date-19",
+    "name": {
+     "de": "Farbraum Grade, Abo",
+     "en": "Farbraum Grade subscription"
+    },
+    "amount": 66.45,
+    "expense": true,
+    "category": {
+     "de": "Software",
+     "en": "Software"
+    },
+    "merchant": "Farbraum Software",
     "account": {
      "de": "Geschäftskonto",
      "en": "Business account"
@@ -7287,6 +7306,34 @@
        125730,
        117432
       ]
+     }
+    ]
+   },
+   {
+    "id": "claude-plan",
+    "provider": "claudeplan",
+    "name": "Mara Weber · Max",
+    "url": "https://claude.ai/settings/usage",
+    "windows": [
+     {
+      "kind": "session",
+      "percent": 64,
+      "resets": "@+2h"
+     },
+     {
+      "kind": "week",
+      "percent": 91,
+      "resets": "@+1d14h"
+     },
+     {
+      "kind": "week_model",
+      "model": "Opus",
+      "percent": 47,
+      "resets": "@+1d14h"
+     },
+     {
+      "kind": "extra",
+      "percent": 25
      }
     ]
    },
