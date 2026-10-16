@@ -263,6 +263,17 @@ func HintsOfScope(q db.Queryer, spaceID int64, userID *int64, rules []string, co
 	return scanHints(rows)
 }
 
+// OpenHintsOfConnection returns the open hints a connection's runs
+// wrote in a space, of every owner.
+func OpenHintsOfConnection(q db.Queryer, spaceID, connID int64) ([]*model.Hint, error) {
+	rows, err := q.Query("SELECT "+hintCols+" FROM hints WHERE space_id = ? AND connection_id = ? AND resolved_at IS NULL", spaceID, connID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanHints(rows)
+}
+
 // HintByPrint looks up a hint by its fingerprint within a space/owner scope.
 func HintByPrint(q db.Queryer, spaceID int64, userID *int64, fingerprint string) (*model.Hint, error) {
 	query := "SELECT " + hintCols + " FROM hints WHERE space_id = ? AND fingerprint = ?"

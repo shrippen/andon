@@ -314,6 +314,7 @@ type NinjaTaxRate struct {
 
 type NinjaQuote struct {
 	ID         int64
+	Key        string // id as sent (hashed string in v5), for links
 	Number     string
 	ClientID   int64
 	Status     string
@@ -345,6 +346,7 @@ type NinjaReminder struct {
 
 type NinjaRecurring struct {
 	ID              int64
+	Key             string // id as sent (hashed string in v5), for links
 	Number          string
 	ClientID        int64
 	Active          bool

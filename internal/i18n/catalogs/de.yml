@@ -3145,6 +3145,9 @@ hint:
     unused_service:
       title: '{name} seit {days} Tagen ungenutzt'
       why: '{kind}: keine Klicks auf die Kachel, keine Anmeldungen, keine Besucher. Belegt {gb} GB RAM. Abschalten?'
+    unused_service_nomem:
+      title: '{name} seit {days} Tagen ungenutzt'
+      why: '{kind}: keine Klicks auf die Kachel, keine Anmeldungen, keine Besucher. Abschalten?'
     storage_forecast:
       title: '{name} voll in {days} Tagen'
       why: 'Jetzt {percent} % belegt; beim Tempo der letzten 30 Tage voll am {day}.'
