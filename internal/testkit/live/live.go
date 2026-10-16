@@ -63,6 +63,7 @@ const (
 	FreshRSS  Service = "freshrss"
 	Wallos    Service = "wallos"
 	Sure      Service = "sure"
+	Gitea     Service = "gitea"
 
 	// Mail goes to an SMTP catcher, read back through its API (Mailbox);
 	// Apprise's Token is the channel it sends to.

@@ -1241,6 +1241,7 @@ widget:
   unsupported: Does not fit the chosen connection.
 connection:
   secret_for_host: 'New server: enter the credential again or take the stored one along on purpose.'
+  unknown_service: 'Andon does not know this service.'
   use_move: 'Another server: please use “Move”.'
   adopt_self: 'A connection cannot take over from itself.'
   adopt_service: 'Only from a connection of the same service.'
@@ -6739,6 +6740,8 @@ subs:
   change: 'Change'
   amount: 'Amount'
   category: 'Category'
+  tax: 'Tax'
+  no_tax: 'No tax'
   next: 'next payment {day}'
   why_wallos_add: 'Sure pays it, Wallos lacks it'
   why_wallos_price: 'Wallos has {old}, Sure pays another price'

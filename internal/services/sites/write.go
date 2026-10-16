@@ -65,7 +65,7 @@ func mileagePlace(s *metrics.Site, a metrics.Assignment) outbound.MileagePlace {
 // Assign sets what a site is. Requires MANAGE on Dawarich (and EDIT on
 // Kimai when the plugin stores it).
 func Assign(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, key string, a metrics.Assignment) error {
-	e, err := open(ctx, d, who, connID, enums.RightManage)
+	e, err := open(ctx, d, who, connID, enums.RightManage, forWrite)
 	if err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func (e env) keep(d *sql.DB, who *access.Principal, key string, a metrics.Assign
 // Create adds a place where rides end: a Dawarich area, then its
 // assignment (in the plugin or the option). Requires MANAGE.
 func Create(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, p NewPlace) error {
-	e, err := open(ctx, d, who, connID, enums.RightManage)
+	e, err := open(ctx, d, who, connID, enums.RightManage, forWrite)
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ type SyncResult struct {
 // Requires MANAGE on Dawarich and EDIT on Kimai.
 func Sync(ctx context.Context, d *sql.DB, who *access.Principal, connID int64) (SyncResult, error) {
 	var out SyncResult
-	e, err := open(ctx, d, who, connID, enums.RightManage)
+	e, err := open(ctx, d, who, connID, enums.RightManage, forSync)
 	if err != nil || !e.pluginWrites() {
 		return out, err
 	}

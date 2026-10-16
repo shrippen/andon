@@ -44,7 +44,7 @@ func SetClass(ctx context.Context, d *sql.DB, who *access.Principal, connID, sta
 	if class != metrics.ClassAuto && !slices.Contains(metrics.RideClasses, class) {
 		return ErrBadClass
 	}
-	e, err := open(ctx, d, who, connID, enums.RightUse)
+	e, err := open(ctx, d, who, connID, enums.RightUse, forWrite)
 	if err != nil {
 		return err
 	}

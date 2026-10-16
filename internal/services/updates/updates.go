@@ -80,8 +80,8 @@ type Page struct {
 	Cases   []metrics.UpdateCase
 	Finders bool // the Verbund has WUD or FreshRSS to find newer tags
 	NVD     bool
-	Assist  bool                      // Claude can sum up release notes
-	Changes map[string]assist.Changes // by case key, for the current new tag
+	Assist  bool                       // Claude can sum up release notes
+	Changes map[string]*assist.Changes // by case key, for the current new tag; nil = not summarized
 }
 
 type book struct {
@@ -100,10 +100,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string) (
 		return p, err
 	}
 	p.Cases, p.NVD, p.Assist = b.cases, b.scope.Conn(enums.ServiceNVD) != nil, assist.Enabled()
-	p.Changes = map[string]assist.Changes{}
+	p.Changes = map[string]*assist.Changes{}
 	for _, c := range b.cases {
 		if ch, ok := b.summaries[summaryKey(c)]; ok {
-			p.Changes[c.Key] = ch
+			p.Changes[c.Key] = &ch
 		}
 	}
 	p.Finders = b.scope.Conn(enums.ServiceWUD) != nil || b.scope.Conn(enums.ServiceFreshRSS) != nil
