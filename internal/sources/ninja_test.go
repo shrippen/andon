@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"andon/internal/sources"
 )
@@ -119,5 +120,40 @@ func TestNinjaHashedClientIDs(t *testing.T) {
 	// Invoices need distinct ids, and their original key for write calls.
 	if data.Invoices[0].ID == 0 || data.Invoices[0].ID == data.Invoices[1].ID || data.Invoices[1].Key != "Q9ahb6ebJa" {
 		t.Fatalf("invoice ids %+v", data.Invoices)
+	}
+}
+
+// Deleted entries are gone for the user: a deleted payment counted as
+// income, a deleted client or vendor as a name to match (seen live, a
+// test payment of 1 € in the year's figures).
+func TestNinjaSkipsDeleted(t *testing.T) {
+	today := time.Now().UTC().Format(time.DateOnly)
+	list := func(live, deleted string) func(http.ResponseWriter, *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(`{"data": [` + live + `, ` + deleted + `], "meta": {"pagination": {"total_pages": 1}}}`))
+		}
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/invoices", list(`{"id": 1, "number": "R1", "client_id": 9, "status_id": "2", "date": "`+today+`", "amount": 10, "balance": 10}`,
+		`{"id": 2, "number": "R2_Deleted", "client_id": 9, "status_id": "2", "date": "`+today+`", "amount": 10, "balance": 10, "is_deleted": true}`))
+	mux.HandleFunc("/api/v1/payments", list(`{"id": 1, "number": "P1", "client_id": 9, "date": "`+today+`", "amount": 5}`,
+		`{"id": 2, "number": "P2", "client_id": 9, "date": "`+today+`", "amount": 1, "is_deleted": true}`))
+	mux.HandleFunc("/api/v1/clients", list(`{"id": 9, "display_name": "Acme GmbH"}`, `{"id": 8, "display_name": "Old GmbH", "is_deleted": true}`))
+	mux.HandleFunc("/api/v1/expenses", list(`{"id": 1, "date": "`+today+`", "amount": 50}`, `{"id": 2, "date": "`+today+`", "amount": 60, "is_deleted": true}`))
+	mux.HandleFunc("/api/v1/vendors", list(`{"id": 3, "name": "Papier AG"}`, `{"id": 4, "name": "Gone AG", "is_deleted": true}`))
+	mux.HandleFunc("/api/v1/quotes", list(`{"id": 1, "number": "A1", "client_id": 9, "status_id": "2", "date": "`+today+`", "amount": 9}`,
+		`{"id": 2, "number": "A2", "client_id": 9, "status_id": "2", "date": "`+today+`", "amount": 9, "is_deleted": true}`))
+	mux.HandleFunc("/api/v1/recurring_invoices", list(`{"id": 1}`, `{"id": 2, "is_deleted": true}`))
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	out, err := sources.NinjaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	d := out.(*sources.NinjaDataset)
+	if len(d.Invoices) != 1 || len(d.Payments) != 1 || len(d.Clients) != 1 || len(d.Expenses) != 1 || len(d.Vendors) != 1 || len(d.Quotes) != 1 {
+		t.Fatalf("invoices %d, payments %d, clients %d, expenses %d, vendors %d, quotes %d: want 1 each",
+			len(d.Invoices), len(d.Payments), len(d.Clients), len(d.Expenses), len(d.Vendors), len(d.Quotes))
 	}
 }
