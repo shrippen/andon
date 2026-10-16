@@ -3044,6 +3044,9 @@ hint:
     expense_no_vat:
       title: 'Ausgabe {number} von {vendor} ohne Vorsteuer ({amount})'
       why: '{notes} vom {day}: keine Vorsteuer erfasst.'
+    expense_reverse_charge:
+      title: 'Ausgabe {number} von {vendor}: Reverse Charge ({amount})'
+      why: '{notes} vom {day}, Lieferant im Ausland ohne Steuer: Die Umsatzsteuer schuldest du nach § 13b selbst (Kz {kz}) und ziehst sie zugleich als Vorsteuer ab (Kz 67). Der USt-Abgleich rechnet sie ein; Waren aus der EU (Kz 89/93) erkennt er nicht.'
     concentration:
       title: '{client}: {percent} % des Umsatzes'
       why: 'Klumpenrisiko: ein Kunde trägt den Großteil des Umsatzes der letzten 12 Monate.'
