@@ -617,7 +617,7 @@ func VendorDuplicates(n *sources.NinjaDataset) []VendorGroup {
 	var words []string
 	for _, v := range n.Vendors {
 		t := nameTokens(v.Name)
-		if len(t) == 0 {
+		if len(t) == 0 || v.Archived {
 			continue
 		}
 		if _, seen := byWord[t[0]]; !seen {

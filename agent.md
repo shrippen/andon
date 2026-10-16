@@ -142,6 +142,7 @@ internal/services/workbench/    Werkbänke: Verbund wählen (Scopes), Schritte p
 ## Repository rule
 
 - This repository lives on Gitea (`git.arianw.de`). GitHub is only a push mirror of it.
+- CI runs on the GitHub mirror (`.github/workflows/ci.yml`, since 16.10.2026) and reports back to Gitea as the commit status `github / test`. The image goes to `ghcr.io/shrippen/andon` only.
 - Changes arrive as pull requests: work on a branch, open a PR, merge it on Gitea (the mirror follows).
 - Never merge a PR, push to `main` (or any default branch), push tags or publish releases on GitHub. A merge there is overwritten by the next Gitea push.
 - Never force-push a branch that someone else's PR depends on.

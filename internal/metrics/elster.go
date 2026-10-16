@@ -36,6 +36,10 @@ var euCountries = map[string]bool{"40": true, "56": true, "100": true, "191": tr
 	"233": true, "246": true, "250": true, "300": true, "348": true, "372": true, "380": true, "428": true, "440": true,
 	"442": true, "470": true, "528": true, "616": true, "620": true, "642": true, "703": true, "705": true, "724": true, "752": true}
 
+// InEU reports whether an Invoice Ninja country id is an EU member
+// besides Germany.
+func InEU(countryID string) bool { return euCountries[countryID] }
+
 // Elster holds the period's figures.
 type Elster struct {
 	Kz81, Kz86, Kz21, Kz45, Kz46, Kz84 float64 // bases, whole euros
