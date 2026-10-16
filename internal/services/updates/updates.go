@@ -80,7 +80,7 @@ type Page struct {
 	Cases   []metrics.UpdateCase
 	Finders bool // the Verbund has WUD or FreshRSS to find newer tags
 	NVD     bool
-	Assist  bool                      // Claude can sum up release notes
+	Assist  bool                       // Claude can sum up release notes
 	Changes map[string]*assist.Changes // by case key, for the current new tag; nil = not summarized
 }
 
