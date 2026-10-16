@@ -10,6 +10,7 @@
 package updates
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -247,7 +248,10 @@ type writer struct {
 // opens a pull request.
 func (w *writer) Write(ctx context.Context, p workbench.Planned[Item]) (string, error) {
 	it := p.Item
-	old, next := it.Image+":"+it.Tag, it.Image+":"+it.To
+	// The image as the compose file writes it: What's Up Docker says
+	// "library/nginx" where the file says "nginx".
+	image := cmp.Or(it.Written, it.Image)
+	old, next := image+":"+it.Tag, image+":"+it.To
 	where := it.Stack.Name + "/" + it.Service
 	page, err := outbound.GiteaPropose(ctx, w.to, outbound.GiteaChange{
 		Repo: it.Stack.Repo, Path: it.Stack.Path, Branch: branchPrefix + strings.TrimPrefix(it.Key, "u-") + "-" + it.To,

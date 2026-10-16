@@ -57,3 +57,16 @@ func TestFeedCases(t *testing.T) {
 		}
 	}
 }
+
+// What's Up Docker names Docker Hub's official images "library/nginx",
+// compose files mostly "nginx": the case keeps the form the file uses,
+// so the pull request finds the line to change.
+func TestUpdateCasesKeepComposeForm(t *testing.T) {
+	wud := &sources.WUDDataset{Containers: []sources.ImageUpdate{{Name: "web", Image: "library/nginx:1.25.0", Tag: "1.25.0", NewTag: "1.31.7"}}}
+	gitea := &sources.GiteaDataset{Stacks: []sources.Stack{{Host: "testhost", Name: "web", Repo: "a/docker-compose-testhost", Path: "web/compose.yaml",
+		Services: []sources.ComposeService{{Name: "web", Image: "nginx:1.25.0"}}}}}
+	cases := UpdateCases(UpdateInputs{WUD: wud, Gitea: gitea})
+	if len(cases) != 1 || !cases[0].Pinned || cases[0].Written != "nginx" {
+		t.Fatalf("cases: %+v", cases)
+	}
+}
