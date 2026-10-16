@@ -7056,6 +7056,7 @@ task:
   dawarich_tracks: 'Read Dawarich tracks of {host}'
 server_hint:
   APPRISE_API_URL: 'Address of an Apprise API container (github.com/caronc/apprise-api), e.g. http://apprise:8000. It delivers all pushes; where to, each user sets under Notifications with their own channels. Empty = no pushes.'
+  ANDON_UPDATE_CHECK: 'Asks https://shrippen.github.io/versions.json once a day (no parameters, nothing that identifies you) and shows admins a hint when a newer Andon is out. Downloads nothing.'
 server:
   SMTP_URL: 'SMTP server (smtp://user@host:587)'
   SMTP_FROM: Mail sender
@@ -7063,6 +7064,7 @@ server:
   APPRISE_API_URL: Apprise API server
   ANTHROPIC_API_KEY: 'Anthropic API key (weekly review, advice)'
   ANALYSIS_MINUTES: Check every … minutes
+  ANDON_UPDATE_CHECK: Check for new versions
   SESSION_IDLE_MINUTES: 'Sign out after … idle minutes'
   SESSION_ABSOLUTE_HOURS: Session at most … hours
   OIDC_SESSION_HOURS: 'Session via authentik at most … hours'
@@ -7659,3 +7661,9 @@ benches:
     updates: 'Newer image tags by urgency, a pull request to the compose repo.'
     year: 'The tax year for the EUER, and the year in review.'
     timeline: 'What changed in the last 14 days.'
+release:
+  switch_on: 'on'
+  switch_off: 'off'
+  newer: 'Andon {version} is out ({date}).'
+  notes: "What's new"
+  hide: 'Hide until the next version'

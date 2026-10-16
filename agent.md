@@ -26,7 +26,7 @@
 
 - Every visualization (chart, graph, heatmap) in a popup or page has axis labels or a legend; without them it is useless. Give it hover tooltips where possible. Tiles stay without axes and legends, so they read at a glance; their popup carries the details.
 
-- Test integrations against a real instance where possible (`internal/testkit/live`): connections and data in `.local-test/` (outside Git), one file per service. Write only new test entries and never write to existing ones; every write is logged in `.local-test/writes.log`. Without a configured instance the test is skipped: in cloud environments and CI, tests against fakes are enough. Live tests run only with `make live` (`ANDON_LIVE=1`). Write tests against Invoice Ninja run only when the user explicitly asks for it (`ANDON_LIVE_NINJA=1`): every run leaves gaps in its invoice and expense numbers. Services without an own instance run as throwaway Docker containers (`.local-test/extra/`); test against them only when the user explicitly asks for it (`scripts/live-extra.sh`).
+- Test integrations against a real instance where possible (`internal/testkit/live`): connections and data in `.local-test/` (outside Git), one file per service. Read tests use the user's own services; write tests never do: they write to throwaway Docker containers of the same services (`.local-test/writes/`, list in `instances.json`, started by `make live`). Write only new test entries and never write to existing ones; every write is logged in `.local-test/writes.log`. Without a configured instance the test is skipped: in cloud environments and CI, tests against fakes are enough. Live tests run only with `make live` (`ANDON_LIVE=1`). Services without an own instance run as throwaway Docker containers (`.local-test/extra/`); test against them only when the user explicitly asks for it (`scripts/live-extra.sh`).
 
 When you write a commit message, follow these 7 rules:
 Rule 1: Separate the subject line from the body with a single blank line.
@@ -118,7 +118,7 @@ internal/services/workbench/    Werkbänke: Verbund wählen (Scopes), Schritte p
 
 - Every release gets a detailed release log, written before the tag: a lead (what the release is about), then the changes grouped as New, Improved, Fixed and Note (breaking changes, steps the user must take). Each point says what changed for the user and why, not which code moved.
 - Graphics wherever possible: for every visible change a screenshot from the demo world in every language of the landing page (`docs/shots/release-<version>-<name>-<lang>.webp`), for changes inside a diagram (Kante `.flow` or an inline SVG).
-- The log goes into the release notes on Gitea and as a new entry at the top of `#changes` on the landing page (`docs/index.html`, Kante `.changelog`); from the fourth entry on, the oldest move into `details.changelog-more`. Bump the version in the footer. A release is done when the landing page shows it.
+- The log goes into the release notes on Gitea and as a new entry at the top of `#changes` on the landing page (`docs/index.html`, Kante `.changelog`); from the fourth entry on, the oldest move into `details.changelog-more`. Bump the version in the footer. Then run `python3 ../shrippen.github.io/overview/tools/build-versions.py` and commit `docs/versions.json` there: installs learn of the release from it (update check). A release is done when the landing page and `versions.json` show it.
 
 ## GUI rule
 

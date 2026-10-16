@@ -27,10 +27,9 @@ const ninjaDelete = "delete"
 const ninjaPaid = "4"
 
 // A client of its own gets an invoice draft, a payment of it and an
-// expense with a custom value; all are deleted at the end. Invoice
-// Ninja hands out invoice and expense numbers on save, so each run
-// leaves gaps in both counters: it runs only when asked for
-// (live.Target).
+// expense with a custom value; all are deleted at the end. Each run
+// leaves gaps in the invoice and expense numbers, so it writes to a
+// throwaway instance only (live.Target).
 func TestNinjaLive(t *testing.T) {
 	ninja := live.Target(t, live.Ninja)
 	api := services.NinjaApi{URL: ninja.URL, Token: ninja.Token, Verify: ninja.VerifyTLS}

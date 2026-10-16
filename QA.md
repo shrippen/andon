@@ -285,3 +285,4 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 1. `/admin/settings`: ungültige Zahlen und URLs, CIDR „not-a-cidr“, `javascript:` als iframe-Herkunft, OIDC-Test leer.
 2. Mit `SMTP_URL`/`ANALYSIS_MINUTES` in der Umgebung neu starten: Felder gesperrt, POST ändert nichts.
 3. `/admin/operations`, `/admin/audit`: rohe Schlüssel, Leerlauf-Einträge?
+4. Update-Hinweis (ohne Demo, Build mit älterer Version, `data/release.json` mit neuerer): Lena sieht über jeder Seite „Andon x ist erschienen“ mit Link, Mara nicht. × blendet ihn bis zur nächsten Version aus; `ANDON_UPDATE_CHECK` auf „aus“ nimmt ihn sofort weg. Im Demo-Modus nie.

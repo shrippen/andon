@@ -18,9 +18,12 @@ lint:
 test:
 	go test ./...
 
-# Live tests against the instances in .local-test/ (internal/testkit/live).
+# Live tests against the instances in .local-test/ (internal/testkit/live):
+# reads from the own services, writes to the containers in writes/. One
+# package at a time: each opens (and migrates) the local database.
 live:
-	ANDON_LIVE=1 go test -count=1 -run Live ./...
+	scripts/live-writes.sh
+	ANDON_LIVE=1 go test -p 1 -count=1 -run Live ./...
 
 VERSION_FLAG = -X andon/internal/services/about.version=$(shell scripts/version.sh)
 
