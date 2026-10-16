@@ -45,7 +45,9 @@ func TestTargetSkipsUnasked(t *testing.T) {
 	}
 }
 
-func TestTargetReadsInstance(t *testing.T) {
+// TestTargetWritesToContainers: writes go to the throwaway instances in
+// writes/instances.json, never to the local instance's connections.
+func TestTargetWritesToContainers(t *testing.T) {
 	d := local(t)
 	const key = "local-key"
 	if err := os.MkdirAll(filepath.Join(d, filepath.Dir(keyPath)), 0o700); err != nil {
@@ -58,17 +60,27 @@ func TestTargetReadsInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The local instance with one Kimai connection, token "tok".
+	// The local instance with a real Kimai and a real Paperless.
 	inst, _, err := maintenance.Unlock(filepath.Join(d, dbPath), key)
 	if err != nil {
 		t.Fatal(err)
 	}
 	who, space := testkit.User(t, inst, "a@b.c", enums.RoleAdmin)
 	testkit.Conn(t, inst, who, space, enums.ServiceKimai, "https://kimai.example/")
+	testkit.Conn(t, inst, who, space, enums.ServicePaperless, "https://paperless.example/")
 	inst.Close()
 
+	// Only Kimai runs as a container.
+	if err := os.MkdirAll(filepath.Join(d, filepath.Dir(writesPath)), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	list := `[{"name": "kimai", "service": "kimai", "url": "http://127.0.0.1:18141/", "secret": "tok"}]`
+	if err := os.WriteFile(filepath.Join(d, writesPath), []byte(list), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
 	to := Target(t, Kimai)
-	if to.URL != "https://kimai.example" || to.Token != "tok" || !to.VerifyTLS {
+	if to.URL != "http://127.0.0.1:18141" || to.Token != "tok" || to.VerifyTLS {
 		t.Fatalf("target = %+v", to)
 	}
 
@@ -78,7 +90,7 @@ func TestTargetReadsInstance(t *testing.T) {
 		ran = true
 	})
 	if ran {
-		t.Fatal("test ran without a paperless connection")
+		t.Fatal("test wrote to the real paperless connection")
 	}
 }
 

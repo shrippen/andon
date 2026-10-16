@@ -1222,7 +1222,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
 - [x] Regeln über Geschäftsgeld (`cross.invoice_paid`, `cross.payment_unmatched`, `sure.spendable_negative`, `cross.depot_reserve`) und die Zahlungsvorschläge auf `/billing` lesen nur Geschäftskonten, sobald Rollen gesetzt sind
 - [x] `/vat`: Umsatz mit vorhandener Zahlung verknüpfen (`payment_id`); `/billing` bucht bei vorhandenem Bankabruf über den Umsatz (`bank_transactions/match`), Teilzahlungen per Rechnungsnummer
 - [x] `/vat`: beim Anlegen einer Ausgabe die passenden freien Paperless-Belege anbieten (Matcher der Belege-Seite, ab 60 Punkten, bester ab 80 vorgewählt) und gleich verknüpfen; nur wenn `/receipts` dieselbe Invoice-Ninja-Verbindung nutzt
-- [ ] Gegen die echte Instanz testen (`ANDON_LIVE_NINJA=1` nur auf Wunsch): Antwort von `bank_transactions/match`, Steuerfelder der angelegten Ausgabe
+- [ ] Gegen eine Instanz testen (Wegwerf-Container, `.local-test/writes/`): Antwort von `bank_transactions/match`, Steuerfelder der angelegten Ausgabe
 - [ ] Hinweis „Reverse Charge“ (§ 13b) bei ausländischen Lieferanten ohne Steuer
 
 ### Werkbänke (entschieden 14.10.2026)
