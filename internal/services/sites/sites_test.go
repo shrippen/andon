@@ -414,3 +414,26 @@ func TestSyncReadsFresh(t *testing.T) {
 		t.Fatalf("the new area got no place: %+v", res)
 	}
 }
+
+// Kimai unreachable when assigning: the write fails instead of landing
+// in Andon's option, where it would silently replace the plugin's
+// place (found in review).
+func TestAssignFailsWithoutKimai(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	rec := &recorder{}
+	geo, kimai := fakeDawarich(rec), fakeKimai(rec, pluginWrites)
+	defer geo.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
+	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimai.URL)
+	kimai.Close()
+
+	err := sites.Assign(context.Background(), d, who, conn, metrics.AreaKey(2), metrics.Assignment{Kind: metrics.KindCustomer, CustomerID: 12})
+	if !errors.Is(err, sites.ErrKimai) {
+		t.Fatalf("err = %v, want ErrKimai", err)
+	}
+	c, _ := connections.ByID(d, conn)
+	if len(metrics.ParseAssignments(c.Options)) != 0 {
+		t.Fatalf("assignment kept in the option: %v", c.Options)
+	}
+}

@@ -14,9 +14,11 @@ package sites
 
 import (
 	"andon/internal/caps"
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -163,15 +165,15 @@ func open(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, n
 	e.ambiguous = state == verbund.PartnerAmbiguous
 	if kimaiConn != nil {
 		e.kimaiConn = kimaiConn
-		// Kimai unreachable now: the cached data, so the write fails
-		// there visibly instead of falling back to Andon's option.
-		key, holder := sources.DataKey(enums.ServiceKimai), model.UserHolder(who.UserID)
-		res, err := svcdata.Get(ctx, d, key, nil, e.kimaiConn, holder, fresh.kimai)
-		if err != nil && fresh.kimai != svcdata.Cached {
-			res, err = svcdata.Get(ctx, d, key, nil, e.kimaiConn, holder, svcdata.Cached)
-		}
+		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceKimai), nil, e.kimaiConn, model.UserHolder(who.UserID), fresh.kimai)
 		if err == nil {
 			e.kimai, _ = res.Data.(*sources.KimaiDataset)
+		}
+		// A write without any Kimai data would land in Andon's option
+		// instead of the plugin: fail. A failed fetch still serves the
+		// last good data; the write then fails at Kimai, visibly.
+		if e.kimai == nil && fresh.kimai != svcdata.Cached {
+			return env{}, fmt.Errorf("%w: %s", ErrKimai, cmp.Or(res.Error, fmt.Sprint(err)))
 		}
 	}
 	e.book = metrics.BookOf(e.geo, e.kimai, e.geoConn.Options)
