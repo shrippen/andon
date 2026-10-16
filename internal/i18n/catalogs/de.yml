@@ -6741,6 +6741,8 @@ subs:
   change: 'Änderung'
   amount: 'Betrag'
   category: 'Kategorie'
+  tax: 'Steuer'
+  no_tax: 'Ohne Steuer'
   next: 'nächste Zahlung {day}'
   why_wallos_add: 'Sure zahlt es, Wallos kennt es nicht'
   why_wallos_price: 'Wallos hat {old}, Sure zahlt anders'
