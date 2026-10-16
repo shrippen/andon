@@ -35,6 +35,23 @@ func TestLinksAgainstLinkwardenAndKuma(t *testing.T) {
 	}
 }
 
+// A bookmark without a name shows by its address, not as an empty
+// entry (", , , ").
+func TestNotOnBoardNamesUntitled(t *testing.T) {
+	env := todayEnv(nil)
+	env.Datasets = map[string]any{
+		rules.LinksDataset: []rules.Link{},
+		"linkwarden": &sources.LinkwardenDataset{Links: []sources.Bookmark{
+			{URL: "https://www.example.org/docs/", Collection: "Arbeit"},
+			{Name: "Kayak", URL: "https://kayak.de", Collection: "Arbeit"},
+			{Name: "Kayak", URL: "https://www.kayak.de/", Collection: "Arbeit"}}},
+	}
+	// The same address saved twice counts once.
+	if got := run(t, "linkwarden.not_on_board", nil, env); len(got) != 1 || got[0].Params["names"] != "Kayak, example.org/docs" || got[0].Params["count"] != 2 {
+		t.Fatalf("not on board: %+v", got)
+	}
+}
+
 func TestDeadLinks(t *testing.T) {
 	env := todayEnv(nil)
 	env.Datasets = map[string]any{rules.LinksDataset: []rules.Link{{Title: "Alt", URL: "https://a", DownDays: 9}, {Title: "Neu", URL: "https://b", DownDays: 2}}}

@@ -119,6 +119,16 @@
     </div>
   {{end}}
 </header>
+{{/* A newer Andon, for admins (services/release); × hides it until the next one. */}}
+{{with .Release}}<div class="app-notice"><div class="callout has-x" role="status">
+  <form method="post" action="/release/hide">
+    <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+    <input type="hidden" name="version" value="{{.Version}}">
+    <input type="hidden" name="back" value="referer">
+    <button type="submit" class="callout-x" aria-label="{{t "release.hide"}}" title="{{t "release.hide"}}">×</button>
+  </form>
+  {{t "release.newer" "version" .Version "date" (day .Date)}} <a href="{{.URL}}" rel="noopener noreferrer" target="_blank">{{t "release.notes"}}</a>
+</div></div>{{end}}
 {{if .Who}}
 <dialog class="nav-drawer" id="nav-drawer" aria-label="{{t "nav.main"}}">
   <div class="nav-drawer-head">

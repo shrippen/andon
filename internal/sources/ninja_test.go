@@ -2,9 +2,14 @@ package sources_test
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"andon/internal/sources"
 )
@@ -119,5 +124,164 @@ func TestNinjaHashedClientIDs(t *testing.T) {
 	// Invoices need distinct ids, and their original key for write calls.
 	if data.Invoices[0].ID == 0 || data.Invoices[0].ID == data.Invoices[1].ID || data.Invoices[1].Key != "Q9ahb6ebJa" {
 		t.Fatalf("invoice ids %+v", data.Invoices)
+	}
+}
+
+// Deleted entries are gone for the user: a deleted payment counted as
+// income, a deleted client or vendor as a name to match (seen live, a
+// test payment of 1 € in the year's figures).
+func TestNinjaSkipsDeleted(t *testing.T) {
+	today := time.Now().UTC().Format(time.DateOnly)
+	list := func(live, deleted string) func(http.ResponseWriter, *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(`{"data": [` + live + `, ` + deleted + `], "meta": {"pagination": {"total_pages": 1}}}`))
+		}
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/invoices", list(`{"id": 1, "number": "R1", "client_id": 9, "status_id": "2", "date": "`+today+`", "amount": 10, "balance": 10}`,
+		`{"id": 2, "number": "R2_Deleted", "client_id": 9, "status_id": "2", "date": "`+today+`", "amount": 10, "balance": 10, "is_deleted": true}`))
+	mux.HandleFunc("/api/v1/payments", list(`{"id": 1, "number": "P1", "client_id": 9, "date": "`+today+`", "amount": 5}`,
+		`{"id": 2, "number": "P2", "client_id": 9, "date": "`+today+`", "amount": 1, "is_deleted": true}`))
+	mux.HandleFunc("/api/v1/clients", list(`{"id": 9, "display_name": "Acme GmbH"}`, `{"id": 8, "display_name": "Old GmbH", "is_deleted": true}`))
+	mux.HandleFunc("/api/v1/expenses", list(`{"id": 1, "date": "`+today+`", "amount": 50}`, `{"id": 2, "date": "`+today+`", "amount": 60, "is_deleted": true}`))
+	mux.HandleFunc("/api/v1/vendors", list(`{"id": 3, "name": "Papier AG"}`, `{"id": 4, "name": "Gone AG", "is_deleted": true}`))
+	mux.HandleFunc("/api/v1/quotes", list(`{"id": 1, "number": "A1", "client_id": 9, "status_id": "2", "date": "`+today+`", "amount": 9}`,
+		`{"id": 2, "number": "A2", "client_id": 9, "status_id": "2", "date": "`+today+`", "amount": 9, "is_deleted": true}`))
+	mux.HandleFunc("/api/v1/recurring_invoices", list(`{"id": 1}`, `{"id": 2, "is_deleted": true}`))
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	out, err := sources.NinjaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	d := out.(*sources.NinjaDataset)
+	if len(d.Invoices) != 1 || len(d.Payments) != 1 || len(d.Clients) != 1 || len(d.Expenses) != 1 || len(d.Vendors) != 1 || len(d.Quotes) != 1 || len(d.Recurring) != 1 {
+		t.Fatalf("invoices %d, payments %d, clients %d, expenses %d, vendors %d, quotes %d, recurring %d: want 1 each",
+			len(d.Invoices), len(d.Payments), len(d.Clients), len(d.Expenses), len(d.Vendors), len(d.Quotes), len(d.Recurring))
+	}
+}
+
+// Invoice Ninja 5 sends hashed ids ("Opnel5aKBz"). Each entry keeps its
+// own: read as numbers, every expense, payment, quote and recurring
+// invoice had id 0, and hints about them collided.
+func TestNinjaHashedIDsStayApart(t *testing.T) {
+	today := time.Now().UTC().Format(time.DateOnly)
+	two := func(a, b string) func(http.ResponseWriter, *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(`{"data": [` + a + `, ` + b + `], "meta": {"pagination": {"total_pages": 1}}}`))
+		}
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/invoices", two(`{"id": "aB1", "client_id": "cA1", "date": "`+today+`", "amount": 1}`, `{"id": "aB2", "client_id": "cA1", "date": "`+today+`", "amount": 1}`))
+	mux.HandleFunc("/api/v1/payments", two(`{"id": "pY1", "date": "`+today+`", "amount": 1}`, `{"id": "pY2", "date": "`+today+`", "amount": 1}`))
+	mux.HandleFunc("/api/v1/clients", two(`{"id": "cA1", "name": "A"}`, `{"id": "cA2", "name": "B"}`))
+	mux.HandleFunc("/api/v1/expenses", two(`{"id": "eX1", "date": "`+today+`", "amount": 1}`, `{"id": "eX2", "date": "`+today+`", "amount": 1}`))
+	mux.HandleFunc("/api/v1/quotes", two(`{"id": "qU1", "date": "`+today+`"}`, `{"id": "qU2", "date": "`+today+`"}`))
+	mux.HandleFunc("/api/v1/recurring_invoices", two(`{"id": "rE1"}`, `{"id": "rE2"}`))
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	out, err := sources.NinjaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	d := out.(*sources.NinjaDataset)
+	apart := func(kind string, a, b int64, keyA, keyB string) {
+		if a == 0 || a == b || keyA == "" || keyA == keyB {
+			t.Errorf("%s: ids %d/%d, keys %q/%q", kind, a, b, keyA, keyB)
+		}
+	}
+	apart("invoices", d.Invoices[0].ID, d.Invoices[1].ID, d.Invoices[0].Key, d.Invoices[1].Key)
+	apart("payments", d.Payments[0].ID, d.Payments[1].ID, d.Payments[0].Key, d.Payments[1].Key)
+	apart("expenses", d.Expenses[0].ID, d.Expenses[1].ID, d.Expenses[0].Key, d.Expenses[1].Key)
+	apart("quotes", d.Quotes[0].ID, d.Quotes[1].ID, d.Quotes[0].Key, d.Quotes[1].Key)
+	apart("recurring", d.Recurring[0].ID, d.Recurring[1].ID, d.Recurring[0].Key, d.Recurring[1].Key)
+}
+
+// A reminder sent by hand (Andon's dunning run, Ninja's own button)
+// leaves reminder1_sent empty; only the invoice's history names it
+// (activity 63, 64, 65 = reminder 1, 2, 3). Without it the dunning run
+// offered the same reminder again right after sending it.
+func TestNinjaRemindersFromHistory(t *testing.T) {
+	due := time.Now().UTC().AddDate(0, 0, -30).Format(time.DateOnly)
+	sent := time.Now().UTC().AddDate(0, 0, -2)
+	empty := func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"data": [], "meta": {"pagination": {"total_pages": 1}}}`))
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/invoices", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"data": [
+			{"id": "iN1", "number": "R1", "status_id": "2", "date": "` + due + `", "due_date": "` + due + `", "amount": 300, "balance": 300},
+			{"id": "iN2", "number": "R2", "status_id": "4", "date": "` + due + `", "due_date": "` + due + `", "amount": 100, "balance": 0}
+		], "meta": {"pagination": {"total_pages": 1}}}`))
+	})
+	asked := map[string]int{}
+	mux.HandleFunc("/api/v1/activities/entity", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			EntityID string `json:"entity_id"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		asked[body.EntityID]++
+		w.Write([]byte(fmt.Sprintf(`{"data": [{"activity_type_id": 64, "created_at": %d}, {"activity_type_id": 5, "created_at": 1}, {"activity_type_id": 63, "created_at": 2}]}`, sent.Unix())))
+	})
+	for _, p := range []string{"payments", "clients", "expenses", "vendors", "quotes", "recurring_invoices"} {
+		mux.HandleFunc("/api/v1/"+p, empty)
+	}
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	out, err := sources.NinjaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true})
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	d := out.(*sources.NinjaDataset)
+	r1 := d.Invoices[0]
+	if r1.Stage != 2 || r1.Reminded != sent.Format(time.DateOnly) {
+		t.Errorf("R1: stage %d, reminded %q; want 2, %s", r1.Stage, r1.Reminded, sent.Format(time.DateOnly))
+	}
+	// Paid invoices need no history.
+	if asked["iN2"] != 0 || asked["iN1"] != 1 {
+		t.Errorf("history asked for %v", asked)
+	}
+}
+
+// Past the cap, the most recently due invoices get their history: they
+// are the ones a reminder goes out for now.
+func TestNinjaHistoryNewestFirst(t *testing.T) {
+	var invoices []string
+	for i := 0; i < 45; i++ {
+		due := time.Now().UTC().AddDate(0, 0, -10-i).Format(time.DateOnly)
+		invoices = append(invoices, fmt.Sprintf(`{"id": "i%d", "status_id": "2", "date": "%s", "due_date": "%s", "amount": 1, "balance": 1}`, i, due, due))
+	}
+	var mu sync.Mutex
+	asked := map[string]bool{}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/invoices", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"data": [` + strings.Join(invoices, ",") + `], "meta": {"pagination": {"total_pages": 1}}}`))
+	})
+	mux.HandleFunc("/api/v1/activities/entity", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			EntityID string `json:"entity_id"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		asked[body.EntityID] = true
+		mu.Unlock()
+		w.Write([]byte(`{"data": []}`))
+	})
+	for _, p := range []string{"payments", "clients", "expenses", "vendors", "quotes", "recurring_invoices"} {
+		mux.HandleFunc("/api/v1/"+p, func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(`{"data": [], "meta": {"pagination": {"total_pages": 1}}}`))
+		})
+	}
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	if _, err := sources.NinjaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true}); err != nil {
+		t.Fatal(err)
+	}
+	if len(asked) != 40 || !asked["i0"] || asked["i44"] {
+		t.Fatalf("asked %d, newest %v, oldest %v", len(asked), asked["i0"], asked["i44"])
 	}
 }

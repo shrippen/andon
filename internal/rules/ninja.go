@@ -20,7 +20,7 @@ const (
 )
 
 func ninjaURL(data *sources.NinjaDataset, path string) string {
-	return strings.TrimRight(data.URL, "/") + "/#/" + path
+	return strings.TrimRight(data.URL, "/") + "/" + path
 }
 
 func ninjaCurrency(data *sources.NinjaDataset) string {
@@ -161,7 +161,7 @@ func invoiceOverdue(data *sources.NinjaDataset, cfg map[string]any, env Env) []F
 				"number": inv.Number, "client": inv.Client, "days": inv.OverdueDays,
 				"amount": Money(inv.Balance, ninjaCurrency(data)),
 			},
-			ActionURL: ninjaURL(data, fmt.Sprintf("invoices/%d/edit", inv.ID)), ActionLabel: ninjaOpen,
+			ActionURL: ninjaURL(data, "invoices/"+inv.Key+"/edit"), ActionLabel: ninjaOpen,
 			Sources: []string{ninjaSource},
 		}
 		// A reminder is due by Invoice Ninja's schedule: the dunning
@@ -208,7 +208,7 @@ func draftStale(data *sources.NinjaDataset, cfg map[string]any, env Env) []Findi
 				"client": clientName(clients, inv.ClientID), "days": age,
 				"amount": Money(inv.Amount, ninjaCurrency(data)),
 			},
-			ActionURL: ninjaURL(data, fmt.Sprintf("invoices/%d/edit", inv.ID)), ActionLabel: ninjaOpen,
+			ActionURL: ninjaURL(data, "invoices/"+inv.Key+"/edit"), ActionLabel: ninjaOpen,
 			Sources: []string{ninjaSource},
 		})
 	}
@@ -237,7 +237,7 @@ func quoteOpen(data *sources.NinjaDataset, cfg map[string]any, env Env) []Findin
 		found = append(found, Finding{
 			Fingerprint: fmt.Sprintf("quote:%d", q.ID), Severity: enums.SeverityInfo, Message: "in.quote_open",
 			Params:    map[string]any{"number": q.Number, "client": clientName(clients, q.ClientID), "days": age},
-			ActionURL: ninjaURL(data, fmt.Sprintf("quotes/%d/edit", q.ID)), ActionLabel: ninjaOpen,
+			ActionURL: ninjaURL(data, "quotes/"+q.Key+"/edit"), ActionLabel: ninjaOpen,
 			Sources: []string{ninjaSource},
 		})
 	}
@@ -261,7 +261,7 @@ func recurringEnding(data *sources.NinjaDataset, cfg map[string]any, env Env) []
 		found = append(found, Finding{
 			Fingerprint: fmt.Sprintf("recurring:%d", r.ID), Severity: enums.SeverityInfo, Message: "in.recurring_ending",
 			Params:      map[string]any{"client": clientName(clients, r.ClientID), "day": Day(send)},
-			ActionURL:   ninjaURL(data, fmt.Sprintf("recurring_invoices/%d/edit", r.ID)),
+			ActionURL:   ninjaURL(data, "recurring_invoices/"+r.Key+"/edit"),
 			ActionLabel: ninjaOpen, Due: send.Format("2006-01-02"), Sources: []string{ninjaSource},
 		})
 	}
@@ -317,7 +317,7 @@ func missingVat(data *sources.NinjaDataset, cfg map[string]any, env Env) []Findi
 		found = append(found, Finding{
 			Fingerprint: fmt.Sprintf("vat:%d", inv.ID), Severity: enums.SeverityWarn, Message: msg,
 			Params:    map[string]any{"number": inv.Number, "client": clientNameOr(client.Name)},
-			ActionURL: ninjaURL(data, fmt.Sprintf("invoices/%d/edit", inv.ID)), ActionLabel: ninjaOpen,
+			ActionURL: ninjaURL(data, "invoices/"+inv.Key+"/edit"), ActionLabel: ninjaOpen,
 			Sources: []string{ninjaSource},
 		})
 	}
@@ -326,9 +326,9 @@ func missingVat(data *sources.NinjaDataset, cfg map[string]any, env Env) []Findi
 
 func expenseNoInputVat(data *sources.NinjaDataset, cfg map[string]any, env Env) []Finding {
 	since := env.Today.AddDate(0, 0, -ninjaRecentDays)
-	vendors := map[string]string{}
+	vendors := map[string]sources.NinjaVendor{}
 	for _, v := range data.Vendors {
-		vendors[v.Key] = v.Name
+		vendors[v.Key] = v
 	}
 	var found []Finding
 	for _, e := range data.Expenses {
@@ -340,18 +340,38 @@ func expenseNoInputVat(data *sources.NinjaDataset, cfg map[string]any, env Env) 
 		if notes == "" {
 			notes = "–"
 		}
-		found = append(found, Finding{
+		v := vendors[e.VendorKey]
+		f := Finding{
 			Fingerprint: fmt.Sprintf("expense:%d", e.ID), Severity: enums.SeverityInfo, Message: "in.expense_no_vat",
 			Params: map[string]any{
 				"amount": Money(e.Amount, ninjaCurrency(data)), "notes": notes, "day": DayStr(e.Date),
-				"vendor": cmp.Or(vendors[e.VendorKey], "–"), "number": cmp.Or(e.Number, "–"),
+				"vendor": cmp.Or(v.Name, "–"), "number": cmp.Or(e.Number, "–"),
 			},
-			ActionURL: ninjaURL(data, fmt.Sprintf("expenses/%d/edit", e.ID)), ActionLabel: ninjaOpen,
+			ActionURL: ninjaURL(data, "expenses/"+e.Key+"/edit"), ActionLabel: ninjaOpen,
 			Sources: []string{ninjaSource},
-		})
+		}
+
+		// From abroad without tax: reverse charge (§ 13b), the tax is
+		// owed here and deducted at once; the VAT check counts it in
+		// (metrics.Elster).
+		if v.CountryID != "" && v.CountryID != data.HomeCountryID {
+			f.Message, f.Params["kz"] = "in.expense_reverse_charge", kzOutsideEU
+			if metrics.InEU(v.CountryID) {
+				f.Params["kz"] = kzEU
+			}
+			f.ActionURL, f.ActionLabel = vatWork(env, e.Date, vatElster), workInVAT
+		}
+		found = append(found, f)
 	}
 	return found
 }
+
+// The return's lines for § 13b services, and /vat's figures.
+const (
+	kzEU        = "46/47"
+	kzOutsideEU = "84/85"
+	vatElster   = "elster"
+)
 
 func clientConcentration(data *sources.NinjaDataset, cfg map[string]any, env Env) []Finding {
 	shares := metrics.NinjaShares(data, env.Today)

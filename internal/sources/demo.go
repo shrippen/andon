@@ -271,13 +271,17 @@ func DemoNinja(now time.Time) *NinjaDataset {
 	draft.Number = demoNumber(inv.Number, today, number)
 	quote := inv.Quote
 	quote.Number = demoNumber(quote.Number, today, 0)
+	// Keys as Invoice Ninja 5 sends them, for links.
+	quote.Key = "demo-q" + strconv.FormatInt(quote.ID, 10)
+	recurring := inv.Recurring
+	recurring.Key = "demo-ri" + strconv.FormatInt(recurring.ID, 10)
 
 	out := &NinjaDataset{
 		URL: b.URLs.Invoices, Currency: b.Currency, Invoices: append(invoices, draft), Payments: kept,
 		Clients:       demoNinjaClients(b),
 		Expenses:      demoNinjaExpenses(today, b),
 		Quotes:        []NinjaQuote{quote},
-		Recurring:     []NinjaRecurring{inv.Recurring},
+		Recurring:     []NinjaRecurring{recurring},
 		HomeCountryID: b.Countries["DE"],
 		Reminders:     demoReminders,
 	}

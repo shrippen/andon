@@ -4,7 +4,7 @@ Ein selbst gehostetes, **mehrbenutzerfähiges** Dashboard. Es löst Dashy als **
 
 > Stand: v0.7 · Name **Andon** (seit 2026-09-26, vorher Arbeitstitel `dashboard`): die Signaltafel aus der Fertigung, die zeigt, wo es hakt.
 >
-> **Veröffentlichung:** Quelltext und Entwicklung auf `git.arianw.de/shrippen/andon` (privat, Image `git.arianw.de/shrippen/andon`). Gitea spiegelt `main` und Tags nach `github.com/shrippen/andon`; dort baut `.github/workflows/ci.yml` das öffentliche Image `ghcr.io/shrippen/andon`, und GitHub Pages zeigt die Landing Page aus `docs/` unter `shrippen.github.io/andon/`.
+> **Veröffentlichung:** Quelltext und Entwicklung auf `git.arianw.de/shrippen/andon` (privat). Gitea spiegelt bei jedem Commit alle Branches und Tags nach `github.com/shrippen/andon`; dort prüft `.github/workflows/ci.yml` jeden Push, meldet das Ergebnis als Status `github / test` an den Commit in Gitea zurück und baut aus `main` und Tags das öffentliche Image `ghcr.io/shrippen/andon` (seit 16.10.2026 CI und Image nur dort; erster Lauf 9 min gegen 21–24 min auf Gitea), und GitHub Pages zeigt die Landing Page aus `docs/` unter `shrippen.github.io/andon/`.
 >
 > **Arbeitsort:** Die gesamte Entwicklung findet in diesem Repository (`shrippen/andon`) statt. Das Design-System-Repo `shrippen/shrippen.github.io` ist nur Quelle, es wird von hier aus nicht verändert.
 
@@ -1203,8 +1203,9 @@ Eine Verbindung neu anzulegen verliert alles, was an ihr hängt (Kacheln, Verbun
 Ein Datensatz für alle Anbieter (`sources.LLMDataset`, je Verbindung ein Konto, mehrere Verbindungen werden zusammengeführt), eine Kachel, Regeln quer über alle Konten.
 - [x] Claude API (Usage & Cost Admin API, Admin-Schlüssel), Claude-Abo Pro/Max (OAuth, nicht dokumentierter Endpunkt `api/oauth/usage`: Sitzung, Woche, Woche je Modell, Zusatznutzung), OpenRouter (Schlüssel; mit Management-Schlüssel auch Guthaben und Verlauf je Modell), OpenAI (Usage + Costs, Admin-Schlüssel), DeepSeek (nur Guthaben), LiteLLM-Proxy (`user/daily/activity`)
 - [x] Kachel `llm_usage` mit Dialog (Kosten je Tag und Konto, Kontingente, Konten, Modelle); Regeln `llm.budget` (Monatsbudget an der Verbindung), `llm.credit_low`, `llm.quota_high`, `llm.spike`; Demowelt `llm_usage`
-- [ ] Gegen echte Konten testen (alle sechs „Experimentell“); offen vor allem: ob ein Token aus `claude setup-token` den Abo-Endpunkt lesen darf
-- [ ] Quer: KI-Kosten gegen Ausgaben in Invoice Ninja / Firefly (Rechnung des Anbieters fehlt) und das Claude-Abo gegen Wallos
+- [x] Claude-Abo entfernt (15.10.2026, #168): die Abfrage von `api/oauth/usage` mit einem Login-Token hat vermutlich das Anthropic-Konto sperren lassen. Mit ihm fielen `llm.quota_high` und die Kontingente; Anthropic-Daten nur noch über die dokumentierte Admin-API
+- [ ] Gegen echte Konten testen (alle fünf „Experimentell“)
+- [ ] Quer: KI-Kosten gegen Ausgaben in Invoice Ninja / Firefly (Rechnung des Anbieters fehlt)
 - [ ] Weitere Anbieter bei Bedarf (Mistral, Groq, xAI); USD bleibt USD, keine Umrechnung in die Kostenübersicht
 
 ### USt-Abgleich: Bankumsätze aus Invoice Ninja (umgesetzt 13.10.2026)
@@ -1223,7 +1224,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
 - [x] `/vat`: Umsatz mit vorhandener Zahlung verknüpfen (`payment_id`); `/billing` bucht bei vorhandenem Bankabruf über den Umsatz (`bank_transactions/match`), Teilzahlungen per Rechnungsnummer
 - [x] `/vat`: beim Anlegen einer Ausgabe die passenden freien Paperless-Belege anbieten (Matcher der Belege-Seite, ab 60 Punkten, bester ab 80 vorgewählt) und gleich verknüpfen; nur wenn `/receipts` dieselbe Invoice-Ninja-Verbindung nutzt
 - [ ] Gegen eine Instanz testen (Wegwerf-Container, `.local-test/writes/`): Antwort von `bank_transactions/match`, Steuerfelder der angelegten Ausgabe
-- [ ] Hinweis „Reverse Charge“ (§ 13b) bei ausländischen Lieferanten ohne Steuer
+- [x] Hinweis „Reverse Charge“ (§ 13b) bei ausländischen Lieferanten ohne Steuer *(16.10.2026: `in.expense_no_input_vat` meldete solche Ausgaben als „keine Vorsteuer erfasst“, live bei ZSA; jetzt eigener Text mit Kennzahlen 46/47 bzw. 84/85, führt in den USt-Abgleich des Zeitraums)*
 
 ### Werkbänke (entschieden 14.10.2026)
 
@@ -1244,7 +1245,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [x] Werkbank „EÜR-Zuordnung“ (`/euer`, Navigation „EÜR“): Ausgaben eines Jahres mit leerem EÜR-Feld, Zeile der Kategorie vorgewählt, ohne Zuordnung selbst wählbar; Prüfen, Schreiben (`custom_valueN`), Journal mit Rückgängig
    - [x] `/vat` nimmt die Ninja-Kategorie aus der Zuordnung statt nach Namen, und eine neu angelegte Ausgabe bekommt gleich ihre EÜR-Zeile
    - [x] Kategorien auch ohne gespeicherten Verbund: `/categories?ninja=…&bank=…`, von `/euer` verlinkt
-   - [ ] Offen: Sures Tags zusätzlich zur Kategorie
+   - [ ] Offen: Sures Tags zusätzlich zur Kategorie *(zurückgestellt 16.10.2026: im echten Sure trägt keine der 431 Buchungen einen Tag)*
 3. Auf `/vat`
    - [x] Reverse Charge (§ 13b): Ausgaben ohne Steuer von Lieferanten mit Land außerhalb Deutschlands (Land aus Invoice Ninja), EU in Kz 46/47, sonst 84/85, Vorsteuer in Kz 67; Waren aus der EU (Kz 89/93) erkennt Andon nicht, die Seite sagt es
    - [x] ELSTER-Kennzahlen (Kz 21, 45, 81, 86, 46/47, 84/85, 66, 67, 83) mit Kopierknopf, Ist- oder Sollversteuerung; „Als gemeldet merken“, danach geänderte Kennzahlen als „Berichtigung fällig“
@@ -1267,19 +1268,13 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [x] Seite „Jahr“ (`/year`, `services/year`, nur lesend): Zahlungseingänge, Umsatz- und Vorsteuer, Ausgaben je EÜR-Zeile (Link auf `/euer` für Ausgaben ohne Zeile), Abschreibung je Gegenstand nach der Abschreibungsregel in Snipe-IT (linear je Monat ab Kaufmonat; GWG bis 800 € markiert, die Regel entscheidet), Homeoffice-Tage (Kimai-Arbeit ohne berufliche Fahrt laut Dawarich) mit Pauschale 6 € je Tag, höchstens 210. Paket für die Steuerberatung (`/billing/export`) um `euer.csv`, `afa.csv`, `homeoffice.csv` erweitert *(15.10.2026 lesend gegen die echten Dienste: 967 Gegenstände in Snipe-IT, auch private; Andon trennt sie nicht. Live fand sich: Snipe-IT schickt Kosten deutsch formatiert, „265,00“ wurde 26 500, eigener PR)*
    - [x] Rücklagenkonto: dritte Kontoverwendung „Rücklage“ (`sources.RoleReserve`, wählbar unter `/vat` → Konten und Verbund → Konten). Ihr Guthaben zählt nicht als freies Geld und deckt Umsatz- und Einkommensteuer, bevor freies Geld es muss (`metrics.SafeToSpend`, Kennzahl „Frei verfügbar“, `sure.spendable_negative`, `cross.depot_reserve`)
 7. Homelab
-   - [ ] Update-Werkbank: Image-Updates nach Dringlichkeit (öffentlich, CVE), Changelog von Claude zusammengefasst, PR im Compose-Repo; FreshRSS als Quelle der Release-Feeds, mit Vorschlägen zum Anpassen der Feeds (fehlender Feed für einen laufenden Dienst, Feed eines nicht mehr laufenden Dienstes, Feed ohne Releases); geschrieben in FreshRSS nur nach OK
    - [x] Inventur (`/inventory`, Navigation „Inventur“, `services/inventory`; Need: Snipe-IT, dazu Router und FRITZ!Box): Geräte ohne gleichnamigen Gegenstand (`metrics.NetClients`, `Uninventoried`, auch für `cross.device_uninventoried`, dessen Hinweis dorthin führt) nach dem Prüfen in Snipe-IT anlegen (Name, Modell aus einer Liste, Status; IP und MAC als Notiz) oder in die Ausnahmen des Hinweises aufnehmen. Snipe-IT liefert dafür Modelle und Status *(15.10.2026 live: Anlegen und Löschen eines Testgegenstands grün (`TestSnipeLive`); lesend 44 Geräte, 40 ohne Gegenstand, viele nur als MAC; 772 Modelle, darum eine gemeinsame Auswahlliste statt eines Selects je Zeile)*
-   - [ ] Anschaffung vollständig (Asset, Ausgabe, Beleg, Garantie)
    - [x] Wiederherstellungsprobe: der Backups-Dialog nennt je System und Quartal eine Probe (Borg-Client, PG-Back-Web-Backup, TrueNAS-Snapshot-Aufgabe, reihum je Quartal, `metrics.RestoreSample`) und nimmt neben „Getestet“ auch „Fehlgeschlagen“ an (Ereignis `restore_failed`, im Audit mit der Probe); `backups.restore_failed` warnt, bis eine spätere Probe gelingt *(kein eigener Werkbank-Rahmen: Andon kann nicht selbst zurückspielen, und Backup-Systeme liegen nicht im Verbund)*
    - [x] Anschaffung vollständig (`/purchases`, Navigation „Anschaffungen“, `services/purchases`; Need: Snipe-IT, dazu Invoice Ninja): Gegenstände der letzten zwölf Monate ohne Kosten, Garantie, passende Ausgabe (Brutto oder Netto, bis 14 Tage) oder deren Beleg (Feld der Belegverknüpfung); die Garantie schreibt Andon nach dem Prüfen in Snipe-IT (`warranty_months`, vorgeschlagen 24), für Ausgabe und Beleg verlinkt die Seite USt-Abgleich und Belegjagd *(15.10.2026 live: Garantie an einem eigenen Testgegenstand gesetzt, grün)*
-   - [ ] Wiederherstellungsprobe
    - [x] Doku-Drift: nichts schreiben, für Hansei vorbereiten (`/api/docs`, Webhook) *(war schon da: Phase 15, `docs.drift` mit Feldern in `/api/docs`; 15.10.2026 festgestellt)*
-   - [ ] Kosten je Dienst als Popup der Kachel „Homelab-Kosten“
    - [x] Update-Werkbank (`/updates`, Navigation „Updates“, `services/updates`; Need: Gitea, dazu What’s Up Docker, FreshRSS, NVD, Pangolin): neuere Tags von WUD oder aus GitHub-Release-Feeds in FreshRSS (für fest genannte Tags; neuer Tag in der Form des laufenden: `v2.1` → `v2.2`, `apache-2.40` → `apache-2.41`), nach Dringlichkeit (CVE auf dem laufenden Tag, öffentlich über Pangolin, sonst normal). Nach dem Prüfen je Stack ein Pull Request im Compose-Repo (`outbound.GiteaPropose`: Datei auf neuem Branch, PR in den Standard-Branch); Hinweis `wud.updates` führt dorthin, Journal-Bereich „Homelab“. FreshRSS liest Release-Feeds (`github.com/<repo>/releases.atom`) einzeln und nur, wenn sie ein neueres Element haben *(15.10.2026 lesend gegen die echten Dienste: 119 Stacks, 70 Releases in den Feeds, 20 Updates; Namensgleichheit allein reicht nicht („server“, „core“), Besitzer müssen passen. Gitea-Schreiben nicht live getestet)*
      - [x] Changelog von Claude zusammengefasst: Knopf je Update mit Release-Feed (`assist.SummarizeChanges`, nur auf Klick; Image, beide Versionen und die Release-Notes von GitHub zwischen laufendem und neuem Tag gehen raus): „Vorher beachten“, Sicherheit, Wichtiges; bleibt je Fall und Tag gespeichert, steht auf der Prüfseite und im Pull Request *(nicht live mit Claude getestet: die Test-Instanz hat keinen API-Schlüssel)*
      - [x] Vorschläge zu den Feeds (`/feeds`, Link auf `/updates`, `services/feeds`): fehlender Feed für ein fest genanntes Image (Adresse `github.com/<Besitzer>/<Name>/releases.atom`, änderbar, Kategorie der übrigen Release-Feeds), Feed, dessen Projekt kein Stack nutzt, Feed ohne verlinkte Releases (Vorabversionen zählen als Lebenszeichen); nichts angehakt, FreshRSS nur nach OK (`subscription/edit`) *(15.10.2026 live: Abonnieren und Abbestellen eines eigenen Test-Feeds grün; lesend 95 Vorschläge zum Abonnieren, 30 zum Abbestellen, darunter Feeds für Desktop-Software, die nie als Stack lief)*
-   - [ ] Inventur (Geräte im Netz ↔ Snipe-IT), Anschaffung vollständig (Asset, Ausgabe, Beleg, Garantie), Wiederherstellungsprobe
-   - [ ] Doku-Drift: nichts schreiben, für Hansei vorbereiten (`/api/docs`, Webhook)
    - [x] Kosten je Dienst als Popup der Kachel „Homelab-Kosten“: Tabelle je Komodo-Stack; Strom des Servers (Proxmox-Gast gleichen Namens, nach CPU) auf seine Stacks verteilt, der Rest der Kosten gleichmäßig auf alle; Stacks nach Kimai-Kunden markiert (`metrics.CostPerStack`) *(Hinweis aus dem Live-Test: die Hardware-Kosten nehmen alle Snipe-IT-Gegenstände der letzten Jahre, beim Nutzer auch private)*
 8. Analysen: Kundenzustand, Zeit für eine Preiserhöhung, Nachkalkulation, Jahresrückblick, Frag Andon (experimentell, nur lesend)
    - [x] Jahresrückblick oben auf `/year`: Stunden, Umsatz (netto nach Rechnungsdatum), stärkster Monat, die fünf Kunden mit dem meisten Umsatz, neue Kunden; Vorjahr nur, wenn Kimais und Invoice Ninjas Daten so weit zurückreichen (`metrics.ReviewYear`)
@@ -1444,8 +1439,63 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [x] CI: govulncheck rot durch Lücken in x/net und der Stdlib (#118, #123)
 
 **Offen**
-- [ ] Gluetun meldet `running` auch bei totem Tunnel (keine Ausgangs-IP); kein Hinweis. Fehlalarm, wenn die IP-Abfrage in Gluetun aus ist
+- [x] Gluetun meldet `running` auch bei totem Tunnel (keine Ausgangs-IP); kein Hinweis. Fehlalarm, wenn die IP-Abfrage in Gluetun aus ist *(eigene Regel `gluetun.no_exit`, abschaltbar, wo die IP-Abfrage aus ist; d48db7f)*
 - [ ] Ghostfolio-Verbindung der lokalen Instanz zeigt auf `http://ghostfolio.lan`, das auf `https://ghostfolio.intern.arianw.de` umleitet
+
+### Live-Runde 16.10.2026: echte Hinweise
+
+`make live` gegen die eigenen Dienste (lesend) und Wegwerf-Container (schreibend, `.local-test/writes/`, #170); danach die 292 offenen Hinweise der lokalen Instanz auf Fehlalarme durchgesehen.
+
+**Behoben (mit Test)**
+- [x] Fast jeder Hinweis stand doppelt: eine Verbindung, die früher eine Vorlage mit persönlichem Zugang war (Hinweise mit Inhaber), ist heute fest (Hinweise des Bereichs); die alten löste nichts mehr auf. Der Prüflauf löst jetzt Hinweise einer Verbindung für Inhaber auf, für die sie nicht mehr läuft (`hints.ResolveOthers`); ebenso, wenn jemand seinen Zugang entfernt
+- [x] `system.unused_service`: „gitea seit 90 Tagen ungenutzt“, obwohl die Link-Kachel erst drei Wochen alt war; „nie geklickt“ zählt jetzt ab der letzten Änderung der Kachel (gilt auch für `sure.subscription_unused`). „Belegt 0,0 GB RAM“ entfällt, wo Andon den Speicher nicht kennt (Komodo, TrueNAS)
+- [x] `system.outage`: „2 Dienste betroffen: Authentik, Authentik“ – Verbindung und Monitor desselben Dienstes waren zwei Signale; ein Name zählt jetzt einmal, ein einzelner Dienst ist kein Ausfall
+- [x] `linkwarden.not_on_board`: Lesezeichen ohne Namen erschienen leer („, , , , “); jetzt mit Adresse. Dieselbe Adresse zweimal gespeichert („Codecademy“ viermal) zählt einmal
+- Ergebnis: 292 → 206 offene Hinweise, keiner doppelt. `system.unused_service` blieb mit altem Text stehen, weil Authentik nicht antwortete (die Regel braucht es)
+
+**Notiert**
+- `cross.wallos_missing` nennt „DB Vertrieb GmbH“ und „Db Vertrieb Gmbh“ getrennt: in Sure zwei wiederkehrende Zahlungen, ob dasselbe Abo, weiß Andon nicht
+- Authentik antwortet nicht (Timeout), Audiobookshelf lehnt den gespeicherten Schlüssel ab (401): Instanzen, nicht Andon
+- Phase 19 (PV): Das Energie-Dashboard in HA führt nur vier Zwischenstecker als Netz, keine PV, keine Batterie, keine Prognose. Zurückgestellt, bis PV in HA steht
+
+### Werkbänke Ende-zu-Ende gegen Container (16.10.2026)
+
+Zweite Andon-Instanz (`.local-test/extra/andon-data`, Port 8095) mit den Wegwerf-Containern aus `.local-test/writes/` (Kimai mit Anfahrten, Invoice Ninja, Paperless, Snipe-IT, FreshRSS, Wallos, Tandoor, Sure); jede Werkbank im Browser bis zum Schreiben durchgespielt und das Ergebnis im Dienst nachgesehen.
+
+**Grün**
+- [x] Anschaffungen: Garantie 36 Monate an einem neuen Gegenstand (Snipe-IT `warranty_months`)
+- [x] Abrechnung: Entwurf aus zwei Kimai-Zeiten (7 h × 80 €), Zeiten als exportiert markiert
+- [x] EÜR-Zuordnung: Zusatzfeld „EÜR“ erkannt, Kategorie → Zeile gespeichert, Feld der Ausgabe gesetzt
+- [x] Belegjagd: Felder nach Namen vorgeschlagen, Beleg (100/100) verknüpft, Verweise auf beiden Seiten
+- [x] Mahnlauf: Erinnerung über Ninja verschickt (Ninjas Mail-Log)
+- [x] USt-Abgleich: Lieferant neu, Ausgabe mit 19 % inklusive (Vorsteuer 19,00 €), EÜR-Zeile aus der Zuordnung, `bank_transactions/match` (Status 3, `expense_id`) *(damit erledigt: „Gegen eine Instanz testen“ oben)*
+- [x] Lieferanten aufräumen: Ausgabe umgehängt, Doppelter archiviert
+- [x] Woche schließen: Termin aus einem Kalender → Kimai-Eintrag
+- [x] Sure aufräumen: zwei Buchungen nach „Büro“ (Sure)
+- [x] Abos: fehlendes Abo in Wallos angelegt; geschäftliches Abo als wiederkehrende Ausgabe in Ninja (Lieferant neu, gestartet)
+- [x] Orte: Abgleich legt für eine Dawarich-Area den Ort in Kimai Anfahrten an und für einen Ort die Area (beide verknüpft)
+- [x] Updates: WUD meldet nginx 1.25.0 → 1.31.7, Andon öffnet den PR im Compose-Repo (Gitea-Container)
+- [x] Feeds: Release-Feed für ein Image aus dem Compose-Repo (Gitea-Container) in FreshRSS abonniert; der vorinstallierte FreshRSS-Feed als „kein Stack nutzt ihn“ vorgeschlagen. Aus `immich-server` leitet Andon `immich-app/immich-server` ab, das Repo heißt `immich`: die Seite sagt „bitte prüfen“, die Adresse ist änderbar
+
+**Behoben (mit Test)**
+- [x] Gelöschte Ninja-Einträge (Zahlung, Kunde, Lieferant, Angebot) zählten mit: 1 € Testzahlung als Zahlungseingang (#176)
+- [x] Ninja-IDs: Ausgaben, Zahlungen, Angebote, Serienrechnungen hatten alle ID 0 (gehashte IDs als Zahl gelesen), ihre Hinweise teilten einen Fingerabdruck; Links `/#/expenses/<Zahl>` landeten auf dem Dashboard, richtig ist `/expenses/<Schlüssel>/edit` (#176)
+- [x] Mahnlauf bot dieselbe Erinnerung sofort wieder an: Ninja vermerkt einen Versand über `POST /emails` nur im Verlauf (Aktivität 63–65), nicht in `reminder1_sent` (#177)
+- [x] Lieferanten aufräumen bot den archivierten Lieferanten erneut an, ohne Ende (#179)
+- [x] USt-Abgleich: Buchung ohne Zahler (manuell, CSV) erschien auf der Prüfseite als „· ·“ (#178)
+- [x] Live-Schreibtests für Sure (Kategorie) und Ninjas wiederkehrende Ausgaben (#180)
+- [x] Orte: Abgleich, Zuordnen, Anlegen und Fahrtklasse schrieben gegen zwischengespeicherte Daten; eine eben angelegte Area fehlte („0/0“), Doppelte waren möglich. Jetzt frisch (#183)
+- [x] Live-Schreibtest für den Pull Request der Update-Werkbank gegen einen Gitea-Container (#184)
+- [x] Live-Schreibtests für Ninjas Bank-, Lieferanten- und Mahnaufrufe (#185), Mail und Apprise (#186), Schalter in Home Assistant (#187)
+- [x] Verbindungen nahmen jeden Diensttyp an (`POST /connections` mit `service=bogus`); jetzt nur bekannte (#188)
+- [x] Elf Werkbänke zeigten keine Navigation (der Name eines fehlgeschlagenen Eintrags hieß `Who` wie die angemeldete Person) und brachen nach einem Fehlschlag ab (#189)
+- [x] Updates: „Laut Release-Notes nichts zu beachten“ bei jeder Zeile ohne Zusammenfassung; „latest → latest“ als neuer Tag (#189)
+- [x] Updates: kein PR für offizielle Docker-Hub-Images (`library/nginx` gesucht, `nginx` in der Datei) (#192)
+
+**Notiert**
+- [x] Abos: eine neue wiederkehrende Ausgabe bekam keinen Steuersatz, wenn der Lieferant noch keine Ausgabe hatte; jede Buchung daraus fehlte dann in der Vorsteuer. Das Formular bietet jetzt Ninjas Steuersätze an (#182)
+- Zeiten nach Kimai (Woche, Timer) gehen in Andons Ortszeit; hat der Kimai-Nutzer eine andere Zone (Container: UTC), liegen sie um den Unterschied daneben. Bei gleicher Zone (Normalfall) richtig
+- Demo-Seed nur deutsch: Notiz „Demo-Instanz mit erfundenen Daten.“ und Link-Beschreibungen („Virtualisierung“, „Dokumente“) erscheinen auch auf englischen Screenshots
 
 ### Noch nicht in echt getestet (notiert 07.10.2026)
 
@@ -1476,9 +1526,9 @@ Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die D
 **Geänderte Quellen bekannter Dienste** (Live-Lauf vom 06.10. lief vor der Änderung)
 - [ ] UniFi: Clients (für `cross.device_uninventoried`)
 - [ ] GitHub: Option `owner` (eigene gegen beobachtete Repos), Releases beobachteter Repos, CI des Standardzweigs; Trends über die Such-API ohne Token
-- [ ] Gitea: Actions-Status für die CI-Kachel
+- [x] Gitea: Actions-Status für die CI-Kachel *(16.10.2026 live: zwei Hinweise `gitea.actions_failed` aus echten Läufen)*
 - [ ] Jellyfin/Plex: laufende Streams für „Jetzt läuft“, Update-Fenster und Belegungsstunden
-- [ ] Borg, PG Back Web, TrueNAS über die gemeinsame Sicherungs-Schnittstelle (`sources.BackupSource`)
+- [x] Borg, PG Back Web, TrueNAS über die gemeinsame Sicherungs-Schnittstelle (`sources.BackupSource`) *(16.10.2026 live: alle drei in `backups.restore_untested`, `backups.gap` nennt 51 Dienste ohne Sicherung)*
 - [ ] Sure: Zahlungsabgleich über `metrics.BankOf` (Sure oder Firefly)
 - [ ] Sport (OpenLigaDB)
 - [ ] Kunden-Zuordnung über Sure (Zahler) und Paperless (Korrespondenten): Zuordnen, Lösen, „Namen angleichen“ (schreibt in die Dienste) mit echten Daten
@@ -1490,7 +1540,7 @@ Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die D
 - [ ] `cross.project_mentioned`, `cross.esphome_ha` (Entitäten über den Knotennamen), `cross.release_unannounced`
 - [ ] `system.outage` mit USV auf Batterie und kritischen Prometheus-Alerts
 
-**Ohne Schreibtest** (unverändert seit dem Lauf vom 06.10.): `HassToggle`, Apprise, Mail, LLM. Geprüft am 09.10. (Docker): `DNSPause` (AdGuard), Grocy (Einkaufsliste), Homelable (Zeichnen, zweiter Lauf ohne Änderung, Ändern und Löschen)
+**Ohne Schreibtest**: LLM (braucht einen API-Schlüssel) *(16.10.2026 gegen Container: Mail und Apprise #186, `HassToggle` #187, Ninjas Bank-, Lieferanten- und Mahnaufrufe #185, Gitea-PR #184)*. Geprüft am 09.10. (Docker): `DNSPause` (AdGuard), Grocy (Einkaufsliste), Homelable (Zeichnen, zweiter Lauf ohne Änderung, Ändern und Löschen)
 
 **Webseite**
 - [ ] Changelog auf shrippen.github.io/andon nach dem Merge ansehen (#100; Kante 1.17 muss vorher unter `/v1` liegen)
@@ -1681,8 +1731,8 @@ Keine. Geklärt am 06.10.2026:
 
 Ein Hinweis, wenn es ein neueres Release gibt: Andon läuft als Docker-Image, und `docker pull` meldet von sich aus nichts. Format, Plattformen und Regeln: `shrippen.github.io/overview/VERSIONS.md`.
 
-- [ ] Der Server prüft (Go-Backend, Version aus den Build-Infos) höchstens einmal am Tag `https://shrippen.github.io/versions.json` (Projekt `andon`), speichert die Antwort im Datenordner, bleibt bei Fehlern still; nur Format 1 und `https`-Links. Kein Abruf aus dem Browser, die CSP bleibt `connect-src 'self'`
-- [ ] Hinweis nur für Admins als Kante `.callout.has-x` mit Link zur Release-Seite; „Ausblenden“ gilt bis zur nächsten Version
-- [ ] Abschaltbar in den Einstellungen und per `ANDON_UPDATE_CHECK=0`; im Demo-Modus immer aus
-- [ ] README: was abgerufen wird (`https://shrippen.github.io/versions.json` ohne Parameter, höchstens einmal am Tag) und wie man es abschaltet
-- [ ] Nach jedem Release `python3 ../shrippen.github.io/overview/tools/build-versions.py` und `docs/versions.json` dort committen
+- [x] Der Server prüft (Go-Backend, Version aus den Build-Infos) höchstens einmal am Tag `https://shrippen.github.io/versions.json` (Projekt `andon`), speichert die Antwort im Datenordner, bleibt bei Fehlern still; nur Format 1 und `https`-Links. Kein Abruf aus dem Browser, die CSP bleibt `connect-src 'self'` *(16.10.2026: `services/release`, `data/release.json`; ein fehlgeschlagener Abruf zählt mit, auch über Neustarts)*
+- [x] Hinweis nur für Admins als Kante `.callout.has-x` mit Link zur Release-Seite; „Ausblenden“ gilt bis zur nächsten Version
+- [x] Abschaltbar in den Einstellungen und per `ANDON_UPDATE_CHECK=0`; im Demo-Modus immer aus
+- [x] README: was abgerufen wird (`https://shrippen.github.io/versions.json` ohne Parameter, höchstens einmal am Tag) und wie man es abschaltet
+- [x] Nach jedem Release `python3 ../shrippen.github.io/overview/tools/build-versions.py` und `docs/versions.json` dort committen

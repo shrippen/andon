@@ -175,6 +175,7 @@ type ExpenseField struct {
 type NinjaVendor struct {
 	Key, Name string
 	CountryID string // numeric ISO 3166 ("276" Germany), "" unknown
+	Archived  bool   // kept for the names of old expenses
 }
 
 // AccountRole is what a bank account is used for, as the user named it
@@ -314,6 +315,7 @@ type NinjaTaxRate struct {
 
 type NinjaQuote struct {
 	ID         int64
+	Key        string // id as sent (hashed string in v5), for links
 	Number     string
 	ClientID   int64
 	Status     string
@@ -345,6 +347,7 @@ type NinjaReminder struct {
 
 type NinjaRecurring struct {
 	ID              int64
+	Key             string // id as sent (hashed string in v5), for links
 	Number          string
 	ClientID        int64
 	Active          bool

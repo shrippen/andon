@@ -14,6 +14,7 @@ import (
 	"andon/internal/services/icons"
 	"andon/internal/services/linkstatus"
 	"andon/internal/services/notify"
+	"andon/internal/services/release"
 	"andon/internal/services/scheduler"
 	"andon/internal/services/selfbackup"
 	"andon/internal/services/svcdata"
@@ -54,6 +55,12 @@ func backgroundJobs(database *sql.DB, cfg settings.Settings) []scheduler.Job {
 		{Name: selfbackup.JobName, Interval: selfbackup.Check, Start: scheduler.AtStart, Run: func(context.Context) error {
 			_, err := selfbackup.RunDue(database, cfg.BackupsDir(), time.Now())
 			return err
+		}},
+		{Name: release.JobName, Interval: release.Interval, Start: scheduler.AtStart, Run: func(ctx context.Context) error {
+			if cfg.Demo || !settings.Live(cfg).UpdateCheck {
+				return nil
+			}
+			return release.Check(ctx, cfg.DataDir, time.Now())
 		}},
 		{Name: "housekeeping", Interval: hour, Run: func(context.Context) error {
 			return housekeeping(database)

@@ -22,8 +22,7 @@ docker compose up -d
 docker compose logs andon | grep "SETUP CODE"      # open /setup and enter the code
 ```
 
-Images: `ghcr.io/shrippen/andon`, public, built by the GitHub mirror.
-The same tags go to the private `git.arianw.de/shrippen/andon`.
+Image: `ghcr.io/shrippen/andon`, public, built by the GitHub mirror.
 `latest` is the newest release, `edge` follows `main` (development
 state). A tag `v1.2.3` publishes `latest`, `1.2.3`, `1.2` and `1`; set
 `ANDON_TAG=1.2` in `.env` to pin production to a release line. Keep `secrets/master_key` safe and
@@ -34,6 +33,16 @@ in `data/backups` carries its own `.salt`).
 The container starts as root, hands `/data` to `PUID:PGID` (default
 `10001:10001`) and reads the secret files, then runs Andon as that
 user. No `chown` needed on the host.
+
+## Update check
+
+`docker pull` says nothing about new releases, so the server asks once a
+day for <https://shrippen.github.io/versions.json> (a plain GET: no
+parameters, no cookies, nothing that names you or the install) and shows
+admins a hint with a link to the release notes. It downloads and installs
+nothing; the answer is kept in `data/release.json`. Switch it off in
+Admin → Settings → Server or with `ANDON_UPDATE_CHECK=0`. Demo mode never
+asks.
 
 ## Sign in instead of a token
 

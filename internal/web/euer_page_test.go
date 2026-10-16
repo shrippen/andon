@@ -209,6 +209,10 @@ func TestUpdatesPage(t *testing.T) {
 	if m == nil || !strings.Contains(page, "Pull Request") {
 		t.Fatalf("updates page:\n%s", page)
 	}
+	// No summary asked for: the page must not claim the notes are quiet.
+	if strings.Contains(page, "Laut Release-Notes nichts zu beachten") {
+		t.Error("updates page claims quiet release notes without a summary")
+	}
 	resp, err := client.PostForm(srv.URL+"/updates/review", url.Values{"csrf": {csrfToken(t, srv, client)}, "pick": {m[1]},
 		"act_" + m[1]: {"propose"}, "tag_" + m[1]: {"0.30.9"}})
 	if err != nil {

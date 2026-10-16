@@ -158,7 +158,8 @@ func sureFake(t *testing.T, w *writes) string {
 func serve(t *testing.T, w *writes, answer func(*http.Request) (any, bool)) string {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
+		// Invoice Ninja reads an entry's history by POST; no write.
+		if r.Method != http.MethodGet && r.URL.Path != "/api/v1/activities/entity" {
 			w.add(r)
 		}
 		v, ok := answer(r)

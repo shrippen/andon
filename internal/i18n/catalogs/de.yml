@@ -1241,6 +1241,7 @@ widget:
   unsupported: Passt nicht zur gewählten Verbindung.
 connection:
   secret_for_host: 'Neuer Server: Zugang neu eingeben oder den gespeicherten ausdrücklich mitnehmen.'
+  unknown_service: 'Diesen Dienst kennt Andon nicht.'
   use_move: 'Anderer Server: bitte „Umziehen“ nutzen.'
   adopt_self: 'Eine Verbindung kann nicht von sich selbst übernehmen.'
   adopt_service: 'Nur von einer Verbindung desselben Dienstes.'
@@ -3044,6 +3045,9 @@ hint:
     expense_no_vat:
       title: 'Ausgabe {number} von {vendor} ohne Vorsteuer ({amount})'
       why: '{notes} vom {day}: keine Vorsteuer erfasst.'
+    expense_reverse_charge:
+      title: 'Ausgabe {number} von {vendor}: Reverse Charge ({amount})'
+      why: '{notes} vom {day}, Lieferant im Ausland ohne Steuer: Die Umsatzsteuer schuldest du nach § 13b selbst (Kz {kz}) und ziehst sie zugleich als Vorsteuer ab (Kz 67). Der USt-Abgleich rechnet sie ein; Waren aus der EU (Kz 89/93) erkennt er nicht.'
     concentration:
       title: '{client}: {percent} % des Umsatzes'
       why: 'Klumpenrisiko: ein Kunde trägt den Großteil des Umsatzes der letzten 12 Monate.'
@@ -3145,6 +3149,9 @@ hint:
     unused_service:
       title: '{name} seit {days} Tagen ungenutzt'
       why: '{kind}: keine Klicks auf die Kachel, keine Anmeldungen, keine Besucher. Belegt {gb} GB RAM. Abschalten?'
+    unused_service_nomem:
+      title: '{name} seit {days} Tagen ungenutzt'
+      why: '{kind}: keine Klicks auf die Kachel, keine Anmeldungen, keine Besucher. Abschalten?'
     storage_forecast:
       title: '{name} voll in {days} Tagen'
       why: 'Jetzt {percent} % belegt; beim Tempo der letzten 30 Tage voll am {day}.'
@@ -6734,6 +6741,8 @@ subs:
   change: 'Änderung'
   amount: 'Betrag'
   category: 'Kategorie'
+  tax: 'Steuer'
+  no_tax: 'Ohne Steuer'
   next: 'nächste Zahlung {day}'
   why_wallos_add: 'Sure zahlt es, Wallos kennt es nicht'
   why_wallos_price: 'Wallos hat {old}, Sure zahlt anders'
@@ -7054,6 +7063,7 @@ task:
   dawarich_tracks: 'Dawarich-Tracks von {host} lesen'
 server_hint:
   APPRISE_API_URL: 'Adresse eines Apprise-API-Containers (github.com/caronc/apprise-api), z. B. http://apprise:8000. Er stellt alle Pushs zu; wohin, legt jeder Nutzer unter Benachrichtigungen mit eigenen Kanälen fest. Leer = keine Pushs.'
+  ANDON_UPDATE_CHECK: 'Fragt einmal am Tag https://shrippen.github.io/versions.json ab (ohne Parameter, ohne Kennung) und zeigt Admins einen Hinweis, wenn es ein neueres Andon gibt. Lädt nichts herunter.'
 server:
   SMTP_URL: 'SMTP-Server (smtp://user@host:587)'
   SMTP_FROM: Absender der Mails
@@ -7061,6 +7071,7 @@ server:
   APPRISE_API_URL: Apprise-API-Server
   ANTHROPIC_API_KEY: 'Anthropic-API-Schlüssel (Wochenrückblick, Ratschläge)'
   ANALYSIS_MINUTES: Prüflauf alle … Minuten
+  ANDON_UPDATE_CHECK: Auf neue Versionen prüfen
   SESSION_IDLE_MINUTES: 'Abmeldung nach … Minuten ohne Aktivität'
   SESSION_ABSOLUTE_HOURS: Sitzung höchstens … Stunden
   OIDC_SESSION_HOURS: 'Sitzung über authentik höchstens … Stunden'
@@ -7657,3 +7668,9 @@ benches:
     updates: 'Neuere Image-Tags nach Dringlichkeit, Pull Request ins Compose-Repo.'
     year: 'Das Steuerjahr zur Vorbereitung der EÜR und der Jahresrückblick.'
     timeline: 'Was sich in den letzten 14 Tagen geändert hat.'
+release:
+  switch_on: 'an'
+  switch_off: 'aus'
+  newer: 'Andon {version} ist erschienen ({date}).'
+  notes: 'Was ist neu'
+  hide: 'Hinweis bis zur nächsten Version ausblenden'

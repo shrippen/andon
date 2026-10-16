@@ -57,7 +57,7 @@ func openDrafts(ninja *sources.NinjaDataset, client sources.NinjaClient) []OpenD
 			key = strconv.FormatInt(inv.ID, 10)
 		}
 		day, _ := ParseDay(inv.Date)
-		out = append(out, OpenDraft{Number: inv.Number, Day: day, URL: strings.TrimRight(ninja.URL, "/") + "/#/invoices/" + key + "/edit"})
+		out = append(out, OpenDraft{Number: inv.Number, Day: day, URL: strings.TrimRight(ninja.URL, "/") + "/invoices/" + key + "/edit"})
 	}
 	sort.Slice(out, func(a, b int) bool { return out[a].Day.Before(out[b].Day) })
 	return out

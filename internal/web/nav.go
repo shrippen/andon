@@ -5,6 +5,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/boards"
 	"andon/internal/services/hints"
+	"andon/internal/services/release"
 	"andon/internal/services/workbench"
 )
 
@@ -39,6 +40,14 @@ func (d Deps) addNav(data map[string]any, who *access.Principal) {
 		}
 	}
 	data["HintOpen"], data["HintLevel"] = total, int(level)
+
+	// Switched off, the hint goes too, not only the daily check.
+	if d.Settings.Demo || !d.live().UpdateCheck {
+		return
+	}
+	if r, ok := release.Pending(d.DB, who, d.Settings.DataDir); ok {
+		data["Release"] = r
+	}
 }
 
 // sectionRun is one section on the main grid, or a run of neighbouring

@@ -15,7 +15,7 @@
     <p class="muted">{{t "dunning.lead"}}</p>
     {{with .done}}<p class="pill" data-state="applied">{{t "dunning.done" "n" .}}</p>{{end}}
     {{with .drafted}}<p class="pill" data-state="applied">{{t "dunning.drafted" "n" .}}</p>{{end}}
-    {{with .failed}}<p class="error">{{t "dunning.failed" "n" .}} {{$.Who}}: {{t $.Reason}}</p>{{end}}
+    {{with .failed}}<p class="error">{{t "dunning.failed" "n" .}} {{$.FailedName}}: {{t $.Reason}}</p>{{end}}
     {{with .Error}}<p class="error">{{t .}}</p>{{end}}
     {{if $p.Scopes}}
     {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/dunning" "Keep" (dict)}}

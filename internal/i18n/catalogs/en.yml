@@ -1241,6 +1241,7 @@ widget:
   unsupported: Does not fit the chosen connection.
 connection:
   secret_for_host: 'New server: enter the credential again or take the stored one along on purpose.'
+  unknown_service: 'Andon does not know this service.'
   use_move: 'Another server: please use “Move”.'
   adopt_self: 'A connection cannot take over from itself.'
   adopt_service: 'Only from a connection of the same service.'
@@ -3044,6 +3045,9 @@ hint:
     expense_no_vat:
       title: 'Expense {number} from {vendor} without input VAT ({amount})'
       why: '{notes} on {day}: no input VAT recorded.'
+    expense_reverse_charge:
+      title: 'Expense {number} from {vendor}: reverse charge ({amount})'
+      why: '{notes} on {day}, vendor abroad without tax: you owe the VAT yourself under § 13b (box {kz}) and deduct it as input VAT at once (box 67). The VAT check counts it in; goods from the EU (boxes 89/93) it cannot tell.'
     concentration:
       title: '{client}: {percent} % of revenue'
       why: 'Concentration risk: one client makes up most revenue of the last 12 months.'
@@ -3144,6 +3148,9 @@ hint:
     unused_service:
       title: '{name} unused for {days} days'
       why: '{kind}: no tile clicks, no logins, no visitors. Uses {gb} GB RAM. Switch off?'
+    unused_service_nomem:
+      title: '{name} unused for {days} days'
+      why: '{kind}: no tile clicks, no logins, no visitors. Switch off?'
     storage_forecast:
       title: '{name} full in {days} days'
       why: 'Now {percent} % used; at the last 30 days pace full on {day}.'
@@ -6733,6 +6740,8 @@ subs:
   change: 'Change'
   amount: 'Amount'
   category: 'Category'
+  tax: 'Tax'
+  no_tax: 'No tax'
   next: 'next payment {day}'
   why_wallos_add: 'Sure pays it, Wallos lacks it'
   why_wallos_price: 'Wallos has {old}, Sure pays another price'
@@ -7053,6 +7062,7 @@ task:
   dawarich_tracks: 'Read Dawarich tracks of {host}'
 server_hint:
   APPRISE_API_URL: 'Address of an Apprise API container (github.com/caronc/apprise-api), e.g. http://apprise:8000. It delivers all pushes; where to, each user sets under Notifications with their own channels. Empty = no pushes.'
+  ANDON_UPDATE_CHECK: 'Asks https://shrippen.github.io/versions.json once a day (no parameters, nothing that identifies you) and shows admins a hint when a newer Andon is out. Downloads nothing.'
 server:
   SMTP_URL: 'SMTP server (smtp://user@host:587)'
   SMTP_FROM: Mail sender
@@ -7060,6 +7070,7 @@ server:
   APPRISE_API_URL: Apprise API server
   ANTHROPIC_API_KEY: 'Anthropic API key (weekly review, advice)'
   ANALYSIS_MINUTES: Check every … minutes
+  ANDON_UPDATE_CHECK: Check for new versions
   SESSION_IDLE_MINUTES: 'Sign out after … idle minutes'
   SESSION_ABSOLUTE_HOURS: Session at most … hours
   OIDC_SESSION_HOURS: 'Session via authentik at most … hours'
@@ -7656,3 +7667,9 @@ benches:
     updates: 'Newer image tags by urgency, a pull request to the compose repo.'
     year: 'The tax year for the EUER, and the year in review.'
     timeline: 'What changed in the last 14 days.'
+release:
+  switch_on: 'on'
+  switch_off: 'off'
+  newer: 'Andon {version} is out ({date}).'
+  notes: "What's new"
+  hide: 'Hide until the next version'

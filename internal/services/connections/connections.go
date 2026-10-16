@@ -43,6 +43,9 @@ const sharedLocationKey = "dawarich_shared"
 // location sharing is disabled instance-wide.
 var ErrLocationPersonal = errors.New("connections: location data must stay personal")
 
+// ErrUnknownService means a service Andon has no integration for.
+var ErrUnknownService = errors.New("connection.unknown_service")
+
 // ErrNotFound means the connection does not exist.
 var ErrNotFound = util.ErrNotFound
 
@@ -247,6 +250,9 @@ func checkLocationSharing(q db.Queryer, service enums.ServiceType, mode enums.Cr
 // Create adds a new connection.
 func Create(d *sql.DB, who *access.Principal, spaceID int64, service enums.ServiceType, name, url string,
 	mode enums.CredentialMode, secret string, tls TLS, options map[string]any) (int64, error) {
+	if !service.Known() {
+		return 0, ErrUnknownService
+	}
 	var id int64
 	err := db.WithTx(d, func(tx *sql.Tx) error {
 		space, err := access.SpaceOf(tx, who, spaceID)

@@ -63,6 +63,7 @@ const (
 	FreshRSS  Service = "freshrss"
 	Wallos    Service = "wallos"
 	Sure      Service = "sure"
+	Gitea     Service = "gitea"
 )
 
 // Action is one kind of write in the log.
