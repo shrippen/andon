@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -241,5 +243,45 @@ func TestNinjaRemindersFromHistory(t *testing.T) {
 	// Paid invoices need no history.
 	if asked["iN2"] != 0 || asked["iN1"] != 1 {
 		t.Errorf("history asked for %v", asked)
+	}
+}
+
+// Past the cap, the most recently due invoices get their history: they
+// are the ones a reminder goes out for now.
+func TestNinjaHistoryNewestFirst(t *testing.T) {
+	var invoices []string
+	for i := 0; i < 45; i++ {
+		due := time.Now().UTC().AddDate(0, 0, -10-i).Format(time.DateOnly)
+		invoices = append(invoices, fmt.Sprintf(`{"id": "i%d", "status_id": "2", "date": "%s", "due_date": "%s", "amount": 1, "balance": 1}`, i, due, due))
+	}
+	var mu sync.Mutex
+	asked := map[string]bool{}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/invoices", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"data": [` + strings.Join(invoices, ",") + `], "meta": {"pagination": {"total_pages": 1}}}`))
+	})
+	mux.HandleFunc("/api/v1/activities/entity", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			EntityID string `json:"entity_id"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		asked[body.EntityID] = true
+		mu.Unlock()
+		w.Write([]byte(`{"data": []}`))
+	})
+	for _, p := range []string{"payments", "clients", "expenses", "vendors", "quotes", "recurring_invoices"} {
+		mux.HandleFunc("/api/v1/"+p, func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(`{"data": [], "meta": {"pagination": {"total_pages": 1}}}`))
+		})
+	}
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	if _, err := sources.NinjaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "tok", VerifyTLS: true}); err != nil {
+		t.Fatal(err)
+	}
+	if len(asked) != 40 || !asked["i0"] || asked["i44"] {
+		t.Fatalf("asked %d, newest %v, oldest %v", len(asked), asked["i0"], asked["i44"])
 	}
 }
