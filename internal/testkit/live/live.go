@@ -2,8 +2,12 @@
 //
 // The instances are the connections of the local Andon instance in
 // .local-test/ (outside Git): its database data/andon.db, unlocked with
-// the master key in secrets/master_key. Writes go to each service's first
-// connection.
+// the master key in secrets/master_key. Tests only read them.
+//
+// Writes never go there: they go to throwaway containers of the same
+// services, listed in writes/instances.json (format as below), so a test
+// never touches real data and Invoice Ninja's real number ranges keep no
+// gaps.
 //
 // Services without an own instance run as throwaway containers, listed
 // in extra/instances.json. They replace the local instance only when
@@ -11,7 +15,7 @@
 //
 //	[{"name": "grocy", "service": "grocy", "url": "http://127.0.0.1:18116", "secret": "…", "options": {…}}]
 //
-// The tests write to real instances, so they run only when asked for
+// The tests reach real instances, so they run only when asked for
 // (ANDON_LIVE=1, set by `make live`), never with `go test ./...`.
 // Without that database or a connection of the service the test is
 // skipped too: CI and cloud runs test against the fakes (httptest) only.
@@ -73,11 +77,9 @@ const (
 const (
 	// dirEnv overrides the directory (tests of this package).
 	dirEnv = "ANDON_LOCAL_TEST"
-	// runEnv must be set for live tests to run; ninjaEnv as well for
-	// writes to Invoice Ninja; extraEnv switches to the throwaway
-	// containers.
+	// runEnv must be set for live tests to run; extraEnv switches the
+	// reads to the throwaway containers.
 	runEnv   = "ANDON_LIVE"
-	ninjaEnv = "ANDON_LIVE_NINJA"
 	extraEnv = "ANDON_LIVE_EXTRA"
 	dirName  = ".local-test"
 	logName  = "writes.log"
@@ -85,8 +87,10 @@ const (
 	// The local instance: its database and master key.
 	dbPath  = "data/andon.db"
 	keyPath = "secrets/master_key"
-	// extraPath lists the throwaway instances.
-	extraPath = "extra/instances.json"
+	// extraPath lists the throwaway instances to read, writesPath those
+	// to write to.
+	extraPath  = "extra/instances.json"
+	writesPath = "writes/instances.json"
 
 	// namePrefix marks every entry a test creates, e.g.
 	// "andon-test TestPlaces 20261006-143005".
@@ -115,28 +119,38 @@ func (i Instance) Target() outbound.Target {
 // cache holds each directory's instances: unlocking the database costs
 // a second (Argon2id).
 var (
-	cacheMu sync.Mutex
-	cache   = map[string][]Instance{}
+	cacheMu  sync.Mutex
+	cache    = map[string][]Instance{}
+	writable = map[string][]Instance{}
 )
 
-// Target returns the real instance of svc for writes, or skips the test
-// when none is configured. Invoice Ninja hands out invoice and expense
-// numbers on save, so its writes run only when asked for explicitly.
+// Target returns the throwaway instance of svc for writes, or skips the
+// test when none is listed or live tests are not asked for. It never
+// returns a connection of the local instance: those are real services.
 func Target(t testing.TB, svc Service) outbound.Target {
 	t.Helper()
-	if svc == Ninja && os.Getenv(ninjaEnv) == "" {
-		t.Skipf("Invoice Ninja writes leave gaps in its number ranges: run only when asked for (%s=1)", ninjaEnv)
+	if os.Getenv(runEnv) == "" {
+		t.Skipf("live tests use real instances: run with %s=1 (make live)", runEnv)
 	}
-	for _, i := range Instances(t) {
-		if i.Service != svc {
-			continue
+	d := dir(t)
+	cacheMu.Lock()
+	all, ok := writable[d]
+	if !ok {
+		var err error
+		if all, err = ofList(d, writesPath); err != nil {
+			cacheMu.Unlock()
+			t.Fatalf("read %s/%s: %v", dirName, writesPath, err)
 		}
-		if i.Err != nil {
-			t.Fatalf("%s login: %v", svc, i.Err)
-		}
-		return i.Target()
+		writable[d] = all
 	}
-	t.Skipf("no live %s instance: no %s connection in %s/%s", svc, svc, dirName, dbPath)
+	cacheMu.Unlock()
+
+	for _, i := range all {
+		if i.Service == svc {
+			return i.Target()
+		}
+	}
+	t.Skipf("no %s instance to write to in %s/%s", svc, dirName, writesPath)
 	return outbound.Target{}
 }
 
@@ -159,7 +173,7 @@ func Instances(t testing.TB) []Instance {
 	// One source per run: the local instance or the containers.
 	load, path := ofLocal, dbPath
 	if os.Getenv(extraEnv) != "" {
-		load, path = ofExtra, extraPath
+		load, path = func(d string) ([]Instance, error) { return ofList(d, extraPath) }, extraPath
 	}
 	all, err := load(d)
 	if err != nil {
@@ -189,9 +203,9 @@ func ofLocal(d string) ([]Instance, error) {
 	return read(path, strings.TrimSpace(string(key)))
 }
 
-// ofExtra reads the throwaway instances; none without the file.
-func ofExtra(d string) ([]Instance, error) {
-	raw, err := os.ReadFile(filepath.Join(d, extraPath))
+// ofList reads throwaway instances from a list file; none without it.
+func ofList(d, path string) ([]Instance, error) {
+	raw, err := os.ReadFile(filepath.Join(d, path))
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
 	}

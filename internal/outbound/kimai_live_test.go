@@ -2,6 +2,7 @@ package outbound_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"slices"
@@ -21,8 +22,12 @@ const (
 	kindTag   = "tag"
 )
 
-// kimaiTime is how a sheet's begin and end are sent: local time.
-const kimaiTime = "2006-01-02T15:04:05"
+// kimaiTime is how a sheet's begin and end are sent: local time;
+// kimaiZoned how Kimai answers them.
+const (
+	kimaiTime  = "2006-01-02T15:04:05"
+	kimaiZoned = "2006-01-02T15:04:05-0700"
+)
 
 // A finished timesheet booked yesterday with a new tag, then edited,
 // described and deleted: the calls of the time tracker.
@@ -102,8 +107,13 @@ func TestKimaiTimerLive(t *testing.T) {
 	t.Cleanup(func() { kimaiDelete(t, kimai, id) })
 
 	// Kimai refuses to stop a timer of zero duration: start it earlier
-	// (an edit without End keeps it running).
-	begin := time.Now().Add(-5 * time.Minute).Format(kimaiTime)
+	// (an edit without End keeps it running), in Kimai's clock: the
+	// user's zone may differ from this machine's.
+	started, err := time.Parse(kimaiZoned, fmt.Sprint(kimaiRead(t, api, id)["begin"]))
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	begin := started.Add(-5 * time.Minute).Format(kimaiTime)
 	live.Change(t, live.Kimai, live.Update, kindSheet, id)
 	if err := outbound.KimaiEdit(ctx, kimai, id, outbound.KimaiSheet{Begin: begin, Description: name}); err != nil {
 		t.Fatalf("edit running: %v", err)
