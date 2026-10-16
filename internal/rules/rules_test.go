@@ -335,6 +335,38 @@ func TestNinjaOverdueBundled(t *testing.T) {
 	}
 }
 
+// A vendor abroad without tax is reverse charge (§ 13b), not missing
+// input VAT: the hint says so and leads to the VAT check of its period.
+func TestExpenseFromAbroadIsReverseCharge(t *testing.T) {
+	data := &sources.NinjaDataset{
+		HomeCountryID: "276",
+		Expenses: []sources.NinjaExpense{
+			{ID: 7, Number: "AU-0101", Date: "2026-08-28", Amount: 145.24, VendorKey: "zsa"},
+			{ID: 8, Number: "AU-0102", Date: "2026-09-02", Amount: 80, VendorKey: "eu"},
+			{ID: 9, Number: "AU-0103", Date: "2026-09-03", Amount: 90, VendorKey: "home"}},
+		Vendors: []sources.NinjaVendor{{Key: "zsa", Name: "ZSA", CountryID: "158"}, {Key: "eu", Name: "Hostinger", CountryID: "440"},
+			{Key: "home", Name: "Hetzner", CountryID: "276"}},
+	}
+	quarterly := map[string]any{"tax": map[string]any{"vat": map[string]any{"return_interval": "quarterly"}}}
+	found := run(t, "in.expense_no_input_vat", data, rules.Env{Today: day("2026-09-28"), Settings: quarterly})
+	byNumber := map[any]rules.Finding{}
+	for _, f := range found {
+		byNumber[f.Params["number"]] = f
+	}
+	if len(found) != 3 {
+		t.Fatalf("found: %+v", found)
+	}
+	if f := byNumber["AU-0101"]; f.Message != "in.expense_reverse_charge" || f.Params["kz"] != "84/85" || f.ActionURL != "/vat?span=2026-Q3#elster" {
+		t.Errorf("outside the EU: %+v", f)
+	}
+	if f := byNumber["AU-0102"]; f.Message != "in.expense_reverse_charge" || f.Params["kz"] != "46/47" {
+		t.Errorf("EU: %+v", f)
+	}
+	if f := byNumber["AU-0103"]; f.Message != "in.expense_no_vat" {
+		t.Errorf("home vendor: %+v", f)
+	}
+}
+
 // An expense without input VAT names its vendor and number, so it can be
 // found without opening Invoice Ninja.
 func TestExpenseNoVATNamesVendor(t *testing.T) {

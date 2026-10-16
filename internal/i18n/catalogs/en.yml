@@ -3045,6 +3045,9 @@ hint:
     expense_no_vat:
       title: 'Expense {number} from {vendor} without input VAT ({amount})'
       why: '{notes} on {day}: no input VAT recorded.'
+    expense_reverse_charge:
+      title: 'Expense {number} from {vendor}: reverse charge ({amount})'
+      why: '{notes} on {day}, vendor abroad without tax: you owe the VAT yourself under § 13b (box {kz}) and deduct it as input VAT at once (box 67). The VAT check counts it in; goods from the EU (boxes 89/93) it cannot tell.'
     concentration:
       title: '{client}: {percent} % of revenue'
       why: 'Concentration risk: one client makes up most revenue of the last 12 months.'
