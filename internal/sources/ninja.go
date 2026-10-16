@@ -52,6 +52,44 @@ func ninjaInvoice(raw any) NinjaInvoice {
 	}
 }
 
+// Activities of an invoice's history that are reminders, by stage.
+var reminderActivity = map[int]int{63: 1, 64: 2, 65: 3}
+
+// historyLookups caps the history calls of one fetch.
+const historyLookups = 40
+
+// remindersFromHistory reads the stage of overdue invoices from their
+// history: a reminder sent by hand (Andon's dunning run, Ninja's own
+// button) leaves reminder1_sent empty, only an activity names it.
+func remindersFromHistory(ctx context.Context, api services.NinjaApi, invoices []NinjaInvoice, today string) {
+	asked := 0
+	for i := range invoices {
+		inv := &invoices[i]
+		if inv.Balance <= 0 || inv.DueDate == "" || inv.DueDate >= today || inv.Key == "" {
+			continue
+		}
+		if asked == historyLookups {
+			return
+		}
+		asked++
+		raw, err := api.Post(ctx, "activities/entity", map[string]string{"entity": "invoice", "entity_id": inv.Key})
+		if err != nil {
+			continue
+		}
+		for _, a := range asList(asMap(raw)["data"]) {
+			am := asMap(a)
+			stage, ok := reminderActivity[int(asFloat(am["activity_type_id"]))]
+			if !ok {
+				continue
+			}
+			inv.Stage = max(inv.Stage, stage)
+			if at := time.Unix(int64(asFloat(am["created_at"])), 0).UTC().Format(time.DateOnly); at > inv.Reminded {
+				inv.Reminded = at
+			}
+		}
+	}
+}
+
 // itemChars caps a line item's text: enough to find "Fahrtkosten".
 const itemChars = 80
 
@@ -157,6 +195,8 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 			invoices = append(invoices, ninjaInvoice(i))
 		}
 	}
+
+	remindersFromHistory(ctx, api, invoices, time.Now().UTC().Format(time.DateOnly))
 
 	paymentsRaw, err := api.Pages(ctx, "payments", url.Values{"include": {"paymentables"}})
 	if err != nil {
