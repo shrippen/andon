@@ -66,6 +66,10 @@
         {{if eq .Kind "level"}}<select class="select" id="srv-{{.Env}}" name="{{.Env}}"{{if .Locked}} disabled{{end}}>
           {{$v := .Value}}{{range $.LogLevels}}<option value="{{.}}"{{if eq . $v}} selected{{end}}>{{.}}</option>{{end}}
         </select>
+        {{else if eq .Kind "switch"}}<select class="select" id="srv-{{.Env}}" name="{{.Env}}"{{if .Locked}} disabled{{end}}>
+          <option value="1"{{if eq .Value "1"}} selected{{end}}>{{t "release.switch_on"}}</option>
+          <option value="0"{{if eq .Value "0"}} selected{{end}}>{{t "release.switch_off"}}</option>
+        </select>
         {{else if eq .Kind "secret"}}<input class="input" type="password" id="srv-{{.Env}}" name="{{.Env}}" autocomplete="new-password"{{if .HasSecret}} placeholder="{{t "admin.server_secret_kept"}}"{{end}}{{if .Locked}} disabled{{end}}>
         {{else}}<input class="input" id="srv-{{.Env}}" name="{{.Env}}" value="{{.Value}}"{{if eq .Kind "number"}} type="number" min="1" inputmode="numeric"{{end}}{{if .Locked}} disabled{{end}}>
         {{end}}

@@ -18,6 +18,18 @@ const devVersion = "dev"
 //	go build -ldflags "-X andon/internal/services/about.version=v0.4.0"
 var version string
 
+// Version is the running build's version. Without a stamped version it
+// falls back to the module version Go embeds, then to "dev".
+func Version() string {
+	if version != "" {
+		return version
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+		return bi.Main.Version
+	}
+	return devVersion
+}
+
 // started is when the process came up.
 var started = time.Now()
 
@@ -30,20 +42,9 @@ type Info struct {
 	Migrations int
 }
 
-// Get returns the build and database info. Without a stamped version it falls back to
-// the module version Go embeds, then to "dev".
+// Get returns the build and database info.
 func Get(d *sql.DB) (Info, error) {
-	v := version
-	if v == "" {
-		if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
-			v = bi.Main.Version
-		}
-	}
-	if v == "" {
-		v = devVersion
-	}
-
-	info := Info{Version: v, Go: runtime.Version(), Started: started}
+	info := Info{Version: Version(), Go: runtime.Version(), Started: started}
 	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		if info.Schema, err = db.LastMigration(tx); err != nil {
