@@ -1,24 +1,23 @@
 name: ci
 
+# Pilot (16.10.2026): the GitHub mirror runs the same checks
+# (.github/workflows/ci.yml, status "github / test") and builds the
+# image for ghcr.io. This copy stays for comparison until the pilot ends.
 # Branches are tested through their pull request, so a push to a PR
-# branch runs once, not twice. main and tags still run on push: main
-# builds the edge image, a tag the release image.
+# branch runs once, not twice.
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   pull_request:
 
 # One runner works the queue in order. A newer push to the same branch
-# or PR replaces the older run instead of queueing behind it; a tag is
-# never cancelled, its run builds the release image.
+# or PR replaces the older run instead of queueing behind it.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   test:
@@ -41,49 +40,3 @@ jobs:
       - run: go build -tags release -o andon-release ./cmd/andon && scripts/release-check.sh andon-release
       # internal/web alone takes ~9 min with -race, past go test's default 10m on a busy runner.
       - run: CGO_ENABLED=1 go test -race -timeout 20m ./...
-
-  image:
-    needs: test
-    timeout-minutes: 30
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-    runs-on: ubuntu-latest
-    steps:
-      # Full history and tags for scripts/version.sh.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          fetch-depth: 0
-      # Tag v1.2.3 → "1.2.3", main → "1.2.3/main/#<commits since tag>".
-      - id: version
-        run: echo "version=$(scripts/version.sh)" >> "$GITHUB_OUTPUT"
-        env:
-          BRANCH: ${{ github.ref_name }}
-      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
-      # The automatic Actions token can't log in to the container registry:
-      # REGISTRY_TOKEN is a personal access token with package write access.
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: git.arianw.de
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.REGISTRY_TOKEN }}
-      # main → edge (development state); tag v1.2.3 → latest, 1.2.3, 1.2
-      # and 1. Pre-releases (v1.2.3-rc1) never become latest.
-      - id: meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
-        with:
-          images: git.arianw.de/${{ github.repository_owner }}/andon
-          flavor: latest=false
-          tags: |
-            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
-      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: VERSION=${{ steps.version.outputs.version }}

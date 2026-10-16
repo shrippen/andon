@@ -1,23 +1,49 @@
-# Public mirror: Gitea pushes main and tags here, this publishes the image
-# to ghcr.io. Gitea itself runs .gitea/workflows and ignores this folder.
+# Public mirror: Gitea pushes every branch and tag here on each commit.
+# This runs the checks and reports them back to the commit on Gitea as
+# the status "github / test", where the pull requests live. main and
+# tags also publish the image to ghcr.io. There are no pull requests on
+# GitHub, so everything runs on push.
+#
+# Needs the secret GITEA_TOKEN: a Gitea token with write access to the
+# repository (commit statuses).
 name: ci
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
     tags: ["v*"]
-  pull_request:
+
+# A newer push to the same branch replaces the older run; a tag is never
+# cancelled, its run builds the release image.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
   contents: read
-  packages: write
-  id-token: write # keyless cosign signature
+
+env:
+  GITEA_STATUS: https://git.arianw.de/api/v1/repos/shrippen/andon/statuses/${{ github.sha }}
+  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
 jobs:
   test:
     timeout-minutes: 35
     runs-on: ubuntu-latest
+    outputs:
+      started: ${{ steps.start.outputs.t }}
     steps:
+      # A missing status is no reason to fail the checks.
+      - id: start
+        name: Report pending to Gitea
+        run: |
+          echo "t=$(date +%s)" >> "$GITHUB_OUTPUT"
+          curl -fsS -X POST "$GITEA_STATUS" \
+            -H "Authorization: token $GITEA_TOKEN" -H "Content-Type: application/json" \
+            -d "{\"state\":\"pending\",\"context\":\"github / test\",\"description\":\"running\",\"target_url\":\"$RUN_URL\"}" \
+            || echo "::warning::Gitea status not reported"
+        env:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         # Latest patch of the Dockerfile's Go line: go.mod's "go 1.26.0" is
@@ -35,13 +61,50 @@ jobs:
       # internal/web alone takes ~9 min with -race, past go test's default 10m on a busy runner.
       - run: CGO_ENABLED=1 go test -race -timeout 20m ./...
 
+  # Also runs when test failed or was cancelled, so Gitea never keeps a
+  # stale "pending".
+  report:
+    needs: test
+    if: always()
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report result to Gitea
+        run: |
+          case "$RESULT" in
+            success) state=success ;;
+            failure) state=failure ;;
+            *) state=error ;;
+          esac
+          desc=$RESULT
+          if [ -n "$STARTED" ]; then desc="$RESULT in $(( ($(date +%s) - STARTED) / 60 )) min"; fi
+          curl -fsS -X POST "$GITEA_STATUS" \
+            -H "Authorization: token $GITEA_TOKEN" -H "Content-Type: application/json" \
+            -d "{\"state\":\"$state\",\"context\":\"github / test\",\"description\":\"$desc\",\"target_url\":\"$RUN_URL\"}"
+        env:
+          RESULT: ${{ needs.test.result }}
+          STARTED: ${{ needs.test.outputs.started }}
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+
   image:
     needs: test
     timeout-minutes: 30
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # keyless cosign signature
     steps:
+      # Full history and tags for scripts/version.sh.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      # Tag v1.2.3 → "1.2.3", main → "1.2.3/main/#<commits since tag>".
+      - id: version
+        run: echo "version=$(scripts/version.sh)" >> "$GITHUB_OUTPUT"
+        env:
+          BRANCH: ${{ github.ref_name }}
       - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -70,8 +133,13 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: VERSION=${{ steps.version.outputs.version }}
           sbom: true
           provenance: mode=max
+          # Layer cache in the Actions cache: an unchanged go.mod skips
+          # the module download on both platforms.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       # Keyless signature via GitHub OIDC; verify with
       # cosign verify ghcr.io/shrippen/andon@<digest> \
       #   --certificate-identity-regexp 'github.com/shrippen/andon' \
