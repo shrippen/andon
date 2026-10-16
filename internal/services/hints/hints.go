@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -673,4 +674,39 @@ func Prune(d *sql.DB) error {
 	return db.WithTx(d, func(tx *sql.Tx) error {
 		return data.PruneResolved(tx, time.Now().UTC().Add(-resolvedRetention))
 	})
+}
+
+// ResolveOthers resolves the open hints conn wrote in a space for an owner
+// it no longer runs for: a template turned fixed, or a holder whose login
+// is gone. Nothing else would resolve them. owners are the runs' owners
+// (nil = the space's). Returns how many it resolved.
+func ResolveOthers(q db.Queryer, spaceID, connID int64, owners []*int64) (int, error) {
+	open, err := data.OpenHintsOfConnection(q, spaceID, connID)
+	if err != nil {
+		return 0, err
+	}
+	now := time.Now().UTC()
+	n := 0
+	for _, h := range open {
+		if slices.ContainsFunc(owners, func(o *int64) bool { return sameOwner(o, h.UserID) }) {
+			continue
+		}
+		h.ResolvedAt = &now
+		if err := data.UpdateHint(q, h); err != nil {
+			return n, err
+		}
+		if err := logEvent(q, h.ID, enums.EventResolved, nil, ""); err != nil {
+			return n, err
+		}
+		n++
+	}
+	return n, nil
+}
+
+// sameOwner compares two owners, nil being the space.
+func sameOwner(a, b *int64) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
 }

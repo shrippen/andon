@@ -19,13 +19,31 @@ func TestUnusedServiceAndReplacement(t *testing.T) {
 	env := crossEnv("2026-09-25", map[string]any{"komodo": komodo, rules.LinksDataset: links})
 	if got := run(t, "system.unused_service", nil, env); len(got) != 1 || got[0].Params["name"] != "paperless-ai" {
 		t.Fatalf("unused: %+v", got)
+	} else if got[0].Message != "system.unused_service_nomem" {
+		t.Errorf("a stack's memory is unknown, message = %s", got[0].Message)
+	}
+
+	// Never clicked says nothing until the tile has stood unchanged that
+	// long: a tile from three weeks ago is no sign of disuse.
+	komodo.Stacks = append(komodo.Stacks, sources.KStack{Name: "gitea", State: "running"}, sources.KStack{Name: "wiki", State: "running"})
+	links = append(links,
+		rules.Link{Title: "Gitea", URL: "https://git.lan", Since: today.AddDate(0, 0, -21)},
+		rules.Link{Title: "Wiki", URL: "https://wiki.lan", Since: today.AddDate(0, 0, -200)})
+	env = crossEnv("2026-09-25", map[string]any{"komodo": komodo, rules.LinksDataset: links})
+	got := run(t, "system.unused_service", nil, env)
+	var names []any
+	for _, f := range got {
+		names = append(names, f.Params["name"])
+	}
+	if len(got) != 2 || names[0] != "paperless-ai" || names[1] != "wiki" {
+		t.Fatalf("unused with new tiles: %v", names)
 	}
 
 	snipe := &sources.SnipeDataset{Assets: []sources.SnipeAsset{{Name: "Server Dell", PurchaseDate: "2017-03-01", PurchaseCost: 900}}}
 	hass := &sources.HassDataset{Entities: []sources.Entity{{ID: "sensor.dell_power", Name: "Dell Leistung", State: "68", Unit: "W", DeviceClass: "power"}}}
 	env = crossEnv("2026-09-25", map[string]any{"snipeit": snipe, "homeassistant": hass})
 	env.Settings = map[string]any{"homelab": map[string]any{"power_price": 0.35}}
-	got := run(t, "snipe.replace_worth", nil, env)
+	got = run(t, "snipe.replace_worth", nil, env)
 	if len(got) != 1 || got[0].Params["months"].(int) > 36 {
 		t.Fatalf("replace: %+v", got)
 	}

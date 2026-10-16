@@ -111,6 +111,22 @@ func TestOutageSuppressesMonitors(t *testing.T) {
 	}
 }
 
+// One service down twice over (its connection and its monitor) is no
+// outage: the hint would read "2 services: Authentik, Authentik" and hide
+// the service's own hints.
+func TestOutageNeedsTwoServices(t *testing.T) {
+	kuma := &sources.KumaDataset{Monitors: []sources.KumaMonitor{{Name: "Authentik", Target: "https://auth.example.org", Status: sources.KumaDown}}}
+	env := todayEnv(nil)
+	env.Datasets = map[string]any{"uptimekuma": kuma, rules.FailedDataset: []rules.Failed{{Service: "authentik", Name: "authentik", Host: "auth.example.org"}}}
+
+	if outages := rules.Outages(env); len(outages) != 0 {
+		t.Fatalf("outages: %v", outages)
+	}
+	if got := run(t, "system.outage", nil, env); len(got) != 0 {
+		t.Fatalf("outage: %+v", got)
+	}
+}
+
 func TestDiscoveryNoTile(t *testing.T) {
 	env := todayEnv(nil)
 	env.Datasets = map[string]any{

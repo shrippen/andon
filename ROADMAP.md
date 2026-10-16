@@ -1447,6 +1447,22 @@ Fünf Bereiche als User Journeys im Browser durchgespielt (Erster Start, Alltag,
 - [ ] Gluetun meldet `running` auch bei totem Tunnel (keine Ausgangs-IP); kein Hinweis. Fehlalarm, wenn die IP-Abfrage in Gluetun aus ist
 - [ ] Ghostfolio-Verbindung der lokalen Instanz zeigt auf `http://ghostfolio.lan`, das auf `https://ghostfolio.intern.arianw.de` umleitet
 
+### Live-Runde 16.10.2026: echte Hinweise
+
+`make live` gegen die eigenen Dienste (lesend) und Wegwerf-Container (schreibend, `.local-test/writes/`, #170); danach die 292 offenen Hinweise der lokalen Instanz auf Fehlalarme durchgesehen.
+
+**Behoben (mit Test)**
+- [x] Fast jeder Hinweis stand doppelt: eine Verbindung, die früher eine Vorlage mit persönlichem Zugang war (Hinweise mit Inhaber), ist heute fest (Hinweise des Bereichs); die alten löste nichts mehr auf. Der Prüflauf löst jetzt Hinweise einer Verbindung für Inhaber auf, für die sie nicht mehr läuft (`hints.ResolveOthers`); ebenso, wenn jemand seinen Zugang entfernt
+- [x] `system.unused_service`: „gitea seit 90 Tagen ungenutzt“, obwohl die Link-Kachel erst drei Wochen alt war; „nie geklickt“ zählt jetzt ab der letzten Änderung der Kachel (gilt auch für `sure.subscription_unused`). „Belegt 0,0 GB RAM“ entfällt, wo Andon den Speicher nicht kennt (Komodo, TrueNAS)
+- [x] `system.outage`: „2 Dienste betroffen: Authentik, Authentik“ – Verbindung und Monitor desselben Dienstes waren zwei Signale; ein Name zählt jetzt einmal, ein einzelner Dienst ist kein Ausfall
+- [x] `linkwarden.not_on_board`: Lesezeichen ohne Namen erschienen leer („, , , , “); jetzt mit Adresse. Dieselbe Adresse zweimal gespeichert („Codecademy“ viermal) zählt einmal
+- Ergebnis: 292 → 206 offene Hinweise, keiner doppelt. `system.unused_service` blieb mit altem Text stehen, weil Authentik nicht antwortete (die Regel braucht es)
+
+**Notiert**
+- `cross.wallos_missing` nennt „DB Vertrieb GmbH“ und „Db Vertrieb Gmbh“ getrennt: in Sure zwei wiederkehrende Zahlungen, ob dasselbe Abo, weiß Andon nicht
+- Authentik antwortet nicht (Timeout), Audiobookshelf lehnt den gespeicherten Schlüssel ab (401): Instanzen, nicht Andon
+- Phase 19 (PV): Das Energie-Dashboard in HA führt nur vier Zwischenstecker als Netz, keine PV, keine Batterie, keine Prognose. Zurückgestellt, bis PV in HA steht
+
 ### Noch nicht in echt getestet (notiert 07.10.2026)
 
 Der letzte Live-Lauf (`make live`, 06.10.2026, 34 von 37 grün) kannte nur die Dienste bis #58. Alles danach ist nur gegen Nachbauten (`httptest`) und die Demowelt getestet. Abhaken, wenn `make live` gegen eine echte Instanz grün ist und die Hinweise plausibel sind; Funde wie beim Lauf vom 06.10. darunter notieren.

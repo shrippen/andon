@@ -20,6 +20,7 @@ package rules
 import (
 	"fmt"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 
@@ -59,11 +60,16 @@ func HostOf(raw string) string {
 func Outages(env Env) map[string][]string {
 	roots := downRoots(env)
 	signals := map[string][]string{}
+	// One name once: a service's connection and its monitor are one
+	// service ("Authentik", "authentik").
 	add := func(host, name string) {
 		if host == "" {
 			return
 		}
 		key := rootOf(roots, host)
+		if slices.ContainsFunc(signals[key], func(n string) bool { return strings.EqualFold(n, name) }) {
+			return
+		}
 		signals[key] = append(signals[key], name)
 	}
 	if failed, ok := env.Datasets[FailedDataset].([]Failed); ok {
