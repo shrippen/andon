@@ -14,9 +14,11 @@ that matters is one a user sees, or one that costs data or trust:
   counts, a time in the wrong zone or without `tzMark`, a hint that
   stays after its cause is gone or never appears.
 - **Writes wrong:** a workbench that writes to the wrong connection or
-  Verbund, writes on stale data, writes without OK, or without audit.
+  Verbund, writes on stale data, writes without OK, or without audit;
+  a test that writes to the user's own services, not `.local-test/writes/`.
 - **Leaks:** a board, widget or hint shown outside the user's rights,
-  credentials in a log, export or page, demo data in a release build.
+  credentials in a log, export or page, demo data in a release build or
+  in code instead of `internal/sources/demoworld/`.
 - **Breaks the install:** a migration failing on an existing database,
   a database or backup that no longer opens with `MASTER_KEY` + `.salt`.
 - **Stops the page:** a panic, a hung source blocking tile or scheduler.
@@ -26,6 +28,12 @@ that matters is one a user sees, or one that costs data or trust:
 
 - Layers: routes never call repos, sources, outbound or drivers; widgets
   only render service data; no new exported names without the owner.
+  Rights are checked in `services/` only: a new route or fragment
+  without a service call that checks the right is a leak.
+- Secrets and data: credentials only through `internal/crypto`; new
+  encrypted data gets a `*_enc` column and an entry in
+  `maintenance.sealedPurpose` (else `rotate-key` refuses); the database
+  never through `sql.Open` or a file copy.
 - Texts only through `t(key)`, keys in `de.yml` and `en.yml`; hints
   store key plus typed parameters. GUI rule: Kante as it is, no hex or
   `px` outside `themes/`, no local copy of a Kante component.
@@ -33,7 +41,9 @@ that matters is one a user sees, or one that costs data or trust:
   first connection in scope; capabilities via `caps`, not flags.
 - Bug fixes: a test that failed before the fix, and the cause removed,
   not one case hidden. A changed flow changes its journey in `QA.md`;
-  a release follows the release rule (log, shots, `versions.json`).
+  a release follows the release rule (log in `docs/index.html`
+  `#changes`, shots `docs/shots/release-<version>-*`, the footer version,
+  `versions.json` in shrippen.github.io).
 
 ## Skip
 
