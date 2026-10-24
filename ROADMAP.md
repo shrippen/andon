@@ -1323,7 +1323,7 @@ Grundlage sind **Kategorien** ([`CAPABILITIES.md`](CAPABILITIES.md), „Kategori
 
 **Schritt 3: Fristen aus Kept**
 - [ ] Kepts `agenda` (lesbar per Token) liefert alle Termine mit Zustand, Kept rechnet den Vorlauf je Eintrag selbst (`expiryLeadDays`, `leadDays` der Garantie): `thing_expiry` (Ablaufdatum, z. B. Feuerlöscher, Erste-Hilfe-Kasten), `warranty` (Garantieende, Registrierungsfrist), `document` (Dokument mit Ablauf), `schedule` (Wartung), `loan` (Rückgabe)
-- [ ] Regel `kept.due` je Art (`expiring`, `due`, `overdue`; Stufe info → warn → crit), Fälligkeit als Datum des Hinweises: erscheint in Fristen, Kalender und iCal und in der Zusammenfassung wie Steuerfristen; welche Arten zählen, wählt die Regel (Vorgabe alle außer `loan`)
+- [ ] Regel `kept.due` je Art (`expiring`, `due`, `overdue`; Stufe info → warn → crit), Fälligkeit als Datum des Hinweises: erscheint in Fristen, Kalender und iCal und in der Zusammenfassung wie Steuerfristen; welche Arten zählen, wählt die Regel (Vorgabe ohne `warranty`, die meldet `inventory.warranty_expiring`, und ohne `loan`)
 - [ ] Kachel „Fristen“ bzw. Inventar-Kachel: die nächsten Termine aus Kept (wie `SnipeUpcomingDates`), Popup mit Liste, Link je Eintrag nach Kept
 
 **Schritt 4: Belege mit Paperless**
