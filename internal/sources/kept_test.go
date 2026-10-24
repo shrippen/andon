@@ -172,3 +172,31 @@ func TestKeptPaperlessOffKeepsReceiptUnknown(t *testing.T) {
 		t.Errorf("receipts %q %q", assets[0].Receipt, assets[1].Receipt)
 	}
 }
+
+// A location without Paperless set up (Kept answers connected false, url
+// null): links are impossible there, so a thing without attachment has
+// no receipt and says so.
+func TestKeptWithoutPaperlessSaysNoReceipt(t *testing.T) {
+	inner := keptFake(t, true)
+	defer inner.Close()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/paperless-links":
+			io.WriteString(w, `{"connected":false,"url":null,"items":[]}`)
+		case "/api/v1/things/t1":
+			io.WriteString(w, `{"id":"t1","custom":{},"attachmentsCount":0}`)
+		default:
+			proxyTo(t, inner.URL, w, r)
+		}
+	}))
+	defer srv.Close()
+
+	raw, err := sources.KeptData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "kpt_a_b"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := raw.(*sources.KeptDataset)
+	if a := data.Inventory().Assets[0]; a.Receipt != sources.ReceiptNone || data.Things[0].PaperlessMissing {
+		t.Errorf("receipt %q, paperless missing %v", a.Receipt, data.Things[0].PaperlessMissing)
+	}
+}

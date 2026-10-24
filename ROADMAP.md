@@ -1343,7 +1343,7 @@ Grundlage sind **Kategorien** ([`CAPABILITIES.md`](CAPABILITIES.md), „Kategori
 
 **Danach:** Bank-Kategorie für weitere Dienste (Actual Budget …) nur bei Bedarf.
 
-**Erledigt (Reviews #199, #201, in #202):** ohne verbundenes Paperless bleibt der Beleg unbekannt statt „ohne Beleg“; der Split-Hinweis rät zu getrennten Verbünden (eine Verbindung ohne Verbund zählt in jedem); QA.md nennt, dass ein freies Kept vor Snipe-IT zählt.
+**Erledigt (Reviews #199, #201, #202):** Ist in Kept ein Paperless eingerichtet, aber getrennt, bleibt der Beleg unbekannt statt „ohne Beleg“; ohne eingerichtetes Paperless (Kept: `url` null) zählen nur Anhänge. Der Split-Hinweis rät, in Kept zu erfassen und Snipe-IT nach dem Umzug zu entfernen (getrennte Verbünde helfen nicht sicher: eine Verbindung, die als einzige ihres Dienstes besteht, kommt auch in fremde Verbünde). QA.md nennt, dass Kept vor Snipe-IT zählt.
 
 **Später, bei Bedarf:** Kept-Webhooks als Auslöser für einen neuen Abruf (`caps.Traits.Webhooks`; Kept richtet sie nur in der eigenen Oberfläche ein); Anmelden statt Token (Kept ist OAuth-Anbieter für MCP-Clients); Umzug Snipe-IT → Kept (CSV-Import in Kept, nur mit Anmeldung).
 

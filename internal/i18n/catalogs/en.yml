@@ -3203,7 +3203,7 @@ hint:
     split:
       title: '{count} assets only in {other}'
       title_singular: '{count} asset only in {other}'
-      why: 'The bundle counts {first}; {names} are therefore missing from depreciation and the EUER export. Add them to {first}, or put {first} and {other} in separate bundles (a connection in no bundle counts in each).'
+      why: 'The bundle counts {first}; {names} are therefore missing from depreciation and the EUER export. Add them to {first}; once the move is done, remove the {other} connection.'
     replace_worth:
       title: '{name}: replacement pays back in {months} months'
       why: '{years} years old, draws {watts} W ({yearly} power a year). A {new_watts} W device for {new_cost} pays back after {months} months.'

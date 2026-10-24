@@ -67,7 +67,7 @@ type KeptThing struct {
 	Expires          string // expiry date (fire extinguisher, first-aid kit)
 	Life             int    // useful life in months from the life field, 0 none
 	Receipts         []KeptReceipt
-	PaperlessMissing bool // the location's Paperless is not connected (links unchecked)
+	PaperlessMissing bool // the location's Paperless is set up but not connected (links unchecked)
 	ReceiptsUnread   bool // a read of the receipts failed: receipt unknown, not missing
 }
 
@@ -234,7 +234,7 @@ func keptDetails(ctx context.Context, api services.KeptApi, things []KeptThing, 
 	sem := make(chan struct{}, keptParallel)
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	noPaperless := map[string]bool{} // locations whose Paperless is not connected
+	noPaperless := map[string]bool{} // locations without Paperless set up: no links to read
 	for i := range things {
 		if things[i].Bought == "" {
 			continue
@@ -260,18 +260,19 @@ func keptDetails(ctx context.Context, api services.KeptApi, things []KeptThing, 
 			skip := noPaperless[t.Location]
 			mu.Unlock()
 			if skip {
-				t.PaperlessMissing = true
 				return
 			}
-			links, connected, err := keptPaperlessOf(ctx, api, t.ID)
+			links, state, err := keptPaperlessOf(ctx, api, t.ID)
 			if err != nil {
 				t.ReceiptsUnread = true
 				return
 			}
-			if !connected {
+			switch state {
+			case keptPaperlessNone:
 				mu.Lock()
 				noPaperless[t.Location] = true
 				mu.Unlock()
+			case keptPaperlessOff:
 				t.PaperlessMissing = true
 			}
 			t.Receipts = append(t.Receipts, links...)
@@ -293,22 +294,38 @@ func keptAttachmentsOf(ctx context.Context, api services.KeptApi, id string) ([]
 	return out, nil
 }
 
-// keptPaperlessOf reads a thing's Paperless links; connected is false
-// when the location has no working Paperless connection.
-func keptPaperlessOf(ctx context.Context, api services.KeptApi, id string) ([]KeptReceipt, bool, error) {
+// keptPaperlessState is a location's Paperless as Kept reports it.
+type keptPaperlessState int
+
+const (
+	keptPaperlessOn   keptPaperlessState = iota // connected
+	keptPaperlessOff                            // set up, not connected: links kept by Kept, unchecked
+	keptPaperlessNone                           // not set up (url null): no links possible
+)
+
+// keptPaperlessOf reads a thing's Paperless links and the location's
+// Paperless state.
+func keptPaperlessOf(ctx context.Context, api services.KeptApi, id string) ([]KeptReceipt, keptPaperlessState, error) {
 	raw, err := api.Get(ctx, keptPaperless, url.Values{"thingId": {id}})
 	if err != nil {
-		return nil, false, err
+		return nil, keptPaperlessNone, err
 	}
 	m := asMap(raw)
 	connected, _ := m["connected"].(bool)
 	base := asStr(m["url"])
+	state := keptPaperlessOn
+	switch {
+	case base == "":
+		state = keptPaperlessNone
+	case !connected:
+		state = keptPaperlessOff
+	}
 	var out []KeptReceipt
 	for _, l := range asList(m["items"]) {
 		lm := asMap(l)
 		out = append(out, KeptReceipt{Role: asStr(lm["kind"]), URL: asStr(lm["openUrl"]), DocID: asInt64(lm["documentId"]), Paperless: base})
 	}
-	return out, connected, nil
+	return out, state, nil
 }
 
 // keptWritable asks Kept's MCP door which tools the token gets: a write
