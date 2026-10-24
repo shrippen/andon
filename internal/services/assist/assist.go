@@ -140,7 +140,7 @@ type Booking struct {
 	Key, Date, Payer, Text     string
 	Amount                     float64
 	Debit                      bool
-	SureMerchant, BankCategory string
+	SureMerchant, SureCategory string
 	SureTags                   []string
 }
 

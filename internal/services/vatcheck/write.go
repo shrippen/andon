@@ -389,7 +389,7 @@ func Guess(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey
 		}
 		bk := assist.Booking{Key: c.Txn.Key, Date: c.Txn.Date, Payer: c.Txn.Payer, Text: c.Txn.Description, Amount: c.Txn.Amount, Debit: true}
 		if c.Sure != nil {
-			bk.SureMerchant, bk.BankCategory, bk.SureTags = c.Sure.Merchant, c.Sure.Category, c.Sure.Tags
+			bk.SureMerchant, bk.SureCategory, bk.SureTags = c.Sure.Merchant, c.Sure.Category, c.Sure.Tags
 		}
 		list = append(list, bk)
 	}
