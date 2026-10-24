@@ -1304,7 +1304,7 @@ Grundlage sind **Kategorien** ([`CAPABILITIES.md`](CAPABILITIES.md), „Kategori
 - Eine Kept-Verbindung: Adresse (https, sonst gibt Kept keine Tokens) und Token, fest oder als Vorlage (Kept-Tokens gehören einer Person: in einem Team jedem seinen). Welche Kept-Orte Andon liest, legt der Token fest, keine eigene Ortswahl in Andon; der Verbindungstest nennt sie.
 - Partner nur über den Verbund (`verbund.Partner`, `Pairs`): Ninja für `inventory.expense_missing`, Paperless für die Belege, FRITZ!Box/Router für die Werkbank „Inventar“, Home Assistant für Ersatzgeräte; nie „die erste Verbindung im Bereich“.
 - Snipe-IT und Kept im selben Verbund (Umzug): AfA, Kosten und Werkbänke lesen genau ein Inventar, das erste Mitglied der Kategorie (Kept vor Snipe-IT); Regeln je Verbindung laufen für beide.
-- Werkbänke „Käufe“ und „Inventar“ verlangen die Kategorie statt Snipe-IT (Schritt 1), `workbench.Scopes` bietet so auch Verbünde mit Kept an.
+- Werkbänke „Käufe“ und „Inventar“ verlangen die Kategorie statt Snipe-IT, sobald Kept schreibt (Schritt 5); `workbench.Scopes` bietet dann auch Verbünde mit Kept an.
 - `Cap.Refs`: Kept speichert IDs von Paperless-Dokumenten (Belege); daraus folgt, dass die Beleg-Prüfung Paperless als Partner braucht (`rules.Uses`).
 
 **Schritt 1: Kategorien Inventar und Bank** (ohne sichtbare Änderung außer den Regel-Ids)
@@ -1312,7 +1312,7 @@ Grundlage sind **Kategorien** ([`CAPABILITIES.md`](CAPABILITIES.md), „Kategori
 - [ ] Inventar: `sources.InventoryData`/`InventorySource` (IDs als Text), Snipe-IT liefert sie; `metrics.InventoryOf`; AfA (`year`, EÜR-Export), Kosten, Käufe, `cross.device_uninventoried`, Kacheln lesen darüber; `snipe.warranty_expiring`, `gwg_hint`, `expense_missing`, `replace_worth` werden `inventory.*`
 - [ ] Bank: `SureDataset` wird `BankData` mit `BankSource`; `metrics.BankOf` über die Kategorie; `sure.*`/`firefly.*`-Doppel werden `bank.*`
 - [ ] Migration der Regel-Ids (Hinweise, Einstellungen), Texte in beiden Katalogen
-- [ ] `workbench.Need` mit Kategorie statt festem Dienst, damit Werkbänke Verbünde mit jedem Mitglied anbieten
+- [ ] Kacheln, Werkbänke (`workbench.Need`) und Jahresexport laden die Mitglieder einer Kategorie (`caps.Members`); „Käufe“ und „Inventar“ verlangen Snipe-IT, bis Kept schreiben kann (Schritt 5)
 
 **Schritt 2: Treiber und Quelle**
 - [ ] Treiber `KeptApi`: Bearer-Token, `things/sheet` mit Seiten, Ding-Details (`custom`), `agenda`, `paperless-links` je Ding, `If-Match`; MCP `tools/call` für `add_warranty`
