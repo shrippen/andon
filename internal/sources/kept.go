@@ -75,7 +75,9 @@ type KeptThing struct {
 var keptProofs = []string{"receipt", "invoice"}
 
 // receipt is whether a bought thing has a receipt or invoice, attached or
-// linked in Paperless; things not bought need none.
+// linked in Paperless; things not bought need none. Unread links (a
+// failed read, Paperless not connected) leave it unknown unless an
+// attached receipt is there.
 func (t KeptThing) receipt() ReceiptState {
 	if t.Bought == "" || t.ReceiptsUnread {
 		return ReceiptUnknown
@@ -84,6 +86,9 @@ func (t KeptThing) receipt() ReceiptState {
 		if slices.Contains(keptProofs, r.Role) {
 			return ReceiptFound
 		}
+	}
+	if t.PaperlessMissing {
+		return ReceiptUnknown
 	}
 	return ReceiptNone
 }

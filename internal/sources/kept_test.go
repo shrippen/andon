@@ -159,3 +159,16 @@ func proxyTo(t *testing.T, base string, w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
 }
+
+// Without a connected Paperless the links stay unread: a bought thing
+// without an attached receipt has an unknown receipt, not none.
+func TestKeptPaperlessOffKeepsReceiptUnknown(t *testing.T) {
+	data := &sources.KeptDataset{Things: []sources.KeptThing{
+		{ID: "a", Name: "Monitor", Bought: "2026-08-25", Price: 890, PaperlessMissing: true},
+		{ID: "b", Name: "Laptop", Bought: "2026-08-25", Price: 1200, PaperlessMissing: true, Receipts: []sources.KeptReceipt{{Role: "invoice", URL: "https://x/7"}}},
+	}}
+	assets := data.Inventory().Assets
+	if assets[0].Receipt != sources.ReceiptUnknown || assets[1].Receipt != sources.ReceiptFound {
+		t.Errorf("receipts %q %q", assets[0].Receipt, assets[1].Receipt)
+	}
+}
