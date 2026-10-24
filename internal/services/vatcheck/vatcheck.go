@@ -114,7 +114,7 @@ type book struct {
 	conn     *model.Connection
 	bankConn *model.Connection
 	ninja    *sources.NinjaDataset
-	bank     *sources.SureDataset
+	bank     *sources.BankData
 	settings map[string]any
 	state    state
 	cats     sources.Categories // the Verbund's mappings (verbund → categories)
@@ -353,7 +353,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 	}
 	if b.bankConn != nil {
 		if res, err := fetch(ctx, d, who, b.bankConn, fresh); err == nil {
-			b.bank, _ = res.Data.(*sources.SureDataset)
+			b.bank, _ = res.Data.(*sources.BankData)
 		}
 	}
 	return b, scopes, nil

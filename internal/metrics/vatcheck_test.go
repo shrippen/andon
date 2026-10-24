@@ -19,7 +19,7 @@ const (
 // vatBook is September 2026: known vendors, one booked transaction, one
 // archived, one open transaction of each kind, and three on the private
 // account.
-func vatBook() (*sources.NinjaDataset, *sources.SureDataset) {
+func vatBook() (*sources.NinjaDataset, *sources.BankData) {
 	ninja := &sources.NinjaDataset{
 		Vendors: []sources.NinjaVendor{{Key: "v1", Name: "Kabelwerk Studiobedarf"}, {Key: "v2", Name: "Elbnetz Mobilfunk"},
 			{Key: "v3", Name: "Mietwagen Nord"}, // "nord" is in "Nordhost", but not a word of it
@@ -47,8 +47,8 @@ func vatBook() (*sources.NinjaDataset, *sources.SureDataset) {
 			{Key: "b9", Date: "2026-09-18", Payer: "Northlight Pictures", Amount: 500, Status: sources.BankOpen, Account: business, Role: sources.RoleBusiness},
 		},
 	}
-	sure := &sources.SureDataset{Accounts: []sources.SureAccount{{Name: business, Role: sources.RoleBusiness}, {Name: private, Role: sources.RolePrivate}},
-		Transactions: []sources.SureTxn{
+	sure := &sources.BankData{Accounts: []sources.BankAccount{{Name: business, Role: sources.RoleBusiness}, {Name: private, Role: sources.RolePrivate}},
+		Transactions: []sources.BankTxn{
 			{ID: "s1", Date: "2026-09-08", Name: "Kabelwerk", Amount: -899, Account: business, Role: sources.RoleBusiness},
 			{ID: "s2", Date: "2026-09-11", Name: "NH BILLING", Merchant: "Nordhost Server", Category: "Hosting", Amount: -41.65, Account: business, Role: sources.RoleBusiness},
 			{ID: "s3", Date: "2026-09-25", Name: "Druckerei", Amount: -58, Account: business, Role: sources.RoleBusiness},
@@ -203,7 +203,7 @@ func TestBankCasesTransfer(t *testing.T) {
 		},
 		Expenses: []sources.NinjaExpense{{Key: "e1", Date: "2026-09-13", Amount: 20}},
 	}
-	s := &sources.SureDataset{Transactions: []sources.SureTxn{
+	s := &sources.BankData{Transactions: []sources.BankTxn{
 		{ID: "s1", Date: "2026-09-13", Amount: 300, Role: sources.RolePrivate, Account: "Tagesgeld"},
 		{ID: "s2", Date: "2026-09-13", Amount: 20, Role: sources.RolePrivate, Account: "Tagesgeld"},
 	}}

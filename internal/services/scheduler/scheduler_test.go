@@ -171,7 +171,12 @@ func TestRecentKeepsEveryRunNewestFirst(t *testing.T) {
 			return nil
 		},
 	}})
-	time.Sleep(40 * time.Millisecond)
+	// Wait for runs, not a fixed time: under load (the full suite) 40 ms
+	// held a single run.
+	deadline := time.Now().Add(2 * time.Second)
+	for atomic.LoadInt32(&calls) < 3 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
 	cancel()
 
 	var hist []scheduler.NamedRun

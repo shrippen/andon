@@ -28,8 +28,8 @@ func TestCashflowEvents(t *testing.T) {
 	ninja := &sources.NinjaDataset{Invoices: []sources.NinjaInvoice{
 		{Number: "7", ClientID: 1, Status: "sent", Date: "2026-09-20", Balance: 1000},
 	}}
-	sure := &sources.SureDataset{Accounts: []sources.SureAccount{{Type: "depository", Balance: 500}},
-		Recurring: []sources.SureRecurring{{Name: "Miete", Status: "active", Expense: true, Amount: 800, Next: "2026-10-01"}}}
+	sure := &sources.BankData{Accounts: []sources.BankAccount{{Type: "depository", Balance: 500}},
+		Recurring: []sources.BankRecurring{{Name: "Miete", Status: "active", Expense: true, Amount: 800, Next: "2026-10-01"}}}
 	points, events := metrics.Cashflow(metrics.CashInputs{Ninja: ninja, Sure: sure}, today, 30)
 
 	// −800 on 1 Oct, +1000 on 4 Oct (invoice date + 14 days default terms).

@@ -54,7 +54,7 @@ func TestMonthClose(t *testing.T) {
 func TestMonthCloseReceiptsLink(t *testing.T) {
 	kind, _ := widgets.Get("month_close")
 	cfg, _ := widgets.Decode("month_close", map[string]any{})
-	results := map[string]any{"sure": &sources.SureDataset{}}
+	results := map[string]any{"sure": &sources.BankData{}}
 	view := kind.View(cfg, results, ctxFor("", map[string]any{}))
 	for _, s := range view["Steps"].([]widgets.CloseStep) {
 		if s.Key != "receipts" {

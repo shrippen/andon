@@ -364,7 +364,7 @@ func evaluate(d *sql.DB, r run, sc *scope, settings map[string]any, today time.T
 			slog.Error("analysis: snapshot failed", "connection", r.conn.Name, "err", err)
 		}
 	}
-	findings, ids := applyAll(rules.ForScope(r.conn.Service), r.result.Data, envs)
+	findings, ids := applyAll(rules.ForService(r.conn.Service), r.result.Data, envs)
 	kept := findings[:0]
 	for _, f := range findings {
 		if !rules.Suppressed(f, env, outages) {

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/caps"
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/rules"
@@ -376,21 +377,24 @@ const peerKimai = "kimai"
 
 var kimaiPeer = Query{Name: peerKimai, Source: "data", Conn: ConnPeer, Service: enums.ServiceKimai}
 
-// peerSure and peerFirefly name the space's bank data (recurring costs,
-// balances): Sure, else Firefly III in Sure's shape. The names are the
-// services', so metrics.BankOf picks from the results (bankOf).
-const (
-	peerSure    = "sure"
-	peerFirefly = "firefly"
-)
+// bankPeers read the space's bank data (recurring costs, balances): one
+// query per member of the bank category, named after its service, so
+// metrics.BankOf picks from the results (bankOf).
+var bankPeers = categoryPeers(caps.Bank)
 
-var bankPeers = []Query{
-	{Name: peerSure, Source: "data", Conn: ConnPeer, Service: enums.ServiceSure},
-	{Name: peerFirefly, Source: "data", Conn: ConnPeer, Service: enums.ServiceFirefly},
+// categoryPeers are the queries for a category's data in the tile's
+// Verbund: one per member, named after the service (metrics.InventoryOf,
+// metrics.BankOf read them by that name).
+func categoryPeers(c caps.Category) []Query {
+	var out []Query
+	for _, s := range caps.Members(c) {
+		out = append(out, Query{Name: string(s), Source: dataName, Conn: ConnPeer, Service: s})
+	}
+	return out
 }
 
 // bankOf is the bank data among a tile's results: Sure's, else Firefly's.
-func bankOf(results map[string]any) (*sources.SureDataset, bool) { return metrics.BankOf(results) }
+func bankOf(results map[string]any) (*sources.BankData, bool) { return metrics.BankOf(results) }
 
 func kpiQueries(cfg KpiConfig) []Query {
 	switch cfg.Metric {

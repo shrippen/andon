@@ -2679,31 +2679,9 @@ hint:
       title: 'Kintsugi: Vorschläge bleiben liegen'
       why: 'Offen: {count}, der älteste seit {days} Tagen. Annehmen, zurückstellen oder verwerfen.'
   sure:
-    subscription_unused:
-      title: '{name}: {amount}/Monat, kaum genutzt'
-      why: 'Seit über {days} Tagen keine Nutzung gefunden (Kachel-Klicks, Anmeldungen).'
-    subscription_unused_deadline:
-      title: '{name}: {amount}/Monat, kaum genutzt'
-      why: 'Seit über {days} Tagen keine Nutzung gefunden. Kündbar bis {deadline}.'
-    spendable_negative:
-      title: 'Steuern und Fixkosten übersteigen das Konto'
-      why: 'Kontostand {cash}, zurückzulegen {reserved} (USt, Einkommensteuer, Fixkosten 30 Tage). Es fehlen {missing}.'
-    missed:
-      title: 'Erwartete Zahlung „{name}“ ausgeblieben'
-      why: '{amount} waren für den {day} erwartet. Abbuchung fehlgeschlagen oder Vertrag geändert?'
-    low:
-      title: '{account}: nur {amount}'
-      why: Kontostand unter der Schwelle. Umbuchen, bevor Lastschriften platzen.
     sync:
       title: 'Bank-Sync fehlgeschlagen: {name}'
       why: Zugang bei der Bank erneuern, sonst fehlen Buchungen.
-    uncategorized:
-      title: '{count} Buchungen ohne Kategorie'
-      title_singular: '{count} Buchung ohne Kategorie'
-      why: Ohne Kategorie stimmen Budgets und Auswertungen nicht.
-    unusual:
-      title: 'Hohe Ausgabe: {name} ({amount})'
-      why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
   cross:
     esphome_ha_lost:
       title: 'Home Assistant hat {name} verloren'
@@ -3060,12 +3038,6 @@ hint:
       title_singular: '{count} Rechnung überfällig: {client} ({amount})'
       why: 'Älteste seit {days} Tagen: {numbers}. Mahnungen einzeln in Invoice Ninja.'
   snipe:
-    replace_worth:
-      title: '{name}: Austausch rechnet sich in {months} Monaten'
-      why: '{years} Jahre alt, zieht {watts} W ({yearly} Strom im Jahr). Ein Gerät mit {new_watts} W für {new_cost} hat sich nach {months} Monaten bezahlt.'
-    warranty:
-      title: Garantie {asset} endet am {day}
-      why: Asset {tag}. Verlängern oder Ersatz planen.
     eol:
       title: '{asset} hat das Lebensende erreicht'
       why: EOL-Datum {day} ({tag}). Ersatz einplanen.
@@ -3084,12 +3056,6 @@ hint:
     unused:
       title: 'Ungenutzte Geräte: {count} seit über {days} Tagen'
       why: 'Einsatzbereit, aber niemandem zugewiesen; am längsten ({oldest} Tage): {names}. Verkaufen, einsetzen oder die Regel ausschalten, wenn das bei dir normal ist.'
-    gwg:
-      title: '{asset}: {net} netto'
-      why: 'Über 800 € netto: Abschreibung statt Sofortabzug als GWG prüfen.'
-    expense_missing:
-      title: Keine Ausgabe zu {asset}
-      why: Kauf am {day} über {amount}, in Invoice Ninja keine passende Ausgabe.
     checkin_overdue:
       title: '{asset} sollte seit {day} zurück sein'
       why: 'Ausgegeben an {who}. Nachfragen oder die Rückgabe in Snipe-IT verlängern.'
@@ -3204,6 +3170,42 @@ hint:
     crashed:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
+  inventory:
+    replace_worth:
+      title: '{name}: Austausch rechnet sich in {months} Monaten'
+      why: '{years} Jahre alt, zieht {watts} W ({yearly} Strom im Jahr). Ein Gerät mit {new_watts} W für {new_cost} hat sich nach {months} Monaten bezahlt.'
+    warranty:
+      title: Garantie {asset} endet am {day}
+      why: Asset {tag}. Verlängern oder Ersatz planen.
+    gwg:
+      title: '{asset}: {net} netto'
+      why: 'Über 800 € netto: Abschreibung statt Sofortabzug als GWG prüfen.'
+    expense_missing:
+      title: Keine Ausgabe zu {asset}
+      why: Kauf am {day} über {amount}, in Invoice Ninja keine passende Ausgabe.
+  bank:
+    subscription_unused:
+      title: '{name}: {amount}/Monat, kaum genutzt'
+      why: 'Seit über {days} Tagen keine Nutzung gefunden (Kachel-Klicks, Anmeldungen).'
+    subscription_unused_deadline:
+      title: '{name}: {amount}/Monat, kaum genutzt'
+      why: 'Seit über {days} Tagen keine Nutzung gefunden. Kündbar bis {deadline}.'
+    spendable_negative:
+      title: 'Steuern und Fixkosten übersteigen das Konto'
+      why: 'Kontostand {cash}, zurückzulegen {reserved} (USt, Einkommensteuer, Fixkosten 30 Tage). Es fehlen {missing}.'
+    missed:
+      title: 'Erwartete Zahlung „{name}“ ausgeblieben'
+      why: '{amount} waren für den {day} erwartet. Abbuchung fehlgeschlagen oder Vertrag geändert?'
+    low:
+      title: '{account}: nur {amount}'
+      why: Kontostand unter der Schwelle. Umbuchen, bevor Lastschriften platzen.
+    uncategorized:
+      title: '{count} Buchungen ohne Kategorie'
+      title_singular: '{count} Buchung ohne Kategorie'
+      why: Ohne Kategorie stimmen Budgets und Auswertungen nicht.
+    unusual:
+      title: 'Hohe Ausgabe: {name} ({amount})'
+      why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
 info:
   llm:
     month: '{amount} diesen Monat'
@@ -3513,10 +3515,6 @@ rule_name:
   llm.budget: 'KI-Budget'
   llm.credit_low: 'KI-Guthaben knapp'
   llm.spike: 'KI-Kostensprung'
-  firefly.recurring_missed: 'Dauerauftrag ausgeblieben (Firefly III)'
-  firefly.low_balance: 'Kontostand niedrig (Firefly III)'
-  firefly.uncategorized: 'Unkategorisierte Buchungen (Firefly III)'
-  firefly.unusual_expense: 'Ungewöhnliche Ausgabe (Firefly III)'
   ghostfolio.drawdown: 'Depot im Minus'
   cross.depot_reserve: 'Rücklage aus dem Depot'
   vikunja.overdue: 'Überfällige Aufgaben'
@@ -3572,7 +3570,7 @@ rule_name:
   system.connector_down: Verbindung gestört
   system.unused_service: 'Ungenutzter Dienst'
   energy.shift_jobs: 'Wartung zu teuren Zeiten'
-  snipe.replace_worth: 'Austausch lohnt sich'
+  inventory.replace_worth: 'Austausch lohnt sich'
   energy.weather_adjusted: 'Verbrauch über dem Wetter'
   system.storage_forecast: 'Speicher läuft voll'
   backups.unsaved: 'Ungesicherte neue Daten'
@@ -3586,8 +3584,8 @@ rule_name:
   gluetun.downloads_exposed: 'Downloads ohne VPN'
   cross.payment_unmatched: 'Zahlung ohne Rechnung'
   in.rate_below: 'Vollkosten-Stundensatz niedrig'
-  sure.subscription_unused: 'Abo ohne Nutzung'
-  sure.spendable_negative: 'Rücklagen fehlen'
+  bank.subscription_unused: 'Abo ohne Nutzung'
+  bank.spendable_negative: 'Rücklagen fehlen'
   calendar.unbooked: 'Termin ohne Zeitbuchung'
   kimai.booked_free_day: 'Buchung am freien Tag'
   in.order_gap: 'Auftragsloch'
@@ -3653,11 +3651,11 @@ rule_name:
   linkwarden.not_on_board: Lesezeichen ohne Kachel
   linkwarden.not_saved: Kacheln ohne Lesezeichen
   kuma.unmonitored: Kacheln ohne Monitor
-  sure.recurring_missed: Ausgebliebene Zahlung
-  sure.low_balance: Niedriger Kontostand
+  bank.recurring_missed: Ausgebliebene Zahlung
+  bank.low_balance: Niedriger Kontostand
   sure.sync_failed: Bank-Sync
-  sure.uncategorized: Ohne Kategorie
-  sure.unusual_expense: Ungewöhnliche Ausgabe
+  bank.uncategorized: Ohne Kategorie
+  bank.unusual_expense: Ungewöhnliche Ausgabe
   cross.invoice_paid: Rechnung bezahlt, nicht erfasst
   cross.expense_unrecorded: Geschäftsausgabe nicht erfasst
   hass.alarm: Alarmsensoren
@@ -3714,15 +3712,15 @@ rule_name:
   in.missing_vat: Fehlende Umsatzsteuer
   in.expense_no_input_vat: Ausgaben ohne Vorsteuer
   in.client_concentration: Kundenabhängigkeit
-  snipe.warranty_expiring: Garantieende
+  inventory.warranty_expiring: Garantieende
   snipe.eol_reached: Lebensende erreicht
   snipe.license_expiring: Lizenzablauf
   snipe.license_seats: Lizenzplätze
   snipe.audit_overdue: Audit überfällig
   snipe.consumable_low: Verbrauchsmaterial
   snipe.unassigned_deployable: Ungenutzte Geräte
-  snipe.gwg_hint: GWG-Grenze
-  snipe.expense_missing: Anschaffung ohne Ausgabe
+  inventory.gwg_hint: GWG-Grenze
+  inventory.expense_missing: Anschaffung ohne Ausgabe
   geo.visit_without_time: Besuch ohne Buchung
   geo.time_without_visit: Vor-Ort ohne Besuch
   geo.travel_costs: Fahrtkosten
@@ -6889,6 +6887,8 @@ board_layout:
 rule_scope:
   cross: 'Dienstübergreifend'
   deadlines: 'Fristen'
+  inventory: 'Inventar'
+  bank: 'Bank'
 arr_check:
   IndexerStatusCheck: 'Indexer nicht verfügbar'
   IndexerLongTermStatusCheck: 'Indexer seit Stunden nicht verfügbar'
@@ -7519,7 +7519,7 @@ year:
   new_clients: 'Neu in diesem Jahr:'
   prior_unknown: 'Für das Vorjahr reichen die Daten nicht ganz zurück; der Vergleich fehlt dann.'
   title: 'Jahr'
-  lead: 'Das Steuerjahr des Verbunds zur Vorbereitung der EÜR: Einnahmen, Ausgaben je EÜR-Zeile, Abschreibung nach den Regeln in Snipe-IT und Tage im Homeoffice. Andon rechnet nur zusammen, was die Dienste kennen; das ist keine Steuerberatung.'
+  lead: 'Das Steuerjahr des Verbunds zur Vorbereitung der EÜR: Einnahmen, Ausgaben je EÜR-Zeile, Abschreibung nach der Nutzungsdauer im Inventar und Tage im Homeoffice. Andon rechnet nur zusammen, was die Dienste kennen; das ist keine Steuerberatung.'
   years: 'Jahre'
   income: 'Einnahmen'
   paid: 'Zahlungseingänge (brutto)'
@@ -7537,15 +7537,15 @@ year:
   no_expenses: 'Keine Ausgaben in diesem Jahr.'
   unlined_open: '{n} Ausgaben haben noch keine EÜR-Zeile.'
   afa: 'Abschreibung'
-  afa_lead: 'Gegenstände aus Snipe-IT, die in diesem Jahr gekauft wurden oder noch abgeschrieben werden, nach ihrer Abschreibungsregel. Andon kennt nicht, was privat ist: das nimmt deine Steuerberatung heraus.'
-  no_snipe: 'Der Verbund hat kein Snipe-IT.'
+  afa_lead: 'Gegenstände aus dem Inventar, die in diesem Jahr gekauft wurden oder noch abgeschrieben werden, nach ihrer Nutzungsdauer. Andon kennt nicht, was privat ist: das nimmt deine Steuerberatung heraus.'
+  no_inventory: 'Der Verbund hat kein Inventar (Snipe-IT).'
   asset: 'Gegenstand'
   cost: 'Kosten'
   months: 'Monate'
   afa_year: 'AfA im Jahr'
   left: 'Restwert'
   gwg: 'GWG möglich'
-  no_rule: '{n} Gegenstände haben in Snipe-IT keine Abschreibungsregel.'
+  no_rule: '{n} Gegenstände haben im Inventar keine Nutzungsdauer.'
   no_assets: 'Keine Gegenstände mit Kaufdatum und Kosten.'
   home: 'Homeoffice'
   home_days: '{n} Tage mit Arbeit in Kimai ohne berufliche Fahrt, Pauschale {amount}.'

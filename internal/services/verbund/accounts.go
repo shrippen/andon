@@ -163,7 +163,7 @@ func accountsOf(data any) []BankAccount {
 		for _, a := range ds.BankAccounts {
 			out = append(out, BankAccount{a.Key, a.Name, a.Role})
 		}
-	case *sources.SureDataset:
+	case *sources.BankData:
 		for _, a := range ds.Accounts {
 			out = append(out, BankAccount{a.ID, a.Name, a.Role})
 		}
@@ -217,7 +217,7 @@ func sharedOf(data []any) []map[string]map[string]int {
 		return out
 	}
 	for i, ds := range data[1:] {
-		bank, _ := ds.(*sources.SureDataset)
+		bank, _ := ds.(*sources.BankData)
 		out[i] = metrics.SharedBookings(ninja, bank)
 	}
 	return out

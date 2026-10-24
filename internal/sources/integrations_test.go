@@ -998,7 +998,7 @@ func TestFirefly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := raw.(*sources.SureDataset)
+	d := raw.(*sources.BankData)
 	if d.From() != enums.ServiceFirefly || len(d.Accounts) != 1 || d.Accounts[0].Balance != 1200.5 || len(d.Transactions) != 2 ||
 		d.Transactions[0].Amount != 2380 || d.Transactions[0].Merchant != "Northlight" || d.Transactions[1].Amount != -59 ||
 		d.Transactions[0].Date != today || len(d.Recurring) != 1 || d.Recurring[0].Next != next || !d.Recurring[0].Expense || d.NetWorth != 48210 {

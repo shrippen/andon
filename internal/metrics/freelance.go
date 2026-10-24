@@ -136,7 +136,7 @@ func CashLow(points []CashPoint) (low float64, day time.Time) {
 // CashInputs are the figures a cashflow needs; nil datasets are skipped.
 type CashInputs struct {
 	Ninja        *sources.NinjaDataset
-	Sure         *sources.SureDataset
+	Sure         *sources.BankData
 	FixedMonthly float64 // used when there is no Sure connection
 	Tax          TaxSettings
 	HasTax       bool

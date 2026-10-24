@@ -14,7 +14,7 @@ func TestCategoryVotes(t *testing.T) {
 		{Key: "e3", Date: "2026-09-21", Amount: 30, CategoryKey: "travel"},
 	}}
 	n.Expenses[0].Custom[2] = "Laufende EDV-Kosten"
-	s := &sources.SureDataset{Transactions: []sources.SureTxn{
+	s := &sources.BankData{Transactions: []sources.BankTxn{
 		{Date: "2026-09-03", Amount: -12.5, Category: "Software"},
 		{Date: "2026-09-19", Amount: -30, Category: "Software"},
 		{Date: "2026-10-30", Amount: -30, Category: "Software"},  // no expense near

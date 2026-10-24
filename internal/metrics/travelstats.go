@@ -397,7 +397,7 @@ func CarShare(rides []ClassedRide) (float64, float64) {
 
 // FuelSpent is what Sure booked for fuel or charging since from: the
 // transactions whose category or merchant holds one of the words.
-func FuelSpent(sure *sources.SureDataset, words []string, from time.Time) float64 {
+func FuelSpent(sure *sources.BankData, words []string, from time.Time) float64 {
 	var sum float64
 	for _, t := range sure.Transactions {
 		day, ok := ParseDay(t.Date)

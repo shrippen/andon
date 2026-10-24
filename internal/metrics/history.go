@@ -237,7 +237,7 @@ func init() {
 			r.Set(key("speedtest", "up"), d.Up)
 		}
 	})
-	Record(func(d *sources.SureDataset, _ time.Time, r *Readings) { r.Set(key("sure", "cash"), SureCash(d)) })
+	Record(func(d *sources.BankData, _ time.Time, r *Readings) { r.Set(key("sure", "cash"), SureCash(d)) })
 	Record(func(d *sources.KumaDataset, _ time.Time, r *Readings) {
 		for _, m := range d.Monitors {
 			if m.MS > 0 {

@@ -72,7 +72,7 @@ var declared = map[Holder][]Cap{
 		{Domain: Subscriptions, Op: Read}, // recurring transactions
 		{Domain: Customers, Op: Read},     // payers of incomes
 	},
-	HolderOf(enums.ServiceFirefly): { // the same as Sure, in Sure's shape
+	HolderOf(enums.ServiceFirefly): { // the same as Sure (category bank)
 		{Domain: Accounts, Op: Read},
 		{Domain: Payments, Op: Read},
 		{Domain: Subscriptions, Op: Read},

@@ -168,7 +168,7 @@ const (
 
 // PaymentMatch is a bank income that pays an open invoice.
 type PaymentMatch struct {
-	Txn     sources.SureTxn
+	Txn     sources.BankTxn
 	Day     time.Time
 	Invoice NinjaOpenInvoice
 	Reason  string
@@ -212,14 +212,14 @@ func compact(s string) string {
 // PaymentMatches pairs incomes of the last days with open invoices; each
 // income and invoice is used once, number matches first. A payer the
 // Verbund links to the invoice's client fits by name.
-func PaymentMatches(sure *sources.SureDataset, ninja *sources.NinjaDataset, today time.Time, days int, payers PayerMap) []PaymentMatch {
+func PaymentMatches(sure *sources.BankData, ninja *sources.NinjaDataset, today time.Time, days int, payers PayerMap) []PaymentMatch {
 	open := NinjaOpenInvoices(ninja, today)
 	refs := clientRefs(ninja)
 	since := today.AddDate(0, 0, -days)
 	usedTxn, usedInv := map[string]bool{}, map[int64]bool{}
 	var out []PaymentMatch
 
-	pass := func(reason string, fits func(t sources.SureTxn, paid time.Time, inv NinjaOpenInvoice) bool) {
+	pass := func(reason string, fits func(t sources.BankTxn, paid time.Time, inv NinjaOpenInvoice) bool) {
 		for _, inv := range open {
 			if usedInv[inv.ID] {
 				continue
@@ -236,11 +236,11 @@ func PaymentMatches(sure *sources.SureDataset, ninja *sources.NinjaDataset, toda
 			}
 		}
 	}
-	pass(MatchNumber, func(t sources.SureTxn, _ time.Time, inv NinjaOpenInvoice) bool {
+	pass(MatchNumber, func(t sources.BankTxn, _ time.Time, inv NinjaOpenInvoice) bool {
 		number := compact(inv.Number)
 		return len(number) >= minNameLen && strings.Contains(compact(t.Name), number)
 	})
-	pass(MatchAmount, func(t sources.SureTxn, paid time.Time, inv NinjaOpenInvoice) bool {
+	pass(MatchAmount, func(t sources.BankTxn, paid time.Time, inv NinjaOpenInvoice) bool {
 		issued, ok := ParseDay(inv.Date)
 		// The open balance only: the full amount of a nearly paid invoice
 		// is somebody else's payment.
@@ -260,7 +260,7 @@ func clientRefs(ninja *sources.NinjaDataset) map[int64]string {
 }
 
 // linkedTo reports whether the transaction's payer is linked to ref.
-func linkedTo(payers PayerMap, t sources.SureTxn, ref string) bool {
+func linkedTo(payers PayerMap, t sources.BankTxn, ref string) bool {
 	got, ok := payers.ClientOf(t)
 	return ok && ref != "" && got == ref
 }
@@ -268,7 +268,7 @@ func linkedTo(payers PayerMap, t sources.SureTxn, ref string) bool {
 // UnmatchedIncome lists incomes naming a known client, or from a payer
 // linked to one, that paid no open invoice: a payment for an invoice
 // that was never written, or a typo.
-func UnmatchedIncome(sure *sources.SureDataset, ninja *sources.NinjaDataset, matches []PaymentMatch, today time.Time, days int, payers PayerMap) []sources.SureTxn {
+func UnmatchedIncome(sure *sources.BankData, ninja *sources.NinjaDataset, matches []PaymentMatch, today time.Time, days int, payers PayerMap) []sources.BankTxn {
 	matched := map[string]bool{}
 	for _, m := range matches {
 		matched[m.Txn.ID] = true
@@ -280,7 +280,7 @@ func UnmatchedIncome(sure *sources.SureDataset, ninja *sources.NinjaDataset, mat
 		}
 	}
 	since := today.AddDate(0, 0, -days)
-	var out []sources.SureTxn
+	var out []sources.BankTxn
 	for _, t := range sure.Transactions {
 		d, ok := ParseDay(t.Date)
 		if matched[t.ID] || t.Amount <= 0 || !ok || d.Before(since) {
@@ -305,7 +305,7 @@ func UnmatchedIncome(sure *sources.SureDataset, ninja *sources.NinjaDataset, mat
 
 // ReceiptInputs are the places a receipt may be; nil ones are skipped.
 type ReceiptInputs struct {
-	Sure      *sources.SureDataset
+	Sure      *sources.BankData
 	Ninja     *sources.NinjaDataset
 	Paperless *sources.PaperlessDataset
 	Mail      *sources.MailDataset
@@ -316,7 +316,7 @@ type ReceiptInputs struct {
 }
 
 // MissingReceipts returns business spending with no receipt anywhere.
-func MissingReceipts(in ReceiptInputs) []sources.SureTxn {
+func MissingReceipts(in ReceiptInputs) []sources.BankTxn {
 	if in.Sure == nil || (len(in.Accounts) == 0 && !in.Sure.Classified()) {
 		return nil
 	}
@@ -324,7 +324,7 @@ func MissingReceipts(in ReceiptInputs) []sources.SureTxn {
 		r, ok := ParseDay(day)
 		return ok && abs(r.Sub(d).Hours()/hoursPerDay) <= float64(in.Window)
 	}
-	var out []sources.SureTxn
+	var out []sources.BankTxn
 	for _, t := range in.Sure.Transactions {
 		d, ok := ParseDay(t.Date)
 		spent := -t.Amount
@@ -340,7 +340,7 @@ func MissingReceipts(in ReceiptInputs) []sources.SureTxn {
 
 // business says whether a booking is on a business account: by the
 // account's role, else (no roles named yet) by the "accounts" setting.
-func business(in ReceiptInputs, t sources.SureTxn) bool {
+func business(in ReceiptInputs, t sources.BankTxn) bool {
 	if in.Sure.Classified() {
 		return t.Role == sources.RoleBusiness
 	}
@@ -413,12 +413,12 @@ func (s Spendable) Taxes() float64 { return max(s.VAT+s.IncomeTax-s.Reserve, 0) 
 //
 //	Cash 8 000, Reserve 3 000, VAT 1 500, income tax 2 500, fixed 900
 //	→ taxes uncovered 1 000 → free 8 000 − 1 000 − 900 = 6 100
-func SafeToSpend(sure *sources.SureDataset, ninja *sources.NinjaDataset, today time.Time, interval, method string, taxRate float64) Spendable {
+func SafeToSpend(sure *sources.BankData, ninja *sources.NinjaDataset, today time.Time, interval, method string, taxRate float64) Spendable {
 	cash, reserve := sure, sure.Only(sources.RoleReserve)
 	if reserve != sure {
 		cash = sure.Only(sources.RoleBusiness, sources.RolePrivate, sources.RoleUnknown)
 	} else {
-		reserve = &sources.SureDataset{}
+		reserve = &sources.BankData{}
 	}
 	s := Spendable{Cash: SureCash(cash), Reserve: SureCash(reserve), VAT: NinjaVATLiabilityOf(ninja, today, interval, method).Liability,
 		IncomeTax: IncomeTaxReserve(ninja, today, taxRate), Fixed: SureDue(sure, today, int(daysPerMonth))}
@@ -475,7 +475,7 @@ func sameThing(a, b string) bool {
 
 // Subscriptions lists active recurring expenses with monthly cost, the
 // matching contract and the last use found.
-func Subscriptions(sure *sources.SureDataset, contracts []sources.PaperlessContract, usage []Usage) []Subscription {
+func Subscriptions(sure *sources.BankData, contracts []sources.PaperlessContract, usage []Usage) []Subscription {
 	var out []Subscription
 	for _, r := range sure.Recurring {
 		if !r.Expense || r.Status == "inactive" {
@@ -506,7 +506,7 @@ func Subscriptions(sure *sources.SureDataset, contracts []sources.PaperlessContr
 // number. Without both dates the amount counts as monthly.
 //
 //	7 days, 10 € → 43.33 · 91 days, 30 € → 10 · 730 days, 240 € → 10
-func monthly(r sources.SureRecurring) float64 {
+func monthly(r sources.BankRecurring) float64 {
 	amount := r.Avg
 	if amount == 0 {
 		amount = r.Amount
@@ -739,8 +739,8 @@ func abs(f float64) float64 {
 // NotInWallos lists Sure's active recurring expenses that look like a
 // subscription (at most maxMonthly a month, name not in ignore) but have
 // no active Wallos entry of the same name.
-func NotInWallos(sure *sources.SureDataset, wallos *sources.WallosDataset, maxMonthly float64, ignore []string) []sources.SureRecurring {
-	var out []sources.SureRecurring
+func NotInWallos(sure *sources.BankData, wallos *sources.WallosDataset, maxMonthly float64, ignore []string) []sources.BankRecurring {
+	var out []sources.BankRecurring
 	for _, r := range sure.Recurring {
 		if !r.Expense || r.Status == "inactive" || monthly(r) > maxMonthly || ignored(r.Name, ignore) {
 			continue

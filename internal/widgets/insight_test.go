@@ -158,7 +158,7 @@ func TestKpiLiquidityUsesSureRecurring(t *testing.T) {
 	ninja := &sources.NinjaDataset{Invoices: []sources.NinjaInvoice{
 		{Status: "sent", Date: "2026-09-01", DueDate: "2026-10-01", Balance: 1000, Net: 840},
 	}}
-	sure := &sources.SureDataset{Recurring: []sources.SureRecurring{
+	sure := &sources.BankData{Recurring: []sources.BankRecurring{
 		{Name: "Miete", Status: "active", Amount: 450, Expense: true, Next: "2026-10-01"},
 		{Name: "Gehalt", Status: "active", Amount: 3000, Next: "2026-10-01"},
 		{Name: "Jahresbeitrag", Status: "active", Amount: 99, Expense: true, Next: "2027-01-01"},

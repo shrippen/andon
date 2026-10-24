@@ -4,7 +4,7 @@ package metrics
 // services, as preparation, not tax advice.
 //
 //	Invoice Ninja ─ payments, VAT, expenses by EÜR line ─┐
-//	Snipe-IT ────── depreciation per asset (its rule) ───┼─► year
+//	inventory ───── depreciation per asset (its life) ───┼─► year
 //	Kimai, Dawarich ─ days worked at home ───────────────┘
 
 import (
@@ -18,27 +18,27 @@ import (
 
 // ── Depreciation ──
 
-// AfaRow is one asset's depreciation in a year: linear over its
-// Snipe-IT rule's months, by month from the purchase month on.
+// AfaRow is one asset's depreciation in a year: linear over its useful
+// life in months, by month from the purchase month on.
 type AfaRow struct {
-	Asset   sources.SnipeAsset
-	Months  int     // the rule's months, 0 none
+	Asset   sources.Asset
+	Months  int     // the useful life, 0 none
 	Year    float64 // depreciation in the year
 	Left    float64 // book value at the year's end
 	Instant bool    // cost up to GwgLimit: may go off at once (GWG)
 }
 
 // GwgLimit is the cost up to which an asset may be expensed at once
-// (§ 6 Abs. 2 EStG, net); Snipe-IT's rule still decides the row.
+// (§ 6 Abs. 2 EStG, net); the useful life still decides the row.
 const GwgLimit = 800.0
 
 // Depreciation lists the assets that matter in year: bought in it, or
 // still depreciating in it. Assets without cost or date, and those done
 // before (or without rule bought earlier), stay out.
-func Depreciation(snipe *sources.SnipeDataset, year int) []AfaRow {
+func Depreciation(inv *sources.InventoryData, year int) []AfaRow {
 	end := time.Date(year, 12, 31, 0, 0, 0, 0, time.UTC)
 	var out []AfaRow
-	for _, a := range snipe.Assets {
+	for _, a := range inv.Assets {
 		bought, ok := ParseDay(a.PurchaseDate)
 		if !ok || a.PurchaseCost <= 0 || bought.After(end) {
 			continue

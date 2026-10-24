@@ -57,7 +57,7 @@
     <section class="card">
       <h2>{{t "year.afa"}}</h2>
       <p class="small muted">{{t "year.afa_lead"}}</p>
-      {{if not $p.Snipe}}<p class="muted">{{t "year.no_snipe"}}</p>
+      {{if not $p.Inventory}}<p class="muted">{{t "year.no_inventory"}}</p>
       {{else if $p.Afa}}<div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th>{{t "year.asset"}}</th><th class="num">{{t "year.cost"}}</th><th class="num">{{t "year.months"}}</th><th class="num">{{t "year.afa_year"}}</th><th class="num">{{t "year.left"}}</th></tr></thead>
         <tbody>{{range $p.Afa}}<tr><td data-card="title">{{.Asset.Name}} <small class="muted">{{day .Asset.PurchaseDate}}{{if .Instant}} · {{t "year.gwg"}}{{end}}</small></td>

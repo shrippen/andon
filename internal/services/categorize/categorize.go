@@ -59,7 +59,7 @@ type Page struct {
 	Scope      string
 	Choose     bool
 	Cases      []metrics.CatCase
-	Categories []sources.SureCategory
+	Categories []sources.BankCategory
 	Currency   string
 }
 
@@ -67,7 +67,7 @@ type book struct {
 	scope  workbench.Scope
 	choose bool
 	conn   *model.Connection
-	bank   *sources.SureDataset
+	bank   *sources.BankData
 	cases  []metrics.CatCase
 }
 
@@ -108,7 +108,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 	if err != nil {
 		return b, scopes, err
 	}
-	if b.bank, _ = res.Data.(*sources.SureDataset); b.bank == nil {
+	if b.bank, _ = res.Data.(*sources.BankData); b.bank == nil {
 		return b, scopes, ErrNoSure
 	}
 	b.cases = metrics.Uncategorized(b.bank)
@@ -138,7 +138,7 @@ func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 	}
 	it.CatCase = b.cases[i]
 	it.CategoryID = s.Field(FieldCategory)
-	j := slices.IndexFunc(b.bank.Categories, func(c sources.SureCategory) bool { return c.ID == it.CategoryID })
+	j := slices.IndexFunc(b.bank.Categories, func(c sources.BankCategory) bool { return c.ID == it.CategoryID })
 	if j < 0 {
 		return it, ProblemCategory
 	}

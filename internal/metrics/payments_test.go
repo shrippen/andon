@@ -21,7 +21,7 @@ func TestPaymentMatchesCheckName(t *testing.T) {
 			{ID: 41, Number: "R2026/0041", ClientID: 2, Status: "sent", Date: "2026-08-01", Amount: 100, Balance: 100},
 		},
 	}
-	sure := &sources.SureDataset{Transactions: []sources.SureTxn{
+	sure := &sources.BankData{Transactions: []sources.BankTxn{
 		{ID: "a", Date: "2026-07-22", Name: "musealis GmbH", Amount: 952},
 		{ID: "b", Date: "2026-07-24", Name: "Very Media GmbH", Amount: 535.5},
 		{ID: "c", Date: "2026-09-01", Name: "MUSEALIS GMBH Rechnung", Amount: 100},
@@ -51,7 +51,7 @@ func TestPaymentMatchesFollowPayerLinks(t *testing.T) {
 		Clients:  []sources.NinjaClient{{ID: 1, Key: "Nv1", Name: "Nivre Film & Studio GmbH"}},
 		Invoices: []sources.NinjaInvoice{{ID: 38, Number: "R2025/0038", ClientID: 1, Status: "sent", Date: "2026-06-01", Amount: 952, Balance: 952}},
 	}
-	sure := &sources.SureDataset{Transactions: []sources.SureTxn{
+	sure := &sources.BankData{Transactions: []sources.BankTxn{
 		{ID: "a", Date: "2026-07-22", Name: "Gutschrift", Merchant: "NSH Treuhand", Amount: 952},
 		{ID: "b", Date: "2026-08-22", Name: "Gutschrift", Merchant: "NSH Treuhand", Amount: 120},
 		{ID: "c", Date: "2026-08-23", Name: "Erstattung", Merchant: "Finanzamt", Amount: 80},
@@ -75,13 +75,13 @@ func TestPaymentMatchesFollowPayerLinks(t *testing.T) {
 // and dates in it vary per booking and are left out.
 func TestPayer(t *testing.T) {
 	for _, c := range []struct {
-		txn  sources.SureTxn
+		txn  sources.BankTxn
 		want string
 	}{
-		{sources.SureTxn{Name: "Gutschrift", Merchant: "ACME GmbH"}, "ACME GmbH"},
-		{sources.SureTxn{Name: "Northlight Pictures RE-2026-017"}, "Northlight Pictures"},
-		{sources.SureTxn{Name: "Northlight Pictures  RE-2026-021 vom 01.09."}, "Northlight Pictures vom"},
-		{sources.SureTxn{Name: "4711"}, "4711"},
+		{sources.BankTxn{Name: "Gutschrift", Merchant: "ACME GmbH"}, "ACME GmbH"},
+		{sources.BankTxn{Name: "Northlight Pictures RE-2026-017"}, "Northlight Pictures"},
+		{sources.BankTxn{Name: "Northlight Pictures  RE-2026-021 vom 01.09."}, "Northlight Pictures vom"},
+		{sources.BankTxn{Name: "4711"}, "4711"},
 	} {
 		if got := metrics.Payer(c.txn); got != c.want {
 			t.Errorf("%+v: %q, want %q", c.txn, got, c.want)

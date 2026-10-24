@@ -6,18 +6,20 @@ package widgets
 // settings → Homelab costs.
 
 import (
+	"slices"
 	"time"
 
+	"andon/internal/caps"
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/sources"
 )
 
 // costPeers are the services the bill is built from.
-var costPeers = []enums.ServiceType{
-	enums.ServiceHomeAssistant, enums.ServiceTibber, enums.ServiceSnipeIT, enums.ServiceSure, enums.ServiceFirefly, enums.ServiceDomains,
+var costPeers = slices.Concat([]enums.ServiceType{
+	enums.ServiceHomeAssistant, enums.ServiceTibber, enums.ServiceDomains,
 	enums.ServiceKimai, enums.ServiceKomodo, enums.ServiceGitea, enums.ServiceGitHub, enums.ServiceProxmox,
-}
+}, caps.Members(caps.Inventory), caps.Members(caps.Bank))
 
 // CostConfig is the "homelab_cost" widget's config.
 type CostConfig struct {
@@ -56,7 +58,7 @@ func homelabCostView(cfg CostConfig, results map[string]any, ctx ViewCtx) map[st
 	in := metrics.CostInputs{}
 	in.Hass, _ = ds[string(enums.ServiceHomeAssistant)].(*sources.HassDataset)
 	in.Tibber, _ = ds[string(enums.ServiceTibber)].(*sources.TibberDataset)
-	in.Snipe, _ = ds[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset)
+	in.Assets, _ = metrics.InventoryOf(ds)
 	in.Sure, _ = metrics.BankOf(ds)
 	in.Domains, _ = ds[string(enums.ServiceDomains)].(*sources.DomainsDataset)
 	bill := metrics.HomelabCost(in, s, time.Now().UTC())

@@ -49,7 +49,7 @@ func (v Votes) Best(key string) (string, int) {
 
 // SureCategoryVotes counts, per Sure category, the Ninja categories of
 // the expenses its debits paid: same amount, a few days apart.
-func SureCategoryVotes(n *sources.NinjaDataset, s *sources.SureDataset) Votes {
+func SureCategoryVotes(n *sources.NinjaDataset, s *sources.BankData) Votes {
 	out := Votes{}
 	if n == nil || s == nil {
 		return out

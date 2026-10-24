@@ -56,6 +56,7 @@ Datensatz ──► Kennzahlen ──► Kacheln, Seiten
 | **Prüflauf** | Hintergrund-Job, beim Start und alle `ANALYSIS_MINUTES` | holt alle Datensätze, wendet Regeln an; Seiten zeigen diesen Stand |
 | **Fähigkeit** | Domäne × Operation, mit Voraussetzungen | erkennen, was eine Verbindung kann (Plugin, Recht, Schnittstelle), und wer was speichert |
 | **Domäne** | ein Thema, das mehrere Dienste kennen | siehe „Fachliche Dinge“ |
+| **Kategorie** | Dienste, die dieselbe Art Daten halten, in einer Form: Inventar (Snipe-IT), Bank (Sure, Firefly III) | Regeln, Kennzahlen und Kacheln einmal schreiben (`inventory.*`, `bank.*`); im Verbund zählt das erste Mitglied ([`CAPABILITIES.md`](CAPABILITIES.md), „Kategorien“) |
 | **Verbund** | Verbindungen verschiedener Dienste, die zusammenarbeiten (englische Oberfläche: Bundle) | Partner finden (welches Kimai zu welchem Ninja), Zuordnungen tragen; implizit, solange es je Dienst eine Verbindung gibt |
 | **Zuordnung** | ein Ding in mehreren Diensten, je Dienst mit seiner ID | Kunde Kimai 12 = Ninja „Kx9“ = Sure-Zahler „ACME“ = Paperless-Korrespondent 7; Konto Ninja-Bankabruf „G1“ = Sure-Konto „a1“ |
 | **Verlauf** | Kennzahlen je Tag (Snapshots) | Trends, Saisonvergleich, Prognosen in Kacheln |

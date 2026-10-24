@@ -65,7 +65,7 @@ type SubCase struct {
 	Name   string
 	Ticked bool // safe to write as proposed: a price the bank pays
 
-	Bank   *sources.SureRecurring         // Sure's view, nil for a twin
+	Bank   *sources.BankRecurring         // Sure's view, nil for a twin
 	Wallos *sources.WallosSub             // the subscription it changes
 	Ninja  *sources.NinjaRecurringExpense // the recurring expense it changes
 	Keep   string                         // a twin's kept entry, by name and number
@@ -83,7 +83,7 @@ type SubCase struct {
 
 // SubInputs is what the cases are built from; Wallos and Ninja may be nil.
 type SubInputs struct {
-	Bank   *sources.SureDataset
+	Bank   *sources.BankData
 	Wallos *sources.WallosDataset
 	Ninja  *sources.NinjaDataset
 	// Categories maps Sure's category names to Ninja category keys
@@ -132,7 +132,7 @@ func SubCases(in SubInputs) []SubCase {
 }
 
 // wallosCases: r missing in Wallos, or there at another price.
-func wallosCases(in SubInputs, r *sources.SureRecurring, months int, next string) []SubCase {
+func wallosCases(in SubInputs, r *sources.BankRecurring, months int, next string) []SubCase {
 	w := in.Wallos
 	var found []*sources.WallosSub
 	for i := range w.Subs {
@@ -187,7 +187,7 @@ func closest[T any](entries []T, price func(T) float64, amount float64) (best T,
 
 // ninjaCases: a business payment without recurring expense, or one at
 // another price.
-func ninjaCases(in SubInputs, r *sources.SureRecurring, months int, next string) []SubCase {
+func ninjaCases(in SubInputs, r *sources.BankRecurring, months int, next string) []SubCase {
 	vendors := vendorNames(in.Ninja)
 	var out []SubCase
 	var open []*sources.NinjaRecurringExpense
@@ -249,8 +249,8 @@ func ninjaCases(in SubInputs, r *sources.SureRecurring, months int, next string)
 // still run. Only an inactive Sure entry counts: a payment Sure never
 // knew may come from an account it does not read.
 func endedCases(in SubInputs) []SubCase {
-	ended := func(name string) *sources.SureRecurring {
-		var gone *sources.SureRecurring
+	ended := func(name string) *sources.BankRecurring {
+		var gone *sources.BankRecurring
 		for i := range in.Bank.Recurring {
 			r := &in.Bank.Recurring[i]
 			if !r.Expense || !sameName(r.Name, name) {
@@ -331,7 +331,7 @@ func sameName(a, b string) bool { return sameThing(a, b) || sameThing(b, a) }
 
 // intervalMonths is r's interval (last → next) snapped to the services'
 // intervals; 0 is weekly. Without both dates it is monthly.
-func intervalMonths(r sources.SureRecurring) (int, bool) {
+func intervalMonths(r sources.BankRecurring) (int, bool) {
 	last, ok1 := ParseDay(r.Last)
 	next, ok2 := ParseDay(r.Next)
 	if !ok1 || !ok2 {
@@ -371,8 +371,8 @@ func nextPayment(day string, months int, today time.Time) string {
 }
 
 // lastPayment is the newest booking in Sure that pays r.
-func lastPayment(bank *sources.SureDataset, r *sources.SureRecurring) *sources.SureTxn {
-	var out *sources.SureTxn
+func lastPayment(bank *sources.BankData, r *sources.BankRecurring) *sources.BankTxn {
+	var out *sources.BankTxn
 	for i := range bank.Transactions {
 		t := &bank.Transactions[i]
 		if t.Amount >= 0 || !sameName(r.Name, t.Merchant+" "+t.Name) {

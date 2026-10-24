@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/caps"
 	"andon/internal/db"
 	"andon/internal/enums"
 	"andon/internal/metrics"
@@ -33,6 +34,11 @@ import (
 	"andon/internal/services/verbund"
 	"andon/internal/sources"
 )
+
+// costServices feed the cost overview and the depreciation from their
+// last background run: the inventory and bank categories among them.
+var costServices = slices.Concat([]enums.ServiceType{enums.ServiceHomeAssistant, enums.ServiceTibber, enums.ServiceDomains,
+	enums.ServiceKomodo, enums.ServiceGitea, enums.ServiceGitHub}, caps.Members(caps.Inventory), caps.Members(caps.Bank))
 
 const (
 	hoursPerDay    = 24
@@ -120,18 +126,18 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, link
 	uid := who.UserID
 	for _, c := range conns {
 		var params map[string]any
-		switch enums.ServiceType(c.Service) {
-		case enums.ServiceHomeAssistant, enums.ServiceTibber, enums.ServiceSnipeIT, enums.ServiceSure, enums.ServiceDomains,
-			enums.ServiceKomodo, enums.ServiceGitea, enums.ServiceGitHub:
+		service := enums.ServiceType(c.Service)
+		switch {
+		case slices.Contains(costServices, service):
 			// The last background run is enough for the cost overview.
 			if res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(c.Service)), nil, c, model.UserHolder(uid), svcdata.Stored); err == nil && res.Data != nil {
 				costData[c.Service] = res.Data
 			}
 			continue
-		case enums.ServiceKimai:
-		case enums.ServiceInvoiceNinja:
+		case service == enums.ServiceKimai:
+		case service == enums.ServiceInvoiceNinja:
 			ninjaOptions = c.Options
-		case enums.ServiceDawarich:
+		case service == enums.ServiceDawarich:
 			// Visits and tracks back to the start of the tax year.
 			params = map[string]any{"days": float64(time.Since(time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)).Hours()/hoursPerDay + 1)}
 			geoOptions = c.Options
@@ -175,8 +181,8 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, link
 	if ninja != nil {
 		files["euer.csv"] = euerRows(ninja, sources.CategoriesOf(ninjaOptions).EuerSlot, year)
 	}
-	if snipe, ok := costData[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset); ok {
-		files["afa.csv"] = afaRows(snipe, year)
+	if inv, ok := metrics.InventoryOf(costData); ok {
+		files["afa.csv"] = afaRows(inv, year)
 	}
 	if kimai != nil {
 		files["homeoffice.csv"] = homeRows(kimai, travel, year)
@@ -338,7 +344,7 @@ func itCostRows(data map[string]any, kimai *sources.KimaiDataset, settings map[s
 	in := metrics.CostInputs{}
 	in.Hass, _ = data[string(enums.ServiceHomeAssistant)].(*sources.HassDataset)
 	in.Tibber, _ = data[string(enums.ServiceTibber)].(*sources.TibberDataset)
-	in.Snipe, _ = data[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset)
+	in.Assets, _ = metrics.InventoryOf(data)
 	in.Sure, _ = metrics.BankOf(data)
 	in.Domains, _ = data[string(enums.ServiceDomains)].(*sources.DomainsDataset)
 	bill := metrics.HomelabCost(in, metrics.HomelabSettingsOf(settings), time.Now().UTC())
@@ -366,11 +372,11 @@ func euerRows(ninja *sources.NinjaDataset, slot, year int) [][]string {
 	return rows
 }
 
-// afaRows is the depreciation of the year by Snipe-IT's rule per asset.
-func afaRows(snipe *sources.SnipeDataset, year int) [][]string {
-	rows := [][]string{{"Anschaffung", "Gegenstand", "Inventarnummer", "Kategorie", "Kosten laut Snipe-IT", "Nutzungsdauer Monate", "AfA im Jahr", "Restwert Jahresende", "GWG möglich"}}
+// afaRows is the depreciation of the year by each asset's useful life.
+func afaRows(inv *sources.InventoryData, year int) [][]string {
+	rows := [][]string{{"Anschaffung", "Gegenstand", "Inventarnummer", "Kategorie", "Kosten laut Inventar", "Nutzungsdauer Monate", "AfA im Jahr", "Restwert Jahresende", "GWG möglich"}}
 	yesNo := map[bool]string{true: "ja", false: "nein"}
-	for _, r := range metrics.Depreciation(snipe, year) {
+	for _, r := range metrics.Depreciation(inv, year) {
 		months := ""
 		if r.Months > 0 {
 			months = strconv.Itoa(r.Months)

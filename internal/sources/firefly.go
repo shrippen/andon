@@ -1,6 +1,6 @@
 package sources
 
-// Firefly III fills the same bank shape as Sure (SureDataset with
+// Firefly III fills the same bank shape as Sure (BankData with
 // Service = firefly), so payment checks, subscriptions and spendable
 // cash read either. A personal access token is enough.
 //
@@ -40,7 +40,7 @@ func fetchFirefly(ctx context.Context, sctx Ctx) (any, error) {
 		return nil, err
 	}
 	api := services.BearerApi(sctx.URL, secret, sctx.TLS())
-	data := &SureDataset{URL: sctx.URL, Service: enums.ServiceFirefly}
+	data := &BankData{URL: sctx.URL, Service: enums.ServiceFirefly}
 	today := time.Now().UTC()
 	start, end := today.AddDate(0, 0, -sureDays).Format(time.DateOnly), today.Format(time.DateOnly)
 
@@ -52,7 +52,7 @@ func fetchFirefly(ctx context.Context, sctx Ctx) (any, error) {
 		a := asMap(raw)
 		attr := asMap(a["attributes"])
 		data.Currency = asStr(attr["currency_code"])
-		data.Accounts = append(data.Accounts, SureAccount{ID: asStr(a["id"]), Name: asStr(attr["name"]), Type: "depository",
+		data.Accounts = append(data.Accounts, BankAccount{ID: asStr(a["id"]), Name: asStr(attr["name"]), Type: "depository",
 			Classification: "asset", Balance: asFloat(attr["current_balance"]), Currency: data.Currency})
 	}
 
@@ -91,26 +91,26 @@ func fetchFirefly(ctx context.Context, sctx Ctx) (any, error) {
 	return data, nil
 }
 
-// fireflyTxn turns a split into Sure's shape: deposits positive with the
+// fireflyTxn turns a split into the bank shape: deposits positive with the
 // payer as merchant, withdrawals negative; transfers stay out.
-func fireflyTxn(id string, t map[string]any) (SureTxn, bool) {
+func fireflyTxn(id string, t map[string]any) (BankTxn, bool) {
 	amount := asFloat(t["amount"])
-	out := SureTxn{ID: id, Date: asStr(t["date"])[:min(len(asStr(t["date"])), len(time.DateOnly))], Name: asStr(t["description"]), Category: asStr(t["category_name"])}
+	out := BankTxn{ID: id, Date: asStr(t["date"])[:min(len(asStr(t["date"])), len(time.DateOnly))], Name: asStr(t["description"]), Category: asStr(t["category_name"])}
 	switch asStr(t["type"]) {
 	case fireflyDeposit:
 		out.Amount, out.Merchant, out.Account, out.AccountID = amount, asStr(t["source_name"]), asStr(t["destination_name"]), asStr(t["destination_id"])
 	case fireflyWithdrawal:
 		out.Amount, out.Merchant, out.Account, out.AccountID = -amount, asStr(t["destination_name"]), asStr(t["source_name"]), asStr(t["source_id"])
 	default:
-		return SureTxn{}, false
+		return BankTxn{}, false
 	}
 	return out, true
 }
 
 // fireflyRecurring takes a recurrence: its amount, the next occurrence
 // from today on.
-func fireflyRecurring(a map[string]any, today time.Time) SureRecurring {
-	r := SureRecurring{Name: asStr(a["title"]), Status: "inactive", Expense: asStr(a["type"]) == fireflyWithdrawal}
+func fireflyRecurring(a map[string]any, today time.Time) BankRecurring {
+	r := BankRecurring{Name: asStr(a["title"]), Status: "inactive", Expense: asStr(a["type"]) == fireflyWithdrawal}
 	if active, _ := a["active"].(bool); active {
 		r.Status = "active"
 	}
@@ -131,7 +131,7 @@ func fireflyRecurring(a map[string]any, today time.Time) SureRecurring {
 }
 
 // DemoFirefly is the studio's bank data as Firefly III would report it.
-func DemoFirefly(now time.Time) *SureDataset {
+func DemoFirefly(now time.Time) *BankData {
 	data := DemoSure(now)
 	data.Service, data.URL = enums.ServiceFirefly, "https://firefly.demo"
 	return data
@@ -139,5 +139,5 @@ func DemoFirefly(now time.Time) *SureDataset {
 
 func init() {
 	Register(FireflyData)
-	Register(testOf{FireflyData, func(d any) map[string]any { return map[string]any{"transactions": len(d.(*SureDataset).Transactions)} }})
+	Register(testOf{FireflyData, func(d any) map[string]any { return map[string]any{"transactions": len(d.(*BankData).Transactions)} }})
 }
