@@ -1285,6 +1285,35 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
 
 Abgelehnt: Auslagen vom Privatkonto. Offen: Zusammenfassende Meldung.
 
+### Kept: Inventar neben Snipe-IT (notiert 24.10.2026)
+
+Snipe-IT wird allein genutzt; das meiste davon (Ausgabe an Personen, Lizenzplätze, Audits) braucht niemand. Kept (Haushaltsinventar, AGPL) kommt als zweite Inventar-Integration dazu, Snipe-IT bleibt. API gegen einen Wegwerf-Container geprüft: [`research/kept.md`](research/kept.md). Die AfA bleibt in Andon (Kept kennt keine); Kept liefert Kaufdatum, Preis und die Nutzungsdauer aus einem eigenen Feld. Ein Schritt = ein PR.
+
+Vorbild Firefly III (füllt Sures Form, `metrics.BankOf`): Kept füllt die Form des Inventars, eigene Regel-Ids `kept.*`.
+
+**Schritt 1: Inventar neutral** (ohne sichtbare Änderung)
+- [ ] `SnipeDataset`/`SnipeAsset` werden `AssetDataset`/`Asset`, `ID` als Text (Kept: UUID); Lizenzen, Verbrauchsmaterial, Modelle und Status bleiben Snipe-IT-eigen im selben Datensatz
+- [ ] `metrics.AssetsOf(datasets)`: Snipe-IT, sonst Kept; AfA (`year`, EÜR-Export), Kosten (`Replacements`), `cross.*` mit Inventar und die Werkbänke „Käufe“ und „Inventar“ lesen darüber statt direkt
+- [ ] Domäne `caps.Assets` (lesen, anlegen, Garantie ändern) für Snipe-IT; die Werkbänke fragen `caps.Store`, wer schreibt
+
+**Schritt 2: Treiber und Quelle**
+- [ ] Treiber `KeptApi`: Bearer-Token, `things/sheet` mit Seiten, Ding-Details (`custom`), `If-Match`; MCP-Aufruf `tools/call` für `add_warranty`
+- [ ] Quelle `kept.data`: Dinge aller Orte des Tokens, Nutzungsdauer aus dem Feld (Option `life_field`, Vorgabe `nutzungsdauer`), Link je Ding; Verbindungstest nennt die erreichten Orte und ob das Modul MCP an ist
+- [ ] Fähigkeiten in `caps/declared.go`: lesen immer; anlegen mit Token `write`; Garantie mit Token `write` und Modul MCP (Voraussetzung `NeedSetting`); Texte `caps.*`
+- [ ] Demowelt: Kept-Stand der Inventar-Geräte in `world/business.json` (neben dem Snipe-IT-Stand), Andon liest ihn per Decode
+- [ ] Live-Test lesend und schreibend gegen den Container in `.local-test/extra/kept/` (https, eigenes Konto `andon-test`)
+
+**Schritt 3: Regeln und Kacheln**
+- [ ] `kept.warranty_expiring`, `kept.gwg_hint` (wie `snipe.*`); `snipe.expense_missing` und `cross.device_uninventoried` lesen über `AssetsOf`
+- [ ] Inventar-Kachel und Fristen zeigen Kept; Texte in beiden Katalogen
+- [ ] `QA.md`: Kept verbinden, AfA in der EÜR-Vorbereitung
+
+**Schritt 4: Schreiben**
+- [ ] Werkbank „Käufe“: Garantie nach Kept (MCP `add_warranty`); fehlt das Modul, sagt die Seite es statt zu scheitern
+- [ ] Werkbank „Inventar“: Gerät als Ding anlegen (Raum aus einer Option der Verbindung, sonst „Unplaced“)
+
+**Später, bei Bedarf:** Ablaufdaten (`expiresOn`) und `agenda` in die Fristen; Kept-Webhooks als Auslöser für einen neuen Abruf; Belege über Kepts Paperless-Verknüpfungen statt über Invoice Ninja; Umzug Snipe-IT → Kept (CSV-Import in Kept, nur mit Anmeldung).
+
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 
 Beide Regeln gelten für alle eigenen Projekte; in `agent.md` übernommen und angewendet (06.10.2026).
