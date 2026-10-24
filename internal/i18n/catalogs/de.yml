@@ -3204,7 +3204,7 @@ hint:
     split:
       title: '{count} Gegenstände nur in {other}'
       title_singular: '{count} Gegenstand nur in {other}'
-      why: 'Im Verbund zählt {first}; {names} fehlen deshalb in AfA und EÜR-Export. In {first} erfassen oder {other} aus dem Verbund nehmen.'
+      why: 'Im Verbund zählt {first}; {names} fehlen deshalb in AfA und EÜR-Export. In {first} erfassen; ist der Umzug fertig, die Verbindung zu {other} entfernen.'
     replace_worth:
       title: '{name}: Austausch rechnet sich in {months} Monaten'
       why: '{years} Jahre alt, zieht {watts} W ({yearly} Strom im Jahr). Ein Gerät mit {new_watts} W für {new_cost} hat sich nach {months} Monaten bezahlt.'

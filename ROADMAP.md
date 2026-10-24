@@ -1330,7 +1330,7 @@ Grundlage sind **Kategorien** ([`CAPABILITIES.md`](CAPABILITIES.md), „Kategori
 **Schritt 4: Belege mit Paperless**
 - [x] Kept verknüpft Belege selbst mit Paperless; Andon prüft das gegen den Paperless-Partner des Verbunds: Verknüpfung zeigt auf ein anderes Paperless (Adresse), Dokument fehlt dort (gelöscht), Kept meldet Paperless getrennt (`connected: false`)
 - [x] `inventory.receipt_missing`: Kauf ab Schwelle ohne Beleg (Belege in der Form der Kategorie; Snipe-IT liefert keine, die Regel schweigt dort) (kein Anhang `receipt`/`invoice`, keine Paperless-Verknüpfung dieser Art)
-- [x] `cross.kept_paperless`: die drei Prüfungen oben, je Art ein Hinweis mit den Namen der Dinge (ohne Link)
+- [x] `cross.kept_paperless`: die drei Prüfungen oben, je Art ein Hinweis mit den Namen der Dinge bzw. Orte (ohne Link)
 - [x] Entschieden: die Paperless-Quelle führt alle Dokument-IDs (`fields=id`, eine Seite; Paperless 3 liefert `all` nicht mehr), die Prüfung bleibt eine Regel
 - [ ] `inventory.expense_missing` für Kept: gibt es die Ausgabe in Ninja mit Beleg, ist der Paperless-Beleg derselbe (Dokument-ID)?
 
@@ -1343,7 +1343,7 @@ Grundlage sind **Kategorien** ([`CAPABILITIES.md`](CAPABILITIES.md), „Kategori
 
 **Danach:** Bank-Kategorie für weitere Dienste (Actual Budget …) nur bei Bedarf.
 
-**Offen (Reviews #199, #201):** Ohne verbundenes Paperless gilt ein Ding, dessen Beleg nur als Paperless-Verknüpfung besteht, als „ohne Beleg“ (`receipt()` wertet `PaperlessMissing` nicht aus): `inventory.receipt_missing` meldet zu Unrecht. Der Split-Hinweis rät zu „aus dem Verbund nehmen“; eine freie Verbindung kommt aber in jeden Verbund zurück (`verbund.fillGroup`), wirksam sind nur getrennte Verbünde: Text anpassen. Ein freies Kept im Bereich zählt vor Snipe-IT (AfA, Kosten): in QA.md bzw. bei der Einrichtung nennen.
+**Erledigt (Reviews #199, #201, #202):** Ist in Kept ein Paperless eingerichtet, aber getrennt, bleibt der Beleg unbekannt statt „ohne Beleg“; ohne eingerichtetes Paperless (Kept: `url` null) zählen nur Anhänge. Der Split-Hinweis rät, in Kept zu erfassen und Snipe-IT nach dem Umzug zu entfernen (getrennte Verbünde helfen nicht sicher: eine Verbindung, die als einzige ihres Dienstes besteht, kommt auch in fremde Verbünde). QA.md nennt, dass Kept vor Snipe-IT zählt.
 
 **Später, bei Bedarf:** Kept-Webhooks als Auslöser für einen neuen Abruf (`caps.Traits.Webhooks`; Kept richtet sie nur in der eigenen Oberfläche ein); Anmelden statt Token (Kept ist OAuth-Anbieter für MCP-Clients); Umzug Snipe-IT → Kept (CSV-Import in Kept, nur mit Anmeldung).
 

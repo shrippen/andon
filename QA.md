@@ -150,7 +150,8 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 **J-C15 Kept: Fristen und Belege**
 1. Hinweise: „Feuerlöscher Studio: Ablaufdatum am …“ (Info), „NAS: Wartung überfällig seit …“ (kritisch), „Studio: Dokument am …“; Garantien und Rückgaben erscheinen hier nicht (Garantien meldet `inventory.warranty_expiring`; Arten in der Regel `kept.due` wählbar). Dieselben Daten stehen im Kalender-Feed.
 2. „Kein Beleg zu Monitor 27"“ (`inventory.receipt_missing`), „1 Beleg in Kept verweist ins Leere: Möwe 7“ (Paperless-Dokument 999 fehlt). „In Kept öffnen“ führt auf `/t/<Kurzcode>`.
-3. Link-Kachel Kept (Board Übersicht → Dienste): „5 Dinge · 4 fällig“ (alles, was Kept nicht mehr „demnächst“ nennt, auch die Rückgabe).
+3. Ein Kept zählt in jedem Verbund, in den es kommt, vor Snipe-IT (AfA, Kosten); eine Verbindung, die als einzige ihres Dienstes besteht, kommt auch in fremde Verbünde (`verbund.fillGroup`). `inventory.split` nennt Gegenstände, die nur Snipe-IT hat, und rät, sie in Kept zu erfassen und Snipe-IT danach zu entfernen.
+4. Link-Kachel Kept (Board Übersicht → Dienste): „5 Dinge · 4 fällig“ (alles, was Kept nicht mehr „demnächst“ nennt, auch die Rückgabe).
 **J-C12 Release-Feeds**
 1. `/updates` → „Release-Feeds anpassen“: fest genannte Images ohne Feed mit vorgeschlagener Adresse und Kategorie; nichts angehakt.
 2. Adresse ändern, „Prüfen“; eine Nicht-GitHub-Adresse wird übersprungen; „In FreshRSS schreiben“ (Demo lehnt ab).
