@@ -35,6 +35,7 @@ var (
 	bankPayments   = useAll(caps.Bank, caps.Payments)
 	bankSubs       = useAll(caps.Bank, caps.Subscriptions)
 	paperlessDocs  = use(enums.ServicePaperless, caps.Receipts)
+	keptReceipts   = use(enums.ServiceKept, caps.Receipts)
 	paperlessSubs  = use(enums.ServicePaperless, caps.Subscriptions)
 	mailReceipts   = use(enums.ServiceMail, caps.Receipts)
 	wallosSubs     = use(enums.ServiceWallos, caps.Subscriptions)
@@ -66,4 +67,5 @@ func init() {
 	Uses("cross.charge_business", dawarichRides, kimaiRides)
 	Uses("mail.invoice_unrecorded", mailReceipts, ninjaReceipts)
 	Uses("paperless.invoice_unrecorded", paperlessDocs, ninjaReceipts)
+	Uses("cross.kept_paperless", keptReceipts, paperlessDocs)
 }

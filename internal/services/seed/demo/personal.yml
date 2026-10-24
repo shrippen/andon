@@ -10,6 +10,7 @@ connections:
   - {id: kimai, type: kimai, name: Kimai, url: "demo://kimai", credentials: shared}
   - {id: invoiceninja, type: invoiceninja, name: Invoice Ninja, url: "demo://invoiceninja", credentials: shared, options: {account_roles: {demo-a1: business, demo-a2: private}}}
   - {id: snipeit, type: snipeit, name: Snipe-IT, url: "demo://snipeit", credentials: shared}
+  - {id: kept, type: kept, name: Kept, url: "demo://kept", credentials: shared}
   - {id: sure, type: sure, name: Sure, url: "demo://sure", credentials: shared, options: {account_roles: {a1: business, a2: private}}}
   - {id: mail, type: mail, name: Postfach, url: "demo://mail", credentials: shared}
   - {id: paperless, type: paperless, name: Paperless, url: "demo://paperless", credentials: shared}
@@ -26,6 +27,7 @@ widgets:
   - {id: kimai-link, type: link, title: Kimai, config: {url: "https://www.kimai.org", icon: "hl-kimai", description: Zeiterfassung, status: "off", info: {connection: kimai}, hotkey: "k"}}
   - {id: in-link, type: link, title: Invoice Ninja, config: {url: "https://invoiceninja.com", icon: "hl-invoice-ninja", description: Rechnungen, status: "off", info: {connection: invoiceninja}, hotkey: "i"}}
   - {id: snipe-link, type: link, title: Snipe-IT, config: {url: "https://snipeitapp.com", icon: "hl-snipe-it", description: Assets, status: "off", info: {connection: snipeit}}}
+  - {id: kept-link, type: link, title: Kept, config: {url: "https://github.com/keptinventory/kept", description: Inventar, status: "off", info: {connection: kept}}}
   - {id: dawarich-link, type: link, title: Dawarich, config: {url: "https://dawarich.app", icon: "hl-dawarich", description: Standortverlauf, status: "off", info: {connection: dawarich}}}
   - {id: sure-link, type: link, title: Sure, config: {url: "https://github.com/we-promise/sure", icon: "hl-maybe", description: Finanzen, status: "off", info: {connection: sure}}}
   - {id: kpi-cash, type: kpi, title: "", connection: sure, config: {metric: cash}}
@@ -64,7 +66,7 @@ boards:
   - name: Übersicht
     slug: start
     sections:
-      - {title: Dienste, cols: 4, widgets: [kimai-link, in-link, snipe-link, dawarich-link, sure-link]}
+      - {title: Dienste, cols: 4, widgets: [kimai-link, in-link, snipe-link, kept-link, dawarich-link, sure-link]}
       - {title: Kennzahlen, widgets: [kpi-revenue, kpi-open, kpi-hours, kpi-util, kpi-vat, kpi-reserve, kpi-cash]}
       - {title: Hinweise, widgets: [hints, noise]}
       - {title: Lage, area: side, widgets: [light, today, recent]}

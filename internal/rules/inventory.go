@@ -4,7 +4,7 @@ package rules
 // every inventory fills (sources.InventoryData), so they run for each
 // inventory connection and need no copy per service.
 //
-//	inventory ─ warranty, GWG ─────────────────────────┐ per connection
+//	inventory ─ warranty, GWG, receipt ────────────────┐ per connection
 //	inventory × Invoice Ninja ─ purchase without expense ┤ cross
 //	inventory × Home Assistant ─ device worth replacing ─┘ cross
 
@@ -30,6 +30,10 @@ func init() {
 	Register("inventory.warranty_expiring", inv, map[string]any{"info_days": 60.0, "warn_days": 14.0}, onInventory(warrantyExpiring))
 
 	Register("inventory.gwg_hint", inv, map[string]any{"cost_is_gross": true}, onInventory(gwgHint))
+
+	// A purchase without receipt or invoice: the tax office and a warranty
+	// claim want one. Only inventories that keep receipts (Kept) say so.
+	Register("inventory.receipt_missing", inv, map[string]any{"days": 365.0, "min_amount": 50.0}, onInventory(receiptMissing))
 
 	Register("inventory.expense_missing", Cross, map[string]any{"days": 365.0, "tolerance": 0.05, "date_window": 14.0}, expenseMissing)
 
@@ -104,6 +108,24 @@ func gwgHint(data *sources.InventoryData, cfg map[string]any, env Env) []Finding
 		found = append(found, Finding{
 			Fingerprint: "gwg:" + a.ID, Severity: enums.SeverityInfo, Message: "inventory.gwg",
 			Params:    map[string]any{"asset": a.Name, "net": Money(net, "")},
+			ActionURL: a.Link, ActionLabel: openIn + string(data.Service),
+			Sources: []string{string(data.Service)},
+		})
+	}
+	return found
+}
+
+func receiptMissing(data *sources.InventoryData, cfg map[string]any, env Env) []Finding {
+	since := env.Today.AddDate(0, 0, -cfgInt(cfg, "days"))
+	var found []Finding
+	for _, a := range data.Assets {
+		bought, ok := metrics.ParseDay(a.PurchaseDate)
+		if a.Receipt != sources.ReceiptNone || !ok || bought.Before(since) || a.PurchaseCost < cfgFloat(cfg, "min_amount") {
+			continue
+		}
+		found = append(found, Finding{
+			Fingerprint: "receipt:" + a.ID, Severity: enums.SeverityInfo, Message: "inventory.receipt_missing",
+			Params:    map[string]any{"asset": a.Name, "amount": Money(a.PurchaseCost, ""), "day": Day(bought)},
 			ActionURL: a.Link, ActionLabel: openIn + string(data.Service),
 			Sources: []string{string(data.Service)},
 		})

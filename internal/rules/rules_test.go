@@ -417,3 +417,91 @@ func TestForServiceAddsCategory(t *testing.T) {
 		t.Errorf("snipeit runs %v", snipe)
 	}
 }
+
+// kept.due: Kept's agenda states become hints with their due date;
+// upcoming items and returns (not chosen by default) stay out.
+func TestKeptDue(t *testing.T) {
+	data := &sources.KeptDataset{URL: "https://kept.lan", Agenda: []sources.KeptDue{
+		{Kind: "thing_expiry", State: "expiring", Due: "2026-11-20", Title: "Feuerlöscher", Subject: "Feuerlöscher", Code: "FL0SCH"},
+		{Kind: "schedule", State: "overdue", Due: "2026-10-20", Title: "Filter", Subject: "NAS", Code: "N4S2HB"},
+		{Kind: "warranty", State: "upcoming", Due: "2027-05-01", Title: "Garantie", Subject: "Monitor"},
+		{Kind: "loan", State: "due", Due: "2026-10-24", Title: "Rückgabe", Subject: "Funkstrecke"},
+		{Kind: "document", State: "due", Due: "2026-10-30", Title: "Hausrat", Subject: "Studio"},
+	}}
+	got := run(t, "kept.due", data, rules.Env{Today: day("2026-10-24"), Settings: map[string]any{}})
+	if len(got) != 3 {
+		t.Fatalf("findings %+v", got)
+	}
+	ext, nas, doc := got[0], got[1], got[2]
+	if ext.Due != "2026-11-20" || ext.Severity != enums.SeverityInfo || ext.ActionURL != "https://kept.lan/t/FL0SCH" || ext.Message != "kept.due_expiring" {
+		t.Errorf("extinguisher %+v", ext)
+	}
+	if nas.Severity != enums.SeverityCritical || doc.Severity != enums.SeverityWarn || doc.ActionURL != "https://kept.lan/expiring" {
+		t.Errorf("nas %+v doc %+v", nas, doc)
+	}
+}
+
+// inventory.split: Kept counts; a bought NAS only Snipe-IT knows is named,
+// one in both (by serial) is not.
+func TestInventorySplit(t *testing.T) {
+	kept := &sources.KeptDataset{Things: []sources.KeptThing{{ID: "a", Name: "Laptop", Serial: "SN1", Bought: "2026-01-02", Price: 1200}}}
+	snipe := &sources.SnipeDataset{Assets: []sources.SnipeAsset{
+		{ID: 1, Name: "Schnitt-Laptop", Serial: "sn1", PurchaseDate: "2026-01-02", PurchaseCost: 1200},
+		{ID: 2, Name: "NAS", PurchaseDate: "2024-05-01", PurchaseCost: 650},
+		{ID: 3, Name: "Kabel"},
+	}}
+	env := rules.Env{Today: day("2026-10-24"), Settings: map[string]any{}, Datasets: map[string]any{"kept": kept, "snipeit": snipe}}
+	got := run(t, "inventory.split", nil, env)
+	if len(got) != 1 || got[0].Params["count"] != 1 || got[0].Params["names"] != "NAS" {
+		t.Fatalf("split %+v", got)
+	}
+	env.Datasets = map[string]any{"snipeit": snipe}
+	if got := run(t, "inventory.split", nil, env); len(got) != 0 {
+		t.Errorf("one inventory: %+v", got)
+	}
+}
+
+// inventory.receipt_missing: a recent Kept purchase without receipt or
+// invoice; Snipe-IT keeps no receipts and says nothing.
+func TestReceiptMissing(t *testing.T) {
+	kept := &sources.KeptDataset{URL: "https://kept.lan", Things: []sources.KeptThing{
+		{ID: "a", Code: "AAAAAA", Name: "Monitor", Bought: "2026-08-25", Price: 890},
+		{ID: "b", Name: "Laptop", Bought: "2026-09-24", Price: 1200, Receipts: []sources.KeptReceipt{{Role: "invoice", DocID: 4}}},
+		{ID: "c", Name: "Kabel", Bought: "2026-09-24", Price: 9},
+		{ID: "d", Name: "Feuerlöscher"},
+	}}
+	env := rules.Env{Today: day("2026-10-24"), Settings: map[string]any{}}
+	got := run(t, "inventory.receipt_missing", kept, env)
+	if len(got) != 1 || got[0].Params["asset"] != "Monitor" || got[0].ActionURL != "https://kept.lan/t/AAAAAA" {
+		t.Fatalf("receipts %+v", got)
+	}
+	snipe := &sources.SnipeDataset{Assets: []sources.SnipeAsset{{ID: 1, Name: "Monitor", PurchaseDate: "2026-08-25", PurchaseCost: 890}}}
+	if got := run(t, "inventory.receipt_missing", snipe, env); len(got) != 0 {
+		t.Errorf("snipe %+v", got)
+	}
+}
+
+// cross.kept_paperless: a link into another Paperless, a document gone,
+// a location without Paperless; a link to an existing one is fine.
+func TestKeptPaperless(t *testing.T) {
+	kept := &sources.KeptDataset{Things: []sources.KeptThing{
+		{Name: "Laptop", Bought: "2026-01-01", Receipts: []sources.KeptReceipt{{Role: "invoice", DocID: 4, Paperless: "https://docs.lan"}}},
+		{Name: "Phone", Bought: "2026-01-01", Receipts: []sources.KeptReceipt{{Role: "invoice", DocID: 999, Paperless: "https://DOCS.lan/"}}},
+		{Name: "Drucker", Bought: "2026-01-01", Receipts: []sources.KeptReceipt{{Role: "invoice", DocID: 4, Paperless: "https://old.lan"}}},
+		{Name: "Sofa", Location: "Wohnung", Bought: "2026-01-01", PaperlessMissing: true},
+	}}
+	paperless := &sources.PaperlessDataset{URL: "https://docs.lan", IDs: []int64{4, 5}}
+	env := rules.Env{Today: day("2026-10-24"), Settings: map[string]any{}, Datasets: map[string]any{"kept": kept, "paperless": paperless}}
+	got := run(t, "cross.kept_paperless", nil, env)
+	msgs := map[string]any{}
+	for _, f := range got {
+		msgs[f.Message] = f.Params["names"]
+	}
+	if len(got) != 3 || msgs["cross.kept_paperless_gone"] != "Phone" || msgs["cross.kept_paperless_elsewhere"] != "Drucker" || msgs["cross.kept_paperless_off"] != "Wohnung" {
+		t.Fatalf("paperless %+v", got)
+	}
+	paperless.IDs = nil
+	if got := run(t, "cross.kept_paperless", nil, env); len(got) != 2 {
+		t.Errorf("unknown ids: %+v", got)
+	}
+}

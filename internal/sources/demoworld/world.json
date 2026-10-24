@@ -1453,6 +1453,21 @@
   "note": "Paperless-ngx: the mobile contract's notice period ends in 20 days, its invoice waits in the inbox.",
   "url": "https://docs.demo",
   "total": 1843,
+  "ids_note": "The documents other services link (Kept's receipts, the scans): 412 is the laptop's invoice; 999, which Kept still links for the phone, is gone.",
+  "ids": [
+   88,
+   201,
+   202,
+   203,
+   204,
+   205,
+   206,
+   311,
+   412,
+   1841,
+   1842,
+   1843
+  ],
   "inbox": 7,
   "oldest_title": {
    "de": "Rechnung Elbnetz Mobilfunk",

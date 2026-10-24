@@ -29,7 +29,17 @@ type Asset struct {
 	WarrantyExpires string
 	// DepMonths is the useful life in months for depreciation, 0 none.
 	DepMonths int
+	Receipt   ReceiptState
 }
+
+// ReceiptState says whether an asset's purchase has a receipt.
+type ReceiptState string
+
+const (
+	ReceiptUnknown ReceiptState = ""     // the service keeps no receipts (Snipe-IT)
+	ReceiptNone    ReceiptState = "none" // it could, and has none
+	ReceiptFound   ReceiptState = "found"
+)
 
 // InventoryData is an inventory connection's assets.
 type InventoryData struct {

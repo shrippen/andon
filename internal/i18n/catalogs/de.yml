@@ -2238,6 +2238,16 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  kept:
+    due_expiring:
+      title: '{subject}: {kind} am {day}'
+      why: '„{title}“ steht in Kept bald an (Kepts Vorlauf).'
+    due_due:
+      title: '{subject}: {kind} heute fällig'
+      why: '„{title}“ ist laut Kept am {day} fällig.'
+    due_overdue:
+      title: '{subject}: {kind} überfällig seit {day}'
+      why: '„{title}“ ist in Kept überfällig. Erledigen und in Kept abhaken.'
   llm:
     budget_over:
       title: '{account}: Budget aufgebraucht'
@@ -2689,6 +2699,17 @@ hint:
       title: 'Bank-Sync fehlgeschlagen: {name}'
       why: Zugang bei der Bank erneuern, sonst fehlen Buchungen.
   cross:
+    kept_paperless_gone:
+      title: '{count} Belege in Kept verweisen ins Leere'
+      title_singular: '{count} Beleg in Kept verweist ins Leere'
+      why: 'Kept verknüpft Paperless-Dokumente, die es in Paperless nicht mehr gibt: {names}. Neu verknüpfen.'
+    kept_paperless_elsewhere:
+      title: '{count} Belege in Kept liegen in einem anderen Paperless'
+      title_singular: '{count} Beleg in Kept liegt in einem anderen Paperless'
+      why: 'Die Verknüpfung zeigt nicht auf das Paperless des Verbunds: {names}. Paperless-Verbindung in Kept prüfen.'
+    kept_paperless_off:
+      title: 'Kept ohne Paperless: {names}'
+      why: 'Diese Kept-Orte haben keine funktionierende Paperless-Verbindung; Belege lassen sich dort nicht verknüpfen und nicht prüfen. In Kept → Ort → Paperless einrichten.'
     esphome_ha_lost:
       title: 'Home Assistant hat {name} verloren'
       why: 'ESPHome erreicht den Knoten, seine {entities} Entitäten in Home Assistant sind aber nicht verfügbar (z. B. {entity}). API-Schlüssel oder Übernahme geändert?'
@@ -3177,6 +3198,13 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
   inventory:
+    receipt_missing:
+      title: 'Kein Beleg zu {asset}'
+      why: 'Gekauft am {day} für {amount}; in Kept hängt weder Quittung noch Rechnung, auch nicht aus Paperless. Fürs Finanzamt und für die Garantie anhängen oder verknüpfen.'
+    split:
+      title: '{count} Gegenstände nur in {other}'
+      title_singular: '{count} Gegenstand nur in {other}'
+      why: 'Im Verbund zählt {first}; {names} fehlen deshalb in AfA und EÜR-Export. In {first} erfassen oder {other} aus dem Verbund nehmen.'
     replace_worth:
       title: '{name}: Austausch rechnet sich in {months} Monaten'
       why: '{years} Jahre alt, zieht {watts} W ({yearly} Strom im Jahr). Ein Gerät mit {new_watts} W für {new_cost} hat sich nach {months} Monaten bezahlt.'
@@ -3213,6 +3241,10 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
 info:
+  kept:
+    things: '{count} Dinge'
+    things_singular: '{count} Ding'
+    close: '{count} fällig'
   llm:
     month: '{amount} diesen Monat'
     credit: 'Guthaben {amount}'
@@ -3518,6 +3550,10 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  inventory.receipt_missing: Kauf ohne Beleg
+  cross.kept_paperless: Kept-Belege gegen Paperless
+  kept.due: Fristen aus Kept
+  inventory.split: Zwei Inventare im Verbund
   llm.budget: 'KI-Budget'
   llm.credit_low: 'KI-Guthaben knapp'
   llm.spike: 'KI-Kostensprung'
@@ -3759,6 +3795,7 @@ rule_name:
   truenas.scrub_old: 'Pool-Scrub'
   gateway.new_device: 'Neue Geräte im Netz'
 param:
+  kinds: Arten
   min_balance: 'Guthaben unter (USD)'
   min_limit_pct: 'Schlüssel-Limit übrig unter (%)'
   min_usd: 'Mindestens (USD)'
@@ -7683,3 +7720,10 @@ release:
   newer: 'Andon {version} ist erschienen ({date}).'
   notes: 'Was ist neu'
   hide: 'Hinweis bis zur nächsten Version ausblenden'
+kept:
+  kind:
+    thing_expiry: Ablaufdatum
+    warranty: Garantie
+    document: Dokument
+    schedule: Wartung
+    loan: Rückgabe

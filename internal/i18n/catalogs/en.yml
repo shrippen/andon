@@ -2238,6 +2238,16 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  kept:
+    due_expiring:
+      title: '{subject}: {kind} on {day}'
+      why: '“{title}” is coming up in Kept (Kept’s lead time).'
+    due_due:
+      title: '{subject}: {kind} due today'
+      why: '“{title}” is due on {day} according to Kept.'
+    due_overdue:
+      title: '{subject}: {kind} overdue since {day}'
+      why: '“{title}” is overdue in Kept. Do it and tick it off in Kept.'
   llm:
     budget_over:
       title: '{account}: budget used up'
@@ -2689,6 +2699,17 @@ hint:
       title: 'Bank sync failed: {name}'
       why: Renew the bank connection or transactions will be missing.
   cross:
+    kept_paperless_gone:
+      title: '{count} receipts in Kept point nowhere'
+      title_singular: '{count} receipt in Kept points nowhere'
+      why: 'Kept links Paperless documents that no longer exist: {names}. Link them again.'
+    kept_paperless_elsewhere:
+      title: '{count} receipts in Kept are in another Paperless'
+      title_singular: '{count} receipt in Kept is in another Paperless'
+      why: 'The link does not point to the bundle’s Paperless: {names}. Check the Paperless connection in Kept.'
+    kept_paperless_off:
+      title: 'Kept without Paperless: {names}'
+      why: 'These Kept locations have no working Paperless connection; receipts there can be neither linked nor checked. Set it up in Kept → location → Paperless.'
     esphome_ha_lost:
       title: 'Home Assistant lost {name}'
       why: 'ESPHome reaches the node, but its {entities} entities in Home Assistant are unavailable (e.g. {entity}). Changed API key or adoption?'
@@ -3176,6 +3197,13 @@ hint:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
   inventory:
+    receipt_missing:
+      title: 'No receipt for {asset}'
+      why: 'Bought on {day} for {amount}; Kept holds no receipt or invoice, attached or from Paperless. Attach or link one for taxes and the warranty.'
+    split:
+      title: '{count} assets only in {other}'
+      title_singular: '{count} asset only in {other}'
+      why: 'The bundle counts {first}; {names} are therefore missing from depreciation and the EUER export. Add them to {first} or take {other} out of the bundle.'
     replace_worth:
       title: '{name}: replacement pays back in {months} months'
       why: '{years} years old, draws {watts} W ({yearly} power a year). A {new_watts} W device for {new_cost} pays back after {months} months.'
@@ -3212,6 +3240,10 @@ hint:
       title: 'Large expense: {name} ({amount})'
       why: 'On {day}, well above the usual. Double charge or price increase?'
 info:
+  kept:
+    things: '{count} things'
+    things_singular: '{count} thing'
+    close: '{count} due'
   llm:
     month: '{amount} this month'
     credit: 'credit {amount}'
@@ -3517,6 +3549,10 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  inventory.receipt_missing: Purchase without receipt
+  cross.kept_paperless: Kept receipts against Paperless
+  kept.due: Due dates from Kept
+  inventory.split: Two inventories in one bundle
   llm.budget: 'LLM budget'
   llm.credit_low: 'LLM credit low'
   llm.spike: 'LLM cost spike'
@@ -3758,6 +3794,7 @@ rule_name:
   truenas.scrub_old: 'Pool scrub'
   gateway.new_device: 'New devices on the network'
 param:
+  kinds: Kinds
   min_balance: 'Credit below (USD)'
   min_limit_pct: 'Key limit left below (%)'
   min_usd: 'At least (USD)'
@@ -7682,3 +7719,10 @@ release:
   newer: 'Andon {version} is out ({date}).'
   notes: "What's new"
   hide: 'Hide until the next version'
+kept:
+  kind:
+    thing_expiry: Expiry date
+    warranty: Warranty
+    document: Document
+    schedule: Maintenance
+    loan: Return
