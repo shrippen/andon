@@ -3354,8 +3354,8 @@
     "bought": "@date-30",
     "price": 1200,
     "currency": "EUR",
-    "warranty_ends": "@date+700",
-    "life": 36,
+    "warranty_ends": "@date+10",
+    "life": 12,
     "receipts": [
      {
       "role": "invoice",
@@ -3383,7 +3383,7 @@
     "receipts": [
      {
       "role": "receipt",
-      "url": "https://docs.demo/documents/88/details"
+      "url": "https://kept.demo/files/nas-kassenbon.pdf"
      }
     ]
    },
@@ -3424,7 +3424,7 @@
     "bought": "@date-60",
     "price": 890,
     "currency": "EUR",
-    "life": 36
+    "life": 12
    },
    {
     "id": "th-extinguisher",

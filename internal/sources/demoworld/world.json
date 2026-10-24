@@ -1818,7 +1818,7 @@
   ]
  },
  "kept_state": {
-  "note": "Kept, the studio's inventory as andon reads it: the same four assets as Snipe-IT plus the fire extinguisher. The laptop's invoice is a Paperless link, the NAS has its receipt as an attached link, the phone's link points to a Paperless document that is gone (999), the monitor has no receipt. The extinguisher's check is due in 20 days; the agenda carries Kept's own lead times.",
+  "note": "Kept, the studio's inventory as andon reads it: the same four assets as Snipe-IT, with the same warranty ends and useful lives, plus the fire extinguisher. The laptop's invoice is a Paperless link, the NAS has its receipt as an attached file, the phone's link points to a Paperless document that is gone (999), the monitor has no receipt. The extinguisher's check is due in 20 days; the agenda carries Kept's own lead times.",
   "url": "https://kept.demo",
   "writable": true,
   "locations": [
@@ -1842,8 +1842,8 @@
     "bought": "@date-30",
     "price": 1200,
     "currency": "EUR",
-    "warranty_ends": "@date+700",
-    "life": 36,
+    "warranty_ends": "@date+10",
+    "life": 12,
     "receipts": [
      {
       "role": "invoice",
@@ -1871,7 +1871,7 @@
     "receipts": [
      {
       "role": "receipt",
-      "url": "https://docs.demo/documents/88/details"
+      "url": "https://kept.demo/files/nas-kassenbon.pdf"
      }
     ]
    },
@@ -1912,7 +1912,7 @@
     "bought": "@date-60",
     "price": 890,
     "currency": "EUR",
-    "life": 36
+    "life": 12
    },
    {
     "id": "th-extinguisher",
