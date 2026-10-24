@@ -20,10 +20,13 @@ Verbrauchsmaterial braucht niemand. Getestet: Kept 1.12.5 als Wegwerf-Container
 | Eigene Felder (Nutzungsdauer) | `GET /api/v1/things/{id}`: `custom {nutzungsdauer: 36}`; das Sheet liefert `custom` nicht | lesen |
 | Belege | `GET /api/v1/things/{id}/attachments` (`role: receipt`, Datei oder `url`) | lesen |
 | Paperless-Verknüpfungen | `GET /api/v1/paperless-links?thingId=…` (je Ding): `{connected, url, items: [{documentId, kind, title, typeName, correspondent, createdOn, openUrl}]}`; `url` ist das Paperless des Kept-Orts, `kind` `receipt`, `invoice`, `warranty_doc`, `manual` … (Kept liest es aus Dokumenttyp und Tags); Titel aus Kepts Speicher, auch wenn Paperless nicht antwortet | lesen |
-| Termine | `GET /api/v1/agenda?from=…&to=…`: `items [{sourceType, kind, state, dueOn, subject {type, id, name, shortCode}}]`, `state` `upcoming`/`expiring`/`due`/`overdue` mit Kepts Vorlauf je Eintrag; `sourceType` `thing_expiry`, `warranty`, `document`, `schedule`, `loan`. Geprüft: Ablaufdatum 2026-11-20 mit 30 Tagen Vorlauf ist am 24.10. `expiring`, Garantien `upcoming` | lesen |
-| Ding anlegen | `POST /api/v1/things` mit `placeId` (Pflicht, sonst „Unplaced“ des Orts) und `purchase` | schreiben |
+| Termine | `GET /api/v1/agenda?from=…&to=…`: `items [{sourceType, kind, state, dueOn, title, subject {type, id, name, shortCode}}]`, `state` `upcoming`/`expiring`/`due`/`overdue` mit Kepts Vorlauf je Eintrag; `sourceType` `thing_expiry`, `warranty`, `document`, `schedule`, `loan`. Geprüft: Ablaufdatum 2026-11-20 mit 30 Tagen Vorlauf ist am 24.10. `expiring`, Garantien `upcoming` | lesen |
+| Orte und Module | `GET /api/v1/locations`: `locations [{id, name, modules}]`; `modules` enthält `mcp`, wenn das Modul an ist | lesen |
+| Räume eines Orts | `GET /api/v1/locations/{id}/places`: `places [{id, name, isUnplaced}]`; „Unplaced“ nimmt Dinge ohne Raum auf | lesen |
+| Ding anlegen | `POST /api/v1/things` mit `locationId`, `placeId` (Pflicht; Andon nimmt den Raum mit `isUnplaced`) und `purchase` | schreiben |
 | Feld ändern | `PATCH /api/v1/things/{id}` mit `custom`, `If-Match` | schreiben |
 | Garantie setzen | REST `POST /things/{id}/warranties` ist für Tokens gesperrt; MCP-Werkzeug `add_warranty` (`thing_id`, `kind`, `term_months` oder `ends_on`) geht, wenn im Ort das Modul `mcp` an ist | schreiben |
+| Schreibrecht erkennen | MCP `tools/list`: ein Schreib-Token bekommt `add_warranty`, ein Lese-Token nicht; ohne Modul MCP gibt es keine Werkzeuge, das Recht bleibt unbekannt | lesen |
 | Wertangaben, Webhooks, CSV-Import/-Export | nur mit Anmeldung in Kept | – |
 
 Garantie: Kept rechnet das Ende selbst (`startsOn` + `termMonths`, ohne Start das Kaufdatum).
