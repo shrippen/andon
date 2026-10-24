@@ -219,8 +219,8 @@ type HomelabBill struct {
 type CostInputs struct {
 	Hass    *sources.HassDataset
 	Tibber  *sources.TibberDataset
-	Snipe   *sources.SnipeDataset
-	Sure    *sources.SureDataset
+	Assets  *sources.InventoryData
+	Sure    *sources.BankData
 	Domains *sources.DomainsDataset
 }
 
@@ -236,8 +236,8 @@ func HomelabCost(in CostInputs, s HomelabSettings, today time.Time) HomelabBill 
 	if w, ok := PowerWatts(in.Hass, s.PowerEntity); ok {
 		add("power", s.PowerEntity, MonthlyPowerCost(w, PowerPrice(in.Tibber, s.PowerPrice)))
 	}
-	if in.Snipe != nil {
-		for _, a := range in.Snipe.Assets {
+	if in.Assets != nil {
+		for _, a := range in.Assets.Assets {
 			bought, ok := ParseDay(a.PurchaseDate)
 			if !ok || a.PurchaseCost <= 0 || today.Sub(bought).Hours()/hoursPerDay > s.HardwareYrs*365 {
 				continue
@@ -320,14 +320,14 @@ type Replacement struct {
 	PaybackMonths int
 }
 
-// Replacements pairs Snipe-IT assets with Home Assistant power sensors by
+// Replacements pairs inventory assets with Home Assistant power sensors by
 // name and computes when a device of newWatts for newCost pays back.
-func Replacements(snipe *sources.SnipeDataset, hass *sources.HassDataset, price, newWatts, newCost float64, today time.Time) []Replacement {
-	if snipe == nil || hass == nil || price <= 0 {
+func Replacements(inv *sources.InventoryData, hass *sources.HassDataset, price, newWatts, newCost float64, today time.Time) []Replacement {
+	if inv == nil || hass == nil || price <= 0 {
 		return nil
 	}
 	var out []Replacement
-	for _, a := range snipe.Assets {
+	for _, a := range inv.Assets {
 		bought, ok := ParseDay(a.PurchaseDate)
 		if !ok {
 			continue
@@ -486,7 +486,7 @@ func init() {
 		in := CostInputs{}
 		in.Hass, _ = s.Datasets[string(enums.ServiceHomeAssistant)].(*sources.HassDataset)
 		in.Tibber, _ = s.Datasets[string(enums.ServiceTibber)].(*sources.TibberDataset)
-		in.Snipe, _ = s.Datasets[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset)
+		in.Assets, _ = InventoryOf(s.Datasets)
 		in.Sure, _ = BankOf(s.Datasets)
 		in.Domains, _ = s.Datasets[string(enums.ServiceDomains)].(*sources.DomainsDataset)
 		settings := HomelabSettingsOf(s.Settings)

@@ -298,3 +298,35 @@ Abweichungen vom Entwurf, und was er offen ließ:
 - **Kunden über alle Mitglieder:** Invoice Ninja führt die Zeilen (Quelle der Namen), Kimai, Sure (Zahler: Händler, sonst Buchungstext ohne Nummern und Daten) und Paperless (Korrespondent) sind Spalten; ohne Ninja führt Kimai. Ein Feld mit „–“ lässt den Namen entscheiden, „Kein Gegenstück“ sagt, dass es keinen gibt. Früher gespeicherte Kimai-Kunden ohne Ninja-Kunden stehen darunter und lassen sich vergessen. Verknüpfte Zahler zählen beim Zahlungsabgleich und bei unerwarteten Eingängen als der Kunde (`metrics.PayerMap`); die Kundenseite verlinkt die Dokumente des Korrespondenten in Paperless (`metrics.DocsMap`).
 - **Verweise:** `Cap.Refs` nennt die IDs anderer Dienste, die eine Fähigkeit speichert (Kimai-Orte → Dawarich-Orte, Ninja-Ausgaben ↔ Paperless-Belege). `caps.Order` leitet die Reihenfolge beim Anlegen ab (ein Test hält sie mit `sites.Create`/`Sync` gleich), `caps.Needed` die Abhängigkeiten. Regeln deklarieren, was sie lesen (`rules.Uses`, `internal/rules/uses.go`); ist ein Dienst daraus oder aus seinen Verweisen ausgefallen, bleiben ihre Hinweise stehen (`Spec.Incomplete`). `rules.Needs` bleibt für Dienste ohne Fähigkeiten.
 - **Eigenschaften:** Was ein Dienst neben den Domänen kann, steht in `caps.Traits` (`internal/caps/traits.go`): Webhooks (`hooks.Accepts`), Wiederherstellungstest (`rules.BackupSystems`), Anmeldung ohne Token (`connect.MethodOf`, das nur Adresse und Optionen dazu prüft) und OAuth-Client (`connect.NeedsClient`). Die Akte zeigt sie bei den Fähigkeiten.
+
+## Kategorien (entschieden 24.10.2026)
+
+Mehrere Dienste halten dieselbe Art Daten: Inventar (Snipe-IT, als nächstes Kept), Bank (Sure, Firefly III). Bisher löste Andon das dreimal anders: Firefly füllte Sures Datensatz und brauchte eigene Kopien der Regeln (`firefly.*`), Sicherungen und Streams lesen eine Schnittstelle (`sources.BackupSource`, `StreamSource`), KI-Anbieter teilen einen Datensatz (`LLMDataset`). Standard ist jetzt eine **Kategorie**: Auswertungen lesen ihre Form, nie einen einzelnen Dienst.
+
+```
+  Snipe-IT ─ SnipeDataset ─┐ Inventory()           ┌─ inventory.* Regeln (einmal)
+                           ├─► InventoryData ──────┼─ AfA, Kosten, Käufe, EÜR
+  (Kept) ── KeptDataset ──┘   (Form der Kategorie) └─ Kacheln
+     │
+     └─ was nur ein Dienst kann (Lizenzen, Audits) bleibt in seinem Datensatz: snipe.*
+```
+
+Eine Kategorie besteht aus:
+
+1. **Mitgliedern** in `caps` (`caps.Members(caps.Inventory)`), das bevorzugte zuerst: Stehen zwei Mitglieder im selben Verbund (Umzug von Snipe-IT nach Kept), zählt das erste, damit nichts doppelt abgeschrieben oder gezählt wird.
+2. **Form** in `sources`: ein Typ (`InventoryData`, `BankData`) und eine Schnittstelle, mit der ein Datensatz ihn liefert (`InventorySource.Inventory()`, `BankSource.Bank()`). IDs sind Text (Snipe-IT zählt, Kept nimmt UUIDs). Ein Dienst, dessen Datensatz schon die Form ist (Sure, Firefly), gibt sich selbst zurück.
+3. **Auswahl** in `metrics`: `metrics.InventoryOf(datasets)`, `metrics.BankOf(datasets)` nehmen das erste Mitglied des Verbunds. Querregeln, Kacheln und Services lesen nur darüber; was sie laden, folgt aus den Mitgliedern (Kacheln `categoryPeers`, Werkbänke `workbench.Need` mit `caps.Members`, Jahresexport `costServices`).
+4. **Regeln einmal**: `rules.Register("inventory.warranty_expiring", string(caps.Inventory), …)`. Der Prüflauf wendet auf jede Verbindung die Regeln ihres Dienstes und ihrer Kategorie an (`rules.ForService`). Regel-Ids und Texte heißen nach der Kategorie (`inventory.*`, `bank.*`), Dienstregeln nur für Eigenes (`snipe.license_seats`, `sure.sync_failed`).
+
+Grenzen:
+- **Nur mit zweitem Mitglied.** Eine Kategorie entsteht, wenn ein zweiter Dienst dieselben Daten liefert (Inventar: Kept ist beschlossen); Kimai oder Invoice Ninja allein bekommen keine Abstraktion auf Vorrat.
+- **Kleinster gemeinsamer Nenner.** Die Form enthält, was alle Mitglieder liefern können; ein Feld, das einer nicht hat, bleibt leer statt erfunden (Kept: kein Lebensende).
+- **Schreiben** bleibt bei den Fähigkeiten (`caps.Store`), nicht bei der Kategorie: Wer eine Garantie schreiben kann, sagt die Deklaration des Dienstes.
+- **Bestehende Formen:** Sicherungen, Streams und KI-Anbieter folgen dem Muster schon (Schnittstelle bzw. ein Datensatz für alle, Regeln einmal) und lesen bereichsweit; sie bleiben, wie sie sind.
+
+Umbenannte Regeln (Migration `0026`: Hinweise samt Notizen und Verlauf, Regel-Einstellungen der Bereiche; hatte ein Bereich Einstellungen für Sure und Firefly, gilt die von Sure):
+
+| bisher | jetzt |
+|---|---|
+| `snipe.warranty_expiring`, `snipe.gwg_hint`, `snipe.expense_missing`, `snipe.replace_worth` | `inventory.*` |
+| `sure.*` und `firefly.*`: `recurring_missed`, `low_balance`, `uncategorized`, `unusual_expense`; `sure.subscription_unused`, `sure.spendable_negative` | `bank.*` |

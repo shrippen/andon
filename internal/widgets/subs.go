@@ -118,7 +118,7 @@ func subsView(cfg SubsConfig, results map[string]any, ctx ViewCtx) map[string]an
 // category of its latest booking: Sure's recurring payments have none.
 //
 //	{Date: 09-05, Name: "Adobe", Category: "Software"} → {"adobe": "Software"}
-func sureCategories(sure *sources.SureDataset) map[string]string {
+func sureCategories(sure *sources.BankData) map[string]string {
 	out := map[string]string{}
 	latest := map[string]string{}
 	for _, t := range sure.Transactions {

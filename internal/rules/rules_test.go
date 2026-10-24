@@ -135,7 +135,7 @@ func TestSnipeGWGHintNetOfVAT(t *testing.T) {
 		Assets: []sources.SnipeAsset{{ID: 1, Name: "Server", PurchaseDate: "2026-02-01", PurchaseCost: 1200}},
 	}
 	// 1200 gross / 1.19 ≈ 1008.4 net, above the 800 GWG limit.
-	found := run(t, "snipe.gwg_hint", data, rules.Env{Today: day("2026-03-01"), Settings: map[string]any{}})
+	found := run(t, "inventory.gwg_hint", data, rules.Env{Today: day("2026-03-01"), Settings: map[string]any{}})
 	if len(found) != 1 {
 		t.Fatalf("expected 1 GWG hint, got %+v", found)
 	}
@@ -148,7 +148,7 @@ func TestSnipeWarrantyExpiringSeverityByThreshold(t *testing.T) {
 			{ID: 2, Name: "Later", Tag: "A2", WarrantyExpires: "2026-04-20"}, // 50 days: info
 		},
 	}
-	found := run(t, "snipe.warranty_expiring", data, rules.Env{Today: day("2026-03-01"), Settings: map[string]any{}})
+	found := run(t, "inventory.warranty_expiring", data, rules.Env{Today: day("2026-03-01"), Settings: map[string]any{}})
 	if len(found) != 2 {
 		t.Fatalf("expected 2 findings, got %d", len(found))
 	}
@@ -393,5 +393,27 @@ func TestNinjaLinksUseKeys(t *testing.T) {
 	}
 	if f := run(t, "in.draft_stale", data, env); len(f) != 1 || f[0].ActionURL != "https://in.example/invoices/iN9/edit" {
 		t.Errorf("invoice link: %+v", f)
+	}
+}
+
+// A connection runs its service's rules and its category's: Firefly the
+// bank rules, Sure also its own sync check.
+func TestForServiceAddsCategory(t *testing.T) {
+	ids := func(service string) map[string]bool {
+		out := map[string]bool{}
+		for _, s := range rules.ForService(service) {
+			out[s.ID] = true
+		}
+		return out
+	}
+	firefly, sure, snipe := ids("firefly"), ids("sure"), ids("snipeit")
+	if !firefly["bank.low_balance"] || firefly["sure.sync_failed"] {
+		t.Errorf("firefly runs %v", firefly)
+	}
+	if !sure["bank.low_balance"] || !sure["sure.sync_failed"] {
+		t.Errorf("sure runs %v", sure)
+	}
+	if !snipe["inventory.warranty_expiring"] || !snipe["snipe.license_seats"] {
+		t.Errorf("snipeit runs %v", snipe)
 	}
 }

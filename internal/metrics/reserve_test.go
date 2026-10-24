@@ -10,7 +10,7 @@ import (
 // A reserve account is no free cash, and it covers taxes before the
 // free cash does.
 func TestSafeToSpendReserve(t *testing.T) {
-	sure := &sources.SureDataset{Accounts: []sources.SureAccount{
+	sure := &sources.BankData{Accounts: []sources.BankAccount{
 		{Name: "Geschäft", Type: "depository", Balance: 8000, Role: sources.RoleBusiness},
 		{Name: "Rücklage", Type: "depository", Balance: 3000, Role: sources.RoleReserve},
 	}}

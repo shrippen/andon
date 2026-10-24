@@ -4,7 +4,7 @@ package rules
 //
 //	ghostfolio.drawdown   the depot lost more than "percent" over its range
 //	cross.depot_reserve   cash falls short of taxes and fixed costs
-//	                      (sure.spendable_negative) while the depot could
+//	                      (bank.spendable_negative) while the depot could
 //	                      close the gap
 
 import (

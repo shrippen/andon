@@ -2,7 +2,6 @@
 //
 //	dawarich <-> kimai      client visit without booking, booking "on site" without visit
 //	dawarich                tracking stopped (rides: travel.go)
-//	snipeit <-> invoiceninja purchase without expense
 package rules
 
 import (
@@ -51,8 +50,6 @@ func init() {
 	Register("geo.time_without_visit", Cross, map[string]any{"keywords": []any{"vor ort", "on-site", "onsite"}}, timeWithoutVisit)
 
 	Register("geo.no_data", string(enums.ServiceDawarich), map[string]any{"hours": 24.0}, on(geoNoData))
-
-	Register("snipe.expense_missing", Cross, map[string]any{"days": 365.0, "tolerance": 0.05, "date_window": 14.0}, expenseMissing)
 }
 
 func visitWithoutTime(_ any, cfg map[string]any, env Env) []Finding {
@@ -160,45 +157,6 @@ func geoNoData(data *sources.DawarichDataset, cfg map[string]any, env Env) []Fin
 		ActionURL: strings.TrimRight(data.URL, "/") + "/map", ActionLabel: "open_in_dawarich",
 		Sources: []string{string(enums.ServiceDawarich)},
 	}}
-}
-
-func expenseMissing(_ any, cfg map[string]any, env Env) []Finding {
-	assets, ok1 := env.Datasets[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset)
-	ninja, ok2 := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
-	if !ok1 || !ok2 {
-		return nil
-	}
-	var found []Finding
-	for _, asset := range RecentPurchases(assets, env.Today, cfgInt(cfg, "days")) {
-		bought, ok := metrics.ParseDay(asset.PurchaseDate)
-		if !ok || bought.Year() != env.Today.Year() {
-			continue
-		}
-		cost := asset.PurchaseCost
-		tolerance := cost * cfgFloat(cfg, "tolerance")
-		window := cfgInt(cfg, "date_window")
-		matched := false
-		for _, e := range ninja.Expenses {
-			near := absF(e.Amount-cost) <= tolerance || absF(e.Amount-e.Tax-cost) <= tolerance
-			if !near {
-				continue
-			}
-			d, ok := metrics.ParseDay(e.Date)
-			if ok && absDays(d, bought) <= window {
-				matched = true
-				break
-			}
-		}
-		if matched {
-			continue
-		}
-		found = append(found, Finding{
-			Fingerprint: fmt.Sprintf("expense:%d", asset.ID), Severity: enums.SeverityInfo, Message: "snipe.expense_missing",
-			Params:  map[string]any{"asset": asset.Name, "amount": Money(cost, ""), "day": Day(bought)},
-			Sources: []string{string(enums.ServiceSnipeIT), string(enums.ServiceInvoiceNinja)},
-		})
-	}
-	return found
 }
 
 func stringsSlice(v any) []string {

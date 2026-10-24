@@ -34,7 +34,7 @@ func TestBankPeersReadFirefly(t *testing.T) {
 
 	// Liquidity with Firefly's recurring payments in Sure's place.
 	ninja := &sources.NinjaDataset{Invoices: []sources.NinjaInvoice{{Status: "sent", Date: "2026-09-01", DueDate: "2026-10-01", Balance: 1000, Net: 840}}}
-	firefly := &sources.SureDataset{Recurring: []sources.SureRecurring{{Name: "Miete", Status: "active", Amount: 450, Expense: true, Next: "2026-10-01"}}}
+	firefly := &sources.BankData{Recurring: []sources.BankRecurring{{Name: "Miete", Status: "active", Amount: 450, Expense: true, Next: "2026-10-01"}}}
 	ctx := ViewCtx{Today: "2026-09-20", Service: string(enums.ServiceInvoiceNinja)}
 	view := kind.View(cfg, map[string]any{"data": ninja, "firefly": firefly}, ctx)
 	if kpi := view["KPI"].(*KpiResult); kpi.SubOut != 450 {

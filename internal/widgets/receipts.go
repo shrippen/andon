@@ -35,7 +35,7 @@ type ReceiptRow struct {
 }
 
 func receiptsView(cfg ReceiptsConfig, results map[string]any, ctx ViewCtx) map[string]any {
-	sure, ok := results["data"].(*sources.SureDataset)
+	sure, ok := results["data"].(*sources.BankData)
 	if !ok {
 		return map[string]any{}
 	}

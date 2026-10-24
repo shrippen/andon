@@ -35,7 +35,7 @@ func TestSubCasesLive(t *testing.T) {
 			t.Fatalf("%s: %v", inst.Name, err)
 		}
 		switch d := out.(type) {
-		case *sources.SureDataset:
+		case *sources.BankData:
 			in.Bank = d
 		case *sources.WallosDataset:
 			in.Wallos = d

@@ -17,7 +17,7 @@ func TestReceiptsMissing(t *testing.T) {
 		t.Fatal("receipts_missing not registered")
 	}
 	cfg, _ := widgets.Decode("receipts_missing", map[string]any{})
-	sure := &sources.SureDataset{Currency: "EUR", Transactions: []sources.SureTxn{
+	sure := &sources.BankData{Currency: "EUR", Transactions: []sources.BankTxn{
 		{ID: "1", Date: "2026-09-12", Name: "Hetzner", Amount: -38.2, Account: "Geschäft"},
 		{ID: "2", Date: "2026-09-03", Name: "Thomann", Amount: -249, Account: "Geschäft"},
 		{ID: "3", Date: "2026-09-05", Name: "Supermarkt", Amount: -80, Account: "Privat"},

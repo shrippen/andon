@@ -149,7 +149,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 	}
 	var clients []metrics.NetClient
 	clients, b.from = metrics.NetClients(gw, fritz)
-	b.cases = metrics.Uninventoried(clients, b.snipe, ignored(b.settings))
+	b.cases = metrics.Uninventoried(clients, b.snipe.Inventory(), ignored(b.settings))
 	return b, scopes, nil
 }
 

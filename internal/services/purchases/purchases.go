@@ -145,7 +145,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 		}
 	}
 	b.ninja, b.linked = ninja != nil, ninja != nil && slot > 0
-	b.cases = metrics.Purchases(snipe, ninja, slot, today)
+	b.cases = metrics.Purchases(snipe.Inventory(), ninja, slot, today)
 	return b, scopes, nil
 }
 
@@ -219,7 +219,11 @@ type writer struct {
 }
 
 func (w writer) Write(ctx context.Context, p workbench.Planned[Item]) (string, error) {
-	return p.Item.Asset.Name, outbound.SnipeWarranty(ctx, w.to, p.Item.Asset.ID, p.Item.Months)
+	id, err := strconv.ParseInt(p.Item.Asset.ID, 10, 64)
+	if err != nil {
+		return p.Item.Asset.Name, err
+	}
+	return p.Item.Asset.Name, outbound.SnipeWarranty(ctx, w.to, id, p.Item.Months)
 }
 
 func (w writer) Name(p workbench.Planned[Item]) string { return p.Item.Asset.Name }

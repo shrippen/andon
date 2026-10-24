@@ -22,7 +22,7 @@ func TestPurchases(t *testing.T) {
 		{Number: "A-1", Date: "2026-09-04", Amount: 1190, Tax: 190},
 		{Number: "A-2", Date: "2026-07-02", Amount: 300, Custom: [sources.NinjaSlots]string{"", "doc 7"}},
 	}}
-	got := Purchases(snipe, ninja, 2, today)
+	got := Purchases(snipe.Inventory(), ninja, 2, today)
 	if len(got) != 2 || got[0].Asset.Name != "Laptop" || got[1].Asset.Name != "Kabel" {
 		t.Fatalf("cases: %+v", got)
 	}

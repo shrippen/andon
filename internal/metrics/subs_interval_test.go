@@ -26,7 +26,7 @@ func TestMonthlyEveryInterval(t *testing.T) {
 		{"two years", "2024-09-01", "2026-09-01", 240, 10},
 	}
 	for _, c := range cases {
-		got := round2(monthly(sources.SureRecurring{Amount: c.amount, Last: c.last, Next: c.next}))
+		got := round2(monthly(sources.BankRecurring{Amount: c.amount, Last: c.last, Next: c.next}))
 		if got != c.want {
 			t.Errorf("%s: %v a month, want %v", c.name, got, c.want)
 		}

@@ -15,9 +15,9 @@ func TestHomelabCostAndShares(t *testing.T) {
 		"power_price": 0.30, "hardware_years": 5.0, "domain_yearly": 12.0, "hosting_words": "hetzner"}})
 	in := metrics.CostInputs{
 		Hass:    &sources.HassDataset{Entities: []sources.Entity{{ID: "sensor.server", State: "50", Unit: "W"}}},
-		Snipe:   &sources.SnipeDataset{Assets: []sources.SnipeAsset{{Name: "NAS", PurchaseDate: "2024-01-01", PurchaseCost: 1200}, {Name: "Alt", PurchaseDate: "2015-01-01", PurchaseCost: 900}}},
+		Assets:  &sources.InventoryData{Assets: []sources.Asset{{Name: "NAS", PurchaseDate: "2024-01-01", PurchaseCost: 1200}, {Name: "Alt", PurchaseDate: "2015-01-01", PurchaseCost: 900}}},
 		Domains: &sources.DomainsDataset{Domains: []sources.DomainInfo{{Name: "a.de"}, {Name: "b.org"}}},
-		Sure:    &sources.SureDataset{Recurring: []sources.SureRecurring{{Name: "Hetzner Storage Box", Status: "active", Expense: true, Amount: 3.81}}},
+		Sure:    &sources.BankData{Recurring: []sources.BankRecurring{{Name: "Hetzner Storage Box", Status: "active", Expense: true, Amount: 3.81}}},
 	}
 	bill := metrics.HomelabCost(in, settings, today)
 	// power 50 W × 730 h × 0.30 = 10.95; NAS 1200/60 = 20; domains 2; hosting 3.81

@@ -1,16 +1,15 @@
 package metrics
 
 // Purchases made complete (services/purchases): an asset bought in the
-// last year should have its cost and warranty in Snipe-IT and an expense
+// last year should have its cost and warranty in the inventory and an expense
 // with its receipt in Invoice Ninja.
 //
-//	Snipe-IT asset ─ cost? warranty? ─┐
+//	inventory asset ─ cost? warranty? ┐
 //	Invoice Ninja ─ expense near the purchase (date, amount) ─ receipt? ─┴─► gaps
 
 import (
 	"math"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -30,7 +29,7 @@ const (
 // PurchaseCase is one asset with gaps.
 type PurchaseCase struct {
 	Key     string // "p-12"
-	Asset   sources.SnipeAsset
+	Asset   sources.Asset
 	Expense *sources.NinjaExpense // the one matched, nil none
 	Gaps    []PurchaseGap
 }
@@ -48,14 +47,14 @@ const (
 // Purchases lists the recent assets with gaps, newest first. ninja may
 // be nil (no expense checks); linkSlot is the expense custom field that
 // holds the receipt link (1–4, 0 unknown: no receipt check).
-func Purchases(snipe *sources.SnipeDataset, ninja *sources.NinjaDataset, linkSlot int, today time.Time) []PurchaseCase {
+func Purchases(inv *sources.InventoryData, ninja *sources.NinjaDataset, linkSlot int, today time.Time) []PurchaseCase {
 	var out []PurchaseCase
-	for _, a := range snipe.Assets {
+	for _, a := range inv.Assets {
 		bought, ok := ParseDay(a.PurchaseDate)
 		if !ok || today.Sub(bought).Hours()/hoursPerDay > purchaseDays || bought.After(today) {
 			continue
 		}
-		c := PurchaseCase{Key: purchaseNoKey + strconv.FormatInt(a.ID, 10), Asset: a}
+		c := PurchaseCase{Key: purchaseNoKey + a.ID, Asset: a}
 		if a.PurchaseCost <= 0 {
 			c.Gaps = append(c.Gaps, GapCost)
 		}

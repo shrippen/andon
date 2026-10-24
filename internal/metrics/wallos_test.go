@@ -10,7 +10,7 @@ import (
 // TestNotInWallos: Sure's recurring spending that looks like a
 // subscription (small, active, not ignored) but has no Wallos entry.
 func TestNotInWallos(t *testing.T) {
-	sure := &sources.SureDataset{Recurring: []sources.SureRecurring{
+	sure := &sources.BankData{Recurring: []sources.BankRecurring{
 		{Name: "Hetzner Online", Status: "active", Amount: 41.65, Expense: true},
 		{Name: "Adobe Creative Cloud", Status: "active", Amount: 66.45, Expense: true},
 		{Name: "Miete Büro", Status: "active", Amount: 450, Expense: true},

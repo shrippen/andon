@@ -40,15 +40,15 @@ type CategoryView struct {
 	Ninja      *model.Connection
 	Bank       *model.Connection // Sure or Firefly, nil if none
 	Categories []sources.NinjaCategory
-	Sure       []SureCategory
+	Sure       []BankCategory
 	Fields     [sources.NinjaSlots]sources.ExpenseField
 	Slot       int // the EÜR field (1–4), 0 none
 	Euer       []EuerRow
 	CanSave    bool // MANAGE on the Invoice Ninja
 }
 
-// SureCategory is one category of Sure with its Ninja category.
-type SureCategory struct {
+// BankCategory is one category of Sure with its Ninja category.
+type BankCategory struct {
 	Name      string
 	Count     int    // its debits sharing a booking with an expense
 	Mapped    string // saved Ninja key, "" none
@@ -159,9 +159,9 @@ func CategoriesFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaI
 	if ninja == nil {
 		return out, ErrNoData
 	}
-	var bank *sources.SureDataset
+	var bank *sources.BankData
 	if len(data) > 1 {
-		bank, _ = data[1].(*sources.SureDataset)
+		bank, _ = data[1].(*sources.BankData)
 	}
 
 	saved := sources.CategoriesOf(out.Ninja.Options)
@@ -182,7 +182,7 @@ func CategoriesFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaI
 
 // sureCategories lists Sure's categories of debits, the mapped and the
 // suggested Ninja category: by shared bookings, else the same name.
-func sureCategories(ninja *sources.NinjaDataset, bank *sources.SureDataset, saved map[string]string) []SureCategory {
+func sureCategories(ninja *sources.NinjaDataset, bank *sources.BankData, saved map[string]string) []BankCategory {
 	votes := metrics.SureCategoryVotes(ninja, bank)
 	var names []string
 	for _, t := range bank.Transactions {
@@ -191,9 +191,9 @@ func sureCategories(ninja *sources.NinjaDataset, bank *sources.SureDataset, save
 		}
 	}
 	sort.Strings(names)
-	out := make([]SureCategory, 0, len(names))
+	out := make([]BankCategory, 0, len(names))
 	for _, n := range names {
-		c := SureCategory{Name: n, Mapped: saved[n]}
+		c := BankCategory{Name: n, Mapped: saved[n]}
 		c.Suggested, c.Count = votes.Best(n)
 		if c.Suggested == "" {
 			for _, nc := range ninja.Categories {

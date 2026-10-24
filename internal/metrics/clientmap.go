@@ -72,7 +72,7 @@ func (m ClientMap) Customers(kimai *sources.KimaiDataset, ninja *sources.NinjaDa
 // Payer is who a Sure transaction is from: its merchant, else its name
 // without the words holding digits (invoice numbers, dates vary per
 // booking: "Northlight Pictures RE-2026-017" → "Northlight Pictures").
-func Payer(t sources.SureTxn) string {
+func Payer(t sources.BankTxn) string {
 	if t.Merchant != "" {
 		return t.Merchant
 	}
@@ -93,7 +93,7 @@ func Payer(t sources.SureTxn) string {
 type PayerMap map[string]string
 
 // ClientOf is the Ninja client reference of a transaction's payer.
-func (m PayerMap) ClientOf(t sources.SureTxn) (string, bool) {
+func (m PayerMap) ClientOf(t sources.BankTxn) (string, bool) {
 	ref, ok := m[Payer(t)]
 	return ref, ok && ref != ""
 }

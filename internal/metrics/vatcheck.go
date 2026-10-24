@@ -66,7 +66,7 @@ type ExpenseDraft struct {
 // BankCase is one open transaction with what it could be.
 type BankCase struct {
 	Txn      sources.NinjaBankTxn
-	Sure     *sources.SureTxn       // the same booking in Sure
+	Sure     *sources.BankTxn       // the same booking in Sure
 	Expenses []sources.NinjaExpense // unlinked, same amount, best first
 	Invoice  *sources.NinjaInvoice  // the open invoice it pays
 	ByNumber bool                   // the text names the invoice's number
@@ -93,7 +93,7 @@ func (c BankCase) Waiting() bool {
 // VATInputs is what the check reads.
 type VATInputs struct {
 	Ninja      *sources.NinjaDataset
-	Sure       *sources.SureDataset // nil without Sure
+	Sure       *sources.BankData // nil without Sure
 	Start, End time.Time
 	Method     string // ist, soll
 	Today      time.Time
@@ -330,7 +330,7 @@ func FeedTwin(n *sources.NinjaDataset, amount float64, day time.Time) (sources.N
 
 // sureTwin is the same booking in Sure: same amount and direction, a few
 // days apart, the one naming the payee first.
-func sureTwin(sure *sources.SureDataset, t sources.NinjaBankTxn, used map[string]bool) *sources.SureTxn {
+func sureTwin(sure *sources.BankData, t sources.NinjaBankTxn, used map[string]bool) *sources.BankTxn {
 	if sure == nil {
 		return nil
 	}
@@ -338,7 +338,7 @@ func sureTwin(sure *sources.SureDataset, t sources.NinjaBankTxn, used map[string
 	if !ok {
 		return nil
 	}
-	var best *sources.SureTxn
+	var best *sources.BankTxn
 	for i := range sure.Transactions {
 		s := &sure.Transactions[i]
 		if used[s.ID] || (s.Amount < 0) != t.Debit || abs(abs(s.Amount)-t.Amount) > amountTol || daysApart(s.Date, day) > bankWindow {
@@ -357,7 +357,7 @@ func sureTwin(sure *sources.SureDataset, t sources.NinjaBankTxn, used map[string
 // draftOf fills a new expense: a known vendor (its first word is a word
 // of the booking: "Mietwagen Nord" is not "Nordhost") brings its last
 // category and tax; otherwise Sure's merchant and category help.
-func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.SureTxn) ExpenseDraft {
+func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.BankTxn) ExpenseDraft {
 	var d ExpenseDraft
 	text := t.Payer + " " + t.Description
 	if sure != nil {
@@ -420,7 +420,7 @@ type VATCheck struct {
 	FeedTo         string                 // newest transaction of the feed
 	FeedLate       bool                   // the feed ends before the period
 	NoTax          []sources.NinjaExpense // without tax, while the vendor's others have it
-	SureOnly       []sources.SureTxn      // business bookings Ninja's feed lacks
+	SureOnly       []sources.BankTxn      // business bookings Ninja's feed lacks
 	Output, Input  float64
 	Due            float64
 }
@@ -479,7 +479,7 @@ func untaxed(in VATInputs) []sources.NinjaExpense {
 }
 
 // twinInFeed reports whether the feed has the Sure booking.
-func twinInFeed(n *sources.NinjaDataset, s sources.SureTxn) bool {
+func twinInFeed(n *sources.NinjaDataset, s sources.BankTxn) bool {
 	day, ok := ParseDay(s.Date)
 	if !ok {
 		return false
@@ -495,11 +495,11 @@ func twinInFeed(n *sources.NinjaDataset, s sources.SureTxn) bool {
 // sureOnly are the period's bookings of Sure's business accounts that
 // the feed lacks: Invoice Ninja missed them. Without roles there is no
 // telling business from private: nothing.
-func sureOnly(in VATInputs) []sources.SureTxn {
+func sureOnly(in VATInputs) []sources.BankTxn {
 	if in.Sure == nil || !in.Sure.Classified() {
 		return nil
 	}
-	var out []sources.SureTxn
+	var out []sources.BankTxn
 	for _, s := range in.Sure.Transactions {
 		d, ok := ParseDay(s.Date)
 		if !ok || d.Before(in.Start) || d.After(in.End) || s.Role != sources.RoleBusiness {
@@ -574,7 +574,7 @@ func (s VATSpan) Quarter() int { return (int(s.Start.Month())-1)/quarterMonths +
 // apart): the same real account shares many.
 //
 //	{"Kx9": {"a1": 14, "a2": 0}}
-func SharedBookings(n *sources.NinjaDataset, s *sources.SureDataset) map[string]map[string]int {
+func SharedBookings(n *sources.NinjaDataset, s *sources.BankData) map[string]map[string]int {
 	out := map[string]map[string]int{}
 	if n == nil || s == nil {
 		return out

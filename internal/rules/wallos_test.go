@@ -10,7 +10,7 @@ import (
 // TestWallosMissing: one hint names Sure's subscriptions Wallos lacks;
 // it leads to the subscription bench; none when Wallos has them all.
 func TestWallosMissing(t *testing.T) {
-	sure := &sources.SureDataset{Currency: "EUR", Recurring: []sources.SureRecurring{
+	sure := &sources.BankData{Currency: "EUR", Recurring: []sources.BankRecurring{
 		{Name: "Adobe Creative Cloud", Status: "active", Amount: 66.45, Expense: true},
 		{Name: "Hetzner Online", Status: "active", Amount: 41.65, Expense: true},
 	}}

@@ -2679,31 +2679,9 @@ hint:
       title: 'Kintsugi: suggestions left waiting'
       why: 'Open: {count}, the oldest for {days} days. Accept, snooze or reject.'
   sure:
-    subscription_unused:
-      title: '{name}: {amount}/month, hardly used'
-      why: 'No use found for over {days} days (tile clicks, logins).'
-    subscription_unused_deadline:
-      title: '{name}: {amount}/month, hardly used'
-      why: 'No use found for over {days} days. Cancel by {deadline}.'
-    spendable_negative:
-      title: 'Taxes and fixed costs exceed the cash'
-      why: 'Balance {cash}, to set aside {reserved} (VAT, income tax, 30 days of fixed costs). Missing {missing}.'
-    missed:
-      title: 'Expected payment “{name}” missing'
-      why: '{amount} was expected on {day}. Failed debit or changed contract?'
-    low:
-      title: '{account}: only {amount}'
-      why: Balance below threshold. Move money before debits bounce.
     sync:
       title: 'Bank sync failed: {name}'
       why: Renew the bank connection or transactions will be missing.
-    uncategorized:
-      title: '{count} transactions without category'
-      title_singular: '{count} transaction without category'
-      why: Budgets and reports are off without categories.
-    unusual:
-      title: 'Large expense: {name} ({amount})'
-      why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
     esphome_ha_lost:
       title: 'Home Assistant lost {name}'
@@ -3059,12 +3037,6 @@ hint:
       title_singular: '{count} invoice overdue: {client} ({amount})'
       why: 'Oldest for {days} days: {numbers}. Send reminders per invoice in Invoice Ninja.'
   snipe:
-    replace_worth:
-      title: '{name}: replacement pays back in {months} months'
-      why: '{years} years old, draws {watts} W ({yearly} power a year). A {new_watts} W device for {new_cost} pays back after {months} months.'
-    warranty:
-      title: Warranty of {asset} ends on {day}
-      why: Asset {tag}. Extend or plan a replacement.
     eol:
       title: '{asset} reached end of life'
       why: EOL date {day} ({tag}). Plan a replacement.
@@ -3083,12 +3055,6 @@ hint:
     unused:
       title: 'Unused devices: {count} for over {days} days'
       why: 'Ready to deploy but not assigned; longest ({oldest} days): {names}. Sell, use, or switch the rule off if this is normal for you.'
-    gwg:
-      title: '{asset}: {net} net'
-      why: 'Above 800 € net: check depreciation instead of immediate write-off (GWG).'
-    expense_missing:
-      title: No expense for {asset}
-      why: Bought on {day} for {amount}, no matching expense in Invoice Ninja.
     checkin_overdue:
       title: '{asset} was due back on {day}'
       why: 'Checked out to {who}. Ask for it or extend the return date in Snipe-IT.'
@@ -3203,6 +3169,42 @@ hint:
     crashed:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
+  inventory:
+    replace_worth:
+      title: '{name}: replacement pays back in {months} months'
+      why: '{years} years old, draws {watts} W ({yearly} power a year). A {new_watts} W device for {new_cost} pays back after {months} months.'
+    warranty:
+      title: Warranty of {asset} ends on {day}
+      why: Asset {tag}. Extend or plan a replacement.
+    gwg:
+      title: '{asset}: {net} net'
+      why: 'Above 800 € net: check depreciation instead of immediate write-off (GWG).'
+    expense_missing:
+      title: No expense for {asset}
+      why: Bought on {day} for {amount}, no matching expense in Invoice Ninja.
+  bank:
+    subscription_unused:
+      title: '{name}: {amount}/month, hardly used'
+      why: 'No use found for over {days} days (tile clicks, logins).'
+    subscription_unused_deadline:
+      title: '{name}: {amount}/month, hardly used'
+      why: 'No use found for over {days} days. Cancel by {deadline}.'
+    spendable_negative:
+      title: 'Taxes and fixed costs exceed the cash'
+      why: 'Balance {cash}, to set aside {reserved} (VAT, income tax, 30 days of fixed costs). Missing {missing}.'
+    missed:
+      title: 'Expected payment “{name}” missing'
+      why: '{amount} was expected on {day}. Failed debit or changed contract?'
+    low:
+      title: '{account}: only {amount}'
+      why: Balance below threshold. Move money before debits bounce.
+    uncategorized:
+      title: '{count} transactions without category'
+      title_singular: '{count} transaction without category'
+      why: Budgets and reports are off without categories.
+    unusual:
+      title: 'Large expense: {name} ({amount})'
+      why: 'On {day}, well above the usual. Double charge or price increase?'
 info:
   llm:
     month: '{amount} this month'
@@ -3512,10 +3514,6 @@ rule_name:
   llm.budget: 'LLM budget'
   llm.credit_low: 'LLM credit low'
   llm.spike: 'LLM cost spike'
-  firefly.recurring_missed: 'Recurring payment missed (Firefly III)'
-  firefly.low_balance: 'Low balance (Firefly III)'
-  firefly.uncategorized: 'Uncategorised transactions (Firefly III)'
-  firefly.unusual_expense: 'Unusual expense (Firefly III)'
   ghostfolio.drawdown: 'Depot down'
   cross.depot_reserve: 'Reserve from the depot'
   vikunja.overdue: 'Overdue tasks'
@@ -3571,7 +3569,7 @@ rule_name:
   system.connector_down: Connection failing
   system.unused_service: 'Unused service'
   energy.shift_jobs: 'Maintenance at expensive hours'
-  snipe.replace_worth: 'Replacement pays back'
+  inventory.replace_worth: 'Replacement pays back'
   energy.weather_adjusted: 'Use above the weather'
   system.storage_forecast: 'Storage filling up'
   backups.unsaved: 'Unsaved new data'
@@ -3585,8 +3583,8 @@ rule_name:
   gluetun.downloads_exposed: 'Downloads without VPN'
   cross.payment_unmatched: 'Payment without invoice'
   in.rate_below: 'Full-cost rate low'
-  sure.subscription_unused: 'Unused subscription'
-  sure.spendable_negative: 'Reserves missing'
+  bank.subscription_unused: 'Unused subscription'
+  bank.spendable_negative: 'Reserves missing'
   calendar.unbooked: 'Appointment without booking'
   kimai.booked_free_day: 'Booking on a day off'
   in.order_gap: 'Order gap'
@@ -3652,11 +3650,11 @@ rule_name:
   linkwarden.not_on_board: Bookmarks without tile
   linkwarden.not_saved: Tiles without bookmark
   kuma.unmonitored: Tiles without monitor
-  sure.recurring_missed: Missed payment
-  sure.low_balance: Low balance
+  bank.recurring_missed: Missed payment
+  bank.low_balance: Low balance
   sure.sync_failed: Bank sync
-  sure.uncategorized: Uncategorised
-  sure.unusual_expense: Unusual expense
+  bank.uncategorized: Uncategorised
+  bank.unusual_expense: Unusual expense
   cross.invoice_paid: Invoice paid, not recorded
   cross.expense_unrecorded: Business expense not recorded
   hass.alarm: Alarm sensors
@@ -3713,15 +3711,15 @@ rule_name:
   in.missing_vat: Missing VAT
   in.expense_no_input_vat: Expenses without input VAT
   in.client_concentration: Client dependency
-  snipe.warranty_expiring: Warranty end
+  inventory.warranty_expiring: Warranty end
   snipe.eol_reached: End of life
   snipe.license_expiring: Licence expiry
   snipe.license_seats: Licence seats
   snipe.audit_overdue: Audit overdue
   snipe.consumable_low: Consumables
   snipe.unassigned_deployable: Unused devices
-  snipe.gwg_hint: Low-value asset limit
-  snipe.expense_missing: Purchase without expense
+  inventory.gwg_hint: Low-value asset limit
+  inventory.expense_missing: Purchase without expense
   geo.visit_without_time: Visit without booking
   geo.time_without_visit: On-site without visit
   geo.travel_costs: Travel costs
@@ -6888,6 +6886,8 @@ board_layout:
 rule_scope:
   cross: 'Across services'
   deadlines: 'Deadlines'
+  inventory: 'Inventory'
+  bank: 'Bank'
 arr_check:
   IndexerStatusCheck: 'Indexer unavailable'
   IndexerLongTermStatusCheck: 'Indexer unavailable for hours'
@@ -7518,7 +7518,7 @@ year:
   new_clients: 'New this year:'
   prior_unknown: 'The data does not reach back through the year before; the comparison is left out then.'
   title: 'Year'
-  lead: 'The bundle’s tax year, to prepare the EUER: income, expenses by EUER line, depreciation by Snipe-IT’s rules and days worked from home. Andon only adds up what the services know; this is no tax advice.'
+  lead: 'The bundle’s tax year, to prepare the EUER: income, expenses by EUER line, depreciation by the useful life in the inventory and days worked from home. Andon only adds up what the services know; this is no tax advice.'
   years: 'Years'
   income: 'Income'
   paid: 'Payments received (gross)'
@@ -7536,15 +7536,15 @@ year:
   no_expenses: 'No expenses this year.'
   unlined_open: '{n} expenses still lack an EUER line.'
   afa: 'Depreciation'
-  afa_lead: 'Assets from Snipe-IT bought this year or still depreciating, by their depreciation rule. Andon does not know which are private: your tax advisor takes those out.'
-  no_snipe: 'The bundle has no Snipe-IT.'
+  afa_lead: 'Assets from the inventory bought this year or still depreciating, by their useful life. Andon does not know which are private: your tax advisor takes those out.'
+  no_inventory: 'The bundle has no inventory (Snipe-IT).'
   asset: 'Asset'
   cost: 'Cost'
   months: 'Months'
   afa_year: 'In the year'
   left: 'Book value'
   gwg: 'may be expensed at once'
-  no_rule: '{n} assets have no depreciation rule in Snipe-IT.'
+  no_rule: '{n} assets have no useful life in the inventory.'
   no_assets: 'No assets with purchase date and cost.'
   home: 'Home office'
   home_days: '{n} days with work in Kimai and no business ride, flat rate {amount}.'

@@ -242,7 +242,7 @@ func TestSureReadsAccountsTransactionsRecurring(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := out.(*sources.SureDataset)
+	d := out.(*sources.BankData)
 	if d.NetWorth != 1234.5 || d.Accounts[0].Balance != 123.45 || d.Transactions[0].Amount != 500 ||
 		!d.Recurring[0].Expense || d.Recurring[0].Amount != 450 || d.Recurring[1].Name != "Stadtwerke" || d.SyncError != "Sparkasse" {
 		t.Fatalf("data: %+v", d)

@@ -17,17 +17,17 @@ func TestDepreciation(t *testing.T) {
 		{Name: "Licht", PurchaseDate: "2025-02-18", PurchaseCost: 37.87},
 		{Name: "Neu", PurchaseDate: "2027-01-02", PurchaseCost: 100, DepMonths: 12},
 	}}
-	got := Depreciation(snipe, 2025)
+	got := Depreciation(snipe.Inventory(), 2025)
 	if len(got) != 2 || got[0].Asset.Name != "Licht" || got[0].Year != 0 || got[0].Left != 37.87 || !got[0].Instant {
 		t.Fatalf("2025: %+v", got)
 	}
 	if l := got[1]; l.Year != 400 || l.Left != 800 || l.Instant {
 		t.Errorf("laptop 2025: %+v", l)
 	}
-	if got := Depreciation(snipe, 2026); len(got) != 1 || got[0].Year != 800 || got[0].Left != 0 {
+	if got := Depreciation(snipe.Inventory(), 2026); len(got) != 1 || got[0].Year != 800 || got[0].Left != 0 {
 		t.Errorf("2026: only the laptop, got %+v", got)
 	}
-	if got := Depreciation(snipe, 2027); len(got) != 1 || got[0].Asset.Name != "Neu" {
+	if got := Depreciation(snipe.Inventory(), 2027); len(got) != 1 || got[0].Asset.Name != "Neu" {
 		t.Errorf("2027: only the new asset, got %+v", got)
 	}
 }

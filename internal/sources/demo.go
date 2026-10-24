@@ -696,16 +696,16 @@ func DemoHassHistory(now time.Time, ids []string) *HassHistory {
 
 // DemoSure is the demo Sure dataset; one income matches the open demo
 // invoice, one expected payment is overdue.
-func DemoSure(now time.Time) *SureDataset {
+func DemoSure(now time.Time) *BankData {
 	var data struct {
-		SureDataset
+		BankData
 		Transactions []struct {
-			SureTxn
+			BankTxn
 			Expense bool
 		}
 	}
 	demoworld.MustDecode("bank", now, &data)
-	out := data.SureDataset
+	out := data.BankData
 
 	// The demo's categories are the ones its bookings name, the name
 	// standing in for Sure's id.
@@ -715,10 +715,10 @@ func DemoSure(now time.Time) *SureDataset {
 			t.Amount = -t.Amount
 		}
 		t.CategoryID = t.Category
-		out.Transactions = append(out.Transactions, t.SureTxn)
+		out.Transactions = append(out.Transactions, t.BankTxn)
 		if t.Category != "" && !seen[t.Category] {
 			seen[t.Category] = true
-			out.Categories = append(out.Categories, SureCategory{ID: t.Category, Name: t.Category})
+			out.Categories = append(out.Categories, BankCategory{ID: t.Category, Name: t.Category})
 		}
 	}
 	return &out
