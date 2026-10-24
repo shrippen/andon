@@ -1291,28 +1291,53 @@ Snipe-IT wird allein genutzt; das meiste davon (Ausgabe an Personen, Lizenzplät
 
 Vorbild Firefly III (füllt Sures Form, `metrics.BankOf`): Kept füllt die Form des Inventars, eigene Regel-Ids `kept.*`.
 
+**Verbindung und Verbund**
+```
+                 Verbund "Studio Weber"
+  ┌─────────────────────────────────────────────────────────┐
+  │ Kept #21 ── Kauf ───────► Invoice Ninja #9 (Ausgabe)    │
+  │    │ ── Paperless-Dok-ID ► Paperless #14 (Beleg prüfen) │
+  │    │ ◄─ neue Geräte ───── FRITZ!Box #5 / Router         │
+  │    └─ Geräte ───────────► Home Assistant #2 (Ersatz)    │
+  └─────────────────────────────────────────────────────────┘
+```
+- Eine Kept-Verbindung: Adresse (https, sonst gibt Kept keine Tokens) und Token, fest oder als Vorlage (Kept-Tokens gehören einer Person: in einem Team jedem seinen). Welche Kept-Orte Andon liest, legt der Token fest, keine eigene Ortswahl in Andon; der Verbindungstest nennt sie.
+- Partner nur über den Verbund (`verbund.Partner`, `Pairs`): Ninja für `snipe.expense_missing`, Paperless für die Belege, FRITZ!Box/Router für die Werkbank „Inventar“, Home Assistant für Ersatzgeräte; nie „die erste Verbindung im Bereich“.
+- Snipe-IT und Kept im selben Verbund (Umzug): AfA, Kosten und Werkbänke lesen genau ein Inventar, gewählt über `caps.Order(caps.Assets, …)`, Kept vor Snipe-IT; die Seite des Verbunds zeigt, welches gilt. Regeln je Verbindung laufen für beide.
+- Werkbänke „Käufe“ und „Inventar“: `workbench.Need` kennt heute nur feste Dienste; neu „einer von“ (Snipe-IT oder Kept), damit `workbench.Scopes` Verbünde mit Kept anbietet.
+- `Cap.Refs`: Kept speichert IDs von Paperless-Dokumenten (Belege); daraus folgt, dass die Beleg-Prüfung Paperless als Partner braucht (`rules.Uses`).
+
 **Schritt 1: Inventar neutral** (ohne sichtbare Änderung)
 - [ ] `SnipeDataset`/`SnipeAsset` werden `AssetDataset`/`Asset`, `ID` als Text (Kept: UUID); Lizenzen, Verbrauchsmaterial, Modelle und Status bleiben Snipe-IT-eigen im selben Datensatz
-- [ ] `metrics.AssetsOf(datasets)`: Snipe-IT, sonst Kept; AfA (`year`, EÜR-Export), Kosten (`Replacements`), `cross.*` mit Inventar und die Werkbänke „Käufe“ und „Inventar“ lesen darüber statt direkt
-- [ ] Domäne `caps.Assets` (lesen, anlegen, Garantie ändern) für Snipe-IT; die Werkbänke fragen `caps.Store`, wer schreibt
+- [ ] `metrics.AssetsOf(datasets)` wählt das Inventar des Verbunds; AfA (`year`, EÜR-Export), Kosten (`Replacements`), `cross.*` mit Inventar und die Werkbänke lesen darüber statt direkt
+- [ ] Domäne `caps.Assets` (lesen, anlegen, Garantie ändern) für Snipe-IT; die Werkbänke fragen `caps.Store`, wer schreibt; `workbench.Need` mit „einer von“
 
 **Schritt 2: Treiber und Quelle**
-- [ ] Treiber `KeptApi`: Bearer-Token, `things/sheet` mit Seiten, Ding-Details (`custom`), `If-Match`; MCP-Aufruf `tools/call` für `add_warranty`
-- [ ] Quelle `kept.data`: Dinge aller Orte des Tokens, Nutzungsdauer aus dem Feld (Option `life_field`, Vorgabe `nutzungsdauer`), Link je Ding; Verbindungstest nennt die erreichten Orte und ob das Modul MCP an ist
-- [ ] Fähigkeiten in `caps/declared.go`: lesen immer; anlegen mit Token `write`; Garantie mit Token `write` und Modul MCP (Voraussetzung `NeedSetting`); Texte `caps.*`
-- [ ] Demowelt: Kept-Stand der Inventar-Geräte in `world/business.json` (neben dem Snipe-IT-Stand), Andon liest ihn per Decode
-- [ ] Live-Test lesend und schreibend gegen den Container in `.local-test/extra/kept/` (https, eigenes Konto `andon-test`)
+- [ ] Treiber `KeptApi`: Bearer-Token, `things/sheet` mit Seiten, Ding-Details (`custom`), `agenda`, `paperless-links` je Ding, `If-Match`; MCP `tools/call` für `add_warranty`
+- [ ] Quelle `kept.data`: Dinge aller Orte des Tokens mit Kauf, Garantieende, Ablaufdatum; Nutzungsdauer aus dem Feld (Option `life_field`, Vorgabe `nutzungsdauer`); Belege je Ding (Anhänge mit Rolle `receipt`/`invoice`, Paperless-Verknüpfungen mit Dokument-ID, Art und Paperless-Adresse). Details und Belege nur für Dinge mit Kauf und neuer `rowVersion`, der Rest bleibt im Speicher (wie Dawarichs Tracks)
+- [ ] Fähigkeiten in `caps/declared.go`: lesen immer; anlegen mit Token `write`; Garantie mit Token `write` und Modul MCP (`NeedSetting`); `Refs` auf Paperless-Dokumente; Texte `caps.*`
+- [ ] Demowelt: Kept-Stand der Inventar-Geräte in `world/business.json` (neben dem Snipe-IT-Stand, mit Belegen in Paperless und einem Ablaufdatum), Andon liest ihn per Decode
+- [ ] Live-Test lesend und schreibend gegen den Container in `.local-test/extra/kept/` (https, Konto `andon-test`, Paperless-Container aus `.local-test/writes/`)
 
-**Schritt 3: Regeln und Kacheln**
-- [ ] `kept.warranty_expiring`, `kept.gwg_hint` (wie `snipe.*`); `snipe.expense_missing` und `cross.device_uninventoried` lesen über `AssetsOf`
-- [ ] Inventar-Kachel und Fristen zeigen Kept; Texte in beiden Katalogen
-- [ ] `QA.md`: Kept verbinden, AfA in der EÜR-Vorbereitung
+**Schritt 3: Fristen aus Kept**
+- [ ] Kepts `agenda` (lesbar per Token) liefert alle Termine mit Zustand, Kept rechnet den Vorlauf je Eintrag selbst (`expiryLeadDays`, `leadDays` der Garantie): `thing_expiry` (Ablaufdatum, z. B. Feuerlöscher, Erste-Hilfe-Kasten), `warranty` (Garantieende, Registrierungsfrist), `document` (Dokument mit Ablauf), `schedule` (Wartung), `loan` (Rückgabe)
+- [ ] Regel `kept.due` je Art (`expiring`, `due`, `overdue`; Stufe info → warn → crit), Fälligkeit als Datum des Hinweises: erscheint in Fristen, Kalender und iCal und in der Zusammenfassung wie Steuerfristen; welche Arten zählen, wählt die Regel (Vorgabe alle außer `loan`)
+- [ ] Kachel „Fristen“ bzw. Inventar-Kachel: die nächsten Termine aus Kept (wie `SnipeUpcomingDates`), Popup mit Liste, Link je Eintrag nach Kept
 
-**Schritt 4: Schreiben**
+**Schritt 4: Belege mit Paperless**
+- [ ] Kept verknüpft Belege selbst mit Paperless; Andon prüft das gegen den Paperless-Partner des Verbunds: Verknüpfung zeigt auf ein anderes Paperless (Adresse), Dokument fehlt dort (gelöscht), Kept meldet Paperless getrennt (`connected: false`)
+- [ ] `kept.receipt_missing`: Kauf ab Schwelle ohne Beleg (kein Anhang `receipt`/`invoice`, keine Paperless-Verknüpfung dieser Art)
+- [ ] `cross.kept_paperless`: die drei Prüfungen oben, Hinweis an der Kept-Verbindung mit Link zum Ding
+- [ ] Offen zu entscheiden: Paperless-Quelle holt die von Kept genannten Dokumente gezielt (`documents/?id__in=`) oder die Prüfung läuft als Service im Prüflauf (Regeln haben kein I/O)
+- [ ] `snipe.expense_missing` für Kept: Ausgabe in Ninja zum Kauf; gibt es sie mit Beleg, ist der Paperless-Beleg derselbe (Dokument-ID)?
+
+**Schritt 5: Regeln, Kacheln, Schreiben**
+- [ ] `kept.gwg_hint` (wie `snipe.gwg_hint`); `cross.device_uninventoried` liest über `AssetsOf`; Inventar-Kachel zeigt Kept
 - [ ] Werkbank „Käufe“: Garantie nach Kept (MCP `add_warranty`); fehlt das Modul, sagt die Seite es statt zu scheitern
 - [ ] Werkbank „Inventar“: Gerät als Ding anlegen (Raum aus einer Option der Verbindung, sonst „Unplaced“)
+- [ ] `QA.md`: Kept verbinden, Fristen aus Kept, AfA in der EÜR-Vorbereitung, Beleg-Hinweis bis Paperless
 
-**Später, bei Bedarf:** Ablaufdaten (`expiresOn`) und `agenda` in die Fristen; Kept-Webhooks als Auslöser für einen neuen Abruf; Belege über Kepts Paperless-Verknüpfungen statt über Invoice Ninja; Umzug Snipe-IT → Kept (CSV-Import in Kept, nur mit Anmeldung).
+**Später, bei Bedarf:** Kept-Webhooks als Auslöser für einen neuen Abruf (`caps.Traits.Webhooks`; Kept richtet sie nur in der eigenen Oberfläche ein); Anmelden statt Token (Kept ist OAuth-Anbieter für MCP-Clients); Umzug Snipe-IT → Kept (CSV-Import in Kept, nur mit Anmeldung).
 
 ### Regeln: noch umzusetzen (notiert 06.10.2026)
 
