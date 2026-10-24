@@ -122,3 +122,40 @@ func TestDemoKept(t *testing.T) {
 		t.Fatalf("demo %+v", data)
 	}
 }
+
+// A failed detail read leaves the receipt unknown: no "no receipt" hint
+// for a thing whose invoice Kept has but did not answer for.
+func TestKeptReadErrorKeepsReceiptUnknown(t *testing.T) {
+	inner := keptFake(t, true)
+	defer inner.Close()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/paperless-links" {
+			w.WriteHeader(http.StatusBadGateway)
+			return
+		}
+		proxyTo(t, inner.URL, w, r)
+	}))
+	defer srv.Close()
+
+	raw, err := sources.KeptData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "kpt_a_b"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a := raw.(*sources.KeptDataset).Inventory().Assets[0]; a.Receipt != sources.ReceiptUnknown {
+		t.Errorf("receipt after a failed read: %q", a.Receipt)
+	}
+}
+
+// proxyTo forwards a request to the fake Kept.
+func proxyTo(t *testing.T, base string, w http.ResponseWriter, r *http.Request) {
+	t.Helper()
+	req, _ := http.NewRequest(r.Method, base+r.URL.RequestURI(), r.Body)
+	req.Header = r.Header.Clone()
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	w.WriteHeader(resp.StatusCode)
+	io.Copy(w, resp.Body)
+}

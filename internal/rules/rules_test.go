@@ -433,6 +433,11 @@ func TestKeptDue(t *testing.T) {
 		t.Fatalf("findings %+v", got)
 	}
 	ext, nas, doc := got[0], got[1], got[2]
+	// Warranties are inventory.warranty_expiring's; kept.due leaves them out.
+	data.Agenda[2].State = "expiring"
+	if again := run(t, "kept.due", data, rules.Env{Today: day("2026-10-24"), Settings: map[string]any{}}); len(again) != 3 {
+		t.Errorf("warranty counted twice: %+v", again)
+	}
 	if ext.Due != "2026-11-20" || ext.Severity != enums.SeverityInfo || ext.ActionURL != "https://kept.lan/t/FL0SCH" || ext.Message != "kept.due_expiring" {
 		t.Errorf("extinguisher %+v", ext)
 	}
@@ -455,6 +460,12 @@ func TestInventorySplit(t *testing.T) {
 	if len(got) != 1 || got[0].Params["count"] != 1 || got[0].Params["names"] != "NAS" {
 		t.Fatalf("split %+v", got)
 	}
+	// The same laptop, serial only in Kept: matched by name.
+	snipe.Assets[0].Serial, snipe.Assets[0].Name = "", "Laptop"
+	if got := run(t, "inventory.split", nil, env); len(got) != 1 || got[0].Params["count"] != 1 {
+		t.Errorf("serial on one side only: %+v", got)
+	}
+
 	env.Datasets = map[string]any{"snipeit": snipe}
 	if got := run(t, "inventory.split", nil, env); len(got) != 0 {
 		t.Errorf("one inventory: %+v", got)

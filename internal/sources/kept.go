@@ -68,6 +68,7 @@ type KeptThing struct {
 	Life             int    // useful life in months from the life field, 0 none
 	Receipts         []KeptReceipt
 	PaperlessMissing bool // the location's Paperless is not connected (links unchecked)
+	ReceiptsUnread   bool // a read of the receipts failed: receipt unknown, not missing
 }
 
 // keptProofs are the receipt roles that prove a purchase.
@@ -76,7 +77,7 @@ var keptProofs = []string{"receipt", "invoice"}
 // receipt is whether a bought thing has a receipt or invoice, attached or
 // linked in Paperless; things not bought need none.
 func (t KeptThing) receipt() ReceiptState {
-	if t.Bought == "" {
+	if t.Bought == "" || t.ReceiptsUnread {
 		return ReceiptUnknown
 	}
 	for _, r := range t.Receipts {
@@ -223,7 +224,7 @@ func keptDueOf(m map[string]any) KeptDue {
 
 // keptDetails reads, for every bought thing, the life field and the
 // receipts, keptParallel at a time. A failed read leaves the thing as the
-// sheet had it.
+// sheet had it, its receipt unknown.
 func keptDetails(ctx context.Context, api services.KeptApi, things []KeptThing, life string) {
 	sem := make(chan struct{}, keptParallel)
 	var wg sync.WaitGroup
@@ -240,12 +241,15 @@ func keptDetails(ctx context.Context, api services.KeptApi, things []KeptThing, 
 			defer func() { <-sem }()
 			detail, err := api.Get(ctx, keptThing+t.ID, nil)
 			if err != nil {
+				t.ReceiptsUnread = true
 				return
 			}
 			d := asMap(detail)
 			t.Life = int(asFloat(asMap(d["custom"])[life]))
 			if asFloat(d["attachmentsCount"]) > 0 {
-				t.Receipts = append(t.Receipts, keptAttachmentsOf(ctx, api, t.ID)...)
+				found, err := keptAttachmentsOf(ctx, api, t.ID)
+				t.Receipts = append(t.Receipts, found...)
+				t.ReceiptsUnread = err != nil
 			}
 			mu.Lock()
 			skip := noPaperless[t.Location]
@@ -254,7 +258,11 @@ func keptDetails(ctx context.Context, api services.KeptApi, things []KeptThing, 
 				t.PaperlessMissing = true
 				return
 			}
-			links, connected := keptPaperlessOf(ctx, api, t.ID)
+			links, connected, err := keptPaperlessOf(ctx, api, t.ID)
+			if err != nil {
+				t.ReceiptsUnread = true
+				return
+			}
 			if !connected {
 				mu.Lock()
 				noPaperless[t.Location] = true
@@ -267,25 +275,25 @@ func keptDetails(ctx context.Context, api services.KeptApi, things []KeptThing, 
 	wg.Wait()
 }
 
-func keptAttachmentsOf(ctx context.Context, api services.KeptApi, id string) []KeptReceipt {
+func keptAttachmentsOf(ctx context.Context, api services.KeptApi, id string) ([]KeptReceipt, error) {
 	raw, err := api.Get(ctx, keptThing+id+keptAttachments, nil)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	var out []KeptReceipt
 	for _, a := range asList(asMap(raw)["items"]) {
 		m := asMap(a)
 		out = append(out, KeptReceipt{Role: asStr(m["role"]), URL: asStr(m["url"])})
 	}
-	return out
+	return out, nil
 }
 
 // keptPaperlessOf reads a thing's Paperless links; connected is false
 // when the location has no working Paperless connection.
-func keptPaperlessOf(ctx context.Context, api services.KeptApi, id string) ([]KeptReceipt, bool) {
+func keptPaperlessOf(ctx context.Context, api services.KeptApi, id string) ([]KeptReceipt, bool, error) {
 	raw, err := api.Get(ctx, keptPaperless, url.Values{"thingId": {id}})
 	if err != nil {
-		return nil, true
+		return nil, false, err
 	}
 	m := asMap(raw)
 	connected, _ := m["connected"].(bool)
@@ -295,7 +303,7 @@ func keptPaperlessOf(ctx context.Context, api services.KeptApi, id string) ([]Ke
 		lm := asMap(l)
 		out = append(out, KeptReceipt{Role: asStr(lm["kind"]), URL: asStr(lm["openUrl"]), DocID: asInt64(lm["documentId"]), Paperless: base})
 	}
-	return out, connected
+	return out, connected, nil
 }
 
 // keptWritable asks Kept's MCP door which tools the token gets: a write

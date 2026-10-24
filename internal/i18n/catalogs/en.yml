@@ -2243,7 +2243,7 @@ hint:
       title: '{subject}: {kind} on {day}'
       why: '“{title}” is coming up in Kept (Kept’s lead time).'
     due_due:
-      title: '{subject}: {kind} due today'
+      title: '{subject}: {kind} due on {day}'
       why: '“{title}” is due on {day} according to Kept.'
     due_overdue:
       title: '{subject}: {kind} overdue since {day}'

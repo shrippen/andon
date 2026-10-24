@@ -2243,7 +2243,7 @@ hint:
       title: '{subject}: {kind} am {day}'
       why: '„{title}“ steht in Kept bald an (Kepts Vorlauf).'
     due_due:
-      title: '{subject}: {kind} heute fällig'
+      title: '{subject}: {kind} fällig am {day}'
       why: '„{title}“ ist laut Kept am {day} fällig.'
     due_overdue:
       title: '{subject}: {kind} überfällig seit {day}'

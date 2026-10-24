@@ -39,8 +39,10 @@ var keptLevels = map[string]enums.Severity{
 }
 
 func init() {
+	// Warranty ends are inventory.warranty_expiring's (every inventory);
+	// returns are lending, not deadlines: both chosen in the rule.
 	Register("kept.due", string(enums.ServiceKept), map[string]any{
-		"kinds": []any{"thing_expiry", "warranty", "document", "schedule"}}, on(keptDueDates))
+		"kinds": []any{"thing_expiry", "document", "schedule"}}, on(keptDueDates))
 
 	Register("inventory.split", Cross, nil, inventorySplit)
 
@@ -82,7 +84,9 @@ func inventorySplit(_ any, _ map[string]any, env Env) []Finding {
 	}
 	known := map[string]bool{}
 	for _, a := range first.Assets {
-		known[assetKey(a)] = true
+		for _, k := range assetKeys(a) {
+			known[k] = true
+		}
 	}
 	var found []Finding
 	for _, s := range caps.Members(caps.Inventory) {
@@ -92,7 +96,7 @@ func inventorySplit(_ any, _ map[string]any, env Env) []Finding {
 		}
 		var names []string
 		for _, a := range src.Inventory().Assets {
-			if a.PurchaseDate != "" && a.PurchaseCost > 0 && !known[assetKey(a)] {
+			if a.PurchaseDate != "" && a.PurchaseCost > 0 && !slices.ContainsFunc(assetKeys(a), func(k string) bool { return known[k] }) {
 				names = append(names, a.Name)
 			}
 		}
@@ -107,13 +111,14 @@ func inventorySplit(_ any, _ map[string]any, env Env) []Finding {
 	return found
 }
 
-// assetKey matches an asset across inventories: its serial, else its
-// name (lower case).
-func assetKey(a sources.Asset) string {
+// assetKeys match an asset across inventories: its serial and its name
+// (lower case); one inventory may lack the serial.
+func assetKeys(a sources.Asset) []string {
+	keys := []string{"n:" + strings.ToLower(a.Name)}
 	if a.Serial != "" {
-		return "s:" + strings.ToLower(a.Serial)
+		keys = append(keys, "s:"+strings.ToLower(a.Serial))
 	}
-	return "n:" + strings.ToLower(a.Name)
+	return keys
 }
 
 // keptPaperless checks Kept's Paperless links against the Verbund's
