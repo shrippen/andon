@@ -27,7 +27,7 @@ COPY = ["public_holidays", "monitoring", "server", "virtualization", "storage", 
         "stacks", "backups", "certs", "domains", "mail_blacklist", "dns", "gateway", "vpn", "tailnet", "tunnel",
         "speed", "identity", "passwords", "cloud", "downloads", "code", "json_api", "smart_home", "pantry",
         "kitchen", "energy", "weather", "sites", "feeds", "bookmarks", "mail", "calendar", "photos", "library",
-        "series", "bookkeeping", "documents", "assets_state", "bank", "subscriptions", "suggestions", "location",
+        "series", "bookkeeping", "documents", "assets_state", "kept_state", "bank", "subscriptions", "suggestions", "location",
         "logbook", "trips", "it_docs", "heartbeats", "prometheus", "vulnerabilities", "ci", "backup_server", "file_backups", "image_updates", "power", "proxy_routes", "dns_technitium", "fritzbox", "listening", "todo", "depot", "news", "twitch", "esphome", "fediverse", "lemmy", "llm_usage"]
 
 

@@ -140,6 +140,7 @@ action:
   open_in_dawarich: In Dawarich öffnen
   backup: 'Sicherung ansehen'
   open_in_wallos: In Wallos öffnen
+  open_in_kept: In Kept öffnen
   open_in_glances: 'In Glances öffnen'
   open_in_docker: 'Docker öffnen'
   more: 'Weitere Aktionen'
@@ -1828,6 +1829,10 @@ conn:
   about_wallos: 'Abos und Zahlungstermine'
   options_hint_wallos: 'Keine Optionen nötig. Schlüssel = API-Schlüssel aus Wallos → Profil (API-Schlüssel). URL = Adresse der Wallos-Oberfläche. Preise kommen in deiner Hauptwährung.'
   secret_wallos: API-Schlüssel
+  what_kept: 'Kept ist ein Inventar für Haushalt und Büro: Gegenstände mit Kauf, Garantie, Belegen und Ablaufdaten.'
+  about_kept: 'Inventar mit Garantien, Belegen und Fristen'
+  options_hint_kept: 'Token = persönliches Token aus Kept → Einstellungen → Verbindungen, für die Orte, die Andon lesen soll („Lesen und Schreiben“, wenn Andon Garantien und Geräte eintragen soll; dafür im Ort das Modul MCP einschalten). URL = Adresse von Kept, mit https (ohne gibt Kept keine Tokens heraus). Option life_field: Schlüssel des eigenen Felds mit der Nutzungsdauer in Monaten (Vorgabe nutzungsdauer), daraus rechnet Andon die AfA.'
+  secret_kept: Token
   router_kind: Router
   choice_opnsense: OPNsense
   choice_pfsense: pfSense
@@ -1936,6 +1941,7 @@ service:
   dawarich: Dawarich
   glances: Glances
   wallos: Wallos
+  kept: Kept
   tax: 'Steuer'
   docker: 'Docker'
   tandoor: 'Tandoor'
@@ -6947,6 +6953,7 @@ caps:
   have: vorhanden
   unknown: noch nicht abgerufen
   domain:
+    assets: Inventar
     accounts: Konten
     places: Orte
     rides: Fahrten
@@ -6963,6 +6970,7 @@ caps:
     create: anlegen
     update: ändern
   kind:
+    warranty: Garantie
     timesheets: Zeiten
     bank_transactions: Bankumsätze
     target: Sollzeit
@@ -6982,6 +6990,7 @@ caps:
     api: 'Schnittstelle {name} fehlt (ältere Version)'
     setting: '{name} nicht hinterlegt'
   setting:
+    mcp: 'Modul MCP im Ort (Kept → Ort → Module)'
     contract: Sollarbeitszeit (Benutzer → Arbeitszeit)
   note: 'Nur teilweise nutzbar:'
 verbund:

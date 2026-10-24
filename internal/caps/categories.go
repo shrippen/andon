@@ -25,7 +25,7 @@ const (
 // Verbund with two, the first counts, so nothing is written off or
 // summed twice.
 var categories = map[Category][]enums.ServiceType{
-	Inventory: {enums.ServiceSnipeIT},
+	Inventory: {enums.ServiceKept, enums.ServiceSnipeIT},
 	Bank:      {enums.ServiceSure, enums.ServiceFirefly},
 }
 

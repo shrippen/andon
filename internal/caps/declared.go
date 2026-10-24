@@ -30,6 +30,13 @@ var (
 	mileageRideKinds  = []string{"driving", "motorcycle"}
 )
 
+// Kept's writes: a read+write token, and the location's MCP module for
+// warranties (Kept keeps them from REST tokens).
+var (
+	keptWrite = Need{NeedRight, "write"}
+	keptMCP   = Need{NeedSetting, "mcp"}
+)
+
 // References between holders (CAPABILITIES.md, "Abhängigkeiten").
 var (
 	dawarichPlaces    = []Use{{HolderOf(enums.ServiceDawarich), Places}}
@@ -71,6 +78,12 @@ var declared = map[Holder][]Cap{
 		{Domain: Payments, Op: Read},      // transactions of the bank accounts
 		{Domain: Subscriptions, Op: Read}, // recurring transactions
 		{Domain: Customers, Op: Read},     // payers of incomes
+	},
+	HolderOf(enums.ServiceKept): {
+		{Domain: Assets, Op: Read},
+		{Domain: Receipts, Op: Read, Refs: paperlessReceipts}, // receipts linked to Paperless documents
+		{Domain: Assets, Op: Create, Needs: []Need{keptWrite, keptMCP}},
+		{Domain: Assets, Op: Update, Kinds: []string{"warranty"}, Needs: []Need{keptWrite, keptMCP}},
 	},
 	HolderOf(enums.ServiceFirefly): { // the same as Sure (category bank)
 		{Domain: Accounts, Op: Read},

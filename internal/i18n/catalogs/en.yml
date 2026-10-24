@@ -140,6 +140,7 @@ action:
   open_in_dawarich: Open in Dawarich
   backup: 'View backup'
   open_in_wallos: Open in Wallos
+  open_in_kept: Open in Kept
   open_in_glances: 'Open in Glances'
   open_in_docker: 'Open Docker'
   more: 'More actions'
@@ -1828,6 +1829,10 @@ conn:
   about_wallos: 'Subscriptions and payment dates'
   options_hint_wallos: 'No options needed. Key = API key from Wallos → Profile (API key). URL = address of the Wallos web interface. Prices come in your main currency.'
   secret_wallos: API key
+  what_kept: 'Kept is an inventory for home and office: things with purchase, warranty, receipts and expiry dates.'
+  about_kept: 'Inventory with warranties, receipts and due dates'
+  options_hint_kept: 'Token = personal token from Kept → Settings → Connections, for the locations Andon should read (“read and write” if Andon should add warranties and devices; then turn on the MCP module in the location). URL = address of Kept, with https (without it Kept hands out no tokens). Option life_field: key of the custom field with the useful life in months (default nutzungsdauer); Andon depreciates by it.'
+  secret_kept: Token
   router_kind: Router
   choice_opnsense: OPNsense
   choice_pfsense: pfSense
@@ -1936,6 +1941,7 @@ service:
   dawarich: Dawarich
   glances: Glances
   wallos: Wallos
+  kept: Kept
   tax: 'Tax'
   docker: 'Docker'
   tandoor: 'Tandoor'
@@ -6946,6 +6952,7 @@ caps:
   have: available
   unknown: not fetched yet
   domain:
+    assets: Inventory
     accounts: Accounts
     places: Places
     rides: Rides
@@ -6962,6 +6969,7 @@ caps:
     create: create
     update: change
   kind:
+    warranty: Warranty
     timesheets: Timesheets
     bank_transactions: Bank transactions
     target: Target time
@@ -6981,6 +6989,7 @@ caps:
     api: 'API {name} missing (older version)'
     setting: '{name} not set'
   setting:
+    mcp: 'MCP module in the location (Kept → location → modules)'
     contract: Working time (user → working time)
   note: 'Only partly usable:'
 verbund:

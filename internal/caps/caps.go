@@ -32,6 +32,7 @@ const (
 	Appointments  Domain = "appointments"
 	Subscriptions Domain = "subscriptions"
 	Accounts      Domain = "accounts" // bank accounts, business or private
+	Assets        Domain = "assets"   // inventory: things with purchase and warranty
 )
 
 // Op is what a service does with a domain.
