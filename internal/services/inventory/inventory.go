@@ -1,11 +1,13 @@
-// Package inventory brings the network's devices into Snipe-IT as a
-// workbench (services/workbench): each device the router or the
-// FRITZ!Box knows and no asset is named like (metrics.Uninventoried)
-// becomes an asset after review, or is ignored from then on
-// (cross.device_uninventoried's ignore list).
+// Package inventory brings the network's devices into the inventory
+// (Snipe-IT or Kept) as a workbench (services/workbench): each device the
+// router or the FRITZ!Box knows and no asset is named like
+// (metrics.Uninventoried) becomes an asset after review, or is ignored
+// from then on (cross.device_uninventoried's ignore list). Snipe-IT wants
+// a model and a status; Kept puts the thing in the first location's
+// "Unplaced".
 //
 //	router, FRITZ!Box ─ devices ─┐
-//	Snipe-IT ─ assets ───────────┴─► uninventoried ─► add as asset │ ignore
+//	inventory ─ assets ──────────┴─► uninventoried ─► add as asset │ ignore
 package inventory
 
 import (
@@ -16,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 
+	"andon/internal/caps"
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/model"
@@ -30,14 +33,16 @@ import (
 )
 
 var (
-	// ErrNoSnipe means the user reaches no Snipe-IT.
-	ErrNoSnipe = errors.New("inventory.err_no_snipe")
+	// ErrNoInventory means the user reaches no inventory.
+	ErrNoInventory = errors.New("inventory.err_no_inventory")
+	// ErrNoWrite means the inventory takes no new things from Andon (Kept
+	// without a read+write token or its MCP module).
+	ErrNoWrite = errors.New("inventory.err_no_write")
 	// ErrDemo means a demo connection, which takes no writes.
 	ErrDemo = errors.New("inventory.err_demo")
 )
 
-var need = workbench.Need{Required: []enums.ServiceType{enums.ServiceSnipeIT},
-	Optional: []enums.ServiceType{enums.ServiceGateway, enums.ServiceFritzBox}}
+var need = workbench.Need{Anchor: caps.Inventory, Optional: []enums.ServiceType{enums.ServiceGateway, enums.ServiceFritzBox}}
 
 // The actions and fields: act_<device>=add name_… model_<model name>
 // status_<id>, or act_<device>=ignore.
@@ -53,7 +58,7 @@ const (
 var Fields = []string{FieldName, FieldModel, FieldStatus}
 
 const (
-	ProblemGone   workbench.Problem = "inventory.problem_gone"   // in Snipe-IT or ignored meanwhile
+	ProblemGone   workbench.Problem = "inventory.problem_gone"   // in the inventory or ignored meanwhile
 	ProblemChoice workbench.Problem = "inventory.problem_choice" // no model or status chosen
 )
 
@@ -72,17 +77,25 @@ type Page struct {
 	Scope    string
 	Choose   bool
 	Cases    []metrics.NetClient
-	Sources  []enums.ServiceType // what named the devices
-	Models   []sources.SnipeChoice
+	Sources  []enums.ServiceType   // what named the devices
+	Models   []sources.SnipeChoice // Snipe-IT only
 	Statuses []sources.SnipeChoice
 	Status   int64 // proposed: the first deployable status
+	// Service is the inventory's; Writable is false when it takes no new
+	// things from Andon.
+	Service  enums.ServiceType
+	Writable bool
+	CanAdd   bool // writable, and Snipe-IT offers models
 }
 
 type book struct {
 	scope    workbench.Scope
 	choose   bool
 	conn     *model.Connection
-	snipe    *sources.SnipeDataset
+	inv      *sources.InventoryData
+	snipe    *sources.SnipeDataset // Snipe-IT: models and statuses
+	kept     *sources.KeptDataset  // Kept: the locations
+	writable bool
 	settings map[string]any
 	cases    []metrics.NetClient
 	from     []enums.ServiceType
@@ -95,7 +108,12 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string) (
 	if err != nil {
 		return p, err
 	}
-	p.Cases, p.Sources, p.Models, p.Statuses = b.cases, b.from, b.snipe.Models, b.snipe.Statuses
+	p.Cases, p.Sources, p.Service, p.Writable = b.cases, b.from, b.inv.Service, b.writable
+	p.CanAdd = b.writable && (b.snipe == nil || len(b.snipe.Models) > 0)
+	if b.snipe == nil {
+		return p, nil
+	}
+	p.Models, p.Statuses = b.snipe.Models, b.snipe.Statuses
 	for _, s := range b.snipe.Statuses {
 		if s.Kind == "deployable" {
 			p.Status = s.ID
@@ -111,7 +129,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 		return book{}, nil, err
 	}
 	if len(scopes) == 0 {
-		return book{}, nil, ErrNoSnipe
+		return book{}, nil, ErrNoInventory
 	}
 	st, err := workbench.LoadState[state](d, who, prefKey)
 	if err != nil {
@@ -122,7 +140,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 	}
 	var b book
 	b.scope, b.choose = workbench.Pick(scopes, scope)
-	b.conn = b.scope.Conn(enums.ServiceSnipeIT)
+	b.conn = b.scope.Of(caps.Inventory)
 
 	holder := model.UserHolder(who.UserID)
 	get := func(service enums.ServiceType, f svcdata.Freshness) any {
@@ -139,8 +157,17 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 		}
 		return res.Data
 	}
-	if b.snipe, _ = get(enums.ServiceSnipeIT, fresh).(*sources.SnipeDataset); b.snipe == nil {
-		return b, scopes, ErrNoSnipe
+	data := get(enums.ServiceType(b.conn.Service), fresh)
+	src, _ := data.(sources.InventorySource)
+	if src == nil {
+		return b, scopes, ErrNoInventory
+	}
+	b.inv = src.Inventory()
+	b.snipe, _ = data.(*sources.SnipeDataset)
+	b.kept, _ = data.(*sources.KeptDataset)
+	b.writable = true
+	if r, ok := data.(caps.Reporter); ok {
+		b.writable = r.CapSet().Can(caps.Assets, caps.Create, "")
 	}
 	gw, _ := get(enums.ServiceGateway, svcdata.Stored).(*sources.GatewayDataset)
 	fritz, _ := get(enums.ServiceFritzBox, svcdata.Stored).(*sources.FritzDataset)
@@ -149,7 +176,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 	}
 	var clients []metrics.NetClient
 	clients, b.from = metrics.NetClients(gw, fritz)
-	b.cases = metrics.Uninventoried(clients, b.snipe.Inventory(), ignored(b.settings))
+	b.cases = metrics.Uninventoried(clients, b.inv, ignored(b.settings))
 	return b, scopes, nil
 }
 
@@ -182,11 +209,12 @@ type Item struct {
 // Plan is the review.
 type Plan struct {
 	workbench.Plan[Item]
-	Scope string
+	Scope   string
+	Service enums.ServiceType // the inventory the devices go to
 }
 
-// Check: the device is still uninventoried; an asset has a name, a model
-// and a status of Snipe-IT.
+// Check: the device is still uninventoried; an asset has a name, and in
+// Snipe-IT a model and a status.
 func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 	var it Item
 	i := slices.IndexFunc(b.cases, func(c metrics.NetClient) bool { return c.Key() == s.Case })
@@ -201,6 +229,9 @@ func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 	it.Name = strings.TrimSpace(s.Field(FieldName))
 	if it.Name == "" {
 		it.Name = it.NetClient.Name
+	}
+	if b.snipe == nil {
+		return it, workbench.ProblemNone
 	}
 	it.ModelID, it.Model = byName(b.snipe.Models, s.Field(FieldModel))
 	it.StatusID, _ = strconv.ParseInt(s.Field(FieldStatus), 10, 64)
@@ -235,7 +266,7 @@ func Review(ctx context.Context, d *sql.DB, who *access.Principal, scope string,
 		return Plan{}, err
 	}
 	plan, err := workbench.PlanOf[Item](b, steps)
-	return Plan{Plan: plan, Scope: b.scope.Key}, err
+	return Plan{Plan: plan, Scope: b.scope.Key, Service: b.inv.Service}, err
 }
 
 // Apply adds the assets against fresh data and extends the ignore list.
@@ -255,6 +286,9 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 		}
 		if sources.IsDemo(b.conn.URL) {
 			return workbench.Result{}, ErrDemo
+		}
+		if !b.writable {
+			return workbench.Result{}, ErrNoWrite
 		}
 		token, err := svcdata.Secret(ctx, d, b.conn, model.UserHolder(who.UserID))
 		if err != nil {
@@ -277,13 +311,23 @@ type writer struct {
 }
 
 // Write adds the asset, or puts the device on the hint's ignore list of
-// the Snipe-IT connection's space.
+// the inventory connection's space.
 func (w *writer) Write(ctx context.Context, p workbench.Planned[Item]) (string, error) {
 	it := p.Item
 	if p.Action == ActIgnore {
 		return it.NetClient.Name, w.ignore(it.NetClient.Name)
 	}
 	notes := strings.TrimSpace(strings.Join([]string{it.IP, it.MAC}, " "))
+	if w.kept != nil {
+		if len(w.kept.Locations) == 0 {
+			return "", ErrNoWrite
+		}
+		id, err := outbound.KeptThingCreate(ctx, w.to, outbound.KeptNew{Location: w.kept.Locations[0].ID, Name: it.Name, Notes: notes})
+		if err != nil {
+			return "", err
+		}
+		return it.Name + " " + id, nil
+	}
 	id, err := outbound.SnipeAssetCreate(ctx, w.to, outbound.SnipeNew{Name: it.Name, Model: it.ModelID, Status: it.StatusID, Notes: notes})
 	if err != nil {
 		return "", err
