@@ -21,8 +21,8 @@ import (
 	"andon/internal/enums"
 )
 
-// Scope groups rules that fire together: one per ServiceType, plus these
-// two pseudo-scopes.
+// Scope groups rules that fire together: one per ServiceType, one per
+// caps.Category, plus these two pseudo-scopes.
 const (
 	Cross     = "cross"
 	Deadlines = "deadlines"
@@ -76,7 +76,7 @@ type Spec struct {
 var registry = map[string]Spec{}
 
 // Register adds a rule to the process-wide registry. scope is a
-// ServiceType value, Cross, or Deadlines.
+// ServiceType value, a caps.Category, Cross, or Deadlines.
 func Register(id string, scope string, defaults map[string]any, fn RuleFunc) {
 	if _, taken := registry[id]; taken {
 		panic("rules: duplicate rule id " + id)
@@ -180,6 +180,17 @@ func ForScope(scope string) []Spec {
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	return out
+}
+
+// ForService returns the rules a connection of service runs: the
+// service's own and those of its category (caps.Category), e.g. Firefly
+// III → firefly.* and bank.*.
+func ForService(service string) []Spec {
+	out := ForScope(service)
+	if c, ok := caps.CategoryOf(enums.ServiceType(service)); ok {
+		out = append(out, ForScope(string(c))...)
+	}
 	return out
 }
 

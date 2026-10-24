@@ -12,12 +12,14 @@
   {{template "header" .}}
   <main class="vat">
     <h1>{{t "purchases.title"}}</h1>
+    {{$svc := t (print "service." $p.Service)}}
     <p class="muted">{{t "purchases.lead"}}</p>
     {{with .done}}<p class="pill" data-state="applied">{{t "purchases.done" "n" .}}</p>{{end}}
     {{with .failed}}<p class="error">{{t "purchases.failed" "n" .}} {{$.FailedName}}: {{t $.Reason}}</p>{{end}}
     {{with .Error}}<p class="error">{{t .}}</p>{{end}}
     {{if $p.Scopes}}
     {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/purchases" "Keep" (dict)}}
+    {{if and $p.Service (not $p.Writable)}}<p class="small muted">{{t "purchases.no_write" "service" $svc}}</p>{{end}}
     {{if not $p.Ninja}}<p class="small muted">{{t "purchases.no_ninja"}}</p>{{else if not $p.Linked}}<p class="small muted">{{t "purchases.no_link_field"}}</p>{{end}}
     {{if $p.Cases}}
     <form method="post" action="/purchases/review" class="card" id="cases">
@@ -25,12 +27,12 @@
       <div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th></th><th>{{t "purchases.asset"}}</th><th>{{t "purchases.gaps"}}</th><th>{{t "purchases.warranty"}}</th></tr></thead>
         <tbody>{{range $p.Cases}}{{$c := .}}{{$k := .Key}}<tr>
-          <td>{{if .Has "warranty"}}<label class="check"><input type="checkbox" name="pick" value="{{$k}}" checked aria-label="{{.Asset.Name}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
+          <td>{{if and (.Has "warranty") $p.Writable}}<label class="check"><input type="checkbox" name="pick" value="{{$k}}" checked aria-label="{{.Asset.Name}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
             <input type="hidden" name="act_{{$k}}" value="warranty">{{end}}</td>
           <td data-card="title"><b>{{.Asset.Name}}</b><br><small class="muted">{{day .Asset.PurchaseDate}}{{if .Asset.PurchaseCost}} · {{money .Asset.PurchaseCost "EUR"}}{{end}}{{with .Expense}} · {{t "purchases.expense" "number" .Number}}{{end}}</small></td>
           <td>{{range .Gaps}}<span class="pill" data-state="reviewing">{{t (print "purchases.gap_" .)}}</span> {{end}}
             {{if .Has "expense"}}<br><a class="small" href="/vat">{{t "purchases.to_vat"}}</a>{{end}}{{if .Has "receipt"}}<br><a class="small" href="/receipts">{{t "purchases.to_receipts"}}</a>{{end}}</td>
-          <td>{{if .Has "warranty"}}<input class="input" name="months_{{$k}}" value="{{$p.Months}}" inputmode="numeric" aria-label="{{t "purchases.months"}}"> {{t "purchases.months"}}{{else}}{{day .Asset.WarrantyExpires}}{{end}}</td>
+          <td>{{if and (.Has "warranty") $p.Writable}}<input class="input" name="months_{{$k}}" value="{{$p.Months}}" inputmode="numeric" aria-label="{{t "purchases.months"}}"> {{t "purchases.months"}}{{else}}{{day .Asset.WarrantyExpires}}{{end}}</td>
         </tr>{{end}}</tbody>
       </table></div>
       <p><button type="submit" class="btn btn-accent">{{t "purchases.review"}}</button></p>
@@ -56,7 +58,8 @@
   {{template "header" .}}
   <main class="vat">
     <h1>{{t "purchases.review_title"}}</h1>
-    <p>{{t "purchases.review_lead" "n" .Plan.Writes}}</p>
+    {{$svc := t (print "service." .Plan.Service)}}
+    <p>{{t "purchases.review_lead" "n" .Plan.Writes "service" $svc}}</p>
     <form method="post" action="/purchases/apply">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{.Plan.Scope}}">
       <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
@@ -64,7 +67,7 @@
           <b>{{or $i.Asset.Name .Case}}</b><br>
           {{if .Problem}}{{t (print .Problem)}}{{else}}{{t "purchases.do_warranty" "n" $i.Months}}{{end}}
         </li>{{end}}</ol>
-      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "purchases.apply" "n" .Plan.Writes}}</button>{{end}}
+      <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "purchases.apply" "n" .Plan.Writes "service" $svc}}</button>{{end}}
         <a class="btn btn-quiet" href="/purchases?scope={{.Plan.Scope}}">{{t "purchases.back"}}</a></p>
     </form>
   </main>

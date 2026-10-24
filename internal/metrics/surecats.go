@@ -18,7 +18,7 @@ import (
 type CatCase struct {
 	Key      string // "m-dkb-ag"
 	Merchant string
-	Txns     []sources.SureTxn // the ones to file, newest first
+	Txns     []sources.BankTxn // the ones to file, newest first
 	Total    float64           // their sum, signed
 
 	// The proposal: the category most of the merchant's filed bookings
@@ -33,7 +33,7 @@ const catPrefix = "m-"
 
 // Uncategorized lists the merchants with bookings Sure has not filed;
 // transfers between own accounts need no category and stay out.
-func Uncategorized(bank *sources.SureDataset) []CatCase {
+func Uncategorized(bank *sources.BankData) []CatCase {
 	byKey := map[string]*CatCase{}
 	votes := map[string]map[string]int{}
 	var order []string
@@ -68,7 +68,7 @@ func Uncategorized(bank *sources.SureDataset) []CatCase {
 	out := make([]CatCase, 0, len(order))
 	for _, key := range order {
 		c := *byKey[key]
-		slices.SortStableFunc(c.Txns, func(a, b sources.SureTxn) int { return strings.Compare(b.Date, a.Date) })
+		slices.SortStableFunc(c.Txns, func(a, b sources.BankTxn) int { return strings.Compare(b.Date, a.Date) })
 		for id, n := range votes[key] {
 			c.Of += n
 			if n > c.Votes || (n == c.Votes && id < c.CategoryID) {
@@ -85,7 +85,7 @@ func Uncategorized(bank *sources.SureDataset) []CatCase {
 }
 
 // merchantOf is the booking's merchant, else its name.
-func merchantOf(t sources.SureTxn) string {
+func merchantOf(t sources.BankTxn) string {
 	if m := strings.TrimSpace(t.Merchant); m != "" {
 		return m
 	}

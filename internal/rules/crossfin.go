@@ -3,8 +3,8 @@ package rules
 // Freelance rules across services (phase 13):
 //
 //	in.rate_below             full-cost rate far below the billed rate (Kimai, Ninja, Dawarich)
-//	sure.subscription_unused  recurring payment, no use for months (Sure, Paperless, authentik, tiles)
-//	sure.spendable_negative   taxes and fixed costs exceed the cash (Sure, Ninja)
+//	bank.subscription_unused  recurring payment, no use for months (bank, Paperless, authentik, tiles)
+//	bank.spendable_negative   taxes and fixed costs exceed the cash (bank, Ninja)
 //	calendar.unbooked         customer appointment without a booking (calendar, Kimai)
 //	kimai.booked_free_day     booking on a holiday or during an absence
 //	in.order_gap              far fewer hours than the same weeks last year (Kimai, Ninja)
@@ -80,9 +80,9 @@ func Usages(env Env) []metrics.Usage {
 func init() {
 	Register("in.rate_below", Cross, map[string]any{"share": 0.75, "min_hours": 10.0}, rateBelow)
 
-	Register("sure.subscription_unused", Cross, map[string]any{"days": 60.0, "min_amount": 5.0}, subscriptionUnused)
+	Register("bank.subscription_unused", Cross, map[string]any{"days": 60.0, "min_amount": 5.0}, subscriptionUnused)
 
-	Register("sure.spendable_negative", Cross, nil, spendableNegative)
+	Register("bank.spendable_negative", Cross, nil, spendableNegative)
 
 	Register("calendar.unbooked", Cross, nil, calendarUnbooked)
 
@@ -135,9 +135,9 @@ func subscriptionUnused(_ any, cfg map[string]any, env Env) []Finding {
 		if !s.LastUse.IsZero() && env.Today.Sub(s.LastUse).Hours()/hoursPerDay < cfgFloat(cfg, "days") {
 			continue
 		}
-		msg, params := "sure.subscription_unused", map[string]any{"name": s.Name, "amount": Money(s.Monthly, sure.Currency), "days": cfgInt(cfg, "days")}
+		msg, params := "bank.subscription_unused", map[string]any{"name": s.Name, "amount": Money(s.Monthly, sure.Currency), "days": cfgInt(cfg, "days")}
 		if !s.Deadline.IsZero() {
-			msg, params["deadline"] = "sure.subscription_unused_deadline", Day(s.Deadline)
+			msg, params["deadline"] = "bank.subscription_unused_deadline", Day(s.Deadline)
 		}
 		found = append(found, Finding{Fingerprint: "sub:" + strings.ToLower(s.Name), Severity: enums.SeverityInfo, Message: msg, Params: params, Sources: []string{string(sure.From())}})
 	}
@@ -155,7 +155,7 @@ func spendableNegative(_ any, _ map[string]any, env Env) []Finding {
 		return nil
 	}
 	return []Finding{{Fingerprint: "spendable", Severity: enums.SeverityWarn,
-		Message: "sure.spendable_negative", Params: map[string]any{"cash": Money(s.Cash, sure.Currency),
+		Message: "bank.spendable_negative", Params: map[string]any{"cash": Money(s.Cash, sure.Currency),
 			"reserved": Money(s.Taxes()+s.Fixed, sure.Currency), "missing": Money(-s.Free, sure.Currency)},
 		Sources: []string{string(sure.From()), ninjaSvc}}}
 }

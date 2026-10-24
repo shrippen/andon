@@ -2613,6 +2613,22 @@
     "unread": 260,
     "newest": "@-2d"
    }
+  ],
+  "releases": [
+   {
+    "feed": "feed/5",
+    "repo": "freika/dawarich",
+    "version": "0.30.9",
+    "link": "https://github.com/Freika/dawarich/releases/tag/0.30.9",
+    "published": "@-3d"
+   },
+   {
+    "feed": "feed/6",
+    "repo": "stirling-tools/stirling-pdf",
+    "version": "v1.5.0",
+    "link": "https://github.com/Stirling-Tools/Stirling-PDF/releases/tag/v1.5.0",
+    "published": "@-6d"
+   }
   ]
  },
  "bookmarks": {
@@ -2952,6 +2968,21 @@
  "documents": {
   "url": "https://docs.demo",
   "total": 1843,
+  "ids_note": "The documents other services link (Kept's receipts, the scans): 412 is the laptop's invoice; 999, which Kept still links for the phone, is gone.",
+  "ids": [
+   88,
+   201,
+   202,
+   203,
+   204,
+   205,
+   206,
+   311,
+   412,
+   1841,
+   1842,
+   1843
+  ],
   "inbox": 7,
   "oldest_title": {
    "de": "Rechnung Lieferant 1",
@@ -3184,6 +3215,41 @@
  },
  "assets_state": {
   "url": "https://assets.demo",
+  "models": [
+   {
+    "id": 1,
+    "name": "Framework Laptop 13"
+   },
+   {
+    "id": 2,
+    "name": "Speicherwerk NS-4"
+   },
+   {
+    "id": 3,
+    "name": {
+     "de": "Sonstiges Netzwerkgerät",
+     "en": "Other network device"
+    }
+   }
+  ],
+  "statuses": [
+   {
+    "id": 1,
+    "name": {
+     "de": "Bereit",
+     "en": "Ready"
+    },
+    "kind": "deployable"
+   },
+   {
+    "id": 2,
+    "name": {
+     "de": "Ausstehend",
+     "en": "Pending"
+    },
+    "kind": "pending"
+   }
+  ],
   "assets": [
    {
     "status": {
@@ -3193,6 +3259,7 @@
     "deployable": true,
     "assigned": true,
     "purchase_date": "@date-30",
+    "dep_months": 12,
     "warranty_expires": "@date+10",
     "eol_date": "@date+900",
     "next_audit": "@date+100",
@@ -3206,6 +3273,7 @@
     "deployable": true,
     "assigned": true,
     "purchase_date": "@date-1900",
+    "dep_months": 36,
     "warranty_expires": "@date-800",
     "eol_date": "@date-20",
     "next_audit": "@date-15",
@@ -3218,6 +3286,7 @@
     },
     "deployable": true,
     "purchase_date": "@date-500",
+    "dep_months": 60,
     "warranty_expires": "@date+230",
     "next_audit": "@date+60",
     "last_change": "@date-140"
@@ -3230,7 +3299,7 @@
     "deployable": true,
     "assigned": true,
     "purchase_date": "@date-60",
-    "warranty_expires": "@date+1000",
+    "dep_months": 12,
     "next_audit": "@date+200",
     "last_change": "@date-60",
     "assigned_to": "Person B",
@@ -3259,6 +3328,179 @@
   ],
   "audit_overdue": [
    2
+  ]
+ },
+ "kept_state": {
+  "url": "https://kept.demo",
+  "writable": true,
+  "locations": [
+   {
+    "id": "loc-studio",
+    "name": "Studio",
+    "mcp": true
+   }
+  ],
+  "things": [
+   {
+    "id": "th-laptop",
+    "code": "K7D2QX",
+    "name": "Schnitt-Laptop",
+    "model": "Framework Laptop 13",
+    "type": {
+     "de": "Notebook",
+     "en": "Notebook"
+    },
+    "location": "Studio",
+    "bought": "@date-30",
+    "price": 1200,
+    "currency": "EUR",
+    "warranty_ends": "@date+10",
+    "life": 12,
+    "receipts": [
+     {
+      "role": "invoice",
+      "url": "https://docs.demo/documents/412/details",
+      "doc_id": 412,
+      "paperless": "https://docs.demo"
+     }
+    ]
+   },
+   {
+    "id": "th-nas",
+    "code": "N4S2HB",
+    "name": "NAS",
+    "model": "Speicherwerk NS-4",
+    "type": {
+     "de": "Server",
+     "en": "Server"
+    },
+    "location": "Studio",
+    "bought": "@date-1900",
+    "price": 650,
+    "currency": "EUR",
+    "warranty_ends": "@date-800",
+    "life": 36,
+    "receipts": [
+     {
+      "role": "receipt",
+      "url": "https://kept.demo/files/nas-kassenbon.pdf"
+     }
+    ]
+   },
+   {
+    "id": "th-phone",
+    "code": "M0W7PH",
+    "name": "Möwe 7",
+    "model": "Möwe 7",
+    "type": {
+     "de": "Smartphone",
+     "en": "Smartphone"
+    },
+    "location": "Studio",
+    "bought": "@date-500",
+    "price": 599,
+    "currency": "EUR",
+    "warranty_ends": "@date+230",
+    "life": 60,
+    "receipts": [
+     {
+      "role": "invoice",
+      "url": "https://docs.demo/documents/999/details",
+      "doc_id": 999,
+      "paperless": "https://docs.demo"
+     }
+    ]
+   },
+   {
+    "id": "th-monitor",
+    "code": "LB27QM",
+    "name": "Monitor 27\"",
+    "model": "Lichtblick 27Q",
+    "type": {
+     "de": "Monitor",
+     "en": "Monitor"
+    },
+    "location": "Studio",
+    "bought": "@date-60",
+    "price": 890,
+    "currency": "EUR",
+    "life": 12
+   },
+   {
+    "id": "th-extinguisher",
+    "code": "FL0SCH",
+    "name": {
+     "de": "Feuerlöscher Studio",
+     "en": "Studio fire extinguisher"
+    },
+    "type": {
+     "de": "Sicherheit",
+     "en": "Safety"
+    },
+    "location": "Studio",
+    "expires": "@date+20"
+   }
+  ],
+  "agenda": [
+   {
+    "kind": "thing_expiry",
+    "state": "expiring",
+    "due": "@date+20",
+    "title": {
+     "de": "Feuerlöscher Studio",
+     "en": "Studio fire extinguisher"
+    },
+    "subject": {
+     "de": "Feuerlöscher Studio",
+     "en": "Studio fire extinguisher"
+    },
+    "code": "FL0SCH"
+   },
+   {
+    "kind": "document",
+    "state": "expiring",
+    "due": "@date+12",
+    "title": {
+     "de": "Hausratversicherung",
+     "en": "Contents insurance"
+    },
+    "subject": "Studio"
+   },
+   {
+    "kind": "schedule",
+    "state": "overdue",
+    "due": "@date-3",
+    "title": {
+     "de": "Lüfter reinigen",
+     "en": "Clean the fans"
+    },
+    "subject": "NAS",
+    "code": "N4S2HB"
+   },
+   {
+    "kind": "warranty",
+    "state": "upcoming",
+    "due": "@date+230",
+    "title": {
+     "de": "Herstellergarantie",
+     "en": "Manufacturer warranty"
+    },
+    "subject": "Möwe 7",
+    "code": "M0W7PH"
+   },
+   {
+    "kind": "loan",
+    "state": "due",
+    "due": "@date+0",
+    "title": {
+     "de": "Rückgabe",
+     "en": "Return"
+    },
+    "subject": {
+     "de": "Funkstrecke",
+     "en": "Wireless link"
+    }
+   }
   ]
  },
  "bank": {
@@ -3358,13 +3600,46 @@
      "de": "Geschäftskonto",
      "en": "Business account"
     }
+   },
+   {
+    "id": "t6",
+    "date": "@date-70",
+    "name": "Lieferant 7",
+    "amount": -249,
+    "category": {
+     "de": "Technik",
+     "en": "Equipment"
+    },
+    "account": {
+     "de": "Geschäftskonto",
+     "en": "Business account"
+    }
+   },
+   {
+    "id": "t7",
+    "date": "@date-19",
+    "name": {
+     "de": "Farbraum Grade, Abo",
+     "en": "Farbraum Grade subscription"
+    },
+    "amount": 66.45,
+    "expense": true,
+    "category": {
+     "de": "Software",
+     "en": "Software"
+    },
+    "merchant": "Lieferant 3",
+    "account": {
+     "de": "Geschäftskonto",
+     "en": "Business account"
+    }
    }
   ],
   "recurring": [
    {
     "name": "Lieferant 2",
     "status": "active",
-    "amount": 41.65,
+    "amount": 44.9,
     "expense": true,
     "next": "@date+25",
     "last": "@date-5"
@@ -3425,6 +3700,10 @@
      "de": "Hosting",
      "en": "Hosting"
     }
+   },
+   {
+    "vendor": "wellenklang",
+    "next": "@date+9"
    },
    {
     "vendor": "wellenklang",

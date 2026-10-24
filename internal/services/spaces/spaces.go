@@ -53,8 +53,10 @@ type RuleGroup struct {
 	Rules        []RuleView
 }
 
-// scopeLabels names scopes that are no service.
-var scopeLabels = map[string]string{"cross": "rule_scope.cross", "deadlines": "rule_scope.deadlines"}
+// scopeLabels names scopes that are no service (cross, deadlines,
+// categories).
+var scopeLabels = map[string]string{"cross": "rule_scope.cross", "deadlines": "rule_scope.deadlines",
+	"inventory": "rule_scope.inventory", "bank": "rule_scope.bank"}
 
 // RuleGroups groups RuleViews by scope, in scope order.
 func RuleGroups(settings map[string]any) []RuleGroup {

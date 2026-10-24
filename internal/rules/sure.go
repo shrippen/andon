@@ -2,13 +2,16 @@ package rules
 
 // Sure (personal finance) and its links to Invoice Ninja:
 //
-//	sure                 missed recurring payments, low balances, failed
-//	                     bank sync, unusually large expenses, uncategorised
+//	bank (Sure, Firefly) missed recurring payments, low balances, unusually
+//	                     large expenses, uncategorised
+//	sure                 failed bank sync
 //	sure <-> invoiceninja open invoice already paid (income matches amount)
 //	                     business expense missing in Invoice Ninja
 
 import (
 	"fmt"
+
+	"andon/internal/caps"
 	"sort"
 	"strings"
 
@@ -26,50 +29,57 @@ func median(values []float64) float64 {
 }
 
 func init() {
-	Register("sure.recurring_missed", sureSvc, map[string]any{"days": 5.0}, on(recurringMissed))
+	bank := string(caps.Bank)
 
-	Register("sure.low_balance", sureSvc, map[string]any{"min_amount": 200.0}, on(lowBalance))
+	Register("bank.recurring_missed", bank, map[string]any{"days": 5.0}, onBank(recurringMissed))
+
+	Register("bank.low_balance", bank, map[string]any{"min_amount": 200.0}, onBank(lowBalance))
 
 	Register("sure.sync_failed", sureSvc, nil, on(syncFailed))
 
-	Register("sure.uncategorized", sureSvc, map[string]any{"min_count": 5.0, "lookback_days": 30.0}, on(uncategorized))
+	Register("bank.uncategorized", bank, map[string]any{"min_count": 5.0, "lookback_days": 30.0}, onBank(uncategorized))
 
 	// A recent expense well above what this payee usually costs, or large
 	// without history: worth a second look (double booking, price rise).
-	Register("sure.unusual_expense", sureSvc, map[string]any{"min_amount": 500.0, "factor": 3.0, "days": 14.0}, on(unusualExpense))
-
-	// Firefly III fills Sure's shape: the same checks, under its own ids.
-	fireflySvc := string(enums.ServiceFirefly)
-	Register("firefly.recurring_missed", fireflySvc, map[string]any{"days": 5.0}, on(recurringMissed))
-	Register("firefly.low_balance", fireflySvc, map[string]any{"min_amount": 200.0}, on(lowBalance))
-	Register("firefly.uncategorized", fireflySvc, map[string]any{"min_count": 5.0, "lookback_days": 30.0}, on(uncategorized))
-	Register("firefly.unusual_expense", fireflySvc, map[string]any{"min_amount": 500.0, "factor": 3.0, "days": 14.0}, on(unusualExpense))
+	Register("bank.unusual_expense", bank, map[string]any{"min_amount": 500.0, "factor": 3.0, "days": 14.0}, onBank(unusualExpense))
 
 	registerSureCross()
 }
 
+// onBank adapts a rule over the bank shape (caps.Bank): Sure and Firefly
+// III run it alike.
+func onBank(run func(data *sources.BankData, cfg map[string]any, env Env) []Finding) RuleFunc {
+	return func(raw any, cfg map[string]any, env Env) []Finding {
+		src, ok := raw.(sources.BankSource)
+		if !ok || isNil(src) {
+			return nil
+		}
+		return run(src.Bank(), cfg, env)
+	}
+}
+
 // sureLink links a page of Sure; Firefly III's pages differ, its start page.
-func sureLink(data *sources.SureDataset, path string) string {
+func sureLink(data *sources.BankData, path string) string {
 	if data.From() != enums.ServiceSure {
 		return data.URL
 	}
 	return strings.TrimRight(data.URL, "/") + "/" + path
 }
 
-func recurringMissed(data *sources.SureDataset, cfg map[string]any, env Env) []Finding {
+func recurringMissed(data *sources.BankData, cfg map[string]any, env Env) []Finding {
 	var found []Finding
 	for _, r := range data.Recurring {
 		next, ok := metrics.ParseDay(r.Next)
 		if r.Status != "active" || !ok || env.Today.Sub(next).Hours()/hoursPerDay <= cfgFloat(cfg, "days") {
 			continue
 		}
-		found = append(found, svcFinding(string(data.From()), string(data.From())+".recurring_missed", "missed:"+r.Name+":"+r.Next, "sure.missed",
+		found = append(found, svcFinding(string(data.From()), "bank.recurring_missed", "missed:"+r.Name+":"+r.Next, "bank.missed",
 			enums.SeverityWarn, sureLink(data, "recurring_transactions"), map[string]any{"name": r.Name, "amount": Money(r.Amount, data.Currency), "day": Day(next)}))
 	}
 	return found
 }
 
-func lowBalance(data *sources.SureDataset, cfg map[string]any, env Env) []Finding {
+func lowBalance(data *sources.BankData, cfg map[string]any, env Env) []Finding {
 	var found []Finding
 	for _, a := range data.Accounts {
 		if a.Type != "depository" || a.Balance >= cfgFloat(cfg, "min_amount") {
@@ -79,21 +89,21 @@ func lowBalance(data *sources.SureDataset, cfg map[string]any, env Env) []Findin
 		if a.Balance < 0 {
 			level = enums.SeverityCritical
 		}
-		found = append(found, svcFinding(string(data.From()), string(data.From())+".low_balance", "low:"+a.ID, "sure.low", level,
+		found = append(found, svcFinding(string(data.From()), "bank.low_balance", "low:"+a.ID, "bank.low", level,
 			sureLink(data, "accounts/"+a.ID), map[string]any{"account": a.Name, "amount": Money(a.Balance, a.Currency)}))
 	}
 	return found
 }
 
-func syncFailed(data *sources.SureDataset, cfg map[string]any, env Env) []Finding {
+func syncFailed(data *sources.BankData, cfg map[string]any, env Env) []Finding {
 	if data.SyncError == "" {
 		return nil
 	}
-	return []Finding{svcFinding(string(data.From()), string(data.From())+".sync_failed", "sync", "sure.sync", enums.SeverityWarn, data.URL,
+	return []Finding{svcFinding(string(data.From()), "sure.sync_failed", "sync", "sure.sync", enums.SeverityWarn, data.URL,
 		map[string]any{"name": data.SyncError})}
 }
 
-func uncategorized(data *sources.SureDataset, cfg map[string]any, env Env) []Finding {
+func uncategorized(data *sources.BankData, cfg map[string]any, env Env) []Finding {
 	since := env.Today.AddDate(0, 0, -cfgInt(cfg, "lookback_days"))
 	count := 0
 	for _, t := range data.Transactions {
@@ -105,11 +115,11 @@ func uncategorized(data *sources.SureDataset, cfg map[string]any, env Env) []Fin
 	if count < cfgInt(cfg, "min_count") {
 		return nil
 	}
-	return []Finding{svcFinding(string(data.From()), string(data.From())+".uncategorized", "uncategorized", "sure.uncategorized", enums.SeverityInfo,
+	return []Finding{svcFinding(string(data.From()), "bank.uncategorized", "uncategorized", "bank.uncategorized", enums.SeverityInfo,
 		sureLink(data, "transactions"), map[string]any{"count": count})}
 }
 
-func unusualExpense(data *sources.SureDataset, cfg map[string]any, env Env) []Finding {
+func unusualExpense(data *sources.BankData, cfg map[string]any, env Env) []Finding {
 	history := map[string][]float64{}
 	for _, t := range data.Transactions {
 		if t.Amount < 0 {
@@ -128,7 +138,7 @@ func unusualExpense(data *sources.SureDataset, cfg map[string]any, env Env) []Fi
 		if len(past) > 2 && spent < median(past)*cfgFloat(cfg, "factor") {
 			continue
 		}
-		found = append(found, svcFinding(string(data.From()), string(data.From())+".unusual_expense", "unusual:"+t.ID, "sure.unusual", enums.SeverityInfo,
+		found = append(found, svcFinding(string(data.From()), "bank.unusual_expense", "unusual:"+t.ID, "bank.unusual", enums.SeverityInfo,
 			sureLink(data, "transactions"), map[string]any{"name": t.Name, "amount": Money(spent, data.Currency), "day": Day(d)}))
 	}
 	return found
@@ -140,7 +150,7 @@ var sureNinjaSrc = []string{string(enums.ServiceSure), string(enums.ServiceInvoi
 // businessBank is the bank data of the business accounts: clients pay
 // there, and the money free to spend is the business's. Before any
 // account has a role, all of it.
-func businessBank(env Env) (*sources.SureDataset, bool) {
+func businessBank(env Env) (*sources.BankData, bool) {
 	bank, ok := metrics.BankOf(env.Datasets)
 	if !ok {
 		return nil, false
@@ -151,7 +161,7 @@ func businessBank(env Env) (*sources.SureDataset, bool) {
 // cashBank is the business accounts with the reserve accounts beside
 // them: the reserve covers taxes before free cash does
 // (metrics.SafeToSpend).
-func cashBank(env Env) (*sources.SureDataset, bool) {
+func cashBank(env Env) (*sources.BankData, bool) {
 	bank, ok := metrics.BankOf(env.Datasets)
 	if !ok {
 		return nil, false

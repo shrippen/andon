@@ -472,15 +472,15 @@ Alle Abrufe laufen read-only mit eigenen API-Tokens über die Verbindungen eines
 
 | Regel | Bedingung (Standard) | Stufe |
 |---|---|---|
-| `snipe.warranty_expiring` | Garantie endet in ≤ 60 / ≤ 14 Tagen | info / warn |
+| `inventory.warranty_expiring` | Garantie endet in ≤ 60 / ≤ 14 Tagen | info / warn |
 | `snipe.eol_reached` | EOL-Datum erreicht oder Gerät älter als x Jahre | info (Ersatz einplanen) |
 | `snipe.license_expiring` | Lizenz/Abo läuft in ≤ 30 Tagen ab | warn |
 | `snipe.license_seats` | Keine freien Lizenzplätze mehr | info |
 | `snipe.audit_overdue` | Audit überfällig | warn |
 | `snipe.consumable_low` | Verbrauchsmaterial unter Mindestbestand | info |
 | `snipe.unassigned_deployable` | Einsatzbereites Gerät seit > 90 Tagen ungenutzt | info (verkaufen?) |
-| `snipe.expense_missing` | Asset mit Kaufdatum im laufenden Jahr ohne passende Ausgabe in Invoice Ninja (Betrag ± Toleranz, Datum ± 14 Tage) | info |
-| `snipe.gwg_hint` | Anschaffung > 800 € netto → Abschreibung statt GWG-Sofortabzug prüfen | info |
+| `inventory.expense_missing` | Asset mit Kaufdatum im laufenden Jahr ohne passende Ausgabe in Invoice Ninja (Betrag ± Toleranz, Datum ± 14 Tage) | info |
+| `inventory.gwg_hint` | Anschaffung > 800 € netto → Abschreibung statt GWG-Sofortabzug prüfen | info |
 
 ### 8.4 Dawarich (Standortverlauf)
 

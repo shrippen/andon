@@ -4,7 +4,6 @@ package rules
 //
 //	system.unused_service   running stack, guest or app nobody used for months
 //	energy.shift_jobs       backups run in expensive hours; cheapest hour named
-//	snipe.replace_worth     old device where a frugal one pays back soon
 //	energy.weather_adjusted last week used more power than the weather explains
 
 import (
@@ -27,8 +26,6 @@ func init() {
 		string(enums.ServiceAuthentik))
 
 	Register("energy.shift_jobs", Cross, map[string]any{"min_saving": 0.05}, shiftJobs)
-
-	Register("snipe.replace_worth", Cross, map[string]any{"new_watts": 15.0, "new_cost": 400.0, "max_months": 36.0}, replaceWorth)
 
 	Register("energy.weather_adjusted", Cross, map[string]any{"share": 0.15}, weatherAdjusted)
 }
@@ -62,27 +59,6 @@ func shiftJobs(_ any, cfg map[string]any, env Env) []Finding {
 			Message: "energy.shift_jobs", Params: map[string]any{"job": j.Job, "hour": j.Hour, "cheap_hour": j.CheapHour,
 				"price": Money(j.Price, tibber.Currency), "cheap_price": Money(j.CheapPrice, tibber.Currency)},
 			Sources: []string{string(enums.ServiceTibber)}})
-	}
-	return found
-}
-
-func replaceWorth(_ any, cfg map[string]any, env Env) []Finding {
-	snipe, ok1 := env.Datasets[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset)
-	hass, ok2 := env.Datasets[string(enums.ServiceHomeAssistant)].(*sources.HassDataset)
-	if !ok1 || !ok2 {
-		return nil
-	}
-	tibber, _ := env.Datasets[string(enums.ServiceTibber)].(*sources.TibberDataset)
-	price := metrics.PowerPrice(tibber, metrics.HomelabSettingsOf(env.Settings).PowerPrice)
-	var found []Finding
-	for _, r := range metrics.Replacements(snipe, hass, price, cfgFloat(cfg, "new_watts"), cfgFloat(cfg, "new_cost"), env.Today) {
-		if r.PaybackMonths > cfgInt(cfg, "max_months") {
-			continue
-		}
-		found = append(found, Finding{Fingerprint: "replace:" + strings.ToLower(r.Asset), Severity: enums.SeverityInfo,
-			Message: "snipe.replace_worth", Params: map[string]any{"name": r.Asset, "years": Num(r.AgeYears, 0), "watts": Num(r.Watts, 0),
-				"yearly": Money(r.YearlyCost, ""), "months": r.PaybackMonths, "new_watts": Num(cfgFloat(cfg, "new_watts"), 0), "new_cost": Money(cfgFloat(cfg, "new_cost"), "")},
-			Sources: []string{string(enums.ServiceSnipeIT), string(enums.ServiceHomeAssistant)}})
 	}
 	return found
 }

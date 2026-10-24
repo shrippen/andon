@@ -174,11 +174,12 @@ const (
 	ServiceOpenAI         ServiceType = "openai"
 	ServiceDeepSeek       ServiceType = "deepseek"
 	ServiceLiteLLM        ServiceType = "litellm"
+	ServiceKept           ServiceType = "kept"
 )
 
 // Services lists every connectable service, in form order.
 var Services = []ServiceType{
-	ServiceKimai, ServiceInvoiceNinja, ServiceSnipeIT, ServiceDawarich, ServiceGlances,
+	ServiceKimai, ServiceInvoiceNinja, ServiceSnipeIT, ServiceKept, ServiceDawarich, ServiceGlances,
 	ServiceUptimeKuma, ServiceProxmox, ServicePaperless, ServiceCerts,
 	ServiceScrutiny, ServiceDocker, ServiceImmich, ServiceUmami, ServiceFreshRSS, ServiceGitea, ServiceBorgBackup,
 	ServiceHomeAssistant, ServiceSure, ServiceLinkwarden, ServicePGBackWeb, ServiceMail,

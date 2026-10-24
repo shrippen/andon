@@ -193,7 +193,7 @@ func partiesOf(data any) ([]Party, bool) {
 		for _, c := range ds.Customers {
 			out = append(out, Party{strconv.FormatInt(c.ID, 10), c.Name})
 		}
-	case *sources.SureDataset:
+	case *sources.BankData:
 		seen := map[string]bool{}
 		for _, t := range ds.Transactions {
 			if p := metrics.Payer(t); t.Amount > 0 && p != "" && !seen[p] {

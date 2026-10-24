@@ -1,11 +1,11 @@
 package metrics
 
-// Devices in the network against Snipe-IT: the router's leases and the
+// Devices in the network against the inventory: the router's leases and the
 // FRITZ!Box's active hosts, each name once; one no asset is named like
 // is uninventoried (cross.device_uninventoried, services/inventory).
 //
 //	router leases ─┐
-//	FRITZ!Box hosts ┴─► NetClient ─► not in Snipe-IT, not ignored ─► case
+//	FRITZ!Box hosts ┴─► NetClient ─► not in the inventory, not ignored ─► case
 
 import (
 	"strings"
@@ -52,11 +52,11 @@ func NetClients(gw *sources.GatewayDataset, fritz *sources.FritzDataset) (client
 	return clients, from
 }
 
-// Uninventoried are the clients no Snipe-IT asset is named like ("NAS"
+// Uninventoried are the clients no inventory asset is named like ("NAS"
 // ~ "nas-keller"), leaving out ignored names (lower case).
-func Uninventoried(clients []NetClient, snipe *sources.SnipeDataset, ignore map[string]bool) []NetClient {
+func Uninventoried(clients []NetClient, inv *sources.InventoryData, ignore map[string]bool) []NetClient {
 	var assets []string
-	for _, a := range snipe.Assets {
+	for _, a := range inv.Assets {
 		if name := strings.ToLower(a.Name); name != "" {
 			assets = append(assets, name)
 		}

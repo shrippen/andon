@@ -10,7 +10,7 @@ import (
 // ones agree on; a split vote is proposed but not ticked; transfers
 // stay out.
 func TestUncategorized(t *testing.T) {
-	bank := &sources.SureDataset{Transactions: []sources.SureTxn{
+	bank := &sources.BankData{Transactions: []sources.BankTxn{
 		{ID: "1", Date: "2026-10-01", Merchant: "DKB AG", Amount: -2.5},
 		{ID: "2", Date: "2026-10-05", Merchant: "DKB AG", Amount: -2.5},
 		{ID: "3", Date: "2026-09-01", Merchant: "DKB AG", CategoryID: "fees"},

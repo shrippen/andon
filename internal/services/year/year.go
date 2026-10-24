@@ -4,7 +4,7 @@
 // package for the tax advisor (billing.Export). It only reads.
 //
 //	Invoice Ninja ─ payments, VAT, expenses ─┐
-//	Snipe-IT ───── depreciation ─────────────┼─► Page ─► /euer, /receipts …
+//	inventory ──── depreciation ─────────────┼─► Page ─► /euer, /receipts …
 //	Kimai, Dawarich ─ home office days ──────┘        └► steuer-<year>.zip
 package year
 
@@ -12,8 +12,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 	"time"
 
+	"andon/internal/caps"
 	"andon/internal/db"
 	"andon/internal/enums"
 	"andon/internal/metrics"
@@ -29,7 +31,7 @@ import (
 var ErrNoNinja = errors.New("year.err_no_ninja")
 
 var need = workbench.Need{Required: []enums.ServiceType{enums.ServiceInvoiceNinja},
-	Optional: []enums.ServiceType{enums.ServiceKimai, enums.ServiceDawarich, enums.ServiceSnipeIT}}
+	Optional: slices.Concat([]enums.ServiceType{enums.ServiceKimai, enums.ServiceDawarich}, caps.Members(caps.Inventory))}
 
 // yearsShown is how many years the page offers, this one first.
 const yearsShown = 3
@@ -59,10 +61,10 @@ type Page struct {
 	EuerSlot int                // 0: no field chosen yet
 	Expenses float64            // net, all lines
 
-	Snipe    bool // the Verbund has Snipe-IT
-	Afa      []metrics.AfaRow
-	AfaTotal float64
-	NoRule   int // assets without depreciation rule
+	Inventory bool // the Verbund has an inventory (caps.Inventory)
+	Afa       []metrics.AfaRow
+	AfaTotal  float64
+	NoRule    int // assets without useful life
 
 	Review metrics.YearReview // the year at a glance
 
@@ -116,8 +118,8 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, y
 	p.Review = metrics.ReviewYear(kimai, ninja, p.Year)
 	p.income(ninja, metrics.TaxVATMethod(settings))
 	p.expenses(ninja, sources.CategoriesOf(ninjaConn.Options).EuerSlot)
-	if snipe, ok := data[enums.ServiceSnipeIT].(*sources.SnipeDataset); ok {
-		p.depreciation(snipe)
+	if inv, ok := metrics.InventoryOf(byName(data)); ok {
+		p.depreciation(inv)
 	}
 	if kimai != nil {
 		travel, whole := travelOf(data, kimai, s, settings, now, p.Year)
@@ -191,9 +193,9 @@ func (p *Page) expenses(ninja *sources.NinjaDataset, slot int) {
 	}
 }
 
-func (p *Page) depreciation(snipe *sources.SnipeDataset) {
-	p.Snipe = true
-	p.Afa = metrics.Depreciation(snipe, p.Year)
+func (p *Page) depreciation(inv *sources.InventoryData) {
+	p.Inventory = true
+	p.Afa = metrics.Depreciation(inv, p.Year)
 	for _, r := range p.Afa {
 		p.AfaTotal += r.Year
 		if r.Months == 0 {
@@ -220,4 +222,13 @@ func travelOf(data map[enums.ServiceType]any, kimai *sources.KimaiDataset, s wor
 	t := metrics.TravelOf(geo, kimai, s.Conn(enums.ServiceDawarich).Options, metrics.TravelSettingsOf(settings), now)
 	from, err := time.Parse(time.RFC3339, geo.TracksFrom)
 	return &t, err == nil && !from.After(time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC))
+}
+
+// byName keys the datasets by service name, as metrics reads them.
+func byName(data map[enums.ServiceType]any) map[string]any {
+	out := make(map[string]any, len(data))
+	for s, d := range data {
+		out[string(s)] = d
+	}
+	return out
 }

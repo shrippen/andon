@@ -207,8 +207,8 @@ func disksDetail(cfg DisksConfig, results map[string]any, ctx ViewCtx) DetailVie
 			facts.Rows = append(facts.Rows, []Cell{{Value: Txt("detail.disks.failing")}, {Value: chosen.Failing, State: "bad"}})
 		}
 		// The disk as an asset: bought when, warranty until (by serial).
-		if snipe, ok := results[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset); ok && chosen.Serial != "" {
-			for _, a := range snipe.Assets {
+		if inv, ok := metrics.InventoryOf(results); ok && chosen.Serial != "" {
+			for _, a := range inv.Assets {
 				if !strings.EqualFold(a.Serial, chosen.Serial) {
 					continue
 				}

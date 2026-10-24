@@ -64,7 +64,7 @@ func banks(d *sql.DB, who *access.Principal, spaceID int64) ([]bank, error) {
 	return out, err
 }
 
-func loadBank(ctx context.Context, d *sql.DB, who *access.Principal, b bank, fresh svcdata.Freshness) (*sources.SureDataset, *sources.NinjaDataset, error) {
+func loadBank(ctx context.Context, d *sql.DB, who *access.Principal, b bank, fresh svcdata.Freshness) (*sources.BankData, *sources.NinjaDataset, error) {
 	uid := who.UserID
 	s, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceSure), nil, b.sure, model.UserHolder(uid), fresh)
 	if err != nil {
@@ -74,7 +74,7 @@ func loadBank(ctx context.Context, d *sql.DB, who *access.Principal, b bank, fre
 	if err != nil {
 		return nil, nil, err
 	}
-	sure, _ := s.Data.(*sources.SureDataset)
+	sure, _ := s.Data.(*sources.BankData)
 	ninja, _ := n.Data.(*sources.NinjaDataset)
 	if sure != nil {
 		// Clients pay into the business accounts (all, before any has a role).

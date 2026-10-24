@@ -134,7 +134,7 @@ func crossRows(kind TableKind, data any, results map[string]any, ctx ViewCtx) ([
 		default:
 			return nil, false
 		}
-	case *sources.SureDataset:
+	case *sources.BankData:
 		switch kind {
 		case TablePayments:
 			ninja, ok := results[peerNinja].(*sources.NinjaDataset)

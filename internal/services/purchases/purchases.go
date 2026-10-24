@@ -1,11 +1,12 @@
 // Package purchases makes recent purchases complete as a workbench
 // (services/workbench): an asset of the last year needs its cost and
-// warranty in Snipe-IT and an expense with receipt in Invoice Ninja
-// (metrics.Purchases). Andon writes the warranty; for a missing expense
-// or receipt the page leads to the VAT check and the receipt hunt.
+// warranty in the inventory (Snipe-IT or Kept) and an expense with
+// receipt in Invoice Ninja (metrics.Purchases). Andon writes the
+// warranty; for a missing expense or receipt the page leads to the VAT
+// check and the receipt hunt.
 //
-//	Snipe-IT ─ assets ──────┐
-//	Invoice Ninja ─ expenses ┴─► gaps ─► warranty in Snipe-IT │ links
+//	inventory ─ assets ─────┐
+//	Invoice Ninja ─ expenses ┴─► gaps ─► warranty in the inventory │ links
 package purchases
 
 import (
@@ -16,6 +17,7 @@ import (
 	"strconv"
 	"time"
 
+	"andon/internal/caps"
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/model"
@@ -28,14 +30,16 @@ import (
 )
 
 var (
-	// ErrNoSnipe means the user reaches no Snipe-IT.
-	ErrNoSnipe = errors.New("purchases.err_no_snipe")
+	// ErrNoInventory means the user reaches no inventory.
+	ErrNoInventory = errors.New("purchases.err_no_inventory")
+	// ErrNoWrite means the inventory takes no warranties from Andon (Kept
+	// without a read+write token or its MCP module).
+	ErrNoWrite = errors.New("purchases.err_no_write")
 	// ErrDemo means a demo connection, which takes no writes.
 	ErrDemo = errors.New("purchases.err_demo")
 )
 
-var need = workbench.Need{Required: []enums.ServiceType{enums.ServiceSnipeIT},
-	Optional: []enums.ServiceType{enums.ServiceInvoiceNinja}}
+var need = workbench.Need{Anchor: caps.Inventory, Optional: []enums.ServiceType{enums.ServiceInvoiceNinja}}
 
 // The action and field: act_<asset>=warranty months_<asset>=24.
 const (
@@ -63,6 +67,9 @@ const optLinkSlot = "receipt_link_slot"
 
 const prefKey = "purchases"
 
+// warrantyKind is the asset update a warranty is (caps).
+const warrantyKind = "warranty"
+
 type state struct {
 	Scope string `json:"scope,omitempty"`
 }
@@ -76,6 +83,10 @@ type Page struct {
 	Ninja  bool // expenses checked
 	Linked bool // receipts checked (the link field is known)
 	Months int
+	// Service is the inventory's; Writable is false when it takes no
+	// warranties from Andon.
+	Service  enums.ServiceType
+	Writable bool
 }
 
 type book struct {
@@ -85,6 +96,9 @@ type book struct {
 	cases  []metrics.PurchaseCase
 	ninja  bool
 	linked bool
+	// writable: the inventory takes warranties (caps: assets update
+	// warranty; an inventory without declared caps, Snipe-IT, does).
+	writable bool
 }
 
 // Open lists the purchases with gaps.
@@ -94,7 +108,8 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 	if err != nil {
 		return p, err
 	}
-	p.Cases, p.Ninja, p.Linked = b.cases, b.ninja, b.linked
+	p.Cases, p.Ninja, p.Linked, p.Writable = b.cases, b.ninja, b.linked, b.writable
+	p.Service = enums.ServiceType(b.conn.Service)
 	return p, nil
 }
 
@@ -104,7 +119,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 		return book{}, nil, err
 	}
 	if len(scopes) == 0 {
-		return book{}, nil, ErrNoSnipe
+		return book{}, nil, ErrNoInventory
 	}
 	st, err := workbench.LoadState[state](d, who, prefKey)
 	if err != nil {
@@ -115,7 +130,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 	}
 	var b book
 	b.scope, b.choose = workbench.Pick(scopes, scope)
-	b.conn = b.scope.Conn(enums.ServiceSnipeIT)
+	b.conn = b.scope.Of(caps.Inventory)
 
 	holder := model.UserHolder(who.UserID)
 	get := func(c *model.Connection, service enums.ServiceType, f svcdata.Freshness) any {
@@ -131,9 +146,14 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 		}
 		return res.Data
 	}
-	snipe, _ := get(b.conn, enums.ServiceSnipeIT, fresh).(*sources.SnipeDataset)
-	if snipe == nil {
-		return b, scopes, ErrNoSnipe
+	data := get(b.conn, enums.ServiceType(b.conn.Service), fresh)
+	inv, _ := data.(sources.InventorySource)
+	if inv == nil {
+		return b, scopes, ErrNoInventory
+	}
+	b.writable = true
+	if r, ok := data.(caps.Reporter); ok {
+		b.writable = r.CapSet().Can(caps.Assets, caps.Update, warrantyKind)
 	}
 	nc := b.scope.Conn(enums.ServiceInvoiceNinja)
 	ninja, _ := get(nc, enums.ServiceInvoiceNinja, svcdata.Stored).(*sources.NinjaDataset)
@@ -145,7 +165,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 		}
 	}
 	b.ninja, b.linked = ninja != nil, ninja != nil && slot > 0
-	b.cases = metrics.Purchases(snipe, ninja, slot, today)
+	b.cases = metrics.Purchases(inv.Inventory(), ninja, slot, today)
 	return b, scopes, nil
 }
 
@@ -158,7 +178,8 @@ type Item struct {
 // Plan is the review.
 type Plan struct {
 	workbench.Plan[Item]
-	Scope string
+	Scope   string
+	Service enums.ServiceType // the inventory the warranties go to
 }
 
 // Check: the asset still lacks its warranty, months are sensible.
@@ -183,7 +204,7 @@ func Review(ctx context.Context, d *sql.DB, who *access.Principal, scope string,
 		return Plan{}, err
 	}
 	plan, err := workbench.PlanOf[Item](b, steps)
-	return Plan{Plan: plan, Scope: b.scope.Key}, err
+	return Plan{Plan: plan, Scope: b.scope.Key, Service: enums.ServiceType(b.conn.Service)}, err
 }
 
 // Apply writes the warranties against fresh data.
@@ -202,6 +223,9 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	if plan.Writes() > 0 && sources.IsDemo(b.conn.URL) {
 		return workbench.Result{}, ErrDemo
 	}
+	if plan.Writes() > 0 && !b.writable {
+		return workbench.Result{}, ErrNoWrite
+	}
 	token, err := svcdata.Secret(ctx, d, b.conn, model.UserHolder(who.UserID))
 	if err != nil {
 		return workbench.Result{}, err
@@ -219,7 +243,15 @@ type writer struct {
 }
 
 func (w writer) Write(ctx context.Context, p workbench.Planned[Item]) (string, error) {
-	return p.Item.Asset.Name, outbound.SnipeWarranty(ctx, w.to, p.Item.Asset.ID, p.Item.Months)
+	name := p.Item.Asset.Name
+	if enums.ServiceType(w.conn.Service) == enums.ServiceKept {
+		return name, outbound.KeptWarranty(ctx, w.to, p.Item.Asset.ID, p.Item.Months)
+	}
+	id, err := strconv.ParseInt(p.Item.Asset.ID, 10, 64)
+	if err != nil {
+		return name, err
+	}
+	return name, outbound.SnipeWarranty(ctx, w.to, id, p.Item.Months)
 }
 
 func (w writer) Name(p workbench.Planned[Item]) string { return p.Item.Asset.Name }

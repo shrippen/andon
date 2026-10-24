@@ -7,7 +7,7 @@ import (
 )
 
 // SureDue sums active recurring expenses expected within days.
-func SureDue(data *sources.SureDataset, today time.Time, days int) float64 {
+func SureDue(data *sources.BankData, today time.Time, days int) float64 {
 	horizon := today.AddDate(0, 0, days)
 	var total float64
 	for _, r := range data.Recurring {
@@ -20,7 +20,7 @@ func SureDue(data *sources.SureDataset, today time.Time, days int) float64 {
 }
 
 // SureCash is the balance of all bank (depository) accounts.
-func SureCash(data *sources.SureDataset) float64 {
+func SureCash(data *sources.BankData) float64 {
 	var total float64
 	for _, a := range data.Accounts {
 		if a.Type == "depository" {
@@ -32,7 +32,7 @@ func SureCash(data *sources.SureDataset) float64 {
 
 // SureCashDays is the cash balance at the end of each of the last n days,
 // oldest first: today's balance, walked back through the bookings.
-func SureCashDays(data *sources.SureDataset, today time.Time, n int) []float64 {
+func SureCashDays(data *sources.BankData, today time.Time, n int) []float64 {
 	cash := map[string]bool{}
 	for _, a := range data.Accounts {
 		if a.Type == "depository" {
@@ -56,6 +56,6 @@ func SureCashDays(data *sources.SureDataset, today time.Time, n int) []float64 {
 }
 
 // SureInfo: net worth for the link tile.
-func SureInfo(data *sources.SureDataset) []InfoPart {
+func SureInfo(data *sources.BankData) []InfoPart {
 	return []InfoPart{part("sure.cash", map[string]any{"amount": map[string]any{"$money": SureCash(data), "currency": data.Currency}})}
 }

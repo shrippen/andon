@@ -221,6 +221,8 @@ func linkView(_ LinkConfig, results map[string]any, ctx ViewCtx) map[string]any 
 		parts = metrics.NinjaInfo(data, today)
 	case *sources.SnipeDataset:
 		parts = metrics.SnipeInfo(data, today)
+	case *sources.KeptDataset:
+		parts = metrics.KeptInfo(data)
 	case *sources.DawarichDataset:
 		parts = metrics.DawarichInfo(data.LastPoint)
 	case *sources.GlancesResult:
@@ -283,7 +285,7 @@ func linkView(_ LinkConfig, results map[string]any, ctx ViewCtx) map[string]any 
 		parts = metrics.WatchtowerInfo(data)
 	case *sources.HassDataset:
 		parts = metrics.HassInfo(data)
-	case *sources.SureDataset:
+	case *sources.BankData:
 		parts = metrics.SureInfo(data)
 	case *sources.LinkwardenDataset:
 		parts = metrics.LinkwardenInfo(data)

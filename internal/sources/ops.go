@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/url"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -308,6 +309,15 @@ type PaperlessDataset struct {
 	// Correspondents are who documents come from or go to, e.g. a
 	// customer whose contracts Paperless keeps (Verbund → Kunden).
 	Correspondents []PaperlessCorrespondent
+	// IDs are every document's id, for links other services keep (Kept's
+	// receipts); nil when they could not be read.
+	IDs []int64
+}
+
+// Has reports whether Paperless holds document id; true when the ids are
+// unknown, so nothing is called missing on a failed read.
+func (d *PaperlessDataset) Has(id int64) bool {
+	return d.IDs == nil || slices.Contains(d.IDs, id)
 }
 
 // PaperlessCorrespondent is one sender or recipient with its documents.
@@ -328,6 +338,10 @@ type PaperlessNew struct {
 
 // paperlessNewest is how many recent documents are read.
 const paperlessNewest = "10"
+
+// paperlessAllIDs reads every id in one page: Paperless 3 answers "all"
+// with null, but lists ids alone cheaply (20 bytes each).
+const paperlessAllIDs = "100000"
 
 // PaperlessDoc is one invoice document; Amount comes from a monetary
 // custom field (0 if none).
@@ -362,8 +376,15 @@ func fetchPaperless(ctx context.Context, sctx Ctx) (any, error) {
 		return nil, fetchError(err)
 	}
 	data.Total = -1
-	if all, err := api.Get(ctx, "documents/", url.Values{"page_size": {"1"}}); err == nil {
+	if all, err := api.Get(ctx, "documents/", url.Values{"page_size": {paperlessAllIDs}, "fields": {"id"}}); err == nil {
 		data.Total = int(asFloat(asMap(all)["count"]))
+		data.IDs = []int64{}
+		for _, d := range asList(asMap(all)["results"]) {
+			data.IDs = append(data.IDs, asInt64(asMap(d)["id"]))
+		}
+		if len(data.IDs) < data.Total {
+			data.IDs = nil // more than one page: unknown, not missing
+		}
 	}
 	if recent, err := api.Get(ctx, "documents/", url.Values{"ordering": {"-added"}, "page_size": {paperlessNewest}}); err == nil {
 		for _, raw := range asList(asMap(recent)["results"]) {

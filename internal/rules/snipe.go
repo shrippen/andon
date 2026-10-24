@@ -14,31 +14,13 @@ import (
 const (
 	snipeSource = "snipeit"
 	snipeOpen   = "open_in_snipeit"
-	gwgLimitNet = 800.0
-	vatFactor   = 1.19
 )
 
 func snipeURL(data *sources.SnipeDataset, path string) string {
 	return strings.TrimRight(data.URL, "/") + "/" + path
 }
 
-// RecentPurchases returns assets purchased within `days` with a known
-// cost — used by the cross-service snipe.expense_missing rule.
-func RecentPurchases(data *sources.SnipeDataset, today time.Time, days int) []sources.SnipeAsset {
-	since := today.AddDate(0, 0, -days)
-	var out []sources.SnipeAsset
-	for _, a := range data.Assets {
-		d, ok := metrics.ParseDay(a.PurchaseDate)
-		if ok && !d.Before(since) && a.PurchaseCost != 0 {
-			out = append(out, a)
-		}
-	}
-	return out
-}
-
 func init() {
-	Register("snipe.warranty_expiring", string(enums.ServiceSnipeIT), map[string]any{"info_days": 60.0, "warn_days": 14.0}, on(warrantyExpiring))
-
 	// Lent gear past its agreed return date: remind before it is lost.
 	Register("snipe.checkin_overdue", string(enums.ServiceSnipeIT), nil, on(checkinOverdue))
 
@@ -55,33 +37,6 @@ func init() {
 	// One hint for all ready but unassigned devices: own gear lies in the
 	// shelf as a matter of course, one hint per patch cable is noise.
 	Register("snipe.unassigned_deployable", string(enums.ServiceSnipeIT), map[string]any{"days": 90.0}, on(unassignedDeployable))
-
-	Register("snipe.gwg_hint", string(enums.ServiceSnipeIT), map[string]any{"cost_is_gross": true}, on(gwgHint))
-}
-
-func warrantyExpiring(data *sources.SnipeDataset, cfg map[string]any, env Env) []Finding {
-	var found []Finding
-	for _, a := range data.Assets {
-		ends, ok := metrics.ParseDay(a.WarrantyExpires)
-		if !ok {
-			continue
-		}
-		daysLeft := int(ends.Sub(env.Today).Hours() / 24)
-		if daysLeft < 0 || daysLeft > cfgInt(cfg, "info_days") {
-			continue
-		}
-		level := enums.SeverityInfo
-		if daysLeft <= cfgInt(cfg, "warn_days") {
-			level = enums.SeverityWarn
-		}
-		found = append(found, Finding{
-			Fingerprint: fmt.Sprintf("warranty:%d", a.ID), Severity: level, Message: "snipe.warranty",
-			Params:    map[string]any{"asset": a.Name, "tag": a.Tag, "day": Day(ends)},
-			ActionURL: snipeURL(data, fmt.Sprintf("hardware/%d", a.ID)), ActionLabel: snipeOpen,
-			Due: ends.Format("2006-01-02"), Sources: []string{snipeSource},
-		})
-	}
-	return found
 }
 
 func checkinOverdue(data *sources.SnipeDataset, cfg map[string]any, env Env) []Finding {
@@ -219,28 +174,4 @@ func unassignedDeployable(data *sources.SnipeDataset, cfg map[string]any, env En
 		ActionURL: snipeURL(data, "hardware?status=RTD"), ActionLabel: snipeOpen,
 		Sources: []string{snipeSource},
 	}}
-}
-
-func gwgHint(data *sources.SnipeDataset, cfg map[string]any, env Env) []Finding {
-	var found []Finding
-	for _, a := range data.Assets {
-		bought, ok := metrics.ParseDay(a.PurchaseDate)
-		if !ok || bought.Year() != env.Today.Year() {
-			continue
-		}
-		net := a.PurchaseCost
-		if cfgBool(cfg, "cost_is_gross") {
-			net /= vatFactor
-		}
-		if net <= gwgLimitNet {
-			continue
-		}
-		found = append(found, Finding{
-			Fingerprint: fmt.Sprintf("gwg:%d", a.ID), Severity: enums.SeverityInfo, Message: "snipe.gwg",
-			Params:    map[string]any{"asset": a.Name, "net": Money(net, "")},
-			ActionURL: snipeURL(data, fmt.Sprintf("hardware/%d", a.ID)), ActionLabel: snipeOpen,
-			Sources: []string{snipeSource},
-		})
-	}
-	return found
 }

@@ -140,6 +140,7 @@ action:
   open_in_dawarich: Open in Dawarich
   backup: 'View backup'
   open_in_wallos: Open in Wallos
+  open_in_kept: Open in Kept
   open_in_glances: 'Open in Glances'
   open_in_docker: 'Open Docker'
   more: 'More actions'
@@ -1828,6 +1829,10 @@ conn:
   about_wallos: 'Subscriptions and payment dates'
   options_hint_wallos: 'No options needed. Key = API key from Wallos → Profile (API key). URL = address of the Wallos web interface. Prices come in your main currency.'
   secret_wallos: API key
+  what_kept: 'Kept is an inventory for home and office: things with purchase, warranty, receipts and expiry dates.'
+  about_kept: 'Inventory with warranties, receipts and due dates'
+  options_hint_kept: 'Token = personal token from Kept → Settings → Connections, for the locations Andon should read (“read and write” if Andon should add warranties and devices; then turn on the MCP module in the location). URL = address of Kept, with https (without it Kept hands out no tokens). Option life_field: key of the custom field with the useful life in months (default nutzungsdauer); Andon depreciates by it.'
+  secret_kept: Token
   router_kind: Router
   choice_opnsense: OPNsense
   choice_pfsense: pfSense
@@ -1936,6 +1941,7 @@ service:
   dawarich: Dawarich
   glances: Glances
   wallos: Wallos
+  kept: Kept
   tax: 'Tax'
   docker: 'Docker'
   tandoor: 'Tandoor'
@@ -2232,6 +2238,16 @@ mail:
     new_login_body: New login from {ip} ({agent}).
     hint: If this was not you, change your password now and end all sessions.
 hint:
+  kept:
+    due_expiring:
+      title: '{subject}: {kind} on {day}'
+      why: '“{title}” is coming up in Kept (Kept’s lead time).'
+    due_due:
+      title: '{subject}: {kind} due on {day}'
+      why: '“{title}” is due on {day} according to Kept.'
+    due_overdue:
+      title: '{subject}: {kind} overdue since {day}'
+      why: '“{title}” is overdue in Kept. Do it and tick it off in Kept.'
   llm:
     budget_over:
       title: '{account}: budget used up'
@@ -2679,32 +2695,21 @@ hint:
       title: 'Kintsugi: suggestions left waiting'
       why: 'Open: {count}, the oldest for {days} days. Accept, snooze or reject.'
   sure:
-    subscription_unused:
-      title: '{name}: {amount}/month, hardly used'
-      why: 'No use found for over {days} days (tile clicks, logins).'
-    subscription_unused_deadline:
-      title: '{name}: {amount}/month, hardly used'
-      why: 'No use found for over {days} days. Cancel by {deadline}.'
-    spendable_negative:
-      title: 'Taxes and fixed costs exceed the cash'
-      why: 'Balance {cash}, to set aside {reserved} (VAT, income tax, 30 days of fixed costs). Missing {missing}.'
-    missed:
-      title: 'Expected payment “{name}” missing'
-      why: '{amount} was expected on {day}. Failed debit or changed contract?'
-    low:
-      title: '{account}: only {amount}'
-      why: Balance below threshold. Move money before debits bounce.
     sync:
       title: 'Bank sync failed: {name}'
       why: Renew the bank connection or transactions will be missing.
-    uncategorized:
-      title: '{count} transactions without category'
-      title_singular: '{count} transaction without category'
-      why: Budgets and reports are off without categories.
-    unusual:
-      title: 'Large expense: {name} ({amount})'
-      why: 'On {day}, well above the usual. Double charge or price increase?'
   cross:
+    kept_paperless_gone:
+      title: '{count} receipts in Kept point nowhere'
+      title_singular: '{count} receipt in Kept points nowhere'
+      why: 'Kept links Paperless documents that no longer exist: {names}. Link them again.'
+    kept_paperless_elsewhere:
+      title: '{count} receipts in Kept are in another Paperless'
+      title_singular: '{count} receipt in Kept is in another Paperless'
+      why: 'The link does not point to the bundle’s Paperless: {names}. Check the Paperless connection in Kept.'
+    kept_paperless_off:
+      title: 'Kept without Paperless: {names}'
+      why: 'These Kept locations have no working Paperless connection; receipts there can be neither linked nor checked. Set it up in Kept → location → Paperless.'
     esphome_ha_lost:
       title: 'Home Assistant lost {name}'
       why: 'ESPHome reaches the node, but its {entities} entities in Home Assistant are unavailable (e.g. {entity}). Changed API key or adoption?'
@@ -3059,12 +3064,6 @@ hint:
       title_singular: '{count} invoice overdue: {client} ({amount})'
       why: 'Oldest for {days} days: {numbers}. Send reminders per invoice in Invoice Ninja.'
   snipe:
-    replace_worth:
-      title: '{name}: replacement pays back in {months} months'
-      why: '{years} years old, draws {watts} W ({yearly} power a year). A {new_watts} W device for {new_cost} pays back after {months} months.'
-    warranty:
-      title: Warranty of {asset} ends on {day}
-      why: Asset {tag}. Extend or plan a replacement.
     eol:
       title: '{asset} reached end of life'
       why: EOL date {day} ({tag}). Plan a replacement.
@@ -3083,12 +3082,6 @@ hint:
     unused:
       title: 'Unused devices: {count} for over {days} days'
       why: 'Ready to deploy but not assigned; longest ({oldest} days): {names}. Sell, use, or switch the rule off if this is normal for you.'
-    gwg:
-      title: '{asset}: {net} net'
-      why: 'Above 800 € net: check depreciation instead of immediate write-off (GWG).'
-    expense_missing:
-      title: No expense for {asset}
-      why: Bought on {day} for {amount}, no matching expense in Invoice Ninja.
     checkin_overdue:
       title: '{asset} was due back on {day}'
       why: 'Checked out to {who}. Ask for it or extend the return date in Snipe-IT.'
@@ -3203,7 +3196,54 @@ hint:
     crashed:
       title: 'Container {name} is not running'
       why: '{status}. Restart it or check the logs for the error.'
+  inventory:
+    receipt_missing:
+      title: 'No receipt for {asset}'
+      why: 'Bought on {day} for {amount}; Kept holds no receipt or invoice, attached or from Paperless. Attach or link one for taxes and the warranty.'
+    split:
+      title: '{count} assets only in {other}'
+      title_singular: '{count} asset only in {other}'
+      why: 'The bundle counts {first}; {names} are therefore missing from depreciation and the EUER export. Add them to {first} or take {other} out of the bundle.'
+    replace_worth:
+      title: '{name}: replacement pays back in {months} months'
+      why: '{years} years old, draws {watts} W ({yearly} power a year). A {new_watts} W device for {new_cost} pays back after {months} months.'
+    warranty:
+      title: Warranty of {asset} ends on {day}
+      why: Asset {tag}. Extend or plan a replacement.
+    gwg:
+      title: '{asset}: {net} net'
+      why: 'Above 800 € net: check depreciation instead of immediate write-off (GWG).'
+    expense_missing:
+      title: No expense for {asset}
+      why: Bought on {day} for {amount}, no matching expense in Invoice Ninja.
+  bank:
+    subscription_unused:
+      title: '{name}: {amount}/month, hardly used'
+      why: 'No use found for over {days} days (tile clicks, logins).'
+    subscription_unused_deadline:
+      title: '{name}: {amount}/month, hardly used'
+      why: 'No use found for over {days} days. Cancel by {deadline}.'
+    spendable_negative:
+      title: 'Taxes and fixed costs exceed the cash'
+      why: 'Balance {cash}, to set aside {reserved} (VAT, income tax, 30 days of fixed costs). Missing {missing}.'
+    missed:
+      title: 'Expected payment “{name}” missing'
+      why: '{amount} was expected on {day}. Failed debit or changed contract?'
+    low:
+      title: '{account}: only {amount}'
+      why: Balance below threshold. Move money before debits bounce.
+    uncategorized:
+      title: '{count} transactions without category'
+      title_singular: '{count} transaction without category'
+      why: Budgets and reports are off without categories.
+    unusual:
+      title: 'Large expense: {name} ({amount})'
+      why: 'On {day}, well above the usual. Double charge or price increase?'
 info:
+  kept:
+    things: '{count} things'
+    things_singular: '{count} thing'
+    close: '{count} due'
   llm:
     month: '{amount} this month'
     credit: 'credit {amount}'
@@ -3509,13 +3549,13 @@ deadline:
   days_short: d
   overdue: 'due'
 rule_name:
+  inventory.receipt_missing: Purchase without receipt
+  cross.kept_paperless: Kept receipts against Paperless
+  kept.due: Due dates from Kept
+  inventory.split: Two inventories in one bundle
   llm.budget: 'LLM budget'
   llm.credit_low: 'LLM credit low'
   llm.spike: 'LLM cost spike'
-  firefly.recurring_missed: 'Recurring payment missed (Firefly III)'
-  firefly.low_balance: 'Low balance (Firefly III)'
-  firefly.uncategorized: 'Uncategorised transactions (Firefly III)'
-  firefly.unusual_expense: 'Unusual expense (Firefly III)'
   ghostfolio.drawdown: 'Depot down'
   cross.depot_reserve: 'Reserve from the depot'
   vikunja.overdue: 'Overdue tasks'
@@ -3571,7 +3611,7 @@ rule_name:
   system.connector_down: Connection failing
   system.unused_service: 'Unused service'
   energy.shift_jobs: 'Maintenance at expensive hours'
-  snipe.replace_worth: 'Replacement pays back'
+  inventory.replace_worth: 'Replacement pays back'
   energy.weather_adjusted: 'Use above the weather'
   system.storage_forecast: 'Storage filling up'
   backups.unsaved: 'Unsaved new data'
@@ -3585,8 +3625,8 @@ rule_name:
   gluetun.downloads_exposed: 'Downloads without VPN'
   cross.payment_unmatched: 'Payment without invoice'
   in.rate_below: 'Full-cost rate low'
-  sure.subscription_unused: 'Unused subscription'
-  sure.spendable_negative: 'Reserves missing'
+  bank.subscription_unused: 'Unused subscription'
+  bank.spendable_negative: 'Reserves missing'
   calendar.unbooked: 'Appointment without booking'
   kimai.booked_free_day: 'Booking on a day off'
   in.order_gap: 'Order gap'
@@ -3652,11 +3692,11 @@ rule_name:
   linkwarden.not_on_board: Bookmarks without tile
   linkwarden.not_saved: Tiles without bookmark
   kuma.unmonitored: Tiles without monitor
-  sure.recurring_missed: Missed payment
-  sure.low_balance: Low balance
+  bank.recurring_missed: Missed payment
+  bank.low_balance: Low balance
   sure.sync_failed: Bank sync
-  sure.uncategorized: Uncategorised
-  sure.unusual_expense: Unusual expense
+  bank.uncategorized: Uncategorised
+  bank.unusual_expense: Unusual expense
   cross.invoice_paid: Invoice paid, not recorded
   cross.expense_unrecorded: Business expense not recorded
   hass.alarm: Alarm sensors
@@ -3713,15 +3753,15 @@ rule_name:
   in.missing_vat: Missing VAT
   in.expense_no_input_vat: Expenses without input VAT
   in.client_concentration: Client dependency
-  snipe.warranty_expiring: Warranty end
+  inventory.warranty_expiring: Warranty end
   snipe.eol_reached: End of life
   snipe.license_expiring: Licence expiry
   snipe.license_seats: Licence seats
   snipe.audit_overdue: Audit overdue
   snipe.consumable_low: Consumables
   snipe.unassigned_deployable: Unused devices
-  snipe.gwg_hint: Low-value asset limit
-  snipe.expense_missing: Purchase without expense
+  inventory.gwg_hint: Low-value asset limit
+  inventory.expense_missing: Purchase without expense
   geo.visit_without_time: Visit without booking
   geo.time_without_visit: On-site without visit
   geo.travel_costs: Travel costs
@@ -3754,6 +3794,7 @@ rule_name:
   truenas.scrub_old: 'Pool scrub'
   gateway.new_device: 'New devices on the network'
 param:
+  kinds: Kinds
   min_balance: 'Credit below (USD)'
   min_limit_pct: 'Key limit left below (%)'
   min_usd: 'At least (USD)'
@@ -6888,6 +6929,8 @@ board_layout:
 rule_scope:
   cross: 'Across services'
   deadlines: 'Deadlines'
+  inventory: 'Inventory'
+  bank: 'Bank'
 arr_check:
   IndexerStatusCheck: 'Indexer unavailable'
   IndexerLongTermStatusCheck: 'Indexer unavailable for hours'
@@ -6946,6 +6989,7 @@ caps:
   have: available
   unknown: not fetched yet
   domain:
+    assets: Inventory
     accounts: Accounts
     places: Places
     rides: Rides
@@ -6962,6 +7006,7 @@ caps:
     create: create
     update: change
   kind:
+    warranty: Warranty
     timesheets: Timesheets
     bank_transactions: Bank transactions
     target: Target time
@@ -6981,6 +7026,7 @@ caps:
     api: 'API {name} missing (older version)'
     setting: '{name} not set'
   setting:
+    mcp: 'MCP module in the location (Kept → location → modules)'
     contract: Working time (user → working time)
   note: 'Only partly usable:'
 verbund:
@@ -7445,32 +7491,35 @@ dunning:
   lead: 'Invoices whose next reminder is due by the schedule and not sent yet. Without your own text Invoice Ninja sends the stage’s template. Nothing is ticked by itself: the mails go to your clients.'
 inventory:
   title: 'Inventory'
-  lead: 'Devices the router or the FRITZ!Box knows that no Snipe-IT asset is named like. After the review Andon adds them to Snipe-IT (name, model, status; IP and MAC as note) or puts them on the hint’s ignore list.'
+  lead: 'Devices the router or the FRITZ!Box knows that no inventory asset (Snipe-IT or Kept) is named like. After the review Andon adds them there (Snipe-IT: name, model, status; Kept: name, in the first location’s “Unplaced”; IP and MAC as note) or puts them on the hint’s ignore list.'
+  no_write: '{service} takes no new assets from Andon: Kept needs a “read and write” token and the MCP module in the location (connection → capabilities).'
   sources: 'Read from:'
   no_sources: 'The bundle has neither a router nor a FRITZ!Box: Andon knows no devices in the network.'
   no_models: 'Snipe-IT sends no models: adding works once the API key may read them.'
   device: 'Device'
   what: 'What to do'
-  asset: 'Asset in Snipe-IT'
-  act_add: 'Add to Snipe-IT'
+  asset: 'Asset in {service}'
+  act_add: 'Add to {service}'
   act_ignore: 'Ignore'
   name: 'Name'
   model: 'Model'
   status: 'Status'
   review: 'Review'
-  empty: 'Nothing open: every device in the network has an asset in Snipe-IT.'
+  empty: 'Nothing open: every device in the network has an asset in the inventory.'
   review_title: 'Confirm inventory'
-  review_lead: 'These devices go to Snipe-IT or onto the ignore list (steps: {n}).'
+  review_lead: 'These devices go to {service} or onto the ignore list (steps: {n}).'
   do_add: 'Add as “{name}”: {model}, {status}'
+  do_add_plain: 'Add as “{name}”'
   do_ignore: 'Put on the hint’s ignore list'
   apply: 'Run ({n})'
   back: 'Back'
   done: 'Done: {n}.'
   failed: 'Not done: {n}.'
-  problem_gone: 'In Snipe-IT or ignored already: skipped.'
+  problem_gone: 'In the inventory or ignored already: skipped.'
   problem_choice: 'No model or status: skipped.'
-  err_no_snipe: 'No Snipe-IT connection you may use.'
-  err_demo: 'The demo does not write to Snipe-IT.'
+  err_no_inventory: 'No inventory (Snipe-IT, Kept) you may use.'
+  err_no_write: 'The inventory takes no new assets from Andon.'
+  err_demo: 'The demo does not write to the inventory.'
 updates:
   summarize: 'Sum up the changelog'
   summarize_privacy: 'Sends the image, both versions and the release notes from GitHub to Claude (Anthropic).'
@@ -7518,7 +7567,7 @@ year:
   new_clients: 'New this year:'
   prior_unknown: 'The data does not reach back through the year before; the comparison is left out then.'
   title: 'Year'
-  lead: 'The bundle’s tax year, to prepare the EUER: income, expenses by EUER line, depreciation by Snipe-IT’s rules and days worked from home. Andon only adds up what the services know; this is no tax advice.'
+  lead: 'The bundle’s tax year, to prepare the EUER: income, expenses by EUER line, depreciation by the useful life in the inventory and days worked from home. Andon only adds up what the services know; this is no tax advice.'
   years: 'Years'
   income: 'Income'
   paid: 'Payments received (gross)'
@@ -7536,15 +7585,15 @@ year:
   no_expenses: 'No expenses this year.'
   unlined_open: '{n} expenses still lack an EUER line.'
   afa: 'Depreciation'
-  afa_lead: 'Assets from Snipe-IT bought this year or still depreciating, by their depreciation rule. Andon does not know which are private: your tax advisor takes those out.'
-  no_snipe: 'The bundle has no Snipe-IT.'
+  afa_lead: 'Assets from the inventory bought this year or still depreciating, by their useful life. Andon does not know which are private: your tax advisor takes those out.'
+  no_inventory: 'The bundle has no inventory (Snipe-IT).'
   asset: 'Asset'
   cost: 'Cost'
   months: 'Months'
   afa_year: 'In the year'
   left: 'Book value'
   gwg: 'may be expensed at once'
-  no_rule: '{n} assets have no depreciation rule in Snipe-IT.'
+  no_rule: '{n} assets have no useful life in the inventory.'
   no_assets: 'No assets with purchase date and cost.'
   home: 'Home office'
   home_days: '{n} days with work in Kimai and no business ride, flat rate {amount}.'
@@ -7579,7 +7628,8 @@ categorize:
   link: 'File bookings without category'
 purchases:
   title: 'Purchases'
-  lead: 'Snipe-IT assets bought in the last twelve months that lack something: cost, warranty, a matching Invoice Ninja expense (amount, date within 14 days) or its receipt. Andon writes the warranty to Snipe-IT after the review; the expense and receipt you settle in the VAT check and the receipt hunt.'
+  lead: 'Inventory assets (Snipe-IT or Kept) bought in the last twelve months that lack something: cost, warranty, a matching Invoice Ninja expense (amount, date within 14 days) or its receipt. Andon writes the warranty to the inventory after the review; the expense and receipt you settle in the VAT check and the receipt hunt.'
+  no_write: '{service} takes no warranties from Andon: Kept needs a “read and write” token and the MCP module in the location (connection → capabilities).'
   no_ninja: 'The bundle has no Invoice Ninja: expenses and receipts are not checked.'
   no_link_field: 'The receipt link field is not chosen yet (match receipts): receipts are not checked.'
   asset: 'Asset'
@@ -7596,16 +7646,17 @@ purchases:
   review: 'Review'
   empty: 'Nothing open: every purchase of the last year is complete.'
   review_title: 'Confirm warranties'
-  review_lead: 'These warranties go to Snipe-IT (writes: {n}).'
+  review_lead: 'These warranties go to {service} (writes: {n}).'
   do_warranty: 'Warranty of {n} months from the purchase date'
-  apply: 'Write to Snipe-IT ({n})'
+  apply: 'Write to {service} ({n})'
   back: 'Back'
   done: 'Done: {n}.'
   failed: 'Not done: {n}.'
   problem_gone: 'Warranty set already: skipped.'
   problem_months: 'Months between 1 and 120: skipped.'
-  err_no_snipe: 'No Snipe-IT connection you may use.'
-  err_demo: 'The demo does not write to Snipe-IT.'
+  err_no_inventory: 'No inventory (Snipe-IT, Kept) you may use.'
+  err_no_write: 'The inventory takes no warranties from Andon.'
+  err_demo: 'The demo does not write to the inventory.'
 feeds:
   title: 'Release feeds'
   lead: 'Updates find newer versions of literal tags in FreshRSS’s GitHub release feeds. Here Andon proposes feeds for running images without one (address from the image’s owner and name, please check) and feeds to remove whose project no stack uses or that link no releases. Nothing is ticked; FreshRSS is written only after the review.'
@@ -7673,3 +7724,10 @@ release:
   newer: 'Andon {version} is out ({date}).'
   notes: "What's new"
   hide: 'Hide until the next version'
+kept:
+  kind:
+    thing_expiry: Expiry date
+    warranty: Warranty
+    document: Document
+    schedule: Maintenance
+    loan: Return

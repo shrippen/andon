@@ -19,7 +19,7 @@ const (
 	centsPerUnit = 100
 )
 
-type SureAccount struct {
+type BankAccount struct {
 	ID, Name, Type string // Type: depository, credit_card, investment, …
 	Classification string // asset or liability
 	Balance        float64
@@ -27,8 +27,8 @@ type SureAccount struct {
 	Role           AccountRole
 }
 
-// SureTxn is one booking; Amount is signed: income > 0, expense < 0.
-type SureTxn struct {
+// BankTxn is one booking; Amount is signed: income > 0, expense < 0.
+type BankTxn struct {
 	ID, Date, Name     string
 	Amount             float64
 	Category, Merchant string
@@ -45,15 +45,15 @@ type SureTxn struct {
 	Transfer   bool
 }
 
-// SureCategory is one of Sure's categories; Parent names the one it
+// BankCategory is one of Sure's categories (Firefly leaves them out); Parent names the one it
 // belongs to ("" top level).
-type SureCategory struct {
+type BankCategory struct {
 	ID, Name, Parent string
 }
 
-// SureRecurring is an expected payment; Amount is positive, Expense tells
+// BankRecurring is an expected payment; Amount is positive, Expense tells
 // the direction (Sure stores outflows as positive amounts).
-type SureRecurring struct {
+type BankRecurring struct {
 	Name, Status  string // active, inactive
 	Amount        float64
 	Expense       bool
@@ -61,22 +61,29 @@ type SureRecurring struct {
 	Min, Max, Avg float64
 }
 
-type SureDataset struct {
+// BankData is the bank category's shape (caps.Bank): Sure fills it, and
+// Firefly III (firefly.go); rules, metrics and tiles read only it.
+type BankData struct {
 	URL          string
 	Currency     string
 	NetWorth     float64
-	Accounts     []SureAccount
-	Transactions []SureTxn // last 90 days
-	Recurring    []SureRecurring
-	Categories   []SureCategory // Sure only; Firefly leaves them out
+	Accounts     []BankAccount
+	Transactions []BankTxn // last 90 days
+	Recurring    []BankRecurring
+	Categories   []BankCategory // Sure only; Firefly leaves them out
 	SyncError    string         // latest sync failed: its message
-	// Service is where the data comes from: "" Sure, or Firefly III,
-	// which fills the same shape (firefly.go).
+	// Service is where the data comes from: "" Sure, or Firefly III.
 	Service enums.ServiceType
 }
 
+// BankSource is a dataset of the bank category.
+type BankSource interface{ Bank() *BankData }
+
+// Bank: the dataset is the shape.
+func (d *BankData) Bank() *BankData { return d }
+
 // From is the service the bank data comes from.
-func (d *SureDataset) From() enums.ServiceType {
+func (d *BankData) From() enums.ServiceType {
 	if d.Service == "" {
 		return enums.ServiceSure
 	}
@@ -84,7 +91,7 @@ func (d *SureDataset) From() enums.ServiceType {
 }
 
 // CapSet: the capabilities need nothing beyond the token.
-func (d *SureDataset) CapSet() caps.Set { return caps.Full(caps.HolderOf(d.From())) }
+func (d *BankData) CapSet() caps.Set { return caps.Full(caps.HolderOf(d.From())) }
 
 var SureData = source{key: "sure.data", ttl: dataTTL, service: enums.ServiceSure, fetch: fetchSure}
 
@@ -125,12 +132,12 @@ func moneyOf(v any) float64 {
 	return asFloat(v)
 }
 
-func loadSure(ctx context.Context, api services.SureApi, base string, now time.Time) (*SureDataset, error) {
+func loadSure(ctx context.Context, api services.SureApi, base string, now time.Time) (*BankData, error) {
 	sheet, err := api.Get(ctx, "balance_sheet", nil)
 	if err != nil {
 		return nil, err
 	}
-	data := &SureDataset{URL: base, Currency: asStr(asMap(sheet)["currency"]), NetWorth: moneyOf(asMap(sheet)["net_worth"])}
+	data := &BankData{URL: base, Currency: asStr(asMap(sheet)["currency"]), NetWorth: moneyOf(asMap(sheet)["net_worth"])}
 
 	accounts, err := api.Get(ctx, "accounts", url.Values{"per_page": {strconv.Itoa(surePage)}})
 	if err != nil {
@@ -138,7 +145,7 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 	}
 	for _, raw := range asList(asMap(accounts)["accounts"]) {
 		a := asMap(raw)
-		data.Accounts = append(data.Accounts, SureAccount{
+		data.Accounts = append(data.Accounts, BankAccount{
 			ID: asStr(a["id"]), Name: asStr(a["name"]), Type: asStr(a["account_type"]),
 			Classification: asStr(a["classification"]), Balance: cents(a["balance_cents"]), Currency: asStr(a["currency"]),
 		})
@@ -153,7 +160,7 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 		list := asList(asMap(txns)["transactions"])
 		for _, raw := range list {
 			t := asMap(raw)
-			data.Transactions = append(data.Transactions, SureTxn{
+			data.Transactions = append(data.Transactions, BankTxn{
 				ID: asStr(t["id"]), Date: asStr(t["date"]), Name: cleanName(asStr(t["name"])), Amount: cents(t["signed_amount_cents"]),
 				Category: asStr(asMap(t["category"])["name"]), Merchant: cleanName(asStr(asMap(t["merchant"])["name"])),
 				Account: asStr(asMap(t["account"])["name"]), Tags: sureTags(t["tags"]), AccountID: asStr(asMap(t["account"])["id"]),
@@ -182,7 +189,7 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 			if name == "" {
 				name = cleanName(asStr(asMap(r["merchant"])["name"]))
 			}
-			data.Recurring = append(data.Recurring, SureRecurring{
+			data.Recurring = append(data.Recurring, BankRecurring{
 				Name: name, Status: asStr(r["status"]), Amount: abs(cents(r["amount_cents"])), Expense: cents(r["amount_cents"]) > 0,
 				Next: asStr(r["next_expected_date"]), Last: asStr(r["last_occurrence_date"]),
 				Min: cents(r["expected_amount_min_cents"]), Max: cents(r["expected_amount_max_cents"]), Avg: cents(r["expected_amount_avg_cents"]),
@@ -203,7 +210,7 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 
 // setRoles marks each account and its transactions with the role the
 // user named; a booking without account id finds it by name (demo).
-func (d *SureDataset) setRoles(roles map[string]AccountRole) {
+func (d *BankData) setRoles(roles map[string]AccountRole) {
 	byName := map[string]string{}
 	for i := range d.Accounts {
 		a := &d.Accounts[i]
@@ -222,7 +229,7 @@ func (d *SureDataset) setRoles(roles map[string]AccountRole) {
 // Only is the dataset with the accounts of one role and their bookings;
 // without a role asked for, or none named yet, all of it. Recurring
 // payments name no account and stay.
-func (d *SureDataset) Only(roles ...AccountRole) *SureDataset {
+func (d *BankData) Only(roles ...AccountRole) *BankData {
 	if len(roles) == 0 || roles[0] == RoleUnknown || !d.Classified() {
 		return d
 	}
@@ -242,7 +249,7 @@ func (d *SureDataset) Only(roles ...AccountRole) *SureDataset {
 }
 
 // Classified says whether any account has a role.
-func (d *SureDataset) Classified() bool {
+func (d *BankData) Classified() bool {
 	for _, a := range d.Accounts {
 		if a.Role != RoleUnknown {
 			return true
@@ -264,13 +271,13 @@ func sureTags(raw any) []string {
 
 func init() {
 	Register(SureData)
-	Register(testOf{SureData, func(d any) map[string]any { return map[string]any{"accounts": len(d.(*SureDataset).Accounts)} }})
+	Register(testOf{SureData, func(d any) map[string]any { return map[string]any{"accounts": len(d.(*BankData).Accounts)} }})
 }
 
 // sureCategories reads every category; a server without the endpoint
 // has none for Andon.
-func sureCategories(ctx context.Context, api services.SureApi) []SureCategory {
-	var out []SureCategory
+func sureCategories(ctx context.Context, api services.SureApi) []BankCategory {
+	var out []BankCategory
 	for page := 1; page <= sureMaxPages; page++ {
 		raw, err := api.Get(ctx, "categories", url.Values{"per_page": {strconv.Itoa(surePage)}, "page": {strconv.Itoa(page)}})
 		if err != nil {
@@ -279,7 +286,7 @@ func sureCategories(ctx context.Context, api services.SureApi) []SureCategory {
 		list := asList(asMap(raw)["categories"])
 		for _, c := range list {
 			m := asMap(c)
-			out = append(out, SureCategory{ID: asStr(m["id"]), Name: asStr(m["name"]), Parent: asStr(asMap(m["parent"])["name"])})
+			out = append(out, BankCategory{ID: asStr(m["id"]), Name: asStr(m["name"]), Parent: asStr(asMap(m["parent"])["name"])})
 		}
 		if len(list) < surePage {
 			return out

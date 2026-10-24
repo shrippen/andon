@@ -11,7 +11,7 @@ package rules
 //	cross.line_vs_speed         speed test against the line's sync rate: far
 //	                            below → the home network; sync below booked → the line
 //	cross.device_uninventoried  clients of the network (router, FRITZ!Box) no
-//	                            Snipe-IT asset names
+//	                            inventory asset names
 
 import (
 	"strings"
@@ -180,14 +180,14 @@ func lineVsSpeed(_ any, cfg map[string]any, env Env) []Finding {
 }
 
 func deviceUninventoried(_ any, cfg map[string]any, env Env) []Finding {
-	snipe, ok := env.Datasets[string(enums.ServiceSnipeIT)].(*sources.SnipeDataset)
+	inv, ok := metrics.InventoryOf(env.Datasets)
 	gw, _ := env.Datasets[string(enums.ServiceGateway)].(*sources.GatewayDataset)
 	fritz, _ := env.Datasets[fritzSvc].(*sources.FritzDataset)
 	clients, from := metrics.NetClients(gw, fritz)
 	if !ok || len(clients) == 0 {
 		return nil
 	}
-	missing := metrics.Uninventoried(clients, snipe, idSet(cfg["ignore"]))
+	missing := metrics.Uninventoried(clients, inv, idSet(cfg["ignore"]))
 	if len(missing) == 0 {
 		return nil
 	}
@@ -195,7 +195,7 @@ func deviceUninventoried(_ any, cfg map[string]any, env Env) []Finding {
 	for i, c := range missing {
 		names[i] = c.Name
 	}
-	src := []string{string(enums.ServiceSnipeIT)}
+	src := []string{string(inv.Service)}
 	for _, s := range from {
 		src = append(src, string(s))
 	}

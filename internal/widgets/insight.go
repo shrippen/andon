@@ -538,7 +538,7 @@ func kpiSeries(metric Metric, data any, today time.Time) []float64 {
 		}
 		cur, _ := kimaiMonthHours(d, lastMonth, sparkMonths)
 		return cur
-	case *sources.SureDataset:
+	case *sources.BankData:
 		if metric != MetricCash {
 			return nil
 		}
@@ -679,7 +679,7 @@ func kpiNinja(metric Metric, data *sources.NinjaDataset, peers map[string]any, c
 	return nil
 }
 
-func kpiSure(cfg KpiConfig, data *sources.SureDataset, peers map[string]any, ctx ViewCtx) *KpiResult {
+func kpiSure(cfg KpiConfig, data *sources.BankData, peers map[string]any, ctx ViewCtx) *KpiResult {
 	switch cfg.Metric {
 	case MetricNetWorth:
 		return &KpiResult{Kind: "money", Value: data.NetWorth, Currency: data.Currency}
@@ -723,7 +723,7 @@ func kpiView(cfg KpiConfig, results map[string]any, ctx ViewCtx) map[string]any 
 	case enums.ServiceInvoiceNinja:
 		kpi = kpiNinja(cfg.Metric, data.(*sources.NinjaDataset), results, ctx)
 	case enums.ServiceSure:
-		kpi = kpiSure(cfg, data.(*sources.SureDataset), results, ctx)
+		kpi = kpiSure(cfg, data.(*sources.BankData), results, ctx)
 	case enums.ServiceSnipeIT:
 		kpi = kpiSnipe(cfg.Metric, data.(*sources.SnipeDataset), ctx)
 	}

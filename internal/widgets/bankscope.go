@@ -45,7 +45,7 @@ func scoped(cfg any, results map[string]any) map[string]any {
 	}
 	out := make(map[string]any, len(results))
 	for k, v := range results {
-		if bank, ok := v.(*sources.SureDataset); ok {
+		if bank, ok := v.(*sources.BankData); ok {
 			v = bank.Only(s.scope())
 		}
 		out[k] = v

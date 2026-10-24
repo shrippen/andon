@@ -132,13 +132,13 @@ func TestHassRules(t *testing.T) {
 func TestSureRules(t *testing.T) {
 	data := sources.DemoSure(time.Now())
 	env := todayEnv(nil)
-	if got := run(t, "sure.recurring_missed", data, env); len(got) != 1 || got[0].Params["name"] != "Krankenversicherung" {
+	if got := run(t, "bank.recurring_missed", data, env); len(got) != 1 || got[0].Params["name"] != "Krankenversicherung" {
 		t.Fatalf("missed: %+v", got)
 	}
-	if got := run(t, "sure.low_balance", data, env); len(got) != 1 || got[0].Params["account"] != "Tagesgeld" {
+	if got := run(t, "bank.low_balance", data, env); len(got) != 1 || got[0].Params["account"] != "Tagesgeld" {
 		t.Fatalf("low: %+v", got)
 	}
-	if got := run(t, "sure.unusual_expense", data, env); len(got) != 1 || got[0].Params["name"] != "Kabelwerk Studiobedarf" {
+	if got := run(t, "bank.unusual_expense", data, env); len(got) != 1 || got[0].Params["name"] != "Kabelwerk Studiobedarf" {
 		t.Fatalf("unusual: %+v", got)
 	}
 }

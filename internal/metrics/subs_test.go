@@ -46,7 +46,7 @@ func TestSubCasesDemo(t *testing.T) {
 // repriced.
 func TestSubCasesAmbiguous(t *testing.T) {
 	now := time.Date(2026, 10, 15, 0, 0, 0, 0, time.Local)
-	bank := &sources.SureDataset{Recurring: []sources.SureRecurring{
+	bank := &sources.BankData{Recurring: []sources.BankRecurring{
 		{Name: "Netkom", Status: "active", Amount: 51.40, Expense: true},
 		{Name: "DKB AG", Status: "active", Amount: 2.50, Expense: true},
 		{Name: "Stadtwerke", Status: "active", Amount: 80, Expense: true},

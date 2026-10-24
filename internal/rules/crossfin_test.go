@@ -24,7 +24,7 @@ func TestPaymentRulesMatchNumberAndClient(t *testing.T) {
 	ninja := &sources.NinjaDataset{Currency: "EUR",
 		Clients:  []sources.NinjaClient{{ID: 1, Name: "Acme GmbH"}},
 		Invoices: []sources.NinjaInvoice{{ID: 7, Number: "RE-2026-041", ClientID: 1, Status: "sent", Date: "2026-09-01", Amount: 1190, Balance: 1190}}}
-	sure := &sources.SureDataset{Currency: "EUR", Transactions: []sources.SureTxn{
+	sure := &sources.BankData{Currency: "EUR", Transactions: []sources.BankTxn{
 		{ID: "a", Date: "2026-09-20", Name: "Acme GmbH RE 2026 041", Amount: 1000}, // partial payment, found by number
 		{ID: "b", Date: "2026-09-21", Name: "Acme GmbH Vorschuss", Amount: 500},
 	}}
@@ -38,7 +38,7 @@ func TestPaymentRulesMatchNumberAndClient(t *testing.T) {
 }
 
 func TestExpenseWithPaperlessReceiptIsRecorded(t *testing.T) {
-	sure := &sources.SureDataset{Currency: "EUR", Transactions: []sources.SureTxn{
+	sure := &sources.BankData{Currency: "EUR", Transactions: []sources.BankTxn{
 		{ID: "h", Date: "2026-09-10", Name: "Hetzner", Amount: -46.41, Account: "Geschäftskonto"},
 		{ID: "j", Date: "2026-09-12", Name: "JetBrains", Amount: -89, Account: "Geschäftskonto"},
 	}}
@@ -71,15 +71,15 @@ func TestRateBelowCountsInternalHours(t *testing.T) {
 }
 
 func TestSubscriptionUnusedWithDeadline(t *testing.T) {
-	sure := &sources.SureDataset{Currency: "EUR", Recurring: []sources.SureRecurring{
+	sure := &sources.BankData{Currency: "EUR", Recurring: []sources.BankRecurring{
 		{Name: "Adobe Creative Cloud", Status: "active", Amount: 59.49, Expense: true, Last: "2026-08-15", Next: "2026-09-15"},
 		{Name: "Nextcloud Hosting", Status: "active", Amount: 10, Expense: true},
 	}}
 	paperless := &sources.PaperlessDataset{Contracts: []sources.PaperlessContract{{Title: "Adobe Abo", Deadline: day("2026-11-30")}}}
 	links := []rules.Link{{Title: "Adobe", URL: "https://adobe.com"}, {Title: "Nextcloud", URL: "https://cloud.lan", LastClick: day("2026-09-24")}}
 	env := crossEnv("2026-09-25", map[string]any{"sure": sure, "paperless": paperless, rules.LinksDataset: links})
-	got := run(t, "sure.subscription_unused", nil, env)
-	if len(got) != 1 || got[0].Message != "sure.subscription_unused_deadline" {
+	got := run(t, "bank.subscription_unused", nil, env)
+	if len(got) != 1 || got[0].Message != "bank.subscription_unused_deadline" {
 		t.Fatalf("subscriptions: %+v", got)
 	}
 }
@@ -125,9 +125,9 @@ func TestOrderGapWorkloadMarginSpendable(t *testing.T) {
 		t.Fatalf("order gap: %+v", got)
 	}
 
-	sure := &sources.SureDataset{Currency: "EUR", Accounts: []sources.SureAccount{{Name: "Giro", Type: "depository", Classification: "asset", Balance: 1000}}}
+	sure := &sources.BankData{Currency: "EUR", Accounts: []sources.BankAccount{{Name: "Giro", Type: "depository", Classification: "asset", Balance: 1000}}}
 	ninja := &sources.NinjaDataset{Currency: "EUR", Invoices: []sources.NinjaInvoice{{ID: 1, Status: "paid", Date: "2026-03-01", Amount: 11900, Taxes: 1900, Net: 10000}}}
-	got := run(t, "sure.spendable_negative", nil, crossEnv("2026-09-25", map[string]any{"sure": sure, "invoiceninja": ninja}))
+	got := run(t, "bank.spendable_negative", nil, crossEnv("2026-09-25", map[string]any{"sure": sure, "invoiceninja": ninja}))
 	if len(got) != 1 || got[0].Severity != enums.SeverityWarn {
 		t.Fatalf("spendable: %+v", got)
 	}
@@ -149,11 +149,11 @@ func TestBudgetRunsOutBeforeEnd(t *testing.T) {
 func TestInvoicePaidNeedsNumberOrName(t *testing.T) {
 	ninja := &sources.NinjaDataset{Currency: "EUR", Clients: []sources.NinjaClient{{ID: 1, Name: "Acme GmbH"}},
 		Invoices: []sources.NinjaInvoice{{ID: 7, Number: "RE-2026-007", ClientID: 1, Status: "sent", Date: "2026-09-01", Amount: 700, Balance: 700}}}
-	stranger := &sources.SureDataset{Currency: "EUR", Transactions: []sources.SureTxn{{ID: "x", Date: "2026-09-20", Name: "Fremde Firma GmbH", Amount: 700}}}
+	stranger := &sources.BankData{Currency: "EUR", Transactions: []sources.BankTxn{{ID: "x", Date: "2026-09-20", Name: "Fremde Firma GmbH", Amount: 700}}}
 	if got := run(t, "cross.invoice_paid", nil, crossEnv("2026-09-25", map[string]any{"sure": stranger, "invoiceninja": ninja})); len(got) != 0 {
 		t.Fatalf("stranger's payment reported: %+v", got)
 	}
-	client := &sources.SureDataset{Currency: "EUR", Transactions: []sources.SureTxn{{ID: "y", Date: "2026-09-20", Name: "ACME GMBH", Amount: 700}}}
+	client := &sources.BankData{Currency: "EUR", Transactions: []sources.BankTxn{{ID: "y", Date: "2026-09-20", Name: "ACME GMBH", Amount: 700}}}
 	if got := run(t, "cross.invoice_paid", nil, crossEnv("2026-09-25", map[string]any{"sure": client, "invoiceninja": ninja})); len(got) != 1 {
 		t.Fatalf("client's payment not reported: %+v", got)
 	}
@@ -166,9 +166,9 @@ func TestPaymentRulesBusinessAccounts(t *testing.T) {
 	ninja := &sources.NinjaDataset{Currency: "EUR",
 		Clients:  []sources.NinjaClient{{ID: 1, Name: "Acme GmbH"}},
 		Invoices: []sources.NinjaInvoice{{ID: 7, Number: "RE-2026-041", ClientID: 1, Status: "sent", Date: "2026-09-01", Amount: 1190, Balance: 1190}}}
-	sure := &sources.SureDataset{Currency: "EUR",
-		Accounts: []sources.SureAccount{{ID: "biz", Role: sources.RoleBusiness}, {ID: "priv", Role: sources.RolePrivate}},
-		Transactions: []sources.SureTxn{
+	sure := &sources.BankData{Currency: "EUR",
+		Accounts: []sources.BankAccount{{ID: "biz", Role: sources.RoleBusiness}, {ID: "priv", Role: sources.RolePrivate}},
+		Transactions: []sources.BankTxn{
 			{ID: "a", Date: "2026-09-20", Name: "Acme GmbH RE 2026 041", Amount: 1190, AccountID: "biz", Role: sources.RoleBusiness},
 			{ID: "b", Date: "2026-09-21", Name: "Acme GmbH Geburtstag", Amount: 120, AccountID: "priv", Role: sources.RolePrivate},
 		}}

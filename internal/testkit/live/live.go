@@ -65,6 +65,7 @@ const (
 	Sure      Service = "sure"
 	Gitea     Service = "gitea"
 	Hass      Service = "homeassistant"
+	Kept      Service = "kept"
 
 	// Mail goes to an SMTP catcher, read back through its API (Mailbox);
 	// Apprise's Token is the channel it sends to.

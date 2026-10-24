@@ -21,7 +21,7 @@ func TestSubscriptionsTile(t *testing.T) {
 		{Name: "Hetzner", Monthly: 38.2, Price: 38.2, Next: "2026-09-20"},
 		{Name: "Alt", Monthly: 5, Inactive: true, Next: "2026-09-16"},
 	}}
-	sure := &sources.SureDataset{Currency: "EUR", Recurring: []sources.SureRecurring{
+	sure := &sources.BankData{Currency: "EUR", Recurring: []sources.BankRecurring{
 		{Name: "Adobe Creative Cloud", Status: "active", Amount: 66.45, Expense: true, Next: "2026-10-05"}}}
 
 	view := kind.View(cfg, map[string]any{"wallos": wallos, "sure": sure}, ctxFor("", nil))
@@ -45,11 +45,11 @@ func TestSubscriptionsTile(t *testing.T) {
 func TestSubscriptionsSureCategory(t *testing.T) {
 	kind, _ := widgets.Get("subscriptions")
 	cfg, _ := widgets.Decode("subscriptions", map[string]any{"categories": []any{"Software"}})
-	sure := &sources.SureDataset{Currency: "EUR",
-		Recurring: []sources.SureRecurring{
+	sure := &sources.BankData{Currency: "EUR",
+		Recurring: []sources.BankRecurring{
 			{Name: "Adobe", Status: "active", Amount: 66, Expense: true, Next: "2026-10-05"},
 			{Name: "Tibber", Status: "active", Amount: 72, Expense: true, Next: "2026-10-03"}},
-		Transactions: []sources.SureTxn{
+		Transactions: []sources.BankTxn{
 			{Date: "2026-09-05", Name: "Adobe", Amount: -66, Category: "Software"},
 			{Date: "2026-09-03", Merchant: "Tibber", Amount: -72, Category: "Energie"}}}
 

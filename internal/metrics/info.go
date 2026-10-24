@@ -67,6 +67,21 @@ func SnipeInfo(data *sources.SnipeDataset, today time.Time) []InfoPart {
 	}
 }
 
+// KeptInfo builds the info line for a Kept link tile: things, and the
+// agenda's dates Kept already calls close (expiring, due, overdue).
+func KeptInfo(data *sources.KeptDataset) []InfoPart {
+	soon := 0
+	for _, d := range data.Agenda {
+		if d.State != "upcoming" {
+			soon++
+		}
+	}
+	return []InfoPart{
+		part("kept.things", map[string]any{"count": len(data.Things)}),
+		part("kept.close", map[string]any{"count": soon}),
+	}
+}
+
 // DawarichInfo builds the info line for a Dawarich link tile.
 func DawarichInfo(lastPoint string) []InfoPart {
 	last, ok := ParseTime(lastPoint)

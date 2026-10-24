@@ -85,7 +85,7 @@ type book struct {
 	choose bool
 	today  time.Time
 	conns  map[enums.ServiceType]*model.Connection
-	bank   *sources.SureDataset
+	bank   *sources.BankData
 	wallos *sources.WallosDataset
 	ninja  *sources.NinjaDataset
 	cases  []metrics.SubCase
@@ -141,7 +141,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 		b.conns[service] = c
 		return res.Data
 	}
-	if b.bank, _ = get(enums.ServiceSure).(*sources.SureDataset); b.bank == nil {
+	if b.bank, _ = get(enums.ServiceSure).(*sources.BankData); b.bank == nil {
 		return b, scopes, ErrNoSure
 	}
 	b.wallos, _ = get(enums.ServiceWallos).(*sources.WallosDataset)

@@ -43,7 +43,7 @@ func TestUnusedServiceAndReplacement(t *testing.T) {
 	hass := &sources.HassDataset{Entities: []sources.Entity{{ID: "sensor.dell_power", Name: "Dell Leistung", State: "68", Unit: "W", DeviceClass: "power"}}}
 	env = crossEnv("2026-09-25", map[string]any{"snipeit": snipe, "homeassistant": hass})
 	env.Settings = map[string]any{"homelab": map[string]any{"power_price": 0.35}}
-	got = run(t, "snipe.replace_worth", nil, env)
+	got = run(t, "inventory.replace_worth", nil, env)
 	if len(got) != 1 || got[0].Params["months"].(int) > 36 {
 		t.Fatalf("replace: %+v", got)
 	}

@@ -30,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/caps"
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/sources"
@@ -49,10 +50,8 @@ const (
 	splitShown    = 4 // customers with their own colour, the rest is "other"
 )
 
-// snipePeer reads the space's Snipe-IT assets when a dialog opens.
-func snipePeer[C any](C) []Query {
-	return []Query{{Name: string(enums.ServiceSnipeIT), Source: dataName, Conn: ConnPeer, Service: enums.ServiceSnipeIT}}
-}
+// inventoryPeer reads the Verbund's inventory when a dialog opens.
+func inventoryPeer[C any](C) []Query { return categoryPeers(caps.Inventory) }
 
 // splitTiers colours customers in the kimai_split stack.
 var splitTiers = []string{"blue", "purple", "aqua", "orange", "grey"}
@@ -384,7 +383,7 @@ func warnFrom(r Raw, key string) float64 {
 }
 
 func init() {
-	Tile[DisksConfig]{Key: "disks", Detail: disksDetail, DetailQueries: snipePeer[DisksConfig], Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceScrutiny, RefreshS: 60 * 60,
+	Tile[DisksConfig]{Key: "disks", Detail: disksDetail, DetailQueries: inventoryPeer[DisksConfig], Category: CategoryInsight, Topic: TopicHomelab, Service: enums.ServiceScrutiny, RefreshS: 60 * 60,
 		Fields: []Field{{Key: "temp_warn", Input: InputNumber, Default: tempWarn, Min: "1", Max: "100"}, {Key: "only_problems", Input: InputCheck}},
 		Decode: func(r Raw) DisksConfig {
 			return DisksConfig{TempWarn: warnFrom(r, "temp_warn"), OnlyProblems: r.Bool("only_problems")}
