@@ -128,13 +128,14 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 
 **J-C11 Inventur**
 1. Hinweis „Geräte ohne Inventar“ → `/inventory`: Geräte der FRITZ!Box mit IP und MAC, „Gelesen aus“ nennt sie.
-2. Ein Gerät „In Snipe-IT anlegen“ mit Modell aus der Liste → „Prüfen“ (Demo lehnt ab); ein anderes „Ignorieren“ → verschwindet, steht unter Bereich → Regeln in den Ausnahmen.
+2. Die Demo hat Kept und Snipe-IT; Kept zählt: „In Kept anlegen“ ohne Modell und Status → „Prüfen“ nennt „Als … anlegen“ (Demo lehnt ab); ein anderes „Ignorieren“ → verschwindet, steht unter Bereich → Regeln in den Ausnahmen. Nur mit Snipe-IT: „In Snipe-IT anlegen“ verlangt Modell aus der Liste und Status.
+3. Kept mit Token nur zum Lesen oder ohne Modul MCP: Hinweis „Kept nimmt von Andon keine neuen Gegenstände an“, kein „Anlegen“.
 **J-C10 Updates**
 1. Hinweis „Updates verfügbar“ → `/updates`: Uptime Kuma (WUD) mit neuem Tag, Dawarich aus dem Release-Feed (0.30.6 → 0.30.9, Link zum Release), Immich ohne festen Tag nicht wählbar.
 2. Tag ändern, „Prüfen“ nennt Repo, Datei und alt → neu; „Pull Requests öffnen“ (Demo lehnt ab).
 **J-C9 Jahr**
 1. `/year`: letztes Jahr vorgewählt, Chips für drei Jahre; Einnahmen, Ausgaben je EÜR-Zeile (ohne Feld: Hinweis mit Link auf `/euer`), Abschreibung mit Summe, Homeoffice-Tage mit Pauschale.
-2. „Paket herunterladen“ → ZIP enthält `euer.csv`, `afa.csv` (mit Snipe-IT), `homeoffice.csv` (mit Kimai).
+2. „Paket herunterladen“ → ZIP enthält `euer.csv`, `afa.csv` (mit Inventar: Kept, sonst Snipe-IT; Nutzungsdauer aus dem Kept-Feld), `homeoffice.csv` (mit Kimai).
 **J-C8 Buchungen einordnen**
 1. `/subs` → „Buchungen ohne Kategorie einordnen“: Kabelwerk Studiobedarf mit Vorschlag „Technik“ angehakt, Bäckerei ohne Vorschlag.
 2. „Prüfen“ nennt Anzahl, Summe und Kategorie; „In Sure einordnen“ (Demo lehnt ab).
@@ -143,8 +144,13 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 1. Backups-Kachel → Dialog: je System „Wiederherstellung testen, Probe: …“ mit „Getestet“ und „Fehlgeschlagen“.
 2. „Fehlgeschlagen“ → Hinweis „Wiederherstellung fehlgeschlagen“ (Warnung); „Getestet“ danach beendet ihn.
 **J-C13 Anschaffungen**
-1. `/purchases`: Monitor (vor zwei Monaten, ohne Garantie) mit 24 Monaten vorgewählt; Lücken als Chips, Links zu USt-Abgleich und Belegen.
-2. „Prüfen“ → „In Snipe-IT schreiben“ (Demo lehnt ab); Monate außerhalb 1–120 werden übersprungen.
+1. `/purchases`: Gegenstände aus Kept (in der Demo vor Snipe-IT); Monitor (vor zwei Monaten, ohne Garantie) mit 24 Monaten vorgewählt; Lücken als Chips, Links zu USt-Abgleich und Belegen.
+2. „Prüfen“ → „In Kept schreiben“ (Demo lehnt ab); Monate außerhalb 1–120 werden übersprungen. Kept ohne Modul MCP: Hinweis oben, keine Garantie-Auswahl.
+
+**J-C15 Kept: Fristen und Belege**
+1. Hinweise: „Feuerlöscher Studio: Ablaufdatum am …“ (Info), „NAS: Wartung überfällig seit …“ (kritisch), „Studio: Dokument am …“; Garantien und Rückgaben erscheinen hier nicht (Garantien meldet `inventory.warranty_expiring`; Arten in der Regel `kept.due` wählbar). Dieselben Daten stehen im Kalender-Feed.
+2. „Kein Beleg zu Monitor 27"“ (`inventory.receipt_missing`), „1 Beleg in Kept verweist ins Leere: Möwe 7“ (Paperless-Dokument 999 fehlt). „In Kept öffnen“ führt auf `/t/<Kurzcode>`.
+3. Link-Kachel Kept (Board Übersicht → Dienste): „5 Dinge · 4 fällig“ (alles, was Kept nicht mehr „demnächst“ nennt, auch die Rückgabe).
 **J-C12 Release-Feeds**
 1. `/updates` → „Release-Feeds anpassen“: fest genannte Images ohne Feed mit vorgeschlagener Adresse und Kategorie; nichts angehakt.
 2. Adresse ändern, „Prüfen“; eine Nicht-GitHub-Adresse wird übersprungen; „In FreshRSS schreiben“ (Demo lehnt ab).

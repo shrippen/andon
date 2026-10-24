@@ -1,4 +1,4 @@
-{{/* The network's devices brought into Snipe-IT (services/inventory). */}}
+{{/* The network's devices brought into the inventory, Snipe-IT or Kept (services/inventory). */}}
 {{define "inventory"}}{{$p := .P}}
 <!doctype html>
 <html lang="{{.Ctx.Locale}}" data-own-lang>
@@ -19,20 +19,21 @@
     {{if $p.Scopes}}
     {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/inventory" "Keep" (dict)}}
     <p class="small muted">{{if $p.Sources}}{{t "inventory.sources"}} {{range $i, $s := $p.Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}{{else}}{{t "inventory.no_sources"}}{{end}}</p>
-    {{if and $p.Cases (not $p.Models)}}<p class="small">{{t "inventory.no_models"}}</p>{{end}}
+    {{$svc := t (print "service." $p.Service)}}
+    {{if and $p.Service (not $p.Writable)}}<p class="small">{{t "inventory.no_write" "service" $svc}}</p>{{else if and $p.Cases (not $p.CanAdd)}}<p class="small">{{t "inventory.no_models"}}</p>{{end}}
     {{if $p.Cases}}
     <form method="post" action="/inventory/review" class="card" id="cases">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
       <div class="table-wrap"><table class="table cards-sm">
-        <thead><tr><th></th><th>{{t "inventory.device"}}</th><th>{{t "inventory.what"}}</th><th>{{t "inventory.asset"}}</th></tr></thead>
+        <thead><tr><th></th><th>{{t "inventory.device"}}</th><th>{{t "inventory.what"}}</th><th>{{t "inventory.asset" "service" $svc}}</th></tr></thead>
         <tbody>{{range $p.Cases}}{{$k := .Key}}<tr>
           <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}" aria-label="{{.Name}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label></td>
           <td data-card="title"><b>{{.Name}}</b><br><small class="muted">{{t (print "service." .From)}}{{with .IP}} · {{.}}{{end}}{{with .MAC}} · {{.}}{{end}}</small></td>
           <td><select class="select" name="act_{{$k}}" aria-label="{{t "inventory.what"}}">
-            {{if $p.Models}}<option value="add">{{t "inventory.act_add"}}</option>{{end}}
+            {{if $p.CanAdd}}<option value="add">{{t "inventory.act_add" "service" $svc}}</option>{{end}}
             <option value="ignore">{{t "inventory.act_ignore"}}</option></select></td>
-          <td>{{if $p.Models}}<input class="input" name="name_{{$k}}" value="{{.Name}}" aria-label="{{t "inventory.name"}}">
-            <input class="input" name="model_{{$k}}" list="inventory-models" placeholder="{{t "inventory.model"}}" aria-label="{{t "inventory.model"}}">
+          <td>{{if $p.CanAdd}}<input class="input" name="name_{{$k}}" value="{{.Name}}" aria-label="{{t "inventory.name"}}">{{end}}
+            {{if and $p.CanAdd $p.Models}}<input class="input" name="model_{{$k}}" list="inventory-models" placeholder="{{t "inventory.model"}}" aria-label="{{t "inventory.model"}}">
             <select class="select" name="status_{{$k}}" aria-label="{{t "inventory.status"}}">{{range $p.Statuses}}<option value="{{.ID}}"{{if eq .ID $p.Status}} selected{{end}}>{{.Name}}</option>{{end}}</select>{{end}}</td>
         </tr>{{end}}</tbody>
       </table></div>
@@ -61,13 +62,14 @@
   {{template "header" .}}
   <main class="vat">
     <h1>{{t "inventory.review_title"}}</h1>
-    <p>{{t "inventory.review_lead" "n" .Plan.Writes}}</p>
+    {{$svc := t (print "service." .Plan.Service)}}
+    <p>{{t "inventory.review_lead" "n" .Plan.Writes "service" $svc}}</p>
     <form method="post" action="/inventory/apply">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{.Plan.Scope}}">
       <ol class="vat-plan">{{range .Plan.Steps}}{{$i := .Item}}
         <li{{if .Problem}} class="late"{{end}}>{{if not .Problem}}{{template "bench_step" .Step}}{{end}}
           <b>{{or $i.NetClient.Name .Case}}</b><br>
-          {{if .Problem}}{{t (print .Problem)}}{{else if eq .Action "ignore"}}{{t "inventory.do_ignore"}}{{else}}{{t "inventory.do_add" "name" $i.Name "model" $i.Model "status" $i.Status}}{{end}}
+          {{if .Problem}}{{t (print .Problem)}}{{else if eq .Action "ignore"}}{{t "inventory.do_ignore"}}{{else if $i.Model}}{{t "inventory.do_add" "name" $i.Name "model" $i.Model "status" $i.Status}}{{else}}{{t "inventory.do_add_plain" "name" $i.Name}}{{end}}
         </li>{{end}}</ol>
       <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "inventory.apply" "n" .Plan.Writes}}</button>{{end}}
         <a class="btn btn-quiet" href="/inventory?scope={{.Plan.Scope}}">{{t "inventory.back"}}</a></p>

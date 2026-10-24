@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 
+	"andon/internal/caps"
 	"andon/internal/db"
 	"andon/internal/enums"
 	"andon/internal/model"
@@ -25,9 +26,21 @@ import (
 
 // Need names a bench's services: the first of Required anchors a scope
 // (one scope per Verbund it is in), the rest must be found; Optional
-// ones are used when the Verbund has them.
+// ones are used when the Verbund has them. Anchor, when set, anchors on
+// any member of a category instead (Snipe-IT or Kept); a Verbund with
+// two members is offered once, by its preferred one (caps.Members).
 type Need struct {
 	Required, Optional []enums.ServiceType
+	Anchor             caps.Category
+}
+
+// anchors reports whether service anchors a scope of need.
+func (n Need) anchors(service enums.ServiceType) bool {
+	if n.Anchor != "" {
+		c, ok := caps.CategoryOf(service)
+		return ok && c == n.Anchor
+	}
+	return len(n.Required) > 0 && service == n.Required[0]
 }
 
 // Scope is one Verbund a bench can work in.
@@ -42,6 +55,17 @@ type Scope struct {
 // Conn is the scope's connection of service, nil if it has none.
 func (s Scope) Conn(service enums.ServiceType) *model.Connection { return s.members[service] }
 
+// Of is the scope's connection of a category, its preferred member; nil
+// if it has none.
+func (s Scope) Of(c caps.Category) *model.Connection {
+	for _, m := range caps.Members(c) {
+		if conn := s.members[m]; conn != nil {
+			return conn
+		}
+	}
+	return nil
+}
+
 // Scope key prefixes.
 const (
 	keyVerbund = "v"
@@ -51,7 +75,7 @@ const (
 // Scopes lists the Verbünde the user can work in with the bench's
 // services, in the order of the anchor connections.
 func Scopes(d *sql.DB, who *access.Principal, need Need) ([]Scope, error) {
-	if len(need.Required) == 0 {
+	if len(need.Required) == 0 && need.Anchor == "" {
 		return nil, nil
 	}
 	views, err := connections.Listing(d, who, enums.RightUse)
@@ -65,7 +89,7 @@ func Scopes(d *sql.DB, who *access.Principal, need Need) ([]Scope, error) {
 
 	var out []Scope
 	for _, v := range views {
-		if v.Service != need.Required[0] {
+		if !need.anchors(v.Service) {
 			continue
 		}
 		found, err := scopesOf(d, who, v, usable, need)
@@ -110,6 +134,18 @@ func scopeIn(tx *sql.Tx, who *access.Principal, anchor connections.View, l verbu
 	s := Scope{Name: l.Name, Link: l.ID, Key: keyVerbund + strconv.FormatInt(l.ID, 10), members: map[enums.ServiceType]*model.Connection{}}
 	if l.ID == 0 {
 		s.Key = keyConn + strconv.FormatInt(anchor.ID, 10)
+	}
+	if need.Anchor != "" {
+		preferred, err := preferredElsewhere(tx, who, anchor, l.ID, need.Anchor, usable)
+		if err != nil || preferred {
+			return s, false, err
+		}
+		c, err := content.Connection(tx, anchor.ID)
+		if err != nil {
+			return s, false, err
+		}
+		s.members[anchor.Service] = c
+		s.NeedsToken = anchor.Mode == enums.CredentialPersonal && !anchor.HasMine
 	}
 	for i, service := range slices.Concat(need.Required, need.Optional) {
 		c, err := member(tx, who, anchor, l.ID, service, usable)
@@ -157,4 +193,20 @@ func Pick(scopes []Scope, want string) (s Scope, open bool) {
 		return scopes[i], false
 	}
 	return scopes[0], len(scopes) > 1
+}
+
+// preferredElsewhere reports whether the anchor's Verbund holds a member
+// of the category that comes before the anchor's service: that one
+// anchors the Verbund's scope, so it is offered once.
+func preferredElsewhere(tx *sql.Tx, who *access.Principal, anchor connections.View, link int64, c caps.Category, usable map[int64]connections.View) (bool, error) {
+	for _, m := range caps.Members(c) {
+		if m == anchor.Service {
+			return false, nil
+		}
+		other, err := member(tx, who, anchor, link, m, usable)
+		if err != nil || other != nil {
+			return other != nil, err
+		}
+	}
+	return false, nil
 }

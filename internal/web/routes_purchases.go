@@ -4,7 +4,7 @@ package web
 //
 //	GET  /purchases          assets of the last year with gaps
 //	POST /purchases/review   the ticked warranties, spelled out
-//	POST /purchases/apply    writes them to Snipe-IT
+//	POST /purchases/apply    writes them to the inventory (Snipe-IT, Kept)
 
 import (
 	"net/http"

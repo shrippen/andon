@@ -140,6 +140,7 @@ action:
   open_in_dawarich: In Dawarich öffnen
   backup: 'Sicherung ansehen'
   open_in_wallos: In Wallos öffnen
+  open_in_kept: In Kept öffnen
   open_in_glances: 'In Glances öffnen'
   open_in_docker: 'Docker öffnen'
   more: 'Weitere Aktionen'
@@ -1828,6 +1829,10 @@ conn:
   about_wallos: 'Abos und Zahlungstermine'
   options_hint_wallos: 'Keine Optionen nötig. Schlüssel = API-Schlüssel aus Wallos → Profil (API-Schlüssel). URL = Adresse der Wallos-Oberfläche. Preise kommen in deiner Hauptwährung.'
   secret_wallos: API-Schlüssel
+  what_kept: 'Kept ist ein Inventar für Haushalt und Büro: Gegenstände mit Kauf, Garantie, Belegen und Ablaufdaten.'
+  about_kept: 'Inventar mit Garantien, Belegen und Fristen'
+  options_hint_kept: 'Token = persönliches Token aus Kept → Einstellungen → Verbindungen, für die Orte, die Andon lesen soll („Lesen und Schreiben“, wenn Andon Garantien und Geräte eintragen soll; dafür im Ort das Modul MCP einschalten). URL = Adresse von Kept, mit https (ohne gibt Kept keine Tokens heraus). Option life_field: Schlüssel des eigenen Felds mit der Nutzungsdauer in Monaten (Vorgabe nutzungsdauer), daraus rechnet Andon die AfA.'
+  secret_kept: Token
   router_kind: Router
   choice_opnsense: OPNsense
   choice_pfsense: pfSense
@@ -1936,6 +1941,7 @@ service:
   dawarich: Dawarich
   glances: Glances
   wallos: Wallos
+  kept: Kept
   tax: 'Steuer'
   docker: 'Docker'
   tandoor: 'Tandoor'
@@ -2232,6 +2238,16 @@ mail:
     new_login_body: Neue Anmeldung von {ip} ({agent}).
     hint: Warst du das nicht, ändere sofort dein Passwort und beende alle Sitzungen.
 hint:
+  kept:
+    due_expiring:
+      title: '{subject}: {kind} am {day}'
+      why: '„{title}“ steht in Kept bald an (Kepts Vorlauf).'
+    due_due:
+      title: '{subject}: {kind} fällig am {day}'
+      why: '„{title}“ ist laut Kept am {day} fällig.'
+    due_overdue:
+      title: '{subject}: {kind} überfällig seit {day}'
+      why: '„{title}“ ist in Kept überfällig. Erledigen und in Kept abhaken.'
   llm:
     budget_over:
       title: '{account}: Budget aufgebraucht'
@@ -2683,6 +2699,17 @@ hint:
       title: 'Bank-Sync fehlgeschlagen: {name}'
       why: Zugang bei der Bank erneuern, sonst fehlen Buchungen.
   cross:
+    kept_paperless_gone:
+      title: '{count} Belege in Kept verweisen ins Leere'
+      title_singular: '{count} Beleg in Kept verweist ins Leere'
+      why: 'Kept verknüpft Paperless-Dokumente, die es in Paperless nicht mehr gibt: {names}. Neu verknüpfen.'
+    kept_paperless_elsewhere:
+      title: '{count} Belege in Kept liegen in einem anderen Paperless'
+      title_singular: '{count} Beleg in Kept liegt in einem anderen Paperless'
+      why: 'Die Verknüpfung zeigt nicht auf das Paperless des Verbunds: {names}. Paperless-Verbindung in Kept prüfen.'
+    kept_paperless_off:
+      title: 'Kept ohne Paperless: {names}'
+      why: 'Diese Kept-Orte haben keine funktionierende Paperless-Verbindung; Belege lassen sich dort nicht verknüpfen und nicht prüfen. In Kept → Ort → Paperless einrichten.'
     esphome_ha_lost:
       title: 'Home Assistant hat {name} verloren'
       why: 'ESPHome erreicht den Knoten, seine {entities} Entitäten in Home Assistant sind aber nicht verfügbar (z. B. {entity}). API-Schlüssel oder Übernahme geändert?'
@@ -3171,6 +3198,13 @@ hint:
       title: 'Container {name} läuft nicht'
       why: '{status}. Neu starten oder die Logs auf den Fehler prüfen.'
   inventory:
+    receipt_missing:
+      title: 'Kein Beleg zu {asset}'
+      why: 'Gekauft am {day} für {amount}; in Kept hängt weder Quittung noch Rechnung, auch nicht aus Paperless. Fürs Finanzamt und für die Garantie anhängen oder verknüpfen.'
+    split:
+      title: '{count} Gegenstände nur in {other}'
+      title_singular: '{count} Gegenstand nur in {other}'
+      why: 'Im Verbund zählt {first}; {names} fehlen deshalb in AfA und EÜR-Export. In {first} erfassen oder {other} aus dem Verbund nehmen.'
     replace_worth:
       title: '{name}: Austausch rechnet sich in {months} Monaten'
       why: '{years} Jahre alt, zieht {watts} W ({yearly} Strom im Jahr). Ein Gerät mit {new_watts} W für {new_cost} hat sich nach {months} Monaten bezahlt.'
@@ -3207,6 +3241,10 @@ hint:
       title: 'Hohe Ausgabe: {name} ({amount})'
       why: 'Am {day}, deutlich über dem Üblichen. Doppelbuchung oder Preiserhöhung?'
 info:
+  kept:
+    things: '{count} Dinge'
+    things_singular: '{count} Ding'
+    close: '{count} fällig'
   llm:
     month: '{amount} diesen Monat'
     credit: 'Guthaben {amount}'
@@ -3512,6 +3550,10 @@ deadline:
   days_short: T
   overdue: 'fällig'
 rule_name:
+  inventory.receipt_missing: Kauf ohne Beleg
+  cross.kept_paperless: Kept-Belege gegen Paperless
+  kept.due: Fristen aus Kept
+  inventory.split: Zwei Inventare im Verbund
   llm.budget: 'KI-Budget'
   llm.credit_low: 'KI-Guthaben knapp'
   llm.spike: 'KI-Kostensprung'
@@ -3753,6 +3795,7 @@ rule_name:
   truenas.scrub_old: 'Pool-Scrub'
   gateway.new_device: 'Neue Geräte im Netz'
 param:
+  kinds: Arten
   min_balance: 'Guthaben unter (USD)'
   min_limit_pct: 'Schlüssel-Limit übrig unter (%)'
   min_usd: 'Mindestens (USD)'
@@ -6947,6 +6990,7 @@ caps:
   have: vorhanden
   unknown: noch nicht abgerufen
   domain:
+    assets: Inventar
     accounts: Konten
     places: Orte
     rides: Fahrten
@@ -6963,6 +7007,7 @@ caps:
     create: anlegen
     update: ändern
   kind:
+    warranty: Garantie
     timesheets: Zeiten
     bank_transactions: Bankumsätze
     target: Sollzeit
@@ -6982,6 +7027,7 @@ caps:
     api: 'Schnittstelle {name} fehlt (ältere Version)'
     setting: '{name} nicht hinterlegt'
   setting:
+    mcp: 'Modul MCP im Ort (Kept → Ort → Module)'
     contract: Sollarbeitszeit (Benutzer → Arbeitszeit)
   note: 'Nur teilweise nutzbar:'
 verbund:
@@ -7446,32 +7492,35 @@ dunning:
   lead: 'Rechnungen, deren nächste Erinnerung laut Mahnplan fällig ist und noch nicht verschickt wurde. Ohne eigenen Text verschickt Invoice Ninja seine Vorlage der Stufe. Nichts ist vorab angehakt: die Mails gehen an deine Kunden.'
 inventory:
   title: 'Inventur'
-  lead: 'Geräte, die der Router oder die FRITZ!Box kennt und die in Snipe-IT kein Gegenstand gleichen Namens hat. Nach dem Prüfen legt Andon sie in Snipe-IT an (Name, Modell, Status; IP und MAC als Notiz) oder nimmt sie in die Ausnahmen des Hinweises auf.'
+  lead: 'Geräte, die der Router oder die FRITZ!Box kennt und die im Inventar (Snipe-IT oder Kept) kein Gegenstand gleichen Namens hat. Nach dem Prüfen legt Andon sie dort an (Snipe-IT: Name, Modell, Status; Kept: Name im ersten Ort unter „Unplaced“; IP und MAC als Notiz) oder nimmt sie in die Ausnahmen des Hinweises auf.'
+  no_write: '{service} nimmt von Andon keine neuen Gegenstände an: Kept braucht ein Token „Lesen und Schreiben“ und im Ort das Modul MCP (Verbindung → Fähigkeiten).'
   sources: 'Gelesen aus:'
   no_sources: 'Der Verbund hat weder einen Router noch eine FRITZ!Box: Andon kennt keine Geräte im Netz.'
   no_models: 'Snipe-IT liefert keine Modelle: Anlegen geht erst, wenn der API-Schlüssel sie lesen darf.'
   device: 'Gerät'
   what: 'Was tun'
-  asset: 'Gegenstand in Snipe-IT'
-  act_add: 'In Snipe-IT anlegen'
+  asset: 'Gegenstand in {service}'
+  act_add: 'In {service} anlegen'
   act_ignore: 'Ignorieren'
   name: 'Name'
   model: 'Modell'
   status: 'Status'
   review: 'Prüfen'
-  empty: 'Nichts offen: Jedes Gerät im Netz hat einen Gegenstand in Snipe-IT.'
+  empty: 'Nichts offen: Jedes Gerät im Netz hat einen Gegenstand im Inventar.'
   review_title: 'Inventur bestätigen'
-  review_lead: 'Diese Geräte kommen nach Snipe-IT oder in die Ausnahmen (Schritte: {n}).'
+  review_lead: 'Diese Geräte kommen nach {service} oder in die Ausnahmen (Schritte: {n}).'
   do_add: 'Als „{name}“ anlegen: {model}, {status}'
+  do_add_plain: 'Als „{name}“ anlegen'
   do_ignore: 'In die Ausnahmen des Hinweises aufnehmen'
   apply: 'Ausführen ({n})'
   back: 'Zurück'
   done: 'Erledigt: {n}.'
   failed: 'Nicht erledigt: {n}.'
-  problem_gone: 'Schon in Snipe-IT oder ignoriert: übersprungen.'
+  problem_gone: 'Schon im Inventar oder ignoriert: übersprungen.'
   problem_choice: 'Ohne Modell oder Status: übersprungen.'
-  err_no_snipe: 'Keine Snipe-IT-Verbindung, die du nutzen darfst.'
-  err_demo: 'Die Demo schreibt nicht in Snipe-IT.'
+  err_no_inventory: 'Kein Inventar (Snipe-IT, Kept), das du nutzen darfst.'
+  err_no_write: 'Das Inventar nimmt von Andon keine neuen Gegenstände an.'
+  err_demo: 'Die Demo schreibt nicht ins Inventar.'
 updates:
   summarize: 'Changelog zusammenfassen'
   summarize_privacy: 'Schickt Image, beide Versionen und die Release-Notes von GitHub an Claude (Anthropic).'
@@ -7580,7 +7629,8 @@ categorize:
   link: 'Buchungen ohne Kategorie einordnen'
 purchases:
   title: 'Anschaffungen'
-  lead: 'Gegenstände in Snipe-IT, gekauft in den letzten zwölf Monaten, denen etwas fehlt: Kosten, Garantie, eine passende Ausgabe in Invoice Ninja (Betrag und Datum bis 14 Tage) oder deren Beleg. Die Garantie schreibt Andon nach dem Prüfen in Snipe-IT; Ausgabe und Beleg erledigst du im USt-Abgleich und in der Belegjagd.'
+  lead: 'Gegenstände im Inventar (Snipe-IT oder Kept), gekauft in den letzten zwölf Monaten, denen etwas fehlt: Kosten, Garantie, eine passende Ausgabe in Invoice Ninja (Betrag und Datum bis 14 Tage) oder deren Beleg. Die Garantie schreibt Andon nach dem Prüfen ins Inventar; Ausgabe und Beleg erledigst du im USt-Abgleich und in der Belegjagd.'
+  no_write: '{service} nimmt von Andon keine Garantien an: Kept braucht ein Token „Lesen und Schreiben“ und im Ort das Modul MCP (Verbindung → Fähigkeiten).'
   no_ninja: 'Der Verbund hat kein Invoice Ninja: Ausgaben und Belege werden nicht geprüft.'
   no_link_field: 'Das Feld für die Belegverknüpfung ist noch nicht gewählt (Belege zuordnen): Belege werden nicht geprüft.'
   asset: 'Gegenstand'
@@ -7597,16 +7647,17 @@ purchases:
   review: 'Prüfen'
   empty: 'Nichts offen: Jede Anschaffung des letzten Jahres ist vollständig.'
   review_title: 'Garantien bestätigen'
-  review_lead: 'Diese Garantien gehen an Snipe-IT (Schreibvorgänge: {n}).'
+  review_lead: 'Diese Garantien gehen an {service} (Schreibvorgänge: {n}).'
   do_warranty: 'Garantie {n} Monate ab Kaufdatum'
-  apply: 'In Snipe-IT schreiben ({n})'
+  apply: 'In {service} schreiben ({n})'
   back: 'Zurück'
   done: 'Erledigt: {n}.'
   failed: 'Nicht erledigt: {n}.'
   problem_gone: 'Garantie schon gesetzt: übersprungen.'
   problem_months: 'Monate zwischen 1 und 120: übersprungen.'
-  err_no_snipe: 'Keine Snipe-IT-Verbindung, die du nutzen darfst.'
-  err_demo: 'Die Demo schreibt nicht in Snipe-IT.'
+  err_no_inventory: 'Kein Inventar (Snipe-IT, Kept), das du nutzen darfst.'
+  err_no_write: 'Das Inventar nimmt von Andon keine Garantien an.'
+  err_demo: 'Die Demo schreibt nicht ins Inventar.'
 feeds:
   title: 'Release-Feeds'
   lead: 'Die Updates finden neuere Versionen fest genannter Tags in den GitHub-Release-Feeds von FreshRSS. Hier schlägt Andon Feeds für laufende Images ohne Feed vor (Adresse aus Besitzer und Name des Images, bitte prüfen) und Feeds zum Abbestellen, deren Projekt kein Stack mehr nutzt oder die keine Releases verlinken. Nichts ist angehakt; geschrieben wird in FreshRSS erst nach dem Prüfen.'
@@ -7674,3 +7725,10 @@ release:
   newer: 'Andon {version} ist erschienen ({date}).'
   notes: 'Was ist neu'
   hide: 'Hinweis bis zur nächsten Version ausblenden'
+kept:
+  kind:
+    thing_expiry: Ablaufdatum
+    warranty: Garantie
+    document: Dokument
+    schedule: Wartung
+    loan: Rückgabe

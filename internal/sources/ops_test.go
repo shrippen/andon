@@ -118,6 +118,8 @@ func TestPaperlessCountsInbox(t *testing.T) {
 			w.Write([]byte(`{"count":12,"results":[{"title":"Fremd","added":"2026-07-01T10:00:00+02:00"}]}`))
 		case r.URL.Query().Get("ordering") == "-added":
 			w.Write([]byte(`{"count":2356,"results":[{"id":2400,"title":"Neu","added":"2026-09-26T10:00:00+02:00"}]}`))
+		case r.URL.Query().Get("fields") == "id":
+			w.Write([]byte(`{"count":3,"results":[{"id":5},{"id":9},{"id":2400}],"all":null}`))
 		default:
 			w.Write([]byte(`{"count":2356,"results":[{"title":"Alt","added":"2019-01-01T10:00:00+01:00"}]}`))
 		}
@@ -133,6 +135,12 @@ func TestPaperlessCountsInbox(t *testing.T) {
 	if data.Inbox != 5 || data.OldestTitle != "Strom" || data.OldestAdded != "2026-08-01" || data.TagCounts["steuer"] != 31 ||
 		len(data.Newest) != 1 || data.Newest[0].ID != 2400 || data.Newest[0].Added != "2026-09-26" {
 		t.Fatalf("data: %+v", data)
+	}
+	if len(data.IDs) != 3 || !data.Has(9) || data.Has(7) {
+		t.Fatalf("ids: %v", data.IDs)
+	}
+	if !(&sources.PaperlessDataset{}).Has(7) {
+		t.Fatal("unknown ids call a document missing")
 	}
 }
 

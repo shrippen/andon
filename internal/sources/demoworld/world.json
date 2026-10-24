@@ -1453,6 +1453,21 @@
   "note": "Paperless-ngx: the mobile contract's notice period ends in 20 days, its invoice waits in the inbox.",
   "url": "https://docs.demo",
   "total": 1843,
+  "ids_note": "The documents other services link (Kept's receipts, the scans): 412 is the laptop's invoice; 999, which Kept still links for the phone, is gone.",
+  "ids": [
+   88,
+   201,
+   202,
+   203,
+   204,
+   205,
+   206,
+   311,
+   412,
+   1841,
+   1842,
+   1843
+  ],
   "inbox": 7,
   "oldest_title": {
    "de": "Rechnung Elbnetz Mobilfunk",
@@ -1800,6 +1815,180 @@
   ],
   "audit_overdue": [
    2
+  ]
+ },
+ "kept_state": {
+  "note": "Kept, the studio's inventory as andon reads it: the same four assets as Snipe-IT, with the same warranty ends and useful lives, plus the fire extinguisher. The laptop's invoice is a Paperless link, the NAS has its receipt as an attached file, the phone's link points to a Paperless document that is gone (999), the monitor has no receipt. The extinguisher's check is due in 20 days; the agenda carries Kept's own lead times.",
+  "url": "https://kept.demo",
+  "writable": true,
+  "locations": [
+   {
+    "id": "loc-studio",
+    "name": "Studio",
+    "mcp": true
+   }
+  ],
+  "things": [
+   {
+    "id": "th-laptop",
+    "code": "K7D2QX",
+    "name": "Schnitt-Laptop",
+    "model": "Framework Laptop 13",
+    "type": {
+     "de": "Notebook",
+     "en": "Notebook"
+    },
+    "location": "Studio",
+    "bought": "@date-30",
+    "price": 1200,
+    "currency": "EUR",
+    "warranty_ends": "@date+10",
+    "life": 12,
+    "receipts": [
+     {
+      "role": "invoice",
+      "url": "https://docs.demo/documents/412/details",
+      "doc_id": 412,
+      "paperless": "https://docs.demo"
+     }
+    ]
+   },
+   {
+    "id": "th-nas",
+    "code": "N4S2HB",
+    "name": "NAS",
+    "model": "Speicherwerk NS-4",
+    "type": {
+     "de": "Server",
+     "en": "Server"
+    },
+    "location": "Studio",
+    "bought": "@date-1900",
+    "price": 650,
+    "currency": "EUR",
+    "warranty_ends": "@date-800",
+    "life": 36,
+    "receipts": [
+     {
+      "role": "receipt",
+      "url": "https://kept.demo/files/nas-kassenbon.pdf"
+     }
+    ]
+   },
+   {
+    "id": "th-phone",
+    "code": "M0W7PH",
+    "name": "Möwe 7",
+    "model": "Möwe 7",
+    "type": {
+     "de": "Smartphone",
+     "en": "Smartphone"
+    },
+    "location": "Studio",
+    "bought": "@date-500",
+    "price": 599,
+    "currency": "EUR",
+    "warranty_ends": "@date+230",
+    "life": 60,
+    "receipts": [
+     {
+      "role": "invoice",
+      "url": "https://docs.demo/documents/999/details",
+      "doc_id": 999,
+      "paperless": "https://docs.demo"
+     }
+    ]
+   },
+   {
+    "id": "th-monitor",
+    "code": "LB27QM",
+    "name": "Monitor 27\"",
+    "model": "Lichtblick 27Q",
+    "type": {
+     "de": "Monitor",
+     "en": "Monitor"
+    },
+    "location": "Studio",
+    "bought": "@date-60",
+    "price": 890,
+    "currency": "EUR",
+    "life": 12
+   },
+   {
+    "id": "th-extinguisher",
+    "code": "FL0SCH",
+    "name": {
+     "de": "Feuerlöscher Studio",
+     "en": "Studio fire extinguisher"
+    },
+    "type": {
+     "de": "Sicherheit",
+     "en": "Safety"
+    },
+    "location": "Studio",
+    "expires": "@date+20"
+   }
+  ],
+  "agenda": [
+   {
+    "kind": "thing_expiry",
+    "state": "expiring",
+    "due": "@date+20",
+    "title": {
+     "de": "Feuerlöscher Studio",
+     "en": "Studio fire extinguisher"
+    },
+    "subject": {
+     "de": "Feuerlöscher Studio",
+     "en": "Studio fire extinguisher"
+    },
+    "code": "FL0SCH"
+   },
+   {
+    "kind": "document",
+    "state": "expiring",
+    "due": "@date+12",
+    "title": {
+     "de": "Hausratversicherung",
+     "en": "Contents insurance"
+    },
+    "subject": "Studio"
+   },
+   {
+    "kind": "schedule",
+    "state": "overdue",
+    "due": "@date-3",
+    "title": {
+     "de": "Lüfter reinigen",
+     "en": "Clean the fans"
+    },
+    "subject": "NAS",
+    "code": "N4S2HB"
+   },
+   {
+    "kind": "warranty",
+    "state": "upcoming",
+    "due": "@date+230",
+    "title": {
+     "de": "Herstellergarantie",
+     "en": "Manufacturer warranty"
+    },
+    "subject": "Möwe 7",
+    "code": "M0W7PH"
+   },
+   {
+    "kind": "loan",
+    "state": "due",
+    "due": "@date+0",
+    "title": {
+     "de": "Rückgabe",
+     "en": "Return"
+    },
+    "subject": {
+     "de": "Funkstrecke",
+     "en": "Wireless link"
+    }
+   }
   ]
  },
  "bank": {
@@ -4172,15 +4361,14 @@
     3600
    ]
   },
-  "tdp_watts": 28,
   "charging": {
    "rate_ma": 2100,
    "voltage_mv": 16800
   },
-  "epp": "balance_performance",
+  "power_profile": "performance",
   "history_min": 30,
   "log": [
-   "framework-control demo",
+   "framewidged demo",
    "fan curve active (APU)",
    "charge limit {charge_limit} %"
   ],
