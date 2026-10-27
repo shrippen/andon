@@ -118,6 +118,15 @@ def check(browser, base):
     got = page.evaluate(STATE)
     retry = page.locator("#toast .toast[data-kind=error] .toast-action")
     want("fail", not page.url.endswith("/hints") and retry.count() == 1 and got["busy"] == "", got)
+    # again: a retry that fails too says so again (it counts as the user's).
+    if retry.count():
+        hold = Hold(page, "**/hints")
+        retry.click()
+        page.wait_for_timeout(300)
+        hold.release("abort")
+        page.wait_for_timeout(800)
+        retry = page.locator("#toast .toast[data-kind=error] .toast-action")
+        want("again", retry.count() == 1, f"retry={retry.count()}")
     if retry.count():
         retry.click()
         page.wait_for_url("**/hints")
@@ -135,6 +144,12 @@ def check(browser, base):
     page.wait_for_timeout(800)
     calm = button.evaluate("b => !b.classList.contains('is-busy') && !b.disabled")
     want("after", calm, f"calm={calm}")
+    # postfail: a dropped form may have arrived: an error, but no retry
+    # that could write twice.
+    toast = page.locator("#toast .toast[data-kind=error]").last
+    action = page.locator("#toast .toast[data-kind=error] .toast-action").count()
+    want("postfail", toast.count() == 1 and action == 0, f"toast={toast.count()} retry={action}")
+    page.evaluate("document.querySelectorAll('#toast .toast').forEach(t => t.remove())")
 
     # escpost: Esc leaves a sent page form (boosted POST) alone; the
     # server writes it anyway.

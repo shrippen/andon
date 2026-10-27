@@ -2240,10 +2240,14 @@
     return "part";
   }
 
-  // byUser: a click, a submit or typing started it, not a poll.
+  // retrying marks the request a retry starts: the user's too, though its
+  // event is synthetic.
+  var retrying = false;
+
+  // byUser: a click, a submit, typing or a retry started it, not a poll.
   function byUser(detail) {
     var ev = detail.requestConfig && detail.requestConfig.triggeringEvent;
-    return !!(ev && ev.isTrusted);
+    return retrying || !!(ev && ev.isTrusted);
   }
 
   function loadStart(e) {
@@ -2369,7 +2373,19 @@
     if (!load || !load.user || (e.type === "htmx:sendAbort" && !load.gaveUp)) {
       return;
     }
-    loadToast(loadText("load-failed"), "error", function () { loadAgain(load); });
+    // A sent form may have arrived: no retry that could write twice.
+    if (!load.get) {
+      loadToast(loadText("send-failed"), "error");
+      return;
+    }
+    loadToast(loadText("load-failed"), "error", function () {
+      retrying = true;
+      try {
+        loadAgain(load);
+      } finally {
+        retrying = false;
+      }
+    });
   }
 
   function loadAgain(load) {

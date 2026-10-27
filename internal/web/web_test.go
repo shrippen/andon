@@ -474,7 +474,7 @@ func TestPagesLoadKante(t *testing.T) {
 	}
 
 	// Waiting feedback: the bar and its texts come with every page (andon.js loadStart).
-	for _, want := range []string{`class="page-load"`, `name="load-slow"`, `name="load-failed"`, `name="load-retry"`} {
+	for _, want := range []string{`class="page-load"`, `name="load-slow"`, `name="load-failed"`, `name="send-failed"`, `name="load-retry"`} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("expected %s in:\n%s", want, page)
 		}

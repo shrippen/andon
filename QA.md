@@ -112,7 +112,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 1. Seitenwechsel über die Leiste: Nach kurzer Zeit läuft oben der gestreifte Balken, um den geklickten Link ein Lauflicht, die alte Seite wird blass. Ohne Drosselung blitzt nichts auf.
 2. Langsamer Seitenwechsel, dann Esc: Die alte Seite bleibt, alles wieder ruhig.
 3. Ein Formular absenden (Hinweis „Erledigt“, Einstellung speichern): Der Knopf zeigt Streifen und ist gesperrt; ab 8 s steht darunter „Dauert länger … 9 s“ und zählt. Esc bricht ein abgeschicktes Formular nicht ab.
-4. Offline (DevTools „Offline“) einen Link klicken: Die Seite bleibt, ein Toast „Laden fehlgeschlagen“ bietet „Erneut versuchen“; online wieder, Klick darauf lädt die Seite. Ebenso für Hinweis-Details.
+4. Offline (DevTools „Offline“) einen Link klicken: Die Seite bleibt, ein Toast „Laden fehlgeschlagen“ bietet „Erneut versuchen“; online wieder, Klick darauf lädt die Seite. Ebenso für Hinweis-Details. Ein abgeschicktes Formular, das scheitert, meldet „Senden fehlgeschlagen“ ohne „Erneut versuchen“.
 5. Hinweis-Details aufklappen, Belege-Suche tippen: Beim Nachladen wird der alte Inhalt blass, nicht leer; Platzhalter überall gleich (Quadrate und „lädt …“).
 Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Zustände bleiben sichtbar. Kachel-Polls zeigen nie Toasts.
 

@@ -17,6 +17,7 @@ nav:
   offline: Offline – letzter bekannter Stand.
   load_slow: Dauert länger …
   load_failed: Laden fehlgeschlagen; der alte Stand bleibt.
+  send_failed: Senden fehlgeschlagen; prüfe, ob es angekommen ist.
   load_retry: Erneut versuchen
   billing: Abrechnung
   home: Zur Startseite
