@@ -31,17 +31,20 @@
     {{else if $p.Cases}}
     <form method="post" action="/euer/review" class="card">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="year" value="{{$p.Year}}">
-      <p class="small muted">{{t "euer.cases" "n" (len $p.Cases) "mapped" $p.Mapped "field" $p.Label}}
+      <p class="small muted">{{t "euer.cases" "n" (len $p.Cases) "suggested" $p.Suggested "field" $p.Label}}
         {{if $p.LinkID}}<a href="/verbund/{{$p.LinkID}}/categories?space={{$p.SpaceID}}">{{t "euer.mapping"}}</a>{{else}}<a href="/categories?ninja={{$p.Ninja}}&amp;bank={{$p.Bank}}">{{t "euer.mapping"}}</a>{{end}}</p>
-      <datalist id="euer-lines">{{range $p.Lines}}<option value="{{.}}">{{end}}</datalist>
+      {{if not $p.Dropdown}}<datalist id="euer-lines">{{range $p.Lines}}<option value="{{.}}">{{end}}</datalist>{{end}}
       <div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th></th><th>{{t "euer.expense"}}</th><th>{{t "euer.line"}}</th></tr></thead>
         <tbody>{{range $p.Cases}}{{$e := .Expense}}<tr>
-          <td><label class="check"><input type="checkbox" name="pick" value="{{$e.Key}}"{{if .Line}} checked{{end}} aria-label="{{$e.Number}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
+          <td><label class="check"><input type="checkbox" name="pick" value="{{$e.Key}}" aria-label="{{$e.Number}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
             <input type="hidden" name="act_{{$e.Key}}" value="set"></td>
           <td data-card="title"><b>{{or $e.Number $e.Key}}</b> · {{day $e.Date}} · {{money $e.Amount}}<br><small class="muted">{{$e.Notes}}</small></td>
-          <td><input class="input" name="line_{{$e.Key}}" list="euer-lines" value="{{.Line}}" aria-label="{{t "euer.line"}}">
-            {{if not .Line}}<small class="muted">{{t "euer.no_mapping"}}</small>{{end}}</td>
+          <td>{{$line := .Line}}{{if $p.Dropdown}}<select class="select" name="line_{{$e.Key}}" aria-label="{{t "euer.line"}}">
+              <option value="">–</option>
+              {{range $p.Lines}}<option value="{{.}}"{{if eq . $line}} selected{{end}}>{{.}}</option>{{end}}</select>
+            {{else}}<input class="input" name="line_{{$e.Key}}" list="euer-lines" value="{{$line}}" aria-label="{{t "euer.line"}}">{{end}}
+            {{if $line}}<small class="muted">{{t "euer.from_vendor"}}</small>{{else}}<small class="muted">{{t "euer.no_vendor"}}</small>{{end}}</td>
         </tr>{{end}}</tbody>
       </table></div>
       <p><button type="submit" class="btn btn-accent">{{t "euer.review"}}</button></p>

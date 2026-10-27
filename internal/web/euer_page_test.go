@@ -34,21 +34,23 @@ func TestEuerPages(t *testing.T) {
 		t.Fatalf("euer before setup:\n%s", page)
 	}
 	cats := string(mustGet(t, srv, client, "/verbund/"+m[1]+"/categories?space="+space))
-	if !strings.Contains(cats, `<option value="3" selected>EÜR</option>`) || !strings.Contains(cats, `name="euer:`) || !strings.Contains(cats, `name="sure:`) {
+	// The EÜR line does not follow the category: only the field is chosen.
+	if !strings.Contains(cats, `<option value="3" selected>EÜR</option>`) || strings.Contains(cats, `name="euer:`) || !strings.Contains(cats, `name="sure:`) {
 		t.Fatalf("categories page:\n%s", cats)
 	}
 
 	form := url.Values{"csrf": {csrfToken(t, srv, client)}, "space": {space}, "euer_slot": {"3"}}
-	for _, k := range regexp.MustCompile(`name="(euer:[^"]+)" list="euer-lines" value="([^"]*)"`).FindAllStringSubmatch(cats, -1) {
-		form.Set(k[1], k[2])
-	}
 	resp := postForm(t, client, srv.URL+"/verbund/"+m[1]+"/categories", form)
 	if loc := resp.Header.Get("Location"); !strings.Contains(loc, "verbund.categories_saved") {
 		t.Fatalf("save: %s", loc)
 	}
 	page = string(mustGet(t, srv, client, "/euer"))
-	if !strings.Contains(page, `name="act_`) || !strings.Contains(page, "davon mit Vorschlag") {
+	// A dropdown field is a select; a proposal is not ticked ahead.
+	if !strings.Contains(page, `name="act_`) || !strings.Contains(page, "mit Vorschlag") || !strings.Contains(page, `<select class="select" name="line_`) {
 		t.Fatalf("euer after setup:\n%s", page)
+	}
+	if regexp.MustCompile(`name="pick" value="[^"]*" checked`).MatchString(page) {
+		t.Errorf("a proposal is ticked:\n%s", page)
 	}
 }
 

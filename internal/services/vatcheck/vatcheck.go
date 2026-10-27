@@ -56,32 +56,34 @@ var need = workbench.Need{Required: []enums.ServiceType{enums.ServiceInvoiceNinj
 
 // Page is the VAT check of one Invoice Ninja and period.
 type Page struct {
-	Scopes   []workbench.Scope // the Verbünde the check can work in
-	Scope    string            // the one picked (workbench.Scope.Key)
-	Choose   bool              // several, none picked yet: the page asks
-	Conn     int64             // its Invoice Ninja
-	Bank     string            // the Sure or Firefly beside it, "" none
-	Spans    []metrics.VATSpan
-	Span     metrics.VATSpan
-	Cases    []Case                 // business, and private with a known vendor
-	Apart    []Case                 // the rest of the private accounts
-	Skipped  []sources.NinjaBankTxn // archived in Invoice Ninja
-	Accounts []Account
-	SetUp    bool  // an account has a role
-	CanSet   bool  // the user may set roles (MANAGE on the connections)
-	SpaceID  int64 // Invoice Ninja's space, for its Verbund page
-	Check    metrics.VATCheck
-	Elster   metrics.Elster   // the return's figures
-	Filed    bool             // marked as filed (FileReturn)
-	Changed  []metrics.Figure // figures that moved since
-	Ledger   Ledger
-	Interval string // monthly, quarterly
-	Method   string // ist, soll
-	Currency string
-	URL      string // Invoice Ninja, for links
-	Receipts int    // the period's expenses without a scan (receipts), -1 unknown
-	Assist   bool   // the language model is set up
-	Guessed  bool   // it answered for this period
+	Scopes    []workbench.Scope // the Verbünde the check can work in
+	Scope     string            // the one picked (workbench.Scope.Key)
+	Choose    bool              // several, none picked yet: the page asks
+	Conn      int64             // its Invoice Ninja
+	Bank      string            // the Sure or Firefly beside it, "" none
+	Spans     []metrics.VATSpan
+	Span      metrics.VATSpan
+	Cases     []Case                 // business, and private with a known vendor
+	Apart     []Case                 // the rest of the private accounts
+	Skipped   []sources.NinjaBankTxn // archived in Invoice Ninja
+	Accounts  []Account
+	SetUp     bool  // an account has a role
+	CanSet    bool  // the user may set roles (MANAGE on the connections)
+	SpaceID   int64 // Invoice Ninja's space, for its Verbund page
+	Check     metrics.VATCheck
+	Elster    metrics.Elster   // the return's figures
+	Filed     bool             // marked as filed (FileReturn)
+	Changed   []metrics.Figure // figures that moved since
+	Ledger    Ledger
+	Euer      string   // the EÜR field's name, "" not chosen (Verbund → Kategorien)
+	EuerLines []string // its choices (metrics.EuerChoices)
+	Interval  string   // monthly, quarterly
+	Method    string   // ist, soll
+	Currency  string
+	URL       string // Invoice Ninja, for links
+	Receipts  int    // the period's expenses without a scan (receipts), -1 unknown
+	Assist    bool   // the language model is set up
+	Guessed   bool   // it answered for this period
 }
 
 // Case is one open transaction with the model's reading, if asked, and
@@ -157,6 +159,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 	if filed, ok := b.state.Filed[connKey(b.conn.ID)][p.Span.Key]; ok {
 		p.Filed, p.Changed = true, p.Elster.Changed(filed)
 	}
+	if slot := b.cats.EuerSlot; slot > 0 {
+		p.Euer, p.EuerLines = b.ninja.ExpenseFields[slot-1].Label, metrics.EuerChoices(b.ninja, slot)
+	}
+	vendorEuer := metrics.VendorEuer(b.ninja, b.cats.EuerSlot)
 	guesses := b.state.guesses(b.conn.ID)
 	for _, c := range cases {
 		g, ok := guesses[c.Txn.Key]
@@ -167,6 +173,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 			p.Guessed = true
 			b.apply(&cs)
 		}
+		cs.Draft.Euer = vendorEuer[cs.Draft.VendorKey]
 		if cs.Txn.Debit && cs.Action == metrics.ActionCreate {
 			cs.Scans, _ = receipts.ScansFor(ctx, d, who, b.conn.ID, cs.Txn.Amount, cs.Txn.Date, cs.Draft.Vendor)
 		}
