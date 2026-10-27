@@ -44,14 +44,22 @@ func partsOf(euer, number, scan bool) []Part {
 // list): nothing is booked, the expense is completed.
 const ActionFill metrics.BankAction = "fill"
 
-// fillPrefix starts a gap case's key: "x-" + the expense's key.
-const fillPrefix = "x-"
+// ActionReceipt creates an expense from a scan no booking pays (cash or
+// private money): nothing is linked in the bank feed.
+const ActionReceipt metrics.BankAction = "receipt"
+
+// fillPrefix starts a gap case's key: "x-" + the expense's key;
+// docPrefix a receipt case's: "d-" + the scan's id.
+const (
+	fillPrefix = "x-"
+	docPrefix  = "d-"
+)
 
 // Counts says whether the page counts the case's parts: a new expense,
 // one found to link, or one to fill.
 func (c Case) Counts() bool {
 	switch c.Act() {
-	case metrics.ActionCreate, metrics.ActionLink, ActionFill:
+	case metrics.ActionCreate, metrics.ActionLink, ActionFill, ActionReceipt:
 		return c.Txn.Debit
 	}
 	return false
@@ -134,7 +142,7 @@ func (c Case) Done() int {
 // all its parts, or an invoice or payment found.
 func (c Case) Ready() bool {
 	switch c.Act() {
-	case metrics.ActionCreate, metrics.ActionLink, ActionFill:
+	case metrics.ActionCreate, metrics.ActionLink, ActionFill, ActionReceipt:
 		return c.Counts() && c.Done() == len(c.parts)
 	case metrics.ActionInvoice, metrics.ActionPayment:
 		return true
@@ -188,8 +196,8 @@ func (c Case) Parts() []Part { return c.parts }
 // (debits), book an invoice or a payment found, or archive it; a gap
 // case only fills.
 func (c Case) Acts() []metrics.BankAction {
-	if c.Action == ActionFill {
-		return []metrics.BankAction{ActionFill}
+	if c.Action == ActionFill || c.Action == ActionReceipt {
+		return []metrics.BankAction{c.Action}
 	}
 	var out []metrics.BankAction
 	if len(c.Expenses) > 0 {
@@ -229,7 +237,7 @@ func (c Case) Picked() bool {
 		return true
 	case metrics.ActionCreate:
 		return c.Draft.TaxKnown && c.Draft.From == metrics.FromHistory
-	case ActionFill:
+	case ActionFill, ActionReceipt:
 		return c.Ready()
 	}
 	return false

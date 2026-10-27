@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"andon/internal/outbound"
 	"andon/internal/services/access"
@@ -339,4 +340,42 @@ const scansFound = 8
 func docNumber(m Mapping, doc sources.ReceiptDoc) string {
 	n, _ := doc.Custom[m.FieldInvoice].(string)
 	return strings.TrimSpace(n)
+}
+
+// Unbooked are the free scans of [from, to] carrying the queue tag that
+// no expense without a scan fits: paid in cash or privately, they wait
+// for an expense of their own (the VAT check's "receipts without an
+// expense"). Nothing for another Invoice Ninja than the pair's.
+func Unbooked(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int64, from, to time.Time) ([]Candidate, error) {
+	p, err := openPair(d, who)
+	if errors.Is(err, ErrNoPair) || (err == nil && (p.ninja.ID != ninjaID || !p.mapping.Complete())) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	set, err := p.docSet(ctx, d, who, from.Year())
+	if err != nil {
+		return nil, err
+	}
+	expenses, docs, err := p.unlinked(ctx, d, who, from.Year())
+	if err != nil {
+		return nil, err
+	}
+	tagged, found := p.queued(set, docs)
+	if !found {
+		return nil, nil
+	}
+
+	var out []Candidate
+	for _, m := range p.matcher().Reverse(tagged, expenses, docs) {
+		day, err := time.Parse(time.DateOnly, docDay(m.Doc))
+		fits := len(m.Combos) > 0 || (len(m.Hits) > 0 && m.Hits[0].Score >= levelMid)
+		if err != nil || fits || day.Before(from) || day.After(to) {
+			continue
+		}
+		m.Doc.Day = day.Format(time.DateOnly)
+		out = append(out, Candidate{Doc: m.Doc, Amount: m.Amount, Number: docNumber(p.mapping, m.Doc)})
+	}
+	return out, nil
 }

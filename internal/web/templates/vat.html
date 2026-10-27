@@ -92,7 +92,7 @@
     <p class="small"><a href="/vendors?scope={{$p.Scope}}">{{t "vatcheck.vendors_link"}} →</a></p>
 
     <h2 id="cases">{{t "vatcheck.cases"}}</h2>
-    {{if or $p.Cases $p.Apart $p.Gaps}}
+    {{if or $p.Cases $p.Apart $p.Gaps $p.Docs}}
     {{if $p.Assist}}<form method="post" action="/vat/guess" class="inline-form">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
       <button type="submit" class="btn btn-outline btn-sm" title="{{t "vatcheck.guess_privacy"}}">{{if $p.Guessed}}{{t "vatcheck.guess_again"}}{{else}}{{t "vatcheck.guess"}}{{end}}</button>
@@ -111,12 +111,15 @@
           {{range .}}{{template "vat_entry" dict "C" . "P" $p}}{{end}}{{end}}
           {{with $p.Gaps}}<div class="h-label">{{t "vatcheck.gaps_title" "n" (len .)}}</div>
           {{range .}}{{template "vat_entry" dict "C" . "P" $p}}{{end}}{{end}}
+          {{with $p.Docs}}<div class="h-label">{{t "vatcheck.docs_title" "n" (len .)}}</div>
+          {{range .}}{{template "vat_entry" dict "C" . "P" $p}}{{end}}{{end}}
           <ul class="legend"><li><i data-style="--c:var(--primary)"></i>{{t "vatcheck.legend_has"}}</li><li><i data-style="--c:var(--bg-hard)"></i>{{t "vatcheck.legend_missing"}}</li><li><i data-style="--c:var(--aqua)"></i>{{t "vatcheck.legend_ready"}}</li></ul>
           <p class="small muted">{{t "vatcheck.keys"}}</p>
         </nav>
         {{range $i, $c := $p.Cases}}{{template "vat_desk" dict "C" $c "P" $p "First" (eq $i 0)}}{{end}}
         {{range $i, $c := $p.Apart}}{{template "vat_desk" dict "C" $c "P" $p "First" (and (not $p.Cases) (eq $i 0))}}{{end}}
         {{range $i, $c := $p.Gaps}}{{template "vat_desk" dict "C" $c "P" $p "First" (and (not $p.Cases) (not $p.Apart) (eq $i 0))}}{{end}}
+        {{range $i, $c := $p.Docs}}{{template "vat_desk" dict "C" $c "P" $p "First" (and (not $p.Cases) (not $p.Apart) (not $p.Gaps) (eq $i 0))}}{{end}}
       </div>
       {{/* The private accounts' rest: nothing to book unless taken; all
            at once can be archived as private. */}}
@@ -206,11 +209,19 @@
   {{with $c.Payment}}<p class="small" data-for="payment"{{if ne $act "payment"}} hidden{{end}}><input type="hidden" name="pay_{{$k}}" value="{{.Key}}">{{t "vatcheck.payment_line" "number" .Number "day" (day .Date)}}</p>{{end}}
   <p class="small muted" data-for="skip"{{if ne $act "skip"}} hidden{{end}}>{{t "vatcheck.act_skip_hint"}}</p>
 
-  {{if and $c.Txn.Debit (ne $act "fill")}}{{$d := $c.Draft}}<div class="bench-cols" data-for="create"{{if ne $act "create"}} hidden{{end}}>
+  {{if and $c.Txn.Debit (ne $act "fill")}}{{$d := $c.Draft}}{{$for := "create"}}{{if eq $act "receipt"}}{{$for = "receipt"}}{{end}}<div class="bench-cols" data-for="{{$for}}"{{if ne $act $for}} hidden{{end}}>
     <div class="bench-col">
+      {{if eq $for "receipt"}}{{/* The scan is the case: no other to pick; its amount may need typing. */}}
+      <div class="h-label">{{t "vatcheck.scan_title"}}</div>
+      <div class="picks">{{range $c.Scans}}{{template "vat_pick" dict "S" . "K" $k "Field" "scan" "Checked" true}}{{end}}</div>
+      <div class="h-label">{{t "vatcheck.from_scan"}}</div>
+      <label class="field"><span class="field-label">{{t "col.amount"}}</span><input class="input" name="amount_{{$k}}" value="{{if $c.Txn.Amount}}{{printf "%.2f" $c.Txn.Amount}}{{end}}" inputmode="decimal" data-part="amount"></label>
+      <input type="hidden" name="day_{{$k}}" value="{{$c.Txn.Date}}">
+      <dl class="kv"><dt>{{t "vatcheck.currency"}}</dt><dd>{{$p.Currency}}</dd><dt>{{t "col.day"}}</dt><dd>{{day $c.Txn.Date}}</dd></dl>
+      {{else}}
       {{template "vat_scans" dict "C" $c "P" $p "Field" "scan"}}
       <div class="h-label">{{t "vatcheck.from_booking"}}</div>
-      <dl class="kv"><dt>{{t "col.amount"}}</dt><dd>{{money $c.Txn.Amount $p.Currency}}</dd><dt>{{t "vatcheck.currency"}}</dt><dd>{{$p.Currency}}</dd><dt>{{t "col.day"}}</dt><dd>{{day $c.Txn.Date}}</dd></dl>
+      <dl class="kv"><dt>{{t "col.amount"}}</dt><dd>{{money $c.Txn.Amount $p.Currency}}</dd><dt>{{t "vatcheck.currency"}}</dt><dd>{{$p.Currency}}</dd><dt>{{t "col.day"}}</dt><dd>{{day $c.Txn.Date}}</dd></dl>{{end}}
       <label class="check"><input type="checkbox" name="gross_{{$k}}" value="on" checked><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>{{t "vatcheck.gross"}}</label><input type="hidden" name="gross_{{$k}}" value="off">
       <label class="check"><input type="checkbox" name="paid_{{$k}}" value="on" checked><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>{{t "vatcheck.paid" "day" (day $c.Txn.Date)}}</label><input type="hidden" name="paid_{{$k}}" value="off">
       <label class="check"><input type="checkbox" name="bill_{{$k}}" value="on"{{if $d.Bill}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>{{t "vatcheck.bill"}}</label><input type="hidden" name="bill_{{$k}}" value="off">
@@ -231,7 +242,7 @@
         {{if $p.Number}}<label class="field"><span class="field-label">{{or $p.NumberOf (t "vatcheck.number")}}{{if $c.Number}}<span class="field-origin">{{t "vatcheck.origin_scan"}}</span>{{end}}</span>
           <input class="input" name="num_{{$k}}" value="{{$c.Number}}" data-part="number"></label>{{end}}
       </div>
-      <label class="field"><span class="field-label">{{t "vatcheck.note"}}{{if $c.Note}}<span class="field-origin">{{t "vatcheck.origin_booking"}}</span>{{end}}</span>
+      <label class="field"><span class="field-label">{{t "vatcheck.note"}}{{if $c.Note}}<span class="field-origin">{{if eq $c.Act "receipt"}}{{t "vatcheck.origin_scan"}}{{else}}{{t "vatcheck.origin_booking"}}{{end}}</span>{{end}}</span>
         <input class="input" name="note_{{$k}}" value="{{$c.Note}}" data-part="note"></label>
     </div>
   </div>{{end}}
@@ -309,12 +320,11 @@
           {{if .Problem}}{{t (print .Problem)}}
           {{else if eq .Action "link"}}{{t "vatcheck.do_link" "number" $i.Expense.Number}}{{template "vat_filled" dict "I" $i}}
           {{else if eq .Action "fill"}}{{t "vatcheck.do_fill" "number" $i.Expense.Number}}{{template "vat_filled" dict "I" $i}}
+          {{else if eq .Action "receipt"}}{{if $i.NewVendor}}{{t "vatcheck.do_vendor" "vendor" $i.Vendor}} {{end}}{{t "vatcheck.do_receipt" "vendor" $i.Vendor}}{{template "vat_new" dict "I" $i "Currency" $.Plan.Currency}}
           {{else if eq .Action "invoice"}}{{t "vatcheck.do_invoice" "number" $i.Invoice.Number}}
           {{else if eq .Action "payment"}}{{t "vatcheck.do_payment" "number" $i.Payment.Number}}
           {{else if eq .Action "skip"}}{{t "vatcheck.do_skip"}}
-          {{else}}{{if $i.NewVendor}}{{t "vatcheck.do_vendor" "vendor" $i.Vendor}} {{end}}{{t "vatcheck.do_create" "vendor" $i.Vendor}}{{with $i.Category}} · {{.}}{{end}}{{with $i.Euer}} · {{t "vatcheck.do_euer" "line" .}}{{end}} ·
-            {{if $i.Taxed}}{{t "vatcheck.do_tax" "name" $i.TaxName "rate" (num $i.TaxRate 0) "tax" (money $i.Tax $.Plan.Currency)}}{{else}}{{t "vatcheck.no_tax"}}{{end}}{{with $i.ScanTitle}} · {{t "vatcheck.do_scan" "title" .}}{{end}}
-            {{with $i.Number}} · {{t "vatcheck.do_number" "number" .}}{{end}}{{with $i.Note}} · {{t "vatcheck.do_note" "note" .}}{{end}}{{if $i.Bill}} · {{t "vatcheck.do_bill"}}{{end}}{{if not $i.Paid}} · {{t "vatcheck.do_unpaid"}}{{end}}{{if not $i.Gross}} · {{t "vatcheck.do_net"}}{{end}}{{end}}
+          {{else}}{{if $i.NewVendor}}{{t "vatcheck.do_vendor" "vendor" $i.Vendor}} {{end}}{{t "vatcheck.do_create" "vendor" $i.Vendor}}{{template "vat_new" dict "I" $i "Currency" $.Plan.Currency}}{{end}}
         </li>{{end}}</ol>
       <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "vatcheck.apply" "n" .Plan.Writes}}</button>{{else}}<button type="submit" class="btn btn-outline">{{t "vatcheck.apply_skip"}}</button>{{end}}
         <a class="btn btn-quiet" href="/vat?scope={{.Q.Scope}}&amp;span={{.Q.Span}}">{{t "vatcheck.back"}}</a></p>
@@ -324,6 +334,11 @@
 </body>
 </html>
 {{end}}
+
+{{/* A new expense's parts in the review: " · Technik · MwSt. 19 % …". */}}
+{{define "vat_new"}}{{$i := .I}}{{with $i.Category}} · {{.}}{{end}}{{with $i.Euer}} · {{t "vatcheck.do_euer" "line" .}}{{end}} ·
+  {{if $i.Taxed}}{{t "vatcheck.do_tax" "name" $i.TaxName "rate" (num $i.TaxRate 0) "tax" (money $i.Tax .Currency)}}{{else}}{{t "vatcheck.no_tax"}}{{end}}{{with $i.ScanTitle}} · {{t "vatcheck.do_scan" "title" .}}{{end}}
+  {{with $i.Number}} · {{t "vatcheck.do_number" "number" .}}{{end}}{{with $i.Note}} · {{t "vatcheck.do_note" "note" .}}{{end}}{{if $i.Bill}} · {{t "vatcheck.do_bill"}}{{end}}{{if not $i.Paid}} · {{t "vatcheck.do_unpaid"}}{{end}}{{if not $i.Gross}} · {{t "vatcheck.do_net"}}{{end}}{{end}}
 
 {{/* What a link or fill adds to the expense: " · EÜR: … · Beleg …". */}}
 {{define "vat_filled"}}{{$i := .I}}{{with $i.Category}} · {{t "vatcheck.do_category" "name" .}}{{end}}{{with $i.Euer}} · {{t "vatcheck.do_euer" "line" .}}{{end}}{{with $i.Number}} · {{t "vatcheck.do_number" "number" .}}{{end}}{{with $i.Note}} · {{t "vatcheck.do_note" "note" .}}{{end}}{{with $i.ScanTitle}} · {{t "vatcheck.do_scan" "title" .}}{{end}}{{end}}

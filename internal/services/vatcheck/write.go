@@ -43,6 +43,10 @@ const (
 	FieldPaid     = "paid"  // create: paid on the booking's day, On (default) or Off
 	FieldGross    = "gross" // create: the amount includes the tax, On (default) or Off
 
+	// receipt: the scan's amount (editable) and day.
+	FieldAmount = "amount"
+	FieldDay    = "day"
+
 	// link, fill: what the expense lacks; a value it has stays.
 	FieldFillCategory = "xcat" // a key
 	FieldFillEuer     = "xeuer"
@@ -59,7 +63,7 @@ const (
 
 // Fields lists them, for the form.
 var Fields = []string{FieldExpense, FieldInvoice, FieldPayment, FieldVendor, FieldCategory, FieldTax, FieldScan, FieldEuer,
-	FieldNumber, FieldNote, FieldBill, FieldPaid, FieldGross, FieldFillCategory, FieldFillEuer, FieldFillNumber, FieldFillScan, FieldFillNote}
+	FieldNumber, FieldNote, FieldBill, FieldPaid, FieldGross, FieldFillCategory, FieldFillEuer, FieldFillNumber, FieldFillScan, FieldFillNote, FieldAmount, FieldDay}
 
 // noTax is the tax field of an expense without tax.
 const noTax = "none"
@@ -70,6 +74,7 @@ const (
 	ProblemNoVendor workbench.Problem = "vatcheck.problem_no_vendor" // a new expense needs a vendor
 	ProblemEuer     workbench.Problem = "vatcheck.problem_euer"      // not one of the EÜR dropdown's lines
 	ProblemFilled   workbench.Problem = "vatcheck.problem_filled"    // nothing left to fill
+	ProblemAmount   workbench.Problem = "vatcheck.problem_amount"    // a receipt's expense needs an amount
 )
 
 // ErrGone means the transaction is not (or no longer) archived.
@@ -128,6 +133,12 @@ func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 		return
 	}
 	scans, _ := receipts.ScansFor(ctx, d, who, connID, p.Item.Txn.Amount, p.Item.Txn.Date, p.Item.Vendor)
+	if p.Action == string(ActionReceipt) {
+		// Its own scan, among the year's still without an expense.
+		day, _ := metrics.ParseDay(p.Item.Txn.Date)
+		year := time.Date(day.Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
+		scans, _ = receipts.Unbooked(ctx, d, who, connID, year, year.AddDate(1, 0, -1))
+	}
 	for _, c := range scans {
 		if c.Doc.ID == p.Item.Scan {
 			p.Item.ScanTitle = c.Doc.Title
@@ -140,6 +151,9 @@ func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 	if p.Action == string(ActionFill) && !p.Item.fills() {
 		p.Problem = ProblemFilled
 	}
+	if p.Action == string(ActionReceipt) {
+		p.Problem = ProblemGone // linked or gone meanwhile
+	}
 }
 
 // Check resolves one step; the transaction must still be open and its
@@ -148,6 +162,9 @@ func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 	var it Item
 	if key, ok := strings.CutPrefix(s.Case, fillPrefix); ok {
 		return b.filled(s, key)
+	}
+	if id, ok := strings.CutPrefix(s.Case, docPrefix); ok {
+		return b.receipted(s, id)
 	}
 	i := indexOf(b.ninja.BankTxns, func(t sources.NinjaBankTxn) bool { return t.Key == s.Case })
 	if i < 0 || b.ninja.BankTxns[i].Status == sources.BankDone {
@@ -213,6 +230,28 @@ func (b book) created(s *workbench.Step, it Item) (Item, workbench.Problem) {
 	it.Note = cmp.Or(strings.TrimSpace(s.Field(FieldNote)), noteOf(it.Txn))
 	it.Bill, it.Paid, it.Gross = s.Field(FieldBill) == On, s.Field(FieldPaid) != Off, s.Field(FieldGross) != Off
 	return it, workbench.ProblemNone
+}
+
+// receipted resolves a receipt case: a new expense of the amount and
+// day the form sends, with the case's scan; Review checks it is free.
+func (b book) receipted(s *workbench.Step, id string) (Item, workbench.Problem) {
+	var it Item
+	scan, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || metrics.BankAction(s.Action) != ActionReceipt {
+		return it, ProblemGone
+	}
+	amount, err := strconv.ParseFloat(strings.ReplaceAll(strings.TrimSpace(s.Field(FieldAmount)), ",", "."), 64)
+	if err != nil || amount <= 0 {
+		return it, ProblemAmount
+	}
+	if _, ok := metrics.ParseDay(s.Field(FieldDay)); !ok {
+		return it, ProblemGone
+	}
+	it.Txn = sources.NinjaBankTxn{Key: s.Case, Date: s.Field(FieldDay), Payer: strings.TrimSpace(s.Field(FieldVendor)), Amount: amount, Debit: true}
+	it, problem := b.created(s, it)
+	it.Scan = scan
+	s.Fields[FieldScan] = id
+	return it, problem
 }
 
 // filled resolves a gap case: the linked expense, still lacking what
@@ -439,8 +478,11 @@ func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expense: key}); err != nil {
-		return number, fmt.Errorf("%s: %w", number, err)
+	// A receipt's expense has no booking to link: cash or private money.
+	if metrics.BankAction(p.Action) != ActionReceipt {
+		if err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expense: key}); err != nil {
+			return number, fmt.Errorf("%s: %w", number, err)
+		}
 	}
 
 	// The new expense gets its scan, both sides (receipts.Link).

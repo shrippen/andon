@@ -593,6 +593,21 @@
     "de": "",
     "en": ""
    }
+  },
+  {
+   "id": 12,
+   "vendor": "Lieferant 14",
+   "day": -6,
+   "amount": 18.4,
+   "number": "RE-2210",
+   "category": {
+    "de": "Druck",
+    "en": "Printing"
+   },
+   "note": {
+    "de": "",
+    "en": ""
+   }
   }
  ],
  "inventory": {
@@ -3204,6 +3219,25 @@
        "text": {
         "de": "Betrag {amount} EUR",
         "en": "Amount {amount} EUR"
+       },
+       "amount": true,
+       "tagged": true
+      }
+     ]
+    },
+    {
+     "receipt": 12,
+     "scans": [
+      {
+       "id": 207,
+       "title": {
+        "de": "Quittung Lieferant 14",
+        "en": "Receipt Lieferant 14"
+       },
+       "correspondent": "Lieferant 14",
+       "text": {
+        "de": "Bar bezahlt {amount} EUR",
+        "en": "Paid in cash {amount} EUR"
        },
        "amount": true,
        "tagged": true

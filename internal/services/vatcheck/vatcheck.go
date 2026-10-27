@@ -14,10 +14,12 @@
 package vatcheck
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -68,6 +70,7 @@ type Page struct {
 	Cases     []Case                 // business, and private with a known vendor
 	Apart     []Case                 // the rest of the private accounts
 	Gaps      []Case                 // linked expenses of the period without EÜR line or scan (ActionFill)
+	Docs      []Case                 // scans of the period no booking or expense fits (ActionReceipt)
 	Skipped   []sources.NinjaBankTxn // archived in Invoice Ninja
 	Accounts  []Account
 	SetUp     bool  // an account has a role
@@ -229,6 +232,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 		}
 	}
 	p.Gaps = b.gapCases(ctx, d, who, p.Span, parts, vendorEuer)
+	p.Docs = b.docCases(ctx, d, who, p.Span, parts, vendorEuer, proposed(p.Cases))
 	p.Receipts = -1
 	if c, err := receipts.CountsOf(ctx, d, who, receiptsTab, p.Span.Start.Year(), p.Span.Key); err == nil && c.Ready {
 		p.Receipts = c.Match
@@ -571,4 +575,51 @@ func (b book) vendorName(key string) string {
 		}
 	}
 	return ""
+}
+
+// proposed are the scans the open cases propose: no receipt case for
+// them, the booking takes them.
+func proposed(cases []Case) map[int64]bool {
+	out := map[int64]bool{}
+	for _, c := range cases {
+		if id := c.Scan(); id != 0 {
+			out[id] = true
+		}
+	}
+	return out
+}
+
+// docCases are the period's free scans no booking or expense fits, each
+// as a new expense: "d-<id>", dressed as a booking of the scan's day,
+// amount and correspondent.
+func (b book) docCases(ctx context.Context, d *sql.DB, who *access.Principal, s metrics.VATSpan, parts []Part, vendorEuer map[string]string, taken map[int64]bool) []Case {
+	if b.scanSlot == 0 {
+		return nil
+	}
+	scans, _ := receipts.Unbooked(ctx, d, who, b.conn.ID, s.Start, s.End)
+	var out []Case
+	for _, sc := range scans {
+		if taken[sc.Doc.ID] {
+			continue
+		}
+		sc.Score = scanSure
+		txn := docTxn(sc.Doc, sc.Amount)
+		cs := Case{BankCase: metrics.BankCase{Txn: txn, Action: ActionReceipt, Draft: metrics.DraftOf(b.ninja, txn)},
+			Scans: []receipts.Candidate{sc}, Note: strings.TrimSpace(sc.Doc.Title), parts: parts}
+		cs.Draft.Euer = vendorEuer[cs.Draft.VendorKey]
+		if b.numberSlot > 0 {
+			cs.Number = sc.Number
+		}
+		out = append(out, cs)
+	}
+	return out
+}
+
+// scanSure is the score of a receipt case's own scan: it is the case.
+const scanSure = 100
+
+// docTxn dresses a scan as the booking it stands for.
+func docTxn(doc sources.ReceiptDoc, amount float64) sources.NinjaBankTxn {
+	return sources.NinjaBankTxn{Key: docPrefix + strconv.FormatInt(doc.ID, 10), Date: doc.Day, Payer: cmp.Or(doc.Correspondent, doc.Title),
+		Description: doc.Title, Amount: amount, Debit: true}
 }

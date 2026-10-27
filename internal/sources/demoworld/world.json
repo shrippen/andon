@@ -813,6 +813,23 @@
     "en": "Two handheld floodlights, 40 batteries"
    },
    "state": "open"
+  },
+  {
+   "id": 12,
+   "vendor": "Copyshop Altona",
+   "day": -6,
+   "amount": 18.4,
+   "number": "CA-2210",
+   "category": {
+    "de": "Druck",
+    "en": "Printing"
+   },
+   "project": "spring",
+   "note": {
+    "de": "Drehpläne kopiert, bar bezahlt",
+    "en": "Shooting schedules copied, paid in cash"
+   },
+   "state": "open"
   }
  ],
  "tasks": {
@@ -1531,7 +1548,7 @@
    "belege": 212
   },
   "receipts": {
-   "note": "Scans of the receipts and how they meet the expenses: invoice number in both (sure match), linked already, amount and vendor only, the Paperless invoice 311, two scans that add up (1:n), no scan yet, a scan tagged Beleg without an expense. {amount} is filled in.",
+   "note": "Scans of the receipts and how they meet the expenses: invoice number in both (sure match), linked already, amount and vendor only, the Paperless invoice 311, two scans that add up (1:n), no scan yet, a scan tagged Beleg without an expense, a cash receipt with neither expense nor bank booking. {amount} is filled in.",
    "url": "https://invoices.demo",
    "tag": "Beleg",
    "slots": [
@@ -1690,6 +1707,25 @@
        "text": {
         "de": "Betrag {amount} EUR",
         "en": "Amount {amount} EUR"
+       },
+       "amount": true,
+       "tagged": true
+      }
+     ]
+    },
+    {
+     "receipt": 12,
+     "scans": [
+      {
+       "id": 207,
+       "title": {
+        "de": "Quittung Copyshop Altona",
+        "en": "Receipt Copyshop Altona"
+       },
+       "correspondent": "Copyshop Altona",
+       "text": {
+        "de": "Bar bezahlt {amount} EUR",
+        "en": "Paid in cash {amount} EUR"
        },
        "amount": true,
        "tagged": true
