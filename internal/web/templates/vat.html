@@ -241,13 +241,13 @@
 {{/* An expense found or filled: which one, and what it lacks, each
      field with its proposal; a value it has is not offered. */}}
 {{define "vat_fill"}}{{$c := .C}}{{$p := .P}}{{$k := $c.Txn.Key}}{{$d := $c.Draft}}{{$for := "link"}}{{if eq $c.Act "fill"}}{{$for = "fill"}}{{end}}
-<div data-for="{{$for}}"{{if ne $c.Act $for}} hidden{{end}}>
+<div data-for="{{$for}}" data-fill{{if ne $c.Act $for}} hidden{{end}}>
   {{if eq $for "link"}}<label class="field"><span class="field-label">{{t "vatcheck.expense"}}</span>
     <select class="select" name="exp_{{$k}}">{{range $c.Expenses}}<option value="{{.Key}}">{{.Number}} · {{day .Date}} · {{money .Amount $p.Currency}}</option>{{end}}</select></label>{{end}}
   {{if $c.Lacks}}<div class="bench-cols">
     <div class="bench-col">{{if $c.Gap "scan"}}{{template "vat_scans" dict "C" $c "P" $p "Field" "xscan"}}{{end}}</div>
     <div class="bench-col">
-      <div class="h-label">{{t "vatcheck.fill_title" "number" (index $c.Expenses 0).Number}}</div>
+      <div class="h-label">{{if eq (len $c.Expenses) 1}}{{t "vatcheck.fill_title" "number" (index $c.Expenses 0).Number}}{{else}}{{t "vatcheck.fill_picked"}}{{end}}</div>
       {{if $c.Gap "category"}}<label class="field"><span class="field-label">{{t "vatcheck.category"}}{{if $d.CategoryKey}}{{with $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</span>
         <select class="select" name="xcat_{{$k}}" data-part="category"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $d.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>{{end}}
       {{if and $p.Euer ($c.Gap "euer")}}<label class="field"><span class="field-label">{{$p.Euer}}{{if $d.Euer}}<span class="field-origin">{{t "vatcheck.origin_vendor"}}</span>{{end}}</span>

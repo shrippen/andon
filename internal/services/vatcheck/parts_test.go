@@ -1,6 +1,7 @@
 package vatcheck
 
 import (
+	"slices"
 	"testing"
 
 	"andon/internal/metrics"
@@ -33,5 +34,20 @@ func TestCaseParts(t *testing.T) {
 	c.Action = metrics.ActionLink
 	if !c.Counts() || !c.Ready() {
 		t.Fatal("a link to a complete expense is ready")
+	}
+}
+
+// TestLinkGaps: a link offers the gaps of each expense it may take, not
+// only the first's, in the order of Parts.
+func TestLinkGaps(t *testing.T) {
+	b := book{scanSlot: 2}
+	b.cats.EuerSlot = 3
+	full := sources.NinjaExpense{Key: "e1", CategoryKey: "c1", Notes: "Stative"}
+	full.Custom[1], full.Custom[2] = "https://docs/1", "Arbeitsmittel"
+	bare := sources.NinjaExpense{Key: "e2", CategoryKey: "c1", Notes: "Kabel"}
+
+	got := b.linkGaps([]sources.NinjaExpense{full, bare})
+	if !slices.Equal(got, []Part{PartEuer, PartScan}) {
+		t.Fatalf("gaps %v", got)
 	}
 }

@@ -7367,6 +7367,7 @@ vatcheck:
   act_fill_hint: 'Nichts buchen; Andon trägt nach, was der Ausgabe fehlt'
   gaps_title: 'Ausgaben mit Lücken: {n}'
   fill_title: 'Fehlt {number}'
+  fill_picked: 'Fehlt der gewählten Ausgabe'
   fill_none: 'Der Ausgabe fehlt nichts.'
   do_fill: 'Ausgabe {number} ergänzen'
   do_category: 'Kategorie {name}'

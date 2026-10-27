@@ -1414,9 +1414,9 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 .user-row .menu { text-align: left; }
 .user-row .menu form { margin: 0; }
 
-/* VAT check: an action's block lays its parts out as the desk's own
+/* VAT check: the link or fill block lays its parts out as the desk's own
    (Kante .bench-desk gap); the review lists the steps. */
-.bench-desk > [data-for]:not([hidden]) { display: contents; }
+.bench-desk > [data-fill]:not([hidden]) { display: contents; }
 .vat-plan { display: flex; flex-direction: column; gap: .7rem; padding-left: 1.2rem; }
 
 /* Workbenches: the Verbund to work in, when several fit. */

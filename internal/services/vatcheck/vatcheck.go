@@ -219,9 +219,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 		if cs.Txn.Debit {
 			cs.Note = noteOf(cs.Txn)
 		}
-		if cs.Act() == metrics.ActionLink {
-			cs.gaps = b.gapsOf(cs.Expenses[0])
-		}
+		cs.gaps = b.linkGaps(cs.Expenses)
 		b.propose(ctx, d, who, &cs)
 		if cs.Waiting() {
 			p.Cases = append(p.Cases, cs)
@@ -515,6 +513,17 @@ func (b book) gapsOf(e sources.NinjaExpense) []Part {
 		out = append(out, PartNote)
 	}
 	return out
+}
+
+// linkGaps are the parts any of a link's expenses lacks, in the order
+// of Parts: the page offers them for the one the user picks, the
+// write fills only that one's own (fill).
+func (b book) linkGaps(es []sources.NinjaExpense) []Part {
+	var lack []Part
+	for _, e := range es {
+		lack = append(lack, b.gapsOf(e)...)
+	}
+	return slices.DeleteFunc(slices.Clone(Parts), func(p Part) bool { return !slices.Contains(lack, p) })
 }
 
 // propose looks for the scans a case's expense may get, and takes the
