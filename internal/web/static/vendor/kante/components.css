@@ -123,7 +123,7 @@ main,.foot{position:relative;z-index:1}
 .btn-outline:disabled,.btn-data:disabled,.btn-quiet:disabled{background-color:transparent}
 /* busy (A08): marching hazard stripes in the fill */
 .btn.is-busy{cursor:progress;background-image:repeating-linear-gradient(-45deg,var(--primary) 0 10px,var(--yellow-lo) 10px 20px);background-size:28.28px 28.28px}
-.btn-outline.is-busy{background-image:repeating-linear-gradient(-45deg,transparent 0 10px,var(--bg1) 10px 20px)}
+:is(.btn-outline,.btn-ghost,.btn-data).is-busy{background-image:repeating-linear-gradient(-45deg,transparent 0 10px,var(--bg1) 10px 20px)}
 /* Outlined buttons draw their cut as one unrepeated image: busy, the stripes fill the whole button */
 :is(.btn-outline,.btn-ghost,.btn-data).is-busy{background-repeat:repeat;background-position:0 0}
 .btn-group{display:inline-flex;flex-wrap:wrap}
@@ -1769,7 +1769,7 @@ details.help.is-right>.help-text{left:auto;right:-.5rem}
 /* Busy: a slow shimmer instead of marching hazard stripes */
 :root[data-kante="gold"] .progress-bar.is-indeterminate{background:linear-gradient(90deg,var(--bg-hard) 0 30%,var(--yellow) 50%,var(--bg-hard) 70%) 0 0/250% 100%}
 :root[data-kante="gold"] .btn.is-busy{background-image:linear-gradient(90deg,var(--primary) 0 30%,var(--yellow-hi) 50%,var(--primary) 70%);background-size:250% 100%}
-:root[data-kante="gold"] .btn-outline.is-busy{background-image:linear-gradient(90deg,transparent 0 30%,var(--tint-2) 50%,transparent 70%);background-size:250% 100%;background-position:0 0}
+:root[data-kante="gold"] :is(.btn-outline,.btn-ghost,.btn-data).is-busy{background-image:linear-gradient(90deg,transparent 0 30%,var(--tint-2) 50%,transparent 70%);background-size:250% 100%;background-position:0 0}
 :root[data-kante="gold"] .banner::before,:root[data-kante="gold"] .banner::after{height:var(--bar);background:var(--accent)}
 /* Crackle ground: Kintsugi's breaks in gold, very quiet, behind the whole page */
 :root[data-kante="gold"] body::before{content:"";position:fixed;top:-50%;left:-50%;width:200%;height:200%;z-index:-1;pointer-events:none;contain:strict;
