@@ -35,12 +35,24 @@ const (
 	FieldVendor   = "vendor"
 	FieldCategory = "cat" // a key
 	FieldTax      = "tax"
-	FieldScan     = "scan" // create: the Paperless scan to link
-	FieldEuer     = "euer" // create: the EÜR line
+	FieldScan     = "scan"  // create: the Paperless scan to link
+	FieldEuer     = "euer"  // create: the EÜR line
+	FieldNumber   = "num"   // create: the vendor's invoice number
+	FieldNote     = "note"  // create: the public note (product or service)
+	FieldBill     = "bill"  // create: bill the client, On or Off (default)
+	FieldPaid     = "paid"  // create: paid on the booking's day, On (default) or Off
+	FieldGross    = "gross" // create: the amount includes the tax, On (default) or Off
+)
+
+// Values of the switch fields; a missing one keeps its default.
+const (
+	On  = "on"
+	Off = "off"
 )
 
 // Fields lists them, for the form.
-var Fields = []string{FieldExpense, FieldInvoice, FieldPayment, FieldVendor, FieldCategory, FieldTax, FieldScan, FieldEuer}
+var Fields = []string{FieldExpense, FieldInvoice, FieldPayment, FieldVendor, FieldCategory, FieldTax, FieldScan, FieldEuer,
+	FieldNumber, FieldNote, FieldBill, FieldPaid, FieldGross}
 
 // noTax is the tax field of an expense without tax.
 const noTax = "none"
@@ -71,6 +83,11 @@ type Item struct {
 	Scan      int64
 	ScanTitle string // the scan linked to a new expense
 	Euer      string // the EÜR line the new expense gets, "" none
+	Number    string // the vendor's invoice number, "" none
+	Note      string // the public note
+	Bill      bool   // bill the client
+	Paid      bool   // paid on the booking's day
+	Gross     bool   // the amount includes the tax
 }
 
 // Planned is a step as it would be written.
@@ -174,7 +191,25 @@ func (b book) created(s *workbench.Step, it Item) (Item, workbench.Problem) {
 		s.Fields[FieldTax] = noTax
 	}
 	it.Scan, _ = strconv.ParseInt(s.Field(FieldScan), 10, 64)
+	if b.numberSlot > 0 {
+		it.Number = strings.TrimSpace(s.Field(FieldNumber))
+	}
+	it.Note = cmp.Or(strings.TrimSpace(s.Field(FieldNote)), noteOf(it.Txn))
+	it.Bill, it.Paid, it.Gross = s.Field(FieldBill) == On, s.Field(FieldPaid) != Off, s.Field(FieldGross) != Off
 	return it, workbench.ProblemNone
+}
+
+// noteOf is a new expense's note without one given: the booking's text,
+// else its payer.
+func noteOf(t sources.NinjaBankTxn) string { return cmp.Or(strings.TrimSpace(t.Description), t.Payer) }
+
+// net is the amount without its tax: what a new expense that does not
+// include the tax carries, so Invoice Ninja's total stays the payment.
+func (it Item) net() float64 {
+	if !it.Taxed {
+		return it.Txn.Amount
+	}
+	return math.Round((it.Txn.Amount-it.Tax)*cents) / cents
 }
 
 const (
@@ -305,8 +340,17 @@ func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
 		}
 		vendor = key
 	}
-	body := map[string]any{"amount": it.Txn.Amount, "date": it.Txn.Date, "payment_date": it.Txn.Date, "vendor_id": vendor,
-		"public_notes": it.Txn.Description, "transaction_reference": it.Txn.Description, "uses_inclusive_taxes": true}
+	body := map[string]any{"amount": it.Txn.Amount, "date": it.Txn.Date, "vendor_id": vendor, "public_notes": it.Note,
+		"transaction_reference": it.Txn.Description, "uses_inclusive_taxes": it.Gross, "should_be_invoiced": it.Bill}
+	if !it.Gross {
+		body["amount"] = it.net()
+	}
+	if it.Paid {
+		body["payment_date"] = it.Txn.Date
+	}
+	if it.Number != "" {
+		body["custom_value"+strconv.Itoa(w.numberSlot)] = it.Number
+	}
 	if cat := p.Field(FieldCategory); cat != "" {
 		body["category_id"] = cat
 	}

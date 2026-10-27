@@ -2574,4 +2574,213 @@
       setTimeout(function () { btn.removeAttribute("data-copied"); }, 1500);
     });
   });
+
+  // VAT workbench (/vat): the list picks the desk shown; a desk's
+  // buttons take its case for the review (hidden pick) or leave it, and
+  // every change recounts the new expense's parts in the list:
+  //
+  //   list entry ──click, j/k──► desk ──take/later──► next entry
+  //       ▲                        │
+  //       └──── parts, ready ◄─────┘ (input, change)
+  var benchBooked = { amount: true, currency: true, date: true }; // the booking's own
+
+  function benchOf(el) {
+    return el.closest && el.closest("form[data-vat-bench]");
+  }
+
+  function benchEntry(form, k) {
+    return form.querySelector(".bench-entry[data-case=\"" + CSS.escape(k) + "\"]");
+  }
+
+  // benchHas says whether the desk's new expense has part p already.
+  function benchHas(desk, p) {
+    if (benchBooked[p]) {
+      return true;
+    }
+    if (p === "scan") {
+      var r = desk.querySelector("input[data-part=scan]:checked");
+      return !!(r && r.value);
+    }
+    var f = desk.querySelector("[data-part=\"" + p + "\"]");
+    return !!(f && f.value.trim());
+  }
+
+  // benchCount redraws desk's entry: action, parts, ready, taken.
+  function benchCount(form, desk) {
+    var k = desk.getAttribute("data-desk");
+    var entry = benchEntry(form, k);
+    if (!entry) {
+      return;
+    }
+    var act = desk.querySelector("input[data-act]").value;
+    // The parts it counts, as the server sent them: "vendor category …".
+    var parts = entry.getAttribute("data-parts").trim().split(/\s+/);
+    var segs = entry.querySelectorAll(".progress-segs>i");
+    var n = 0;
+    parts.forEach(function (p, i) {
+      var on = act !== "create" || benchHas(desk, p);
+      if (on) {
+        n++;
+      }
+      if (segs[i]) {
+        segs[i].classList.toggle("on", on);
+      }
+    });
+
+    var ready = act === "create" ? n === parts.length : act !== "skip";
+    entry.toggleAttribute("data-ready", ready);
+    var bar = entry.querySelector(".progress-segs");
+    if (ready) {
+      bar.setAttribute("data-tier", "green");
+    } else {
+      bar.removeAttribute("data-tier");
+    }
+    var pressed = desk.querySelector("[data-set-act][aria-pressed=true]");
+    entry.querySelector("[data-act-label]").textContent = pressed ? pressed.textContent : "";
+    var count = "";
+    if (desk.querySelector("input[data-pick]").checked) {
+      count = form.getAttribute("data-taken-label");
+    } else if (ready) {
+      count = form.getAttribute("data-ready-label");
+    } else if (act === "create") {
+      count = n + " / " + parts.length;
+    }
+    entry.querySelector("[data-count]").textContent = count;
+  }
+
+  // benchShow shows the desk of entry and marks it current.
+  function benchShow(form, entry, focus) {
+    var k = entry.getAttribute("data-case");
+    [].forEach.call(form.querySelectorAll("[data-desk]"), function (desk) {
+      desk.hidden = desk.getAttribute("data-desk") !== k;
+    });
+    [].forEach.call(form.querySelectorAll(".bench-entry"), function (e) {
+      if (e === entry) {
+        e.setAttribute("aria-current", "true");
+      } else {
+        e.removeAttribute("aria-current");
+      }
+    });
+    if (focus) {
+      entry.focus();
+    }
+  }
+
+  // benchStep moves the current entry by dir (+1 next, -1 before).
+  function benchStep(form, dir) {
+    var entries = [].slice.call(form.querySelectorAll(".bench-entry"));
+    var i = entries.indexOf(form.querySelector(".bench-entry[aria-current]"));
+    var next = entries[i + dir];
+    if (next) {
+      benchShow(form, next, true);
+    }
+  }
+
+  function setupBench() {
+    [].forEach.call(d.querySelectorAll("form[data-vat-bench]"), function (form) {
+      var first = form.querySelector(".bench-entry");
+      if (first && !form.querySelector(".bench-entry[aria-current]")) {
+        first.setAttribute("aria-current", "true");
+      }
+      var all = form.querySelector("[data-take-ready]");
+      if (all) {
+        all.hidden = false;
+      }
+    });
+  }
+  window.andonPage(setupBench);
+
+  d.addEventListener("click", function (e) {
+    var form = benchOf(e.target);
+    if (!form) {
+      return;
+    }
+
+    // An entry: its desk.
+    var entry = e.target.closest(".bench-entry");
+    if (entry) {
+      e.preventDefault();
+      benchShow(form, entry, false);
+      return;
+    }
+
+    // "Review all ready": only the ready ones go.
+    if (e.target.closest("[data-take-ready]")) {
+      [].forEach.call(form.querySelectorAll("[data-desk]"), function (desk) {
+        var en = benchEntry(form, desk.getAttribute("data-desk"));
+        desk.querySelector("input[data-pick]").checked = !!(en && en.hasAttribute("data-ready"));
+      });
+      return;
+    }
+
+    var desk = e.target.closest("[data-desk]");
+    if (!desk) {
+      return;
+    }
+
+    // The action: its block shows, the parts count again.
+    var set = e.target.closest("[data-set-act]");
+    if (set) {
+      var act = set.getAttribute("data-set-act");
+      desk.querySelector("input[data-act]").value = act;
+      [].forEach.call(desk.querySelectorAll("[data-set-act]"), function (b) {
+        b.setAttribute("aria-pressed", String(b === set));
+      });
+      [].forEach.call(desk.querySelectorAll("[data-for]"), function (block) {
+        block.hidden = block.getAttribute("data-for") !== act;
+      });
+      benchCount(form, desk);
+      return;
+    }
+
+    // Take or leave it, then the next.
+    var take = e.target.closest("[data-take-next]");
+    if (take || e.target.closest("[data-later]")) {
+      desk.querySelector("input[data-pick]").checked = !!take;
+      benchCount(form, desk);
+      benchStep(form, 1);
+    }
+  });
+
+  // A field or scan changed: count again; a scan brings its number
+  // unless the user typed another.
+  function benchChanged(e) {
+    var form = benchOf(e.target);
+    var desk = form && e.target.closest("[data-desk]");
+    if (!desk) {
+      return;
+    }
+    if (e.type === "change" && e.target.matches("input[data-part=scan]")) {
+      var num = desk.querySelector("input[data-part=number]");
+      var was = desk.getAttribute("data-scan-number") || "";
+      if (num && (num.value === "" || num.value === was) && e.target.getAttribute("data-number")) {
+        num.value = e.target.getAttribute("data-number");
+        desk.setAttribute("data-scan-number", num.value);
+      }
+    }
+    benchCount(form, desk);
+  }
+  d.addEventListener("input", benchChanged);
+  d.addEventListener("change", benchChanged);
+
+  d.addEventListener("keydown", function (e) {
+    // Enter in a desk's search searches instead of sending the form.
+    var search = e.target.closest && e.target.closest("[data-scan-search]");
+    if (search && e.key === "Enter") {
+      e.preventDefault();
+      search.querySelector("button").click();
+      return;
+    }
+
+    // j / k outside fields: next and previous entry.
+    var form = d.querySelector("form[data-vat-bench]");
+    if (!form || e.ctrlKey || e.metaKey || e.altKey || (e.key !== "j" && e.key !== "k")) {
+      return;
+    }
+    if (e.target.closest && e.target.closest("input, select, textarea, [contenteditable]")) {
+      return;
+    }
+    e.preventDefault();
+    benchStep(form, e.key === "j" ? 1 : -1);
+  });
 })();

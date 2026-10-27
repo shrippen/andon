@@ -181,7 +181,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 **J-C4 Kategorien und EÜR**
 1. Verbund mit Invoice Ninja und Sure → „Kategorien“: Sure-Vorschläge stehen vorausgewählt („Vorschlag“), das EÜR-Feld ist erkannt, keine Zuordnung Kategorie → EÜR; Speichern.
 2. `/euer`: Ausgaben ohne EÜR-Zeile, Vorschlag aus der letzten Ausgabe desselben Lieferanten („wie zuletzt bei diesem Lieferanten“), nichts vorab angehakt; Dropdown-Feld als Auswahl. Anhaken, „Prüfen“ → „In Invoice Ninja schreiben“ (Demo lehnt ab). Ohne gewähltes Feld: Hinweis mit Link zu den Kategorien.
-3. `/vat`: „Ausgabe anlegen“ hat eine EÜR-Auswahl, vorbelegt mit der Zeile des Lieferanten; die Prüfung zeigt sie, ein Wert außerhalb des Dropdowns wird übersprungen.
+3. `/vat`: „Neue Ausgabe“ hat eine EÜR-Auswahl, vorbelegt mit der Zeile des Lieferanten; die Prüfung zeigt sie, ein Wert außerhalb des Dropdowns wird übersprungen.
 
 **J-C3 Schreib-Journal**
 1. Kontomenü → „Schreib-Journal“: nach einem Abgleich auf `/vat` und einer Verknüpfung auf `/receipts` stehen beide oben; Bereichs-Chips filtern.
@@ -200,12 +200,15 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 **J-C2b USt-Abgleich** 📱
 1. `/vat`: Welcher Zeitraum öffnet (der letzte bis zu seiner Abgabefrist, danach der laufende)? Die Zeitraum-Karten (älteste links) nennen je Stand, Frist und Zahllast: offen mit Zahl, abgegeben, Korrektur fällig, nicht markiert, läuft. Stimmt die gewählte Karte mit dem Stand darunter? Zeitraum wechseln, zurück; am Telefon brechen die Karten um.
 2. Stand: offene Umsätze, Bankabruf bis, Ausgaben ohne Steuer, „Nur in Sure“; Umsatzsteuer, Vorsteuer, Zahllast „vorläufig“, solange etwas offen ist.
-3. Je Zeile die Aktion wechseln: Es stehen nur die Felder der gewählten Aktion da. Vorbelegung (Lieferant, Kategorie, Steuer) und ihre Herkunft (letzte Ausgabe, Sure, Claude) prüfen.
-4. Ankreuzen, „Prüfen“: Die Liste nennt jeden Schreibvorgang mit Vorsteuer; nichts ist geschrieben. „In Invoice Ninja schreiben“: Demo lehnt ab. „Privat“ archiviert in Invoice Ninja (auch ein Schreibvorgang in der Prüfung).
-5. Konten: Geschäftskonto angehakt, Privatkonto nicht. „Vom Privatkonto“: Deutschlandticket und Einkauf stehen eingeklappt, die Erstattung fehlt; „Alle als privat archivieren“ prüft nur diese. Ein Konto umstellen, speichern: Liste und Stand ändern sich. Ein Depot in Sure steht als „ignoriert (Vorschlag)“; gespeichert fehlt es in Kontostand, Stand und Hinweisen, steht aber weiter in der Liste. Kreditkarte in Sure: „Verrechnung (Vorschlag)“; die Kartenabrechnung vom Girokonto steht als Umbuchung, die Käufe auf der Karte als Ausgaben. Privatkonto auf „gemischt“: Eingänge erscheinen, Abbuchungen ohne bekannten Lieferanten stehen unter „Privat oder gemischt, ohne Vorschlag“.
+3. Werkbank: links die Liste (Kopf: offen, ohne Beleg, ohne EÜR-Zeile, fertig), je Eintrag Aktion und Teile („5 / 9“, Balken); rechts der gewählte Umsatz. `j`/`k` wechseln (nicht in Feldern). Aktion oben umschalten: Es stehen nur ihre Felder da, der Eintrag zählt neu. Vorbelegung (Lieferant, Kategorie, Steuer, EÜR, Rechnungsnr., Notiz) und ihre Herkunft prüfen; nicht eingerichtete Felder (EÜR, Rechnungsnr.) fehlen und zählen nicht.
+   - Beleg: Vorschläge mit Vorschau und Treffer; „Ohne Beleg“; Suche (Enter sucht, schickt nichts ab) bringt weitere zum Wählen; ein Beleg mit Nummer füllt die Rechnungsnr., solange keine eigene getippt ist.
+   - „Aus dem Umsatz“: Betrag, Währung, Tag; „enthält Steuer“ und „bezahlt“ an, „in Rechnung stellen“ wie die letzte Ausgabe des Lieferanten.
+   - „Übernehmen und weiter“ merkt „zur Prüfung“ vor und springt weiter, „Später“ nimmt es heraus.
+4. „Prüfen“ (alle vorgemerkten) oder „Alle fertigen prüfen“ (nur fertige): Die Liste nennt jeden Schreibvorgang mit Vorsteuer; nichts ist geschrieben. „In Invoice Ninja schreiben“: Demo lehnt ab. „Privat“ archiviert in Invoice Ninja (auch ein Schreibvorgang in der Prüfung).
+5. Konten: Geschäftskonto angehakt, Privatkonto nicht. Deutschlandticket und Einkauf stehen unten in der Liste unter „Privat oder gemischt, ohne Vorschlag“, die Erstattung fehlt; „Alle als privat archivieren“ prüft nur diese. Ein Konto umstellen, speichern: Liste und Stand ändern sich. Ein Depot in Sure steht als „ignoriert (Vorschlag)“; gespeichert fehlt es in Kontostand, Stand und Hinweisen, steht aber weiter in der Liste. Kreditkarte in Sure: „Verrechnung (Vorschlag)“; die Kartenabrechnung vom Girokonto steht als Umbuchung, die Käufe auf der Karte als Ausgaben. Privatkonto auf „gemischt“: Eingänge erscheinen, Abbuchungen ohne bekannten Lieferanten stehen unter „Privat oder gemischt, ohne Vorschlag“.
 6. Mit API-Schlüssel: „Claude um Vorschläge bitten“ (auch für die Privatkonto-Zeilen); was ändert sich, was bleibt (Verlauf eines Lieferanten gewinnt)?
 7. Kachel „Belege ohne Ausgabe“ und Monatsabschluss verlinken auf `/vat`.
-8. Tankquittung: Zeile „Ausgabe anlegen“ bietet den Beleg an (Treffer 100); in der Prüfung „mit Beleg … verknüpfen“. September: ein Eingang mit „Mit vorhandener Zahlung verknüpfen“.
+8. Tankquittung: „Neue Ausgabe“ bietet den Beleg an (Treffer 100); in der Prüfung „mit Beleg … verknüpfen“. September: ein Eingang mit „Zur Zahlung“. Die Prüfung nennt Rechnungsnr., Notiz und was vom Standard abweicht (in Rechnung stellen, nicht bezahlt, ohne Steuer).
 9. Kennzahl-Kachel „Kontostand“: Feld „Konten“ auf Geschäftskonten, Privatkonten, alle stellen; der Betrag folgt.
 
 **J-C3 Kunden und Verbund**

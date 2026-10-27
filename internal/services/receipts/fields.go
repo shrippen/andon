@@ -221,7 +221,7 @@ func SaveFields(d *sql.DB, who *access.Principal, m Mapping) error {
 	if m.twice() {
 		return ErrFieldTwice
 	}
-	ninja := withOptions(p.ninja.Options, map[string]any{optInvoiceSlot: m.InvoiceSlot, optLinkSlot: m.LinkSlot})
+	ninja := withOptions(p.ninja.Options, map[string]any{OptInvoiceSlot: m.InvoiceSlot, optLinkSlot: m.LinkSlot})
 	docs := withOptions(p.docs.Options, map[string]any{optFieldInvoice: m.FieldInvoice, optFieldExpense: m.FieldExpense,
 		optFieldLink: m.FieldLink, optFieldAmount: m.FieldAmount, optQueueTag: strings.TrimSpace(m.QueueTag)})
 	if err := connections.SetOptions(d, who, p.ninja.ID, ninja); err != nil {

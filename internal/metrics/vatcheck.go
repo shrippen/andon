@@ -68,6 +68,7 @@ type ExpenseDraft struct {
 	TaxRate               float64
 	TaxKnown              bool
 	Euer                  string // the vendor's last EÜR line, "" none
+	Bill                  bool   // the vendor's last expense was billed to a client
 	From                  DraftFrom
 }
 
@@ -481,6 +482,7 @@ func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.Bank
 	}
 	if last, ok := lastExpense(n, d.VendorKey); ok {
 		d.CategoryKey, d.TaxName, d.TaxRate, d.TaxKnown, d.From = last.CategoryKey, last.TaxName, last.TaxRate, true, FromHistory
+		d.Bill = last.Billable
 		d.Category = categoryName(n, d.CategoryKey)
 		return d
 	}

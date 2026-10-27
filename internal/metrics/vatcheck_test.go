@@ -470,3 +470,26 @@ func TestMissingReceiptsCardMixed(t *testing.T) {
 		t.Fatalf("missing: %v", names)
 	}
 }
+
+// A new expense bills the client only when the vendor's last one did.
+func TestBankCasesDraftBill(t *testing.T) {
+	in := september()
+	byKey := func() map[string]metrics.BankCase {
+		out := map[string]metrics.BankCase{}
+		for _, c := range metrics.BankCases(in) {
+			out[c.Txn.Key] = c
+		}
+		return out
+	}
+	if c := byKey()["b2"]; c.Draft.Bill {
+		t.Fatalf("b2 bills without a billed expense: %+v", c.Draft)
+	}
+
+	in.Ninja.Expenses[0].Billable = true
+	if c := byKey()["b2"]; !c.Draft.Bill {
+		t.Fatalf("b2 does not bill like Kabelwerk's last expense: %+v", c.Draft)
+	}
+	if c := byKey()["b3"]; c.Draft.Bill {
+		t.Fatalf("b3 bills without a history: %+v", c.Draft)
+	}
+}

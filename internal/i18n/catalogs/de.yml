@@ -7215,10 +7215,9 @@ vatcheck:
   check_receipts_done: 'Jede Ausgabe hat ihren Beleg.'
   scan: Beleg
   no_scan: Ohne Beleg aus Paperless
-  scan_option: 'Beleg: {title} vom {day} (Treffer {score})'
   do_scan: 'mit Beleg „{title}“ verknüpfen'
   problem_scan: 'Ausgabe angelegt, der Beleg ließ sich nicht verknüpfen. Unter Belege nachholen.'
-  act_payment: Mit vorhandener Zahlung verknüpfen
+  act_payment: 'Zur Zahlung'
   payment_line: 'Zahlung {number} vom {day}, schon gebucht (etwa über die Abrechnung)'
   do_payment: 'Umsatz mit Zahlung {number} verknüpfen'
   accounts_title: Konten
@@ -7238,7 +7237,7 @@ vatcheck:
   private_account: Privatkonto
   mixed_account: gemischtes Konto
   apart_title: 'Privat oder gemischt, ohne Vorschlag: {n}'
-  apart_hint: 'Abbuchungen privater und gemischter Konten an Lieferanten ohne Ausgaben. Eine betriebliche ankreuzen und als Ausgabe anlegen; der Rest lässt sich als privat archivieren.'
+  apart_hint: 'Abbuchungen privater und gemischter Konten an Lieferanten ohne Ausgaben. Eine betriebliche öffnen und als Ausgabe übernehmen; der Rest lässt sich als privat archivieren.'
   apart_all: 'Alle als privat archivieren ({n})'
   problem_not_archived: 'Invoice Ninja hat den Umsatz nicht archiviert.'
   open_page: 'Bankumsätze vor der Voranmeldung abgleichen →'
@@ -7277,22 +7276,17 @@ vatcheck:
   method_soll: Soll-Versteuerung (Rechnungsdatum)
   cases: Offene Umsätze
   no_cases: 'Keine offenen Umsätze in diesem Zeitraum.'
-  pick: Übernehmen
   proposal: Vorschlag
-  act_link: Mit Ausgabe verknüpfen
-  act_create: Ausgabe anlegen
-  act_invoice: Zahlung zur Rechnung buchen
-  act_skip: 'Privat: in Invoice Ninja archivieren'
+  act_link: 'Vorhandener zuordnen'
+  act_create: 'Neue Ausgabe'
+  act_invoice: 'Zur Rechnung'
+  act_skip: 'Privat'
   vendor: Lieferant
   category: Kategorie
   no_category: Ohne Kategorie
   no_euer: 'Ohne {field}'
   tax: Steuer
   no_tax: Ohne Steuer
-  from_history: 'Kategorie und Steuer aus der letzten Ausgabe dieses Lieferanten'
-  from_sure: 'Händler und Kategorie aus Sure; Steuer prüfen'
-  from_model: 'Vorschlag von Claude; prüfen'
-  from_nothing: 'Lieferant unbekannt: Angaben prüfen'
   sure_twin: Dieselbe Buchung in Sure
   guess: Claude um Vorschläge bitten
   guess_again: Claude erneut fragen
@@ -7331,6 +7325,52 @@ vatcheck:
   problem_no_vendor: 'Ohne Lieferant legt Andon keine Ausgabe an: übersprungen.'
   problem_euer: 'Keine Zeile des EÜR-Felds: übersprungen.'
   problem_not_booked: 'Invoice Ninja hat den Umsatz nicht gebucht.'
+  act_link_hint: 'Die Ausgabe steht schon in Invoice Ninja; Andon hängt den Umsatz daran'
+  act_create_hint: 'Neue Ausgabe in Invoice Ninja, mit dem Umsatz verknüpft'
+  act_invoice_hint: 'Den Umsatz als Zahlung zur offenen Rechnung buchen'
+  act_payment_hint: 'Die Zahlung ist schon gebucht; Andon verknüpft den Umsatz damit'
+  act_skip_hint: 'Nichts buchen; Invoice Ninja archiviert den Umsatz als privat.'
+  head: '{open} offen · {scan} ohne Beleg'
+  head_euer: '{n} ohne EÜR-Zeile'
+  head_ready: '{n} fertig'
+  legend_has: 'Teil steht'
+  legend_missing: 'fehlt noch'
+  legend_ready: 'fertig'
+  keys: 'j und k wechseln den Umsatz.'
+  ready: 'fertig'
+  expense: 'Ausgabe'
+  scan_title: 'Beleg aus Paperless'
+  scan_search: 'In Paperless suchen: Titel, Inhalt, Nummer …'
+  scan_find: 'Suchen'
+  scan_found: 'Gefundene Belege'
+  scan_none: 'Nichts gefunden.'
+  scan_score: 'Treffer'
+  from_booking: 'Aus dem Umsatz'
+  currency: 'Währung'
+  gross: 'Betrag enthält die Steuer'
+  paid: 'Bezahlt am {day}'
+  bill: 'Dem Kunden in Rechnung stellen'
+  expense_title: 'Ausgabe in Invoice Ninja'
+  note: 'Öffentliche Notiz'
+  tax_pick: 'Steuer wählen'
+  origin_known: 'vorhanden'
+  origin_new: 'neu'
+  origin_history: 'letzte Ausgabe'
+  origin_sure: 'Sure'
+  origin_model: 'Claude'
+  origin_vendor: 'wie bisher'
+  origin_scan: 'Beleg'
+  origin_booking: 'Umsatz'
+  number: 'Rechnungsnr.'
+  taken: 'zur Prüfung'
+  take_next: 'Übernehmen und weiter'
+  later: 'Später'
+  take_ready: 'Alle fertigen prüfen'
+  do_number: 'Rechnungsnr. {number}'
+  do_note: '„{note}“'
+  do_bill: 'in Rechnung stellen'
+  do_unpaid: 'nicht bezahlt'
+  do_net: 'Betrag ohne Steuer'
 workbench:
   err_nothing: 'Nichts ausgewählt.'
   scope: 'Verbund'

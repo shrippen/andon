@@ -1417,11 +1417,7 @@ form:has(#opt_kind option[value="openwrt"]:checked) .not-openwrt { display: none
 .user-row .menu { text-align: left; }
 .user-row .menu form { margin: 0; }
 
-/* VAT check: a row shows only the fields of the action chosen, without
-   script; the review lists the steps. */
-.vat-cases .vat-field { display: none; flex-direction: column; gap: .3rem; margin-top: .3rem; }
-.vat-cases td:has(> select option[value="link"]:checked) .vat-link,
-.vat-cases td:has(> select option[value="create"]:checked) .vat-draft { display: flex; }
+/* VAT check: the review lists the steps. */
 .vat-plan { display: flex; flex-direction: column; gap: .7rem; padding-left: 1.2rem; }
 
 /* Workbenches: the Verbund to work in, when several fit. */

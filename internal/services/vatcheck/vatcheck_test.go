@@ -16,6 +16,7 @@ import (
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/services/connections"
+	"andon/internal/services/receipts"
 	"andon/internal/services/vatcheck"
 	"andon/internal/services/workbench"
 	"andon/internal/sources"
@@ -85,7 +86,8 @@ func ninjaFake(t *testing.T, w *writes, b1Status string) string {
 			map[string]any{"id": "a2", "bank_account_name": "Girokonto", "bank_account_number": "DE002222"}),
 		"expenses": page(
 			map[string]any{"id": "e1", "number": "EX-1", "vendor_id": "v1", "category_id": "c1", "date": day(1), "amount": 89.7,
-				"tax_name1": "MwSt.", "tax_rate1": 19, "uses_inclusive_taxes": true, "transaction_id": "b0", "custom_value3": "Arbeitsmittel"},
+				"tax_name1": "MwSt.", "tax_rate1": 19, "uses_inclusive_taxes": true, "transaction_id": "b0", "custom_value3": "Arbeitsmittel",
+				"should_be_invoiced": true},
 			map[string]any{"id": "e2", "number": "EX-2", "vendor_id": "v2", "date": day(2), "amount": 39.95}),
 		"vendors":            page(map[string]any{"id": "v1", "name": "Kabelwerk Studiobedarf"}, map[string]any{"id": "v2", "name": "Elbnetz Mobilfunk"}),
 		"expense_categories": page(map[string]any{"id": "c1", "name": "Technik"}, map[string]any{"id": "c2", "name": "Hosting"}),
@@ -286,6 +288,60 @@ func TestEuerLine(t *testing.T) {
 		if seen == "POST /api/v1/expenses" && w.body[i]["custom_value3"] != "GWG" {
 			t.Errorf("expense body: %v", w.body[i])
 		}
+	}
+}
+
+// A new expense carries the invoice number in its field (receipts), the
+// note, whether to bill the client, whether it is paid and whether the
+// amount includes the tax; without them, the defaults: the booking's
+// text, not billed, paid that day, tax included.
+func TestApplyNewExpenseFields(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	var w writes
+	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "1"))
+	if err := connections.SetOptions(d, who, conn, map[string]any{receipts.OptInvoiceSlot: 1}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+
+	p, err := vatcheck.Open(ctx, d, who, "", thisMonth(), time.Now().UTC())
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	i := slices.IndexFunc(p.Cases, func(c vatcheck.Case) bool { return c.Txn.Key == "b2" })
+	if i < 0 || !p.Cases[i].Draft.Bill || p.Cases[i].Note != "KW-56107" || p.Cases[i].Done() != 7 {
+		t.Fatalf("b2 must bill like Kabelwerk's last expense, note its text, have 7 parts: %+v", p.Cases[i])
+	}
+
+	given := map[string]string{vatcheck.FieldVendor: "Kabelwerk Studiobedarf", vatcheck.FieldTax: "19", vatcheck.FieldNumber: " KW-56107 ",
+		vatcheck.FieldNote: "Lichtstative", vatcheck.FieldBill: vatcheck.On, vatcheck.FieldPaid: vatcheck.Off, vatcheck.FieldGross: vatcheck.Off}
+	steps := []workbench.Step{
+		{Case: "b2", Action: string(metrics.ActionCreate), Fields: given},
+		{Case: "b3", Action: string(metrics.ActionCreate), Fields: map[string]string{vatcheck.FieldVendor: "Nordhost Server"}},
+	}
+	if _, err := vatcheck.Apply(ctx, d, who, scopeOf(conn), steps, ""); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	var bodies []map[string]any
+	for i, seen := range w.list() {
+		if seen == "POST /api/v1/expenses" {
+			bodies = append(bodies, w.body[i])
+		}
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("expenses written: %v", w.list())
+	}
+
+	b2 := bodies[0]
+	if b2["custom_value1"] != "KW-56107" || b2["public_notes"] != "Lichtstative" || b2["should_be_invoiced"] != true ||
+		b2["payment_date"] != nil || b2["uses_inclusive_taxes"] != false || b2["amount"] != 755.46 {
+		t.Errorf("b2 body: %v", b2)
+	}
+	b3 := bodies[1]
+	if b3["custom_value1"] != nil || b3["public_notes"] != "Rechnung" || b3["should_be_invoiced"] != false ||
+		b3["payment_date"] != day(5) || b3["uses_inclusive_taxes"] != true || b3["amount"] != 41.65 {
+		t.Errorf("b3 body: %v", b3)
 	}
 }
 

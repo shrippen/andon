@@ -4,6 +4,7 @@ package web
 // at a time; nothing reaches Invoice Ninja before the user confirmed:
 //
 //	GET  /vat          the period's open transactions, proposals, check
+//	GET  /vat/scans    Paperless hits for a new expense's scan (htmx)
 //	POST /vat/review   the ticked steps, spelled out, to confirm
 //	POST /vat/apply    writes the confirmed steps
 //	POST /vat/restore  brings a transaction archived as private back
@@ -27,6 +28,7 @@ import (
 
 func (d Deps) registerVATRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /vat", d.authed(d.handleVAT))
+	mux.HandleFunc("GET /vat/scans", d.authed(d.handleVATScans))
 	mux.HandleFunc("POST /vat/review", d.authed(d.handleVATReview))
 	mux.HandleFunc("POST /vat/apply", d.authed(d.handleVATApply))
 	mux.HandleFunc("POST /vat/restore", d.authed(d.handleVATRestore))
@@ -72,6 +74,18 @@ func (d Deps) handleVAT(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		values["Error"] = vatError(err)
 	}
 	_ = d.Page(w, ctx, "vat", http.StatusOK, values)
+}
+
+// handleVATScans searches Paperless for one case's scan: the desk's
+// search field q_<case>, and its vendor field for the score.
+func (d Deps) handleVATScans(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	q, k := vatQueryOf(r), r.FormValue("case")
+	found, err := vatcheck.Search(r.Context(), d.DB, ctx.Who, q.Scope, k, r.FormValue(vatcheck.FieldVendor+"_"+k), r.FormValue("q_"+k))
+	values := map[string]any{"Partial": true, "Found": found, "Case": k}
+	if err != nil {
+		values["Error"] = vatError(err)
+	}
+	_ = d.Page(w, ctx, "vat_found", http.StatusOK, values)
 }
 
 // vatError is an error's i18n key, or a service's own message.

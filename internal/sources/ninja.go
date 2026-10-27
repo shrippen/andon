@@ -276,7 +276,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 				ID: refNum(em["id"]), Number: asStr(em["number"]), Date: day(em["date"]), Amount: asFloat(em["amount"]),
 				Tax: round2(expenseTax(em)), Notes: notes, VendorID: asInt64(em["vendor_id"]), VendorKey: idKey(em["vendor_id"]),
 				Key: idKey(em["id"]), CategoryKey: idKey(em["category_id"]), TaxName: asStr(em["tax_name1"]), TaxRate: asFloat(em["tax_rate1"]),
-				TxnKey: idKey(em["transaction_id"]),
+				TxnKey: idKey(em["transaction_id"]), Billable: asBool(em["should_be_invoiced"]),
 			})
 			last := &expenses[len(expenses)-1]
 			for i := range last.Custom {
