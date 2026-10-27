@@ -191,7 +191,8 @@ const (
 	// counted as free (metrics.SafeToSpend).
 	RoleReserve AccountRole = "reserve"
 	// RoleIgnored drops the account and its bookings from every
-	// evaluation: a depot or a car in Sure.
+	// evaluation: a depot or a car in Sure. The service's own net worth
+	// (BankData.NetWorth) keeps it: the depot is still owned.
 	RoleIgnored AccountRole = "ignored"
 )
 
