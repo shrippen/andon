@@ -11,6 +11,9 @@
 <link rel="icon" href="{{asset "icon.svg"}}" type="image/svg+xml">
 <meta name="csrf" content="{{.Ctx.CSRF}}">
 <meta name="offline-note" content="{{t "nav.offline"}}">
+<meta name="load-slow" content="{{t "nav.load_slow"}}">
+<meta name="load-failed" content="{{t "nav.load_failed"}}">
+<meta name="load-retry" content="{{t "nav.load_retry"}}">
 {{/* Soft page changes (hx-boost, see andon.js). Back and forward load
      the full page: a cached body would miss its head. htmx settles no
      style: it would copy a CSSOM style (data-style, a menu's position)
@@ -27,6 +30,10 @@
 {{/* The gallery opens in the detail dialog on any page. */}}
 <script src="{{asset "gallery.js"}}" defer></script>
 {{end}}
+
+{{/* Waiting for content: Kante's squares and a text (widget.loading
+     unless the page names what loads). */}}
+{{define "loading"}}<span class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{or . (t "widget.loading")}}</span>{{end}}
 
 {{/* Loaded only by pages with <textarea class="input" data-code>. */}}
 {{define "code-editor"}}
@@ -87,6 +94,8 @@
 {{define "header"}}
 {{/* Short results (e.g. a connection test) slide in here as Kante .toast. */}}
 <div id="toast" class="toast-stack" aria-live="polite">{{with .Flash}}<div class="toast" data-kind="ok" role="status"><span>{{t .}}</span><span class="toast-life" data-style="--life:10s" aria-hidden="true"></span></div>{{end}}</div>
+{{/* Page changes on their way (andon.js loadStart, Kante .page-load). */}}
+<div class="page-load" aria-hidden="true"></div>
 <header class="app-nav">
   <a class="app-brand" href="/">{{template "mark"}}Andon</a>
   {{if .Who}}

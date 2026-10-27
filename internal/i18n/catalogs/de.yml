@@ -15,6 +15,9 @@ nav:
   setup: Einrichten
   timeline: 'Zeitleiste'
   offline: Offline – letzter bekannter Stand.
+  load_slow: Dauert länger …
+  load_failed: Laden fehlgeschlagen; der alte Stand bleibt.
+  load_retry: Erneut versuchen
   billing: Abrechnung
   home: Zur Startseite
   hints: Hinweise

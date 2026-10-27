@@ -592,6 +592,24 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 .runner{position:absolute;inset:0;padding:2px;pointer-events:none;
   background:conic-gradient(from var(--run),transparent 0 78%,var(--primary) 90%,transparent 100%);
   -webkit-mask:linear-gradient(black 0 0) content-box exclude,linear-gradient(black 0 0);mask:linear-gradient(black 0 0) content-box exclude,linear-gradient(black 0 0)}
+/* Waiting (1.47). Nothing shows for the first 150 ms, so a fast answer stays calm.
+   .page-load: a bar on top while a page change loads (.is-on). .is-pending: the
+   clicked link or tab runs a light around itself. A region with aria-busy="true"
+   dims its old content until the new one arrives. .loading: squares plus a word.
+   .btn-status: a reserved line under a button row ("Dauert länger …"). */
+.loading{display:inline-flex;align-items:center;gap:.55rem;color:var(--fg3);font-family:var(--font-mono);font-size:.78rem}
+.page-load{position:fixed;left:0;right:0;top:0;height:3px;z-index:60;pointer-events:none;opacity:0;visibility:hidden;
+  background:repeating-linear-gradient(-45deg,var(--primary) 0 8px,var(--bg-hard) 8px 16px);background-size:22.63px 22.63px}
+.page-load.is-on{opacity:1;visibility:visible;transition:opacity .12s .15s,visibility 0s .15s}
+[aria-busy="true"]:not(html,body,dialog,button,.btn)>:not(.runner,.loading){opacity:.4;transition:opacity .2s .15s}
+.is-pending{position:relative}
+.is-pending::after{content:"";position:absolute;inset:0;padding:2px;pointer-events:none;
+  background:conic-gradient(from var(--run),transparent 0 78%,var(--primary) 90%,transparent 100%);
+  -webkit-mask:linear-gradient(black 0 0) content-box exclude,linear-gradient(black 0 0);mask:linear-gradient(black 0 0) content-box exclude,linear-gradient(black 0 0);
+  opacity:0;animation:k-show 0s .15s forwards}
+.btn-status{min-height:1.4em;margin:.35rem 0 0;font-family:var(--font-mono);font-size:.72rem;letter-spacing:.04em;color:var(--fg3)}
+.btn-status[data-kind="error"]{color:var(--danger)}
+.steps>li>.step-time{margin-left:.6rem;font-family:var(--font-mono);font-size:.7rem;color:var(--fg3);font-variant-numeric:tabular-nums}
 
 /* ── Motion ────────────────────────────────────────────────────────────
    Warm and mechanical: keys, tubes, counters, tabs, lamps. No glitch.
@@ -607,6 +625,8 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
   .btn.is-busy{animation:k-march .7s linear infinite}
   .banner::before,.banner::after{animation:k-march-l 1.4s linear infinite}
   .progress-bar.is-indeterminate{animation:k-march-s .9s linear infinite}
+  .page-load.is-on{animation:k-march-s .9s linear infinite}
+  .is-pending::after{animation:k-show 0s .15s forwards,k-run 1.8s linear .15s infinite}
   /* Segment display (A10): a segment switches on like a lamp when it gets .on; --i staggers a row */
   .progress-segs>i.on{animation:k-lamp 260ms steps(3) both;animation-delay:calc(var(--i,0) * 60ms)}
   a.feat{transition:--chamfer var(--dur) var(--ease-out),transform var(--dur) var(--ease-out)}
@@ -683,6 +703,7 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 @keyframes k-hop{0%,100%{opacity:.25;transform:none}40%{opacity:1;transform:translateY(-4px)}}
 @keyframes k-skel{from{background-position:100% 0}to{background-position:-50% 0}}
 @keyframes k-run{to{--run:360deg}}
+@keyframes k-show{to{opacity:1}}
 @keyframes k-blink{50%{opacity:0}}
 @keyframes k-toast-in{from{transform:translateX(110%)}}
 @keyframes k-drawer-in{from{transform:translateX(calc(100% + 1rem))}}

@@ -1,5 +1,5 @@
-Kante 1.46
+Kante 1.47
 source: https://github.com/shrippen/Kante
-branch: status-choice
-commit: 0dec3c6aba361561c3fcde0f1e136bcd0b38e020
+branch: loading-feedback
+commit: 2aadceee6bbb085cc82bbc136fcba4c5dabb2bdd
 files: base.css components.css shrippen.js kante-map.js kante-wall.js map/ fonts/OFL.txt fonts/*.woff2 (Latin subsets, see tools/sync-design.sh)

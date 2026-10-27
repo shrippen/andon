@@ -153,7 +153,7 @@
               <button type="submit" form="ack-{{.ID}}" formaction="/hints/{{.ID}}/snooze" class="btn btn-outline btn-sm">{{t "hints.snooze"}}</button>
               <input class="input" name="note" form="ack-{{.ID}}" maxlength="500" placeholder="{{t "hints.note_optional"}}" aria-label="{{t "hints.note"}}">
             </div>
-            <div hx-get="/hints/{{.ID}}/detail" hx-trigger="toggle from:closest details once" hx-swap="innerHTML"><span class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{t "widget.loading"}}</span></div>
+            <div hx-get="/hints/{{.ID}}/detail" hx-trigger="toggle from:closest details once" hx-swap="innerHTML">{{template "loading"}}</div>
           </details>{{end}}
         </div>
       </li>

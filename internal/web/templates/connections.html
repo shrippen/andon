@@ -489,7 +489,7 @@
       {{if eq $c.Service "dawarich"}}<section class="detail-main" id="tab-places"{{if ne .Tab "places"}} hidden{{end}}>
         {{if and (eq .Tab "places") .Error}}<div class="callout callout-danger">{{t .Error}}</div>{{end}}
         {{if and (eq .Tab "places") .Note}}<div class="callout callout-ok" role="status">{{t "sitebook.synced" "counts" .Note}}</div>{{end}}
-        <div hx-get="/connections/{{$c.ID}}/places" hx-trigger="{{if eq .Tab "places"}}load{{else}}revealed{{end}}" hx-swap="innerHTML"><p class="muted">{{t "widget.loading"}}</p></div>
+        <div hx-get="/connections/{{$c.ID}}/places" hx-trigger="{{if eq .Tab "places"}}load{{else}}revealed{{end}}" hx-swap="innerHTML"><p>{{template "loading"}}</p></div>
       </section>{{end}}
 
       {{if eq $c.Service "homelable"}}<section class="detail-main" id="tab-sync"{{if ne .Tab "sync"}} hidden{{end}}>{{$s := .Sync}}

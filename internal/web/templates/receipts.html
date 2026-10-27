@@ -55,7 +55,7 @@
         {{with .Q.Span}}{{if eq $.Q.Tab "match"}}<a class="chip is-filter" aria-pressed="true" href="{{$.Q.Link "span" ""}}" title="{{t "receipts.span_clear"}}">{{t "receipts.span" "span" .}} ×</a>{{end}}{{end}}</div>{{end}}
     </nav>
     <div id="receipts-part" hx-get="{{.Q.Part}}" hx-trigger="load" hx-swap="innerHTML" aria-live="polite">
-      <p class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{if eq .Q.Tab "match"}}{{t "receipts.loading_year" "year" .Q.Year}}{{else}}{{t "widget.loading"}}{{end}}</p>
+      <p>{{if eq .Q.Tab "match"}}{{template "loading" (t "receipts.loading_year" "year" .Q.Year)}}{{else}}{{template "loading"}}{{end}}</p>
     </div>
     <details class="receipts-keys small muted">
       <summary>{{t "receipts.keys"}}</summary>
