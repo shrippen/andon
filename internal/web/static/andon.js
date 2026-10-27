@@ -2648,11 +2648,16 @@
     entry.querySelector("[data-count]").textContent = count;
   }
 
-  // benchShow shows the desk of entry and marks it current.
+  // benchShow shows the desk of entry and marks it current; on a phone
+  // the desk sits below the list, so it scrolls into view.
   function benchShow(form, entry, focus) {
     var k = entry.getAttribute("data-case");
+    var shown;
     [].forEach.call(form.querySelectorAll("[data-desk]"), function (desk) {
       desk.hidden = desk.getAttribute("data-desk") !== k;
+      if (!desk.hidden) {
+        shown = desk;
+      }
     });
     [].forEach.call(form.querySelectorAll(".bench-entry"), function (e) {
       if (e === entry) {
@@ -2662,7 +2667,10 @@
       }
     });
     if (focus) {
-      entry.focus();
+      entry.focus({ preventScroll: true });
+    }
+    if (shown) {
+      shown.scrollIntoView({ block: "nearest" });
     }
   }
 
