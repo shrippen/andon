@@ -123,7 +123,9 @@ main,.foot{position:relative;z-index:1}
 .btn-outline:disabled,.btn-data:disabled,.btn-quiet:disabled{background-color:transparent}
 /* busy (A08): marching hazard stripes in the fill */
 .btn.is-busy{cursor:progress;background-image:repeating-linear-gradient(-45deg,var(--primary) 0 10px,var(--yellow-lo) 10px 20px);background-size:28.28px 28.28px}
-.btn-outline.is-busy{background-image:repeating-linear-gradient(-45deg,transparent 0 10px,var(--bg1) 10px 20px)}
+:is(.btn-outline,.btn-ghost,.btn-data).is-busy{background-image:repeating-linear-gradient(-45deg,transparent 0 10px,var(--bg1) 10px 20px)}
+/* Outlined buttons draw their cut as one unrepeated image: busy, the stripes fill the whole button */
+:is(.btn-outline,.btn-ghost,.btn-data).is-busy{background-repeat:repeat;background-position:0 0}
 .btn-group{display:inline-flex;flex-wrap:wrap}
 .btn-group .btn{--cut:0px;--grow:0px}.btn-group .btn:last-child{--cut:var(--cut-m);--grow:6px}
 .btn-group .btn+.btn{margin-left:-2px}
@@ -182,7 +184,8 @@ main,.foot{position:relative;z-index:1}
 .showcase figcaption{padding:.55rem .9rem;border-top:1px solid var(--bg1);font-family:var(--font-mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3)}
 
 /* ── Changelog (1.17): one entry per release on a rail, newest first; version and date left,
-      lead, change groups (new, improved, fixed) and pictures right; older ones in a details ── */
+      lead, change groups (new, improved, fixed, note; breaking) and pictures right; older ones
+      in a details. note (1.26) is purple: info and links are cyan, which "improved" already has ── */
 .changelog{list-style:none;padding:0;margin:1.5rem 0 0;display:flex;flex-direction:column;gap:2.6rem;border-left:2px solid var(--bg2)}
 .section .changelog{max-width:var(--max-w-wide)}
 .release{position:relative;display:grid;grid-template-columns:9rem minmax(0,1fr);gap:1.6rem;padding-left:1.4rem}
@@ -199,6 +202,7 @@ main,.foot{position:relative;z-index:1}
 .release-group[data-kind="new"]{--kind:var(--aqua)}
 .release-group[data-kind="improved"]{--kind:var(--cyan)}
 .release-group[data-kind="fixed"]{--kind:var(--orange)}
+.release-group[data-kind="note"]{--kind:var(--purple)}
 .release-group[data-kind="breaking"]{--kind:var(--red)}
 .section .release-group ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.4rem}
 .section .release-group li{position:relative;margin:0;padding-left:1.1rem;color:var(--fg2);font-size:.92rem}
@@ -379,6 +383,7 @@ a.feat:focus-visible::after{inset:6px;background:var(--brk)}
 :is(.tile,.band,.strip button)[data-label="green"]{--tier:var(--aqua)}:is(.tile,.band,.strip button)[data-label="yellow"]{--tier:var(--yellow)}
 :is(.tile,.band,.strip button)[data-label="red"]{--tier:var(--red)}:is(.tile,.band,.strip button)[data-label="blue"]{--tier:var(--blue)}
 :is(.tile,.band,.strip button)[data-label="purple"]{--tier:var(--purple)}
+:is(.tile,.band,.strip button)[data-label="orange"]{--tier:var(--orange)}:is(.tile,.band,.strip button)[data-label="cyan"]{--tier:var(--cyan)}
 .tile::after{content:"";position:absolute;inset:0;border:2px solid transparent;pointer-events:none;transition:border-color .12s}
 .tile:hover::after{border-color:var(--bg2)}
 .tile:focus-visible{outline:0}.tile:focus-visible::after{border-color:transparent;inset:5px;background:var(--brk)}
@@ -455,6 +460,8 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 .seg{display:inline-flex;border:1px solid var(--bg2);flex-wrap:wrap}
 .seg button{background:none;border:0;min-height:calc(var(--h-m) - 2px);padding:0 .9rem;font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;color:var(--fg3);cursor:pointer}
 .seg button:hover{color:var(--fg0)}.seg button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary)}
+/* A segment that cannot be chosen (1.28): muted and struck through, not colour alone; title= can say why */
+.seg button:is(:disabled,[aria-disabled="true"]),.seg button:is(:disabled,[aria-disabled="true"]):hover{color:var(--fg3);opacity:.6;text-decoration:line-through;cursor:not-allowed}
 /* .seg-fill: segments share the full width in one row (narrow side panels); a label that does not fit ends in … */
 .seg.seg-fill{display:flex;flex-wrap:nowrap}.seg-fill button{flex:1 1 auto;min-width:0;padding:0 .5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .range{--zones:var(--bg2);display:flex;flex-direction:column;gap:.4rem}
@@ -791,6 +798,7 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 :is(.fact,.progress-bar>i)[data-label="green"]{--l:var(--aqua)}:is(.fact,.progress-bar>i)[data-label="yellow"]{--l:var(--yellow)}
 :is(.fact,.progress-bar>i)[data-label="red"]{--l:var(--red)}:is(.fact,.progress-bar>i)[data-label="blue"]{--l:var(--blue)}
 :is(.fact,.progress-bar>i)[data-label="purple"]{--l:var(--purple)}
+:is(.fact,.progress-bar>i)[data-label="orange"]{--l:var(--orange)}:is(.fact,.progress-bar>i)[data-label="cyan"]{--l:var(--cyan)}
 /* Swatch: entity colours are squares; the ring tells where the colour comes from */
 .swatch{--c:var(--cyan);--ring:color-mix(in srgb,var(--c) 55%,var(--fg0));display:inline-block;width:18px;height:18px;background:var(--c);flex:none;box-shadow:inset 0 0 0 1px var(--bg2)}
 .swatch[data-src="own"]{outline:2px solid var(--ring);outline-offset:2px}
@@ -1061,6 +1069,14 @@ label.field{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.14em;t
 button.status{width:100%;border-left:0;border-right:0;border-bottom:0;font:inherit;color:inherit;text-align:start;cursor:pointer}
 button.status:hover{background:var(--tint-1)}button.status:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
 button.status[aria-pressed="true"]{box-shadow:inset 3px 0 0 var(--cyan)}
+button.status[aria-pressed="true"]:focus-visible{box-shadow:inset 0 0 0 2px var(--focus),inset 3px 0 0 var(--cyan)}
+/* A status as a choice of one (a period): <a class="status">, the chosen one aria-current; the state stays on top, yellow marks the choice at the bottom */
+a.status{color:inherit;text-decoration:none;cursor:pointer}
+a.status:hover{background:var(--tint-1);text-decoration:none}a.status:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
+a.status[aria-current]:not([aria-current="false"]){background:var(--tint-1);box-shadow:inset 0 -4px 0 var(--yellow)}
+a.status[aria-current]:not([aria-current="false"]):focus-visible{box-shadow:inset 0 0 0 2px var(--focus),inset 0 -4px 0 var(--yellow)}
+/* Statuses in one row that wraps when narrow */
+.status-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:2px}
 /* Board editor: add tile, grip, hover strip */
 .tile-add{display:grid;place-items:center;min-height:5rem;border:2px dashed var(--bg2);background:none;color:var(--fg3);cursor:pointer;font-family:var(--font-mono);font-size:1.4rem}
 .tile-add:hover,.tile-add:focus-visible{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-tint);outline:none}
@@ -1753,7 +1769,7 @@ details.help.is-right>.help-text{left:auto;right:-.5rem}
 /* Busy: a slow shimmer instead of marching hazard stripes */
 :root[data-kante="gold"] .progress-bar.is-indeterminate{background:linear-gradient(90deg,var(--bg-hard) 0 30%,var(--yellow) 50%,var(--bg-hard) 70%) 0 0/250% 100%}
 :root[data-kante="gold"] .btn.is-busy{background-image:linear-gradient(90deg,var(--primary) 0 30%,var(--yellow-hi) 50%,var(--primary) 70%);background-size:250% 100%}
-:root[data-kante="gold"] .btn-outline.is-busy{background-image:linear-gradient(90deg,transparent 0 30%,var(--tint-2) 50%,transparent 70%);background-size:250% 100%;background-position:0 0}
+:root[data-kante="gold"] :is(.btn-outline,.btn-ghost,.btn-data).is-busy{background-image:linear-gradient(90deg,transparent 0 30%,var(--tint-2) 50%,transparent 70%);background-size:250% 100%;background-position:0 0}
 :root[data-kante="gold"] .banner::before,:root[data-kante="gold"] .banner::after{height:var(--bar);background:var(--accent)}
 /* Crackle ground: Kintsugi's breaks in gold, very quiet, behind the whole page */
 :root[data-kante="gold"] body::before{content:"";position:fixed;top:-50%;left:-50%;width:200%;height:200%;z-index:-1;pointer-events:none;contain:strict;
@@ -1952,3 +1968,76 @@ details.help.is-right>.help-text{left:auto;right:-.5rem}
 .wall-tile{background:var(--bg-panel);border-top:.35cqw solid var(--tier,var(--bg2));padding:1cqw 1.2cqw;display:flex;flex-direction:column;gap:.5cqw;min-width:0;overflow:hidden}
 .wall-tile>b{font-family:var(--font-heading);font-size:2.2cqw;line-height:1.05;color:var(--fg0);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wall-tile>small{font-family:var(--font-mono);font-size:1cqw;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── Kante 1.25: spoken conversation (Kaiwa). QML twins: KanteRubyText, KanteHeardLine,
+   KanteTalkButton, KanteDiffText, KanteHintCard, KantePitchCurve, KantePath, KanteGoalMeter.
+   Catalogue: proposals/2026-10-kaiwa/. ── */
+/* Ruby text: <p class="ruby" data-ruby="all|new|none"><ruby>駅<rt>えき</rt></ruby>…</p>; ruby.is-new marks
+   a new word for data-ruby="new". The room for the readings stays, so switching never moves the lines.
+   Readings stay muted, new words too (D-1). */
+.ruby{line-height:2.3}
+.ruby rt{font-family:var(--font-sans);font-size:.5em;letter-spacing:.04em;color:var(--fg3)}
+.ruby[data-ruby="none"] rt,.ruby[data-ruby="new"] ruby:not(.is-new) rt{visibility:hidden}
+/* Heard as: under your own .msg, what the recogniser heard; data-state="unsure" warns with the word, and a link
+   "misheard" keeps the turn out. <div class="heard" data-state="unsure"><b>unsicher</b> · … <a href="#">falsch erkannt</a></div> */
+.heard{font-family:var(--font-mono);font-size:.7rem;color:var(--fg3);margin-top:.35rem;overflow-wrap:anywhere}
+.heard b{font-weight:500}
+.heard[data-state="unsure"]{color:var(--warn)}
+.heard[data-state="unsure"] b::before{content:"! "}
+.heard a{color:var(--link);margin-left:.5rem}
+/* Talk button: <button class="talk" data-state="ready|listening|thinking|speaking|error"><span class="talk-mark"></span>
+   <span>Sprechen<small>Leertaste halten</small></span></button>; listening adds .progress-segs as the live level,
+   thinking a .runner. Each state has its own mark shape: square, square, diamond, square, triangle. Height --h-l (D-3). */
+.talk{position:relative;display:inline-flex;align-items:center;gap:.8rem;min-width:15rem;height:var(--h-l);padding:0 1.2rem;
+  background:var(--bg1);border:0;color:var(--fg0);font-family:var(--font-heading);font-weight:700;font-size:var(--title-s);
+  letter-spacing:var(--title-track);text-transform:uppercase;text-align:left;cursor:pointer;
+  clip-path:polygon(0 0,calc(100% - var(--cut-m)) 0,100% var(--cut-m),100% 100%,var(--cut-m) 100%,0 calc(100% - var(--cut-m)))}
+.talk:focus-visible{outline:2px solid var(--focus);outline-offset:-4px}
+.talk small{display:block;font-family:var(--font-mono);font-weight:400;font-size:.6rem;letter-spacing:.12em;opacity:.8}
+.talk .talk-mark{width:14px;height:14px;flex:none;background:var(--fg3)}
+.talk[data-state="listening"]{background:var(--primary);color:var(--on-primary)}
+.talk[data-state="listening"] .talk-mark{background:var(--on-primary)}
+.talk[data-state="thinking"]{cursor:default}
+.talk[data-state="thinking"] .talk-mark{background:var(--info);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.talk[data-state="speaking"] .talk-mark{background:var(--aqua)}
+.talk[data-state="error"]{box-shadow:inset 0 -4px 0 var(--danger)}
+.talk[data-state="error"] .talk-mark{background:var(--danger);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.talk .progress-segs{width:5rem}.talk .progress-segs>i{height:14px}
+.talk[data-state="listening"] .progress-segs>i{background:var(--tint-2)}
+.talk[data-state="listening"] .progress-segs>i.on{background:var(--on-primary)}
+/* Diff: a correction as the title of a .hint-card. <span class="diff">コーヒー<del>を</del><ins>が</ins>好きです</span> */
+.diff{line-height:1.9;color:var(--fg1)}
+.diff del{text-decoration:line-through 2px var(--danger-text);color:var(--fg3)}
+.diff ins{text-decoration:none;background:var(--cyan-tint);box-shadow:inset 0 -2px 0 var(--cyan);color:var(--fg0)}
+/* Pitch curve: svg.pitch with .grid rules, .target (dashed step line), .actual (the learner, cyan, D-5),
+   rect.kernel (accent) and rect.miss (danger); markers are square. */
+.pitch{width:100%;max-width:26rem;height:auto;display:block}
+.pitch .grid{stroke:var(--bg2);stroke-width:1}
+.pitch .target{fill:none;stroke:var(--fg3);stroke-width:2;stroke-dasharray:6 4}
+.pitch .actual{fill:none;stroke:var(--cyan);stroke-width:2}
+.pitch .kernel{fill:var(--primary)}
+.pitch .miss{fill:var(--danger)}
+.pitch text{font-family:var(--font-mono);font-size:13px;fill:var(--fg2)}
+/* Learning path (D-6): <div class="path"><a class="node" data-state="done|current|review|locked"><span class="mk"></span>
+   <span><b>Title</b><small>N5-03 · 2 von 4</small></span></a>…</div>. Review nodes are indented as a side branch;
+   a locked node says so in its small line. */
+.path{display:flex;flex-direction:column;gap:.5rem;max-width:22rem}
+.path .node{display:flex;align-items:center;gap:.8rem;padding:.55rem .8rem;background:var(--bg1);box-shadow:inset 4px 0 0 var(--bg2);color:inherit;text-decoration:none;
+  clip-path:polygon(0 0,calc(100% - var(--cut-s)) 0,100% var(--cut-s),100% 100%,0 100%)}
+.path .node:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.path .node b{display:block;font-family:var(--font-heading);font-weight:700;font-size:var(--title-s);letter-spacing:var(--title-track);text-transform:uppercase;color:var(--fg0)}
+.path .node small{display:block;font-family:var(--font-mono);font-size:.62rem;letter-spacing:.08em;color:var(--fg3)}
+.path .node .mk{width:12px;height:12px;flex:none;background:var(--bg2)}
+.path .node[data-state="done"]{box-shadow:inset 4px 0 0 var(--aqua)}
+.path .node[data-state="done"] .mk{background:var(--aqua);clip-path:polygon(0 55%,20% 35%,40% 55%,85% 5%,100% 25%,40% 95%)}
+.path .node[data-state="current"]{box-shadow:inset 4px 0 0 var(--primary);background:var(--tint-1)}
+.path .node[data-state="current"] .mk{background:var(--primary)}
+.path .node[data-state="review"]{box-shadow:inset 4px 0 0 var(--info);margin-left:1.6rem}
+.path .node[data-state="review"] .mk{background:var(--info);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.path .node[data-state="open"] .mk{background:none;box-shadow:inset 0 0 0 2px var(--fg3)}
+.path .node[data-state="locked"]{opacity:.55;pointer-events:none}
+.path .node[data-state="locked"] .mk{visibility:hidden}
+/* Goal meter (D-7): <span class="goalbar" role="progressbar" aria-valuenow="60"><i class="on"></i>…</span>, bottom to top. */
+.goalbar{display:inline-flex;flex-direction:column-reverse;gap:2px;width:22px;vertical-align:middle}
+.goalbar>i{height:4px;background:var(--bg2)}
+.goalbar>i.on{background:var(--primary)}

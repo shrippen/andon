@@ -29,8 +29,13 @@
 
     {{/* Which Verbund (when several) and which period. */}}
     {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/vat" "Keep" (dict "span" $p.Span.Key)}}
-    <nav class="hint-filters" aria-label="{{t "vatcheck.periods"}}">
-      <div class="chips-row">{{range $p.Spans}}<a class="chip is-filter" href="/vat?scope={{$p.Scope}}&amp;span={{.Key}}"{{if eq .Key $p.Span.Key}} aria-pressed="true"{{end}}>{{template "vat_span" dict "S" . "Interval" $p.Interval}}</a>{{end}}</div>
+    {{/* The periods, oldest first: each with where its return stands. */}}
+    <nav class="status-row vat-periods" aria-label="{{t "vatcheck.periods"}}">
+      {{range $p.Cards}}<a class="status" data-state="{{template "vat_card_state" .State}}" href="/vat?scope={{$p.Scope}}&amp;span={{.Key}}"{{if eq .Key $p.Span.Key}} aria-current="page"{{end}}>
+        <span class="name">{{template "vat_span" dict "S" .VATSpan "Interval" $p.Interval}}</span>
+        <span class="row">{{if eq .State "running"}}{{t "vatcheck.card_running" "day" (day .End)}}{{else if eq .State "open"}}{{if .Open}}{{t "vatcheck.card_open" "day" (day .Due) "n" .Open}}{{else}}{{t "vatcheck.card_ready" "day" (day .Due)}}{{end}}{{else}}{{t (print "vatcheck.card_" .State)}}{{end}}</span>
+        <span class="row">{{money .Amount $p.Currency}}{{if eq .State "running"}} {{t "vatcheck.card_so_far"}}{{else if and (eq .State "open") .Open}} {{t "vatcheck.card_draft"}}{{end}}</span>
+      </a>{{end}}
     </nav>
 
     {{if $p.Accounts}}{{template "vat_accounts" dict "P" $p "CSRFField" $.CSRFField "CSRF" $.Ctx.CSRF}}{{end}}
@@ -153,6 +158,10 @@
 {{end}}
 
 {{/* A period's name: "09/2026" or "Q3 2026". */}}
+{{/* A card's state as Kante's status: filed ok, due a correction bad,
+     open warn, running or not marked off. */}}
+{{define "vat_card_state"}}{{if eq . "filed"}}ok{{else if eq . "changed"}}bad{{else if eq . "open"}}warn{{else}}off{{end}}{{end}}
+
 {{define "vat_span"}}{{if eq .Interval "quarterly"}}{{t "vatcheck.quarter" "q" .S.Quarter "year" .S.Start.Year}}{{else}}{{.S.Start.Format "01/2006"}}{{end}}{{end}}
 
 {{/* One open transaction: what the bank and Sure say, and what to do.

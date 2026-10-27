@@ -7238,6 +7238,14 @@ vatcheck:
   lead: 'Vor der Umsatzsteuer-Voranmeldung: jeder Umsatz aus dem Bankabruf von Invoice Ninja braucht eine Ausgabe oder eine Zahlung. Andon schlägt vor, Sure steht daneben. Geschrieben wird erst, was du in der Prüfung bestätigst.'
   periods: Zeitraum
   quarter: 'Q{q} {year}'
+  card_running: 'läuft bis {day}'
+  card_open: 'Frist {day} · {n} offen'
+  card_ready: 'Frist {day} · bereit'
+  card_unfiled: 'nicht als abgegeben markiert'
+  card_filed: abgegeben
+  card_changed: Korrektur fällig
+  card_so_far: bisher
+  card_draft: vorläufig
   need_title: Invoice Ninja fehlt
   need_text: 'Der Abgleich liest den Bankabruf von Invoice Ninja (Banking). Sure ist optional und zeigt dieselbe Buchung mit Händler, Kategorie und Tags daneben.'
   check_title: 'Stand für'

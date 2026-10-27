@@ -63,6 +63,7 @@ type Page struct {
 	Bank      string            // the Sure or Firefly beside it, "" none
 	Spans     []metrics.VATSpan
 	Span      metrics.VATSpan
+	Cards     []SpanCard             // the periods, oldest first, with where each stands
 	Cases     []Case                 // business, and private with a known vendor
 	Apart     []Case                 // the rest of the private accounts
 	Skipped   []sources.NinjaBankTxn // archived in Invoice Ninja
@@ -84,6 +85,31 @@ type Page struct {
 	Receipts  int    // the period's expenses without a scan (receipts), -1 unknown
 	Assist    bool   // the language model is set up
 	Guessed   bool   // it answered for this period
+}
+
+// SpanState is where a period's return stands.
+type SpanState string
+
+const (
+	SpanRunning SpanState = "running" // the period has not ended
+	SpanOpen    SpanState = "open"    // ended, its deadline ahead, not filed
+	SpanUnfiled SpanState = "unfiled" // its deadline passed, not marked as filed
+	SpanFiled   SpanState = "filed"   // marked as filed (FileReturn)
+	SpanChanged SpanState = "changed" // filed, its figures moved since
+)
+
+// SpanCard is one period of the bar on top of the page: where it stands,
+// when its return is due, its open transactions and the VAT it comes to
+// (so far, while it runs).
+//
+//	Q2 2026 changed   Q3 2026 open        Q4 2026 running
+//	2.031,75 €        due 10.11. · 4 open  612,40 € so far
+type SpanCard struct {
+	metrics.VATSpan
+	State  SpanState
+	Due    time.Time // the return's deadline
+	Open   int       // open business transactions
+	Amount float64   // VAT due
 }
 
 // Case is one open transaction with the model's reading, if asked, and
@@ -150,6 +176,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 	}
 
 	in := b.inputs(p.Span, p.Method, today)
+	p.Cards = b.cards(p.Spans, p.Method, today)
 	p.Accounts = b.accounts()
 	p.SetUp = slices.ContainsFunc(p.Accounts, func(a Account) bool { return a.Role != sources.RoleUnknown && a.Role != sources.RoleIgnored })
 	p.CanSet, p.SpaceID = b.canSet(d, who), b.conn.SpaceID
@@ -199,20 +226,60 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 // tax settings: the 10th of the next month.
 const returnDays = 10
 
-// defaultSpan is the last finished period until its return is due, then
-// the running one: September's return is worked on until 10 October.
+// defaultSpan is the last finished period through the day its return is
+// due, then the running one: September's return is worked on until and
+// on 10 October.
 func defaultSpan(spans []metrics.VATSpan, settings map[string]any, today time.Time) metrics.VATSpan {
 	last := spans[1]
-	due := last.End.AddDate(0, 0, returnDays)
-	if tax, ok := metrics.ParseTaxSettings(settings); ok {
-		if d, found := metrics.VATReturnFor(tax, last.End); found {
-			due = d.Due
-		}
-	}
-	if today.After(due) {
+	if !today.Before(returnDue(settings, last).AddDate(0, 0, 1)) {
 		return spans[0]
 	}
 	return last
+}
+
+// returnDue is when s's return is due: by the tax settings, else the
+// 10th after it ends.
+func returnDue(settings map[string]any, s metrics.VATSpan) time.Time {
+	if tax, ok := metrics.ParseTaxSettings(settings); ok {
+		if d, found := metrics.VATReturnFor(tax, s.End); found {
+			return d.Due
+		}
+	}
+	return s.End.AddDate(0, 0, returnDays)
+}
+
+// cards checks every period of spans (newest first), oldest first: the
+// same check as the page's, so the chosen card and the page agree.
+func (b book) cards(spans []metrics.VATSpan, method string, today time.Time) []SpanCard {
+	out := make([]SpanCard, 0, len(spans))
+	for i := len(spans) - 1; i >= 0; i-- {
+		s := spans[i]
+		in := b.inputs(s, method, today)
+		check := metrics.VATCheckOf(in, metrics.BankCases(in))
+		c := SpanCard{VATSpan: s, Due: returnDue(b.settings, s), Open: check.Open, Amount: check.Due}
+		c.State = b.spanState(c, method, today)
+		out = append(out, c)
+	}
+	return out
+}
+
+// spanState says where c stands; a period and its deadline run through
+// their last day.
+func (b book) spanState(c SpanCard, method string, today time.Time) SpanState {
+	if today.Before(c.End.AddDate(0, 0, 1)) {
+		return SpanRunning
+	}
+	filed, ok := b.state.Filed[connKey(b.conn.ID)][c.Key]
+	if ok && len(metrics.ElsterOf(b.ninja, c.Start, c.End, method).Changed(filed)) > 0 {
+		return SpanChanged
+	}
+	if ok {
+		return SpanFiled
+	}
+	if !today.Before(c.Due.AddDate(0, 0, 1)) {
+		return SpanUnfiled
+	}
+	return SpanOpen
 }
 
 // mapped takes the category of a draft Sure named from the Verbund's
