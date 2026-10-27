@@ -140,12 +140,18 @@ func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 	if p.Item.Scan == 0 || p.Action == string(metrics.ActionSkip) || p.Problem != workbench.ProblemNone {
 		return
 	}
-	scans, _ := receipts.ScansFor(ctx, d, who, connID, p.Item.Txn.Amount, p.Item.Txn.Date, p.Item.Vendor)
+	var scans []receipts.Candidate
+	var err error
 	if p.Action == string(ActionReceipt) {
 		// Its own scan, among the year's still without an expense.
 		day, _ := metrics.ParseDay(p.Item.Txn.Date)
 		year := time.Date(day.Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
-		scans, _ = receipts.Unbooked(ctx, d, who, connID, year, year.AddDate(1, 0, -1))
+		scans, err = receipts.Unbooked(ctx, d, who, connID, year, year.AddDate(1, 0, -1))
+	} else {
+		scans, err = receipts.ScansFor(ctx, d, who, connID, p.Item.Txn.Amount, p.Item.Txn.Date, p.Item.Vendor)
+	}
+	if err != nil {
+		return // Paperless unreachable: the scan stays, linking it reports the error
 	}
 	for _, c := range scans {
 		if c.Doc.ID == p.Item.Scan && !taken[c.Doc.ID] {
