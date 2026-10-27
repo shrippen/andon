@@ -230,17 +230,13 @@
      Every other account counts as private. */}}
 {{define "vat_accounts"}}{{$p := .P}}
 <details class="card" id="accounts"{{if not $p.SetUp}} open{{end}}>
-  <summary><b>{{t "vatcheck.accounts_title"}}</b>{{if $p.SetUp}} <small class="muted">{{range $i, $a := $p.Accounts}}{{if $i}} · {{end}}{{$a.Name}}: {{if eq $a.Role "business"}}{{t "vatcheck.accounts_business"}}{{else if eq $a.Role "private"}}{{t "vatcheck.accounts_private"}}{{else if eq $a.Role "reserve"}}{{t "vatcheck.accounts_reserve"}}{{else}}–{{end}}{{end}}</small>{{end}}</summary>
+  <summary><b>{{t "vatcheck.accounts_title"}}</b>{{if $p.SetUp}} <small class="muted">{{range $i, $a := $p.Accounts}}{{if $i}} · {{end}}{{$a.Name}}: {{with $a.Role}}{{t (print "vatcheck.accounts_" .)}}{{else}}–{{end}}{{end}}</small>{{end}}</summary>
   <p class="small muted">{{t "vatcheck.accounts_lead"}}</p>
   {{if $p.CanSet}}<form method="post" action="/vat/accounts">
     <input type="hidden" name="{{.CSRFField}}" value="{{.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
     <div class="table-wrap"><table class="table cards-sm">
       <tbody>{{range $p.Accounts}}<tr><td data-card="title">{{.Name}} <small class="muted">{{t (print "service." .Service)}}</small></td>
-        <td><select class="select" name="role:{{.ConnID}}:{{.Key}}" aria-label="{{.Name}}">
-          <option value="">{{t "vatcheck.accounts_unknown"}}</option>
-          <option value="business"{{if eq .Role "business"}} selected{{end}}>{{t "vatcheck.accounts_business"}}</option>
-          <option value="private"{{if eq .Role "private"}} selected{{end}}>{{t "vatcheck.accounts_private"}}</option>
-          <option value="reserve"{{if eq .Role "reserve"}} selected{{end}}>{{t "vatcheck.accounts_reserve"}}</option></select></td></tr>{{end}}</tbody>
+        <td><select class="select" name="role:{{.ConnID}}:{{.Key}}" aria-label="{{.Name}}">{{template "account_roles" .}}</select></td></tr>{{end}}</tbody>
     </table></div>
     <p><button type="submit" class="btn btn-outline btn-sm">{{t "vatcheck.accounts_save"}}</button>
       <a class="small" href="/spaces/{{$p.SpaceID}}/verbund">{{t "vatcheck.accounts_verbund"}}</a></p>

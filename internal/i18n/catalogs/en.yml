@@ -7059,6 +7059,7 @@ verbund:
   no_accounts: 'No member of this bundle knows bank accounts (Invoice Ninja, Sure, Firefly III).'
   account_taken: 'This account belongs to another row already.'
   unknown_account: 'Account not found; reload the data.'
+  unknown_role: 'Unknown role.'
   customers: Customers
   customers_lead: 'Which Invoice Ninja client is which Kimai customer, which Sure payer and which Paperless correspondent. Andon suggests the most similar name; only what you confirm is stored. Invoice Ninja holds the names: “Take name” writes it to Kimai. Without a link the same name decides.'
   customers_how: 'Per field: “–” lets the name decide, “No counterpart” says there is none there.'
@@ -7218,12 +7219,14 @@ vatcheck:
   payment_line: 'Payment {number} of {day}, booked already (say from billing)'
   do_payment: 'Link the transaction to payment {number}'
   accounts_title: Accounts
-  accounts_lead: 'What is each account for? Andon proposes debits of private accounts only when the vendor already has expenses, say the train pass paid privately. The role holds for the whole connection, in a bundle for the linked account in Sure too, and for every evaluation.'
+  accounts_lead: 'What is each account for? Andon proposes debits of private accounts only when the vendor already has expenses, say the train pass paid privately. The role holds for the whole connection, in a bundle for the linked account in Sure too, and for every evaluation. Ignored accounts (say a depot) are left out of every evaluation.'
   accounts_unknown: 'not set'
   accounts_verbund: 'Link accounts in the bundle →'
   accounts_business: business
   accounts_private: private
   accounts_reserve: reserve
+  accounts_ignored: ignored
+  accounts_suggested: suggested
   accounts_save: Save
   accounts_saved: 'Accounts saved.'
   accounts_ro: 'Whoever may change this space''s settings names the accounts.'

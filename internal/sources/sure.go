@@ -27,6 +27,15 @@ type BankAccount struct {
 	Role           AccountRole
 }
 
+// Suggested is the role the account's kind implies while it has none,
+// "" else: a depot (investment) is ignored.
+func (a BankAccount) Suggested() AccountRole {
+	if a.Role == RoleUnknown && slices.Contains(ignoredKinds, a.Type) {
+		return RoleIgnored
+	}
+	return RoleUnknown
+}
+
 // BankTxn is one booking; Amount is signed: income > 0, expense < 0.
 type BankTxn struct {
 	ID, Date, Name     string
@@ -68,7 +77,8 @@ type BankData struct {
 	Currency     string
 	NetWorth     float64
 	Accounts     []BankAccount
-	Transactions []BankTxn // last 90 days
+	Ignored      []BankAccount // the user ignores them: in no evaluation
+	Transactions []BankTxn     // last 90 days
 	Recurring    []BankRecurring
 	Categories   []BankCategory // Sure only; Firefly leaves them out
 	SyncError    string         // latest sync failed: its message
@@ -210,6 +220,8 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 
 // setRoles marks each account and its transactions with the role the
 // user named; a booking without account id finds it by name (demo).
+// Ignored accounts and their bookings leave the data; Ignored keeps the
+// accounts for the pages that name roles.
 func (d *BankData) setRoles(roles map[string]AccountRole) {
 	byName := map[string]string{}
 	for i := range d.Accounts {
@@ -224,6 +236,15 @@ func (d *BankData) setRoles(roles map[string]AccountRole) {
 		}
 		t.Role = roles[t.AccountID]
 	}
+
+	ignored := func(a BankAccount) bool { return a.Role == RoleIgnored }
+	for _, a := range d.Accounts {
+		if ignored(a) {
+			d.Ignored = append(d.Ignored, a)
+		}
+	}
+	d.Accounts = slices.DeleteFunc(d.Accounts, ignored)
+	d.Transactions = slices.DeleteFunc(d.Transactions, func(t BankTxn) bool { return t.Role == RoleIgnored })
 }
 
 // Only is the dataset with the accounts of one role and their bookings;

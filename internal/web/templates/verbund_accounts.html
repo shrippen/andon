@@ -26,7 +26,7 @@
       <thead><tr><th>{{t (print "service." $v.Hub.Service)}}</th><th>{{t "verbund.account_role"}}</th>{{range $v.Columns}}<th>{{t (print "service." .Service)}}</th>{{end}}</tr></thead>
       <tbody>{{range $row := .}}<tr>
         <td>{{$row.Name}}</td>
-        <td>{{template "verbund_role" dict "P" $ "V" $v "Conn" $v.Hub.ConnID "Key" $row.Key "Role" $row.Role "Name" $row.Name}}</td>
+        <td>{{template "verbund_role" dict "P" $ "V" $v "Conn" $v.Hub.ConnID "Key" $row.Key "Role" $row.Role "Suggest" $row.Suggest "Name" $row.Name}}</td>
         {{range $i, $c := $row.Cells}}{{$col := index $v.Columns $i}}<td>
           {{if $v.Verbund.CanEdit}}<form method="post" action="/verbund/{{$id}}/accounts/link" class="inline-form">
             <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$.SpaceID}}"><input type="hidden" name="hub" value="{{$row.Key}}"><input type="hidden" name="conn" value="{{$col.ConnID}}">
@@ -44,7 +44,7 @@
     <p class="small muted">{{t "verbund.accounts_loose_hint"}}</p>
     <div class="table-wrap"><table class="table"><tbody>{{range .}}<tr>
       <td>{{t (print "service." .Service)}}</td><td>{{.Name}}</td>
-      <td>{{template "verbund_role" dict "P" $ "V" $v "Conn" .ConnID "Key" .Key "Role" .Role "Name" .Name}}</td>
+      <td>{{template "verbund_role" dict "P" $ "V" $v "Conn" .ConnID "Key" .Key "Role" .Role "Suggest" .Suggest "Name" .Name}}</td>
     </tr>{{end}}</tbody></table></div>
     {{end}}
     </div>
@@ -60,11 +60,15 @@
 {{if .V.CanSet}}<form method="post" action="/verbund/{{.V.Verbund.ID}}/accounts/role" class="inline-form">
   <input type="hidden" name="{{$p.CSRFField}}" value="{{$p.Ctx.CSRF}}"><input type="hidden" name="space" value="{{$p.SpaceID}}">
   <input type="hidden" name="conn" value="{{.Conn}}"><input type="hidden" name="key" value="{{.Key}}">
-  <select class="select" name="role" aria-label="{{t "verbund.account_role"}}: {{.Name}}">
-    <option value="">{{t "vatcheck.accounts_unknown"}}</option>
-    <option value="business"{{if eq .Role "business"}} selected{{end}}>{{t "vatcheck.accounts_business"}}</option>
-    <option value="private"{{if eq .Role "private"}} selected{{end}}>{{t "vatcheck.accounts_private"}}</option>
-    <option value="reserve"{{if eq .Role "reserve"}} selected{{end}}>{{t "vatcheck.accounts_reserve"}}</option></select>
+  <select class="select" name="role" aria-label="{{t "verbund.account_role"}}: {{.Name}}">{{template "account_roles" .}}</select>
   <button type="submit" class="btn btn-outline btn-sm">{{t "action.save"}}</button>
-</form>{{else if eq .Role "business"}}{{t "vatcheck.accounts_business"}}{{else if eq .Role "private"}}{{t "vatcheck.accounts_private"}}{{else if eq .Role "reserve"}}{{t "vatcheck.accounts_reserve"}}{{else}}{{t "vatcheck.accounts_unknown"}}{{end}}
+</form>{{else}}{{with .Role}}{{t (print "vatcheck.accounts_" .)}}{{else}}{{t "vatcheck.accounts_unknown"}}{{end}}{{end}}
+{{end}}
+
+{{/* An account's role choices (Role, Suggest): while none is set, the
+     role its kind implies stands chosen, marked as a suggestion; saving
+     confirms it. */}}
+{{define "account_roles"}}{{$r := print .Role}}{{$s := print .Suggest}}
+<option value="">{{t "vatcheck.accounts_unknown"}}</option>
+{{range list "business" "private" "reserve" "ignored"}}{{$hint := and (not $r) (eq . $s)}}<option value="{{.}}"{{if or (eq . $r) $hint}} selected{{end}}>{{t (print "vatcheck.accounts_" .)}}{{if $hint}} ({{t "vatcheck.accounts_suggested"}}){{end}}</option>{{end}}
 {{end}}

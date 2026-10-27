@@ -1,6 +1,7 @@
 package sources
 
 import (
+	"slices"
 	"strconv"
 
 	"andon/internal/caps"
@@ -189,7 +190,19 @@ const (
 	// RoleReserve is money set aside for taxes: neither spent nor
 	// counted as free (metrics.SafeToSpend).
 	RoleReserve AccountRole = "reserve"
+	// RoleIgnored drops the account and its bookings from every
+	// evaluation: a depot or a car in Sure.
+	RoleIgnored AccountRole = "ignored"
 )
+
+// knownRoles are the roles a user can name.
+var knownRoles = []AccountRole{RoleBusiness, RolePrivate, RoleReserve, RoleIgnored}
+
+// Known says whether r is a role a user can name, "" (not said) included.
+func (r AccountRole) Known() bool { return r == RoleUnknown || slices.Contains(knownRoles, r) }
+
+// ignoredKinds are Sure's account kinds that hold no money to spend.
+var ignoredKinds = []string{"investment", "crypto", "property", "vehicle", "other_asset"}
 
 // OptAccountRoles is the connection option holding each account's role:
 // {"<account key>": "business"}.
@@ -265,7 +278,7 @@ func accountRoles(options map[string]any) map[string]AccountRole {
 	out := map[string]AccountRole{}
 	raw, _ := options[OptAccountRoles].(map[string]any)
 	for k, v := range raw {
-		if r := AccountRole(asStr(v)); r == RoleBusiness || r == RolePrivate || r == RoleReserve {
+		if r := AccountRole(asStr(v)); r != RoleUnknown && r.Known() {
 			out[k] = r
 		}
 	}

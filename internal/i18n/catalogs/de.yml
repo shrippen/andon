@@ -7060,6 +7060,7 @@ verbund:
   no_accounts: 'Kein Mitglied dieses Verbunds kennt Bankkonten (Invoice Ninja, Sure, Firefly III).'
   account_taken: 'Dieses Konto gehört schon zu einer anderen Zeile.'
   unknown_account: 'Konto nicht gefunden; Daten neu laden.'
+  unknown_role: 'Rolle unbekannt.'
   customers: Kunden
   customers_lead: 'Welcher Kunde in Invoice Ninja welcher Kunde in Kimai, welcher Zahler in Sure und welcher Korrespondent in Paperless ist. Andon schlägt den ähnlichsten Namen vor; gespeichert wird erst, was du bestätigst. Invoice Ninja führt die Namen: „Namen übernehmen“ schreibt ihn nach Kimai. Ohne Zuordnung entscheidet der gleiche Name.'
   customers_how: 'Je Feld: „–“ lässt den Namen entscheiden, „Kein Gegenstück“ sagt, dass es dort keinen gibt.'
@@ -7219,12 +7220,14 @@ vatcheck:
   payment_line: 'Zahlung {number} vom {day}, schon gebucht (etwa über die Abrechnung)'
   do_payment: 'Umsatz mit Zahlung {number} verknüpfen'
   accounts_title: Konten
-  accounts_lead: 'Wofür ist welches Konto? Abbuchungen privater Konten schlägt Andon nur vor, wenn der Lieferant schon Ausgaben hat, etwa das privat bezahlte Deutschlandticket. Die Einordnung gilt für die ganze Verbindung, im Verbund auch für das verknüpfte Konto in Sure, und für alle Auswertungen.'
+  accounts_lead: 'Wofür ist welches Konto? Abbuchungen privater Konten schlägt Andon nur vor, wenn der Lieferant schon Ausgaben hat, etwa das privat bezahlte Deutschlandticket. Die Einordnung gilt für die ganze Verbindung, im Verbund auch für das verknüpfte Konto in Sure, und für alle Auswertungen. Ignorierte Konten (etwa ein Depot) fehlen in allen Auswertungen.'
   accounts_unknown: 'nicht eingeordnet'
   accounts_verbund: 'Konten im Verbund verknüpfen →'
   accounts_business: geschäftlich
   accounts_private: privat
   accounts_reserve: Rücklage
+  accounts_ignored: ignoriert
+  accounts_suggested: Vorschlag
   accounts_save: Speichern
   accounts_saved: 'Konten gespeichert.'
   accounts_ro: 'Die Konten legt fest, wer die Einstellungen dieses Bereichs ändern darf.'

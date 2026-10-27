@@ -94,10 +94,10 @@ type Case struct {
 
 // Account is a bank account of Invoice Ninja or Sure and its role.
 type Account struct {
-	ConnID    int64
-	Service   enums.ServiceType
-	Key, Name string
-	Role      sources.AccountRole
+	ConnID        int64
+	Service       enums.ServiceType
+	Key, Name     string
+	Role, Suggest sources.AccountRole // Suggest: what the kind implies while unset
 }
 
 // Ledger is what a new expense can choose from.
@@ -149,7 +149,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 
 	in := b.inputs(p.Span, p.Method, today)
 	p.Accounts = b.accounts()
-	p.SetUp = slices.ContainsFunc(p.Accounts, func(a Account) bool { return a.Role != sources.RoleUnknown })
+	p.SetUp = slices.ContainsFunc(p.Accounts, func(a Account) bool { return a.Role != sources.RoleUnknown && a.Role != sources.RoleIgnored })
 	p.CanSet, p.SpaceID = b.canSet(d, who), b.conn.SpaceID
 	cases := metrics.BankCases(in)
 	p.Check = metrics.VATCheckOf(in, cases)
@@ -283,8 +283,8 @@ func (b book) accounts() []Account {
 		out = append(out, Account{ConnID: b.conn.ID, Service: enums.ServiceInvoiceNinja, Key: a.Key, Name: a.Name, Role: a.Role})
 	}
 	if b.bank != nil {
-		for _, a := range b.bank.Accounts {
-			out = append(out, Account{ConnID: b.bankConn.ID, Service: b.bank.From(), Key: a.ID, Name: a.Name, Role: a.Role})
+		for _, a := range slices.Concat(b.bank.Accounts, b.bank.Ignored) {
+			out = append(out, Account{ConnID: b.bankConn.ID, Service: b.bank.From(), Key: a.ID, Name: a.Name, Role: a.Role, Suggest: a.Suggested()})
 		}
 	}
 	return out
