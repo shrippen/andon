@@ -188,6 +188,7 @@
     {{if $c.Txn.Debit}}<div class="vat-field vat-draft">
       <input class="input" name="vendor_{{$k}}" value="{{$c.Draft.Vendor}}" list="vat-vendors" aria-label="{{t "vatcheck.vendor"}}" placeholder="{{t "vatcheck.vendor"}}">
       <select class="select" name="cat_{{$k}}" aria-label="{{t "vatcheck.category"}}"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $c.Draft.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+      {{if $p.Euer}}<select class="select" name="euer_{{$k}}" aria-label="{{$p.Euer}}"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $c.Draft.Euer}} selected{{end}}>{{.}}</option>{{end}}</select>{{end}}
       <select class="select" name="tax_{{$k}}" aria-label="{{t "vatcheck.tax"}}"><option value="none"{{if not $c.Draft.TaxKnown}} selected{{end}}>{{t "vatcheck.no_tax"}}</option>{{range $p.Ledger.TaxRates}}<option value="{{.Rate}}"{{if and $c.Draft.TaxKnown (eq .Rate $c.Draft.TaxRate)}} selected{{end}}>{{.Name}} {{num .Rate 0}} %</option>{{end}}</select>
       {{with $c.Scans}}<select class="select" name="scan_{{$k}}" aria-label="{{t "vatcheck.scan"}}"><option value="">{{t "vatcheck.no_scan"}}</option>
         {{range $i, $s := .}}<option value="{{$s.Doc.ID}}"{{if and (eq $i 0) (eq $s.Level "high")}} selected{{end}}>{{t "vatcheck.scan_option" "title" $s.Doc.Title "day" (day $s.Doc.Day) "score" $s.Score}}</option>{{end}}</select>{{end}}
@@ -239,17 +240,13 @@
      Every other account counts as private. */}}
 {{define "vat_accounts"}}{{$p := .P}}
 <details class="card" id="accounts"{{if not $p.SetUp}} open{{end}}>
-  <summary><b>{{t "vatcheck.accounts_title"}}</b>{{if $p.SetUp}} <small class="muted">{{range $i, $a := $p.Accounts}}{{if $i}} · {{end}}{{$a.Name}}: {{if eq $a.Role "business"}}{{t "vatcheck.accounts_business"}}{{else if eq $a.Role "private"}}{{t "vatcheck.accounts_private"}}{{else if eq $a.Role "reserve"}}{{t "vatcheck.accounts_reserve"}}{{else}}–{{end}}{{end}}</small>{{end}}</summary>
+  <summary><b>{{t "vatcheck.accounts_title"}}</b>{{if $p.SetUp}} <small class="muted">{{range $i, $a := $p.Accounts}}{{if $i}} · {{end}}{{$a.Name}}: {{with $a.Role}}{{t (print "vatcheck.accounts_" .)}}{{else}}–{{end}}{{end}}</small>{{end}}</summary>
   <p class="small muted">{{t "vatcheck.accounts_lead"}}</p>
   {{if $p.CanSet}}<form method="post" action="/vat/accounts">
     <input type="hidden" name="{{.CSRFField}}" value="{{.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
     <div class="table-wrap"><table class="table cards-sm">
       <tbody>{{range $p.Accounts}}<tr><td data-card="title">{{.Name}} <small class="muted">{{t (print "service." .Service)}}</small></td>
-        <td><select class="select" name="role:{{.ConnID}}:{{.Key}}" aria-label="{{.Name}}">
-          <option value="">{{t "vatcheck.accounts_unknown"}}</option>
-          <option value="business"{{if eq .Role "business"}} selected{{end}}>{{t "vatcheck.accounts_business"}}</option>
-          <option value="private"{{if eq .Role "private"}} selected{{end}}>{{t "vatcheck.accounts_private"}}</option>
-          <option value="reserve"{{if eq .Role "reserve"}} selected{{end}}>{{t "vatcheck.accounts_reserve"}}</option></select></td></tr>{{end}}</tbody>
+        <td><select class="select" name="role:{{.ConnID}}:{{.Key}}" aria-label="{{.Name}}">{{template "account_roles" .}}</select></td></tr>{{end}}</tbody>
     </table></div>
     <p><button type="submit" class="btn btn-outline btn-sm">{{t "vatcheck.accounts_save"}}</button>
       <a class="small" href="/spaces/{{$p.SpaceID}}/verbund">{{t "vatcheck.accounts_verbund"}}</a></p>

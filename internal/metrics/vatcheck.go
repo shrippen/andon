@@ -60,6 +60,7 @@ type ExpenseDraft struct {
 	TaxName               string
 	TaxRate               float64
 	TaxKnown              bool
+	Euer                  string // the vendor's last EÜR line, "" none
 	From                  DraftFrom
 }
 

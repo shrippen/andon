@@ -36,10 +36,11 @@ const (
 	FieldCategory = "cat" // a key
 	FieldTax      = "tax"
 	FieldScan     = "scan" // create: the Paperless scan to link
+	FieldEuer     = "euer" // create: the EÜR line
 )
 
 // Fields lists them, for the form.
-var Fields = []string{FieldExpense, FieldInvoice, FieldPayment, FieldVendor, FieldCategory, FieldTax, FieldScan}
+var Fields = []string{FieldExpense, FieldInvoice, FieldPayment, FieldVendor, FieldCategory, FieldTax, FieldScan, FieldEuer}
 
 // noTax is the tax field of an expense without tax.
 const noTax = "none"
@@ -48,6 +49,7 @@ const (
 	ProblemGone     workbench.Problem = "vatcheck.problem_gone"      // booked meanwhile
 	ProblemTarget   workbench.Problem = "vatcheck.problem_target"    // expense or invoice no longer fits
 	ProblemNoVendor workbench.Problem = "vatcheck.problem_no_vendor" // a new expense needs a vendor
+	ProblemEuer     workbench.Problem = "vatcheck.problem_euer"      // not one of the EÜR dropdown's lines
 )
 
 // ErrGone means the transaction is not (or no longer) archived.
@@ -68,7 +70,7 @@ type Item struct {
 	Tax       float64 // input VAT in the amount
 	Scan      int64
 	ScanTitle string // the scan linked to a new expense
-	Euer      string // the EÜR line the new expense gets (Verbund → Kategorien)
+	Euer      string // the EÜR line the new expense gets, "" none
 }
 
 // Planned is a step as it would be written.
@@ -159,7 +161,10 @@ func (b book) created(s *workbench.Step, it Item) (Item, workbench.Problem) {
 	it.NewVendor = b.vendorKey(it.Vendor) == ""
 	it.Category = categoryName(b.ninja, s.Field(FieldCategory))
 	if b.cats.EuerSlot > 0 {
-		it.Euer = b.cats.Euer[s.Field(FieldCategory)]
+		it.Euer = strings.TrimSpace(s.Field(FieldEuer))
+	}
+	if opts := b.euerOptions(); it.Euer != "" && len(opts) > 0 && !slices.Contains(opts, it.Euer) {
+		return it, ProblemEuer
 	}
 	if rate, err := strconv.ParseFloat(s.Field(FieldTax), 64); err == nil {
 		it.TaxRate, it.Taxed = rate, true
@@ -186,6 +191,15 @@ func indexOf[T any](list []T, fit func(T) bool) int {
 		}
 	}
 	return -1
+}
+
+// euerOptions are the EÜR field's dropdown values, nil if it is free text
+// or not chosen.
+func (b book) euerOptions() []string {
+	if b.cats.EuerSlot == 0 {
+		return nil
+	}
+	return b.ninja.ExpenseFields[b.cats.EuerSlot-1].Options
 }
 
 func (b book) vendorKey(name string) string {

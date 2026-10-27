@@ -15,6 +15,7 @@ import (
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
+	"andon/internal/services/connections"
 	"andon/internal/services/vatcheck"
 	"andon/internal/services/workbench"
 	"andon/internal/sources"
@@ -84,13 +85,14 @@ func ninjaFake(t *testing.T, w *writes, b1Status string) string {
 			map[string]any{"id": "a2", "bank_account_name": "Girokonto", "bank_account_number": "DE002222"}),
 		"expenses": page(
 			map[string]any{"id": "e1", "number": "EX-1", "vendor_id": "v1", "category_id": "c1", "date": day(1), "amount": 89.7,
-				"tax_name1": "MwSt.", "tax_rate1": 19, "uses_inclusive_taxes": true, "transaction_id": "b0"},
+				"tax_name1": "MwSt.", "tax_rate1": 19, "uses_inclusive_taxes": true, "transaction_id": "b0", "custom_value3": "Arbeitsmittel"},
 			map[string]any{"id": "e2", "number": "EX-2", "vendor_id": "v2", "date": day(2), "amount": 39.95}),
 		"vendors":            page(map[string]any{"id": "v1", "name": "Kabelwerk Studiobedarf"}, map[string]any{"id": "v2", "name": "Elbnetz Mobilfunk"}),
 		"expense_categories": page(map[string]any{"id": "c1", "name": "Technik"}, map[string]any{"id": "c2", "name": "Hosting"}),
 		"tax_rates":          page(map[string]any{"name": "MwSt.", "rate": 19}),
 		"invoices":           page(map[string]any{"id": "i7", "number": "R-2026-017", "client_id": "C1", "status_id": "2", "date": day(1), "amount": 238, "balance": 238}),
 		"clients":            page(map[string]any{"id": "C1", "name": "Northlight Pictures"}),
+		"companies":          page(map[string]any{"custom_fields": map[string]any{"expense3": "EÜR|Arbeitsmittel,GWG"}}),
 	}
 	return serve(t, func(rw http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/api/v1/")
@@ -240,6 +242,53 @@ func TestApplyWritesConfirmedSteps(t *testing.T) {
 	}
 }
 
+// The EÜR line of a new expense comes from the vendor's last expense,
+// never from the category; it is written when given and must be one of
+// the dropdown's values.
+func TestEuerLine(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	var w writes
+	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "1"))
+	if err := connections.SetOptions(d, who, conn, map[string]any{sources.OptEuerSlot: 3}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+
+	p, err := vatcheck.Open(ctx, d, who, "", thisMonth(), time.Now().UTC())
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	drafts := map[string]metrics.ExpenseDraft{}
+	for _, c := range p.Cases {
+		drafts[c.Txn.Key] = c.Draft
+	}
+	if drafts["b2"].Euer != "Arbeitsmittel" || drafts["b3"].Euer != "" || !slices.Equal(p.EuerLines, []string{"Arbeitsmittel", "GWG"}) {
+		t.Fatalf("drafts b2 %q b3 %q, lines %v", drafts["b2"].Euer, drafts["b3"].Euer, p.EuerLines)
+	}
+
+	steps := []workbench.Step{
+		{Case: "b2", Action: string(metrics.ActionCreate), Fields: map[string]string{vatcheck.FieldVendor: "Kabelwerk Studiobedarf", vatcheck.FieldCategory: "c1", vatcheck.FieldEuer: "GWG"}},
+		{Case: "b3", Action: string(metrics.ActionCreate), Fields: map[string]string{vatcheck.FieldVendor: "Nordhost Server", vatcheck.FieldCategory: "c1", vatcheck.FieldEuer: "Quatsch"}},
+	}
+	plan, err := vatcheck.Review(ctx, d, who, scopeOf(conn), steps)
+	if err != nil {
+		t.Fatalf("review: %v", err)
+	}
+	if plan.Steps[0].Item.Euer != "GWG" || plan.Steps[1].Problem != vatcheck.ProblemEuer {
+		t.Fatalf("plan: %+v", plan.Steps)
+	}
+
+	if _, err := vatcheck.Apply(ctx, d, who, scopeOf(conn), steps[:1], ""); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	for i, seen := range w.list() {
+		if seen == "POST /api/v1/expenses" && w.body[i]["custom_value3"] != "GWG" {
+			t.Errorf("expense body: %v", w.body[i])
+		}
+	}
+}
+
 // Roles named per account: the private account's train pass waits apart
 // until its vendor has expenses; two accounts of one name are told apart
 // by their number.
@@ -256,6 +305,19 @@ func TestAccounts(t *testing.T) {
 	}
 	if len(p.Accounts) != 2 || p.Accounts[0].Name != "Girokonto ··1111" || p.Accounts[1].Name != "Girokonto ··2222" || !p.CanSet {
 		t.Fatalf("accounts: %+v can set %v", p.Accounts, p.CanSet)
+	}
+
+	// Ignoring an account alone sets nothing up; its bookings leave, the
+	// account stays to be set back.
+	ignore := []vatcheck.Role{{ConnID: conn, Key: "a2", Role: sources.RoleIgnored}}
+	if err := vatcheck.SaveRoles(ctx, d, who, scopeOf(conn), ignore, ""); err != nil {
+		t.Fatal(err)
+	}
+	if p, err = vatcheck.Open(ctx, d, who, scopeOf(conn), thisMonth(), time.Now().UTC()); err != nil {
+		t.Fatal(err)
+	}
+	if p.SetUp || len(p.Accounts) != 2 || p.Accounts[1].Role != sources.RoleIgnored || slices.ContainsFunc(p.Cases, func(c vatcheck.Case) bool { return c.Txn.AccountKey == "a2" }) {
+		t.Fatalf("ignored: set up %v, accounts %+v, cases %+v", p.SetUp, p.Accounts, p.Cases)
 	}
 
 	roles := []vatcheck.Role{{ConnID: conn, Key: "a1", Role: sources.RoleBusiness}, {ConnID: conn, Key: "a2", Role: sources.RolePrivate}}

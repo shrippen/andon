@@ -7032,7 +7032,7 @@ caps:
   note: 'Nur teilweise nutzbar:'
 verbund:
   categories: Kategorien
-  categories_lead: 'Welche Ninja-Kategorie eine Sure-Kategorie meint und in welche EÜR-Zeile eine Ninja-Kategorie gehört. Andon schlägt aus Buchungen vor, die beide Seiten schon haben; es gilt erst nach dem Speichern.'
+  categories_lead: 'Welche Ninja-Kategorie eine Sure-Kategorie meint und in welchem Zusatzfeld die EÜR-Zeile steht. Andon schlägt aus Buchungen vor, die beide Seiten schon haben; es gilt erst nach dem Speichern.'
   categories_saved: 'Kategorien gespeichert.'
   cat_sure_title: '{bank} → Invoice Ninja'
   cat_sure_lead: 'Damit landen Sures automatische Kategorien beim Anlegen einer Ausgabe im USt-Abgleich in der richtigen Ninja-Kategorie.'
@@ -7040,11 +7040,9 @@ verbund:
   cat_suggested: 'Vorschlag'
   cat_sure_none: 'Sure kennt noch keine Kategorien für Abbuchungen.'
   cat_euer_title: 'Invoice Ninja → EÜR'
-  cat_euer_lead: 'Die EÜR-Zeile steht in einem Zusatzfeld der Ausgabe. Wähle das Feld und die Zeile je Kategorie; die Werkbank „EÜR-Zuordnung“ füllt danach leere Felder.'
+  cat_euer_lead: 'Die EÜR-Zeile steht in einem Zusatzfeld jeder Ausgabe, unabhängig von ihrer Kategorie. Der USt-Abgleich füllt es beim Anlegen, die Werkbank „EÜR-Zuordnung“ ergänzt leere Felder.'
   cat_euer_field: 'Zusatzfeld mit der EÜR-Zeile'
-  cat_ninja: 'Ninja-Kategorie'
-  cat_euer_line: 'EÜR-Zeile'
-  cat_used: 'So gebucht'
+  cat_euer_lines: 'Zeilen im Feld: {lines}'
   cat_euer_none: 'Wähle zuerst das Zusatzfeld. In Invoice Ninja unter Einstellungen → Benutzerdefinierte Felder → Ausgaben.'
   cat_save: 'Speichern'
   cat_to_euer: 'Zur EÜR-Zuordnung'
@@ -7060,6 +7058,7 @@ verbund:
   no_accounts: 'Kein Mitglied dieses Verbunds kennt Bankkonten (Invoice Ninja, Sure, Firefly III).'
   account_taken: 'Dieses Konto gehört schon zu einer anderen Zeile.'
   unknown_account: 'Konto nicht gefunden; Daten neu laden.'
+  unknown_role: 'Rolle unbekannt.'
   customers: Kunden
   customers_lead: 'Welcher Kunde in Invoice Ninja welcher Kunde in Kimai, welcher Zahler in Sure und welcher Korrespondent in Paperless ist. Andon schlägt den ähnlichsten Namen vor; gespeichert wird erst, was du bestätigst. Invoice Ninja führt die Namen: „Namen übernehmen“ schreibt ihn nach Kimai. Ohne Zuordnung entscheidet der gleiche Name.'
   customers_how: 'Je Feld: „–“ lässt den Namen entscheiden, „Kein Gegenstück“ sagt, dass es dort keinen gibt.'
@@ -7219,12 +7218,14 @@ vatcheck:
   payment_line: 'Zahlung {number} vom {day}, schon gebucht (etwa über die Abrechnung)'
   do_payment: 'Umsatz mit Zahlung {number} verknüpfen'
   accounts_title: Konten
-  accounts_lead: 'Wofür ist welches Konto? Abbuchungen privater Konten schlägt Andon nur vor, wenn der Lieferant schon Ausgaben hat, etwa das privat bezahlte Deutschlandticket. Die Einordnung gilt für die ganze Verbindung, im Verbund auch für das verknüpfte Konto in Sure, und für alle Auswertungen.'
+  accounts_lead: 'Wofür ist welches Konto? Abbuchungen privater Konten schlägt Andon nur vor, wenn der Lieferant schon Ausgaben hat, etwa das privat bezahlte Deutschlandticket. Die Einordnung gilt für die ganze Verbindung, im Verbund auch für das verknüpfte Konto in Sure, und für alle Auswertungen. Ignorierte Konten (etwa ein Depot) fehlen in allen Auswertungen.'
   accounts_unknown: 'nicht eingeordnet'
   accounts_verbund: 'Konten im Verbund verknüpfen →'
   accounts_business: geschäftlich
   accounts_private: privat
   accounts_reserve: Rücklage
+  accounts_ignored: ignoriert
+  accounts_suggested: Vorschlag
   accounts_save: Speichern
   accounts_saved: 'Konten gespeichert.'
   accounts_ro: 'Die Konten legt fest, wer die Einstellungen dieses Bereichs ändern darf.'
@@ -7278,6 +7279,7 @@ vatcheck:
   vendor: Lieferant
   category: Kategorie
   no_category: Ohne Kategorie
+  no_euer: 'Ohne {field}'
   tax: Steuer
   no_tax: Ohne Steuer
   from_history: 'Kategorie und Steuer aus der letzten Ausgabe dieses Lieferanten'
@@ -7320,6 +7322,7 @@ vatcheck:
   problem_gone: 'Schon gebucht oder nicht mehr da: übersprungen.'
   problem_target: 'Ausgabe oder Rechnung passt nicht mehr: übersprungen.'
   problem_no_vendor: 'Ohne Lieferant legt Andon keine Ausgabe an: übersprungen.'
+  problem_euer: 'Keine Zeile des EÜR-Felds: übersprungen.'
   problem_not_booked: 'Invoice Ninja hat den Umsatz nicht gebucht.'
 workbench:
   err_nothing: 'Nichts ausgewählt.'
@@ -7395,16 +7398,17 @@ journal:
   act_tandoor_check: 'Einkauf abgehakt'
 euer:
   title: 'EÜR-Zuordnung'
-  lead: 'Ausgaben des Jahres, deren EÜR-Feld leer ist. Vorgeschlagen wird die Zeile ihrer Kategorie (Verbund → Kategorien); angehakt wird nach dem Prüfen in Invoice Ninja geschrieben.'
+  lead: 'Ausgaben des Jahres, deren EÜR-Feld leer ist. Vorgeschlagen wird die Zeile der letzten Ausgabe desselben Lieferanten, nie die der Kategorie; angehakt wird nach dem Prüfen in Invoice Ninja geschrieben.'
   years: Jahre
   setup_title: 'Welches Feld hält die EÜR-Zeile?'
-  setup_text: 'Die EÜR-Zeile steht in einem Zusatzfeld der Ausgabe. Wähle es im Verbund unter Kategorien und ordne dort die Kategorien zu.'
+  setup_text: 'Die EÜR-Zeile steht in einem Zusatzfeld der Ausgabe. Wähle es im Verbund unter Kategorien.'
   setup_link: 'Kategorien öffnen'
-  cases: 'Ausgaben ohne {field}: {n}, davon mit Vorschlag: {mapped}.'
-  mapping: 'Zuordnung ändern'
+  cases: 'Ausgaben ohne {field}: {n}, mit Vorschlag vom Lieferanten: {suggested}.'
+  mapping: 'Feld ändern'
   expense: Ausgabe
   line: 'EÜR-Zeile'
-  no_mapping: 'Kategorie ohne Zuordnung'
+  from_vendor: 'wie zuletzt bei diesem Lieferanten'
+  no_vendor: 'Lieferant ohne frühere Zeile'
   review: 'Prüfen'
   empty: 'Alle Ausgaben aus {year} haben ihre EÜR-Zeile.'
   review_title: 'EÜR-Zeilen bestätigen'
@@ -7416,6 +7420,7 @@ euer:
   failed: 'Nicht erledigt: {n}.'
   problem_gone: 'Schon gesetzt oder nicht mehr da: übersprungen.'
   problem_line: 'Ohne Zeile: übersprungen.'
+  problem_value: 'Keine Zeile des Felds: übersprungen.'
   err_no_ninja: 'Keine Invoice-Ninja-Verbindung, die du nutzen darfst.'
   err_demo: 'Die Demo schreibt nicht in Invoice Ninja.'
 vendors:

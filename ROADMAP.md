@@ -1244,6 +1244,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [x] Verbund → „Kategorien“: Sure-Kategorie → Ninja-Kategorie (Vorschlag aus gemeinsamen Buchungen, sonst gleicher Name) und Ninja-Kategorie → EÜR-Zeile (Zusatzfeld der Ausgabe, erkannt am Namen „EÜR“, Auswahl aus den Dropdown-Werten des Felds; Vorschlag aus den Ausgaben der Kategorie). Gespeichert an der Invoice-Ninja-Verbindung (`category_map`, `euer_slot`, `euer_map`), braucht VERWALTEN
    - [x] Werkbank „EÜR-Zuordnung“ (`/euer`, Navigation „EÜR“): Ausgaben eines Jahres mit leerem EÜR-Feld, Zeile der Kategorie vorgewählt, ohne Zuordnung selbst wählbar; Prüfen, Schreiben (`custom_valueN`), Journal mit Rückgängig
    - [x] `/vat` nimmt die Ninja-Kategorie aus der Zuordnung statt nach Namen, und eine neu angelegte Ausgabe bekommt gleich ihre EÜR-Zeile
+   - [x] EÜR-Zeile unabhängig von der Kategorie (Owner, 27.10.2026: „Software“ gehört je Ausgabe zu EDV, GWG oder AfA): Zuordnung Kategorie → EÜR (`euer_map`) entfällt; Vorschlag nur aus der letzten Ausgabe desselben Lieferanten, nie vorab angehakt; `/vat` wählt die Zeile je neuer Ausgabe, `/euer` prüft und ergänzt
    - [x] Kategorien auch ohne gespeicherten Verbund: `/categories?ninja=…&bank=…`, von `/euer` verlinkt
    - [ ] Offen: Sures Tags zusätzlich zur Kategorie *(zurückgestellt 16.10.2026: im echten Sure trägt keine der 431 Buchungen einen Tag)*
 3. Auf `/vat`

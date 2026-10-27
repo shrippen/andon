@@ -19,7 +19,6 @@ import (
 // Field prefixes of the categories form.
 const (
 	catSure = "sure:"
-	catEuer = "euer:"
 )
 
 func (d Deps) handleVerbundCategories(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -51,14 +50,11 @@ func (d Deps) handleVerbundCategories(w http.ResponseWriter, r *http.Request, ct
 
 // categorySave reads the categories form.
 func categorySave(r *http.Request) verbund.CategorySave {
-	in := verbund.CategorySave{Sure: map[string]string{}, Euer: map[string]string{}}
+	in := verbund.CategorySave{Sure: map[string]string{}}
 	in.Slot, _ = strconv.Atoi(r.PostForm.Get("euer_slot"))
 	for name, v := range r.PostForm {
-		switch {
-		case strings.HasPrefix(name, catSure):
+		if strings.HasPrefix(name, catSure) {
 			in.Sure[strings.TrimPrefix(name, catSure)] = v[0]
-		case strings.HasPrefix(name, catEuer):
-			in.Euer[strings.TrimPrefix(name, catEuer)] = v[0]
 		}
 	}
 	return in
