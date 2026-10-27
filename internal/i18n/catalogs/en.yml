@@ -7214,10 +7214,9 @@ vatcheck:
   check_receipts_done: 'Every expense has its receipt.'
   scan: Receipt
   no_scan: No receipt from Paperless
-  scan_option: 'Receipt: {title} of {day} (score {score})'
   do_scan: 'link receipt “{title}”'
   problem_scan: 'Expense created, the receipt could not be linked. Do it under Receipts.'
-  act_payment: Link to the payment booked already
+  act_payment: 'To payment'
   payment_line: 'Payment {number} of {day}, booked already (say from billing)'
   do_payment: 'Link the transaction to payment {number}'
   accounts_title: Accounts
@@ -7237,7 +7236,7 @@ vatcheck:
   private_account: Private account
   mixed_account: Mixed account
   apart_title: 'Private or mixed, without a proposal: {n}'
-  apart_hint: 'Debits of private and mixed accounts to vendors without expenses. Tick a business one and create its expense; archive the rest as private.'
+  apart_hint: 'Debits of private and mixed accounts to vendors without expenses. Open a business one and take it as an expense; the rest can be archived as private.'
   apart_all: 'Archive all as private ({n})'
   problem_not_archived: 'Invoice Ninja did not archive the transaction.'
   open_page: 'Match bank transactions before the VAT return →'
@@ -7276,22 +7275,17 @@ vatcheck:
   method_soll: accrual basis (invoice date)
   cases: Open transactions
   no_cases: 'No open transactions in this period.'
-  pick: Take
   proposal: Proposal
-  act_link: Link to expense
-  act_create: Create expense
-  act_invoice: Book payment of invoice
-  act_skip: 'Private: archive in Invoice Ninja'
+  act_link: 'Assign existing'
+  act_create: 'New expense'
+  act_invoice: 'To invoice'
+  act_skip: 'Private'
   vendor: Vendor
   category: Category
   no_category: No category
   no_euer: 'No {field}'
   tax: Tax
   no_tax: No tax
-  from_history: 'Category and tax from this vendor''s last expense'
-  from_sure: 'Merchant and category from Sure; check the tax'
-  from_model: 'Proposed by Claude; check it'
-  from_nothing: 'Unknown vendor: check the details'
   sure_twin: The same booking in Sure
   guess: Ask Claude for proposals
   guess_again: Ask Claude again
@@ -7330,6 +7324,52 @@ vatcheck:
   problem_no_vendor: 'Andon creates no expense without a vendor: skipped.'
   problem_euer: 'Not a line of the EUER field: skipped.'
   problem_not_booked: 'Invoice Ninja did not book the transaction.'
+  act_link_hint: 'The expense is in Invoice Ninja already; Andon attaches the transaction'
+  act_create_hint: 'New expense in Invoice Ninja, linked to the transaction'
+  act_invoice_hint: 'Book the transaction as payment of the open invoice'
+  act_payment_hint: 'The payment is booked already; Andon links the transaction to it'
+  act_skip_hint: 'Book nothing; Invoice Ninja archives the transaction as private.'
+  head: '{open} open · {scan} without a scan'
+  head_euer: '{n} without an EUER line'
+  head_ready: '{n} ready'
+  legend_has: 'part set'
+  legend_missing: 'missing'
+  legend_ready: 'ready'
+  keys: 'j and k switch the transaction.'
+  ready: 'ready'
+  expense: 'Expense'
+  scan_title: 'Scan from Paperless'
+  scan_search: 'Search Paperless: title, content, number …'
+  scan_find: 'Search'
+  scan_found: 'Scans found'
+  scan_none: 'Nothing found.'
+  scan_score: 'Score'
+  from_booking: 'From the transaction'
+  currency: 'Currency'
+  gross: 'Amount includes the tax'
+  paid: 'Paid on {day}'
+  bill: 'Bill the client'
+  expense_title: 'Expense in Invoice Ninja'
+  note: 'Public note'
+  tax_pick: 'Pick a tax'
+  origin_known: 'existing'
+  origin_new: 'new'
+  origin_history: 'last expense'
+  origin_sure: 'Sure'
+  origin_model: 'Claude'
+  origin_vendor: 'as before'
+  origin_scan: 'scan'
+  origin_booking: 'transaction'
+  number: 'Invoice no.'
+  taken: 'to review'
+  take_next: 'Take and next'
+  later: 'Later'
+  take_ready: 'Review all ready'
+  do_number: 'invoice no. {number}'
+  do_note: '“{note}”'
+  do_bill: 'bill the client'
+  do_unpaid: 'not paid'
+  do_net: 'amount without tax'
 workbench:
   err_nothing: 'Nothing selected.'
   scope: 'Bundle'

@@ -78,6 +78,8 @@ type Page struct {
 	Ledger    Ledger
 	Euer      string   // the EÜR field's name, "" not chosen (Verbund → Kategorien)
 	EuerLines []string // its choices (metrics.EuerChoices)
+	Number    bool     // the invoice number has a field (receipts)
+	NumberOf  string   // its name, "" unnamed
 	Interval  string   // monthly, quarterly
 	Method    string   // ist, soll
 	Currency  string
@@ -116,8 +118,11 @@ type SpanCard struct {
 // the Paperless scans fitting a new expense.
 type Case struct {
 	metrics.BankCase
-	Guess *assist.Guess
-	Scans []receipts.Candidate
+	Guess  *assist.Guess
+	Scans  []receipts.Candidate
+	Number string // a new expense's invoice number: the proposed scan's
+	Note   string // its public note: the booking's text
+	parts  []Part // the parts it counts (partsOf)
 }
 
 // Account is a bank account of Invoice Ninja or Sure and its role.
@@ -146,6 +151,8 @@ type book struct {
 	settings map[string]any
 	state    state
 	cats     sources.Categories // the Verbund's mappings (verbund → categories)
+	// numberSlot is the invoice number's custom field (receipts), 0 none.
+	numberSlot int
 }
 
 // Open builds the page for Verbund scope ("": the last or only one) and
@@ -189,11 +196,15 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 	if slot := b.cats.EuerSlot; slot > 0 {
 		p.Euer, p.EuerLines = b.ninja.ExpenseFields[slot-1].Label, metrics.EuerChoices(b.ninja, slot)
 	}
+	if b.numberSlot > 0 {
+		p.Number, p.NumberOf = true, b.ninja.ExpenseFields[b.numberSlot-1].Label
+	}
+	parts := partsOf(p.Euer != "", p.Number)
 	vendorEuer := metrics.VendorEuer(b.ninja, b.cats.EuerSlot)
 	guesses := b.state.guesses(b.conn.ID)
 	for _, c := range cases {
 		g, ok := guesses[c.Txn.Key]
-		cs := Case{BankCase: c}
+		cs := Case{BankCase: c, parts: parts}
 		b.mapped(&cs)
 		if ok {
 			cs.Guess = &g
@@ -201,8 +212,14 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 			b.apply(&cs)
 		}
 		cs.Draft.Euer = vendorEuer[cs.Draft.VendorKey]
-		if cs.Txn.Debit && cs.Action == metrics.ActionCreate {
+		if cs.Txn.Debit {
+			cs.Note = noteOf(cs.Txn)
+		}
+		if cs.Creates() {
 			cs.Scans, _ = receipts.ScansFor(ctx, d, who, b.conn.ID, cs.Txn.Amount, cs.Txn.Date, cs.Draft.Vendor)
+		}
+		if cs.Scan() != 0 && b.numberSlot > 0 {
+			cs.Number = cs.Scans[0].Number
 		}
 		if cs.Waiting() {
 			p.Cases = append(p.Cases, cs)
@@ -399,6 +416,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 	b.scope, b.choose = workbench.Pick(scopes, scope)
 	b.conn = b.scope.Conn(enums.ServiceInvoiceNinja)
 	b.cats = sources.CategoriesOf(b.conn.Options)
+	b.numberSlot = receipts.InvoiceSlotOf(b.conn)
 	for _, service := range need.Optional {
 		if b.bankConn == nil {
 			b.bankConn = b.scope.Conn(service)
@@ -448,3 +466,18 @@ func fetch(ctx context.Context, d *sql.DB, who *access.Principal, conn *model.Co
 type FetchError struct{ Msg string }
 
 func (e FetchError) Error() string { return e.Msg }
+
+// Search looks in Paperless for scans for transaction key's new expense
+// of vendor: query in title and content, within the booking's year.
+func Search(ctx context.Context, d *sql.DB, who *access.Principal, scope, key, vendor, query string) ([]receipts.Candidate, error) {
+	b, _, err := load(ctx, d, who, scope, svcdata.Stored)
+	if err != nil {
+		return nil, err
+	}
+	i := slices.IndexFunc(b.ninja.BankTxns, func(t sources.NinjaBankTxn) bool { return t.Key == key })
+	if i < 0 {
+		return nil, nil
+	}
+	t := b.ninja.BankTxns[i]
+	return receipts.FindScans(ctx, d, who, b.conn.ID, t.Amount, t.Date, vendor, query)
+}

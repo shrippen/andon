@@ -99,6 +99,7 @@ func (f Factor) Width() int { return f.Points * full / max(f.Max, 1) }
 type Candidate struct {
 	Doc     sources.ReceiptDoc
 	Amount  float64 // the scan's amount as found, 0 = none
+	Number  string  // the invoice number Paperless holds for it, "" none (ScansFor, FindScans)
 	Score   int
 	Factors []Factor
 }

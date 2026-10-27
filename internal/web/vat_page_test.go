@@ -2,6 +2,7 @@ package web_test
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
@@ -30,14 +31,17 @@ func TestVATPage(t *testing.T) {
 
 	month := time.Now().UTC().Format("2006-01")
 	page = string(mustGet(t, srv, client, "/vat?span="+month))
-	for _, want := range []string{"Offene Umsätze", "Kabelwerk Studiobedarf", `name="act_demo-b-studio"`, "Zahllast", "ELSTER-Kennzahlen", "Vorauszahlung (Zahllast)", "data-copy="} {
+	for _, want := range []string{"Offene Umsätze", "Kabelwerk Studiobedarf", `name="act_demo-b-studio"`, "data-vat-bench", `class="bench-entry"`, `data-desk="demo-b-studio"`,
+		`name="note_demo-b-studio"`, "Zahllast", "ELSTER-Kennzahlen", "Vorauszahlung (Zahllast)", "data-copy="} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("page lacks %q:\n%s", want, page)
 		}
 	}
 
 	form := url.Values{"csrf": {csrfToken(t, srv, client)}, "span": {month}, "pick": {"demo-b-studio"},
-		"act_demo-b-studio": {"create"}, "vendor_demo-b-studio": {"Kabelwerk Studiobedarf"}, "tax_demo-b-studio": {"19"}}
+		"act_demo-b-studio": {"create"}, "vendor_demo-b-studio": {"Kabelwerk Studiobedarf"}, "tax_demo-b-studio": {"19"},
+		"num_demo-b-studio": {"KW-56107"}, "note_demo-b-studio": {"Lichtstative"}, "bill_demo-b-studio": {"on", "off"},
+		"paid_demo-b-studio": {"off"}, "gross_demo-b-studio": {"off"}}
 	resp, err := client.PostForm(srv.URL+"/vat/review", form)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Fatalf("review: %v %v", resp, err)
@@ -45,6 +49,11 @@ func TestVATPage(t *testing.T) {
 	review := readBody(t, resp)
 	if !strings.Contains(review, "Ausgabe „Kabelwerk Studiobedarf“ anlegen") || !strings.Contains(review, "Vorsteuer 143,54") {
 		t.Fatalf("review lacks the step:\n%s", review)
+	}
+	for _, want := range []string{"Rechnungsnr. KW-56107", "„Lichtstative“", "in Rechnung stellen", "nicht bezahlt", "Betrag ohne Steuer"} {
+		if !strings.Contains(review, want) {
+			t.Fatalf("review lacks %q:\n%s", want, review)
+		}
 	}
 
 	// The review sends back what it showed (bench_step).
@@ -126,10 +135,24 @@ func TestVATScanOffer(t *testing.T) {
 	now := time.Now().UTC()
 	for _, month := range []string{now.Format("2006-01"), now.AddDate(0, -1, 0).Format("2006-01")} {
 		if page := string(mustGet(t, srv, client, "/vat?span="+month)); strings.Contains(page, `name="scan_demo-b-scan"`) {
+			scanSearch(t, srv, client)
 			return
 		}
 	}
 	t.Fatal("no scan offered for the debit of a waiting scan")
+}
+
+// scanSearch: the desk's search finds Paperless scans to pick, and an
+// empty one says so.
+func scanSearch(t *testing.T, srv *httptest.Server, client *http.Client) {
+	t.Helper()
+	found := string(mustGet(t, srv, client, "/vat/scans?case=demo-b-scan&q_demo-b-scan=Rechnung"))
+	if !strings.Contains(found, `name="scan_demo-b-scan"`) || !strings.Contains(found, "/receipts/thumb/") {
+		t.Fatalf("search offers no scan:\n%s", found)
+	}
+	if none := string(mustGet(t, srv, client, "/vat/scans?case=demo-b-scan&q_demo-b-scan=")); !strings.Contains(none, "Nichts gefunden") {
+		t.Fatalf("empty search:\n%s", none)
+	}
 }
 
 // Two Invoice Ninjas: the page asks which to work in, and a pick sticks

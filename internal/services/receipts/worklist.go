@@ -288,9 +288,55 @@ func ScansFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int
 	var out []Candidate
 	for _, doc := range p.free(docs.Docs) {
 		if c := x.score(e, doc); c.Score >= levelMid {
+			c.Number = docNumber(p.mapping, doc)
 			out = append(out, c)
 		}
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Score > out[j].Score })
 	return out[:min(len(out), scansOffered)], nil
+}
+
+// FindScans searches Paperless for free scans for a new expense of the
+// VAT check: query in title and content, within the year of day; best
+// first. Without receipts set up for that Invoice Ninja it finds none.
+func FindScans(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int64, amount float64, day, vendor, query string) ([]Candidate, error) {
+	p, err := openPair(d, who)
+	if errors.Is(err, ErrNoPair) || (err == nil && (p.ninja.ID != ninjaID || !p.mapping.Complete())) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	year, err := strconv.Atoi(day[:min(len(day), len("2006"))])
+	if err != nil || strings.TrimSpace(query) == "" {
+		return nil, nil
+	}
+	sctx, err := p.sourceCtx(d, who, p.docs)
+	if err != nil {
+		return nil, err
+	}
+	e := sources.ReceiptExpense{Amount: amount, Day: day, Vendor: vendor}
+	found, err := sources.PaperlessSearch(ctx, sctx, searchOf(e, SearchInput{Query: query, Year: year}, p.mapping))
+	if err != nil {
+		return nil, FetchError{err.Error()}
+	}
+
+	x := p.matcher()
+	var out []Candidate
+	for _, doc := range p.free(found) {
+		c := x.score(e, doc)
+		c.Number = docNumber(p.mapping, doc)
+		out = append(out, c)
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Score > out[j].Score })
+	return out[:min(len(out), scansFound)], nil
+}
+
+// scansFound is how many hits FindScans offers.
+const scansFound = 8
+
+// docNumber is the invoice number Paperless holds for doc, "" none.
+func docNumber(m Mapping, doc sources.ReceiptDoc) string {
+	n, _ := doc.Custom[m.FieldInvoice].(string)
+	return strings.TrimSpace(n)
 }

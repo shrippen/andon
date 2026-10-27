@@ -91,7 +91,7 @@ func (e FetchError) Error() string { return e.Msg }
 
 // Connection option keys of the mapping.
 const (
-	optInvoiceSlot  = "receipt_invoice_slot"
+	OptInvoiceSlot  = "receipt_invoice_slot" // Invoice Ninja: the invoice number's custom field
 	optLinkSlot     = "receipt_link_slot"
 	optFieldInvoice = "receipt_field_invoice"
 	optFieldExpense = "receipt_field_expense"
@@ -219,6 +219,41 @@ func openPair(d *sql.DB, who *access.Principal) (pair, error) {
 	return p, err
 }
 
+// InvoiceSlotOf is the invoice number's custom field of an Invoice Ninja
+// (its options), 0 not chosen; a demo connection comes mapped.
+func InvoiceSlotOf(ninja *model.Connection) int {
+	opts := ninja.Options
+	if sources.IsDemo(ninja.URL) && opts[optLinkSlot] == nil {
+		opts, _ = sources.DemoReceiptOptions()
+	}
+	return slotOf(opts, OptInvoiceSlot)
+}
+
+// num reads a number option, whatever JSON or a form made of it.
+func num(opts map[string]any, key string) int64 {
+	switch v := opts[key].(type) {
+	case float64:
+		return int64(v)
+	case int:
+		return int64(v)
+	case int64:
+		return v
+	case string:
+		n, _ := strconv.ParseInt(v, 10, 64)
+		return n
+	}
+	return 0
+}
+
+// slotOf reads an Invoice Ninja custom field option: 1 … 4, else 0.
+func slotOf(opts map[string]any, key string) int {
+	n := int(num(opts, key))
+	if n < 1 || n > sources.NinjaSlots {
+		return 0
+	}
+	return n
+}
+
 // mappingOf reads the mapping from both connections' options; demo
 // connections come mapped.
 func mappingOf(ninja, docs *model.Connection) Mapping {
@@ -226,30 +261,9 @@ func mappingOf(ninja, docs *model.Connection) Mapping {
 	if sources.IsDemo(ninja.URL) && sources.IsDemo(docs.URL) && nOpts[optLinkSlot] == nil {
 		nOpts, dOpts = sources.DemoReceiptOptions()
 	}
-	num := func(opts map[string]any, key string) int64 {
-		switch v := opts[key].(type) {
-		case float64:
-			return int64(v)
-		case int:
-			return int64(v)
-		case int64:
-			return v
-		case string:
-			n, _ := strconv.ParseInt(v, 10, 64)
-			return n
-		}
-		return 0
-	}
-	slot := func(key string) int {
-		n := int(num(nOpts, key))
-		if n < 1 || n > sources.NinjaSlots {
-			return 0
-		}
-		return n
-	}
 	tag, _ := dOpts[optQueueTag].(string)
 	return Mapping{
-		InvoiceSlot: slot(optInvoiceSlot), LinkSlot: slot(optLinkSlot),
+		InvoiceSlot: slotOf(nOpts, OptInvoiceSlot), LinkSlot: slotOf(nOpts, optLinkSlot),
 		FieldInvoice: num(dOpts, optFieldInvoice), FieldExpense: num(dOpts, optFieldExpense),
 		FieldLink: num(dOpts, optFieldLink), FieldAmount: num(dOpts, optFieldAmount), QueueTag: strings.TrimSpace(tag),
 	}
