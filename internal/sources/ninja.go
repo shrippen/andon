@@ -411,7 +411,8 @@ func loadNinjaBank(ctx context.Context, api services.NinjaApi, since string) nin
 }
 
 // setRoles marks each bank account and its transactions with the role
-// the user named; transactions of ignored accounts leave the data.
+// the user named; transactions of ignored accounts leave the data. It
+// runs once, on freshly fetched data (see BankData.setRoles).
 func (d *NinjaDataset) setRoles(roles map[string]AccountRole) {
 	for i := range d.BankAccounts {
 		d.BankAccounts[i].Role = roles[d.BankAccounts[i].Key]

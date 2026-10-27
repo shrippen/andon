@@ -22,12 +22,6 @@ func TestIgnoredAccounts(t *testing.T) {
 		t.Errorf("transactions: %+v", bank.Transactions)
 	}
 
-	// Run again with the depot set back, it returns to Accounts.
-	bank.setRoles(map[string]AccountRole{"giro": RoleBusiness})
-	if len(bank.Accounts) != 2 || len(bank.Ignored) != 0 {
-		t.Errorf("set back: accounts %+v, ignored %+v", bank.Accounts, bank.Ignored)
-	}
-
 	ninja := &NinjaDataset{BankAccounts: []NinjaBankAccount{{Key: "giro"}, {Key: "depot"}}, BankTxns: []NinjaBankTxn{{Key: "b1", AccountKey: "giro"}, {Key: "b2", AccountKey: "depot"}}}
 	ninja.setRoles(roles)
 	if len(ninja.BankAccounts) != 2 || len(ninja.BankTxns) != 1 || ninja.BankTxns[0].Key != "b1" {

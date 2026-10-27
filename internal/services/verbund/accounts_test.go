@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/model"
 	"andon/internal/services/connections"
+	"andon/internal/services/svcdata"
 	"andon/internal/services/verbund"
 	"andon/internal/sources"
 	"andon/internal/testkit"
@@ -141,5 +143,30 @@ func TestIgnoreAccount(t *testing.T) {
 	}
 	if d := v.Loose[0]; d.Key != "s-depot" || d.Role != sources.RoleIgnored || d.Suggest != sources.RoleUnknown {
 		t.Errorf("ignored depot: %+v", d)
+	}
+}
+
+// Setting an ignored account back brings its bookings back: the role
+// change forgets the cached data, the next fetch applies the new role.
+func TestIgnoreAccountBack(t *testing.T) {
+	w := newWorld(t)
+	_, sURL := accountFakes(t)
+	sure := testkit.Conn(t, w.d, w.user, w.own, enums.ServiceSure, sURL)
+	for _, role := range []sources.AccountRole{sources.RoleIgnored, sources.RoleBusiness} {
+		if err := verbund.SetRole(w.d, w.user, sure, "s-biz", role, ""); err != nil {
+			t.Fatal(err)
+		}
+		c, err := connections.ByID(w.d, sure)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res, err := svcdata.Get(context.Background(), w.d, "sure.data", nil, c, model.UserHolder(w.user.UserID), svcdata.Cached)
+		if err != nil {
+			t.Fatal(err)
+		}
+		bank := res.Data.(*sources.BankData)
+		if want := map[sources.AccountRole]int{sources.RoleIgnored: 0, sources.RoleBusiness: 2}[role]; len(bank.Transactions) != want {
+			t.Errorf("%s: %d bookings, want %d", role, len(bank.Transactions), want)
+		}
 	}
 }

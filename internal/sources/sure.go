@@ -221,9 +221,9 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 // setRoles marks each account and its transactions with the role the
 // user named; a booking without account id finds it by name (demo).
 // Ignored accounts and their bookings leave the data; Ignored keeps the
-// accounts for the pages that name roles.
+// accounts for the pages that name roles. It runs once, on freshly
+// fetched data: a role change forgets the cache (connections.SetOptions).
 func (d *BankData) setRoles(roles map[string]AccountRole) {
-	d.Accounts, d.Ignored = slices.Concat(d.Accounts, d.Ignored), nil
 	byName := map[string]string{}
 	for i := range d.Accounts {
 		a := &d.Accounts[i]
