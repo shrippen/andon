@@ -243,19 +243,20 @@
 {{define "vat_fill"}}{{$c := .C}}{{$p := .P}}{{$k := $c.Txn.Key}}{{$d := $c.Draft}}{{$for := "link"}}{{if eq $c.Act "fill"}}{{$for = "fill"}}{{end}}
 <div data-for="{{$for}}" data-fill{{if ne $c.Act $for}} hidden{{end}}>
   {{if eq $for "link"}}<label class="field"><span class="field-label">{{t "vatcheck.expense"}}</span>
-    <select class="select" name="exp_{{$k}}">{{range $c.Expenses}}<option value="{{.Key}}">{{.Number}} · {{day .Date}} · {{money .Amount $p.Currency}}</option>{{end}}</select></label>{{end}}
-  {{if $c.Lacks}}<div class="bench-cols">
-    <div class="bench-col">{{if $c.Gap "scan"}}{{template "vat_scans" dict "C" $c "P" $p "Field" "xscan"}}{{end}}</div>
+    <select class="select" name="exp_{{$k}}">{{range $c.Expenses}}<option value="{{.Key}}" data-gaps="{{$c.GapsOf .Key}}">{{.Number}} · {{day .Date}} · {{money .Amount $p.Currency}}</option>{{end}}</select></label>{{end}}
+  {{if $c.Offering}}<div class="bench-cols">
+    <div class="bench-col">{{if $c.Offers "scan"}}<div data-gap="scan"{{if not ($c.Gap "scan")}} hidden{{end}}>{{template "vat_scans" dict "C" $c "P" $p "Field" "xscan"}}</div>{{end}}</div>
     <div class="bench-col">
       <div class="h-label">{{if eq (len $c.Expenses) 1}}{{t "vatcheck.fill_title" "number" (index $c.Expenses 0).Number}}{{else}}{{t "vatcheck.fill_picked"}}{{end}}</div>
-      {{if $c.Gap "category"}}<label class="field"><span class="field-label">{{t "vatcheck.category"}}{{if $d.CategoryKey}}{{with $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</span>
+      {{if $c.Offers "category"}}<label class="field" data-gap="category"{{if not ($c.Gap "category")}} hidden{{end}}><span class="field-label">{{t "vatcheck.category"}}{{if $d.CategoryKey}}{{with $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</span>
         <select class="select" name="xcat_{{$k}}" data-part="category"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $d.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>{{end}}
-      {{if and $p.Euer ($c.Gap "euer")}}<label class="field"><span class="field-label">{{$p.Euer}}{{if $d.Euer}}<span class="field-origin">{{t "vatcheck.origin_vendor"}}</span>{{end}}</span>
+      {{if and $p.Euer ($c.Offers "euer")}}<label class="field" data-gap="euer"{{if not ($c.Gap "euer")}} hidden{{end}}><span class="field-label">{{$p.Euer}}{{if $d.Euer}}<span class="field-origin">{{t "vatcheck.origin_vendor"}}</span>{{end}}</span>
         <select class="select" name="xeuer_{{$k}}" data-part="euer"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select></label>{{end}}
-      {{if and $p.Number ($c.Gap "number")}}<label class="field"><span class="field-label">{{or $p.NumberOf (t "vatcheck.number")}}{{if $c.Number}}<span class="field-origin">{{t "vatcheck.origin_scan"}}</span>{{end}}</span>
+      {{if and $p.Number ($c.Offers "number")}}<label class="field" data-gap="number"{{if not ($c.Gap "number")}} hidden{{end}}><span class="field-label">{{or $p.NumberOf (t "vatcheck.number")}}{{if $c.Number}}<span class="field-origin">{{t "vatcheck.origin_scan"}}</span>{{end}}</span>
         <input class="input" name="xnum_{{$k}}" value="{{$c.Number}}" data-part="number"></label>{{end}}
-      {{if $c.Gap "note"}}<label class="field"><span class="field-label">{{t "vatcheck.note"}}{{if $c.Note}}<span class="field-origin">{{t "vatcheck.origin_booking"}}</span>{{end}}</span>
+      {{if $c.Offers "note"}}<label class="field" data-gap="note"{{if not ($c.Gap "note")}} hidden{{end}}><span class="field-label">{{t "vatcheck.note"}}{{if $c.Note}}<span class="field-origin">{{t "vatcheck.origin_booking"}}</span>{{end}}</span>
         <input class="input" name="xnote_{{$k}}" value="{{$c.Note}}" data-part="note"></label>{{end}}
+      <p class="small muted" data-gap-none{{if $c.Lacks}} hidden{{end}}>{{t "vatcheck.fill_none"}}</p>
     </div>
   </div>{{else}}<p class="small muted">{{t "vatcheck.fill_none"}}</p>{{end}}
 </div>{{end}}

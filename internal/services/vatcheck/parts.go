@@ -2,6 +2,7 @@ package vatcheck
 
 import (
 	"slices"
+	"strings"
 
 	"andon/internal/metrics"
 )
@@ -87,6 +88,36 @@ func (c Case) Gap(p Part) bool { return slices.Contains(c.gaps, p) }
 
 // Lacks says whether the expense found or filled lacks a part.
 func (c Case) Lacks() bool { return len(c.gaps) > 0 }
+
+// Offers says whether any expense the case may take lacks part p: the
+// page has its field, shown while that expense is picked.
+func (c Case) Offers(p Part) bool {
+	for _, gaps := range c.lacks {
+		if slices.Contains(gaps, p) {
+			return true
+		}
+	}
+	return false
+}
+
+// Offering says whether any expense the case may take lacks a part.
+func (c Case) Offering() bool {
+	for _, gaps := range c.lacks {
+		if len(gaps) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// GapsOf are expense key's gaps for the page: "euer scan".
+func (c Case) GapsOf(key string) string {
+	var out []string
+	for _, p := range c.lacks[key] {
+		out = append(out, string(p))
+	}
+	return strings.Join(out, " ")
+}
 
 // Done counts the parts it has.
 func (c Case) Done() int {

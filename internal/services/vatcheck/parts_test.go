@@ -1,7 +1,6 @@
 package vatcheck
 
 import (
-	"slices"
 	"testing"
 
 	"andon/internal/metrics"
@@ -37,8 +36,8 @@ func TestCaseParts(t *testing.T) {
 	}
 }
 
-// TestLinkGaps: a link offers the gaps of each expense it may take, not
-// only the first's, in the order of Parts.
+// TestLinkGaps: a link counts the gaps of the expense it takes first
+// and offers fields for each expense it may take, per expense.
 func TestLinkGaps(t *testing.T) {
 	b := book{scanSlot: 2}
 	b.cats.EuerSlot = 3
@@ -46,8 +45,13 @@ func TestLinkGaps(t *testing.T) {
 	full.Custom[1], full.Custom[2] = "https://docs/1", "Arbeitsmittel"
 	bare := sources.NinjaExpense{Key: "e2", CategoryKey: "c1", Notes: "Kabel"}
 
-	got := b.linkGaps([]sources.NinjaExpense{full, bare})
-	if !slices.Equal(got, []Part{PartEuer, PartScan}) {
-		t.Fatalf("gaps %v", got)
+	c := Case{BankCase: metrics.BankCase{Txn: sources.NinjaBankTxn{Debit: true}, Action: metrics.ActionLink,
+		Expenses: []sources.NinjaExpense{full, bare}}, parts: partsOf(true, false, true)}
+	b.gapped(&c)
+	if c.Lacks() || !c.Ready() {
+		t.Fatalf("the first expense is complete: gaps %v", c.gaps)
+	}
+	if !c.Offers("euer") || !c.Offers("scan") || c.Offers("note") || c.GapsOf("e2") != "euer scan" || c.GapsOf("e1") != "" {
+		t.Fatalf("offers %v", c.lacks)
 	}
 }

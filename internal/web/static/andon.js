@@ -2600,7 +2600,8 @@
   // without a field there is the booking's own or one the expense has.
   function benchHas(block, p) {
     var f = block.querySelector("[data-part=\"" + p + "\"]");
-    if (!f) {
+    var gap = f && f.closest("[data-gap]");
+    if (!f || (gap && gap.hidden)) {
       return true;
     }
     if (p === "scan") {
@@ -2760,6 +2761,21 @@
     }
   });
 
+  // benchGaps shows the fields the picked expense lacks:
+  // <option data-gaps="euer scan">.
+  function benchGaps(desk, sel) {
+    var opt = sel.options[sel.selectedIndex];
+    var gaps = ((opt && opt.getAttribute("data-gaps")) || "").split(/\s+/).filter(Boolean);
+    var block = benchBlock(desk);
+    [].forEach.call(block.querySelectorAll("[data-gap]"), function (el) {
+      el.hidden = gaps.indexOf(el.getAttribute("data-gap")) < 0;
+    });
+    var none = block.querySelector("[data-gap-none]");
+    if (none) {
+      none.hidden = gaps.length > 0;
+    }
+  }
+
   // A field or scan changed: count again; a scan brings its number
   // unless the user typed another.
   function benchChanged(e) {
@@ -2767,6 +2783,9 @@
     var desk = form && e.target.closest("[data-desk]");
     if (!desk) {
       return;
+    }
+    if (e.type === "change" && e.target.matches("select[name^=exp_]")) {
+      benchGaps(desk, e.target);
     }
     if (e.type === "change" && e.target.matches("input[data-part=scan]")) {
       var num = benchBlock(desk).querySelector("input[data-part=number]");

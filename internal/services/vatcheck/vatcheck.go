@@ -122,10 +122,11 @@ type Case struct {
 	metrics.BankCase
 	Guess  *assist.Guess
 	Scans  []receipts.Candidate
-	Number string // a new expense's invoice number: the proposed scan's
-	Note   string // its public note: the booking's text
-	parts  []Part // the parts it counts (partsOf)
-	gaps   []Part // what the expense found or filled lacks
+	Number string            // a new expense's invoice number: the proposed scan's
+	Note   string            // its public note: the booking's text
+	parts  []Part            // the parts it counts (partsOf)
+	gaps   []Part            // what the expense found or filled lacks
+	lacks  map[string][]Part // each candidate expense's gaps, by key
 }
 
 // Account is a bank account of Invoice Ninja or Sure and its role.
@@ -219,7 +220,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 		if cs.Txn.Debit {
 			cs.Note = noteOf(cs.Txn)
 		}
-		cs.gaps = b.linkGaps(cs.Expenses)
+		b.gapped(&cs)
 		b.propose(ctx, d, who, &cs)
 		if cs.Waiting() {
 			p.Cases = append(p.Cases, cs)
@@ -515,21 +516,22 @@ func (b book) gapsOf(e sources.NinjaExpense) []Part {
 	return out
 }
 
-// linkGaps are the parts any of a link's expenses lacks, in the order
-// of Parts: the page offers them for the one the user picks, the
-// write fills only that one's own (fill).
-func (b book) linkGaps(es []sources.NinjaExpense) []Part {
-	var lack []Part
-	for _, e := range es {
-		lack = append(lack, b.gapsOf(e)...)
+// gapped notes what a link's expenses lack: the first's counts, being
+// the one the page takes; the others' fields show when picked.
+func (b book) gapped(c *Case) {
+	c.lacks = map[string][]Part{}
+	for _, e := range c.Expenses {
+		c.lacks[e.Key] = b.gapsOf(e)
 	}
-	return slices.DeleteFunc(slices.Clone(Parts), func(p Part) bool { return !slices.Contains(lack, p) })
+	if len(c.Expenses) > 0 {
+		c.gaps = c.lacks[c.Expenses[0].Key]
+	}
 }
 
 // propose looks for the scans a case's expense may get, and takes the
 // best one's invoice number.
 func (b book) propose(ctx context.Context, d *sql.DB, who *access.Principal, cs *Case) {
-	wants := cs.Act() == metrics.ActionCreate || cs.Gap(PartScan)
+	wants := cs.Act() == metrics.ActionCreate || cs.Offers(PartScan)
 	if !cs.Counts() || b.scanSlot == 0 || !wants {
 		return
 	}
@@ -554,7 +556,8 @@ func (b book) gapCases(ctx context.Context, d *sql.DB, who *access.Principal, s 
 		vendor := b.vendorName(e.VendorKey)
 		txn := sources.NinjaBankTxn{Key: fillPrefix + e.Key, Date: e.Date, Payer: vendor, Description: e.Number, Amount: e.Amount, Debit: true}
 		cs := Case{BankCase: metrics.BankCase{Txn: txn, Expenses: []sources.NinjaExpense{e}, Action: ActionFill,
-			Draft: metrics.ExpenseDraft{Vendor: vendor, VendorKey: e.VendorKey, Euer: vendorEuer[e.VendorKey]}}, parts: parts, gaps: gaps}
+			Draft: metrics.ExpenseDraft{Vendor: vendor, VendorKey: e.VendorKey, Euer: vendorEuer[e.VendorKey]}}, parts: parts}
+		b.gapped(&cs)
 		b.propose(ctx, d, who, &cs)
 		out = append(out, cs)
 	}
