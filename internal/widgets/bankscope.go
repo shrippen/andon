@@ -46,9 +46,18 @@ func scoped(cfg any, results map[string]any) map[string]any {
 	out := make(map[string]any, len(results))
 	for k, v := range results {
 		if bank, ok := v.(*sources.BankData); ok {
-			v = bank.Only(s.scope())
+			v = bank.Only(scopeRoles(s.scope())...)
 		}
 		out[k] = v
 	}
 	return out
+}
+
+// scopeRoles are the accounts a choice reads: business ones with the
+// mixed and transfer accounts, private ones with the mixed.
+func scopeRoles(r sources.AccountRole) []sources.AccountRole {
+	if r == sources.RoleBusiness {
+		return sources.BusinessRoles
+	}
+	return sources.PrivateRoles
 }

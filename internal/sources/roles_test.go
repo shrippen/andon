@@ -47,3 +47,10 @@ func TestSuggestedRole(t *testing.T) {
 		}
 	}
 }
+
+// A credit card is suggested as a transfer account.
+func TestSuggestedCard(t *testing.T) {
+	if got := (BankAccount{Type: "credit_card"}).Suggested(); got != RoleTransfer {
+		t.Errorf("credit card: %q", got)
+	}
+}

@@ -328,7 +328,7 @@ func MissingReceipts(in ReceiptInputs) []sources.BankTxn {
 	for _, t := range in.Sure.Transactions {
 		d, ok := ParseDay(t.Date)
 		spent := -t.Amount
-		if !ok || d.Before(in.Since) || spent < in.MinAmount || !business(in, t) {
+		if !ok || d.Before(in.Since) || spent < in.MinAmount || t.Transfer || !business(in, t) {
 			continue
 		}
 		if !receiptFound(in, spent, d, near) {
@@ -338,11 +338,19 @@ func MissingReceipts(in ReceiptInputs) []sources.BankTxn {
 	return out
 }
 
-// business says whether a booking is on a business account: by the
-// account's role, else (no roles named yet) by the "accounts" setting.
+// business says whether a booking is business spending: by the
+// account's role (on a mixed account, only at a vendor with expenses),
+// else (no roles named yet) by the "accounts" setting.
 func business(in ReceiptInputs, t sources.BankTxn) bool {
+	if t.Role == sources.RoleMixed {
+		if in.Ninja == nil {
+			return false
+		}
+		_, known := lastExpense(in.Ninja, vendorKeyOf(subVendor(in.Ninja, t.Name)))
+		return known
+	}
 	if in.Sure.Classified() {
-		return t.Role == sources.RoleBusiness
+		return t.Role == sources.RoleBusiness || t.Role == sources.RoleTransfer
 	}
 	return businessAccount(t.Account, in.Accounts)
 }
@@ -416,7 +424,7 @@ func (s Spendable) Taxes() float64 { return max(s.VAT+s.IncomeTax-s.Reserve, 0) 
 func SafeToSpend(sure *sources.BankData, ninja *sources.NinjaDataset, today time.Time, interval, method string, taxRate float64) Spendable {
 	cash, reserve := sure, sure.Only(sources.RoleReserve)
 	if reserve != sure {
-		cash = sure.Only(sources.RoleBusiness, sources.RolePrivate, sources.RoleUnknown)
+		cash = sure.Only(sources.RoleBusiness, sources.RolePrivate, sources.RoleMixed, sources.RoleTransfer, sources.RoleUnknown)
 	} else {
 		reserve = &sources.BankData{}
 	}

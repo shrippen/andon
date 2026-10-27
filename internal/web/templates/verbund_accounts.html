@@ -70,5 +70,5 @@
      confirms it. */}}
 {{define "account_roles"}}{{$r := print .Role}}{{$s := print .Suggest}}
 <option value="">{{t "vatcheck.accounts_unknown"}}</option>
-{{range list "business" "private" "reserve" "ignored"}}{{$hint := and (not $r) (eq . $s)}}<option value="{{.}}"{{if or (eq . $r) $hint}} selected{{end}}>{{t (print "vatcheck.accounts_" .)}}{{if $hint}} ({{t "vatcheck.accounts_suggested"}}){{end}}</option>{{end}}
+{{range list "business" "private" "mixed" "transfer" "reserve" "ignored"}}{{$hint := and (not $r) (eq . $s)}}<option value="{{.}}"{{if or (eq . $r) $hint}} selected{{end}}>{{t (print "vatcheck.accounts_" .)}}{{if $hint}} ({{t "vatcheck.accounts_suggested"}}){{end}}</option>{{end}}
 {{end}}

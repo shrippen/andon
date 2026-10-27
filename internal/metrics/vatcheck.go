@@ -16,6 +16,12 @@ package metrics
 // a private account is proposed only for a vendor with expenses (the
 // train ticket paid privately); the rest waits, set apart. Incomes on
 // private accounts and transactions archived in Invoice Ninja drop out.
+// A mixed account's debits are treated like the private ones, its
+// incomes like the business ones. A transfer account (card, PayPal)
+// books its purchases; its settlement is a transfer:
+//
+//	Giro  −120 "Kartenabrechnung" ─┐ same amount, a few days apart
+//	Karte +120 "Zahlung"          ─┘ → both archived, nothing to book
 //
 // VATCheckOf says what must hold before the return goes out.
 
@@ -73,13 +79,15 @@ type BankCase struct {
 	Payment  *sources.NinjaPayment  // the payment booked for it already
 	Draft    ExpenseDraft
 	Action   BankAction
-	Private  bool      // paid from a private account
-	Transfer *Transfer // money moved to or from an own private account
+	Private  bool      // paid from an account with private bookings (private, mixed)
+	Mixed    bool      // on a mixed account
+	Transfer *Transfer // money moved to or from another own account
 }
 
 // Transfer is the other side of a move between own accounts: the same
-// amount the other way on a private account, in Invoice Ninja's feed or
-// in Sure. Nothing to book: Andon proposes to archive it.
+// amount the other way on a private or transfer account (from one, on
+// any other), in Invoice Ninja's feed or in Sure. Nothing to book:
+// Andon proposes to archive it.
 type Transfer struct {
 	Account, Date string
 }
@@ -119,7 +127,8 @@ func BankCases(in VATInputs) []BankCase {
 		if t.Status == sources.BankDone || t.Archived || (private && !t.Debit) {
 			continue
 		}
-		c := BankCase{Txn: t, Sure: sureTwin(in.Sure, t, usedSure), Private: private}
+		mixed := t.Role == sources.RoleMixed
+		c := BankCase{Txn: t, Sure: sureTwin(in.Sure, t, usedSure), Private: private || (mixed && t.Debit), Mixed: mixed}
 		if t.Debit {
 			c.Expenses = expenseFits(in.Ninja, t, taken)
 			c.Draft = draftOf(in.Ninja, t, c.Sure)
@@ -128,7 +137,7 @@ func BankCases(in VATInputs) []BankCase {
 				c.Action = ActionLink
 				taken[c.Expenses[0].Key] = true
 			}
-			if private && c.Action == ActionCreate && c.Draft.From != FromHistory {
+			if c.Private && c.Action == ActionCreate && c.Draft.From != FromHistory {
 				c.Action = ActionNone
 			}
 		} else {
@@ -143,7 +152,7 @@ func BankCases(in VATInputs) []BankCase {
 		}
 
 		// Nothing to book, but the same amount moved the other way on
-		// an own private account: a transfer.
+		// another own account: a transfer.
 		if !private && (c.Action == ActionNone || (c.Action == ActionCreate && c.Draft.From != FromHistory)) {
 			if c.Transfer = transferOf(in, t, usedTransfer); c.Transfer != nil {
 				c.Action = ActionSkip
@@ -154,15 +163,16 @@ func BankCases(in VATInputs) []BankCase {
 	return out
 }
 
-// transferOf finds t's other side on a private account: the opposite
+// transferOf finds t's other side on another own account: the opposite
 // booking of the same amount a few days apart, in the feed or in Sure.
 func transferOf(in VATInputs, t sources.NinjaBankTxn, used map[string]bool) *Transfer {
 	day, ok := ParseDay(t.Date)
 	if !ok {
 		return nil
 	}
+	sides := otherSides(t.Role)
 	for _, u := range in.Ninja.BankTxns {
-		if u.Role != sources.RolePrivate || u.Debit == t.Debit || used["n"+u.Key] || abs(u.Amount-t.Amount) > amountTol || daysApart(u.Date, day) > bankWindow {
+		if !slices.Contains(sides, u.Role) || u.Debit == t.Debit || used["n"+u.Key] || abs(u.Amount-t.Amount) > amountTol || daysApart(u.Date, day) > bankWindow {
 			continue
 		}
 		used["n"+u.Key] = true
@@ -173,13 +183,23 @@ func transferOf(in VATInputs, t sources.NinjaBankTxn, used map[string]bool) *Tra
 	}
 	for _, s := range in.Sure.Transactions {
 		// Sure's outflows are negative: a debit here is an inflow there.
-		if s.Role != sources.RolePrivate || (s.Amount > 0) != t.Debit || used["s"+s.ID] || abs(abs(s.Amount)-t.Amount) > amountTol || daysApart(s.Date, day) > bankWindow {
+		if !slices.Contains(sides, s.Role) || (s.Amount > 0) != t.Debit || used["s"+s.ID] || abs(abs(s.Amount)-t.Amount) > amountTol || daysApart(s.Date, day) > bankWindow {
 			continue
 		}
 		used["s"+s.ID] = true
 		return &Transfer{Account: s.Account, Date: s.Date}
 	}
 	return nil
+}
+
+// otherSides are the roles a transfer's other side may have: a
+// transfer account is settled from any own account, the others move
+// money to a private or transfer account.
+func otherSides(r sources.AccountRole) []sources.AccountRole {
+	if r == sources.RoleTransfer {
+		return []sources.AccountRole{sources.RoleBusiness, sources.RoleMixed, sources.RolePrivate, sources.RoleUnknown}
+	}
+	return []sources.AccountRole{sources.RolePrivate, sources.RoleTransfer}
 }
 
 // periodTxns are the period's transactions, oldest first.
@@ -502,7 +522,7 @@ func sureOnly(in VATInputs) []sources.BankTxn {
 	var out []sources.BankTxn
 	for _, s := range in.Sure.Transactions {
 		d, ok := ParseDay(s.Date)
-		if !ok || d.Before(in.Start) || d.After(in.End) || s.Role != sources.RoleBusiness {
+		if !ok || d.Before(in.Start) || d.After(in.End) || !slices.Contains(sources.BusinessRoles, s.Role) {
 			continue
 		}
 		if !twinInFeed(in.Ninja, s) {

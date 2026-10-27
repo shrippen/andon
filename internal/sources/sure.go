@@ -28,12 +28,12 @@ type BankAccount struct {
 }
 
 // Suggested is the role the account's kind implies while it has none,
-// "" else: a depot (investment) is ignored.
+// "" else: a depot (investment) is ignored, a credit card a transfer.
 func (a BankAccount) Suggested() AccountRole {
-	if a.Role == RoleUnknown && slices.Contains(ignoredKinds, a.Type) {
-		return RoleIgnored
+	if a.Role != RoleUnknown {
+		return RoleUnknown
 	}
-	return RoleUnknown
+	return kindRoles[a.Type]
 }
 
 // BankTxn is one booking; Amount is signed: income > 0, expense < 0.

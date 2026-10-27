@@ -249,3 +249,79 @@ func TestVendorDuplicatesSkipArchived(t *testing.T) {
 		t.Fatalf("groups: %+v", g)
 	}
 }
+
+// A mixed account: its incomes count like the business account's, a
+// debit to a vendor with expenses is proposed, the rest waits apart.
+func TestBankCasesMixed(t *testing.T) {
+	ninja, sure := vatBook()
+	for i := range ninja.BankTxns {
+		if ninja.BankTxns[i].Role == sources.RolePrivate {
+			ninja.BankTxns[i].Role = sources.RoleMixed
+		}
+	}
+	in := september()
+	in.Ninja, in.Sure = ninja, sure
+	got := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(in) {
+		got[c.Txn.Key] = c
+	}
+	if c, ok := got["b8"]; !ok || !c.Waiting() || c.Private || !c.Mixed {
+		t.Errorf("income on a mixed account: %+v", c)
+	}
+	if c := got["b6"]; c.Action != metrics.ActionCreate || !c.Waiting() || !c.Private || !c.Mixed {
+		t.Errorf("known vendor: %+v", c)
+	}
+	if c := got["b7"]; c.Action != metrics.ActionNone || c.Waiting() {
+		t.Errorf("unknown vendor waits apart: %+v", c)
+	}
+}
+
+// A card (transfer account): its purchases are bookings; the monthly
+// settlement from the giro and its income on the card are a transfer.
+func TestBankCasesCard(t *testing.T) {
+	n := &sources.NinjaDataset{
+		BankTxns: []sources.NinjaBankTxn{
+			{Key: "buy", Date: "2026-09-03", Payer: "Bauhaus", Amount: 120, Debit: true, Role: sources.RoleTransfer, Account: "Karte"},
+			{Key: "settle", Date: "2026-09-28", Payer: "Kartenabrechnung", Amount: 120, Debit: true, Role: sources.RoleBusiness, Account: "Giro"},
+			{Key: "paid", Date: "2026-09-29", Payer: "Zahlung", Amount: 120, Role: sources.RoleTransfer, Account: "Karte"},
+		},
+	}
+	start, _ := metrics.ParseDay("2026-09-01")
+	end, _ := metrics.ParseDay("2026-09-30")
+	got := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(metrics.VATInputs{Ninja: n, Start: start, End: end}) {
+		got[c.Txn.Key] = c
+	}
+	if c := got["buy"]; c.Action != metrics.ActionCreate || c.Transfer != nil {
+		t.Errorf("purchase: %+v", c)
+	}
+	if c := got["settle"]; c.Action != metrics.ActionSkip || c.Transfer == nil || c.Transfer.Account != "Karte" {
+		t.Errorf("settlement: %+v", c)
+	}
+	if c := got["paid"]; c.Action != metrics.ActionSkip || c.Transfer == nil || c.Transfer.Account != "Giro" {
+		t.Errorf("card income: %+v", c)
+	}
+}
+
+// Receipts: a card purchase needs one, a booking between own accounts
+// never; on a mixed account only spending at a vendor with expenses.
+func TestMissingReceiptsCardMixed(t *testing.T) {
+	ninja, _ := vatBook()
+	sure := &sources.BankData{Accounts: []sources.BankAccount{{Name: "Karte", Role: sources.RoleTransfer}, {Name: "Mix", Role: sources.RoleMixed}},
+		Transactions: []sources.BankTxn{
+			{ID: "c1", Date: "2026-09-03", Name: "Bauhaus", Amount: -120, Account: "Karte", Role: sources.RoleTransfer},
+			{ID: "c2", Date: "2026-09-28", Name: "Kartenabrechnung", Amount: -300, Account: "Mix", Role: sources.RoleMixed, Transfer: true},
+			{ID: "m1", Date: "2026-09-05", Name: "Elbnetz Mobilfunk", Amount: -39.95, Account: "Mix", Role: sources.RoleMixed},
+			{ID: "m2", Date: "2026-09-06", Name: "Supermarkt", Amount: -64.2, Account: "Mix", Role: sources.RoleMixed},
+		}}
+	ninja.Expenses = ninja.Expenses[:1] // Elbnetz's receipts must not cover m1
+	ninja.Expenses[0].VendorKey = "v2"
+	in := metrics.ReceiptInputs{Sure: sure, Ninja: ninja, MinAmount: 5, Window: 10, Since: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)}
+	var names []string
+	for _, tx := range metrics.MissingReceipts(in) {
+		names = append(names, tx.Name)
+	}
+	if !slices.Equal(names, []string{"Bauhaus", "Elbnetz Mobilfunk"}) {
+		t.Fatalf("missing: %v", names)
+	}
+}
