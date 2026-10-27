@@ -219,11 +219,12 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 // tax settings: the 10th of the next month.
 const returnDays = 10
 
-// defaultSpan is the last finished period until its return is due, then
-// the running one: September's return is worked on until 10 October.
+// defaultSpan is the last finished period through the day its return is
+// due, then the running one: September's return is worked on until and
+// on 10 October.
 func defaultSpan(spans []metrics.VATSpan, settings map[string]any, today time.Time) metrics.VATSpan {
 	last := spans[1]
-	if today.After(returnDue(settings, last)) {
+	if !today.Before(returnDue(settings, last).AddDate(0, 0, 1)) {
 		return spans[0]
 	}
 	return last

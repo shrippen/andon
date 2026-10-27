@@ -398,8 +398,8 @@ func TestCards(t *testing.T) {
 	}
 }
 
-// On its deadline day the return is still open, not yet unfiled: the
-// deadline runs through its whole day, as a period does.
+// On its deadline day the return is still open, not yet unfiled, and
+// the page opens it: the deadline runs through its whole day.
 func TestCardDueDay(t *testing.T) {
 	d := testkit.DB(t)
 	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
@@ -408,7 +408,7 @@ func TestCardDueDay(t *testing.T) {
 	today := time.Date(now.Year(), now.Month(), 10, 15, 0, 0, 0, time.UTC)
 	last := metrics.VATSpans(today, "monthly", 2)[1]
 
-	p, err := vatcheck.Open(context.Background(), d, who, scopeOf(conn), last.Key, today)
+	p, err := vatcheck.Open(context.Background(), d, who, scopeOf(conn), "", today)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -416,5 +416,8 @@ func TestCardDueDay(t *testing.T) {
 		if c.Key == last.Key && c.State != vatcheck.SpanOpen {
 			t.Errorf("due day %s: state %s, due %s", today.Format(time.DateOnly), c.State, c.Due)
 		}
+	}
+	if p.Span.Key != last.Key {
+		t.Errorf("due day opens %s, want %s", p.Span.Key, last.Key)
 	}
 }
