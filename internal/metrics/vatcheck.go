@@ -172,7 +172,7 @@ func transferOf(in VATInputs, t sources.NinjaBankTxn, used map[string]bool) *Tra
 	if !ok {
 		return nil
 	}
-	sides := otherSides(t.Role)
+	sides := otherSides(t)
 	for _, u := range in.Ninja.BankTxns {
 		if !slices.Contains(sides, u.Role) || u.Debit == t.Debit || used["n"+u.Key] || abs(u.Amount-t.Amount) > amountTol || daysApart(u.Date, day) > bankWindow {
 			continue
@@ -191,7 +191,9 @@ func transferOf(in VATInputs, t sources.NinjaBankTxn, used map[string]bool) *Tra
 		if !slices.Contains(sides, s.Role) || (s.Amount > 0) != t.Debit || used["s"+s.ID] || abs(abs(s.Amount)-t.Amount) > amountTol || daysApart(s.Date, day) > bankWindow {
 			continue
 		}
-		if explained(in.Ninja, sources.NinjaBankTxn{Date: s.Date, Payer: s.Name, Amount: abs(s.Amount), Debit: s.Amount < 0}) {
+		// A booking the feed has too was weighed there, booked or not.
+		twin := sources.NinjaBankTxn{Date: s.Date, Payer: s.Name, Amount: abs(s.Amount), Debit: s.Amount < 0, Role: s.Role}
+		if inFeed(in.Ninja, twin) || explained(in.Ninja, twin) {
 			continue
 		}
 		used["s"+s.ID] = true
@@ -212,14 +214,31 @@ func explained(n *sources.NinjaDataset, u sources.NinjaBankTxn) bool {
 	return inv != nil || paymentFit(n, u, linkedPayments(n)) != nil
 }
 
-// otherSides are the roles a transfer's other side may have: a
-// transfer account is settled from any own account, the others move
-// money to a private or transfer account.
-func otherSides(r sources.AccountRole) []sources.AccountRole {
-	if r == sources.RoleTransfer {
+// otherSides are the roles t's other side may have as a transfer: a
+// transfer account is settled from any own account and pays out only to
+// a business or mixed one (PayPal → giro; a private income of the same
+// amount is no payout); the others move money to a private or transfer
+// account.
+func otherSides(t sources.NinjaBankTxn) []sources.AccountRole {
+	switch {
+	case t.Role == sources.RoleTransfer && t.Debit:
+		return []sources.AccountRole{sources.RoleBusiness, sources.RoleMixed}
+	case t.Role == sources.RoleTransfer:
 		return []sources.AccountRole{sources.RoleBusiness, sources.RoleMixed, sources.RolePrivate, sources.RoleUnknown}
 	}
 	return []sources.AccountRole{sources.RolePrivate, sources.RoleTransfer}
+}
+
+// inFeed: the feed holds u's booking, same role and direction, the same
+// amount a few days apart.
+func inFeed(n *sources.NinjaDataset, u sources.NinjaBankTxn) bool {
+	day, ok := ParseDay(u.Date)
+	if !ok {
+		return false
+	}
+	return slices.ContainsFunc(n.BankTxns, func(t sources.NinjaBankTxn) bool {
+		return t.Role == u.Role && t.Debit == u.Debit && abs(t.Amount-u.Amount) <= amountTol && daysApart(t.Date, day) <= bankWindow
+	})
 }
 
 // periodTxns are the period's transactions, oldest first.

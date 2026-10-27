@@ -339,6 +339,34 @@ func TestBankCasesTransferNotBooked(t *testing.T) {
 	}
 }
 
+// Once the customer's payment is booked, its Sure twin is no other side
+// either; nor is a private income of the same amount: a card purchase
+// has a transfer only as a payout to a business or mixed account.
+func TestBankCasesTransferBookedTwin(t *testing.T) {
+	n := &sources.NinjaDataset{
+		BankTxns: []sources.NinjaBankTxn{
+			{Key: "buy", Date: "2026-09-03", Payer: "Bauhaus", Amount: 119, Debit: true, Role: sources.RoleTransfer, Account: "Karte"},
+			{Key: "income", Date: "2026-09-05", Payer: "Northlight Pictures", Amount: 119, Role: sources.RoleBusiness, Account: "Giro", Status: sources.BankDone, PaymentKey: "p3"},
+			{Key: "buy2", Date: "2026-09-20", Payer: "Obi", Amount: 64, Debit: true, Role: sources.RoleTransfer, Account: "Karte"},
+			{Key: "friend", Date: "2026-09-21", Payer: "Jonas", Amount: 64, Role: sources.RolePrivate, Account: "Privat"},
+		},
+	}
+	sure := &sources.BankData{Transactions: []sources.BankTxn{
+		{ID: "s1", Date: "2026-09-05", Name: "Northlight Pictures", Amount: 119, Account: "Giro", Role: sources.RoleBusiness},
+	}}
+	start, _ := metrics.ParseDay("2026-09-01")
+	end, _ := metrics.ParseDay("2026-09-30")
+	got := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(metrics.VATInputs{Ninja: n, Sure: sure, Start: start, End: end}) {
+		got[c.Txn.Key] = c
+	}
+	for _, k := range []string{"buy", "buy2"} {
+		if c := got[k]; c.Action != metrics.ActionCreate || c.Transfer != nil {
+			t.Errorf("%s: %s %+v", k, c.Action, c.Transfer)
+		}
+	}
+}
+
 // Receipts: a card purchase needs one, a booking between own accounts
 // never; on a mixed account only spending at a vendor with expenses.
 func TestMissingReceiptsCardMixed(t *testing.T) {
