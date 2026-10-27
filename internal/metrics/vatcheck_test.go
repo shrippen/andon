@@ -395,6 +395,36 @@ func TestBankCasesTransferMarked(t *testing.T) {
 	}
 }
 
+// A pair is decided once and holds on both sides: a customer pays by
+// PayPal (taking the manual payment), PayPal pays the same amount out to
+// the giro; payout and giro income are one transfer, not an expense on
+// one side and a transfer on the other.
+func TestBankCasesTransferBothSides(t *testing.T) {
+	n := &sources.NinjaDataset{
+		Payments: []sources.NinjaPayment{{Key: "z1", Date: "2026-09-05", Amount: 119}},
+		BankTxns: []sources.NinjaBankTxn{
+			{Key: "pp_in", Date: "2026-09-05", Payer: "Northlight", Amount: 119, Role: sources.RoleTransfer, Account: "PayPal"},
+			{Key: "payout", Date: "2026-09-06", Payer: "PayPal Auszahlung", Amount: 119, Debit: true, Role: sources.RoleTransfer, Account: "PayPal"},
+			{Key: "giro_in", Date: "2026-09-07", Payer: "PayPal", Amount: 119, Role: sources.RoleBusiness, Account: "Giro"},
+		},
+	}
+	start, _ := metrics.ParseDay("2026-09-01")
+	end, _ := metrics.ParseDay("2026-09-30")
+	got := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(metrics.VATInputs{Ninja: n, Start: start, End: end}) {
+		got[c.Txn.Key] = c
+	}
+	if c := got["pp_in"]; c.Action != metrics.ActionPayment {
+		t.Errorf("pp_in: %s", c.Action)
+	}
+	if c := got["payout"]; c.Action != metrics.ActionSkip || c.Transfer == nil || c.Transfer.Account != "Giro" {
+		t.Errorf("payout: %s %+v", c.Action, c.Transfer)
+	}
+	if c := got["giro_in"]; c.Action != metrics.ActionSkip || c.Transfer == nil || c.Transfer.Account != "PayPal" {
+		t.Errorf("giro_in: %s %+v", c.Action, c.Transfer)
+	}
+}
+
 // Receipts: a card purchase needs one, a booking between own accounts
 // never; on a mixed account only spending at a vendor with expenses.
 func TestMissingReceiptsCardMixed(t *testing.T) {

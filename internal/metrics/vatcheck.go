@@ -120,7 +120,6 @@ func BankCases(in VATInputs) []BankCase {
 	}
 	taken := LinkedExpenses(in.Ninja)
 	usedSure, usedInvoice, usedPayment := map[string]bool{}, map[int64]bool{}, linkedPayments(in.Ninja)
-	usedTransfer := map[string]bool{}
 	var out []BankCase
 	for _, t := range periodTxns(in) {
 		private := t.Role == sources.RolePrivate
@@ -151,33 +150,74 @@ func BankCases(in VATInputs) []BankCase {
 			}
 		}
 
-		// Nothing to book, but the same amount moved the other way on
-		// another own account: a transfer.
-		if !private && (c.Action == ActionNone || (c.Action == ActionCreate && c.Draft.From != FromHistory)) {
-			if c.Transfer = transferOf(in, t, usedTransfer); c.Transfer != nil {
-				c.Action = ActionSkip
-			}
-		}
 		out = append(out, c)
 	}
+	pairTransfers(in, out)
 	return out
 }
 
-// transferOf finds t's other side on another own account: the opposite
-// booking of the same amount a few days apart, in the feed or in Sure,
-// that nothing else explains (a customer's payment of the same amount is
-// no card settlement).
-func transferOf(in VATInputs, t sources.NinjaBankTxn, used map[string]bool) *Transfer {
+// transferable: nothing to book for c, so it may be a transfer's side.
+func transferable(c BankCase) bool {
+	return !c.Private && c.Transfer == nil && (c.Action == ActionNone || (c.Action == ActionCreate && c.Draft.From != FromHistory))
+}
+
+// pairTransfers marks the transfers among the cases, once both sides
+// know what else they could be: a pair of the period is decided once and
+// set on both sides; a case without one may pair with a booking outside
+// the period or only in Sure.
+func pairTransfers(in VATInputs, cases []BankCase) {
+	used := map[string]bool{}
+	for i := range cases {
+		c := &cases[i]
+		if !transferable(*c) {
+			continue
+		}
+		if j := partnerOf(cases, i); j >= 0 {
+			u := &cases[j]
+			c.Transfer, u.Transfer = &Transfer{Account: u.Txn.Account, Date: u.Txn.Date}, &Transfer{Account: c.Txn.Account, Date: c.Txn.Date}
+			c.Action, u.Action = ActionSkip, ActionSkip
+			continue
+		}
+		if c.Transfer = transferOf(in, cases, c.Txn, used); c.Transfer != nil {
+			c.Action = ActionSkip
+		}
+	}
+}
+
+// partnerOf is the open case pairing with cases[i], -1 none.
+func partnerOf(cases []BankCase, i int) int {
+	t := cases[i].Txn
+	sides := otherSides(t)
+	for j, u := range cases {
+		if j != i && transferable(u) && pairs(t, sides, u.Txn) {
+			return j
+		}
+	}
+	return -1
+}
+
+// pairs: u is t's other side by role, direction, amount and date.
+func pairs(t sources.NinjaBankTxn, sides []sources.AccountRole, u sources.NinjaBankTxn) bool {
+	day, ok := ParseDay(t.Date)
+	return ok && slices.Contains(sides, u.Role) && u.Debit != t.Debit && abs(u.Amount-t.Amount) <= amountTol && daysApart(u.Date, day) <= bankWindow
+}
+
+// transferOf finds t's other side outside the period's cases: the
+// opposite booking of the same amount a few days apart, in the feed or
+// in Sure, that nothing else explains (a customer's payment of the same
+// amount is no card settlement).
+func transferOf(in VATInputs, cases []BankCase, t sources.NinjaBankTxn, used map[string]bool) *Transfer {
 	day, ok := ParseDay(t.Date)
 	if !ok {
 		return nil
 	}
 	sides := otherSides(t)
 	for _, u := range in.Ninja.BankTxns {
-		if !slices.Contains(sides, u.Role) || u.Debit == t.Debit || used["n"+u.Key] || abs(u.Amount-t.Amount) > amountTol || daysApart(u.Date, day) > bankWindow {
+		if !pairs(t, sides, u) || used["n"+u.Key] {
 			continue
 		}
-		if explained(in.Ninja, u) {
+		// A case of the period was weighed by partnerOf.
+		if slices.ContainsFunc(cases, func(c BankCase) bool { return c.Txn.Key == u.Key }) || explained(in.Ninja, u) {
 			continue
 		}
 		used["n"+u.Key] = true
