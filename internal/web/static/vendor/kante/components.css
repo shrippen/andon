@@ -124,6 +124,8 @@ main,.foot{position:relative;z-index:1}
 /* busy (A08): marching hazard stripes in the fill */
 .btn.is-busy{cursor:progress;background-image:repeating-linear-gradient(-45deg,var(--primary) 0 10px,var(--yellow-lo) 10px 20px);background-size:28.28px 28.28px}
 .btn-outline.is-busy{background-image:repeating-linear-gradient(-45deg,transparent 0 10px,var(--bg1) 10px 20px)}
+/* Outlined buttons draw their cut as one unrepeated image: busy, the stripes fill the whole button */
+:is(.btn-outline,.btn-ghost,.btn-data).is-busy{background-repeat:repeat;background-position:0 0}
 .btn-group{display:inline-flex;flex-wrap:wrap}
 .btn-group .btn{--cut:0px;--grow:0px}.btn-group .btn:last-child{--cut:var(--cut-m);--grow:6px}
 .btn-group .btn+.btn{margin-left:-2px}
