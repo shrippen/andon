@@ -58,8 +58,8 @@ dirty=""
 if [ -n "$(git -C "$src" status --porcelain css js fonts tokens 2>/dev/null)" ]; then
 	dirty=" plus uncommitted changes"
 fi
-# The newest "Added in Kante X.Y" heading of Kante's README names the version.
-version="$(grep -o '^### Added in Kante [0-9.]*' "$src/README.md" | tail -n 1 | awk '{print $NF}')"
+# The highest "Added in Kante X.Y" heading of Kante's README names the version.
+version="$(grep -o '^### Added in Kante [0-9.]*' "$src/README.md" | sort -t. -k1,1n -k2,2n | tail -n 1 | awk '{print $NF}')"
 cat > "$dest/VERSION" <<VER
 Kante ${version:-unknown}
 source: https://github.com/shrippen/Kante

@@ -162,5 +162,11 @@
     return T[name] ? name : 'cut';
   }
 
-  (window.Kante = window.Kante || {}).wall = { run: run, pick: pick, names: NAMES.slice(), easings: Object.keys(EASINGS) };
+  // install joins window.Kante once the page is parsed, like kante-map.js: shrippen.js creates
+  // it then, and pages wait for window.Kante to know that shrippen.js ran. Joining earlier made
+  // Kante.edit look missing to a page that loaded in edit mode.
+  function install() {
+    (window.Kante = window.Kante || {}).wall = { run: run, pick: pick, names: NAMES.slice(), easings: Object.keys(EASINGS) };
+  }
+  if (document.readyState !== 'loading') { install(); } else { document.addEventListener('DOMContentLoaded', install); }
 })();

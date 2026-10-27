@@ -190,7 +190,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 4. Eine Ausgabe aus dem Jahrespaket (`/billing`, `ausgaben.csv`) unter „Verknüpft“ oder bei „Ausgaben suchen“ finden.
 
 **J-C2b USt-Abgleich** 📱
-1. `/vat`: Welcher Zeitraum öffnet (der letzte bis zu seiner Abgabefrist, danach der laufende)? Zeitraum wechseln, zurück.
+1. `/vat`: Welcher Zeitraum öffnet (der letzte bis zu seiner Abgabefrist, danach der laufende)? Die Zeitraum-Karten (älteste links) nennen je Stand, Frist und Zahllast: offen mit Zahl, abgegeben, Korrektur fällig, nicht markiert, läuft. Stimmt die gewählte Karte mit dem Stand darunter? Zeitraum wechseln, zurück; am Telefon brechen die Karten um.
 2. Stand: offene Umsätze, Bankabruf bis, Ausgaben ohne Steuer, „Nur in Sure“; Umsatzsteuer, Vorsteuer, Zahllast „vorläufig“, solange etwas offen ist.
 3. Je Zeile die Aktion wechseln: Es stehen nur die Felder der gewählten Aktion da. Vorbelegung (Lieferant, Kategorie, Steuer) und ihre Herkunft (letzte Ausgabe, Sure, Claude) prüfen.
 4. Ankreuzen, „Prüfen“: Die Liste nennt jeden Schreibvorgang mit Vorsteuer; nichts ist geschrieben. „In Invoice Ninja schreiben“: Demo lehnt ab. „Privat“ archiviert in Invoice Ninja (auch ein Schreibvorgang in der Prüfung).

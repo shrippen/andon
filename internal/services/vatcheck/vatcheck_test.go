@@ -358,3 +358,42 @@ func TestDefaultSpan(t *testing.T) {
 
 // scopeOf is the scope of a lone Invoice Ninja (workbench.Scope.Key).
 func scopeOf(conn int64) string { return "c" + strconv.FormatInt(conn, 10) }
+
+// The period cards run oldest first and end with the running one; the
+// chosen card counts what the page counts, and a filed period says so.
+func TestCards(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, "demo://invoiceninja")
+	testkit.Conn(t, d, who, space, enums.ServiceSure, "demo://sure")
+	ctx := context.Background()
+	today := time.Now().UTC()
+	last := metrics.VATSpans(today, "monthly", 2)[1]
+
+	p, err := vatcheck.Open(ctx, d, who, scopeOf(conn), last.Key, today)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.Cards) != len(p.Spans) || p.Cards[len(p.Cards)-1].State != vatcheck.SpanRunning || p.Cards[len(p.Cards)-1].Key != p.Spans[0].Key {
+		t.Fatalf("cards: %+v", p.Cards)
+	}
+	byKey := map[string]vatcheck.SpanCard{}
+	for _, c := range p.Cards {
+		byKey[c.Key] = c
+	}
+	if c := byKey[last.Key]; c.Open != p.Check.Open || c.Amount != p.Check.Due || c.State == vatcheck.SpanRunning || c.State == vatcheck.SpanFiled {
+		t.Errorf("chosen card %+v, check %+v", c, p.Check)
+	}
+
+	if err := vatcheck.FileReturn(ctx, d, who, scopeOf(conn), last.Key, today, ""); err != nil {
+		t.Fatal(err)
+	}
+	if p, err = vatcheck.Open(ctx, d, who, scopeOf(conn), last.Key, today); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range p.Cards {
+		if c.Key == last.Key && c.State != vatcheck.SpanFiled {
+			t.Errorf("filed card: %+v", c)
+		}
+	}
+}

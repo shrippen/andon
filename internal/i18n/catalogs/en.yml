@@ -7236,6 +7236,14 @@ vatcheck:
   lead: 'Before the VAT return: every transaction of Invoice Ninja''s bank feed needs an expense or a payment. Andon proposes, Sure stands beside it. Nothing is written until you confirm the review.'
   periods: Period
   quarter: 'Q{q} {year}'
+  card_running: 'runs until {day}'
+  card_open: 'due {day} · {n} open'
+  card_ready: 'due {day} · ready'
+  card_unfiled: 'not marked as filed'
+  card_filed: filed
+  card_changed: correction due
+  card_so_far: so far
+  card_draft: provisional
   need_title: Invoice Ninja missing
   need_text: 'The check reads Invoice Ninja''s bank feed (banking). Sure is optional and shows the same booking with merchant, category and tags.'
   check_title: 'Status for'
