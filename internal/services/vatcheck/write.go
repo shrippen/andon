@@ -137,6 +137,9 @@ func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 	p.Item.Scan = 0
 	delete(p.Fields, FieldScan)
 	delete(p.Fields, FieldFillScan)
+	if p.Action == string(ActionFill) && !p.Item.fills() {
+		p.Problem = ProblemFilled
+	}
 }
 
 // Check resolves one step; the transaction must still be open and its
@@ -234,6 +237,7 @@ func (b book) filled(s *workbench.Step, key string) (Item, workbench.Problem) {
 // over the form (fresh data at Apply).
 func (b book) fill(s *workbench.Step, it Item) (Item, workbench.Problem) {
 	gaps := b.gapsOf(*it.Expense)
+	it.Vendor = b.vendorName(it.Expense.VendorKey) // scores the scan in Review, as on the page
 	given := func(p Part, field string) string {
 		if !slices.Contains(gaps, p) {
 			delete(s.Fields, field)
@@ -386,6 +390,10 @@ func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
 			return it.Expense.Number, err
 		}
 		if err := w.fill(ctx, p); err != nil {
+			var part workbench.Partly
+			if errors.As(err, &part) {
+				return it.Expense.Number, part
+			}
 			return it.Expense.Number, workbench.Partly{Target: it.Expense.Number, Reason: w.Reason(err)}
 		}
 		return it.Expense.Number, nil
@@ -446,7 +454,8 @@ func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
 }
 
 // fill writes what a found expense lacked: its fields, then its scan
-// (receipts.Link, both sides).
+// (receipts.Link, both sides); a scan refused after written fields is
+// a partial success.
 func (w *writer) fill(ctx context.Context, p Planned) error {
 	it := p.Item
 	values := map[string]string{}
@@ -471,7 +480,10 @@ func (w *writer) fill(ctx context.Context, p Planned) error {
 		return nil
 	}
 	if _, err := receipts.Link(ctx, w.d, w.who, it.Expense.Key, []int64{it.Scan}, w.ip); err != nil {
-		return fmt.Errorf("paperless: %w", err)
+		if len(values) == 0 {
+			return fmt.Errorf("paperless: %w", err)
+		}
+		return workbench.Partly{Target: it.Expense.Number, Reason: "vatcheck.problem_fill_scan"}
 	}
 	return nil
 }

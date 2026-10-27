@@ -7370,6 +7370,7 @@ vatcheck:
   do_fill: 'Complete expense {number}'
   do_category: 'category {name}'
   problem_filled: 'The expense lacks nothing any more.'
+  problem_fill_scan: 'Expense completed, the receipt could not be linked. Do it under Receipts.'
   take_next: 'Take and next'
   later: 'Later'
   take_ready: 'Review all ready'

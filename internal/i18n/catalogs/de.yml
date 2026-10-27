@@ -7371,6 +7371,7 @@ vatcheck:
   do_fill: 'Ausgabe {number} ergänzen'
   do_category: 'Kategorie {name}'
   problem_filled: 'Der Ausgabe fehlt nichts mehr.'
+  problem_fill_scan: 'Ausgabe ergänzt, der Beleg ließ sich nicht verknüpfen. Unter Belege nachholen.'
   take_next: 'Übernehmen und weiter'
   later: 'Später'
   take_ready: 'Alle fertigen prüfen'

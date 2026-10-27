@@ -135,7 +135,7 @@ func TestVATScanOffer(t *testing.T) {
 	now := time.Now().UTC()
 	for _, month := range []string{now.Format("2006-01"), now.AddDate(0, -1, 0).Format("2006-01")} {
 		if page := string(mustGet(t, srv, client, "/vat?span="+month)); strings.Contains(page, `name="scan_demo-b-scan"`) {
-			scanSearch(t, srv, client)
+			scanSearch(t, srv, client, page)
 			return
 		}
 	}
@@ -143,8 +143,8 @@ func TestVATScanOffer(t *testing.T) {
 }
 
 // scanSearch: the desk's search finds Paperless scans to pick, and an
-// empty one says so.
-func scanSearch(t *testing.T, srv *httptest.Server, client *http.Client) {
+// empty one says so; a gap case's search names its radios xscan.
+func scanSearch(t *testing.T, srv *httptest.Server, client *http.Client, page string) {
 	t.Helper()
 	found := string(mustGet(t, srv, client, "/vat/scans?case=demo-b-scan&q_scan_demo-b-scan=Rechnung"))
 	if !strings.Contains(found, `name="scan_demo-b-scan"`) || !strings.Contains(found, "/receipts/thumb/") {
@@ -152,6 +152,15 @@ func scanSearch(t *testing.T, srv *httptest.Server, client *http.Client) {
 	}
 	if none := string(mustGet(t, srv, client, "/vat/scans?case=demo-b-scan&q_scan_demo-b-scan=")); !strings.Contains(none, "Nichts gefunden") {
 		t.Fatalf("empty search:\n%s", none)
+	}
+
+	gap := regexp.MustCompile(`data-desk="(x-[^"]+)"`).FindStringSubmatch(page)
+	if gap == nil {
+		t.Fatal("no expense with gaps on the page")
+	}
+	found = string(mustGet(t, srv, client, "/vat/scans?field=xscan&case="+gap[1]+"&q_xscan_"+gap[1]+"=Rechnung"))
+	if !strings.Contains(found, `name="xscan_`+gap[1]+`"`) {
+		t.Fatalf("gap search offers no scan:\n%s", found)
 	}
 }
 
