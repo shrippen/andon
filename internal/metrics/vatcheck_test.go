@@ -367,6 +367,34 @@ func TestBankCasesTransferBookedTwin(t *testing.T) {
 	}
 }
 
+// A transfer needs both accounts marked, and holds both ways: a PayPal
+// payout to a giro not yet marked is no transfer from either side (it
+// was once a transfer for the giro and an expense for PayPal); marked
+// as business, both sides pair.
+func TestBankCasesTransferMarked(t *testing.T) {
+	cases := func(giro sources.AccountRole) map[string]metrics.BankCase {
+		n := &sources.NinjaDataset{BankTxns: []sources.NinjaBankTxn{
+			{Key: "payout", Date: "2026-09-08", Payer: "PayPal Auszahlung", Amount: 200, Debit: true, Role: sources.RoleTransfer, Account: "PayPal"},
+			{Key: "in", Date: "2026-09-10", Payer: "PayPal", Amount: 200, Role: giro, Account: "Giro"},
+		}}
+		start, _ := metrics.ParseDay("2026-09-01")
+		end, _ := metrics.ParseDay("2026-09-30")
+		got := map[string]metrics.BankCase{}
+		for _, c := range metrics.BankCases(metrics.VATInputs{Ninja: n, Start: start, End: end}) {
+			got[c.Txn.Key] = c
+		}
+		return got
+	}
+	got := cases(sources.RoleUnknown)
+	if got["payout"].Transfer != nil || got["in"].Transfer != nil {
+		t.Errorf("unmarked giro: payout %+v, in %+v", got["payout"].Transfer, got["in"].Transfer)
+	}
+	got = cases(sources.RoleBusiness)
+	if got["payout"].Transfer == nil || got["payout"].Transfer.Account != "Giro" || got["in"].Transfer == nil {
+		t.Errorf("business giro: payout %+v, in %+v", got["payout"].Transfer, got["in"].Transfer)
+	}
+}
+
 // Receipts: a card purchase needs one, a booking between own accounts
 // never; on a mixed account only spending at a vendor with expenses.
 func TestMissingReceiptsCardMixed(t *testing.T) {

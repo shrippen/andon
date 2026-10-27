@@ -214,17 +214,21 @@ func explained(n *sources.NinjaDataset, u sources.NinjaBankTxn) bool {
 	return inv != nil || paymentFit(n, u, linkedPayments(n)) != nil
 }
 
-// otherSides are the roles t's other side may have as a transfer: a
-// transfer account is settled from any own account and pays out only to
-// a business or mixed one (PayPal → giro; a private income of the same
-// amount is no payout); the others move money to a private or transfer
-// account.
+// otherSides are the roles t's other side may have as a transfer. Both
+// accounts must be marked (an account without a role pairs with none),
+// and the rule holds both ways:
+//
+//	transfer +  ◄── business, mixed, private −   (card settlement)
+//	transfer −  ──► business, mixed +            (payout, PayPal → giro)
+//	business, mixed ◄─► private                  (withdrawal, deposit)
 func otherSides(t sources.NinjaBankTxn) []sources.AccountRole {
 	switch {
 	case t.Role == sources.RoleTransfer && t.Debit:
 		return []sources.AccountRole{sources.RoleBusiness, sources.RoleMixed}
 	case t.Role == sources.RoleTransfer:
-		return []sources.AccountRole{sources.RoleBusiness, sources.RoleMixed, sources.RolePrivate, sources.RoleUnknown}
+		return []sources.AccountRole{sources.RoleBusiness, sources.RoleMixed, sources.RolePrivate}
+	case t.Role == sources.RoleUnknown:
+		return nil
 	}
 	return []sources.AccountRole{sources.RolePrivate, sources.RoleTransfer}
 }
