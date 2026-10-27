@@ -232,7 +232,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 		}
 	}
 	p.Gaps = b.gapCases(ctx, d, who, p.Span, parts, vendorEuer)
-	p.Docs = b.docCases(ctx, d, who, p.Span, parts, vendorEuer, proposed(p.Cases))
+	p.Docs = b.docCases(ctx, d, who, p.Span, parts, vendorEuer, p.proposed())
 	p.Receipts = -1
 	if c, err := receipts.CountsOf(ctx, d, who, receiptsTab, p.Span.Start.Year(), p.Span.Key); err == nil && c.Ready {
 		p.Receipts = c.Match
@@ -577,13 +577,15 @@ func (b book) vendorName(key string) string {
 	return ""
 }
 
-// proposed are the scans the open cases propose: no receipt case for
-// them, the booking takes them.
-func proposed(cases []Case) map[int64]bool {
+// proposed are the scans the listed cases propose, waiting, apart or a
+// gap: no receipt case for them, the case takes them.
+func (p Page) proposed() map[int64]bool {
 	out := map[int64]bool{}
-	for _, c := range cases {
-		if id := c.Scan(); id != 0 {
-			out[id] = true
+	for _, cases := range [][]Case{p.Cases, p.Apart, p.Gaps} {
+		for _, c := range cases {
+			if id := c.Scan(); id != 0 {
+				out[id] = true
+			}
 		}
 	}
 	return out

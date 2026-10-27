@@ -55,3 +55,17 @@ func TestLinkGaps(t *testing.T) {
 		t.Fatalf("offers %v", c.lacks)
 	}
 }
+
+// TestProposed: a scan any listed case proposes, waiting, apart or a
+// gap, gets no receipt case of its own.
+func TestProposed(t *testing.T) {
+	with := func(id int64) Case {
+		return Case{BankCase: metrics.BankCase{Txn: sources.NinjaBankTxn{Debit: true}, Action: metrics.ActionCreate},
+			Scans: []receipts.Candidate{{Doc: sources.ReceiptDoc{ID: id}, Score: 100}}, parts: partsOf(false, false, true)}
+	}
+	p := Page{Cases: []Case{with(1)}, Apart: []Case{with(2)}, Gaps: []Case{with(3)}}
+	got := p.proposed()
+	if !got[1] || !got[2] || !got[3] {
+		t.Fatalf("proposed %v", got)
+	}
+}

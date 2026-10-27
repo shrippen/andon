@@ -120,15 +120,23 @@ func Review(ctx context.Context, d *sql.DB, who *access.Principal, scope string,
 		return Plan{}, err
 	}
 	plan, err := workbench.PlanOf[Item](b, steps)
-	for i := range plan.Steps {
-		scanTitle(ctx, d, who, b.conn.ID, &plan.Steps[i])
-	}
+	scanChecks(ctx, d, who, b.conn.ID, plan.Steps)
 	return Plan{Plan: plan, Scope: b.scope.Key, Currency: b.ninja.Currency}, err
 }
 
-// scanTitle names the scan a new expense gets; one no longer free is
-// dropped (receipts.ScansFor offers only free ones).
-func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, p *Planned) {
+// scanChecks checks each step's scan in order: a scan goes to one
+// expense, also within a review.
+func scanChecks(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, steps []Planned) {
+	taken := map[int64]bool{}
+	for i := range steps {
+		scanTitle(ctx, d, who, connID, &steps[i], taken)
+	}
+}
+
+// scanTitle names the scan a new expense gets; one no longer free, or
+// taken by an earlier step, is dropped (receipts.ScansFor offers only
+// free ones).
+func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, p *Planned, taken map[int64]bool) {
 	if p.Item.Scan == 0 || p.Action == string(metrics.ActionSkip) || p.Problem != workbench.ProblemNone {
 		return
 	}
@@ -140,8 +148,9 @@ func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 		scans, _ = receipts.Unbooked(ctx, d, who, connID, year, year.AddDate(1, 0, -1))
 	}
 	for _, c := range scans {
-		if c.Doc.ID == p.Item.Scan {
+		if c.Doc.ID == p.Item.Scan && !taken[c.Doc.ID] {
 			p.Item.ScanTitle = c.Doc.Title
+			taken[c.Doc.ID] = true
 			return
 		}
 	}
@@ -371,6 +380,7 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	if err != nil {
 		return workbench.Result{}, err
 	}
+	scanChecks(ctx, d, who, b.conn.ID, plan.Steps)
 	if plan.Writes() > 0 && sources.IsDemo(b.conn.URL) {
 		return workbench.Result{}, ErrDemo
 	}

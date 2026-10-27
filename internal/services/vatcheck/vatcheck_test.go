@@ -633,6 +633,12 @@ func TestReceiptCase(t *testing.T) {
 	if err != nil || plan.Writes() != 1 || plan.Steps[0].Item.Txn.Amount != doc.Txn.Amount || plan.Steps[0].Item.Scan != doc.Scan() {
 		t.Fatalf("plan: %v %+v", err, plan.Steps)
 	}
+	// One scan, one expense: a second step with it in the same review
+	// finds it taken.
+	plan, err = vatcheck.Review(ctx, d, who, scopeOf(conn), []workbench.Step{step(german), step(german)})
+	if err != nil || plan.Steps[0].Problem != workbench.ProblemNone || plan.Steps[1].Problem != vatcheck.ProblemGone {
+		t.Fatalf("twice: %v %+v", err, plan.Steps)
+	}
 	plan, err = vatcheck.Review(ctx, d, who, scopeOf(conn), []workbench.Step{step("")})
 	if err != nil || plan.Steps[0].Problem != vatcheck.ProblemAmount {
 		t.Fatalf("without amount: %v %+v", err, plan.Steps)
