@@ -2260,6 +2260,8 @@
       start: Date.now(),
       submitter: ev && ev.submitter ? ev.submitter : null,
       trigger: ev ? ev.type : "",
+      path: detail.pathInfo ? detail.pathInfo.requestPath : "",
+      target: detail.target,
     };
     loads.set(detail.xhr, load);
 
@@ -2379,7 +2381,13 @@
       load.elt.click();
       return;
     }
-    htmx.trigger(load.elt, load.trigger);
+    // A fragment asks again for its path: its trigger may listen on
+    // another element (from:), fire once, or drop an unchanged value.
+    if (!load.get) {
+      htmx.trigger(load.elt, load.trigger);
+      return;
+    }
+    htmx.ajax("GET", load.path, { source: load.elt, target: load.target });
   }
 
   d.addEventListener("htmx:beforeRequest", loadStart);
@@ -2388,12 +2396,13 @@
     d.addEventListener(name, loadFailed);
   });
 
-  // Esc cancels a page change still on its way.
+  // Esc cancels a page change still on its way. A sent form stays: the
+  // server writes it anyway, and a silent abort would invite a second one.
   d.addEventListener("keydown", function (e) {
-    if (e.key !== "Escape" || pageLoads.length === 0) {
+    if (e.key !== "Escape") {
       return;
     }
-    pageLoads.slice().forEach(function (load) { htmx.trigger(load.elt, "htmx:abort"); });
+    pageLoads.filter(function (load) { return load.get; }).forEach(function (load) { htmx.trigger(load.elt, "htmx:abort"); });
   });
 
   // Soft page changes for every same-origin link and form, except on a wall

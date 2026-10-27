@@ -136,6 +136,35 @@ def check(browser, base):
     calm = button.evaluate("b => !b.classList.contains('is-busy') && !b.disabled")
     want("after", calm, f"calm={calm}")
 
+    # escpost: Esc leaves a sent page form (boosted POST) alone; the
+    # server writes it anyway.
+    page.goto(base + "/hints")
+    hold = Hold(page, "**/*", "POST")
+    button = page.locator("main form[method=post]:not([hx-post]) button[type=submit]:visible").first
+    button.click(no_wait_after=True)
+    page.wait_for_timeout(400)
+    page.keyboard.press("Escape")
+    page.wait_for_timeout(400)
+    busy = button.evaluate("b => b.classList.contains('is-busy')")
+    want("escpost", busy, f"busy={busy}")
+    hold.release("abort")
+    page.wait_for_timeout(800)
+
+    # partretry: a dropped hint detail (toggle from: details, once) loads
+    # again from the toast's retry.
+    page.goto(base + "/hints")
+    hold = Hold(page, "**/hints/*/detail")
+    page.locator("main details:has([hx-get$='/detail']) > summary").first.click()
+    page.wait_for_timeout(300)
+    hold.release("abort")
+    page.wait_for_timeout(500)
+    retry = page.locator("#toast .toast[data-kind=error] .toast-action")
+    if retry.count():
+        retry.first.click()
+        page.wait_for_timeout(1200)
+    loaded = page.locator("main details[open] [hx-get$='/detail'] .loading").count() == 0
+    want("partretry", retry.count() == 0 and loaded, f"loaded={loaded}")
+
     # slow: after 8 s the page change says it takes longer.
     page.goto(base + "/")
     hold = Hold(page, "**/hints")
