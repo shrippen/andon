@@ -156,10 +156,15 @@ func BankCases(in VATInputs) []BankCase {
 	return out
 }
 
-// transferable: nothing to book for c, so it may be a transfer's side.
-func transferable(c BankCase) bool {
-	return !c.Private && c.Transfer == nil && (c.Action == ActionNone || (c.Action == ActionCreate && c.Draft.From != FromHistory))
+// pairable: nothing to book for c, so it may be a transfer's side.
+func pairable(c BankCase) bool {
+	return c.Transfer == nil && (c.Action == ActionNone || (c.Action == ActionCreate && c.Draft.From != FromHistory))
 }
+
+// searches: c looks for its other side. A private or mixed account's
+// debit does not (it is spending until shown otherwise), but is found as
+// the side of a deposit or a card settlement.
+func searches(c BankCase) bool { return !c.Private && pairable(c) }
 
 // pairTransfers marks the transfers among the cases, once both sides
 // know what else they could be: a pair of the period is decided once and
@@ -169,7 +174,7 @@ func pairTransfers(in VATInputs, cases []BankCase) {
 	used := map[string]bool{}
 	for i := range cases {
 		c := &cases[i]
-		if !transferable(*c) {
+		if !searches(*c) {
 			continue
 		}
 		if j := partnerOf(cases, i); j >= 0 {
@@ -189,7 +194,7 @@ func partnerOf(cases []BankCase, i int) int {
 	t := cases[i].Txn
 	sides := otherSides(t)
 	for j, u := range cases {
-		if j != i && transferable(u) && pairs(t, sides, u.Txn) {
+		if j != i && pairable(u) && pairs(t, sides, u.Txn) {
 			return j
 		}
 	}

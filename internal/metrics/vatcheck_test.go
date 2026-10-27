@@ -425,6 +425,29 @@ func TestBankCasesTransferBothSides(t *testing.T) {
 	}
 }
 
+// A private or mixed account's debit is a transfer's side too, though
+// it never searches itself: the owner's deposit from private and a card
+// settled from a mixed giro pair on both sides.
+func TestBankCasesTransferPrivateSide(t *testing.T) {
+	n := &sources.NinjaDataset{BankTxns: []sources.NinjaBankTxn{
+		{Key: "out", Date: "2026-09-09", Payer: "Einlage", Amount: 500, Debit: true, Role: sources.RolePrivate, Account: "Privat"},
+		{Key: "in", Date: "2026-09-10", Payer: "Einlage", Amount: 500, Role: sources.RoleBusiness, Account: "Giro"},
+		{Key: "settle", Date: "2026-09-28", Payer: "Kartenabrechnung", Amount: 300, Debit: true, Role: sources.RoleMixed, Account: "Mix"},
+		{Key: "paid", Date: "2026-09-29", Payer: "Zahlung", Amount: 300, Role: sources.RoleTransfer, Account: "Karte"},
+	}}
+	start, _ := metrics.ParseDay("2026-09-01")
+	end, _ := metrics.ParseDay("2026-09-30")
+	got := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(metrics.VATInputs{Ninja: n, Start: start, End: end}) {
+		got[c.Txn.Key] = c
+	}
+	for k, other := range map[string]string{"out": "Giro", "in": "Privat", "settle": "Karte", "paid": "Mix"} {
+		if c := got[k]; c.Action != metrics.ActionSkip || c.Transfer == nil || c.Transfer.Account != other {
+			t.Errorf("%s: %s %+v", k, c.Action, c.Transfer)
+		}
+	}
+}
+
 // Receipts: a card purchase needs one, a booking between own accounts
 // never; on a mixed account only spending at a vendor with expenses.
 func TestMissingReceiptsCardMixed(t *testing.T) {
