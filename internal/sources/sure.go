@@ -223,6 +223,7 @@ func loadSure(ctx context.Context, api services.SureApi, base string, now time.T
 // Ignored accounts and their bookings leave the data; Ignored keeps the
 // accounts for the pages that name roles.
 func (d *BankData) setRoles(roles map[string]AccountRole) {
+	d.Accounts, d.Ignored = slices.Concat(d.Accounts, d.Ignored), nil
 	byName := map[string]string{}
 	for i := range d.Accounts {
 		a := &d.Accounts[i]
