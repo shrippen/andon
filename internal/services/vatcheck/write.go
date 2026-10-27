@@ -42,6 +42,13 @@ const (
 	FieldBill     = "bill"  // create: bill the client, On or Off (default)
 	FieldPaid     = "paid"  // create: paid on the booking's day, On (default) or Off
 	FieldGross    = "gross" // create: the amount includes the tax, On (default) or Off
+
+	// link, fill: what the expense lacks; a value it has stays.
+	FieldFillCategory = "xcat" // a key
+	FieldFillEuer     = "xeuer"
+	FieldFillNumber   = "xnum"
+	FieldFillScan     = "xscan"
+	FieldFillNote     = "xnote"
 )
 
 // Values of the switch fields; a missing one keeps its default.
@@ -52,7 +59,7 @@ const (
 
 // Fields lists them, for the form.
 var Fields = []string{FieldExpense, FieldInvoice, FieldPayment, FieldVendor, FieldCategory, FieldTax, FieldScan, FieldEuer,
-	FieldNumber, FieldNote, FieldBill, FieldPaid, FieldGross}
+	FieldNumber, FieldNote, FieldBill, FieldPaid, FieldGross, FieldFillCategory, FieldFillEuer, FieldFillNumber, FieldFillScan, FieldFillNote}
 
 // noTax is the tax field of an expense without tax.
 const noTax = "none"
@@ -62,6 +69,7 @@ const (
 	ProblemTarget   workbench.Problem = "vatcheck.problem_target"    // expense or invoice no longer fits
 	ProblemNoVendor workbench.Problem = "vatcheck.problem_no_vendor" // a new expense needs a vendor
 	ProblemEuer     workbench.Problem = "vatcheck.problem_euer"      // not one of the EÜR dropdown's lines
+	ProblemFilled   workbench.Problem = "vatcheck.problem_filled"    // nothing left to fill
 )
 
 // ErrGone means the transaction is not (or no longer) archived.
@@ -81,8 +89,8 @@ type Item struct {
 	Taxed     bool
 	Tax       float64 // input VAT in the amount
 	Scan      int64
-	ScanTitle string // the scan linked to a new expense
-	Euer      string // the EÜR line the new expense gets, "" none
+	ScanTitle string // the scan linked to the expense
+	Euer      string // the EÜR line the expense gets, "" none
 	Number    string // the vendor's invoice number, "" none
 	Note      string // the public note
 	Bill      bool   // bill the client
@@ -116,7 +124,7 @@ func Review(ctx context.Context, d *sql.DB, who *access.Principal, scope string,
 // scanTitle names the scan a new expense gets; one no longer free is
 // dropped (receipts.ScansFor offers only free ones).
 func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, p *Planned) {
-	if p.Item.Scan == 0 || p.Action != string(metrics.ActionCreate) || p.Problem != workbench.ProblemNone {
+	if p.Item.Scan == 0 || p.Action == string(metrics.ActionSkip) || p.Problem != workbench.ProblemNone {
 		return
 	}
 	scans, _ := receipts.ScansFor(ctx, d, who, connID, p.Item.Txn.Amount, p.Item.Txn.Date, p.Item.Vendor)
@@ -128,12 +136,19 @@ func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 	}
 	p.Item.Scan = 0
 	delete(p.Fields, FieldScan)
+	delete(p.Fields, FieldFillScan)
+	if p.Action == string(ActionFill) && !p.Item.fills() {
+		p.Problem = ProblemFilled
+	}
 }
 
 // Check resolves one step; the transaction must still be open and its
 // target must still fit.
 func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 	var it Item
+	if key, ok := strings.CutPrefix(s.Case, fillPrefix); ok {
+		return b.filled(s, key)
+	}
 	i := indexOf(b.ninja.BankTxns, func(t sources.NinjaBankTxn) bool { return t.Key == s.Case })
 	if i < 0 || b.ninja.BankTxns[i].Status == sources.BankDone {
 		return it, ProblemGone
@@ -147,6 +162,7 @@ func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 			return it, ProblemTarget
 		}
 		it.Expense = &b.ninja.Expenses[j]
+		return b.fill(s, it)
 	case metrics.ActionInvoice:
 		// Ninja pays at most the balance: a part payment fits too.
 		j := indexOf(b.ninja.Invoices, func(inv sources.NinjaInvoice) bool { return inv.Key == s.Field(FieldInvoice) })
@@ -197,6 +213,53 @@ func (b book) created(s *workbench.Step, it Item) (Item, workbench.Problem) {
 	it.Note = cmp.Or(strings.TrimSpace(s.Field(FieldNote)), noteOf(it.Txn))
 	it.Bill, it.Paid, it.Gross = s.Field(FieldBill) == On, s.Field(FieldPaid) != Off, s.Field(FieldGross) != Off
 	return it, workbench.ProblemNone
+}
+
+// filled resolves a gap case: the linked expense, still lacking what
+// the step fills.
+func (b book) filled(s *workbench.Step, key string) (Item, workbench.Problem) {
+	var it Item
+	j := indexOf(b.ninja.Expenses, func(e sources.NinjaExpense) bool { return e.Key == key && e.TxnKey != "" })
+	if j < 0 || metrics.BankAction(s.Action) != ActionFill {
+		return it, ProblemGone
+	}
+	e := b.ninja.Expenses[j]
+	it.Expense = &b.ninja.Expenses[j]
+	it.Txn = sources.NinjaBankTxn{Key: s.Case, Date: e.Date, Payer: b.vendorName(e.VendorKey), Description: e.Number, Amount: e.Amount, Debit: true}
+	it, problem := b.fill(s, it)
+	if problem == workbench.ProblemNone && !it.fills() {
+		return it, ProblemFilled
+	}
+	return it, problem
+}
+
+// fill takes from the step what the expense lacks; a value it has wins
+// over the form (fresh data at Apply).
+func (b book) fill(s *workbench.Step, it Item) (Item, workbench.Problem) {
+	gaps := b.gapsOf(*it.Expense)
+	it.Vendor = b.vendorName(it.Expense.VendorKey) // scores the scan in Review, as on the page
+	given := func(p Part, field string) string {
+		if !slices.Contains(gaps, p) {
+			delete(s.Fields, field)
+			return ""
+		}
+		return strings.TrimSpace(s.Field(field))
+	}
+	if cat := given(PartCategory, FieldFillCategory); cat != "" {
+		it.Category = categoryName(b.ninja, cat)
+	}
+	it.Euer = given(PartEuer, FieldFillEuer)
+	if opts := b.euerOptions(); it.Euer != "" && len(opts) > 0 && !slices.Contains(opts, it.Euer) {
+		return it, ProblemEuer
+	}
+	it.Number, it.Note = given(PartNumber, FieldFillNumber), given(PartNote, FieldFillNote)
+	it.Scan, _ = strconv.ParseInt(given(PartScan, FieldFillScan), 10, 64)
+	return it, workbench.ProblemNone
+}
+
+// fills says whether a link or fill completes the expense.
+func (it Item) fills() bool {
+	return it.Category != "" || it.Euer != "" || it.Number != "" || it.Note != "" || it.Scan != 0
 }
 
 // noteOf is a new expense's note without one given: the booking's text,
@@ -323,7 +386,19 @@ func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
 	case metrics.ActionSkip:
 		return it.Txn.Payer, outbound.NinjaBankArchive(ctx, w.to, it.Txn.Key, outbound.BankArchiveOn)
 	case metrics.ActionLink:
-		return it.Expense.Number, outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expense: it.Expense.Key})
+		if err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expense: it.Expense.Key}); err != nil {
+			return it.Expense.Number, err
+		}
+		if err := w.fill(ctx, p); err != nil {
+			var part workbench.Partly
+			if errors.As(err, &part) {
+				return it.Expense.Number, part
+			}
+			return it.Expense.Number, workbench.Partly{Target: it.Expense.Number, Reason: w.Reason(err)}
+		}
+		return it.Expense.Number, nil
+	case ActionFill:
+		return it.Expense.Number, w.fill(ctx, p)
 	case metrics.ActionInvoice:
 		return it.Invoice.Number, outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Invoices: []string{it.Invoice.Key}})
 	case metrics.ActionPayment:
@@ -376,6 +451,41 @@ func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
 		return number, workbench.Partly{Target: number, Reason: "vatcheck.problem_scan"}
 	}
 	return number, nil
+}
+
+// fill writes what a found expense lacked: its fields, then its scan
+// (receipts.Link, both sides); a scan refused after written fields is
+// a partial success.
+func (w *writer) fill(ctx context.Context, p Planned) error {
+	it := p.Item
+	values := map[string]string{}
+	if cat := p.Field(FieldFillCategory); cat != "" {
+		values["category_id"] = cat
+	}
+	if it.Euer != "" {
+		values["custom_value"+strconv.Itoa(w.cats.EuerSlot)] = it.Euer
+	}
+	if it.Number != "" {
+		values["custom_value"+strconv.Itoa(w.numberSlot)] = it.Number
+	}
+	if it.Note != "" {
+		values["public_notes"] = it.Note
+	}
+	if len(values) > 0 {
+		if err := outbound.NinjaExpenseSet(ctx, w.to, it.Expense.Key, values); err != nil {
+			return err
+		}
+	}
+	if it.Scan == 0 {
+		return nil
+	}
+	if _, err := receipts.Link(ctx, w.d, w.who, it.Expense.Key, []int64{it.Scan}, w.ip); err != nil {
+		if len(values) == 0 {
+			return fmt.Errorf("paperless: %w", err)
+		}
+		return workbench.Partly{Target: it.Expense.Number, Reason: "vatcheck.problem_fill_scan"}
+	}
+	return nil
 }
 
 // Restore brings a transaction archived as private back into the feed.

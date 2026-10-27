@@ -229,6 +229,17 @@ func InvoiceSlotOf(ninja *model.Connection) int {
 	return slotOf(opts, OptInvoiceSlot)
 }
 
+// ScanSlotOf is the custom field of Invoice Ninja ninjaID that holds an
+// expense's scan, 0 when no complete pairing with Paperless serves it:
+// then the VAT check offers no scans.
+func ScanSlotOf(d *sql.DB, who *access.Principal, ninjaID int64) int {
+	p, err := openPair(d, who)
+	if err != nil || p.ninja.ID != ninjaID || !p.mapping.Complete() {
+		return 0
+	}
+	return p.mapping.LinkSlot
+}
+
 // num reads a number option, whatever JSON or a form made of it.
 func num(opts map[string]any, key string) int64 {
 	switch v := opts[key].(type) {

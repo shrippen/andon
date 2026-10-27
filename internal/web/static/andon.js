@@ -2582,8 +2582,6 @@
   //   list entry ──click, j/k──► desk ──take/later──► next entry
   //       ▲                        │
   //       └──── parts, ready ◄─────┘ (input, change)
-  var benchBooked = { amount: true, currency: true, date: true }; // the booking's own
-
   function benchOf(el) {
     return el.closest && el.closest("form[data-vat-bench]");
   }
@@ -2592,18 +2590,29 @@
     return form.querySelector(".bench-entry[data-case=\"" + CSS.escape(k) + "\"]");
   }
 
-  // benchHas says whether the desk's new expense has part p already.
-  function benchHas(desk, p) {
-    if (benchBooked[p]) {
+  // benchBlock is the shown action's block of a desk.
+  function benchBlock(desk) {
+    var act = desk.querySelector("input[data-act]").value;
+    return desk.querySelector("[data-for=\"" + act + "\"]") || desk;
+  }
+
+  // benchHas says whether the expense in block has part p: a part
+  // without a field there is the booking's own or one the expense has.
+  function benchHas(block, p) {
+    var f = block.querySelector("[data-part=\"" + p + "\"]");
+    var gap = f && f.closest("[data-gap]");
+    if (!f || (gap && gap.hidden)) {
       return true;
     }
     if (p === "scan") {
-      var r = desk.querySelector("input[data-part=scan]:checked");
+      var r = block.querySelector("input[data-part=scan]:checked");
       return !!(r && r.value);
     }
-    var f = desk.querySelector("[data-part=\"" + p + "\"]");
-    return !!(f && f.value.trim());
+    return !!f.value.trim();
   }
+
+  // benchCounted: actions whose expense the list counts.
+  var benchCounted = { create: true, link: true, fill: true };
 
   // benchCount redraws desk's entry: action, parts, ready, taken.
   function benchCount(form, desk) {
@@ -2616,9 +2625,11 @@
     // The parts it counts, as the server sent them: "vendor category …".
     var parts = entry.getAttribute("data-parts").trim().split(/\s+/);
     var segs = entry.querySelectorAll(".progress-segs>i");
+    var block = benchBlock(desk);
+    var counted = benchCounted[act];
     var n = 0;
     parts.forEach(function (p, i) {
-      var on = act !== "create" || benchHas(desk, p);
+      var on = !counted || benchHas(block, p);
       if (on) {
         n++;
       }
@@ -2627,7 +2638,7 @@
       }
     });
 
-    var ready = act === "create" ? n === parts.length : act !== "skip";
+    var ready = counted ? n === parts.length : act !== "skip";
     entry.toggleAttribute("data-ready", ready);
     var bar = entry.querySelector(".progress-segs");
     if (ready) {
@@ -2642,7 +2653,7 @@
       count = form.getAttribute("data-taken-label");
     } else if (ready) {
       count = form.getAttribute("data-ready-label");
-    } else if (act === "create") {
+    } else if (counted) {
       count = n + " / " + parts.length;
     }
     entry.querySelector("[data-count]").textContent = count;
@@ -2750,6 +2761,21 @@
     }
   });
 
+  // benchGaps shows the fields the picked expense lacks:
+  // <option data-gaps="euer scan">.
+  function benchGaps(desk, sel) {
+    var opt = sel.options[sel.selectedIndex];
+    var gaps = ((opt && opt.getAttribute("data-gaps")) || "").split(/\s+/).filter(Boolean);
+    var block = benchBlock(desk);
+    [].forEach.call(block.querySelectorAll("[data-gap]"), function (el) {
+      el.hidden = gaps.indexOf(el.getAttribute("data-gap")) < 0;
+    });
+    var none = block.querySelector("[data-gap-none]");
+    if (none) {
+      none.hidden = gaps.length > 0;
+    }
+  }
+
   // A field or scan changed: count again; a scan brings its number
   // unless the user typed another.
   function benchChanged(e) {
@@ -2758,8 +2784,11 @@
     if (!desk) {
       return;
     }
+    if (e.type === "change" && e.target.matches("select[name^=exp_]")) {
+      benchGaps(desk, e.target);
+    }
     if (e.type === "change" && e.target.matches("input[data-part=scan]")) {
-      var num = desk.querySelector("input[data-part=number]");
+      var num = benchBlock(desk).querySelector("input[data-part=number]");
       var was = desk.getAttribute("data-scan-number") || "";
       if (num && (num.value === "" || num.value === was) && e.target.getAttribute("data-number")) {
         num.value = e.target.getAttribute("data-number");

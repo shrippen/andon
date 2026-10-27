@@ -77,11 +77,16 @@ func (d Deps) handleVAT(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 }
 
 // handleVATScans searches Paperless for one case's scan: the desk's
-// search field q_<case>, and its vendor field for the score.
+// search field q_<field>_<case>, and its vendor field for the score;
+// field names the radios (scan for a new expense, xscan for a gap).
 func (d Deps) handleVATScans(w http.ResponseWriter, r *http.Request, ctx Ctx) {
-	q, k := vatQueryOf(r), r.FormValue("case")
-	found, err := vatcheck.Search(r.Context(), d.DB, ctx.Who, q.Scope, k, r.FormValue(vatcheck.FieldVendor+"_"+k), r.FormValue("q_"+k))
-	values := map[string]any{"Partial": true, "Found": found, "Case": k}
+	q, k, field := vatQueryOf(r), r.FormValue("case"), vatcheck.FieldScan
+	if r.FormValue("field") == vatcheck.FieldFillScan {
+		field = vatcheck.FieldFillScan
+	}
+	query := r.FormValue("q_" + field + "_" + k)
+	found, err := vatcheck.Search(r.Context(), d.DB, ctx.Who, q.Scope, k, r.FormValue(vatcheck.FieldVendor+"_"+k), query)
+	values := map[string]any{"Partial": true, "Found": found, "Case": k, "Field": field}
 	if err != nil {
 		values["Error"] = vatError(err)
 	}

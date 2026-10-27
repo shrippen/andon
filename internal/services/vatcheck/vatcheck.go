@@ -18,6 +18,7 @@ import (
 	"database/sql"
 	"errors"
 	"slices"
+	"strings"
 	"time"
 
 	"andon/internal/db"
@@ -66,6 +67,7 @@ type Page struct {
 	Cards     []SpanCard             // the periods, oldest first, with where each stands
 	Cases     []Case                 // business, and private with a known vendor
 	Apart     []Case                 // the rest of the private accounts
+	Gaps      []Case                 // linked expenses of the period without EÜR line or scan (ActionFill)
 	Skipped   []sources.NinjaBankTxn // archived in Invoice Ninja
 	Accounts  []Account
 	SetUp     bool  // an account has a role
@@ -120,9 +122,11 @@ type Case struct {
 	metrics.BankCase
 	Guess  *assist.Guess
 	Scans  []receipts.Candidate
-	Number string // a new expense's invoice number: the proposed scan's
-	Note   string // its public note: the booking's text
-	parts  []Part // the parts it counts (partsOf)
+	Number string            // a new expense's invoice number: the proposed scan's
+	Note   string            // its public note: the booking's text
+	parts  []Part            // the parts it counts (partsOf)
+	gaps   []Part            // what the expense found or filled lacks
+	lacks  map[string][]Part // each candidate expense's gaps, by key
 }
 
 // Account is a bank account of Invoice Ninja or Sure and its role.
@@ -151,8 +155,9 @@ type book struct {
 	settings map[string]any
 	state    state
 	cats     sources.Categories // the Verbund's mappings (verbund → categories)
-	// numberSlot is the invoice number's custom field (receipts), 0 none.
-	numberSlot int
+	// numberSlot is the invoice number's custom field (receipts), 0 none;
+	// scanSlot the scan's, 0 without Paperless paired.
+	numberSlot, scanSlot int
 }
 
 // Open builds the page for Verbund scope ("": the last or only one) and
@@ -199,7 +204,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 	if b.numberSlot > 0 {
 		p.Number, p.NumberOf = true, b.ninja.ExpenseFields[b.numberSlot-1].Label
 	}
-	parts := partsOf(p.Euer != "", p.Number)
+	parts := partsOf(p.Euer != "", p.Number, b.scanSlot > 0)
 	vendorEuer := metrics.VendorEuer(b.ninja, b.cats.EuerSlot)
 	guesses := b.state.guesses(b.conn.ID)
 	for _, c := range cases {
@@ -215,18 +220,15 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 		if cs.Txn.Debit {
 			cs.Note = noteOf(cs.Txn)
 		}
-		if cs.Creates() {
-			cs.Scans, _ = receipts.ScansFor(ctx, d, who, b.conn.ID, cs.Txn.Amount, cs.Txn.Date, cs.Draft.Vendor)
-		}
-		if cs.Scan() != 0 && b.numberSlot > 0 {
-			cs.Number = cs.Scans[0].Number
-		}
+		b.gapped(&cs)
+		b.propose(ctx, d, who, &cs)
 		if cs.Waiting() {
 			p.Cases = append(p.Cases, cs)
 		} else {
 			p.Apart = append(p.Apart, cs)
 		}
 	}
+	p.Gaps = b.gapCases(ctx, d, who, p.Span, parts, vendorEuer)
 	p.Receipts = -1
 	if c, err := receipts.CountsOf(ctx, d, who, receiptsTab, p.Span.Start.Year(), p.Span.Key); err == nil && c.Ready {
 		p.Receipts = c.Match
@@ -417,6 +419,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 	b.conn = b.scope.Conn(enums.ServiceInvoiceNinja)
 	b.cats = sources.CategoriesOf(b.conn.Options)
 	b.numberSlot = receipts.InvoiceSlotOf(b.conn)
+	b.scanSlot = receipts.ScanSlotOf(d, who, b.conn.ID)
 	for _, service := range need.Optional {
 		if b.bankConn == nil {
 			b.bankConn = b.scope.Conn(service)
@@ -468,11 +471,20 @@ type FetchError struct{ Msg string }
 func (e FetchError) Error() string { return e.Msg }
 
 // Search looks in Paperless for scans for transaction key's new expense
-// of vendor: query in title and content, within the booking's year.
+// of vendor, or for gap case key's expense: query in title and content,
+// within the booking's year.
 func Search(ctx context.Context, d *sql.DB, who *access.Principal, scope, key, vendor, query string) ([]receipts.Candidate, error) {
 	b, _, err := load(ctx, d, who, scope, svcdata.Stored)
 	if err != nil {
 		return nil, err
+	}
+	if exp, ok := strings.CutPrefix(key, fillPrefix); ok {
+		j := slices.IndexFunc(b.ninja.Expenses, func(e sources.NinjaExpense) bool { return e.Key == exp })
+		if j < 0 {
+			return nil, nil
+		}
+		e := b.ninja.Expenses[j]
+		return receipts.FindScans(ctx, d, who, b.conn.ID, e.Amount, e.Date, b.vendorName(e.VendorKey), query)
 	}
 	i := slices.IndexFunc(b.ninja.BankTxns, func(t sources.NinjaBankTxn) bool { return t.Key == key })
 	if i < 0 {
@@ -480,4 +492,83 @@ func Search(ctx context.Context, d *sql.DB, who *access.Principal, scope, key, v
 	}
 	t := b.ninja.BankTxns[i]
 	return receipts.FindScans(ctx, d, who, b.conn.ID, t.Amount, t.Date, vendor, query)
+}
+
+// gapsOf lists what an expense lacks of the parts the page counts.
+func (b book) gapsOf(e sources.NinjaExpense) []Part {
+	var out []Part
+	empty := func(slot int) bool { return slot > 0 && strings.TrimSpace(e.Custom[slot-1]) == "" }
+	if e.CategoryKey == "" {
+		out = append(out, PartCategory)
+	}
+	if empty(b.cats.EuerSlot) {
+		out = append(out, PartEuer)
+	}
+	if empty(b.numberSlot) {
+		out = append(out, PartNumber)
+	}
+	if empty(b.scanSlot) {
+		out = append(out, PartScan)
+	}
+	if strings.TrimSpace(e.Notes) == "" {
+		out = append(out, PartNote)
+	}
+	return out
+}
+
+// gapped notes what a link's expenses lack: the first's counts, being
+// the one the page takes; the others' fields show when picked.
+func (b book) gapped(c *Case) {
+	c.lacks = map[string][]Part{}
+	for _, e := range c.Expenses {
+		c.lacks[e.Key] = b.gapsOf(e)
+	}
+	if len(c.Expenses) > 0 {
+		c.gaps = c.lacks[c.Expenses[0].Key]
+	}
+}
+
+// propose looks for the scans a case's expense may get, and takes the
+// best one's invoice number.
+func (b book) propose(ctx context.Context, d *sql.DB, who *access.Principal, cs *Case) {
+	wants := cs.Act() == metrics.ActionCreate || cs.Offers(PartScan)
+	if !cs.Counts() || b.scanSlot == 0 || !wants {
+		return
+	}
+	cs.Scans, _ = receipts.ScansFor(ctx, d, who, b.conn.ID, cs.Txn.Amount, cs.Txn.Date, cs.Draft.Vendor)
+	if cs.Scan() != 0 && b.numberSlot > 0 {
+		cs.Number = cs.Scans[0].Number
+	}
+}
+
+// gapCases are the period's linked expenses still without EÜR line or
+// scan, each as a case to fill: "x-<key>", the vendor as payer.
+func (b book) gapCases(ctx context.Context, d *sql.DB, who *access.Principal, s metrics.VATSpan, parts []Part, vendorEuer map[string]string) []Case {
+	var out []Case
+	for _, e := range b.ninja.Expenses {
+		if e.TxnKey == "" || !inSpan(e.Date, s) {
+			continue
+		}
+		gaps := b.gapsOf(e)
+		if !slices.Contains(gaps, PartEuer) && !slices.Contains(gaps, PartScan) {
+			continue
+		}
+		vendor := b.vendorName(e.VendorKey)
+		txn := sources.NinjaBankTxn{Key: fillPrefix + e.Key, Date: e.Date, Payer: vendor, Description: e.Number, Amount: e.Amount, Debit: true}
+		cs := Case{BankCase: metrics.BankCase{Txn: txn, Expenses: []sources.NinjaExpense{e}, Action: ActionFill,
+			Draft: metrics.ExpenseDraft{Vendor: vendor, VendorKey: e.VendorKey, Euer: vendorEuer[e.VendorKey]}}, parts: parts}
+		b.gapped(&cs)
+		b.propose(ctx, d, who, &cs)
+		out = append(out, cs)
+	}
+	return out
+}
+
+func (b book) vendorName(key string) string {
+	for _, v := range b.ninja.Vendors {
+		if v.Key == key {
+			return v.Name
+		}
+	}
+	return ""
 }
