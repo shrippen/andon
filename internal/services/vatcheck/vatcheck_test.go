@@ -258,6 +258,19 @@ func TestAccounts(t *testing.T) {
 		t.Fatalf("accounts: %+v can set %v", p.Accounts, p.CanSet)
 	}
 
+	// Ignoring an account alone sets nothing up; its bookings leave, the
+	// account stays to be set back.
+	ignore := []vatcheck.Role{{ConnID: conn, Key: "a2", Role: sources.RoleIgnored}}
+	if err := vatcheck.SaveRoles(ctx, d, who, scopeOf(conn), ignore, ""); err != nil {
+		t.Fatal(err)
+	}
+	if p, err = vatcheck.Open(ctx, d, who, scopeOf(conn), thisMonth(), time.Now().UTC()); err != nil {
+		t.Fatal(err)
+	}
+	if p.SetUp || len(p.Accounts) != 2 || p.Accounts[1].Role != sources.RoleIgnored || slices.ContainsFunc(p.Cases, func(c vatcheck.Case) bool { return c.Txn.AccountKey == "a2" }) {
+		t.Fatalf("ignored: set up %v, accounts %+v, cases %+v", p.SetUp, p.Accounts, p.Cases)
+	}
+
 	roles := []vatcheck.Role{{ConnID: conn, Key: "a1", Role: sources.RoleBusiness}, {ConnID: conn, Key: "a2", Role: sources.RolePrivate}}
 	if err := vatcheck.SaveRoles(ctx, d, who, scopeOf(conn), roles, ""); err != nil {
 		t.Fatal(err)

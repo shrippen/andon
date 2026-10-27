@@ -44,6 +44,8 @@ var (
 	ErrAccountTaken = errors.New("verbund.account_taken")
 	// ErrUnknownAccount: the account is not in the fetched data.
 	ErrUnknownAccount = errors.New("verbund.unknown_account")
+	// ErrUnknownRole: no role of that name.
+	ErrUnknownRole = errors.New("verbund.unknown_role")
 )
 
 // Role is what an account is for (sources.AccountRole): pages name it
@@ -56,10 +58,11 @@ var accountServices = []enums.ServiceType{enums.ServiceInvoiceNinja, enums.Servi
 // minShared is how many shared bookings make an account a suggestion.
 const minShared = 2
 
-// BankAccount is an account as one member knows it.
+// BankAccount is an account as one member knows it; Suggest is the
+// role its kind implies while none is set (Sure's depot: ignored).
 type BankAccount struct {
-	Key, Name string
-	Role      sources.AccountRole
+	Key, Name     string
+	Role, Suggest sources.AccountRole
 }
 
 // AccountColumn is a member with its accounts.
@@ -161,11 +164,11 @@ func accountsOf(data any) []BankAccount {
 	switch ds := data.(type) {
 	case *sources.NinjaDataset:
 		for _, a := range ds.BankAccounts {
-			out = append(out, BankAccount{a.Key, a.Name, a.Role})
+			out = append(out, BankAccount{Key: a.Key, Name: a.Name, Role: a.Role})
 		}
 	case *sources.BankData:
-		for _, a := range ds.Accounts {
-			out = append(out, BankAccount{a.ID, a.Name, a.Role})
+		for _, a := range slices.Concat(ds.Accounts, ds.Ignored) {
+			out = append(out, BankAccount{Key: a.ID, Name: a.Name, Role: a.Role, Suggest: a.Suggested()})
 		}
 	}
 	sort.SliceStable(out, func(a, b int) bool { return strings.ToLower(out[a].Name) < strings.ToLower(out[b].Name) })
@@ -407,6 +410,9 @@ func ConfirmAccounts(ctx context.Context, d *sql.DB, who *access.Principal, id i
 func SetRole(d *sql.DB, who *access.Principal, connID int64, key string, role sources.AccountRole, ip string) error {
 	if key == "" {
 		return ErrUnknownAccount
+	}
+	if !role.Known() {
+		return ErrUnknownRole
 	}
 	targets := map[int64]string{connID: key}
 	err := db.WithRead(d, func(tx *sql.Tx) error {
