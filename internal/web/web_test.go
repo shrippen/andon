@@ -473,6 +473,13 @@ func TestPagesLoadKante(t *testing.T) {
 		t.Fatalf("expected data-own-lang on <html> in:\n%s", page)
 	}
 
+	// Waiting feedback: the bar and its texts come with every page (andon.js loadStart).
+	for _, want := range []string{`class="page-load"`, `name="load-slow"`, `name="load-failed"`, `name="send-failed"`, `name="load-retry"`} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("expected %s in:\n%s", want, page)
+		}
+	}
+
 	order := []string{
 		"/static/vendor/kante/components.css?v=", "/static/andon.css?v=",
 		"/static/vendor/kante/shrippen.js?v=",
@@ -496,7 +503,7 @@ func TestPagesLoadKante(t *testing.T) {
 		if res.StatusCode != http.StatusOK || len(got) == 0 {
 			t.Fatalf("%s: status %d, %d bytes", path, res.StatusCode, len(got))
 		}
-		if strings.HasSuffix(path, "VERSION") && !strings.HasPrefix(string(got), "Kante 1.46") {
+		if strings.HasSuffix(path, "VERSION") && !strings.HasPrefix(string(got), "Kante 1.47") {
 			t.Fatalf("VERSION: %q", got)
 		}
 	}

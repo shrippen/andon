@@ -400,7 +400,6 @@ label.pick-check { margin: 0 .3rem; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
-.loading { display: inline-flex; align-items: center; gap: .55rem; color: var(--fg3); font-family: var(--font-mono); font-size: .78rem; }
 .slot-note { font-size: .8rem; color: var(--fg2); }
 .slot-note.is-error code { color: var(--danger-text); }
 

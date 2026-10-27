@@ -2165,6 +2165,262 @@
     });
   });
 
+  // ── Waiting feedback (Kante 1.47) ──
+  //
+  //   request starts ─► Kante shows nothing for 150 ms (CSS delay), then:
+  //     page change   .page-load bar on top, the clicked link .is-pending,
+  //                   <main> aria-busy (old page dims); Esc cancels
+  //     form submit   the submit button .is-busy and disabled
+  //     fragment      its target aria-busy: the old content dims
+  //   8 s  ─► "Dauert länger …" with the seconds (forms: a .btn-status line
+  //           under the button, otherwise a toast)
+  //   30 s ─► a GET gives up; on an error the old content stays and a toast
+  //           offers "Erneut versuchen"
+  //   Polls (every, load, revealed) only dim: no toasts, no giving up.
+  var LOAD_SHOW_MS = 150;
+  var LOAD_MIN_MS = 300;
+  var LOAD_SLOW_MS = 8000;
+  var LOAD_GIVEUP_MS = 30000;
+  var LOAD_TOAST_LIFE = "10s";
+  var loads = new WeakMap();
+  var pageLoads = [];
+
+  // loadText is a waiting text from the page head ("load-slow" …).
+  function loadText(name) {
+    var meta = d.querySelector('meta[name="' + name + '"]');
+    return meta ? meta.content : "";
+  }
+
+  // loadToast puts a toast into the stack; retry adds the action button.
+  function loadToast(text, kind, retry) {
+    var stack = d.getElementById("toast");
+    if (!stack) {
+      return null;
+    }
+    var toast = d.createElement("div");
+    toast.className = "toast";
+    toast.setAttribute("role", "status");
+    if (kind) {
+      toast.setAttribute("data-kind", kind);
+    }
+    var span = d.createElement("span");
+    span.textContent = text;
+    toast.appendChild(span);
+    if (retry) {
+      var btn = d.createElement("button");
+      btn.type = "button";
+      btn.className = "toast-action";
+      btn.textContent = loadText("load-retry");
+      btn.addEventListener("click", function () {
+        toast.remove();
+        retry();
+      });
+      toast.appendChild(btn);
+    }
+    if (kind === "error") {
+      var life = d.createElement("span");
+      life.className = "toast-life";
+      life.setAttribute("aria-hidden", "true");
+      life.style.setProperty("--life", LOAD_TOAST_LIFE);
+      toast.appendChild(life);
+      expire(toast);
+    }
+    stack.appendChild(toast);
+    return toast;
+  }
+
+  // loadKind tells a page change, a form submit and a fragment load apart.
+  function loadKind(detail) {
+    if (detail.boosted && detail.target === d.body) {
+      return "page";
+    }
+    if (detail.elt.tagName === "FORM") {
+      return "form";
+    }
+    return "part";
+  }
+
+  // retrying marks the request a retry starts: the user's too, though its
+  // event is synthetic.
+  var retrying = false;
+
+  // byUser: a click, a submit, typing or a retry started it, not a poll.
+  function byUser(detail) {
+    var ev = detail.requestConfig && detail.requestConfig.triggeringEvent;
+    return retrying || !!(ev && ev.isTrusted);
+  }
+
+  function loadStart(e) {
+    if (e.defaultPrevented) {
+      return;
+    }
+    var detail = e.detail;
+    var ev = detail.requestConfig && detail.requestConfig.triggeringEvent;
+    var load = {
+      elt: detail.elt,
+      kind: loadKind(detail),
+      user: byUser(detail),
+      get: detail.requestConfig && detail.requestConfig.verb === "get",
+      start: Date.now(),
+      submitter: ev && ev.submitter ? ev.submitter : null,
+      trigger: ev ? ev.type : "",
+      path: detail.pathInfo ? detail.pathInfo.requestPath : "",
+      target: detail.target,
+    };
+    loads.set(detail.xhr, load);
+
+    if (load.kind === "page") {
+      pageLoads.push(load);
+      var bar = d.querySelector(".page-load");
+      if (bar) {
+        bar.classList.add("is-on");
+      }
+      var main = d.querySelector("main");
+      if (main) {
+        main.setAttribute("aria-busy", "true");
+        load.area = main;
+      }
+    } else if (load.kind === "part" && detail.target && detail.target !== d.body) {
+      detail.target.setAttribute("aria-busy", "true");
+      load.area = detail.target;
+    }
+
+    if (load.submitter) {
+      load.submitter.classList.add("is-busy");
+      load.submitter.disabled = true;
+    } else if (load.kind === "page" && load.elt.tagName === "A") {
+      load.elt.classList.add("is-pending");
+    }
+
+    if (!load.user) {
+      return;
+    }
+    load.slow = setTimeout(function () { loadSlow(load); }, LOAD_SLOW_MS);
+    if (load.get) {
+      load.giveUp = setTimeout(function () {
+        load.gaveUp = true;
+        htmx.trigger(load.elt, "htmx:abort");
+      }, LOAD_GIVEUP_MS);
+    }
+  }
+
+  // loadSlow says the request takes longer and counts the seconds.
+  function loadSlow(load) {
+    var say = function (line) {
+      line.textContent = loadText("load-slow") + " " + Math.round((Date.now() - load.start) / 1000) + " s";
+    };
+    var line;
+    if (load.submitter) {
+      line = d.createElement("p");
+      line.className = "btn-status";
+      line.setAttribute("aria-live", "polite");
+      var row = load.submitter.closest(".btn-row") || load.submitter;
+      row.after(line);
+      load.status = line;
+    } else {
+      load.toast = loadToast("", "", null);
+      line = load.toast && load.toast.querySelector("span");
+    }
+    if (!line) {
+      return;
+    }
+    say(line);
+    load.tick = setInterval(function () { say(line); }, 1000);
+  }
+
+  // loadEnd undoes the states; the bar stays at least LOAD_MIN_MS once shown.
+  function loadEnd(e) {
+    var load = loads.get(e.detail.xhr);
+    if (!load || load.done) {
+      return;
+    }
+    load.done = true;
+    clearTimeout(load.slow);
+    clearTimeout(load.giveUp);
+    clearInterval(load.tick);
+    if (load.status) {
+      load.status.remove();
+    }
+    if (load.toast) {
+      load.toast.remove();
+    }
+
+    var spent = Date.now() - load.start;
+    var wait = spent > LOAD_SHOW_MS ? Math.max(0, LOAD_SHOW_MS + LOAD_MIN_MS - spent) : 0;
+    setTimeout(function () {
+      if (load.area) {
+        load.area.removeAttribute("aria-busy");
+      }
+      load.elt.classList.remove("is-pending");
+      if (load.submitter) {
+        load.submitter.classList.remove("is-busy");
+        load.submitter.disabled = false;
+      }
+      if (load.kind !== "page") {
+        return;
+      }
+      pageLoads = pageLoads.filter(function (l) { return l !== load; });
+      var bar = d.querySelector(".page-load");
+      if (bar && pageLoads.length === 0) {
+        bar.classList.remove("is-on");
+      }
+    }, wait);
+  }
+
+  // loadFailed keeps the old content and offers to send the request again.
+  function loadFailed(e) {
+    var load = loads.get(e.detail.xhr);
+    if (!load || !load.user || (e.type === "htmx:sendAbort" && !load.gaveUp)) {
+      return;
+    }
+    // A sent form may have arrived: no retry that could write twice.
+    if (!load.get) {
+      loadToast(loadText("send-failed"), "error");
+      return;
+    }
+    loadToast(loadText("load-failed"), "error", function () {
+      retrying = true;
+      try {
+        loadAgain(load);
+      } finally {
+        retrying = false;
+      }
+    });
+  }
+
+  function loadAgain(load) {
+    if (load.kind === "form" || load.elt.tagName === "FORM") {
+      load.elt.requestSubmit(load.submitter || undefined);
+      return;
+    }
+    if (load.elt.tagName === "A" || load.trigger === "click") {
+      load.elt.click();
+      return;
+    }
+    // A fragment asks again for its path: its trigger may listen on
+    // another element (from:), fire once, or drop an unchanged value.
+    if (!load.get) {
+      htmx.trigger(load.elt, load.trigger);
+      return;
+    }
+    htmx.ajax("GET", load.path, { source: load.elt, target: load.target });
+  }
+
+  d.addEventListener("htmx:beforeRequest", loadStart);
+  d.addEventListener("htmx:afterRequest", loadEnd);
+  ["htmx:sendError", "htmx:timeout", "htmx:sendAbort", "htmx:responseError"].forEach(function (name) {
+    d.addEventListener(name, loadFailed);
+  });
+
+  // Esc cancels a page change still on its way. A sent form stays: the
+  // server writes it anyway, and a silent abort would invite a second one.
+  d.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") {
+      return;
+    }
+    pageLoads.filter(function (load) { return load.get; }).forEach(function (load) { htmx.trigger(load.elt, "htmx:abort"); });
+  });
+
   // Soft page changes for every same-origin link and form, except on a wall
   // display, which rotates by full page loads.
   if (!d.body.classList.contains("is-kiosk")) {

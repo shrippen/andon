@@ -368,7 +368,7 @@
       <div class="card-body" hx-get="{{$frag}}" hx-trigger="{{$trigger}}" hx-swap="innerHTML">{{fragment .}}</div>
       {{else}}
       <div class="card-body" hx-get="{{$frag}}" hx-trigger="load, retry, wake{{if .RefreshS}}, {{every .RefreshS}}{{end}}" hx-swap="innerHTML">
-        <span class="loading"><span class="loader" aria-hidden="true"><i></i><i></i><i></i></span> {{t "widget.loading"}}</span>
+        {{template "loading"}}
       </div>
       {{end}}
     </article>

@@ -15,6 +15,10 @@ nav:
   setup: Setup
   timeline: 'Timeline'
   offline: Offline – last known state.
+  load_slow: Taking longer …
+  load_failed: Loading failed; the old state stays.
+  send_failed: Sending failed; check whether it arrived.
+  load_retry: Try again
   billing: Billing
   home: Go to start page
   hints: Hints
