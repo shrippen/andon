@@ -255,7 +255,8 @@ func (b book) cards(spans []metrics.VATSpan, method string, today time.Time) []S
 	return out
 }
 
-// spanState says where c stands; a period runs through its last day.
+// spanState says where c stands; a period and its deadline run through
+// their last day.
 func (b book) spanState(c SpanCard, method string, today time.Time) SpanState {
 	if today.Before(c.End.AddDate(0, 0, 1)) {
 		return SpanRunning
@@ -267,7 +268,7 @@ func (b book) spanState(c SpanCard, method string, today time.Time) SpanState {
 	if ok {
 		return SpanFiled
 	}
-	if today.After(c.Due) {
+	if !today.Before(c.Due.AddDate(0, 0, 1)) {
 		return SpanUnfiled
 	}
 	return SpanOpen
