@@ -164,7 +164,9 @@ func BankCases(in VATInputs) []BankCase {
 }
 
 // transferOf finds t's other side on another own account: the opposite
-// booking of the same amount a few days apart, in the feed or in Sure.
+// booking of the same amount a few days apart, in the feed or in Sure,
+// that nothing else explains (a customer's payment of the same amount is
+// no card settlement).
 func transferOf(in VATInputs, t sources.NinjaBankTxn, used map[string]bool) *Transfer {
 	day, ok := ParseDay(t.Date)
 	if !ok {
@@ -173,6 +175,9 @@ func transferOf(in VATInputs, t sources.NinjaBankTxn, used map[string]bool) *Tra
 	sides := otherSides(t.Role)
 	for _, u := range in.Ninja.BankTxns {
 		if !slices.Contains(sides, u.Role) || u.Debit == t.Debit || used["n"+u.Key] || abs(u.Amount-t.Amount) > amountTol || daysApart(u.Date, day) > bankWindow {
+			continue
+		}
+		if explained(in.Ninja, u) {
 			continue
 		}
 		used["n"+u.Key] = true
@@ -186,10 +191,25 @@ func transferOf(in VATInputs, t sources.NinjaBankTxn, used map[string]bool) *Tra
 		if !slices.Contains(sides, s.Role) || (s.Amount > 0) != t.Debit || used["s"+s.ID] || abs(abs(s.Amount)-t.Amount) > amountTol || daysApart(s.Date, day) > bankWindow {
 			continue
 		}
+		if explained(in.Ninja, sources.NinjaBankTxn{Date: s.Date, Payer: s.Name, Amount: abs(s.Amount), Debit: s.Amount < 0}) {
+			continue
+		}
 		used["s"+s.ID] = true
 		return &Transfer{Account: s.Account, Date: s.Date}
 	}
 	return nil
+}
+
+// explained: u is booked, or an expense, invoice or payment fits it.
+func explained(n *sources.NinjaDataset, u sources.NinjaBankTxn) bool {
+	if u.Status == sources.BankDone {
+		return true
+	}
+	if u.Debit {
+		return len(expenseFits(n, u, LinkedExpenses(n))) > 0
+	}
+	inv, _ := invoiceFit(n, u, nil)
+	return inv != nil || paymentFit(n, u, linkedPayments(n)) != nil
 }
 
 // otherSides are the roles a transfer's other side may have: a

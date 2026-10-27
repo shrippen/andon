@@ -303,6 +303,42 @@ func TestBankCasesCard(t *testing.T) {
 	}
 }
 
+// A booking that fits an invoice, payment or expense is no transfer's
+// other side: a card purchase stays an expense though a customer pays
+// the same amount on the giro two days later, and a refund on the card
+// does not take a giro debit an expense explains.
+func TestBankCasesTransferNotBooked(t *testing.T) {
+	n := &sources.NinjaDataset{
+		Clients:  []sources.NinjaClient{{ID: 1, Name: "Northlight Pictures"}},
+		Invoices: []sources.NinjaInvoice{{ID: 7, Number: "R-17", ClientID: 1, Status: "sent", Amount: 119, Balance: 119}},
+		Expenses: []sources.NinjaExpense{{Key: "e1", Date: "2026-09-11", Amount: 50}},
+		BankTxns: []sources.NinjaBankTxn{
+			{Key: "buy", Date: "2026-09-03", Payer: "Bauhaus", Amount: 119, Debit: true, Role: sources.RoleTransfer, Account: "Karte"},
+			{Key: "income", Date: "2026-09-05", Payer: "Northlight Pictures", Amount: 119, Role: sources.RoleBusiness, Account: "Giro"},
+			{Key: "refund", Date: "2026-09-10", Payer: "Bauhaus Erstattung", Amount: 50, Role: sources.RoleTransfer, Account: "Karte"},
+			{Key: "spent", Date: "2026-09-11", Payer: "Studiobedarf", Amount: 50, Debit: true, Role: sources.RoleBusiness, Account: "Giro"},
+		},
+	}
+	start, _ := metrics.ParseDay("2026-09-01")
+	end, _ := metrics.ParseDay("2026-09-30")
+	got := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(metrics.VATInputs{Ninja: n, Start: start, End: end}) {
+		got[c.Txn.Key] = c
+	}
+	if c := got["buy"]; c.Action != metrics.ActionCreate || c.Transfer != nil {
+		t.Errorf("purchase: %+v", c.Transfer)
+	}
+	if c := got["income"]; c.Action != metrics.ActionInvoice {
+		t.Errorf("income: %+v", c)
+	}
+	if c := got["refund"]; c.Transfer != nil {
+		t.Errorf("refund bound to an expense's debit: %+v", c.Transfer)
+	}
+	if c := got["spent"]; c.Action != metrics.ActionLink {
+		t.Errorf("giro debit: %+v", c)
+	}
+}
+
 // Receipts: a card purchase needs one, a booking between own accounts
 // never; on a mixed account only spending at a vendor with expenses.
 func TestMissingReceiptsCardMixed(t *testing.T) {
