@@ -12,13 +12,14 @@ package metrics
 //	               (by hand, from /billing), no transaction yet   → link
 //
 // Accounts are business or private as the user named them (unnamed
-// count as business). A debit from
+// count as business, but pair in no transfer). A debit from
 // a private account is proposed only for a vendor with expenses (the
 // train ticket paid privately); the rest waits, set apart. Incomes on
 // private accounts and transactions archived in Invoice Ninja drop out.
 // A mixed account's debits are treated like the private ones, its
 // incomes like the business ones. A transfer account (card, PayPal)
-// books its purchases; its settlement is a transfer:
+// books its purchases; its settlement is a transfer, between marked
+// accounts only (otherSides):
 //
 //	Giro  −120 "Kartenabrechnung" ─┐ same amount, a few days apart
 //	Karte +120 "Zahlung"          ─┘ → both archived, nothing to book
