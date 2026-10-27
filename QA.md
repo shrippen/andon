@@ -179,9 +179,9 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 4. „Doppelte Lieferanten zusammenführen“ → `/vendors`: Gruppe wählen, Prüfen, Schreiben (Demo lehnt ab).
 
 **J-C4 Kategorien und EÜR**
-1. Verbund mit Invoice Ninja und Sure → „Kategorien“: Vorschläge stehen vorausgewählt („Vorschlag“), das EÜR-Feld ist erkannt; Speichern.
-2. `/euer`: Ausgaben ohne EÜR-Zeile, mit Vorschlag angehakt; „Prüfen“ → „In Invoice Ninja schreiben“ (Demo lehnt ab). Ohne gewähltes Feld: Hinweis mit Link zu den Kategorien.
-3. `/vat`: „Ausgabe anlegen“ zeigt in der Prüfung die EÜR-Zeile der Kategorie.
+1. Verbund mit Invoice Ninja und Sure → „Kategorien“: Sure-Vorschläge stehen vorausgewählt („Vorschlag“), das EÜR-Feld ist erkannt, keine Zuordnung Kategorie → EÜR; Speichern.
+2. `/euer`: Ausgaben ohne EÜR-Zeile, Vorschlag aus der letzten Ausgabe desselben Lieferanten („wie zuletzt bei diesem Lieferanten“), nichts vorab angehakt; Dropdown-Feld als Auswahl. Anhaken, „Prüfen“ → „In Invoice Ninja schreiben“ (Demo lehnt ab). Ohne gewähltes Feld: Hinweis mit Link zu den Kategorien.
+3. `/vat`: „Ausgabe anlegen“ hat eine EÜR-Auswahl, vorbelegt mit der Zeile des Lieferanten; die Prüfung zeigt sie, ein Wert außerhalb des Dropdowns wird übersprungen.
 
 **J-C3 Schreib-Journal**
 1. Kontomenü → „Schreib-Journal“: nach einem Abgleich auf `/vat` und einer Verknüpfung auf `/receipts` stehen beide oben; Bereichs-Chips filtern.
@@ -202,7 +202,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 2. Stand: offene Umsätze, Bankabruf bis, Ausgaben ohne Steuer, „Nur in Sure“; Umsatzsteuer, Vorsteuer, Zahllast „vorläufig“, solange etwas offen ist.
 3. Je Zeile die Aktion wechseln: Es stehen nur die Felder der gewählten Aktion da. Vorbelegung (Lieferant, Kategorie, Steuer) und ihre Herkunft (letzte Ausgabe, Sure, Claude) prüfen.
 4. Ankreuzen, „Prüfen“: Die Liste nennt jeden Schreibvorgang mit Vorsteuer; nichts ist geschrieben. „In Invoice Ninja schreiben“: Demo lehnt ab. „Privat“ archiviert in Invoice Ninja (auch ein Schreibvorgang in der Prüfung).
-5. Konten: Geschäftskonto angehakt, Privatkonto nicht. „Vom Privatkonto“: Deutschlandticket und Einkauf stehen eingeklappt, die Erstattung fehlt; „Alle als privat archivieren“ prüft nur diese. Ein Konto umstellen, speichern: Liste und Stand ändern sich.
+5. Konten: Geschäftskonto angehakt, Privatkonto nicht. „Vom Privatkonto“: Deutschlandticket und Einkauf stehen eingeklappt, die Erstattung fehlt; „Alle als privat archivieren“ prüft nur diese. Ein Konto umstellen, speichern: Liste und Stand ändern sich. Ein Depot in Sure steht als „ignoriert (Vorschlag)“; gespeichert fehlt es in Kontostand, Stand und Hinweisen, steht aber weiter in der Liste.
 6. Mit API-Schlüssel: „Claude um Vorschläge bitten“ (auch für die Privatkonto-Zeilen); was ändert sich, was bleibt (Verlauf eines Lieferanten gewinnt)?
 7. Kachel „Belege ohne Ausgabe“ und Monatsabschluss verlinken auf `/vat`.
 8. Tankquittung: Zeile „Ausgabe anlegen“ bietet den Beleg an (Treffer 100); in der Prüfung „mit Beleg … verknüpfen“. September: ein Eingang mit „Mit vorhandener Zahlung verknüpfen“.
