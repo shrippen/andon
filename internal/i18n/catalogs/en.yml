@@ -7031,7 +7031,7 @@ caps:
   note: 'Only partly usable:'
 verbund:
   categories: Categories
-  categories_lead: 'Which Ninja category a Sure category means and which EUER line a Ninja category belongs to. Andon proposes from bookings both sides already have; nothing counts before you save.'
+  categories_lead: 'Which Ninja category a Sure category means and which custom field holds the EUER line. Andon proposes from bookings both sides already have; nothing counts before you save.'
   categories_saved: 'Categories saved.'
   cat_sure_title: '{bank} → Invoice Ninja'
   cat_sure_lead: 'So Sure’s automatic categories land in the right Ninja category when the VAT check creates an expense.'
@@ -7039,11 +7039,9 @@ verbund:
   cat_suggested: 'Proposed'
   cat_sure_none: 'Sure knows no categories for debits yet.'
   cat_euer_title: 'Invoice Ninja → EUER'
-  cat_euer_lead: 'The EUER line is an expense custom field. Pick the field and each category’s line; the “EUER lines” workbench then fills empty fields.'
+  cat_euer_lead: 'The EUER line is a custom field of each expense, independent of its category. The VAT check fills it on creating, the “EUER lines” workbench completes empty fields.'
   cat_euer_field: 'Custom field holding the EUER line'
-  cat_ninja: 'Ninja category'
-  cat_euer_line: 'EUER line'
-  cat_used: 'Booked so'
+  cat_euer_lines: 'Lines in the field: {lines}'
   cat_euer_none: 'Pick the custom field first. In Invoice Ninja under Settings → Custom fields → Expenses.'
   cat_save: 'Save'
   cat_to_euer: 'To the EUER lines'
@@ -7272,6 +7270,7 @@ vatcheck:
   vendor: Vendor
   category: Category
   no_category: No category
+  no_euer: 'No {field}'
   tax: Tax
   no_tax: No tax
   from_history: 'Category and tax from this vendor''s last expense'
@@ -7314,6 +7313,7 @@ vatcheck:
   problem_gone: 'Already booked or gone: skipped.'
   problem_target: 'The expense or invoice no longer fits: skipped.'
   problem_no_vendor: 'Andon creates no expense without a vendor: skipped.'
+  problem_euer: 'Not a line of the EUER field: skipped.'
   problem_not_booked: 'Invoice Ninja did not book the transaction.'
 workbench:
   err_nothing: 'Nothing selected.'
@@ -7389,16 +7389,17 @@ journal:
   act_tandoor_check: 'Shopping item ticked'
 euer:
   title: 'EUER lines'
-  lead: 'This year’s expenses with an empty EUER field. Proposed is their category’s line (bundle → categories); ticked ones are written to Invoice Ninja after the review.'
+  lead: 'Expenses of the year with an empty EUER field. Proposed is the line of the same vendor’s last expense, never the category’s; ticked ones are written to Invoice Ninja after review.'
   years: Years
   setup_title: 'Which field holds the EUER line?'
-  setup_text: 'The EUER line is an expense custom field. Pick it in the bundle under categories and map the categories there.'
+  setup_text: 'The EUER line is an expense custom field. Pick it in the bundle under categories.'
   setup_link: 'Open categories'
-  cases: 'Expenses without {field}: {n}, with a proposal: {mapped}.'
-  mapping: 'Change mapping'
+  cases: 'Expenses without {field}: {n}, proposed by vendor: {suggested}.'
+  mapping: 'Change field'
   expense: Expense
   line: 'EUER line'
-  no_mapping: 'Category not mapped'
+  from_vendor: 'as last time with this vendor'
+  no_vendor: 'Vendor without an earlier line'
   review: 'Review'
   empty: 'Every expense of {year} has its EUER line.'
   review_title: 'Confirm EUER lines'
@@ -7410,6 +7411,7 @@ euer:
   failed: 'Not done: {n}.'
   problem_gone: 'Set already or gone: skipped.'
   problem_line: 'No line: skipped.'
+  problem_value: 'Not a line of the field: skipped.'
   err_no_ninja: 'No Invoice Ninja connection you may use.'
   err_demo: 'The demo does not write to Invoice Ninja.'
 vendors:

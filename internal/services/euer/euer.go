@@ -1,10 +1,12 @@
-// Package euer fills the EÜR line of Invoice Ninja expenses, a custom
-// field, as a workbench (services/workbench): each expense of the year
-// whose field is empty gets the line its category maps to (Verbund →
-// Kategorien); the user ticks, reviews, and Andon writes.
+// Package euer checks and completes the EÜR line of Invoice Ninja
+// expenses, a custom field, as a workbench (services/workbench): each
+// expense of the year whose field is empty is proposed the line of its
+// vendor's last expense; the user ticks, reviews, and Andon writes.
+// The line belongs to the expense, not its category (one category goes
+// to several lines). The VAT check (/vat) fills it on creating already.
 //
-//	expense, field empty ── category → line (euer_map) ──► review ──► Ninja
-//	                      └─ no line yet: the user picks one
+//	expense, field empty ── vendor's last line ──► tick ──► review ──► Ninja
+//	                      └─ none: the user picks one
 package euer
 
 import (
@@ -49,8 +51,9 @@ const (
 var Fields = []string{FieldLine}
 
 const (
-	ProblemGone workbench.Problem = "euer.problem_gone" // filled or gone meanwhile
-	ProblemLine workbench.Problem = "euer.problem_line" // no line picked
+	ProblemGone  workbench.Problem = "euer.problem_gone"  // filled or gone meanwhile
+	ProblemLine  workbench.Problem = "euer.problem_line"  // no line picked
+	ProblemValue workbench.Problem = "euer.problem_value" // not one of the dropdown's
 )
 
 // yearsShown is how many years the page offers, this one included.
@@ -65,20 +68,21 @@ type state struct {
 
 // Page is the bench for one Verbund and year.
 type Page struct {
-	Scopes  []workbench.Scope
-	Scope   string
-	Choose  bool
-	Year    int
-	Years   []int
-	Slot    int    // the EÜR field, 0 = not chosen (Verbund → Kategorien)
-	Label   string // its name
-	Lines   []string
-	Cases   []metrics.EuerCase
-	Mapped  int // cases with a proposed line
-	SpaceID int64
-	LinkID  int64 // the Verbund, for its categories page; 0 none
-	Ninja   int64 // its Invoice Ninja and Sure or Firefly (0 none), for
-	Bank    int64 // the categories page outside a Verbund
+	Scopes    []workbench.Scope
+	Scope     string
+	Choose    bool
+	Year      int
+	Years     []int
+	Slot      int    // the EÜR field, 0 = not chosen (Verbund → Kategorien)
+	Label     string // its name
+	Lines     []string
+	Dropdown  bool // the field takes only Lines
+	Cases     []metrics.EuerCase
+	Suggested int // cases with a proposed line
+	SpaceID   int64
+	LinkID    int64 // the Verbund, for its categories page; 0 none
+	Ninja     int64 // its Invoice Ninja and Sure or Firefly (0 none), for
+	Bank      int64 // the categories page outside a Verbund
 }
 
 // book is the loaded data.
@@ -115,36 +119,15 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, y
 		return p, nil
 	}
 	field := b.ninja.ExpenseFields[p.Slot-1]
-	p.Label, p.Lines = field.Label, lines(field, b.cats.Euer, b.ninja, p.Slot)
-	p.Cases = metrics.EuerCases(b.ninja, p.Slot, b.cats.Euer, strconv.Itoa(p.Year)+"-01-01")
+	p.Label, p.Lines, p.Dropdown = field.Label, metrics.EuerChoices(b.ninja, p.Slot), len(field.Options) > 0
+	p.Cases = metrics.EuerCases(b.ninja, p.Slot, strconv.Itoa(p.Year)+"-01-01")
 	p.Cases = slices.DeleteFunc(p.Cases, func(c metrics.EuerCase) bool { return !strings.HasPrefix(c.Expense.Date, strconv.Itoa(p.Year)) })
 	for _, c := range p.Cases {
 		if c.Line != "" {
-			p.Mapped++
+			p.Suggested++
 		}
 	}
 	return p, nil
-}
-
-// lines are the choices: a dropdown's, else the mapped and used values.
-func lines(f sources.ExpenseField, mapped map[string]string, n *sources.NinjaDataset, slot int) []string {
-	if len(f.Options) > 0 {
-		return f.Options
-	}
-	var out []string
-	add := func(s string) {
-		if s != "" && !slices.Contains(out, s) {
-			out = append(out, s)
-		}
-	}
-	for _, l := range mapped {
-		add(l)
-	}
-	for _, e := range n.Expenses {
-		add(e.Custom[slot-1])
-	}
-	slices.Sort(out)
-	return out
 }
 
 // load picks the Verbund and reads its Invoice Ninja.
@@ -196,7 +179,8 @@ type Plan struct {
 	Label string
 }
 
-// Check: the expense must still have an empty field and a line be given.
+// Check: the expense must still have an empty field and a line be
+// given, one of the dropdown's if the field is one.
 func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 	var it Item
 	i := slices.IndexFunc(b.ninja.Expenses, func(e sources.NinjaExpense) bool { return e.Key == s.Case })
@@ -206,6 +190,9 @@ func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 	it.Expense, it.Line = b.ninja.Expenses[i], strings.TrimSpace(s.Field(FieldLine))
 	if it.Line == "" || s.Action != ActSet {
 		return it, ProblemLine
+	}
+	if opts := b.ninja.ExpenseFields[b.cats.EuerSlot-1].Options; len(opts) > 0 && !slices.Contains(opts, it.Line) {
+		return it, ProblemValue
 	}
 	return it, workbench.ProblemNone
 }

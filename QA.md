@@ -171,9 +171,9 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 4. „Doppelte Lieferanten zusammenführen“ → `/vendors`: Gruppe wählen, Prüfen, Schreiben (Demo lehnt ab).
 
 **J-C4 Kategorien und EÜR**
-1. Verbund mit Invoice Ninja und Sure → „Kategorien“: Vorschläge stehen vorausgewählt („Vorschlag“), das EÜR-Feld ist erkannt; Speichern.
-2. `/euer`: Ausgaben ohne EÜR-Zeile, mit Vorschlag angehakt; „Prüfen“ → „In Invoice Ninja schreiben“ (Demo lehnt ab). Ohne gewähltes Feld: Hinweis mit Link zu den Kategorien.
-3. `/vat`: „Ausgabe anlegen“ zeigt in der Prüfung die EÜR-Zeile der Kategorie.
+1. Verbund mit Invoice Ninja und Sure → „Kategorien“: Sure-Vorschläge stehen vorausgewählt („Vorschlag“), das EÜR-Feld ist erkannt, keine Zuordnung Kategorie → EÜR; Speichern.
+2. `/euer`: Ausgaben ohne EÜR-Zeile, Vorschlag aus der letzten Ausgabe desselben Lieferanten („wie zuletzt bei diesem Lieferanten“), nichts vorab angehakt; Dropdown-Feld als Auswahl. Anhaken, „Prüfen“ → „In Invoice Ninja schreiben“ (Demo lehnt ab). Ohne gewähltes Feld: Hinweis mit Link zu den Kategorien.
+3. `/vat`: „Ausgabe anlegen“ hat eine EÜR-Auswahl, vorbelegt mit der Zeile des Lieferanten; die Prüfung zeigt sie, ein Wert außerhalb des Dropdowns wird übersprungen.
 
 **J-C3 Schreib-Journal**
 1. Kontomenü → „Schreib-Journal“: nach einem Abgleich auf `/vat` und einer Verknüpfung auf `/receipts` stehen beide oben; Bereichs-Chips filtern.

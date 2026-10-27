@@ -1,13 +1,15 @@
 package verbund
 
-// Categories of a Verbund, both kept on its Invoice Ninja (options
-// sources.OptCategoryMap, OptEuerSlot, OptEuerMap):
+// Categories of a Verbund, kept on its Invoice Ninja (options
+// sources.OptCategoryMap, OptEuerSlot):
 //
 //	Sure category ──► Ninja expense category   (Sure's auto-tags help /vat)
-//	Ninja category ─► EÜR line, an expense custom field (the EÜR bench)
+//	EÜR field ──────► the expense custom field holding the EÜR line
 //
-// Andon proposes from bookings both sides have (metrics.SureCategoryVotes,
-// EuerVotes); nothing counts until the user saves.
+// The EÜR line belongs to each expense, not its category (the EÜR
+// bench proposes it from the vendor). Andon proposes Sure's mapping from
+// bookings both sides have (metrics.SureCategoryVotes); nothing counts
+// until the user saves.
 
 import (
 	"cmp"
@@ -43,7 +45,7 @@ type CategoryView struct {
 	Sure       []BankCategory
 	Fields     [sources.NinjaSlots]sources.ExpenseField
 	Slot       int // the EÜR field (1–4), 0 none
-	Euer       []EuerRow
+	lines      []string
 	CanSave    bool // MANAGE on the Invoice Ninja
 }
 
@@ -53,14 +55,6 @@ type BankCategory struct {
 	Count     int    // its debits sharing a booking with an expense
 	Mapped    string // saved Ninja key, "" none
 	Suggested string // Ninja key the bookings say, "" none
-}
-
-// EuerRow is one Ninja category with its EÜR line.
-type EuerRow struct {
-	Key, Name string
-	Count     int    // its expenses with that line
-	Mapped    string // saved line
-	Suggested string
 }
 
 // Slot is a named expense custom field and its number (1–4).
@@ -80,26 +74,8 @@ func (v CategoryView) Slots() []Slot {
 	return out
 }
 
-// Lines are the EÜR field's choices: a dropdown's, else every value its
-// expenses carry.
-func (v CategoryView) Lines() []string {
-	if v.Slot == 0 {
-		return nil
-	}
-	if opts := v.Fields[v.Slot-1].Options; len(opts) > 0 {
-		return opts
-	}
-	var out []string
-	for _, r := range v.Euer {
-		for _, s := range []string{r.Mapped, r.Suggested} {
-			if s != "" && !slices.Contains(out, s) {
-				out = append(out, s)
-			}
-		}
-	}
-	sort.Strings(out)
-	return out
-}
+// Lines are the EÜR field's choices (metrics.EuerChoices).
+func (v CategoryView) Lines() []string { return v.lines }
 
 // HasNinja reports whether the Verbund has an Invoice Ninja (its
 // categories page).
@@ -176,7 +152,7 @@ func CategoriesFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaI
 	if out.Slot == 0 {
 		out.Slot = euerSlot(out.Fields)
 	}
-	out.Euer = euerRows(ninja, out.Categories, out.Slot, saved.Euer)
+	out.lines = metrics.EuerChoices(ninja, out.Slot)
 	return out, nil
 }
 
@@ -218,23 +194,11 @@ func euerSlot(fields [sources.NinjaSlots]sources.ExpenseField) int {
 	return 0
 }
 
-func euerRows(ninja *sources.NinjaDataset, cats []sources.NinjaCategory, slot int, saved map[string]string) []EuerRow {
-	votes := metrics.EuerVotes(ninja, slot)
-	out := make([]EuerRow, 0, len(cats))
-	for _, c := range cats {
-		r := EuerRow{Key: c.Key, Name: c.Name, Mapped: saved[c.Key]}
-		r.Suggested, r.Count = votes.Best(c.Key)
-		out = append(out, r)
-	}
-	return out
-}
-
-// CategorySave is what the page sends: Sure's categories, the EÜR field
-// and each Ninja category's line ("" removes one).
+// CategorySave is what the page sends: Sure's categories and the EÜR
+// field.
 type CategorySave struct {
 	Sure map[string]string
 	Slot int
-	Euer map[string]string
 }
 
 // SaveCategories stores them on the Verbund's Invoice Ninja. Requires
@@ -268,7 +232,6 @@ func (v CategoryView) save(d *sql.DB, who *access.Principal, in CategorySave, ip
 	if in.Slot >= 0 && in.Slot <= sources.NinjaSlots {
 		c.EuerSlot = in.Slot
 	}
-	c.Euer = clean(in.Euer, func(key, _ string) bool { return keys[key] })
 
 	options := maps.Clone(v.Ninja.Options)
 	if options == nil {
@@ -279,7 +242,7 @@ func (v CategoryView) save(d *sql.DB, who *access.Principal, in CategorySave, ip
 		return err
 	}
 	return audit.Log(d, &who.UserID, "verbund.categories", cmp.Or(v.Verbund.Name, v.Ninja.Name), ip,
-		map[string]any{"sure": len(c.Sure[bankID(v.Bank)]), "euer": len(c.Euer), "slot": c.EuerSlot})
+		map[string]any{"sure": len(c.Sure[bankID(v.Bank)]), "slot": c.EuerSlot})
 }
 
 // clean keeps the filled pairs keep accepts.

@@ -9,6 +9,7 @@ package metrics
 //	Ninja "Lizenzen" ─ its expenses ───► EÜR "Laufende EDV-Kosten" (9)
 
 import (
+	"slices"
 	"sort"
 
 	"andon/internal/sources"
@@ -73,21 +74,47 @@ func SureCategoryVotes(n *sources.NinjaDataset, s *sources.BankData) Votes {
 	return out
 }
 
-// EuerVotes counts, per Ninja category, the values its expenses carry in
-// custom field slot (1–4).
-func EuerVotes(n *sources.NinjaDataset, slot int) Votes {
-	out := Votes{}
+// VendorEuer is, per vendor, the EÜR line of its latest expense that
+// has one (custom field slot 1–4). The line belongs to the expense, not
+// its category: one category goes to several lines (EDV, GWG, AfA), a
+// vendor mostly to the same.
+func VendorEuer(n *sources.NinjaDataset, slot int) map[string]string {
+	out := map[string]string{}
 	if n == nil || slot < 1 || slot > sources.NinjaSlots {
 		return out
 	}
+	latest := map[string]string{}
 	for _, e := range n.Expenses {
-		out.add(e.CategoryKey, e.Custom[slot-1])
+		line := e.Custom[slot-1]
+		if e.VendorKey == "" || line == "" || e.Date < latest[e.VendorKey] {
+			continue
+		}
+		latest[e.VendorKey], out[e.VendorKey] = e.Date, line
 	}
 	return out
 }
 
+// EuerChoices are the choices for the field: a dropdown's values, else the
+// values expenses already carry, sorted.
+func EuerChoices(n *sources.NinjaDataset, slot int) []string {
+	if n == nil || slot < 1 || slot > sources.NinjaSlots {
+		return nil
+	}
+	if f := n.ExpenseFields[slot-1]; len(f.Options) > 0 {
+		return f.Options
+	}
+	var out []string
+	for _, e := range n.Expenses {
+		if l := e.Custom[slot-1]; l != "" && !slices.Contains(out, l) {
+			out = append(out, l)
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
 // EuerCase is an expense whose EÜR field is empty, with the line its
-// category maps to ("" = the category has none yet).
+// vendor's last expense carries ("" = no proposal).
 type EuerCase struct {
 	Expense sources.NinjaExpense
 	Line    string
@@ -95,16 +122,17 @@ type EuerCase struct {
 
 // EuerCases are the expenses from since on with an empty EÜR field in
 // slot, newest first.
-func EuerCases(n *sources.NinjaDataset, slot int, lines map[string]string, since string) []EuerCase {
-	var out []EuerCase
+func EuerCases(n *sources.NinjaDataset, slot int, since string) []EuerCase {
 	if n == nil || slot < 1 || slot > sources.NinjaSlots {
 		return nil
 	}
+	lines := VendorEuer(n, slot)
+	var out []EuerCase
 	for _, e := range n.Expenses {
 		if e.Date < since || e.Custom[slot-1] != "" {
 			continue
 		}
-		out = append(out, EuerCase{Expense: e, Line: lines[e.CategoryKey]})
+		out = append(out, EuerCase{Expense: e, Line: lines[e.VendorKey]})
 	}
 	sort.SliceStable(out, func(a, b int) bool { return out[a].Expense.Date > out[b].Expense.Date })
 	return out

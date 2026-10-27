@@ -1,5 +1,5 @@
 {{/* A Verbund's categories (verbund.CategoriesOf): Sure's categories as
-     Invoice Ninja categories, Invoice Ninja's as EÜR lines. */}}
+     Invoice Ninja categories, and the expense field holding the EÜR line. */}}
 {{define "verbund_categories"}}{{$v := .View}}{{$id := $v.Verbund.ID}}
 <!doctype html>
 <html lang="{{.Ctx.Locale}}" data-own-lang>
@@ -47,17 +47,7 @@
         <select class="select" id="euer-slot" name="euer_slot"{{if not $v.CanSave}} disabled{{end}}>
           <option value="0">–</option>
           {{range $v.Slots}}<option value="{{.N}}"{{if eq .N $v.Slot}} selected{{end}}>{{.Label}}</option>{{end}}</select>
-        {{if $v.Slot}}
-        <datalist id="euer-lines">{{range $v.Lines}}<option value="{{.}}">{{end}}</datalist>
-        <div class="table-wrap"><table class="table cards-sm">
-          <thead><tr><th>{{t "verbund.cat_ninja"}}</th><th>{{t "verbund.cat_euer_line"}}</th><th>{{t "verbund.cat_used"}}</th></tr></thead>
-          <tbody>{{range $v.Euer}}<tr>
-            <td data-card="title">{{.Name}}</td>
-            <td><input class="input" name="euer:{{.Key}}" list="euer-lines" value="{{or .Mapped .Suggested}}" aria-label="{{.Name}}"{{if not $v.CanSave}} disabled{{end}}>
-              {{if and .Suggested (not .Mapped)}}<small class="muted">{{t "verbund.cat_suggested"}}</small>{{end}}</td>
-            <td>{{if .Count}}{{.Count}}{{else}}–{{end}}</td>
-          </tr>{{end}}</tbody>
-        </table></div>
+        {{if $v.Slot}}<p class="small muted">{{t "verbund.cat_euer_lines" "lines" (join $v.Lines ", ")}}</p>
         {{else}}<p class="small">{{t "verbund.cat_euer_none"}}</p>{{end}}
       </section>
 
