@@ -146,11 +146,11 @@ func TestVATScanOffer(t *testing.T) {
 // empty one says so.
 func scanSearch(t *testing.T, srv *httptest.Server, client *http.Client) {
 	t.Helper()
-	found := string(mustGet(t, srv, client, "/vat/scans?case=demo-b-scan&q_demo-b-scan=Rechnung"))
+	found := string(mustGet(t, srv, client, "/vat/scans?case=demo-b-scan&q_scan_demo-b-scan=Rechnung"))
 	if !strings.Contains(found, `name="scan_demo-b-scan"`) || !strings.Contains(found, "/receipts/thumb/") {
 		t.Fatalf("search offers no scan:\n%s", found)
 	}
-	if none := string(mustGet(t, srv, client, "/vat/scans?case=demo-b-scan&q_demo-b-scan=")); !strings.Contains(none, "Nichts gefunden") {
+	if none := string(mustGet(t, srv, client, "/vat/scans?case=demo-b-scan&q_scan_demo-b-scan=")); !strings.Contains(none, "Nichts gefunden") {
 		t.Fatalf("empty search:\n%s", none)
 	}
 }

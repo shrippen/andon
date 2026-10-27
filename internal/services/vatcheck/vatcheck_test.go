@@ -88,7 +88,9 @@ func ninjaFake(t *testing.T, w *writes, b1Status string) string {
 			map[string]any{"id": "e1", "number": "EX-1", "vendor_id": "v1", "category_id": "c1", "date": day(1), "amount": 89.7,
 				"tax_name1": "MwSt.", "tax_rate1": 19, "uses_inclusive_taxes": true, "transaction_id": "b0", "custom_value3": "Arbeitsmittel",
 				"should_be_invoiced": true},
-			map[string]any{"id": "e2", "number": "EX-2", "vendor_id": "v2", "date": day(2), "amount": 39.95}),
+			map[string]any{"id": "e2", "number": "EX-2", "vendor_id": "v2", "date": day(2), "amount": 39.95},
+			map[string]any{"id": "e3", "number": "EX-3", "vendor_id": "v1", "category_id": "c1", "date": day(1), "amount": 12,
+				"tax_name1": "MwSt.", "tax_rate1": 19, "uses_inclusive_taxes": true, "transaction_id": "b7", "should_be_invoiced": true}),
 		"vendors":            page(map[string]any{"id": "v1", "name": "Kabelwerk Studiobedarf"}, map[string]any{"id": "v2", "name": "Elbnetz Mobilfunk"}),
 		"expense_categories": page(map[string]any{"id": "c1", "name": "Technik"}, map[string]any{"id": "c2", "name": "Hosting"}),
 		"tax_rates":          page(map[string]any{"name": "MwSt.", "rate": 19}),
@@ -116,6 +118,8 @@ func ninjaFake(t *testing.T, w *writes, b1Status string) string {
 			list, _ := body["transactions"].([]any)
 			item, _ := list[0].(map[string]any)
 			_ = json.NewEncoder(rw).Encode(map[string]any{"data": []any{map[string]any{"id": item["id"], "status_id": "3"}}})
+		case "expenses/e2", "expenses/e3":
+			_ = json.NewEncoder(rw).Encode(map[string]any{"data": map[string]any{"id": strings.TrimPrefix(path, "expenses/")}})
 		case "bank_transactions/bulk":
 			ids, _ := body["ids"].([]any)
 			_ = json.NewEncoder(rw).Encode(map[string]any{"data": []any{map[string]any{"id": ids[0], "archived_at": 1760000000}}})
@@ -342,6 +346,61 @@ func TestApplyNewExpenseFields(t *testing.T) {
 	if b3["custom_value1"] != nil || b3["public_notes"] != "Rechnung" || b3["should_be_invoiced"] != false ||
 		b3["payment_date"] != day(5) || b3["uses_inclusive_taxes"] != true || b3["amount"] != 41.65 {
 		t.Errorf("b3 body: %v", b3)
+	}
+}
+
+// An expense found for a booking gets what it lacks on the way (EÜR,
+// number, note; never over a value it has); a linked expense of the
+// period without EÜR line waits under "gaps" and is filled alone.
+func TestFillGaps(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	var w writes
+	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "1"))
+	if err := connections.SetOptions(d, who, conn, map[string]any{sources.OptEuerSlot: 3, receipts.OptInvoiceSlot: 1}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+
+	p, err := vatcheck.Open(ctx, d, who, "", thisMonth(), time.Now().UTC())
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	i := slices.IndexFunc(p.Cases, func(c vatcheck.Case) bool { return c.Txn.Key == "b1" })
+	if i < 0 || len(p.Cases[i].Parts()) != 9 || p.Cases[i].Done() != 6 || p.Cases[i].Ready() {
+		t.Fatalf("b1 links EX-2, which lacks category, EÜR and number: %+v", p.Cases[i])
+	}
+	if len(p.Gaps) != 1 || p.Gaps[0].Txn.Key != "x-e3" || p.Gaps[0].Act() != vatcheck.ActionFill || p.Gaps[0].Txn.Payer != "Kabelwerk Studiobedarf" {
+		t.Fatalf("gaps: %+v", p.Gaps)
+	}
+	if p.Gaps[0].Draft.Euer != "Arbeitsmittel" {
+		t.Errorf("EX-3 should get Kabelwerk's line: %q", p.Gaps[0].Draft.Euer)
+	}
+
+	steps := []workbench.Step{
+		{Case: "b1", Action: string(metrics.ActionLink), Fields: map[string]string{vatcheck.FieldExpense: "e2",
+			vatcheck.FieldFillEuer: "GWG", vatcheck.FieldFillNumber: "R-1", vatcheck.FieldFillNote: "Mobilfunk"}},
+		{Case: "x-e3", Action: string(vatcheck.ActionFill), Fields: map[string]string{vatcheck.FieldFillEuer: "Arbeitsmittel", vatcheck.FieldFillCategory: "c1"}},
+	}
+	plan, err := vatcheck.Review(ctx, d, who, scopeOf(conn), steps)
+	if err != nil || plan.Writes() != 2 || plan.Steps[0].Item.Euer != "GWG" || plan.Steps[1].Item.Category != "" {
+		t.Fatalf("plan: %v %+v", err, plan.Steps)
+	}
+	if _, err := vatcheck.Apply(ctx, d, who, scopeOf(conn), steps, ""); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	put := map[string]map[string]any{}
+	for i, seen := range w.list() {
+		if strings.HasPrefix(seen, "PUT ") {
+			put[strings.TrimPrefix(seen, "PUT /api/v1/")] = w.body[i]
+		}
+	}
+	e2, e3 := put["expenses/e2"], put["expenses/e3"]
+	if e2["custom_value3"] != "GWG" || e2["custom_value1"] != "R-1" || e2["public_notes"] != "Mobilfunk" {
+		t.Errorf("EX-2 body: %v (%v)", e2, w.list())
+	}
+	if e3["custom_value3"] != "Arbeitsmittel" || e3["category_id"] != nil || e3["public_notes"] != nil {
+		t.Errorf("EX-3 body: %v", e3)
 	}
 }
 
