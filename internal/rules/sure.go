@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"andon/internal/caps"
+	"slices"
 	"sort"
 	"strings"
 
@@ -147,7 +148,8 @@ func unusualExpense(data *sources.BankData, cfg map[string]any, env Env) []Findi
 // sureNinjaSrc are the sources of bank vs. invoice findings.
 var sureNinjaSrc = []string{string(enums.ServiceSure), string(enums.ServiceInvoiceNinja)}
 
-// businessBank is the bank data of the business accounts: clients pay
+// businessBank is the bank data of the accounts with business bookings
+// (sources.BusinessRoles): clients pay
 // there, and the money free to spend is the business's. Before any
 // account has a role, all of it.
 func businessBank(env Env) (*sources.BankData, bool) {
@@ -155,7 +157,7 @@ func businessBank(env Env) (*sources.BankData, bool) {
 	if !ok {
 		return nil, false
 	}
-	return bank.Only(sources.RoleBusiness), true
+	return bank.Only(sources.BusinessRoles...), true
 }
 
 // cashBank is the business accounts with the reserve accounts beside
@@ -166,7 +168,7 @@ func cashBank(env Env) (*sources.BankData, bool) {
 	if !ok {
 		return nil, false
 	}
-	return bank.Only(sources.RoleBusiness, sources.RoleReserve), true
+	return bank.Only(append(slices.Clone(sources.BusinessRoles), sources.RoleReserve)...), true
 }
 
 func registerSureCross() {

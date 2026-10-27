@@ -249,3 +249,224 @@ func TestVendorDuplicatesSkipArchived(t *testing.T) {
 		t.Fatalf("groups: %+v", g)
 	}
 }
+
+// A mixed account: its incomes count like the business account's, a
+// debit to a vendor with expenses is proposed, the rest waits apart.
+func TestBankCasesMixed(t *testing.T) {
+	ninja, sure := vatBook()
+	for i := range ninja.BankTxns {
+		if ninja.BankTxns[i].Role == sources.RolePrivate {
+			ninja.BankTxns[i].Role = sources.RoleMixed
+		}
+	}
+	in := september()
+	in.Ninja, in.Sure = ninja, sure
+	got := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(in) {
+		got[c.Txn.Key] = c
+	}
+	if c, ok := got["b8"]; !ok || !c.Waiting() || c.Private || !c.Mixed {
+		t.Errorf("income on a mixed account: %+v", c)
+	}
+	if c := got["b6"]; c.Action != metrics.ActionCreate || !c.Waiting() || !c.Private || !c.Mixed {
+		t.Errorf("known vendor: %+v", c)
+	}
+	if c := got["b7"]; c.Action != metrics.ActionNone || c.Waiting() {
+		t.Errorf("unknown vendor waits apart: %+v", c)
+	}
+}
+
+// A card (transfer account): its purchases are bookings; the monthly
+// settlement from the giro and its income on the card are a transfer.
+func TestBankCasesCard(t *testing.T) {
+	n := &sources.NinjaDataset{
+		BankTxns: []sources.NinjaBankTxn{
+			{Key: "buy", Date: "2026-09-03", Payer: "Bauhaus", Amount: 120, Debit: true, Role: sources.RoleTransfer, Account: "Karte"},
+			{Key: "settle", Date: "2026-09-28", Payer: "Kartenabrechnung", Amount: 120, Debit: true, Role: sources.RoleBusiness, Account: "Giro"},
+			{Key: "paid", Date: "2026-09-29", Payer: "Zahlung", Amount: 120, Role: sources.RoleTransfer, Account: "Karte"},
+		},
+	}
+	start, _ := metrics.ParseDay("2026-09-01")
+	end, _ := metrics.ParseDay("2026-09-30")
+	got := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(metrics.VATInputs{Ninja: n, Start: start, End: end}) {
+		got[c.Txn.Key] = c
+	}
+	if c := got["buy"]; c.Action != metrics.ActionCreate || c.Transfer != nil {
+		t.Errorf("purchase: %+v", c)
+	}
+	if c := got["settle"]; c.Action != metrics.ActionSkip || c.Transfer == nil || c.Transfer.Account != "Karte" {
+		t.Errorf("settlement: %+v", c)
+	}
+	if c := got["paid"]; c.Action != metrics.ActionSkip || c.Transfer == nil || c.Transfer.Account != "Giro" {
+		t.Errorf("card income: %+v", c)
+	}
+}
+
+// A booking that fits an invoice, payment or expense is no transfer's
+// other side: a card purchase stays an expense though a customer pays
+// the same amount on the giro two days later, and a refund on the card
+// does not take a giro debit an expense explains.
+func TestBankCasesTransferNotBooked(t *testing.T) {
+	n := &sources.NinjaDataset{
+		Clients:  []sources.NinjaClient{{ID: 1, Name: "Northlight Pictures"}},
+		Invoices: []sources.NinjaInvoice{{ID: 7, Number: "R-17", ClientID: 1, Status: "sent", Amount: 119, Balance: 119}},
+		Expenses: []sources.NinjaExpense{{Key: "e1", Date: "2026-09-11", Amount: 50}},
+		BankTxns: []sources.NinjaBankTxn{
+			{Key: "buy", Date: "2026-09-03", Payer: "Bauhaus", Amount: 119, Debit: true, Role: sources.RoleTransfer, Account: "Karte"},
+			{Key: "income", Date: "2026-09-05", Payer: "Northlight Pictures", Amount: 119, Role: sources.RoleBusiness, Account: "Giro"},
+			{Key: "refund", Date: "2026-09-10", Payer: "Bauhaus Erstattung", Amount: 50, Role: sources.RoleTransfer, Account: "Karte"},
+			{Key: "spent", Date: "2026-09-11", Payer: "Studiobedarf", Amount: 50, Debit: true, Role: sources.RoleBusiness, Account: "Giro"},
+		},
+	}
+	start, _ := metrics.ParseDay("2026-09-01")
+	end, _ := metrics.ParseDay("2026-09-30")
+	got := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(metrics.VATInputs{Ninja: n, Start: start, End: end}) {
+		got[c.Txn.Key] = c
+	}
+	if c := got["buy"]; c.Action != metrics.ActionCreate || c.Transfer != nil {
+		t.Errorf("purchase: %+v", c.Transfer)
+	}
+	if c := got["income"]; c.Action != metrics.ActionInvoice {
+		t.Errorf("income: %+v", c)
+	}
+	if c := got["refund"]; c.Transfer != nil {
+		t.Errorf("refund bound to an expense's debit: %+v", c.Transfer)
+	}
+	if c := got["spent"]; c.Action != metrics.ActionLink {
+		t.Errorf("giro debit: %+v", c)
+	}
+}
+
+// Once the customer's payment is booked, its Sure twin is no other side
+// either; nor is a private income of the same amount: a card purchase
+// has a transfer only as a payout to a business or mixed account.
+func TestBankCasesTransferBookedTwin(t *testing.T) {
+	n := &sources.NinjaDataset{
+		BankTxns: []sources.NinjaBankTxn{
+			{Key: "buy", Date: "2026-09-03", Payer: "Bauhaus", Amount: 119, Debit: true, Role: sources.RoleTransfer, Account: "Karte"},
+			{Key: "income", Date: "2026-09-05", Payer: "Northlight Pictures", Amount: 119, Role: sources.RoleBusiness, Account: "Giro", Status: sources.BankDone, PaymentKey: "p3"},
+			{Key: "buy2", Date: "2026-09-20", Payer: "Obi", Amount: 64, Debit: true, Role: sources.RoleTransfer, Account: "Karte"},
+			{Key: "friend", Date: "2026-09-21", Payer: "Jonas", Amount: 64, Role: sources.RolePrivate, Account: "Privat"},
+		},
+	}
+	sure := &sources.BankData{Transactions: []sources.BankTxn{
+		{ID: "s1", Date: "2026-09-05", Name: "Northlight Pictures", Amount: 119, Account: "Giro", Role: sources.RoleBusiness},
+	}}
+	start, _ := metrics.ParseDay("2026-09-01")
+	end, _ := metrics.ParseDay("2026-09-30")
+	got := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(metrics.VATInputs{Ninja: n, Sure: sure, Start: start, End: end}) {
+		got[c.Txn.Key] = c
+	}
+	for _, k := range []string{"buy", "buy2"} {
+		if c := got[k]; c.Action != metrics.ActionCreate || c.Transfer != nil {
+			t.Errorf("%s: %s %+v", k, c.Action, c.Transfer)
+		}
+	}
+}
+
+// A transfer needs both accounts marked, and holds both ways: a PayPal
+// payout to a giro not yet marked is no transfer from either side (it
+// was once a transfer for the giro and an expense for PayPal); marked
+// as business, both sides pair.
+func TestBankCasesTransferMarked(t *testing.T) {
+	cases := func(giro sources.AccountRole) map[string]metrics.BankCase {
+		n := &sources.NinjaDataset{BankTxns: []sources.NinjaBankTxn{
+			{Key: "payout", Date: "2026-09-08", Payer: "PayPal Auszahlung", Amount: 200, Debit: true, Role: sources.RoleTransfer, Account: "PayPal"},
+			{Key: "in", Date: "2026-09-10", Payer: "PayPal", Amount: 200, Role: giro, Account: "Giro"},
+		}}
+		start, _ := metrics.ParseDay("2026-09-01")
+		end, _ := metrics.ParseDay("2026-09-30")
+		got := map[string]metrics.BankCase{}
+		for _, c := range metrics.BankCases(metrics.VATInputs{Ninja: n, Start: start, End: end}) {
+			got[c.Txn.Key] = c
+		}
+		return got
+	}
+	got := cases(sources.RoleUnknown)
+	if got["payout"].Transfer != nil || got["in"].Transfer != nil {
+		t.Errorf("unmarked giro: payout %+v, in %+v", got["payout"].Transfer, got["in"].Transfer)
+	}
+	got = cases(sources.RoleBusiness)
+	if got["payout"].Transfer == nil || got["payout"].Transfer.Account != "Giro" || got["in"].Transfer == nil {
+		t.Errorf("business giro: payout %+v, in %+v", got["payout"].Transfer, got["in"].Transfer)
+	}
+}
+
+// A pair is decided once and holds on both sides: a customer pays by
+// PayPal (taking the manual payment), PayPal pays the same amount out to
+// the giro; payout and giro income are one transfer, not an expense on
+// one side and a transfer on the other.
+func TestBankCasesTransferBothSides(t *testing.T) {
+	n := &sources.NinjaDataset{
+		Payments: []sources.NinjaPayment{{Key: "z1", Date: "2026-09-05", Amount: 119}},
+		BankTxns: []sources.NinjaBankTxn{
+			{Key: "pp_in", Date: "2026-09-05", Payer: "Northlight", Amount: 119, Role: sources.RoleTransfer, Account: "PayPal"},
+			{Key: "payout", Date: "2026-09-06", Payer: "PayPal Auszahlung", Amount: 119, Debit: true, Role: sources.RoleTransfer, Account: "PayPal"},
+			{Key: "giro_in", Date: "2026-09-07", Payer: "PayPal", Amount: 119, Role: sources.RoleBusiness, Account: "Giro"},
+		},
+	}
+	start, _ := metrics.ParseDay("2026-09-01")
+	end, _ := metrics.ParseDay("2026-09-30")
+	got := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(metrics.VATInputs{Ninja: n, Start: start, End: end}) {
+		got[c.Txn.Key] = c
+	}
+	if c := got["pp_in"]; c.Action != metrics.ActionPayment {
+		t.Errorf("pp_in: %s", c.Action)
+	}
+	if c := got["payout"]; c.Action != metrics.ActionSkip || c.Transfer == nil || c.Transfer.Account != "Giro" {
+		t.Errorf("payout: %s %+v", c.Action, c.Transfer)
+	}
+	if c := got["giro_in"]; c.Action != metrics.ActionSkip || c.Transfer == nil || c.Transfer.Account != "PayPal" {
+		t.Errorf("giro_in: %s %+v", c.Action, c.Transfer)
+	}
+}
+
+// A private or mixed account's debit is a transfer's side too, though
+// it never searches itself: the owner's deposit from private and a card
+// settled from a mixed giro pair on both sides.
+func TestBankCasesTransferPrivateSide(t *testing.T) {
+	n := &sources.NinjaDataset{BankTxns: []sources.NinjaBankTxn{
+		{Key: "out", Date: "2026-09-09", Payer: "Einlage", Amount: 500, Debit: true, Role: sources.RolePrivate, Account: "Privat"},
+		{Key: "in", Date: "2026-09-10", Payer: "Einlage", Amount: 500, Role: sources.RoleBusiness, Account: "Giro"},
+		{Key: "settle", Date: "2026-09-28", Payer: "Kartenabrechnung", Amount: 300, Debit: true, Role: sources.RoleMixed, Account: "Mix"},
+		{Key: "paid", Date: "2026-09-29", Payer: "Zahlung", Amount: 300, Role: sources.RoleTransfer, Account: "Karte"},
+	}}
+	start, _ := metrics.ParseDay("2026-09-01")
+	end, _ := metrics.ParseDay("2026-09-30")
+	got := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(metrics.VATInputs{Ninja: n, Start: start, End: end}) {
+		got[c.Txn.Key] = c
+	}
+	for k, other := range map[string]string{"out": "Giro", "in": "Privat", "settle": "Karte", "paid": "Mix"} {
+		if c := got[k]; c.Action != metrics.ActionSkip || c.Transfer == nil || c.Transfer.Account != other {
+			t.Errorf("%s: %s %+v", k, c.Action, c.Transfer)
+		}
+	}
+}
+
+// Receipts: a card purchase needs one, a booking between own accounts
+// never; on a mixed account only spending at a vendor with expenses.
+func TestMissingReceiptsCardMixed(t *testing.T) {
+	ninja, _ := vatBook()
+	sure := &sources.BankData{Accounts: []sources.BankAccount{{Name: "Karte", Role: sources.RoleTransfer}, {Name: "Mix", Role: sources.RoleMixed}},
+		Transactions: []sources.BankTxn{
+			{ID: "c1", Date: "2026-09-03", Name: "Bauhaus", Amount: -120, Account: "Karte", Role: sources.RoleTransfer},
+			{ID: "c2", Date: "2026-09-28", Name: "Kartenabrechnung", Amount: -300, Account: "Mix", Role: sources.RoleMixed, Transfer: true},
+			{ID: "m1", Date: "2026-09-05", Name: "Elbnetz Mobilfunk", Amount: -39.95, Account: "Mix", Role: sources.RoleMixed},
+			{ID: "m2", Date: "2026-09-06", Name: "Supermarkt", Amount: -64.2, Account: "Mix", Role: sources.RoleMixed},
+		}}
+	ninja.Expenses = ninja.Expenses[:1] // Elbnetz's receipts must not cover m1
+	ninja.Expenses[0].VendorKey = "v2"
+	in := metrics.ReceiptInputs{Sure: sure, Ninja: ninja, MinAmount: 5, Window: 10, Since: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)}
+	var names []string
+	for _, tx := range metrics.MissingReceipts(in) {
+		names = append(names, tx.Name)
+	}
+	if !slices.Equal(names, []string{"Bauhaus", "Elbnetz Mobilfunk"}) {
+		t.Fatalf("missing: %v", names)
+	}
+}

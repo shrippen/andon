@@ -194,16 +194,33 @@ const (
 	// evaluation: a depot or a car in Sure. The service's own net worth
 	// (BankData.NetWorth) keeps it: the depot is still owned.
 	RoleIgnored AccountRole = "ignored"
+	// RoleMixed holds business and private bookings on one account.
+	RoleMixed AccountRole = "mixed"
+	// RoleTransfer is a card or PayPal: its bookings are business
+	// spending, its settlement from the giro moves money between own
+	// accounts.
+	RoleTransfer AccountRole = "transfer"
 )
 
 // knownRoles are the roles a user can name.
-var knownRoles = []AccountRole{RoleBusiness, RolePrivate, RoleReserve, RoleIgnored}
+var knownRoles = []AccountRole{RoleBusiness, RolePrivate, RoleReserve, RoleIgnored, RoleMixed, RoleTransfer}
+
+// BusinessRoles are the accounts that hold business bookings (for
+// BankData.Only); PrivateRoles those that hold private ones.
+var (
+	BusinessRoles = []AccountRole{RoleBusiness, RoleMixed, RoleTransfer}
+	PrivateRoles  = []AccountRole{RolePrivate, RoleMixed}
+)
 
 // Known says whether r is a role a user can name, "" (not said) included.
 func (r AccountRole) Known() bool { return r == RoleUnknown || slices.Contains(knownRoles, r) }
 
-// ignoredKinds are Sure's account kinds that hold no money to spend.
-var ignoredKinds = []string{"investment", "crypto", "property", "vehicle", "other_asset"}
+// kindRoles are the roles Sure's account kinds imply: what holds no
+// money to spend is ignored, a credit card is a transfer account.
+var kindRoles = map[string]AccountRole{
+	"investment": RoleIgnored, "crypto": RoleIgnored, "property": RoleIgnored, "vehicle": RoleIgnored, "other_asset": RoleIgnored,
+	"credit_card": RoleTransfer,
+}
 
 // OptAccountRoles is the connection option holding each account's role:
 // {"<account key>": "business"}.

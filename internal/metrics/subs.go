@@ -219,12 +219,12 @@ func ninjaCases(in SubInputs, r *sources.BankRecurring, months int, next string)
 		return out
 	}
 
-	// Business: paid from a business account, or to a vendor that has
-	// expenses (no account has a role yet).
+	// Business: paid from a business or transfer account, or to a vendor
+	// that has expenses (no role yet, or a mixed account).
 	txn := lastPayment(in.Bank, r)
 	vendor := subVendor(in.Ninja, r.Name)
-	business := txn != nil && txn.Role == sources.RoleBusiness
-	if txn == nil || txn.Role == sources.RoleUnknown {
+	business := txn != nil && (txn.Role == sources.RoleBusiness || txn.Role == sources.RoleTransfer)
+	if txn == nil || txn.Role == sources.RoleUnknown || txn.Role == sources.RoleMixed {
 		_, known := lastExpense(in.Ninja, vendorKeyOf(vendor))
 		business = known
 	}
