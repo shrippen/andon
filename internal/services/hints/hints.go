@@ -383,7 +383,7 @@ func anyMatch(have, want []string) bool {
 
 func viewOf(h *model.Hint, who *access.Principal) View {
 	locale := who.Locale
-	params := i18n.Typed(h.Params, locale)
+	params := i18n.Typed(h.Params, locale, i18n.NotationOf(who.Notation, locale))
 	spaceName := ""
 	if sp, ok := who.Spaces[h.SpaceID]; ok {
 		spaceName = sp.Name

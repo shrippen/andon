@@ -1,6 +1,6 @@
 {{define "receipts"}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -471,7 +471,7 @@
   <p class="small muted">{{t "receipts.new_expense_lead"}}</p>
   {{with .Error}}<p class="error">{{t .}}</p>{{end}}
   <div class="receipt-draft-grid">
-    <label>{{t "col.amount"}}<input class="input" name="amount" inputmode="decimal" value="{{if $v.Amount}}{{printf "%.2f" $v.Amount}}{{end}}" required></label>
+    <label>{{t "col.amount"}}<input class="input" name="amount" inputmode="decimal" value="{{if $v.Amount}}{{decimal $v.Amount}}{{end}}" required></label>
     <label>{{t "receipts.date"}}<input class="input" type="date" name="day" value="{{$v.Day}}" required></label>
     <label>{{t "receipts.vendor"}}<input class="input" name="vendor" value="{{$v.Vendor}}"><small class="muted">{{t "receipts.new_expense_vendor"}}</small></label>
     <label>{{t "receipts.notes"}}<input class="input" name="notes" value="{{$v.Notes}}"></label>
@@ -484,7 +484,7 @@
 {{/* The hunt's review: what Apply would write; the form sends it back. */}}
 {{define "receipts_review"}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">

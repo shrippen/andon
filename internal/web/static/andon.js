@@ -291,8 +291,9 @@
         }
       });
       var out = form.querySelector("[data-pick-sum]");
-      var lang = d.documentElement.lang || "de";
-      var number = sum.toLocaleString(lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      // The user's number notation (profile), else the page's language.
+      var num = d.documentElement.getAttribute("data-num") || d.documentElement.lang || "de";
+      var number = sum.toLocaleString(num, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       out.textContent = out.getAttribute("data-zero").replace(/[\d.,\s]*\d/, number);
       var state = form.querySelector("[data-pick-state]");
       var fits = Math.abs(sum - parseFloat(form.getAttribute("data-target"))) <= 0.02;
@@ -1859,6 +1860,7 @@
   // syncHead takes over what the new page declares in <head> and on <body>.
   function syncHead(next) {
     d.documentElement.lang = next.documentElement.lang;
+    d.documentElement.setAttribute("data-num", next.documentElement.getAttribute("data-num") || "");
     [].forEach.call(next.head.querySelectorAll("meta[name]"), function (meta) {
       var own = d.head.querySelector('meta[name="' + meta.name + '"]');
       if (own) {

@@ -145,17 +145,17 @@ func TestSubsPage(t *testing.T) {
 			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
 	}
 	page := string(mustGet(t, srv, client, "/subs"))
-	for _, want := range []string{"Abos", `name="act_np-demo-r1" value="ninja_price"`, `name="amount_np-demo-r1" value="44.90"`, "Doppelt in Wallos"} {
+	for _, want := range []string{"Abos", `name="act_np-demo-r1" value="ninja_price"`, `name="amount_np-demo-r1" value="44,90"`, "Doppelt in Wallos"} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("subs page lacks %q:\n%s", want, page)
 		}
 	}
 	resp, err := client.PostForm(srv.URL+"/subs/review", url.Values{"csrf": {csrfToken(t, srv, client)}, "pick": {"np-demo-r1"},
-		"act_np-demo-r1": {"ninja_price"}, "amount_np-demo-r1": {"44.90"}})
+		"act_np-demo-r1": {"ninja_price"}, "amount_np-demo-r1": {"44,90"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if review := readBody(t, resp); !strings.Contains(review, "Abos bestätigen") || !strings.Contains(review, `name="amount_np-demo-r1" value="44.90"`) {
+	if review := readBody(t, resp); !strings.Contains(review, "Abos bestätigen") || !strings.Contains(review, `name="amount_np-demo-r1" value="44,90"`) {
 		t.Fatalf("review:\n%s", review)
 	}
 }

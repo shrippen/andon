@@ -153,7 +153,7 @@ func (d Deps) handleDetailCSV(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	blob, err := tableCSV(tables[n-1].Data.(widgets.Table), ctx.Locale)
+	blob, err := tableCSV(tables[n-1].Data.(widgets.Table), ctx.Locale, ctx.Numbers())
 	if err != nil {
 		d.fail(w, err, http.StatusInternalServerError)
 		return
@@ -165,18 +165,18 @@ func (d Deps) handleDetailCSV(w http.ResponseWriter, r *http.Request) {
 
 // tableCSV writes a dialog table: head, rows, foot, values formatted as
 // in the dialog.
-func tableCSV(t widgets.Table, locale enums.Locale) ([]byte, error) {
+func tableCSV(t widgets.Table, locale enums.Locale, num enums.Notation) ([]byte, error) {
 	value := func(v any) string {
 		if v == nil {
 			return ""
 		}
-		return fmt.Sprint(i18n.Typed(map[string]any{"v": v}, locale)["v"])
+		return fmt.Sprint(i18n.Typed(map[string]any{"v": v}, locale, num)["v"])
 	}
 	var buf bytes.Buffer
 	out := csv.NewWriter(&buf)
 	head := make([]string, len(t.Head))
 	for i, h := range t.Head {
-		head[i] = i18n.T(h.Key, locale, i18n.Typed(h.Args, locale))
+		head[i] = i18n.T(h.Key, locale, i18n.Typed(h.Args, locale, num))
 	}
 	rows := append([][]widgets.Cell(nil), t.Rows...)
 	if len(t.Foot) > 0 {

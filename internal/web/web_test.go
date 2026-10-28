@@ -881,6 +881,34 @@ func TestProfileUpdateSavesLocale(t *testing.T) {
 	}
 }
 
+// TestProfileNotation: numbers follow the chosen notation, not the
+// language (German page, "1,234.56"); auto goes back to the language's.
+func TestProfileNotation(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	save := func(notation string) {
+		t.Helper()
+		resp, err := client.PostForm(srv.URL+"/me/profile", url.Values{"csrf": {csrfToken(t, srv, client)}, "name": {"Admin"},
+			"locale": {"de"}, "notation": {notation}, "color_mode": {"auto"}})
+		if err != nil || resp.StatusCode != http.StatusSeeOther {
+			t.Fatalf("save %q: %v %v", notation, err, resp)
+		}
+		resp.Body.Close()
+	}
+
+	save("en")
+	page := string(mustGet(t, srv, client, "/me/profile"))
+	if !strings.Contains(page, `lang="de" data-num="en"`) || !strings.Contains(page, `<option value="en" selected>`) {
+		t.Fatalf("notation en not kept:\n%s", page)
+	}
+	save("")
+	if page := string(mustGet(t, srv, client, "/me/profile")); !strings.Contains(page, `data-num="de"`) {
+		t.Fatal("auto should follow the language")
+	}
+}
+
 // TestSecurityTOTPEnableDisableFlow drives the full TOTP setup: begin ->
 // confirm with a real generated code -> disable with the same secret.
 func TestSecurityTOTPEnableDisableFlow(t *testing.T) {

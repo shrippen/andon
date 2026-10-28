@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"html"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -98,5 +99,18 @@ func TestOverviewWidgetsAndCustomRules(t *testing.T) {
 	page := string(mustGet(t, srv, client, "/spaces/"+space+"/settings/rules"))
 	if !strings.Contains(page, `name="cr.0.title" value="Queue"`) || !strings.Contains(page, `name="cr.0.value" value="10"`) {
 		t.Fatalf("custom rule not saved:\n%s", page)
+	}
+	if !strings.Contains(html.UnescapeString(page), `pattern="-?([1-9]\d{0,2}(\.\d{3})+|\d+)(,\d+)?"`) {
+		t.Fatalf("threshold without the de pattern:\n%s", page)
+	}
+
+	// "18.40" in de is a typo; saving it as 0 would fire on every value.
+	resp := postForm(t, client, srv.URL+"/spaces/"+space+"/settings/rules", url.Values{"csrf": {csrf}, "cr_count": {"1"},
+		"cr.0.title": {"Queue"}, "cr.0.service": {"sabnzbd"}, "cr.0.path": {"Slots"}, "cr.0.op": {">"}, "cr.0.value": {"18.40"}, "cr.0.severity": {"30"}})
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("typo saved: %d", resp.StatusCode)
+	}
+	if page := string(mustGet(t, srv, client, "/spaces/"+space+"/settings/rules")); !strings.Contains(page, `name="cr.0.value" value="10"`) {
+		t.Fatalf("threshold changed:\n%s", page)
 	}
 }

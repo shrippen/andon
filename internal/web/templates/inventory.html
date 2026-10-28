@@ -1,7 +1,7 @@
 {{/* The network's devices brought into the inventory, Snipe-IT or Kept (services/inventory). */}}
 {{define "inventory"}}{{$p := .P}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -51,7 +51,7 @@
 
 {{define "inventory_review"}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">

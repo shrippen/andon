@@ -280,14 +280,14 @@ func TestReceiptCreateKeepsInput(t *testing.T) {
 	srv, client := receiptsClient(t)
 	year := strconv.Itoa(time.Now().Year())
 	form := url.Values{"csrf": {csrfToken(t, srv, client)}, "doc": {"206"}, "tab": {"queue"}, "year": {year},
-		"amount": {"72.14"}, "day": {year + "-10-01"}, "vendor": {"Typed Vendor"}, "notes": {"Typed note"}}
+		"amount": {"72,14"}, "day": {year + "-10-01"}, "vendor": {"Typed Vendor"}, "notes": {"Typed note"}}
 	resp, err := client.PostForm(srv.URL+"/receipts/review", form)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Fatalf("review: %v %v", resp, err)
 	}
 	body := readBody(t, resp)
 	for _, want := range []string{`name="act_scan-206" value="create"`, `name="vendor_scan-206" value="Typed Vendor"`, `name="notes_scan-206" value="Typed note"`,
-		`name="amount_scan-206" value="72.14"`, `name="day_scan-206" value="` + year + `-10-01"`, `name="tab" value="queue"`, "Neue Ausgabe bei Typed Vendor"} {
+		`name="amount_scan-206" value="72,14"`, `name="day_scan-206" value="` + year + `-10-01"`, `name="tab" value="queue"`, "Neue Ausgabe bei Typed Vendor"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("%q missing:\n%s", want, body)
 		}

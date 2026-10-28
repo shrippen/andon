@@ -1,7 +1,7 @@
 {{/* The EÜR workbench (services/euer): empty EÜR fields, filled after a review. */}}
 {{define "euer"}}{{$p := .P}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -59,7 +59,7 @@
 
 {{define "euer_review"}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">

@@ -1,6 +1,6 @@
 {{define "vat"}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -215,7 +215,7 @@
       <div class="h-label">{{t "vatcheck.scan_title"}}</div>
       <div class="picks">{{range $c.Scans}}{{template "vat_pick" dict "S" . "K" $k "Field" "scan" "Checked" true}}{{end}}</div>
       <div class="h-label">{{t "vatcheck.from_scan"}}</div>
-      <label class="field"><span class="field-label">{{t "col.amount"}}</span><input class="input" name="amount_{{$k}}" value="{{if $c.Txn.Amount}}{{printf "%.2f" $c.Txn.Amount}}{{end}}" inputmode="decimal" data-part="amount"></label>
+      <label class="field"><span class="field-label">{{t "col.amount"}}</span><input class="input" name="amount_{{$k}}" value="{{if $c.Txn.Amount}}{{decimal $c.Txn.Amount}}{{end}}" inputmode="decimal" data-part="amount"></label>
       <input type="hidden" name="day_{{$k}}" value="{{$c.Txn.Date}}">
       <dl class="kv"><dt>{{t "vatcheck.currency"}}</dt><dd>{{$p.Currency}}</dd><dt>{{t "col.day"}}</dt><dd>{{day $c.Txn.Date}}</dd></dl>
       {{else}}
@@ -299,7 +299,7 @@
 
 {{define "vat_review"}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">

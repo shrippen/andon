@@ -1,6 +1,6 @@
 {{define "hosts"}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -43,7 +43,7 @@
 
 {{define "host"}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">

@@ -3,6 +3,7 @@ package subs
 import (
 	"testing"
 
+	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/services/workbench"
 	"andon/internal/sources"
@@ -15,6 +16,7 @@ func TestNinjaAddTax(t *testing.T) {
 	b := book{
 		cases: []metrics.SubCase{{Key: "na-x", Action: metrics.SubNinjaAdd, Amount: 29.99, TaxName: "USt", TaxRate: 7}},
 		ninja: &sources.NinjaDataset{TaxRates: []sources.NinjaTaxRate{{Name: "MwSt", Rate: 19}, {Name: "USt", Rate: 7}}},
+		num:   enums.NotationDE,
 	}
 	check := func(tax string, set bool) Item {
 		t.Helper()

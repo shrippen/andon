@@ -9,6 +9,7 @@ package i18n
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -134,18 +135,18 @@ func Has(key string) bool {
 // {"$t": "key"} -> the key's text, etc.)
 // for use as T() params. The "key" entry (the message key itself) is
 // dropped, since it is not a display parameter.
-func Typed(params map[string]any, locale enums.Locale) map[string]any {
+func Typed(params map[string]any, locale enums.Locale, n enums.Notation) map[string]any {
 	out := make(map[string]any, len(params))
 	for name, value := range params {
 		if name == "key" {
 			continue
 		}
-		out[name] = typedValue(value, locale)
+		out[name] = typedValue(value, locale, n)
 	}
 	return out
 }
 
-func typedValue(value any, locale enums.Locale) any {
+func typedValue(value any, locale enums.Locale, n enums.Notation) any {
 	m, ok := value.(map[string]any)
 	if !ok {
 		return value
@@ -155,7 +156,7 @@ func typedValue(value any, locale enums.Locale) any {
 		if c, ok := m["currency"].(string); ok && c != "" {
 			currency = c
 		}
-		return Money(toFloat(v), locale, currency)
+		return Money(toFloat(v), n, currency)
 	}
 	if unit, ok := m["unit"].(string); ok && unit != "" {
 		// A number with its unit: {"$num": 47, "unit": "°C"} → "47 °C".
@@ -165,14 +166,14 @@ func typedValue(value any, locale enums.Locale) any {
 				plain[k] = v
 			}
 		}
-		return fmt.Sprint(typedValue(plain, locale)) + " " + unit
+		return fmt.Sprint(typedValue(plain, locale, n)) + " " + unit
 	}
 	if v, ok := m["$day"]; ok {
 		return Day(v, locale)
 	}
 	if key, ok := m["$t"].(string); ok {
 		args, _ := m["args"].(map[string]any)
-		return T(key, locale, Typed(args, locale))
+		return T(key, locale, Typed(args, locale, n))
 	}
 	if v, ok := m["$ago"].(string); ok {
 		at, err := time.Parse(time.RFC3339, v)
@@ -186,7 +187,7 @@ func typedValue(value any, locale enums.Locale) any {
 		if d, ok := m["digits"]; ok {
 			digits = int(toFloat(d))
 		}
-		return Num(toFloat(v), locale, digits)
+		return Num(toFloat(v), n, digits)
 	}
 	return value
 }
@@ -223,11 +224,23 @@ func Pick(acceptLanguage string) enums.Locale {
 	return DefaultLocale
 }
 
-// Money formats an amount with a currency symbol/suffix per locale.
-func Money(value float64, locale enums.Locale, currency string) string {
+// NotationOf is the notation n stands for: the language's while auto.
+func NotationOf(n enums.Notation, locale enums.Locale) enums.Notation {
+	switch n {
+	case enums.NotationDE, enums.NotationEN:
+		return n
+	}
+	if locale == enums.LocaleEN {
+		return enums.NotationEN
+	}
+	return enums.NotationDE
+}
+
+// Money formats an amount with a currency symbol/suffix per notation.
+func Money(value float64, n enums.Notation, currency string) string {
 	symbol := currencySymbol(currency)
-	amount := groupedDecimal(value, locale, 2)
-	if locale == enums.LocaleDE {
+	amount := groupedDecimal(value, n, 2)
+	if n == enums.NotationDE {
 		return amount + " " + symbol
 	}
 	return symbol + amount
@@ -243,25 +256,71 @@ func currencySymbol(currency string) string {
 	return currency
 }
 
-// Num formats a plain number with locale-specific separators.
-func Num(value float64, locale enums.Locale, digits int) string {
-	return groupedDecimal(value, locale, digits)
+// Num formats a plain number with the notation's separators.
+func Num(value float64, n enums.Notation, digits int) string {
+	return groupedDecimal(value, n, digits)
+}
+
+// Decimal is a number for an input field: the notation's decimal mark,
+// no grouping ("18,40"), so ParseNum reads it back.
+func Decimal(value float64, n enums.Notation, digits int) string {
+	return strings.Replace(strconv.FormatFloat(value, 'f', digits, 64), ".", decimalSep(n), 1)
+}
+
+// numGrammar is what a user may type per notation: digits, the
+// thousands separator only on the three-digit grid ("1.234", not "18.40"
+// or "0.005" in de, which would read as 1840 and 5), one decimal mark.
+// No exponents, hex, NaN or Inf. Also the input's HTML pattern.
+var numGrammar = map[enums.Notation]string{
+	enums.NotationDE: `-?([1-9]\d{0,2}(\.\d{3})+|\d+)(,\d+)?`,
+	enums.NotationEN: `-?([1-9]\d{0,2}(,\d{3})+|\d+)(\.\d+)?`,
+}
+
+var numMatch = map[enums.Notation]*regexp.Regexp{
+	enums.NotationDE: regexp.MustCompile(`^` + numGrammar[enums.NotationDE] + `$`),
+	enums.NotationEN: regexp.MustCompile(`^` + numGrammar[enums.NotationEN] + `$`),
+}
+
+var errNum = errors.New("not a number in this notation")
+
+// NumPattern is the HTML pattern of a number input in notation n.
+func NumPattern(n enums.Notation) string {
+	return numGrammar[numNotation(n)]
+}
+
+// numNotation: auto counts as en, like thousandsSep and decimalSep.
+func numNotation(n enums.Notation) enums.Notation {
+	if n == enums.NotationDE {
+		return n
+	}
+	return enums.NotationEN
+}
+
+// ParseNum reads a number typed in notation n: "1.234,56" or "18,40"
+// (de), "1,234.56" or "18.40" (en); spaces group too.
+func ParseNum(v string, n enums.Notation) (float64, error) {
+	v = strings.NewReplacer(" ", "", "\u00a0", "").Replace(v)
+	if !numMatch[numNotation(n)].MatchString(v) {
+		return 0, errNum
+	}
+	v = strings.ReplaceAll(v, thousandsSep(n), "")
+	return strconv.ParseFloat(strings.Replace(v, decimalSep(n), ".", 1), 64)
 }
 
 // gbPerTB: sizes from here on read as TB ("2,2 TB", not "2.168 GB").
 const gbPerTB = 1000
 
 // GB formats a size given in GB with its unit, scaled to TB when large.
-func GB(value float64, locale enums.Locale) string {
+func GB(value float64, n enums.Notation) string {
 	if value >= gbPerTB {
-		return groupedDecimal(value/gbPerTB, locale, 1) + " TB"
+		return groupedDecimal(value/gbPerTB, n, 1) + " TB"
 	}
-	return groupedDecimal(value, locale, 0) + " GB"
+	return groupedDecimal(value, n, 0) + " GB"
 }
 
-// groupedDecimal formats value with thousands grouping and the locale's
-// decimal separator (",", "." for de; "." for en).
-func groupedDecimal(value float64, locale enums.Locale, digits int) string {
+// groupedDecimal formats value with thousands grouping and the
+// notation's decimal separator ("1.234,5" de, "1,234.5" en).
+func groupedDecimal(value float64, n enums.Notation, digits int) string {
 	neg := value < 0
 	if neg {
 		value = -value
@@ -272,10 +331,10 @@ func groupedDecimal(value float64, locale enums.Locale, digits int) string {
 		intPart, fracPart, hasFrac = whole[:i], whole[i+1:], true
 	}
 
-	grouped := groupThousands(intPart, thousandsSep(locale))
+	grouped := groupThousands(intPart, thousandsSep(n))
 	out := grouped
 	if hasFrac {
-		out += decimalSep(locale) + fracPart
+		out += decimalSep(n) + fracPart
 	}
 	if neg {
 		out = "-" + out
@@ -283,15 +342,15 @@ func groupedDecimal(value float64, locale enums.Locale, digits int) string {
 	return out
 }
 
-func thousandsSep(locale enums.Locale) string {
-	if locale == enums.LocaleDE {
+func thousandsSep(n enums.Notation) string {
+	if n == enums.NotationDE {
 		return "."
 	}
 	return ","
 }
 
-func decimalSep(locale enums.Locale) string {
-	if locale == enums.LocaleDE {
+func decimalSep(n enums.Notation) string {
+	if n == enums.NotationDE {
 		return ","
 	}
 	return "."
@@ -474,22 +533,22 @@ func asDate(value any) (time.Time, bool) {
 // MoneyRound formats money for a tile that asks for less detail:
 // "euro" drops the cents, "thousand" shows thousands (109,4 T€ / €109.4k);
 // anything else is Money.
-func MoneyRound(value float64, locale enums.Locale, currency, mode string) string {
+func MoneyRound(value float64, n enums.Notation, currency, mode string) string {
 	symbol := currencySymbol(currency)
 	var amount string
 	switch mode {
 	case "euro":
-		amount = groupedDecimal(value, locale, 0)
+		amount = groupedDecimal(value, n, 0)
 	case "thousand":
-		amount = groupedDecimal(value/thousand, locale, 1)
-		if locale == enums.LocaleDE {
+		amount = groupedDecimal(value/thousand, n, 1)
+		if n == enums.NotationDE {
 			return amount + " T" + symbol
 		}
 		return symbol + amount + "k"
 	default:
-		return Money(value, locale, currency)
+		return Money(value, n, currency)
 	}
-	if locale == enums.LocaleDE {
+	if n == enums.NotationDE {
 		return amount + " " + symbol
 	}
 	return symbol + amount

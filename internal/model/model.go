@@ -40,6 +40,32 @@ type User struct {
 	LastLoginAt   *time.Time
 }
 
+// notationPref holds the user's number notation in Prefs ("" = the
+// language's).
+const notationPref = "notation"
+
+// Notation is how the user reads and types numbers.
+func (u User) Notation() enums.Notation {
+	n, _ := u.Prefs[notationPref].(string)
+	switch enums.Notation(n) {
+	case enums.NotationDE, enums.NotationEN:
+		return enums.Notation(n)
+	}
+	return enums.NotationAuto
+}
+
+// SetNotation keeps n in Prefs; auto removes it.
+func (u *User) SetNotation(n enums.Notation) {
+	if n != enums.NotationDE && n != enums.NotationEN {
+		delete(u.Prefs, notationPref)
+		return
+	}
+	if u.Prefs == nil {
+		u.Prefs = map[string]any{}
+	}
+	u.Prefs[notationPref] = string(n)
+}
+
 type Team struct {
 	ID        int64
 	Name      string

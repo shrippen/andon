@@ -1,6 +1,6 @@
 {{define "profile"}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,6 +26,13 @@
         <select class="select" id="locale" name="locale">
           <option value="de" {{if eq (print .Profile.Locale) "de"}}selected{{end}}>Deutsch</option>
           <option value="en" {{if eq (print .Profile.Locale) "en"}}selected{{end}}>English</option>
+        </select>
+
+        <label for="notation">{{t "field.notation"}}</label>
+        <select class="select" id="notation" name="notation">{{$n := print .Profile.Notation}}
+          <option value=""{{if eq $n ""}} selected{{end}}>{{t "notation.auto"}}</option>
+          <option value="de"{{if eq $n "de"}} selected{{end}}>{{t "notation.de"}}</option>
+          <option value="en"{{if eq $n "en"}} selected{{end}}>{{t "notation.en"}}</option>
         </select>
 
         <label for="color_mode">{{t "field.color_mode"}}</label>

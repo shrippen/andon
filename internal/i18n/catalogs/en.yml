@@ -450,6 +450,7 @@ field:
   email: E-mail
   password: Password
   locale: Language
+  notation: Number format
   color_mode: Light/dark
   theme: Theme
   theme_hint: 'Just for you. “Default” follows the instance theme (Setup › Settings › Instance › Settings). A board that forces a theme keeps its own.'
@@ -2008,6 +2009,10 @@ locale:
   en: English
   code_de: DE
   code_en: EN
+notation:
+  auto: As the language
+  de: '1.234,56 €'
+  en: '€1,234.56'
 scope:
   read: Read (API)
   embed: Embed
