@@ -292,6 +292,16 @@ const (
 	LocaleEN Locale = "en"
 )
 
+// Notation is how numbers read and are typed: "1.234,56" or "1,234.56".
+// The zero value follows the language (i18n.NotationOf).
+type Notation string
+
+const (
+	NotationAuto Notation = ""
+	NotationDE   Notation = "de" // 1.234,56 €
+	NotationEN   Notation = "en" // €1,234.56
+)
+
 // TokenScope limits what an API/embed token may do.
 type TokenScope string
 

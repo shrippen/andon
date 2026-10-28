@@ -1,6 +1,6 @@
 {{define "space_settings"}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -113,7 +113,7 @@
           <td><select class="select" name="cr.{{$i}}.service" aria-label="{{t "settings.custom_source"}}"><option value="">–</option>{{range $.Services}}<option value="{{.}}"{{if eq (print .) $r.Service}} selected{{end}}>{{t (print "service." .)}}</option>{{end}}</select></td>
           <td><input class="input" name="cr.{{$i}}.path" value="{{$r.Path}}" placeholder="Slots" aria-label="{{t "settings.custom_path"}}"></td>
           <td class="custom-if"><select class="select" name="cr.{{$i}}.op" aria-label="{{t "settings.custom_if"}}">{{range $.Ops}}<option{{if eq . $r.Op}} selected{{end}}>{{.}}</option>{{end}}</select>
-            <input class="input" name="cr.{{$i}}.value" value="{{if $r.ID}}{{$r.Value}}{{end}}" inputmode="decimal" aria-label="{{t "settings.custom_value"}}"></td>
+            <input class="input" name="cr.{{$i}}.value" value="{{if $r.ID}}{{decimal $r.Value -1}}{{end}}" inputmode="decimal" aria-label="{{t "settings.custom_value"}}"></td>
           <td><select class="select" name="cr.{{$i}}.severity" aria-label="{{t "settings.custom_level"}}">{{range $.Levels}}<option value="{{.}}"{{if eq . $r.Severity}} selected{{end}}>{{if eq . 30}}{{t "severity.critical"}}{{else if eq . 20}}{{t "severity.warn"}}{{else}}{{t "severity.info"}}{{end}}</option>{{end}}</select></td>
           <td>{{if $r.ID}}<label class="check"><input type="checkbox" name="cr.{{$i}}.delete"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span> {{t "action.delete"}}</label>{{else}}<span class="muted small">{{t "settings.custom_new"}}</span>{{end}}</td>
         </tr>

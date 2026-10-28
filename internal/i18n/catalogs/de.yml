@@ -450,6 +450,7 @@ field:
   email: E-Mail
   password: Passwort
   locale: Sprache
+  notation: Zahlenformat
   color_mode: Hell/Dunkel
   theme: Theme
   theme_hint: 'Nur für dich. „Standard“ folgt dem Theme der Instanz (Einrichten › Einstellungen › Instanz › Einstellungen). Ein Board, das ein Theme erzwingt, behält seins.'
@@ -2008,6 +2009,10 @@ locale:
   en: English
   code_de: DE
   code_en: EN
+notation:
+  auto: Wie die Sprache
+  de: '1.234,56 €'
+  en: '€1,234.56'
 scope:
   read: Lesen (API)
   embed: Einbetten

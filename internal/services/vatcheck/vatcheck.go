@@ -25,6 +25,7 @@ import (
 
 	"andon/internal/db"
 	"andon/internal/enums"
+	"andon/internal/i18n"
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/repos/content"
@@ -161,6 +162,7 @@ type book struct {
 	// numberSlot is the invoice number's custom field (receipts), 0 none;
 	// scanSlot the scan's, 0 without Paperless paired.
 	numberSlot, scanSlot int
+	num                  enums.Notation // how the user types amounts
 }
 
 // Open builds the page for Verbund scope ("": the last or only one) and
@@ -418,7 +420,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 		scope = st.Scope
 	}
 
-	b := book{state: st}
+	b := book{state: st, num: i18n.NotationOf(who.Notation, who.Locale)}
 	b.scope, b.choose = workbench.Pick(scopes, scope)
 	b.conn = b.scope.Conn(enums.ServiceInvoiceNinja)
 	b.cats = sources.CategoriesOf(b.conn.Options)

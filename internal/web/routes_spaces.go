@@ -147,7 +147,7 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request, ct
 		http.NotFound(w, r)
 		return
 	}
-	if err := spaces.Update(d.DB, ctx.Who, id, sectionChanges(r, section), d.clientIP(r)); err != nil {
+	if err := spaces.Update(d.DB, ctx.Who, id, sectionChanges(r, section, ctx.Numbers()), d.clientIP(r)); err != nil {
 		d.handleBoardError(w, r, err)
 		return
 	}
@@ -156,8 +156,8 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request, ct
 }
 
 // sectionChanges reads one section's form into the settings keys it owns;
-// the other sections' keys stay as they are.
-func sectionChanges(r *http.Request, section string) map[string]any {
+// the other sections' keys stay as they are. Typed numbers read in n.
+func sectionChanges(r *http.Request, section string, n enums.Notation) map[string]any {
 	_ = r.ParseForm() // r.Form below; a bad body leaves the fields empty
 	switch section {
 	case sectionPage:
@@ -169,7 +169,7 @@ func sectionChanges(r *http.Request, section string) map[string]any {
 			// Mean or median for typical values (payment days, usual traffic).
 			"stats":         map[string]any{"center": oneOf(r.FormValue("center"), centers)},
 			"rules":         spaces.ParseRules(r.FormValue),
-			rules.CustomKey: spaces.ParseCustomRules(r.FormValue),
+			rules.CustomKey: spaces.ParseCustomRules(r.FormValue, n),
 		}
 	}
 

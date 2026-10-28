@@ -63,6 +63,7 @@ type Principal struct {
 	Email       string
 	Role        enums.InstanceRole
 	Locale      enums.Locale
+	Notation    enums.Notation // numbers; auto = the language's (i18n.NotationOf)
 	Teams       map[int64]enums.TeamRole
 	Grants      map[grantKey]enums.Right
 	Spaces      map[int64]SpaceRef
@@ -96,7 +97,7 @@ func Load(q db.Queryer, userID int64) (*Principal, error) {
 	}
 
 	who := &Principal{
-		UserID: u.ID, Name: u.Name, Email: u.Email, Role: u.Role, Locale: u.Locale,
+		UserID: u.ID, Name: u.Name, Email: u.Email, Role: u.Role, Locale: u.Locale, Notation: u.Notation(),
 		Teams: teams, Grants: map[grantKey]enums.Right{}, Spaces: map[int64]SpaceRef{},
 	}
 

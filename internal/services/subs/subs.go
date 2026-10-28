@@ -19,6 +19,7 @@ import (
 
 	"andon/internal/db"
 	"andon/internal/enums"
+	"andon/internal/i18n"
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/outbound"
@@ -89,6 +90,7 @@ type book struct {
 	wallos *sources.WallosDataset
 	ninja  *sources.NinjaDataset
 	cases  []metrics.SubCase
+	num    enums.Notation // how the user types amounts
 }
 
 // Open lists the cases.
@@ -122,7 +124,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 		scope = st.Scope
 	}
 
-	b := book{today: metrics.Today(today), conns: map[enums.ServiceType]*model.Connection{}}
+	b := book{today: metrics.Today(today), conns: map[enums.ServiceType]*model.Connection{}, num: i18n.NotationOf(who.Notation, who.Locale)}
 	b.scope, b.choose = workbench.Pick(scopes, scope)
 	holder := model.UserHolder(who.UserID)
 	get := func(service enums.ServiceType) any {
@@ -202,7 +204,7 @@ func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 
 	switch it.Action {
 	case metrics.SubWallosAdd, metrics.SubWallosPrice, metrics.SubNinjaAdd, metrics.SubNinjaPrice:
-		amount, err := strconv.ParseFloat(strings.ReplaceAll(strings.TrimSpace(s.Field(FieldAmount)), ",", "."), 64)
+		amount, err := i18n.ParseNum(s.Field(FieldAmount), b.num)
 		if err != nil || amount <= 0 {
 			return it, ProblemAmount
 		}

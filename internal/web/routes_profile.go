@@ -53,9 +53,10 @@ func (d Deps) handleProfileSave(w http.ResponseWriter, r *http.Request, ctx Ctx)
 
 	name := r.FormValue("name")
 	locale := enums.Locale(r.FormValue("locale"))
+	notation := enums.Notation(r.FormValue("notation"))
 	colorMode := enums.ColorMode(r.FormValue("color_mode"))
 	searchEngine := r.FormValue("search_engine")
-	changes := accounts.ProfileChanges{Name: &name, Locale: &locale, ColorMode: &colorMode, SearchEngine: &searchEngine}
+	changes := accounts.ProfileChanges{Name: &name, Locale: &locale, Notation: &notation, ColorMode: &colorMode, SearchEngine: &searchEngine}
 
 	if raw := r.FormValue("start_board_id"); raw != "" {
 		id, parseErr := strconv.ParseInt(raw, 10, 64)

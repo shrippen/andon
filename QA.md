@@ -120,6 +120,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 1. Abgemeldet auf der Anmeldeseite im Fuß „EN“ wählen: die Seite ist englisch und bleibt es nach Neuladen. Anmelden: es gilt die Sprache des Profils.
 2. Im Fuß (oder Benutzermenü) auf Englisch wechseln, alle Seiten und Dialoge von J-B1 bis J-B5 erneut; ein anderer Browser hat nach der Anmeldung dieselbe Sprache.
 3. Nach rohen Schlüsseln, rohen Regel-IDs, `{n}`, Deutsch auf englischen Seiten („Instanz“, „Verbund“) und Englisch auf deutschen suchen.
+4. Profil → Zahlenformat „€1,234.56“ bei deutscher Sprache: Beträge und Zahlen (Kacheln, Dialoge, Hinweise, CSV-Export) lesen sich englisch, Texte bleiben deutsch. Betragsfelder (USt-Werkbank, Belege, Abos, eigene Regeln) sind so vorbelegt und lesen „1,234.56“; „Wie die Sprache“ stellt zurück.
 
 ## C. Geld und Zeit (Demo, Mara)
 

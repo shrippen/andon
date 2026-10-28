@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/outbound"
 	"andon/internal/services/workbench"
@@ -52,11 +53,14 @@ func TestWriteReceiptNoBooking(t *testing.T) {
 // imported after the page opened, or one the scan had no amount for)
 // takes it; the step says to link it there.
 func TestReceiptBookedMeanwhile(t *testing.T) {
-	b := book{ninja: &sources.NinjaDataset{BankTxns: []sources.NinjaBankTxn{
-		{Key: "b9", Date: "2026-10-02", Amount: 72.14, Debit: true, Status: sources.BankOpen}}}}
-	s := workbench.Step{Case: "d-207", Action: string(ActionReceipt), Fields: map[string]string{
-		FieldVendor: "Tankstelle", FieldAmount: "72,14", FieldDay: "2026-09-30"}}
-	if _, problem := b.receipted(&s, "207"); problem != ProblemDebit {
-		t.Fatalf("problem %q", problem)
+	// The amount reads in the user's notation: "72,14" or "72.14".
+	for n, typed := range map[enums.Notation]string{enums.NotationDE: "72,14", enums.NotationEN: "72.14"} {
+		b := book{num: n, ninja: &sources.NinjaDataset{BankTxns: []sources.NinjaBankTxn{
+			{Key: "b9", Date: "2026-10-02", Amount: 72.14, Debit: true, Status: sources.BankOpen}}}}
+		s := workbench.Step{Case: "d-207", Action: string(ActionReceipt), Fields: map[string]string{
+			FieldVendor: "Tankstelle", FieldAmount: typed, FieldDay: "2026-09-30"}}
+		if _, problem := b.receipted(&s, "207"); problem != ProblemDebit {
+			t.Fatalf("%s %q: problem %q", n, typed, problem)
+		}
 	}
 }

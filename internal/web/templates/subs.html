@@ -1,7 +1,7 @@
 {{/* Subscriptions brought in line with the bank (services/subs). */}}
 {{define "subs"}}{{$p := .P}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -32,7 +32,7 @@
           <td data-card="title"><b>{{.Name}}</b><br>
             <small class="muted">{{t (print "subs.why_" .Action) "keep" .Keep "old" (money .Old $p.Currency)}}{{with .Next}} · {{t "subs.next" "day" (day .)}}{{end}}</small></td>
           <td>{{t (print "subs.act_" .Action)}}
-            {{if .Amount}}<input class="input" name="amount_{{$k}}" value="{{printf "%.2f" .Amount}}" inputmode="decimal" aria-label="{{t "subs.amount"}}"> {{t (print "subs.every_" .Months)}}{{end}}
+            {{if .Amount}}<input class="input" name="amount_{{$k}}" value="{{decimal .Amount}}" inputmode="decimal" aria-label="{{t "subs.amount"}}"> {{t (print "subs.every_" .Months)}}{{end}}
             {{if eq (print .Action) "ninja_add"}}<select class="select" name="category_{{$k}}" aria-label="{{t "subs.category"}}"><option value="">{{t "subs.category"}}</option>
               {{range $p.Categories}}<option value="{{.Key}}"{{if eq .Key $c.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select>
             <select class="select" name="tax_{{$k}}" aria-label="{{t "subs.tax"}}"><option value="none"{{if not $c.TaxName}} selected{{end}}>{{t "subs.no_tax"}}</option>
@@ -53,7 +53,7 @@
 
 {{define "subs_review"}}
 <!doctype html>
-<html lang="{{.Ctx.Locale}}" data-own-lang>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">

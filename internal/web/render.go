@@ -44,6 +44,7 @@ func mustParse() *template.Template {
 		"t":            func(string, ...any) string { return "" },
 		"money":        func(float64, ...string) string { return "" },
 		"num":          func(float64, ...int) string { return "" },
+		"decimal":      func(float64, ...int) string { return "" },
 		"serviceNames": func([]string) string { return "" },
 		"nums":         func([]float64, int) string { return "" },
 		"gb":           func(float64) string { return "" },
@@ -296,12 +297,13 @@ func clockDate(tz string, locale enums.Locale) string {
 // renderState is what a pooled template set's funcs read during one
 // render: the locale, the request path, money rounding and the page data.
 type renderState struct {
-	locale enums.Locale
-	path   string
-	nav    string // the settings page a page counts as (navPath), else path
-	round  widgets.RoundMode
-	data   map[string]any
-	tile   map[string]any // data plus one tile's fragment, reused per tile
+	locale   enums.Locale
+	notation enums.Notation
+	path     string
+	nav      string // the settings page a page counts as (navPath), else path
+	round    widgets.RoundMode
+	data     map[string]any
+	tile     map[string]any // data plus one tile's fragment, reused per tile
 }
 
 // pageSet is a clone of the templates whose funcs read state. Reused:
@@ -348,14 +350,17 @@ func newPageSet() *pageSet {
 	set.tmpl.Funcs(template.FuncMap{
 		"t": func(key string, kv ...any) string { return i18n.T(key, st.locale, pairs(kv)) },
 		"money": func(v float64, currency ...string) string {
-			return moneyFunc(st.locale, st.round)(v, currency...)
+			return moneyFunc(st.notation, st.round)(v, currency...)
 		},
-		"num": func(v float64, digits ...int) string { return i18n.Num(v, st.locale, firstOr(digits, 0)) },
+		"num": func(v float64, digits ...int) string { return i18n.Num(v, st.notation, firstOr(digits, 0)) },
+		// A number for an input as the user types it: "18,40" or "18.40";
+		// digits -1 as many as it has (a threshold "0,005").
+		"decimal": func(v float64, digits ...int) string { return i18n.Decimal(v, st.notation, firstOr(digits, 2)) },
 		// Hover values of a chart line, "|"-separated as decimals use commas: 1,5|2,25.
 		"nums": func(vs []float64, digits int) string {
 			out := make([]string, len(vs))
 			for i, v := range vs {
-				out[i] = i18n.Num(v, st.locale, digits)
+				out[i] = i18n.Num(v, st.notation, digits)
 			}
 			return strings.Join(out, "|")
 		},
@@ -367,12 +372,12 @@ func newPageSet() *pageSet {
 			}
 			return strings.Join(out, ", ")
 		},
-		"gb":        func(v float64) string { return i18n.GB(v, st.locale) },
+		"gb":        func(v float64) string { return i18n.GB(v, st.notation) },
 		"day":       func(v any) string { return i18n.Day(v, st.locale) },
 		"weekday":   func(v any) string { return i18n.Weekday(v, st.locale) },
 		"mday":      i18n.MonthDay,
 		"month":     func(v any) string { return i18n.MonthShort(v, st.locale) },
-		"pct":       func(v float64) string { return i18n.Num(v*pctScale, st.locale, 0) + " %" },
+		"pct":       func(v float64) string { return i18n.Num(v*pctScale, st.notation, 0) + " %" },
 		"ago":       func(v any) string { return i18n.Ago(asTimePtr(v), st.locale) },
 		"clockDate": func(tz string) string { return clockDate(tz, st.locale) },
 		// here tells whether the page lies at or below path (menu underline).
@@ -381,7 +386,7 @@ func newPageSet() *pageSet {
 		"at": func(path string) bool { return cmp.Or(st.nav, st.path) == path },
 		// tt translates with typed params ({"$money": 12.5} -> "12,50 €").
 		"tt": func(key string, params map[string]any) string {
-			return i18n.T(key, st.locale, i18n.Typed(params, st.locale))
+			return i18n.T(key, st.locale, i18n.Typed(params, st.locale, st.notation))
 		},
 		// tv shows a value of a detail dialog: text as is, a typed value
 		// ({"$num": 3.5, "digits": 1}) per locale.
@@ -389,14 +394,14 @@ func newPageSet() *pageSet {
 			if v == nil {
 				return ""
 			}
-			return fmt.Sprint(i18n.Typed(map[string]any{"v": v}, st.locale)["v"])
+			return fmt.Sprint(i18n.Typed(map[string]any{"v": v}, st.locale, st.notation)["v"])
 		},
 		// tvs joins values as tv shows them, "|"-separated like nums: the
 		// x labels of a chart line's hover.
 		"tvs": func(vs []any) string {
 			out := make([]string, len(vs))
 			for i, v := range vs {
-				out[i] = fmt.Sprint(i18n.Typed(map[string]any{"v": v}, st.locale)["v"])
+				out[i] = fmt.Sprint(i18n.Typed(map[string]any{"v": v}, st.locale, st.notation)["v"])
 			}
 			return strings.Join(out, "|")
 		},
@@ -490,7 +495,7 @@ func (d Deps) Page(w http.ResponseWriter, ctx Ctx, name string, status int, valu
 	set := takeSet()
 	defer returnSet(set)
 	nav, _ := values[navPath].(string)
-	*set.state = renderState{locale: ctx.Locale, path: ctx.Path, nav: nav, round: roundOf(values["Round"]), data: data}
+	*set.state = renderState{locale: ctx.Locale, notation: ctx.Numbers(), path: ctx.Path, nav: nav, round: roundOf(values["Round"]), data: data}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if posted := refusedPost(ctx, status, data); posted != nil {
@@ -523,14 +528,14 @@ func (d Deps) refusedPage(w http.ResponseWriter, set *pageSet, name string, stat
 // (widgets.Frame.OnlyIssues); CSS hides the tile around it.
 const calmMark = `<i class="calm-mark" hidden></i>`
 
-// moneyFunc formats money in the locale, rounded as a tile's frame asks.
-func moneyFunc(locale enums.Locale, round widgets.RoundMode) func(float64, ...string) string {
+// moneyFunc formats money in the notation, rounded as a tile's frame asks.
+func moneyFunc(n enums.Notation, round widgets.RoundMode) func(float64, ...string) string {
 	return func(v float64, currency ...string) string {
 		c := i18n.DefaultCurrency
 		if len(currency) > 0 && currency[0] != "" {
 			c = currency[0]
 		}
-		return i18n.MoneyRound(v, locale, c, string(round))
+		return i18n.MoneyRound(v, n, c, string(round))
 	}
 }
 

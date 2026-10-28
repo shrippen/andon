@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/i18n"
 	"andon/internal/services/access"
 	"andon/internal/services/mailfwd"
 	"andon/internal/services/svcdata"
@@ -237,7 +238,7 @@ func (h *hunt) checkNew(s *workbench.Step) (HuntItem, workbench.Problem) {
 		return it, ProblemTaken
 	}
 	it.Docs = []sources.ReceiptDoc{doc}
-	amount, _ := strconv.ParseFloat(strings.ReplaceAll(s.Field(FieldAmount), ",", "."), 64)
+	amount, _ := i18n.ParseNum(s.Field(FieldAmount), i18n.NotationOf(h.who.Notation, h.who.Locale))
 	it.New = &NewExpense{Amount: amount, Day: s.Field(FieldDay), Vendor: strings.TrimSpace(s.Field(FieldVendor)), Notes: s.Field(FieldNotes)}
 	it.Expense = sources.ReceiptExpense{Vendor: it.New.Vendor, Amount: amount, Day: it.New.Day}
 	if amount <= 0 {

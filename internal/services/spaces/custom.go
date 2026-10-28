@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/i18n"
 	"andon/internal/rules"
 )
 
@@ -25,8 +26,9 @@ func CustomRows(settings map[string]any) []rules.CustomRule {
 	return append(rules.CustomRules(settings), rules.CustomRule{Op: ">", Severity: enums.SeverityWarn})
 }
 
-// ParseCustomRules turns the form rows into settings.custom_rules.
-func ParseCustomRules(get func(string) string) []any {
+// ParseCustomRules turns the form rows into settings.custom_rules; the
+// threshold reads in notation n.
+func ParseCustomRules(get func(string) string, n enums.Notation) []any {
 	count, _ := strconv.Atoi(get("cr_count"))
 	count = min(count, maxRules+1)
 	out := []any{}
@@ -39,7 +41,7 @@ func ParseCustomRules(get func(string) string) []any {
 		if !validOp(op) {
 			op = ">"
 		}
-		value, _ := strconv.ParseFloat(strings.ReplaceAll(field("value"), ",", "."), 64)
+		value, _ := i18n.ParseNum(field("value"), n)
 		severity, _ := strconv.Atoi(field("severity"))
 		id := field("id")
 		if id == "" {

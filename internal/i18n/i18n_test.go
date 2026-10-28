@@ -27,22 +27,22 @@ func TestTSubstitutesParams(t *testing.T) {
 }
 
 func TestMoneyFormatsByLocale(t *testing.T) {
-	if got := i18n.Money(1234.5, enums.LocaleDE, "EUR"); got != "1.234,50 €" {
+	if got := i18n.Money(1234.5, enums.NotationDE, "EUR"); got != "1.234,50 €" {
 		t.Fatalf("expected German money format, got %q", got)
 	}
-	if got := i18n.Money(1234.5, enums.LocaleEN, "EUR"); got != "€1,234.50" {
+	if got := i18n.Money(1234.5, enums.NotationEN, "EUR"); got != "€1,234.50" {
 		t.Fatalf("expected English money format, got %q", got)
 	}
-	if got := i18n.Money(11.12, enums.LocaleEN, "USD") + " | " + i18n.Money(11.12, enums.LocaleDE, "USD"); got != "$11.12 | 11,12 $" {
+	if got := i18n.Money(11.12, enums.NotationEN, "USD") + " | " + i18n.Money(11.12, enums.NotationDE, "USD"); got != "$11.12 | 11,12 $" {
 		t.Fatalf("expected dollar sign, got %q", got)
 	}
 }
 
 func TestNumGrouping(t *testing.T) {
-	if got := i18n.Num(1000000, enums.LocaleDE, 0); got != "1.000.000" {
+	if got := i18n.Num(1000000, enums.NotationDE, 0); got != "1.000.000" {
 		t.Fatalf("expected grouped German number, got %q", got)
 	}
-	if got := i18n.Num(1000000, enums.LocaleEN, 0); got != "1,000,000" {
+	if got := i18n.Num(1000000, enums.NotationEN, 0); got != "1,000,000" {
 		t.Fatalf("expected grouped English number, got %q", got)
 	}
 }
@@ -85,7 +85,7 @@ func TestTypedDropsKeyAndFormatsMoney(t *testing.T) {
 	out := i18n.Typed(map[string]any{
 		"key":    "hint.x",
 		"amount": map[string]any{"$money": 12.5},
-	}, enums.LocaleDE)
+	}, enums.LocaleDE, enums.NotationDE)
 	if _, ok := out["key"]; ok {
 		t.Fatal("expected 'key' to be dropped")
 	}
@@ -109,7 +109,7 @@ func TestAgoFuturePast(t *testing.T) {
 func TestGBScales(t *testing.T) {
 	cases := map[float64]string{12.4: "12 GB", 2168: "2,2 TB", 999: "999 GB"}
 	for gb, want := range cases {
-		if got := i18n.GB(gb, enums.LocaleDE); got != want {
+		if got := i18n.GB(gb, enums.NotationDE); got != want {
 			t.Fatalf("%v: %q, want %q", gb, got, want)
 		}
 	}
@@ -117,7 +117,7 @@ func TestGBScales(t *testing.T) {
 
 // An empty currency means the default, not none.
 func TestTypedMoneyEmptyCurrency(t *testing.T) {
-	out := i18n.Typed(map[string]any{"amount": map[string]any{"$money": 12.5, "currency": ""}}, enums.LocaleDE)
+	out := i18n.Typed(map[string]any{"amount": map[string]any{"$money": 12.5, "currency": ""}}, enums.LocaleDE, enums.NotationDE)
 	if out["amount"] != "12,50 €" {
 		t.Fatalf("expected the default currency, got %v", out["amount"])
 	}
@@ -150,5 +150,48 @@ func TestSingular(t *testing.T) {
 	// Keys ending in "_one" that mean something else stay apart.
 	if got := i18n.T("conn.state_failing", enums.LocaleEN, map[string]any{"count": 1}); got != "failing" {
 		t.Fatalf("state_failing with one: %q", got)
+	}
+}
+
+// TestParseNum: a typed number reads in the user's notation only; the
+// other notation's marks are grouping or fail.
+func TestParseNum(t *testing.T) {
+	cases := []struct {
+		in   string
+		n    enums.Notation
+		want float64
+	}{
+		{"18,40", enums.NotationDE, 18.4}, {"1.234,56", enums.NotationDE, 1234.56}, {"18,400", enums.NotationDE, 18.4},
+		{"0,500", enums.NotationDE, 0.5}, {" 72 ", enums.NotationDE, 72}, {"1 250,00", enums.NotationDE, 1250},
+		{"18.40", enums.NotationEN, 18.4}, {"1,234.56", enums.NotationEN, 1234.56}, {"1,250", enums.NotationEN, 1250},
+	}
+	for _, c := range cases {
+		if got, err := i18n.ParseNum(c.in, c.n); err != nil || got != c.want {
+			t.Errorf("%q (%s): %v %v", c.in, c.n, got, err)
+		}
+	}
+	if _, err := i18n.ParseNum("1,2,3", enums.NotationDE); err == nil {
+		t.Error("two decimal marks are no number")
+	}
+}
+
+// TestDecimal: an input's value reads back through ParseNum.
+func TestDecimal(t *testing.T) {
+	for _, n := range []enums.Notation{enums.NotationDE, enums.NotationEN} {
+		v := i18n.Decimal(1234.5, n, 2)
+		if back, err := i18n.ParseNum(v, n); err != nil || back != 1234.5 {
+			t.Errorf("%s: %q → %v %v", n, v, back, err)
+		}
+	}
+	if got := i18n.Decimal(18.4, enums.NotationDE, 2); got != "18,40" {
+		t.Errorf("de: %q", got)
+	}
+}
+
+// TestNotationOf: auto follows the language; a chosen one stays.
+func TestNotationOf(t *testing.T) {
+	if i18n.NotationOf(enums.NotationAuto, enums.LocaleEN) != enums.NotationEN || i18n.NotationOf(enums.NotationAuto, enums.LocaleDE) != enums.NotationDE ||
+		i18n.NotationOf(enums.NotationEN, enums.LocaleDE) != enums.NotationEN {
+		t.Error("notation")
 	}
 }

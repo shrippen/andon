@@ -11,13 +11,13 @@ import (
 func TestMoneyRound(t *testing.T) {
 	cases := []struct {
 		mode   string
-		locale enums.Locale
+		locale enums.Notation
 		want   string
 	}{
-		{"exact", enums.LocaleDE, "109.449,31 €"},
-		{"euro", enums.LocaleDE, "109.449 €"},
-		{"thousand", enums.LocaleDE, "109,4 T€"},
-		{"thousand", enums.LocaleEN, "€109.4k"},
+		{"exact", enums.NotationDE, "109.449,31 €"},
+		{"euro", enums.NotationDE, "109.449 €"},
+		{"thousand", enums.NotationDE, "109,4 T€"},
+		{"thousand", enums.NotationEN, "€109.4k"},
 	}
 	for _, c := range cases {
 		if got := i18n.MoneyRound(109449.31, c.locale, "EUR", c.mode); got != c.want {

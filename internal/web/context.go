@@ -39,6 +39,16 @@ type Ctx struct {
 	flash string        // success message of the redirect before (forms.go)
 }
 
+// Numbers is the notation numbers read and are typed in: the user's,
+// else the language's.
+func (c Ctx) Numbers() enums.Notation {
+	var n enums.Notation
+	if c.Who != nil {
+		n = c.Who.Notation
+	}
+	return i18n.NotationOf(n, c.Locale)
+}
+
 // ErrLoginRequired is turned into a redirect to /login by the caller.
 var ErrLoginRequired = errors.New("web: login required")
 

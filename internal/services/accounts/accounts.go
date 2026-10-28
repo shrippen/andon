@@ -52,6 +52,7 @@ type Profile struct {
 	Name         string
 	Role         enums.InstanceRole
 	Locale       enums.Locale
+	Notation     enums.Notation // "" = the language's
 	ColorMode    enums.ColorMode
 	ThemeID      *int64
 	StartBoardID *int64
@@ -151,7 +152,7 @@ func GetProfile(d *sql.DB, who *access.Principal) (*Profile, error) {
 			return sql.ErrNoRows
 		}
 		p = &Profile{
-			ID: u.ID, Email: u.Email, Name: u.Name, Role: u.Role, Locale: u.Locale,
+			ID: u.ID, Email: u.Email, Name: u.Name, Role: u.Role, Locale: u.Locale, Notation: u.Notation(),
 			ColorMode: u.ColorMode, ThemeID: u.ThemeID, StartBoardID: u.StartBoardID,
 			SearchEngine: u.SearchEngine, TOTPEnabled: u.TOTPEnabled,
 			HasPassword: u.PasswordHash != "", OIDCLinked: u.OIDCSub != "", Prefs: orEmpty(u.Prefs),
@@ -165,6 +166,7 @@ func GetProfile(d *sql.DB, who *access.Principal) (*Profile, error) {
 type ProfileChanges struct {
 	Name         *string
 	Locale       *enums.Locale
+	Notation     *enums.Notation
 	ColorMode    *enums.ColorMode
 	ThemeID      **int64
 	StartBoardID **int64
@@ -186,6 +188,9 @@ func UpdateProfile(d *sql.DB, who *access.Principal, changes ProfileChanges) err
 		}
 		if changes.Locale != nil {
 			u.Locale = *changes.Locale
+		}
+		if changes.Notation != nil {
+			u.SetNotation(*changes.Notation)
 		}
 		if changes.ColorMode != nil {
 			u.ColorMode = *changes.ColorMode

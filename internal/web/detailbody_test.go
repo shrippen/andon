@@ -130,7 +130,7 @@ func TestDetailTableCSV(t *testing.T) {
 	if n := len(tablesOf(body)); n != 2 {
 		t.Fatalf("tables: %d", n)
 	}
-	blob, err := tableCSV(first, enums.LocaleDE)
+	blob, err := tableCSV(first, enums.LocaleDE, enums.NotationDE)
 	if err != nil {
 		t.Fatal(err)
 	}

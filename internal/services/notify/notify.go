@@ -603,7 +603,7 @@ func weekStory(d *sql.DB, who *access.Principal, prefs map[string]any, local tim
 	}
 	var out []string
 	for _, l := range lines {
-		out = append(out, i18n.T("week."+l.Key, who.Locale, i18n.Typed(l.Params, who.Locale)))
+		out = append(out, i18n.T("week."+l.Key, who.Locale, i18n.Typed(l.Params, who.Locale, i18n.NotationOf(who.Notation, who.Locale))))
 	}
 	return out
 }

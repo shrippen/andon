@@ -13,7 +13,7 @@ import (
 func TestDownFindingTranslatesKeys(t *testing.T) {
 	conn := &model.Connection{ID: 1, Name: "Regis", Service: "truenas"}
 	f := downFinding(conn, "truenas.https_required")
-	got := i18n.T("hint.system.connector_down.why", enums.LocaleDE, i18n.Typed(f.Params, enums.LocaleDE))
+	got := i18n.T("hint.system.connector_down.why", enums.LocaleDE, i18n.Typed(f.Params, enums.LocaleDE, enums.NotationDE))
 	if want := i18n.T("truenas.https_required", enums.LocaleDE, nil); want == "truenas.https_required" || !contains(got, want) {
 		t.Fatalf("why: %q", got)
 	}
