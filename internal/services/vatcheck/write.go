@@ -76,6 +76,7 @@ const (
 	ProblemEuer     workbench.Problem = "vatcheck.problem_euer"      // not one of the EÜR dropdown's lines
 	ProblemFilled   workbench.Problem = "vatcheck.problem_filled"    // nothing left to fill
 	ProblemAmount   workbench.Problem = "vatcheck.problem_amount"    // a receipt's expense needs an amount
+	ProblemDebit    workbench.Problem = "vatcheck.problem_debit"     // an open debit fits the receipt: no cash
 )
 
 // ErrGone means the transaction is not (or no longer) archived.
@@ -268,7 +269,9 @@ func (b book) receipted(s *workbench.Step, id string) (Item, workbench.Problem) 
 		return it, ProblemGone
 	}
 	if metrics.OpenDebitFits(b.ninja, amount, s.Field(FieldDay)) {
-		return it, ProblemGone // a debit imported meanwhile pays it: no cash
+		// Imported after the page opened, or the scan had no amount to
+		// match: the debit pays it, so it is no cash receipt.
+		return it, ProblemDebit
 	}
 	it.Txn = sources.NinjaBankTxn{Key: s.Case, Date: s.Field(FieldDay), Payer: strings.TrimSpace(s.Field(FieldVendor)), Amount: amount, Debit: true}
 	it, problem := b.created(s, it)
@@ -298,8 +301,9 @@ func amountOf(v string) (float64, error) {
 	return strconv.ParseFloat(v, 64)
 }
 
-// thousands is an amount of whole thousands: "1.234", "1,250".
-var thousands = regexp.MustCompile(`^\d{1,3}([.,]\d{3})+$`)
+// thousands is an amount of whole thousands: "1.234", "1,250"; one
+// starting with 0 is not ("0,500").
+var thousands = regexp.MustCompile(`^[1-9]\d{0,2}([.,]\d{3})+$`)
 
 // filled resolves a gap case: the linked expense, still lacking what
 // the step fills.

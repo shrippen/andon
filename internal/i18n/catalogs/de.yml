@@ -7378,6 +7378,7 @@ vatcheck:
   docs_title: 'Belege ohne Ausgabe: {n}'
   from_scan: 'Aus dem Beleg'
   problem_amount: 'Ohne Betrag: übersprungen.'
+  problem_debit: 'Ein offener Umsatz passt zu dem Beleg: dort zuordnen, übersprungen.'
   do_receipt: 'Ausgabe „{vendor}“ aus dem Beleg anlegen'
   take_next: 'Übernehmen und weiter'
   later: 'Später'

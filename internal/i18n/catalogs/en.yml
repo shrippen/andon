@@ -7377,6 +7377,7 @@ vatcheck:
   docs_title: 'Scans without an expense: {n}'
   from_scan: 'From the scan'
   problem_amount: 'No amount: skipped.'
+  problem_debit: 'An open booking fits the receipt: link it there; skipped.'
   do_receipt: 'Create expense “{vendor}” from the scan'
   take_next: 'Take and next'
   later: 'Later'
