@@ -266,11 +266,44 @@ func Decimal(value float64, n enums.Notation, digits int) string {
 	return strings.Replace(strconv.FormatFloat(value, 'f', digits, 64), ".", decimalSep(n), 1)
 }
 
+// errGrouping: a thousands separator off the three-digit grid is a
+// typo ("18.40" in de), not a grouping; reading it would give 1840.
+var errGrouping = fmt.Errorf("misplaced thousands separator")
+
 // ParseNum reads a number typed in notation n: "1.234,56" or "18,40"
 // (de), "1,234.56" or "18.40" (en); spaces group too.
 func ParseNum(v string, n enums.Notation) (float64, error) {
-	v = strings.NewReplacer(" ", "", "\u00a0", "", thousandsSep(n), "").Replace(strings.TrimSpace(v))
-	return strconv.ParseFloat(strings.Replace(v, decimalSep(n), ".", 1), 64)
+	v = strings.NewReplacer(" ", "", "\u00a0", "").Replace(v)
+	whole, frac, hasFrac := strings.Cut(v, decimalSep(n))
+
+	sep := thousandsSep(n)
+	if strings.Contains(frac, sep) {
+		return 0, errGrouping
+	}
+	if strings.Contains(whole, sep) && !grouped(strings.TrimPrefix(whole, "-"), sep) {
+		return 0, errGrouping
+	}
+
+	v = strings.ReplaceAll(whole, sep, "")
+	if hasFrac {
+		v += "." + frac
+	}
+	return strconv.ParseFloat(v, 64)
+}
+
+// grouped: "1.234.567" has one to three leading digits (no leading
+// zero: "0.005"), then groups of three.
+func grouped(whole, sep string) bool {
+	parts := strings.Split(whole, sep)
+	if len(parts[0]) < 1 || len(parts[0]) > 3 || parts[0][0] == '0' {
+		return false
+	}
+	for _, p := range parts[1:] {
+		if len(p) != 3 {
+			return false
+		}
+	}
+	return true
 }
 
 // gbPerTB: sizes from here on read as TB ("2,2 TB", not "2.168 GB").
