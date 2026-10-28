@@ -6,6 +6,7 @@ package spaces
 //	cr.0.severity=20, cr.0.delete=on → settings.custom_rules (row 1 is the empty "new" row)
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -26,9 +27,13 @@ func CustomRows(settings map[string]any) []rules.CustomRule {
 	return append(rules.CustomRules(settings), rules.CustomRule{Op: ">", Severity: enums.SeverityWarn})
 }
 
+// ErrThreshold: a custom rule's threshold is no number in the user's
+// notation; saving 0 instead would fire the rule on every value.
+var ErrThreshold = errors.New("custom rule threshold")
+
 // ParseCustomRules turns the form rows into settings.custom_rules; the
 // threshold reads in notation n.
-func ParseCustomRules(get func(string) string, n enums.Notation) []any {
+func ParseCustomRules(get func(string) string, n enums.Notation) ([]any, error) {
 	count, _ := strconv.Atoi(get("cr_count"))
 	count = min(count, maxRules+1)
 	out := []any{}
@@ -41,7 +46,15 @@ func ParseCustomRules(get func(string) string, n enums.Notation) []any {
 		if !validOp(op) {
 			op = ">"
 		}
-		value, _ := i18n.ParseNum(field("value"), n)
+		// An empty threshold is 0 ("> 0").
+		var value float64
+		if raw := field("value"); raw != "" {
+			v, err := i18n.ParseNum(raw, n)
+			if err != nil {
+				return nil, ErrThreshold
+			}
+			value = v
+		}
 		severity, _ := strconv.Atoi(field("severity"))
 		id := field("id")
 		if id == "" {
@@ -54,7 +67,7 @@ func ParseCustomRules(get func(string) string, n enums.Notation) []any {
 		out = append(out, map[string]any{"id": id, "title": title, "service": field("service"), "path": field("path"),
 			"op": op, "value": value, "severity": float64(clampSeverity(severity))})
 	}
-	return out
+	return out, nil
 }
 
 func validOp(op string) bool {

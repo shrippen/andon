@@ -9,6 +9,7 @@ package i18n
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -266,44 +267,44 @@ func Decimal(value float64, n enums.Notation, digits int) string {
 	return strings.Replace(strconv.FormatFloat(value, 'f', digits, 64), ".", decimalSep(n), 1)
 }
 
-// errGrouping: a thousands separator off the three-digit grid is a
-// typo ("18.40" in de), not a grouping; reading it would give 1840.
-var errGrouping = fmt.Errorf("misplaced thousands separator")
+// numGrammar is what a user may type per notation: digits, the
+// thousands separator only on the three-digit grid ("1.234", not "18.40"
+// or "0.005" in de, which would read as 1840 and 5), one decimal mark.
+// No exponents, hex, NaN or Inf. Also the input's HTML pattern.
+var numGrammar = map[enums.Notation]string{
+	enums.NotationDE: `-?([1-9]\d{0,2}(\.\d{3})+|\d+)(,\d+)?`,
+	enums.NotationEN: `-?([1-9]\d{0,2}(,\d{3})+|\d+)(\.\d+)?`,
+}
+
+var numMatch = map[enums.Notation]*regexp.Regexp{
+	enums.NotationDE: regexp.MustCompile(`^` + numGrammar[enums.NotationDE] + `$`),
+	enums.NotationEN: regexp.MustCompile(`^` + numGrammar[enums.NotationEN] + `$`),
+}
+
+var errNum = errors.New("not a number in this notation")
+
+// NumPattern is the HTML pattern of a number input in notation n.
+func NumPattern(n enums.Notation) string {
+	return numGrammar[numNotation(n)]
+}
+
+// numNotation: auto counts as en, like thousandsSep and decimalSep.
+func numNotation(n enums.Notation) enums.Notation {
+	if n == enums.NotationDE {
+		return n
+	}
+	return enums.NotationEN
+}
 
 // ParseNum reads a number typed in notation n: "1.234,56" or "18,40"
 // (de), "1,234.56" or "18.40" (en); spaces group too.
 func ParseNum(v string, n enums.Notation) (float64, error) {
 	v = strings.NewReplacer(" ", "", "\u00a0", "").Replace(v)
-	whole, frac, hasFrac := strings.Cut(v, decimalSep(n))
-
-	sep := thousandsSep(n)
-	if strings.Contains(frac, sep) {
-		return 0, errGrouping
+	if !numMatch[numNotation(n)].MatchString(v) {
+		return 0, errNum
 	}
-	if strings.Contains(whole, sep) && !grouped(strings.TrimPrefix(whole, "-"), sep) {
-		return 0, errGrouping
-	}
-
-	v = strings.ReplaceAll(whole, sep, "")
-	if hasFrac {
-		v += "." + frac
-	}
-	return strconv.ParseFloat(v, 64)
-}
-
-// grouped: "1.234.567" has one to three leading digits (no leading
-// zero: "0.005"), then groups of three.
-func grouped(whole, sep string) bool {
-	parts := strings.Split(whole, sep)
-	if len(parts[0]) < 1 || len(parts[0]) > 3 || parts[0][0] == '0' {
-		return false
-	}
-	for _, p := range parts[1:] {
-		if len(p) != 3 {
-			return false
-		}
-	}
-	return true
+	v = strings.ReplaceAll(v, thousandsSep(n), "")
+	return strconv.ParseFloat(strings.Replace(v, decimalSep(n), ".", 1), 64)
 }
 
 // gbPerTB: sizes from here on read as TB ("2,2 TB", not "2.168 GB").

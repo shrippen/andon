@@ -172,7 +172,7 @@ func TestParseNum(t *testing.T) {
 	}
 	// A misplaced thousands separator is a typo, not a grouping:
 	// "18.40" in de must not become 1840.
-	for _, in := range []string{"1,2,3", "18.40", "0.005", "1.23,4", ".500"} {
+	for _, in := range []string{"1,2,3", "18.40", "0.005", "1.23,4", ".500", "NaN", "Inf", "1e9", "0x1p4"} {
 		if v, err := i18n.ParseNum(in, enums.NotationDE); err == nil {
 			t.Errorf("%q (de) read as %v", in, v)
 		}

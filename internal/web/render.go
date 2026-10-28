@@ -45,6 +45,7 @@ func mustParse() *template.Template {
 		"money":        func(float64, ...string) string { return "" },
 		"num":          func(float64, ...int) string { return "" },
 		"decimal":      func(float64, ...int) string { return "" },
+		"numPattern":   func() string { return "" },
 		"serviceNames": func([]string) string { return "" },
 		"nums":         func([]float64, int) string { return "" },
 		"gb":           func(float64) string { return "" },
@@ -356,6 +357,8 @@ func newPageSet() *pageSet {
 		// A number for an input as the user types it: "18,40" or "18.40";
 		// digits -1 as many as it has (a threshold "0,005").
 		"decimal": func(v float64, digits ...int) string { return i18n.Decimal(v, st.notation, firstOr(digits, 2)) },
+		// pattern of a typed number, so the browser rejects "18.40" in de.
+		"numPattern": func() string { return i18n.NumPattern(st.notation) },
 		// Hover values of a chart line, "|"-separated as decimals use commas: 1,5|2,25.
 		"nums": func(vs []float64, digits int) string {
 			out := make([]string, len(vs))

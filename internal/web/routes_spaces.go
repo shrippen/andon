@@ -147,7 +147,12 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request, ct
 		http.NotFound(w, r)
 		return
 	}
-	if err := spaces.Update(d.DB, ctx.Who, id, sectionChanges(r, section, ctx.Numbers()), d.clientIP(r)); err != nil {
+	changes, err := sectionChanges(r, section, ctx.Numbers())
+	if err != nil {
+		d.fail(w, err, http.StatusBadRequest)
+		return
+	}
+	if err := spaces.Update(d.DB, ctx.Who, id, changes, d.clientIP(r)); err != nil {
 		d.handleBoardError(w, r, err)
 		return
 	}
@@ -157,20 +162,24 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request, ct
 
 // sectionChanges reads one section's form into the settings keys it owns;
 // the other sections' keys stay as they are. Typed numbers read in n.
-func sectionChanges(r *http.Request, section string, n enums.Notation) map[string]any {
+func sectionChanges(r *http.Request, section string, n enums.Notation) (map[string]any, error) {
 	_ = r.ParseForm() // r.Form below; a bad body leaves the fields empty
 	switch section {
 	case sectionPage:
-		return spaces.ParsePage(r.FormValue)
+		return spaces.ParsePage(r.FormValue), nil
 	case sectionMaintenance:
-		return map[string]any{"maintenance": spaces.ParseMaintenance(r.FormValue, r.Form["maint_conn"], time.Local)}
+		return map[string]any{"maintenance": spaces.ParseMaintenance(r.FormValue, r.Form["maint_conn"], time.Local)}, nil
 	case sectionRules:
+		custom, err := spaces.ParseCustomRules(r.FormValue, n)
+		if err != nil {
+			return nil, err
+		}
 		return map[string]any{
 			// Mean or median for typical values (payment days, usual traffic).
 			"stats":         map[string]any{"center": oneOf(r.FormValue("center"), centers)},
 			"rules":         spaces.ParseRules(r.FormValue),
-			rules.CustomKey: spaces.ParseCustomRules(r.FormValue, n),
-		}
+			rules.CustomKey: custom,
+		}, nil
 	}
 
 	annual := strings.TrimSpace(r.FormValue("annual_due"))
@@ -209,5 +218,5 @@ func sectionChanges(r *http.Request, section string, n enums.Notation) map[strin
 			"cloud_monthly":  number(r.FormValue("cloud_monthly"), 0),
 			"hosting_words":  strings.TrimSpace(r.FormValue("hosting_words")),
 		},
-	}
+	}, nil
 }
