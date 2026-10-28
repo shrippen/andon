@@ -2,7 +2,7 @@ module andon
 
 go 1.26.0
 
-toolchain go1.26.9
+toolchain go1.26.10
 
 require (
 	github.com/anthropics/anthropic-sdk-go v1.75.0
@@ -13,10 +13,10 @@ require (
 	github.com/go-webauthn/webauthn v0.18.2
 	github.com/ncruces/go-sqlite3 v0.35.6
 	github.com/pquerna/otp v1.5.0
-	golang.org/x/crypto v0.57.0
-	golang.org/x/net v0.60.0
-	golang.org/x/sync v0.23.0
-	golang.org/x/text v0.42.0
+	golang.org/x/crypto v0.58.0
+	golang.org/x/net v0.62.0
+	golang.org/x/sync v0.24.0
+	golang.org/x/text v0.43.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -44,6 +44,6 @@ require (
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
-	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 	lukechampine.com/adiantum v1.1.1 // indirect
 )
