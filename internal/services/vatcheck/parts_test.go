@@ -88,7 +88,7 @@ func TestReceiptAsks(t *testing.T) {
 // TestAmountOf: typed amounts in German or English notation, thousands
 // separators included.
 func TestAmountOf(t *testing.T) {
-	for in, want := range map[string]float64{"18,40": 18.4, "18.40": 18.4, "1.234,56": 1234.56, "1.234": 1234, "1,234.56": 1234.56, "1,250": 1250, "12,345,678": 12345678, " 72 ": 72} {
+	for in, want := range map[string]float64{"18,40": 18.4, "18.40": 18.4, "1.234,56": 1234.56, "1.234": 1234, "1,234.56": 1234.56, "1,250": 1250, "12,345,678": 12345678, "0,500": 0.5, "0.500": 0.5, " 72 ": 72} {
 		if got, err := amountOf(in); err != nil || got != want {
 			t.Errorf("%q: %v %v", in, got, err)
 		}
