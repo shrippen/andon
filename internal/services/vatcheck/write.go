@@ -274,8 +274,9 @@ func (b book) receipted(s *workbench.Step, id string) (Item, workbench.Problem) 
 	return it, problem
 }
 
-// amountOf reads a typed amount: "18,40", "1.234,56", "1,234.56" and
-// "1.234" (thousands) alike.
+// amountOf reads a typed amount: "18,40", "1.234,56", "1,234.56", and
+// whole thousands "1.234" or "1,250" alike (three digits after the
+// mark are no cents).
 func amountOf(v string) (float64, error) {
 	v = strings.TrimSpace(v)
 	switch {
@@ -286,16 +287,16 @@ func amountOf(v string) (float64, error) {
 		} else {
 			v = strings.ReplaceAll(v, ",", "")
 		}
+	case thousands.MatchString(v):
+		v = strings.NewReplacer(".", "", ",", "").Replace(v)
 	case strings.Contains(v, ","):
 		v = strings.ReplaceAll(v, ",", ".")
-	case thousands.MatchString(v):
-		v = strings.ReplaceAll(v, ".", "")
 	}
 	return strconv.ParseFloat(v, 64)
 }
 
-// thousands is an amount of whole thousands with dots: "1.234".
-var thousands = regexp.MustCompile(`^\d{1,3}(\.\d{3})+$`)
+// thousands is an amount of whole thousands: "1.234", "1,250".
+var thousands = regexp.MustCompile(`^\d{1,3}([.,]\d{3})+$`)
 
 // filled resolves a gap case: the linked expense, still lacking what
 // the step fills.

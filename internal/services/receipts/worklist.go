@@ -374,15 +374,25 @@ func Unbooked(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int
 		return nil, nil
 	}
 
+	out := unclaimed(p.matcher(), tagged, expenses, docs, from, to)
+	for i := range out {
+		out[i].Number = docNumber(p.mapping, out[i].Doc)
+	}
+	return out, nil
+}
+
+// unclaimed are the tagged scans of [from, to] no expense fits: no
+// combo and no hit from levelMid on.
+func unclaimed(x matcher, tagged []sources.ReceiptDoc, expenses []sources.ReceiptExpense, pool []sources.ReceiptDoc, from, to time.Time) []Candidate {
 	var out []Candidate
-	for _, m := range p.matcher().Reverse(tagged, expenses, docs) {
+	for _, m := range x.Reverse(tagged, expenses, pool) {
 		day, err := time.Parse(time.DateOnly, docDay(m.Doc))
 		fits := len(m.Combos) > 0 || (len(m.Hits) > 0 && m.Hits[0].Score >= levelMid)
 		if err != nil || fits || day.Before(from) || day.After(to) {
 			continue
 		}
 		m.Doc.Day = day.Format(time.DateOnly)
-		out = append(out, Candidate{Doc: m.Doc, Amount: m.Amount, Number: docNumber(p.mapping, m.Doc)})
+		out = append(out, Candidate{Doc: m.Doc, Amount: m.Amount})
 	}
-	return out, nil
+	return out
 }
