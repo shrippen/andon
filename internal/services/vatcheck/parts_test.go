@@ -69,3 +69,18 @@ func TestProposed(t *testing.T) {
 		t.Fatalf("proposed %v", got)
 	}
 }
+
+// TestReceiptAsks: a receipt case is never taken without asking (cash
+// or private is the user's word), and needs an amount to be ready.
+func TestReceiptAsks(t *testing.T) {
+	c := Case{BankCase: metrics.BankCase{Txn: sources.NinjaBankTxn{Debit: true, Amount: 18.4}, Action: ActionReceipt,
+		Draft: metrics.ExpenseDraft{Vendor: "Copyshop", CategoryKey: "c1", TaxKnown: true}}, Note: "Kopien",
+		Scans: []receipts.Candidate{{Doc: sources.ReceiptDoc{ID: 7}, Score: 100}}, parts: partsOf(false, false, true)}
+	if !c.Ready() || c.Picked() {
+		t.Fatalf("ready %v, picked %v", c.Ready(), c.Picked())
+	}
+	c.Txn.Amount = 0
+	if c.Ready() {
+		t.Fatal("ready without an amount")
+	}
+}

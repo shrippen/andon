@@ -493,3 +493,19 @@ func TestBankCasesDraftBill(t *testing.T) {
 		t.Fatalf("b3 bills without a history: %+v", c.Draft)
 	}
 }
+
+// An open debit of any period may pay a receipt: same amount, within
+// the window an expense gets. Booked or credited ones do not.
+func TestOpenDebitFits(t *testing.T) {
+	n := &sources.NinjaDataset{BankTxns: []sources.NinjaBankTxn{
+		{Key: "b1", Date: "2026-10-02", Amount: 72.14, Debit: true, Status: sources.BankOpen},
+		{Key: "b2", Date: "2026-10-02", Amount: 18.4, Debit: true, Status: sources.BankDone},
+		{Key: "b3", Date: "2026-10-02", Amount: 30, Status: sources.BankOpen},
+	}}
+	if !metrics.OpenDebitFits(n, 72.14, "2026-09-30") {
+		t.Error("a card receipt booked two days later is the debit's")
+	}
+	if metrics.OpenDebitFits(n, 72.14, "2026-08-30") || metrics.OpenDebitFits(n, 18.4, "2026-10-01") || metrics.OpenDebitFits(n, 30, "2026-10-01") {
+		t.Error("far, booked or credited: no fit")
+	}
+}

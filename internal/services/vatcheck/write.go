@@ -150,6 +150,10 @@ func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 	} else {
 		scans, err = receipts.ScansFor(ctx, d, who, connID, p.Item.Txn.Amount, p.Item.Txn.Date, p.Item.Vendor)
 	}
+	if err != nil && p.Action == string(ActionReceipt) {
+		p.Problem = ProblemGone // its scan is its only guard against a second expense
+		return
+	}
 	if err != nil {
 		return // Paperless unreachable: the scan stays, linking it reports the error
 	}

@@ -305,6 +305,22 @@ func periodTxns(in VATInputs) []sources.NinjaBankTxn {
 	return out
 }
 
+// OpenDebitFits says whether an open debit of any period may pay amount
+// on day: the window an expense gets. A receipt it fits is the debit's,
+// not one paid in cash (e.g. a card receipt of 30.9. booked on 2.10.).
+func OpenDebitFits(n *sources.NinjaDataset, amount float64, day string) bool {
+	d, ok := ParseDay(day)
+	if !ok {
+		return false
+	}
+	for _, t := range n.BankTxns {
+		if t.Debit && t.Status != sources.BankDone && !t.Archived && abs(t.Amount-amount) <= amountTol && daysApart(t.Date, d) <= expenseWindow {
+			return true
+		}
+	}
+	return false
+}
+
 // LinkedExpenses are the expenses a bank transaction already holds.
 func LinkedExpenses(n *sources.NinjaDataset) map[string]bool {
 	out := map[string]bool{}

@@ -591,9 +591,9 @@ func (p Page) proposed() map[int64]bool {
 	return out
 }
 
-// docCases are the period's free scans no booking or expense fits, each
-// as a new expense: "d-<id>", dressed as a booking of the scan's day,
-// amount and correspondent.
+// docCases are the period's free scans no booking (of any period) or
+// expense fits, each as a new expense: "d-<id>", dressed as a booking
+// of the scan's day, amount and correspondent.
 func (b book) docCases(ctx context.Context, d *sql.DB, who *access.Principal, s metrics.VATSpan, parts []Part, vendorEuer map[string]string, taken map[int64]bool) []Case {
 	if b.scanSlot == 0 {
 		return nil
@@ -601,7 +601,7 @@ func (b book) docCases(ctx context.Context, d *sql.DB, who *access.Principal, s 
 	scans, _ := receipts.Unbooked(ctx, d, who, b.conn.ID, s.Start, s.End)
 	var out []Case
 	for _, sc := range scans {
-		if taken[sc.Doc.ID] {
+		if taken[sc.Doc.ID] || metrics.OpenDebitFits(b.ninja, sc.Amount, sc.Doc.Day) {
 			continue
 		}
 		sc.Score = scanSure

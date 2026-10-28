@@ -86,8 +86,10 @@ func (c Case) Has(p Part) bool {
 		return c.Scan() != 0
 	case PartNote:
 		return c.Note != ""
+	case PartAmount:
+		return c.Act() != ActionReceipt || c.Txn.Amount > 0 // a scan may have none
 	}
-	return true // amount, currency and date: the booking's
+	return true // currency and date: the booking's
 }
 
 // Gap says whether the expense found or filled lacks part p, for the
@@ -237,8 +239,8 @@ func (c Case) Picked() bool {
 		return true
 	case metrics.ActionCreate:
 		return c.Draft.TaxKnown && c.Draft.From == metrics.FromHistory
-	case ActionFill, ActionReceipt:
+	case ActionFill:
 		return c.Ready()
 	}
-	return false
+	return false // a receipt: cash or private is the user's word
 }
