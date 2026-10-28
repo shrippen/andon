@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -259,7 +260,7 @@ func (b book) receipted(s *workbench.Step, id string) (Item, workbench.Problem) 
 	if err != nil || metrics.BankAction(s.Action) != ActionReceipt {
 		return it, ProblemGone
 	}
-	amount, err := strconv.ParseFloat(strings.ReplaceAll(strings.TrimSpace(s.Field(FieldAmount)), ",", "."), 64)
+	amount, err := amountOf(s.Field(FieldAmount))
 	if err != nil || amount <= 0 {
 		return it, ProblemAmount
 	}
@@ -272,6 +273,29 @@ func (b book) receipted(s *workbench.Step, id string) (Item, workbench.Problem) 
 	s.Fields[FieldScan] = id
 	return it, problem
 }
+
+// amountOf reads a typed amount: "18,40", "1.234,56", "1,234.56" and
+// "1.234" (thousands) alike.
+func amountOf(v string) (float64, error) {
+	v = strings.TrimSpace(v)
+	switch {
+	case strings.Contains(v, ",") && strings.Contains(v, "."):
+		// The later mark is the decimal one.
+		if strings.LastIndex(v, ",") > strings.LastIndex(v, ".") {
+			v = strings.ReplaceAll(strings.ReplaceAll(v, ".", ""), ",", ".")
+		} else {
+			v = strings.ReplaceAll(v, ",", "")
+		}
+	case strings.Contains(v, ","):
+		v = strings.ReplaceAll(v, ",", ".")
+	case thousands.MatchString(v):
+		v = strings.ReplaceAll(v, ".", "")
+	}
+	return strconv.ParseFloat(v, 64)
+}
+
+// thousands is an amount of whole thousands with dots: "1.234".
+var thousands = regexp.MustCompile(`^\d{1,3}(\.\d{3})+$`)
 
 // filled resolves a gap case: the linked expense, still lacking what
 // the step fills.

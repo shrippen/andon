@@ -358,10 +358,17 @@ func Unbooked(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int
 	if err != nil {
 		return nil, err
 	}
-	expenses, docs, err := p.unlinked(ctx, d, who, from.Year())
+	_, docs, err := p.unlinked(ctx, d, who, from.Year())
 	if err != nil {
 		return nil, err
 	}
+
+	// An expense of the neighbour year may hold a scan at the year's edge.
+	all, err := p.expenses(ctx, d, who)
+	if err != nil {
+		return nil, err
+	}
+	expenses := aroundYear(p.open(all.Expenses), from.Year())
 	tagged, found := p.queued(set, docs)
 	if !found {
 		return nil, nil

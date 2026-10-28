@@ -481,13 +481,13 @@ func sureTwin(sure *sources.BankData, t sources.NinjaBankTxn, used map[string]bo
 	return best
 }
 
-// draftOf fills a new expense: a known vendor (its first word is a word
-// of the booking: "Mietwagen Nord" is not "Nordhost") brings its last
-// category and tax; otherwise Sure's merchant and category help.
 // DraftOf is the new expense for a booking, or for a scan dressed as
 // one (vatcheck: receipts without an expense), without Sure.
 func DraftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn) ExpenseDraft { return draftOf(n, t, nil) }
 
+// draftOf fills a new expense: a known vendor (its first word is a word
+// of the booking: "Mietwagen Nord" is not "Nordhost") brings its last
+// category and tax; otherwise Sure's merchant and category help.
 func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.BankTxn) ExpenseDraft {
 	var d ExpenseDraft
 	text := t.Payer + " " + t.Description

@@ -84,3 +84,16 @@ func TestReceiptAsks(t *testing.T) {
 		t.Fatal("ready without an amount")
 	}
 }
+
+// TestAmountOf: typed amounts in German or English notation, thousands
+// separators included.
+func TestAmountOf(t *testing.T) {
+	for in, want := range map[string]float64{"18,40": 18.4, "18.40": 18.4, "1.234,56": 1234.56, "1.234": 1234, "1,234.56": 1234.56, " 72 ": 72} {
+		if got, err := amountOf(in); err != nil || got != want {
+			t.Errorf("%q: %v %v", in, got, err)
+		}
+	}
+	if _, err := amountOf("zwölf"); err == nil {
+		t.Error("text is no amount")
+	}
+}

@@ -1,6 +1,7 @@
 package receipts
 
 import (
+	"strings"
 	"testing"
 
 	"andon/internal/sources"
@@ -192,5 +193,19 @@ func TestAliasLiftsVendor(t *testing.T) {
 	after := matcher{mapping: mapped, aliases: a}.vendorFactor(e, []sources.ReceiptDoc{d}, false)
 	if before.Points != 0 || after.Points != vendorMax || after.Text != "receipts.why_vendor_alias" {
 		t.Fatalf("before %+v, after %+v", before, after)
+	}
+}
+
+// TestAroundYear: a year's expenses and those of the neighbour years
+// close enough to its scans (a card receipt of 28.12. booked on 2.1.).
+func TestAroundYear(t *testing.T) {
+	list := []sources.ReceiptExpense{{Key: "dec", Day: "2026-12-20"}, {Key: "jan", Day: "2027-01-02"},
+		{Key: "feb", Day: "2027-02-01"}, {Key: "old", Day: "2025-12-29"}, {Key: "far", Day: "2025-11-30"}, {Key: "none"}}
+	var got []string
+	for _, e := range aroundYear(list, 2026) {
+		got = append(got, e.Key)
+	}
+	if strings.Join(got, ",") != "dec,jan,old" {
+		t.Fatalf("around 2026: %v", got)
 	}
 }

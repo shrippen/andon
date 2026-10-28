@@ -757,6 +757,23 @@ func filled(v any) bool {
 	return !ok || strings.TrimSpace(s) != ""
 }
 
+// aroundYear keeps a year's expenses and those of the neighbour years
+// within twice the date window of its edge, which a scan of the year
+// may still be (a card receipt of 28.12. booked on 2.1.).
+func aroundYear(list []sources.ReceiptExpense, year int) []sources.ReceiptExpense {
+	edge := 2 * dateWindow
+	from := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, -edge)
+	to := time.Date(year, time.December, 31, 0, 0, 0, 0, time.UTC).AddDate(0, 0, edge)
+	var out []sources.ReceiptExpense
+	for _, e := range list {
+		day, err := time.Parse(time.DateOnly, e.Day)
+		if err == nil && !day.Before(from) && !day.After(to) {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
 // inYear keeps expenses of one year; undated ones drop out.
 func inYear(list []sources.ReceiptExpense, year int) []sources.ReceiptExpense {
 	prefix := strconv.Itoa(year) + "-"
