@@ -598,3 +598,49 @@ func TestCardDueDay(t *testing.T) {
 		t.Errorf("due day opens %s, want %s", p.Span.Key, last.Key)
 	}
 }
+
+// A tagged scan no expense and no booking claims is a case of its own:
+// a new expense from the scan, without a booking to link.
+func TestReceiptCase(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, "demo://invoiceninja")
+	testkit.Conn(t, d, who, space, enums.ServicePaperless, "demo://paperless")
+	ctx := context.Background()
+	today := time.Now().UTC()
+
+	var doc *vatcheck.Case
+	for _, s := range metrics.VATSpans(today, "monthly", 2) {
+		p, err := vatcheck.Open(ctx, d, who, scopeOf(conn), s.Key, today)
+		if err != nil {
+			t.Fatalf("open %s: %v", s.Key, err)
+		}
+		if len(p.Docs) > 0 {
+			doc = &p.Docs[0]
+			break
+		}
+	}
+	if doc == nil || doc.Act() != vatcheck.ActionReceipt || doc.Scan() == 0 || doc.Txn.Amount <= 0 {
+		t.Fatalf("no receipt case: %+v", doc)
+	}
+
+	step := func(amount string) workbench.Step {
+		return workbench.Step{Case: doc.Txn.Key, Action: string(vatcheck.ActionReceipt), Fields: map[string]string{
+			vatcheck.FieldVendor: doc.Draft.Vendor, vatcheck.FieldAmount: amount, vatcheck.FieldDay: doc.Txn.Date}}
+	}
+	german := strings.Replace(strconv.FormatFloat(doc.Txn.Amount, 'f', 2, 64), ".", ",", 1)
+	plan, err := vatcheck.Review(ctx, d, who, scopeOf(conn), []workbench.Step{step(german)})
+	if err != nil || plan.Writes() != 1 || plan.Steps[0].Item.Txn.Amount != doc.Txn.Amount || plan.Steps[0].Item.Scan != doc.Scan() {
+		t.Fatalf("plan: %v %+v", err, plan.Steps)
+	}
+	// One scan, one expense: a second step with it in the same review
+	// finds it taken.
+	plan, err = vatcheck.Review(ctx, d, who, scopeOf(conn), []workbench.Step{step(german), step(german)})
+	if err != nil || plan.Steps[0].Problem != workbench.ProblemNone || plan.Steps[1].Problem != vatcheck.ProblemGone {
+		t.Fatalf("twice: %v %+v", err, plan.Steps)
+	}
+	plan, err = vatcheck.Review(ctx, d, who, scopeOf(conn), []workbench.Step{step("")})
+	if err != nil || plan.Steps[0].Problem != vatcheck.ProblemAmount {
+		t.Fatalf("without amount: %v %+v", err, plan.Steps)
+	}
+}

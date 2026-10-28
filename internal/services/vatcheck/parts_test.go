@@ -55,3 +55,45 @@ func TestLinkGaps(t *testing.T) {
 		t.Fatalf("offers %v", c.lacks)
 	}
 }
+
+// TestProposed: a scan any listed case proposes, waiting, apart or a
+// gap, gets no receipt case of its own.
+func TestProposed(t *testing.T) {
+	with := func(id int64) Case {
+		return Case{BankCase: metrics.BankCase{Txn: sources.NinjaBankTxn{Debit: true}, Action: metrics.ActionCreate},
+			Scans: []receipts.Candidate{{Doc: sources.ReceiptDoc{ID: id}, Score: 100}}, parts: partsOf(false, false, true)}
+	}
+	p := Page{Cases: []Case{with(1)}, Apart: []Case{with(2)}, Gaps: []Case{with(3)}}
+	got := p.proposed()
+	if !got[1] || !got[2] || !got[3] {
+		t.Fatalf("proposed %v", got)
+	}
+}
+
+// TestReceiptAsks: a receipt case is never taken without asking (cash
+// or private is the user's word), and needs an amount to be ready.
+func TestReceiptAsks(t *testing.T) {
+	c := Case{BankCase: metrics.BankCase{Txn: sources.NinjaBankTxn{Debit: true, Amount: 18.4}, Action: ActionReceipt,
+		Draft: metrics.ExpenseDraft{Vendor: "Copyshop", CategoryKey: "c1", TaxKnown: true}}, Note: "Kopien",
+		Scans: []receipts.Candidate{{Doc: sources.ReceiptDoc{ID: 7}, Score: 100}}, parts: partsOf(false, false, true)}
+	if !c.Ready() || c.Picked() {
+		t.Fatalf("ready %v, picked %v", c.Ready(), c.Picked())
+	}
+	c.Txn.Amount = 0
+	if c.Ready() {
+		t.Fatal("ready without an amount")
+	}
+}
+
+// TestAmountOf: typed amounts in German or English notation, thousands
+// separators included.
+func TestAmountOf(t *testing.T) {
+	for in, want := range map[string]float64{"18,40": 18.4, "18.40": 18.4, "1.234,56": 1234.56, "1.234": 1234, "1,234.56": 1234.56, "1,250": 1250, "12,345,678": 12345678, " 72 ": 72} {
+		if got, err := amountOf(in); err != nil || got != want {
+			t.Errorf("%q: %v %v", in, got, err)
+		}
+	}
+	if _, err := amountOf("zwölf"); err == nil {
+		t.Error("text is no amount")
+	}
+}

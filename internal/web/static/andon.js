@@ -2612,7 +2612,7 @@
   }
 
   // benchCounted: actions whose expense the list counts.
-  var benchCounted = { create: true, link: true, fill: true };
+  var benchCounted = { create: true, link: true, fill: true, receipt: true };
 
   // benchCount redraws desk's entry: action, parts, ready, taken.
   function benchCount(form, desk) {

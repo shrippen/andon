@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -43,6 +44,10 @@ const (
 	FieldPaid     = "paid"  // create: paid on the booking's day, On (default) or Off
 	FieldGross    = "gross" // create: the amount includes the tax, On (default) or Off
 
+	// receipt: the scan's amount (editable) and day.
+	FieldAmount = "amount"
+	FieldDay    = "day"
+
 	// link, fill: what the expense lacks; a value it has stays.
 	FieldFillCategory = "xcat" // a key
 	FieldFillEuer     = "xeuer"
@@ -59,7 +64,7 @@ const (
 
 // Fields lists them, for the form.
 var Fields = []string{FieldExpense, FieldInvoice, FieldPayment, FieldVendor, FieldCategory, FieldTax, FieldScan, FieldEuer,
-	FieldNumber, FieldNote, FieldBill, FieldPaid, FieldGross, FieldFillCategory, FieldFillEuer, FieldFillNumber, FieldFillScan, FieldFillNote}
+	FieldNumber, FieldNote, FieldBill, FieldPaid, FieldGross, FieldFillCategory, FieldFillEuer, FieldFillNumber, FieldFillScan, FieldFillNote, FieldAmount, FieldDay}
 
 // noTax is the tax field of an expense without tax.
 const noTax = "none"
@@ -70,6 +75,7 @@ const (
 	ProblemNoVendor workbench.Problem = "vatcheck.problem_no_vendor" // a new expense needs a vendor
 	ProblemEuer     workbench.Problem = "vatcheck.problem_euer"      // not one of the EÜR dropdown's lines
 	ProblemFilled   workbench.Problem = "vatcheck.problem_filled"    // nothing left to fill
+	ProblemAmount   workbench.Problem = "vatcheck.problem_amount"    // a receipt's expense needs an amount
 )
 
 // ErrGone means the transaction is not (or no longer) archived.
@@ -115,22 +121,47 @@ func Review(ctx context.Context, d *sql.DB, who *access.Principal, scope string,
 		return Plan{}, err
 	}
 	plan, err := workbench.PlanOf[Item](b, steps)
-	for i := range plan.Steps {
-		scanTitle(ctx, d, who, b.conn.ID, &plan.Steps[i])
-	}
+	scanChecks(ctx, d, who, b.conn.ID, plan.Steps)
 	return Plan{Plan: plan, Scope: b.scope.Key, Currency: b.ninja.Currency}, err
 }
 
-// scanTitle names the scan a new expense gets; one no longer free is
-// dropped (receipts.ScansFor offers only free ones).
-func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, p *Planned) {
+// scanChecks checks each step's scan in order: a scan goes to one
+// expense, also within a review.
+func scanChecks(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, steps []Planned) {
+	taken := map[int64]bool{}
+	for i := range steps {
+		scanTitle(ctx, d, who, connID, &steps[i], taken)
+	}
+}
+
+// scanTitle names the scan a new expense gets; one no longer free, or
+// taken by an earlier step, is dropped (receipts.ScansFor offers only
+// free ones).
+func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, p *Planned, taken map[int64]bool) {
 	if p.Item.Scan == 0 || p.Action == string(metrics.ActionSkip) || p.Problem != workbench.ProblemNone {
 		return
 	}
-	scans, _ := receipts.ScansFor(ctx, d, who, connID, p.Item.Txn.Amount, p.Item.Txn.Date, p.Item.Vendor)
+	var scans []receipts.Candidate
+	var err error
+	if p.Action == string(ActionReceipt) {
+		// Its own scan, among the year's still without an expense.
+		day, _ := metrics.ParseDay(p.Item.Txn.Date)
+		year := time.Date(day.Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
+		scans, err = receipts.Unbooked(ctx, d, who, connID, year, year.AddDate(1, 0, -1))
+	} else {
+		scans, err = receipts.ScansFor(ctx, d, who, connID, p.Item.Txn.Amount, p.Item.Txn.Date, p.Item.Vendor)
+	}
+	if err != nil && p.Action == string(ActionReceipt) {
+		p.Problem = ProblemGone // its scan is its only guard against a second expense
+		return
+	}
+	if err != nil {
+		return // Paperless unreachable: the scan stays, linking it reports the error
+	}
 	for _, c := range scans {
-		if c.Doc.ID == p.Item.Scan {
+		if c.Doc.ID == p.Item.Scan && !taken[c.Doc.ID] {
 			p.Item.ScanTitle = c.Doc.Title
+			taken[c.Doc.ID] = true
 			return
 		}
 	}
@@ -140,6 +171,9 @@ func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 	if p.Action == string(ActionFill) && !p.Item.fills() {
 		p.Problem = ProblemFilled
 	}
+	if p.Action == string(ActionReceipt) {
+		p.Problem = ProblemGone // linked or gone meanwhile
+	}
 }
 
 // Check resolves one step; the transaction must still be open and its
@@ -148,6 +182,9 @@ func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 	var it Item
 	if key, ok := strings.CutPrefix(s.Case, fillPrefix); ok {
 		return b.filled(s, key)
+	}
+	if id, ok := strings.CutPrefix(s.Case, docPrefix); ok {
+		return b.receipted(s, id)
 	}
 	i := indexOf(b.ninja.BankTxns, func(t sources.NinjaBankTxn) bool { return t.Key == s.Case })
 	if i < 0 || b.ninja.BankTxns[i].Status == sources.BankDone {
@@ -214,6 +251,55 @@ func (b book) created(s *workbench.Step, it Item) (Item, workbench.Problem) {
 	it.Bill, it.Paid, it.Gross = s.Field(FieldBill) == On, s.Field(FieldPaid) != Off, s.Field(FieldGross) != Off
 	return it, workbench.ProblemNone
 }
+
+// receipted resolves a receipt case: a new expense of the amount and
+// day the form sends, with the case's scan; Review checks it is free.
+func (b book) receipted(s *workbench.Step, id string) (Item, workbench.Problem) {
+	var it Item
+	scan, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || metrics.BankAction(s.Action) != ActionReceipt {
+		return it, ProblemGone
+	}
+	amount, err := amountOf(s.Field(FieldAmount))
+	if err != nil || amount <= 0 {
+		return it, ProblemAmount
+	}
+	if _, ok := metrics.ParseDay(s.Field(FieldDay)); !ok {
+		return it, ProblemGone
+	}
+	if metrics.OpenDebitFits(b.ninja, amount, s.Field(FieldDay)) {
+		return it, ProblemGone // a debit imported meanwhile pays it: no cash
+	}
+	it.Txn = sources.NinjaBankTxn{Key: s.Case, Date: s.Field(FieldDay), Payer: strings.TrimSpace(s.Field(FieldVendor)), Amount: amount, Debit: true}
+	it, problem := b.created(s, it)
+	it.Scan = scan
+	s.Fields[FieldScan] = id
+	return it, problem
+}
+
+// amountOf reads a typed amount: "18,40", "1.234,56", "1,234.56", and
+// whole thousands "1.234" or "1,250" alike (three digits after the
+// mark are no cents).
+func amountOf(v string) (float64, error) {
+	v = strings.TrimSpace(v)
+	switch {
+	case strings.Contains(v, ",") && strings.Contains(v, "."):
+		// The later mark is the decimal one.
+		if strings.LastIndex(v, ",") > strings.LastIndex(v, ".") {
+			v = strings.ReplaceAll(strings.ReplaceAll(v, ".", ""), ",", ".")
+		} else {
+			v = strings.ReplaceAll(v, ",", "")
+		}
+	case thousands.MatchString(v):
+		v = strings.NewReplacer(".", "", ",", "").Replace(v)
+	case strings.Contains(v, ","):
+		v = strings.ReplaceAll(v, ",", ".")
+	}
+	return strconv.ParseFloat(v, 64)
+}
+
+// thousands is an amount of whole thousands: "1.234", "1,250".
+var thousands = regexp.MustCompile(`^\d{1,3}([.,]\d{3})+$`)
 
 // filled resolves a gap case: the linked expense, still lacking what
 // the step fills.
@@ -332,6 +418,7 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	if err != nil {
 		return workbench.Result{}, err
 	}
+	scanChecks(ctx, d, who, b.conn.ID, plan.Steps)
 	if plan.Writes() > 0 && sources.IsDemo(b.conn.URL) {
 		return workbench.Result{}, ErrDemo
 	}
@@ -439,8 +526,11 @@ func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expense: key}); err != nil {
-		return number, fmt.Errorf("%s: %w", number, err)
+	// A receipt's expense has no booking to link: cash or private money.
+	if metrics.BankAction(p.Action) != ActionReceipt {
+		if err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expense: key}); err != nil {
+			return number, fmt.Errorf("%s: %w", number, err)
+		}
 	}
 
 	// The new expense gets its scan, both sides (receipts.Link).

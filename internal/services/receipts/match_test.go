@@ -1,7 +1,9 @@
 package receipts
 
 import (
+	"strings"
 	"testing"
+	"time"
 
 	"andon/internal/sources"
 )
@@ -192,5 +194,40 @@ func TestAliasLiftsVendor(t *testing.T) {
 	after := matcher{mapping: mapped, aliases: a}.vendorFactor(e, []sources.ReceiptDoc{d}, false)
 	if before.Points != 0 || after.Points != vendorMax || after.Text != "receipts.why_vendor_alias" {
 		t.Fatalf("before %+v, after %+v", before, after)
+	}
+}
+
+// TestAroundYear: a year's expenses and those of the neighbour years
+// close enough to its scans (a card receipt of 28.12. booked on 2.1.).
+func TestAroundYear(t *testing.T) {
+	list := []sources.ReceiptExpense{{Key: "dec", Day: "2026-12-20"}, {Key: "jan", Day: "2027-01-02"},
+		{Key: "feb", Day: "2027-02-01"}, {Key: "old", Day: "2025-12-29"}, {Key: "far", Day: "2025-11-30"}, {Key: "none"}}
+	var got []string
+	for _, e := range aroundYear(list, 2026) {
+		got = append(got, e.Key)
+	}
+	if strings.Join(got, ",") != "dec,jan,old" {
+		t.Fatalf("around 2026: %v", got)
+	}
+}
+
+// TestUnclaimedYearEdge: a card receipt of 28.12. whose expense came
+// with the booking on 2.1. is no cash receipt; without it, it is.
+func TestUnclaimedYearEdge(t *testing.T) {
+	scan := doc(func(d *sources.ReceiptDoc) {
+		d.Day, d.Added, d.Content, d.Custom[4] = "2026-12-28", "2026-12-28", "Kartenzahlung 72,14 EUR", "EUR72.14"
+	})
+	jan := expense(func(e *sources.ReceiptExpense) {
+		e.Key, e.Number, e.Amount, e.Day = "jan", "EX-100", 72.14, "2027-01-02"
+	})
+	from, to := time.Date(2026, time.December, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, time.December, 31, 0, 0, 0, 0, time.UTC)
+	x := matcher{mapping: mapped}
+
+	scans := []sources.ReceiptDoc{scan}
+	if got := unclaimed(x, scans, aroundYear([]sources.ReceiptExpense{jan}, 2026), scans, from, to); len(got) != 0 {
+		t.Fatalf("January's expense holds it: %+v", got)
+	}
+	if got := unclaimed(x, scans, nil, scans, from, to); len(got) != 1 {
+		t.Fatalf("no expense, a cash receipt: %+v", got)
 	}
 }

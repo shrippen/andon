@@ -133,13 +133,25 @@ func TestVATScanOffer(t *testing.T) {
 			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
 	}
 	now := time.Now().UTC()
+	var scan, receipt bool
 	for _, month := range []string{now.Format("2006-01"), now.AddDate(0, -1, 0).Format("2006-01")} {
-		if page := string(mustGet(t, srv, client, "/vat?span="+month)); strings.Contains(page, `name="scan_demo-b-scan"`) {
+		page := string(mustGet(t, srv, client, "/vat?span="+month))
+		if !scan && strings.Contains(page, `name="scan_demo-b-scan"`) {
 			scanSearch(t, srv, client, page)
-			return
+			scan = true
+		}
+
+		// A scan no booking claims gets a desk of its own, its amount editable.
+		if k := regexp.MustCompile(`data-desk="(d-\d+)"`).FindStringSubmatch(page); k != nil {
+			receipt = strings.Contains(page, `name="amount_`+k[1]+`"`) && strings.Contains(page, `name="day_`+k[1]+`"`)
 		}
 	}
-	t.Fatal("no scan offered for the debit of a waiting scan")
+	if !scan {
+		t.Fatal("no scan offered for the debit of a waiting scan")
+	}
+	if !receipt {
+		t.Fatal("no desk for a receipt without an expense")
+	}
 }
 
 // scanSearch: the desk's search finds Paperless scans to pick, and an
