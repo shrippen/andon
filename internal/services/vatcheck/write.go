@@ -267,6 +267,9 @@ func (b book) receipted(s *workbench.Step, id string) (Item, workbench.Problem) 
 	if _, ok := metrics.ParseDay(s.Field(FieldDay)); !ok {
 		return it, ProblemGone
 	}
+	if metrics.OpenDebitFits(b.ninja, amount, s.Field(FieldDay)) {
+		return it, ProblemGone // a debit imported meanwhile pays it: no cash
+	}
 	it.Txn = sources.NinjaBankTxn{Key: s.Case, Date: s.Field(FieldDay), Payer: strings.TrimSpace(s.Field(FieldVendor)), Amount: amount, Debit: true}
 	it, problem := b.created(s, it)
 	it.Scan = scan
