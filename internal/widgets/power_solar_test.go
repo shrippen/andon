@@ -18,7 +18,9 @@ func TestPowerPrefersHass(t *testing.T) {
 		Months: []sources.SolarDay{{Day: time.Now().Format(solarMonthKey), Solar: 10, Export: 2}}}
 	results := map[string]any{powerHass: e, string(enums.ServiceOpenDTU): &sources.SolarDataset{Power: 1, YieldDay: 99000}}
 	v := powerView(PowerConfig{}, results, ViewCtx{})
-	if v["Any"] != true || v["YieldKWh"] == 99.0 || v["SelfRate"] == nil {
+	// Before the first yield of the day the PV line stays: the month has
+	// its rate.
+	if v["Any"] != true || v["YieldKWh"] != 0.0 || v["SelfRate"] == nil || v["Solar"] != true {
 		t.Fatalf("view: %+v", v)
 	}
 
@@ -40,6 +42,20 @@ func TestSolarTodayClockChange(t *testing.T) {
 	g := b.Data.(Graph)
 	if !ok || g.Mark != 10 || g.Labels[10] != "10:00" || g.Series[1].Values[10] != 1 || math.IsNaN(g.Series[0].Values[10]) {
 		t.Fatalf("mark %d label %v values %v %v", g.Mark, g.Labels[10], g.Series[0].Values, g.Series[1].Values)
+	}
+}
+
+// 30 different days in Home Assistant's zone, also across a clock
+// change while the server's clock reads UTC.
+func TestSolarDayKeys(t *testing.T) {
+	e := &sources.HassEnergy{Zone: "Europe/Berlin"}
+	keys := dayKeys(e, time.Date(2026, 11, 10, 22, 30, 0, 0, time.UTC))
+	seen := map[string]bool{}
+	for _, k := range keys {
+		seen[k] = true
+	}
+	if len(seen) != solarDays || keys[len(keys)-1] != "2026-11-10" {
+		t.Fatalf("keys %v", keys)
 	}
 }
 

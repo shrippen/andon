@@ -134,9 +134,13 @@ func solarSpan(e *sources.HassEnergy, rows []sources.SolarDay, keys []string, la
 
 // dayKeys are the last solarDays days in Home Assistant's zone.
 func dayKeys(e *sources.HassEnergy, now time.Time) []string {
+	// Count calendar days, not 24 hours on the server's clock: across a
+	// clock change those can land twice on one day.
+	local := now.In(e.Location())
+	today := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.UTC)
 	out := make([]string, solarDays)
 	for i := range out {
-		out[i] = metrics.SolarDayKey(e, now.AddDate(0, 0, i-(solarDays-1)))
+		out[i] = today.AddDate(0, 0, i-(solarDays-1)).Format(time.DateOnly)
 	}
 	return out
 }
