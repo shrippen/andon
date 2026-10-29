@@ -132,7 +132,8 @@ func TestMailSkipsRefunds(t *testing.T) {
 		plainMail("Model Labs <billing@example.com>", "Credit note from Model Labs for invoice #A1", "Amount 20,00 €", now.AddDate(0, 0, -5)),
 		plainMail("Model Labs <billing@example.com>", "Your refund from Model Labs #B2", "Refund 10,00 €", now.AddDate(0, 0, -5)),
 		plainMail("Phone Shop <shop@example.net>", "Acknowledgement of receipt of your withdrawal – Reference W-1", "", now.AddDate(0, 0, -4)),
-		plainMail("Mara Lind <mara@example.org>", "Deine Rechnung - Workshop", "anbei", now.AddDate(0, 0, -3)),
+		strings.NewReplacer("Hetzner Online GmbH <billing@hetzner.com>", "Mara Lind <mara@example.org>", "Ihre Rechnung R0012345", "Deine Rechnung - Workshop",
+			"%DATE%", now.AddDate(0, 0, -3).Format(time.RFC1123Z), "der Rechnungsbetrag von 1.234,56 =E2=82=AC wird abgebucht.", "anbei").Replace(invoiceMail),
 		plainMail("Mara Lind <mara@example.org>", "Re: Deine Rechnung - Workshop", "Betrag 480,00 €", now.AddDate(0, 0, -2)),
 		plainMail("Mara Lind <mara@example.org>", "AW: Re: Deine Rechnung - Workshop", "danke", now.AddDate(0, 0, -1)),
 		plainMail("Mobilfunk <rechnung@example.de>", "Ihre Online-Rechnung", "Rechnungsbetrag 21,50 €", now.AddDate(0, 0, -31)),
@@ -156,8 +157,14 @@ func TestMailSkipsRefunds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The thread keeps the PDF of the mail that carried it.
+	d := out.(*sources.MailDataset)
+	if len(d.Invoices) == 0 || len(d.Invoices[0].Attachments) != 1 {
+		t.Fatalf("thread lost its attachment: %+v", d.Invoices)
+	}
+
 	var got []string
-	for _, inv := range out.(*sources.MailDataset).Invoices {
+	for _, inv := range d.Invoices {
 		got = append(got, inv.Subject+" "+strconv.FormatFloat(inv.Amount, 'f', 2, 64))
 	}
 	want := []string{"AW: Re: Deine Rechnung - Workshop 480.00", "Ihre Online-Rechnung 21.50", "Ihre Online-Rechnung 19.99"}

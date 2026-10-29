@@ -33,7 +33,7 @@ var defaultInvoiceWords = []string{"rechnung", "invoice", "receipt", "quittung",
 
 // notInvoiceWords in a subject mark money back or a receipt of a notice,
 // not a bill: "Credit note … for invoice", "receipt of your withdrawal".
-var notInvoiceWords = []string{"credit note", "refund", "erstattung", "withdrawal", "widerruf"}
+var notInvoiceWords = []string{"credit note", "refund", "rückerstattung", "withdrawal", "widerrufsbestätigung", "ihres widerrufs"}
 
 // replyRe matches the reply and forward prefixes of a subject.
 var replyRe = regexp.MustCompile(`(?i)^\s*((re|aw|fwd?|wg)\s*:\s*)+`)
@@ -182,8 +182,8 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 		inv := MailInvoice{UID: m.UID, Date: m.Date, Sender: sender, Addr: m.FromAddr, Domain: domain,
 			Subject: m.Subject, Amount: InvoiceAmount(m.Subject + " " + m.Text), Attachments: m.Attachments}
 
-		// A thread counts once: its latest mail, with an amount one of them
-		// names. Only a reply joins it; a bill under the same subject next
+		// A thread counts once: its latest mail, with an amount and the PDF
+		// one of them carries. Only a reply joins it; a bill under the same subject next
 		// month starts its own.
 		key := strings.ToLower(m.FromAddr) + "\x00" + strings.ToLower(replyRe.ReplaceAllString(m.Subject, ""))
 		i, ok := threads[key]
@@ -198,6 +198,9 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 		}
 		if inv.Amount == 0 {
 			inv.Amount = prev.Amount
+		}
+		if len(inv.Attachments) == 0 {
+			inv.UID, inv.Attachments = prev.UID, prev.Attachments // the PDF stays reachable (MailFiles)
 		}
 		data.Invoices[i] = inv
 	}
