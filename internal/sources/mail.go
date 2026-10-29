@@ -172,8 +172,17 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 	data := &MailDataset{Mailbox: cfg.Mailbox, Scanned: len(msgs)}
 	threads := map[string]int{} // sender and subject without "Re:" → index in Invoices
 
-	// Oldest first, so an original comes before its replies.
-	slices.SortStableFunc(msgs, func(a, b imapmail.Message) int { return a.Date.Compare(b.Date) })
+	// Originals first, oldest first; then the replies. A sender's clock
+	// may date a reply before its original.
+	slices.SortStableFunc(msgs, func(a, b imapmail.Message) int {
+		if ra, rb := isReply(a), isReply(b); ra != rb {
+			if ra {
+				return 1
+			}
+			return -1
+		}
+		return a.Date.Compare(b.Date)
+	})
 	for _, m := range msgs {
 		if !pick(m) {
 			continue
@@ -187,13 +196,17 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 			Subject: m.Subject, Amount: InvoiceAmount(m.Subject + " " + m.Text), Attachments: m.Attachments}
 
 		// A thread counts once, as its original: a reply drops out and
-		// lends its amount, and its PDF when the original has none. A bill
-		// under the same subject next month starts its own.
+		// lends its amount, and its PDF when the original has none. A reply
+		// whose original lies before the window is no bill of its own. A
+		// bill under the same subject next month starts its own.
 		key := strings.ToLower(m.FromAddr) + "\x00" + strings.ToLower(replyRe.ReplaceAllString(m.Subject, ""))
-		i, ok := threads[key]
-		if !ok || !replyRe.MatchString(m.Subject) {
+		if !isReply(m) {
 			threads[key] = len(data.Invoices)
 			data.Invoices = append(data.Invoices, inv)
+			continue
+		}
+		i, ok := threads[key]
+		if !ok {
 			continue
 		}
 		orig := &data.Invoices[i]
@@ -206,6 +219,9 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	return data, nil
 }
+
+// isReply says whether the subject marks a reply or forward ("Re:", "AW:").
+func isReply(m imapmail.Message) bool { return replyRe.MatchString(m.Subject) }
 
 // hasPDF says whether one of the attachments is a PDF.
 func hasPDF(names []string) bool {
