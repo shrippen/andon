@@ -182,10 +182,12 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 		inv := MailInvoice{UID: m.UID, Date: m.Date, Sender: sender, Addr: m.FromAddr, Domain: domain,
 			Subject: m.Subject, Amount: InvoiceAmount(m.Subject + " " + m.Text), Attachments: m.Attachments}
 
-		// A thread counts once: its latest mail, with an amount one of them names.
+		// A thread counts once: its latest mail, with an amount one of them
+		// names. Only a reply joins it; a bill under the same subject next
+		// month starts its own.
 		key := strings.ToLower(m.FromAddr) + "\x00" + strings.ToLower(replyRe.ReplaceAllString(m.Subject, ""))
 		i, ok := threads[key]
-		if !ok {
+		if !ok || !replyRe.MatchString(m.Subject) {
 			threads[key] = len(data.Invoices)
 			data.Invoices = append(data.Invoices, inv)
 			continue

@@ -121,7 +121,8 @@ func plainMail(sender, subject, body string, at time.Time) string {
 
 // TestMailSkipsRefunds: a credit note, a refund or a receipt of a
 // withdrawal is no invoice to record; replies in an invoice's thread
-// count once, as the latest, with the amount one of them names.
+// count once, as the latest, with the amount one of them names. Monthly
+// bills under the same subject stay apart.
 func TestMailSkipsRefunds(t *testing.T) {
 	be := memory.New()
 	user, _ := be.Login(nil, "username", "password")
@@ -134,6 +135,7 @@ func TestMailSkipsRefunds(t *testing.T) {
 		plainMail("Mara Lind <mara@example.org>", "Deine Rechnung - Workshop", "anbei", now.AddDate(0, 0, -3)),
 		plainMail("Mara Lind <mara@example.org>", "Re: Deine Rechnung - Workshop", "Betrag 480,00 €", now.AddDate(0, 0, -2)),
 		plainMail("Mara Lind <mara@example.org>", "AW: Re: Deine Rechnung - Workshop", "danke", now.AddDate(0, 0, -1)),
+		plainMail("Mobilfunk <rechnung@example.de>", "Ihre Online-Rechnung", "Rechnungsbetrag 21,50 €", now.AddDate(0, 0, -31)),
 		plainMail("Mobilfunk <rechnung@example.de>", "Ihre Online-Rechnung", "Rechnungsbetrag 19,99 €", now.AddDate(0, 0, -1)),
 	}
 	for _, m := range mails {
@@ -158,7 +160,7 @@ func TestMailSkipsRefunds(t *testing.T) {
 	for _, inv := range out.(*sources.MailDataset).Invoices {
 		got = append(got, inv.Subject+" "+strconv.FormatFloat(inv.Amount, 'f', 2, 64))
 	}
-	want := []string{"AW: Re: Deine Rechnung - Workshop 480.00", "Ihre Online-Rechnung 19.99"}
+	want := []string{"AW: Re: Deine Rechnung - Workshop 480.00", "Ihre Online-Rechnung 21.50", "Ihre Online-Rechnung 19.99"}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Errorf("invoices:\n %q\nwant\n %q", got, want)
 	}
