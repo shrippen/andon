@@ -33,7 +33,7 @@ func solarFacts(e *sources.HassEnergy, now time.Time) []Kpi {
 		out = append(out, Kpi{Value: NumU(fc, 1, "kWh"), Label: T("power.pv_forecast")})
 	}
 	month, _ := metrics.SolarMonth(e, today[:len(solarMonthKey)])
-	span := metrics.SolarSum([]sources.SolarDay{month})
+	span := metrics.SolarSum(e, []sources.SolarDay{month})
 	if rate, ok := span.SelfRate(); ok {
 		out = append(out, Kpi{Value: NumU(rate*percentScale, 0, "%"), Label: T("power.self_month")})
 	}
@@ -49,14 +49,14 @@ func solarBlocks(e *sources.HassEnergy, now time.Time) []Block {
 	if b, ok := solarToday(e, now); ok {
 		out = append(out, b)
 	}
-	if b, ok := solarSpan(e.Days, dayKeys(e, now), "power.pv_days", dayLabel); ok {
+	if b, ok := solarSpan(e, e.Days, dayKeys(e, now), "power.pv_days", dayLabel); ok {
 		out = append(out, b)
 	}
-	if b, ok := solarSpan(e.Months, monthKeys(e, now), "power.pv_months", monthLabel); ok {
+	if b, ok := solarSpan(e, e.Months, monthKeys(e, now), "power.pv_months", monthLabel); ok {
 		out = append(out, b)
 	}
 	if len(e.Months) > 0 {
-		out = append(out, solarTable(e.Months))
+		out = append(out, solarTable(e, e.Months))
 	}
 	return out
 }
@@ -101,7 +101,7 @@ func hourValues(points []sources.SolarPoint, start time.Time) []float64 {
 
 // solarSpan: yield, self use and export per day or month, keys oldest
 // first; a key without statistics is a gap.
-func solarSpan(rows []sources.SolarDay, keys []string, label string, tick func(string) any) (Block, bool) {
+func solarSpan(e *sources.HassEnergy, rows []sources.SolarDay, keys []string, label string, tick func(string) any) (Block, bool) {
 	byKey := map[string]sources.SolarDay{}
 	for _, r := range rows {
 		byKey[r.Day] = r
@@ -115,7 +115,7 @@ func solarSpan(rows []sources.SolarDay, keys []string, label string, tick func(s
 			yield[i], self[i], export[i] = Gap, Gap, Gap
 			continue
 		}
-		span := metrics.SolarSum([]sources.SolarDay{r})
+		span := metrics.SolarSum(e, []sources.SolarDay{r})
 		yield[i], self[i], export[i] = span.Yield, span.SelfUse(), r.Export
 	}
 	if !hasValues(yield) {
@@ -162,7 +162,7 @@ func monthLabel(key string) any {
 }
 
 // solarTable lists the last year's months, newest first.
-func solarTable(months []sources.SolarDay) Block {
+func solarTable(e *sources.HassEnergy, months []sources.SolarDay) Block {
 	pct := func(v float64, ok bool) any {
 		if !ok {
 			return "–"
@@ -172,7 +172,7 @@ func solarTable(months []sources.SolarDay) Block {
 	var rows [][]Cell
 	recent := months[max(0, len(months)-monthsPerYear):]
 	for _, m := range slices.Backward(recent) {
-		span := metrics.SolarSum([]sources.SolarDay{m})
+		span := metrics.SolarSum(e, []sources.SolarDay{m})
 		rate, rateOK := span.SelfRate()
 		aut, autOK := span.Autarky()
 		rows = append(rows, []Cell{{Value: monthLabel(m.Day)}, {Value: NumU(span.Yield, 0, "kWh")}, {Value: NumU(span.SelfUse(), 0, "kWh")},
@@ -190,7 +190,7 @@ func solarNow(e *sources.HassEnergy, now time.Time) (watts, today, rate float64)
 	key := metrics.SolarDayKey(e, now)
 	d, _ := metrics.SolarOn(e, key)
 	month, _ := metrics.SolarMonth(e, key[:len(solarMonthKey)])
-	rate, ok := metrics.SolarSum([]sources.SolarDay{month}).SelfRate()
+	rate, ok := metrics.SolarSum(e, []sources.SolarDay{month}).SelfRate()
 	if !ok {
 		rate = math.NaN()
 	}

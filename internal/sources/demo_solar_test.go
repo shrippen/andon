@@ -33,8 +33,8 @@ func TestDemoHassEnergy(t *testing.T) {
 	}
 	this, _ := metrics.SolarMonth(e, "2026-07")
 	last, _ := metrics.SolarMonth(e, "2025-07")
-	rate, _ := metrics.SolarSum([]sources.SolarDay{this}).SelfRate()
-	before, _ := metrics.SolarSum([]sources.SolarDay{last}).SelfRate()
+	rate, _ := metrics.SolarSum(e, []sources.SolarDay{this}).SelfRate()
+	before, _ := metrics.SolarSum(e, []sources.SolarDay{last}).SelfRate()
 	if rate >= before {
 		t.Fatalf("self use %v, last year %v", rate, before)
 	}
