@@ -3228,6 +3228,9 @@ hint:
     expense_missing:
       title: No expense for {asset}
       why: Bought on {day} for {amount}, no matching expense in Invoice Ninja.
+    receipt_differs:
+      title: '{asset}: other receipt than {number}'
+      why: 'Kept and the expense in Invoice Ninja point to different Paperless documents. One of the receipts is linked wrongly or twice.'
   bank:
     subscription_unused:
       title: '{name}: {amount}/month, hardly used'

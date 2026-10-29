@@ -1333,7 +1333,7 @@ Grundlage sind **Kategorien** ([`CAPABILITIES.md`](CAPABILITIES.md), „Kategori
 - [x] `inventory.receipt_missing`: Kauf ab Schwelle ohne Beleg (Belege in der Form der Kategorie; Snipe-IT liefert keine, die Regel schweigt dort) (kein Anhang `receipt`/`invoice`, keine Paperless-Verknüpfung dieser Art)
 - [x] `cross.kept_paperless`: die drei Prüfungen oben, je Art ein Hinweis mit den Namen der Dinge bzw. Orte (ohne Link)
 - [x] Entschieden: die Paperless-Quelle führt alle Dokument-IDs (`fields=id`, eine Seite; Paperless 3 liefert `all` nicht mehr), die Prüfung bleibt eine Regel
-- [ ] `inventory.expense_missing` für Kept: gibt es die Ausgabe in Ninja mit Beleg, ist der Paperless-Beleg derselbe (Dokument-ID)?
+- [x] `inventory.expense_missing` für Kept: gibt es die Ausgabe in Ninja mit Beleg, ist der Paperless-Beleg derselbe (Dokument-ID)? *(Hinweis `inventory.receipt_differs`, wenn beide Seiten Dokumente nennen und keins gemeinsam ist; Feld aus der Ninja-Option `receipt_link_slot`)*
 
 **Schritt 5: Regeln, Kacheln, Schreiben**
 - [x] Inventar-Kacheln (Kennzahl, Termin-Tabelle) lesen über die Kategorie *(`InventoryData.Dates`, `metrics.AssetDates`, `metrics.AssetValue`; „Bereit“ bleibt Snipe-IT)*

@@ -19,7 +19,6 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -490,18 +489,8 @@ func (p *pair) backfill(ctx context.Context, d *sql.DB, who *access.Principal, e
 	}
 }
 
-var docIDPattern = regexp.MustCompile(`/documents/(\d+)`)
-
 // docIDs reads the scan ids of a link value ("…/documents/11/ …/documents/12/").
-func docIDs(value string) []int64 {
-	var out []int64
-	for _, m := range docIDPattern.FindAllStringSubmatch(value, -1) {
-		if id, err := strconv.ParseInt(m[1], 10, 64); err == nil {
-			out = append(out, id)
-		}
-	}
-	return out
-}
+func docIDs(value string) []int64 { return metrics.DocIDs(value) }
 
 // QueueView is the scan-first view.
 type QueueView struct {

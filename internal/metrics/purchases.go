@@ -9,12 +9,28 @@ package metrics
 
 import (
 	"math"
+	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"andon/internal/sources"
 )
+
+var docIDPattern = regexp.MustCompile(`/documents/(\d+)`)
+
+// DocIDs reads the Paperless documents of an expense's link field
+// ("…/documents/11/ …/documents/12/" → 11, 12).
+func DocIDs(value string) []int64 {
+	var out []int64
+	for _, m := range docIDPattern.FindAllStringSubmatch(value, -1) {
+		if id, err := strconv.ParseInt(m[1], 10, 64); err == nil {
+			out = append(out, id)
+		}
+	}
+	return out
+}
 
 // PurchaseGap is what a purchase lacks.
 type PurchaseGap string
