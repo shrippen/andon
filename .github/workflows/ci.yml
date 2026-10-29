@@ -42,6 +42,7 @@ jobs:
         env:
           GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: scripts/release-notes.sh --check
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         # Latest patch of the Dockerfile's Go line: go.mod's "go 1.26.0" is
         # only the minimum, and 1.26.0 carries known stdlib vulnerabilities.
