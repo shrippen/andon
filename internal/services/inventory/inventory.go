@@ -3,8 +3,9 @@
 // router or the FRITZ!Box knows and no asset is named like
 // (metrics.Uninventoried) becomes an asset after review, or is ignored
 // from then on (cross.device_uninventoried's ignore list). Snipe-IT wants
-// a model and a status; Kept puts the thing in the first location's
-// "Unplaced".
+// a model and a status; Kept puts the thing in the location and room the
+// connection's options name (location, place), by default in the first
+// location's "Unplaced".
 //
 //	router, FRITZ!Box ─ devices ─┐
 //	inventory ─ assets ──────────┴─► uninventoried ─► add as asset │ ignore
@@ -14,6 +15,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -319,10 +321,14 @@ func (w *writer) Write(ctx context.Context, p workbench.Planned[Item]) (string, 
 	}
 	notes := strings.TrimSpace(strings.Join([]string{it.IP, it.MAC}, " "))
 	if w.kept != nil {
-		if len(w.kept.Locations) == 0 {
-			return "", ErrNoWrite
+		loc, err := keptLocation(w.kept.Locations, w.option(optLocation))
+		if err != nil {
+			return "", err
 		}
-		id, err := outbound.KeptThingCreate(ctx, w.to, outbound.KeptNew{Location: w.kept.Locations[0].ID, Name: it.Name, Notes: notes})
+		id, err := outbound.KeptThingCreate(ctx, w.to, outbound.KeptNew{Location: loc, Place: w.option(optPlace), Name: it.Name, Notes: notes})
+		if errors.Is(err, outbound.ErrKeptNoPlace) {
+			return "", errKeptPlace
+		}
 		if err != nil {
 			return "", err
 		}
@@ -333,6 +339,51 @@ func (w *writer) Write(ctx context.Context, p workbench.Planned[Item]) (string, 
 		return "", err
 	}
 	return it.Name + " #" + strconv.FormatInt(id, 10), nil
+}
+
+var (
+	// errKeptLocation means the connection's option location names no
+	// location the token reaches.
+	errKeptLocation = errors.New("inventory.err_kept_location")
+	// errKeptPlace means the location has no room of the option place's
+	// name (or no "Unplaced").
+	errKeptPlace = errors.New("inventory.err_kept_place")
+)
+
+// Kept connection options: where new things go.
+const (
+	optLocation = "location" // a location's name, "" the first
+	optPlace    = "place"    // a room's name there, "" "Unplaced"
+)
+
+// option is the inventory connection's text option key.
+func (w *writer) option(key string) string { return textOption(w.conn.Options, key) }
+
+// textOption reads an option as text: YAML makes "place: 101" a number,
+// still the room's name.
+func textOption(opts map[string]any, key string) string {
+	v, ok := opts[key]
+	if !ok || v == nil {
+		return ""
+	}
+	return strings.TrimSpace(fmt.Sprint(v))
+}
+
+// keptLocation is the id of the location named (any case), with no name
+// the first one.
+func keptLocation(locs []sources.KeptLocation, name string) (string, error) {
+	if len(locs) == 0 {
+		return "", ErrNoWrite
+	}
+	if name == "" {
+		return locs[0].ID, nil
+	}
+	for _, l := range locs {
+		if strings.EqualFold(strings.TrimSpace(l.Name), name) {
+			return l.ID, nil
+		}
+	}
+	return "", errKeptLocation
 }
 
 // ignore appends name to the rule's ignore list in the space settings.
