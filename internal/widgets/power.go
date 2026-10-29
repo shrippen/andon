@@ -1,10 +1,14 @@
 package widgets
 
 // "power": the space's power at a glance: every UPS (PeaNUT, apcupsd)
-// with charge and runtime, the panels (OpenDTU) and the wallbox (EVCC).
-// The dialog lists each device and EVCC's last 30 days.
+// with charge and runtime, the panels (OpenDTU, or Home Assistant's
+// energy statistics) and the wallbox (EVCC). The dialog lists each
+// device, EVCC's last 30 days and the PV statistics.
 
 import (
+	"math"
+	"time"
+
 	"andon/internal/enums"
 	"andon/internal/sources"
 )
@@ -26,17 +30,21 @@ func init() {
 			for _, s := range powerServices {
 				out = append(out, Query{Name: string(s), Source: "data", Conn: ConnPeer, Service: s})
 			}
-			return out
+			return append(out, Query{Name: powerHass, Source: sources.HassEnergyKey, Conn: ConnPeer, Service: enums.ServiceHomeAssistant})
 		},
 		View: powerView,
 		Calm: func(v map[string]any) bool { return v["Any"] == true && v["Trouble"] == false }}.add()
 }
+
+// powerHass names the query of Home Assistant's energy statistics.
+const powerHass = "hass_energy"
 
 // powerData is what the tile and dialog read.
 type powerData struct {
 	UPS   []sources.UPS
 	Solar *sources.SolarDataset
 	EVCC  *sources.EVCCDataset
+	Hass  *sources.HassEnergy // nil without a solar statistic
 }
 
 func powerOf(results map[string]any) powerData {
@@ -48,6 +56,9 @@ func powerOf(results map[string]any) powerData {
 	}
 	p.Solar, _ = results[string(enums.ServiceOpenDTU)].(*sources.SolarDataset)
 	p.EVCC, _ = results[string(enums.ServiceEVCC)].(*sources.EVCCDataset)
+	if e, ok := results[powerHass].(*sources.HassEnergy); ok && e.Configured() {
+		p.Hass = e
+	}
 	return p
 }
 
@@ -95,8 +106,17 @@ func powerView(_ PowerConfig, results map[string]any, _ ViewCtx) map[string]any 
 	for _, u := range p.UPS {
 		lines = append(lines, upsLine{UPS: u, Pill: upsPill(u), Minutes: u.Runtime / 60})
 	}
-	out := map[string]any{"Any": len(p.UPS) > 0 || p.Solar != nil || p.EVCC != nil, "Trouble": trouble, "UPS": lines, "Charging": charging}
-	if p.Solar != nil {
+	out := map[string]any{"Any": len(p.UPS) > 0 || p.Solar != nil || p.EVCC != nil || p.Hass != nil, "Trouble": trouble, "UPS": lines, "Charging": charging}
+
+	// Home Assistant knows all panels and the grid; OpenDTU only its own.
+	switch {
+	case p.Hass != nil:
+		watts, today, rate := solarNow(p.Hass, time.Now())
+		out["PV"], out["YieldKWh"] = watts, today
+		if !math.IsNaN(rate) {
+			out["SelfRate"] = rate * percentScale
+		}
+	case p.Solar != nil:
 		out["PV"], out["YieldKWh"] = p.Solar.Power, p.Solar.YieldDay/wattsPerKilo
 	}
 	return out
@@ -105,7 +125,11 @@ func powerView(_ PowerConfig, results map[string]any, _ ViewCtx) map[string]any 
 func powerDetail(_ PowerConfig, results map[string]any, _ ViewCtx) DetailView {
 	p := powerOf(results)
 	body := &DetailBody{}
-	if p.Solar != nil {
+	now := time.Now()
+	switch {
+	case p.Hass != nil:
+		body.Facts = append(body.Facts, solarFacts(p.Hass, now)...)
+	case p.Solar != nil:
 		body.Facts = append(body.Facts, Kpi{Value: NumU(p.Solar.Power, 0, "W"), Label: T("power.pv_now"), Tier: "green"},
 			Kpi{Value: NumU(p.Solar.YieldDay/wattsPerKilo, 1, "kWh"), Label: T("power.pv_today")})
 	}
@@ -148,6 +172,12 @@ func powerDetail(_ PowerConfig, results map[string]any, _ ViewCtx) DetailView {
 				Fact{Label: T("power.price30"), Value: NumU(p.EVCC.AvgPrice30*100, 0, "ct/kWh")})
 		}
 	}
+	if p.Hass != nil {
+		body.Blocks = append(solarBlocks(p.Hass, now), body.Blocks...) // the hero chart on top
+	}
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
+	if p.Hass != nil {
+		return zoned(DetailView{Body: body}, p.Hass.Location())
+	}
 	return DetailView{Body: body}
 }
