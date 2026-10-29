@@ -105,10 +105,20 @@ func TestOverviewWidgetsAndCustomRules(t *testing.T) {
 	}
 
 	// "18.40" in de is a typo; saving it as 0 would fire on every value.
-	resp := postForm(t, client, srv.URL+"/spaces/"+space+"/settings/rules", url.Values{"csrf": {csrf}, "cr_count": {"1"},
+	// The form as the browser sends it: the rule's id and the empty row.
+	ruleID := regexp.MustCompile(`name="cr.0.id" value="([^"]+)"`).FindStringSubmatch(page)
+	if ruleID == nil {
+		t.Fatalf("rule without id:\n%s", page)
+	}
+	resp := postForm2(t, client, srv.URL+"/spaces/"+space+"/settings/rules", url.Values{"csrf": {csrf}, "cr_count": {"2"}, "cr.0.id": {ruleID[1]}, "cr.1.id": {""},
 		"cr.0.title": {"Queue"}, "cr.0.service": {"sabnzbd"}, "cr.0.path": {"Slots"}, "cr.0.op": {">"}, "cr.0.value": {"18.40"}, "cr.0.severity": {"30"}})
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("typo saved: %d", resp.StatusCode)
+	}
+	// The page comes back with the reason in the user's language and the typo kept.
+	if body := html.UnescapeString(readAll(t, resp)); !strings.Contains(body, "Zahlenformat") || !strings.Contains(body, `name="cr.0.value" value="18.40"`) {
+		t.Fatalf("refusal without reason or typed value:\n%s", body)
 	}
 	if page := string(mustGet(t, srv, client, "/spaces/"+space+"/settings/rules")); !strings.Contains(page, `name="cr.0.value" value="10"`) {
 		t.Fatalf("threshold changed:\n%s", page)

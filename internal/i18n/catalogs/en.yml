@@ -3914,6 +3914,7 @@ settings:
   custom_if: If
   custom_value: Value
   custom_level: Level
+  custom_threshold_invalid: "\"Value\" is not a number in your profile's number format."
   custom_new: new
   page: 'Start page'
   page_title: Title

@@ -70,6 +70,12 @@ func sectionOf(r *http.Request) string {
 }
 
 func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	d.spaceSettings(w, r, ctx, http.StatusOK, "")
+}
+
+// spaceSettings renders a section of a space's settings; a refused save
+// passes its status and the reason's catalog key.
+func (d Deps) spaceSettings(w http.ResponseWriter, r *http.Request, ctx Ctx, status int, reason string) {
 	id, err := pathID(r, "id")
 	section := sectionOf(r)
 	if err != nil || section == "" {
@@ -100,8 +106,8 @@ func (d Deps) handleSpaceSettings(w http.ResponseWriter, r *http.Request, ctx Ct
 	if ref, err := access.SpaceOf(d.DB, ctx.Who, id); err == nil && ref != nil {
 		name = ref.Name
 	}
-	_ = d.Page(w, ctx, "space_settings", http.StatusOK, map[string]any{
-		"SpaceID": id, "SpaceName": name, "Section": section, "Goals": goals, "Tax": tax, "VAT": asMap(tax["vat"]), "Prepay": asMap(tax["prepayments"]),
+	_ = d.Page(w, ctx, "space_settings", status, map[string]any{
+		"Error": reason, "SpaceID": id, "SpaceName": name, "Section": section, "Goals": goals, "Tax": tax, "VAT": asMap(tax["vat"]), "Prepay": asMap(tax["prepayments"]),
 		"Costs": asMap(settings["costs"]), "Homelab": asMap(settings["homelab"]), "Billing": asMap(settings["billing"]),
 		"Center": metrics.CenterOf(settings), "Centers": centers,
 		"Travel": metrics.TravelSettingsOf(settings), "TravelBases": travelBases, "FuelWords": strings.Join(metrics.TravelSettingsOf(settings).FuelWords, ", "),
@@ -149,7 +155,7 @@ func (d Deps) handleSpaceSettingsSave(w http.ResponseWriter, r *http.Request, ct
 	}
 	changes, err := sectionChanges(r, section, ctx.Numbers())
 	if err != nil {
-		d.fail(w, err, http.StatusBadRequest)
+		d.spaceSettings(w, r, ctx, http.StatusBadRequest, errKey(err))
 		return
 	}
 	if err := spaces.Update(d.DB, ctx.Who, id, changes, d.clientIP(r)); err != nil {
