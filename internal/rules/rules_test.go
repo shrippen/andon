@@ -539,6 +539,14 @@ func TestExpenseReceiptDiffers(t *testing.T) {
 		t.Fatalf("findings %+v", got)
 	}
 
+	// Two equal purchases: another expense of the same amount and date
+	// links the monitor's document, so its receipt is in order.
+	ninja.Expenses = append(ninja.Expenses, sources.NinjaExpense{Number: "EX-0043", Date: "2026-08-25", Amount: 890,
+		Custom: [sources.NinjaSlots]string{"", "https://docs.lan/documents/4/"}})
+	if got := run(t, "inventory.expense_missing", nil, env); len(got) != 0 {
+		t.Errorf("twin purchase: %+v", got)
+	}
+
 	// Without the link field nothing tells which document an expense has.
 	env.Options = nil
 	if got := run(t, "inventory.expense_missing", nil, env); len(got) != 0 {

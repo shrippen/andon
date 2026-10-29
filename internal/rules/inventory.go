@@ -151,20 +151,21 @@ func expenseMissing(_ any, cfg map[string]any, env Env) []Finding {
 		cost := asset.PurchaseCost
 		tolerance := cost * cfgFloat(cfg, "tolerance")
 		window := cfgInt(cfg, "date_window")
-		var matched *sources.NinjaExpense
-		for i, e := range ninja.Expenses {
+		// Every expense near in amount and date may be this purchase's;
+		// with two equal purchases, the first one is not necessarily it.
+		var matched []sources.NinjaExpense
+		for _, e := range ninja.Expenses {
 			near := absF(e.Amount-cost) <= tolerance || absF(e.Amount-e.Tax-cost) <= tolerance
 			if !near {
 				continue
 			}
 			d, ok := metrics.ParseDay(e.Date)
 			if ok && absDays(d, bought) <= window {
-				matched = &ninja.Expenses[i]
-				break
+				matched = append(matched, e)
 			}
 		}
-		if matched != nil {
-			if f, ok := receiptDiffers(asset, *matched, slot, assets.Service); ok {
+		if len(matched) > 0 {
+			if f, ok := receiptDiffers(asset, matched, slot, assets.Service); ok {
 				found = append(found, f)
 			}
 			continue
@@ -192,20 +193,23 @@ func linkSlot(opts map[string]any) int {
 }
 
 // receiptDiffers: the inventory proves the purchase with Paperless
-// documents (Kept), the expense found links others. Both sides need a
-// link; one without says nothing here (inventory.receipt_missing,
-// receipts).
+// documents (Kept), and each expense found links others. Both sides need
+// a link; one without says nothing here (inventory.receipt_missing,
+// receipts). The finding names the first expense.
 //
 //	Kept Monitor ─ invoice doc 4 ┐
 //	EX-0040 ─ link doc 5 ────────┴─► differs
-func receiptDiffers(asset sources.Asset, e sources.NinjaExpense, slot int, from enums.ServiceType) (Finding, bool) {
+func receiptDiffers(asset sources.Asset, matched []sources.NinjaExpense, slot int, from enums.ServiceType) (Finding, bool) {
 	if slot == 0 || len(asset.ReceiptDocs) == 0 {
 		return Finding{}, false
 	}
-	linked := metrics.DocIDs(e.Custom[slot-1])
-	if len(linked) == 0 || slices.ContainsFunc(linked, func(id int64) bool { return slices.Contains(asset.ReceiptDocs, id) }) {
-		return Finding{}, false
+	for _, e := range matched {
+		linked := metrics.DocIDs(e.Custom[slot-1])
+		if len(linked) == 0 || slices.ContainsFunc(linked, func(id int64) bool { return slices.Contains(asset.ReceiptDocs, id) }) {
+			return Finding{}, false
+		}
 	}
+	e := matched[0]
 	return Finding{
 		Fingerprint: "receiptdoc:" + asset.ID, Severity: enums.SeverityInfo, Message: "inventory.receipt_differs",
 		Params:    map[string]any{"asset": asset.Name, "number": e.Number},
