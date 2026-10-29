@@ -12,6 +12,7 @@ import (
 	"context"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -170,6 +171,9 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 
 	data := &MailDataset{Mailbox: cfg.Mailbox, Scanned: len(msgs)}
 	threads := map[string]int{} // sender and subject without "Re:" → index in Invoices
+
+	// Oldest first, so an original comes before its replies.
+	slices.SortStableFunc(msgs, func(a, b imapmail.Message) int { return a.Date.Compare(b.Date) })
 	for _, m := range msgs {
 		if !pick(m) {
 			continue
@@ -182,9 +186,9 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 		inv := MailInvoice{UID: m.UID, Date: m.Date, Sender: sender, Addr: m.FromAddr, Domain: domain,
 			Subject: m.Subject, Amount: InvoiceAmount(m.Subject + " " + m.Text), Attachments: m.Attachments}
 
-		// A thread counts once: its latest mail, with an amount and the PDF
-		// one of them carries. Only a reply joins it; a bill under the same subject next
-		// month starts its own.
+		// A thread counts once, as its original: a reply drops out and
+		// lends its amount, and its PDF when the original has none. A bill
+		// under the same subject next month starts its own.
 		key := strings.ToLower(m.FromAddr) + "\x00" + strings.ToLower(replyRe.ReplaceAllString(m.Subject, ""))
 		i, ok := threads[key]
 		if !ok || !replyRe.MatchString(m.Subject) {
@@ -192,19 +196,20 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 			data.Invoices = append(data.Invoices, inv)
 			continue
 		}
-		prev := data.Invoices[i]
-		if inv.Date.Before(prev.Date) {
-			inv, prev = prev, inv
+		orig := &data.Invoices[i]
+		if orig.Amount == 0 {
+			orig.Amount = inv.Amount
 		}
-		if inv.Amount == 0 {
-			inv.Amount = prev.Amount
+		if !hasPDF(orig.Attachments) && hasPDF(inv.Attachments) {
+			orig.UID, orig.Attachments = inv.UID, inv.Attachments
 		}
-		if len(inv.Attachments) == 0 {
-			inv.UID, inv.Attachments = prev.UID, prev.Attachments // the PDF stays reachable (MailFiles)
-		}
-		data.Invoices[i] = inv
 	}
 	return data, nil
+}
+
+// hasPDF says whether one of the attachments is a PDF.
+func hasPDF(names []string) bool {
+	return slices.ContainsFunc(names, func(n string) bool { return strings.HasSuffix(strings.ToLower(n), ".pdf") })
 }
 
 // ignored matches whole addresses and domains ("shop.example").

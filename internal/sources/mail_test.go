@@ -119,25 +119,40 @@ func plainMail(sender, subject, body string, at time.Time) string {
 		"\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n" + body + "\r\n"
 }
 
+// fileMail is plainMail with one attachment named file.
+func fileMail(sender, subject, body, file string, at time.Time) string {
+	return "From: " + sender + "\r\nTo: username@example.org\r\nSubject: " + subject + "\r\nDate: " + at.Format(time.RFC1123Z) +
+		"\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=XX\r\n\r\n--XX\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n" + body +
+		"\r\n--XX\r\nContent-Type: application/octet-stream; name=\"" + file + "\"\r\nContent-Disposition: attachment; filename=\"" + file +
+		"\"\r\nContent-Transfer-Encoding: base64\r\n\r\nJVBERi0xLjQK\r\n--XX--\r\n"
+}
+
 // TestMailSkipsRefunds: a credit note, a refund or a receipt of a
-// withdrawal is no invoice to record; replies in an invoice's thread
-// count once, as the latest, with the amount one of them names. Monthly
-// bills under the same subject stay apart.
+// withdrawal is no invoice to record. A thread counts once, as its
+// original: replies drop out and lend only an amount, and their PDF when
+// the original has none (a signature image is no PDF). Monthly bills
+// under the same subject stay apart; a reply listed before its original
+// changes nothing.
 func TestMailSkipsRefunds(t *testing.T) {
 	be := memory.New()
 	user, _ := be.Login(nil, "username", "password")
 	box, _ := user.GetMailbox("INBOX")
 	now := time.Now().UTC()
+	day := func(n int) time.Time { return now.AddDate(0, 0, n) }
+	mara, nord := "Mara Lind <mara@example.org>", "Kunde Nord <buero@example.org>"
 	mails := []string{
-		plainMail("Model Labs <billing@example.com>", "Credit note from Model Labs for invoice #A1", "Amount 20,00 €", now.AddDate(0, 0, -5)),
-		plainMail("Model Labs <billing@example.com>", "Your refund from Model Labs #B2", "Refund 10,00 €", now.AddDate(0, 0, -5)),
-		plainMail("Phone Shop <shop@example.net>", "Acknowledgement of receipt of your withdrawal – Reference W-1", "", now.AddDate(0, 0, -4)),
-		strings.NewReplacer("Hetzner Online GmbH <billing@hetzner.com>", "Mara Lind <mara@example.org>", "Ihre Rechnung R0012345", "Deine Rechnung - Workshop",
-			"%DATE%", now.AddDate(0, 0, -3).Format(time.RFC1123Z), "der Rechnungsbetrag von 1.234,56 =E2=82=AC wird abgebucht.", "anbei").Replace(invoiceMail),
-		plainMail("Mara Lind <mara@example.org>", "Re: Deine Rechnung - Workshop", "Betrag 480,00 €", now.AddDate(0, 0, -2)),
-		plainMail("Mara Lind <mara@example.org>", "AW: Re: Deine Rechnung - Workshop", "danke", now.AddDate(0, 0, -1)),
-		plainMail("Mobilfunk <rechnung@example.de>", "Ihre Online-Rechnung", "Rechnungsbetrag 21,50 €", now.AddDate(0, 0, -31)),
-		plainMail("Mobilfunk <rechnung@example.de>", "Ihre Online-Rechnung", "Rechnungsbetrag 19,99 €", now.AddDate(0, 0, -1)),
+		plainMail("Model Labs <billing@example.com>", "Credit note from Model Labs for invoice #A1", "Amount 20,00 €", day(-5)),
+		plainMail("Model Labs <billing@example.com>", "Your refund from Model Labs #B2", "Refund 10,00 €", day(-5)),
+		plainMail("Phone Shop <shop@example.net>", "Acknowledgement of receipt of your withdrawal – Reference W-1", "", day(-4)),
+		fileMail(mara, "Deine Rechnung - Workshop", "anbei", "Rechnung_Workshop.pdf", day(-3)),
+		fileMail(mara, "Re: Deine Rechnung - Workshop", "Betrag 480,00 €", "image001.png", day(-2)),
+		plainMail(mara, "AW: Re: Deine Rechnung - Workshop", "danke", day(-1)),
+		plainMail(nord, "Rechnung 77", "Betrag 50,00 €", day(-6)),
+		fileMail(nord, "Re: Rechnung 77", "hier das PDF", "Rechnung_77.pdf", day(-5)),
+		plainMail(nord, "Re: Rechnung 88", "danke", day(-2)),
+		fileMail(nord, "Rechnung 88", "Betrag 60,00 €", "Rechnung_88.pdf", day(-4)),
+		plainMail("Mobilfunk <rechnung@example.de>", "Ihre Online-Rechnung", "Rechnungsbetrag 21,50 €", day(-31)),
+		plainMail("Mobilfunk <rechnung@example.de>", "Ihre Online-Rechnung", "Rechnungsbetrag 19,99 €", day(-1)),
 	}
 	for _, m := range mails {
 		if err := box.CreateMessage(nil, now, strings.NewReader(m)); err != nil {
@@ -152,22 +167,28 @@ func TestMailSkipsRefunds(t *testing.T) {
 	}
 	go srv.Serve(l)
 	t.Cleanup(func() { srv.Close() })
+	sctx := sources.Ctx{URL: "imap://" + l.Addr().String() + "/INBOX", Secret: "username:password"}
 
-	out, err := sources.MailData.Fetch(context.Background(), sources.Ctx{URL: "imap://" + l.Addr().String() + "/INBOX", Secret: "username:password"})
+	out, err := sources.MailData.Fetch(context.Background(), sctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The thread keeps the PDF of the mail that carried it.
-	d := out.(*sources.MailDataset)
-	if len(d.Invoices) == 0 || len(d.Invoices[0].Attachments) != 1 {
-		t.Fatalf("thread lost its attachment: %+v", d.Invoices)
-	}
 
+	// Subject, amount and the PDF MailFiles finds under the entry's UID.
 	var got []string
-	for _, inv := range d.Invoices {
-		got = append(got, inv.Subject+" "+strconv.FormatFloat(inv.Amount, 'f', 2, 64))
+	for _, inv := range out.(*sources.MailDataset).Invoices {
+		files, err := sources.MailFiles(context.Background(), sctx, inv.UID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var names []string
+		for _, f := range files {
+			names = append(names, f.Name)
+		}
+		got = append(got, inv.Subject+" "+strconv.FormatFloat(inv.Amount, 'f', 2, 64)+" "+strings.Join(names, ","))
 	}
-	want := []string{"AW: Re: Deine Rechnung - Workshop 480.00", "Ihre Online-Rechnung 21.50", "Ihre Online-Rechnung 19.99"}
+	want := []string{"Ihre Online-Rechnung 21.50 ", "Rechnung 77 50.00 Rechnung_77.pdf", "Rechnung 88 60.00 Rechnung_88.pdf",
+		"Deine Rechnung - Workshop 480.00 Rechnung_Workshop.pdf", "Ihre Online-Rechnung 19.99 "}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Errorf("invoices:\n %q\nwant\n %q", got, want)
 	}
