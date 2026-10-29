@@ -112,12 +112,12 @@ func powerView(_ PowerConfig, results map[string]any, _ ViewCtx) map[string]any 
 	switch {
 	case p.Hass != nil:
 		watts, today, rate := solarNow(p.Hass, time.Now())
-		out["PV"], out["YieldKWh"] = watts, today
+		out["PV"], out["YieldKWh"], out["Solar"] = watts, today, true
 		if !math.IsNaN(rate) {
 			out["SelfRate"] = rate * percentScale
 		}
 	case p.Solar != nil:
-		out["PV"], out["YieldKWh"] = p.Solar.Power, p.Solar.YieldDay/wattsPerKilo
+		out["PV"], out["YieldKWh"], out["Solar"] = p.Solar.Power, p.Solar.YieldDay/wattsPerKilo, p.Solar.YieldDay > 0
 	}
 	return out
 }

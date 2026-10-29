@@ -25,6 +25,15 @@ func TestHomelabCostAndShares(t *testing.T) {
 		t.Fatalf("bill: %+v", bill)
 	}
 
+	// PV covered 60 % of the last 30 days' use: power costs 40 %,
+	// 10.95 × 0.4 = 4.38.
+	in.Solar = &sources.HassEnergy{Solar: []string{"pv"}, Import: []string{"in"}, Export: []string{"out"},
+		Days: []sources.SolarDay{{Day: "2026-09-20", Solar: 10, Export: 4, Import: 4}}}
+	if bill := metrics.HomelabCost(in, settings, today); bill.Items[0].Monthly != 4.38 {
+		t.Fatalf("with PV: %+v", bill.Items[0])
+	}
+	in.Solar = nil
+
 	proxmox := &sources.ProxmoxDataset{Guests: []sources.ProxmoxGuest{{Name: "docker", Running: true, CPU: 3}, {Name: "ha", Running: true, CPU: 1}}}
 	split := metrics.PowerPerService(proxmox, 40)
 	if len(split) != 2 || split[0].Name != "docker" || split[0].Monthly != 30 {

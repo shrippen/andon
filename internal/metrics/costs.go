@@ -222,6 +222,13 @@ type CostInputs struct {
 	Assets  *sources.InventoryData
 	Sure    *sources.BankData
 	Domains *sources.DomainsDataset
+	Solar   *sources.HassEnergy // PV covers part of the power
+}
+
+// PowerPrice is what a kWh of the homelab costs: the grid price times
+// the share PV does not cover (GridShare).
+func (in CostInputs) PowerPrice(s HomelabSettings, today time.Time) float64 {
+	return PowerPrice(in.Tibber, s.PowerPrice) * GridShare(in.Solar, today)
 }
 
 // HomelabCost adds up power, hardware write-off, domains and hosting.
@@ -234,7 +241,7 @@ func HomelabCost(in CostInputs, s HomelabSettings, today time.Time) HomelabBill 
 		}
 	}
 	if w, ok := PowerWatts(in.Hass, s.PowerEntity); ok {
-		add("power", s.PowerEntity, MonthlyPowerCost(w, PowerPrice(in.Tibber, s.PowerPrice)))
+		add("power", s.PowerEntity, MonthlyPowerCost(w, in.PowerPrice(s, today)))
 	}
 	if in.Assets != nil {
 		for _, a := range in.Assets.Assets {
@@ -489,6 +496,7 @@ func init() {
 		in.Assets, _ = InventoryOf(s.Datasets)
 		in.Sure, _ = BankOf(s.Datasets)
 		in.Domains, _ = s.Datasets[string(enums.ServiceDomains)].(*sources.DomainsDataset)
+		in.Solar, _ = s.Datasets[sources.HassEnergyKey].(*sources.HassEnergy)
 		settings := HomelabSettingsOf(s.Settings)
 		if bill := HomelabCost(in, settings, now); bill.Total > 0 {
 			r.Set(key("homelab", "cost"), bill.Total)
@@ -499,7 +507,7 @@ func init() {
 		}
 		r.Count(key("homelab", "power", "runs"), 1)
 		r.Count(key("homelab", "power", "watts"), w)
-		r.Count(key("homelab", "power", "cost"), w*PriceAt(in.Tibber, now, settings.PowerPrice))
+		r.Count(key("homelab", "power", "cost"), w*PriceAt(in.Tibber, now, settings.PowerPrice)*GridShare(in.Solar, now))
 	})
 }
 

@@ -3,6 +3,7 @@ package services_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -74,7 +75,9 @@ func TestHassSession(t *testing.T) {
 	if err != nil || out.(map[string]any)["time_zone"] != "Europe/Berlin" {
 		t.Fatalf("get_config: %v %v", out, err)
 	}
-	if _, err := s.Command(ctx, "energy/get_prefs", nil); err == nil || err.Error() != "energy/get_prefs: Unknown command." {
+	// An unknown command is a missing endpoint: the caller falls back.
+	_, err = s.Command(ctx, "energy/get_prefs", nil)
+	if err == nil || err.Error() != "energy/get_prefs: Unknown command." || !errors.As(err, new(services.ApiMissing)) {
 		t.Fatalf("failure: %v", err)
 	}
 

@@ -196,8 +196,12 @@ func init() {
 				r.SetOn(yesterday, SolarAutarkyKey, rate)
 			}
 		}
-		if f, ok := ForecastOn(e, now.In(loc).Format(time.DateOnly)); ok {
-			r.Set(SolarForecastKey, f)
+
+		// On Home Assistant's day, not the server's: after local midnight
+		// the UTC day is still the old one.
+		today := now.In(loc).Format(time.DateOnly)
+		if f, ok := ForecastOn(e, today); ok {
+			r.SetOn(today, SolarForecastKey, f)
 		}
 	})
 }

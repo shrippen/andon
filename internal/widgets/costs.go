@@ -21,6 +21,10 @@ var costPeers = slices.Concat([]enums.ServiceType{
 	enums.ServiceKimai, enums.ServiceKomodo, enums.ServiceGitea, enums.ServiceGitHub, enums.ServiceProxmox,
 }, caps.Members(caps.Inventory), caps.Members(caps.Bank))
 
+// costSolar names the query of Home Assistant's PV statistics: PV
+// lowers the power price.
+const costSolar = "hass_energy"
+
 // CostConfig is the "homelab_cost" widget's config.
 type CostConfig struct {
 	BankScope
@@ -34,7 +38,9 @@ func init() {
 		Decode: func(r Raw) CostConfig {
 			return CostConfig{Yearly: r.Pick("period") == "year", PowerSplit: r.Bool("power_split")}
 		},
-		Queries: func(CostConfig) []Query { return peersOf(costPeers) }, View: homelabCostView}.add()
+		Queries: func(CostConfig) []Query {
+			return append(peersOf(costPeers), Query{Name: costSolar, Source: sources.HassEnergyKey, Conn: ConnPeer, Service: enums.ServiceHomeAssistant})
+		}, View: homelabCostView}.add()
 }
 
 // scaleBill turns the monthly bill into the tile's period.
@@ -61,6 +67,7 @@ func homelabCostView(cfg CostConfig, results map[string]any, ctx ViewCtx) map[st
 	in.Assets, _ = metrics.InventoryOf(ds)
 	in.Sure, _ = metrics.BankOf(ds)
 	in.Domains, _ = ds[string(enums.ServiceDomains)].(*sources.DomainsDataset)
+	in.Solar, _ = results[costSolar].(*sources.HassEnergy)
 	bill := metrics.HomelabCost(in, s, time.Now().UTC())
 
 	out := map[string]any{"Bill": scaleBill(bill, scale), "Settings": s, "Yearly": cfg.Yearly}
@@ -70,7 +77,7 @@ func homelabCostView(cfg CostConfig, results map[string]any, ctx ViewCtx) map[st
 		out["BusinessYearly"] = bill.Total * share * monthsPerYearF
 	}
 	if w, ok := metrics.PowerWatts(in.Hass, s.PowerEntity); ok && cfg.PowerSplit {
-		monthly := metrics.MonthlyPowerCost(w, metrics.PowerPrice(in.Tibber, s.PowerPrice))
+		monthly := metrics.MonthlyPowerCost(w, in.PowerPrice(s, time.Now().UTC()))
 		proxmox, _ := ds[string(enums.ServiceProxmox)].(*sources.ProxmoxDataset)
 		services := metrics.PowerPerService(proxmox, monthly*scale)
 		out["Watts"], out["PowerMonthly"], out["Services"] = w, monthly*scale, services

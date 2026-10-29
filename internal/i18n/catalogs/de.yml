@@ -2373,6 +2373,22 @@ hint:
     offline:
       title: 'Wechselrichter {name} nicht erreichbar'
       why: 'Tagsüber antwortet er nicht. Funkverbindung oder Netzseite prüfen.'
+  solar:
+    yield_low:
+      title: 'PV brachte {day} nur {pct} % der Prognose'
+      why: '{kwh} kWh statt erwarteter {expected} kWh. Ein Wechselrichter oder ein String fällt aus, oder die Module sind verschattet oder verschmutzt.'
+    yield_low_year:
+      title: 'PV brachte {day} nur {pct} % des Vorjahrs'
+      why: '{kwh} kWh, an den gleichen Tagen im Vorjahr im Schnitt {expected} kWh. Ein Wechselrichter oder ein String fällt aus, oder die Module sind verschattet oder verschmutzt.'
+    no_yield:
+      title: 'PV liefert seit {hours} Stunden nichts'
+      why: 'Die Prognose erwartet Ertrag, Home Assistant zählt keinen. Wechselrichter, Sicherung oder Zähler-Integration prüfen.'
+    battery_idle:
+      title: 'Akku seit {days} Tagen ohne Zyklus'
+      why: 'Er lädt und entlädt nicht. Der Überschuss geht ins Netz, abends kommt Strom aus dem Netz. Betriebsmodus, Ladegrenzen und Fehler des Speichers prüfen.'
+    selfuse_drop:
+      title: 'Eigenverbrauch {pct} % statt {before} % im Vorjahr'
+      why: 'Diesen Monat geht mehr PV-Strom ins Netz als im gleichen Monat des Vorjahrs. Akku, Lastverschiebung (Waschmaschine, Wallbox) oder neue Verbraucher prüfen.'
   wud:
     updates:
       title: '{count} Container-Updates verfügbar'
@@ -2775,6 +2791,12 @@ hint:
     charge_expensive:
       title: '{point} lädt zum teuren Preis'
       why: '{kw} kW aus dem Netz bei {price} ct/kWh, der Tagesschnitt liegt bei {avg} ct. Später laden oder auf PV-Modus stellen.'
+    charge_expensive_pv:
+      title: '{point} lädt zum teuren Preis, die Sonne kommt noch'
+      why: '{kw} kW aus dem Netz bei {price} ct/kWh, der Tagesschnitt liegt bei {avg} ct. Die PV-Prognose erwartet heute noch {pv} kWh: auf PV-Modus stellen.'
+    solar_selfuse:
+      title: '{kwh} kWh eingespeist für {feed_in} ct, Bezug kostet {price} ct'
+      why: 'Diesen Monat ging so viel PV-Strom ins Netz. Selbst genutzt hätte er {saving} gespart: Verbraucher in die Mittagsstunden legen, Wallbox auf PV-Modus, Akku prüfen.'
     update_unbacked:
       title: 'Watchtower aktualisierte {count} Container ohne frische Sicherung'
       title_singular: 'Watchtower aktualisierte {count} Container ohne frische Sicherung'
@@ -3620,6 +3642,11 @@ rule_name:
   ups.replace_battery: 'USV-Akku tauschen'
   opendtu.offline: 'Wechselrichter nicht erreichbar'
   cross.charge_expensive: 'Laden zum teuren Preis'
+  solar.yield_low: 'PV-Ertrag zu niedrig'
+  solar.no_yield: 'PV ohne Ertrag'
+  solar.battery_idle: 'Akku ohne Zyklus'
+  solar.selfuse_drop: 'Eigenverbrauch gesunken'
+  cross.solar_selfuse: 'Einspeisung statt Eigenverbrauch'
   cross.ups_load: 'USV-Laufzeit gegen Hosts'
   cross.charge_business: 'Ladekosten für Geschäftsfahrten'
   wud.updates: 'Container-Updates'
@@ -3849,6 +3876,11 @@ param:
   min_hours: 'Ab Stunden'
   min_gap_days: 'Mindestens Tage vor Projektende'
   share: 'Mindestens Anteil der Erwartung'
+  min_kwh: 'Ab erwarteten kWh'
+  kwh: 'Ab kWh'
+  points: 'Ab Prozentpunkten'
+  feed_in: 'Einspeisevergütung (€/kWh)'
+  pv_kwh: 'Ab PV-Prognose (kWh)'
   max_age_days: 'Höchstalter (Tage)'
   warn_gb: Warnung ab (GB frei)
   critical_gb: Kritisch ab (GB frei)

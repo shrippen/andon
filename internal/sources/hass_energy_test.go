@@ -6,6 +6,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"andon/internal/drivers/services"
 )
 
 // fakeHass answers WebSocket commands from recorded results; a command
@@ -14,16 +16,20 @@ import (
 type fakeHass struct {
 	answers map[string]string // command → result JSON
 	asked   []map[string]any  // statistics requests, in order
+	down    string            // the connection breaks at this command
 }
 
 func (f *fakeHass) Command(_ context.Context, kind string, params map[string]any) (any, error) {
+	if kind == f.down {
+		return nil, errors.New("read: connection reset")
+	}
 	if kind == "recorder/statistics_during_period" {
 		f.asked = append(f.asked, params)
 		kind += "/" + params["period"].(string)
 	}
 	raw, ok := f.answers[kind]
 	if !ok {
-		return nil, errors.New(kind + ": unknown command")
+		return nil, services.ApiMissing{} // as HassSession for an unknown command
 	}
 	var out any
 	return out, json.Unmarshal([]byte(raw), &out)
@@ -116,6 +122,13 @@ func TestReadEnergyOptions(t *testing.T) {
 		t.Fatalf("grid from the dashboard: %+v %v", e, err)
 	}
 	delete(f.answers, "energy/get_prefs")
+
+	// A broken connection is a failed fetch, not "no PV".
+	f.down = "energy/get_prefs"
+	if _, err := readEnergy(context.Background(), f, Ctx{}, now); err == nil {
+		t.Fatal("connection lost read as no PV")
+	}
+	f.down = ""
 
 	f.asked = nil
 	e, err = readEnergy(context.Background(), f, Ctx{}, now)
