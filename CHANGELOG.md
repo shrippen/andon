@@ -93,7 +93,7 @@ Diese Version räumt die Reibung ab, die eine QA-Runde über ganze Nutzerwege ge
 Tiles (board order) → pack into screen-high sets → balance (each ≥ 1/3 of the fullest) → transition (Kante 1.20)
 ```
 
-All changes / Alle Änderungen: https://git.arianw.de/shrippen/andon/compare/v0.6.0...v0.7.0 · Changelog: https://shrippen.github.io/andon/#v0.7.0
+All changes / Alle Änderungen: https://github.com/shrippen/andon/compare/v0.6.0...v0.7.0 · Changelog: https://shrippen.github.io/andon/#v0.7.0
 
 Docker: `git.arianw.de/shrippen/andon:0.7.0` (also `latest`, `0.7`)
 
@@ -193,7 +193,7 @@ Borg, PBS, Kopia, Duplicati, Backrest, UrBackup, PG Back Web, TrueNAS
         → backup overview · cross.heartbeat_backup · cross.update_unbacked
 ```
 
-All changes / Alle Änderungen: https://git.arianw.de/shrippen/andon/compare/v0.5.0...v0.6.0 · Changelog: https://shrippen.github.io/andon/#v0.6.0
+All changes / Alle Änderungen: https://github.com/shrippen/andon/compare/v0.5.0...v0.6.0 · Changelog: https://shrippen.github.io/andon/#v0.6.0
 
 Docker: `git.arianw.de/shrippen/andon:0.6.0` (also `latest`, `0.6`)
 
@@ -245,7 +245,7 @@ Jede Kachel öffnet einen Detaildialog, die ganze Oberfläche kommt jetzt aus de
 
 ![Detaildialog einer Kachel (Demodaten)](https://shrippen.github.io/andon/shots/release-0.5.0-detail-de.webp)
 
-All changes / Alle Änderungen: https://git.arianw.de/shrippen/andon/compare/v0.4.0...v0.5.0 · Changelog: https://shrippen.github.io/andon/#v0.5.0
+All changes / Alle Änderungen: https://github.com/shrippen/andon/compare/v0.4.0...v0.5.0 · Changelog: https://shrippen.github.io/andon/#v0.5.0
 
 ## [0.4.0] — 2026-09-26
 
