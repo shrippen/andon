@@ -10,6 +10,8 @@ package sources
 //	            GET organization/costs                      USD per day and line item
 //	deepseek    GET user/balance                            Bearer                 balance_infos
 //	litellm     GET user/daily/activity                     Bearer                 results[{date, breakdown.models}]
+//	xai         POST v1/billing/teams/{team}/usage          Bearer (management)    USD per day and description
+//	            GET v1/billing/teams/{team}/prepaid/balance cents, purchases negative
 
 import (
 	"context"
@@ -29,6 +31,8 @@ const (
 	centsPerDollar   = 100.0
 	llmMaxPages      = 5 // 31 daily buckets fit one page; a few more for many models
 	litellmPageSize  = 100
+	xaiTeamOption    = "team"
+	xaiTime          = time.DateTime // the usage report's "2026-10-01 00:00:00"
 )
 
 var (
@@ -37,6 +41,7 @@ var (
 	OpenAIData     = source{key: "openai.data", ttl: dataTTL, service: enums.ServiceOpenAI, fetch: fetchOpenAI}
 	DeepSeekData   = source{key: "deepseek.data", ttl: dataTTL, service: enums.ServiceDeepSeek, fetch: fetchDeepSeek}
 	LiteLLMData    = source{key: "litellm.data", ttl: dataTTL, service: enums.ServiceLiteLLM, fetch: fetchLiteLLM}
+	XAIData        = source{key: "xai.data", ttl: dataTTL, service: enums.ServiceXAI, fetch: fetchXAI}
 )
 
 // uses collects LLMUse rows by day and model, in first-seen order.
@@ -304,6 +309,69 @@ func fetchLiteLLM(ctx context.Context, sctx Ctx) (any, error) {
 	a.URL, a.Spend, a.Uses = strings.TrimRight(sctx.URL, "/")+"/ui", true, u.rows
 	a.sumUses(now)
 	return &LLMDataset{Accounts: []LLMAccount{a}}, nil
+}
+
+// ── xAI (management key) ──
+
+// fetchXAI reads the team's billing: USD per day and description
+// ("Chat grok-4-0709") and the prepaid balance. Read-only endpoints only.
+func fetchXAI(ctx context.Context, sctx Ctx) (any, error) {
+	if isDemo(sctx) {
+		return DemoLLM(enums.ServiceXAI, time.Now()), nil
+	}
+	secret, err := needSecret(sctx)
+	if err != nil {
+		return nil, err
+	}
+	team := strings.TrimSpace(asStr(sctx.Options[xaiTeamOption]))
+	if team == "" {
+		return nil, newSourceError("xai.no_team")
+	}
+	api := services.BearerApi(sctx.URL, secret, sctx.TLS())
+	base := "v1/billing/teams/" + url.PathEscape(team) + "/"
+	now := time.Now()
+
+	raw, err := api.Post(ctx, base+"usage", xaiUsage(now))
+	if err != nil {
+		return nil, fetchError(err)
+	}
+	var u uses
+	for _, item := range asList(asMap(raw)["timeSeries"]) {
+		series := asMap(item)
+		model := ""
+		if labels := asList(series["groupLabels"]); len(labels) > 0 {
+			model = asStr(labels[0])
+		}
+		for _, p := range asList(series["dataPoints"]) {
+			point := asMap(p)
+			if values := asList(point["values"]); len(values) > 0 {
+				u.at(bucketDay(point["timestamp"]), model).Cost += asFloat(values[0])
+			}
+		}
+	}
+
+	a := newAccount(enums.ServiceXAI, sctx, "")
+	a.URL, a.Spend, a.Uses = "https://console.x.ai", true, u.rows
+	a.sumUses(now)
+
+	// Purchases count negative, use positive: the credit is −total.
+	if raw, err := api.Get(ctx, base+"prepaid/balance", nil); err == nil {
+		a.HasBalance, a.Balance, a.Currency = true, -asFloat(asMap(asMap(raw)["total"])["val"])/centsPerDollar, "USD"
+	}
+	return &LLMDataset{Accounts: []LLMAccount{a}}, nil
+}
+
+// xaiUsage is the usage report's body: USD summed per day and
+// description since historyStart; the end is exclusive, so tomorrow.
+func xaiUsage(now time.Time) map[string]any {
+	end := historyStart(now).AddDate(0, 0, llmDays)
+	return map[string]any{"analyticsRequest": map[string]any{
+		"timeRange": map[string]any{"startTime": historyStart(now).Format(xaiTime), "endTime": end.Format(xaiTime), "timezone": "Etc/GMT"},
+		"timeUnit":  "TIME_UNIT_DAY",
+		"values":    []map[string]any{{"name": "usd", "aggregation": "AGGREGATION_SUM"}},
+		"groupBy":   []string{"description"},
+		"filters":   []any{},
+	}}
 }
 
 // litellmDay adds one day's models; a model entry holds its numbers under

@@ -1204,9 +1204,9 @@ Ein Datensatz für alle Anbieter (`sources.LLMDataset`, je Verbindung ein Konto,
 - [x] Claude API (Usage & Cost Admin API, Admin-Schlüssel), Claude-Abo Pro/Max (OAuth, nicht dokumentierter Endpunkt `api/oauth/usage`: Sitzung, Woche, Woche je Modell, Zusatznutzung), OpenRouter (Schlüssel; mit Management-Schlüssel auch Guthaben und Verlauf je Modell), OpenAI (Usage + Costs, Admin-Schlüssel), DeepSeek (nur Guthaben), LiteLLM-Proxy (`user/daily/activity`)
 - [x] Kachel `llm_usage` mit Dialog (Kosten je Tag und Konto, Kontingente, Konten, Modelle); Regeln `llm.budget` (Monatsbudget an der Verbindung), `llm.credit_low`, `llm.quota_high`, `llm.spike`; Demowelt `llm_usage`
 - [x] Claude-Abo entfernt (15.10.2026, #168): die Abfrage von `api/oauth/usage` mit einem Login-Token hat vermutlich das Anthropic-Konto sperren lassen. Mit ihm fielen `llm.quota_high` und die Kontingente; Anthropic-Daten nur noch über die dokumentierte Admin-API
-- [ ] Gegen echte Konten testen (alle fünf „Experimentell“)
+- [ ] Gegen echte Konten testen (alle sechs „Experimentell“)
 - [x] Quer: KI-Kosten gegen Ausgaben in Invoice Ninja / Firefly (Rechnung des Anbieters fehlt) *(`cross.llm_unbilled`, 29.10.2026: Verbrauch ab 5 USD in 45 Tagen ohne Ausgabe in Invoice Ninja oder Abbuchung, die den Anbieter in 180 Tagen nennt (Guthaben-Aufladung); Konten mit Restguthaben ausgenommen, LiteLLM auch)*
-- [ ] Weitere Anbieter bei Bedarf (Mistral, Groq, xAI); USD bleibt USD, keine Umrechnung in die Kostenübersicht
+- [x] Weitere Anbieter (29.10.2026): xAI über die Management-API (`management-api.x.ai`, Management-Schlüssel mit Billing nur lesen, Team-ID an der Verbindung): Kosten je Tag und Modell in USD, keine Tokens, dazu das Guthaben. USD bleibt USD. Nicht gebaut: Mistral (nur der undokumentierte Endpunkt `/v1/billing/usage`; ein undokumentierter Endpunkt hat schon das Anthropic-Konto gekostet, s. o.) und Groq (keine Verbrauchs-API)
 
 ### USt-Abgleich: Bankumsätze aus Invoice Ninja (umgesetzt 13.10.2026)
 

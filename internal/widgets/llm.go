@@ -2,7 +2,7 @@ package widgets
 
 // "llm_usage": what the LLM providers cost this month, over every
 // connection of the space that is an LLM provider (Claude API,
-// OpenRouter, OpenAI, DeepSeek, LiteLLM). The tile sums the month and
+// OpenRouter, OpenAI, DeepSeek, LiteLLM, xAI). The tile sums the month and
 // lists each account: its spend, credit or key limit. The dialog draws
 // the cost per day and provider, the models and every account.
 //

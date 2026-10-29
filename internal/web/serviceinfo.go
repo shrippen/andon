@@ -86,6 +86,7 @@ var projectURLs = map[enums.ServiceType]string{
 	enums.ServiceOpenAI:         "https://platform.openai.com/docs/api-reference/usage",
 	enums.ServiceDeepSeek:       "https://platform.deepseek.com",
 	enums.ServiceLiteLLM:        "https://www.litellm.ai",
+	enums.ServiceXAI:            "https://docs.x.ai/developers/management-api-guide",
 }
 
 func projectURL(service enums.ServiceType) string {
@@ -122,6 +123,7 @@ var experimental = map[enums.ServiceType]string{
 	enums.ServiceOpenAI:     "",
 	enums.ServiceDeepSeek:   "",
 	enums.ServiceLiteLLM:    "",
+	enums.ServiceXAI:        "",
 	enums.ServiceHansei:     "",
 	enums.ServiceFediverse:  "akkoma",
 	enums.ServiceESPHome:    "basic_auth",
