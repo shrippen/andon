@@ -2812,6 +2812,9 @@ hint:
       title: '{count} subscriptions missing in Wallos'
       title_singular: '{count} subscription missing in Wallos'
       why: 'Sure books {names} regularly, Wallos has nothing for it. Add it in Wallos or exclude it in the rule.'
+    llm_unbilled:
+      title: '{account}: no invoice from {provider} recorded'
+      why: '{spent} spent in the last {days} days, but in the last {paid_days} days neither an expense in Invoice Ninja nor a debit names {provider}, and no credit is left. Download the invoice and record it as an expense, or turn the rule off for private accounts.'
   hass:
     alarm:
       title: '{entity} reports an alarm'
@@ -3791,6 +3794,7 @@ rule_name:
   kintsugi.stale: Suggestions left waiting
   system.backup: 'Andon backup'
   cross.wallos_missing: Subscriptions missing in Wallos
+  cross.llm_unbilled: 'AI costs without expense'
   glances.disk_full: 'File system almost full'
   glances.load_high: 'Host constantly busy'
   glances.swap_high: 'Heavy swapping'
@@ -3811,6 +3815,7 @@ param:
   min_balance: 'Credit below (USD)'
   min_limit_pct: 'Key limit left below (%)'
   min_usd: 'At least (USD)'
+  paid_days: 'Payment counts for days'
   min_db: 'At least dB'
   min_dbm: 'At least dBm'
   booked_share: 'Share of booked'
