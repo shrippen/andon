@@ -2641,6 +2641,15 @@
     });
 
     var ready = counted ? n === parts.length : act !== "skip";
+    // A split is ready when its parts make the booking.
+    var split = desk.querySelector("[data-split]");
+    if (act === "split") {
+      ready = !!split && split.getAttribute("data-fits") === "true";
+    }
+    var take = desk.querySelector("[data-take-next]");
+    if (take) {
+      take.disabled = act === "split" && !ready;
+    }
     entry.toggleAttribute("data-ready", ready);
     var bar = entry.querySelector(".progress-segs");
     if (ready) {
@@ -2697,7 +2706,136 @@
     }
   }
 
+  // Split ("Aufteilen"): each ticked invoice is a part; the bar shows
+  // each part's share of the booking, the rest hatched. Taking the desk
+  // needs the rest at 0,00:
+  //
+  //   tick invoice ──► slot's use = expense, its fold shows
+  //   amount, use ──► bar, sum, rest ──► data-fits ──► benchCount
+  function benchNotation() {
+    return d.documentElement.getAttribute("data-num") || d.documentElement.lang || "de";
+  }
+
+  // benchNum reads an amount as the user types it: "1.234,56" (de).
+  function benchNum(v) {
+    v = (v || "").replace(/\s/g, "");
+    v = benchNotation() === "de" ? v.replace(/\./g, "").replace(",", ".") : v.replace(/,/g, "");
+    return parseFloat(v) || 0;
+  }
+
+  // benchMoney formats v like the zero amount the server rendered.
+  function benchMoney(bar, v) {
+    var number = v.toLocaleString(benchNotation(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return bar.getAttribute("data-zero").replace(/[\d.,\s]*\d/, number);
+  }
+
+  // benchCents rounds to cents, so 39,99 + 44,38 is 84,37.
+  function benchCents(v) {
+    return Math.round(v * 100) / 100;
+  }
+
+  function benchSplit(block) {
+    var total = parseFloat(block.getAttribute("data-total")) || 0;
+    var bar = block.querySelector("[data-split-bar]");
+    var parts = [];
+    [].forEach.call(block.querySelectorAll("[data-slot]"), function (slot) {
+      var use = slot.querySelector("[data-split-use]").value;
+      var on = block.querySelector("[data-split-on=\"" + slot.getAttribute("data-slot") + "\"]");
+      if (on) {
+        on.checked = use !== "";
+      }
+      slot.hidden = use === "";
+      if (use === "") {
+        return;
+      }
+      var amount = benchNum(slot.querySelector("[data-split-amount]").value);
+      var vendor = slot.querySelector("[data-split-vendor]");
+      var name = slot.querySelector("[data-slot-name]");
+      if (vendor && vendor.value.trim()) {
+        name.textContent = vendor.value.trim();
+      }
+      slot.querySelector("[data-slot-amount]").textContent = benchMoney(bar, amount);
+      parts.push({ name: name.textContent, amount: amount, expense: use === "expense" });
+    });
+
+    var sum = benchCents(parts.reduce(function (s, p) { return s + p.amount; }, 0));
+    var rest = benchCents(total - sum);
+    var whole = Math.max(total, sum) || 1;
+
+    // The bar and its legend: one colour per part, the rest hatched.
+    var track = bar.querySelector(".progress-bar");
+    var key = bar.querySelector("[data-split-key]");
+    track.textContent = "";
+    key.textContent = "";
+    var add = function (cls, colour, share, label) {
+      var seg = d.createElement("i");
+      var dot = d.createElement("i");
+      var li = d.createElement("li");
+      if (cls) {
+        seg.className = cls;
+        dot.className = cls;
+      }
+      seg.style.setProperty("--p", share + "%");
+      if (colour) {
+        seg.style.setProperty("--c", colour);
+        dot.style.setProperty("--c", colour);
+      }
+      track.appendChild(seg);
+      li.appendChild(dot);
+      li.appendChild(d.createTextNode(label));
+      key.appendChild(li);
+    };
+    parts.forEach(function (p, i) {
+      add("", "var(--d" + ((i % 6) + 1) + ")", p.amount / whole * 100, p.name);
+    });
+    if (rest > 0) {
+      add("rest", "", rest / whole * 100, bar.getAttribute("data-rest-name"));
+    }
+
+    bar.querySelector("[data-split-sum]").textContent = bar.getAttribute("data-sum-text")
+      .replace("#n", parts.length).replace("#sum", benchMoney(bar, sum));
+    var out = bar.querySelector("[data-split-rest]");
+    var even = Math.abs(rest) < 0.005;
+    out.setAttribute("data-state", even ? "ok" : "bad");
+    out.textContent = rest < 0 ? bar.getAttribute("data-over-text").replace("#a", benchMoney(bar, -rest))
+      : bar.getAttribute("data-rest-text").replace("#a", benchMoney(bar, even ? 0 : rest));
+    var fits = even && parts.length > 1 && parts.some(function (p) { return p.expense; });
+    block.setAttribute("data-fits", String(fits));
+    return rest;
+  }
+
+  // A part without a scan: the next empty slot, with the rest.
+  function benchSplitAdd(block) {
+    var free = [].filter.call(block.querySelectorAll("[data-slot]"), function (slot) {
+      return slot.hidden && !block.querySelector("[data-split-on=\"" + slot.getAttribute("data-slot") + "\"]");
+    })[0];
+    if (!free) {
+      return;
+    }
+    free.querySelector("[data-split-use]").value = "expense";
+    var rest = benchSplit(block);
+    var amount = free.querySelector("[data-split-amount]");
+    if (rest > 0 && !amount.value) {
+      amount.value = benchNotation() === "de" ? rest.toFixed(2).replace(".", ",") : rest.toFixed(2);
+    }
+    free.open = true;
+    benchSplit(block);
+    free.querySelector("[data-split-vendor]").focus();
+  }
+
+  // A split fetched into its desk: draw its bar, count the desk again.
+  d.addEventListener("htmx:afterSwap", function (e) {
+    var split = e.target.querySelector && e.target.querySelector("[data-split]");
+    var form = split && benchOf(split);
+    if (!form) {
+      return;
+    }
+    benchSplit(split);
+    benchCount(form, split.closest("[data-desk]"));
+  });
+
   function setupBench() {
+    [].forEach.call(d.querySelectorAll("[data-split]"), benchSplit);
     [].forEach.call(d.querySelectorAll("form[data-vat-bench]"), function (form) {
       var first = form.querySelector(".bench-entry");
       if (first && !form.querySelector(".bench-entry[aria-current]")) {
@@ -2750,6 +2888,18 @@
       [].forEach.call(desk.querySelectorAll("[data-for]"), function (block) {
         block.hidden = block.getAttribute("data-for") !== act;
       });
+      // The split's slots come from the server once chosen (/vat/split).
+      var later = act === "split" && desk.querySelector("[data-for=split][hx-get]");
+      if (later) {
+        htmx.trigger(later, "andon-split");
+      }
+      benchCount(form, desk);
+      return;
+    }
+
+    var add = e.target.closest("[data-split-add]");
+    if (add) {
+      benchSplitAdd(add.closest("[data-split]"));
       benchCount(form, desk);
       return;
     }
@@ -2788,6 +2938,15 @@
     }
     if (e.type === "change" && e.target.matches("select[name^=exp_]")) {
       benchGaps(desk, e.target);
+    }
+    var split = e.target.closest("[data-split]");
+    if (split) {
+      // A ticked invoice is a part, as an expense; untick leaves it out.
+      if (e.target.matches("[data-split-on]")) {
+        var slot = split.querySelector("[data-slot=\"" + e.target.getAttribute("data-split-on") + "\"]");
+        slot.querySelector("[data-split-use]").value = e.target.checked ? "expense" : "";
+      }
+      benchSplit(split);
     }
     if (e.type === "change" && e.target.matches("input[data-part=scan]")) {
       var num = benchBlock(desk).querySelector("input[data-part=number]");

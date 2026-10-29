@@ -201,3 +201,68 @@ func TestVATScopes(t *testing.T) {
 		t.Fatalf("picked scope:\n%s", page)
 	}
 }
+
+// TestVATSplit: a debit offers "split"; the review lists each part, a
+// private one without an expense, and refuses parts that miss the sum.
+func TestVATSplit(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+		"service": {"invoiceninja"}, "name": {"invoiceninja"}, "url": {"demo://invoiceninja"}, "mode": {"shared"}, "tls": {"verify"}})
+
+	// The page offers "split" but carries none of its slots: eight of
+	// selects per debit, which Chrome scans on load. Choosing it fetches
+	// the one desk's split (/vat/split).
+	month := time.Now().UTC().Format("2006-01")
+	page := string(mustGet(t, srv, client, "/vat?span="+month))
+	if strings.Contains(page, `name="s0.use_`) {
+		t.Fatal("the page carries split slots before the split is chosen")
+	}
+	for _, want := range []string{`data-set-act="split"`, `hx-get="/vat/split?case=demo-b-studio&span=` + month} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("page lacks %q:\n%s", want, page)
+		}
+	}
+	desk := string(mustGet(t, srv, client, "/vat/split?case=demo-b-studio&span="+month))
+	for _, want := range []string{"data-split", `name="s0.use_demo-b-studio"`, `name="sgross_demo-b-studio"`, "data-split-bar"} {
+		if !strings.Contains(desk, want) {
+			t.Fatalf("split desk lacks %q:\n%s", want, desk)
+		}
+	}
+	if status, _ := browse(t, client, http.MethodGet, srv.URL+"/vat/split?case=nope&span="+month, nil, nil); status != http.StatusNotFound {
+		t.Fatalf("unknown case: %d, want 404", status)
+	}
+
+	// A user without the space's Invoice Ninja gets no booking's split.
+	user := freshClient(t)
+	postForm(t, user, srv.URL+inviteLink(t, srv, client, "user@x.de"), url.Values{"name": {"User"}, "password": {"user-password-long"}, "locale": {"de"}})
+	if status, body := browse(t, user, http.MethodGet, srv.URL+"/vat/split?case=demo-b-studio&span="+month, nil, nil); status == http.StatusOK || strings.Contains(body, `name="s0.use_`) {
+		t.Fatalf("a user without access: %d\n%s", status, body)
+	}
+
+	split := func(rest string) string {
+		form := url.Values{"csrf": {csrfToken(t, srv, client)}, "span": {month}, "pick": {"demo-b-studio"},
+			"act_demo-b-studio": {"split"}, "sgross_demo-b-studio": {"on", "off"}, "spaid_demo-b-studio": {"on", "off"},
+			"s0.use_demo-b-studio": {"expense"}, "s0.vendor_demo-b-studio": {"Kabelwerk Studiobedarf"}, "s0.tax_demo-b-studio": {"19"},
+			"s0.amount_demo-b-studio": {"800,00"}, "s1.use_demo-b-studio": {"private"}, "s1.amount_demo-b-studio": {rest},
+			"s1.note_demo-b-studio": {"Kaffeemaschine"}}
+		resp, err := client.PostForm(srv.URL+"/vat/review", form)
+		if err != nil || resp.StatusCode != http.StatusOK {
+			t.Fatalf("review: %v %v", resp, err)
+		}
+		return readBody(t, resp)
+	}
+	review := split("99,00")
+	for _, want := range []string{"Umsatz aufteilen auf 2 Teile", "Ausgabe „Kabelwerk Studiobedarf“", "800,00", "Privat, keine Ausgabe: 99,00", "„Kaffeemaschine“",
+		`name="s1.use_demo-b-studio" value="private"`} {
+		if !strings.Contains(review, want) {
+			t.Fatalf("review lacks %q:\n%s", want, review)
+		}
+	}
+	if review := split("98,00"); !strings.Contains(review, "Die Teile ergeben nicht den Betrag des Umsatzes") {
+		t.Fatalf("a short split is not refused:\n%s", review)
+	}
+}

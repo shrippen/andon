@@ -206,7 +206,7 @@ func (c Case) Acts() []metrics.BankAction {
 		out = append(out, metrics.ActionLink)
 	}
 	if c.Txn.Debit {
-		out = append(out, metrics.ActionCreate)
+		out = append(out, metrics.ActionCreate, ActionSplit)
 	}
 	if c.Invoice != nil {
 		out = append(out, metrics.ActionInvoice)

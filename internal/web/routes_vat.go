@@ -5,6 +5,7 @@ package web
 //
 //	GET  /vat          the period's open transactions, proposals, check
 //	GET  /vat/scans    Paperless hits for a new expense's scan (htmx)
+//	GET  /vat/split    one debit's split, once chosen (htmx)
 //	POST /vat/review   the ticked steps, spelled out, to confirm
 //	POST /vat/apply    writes the confirmed steps
 //	POST /vat/restore  brings a transaction archived as private back
@@ -29,6 +30,7 @@ import (
 func (d Deps) registerVATRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /vat", d.authed(d.handleVAT))
 	mux.HandleFunc("GET /vat/scans", d.authed(d.handleVATScans))
+	mux.HandleFunc("GET /vat/split", d.authed(d.handleVATSplit))
 	mux.HandleFunc("POST /vat/review", d.authed(d.handleVATReview))
 	mux.HandleFunc("POST /vat/apply", d.authed(d.handleVATApply))
 	mux.HandleFunc("POST /vat/restore", d.authed(d.handleVATRestore))
@@ -91,6 +93,23 @@ func (d Deps) handleVATScans(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		values["Error"] = vatError(err)
 	}
 	_ = d.Page(w, ctx, "vat_found", http.StatusOK, values)
+}
+
+// handleVATSplit renders one debit's split slots, fetched when the user
+// chooses "split" on its desk: not on the page, as eight slots of
+// selects per debit slow its load.
+func (d Deps) handleVATSplit(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	q := vatQueryOf(r)
+	p, c, err := vatcheck.SplitDesk(r.Context(), d.DB, ctx.Who, q.Scope, q.Span, r.FormValue("case"), time.Now())
+	if errors.Is(err, vatcheck.ErrNoCase) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		_ = d.Page(w, ctx, "vat_found", http.StatusForbidden, map[string]any{"Partial": true, "Error": vatError(err)})
+		return
+	}
+	_ = d.Page(w, ctx, "vat_split", http.StatusOK, map[string]any{"Partial": true, "C": c, "P": p})
 }
 
 // vatError is an error's i18n key, or a service's own message.

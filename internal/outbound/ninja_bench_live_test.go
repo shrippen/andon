@@ -46,7 +46,7 @@ func TestNinjaBankLive(t *testing.T) {
 	ninjaOwn(t, api, kindExpense, expense)
 
 	live.Change(t, live.Ninja, live.Update, kindBankTxn, booked)
-	if err := outbound.NinjaBankLink(ctx, ninja, booked, outbound.NinjaBankTarget{Expense: expense}); err != nil {
+	if err := outbound.NinjaBankLink(ctx, ninja, booked, outbound.NinjaBankTarget{Expenses: []string{expense}}); err != nil {
 		t.Fatalf("link: %v", err)
 	}
 	if got := ninjaRead(t, api, kindBankTxn, booked); got["status_id"] != ninjaMatched || got["expense_id"] != expense {

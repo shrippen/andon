@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -47,16 +48,22 @@ func NinjaPayment(ctx context.Context, to Target, clientKey, invoiceKey string, 
 // (the expense already had a transaction, the invoice was paid).
 var ErrNotBooked = errors.New("invoice ninja: transaction not booked")
 
+// ErrPartlyLinked means Invoice Ninja booked the transaction but
+// skipped an expense sent (one another transaction took meanwhile).
+var ErrPartlyLinked = errors.New("invoice ninja: transaction booked without every expense")
+
 // ninjaConverted is Invoice Ninja's status_id of a booked transaction.
 const ninjaConverted = "3"
 
-// NinjaBankLink books a bank transaction (hashed v5 id) against an
-// existing expense or payment, or against open invoices, which pays them.
+// NinjaBankLink books a bank transaction (hashed v5 id) against
+// existing expenses or a payment, or against open invoices, which pays
+// them. Several expenses split one debit: Invoice Ninja takes them as a
+// list ("E1,E2") and skips one that has a transaction already.
 func NinjaBankLink(ctx context.Context, to Target, txnKey string, link NinjaBankTarget) error {
 	item := map[string]any{"id": txnKey}
 	switch {
-	case link.Expense != "":
-		item["expense_id"] = link.Expense
+	case len(link.Expenses) > 0:
+		item["expense_id"] = strings.Join(link.Expenses, ",")
 	case link.Payment != "":
 		item["payment_id"] = link.Payment
 	default:
@@ -74,18 +81,36 @@ func NinjaBankLink(ctx context.Context, to Target, txnKey string, link NinjaBank
 	list, _ := top["data"].([]any)
 	for _, raw := range list {
 		t, _ := raw.(map[string]any)
-		if id, _ := t["id"].(string); id == txnKey && fmt.Sprint(t["status_id"]) == ninjaConverted {
-			return nil
+		if id, _ := t["id"].(string); id != txnKey || fmt.Sprint(t["status_id"]) != ninjaConverted {
+			continue
 		}
+		if !linkedAll(t, link.Expenses) {
+			return ErrPartlyLinked
+		}
+		return nil
 	}
 	return ErrNotBooked
 }
 
-// NinjaBankTarget is what a transaction is booked against: one expense,
-// one payment, or invoices.
+// linkedAll says whether the booked transaction lists every expense
+// sent: Invoice Ninja books it with the first and skips a taken one.
+func linkedAll(t map[string]any, expenses []string) bool {
+	got, _ := t["expense_id"].(string)
+	list := strings.Split(got, ",")
+	for _, k := range expenses {
+		if !slices.Contains(list, k) {
+			return false
+		}
+	}
+	return true
+}
+
+// NinjaBankTarget is what a transaction is booked against: expenses
+// (one, or the parts of a split), one payment, or invoices.
 type NinjaBankTarget struct {
-	Expense, Payment string
-	Invoices         []string
+	Expenses []string
+	Payment  string
+	Invoices []string
 }
 
 // NinjaVendorCreate creates a vendor and returns its hashed id.

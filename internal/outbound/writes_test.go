@@ -382,9 +382,9 @@ func TestKimaiMarkExportedFailsOnServerRejection(t *testing.T) {
 
 func TestNinjaBankLinkBooksExpense(t *testing.T) {
 	var f fake
-	to := f.serve(t, answer(http.StatusOK, `{"data":[{"id":"B1","status_id":"3"}]}`))
+	to := f.serve(t, answer(http.StatusOK, `{"data":[{"id":"B1","status_id":"3","expense_id":"E1"}]}`))
 
-	if err := outbound.NinjaBankLink(context.Background(), to, "B1", outbound.NinjaBankTarget{Expense: "E1"}); err != nil {
+	if err := outbound.NinjaBankLink(context.Background(), to, "B1", outbound.NinjaBankTarget{Expenses: []string{"E1"}}); err != nil {
 		t.Fatalf("link: %v", err)
 	}
 
@@ -393,6 +393,27 @@ func TestNinjaBankLinkBooksExpense(t *testing.T) {
 	want := roundTrip(t, map[string]any{"transactions": []any{map[string]any{"id": "B1", "expense_id": "E1"}}})
 	if got := c.json(t); !reflect.DeepEqual(any(got), want) {
 		t.Fatalf("body = %v, want %v", got, want)
+	}
+}
+
+// A split books one debit against several expenses, sent as a list;
+// one Ninja skipped (it had a transaction) leaves it unbooked for Andon.
+func TestNinjaBankLinkSplit(t *testing.T) {
+	var f fake
+	to := f.serve(t, answer(http.StatusOK, `{"data":[{"id":"B1","status_id":"3","expense_id":"E1,E2"}]}`))
+
+	if err := outbound.NinjaBankLink(context.Background(), to, "B1", outbound.NinjaBankTarget{Expenses: []string{"E1", "E2"}}); err != nil {
+		t.Fatalf("link: %v", err)
+	}
+	want := roundTrip(t, map[string]any{"transactions": []any{map[string]any{"id": "B1", "expense_id": "E1,E2"}}})
+	if got := f.one(t).json(t); !reflect.DeepEqual(any(got), want) {
+		t.Fatalf("body = %v, want %v", got, want)
+	}
+
+	var g fake
+	to = g.serve(t, answer(http.StatusOK, `{"data":[{"id":"B1","status_id":"3","expense_id":"E1"}]}`))
+	if err := outbound.NinjaBankLink(context.Background(), to, "B1", outbound.NinjaBankTarget{Expenses: []string{"E1", "E2"}}); !errors.Is(err, outbound.ErrPartlyLinked) {
+		t.Fatalf("one skipped: err = %v, want ErrPartlyLinked", err)
 	}
 }
 
@@ -415,7 +436,7 @@ func TestNinjaBankLinkRefusedStaysOpen(t *testing.T) {
 	var f fake
 	to := f.serve(t, answer(http.StatusOK, `{"data":[{"id":"B1","status_id":"1"}]}`))
 
-	err := outbound.NinjaBankLink(context.Background(), to, "B1", outbound.NinjaBankTarget{Expense: "E1"})
+	err := outbound.NinjaBankLink(context.Background(), to, "B1", outbound.NinjaBankTarget{Expenses: []string{"E1"}})
 	if !errors.Is(err, outbound.ErrNotBooked) {
 		t.Fatalf("err = %v, want ErrNotBooked", err)
 	}
