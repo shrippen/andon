@@ -52,6 +52,12 @@ func TestSolarNoYield(t *testing.T) {
 	if len(got) != 1 || got[0].Params["hours"] != 2 || got[0].Severity != enums.SeverityCritical {
 		t.Fatalf("no yield: %+v", got)
 	}
+
+	// Yield again at 11: the dark morning is over.
+	e.Today = append(e.Today, sources.SolarPoint{At: at(11), KWh: 0.5})
+	if got := run(t, "solar.no_yield", &sources.HassDataset{}, env); len(got) != 0 {
+		t.Fatalf("recovered: %+v", got)
+	}
 }
 
 func TestSolarBatteryIdle(t *testing.T) {
