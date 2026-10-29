@@ -63,8 +63,9 @@ const (
 )
 
 // Fields lists them, for the form.
-var Fields = []string{FieldExpense, FieldInvoice, FieldPayment, FieldVendor, FieldCategory, FieldTax, FieldScan, FieldEuer,
-	FieldNumber, FieldNote, FieldBill, FieldPaid, FieldGross, FieldFillCategory, FieldFillEuer, FieldFillNumber, FieldFillScan, FieldFillNote, FieldAmount, FieldDay}
+var Fields = slices.Concat([]string{FieldExpense, FieldInvoice, FieldPayment, FieldVendor, FieldCategory, FieldTax, FieldScan, FieldEuer,
+	FieldNumber, FieldNote, FieldBill, FieldPaid, FieldGross, FieldFillCategory, FieldFillEuer, FieldFillNumber, FieldFillScan, FieldFillNote, FieldAmount, FieldDay},
+	splitFields())
 
 // noTax is the tax field of an expense without tax.
 const noTax = "none"
@@ -103,6 +104,12 @@ type Item struct {
 	Bill      bool   // bill the client
 	Paid      bool   // paid on the booking's day
 	Gross     bool   // the amount includes the tax
+
+	// A split: one part per expense, each with its own amount and day
+	// (the invoice's) in Txn; a private part is no expense.
+	Parts   []Item
+	Private bool
+	CatKey  string // a part's category key, "" none
 }
 
 // Planned is a step as it would be written.
@@ -131,6 +138,10 @@ func Review(ctx context.Context, d *sql.DB, who *access.Principal, scope string,
 func scanChecks(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, steps []Planned) {
 	taken := map[int64]bool{}
 	for i := range steps {
+		if steps[i].Action == string(ActionSplit) && steps[i].Problem == workbench.ProblemNone {
+			splitScans(ctx, d, who, connID, &steps[i], taken)
+			continue
+		}
 		scanTitle(ctx, d, who, connID, &steps[i], taken)
 	}
 }
@@ -216,6 +227,8 @@ func (b book) Check(s *workbench.Step) (Item, workbench.Problem) {
 		it.Payment = &b.ninja.Payments[j]
 	case metrics.ActionCreate:
 		return b.created(s, it)
+	case ActionSplit:
+		return b.split(s, it)
 	case metrics.ActionSkip:
 	default:
 		return it, ProblemTarget
@@ -406,7 +419,7 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 		return workbench.Result{}, err
 	}
 
-	w := &writer{to: outbound.Target{URL: b.conn.URL, Token: token, VerifyTLS: b.conn.VerifyTLS}, book: b, d: d, who: who, ip: ip}
+	w := &writer{to: outbound.Target{URL: b.conn.URL, Token: token, VerifyTLS: b.conn.VerifyTLS}, book: b, d: d, who: who, ip: ip, made: map[string]string{}}
 	out := workbench.Apply[Item](ctx, d, who, w, plan, auditPrefix, ip)
 	svcdata.Forget(b.conn.ID)
 	err = saveState(d, who, func(s *state) { s.Scope = b.scope.Key })
@@ -419,10 +432,11 @@ const auditPrefix = "vatcheck"
 // writer books steps in one Invoice Ninja.
 type writer struct {
 	book
-	to  outbound.Target
-	d   *sql.DB
-	who *access.Principal
-	ip  string
+	to   outbound.Target
+	d    *sql.DB
+	who  *access.Principal
+	ip   string
+	made map[string]string // vendors created by this run, by lower-case name
 }
 
 // Name is the booking's payer, or its text where the bank sent none
@@ -452,7 +466,7 @@ func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
 	case metrics.ActionSkip:
 		return it.Txn.Payer, outbound.NinjaBankArchive(ctx, w.to, it.Txn.Key, outbound.BankArchiveOn)
 	case metrics.ActionLink:
-		if err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expense: it.Expense.Key}); err != nil {
+		if err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expenses: []string{it.Expense.Key}}); err != nil {
 			return it.Expense.Number, err
 		}
 		if err := w.fill(ctx, p); err != nil {
@@ -471,43 +485,18 @@ func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
 		return it.Payment.Number, outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Payment: it.Payment.Key})
 	}
 
-	// A new expense: vendor first if new, the expense with its tax, then
-	// the link that marks the transaction booked.
-	vendor := w.vendorKey(it.Vendor)
-	if vendor == "" {
-		key, err := outbound.NinjaVendorCreate(ctx, w.to, it.Vendor)
-		if err != nil {
-			return "", err
-		}
-		vendor = key
+	if metrics.BankAction(p.Action) == ActionSplit {
+		return w.split(ctx, p)
 	}
-	body := map[string]any{"amount": it.Txn.Amount, "date": it.Txn.Date, "vendor_id": vendor, "public_notes": it.Note,
-		"transaction_reference": it.Txn.Description, "uses_inclusive_taxes": it.Gross, "should_be_invoiced": it.Bill}
-	if !it.Gross {
-		body["amount"] = it.net()
-	}
-	if it.Paid {
-		body["payment_date"] = it.Txn.Date
-	}
-	if it.Number != "" {
-		body["custom_value"+strconv.Itoa(w.numberSlot)] = it.Number
-	}
-	if cat := p.Field(FieldCategory); cat != "" {
-		body["category_id"] = cat
-	}
-	if it.Taxed {
-		body["tax_name1"], body["tax_rate1"] = it.TaxName, it.TaxRate
-	}
-	if it.Euer != "" {
-		body["custom_value"+strconv.Itoa(w.cats.EuerSlot)] = it.Euer
-	}
-	key, number, err := outbound.NinjaExpenseCreate(ctx, w.to, body)
+
+	// A new expense, then the link that marks the transaction booked.
+	key, number, err := w.expense(ctx, it, p.Field(FieldCategory), it.Txn.Date)
 	if err != nil {
 		return "", err
 	}
 	// A receipt's expense has no booking to link: cash or private money.
 	if metrics.BankAction(p.Action) != ActionReceipt {
-		if err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expense: key}); err != nil {
+		if err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expenses: []string{key}}); err != nil {
 			return number, fmt.Errorf("%s: %w", number, err)
 		}
 	}
@@ -520,6 +509,43 @@ func (w *writer) Write(ctx context.Context, p Planned) (string, error) {
 		return number, workbench.Partly{Target: number, Reason: "vatcheck.problem_scan"}
 	}
 	return number, nil
+}
+
+// expense creates a new expense: vendor first if new, the expense with
+// its tax, category key cat, paid on day paidOn when it.Paid.
+func (w *writer) expense(ctx context.Context, it Item, cat, paidOn string) (key, number string, err error) {
+	vendor := cmp.Or(w.vendorKey(it.Vendor), w.made[strings.ToLower(it.Vendor)])
+	if vendor == "" {
+		if vendor, err = outbound.NinjaVendorCreate(ctx, w.to, it.Vendor); err != nil {
+			return "", "", err
+		}
+		// Two parts of one split may share a new vendor: created once.
+		if w.made == nil {
+			w.made = map[string]string{}
+		}
+		w.made[strings.ToLower(it.Vendor)] = vendor
+	}
+	body := map[string]any{"amount": it.Txn.Amount, "date": it.Txn.Date, "vendor_id": vendor, "public_notes": it.Note,
+		"transaction_reference": it.Txn.Description, "uses_inclusive_taxes": it.Gross, "should_be_invoiced": it.Bill}
+	if !it.Gross {
+		body["amount"] = it.net()
+	}
+	if it.Paid {
+		body["payment_date"] = paidOn
+	}
+	if it.Number != "" {
+		body["custom_value"+strconv.Itoa(w.numberSlot)] = it.Number
+	}
+	if cat != "" {
+		body["category_id"] = cat
+	}
+	if it.Taxed {
+		body["tax_name1"], body["tax_rate1"] = it.TaxName, it.TaxRate
+	}
+	if it.Euer != "" {
+		body["custom_value"+strconv.Itoa(w.cats.EuerSlot)] = it.Euer
+	}
+	return outbound.NinjaExpenseCreate(ctx, w.to, body)
 }
 
 // fill writes what a found expense lacked: its fields, then its scan

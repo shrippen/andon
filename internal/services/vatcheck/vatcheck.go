@@ -131,6 +131,7 @@ type Case struct {
 	parts  []Part            // the parts it counts (partsOf)
 	gaps   []Part            // what the expense found or filled lacks
 	lacks  map[string][]Part // each candidate expense's gaps, by key
+	Split  []SplitPart       // a debit's slots for a split (maxParts)
 }
 
 // Account is a bank account of Invoice Ninja or Sure and its role.
@@ -211,6 +212,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 	}
 	parts := partsOf(p.Euer != "", p.Number, b.scanSlot > 0)
 	vendorEuer := metrics.VendorEuer(b.ninja, b.cats.EuerSlot)
+	pool := b.splitPool(ctx, d, who, p.Span)
 	guesses := b.state.guesses(b.conn.ID)
 	for _, c := range cases {
 		g, ok := guesses[c.Txn.Key]
@@ -226,6 +228,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 			cs.Note = noteOf(cs.Txn)
 		}
 		b.gapped(&cs)
+		b.splitOf(&cs, pool, vendorEuer)
 		b.propose(ctx, d, who, &cs)
 		if cs.Waiting() {
 			p.Cases = append(p.Cases, cs)
@@ -587,6 +590,12 @@ func (p Page) proposed() map[int64]bool {
 		for _, c := range cases {
 			if id := c.Scan(); id != 0 {
 				out[id] = true
+			}
+			// A scan naming a booking's order is a part of its split.
+			for _, part := range c.Split {
+				if part.Order && part.Scan != nil {
+					out[part.Scan.Doc.ID] = true
+				}
 			}
 		}
 	}

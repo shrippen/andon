@@ -246,8 +246,73 @@
         <input class="input" name="note_{{$k}}" value="{{$c.Note}}" data-part="note"></label>
     </div>
   </div>{{end}}
+  {{with $c.Split}}{{template "vat_split" dict "C" $c "P" $p}}{{end}}
   <div class="btn-row"><button type="button" class="btn btn-accent" data-take-next>{{t "vatcheck.take_next"}}</button><button type="button" class="btn btn-outline" data-later>{{t "vatcheck.later"}}</button></div>
 </section>{{end}}
+
+{{/* A split: the invoices of one debit on the left (ticked: a part),
+     the sum bar and what holds for all parts; each part's expense on
+     the right, folded. Slot i sends s<i>.<field>; use says whether it
+     is a part (expense) or a private one, "" leaves it out. Empty slots
+     wait for "part without scan". */}}
+{{define "vat_split"}}{{$c := .C}}{{$p := .P}}{{$k := $c.Txn.Key}}
+<div class="bench-cols" data-for="split" data-split data-total="{{$c.Txn.Amount}}"{{if ne $c.Act "split"}} hidden{{end}}>
+  <div class="bench-col">
+    <div class="h-label">{{t "vatcheck.split_scans"}}</div>
+    <p class="small muted">{{t "vatcheck.split_lead"}}</p>
+    <div class="picks">{{range $i, $s := $c.Split}}{{if not $s.Blank}}
+      <label class="check pick{{if not $s.Order}} is-other{{end}}"><input type="checkbox" data-split-on="{{$i}}"{{if $s.Order}} checked{{end}}><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>
+        {{with $s.Scan}}<span class="pick-thumb"><img src="/receipts/thumb/{{.Doc.ID}}" alt="" loading="lazy"></span>
+        <span class="pick-text"><b>{{.Doc.Title}}</b><small>{{day $s.Day}}{{with .Doc.Correspondent}} · {{.}}{{end}}</small></span>{{if $s.Order}}<span class="pill" data-state="applied">{{t "vatcheck.split_order"}}</span>{{end}}
+        {{else}}<span class="pick-text"><b>{{t "vatcheck.split_found" "number" $s.Expense.Number}}</b><small>{{day $s.Day}}{{with $s.Draft.Vendor}} · {{.}}{{end}}</small></span>{{end}}
+        <span class="num">{{num $s.Amount 2}}</span></label>{{end}}{{end}}
+    </div>
+    <div class="btn-row"><button type="button" class="btn btn-outline btn-sm" data-split-add>{{t "vatcheck.split_blank"}}</button></div>
+    <div class="sumbar" data-split-bar data-zero="{{money 0 $p.Currency}}" data-sum-text="{{t "vatcheck.split_sum" "n" "#n" "sum" "#sum" "total" (money $c.Txn.Amount $p.Currency)}}"
+      data-rest-text="{{t "vatcheck.split_rest" "amount" "#a"}}" data-over-text="{{t "vatcheck.split_over" "amount" "#a"}}" data-rest-name="{{t "vatcheck.split_rest_name"}}">
+      <div class="progress-bar" role="img" aria-label="{{t "vatcheck.split_scans"}}"><i class="rest" data-style="--p:100%"></i></div>
+      <div class="sumbar-line"><span data-split-sum></span><span data-split-rest data-state="bad"></span></div>
+      <ul class="legend" data-split-key></ul>
+    </div>
+    <div class="h-label">{{t "vatcheck.split_common"}}</div>
+    <label class="check"><input type="checkbox" name="sgross_{{$k}}" value="on" checked><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>{{t "vatcheck.gross"}}</label><input type="hidden" name="sgross_{{$k}}" value="off">
+    <label class="check"><input type="checkbox" name="spaid_{{$k}}" value="on" checked><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>{{t "vatcheck.paid" "day" (day $c.Txn.Date)}}</label><input type="hidden" name="spaid_{{$k}}" value="off">
+    <label class="check"><input type="checkbox" name="sbill_{{$k}}" value="on"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>{{t "vatcheck.bill"}}</label><input type="hidden" name="sbill_{{$k}}" value="off">
+  </div>
+  <div class="bench-col">
+    <div class="h-label">{{t "vatcheck.split_parts"}}</div>
+    {{range $i, $s := $c.Split}}{{$f := print "s" $i "."}}{{$d := $s.Draft}}
+    <details class="fold" data-slot="{{$i}}"{{if not $s.Order}} hidden{{end}}>
+      <summary><span data-slot-name>{{if $s.Blank}}{{t "vatcheck.split_blank"}}{{else}}{{$d.Vendor}}{{end}}</span><span class="count" data-slot-amount>{{if $s.Amount}}{{num $s.Amount 2}}{{end}}</span></summary>
+      <div class="body">
+        <label class="field"><span class="field-label">{{t "vatcheck.split_use"}}</span>
+          <select class="select" name="{{$f}}use_{{$k}}" data-split-use><option value="">{{t "vatcheck.split_use_off"}}</option><option value="expense"{{if $s.Order}} selected{{end}}>{{t "vatcheck.split_use_expense"}}</option><option value="private">{{t "vatcheck.split_use_private"}}</option></select></label>
+        {{with $s.Expense}}<input type="hidden" name="{{$f}}exp_{{$k}}" value="{{.Key}}"><input type="hidden" name="{{$f}}amount_{{$k}}" value="{{decimal .Amount}}" data-split-amount>
+        <p class="small">{{t "vatcheck.split_found" "number" .Number}} · {{day .Date}} · {{money .Amount $p.Currency}}</p>
+        {{else}}{{with $s.Scan}}<input type="hidden" name="{{$f}}scan_{{$k}}" value="{{.Doc.ID}}">{{end}}
+        <div class="bench-pair">
+          <label class="field"><span class="field-label">{{t "col.amount"}}</span><input class="input" name="{{$f}}amount_{{$k}}" value="{{if $s.Amount}}{{decimal $s.Amount}}{{end}}" inputmode="decimal" data-split-amount></label>
+          <label class="field"><span class="field-label">{{t "vatcheck.split_day"}}</span><input class="input" type="date" name="{{$f}}day_{{$k}}" value="{{$s.Day}}"></label>
+        </div>
+        <label class="field"><span class="field-label">{{t "vatcheck.vendor"}}{{if $d.VendorKey}}<span class="field-origin">{{t "vatcheck.origin_known"}}</span>{{else if $d.Vendor}}<span class="field-origin">{{t "vatcheck.origin_new"}}</span>{{end}}</span>
+          <input class="input" name="{{$f}}vendor_{{$k}}" value="{{$d.Vendor}}" list="vat-vendors" data-split-vendor></label>
+        <div class="bench-pair">
+          <label class="field"><span class="field-label">{{t "vatcheck.category"}}</span>
+            <select class="select" name="{{$f}}cat_{{$k}}"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $d.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+          {{if $p.Euer}}<label class="field"><span class="field-label">{{$p.Euer}}</span>
+            <select class="select" name="{{$f}}euer_{{$k}}"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select></label>{{end}}
+        </div>
+        <div class="bench-pair">
+          <label class="field"><span class="field-label">{{t "vatcheck.tax"}}</span>
+            <select class="select" name="{{$f}}tax_{{$k}}">{{if not $d.TaxKnown}}<option value="" selected>{{t "vatcheck.tax_pick"}}</option>{{end}}<option value="none">{{t "vatcheck.no_tax"}}</option>{{range $p.Ledger.TaxRates}}<option value="{{.Rate}}"{{if and $d.TaxKnown (eq .Rate $d.TaxRate)}} selected{{end}}>{{.Name}} {{num .Rate 0}} %</option>{{end}}</select></label>
+          {{if $p.Number}}<label class="field"><span class="field-label">{{or $p.NumberOf (t "vatcheck.number")}}</span>
+            <input class="input" name="{{$f}}num_{{$k}}" value="{{$s.Number}}"></label>{{end}}
+        </div>
+        <label class="field"><span class="field-label">{{t "vatcheck.note"}}</span><input class="input" name="{{$f}}note_{{$k}}" value="{{$s.Note}}"></label>{{end}}
+      </div>
+    </details>{{end}}
+  </div>
+</div>{{end}}
 
 {{/* An expense found or filled: which one, and what it lacks, each
      field with its proposal; a value it has is not offered. */}}
@@ -324,6 +389,10 @@
           {{else if eq .Action "invoice"}}{{t "vatcheck.do_invoice" "number" $i.Invoice.Number}}
           {{else if eq .Action "payment"}}{{t "vatcheck.do_payment" "number" $i.Payment.Number}}
           {{else if eq .Action "skip"}}{{t "vatcheck.do_skip"}}
+          {{else if eq .Action "split"}}{{t "vatcheck.do_split" "n" (len $i.Parts)}}
+            <ul>{{range $i.Parts}}<li>{{if .Private}}{{t "vatcheck.do_part_private" "amount" (money .Txn.Amount $.Plan.Currency)}}{{with .Note}} · „{{.}}“{{end}}
+              {{else if .Expense}}{{t "vatcheck.do_link" "number" .Expense.Number}} · {{money .Txn.Amount $.Plan.Currency}}
+              {{else}}{{if .NewVendor}}{{t "vatcheck.do_vendor" "vendor" .Vendor}} {{end}}{{t "vatcheck.do_part" "vendor" .Vendor "amount" (money .Txn.Amount $.Plan.Currency) "day" (day .Txn.Date)}}{{template "vat_new" dict "I" . "Currency" $.Plan.Currency}}{{end}}</li>{{end}}</ul>
           {{else}}{{if $i.NewVendor}}{{t "vatcheck.do_vendor" "vendor" $i.Vendor}} {{end}}{{t "vatcheck.do_create" "vendor" $i.Vendor}}{{template "vat_new" dict "I" $i "Currency" $.Plan.Currency}}{{end}}
         </li>{{end}}</ol>
       <p>{{if .Plan.Writes}}<button type="submit" class="btn btn-accent">{{t "vatcheck.apply" "n" .Plan.Writes}}</button>{{else}}<button type="submit" class="btn btn-outline">{{t "vatcheck.apply_skip"}}</button>{{end}}

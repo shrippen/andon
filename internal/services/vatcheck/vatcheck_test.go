@@ -117,7 +117,7 @@ func ninjaFake(t *testing.T, w *writes, b1Status string) string {
 		case "bank_transactions/match":
 			list, _ := body["transactions"].([]any)
 			item, _ := list[0].(map[string]any)
-			_ = json.NewEncoder(rw).Encode(map[string]any{"data": []any{map[string]any{"id": item["id"], "status_id": "3"}}})
+			_ = json.NewEncoder(rw).Encode(map[string]any{"data": []any{map[string]any{"id": item["id"], "status_id": "3", "expense_id": item["expense_id"]}}})
 		case "expenses/e2", "expenses/e3":
 			_ = json.NewEncoder(rw).Encode(map[string]any{"data": map[string]any{"id": strings.TrimPrefix(path, "expenses/")}})
 		case "bank_transactions/bulk":
