@@ -1339,7 +1339,7 @@ Grundlage sind **Kategorien** ([`CAPABILITIES.md`](CAPABILITIES.md), „Kategori
 - [x] Inventar-Kacheln (Kennzahl, Termin-Tabelle) lesen über die Kategorie *(`InventoryData.Dates`, `metrics.AssetDates`, `metrics.AssetValue`; „Bereit“ bleibt Snipe-IT)*
 - [x] Werkbank „Käufe“: Garantie nach Kept (MCP `add_warranty`); fehlt das Modul, sagt die Seite es statt zu scheitern
 - [x] Werkbank „Inventar“: Gerät als Ding im ersten Ort des Tokens unter „Unplaced“ anlegen
-- [ ] Ort und Raum als Option der Verbindung
+- [x] Ort und Raum als Option der Verbindung (`location`, `place`: Namen; ohne sie erster Ort, „Unplaced“; ein Name, den Kept nicht kennt, scheitert statt auszuweichen)
 - [x] `QA.md`: Kept verbinden, Fristen aus Kept, AfA in der EÜR-Vorbereitung, Beleg-Hinweis bis Paperless
 
 **Danach:** Bank-Kategorie für weitere Dienste (Actual Budget …) nur bei Bedarf.

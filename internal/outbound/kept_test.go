@@ -3,6 +3,7 @@ package outbound_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,8 +12,8 @@ import (
 	"andon/internal/outbound"
 )
 
-// A new thing goes to the location's "Unplaced"; a warranty goes through
-// Kept's MCP tool, whose refusal comes back as an error.
+// A new thing goes to the room named, else the location's "Unplaced"; a
+// room not there is refused. A warranty goes through Kept's MCP tool, whose refusal comes back as an error.
 func TestKeptWrites(t *testing.T) {
 	var created, tool map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -23,7 +24,7 @@ func TestKeptWrites(t *testing.T) {
 		body, _ := io.ReadAll(r.Body)
 		switch r.Method + " " + r.URL.Path {
 		case "GET /api/v1/locations/loc1/places":
-			io.WriteString(w, `{"places":[{"id":"room","isUnplaced":false},{"id":"unplaced","isUnplaced":true}]}`)
+			io.WriteString(w, `{"places":[{"id":"room","name":"Werkstatt","isUnplaced":false},{"id":"unplaced","name":"Unplaced","isUnplaced":true}]}`)
 		case "POST /api/v1/things":
 			json.Unmarshal(body, &created)
 			io.WriteString(w, `{"id":"t9","shortCode":"ABCDEF"}`)
@@ -51,6 +52,13 @@ func TestKeptWrites(t *testing.T) {
 	}
 	if created["placeId"] != "unplaced" || created["name"] != "NAS" || created["notes"] != "192.168.1.5" || created["serial"] != nil {
 		t.Errorf("body %v", created)
+	}
+
+	if _, err := outbound.KeptThingCreate(ctx, to, outbound.KeptNew{Location: "loc1", Place: " werkstatt ", Name: "NAS"}); err != nil || created["placeId"] != "room" {
+		t.Errorf("room: %v %v", err, created)
+	}
+	if _, err := outbound.KeptThingCreate(ctx, to, outbound.KeptNew{Location: "loc1", Place: "Keller", Name: "NAS"}); !errors.Is(err, outbound.ErrKeptNoPlace) {
+		t.Errorf("no room: %v", err)
 	}
 
 	if err := outbound.KeptWarranty(ctx, to, "t9", 24); err != nil {

@@ -5,7 +5,7 @@ package outbound
 // warranties and the trash from REST tokens: warranties go through its
 // MCP tool, and nothing is deleted.
 //
-//	GET    api/v1/locations/{id}/places  → the location's "Unplaced"
+//	GET    api/v1/locations/{id}/places  → the room named, else "Unplaced"
 //	POST   api/v1/things                 {locationId, placeId, name, serial, notes} → its id
 //	MCP    add_warranty                  {thing_id, kind, term_months}
 
@@ -13,6 +13,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 
 	"andon/internal/drivers/services"
 )
@@ -25,13 +26,14 @@ const (
 	keptWarrantyTool = "add_warranty"
 )
 
-// ErrKeptNoPlace means the location has no "Unplaced" place to put a new
-// thing in.
-var ErrKeptNoPlace = errors.New("kept: location without unplaced place")
+// ErrKeptNoPlace means the location has no such place to put a new thing
+// in: none of the name asked for, or no "Unplaced".
+var ErrKeptNoPlace = errors.New("kept: location without that place")
 
 // KeptNew is a thing to add to a location.
 type KeptNew struct {
 	Location     string // Kept's location id
+	Place        string // a place's name there (a room), "" the location's "Unplaced"
 	Name, Serial string
 	Notes        string
 }
@@ -40,11 +42,11 @@ func kept(to Target) services.KeptApi {
 	return services.KeptApi{URL: to.URL, Token: to.Token, Verify: to.VerifyTLS}
 }
 
-// KeptThingCreate adds a thing to the location's "Unplaced" and returns
-// its id.
+// KeptThingCreate adds a thing to the place named, else to the
+// location's "Unplaced", and returns its id.
 func KeptThingCreate(ctx context.Context, to Target, t KeptNew) (string, error) {
 	api := kept(to)
-	place, err := keptUnplaced(ctx, api, t.Location)
+	place, err := keptPlace(ctx, api, t.Location, t.Place)
 	if err != nil {
 		return "", err
 	}
@@ -66,16 +68,20 @@ func KeptThingCreate(ctx context.Context, to Target, t KeptNew) (string, error) 
 	return id, nil
 }
 
-// keptUnplaced is the location's place for things without one.
-func keptUnplaced(ctx context.Context, api services.KeptApi, location string) (string, error) {
+// keptPlace is the location's place of that name (any case), or with no
+// name its place for things without one ("Unplaced").
+func keptPlace(ctx context.Context, api services.KeptApi, location, name string) (string, error) {
 	raw, err := api.Get(ctx, keptLocations+location+keptPlaces, nil)
 	if err != nil {
 		return "", err
 	}
+	name = strings.TrimSpace(name)
 	places, _ := raw.(map[string]any)["places"].([]any)
 	for _, p := range places {
 		m, _ := p.(map[string]any)
-		if unplaced, _ := m["isUnplaced"].(bool); unplaced {
+		unplaced, _ := m["isUnplaced"].(bool)
+		own, _ := m["name"].(string)
+		if (name == "" && unplaced) || (name != "" && strings.EqualFold(strings.TrimSpace(own), name)) {
 			id, _ := m["id"].(string)
 			return id, nil
 		}

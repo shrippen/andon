@@ -1836,7 +1836,7 @@ conn:
   secret_wallos: API key
   what_kept: 'Kept is an inventory for home and office: things with purchase, warranty, receipts and expiry dates.'
   about_kept: 'Inventory with warranties, receipts and due dates'
-  options_hint_kept: 'Token = personal token from Kept → Settings → Connections, for the locations Andon should read (“read and write” if Andon should add warranties and devices; then turn on the MCP module in the location). URL = address of Kept, with https (without it Kept hands out no tokens). Option life_field: key of the custom field with the useful life in months (default nutzungsdauer); Andon depreciates by it.'
+  options_hint_kept: 'Token = personal token from Kept → Settings → Connections, for the locations Andon should read (“read and write” if Andon should add warranties and devices; then turn on the MCP module in the location). URL = address of Kept, with https (without it Kept hands out no tokens). Option life_field: key of the custom field with the useful life in months (default nutzungsdauer); Andon depreciates by it. Options location and place: names of the location and room where the inventory bench puts new devices (default: first location, “Unplaced”).'
   secret_kept: Token
   router_kind: Router
   choice_opnsense: OPNsense
@@ -7578,7 +7578,7 @@ dunning:
   lead: 'Invoices whose next reminder is due by the schedule and not sent yet. Without your own text Invoice Ninja sends the stage’s template. Nothing is ticked by itself: the mails go to your clients.'
 inventory:
   title: 'Inventory'
-  lead: 'Devices the router or the FRITZ!Box knows that no inventory asset (Snipe-IT or Kept) is named like. After the review Andon adds them there (Snipe-IT: name, model, status; Kept: name, in the first location’s “Unplaced”; IP and MAC as note) or puts them on the hint’s ignore list.'
+  lead: 'Devices the router or the FRITZ!Box knows that no inventory asset (Snipe-IT or Kept) is named like. After the review Andon adds them there (Snipe-IT: name, model, status; Kept: name, in the location and room of the connection’s options, else in the first location’s “Unplaced”; IP and MAC as note) or puts them on the hint’s ignore list.'
   no_write: '{service} takes no new assets from Andon: Kept needs a “read and write” token and the MCP module in the location (connection → capabilities).'
   sources: 'Read from:'
   no_sources: 'The bundle has neither a router nor a FRITZ!Box: Andon knows no devices in the network.'
@@ -7607,6 +7607,8 @@ inventory:
   err_no_inventory: 'No inventory (Snipe-IT, Kept) you may use.'
   err_no_write: 'The inventory takes no new assets from Andon.'
   err_demo: 'The demo does not write to the inventory.'
+  err_kept_location: 'The token reaches no location named as in the Kept connection’s option location.'
+  err_kept_place: 'The Kept location has no room named as in the option place.'
 updates:
   summarize: 'Sum up the changelog'
   summarize_privacy: 'Sends the image, both versions and the release notes from GitHub to Claude (Anthropic).'

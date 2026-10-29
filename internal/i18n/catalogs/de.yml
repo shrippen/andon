@@ -1836,7 +1836,7 @@ conn:
   secret_wallos: API-Schlüssel
   what_kept: 'Kept ist ein Inventar für Haushalt und Büro: Gegenstände mit Kauf, Garantie, Belegen und Ablaufdaten.'
   about_kept: 'Inventar mit Garantien, Belegen und Fristen'
-  options_hint_kept: 'Token = persönliches Token aus Kept → Einstellungen → Verbindungen, für die Orte, die Andon lesen soll („Lesen und Schreiben“, wenn Andon Garantien und Geräte eintragen soll; dafür im Ort das Modul MCP einschalten). URL = Adresse von Kept, mit https (ohne gibt Kept keine Tokens heraus). Option life_field: Schlüssel des eigenen Felds mit der Nutzungsdauer in Monaten (Vorgabe nutzungsdauer), daraus rechnet Andon die AfA.'
+  options_hint_kept: 'Token = persönliches Token aus Kept → Einstellungen → Verbindungen, für die Orte, die Andon lesen soll („Lesen und Schreiben“, wenn Andon Garantien und Geräte eintragen soll; dafür im Ort das Modul MCP einschalten). URL = Adresse von Kept, mit https (ohne gibt Kept keine Tokens heraus). Option life_field: Schlüssel des eigenen Felds mit der Nutzungsdauer in Monaten (Vorgabe nutzungsdauer), daraus rechnet Andon die AfA. Optionen location und place: Name des Orts und des Raums, in die die Inventur neue Geräte legt (Vorgabe: erster Ort, „Unplaced“).'
   secret_kept: Token
   router_kind: Router
   choice_opnsense: OPNsense
@@ -7579,7 +7579,7 @@ dunning:
   lead: 'Rechnungen, deren nächste Erinnerung laut Mahnplan fällig ist und noch nicht verschickt wurde. Ohne eigenen Text verschickt Invoice Ninja seine Vorlage der Stufe. Nichts ist vorab angehakt: die Mails gehen an deine Kunden.'
 inventory:
   title: 'Inventur'
-  lead: 'Geräte, die der Router oder die FRITZ!Box kennt und die im Inventar (Snipe-IT oder Kept) kein Gegenstand gleichen Namens hat. Nach dem Prüfen legt Andon sie dort an (Snipe-IT: Name, Modell, Status; Kept: Name im ersten Ort unter „Unplaced“; IP und MAC als Notiz) oder nimmt sie in die Ausnahmen des Hinweises auf.'
+  lead: 'Geräte, die der Router oder die FRITZ!Box kennt und die im Inventar (Snipe-IT oder Kept) kein Gegenstand gleichen Namens hat. Nach dem Prüfen legt Andon sie dort an (Snipe-IT: Name, Modell, Status; Kept: Name im Ort und Raum aus den Optionen der Verbindung, sonst im ersten Ort unter „Unplaced“; IP und MAC als Notiz) oder nimmt sie in die Ausnahmen des Hinweises auf.'
   no_write: '{service} nimmt von Andon keine neuen Gegenstände an: Kept braucht ein Token „Lesen und Schreiben“ und im Ort das Modul MCP (Verbindung → Fähigkeiten).'
   sources: 'Gelesen aus:'
   no_sources: 'Der Verbund hat weder einen Router noch eine FRITZ!Box: Andon kennt keine Geräte im Netz.'
@@ -7608,6 +7608,8 @@ inventory:
   err_no_inventory: 'Kein Inventar (Snipe-IT, Kept), das du nutzen darfst.'
   err_no_write: 'Das Inventar nimmt von Andon keine neuen Gegenstände an.'
   err_demo: 'Die Demo schreibt nicht ins Inventar.'
+  err_kept_location: 'Den Ort aus der Option location der Kept-Verbindung erreicht das Token nicht.'
+  err_kept_place: 'Der Ort in Kept hat keinen Raum mit dem Namen aus der Option place.'
 updates:
   summarize: 'Changelog zusammenfassen'
   summarize_privacy: 'Schickt Image, beide Versionen und die Release-Notes von GitHub an Claude (Anthropic).'

@@ -139,6 +139,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 1. Hinweis „Geräte ohne Inventar“ → `/inventory`: Geräte der FRITZ!Box mit IP und MAC, „Gelesen aus“ nennt sie.
 2. Die Demo hat Kept und Snipe-IT; Kept zählt: „In Kept anlegen“ ohne Modell und Status → „Prüfen“ nennt „Als … anlegen“ (Demo lehnt ab); ein anderes „Ignorieren“ → verschwindet, steht unter Bereich → Regeln in den Ausnahmen. Nur mit Snipe-IT: „In Snipe-IT anlegen“ verlangt Modell aus der Liste und Status.
 3. Kept mit Token nur zum Lesen oder ohne Modul MCP: Hinweis „Kept nimmt von Andon keine neuen Gegenstände an“, kein „Anlegen“.
+4. Kept-Verbindung mit Optionen `location` und `place` (Namen eines Orts und Raums): „In Kept anlegen“ legt das Gerät dort an; ein unbekannter Name → Schritt scheitert mit „… keinen Raum …“ bzw. „… Ort … erreicht das Token nicht“.
 **J-C10 Updates**
 1. Hinweis „Updates verfügbar“ → `/updates`: Uptime Kuma (WUD) mit neuem Tag, Dawarich aus dem Release-Feed (0.30.6 → 0.30.9, Link zum Release), Immich ohne festen Tag nicht wählbar.
 2. Tag ändern, „Prüfen“ nennt Repo, Datei und alt → neu; „Pull Requests öffnen“ (Demo lehnt ab).
