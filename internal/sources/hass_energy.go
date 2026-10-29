@@ -94,6 +94,9 @@ func (e *HassEnergy) Battery() bool { return e != nil && len(e.Charge)+len(e.Dis
 
 // Location is the zone the days are in; the server's when unknown.
 func (e *HassEnergy) Location() *time.Location {
+	if e == nil {
+		return time.Local
+	}
 	if loc, err := time.LoadLocation(e.Zone); err == nil && e.Zone != "" {
 		return loc
 	}

@@ -14,17 +14,21 @@ func near(a, b float64) bool { return math.Abs(a-b) < 1e-9 }
 // 10 kWh made, 2 exported, 5 imported, battery in 3 out 2.5:
 // self use 8 (80 %), consumption 12.5, autarky 7.5/12.5 = 60 %.
 func TestSolarSpan(t *testing.T) {
-	s := metrics.SolarSum([]sources.SolarDay{{Solar: 4}, {Solar: 6, Import: 5, Export: 2, Charge: 3, Discharge: 2.5}})
+	grid := &sources.HassEnergy{Solar: []string{"pv"}, Import: []string{"in"}, Export: []string{"out"}}
+	s := metrics.SolarSum(grid, []sources.SolarDay{{Solar: 4}, {Solar: 6, Import: 5, Export: 2, Charge: 3, Discharge: 2.5}})
 	rate, ok := s.SelfRate()
 	aut, ok2 := s.Autarky()
 	if s.Yield != 10 || s.SelfUse() != 8 || !ok || !near(rate, 0.8) || s.Consumption() != 12.5 || !ok2 || !near(aut, 0.6) {
 		t.Fatalf("span %+v rate %v aut %v", s, rate, aut)
 	}
-	if _, ok := (metrics.SolarSpan{}).SelfRate(); ok {
+	if _, ok := metrics.SolarSum(grid, nil).SelfRate(); ok {
 		t.Fatal("rate without yield")
 	}
-	if _, ok := (metrics.SolarSpan{Yield: 3}).Autarky(); ok {
+	if _, ok := metrics.SolarSum(nil, []sources.SolarDay{{Solar: 3}}).Autarky(); ok {
 		t.Fatal("autarky without a grid")
+	}
+	if metrics.SolarHours(nil) != nil || metrics.SolarDayKey(nil, time.Now()) == "" {
+		t.Fatal("nil dataset")
 	}
 }
 
@@ -70,6 +74,30 @@ func TestSolarFigures(t *testing.T) {
 	e.Charge, e.Discharge = nil, nil
 	if _, ok := metrics.BatteryIdleDays(e, "2026-10-29", 0.5); ok {
 		t.Fatal("idle without a battery")
+	}
+}
+
+// Rate and autarky need their roles, not values: without an export
+// statistic there is no rate, without import and export no autarky; a
+// day without grid flow is fully self-sufficient.
+func TestSolarRoles(t *testing.T) {
+	now := time.Date(2026, 10, 29, 12, 0, 0, 0, time.UTC)
+	read := func(e *sources.HassEnergy) map[string]float64 {
+		e.Days = []sources.SolarDay{{Day: "2026-10-28", Solar: 5, Discharge: 1, Charge: 1}}
+		return metrics.Read(metrics.Scope{Datasets: map[string]any{sources.HassEnergyKey: e}}, now).Past["2026-10-28"]
+	}
+
+	only := read(&sources.HassEnergy{Solar: []string{"pv"}})
+	if _, ok := only[metrics.SolarSelfKey]; ok {
+		t.Fatalf("rate without export: %v", only)
+	}
+	noImport := read(&sources.HassEnergy{Solar: []string{"pv"}, Export: []string{"out"}})
+	if _, ok := noImport[metrics.SolarAutarkyKey]; ok {
+		t.Fatalf("autarky without import: %v", noImport)
+	}
+	grid := read(&sources.HassEnergy{Solar: []string{"pv"}, Import: []string{"in"}, Export: []string{"out"}})
+	if grid[metrics.SolarAutarkyKey] != 1 || grid[metrics.SolarSelfKey] != 1 {
+		t.Fatalf("day off the grid: %v", grid)
 	}
 }
 

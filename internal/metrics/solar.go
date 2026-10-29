@@ -18,14 +18,17 @@ import (
 // fiveMinutesPerHour turns a 5-minute step's kWh into kW.
 const fiveMinutesPerHour = 12
 
-// SolarSpan is a span's energy in kWh.
+// SolarSpan is a span's energy in kWh, with the roles Home Assistant
+// knows: a missing statistic reads as 0 kWh, not as "none".
 type SolarSpan struct {
 	Yield, Import, Export, Charge, Discharge float64
+
+	exports, imports bool // export and import statistics are known
 }
 
-// SolarSum adds days (or months) up.
-func SolarSum(days []sources.SolarDay) SolarSpan {
-	var s SolarSpan
+// SolarSum adds e's days (or months) up.
+func SolarSum(e *sources.HassEnergy, days []sources.SolarDay) SolarSpan {
+	s := SolarSpan{exports: e != nil && len(e.Export) > 0, imports: e != nil && len(e.Import) > 0}
 	for _, d := range days {
 		s.Yield += d.Solar
 		s.Import += d.Import
@@ -45,19 +48,20 @@ func (s SolarSpan) Consumption() float64 {
 	return max(s.Import+s.Yield-s.Export+s.Discharge-s.Charge, 0)
 }
 
-// SelfRate is the share of the yield used at home; false without yield.
+// SelfRate is the share of the yield used at home; false without yield
+// or without an export statistic (all would count as used).
 func (s SolarSpan) SelfRate() (float64, bool) {
-	if s.Yield <= 0 {
+	if s.Yield <= 0 || !s.exports {
 		return 0, false
 	}
 	return s.SelfUse() / s.Yield, true
 }
 
 // Autarky is the share of the consumption not imported; false without
-// consumption or without a known grid (no import nor export).
+// consumption or without import and export statistics.
 func (s SolarSpan) Autarky() (float64, bool) {
 	used := s.Consumption()
-	if used <= 0 || s.Import+s.Export == 0 {
+	if used <= 0 || !s.exports || !s.imports {
 		return 0, false
 	}
 	return min(max((used-s.Import)/used, 0), 1), true
@@ -122,11 +126,17 @@ func SolarPower(e *sources.HassEnergy) (float64, time.Time, bool) {
 	return last.KWh * fiveMinutesPerHour, last.At, true
 }
 
-// SolarHours adds the 5-minute curve up per hour, oldest first.
+// SolarHours adds the 5-minute curve up per hour in Home Assistant's
+// zone (Kolkata's hours start at :30 UTC), oldest first.
 func SolarHours(e *sources.HassEnergy) []sources.SolarPoint {
+	if e == nil {
+		return nil
+	}
+	loc := e.Location()
 	var out []sources.SolarPoint
 	for _, p := range e.Today {
-		hour := p.At.Truncate(time.Hour)
+		local := p.At.In(loc)
+		hour := time.Date(local.Year(), local.Month(), local.Day(), local.Hour(), 0, 0, 0, loc)
 		if n := len(out); n > 0 && out[n-1].At.Equal(hour) {
 			out[n-1].KWh += p.KWh
 			continue
@@ -175,7 +185,7 @@ func init() {
 		loc := e.Location()
 		yesterday := now.In(loc).AddDate(0, 0, -1).Format(time.DateOnly)
 		if d, ok := SolarOn(e, yesterday); ok {
-			span := SolarSum([]sources.SolarDay{d})
+			span := SolarSum(e, []sources.SolarDay{d})
 			r.SetOn(yesterday, SolarYieldKey, span.Yield)
 			if rate, ok := span.SelfRate(); ok {
 				r.SetOn(yesterday, SolarSelfKey, rate)
