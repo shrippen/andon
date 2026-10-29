@@ -161,6 +161,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 2. „Kein Beleg zu Monitor 27"“ (`inventory.receipt_missing`), „1 Beleg in Kept verweist ins Leere: Möwe 7“ (Paperless-Dokument 999 fehlt). „In Kept öffnen“ führt auf `/t/<Kurzcode>`.
 3. Ein Kept zählt in jedem Verbund, in den es kommt, vor Snipe-IT (AfA, Kosten); eine Verbindung, die als einzige ihres Dienstes besteht, kommt auch in fremde Verbünde (`verbund.fillGroup`). `inventory.split` nennt Gegenstände, die nur Snipe-IT hat, und rät, sie in Kept zu erfassen und Snipe-IT danach zu entfernen.
 4. Link-Kachel Kept (Board Übersicht → Dienste): „5 Dinge · 4 fällig“ (alles, was Kept nicht mehr „demnächst“ nennt, auch die Rückgabe).
+5. Kachel „Tabelle“ mit Verbindung Kept, Tabelle „Termine im Inventar“: Kepts Termine der nächsten 90 Tage, Überfälliges (Rückgabe, Wartung) zuerst, jeder Name öffnet das Ding in Kept (ohne Ding: Kepts Liste „expiring“); Popup mit allen Zeilen. Kachel „Kennzahl“ Inventarwert mit Kept: Summe der Kaufpreise, Zahl der Dinge.
 **J-C12 Release-Feeds**
 1. `/updates` → „Release-Feeds anpassen“: fest genannte Images ohne Feed mit vorgeschlagener Adresse und Kategorie; nichts angehakt.
 2. Adresse ändern, „Prüfen“; eine Nicht-GitHub-Adresse wird übersprungen; „In FreshRSS schreiben“ (Demo lehnt ab).

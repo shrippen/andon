@@ -28,6 +28,13 @@ func (c Col) Numeric() bool { return numericFormats[c.Format] }
 // Row is one table row; Values line up with the widget's Cols.
 type Row struct{ Values []any }
 
+// Linked is a value that opens its page in the service (format "link"),
+// e.g. a thing in Kept.
+type Linked struct{ Text, Href string }
+
+// String is its text, for sorting.
+func (l Linked) String() string { return l.Text }
+
 func colsFor(kind TableKind) []Col {
 	switch kind {
 	case TableOpenInvoices:
@@ -39,7 +46,7 @@ func colsFor(kind TableKind) []Col {
 	case TableBudgets:
 		return []Col{{"project", "text"}, {"used", "bar"}}
 	case TableAssetDates:
-		return []Col{{"name", "text"}, {"kind", "upcoming"}, {"due", "day"}}
+		return []Col{{"name", "link"}, {"kind", "upcoming"}, {"due", "day"}}
 	case TableTrips:
 		return []Col{{"day", "day"}, {"from", "text"}, {"to", "text"}, {"class", "rideclass"}, {"reason", "ridereason"}, {"km", "km"}, {"duration", "hours"}}
 	case TableTripCustomers:
@@ -102,10 +109,15 @@ func tableRows(kind TableKind, results map[string]any, ctx ViewCtx) ([]Row, bool
 		}
 		return rows, true
 
-	case kind == TableAssetDates && service == enums.ServiceSnipeIT:
+	case kind == TableAssetDates:
+		// Any inventory: Snipe-IT's ends, Kept's agenda.
+		inv, ok := metrics.InventoryOf(map[string]any{ctx.Service: data})
+		if !ok {
+			return nil, false
+		}
 		var rows []Row
-		for _, i := range metrics.SnipeUpcomingDates(data.(*sources.SnipeDataset), today, 0) {
-			rows = append(rows, Row{[]any{i.Name, i.Kind, i.Date}})
+		for _, d := range metrics.AssetDates(inv, today, 0) {
+			rows = append(rows, Row{[]any{Linked{Text: d.Name, Href: d.Link}, d.Kind, d.Date}})
 		}
 		return rows, true
 
@@ -226,7 +238,7 @@ func sortRows(rows []Row, cols []Col, order string) {
 			return x > y
 		})
 	case sortName, sortDate:
-		i := find("text")
+		i := find("text", "link")
 		if order == sortDate {
 			i = find("day")
 		}

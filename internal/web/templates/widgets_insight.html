@@ -74,6 +74,7 @@
       {{else if eq $col.Format "day"}}{{if $v}}{{day $v}}{{else}}–{{end}}
       {{else if eq $col.Format "daycount"}}{{t "col.days" "days" $v}}
       {{else if eq $col.Format "late"}}{{if gt $v 0}}<span class="chip-late">{{t "col.days" "days" $v}}</span>{{else}}–{{end}}
+      {{else if eq $col.Format "link"}}{{if $v.Href}}<a href="{{$v.Href}}" target="_blank" rel="noopener">{{$v.Text}}</a>{{else}}{{$v.Text}}{{end}}
       {{else if eq $col.Format "upcoming"}}{{t (printf "upcoming.%s" $v)}}
       {{else if eq $col.Format "match"}}{{t (printf "match.%s" $v)}}
       {{else if eq $col.Format "rideclass"}}{{t (printf "ride.class.%s" $v)}}

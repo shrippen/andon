@@ -224,6 +224,10 @@ func tableCell(format string, v any) Cell {
 			return Cell{Value: TxtA("col.days", "days", v), State: "bad"}
 		}
 		return Cell{Value: "–"}
+	case "link":
+		if l, ok := v.(Linked); ok {
+			return Cell{Value: l.Text, Href: l.Href}
+		}
 	case "upcoming", "match":
 		return Cell{Value: Txt(fmt.Sprintf("%s.%v", format, v))}
 	case "yesno":
