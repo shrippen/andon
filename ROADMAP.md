@@ -1284,7 +1284,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [x] Zeit für eine Preiserhöhung: die Kundenseite nennt den zuletzt abgerechneten Stundensatz und seit wann (ununterbrochen gleich); nach zwölf Monaten „Preiserhöhung fällig“ mit Vorschlag (+2 % je Jahr seitdem, als Annahme genannt), auch als Grund im Kundenzustand
    - [x] Nachkalkulation auf der Kundenseite: je Projekt über die ganze Laufzeit (Kimais `UsedMinutes`/`UsedMoney`) Stunden, Betrag, Verbrauch gegen Geld- oder Zeitbudget (über 100 % rot, zuerst), Betrag je Stunde (`metrics.Recalc`)
 
-Abgelehnt: Auslagen vom Privatkonto. Offen: Zusammenfassende Meldung.
+Abgelehnt: Auslagen vom Privatkonto. Umgesetzt 29.10.2026: Zusammenfassende Meldung auf `/vat` (Leistungen an EU-Unternehmen je USt-IdNr. und Quartal, `metrics.ZMOf`).
 
 ### Kept: Inventar neben Snipe-IT (größtenteils umgesetzt 24.10.2026, #200, #201)
 

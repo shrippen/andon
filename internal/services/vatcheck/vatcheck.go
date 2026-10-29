@@ -79,6 +79,7 @@ type Page struct {
 	SpaceID   int64 // Invoice Ninja's space, for its Verbund page
 	Check     metrics.VATCheck
 	Elster    metrics.Elster   // the return's figures
+	ZM        metrics.ZM       // the quarter's Zusammenfassende Meldung
 	Filed     bool             // marked as filed (FileReturn)
 	Changed   []metrics.Figure // figures that moved since
 	Ledger    Ledger
@@ -200,6 +201,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 	cases := metrics.BankCases(in)
 	p.Check = metrics.VATCheckOf(in, cases)
 	p.Elster = metrics.ElsterOf(b.ninja, p.Span.Start, p.Span.End, p.Method)
+	p.ZM = metrics.ZMOf(b.ninja, p.Span.Start)
 	if filed, ok := b.state.Filed[connKey(b.conn.ID)][p.Span.Key]; ok {
 		p.Filed, p.Changed = true, p.Elster.Changed(filed)
 	}

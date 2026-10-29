@@ -7203,6 +7203,15 @@ vatcheck:
   elster_meaning: 'Meaning'
   elster_value: 'Value'
   elster_copy: 'Copy'
+  zm_title: 'EC Sales List {span}'
+  zm_lead: 'Services to businesses in other EU countries (0 %, Kz 21) per VAT ID, by invoice date. Due on {due} at the BZSt (online form), no extension.'
+  zm_no_id: 'No VAT ID in Invoice Ninja, so not counted: {clients}. Add the number to the client.'
+  zm_country: Country
+  zm_id: VAT ID
+  zm_amount: Total (€)
+  zm_kind: Type
+  zm_services: Other services
+  zm_clients: Clients
   elster_file: 'Mark as filed'
   elster_refile: 'Mark as filed again'
   elster_hint: 'If anything in the period changes afterwards, the page warns: a corrected return is due.'

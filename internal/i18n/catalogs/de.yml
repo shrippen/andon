@@ -7204,6 +7204,15 @@ vatcheck:
   elster_meaning: 'Bedeutung'
   elster_value: 'Wert'
   elster_copy: 'Kopieren'
+  zm_title: 'Zusammenfassende Meldung {span}'
+  zm_lead: 'Leistungen an Unternehmen in anderen EU-Ländern (0 %, Kz 21) je USt-IdNr., nach Rechnungsdatum. Fällig am {due} beim BZSt (Online-Formular), ohne Dauerfristverlängerung.'
+  zm_no_id: 'Ohne USt-IdNr. in Invoice Ninja, darum nicht gezählt: {clients}. Nummer beim Kunden eintragen.'
+  zm_country: Land
+  zm_id: USt-IdNr.
+  zm_amount: Summe (€)
+  zm_kind: Art
+  zm_services: Sonstige Leistung
+  zm_clients: Kunden
   elster_file: 'Als gemeldet merken'
   elster_refile: 'Neu als gemeldet merken'
   elster_hint: 'Ändert sich danach etwas im Zeitraum, warnt die Seite: dann ist eine berichtigte Voranmeldung fällig.'

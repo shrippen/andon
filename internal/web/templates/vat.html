@@ -89,6 +89,22 @@
         <small class="muted">{{t "vatcheck.elster_hint"}}</small>
       </form>
     </section>
+    {{/* Services to EU businesses, per VAT ID and quarter, for the
+         BZSt's online form; shown once the quarter has any. */}}
+    {{with $p.ZM}}{{if or .Lines .NoID}}<section class="card" id="zm">
+      <h2>{{t "vatcheck.zm_title" "span" .Key}}</h2>
+      <p class="small muted">{{t "vatcheck.zm_lead" "due" (day .Due)}}</p>
+      {{if .NoID}}<p class="error">{{t "vatcheck.zm_no_id" "clients" (join .NoID ", ")}}</p>{{end}}
+      {{if .Lines}}<div class="table-wrap"><table class="table">
+        <thead><tr><th>{{t "vatcheck.zm_country"}}</th><th>{{t "vatcheck.zm_id"}}</th><th class="num">{{t "vatcheck.zm_amount"}}</th><th>{{t "vatcheck.zm_kind"}}</th><th>{{t "vatcheck.zm_clients"}}</th></tr></thead>
+        <tbody>{{range .Lines}}<tr>
+          <td><b>{{.Country}}</b></td>
+          <td>{{.ID}} <button type="button" class="btn btn-quiet btn-sm" data-copy="{{.ID}}">{{t "vatcheck.elster_copy"}}</button></td>
+          <td class="num">{{num .Amount 0}} <button type="button" class="btn btn-quiet btn-sm" data-copy="{{printf "%.0f" .Amount}}">{{t "vatcheck.elster_copy"}}</button></td>
+          <td>{{t "vatcheck.zm_services"}}</td><td>{{.Clients}}</td>
+        </tr>{{end}}</tbody>
+      </table></div>{{end}}
+    </section>{{end}}{{end}}
     <p class="small"><a href="/vendors?scope={{$p.Scope}}">{{t "vatcheck.vendors_link"}} →</a></p>
 
     <h2 id="cases">{{t "vatcheck.cases"}}</h2>

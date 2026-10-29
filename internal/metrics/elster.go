@@ -31,14 +31,14 @@ const (
 )
 
 // euCountries are the EU members besides Germany, as Invoice Ninja's
-// numeric country ids (ISO 3166-1).
-var euCountries = map[string]bool{"40": true, "56": true, "100": true, "191": true, "196": true, "203": true, "208": true,
-	"233": true, "246": true, "250": true, "300": true, "348": true, "372": true, "380": true, "428": true, "440": true,
-	"442": true, "470": true, "528": true, "616": true, "620": true, "642": true, "703": true, "705": true, "724": true, "752": true}
+// numeric country ids (ISO 3166-1), with their VAT ID prefix (Greece EL).
+var euCountries = map[string]string{"40": "AT", "56": "BE", "100": "BG", "191": "HR", "196": "CY", "203": "CZ", "208": "DK",
+	"233": "EE", "246": "FI", "250": "FR", "300": "EL", "348": "HU", "372": "IE", "380": "IT", "428": "LV", "440": "LT",
+	"442": "LU", "470": "MT", "528": "NL", "616": "PL", "620": "PT", "642": "RO", "703": "SK", "705": "SI", "724": "ES", "752": "SE"}
 
 // InEU reports whether an Invoice Ninja country id is an EU member
 // besides Germany.
-func InEU(countryID string) bool { return euCountries[countryID] }
+func InEU(countryID string) bool { return euCountries[countryID] != "" }
 
 // Elster holds the period's figures.
 type Elster struct {
@@ -100,7 +100,7 @@ func ElsterOf(n *sources.NinjaDataset, start, end time.Time, method string) Elst
 			b81 += net
 		case math.Abs(rate-rateReduced) <= rateTol:
 			b86 += net
-		case rate == 0 && euCountries[clients[inv.ClientID].CountryID]:
+		case rate == 0 && InEU(clients[inv.ClientID].CountryID):
 			b21 += net
 		case rate == 0:
 			b45 += net
@@ -152,7 +152,7 @@ func ElsterOf(n *sources.NinjaDataset, start, end time.Time, method string) Elst
 		if x.Tax != 0 || v.CountryID == "" || v.CountryID == home {
 			continue
 		}
-		rc := ReverseCharge{Expense: x, Vendor: v.Name, EU: euCountries[v.CountryID]}
+		rc := ReverseCharge{Expense: x, Vendor: v.Name, EU: InEU(v.CountryID)}
 		e.Reverse = append(e.Reverse, rc)
 		if rc.EU {
 			b46 += x.Amount
