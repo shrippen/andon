@@ -58,6 +58,7 @@ func init() {
 	Uses("cross.payment_unmatched", slices.Concat(bankPayments, []caps.Use{ninjaInvoices, ninjaClients})...)
 	Uses("cross.expense_unrecorded", slices.Concat(bankPayments, []caps.Use{ninjaReceipts, paperlessDocs, mailReceipts})...)
 	Uses("cross.wallos_missing", slices.Concat(bankSubs, []caps.Use{wallosSubs})...)
+	Uses("cross.llm_unbilled", slices.Concat(bankPayments, []caps.Use{ninjaReceipts})...)
 	Uses("geo.travel_costs", dawarichRides, kimaiRides)
 	Uses("geo.per_diem", dawarichRides, kimaiRides)
 	Uses("geo.travel_unbilled", dawarichRides, kimaiRides, kimaiWork, ninjaInvoices, ninjaClients)

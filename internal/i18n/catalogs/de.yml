@@ -2812,6 +2812,9 @@ hint:
       title: '{count} Abos fehlen in Wallos'
       title_singular: '{count} Abo fehlt in Wallos'
       why: 'Sure bucht regelmäßig {names}, in Wallos steht dazu nichts. In Wallos anlegen oder in der Regel ausnehmen.'
+    llm_unbilled:
+      title: '{account}: keine Rechnung von {provider} erfasst'
+      why: '{spent} verbraucht in den letzten {days} Tagen, aber weder eine Ausgabe in Invoice Ninja noch eine Abbuchung nennt {provider}. Rechnung herunterladen und als Ausgabe erfassen, oder die Regel für private Konten ausschalten.'
   hass:
     alarm:
       title: '{entity} meldet Alarm'
@@ -3788,6 +3791,7 @@ rule_name:
   kintsugi.stale: Liegengebliebene Vorschläge
   system.backup: 'Sicherung von Andon'
   cross.wallos_missing: Abos fehlen in Wallos
+  cross.llm_unbilled: 'KI-Kosten ohne Ausgabe'
   glances.disk_full: 'Dateisystem fast voll'
   glances.load_high: 'Rechner dauerhaft ausgelastet'
   glances.swap_high: 'Auslagerung hoch'

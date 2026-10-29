@@ -135,3 +135,14 @@ func sum(values []float64) float64 {
 	}
 	return total
 }
+
+// LLMSpentSince is the account's spend in USD on the days from since on.
+func LLMSpentSince(a sources.LLMAccount, since time.Time) float64 {
+	var sum float64
+	for _, u := range a.Uses {
+		if d, ok := ParseDay(u.Day); ok && !d.Before(since) {
+			sum += u.Cost
+		}
+	}
+	return sum
+}

@@ -70,3 +70,39 @@ func TestLLMSpike(t *testing.T) {
 		t.Fatalf("demo spike %+v", got)
 	}
 }
+
+// TestLLMUnbilled: an account that spent without an expense or a bank
+// payment to its provider in the window is noted; one Invoice Ninja or
+// the bank knows is not, nor one below the minimum or a proxy.
+func TestLLMUnbilled(t *testing.T) {
+	today := time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC)
+	claude := sources.LLMAccount{Service: enums.ServiceClaudeAPI, Name: "Studio", Spend: true, Uses: llmDays(today, 20, 15)}
+	openai := sources.LLMAccount{Service: enums.ServiceOpenAI, Spend: true, Uses: llmDays(today, 30)}
+	router := sources.LLMAccount{Service: enums.ServiceOpenRouter, Spend: true, Uses: llmDays(today, 12)}
+	cheap := sources.LLMAccount{Service: enums.ServiceDeepSeek, Spend: true, Uses: llmDays(today, 0.5)}
+	proxy := sources.LLMAccount{Service: enums.ServiceLiteLLM, Spend: true, Uses: llmDays(today, 50)}
+	ninja := &sources.NinjaDataset{
+		Vendors:  []sources.NinjaVendor{{Key: "o", Name: "OpenAI, LLC"}, {Key: "a", Name: "Anthropic PBC"}},
+		Expenses: []sources.NinjaExpense{{VendorKey: "o", Date: "2026-10-02", Amount: 28}, {VendorKey: "a", Date: "2026-07-01", Amount: 40}},
+	}
+	bank := &sources.BankData{Transactions: []sources.BankTxn{{Date: "2026-10-05", Name: "OPENROUTER INC", Amount: -12}}}
+	env := crossEnv("2026-10-20", map[string]any{
+		string(enums.ServiceClaudeAPI):    &sources.LLMDataset{Accounts: []sources.LLMAccount{claude}},
+		string(enums.ServiceOpenAI):       &sources.LLMDataset{Accounts: []sources.LLMAccount{openai}},
+		string(enums.ServiceOpenRouter):   &sources.LLMDataset{Accounts: []sources.LLMAccount{router}},
+		string(enums.ServiceDeepSeek):     &sources.LLMDataset{Accounts: []sources.LLMAccount{cheap}},
+		string(enums.ServiceLiteLLM):      &sources.LLMDataset{Accounts: []sources.LLMAccount{proxy}},
+		string(enums.ServiceInvoiceNinja): ninja, "sure": bank,
+	})
+	got := run(t, "cross.llm_unbilled", nil, env)
+	if len(got) != 1 || got[0].Params["account"] != "Studio" || got[0].Params["provider"] != "Anthropic" {
+		t.Fatalf("unbilled: %+v", got)
+	}
+
+	// Without Invoice Ninja and bank there is nothing to compare.
+	delete(env.Datasets, string(enums.ServiceInvoiceNinja))
+	delete(env.Datasets, "sure")
+	if got := run(t, "cross.llm_unbilled", nil, env); len(got) != 0 {
+		t.Fatalf("without books: %+v", got)
+	}
+}

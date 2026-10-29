@@ -7,8 +7,14 @@ package rules
 //	llm.credit_low  prepaid credit or the key's spend limit runs out
 //	llm.spike       today costs a multiple of the days before
 //	                (a loop, a batch run twice, a model mixed up)
+//	cross.llm_unbilled  an account spent, but neither Invoice Ninja nor
+//	                the bank knows a payment to its provider lately
+//	                (the provider's invoice was not recorded)
 
 import (
+	"strings"
+	"time"
+
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/sources"
@@ -20,6 +26,70 @@ func init() {
 	Register("llm.budget", Cross, nil, llmBudget)
 	Register("llm.credit_low", Cross, map[string]any{"min_balance": 5.0, "min_limit_pct": 20.0}, llmCreditLow)
 	Register("llm.spike", Cross, map[string]any{"factor": 3.0, "min_usd": 1.0, "days": 14.0}, llmSpike)
+	Register("cross.llm_unbilled", Cross, map[string]any{"min_usd": 5.0, "days": 45.0}, llmUnbilled)
+}
+
+// llmVendors is the name a provider bills under, as it shows in a
+// vendor or a bank booking; a proxy (LiteLLM) bills nothing itself.
+var llmVendors = map[enums.ServiceType]string{
+	enums.ServiceClaudeAPI:  "Anthropic",
+	enums.ServiceOpenAI:     "OpenAI",
+	enums.ServiceOpenRouter: "OpenRouter",
+	enums.ServiceDeepSeek:   "DeepSeek",
+}
+
+// llmUnbilled: spend of the last days without an expense (Invoice Ninja)
+// or a payment (bank) to the provider in the same days. Providers bill
+// prepaid credit or monthly; either way a payment falls in the window.
+func llmUnbilled(_ any, cfg map[string]any, env Env) []Finding {
+	ninja, _ := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
+	bank, _ := metrics.BankOf(env.Datasets)
+	if ninja == nil && bank == nil {
+		return nil
+	}
+	days := cfgInt(cfg, "days")
+	since := env.Today.AddDate(0, 0, -days)
+
+	var found []Finding
+	for _, a := range metrics.LLMAccounts(env.Datasets) {
+		vendor := llmVendors[a.Service]
+		spent := metrics.LLMSpentSince(a, since)
+		if vendor == "" || !a.Spend || spent < cfgFloat(cfg, "min_usd") || llmPaid(ninja, bank, vendor, since) {
+			continue
+		}
+		found = append(found, llmFinding(a, "cross.llm_unbilled", "unbilled", "cross.llm_unbilled", enums.SeverityInfo,
+			map[string]any{"provider": vendor, "spent": Money(spent, usd), "days": days}))
+	}
+	return found
+}
+
+// llmPaid says whether an expense or a debit since names the vendor.
+func llmPaid(ninja *sources.NinjaDataset, bank *sources.BankData, vendor string, since time.Time) bool {
+	recent := func(day string) bool {
+		d, ok := metrics.ParseDay(day)
+		return ok && !d.Before(since)
+	}
+	names := func(text string) bool { return strings.Contains(strings.ToLower(text), strings.ToLower(vendor)) }
+
+	if ninja != nil {
+		vendors := map[string]string{}
+		for _, v := range ninja.Vendors {
+			vendors[v.Key] = v.Name
+		}
+		for _, x := range ninja.Expenses {
+			if recent(x.Date) && names(vendors[x.VendorKey]) {
+				return true
+			}
+		}
+	}
+	if bank != nil {
+		for _, t := range bank.Transactions {
+			if t.Amount < 0 && recent(t.Date) && names(t.Merchant+" "+t.Name) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // llmFinding is a hint on one account, with the provider's page as action.
