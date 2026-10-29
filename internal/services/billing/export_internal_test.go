@@ -30,3 +30,19 @@ func TestTripRows(t *testing.T) {
 		t.Fatalf("row: %v", r)
 	}
 }
+
+// TestITCostRowsSolar: the export's power row is the bill's, lowered by
+// what PV covered: 50 W × 730 h × 0,30 € × 40 % = 4,38.
+func TestITCostRowsSolar(t *testing.T) {
+	yesterday := time.Now().UTC().AddDate(0, 0, -1).Format(time.DateOnly)
+	settings := map[string]any{"homelab": map[string]any{"power_entity": "sensor.server", "power_price": 0.30}}
+	data := map[string]any{
+		"homeassistant": &sources.HassDataset{Entities: []sources.Entity{{ID: "sensor.server", State: "50", Unit: "W"}}},
+		sources.HassEnergyKey: &sources.HassEnergy{Solar: []string{"pv"}, Import: []string{"in"}, Export: []string{"out"},
+			Days: []sources.SolarDay{{Day: yesterday, Solar: 10, Export: 4, Import: 4}}},
+	}
+	rows := itCostRows(data, nil, settings)
+	if len(rows) != 2 || rows[1][0] != "power" || rows[1][2] != "4,38" {
+		t.Fatalf("rows: %v", rows)
+	}
+}
