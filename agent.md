@@ -117,10 +117,20 @@ internal/services/workbench/    Werkbänke: Verbund wählen (Scopes), Schritte p
 
 ## Release rule
 
-- Every release gets a detailed release log, written before the tag: a lead (what the release is about), then the changes grouped as New, Improved, Fixed and Note (breaking changes, steps the user must take). Each point says what changed for the user and why, not which code moved.
-- Graphics wherever possible: for every visible change a screenshot from the demo world in every language of the landing page (`docs/shots/release-<version>-<name>-<lang>.webp`), for changes inside a diagram (Kante `.flow` or an inline SVG).
-- The log is written first in `CHANGELOG.md`, the single source: a section `## [X.Y.Z] — YYYY-MM-DD` at the top with `### English` and `### Deutsch` (groups as `####`), newest first. The same text goes into the release notes on Gitea and as a new entry at the top of `#changes` on the landing page (`docs/index.html`, Kante `.changelog`); from the fourth entry on, the oldest move into `details.changelog-more`. Bump the version in the footer. Then run `python3 ../shrippen.github.io/overview/tools/build-versions.py` and commit `docs/versions.json` there: installs learn of the release from it (update check). A release is done when the landing page and `versions.json` show it.
-- The notes come from `scripts/release-notes.sh X.Y.Z` (Gitea too: `scripts/release-notes.sh X.Y.Z > notes.md`, then `tea release create --tag vX.Y.Z --title … --note-file notes.md`); CI checks the headings on every push (`scripts/release-notes.sh --check`). The script is a copy of Kante's `tools/release-notes.sh`: change it only there, then sync with `../Kante/tools/sync-release-notes.sh "$PWD"`.
+Release steps, in this order (`X.Y.Z` the new version, `A.B.C` the previous one). A release is done only after step 10.
+
+1. Version: nothing to bump in code. Builds take it from the tag (`scripts/version.sh`, Docker build-arg `VERSION`). On a branch from `main`, update `Stand: vX.Y` at the top of `ROADMAP.md`.
+2. Write the detailed release log before the tag in `CHANGELOG.md`, the single source: a section `## [X.Y.Z] — YYYY-MM-DD` at the top (newest first) with `### English` and `### Deutsch`, each a lead (what the release is about), then the changes grouped as `#### New`, `Improved`, `Fixed` and `Note` (breaking changes, steps the user must take), then the compare link (`https://github.com/shrippen/andon/compare/vA.B.C...vX.Y.Z`; the Gitea repo is not public). Each point says what changed for the user and why, not which code moved. Check the headings with `scripts/release-notes.sh --check` (CI runs it on every push) and read the notes with `scripts/release-notes.sh X.Y.Z`.
+3. Landing page `docs/index.html` (Kante `.changelog`): the same text, in English and German, as a new entry at the top of `#changes`; from the fourth entry on, the oldest move into `details.changelog-more`. Bump the footer version (`vX.Y`, linked to `#changes`). Graphics wherever possible: for every visible change a screenshot from the demo world in every language of the page (`docs/shots/release-<version>-<name>-<lang>.webp`; shots in `demo/shots.json`, taken with `../shrippen.github.io/demo/tools/.venv/bin/python ../shrippen.github.io/demo/tools/screenshots.py andon`), for changes inside a diagram (Kante `.flow` or an inline SVG). Screenshots are taken now, for the tagged release, not with every change.
+4. Open the PR on Gitea, review it as the Repository rule says (a release is published: the owner confirms it in words), merge on Gitea.
+5. Tag the merge commit and push the tag to Gitea only: `git tag vX.Y.Z <merge commit> && git push origin vX.Y.Z` (the mirror carries it to GitHub).
+6. Gitea release, notes only, never files: `scripts/release-notes.sh X.Y.Z > notes.md`, then `tea release create --repo shrippen/andon --tag vX.Y.Z --title "Andon X.Y.Z" --note-file notes.md`.
+7. GitHub: there is no release workflow and no GitHub release. The tag runs `.github/workflows/ci.yml`: `test` (with `scripts/release-check.sh`: no demo in the release binary), then `image` builds, pushes and signs `ghcr.io/shrippen/andon` as `X.Y.Z`, `X.Y` and `latest`. Check the run (`gh run list -R shrippen/andon --workflow ci.yml`) and the image (`docker pull ghcr.io/shrippen/andon:X.Y.Z`).
+8. Update check: `python3 ../shrippen.github.io/overview/tools/build-versions.py`, then commit `docs/versions.json` in `shrippen.github.io` via a PR there. Installs learn of the release from it.
+9. No deploy from here: installs pull the image themselves (`ANDON_TAG`, default `latest`).
+10. Done when https://shrippen.github.io/andon/ shows X.Y.Z at the top of `#changes` and in the footer, and https://shrippen.github.io/versions.json lists `andon` with X.Y.Z.
+
+`scripts/release-notes.sh` is a copy of Kante's `tools/release-notes.sh`: change it only there, then sync with `../Kante/tools/sync-release-notes.sh "$PWD"`.
 
 ## GUI rule
 
