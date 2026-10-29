@@ -45,6 +45,8 @@ var (
 	ErrNoBank = errors.New("vatcheck.err_no_bank")
 	// ErrDemo means a demo connection, which takes no writes.
 	ErrDemo = errors.New("vatcheck.err_demo")
+	// ErrNoCase means the period has no such open booking.
+	ErrNoCase = errors.New("vatcheck.err_no_case")
 )
 
 // receiptsTab is the receipts page's list of expenses without a scan.
@@ -248,6 +250,22 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 		}
 	}
 	return p, nil
+}
+
+// SplitDesk is one open debit's case with its split offers, for the
+// desk's split fetched once chosen; p carries the lists its fields pick
+// from.
+func SplitDesk(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey, key string, today time.Time) (Page, Case, error) {
+	p, err := Open(ctx, d, who, scope, spanKey, today)
+	if err != nil {
+		return p, Case{}, err
+	}
+	for _, c := range slices.Concat(p.Cases, p.Apart) {
+		if c.Txn.Key == key && len(c.Split) > 0 {
+			return p, c, nil
+		}
+	}
+	return p, Case{}, ErrNoCase
 }
 
 // returnDays is when a return is due after its period ends, without

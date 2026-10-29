@@ -2823,6 +2823,17 @@
     free.querySelector("[data-split-vendor]").focus();
   }
 
+  // A split fetched into its desk: draw its bar, count the desk again.
+  d.addEventListener("htmx:afterSwap", function (e) {
+    var split = e.target.querySelector && e.target.querySelector("[data-split]");
+    var form = split && benchOf(split);
+    if (!form) {
+      return;
+    }
+    benchSplit(split);
+    benchCount(form, split.closest("[data-desk]"));
+  });
+
   function setupBench() {
     [].forEach.call(d.querySelectorAll("[data-split]"), benchSplit);
     [].forEach.call(d.querySelectorAll("form[data-vat-bench]"), function (form) {
@@ -2877,6 +2888,11 @@
       [].forEach.call(desk.querySelectorAll("[data-for]"), function (block) {
         block.hidden = block.getAttribute("data-for") !== act;
       });
+      // The split's slots come from the server once chosen (/vat/split).
+      var later = act === "split" && desk.querySelector("[data-for=split][hx-get]");
+      if (later) {
+        htmx.trigger(later, "andon-split");
+      }
       benchCount(form, desk);
       return;
     }

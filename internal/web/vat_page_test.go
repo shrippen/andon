@@ -213,12 +213,34 @@ func TestVATSplit(t *testing.T) {
 	postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
 		"service": {"invoiceninja"}, "name": {"invoiceninja"}, "url": {"demo://invoiceninja"}, "mode": {"shared"}, "tls": {"verify"}})
 
+	// The page offers "split" but carries none of its slots: eight of
+	// selects per debit, which Chrome scans on load. Choosing it fetches
+	// the one desk's split (/vat/split).
 	month := time.Now().UTC().Format("2006-01")
 	page := string(mustGet(t, srv, client, "/vat?span="+month))
-	for _, want := range []string{`data-set-act="split"`, "data-split", `name="s0.use_demo-b-studio"`, `name="sgross_demo-b-studio"`, "data-split-bar"} {
+	if strings.Contains(page, `name="s0.use_`) {
+		t.Fatal("the page carries split slots before the split is chosen")
+	}
+	for _, want := range []string{`data-set-act="split"`, `hx-get="/vat/split?case=demo-b-studio&span=` + month} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("page lacks %q:\n%s", want, page)
 		}
+	}
+	desk := string(mustGet(t, srv, client, "/vat/split?case=demo-b-studio&span="+month))
+	for _, want := range []string{"data-split", `name="s0.use_demo-b-studio"`, `name="sgross_demo-b-studio"`, "data-split-bar"} {
+		if !strings.Contains(desk, want) {
+			t.Fatalf("split desk lacks %q:\n%s", want, desk)
+		}
+	}
+	if status, _ := browse(t, client, http.MethodGet, srv.URL+"/vat/split?case=nope&span="+month, nil, nil); status != http.StatusNotFound {
+		t.Fatalf("unknown case: %d, want 404", status)
+	}
+
+	// A user without the space's Invoice Ninja gets no booking's split.
+	user := freshClient(t)
+	postForm(t, user, srv.URL+inviteLink(t, srv, client, "user@x.de"), url.Values{"name": {"User"}, "password": {"user-password-long"}, "locale": {"de"}})
+	if status, body := browse(t, user, http.MethodGet, srv.URL+"/vat/split?case=demo-b-studio&span="+month, nil, nil); status == http.StatusOK || strings.Contains(body, `name="s0.use_`) {
+		t.Fatalf("a user without access: %d\n%s", status, body)
 	}
 
 	split := func(rest string) string {

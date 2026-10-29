@@ -246,7 +246,8 @@
         <input class="input" name="note_{{$k}}" value="{{$c.Note}}" data-part="note"></label>
     </div>
   </div>{{end}}
-  {{with $c.Split}}{{template "vat_split" dict "C" $c "P" $p}}{{end}}
+  {{with $c.Split}}{{if eq $c.Act "split"}}<div data-for="split">{{template "vat_split" dict "C" $c "P" $p}}</div>
+  {{else}}<div data-for="split" hidden hx-get="/vat/split?case={{$c.Txn.Key}}&span={{$p.Span.Key}}{{with $p.Scope}}&scope={{.}}{{end}}" hx-trigger="andon-split once"></div>{{end}}{{end}}
   <div class="btn-row"><button type="button" class="btn btn-accent" data-take-next>{{t "vatcheck.take_next"}}</button><button type="button" class="btn btn-outline" data-later>{{t "vatcheck.later"}}</button></div>
 </section>{{end}}
 
@@ -254,9 +255,11 @@
      the sum bar and what holds for all parts; each part's expense on
      the right, folded. Slot i sends s<i>.<field>; use says whether it
      is a part (expense) or a private one, "" leaves it out. Empty slots
-     wait for "part without scan". */}}
+     wait for "part without scan". Not proposed, it comes when chosen
+     (GET /vat/split): eight slots of selects per debit slow the page's
+     load (Chrome scans them). */}}
 {{define "vat_split"}}{{$c := .C}}{{$p := .P}}{{$k := $c.Txn.Key}}
-<div class="bench-cols" data-for="split" data-split data-total="{{$c.Txn.Amount}}"{{if ne $c.Act "split"}} hidden{{end}}>
+<div class="bench-cols" data-split data-total="{{$c.Txn.Amount}}">
   <div class="bench-col">
     <div class="h-label">{{t "vatcheck.split_scans"}}</div>
     <p class="small muted">{{t "vatcheck.split_lead"}}</p>
