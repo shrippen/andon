@@ -44,6 +44,7 @@ var defaultURLs = map[enums.ServiceType]string{
 	enums.ServiceOpenRouter: "https://openrouter.ai/api/v1",
 	enums.ServiceOpenAI:     "https://api.openai.com/v1",
 	enums.ServiceDeepSeek:   "https://api.deepseek.com",
+	enums.ServiceXAI:        "https://management-api.x.ai",
 }
 
 func defaultURL(service enums.ServiceType) string {
@@ -189,6 +190,7 @@ var setupFields = map[enums.ServiceType][]setupField{
 	enums.ServiceOpenRouter: {llmBudget},
 	enums.ServiceOpenAI:     {llmBudget},
 	enums.ServiceLiteLLM:    {llmBudget},
+	enums.ServiceXAI:        {{Key: "team", Label: "conn.xai_team", Kind: fieldText, Hint: "conn.xai_team_hint"}, llmBudget},
 }
 
 // llmBudget is an LLM provider's monthly budget in USD (rule llm.budget).

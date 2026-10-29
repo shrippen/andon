@@ -174,6 +174,7 @@ const (
 	ServiceOpenAI         ServiceType = "openai"
 	ServiceDeepSeek       ServiceType = "deepseek"
 	ServiceLiteLLM        ServiceType = "litellm"
+	ServiceXAI            ServiceType = "xai"
 	ServiceKept           ServiceType = "kept"
 )
 
@@ -188,7 +189,7 @@ var Services = []ServiceType{
 	ServiceTailscale, ServiceGateway, ServiceMediaServer, ServiceArr, ServiceVaultwarden,
 	ServiceSpeedtest, ServiceGrocy, ServiceTandoor, ServiceDWD, ServiceGitHub, ServiceKDEStore, ServiceHealthchecks, ServicePrometheus, ServiceNVD, ServiceDrone, ServicePBS, ServiceKopia, ServiceDuplicati, ServiceBackrest, ServiceUrBackup, ServiceWUD, ServiceWatchtower, ServicePeaNUT, ServiceApcupsd, ServiceOpenDTU, ServiceEVCC, ServiceTraefik, ServiceCaddy, ServiceNPM, ServiceTechnitium, ServiceFritzBox, ServiceTautulli, ServiceJellystat, ServiceNavidrome, ServiceAudiobookshelf, ServiceSeerr, ServiceVikunja, ServiceNews, ServiceTwitch, ServiceESPHome, ServiceFediverse, ServiceLemmy, ServiceFirefly, ServiceGhostfolio, ServiceTibber, ServiceCalendar,
 	ServiceKintsugi, ServiceWallos, ServiceHansei, ServiceHomelable,
-	ServiceClaudeAPI, ServiceOpenRouter, ServiceOpenAI, ServiceDeepSeek, ServiceLiteLLM, ServiceJSONAPI,
+	ServiceClaudeAPI, ServiceOpenRouter, ServiceOpenAI, ServiceDeepSeek, ServiceLiteLLM, ServiceXAI, ServiceJSONAPI,
 }
 
 // Known reports whether s is a connectable service.

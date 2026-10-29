@@ -84,19 +84,22 @@ func TestLLMUnbilled(t *testing.T) {
 	router := sources.LLMAccount{Service: enums.ServiceOpenRouter, Spend: true, Uses: llmDays(today, 12)}
 	topped := sources.LLMAccount{Service: enums.ServiceDeepSeek, Spend: true, Uses: llmDays(today, 20)}
 	proxy := sources.LLMAccount{Service: enums.ServiceLiteLLM, Spend: true, Uses: llmDays(today, 50)}
+	xai := sources.LLMAccount{Service: enums.ServiceXAI, Spend: true, Uses: llmDays(today, 9)}
 	ninja := &sources.NinjaDataset{
 		Vendors:  []sources.NinjaVendor{{Key: "o", Name: "OpenAI, LLC"}, {Key: "a", Name: "Anthropic PBC"}},
 		Expenses: []sources.NinjaExpense{{VendorKey: "o", Date: "2026-10-02", Amount: 28}, {VendorKey: "a", Date: "2025-12-01", Amount: 40}},
 	}
-	// OpenRouter paid this month; DeepSeek's credit was topped up 100 days ago and still lasts.
+	// OpenRouter paid this month; DeepSeek's credit was topped up 100 days
+	// ago and still lasts; xAI books as "X.AI LLC".
 	bank := &sources.BankData{Transactions: []sources.BankTxn{{Date: "2026-10-05", Name: "OPENROUTER INC", Amount: -12},
-		{Date: "2026-07-12", Name: "DEEPSEEK", Amount: -100}}}
+		{Date: "2026-07-12", Name: "DEEPSEEK", Amount: -100}, {Date: "2026-09-01", Name: "X.AI LLC", Amount: -25}}}
 	env := crossEnv("2026-10-20", map[string]any{
 		string(enums.ServiceClaudeAPI):    &sources.LLMDataset{Accounts: []sources.LLMAccount{claude, credit, small}},
 		string(enums.ServiceOpenAI):       &sources.LLMDataset{Accounts: []sources.LLMAccount{openai}},
 		string(enums.ServiceOpenRouter):   &sources.LLMDataset{Accounts: []sources.LLMAccount{router}},
 		string(enums.ServiceDeepSeek):     &sources.LLMDataset{Accounts: []sources.LLMAccount{topped}},
 		string(enums.ServiceLiteLLM):      &sources.LLMDataset{Accounts: []sources.LLMAccount{proxy}},
+		string(enums.ServiceXAI):          &sources.LLMDataset{Accounts: []sources.LLMAccount{xai}},
 		string(enums.ServiceInvoiceNinja): ninja, "sure": bank,
 	})
 	got := run(t, "cross.llm_unbilled", nil, env)

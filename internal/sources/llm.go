@@ -10,6 +10,7 @@ package sources
 //	openai      organization usage + costs  tokens per model, USD per day
 //	deepseek    user balance                balance only
 //	litellm     daily activity (proxy)      USD and tokens per day and model
+//	xai         team usage + balance        USD per day and model, prepaid balance (management key)
 //
 //	ClaudeAPIData, OpenRouterData, … ─► *LLMDataset{Accounts: [one per connection]}
 
@@ -71,7 +72,7 @@ func (d *LLMDataset) Merge(o any) any {
 
 // llmServices are the services whose dataset is an *LLMDataset.
 var llmServices = []enums.ServiceType{enums.ServiceClaudeAPI, enums.ServiceOpenRouter, enums.ServiceOpenAI,
-	enums.ServiceDeepSeek, enums.ServiceLiteLLM}
+	enums.ServiceDeepSeek, enums.ServiceLiteLLM, enums.ServiceXAI}
 
 // LLMServices lists the LLM providers, for the tile's queries.
 func LLMServices() []enums.ServiceType { return slices.Clone(llmServices) }
@@ -152,7 +153,7 @@ func at(list []int64, i int) int64 {
 }
 
 func init() {
-	for _, s := range []source{ClaudeAPIData, OpenRouterData, OpenAIData, DeepSeekData, LiteLLMData} {
+	for _, s := range []source{ClaudeAPIData, OpenRouterData, OpenAIData, DeepSeekData, LiteLLMData, XAIData} {
 		Register(s)
 		Register(testOf{s, llmTest})
 	}

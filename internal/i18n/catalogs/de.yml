@@ -53,6 +53,7 @@ action:
   open_in_openai: 'In OpenAI öffnen'
   open_in_deepseek: 'In DeepSeek öffnen'
   open_in_litellm: 'In LiteLLM öffnen'
+  open_in_xai: 'In xAI öffnen'
   copy: Kopieren
   open_drafts: 'Zu den Entwürfen'
   isp_report: 'Bericht öffnen'
@@ -393,7 +394,7 @@ typefield:
     only_problems: Nur aktuell wackelige (letzte 2 Tage)
 field:
   bank_accounts: Konten
-  providers: 'Nur diese Anbieter (claudeapi, openrouter, openai, deepseek, litellm)'
+  providers: 'Nur diese Anbieter (claudeapi, openrouter, openai, deepseek, litellm, xai)'
   site: Seite
   hours: Verlauf (Stunden)
   warn: Warnen ab
@@ -875,7 +876,7 @@ wall_ease:
 wtype:
   llm_usage:
     name: 'KI-Kosten'
-    desc: 'Tokens, Kosten, Guthaben und Limits der KI-Anbieter: Claude, OpenRouter, OpenAI, DeepSeek, LiteLLM.'
+    desc: 'Tokens, Kosten, Guthaben und Limits der KI-Anbieter: Claude, OpenRouter, OpenAI, DeepSeek, LiteLLM, xAI.'
   github_trending:
     name: GitHub-Trends
     desc: 'Neue Repositories des Zeitraums mit den meisten Sternen (GitHub-Suche), auf Wunsch einer Sprache.'
@@ -1398,8 +1399,13 @@ conn:
   options_hint_litellm: 'URL deines LiteLLM-Proxys, z. B. https://llm.example.org. Token = der Master-Schlüssel oder ein Schlüssel, der die Ausgabenberichte lesen darf. Optional ein Monatsbudget in USD.'
   about_litellm: 'LiteLLM-Proxy: Ausgaben je Modell und Tag'
   what_litellm: 'LiteLLM ist ein selbst gehosteter Proxy vor vielen KI-Anbietern; er zählt Tokens und Kosten jeder Anfrage.'
+  options_hint_xai: 'Die URL bleibt https://management-api.x.ai. Token = ein Management-Schlüssel (console.x.ai → Settings → Management Keys; Billing „Read only“, alles andere „No access“), nicht der API-Schlüssel für Anfragen. Dazu die Team-ID. xAI meldet Kosten je Modell und Tag, keine Tokens. Optional ein Monatsbudget in USD.'
+  about_xai: 'xAI: Kosten je Modell, Guthaben'
+  what_xai: 'Die Management-API von xAI meldet die Kosten eines Teams je Tag und Modell und das vorausbezahlte Guthaben.'
   llm_budget: 'Monatsbudget (USD)'
   llm_budget_hint: 'Leer = kein Budget. Andon warnt, wenn der Monat es erreicht oder darauf zuläuft.'
+  xai_team: 'Team-ID'
+  xai_team_hint: 'Die ID des Teams in der xAI Console (Settings → Team).'
   tiles_title: 'Passende Kacheln'
   tiles_lead: 'Die Verbindung steht. Ein Klick legt eine Kachel mit ihren Daten auf das Board.'
   tiles_put: '{tile} auf Board legen'
@@ -1862,6 +1868,7 @@ service:
   openai: 'OpenAI API'
   deepseek: 'DeepSeek'
   litellm: 'LiteLLM'
+  xai: 'xAI'
   calendar: 'Kalender (iCal)'
   tailscale: 'Tailscale / Headscale'
   gateway: 'Router (OPNsense, pfSense, UniFi, OpenWrt)'
@@ -5979,6 +5986,8 @@ navidrome:
   refused: 'Navidrome hat die Anmeldung abgelehnt.'
 technitium:
   refused: 'Technitium hat das Token abgelehnt.'
+xai:
+  no_team: 'Team-ID fehlt: in der Verbindung eintragen (xAI Console → Settings → Team).'
 kdestore:
   not_found: 'Eintrag oder Benutzer im KDE Store nicht gefunden.'
   no_entries: 'Nichts zu lesen: Benutzer oder einzelne Einträge angeben.'
