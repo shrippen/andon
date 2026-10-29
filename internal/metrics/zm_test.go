@@ -45,3 +45,15 @@ func TestZM(t *testing.T) {
 		t.Errorf("without VAT ID: %v", zm.NoID)
 	}
 }
+
+// TestZMSkipsHome: a client in the company's own country is no EU
+// service, also when the company is not in Germany.
+func TestZMSkipsHome(t *testing.T) {
+	n := &sources.NinjaDataset{HomeCountryID: "40",
+		Clients:  []sources.NinjaClient{{ID: 1, Name: "Studio Wien", CountryID: "40", VATNumber: "ATU12345678"}},
+		Invoices: []sources.NinjaInvoice{{ClientID: 1, Status: "sent", Date: "2026-08-15", Net: 300}},
+	}
+	if zm := metrics.ZMOf(n, time.Date(2026, time.August, 1, 0, 0, 0, 0, time.UTC)); len(zm.Lines) != 0 || len(zm.NoID) != 0 {
+		t.Errorf("home client reported: %+v", zm)
+	}
+}

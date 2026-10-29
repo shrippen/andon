@@ -65,7 +65,7 @@ func ZMOf(n *sources.NinjaDataset, day time.Time) ZM {
 	for _, inv := range NinjaCounted(n) {
 		d, ok := ParseDay(inv.Date)
 		c := clients[inv.ClientID]
-		if !ok || d.Before(start) || d.After(end) || invoiceRate(inv) != 0 || !euCountries[c.CountryID] {
+		if !ok || d.Before(start) || d.After(end) || invoiceRate(inv) != 0 || !euCountries[c.CountryID] || c.CountryID == n.HomeCountryID {
 			continue
 		}
 		id := vatID(c.VATNumber)
