@@ -158,7 +158,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 
 **J-C15 Kept: Fristen und Belege**
 1. Hinweise: „Feuerlöscher Studio: Ablaufdatum am …“ (Info), „NAS: Wartung überfällig seit …“ (kritisch), „Studio: Dokument am …“; Garantien und Rückgaben erscheinen hier nicht (Garantien meldet `inventory.warranty_expiring`; Arten in der Regel `kept.due` wählbar). Dieselben Daten stehen im Kalender-Feed.
-2. „Kein Beleg zu Monitor 27"“ (`inventory.receipt_missing`), „1 Beleg in Kept verweist ins Leere: Möwe 7“ (Paperless-Dokument 999 fehlt). „In Kept öffnen“ führt auf `/t/<Kurzcode>`.
+2. „Kein Beleg zu Monitor 27"“ (`inventory.receipt_missing`), „1 Beleg in Kept verweist ins Leere: Möwe 7“ (Paperless-Dokument 999 fehlt). „In Kept öffnen“ führt auf `/t/<Kurzcode>`. Verweisen Kept und die passende Ausgabe in Invoice Ninja (Feld der Beleg-Links) auf verschiedene Paperless-Dokumente, meldet `inventory.expense_missing` „<Ding>: anderer Beleg als bei EX-…“ (die Demo hat keinen solchen Fall).
 3. Ein Kept zählt in jedem Verbund, in den es kommt, vor Snipe-IT (AfA, Kosten); eine Verbindung, die als einzige ihres Dienstes besteht, kommt auch in fremde Verbünde (`verbund.fillGroup`). `inventory.split` nennt Gegenstände, die nur Snipe-IT hat, und rät, sie in Kept zu erfassen und Snipe-IT danach zu entfernen.
 4. Link-Kachel Kept (Board Übersicht → Dienste): „5 Dinge · 4 fällig“ (alles, was Kept nicht mehr „demnächst“ nennt, auch die Rückgabe).
 **J-C12 Release-Feeds**

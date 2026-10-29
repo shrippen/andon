@@ -93,6 +93,18 @@ func (t KeptThing) receipt() ReceiptState {
 	return ReceiptNone
 }
 
+// proofDocs are the Paperless documents of the thing's receipt or
+// invoice links.
+func (t KeptThing) proofDocs() []int64 {
+	var out []int64
+	for _, r := range t.Receipts {
+		if r.DocID != 0 && slices.Contains(keptProofs, r.Role) {
+			out = append(out, r.DocID)
+		}
+	}
+	return out
+}
+
 // KeptDue is one dated item of Kept's agenda.
 type KeptDue struct {
 	Kind    string // thing_expiry, warranty, document, schedule, loan
@@ -126,7 +138,7 @@ func (d *KeptDataset) Inventory() *InventoryData {
 		out.Assets = append(out.Assets, Asset{
 			ID: t.ID, Link: base + t.Code, Name: t.Name, Tag: t.Code, Model: t.Model, Category: t.Type,
 			Serial: t.Serial, PurchaseDate: t.Bought, PurchaseCost: t.Price,
-			WarrantyExpires: t.WarrantyEnds, DepMonths: t.Life, Receipt: t.receipt(),
+			WarrantyExpires: t.WarrantyEnds, DepMonths: t.Life, Receipt: t.receipt(), ReceiptDocs: t.proofDocs(),
 		})
 	}
 	return out

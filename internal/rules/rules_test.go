@@ -516,3 +516,32 @@ func TestKeptPaperless(t *testing.T) {
 		t.Errorf("unknown ids: %+v", got)
 	}
 }
+
+// inventory.expense_missing with Kept: the expense found for a purchase
+// links another Paperless document than Kept's receipt; the same
+// document, or no link on one side, says nothing.
+func TestExpenseReceiptDiffers(t *testing.T) {
+	kept := &sources.KeptDataset{URL: "https://kept.lan", Things: []sources.KeptThing{
+		{ID: "a", Code: "AAAAAA", Name: "Monitor", Bought: "2026-08-25", Price: 890, Receipts: []sources.KeptReceipt{{Role: "invoice", DocID: 4}}},
+		{ID: "b", Name: "Laptop", Bought: "2026-09-01", Price: 1200, Receipts: []sources.KeptReceipt{{Role: "receipt", DocID: 7}}},
+		{ID: "c", Name: "Drucker", Bought: "2026-09-10", Price: 300, Receipts: []sources.KeptReceipt{{Role: "manual", DocID: 9}}},
+	}}
+	ninja := &sources.NinjaDataset{Expenses: []sources.NinjaExpense{
+		{Number: "EX-0040", Date: "2026-08-26", Amount: 890, Custom: [sources.NinjaSlots]string{"", "https://docs.lan/documents/5/"}},
+		{Number: "EX-0041", Date: "2026-09-01", Amount: 1200, Custom: [sources.NinjaSlots]string{"", "https://docs.lan/documents/3/ https://docs.lan/documents/7/"}},
+		{Number: "EX-0042", Date: "2026-09-10", Amount: 300, Custom: [sources.NinjaSlots]string{"", "https://docs.lan/documents/8/"}},
+	}}
+	env := rules.Env{Today: day("2026-10-24"), Settings: map[string]any{}, Datasets: map[string]any{"kept": kept, "invoiceninja": ninja},
+		Options: map[string]map[string]any{"invoiceninja": {"receipt_link_slot": 2.0}}}
+	got := run(t, "inventory.expense_missing", nil, env)
+	if len(got) != 1 || got[0].Message != "inventory.receipt_differs" || got[0].Params["asset"] != "Monitor" ||
+		got[0].Params["number"] != "EX-0040" || got[0].ActionURL != "https://kept.lan/t/AAAAAA" {
+		t.Fatalf("findings %+v", got)
+	}
+
+	// Without the link field nothing tells which document an expense has.
+	env.Options = nil
+	if got := run(t, "inventory.expense_missing", nil, env); len(got) != 0 {
+		t.Errorf("no link field: %+v", got)
+	}
+}

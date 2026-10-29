@@ -6,9 +6,11 @@ package rules
 //
 //	inventory ─ warranty, GWG, receipt ────────────────┐ per connection
 //	inventory × Invoice Ninja ─ purchase without expense ┤ cross
+//	                          ─ expense with another receipt (Kept)
 //	inventory × Home Assistant ─ device worth replacing ─┘ cross
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -139,6 +141,7 @@ func expenseMissing(_ any, cfg map[string]any, env Env) []Finding {
 	if !ok1 || !ok2 {
 		return nil
 	}
+	slot := linkSlot(env.Options[string(enums.ServiceInvoiceNinja)])
 	var found []Finding
 	for _, asset := range RecentPurchases(assets, env.Today, cfgInt(cfg, "days")) {
 		bought, ok := metrics.ParseDay(asset.PurchaseDate)
@@ -148,19 +151,22 @@ func expenseMissing(_ any, cfg map[string]any, env Env) []Finding {
 		cost := asset.PurchaseCost
 		tolerance := cost * cfgFloat(cfg, "tolerance")
 		window := cfgInt(cfg, "date_window")
-		matched := false
-		for _, e := range ninja.Expenses {
+		var matched *sources.NinjaExpense
+		for i, e := range ninja.Expenses {
 			near := absF(e.Amount-cost) <= tolerance || absF(e.Amount-e.Tax-cost) <= tolerance
 			if !near {
 				continue
 			}
 			d, ok := metrics.ParseDay(e.Date)
 			if ok && absDays(d, bought) <= window {
-				matched = true
+				matched = &ninja.Expenses[i]
 				break
 			}
 		}
-		if matched {
+		if matched != nil {
+			if f, ok := receiptDiffers(asset, *matched, slot, assets.Service); ok {
+				found = append(found, f)
+			}
 			continue
 		}
 		found = append(found, Finding{
@@ -170,6 +176,42 @@ func expenseMissing(_ any, cfg map[string]any, env Env) []Finding {
 		})
 	}
 	return found
+}
+
+// optLinkSlot is Invoice Ninja's option naming the expense field with
+// the Paperless links (services/receipts).
+const optLinkSlot = "receipt_link_slot"
+
+// linkSlot reads it: 1–4, 0 none.
+func linkSlot(opts map[string]any) int {
+	n := cfgInt(opts, optLinkSlot)
+	if n < 1 || n > sources.NinjaSlots {
+		return 0
+	}
+	return n
+}
+
+// receiptDiffers: the inventory proves the purchase with Paperless
+// documents (Kept), the expense found links others. Both sides need a
+// link; one without says nothing here (inventory.receipt_missing,
+// receipts).
+//
+//	Kept Monitor ─ invoice doc 4 ┐
+//	EX-0040 ─ link doc 5 ────────┴─► differs
+func receiptDiffers(asset sources.Asset, e sources.NinjaExpense, slot int, from enums.ServiceType) (Finding, bool) {
+	if slot == 0 || len(asset.ReceiptDocs) == 0 {
+		return Finding{}, false
+	}
+	linked := metrics.DocIDs(e.Custom[slot-1])
+	if len(linked) == 0 || slices.ContainsFunc(linked, func(id int64) bool { return slices.Contains(asset.ReceiptDocs, id) }) {
+		return Finding{}, false
+	}
+	return Finding{
+		Fingerprint: "receiptdoc:" + asset.ID, Severity: enums.SeverityInfo, Message: "inventory.receipt_differs",
+		Params:    map[string]any{"asset": asset.Name, "number": e.Number},
+		ActionURL: asset.Link, ActionLabel: openIn + string(from),
+		Sources: []string{string(from), string(enums.ServiceInvoiceNinja)},
+	}, true
 }
 
 func replaceWorth(_ any, cfg map[string]any, env Env) []Finding {

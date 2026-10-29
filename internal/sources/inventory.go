@@ -30,6 +30,9 @@ type Asset struct {
 	// DepMonths is the useful life in months for depreciation, 0 none.
 	DepMonths int
 	Receipt   ReceiptState
+	// ReceiptDocs are the Paperless documents that prove the purchase
+	// (Kept's links), nil none or unknown.
+	ReceiptDocs []int64
 }
 
 // ReceiptState says whether an asset's purchase has a receipt.

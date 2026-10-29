@@ -3226,6 +3226,9 @@ hint:
     expense_missing:
       title: Keine Ausgabe zu {asset}
       why: Kauf am {day} über {amount}, in Invoice Ninja keine passende Ausgabe.
+    receipt_differs:
+      title: '{asset}: anderer Beleg als bei {number}'
+      why: 'Kept und die Ausgabe in Invoice Ninja verweisen auf verschiedene Paperless-Dokumente. Einer der Belege ist falsch verknüpft oder doppelt.'
   bank:
     subscription_unused:
       title: '{name}: {amount}/Monat, kaum genutzt'
