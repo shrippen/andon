@@ -1,10 +1,13 @@
 package rules_test
 
 import (
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/i18n"
 	"andon/internal/metrics"
 	"andon/internal/rules"
 	"andon/internal/sources"
@@ -54,8 +57,23 @@ func TestExposureLoginsDNS(t *testing.T) {
 	}}
 	komodo := &sources.KomodoDataset{Stacks: []sources.KStack{{Name: "wiki", Updates: []string{"app"}}}}
 	env := crossEnv("2026-09-25", map[string]any{"pangolin": pangolin, "komodo": komodo})
-	if got := run(t, "pangolin.exposure", nil, env); len(got) != 1 || got[0].Params["name"] != "Wiki" {
+	got := run(t, "pangolin.exposure", nil, env)
+	if len(got) != 1 || got[0].Params["name"] != "Wiki" {
 		t.Fatalf("exposure: %+v", got)
+	}
+
+	// The text names what is open, not a certificate nobody checked.
+	params := i18n.Typed(got[0].Params, enums.LocaleDE, enums.NotationDE)
+	if why := i18n.T("hint."+got[0].Message+".why", enums.LocaleDE, params); strings.Contains(why, "-1") || strings.Contains(why, "Zertifikat") {
+		t.Errorf("why: %s", why)
+	}
+
+	// Without updates, a certificate running out is the reason.
+	pangolin.Resources = append(pangolin.Resources, sources.PResource{Name: "Blog", Domain: "blog.example.org", Enabled: true})
+	env.Datasets[string(enums.ServiceCerts)] = &sources.CertDataset{Certs: []sources.Cert{{Host: "blog.example.org:443", NotAfter: today.AddDate(0, 0, 5)}}}
+	got = run(t, "pangolin.exposure", nil, env)
+	if len(got) != 2 || !slices.ContainsFunc(got, func(f rules.Finding) bool { return f.Message == "pangolin.exposure_cert" && f.Params["name"] == "Blog" }) {
+		t.Fatalf("certificate: %+v", got)
 	}
 
 	h := &metrics.History{Series: map[string][]metrics.Point{
@@ -71,7 +89,7 @@ func TestExposureLoginsDNS(t *testing.T) {
 	dns := &sources.DNSFilterDataset{URL: "http://pihole", TopClients: []sources.DNSClient{{IP: "192.168.1.20", Name: "laptop", Queries: 9000}, {IP: "192.168.1.87", Queries: 3000}}}
 	env = crossEnv("2026-09-25", map[string]any{metrics.HistoryDataset: h, "authentik": ak, "dawarich": geo, "pihole": dns})
 	env.Today = today.Add(6 * time.Hour)
-	got := run(t, "authentik.login_anomaly", nil, env)
+	got = run(t, "authentik.login_anomaly", nil, env)
 	if len(got) != 2 || got[0].Message != "authentik.new_country" || got[1].Message != "authentik.far_login" {
 		t.Fatalf("logins: %+v", got)
 	}

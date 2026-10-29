@@ -12,6 +12,7 @@ import (
 	"context"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -30,6 +31,13 @@ const (
 )
 
 var defaultInvoiceWords = []string{"rechnung", "invoice", "receipt", "quittung", "beleg", "faktura", "gutschrift"}
+
+// notInvoiceWords in a subject mark money back or a receipt of a notice,
+// not a bill: "Credit note … for invoice", "receipt of your withdrawal".
+var notInvoiceWords = []string{"credit note", "refund", "rückerstattung", "withdrawal", "widerrufsbestätigung", "ihres widerrufs"}
+
+// replyRe matches the reply and forward prefixes of a subject.
+var replyRe = regexp.MustCompile(`(?i)^\s*((re|aw|fwd?|wg)\s*:\s*)+`)
 
 // MailInvoice is one mail that looks like an incoming invoice.
 type MailInvoice struct {
@@ -88,7 +96,13 @@ func InvoiceAmount(text string) float64 {
 }
 
 func looksLikeInvoice(m imapmail.Message, words []string) bool {
-	hay := strings.ToLower(m.Subject + " " + strings.Join(m.Attachments, " "))
+	subject := strings.ToLower(m.Subject)
+	for _, w := range notInvoiceWords {
+		if strings.Contains(subject, w) {
+			return false
+		}
+	}
+	hay := subject + " " + strings.ToLower(strings.Join(m.Attachments, " "))
 	for _, w := range words {
 		if strings.Contains(hay, w) {
 			return true
@@ -156,6 +170,10 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 	}
 
 	data := &MailDataset{Mailbox: cfg.Mailbox, Scanned: len(msgs)}
+	threads := map[string]int{} // sender and subject without "Re:" → index in Invoices
+
+	// Oldest first, so an original comes before its replies.
+	slices.SortStableFunc(msgs, func(a, b imapmail.Message) int { return a.Date.Compare(b.Date) })
 	for _, m := range msgs {
 		if !pick(m) {
 			continue
@@ -165,10 +183,33 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 		if sender == "" {
 			sender = m.FromAddr
 		}
-		data.Invoices = append(data.Invoices, MailInvoice{UID: m.UID, Date: m.Date, Sender: sender, Addr: m.FromAddr, Domain: domain,
-			Subject: m.Subject, Amount: InvoiceAmount(m.Subject + " " + m.Text), Attachments: m.Attachments})
+		inv := MailInvoice{UID: m.UID, Date: m.Date, Sender: sender, Addr: m.FromAddr, Domain: domain,
+			Subject: m.Subject, Amount: InvoiceAmount(m.Subject + " " + m.Text), Attachments: m.Attachments}
+
+		// A thread counts once, as its original: a reply drops out and
+		// lends its amount, and its PDF when the original has none. A bill
+		// under the same subject next month starts its own.
+		key := strings.ToLower(m.FromAddr) + "\x00" + strings.ToLower(replyRe.ReplaceAllString(m.Subject, ""))
+		i, ok := threads[key]
+		if !ok || !replyRe.MatchString(m.Subject) {
+			threads[key] = len(data.Invoices)
+			data.Invoices = append(data.Invoices, inv)
+			continue
+		}
+		orig := &data.Invoices[i]
+		if orig.Amount == 0 {
+			orig.Amount = inv.Amount
+		}
+		if !hasPDF(orig.Attachments) && hasPDF(inv.Attachments) {
+			orig.UID, orig.Attachments = inv.UID, inv.Attachments
+		}
 	}
 	return data, nil
+}
+
+// hasPDF says whether one of the attachments is a PDF.
+func hasPDF(names []string) bool {
+	return slices.ContainsFunc(names, func(n string) bool { return strings.HasSuffix(strings.ToLower(n), ".pdf") })
 }
 
 // ignored matches whole addresses and domains ("shop.example").
