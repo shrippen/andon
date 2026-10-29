@@ -7266,6 +7266,7 @@ llm:
     requests: 'Requests'
     cost: 'Cost'
 vatcheck:
+  err_no_case: 'This booking is no longer open in this period.'
   vendors_link: 'Merge duplicate vendors'
   transfer: 'Transfer: the same amount on {day} on “{account}” (own account). Nothing to book, archive it.'
   elster_title: 'ELSTER figures'

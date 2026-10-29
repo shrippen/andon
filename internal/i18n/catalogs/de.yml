@@ -7267,6 +7267,7 @@ llm:
     requests: 'Anfragen'
     cost: 'Kosten'
 vatcheck:
+  err_no_case: 'Diese Buchung ist im Zeitraum nicht mehr offen.'
   vendors_link: 'Doppelte Lieferanten zusammenführen'
   transfer: 'Umbuchung: derselbe Betrag am {day} auf „{account}“ (eigenes Konto). Nichts zu buchen, archivieren.'
   elster_title: 'ELSTER-Kennzahlen'
