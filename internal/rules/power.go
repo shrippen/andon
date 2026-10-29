@@ -7,7 +7,9 @@ package rules
 //	ups.replace_battery     a UPS asks for a new battery
 //	opendtu.offline         an inverter is unreachable in daylight
 //	cross.charge_expensive  EVCC charges from the grid while Tibber's price is
-//	                        "factor" above the day's average
+//	                        "factor" above the day's average; with "pv_kwh"
+//	                        of Home Assistant's forecast still to come, it
+//	                        names that
 //	cross.ups_load          a UPS's runtime (now, or the shortest of the last
 //	                        "days" in the history) is shorter than a clean
 //	                        shutdown of its hosts (option hosts) needs:
@@ -35,7 +37,7 @@ func init() {
 	Register("ups.runtime_low", Cross, map[string]any{"minutes": 10.0}, upsRuntimeLow)
 	Register("ups.replace_battery", Cross, nil, upsReplaceBattery)
 	Register("opendtu.offline", opendtuSvc, nil, on(opendtuOffline))
-	Register("cross.charge_expensive", Cross, map[string]any{"factor": 1.3}, chargeExpensive)
+	Register("cross.charge_expensive", Cross, map[string]any{"factor": 1.3, "pv_kwh": 2.0}, chargeExpensive)
 	Register("cross.ups_load", Cross, map[string]any{"minutes_per_host": 5.0, "days": 7.0}, upsLoad)
 	Needs("cross.ups_load", string(enums.ServicePeaNUT), string(enums.ServiceApcupsd))
 }
@@ -167,14 +169,24 @@ func chargeExpensive(_ any, cfg map[string]any, env Env) []Finding {
 	if tib.Current < avg*cfgFloat(cfg, "factor") {
 		return nil
 	}
+	// Home Assistant's forecast names the alternative: the sun still to
+	// come today.
+	msg, sources := "cross.charge_expensive", []string{string(enums.ServiceEVCC), string(enums.ServiceTibber)}
+	left := 0.0
+	if e, ok := energyOf(env); ok {
+		if kwh, ok := metrics.ForecastLeft(e, env.Today); ok && kwh >= cfgFloat(cfg, "pv_kwh") {
+			msg, left, sources = "cross.charge_expensive_pv", kwh, append(sources, hassSvc)
+		}
+	}
+
 	var found []Finding
 	for _, lp := range evcc.Loadpoints {
 		if !lp.Charging || lp.ChargePower <= evcc.PV {
 			continue
 		}
-		found = append(found, Finding{Fingerprint: "expensive:" + lp.Title, Severity: enums.SeverityInfo, Message: "cross.charge_expensive",
-			Params:  map[string]any{"point": lp.Title, "price": Num(tib.Current*100, 0), "avg": Num(avg*100, 0), "kw": Num(lp.ChargePower/1000, 1)},
-			Sources: []string{string(enums.ServiceEVCC), string(enums.ServiceTibber)}})
+		found = append(found, Finding{Fingerprint: "expensive:" + lp.Title, Severity: enums.SeverityInfo, Message: msg,
+			Params:  map[string]any{"point": lp.Title, "price": Num(tib.Current*100, 0), "avg": Num(avg*100, 0), "kw": Num(lp.ChargePower/1000, 1), "pv": Num(left, 1)},
+			Sources: sources})
 	}
 	return found
 }

@@ -82,6 +82,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 7. Zähler vergleichen: Navigation, Filterleiste, Kacheln „Lage“ und „Hinweise“.
 8. Am Handy: Menü (☰) öffnet die Navigation von links, aktuelle Seite markiert; Esc, Klick daneben und × schließen, Fokus zurück auf ☰.
 9. Querhinweise: Jeder nennt beide Seiten mit Zahl und Zeit, z. B. „Stack showreel bei rotem CI deployt“ (Deploy, Build-Nummer, Repo).
+10. PV (Quelle Home Assistant): „PV brachte gestern nur … % des Vorjahrs“ (Garage aus), „Akku seit 9 Tagen ohne Zyklus“, ab dem 8. des Monats „Eigenverbrauch … % statt … % im Vorjahr“; jeder Link öffnet das Energie-Dashboard von HA.
 
 **J-B3 Tastatur**
 1. Auf dem Board `/`, „kimai“, ↓, Esc; Text ohne Treffer.

@@ -133,6 +133,12 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, link
 			if res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceType(c.Service)), nil, c, model.UserHolder(uid), svcdata.Stored); err == nil && res.Data != nil {
 				costData[c.Service] = res.Data
 			}
+			// PV lowers the power price (metrics.CostInputs.PowerPrice).
+			if service == enums.ServiceHomeAssistant {
+				if res, err := svcdata.Get(ctx, d, sources.HassEnergyKey, nil, c, model.UserHolder(uid), svcdata.Stored); err == nil && res.Data != nil {
+					costData[sources.HassEnergyKey] = res.Data
+				}
+			}
 			continue
 		case service == enums.ServiceKimai:
 		case service == enums.ServiceInvoiceNinja:
@@ -347,6 +353,7 @@ func itCostRows(data map[string]any, kimai *sources.KimaiDataset, settings map[s
 	in.Assets, _ = metrics.InventoryOf(data)
 	in.Sure, _ = metrics.BankOf(data)
 	in.Domains, _ = data[string(enums.ServiceDomains)].(*sources.DomainsDataset)
+	in.Solar, _ = data[sources.HassEnergyKey].(*sources.HassEnergy)
 	bill := metrics.HomelabCost(in, metrics.HomelabSettingsOf(settings), time.Now().UTC())
 	share, _, _ := metrics.BusinessShare(kimai, metrics.WorkNames(data))
 

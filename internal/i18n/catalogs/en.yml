@@ -2373,6 +2373,22 @@ hint:
     offline:
       title: 'Inverter {name} unreachable'
       why: 'It does not answer during the day. Check the radio link or the grid side.'
+  solar:
+    yield_low:
+      title: 'Solar made only {pct} % of the forecast on {day}'
+      why: '{kwh} kWh instead of the expected {expected} kWh. An inverter or a string is down, or the panels are shaded or dirty.'
+    yield_low_year:
+      title: 'Solar made only {pct} % of last year on {day}'
+      why: '{kwh} kWh; the same days last year averaged {expected} kWh. An inverter or a string is down, or the panels are shaded or dirty.'
+    no_yield:
+      title: 'Solar has made nothing for {hours} hours'
+      why: 'The forecast expects yield, Home Assistant counts none. Check the inverter, the fuse or the meter integration.'
+    battery_idle:
+      title: 'Battery idle for {days} days'
+      why: 'It neither charges nor discharges. The surplus goes to the grid, the evening comes from it. Check the battery''s mode, charge limits and errors.'
+    selfuse_drop:
+      title: 'Self-use {pct} % instead of {before} % last year'
+      why: 'This month more solar goes to the grid than in the same month last year. Check the battery, shifted loads (washing machine, wallbox) or new consumers.'
   wud:
     updates:
       title: '{count} container updates available'
@@ -2775,6 +2791,12 @@ hint:
     charge_expensive:
       title: '{point} charges at an expensive price'
       why: '{kw} kW from the grid at {price} ct/kWh, the day''s average is {avg} ct. Charge later or switch to solar mode.'
+    charge_expensive_pv:
+      title: '{point} charges at an expensive price, the sun is still to come'
+      why: '{kw} kW from the grid at {price} ct/kWh, the day''s average is {avg} ct. The solar forecast expects {pv} kWh more today: switch to solar mode.'
+    solar_selfuse:
+      title: '{kwh} kWh exported for {feed_in} ct, buying costs {price} ct'
+      why: 'That much solar went to the grid this month. Used at home it would have saved {saving}: move loads to midday, set the wallbox to solar mode, check the battery.'
     update_unbacked:
       title: 'Watchtower updated {count} containers without a fresh backup'
       title_singular: 'Watchtower updated {count} container without a fresh backup'
@@ -3619,6 +3641,11 @@ rule_name:
   ups.replace_battery: 'Replace UPS battery'
   opendtu.offline: 'Inverter unreachable'
   cross.charge_expensive: 'Charging at an expensive price'
+  solar.yield_low: 'Solar yield too low'
+  solar.no_yield: 'Solar without yield'
+  solar.battery_idle: 'Battery without cycles'
+  solar.selfuse_drop: 'Self-use dropped'
+  cross.solar_selfuse: 'Exported instead of self-used'
   cross.ups_load: 'UPS runtime against hosts'
   cross.charge_business: 'Charging cost of business trips'
   wud.updates: 'Container updates'
@@ -3848,6 +3875,11 @@ param:
   min_hours: 'From hours'
   min_gap_days: 'At least days before project end'
   share: 'Minimum share of expected'
+  min_kwh: 'From expected kWh'
+  kwh: 'From kWh'
+  points: 'From percentage points'
+  feed_in: 'Feed-in tariff (€/kWh)'
+  pv_kwh: 'From solar forecast (kWh)'
   max_age_days: 'Maximum age (days)'
   warn_gb: Warn below (GB free)
   critical_gb: Critical below (GB free)

@@ -1175,8 +1175,8 @@ Ziel: PV-Anlagen (zuerst SMA) auswerten, ohne selbst zu sammeln. Home Assistant 
 - [x] Demowelt `power.hass_energy` (Studio Weber: Dach 9,8 kWp, Speicher, ein Jahr Monatswerte); `QA.md`: PV aus HA anzeigen *(statt Dach 9,8 kWp die Anlage, die die Welt schon hat: Balkon und Garage aus OpenDTU plus Balkonakku. Parameter statt Reihen (Monatsertrag, Tageslicht, Wetterzyklus), Andon erzeugt Tage, Monate, Kurve und Prognose relativ zu heute. Geschichte: Garage seit vorgestern aus, Akku seit neun Tagen ohne Zyklus; shrippen.github.io #85)*
 
 **Schritt 3: Regeln**
-- [ ] `solar.yield_low` (Ertrag gestern unter Prognose, ohne Prognose unter gleichen Tagen im Vorjahr), `solar.no_yield` (tagsüber Stunden ohne Ertrag trotz Prognose), `solar.battery_idle` (Speicher ohne Zyklus), `solar.selfuse_drop` (Eigenverbrauchsquote unter Vorjahresmonat)
-- [ ] Quer: `cross.solar_selfuse` (HA × Tibber: Einspeisung zu niedrigem Preis bei teurem Bezug, Ersparnis im Monat); `cross.charge_expensive` nennt PV-Prognose als Alternative; Homelab-Kosten rechnen den PV-Anteil ein
+- [x] `solar.yield_low` (Ertrag gestern unter Prognose, ohne Prognose unter gleichen Tagen im Vorjahr), `solar.no_yield` (tagsüber Stunden ohne Ertrag trotz Prognose), `solar.battery_idle` (Speicher ohne Zyklus), `solar.selfuse_drop` (Eigenverbrauchsquote unter Vorjahresmonat) *(`internal/rules/solar.go`, Vergleiche in `metrics/solar_checks.go`; Vorjahr = Mittel der gleichen Tage ±3; „ohne Ertrag“ zählt nur Stunden, die die Kurve schon abdeckt; Selbstverbrauch erst ab dem 8. des Monats. Die Prognose wird jetzt am Tag von HA gespeichert, nicht am UTC-Tag)*
+- [x] Quer: `cross.solar_selfuse` (HA × Tibber: Einspeisung zu niedrigem Preis bei teurem Bezug, Ersparnis im Monat); `cross.charge_expensive` nennt PV-Prognose als Alternative; Homelab-Kosten rechnen den PV-Anteil ein *(Einspeisevergütung als Regel-Einstellung, 8 ct; Homelab-Strompreis × Netzanteil der letzten 30 Tage (1 − Autarkie), in Kachel, Verlauf und IT-Kosten-Export)*
 
 **Offen:** welche SMA-Geräte (bestimmt `sma` oder „SMA Devices Plus“ in HA), HA-Energie-Dashboard eingerichtet, Prognose in HA (Forecast.Solar, Solcast).
 

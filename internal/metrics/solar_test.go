@@ -112,7 +112,14 @@ func TestSolarRoles(t *testing.T) {
 func TestSolarRecorded(t *testing.T) {
 	now := time.Date(2026, 10, 29, 12, 0, 0, 0, time.UTC)
 	r := metrics.Read(metrics.Scope{Datasets: map[string]any{sources.HassEnergyKey: solarFixture()}}, now)
-	if r.Past["2026-10-28"][metrics.SolarYieldKey] != 8 || r.Values[metrics.SolarForecastKey] != 3 {
+	if r.Past["2026-10-28"][metrics.SolarYieldKey] != 8 || r.Past["2026-10-29"][metrics.SolarForecastKey] != 3 {
 		t.Fatalf("readings: %+v %+v", r.Past, r.Values)
+	}
+
+	// 00:30 in Berlin is still the 28th in UTC: the forecast belongs to
+	// Home Assistant's 29th, not to the 28th it would overwrite.
+	r = metrics.Read(metrics.Scope{Datasets: map[string]any{sources.HassEnergyKey: solarFixture()}}, time.Date(2026, 10, 28, 23, 30, 0, 0, time.UTC))
+	if _, ok := r.Values[metrics.SolarForecastKey]; ok || r.Past["2026-10-29"][metrics.SolarForecastKey] != 3 {
+		t.Fatalf("after midnight: %+v %+v", r.Past, r.Values)
 	}
 }
