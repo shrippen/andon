@@ -340,7 +340,7 @@
   {{range $v.Rows}}<li><span class="expo-name">{{.Domain}}<small class="muted">{{.Name}}</small></span>
     <span class="expo-chips">{{if .Login}}<span class="chip-ok">{{t "exposure.login"}}</span>{{else}}<span class="chip-bad">{{t "exposure.no_login"}}</span>{{end}}
     {{if .Updates}}<span class="chip-warn">{{t "exposure.updates" "n" .Updates}}</span>{{end}}
-    {{if and (ge .CertDays 0) (lt .CertDays 14)}}<span class="chip-warn">{{t "exposure.cert" "days" .CertDays}}</span>{{end}}</span></li>{{end}}
+    {{if .CertSoon}}<span class="chip-warn">{{t "exposure.cert" "days" .CertDays}}</span>{{end}}</span></li>{{end}}
 </ul>
 {{else if $v.Total}}<p class="slot-note">{{t "exposure.all_login" "n" $v.Total}}</p>{{else}}<p class="slot-note">{{t "exposure.none"}}</p>{{end}}{{end}}
 {{end}}
