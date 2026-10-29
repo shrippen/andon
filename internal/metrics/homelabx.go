@@ -344,6 +344,12 @@ type ExposureRow struct {
 	Risk         int // 0 low, 1 medium, 2 high
 }
 
+// certSoonDays is when a public resource's certificate counts as running out.
+const certSoonDays = 14
+
+// CertSoon says whether the certificate is known to run out soon.
+func (r ExposureRow) CertSoon() bool { return r.CertDays >= 0 && r.CertDays < certSoonDays }
+
 // Exposure rates Pangolin's public resources: no login and pending updates
 // or certificate trouble make a resource risky.
 func Exposure(pangolin *sources.PangolinDataset, certs *sources.CertDataset, updates []PendingUpdate, now time.Time) []ExposureRow {
@@ -368,7 +374,7 @@ func Exposure(pangolin *sources.PangolinDataset, certs *sources.CertDataset, upd
 		if !row.Login {
 			row.Risk++
 		}
-		if len(row.Updates) > 0 || (row.CertDays >= 0 && row.CertDays < 14) {
+		if len(row.Updates) > 0 || row.CertSoon() {
 			row.Risk++
 		}
 		out = append(out, row)
