@@ -1,10 +1,12 @@
 package rules_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/i18n"
 	"andon/internal/sources"
 )
 
@@ -105,6 +107,12 @@ func TestLLMUnbilled(t *testing.T) {
 	got := run(t, "cross.llm_unbilled", nil, env)
 	if len(got) != 1 || got[0].Params["account"] != "Studio" || got[0].Params["provider"] != "Anthropic" {
 		t.Fatalf("unbilled: %+v", got)
+	}
+
+	// Anthropic reports no balance: the text claims none is left only where it is known.
+	params := i18n.Typed(got[0].Params, enums.LocaleDE, enums.NotationDE)
+	if why := i18n.T("hint.cross.llm_unbilled.why", enums.LocaleDE, params); strings.Contains(why, "kein Guthaben übrig") {
+		t.Errorf("why claims no credit: %s", why)
 	}
 
 	// Without Invoice Ninja and bank there is nothing to compare.

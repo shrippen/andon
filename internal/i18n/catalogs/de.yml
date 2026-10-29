@@ -2850,7 +2850,7 @@ hint:
       why: 'Sure bucht regelmäßig {names}, in Wallos steht dazu nichts. In Wallos anlegen oder in der Regel ausnehmen.'
     llm_unbilled:
       title: '{account}: keine Rechnung von {provider} erfasst'
-      why: '{spent} verbraucht in den letzten {days} Tagen, aber in den letzten {paid_days} Tagen nennt weder eine Ausgabe in Invoice Ninja noch eine Abbuchung {provider}, und es ist kein Guthaben übrig. Rechnung herunterladen und als Ausgabe erfassen, oder die Regel für private Konten ausschalten.'
+      why: '{spent} verbraucht in den letzten {days} Tagen, aber in den letzten {paid_days} Tagen nennt weder eine Ausgabe in Invoice Ninja noch eine Abbuchung {provider}, und kein Restguthaben ist bekannt. Rechnung herunterladen und als Ausgabe erfassen, oder die Regel für private Konten ausschalten.'
   hass:
     alarm:
       title: '{entity} meldet Alarm'
