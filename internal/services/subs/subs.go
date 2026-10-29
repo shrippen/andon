@@ -155,7 +155,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 		return b, scopes, err
 	}
 	if c := b.conns[enums.ServiceInvoiceNinja]; c != nil {
-		in.Categories = sources.CategoriesOf(c.Options).Sure[b.conns[enums.ServiceSure].ID]
+		in.Categories = sources.CategoriesOf(c.Options).Of(b.conns[enums.ServiceSure].ID)
 	}
 	b.cases = metrics.SubCases(in)
 	return b, scopes, nil

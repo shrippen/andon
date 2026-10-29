@@ -308,13 +308,13 @@ func (b book) spanState(c SpanCard, method string, today time.Time) SpanState {
 }
 
 // mapped takes the category of a draft Sure named from the Verbund's
-// mapping (Verbund → Kategorien) instead of by name; a vendor's own
-// history stays first.
+// mapping (Verbund → Kategorien: Sure's category, else its tags) instead
+// of by name; a vendor's own history stays first.
 func (b book) mapped(c *Case) {
 	if c.Sure == nil || b.bankConn == nil || c.Draft.From == metrics.FromHistory {
 		return
 	}
-	key := b.cats.Sure[b.bankConn.ID][c.Sure.Category]
+	key := b.cats.Of(b.bankConn.ID).Key(c.Sure.Category, c.Sure.Tags)
 	if name := categoryName(b.ninja, key); name != "" {
 		c.Draft.Category, c.Draft.CategoryKey, c.Draft.From = name, key, metrics.FromSure
 	}

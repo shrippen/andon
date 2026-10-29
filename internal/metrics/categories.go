@@ -51,12 +51,23 @@ func (v Votes) Best(key string) (string, int) {
 // SureCategoryVotes counts, per Sure category, the Ninja categories of
 // the expenses its debits paid: same amount, a few days apart.
 func SureCategoryVotes(n *sources.NinjaDataset, s *sources.BankData) Votes {
+	return sureVotes(n, s, func(t sources.BankTxn) []string { return []string{t.Category} })
+}
+
+// SureTagVotes counts the same per Sure tag.
+func SureTagVotes(n *sources.NinjaDataset, s *sources.BankData) Votes {
+	return sureVotes(n, s, func(t sources.BankTxn) []string { return t.Tags })
+}
+
+// sureVotes counts, per name of a debit (keys), the Ninja categories of
+// the expenses it paid.
+func sureVotes(n *sources.NinjaDataset, s *sources.BankData, keys func(sources.BankTxn) []string) Votes {
 	out := Votes{}
 	if n == nil || s == nil {
 		return out
 	}
 	for _, t := range s.Transactions {
-		if t.Category == "" || t.Amount >= 0 {
+		if len(keys(t)) == 0 || t.Amount >= 0 {
 			continue
 		}
 		day, ok := ParseDay(t.Date)
@@ -67,7 +78,9 @@ func SureCategoryVotes(n *sources.NinjaDataset, s *sources.BankData) Votes {
 			if e.CategoryKey == "" || abs(e.Amount+t.Amount) > amountTol || daysApart(e.Date, day) > shareDays {
 				continue
 			}
-			out.add(t.Category, e.CategoryKey)
+			for _, k := range keys(t) {
+				out.add(k, e.CategoryKey)
+			}
 			break
 		}
 	}

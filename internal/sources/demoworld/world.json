@@ -2092,6 +2092,12 @@
     "date": "@date-8",
     "name": "Kabelwerk Studiobedarf",
     "amount": -899,
+    "tags": [
+     {
+      "de": "Studio",
+      "en": "Studio"
+     }
+    ],
     "account": {
      "de": "Geschäftskonto",
      "en": "Business account"
@@ -8900,6 +8906,71 @@
      "price": 5.95
     }
    ]
+  },
+  "hass_energy": {
+   "note": "Home Assistant's energy dashboard at Mara's: the two OpenDTU inverters (balcony and garage), the grid meter and the balcony battery. Since the garage inverter dropped off the network the yield is about half the forecast. The battery has not cycled since a firmware update put it in standby, so more goes to the grid and the self-use share is below last year's. month_kwh: a typical month's yield of both inverters; daylight: hours of daylight per month; weather: the yield factor of consecutive days, repeating.",
+   "zone": "Europe/Berlin",
+   "solar": [
+    "sensor.balkon_yieldtotal",
+    "sensor.garage_yieldtotal"
+   ],
+   "import": [
+    "sensor.zaehler_bezug"
+   ],
+   "export": [
+    "sensor.zaehler_einspeisung"
+   ],
+   "charge": [
+    "sensor.akku_geladen"
+   ],
+   "discharge": [
+    "sensor.akku_entladen"
+   ],
+   "month_kwh": [
+    25,
+    45,
+    95,
+    145,
+    180,
+    180,
+    185,
+    160,
+    115,
+    70,
+    30,
+    20
+   ],
+   "daylight": [
+    8,
+    9.8,
+    11.8,
+    13.9,
+    15.7,
+    16.7,
+    16.2,
+    14.6,
+    12.6,
+    10.6,
+    8.6,
+    7.6
+   ],
+   "noon": 13,
+   "weather": [
+    1.1,
+    0.7,
+    1.0,
+    0.45,
+    0.9,
+    1.05,
+    0.8
+   ],
+   "use_kwh": 7,
+   "direct_share": 0.45,
+   "battery_kwh": 1.5,
+   "battery_efficiency": 0.9,
+   "garage_share": 0.5,
+   "garage_down": "@date-2",
+   "battery_idle": "@date-9"
   }
  },
  "esphome": {

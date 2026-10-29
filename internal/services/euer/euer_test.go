@@ -44,13 +44,20 @@ func TestEuerBench(t *testing.T) {
 	if len(view.Sure) == 0 || len(view.Categories) == 0 {
 		t.Fatalf("no Sure categories or Ninja categories: %+v", view.Sure)
 	}
+	if len(view.Tags) != 1 || view.Tags[0].Name != "Studio" {
+		t.Fatalf("Sure tags: %+v", view.Tags)
+	}
 	sureMap := map[string]string{view.Sure[0].Name: view.Categories[0].Key, "Unknown": "no-such-key"}
-	if err := verbund.SaveCategories(ctx, d, who, id, verbund.CategorySave{Sure: sureMap, Slot: view.Slot}, ""); err != nil {
+	tagMap := map[string]string{"Studio": view.Categories[1].Key, "Unknown": "no-such-key"}
+	if err := verbund.SaveCategories(ctx, d, who, id, verbund.CategorySave{Sure: sureMap, Tags: tagMap, Slot: view.Slot}, ""); err != nil {
 		t.Fatal(err)
 	}
 	again, _ := verbund.CategoriesOf(ctx, d, who, id)
 	if again.Sure[0].Mapped != view.Categories[0].Key {
 		t.Errorf("Sure mapping not kept: %+v", again.Sure[0])
+	}
+	if again.Tags[0].Mapped != view.Categories[1].Key {
+		t.Errorf("tag mapping not kept: %+v", again.Tags[0])
 	}
 	page, err = euer.Open(ctx, d, who, "", today.Year(), today)
 	if err != nil || page.Slot != 3 || page.Label != "EÜR" || len(page.Cases) == 0 || page.Suggested == 0 || !page.Dropdown {

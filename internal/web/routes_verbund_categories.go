@@ -3,7 +3,7 @@ package web
 // A Verbund's categories, kept on its Invoice Ninja:
 //
 //	GET  /verbund/{id}/categories   Sure → Ninja category, Ninja category → EÜR line
-//	POST /verbund/{id}/categories   stores both (sure:<name>, euer_slot, euer:<key>)
+//	POST /verbund/{id}/categories   stores both (sure:<name>, tag:<name>, euer_slot, euer:<key>)
 //	GET  /categories?ninja=3&bank=5 the same for connections in no Verbund
 //	POST /categories
 
@@ -19,6 +19,7 @@ import (
 // Field prefixes of the categories form.
 const (
 	catSure = "sure:"
+	catTag  = "tag:"
 )
 
 func (d Deps) handleVerbundCategories(w http.ResponseWriter, r *http.Request, ctx Ctx) {
@@ -50,11 +51,14 @@ func (d Deps) handleVerbundCategories(w http.ResponseWriter, r *http.Request, ct
 
 // categorySave reads the categories form.
 func categorySave(r *http.Request) verbund.CategorySave {
-	in := verbund.CategorySave{Sure: map[string]string{}}
+	in := verbund.CategorySave{Sure: map[string]string{}, Tags: map[string]string{}}
 	in.Slot, _ = strconv.Atoi(r.PostForm.Get("euer_slot"))
 	for name, v := range r.PostForm {
-		if strings.HasPrefix(name, catSure) {
-			in.Sure[strings.TrimPrefix(name, catSure)] = v[0]
+		if n, ok := strings.CutPrefix(name, catSure); ok {
+			in.Sure[n] = v[0]
+		}
+		if n, ok := strings.CutPrefix(name, catTag); ok {
+			in.Tags[n] = v[0]
 		}
 	}
 	return in

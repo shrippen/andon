@@ -230,9 +230,11 @@ const OptAccountRoles = "account_roles"
 // Options of an Invoice Ninja connection naming its categories:
 //
 //	category_map {"<Sure connection>": {"Software": "<Ninja category key>"}}
+//	tag_map      {"<Sure connection>": {"Studio": "<Ninja category key>"}}
 //	euer_slot    3, the expense custom field holding the EÜR line (1–4)
 const (
 	OptCategoryMap = "category_map"
+	OptTagMap      = "tag_map"
 	OptEuerSlot    = "euer_slot"
 )
 
@@ -240,20 +242,37 @@ const (
 // categories.
 type Categories struct {
 	Sure     map[int64]map[string]string // per Sure (or Firefly) connection: its category → Ninja key
+	Tags     map[int64]map[string]string // per Sure connection: its tag → Ninja key
 	EuerSlot int                         // 0 = not chosen
+}
+
+// BankMap is one bank connection's mapping to Ninja category keys.
+type BankMap struct {
+	Category, Tag map[string]string
+}
+
+// Key is a booking's Ninja category key: its category's, else its first
+// mapped tag's; "" none.
+func (m BankMap) Key(category string, tags []string) string {
+	if key := m.Category[category]; key != "" {
+		return key
+	}
+	for _, t := range tags {
+		if key := m.Tag[t]; key != "" {
+			return key
+		}
+	}
+	return ""
+}
+
+// Of is the mapping of one bank connection.
+func (c Categories) Of(bank int64) BankMap {
+	return BankMap{Category: c.Sure[bank], Tag: c.Tags[bank]}
 }
 
 // CategoriesOf reads them from a connection's options.
 func CategoriesOf(options map[string]any) Categories {
-	out := Categories{Sure: map[int64]map[string]string{}}
-	raw, _ := options[OptCategoryMap].(map[string]any)
-	for conn, m := range raw {
-		id, err := strconv.ParseInt(conn, 10, 64)
-		if err != nil {
-			continue
-		}
-		out.Sure[id] = strMap(m)
-	}
+	out := Categories{Sure: connMaps(options[OptCategoryMap]), Tags: connMaps(options[OptTagMap])}
 	if n := int(asFloat(options[OptEuerSlot])); n >= 1 && n <= NinjaSlots {
 		out.EuerSlot = n
 	}
@@ -262,11 +281,30 @@ func CategoriesOf(options map[string]any) Categories {
 
 // Options writes them back into options (a copy is the caller's).
 func (c Categories) Options(options map[string]any) {
-	sure := map[string]any{}
-	for conn, m := range c.Sure {
-		sure[strconv.FormatInt(conn, 10)] = anyMap(m)
+	options[OptCategoryMap], options[OptTagMap], options[OptEuerSlot] = connAny(c.Sure), connAny(c.Tags), c.EuerSlot
+}
+
+// connMaps reads {"<connection>": {name: key}}.
+func connMaps(raw any) map[int64]map[string]string {
+	out := map[int64]map[string]string{}
+	m, _ := raw.(map[string]any)
+	for conn, names := range m {
+		id, err := strconv.ParseInt(conn, 10, 64)
+		if err != nil {
+			continue
+		}
+		out[id] = strMap(names)
 	}
-	options[OptCategoryMap], options[OptEuerSlot] = sure, c.EuerSlot
+	return out
+}
+
+// connAny writes them back.
+func connAny(in map[int64]map[string]string) map[string]any {
+	out := map[string]any{}
+	for conn, m := range in {
+		out[strconv.FormatInt(conn, 10)] = anyMap(m)
+	}
+	return out
 }
 
 func strMap(raw any) map[string]string {
