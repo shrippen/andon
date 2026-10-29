@@ -2667,6 +2667,9 @@ hint:
     exposure_cert:
       title: '{name} public without login'
       why: '{domain} is reachable without Pangolin login, and its certificate expires in {cert} days.'
+    exposure_both:
+      title: '{name} public without login'
+      why: '{domain} is reachable without Pangolin login, has open updates ({updates}), and its certificate expires in {cert} days.'
     site_offline:
       title: 'Pangolin site {site} offline'
       why: Check the Newt client on site; services behind it are unreachable.

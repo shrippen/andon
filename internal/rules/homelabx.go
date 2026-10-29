@@ -152,10 +152,13 @@ func pangolinExposure(_ any, _ map[string]any, env Env) []Finding {
 		if r.Risk < 2 {
 			continue
 		}
-		// Open updates first; else the certificate is what runs out.
+		// The text names what makes it risky: open updates, a certificate
+		// running out, or both.
 		msg := "pangolin.exposure"
 		if len(r.Updates) == 0 {
 			msg = "pangolin.exposure_cert"
+		} else if r.CertSoon() {
+			msg = "pangolin.exposure_both"
 		}
 		found = append(found, Finding{Fingerprint: "exposed:" + r.Domain, Severity: enums.SeverityWarn,
 			Message: msg, Params: map[string]any{"name": r.Name, "domain": r.Domain, "updates": shortList(r.Updates),

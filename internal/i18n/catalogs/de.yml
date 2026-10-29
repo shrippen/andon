@@ -2667,6 +2667,9 @@ hint:
     exposure_cert:
       title: '{name} öffentlich ohne Anmeldung'
       why: '{domain} ist ohne Pangolin-Anmeldung erreichbar, sein Zertifikat läuft in {cert} Tagen ab.'
+    exposure_both:
+      title: '{name} öffentlich ohne Anmeldung'
+      why: '{domain} ist ohne Pangolin-Anmeldung erreichbar, hat offene Updates ({updates}) und sein Zertifikat läuft in {cert} Tagen ab.'
     site_offline:
       title: 'Pangolin-Site {site} offline'
       why: Newt-Client am Standort prüfen; dahinterliegende Dienste sind nicht erreichbar.

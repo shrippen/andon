@@ -76,6 +76,18 @@ func TestExposureLoginsDNS(t *testing.T) {
 		t.Fatalf("certificate: %+v", got)
 	}
 
+	// Updates and a certificate running out: the text names both.
+	env.Datasets[string(enums.ServiceCerts)] = &sources.CertDataset{Certs: []sources.Cert{{Host: "wiki.example.org:443", NotAfter: today.AddDate(0, 0, 5)}}}
+	got = run(t, "pangolin.exposure", nil, env)
+	i := slices.IndexFunc(got, func(f rules.Finding) bool { return f.Params["name"] == "Wiki" })
+	if i < 0 {
+		t.Fatalf("both: %+v", got)
+	}
+	params = i18n.Typed(got[i].Params, enums.LocaleDE, enums.NotationDE)
+	if why := i18n.T("hint."+got[i].Message+".why", enums.LocaleDE, params); !strings.Contains(why, "Updates") || !strings.Contains(why, "Zertifikat") {
+		t.Errorf("both why: %s", why)
+	}
+
 	h := &metrics.History{Series: map[string][]metrics.Point{
 		"authentik.country.alex.de": series(today, 1, 1, 1, 1, 1, 1, 1),
 		"dns.q.192_168_1_20":        series(today, 900, 1000, 1100, 950, 1000, 1050, 1000),

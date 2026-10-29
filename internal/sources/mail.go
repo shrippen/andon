@@ -170,10 +170,19 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 	}
 
 	data := &MailDataset{Mailbox: cfg.Mailbox, Scanned: len(msgs)}
-	threads := map[string]int{} // sender and subject without "Re:" → index in Invoices
+	threads := map[string][]int{} // sender and subject without "Re:" → indexes in Invoices, oldest first
 
-	// Oldest first, so an original comes before its replies.
-	slices.SortStableFunc(msgs, func(a, b imapmail.Message) int { return a.Date.Compare(b.Date) })
+	// Originals first, oldest first; then the replies. A sender's clock
+	// may date a reply before its original.
+	slices.SortStableFunc(msgs, func(a, b imapmail.Message) int {
+		if ra, rb := isReply(a), isReply(b); ra != rb {
+			if ra {
+				return 1
+			}
+			return -1
+		}
+		return a.Date.Compare(b.Date)
+	})
 	for _, m := range msgs {
 		if !pick(m) {
 			continue
@@ -187,14 +196,25 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 			Subject: m.Subject, Amount: InvoiceAmount(m.Subject + " " + m.Text), Attachments: m.Attachments}
 
 		// A thread counts once, as its original: a reply drops out and
-		// lends its amount, and its PDF when the original has none. A bill
-		// under the same subject next month starts its own.
+		// lends its amount, and its PDF when the original has none. A reply
+		// whose original lies before the window is no bill of its own. A
+		// bill under the same subject next month starts its own; a reply
+		// joins the last one before it (or the first, if dated earlier).
 		key := strings.ToLower(m.FromAddr) + "\x00" + strings.ToLower(replyRe.ReplaceAllString(m.Subject, ""))
-		i, ok := threads[key]
-		if !ok || !replyRe.MatchString(m.Subject) {
-			threads[key] = len(data.Invoices)
+		if !isReply(m) {
+			threads[key] = append(threads[key], len(data.Invoices))
 			data.Invoices = append(data.Invoices, inv)
 			continue
+		}
+		thread := threads[key]
+		if len(thread) == 0 {
+			continue
+		}
+		i := thread[0]
+		for _, j := range thread {
+			if !data.Invoices[j].Date.After(m.Date) {
+				i = j
+			}
 		}
 		orig := &data.Invoices[i]
 		if orig.Amount == 0 {
@@ -206,6 +226,9 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	return data, nil
 }
+
+// isReply says whether the subject marks a reply or forward ("Re:", "AW:").
+func isReply(m imapmail.Message) bool { return replyRe.MatchString(m.Subject) }
 
 // hasPDF says whether one of the attachments is a PDF.
 func hasPDF(names []string) bool {

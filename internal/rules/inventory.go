@@ -142,6 +142,12 @@ func expenseMissing(_ any, cfg map[string]any, env Env) []Finding {
 		return nil
 	}
 	slot := linkSlot(env.Options[string(enums.ServiceInvoiceNinja)])
+	owner := map[int64]string{} // receipt document → the thing it proves
+	for _, a := range assets.Assets {
+		for _, id := range a.ReceiptDocs {
+			owner[id] = a.ID
+		}
+	}
 	var found []Finding
 	for _, asset := range RecentPurchases(assets, env.Today, cfgInt(cfg, "days")) {
 		bought, ok := metrics.ParseDay(asset.PurchaseDate)
@@ -165,7 +171,7 @@ func expenseMissing(_ any, cfg map[string]any, env Env) []Finding {
 			}
 		}
 		if len(matched) > 0 {
-			if f, ok := receiptDiffers(asset, matched, slot, assets.Service); ok {
+			if f, ok := receiptDiffers(asset, matched, slot, owner, assets.Service); ok {
 				found = append(found, f)
 			}
 			continue
@@ -195,11 +201,13 @@ func linkSlot(opts map[string]any) int {
 // receiptDiffers: the inventory proves the purchase with Paperless
 // documents (Kept), and each expense found links others. Both sides need
 // a link; one without says nothing here (inventory.receipt_missing,
-// receipts). The finding names the first expense.
+// receipts). The finding names the first expense whose documents prove
+// no other thing: with two equal monitors, not the one rightly linked
+// to the other.
 //
 //	Kept Monitor ─ invoice doc 4 ┐
 //	EX-0040 ─ link doc 5 ────────┴─► differs
-func receiptDiffers(asset sources.Asset, matched []sources.NinjaExpense, slot int, from enums.ServiceType) (Finding, bool) {
+func receiptDiffers(asset sources.Asset, matched []sources.NinjaExpense, slot int, owner map[int64]string, from enums.ServiceType) (Finding, bool) {
 	if slot == 0 || len(asset.ReceiptDocs) == 0 {
 		return Finding{}, false
 	}
@@ -210,6 +218,13 @@ func receiptDiffers(asset sources.Asset, matched []sources.NinjaExpense, slot in
 		}
 	}
 	e := matched[0]
+	for _, m := range matched {
+		other := func(id int64) bool { return owner[id] != "" && owner[id] != asset.ID }
+		if !slices.ContainsFunc(metrics.DocIDs(m.Custom[slot-1]), other) {
+			e = m
+			break
+		}
+	}
 	return Finding{
 		Fingerprint: "receiptdoc:" + asset.ID, Severity: enums.SeverityInfo, Message: "inventory.receipt_differs",
 		Params:    map[string]any{"asset": asset.Name, "number": e.Number},

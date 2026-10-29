@@ -16,7 +16,8 @@ type ExposedRow struct {
 	Name, Domain string
 	Login        bool
 	Updates      int
-	CertDays     int // -1 unknown
+	CertDays     int  // -1 unknown
+	CertSoon     bool // runs out soon (metrics.ExposureRow.CertSoon)
 	Risk         int
 }
 
@@ -50,7 +51,7 @@ func exposureView(cfg ExposureConfig, results map[string]any, ctx ViewCtx) map[s
 		} else if cfg.OnlyOpen {
 			continue
 		}
-		rows = append(rows, ExposedRow{Name: r.Name, Domain: r.Domain, Login: r.Login, Updates: len(r.Updates), CertDays: r.CertDays, Risk: r.Risk})
+		rows = append(rows, ExposedRow{Name: r.Name, Domain: r.Domain, Login: r.Login, Updates: len(r.Updates), CertDays: r.CertDays, CertSoon: r.CertSoon(), Risk: r.Risk})
 	}
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].Risk > rows[j].Risk })
 	return map[string]any{"Rows": rows, "Open": open, "Total": len(all)}
