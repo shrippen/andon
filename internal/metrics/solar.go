@@ -18,6 +18,9 @@ import (
 // fiveMinutesPerHour turns a 5-minute step's kWh into kW.
 const fiveMinutesPerHour = 12
 
+// curveStep is the span of one point of today's curve.
+const curveStep = time.Hour / fiveMinutesPerHour
+
 // SolarSpan is a span's energy in kWh, with the roles Home Assistant
 // knows: a missing statistic reads as 0 kWh, not as "none".
 type SolarSpan struct {
