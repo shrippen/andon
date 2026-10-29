@@ -42,8 +42,9 @@ that matters is one a user sees, or one that costs data or trust:
   first connection in scope; capabilities via `caps`, not flags.
 - Bug fixes: a test that failed before the fix, and the cause removed,
   not one case hidden. A changed flow changes its journey in `QA.md`;
-  a release follows the release rule (log in `docs/index.html`
-  `#changes`, shots `docs/shots/release-<version>-*`, the footer version,
+  a release follows the release rule (log in `CHANGELOG.md`, the same
+  text in `docs/index.html` `#changes` and the Gitea release notes,
+  shots `docs/shots/release-<version>-*`, the footer version,
   `versions.json` in shrippen.github.io).
 
 ## Skip
