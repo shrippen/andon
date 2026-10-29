@@ -9,7 +9,9 @@ package rules
 //	                (a loop, a batch run twice, a model mixed up)
 //	cross.llm_unbilled  an account spent, but neither Invoice Ninja nor
 //	                the bank knows a payment to its provider lately
-//	                (the provider's invoice was not recorded)
+//	                (the provider's invoice was not recorded); matched by
+//	                provider name, so any payment to it covers all its
+//	                accounts (a ChatGPT subscription the API too)
 
 import (
 	"strings"
@@ -26,7 +28,7 @@ func init() {
 	Register("llm.budget", Cross, nil, llmBudget)
 	Register("llm.credit_low", Cross, map[string]any{"min_balance": 5.0, "min_limit_pct": 20.0}, llmCreditLow)
 	Register("llm.spike", Cross, map[string]any{"factor": 3.0, "min_usd": 1.0, "days": 14.0}, llmSpike)
-	Register("cross.llm_unbilled", Cross, map[string]any{"min_usd": 5.0, "days": 45.0}, llmUnbilled)
+	Register("cross.llm_unbilled", Cross, map[string]any{"min_usd": 5.0, "days": 45.0, "paid_days": 180.0}, llmUnbilled)
 }
 
 // llmVendors is the name a provider bills under, as it shows in a
@@ -39,26 +41,32 @@ var llmVendors = map[enums.ServiceType]string{
 }
 
 // llmUnbilled: spend of the last days without an expense (Invoice Ninja)
-// or a payment (bank) to the provider in the same days. Providers bill
-// prepaid credit or monthly; either way a payment falls in the window.
+// or a payment (bank) to the provider. Providers bill prepaid credit, so
+// a payment counts for paid_days, and an account with credit left was
+// paid by an earlier top-up (llm.credit_low warns when it runs out).
+//
+//	top-up 100 $ ── 120 days of spend ── no hint;  no payment in 180 days ── hint
 func llmUnbilled(_ any, cfg map[string]any, env Env) []Finding {
 	ninja, _ := env.Datasets[string(enums.ServiceInvoiceNinja)].(*sources.NinjaDataset)
 	bank, _ := metrics.BankOf(env.Datasets)
 	if ninja == nil && bank == nil {
 		return nil
 	}
-	days := cfgInt(cfg, "days")
-	since := env.Today.AddDate(0, 0, -days)
+	days, paidDays := cfgInt(cfg, "days"), cfgInt(cfg, "paid_days")
+	since, paidSince := env.Today.AddDate(0, 0, -days), env.Today.AddDate(0, 0, -paidDays)
 
 	var found []Finding
 	for _, a := range metrics.LLMAccounts(env.Datasets) {
 		vendor := llmVendors[a.Service]
 		spent := metrics.LLMSpentSince(a, since)
-		if vendor == "" || !a.Spend || spent < cfgFloat(cfg, "min_usd") || llmPaid(ninja, bank, vendor, since) {
+		if vendor == "" || !a.Spend || spent < cfgFloat(cfg, "min_usd") || (a.HasBalance && a.Balance > 0) {
+			continue
+		}
+		if llmPaid(ninja, bank, vendor, paidSince) {
 			continue
 		}
 		found = append(found, llmFinding(a, "cross.llm_unbilled", "unbilled", "cross.llm_unbilled", enums.SeverityInfo,
-			map[string]any{"provider": vendor, "spent": Money(spent, usd), "days": days}))
+			map[string]any{"provider": vendor, "spent": Money(spent, usd), "days": days, "paid_days": paidDays}))
 	}
 	return found
 }

@@ -2814,7 +2814,7 @@ hint:
       why: 'Sure bucht regelmäßig {names}, in Wallos steht dazu nichts. In Wallos anlegen oder in der Regel ausnehmen.'
     llm_unbilled:
       title: '{account}: keine Rechnung von {provider} erfasst'
-      why: '{spent} verbraucht in den letzten {days} Tagen, aber weder eine Ausgabe in Invoice Ninja noch eine Abbuchung nennt {provider}. Rechnung herunterladen und als Ausgabe erfassen, oder die Regel für private Konten ausschalten.'
+      why: '{spent} verbraucht in den letzten {days} Tagen, aber in den letzten {paid_days} Tagen nennt weder eine Ausgabe in Invoice Ninja noch eine Abbuchung {provider}, und es ist kein Guthaben übrig. Rechnung herunterladen und als Ausgabe erfassen, oder die Regel für private Konten ausschalten.'
   hass:
     alarm:
       title: '{entity} meldet Alarm'
@@ -3812,6 +3812,7 @@ param:
   min_balance: 'Guthaben unter (USD)'
   min_limit_pct: 'Schlüssel-Limit übrig unter (%)'
   min_usd: 'Mindestens (USD)'
+  paid_days: 'Zahlung gilt Tage'
   min_db: 'Mindestens dB'
   min_dbm: 'Mindestens dBm'
   booked_share: 'Anteil des Gebuchten'
