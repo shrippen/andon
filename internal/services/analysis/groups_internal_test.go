@@ -130,4 +130,23 @@ func TestCompanionFollowsConnection(t *testing.T) {
 			t.Fatalf("connection %d: %+v", c.ID, envs)
 		}
 	}
+
+	// The second one's energy failed: its rules see none, not the
+	// first one's, in its own env and in the rounds of the cross checks.
+	failed := run{conn: ha2, result: svcdata.Result{Data: ha2.ID}, extra: map[string]any{}}
+	sc = newScope(1, nil, map[string]any{})
+	sc.fetched = []run{runOf(ha1), failed}
+	sc.datasets["homeassistant"], sc.datasets[sources.HassEnergyKey] = ha1.ID, ha1.ID*10
+	sc.datasets["docker"] = int64(7)
+	sc.split(nil, nil)
+	for _, env := range sc.envsOf(failed, nil, time.Now()) {
+		if v, ok := env.Datasets[sources.HassEnergyKey]; ok {
+			t.Fatalf("failed companion sees %v", v)
+		}
+	}
+	for _, g := range sc.groups {
+		if g.datasets["homeassistant"] == ha2.ID && g.datasets[sources.HassEnergyKey] != nil {
+			t.Fatalf("round of connection 2 sees %v", g.datasets[sources.HassEnergyKey])
+		}
+	}
 }
