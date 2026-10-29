@@ -23,6 +23,7 @@ import (
 	"andon/internal/services/accounts"
 	"andon/internal/services/auth"
 	"andon/internal/services/shares"
+	"andon/internal/services/spaces"
 	"andon/internal/services/teams"
 	"andon/internal/services/widgetlib"
 )
@@ -53,6 +54,7 @@ var knownErrors = []struct {
 	{notify.ErrFailed, "notify.failed"},
 	{notify.ErrInvalidURL, "notify.invalid_url"},
 	{notify.ErrBadTime, "notify.bad_time"},
+	{spaces.ErrThreshold, "settings.custom_threshold_invalid"},
 }
 
 // errKey returns the catalog key for err, for {{t .Error}} in templates.

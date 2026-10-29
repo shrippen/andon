@@ -202,3 +202,22 @@ func TestNotationOf(t *testing.T) {
 		t.Error("notation")
 	}
 }
+
+// TestAutoFollowsDefaultLocale: a formatter handed auto (a caller that
+// skipped NotationOf) writes and reads like the default language.
+func TestAutoFollowsDefaultLocale(t *testing.T) {
+	def := i18n.NotationOf(enums.NotationAuto, i18n.DefaultLocale)
+	if got, want := i18n.Money(1234.5, enums.NotationAuto, "EUR"), i18n.Money(1234.5, def, "EUR"); got != want {
+		t.Errorf("money: %q, want %q", got, want)
+	}
+	if got, want := i18n.Num(1234.5, enums.NotationAuto, 1), i18n.Num(1234.5, def, 1); got != want {
+		t.Errorf("num: %q, want %q", got, want)
+	}
+	if got, want := i18n.NumPattern(enums.NotationAuto), i18n.NumPattern(def); got != want {
+		t.Errorf("pattern: %q, want %q", got, want)
+	}
+	typed := i18n.Decimal(18.4, def, 2)
+	if v, err := i18n.ParseNum(typed, enums.NotationAuto); err != nil || v != 18.4 {
+		t.Errorf("parse %q: %v %v", typed, v, err)
+	}
+}

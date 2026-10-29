@@ -240,7 +240,7 @@ func NotationOf(n enums.Notation, locale enums.Locale) enums.Notation {
 func Money(value float64, n enums.Notation, currency string) string {
 	symbol := currencySymbol(currency)
 	amount := groupedDecimal(value, n, 2)
-	if n == enums.NotationDE {
+	if numNotation(n) == enums.NotationDE {
 		return amount + " " + symbol
 	}
 	return symbol + amount
@@ -288,12 +288,10 @@ func NumPattern(n enums.Notation) string {
 	return numGrammar[numNotation(n)]
 }
 
-// numNotation: auto counts as en, like thousandsSep and decimalSep.
+// numNotation is the notation the formatters use: auto (a caller that
+// skipped NotationOf) counts as the default language's.
 func numNotation(n enums.Notation) enums.Notation {
-	if n == enums.NotationDE {
-		return n
-	}
-	return enums.NotationEN
+	return NotationOf(n, DefaultLocale)
 }
 
 // ParseNum reads a number typed in notation n: "1.234,56" or "18,40"
@@ -343,14 +341,14 @@ func groupedDecimal(value float64, n enums.Notation, digits int) string {
 }
 
 func thousandsSep(n enums.Notation) string {
-	if n == enums.NotationDE {
+	if numNotation(n) == enums.NotationDE {
 		return "."
 	}
 	return ","
 }
 
 func decimalSep(n enums.Notation) string {
-	if n == enums.NotationDE {
+	if numNotation(n) == enums.NotationDE {
 		return ","
 	}
 	return "."
@@ -541,14 +539,14 @@ func MoneyRound(value float64, n enums.Notation, currency, mode string) string {
 		amount = groupedDecimal(value, n, 0)
 	case "thousand":
 		amount = groupedDecimal(value/thousand, n, 1)
-		if n == enums.NotationDE {
+		if numNotation(n) == enums.NotationDE {
 			return amount + " T" + symbol
 		}
 		return symbol + amount + "k"
 	default:
 		return Money(value, n, currency)
 	}
-	if n == enums.NotationDE {
+	if numNotation(n) == enums.NotationDE {
 		return amount + " " + symbol
 	}
 	return symbol + amount

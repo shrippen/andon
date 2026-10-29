@@ -3915,6 +3915,7 @@ settings:
   custom_if: Wenn
   custom_value: Wert
   custom_level: Stufe
+  custom_threshold_invalid: „Wert“ ist keine Zahl im Zahlenformat deines Profils.
   custom_new: neu
   page: 'Startseite'
   page_title: Titel
