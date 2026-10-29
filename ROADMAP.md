@@ -1326,7 +1326,7 @@ Grundlage sind **Kategorien** ([`CAPABILITIES.md`](CAPABILITIES.md), „Kategori
 - [x] Kepts `agenda` (lesbar per Token) liefert alle Termine mit Zustand, Kept rechnet den Vorlauf je Eintrag selbst (`expiryLeadDays`, `leadDays` der Garantie): `thing_expiry` (Ablaufdatum, z. B. Feuerlöscher, Erste-Hilfe-Kasten), `warranty` (Garantieende, Registrierungsfrist), `document` (Dokument mit Ablauf), `schedule` (Wartung), `loan` (Rückgabe)
 - [x] Regel `kept.due` je Art (`expiring`, `due`, `overdue`; Stufe info → warn → crit), Fälligkeit als Datum des Hinweises: erscheint in Fristen, Kalender und iCal und in der Zusammenfassung wie Steuerfristen; welche Arten zählen, wählt die Regel (Vorgabe ohne `warranty`, die meldet `inventory.warranty_expiring`, und ohne `loan`)
 - [x] Link-Kachel Kept: Zahl der Dinge und der fälligen Termine (`metrics.KeptInfo`)
-- [ ] Kachel mit den nächsten Kept-Terminen (wie `SnipeUpcomingDates`), Popup mit Liste, Link je Eintrag nach Kept
+- [x] Kachel mit den nächsten Kept-Terminen (wie `SnipeUpcomingDates`), Popup mit Liste, Link je Eintrag nach Kept *(fällt mit der Termin-Tabelle zusammen: Tabelle „Termine im Inventar“ an einer Kept-Verbindung; Überfälliges bleibt sichtbar)*
 
 **Schritt 4: Belege mit Paperless**
 - [x] Kept verknüpft Belege selbst mit Paperless; Andon prüft das gegen den Paperless-Partner des Verbunds: Verknüpfung zeigt auf ein anderes Paperless (Adresse), Dokument fehlt dort (gelöscht), Kept meldet Paperless getrennt (`connected: false`)
@@ -1336,7 +1336,7 @@ Grundlage sind **Kategorien** ([`CAPABILITIES.md`](CAPABILITIES.md), „Kategori
 - [ ] `inventory.expense_missing` für Kept: gibt es die Ausgabe in Ninja mit Beleg, ist der Paperless-Beleg derselbe (Dokument-ID)?
 
 **Schritt 5: Regeln, Kacheln, Schreiben**
-- [ ] Inventar-Kacheln (Kennzahl, Termin-Tabelle) lesen über die Kategorie; heute nur Snipe-IT (`insight.go`, `insight_tables.go`)
+- [x] Inventar-Kacheln (Kennzahl, Termin-Tabelle) lesen über die Kategorie *(`InventoryData.Dates`, `metrics.AssetDates`, `metrics.AssetValue`; „Bereit“ bleibt Snipe-IT)*
 - [x] Werkbank „Käufe“: Garantie nach Kept (MCP `add_warranty`); fehlt das Modul, sagt die Seite es statt zu scheitern
 - [x] Werkbank „Inventar“: Gerät als Ding im ersten Ort des Tokens unter „Unplaced“ anlegen
 - [ ] Ort und Raum als Option der Verbindung

@@ -41,11 +41,22 @@ const (
 	ReceiptFound   ReceiptState = "found"
 )
 
-// InventoryData is an inventory connection's assets.
+// AssetDate is a dated item of an inventory: a warranty end, an end of
+// life, a licence, or what the service keeps on its agenda (Kept).
+type AssetDate struct {
+	Kind string // warranty, eol, license; Kept: thing_expiry, document, schedule, loan
+	Name string
+	Date string // "2026-11-20"
+	Link string // its page in the service, "" none
+	Late bool   // the service calls it due or overdue
+}
+
+// InventoryData is an inventory connection's assets and dates.
 type InventoryData struct {
 	URL     string
 	Service enums.ServiceType // where they come from, e.g. for "open in …"
 	Assets  []Asset
+	Dates   []AssetDate
 }
 
 // InventorySource is a dataset of the inventory category.
@@ -62,6 +73,20 @@ func (d *SnipeDataset) Inventory() *InventoryData {
 			Serial: a.Serial, PurchaseDate: a.PurchaseDate, PurchaseCost: a.PurchaseCost,
 			WarrantyExpires: a.WarrantyExpires, DepMonths: a.DepMonths,
 		})
+		for _, d := range []AssetDate{{Kind: "warranty", Date: a.WarrantyExpires}, {Kind: "eol", Date: a.EOLDate}} {
+			if d.Date != "" {
+				d.Name, d.Link = a.Name, base+id
+				out.Dates = append(out.Dates, d)
+			}
+		}
+	}
+
+	licenses := strings.TrimRight(d.URL, "/") + "/licenses/"
+	for _, l := range d.Licenses {
+		if l.Expires != "" {
+			out.Dates = append(out.Dates, AssetDate{Kind: "license", Name: l.Name, Date: l.Expires,
+				Link: licenses + strconv.FormatInt(l.ID, 10)})
+		}
 	}
 	return out
 }

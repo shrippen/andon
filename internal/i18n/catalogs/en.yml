@@ -762,7 +762,7 @@ opt:
   open_invoices: Open invoices
   budgets: Project budgets
   client_shares: Revenue per client
-  asset_dates: Warranty and licence dates
+  asset_dates: Inventory dates
   trips: Trips
   revenue: Revenue
   hours: Hours
@@ -3527,6 +3527,10 @@ upcoming:
   warranty: Warranty
   eol: End of life
   license: Licence
+  thing_expiry: Expiry date
+  document: Document
+  schedule: Maintenance
+  loan: Return
 table:
   more: '{count} more'
   sum: Total
@@ -6972,7 +6976,7 @@ kpi_how:
   overdue_amount: 'Open balances of invoices past their due date.'
   vat_liability: 'VAT of the current return period less input tax, by the set method (cash or accrual).'
   tax_reserve: 'VAT owed plus income tax rate × (revenue since Jan 1 − net expenses since Jan 1).'
-  asset_value: 'Sum of the purchase costs of all assets in Snipe-IT.'
+  asset_value: 'Sum of the purchase costs of all assets in the inventory (Kept or Snipe-IT).'
   assets_ready: 'Deployable assets not assigned to anyone.'
   revenue_forecast: 'Revenue since Jan 1 divided by the days passed, times the days of the year.'
   cash_30: 'Open invoices plus recurring invoices due in the next 30 days (gross).'

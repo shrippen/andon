@@ -51,17 +51,13 @@ func init() {
 
 func keptDueDates(data *sources.KeptDataset, cfg map[string]any, env Env) []Finding {
 	kinds := stringsSlice(cfg["kinds"])
-	base := strings.TrimRight(data.URL, "/") + "/"
 	var found []Finding
 	for _, d := range data.Agenda {
 		level, ok := keptLevels[d.State]
 		if !ok || !slices.Contains(kinds, d.Kind) {
 			continue
 		}
-		link := base + "expiring"
-		if d.Code != "" {
-			link = base + "t/" + d.Code
-		}
+		link := data.DueLink(d)
 		found = append(found, Finding{
 			Fingerprint: "due:" + d.Kind + ":" + d.Subject + ":" + d.Title + ":" + d.Due, Severity: level,
 			Message: "kept.due_" + d.State,

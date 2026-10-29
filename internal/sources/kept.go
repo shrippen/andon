@@ -129,7 +129,33 @@ func (d *KeptDataset) Inventory() *InventoryData {
 			WarrantyExpires: t.WarrantyEnds, DepMonths: t.Life, Receipt: t.receipt(),
 		})
 	}
+
+	// Kept's agenda, with Kept's own lead times: its state says what is late.
+	for _, a := range d.Agenda {
+		out.Dates = append(out.Dates, AssetDate{Kind: a.Kind, Name: a.Subject, Date: a.Due, Link: d.DueLink(a),
+			Late: a.State == keptStateDue || a.State == keptStateOverdue})
+	}
 	return out
+}
+
+// Kept's agenda states that mean late, as Kept names them.
+const (
+	keptStateDue     = "due"
+	keptStateOverdue = "overdue"
+)
+
+// keptExpiringPage lists what Kept calls close, for agenda items
+// without a thing of their own.
+const keptExpiringPage = "expiring"
+
+// DueLink is an agenda item's page in Kept: its thing, else Kept's list
+// of what is close.
+func (d *KeptDataset) DueLink(a KeptDue) string {
+	base := strings.TrimRight(d.URL, "/") + "/"
+	if a.Code == "" {
+		return base + keptExpiringPage
+	}
+	return base + keptThingPage + a.Code
 }
 
 // CapSet: reading needs the token only; writes a read+write token and

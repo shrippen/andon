@@ -701,14 +701,20 @@ func kpiSure(cfg KpiConfig, data *sources.BankData, peers map[string]any, ctx Vi
 }
 
 func kpiSnipe(metric Metric, data *sources.SnipeDataset, ctx ViewCtx) *KpiResult {
-	stats := metrics.SnipeSummaryOf(data, todayOf(ctx))
-	switch metric {
-	case MetricAssetValue:
-		return &KpiResult{Kind: "money", Value: stats.Value, SubKey: "kpi.assets", SubCount: stats.Assets}
-	case MetricAssetsReady:
-		return &KpiResult{Kind: "count", Value: float64(stats.Ready)}
+	if metric != MetricAssetsReady {
+		return nil
 	}
-	return nil
+	return &KpiResult{Kind: "count", Value: float64(metrics.SnipeSummaryOf(data, todayOf(ctx)).Ready)}
+}
+
+// kpiInventory is the value of any inventory (Snipe-IT, Kept).
+func kpiInventory(metric Metric, data any, ctx ViewCtx) *KpiResult {
+	inv, ok := metrics.InventoryOf(map[string]any{ctx.Service: data})
+	if metric != MetricAssetValue || !ok {
+		return nil
+	}
+	value, count := metrics.AssetValue(inv)
+	return &KpiResult{Kind: "money", Value: value, SubKey: "kpi.assets", SubCount: count}
 }
 
 func kpiView(cfg KpiConfig, results map[string]any, ctx ViewCtx) map[string]any {
@@ -726,6 +732,9 @@ func kpiView(cfg KpiConfig, results map[string]any, ctx ViewCtx) map[string]any 
 		kpi = kpiSure(cfg, data.(*sources.BankData), results, ctx)
 	case enums.ServiceSnipeIT:
 		kpi = kpiSnipe(cfg.Metric, data.(*sources.SnipeDataset), ctx)
+	}
+	if kpi == nil {
+		kpi = kpiInventory(cfg.Metric, data, ctx)
 	}
 	if kpi != nil {
 		shapeKpi(kpi, cfg, data, todayOf(ctx))

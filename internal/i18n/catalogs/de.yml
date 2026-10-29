@@ -762,7 +762,7 @@ opt:
   open_invoices: Offene Rechnungen
   budgets: Projektbudgets
   client_shares: Umsatz je Kunde
-  asset_dates: Garantie- und Lizenztermine
+  asset_dates: Termine im Inventar
   trips: Fahrten
   revenue: Umsatz
   hours: Stunden
@@ -3528,6 +3528,10 @@ upcoming:
   warranty: Garantie
   eol: Lebensende
   license: Lizenz
+  thing_expiry: Ablaufdatum
+  document: Dokument
+  schedule: Wartung
+  loan: Rückgabe
 table:
   more: '{count} weitere'
   sum: Summe
@@ -6973,7 +6977,7 @@ kpi_how:
   overdue_amount: 'Offene Beträge der Rechnungen nach ihrem Fälligkeitstag.'
   vat_liability: 'Umsatzsteuer des laufenden Voranmeldungszeitraums abzüglich Vorsteuer, nach der eingestellten Methode (Ist oder Soll).'
   tax_reserve: 'Umsatzsteuerschuld plus Einkommensteuer-Satz × (Umsatz seit 1.1. − Ausgaben netto seit 1.1.).'
-  asset_value: 'Summe der Kaufpreise aller Geräte in Snipe-IT.'
+  asset_value: 'Summe der Kaufpreise aller Geräte im Inventar (Kept oder Snipe-IT).'
   assets_ready: 'Einsatzbereite Geräte, die niemandem zugewiesen sind.'
   revenue_forecast: 'Umsatz seit 1.1. geteilt durch die vergangenen Tage, mal Tage des Jahres.'
   cash_30: 'Offene Rechnungen plus wiederkehrende Rechnungen, die in den nächsten 30 Tagen fällig werden (brutto).'
