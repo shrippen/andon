@@ -116,10 +116,12 @@ func TestDeepSeek(t *testing.T) {
 }
 
 // TestXAI: USD per day and description from the team's usage report,
-// posted as JSON; the prepaid balance in cents, purchases negative.
+// posted as JSON; the prepaid balance in cents, purchases negative,
+// only when the answer has a total.
 func TestXAI(t *testing.T) {
 	today := time.Now().UTC().Format(time.DateOnly)
 	tomorrow := time.Now().UTC().AddDate(0, 0, 1).Format(time.DateOnly)
+	balance := `{"changes":[]}` // no total: no balance, not 0 $
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer secret" {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -142,7 +144,7 @@ func TestXAI(t *testing.T) {
 			w.Write([]byte(`{"timeSeries":[{"groupLabels":["Chat grok-4-0709"],"dataPoints":[{"timestamp":"` + today + `T00:00:00Z","values":[1.25]}]},` +
 				`{"groupLabels":["Image grok-2-image"],"dataPoints":[{"timestamp":"` + today + `T00:00:00Z","values":[0.5]}]}],"limitReached":false}`))
 		case "GET /v1/billing/teams/team-1/prepaid/balance":
-			w.Write([]byte(`{"changes":[],"total":{"val":"-1000"}}`))
+			w.Write([]byte(balance))
 		default:
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -151,6 +153,11 @@ func TestXAI(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	a := account(t, sources.XAIData, srv.URL, map[string]any{"team": "team-1"})
+	if a.HasBalance {
+		t.Fatalf("balance without total %+v", a)
+	}
+	balance = `{"changes":[],"total":{"val":"-1000"}}`
+	a = account(t, sources.XAIData, srv.URL, map[string]any{"team": "team-1"})
 	if len(a.Uses) != 2 || a.Uses[0].Model != "Chat grok-4-0709" || a.Uses[0].Cost != 1.25 || a.Today != 1.75 || !a.Spend {
 		t.Fatalf("uses %+v", a)
 	}

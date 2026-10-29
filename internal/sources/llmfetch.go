@@ -354,9 +354,14 @@ func fetchXAI(ctx context.Context, sctx Ctx) (any, error) {
 	a.URL, a.Spend, a.Uses = "https://console.x.ai", true, u.rows
 	a.sumUses(now)
 
-	// Purchases count negative, use positive: the credit is −total.
-	if raw, err := api.Get(ctx, base+"prepaid/balance", nil); err == nil {
-		a.HasBalance, a.Balance, a.Currency = true, -asFloat(asMap(asMap(raw)["total"])["val"])/centsPerDollar, "USD"
+	// Purchases count negative, use positive: the credit is −total. No
+	// total (other schema, invoiced team): no balance rather than 0 $.
+	raw, err = api.Get(ctx, base+"prepaid/balance", nil)
+	if err != nil {
+		return &LLMDataset{Accounts: []LLMAccount{a}}, nil
+	}
+	if total, ok := asMap(asMap(raw)["total"])["val"]; ok {
+		a.HasBalance, a.Balance, a.Currency = true, -asFloat(total)/centsPerDollar, "USD"
 	}
 	return &LLMDataset{Accounts: []LLMAccount{a}}, nil
 }
