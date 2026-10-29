@@ -45,6 +45,7 @@ func (sc *scope) split(stored []linkrepo.Link, links func(g verbund.Group) map[s
 			r := byID[c.ID]
 			out.conns[c.ID] = true
 			out.datasets[service] = r.result.Data
+			maps.Copy(out.datasets, r.extra)
 			out.options[service] = c.Options
 		}
 		if links != nil {
@@ -87,6 +88,7 @@ func fanOut(base group, g verbund.Group, byID map[int64]run) []group {
 			c := list[i%len(list)]
 			round.conns[c.ID] = true
 			round.datasets[service] = byID[c.ID].result.Data
+			maps.Copy(round.datasets, byID[c.ID].extra)
 			round.options[service] = c.Options
 		}
 		out = append(out, round)
@@ -121,6 +123,9 @@ func (sc *scope) base(conns []*model.Connection) map[string]any {
 	services := map[string]bool{}
 	for _, c := range conns {
 		services[c.Service] = true
+		for _, key := range sources.CompanionsOf(enums.ServiceType(c.Service)) {
+			services[key] = true // a companion goes with its connection
+		}
 	}
 	out := map[string]any{}
 	for k, v := range sc.datasets {
@@ -151,6 +156,7 @@ func (sc *scope) envsOf(r run, settings map[string]any, today time.Time) []rules
 	}
 	datasets := sc.base(conns)
 	datasets[r.conn.Service] = r.result.Data
+	maps.Copy(datasets, r.extra)
 	return []rules.Env{{Today: today, Settings: settings, Datasets: datasets,
 		Options: map[string]map[string]any{r.conn.Service: r.conn.Options}}}
 }

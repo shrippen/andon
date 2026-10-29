@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"sync"
 	"time"
 
@@ -157,6 +158,7 @@ type run struct {
 	login  login
 	owner  *int64
 	result svcdata.Result
+	extra  map[string]any // companion datasets by source key (sources.CompanionsOf)
 }
 
 // runSpace fetches every connection first, then evaluates: rules see all
@@ -205,8 +207,10 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 			}
 			runs = append(runs, run{conn: conn, login: l, owner: owner, result: result})
 			if result.Data != nil {
+				runs[len(runs)-1].extra = companions(ctx, d, target, l.holder)
 				sc.fetched = append(sc.fetched, runs[len(runs)-1])
 				sc.datasets[conn.Service] = result.Data
+				maps.Copy(sc.datasets, runs[len(runs)-1].extra)
 				sc.options[conn.Service] = conn.Options
 			}
 			if !result.Ok() {
@@ -280,6 +284,26 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 		fresh += n
 	}
 	return fresh, nil
+}
+
+// companions reads the datasets fetched beside the connection's own
+// (sources.CompanionsOf), by source key. One that fails is left out:
+// the rules reading it find nothing, the connection's own still run.
+func companions(ctx context.Context, d *sql.DB, conn *model.Connection, h model.Holder) map[string]any {
+	keys := sources.CompanionsOf(enums.ServiceType(conn.Service))
+	if len(keys) == 0 {
+		return nil
+	}
+	out := map[string]any{}
+	for _, key := range keys {
+		result, err := svcdata.Get(ctx, d, key, nil, conn, h, svcdata.Cached)
+		if err != nil || result.Data == nil {
+			slog.Warn("analysis: companion failed", "connection", conn.Name, "source", key, "err", err)
+			continue
+		}
+		out[key] = result.Data
+	}
+	return out
 }
 
 // clocksOf lists the clock skew of every host the space's connections

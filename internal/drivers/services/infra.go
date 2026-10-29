@@ -49,21 +49,13 @@ type TrueNASSession struct {
 // Open logs in over WebSocket, or falls back to REST when the server has
 // no JSON-RPC endpoint.
 func (a TrueNASApi) Open(ctx context.Context) (*TrueNASSession, error) {
-	u, err := url.Parse(strings.TrimRight(a.URL, "/") + "/api/current")
+	conn, status, err := wsDial(ctx, a.URL, "api/current", a.Verify)
 	if err != nil {
-		return nil, ApiError{"bad url"}
-	}
-	u.Scheme = map[string]string{"https": "wss", "http": "ws"}[u.Scheme]
-	dialCtx, cancel := context.WithTimeout(ctx, rpcTimeout)
-	defer cancel()
-	conn, resp, err := websocket.Dial(dialCtx, u.String(), &websocket.DialOptions{HTTPClient: httpclient.ClientTLS(rpcTimeout, httpclient.TLSOf(a.Verify))})
-	if err != nil {
-		if resp != nil && resp.StatusCode == notFound {
+		if status == notFound {
 			return &TrueNASSession{api: a}, nil
 		}
-		return nil, ApiError{"connect failed"}
+		return nil, err
 	}
-	conn.SetReadLimit(rpcMaxRead)
 	s := &TrueNASSession{api: a, conn: conn}
 	var ok bool
 	if err := s.rpc(ctx, "auth.login_with_api_key", []any{a.Key}, &ok); err != nil || !ok {
@@ -99,33 +91,26 @@ func (s *TrueNASSession) rpc(ctx context.Context, method string, params []any, o
 	req, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": s.id, "method": method, "params": params})
 	callCtx, cancel := context.WithTimeout(ctx, rpcTimeout)
 	defer cancel()
-	if err := s.conn.Write(callCtx, websocket.MessageText, req); err != nil {
-		return ApiError{"write failed"}
+	raw, err := wsCall(callCtx, s.conn, s.id, req)
+	if err != nil {
+		return err
 	}
-	// Skip notifications until the answer with our id arrives.
-	for {
-		_, raw, err := s.conn.Read(callCtx)
-		if err != nil {
-			return ApiError{"read failed"}
-		}
-		var msg struct {
-			ID     *int            `json:"id"`
-			Result json.RawMessage `json:"result"`
-			Error  *struct {
-				Message string `json:"message"`
-			} `json:"error"`
-		}
-		if json.Unmarshal(raw, &msg) != nil || msg.ID == nil || *msg.ID != s.id {
-			continue
-		}
-		if msg.Error != nil {
-			return ApiError{method + ": " + msg.Error.Message}
-		}
-		if json.Unmarshal(msg.Result, out) != nil {
-			return ApiError{method + ": invalid result"}
-		}
-		return nil
+	var msg struct {
+		Result json.RawMessage `json:"result"`
+		Error  *struct {
+			Message string `json:"message"`
+		} `json:"error"`
 	}
+	if json.Unmarshal(raw, &msg) != nil {
+		return ApiError{method + ": invalid result"}
+	}
+	if msg.Error != nil {
+		return ApiError{method + ": " + msg.Error.Message}
+	}
+	if json.Unmarshal(msg.Result, out) != nil {
+		return ApiError{method + ": invalid result"}
+	}
+	return nil
 }
 
 // ── Komodo ──

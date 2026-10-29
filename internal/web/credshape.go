@@ -183,6 +183,11 @@ var setupFields = map[enums.ServiceType][]setupField{
 		{Key: "user", Label: "conn.kdestore_user", Kind: fieldText, Hint: "conn.kdestore_user_hint", Optional: true},
 		{Key: "ids", Label: "conn.kdestore_ids", Kind: fieldIDs, Hint: "conn.kdestore_ids_hint", Optional: true},
 	},
+	enums.ServiceHomeAssistant: {
+		{Key: "energy_solar", Label: "conn.hass_energy_solar", Kind: fieldText, Hint: "conn.hass_energy_hint", Optional: true},
+		{Key: "energy_import", Label: "conn.hass_energy_import", Kind: fieldText, Optional: true},
+		{Key: "energy_export", Label: "conn.hass_energy_export", Kind: fieldText, Optional: true},
+	},
 	enums.ServiceNews:       {{Key: "sites", Label: "conn.news_sites", Kind: fieldText, Hint: "conn.news_sites_hint", Optional: true}},
 	enums.ServiceTwitch:     {{Key: "channels", Label: "conn.twitch_channels", Kind: fieldText, Hint: "conn.twitch_channels_hint"}},
 	enums.ServiceClaudeAPI:  {llmBudget},
