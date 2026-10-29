@@ -38,6 +38,7 @@ var llmVendors = map[enums.ServiceType]string{
 	enums.ServiceOpenAI:     "OpenAI",
 	enums.ServiceOpenRouter: "OpenRouter",
 	enums.ServiceDeepSeek:   "DeepSeek",
+	enums.ServiceXAI:        "xAI",
 }
 
 // llmUnbilled: spend of the last days without an expense (Invoice Ninja)
@@ -77,7 +78,9 @@ func llmPaid(ninja *sources.NinjaDataset, bank *sources.BankData, vendor string,
 		d, ok := metrics.ParseDay(day)
 		return ok && !d.Before(since)
 	}
-	names := func(text string) bool { return strings.Contains(strings.ToLower(text), strings.ToLower(vendor)) }
+	// Dots ignored: xAI books as "X.AI LLC".
+	plain := func(s string) string { return strings.ReplaceAll(strings.ToLower(s), ".", "") }
+	names := func(text string) bool { return strings.Contains(plain(text), plain(vendor)) }
 
 	if ninja != nil {
 		vendors := map[string]string{}
