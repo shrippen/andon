@@ -170,7 +170,7 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 	}
 
 	data := &MailDataset{Mailbox: cfg.Mailbox, Scanned: len(msgs)}
-	threads := map[string]int{} // sender and subject without "Re:" → index in Invoices
+	threads := map[string][]int{} // sender and subject without "Re:" → indexes in Invoices, oldest first
 
 	// Originals first, oldest first; then the replies. A sender's clock
 	// may date a reply before its original.
@@ -198,16 +198,23 @@ func fetchMail(ctx context.Context, sctx Ctx) (any, error) {
 		// A thread counts once, as its original: a reply drops out and
 		// lends its amount, and its PDF when the original has none. A reply
 		// whose original lies before the window is no bill of its own. A
-		// bill under the same subject next month starts its own.
+		// bill under the same subject next month starts its own; a reply
+		// joins the last one before it (or the first, if dated earlier).
 		key := strings.ToLower(m.FromAddr) + "\x00" + strings.ToLower(replyRe.ReplaceAllString(m.Subject, ""))
 		if !isReply(m) {
-			threads[key] = len(data.Invoices)
+			threads[key] = append(threads[key], len(data.Invoices))
 			data.Invoices = append(data.Invoices, inv)
 			continue
 		}
-		i, ok := threads[key]
-		if !ok {
+		thread := threads[key]
+		if len(thread) == 0 {
 			continue
+		}
+		i := thread[0]
+		for _, j := range thread {
+			if !data.Invoices[j].Date.After(m.Date) {
+				i = j
+			}
 		}
 		orig := &data.Invoices[i]
 		if orig.Amount == 0 {

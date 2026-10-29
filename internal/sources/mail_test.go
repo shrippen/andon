@@ -156,6 +156,10 @@ func TestMailSkipsRefunds(t *testing.T) {
 		// The sender's clock dates the reply before its original.
 		fileMail(nord, "Re: Rechnung 3", "Betrag 30,00 €", "Rechnung_3.pdf", day(-6)),
 		plainMail(nord, "Rechnung 3", "anbei", day(-5)),
+		// Monthly bills under one subject: the reply belongs to September's.
+		plainMail("Stadtwerke <rechnung@example.de>", "Ihre Rechnung", "anbei", day(-40)),
+		fileMail("Stadtwerke <rechnung@example.de>", "Re: Ihre Rechnung", "Betrag 40,00 €", "Rechnung_Sep.pdf", day(-39)),
+		plainMail("Stadtwerke <rechnung@example.de>", "Ihre Rechnung", "anbei", day(-2)),
 		plainMail("Mobilfunk <rechnung@example.de>", "Ihre Online-Rechnung", "Rechnungsbetrag 21,50 €", day(-31)),
 		plainMail("Mobilfunk <rechnung@example.de>", "Ihre Online-Rechnung", "Rechnungsbetrag 19,99 €", day(-1)),
 	}
@@ -192,8 +196,8 @@ func TestMailSkipsRefunds(t *testing.T) {
 		}
 		got = append(got, inv.Subject+" "+strconv.FormatFloat(inv.Amount, 'f', 2, 64)+" "+strings.Join(names, ","))
 	}
-	want := []string{"Ihre Online-Rechnung 21.50 ", "Rechnung 77 50.00 Rechnung_77.pdf", "Rechnung 3 30.00 Rechnung_3.pdf", "Rechnung 88 60.00 Rechnung_88.pdf",
-		"Deine Rechnung - Workshop 480.00 Rechnung_Workshop.pdf", "Ihre Online-Rechnung 19.99 "}
+	want := []string{"Ihre Rechnung 40.00 Rechnung_Sep.pdf", "Ihre Online-Rechnung 21.50 ", "Rechnung 77 50.00 Rechnung_77.pdf", "Rechnung 3 30.00 Rechnung_3.pdf", "Rechnung 88 60.00 Rechnung_88.pdf",
+		"Deine Rechnung - Workshop 480.00 Rechnung_Workshop.pdf", "Ihre Rechnung 0.00 ", "Ihre Online-Rechnung 19.99 "}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Errorf("invoices:\n %q\nwant\n %q", got, want)
 	}
