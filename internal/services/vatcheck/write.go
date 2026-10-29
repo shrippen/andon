@@ -438,6 +438,8 @@ type writer struct {
 	who  *access.Principal
 	ip   string
 	made map[string]string // vendors created by this run, by lower-case name
+
+	linkScan func(ctx context.Context, key string, scan int64) error // nil: receipts.Link
 }
 
 // Name is the booking's payer, or its text where the bank sent none

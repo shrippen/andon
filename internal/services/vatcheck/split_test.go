@@ -1,11 +1,13 @@
 package vatcheck
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -229,5 +231,45 @@ func TestSplitExpenseOnce(t *testing.T) {
 		if steps[i].Problem != want {
 			t.Errorf("step %d: %q, want %q", i, steps[i].Problem, want)
 		}
+	}
+}
+
+// TestSplitScanFirst: a new part's scan is linked as soon as its
+// expense exists, so a later part failing leaves no free scan behind
+// (the next split would offer it again and create a second expense).
+func TestSplitScanFirst(t *testing.T) {
+	n := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		if strings.TrimPrefix(r.URL.Path, "/api/v1/") != "expenses" {
+			http.NotFound(rw, r)
+			return
+		}
+		if n++; n > 1 {
+			http.Error(rw, "down", http.StatusBadGateway)
+			return
+		}
+		rw.Write([]byte(`{"data": {"id": "n1", "number": "EX-91"}}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	b := splitBook()
+	var links []string
+	w := &writer{book: b, to: outbound.Target{URL: srv.URL, Token: "n", VerifyTLS: true}, made: map[string]string{"buchhaus": "v9"},
+		linkScan: func(_ context.Context, key string, scan int64) error {
+			links = append(links, key+":"+strconv.FormatInt(scan, 10))
+			return nil
+		}}
+	part := func(scan int64, amount float64) Item {
+		return Item{Txn: sources.NinjaBankTxn{Key: "b1", Date: "2026-10-18", Amount: amount, Debit: true}, Vendor: "Buchhaus", Scan: scan}
+	}
+	p := Planned{Step: workbench.Step{Case: "b1", Action: string(ActionSplit)}, Item: Item{Txn: b.ninja.BankTxns[0],
+		Parts: []Item{part(1, 39.99), part(3, 44.38)}}}
+
+	var partly workbench.Partly
+	if _, err := w.Write(t.Context(), p); !errors.As(err, &partly) || partly.Reason != "vatcheck.problem_split_partly" {
+		t.Fatalf("err %v", err)
+	}
+	if !slices.Equal(links, []string{"n1:1"}) {
+		t.Fatalf("scans linked %v, want n1:1", links)
 	}
 }

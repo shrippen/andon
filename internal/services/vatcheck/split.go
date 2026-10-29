@@ -384,14 +384,14 @@ func splitScans(ctx context.Context, d *sql.DB, who *access.Principal, connID in
 	}
 }
 
-// split writes a split: the new expenses, then one link of all to the
-// booking, then each new one's scan. A part refused after others were
+// split writes a split: the new expenses, each with its scan, then one
+// link of all to the booking. A part refused after others were
 // created leaves those as expenses without a booking; the next split of
 // it offers them.
 func (w *writer) split(ctx context.Context, p Planned) (string, error) {
 	it := p.Item
 	var keys, numbers []string
-	made := map[string]int64{} // new expense key → its scan
+	made, refused := 0, false
 	for _, part := range it.Parts {
 		if part.Private {
 			continue
@@ -401,45 +401,45 @@ func (w *writer) split(ctx context.Context, p Planned) (string, error) {
 			continue
 		}
 		key, number, err := w.expense(ctx, part, part.CatKey, it.Txn.Date)
-		if err != nil && len(made) > 0 {
+		if err != nil && made > 0 {
 			return joinNumbers(numbers), workbench.Partly{Target: joinNumbers(numbers), Reason: "vatcheck.problem_split_partly"}
 		}
 		if err != nil {
 			return "", err
 		}
 		keys, numbers = append(keys, key), append(numbers, number)
-		made[key] = part.Scan
-	}
+		made++
 
-	// Booked without every expense (one taken meanwhile) is booked: the
-	// scans still follow, the step says what is missing.
-	target := joinNumbers(numbers)
-	err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expenses: keys})
-	skipped := errors.Is(err, outbound.ErrPartlyLinked)
-	if err != nil && !skipped {
-		if len(made) == 0 {
-			return target, err
-		}
-		return target, workbench.Partly{Target: target, Reason: w.Reason(err)}
-	}
-
-	// Each new expense gets its scan, both sides (receipts.Link).
-	refused := false
-	for key, scan := range made {
-		if scan == 0 {
-			continue
-		}
-		if _, err := receipts.Link(ctx, w.d, w.who, key, []int64{scan}, w.ip); err != nil {
+		// Its scan at once, both sides: should a later part fail, the
+		// scan is no longer free and the next split offers the expense.
+		if part.Scan != 0 && w.scanLink(ctx, key, part.Scan) != nil {
 			refused = true
 		}
 	}
-	if skipped {
+
+	// Booked without every expense (one taken meanwhile) is booked; the
+	// step says what is missing.
+	target := joinNumbers(numbers)
+	err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expenses: keys})
+	if err != nil && made == 0 && !errors.Is(err, outbound.ErrPartlyLinked) {
+		return target, err
+	}
+	if err != nil {
 		return target, workbench.Partly{Target: target, Reason: w.Reason(err)}
 	}
 	if refused {
 		return target, workbench.Partly{Target: target, Reason: "vatcheck.problem_scan"}
 	}
 	return target, nil
+}
+
+// scanLink links a new expense's scan (receipts.Link).
+func (w *writer) scanLink(ctx context.Context, key string, scan int64) error {
+	if w.linkScan != nil {
+		return w.linkScan(ctx, key, scan)
+	}
+	_, err := receipts.Link(ctx, w.d, w.who, key, []int64{scan}, w.ip)
+	return err
 }
 
 func joinNumbers(numbers []string) string { return strings.Join(numbers, ", ") }
