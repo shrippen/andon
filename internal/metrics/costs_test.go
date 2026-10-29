@@ -89,3 +89,19 @@ func TestCostPerStack(t *testing.T) {
 		t.Errorf("blog: %+v", blog)
 	}
 }
+
+// TestRecordPowerSolar: each run's power cost is the grid price times
+// the share PV left to the grid: 50 W × 0,30 € × 40 % = 6.
+func TestRecordPowerSolar(t *testing.T) {
+	now := time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)
+	settings := map[string]any{"homelab": map[string]any{"power_entity": "sensor.server", "power_price": 0.30}}
+	data := map[string]any{
+		"homeassistant": &sources.HassDataset{Entities: []sources.Entity{{ID: "sensor.server", State: "50", Unit: "W"}}},
+		sources.HassEnergyKey: &sources.HassEnergy{Solar: []string{"pv"}, Import: []string{"in"}, Export: []string{"out"},
+			Days: []sources.SolarDay{{Day: "2026-09-20", Solar: 10, Export: 4, Import: 4}}},
+	}
+	read := metrics.Read(metrics.Scope{Datasets: data, Settings: settings}, now)
+	if got := read.Counts["homelab.power.cost"]; math.Abs(got-6) > 1e-9 || read.Counts["homelab.power.watts"] != 50 {
+		t.Fatalf("counts: %v", read.Counts)
+	}
+}

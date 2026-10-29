@@ -44,8 +44,17 @@ func TestSolarNoYield(t *testing.T) {
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	at := func(h int) time.Time { return time.Date(2026, 7, 15, h, 0, 0, 0, loc) }
 	e := &sources.HassEnergy{Zone: "Europe/Berlin", Solar: []string{"pv"},
-		Today:    []sources.SolarPoint{{At: at(8), KWh: 0.3}, {At: at(9), KWh: 0}, {At: at(10), KWh: 0}},
 		Forecast: []sources.SolarPoint{{At: at(8), KWh: 0.5}, {At: at(9), KWh: 1}, {At: at(10), KWh: 1.5}, {At: at(11), KWh: 2}}}
+	// The curve per 5 minutes up to 10:55: yield at 8, none at 9 and 10.
+	for h := 8; h <= 10; h++ {
+		kwh := 0.0
+		if h == 8 {
+			kwh = 0.025
+		}
+		for m := 0; m < 60; m += 5 {
+			e.Today = append(e.Today, sources.SolarPoint{At: at(h).Add(time.Duration(m) * time.Minute), KWh: kwh})
+		}
+	}
 	env := todayEnv(nil)
 	env.Today, env.Datasets = solarNow, solarEnv(e, nil)
 	got := run(t, "solar.no_yield", &sources.HassDataset{}, env)

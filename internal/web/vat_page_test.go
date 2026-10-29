@@ -232,14 +232,16 @@ func TestVATSplit(t *testing.T) {
 			t.Fatalf("split desk lacks %q:\n%s", want, desk)
 		}
 	}
-	if status, _ := browse(t, client, http.MethodGet, srv.URL+"/vat/split?case=nope&span="+month, nil, nil); status != http.StatusNotFound {
-		t.Fatalf("unknown case: %d, want 404", status)
+	// htmx swaps no 4xx answer and asks once, so an error comes as 200
+	// with its message, else the desk stays empty.
+	if status, body := browse(t, client, http.MethodGet, srv.URL+"/vat/split?case=nope&span="+month, nil, nil); status != http.StatusOK || !strings.Contains(body, "nicht mehr offen") {
+		t.Fatalf("unknown case: %d, want 200 with its error\n%s", status, body)
 	}
 
 	// A user without the space's Invoice Ninja gets no booking's split.
 	user := freshClient(t)
 	postForm(t, user, srv.URL+inviteLink(t, srv, client, "user@x.de"), url.Values{"name": {"User"}, "password": {"user-password-long"}, "locale": {"de"}})
-	if status, body := browse(t, user, http.MethodGet, srv.URL+"/vat/split?case=demo-b-studio&span="+month, nil, nil); status == http.StatusOK || strings.Contains(body, `name="s0.use_`) {
+	if status, body := browse(t, user, http.MethodGet, srv.URL+"/vat/split?case=demo-b-studio&span="+month, nil, nil); status != http.StatusOK || !strings.Contains(body, `class="error`) || strings.Contains(body, `name="s0.use_`) {
 		t.Fatalf("a user without access: %d\n%s", status, body)
 	}
 

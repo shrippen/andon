@@ -101,12 +101,9 @@ func (d Deps) handleVATScans(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 func (d Deps) handleVATSplit(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := vatQueryOf(r)
 	p, c, err := vatcheck.SplitDesk(r.Context(), d.DB, ctx.Who, q.Scope, q.Span, r.FormValue("case"), time.Now())
-	if errors.Is(err, vatcheck.ErrNoCase) {
-		http.NotFound(w, r)
-		return
-	}
 	if err != nil {
-		_ = d.Page(w, ctx, "vat_found", http.StatusForbidden, map[string]any{"Partial": true, "Error": vatError(err)})
+		// 200: htmx swaps no 4xx, and the desk asks only once.
+		_ = d.Page(w, ctx, "vat_found", http.StatusOK, map[string]any{"Partial": true, "Error": vatError(err)})
 		return
 	}
 	_ = d.Page(w, ctx, "vat_split", http.StatusOK, map[string]any{"Partial": true, "C": c, "P": p})

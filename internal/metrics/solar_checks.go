@@ -59,8 +59,9 @@ func ExpectedYield(e *sources.HassEnergy, h *History, day string) (float64, Expe
 }
 
 // DarkHours counts the hours of today since the last yield with minKWh
-// forecast and none made. Only hours the curve covers count: a curve that
-// stops early is late, not dark.
+// forecast and none made. Only hours the curve covers to their end count:
+// a curve that stops early is late, not dark, and at 10:05 hour 10 has
+// just begun.
 func DarkHours(e *sources.HassEnergy, now time.Time, minKWh float64) int {
 	hours := SolarHours(e)
 	if len(hours) == 0 {
@@ -70,18 +71,21 @@ func DarkHours(e *sources.HassEnergy, now time.Time, minKWh float64) int {
 	for _, h := range hours {
 		made[h.At.Unix()] = h.KWh
 	}
-	last := hours[len(hours)-1].At
+	covered := e.Today[len(e.Today)-1].At.Add(curveStep)
 	today := SolarDayKey(e, now)
 
 	// Only the dark hours since the last one with yield: a dark morning
 	// that cleared up is over.
 	n := 0
 	for _, f := range e.Forecast {
-		if SolarDayKey(e, f.At) != today || f.At.After(last) {
+		if SolarDayKey(e, f.At) != today {
 			continue
 		}
 		if made[f.At.Unix()] > 0 {
 			n = 0
+			continue
+		}
+		if f.At.Add(time.Hour).After(covered) {
 			continue
 		}
 		if f.KWh >= minKWh {

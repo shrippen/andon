@@ -123,3 +123,26 @@ func TestSolarRecorded(t *testing.T) {
 		t.Fatalf("after midnight: %+v %+v", r.Past, r.Values)
 	}
 }
+
+// The running hour is not dark yet: at 10:05 the curve's one 5-minute
+// point of hour 10 says nothing about the rest of it.
+func TestDarkHoursRunning(t *testing.T) {
+	loc, _ := time.LoadLocation("Europe/Berlin")
+	at := func(h, m int) time.Time { return time.Date(2026, 7, 15, h, m, 0, 0, loc) }
+	e := &sources.HassEnergy{Zone: "Europe/Berlin", Solar: []string{"pv"},
+		Forecast: []sources.SolarPoint{{At: at(8, 0), KWh: 0.5}, {At: at(9, 0), KWh: 1}, {At: at(10, 0), KWh: 1.5}}}
+	for h := 8; h <= 9; h++ {
+		for m := 0; m < 60; m += 5 {
+			kwh := 0.0
+			if h == 8 {
+				kwh = 0.05
+			}
+			e.Today = append(e.Today, sources.SolarPoint{At: at(h, m), KWh: kwh})
+		}
+	}
+	e.Today = append(e.Today, sources.SolarPoint{At: at(10, 0)})
+
+	if n := metrics.DarkHours(e, at(10, 5), 0.1); n != 1 {
+		t.Fatalf("dark hours at 10:05: %d, want 1 (only 9:00–10:00)", n)
+	}
+}
