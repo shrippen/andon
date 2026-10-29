@@ -60,20 +60,23 @@ func TestZMSkipsHome(t *testing.T) {
 
 // TestZMRoundsCents: the sum is rounded to cents before whole euros are
 // cut, so float error does not cost a euro (0.3 + 0.6 + 0.1 = 1 €). A
-// VAT ID typed without its prefix takes the client's country's.
+// VAT ID typed without its prefix takes the client's country's; Greece's
+// ISO code GR becomes its VAT prefix EL.
 func TestZMRoundsCents(t *testing.T) {
 	n := &sources.NinjaDataset{HomeCountryID: "276",
 		Clients: []sources.NinjaClient{{ID: 1, Name: "Atelier Lyon", CountryID: "250", VATNumber: "12 345678901"},
-			{ID: 2, Name: "Studio Athen", CountryID: "300", VATNumber: "123456789"}},
+			{ID: 2, Name: "Studio Athen", CountryID: "300", VATNumber: "123456789"},
+			{ID: 3, Name: "Studio Piräus", CountryID: "300", VATNumber: "GR 123456789"}},
 		Invoices: []sources.NinjaInvoice{
 			{ClientID: 1, Status: "sent", Date: "2026-08-01", Net: 0.3},
 			{ClientID: 1, Status: "sent", Date: "2026-08-02", Net: 0.6},
 			{ClientID: 1, Status: "sent", Date: "2026-08-03", Net: 0.1},
 			{ClientID: 2, Status: "sent", Date: "2026-08-03", Net: 10},
+			{ClientID: 3, Status: "sent", Date: "2026-08-04", Net: 5},
 		},
 	}
 	zm := metrics.ZMOf(n, time.Date(2026, time.August, 1, 0, 0, 0, 0, time.UTC))
-	want := []metrics.ZMLine{{Country: "EL", ID: "123456789", Amount: 10, Clients: "Studio Athen"},
+	want := []metrics.ZMLine{{Country: "EL", ID: "123456789", Amount: 15, Clients: "Studio Athen, Studio Piräus"},
 		{Country: "FR", ID: "12345678901", Amount: 1, Clients: "Atelier Lyon"}}
 	if len(zm.Lines) != len(want) || len(zm.NoID) != 0 {
 		t.Fatalf("lines %+v, without ID %v", zm.Lines, zm.NoID)

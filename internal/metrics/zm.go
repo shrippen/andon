@@ -25,6 +25,12 @@ import (
 // zmDueDay is the day of the month after the quarter the report is due.
 const zmDueDay = 25
 
+// Greece's VAT IDs carry EL, not its ISO code GR (the BZSt form asks EL).
+const (
+	isoGreece = "GR"
+	vatGreece = "EL"
+)
+
 // ZM is one quarter's report.
 type ZM struct {
 	Key   string // "2026-Q3", as VATSpan keys
@@ -91,8 +97,8 @@ func ZMOf(n *sources.NinjaDataset, day time.Time) ZM {
 }
 
 // vatID normalizes a VAT ID as typed ("fr 12 345678901" → "FR12345678901");
-// without a country prefix it takes prefix ("12345678901" → "FR…"); ""
-// when it lacks a number.
+// without a country prefix it takes prefix ("12345678901" → "FR…"), and
+// "GR…" becomes "EL…"; "" when it lacks a number.
 func vatID(raw, prefix string) string {
 	id := strings.ToUpper(strings.Map(func(r rune) rune {
 		if unicode.IsSpace(r) || r == '.' || r == '-' {
@@ -105,6 +111,9 @@ func vatID(raw, prefix string) string {
 	}
 	if len(id) < 2 || !unicode.IsLetter(rune(id[0])) || !unicode.IsLetter(rune(id[1])) {
 		id = prefix + id
+	}
+	if rest, ok := strings.CutPrefix(id, isoGreece); ok {
+		id = vatGreece + rest
 	}
 	if len(id) < 3 {
 		return ""
