@@ -1,9 +1,10 @@
 package verbund
 
 // Categories of a Verbund, kept on its Invoice Ninja (options
-// sources.OptCategoryMap, OptEuerSlot):
+// sources.OptCategoryMap, OptTagMap, OptEuerSlot):
 //
 //	Sure category ──► Ninja expense category   (Sure's auto-tags help /vat)
+//	Sure tag ───────► Ninja expense category   (when the category has none)
 //	EÜR field ──────► the expense custom field holding the EÜR line
 //
 // The EÜR line belongs to each expense, not its category (the EÜR
@@ -43,13 +44,14 @@ type CategoryView struct {
 	Bank       *model.Connection // Sure or Firefly, nil if none
 	Categories []sources.NinjaCategory
 	Sure       []BankCategory
+	Tags       []BankCategory // Sure's tags, listed like Sure
 	Fields     [sources.NinjaSlots]sources.ExpenseField
 	Slot       int // the EÜR field (1–4), 0 none
 	lines      []string
 	CanSave    bool // MANAGE on the Invoice Ninja
 }
 
-// BankCategory is one category of Sure with its Ninja category.
+// BankCategory is one category (or tag) of Sure with its Ninja category.
 type BankCategory struct {
 	Name      string
 	Count     int    // its debits sharing a booking with an expense
@@ -146,7 +148,8 @@ func CategoriesFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaI
 		return strings.ToLower(out.Categories[a].Name) < strings.ToLower(out.Categories[b].Name)
 	})
 	if bank != nil {
-		out.Sure = sureCategories(ninja, bank, saved.Sure[out.Bank.ID])
+		out.Sure = bankNames(ninja, metrics.SureCategoryVotes(ninja, bank), debitNames(bank, catNames), saved.Sure[out.Bank.ID])
+		out.Tags = bankNames(ninja, metrics.SureTagVotes(ninja, bank), debitNames(bank, tagNames), saved.Tags[out.Bank.ID])
 	}
 	out.Slot = saved.EuerSlot
 	if out.Slot == 0 {
@@ -156,17 +159,30 @@ func CategoriesFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaI
 	return out, nil
 }
 
-// sureCategories lists Sure's categories of debits, the mapped and the
-// suggested Ninja category: by shared bookings, else the same name.
-func sureCategories(ninja *sources.NinjaDataset, bank *sources.BankData, saved map[string]string) []BankCategory {
-	votes := metrics.SureCategoryVotes(ninja, bank)
+// catNames and tagNames are what a booking is named by in Sure.
+func catNames(t sources.BankTxn) []string { return []string{t.Category} }
+func tagNames(t sources.BankTxn) []string { return t.Tags }
+
+// debitNames are the sorted names of Sure's debits.
+func debitNames(bank *sources.BankData, of func(sources.BankTxn) []string) []string {
 	var names []string
 	for _, t := range bank.Transactions {
-		if t.Category != "" && t.Amount < 0 && !slices.Contains(names, t.Category) {
-			names = append(names, t.Category)
+		if t.Amount >= 0 {
+			continue
+		}
+		for _, n := range of(t) {
+			if n != "" && !slices.Contains(names, n) {
+				names = append(names, n)
+			}
 		}
 	}
 	sort.Strings(names)
+	return names
+}
+
+// bankNames lists Sure's categories (or tags) of debits, the mapped and
+// the suggested Ninja category: by shared bookings, else the same name.
+func bankNames(ninja *sources.NinjaDataset, votes metrics.Votes, names []string, saved map[string]string) []BankCategory {
 	out := make([]BankCategory, 0, len(names))
 	for _, n := range names {
 		c := BankCategory{Name: n, Mapped: saved[n]}
@@ -197,8 +213,8 @@ func euerSlot(fields [sources.NinjaSlots]sources.ExpenseField) int {
 // CategorySave is what the page sends: Sure's categories and the EÜR
 // field.
 type CategorySave struct {
-	Sure map[string]string
-	Slot int
+	Sure, Tags map[string]string
+	Slot       int
 }
 
 // SaveCategories stores them on the Verbund's Invoice Ninja. Requires
@@ -227,7 +243,8 @@ func (v CategoryView) save(d *sql.DB, who *access.Principal, in CategorySave, ip
 	}
 	c := sources.CategoriesOf(v.Ninja.Options)
 	if v.Bank != nil {
-		c.Sure[v.Bank.ID] = clean(in.Sure, func(_, val string) bool { return keys[val] })
+		known := func(_, val string) bool { return keys[val] }
+		c.Sure[v.Bank.ID], c.Tags[v.Bank.ID] = clean(in.Sure, known), clean(in.Tags, known)
 	}
 	if in.Slot >= 0 && in.Slot <= sources.NinjaSlots {
 		c.EuerSlot = in.Slot
@@ -242,7 +259,7 @@ func (v CategoryView) save(d *sql.DB, who *access.Principal, in CategorySave, ip
 		return err
 	}
 	return audit.Log(d, &who.UserID, "verbund.categories", cmp.Or(v.Verbund.Name, v.Ninja.Name), ip,
-		map[string]any{"sure": len(c.Sure[bankID(v.Bank)]), "slot": c.EuerSlot})
+		map[string]any{"sure": len(c.Sure[bankID(v.Bank)]), "tags": len(c.Tags[bankID(v.Bank)]), "slot": c.EuerSlot})
 }
 
 // clean keeps the filled pairs keep accepts.

@@ -1246,7 +1246,7 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
    - [x] `/vat` nimmt die Ninja-Kategorie aus der Zuordnung statt nach Namen, und eine neu angelegte Ausgabe bekommt gleich ihre EÜR-Zeile
    - [x] EÜR-Zeile unabhängig von der Kategorie (Owner, 27.10.2026: „Software“ gehört je Ausgabe zu EDV, GWG oder AfA): Zuordnung Kategorie → EÜR (`euer_map`) entfällt; Vorschlag nur aus der letzten Ausgabe desselben Lieferanten, nie vorab angehakt; `/vat` wählt die Zeile je neuer Ausgabe, `/euer` prüft und ergänzt
    - [x] Kategorien auch ohne gespeicherten Verbund: `/categories?ninja=…&bank=…`, von `/euer` verlinkt
-   - [ ] Offen: Sures Tags zusätzlich zur Kategorie *(zurückgestellt 16.10.2026: im echten Sure trägt keine der 431 Buchungen einen Tag)*
+   - [x] Sures Tags zusätzlich zur Kategorie: eigene Tabelle Tag → Ninja-Kategorie, greift, wenn die Kategorie der Buchung keine Zuordnung hat (erster zugeordneter Tag); Vorschlag aus gemeinsamen Buchungen wie bei Kategorien. Demo: Tag „Studio“ *(29.10.2026; im echten Sure trägt keine Buchung einen Tag, darum nur gegen die Demo geprüft)*
 3. Auf `/vat`
    - [x] Reverse Charge (§ 13b): Ausgaben ohne Steuer von Lieferanten mit Land außerhalb Deutschlands (Land aus Invoice Ninja), EU in Kz 46/47, sonst 84/85, Vorsteuer in Kz 67; Waren aus der EU (Kz 89/93) erkennt Andon nicht, die Seite sagt es
    - [x] ELSTER-Kennzahlen (Kz 21, 45, 81, 86, 46/47, 84/85, 66, 67, 83) mit Kopierknopf, Ist- oder Sollversteuerung; „Als gemeldet merken“, danach geänderte Kennzahlen als „Berichtigung fällig“

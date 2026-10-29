@@ -1,4 +1,4 @@
-{{/* A Verbund's categories (verbund.CategoriesOf): Sure's categories as
+{{/* A Verbund's categories (verbund.CategoriesOf): Sure's categories and tags as
      Invoice Ninja categories, and the expense field holding the EÜR line. */}}
 {{define "verbund_categories"}}{{$v := .View}}{{$id := $v.Verbund.ID}}
 <!doctype html>
@@ -38,6 +38,19 @@
             <td>{{if .Count}}{{.Count}}{{else}}–{{end}}</td>
           </tr>{{end}}</tbody>
         </table></div>{{else}}<p class="small">{{t "verbund.cat_sure_none"}}</p>{{end}}
+        {{if $v.Tags}}<h3>{{t "verbund.cat_tags_title"}}</h3>
+        <p class="small muted">{{t "verbund.cat_tags_lead"}}</p>
+        <div class="table-wrap"><table class="table cards-sm">
+          <thead><tr><th>{{t "verbund.cat_tag"}}</th><th>{{t "service.invoiceninja"}}</th><th>{{t "verbund.cat_shared"}}</th></tr></thead>
+          <tbody>{{range $v.Tags}}{{$pick := or .Mapped .Suggested}}<tr>
+            <td data-card="title">#{{.Name}}</td>
+            <td><select class="select" name="tag:{{.Name}}" aria-label="#{{.Name}}"{{if not $v.CanSave}} disabled{{end}}>
+              <option value="">–</option>
+              {{range $v.Categories}}<option value="{{.Key}}"{{if eq .Key $pick}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+              {{if and .Suggested (not .Mapped)}}<small class="muted">{{t "verbund.cat_suggested"}}</small>{{end}}</td>
+            <td>{{if .Count}}{{.Count}}{{else}}–{{end}}</td>
+          </tr>{{end}}</tbody>
+        </table></div>{{end}}
       </section>{{end}}
 
       <section class="card">

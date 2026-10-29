@@ -86,9 +86,9 @@ type SubInputs struct {
 	Bank   *sources.BankData
 	Wallos *sources.WallosDataset
 	Ninja  *sources.NinjaDataset
-	// Categories maps Sure's category names to Ninja category keys
+	// Categories maps Sure's categories and tags to Ninja category keys
 	// (Verbund → Kategorien).
-	Categories map[string]string
+	Categories sources.BankMap
 	Today      time.Time
 	// MaxMonthly and Ignore are cross.wallos_missing's settings: a
 	// payment above MaxMonthly a month (0: SubMaxMonthly) or with an
@@ -240,7 +240,7 @@ func ninjaCases(in SubInputs, r *sources.BankRecurring, months int, next string)
 		}
 	}
 	if c.CategoryKey == "" && txn != nil {
-		c.CategoryKey = in.Categories[txn.Category]
+		c.CategoryKey = in.Categories.Key(txn.Category, txn.Tags)
 	}
 	return append(out, c)
 }

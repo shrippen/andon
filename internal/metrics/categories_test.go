@@ -27,6 +27,22 @@ func TestCategoryVotes(t *testing.T) {
 	}
 }
 
+// A tag votes for every expense its debits paid, like a category.
+func TestTagVotes(t *testing.T) {
+	n := &sources.NinjaDataset{Expenses: []sources.NinjaExpense{{Key: "e1", Date: "2026-09-02", Amount: 899, CategoryKey: "gear"}}}
+	s := &sources.BankData{Transactions: []sources.BankTxn{
+		{Date: "2026-09-03", Amount: -899, Tags: []string{"Studio", "Licht"}},
+		{Date: "2026-09-03", Amount: -899}, // no tag
+	}}
+
+	votes := metrics.SureTagVotes(n, s)
+	for _, tag := range []string{"Studio", "Licht"} {
+		if best, count := votes.Best(tag); best != "gear" || count != 1 {
+			t.Errorf("%s: %s %d (%v)", tag, best, count, votes)
+		}
+	}
+}
+
 // The EÜR line comes from the vendor's latest expense with one, never
 // from the category: the same category goes to different lines.
 func TestEuerFromVendor(t *testing.T) {
