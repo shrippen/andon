@@ -126,6 +126,20 @@ func Register(s Source) Source {
 	return s
 }
 
+// companions are sources the analysis reads beside a service's dataset,
+// slower to fetch than its tiles may wait for (Home Assistant's
+// statistics beside its states).
+var companions = map[enums.ServiceType][]string{}
+
+// Companion registers source key as read beside service's dataset.
+func Companion(service enums.ServiceType, key string) {
+	companions[service] = append(companions[service], key)
+}
+
+// CompanionsOf lists the sources read beside service's dataset; their
+// datasets go into the analysis under their key.
+func CompanionsOf(service enums.ServiceType) []string { return companions[service] }
+
 // Get looks up a source by key.
 func Get(key string) (Source, error) {
 	s, ok := registry[key]

@@ -24,7 +24,7 @@ func TestSourcesLive(t *testing.T) {
 				t.Fatalf("%s login: %v", inst.Service, inst.Err)
 			}
 			svc := enums.ServiceType(inst.Service)
-			for _, key := range []string{string(svc) + ".test", sources.DataKey(svc)} {
+			for _, key := range append([]string{string(svc) + ".test", sources.DataKey(svc)}, sources.CompanionsOf(svc)...) {
 				fetchLive(t, key, inst.Ctx)
 			}
 		})

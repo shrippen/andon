@@ -105,3 +105,48 @@ func TestEnvsMergeSpaceWideDatasets(t *testing.T) {
 		t.Fatalf("merged %+v conns %v", merged, sc.groups[0].conns)
 	}
 }
+
+// A companion dataset (Home Assistant's energy) goes with its own
+// connection: each Home Assistant's rules see their own statistics.
+func TestCompanionFollowsConnection(t *testing.T) {
+	ha1 := &model.Connection{ID: 1, Service: "homeassistant"}
+	ha2 := &model.Connection{ID: 2, Service: "homeassistant"}
+	runOf := func(c *model.Connection) run {
+		return run{conn: c, result: svcdata.Result{Data: c.ID}, extra: map[string]any{sources.HassEnergyKey: c.ID * 10}}
+	}
+
+	sc := newScope(1, nil, map[string]any{})
+	for _, c := range []*model.Connection{ha1, ha2} {
+		r := runOf(c)
+		sc.fetched = append(sc.fetched, r)
+		sc.datasets[c.Service] = c.ID
+		sc.datasets[sources.HassEnergyKey] = r.extra[sources.HassEnergyKey] // last one wins, as runSpace does
+	}
+	sc.split(nil, nil)
+
+	for _, c := range []*model.Connection{ha1, ha2} {
+		envs := sc.envsOf(runOf(c), nil, time.Now())
+		if len(envs) != 1 || envs[0].Datasets[sources.HassEnergyKey] != c.ID*10 {
+			t.Fatalf("connection %d: %+v", c.ID, envs)
+		}
+	}
+
+	// The second one's energy failed: its rules see none, not the
+	// first one's, in its own env and in the rounds of the cross checks.
+	failed := run{conn: ha2, result: svcdata.Result{Data: ha2.ID}, extra: map[string]any{}}
+	sc = newScope(1, nil, map[string]any{})
+	sc.fetched = []run{runOf(ha1), failed}
+	sc.datasets["homeassistant"], sc.datasets[sources.HassEnergyKey] = ha1.ID, ha1.ID*10
+	sc.datasets["docker"] = int64(7)
+	sc.split(nil, nil)
+	for _, env := range sc.envsOf(failed, nil, time.Now()) {
+		if v, ok := env.Datasets[sources.HassEnergyKey]; ok {
+			t.Fatalf("failed companion sees %v", v)
+		}
+	}
+	for _, g := range sc.groups {
+		if g.datasets["homeassistant"] == ha2.ID && g.datasets[sources.HassEnergyKey] != nil {
+			t.Fatalf("round of connection 2 sees %v", g.datasets[sources.HassEnergyKey])
+		}
+	}
+}
