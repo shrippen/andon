@@ -112,3 +112,54 @@ func TestMailFilesDownloadsPDF(t *testing.T) {
 		t.Fatalf("files: %+v", files)
 	}
 }
+
+// plainMail is a one-part mail from sender with subject and body.
+func plainMail(sender, subject, body string, at time.Time) string {
+	return "From: " + sender + "\r\nTo: username@example.org\r\nSubject: " + subject + "\r\nDate: " + at.Format(time.RFC1123Z) +
+		"\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n" + body + "\r\n"
+}
+
+// TestMailSkipsRefunds: a credit note, a refund or a receipt of a
+// withdrawal is no invoice to record; replies in an invoice's thread
+// count once, as the latest, with the amount one of them names.
+func TestMailSkipsRefunds(t *testing.T) {
+	be := memory.New()
+	user, _ := be.Login(nil, "username", "password")
+	box, _ := user.GetMailbox("INBOX")
+	now := time.Now().UTC()
+	mails := []string{
+		plainMail("Model Labs <billing@example.com>", "Credit note from Model Labs for invoice #A1", "Amount 20,00 €", now.AddDate(0, 0, -5)),
+		plainMail("Model Labs <billing@example.com>", "Your refund from Model Labs #B2", "Refund 10,00 €", now.AddDate(0, 0, -5)),
+		plainMail("Phone Shop <shop@example.net>", "Acknowledgement of receipt of your withdrawal – Reference W-1", "", now.AddDate(0, 0, -4)),
+		plainMail("Mara Lind <mara@example.org>", "Deine Rechnung - Workshop", "anbei", now.AddDate(0, 0, -3)),
+		plainMail("Mara Lind <mara@example.org>", "Re: Deine Rechnung - Workshop", "Betrag 480,00 €", now.AddDate(0, 0, -2)),
+		plainMail("Mara Lind <mara@example.org>", "AW: Re: Deine Rechnung - Workshop", "danke", now.AddDate(0, 0, -1)),
+		plainMail("Mobilfunk <rechnung@example.de>", "Ihre Online-Rechnung", "Rechnungsbetrag 19,99 €", now.AddDate(0, 0, -1)),
+	}
+	for _, m := range mails {
+		if err := box.CreateMessage(nil, now, strings.NewReader(m)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	srv := server.New(be)
+	srv.AllowInsecureAuth = true
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go srv.Serve(l)
+	t.Cleanup(func() { srv.Close() })
+
+	out, err := sources.MailData.Fetch(context.Background(), sources.Ctx{URL: "imap://" + l.Addr().String() + "/INBOX", Secret: "username:password"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, inv := range out.(*sources.MailDataset).Invoices {
+		got = append(got, inv.Subject+" "+strconv.FormatFloat(inv.Amount, 'f', 2, 64))
+	}
+	want := []string{"AW: Re: Deine Rechnung - Workshop 480.00", "Ihre Online-Rechnung 19.99"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("invoices:\n %q\nwant\n %q", got, want)
+	}
+}
