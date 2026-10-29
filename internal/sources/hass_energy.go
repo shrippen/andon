@@ -111,7 +111,9 @@ var HassEnergyData = source{key: HassEnergyKey, ttl: energyTTL, service: enums.S
 
 func fetchHassEnergy(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
-		return &HassEnergy{URL: sctx.URL}, nil
+		data := DemoHassEnergy(time.Now())
+		data.URL = sctx.URL
+		return data, nil
 	}
 	secret, err := needSecret(sctx)
 	if err != nil {
