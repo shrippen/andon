@@ -178,6 +178,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 2. Ausgabe eines ausländischen Lieferanten ohne Steuer steht unter „Reverse Charge“ mit Kz 46/47 oder 84/85.
 3. Überweisung Geschäft → Privat: „Umbuchung … archivieren“ vorgeschlagen, nicht angehakt.
 4. „Doppelte Lieferanten zusammenführen“ → `/vendors`: Gruppe wählen, Prüfen, Schreiben (Demo lehnt ab).
+5. Rechnung zu 0 % an einen EU-Kunden mit USt-IdNr. im Quartal: „Zusammenfassende Meldung“ nennt Land, Nummer und Summe je USt-IdNr. mit „Kopieren“ und die Frist (25. nach dem Quartal); ein EU-Kunde ohne Nummer steht als Fehler darüber. Die Demo hat keinen solchen Kunden: nur gegen echte Daten.
 
 **J-C4 Kategorien und EÜR**
 1. Verbund mit Invoice Ninja und Sure → „Kategorien“: Sure-Vorschläge stehen vorausgewählt („Vorschlag“), das EÜR-Feld ist erkannt, keine Zuordnung Kategorie → EÜR; Speichern.
