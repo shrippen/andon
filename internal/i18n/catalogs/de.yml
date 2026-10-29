@@ -7609,7 +7609,7 @@ inventory:
   err_no_write: 'Das Inventar nimmt von Andon keine neuen Gegenstände an.'
   err_demo: 'Die Demo schreibt nicht ins Inventar.'
   err_kept_location: 'Den Ort aus der Option location der Kept-Verbindung erreicht das Token nicht.'
-  err_kept_place: 'Der Ort in Kept hat keinen Raum mit dem Namen aus der Option place.'
+  err_kept_place: 'Der Ort in Kept hat keinen Raum mit dem Namen aus der Option place (ohne Option: kein „Unplaced“).'
 updates:
   summarize: 'Changelog zusammenfassen'
   summarize_privacy: 'Schickt Image, beide Versionen und die Release-Notes von GitHub an Claude (Anthropic).'

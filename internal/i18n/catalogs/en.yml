@@ -7608,7 +7608,7 @@ inventory:
   err_no_write: 'The inventory takes no new assets from Andon.'
   err_demo: 'The demo does not write to the inventory.'
   err_kept_location: 'The token reaches no location named as in the Kept connection’s option location.'
-  err_kept_place: 'The Kept location has no room named as in the option place.'
+  err_kept_place: 'The Kept location has no room named as in the option place (without the option: no “Unplaced”).'
 updates:
   summarize: 'Sum up the changelog'
   summarize_privacy: 'Sends the image, both versions and the release notes from GitHub to Claude (Anthropic).'

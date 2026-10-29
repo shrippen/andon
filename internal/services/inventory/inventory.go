@@ -15,6 +15,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -41,12 +42,6 @@ var (
 	ErrNoWrite = errors.New("inventory.err_no_write")
 	// ErrDemo means a demo connection, which takes no writes.
 	ErrDemo = errors.New("inventory.err_demo")
-	// ErrKeptLocation means the connection's option location names no
-	// location the token reaches.
-	ErrKeptLocation = errors.New("inventory.err_kept_location")
-	// ErrKeptPlace means the location has no room of the option place's
-	// name (or no "Unplaced").
-	ErrKeptPlace = errors.New("inventory.err_kept_place")
 )
 
 var need = workbench.Need{Anchor: caps.Inventory, Optional: []enums.ServiceType{enums.ServiceGateway, enums.ServiceFritzBox}}
@@ -332,7 +327,7 @@ func (w *writer) Write(ctx context.Context, p workbench.Planned[Item]) (string, 
 		}
 		id, err := outbound.KeptThingCreate(ctx, w.to, outbound.KeptNew{Location: loc, Place: w.option(optPlace), Name: it.Name, Notes: notes})
 		if errors.Is(err, outbound.ErrKeptNoPlace) {
-			return "", ErrKeptPlace
+			return "", errKeptPlace
 		}
 		if err != nil {
 			return "", err
@@ -346,6 +341,15 @@ func (w *writer) Write(ctx context.Context, p workbench.Planned[Item]) (string, 
 	return it.Name + " #" + strconv.FormatInt(id, 10), nil
 }
 
+var (
+	// errKeptLocation means the connection's option location names no
+	// location the token reaches.
+	errKeptLocation = errors.New("inventory.err_kept_location")
+	// errKeptPlace means the location has no room of the option place's
+	// name (or no "Unplaced").
+	errKeptPlace = errors.New("inventory.err_kept_place")
+)
+
 // Kept connection options: where new things go.
 const (
 	optLocation = "location" // a location's name, "" the first
@@ -353,9 +357,16 @@ const (
 )
 
 // option is the inventory connection's text option key.
-func (w *writer) option(key string) string {
-	v, _ := w.conn.Options[key].(string)
-	return strings.TrimSpace(v)
+func (w *writer) option(key string) string { return textOption(w.conn.Options, key) }
+
+// textOption reads an option as text: YAML makes "place: 101" a number,
+// still the room's name.
+func textOption(opts map[string]any, key string) string {
+	v, ok := opts[key]
+	if !ok || v == nil {
+		return ""
+	}
+	return strings.TrimSpace(fmt.Sprint(v))
 }
 
 // keptLocation is the id of the location named (any case), with no name
@@ -372,7 +383,7 @@ func keptLocation(locs []sources.KeptLocation, name string) (string, error) {
 			return l.ID, nil
 		}
 	}
-	return "", ErrKeptLocation
+	return "", errKeptLocation
 }
 
 // ignore appends name to the rule's ignore list in the space settings.

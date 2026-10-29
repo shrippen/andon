@@ -17,7 +17,7 @@ func TestKeptLocation(t *testing.T) {
 	}{
 		{"", "a", nil},
 		{"studio weber", "b", nil},
-		{"Büro", "", ErrKeptLocation},
+		{"Büro", "", errKeptLocation},
 	}
 	for _, c := range cases {
 		got, err := keptLocation(locs, c.name)
@@ -27,5 +27,19 @@ func TestKeptLocation(t *testing.T) {
 	}
 	if _, err := keptLocation(nil, ""); !errors.Is(err, ErrNoWrite) {
 		t.Errorf("none: %v", err)
+	}
+}
+
+// YAML reads "place: 101" as a number; it is still the room's name.
+func TestTextOption(t *testing.T) {
+	opts := map[string]any{optPlace: 101, optLocation: " Studio "}
+	if got := textOption(opts, optPlace); got != "101" {
+		t.Errorf("number: %q", got)
+	}
+	if got := textOption(opts, optLocation); got != "Studio" {
+		t.Errorf("text: %q", got)
+	}
+	if got := textOption(nil, optPlace); got != "" {
+		t.Errorf("none: %q", got)
 	}
 }
