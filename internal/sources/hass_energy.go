@@ -15,6 +15,7 @@ package sources
 
 import (
 	"context"
+	"errors"
 	"maps"
 	"slices"
 	"sort"
@@ -142,9 +143,13 @@ func readEnergy(ctx context.Context, s commander, sctx Ctx, now time.Time) (*Has
 	}
 	out.Zone = asStr(asMap(cfg)["time_zone"])
 
-	// Without the energy integration the command fails: the options name
-	// the statistics then.
-	prefs, _ := s.Command(ctx, "energy/get_prefs", nil)
+	// Without the energy integration (or its setup) the command is
+	// unknown: the options name the statistics then. A broken connection
+	// fails the fetch: cached as empty it would read as "no PV".
+	prefs, err := s.Command(ctx, "energy/get_prefs", nil)
+	if err != nil && !errors.As(err, new(services.ApiMissing)) {
+		return nil, fetchError(err)
+	}
 	forecasts := out.setRoles(prefs)
 	// The options fill only the roles the dashboard leaves empty.
 	for _, role := range []struct {

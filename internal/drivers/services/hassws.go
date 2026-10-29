@@ -77,6 +77,10 @@ func (s *HassSession) Close() {
 	s.conn.Close(websocket.StatusNormalClosure, "")
 }
 
+// hassMissing are Home Assistant's error codes for a command it does not
+// have or cannot answer for lack of setup (ApiMissing).
+var hassMissing = map[string]bool{"unknown_command": true, "not_found": true}
+
 // Command runs one command, e.g. ("recorder/list_statistic_ids",
 // {"statistic_type": "sum"}), and returns its result.
 func (s *HassSession) Command(ctx context.Context, kind string, params map[string]any) (any, error) {
@@ -97,6 +101,7 @@ func (s *HassSession) Command(ctx context.Context, kind string, params map[strin
 		Success bool            `json:"success"`
 		Result  json.RawMessage `json:"result"`
 		Error   *struct {
+			Code    string `json:"code"`
 			Message string `json:"message"`
 		} `json:"error"`
 	}
@@ -107,6 +112,12 @@ func (s *HassSession) Command(ctx context.Context, kind string, params map[strin
 		reason := "failed"
 		if msg.Error != nil {
 			reason = msg.Error.Message
+		}
+
+		// An integration that is not loaded or not set up: the caller
+		// may fall back (energy/get_prefs without a dashboard).
+		if msg.Error != nil && hassMissing[msg.Error.Code] {
+			return nil, ApiMissing{kind + ": " + reason}
 		}
 		return nil, ApiError{kind + ": " + reason}
 	}
