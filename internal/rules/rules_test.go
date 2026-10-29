@@ -552,4 +552,16 @@ func TestExpenseReceiptDiffers(t *testing.T) {
 	if got := run(t, "inventory.expense_missing", nil, env); len(got) != 0 {
 		t.Errorf("no link field: %+v", got)
 	}
+
+	// A second equal monitor (document 6): EX-0040 rightly links the
+	// first one's document, so the wrong link is EX-0043's.
+	env.Options = map[string]map[string]any{"invoiceninja": {"receipt_link_slot": 2.0}}
+	kept.Things = append(kept.Things, sources.KeptThing{ID: "d", Code: "DDDDDD", Name: "Monitor 2", Bought: "2026-08-25", Price: 890,
+		Receipts: []sources.KeptReceipt{{Role: "invoice", DocID: 6}}})
+	ninja.Expenses[0].Custom[1] = "https://docs.lan/documents/4/"
+	ninja.Expenses[3].Custom[1] = "https://docs.lan/documents/5/"
+	got = run(t, "inventory.expense_missing", nil, env)
+	if len(got) != 1 || got[0].Params["asset"] != "Monitor 2" || got[0].Params["number"] != "EX-0043" {
+		t.Errorf("names the other purchase's expense: %+v", got)
+	}
 }
