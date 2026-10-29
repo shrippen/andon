@@ -10,6 +10,21 @@ import (
 	"andon/internal/services/scheduler"
 )
 
+// callsWait bounds how long a test waits for a job's runs: a loaded
+// machine (make check beside other builds) delays timers far beyond
+// the 10 ms interval, so a fixed sleep counted too few.
+const callsWait = 2 * time.Second
+
+// waitCalls waits until calls reaches want or callsWait passes, and
+// returns the count.
+func waitCalls(calls *int32, want int32) int32 {
+	deadline := time.Now().Add(callsWait)
+	for atomic.LoadInt32(calls) < want && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	return atomic.LoadInt32(calls)
+}
+
 func TestJobRunsOnInterval(t *testing.T) {
 	var calls int32
 	ctx, cancel := context.WithCancel(context.Background())
@@ -20,9 +35,8 @@ func TestJobRunsOnInterval(t *testing.T) {
 		Run: func(context.Context) error { atomic.AddInt32(&calls, 1); return nil },
 	}})
 
-	time.Sleep(55 * time.Millisecond)
-	if n := atomic.LoadInt32(&calls); n < 3 {
-		t.Fatalf("expected at least 3 ticks in 55ms at 10ms interval, got %d", n)
+	if n := waitCalls(&calls, 3); n < 3 {
+		t.Fatalf("expected at least 3 ticks at 10ms interval, got %d", n)
 	}
 }
 
@@ -36,8 +50,7 @@ func TestFailingJobDoesNotStopOthers(t *testing.T) {
 		{Name: "ok", Interval: 10 * time.Millisecond, Run: func(context.Context) error { atomic.AddInt32(&okCalls, 1); return nil }},
 	})
 
-	time.Sleep(35 * time.Millisecond)
-	if n := atomic.LoadInt32(&okCalls); n < 2 {
+	if n := waitCalls(&okCalls, 2); n < 2 {
 		t.Fatalf("expected the healthy job to keep running, got %d calls", n)
 	}
 }
@@ -52,8 +65,7 @@ func TestPanickingJobDoesNotStopOthers(t *testing.T) {
 		{Name: "ok", Interval: 10 * time.Millisecond, Run: func(context.Context) error { atomic.AddInt32(&okCalls, 1); return nil }},
 	})
 
-	time.Sleep(35 * time.Millisecond)
-	if n := atomic.LoadInt32(&okCalls); n < 2 {
+	if n := waitCalls(&okCalls, 2); n < 2 {
 		t.Fatalf("expected the healthy job to keep running despite the other panicking, got %d calls", n)
 	}
 }
