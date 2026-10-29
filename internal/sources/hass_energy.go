@@ -144,10 +144,14 @@ func readEnergy(ctx context.Context, s commander, sctx Ctx, now time.Time) (*Has
 	// the statistics then.
 	prefs, _ := s.Command(ctx, "energy/get_prefs", nil)
 	forecasts := out.setRoles(prefs)
-	if len(out.Solar) == 0 {
-		out.Solar = optionIDs(sctx.Options, OptEnergySolar)
-		out.Import = optionIDs(sctx.Options, OptEnergyImport)
-		out.Export = optionIDs(sctx.Options, OptEnergyExport)
+	// The options fill only the roles the dashboard leaves empty.
+	for _, role := range []struct {
+		ids *[]string
+		opt string
+	}{{&out.Solar, OptEnergySolar}, {&out.Import, OptEnergyImport}, {&out.Export, OptEnergyExport}} {
+		if len(*role.ids) == 0 {
+			*role.ids = optionIDs(sctx.Options, role.opt)
+		}
 	}
 	if !out.Configured() {
 		return out, nil

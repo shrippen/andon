@@ -108,6 +108,15 @@ func TestReadEnergyOptions(t *testing.T) {
 		t.Fatalf("options: %+v %v", e, err)
 	}
 
+	// A dashboard with the grid but no solar keeps its grid; the
+	// options add only the solar.
+	f.answers["energy/get_prefs"] = `{"energy_sources": [{"type": "grid", "stat_energy_from": "sensor.in", "stat_energy_to": "sensor.out"}]}`
+	e, err = readEnergy(context.Background(), f, Ctx{Options: map[string]any{OptEnergySolar: "sensor.pv_east"}}, now)
+	if err != nil || len(e.Solar) != 1 || len(e.Import) != 1 || e.Import[0] != "sensor.in" || len(e.Export) != 1 {
+		t.Fatalf("grid from the dashboard: %+v %v", e, err)
+	}
+	delete(f.answers, "energy/get_prefs")
+
 	f.asked = nil
 	e, err = readEnergy(context.Background(), f, Ctx{}, now)
 	if err != nil || e.Configured() || len(f.asked) != 0 {

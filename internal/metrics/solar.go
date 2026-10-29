@@ -136,7 +136,9 @@ func SolarHours(e *sources.HassEnergy) []sources.SolarPoint {
 	var out []sources.SolarPoint
 	for _, p := range e.Today {
 		local := p.At.In(loc)
-		hour := time.Date(local.Year(), local.Month(), local.Day(), local.Hour(), 0, 0, 0, loc)
+		// Back from the instant, not time.Date: on the clock change the
+		// hour 02:00 comes twice.
+		hour := p.At.Add(-time.Duration(local.Minute())*time.Minute - time.Duration(local.Second())*time.Second - time.Duration(local.Nanosecond())).In(loc)
 		if n := len(out); n > 0 && out[n-1].At.Equal(hour) {
 			out[n-1].KWh += p.KWh
 			continue

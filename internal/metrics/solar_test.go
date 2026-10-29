@@ -27,6 +27,12 @@ func TestSolarSpan(t *testing.T) {
 	if _, ok := metrics.SolarSum(nil, []sources.SolarDay{{Solar: 3}}).Autarky(); ok {
 		t.Fatal("autarky without a grid")
 	}
+	// 25 October: 02:00–03:00 comes twice in Berlin, as two hours.
+	dst := &sources.HassEnergy{Zone: "Europe/Berlin", Today: []sources.SolarPoint{
+		{At: time.Date(2026, 10, 25, 0, 30, 0, 0, time.UTC), KWh: 1}, {At: time.Date(2026, 10, 25, 1, 30, 0, 0, time.UTC), KWh: 2}}}
+	if h := metrics.SolarHours(dst); len(h) != 2 || h[1].At.Sub(h[0].At) != time.Hour {
+		t.Fatalf("clock change: %+v", h)
+	}
 	if metrics.SolarHours(nil) != nil || metrics.SolarDayKey(nil, time.Now()) == "" {
 		t.Fatal("nil dataset")
 	}
