@@ -412,8 +412,8 @@ func TestNinjaBankLinkSplit(t *testing.T) {
 
 	var g fake
 	to = g.serve(t, answer(http.StatusOK, `{"data":[{"id":"B1","status_id":"3","expense_id":"E1"}]}`))
-	if err := outbound.NinjaBankLink(context.Background(), to, "B1", outbound.NinjaBankTarget{Expenses: []string{"E1", "E2"}}); !errors.Is(err, outbound.ErrNotBooked) {
-		t.Fatalf("one skipped: err = %v, want ErrNotBooked", err)
+	if err := outbound.NinjaBankLink(context.Background(), to, "B1", outbound.NinjaBankTarget{Expenses: []string{"E1", "E2"}}); !errors.Is(err, outbound.ErrPartlyLinked) {
+		t.Fatalf("one skipped: err = %v, want ErrPartlyLinked", err)
 	}
 }
 

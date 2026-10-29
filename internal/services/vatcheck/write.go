@@ -136,6 +136,7 @@ func Review(ctx context.Context, d *sql.DB, who *access.Principal, scope string,
 // scanChecks checks each step's scan in order: a scan goes to one
 // expense, also within a review.
 func scanChecks(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, steps []Planned) {
+	expenseChecks(steps)
 	taken := map[int64]bool{}
 	for i := range steps {
 		if steps[i].Action == string(ActionSplit) && steps[i].Problem == workbench.ProblemNone {
@@ -451,6 +452,9 @@ func (w *writer) Audit(p Planned) map[string]any {
 func (w *writer) Reason(err error) string {
 	if errors.Is(err, outbound.ErrNotBooked) {
 		return "vatcheck.problem_not_booked"
+	}
+	if errors.Is(err, outbound.ErrPartlyLinked) {
+		return "vatcheck.problem_split_skipped"
 	}
 	if errors.Is(err, outbound.ErrNotArchived) {
 		return "vatcheck.problem_not_archived"

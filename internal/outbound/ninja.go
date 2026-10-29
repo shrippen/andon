@@ -48,6 +48,10 @@ func NinjaPayment(ctx context.Context, to Target, clientKey, invoiceKey string, 
 // (the expense already had a transaction, the invoice was paid).
 var ErrNotBooked = errors.New("invoice ninja: transaction not booked")
 
+// ErrPartlyLinked means Invoice Ninja booked the transaction but
+// skipped an expense sent (one another transaction took meanwhile).
+var ErrPartlyLinked = errors.New("invoice ninja: transaction booked without every expense")
+
 // ninjaConverted is Invoice Ninja's status_id of a booked transaction.
 const ninjaConverted = "3"
 
@@ -77,9 +81,13 @@ func NinjaBankLink(ctx context.Context, to Target, txnKey string, link NinjaBank
 	list, _ := top["data"].([]any)
 	for _, raw := range list {
 		t, _ := raw.(map[string]any)
-		if id, _ := t["id"].(string); id == txnKey && fmt.Sprint(t["status_id"]) == ninjaConverted && linkedAll(t, link.Expenses) {
-			return nil
+		if id, _ := t["id"].(string); id != txnKey || fmt.Sprint(t["status_id"]) != ninjaConverted {
+			continue
 		}
+		if !linkedAll(t, link.Expenses) {
+			return ErrPartlyLinked
+		}
+		return nil
 	}
 	return ErrNotBooked
 }

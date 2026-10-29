@@ -19,6 +19,7 @@ import (
 	"cmp"
 	"context"
 	"database/sql"
+	"errors"
 	"math"
 	"regexp"
 	"slices"
@@ -319,6 +320,39 @@ func (b book) part(s *workbench.Step, i int, txn sources.NinjaBankTxn, seen *spl
 	return part, problem
 }
 
+// expenseChecks gives an existing expense to the first step that links
+// it (a link or a split's part); a later one is refused, as Invoice
+// Ninja would skip the expense and book the transaction without it.
+func expenseChecks(steps []Planned) {
+	taken := map[string]bool{}
+	for i := range steps {
+		p := &steps[i]
+		if p.Problem != workbench.ProblemNone {
+			continue
+		}
+		var keys []string
+		switch p.Action {
+		case string(metrics.ActionLink):
+			if p.Item.Expense != nil {
+				keys = append(keys, p.Item.Expense.Key)
+			}
+		case string(ActionSplit):
+			for _, part := range p.Item.Parts {
+				if part.Expense != nil {
+					keys = append(keys, part.Expense.Key)
+				}
+			}
+		}
+		if slices.ContainsFunc(keys, func(k string) bool { return taken[k] }) {
+			p.Problem = ProblemTarget
+			continue
+		}
+		for _, k := range keys {
+			taken[k] = true
+		}
+	}
+}
+
 // splitScans checks a split's scans: each still free (receipts.Unbooked
 // of the booking's year) and not taken by an earlier part or step; one
 // that is not is dropped, as for a whole booking.
@@ -377,8 +411,12 @@ func (w *writer) split(ctx context.Context, p Planned) (string, error) {
 		made[key] = part.Scan
 	}
 
+	// Booked without every expense (one taken meanwhile) is booked: the
+	// scans still follow, the step says what is missing.
 	target := joinNumbers(numbers)
-	if err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expenses: keys}); err != nil {
+	err := outbound.NinjaBankLink(ctx, w.to, it.Txn.Key, outbound.NinjaBankTarget{Expenses: keys})
+	skipped := errors.Is(err, outbound.ErrPartlyLinked)
+	if err != nil && !skipped {
 		if len(made) == 0 {
 			return target, err
 		}
@@ -394,6 +432,9 @@ func (w *writer) split(ctx context.Context, p Planned) (string, error) {
 		if _, err := receipts.Link(ctx, w.d, w.who, key, []int64{scan}, w.ip); err != nil {
 			refused = true
 		}
+	}
+	if skipped {
+		return target, workbench.Partly{Target: target, Reason: w.Reason(err)}
 	}
 	if refused {
 		return target, workbench.Partly{Target: target, Reason: "vatcheck.problem_scan"}

@@ -7417,6 +7417,7 @@ vatcheck:
   problem_split_sum: 'The parts do not add up to the transaction: skipped.'
   problem_split_parts: 'A split needs at least two parts, one of them an expense: skipped.'
   problem_split_partly: 'Not every part was created; the transaction stays open. Split offers the created expenses next time.'
+  problem_split_skipped: 'Booked, but Invoice Ninja did not take every expense (one now belongs to another transaction). Check the transaction in Invoice Ninja.'
 workbench:
   err_nothing: 'Nothing selected.'
   scope: 'Bundle'

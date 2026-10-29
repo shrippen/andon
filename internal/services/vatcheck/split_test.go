@@ -2,6 +2,7 @@ package vatcheck
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -159,6 +160,7 @@ func TestSplitWrite(t *testing.T) {
 	var seen []string
 	var bodies []map[string]any
 	n := 0
+	linked := "n1,x1,n2"
 	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
@@ -173,7 +175,7 @@ func TestSplitWrite(t *testing.T) {
 			n++
 			rw.Write([]byte(`{"data": {"id": "n` + string(rune('0'+n)) + `", "number": "EX-9` + string(rune('0'+n)) + `"}}`))
 		case "bank_transactions/match":
-			rw.Write([]byte(`{"data": [{"id": "b1", "status_id": "3", "expense_id": "n1,x1,n2"}]}`))
+			rw.Write([]byte(`{"data": [{"id": "b1", "status_id": "3", "expense_id": "` + linked + `"}]}`))
 		}
 	}))
 	t.Cleanup(srv.Close)
@@ -198,5 +200,34 @@ func TestSplitWrite(t *testing.T) {
 	list, _ := bodies[3]["transactions"].([]any)
 	if item, _ := list[0].(map[string]any); item["expense_id"] != "n1,x1,n2" {
 		t.Fatalf("match %v", bodies[3])
+	}
+
+	// Booked, but x1 skipped (another debit took it): the step says so.
+	linked = "n3,n4"
+	var partly workbench.Partly
+	if _, err := w.Write(t.Context(), p); !errors.As(err, &partly) || partly.Reason != "vatcheck.problem_split_skipped" {
+		t.Fatalf("x1 skipped: err %v", err)
+	}
+}
+
+// TestSplitExpenseOnce: an expense goes to one step of a review; a
+// later split or link with it is refused (Invoice Ninja would skip it
+// and book the transaction with the rest).
+func TestSplitExpenseOnce(t *testing.T) {
+	x1 := &sources.NinjaExpense{Key: "x1"}
+	split := func(key string) Planned {
+		p := Planned{Item: Item{Parts: []Item{{Expense: &sources.NinjaExpense{Key: key}}, {Private: true}}}}
+		p.Action = string(ActionSplit)
+		return p
+	}
+	link := Planned{Item: Item{Expense: x1}}
+	link.Action = string(metrics.ActionLink)
+
+	steps := []Planned{split("x1"), link, split("x2"), split("x1")}
+	expenseChecks(steps)
+	for i, want := range []workbench.Problem{workbench.ProblemNone, ProblemTarget, workbench.ProblemNone, ProblemTarget} {
+		if steps[i].Problem != want {
+			t.Errorf("step %d: %q, want %q", i, steps[i].Problem, want)
+		}
 	}
 }

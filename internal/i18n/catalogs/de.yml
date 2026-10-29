@@ -7418,6 +7418,7 @@ vatcheck:
   problem_split_sum: 'Die Teile ergeben nicht den Betrag des Umsatzes: übersprungen.'
   problem_split_parts: 'Aufteilen braucht mindestens zwei Teile, einer davon eine Ausgabe: übersprungen.'
   problem_split_partly: 'Nicht alle Teile angelegt; der Umsatz bleibt offen. Die angelegten Ausgaben bietet „Aufteilen“ beim nächsten Mal an.'
+  problem_split_skipped: 'Gebucht, aber Invoice Ninja hat nicht alle Ausgaben übernommen (eine gehört inzwischen zu einem anderen Umsatz). Den Umsatz in Invoice Ninja prüfen.'
 workbench:
   err_nothing: 'Nichts ausgewählt.'
   scope: 'Verbund'
