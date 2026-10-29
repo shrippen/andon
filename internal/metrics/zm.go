@@ -65,10 +65,10 @@ func ZMOf(n *sources.NinjaDataset, day time.Time) ZM {
 	for _, inv := range NinjaCounted(n) {
 		d, ok := ParseDay(inv.Date)
 		c := clients[inv.ClientID]
-		if !ok || d.Before(start) || d.After(end) || invoiceRate(inv) != 0 || !euCountries[c.CountryID] || c.CountryID == n.HomeCountryID {
+		if !ok || d.Before(start) || d.After(end) || invoiceRate(inv) != 0 || !InEU(c.CountryID) || c.CountryID == n.HomeCountryID {
 			continue
 		}
-		id := vatID(c.VATNumber)
+		id := vatID(c.VATNumber, euCountries[c.CountryID])
 		if id == "" {
 			if !slices.Contains(zm.NoID, c.Name) {
 				zm.NoID = append(zm.NoID, c.Name)
@@ -83,7 +83,7 @@ func ZMOf(n *sources.NinjaDataset, day time.Time) ZM {
 
 	for id, sum := range sums {
 		slices.Sort(names[id])
-		zm.Lines = append(zm.Lines, ZMLine{Country: id[:2], ID: id[2:], Amount: math.Trunc(sum), Clients: strings.Join(names[id], ", ")})
+		zm.Lines = append(zm.Lines, ZMLine{Country: id[:2], ID: id[2:], Amount: math.Trunc(round2(sum)), Clients: strings.Join(names[id], ", ")})
 	}
 	slices.SortFunc(zm.Lines, func(a, b ZMLine) int { return strings.Compare(a.Country+a.ID, b.Country+b.ID) })
 	slices.Sort(zm.NoID)
@@ -91,15 +91,22 @@ func ZMOf(n *sources.NinjaDataset, day time.Time) ZM {
 }
 
 // vatID normalizes a VAT ID as typed ("fr 12 345678901" → "FR12345678901");
-// "" when it lacks the country prefix or a number.
-func vatID(raw string) string {
+// without a country prefix it takes prefix ("12345678901" → "FR…"); ""
+// when it lacks a number.
+func vatID(raw, prefix string) string {
 	id := strings.ToUpper(strings.Map(func(r rune) rune {
 		if unicode.IsSpace(r) || r == '.' || r == '-' {
 			return -1
 		}
 		return r
 	}, raw))
-	if len(id) < 3 || !unicode.IsLetter(rune(id[0])) || !unicode.IsLetter(rune(id[1])) {
+	if id == "" {
+		return ""
+	}
+	if len(id) < 2 || !unicode.IsLetter(rune(id[0])) || !unicode.IsLetter(rune(id[1])) {
+		id = prefix + id
+	}
+	if len(id) < 3 {
 		return ""
 	}
 	return id
