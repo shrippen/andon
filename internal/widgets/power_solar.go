@@ -82,18 +82,22 @@ func solarToday(e *sources.HassEnergy, now time.Time) (Block, bool) {
 	}
 	g.Mark, g.Unit = local.Hour(), "kWh"
 	for h := range hoursPerDay {
-		g.Labels = append(g.Labels, start.Add(time.Duration(h)*time.Hour).Format(timeOfDay))
+		g.Labels = append(g.Labels, time.Date(start.Year(), start.Month(), start.Day(), h, 0, 0, 0, time.UTC).Format(timeOfDay)) // wall clock: a clock change day has 23 or 25 hours
 	}
 	g.Ticks = []any{g.Labels[0], g.Labels[hoursPerDay-1]}
 	return Block{Kind: BlockGraph, Label: T("power.pv_hours"), Hero: true, Data: g}, true
 }
 
-// hourValues puts a curve into the hours of the day from start on.
+// hourValues puts a curve into the wall-clock hours of start's day (the
+// mark and the labels count so): both 02:00 of the autumn change go
+// into one.
 func hourValues(points []sources.SolarPoint, start time.Time) []float64 {
 	out := make([]float64, hoursPerDay)
+	day := start.Format(time.DateOnly)
 	for _, p := range points {
-		if h := int(p.At.Sub(start).Hours()); h >= 0 && h < hoursPerDay {
-			out[h] += p.KWh
+		local := p.At.In(start.Location())
+		if local.Format(time.DateOnly) == day {
+			out[local.Hour()] += p.KWh
 		}
 	}
 	return out
