@@ -41,6 +41,10 @@ Rule 7: Use the body to explain what and why vs. how. Assume the code explains t
         the message must explain the context and reasoning. 
 
 - If the prompt indicates that a bug is being fixed, don't write the fix right away. First write the test. Observe it failing. Then write the fix. And observe the test passing.
+  - This holds for every bug, however it was found (a user report, a review, your own run),
+    and for performance problems and crashes too: stutter, late frames, a hang, a panic, a
+    leak. The test stays in the suite; a one-off script run is not a test.
+  - Name the failure in the commit or PR: the test and what it printed before the fix.
 
 ## Andon – Projekt-Wissen
 
