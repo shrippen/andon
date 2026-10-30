@@ -95,7 +95,7 @@ Tiles (board order) → pack into screen-high sets → balance (each ≥ 1/3 of 
 
 All changes / Alle Änderungen: https://github.com/shrippen/andon/compare/v0.6.0...v0.7.0 · Changelog: https://shrippen.github.io/andon/#v0.7.0
 
-Docker: `git.arianw.de/shrippen/andon:0.7.0` (also `latest`, `0.7`)
+Docker: `ghcr.io/shrippen/andon:0.7.0` (also `latest`, `0.7`)
 
 ## [0.6.0] — 2026-10-07
 
@@ -195,7 +195,7 @@ Borg, PBS, Kopia, Duplicati, Backrest, UrBackup, PG Back Web, TrueNAS
 
 All changes / Alle Änderungen: https://github.com/shrippen/andon/compare/v0.5.0...v0.6.0 · Changelog: https://shrippen.github.io/andon/#v0.6.0
 
-Docker: `git.arianw.de/shrippen/andon:0.6.0` (also `latest`, `0.6`)
+Docker: `ghcr.io/shrippen/andon:0.6.0` (also `latest`, `0.6`)
 
 ## [0.5.0] — 2026-10-03
 
