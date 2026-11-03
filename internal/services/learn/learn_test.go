@@ -241,3 +241,25 @@ func TestUnreadableModel(t *testing.T) {
 		t.Fatalf("not started over: %+v", rows)
 	}
 }
+
+// An unreadable model nothing can be learned into goes, instead of
+// warning at every run.
+func TestUnreadableNothingToLearn(t *testing.T) {
+	d := testkit.DB(t)
+	admin, space := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+	conn := testkit.Conn(t, d, admin, space, enums.ServiceInvoiceNinja, "demo://invoiceninja")
+	if _, err := d.Exec("INSERT INTO learned_models (purpose, conn_id, holder, model, trained_at) VALUES ('nothing', ?, 0, 'kaputt', '2026-01-01T00:00:00Z')", conn); err != nil {
+		t.Fatal(err)
+	}
+	c, err := content.Connection(d, conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := learn.Learn(d, "nothing", c, model.NoHolder, func(*bayes.Model) bool { return false }); err != nil {
+		t.Fatal(err)
+	}
+	var n int
+	if err := d.QueryRow("SELECT COUNT(*) FROM learned_models WHERE purpose = 'nothing'").Scan(&n); err != nil || n != 0 {
+		t.Fatalf("unreadable model kept: %d %v", n, err)
+	}
+}

@@ -319,16 +319,20 @@ func update(d *sql.DB, purpose string, connID int64, h model.Holder, now time.Ti
 		if err != nil {
 			return err
 		}
+		broken := false
 		if ok {
 			if err := json.Unmarshal([]byte(stored.Model), m); err != nil {
 				slog.Warn("learn: stored model unreadable, starting over", "purpose", purpose, "conn", connID, "err", err)
-				m, ok = bayes.New(), false
+				m, ok, broken = bayes.New(), false, true
 			}
 		}
 		if !teach(m) && ok {
 			return nil // nothing new: kept as it was
 		}
 		if m.Stats().Examples == 0 && !ok {
+			if broken {
+				return misc.DeleteLearned(tx, purpose, connID, h) // unreadable, nothing to replace it with
+			}
 			return nil // nothing to keep
 		}
 		text, err := json.Marshal(m)
@@ -423,3 +427,7 @@ func Reset(d *sql.DB, who *access.Principal, purpose string, connID int64, h mod
 		return audit.Log(tx, &who.UserID, "learn.reset", purpose, ip, map[string]any{"conn": connID, "holder": int64(h)})
 	})
 }
+
+// Pick is one suggested value for a form field: what the field takes
+// and what the user reads ("Vorschlag: Hosting, Software").
+type Pick struct{ Value, Label string }
