@@ -111,6 +111,7 @@ func newTestServer(t *testing.T) (*httptest.Server, *http.Client, string) {
 	deps.RegisterAccountRoutes(mux)
 	deps.RegisterAPIRoutes(mux)
 	deps.RegisterSettingsRoutes(mux)
+	deps.RegisterLearningRoutes(mux)
 	deps.RegisterOIDCRoutes(mux)
 	deps.RegisterIconRoutes(mux)
 	deps.RegisterPortingRoutes(mux)

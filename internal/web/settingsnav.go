@@ -40,7 +40,7 @@ type settingsLink struct {
 var settingsPages = map[string]bool{
 	"profile": true, "security": true, "notify": true,
 	"connections": true, "connection": true, "verbund": true, "verbund_customers": true, "space_settings": true, "space_code": true, "themes": true, "import": true,
-	"teams": true, "team": true, "admin_users": true, "admin_settings": true, "admin_ops": true, "admin_audit": true,
+	"teams": true, "team": true, "admin_users": true, "admin_settings": true, "admin_ops": true, "admin_learning": true, "admin_audit": true,
 }
 
 // Space settings sections, each its own page and form.
@@ -112,6 +112,7 @@ func settingsNav(who *access.Principal) []settingsGroup {
 		settingsLink{Label: "nav.teams", Href: "/teams"},
 		settingsLink{Label: "nav.admin_settings", Href: "/admin/settings"},
 		settingsLink{Label: "nav.admin_ops", Href: "/admin/operations"},
+		settingsLink{Label: "nav.admin_learning", Href: learningPath},
 		settingsLink{Label: "nav.audit", Href: "/admin/audit"},
 	)
 	return append(out, settingsGroup{Label: "settings.level_instance", Setup: true, Links: links})

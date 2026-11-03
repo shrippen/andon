@@ -10,6 +10,7 @@ nav:
   menu: Menü
   boards: Boards
   pages: Seiten
+  admin_learning: 'Lernmodell'
   admin_ops: 'Betrieb'
   main: Hauptnavigation
   setup: Einrichten
@@ -6286,6 +6287,10 @@ gallery:
   clean_go: Gewählte löschen
   deleted: 'Gelöscht: {n}'
 audit_action:
+  learn:
+    settings: 'Lernmodell-Einstellungen geändert'
+    train: 'Lernmodelle trainiert'
+    reset: 'Lernmodell zurückgesetzt'
   vatcheck:
     payment: 'Umsatz mit vorhandener Zahlung verknüpft'
     skip: 'Umsatz als privat archiviert'
@@ -7459,6 +7464,7 @@ vatcheck:
   origin_sure: 'Sure'
   origin_model: 'Claude'
   origin_vendor: 'wie bisher'
+  origin_learned: 'gelernt'
   origin_scan: 'Beleg'
   origin_booking: 'Umsatz'
   number: 'Rechnungsnr.'
@@ -7593,7 +7599,7 @@ journal:
   act_tandoor_check: 'Einkauf abgehakt'
 euer:
   title: 'EÜR-Zuordnung'
-  lead: 'Ausgaben des Jahres, deren EÜR-Feld leer ist. Vorgeschlagen wird die Zeile der letzten Ausgabe desselben Lieferanten, nie die der Kategorie; angehakt wird nach dem Prüfen in Invoice Ninja geschrieben.'
+  lead: 'Ausgaben des Jahres, deren EÜR-Feld leer ist. Vorgeschlagen wird die Zeile der letzten Ausgabe desselben Lieferanten, sonst eine aus Ausgaben mit ähnlichen Wörtern und Beträgen gelernte, nie die der Kategorie; angehakt wird nach dem Prüfen in Invoice Ninja geschrieben.'
   years: Jahre
   setup_title: 'Welches Feld hält die EÜR-Zeile?'
   setup_text: 'Die EÜR-Zeile steht in einem Zusatzfeld der Ausgabe. Wähle es im Verbund unter Kategorien.'
@@ -7603,6 +7609,7 @@ euer:
   expense: Ausgabe
   line: 'EÜR-Zeile'
   from_vendor: 'wie zuletzt bei diesem Lieferanten'
+  from_learned: 'gelernt aus ähnlichen Ausgaben'
   no_vendor: 'Lieferant ohne frühere Zeile'
   review: 'Prüfen'
   empty: 'Alle Ausgaben aus {year} haben ihre EÜR-Zeile.'
@@ -7942,3 +7949,31 @@ kept:
     document: Dokument
     schedule: Wartung
     loan: Rückgabe
+
+learn:
+  title: 'Lernmodell'
+  lead: 'Andon lernt aus deinen Ausgaben, welche EÜR-Zeile zu welchen Wörtern gehört (naiver Bayes), und schlägt sie auf dem USt-Abgleich und der EÜR-Zuordnung vor, wenn der Lieferant noch keine hat. Das Modell wird gespeichert: es lernt neue und geänderte Ausgaben dazu und behält, was es aus gelöschten gelernt hat.'
+  settings: 'Einstellungen'
+  mode: 'Gelernte Vorschläge'
+  mode_on: 'an'
+  mode_off: 'aus (nur die Zeile des Lieferanten)'
+  min_percent: 'Mindestsicherheit in %'
+  min_percent_hint: 'Ein gelernter Vorschlag erscheint erst ab dieser Wahrscheinlichkeit. Höher heißt seltener, aber treffsicherer.'
+  hours: 'Trainieren alle … Stunden'
+  hours_hint: 'Im Hintergrund, aus den zuletzt abgerufenen Daten von Invoice Ninja. Die Seiten lernen zusätzlich die aktuellen Daten mit, ohne zu speichern.'
+  models: 'Gespeicherte Modelle'
+  none: 'Noch kein Modell gespeichert. Es entsteht beim ersten Training, sobald eine Invoice-Ninja-Verbindung ein EÜR-Feld hat.'
+  col_conn: 'Verbindung'
+  col_purpose: 'Lernt'
+  col_examples: 'Beispiele'
+  col_labels: 'Zeilen'
+  col_features: 'Merkmale'
+  col_trained: 'Zuletzt trainiert'
+  purpose_euer: 'EÜR-Zeile'
+  train: 'Jetzt trainieren'
+  reset: 'Zurücksetzen'
+  reset_hint: 'Vergisst alles Gelernte; das Modell lernt danach neu aus den Daten, die Invoice Ninja jetzt hat.'
+  saved: 'Gespeichert.'
+  trained: 'Trainiert.'
+  was_reset: 'Zurückgesetzt.'
+  denied: 'Nur Admins ändern das Lernmodell.'

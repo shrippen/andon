@@ -12,6 +12,7 @@ import (
 	"andon/internal/services/hints"
 	"andon/internal/services/homelable"
 	"andon/internal/services/icons"
+	"andon/internal/services/learn"
 	"andon/internal/services/linkstatus"
 	"andon/internal/services/notify"
 	"andon/internal/services/release"
@@ -34,6 +35,9 @@ func backgroundJobs(database *sql.DB, cfg settings.Settings) []scheduler.Job {
 			_, err := analysis.RunAll(ctx, database, time.Now().UTC())
 			scheduler.Trigger(homelable.JobName) // draws what this run read
 			return err
+		}},
+		{Name: learn.JobName, Every: func() time.Duration { return learn.Every(database) }, Start: scheduler.AtStart, Run: func(ctx context.Context) error {
+			return learn.Train(ctx, database, time.Now())
 		}},
 		{Name: homelable.JobName, Interval: day, Run: func(ctx context.Context) error {
 			return homelable.SyncAll(ctx, database)

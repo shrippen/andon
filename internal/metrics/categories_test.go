@@ -3,6 +3,7 @@ package metrics_test
 import (
 	"testing"
 
+	"andon/internal/bayes"
 	"andon/internal/metrics"
 	"andon/internal/sources"
 )
@@ -59,8 +60,66 @@ func TestEuerFromVendor(t *testing.T) {
 	if got := metrics.VendorEuer(n, 3); len(got) != 1 || got["v1"] != "GWG" {
 		t.Errorf("vendor lines: %v", got)
 	}
-	cases := metrics.EuerCases(n, 3, "2026-09-01")
+	cases := metrics.EuerCases(n, 3, "2026-09-01", metrics.EuerLearning{})
 	if len(cases) != 3 || cases[2].Expense.Key != "open1" || cases[2].Line != "GWG" || cases[0].Line != "" || cases[1].Line != "" {
 		t.Errorf("cases: %+v", cases)
+	}
+}
+
+// A new vendor gets the line of expenses with the same words; its own
+// last line wins once it has one; a line outside the dropdown is never
+// proposed.
+func TestEuerGuesser(t *testing.T) {
+	n := &sources.NinjaDataset{
+		Vendors: []sources.NinjaVendor{{Key: "v1", Name: "Hetzner Online GmbH"}, {Key: "v2", Name: "teilAuto eG"}, {Key: "v3", Name: "Kagi Inc"}},
+		Expenses: []sources.NinjaExpense{
+			{Key: "e1", VendorKey: "v1", Date: "2026-01-05", Amount: 11.43, Notes: "Server", Custom: [4]string{"", "", "EDV"}},
+			{Key: "e2", VendorKey: "v1", Date: "2026-02-05", Amount: 11.43, Notes: "Server Cloud", Custom: [4]string{"", "", "EDV"}},
+			{Key: "e3", VendorKey: "v2", Date: "2026-02-07", Amount: 148.68, Notes: "Carsharing Fahrt", Custom: [4]string{"", "", "Reise"}},
+			{Key: "e4", VendorKey: "v3", Date: "2026-02-08", Amount: 4.40, Notes: "Suche", Custom: [4]string{"", "", "EDV"}},
+		},
+	}
+	g := metrics.EuerGuesserOf(n, 3, metrics.EuerLearning{Model: bayes.New(), MinP: metrics.EuerMinP})
+
+	if line, from := g.Guess(metrics.EuerInput{Vendor: "Netcup GmbH", Texts: []string{"Cloud Server"}, Amount: 9}); line != "EDV" || from != metrics.EuerFromLearned {
+		t.Errorf("new hoster: %q %q", line, from)
+	}
+	if line, from := g.Guess(metrics.EuerInput{Vendor: "Stadtmobil", Texts: []string{"Carsharing Fahrt"}, Amount: 120}); line != "Reise" || from != metrics.EuerFromLearned {
+		t.Errorf("car sharing: %q %q", line, from)
+	}
+	if line, from := g.Guess(metrics.EuerInput{VendorKey: "v2", Vendor: "teilAuto eG", Texts: []string{"Server"}}); line != "Reise" || from != metrics.EuerFromVendor {
+		t.Errorf("known vendor: %q %q", line, from)
+	}
+	// The amount alone is no evidence.
+	for _, amount := range []float64{0, 4.80, 9.80} {
+		if line, _ := g.Guess(metrics.EuerInput{Vendor: "Bäckerei Schmidt", Texts: []string{"Brötchen"}, Amount: amount}); line != "" {
+			t.Errorf("nothing known at %v proposes %q", amount, line)
+		}
+	}
+
+	n.ExpenseFields[2] = sources.ExpenseField{Label: "EÜR", Options: []string{"EDV"}}
+	g = metrics.EuerGuesserOf(n, 3, metrics.EuerLearning{Model: bayes.New(), MinP: metrics.EuerMinP})
+	if line, _ := g.Guess(metrics.EuerInput{Texts: []string{"Carsharing"}}); line != "" {
+		t.Errorf("line outside the dropdown proposed: %q", line)
+	}
+}
+
+// A line the user emptied is forgotten, not proposed back; an expense
+// gone from Invoice Ninja stays learned.
+func TestEuerLearnForgetsEmptied(t *testing.T) {
+	n := &sources.NinjaDataset{
+		Vendors: []sources.NinjaVendor{{Key: "v1", Name: "Hetzner"}, {Key: "v2", Name: "Kagi"}},
+		Expenses: []sources.NinjaExpense{
+			{Key: "e1", VendorKey: "v1", Notes: "Server", Custom: [4]string{"", "", "EDV"}},
+			{Key: "e2", VendorKey: "v2", Notes: "Suche", Custom: [4]string{"", "", "EDV"}},
+		},
+	}
+	m := bayes.New()
+	metrics.EuerLearn(m, n, 3)
+
+	n.Expenses[0].Custom[2] = "" // emptied
+	n.Expenses = n.Expenses[:1]  // e2 deleted
+	if !metrics.EuerLearn(m, n, 3) || m.Stats().Examples != 1 {
+		t.Fatalf("emptied line kept: %+v", m.Stats())
 	}
 }

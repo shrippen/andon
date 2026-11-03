@@ -160,6 +160,7 @@ func run() int {
 	deps.RegisterAccountRoutes(mux)
 	deps.RegisterAPIRoutes(mux)
 	deps.RegisterSettingsRoutes(mux)
+	deps.RegisterLearningRoutes(mux)
 	deps.RegisterOIDCRoutes(mux)
 	deps.RegisterIconRoutes(mux)
 	deps.RegisterPortingRoutes(mux)

@@ -25,6 +25,7 @@ import (
 	"andon/internal/services/access"
 	auditsvc "andon/internal/services/audit"
 	"andon/internal/services/connections"
+	"andon/internal/services/learn"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/workbench"
 	"andon/internal/sources"
@@ -121,7 +122,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, y
 	}
 	field := b.ninja.ExpenseFields[p.Slot-1]
 	p.Label, p.Lines, p.Dropdown = field.Label, metrics.EuerChoices(b.ninja, p.Slot), len(field.Options) > 0
-	p.Cases = metrics.EuerCases(b.ninja, p.Slot, strconv.Itoa(p.Year)+"-01-01")
+	p.Cases = metrics.EuerCases(b.ninja, p.Slot, strconv.Itoa(p.Year)+"-01-01", learn.Euer(d, b.conn, model.UserHolder(who.UserID)))
 	p.Cases = slices.DeleteFunc(p.Cases, func(c metrics.EuerCase) bool { return !strings.HasPrefix(c.Expense.Date, strconv.Itoa(p.Year)) })
 	for _, c := range p.Cases {
 		if c.Line != "" {
