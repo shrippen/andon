@@ -57,6 +57,9 @@ func (m *Model) Learn(label string, features []string) {
 	}
 }
 
+// Knows says whether f was seen in training.
+func (m *Model) Knows(f string) bool { return m.known[f] }
+
 // Rank is every label, likeliest first; nil before any example or
 // without a known feature (the prior alone proposes nothing).
 func (m *Model) Rank(features []string) []Guess {

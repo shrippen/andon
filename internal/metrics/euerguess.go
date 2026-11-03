@@ -15,12 +15,14 @@ import (
 // model learned from every expense that has a line.
 //
 //	expenses with a line ──► features ──► bayes.Model
-//	  vendor  v:<key>, words of its name     │
-//	  texts   w:<word> (notes, booking)      ▼
+//	  words   w:<word> (vendor name,         │
+//	          notes, booking)                ▼
 //	  amount  a:<log₂ €>             Guess(case) ≥ euerMinP → line
 //
 // The vendor's last line wins: a vendor mostly keeps its line, and the
-// latest choice counts more than the count of old ones.
+// latest choice counts more than the count of old ones; so a vendor key
+// would add nothing. Without a known word nothing is proposed: the
+// amount alone is no evidence.
 
 // EuerFrom says where a proposed line comes from.
 type EuerFrom string
@@ -33,6 +35,12 @@ const (
 
 // euerMinP is the least probability a learned line is proposed with.
 const euerMinP = 0.6
+
+// wordFeature prefixes a word's feature, amountFeature the amount's.
+const (
+	wordFeature   = "w:"
+	amountFeature = "a:"
+)
 
 // minWord is the shortest word that counts as a feature.
 const minWord = 3
@@ -104,7 +112,12 @@ func (g EuerGuesser) Guess(c EuerInput) (string, EuerFrom) {
 	if g.model == nil {
 		return "", EuerFromNothing
 	}
-	best, ok := g.model.Best(c.features(), euerMinP)
+	// Words are the evidence; the amount only weighs in.
+	features := c.features()
+	if !slices.ContainsFunc(features, func(f string) bool { return strings.HasPrefix(f, wordFeature) && g.model.Knows(f) }) {
+		return "", EuerFromNothing
+	}
+	best, ok := g.model.Best(features, euerMinP)
 	if !ok || (len(g.choices) > 0 && !slices.Contains(g.choices, best.Label)) {
 		return "", EuerFromNothing
 	}
@@ -114,14 +127,11 @@ func (g EuerGuesser) Guess(c EuerInput) (string, EuerFrom) {
 // features are c's words, its vendor and its order of magnitude.
 func (c EuerInput) features() []string {
 	var out []string
-	if c.VendorKey != "" {
-		out = append(out, "v:"+c.VendorKey)
-	}
 	for _, w := range words(append([]string{c.Vendor}, c.Texts...)) {
-		out = append(out, "w:"+w)
+		out = append(out, wordFeature+w)
 	}
 	if a := math.Abs(c.Amount); a >= 1 {
-		out = append(out, "a:"+strconv.Itoa(int(math.Log2(a))))
+		out = append(out, amountFeature+strconv.Itoa(int(math.Log2(a))))
 	}
 	return out
 }

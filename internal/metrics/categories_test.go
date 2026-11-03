@@ -89,8 +89,11 @@ func TestEuerGuesser(t *testing.T) {
 	if line, from := g.Guess(metrics.EuerInput{VendorKey: "v2", Vendor: "teilAuto eG", Texts: []string{"Server"}}); line != "Reise" || from != metrics.EuerFromVendor {
 		t.Errorf("known vendor: %q %q", line, from)
 	}
-	if line, _ := g.Guess(metrics.EuerInput{Vendor: "Bäckerei Schmidt", Texts: []string{"Brötchen"}}); line != "" {
-		t.Errorf("nothing known proposes %q", line)
+	// The amount alone is no evidence.
+	for _, amount := range []float64{0, 4.80, 9.80} {
+		if line, _ := g.Guess(metrics.EuerInput{Vendor: "Bäckerei Schmidt", Texts: []string{"Brötchen"}, Amount: amount}); line != "" {
+			t.Errorf("nothing known at %v proposes %q", amount, line)
+		}
 	}
 
 	n.ExpenseFields[2] = sources.ExpenseField{Label: "EÜR", Options: []string{"EDV"}}
