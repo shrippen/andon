@@ -493,6 +493,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 	if b.ninja, _ = res.Data.(*sources.NinjaDataset); b.ninja == nil {
 		return b, scopes, ErrNoBank
 	}
+	b.cats.EuerSlot = b.cats.EuerOf(b.ninja.ExpenseFields)
 	if b.bankConn != nil {
 		if res, err := fetch(ctx, d, who, b.bankConn, fresh); err == nil {
 			b.bank, _ = res.Data.(*sources.BankData)

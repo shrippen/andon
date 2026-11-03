@@ -3,6 +3,7 @@ package sources
 import (
 	"slices"
 	"strconv"
+	"strings"
 
 	"andon/internal/caps"
 	"andon/internal/enums"
@@ -243,7 +244,7 @@ const (
 type Categories struct {
 	Sure     map[int64]map[string]string // per Sure (or Firefly) connection: its category → Ninja key
 	Tags     map[int64]map[string]string // per Sure connection: its tag → Ninja key
-	EuerSlot int                         // 0 = not chosen
+	EuerSlot int                         // 0 = not chosen, EuerNone = none
 }
 
 // BankMap is one bank connection's mapping to Ninja category keys.
@@ -273,11 +274,37 @@ func (c Categories) Of(bank int64) BankMap {
 // CategoriesOf reads them from a connection's options.
 func CategoriesOf(options map[string]any) Categories {
 	out := Categories{Sure: connMaps(options[OptCategoryMap]), Tags: connMaps(options[OptTagMap])}
-	if n := int(asFloat(options[OptEuerSlot])); n >= 1 && n <= NinjaSlots {
+	if n := int(asFloat(options[OptEuerSlot])); n >= EuerNone && n <= NinjaSlots {
 		out.EuerSlot = n
 	}
 	return out
 }
+
+// EuerNone is the EÜR slot saved as "no field": unlike 0 (not chosen
+// yet), no label is guessed.
+const EuerNone = -1
+
+// EuerOf is the slot of the field holding the EÜR line: the one chosen,
+// else, before any choice, the first whose label says EÜR ("EÜR
+// Kategorie"); 0 none.
+func (c Categories) EuerOf(fields [NinjaSlots]ExpenseField) int {
+	if c.EuerSlot > 0 {
+		return c.EuerSlot
+	}
+	if c.EuerSlot == EuerNone {
+		return 0
+	}
+	for i, f := range fields {
+		label := strings.ToLower(f.Label)
+		if slices.ContainsFunc(euerWords, func(w string) bool { return strings.Contains(label, w) }) {
+			return i + 1
+		}
+	}
+	return 0
+}
+
+// euerWords name a custom field that holds the EÜR line.
+var euerWords = []string{"eür", "euer", "anlage"}
 
 // Options writes them back into options (a copy is the caller's).
 func (c Categories) Options(options map[string]any) {

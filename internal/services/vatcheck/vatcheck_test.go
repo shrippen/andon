@@ -314,8 +314,8 @@ func TestApplyNewExpenseFields(t *testing.T) {
 		t.Fatalf("open: %v", err)
 	}
 	i := slices.IndexFunc(p.Cases, func(c vatcheck.Case) bool { return c.Txn.Key == "b2" })
-	if i < 0 || !p.Cases[i].Draft.Bill || p.Cases[i].Note != "KW-56107" || p.Cases[i].Done() != 7 {
-		t.Fatalf("b2 must bill like Kabelwerk's last expense, note its text, have 7 parts: %+v", p.Cases[i])
+	if i < 0 || !p.Cases[i].Draft.Bill || p.Cases[i].Note != "KW-56107" || p.Cases[i].Done() != 8 {
+		t.Fatalf("b2 must bill like Kabelwerk's last expense, note its text, have 8 parts (EÜR by label): %+v", p.Cases[i])
 	}
 
 	given := map[string]string{vatcheck.FieldVendor: "Kabelwerk Studiobedarf", vatcheck.FieldTax: "19", vatcheck.FieldNumber: " KW-56107 ",
@@ -685,5 +685,22 @@ func TestFillSearchedScan(t *testing.T) {
 	plan, err := vatcheck.Review(ctx, d, who, scopeOf(conn), []workbench.Step{step})
 	if err != nil || plan.Steps[0].Problem != workbench.ProblemNone || plan.Steps[0].Item.Scan != doc.Scan() {
 		t.Fatalf("picked scan %d: %v %+v", doc.Scan(), err, plan.Steps)
+	}
+}
+
+// The EÜR field counts without being saved when its label says EÜR, as
+// the Verbund's categories page shows it chosen.
+func TestEuerFieldByLabel(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	var w writes
+	testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "1"))
+
+	p, err := vatcheck.Open(context.Background(), d, who, "", thisMonth(), time.Now().UTC())
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	if p.Euer != "EÜR" || !slices.Equal(p.EuerLines, []string{"Arbeitsmittel", "GWG"}) {
+		t.Fatalf("field %q, lines %v", p.Euer, p.EuerLines)
 	}
 }

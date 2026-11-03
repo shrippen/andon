@@ -185,7 +185,7 @@ func Export(ctx context.Context, d *sql.DB, who *access.Principal, spaceID, link
 		files["fahrten.csv"] = tripRows(t, kimai, year, set.KMRate)
 	}
 	if ninja != nil {
-		files["euer.csv"] = euerRows(ninja, sources.CategoriesOf(ninjaOptions).EuerSlot, year)
+		files["euer.csv"] = euerRows(ninja, sources.CategoriesOf(ninjaOptions).EuerOf(ninja.ExpenseFields), year)
 	}
 	if inv, ok := metrics.InventoryOf(costData); ok {
 		files["afa.csv"] = afaRows(inv, year)

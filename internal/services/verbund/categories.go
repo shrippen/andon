@@ -34,9 +34,6 @@ import (
 // ErrNoNinja: the Verbund has no Invoice Ninja to keep categories on.
 var ErrNoNinja = errors.New("verbund.no_ninja")
 
-// euerWords name a custom field that holds the EÜR line.
-var euerWords = []string{"eür", "euer", "anlage"}
-
 // CategoryView is the categories page of one Verbund.
 type CategoryView struct {
 	Verbund    View
@@ -78,6 +75,9 @@ func (v CategoryView) Slots() []Slot {
 
 // Lines are the EÜR field's choices (metrics.EuerChoices).
 func (v CategoryView) Lines() []string { return v.lines }
+
+// NoField is the value of the page's "–" (NoEuerField).
+func (CategoryView) NoField() int { return NoEuerField }
 
 // HasNinja reports whether the Verbund has an Invoice Ninja (its
 // categories page).
@@ -151,10 +151,7 @@ func CategoriesFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaI
 		out.Sure = bankNames(ninja, metrics.SureCategoryVotes(ninja, bank), debitNames(bank, catNames), saved.Sure[out.Bank.ID])
 		out.Tags = bankNames(ninja, metrics.SureTagVotes(ninja, bank), debitNames(bank, tagNames), saved.Tags[out.Bank.ID])
 	}
-	out.Slot = saved.EuerSlot
-	if out.Slot == 0 {
-		out.Slot = euerSlot(out.Fields)
-	}
+	out.Slot = saved.EuerOf(out.Fields)
 	out.lines = metrics.EuerChoices(ninja, out.Slot)
 	return out, nil
 }
@@ -199,16 +196,9 @@ func bankNames(ninja *sources.NinjaDataset, votes metrics.Votes, names []string,
 	return out
 }
 
-// euerSlot is the field whose name says EÜR, 0 if none.
-func euerSlot(fields [sources.NinjaSlots]sources.ExpenseField) int {
-	for i, f := range fields {
-		label := strings.ToLower(f.Label)
-		if slices.ContainsFunc(euerWords, func(w string) bool { return strings.Contains(label, w) }) {
-			return i + 1
-		}
-	}
-	return 0
-}
+// NoEuerField is the page's "–": no field holds the EÜR line, not even
+// one named EÜR (sources.EuerNone).
+const NoEuerField = sources.EuerNone
 
 // CategorySave is what the page sends: Sure's categories and the EÜR
 // field.
@@ -246,7 +236,7 @@ func (v CategoryView) save(d *sql.DB, who *access.Principal, in CategorySave, ip
 		known := func(_, val string) bool { return keys[val] }
 		c.Sure[v.Bank.ID], c.Tags[v.Bank.ID] = clean(in.Sure, known), clean(in.Tags, known)
 	}
-	if in.Slot >= 0 && in.Slot <= sources.NinjaSlots {
+	if in.Slot >= sources.EuerNone && in.Slot <= sources.NinjaSlots {
 		c.EuerSlot = in.Slot
 	}
 
