@@ -34,6 +34,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/bayes"
 	"andon/internal/sources"
 )
 
@@ -57,6 +58,7 @@ const (
 	FromHistory DraftFrom = "history" // the vendor's last expense
 	FromSure    DraftFrom = "sure"    // Sure's merchant and category
 	FromModel   DraftFrom = "model"   // the language model, on request
+	FromLearned DraftFrom = "learned" // a learned model (BankLearning)
 )
 
 // ExpenseDraft is a new expense for an open debit. VendorKey or
@@ -71,6 +73,9 @@ type ExpenseDraft struct {
 	EuerFrom              EuerFrom
 	Bill                  bool // the vendor's last expense was billed to a client
 	From                  DraftFrom
+	VendorFrom            DraftFrom // FromLearned when the model named the vendor
+	TaxFrom               DraftFrom // the tax's origin when not From's
+	NoTax                 bool      // the tax known is none
 }
 
 // BankCase is one open transaction with what it could be.
@@ -85,6 +90,7 @@ type BankCase struct {
 	Action   BankAction
 	Private  bool      // paid from an account with private bookings (private, mixed)
 	Mixed    bool      // on a mixed account
+	Learned  bool      // a private account's debit the model sorted (business or private)
 	Transfer *Transfer // money moved to or from another own account
 }
 
@@ -109,6 +115,7 @@ type VATInputs struct {
 	Start, End time.Time
 	Method     string // ist, soll
 	Today      time.Time
+	Learned    BankLearning
 }
 
 const (
@@ -134,7 +141,7 @@ func BankCases(in VATInputs) []BankCase {
 		c := BankCase{Txn: t, Sure: sureTwin(in.Sure, t, usedSure), Private: private || (mixed && t.Debit), Mixed: mixed}
 		if t.Debit {
 			c.Expenses = expenseFits(in.Ninja, t, taken)
-			c.Draft = draftOf(in.Ninja, t, c.Sure)
+			c.Draft = draftOf(in.Ninja, t, c.Sure, in.Learned)
 			c.Action = ActionCreate
 			if len(c.Expenses) > 0 {
 				c.Action = ActionLink
@@ -157,7 +164,27 @@ func BankCases(in VATInputs) []BankCase {
 		out = append(out, c)
 	}
 	pairTransfers(in, out)
+	sortPrivate(out, in.Learned.Private)
 	return out
+}
+
+// sortPrivate lets the model sort a private or mixed account's debit
+// that no expense fits and that is no transfer: booked before as
+// business → a new expense; set aside as private → archive. After the
+// transfers: a transfer's side is never sorted.
+func sortPrivate(cases []BankCase, u bayes.Use) {
+	for i := range cases {
+		c := &cases[i]
+		if !c.Private || !c.Txn.Debit || c.Transfer != nil || len(c.Expenses) > 0 {
+			continue
+		}
+		switch guess(u, c.Txn, c.Sure) {
+		case labelBusiness:
+			c.Action, c.Learned = ActionCreate, true
+		case labelPrivate:
+			c.Action, c.Learned = ActionSkip, true
+		}
+	}
 }
 
 // pairable: nothing to book for c, so it may be a transfer's side.
@@ -484,12 +511,21 @@ func sureTwin(sure *sources.BankData, t sources.NinjaBankTxn, used map[string]bo
 
 // DraftOf is the new expense for a booking, or for a scan dressed as
 // one (vatcheck: receipts without an expense), without Sure.
-func DraftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn) ExpenseDraft { return draftOf(n, t, nil) }
+func DraftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn) ExpenseDraft {
+	return draftOf(n, t, nil, BankLearning{})
+}
+
+// DraftWith is DraftOf with the learned models.
+func DraftWith(n *sources.NinjaDataset, t sources.NinjaBankTxn, l BankLearning) ExpenseDraft {
+	return draftOf(n, t, nil, l)
+}
 
 // draftOf fills a new expense: a known vendor (its first word is a word
-// of the booking: "Mietwagen Nord" is not "Nordhost") brings its last
-// category and tax; otherwise Sure's merchant and category help.
-func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.BankTxn) ExpenseDraft {
+// of the booking: "Mietwagen Nord" is not "Nordhost"; else the one the
+// model learned from earlier bookings) brings its last category and tax;
+// otherwise Sure's merchant and category help, then the learned
+// category and tax.
+func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.BankTxn, l BankLearning) ExpenseDraft {
 	var d ExpenseDraft
 	text := t.Payer + " " + t.Description
 	if sure != nil {
@@ -499,6 +535,11 @@ func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.Bank
 		if strings.EqualFold(v.Name, t.Payer) || sameThing(v.Name, text) {
 			d.Vendor, d.VendorKey = v.Name, v.Key
 			break
+		}
+	}
+	if key := guess(l.Vendor, t, sure); d.VendorKey == "" && key != "" {
+		if i := slices.IndexFunc(n.Vendors, func(v sources.NinjaVendor) bool { return v.Key == key }); i >= 0 {
+			d.Vendor, d.VendorKey, d.VendorFrom = n.Vendors[i].Name, key, FromLearned
 		}
 	}
 	if last, ok := lastExpense(n, d.VendorKey); ok {
@@ -513,15 +554,39 @@ func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.Bank
 			d.Vendor, d.From = sure.Merchant, FromSure
 		}
 	}
-	if sure == nil || sure.Category == "" {
-		return d
-	}
-	for _, c := range n.Categories {
-		if strings.EqualFold(c.Name, sure.Category) {
-			d.Category, d.CategoryKey, d.From = c.Name, c.Key, FromSure
+	if sure != nil && sure.Category != "" {
+		for _, c := range n.Categories {
+			if strings.EqualFold(c.Name, sure.Category) {
+				d.Category, d.CategoryKey, d.From = c.Name, c.Key, FromSure
+			}
 		}
 	}
+	learnedDraft(&d, n, t, sure, l)
 	return d
+}
+
+// learnedDraft fills what a new vendor's draft lacks from the models:
+// its category and tax.
+func learnedDraft(d *ExpenseDraft, n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.BankTxn, l BankLearning) {
+	if key := guess(l.Category, t, sure); d.CategoryKey == "" && key != "" {
+		if name := categoryName(n, key); name != "" {
+			d.Category, d.CategoryKey, d.From = name, key, FromLearned
+		}
+	}
+	rate := guess(l.Tax, t, sure)
+	if rate == "" || d.TaxKnown {
+		return
+	}
+	if rate == noTaxLabel {
+		d.TaxKnown, d.NoTax, d.TaxFrom = true, true, FromLearned
+		return
+	}
+	r, err := strconv.ParseFloat(rate, 64)
+	i := slices.IndexFunc(n.TaxRates, func(x sources.NinjaTaxRate) bool { return x.Rate == r })
+	if err != nil || i < 0 {
+		return // a rate no longer set up
+	}
+	d.TaxName, d.TaxRate, d.TaxKnown, d.TaxFrom = n.TaxRates[i].Name, r, true, FromLearned
 }
 
 // lastExpense is the vendor's newest expense.

@@ -1,0 +1,156 @@
+package metrics
+
+import (
+	"math"
+	"strconv"
+
+	"andon/internal/bayes"
+	"andon/internal/sources"
+)
+
+// Learned proposals for an open booking on the VAT check, each its own
+// model per Invoice Ninja (services/learn), all reading the booking's
+// words: payer, booking text, Sure's merchant.
+//
+//	purpose   learns from                         label
+//	vendor    expenses linked to a booking         vendor key
+//	private   bookings of private/mixed accounts   private (archived) | business (booked)
+//	category  expenses linked to a booking         category key
+//	tax       expenses linked to a booking         rate ("19", "none")
+//
+// Stronger sources win: a vendor named in the booking, the vendor's last
+// expense, Sure's mapping; a learned guess fills what they leave open.
+
+// Purposes of the VAT check's models.
+const (
+	PurposeVendor   = "vendor"
+	PurposePrivate  = "private"
+	PurposeCategory = "category"
+	PurposeTax      = "tax"
+)
+
+// Labels of the private model.
+const (
+	labelPrivate  = "private"
+	labelBusiness = "business"
+)
+
+// noTaxLabel is an expense without tax.
+const noTaxLabel = "none"
+
+// BankLearning is the VAT check's models; a zero Use proposes nothing.
+type BankLearning struct {
+	Vendor, Private, Category, Tax bayes.Use
+}
+
+// bankFeatures are a booking's words and order of magnitude.
+func bankFeatures(t sources.NinjaBankTxn, sure *sources.BankTxn) []string {
+	texts := []string{t.Payer, t.Description}
+	if sure != nil {
+		texts = append(texts, sure.Merchant, sure.Name)
+	}
+	var out []string
+	for _, w := range words(texts) {
+		out = append(out, wordFeature+w)
+	}
+	if a := math.Abs(t.Amount); a >= 1 {
+		out = append(out, amountFeature+strconv.Itoa(int(math.Log2(a))))
+	}
+	return out
+}
+
+// linkedTxns maps each expense linked to a booking to that booking.
+func linkedTxns(n *sources.NinjaDataset) map[string]sources.NinjaBankTxn {
+	txns := map[string]sources.NinjaBankTxn{}
+	for _, t := range n.BankTxns {
+		txns[t.Key] = t
+	}
+	out := map[string]sources.NinjaBankTxn{}
+	for _, e := range n.Expenses {
+		if t, ok := txns[e.TxnKey]; ok && e.TxnKey != "" {
+			out[e.Key] = t
+		}
+	}
+	return out
+}
+
+// LearnVendors teaches m which vendor a booking's words name.
+func LearnVendors(m *bayes.Model, n *sources.NinjaDataset) bool {
+	return learnExpenses(m, n, func(e sources.NinjaExpense) string { return e.VendorKey })
+}
+
+// LearnCategories teaches m which category a booking's expense gets.
+func LearnCategories(m *bayes.Model, n *sources.NinjaDataset) bool {
+	return learnExpenses(m, n, func(e sources.NinjaExpense) string { return e.CategoryKey })
+}
+
+// LearnTaxes teaches m which tax rate a booking's expense carries.
+func LearnTaxes(m *bayes.Model, n *sources.NinjaDataset) bool {
+	return learnExpenses(m, n, taxLabel)
+}
+
+// taxLabel is an expense's rate as a label: "19", "none".
+func taxLabel(e sources.NinjaExpense) string {
+	if e.TaxName == "" && e.TaxRate == 0 {
+		return noTaxLabel
+	}
+	return strconv.FormatFloat(e.TaxRate, 'f', -1, 64)
+}
+
+// learnExpenses learns label(expense) from its booking's features; an
+// expense whose label was emptied is forgotten.
+func learnExpenses(m *bayes.Model, n *sources.NinjaDataset, label func(sources.NinjaExpense) string) bool {
+	if n == nil {
+		return false
+	}
+	changed := false
+	txns := linkedTxns(n)
+	for _, e := range n.Expenses {
+		t, ok := txns[e.Key]
+		if !ok {
+			continue
+		}
+		l := label(e)
+		if l == "" {
+			changed = m.Forget(e.Key) || changed
+			continue
+		}
+		changed = m.Learn(e.Key, l, bankFeatures(t, nil)) || changed
+	}
+	return changed
+}
+
+// LearnPrivate teaches m which debits of private and mixed accounts were
+// set aside as private (archived) and which were booked (an expense).
+func LearnPrivate(m *bayes.Model, n *sources.NinjaDataset) bool {
+	if n == nil {
+		return false
+	}
+	changed := false
+	for _, t := range n.BankTxns {
+		if !t.Debit || (t.Role != sources.RolePrivate && t.Role != sources.RoleMixed) {
+			continue
+		}
+		label := ""
+		switch {
+		case t.Archived:
+			label = labelPrivate
+		case len(t.ExpenseKeys) > 0:
+			label = labelBusiness
+		}
+		if label == "" {
+			continue // open: nothing decided yet
+		}
+		changed = m.Learn(t.Key, label, bankFeatures(t, nil)) || changed
+	}
+	return changed
+}
+
+// guess is u's label for a booking, "" none.
+func guess(u bayes.Use, t sources.NinjaBankTxn, sure *sources.BankTxn) string {
+	g, ok := u.Best(bankFeatures(t, sure), IsWordFeature)
+	if !ok {
+		return ""
+	}
+	return g.Label
+}

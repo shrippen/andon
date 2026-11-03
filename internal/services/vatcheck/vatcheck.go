@@ -173,6 +173,7 @@ type book struct {
 	// scanSlot the scan's, 0 without Paperless paired.
 	numberSlot, scanSlot int
 	num                  enums.Notation // how the user types amounts
+	learned              metrics.BankLearning
 }
 
 // Open builds the page for Verbund scope ("": the last or only one) and
@@ -414,7 +415,7 @@ func inSpan(day string, s metrics.VATSpan) bool {
 }
 
 func (b book) inputs(s metrics.VATSpan, method string, today time.Time) metrics.VATInputs {
-	return metrics.VATInputs{Ninja: b.ninja, Sure: b.bank, Start: s.Start, End: s.End, Method: method, Today: today}
+	return metrics.VATInputs{Ninja: b.ninja, Sure: b.bank, Start: s.Start, End: s.End, Method: method, Today: today, Learned: b.learned}
 }
 
 // accounts lists Invoice Ninja's bank accounts, then Sure's.
@@ -495,6 +496,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 		return b, scopes, ErrNoBank
 	}
 	b.cats.EuerSlot = b.cats.EuerOf(b.ninja.ExpenseFields)
+	b.learned = bankLearning(d, who, b.conn, b.ninja)
 	if b.bankConn != nil {
 		if res, err := fetch(ctx, d, who, b.bankConn, fresh); err == nil {
 			b.bank, _ = res.Data.(*sources.BankData)

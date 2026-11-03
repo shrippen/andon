@@ -219,6 +219,7 @@
     <b>{{if $c.Txn.Debit}}−{{end}}{{money $c.Txn.Amount $p.Currency}}</b></header>
   <input type="hidden" name="act_{{$k}}" value="{{$act}}" data-act data-draft-keep>
   <div class="seg" role="group" aria-label="{{t "vatcheck.proposal"}}">{{range $c.Acts}}<button type="button" data-set-act="{{.}}" aria-pressed="{{eq . $act}}" title="{{t (print "vatcheck.act_" . "_hint")}}">{{t (print "vatcheck.act_" .)}}</button>{{end}}</div>
+  {{if $c.Learned}}<p class="small muted">{{t (print "vatcheck.learned_" $c.Action)}}</p>{{end}}
   {{with $c.Transfer}}<p class="small">{{t "vatcheck.transfer" "account" .Account "day" (day .Date)}}</p>{{end}}
   {{with $c.Guess}}<p class="small{{if .Private}} late{{end}}">{{if .Private}}{{t "vatcheck.guess_private"}} {{end}}{{.Why}}</p>{{end}}
 
@@ -246,7 +247,7 @@
     </div>
     <div class="bench-col">
       <div class="h-label">{{t "vatcheck.expense_title"}}</div>
-      <label class="field"><span class="field-label">{{t "vatcheck.vendor"}}{{if $d.VendorKey}}<span class="field-origin">{{t "vatcheck.origin_known"}}</span>{{else if $d.Vendor}}<span class="field-origin">{{t "vatcheck.origin_new"}}</span>{{end}}</span>
+      <label class="field"><span class="field-label">{{t "vatcheck.vendor"}}{{if eq $d.VendorFrom "learned"}}<span class="field-origin">{{t "vatcheck.origin_learned"}}</span>{{else if $d.VendorKey}}<span class="field-origin">{{t "vatcheck.origin_known"}}</span>{{else if $d.Vendor}}<span class="field-origin">{{t "vatcheck.origin_new"}}</span>{{end}}</span>
         <input class="input" name="vendor_{{$k}}" value="{{$d.Vendor}}" list="vat-vendors" data-part="vendor"></label>
       <div class="bench-pair">
         <label class="field"><span class="field-label">{{t "vatcheck.category"}}{{if $d.CategoryKey}}{{with $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</span>
@@ -255,8 +256,8 @@
           <select class="select" name="euer_{{$k}}" data-part="euer"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select></label>{{end}}
       </div>
       <div class="bench-pair">
-        <label class="field"><span class="field-label">{{t "vatcheck.tax"}}{{if $d.TaxKnown}}{{with $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</span>
-          <select class="select" name="tax_{{$k}}" data-part="tax">{{if not $d.TaxKnown}}<option value="" selected>{{t "vatcheck.tax_pick"}}</option>{{end}}<option value="none">{{t "vatcheck.no_tax"}}</option>{{range $p.Ledger.TaxRates}}<option value="{{.Rate}}"{{if and $d.TaxKnown (eq .Rate $d.TaxRate)}} selected{{end}}>{{.Name}} {{num .Rate 0}} %</option>{{end}}</select></label>
+        <label class="field"><span class="field-label">{{t "vatcheck.tax"}}{{if $d.TaxKnown}}{{with or $d.TaxFrom $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</span>
+          <select class="select" name="tax_{{$k}}" data-part="tax">{{if not $d.TaxKnown}}<option value="" selected>{{t "vatcheck.tax_pick"}}</option>{{end}}<option value="none"{{if $d.NoTax}} selected{{end}}>{{t "vatcheck.no_tax"}}</option>{{range $p.Ledger.TaxRates}}<option value="{{.Rate}}"{{if and $d.TaxKnown (eq .Rate $d.TaxRate)}} selected{{end}}>{{.Name}} {{num .Rate 0}} %</option>{{end}}</select></label>
         {{if $p.Number}}<label class="field"><span class="field-label">{{or $p.NumberOf (t "vatcheck.number")}}{{if $c.Number}}<span class="field-origin">{{t "vatcheck.origin_scan"}}</span>{{end}}</span>
           <input class="input" name="num_{{$k}}" value="{{$c.Number}}" data-part="number"></label>{{end}}
       </div>
