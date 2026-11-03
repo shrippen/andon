@@ -7968,7 +7968,7 @@ learn:
   col_examples: 'Beispiele'
   col_labels: 'Zeilen'
   col_features: 'Merkmale'
-  col_trained: 'Zuletzt trainiert'
+  col_trained: 'Zuletzt dazugelernt'
   purpose_euer: 'EÜR-Zeile'
   train: 'Jetzt trainieren'
   reset: 'Zurücksetzen'

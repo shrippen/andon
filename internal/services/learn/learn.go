@@ -7,7 +7,7 @@
 //	pages             ─► Model(purpose, conn, holder) ◄┘  (+ today's data, in memory)
 //	/admin/learning   ─► Overview, SaveSettings, TrainNow, Reset
 //
-// A service registers its purposes (Register) in its init.
+// Purposes are registered in an init (Register).
 package learn
 
 import (
@@ -122,8 +122,8 @@ func Every(d *sql.DB) time.Duration {
 	return time.Duration(s.Hours) * time.Hour
 }
 
-// Purpose is one thing a model learns, registered by the service that
-// uses it (Register, in its init).
+// Purpose is one thing a model learns, registered in an init: by the
+// service that uses it, or here for one several services use (EÜR).
 type Purpose struct {
 	Key     string            // "euer"; names the text learn.purpose_<key>
 	Service enums.ServiceType // whose connections have a model
@@ -255,8 +255,8 @@ func trainOne(ctx context.Context, d *sql.DB, p Purpose, c *model.Connection, h 
 
 // update reads, teaches and writes one model in one write transaction:
 // a reset meanwhile waits and is not overwritten by the model read
-// before it. A model that learned nothing is not written, only marked
-// trained.
+// before it. A model that learned nothing new is not written: its time
+// says when it last learned something.
 func update(d *sql.DB, purpose string, connID int64, h model.Holder, now time.Time, teach func(*bayes.Model) bool) error {
 	return db.WithTx(d, func(tx *sql.Tx) error {
 		m := bayes.New()
@@ -270,10 +270,7 @@ func update(d *sql.DB, purpose string, connID int64, h model.Holder, now time.Ti
 			}
 		}
 		if !teach(m) {
-			if !ok {
-				return nil // nothing learned, nothing to keep
-			}
-			return misc.TouchLearned(tx, purpose, connID, h, now.UTC())
+			return nil // nothing new (or nothing to learn from): kept as it was
 		}
 		text, err := json.Marshal(m)
 		if err != nil {

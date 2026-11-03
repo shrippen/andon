@@ -7967,7 +7967,7 @@ learn:
   col_examples: 'Examples'
   col_labels: 'Lines'
   col_features: 'Features'
-  col_trained: 'Last trained'
+  col_trained: 'Last learned'
   purpose_euer: 'EUER line'
   train: 'Train now'
   reset: 'Reset'
