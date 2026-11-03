@@ -220,7 +220,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 		p.Number, p.NumberOf = true, b.ninja.ExpenseFields[b.numberSlot-1].Label
 	}
 	parts := partsOf(p.Euer != "", p.Number, b.scanSlot > 0)
-	vendorEuer := metrics.VendorEuer(b.ninja, b.cats.EuerSlot)
+	euer := metrics.EuerGuesserOf(b.ninja, b.cats.EuerSlot)
 	pool := b.splitPool(ctx, d, who, p.Span)
 	guesses := b.state.guesses(b.conn.ID)
 	for _, c := range cases {
@@ -232,12 +232,12 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 			p.Guessed = true
 			b.apply(&cs)
 		}
-		cs.Draft.Euer = vendorEuer[cs.Draft.VendorKey]
+		cs.Draft.Euer, cs.Draft.EuerFrom = euer.Guess(euerInput(cs.Draft, cs.Txn))
 		if cs.Txn.Debit {
 			cs.Note = noteOf(cs.Txn)
 		}
 		b.gapped(&cs)
-		b.splitOf(&cs, pool, vendorEuer)
+		b.splitOf(&cs, pool, euer)
 		b.propose(ctx, d, who, &cs)
 		if cs.Waiting() {
 			p.Cases = append(p.Cases, cs)
@@ -245,8 +245,8 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 			p.Apart = append(p.Apart, cs)
 		}
 	}
-	p.Gaps = b.gapCases(ctx, d, who, p.Span, parts, vendorEuer)
-	p.Docs = b.docCases(ctx, d, who, p.Span, parts, vendorEuer, p.proposed())
+	p.Gaps = b.gapCases(ctx, d, who, p.Span, parts, euer)
+	p.Docs = b.docCases(ctx, d, who, p.Span, parts, euer, p.proposed())
 	at := workbench.PlaceOf(benchID, p.Scope, p.Span.Key)
 	if p.Drafted, err = workbench.OpenDraft(d, who, at, p.openKeys()); err != nil {
 		return p, err
@@ -591,7 +591,7 @@ func (b book) propose(ctx context.Context, d *sql.DB, who *access.Principal, cs 
 
 // gapCases are the period's linked expenses still without EÜR line or
 // scan, each as a case to fill: "x-<key>", the vendor as payer.
-func (b book) gapCases(ctx context.Context, d *sql.DB, who *access.Principal, s metrics.VATSpan, parts []Part, vendorEuer map[string]string) []Case {
+func (b book) gapCases(ctx context.Context, d *sql.DB, who *access.Principal, s metrics.VATSpan, parts []Part, euer metrics.EuerGuesser) []Case {
 	var out []Case
 	for _, e := range b.ninja.Expenses {
 		if e.TxnKey == "" || !inSpan(e.Date, s) {
@@ -604,7 +604,8 @@ func (b book) gapCases(ctx context.Context, d *sql.DB, who *access.Principal, s 
 		vendor := b.vendorName(e.VendorKey)
 		txn := sources.NinjaBankTxn{Key: fillPrefix + e.Key, Date: e.Date, Payer: vendor, Description: e.Number, Amount: e.Amount, Debit: true}
 		cs := Case{BankCase: metrics.BankCase{Txn: txn, Expenses: []sources.NinjaExpense{e}, Action: ActionFill,
-			Draft: metrics.ExpenseDraft{Vendor: vendor, VendorKey: e.VendorKey, Euer: vendorEuer[e.VendorKey]}}, parts: parts}
+			Draft: metrics.ExpenseDraft{Vendor: vendor, VendorKey: e.VendorKey}}, parts: parts}
+		cs.Draft.Euer, cs.Draft.EuerFrom = euer.GuessExpense(e)
 		b.gapped(&cs)
 		b.propose(ctx, d, who, &cs)
 		out = append(out, cs)
@@ -644,7 +645,7 @@ func (p Page) proposed() map[int64]bool {
 // docCases are the period's free scans no booking (of any period) or
 // expense fits, each as a new expense: "d-<id>", dressed as a booking
 // of the scan's day, amount and correspondent.
-func (b book) docCases(ctx context.Context, d *sql.DB, who *access.Principal, s metrics.VATSpan, parts []Part, vendorEuer map[string]string, taken map[int64]bool) []Case {
+func (b book) docCases(ctx context.Context, d *sql.DB, who *access.Principal, s metrics.VATSpan, parts []Part, euer metrics.EuerGuesser, taken map[int64]bool) []Case {
 	if b.scanSlot == 0 {
 		return nil
 	}
@@ -658,7 +659,7 @@ func (b book) docCases(ctx context.Context, d *sql.DB, who *access.Principal, s 
 		txn := docTxn(sc.Doc, sc.Amount)
 		cs := Case{BankCase: metrics.BankCase{Txn: txn, Action: ActionReceipt, Draft: metrics.DraftOf(b.ninja, txn)},
 			Scans: []receipts.Candidate{sc}, Note: strings.TrimSpace(sc.Doc.Title), parts: parts}
-		cs.Draft.Euer = vendorEuer[cs.Draft.VendorKey]
+		cs.Draft.Euer, cs.Draft.EuerFrom = euer.Guess(euerInput(cs.Draft, txn))
 		if b.numberSlot > 0 {
 			cs.Number = sc.Number
 		}
@@ -674,4 +675,9 @@ const scanSure = 100
 func docTxn(doc sources.ReceiptDoc, amount float64) sources.NinjaBankTxn {
 	return sources.NinjaBankTxn{Key: docPrefix + strconv.FormatInt(doc.ID, 10), Date: doc.Day, Payer: cmp.Or(doc.Correspondent, doc.Title),
 		Description: doc.Title, Amount: amount, Debit: true}
+}
+
+// euerInput is what the EÜR proposal reads of a booking and its draft.
+func euerInput(d metrics.ExpenseDraft, t sources.NinjaBankTxn) metrics.EuerInput {
+	return metrics.EuerInput{VendorKey: d.VendorKey, Vendor: d.Vendor, Texts: []string{t.Payer, t.Description}, Amount: t.Amount}
 }

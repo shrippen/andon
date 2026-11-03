@@ -45,7 +45,7 @@
               <option value="">–</option>
               {{range $p.Lines}}<option value="{{.}}"{{if eq . $line}} selected{{end}}>{{.}}</option>{{end}}</select>
             {{else}}<input class="input" name="line_{{$e.Key}}" list="euer-lines" value="{{$line}}" aria-label="{{t "euer.line"}}">{{end}}
-            {{if $line}}<small class="muted">{{t "euer.from_vendor"}}</small>{{else}}<small class="muted">{{t "euer.no_vendor"}}</small>{{end}}</td>
+            {{if $line}}<small class="muted">{{t (print "euer.from_" .From)}}</small>{{else}}<small class="muted">{{t "euer.no_vendor"}}</small>{{end}}</td>
         </tr>{{end}}</tbody>
       </table></div>
       <p><button type="submit" class="btn btn-accent">{{t "euer.review"}}</button></p>

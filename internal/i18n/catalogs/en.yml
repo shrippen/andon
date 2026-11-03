@@ -7458,6 +7458,7 @@ vatcheck:
   origin_sure: 'Sure'
   origin_model: 'Claude'
   origin_vendor: 'as before'
+  origin_learned: 'learned'
   origin_scan: 'scan'
   origin_booking: 'transaction'
   number: 'Invoice no.'
@@ -7592,7 +7593,7 @@ journal:
   act_tandoor_check: 'Shopping item ticked'
 euer:
   title: 'EUER lines'
-  lead: 'Expenses of the year with an empty EUER field. Proposed is the line of the same vendor’s last expense, never the category’s; ticked ones are written to Invoice Ninja after review.'
+  lead: 'Expenses of the year with an empty EUER field. Proposed is the line of the same vendor’s last expense, else one learned from expenses with similar words and amounts, never the category’s; ticked ones are written to Invoice Ninja after review.'
   years: Years
   setup_title: 'Which field holds the EUER line?'
   setup_text: 'The EUER line is an expense custom field. Pick it in the bundle under categories.'
@@ -7602,6 +7603,7 @@ euer:
   expense: Expense
   line: 'EUER line'
   from_vendor: 'as last time with this vendor'
+  from_learned: 'learned from similar expenses'
   no_vendor: 'Vendor without an earlier line'
   review: 'Review'
   empty: 'Every expense of {year} has its EUER line.'

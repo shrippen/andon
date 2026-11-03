@@ -7459,6 +7459,7 @@ vatcheck:
   origin_sure: 'Sure'
   origin_model: 'Claude'
   origin_vendor: 'wie bisher'
+  origin_learned: 'gelernt'
   origin_scan: 'Beleg'
   origin_booking: 'Umsatz'
   number: 'Rechnungsnr.'
@@ -7593,7 +7594,7 @@ journal:
   act_tandoor_check: 'Einkauf abgehakt'
 euer:
   title: 'EÜR-Zuordnung'
-  lead: 'Ausgaben des Jahres, deren EÜR-Feld leer ist. Vorgeschlagen wird die Zeile der letzten Ausgabe desselben Lieferanten, nie die der Kategorie; angehakt wird nach dem Prüfen in Invoice Ninja geschrieben.'
+  lead: 'Ausgaben des Jahres, deren EÜR-Feld leer ist. Vorgeschlagen wird die Zeile der letzten Ausgabe desselben Lieferanten, sonst eine aus Ausgaben mit ähnlichen Wörtern und Beträgen gelernte, nie die der Kategorie; angehakt wird nach dem Prüfen in Invoice Ninja geschrieben.'
   years: Jahre
   setup_title: 'Welches Feld hält die EÜR-Zeile?'
   setup_text: 'Die EÜR-Zeile steht in einem Zusatzfeld der Ausgabe. Wähle es im Verbund unter Kategorien.'
@@ -7603,6 +7604,7 @@ euer:
   expense: Ausgabe
   line: 'EÜR-Zeile'
   from_vendor: 'wie zuletzt bei diesem Lieferanten'
+  from_learned: 'gelernt aus ähnlichen Ausgaben'
   no_vendor: 'Lieferant ohne frühere Zeile'
   review: 'Prüfen'
   empty: 'Alle Ausgaben aus {year} haben ihre EÜR-Zeile.'

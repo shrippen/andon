@@ -126,11 +126,12 @@ func EuerChoices(n *sources.NinjaDataset, slot int) []string {
 	return out
 }
 
-// EuerCase is an expense whose EÜR field is empty, with the line its
-// vendor's last expense carries ("" = no proposal).
+// EuerCase is an expense whose EÜR field is empty, with the proposed
+// line ("" = none) and where it comes from (EuerGuesser).
 type EuerCase struct {
 	Expense sources.NinjaExpense
 	Line    string
+	From    EuerFrom
 }
 
 // EuerCases are the expenses from since on with an empty EÜR field in
@@ -139,13 +140,15 @@ func EuerCases(n *sources.NinjaDataset, slot int, since string) []EuerCase {
 	if n == nil || slot < 1 || slot > sources.NinjaSlots {
 		return nil
 	}
-	lines := VendorEuer(n, slot)
+	g := EuerGuesserOf(n, slot)
 	var out []EuerCase
 	for _, e := range n.Expenses {
 		if e.Date < since || e.Custom[slot-1] != "" {
 			continue
 		}
-		out = append(out, EuerCase{Expense: e, Line: lines[e.VendorKey]})
+		c := EuerCase{Expense: e}
+		c.Line, c.From = g.GuessExpense(e)
+		out = append(out, c)
 	}
 	sort.SliceStable(out, func(a, b int) bool { return out[a].Expense.Date > out[b].Expense.Date })
 	return out

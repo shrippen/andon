@@ -67,8 +67,9 @@ type ExpenseDraft struct {
 	TaxName               string
 	TaxRate               float64
 	TaxKnown              bool
-	Euer                  string // the vendor's last EÜR line, "" none
-	Bill                  bool   // the vendor's last expense was billed to a client
+	Euer                  string // the proposed EÜR line, "" none
+	EuerFrom              EuerFrom
+	Bill                  bool // the vendor's last expense was billed to a client
 	From                  DraftFrom
 }
 

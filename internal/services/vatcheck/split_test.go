@@ -56,7 +56,7 @@ func TestSplitOffers(t *testing.T) {
 		scan(6, "2026-10-16", "Zu groß", order, 84.37), // the whole booking: no part
 	}
 	c := Case{BankCase: metrics.BankCase{Txn: b.ninja.BankTxns[0], Action: metrics.ActionCreate}}
-	b.splitOf(&c, pool, nil)
+	b.splitOf(&c, pool, metrics.EuerGuesser{})
 
 	if len(c.Split) != maxParts {
 		t.Fatalf("slots: %d", len(c.Split))
@@ -81,7 +81,7 @@ func TestSplitOffers(t *testing.T) {
 	// Hits that make up the booking propose the split.
 	pool[0] = scan(4, "2026-10-14", "Rechnung Kabelprofi24", "Bestellung "+order, 14.49)
 	c = Case{BankCase: metrics.BankCase{Txn: b.ninja.BankTxns[0], Action: metrics.ActionCreate}}
-	b.splitOf(&c, pool, nil)
+	b.splitOf(&c, pool, metrics.EuerGuesser{})
 	if c.Action != ActionSplit {
 		t.Fatalf("proposed %q, want split", c.Action)
 	}

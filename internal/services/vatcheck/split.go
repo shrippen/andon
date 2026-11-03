@@ -121,7 +121,7 @@ func (b book) splitPool(ctx context.Context, d *sql.DB, who *access.Principal, s
 // and smaller than it, those naming its order number first, then the
 // nearest; empty slots fill the rest. Order hits that make up the
 // booking propose the split.
-func (b book) splitOf(c *Case, pool []receipts.Candidate, vendorEuer map[string]string) {
+func (b book) splitOf(c *Case, pool []receipts.Candidate, euer metrics.EuerGuesser) {
 	day, ok := metrics.ParseDay(c.Txn.Date)
 	if !c.Txn.Debit || !ok || c.Action == ActionFill || c.Action == ActionReceipt {
 		return
@@ -146,7 +146,7 @@ func (b book) splitOf(c *Case, pool []receipts.Candidate, vendorEuer map[string]
 		}
 		p := SplitPart{Scan: sc, Draft: metrics.DraftOf(b.ninja, docTxn(sc.Doc, sc.Amount)), Amount: sc.Amount, Day: sc.Doc.Day,
 			Note: strings.TrimSpace(sc.Doc.Title), Order: names(sc.Doc, orders)}
-		p.Draft.Euer = vendorEuer[p.Draft.VendorKey]
+		p.Draft.Euer, p.Draft.EuerFrom = euer.Guess(euerInput(p.Draft, docTxn(sc.Doc, sc.Amount)))
 		if b.numberSlot > 0 {
 			p.Number = sc.Number
 		}

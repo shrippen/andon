@@ -251,7 +251,7 @@
       <div class="bench-pair">
         <label class="field"><span class="field-label">{{t "vatcheck.category"}}{{if $d.CategoryKey}}{{with $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</span>
           <select class="select" name="cat_{{$k}}" data-part="category"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $d.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
-        {{if $p.Euer}}<label class="field"><span class="field-label">{{$p.Euer}}{{if $d.Euer}}<span class="field-origin">{{t "vatcheck.origin_vendor"}}</span>{{end}}</span>
+        {{if $p.Euer}}<label class="field"><span class="field-label">{{$p.Euer}}{{if $d.Euer}}<span class="field-origin">{{t (print "vatcheck.origin_" $d.EuerFrom)}}</span>{{end}}</span>
           <select class="select" name="euer_{{$k}}" data-part="euer"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select></label>{{end}}
       </div>
       <div class="bench-pair">
@@ -349,7 +349,7 @@
       <div class="h-label">{{if eq (len $c.Expenses) 1}}{{t "vatcheck.fill_title" "number" (index $c.Expenses 0).Number}}{{else}}{{t "vatcheck.fill_picked"}}{{end}}</div>
       {{if $c.Offers "category"}}<label class="field" data-gap="category"{{if not ($c.Gap "category")}} hidden{{end}}><span class="field-label">{{t "vatcheck.category"}}{{if $d.CategoryKey}}{{with $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</span>
         <select class="select" name="xcat_{{$k}}" data-part="category"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $d.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>{{end}}
-      {{if and $p.Euer ($c.Offers "euer")}}<label class="field" data-gap="euer"{{if not ($c.Gap "euer")}} hidden{{end}}><span class="field-label">{{$p.Euer}}{{if $d.Euer}}<span class="field-origin">{{t "vatcheck.origin_vendor"}}</span>{{end}}</span>
+      {{if and $p.Euer ($c.Offers "euer")}}<label class="field" data-gap="euer"{{if not ($c.Gap "euer")}} hidden{{end}}><span class="field-label">{{$p.Euer}}{{if $d.Euer}}<span class="field-origin">{{t (print "vatcheck.origin_" $d.EuerFrom)}}</span>{{end}}</span>
         <select class="select" name="xeuer_{{$k}}" data-part="euer"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select></label>{{end}}
       {{if and $p.Number ($c.Offers "number")}}<label class="field" data-gap="number"{{if not ($c.Gap "number")}} hidden{{end}}><span class="field-label">{{or $p.NumberOf (t "vatcheck.number")}}{{if $c.Number}}<span class="field-origin">{{t "vatcheck.origin_scan"}}</span>{{end}}</span>
         <input class="input" name="xnum_{{$k}}" value="{{$c.Number}}" data-part="number"></label>{{end}}
