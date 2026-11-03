@@ -547,7 +547,7 @@ func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.Bank
 		d.Bill = last.Billable
 		d.Category = categoryName(n, d.CategoryKey)
 		if d.VendorFrom == FromLearned {
-			d.From = FromLearned // a guessed vendor's history is no sure one: not ticked, not private-proof
+			d.From, d.TaxFrom = FromLearned, FromLearned // a guessed vendor's history is no sure one: not ticked, not private-proof
 		}
 		return d
 	}

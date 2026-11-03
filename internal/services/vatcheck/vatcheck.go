@@ -390,6 +390,10 @@ func (b book) apply(c *Case) {
 	if !c.Txn.Debit || c.Draft.From == metrics.FromHistory {
 		return
 	}
+	if c.Draft.VendorFrom == metrics.FromLearned && g.Vendor != "" {
+		// Claude's vendor, asked for, beats the learned one and its history.
+		c.Draft = metrics.ExpenseDraft{Euer: c.Draft.Euer, EuerFrom: c.Draft.EuerFrom}
+	}
 	if c.Draft.VendorKey == "" && g.Vendor != "" {
 		c.Draft.Vendor = g.Vendor
 		for _, v := range b.ninja.Vendors {

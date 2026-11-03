@@ -34,4 +34,12 @@ func TestGuessOverrulesLearned(t *testing.T) {
 	if transfer.Action != metrics.ActionSkip {
 		t.Errorf("a transfer's side became %s", transfer.Action)
 	}
+
+	vendor := Case{BankCase: metrics.BankCase{Txn: debit, Action: metrics.ActionCreate,
+		Draft: metrics.ExpenseDraft{Vendor: "Learned GmbH", VendorKey: "v9", VendorFrom: metrics.FromLearned}},
+		Guess: &assist.Guess{Vendor: "Nordhost"}}
+	b.apply(&vendor)
+	if vendor.Draft.Vendor != "Nordhost" || vendor.Draft.VendorKey == "v9" || vendor.Draft.VendorFrom == metrics.FromLearned {
+		t.Errorf("learned vendor beat Claude's: %+v", vendor.Draft)
+	}
 }

@@ -25,6 +25,7 @@ func learnedNinja() *sources.NinjaDataset {
 		return t
 	}
 	return &sources.NinjaDataset{
+		BankRead:   true,
 		Vendors:    []sources.NinjaVendor{{Key: "v1", Name: "Versandhandel Europa S.à r.l."}, {Key: "v2", Name: "Nordhost GmbH"}},
 		Categories: []sources.NinjaCategory{{Key: "c1", Name: "Technik"}, {Key: "c2", Name: "Hosting"}},
 		TaxRates:   []sources.NinjaTaxRate{{Name: "MwSt.", Rate: 19}, {Name: "MwSt. 7", Rate: 7}},
@@ -147,5 +148,36 @@ func TestLearnForgetsTakenBack(t *testing.T) {
 	n.Expenses[0].TxnKey = "" // e1 unlinked
 	if !metrics.LearnVendors(v, n) || v.Stats().Examples != before-1 {
 		t.Errorf("unlinked expense kept: %d → %d", before, v.Stats().Examples)
+	}
+}
+
+// A failed bank fetch (no bookings, BankRead false) neither teaches nor
+// forgets; an expense whose booking only left the window stays learned.
+func TestLearnKeepsWithoutBank(t *testing.T) {
+	n := learnedNinja()
+	n.BankRead = true
+	m := bayes.New()
+	metrics.LearnVendors(m, n)
+	before := m.Stats().Examples
+
+	failed := *n
+	failed.BankRead, failed.BankTxns = false, nil
+	if metrics.LearnVendors(m, &failed) || m.Stats().Examples != before {
+		t.Errorf("failed fetch: %d → %d", before, m.Stats().Examples)
+	}
+	window := *n
+	window.BankTxns = n.BankTxns[1:] // t1 left the window, e1 still links it
+	if metrics.LearnVendors(m, &window); m.Stats().Examples != before {
+		t.Errorf("booking out of window: %d → %d", before, m.Stats().Examples)
+	}
+}
+
+// With a learned vendor, the tax from its history says "learned".
+func TestLearnedVendorTaxOrigin(t *testing.T) {
+	n := learnedNinja()
+	n.BankRead = true
+	d := metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "AMZN Mktp DE*KK", Description: "Amazon Marketplace", Amount: 9, Debit: true}, learnedOf(n))
+	if d.VendorFrom != metrics.FromLearned || d.TaxFrom != metrics.FromLearned {
+		t.Fatalf("draft: %+v", d)
 	}
 }
