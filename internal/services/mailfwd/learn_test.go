@@ -37,19 +37,19 @@ func mailFixture(t *testing.T) (*sql.DB, *access.Principal, *model.Connection) {
 	return d, who, mail
 }
 
-// uids are the listed mails in order, with the marked ones.
-func uids(t *testing.T, d *sql.DB, who *access.Principal) (order []uint32, marked map[uint32]bool) {
+// uids are the listed mails in order, with their suggestions.
+func uids(t *testing.T, d *sql.DB, who *access.Principal) (order []uint32, suggested map[uint32]metrics.MailKind) {
 	t.Helper()
 	items, _, err := List(context.Background(), d, who)
 	if err != nil {
 		t.Fatal(err)
 	}
-	marked = map[uint32]bool{}
+	suggested = map[uint32]metrics.MailKind{}
 	for _, it := range items {
 		order = append(order, it.UID)
-		marked[it.UID] = it.Unlikely
+		suggested[it.UID] = it.Suggest
 	}
-	return order, marked
+	return order, suggested
 }
 
 // "No invoice" hides the mail and teaches the model; undone, the mail
@@ -88,9 +88,9 @@ func TestDismissAndRestore(t *testing.T) {
 	}
 }
 
-// A mail whose sender the model holds for no invoice is listed last and
-// marked; the others keep the mailbox's order.
-func TestListRanksLearned(t *testing.T) {
+// Each mail carries what the model suggests from its sender; the list
+// keeps the mailbox's order.
+func TestListSuggests(t *testing.T) {
 	d, who, mail := mailFixture(t)
 	ctx := context.Background()
 	for uid, k := range map[uint32]metrics.MailKind{1: metrics.MailNoInvoice, 2: metrics.MailIsInvoice} {
@@ -103,9 +103,13 @@ func TestListRanksLearned(t *testing.T) {
 		}
 	}
 
-	order, marked := uids(t, d, who)
-	if !slices.Equal(order, []uint32{2, 1}) || !marked[1] || marked[2] {
-		t.Fatalf("listed %v marked %v, want [2 1] with 1 marked", order, marked)
+	// The model only suggests: the mailbox's order stays.
+	order, suggested := uids(t, d, who)
+	if !slices.Equal(order, []uint32{1, 2}) {
+		t.Fatalf("listed %v, want the mailbox's order [1 2]", order)
+	}
+	if suggested[1] != metrics.MailNoInvoice || suggested[2] != metrics.MailIsInvoice {
+		t.Fatalf("suggested %v, want 1 no invoice, 2 invoice", suggested)
 	}
 }
 

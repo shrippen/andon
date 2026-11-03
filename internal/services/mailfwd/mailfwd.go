@@ -12,7 +12,7 @@
 // personal mailbox is each holder's own, UIDs of two of them overlap.
 //
 // Forward and Dismiss teach the mailbox's model (purpose "mail"); List
-// marks and moves last what it holds for no invoice, never hides it.
+// only adds its suggestion to each mail, in the mailbox's order.
 package mailfwd
 
 import (
@@ -84,10 +84,10 @@ func loginOf(conn *model.Connection, err error) error {
 type Item struct {
 	MailConn  int64
 	Mailbox   string
-	Paperless bool            // the mailbox has a Paperless to send to
-	ToDocs    int64           // that Paperless
-	Read      *assist.Invoice // nil until read
-	Unlikely  bool            // the model holds it for no invoice
+	Paperless bool             // the mailbox has a Paperless to send to
+	ToDocs    int64            // that Paperless
+	Read      *assist.Invoice  // nil until read
+	Suggest   metrics.MailKind // what the model suggests it is; the user decides
 	sources.MailInvoice
 }
 
@@ -161,8 +161,8 @@ func readInto(f, read map[string]any) {
 }
 
 // List returns the invoice mails of every usable mailbox, without the
-// ones already sent to Paperless (sent counts those) or set aside; the
-// ones the model holds for no invoice come last, marked.
+// ones already sent to Paperless (sent counts those) or set aside, each
+// with the model's suggestion.
 func List(ctx context.Context, d *sql.DB, who *access.Principal) (items []Item, sent int, err error) {
 	boxes, err := mailboxes(d, who)
 	if err != nil {
@@ -189,7 +189,7 @@ func List(ctx context.Context, d *sql.DB, who *access.Principal) (items []Item, 
 				continue
 			}
 			item := Item{MailConn: mail.ID, Mailbox: mail.Name, Paperless: paperless != nil, MailInvoice: inv,
-				Unlikely: metrics.MailUnlikely(use, inv)}
+				Suggest: metrics.MailSuggest(use, inv)}
 			if paperless != nil {
 				item.ToDocs = paperless.ID
 			}
@@ -199,17 +199,6 @@ func List(ctx context.Context, d *sql.DB, who *access.Principal) (items []Item, 
 			out = append(out, item)
 		}
 	}
-
-	// Likely invoices first; within each, the order of the mailbox.
-	slices.SortStableFunc(out, func(a, b Item) int {
-		switch {
-		case a.Unlikely == b.Unlikely:
-			return 0
-		case b.Unlikely:
-			return -1
-		}
-		return 1
-	})
 	return out, sent, nil
 }
 

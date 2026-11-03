@@ -19,9 +19,10 @@ func TestMailFeatures(t *testing.T) {
 	}
 }
 
-// A sender left before is likely no invoice; one forwarded, one the
-// model knows nothing of, or one sharing only words, is not marked.
-func TestMailUnlikely(t *testing.T) {
+// The next mail of a sender left before is suggested as no invoice, one
+// forwarded as invoice; an unknown sender, or one sharing only words,
+// gets no suggestion.
+func TestMailSuggest(t *testing.T) {
 	news := sources.MailInvoice{UID: 1, Sender: "Shop", Addr: "news@shop.example", Domain: "shop.example", Subject: "Ihre Rechnung zum Newsletter"}
 	bill := sources.MailInvoice{UID: 2, Sender: "Nordhost", Addr: "billing@nordhost.example", Domain: "nordhost.example", Subject: "Ihre Rechnung"}
 	stranger := sources.MailInvoice{UID: 3, Sender: "Farbraum", Addr: "sales@farbraum.example", Domain: "farbraum.example", Subject: "Invoice"}
@@ -35,20 +36,23 @@ func TestMailUnlikely(t *testing.T) {
 
 	next := news
 	next.UID = 9
-	if !MailUnlikely(u, next) {
-		t.Fatal("the next mail of a sender left before is not marked")
+	if got := MailSuggest(u, next); got != MailNoInvoice {
+		t.Fatalf("next mail of a sender left before: %q", got)
 	}
 	next = bill
 	next.UID = 10
-	if MailUnlikely(u, next) || MailUnlikely(u, stranger) || MailUnlikely(u, words) {
-		t.Fatal("a forwarded sender, an unknown one or shared words mark a mail")
+	if got := MailSuggest(u, next); got != MailIsInvoice {
+		t.Fatalf("next mail of a forwarded sender: %q", got)
 	}
-	if MailUnlikely(bayes.Use{}, news) {
-		t.Fatal("learning off marks a mail")
+	if MailSuggest(u, stranger) != MailNoKind || MailSuggest(u, words) != MailNoKind {
+		t.Fatal("an unknown sender or shared words get a suggestion")
+	}
+	if MailSuggest(bayes.Use{}, news) != MailNoKind {
+		t.Fatal("learning off suggests")
 	}
 
 	// Forwarded after all: the decision replaces the earlier one.
-	if !MailLearn(m, news, MailIsInvoice) || m.Stats().Examples != 2 || MailUnlikely(u, news) {
+	if !MailLearn(m, news, MailIsInvoice) || m.Stats().Examples != 2 || MailSuggest(u, news) == MailNoInvoice {
 		t.Fatalf("a changed decision does not replace the example: %+v", m.Stats())
 	}
 

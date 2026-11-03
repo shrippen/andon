@@ -4257,9 +4257,9 @@ billing:
   no_mails: No invoice mails found (as of the last check).
   mail_dismiss: Not an invoice
   mail_dismiss_hint: 'Hides the mail; Andon learns from it which mails are no invoices.'
-  mail_dismissed: 'Mail hidden. Similar mails will be listed last.'
-  mail_unlikely: probably not an invoice
-  mail_learned: learned
+  mail_dismissed: 'Mail hidden. For mails from the same sender Andon will suggest "not an invoice".'
+  mail_kind_invoice: invoice
+  mail_kind_other: not an invoice
   mail_restore: Undo
   lead: Turn unbilled Kimai time into Invoice Ninja drafts, and download the tax year package.
   drafts: Invoice drafts

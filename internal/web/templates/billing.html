@@ -97,8 +97,7 @@
       <thead><tr><th>{{t "col.day"}}</th><th>{{t "billing.sender"}}</th><th>{{t "billing.subject"}}</th><th class="num">{{t "col.amount"}}</th><th></th></tr></thead>
       <tbody>{{range .Mails}}
       <tr id="mail-{{.UID}}"><td data-label="{{t "col.day"}}">{{day .Date}}</td><td data-label="{{t "billing.sender"}}" data-card="title">{{.Sender}}</td><td data-label="{{t "billing.subject"}}">{{.Subject}}{{with .Attachments}}<small class="muted"> · {{range $i, $a := .}}{{if $i}}, {{end}}{{$a}}{{end}}</small>{{end}}
-        {{with .Read}}<br><small>{{t "assist.read_line" "vendor" .Vendor "number" .Number "due" (day .Due) "gross" (money .Gross .Currency)}}</small>{{end}}
-        {{if .Unlikely}}<br><small class="muted" data-unlikely>{{t "billing.mail_unlikely"}}<span class="field-origin">{{t "billing.mail_learned"}}</span></small>{{end}}</td>
+        {{with .Read}}<br><small>{{t "assist.read_line" "vendor" .Vendor "number" .Number "due" (day .Due) "gross" (money .Gross .Currency)}}</small>{{end}}</td>
         <td class="num" data-label="{{t "col.amount"}}" data-card="key">{{if .Amount}}{{money .Amount}}{{else}}–{{end}}</td>
         <td>{{if and .Paperless .Attachments}}<form method="post" action="/billing/mail" class="inline-form">
           <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
@@ -110,7 +109,9 @@
           <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
           <input type="hidden" name="conn" value="{{.MailConn}}"><input type="hidden" name="uid" value="{{.UID}}">
           <button type="submit" class="btn btn-quiet btn-sm" title="{{t "billing.mail_dismiss_hint"}}">{{t "billing.mail_dismiss"}}</button>
-        </form></td></tr>
+        </form>
+        {{/* The model only suggests, at the controls that decide; no field takes it. */}}
+        {{with .Suggest}}<p class="field-suggest" data-suggest-mail><span>{{t "learn.suggest"}}</span> {{t (print "billing.mail_kind_" .)}}</p>{{end}}</td></tr>
       {{end}}</tbody>
     </table></div>
     {{else}}<p class="muted">{{t "billing.no_mails"}}</p>{{end}}

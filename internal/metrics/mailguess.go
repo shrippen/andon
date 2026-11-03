@@ -15,10 +15,10 @@ import (
 //	mail ──► features ──────────────────► bayes.Model
 //	  f:billing@nordhost.example  sender   │
 //	  d:nordhost.example          domain   ▼
-//	  w:nordhost w:ihre …         words    Guess ≥ MinP → "no invoice"
+//	  w:nordhost w:ihre …         words    Suggest → invoice / no invoice
 //
 // The keyword filter of the source still picks the candidates; the model
-// only ranks and marks them, it never hides one. Only the sender is
+// only suggests, the user decides. Only the sender is
 // evidence: words ("ihre", "your") are shared by invoices and others
 // alike, they only weigh in.
 
@@ -26,6 +26,7 @@ import (
 type MailKind string
 
 const (
+	MailNoKind    MailKind = "" // no suggestion
 	MailIsInvoice MailKind = "invoice"
 	MailNoInvoice MailKind = "other"
 )
@@ -60,10 +61,14 @@ func MailForget(m *bayes.Model, inv sources.MailInvoice) bool {
 	return m.Forget(mailID(inv))
 }
 
-// MailUnlikely says whether u is sure enough that inv is no invoice.
-func MailUnlikely(u bayes.Use, inv sources.MailInvoice) bool {
-	best, ok := u.Best(mailFeatures(inv), isSenderFeature)
-	return ok && best.Label == string(MailNoInvoice)
+// MailSuggest is what u suggests inv is; MailNoKind without a sure
+// enough guess. Two kinds only: the likelier one says it all.
+func MailSuggest(u bayes.Use, inv sources.MailInvoice) MailKind {
+	picks := u.Suggest(mailFeatures(inv), isSenderFeature, 1)
+	if len(picks) == 0 {
+		return MailNoKind
+	}
+	return MailKind(picks[0].Label)
 }
 
 // isSenderFeature says whether f is the sender's address or domain: the

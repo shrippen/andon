@@ -4258,9 +4258,9 @@ billing:
   no_mails: Keine erkannten Rechnungsmails (Stand des letzten Prüflaufs).
   mail_dismiss: Keine Rechnung
   mail_dismiss_hint: 'Blendet die Mail aus; Andon lernt daraus, welche Mails keine Rechnungen sind.'
-  mail_dismissed: 'Mail ausgeblendet. Ähnliche Mails stehen künftig unten.'
-  mail_unlikely: wahrscheinlich keine Rechnung
-  mail_learned: gelernt
+  mail_dismissed: 'Mail ausgeblendet. Bei Mails desselben Absenders schlägt Andon künftig „keine Rechnung“ vor.'
+  mail_kind_invoice: Rechnung
+  mail_kind_other: keine Rechnung
   mail_restore: Rückgängig
   lead: Unabgerechnete Kimai-Zeiten als Rechnungsentwurf in Invoice Ninja anlegen, und das Jahrespaket für die Steuer.
   drafts: Rechnungsentwürfe
