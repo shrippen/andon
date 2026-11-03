@@ -266,11 +266,15 @@ func update(d *sql.DB, purpose string, connID int64, h model.Holder, now time.Ti
 		}
 		if ok {
 			if err := json.Unmarshal([]byte(stored.Model), m); err != nil {
-				return err
+				slog.Warn("learn: stored model unreadable, starting over", "purpose", purpose, "conn", connID, "err", err)
+				m, ok = bayes.New(), false
 			}
 		}
-		if !teach(m) {
-			return nil // nothing new (or nothing to learn from): kept as it was
+		if !teach(m) && ok {
+			return nil // nothing new: kept as it was
+		}
+		if m.Stats().Examples == 0 && !ok {
+			return nil // nothing to keep
 		}
 		text, err := json.Marshal(m)
 		if err != nil {

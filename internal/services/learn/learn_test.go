@@ -225,3 +225,19 @@ func TestTrainNothingNew(t *testing.T) {
 		t.Fatalf("time moved without learning: %+v %v", rows, err)
 	}
 }
+
+// An unreadable stored model starts over instead of stopping every run.
+func TestUnreadableModel(t *testing.T) {
+	d := testkit.DB(t)
+	admin, space := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+	conn := testkit.Conn(t, d, admin, space, enums.ServiceInvoiceNinja, "demo://invoiceninja")
+	if _, err := d.Exec("INSERT INTO learned_models (purpose, conn_id, holder, model, trained_at) VALUES ('euer', ?, 0, 'kaputt', '2026-01-01T00:00:00Z')", conn); err != nil {
+		t.Fatal(err)
+	}
+	if err := learn.Train(context.Background(), d, time.Now()); err != nil {
+		t.Fatalf("train: %v", err)
+	}
+	if rows, _ := learn.Overview(d, admin); len(rows) != 1 || rows[0].Stats.Examples == 0 {
+		t.Fatalf("not started over: %+v", rows)
+	}
+}
