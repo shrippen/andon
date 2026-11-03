@@ -112,7 +112,8 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 		}
 		p.Cases = append(p.Cases, cs)
 	}
-	open := workbench.Keys(p.Cases, func(c Case) string { return c.Key })
+	// A reminder's text is its stage's: drafted at another, it goes.
+	open := workbench.Based(p.Cases, func(c Case) string { return c.Key }, func(c Case) string { return strconv.Itoa(c.Next) })
 	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("dunning", p.Scope, ""), open); err != nil {
 		return p, err
 	}

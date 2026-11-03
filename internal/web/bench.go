@@ -130,7 +130,7 @@ func (d Deps) handleDraftDrop(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	http.Redirect(w, r, to.String(), http.StatusSeeOther)
 }
 
-// draftAt is the draft's place: a bench of the menu and a short key.
+// draftAt is the draft's place: a bench (benchURL) and a short key.
 func draftAt(r *http.Request) (workbench.Place, bool) {
 	at := workbench.Place{Bench: r.PathValue("id"), Key: r.FormValue(draftPlace)}
 	if benchURL(at.Bench) == "" || len(at.Key) > draftPlaceMax {

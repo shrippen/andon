@@ -10,6 +10,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"maps"
 	"slices"
 
 	"andon/internal/enums"
@@ -76,9 +77,9 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string) (
 		return p, err
 	}
 	p.Groups = metrics.VendorDuplicates(b.ninja)
-	var open []string
+	open := workbench.Open{}
 	for _, g := range p.Groups {
-		open = append(open, workbench.Keys(g.Vendors, func(v sources.NinjaVendor) string { return v.Key })...)
+		maps.Copy(open, workbench.Keys(g.Vendors, func(v sources.NinjaVendor) string { return v.Key }))
 	}
 	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("vendors", p.Scope, ""), open); err != nil {
 		return p, err

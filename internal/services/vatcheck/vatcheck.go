@@ -18,6 +18,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -263,12 +264,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 }
 
 // openKeys are the keys of every case the page shows.
-func (p Page) openKeys() []string {
-	var out []string
+func (p Page) openKeys() workbench.Open {
+	out := workbench.Open{}
 	for _, list := range [][]Case{p.Cases, p.Apart, p.Gaps, p.Docs} {
-		for _, c := range list {
-			out = append(out, c.Txn.Key)
-		}
+		maps.Copy(out, workbench.Keys(list, func(c Case) string { return c.Txn.Key }))
 	}
 	return out
 }

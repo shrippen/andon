@@ -109,12 +109,17 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string) (
 		}
 	}
 	p.Finders = b.scope.Conn(enums.ServiceWUD) != nil || b.scope.Conn(enums.ServiceFreshRSS) != nil
-	open := workbench.Keys(p.Cases, func(c metrics.UpdateCase) string { return c.Key })
+	// The new tag is picked from the running one: drafted at other tags,
+	// it goes.
+	open := workbench.Based(p.Cases, func(c metrics.UpdateCase) string { return c.Key }, updateBasis)
 	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("updates", p.Scope, ""), open); err != nil {
 		return p, err
 	}
 	return p, nil
 }
+
+// updateBasis is what an update's draft follows (web: data-draft-basis).
+func updateBasis(c metrics.UpdateCase) string { return c.Tag + " " + c.NewTag }
 
 func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, fresh svcdata.Freshness) (book, []workbench.Scope, error) {
 	scopes, err := workbench.Scopes(d, who, need)
