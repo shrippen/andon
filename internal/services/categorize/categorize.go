@@ -3,22 +3,27 @@
 // (metrics.Uncategorized):
 //
 //	merchant's bookings without category ─► category proposed from its
-//	filed ones ─► review ─► each booking filed in Sure (fresh data)
+//	filed ones; else learned ones only suggested (learn.Model) ─►
+//	review ─► each booking filed in Sure (fresh data) ─► the model
+//	learns the filing
 package categorize
 
 import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 	"slices"
 	"strconv"
 
+	"andon/internal/bayes"
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/outbound"
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
+	"andon/internal/services/learn"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/workbench"
 	"andon/internal/sources"
@@ -48,6 +53,19 @@ const (
 )
 
 const prefKey = "categorize"
+
+// PurposeCategory is the model proposing a Sure booking's category.
+const PurposeCategory = "sure_category"
+
+func init() {
+	learn.Register(learn.Purpose{Key: PurposeCategory, Service: enums.ServiceSure, Teach: teach})
+}
+
+// teach learns a Sure's filed bookings.
+func teach(m *bayes.Model, data any, _ *model.Connection) bool {
+	bank, _ := data.(*sources.BankData)
+	return bank != nil && metrics.CatLearn(m, bank)
+}
 
 type state struct {
 	Scope string `json:"scope,omitempty"`
@@ -116,7 +134,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 	if b.bank, _ = res.Data.(*sources.BankData); b.bank == nil {
 		return b, scopes, ErrNoSure
 	}
-	b.cases = metrics.Uncategorized(b.bank)
+	b.cases = metrics.Uncategorized(b.bank, learn.Model(d, PurposeCategory, b.conn, holder))
 	return b, scopes, nil
 }
 
@@ -182,7 +200,7 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	if err != nil {
 		return workbench.Result{}, err
 	}
-	w := writer{book: b, to: outbound.Target{URL: b.conn.URL, Token: token, VerifyTLS: b.conn.VerifyTLS}}
+	w := writer{book: b, d: d, holder: model.UserHolder(who.UserID), to: outbound.Target{URL: b.conn.URL, Token: token, VerifyTLS: b.conn.VerifyTLS}}
 	out := workbench.Apply[Item](ctx, d, who, w, plan, "categorize", ip)
 	svcdata.Forget(b.conn.ID)
 	err = workbench.SaveState(d, who, prefKey, func(s *state) { s.Scope = b.scope.Key })
@@ -194,11 +212,13 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 
 type writer struct {
 	book
-	to outbound.Target
+	d      *sql.DB
+	holder model.Holder
+	to     outbound.Target
 }
 
 // Write files each booking; one refused after others were filed is
-// done in part.
+// done in part. The model learns the bookings filed.
 func (w writer) Write(ctx context.Context, p workbench.Planned[Item]) (string, error) {
 	for n, t := range p.Item.Txns {
 		err := outbound.SureCategorySet(ctx, w.to, t.ID, p.Item.CategoryID)
@@ -208,9 +228,20 @@ func (w writer) Write(ctx context.Context, p workbench.Planned[Item]) (string, e
 		if n == 0 {
 			return "", err
 		}
+		w.learn(p.Item.Txns[:n], p.Item.CategoryID)
 		return p.Item.Merchant, workbench.Partly{Target: p.Item.Merchant, Reason: err.Error()}
 	}
+	w.learn(p.Item.Txns, p.Item.CategoryID)
 	return p.Item.Merchant, nil
+}
+
+// learn teaches the model a filing; a failure costs only the proposal,
+// the next training learns it from Sure.
+func (w writer) learn(txns []sources.BankTxn, category string) {
+	err := learn.Learn(w.d, PurposeCategory, w.conn, w.holder, func(m *bayes.Model) bool { return metrics.CatFiled(m, txns, category) })
+	if err != nil {
+		slog.Warn("categorize: learning the filing failed", "conn", w.conn.ID, "err", err)
+	}
 }
 
 func (w writer) Name(p workbench.Planned[Item]) string { return p.Item.Merchant }
