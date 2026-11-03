@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"andon/internal/bayes"
 	"andon/internal/enums"
 	"andon/internal/i18n"
 	"andon/internal/model"
@@ -169,4 +170,37 @@ func TestHolderGone(t *testing.T) {
 
 func deleteUser(d *sql.DB, who *access.Principal, id int64) error {
 	return admin.Delete(d, who, id, "")
+}
+
+// A purpose learning from what the user decides keeps it; off learns
+// nothing.
+func TestLearnDecision(t *testing.T) {
+	d := testkit.DB(t)
+	admin, space := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+	conn := testkit.Conn(t, d, admin, space, enums.ServiceInvoiceNinja, "demo://invoiceninja")
+	c, err := content.Connection(d, conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	me := model.UserHolder(admin.UserID)
+	teach := func(m *bayes.Model) bool { return m.Learn("x1", "yes", []string{"w:rechnung"}) }
+
+	if err := learn.Learn(d, learn.PurposeEuer, c, me, teach); err != nil {
+		t.Fatal(err)
+	}
+	if n := learn.Model(d, learn.PurposeEuer, c, me).Model.Stats().Examples; n != 1 {
+		t.Fatalf("examples %d", n)
+	}
+	if err := learn.SaveSettings(d, admin, learn.Settings{Mode: learn.ModeOff}, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := learn.Learn(d, learn.PurposeEuer, c, me, func(m *bayes.Model) bool { return m.Learn("x2", "no", nil) }); err != nil {
+		t.Fatal(err)
+	}
+	if err := learn.SaveSettings(d, admin, learn.Settings{Mode: learn.ModeOn}, ""); err != nil {
+		t.Fatal(err)
+	}
+	if n := learn.Model(d, learn.PurposeEuer, c, me).Model.Stats().Examples; n != 1 {
+		t.Fatalf("off learned: %d", n)
+	}
 }

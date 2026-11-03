@@ -66,6 +66,12 @@ func SetLearned(q db.Queryer, m LearnedModel) error {
 	return err
 }
 
+// TouchLearned marks a model trained at now, unchanged.
+func TouchLearned(q db.Queryer, purpose string, connID int64, h model.Holder, now time.Time) error {
+	_, err := q.Exec("UPDATE learned_models SET trained_at = ? WHERE purpose = ? AND conn_id = ? AND holder = ?", db.TimeStr(now), purpose, connID, h)
+	return err
+}
+
 // DeleteLearned forgets a model.
 func DeleteLearned(q db.Queryer, purpose string, connID int64, h model.Holder) error {
 	_, err := q.Exec("DELETE FROM learned_models WHERE purpose = ? AND conn_id = ? AND holder = ?", purpose, connID, h)

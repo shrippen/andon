@@ -1,12 +1,13 @@
-// Package learn keeps the learned models: one per purpose and Invoice
-// Ninja, stored, so a model does not start over at each page and keeps
-// what it learned from data that is gone.
+// Package learn keeps the learned models: one per purpose, connection
+// and holder, stored, so a model does not start over at each page and
+// keeps what it learned from data that is gone.
 //
-//	job (every Hours) ─► Invoice Ninja dataset ─► metrics.EuerLearn ─► learned_models
-//	/vat, /euer       ─► Euer(conn) ─► stored model (+ today's data, in memory)
+//	job (every Hours) ─► each Purpose.Teach(dataset) ─┐
+//	user decides      ─► Learn(purpose, conn, teach) ─┼─► learned_models
+//	pages             ─► Model(purpose, conn, holder) ◄┘  (+ today's data, in memory)
 //	/admin/learning   ─► Overview, SaveSettings, TrainNow, Reset
 //
-// Only the EÜR line learns so far (PurposeEuer).
+// A service registers its purposes (Register) in its init.
 package learn
 
 import (
@@ -121,29 +122,82 @@ func Every(d *sql.DB) time.Duration {
 	return time.Duration(s.Hours) * time.Hour
 }
 
-// Euer is the EÜR model of an Invoice Ninja connection, as h reads it
-// (a personal login has a model per holder), with the settings'
-// threshold; none when switched off, empty when not learned yet (the
-// page then learns from its own data only).
-func Euer(d *sql.DB, conn *model.Connection, h model.Holder) metrics.EuerLearning {
-	s, err := Load(d)
-	if err != nil || s.Mode == ModeOff {
-		return metrics.EuerLearning{}
-	}
-	l := metrics.EuerLearning{Model: bayes.New(), MinP: float64(s.MinPercent) / percent}
-	stored, ok, err := misc.Learned(d, PurposeEuer, conn.ID, svcdata.HolderOf(conn, h))
-	if err != nil || !ok {
-		return l
-	}
-	if err := json.Unmarshal([]byte(stored.Model), l.Model); err != nil {
-		slog.Warn("learn: stored model unreadable, starting over", "conn", conn.ID, "err", err)
-		l.Model = bayes.New()
-	}
-	return l
+// Purpose is one thing a model learns, registered by the service that
+// uses it (Register, in its init).
+type Purpose struct {
+	Key     string            // "euer"; names the text learn.purpose_<key>
+	Service enums.ServiceType // whose connections have a model
+
+	// Teach learns from a connection's cached dataset and says whether the
+	// model changed; nil for a purpose that learns only from what the user
+	// decides (Learn).
+	Teach func(m *bayes.Model, data any, conn *model.Connection) bool
 }
 
-// Train teaches each Invoice Ninja's model its current expenses, from
-// the cached dataset; nothing when switched off.
+var purposes = map[string]Purpose{}
+
+// Register adds a purpose; a key twice is a programming error.
+func Register(p Purpose) {
+	if _, dup := purposes[p.Key]; dup {
+		panic("learn: purpose registered twice: " + p.Key)
+	}
+	purposes[p.Key] = p
+}
+
+func init() {
+	Register(Purpose{Key: PurposeEuer, Service: enums.ServiceInvoiceNinja, Teach: teachEuer})
+}
+
+// teachEuer learns the EÜR lines of an Invoice Ninja's expenses.
+func teachEuer(m *bayes.Model, data any, conn *model.Connection) bool {
+	n, _ := data.(*sources.NinjaDataset)
+	if n == nil {
+		return false
+	}
+	slot := sources.CategoriesOf(conn.Options).EuerOf(n.ExpenseFields)
+	return slot > 0 && metrics.EuerLearn(m, n, slot)
+}
+
+// Model is purpose's model of a connection, as h reads it (a personal
+// login has a model per holder), with the settings' threshold; off
+// (nil Model) when switched off, empty when not learned yet (the page
+// then learns from its own data, in memory).
+func Model(d *sql.DB, purpose string, conn *model.Connection, h model.Holder) bayes.Use {
+	s, err := Load(d)
+	if err != nil || s.Mode == ModeOff || conn == nil {
+		return bayes.Use{}
+	}
+	u := bayes.Use{Model: bayes.New(), MinP: float64(s.MinPercent) / percent}
+	stored, ok, err := misc.Learned(d, purpose, conn.ID, svcdata.HolderOf(conn, h))
+	if err != nil || !ok {
+		return u
+	}
+	if err := json.Unmarshal([]byte(stored.Model), u.Model); err != nil {
+		slog.Warn("learn: stored model unreadable, starting over", "purpose", purpose, "conn", conn.ID, "err", err)
+		u.Model = bayes.New()
+	}
+	return u
+}
+
+// Euer is the EÜR model (Model).
+func Euer(d *sql.DB, conn *model.Connection, h model.Holder) bayes.Use {
+	return Model(d, PurposeEuer, conn, h)
+}
+
+// Learn lets purpose's model of a connection learn what the user just
+// decided (teach changes the model and says whether it did); nothing when
+// switched off.
+func Learn(d *sql.DB, purpose string, conn *model.Connection, h model.Holder, teach func(*bayes.Model) bool) error {
+	s, err := Load(d)
+	if err != nil || s.Mode == ModeOff || conn == nil {
+		return err
+	}
+	return update(d, purpose, conn.ID, svcdata.HolderOf(conn, h), time.Now(), teach)
+}
+
+// Train teaches each registered purpose's models the current data of
+// their connections, from the cached datasets; nothing when switched
+// off. Models of logins taken back go.
 func Train(ctx context.Context, d *sql.DB, now time.Time) error {
 	s, err := Load(d)
 	if err != nil || s.Mode == ModeOff {
@@ -165,12 +219,14 @@ func Train(ctx context.Context, d *sql.DB, now time.Time) error {
 
 	var errs []error
 	for _, c := range conns {
-		if c.Service != string(enums.ServiceInvoiceNinja) {
-			continue
-		}
 		keep := holdersOf(c, holders[c.ID])
-		for _, h := range keep {
-			errs = append(errs, trainOne(ctx, d, c, h, now))
+		for _, p := range purposes {
+			if p.Teach == nil || string(p.Service) != c.Service {
+				continue
+			}
+			for _, h := range keep {
+				errs = append(errs, trainOne(ctx, d, p, c, h, now))
+			}
 		}
 		errs = append(errs, db.WithTx(d, func(tx *sql.Tx) error { return misc.PruneLearned(tx, c.ID, keep) }))
 	}
@@ -186,25 +242,25 @@ func holdersOf(c *model.Connection, holders []model.Holder) []model.Holder {
 	return holders
 }
 
-func trainOne(ctx context.Context, d *sql.DB, c *model.Connection, h model.Holder, now time.Time) error {
-	res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceInvoiceNinja), nil, c, h, svcdata.Cached)
+func trainOne(ctx context.Context, d *sql.DB, p Purpose, c *model.Connection, h model.Holder, now time.Time) error {
+	res, err := svcdata.Get(ctx, d, sources.DataKey(p.Service), nil, c, h, svcdata.Cached)
 	if err != nil {
 		return err
 	}
-	n, _ := res.Data.(*sources.NinjaDataset)
-	if n == nil {
+	if res.Data == nil || res.Error != "" {
 		return nil // not fetched yet or failing: the analysis reports it
 	}
-	slot := sources.CategoriesOf(c.Options).EuerOf(n.ExpenseFields)
-	if slot == 0 {
-		return nil
-	}
+	return update(d, p.Key, c.ID, h, now, func(m *bayes.Model) bool { return p.Teach(m, res.Data, c) })
+}
 
-	// Read, learn and write in one write transaction: a reset meanwhile
-	// waits, and is not overwritten by the model read before it.
+// update reads, teaches and writes one model in one write transaction:
+// a reset meanwhile waits and is not overwritten by the model read
+// before it. A model that learned nothing is not written, only marked
+// trained.
+func update(d *sql.DB, purpose string, connID int64, h model.Holder, now time.Time, teach func(*bayes.Model) bool) error {
 	return db.WithTx(d, func(tx *sql.Tx) error {
 		m := bayes.New()
-		stored, ok, err := misc.Learned(tx, PurposeEuer, c.ID, h)
+		stored, ok, err := misc.Learned(tx, purpose, connID, h)
 		if err != nil {
 			return err
 		}
@@ -213,12 +269,17 @@ func trainOne(ctx context.Context, d *sql.DB, c *model.Connection, h model.Holde
 				return err
 			}
 		}
-		metrics.EuerLearn(m, n, slot)
+		if !teach(m) {
+			if !ok {
+				return nil // nothing learned, nothing to keep
+			}
+			return misc.TouchLearned(tx, purpose, connID, h, now.UTC())
+		}
 		text, err := json.Marshal(m)
 		if err != nil {
 			return err
 		}
-		return misc.SetLearned(tx, misc.LearnedModel{Purpose: PurposeEuer, ConnID: c.ID, Holder: h, Model: string(text), TrainedAt: now.UTC()})
+		return misc.SetLearned(tx, misc.LearnedModel{Purpose: purpose, ConnID: connID, Holder: h, Model: string(text), TrainedAt: now.UTC()})
 	})
 }
 

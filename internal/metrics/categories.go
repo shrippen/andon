@@ -12,6 +12,7 @@ import (
 	"slices"
 	"sort"
 
+	"andon/internal/bayes"
 	"andon/internal/sources"
 )
 
@@ -136,7 +137,7 @@ type EuerCase struct {
 
 // EuerCases are the expenses from since on with an empty EÜR field in
 // slot, newest first.
-func EuerCases(n *sources.NinjaDataset, slot int, since string, l EuerLearning) []EuerCase {
+func EuerCases(n *sources.NinjaDataset, slot int, since string, l bayes.Use) []EuerCase {
 	if n == nil || slot < 1 || slot > sources.NinjaSlots {
 		return nil
 	}

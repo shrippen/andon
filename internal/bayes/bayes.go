@@ -228,3 +228,27 @@ func compareStr(a, b string) int {
 	}
 	return 0
 }
+
+// Use is a model as a page uses it: with the least probability a
+// proposal needs. A nil Model proposes nothing (learning switched off).
+type Use struct {
+	Model *Model
+	MinP  float64
+}
+
+// On says whether there is a model to ask.
+func (u Use) On() bool { return u.Model != nil }
+
+// Best is the likeliest label if it reaches MinP and at least one of
+// the evidence features (those for which evidence is true) is known:
+// without evidence, a prior or a weak feature (an amount) alone would
+// decide.
+func (u Use) Best(features []string, evidence func(string) bool) (Guess, bool) {
+	if u.Model == nil {
+		return Guess{}, false
+	}
+	if !slices.ContainsFunc(features, func(f string) bool { return evidence(f) && u.Model.Knows(f) }) {
+		return Guess{}, false
+	}
+	return u.Model.Best(features, u.MinP)
+}

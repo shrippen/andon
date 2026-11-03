@@ -44,6 +44,9 @@ const (
 	amountFeature = "a:"
 )
 
+// IsWordFeature says whether f is a word: the evidence of a guess.
+func IsWordFeature(f string) bool { return strings.HasPrefix(f, wordFeature) }
+
 // minWord is the shortest word that counts as a feature.
 const minWord = 3
 
@@ -62,22 +65,15 @@ type EuerInput struct {
 // EuerGuesser proposes lines for one Invoice Ninja and EÜR field.
 type EuerGuesser struct {
 	last    map[string]string
-	learn   EuerLearning
+	learn   bayes.Use
 	names   map[string]string               // vendor key → name
 	txns    map[string]sources.NinjaBankTxn // by key
 	choices []string                        // a dropdown's values; nil takes any
 }
 
-// EuerLearning is the stored model and the least probability a learned
-// line needs; a nil Model proposes only the vendor's line.
-type EuerLearning struct {
-	Model *bayes.Model
-	MinP  float64
-}
-
 // EuerGuesserOf proposes for n's expenses with a line in slot (1–4);
 // l.Model learns n's expenses first (EuerLearn), in memory.
-func EuerGuesserOf(n *sources.NinjaDataset, slot int, l EuerLearning) EuerGuesser {
+func EuerGuesserOf(n *sources.NinjaDataset, slot int, l bayes.Use) EuerGuesser {
 	g := euerReader(n, slot)
 	g.learn = l
 	if l.Model != nil {
@@ -147,16 +143,8 @@ func (g EuerGuesser) Guess(c EuerInput) (string, EuerFrom) {
 	if line := g.last[c.VendorKey]; c.VendorKey != "" && line != "" {
 		return line, EuerFromVendor
 	}
-	m := g.learn.Model
-	if m == nil {
-		return "", EuerFromNothing
-	}
 	// Words are the evidence; the amount only weighs in.
-	features := c.features()
-	if !slices.ContainsFunc(features, func(f string) bool { return strings.HasPrefix(f, wordFeature) && m.Knows(f) }) {
-		return "", EuerFromNothing
-	}
-	best, ok := m.Best(features, g.learn.MinP)
+	best, ok := g.learn.Best(c.features(), IsWordFeature)
 	if !ok || (len(g.choices) > 0 && !slices.Contains(g.choices, best.Label)) {
 		return "", EuerFromNothing
 	}
