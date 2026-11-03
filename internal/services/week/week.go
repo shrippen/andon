@@ -124,7 +124,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, d
 		c.Checked = c.Project > 0 && c.Activity > 0
 		p.Cases = append(p.Cases, c)
 	}
-	open := workbench.Keys(p.Cases, func(c Case) string { return c.Key })
+	// Begin and end come from the calendar or the visit: drafted at
+	// others, they go.
+	open := workbench.Based(p.Cases, func(c Case) string { return c.Key },
+		func(c Case) string { return c.Start.Format(time.RFC3339) + " " + c.End.Format(time.RFC3339) })
 	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("week", p.Scope, ""), open); err != nil {
 		return p, err
 	}

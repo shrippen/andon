@@ -106,7 +106,9 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 	if b.ninja != nil {
 		p.Categories, p.TaxRates = b.ninja.Categories, b.ninja.TaxRates
 	}
-	open := workbench.Keys(p.Cases, func(c metrics.SubCase) string { return c.Key })
+	// The amount comes from the bank: drafted at another, it goes.
+	open := workbench.Based(p.Cases, func(c metrics.SubCase) string { return c.Key },
+		func(c metrics.SubCase) string { return strconv.FormatFloat(c.Amount, 'f', -1, 64) })
 	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("subs", p.Scope, ""), open); err != nil {
 		return p, err
 	}

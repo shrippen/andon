@@ -18,17 +18,18 @@ func TestBenchDrafts(t *testing.T) {
 	for _, c := range []struct {
 		bench    string
 		services []string
+		based    bool // its proposals follow more than the case key
 	}{
-		{"euer", []string{"invoiceninja"}},
-		{"week", []string{"kimai", "dawarich"}},
-		{"inventory", []string{"snipeit", "fritzbox"}},
-		{"inventory", []string{"kept", "fritzbox"}}, // no Snipe-IT: Open ends early
-		{"dunning", []string{"invoiceninja"}},
-		{"purchases", []string{"snipeit", "invoiceninja"}},
-		{"subs", []string{"sure", "wallos", "invoiceninja"}},
-		{"updates", []string{"gitea", "wud", "freshrss"}},
-		{"categorize", []string{"sure"}},
-		{"feeds", []string{"gitea", "freshrss"}},
+		{"euer", []string{"invoiceninja"}, false},
+		{"week", []string{"kimai", "dawarich"}, true},
+		{"inventory", []string{"snipeit", "fritzbox"}, false},
+		{"inventory", []string{"kept", "fritzbox"}, false}, // no Snipe-IT: Open ends early
+		{"dunning", []string{"invoiceninja"}, true},
+		{"purchases", []string{"snipeit", "invoiceninja"}, false},
+		{"subs", []string{"sure", "wallos", "invoiceninja"}, true},
+		{"updates", []string{"gitea", "wud", "freshrss"}, true},
+		{"categorize", []string{"sure"}, false},
+		{"feeds", []string{"gitea", "freshrss"}, false},
 	} {
 		t.Run(c.bench, func(t *testing.T) {
 			srv, client, code := newTestServer(t)
@@ -50,6 +51,9 @@ func TestBenchDrafts(t *testing.T) {
 				t.Fatalf("page lacks the draft's hooks:\n%s", page)
 			}
 
+			if c.based && (len(k) < 3 || k[2] == "") {
+				t.Fatalf("case %s lacks its basis", k[1])
+			}
 			cases := `{"` + k[1] + `": {"note_` + k[1] + `": ["Entwurf"], "basis_` + k[1] + `": ["` + html.UnescapeString(k[2]) + `"]}}`
 			resp := postForm(t, client, srv.URL+"/bench/"+c.bench+"/draft", url.Values{"csrf": {csrfToken(t, srv, client)}, "place": {at[1]}, "cases": {cases}})
 			if resp.StatusCode != http.StatusNoContent {

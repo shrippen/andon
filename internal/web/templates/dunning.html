@@ -31,7 +31,7 @@
     <form method="post" action="/dunning/review" data-draft="/bench/dunning/draft" data-draft-place="{{$p.DraftKey}}" data-draft-cases="{{json $p.Draft}}">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
       {{range $p.Cases}}{{$k := .Key}}
-      <section class="card" data-draft-case="{{$k}}" data-draft-basis="{{.Next}}">
+      <section class="card" data-draft-case="{{$k}}" data-draft-basis="{{index $p.Bases $k}}">
         <label class="check"><input type="checkbox" name="pick" value="{{$k}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>
           <b>{{.Number}} · {{.Client}}</b></label>
         <p class="small">{{t "dunning.facts" "balance" (money .Balance $p.Currency) "due" (day .DueDate) "days" .OverdueDays}} · <span class="pill">{{t (print "dunning.stage_" .Next)}}</span> {{t "dunning.since" "day" (day .Since)}}

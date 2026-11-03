@@ -167,6 +167,7 @@ func readDraft(q db.Queryer, who *access.Principal, at Place) (Draft, error) {
 type Drafted struct {
 	Draft    Draft
 	DraftKey string
+	Bases    Open // each case's basis, for its row (web: data-draft-basis)
 }
 
 // PlaceOf is a bench's draft in a Verbund, per period where the bench
@@ -178,7 +179,7 @@ func PlaceOf(bench, scope, period string) Place {
 // OpenDraft loads the draft at place for a page showing the open cases.
 func OpenDraft(d *sql.DB, who *access.Principal, at Place, open Open) (Drafted, error) {
 	draft, err := LoadDraft(d, who, at, open)
-	return Drafted{Draft: draft, DraftKey: at.Key}, err
+	return Drafted{Draft: draft, DraftKey: at.Key, Bases: open}, err
 }
 
 // Written are the cases Apply wrote without a failure.
