@@ -3,6 +3,100 @@
 The release notes of Andon, newest first. Each section is the text of the release on Gitea and of
 its entry in `#changes` on the landing page (`docs/index.html`).
 
+## [0.8.0] — 2026-11-03
+
+### English
+
+Andon now does the paperwork with you instead of only pointing at it. Workbenches take the open cases of a service, propose what to write, show every step before anything leaves Andon, and write only what you confirmed, checked again against fresh data. The largest is the VAT check on Invoice Ninja's bank feed, up to the ELSTER figures.
+
+#### New
+- Workbenches, in their own menu with an overview and favourites: VAT check, receipt hunt, EÜR lines, close the week in Kimai, reminders on Invoice Ninja's schedule, subscriptions, Sure categories, vendor clean-up, updates as pull requests, inventory of the devices on the network, complete purchases and release feeds. Each one works inside a bundle and shows what it would write before it writes.
+- VAT check: the period's bank transactions from Invoice Ninja (with Sure beside it) are linked to expenses, invoices and payments, or become new expenses with scan, EÜR line and invoice number; a debit can be split over several receipts, receipts without an expense become one. Period cards show what is open and due; the ELSTER figures and the recapitulative statement (ZM) are ready to copy.
+- Work in progress stays: every change on a workbench is kept as a draft, so closing the page loses nothing. A draft gives way when its proposal changes (another reminder stage, another tag, another amount).
+- "Review this one" on the VAT check writes a single transaction while the others wait.
+- Accounts in a bundle are business, private, mixed, clearing, reserve or ignored; the reserve covers VAT and income tax before free cash does.
+- Write journal: every write of a workbench, with undo where the service allows it.
+- Year: EÜR preparation with depreciation, home office and the documents for the tax return; analyses of client health, price increases and project post-calculation; a year review and "Ask Andon".
+- Photovoltaics from Home Assistant: yield, own use and feed-in as a tile, with hints for a low or missing yield, an idle battery and falling own use.
+- AI costs: token use and cost of the LLM providers (xAI included), and a hint when a provider charges without an expense in Invoice Ninja.
+- Kept as a second inventory beside Snipe-IT: deadlines, receipts, warranties, location and room of new devices.
+- Homelab cost per service, a dismissible notice for admins when a newer Andon is out, and moving a connection to another server (or taking over from another connection) without losing tiles, history or notes.
+
+#### Improved
+- FRITZ!Box reads everything over TR-064; Vikunja 2, current Ghostfolio versions and GoToSocial are recognised.
+- Number format in the profile: amounts read and typed as "1.234,56" or "1,234.56", independent of the language.
+- One loading feedback everywhere; dialogs show texts instead of keys; counts use the singular ("1 hint").
+- Fewer and truer hints from real data: duplicates removed, reverse charge named as such, deleted Invoice Ninja entries ignored.
+- The container dialog opens in 2 instead of 10 seconds; Vaultwarden keeps its admin session.
+
+#### Fixed
+- The edit mode broke after reloading a board.
+- Snipe-IT costs in German format were misread.
+- A typo in a rule threshold ("18.40" in German) saved a rule that fired on every value; it is now refused.
+- Status checks asked DNS twice when many ran at once.
+
+#### Note
+- The Claude plan integration is gone: it read an undocumented claude.ai endpoint, and Anthropic suspended the account it read. Migration 0025 deletes such connections; AI costs come from the providers' admin APIs.
+- The EÜR line of an expense comes from its vendor's last expense, not from the category: one category belongs to several lines. The connection option "euer_map" is no longer read.
+- Rules of a category are named after it: snipe.* becomes inventory.*, sure.* and firefly.* become bank.*. Migration 0026 moves hints and rule settings along.
+- The image is published only on ghcr.io/shrippen/andon, signed. Migrations 0025 to 0027 run at start.
+- Workbenches write to your services. They were tested against throwaway containers of the services, not yet over months of real bookkeeping: read each review before you confirm.
+
+![The workbenches overview (demo data)](https://shrippen.github.io/andon/shots/release-0.8.0-benches-en.webp)
+
+![The VAT check: list and desk of one transaction (demo data)](https://shrippen.github.io/andon/shots/release-0.8.0-vat-en.webp)
+
+![One transaction reviewed below its desk (demo data)](https://shrippen.github.io/andon/shots/release-0.8.0-vat-one-en.webp)
+
+### Deutsch
+
+Andon erledigt den Papierkram jetzt mit dir, statt nur darauf zu zeigen. Werkbänke nehmen die offenen Fälle eines Dienstes, schlagen vor, was zu schreiben ist, zeigen jeden Schritt, bevor etwas Andon verlässt, und schreiben nur, was du bestätigt hast, noch einmal gegen frische Daten geprüft. Die größte ist der USt-Abgleich auf Invoice Ninjas Bankumsätzen, bis zu den ELSTER-Kennzahlen.
+
+#### Neu
+- Werkbänke, in einem eigenen Menü mit Übersicht und Favoriten: USt-Abgleich, Belegjagd, EÜR-Zeilen, Woche in Kimai schließen, Mahnlauf nach Invoice Ninjas Mahnplan, Abos, Sure-Kategorien, Lieferanten aufräumen, Updates als Pull Requests, Inventur der Geräte im Netz, Anschaffungen vervollständigen und Release-Feeds. Jede arbeitet in einem Verbund und zeigt, was sie schreiben würde, bevor sie schreibt.
+- USt-Abgleich: Die Bankumsätze des Zeitraums aus Invoice Ninja (mit Sure daneben) werden mit Ausgaben, Rechnungen und Zahlungen verknüpft oder zu neuen Ausgaben mit Beleg, EÜR-Zeile und Rechnungsnummer; eine Abbuchung lässt sich auf mehrere Belege aufteilen, Belege ohne Ausgabe werden zu einer. Zeitraum-Karten zeigen, was offen und fällig ist; ELSTER-Kennzahlen und Zusammenfassende Meldung stehen zum Kopieren bereit.
+- Zwischenstand bleibt: Jede Änderung in einer Werkbank wird gesichert, das Schließen der Seite verliert nichts. Ändert sich der Vorschlag (andere Mahnstufe, anderer Tag, anderer Betrag), gilt wieder der neue.
+- „Nur diesen prüfen“ im USt-Abgleich schreibt einen einzelnen Umsatz, die anderen warten.
+- Konten im Verbund sind geschäftlich, privat, gemischt, Verrechnung, Rücklage oder ignoriert; die Rücklage deckt Umsatz- und Einkommensteuer, bevor freies Geld es tut.
+- Schreib-Journal: jeder Schreibvorgang einer Werkbank, mit Rückgängig, wo der Dienst es erlaubt.
+- Jahr: EÜR-Vorbereitung mit AfA, Homeoffice und den Unterlagen für die Steuererklärung; Auswertungen zu Kundenzustand, Preiserhöhung und Nachkalkulation; Jahresrückblick und „Frag Andon“.
+- Photovoltaik aus Home Assistant: Ertrag, Eigenverbrauch und Einspeisung als Kachel, mit Hinweisen bei niedrigem oder fehlendem Ertrag, ruhendem Speicher und sinkendem Eigenverbrauch.
+- KI-Kosten: Token-Nutzung und Kosten der LLM-Anbieter (auch xAI), und ein Hinweis, wenn ein Anbieter abbucht, ohne dass in Invoice Ninja eine Ausgabe steht.
+- Kept als zweites Inventar neben Snipe-IT: Fristen, Belege, Garantien, Ort und Raum neuer Geräte.
+- Homelab-Kosten je Dienst, ein ausblendbarer Hinweis für Admins, wenn eine neuere Andon-Version da ist, und Verbindungen auf einen anderen Server umziehen (oder von einer anderen übernehmen), ohne Kacheln, Verlauf oder Notizen zu verlieren.
+
+#### Verbessert
+- FRITZ!Box liest alles über TR-064; Vikunja 2, aktuelle Ghostfolio-Versionen und GoToSocial werden erkannt.
+- Zahlenformat im Profil: Beträge lesen und tippen sich als „1.234,56“ oder „1,234.56“, unabhängig von der Sprache.
+- Ein Ladefeedback überall; Dialoge zeigen Texte statt Schlüssel; Zähltexte kennen die Einzahl („1 Hinweis“).
+- Weniger und treffendere Hinweise aus echten Daten: Doppelte entfernt, Reverse Charge als solches benannt, gelöschte Einträge in Invoice Ninja übergangen.
+- Der Container-Dialog öffnet in 2 statt 10 Sekunden; Vaultwarden behält seine Admin-Sitzung.
+
+#### Behoben
+- Der Bearbeitungsmodus brach nach dem Neuladen eines Boards ab.
+- Snipe-IT-Kosten im deutschen Format wurden falsch gelesen.
+- Ein Tippfehler in der Schwelle einer Regel („18.40“ auf Deutsch) speicherte eine Regel, die bei jedem Wert anschlug; er wird jetzt abgelehnt.
+- Statusprüfungen fragten DNS doppelt, wenn viele gleichzeitig liefen.
+
+#### Hinweis
+- Die Claude-Abo-Integration ist entfernt: Sie las einen undokumentierten Endpunkt von claude.ai, und Anthropic hat das gelesene Konto gesperrt. Migration 0025 löscht solche Verbindungen; KI-Kosten kommen aus den Admin-APIs der Anbieter.
+- Die EÜR-Zeile einer Ausgabe kommt von der letzten Ausgabe ihres Lieferanten, nicht von der Kategorie: Eine Kategorie gehört zu mehreren Zeilen. Die Verbindungsoption „euer_map“ wird nicht mehr gelesen.
+- Regeln einer Kategorie heißen nach ihr: aus snipe.* wird inventory.*, aus sure.* und firefly.* wird bank.*. Migration 0026 zieht Hinweise und Regeleinstellungen mit.
+- Das Image erscheint nur noch auf ghcr.io/shrippen/andon, signiert. Die Migrationen 0025 bis 0027 laufen beim Start.
+- Werkbänke schreiben in deine Dienste. Getestet wurden sie gegen Wegwerf-Container der Dienste, noch nicht über Monate echter Buchhaltung: Lies jede Prüfung, bevor du bestätigst.
+
+![Die Übersicht der Werkbänke (Demodaten)](https://shrippen.github.io/andon/shots/release-0.8.0-benches-de.webp)
+
+![Der USt-Abgleich: Liste und Arbeitsfläche eines Umsatzes (Demodaten)](https://shrippen.github.io/andon/shots/release-0.8.0-vat-de.webp)
+
+![Ein einzelner Umsatz geprüft, unter seiner Arbeitsfläche (Demodaten)](https://shrippen.github.io/andon/shots/release-0.8.0-vat-one-de.webp)
+
+```
+Change a case → draft (per user, bundle, period) → review → write, checked against fresh data → journal
+```
+
+All changes / Alle Änderungen: https://github.com/shrippen/andon/compare/v0.7.0...v0.8.0 · Changelog: https://shrippen.github.io/andon/#v0.8.0
+
 ## [0.7.0] — 2026-10-07
 
 ### English

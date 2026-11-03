@@ -2,7 +2,7 @@
 
 Ein selbst gehostetes, **mehrbenutzerfähiges** Dashboard. Es löst Dashy als **Startseite mit Links, Statusanzeigen und Feeds** ab, führt zugleich Daten aus **Kimai**, **Invoice Ninja**, **Snipe-IT** und **Dawarich** zusammen und leitet daraus **Hinweise, Erinnerungen und Ratschläge** ab. Konfiguriert wird im **eingebauten Editor**, gestaltet über ein **Theme-System**, von dem nur das Theme **Kante** mitgeliefert wird. Auslieferung als **ein Docker-Container** mit eigener Anmeldung.
 
-> Stand: v0.7 · Name **Andon** (seit 2026-09-26, vorher Arbeitstitel `dashboard`): die Signaltafel aus der Fertigung, die zeigt, wo es hakt.
+> Stand: v0.8 · Name **Andon** (seit 2026-09-26, vorher Arbeitstitel `dashboard`): die Signaltafel aus der Fertigung, die zeigt, wo es hakt.
 >
 > **Veröffentlichung:** Quelltext und Entwicklung auf `git.arianw.de/shrippen/andon` (privat). Gitea spiegelt bei jedem Commit alle Branches und Tags nach `github.com/shrippen/andon`; dort prüft `.github/workflows/ci.yml` jeden Push, meldet das Ergebnis als Status `github / test` an den Commit in Gitea zurück und baut aus `main` und Tags das öffentliche Image `ghcr.io/shrippen/andon` (seit 16.10.2026 CI und Image nur dort; erster Lauf 9 min gegen 21–24 min auf Gitea), und GitHub Pages zeigt die Landing Page aus `docs/` unter `shrippen.github.io/andon/`.
 >
