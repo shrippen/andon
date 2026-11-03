@@ -167,6 +167,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, y
 	if b.ninja, _ = res.Data.(*sources.NinjaDataset); b.ninja == nil {
 		return b, scopes, ErrNoNinja
 	}
+	b.cats.EuerSlot = b.cats.EuerOf(b.ninja.ExpenseFields)
 	return b, scopes, nil
 }
 

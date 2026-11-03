@@ -37,8 +37,8 @@ func TestEuerBench(t *testing.T) {
 		t.Fatalf("view: slot %d, save %v", view.Slot, view.CanSave)
 	}
 	page, err := euer.Open(ctx, d, who, "", today.Year(), today)
-	if err != nil || page.Slot != 0 {
-		t.Fatalf("before saving: slot %d %v", page.Slot, err)
+	if err != nil || page.Slot != view.Slot {
+		t.Fatalf("before saving, the field named EÜR counts: slot %d %v", page.Slot, err)
 	}
 
 	if len(view.Sure) == 0 || len(view.Categories) == 0 {

@@ -34,9 +34,6 @@ import (
 // ErrNoNinja: the Verbund has no Invoice Ninja to keep categories on.
 var ErrNoNinja = errors.New("verbund.no_ninja")
 
-// euerWords name a custom field that holds the EÜR line.
-var euerWords = []string{"eür", "euer", "anlage"}
-
 // CategoryView is the categories page of one Verbund.
 type CategoryView struct {
 	Verbund    View
@@ -151,10 +148,7 @@ func CategoriesFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaI
 		out.Sure = bankNames(ninja, metrics.SureCategoryVotes(ninja, bank), debitNames(bank, catNames), saved.Sure[out.Bank.ID])
 		out.Tags = bankNames(ninja, metrics.SureTagVotes(ninja, bank), debitNames(bank, tagNames), saved.Tags[out.Bank.ID])
 	}
-	out.Slot = saved.EuerSlot
-	if out.Slot == 0 {
-		out.Slot = euerSlot(out.Fields)
-	}
+	out.Slot = saved.EuerOf(out.Fields)
 	out.lines = metrics.EuerChoices(ninja, out.Slot)
 	return out, nil
 }
@@ -197,17 +191,6 @@ func bankNames(ninja *sources.NinjaDataset, votes metrics.Votes, names []string,
 		out = append(out, c)
 	}
 	return out
-}
-
-// euerSlot is the field whose name says EÜR, 0 if none.
-func euerSlot(fields [sources.NinjaSlots]sources.ExpenseField) int {
-	for i, f := range fields {
-		label := strings.ToLower(f.Label)
-		if slices.ContainsFunc(euerWords, func(w string) bool { return strings.Contains(label, w) }) {
-			return i + 1
-		}
-	}
-	return 0
 }
 
 // CategorySave is what the page sends: Sure's categories and the EÜR

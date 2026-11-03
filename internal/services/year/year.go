@@ -117,7 +117,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, y
 	kimai, _ := data[enums.ServiceKimai].(*sources.KimaiDataset)
 	p.Review = metrics.ReviewYear(kimai, ninja, p.Year)
 	p.income(ninja, metrics.TaxVATMethod(settings))
-	p.expenses(ninja, sources.CategoriesOf(ninjaConn.Options).EuerSlot)
+	p.expenses(ninja, sources.CategoriesOf(ninjaConn.Options).EuerOf(ninja.ExpenseFields))
 	if inv, ok := metrics.InventoryOf(byName(data)); ok {
 		p.depreciation(inv)
 	}

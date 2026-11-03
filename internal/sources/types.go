@@ -3,6 +3,7 @@ package sources
 import (
 	"slices"
 	"strconv"
+	"strings"
 
 	"andon/internal/caps"
 	"andon/internal/enums"
@@ -278,6 +279,24 @@ func CategoriesOf(options map[string]any) Categories {
 	}
 	return out
 }
+
+// EuerOf is the slot of the field holding the EÜR line: the one chosen,
+// else the first whose label says EÜR ("EÜR Kategorie"); 0 none.
+func (c Categories) EuerOf(fields [NinjaSlots]ExpenseField) int {
+	if c.EuerSlot > 0 {
+		return c.EuerSlot
+	}
+	for i, f := range fields {
+		label := strings.ToLower(f.Label)
+		if slices.ContainsFunc(euerWords, func(w string) bool { return strings.Contains(label, w) }) {
+			return i + 1
+		}
+	}
+	return 0
+}
+
+// euerWords name a custom field that holds the EÜR line.
+var euerWords = []string{"eür", "euer", "anlage"}
 
 // Options writes them back into options (a copy is the caller's).
 func (c Categories) Options(options map[string]any) {

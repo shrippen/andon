@@ -29,8 +29,9 @@ func TestEuerPages(t *testing.T) {
 		t.Fatalf("no categories link:\n%s", list)
 	}
 
+	// Before saving, the field named EÜR counts already.
 	page := string(mustGet(t, srv, client, "/euer"))
-	if !strings.Contains(page, "Welches Feld hält die EÜR-Zeile?") || !strings.Contains(page, "/verbund/"+m[1]+"/categories") {
+	if strings.Contains(page, "Welches Feld hält die EÜR-Zeile?") || !strings.Contains(page, `name="act_`) {
 		t.Fatalf("euer before setup:\n%s", page)
 	}
 	cats := string(mustGet(t, srv, client, "/verbund/"+m[1]+"/categories?space="+space))
