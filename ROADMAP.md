@@ -1234,6 +1234,16 @@ Live-Fund 03.11.2026: Für Leistungen an VoiceArchive ApS (DK) fehlte die USt-Id
 - [ ] Stand je Quartal wie bei der Voranmeldung: alle Quartale mit Leistungen an EU-Unternehmen, je „gemeldet / offen / überfällig / Berichtigung fällig“; „Als gemeldet merken“ speichert die gemeldeten Zeilen, ändert sich danach eine Summe (Rechnung, Datum, USt-IdNr.), ist eine berichtigte Meldung fällig
 - [ ] Regel mit Frist: offene Meldung vor dem 25. nach dem Quartal (warn), danach überfällig (Fehler); führt nach `/vat` beim Quartal
 
+### Lernmodelle: nur Vorschläge (umgesetzt 03.11.2026, #245–#251)
+
+Naiver Bayes je Verbindung und Inhaber, gespeichert, einstellbar unter `/admin/learning`: EÜR-Zeile, Lieferant, privat/geschäftlich, Kategorie und Steuer auf `/vat`, Rechnungsmails, Sure-Kategorien, Fahrten, Kimai-Projekt und -Tätigkeit auf `/week`. Entscheid des Owners: Ein Modell schlägt nur vor („Vorschlag: a, b, c“ unter dem Feld, Kante 1.72 `.field-suggest`, ein Klick übernimmt), es füllt, hakt, sortiert und entscheidet nichts. Offene Kleinigkeiten aus den Reviews:
+- [ ] Fahrten: Das Modell wird auch beim Zeichnen der Kachel geladen, gebraucht nur im Detail-Dialog (`widgetlib/display.go`, nur bei `loadDetail` laden)
+- [ ] Fahrten: QA.md J-C5 sagt, „automatisch“ nehme die Fahrt aus dem Modell; für Fahrten, die das Kimai-Plugin hält, stimmt das nicht (der Plugin-Trip bleibt und wird wieder gelernt)
+- [ ] `/week`: Ein Tätigkeits-Vorschlag kann eine projektgebundene Tätigkeit eines anderen Projekts sein als das gewählte; Kimai lehnt die Buchung dann ab. Nur Paare des gewählten Projekts oder globale Tätigkeiten vorschlagen
+- [ ] Rechnungsmails: „Keine Rechnung“ verspricht einen Vorschlag für denselben Absender, den das Modell erst gibt, wenn es auch eine Weiterleitung kennt (zwei Klassen), und nie bei „aus“ (`billing.mail_dismissed`)
+- [ ] Rechnungsmails: `/billing` speichert Marken immer unter dem Nutzer; eine Team-Anmeldung im Teambereich sieht sie nicht
+- [ ] Kante: Nach `form.reset()` bleibt der zuvor angeklickte Vorschlag markiert (`aria-pressed`); auf `reset` hören oder die Grenze im README nennen. Die Specimen-Beschriftung sagt noch „nach dem Klick“
+
 ### Werkbänke (entschieden 14.10.2026)
 
 `/vat` löst ein Problem mit dem Nutzer, statt es nur zu melden: Zeitraum → Fälle → Vorschlag → Prüfen → Schreiben nach OK gegen frische Daten → Wieder zeigen. Viele Regeln kennen ihr Problem schon und enden beim Hinweis. Aus 32 Vorschlägen hat der Nutzer ausgewählt (Entscheidungsseite mit Kommentaren, 14.10.2026). Reihenfolge nach Abhängigkeit, je Punkt ein PR.
