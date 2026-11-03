@@ -333,25 +333,31 @@ func FindScans(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID in
 	return out[:min(len(out), scansFound)], nil
 }
 
-// FreeScan is scan id read fresh, if still free: a scan the user picked,
-// a search hit among them, need not score like a proposal. ok is false
-// when it is linked, hidden or gone.
-func FreeScan(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID, id int64) (Candidate, bool, error) {
+// FreeScans are the scans of ids still free, read fresh in one request:
+// scans the user picked, search hits among them, need not score like a
+// proposal. Linked, hidden and gone ones are missing.
+func FreeScans(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int64, ids []int64) (map[int64]Candidate, error) {
 	p, err := openPair(d, who)
 	if errors.Is(err, ErrNoPair) || (err == nil && (p.ninja.ID != ninjaID || !p.mapping.Complete())) {
-		return Candidate{}, false, nil
+		return nil, nil
 	}
 	if err != nil {
-		return Candidate{}, false, err
+		return nil, err
 	}
-	docs, err := p.docsByID(ctx, d, who, []int64{id})
-	if err != nil || docs[id] == nil {
-		return Candidate{}, false, err
+	docs, err := p.docsByID(ctx, d, who, ids)
+	if err != nil {
+		return nil, err
 	}
-	if len(p.free([]sources.ReceiptDoc{*docs[id]})) == 0 {
-		return Candidate{}, false, nil
+
+	list := make([]sources.ReceiptDoc, 0, len(docs))
+	for _, doc := range docs {
+		list = append(list, *doc)
 	}
-	return Candidate{Doc: *docs[id], Number: docNumber(p.mapping, *docs[id])}, true, nil
+	out := map[int64]Candidate{}
+	for _, doc := range p.free(list) {
+		out[doc.ID] = Candidate{Doc: doc, Number: docNumber(p.mapping, doc)}
+	}
+	return out, nil
 }
 
 // scansFound is how many hits FindScans offers.
