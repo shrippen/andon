@@ -1,43 +1,33 @@
-package web_test
+package web
 
 import (
-	"net/http"
-	"net/url"
-	"strings"
+	"bytes"
 	"testing"
+
+	"andon/internal/enums"
+	"andon/internal/services/learn"
 )
 
-// TestSuggestLayout: the button sits in edit mode only, the preview lists
-// the proposed sections, applying returns to edit mode with undo offered.
-func TestSuggestLayout(t *testing.T) {
-	srv, client, code := newTestServer(t)
-	setupAdmin(t, srv, client, code)
-	login(t, srv, client)
-
-	resp := getFollowingRedirect(t, srv, client, "/")
-	resp.Body.Close()
-	board := resp.Request.URL.Path // /boards/<id>
-
-	if view := string(mustGet(t, srv, client, board)); strings.Contains(view, board+"/suggest") {
-		t.Fatal("suggest button outside edit mode")
-	}
-	if edit := string(mustGet(t, srv, client, board+"?edit")); !strings.Contains(edit, `href="`+board+`/suggest"`) {
-		t.Fatalf("no suggest button in edit mode:\n%s", edit)
+// The suggestion line lists the picks for its field, comma-separated,
+// and is absent without picks: the model only suggests.
+func TestSuggestLine(t *testing.T) {
+	set := newPageSet()
+	set.state.locale = enums.LocaleDE
+	render := func(picks []learn.Pick) string {
+		var b bytes.Buffer
+		if err := set.tmpl.ExecuteTemplate(&b, "suggest", map[string]any{"For": "euer-1", "Picks": picks}); err != nil {
+			t.Fatal(err)
+		}
+		return b.String()
 	}
 
-	preview := string(mustGet(t, srv, client, board+"/suggest"))
-	if !strings.Contains(preview, "Überblick") || !strings.Contains(preview, `name="version"`) {
-		t.Fatalf("preview lacks sections or the apply form:\n%s", preview)
+	want := `<p class="field-suggest" data-suggest-for="euer-1"><span>Vorschlag:</span> ` +
+		`<button type="button" class="field-suggest-pick" data-value="7">Arbeitsmittel</button>, ` +
+		`<button type="button" class="field-suggest-pick" data-value="9">Miete</button></p>`
+	if got := render([]learn.Pick{{Value: "7", Label: "Arbeitsmittel"}, {Value: "9", Label: "Miete"}}); got != want {
+		t.Fatalf("got  %s\nwant %s", got, want)
 	}
-	version := strings.SplitN(strings.SplitN(preview, `name="version" value="`, 2)[1], `"`, 2)[0]
-
-	noFollow := *client
-	noFollow.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	res := postForm(t, &noFollow, srv.URL+board+"/suggest", url.Values{"csrf": {csrfToken(t, srv, client)}, "version": {version}})
-	if loc := res.Header.Get("Location"); loc != board+"?edit&undo" {
-		t.Fatalf("apply: %d %q", res.StatusCode, loc)
-	}
-	if after := string(mustGet(t, srv, client, board+"?edit")); !strings.Contains(after, "Überblick") {
-		t.Fatalf("board not replaced:\n%s", after)
+	if got := render(nil); got != "" {
+		t.Fatalf("no picks: %q", got)
 	}
 }
