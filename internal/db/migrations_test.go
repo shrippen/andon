@@ -128,3 +128,37 @@ func TestCategoriesMovesRules(t *testing.T) {
 		}
 	}
 }
+
+const mailMarksMigration = "0029_mail_reads_holder.sql"
+
+// Marks from before holders and mail keys stay: holder 0, key "" (they
+// match by UID alone, as then).
+func TestMailMarksKeepOld(t *testing.T) {
+	d, err := sql.Open(driverName, "file:"+filepath.Join(t.TempDir(), "m.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	migrateBefore(t, d, mailMarksMigration)
+
+	seed := []string{
+		`INSERT INTO spaces (id, kind, name) VALUES (1, 'instance', 'i')`,
+		`INSERT INTO connections (id, space_id, key, name, service, url, credential_mode, created_at)
+		 VALUES (3, 1, 'k', 'k', 'mail', 'imaps://x', 'shared', '')`,
+		`INSERT INTO mail_reads (connection_id, uid, data, created_at) VALUES (3, 5, '{"forwarded":"x"}', '')`,
+	}
+	if _, err := d.Exec(strings.Join(seed, ";\n")); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	applyMigration(t, d, mailMarksMigration)
+
+	var holder, uid int
+	var mail, data string
+	if err := d.QueryRow(`SELECT holder, uid, mail, data FROM mail_reads WHERE connection_id = 3`).Scan(&holder, &uid, &mail, &data); err != nil {
+		t.Fatal(err)
+	}
+	if holder != 0 || uid != 5 || mail != "" || data != `{"forwarded":"x"}` {
+		t.Fatalf("kept %d %d %q %s", holder, uid, mail, data)
+	}
+}

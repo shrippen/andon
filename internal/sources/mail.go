@@ -49,6 +49,12 @@ type MailInvoice struct {
 	Attachments          []string
 }
 
+// Key names the mail apart from others of its mailbox: a UID alone may
+// name another mail after the server renumbers (UIDVALIDITY).
+func (m MailInvoice) Key() string {
+	return strconv.FormatUint(uint64(m.UID), 10) + " " + strings.ToLower(m.Addr) + " " + m.Date.UTC().Format(time.RFC3339)
+}
+
 type MailDataset struct {
 	Mailbox  string
 	Scanned  int
