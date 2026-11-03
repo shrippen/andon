@@ -167,4 +167,6 @@ func TestHolderGone(t *testing.T) {
 	}
 }
 
-func deleteUser(d *sql.DB, who *access.Principal, id int64) error { return admin.Delete(d, who, id, "") }
+func deleteUser(d *sql.DB, who *access.Principal, id int64) error {
+	return admin.Delete(d, who, id, "")
+}
