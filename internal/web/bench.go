@@ -44,6 +44,9 @@ const (
 	draftCases = "cases"
 )
 
+// sealedSuffix marks a sealed JSON key (repos/misc).
+const sealedSuffix = "_enc"
+
 // draftPlaceMax caps a place's key: a Verbund and a period.
 const draftPlaceMax = 128
 
@@ -98,7 +101,7 @@ func (d Deps) handleDraft(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		d.fail(w, errDraftShape, http.StatusBadRequest)
 		return
 	}
-	if err := workbench.KeepDraft(d.DB, ctx.Who, at, cases, nil); err != nil {
+	if err := workbench.KeepDraft(d.DB, ctx.Who, at, cases); err != nil {
 		status := http.StatusInternalServerError
 		if errors.Is(err, workbench.ErrDraftSize) {
 			status = http.StatusRequestEntityTooLarge
@@ -137,15 +140,17 @@ func draftAt(r *http.Request) (workbench.Place, bool) {
 }
 
 // draftShaped says whether each case holds only its own fields, as
-// benchSteps reads them: pick with the case, <field>_<case>.
+// benchSteps reads them: pick with the case, <field>_<case>. No key may
+// end in sealedSuffix: rotate-key takes such JSON keys for ciphertext
+// (maintenance.sealedPurpose) and refuses a column it does not know.
 func draftShaped(cases workbench.Draft) bool {
 	for k, fields := range cases {
-		if k == "" {
+		if k == "" || strings.HasSuffix(k, sealedSuffix) {
 			return false
 		}
 		for name, v := range fields {
 			own := strings.HasSuffix(name, "_"+k) || (name == benchPick && !slices.ContainsFunc(v, func(s string) bool { return s != k }))
-			if !own {
+			if !own || strings.HasSuffix(name, sealedSuffix) {
 				return false
 			}
 		}

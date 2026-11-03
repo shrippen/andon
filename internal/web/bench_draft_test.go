@@ -44,6 +44,8 @@ func TestBenchDraft(t *testing.T) {
 		"other case's field": {"vat", `{"demo-b-studio": {"vendor_demo-p-food": ["x"]}}`, http.StatusBadRequest},
 		"other case's pick":  {"vat", `{"demo-b-studio": {"pick": ["demo-p-food"]}}`, http.StatusBadRequest},
 		"no JSON":            {"vat", `nope`, http.StatusBadRequest},
+		"sealed case key":    {"vat", `{"a_enc": {"pick": ["a_enc"]}}`, http.StatusBadRequest},
+		"sealed field name":  {"vat", `{"enc": {"x_enc": ["1"]}}`, http.StatusBadRequest},
 		"unknown bench":      {"nope", `{}`, http.StatusNotFound},
 	} {
 		if got := keep(c.bench, c.cases); got != c.want {
