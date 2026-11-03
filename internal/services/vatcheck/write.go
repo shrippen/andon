@@ -148,8 +148,8 @@ func scanChecks(ctx context.Context, d *sql.DB, who *access.Principal, connID in
 }
 
 // scanTitle names the scan a new expense gets; one no longer free, or
-// taken by an earlier step, is dropped (receipts.ScansFor offers only
-// free ones).
+// taken by an earlier step, is dropped. Any free scan counts: the user
+// may have picked a search hit no proposal offers.
 func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, p *Planned, taken map[int64]bool) {
 	if p.Item.Scan == 0 || p.Action == string(metrics.ActionSkip) || p.Problem != workbench.ProblemNone {
 		return
@@ -161,8 +161,10 @@ func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 		day, _ := metrics.ParseDay(p.Item.Txn.Date)
 		year := time.Date(day.Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
 		scans, err = receipts.Unbooked(ctx, d, who, connID, year, year.AddDate(1, 0, -1))
+	} else if c, free, ferr := receipts.FreeScan(ctx, d, who, connID, p.Item.Scan); free {
+		scans = []receipts.Candidate{c}
 	} else {
-		scans, err = receipts.ScansFor(ctx, d, who, connID, p.Item.Txn.Amount, p.Item.Txn.Date, p.Item.Vendor)
+		err = ferr
 	}
 	if err != nil && p.Action == string(ActionReceipt) {
 		p.Problem = ProblemGone // its scan is its only guard against a second expense
