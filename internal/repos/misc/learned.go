@@ -3,7 +3,7 @@ package misc
 import (
 	"database/sql"
 	"errors"
-	"slices"
+	"strings"
 	"time"
 
 	"andon/internal/db"
@@ -83,17 +83,15 @@ func idOrNil(id int64) any {
 // PruneLearned forgets the models of a connection whose holder is not
 // among keep: a login taken back.
 func PruneLearned(q db.Queryer, connID int64, keep []model.Holder) error {
-	rows, err := AllLearned(q)
-	if err != nil {
-		return err
+	args := []any{connID}
+	marks := make([]string, len(keep))
+	for i, h := range keep {
+		marks[i], args = "?", append(args, h)
 	}
-	for _, m := range rows {
-		if m.ConnID != connID || slices.Contains(keep, m.Holder) {
-			continue
-		}
-		if err := DeleteLearned(q, m.Purpose, connID, m.Holder); err != nil {
-			return err
-		}
+	query := "DELETE FROM learned_models WHERE conn_id = ?"
+	if len(keep) > 0 {
+		query += " AND holder NOT IN (" + strings.Join(marks, ",") + ")"
 	}
-	return nil
+	_, err := q.Exec(query, args...)
+	return err
 }
