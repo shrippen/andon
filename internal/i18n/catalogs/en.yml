@@ -7831,7 +7831,7 @@ year:
   err_no_ninja: 'No Invoice Ninja connection you may use.'
 categorize:
   title: 'File bookings'
-  lead: 'Bookings of the last 90 days Sure has filed under no category, by merchant. Proposed is the category the merchant’s other bookings have, ticked when they agree. After the review Andon files them in Sure (the API key needs write access).'
+  lead: 'Bookings of the last 90 days Sure has filed under no category, by merchant. Proposed is the category the merchant’s other bookings have, ticked when they agree. Without any, categories learned from similar bookings are suggested below; a click picks one. After the review Andon files them in Sure (the API key needs write access).'
   merchant: 'Merchant'
   category: 'Category'
   choose: 'Choose a category'
@@ -7979,6 +7979,7 @@ learn:
   col_features: 'Features'
   col_trained: 'Last learned'
   purpose_euer: 'EUER line'
+  purpose_sure_category: 'Sure category'
   purpose_mail: 'Invoice mail'
   train: 'Train now'
   reset: 'Reset'
